@@ -192,7 +192,7 @@ setInteger(int *flag, term_t old, term_t new)
 
 
 word
-setLong(long *flag, term_t old, term_t new)
+setLong(intptr_t *flag, term_t old, term_t new)
 { if ( !PL_unify_integer(old, *flag) ||
        !PL_get_long_ex(new, flag) )
     fail;
@@ -217,7 +217,7 @@ Variable argument list:
 
 typedef union
 { bool *b;				/* boolean value */
-  long *l;				/* integer value */
+  intptr_t *l;				/* integer value */
   int  *i;				/* integer value */
   char **s;				/* string value */
   word *a;				/* atom value */
@@ -358,7 +358,7 @@ strprefix(const char *string, const char *prefix)
 
 bool
 strpostfix(const char *string, const char *postfix)
-{ long offset = strlen(string) - strlen(postfix);
+{ intptr_t offset = strlen(string) - strlen(postfix);
 
   if ( offset < 0 )
     fail;

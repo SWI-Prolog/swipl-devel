@@ -41,7 +41,7 @@
 		*        MEMORY MANAGEMENT      *
 		*********************************/
 
-extern Void Allocate(long);
+extern Void Allocate(intptr_t);
 
 		/********************************
 		*         MISCELLANEOUS         *
@@ -86,7 +86,7 @@ extern bool initOs(void);
 #define Read(fd, buf, size)	read(fd, buf, size)
 #define Write(fd, buf, size)	write(fd, buf, size)
 #define Getc(fd)		Sgetc(fd)
-#define Putw(w, fd)		Sputw((long)(w), fd)
+#define Putw(w, fd)		Sputw((intptr_t)(w), fd)
 #define Getw(fd)		Sgetw(fd)
 
 		 /*******************************
@@ -131,7 +131,7 @@ extern int	getpagesize(void);
 		 *******************************/
 
 #if 0 && defined(__sun__) && defined(__svr4__)
-extern long random(void);
+extern intptr_t random(void);
 extern int srandom(unsigned seed);
 #endif
 
@@ -146,15 +146,15 @@ typedef enum
 
 extern double	  CpuTime(cputime_kind);
 extern double	  WallTime(void);
-extern struct tm *LocalTime(long *, struct tm *r);
+extern struct tm *LocalTime(intptr_t *, struct tm *r);
 
 
 		 /*******************************
 		 *	      MEMORY		*
 		 *******************************/
 
-extern unsigned long	UsedMemory(void);
-extern unsigned long	FreeMemory(void);
+extern uintptr_t	UsedMemory(void);
+extern uintptr_t	FreeMemory(void);
 
 
 		/********************************
@@ -165,9 +165,9 @@ extern unsigned long	FreeMemory(void);
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #else
-#define FD_ZERO(s)	{ *((unsigned long *)(s)) = (0L); }
-#define FD_SET(fd, s)	{ *((unsigned long *)(s)) |= (1L << (fd)); }
-#define FD_ISSET(fd, s) ( (*((unsigned long *)(s)) & (1L << (fd))) != 0 )
+#define FD_ZERO(s)	{ *((uintptr_t *)(s)) = (0L); }
+#define FD_SET(fd, s)	{ *((uintptr_t *)(s)) |= (1L << (fd)); }
+#define FD_ISSET(fd, s) ( (*((uintptr_t *)(s)) & (1L << (fd))) != 0 )
 #endif
 #endif
 

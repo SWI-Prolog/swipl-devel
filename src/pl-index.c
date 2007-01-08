@@ -59,7 +59,7 @@ indexing only on the first argument as this is default.
 
 #define SHIFT(c, a)	((LONGBITSIZE/(c)) * a)
 #define IDX_MASK(c)	(c == 1 ? ~0UL : ((1UL << (LONGBITSIZE/(c))) - 1))
-#define VM(c, a)	((unsigned long)((IDX_MASK(c) << SHIFT(c, a))))
+#define VM(c, a)	((uintptr_t)((IDX_MASK(c) << SHIFT(c, a))))
 
 #define Shift(c, a)	(mask_shift[c][a])
 #define Mask(c)		(mask_mask[c])
@@ -68,7 +68,7 @@ indexing only on the first argument as this is default.
 #define matchIndex(i1, i2)	(((i1).key & (i2).varmask) ==\
 				  ((i2).key & (i1).varmask))
 
-static unsigned long variable_mask[][4] =
+static uintptr_t variable_mask[][4] =
   { { 0,        0,        0,        0 }, 
 #ifdef DONOT_AVOID_SHIFT_WARNING
     { VM(1, 0), 0,        0,        0 },
@@ -88,7 +88,7 @@ static int mask_shift[][4] =
     { SHIFT(4, 0), SHIFT(4, 1), SHIFT(4, 2), SHIFT(4, 3) }
   };
 
-static unsigned long mask_mask[] =
+static uintptr_t mask_mask[] =
   { 0,
 #ifdef DONOT_AVOID_SHIFT_WARNING
     IDX_MASK(1),
@@ -100,7 +100,7 @@ static unsigned long mask_mask[] =
 
 
 int
-cardinalityPattern(unsigned long pattern)
+cardinalityPattern(uintptr_t pattern)
 { int result = 0;
 
   for(; pattern; pattern >>= 1)
@@ -126,7 +126,7 @@ guarantee that the value is non-0 for indexable values.
 
 static inline int
 hashIndex(word key, int buckets)
-{ unsigned long k = key >> LMASK_BITS;
+{ uintptr_t k = key >> LMASK_BITS;
 
   return (key^k) & (buckets-1);
 }
@@ -192,7 +192,7 @@ indexOfWord(word w ARG_LD)
 
 
 void
-getIndex(Word argv, unsigned long pattern, int card, struct index *index
+getIndex(Word argv, uintptr_t pattern, int card, struct index *index
 	 ARG_LD)
 { if ( pattern == 0x1L )
   { index->key     = indexOfWord(*argv PASS_LD);
@@ -234,7 +234,7 @@ getIndexOfTerm(term_t t)
 
 
 static ClauseRef
-nextClauseMultiIndexed(ClauseRef cref, unsigned long generation,
+nextClauseMultiIndexed(ClauseRef cref, uintptr_t generation,
 		       Word argv, Definition def,
 		       ClauseRef *next ARG_LD)
 { struct index idx;
@@ -273,7 +273,7 @@ nextClauseMultiIndexed(ClauseRef cref, unsigned long generation,
 
 
 static inline ClauseRef
-nextClauseArg1(ClauseRef cref, unsigned long generation,
+nextClauseArg1(ClauseRef cref, uintptr_t generation,
 	       ClauseRef *next, word key ARG_LD)
 { for(;cref ; cref = cref->next)
   { Clause clause = cref->clause;
@@ -402,7 +402,7 @@ part of the stacks (e.g. backtrailing is not needed).
 
 bool
 reindexClause(Clause clause, Definition def)
-{ unsigned long pattern = def->indexPattern & ~NEED_REINDEX;
+{ uintptr_t pattern = def->indexPattern & ~NEED_REINDEX;
 
   if ( pattern == 0x0 )
     succeed;
@@ -412,7 +412,7 @@ reindexClause(Clause clause, Definition def)
 
       if ( arg1Key(clause, &key) )
       { clause->index.key     = key;
-	clause->index.varmask = (unsigned long)~0L;
+	clause->index.varmask = (uintptr_t)~0L;
       } else
       { clause->index.key     = 0L;
 	clause->index.varmask = 0L;
@@ -441,7 +441,7 @@ bool
 unify_index_pattern(Procedure proc, term_t value)
 { GET_LD
   Definition def = proc->definition;
-  unsigned long pattern = (def->indexPattern & ~NEED_REINDEX);
+  uintptr_t pattern = (def->indexPattern & ~NEED_REINDEX);
   int n, arity = def->functor->arity;
 
   if ( pattern == 0 )

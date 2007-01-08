@@ -130,7 +130,7 @@ _PL_term(PL_atomic_t a)
 
 
 PL_atomic_t
-_PL_new_integer(long i)
+_PL_new_integer(intptr_t i)
 { return consInt(i);
 }
 

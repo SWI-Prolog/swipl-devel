@@ -16,7 +16,7 @@
   #define USE_POPEN 1
   FILE* pt_popen(const char *cmd, const char*mode);
   int pt_pclose(FILE *file);
-  unsigned long RunSilent(const char* strCommand);
+  uintptr_t RunSilent(const char* strCommand);
   #define popen pt_popen
   #define pclose pt_pclose
   #define system RunSilent
@@ -204,9 +204,9 @@ pt_popen(const char *cmd, const char *mode)
   CloseHandle(my_pipeerr[1]); my_pipeerr[1] = INVALID_HANDLE_VALUE;
 
   if (my_popenmode == 'r')
-    fptr = _fdopen(_open_osfhandle((long)my_pipeout[0],_O_BINARY),"r");
+    fptr = _fdopen(_open_osfhandle((intptr_t)my_pipeout[0],_O_BINARY),"r");
   else
-    fptr = _fdopen(_open_osfhandle((long)my_pipein[1],_O_BINARY),"w");
+    fptr = _fdopen(_open_osfhandle((intptr_t)my_pipein[1],_O_BINARY),"w");
 
 finito:
   if (!fptr)

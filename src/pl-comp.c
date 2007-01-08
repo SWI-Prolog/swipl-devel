@@ -1249,10 +1249,10 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
 	{ int64_t val = *(int64_t*)(p+1);
 
 #if SIZEOF_LONG == 8
-          Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (long)val);
+          Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (intptr_t)val);
 #else
           if ( val >= LONG_MIN && val <= LONG_MAX )
-	  { Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (long)val);
+	  { Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (intptr_t)val);
 	  } else
 	  { Output_0(ci, (where&A_HEAD) ? H_INT64 : B_INT64);
 	    Output_n(ci, (Word)&val, WORDS_PER_INT64);
@@ -2201,7 +2201,7 @@ arg1Key(Clause clause, word *key)
       { word k;
 #if SIZEOF_LONG == 4
 	k = (word)*PC;			/* indexOfWord() picks 64-bits */
-        if ( (long)k < 0L )
+        if ( (intptr_t)k < 0L )
 	  k ^= -1L;
 	DEBUG(9, Sdprintf("key for %ld = 0x%x\n", *PC, k));
 #else
@@ -2411,7 +2411,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  continue;
 	}
       case H_INTEGER:
-        { word copy = globalLong((long)XR(*PC++) PASS_LD);
+        { word copy = globalLong((intptr_t)XR(*PC++) PASS_LD);
 	  TRY(_PL_unify_atomic(argp, copy));
 	  NEXTARG;
 	  continue;
@@ -2659,7 +2659,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    continue;
 	case B_INTEGER:
 	case A_INTEGER:
-			    *ARGP++ = makeNum((long)*PC++);
+			    *ARGP++ = makeNum((intptr_t)*PC++);
 			    continue;
 	case B_INT64:
 	case A_INT64:
@@ -3178,7 +3178,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   Definition def;
   Cref cr;
 #ifdef O_LOGICAL_UPDATE
-  unsigned long generation = environment_frame->generation;
+  uintptr_t generation = environment_frame->generation;
 #endif
 
   if ( ForeignControl(h) == FRG_CUTTED )
@@ -3376,7 +3376,7 @@ pl_xr_member(term_t ref, term_t term, control_t h)
 
   if ( PL_is_variable(term) )
   { if ( ForeignControl(h) != FRG_FIRST_CALL)
-    { long i = ForeignContextInt(h);
+    { intptr_t i = ForeignContextInt(h);
 
       PC += i;
     }
@@ -3421,7 +3421,7 @@ pl_xr_member(term_t ref, term_t term, control_t h)
       PC += codeTable[op].arguments;
 
       if ( rval )
-      { long i = PC - clause->codes;	/* compensate ++ above! */
+      { intptr_t i = PC - clause->codes;	/* compensate ++ above! */
 
 	ForeignRedoInt(i);
       }
@@ -3455,7 +3455,7 @@ pl_xr_member(term_t ref, term_t term, control_t h)
 	  if ( fa == fd )
 	  { DEBUG(1,
 		  { term_t ref = PL_new_term_ref();
-		    long i;
+		    intptr_t i;
 		    
 		    PL_unify_pointer(ref, clause);
 		    PL_get_long(ref, &i);
@@ -3599,7 +3599,7 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
 	  break;
 	}
 	case CA1_INTEGER:
-	{ long l = (long) *bp++;
+	{ intptr_t l = (intptr_t) *bp++;
 	  n++;
 	  Sfprintf(out, " %ld", l);
 	  break;

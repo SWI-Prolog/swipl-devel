@@ -41,7 +41,7 @@ create, advance over and destroy enumerator   objects. These objects are
 used to enumerate the symbols of these   tables,  used primarily for the
 pl_current_* predicates.
 
-The  enumerators  cause  two  things:  (1)    as  long  enumerators  are
+The  enumerators  cause  two  things:  (1)    as  intptr_t  enumerators  are
 associated, the table will not  be  rehashed   and  (2)  if  symbols are
 deleted  that  are  referenced  by  an  enumerator,  the  enumerator  is
 automatically advanced to the next free symbol.  This, in general, makes

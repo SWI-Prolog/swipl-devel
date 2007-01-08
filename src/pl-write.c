@@ -540,7 +540,7 @@ such that it can be read as a float. This means using the conventions of
 the C locale and if the float happens to be integer as <int>.0.
 
 Switching the locale is no option as  locale handling is not thread-safe
-and may have unwanted  consequences  for   embedding.  There  is  a long
+and may have unwanted  consequences  for   embedding.  There  is  a intptr_t
 discussion on the very same topic on  the Python mailinglist. Many hacks
 are proposed, none is very satisfactory.   Richard  O'Keefe suggested to
 use ecvt(), fcvt() and gcvt(). These  are   not  thread-safe.  The GNU C

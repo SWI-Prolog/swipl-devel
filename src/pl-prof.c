@@ -53,7 +53,7 @@ static PL_prof_type_t *types[MAX_PROF_TYPES] = { &prof_default_type };
 #define PROFNODE_MAGIC 0x7ae38f24
 
 typedef struct call_node
-{ long 		    magic;		/* PROFNODE_MAGIC */
+{ intptr_t 		    magic;		/* PROFNODE_MAGIC */
   struct call_node *parent;
   void *            handle;		/* handle to procedure-id */
   PL_prof_type_t   *type;
@@ -90,20 +90,20 @@ activateProfiler(int active ARG_LD)
 MS-Windows version
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void profile(long ticks, PL_local_data_t *ld);
+static void profile(intptr_t ticks, PL_local_data_t *ld);
 
 static LARGE_INTEGER last_profile;
 static HANDLE	     mythread;
 static PL_local_data_t *my_LD;
 static UINT	     timer;
-static long	     virtual_events;
-static long	     events;
+static intptr_t	     virtual_events;
+static intptr_t	     events;
 
-static long
+static intptr_t
 prof_new_ticks(HANDLE thread)
 { FILETIME created, exit, kernel, user;
   LARGE_INTEGER u;
-  long ticks;
+  intptr_t ticks;
 
   if ( !GetThreadTimes(thread,
 		       &created,
@@ -115,7 +115,7 @@ prof_new_ticks(HANDLE thread)
   u.LowPart  = user.dwLowDateTime;
   u.HighPart = user.dwHighDateTime;
 
-  ticks = (long)((u.QuadPart - last_profile.QuadPart)/10240);
+  ticks = (intptr_t)((u.QuadPart - last_profile.QuadPart)/10240);
   last_profile = u;
 
   virtual_events += ticks;
@@ -126,7 +126,7 @@ prof_new_ticks(HANDLE thread)
 
 static void CALLBACK
 callTimer(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
-{ long newticks;
+{ intptr_t newticks;
 
   SuspendThread(mythread);		/* stop thread to avoid trouble */
   if ( (newticks = prof_new_ticks(mythread)) )
@@ -778,7 +778,7 @@ clear the flags again.
 
 static void
 #ifdef __WIN32__
-profile(long count, PL_local_data_t *__PL_ld)
+profile(intptr_t count, PL_local_data_t *__PL_ld)
 { 
 #else /*__WIN32__*/
 profile(int sig)

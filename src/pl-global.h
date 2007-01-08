@@ -26,7 +26,7 @@
 #define PL_GLOBAL_H_INCLUDED
 
 #ifndef ulong
-#define ulong unsigned long
+#define ulong uintptr_t
 #endif
 
 #ifndef GLOBAL			/* global variables */
@@ -48,7 +48,7 @@ typedef struct
 {
 #if VMCODE_IS_ADDRESS
   char   *_dewam_table;			/* decoding table */
-  long	  _dewam_table_offset;		/* offset of 1st */
+  intptr_t	  _dewam_table_offset;		/* offset of 1st */
   code    _wam_table[I_HIGHEST+1];	/* code --> address */
   void  **_interpreter_jmp_table;	/* interpreters table */
 #else
@@ -85,7 +85,7 @@ typedef struct
   sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
 #endif  
 #ifdef O_LOGICAL_UPDATE
-  unsigned long generation;		/* generation of the database */
+  uintptr_t generation;		/* generation of the database */
 #endif
 
   struct
@@ -105,16 +105,16 @@ typedef struct
   } paths;
 
   struct
-  { long	heap;			/* heap in use */
+  { intptr_t	heap;			/* heap in use */
     int		atoms;			/* No. of atoms defined */
-    long	atomspace;		/* # bytes used to store atoms */
+    intptr_t	atomspace;		/* # bytes used to store atoms */
 #ifdef O_ATOMGC
-    long	atomspacefreed;		/* Freed atom-space */
+    intptr_t	atomspacefreed;		/* Freed atom-space */
 #endif
     int		functors;		/* No. of functors defined */
     int		predicates;		/* No. of predicates defined */
     int		modules;		/* No. of modules in the system */
-    long	codes;			/* No. of byte codes generated */
+    intptr_t	codes;			/* No. of byte codes generated */
 #ifdef O_PLMT
     int		threads_created;	/* # threads created */
     int		threads_finished;	/* # finished threads */
@@ -150,7 +150,7 @@ typedef struct
     int		margin;			/* # atoms to grow before collect */
     int		non_garbage;		/* # atoms for after last AGC */
     int		gc;			/* # atom garbage collections */
-    long	collected;		/* # collected atoms */
+    intptr_t	collected;		/* # collected atoms */
     real	gc_time;		/* Time spent on atom-gc */
     PL_agc_hook_t gc_hook;		/* Current hook */
 #endif
@@ -383,7 +383,7 @@ typedef struct PL_local_data
   } modules;
 
   struct
-  { long 	generator;		/* See PL_atom_generator() */
+  { intptr_t 	generator;		/* See PL_atom_generator() */
   } atoms;
 
   struct
@@ -440,20 +440,20 @@ typedef struct PL_local_data
 #endif
 
   struct
-  { long _total_marked;			/* # marked global cells */
-    long _trailcells_deleted;		/* # garbage trailcells */
-    long _relocation_chains;		/* # relocation chains (debugging) */
-    long _relocation_cells;		/* # relocation cells */
-    long _relocated_cells;		/* # relocated cells */
-    long _needs_relocation;		/* # cells that need relocation */
-    long _local_marked;			/* # marked local -> global ptrs */
-    long _marks_swept;			/* # marks swept */
-    long _marks_unswept;		/* # marks swept */
-    long _alien_relocations;		/* # alien_into_relocation_chain() */
-    long _local_frames;			/* frame count for debugging */
-    long _choice_count;			/* choice-point count for debugging */
+  { intptr_t _total_marked;			/* # marked global cells */
+    intptr_t _trailcells_deleted;		/* # garbage trailcells */
+    intptr_t _relocation_chains;		/* # relocation chains (debugging) */
+    intptr_t _relocation_cells;		/* # relocation cells */
+    intptr_t _relocated_cells;		/* # relocated cells */
+    intptr_t _needs_relocation;		/* # cells that need relocation */
+    intptr_t _local_marked;			/* # marked local -> global ptrs */
+    intptr_t _marks_swept;			/* # marks swept */
+    intptr_t _marks_unswept;		/* # marks swept */
+    intptr_t _alien_relocations;		/* # alien_into_relocation_chain() */
+    intptr_t _local_frames;			/* frame count for debugging */
+    intptr_t _choice_count;			/* choice-point count for debugging */
 #if defined(O_SECURE) || defined(SECURE_GC)
-    long _trailtops_marked;		/* # marked trailtops */
+    intptr_t _trailtops_marked;		/* # marked trailtops */
     Word *_mark_base;			/* Array of marked cells addresses */
     Word *_mark_top;			/* Top of this array */
     Table _check_table;			/* relocation address table */
@@ -470,7 +470,7 @@ typedef struct PL_local_data
 
 #ifdef O_PLMT
   struct
-  { long   magic;			/* PL_THREAD_MAGIC (checking) */
+  { intptr_t   magic;			/* PL_THREAD_MAGIC (checking) */
     struct _PL_thread_info_t *info;	/* info structure */
     unsigned forall_flags;		/* forThreadLocalData() flags */
 					/* Communication */

@@ -34,7 +34,7 @@ Scontrol_rc(void *handle, int action, void *arg)
 
   switch(action)
   { case SIO_GETSIZE:
-    { long *rval = arg;
+    { intptr_t *rval = arg;
 
       *rval = m->size;
       return 0;

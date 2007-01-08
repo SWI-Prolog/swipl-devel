@@ -218,7 +218,7 @@ CpuTime(cputime_kind which)
     t = (double)p->dwHighDateTime * (4294967296.0 * ntick nano);
     t += (double)p->dwLowDateTime  * (ntick nano);
   } else				/* '95, Windows 3.1/win32s */
-  { extern long clock_wait_ticks;
+  { extern intptr_t clock_wait_ticks;
 
     t = (double) (clock() - clock_wait_ticks) / (double) CLOCKS_PER_SEC;
   }
@@ -470,7 +470,7 @@ win_shell(term_t op, term_t file, term_t how)
        
   instance = ShellExecuteW(NULL, o, f, NULL, NULL, h);
 
-  if ( (long)instance <= 32 )
+  if ( (intptr_t)instance <= 32 )
   { const shell_error *se;
 
     for(se = se_errors; se->message; se++)

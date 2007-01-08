@@ -341,7 +341,7 @@ initIO()
   getStreamContext(Soutput);
   getStreamContext(Serror);
   for( i=0, np = standardStreams; *np; np++, i++ )
-    addHTable(streamAliases, (void *)*np, (void *)(long)i);
+    addHTable(streamAliases, (void *)*np, (void *)(intptr_t)i);
 
   GD->io_initialised = TRUE;
 }
@@ -440,7 +440,7 @@ get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
       LOCK();
     if ( (symb=lookupHTable(streamAliases, (void *)alias)) )
     { IOSTREAM *stream;
-      unsigned long n = (unsigned long)symb->value;
+      uintptr_t n = (uintptr_t)symb->value;
 
       if ( n < 6 )			/* standard stream! */
       { stream = LD->IO.streams[n];
@@ -1552,7 +1552,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   if ( PL_get_atom(timeout, &a) && a == ATOM_infinite )
   { to = NULL;
   } else if ( PL_is_integer(timeout) )
-  { long v;
+  { intptr_t v;
 
     PL_get_long(timeout, &v);
     if ( v > 0L )
@@ -2595,8 +2595,8 @@ Sread_null(void *handle, char *buf, int size)
 }
 
 
-static long
-Sseek_null(void *handle, long offset, int whence)
+static intptr_t
+Sseek_null(void *handle, intptr_t offset, int whence)
 { switch(whence)
   { case SIO_SEEK_SET:
 	return offset;
@@ -3204,7 +3204,7 @@ pl_set_stream_position(term_t stream, term_t pos)
 { GET_LD
   IOSTREAM *s;
   int64_t charno, byteno;
-  long linepos, lineno;
+  intptr_t linepos, lineno;
   term_t a = PL_new_term_ref();
 
   if ( !(getRepositionableStream(stream, &s)) )
@@ -3361,7 +3361,7 @@ PRED_IMPL("line_count", 2, line_count, 0)
   IOSTREAM *s;
 
   if ( getStreamWithPosition(A1, &s) )
-  { long n = s->position->lineno;
+  { intptr_t n = s->position->lineno;
 
     releaseStream(s);
     return PL_unify_integer(A2, n);
@@ -3377,7 +3377,7 @@ PRED_IMPL("line_position", 2, line_position, 0)
   IOSTREAM *s;
 
   if ( getStreamWithPosition(A1, &s) )
-  { long n = s->position->linepos;
+  { intptr_t n = s->position->linepos;
 
     releaseStream(s);
     return PL_unify_integer(A2, n);
@@ -3622,7 +3622,7 @@ out:
 		*********************************/
 
 bool
-unifyTime(term_t t, long time)
+unifyTime(term_t t, intptr_t time)
 { return PL_unify_float(t, (double)time);
 }
 
@@ -3721,7 +3721,7 @@ pl_time_file(term_t name, term_t t)
 { char *fn;
 
   if ( PL_get_file_name(name, &fn, 0) )
-  { long time;
+  { intptr_t time;
 
     if ( (time = LastModifiedFile(fn)) == -1 )
       fail;
@@ -4196,7 +4196,7 @@ pl_copy_stream_data3(term_t in, term_t out, term_t len)
       }
     }
   } else
-  { long n;
+  { intptr_t n;
 
     if ( !PL_get_long_ex(len, &n) )
       fail;

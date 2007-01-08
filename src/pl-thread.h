@@ -56,10 +56,10 @@ typedef struct
 
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
-  unsigned long	    local_size;		/* Stack sizes */
-  unsigned long	    global_size;
-  unsigned long	    trail_size;
-  unsigned long	    argument_size;
+  uintptr_t	    local_size;		/* Stack sizes */
+  uintptr_t	    global_size;
+  uintptr_t	    trail_size;
+  uintptr_t	    argument_size;
   int		    (*cancel)(int id);	/* cancel function */
   int		    open_count;		/* for PL_thread_detach_engine() */
   bool		    detached;		/* detached thread */
@@ -69,7 +69,7 @@ typedef struct _PL_thread_info_t
   pid_t		    pid;		/* for identifying */
 #endif
 #ifdef WIN32
-  unsigned long	    w32id;		/* Win32 thread HANDLE */
+  uintptr_t	    w32id;		/* Win32 thread HANDLE */
 #endif
   struct PL_local_data  *thread_data;	/* The thread-local data  */
   module_t	    module;		/* Module for starting goal */
@@ -324,14 +324,14 @@ extern foreign_t	pl_current_mutex(term_t mutex,
 const char *		threadName(int id);
 void			executeThreadSignals(int sig);
 foreign_t		pl_attach_xterm(term_t in, term_t out);
-long			threadLocalHeapUsed(void);
+intptr_t			threadLocalHeapUsed(void);
 int			attachConsole(void);
 Definition		localiseDefinition(Definition def);
 int			PL_mutex_lock(struct pl_mutex *m);
 int			PL_mutex_unlock(struct pl_mutex *m);
 int			PL_thread_raise(int tid, int sig);
 void			cleanupThreads();
-long			system_thread_id(PL_thread_info_t *info);
+intptr_t			system_thread_id(PL_thread_info_t *info);
 
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*

@@ -26,7 +26,7 @@
 #ifndef PROF_H_INCLUDED
 #define PROF_H_INCLUDED
 
-typedef long long ticks;
+typedef intptr_t intptr_t ticks;
 typedef struct
 { ticks ticks;				/* time spent */
   ticks fastest;			/* fastest call */

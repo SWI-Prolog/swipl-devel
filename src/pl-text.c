@@ -979,7 +979,7 @@ PL_cmp_text(PL_chars_t *t1, unsigned o1, PL_chars_t *t2, unsigned o2,
       ifeq = 1;
   }
 
-  if ( l < 0 )				/* too long offsets */
+  if ( l < 0 )				/* too intptr_t offsets */
     return ifeq;
 
   if ( t1->encoding == ENC_ISO_LATIN_1 && t2->encoding == ENC_ISO_LATIN_1 )

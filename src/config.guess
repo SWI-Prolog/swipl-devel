@@ -203,9 +203,9 @@ main:
 	.frame \$30,16,\$26,0
 	ldgp \$29,0(\$27)
 	.prologue 1
-	.long 0x47e03d80 # implver \$0
+	.intptr_t 0x47e03d80 # implver \$0
 	lda \$2,-1
-	.long 0x47e20c21 # amask \$2,\$1
+	.intptr_t 0x47e20c21 # amask \$2,\$1
 	lda \$16,\$Lformat
 	mov \$0,\$17
 	not \$1,\$18
@@ -576,9 +576,9 @@ EOF
               int main ()
               {
               #if defined(_SC_KERNEL_BITS)
-                  long bits = sysconf(_SC_KERNEL_BITS);
+                  intptr_t bits = sysconf(_SC_KERNEL_BITS);
               #endif
-                  long cpu  = sysconf (_SC_CPU_VERSION);
+                  intptr_t cpu  = sysconf (_SC_CPU_VERSION);
 
                   switch (cpu)
               	{
@@ -618,7 +618,7 @@ EOF
 	int
 	main ()
 	{
-	  long cpu = sysconf (_SC_CPU_VERSION);
+	  intptr_t cpu = sysconf (_SC_CPU_VERSION);
 	  /* The order matters, because CPU_IS_HP_MC68K erroneously returns
 	     true for CPU_PA_RISC1_0.  CPU_IS_PA_RISC returns correct
 	     results, however.  */

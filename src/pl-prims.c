@@ -26,7 +26,7 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #undef ulong
-#define ulong unsigned long
+#define ulong uintptr_t
 
 #undef LD
 #define LD LOCAL_LD
@@ -328,7 +328,7 @@ Should this be int64_t for compatibility?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-termHashValue(word term, long *hval ARG_LD)
+termHashValue(word term, intptr_t *hval ARG_LD)
 { for(;;)
   { switch(tag(term))
     { case TAG_VAR:
@@ -360,8 +360,8 @@ termHashValue(word term, long *hval ARG_LD)
         succeed;
       case TAG_FLOAT:
       { int i;
-	long *p = (long *)valIndirectP(term);
-	long h = *p;
+	intptr_t *p = (intptr_t *)valIndirectP(term);
+	intptr_t h = *p;
 
 	for(p++, i=WORDS_PER_DOUBLE-1; --i >= 0; )
 	  h ^= *p++;
@@ -416,7 +416,7 @@ static
 PRED_IMPL("hash_term", 2, hash_term, 0)
 { PRED_LD
   Word p = valTermRef(A1);
-  long hraw = 0L;
+  intptr_t hraw = 0L;
   Word *m = aTop;
   int rc;
 
@@ -1270,7 +1270,7 @@ start:
     }
 
 #ifdef O_SHIFT_STACKS
-    if ( roomStack(global) < 2 * (long)sizeof(word) )
+    if ( roomStack(global) < 2 * (intptr_t)sizeof(word) )
     { growStacks(environment_frame, NULL, NULL, FALSE, TRUE, FALSE);
       p = valTermRef(t);
       deRef(p);
@@ -2933,8 +2933,8 @@ query.
 
 word
 pl_depth_limit(term_t limit, term_t olimit, term_t oreached)
-{ long levels;
-  long clevel = levelFrame(environment_frame) - 1;
+{ intptr_t levels;
+  intptr_t clevel = levelFrame(environment_frame) - 1;
 
   if ( PL_get_long_ex(limit, &levels) )
   { if ( PL_unify_integer(olimit, depth_limit) &&
@@ -2955,13 +2955,13 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
 		    term_t res, term_t cut, control_t b)
 { switch(ForeignControl(b))
   { case FRG_FIRST_CALL:
-    { long l, ol, or;
+    { intptr_t l, ol, or;
 
       if ( PL_get_long_ex(limit, &l) &&
 	   PL_get_long_ex(olimit, &ol) &&
 	   PL_get_long_ex(oreached, &or) )
-      { long clevel = levelFrame(environment_frame) - 1;
-	long used = depth_reached - clevel - 1;
+      { intptr_t clevel = levelFrame(environment_frame) - 1;
+	intptr_t used = depth_reached - clevel - 1;
 	Choice ch;
 
 	depth_limit   = ol;
@@ -2996,8 +2996,8 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
       break;
     }
     case FRG_REDO:
-    { long levels;
-      long clevel = levelFrame(environment_frame) - 1;
+    { intptr_t levels;
+      intptr_t clevel = levelFrame(environment_frame) - 1;
 
       PL_get_long_ex(limit, &levels);
       depth_limit   = clevel + levels + 1; /* 1 for catch/3 */
@@ -3015,7 +3015,7 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
 
 static
 PRED_IMPL("$depth_limit_false", 3, depth_limit_false, 0)
-{ long ol, or;
+{ intptr_t ol, or;
 
   if ( PL_get_long_ex(A1, &ol) &&
        PL_get_long_ex(A2, &or) )
@@ -3034,7 +3034,7 @@ PRED_IMPL("$depth_limit_false", 3, depth_limit_false, 0)
 
 static
 PRED_IMPL("$depth_limit_except", 3, depth_limit_except, 0)
-{ long ol, or;
+{ intptr_t ol, or;
 
   if ( PL_get_long_ex(A1, &ol) &&
        PL_get_long_ex(A2, &or) )
@@ -3065,9 +3065,9 @@ QP_STATISTICS is defined. The compatibility   is pretty complete, except
 the `atoms' key that is defined by both and this ambiguous.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static long
+static intptr_t
 heapUsed(void)
-{ long heap = GD->statistics.heap;	/* Big allocations */
+{ intptr_t heap = GD->statistics.heap;	/* Big allocations */
   
   heap += GD->alloc_pool.allocated;	/* global small allocations */
 #ifdef O_PLMT
@@ -3092,17 +3092,17 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
   if ( key == ATOM_runtime )
   { v[0] = (int64_t)(LD->statistics.user_cputime * 1000.0);
     v[1] = v[0] - LD->statistics.last_cputime;
-    LD->statistics.last_cputime = (long)v[0];
+    LD->statistics.last_cputime = (intptr_t)v[0];
     vn = 2;
   } else if ( key == ATOM_system_time )
   { v[0] = (int64_t)(LD->statistics.system_cputime * 1000.0);
     v[1] = v[0] - LD->statistics.last_systime;
-    LD->statistics.last_systime = (long)v[0];
+    LD->statistics.last_systime = (intptr_t)v[0];
     vn = 2;
   } else if ( key == ATOM_real_time )
   { v[0] = (int64_t)WallTime();
     v[1] = v[0] - LD->statistics.last_walltime;
-    LD->statistics.last_walltime = (long)v[0];
+    LD->statistics.last_walltime = (intptr_t)v[0];
     vn = 2;
   } else if ( key == ATOM_memory || key == ATOM_core )
   { v[0] = UsedMemory();
@@ -3390,7 +3390,7 @@ PRED_IMPL("$option", 3, option, PL_FA_NONDETERMINISTIC)
 	for( ; optdefs[index].name; index++ )
 	{ switch( optdefs[index].type )
 	  { case CMDOPT_LONG:
-	    { long *val = optdefs[index].address;
+	    { intptr_t *val = optdefs[index].address;
 
 	      if ( !PL_unify_integer(old, *val) )
 		continue;
@@ -3425,8 +3425,8 @@ PRED_IMPL("$option", 3, option, PL_FA_NONDETERMINISTIC)
     { if ( streq(k, d->name) )
       { switch(d->type)
 	{ case CMDOPT_LONG:
-	  { long *val = d->address;
-	    long newval;
+	  { intptr_t *val = d->address;
+	    intptr_t newval;
 
 	    if ( !PL_unify_integer(old, *val) ||
 		 !PL_get_long(new, &newval) )
@@ -3467,14 +3467,14 @@ set_pl_option(const char *name, const char *value)
   { if ( streq(name, d->name) )
     { switch(d->type)
       { case CMDOPT_LONG:
-	{ long *val = d->address;
+	{ intptr_t *val = d->address;
 	  number n;
 	  unsigned char *q;
 
 	  if ( str_number((unsigned char *)value, &q, &n, FALSE) &&
 	       *q == EOS &&
 	       intNumber(&n) )
-	  { *val = (long)n.value.i;
+	  { *val = (intptr_t)n.value.i;
 	    succeed;
 	  }
 	  fail;

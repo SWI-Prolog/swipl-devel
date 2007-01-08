@@ -34,8 +34,8 @@ static ticks overhead;
 
 ticks
 pentium_clock()
-{ register unsigned long iax;
-  unsigned long idx;
+{ register uintptr_t iax;
+  uintptr_t idx;
 
   __asm__ __volatile__ ("rdtsc"
 			: "=a" (iax), "=d" (idx)

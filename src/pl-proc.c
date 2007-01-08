@@ -181,7 +181,7 @@ hasClausesDefinition(Definition def)
     { GET_LD
       ClauseRef c;
 #ifdef O_LOGICAL_UPDATE
-      unsigned long generation;
+      uintptr_t generation;
       LocalFrame fr = environment_frame;
       if ( fr )
 	generation = generationFrame(fr);
@@ -1854,7 +1854,7 @@ pl_abolish1(term_t spec)		/* Name/Arity */
 }
 
 
-static unsigned long
+static uintptr_t
 attribute_mask(atom_t key)
 {
 #define TRACE_ANY (TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL)
@@ -1890,7 +1890,7 @@ pl_get_predicate_attribute(term_t pred,
   functor_t fd;
   atom_t key;
   Module module = (Module) NULL;
-  unsigned long att;
+  uintptr_t att;
   term_t head = PL_new_term_ref();
   
   if ( !PL_strip_module(pred, &module, head) ||
@@ -2103,7 +2103,7 @@ pl_set_predicate_attribute(term_t pred,
   Definition def;
   atom_t key;
   int val, rc;
-  unsigned long att;
+  uintptr_t att;
 
   if ( !PL_get_atom(what, &key) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, what);
@@ -2243,7 +2243,7 @@ reindexDefinition(Definition def)
 
 
 void
-indexDefinition(Definition def, unsigned long pattern)
+indexDefinition(Definition def, uintptr_t pattern)
 { clear(def, AUTOINDEX);
 
   if ( (def->indexPattern & ~NEED_REINDEX) != 0x1L &&
@@ -2273,7 +2273,7 @@ pl_index(term_t pred)
 		      ATOM_index, PL_new_atom("foreign_procedure"), def);
 
     if ( arity > 0 )
-    { unsigned long pattern = 0x0;
+    { uintptr_t pattern = 0x0;
       int n, card = 0;
       term_t a = PL_new_term_ref();
 

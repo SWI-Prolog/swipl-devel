@@ -32,9 +32,9 @@ Implementation issues
 
 There are two parts in the atom   administration. One is a dynamic array
 (called buffer) atom_array, which is there to   find  the atoms back. An
-atom as it appears is a long   of the form (n<<LMASK_BITS)|TAG_ATOM. The
+atom as it appears is a intptr_t   of the form (n<<LMASK_BITS)|TAG_ATOM. The
 atom  structure  is  located  by  getting  the  n-th  pointer  from  the
-atom_array dynamic array.  See atomValue() for translating the long into
+atom_array dynamic array.  See atomValue() for translating the intptr_t into
 the address of the structure.
 
 Next, there is a hash-table, which is a normal `open' hash-table mapping
@@ -119,9 +119,9 @@ This is a hard problem. I think the   best  solution is to add something
 like PL_thread_signal_async(int tid, void (*f)(void)) and call this from
 the invoking thread on all other threads.   These  thread will then scan
 their stacks and mark any references from their. Next they can carry on,
-as long as the invoking thread keeps   the  atom mutex locked during the
+as intptr_t as the invoking thread keeps   the  atom mutex locked during the
 whole atom garbage collection process. This   implies  the thread cannot
-create any atoms as long as the collection is going on.
+create any atoms as intptr_t as the collection is going on.
 
 We do have to define some mechanism to   know  all threads are done with
 their marking.
@@ -295,7 +295,7 @@ registerAtom(Atom a)
     { n = p - ap;
       *p = a;
       a->atom = (n<<LMASK_BITS)|TAG_ATOM;
-      if ( indexAtom(a->atom) != (unsigned long)n )
+      if ( indexAtom(a->atom) != (uintptr_t)n )
       {	/* TBD: user-level exception */
 	fatalError("Too many (%d) atoms", n);
       }
@@ -557,7 +557,7 @@ know we trapped a bug.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-destroyAtom(Atom *ap, unsigned long mask ARG_LD)
+destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
 { Atom a = *ap;
   Atom *ap2 = &atomTable[a->hash_value & mask];
 
@@ -607,7 +607,7 @@ collectAtoms(void)
   Atom *ap  = ap0 + GD->atoms.builtin;
   Atom *ep  = ap0 + entriesBuffer(&atom_array, Atom);
   int hole_seen = FALSE;
-  unsigned long mask = atom_buckets-1;
+  uintptr_t mask = atom_buckets-1;
 
   ap--;
   while(++ap < ep)
@@ -643,9 +643,9 @@ word
 pl_garbage_collect_atoms()
 { GET_LD
   int verbose = trueFeature(TRACE_GC_FEATURE);
-  long oldcollected = GD->atoms.collected;
-  long oldheap = GD->statistics.heap;
-  long freed;
+  intptr_t oldcollected = GD->atoms.collected;
+  intptr_t oldheap = GD->statistics.heap;
+  intptr_t freed;
   double t;
   sigset_t set;
 
@@ -770,8 +770,8 @@ rehashAtoms()
 { GET_LD
   Atom *oldtab   = atomTable;
   int   oldbucks = atom_buckets;
-  long mx = entriesBuffer(&atom_array, Atom);
-  unsigned long mask;
+  intptr_t mx = entriesBuffer(&atom_array, Atom);
+  uintptr_t mask;
   Atom *ap, *ep;
 
   startCritical;
@@ -978,7 +978,7 @@ allAlpha(const char *s)
 
 static int
 extendAtom(char *prefix, bool *unique, char *common)
-{ long i, mx = entriesBuffer(&atom_array, Atom);
+{ intptr_t i, mx = entriesBuffer(&atom_array, Atom);
   Atom a;
   bool first = TRUE;
   int lp = (int) strlen(prefix);
@@ -1042,7 +1042,7 @@ compareMatch(const void *m1, const void *m2)
 
 static bool
 extend_alternatives(char *prefix, struct match *altv, int *altn)
-{ long i, mx = entriesBuffer(&atom_array, Atom);
+{ intptr_t i, mx = entriesBuffer(&atom_array, Atom);
   Atom a;
   char *as;
   int l;
@@ -1147,7 +1147,7 @@ alnum_text(PL_chars_t *txt)
 static int
 atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 { GET_LD
-  long i, mx = entriesBuffer(&atom_array, Atom);
+  intptr_t i, mx = entriesBuffer(&atom_array, Atom);
 
 #ifdef O_PLMT
   if ( !key )
@@ -1159,7 +1159,7 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
   else
   {
 #ifdef O_PLMT
-    i = (long)pthread_getspecific(key);
+    i = (intptr_t)pthread_getspecific(key);
 #else
     i = LD->atoms.generator;
 #endif

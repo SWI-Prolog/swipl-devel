@@ -1374,17 +1374,17 @@ Sunit_size(IOSTREAM *s)
 Return the size of the underlying data object.  Should be optimized;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-long
+intptr_t
 Ssize(IOSTREAM *s)
 { if ( s->functions->control )
-  { long size;
+  { intptr_t size;
 
     if ( (*s->functions->control)(s->handle, SIO_GETSIZE, (void *)&size) == 0 )
       return size;
   }
   if ( s->functions->seek )
-  { long here = Stell(s);
-    long end  = Sseek(s, 0, SIO_SEEK_END);
+  { intptr_t here = Stell(s);
+    intptr_t end  = Sseek(s, 0, SIO_SEEK_END);
 
     Sseek(s, here, SIO_SEEK_SET);
 
@@ -1451,7 +1451,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
   if ( s->functions->seek64 )
     pos = (*s->functions->seek64)(s->handle, pos, whence);
   else if ( pos <= LONG_MAX )
-    pos = (*s->functions->seek)(s->handle, (long)pos, whence);
+    pos = (*s->functions->seek)(s->handle, (intptr_t)pos, whence);
   else
   { errno = EINVAL;
     return -1;
@@ -1470,12 +1470,12 @@ update:
 }
 
 
-long
-Sseek(IOSTREAM *s, long pos, int whence)
+intptr_t
+Sseek(IOSTREAM *s, intptr_t pos, int whence)
 { int64_t p2 = Sseek64(s, pos, whence);
 
   if ( p2 <= LONG_MAX )
-    return (long) p2;
+    return (intptr_t) p2;
 
   errno = EINVAL;
   return -1;
@@ -1513,12 +1513,12 @@ Stell64(IOSTREAM *s)
 }
 
 
-long
+intptr_t
 Stell(IOSTREAM *s)
 { int64_t pos = Stell64(s);
 
   if ( pos <= LONG_MAX )
-    return (long) pos;
+    return (intptr_t) pos;
 
   errno = EINVAL;
   return -1;
@@ -1704,7 +1704,7 @@ Svprintf(const char *fm, va_list args)
 
 int
 Svfprintf(IOSTREAM *s, const char *fm, va_list args)
-{ long printed = 0;
+{ intptr_t printed = 0;
   char buf[TMPBUFSIZE];
   int tmpbuf;
 
@@ -1793,7 +1793,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  case 'u':
 	  case 'x':
 	  case 'X':
-	  { long v = 0;			/* make compiler silent */
+	  { intptr_t v = 0;			/* make compiler silent */
 	    int64_t vl = 0;
 	    char fmbuf[8], *fp=fmbuf;
 
@@ -1802,7 +1802,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 		v = va_arg(args, int);
 	        break;
 	      case 1:
-		v = va_arg(args, long);
+		v = va_arg(args, intptr_t);
 	        break;
 	      case 2:
 	        vl = va_arg(args, int64_t);
@@ -2061,7 +2061,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	  c = GET(s);
 
       switch(*fm)
-      { { long v;			/* collect value here */
+      { { intptr_t v;			/* collect value here */
 	  int negative;			/* true if < 0 */
 	  int base;			/* base for conversion */
 	  int ok;			/* successful */
@@ -2104,7 +2104,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	      { short *vp = va_arg(args, short *);
 		*vp = v;
 	      } else if ( tsize == SZ_LONG )
-	      { long *vp = va_arg(args, long *);
+	      { intptr_t *vp = va_arg(args, intptr_t *);
 		*vp = v;
 	      } else
 	      { int *vp = va_arg(args, int *);
@@ -2148,7 +2148,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	    { short *vp = va_arg(args, short *);
 	      *vp = chread;
 	    } else if ( tsize == SZ_LONG )
-	    { long *vp = va_arg(args, long *);
+	    { intptr_t *vp = va_arg(args, intptr_t *);
 	      *vp = chread;
 	    } else
 	    { int *vp = va_arg(args, int *);
@@ -2286,7 +2286,7 @@ out:
 
 static int
 Sread_file(void *handle, char *buf, int size)
-{ long h = (long) handle;
+{ intptr_t h = (intptr_t) handle;
   int bytes;
 
   for(;;)
@@ -2308,7 +2308,7 @@ Sread_file(void *handle, char *buf, int size)
 
 static int
 Swrite_file(void *handle, char *buf, int size)
-{ long h = (long) handle;
+{ intptr_t h = (intptr_t) handle;
   int bytes;
 
   for(;;)
@@ -2328,9 +2328,9 @@ Swrite_file(void *handle, char *buf, int size)
 }
 
 
-static long
-Sseek_file(void *handle, long pos, int whence)
-{ long h = (long) handle;
+static intptr_t
+Sseek_file(void *handle, intptr_t pos, int whence)
+{ intptr_t h = (intptr_t) handle;
 
 					/* cannot do EINTR according to man */
   return lseek((int)h, pos, whence);
@@ -2340,7 +2340,7 @@ Sseek_file(void *handle, long pos, int whence)
 #ifdef O_LARGEFILES
 static int64_t
 Sseek_file64(void *handle, int64_t pos, int whence)
-{ long h = (long) handle;
+{ intptr_t h = (intptr_t) handle;
 
 					/* cannot do EINTR according to man */
   return lseek((int)h, pos, whence);
@@ -2350,7 +2350,7 @@ Sseek_file64(void *handle, int64_t pos, int whence)
 
 static int
 Sclose_file(void *handle)
-{ long h = (long) handle;
+{ intptr_t h = (intptr_t) handle;
   int rc;
 
   do
@@ -2363,12 +2363,12 @@ Sclose_file(void *handle)
 
 static int
 Scontrol_file(void *handle, int action, void *arg)
-{ long h = (long) handle;
+{ intptr_t h = (intptr_t) handle;
   int fd = (int)h;
 
   switch(action)
   { case SIO_GETSIZE:
-    { long *rval = arg;
+    { intptr_t *rval = arg;
       struct stat buf;
 
       if ( fstat(fd, &buf) == 0 )
@@ -2457,7 +2457,7 @@ Sopen_file(const char *path, const char *how)
   int oflags = O_BINARY;
   int flags = SIO_FILE|SIO_TEXT|SIO_RECORDPOS;
   int op = *how++;
-  long lfd;
+  intptr_t lfd;
   enum {lnone=0,lread,lwrite} lock = lnone;
   IOSTREAM *s;
   IOENC enc = ENC_UNKNOWN;
@@ -2554,7 +2554,7 @@ Sopen_file(const char *path, const char *how)
 #endif
   }
 
-  lfd = (long)fd;
+  lfd = (intptr_t)fd;
   s = Snew((void *)lfd, flags, &Sfilefunctions);
   if ( enc != ENC_UNKNOWN )
     s->encoding = enc;
@@ -2568,7 +2568,7 @@ Sopen_file(const char *path, const char *how)
 IOSTREAM *
 Sfdopen(int fd, const char *type)
 { int flags;
-  long lfd;
+  intptr_t lfd;
 
   if ( fd < 0 )
   { errno = EINVAL;
@@ -2584,12 +2584,12 @@ Sfdopen(int fd, const char *type)
   else
     flags = SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS;
 
-  lfd = (long)fd;
+  lfd = (intptr_t)fd;
 
   return Snew((void *)lfd, flags, &Sfilefunctions);
 }
 
-/* MT: as long as s is valid, this should be ok
+/* MT: as intptr_t as s is valid, this should be ok
 */
 
 int
@@ -2597,7 +2597,7 @@ Sfileno(IOSTREAM *s)
 { int n;
 
   if ( s->flags & SIO_FILE )
-  { long h = (long)s->handle;
+  { intptr_t h = (intptr_t)s->handle;
     n = (int)h;
   } else if ( s->flags & SIO_PIPE )
   { n = fileno((FILE *)s->handle);
@@ -2756,10 +2756,10 @@ MT: we assume these handles are not passed between threads
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct
-{ long	here;				/* `here' location */
-  long  size;				/* size of buffer */
+{ intptr_t	here;				/* `here' location */
+  intptr_t  size;				/* size of buffer */
   int  *sizep;				/* pointer to size */
-  long	allocated;			/* allocated size */
+  intptr_t	allocated;			/* allocated size */
   char **buffer;			/* allocated buffer */
   int	malloced;			/* malloc() maintained */
 } memfile;
@@ -2771,9 +2771,9 @@ Sfree(void *ptr)			/* Windows: must free from same */
 }
 
 
-static long
-S__memfile_nextsize(long needed)
-{ long size = 512;
+static intptr_t
+S__memfile_nextsize(intptr_t needed)
+{ intptr_t size = 512;
 
   while ( size < needed )
     size *= 2;
@@ -2787,7 +2787,7 @@ Swrite_memfile(void *handle, char *buf, int size)
 { memfile *mf = handle;
 
   if ( mf->here + size + 1 >= mf->allocated )
-  { long ns = S__memfile_nextsize(mf->here + size + 1);
+  { intptr_t ns = S__memfile_nextsize(mf->here + size + 1);
     char *nb;
 
     if ( mf->allocated == 0 || !mf->malloced )
@@ -2842,8 +2842,8 @@ Sread_memfile(void *handle, char *buf, int size)
 }
 
 
-static long
-Sseek_memfile(void *handle, long offset, int whence)
+static intptr_t
+Sseek_memfile(void *handle, intptr_t offset, int whence)
 { memfile *mf = handle;
 
   switch(whence)

@@ -33,7 +33,7 @@
 
 static char *	getString(IOSTREAM *, unsigned *len);
 static int64_t	getInt64(IOSTREAM *);
-static long	getLong(IOSTREAM *);
+static intptr_t	getLong(IOSTREAM *);
 static int	getInt(IOSTREAM *);
 static real	getReal(IOSTREAM *);
 static bool	loadWicFd(IOSTREAM *);
@@ -263,7 +263,7 @@ popXrIdTable(ARG1_LD)
 
 
 static word
-lookupXrId(long id)
+lookupXrId(intptr_t id)
 { XrTable t = loadedXrs;
   Word array = t->table[id/SUBENTRIES];
   word value;
@@ -276,7 +276,7 @@ lookupXrId(long id)
 
 
 static void
-storeXrId(long id, word value)
+storeXrId(intptr_t id, word value)
 { XrTable t = loadedXrs;
   int i = id/SUBENTRIES;
 
@@ -493,11 +493,11 @@ getInt64(IOSTREAM *fd)
 }
 
 
-static long
+static intptr_t
 getLong(IOSTREAM *fd)
 { int64_t val = getInt64(fd);
 
-  return (long)val;
+  return (intptr_t)val;
 }
 
 
@@ -539,7 +539,7 @@ getReal(IOSTREAM *fd)
 
 word
 getWord(IOSTREAM *s)
-{ unsigned long v;
+{ uintptr_t v;
 
   v  = (Sgetc(s) & 0xff) << 24;
   v |= (Sgetc(s) & 0xff) << 16;
@@ -564,7 +564,7 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
 
   switch( c )
   { case XR_REF:
-    { long xr  = getLong(fd);
+    { intptr_t xr  = getLong(fd);
       word val = lookupXrId(xr);
 
       return val;
@@ -926,7 +926,7 @@ loadPredicateFlags(Definition def, IOSTREAM *fd, int skip ARG_LD)
   { int	flags = getInt(fd);
 
     if ( !skip )
-    { unsigned long lflags = 0L;
+    { uintptr_t lflags = 0L;
 
       if ( flags & PRED_SYSTEM )
 	lflags |= SYSTEM;
@@ -965,7 +965,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
   for(;;)
   { switch(Getc(fd) )
     { case 'X':
-      { unsigned long pattern = getLong(fd);
+      { uintptr_t pattern = getLong(fd);
 
 	if ( (def->indexPattern & ~NEED_REINDEX) != pattern )
 	{ if ( def->references == 0 && !def->hash_info )
@@ -1139,7 +1139,7 @@ qlfFixSourcePath(const char *raw)
     const char *tail = &raw[lensave];
 
     if ( strlen(load_state->load_dir)+1+strlen(tail)+1 > MAXPATHLEN )
-      fatalError("Path name too long: %s", raw);
+      fatalError("Path name too intptr_t: %s", raw);
 
     strcpy(buf, load_state->load_dir);
     s = &buf[strlen(buf)];
@@ -1147,7 +1147,7 @@ qlfFixSourcePath(const char *raw)
     strcpy(s, tail);
   } else
   { if ( strlen(raw)+1 > MAXPATHLEN )
-      fatalError("Path name too long: %s", raw);
+      fatalError("Path name too intptr_t: %s", raw);
     strcpy(buf, raw);
   }
 
@@ -1168,7 +1168,7 @@ the module where it is a multifile one.
 static bool
 qlfLoadSource(IOSTREAM *fd)
 { char *str = getString(fd, NULL);
-  long time = getLong(fd);
+  intptr_t time = getLong(fd);
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   atom_t fname;
 
@@ -1335,7 +1335,7 @@ of a predicate together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Table savedXRTable;		/* saved XR entries */
-static long  savedXRTableId;		/* next id */
+static intptr_t  savedXRTableId;		/* next id */
 
 #define STR_NOLEN (~(unsigned)0)
 
@@ -1408,14 +1408,14 @@ First byte:  bits 8&7  bits 1-6 (low order)
 		3      number of bytes following
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define PLMINLONG   ((long)(-1L<<(LONGBITSIZE-1)))
+#define PLMINLONG   ((intptr_t)(-1L<<(LONGBITSIZE-1)))
 
 static void
 putNum(int64_t n, IOSTREAM *fd)
 { int m;
   int64_t absn = (n >= 0 ? n : -n);
 
-  DEBUG(8, Sdprintf("0x%x at %ld\n", (unsigned long)n, Stell(fd)));
+  DEBUG(8, Sdprintf("0x%x at %ld\n", (uintptr_t)n, Stell(fd)));
 
   if ( n != PLMININT )
   { if ( absn < (1L << 5) )
@@ -1464,7 +1464,7 @@ putReal(real f, IOSTREAM *fd)
 
 
 static void
-putLong(unsigned long v, IOSTREAM *fd)	/* always 4 bytes */
+putLong(uintptr_t v, IOSTREAM *fd)	/* always 4 bytes */
 { Sputc((v>>24)&0xff, fd);
   Sputc((v>>16)&0xff, fd);
   Sputc((v>>8)&0xff, fd);
@@ -1486,10 +1486,10 @@ savedXRPointer must be used for the pointers.
 static int
 savedXR(void *xr, IOSTREAM *fd)
 { Symbol s;
-  long id;
+  intptr_t id;
 
   if ( (s = lookupHTable(savedXRTable, xr)) )
-  { id = (long) s->value;
+  { id = (intptr_t) s->value;
     Sputc(XR_REF, fd);
     putNum(id, fd);
     
@@ -1969,7 +1969,7 @@ importWic(Procedure proc, IOSTREAM *fd ARG_LD)
 typedef struct source_mark *SourceMark;
 
 struct source_mark
-{ long	   file_index;
+{ intptr_t	   file_index;
   SourceMark next;
 };
 
@@ -2021,7 +2021,7 @@ writeSourceMarks(IOSTREAM *s ARG_LD)
 
 
 static int
-qlfSourceInfo(IOSTREAM *s, long offset, term_t list ARG_LD)
+qlfSourceInfo(IOSTREAM *s, intptr_t offset, term_t list ARG_LD)
 { char *str;
   term_t head = PL_new_term_ref();
 
@@ -2042,7 +2042,7 @@ qlfInfo(const char *file,
 { IOSTREAM *s = NULL;
   int lversion;
   int nqlf, i;
-  long *qlfstart = NULL;
+  intptr_t *qlfstart = NULL;
   word rval = TRUE;
   term_t files = PL_copy_term_ref(files0);
   int saved_wsize;
@@ -2074,7 +2074,7 @@ qlfInfo(const char *file,
     return warning("qlf_info/4: seek failed: %s", OsError());
   nqlf = getWord(s);
   DEBUG(1, Sdprintf("Found %d sources at", nqlf));
-  qlfstart = (long *)allocHeap(sizeof(long) * nqlf);
+  qlfstart = (intptr_t *)allocHeap(sizeof(intptr_t) * nqlf);
   Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
   for(i=0; i<nqlf; i++)
   { qlfstart[i] = getWord(s);
@@ -2094,7 +2094,7 @@ qlfInfo(const char *file,
 
 out:
   if ( qlfstart )
-    freeHeap(qlfstart, sizeof(long) * nqlf);
+    freeHeap(qlfstart, sizeof(intptr_t) * nqlf);
   if ( s )
     Sclose(s);
 

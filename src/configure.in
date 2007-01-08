@@ -97,15 +97,6 @@ AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
 		   *)  ;;
 	       esac])
 
-AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
-	      [case "$enableval" in
-		   yes) MT=yes
-		        AC_DEFINE(NO_SEGV_HANDLING, 1,
-				  [Define to 1 not to use SIGSEGV for guarding stack-overflows])
-			;;
-		   *)  ;;
-	       esac])
-
 AC_ARG_ENABLE(shared, [  --enable-shared	  Prolog kernel as shared obj],
 	      [case "$enableval" in
 		   yes) MKSHARED=yes
@@ -114,6 +105,19 @@ AC_ARG_ENABLE(shared, [  --enable-shared	  Prolog kernel as shared obj],
 			;;
 		   *)   ;;
 	       esac])
+
+AC_ARG_ENABLE(mt, [  --disable-mt		  Disable Multi-threading],
+	      [case "$enableval" in
+		   yes) MT=yes
+			;;
+		   *)  ;;
+	       esac],
+	       MT=yes)
+
+if test "x$MT" = "xyes"; then
+  AC_DEFINE(NO_SEGV_HANDLING, 1,
+	    [Define to 1 not to use SIGSEGV for guarding stack-overflows])
+fi
 
 readline_ok=no
 AC_ARG_ENABLE(readline, [  --disable-readline	  Do NOT include GNU readline],
@@ -563,6 +567,8 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_FUNC_VFORK
 
+AC_CHECK_TYPE(intptr_t)
+
 if test "x$ac_cv_func_unsetenv" = "xyes"; then
   AC_MSG_CHECKING("whether unsetenv is void")
   AC_TRY_COMPILE(
@@ -756,30 +762,30 @@ fi
 AC_MSG_CHECKING("alignment restrictions on doubles")
 AC_TRY_RUN(
 [ main()
-  { long l[10];
+  { intptr_t l[10];
     double *p;
-    unsigned long x = (unsigned long) l;
+    uintptr_t x = (uintptr_t) l;
 
 #if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
     exit(1);
 #endif
 
     if ( x % sizeof(double) == 0 )
-      x += sizeof(long);
+      x += sizeof(intptr_t);
     p = (double  *) x;
     *p = 1.0;
 
     exit(0);
   }
 ],
-AC_MSG_RESULT(as long),
+AC_MSG_RESULT(as intptr_t),
 AC_MSG_RESULT(sizeof(double))
 AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double),
 	  [Define if doubles cannot be aligned as longs]),
 AC_MSG_RESULT(assuming sizeof(double))
 AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)))
 
-dnl See whether we can access long values over non-aligned pointers.  This
+dnl See whether we can access intptr_t values over non-aligned pointers.  This
 dnl should also check whether it is actually faster to do so.  Note that on
 dnl the ARM processor it works, but the pointer is truncated, overwriting
 dnl what is in front of it.  The current check validates this.
@@ -792,15 +798,15 @@ dnl old test for reference.
 AC_MSG_CHECKING("unaligned access")
 AC_TRY_RUN(
 [ main()
-  { char l[sizeof(long)*2];
-    long *p;
+  { char l[sizeof(intptr_t)*2];
+    intptr_t *p;
 
 #if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
     exit(1);
 #endif
 
     l[0] = 10;
-    p = (long *)(l+1);
+    p = (intptr_t *)(l+1);
     *p = 0x20406080;
 
     if ( l[0] == 10 && *p == 0x20406080 )
@@ -815,7 +821,7 @@ AC_TRY_RUN(
 ],
 AC_MSG_RESULT(allowed)
 AC_DEFINE(NON_ALIGNED_ACCESS, 1,
-	  [Define if it is allowed to access long integers with non-aligned pointers]),
+	  [Define if it is allowed to access intptr_t integers with non-aligned pointers]),
 AC_MSG_RESULT(not allowed),
 AC_MSG_RESULT(assuming not allowed))
 

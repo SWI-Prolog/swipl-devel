@@ -580,7 +580,7 @@ PL_get_integer_ex(term_t t, int *i)
 
 
 int
-PL_get_long_ex(term_t t, long *i)
+PL_get_long_ex(term_t t, intptr_t *i)
 { if ( PL_get_long(t, i) )
     succeed;
 

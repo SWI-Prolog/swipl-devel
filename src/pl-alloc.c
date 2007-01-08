@@ -100,9 +100,9 @@ GD.  Rules:
 #define ALIGN_SIZE sizeof(double)
 #else
 #ifdef __ia64__
-#define ALIGN_SIZE sizeof(long[2])
+#define ALIGN_SIZE sizeof(intptr_t[2])
 #else
-#define ALIGN_SIZE sizeof(long)
+#define ALIGN_SIZE sizeof(intptr_t)
 #endif
 #endif
 #endif
@@ -138,20 +138,20 @@ void *core_allocHeap__LD(size_t n ARG_LD);
 
 void
 freeHeap__LD(void *mem, size_t n ARG_LD)
-{ long *p = mem;
+{ intptr_t *p = mem;
 
-  assert(p[-1] == (long)n);
+  assert(p[-1] == (intptr_t)n);
   assert(p[-2] == INUSE_MAGIC);
   p[-2] = FREE_MAGIC;			/* trap double free */
   memset(mem, ALLOC_FREE_MAGIC, n);
 
-  core_freeHeap__LD(p-3, n+3*sizeof(long) PASS_LD);
+  core_freeHeap__LD(p-3, n+3*sizeof(intptr_t) PASS_LD);
 }
 
 
 void *
 allocHeap__LD(size_t n ARG_LD)
-{ long *p = core_allocHeap__LD(n+3*sizeof(long) PASS_LD);
+{ intptr_t *p = core_allocHeap__LD(n+3*sizeof(intptr_t) PASS_LD);
 
   p += 3;
   p[-1] = n;
@@ -178,7 +178,7 @@ freeToPool(AllocPool pool, void *mem, size_t n, int islocal)
   
   pool->allocated -= n;
   DEBUG(9, Sdprintf("freed %ld bytes at %ld\n",
-		    (unsigned long)n, (unsigned long)p));
+		    (uintptr_t)n, (uintptr_t)p));
 
   n /= ALIGN_SIZE;
   p->next = pool->free_chains[n];
@@ -689,7 +689,7 @@ static inline word
 __consPtr(void *p, int ts)
 {
   GET_LD
-  unsigned long v = (unsigned long) p;
+  uintptr_t v = (uintptr_t) p;
 
   v -= base_addresses[ts&STG_MASK];
   assert(v < MAXTAGGEDPTR && !(v&0x3));
@@ -737,10 +737,10 @@ Word
 allocGlobal__LD(int n ARG_LD)
 { Word result;
 
-  if ( roomStack(global) < (long) (n * sizeof(word)) )
+  if ( roomStack(global) < (intptr_t) (n * sizeof(word)) )
   { growStacks(NULL, NULL, NULL, FALSE, TRUE, FALSE);
 
-    if ( roomStack(global) < (long) (n * sizeof(word)) )
+    if ( roomStack(global) < (intptr_t) (n * sizeof(word)) )
       outOfStack((Stack) &LD->stacks.global, STACK_OVERFLOW_FATAL);
   }
 
@@ -754,7 +754,7 @@ Word
 allocGlobalNoShift__LD(int n ARG_LD)
 { Word result;
 
-  if ( roomStack(global) < (long) (n * sizeof(word)) )
+  if ( roomStack(global) < (intptr_t) (n * sizeof(word)) )
   { assert(0);				/* TBD: see copy_term/2 */
     return NULL;
   }
@@ -844,7 +844,7 @@ globalLong(int64_t l ARG_LD)
 #endif
   *p   = m;
 #else
-#error "FIXME: Unsupported sizeof long."
+#error "FIXME: Unsupported sizeof intptr_t."
 #endif
 #endif
 
@@ -864,7 +864,7 @@ ignored to avoid alignment restriction problems.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Word
-allocString(long len ARG_LD)
+allocString(intptr_t len ARG_LD)
 { int lw = (len+sizeof(word))/sizeof(word);
   int pad = (lw*sizeof(word) - len);
   Word p = allocGlobal(2 + lw);
@@ -879,7 +879,7 @@ allocString(long len ARG_LD)
 
 
 word
-globalString(long l, const char *s)
+globalString(intptr_t l, const char *s)
 { GET_LD
   Word p = allocString(l+1 PASS_LD);
   char *q = (char *)&p[1];

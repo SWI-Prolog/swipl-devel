@@ -161,7 +161,7 @@ be kept consistent.
 #define storage(w)	((w) & STG_MASK)
 #define valPtr2(w, s)	((Word)(((w) >> 5) + base_addresses[s]))
 #define valPtr(w)	valPtr2(w, storage(w))
-#define valInt(w)	((long)(w) >> 7)
+#define valInt(w)	((intptr_t)(w) >> 7)
 
 		 /*******************************
 		 *	  EXTENDED TAG		*
@@ -269,7 +269,7 @@ and while loading .wic files.  It comes at no price.
 #define valIndirectP(w)	(((Word)valPtr(w))+1)
 
 #define padHdr(iw)	(((iw)>>LMASK_BITS & PADMASK) ? \
-			 ((iw)>>LMASK_BITS & PADMASK) : sizeof(long))
+			 ((iw)>>LMASK_BITS & PADMASK) : sizeof(intptr_t))
 #define mkPadHdr(n)	(((n)&PADMASK) << LMASK_BITS)
 #define mkStrHdr(n,p)	(mkIndHdr(n, TAG_STRING)|mkPadHdr(pad))
 #define wsizeofIndirect(w) (wsizeofInd(*addressIndirect(w)))

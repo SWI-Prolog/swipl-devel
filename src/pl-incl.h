@@ -412,7 +412,7 @@ typedef void *			caddress;
 #endif
 				/* n is 2^m !!! */
 #define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
-#define addPointer(p, n)	((void *) ((char *)(p) + (long)(n)))
+#define addPointer(p, n)	((void *) ((char *)(p) + (intptr_t)(n)))
 #define diffPointers(p1, p2)	((char *)(p1) - (char *)(p2))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -449,14 +449,14 @@ them.  Descriptions:
 #define SMALLSTACK		200 * 1024 /* GC policy */
 
 #define WORDBITSIZE		(8 * sizeof(word))
-#define LONGBITSIZE		(8 * sizeof(long))
+#define LONGBITSIZE		(8 * sizeof(intptr_t))
 #define INTBITSIZE		(8 * sizeof(int))
 #define INT64BITSIZE		(8 * sizeof(int64_t))
 #define WORDS_PER_DOUBLE        ((sizeof(double)+sizeof(word)-1)/sizeof(word))
 #define WORDS_PER_INT64		(sizeof(int64_t)/sizeof(word))
 
 				/* Prolog's integer range */
-#define PLMINTAGGEDINT		(-(long)(1L<<(WORDBITSIZE - LMASK_BITS - 1)))
+#define PLMINTAGGEDINT		(-(intptr_t)(1L<<(WORDBITSIZE - LMASK_BITS - 1)))
 #define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
 #define inTaggedNumRange(n)	(((n)&~PLMAXTAGGEDINT) == 0 || \
 				 ((n)&~PLMAXTAGGEDINT) == ~PLMAXTAGGEDINT)
@@ -487,15 +487,15 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define TABLE_UNLOCKED		0x10000000L /* do not create mutex for table */
 #define TABLE_MASK		0xf0000000UL
 
-#define pointerHashValue(p, size) ((((long)(p) >> LMASK_BITS) ^ \
-				    ((long)(p) >> (LMASK_BITS+5)) ^ \
-				    ((long)(p))) & \
+#define pointerHashValue(p, size) ((((intptr_t)(p) >> LMASK_BITS) ^ \
+				    ((intptr_t)(p) >> (LMASK_BITS+5)) ^ \
+				    ((intptr_t)(p))) & \
 				   ((size)-1))
 
 #define TABLE_REF_MASK		0x1UL
-#define isTableRef(p)		((unsigned long)(p) & TABLE_REF_MASK)
-#define makeTableRef(p)		((void*)((unsigned long)(p) | TABLE_REF_MASK))
-#define unTableRef(s, p)	(*((s*)((unsigned long)(p) & ~TABLE_REF_MASK)))
+#define isTableRef(p)		((uintptr_t)(p) & TABLE_REF_MASK)
+#define makeTableRef(p)		((void*)((uintptr_t)(p) | TABLE_REF_MASK))
+#define unTableRef(s, p)	(*((s*)((uintptr_t)(p) & ~TABLE_REF_MASK)))
 
 #define return_next_table(t, v, clean) \
 	{ for((v) = (v)->next; isTableRef(v) && (v); (v) = unTableRef(t, v)) \
@@ -531,7 +531,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 
 /* Definition->indexPattern is set to NEED_REINDEX if the definition's index
    pattern needs to be recomputed */
-#define NEED_REINDEX ((unsigned long)1L << (LONGBITSIZE-1))
+#define NEED_REINDEX ((uintptr_t)1L << (LONGBITSIZE-1))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Foreign language interface definitions.  Note that these macros MUST  be
@@ -548,7 +548,7 @@ typedef enum
 typedef struct foreign_context *control_t;
 
 struct foreign_context
-{ unsigned long		context;	/* context value */
+{ uintptr_t		context;	/* context value */
   frg_code		control;	/* FRG_* action */
   struct PL_local_data *engine;		/* invoking engine */
 };
@@ -558,14 +558,14 @@ struct foreign_context
 #define REDO_INT	0x02		/* Returned an integer */
 #define REDO_PTR	0x03		/* returned a pointer */
 
-#define ForeignRedoIntVal(v)	(((unsigned long)(v)<<FRG_REDO_BITS)|REDO_INT)
-#define ForeignRedoPtrVal(v)	(((unsigned long)(v))|REDO_PTR)
+#define ForeignRedoIntVal(v)	(((uintptr_t)(v)<<FRG_REDO_BITS)|REDO_INT)
+#define ForeignRedoPtrVal(v)	(((uintptr_t)(v))|REDO_PTR)
 
 #define ForeignRedoInt(v)	return ForeignRedoIntVal(v)
 #define ForeignRedoPtr(v)	return ForeignRedoPtrVal(v)
 
 #define ForeignControl(h)	((h)->control)
-#define ForeignContextInt(h)	((long)(h)->context)
+#define ForeignContextInt(h)	((intptr_t)(h)->context)
 #define ForeignContextPtr(h)	((void *)(h)->context)
 #define ForeignEngine(h)	((h)->engine)
 
@@ -837,11 +837,11 @@ place them on the stack (see I_USERCALL).
 #define WORD_ALIGNED
 #endif
 
-typedef unsigned long		term_t;		/* external term-reference */
-typedef unsigned long		word;		/* Anonymous 4 byte object */
+typedef uintptr_t		term_t;		/* external term-reference */
+typedef uintptr_t		word;		/* Anonymous 4 byte object */
 typedef word *			Word;		/* a pointer to anything */
 typedef word			atom_t;		/* encoded atom */
-typedef unsigned long		code WORD_ALIGNED; /* bytes codes */
+typedef uintptr_t		code WORD_ALIGNED; /* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
 typedef word			(*Func)();	/* foreign functions */
@@ -1212,8 +1212,8 @@ extern Atom _PL_debug_atom_value(atom_t a);
 #endif
 
 struct index
-{ unsigned long key;		/* key of index */
-  unsigned long varmask;	/* variable field mask */
+{ uintptr_t key;		/* key of index */
+  uintptr_t varmask;	/* variable field mask */
 };
 
 struct functorDef
@@ -1252,8 +1252,8 @@ struct clause
   struct index	index;			/* index key of clause */
 #ifdef O_LOGICAL_UPDATE
   struct
-  { unsigned long created;		/* Generation that created me */
-    unsigned long erased;		/* Generation I was erased */
+  { uintptr_t created;		/* Generation that created me */
+    uintptr_t erased;		/* Generation I was erased */
   } generation;
 #endif /*O_LOGICAL_UPDATE*/
   unsigned int		code_size;	/* size of ->codes */
@@ -1283,7 +1283,7 @@ struct clause_ref
 #define CA1_PROC	1	/* code arg 1 is procedure */
 #define CA1_FUNC	2	/* code arg 1 is functor */
 #define CA1_DATA	3	/* code arg 2 is prolog data */
-#define CA1_INTEGER	4	/* long value */
+#define CA1_INTEGER	4	/* intptr_t value */
 #define CA1_INT64	5	/* int64 value */
 #define CA1_FLOAT	6	/* next WORDS_PER_DOUBLE are double */
 #define CA1_STRING	7	/* inlined string */
@@ -1346,8 +1346,8 @@ struct definition
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
   ClauseIndex 	hash_info;		/* clause hash-tables */
-  unsigned long indexPattern;		/* indexed argument pattern */
-  unsigned long	flags;			/* booleans: */
+  uintptr_t indexPattern;		/* indexed argument pattern */
+  uintptr_t	flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
 		/*	PROFILE_TICKED	   has been ticked this time? */
 		/*	TRACE_ME	   is my call visible? */
@@ -1391,9 +1391,9 @@ struct localFrame
   struct call_node *prof_node;		/* Profiling node */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  unsigned long generation;		/* generation of the database */
+  uintptr_t generation;		/* generation of the database */
 #endif
-  unsigned long flags;			/* packed long holding: */
+  uintptr_t flags;			/* packed intptr_t holding: */
 		/*	LEVEL	   recursion level (28 bits) */
 		/*	FR_NODEBUG don't debug this frame ? */
 		/*	FR_SKIPPED skipped in the tracer */
@@ -1445,7 +1445,7 @@ struct choice
 #define	QF_INTERACTIVE		0x0004	/* interactive goal (prolog()) */
 
 struct queryFrame
-{ unsigned long magic;			/* Magic code for security */
+{ uintptr_t magic;			/* Magic code for security */
 #if O_SHIFT_STACKS
   struct				/* Interpreter registers */
   { LocalFrame  fr;
@@ -1453,14 +1453,14 @@ struct queryFrame
   } registers;
 #endif
 #ifdef O_LIMIT_DEPTH
-  unsigned long saved_depth_limit;	/* saved values of these */
-  unsigned long saved_depth_reached;
+  uintptr_t saved_depth_limit;	/* saved values of these */
+  uintptr_t saved_depth_reached;
 #endif
 #if O_CATCHTHROW
   term_t	exception;		/* Exception term */
   jmp_buf	exception_jmp_env;	/* longjmp() buffer for exception */
 #endif
-  unsigned long	flags;
+  uintptr_t	flags;
   debug_type	debugSave;		/* saved debugstatus.debugging */
   Word	       *aSave;			/* saved argument-stack */
   int		solutions;		/* # of solutions produced */
@@ -1477,7 +1477,7 @@ struct queryFrame
 #define FLI_MAGIC_CLOSED	0x42424242
 
 struct fliFrame
-{ long		magic;			/* Magic code */
+{ intptr_t		magic;			/* Magic code */
   int		size;			/* # slots on it */
   FliFrame	parent;			/* parent FLI frame */
   mark		mark;			/* data-stack mark */
@@ -1514,7 +1514,7 @@ struct recordRef
 struct sourceFile
 { atom_t	name;		/* name of source file */
   int		count;		/* number of times loaded */
-  long		time;		/* load time of file */
+  intptr_t		time;		/* load time of file */
   ListCell	procedures;	/* List of associated procedures */
   Procedure	current_procedure;	/* currently loading one */
   int		index;		/* index number (1,2,...) */
@@ -1608,7 +1608,7 @@ struct free_chunk
 struct alloc_pool
 { char	       *space;			/* pointer to free space */
   size_t	free;			/* size of free space */
-  long 		allocated;		/* total bytes allocated */
+  intptr_t 		allocated;		/* total bytes allocated */
 					/* fast perfect fit chains */
   Chunk  	free_chains[ALLOCFAST/sizeof(Chunk)+1];
   int		free_count[ALLOCFAST/sizeof(Chunk)+1];
@@ -1685,8 +1685,8 @@ value need not be trailed.
 		 *	   FLI INTERNALS	*
 		 *******************************/
 
-typedef unsigned long qid_t;		/* external query-id */
-typedef unsigned long PL_fid_t;		/* external foreign context-id */
+typedef uintptr_t qid_t;		/* external query-id */
+typedef uintptr_t PL_fid_t;		/* external foreign context-id */
 
 #define fid_t PL_fid_t			/* avoid AIX name-clash */
 
@@ -1819,10 +1819,10 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  type		min;		/* donot shrink below this value */ \
 	  type		max;		/* allocated maximum */		    \
 	  type		limit;		/* top the the range (base+limit) */\
-	  long		minfree;	/* minimum amount of free space */  \
+	  intptr_t		minfree;	/* minimum amount of free space */  \
 	  bool		gc;		/* Can be GC'ed? */		    \
-	  long		gced_size;	/* size after last GC */	    \
-	  long		small;		/* Donot GC below this size */	    \
+	  intptr_t		gced_size;	/* size after last GC */	    \
+	  intptr_t		small;		/* Donot GC below this size */	    \
 	  int		factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \
 	  char		*name;		/* Symbolic name of the stack */    \
@@ -1895,7 +1895,7 @@ typedef enum
 #if O_DYNAMIC_STACKS
 #ifdef NO_SEGV_HANDLING
 #define requireStack(s, n) \
-	{ if ( roomStack(s) < (long)(n) ) \
+	{ if ( roomStack(s) < (intptr_t)(n) ) \
  	    ensureRoomStack((Stack)&LD->stacks.s, n); \
 	}
 #else /*NO_SEGV_HANDLING*/
@@ -1903,7 +1903,7 @@ typedef enum
 #endif /*NO_SEGV_HANDLING*/
 #else
 #define requireStack(s, n) \
-	{ if ( roomStack(s) < (long)(n) ) \
+	{ if ( roomStack(s) < (intptr_t)(n) ) \
  	    outOfStack((Stack)&LD->stacks.s, STACK_OVERFLOW_FATAL); \
 	}
 #endif
@@ -1958,7 +1958,7 @@ typedef struct redir_context
 #if VMCODE_IS_ADDRESS
 #define encode(wam) (wam_table[wam])		/* WAM --> internal */
 						/* internal --> WAM */
-#define decode(c)   ((code) (dewam_table[(unsigned long)(c) - \
+#define decode(c)   ((code) (dewam_table[(uintptr_t)(c) - \
 					 dewam_table_offset]))
 #else /* VMCODE_IS_ADDRESS */
 #define encode(wam) (wam)
@@ -1973,7 +1973,7 @@ typedef struct
 { bool		requested;		/* GC is requested by stack expander */
   int		blocked;		/* GC is blocked now */
   bool		active;			/* Currently running? */
-  long		collections;		/* # garbage collections */
+  intptr_t		collections;		/* # garbage collections */
   int64_t	global_gained;		/* global stack bytes collected */
   int64_t	trail_gained;		/* trail stack bytes collected */
   real		time;			/* time spent in collections */
@@ -2047,7 +2047,7 @@ Tracer communication declarations.
 #define PORT_MASK	0x1ff
 #define VERY_DEEP	1000000000L	/* deep skiplevel */
 
-#define LONGATOM_CHECK	    0x01	/* read/1: error on long atoms */
+#define LONGATOM_CHECK	    0x01	/* read/1: error on intptr_t atoms */
 #define SINGLETON_CHECK	    0x02	/* read/1: check singleton vars */
 #define DOLLAR_STYLE	    0x04	/* dollar is lower case */
 #define DISCONTIGUOUS_STYLE 0x08	/* warn on discontiguous predicates */
@@ -2057,7 +2057,7 @@ Tracer communication declarations.
 #define SYSTEM_MODE	    (debugstatus.styleCheck & DOLLAR_STYLE)
 
 typedef struct debuginfo
-{ unsigned long	skiplevel;		/* current skip level */
+{ uintptr_t	skiplevel;		/* current skip level */
   bool		tracing;		/* are we tracing? */
   debug_type	debugging;		/* are we debugging? */
   int		leashing;		/* ports we are leashing */
@@ -2101,7 +2101,7 @@ typedef struct debuginfo
 #define DEBUGINFO_FEATURE	  0x100000 /* generate debug info */
 
 typedef struct
-{ unsigned long flags;			/* the feature flags */
+{ uintptr_t flags;			/* the feature flags */
 } pl_features_t;
 
 #define trueFeature(mask)	true(&features, mask)

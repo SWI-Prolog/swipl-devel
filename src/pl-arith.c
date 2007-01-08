@@ -128,7 +128,7 @@ static int		registerFunction(ArithFunction f, int index);
 static int		getCharExpression(term_t t, Number r ARG_LD);
 static int		ar_sign_i(Number n1);
 static int		ar_add(Number n1, Number n2, Number r);
-static int		ar_add_ui(Number n, long val);
+static int		ar_add_ui(Number n, intptr_t val);
 static int		ar_minus(Number n1, Number n2, Number r);
 
 
@@ -875,7 +875,7 @@ promoteIntNumber(Number n)
 		*********************************/
 
 static int
-ar_add_ui(Number n, long add)
+ar_add_ui(Number n, intptr_t add)
 { switch(n->type)
   { case V_INTEGER:
     { int64_t r = n->value.i + add;
@@ -1051,7 +1051,7 @@ msb64(int64_t i)
 static int
 ar_shift(Number n1, Number n2, Number r, int dir) 
 { GET_LD
-  long shift;
+  intptr_t shift;
   const char *plop = (dir < 0 ? "<<" : ">>");
 
   if ( !toIntegerNumber(n1) ) 
@@ -1070,7 +1070,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	   n2->value.i > LONG_MAX )
 	return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
       else
-	shift = (long)n2->value.i;
+	shift = (intptr_t)n2->value.i;
       break;
 #ifdef O_GMP
     case V_MPZ:
@@ -1114,7 +1114,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       r->type = V_MPZ; 
       mpz_init(r->value.mpz); 
       if ( dir < 0 )
-      { long msb = (mpz_sizeinbase(n1->value.mpz, 2)-1+shift);
+      { intptr_t msb = (mpz_sizeinbase(n1->value.mpz, 2)-1+shift);
 
 	if ( spaceStack(global)-1024 < msb/8 )
 	  return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
@@ -1230,13 +1230,13 @@ ar_pow(Number n1, Number n2, Number r)
 { 
 #ifdef O_GMP
   if ( intNumber(n1) && intNumber(n2) )
-  { unsigned long exp;
+  { uintptr_t exp;
 
     switch(n2->type)
     { case V_INTEGER:
 	if ( n2->value.i < 0 || n2->value.i > LONG_MAX )
 	  goto doreal;
-	exp = (unsigned long)n2->value.i;
+	exp = (uintptr_t)n2->value.i;
 	break;
       case V_MPZ:
 	if ( mpz_sgn(n2->value.mpz) < 0 ||
@@ -1255,7 +1255,7 @@ ar_pow(Number n1, Number n2, Number r)
     switch(n1->type)
     { case V_INTEGER:
 	if ( n1->value.i >= 0L && n1->value.i <= LONG_MAX )
-	{ mpz_ui_pow_ui(r->value.mpz, (long)n1->value.i, exp);
+	{ mpz_ui_pow_ui(r->value.mpz, (intptr_t)n1->value.i, exp);
 	  succeed;
 	} else
 	{ promoteToMPZNumber(n1);
@@ -2536,7 +2536,7 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
 		       PL_FUNCTOR, FUNCTOR_colon2,
 		         PL_ATOM, f->module->name,
 		         PL_TERM, tmp) &&
-	 PL_unify_integer(A2, (long)f->index) )
+	 PL_unify_integer(A2, (intptr_t)f->index) )
     { if ( ++i == mx )
 	succeed;
       ForeignRedoInt(i);

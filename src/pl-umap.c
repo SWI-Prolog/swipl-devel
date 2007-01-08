@@ -1629,7 +1629,7 @@ uflagsW(int code)
   if ( cp < UNICODE_MAP_SIZE )
   { const char *s = uflags_map[cp];
     if ( s < (const char *)256 )
-      return (int)(long)s;
+      return (int)(intptr_t)s;
     return s[code&0xff];
   }
   return 0;

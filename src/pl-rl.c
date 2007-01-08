@@ -294,7 +294,7 @@ reentrant access is tried.
 static int
 event_hook()
 { if ( Sinput && Sinput->position )
-  { long c0 = Sinput->position->charno;
+  { intptr_t c0 = Sinput->position->charno;
 
     while( !input_on_fd(0) )
     { PL_dispatch(0, PL_DISPATCH_NOWAIT);
@@ -330,12 +330,12 @@ reset_readline()
 
 static int
 Sread_readline(void *handle, char *buf, int size)
-{ long h = (long)handle;
+{ intptr_t h = (intptr_t)handle;
   int fd = (int) h;
   int ttymode = PL_ttymode(Suser_input); /* Not so nice */
   int rval;
 #ifdef HAVE_CLOCK
-  long oldclock = clock();
+  intptr_t oldclock = clock();
 #endif
 
   PL_write_prompt(ttymode == PL_NOTTY);
@@ -417,7 +417,7 @@ Sread_readline(void *handle, char *buf, int size)
       { int l = strlen(line);
 	  
 	if ( l >= size )
-	{ PL_warning("Input line too long");	/* must be tested! */
+	{ PL_warning("Input line too intptr_t");	/* must be tested! */
 	  l = size-1;
 	}
 	memcpy(buf, line, l);

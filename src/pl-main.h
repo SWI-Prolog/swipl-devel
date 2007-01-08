@@ -42,11 +42,11 @@ typedef struct
 } pl_defaults_t; 
 
 typedef struct
-{ long		localSize;		/* size of local stack */
-  long		globalSize;		/* size of global stack */
-  long		trailSize;		/* size of trail stack */
-  long		argumentSize;		/* size of argument stack */
-  long		heapSize;		/* size of the heap */
+{ intptr_t		localSize;		/* size of local stack */
+  intptr_t		globalSize;		/* size of global stack */
+  intptr_t		trailSize;		/* size of trail stack */
+  intptr_t		argumentSize;		/* size of argument stack */
+  intptr_t		heapSize;		/* size of the heap */
   char *	goal;			/* initial goal */
   char *	topLevel;		/* toplevel goal */
   char *	initFile;		/* -f initialisation file */

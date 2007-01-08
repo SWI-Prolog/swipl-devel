@@ -225,7 +225,7 @@ pl_call_shared_object_function(term_t plhandle, term_t name)
     
     if ( strlen(fname)+strlen(LD_SYMBOL_PREFIX) > MAXSYMBOLLEN )
       return PL_error(NULL, 0,
-		      "Symbol too long",
+		      "Symbol too intptr_t",
 		      ERR_REPRESENTATION,
 		      PL_new_atom("symbol"));
 

@@ -38,7 +38,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog  new-style  foreign-language  interface.   This  new  foreign
 interface is a mix of the old  interface using the ideas on term-handles
-from  Quintus  Prolog.  Term-handles  are    integers  (unsigned  long),
+from  Quintus  Prolog.  Term-handles  are    integers  (uintptr_t),
 describing the offset of the term-location relative   to the base of the
 local stack.
 
@@ -75,7 +75,7 @@ Prolog int) is used by the garbage collector to update the stack frames.
 #define valHandleP(h)		valTermRef(h)
 
 #undef ulong
-#define ulong unsigned long
+#define ulong uintptr_t
 
 static inline word
 valHandle__LD(term_t r ARG_LD)
@@ -557,7 +557,7 @@ PL_atom_wchars(atom_t a, unsigned int *len)
 		 *******************************/
 
 bool
-PL_cvt_i_integer(term_t p, long *c)
+PL_cvt_i_integer(term_t p, intptr_t *c)
 { GET_LD
   return PL_get_long(p, c);
 }
@@ -596,7 +596,7 @@ PL_cvt_i_atom(term_t p, atom_t *c)
 
 
 bool
-PL_cvt_o_integer(long c, term_t p)
+PL_cvt_o_integer(intptr_t c, term_t p)
 { GET_LD
   return PL_unify_integer(p, c);
 }
@@ -1229,7 +1229,7 @@ PL_get_integer(term_t t, int *i)
 
 
 int
-PL_get_long__LD(term_t t, long *i ARG_LD)
+PL_get_long__LD(term_t t, intptr_t *i ARG_LD)
 { word w = valHandle(t);
   
   if ( isTaggedInt(w) )
@@ -1242,19 +1242,19 @@ PL_get_long__LD(term_t t, long *i ARG_LD)
     if ( val > LONG_MAX || val < LONG_MIN )
       fail;
     
-    *i = (long)val;
+    *i = (intptr_t)val;
     succeed;
   }
   if ( isReal(w) )
   { real f = valReal(w);
-    long l;
+    intptr_t l;
     
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
     if ( f > (real)LONG_MAX || f < (real)LONG_MIN )
       fail;
 #endif
 
-    l = (long) f;
+    l = (intptr_t) f;
     if ( (real)l == f )
     { *i = l;
       succeed;
@@ -1266,7 +1266,7 @@ PL_get_long__LD(term_t t, long *i ARG_LD)
 
 #undef PL_get_long
 int
-PL_get_long(term_t t, long *i)
+PL_get_long(term_t t, intptr_t *i)
 { GET_LD
   return PL_get_long__LD(t, i PASS_LD);
 }
@@ -1582,7 +1582,7 @@ _PL_get_xpce_reference(term_t t, xpceref_t *ref)
       }
       if ( isBignum(*p) )
       { ref->type    = PL_INTEGER;
-	ref->value.i = (long)valBignum(*p);
+	ref->value.i = (intptr_t)valBignum(*p);
 
 	goto ok;
       }
@@ -1904,7 +1904,7 @@ PL_put_list_ncodes(term_t t, unsigned int len, const char *chars)
 
     for( ; len-- != 0; chars++)
     { *p++ = FUNCTOR_dot2;
-      *p++ = consInt((long)*chars & 0xff);
+      *p++ = consInt((intptr_t)*chars & 0xff);
       *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
       p++;
     }
@@ -1947,14 +1947,14 @@ PL_put_list_chars(term_t t, const char *chars)
 
 
 void
-PL_put_integer__LD(term_t t, long i ARG_LD)
+PL_put_integer__LD(term_t t, intptr_t i ARG_LD)
 { setHandle(t, makeNum(i));
 }
 
 
 #undef PL_put_integer
 void
-PL_put_integer(term_t t, long i)
+PL_put_integer(term_t t, intptr_t i)
 { GET_LD
   setHandle(t, makeNum(i));
 }
@@ -2045,7 +2045,7 @@ PL_put_term(term_t t1, term_t t2)
 
 
 void
-_PL_put_xpce_reference_i(term_t t, unsigned long r)
+_PL_put_xpce_reference_i(term_t t, uintptr_t r)
 { GET_LD
   Word a = allocGlobal(2);
 
@@ -2099,7 +2099,7 @@ PL_unify_functor(term_t t, functor_t f)
     } else
     { 
 #ifdef O_SHIFT_STACKS
-      if ( roomStack(global) < (1+arity) * (long)sizeof(word) )
+      if ( roomStack(global) < (1+arity) * (intptr_t)sizeof(word) )
       { growStacks(environment_frame, NULL, NULL, FALSE, TRUE, FALSE);
 	p = valHandleP(t);
 	deRef(p);
@@ -2308,14 +2308,14 @@ PL_unify_chars(term_t t, int flags, unsigned int len, const char *s)
 
 
 int
-PL_unify_integer__LD(term_t t, long i ARG_LD)
+PL_unify_integer__LD(term_t t, intptr_t i ARG_LD)
 { return unifyAtomic(t, makeNum(i) PASS_LD);
 }
 
 
 #undef PL_unify_integer
 int
-PL_unify_integer(term_t t, long i)
+PL_unify_integer(term_t t, intptr_t i)
 { GET_LD
   return unifyAtomic(t, makeNum(i) PASS_LD);
 }
@@ -2385,7 +2385,7 @@ PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
   { Word a;
 
 #ifdef O_SHIFT_STACKS
-    if ( roomStack(global) < (long)(3 * sizeof(word)) )
+    if ( roomStack(global) < (intptr_t)(3 * sizeof(word)) )
     { growStacks(environment_frame, NULL, NULL, FALSE, TRUE, FALSE);
       p = valHandleP(t);
       deRef(p);
@@ -2499,7 +2499,7 @@ cont:
       break;
     case PL_INTEGER:
     case PL_LONG:
-      rval = PL_unify_integer(t, va_arg(args, long));
+      rval = PL_unify_integer(t, va_arg(args, intptr_t));
       break;
     case PL_INT64:
       rval = PL_unify_int64(t, va_arg(args, int64_t));
@@ -3029,7 +3029,7 @@ PL_call(term_t t, Module m)
 		********************************/
 
 foreign_t
-_PL_retry(long v)
+_PL_retry(intptr_t v)
 { ForeignRedoInt(v);
 }
 
@@ -3043,7 +3043,7 @@ _PL_retry_address(void *v)
 }
 
 
-long
+intptr_t
 PL_foreign_context(control_t h)
 { return ForeignContextInt(h);
 }
@@ -3068,7 +3068,7 @@ find_query(LocalFrame fr)
     while(fr->parent)
       fr = fr->parent;
     
-    qf = (QueryFrame)addPointer(fr, -(long)offsetof(struct queryFrame, frame));
+    qf = (QueryFrame)addPointer(fr, -(intptr_t)offsetof(struct queryFrame, frame));
 
     return qf;
   }
@@ -3621,7 +3621,7 @@ PL_set_feature(const char *name, int type, ...)
       break;
     }
     case PL_INTEGER:
-    { long v = va_arg(args, long);
+    { intptr_t v = va_arg(args, intptr_t);
       defFeature(name, FT_INTEGER, v);
       break;
     }
@@ -3806,15 +3806,15 @@ init_c_args()
 }
 
 
-long
+intptr_t
 PL_query(int query)
 { switch(query)
   { case PL_QUERY_ARGC:
       init_c_args();
-      return (long) c_argc;
+      return (intptr_t) c_argc;
     case PL_QUERY_ARGV:
       init_c_args();
-      return (long) c_argv;
+      return (intptr_t) c_argv;
     case PL_QUERY_MAX_INTEGER:
     case PL_QUERY_MIN_INTEGER:
       fail;				/* cannot represent (anymore) */
@@ -3824,7 +3824,7 @@ PL_query(int query)
       return PLMINTAGGEDINT;
     case PL_QUERY_GETC:
       PopTty(Sinput, &ttytab);		/* restore terminal mode */
-      return (long) Sgetchar();		/* normal reading */
+      return (intptr_t) Sgetchar();		/* normal reading */
     case PL_QUERY_VERSION:
       return PLVERSION;
     case PL_QUERY_MAX_THREADS:
@@ -3842,7 +3842,7 @@ PL_query(int query)
     }
     case PL_QUERY_USER_CPU:		/* User CPU in milliseconds */
     { double cpu = CpuTime(CPU_USER);
-      return (long)(cpu*1000.0);
+      return (intptr_t)(cpu*1000.0);
     }
     default:
       sysError("PL_query: Illegal query: %d", query);

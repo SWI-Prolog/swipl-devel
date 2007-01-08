@@ -32,7 +32,7 @@
 #endif
 
 #undef ulong
-#define ulong unsigned long
+#define ulong uintptr_t
 #undef max
 #define max(a,b) ((a) > (b) ? (a) : (b))
 
@@ -48,7 +48,7 @@ access.   Finally  it holds the code to handle signals transparently for
 foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static   int allocStacks(long local, long global, long trail, long argument);
+static   int allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument);
 forwards void initSignals(void);
 
 #undef I
@@ -136,7 +136,7 @@ void
 initPrologLocalData(void)
 {
 #ifdef O_LIMIT_DEPTH
-  depth_limit   = (unsigned long)DEPTH_NO_LIMIT;
+  depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
   depth_reached = 0;
 #endif
 
@@ -879,7 +879,7 @@ pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
 		 *******************************/
 
 static void
-enforce_limit(long *size, long maxarea, const char *name)
+enforce_limit(intptr_t *size, intptr_t maxarea, const char *name)
 { if ( *size == 0 )
     *size = maxarea;
   else if ( *size > MAXTAGGEDPTR+1 )
@@ -892,7 +892,7 @@ enforce_limit(long *size, long maxarea, const char *name)
 
 
 int
-initPrologStacks(long local, long global, long trail, long argument)
+initPrologStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
 { ulong maxarea;
 
   maxarea = MAXTAGGEDPTR+1;		/* MAXTAGGEDPTR = 0x..fff.. */
@@ -907,9 +907,9 @@ initPrologStacks(long local, long global, long trail, long argument)
   if ( !allocStacks(local, global, trail, argument) )
     fail;
 
-  base_addresses[STG_LOCAL]  = (unsigned long)lBase;
-  base_addresses[STG_GLOBAL] = (unsigned long)gBase;
-  base_addresses[STG_TRAIL]  = (unsigned long)tBase;
+  base_addresses[STG_LOCAL]  = (uintptr_t)lBase;
+  base_addresses[STG_GLOBAL] = (uintptr_t)gBase;
+  base_addresses[STG_TRAIL]  = (uintptr_t)tBase;
   emptyStacks();
 
   DEBUG(1, Sdprintf("base_addresses[STG_LOCAL] = %p\n",
@@ -965,7 +965,7 @@ emptyStacks()
 #if O_DYNAMIC_STACKS
 
 static void init_stack(Stack s, char *name,
-		       caddress base, long limit, long minsize);
+		       caddress base, intptr_t limit, intptr_t minsize);
 static void gcPolicy(Stack s, int policy);
 
 #ifndef NO_SEGV_HANDLING
@@ -1021,8 +1021,8 @@ extern int errno;
 
 static int size_alignment;	/* Stack sizes must be aligned to this */
 
-static long
-align_size(long int x)
+static intptr_t
+align_size(intptr_t x)
 { return x % size_alignment ? (x / size_alignment + 1) * size_alignment : x;
 }
 
@@ -1109,7 +1109,7 @@ get_map_fd()
 static void
 mapOrOutOf(Stack s)
 { ulong incr;
-  long  newroom;
+  intptr_t  newroom;
 
   if ( s->top > s->max )
     incr = ROUND(((ulong)s->top - (ulong)s->max), size_alignment);
@@ -1158,10 +1158,10 @@ ensureRoomStack(Stack s, int bytes)
 static void
 unmap(Stack s)
 { caddress top  = (s->top > s->min ? s->top : s->min);
-  caddress addr = (caddress) align_size((long) top + size_alignment);
+  caddress addr = (caddress) align_size((intptr_t) top + size_alignment);
 
   if ( addr < s->max )
-  { long len = (char *)s->max - (char *)addr;
+  { intptr_t len = (char *)s->max - (char *)addr;
 
 #ifdef MAP_FIXED
     munmap(addr, len);
@@ -1182,14 +1182,14 @@ unmap(Stack s)
 /* mmap() version */
 
 static int
-allocStacks(long local, long global, long trail, long argument)
+allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
 { caddress lbase, gbase, tbase, abase;
-  long glsize;
-  long lsep, tsep;
-  long minglobal   = 4*SIZEOF_LONG K;
-  long minlocal    = 2*SIZEOF_LONG K;
-  long mintrail    = 2*SIZEOF_LONG K;
-  long minargument = 1*SIZEOF_LONG K;
+  intptr_t glsize;
+  intptr_t lsep, tsep;
+  intptr_t minglobal   = 4*SIZEOF_LONG K;
+  intptr_t minlocal    = 2*SIZEOF_LONG K;
+  intptr_t mintrail    = 2*SIZEOF_LONG K;
+  intptr_t minargument = 1*SIZEOF_LONG K;
   
   size_alignment = getpagesize();
   while(size_alignment < 4*SIZEOF_LONG K)
@@ -1214,10 +1214,10 @@ allocStacks(long local, long global, long trail, long argument)
   trail    = max(trail,    mintrail + STACK_SIGNAL);
   argument = max(argument, minargument + STACK_SIGNAL);
 
-  local    = (long) align_size(local);	/* Round up to page boundary */
-  global   = (long) align_size(global);
-  trail    = (long) align_size(trail);
-  argument = (long) align_size(argument);
+  local    = (intptr_t) align_size(local);	/* Round up to page boundary */
+  global   = (intptr_t) align_size(global);
+  trail    = (intptr_t) align_size(trail);
+  argument = (intptr_t) align_size(argument);
   glsize   = global+tsep+local+lsep;
 
   tbase = mmap(NULL, trail+tsep,    MAPPROTECT, MAP_FLAGS, mapfd, 0L);
@@ -1267,8 +1267,8 @@ Free stacks for the current Prolog thread
 
 void
 freeStacks(PL_local_data_t *ld)
-{ long lsep, tsep;
-  long tlen, alen, glen;
+{ intptr_t lsep, tsep;
+  intptr_t tlen, alen, glen;
 
 #ifdef NO_SEGV_HANDLING
   lsep = tsep = 0;
@@ -1312,7 +1312,7 @@ freeStacks(PL_local_data_t *ld)
 static void
 mapOrOutOf(Stack s)
 { ulong incr;
-  long  newroom;
+  intptr_t  newroom;
 
   if ( s->top > s->max )
     incr = ROUND(((ulong)s->top - (ulong)s->max), size_alignment);
@@ -1360,7 +1360,7 @@ ensureRoomStack(Stack s, int bytes)
 static void
 unmap(Stack s)
 { caddress top  = (s->top > s->min ? s->top : s->min);
-  caddress addr = (caddress) align_size((long) top + size_alignment);
+  caddress addr = (caddress) align_size((intptr_t) top + size_alignment);
 
   if ( addr < s->max )
   { if ( !VirtualFree(addr, (ulong)s->max - (ulong)addr, MEM_DECOMMIT) )
@@ -1373,15 +1373,15 @@ unmap(Stack s)
 /* Windows VirtualAlloc() version */
 
 static int
-allocStacks(long local, long global, long trail, long argument)
+allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
 { caddress lbase, gbase, tbase, abase;
-  long glsize;
-  long lsep, tsep;
+  intptr_t glsize;
+  intptr_t lsep, tsep;
   SYSTEM_INFO info;
-  long minglobal   = 4*SIZEOF_LONG K;
-  long minlocal    = 2*SIZEOF_LONG K;
-  long mintrail    = 2*SIZEOF_LONG K;
-  long minargument = 1*SIZEOF_LONG K;
+  intptr_t minglobal   = 4*SIZEOF_LONG K;
+  intptr_t minlocal    = 2*SIZEOF_LONG K;
+  intptr_t mintrail    = 2*SIZEOF_LONG K;
+  intptr_t minargument = 1*SIZEOF_LONG K;
 
   GetSystemInfo(&info);
   size_alignment = info.dwPageSize;
@@ -1398,10 +1398,10 @@ allocStacks(long local, long global, long trail, long argument)
   trail    = max(trail,    mintrail + STACK_SIGNAL);
   argument = max(argument, minargument + STACK_SIGNAL);
 
-  local    = (long) align_size(local);	/* Round up to page boundary */
-  global   = (long) align_size(global);
-  trail    = (long) align_size(trail);
-  argument = (long) align_size(argument);
+  local    = (intptr_t) align_size(local);	/* Round up to page boundary */
+  global   = (intptr_t) align_size(global);
+  trail    = (intptr_t) align_size(trail);
+  argument = (intptr_t) align_size(argument);
   glsize   = global+tsep+local+lsep;
 
   tbase = VirtualAlloc(NULL, trail+tsep,    MEM_RESERVE, PAGE_READWRITE);
@@ -1518,7 +1518,7 @@ _PL_segv_handler(int sig)
 		    roomStack(global), roomStack(local), roomStack(trail)));
 
   for(i=0; i<N_STACKS; i++)
-  { long r = (ulong)stacka[i].max - (ulong)stacka[i].top;
+  { intptr_t r = (ulong)stacka[i].max - (ulong)stacka[i].top;
 
     if ( r < size_alignment )
     { DEBUG(1, Sdprintf("Mapped %s stack (free was %d)\n", stacka[i].name, r));
@@ -1536,7 +1536,7 @@ _PL_segv_handler(int sig)
 #endif /*NO_SEGV_HANDLING*/
 
 static void
-init_stack(Stack s, char *name, caddress base, long limit, long minsize)
+init_stack(Stack s, char *name, caddress base, intptr_t limit, intptr_t minsize)
 { s->name       = name;
   s->base       = s->max = s->top = base;
   s->limit	= addPointer(base, limit);
@@ -1596,7 +1596,7 @@ pl_trim_stacks()
 		*    SIMPLE STACK ALLOCATION    *
 		*********************************/
 
-forwards void init_stack(Stack, char *, long, long, long);
+forwards void init_stack(Stack, char *, intptr_t, intptr_t, intptr_t);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 On systems that do not allow us to get access to the MMU (or that do not
@@ -1618,7 +1618,7 @@ word
 pl_stack_parameter(term_t name, term_t key, term_t old, term_t new)
 { atom_t a, k;
   Stack stack = NULL;
-  long *value = NULL;
+  intptr_t *value = NULL;
 
   if ( PL_get_atom(name, &a) )
   { if ( a == ATOM_local )
@@ -1645,7 +1645,7 @@ pl_stack_parameter(term_t name, term_t key, term_t old, term_t new)
 
 
 static void
-init_stack(Stack s, char *name, long size, long limit, long minfree)
+init_stack(Stack s, char *name, intptr_t size, intptr_t limit, intptr_t minfree)
 { if ( s->base == NULL )
   { fatalError("Not enough core to allocate stacks");
     return;
@@ -1665,21 +1665,21 @@ init_stack(Stack s, char *name, long size, long limit, long minfree)
 /* malloc() version */
 
 static int
-allocStacks(long local, long global, long trail, long argument)
-{ long old_heap = GD->statistics.heap;
-  long minglobal   = 25*SIZEOF_LONG K;
-  long minlocal    = 4*SIZEOF_LONG K;
-  long mintrail    = 4*SIZEOF_LONG K;
-  long minargument = 1*SIZEOF_LONG K;
+allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
+{ intptr_t old_heap = GD->statistics.heap;
+  intptr_t minglobal   = 25*SIZEOF_LONG K;
+  intptr_t minlocal    = 4*SIZEOF_LONG K;
+  intptr_t mintrail    = 4*SIZEOF_LONG K;
+  intptr_t minargument = 1*SIZEOF_LONG K;
 
 #if O_SHIFT_STACKS
-  long itrail  = 8*SIZEOF_LONG K;
-  long iglobal = 50*SIZEOF_LONG K;
-  long ilocal  = 8*SIZEOF_LONG K;
+  intptr_t itrail  = 8*SIZEOF_LONG K;
+  intptr_t iglobal = 50*SIZEOF_LONG K;
+  intptr_t ilocal  = 8*SIZEOF_LONG K;
 #else
-  long itrail  = trail;
-  long iglobal = global;
-  long ilocal  = local;
+  intptr_t itrail  = trail;
+  intptr_t iglobal = global;
+  intptr_t ilocal  = local;
 #endif
 
   local    = max(local,    minlocal);

@@ -167,7 +167,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl)
 	  map = &Out->code[Out->size];
 	  Out->size += 16;
 	  if ( Out->size >= MAXCODE )
-	  { warning("Pattern too long");
+	  { warning("Pattern too intptr_t");
 	    return (char *) NULL;
 	  }
 
@@ -573,7 +573,7 @@ pl_expand_file_name(term_t f, term_t list)
   if ( !PL_get_chars_ex(f, &s, CVT_ALL|REP_FN) )
     fail;
   if ( strlen(s) > sizeof(spec)-1 )
-    return PL_error(NULL, 0, "File name too long",
+    return PL_error(NULL, 0, "File name too intptr_t",
 		    ERR_DOMAIN, ATOM_pattern, f);
 
   if ( !expandVars(s, spec, sizeof(spec)) )

@@ -101,7 +101,7 @@ static char *	Which(const char *program, char *fullname);
 		 *	       GLOBALS		*
 		 *******************************/
 #ifdef HAVE_CLOCK
-long clock_wait_ticks;
+intptr_t clock_wait_ticks;
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -289,7 +289,7 @@ CpuTime(cputime_kind which)
 #endif /*__WIN32__*/
 
 void
-PL_clock_wait_ticks(long waited)
+PL_clock_wait_ticks(intptr_t waited)
 {
 #ifdef HAVE_CLOCK
   clock_wait_ticks += waited;
@@ -389,7 +389,7 @@ FreeMemory(void)
 
 static void
 initRandom(void)
-{ long init;
+{ intptr_t init;
 
 #ifdef __WIN32__
   init = GetTickCount();
@@ -400,7 +400,7 @@ initRandom(void)
   gettimeofday(&tp, NULL);
   init = tp.tv_sec + tp.tv_usec;
 #else
-  init = (long)time((time_t *) NULL);
+  init = (intptr_t)time((time_t *) NULL);
 #endif
 #endif
 
@@ -572,7 +572,7 @@ macros to deal with 16-bit machines, but are not  defined  as  functions
 here.   Some  more  specific things SWI-Prolog wants to know about files
 are defined here:
 
-    long LastModifiedFile(path)
+    intptr_t LastModifiedFile(path)
 	 char *path;
 
     Returns the last time `path' has been modified.  Used by the  source
@@ -731,7 +731,7 @@ OsPath(const char *p, char *buf)
 }
 #endif /* O_XOS */
 
-long
+intptr_t
 LastModifiedFile(char *f)
 { char tmp[MAXPATHLEN];
 
@@ -741,13 +741,13 @@ LastModifiedFile(char *f)
   if ( statfunc(OsPath(f, tmp), &buf) < 0 )
     return -1;
 
-  return (long)buf.st_mtime;
+  return (intptr_t)buf.st_mtime;
 #endif
 
 #if tos
 #define DAY	(24*60*60L)
   static int msize[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-  long t;
+  intptr_t t;
   int n;
   struct ffblk buf;
   struct dz
@@ -1909,7 +1909,7 @@ ChDir(const char *path)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     struct tm *LocalTime(time, struct tm *r)
-	      long *time;
+	      intptr_t *time;
 
     Convert time in Unix internal form (seconds since Jan 1 1970) into a
     structure providing easier access to the time.
@@ -1930,13 +1930,13 @@ ChDir(const char *path)
 	int	tm_isdst;	/ * daylight saving time info * /
     };
 
-    long Time()
+    intptr_t Time()
 
     Return time in seconds after Jan 1 1970 (Unix' time notion).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 struct tm *
-LocalTime(long int *t, struct tm *r)
+LocalTime(long *t, struct tm *r)
 {
 #if defined(_REENTRANT) && defined(HAVE_LOCALTIME_R)
   return localtime_r(t, r);
@@ -1971,7 +1971,7 @@ ResetStdin()
 
 static int
 Sread_terminal(void *handle, char *buf, int size)
-{ long h = (long)handle;
+{ intptr_t h = (intptr_t)handle;
   int fd = (int)h;
   source_location oldsrc = LD->read_source;
 
@@ -2590,14 +2590,14 @@ System(char *cmd)
 The routine system_via_shell() has been written by Tom Demeijer.  Thanks!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define _SHELL_P ((long *)0x4f6L)
+#define _SHELL_P ((intptr_t *)0x4f6L)
 #define SHELL_OK (do_sys != 0)
 
 int cdecl (*do_sys)(const char *cmd); /* Parameter on stack ! */
 
 static int
 system_via_shell(const char *cmd)
-{ long oldssp;
+{ intptr_t oldssp;
 
   oldssp = Super((void *)0L);
   do_sys = (void (*))*_SHELL_P;
@@ -2911,7 +2911,7 @@ Pause(real t)
     succeed;
 
   req.tv_sec = (time_t) t;
-  req.tv_nsec = (long)((t - floor(t)) * 1000000000);
+  req.tv_nsec = (intptr_t)((t - floor(t)) * 1000000000);
 
   for(;;)
   { rc = nanosleep(&req, &req);
@@ -2935,7 +2935,7 @@ Pause(real t)
   if ( t <= 0.0 )
     return;
 
-  usleep((unsigned long)(t * 1000000.0));
+  usleep((uintptr_t)(t * 1000000.0));
 
   return TRUE;
 }
@@ -2954,8 +2954,8 @@ Pause(real time)
     return;
 
   if ( time < 60.0 )		/* select() is expensive. Does it make sense */
-  { timeout.tv_sec = (long) time;
-    timeout.tv_usec = (long)(time * 1000000) % 1000000;
+  { timeout.tv_sec = (intptr_t) time;
+    timeout.tv_usec = (intptr_t)(time * 1000000) % 1000000;
     select(32, NULL, NULL, NULL, &timeout);
     
     return TRUE;
@@ -3027,9 +3027,9 @@ Pause(real t)
 
 int
 Pause(real t)
-{ long wait = (long)(t * 200.0);
-  long start_tick = clock();
-  long end_tick = wait + start_tick;
+{ intptr_t wait = (intptr_t)(t * 200.0);
+  intptr_t start_tick = clock();
+  intptr_t end_tick = wait + start_tick;
 
   while( clock() < end_tick )
   { if ( kbhit() )

@@ -33,7 +33,7 @@ See how the system reacts on segmentation faults.
 
 static word
 pl_crash()
-{ long *lp = NULL;
+{ intptr_t *lp = NULL;
 
   Sdprintf("You asked for it ... Writing to address 0\n");
 

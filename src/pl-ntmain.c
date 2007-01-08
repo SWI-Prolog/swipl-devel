@@ -77,7 +77,7 @@ static rlc_console *consoles;		/* array of consoles */
 static int consoles_length;		/* size of this array */
 
 static void
-unregisterConsole(unsigned long data)
+unregisterConsole(uintptr_t data)
 { rlc_console c = (rlc_console)data;
   rlc_console *p;
   int n;
@@ -103,7 +103,7 @@ registerConsole(rlc_console c)
   { for(p=consoles, n=0; n++<consoles_length; p++)
     { if ( !*p )
       { *p = c;
-        rlc_set(c, RLC_REGISTER, (unsigned long)c, unregisterConsole);
+        rlc_set(c, RLC_REGISTER, (uintptr_t)c, unregisterConsole);
 	UNLOCK();
 	return;
       }
@@ -214,7 +214,7 @@ Srlc_write(void *handle, char *buffer, int size)
 static int
 Srlc_close(void *handle)
 { rlc_console c = handle;
-  unsigned long v;
+  uintptr_t v;
   int closed = 0;
 
   if ( rlc_get(handle, RLC_PROLOG_INPUT, &v) && v &&
@@ -307,7 +307,7 @@ process_console_options(rlc_console_attr *attr, term_t options)
 
 
 static void				/* handle console destruction */
-free_stream(unsigned long handle)
+free_stream(uintptr_t handle)
 { IOSTREAM *s = (IOSTREAM*) handle;
 
   Sclose(s);
@@ -363,9 +363,9 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
     return FALSE;
   }
 
-  rlc_set(c, RLC_PROLOG_INPUT,  (unsigned long)in,  NULL);
-  rlc_set(c, RLC_PROLOG_OUTPUT, (unsigned long)out, NULL);
-  rlc_set(c, RLC_PROLOG_ERROR,  (unsigned long)err, free_stream);
+  rlc_set(c, RLC_PROLOG_INPUT,  (uintptr_t)in,  NULL);
+  rlc_set(c, RLC_PROLOG_OUTPUT, (uintptr_t)out, NULL);
+  rlc_set(c, RLC_PROLOG_ERROR,  (uintptr_t)err, free_stream);
 
   return TRUE;
 }
@@ -780,19 +780,19 @@ HiddenFrameClass()
 
 
 static void
-destroy_hidden_window(unsigned long hwnd)
+destroy_hidden_window(uintptr_t hwnd)
 { DestroyWindow((HWND)hwnd);
 }
 
 
 static HWND
 create_prolog_hidden_window(rlc_console c)
-{ unsigned long hwnd;
+{ uintptr_t hwnd;
 
   if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) && hwnd )
     return (HWND)hwnd;
 
-  hwnd = (unsigned long)CreateWindow(HiddenFrameClass(),
+  hwnd = (uintptr_t)CreateWindow(HiddenFrameClass(),
 				     _T("SWI-Prolog hidden window"),
 				     0,
 				     0, 0, 32, 32,
@@ -853,7 +853,7 @@ interrupt(rlc_console c, int sig)
 { DWORD tid;
 
   if ( rlc_get(c, RLC_APPLICATION_THREAD_ID, &tid) )
-  { unsigned long hwnd;
+  { uintptr_t hwnd;
 
     PL_w32thread_raise((DWORD)tid, sig);
     if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) )
@@ -870,7 +870,7 @@ menu_select(rlc_console c, const TCHAR *name)
   { create_interactor();
   } else
 #endif /*O_PLMT*/
-  { unsigned long hwnd;
+  { uintptr_t hwnd;
 
     if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) )
       PostMessage((HWND)hwnd, WM_MENU, 0, (LONG)name);
@@ -895,7 +895,7 @@ message_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 static void
 set_window_title(rlc_console c)
 { TCHAR title[256];
-  long v = PL_query(PL_QUERY_VERSION);
+  intptr_t v = PL_query(PL_QUERY_VERSION);
   int major = v / 10000;
   int minor = (v / 100) % 100;
   int patch = v % 100;
@@ -992,7 +992,7 @@ win32main(rlc_console c, int argc, TCHAR **argv)
   PL_on_halt(closeWin, c);
 
   create_prolog_hidden_window(c);
-  PL_set_feature("hwnd", PL_INTEGER, (long)rlc_hwnd(c));
+  PL_set_feature("hwnd", PL_INTEGER, (intptr_t)rlc_hwnd(c));
   rlc_interrupt_hook(interrupt);
   rlc_menu_hook(menu_select);
   rlc_message_hook(message_proc);

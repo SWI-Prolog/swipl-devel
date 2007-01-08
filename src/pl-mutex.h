@@ -120,10 +120,10 @@ extern int recursiveMutexUnlock(recursiveMutex *m);
 typedef struct counting_mutex
 { simpleMutex mutex;			/* mutex itself */
   const char *name;			/* name of the mutex */
-  unsigned long count;			/* # times locked */
-  unsigned long unlocked;		/* # times unlocked */
+  long count;				/* # times locked */
+  long unlocked;			/* # times unlocked */
 #ifdef O_CONTENTION_STATISTICS
-  unsigned long collisions;		/* # contentions */
+  long collisions;			/* # contentions */
 #endif
   struct counting_mutex *next;		/* next of allocated chain */
 } counting_mutex;

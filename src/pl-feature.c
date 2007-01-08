@@ -47,7 +47,7 @@ is unix.
 
 In  the  multi-threading  version,   features    have   to   be  changed
 thread-local. Therefore two feature-tables have   been defined: a global
-one which is used as long as there is   only one thread, and a local one
+one which is used as intptr_t as there is   only one thread, and a local one
 that is used to write changes to after multiple threads exist. On thread
 creation this table is copied from  the   parent  and on destruction the
 local table is destroyed.  Note  that   the  flag-mask  for  fast access
@@ -85,13 +85,13 @@ C-interface for defining features.  Depending on the type, the
 following arguments are to be provided:
 
     FT_BOOL	TRUE/FALSE, *_FEATURE
-    FT_INTEGER  long
+    FT_INTEGER  intptr_t
     FT_ATOM	const char *
     FT_TERM	a term
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-indexOfBoolMask(unsigned long mask)
+indexOfBoolMask(uintptr_t mask)
 { int i=1;
   
   if ( !mask )
@@ -134,7 +134,7 @@ defFeature(const char *name, int flags, ...)
   switch(type)
   { case FT_BOOL:
     { int  val           = va_arg(args, int);
-      unsigned long mask = va_arg(args, unsigned long);
+      uintptr_t mask = va_arg(args, uintptr_t);
 
       if ( s && mask && f->index < 0 )		/* type definition */
       { f->index = indexOfBoolMask(mask);
@@ -156,7 +156,7 @@ defFeature(const char *name, int flags, ...)
       break;
     }
     case FT_INTEGER:
-    { long val = va_arg(args, long);
+    { intptr_t val = va_arg(args, intptr_t);
       f->value.i = val;
       break;
     }
@@ -341,7 +341,7 @@ set_feature_unlocked(term_t key, term_t value)
   } else				/* define new feature */
   { feature *f = allocHeap(sizeof(*f));
     atom_t a;
-    long i;
+    intptr_t i;
 
     f->index = -1;
     if ( PL_get_atom(value, &a) )
@@ -383,7 +383,7 @@ set_feature_unlocked(term_t key, term_t value)
       { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, value);
       }
       if ( f->index > 0 )
-      { unsigned long mask = 1L << (f->index-1);
+      { uintptr_t mask = 1L << (f->index-1);
 
 	if ( val )
 	  setFeatureMask(mask);
@@ -443,7 +443,7 @@ set_feature_unlocked(term_t key, term_t value)
       break;
     }
     case FT_INTEGER:
-    { long i;
+    { intptr_t i;
 
       if ( !PL_get_long(value, &i) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, value);
@@ -523,7 +523,7 @@ unify_feature_value(Module m, atom_t key, feature *f, term_t val)
   switch(f->flags & FT_MASK)
   { case FT_BOOL:
       if ( f->index >= 0 )
-      { unsigned long mask = 1L << (f->index-1);
+      { uintptr_t mask = 1L << (f->index-1);
 
 	return PL_unify_bool_ex(val, trueFeature(mask));
       }

@@ -40,7 +40,7 @@ embedded application.
 #endif
 #include <process.h>
 #include <io.h>
-#define off_t long
+#define off_t intptr_t
 
 #define popen _popen
 #define pclose _pclose

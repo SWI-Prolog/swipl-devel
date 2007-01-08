@@ -77,7 +77,7 @@ PL_put_frame(term_t t, LocalFrame fr)
 
 static int
 PL_get_frame(term_t r, LocalFrame *fr)
-{ long i;
+{ intptr_t i;
   atom_t a;
 
   if ( PL_get_long(r, &i) )
@@ -122,7 +122,7 @@ PL_unify_choice(term_t t, Choice ch)
 
 static int
 PL_get_choice(term_t r, Choice *chp)
-{ long i;
+{ intptr_t i;
 
   if ( PL_get_long(r, &i) )
   { Choice ch = ((Choice)((Word)lBase + i));
@@ -1136,12 +1136,12 @@ hasAlternativesFrame(LocalFrame frame)
 
 
 #ifdef O_DEBUG
-static long
+static intptr_t
 loffset(void *p)
 { if ( p == NULL )
     return 0;
 
-  assert((long)p % sizeof(word) == 0);
+  assert((intptr_t)p % sizeof(word) == 0);
   return (Word)p-(Word)lBase;
 }
 
@@ -1427,7 +1427,7 @@ pl_tracing()
 word
 pl_skip_level(term_t old, term_t new)
 { atom_t a;
-  long sl;
+  intptr_t sl;
 
   if ( debugstatus.skiplevel == VERY_DEEP )
   { TRY(PL_unify_atom(old, ATOM_very_deep));
@@ -1436,7 +1436,7 @@ pl_skip_level(term_t old, term_t new)
   }
       
   if ( PL_get_long(new, &sl) )
-  { debugstatus.skiplevel = (unsigned long) sl;
+  { debugstatus.skiplevel = (uintptr_t) sl;
     succeed;
   }
   if ( PL_get_atom(new, &a) && a == ATOM_very_deep)
@@ -1667,7 +1667,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 	 fr->parent &&
 	 false(fr->parent->predicate, FOREIGN) &&
 	 fr->parent->predicate != PROCEDURE_dcall1->definition )
-    { long pc = fr->programPointer - fr->parent->clause->clause->codes;
+    { intptr_t pc = fr->programPointer - fr->parent->clause->clause->codes;
 
       if ( pc < 0 )
 	trap_gdb();
@@ -1695,7 +1695,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 #ifdef O_LIMIT_DEPTH
     QueryFrame qf = findQuery(environment_frame);
     
-    if ( qf && (unsigned long)levelFrame(fr) > qf->saved_depth_limit )
+    if ( qf && (uintptr_t)levelFrame(fr) > qf->saved_depth_limit )
       a = ATOM_true;
     else
 #endif

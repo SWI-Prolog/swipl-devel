@@ -102,7 +102,7 @@ stuff.
 
 typedef int   (*Sread_function)(void *handle, char *buf, int bufsize);
 typedef int   (*Swrite_function)(void *handle, char*buf, int bufsize);
-typedef long  (*Sseek_function)(void *handle, long pos, int whence);
+typedef intptr_t  (*Sseek_function)(void *handle, intptr_t pos, int whence);
 typedef int64_t (*Sseek64_function)(void *handle, int64_t pos, int whence);
 typedef int   (*Sclose_function)(void *handle);
 typedef int   (*Scontrol_function)(void *handle, int action, void *arg);
@@ -120,7 +120,7 @@ typedef struct io_functions
   Sseek_function	seek;		/* seek to position */
   Sclose_function	close;		/* close stream */
   Scontrol_function	control;	/* Info/control */
-  Sseek64_function	seek64;		/* seek to position (long files) */
+  Sseek64_function	seek64;		/* seek to position (intptr_t files) */
 } IOFUNCTIONS;
 
 typedef struct io_position
@@ -128,7 +128,7 @@ typedef struct io_position
   int64_t		charno;		/* character position in file */
   int			lineno;		/* lineno in file */
   int			linepos;	/* position in line */
-  long			reserved[2];	/* future extensions */
+  intptr_t			reserved[2];	/* future extensions */
 } IOPOS;
 
 					/* NOTE: check with encoding_names */
@@ -170,7 +170,7 @@ typedef struct io_stream
   IOENC			encoding;	/* character encoding used */
   struct io_stream *	tee;		/* copy data to this stream */
   mbstate_t *		mbstate;	/* ENC_ANSI decoding */
-  long			reserved[6];	/* reserved for extension */
+  intptr_t			reserved[6];	/* reserved for extension */
 } IOSTREAM;
 
 
@@ -333,9 +333,9 @@ PL_EXPORT(void)		Sclearerr(IOSTREAM *s);
 PL_EXPORT(void)		Sseterr(IOSTREAM *s, int which, const char *message);
 PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC new_enc, IOENC *old_enc);
 PL_EXPORT(int)		Sflush(IOSTREAM *s);
-PL_EXPORT(long)		Ssize(IOSTREAM *s);
-PL_EXPORT(long)		Sseek(IOSTREAM *s, long pos, int whence);
-PL_EXPORT(long)		Stell(IOSTREAM *s);
+PL_EXPORT(intptr_t)		Ssize(IOSTREAM *s);
+PL_EXPORT(intptr_t)		Sseek(IOSTREAM *s, intptr_t pos, int whence);
+PL_EXPORT(intptr_t)		Stell(IOSTREAM *s);
 PL_EXPORT(int)		Sclose(IOSTREAM *s);
 PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);
 PL_EXPORT(char *)	Sgets(char *buf);

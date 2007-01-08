@@ -56,7 +56,7 @@ pl_length(term_t list, term_t l)
   }
 
   if ( PL_is_variable(l) )
-  { long n;
+  { intptr_t n;
   
     if ( (n=lengthList(list, FALSE)) >= 0 )
       return PL_unify_integer(l, n);
@@ -292,7 +292,7 @@ prolog_list_to_sort_list(term_t t, int key, list *lp, Word *end)
   int n = lengthList(t, TRUE);
   Word l;
   list p;
-  long minfree;
+  intptr_t minfree;
 
   if ( n < 0 )
     fail;				/* not a proper list */

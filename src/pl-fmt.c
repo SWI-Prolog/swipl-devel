@@ -217,10 +217,10 @@ pl_format_predicate(term_t chr, term_t descr)
   if ( !format_predicates )
     format_predicates = newHTable(8);
   
-  if ( (s = lookupHTable(format_predicates, (void *)(long)c)) )
+  if ( (s = lookupHTable(format_predicates, (void *)(intptr_t)c)) )
     s->value = proc;
   else
-    addHTable(format_predicates, (void *)(long)c, proc);
+    addHTable(format_predicates, (void *)(intptr_t)c, proc);
 
   succeed;
 }
@@ -251,7 +251,7 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
   while( (s=advanceTableEnum(e)) )
   { Mark(m);
 
-    if ( PL_unify_integer(chr, (long)s->name) &&
+    if ( PL_unify_integer(chr, (intptr_t)s->name) &&
 	 unify_definition(descr, ((Procedure)s->value)->definition, 0, 0) )
     { ForeignRedoPtr(e);
     }
@@ -406,7 +406,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 
 					/* Check for user defined format */
 	  if ( format_predicates &&
-	       (s = lookupHTable(format_predicates, (Void)((long)c))) )
+	       (s = lookupHTable(format_predicates, (Void)((intptr_t)c))) )
 	  { Procedure proc = (Procedure) s->value;
 	    FunctorDef fdef = proc->definition->functor;
 	    term_t av = PL_new_term_refs(fdef->arity);

@@ -40,7 +40,7 @@ version, allocating from 0x80000000L.
 extern int getpagesize(void);		/* no prototype */
 
 #if 0					/* include if not defined (old libc) */
-extern void * (*__morecore)(long size);
+extern void * (*__morecore)(intptr_t size);
 #endif
 
 static void *base;			/* base */
@@ -60,7 +60,7 @@ static int  pagsize;
 #define STACK_MAP_TYPE MAP_ANON|MAP_PRIVATE|MAP_FIXED
 
 void *
-mycore(long size)			/* similar to sbrk() */
+mycore(intptr_t size)			/* similar to sbrk() */
 { void *mem = top;
 
   if ( top + size >= atop )
@@ -97,7 +97,7 @@ ulong
 strtoul(const char *s, char **eptr, int base)
 { static unsigned char xmap[256];
   static int xmap_initialised = 0;
-  unsigned long val;
+  uintptr_t val;
 
   if ( !xmap_initialised )
   { int n;
@@ -117,7 +117,7 @@ strtoul(const char *s, char **eptr, int base)
     s += 2;
 
   for(val = 0; *s; s++)
-  { unsigned long dval = xmap[*s];
+  { uintptr_t dval = xmap[*s];
 
     if ( dval < (unsigned) base )
       val = val * base + dval;

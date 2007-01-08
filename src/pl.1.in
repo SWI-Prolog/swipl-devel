@@ -126,7 +126,7 @@ Sets the argument stack size to
 .I size.
 The default is 1 Mbytes.  The argument-size determines the maximum
 term-nesting of terms that can be compiled and executed.  Both the compiler
-and virtual machine use `last-argument optimisation', so -for example- long
+and virtual machine use `last-argument optimisation', so -for example- intptr_t
 lists do not require the argument stack. See also the
 .B \-L
 option.

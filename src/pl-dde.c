@@ -475,7 +475,7 @@ pl_dde_request(term_t handle, term_t item,
   HSZ Hitem;
   DWORD result, valuelen;
   HDDEDATA Hvalue;
-  long tmo;
+  intptr_t tmo;
   static UINT fmt[] = {CF_UNICODETEXT, CF_TEXT};
   int fmti;
 
@@ -527,7 +527,7 @@ pl_dde_execute(term_t handle, term_t command, term_t timeout)
   unsigned int cmdlen;
   HDDEDATA Hvalue, data;
   DWORD result;
-  long tmo;
+  intptr_t tmo;
 
   if ( !get_conv_handle(handle, &hdl) ||
        !PL_get_wchars(command, &cmdlen, &cmdstr, CVT_ALL|CVT_EXCEPTION) ||
@@ -560,7 +560,7 @@ pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
   unsigned datalen;
   HDDEDATA Hvalue;
   HSZ Hitem;
-  long tmo;
+  intptr_t tmo;
 
   if ( !get_conv_handle(handle, &hdl) ||
        !get_hsz(item, &Hitem) )

@@ -108,7 +108,7 @@ globalMPZ(mpz_t mpz)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 get_integer() fetches the value of a Prolog  term known to be an integer
 into a number structure. If the  value  is   a  MPZ  number,  it must be
-handled as read-only and it only be used   as  long as no calls are made
+handled as read-only and it only be used   as  intptr_t as no calls are made
 that may force a relocation or garbage collection on the global stack.
 
 The version without O_GMP is a macro defined in pl-gmp.h
@@ -264,7 +264,7 @@ mpz_init_set_si64(mpz_t mpz, int64_t i)
 { DEBUG(2, Sdprintf("Converting " INT64_FORMAT " to MPZ\n", i));
 
   if ( i >= LONG_MIN && i <= LONG_MAX )
-  { mpz_init_set_si(mpz, (long)i);
+  { mpz_init_set_si(mpz, (intptr_t)i);
   } else
   { mpz_init(mpz);
     if ( i >= 0 )
@@ -413,7 +413,7 @@ put_mpz(mpz_t mpz)
 
   if ( mpz_cmp(mpz, MPZ_MIN_TAGGED) >= 0 &&
        mpz_cmp(mpz, MPZ_MAX_TAGGED) <= 0 )
-  { long v = mpz_get_si(mpz);
+  { intptr_t v = mpz_get_si(mpz);
 
     return consInt(v);
   } else if ( mpz_to_int64(mpz, &v) )

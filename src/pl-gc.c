@@ -32,7 +32,7 @@
 #define memmove(dest, src, n) bcopy(src, dest, n)
 #endif
 #undef ulong
-#define ulong unsigned long
+#define ulong uintptr_t
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is based on
@@ -91,7 +91,7 @@ surrounded by a word at the start and end, indicating their length.
 			      DEBUGGING
 
 Debugging a garbage collector is a difficult job.  Bugs --like  bugs  in
-memory  allocation--  usually  cause  crashes  long  after  the  garbage
+memory  allocation--  usually  cause  crashes  intptr_t  after  the  garbage
 collection has finished.   To  simplify  debugging  a  large  number  of
 actions  are  counted  during garbage collection.  At regular points the
 consistency between these counts  is  verified.   This  causes  a  small
@@ -348,7 +348,7 @@ all reachable frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
-unmark_environments(PL_local_data_t *ld, LocalFrame fr, unsigned long mask)
+unmark_environments(PL_local_data_t *ld, LocalFrame fr, uintptr_t mask)
 { if ( fr == NULL )
     return NULL;
 
@@ -367,7 +367,7 @@ unmark_environments(PL_local_data_t *ld, LocalFrame fr, unsigned long mask)
 
 
 static void
-unmark_choicepoints(PL_local_data_t *ld, Choice ch, unsigned long mask)
+unmark_choicepoints(PL_local_data_t *ld, Choice ch, uintptr_t mask)
 { for( ; ch; ch = ch->parent )
   { ld->gc._choice_count--;
     unmark_environments(ld, ch->frame, mask);
@@ -377,7 +377,7 @@ unmark_choicepoints(PL_local_data_t *ld, Choice ch, unsigned long mask)
 
 static void
 unmark_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch,
-	      unsigned long mask)
+	      uintptr_t mask)
 { QueryFrame qf;
 
   for( ; fr; fr = qf->saved_environment, ch = qf->saved_bfr )
@@ -1129,7 +1129,7 @@ mark_phase(LocalFrame fr, Choice ch)
   qsort(mark_base, mark_top - mark_base, sizeof(Word), cmp_address);
 #endif
 
-  DEBUG(2, { long size = gTop - gBase;
+  DEBUG(2, { intptr_t size = gTop - gBase;
 	     Sdprintf("%ld referenced cell; %ld garbage (gTop = %p)\n",
 		      total_marked, size - total_marked, gTop);
 	   });
@@ -1600,9 +1600,9 @@ is_upward_ref(Word p ARG_LD)
 static int
 check_marked(const char *s)
 { GET_LD
-  long m = 0;
+  intptr_t m = 0;
   Word current;
-  long cells = 0;
+  intptr_t cells = 0;
 
   for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
   { cells++;
@@ -1636,7 +1636,7 @@ compact_global(void)
 
   dest = gBase + total_marked;			/* first FREE cell */
   for( current = gTop; current >= gBase; current-- )
-  { long offset = (is_marked(current) || is_first(current)
+  { intptr_t offset = (is_marked(current) || is_first(current)
 		   			? 0 : offset_cell(current));
     current -= offset;
 
@@ -1684,7 +1684,7 @@ compact_global(void)
   dest = gBase;
   for(current = gBase; current < gTop; )
   { if ( is_marked(current) )
-    { long l, n;
+    { intptr_t l, n;
 
       if ( is_first(current) )
 	update_relocation_chain(current, dest PASS_LD);
@@ -1768,9 +1768,9 @@ void
 considerGarbageCollect(Stack s)
 { GET_LD
   if ( s->gc && trueFeature(GC_FEATURE) && !gc_status.requested )
-  { long used  = (char *)s->top   - (char *)s->base;
-    long free  = (char *)s->limit - (char *)s->top;
-    long limit = (char *)s->limit - (char *)s->base;
+  { intptr_t used  = (char *)s->top   - (char *)s->base;
+    intptr_t free  = (char *)s->limit - (char *)s->top;
+    intptr_t limit = (char *)s->limit - (char *)s->base;
 
     if ( used > s->factor*s->gced_size + s->small )
     { DEBUG(2, Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
@@ -1796,7 +1796,7 @@ scan_global(int marked)
 { GET_LD
   Word current, next;
   int errors = 0;
-  long cells = 0;
+  intptr_t cells = 0;
 
   for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
   { int offset;
@@ -2067,7 +2067,7 @@ leaveGC()
 void
 garbageCollect(LocalFrame fr, Choice ch)
 { GET_LD
-  long tgar, ggar;
+  intptr_t tgar, ggar;
   double t = CpuTime(CPU_USER);
   int verbose = trueFeature(TRACE_GC_FEATURE);
   sigset_t mask;
@@ -2239,7 +2239,7 @@ extern char *chp_chars(Choice ch);
 #endif
 
 static inline void
-update_pointer(void *p, long offset)
+update_pointer(void *p, intptr_t offset)
 { char **ptr = (char **)p;
 
   if ( *ptr )
@@ -2252,7 +2252,7 @@ update_pointer(void *p, long offset)
 		 *******************************/
 
 static void
-update_mark(mark *m, long gs, long ts)
+update_mark(mark *m, intptr_t gs, intptr_t ts)
 { if ( ts ) update_pointer(&m->trailtop, ts);
   if ( gs ) update_pointer(&m->globaltop, gs);
 }
@@ -2264,7 +2264,7 @@ update_mark(mark *m, long gs, long ts)
 */
 
 static inline void
-update_local_pointer(void *p, long ls)
+update_local_pointer(void *p, intptr_t ls)
 { GET_LD
   char **ptr = (char **)p;
 
@@ -2276,7 +2276,7 @@ update_local_pointer(void *p, long ls)
 
 
 static QueryFrame
-update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
+update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t ts)
 { GET_LD
   if ( fr == NULL )
     return NULL;
@@ -2344,7 +2344,7 @@ update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
 
 
 static void
-update_choicepoints(Choice ch, long ls, long gs, long ts)
+update_choicepoints(Choice ch, intptr_t ls, intptr_t gs, intptr_t ts)
 { GET_LD
 
   for( ; ch; ch = ch->parent )
@@ -2373,7 +2373,7 @@ update_choicepoints(Choice ch, long ls, long gs, long ts)
 		 *******************************/
 
 static void
-update_argument(long ls, long gs)
+update_argument(intptr_t ls, intptr_t gs)
 { GET_LD
   Word *p = aBase;
   Word *t = aTop;
@@ -2394,7 +2394,7 @@ update_argument(long ls, long gs)
 		 *******************************/
 
 static void
-update_trail(long ls, long gs)
+update_trail(intptr_t ls, intptr_t gs)
 { GET_LD
   TrailEntry p = tBase;
   TrailEntry t = tTop;
@@ -2415,7 +2415,7 @@ update_trail(long ls, long gs)
 		 *******************************/
 
 static void
-update_foreign(long ts, long ls, long gs)
+update_foreign(intptr_t ts, intptr_t ls, intptr_t gs)
 { GET_LD
   FliFrame fr = addPointer(fli_context, ls);
 
@@ -2445,11 +2445,11 @@ static void
 update_stacks(LocalFrame frame, Choice choice, Code PC,
 	      void *lb, void *gb, void *tb)
 { GET_LD
-  long ls, gs, ts;
+  intptr_t ls, gs, ts;
 
-  ls = (long) lb - (long) lBase;
-  gs = (long) gb - (long) gBase;
-  ts = (long) tb - (long) tBase;
+  ls = (intptr_t) lb - (intptr_t) lBase;
+  gs = (intptr_t) gb - (intptr_t) gBase;
+  ts = (intptr_t) tb - (intptr_t) tBase;
 
   DEBUG(2, Sdprintf("update_stacks(): ls+gs+ts = %ld %ld %ld\n", ls, gs, ts));
 
@@ -2495,9 +2495,9 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
     updateStackHeader(global, gs);
     updateStackHeader(trail,  ts);
 
-    base_addresses[STG_LOCAL]  = (unsigned long)lBase;
-    base_addresses[STG_GLOBAL] = (unsigned long)gBase;
-    base_addresses[STG_TRAIL]  = (unsigned long)tBase;
+    base_addresses[STG_LOCAL]  = (uintptr_t)lBase;
+    base_addresses[STG_GLOBAL] = (uintptr_t)gBase;
+    base_addresses[STG_TRAIL]  = (uintptr_t)tBase;
   }
 
   if ( ls )
@@ -2511,11 +2511,11 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
 }
 
 
-static long
-nextStackSize(Stack s, long minfree)
-{ long size  = diffPointers(s->max, s->base);
-  long limit = diffPointers(s->limit, s->base);
-  long grow;
+static intptr_t
+nextStackSize(Stack s, intptr_t minfree)
+{ intptr_t size  = diffPointers(s->max, s->base);
+  intptr_t limit = diffPointers(s->limit, s->base);
+  intptr_t grow;
 
   grow = ((minfree+8192) > size/2 ? minfree+8192 : size/2);
   grow = ROUND(grow, 8192);
@@ -2544,7 +2544,7 @@ Entry point from interpret()
 #define GL_SEPARATION sizeof(word)
 
 int
-growStacks(LocalFrame fr, Choice ch, Code PC, long l, long g, long t)
+growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t)
 { GET_LD
   
   if ( !fr )
@@ -2559,9 +2559,9 @@ growStacks(LocalFrame fr, Choice ch, Code PC, long l, long g, long t)
   { TrailEntry tb = tBase;
     Word gb = gBase;
     LocalFrame lb = lBase;
-    long lsize = sizeStack(local);
-    long gsize = sizeStack(global);
-    long tsize = sizeStack(trail);
+    intptr_t lsize = sizeStack(local);
+    intptr_t gsize = sizeStack(global);
+    intptr_t tsize = sizeStack(trail);
     double time = CpuTime(CPU_USER);
     int verbose = trueFeature(TRACE_GC_FEATURE);
     
@@ -2592,7 +2592,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, long l, long g, long t)
     }
 
     if ( g || l )
-    { long loffset = gsize + GL_SEPARATION;
+    { intptr_t loffset = gsize + GL_SEPARATION;
       assert(lb == addPointer(gb, loffset));	
 
       if ( g )
@@ -2621,10 +2621,10 @@ growStacks(LocalFrame fr, Choice ch, Code PC, long l, long g, long t)
 #define PrintStackParms(stack, name, newbase, newsize) \
 	{ Sdprintf("%6s: 0x%08lx ... 0x%08lx --> 0x%08lx ... 0x%08lx\n", \
 		 name, \
-		 (unsigned long) LD->stacks.stack.base, \
-		 (unsigned long) LD->stacks.stack.max, \
-		 (unsigned long) newbase, \
-		 (unsigned long) addPointer(newbase, newsize)); \
+		 (uintptr_t) LD->stacks.stack.base, \
+		 (uintptr_t) LD->stacks.stack.max, \
+		 (uintptr_t) newbase, \
+		 (uintptr_t) addPointer(newbase, newsize)); \
 	}
 
 
@@ -2689,13 +2689,13 @@ to walk along all reachable data as well.
 #ifdef O_DEBUG_ATOMGC
 extern IOSTREAM * atomLogFd;		/* for error messages */
 
-static long
+static intptr_t
 loffset(void *p)
 { GET_LD
   if ( p == NULL )
     return 0;
 
-  assert((long)p % sizeof(word) == 0);
+  assert((intptr_t)p % sizeof(word) == 0);
   return (Word)p-(Word)lBase;
 }
 #endif

@@ -525,8 +525,8 @@
 /* Define if uchar is not defined in <sys/types.h> */
 #undef NEED_UCHAR
 
-/* Define if it is allowed to access long integers with non-aligned pointers
-   */
+/* Define if it is allowed to access intptr_t integers with non-aligned
+   pointers */
 #undef NON_ALIGNED_ACCESS
 
 /* "Define if you can't use asm("nop") to separate two labels" */

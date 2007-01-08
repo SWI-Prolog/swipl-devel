@@ -117,7 +117,7 @@ Apple Darwin (6.6) only contains the sem_init()   function as a stub. It
 only provides named semaphores  through   sem_open().  These defines and
 my_sem_open() try to hide the details of   this as much as possible from
 the rest of the code. Note  that   we  unlink  the semaphore right after
-creating it, using the common Unix trick to keep access to it as long as
+creating it, using the common Unix trick to keep access to it as intptr_t as
 we do not close it. We assume  the   OS  will close the semaphore as the
 application terminates. All this is highly   undesirable, but it will do
 for now. The USE_SEM_OPEN define  is  set   by  configure  based  on the
@@ -675,7 +675,7 @@ aliasThread(int tid, atom_t name)
 		    ERR_PERMISSION, ATOM_thread, ATOM_create, obj);
   }
 
-  addHTable(threadTable, (void *)name, (void *)(long)tid);
+  addHTable(threadTable, (void *)name, (void *)(intptr_t)tid);
   PL_register_atom(name);
   threads[tid].name = name;
 
@@ -825,7 +825,7 @@ threadName(int id)
 }
 
 
-long
+intptr_t
 system_thread_id(PL_thread_info_t *info)
 { if ( !info )
   { if ( LD )
@@ -839,7 +839,7 @@ system_thread_id(PL_thread_info_t *info)
 #ifdef WIN32
   return info->w32id;
 #else
-  return (long)info->tid;
+  return (intptr_t)info->tid;
 #endif
 #endif
 }
@@ -943,7 +943,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   PL_local_data_t *ldnew;
   atom_t alias = NULL_ATOM;
   pthread_attr_t attr;
-  long stack = 0;
+  intptr_t stack = 0;
   int rc;
 
   if ( !(PL_is_compound(goal) || PL_is_atom(goal)) )
@@ -1050,7 +1050,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
     { Symbol s;
 
       if ( (s = lookupHTable(threadTable, (void *)name)) )
-	i = (int)(long)s->value;
+	i = (int)(intptr_t)s->value;
     }
   }
 
@@ -1300,11 +1300,11 @@ pl_current_thread(term_t id, term_t status, control_t h)
 Sum the amount of heap allocated through all threads allocation-pools.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-long
+intptr_t
 threadLocalHeapUsed(void)
 { int i;
   PL_thread_info_t *info;
-  long heap = 0;
+  intptr_t heap = 0;
 
   LOCK();
   for(i=0, info=threads; i<MAX_THREADS; i++, info++)
@@ -2105,7 +2105,7 @@ get_message_queue(term_t t, message_queue **queue)
   { id = name;
   } else if ( PL_is_functor(t, FUNCTOR_dmessage_queue1) )
   { term_t a = PL_new_term_ref();
-    long i;
+    intptr_t i;
 
     PL_get_arg(1, t, a);
     if ( PL_get_long(a, &i) )
@@ -2135,7 +2135,7 @@ get_message_queue(term_t t, message_queue **queue)
   { Symbol s = lookupHTable(threadTable, (void *)id);
 
     if ( s )
-    { tid = (int)(long)s->value;
+    { tid = (int)(intptr_t)s->value;
       goto thread_queue;
     }
   }
@@ -2530,7 +2530,7 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
   { id = name;
   } else if ( PL_is_functor(t, FUNCTOR_dmutex1) )
   { term_t a = PL_new_term_ref();
-    long i;
+    intptr_t i;
 
     PL_get_arg(1, t, a);
     if ( PL_get_long(a, &i) )
@@ -3328,7 +3328,7 @@ We set up a semaphore and  signal   all  the  other threads. Each thread
 receiving a the SIG_MARKATOMS signal calls markAtomsOnStacks() and posts
 the semaphore. The latter performs its  job with certain heuristics, but
 must ensure it doesn't  forget  any  atoms   (a  few  too  many  is ok).
-Basically this signal handler can run whenever  necessary, as long as as
+Basically this signal handler can run whenever  necessary, as intptr_t as as
 the thread is not in a GC,  which   makes  it impossible to traverse the
 stacks.
 

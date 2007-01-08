@@ -60,7 +60,7 @@ pl_break1(term_t goal)
 
   IOSTREAM *inSave  = Scurin;
   IOSTREAM *outSave = Scurout;
-  long skipSave     = debugstatus.skiplevel;
+  intptr_t skipSave     = debugstatus.skiplevel;
   int  suspSave     = debugstatus.suspendTrace;
   int  traceSave;
   debug_type debugSave;
@@ -96,7 +96,7 @@ word
 pl_notrace1(term_t goal)
 { bool rval;
 
-  long	     skipSave  = debugstatus.skiplevel;
+  intptr_t	     skipSave  = debugstatus.skiplevel;
   bool	     traceSave = debugstatus.tracing;
 
   rval = callProlog(NULL, goal, PL_Q_NODEBUG, NULL);
@@ -255,7 +255,7 @@ resetProlog()
     emptyStacks();
 
 #ifdef O_LIMIT_DEPTH
-  depth_limit   = (unsigned long)DEPTH_NO_LIMIT;
+  depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
 #endif
 
   gc_status.blocked    = 0;
@@ -381,7 +381,7 @@ printk(char *fm, ...)
   trap_gdb();
 }
 
-static long check_marked;
+static intptr_t check_marked;
 
 #define mark(p)		(*(p) |= MARK_MASK, check_marked++)
 #define unmark(p)	(*(p) &= ~MARK_MASK, check_marked--)
@@ -496,8 +496,8 @@ last_arg:
   }
 
   if ( isAtom(*p) )
-  { unsigned long idx;
-    unsigned long mx = entriesBuffer(&atom_array, Atom);
+  { uintptr_t idx;
+    uintptr_t mx = entriesBuffer(&atom_array, Atom);
 
     assert(!is_marked(p));
     if ( storage(*p) != STG_STATIC )

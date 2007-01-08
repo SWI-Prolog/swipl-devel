@@ -148,12 +148,12 @@ pl_count()
 		 *	     DEBUGGING		*
 		 *******************************/
 
-static inline long
+static inline intptr_t
 loffset(void *p)
 { if ( p == NULL )
     return 0;
 
-  assert((long)p % sizeof(word) == 0);
+  assert((intptr_t)p % sizeof(word) == 0);
   return (Word)p-(Word)lBase;
 }
 
@@ -623,7 +623,7 @@ retry:
 
     if ( (result & FRG_REDO_MASK) == REDO_INT )
     {					/* must be a signed shift */
-      result = (word)(((long)result)>>FRG_REDO_BITS);
+      result = (word)(((intptr_t)result)>>FRG_REDO_BITS);
     } else
       result &= ~FRG_REDO_MASK;
 
@@ -1750,7 +1750,7 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
 #define BODY_FAILED		goto body_failed
 
 #ifndef ulong
-#define ulong unsigned long
+#define ulong uintptr_t
 #endif
 
 #ifdef O_PROFILE
@@ -1982,7 +1982,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 #ifdef O_LIMIT_DEPTH
     qf->saved_depth_limit   = depth_limit;
     qf->saved_depth_reached = depth_reached;
-    depth_limit = (unsigned long)DEPTH_NO_LIMIT;
+    depth_limit = (uintptr_t)DEPTH_NO_LIMIT;
 #endif
   }
   fr->predicate      = def;
@@ -2276,7 +2276,7 @@ pl-comp.c
 				  START_PROF(Name, #Name);
 #define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
 				  END_PROF(); \
-				  goto *(void *)((long)(*PC++)); \
+				  goto *(void *)((intptr_t)(*PC++)); \
 				}
 #ifndef ASM_NOP
 #define ASM_NOP asm("nop")
@@ -2462,7 +2462,7 @@ variable, compare the numbers otherwise.
 	if ( canBind(*k) )
 	{ Word p = allocGlobal(2+WORDS_PER_INT64);
 	  word c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-	  int64_t val = (int64_t)(long)*PC++;
+	  int64_t val = (int64_t)(intptr_t)*PC++;
 	  Word vp = (Word)&val;
 
 	  *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
@@ -2470,7 +2470,7 @@ variable, compare the numbers otherwise.
 	  *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 	  bindConst(k, c);
 	  NEXT_INSTRUCTION;
-	} else if ( isBignum(*k) && valBignum(*k) == (long)*PC++ )
+	} else if ( isBignum(*k) && valBignum(*k) == (intptr_t)*PC++ )
 	  NEXT_INSTRUCTION;
 
       	CLAUSE_FAILED;
@@ -2579,7 +2579,7 @@ global stack and assign the pointer to *ARGP.
 
     VMI(B_INTEGER) MARK(BINT)
       { Word p = allocGlobal(2+WORDS_PER_INT64);
-	int64_t val = (int64_t)(long)*PC++;
+	int64_t val = (int64_t)(intptr_t)*PC++;
 	Word vp = (Word)&val;
 
 	*ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
@@ -3515,7 +3515,7 @@ to give the compiler a hint to put ARGP not into a register.
     VMI(A_ENTER) MARK(AENTER)
       { 
 #ifdef DOUBLE_ALIGNMENT
-	ARGP = (Word) (((unsigned long)ARGP + (DOUBLE_ALIGNMENT-1)) &
+	ARGP = (Word) (((uintptr_t)ARGP + (DOUBLE_ALIGNMENT-1)) &
 		       ~(DOUBLE_ALIGNMENT-1));
 #endif
         NEXT_INSTRUCTION;
@@ -3524,7 +3524,7 @@ to give the compiler a hint to put ARGP not into a register.
     VMI(A_INTEGER) MARK(AINT);
       {	Number n = (Number)ARGP;
 
-	n->value.i = (long) *PC++;
+	n->value.i = (intptr_t) *PC++;
 	n->type    = V_INTEGER;
 	ARGP       = (Word)(n+1);
 	NEXT_INSTRUCTION;
@@ -4527,8 +4527,8 @@ be able to access these!
 
 	if ( gshift || lshift || tshift )
 	{ if ( gshift || tshift )
-	  { long gused = usedStack(global);
-	    long tused = usedStack(trail);
+	  { intptr_t gused = usedStack(global);
+	    intptr_t tused = usedStack(trail);
 
 	    garbageCollect(FR, BFR);
 	    DEBUG(1, Sdprintf("\tgshift = %d; tshift = %d", gshift, tshift));
@@ -4601,7 +4601,7 @@ values found in the clause,  give  a   reference  to  the clause and set
 	enterDefinition(DEF);
 
 #ifdef O_LIMIT_DEPTH
-      { unsigned long depth = levelFrame(FR);
+      { uintptr_t depth = levelFrame(FR);
 
 	if ( depth > depth_reached )
 	  depth_reached = depth;

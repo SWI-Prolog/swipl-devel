@@ -208,7 +208,7 @@ addSizeInt(CompileInfo info, uint val)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Add a signed long value. First byte   is  number of bytes, remaining are
+Add a signed intptr_t value. First byte   is  number of bytes, remaining are
 value-bytes, starting at most-significant.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -335,7 +335,7 @@ right_recursion:
 
   switch(tag(w))
   { case TAG_VAR:
-    { long n = info->nvars++;
+    { intptr_t n = info->nvars++;
 
       *p = (n<<7)|TAG_ATOM|STG_GLOBAL;
       addBuffer(&info->vars, p, Word);
@@ -346,7 +346,7 @@ right_recursion:
     }
 #if O_ATTVAR
     case TAG_ATTVAR:
-    { long n = info->nvars++;
+    { intptr_t n = info->nvars++;
       Word ap = valPAttVar(w);
 
       if ( isEmptyBuffer(&info->code) )
@@ -368,7 +368,7 @@ right_recursion:
 #endif
     case TAG_ATOM:
     { if ( storage(w) == STG_GLOBAL )	/* this is a variable */
-      { long n = ((long)(w) >> 7);
+      { intptr_t n = ((intptr_t)(w) >> 7);
 
 	addOpCode(info, PL_TYPE_VARIABLE);
 	addSizeInt(info, n);
@@ -415,7 +415,7 @@ right_recursion:
     { Word f  = addressIndirect(w);
       int n   = wsizeofInd(*f);
       int pad = padHdr(*f);		/* see also getCharsString() */
-      long l  = n*sizeof(word)-pad;
+      intptr_t l  = n*sizeof(word)-pad;
 
       info->size += n+2;
       addOpCode(info, PL_TYPE_STRING);
@@ -813,12 +813,12 @@ fetchChars(CopyInfo b, unsigned len, Word to)
 
 static void
 copy_record(Word p, CopyInfo b ARG_LD)
-{ long tag;
+{ intptr_t tag;
 
 right_recursion:
   switch( (tag = fetchOpCode(b)) )
   { case PL_TYPE_VARIABLE:
-    { long n = fetchSizeInt(b);
+    { intptr_t n = fetchSizeInt(b);
 
       if ( b->vars[n] )
       { if ( p > b->vars[n] )		/* ensure the reference is in the */
@@ -843,7 +843,7 @@ right_recursion:
     }
 #if O_ATTVAR
     case PL_TYPE_ATTVAR:
-    { long n = fetchSizeInt(b);
+    { intptr_t n = fetchSizeInt(b);
 
       *p = consPtr(b->gstore, TAG_ATTVAR|STG_GLOBAL);
       b->vars[n] = p;
@@ -932,7 +932,7 @@ right_recursion:
     }
 #endif
   { word fdef;
-    long arity;
+    intptr_t arity;
     case PL_TYPE_COMPOUND:
 
       fdef = fetchWord(b);
@@ -1081,7 +1081,7 @@ right_recursion:
       goto right_recursion;
     }
     case PL_TYPE_EXT_COMPOUND:
-    { long arity = fetchSizeInt(b);
+    { intptr_t arity = fetchSizeInt(b);
 
       skipAtom(b);
       while(--arity > 0)
@@ -1148,7 +1148,7 @@ unref_cont:
     case TAG_ATOM:
       if ( storage(w) == STG_GLOBAL )
       { if ( stag == PL_TYPE_VARIABLE )
-	{ uint n = (uint)((unsigned long)(w) >> 7);
+	{ uint n = (uint)((uintptr_t)(w) >> 7);
 	  uint i = fetchSizeInt(info);
 
 	  if ( i == n )
@@ -1247,7 +1247,7 @@ unref_cont:
       } else if ( stag == PL_TYPE_EXT_COMPOUND )
       { Functor f = valueTerm(w);
 	FunctorDef fd = valueFunctor(f->definition);
-	long arity = fetchSizeInt(info);
+	intptr_t arity = fetchSizeInt(info);
 	atom_t name;
 
 	if ( (unsigned)arity != fd->arity )
@@ -1291,7 +1291,7 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
   copy_info info;
   int n, rval, navars;
   Word *p;
-  long stag;
+  intptr_t stag;
 
   DEBUG(3, Sdprintf("structuralEqualArg1OfRecord() of ");
 	   PL_write_term(Serror, t, 1200, PL_WRT_ATTVAR_WRITE);
@@ -1308,7 +1308,7 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
   if ( stag == PL_TYPE_COMPOUND )
     skipBuf(&info, word);
   else if ( stag == PL_TYPE_EXT_COMPOUND )
-  { skipBuf(&info, long);		/* arity */
+  { skipBuf(&info, intptr_t);		/* arity */
     skipAtom((CopyInfo)&info);		/* name */
   } else
     assert(0);

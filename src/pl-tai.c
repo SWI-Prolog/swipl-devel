@@ -43,7 +43,7 @@ is supposed to give the POSIX standard one.
 #else
 extern char *tzname[2];
 #ifdef HAVE_VAR_TIMEZONE
-extern long timezone;
+extern intptr_t timezone;
 #endif
 #endif
 
@@ -177,7 +177,7 @@ get_taia(term_t t, struct taia *taia, double *seconds)
     }
 
     taia->sec.x = (int64_t)ip + TAI_UTC_OFFSET;
-    taia->nano  = (long)(fp*1e9);
+    taia->nano  = (intptr_t)(fp*1e9);
     taia->atto  = 0L;
 
     return TRUE;

@@ -183,9 +183,9 @@ defaultSystemInitFile(char *a0)
 }
 
 
-#define MEMAREA_INVALID_SIZE (unsigned long)(~0L)
+#define MEMAREA_INVALID_SIZE (uintptr_t)(~0L)
 
-static unsigned long
+static uintptr_t
 memarea_limit(const char *s)
 { number n;
   unsigned char *q;
@@ -195,13 +195,13 @@ memarea_limit(const char *s)
     { case 'k':
       case 'K':
       case EOS:
-	return (long)n.value.i K;
+	return (intptr_t)n.value.i K;
       case 'm':
       case 'M':
-	return (long)n.value.i K K;
+	return (intptr_t)n.value.i K K;
       case 'b':
       case 'B':
-	return (long)n.value.i;
+	return (intptr_t)n.value.i;
     }
   }
 
@@ -388,7 +388,7 @@ initDefaultOptions()
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Does the commandline option parsing.  Actually   we  should  use the GNU
-getopt package and deal nicely with long   arguments  as well as shorts,
+getopt package and deal nicely with intptr_t   arguments  as well as shorts,
 but these options are  too  widely  used   as  they  are  to change them
 overnight. Returns -1 on error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -405,7 +405,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
     if ( streq(s, "-" ) )		/* pl <plargs> -- <app-args> */
       break;
     if ( *s == '-' )
-      continue;				/* don't handle --long=value */
+      continue;				/* don't handle --intptr_t=value */
 
     if ( streq(s, "tty") )	/* +/-tty */
     { if ( s[-1] == '+' )
@@ -460,7 +460,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	case 'T':
 	case 'A':
 	case 'H':
-        { unsigned long size = memarea_limit(&s[1]);
+        { uintptr_t size = memarea_limit(&s[1]);
 	  
 	  if ( size == MEMAREA_INVALID_SIZE )
 	    return -1;

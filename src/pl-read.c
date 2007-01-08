@@ -165,8 +165,8 @@ typedef struct
 
 struct token
 { int type;			/* type of token */
-  long start;			/* start-position */
-  long end;			/* end-position */
+  intptr_t start;			/* start-position */
+  intptr_t end;			/* end-position */
   union
   { number	number;		/* int or float */
     atom_t	atom;		/* atom value */
@@ -480,13 +480,13 @@ clearBuffer(ReadData _PL_rd)
 
 static void
 growToBuffer(int c, ReadData _PL_rd)
-{ if ( rb.base == rb.fast )		/* long clause: jump to use malloc() */
+{ if ( rb.base == rb.fast )		/* intptr_t clause: jump to use malloc() */
   { rb.base = PL_malloc(FASTBUFFERSIZE * 2);
     memcpy(rb.base, rb.fast, FASTBUFFERSIZE);
   } else
     rb.base = PL_realloc(rb.base, rb.size*2);
 
-  DEBUG(8, Sdprintf("Reallocated read buffer at %ld\n", (long) rb.base));
+  DEBUG(8, Sdprintf("Reallocated read buffer at %ld\n", (intptr_t) rb.base));
   _PL_rd->posp = rdbase = rb.base;
   rb.here = rb.base + rb.size;
   rb.size *= 2;
@@ -2057,16 +2057,16 @@ build_op_term(term_t term,
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 realloca() maintains a buffer using  alloca()   that  has  the requested
-size. The current size is maintained in   a long just below the returned
-area. This is a long, to ensure   proper  allignment of the remainder of
+size. The current size is maintained in   a intptr_t just below the returned
+area. This is a intptr_t, to ensure   proper  allignment of the remainder of
 the values.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define realloca(p, unit, n) \
-	{ long *ip = (long *)(p); \
+	{ intptr_t *ip = (intptr_t *)(p); \
 	  if ( ip == NULL || ip[-1] < (n) ) \
-	  { long nsize = (((n)+(n)/2) + 3) & ~3; \
-	    long *np = alloca(nsize * unit + sizeof(long)); \
+	  { intptr_t nsize = (((n)+(n)/2) + 3) & ~3; \
+	    intptr_t *np = alloca(nsize * unit + sizeof(intptr_t)); \
 	    *np++ = nsize; \
 	    if ( ip ) \
 	      memcpy(np, ip, ip[-1] * unit); \

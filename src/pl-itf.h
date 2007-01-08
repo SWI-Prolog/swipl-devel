@@ -27,6 +27,7 @@
 
 #include <stdarg.h>
 #include <stdlib.h>			/* get size_t */
+#include <stddef.h>
 #ifdef WIN32
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
@@ -116,19 +117,19 @@ typedef Procedure	predicate_t;	/* a predicate handle */
 typedef Record		record_t;	/* handle to a recorded term */
 typedef struct PL_local_data *PL_engine_t; /* handle to a engine */
 #else
-typedef	unsigned long	atom_t;		/* Prolog atom */
+typedef	uintptr_t	atom_t;		/* Prolog atom */
 typedef void *		module_t;	/* Prolog module */
 typedef void *		predicate_t;	/* Prolog procedure */
 typedef void *		record_t;	/* Prolog recorded term */
-typedef unsigned long	term_t;		/* opaque term handle */
-typedef unsigned long	qid_t;		/* opaque query handle */
-typedef unsigned long	PL_fid_t;	/* opaque foreign context handle */
+typedef uintptr_t	term_t;		/* opaque term handle */
+typedef uintptr_t	qid_t;		/* opaque query handle */
+typedef uintptr_t	PL_fid_t;	/* opaque foreign context handle */
 typedef void *		control_t;	/* non-deterministic control arg */
 typedef void *		PL_engine_t;	/* opaque engine handle */
 #endif
-typedef unsigned long	functor_t;	/* Name/arity pair */
-typedef unsigned long	PL_atomic_t;	/* same a word */
-typedef unsigned long	foreign_t;	/* return type of foreign functions */
+typedef uintptr_t	functor_t;	/* Name/arity pair */
+typedef uintptr_t	PL_atomic_t;	/* same a word */
+typedef uintptr_t	foreign_t;	/* return type of foreign functions */
 typedef wchar_t	        pl_wchar_t;	/* Prolog wide character */
 #ifdef __cplusplus
 typedef void * 		pl_function_t;	/* can only pass function as void * */
@@ -183,7 +184,7 @@ typedef union
 #define _PL_PREDICATE_INDICATOR (18)	/* predicate_t (Procedure) */
 #define PL_SHORT	 (19)		/* short */
 #define PL_INT		 (20)		/* int */
-#define PL_LONG		 (21)		/* long */
+#define PL_LONG		 (21)		/* intptr_t */
 #define PL_DOUBLE	 (22)		/* double */
 #define PL_NCHARS	 (23)		/* unsigned, const char * */
 #define PL_UTF8_CHARS	 (24)		/* const char * */
@@ -215,7 +216,7 @@ typedef union
 /*  Note 1: Non-deterministic foreign functions may also use the deterministic
     return methods PL_succeed and PL_fail.
 
-    Note 2: The argument to PL_retry is a 30 bits signed integer (long).
+    Note 2: The argument to PL_retry is a 30 bits signed integer (intptr_t).
 */
 
 #define PL_FIRST_CALL		(0)
@@ -225,10 +226,10 @@ typedef union
 #define PL_retry(n)		return _PL_retry(n)
 #define PL_retry_address(a)	return _PL_retry_address(a)
 
-PL_EXPORT(foreign_t)	_PL_retry(long);
+PL_EXPORT(foreign_t)	_PL_retry(intptr_t);
 PL_EXPORT(foreign_t)	_PL_retry_address(void *);
 PL_EXPORT(int)	 	PL_foreign_control(control_t);
-PL_EXPORT(long)	 	PL_foreign_context(control_t);
+PL_EXPORT(intptr_t)	 	PL_foreign_context(control_t);
 PL_EXPORT(void *)	PL_foreign_context_address(control_t);
 
 
@@ -366,7 +367,7 @@ PL_EXPORT(int)		PL_get_nchars(term_t t,
 				      unsigned int *length, char **s,
 				      unsigned int flags);
 PL_EXPORT(int)		PL_get_integer(term_t t, int *i);
-PL_EXPORT(int)		PL_get_long(term_t t, long *i);
+PL_EXPORT(int)		PL_get_long(term_t t, intptr_t *i);
 PL_EXPORT(int)		PL_get_pointer(term_t t, void **ptr);
 PL_EXPORT(int)		PL_get_float(term_t t, double *f);
 PL_EXPORT(int)		PL_get_functor(term_t t, functor_t *f);
@@ -411,7 +412,7 @@ PL_EXPORT(void)		PL_put_list_nchars(term_t t,
 					   unsigned int l, const char *chars);
 PL_EXPORT(void)		PL_put_list_ncodes(term_t t,
 					   unsigned int l, const char *chars);
-PL_EXPORT(void)		PL_put_integer(term_t t, long i);
+PL_EXPORT(void)		PL_put_integer(term_t t, intptr_t i);
 PL_EXPORT(void)		PL_put_pointer(term_t t, void *ptr);
 PL_EXPORT(void)		PL_put_float(term_t t, double f);
 PL_EXPORT(void)		PL_put_functor(term_t t, functor_t functor);
@@ -440,7 +441,7 @@ PL_EXPORT(int)		PL_unify_list_nchars(term_t t,
 PL_EXPORT(int)		PL_unify_string_nchars(term_t t,
 					       unsigned int len,
 					       const char *chars);
-PL_EXPORT(int)		PL_unify_integer(term_t t, long n);
+PL_EXPORT(int)		PL_unify_integer(term_t t, intptr_t n);
 PL_EXPORT(int)		PL_unify_float(term_t t, double f);
 PL_EXPORT(int)		PL_unify_pointer(term_t t, void *ptr);
 PL_EXPORT(int)		PL_unify_functor(term_t t, functor_t f);
@@ -498,8 +499,8 @@ PL_EXPORT(int)		PL_get_attr(term_t v, term_t a);
 #define PL_BLOB_WCHAR	0x08		/* wide character string */
 
 typedef struct PL_blob_t
-{ unsigned long		magic;		/* PL_BLOB_MAGIC */
-  unsigned long		flags;		/* PL_BLOB_* */
+{ uintptr_t		magic;		/* PL_BLOB_MAGIC */
+  uintptr_t		flags;		/* PL_BLOB_* */
   char *		name;		/* name of the type */
   int			(*release)(atom_t a);
   int			(*compare)(atom_t a, atom_t b);
@@ -576,12 +577,12 @@ PL_EXPORT(const char *) PL_cwd(void);
 		 *   QUINTUS WRAPPER SUPPORT	*
 		 *******************************/
 
-PL_EXPORT(int)		PL_cvt_i_integer(term_t p, long *c);
+PL_EXPORT(int)		PL_cvt_i_integer(term_t p, intptr_t *c);
 PL_EXPORT(int)		PL_cvt_i_float(term_t p, double *c);
 PL_EXPORT(int)		PL_cvt_i_single(term_t p, float *c);
 PL_EXPORT(int)		PL_cvt_i_string(term_t p, char **c);
 PL_EXPORT(int)		PL_cvt_i_atom(term_t p, atom_t *c);
-PL_EXPORT(int)		PL_cvt_o_integer(long c, term_t p);
+PL_EXPORT(int)		PL_cvt_o_integer(intptr_t c, term_t p);
 PL_EXPORT(int)		PL_cvt_o_float(double c, term_t p);
 PL_EXPORT(int)		PL_cvt_o_single(float c, term_t p);
 PL_EXPORT(int)		PL_cvt_o_string(const char *c, term_t p);
@@ -767,7 +768,7 @@ PL_EXPORT(pl_wchar_t*)  PL_atom_generator_w(const pl_wchar_t *pref,
 					    pl_wchar_t *buffer,
 					    unsigned int buflen,
 					    int state);
-PL_EXPORT(void)		PL_clock_wait_ticks(long waited);
+PL_EXPORT(void)		PL_clock_wait_ticks(intptr_t waited);
 
 
 		 /*******************************
@@ -847,7 +848,7 @@ PL_EXPORT(void) PL_on_halt(void (*)(int, void *), void *);
 #define PL_QUERY_ENCODING	12	/* I/O encoding */
 #define PL_QUERY_USER_CPU	13	/* User CPU in milliseconds */
 
-PL_EXPORT(long)	PL_query(int);	/* get information from Prolog */
+PL_EXPORT(intptr_t)	PL_query(int);	/* get information from Prolog */
 
 
 		 /*******************************
@@ -855,10 +856,10 @@ PL_EXPORT(long)	PL_query(int);	/* get information from Prolog */
 		 *******************************/
 
 typedef struct
-{ unsigned long	    local_size;		/* Stack sizes */
-  unsigned long	    global_size;
-  unsigned long	    trail_size;
-  unsigned long	    argument_size;
+{ uintptr_t	    local_size;		/* Stack sizes */
+  uintptr_t	    global_size;
+  uintptr_t	    trail_size;
+  uintptr_t	    argument_size;
   char *	    alias;		/* alias name */
   int		  (*cancel)(int id);	/* cancel function */
   void *	    reserved[5];	/* reserved for extensions */
@@ -899,7 +900,7 @@ typedef struct
 { int	(*unify)(term_t t, void *handle); 	/* implementation --> Prolog */
   int   (*get)(term_t t, void **handle);	/* Prolog --> implementation */
   void	(*activate)(int active);		/* (de)activate */
-  long	magic;					/* PROFTYPE_MAGIC */
+  intptr_t	magic;					/* PROFTYPE_MAGIC */
 } PL_prof_type_t;
 
 PL_EXPORT(int)		PL_register_profile_type(PL_prof_type_t *type);
@@ -930,14 +931,14 @@ PL_EXPORT(int)		PL_win_message_proc(HWND hwnd,
 typedef struct
 { int type;				/* PL_INTEGER or PL_ATOM */
   union
-  { unsigned long i;			/* integer reference value */
+  { uintptr_t i;			/* integer reference value */
     atom_t	  a;			/* atom reference value */
   } value;
 } xpceref_t;
 
 PL_EXPORT(int)	_PL_get_xpce_reference(term_t t, xpceref_t *ref);
 PL_EXPORT(int)  _PL_unify_xpce_reference(term_t t, xpceref_t *ref);
-PL_EXPORT(void) _PL_put_xpce_reference_i(term_t t, unsigned long r);
+PL_EXPORT(void) _PL_put_xpce_reference_i(term_t t, uintptr_t r);
 PL_EXPORT(void) _PL_put_xpce_reference_a(term_t t, atom_t name);
 
 		 /*******************************
@@ -998,7 +999,7 @@ PL_EXPORT(term_t)	_PL_arg(term_t t, int n);
 		 *******************************/
 
 PL_EXPORT(term_t)	_PL_new_term(void);
-PL_EXPORT(PL_atomic_t)	_PL_new_integer(long i);
+PL_EXPORT(PL_atomic_t)	_PL_new_integer(intptr_t i);
 PL_EXPORT(PL_atomic_t)	_PL_new_float(double f);
 PL_EXPORT(PL_atomic_t)	_PL_new_string(const char *s);
 PL_EXPORT(PL_atomic_t)	_PL_new_var(void);

@@ -44,11 +44,11 @@ File format:
 	<source-file-table-offset>
     ATOM TABLE
 	<size>
-	<array of indices, <size> long>
+	<array of indices, <size> intptr_t>
 	<text-strings, 0-terminated>
     FUNCTOR TABLE
 	<size>
-	<array of (atom,arity) tuples, <size> long>
+	<array of (atom,arity) tuples, <size> intptr_t>
     SOURCE IOSTREAM TABLE
         <size>
 	{ <atom>			% path-name

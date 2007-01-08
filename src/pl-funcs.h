@@ -45,7 +45,7 @@ COMMON(void) 		initMemAlloc(void);
 COMMON(void) 		cleanupMemAlloc(void);
 COMMON(void) 		mergeAllocPool(AllocPool to, AllocPool from);
 COMMON(word) 		globalFunctor(functor_t def);
-COMMON(word) 		globalString(long len, const char *s);
+COMMON(word) 		globalString(intptr_t len, const char *s);
 COMMON(word) 		globalWString(unsigned len, const pl_wchar_t *s);
 COMMON(char *)		getCharsString__LD(word w, unsigned *len ARG_LD);
 COMMON(pl_wchar_t *)	getCharsWString__LD(word w, unsigned *len ARG_LD);
@@ -183,8 +183,8 @@ COMMON(word) 		parseSaveProgramOptions(term_t args,
 			bool *tty, bool *standalone);
 
 /* pl-index.c */
-COMMON(int) 		cardinalityPattern(unsigned long pattern);
-COMMON(void) 		getIndex(Word argv, unsigned long pattern, int card,
+COMMON(int) 		cardinalityPattern(uintptr_t pattern);
+COMMON(void) 		getIndex(Word argv, uintptr_t pattern, int card,
 			 struct index *
 			 ARG_LD);
 COMMON(word) 		getIndexOfTerm(term_t t);
@@ -225,7 +225,7 @@ COMMON(int) 		PL_get_nchars_ex(term_t t, unsigned int *len, char **s,
 COMMON(int) 		PL_get_chars_ex(term_t t, char **s, unsigned int flags);
 COMMON(int) 		PL_get_atom_ex(term_t t, atom_t *a);
 COMMON(int) 		PL_get_integer_ex(term_t t, int *i);
-COMMON(int) 		PL_get_long_ex(term_t t, long *i);
+COMMON(int) 		PL_get_long_ex(term_t t, intptr_t *i);
 COMMON(int) 		PL_get_bool_ex(term_t t, int *i);
 COMMON(int) 		PL_get_float_ex(term_t t, double *f);
 COMMON(int) 		PL_get_char_ex(term_t t, int *p, int eof);
@@ -304,7 +304,7 @@ COMMON(word) 		pl_current_output(term_t stream);
 COMMON(word) 		pl_source_location(term_t file, term_t line);
 COMMON(word) 		pl_at_end_of_stream1(term_t stream);
 COMMON(word) 		pl_at_end_of_stream0();
-COMMON(bool) 		unifyTime(term_t t, long time);
+COMMON(bool) 		unifyTime(term_t t, intptr_t time);
 COMMON(word) 		pl_time_file(term_t name, term_t t);
 COMMON(word) 		pl_size_file(term_t name, term_t len);
 COMMON(word) 		pl_size_stream(term_t stream, term_t len);
@@ -368,16 +368,16 @@ COMMON(void) 		_PL_get_arg__LD(int index, term_t t, term_t a ARG_LD);
 COMMON(term_t) 		PL_new_term_ref__LD(ARG1_LD);
 COMMON(term_t) 		PL_new_term_refs__LD(int n ARG_LD);
 COMMON(int) 		PL_unify__LD(term_t t1, term_t t2 ARG_LD);
-COMMON(int) 		PL_unify_integer__LD(term_t t1, long i ARG_LD);
+COMMON(int) 		PL_unify_integer__LD(term_t t1, intptr_t i ARG_LD);
 COMMON(int) 		PL_get_atom__LD(term_t t1, atom_t *a ARG_LD);
 COMMON(void) 		PL_put_atom__LD(term_t t1, atom_t a ARG_LD);
-COMMON(void) 		PL_put_integer__LD(term_t t1, long i ARG_LD);
+COMMON(void) 		PL_put_integer__LD(term_t t1, intptr_t i ARG_LD);
 COMMON(int) 		PL_is_atomic__LD(term_t t ARG_LD);
 COMMON(int) 		PL_is_functor__LD(term_t t, functor_t f ARG_LD);
 COMMON(int) 		PL_is_variable__LD(term_t t ARG_LD);
 COMMON(int) 		PL_strip_module__LD(term_t q, module_t *m, term_t t ARG_LD);
 COMMON(int) 		PL_get_integer__LD(term_t t, int *i ARG_LD);
-COMMON(int) 		PL_get_long__LD(term_t t, long *i ARG_LD);
+COMMON(int) 		PL_get_long__LD(term_t t, intptr_t *i ARG_LD);
 COMMON(int) 		PL_get_pointer__LD(term_t t, void **ptr ARG_LD);
 COMMON(void) 		PL_put_term__LD(term_t t1, term_t t2 ARG_LD);
 COMMON(int) 		PL_get_functor__LD(term_t t, functor_t *f ARG_LD);
@@ -426,7 +426,7 @@ COMMON(void) 		blockGC(ARG1_LD);
 COMMON(void) 		unblockGC(ARG1_LD);
 COMMON(Word) 		findGRef(int n);
 COMMON(int) 		growStacks(LocalFrame fr, Choice ch, Code PC,
-			   long lminfree, long gminfree, long tminfree);
+			   intptr_t lminfree, intptr_t gminfree, intptr_t tminfree);
 COMMON(void) 		clearUninitialisedVarsFrame(LocalFrame, Code);
 COMMON(word) 		check_foreign(void);	/* O_SECURE stuff */
 COMMON(void) 		markAtomsOnStacks(PL_local_data_t *ld);
@@ -496,7 +496,7 @@ COMMON(uint64_t)	_PL_Random(void);
 COMMON(char *) 		canonisePath(char *path);
 COMMON(char *) 		OsPath(const char *plpath, char *ospath);
 COMMON(char *) 		PrologPath(const char *ospath, char *plpath, size_t len);
-COMMON(long) 		LastModifiedFile(char *f);
+COMMON(intptr_t) 		LastModifiedFile(char *f);
 COMMON(bool) 		ExistsFile(const char *path);
 COMMON(bool) 		AccessFile(const char *path, int mode);
 COMMON(bool) 		ExistsDirectory(const char *path);
@@ -519,7 +519,7 @@ COMMON(char *) 		DeRefLink(const char *link, char *buf);
 COMMON(bool) 		ChDir(const char *path);
 COMMON(atom_t) 		TemporaryFile(const char *id);
 COMMON(int) 		hasConsole(void);
-COMMON(struct)  tm *	LocalTime(long int *t, struct tm *r);
+COMMON(struct tm *)	LocalTime(long *t, struct tm *r);
 COMMON(Char) 		GetChar(void);
 COMMON(int) 		getenv3(const char *, char *buf, unsigned int buflen);
 COMMON(char *) 		Getenv(const char *, char *buf, unsigned int buflen);
@@ -629,7 +629,7 @@ COMMON(word) 		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(void) 		reindexDefinition(Definition def);
 COMMON(void) 		redefineProcedure(Procedure proc, SourceFile sf);
 COMMON(void) 		startConsult(SourceFile f);
-COMMON(void) 		indexDefinition(Definition def, unsigned long pattern);
+COMMON(void) 		indexDefinition(Definition def, uintptr_t pattern);
 COMMON(word) 		pl_index(term_t pred);
 COMMON(SourceFile) 	lookupSourceFile(atom_t name);
 COMMON(SourceFile) 	indexToSourceFile(int index);
@@ -706,10 +706,10 @@ COMMON(void) 		unblockSignal(int sig);
 COMMON(void) 		blockSignal(int sig);
 COMMON(void) 		resetSignals(void);
 COMMON(void) 		cleanupSignals(void);
-COMMON(int) 		initPrologStacks(long local,
-				 long global,
-				 long trail,
-				 long argument);
+COMMON(int) 		initPrologStacks(intptr_t local,
+				 intptr_t global,
+				 intptr_t trail,
+				 intptr_t argument);
 COMMON(void) 		initPrologLocalData(void);
 COMMON(void) 		deallocateStacks(void);
 COMMON(bool) 		restoreStack(Stack s);
@@ -777,7 +777,7 @@ COMMON(char *) 		predicateName(Definition def);
 COMMON(word) 		notImplemented(char *name, int arity);
 COMMON(word) 		setBoolean(int *flag, term_t o, term_t n);
 COMMON(word) 		setInteger(int *val, term_t old, term_t new);
-COMMON(word) 		setLong(long *val, term_t old, term_t new);
+COMMON(word) 		setLong(intptr_t *val, term_t old, term_t new);
 COMMON(bool) 		strprefix(const char *string, const char *prefix);
 COMMON(bool) 		strpostfix(const char *string, const char *postfix);
 COMMON(bool) 		stripostfix(const char *string, const char *postfix);
