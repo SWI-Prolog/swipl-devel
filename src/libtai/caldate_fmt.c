@@ -11,13 +11,13 @@ unsigned int caldate_fmt(char *s, struct caldate *cd)
   if (s) {
     x = cd->year;
     if (x < 0) { x = -x; *s++ = '-'; }
-    s += i; do { *--s = '0' + (x % 10); x /= 10; } while(x); s += i;
+    s += i; do { *--s = '0' + (char)(x % 10); x /= 10; } while(x); s += i;
 
     x = cd->month;
-    s[0] = '-'; s[2] = '0' + (x % 10); x /= 10; s[1] = '0' + (x % 10);
+    s[0] = '-'; s[2] = '0' + (char)(x % 10); x /= 10; s[1] = '0' + (char)(x % 10);
 
     x = cd->day;
-    s[3] = '-'; s[5] = '0' + (x % 10); x /= 10; s[4] = '0' + (x % 10);
+    s[3] = '-'; s[5] = '0' + (char)(x % 10); x /= 10; s[4] = '0' + (char)(x % 10);
   }
 
   return (cd->year < 0) + i + 6;
