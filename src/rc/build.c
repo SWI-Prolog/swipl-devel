@@ -47,7 +47,7 @@
 #ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <io.h>
 #include <process.h>
 #endif

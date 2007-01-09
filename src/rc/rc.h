@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -25,7 +25,7 @@
 #ifndef RC_H_INCLUDED
 #define RC_H_INCLUDED
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #  include "../config/win32.h"
 #  ifdef RC_KERNEL
 #  define WINDOWS_LEAN_AND_MEAN 1
@@ -72,12 +72,12 @@ typedef unsigned long uintptr_t;
 #define RCE_NOENT	RCE_MKERRNO(2)
 #define RCE_SHORT	RCE_MKERRNO(3)
 #define RCE_RDIO	RCE_MKERRNO(4)
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define RCE_WINERRNO	RCE_MKERRNO(5)
 #endif
 
 #ifndef MAPPED_ARCHIVE
-#if defined(CAN_MMAP_FILES) || defined(WIN32)
+#if defined(CAN_MMAP_FILES) || defined(__WINDOWS__)
 #define MAPPED_ARCHIVE 1
 #endif
 #endif
@@ -114,7 +114,7 @@ typedef struct _rc_archive
   void	       *map_start;		/* Start of the map */
   rc_size	map_size;		/* Size of the map */
   void	       *data;			/* Handle to data */
-#ifdef WIN32
+#ifdef __WINDOWS__
   WIN_HANDLE	hfile;			/* handle to the file */
   WIN_HANDLE	hmap;			/* handle to the map */
 #endif

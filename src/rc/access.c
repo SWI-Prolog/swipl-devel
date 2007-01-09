@@ -90,14 +90,14 @@ rc_close_archive(RcArchive rca)
   if ( rca->map_start )
     munmap(rca->map_start, rca->map_size);
 #else
-#ifdef WIN32
+#ifdef __WINDOWS__
   if ( rca->map_start )
     UnmapViewOfFile(rca->map_start);
   if ( rca->hmap )
     CloseHandle(rca->hmap);
   if ( rca->hfile )
     CloseHandle(rca->hfile);
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 #endif /*HAVE_MMAP*/
 
   for(m=rca->members; m; m=next)
@@ -459,7 +459,7 @@ attach_archive(RcArchive rca)
   rc_errno = RCE_ERRNO;
   return FALSE;
 #else /*HAVE_MMAP*/
-#ifdef WIN32
+#ifdef __WINDOWS__
   DWORD fsize;
 
   rca->hfile = CreateFile(rca->path,
@@ -513,7 +513,7 @@ errio:
     rc_errno = RCE_WINERRNO;
     return FALSE;
   }
-#endif  /*WIN32*/
+#endif  /*__WINDOWS__*/
 #endif /*HAVE_MMAP*/
 #else /*MAPPED_ARCHIVE*/
 					/* bottom line, use files */

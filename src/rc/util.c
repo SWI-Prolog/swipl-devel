@@ -69,7 +69,7 @@ strerror(int e)
 const char *
 rc_strerror(int e)
 {
-#ifdef WIN32
+#ifdef __WINDOWS__
   if ( e == RCE_WINERRNO )
   {					/* TBD */
   }
