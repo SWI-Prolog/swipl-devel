@@ -141,9 +141,9 @@ RcObject        rc_open(RcArchive rca,
 int             rc_close(RcObject o);
 void            rc_stat(RcObject o, RcStatBuf stat);
 rc_offset       rc_seek(RcObject o, rc_offset to, int whence);
-int             rc_read(RcObject o, void *buf, int bytes);
-int             rc_write(RcObject o, void *buf, int bytes);
-void *          rc_data(RcObject o, int *size);
+size_t          rc_read(RcObject o, void *buf, size_t bytes);
+size_t          rc_write(RcObject o, void *buf, size_t bytes);
+void *          rc_data(RcObject o, uintptr_t *size);
 
 int		rc_append_file(RcArchive rca,
 			       const char *name,

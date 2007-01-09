@@ -123,7 +123,7 @@ rc_save_data(RcMember m, FILE *fd)
 
     if ( in >= 0 )
     { char buf[8192];
-      int size = m->size;
+      size_t size = m->size;
       size_t n;
 
       while( size > 0 )
@@ -149,7 +149,7 @@ rc_save_data(RcMember m, FILE *fd)
   } else
   { RcObject o = rc_open(m->archive, m->name, m->rc_class, RC_RDONLY);
     char buf[8192];
-    int size = m->size;
+    size_t size = m->size;
     size_t n;
 
     while( size > 0 )

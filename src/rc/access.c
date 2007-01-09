@@ -277,7 +277,7 @@ the archive starts at <len> before the *start* of this tag.
 static int
 find_archive_dimensions(RcArchive rca)
 { const char *data = rca->data;
-  int alen = strlen(ARCHIVE_TAG);
+  size_t alen = strlen(ARCHIVE_TAG);
 
   if ( strncasecmp(data, ARCHIVE_TAG, alen) != 0 )
   { const char *rc_end = &data[rca->size];
@@ -483,7 +483,7 @@ attach_archive(RcArchive rca)
 				NULL,
 				PAGE_READONLY,
 				0L,
-				rca->size,
+				(DWORD)rca->size, /* WIN64: Truncated! */
 				NULL);
   if ( !rca->hmap )
     goto errio;
@@ -639,8 +639,8 @@ updateFilePtr(RcObject o)
 
 
 
-int
-rc_read(RcObject o, void *buf, int bytes)
+size_t
+rc_read(RcObject o, void *buf, size_t bytes)
 { RcMember m = o->member;
   const char *mdata;
 
@@ -679,8 +679,8 @@ rc_read(RcObject o, void *buf, int bytes)
 }
 
 
-int
-rc_write(RcObject o, void *buf, int bytes)
+size_t
+rc_write(RcObject o, void *buf, size_t bytes)
 { RcMember m = o->member;
 
   if ( bytes < 0 )
@@ -717,7 +717,7 @@ rc_write(RcObject o, void *buf, int bytes)
 
 
 void *
-rc_data(RcObject o, int *size)
+rc_data(RcObject o, uintptr_t *size)
 { RcMember m = o->member;
 
   if ( size )

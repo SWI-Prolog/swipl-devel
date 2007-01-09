@@ -59,8 +59,8 @@ extern char *html_decode_tag(const char *data, HtmlTagDef spec, void *dest);
 extern char *html_find_tag(const char *data, const char *end, const char *tag);
 extern char *html_find_close_tag(const char *data, const char *tag);
 
-extern int html_cvt_malloc_string(const char *d, int len, void *dst, void *cl);
-extern int html_cvt_long(const char *d, int len, void *dst, void *cl);
-extern int html_cvt_date(const char *d, int len, void *dst, void *cl);
+extern int html_cvt_malloc_string(const char *d, size_t len, void *dst, void *cl);
+extern int html_cvt_long(const char *d, size_t len, void *dst, void *cl);
+extern int html_cvt_date(const char *d, size_t len, void *dst, void *cl);
 
 #endif /*HTML_TAG_ENUM*/

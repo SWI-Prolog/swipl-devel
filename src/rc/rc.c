@@ -152,10 +152,10 @@ rcextract(const char *archive, char **members)
 	if ( fd )
 	{ RcObject o = rc_open(rca, m->name, m->rc_class, RC_RDONLY);
 	  char buf[8192];
-	  int size = m->size;
+	  size_t size = m->size;
 
 	  while( size > 0 )
-	  { int n = rc_read(o, buf, sizeof(buf));
+	  { size_t n = rc_read(o, buf, sizeof(buf));
 
 	    if ( n > 0 )
 	    { if ( (int)fwrite(buf, sizeof(char), n, fd) != n )
@@ -195,8 +195,8 @@ rcadd(const char *archive, char **members)
 { RcArchive rca = rc_open_archive(archive, RC_RDWR|RC_CREATE);
   char *rcclass = "data";
   char *enc     = "none";
-  int clen = strlen("--class=");
-  int elen = strlen("--encoding=");
+  size_t clen = strlen("--class=");
+  size_t elen = strlen("--encoding=");
 
   if ( !rca )
     return badarchive(archive);
@@ -240,7 +240,7 @@ static int
 rcdel(const char *archive, char **members)
 { RcArchive rca = rc_open_archive(archive, RC_RDWR|RC_CREATE);
   char *rcclass = "data";
-  int clen = strlen("--class=");
+  size_t clen = strlen("--class=");
 
   if ( !rca )
     return badarchive(archive);
