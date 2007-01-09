@@ -223,7 +223,7 @@ loadMPZFromCharp(const char *data, Word r, Word *store)
   mpz->_mp_d     = (mp_limb_t*)p;
 
   mpz_import(mpz, size, 1, 1, 1, 0, data);
-  assert(mpz->_mp_d == p);		/* check no (re-)allocation is done */
+  assert((Word)mpz->_mp_d == p);		/* check no (re-)allocation is done */
 
   return (char *)data+size;
 }
