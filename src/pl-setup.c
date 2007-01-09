@@ -1186,13 +1186,13 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
 { caddress lbase, gbase, tbase, abase;
   intptr_t glsize;
   intptr_t lsep, tsep;
-  intptr_t minglobal   = 4*SIZEOF_LONG K;
-  intptr_t minlocal    = 2*SIZEOF_LONG K;
-  intptr_t mintrail    = 2*SIZEOF_LONG K;
-  intptr_t minargument = 1*SIZEOF_LONG K;
+  intptr_t minglobal   = 4*SIZEOF_VOIDP K;
+  intptr_t minlocal    = 2*SIZEOF_VOIDP K;
+  intptr_t mintrail    = 2*SIZEOF_VOIDP K;
+  intptr_t minargument = 1*SIZEOF_VOIDP K;
   
   size_alignment = getpagesize();
-  while(size_alignment < 4*SIZEOF_LONG K)
+  while(size_alignment < 4*SIZEOF_VOIDP K)
     size_alignment *= 2;
 
 #ifndef HAVE_MAP_ANON
@@ -1378,10 +1378,10 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   intptr_t glsize;
   intptr_t lsep, tsep;
   SYSTEM_INFO info;
-  intptr_t minglobal   = 4*SIZEOF_LONG K;
-  intptr_t minlocal    = 2*SIZEOF_LONG K;
-  intptr_t mintrail    = 2*SIZEOF_LONG K;
-  intptr_t minargument = 1*SIZEOF_LONG K;
+  intptr_t minglobal   = 4*SIZEOF_VOIDP K;
+  intptr_t minlocal    = 2*SIZEOF_VOIDP K;
+  intptr_t mintrail    = 2*SIZEOF_VOIDP K;
+  intptr_t minargument = 1*SIZEOF_VOIDP K;
 
   GetSystemInfo(&info);
   size_alignment = info.dwPageSize;
@@ -1667,15 +1667,15 @@ init_stack(Stack s, char *name, intptr_t size, intptr_t limit, intptr_t minfree)
 static int
 allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
 { intptr_t old_heap = GD->statistics.heap;
-  intptr_t minglobal   = 25*SIZEOF_LONG K;
-  intptr_t minlocal    = 4*SIZEOF_LONG K;
-  intptr_t mintrail    = 4*SIZEOF_LONG K;
-  intptr_t minargument = 1*SIZEOF_LONG K;
+  intptr_t minglobal   = 25*SIZEOF_VOIDP K;
+  intptr_t minlocal    = 4*SIZEOF_VOIDP K;
+  intptr_t mintrail    = 4*SIZEOF_VOIDP K;
+  intptr_t minargument = 1*SIZEOF_VOIDP K;
 
 #if O_SHIFT_STACKS
-  intptr_t itrail  = 8*SIZEOF_LONG K;
-  intptr_t iglobal = 50*SIZEOF_LONG K;
-  intptr_t ilocal  = 8*SIZEOF_LONG K;
+  intptr_t itrail  = 8*SIZEOF_VOIDP K;
+  intptr_t iglobal = 50*SIZEOF_VOIDP K;
+  intptr_t ilocal  = 8*SIZEOF_VOIDP K;
 #else
   intptr_t itrail  = trail;
   intptr_t iglobal = global;

@@ -351,7 +351,7 @@ termHashValue(word term, intptr_t *hval ARG_LD)
 	{ *hval += valInt(term);
 	} else
 	{ Word p = valIndirectP(term);
-#if SIZEOF_LONG == 4
+#if SIZEOF_VOIDP == 4
 	  *hval += p[0]^p[1];
 #else
 	  *hval += p[0];

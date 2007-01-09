@@ -820,7 +820,7 @@ globalLong(int64_t l ARG_LD)
 { Word p;
   word r, m;
 
-#if SIZEOF_LONG == 8
+#if SIZEOF_VOIDP == 8
   p = allocGlobal(3);
   r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   m = mkIndHdr(1, TAG_INTEGER);
@@ -829,7 +829,7 @@ globalLong(int64_t l ARG_LD)
   *p++ = l;
   *p   = m;
 #else
-#if SIZEOF_LONG == 4
+#if SIZEOF_VOIDP == 4
   p = allocGlobal(4);
   r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   m = mkIndHdr(2, TAG_INTEGER);

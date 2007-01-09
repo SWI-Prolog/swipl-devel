@@ -145,7 +145,7 @@ indexOfWord(word w ARG_LD)
 	{ Word p = valIndirectP(w);
 	  word key;
 
-#if SIZEOF_LONG == 4
+#if SIZEOF_VOIDP == 4
           DEBUG(9, Sdprintf("Index for " INT64_FORMAT " = 0x%x\n",
 			    valBignum(w), p[0]^p[1]));
 	  key = p[0]^p[1];

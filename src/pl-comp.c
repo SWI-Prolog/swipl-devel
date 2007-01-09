@@ -1248,7 +1248,7 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
 	if ( n == sizeof(int64_t)/sizeof(word) )
 	{ int64_t val = *(int64_t*)(p+1);
 
-#if SIZEOF_LONG == 8
+#if SIZEOF_VOIDP == 8
           Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (intptr_t)val);
 #else
           if ( val >= LONG_MIN && val <= LONG_MAX )
@@ -1729,7 +1729,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 
       if ( n == sizeof(int64_t)/sizeof(word) )
       { int64_t val = *(int64_t*)(p+1);
-#if SIZEOF_LONG == 8
+#if SIZEOF_VOIDP == 8
 	Output_1(ci, A_INTEGER, val);
 #else
         if ( val >= LONG_MIN && val <= LONG_MAX )
@@ -2199,7 +2199,7 @@ arg1Key(Clause clause, word *key)
         succeed;
       case H_INTEGER:
       { word k;
-#if SIZEOF_LONG == 4
+#if SIZEOF_VOIDP == 4
 	k = (word)*PC;			/* indexOfWord() picks 64-bits */
         if ( (intptr_t)k < 0L )
 	  k ^= -1L;

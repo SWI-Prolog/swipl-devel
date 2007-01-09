@@ -568,7 +568,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
 
 #define REC_SZMASK  (REC_32|REC_64)	/* SIZE_MASK */
 
-#if SIZEOF_LONG == 8
+#if SIZEOF_VOIDP == 8
 #define REC_SZ REC_64
 #else
 #define REC_SZ REC_32

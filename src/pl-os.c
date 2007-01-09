@@ -421,7 +421,7 @@ _PL_Random(void)
   }
 
 #ifdef HAVE_RANDOM
-#if SIZEOF_LONG == 4
+#if SIZEOF_VOIDP == 4
   { uint64_t l = random();
     
     l ^= (uint64_t)random()<<32;

@@ -598,6 +598,9 @@
 /* The size of a `long long', as computed by sizeof. */
 #undef SIZEOF_LONG_LONG
 
+/* The size of a `void*', as computed by sizeof. */
+#undef SIZEOF_VOIDP
+
 /* Define to the extension of shared objects (often .so) */
 #undef SO_EXT
 

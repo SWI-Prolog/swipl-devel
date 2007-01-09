@@ -509,10 +509,10 @@ Find the resource database.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef BOOTFILE		/* normally delivered through config.h */
-#if SIZEOF_LONG == 4
+#if SIZEOF_VOIDP == 4
 #define BOOTFILE "boot32.prc"
 #else
-#if SIZEOF_LONG == 8
+#if SIZEOF_VOIDP == 8
 #define BOOTFILE "boot64.prc"
 #else
 #define BOOTFILE "boot.prc"

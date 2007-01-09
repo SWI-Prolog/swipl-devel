@@ -253,10 +253,10 @@ and while loading .wic files.  It comes at no price.
 		 *	      INDIRECTS		*
 		 *******************************/
 
-#if SIZEOF_LONG == 4			/* extend as needed */
+#if SIZEOF_VOIDP == 4			/* extend as needed */
 #define PADBITS 2
 #else
-#if SIZEOF_LONG == 8
+#if SIZEOF_VOIDP == 8
 #define PADBITS 3
 #endif
 #endif
