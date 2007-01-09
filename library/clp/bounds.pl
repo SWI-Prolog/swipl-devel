@@ -85,7 +85,8 @@
 		lex_chain/1,
 		indomain/1,
 		check/1,
-		tuples_in/2
+		tuples_in/2,
+		serialized/2
 	]).
 
 :- use_module(library('clp/clp_events')).
@@ -269,16 +270,26 @@ indomain(Var) :-
 		true
 	).
 
-label(Vs) :- labeling([],Vs).
+label(Vs) :- labeling([], Vs).
 
-labeling(Options,Vars) :-
-	label(Options,leftmost,Vars).
+labeling(Options, Vars) :-
+	label(Options, leftmost, none, Vars).
 
-label([Option|Options],_Selection,Vars) :-
-	selection(Option),
-	label(Options,Option,Vars).
-label([],Selection,Vars) :-
-	label(Vars,Selection).
+label([Option|Options], Selection, Optimisation, Vars) :-
+	( selection(Option) ->
+		label(Options, Option, Optimisation, Vars)
+	; optimization(Option) ->
+		label(Options, Selection, Option, Vars)
+	;
+		label(Options, Selection, Optimisation, Vars)
+	).
+label([], Selection, Optimisation, Vars) :-
+	( Optimisation == none ->
+		label(Vars, Selection)
+	;
+		optimize(Vars, Selection, Optimisation)
+	).
+
 
 label([],_) :- !.
 label(Vars,Selection) :-
@@ -291,6 +302,8 @@ selection(min).
 selection(max).
 selection(leftmost).
 
+optimization(min(_)).
+optimization(max(_)).
 
 select_var(leftmost,[Var|Vars],Var,Vars).
 select_var(min,[V|Vs],Var,RVars) :-
@@ -358,6 +371,29 @@ delete_eq([X|Xs],Y,List) :-
 		List = [X|Tail],
 		delete_eq(Xs,Y,Tail)
 	).
+
+optimize(Vars, Selection, Opt) :-
+	copy_term(Vars-Opt, Vars1-Opt1),
+	once(label(Vars1, Selection)),
+	functor(Opt1, Direction, _),
+	maplist(arg(1), [Opt,Opt1], [Expr,Expr1]),
+	optimize(Direction, Selection, Vars1, Vars, Expr1, Expr).
+
+optimize(Direction, Selection, Vars0, Vars, Expr0, Expr) :-
+	Val0 is Expr0,
+	copy_term(Vars-Expr, Vars1-Expr1),
+	( Direction == min ->
+		Tighten = (Expr1 #< Val0)
+	; % max
+		Tighten = (Expr1 #> Val0)
+	),
+	( Tighten, label(Vars1, Selection) ->
+		optimize(Direction, Selection, Vars1, Vars, Expr1, Expr)
+	;
+		Vars = Vars0,
+		Expr = Expr0
+	).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 all_different([]).
 all_different([X|Xs]) :-
@@ -1765,7 +1801,10 @@ trigger_exp(rel_tuple(Relation,Tuple), _) :-
 			)
 		)
 	).
-	
+
+trigger_exp(serialized(Duration,Left,Right), X) :-
+	myserialized(Duration, Left, Right, X).
+
 
 memberchk_eq(X,[Y|Ys],Z) :-
    (   X == Y ->
@@ -1867,6 +1906,109 @@ relation_unifiable([R|Rs], Tuple, Us) :-
 	),
 	relation_unifiable(Rs, Tuple, Rest).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    % serialized/2; see Dorndorf et al. 2000, "Constraint Propagation
+    % Techniques for the Disjunctive Scheduling Problem"
+
+    % attribute: serialized(Duration, Left, Right)
+    %   Left and Right are lists of Start-Duration pairs representing
+    %   other tasks occupying the same resource
+
+    % Currently implements 2-b-consistency
+
+serialized(Starts, Durations) :-
+	pair_up(Starts, Durations, SDs),
+	serialize(SDs, []).
+
+
+pair_up([], [], []).
+pair_up([A|As], [B|Bs], [A-B|ABs]) :- pair_up(As, Bs, ABs).
+
+
+    % store attributes for serialized/2 constraint
+
+serialize([], _).
+serialize([Start-Duration|SDs], Left) :-
+	( var(Start) ->
+		get(Start, L, U, Exp),
+		put(Start, L, U, [serialized(Duration,Left,SDs)|Exp])
+	;
+		true
+	),
+	myserialized(Duration, Left, SDs, Start),
+	serialize(SDs, [Start-Duration|Left]).
+
+    % consistency check / propagation
+
+myserialized(Duration, Left, Right, Start) :-
+	myserialized(Left, Start, Duration),
+	myserialized(Right, Start, Duration).
+
+
+earliest_start_time(Start, EST) :-
+	( var(Start) ->
+		get(Start, EST, _, _)
+	;
+		EST = Start
+	).
+
+latest_start_time(Start, LST) :-
+	( var(Start) ->
+		get(Start, _, LST, _)
+	;
+		LST = Start
+	).
+
+
+myserialized([], _, _).
+myserialized([S_I-D_I|SDs], S_J, D_J) :-
+	( var(S_I) ->
+		serialize_lower_bound(S_I, D_I, Start, D_J),
+		( var(S_I) -> % STILL variable?
+			serialize_upper_bound(S_I, D_I, Start, D_J)
+		;
+			true
+		)
+	; var(S_J) ->
+		serialize_lower_bound(S_J, D_J, S, D_I),
+		( var(S_J) ->
+			serialize_upper_bound(S_J, D_J, S, D_I)
+		;
+			true
+		)
+	;
+		( S_I + D_I =< S_J ->
+			true
+		; S_J + D_J =< S_I ->
+			true
+		;
+			fail
+		)
+	),
+	myserialized(SDs, S_J, D_J).
+
+serialize_lower_bound(I, D_I, J, D_J) :-
+	get(I, EST_I, U, Exp),
+	latest_start_time(J, LST_J),
+	( EST_I + D_I > LST_J ->
+		earliest_start_time(J, EST_J),
+		EST is max(EST_I, EST_J+D_J),
+		put(I, EST, U, Exp)
+	;
+		true
+	).
+
+serialize_upper_bound(I, D_I, J, D_J) :-
+	get(I, L, LST_I, Exp),
+	earliest_start_time(J, EST_J),
+	( EST_J + D_J > LST_I ->
+		latest_start_time(J, LST_J),
+		LST is min(LST_I, LST_J-D_I),
+		put(I, L, LST, Exp)
+	;
+		true
+	).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
