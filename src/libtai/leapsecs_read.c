@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdlib.h>
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <io.h>
 #else
 #include <unistd.h>

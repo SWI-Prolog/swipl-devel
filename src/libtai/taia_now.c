@@ -1,5 +1,5 @@
 #include <sys/types.h>
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define WINDOWS_LEAN_AND_MEAN 1
 #include <windows.h>
 #else
@@ -18,7 +18,7 @@
 
 void taia_now(struct taia *t)
 {
-#ifdef WIN32
+#ifdef __WINDOWS__
   FILETIME ft;
   int64_t cns;				/* 100ns ticks */
 
