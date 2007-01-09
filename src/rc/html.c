@@ -254,7 +254,7 @@ html_decode_tag(const char *data, HtmlTagDef spec, void *dest)
 
 
 int
-html_cvt_malloc_string(const char *data, int len, void *dst, void *closure)
+html_cvt_malloc_string(const char *data, size_t len, void *dst, void *closure)
 { if ( data )
   { char *tmp = malloc(len+1);
 
@@ -274,7 +274,7 @@ html_cvt_malloc_string(const char *data, int len, void *dst, void *closure)
 
 
 int
-html_cvt_long(const char *data, int len, void *dst, void *closure)
+html_cvt_long(const char *data, size_t len, void *dst, void *closure)
 { if ( data )
   { char *e;
     intptr_t val;
@@ -294,7 +294,7 @@ html_cvt_long(const char *data, int len, void *dst, void *closure)
 
 
 int
-html_cvt_date(const char *data, int len, void *dst, void *closure)
+html_cvt_date(const char *data, size_t len, void *dst, void *closure)
 { if ( data )
   { if ( html_cvt_long(data, len, dst, closure) ) /* POSIX time stamp */
       return TRUE;
