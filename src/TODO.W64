@@ -2,8 +2,13 @@ TODO list porting SWI-Prolog to WIN64 (x86 or amd86)
 ====================================================
 
 * Compiler: Visual studio Express edition + 64-bit SDK
+	- Using Visual Studio with the platform SDK:
+	http://msdn.microsoft.com/vstudio/express/visualc/usingpsdk/default.aspx
+	Compiling for AMD64
+	- http://www.planetamd64.com/lofiversion/index.php/t18796.html
 
 * Undefined symbols: add bufferoverflowu.lib
+* RTC Problems: C++/C code generation options.
 
 * sizeof(long) = 4!?
 
@@ -16,6 +21,7 @@ TODO list porting SWI-Prolog to WIN64 (x86 or amd86)
 * GMP:
 	http://www.swox.com/list-archives/gmp-discuss/2006-March/002212.html
 	http://fp.gladman.plus.com/computing/gmp4win.htm
+	Binaries: http://oss.netfarm.it/clamav/ [USED]
 
 * Pthread:
 	http://sourceware.org/ml/pthreads-win32/2006/msg00002.html
