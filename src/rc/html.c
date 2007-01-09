@@ -67,7 +67,7 @@ skipidentifier(const char *s)
 
 char *
 html_find_tag(const char *data, const char *end, const char *tag)
-{ int len = strlen(tag);
+{ size_t len = strlen(tag);
 
   for(;;)
   { while(data != end && *data != '<')
@@ -92,7 +92,7 @@ html_find_tag(const char *data, const char *end, const char *tag)
 
 char *
 html_find_close_tag(const char *data, const char *tag)
-{ int len = strlen(tag);
+{ size_t len = strlen(tag);
 
   while(data)
   { if ( (data = strchr(data, '<')) &&

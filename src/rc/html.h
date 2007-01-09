@@ -42,7 +42,7 @@
 #define MAXTAGLEN 128
 #define MAXTAGPROPLEN 1024
 
-typedef int (*HtmlTagConverter)(const char *data, int len, void *dst,
+typedef int (*HtmlTagConverter)(const char *data, size_t len, void *dst,
 				void *closure);
 
 typedef struct

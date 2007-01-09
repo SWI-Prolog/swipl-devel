@@ -26,7 +26,11 @@
 #define RC_H_INCLUDED
 
 #ifdef __WINDOWS__
-#  include "../config/win32.h"
+#  ifdef WIN64
+#    include "../config/win64.h"
+#  else
+#    include "../config/win32.h"
+#  endif
 #  ifdef RC_KERNEL
 #  define WINDOWS_LEAN_AND_MEAN 1
 #  include <windows.h>
@@ -36,10 +40,12 @@
 #  else
      typedef void *WIN_HANDLE;
 #  endif
-#if (_MSC_VER < 1300)
+#  if (_MSC_VER < 1300)
 typedef long intptr_t;
 typedef unsigned long uintptr_t;
-#endif
+#  else
+#    include <stddef.h>
+#  endif
 #else
 #  if defined(HAVE_CONFIG_H) || defined(RC_KERNEL)
 #    include <config.h>
