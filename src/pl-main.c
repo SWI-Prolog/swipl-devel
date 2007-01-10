@@ -1165,6 +1165,8 @@ PL_cleanup(int rval)
   if ( GD->initialised )
   { fid_t cid = PL_open_foreign_frame();
     predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
+
+    DEBUG(5, Sdprintf("Running at_halt hooks\n"));
     PL_call_predicate(MODULE_system, FALSE, proc, 0);
     PL_discard_foreign_frame(cid);
   }
