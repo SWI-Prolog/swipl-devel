@@ -1189,7 +1189,8 @@ current localframe and a B_VAR instruction is generated for it.
 #ifdef O_DEBUG
 static char *
 vName(Word adr)
-{ static char name[32];
+{ GET_LD
+  static char name[32];
 
   deRef(adr);
 
