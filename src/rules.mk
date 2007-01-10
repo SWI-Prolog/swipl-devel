@@ -5,6 +5,10 @@
 # destination path, compiler, library search-path, etc.
 ################################################################
 
+# Target architecture.  One of WIN32 or WIN64
+
+MD=WIN32
+
 # Installation target directory.  At the moment, the build will probably
 # fail if there is whitespace in the $prefix directory.  You can however
 # copy the result to wherever you want.
@@ -42,9 +46,11 @@ LIB=$(LIB);$(HOME)\lib
 # CFG: dev=development environment; rt=runtime system only
 # DBG: true=for C-level debugging; false=non-debugging
 # MT:  true=multi-threading version; false=normal single-threading
+# GMP: true=enable unbounded arithmetic using GNU GMP library
 CFG=dev
 DBG=false
 MT=true
+GMP=true
 PDB=false
 SYMOPT=
 SYMBOLS=true
@@ -93,16 +99,20 @@ INSTALL=copy
 INSTALL_PROGRAM=$(INSTALL)
 INSTALL_DATA=$(INSTALL)
 MKDIR=mkdir
-MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" MT="$(MT)" /nologo /f Makefile.mak
+MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" MT="$(MT)" GMP="$(GMP)" /nologo /f Makefile.mak
 
-LIBS=/NODEFAULTLIB:libc msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib ole32.lib
+LIBS= msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib ole32.lib
 !if "$(MT)" == "true"
-LIBS=$(LIBS) pthreadVC.lib
+LIBS=$(LIBS) pthreadVC2.lib bufferoverflowU.lib
 !ENDIF
 
 # Architecture identifier for Prolog's current_prolog_flag(arch, Arch)
 
+!IF "$(MD)" == "WIN64"
+ARCH=x64-win64
+!ELSE
 ARCH=i386-win32
+!ENDIF
 
 # Some libraries used by various packages
 
@@ -110,17 +120,15 @@ PLLIB=$(PLHOME)\lib\libpl.lib
 TERMLIB=$(PLHOME)\lib\plterm.lib
 UXLIB=$(PLHOME)\lib\uxnt.lib
 
+CFLAGS=/MD /W3 $(SYMOPT) /EHsc /D__WINDOWS__ /D$(MD) /nologo /c
+
 !IF "$(DBG)" == "false"
-CFLAGS=/MD /W3 /O2 $(SYMOPT) /GX /DNDEBUG /D__WINDOWS__ /DWIN32 $(CMFLAGS) /nologo /c
-!IF "$(PDB)" == "true"
-LDFLAGS=/DEBUG /OPT:REF
-!ELSE
+CFLAGS=/DNDEBUG $(CFLAGS)
 LDFLAGS=
-!ENDIF
 D=
 DBGLIBS=
 !ELSE
-CFLAGS=/MD /W3 $(SYMOPT) $(DBGOPT) /GX /D_DEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
+CFLAGS=/D_DEBUG $(CFLAGS)
 LD=link.exe /nologo /incremental:yes
 LDFLAGS=/DEBUG
 D=D
@@ -130,9 +138,18 @@ DBGLIBS=msvcrtd.lib
 !IF "$(MT)" == "true"
 CFLAGS=/DO_PLMT /D_REENTRANT $(CFLAGS)
 !ENDIF
+!IF "$(GMP)" == "true"
+CFLAGS=/DO_GMP
+GMPLIB=gmp.lib
+!ELSE
+GMPLIB=
+!ENDIF
+
+# Enable for serious debugging
+# CFLAGS=/DO_DEBUG /DO_SECURE $(CFLAGS)
 
 .c.obj:
-	@$(CC) -I. -Irc -I $(PLHOME)\include $(CFLAGS) /Fo$@ $<
+	$(CC) -I. -Irc -I $(PLHOME)\include $(CFLAGS) /Fo$@ $<
 .cxx.obj:
 	@$(CC) -I. -Irc -I $(PLHOME)\include $(CFLAGS) /Fo$@ $<
 
