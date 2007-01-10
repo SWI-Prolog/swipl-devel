@@ -468,10 +468,10 @@ list_completions(Line ln, int chr)
 
     if ( (*_rlc_complete_function)(data) )
     { TCHAR *buf[COMPLETE_MAX_MATCHES];
-      int nmatches = 0;
+      int n, nmatches = 0;
       size_t len = _tcslen(data->candidate) + 1;
       size_t longest = len;
-      size_t n, cols;
+      size_t cols;
 
       buf[nmatches] = rlc_malloc(len*sizeof(TCHAR));
       _tcsncpy(buf[nmatches], data->candidate, len);
