@@ -41,7 +41,11 @@ PB=$(PLHOME)\boot
 INCLUDEDIR=$(PLHOME)\include
 CINCLUDE=$(INCLUDEDIR)\SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)\SWI-Stream.h
+!IF "$(MD)" == "WIN64"
+BOOTFILE=boot64.prc
+!ELSE
 BOOTFILE=boot32.prc
+!ENDIF
 STARTUPPATH=$(PLHOME)\$(BOOTFILE)
 LIBRARYDIR=$(PLBASE)\library
 
@@ -118,7 +122,7 @@ banner:
 		@echo ****************
 
 $(PLLIB):	$(OBJ) $(LOCALLIB)
-		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(LIBS) winmm.lib gmp.lib $(DBGLIBS)
+		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(LIBS) winmm.lib $(GMPLIB) $(DBGLIBS)
 
 $(PLCON):	$(PLLIB) pl-ntcon.obj
 		$(LD) $(LDFLAGS) /subsystem:console /out:$@ pl-ntcon.obj $(PLLIB)
