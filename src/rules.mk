@@ -103,13 +103,18 @@ MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" MT="$(MT)" GMP="$(GMP)" /nologo /f Makefile
 
 LIBS= msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib ole32.lib
 !if "$(MT)" == "true"
-LIBS=$(LIBS) pthreadVC2.lib bufferoverflowU.lib
+!IF "$(MD)" == "WIN64"
+LIBS=$(LIBS) pthreadVC2.lib
+!ELSE
+LIBS=$(LIBS) pthreadVC.lib
+!ENDIF
 !ENDIF
 
 # Architecture identifier for Prolog's current_prolog_flag(arch, Arch)
 
 !IF "$(MD)" == "WIN64"
 ARCH=x64-win64
+LIBS=$(LIBS) bufferoverflowU.lib
 !ELSE
 ARCH=i386-win32
 !ENDIF
@@ -139,7 +144,7 @@ DBGLIBS=msvcrtd.lib
 CFLAGS=/DO_PLMT /D_REENTRANT $(CFLAGS)
 !ENDIF
 !IF "$(GMP)" == "true"
-CFLAGS=/DO_GMP
+CFLAGS=/DO_GMP $(CFLAGS)
 GMPLIB=gmp.lib
 !ELSE
 GMPLIB=
