@@ -26,14 +26,21 @@
 #define _PL_INCLUDE_H
 
 #ifdef __WINDOWS__
+#ifdef WIN64
+#define MD	     "config/win64.h"
+#else
 #define MD	     "config/win32.h"
+#endif
 #define PLHOME       "c:/Program Files/pl"
 #define DEFSTARTUP   "pl.ini"
-#define ARCH	     "i386-win32"
 #define C_LIBS	     ""
 #define C_STATICLIBS ""
 #define C_CC	     "cl"
+#if (_MSC_VER < 1400)
 #define C_CFLAGS     "/MD /GX"
+#else
+#define C_CFLAGS     "/MD /EHsc"
+#endif
 #define C_LDFLAGS    ""
 #if defined(_DEBUG)
 #define C_PLLIB	    "libplD.lib"
@@ -46,7 +53,7 @@
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 First, include config.h or, if MD is  specified, this file.  This allows
-for -DMD="md-mswin.h"
+for -DMD="config/win64.h"
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef CONFTEST
@@ -452,7 +459,7 @@ them.  Descriptions:
 #define WORDS_PER_INT64		(sizeof(int64_t)/sizeof(word))
 
 				/* Prolog's integer range */
-#define PLMINTAGGEDINT		(-(intptr_t)(1L<<(WORDBITSIZE - LMASK_BITS - 1)))
+#define PLMINTAGGEDINT		(-(intptr_t)((word)1<<(WORDBITSIZE-LMASK_BITS-1)))
 #define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
 #define inTaggedNumRange(n)	(((n)&~PLMAXTAGGEDINT) == 0 || \
 				 ((n)&~PLMAXTAGGEDINT) == ~PLMAXTAGGEDINT)
@@ -1042,7 +1049,7 @@ Handling environment (or local stack) frames.
    We must consider using a seperate slot in the localFrame
 */
 
-#define FR_LEVEL		((1L<<FR_BITS)-1)
+#define FR_LEVEL		(((uintptr_t)1<<FR_BITS)-1)
 
 #define ARGOFFSET		((int)sizeof(struct localFrame))
 #define VAROFFSET(var) 		((var)+(ARGOFFSET/(int)sizeof(word)))
@@ -1387,7 +1394,7 @@ struct localFrame
   struct call_node *prof_node;		/* Profiling node */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  uintptr_t generation;		/* generation of the database */
+  uintptr_t generation;			/* generation of the database */
 #endif
   uintptr_t flags;			/* packed intptr_t holding: */
 		/*	LEVEL	   recursion level (28 bits) */
