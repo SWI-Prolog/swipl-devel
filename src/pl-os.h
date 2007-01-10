@@ -165,8 +165,8 @@ extern uintptr_t	FreeMemory(void);
 #include <sys/select.h>
 #else
 #define FD_ZERO(s)	{ *((uintptr_t *)(s)) = (0L); }
-#define FD_SET(fd, s)	{ *((uintptr_t *)(s)) |= (1L << (fd)); }
-#define FD_ISSET(fd, s) ( (*((uintptr_t *)(s)) & (1L << (fd))) != 0 )
+#define FD_SET(fd, s)	{ *((uintptr_t *)(s)) |= ((uintptr_t)L << (fd)); }
+#define FD_ISSET(fd, s) ( (*((uintptr_t *)(s)) & ((uintptr_t)L << (fd))) != 0 )
 #endif
 #endif
 

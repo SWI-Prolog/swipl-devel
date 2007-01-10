@@ -326,7 +326,7 @@ and while loading .wic files.  It comes at no price.
 		 *	   CREATING WORDS	*
 		 *******************************/
 
-#define MAXTAGGEDPTR	((1L<<((8*sizeof(word))-5)) - 1)
+#define MAXTAGGEDPTR	(((word)1<<((8*sizeof(word))-5)) - 1)
 
 #define consInt(n)	(((word)(n)<<7) | TAG_INTEGER)
 #if !O_DEBUG
