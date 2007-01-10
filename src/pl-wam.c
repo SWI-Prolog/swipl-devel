@@ -2318,6 +2318,7 @@ depart_continue() to do the normal thing or to the backtrack point.
     fail;
   }
   FR  = &QF->frame;
+  DEBUG(9, Sdprintf("QF=%p, FR=%p\n", QF, FR));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Check for exceptions raised by foreign code.  PL_throw() uses longjmp()
@@ -2331,6 +2332,7 @@ variables used in the B_THROW instruction.
 Is there a way to make the compiler keep its mouth shut!?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+  DEBUG(9, Sdprintf("Setjmp env at %p\n", &QF->exception_jmp_env));
   if ( setjmp(QF->exception_jmp_env) != 0 )
   { FliFrame ffr;
 #ifdef O_PLMT
