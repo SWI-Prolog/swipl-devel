@@ -99,7 +99,7 @@ INSTALL=copy
 INSTALL_PROGRAM=$(INSTALL)
 INSTALL_DATA=$(INSTALL)
 MKDIR=mkdir
-MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" MT="$(MT)" GMP="$(GMP)" /nologo /f Makefile.mak
+MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" MT="$(MT)" MD="$(MD)" GMP="$(GMP)" /nologo /f Makefile.mak
 
 LIBS= msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib ole32.lib
 !if "$(MT)" == "true"
