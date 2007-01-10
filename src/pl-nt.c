@@ -496,20 +496,6 @@ PRED_IMPL("win_shell", 3, win_shell3, 0)
 }
 
 
-#if _DEBUG
-void
-initHeapDebug(void)
-{ int tmpFlag = _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG );
-
-  if ( !(tmpFlag & _CRTDBG_CHECK_ALWAYS_DF) )
-  { /*PlMessage("Setting malloc() debugging");*/
-    tmpFlag |= _CRTDBG_CHECK_ALWAYS_DF;
-    _CrtSetDbgFlag(tmpFlag);
-  } /*else
-    PlMessage("Malloc debugging already set");*/
-}
-#endif
-
 foreign_t
 pl_win_module_file(term_t module, term_t file)
 { char buf[MAXPATHLEN];
