@@ -449,7 +449,7 @@ static void
 free_prolog_thread(void *data)
 { PL_local_data_t *ld = data;
   PL_thread_info_t *info;
-  int acknowlege;
+  int acknowledge;
   double time;
 
   if ( !threads_ready )
@@ -460,7 +460,7 @@ free_prolog_thread(void *data)
   LOCK();
   if ( info->status == PL_THREAD_RUNNING )
     info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
-  acknowlege = (info->status == PL_THREAD_CANCELED);
+  acknowledge = (info->status == PL_THREAD_CANCELED);
   UNLOCK();
   DEBUG(1, Sdprintf("Freeing prolog thread %d\n", info-threads));
 
@@ -489,6 +489,7 @@ free_prolog_thread(void *data)
   GD->statistics.thread_cputime += time;
 
   info->thread_data = NULL;
+  info->has_tid = FALSE;		/* needed? */
   ld->thread.info = NULL;		/* avoid a loop */
   UNLOCK();
 
@@ -498,7 +499,7 @@ free_prolog_thread(void *data)
   mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
   freeHeap(ld, sizeof(*ld));
 
-  if ( acknowlege )
+  if ( acknowledge )
     sem_post(sem_canceled_ptr);
 }
 
@@ -521,15 +522,11 @@ initPrologThreads()
   TLD_set(PL_ldata, &PL_local_data);
   PL_local_data.magic = LD_MAGIC;
   info = &threads[1];
-  info->tid = pthread_self();
   info->pl_tid = 1;
   info->thread_data = &PL_local_data;
   info->status = PL_THREAD_RUNNING;
   PL_local_data.thread.info = info;
   PL_local_data.thread.magic = PL_THREAD_MAGIC;
-#ifdef __WINDOWS__
-  info->w32id = GetCurrentThreadId();
-#endif
   set_system_thread_id(info);
   init_message_queue(&PL_local_data.thread.messages);
 
@@ -847,6 +844,8 @@ system_thread_id(PL_thread_info_t *info)
 static void
 set_system_thread_id(PL_thread_info_t *info)
 { 
+  info->tid = pthread_self();
+  info->has_tid = TRUE;
 #ifdef HAVE_GETTID
   info->pid = gettid();
 #else
@@ -1279,7 +1278,7 @@ pl_current_thread(term_t id, term_t status, control_t h)
       for( ; current < MAX_THREADS; current++ )
       { mark m;
 
-	if ( !threads[current].tid )
+	if ( !threads[current].has_tid )
 	   continue;
 
 	Mark(m);
@@ -2830,7 +2829,6 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     errno = ENOMEM;
     return -1;
   }
-  info->tid = pthread_self();		/* we are complete now */
   set_system_thread_id(info);
   if ( attr && attr->alias )
   { if ( !aliasThread(info->pl_tid, PL_new_atom(attr->alias)) )
@@ -2896,7 +2894,7 @@ detach_engine(PL_engine_t e)
 #ifdef __WINDOWS__
   info->w32id = 0;
 #endif
-  info->tid = 0L;
+  memset(&info->tid, 0, sizeof(info->tid));
 
   TLD_set(PL_ldata, NULL);
 }
@@ -2917,7 +2915,7 @@ PL_set_engine(PL_engine_t new, PL_engine_t *old)
       { UNLOCK();
 	return PL_ENGINE_INVAL;
       }
-      if ( new->thread.info->tid )
+      if ( new->thread.info->has_tid )
       { UNLOCK();
 	return PL_ENGINE_INUSE;
       }
@@ -2929,6 +2927,7 @@ PL_set_engine(PL_engine_t new, PL_engine_t *old)
     if ( new )
     { TLD_set(PL_ldata, new);
       new->thread.info->tid = pthread_self();
+      
       set_system_thread_id(new->thread.info);
     }
   
