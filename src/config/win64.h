@@ -22,10 +22,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#define WIN32 1
+#define WIN64 1
 
-#define BOOTFILE	"boot32.prc"
-#define ARCH		"i386-win32"
-#define SIZEOF_VOIDP	4
+#define BOOTFILE 	"boot64.prc"
+#define ARCH		"x64-win64"
+#define SIZEOF_VOIDP	8
 
 #include "windows.h"
