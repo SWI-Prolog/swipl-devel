@@ -24,6 +24,7 @@
 
 #define WIN32 1
 
+#define O_GMP		1
 #define BOOTFILE	"boot32.prc"
 #define ARCH		"i386-win32"
 #define SIZEOF_VOIDP	4
