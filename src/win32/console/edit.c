@@ -81,7 +81,7 @@ make_room(Line, int room)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-make_room(Line ln, int room)
+make_room(Line ln, size_t room)
 { while ( ln->size + room + 1 > ln->allocated )
   { if ( !ln->data )
     { ln->data = rlc_malloc(256 * sizeof(TCHAR));
@@ -102,7 +102,7 @@ make_room(Line ln, int room)
 
 static void
 set_line(Line ln, const TCHAR *s)
-{ int len = _tcslen(s);
+{ size_t len = _tcslen(s);
 
   ln->size = ln->point = 0;
   make_room(ln, len);
@@ -121,7 +121,7 @@ terminate(Line ln)
 
 
 static void
-delete(Line ln, int from, int len)
+delete(Line ln, size_t from, size_t len)
 { if ( from < 0 || from > ln->size || len < 0 || from + len > ln->size )
     return;
 
@@ -134,8 +134,8 @@ delete(Line ln, int from, int len)
 		 *	     POSITIONING	*
 		 *******************************/
 
-static int
-back_word(Line ln, int from)
+static size_t
+back_word(Line ln, size_t from)
 { from = min(from, ln->size);
   from = max(0, from);
 
@@ -149,8 +149,8 @@ back_word(Line ln, int from)
   return from;
 }
 
-static int
-forw_word(Line ln, int from)
+static size_t
+forw_word(Line ln, size_t from)
 { from = min(from, ln->size);
   from = max(0, from);
 
@@ -169,7 +169,7 @@ forw_word(Line ln, int from)
 		 *******************************/
 
 static __inline void
-changed(Line ln, int from)
+changed(Line ln, size_t from)
 { ln->change_start = min(ln->change_start, from);
 }
 
@@ -231,7 +231,7 @@ forward_word(Line ln, int chr)
 
 static void
 backward_delete_word(Line ln, int chr)
-{ int from = back_word(ln, ln->point);
+{ size_t from = back_word(ln, ln->point);
   
   memmove(&ln->data[from], &ln->data[ln->point],
 	  (ln->size - ln->point)*sizeof(TCHAR));
@@ -243,7 +243,7 @@ backward_delete_word(Line ln, int chr)
 
 static void
 forward_delete_word(Line ln, int chr)
-{ int to = forw_word(ln, ln->point);
+{ size_t to = forw_word(ln, ln->point);
   
   memmove(&ln->data[ln->point], &ln->data[to], (ln->size - to)*sizeof(TCHAR));
   ln->size -= to - ln->point;
@@ -429,8 +429,8 @@ complete(Line ln, int chr)
     if ( (*_rlc_complete_function)(data) )
     { TCHAR match[COMPLETE_MAX_WORD_LEN];
       int nmatches = 1;
-      int ncommon = _tcslen(data->candidate);
-      int patlen = ln->point - data->replace_from;
+      size_t ncommon = _tcslen(data->candidate);
+      size_t patlen = ln->point - data->replace_from;
 
       _tcscpy(match, data->candidate);
 
@@ -469,9 +469,9 @@ list_completions(Line ln, int chr)
     if ( (*_rlc_complete_function)(data) )
     { TCHAR *buf[COMPLETE_MAX_MATCHES];
       int nmatches = 0;
-      int len = _tcslen(data->candidate) + 1;
-      int longest = len;
-      int n, cols;
+      size_t len = _tcslen(data->candidate) + 1;
+      size_t longest = len;
+      size_t n, cols;
 
       buf[nmatches] = rlc_malloc(len*sizeof(TCHAR));
       _tcsncpy(buf[nmatches], data->candidate, len);

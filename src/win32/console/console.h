@@ -132,8 +132,8 @@ _export int		rlc_is_word_char(int chr);
 _export int		rlc_iswin32s(void);	/* check for Win32S */
 
 _export void		rlc_free(void *ptr);
-_export void *		rlc_malloc(int size);
-_export void *		rlc_realloc(void *ptr, int size);
+_export void *		rlc_malloc(size_t size);
+_export void *		rlc_realloc(void *ptr, size_t size);
 
 _export size_t		rlc_read(rlc_console c, TCHAR *buf, size_t cnt);
 _export size_t		rlc_write(rlc_console c, TCHAR *buf, size_t cnt);
@@ -178,10 +178,10 @@ _export int		rlc_set(rlc_console c, int what,
 
 typedef struct _line
 { rlc_mark	origin;			/* origin of edit */
-  int   	point;			/* location of the caret */
-  int		size;			/* # characters in buffer */
-  int   	allocated;		/* # characters allocated */
-  int		change_start;		/* start of change */
+  size_t   	point;			/* location of the caret */
+  size_t	size;			/* # characters in buffer */
+  size_t   	allocated;		/* # characters allocated */
+  size_t	change_start;		/* start of change */
   int		complete;		/* line is completed */
   int		reprompt;		/* repeat the prompt */
   TCHAR	       *data;			/* the data (malloc'ed) */

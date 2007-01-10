@@ -57,7 +57,7 @@ static struct rl_item
 static UINT
 lookupMenuLabel(const TCHAR *label)
 { int i;
-  int llen;
+  size_t llen;
   struct rl_item *builtin;
 
   for(builtin = rl_items; builtin->id; builtin++)
@@ -124,7 +124,7 @@ insertMenu(HMENU in, const TCHAR *label, const TCHAR *before)
       info.fMask |= MIIM_ID;
       info.wID = lookupMenuLabel(label);
       info.dwTypeData = (TCHAR *)label;
-      info.cch = _tcslen(label);
+      info.cch = (int)_tcslen(label);
     } else
     { info.fType = MFT_SEPARATOR;
     }
@@ -263,7 +263,7 @@ rlc_menu_action(rlc_console c, menu_data *data)
       info.fType = MFT_STRING;
       info.hSubMenu = CreatePopupMenu();
       info.dwTypeData = (TCHAR *)data->label;
-      info.cch = _tcslen(data->label);
+      info.cch = (int)_tcslen(data->label);
       
       InsertMenuItem(mb, bid, TRUE, &info);
 					/* force redraw; not automatic! */

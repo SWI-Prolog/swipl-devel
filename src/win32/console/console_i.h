@@ -161,7 +161,7 @@ const TCHAR *	rlc_bwd_history(RlcData b);
 const TCHAR *	rlc_fwd_history(RlcData b);
 void		rlc_get_mark(rlc_console c, RlcMark mark);
 void		rlc_goto_mark(rlc_console c, RlcMark mark,
-			      const TCHAR *data, int offset);
+			      const TCHAR *data, size_t offset);
 void		rlc_erase_from_caret(rlc_console c);
 void		rlc_putchar(rlc_console c, int chr);
 TCHAR *		rlc_read_screen(rlc_console c,
@@ -175,7 +175,7 @@ void		rlc_clearprompt(rlc_console c);
 		 *	 INLINE FUNCTIONS	*
 		 *******************************/
 
-#ifdef O_DEBUG
+#ifdef _DEBUG
 #define assert(g) if ( !(g) ) rlc_assert(_T(#g))
 #else
 #define assert(g) (void)0

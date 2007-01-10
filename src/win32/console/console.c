@@ -71,8 +71,7 @@ Menus
 The current console provides a menu that can be extended from Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef _DEBUG
-#define O_DEBUG 1
+#if defined(_DEBUG) && !defined(WIN64)
 static void initHeapDebug(void);
 #include <crtdbg.h>
 #else
@@ -239,7 +238,7 @@ static HWND	emu_hwnd;		/* Emulating for this window */
 static void _rlc_create_kill_window(RlcData b);
 static DWORD WINAPI window_loop(LPVOID arg);	/* console window proc */
 
-#ifdef O_DEBUG
+#ifdef _DEBUG
 #include <stdarg.h>
 static void Dprintf(const TCHAR *fmt, ...);
 static void Dprint_lines(RlcData b, int from, int to);
@@ -2744,7 +2743,7 @@ rlc_get_mark(rlc_console c, RlcMark m)
 
 
 void
-rlc_goto_mark(rlc_console c, RlcMark m, const TCHAR *data, int offset)
+rlc_goto_mark(rlc_console c, RlcMark m, const TCHAR *data, size_t offset)
 { RlcData b = rlc_get_data(c);
   
   b->caret_x = m->mark_x;
@@ -3570,7 +3569,7 @@ noMemory()
 
 
 void *
-rlc_malloc(int size)
+rlc_malloc(size_t size)
 { void *ptr = malloc(size);
 
   if ( !ptr && size > 0 )
@@ -3584,7 +3583,7 @@ rlc_malloc(int size)
 
 
 void *
-rlc_realloc(void *ptr, int size)
+rlc_realloc(void *ptr, size_t size)
 { void *ptr2 = realloc(ptr, size);
 
   if ( !ptr2 && size > 0 )
@@ -3599,7 +3598,7 @@ rlc_free(void *ptr)
 { free(ptr);
 }
 
-#ifdef O_DEBUG
+#ifndef initHeapDebug
 
 		 /*******************************
 		 *	       DEBUG		*
@@ -3654,4 +3653,4 @@ Dprint_lines(RlcData b, int from, int to)
   }
 }
 
-#endif /*O_DEBUG*/
+#endif /*initHeapDebug*/

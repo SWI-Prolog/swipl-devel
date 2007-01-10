@@ -81,7 +81,7 @@ rlc_add_history(rlc_console c, const TCHAR *line)
 
   if ( b->history.size )
   { int i = next(b, b->history.head);
-    int len = _tcslen(line);
+    size_t len = _tcslen(line);
 
     while(*line && *line <= ' ')	/* strip leading white-space */
       line++;

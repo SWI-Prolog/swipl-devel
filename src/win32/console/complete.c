@@ -32,8 +32,8 @@
 
 static TCHAR *completion_chars = TEXT("~:\\/-.");
 
-static int
-complete_scan_backwards(Line ln, int from)
+static size_t
+complete_scan_backwards(Line ln, size_t from)
 { while( from > 0 )
   { _TINT c = ln->data[from-1];
 
@@ -61,11 +61,11 @@ rlc_complete_file_function(RlcCompleteData data)
 
   switch(data->call_type)
   { case COMPLETE_INIT:
-    { int start = complete_scan_backwards(ln, ln->point);
+    { size_t start = complete_scan_backwards(ln, ln->point);
       TCHAR *pattern = data->buf_handle;
       TCHAR *s = pattern;
-      int n = start;
-      int ld = start;
+      size_t n = start;
+      size_t ld = start;
       HANDLE h;
 
       if ( ln->point - start > 200 )
@@ -84,7 +84,7 @@ rlc_complete_file_function(RlcCompleteData data)
       *s = EOS;
 
       if ( (h=FindFirstFile(pattern, &fdata)) != INVALID_HANDLE_VALUE )
-      { data->replace_from = ld;
+      { data->replace_from = (int)ld;
 	if ( start > 0 &&
 	     !(fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) )
 	  data->quote = close_quote(ln->data[start-1]);
