@@ -18,6 +18,9 @@ TODO list porting SWI-Prolog to WIN64 (x86 or amd86)
 	For gcc and Unix platforms we need either unistd.h or inttypes.h.
 	For compatibility with MSVC6 we need #if (_MSC_VER < 1300)
 	
+	1400 == Visual Studio 2005
+	Use __alignof(Type)
+
 * GMP:
 	http://www.swox.com/list-archives/gmp-discuss/2006-March/002212.html
 	http://fp.gladman.plus.com/computing/gmp4win.htm
@@ -39,3 +42,9 @@ Reworking the sources:
 	- Done for src, src/src and src/win32/console
 * Make Windows code depend on __WINDOWS__
 	- Done for src
+
+================================================================
+ISSUES
+================================================================
+
+* Destroying semaphore at end hangs if no output is printed!?
