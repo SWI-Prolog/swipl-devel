@@ -637,16 +637,17 @@ exitPrologThreads()
       Pause(0.1);
     }
   }
+
   if ( canceled )
   { printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "threads_not_died", 1,
 		   PL_INT, canceled);
   } else
   { DEBUG(1, Sdprintf("done\n"));
-  }
-
-  if ( canceled == 0 )			/* safe */
+#ifndef WIN64			/* FIXME: Hangs if nothing is printed */
     sem_destroy(sem_canceled_ptr);
+#endif
+  }
 
   threads_ready = FALSE;
 }
