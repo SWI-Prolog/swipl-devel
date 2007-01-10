@@ -46,8 +46,9 @@ typedef unsigned long uintptr_t;
 
 #include <process.h>
 #include <io.h>
+#if (_MSC_VER < 1400)
 #define off_t intptr_t
-
+#endif
 #define popen _popen
 #define pclose _pclose
 #define O_WRONLY _O_WRONLY
