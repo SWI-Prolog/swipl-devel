@@ -24,6 +24,7 @@
 
 #define WIN64 1
 
+#define JMPBUF_ALIGNMENT 16		/* How to get this value? */
 #define BOOTFILE 	"boot64.prc"
 #define ARCH		"x64-win64"
 #define SIZEOF_VOIDP	8
