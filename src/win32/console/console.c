@@ -89,6 +89,10 @@ static void initHeapDebug(void);
 #define UNICODE_NOCHAR 0xFFFF
 #endif
 
+#if (_MSC_VER < 1400)
+typedef DWORD DWORD_PTR;
+#endif
+
 #include <stdlib.h>
 #include <io.h>
 #include <string.h>
@@ -1710,7 +1714,7 @@ rlc_copy(RlcData b)
   { size_t size = _tcslen(sel);
     HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, (size + 1)*sizeof(TCHAR));
     TCHAR far *data;
-    int i;
+    size_t i;
 
     if ( !mem )
     { MessageBox(NULL, _T("Not enough memory to copy"), _T("Error"), MB_OK);
