@@ -177,7 +177,7 @@ static HICON    _rlc_hicon;		/* Global icon */
 		 *	     FUNCTIONS		*
 		 *******************************/
 
-static WINAPI	rlc_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
+static LRESULT WINAPI rlc_wnd_proc(HWND win, UINT msg, WPARAM wP, LPARAM lP);
 
 static void	rlc_place_caret(RlcData b);
 static void	rlc_resize_pixel_units(RlcData b, int w, int h);
@@ -536,7 +536,7 @@ rlc_progbase(TCHAR *path, TCHAR *base)
 		 *	  HIDDEN WINDOW		*
 		 *******************************/
 
-static WINAPI
+static LRESULT WINAPI
 rlc_kill_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 { switch(message)
   { case WM_DESTROY:
@@ -604,7 +604,7 @@ reg_save_int(HKEY key, const TCHAR *name, int value)
 static void
 reg_save_str(HKEY key, const TCHAR *name, TCHAR *value)
 { if ( RegSetValueEx(key, name, 0, REG_SZ,
-		     (LPBYTE)value, (_tcslen(value)+1)*sizeof(TCHAR)) != ERROR_SUCCESS )
+		     (LPBYTE)value, (DWORD)(_tcslen(value)+1)*sizeof(TCHAR)) != ERROR_SUCCESS )
     DEBUG(MessageBox(NULL, _T("Failed to save string setting"), _T("Error"), MB_OK));
 }
 
@@ -878,7 +878,7 @@ rlc_color(rlc_console con, int which, COLORREF c)
 
 static int
 rlc_kill(RlcData b)
-{ DWORD result;
+{ DWORD_PTR result;
 
   switch(b->closing++)
   { case 0:
@@ -959,8 +959,8 @@ IsDownKey(code)
 }
 
 
-static WINAPI
-rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+static LRESULT WINAPI
+rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 { RlcData b = (RlcData) GetWindowLong(hwnd, GWL_DATA);
 
   switch(message)
@@ -1088,11 +1088,11 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       break;
     }
 	case WM_UNICHAR:
-	  chr = wParam;
+	  chr = (int)wParam;
 	  typed_char(b, chr);
 	  return 0;
     case WM_SYSCHAR:	typed_char(b, ESC); /* Play escape-something */
-    case WM_CHAR:	chr = wParam;
+    case WM_CHAR:	chr = (int)wParam;
 
       typed_char(b, chr);
 
@@ -1707,7 +1707,7 @@ rlc_copy(RlcData b)
 { TCHAR *sel = rlc_selection(b);
 
   if ( sel && b->window )
-  { int size = _tcslen(sel);
+  { size_t size = _tcslen(sel);
     HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, (size + 1)*sizeof(TCHAR));
     TCHAR far *data;
     int i;
@@ -2249,7 +2249,7 @@ rlc_resize(RlcData b, int w, int h)
 	pl->text = rlc_realloc(pl->text, w * sizeof(TCHAR));
 	pl->size = w;
 	pl->adjusted = TRUE;
-	i = pl - b->lines;
+	i = (int)(pl - b->lines);
 	DEBUG(Dprint_lines(b, b->first, b->last));
       } else				/* put in next line */
       { TextLine nl;
@@ -3054,7 +3054,7 @@ rlc_resize_queue(RlcQueue q, int size)
       rlc_free(q->buffer);
     q->buffer = newbuf;
     q->first = 0;
-    q->last  = o-newbuf;
+    q->last  = (int)(o-newbuf);
     q->size  = size;
 
     return TRUE;
@@ -3123,10 +3123,10 @@ rlc_from_queue(RlcQueue q)
 When using UNICODE, count is in bytes!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-rlc_read(rlc_console c, TCHAR *buf, unsigned int count)
+size_t
+rlc_read(rlc_console c, TCHAR *buf, size_t count)
 { RlcData d = rlc_get_data(c);
-  int give;
+  size_t give;
   MSG msg;
 
   if ( d->closing )
@@ -3226,9 +3226,9 @@ rlc_flush_output(rlc_console c)
 }
 
 
-int
-rlc_write(rlc_console c, TCHAR *buf, unsigned int count)
-{ DWORD result;
+size_t
+rlc_write(rlc_console c, TCHAR *buf, size_t count)
+{ DWORD_PTR result;
   TCHAR *e, *s;
   RlcData b = rlc_get_data(c);
 
@@ -3371,7 +3371,12 @@ rlc_title(rlc_console c, TCHAR *title, TCHAR *old, int size)
 
 void
 rlc_icon(rlc_console c, HICON icon)
-{ SetClassLong(rlc_hwnd(c), GCL_HICON, (LONG) icon);
+{
+#ifdef WIN64
+  SetClassLong(rlc_hwnd(c), GCLP_HICON, (LONG) icon);
+#else
+  SetClassLong(rlc_hwnd(c), GCL_HICON, (LONG) icon);
+#endif
 }
 
 

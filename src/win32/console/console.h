@@ -82,7 +82,7 @@ typedef void * rlc_console;		/* console handle */
 
 typedef void	(*RlcUpdateHook)(void);	/* Graphics update hook */
 typedef void	(*RlcTimerHook)(int);	/* Timer fireing hook */
-typedef int	(*RlcRenderHook)(int);	/* Render one format */
+typedef int	(*RlcRenderHook)(WPARAM);	/* Render one format */
 typedef void	(*RlcRenderAllHook)(void); /* Render all formats */
 typedef int	(*RlcMain)(rlc_console c, int, TCHAR**); /* main() */
 typedef void	(*RlcInterruptHook)(rlc_console, int); /* Hook for Control-C */
@@ -109,7 +109,7 @@ _export void	rlc_icon(rlc_console c, HICON icon);	/* Change icon */
 _export COLORREF rlc_color(rlc_console c, int which, COLORREF color);
 
 typedef int	(*RlcMessageHook)(HWND hwnd, UINT message,
-				  UINT wParam, LONG lParam);
+				  WPARAM wParam, LPARAM lParam);
 _export RlcMessageHook  rlc_message_hook(RlcMessageHook hook);
 
 #endif /*_WINDOWS_*/
@@ -135,8 +135,8 @@ _export void		rlc_free(void *ptr);
 _export void *		rlc_malloc(int size);
 _export void *		rlc_realloc(void *ptr, int size);
 
-_export int		rlc_read(rlc_console c, TCHAR *buf, unsigned int cnt);
-_export int		rlc_write(rlc_console c, TCHAR *buf, unsigned int cnt);
+_export size_t		rlc_read(rlc_console c, TCHAR *buf, size_t cnt);
+_export size_t		rlc_write(rlc_console c, TCHAR *buf, size_t cnt);
 _export int		rlc_close(rlc_console c);
 _export int		rlc_flush_output(rlc_console c);
 

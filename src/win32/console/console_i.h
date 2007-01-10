@@ -117,9 +117,9 @@ typedef struct
   TCHAR	        output_queue[OQSIZE];	/* The output queue */
   int		output_queued;		/* # characters in the queue */
   struct
-  { TCHAR *line;				/* buffered line */
-    unsigned int length;		/* length of line */
-    unsigned int given;			/* how much we passed */
+  { TCHAR *line;			/* buffered line */
+    size_t length;			/* length of line */
+    size_t given;			/* how much we passed */
   } read_buffer;
 					/* input queuing */
   int		imode;			/* input mode */
