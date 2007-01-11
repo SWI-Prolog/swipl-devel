@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Proper error on erase on clause of static predicate.  Solly
+    Brown.
+
   * MODIFIED: Add ',' between lines in answer substitution.  Ulrigh Neumerkel.
 
   * ADDED: option priority(P) to write_term/3.  Use this in writing

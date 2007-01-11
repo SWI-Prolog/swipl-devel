@@ -934,7 +934,7 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Unlink a clause from the  definition,  both   from  the  index table and
 clause-chain. The clause itself is not  deleted,   this  task is left to
-retractClauseProcedure().
+retractClauseDefinition().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -977,10 +977,8 @@ the definition is always referenced.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-retractClauseProcedure(Procedure proc, Clause clause ARG_LD)
-{ Definition def = getProcDefinition(proc);
-
-  LOCKDYNDEF(def);
+retractClauseDefinition(Definition def, Clause clause ARG_LD)
+{ LOCKDYNDEF(def);
   assert(true(def, DYNAMIC));
   if ( true(clause, ERASED) )
   { UNLOCKDYNDEF(def);
@@ -1702,7 +1700,7 @@ pl_retract(term_t term, control_t h)
     r0 = PL_new_term_refs(0);
     while( cref )
     { if ( decompile(cref->clause, cl, 0) )
-      { retractClauseProcedure(proc, cref->clause PASS_LD);
+      { retractClauseDefinition(getProcDefinition(proc), cref->clause PASS_LD);
 	if ( !next )
 	{ PL_reset_term_refs(r0);
 	  leaveDefinition(def);
@@ -1774,7 +1772,7 @@ pl_retractall(term_t head)
   r0 = PL_new_term_refs(0);
   while( cref )
   { if ( decompileHead(cref->clause, thehead) )
-      retractClauseProcedure(proc, cref->clause PASS_LD);
+      retractClauseDefinition(def, cref->clause PASS_LD);
 
     PL_reset_term_refs(r0);
     Undo(m);

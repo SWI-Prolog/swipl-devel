@@ -1102,6 +1102,10 @@ proc(current_predicate-1) :-
 	L == [0, 2].
 proc(compile_predicate-1) :-		% Bug#152
 	cp_one, !, cp_one.
+proc(erase-static) :-
+	clause(cpxx(_,_), true, Ref),
+	catch(erase(Ref), E, true),
+	nonvar(E).
 
 cp_one :-
 	assert(cp_foo(a)),

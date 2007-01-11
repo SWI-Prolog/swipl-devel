@@ -1685,13 +1685,13 @@ pl_erase(term_t ref)
   record = ptr;
   if ( isClause(record) )
   { Clause clause = (Clause) record;
+    Definition def = getProcDefinition(clause->procedure);
   
-    if ( true(clause->procedure->definition, LOCKED) &&
-	 false(clause->procedure->definition, DYNAMIC|P_THREAD_LOCAL) )
-      PL_error("erase", 1, NULL, ERR_PERMISSION,
-	       ATOM_clause, ATOM_erase, ref);
+    if ( !true(def, DYNAMIC) )
+      return PL_error("erase", 1, NULL, ERR_PERMISSION,
+		      ATOM_clause, ATOM_erase, ref);
 
-    return retractClauseProcedure(clause->procedure, clause PASS_LD);
+    return retractClauseDefinition(def, clause PASS_LD);
   }
   
   LOCK();

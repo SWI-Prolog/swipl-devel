@@ -609,7 +609,7 @@ COMMON(foreign_t) 	pl_current_predicate1(term_t spec, control_t ctx);
 COMMON(ClauseRef) 	assertProcedure(Procedure proc, Clause clause,
 				int where ARG_LD);
 COMMON(bool) 		abolishProcedure(Procedure proc, Module module);
-COMMON(bool) 		retractClauseProcedure(Procedure proc, Clause clause ARG_LD);
+COMMON(bool) 		retractClauseDefinition(Definition def, Clause clause ARG_LD);
 COMMON(void) 		freeClause(Clause c ARG_LD);
 COMMON(void) 		freeClauseRef(ClauseRef c ARG_LD);
 COMMON(ClauseRef) 	newClauseRef(Clause cl ARG_LD);
