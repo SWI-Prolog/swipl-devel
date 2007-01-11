@@ -369,7 +369,7 @@ System(char *command)			/* command is a UTF-8 string */
 { STARTUPINFOW sinfo;
   PROCESS_INFORMATION pinfo;
   int shell_rval;
-  int len;
+  size_t len;
   wchar_t *wcmd;
 
   memset(&sinfo, 0, sizeof(sinfo));
@@ -550,7 +550,7 @@ static char *dlmsg;
 void *
 dlopen(const char *file, int flags)	/* file is in UTF-8 */
 { HINSTANCE h;
-  int len = utf8_strlen(file, strlen(file));
+  size_t len = utf8_strlen(file, strlen(file));
   wchar_t *wfile = alloca((len+1)*sizeof(wchar_t));
 
   if ( !wfile )

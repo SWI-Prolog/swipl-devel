@@ -507,8 +507,8 @@ PL_unify_wchars_diff(term_t t, term_t tail, int flags,
 }
 
 
-unsigned int
-PL_utf8_strlen(const char *s, unsigned int len)
+size_t
+PL_utf8_strlen(const char *s, size_t len)
 { return utf8_strlen(s, len);
 }
 

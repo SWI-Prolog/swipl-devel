@@ -465,7 +465,7 @@ PL_EXPORT(int)		PL_unify_wchars_diff(term_t t, term_t tail, int type,
 PL_EXPORT(int)		PL_get_wchars(term_t l,
 				      unsigned int *length, pl_wchar_t **s,
 				      unsigned flags);
-PL_EXPORT(unsigned int)	PL_utf8_strlen(const char *s, unsigned int len);
+PL_EXPORT(size_t)	PL_utf8_strlen(const char *s, size_t len);
 
 
 		 /*******************************

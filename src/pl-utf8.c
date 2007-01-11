@@ -22,6 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include <string.h>			/* get size_t */
 #include "pl-utf8.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -100,8 +101,8 @@ _PL__utf8_put_char(char *out, int chr)
 }
 
 
-unsigned int
-utf8_strlen(const char *s, unsigned int len)
+size_t
+utf8_strlen(const char *s, size_t len)
 { const char *e = &s[len];
   unsigned int l = 0;
 

@@ -328,7 +328,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	  case ENC_UTF8:
 	  { const char *s = text->text.t;
 	    const char *e = &s[text->length];
-	    unsigned int len = utf8_strlen(s, text->length);
+	    size_t len = utf8_strlen(s, text->length);
 
 	    p0 = p = allocGlobal(len*3);
 	    while(s<e)
