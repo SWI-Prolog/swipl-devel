@@ -185,7 +185,7 @@ typedef union
 #define _PL_PREDICATE_INDICATOR (18)	/* predicate_t (Procedure) */
 #define PL_SHORT	 (19)		/* short */
 #define PL_INT		 (20)		/* int */
-#define PL_LONG		 (21)		/* intptr_t */
+#define PL_LONG		 (21)		/* long */
 #define PL_DOUBLE	 (22)		/* double */
 #define PL_NCHARS	 (23)		/* unsigned, const char * */
 #define PL_UTF8_CHARS	 (24)		/* const char * */

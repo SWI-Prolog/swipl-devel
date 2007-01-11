@@ -2499,7 +2499,7 @@ cont:
       break;
     case PL_INTEGER:
     case PL_LONG:
-      rval = PL_unify_integer(t, va_arg(args, intptr_t));
+      rval = PL_unify_integer(t, va_arg(args, long));
       break;
     case PL_INT64:
       rval = PL_unify_int64(t, va_arg(args, int64_t));
