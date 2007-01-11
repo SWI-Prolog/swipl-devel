@@ -39,7 +39,7 @@ typedef struct
   { char *t;				/* tranditional 8-bit char* */
     pl_wchar_t *w;			/* wide character string */
   } text;
-  unsigned int	length;
+  size_t length;
 					/* private stuff */
   IOENC encoding;			/* how it is encoded */
   PL_chars_alloc_t storage;		/* how it is stored */

@@ -54,13 +54,13 @@ void	growBuffer(Buffer b, size_t minfree);
   
 #define addMultipleBuffer(b, ptr, times, type) \
 	do \
-	{ int _tms = (times); \
-          int _len = _tms * sizeof(type); \
+	{ size_t _tms = (times); \
+          size_t _len = _tms * sizeof(type); \
           type *_d, *_s = (type *)ptr; \
 	  if ( (b)->top + _len > (b)->max ) \
 	    growBuffer((Buffer)b, _len); \
           _d = (type *)(b)->top; \
-          while ( --_tms >= 0 ) \
+          while ( _tms-- ) \
 	    *_d++ = *_s++; \
 	  (b)->top = (char *)_d; \
 	} while(0)

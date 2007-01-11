@@ -156,7 +156,7 @@ typedef struct token * Token;
 
 typedef struct
 { char *	name;		/* Name of the variable */
-  unsigned	namelen;	/* length of the name */
+  size_t	namelen;	/* length of the name */
   term_t	variable;	/* Term-reference to the variable */
   int		times;		/* Number of occurences */
   word		signature;	/* Pseudo atom */
@@ -165,7 +165,7 @@ typedef struct
 
 struct token
 { int type;			/* type of token */
-  intptr_t start;			/* start-position */
+  intptr_t start;		/* start-position */
   intptr_t end;			/* end-position */
   union
   { number	number;		/* int or float */
@@ -222,7 +222,7 @@ typedef struct
   bool _unget;				/* unget_token() */
 
   unsigned char *posp;			/* position pointer */
-  int		posi;			/* position number */
+  size_t	posi;			/* position number */
 
   Module	module;			/* Current source module */
   unsigned int	flags;			/* Module syntax flags */
@@ -375,14 +375,14 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 		    PL_INT, source_line_pos,
 		    PL_INT64, source_char_no);
   } else if ( isStringStream(rb.stream) )
-  { int pos;
+  { size_t pos;
 
     pos = utf8_strlen((char *)rdbase, last_token_start-rdbase);
 
     PL_unify_term(loc,
 		  PL_FUNCTOR, FUNCTOR_string2,
 		    PL_UTF8_STRING, rdbase,
-		    PL_INT, pos);
+		    PL_INT, (int)pos);
   } else				/* any stream */
   { term_t stream = PL_new_term_ref();
 
@@ -1003,9 +1003,9 @@ structures are relocated.
 	}
 
 static char *
-save_var_name(const char *name, int len, ReadData _PL_rd)
+save_var_name(const char *name, size_t len, ReadData _PL_rd)
 { char *nb, *ob = baseBuffer(&var_name_buffer, char);
-  int e = entriesBuffer(&var_name_buffer, char);
+  size_t e = entriesBuffer(&var_name_buffer, char);
 
   addMultipleBuffer(&var_name_buffer, name, len, char);
   addBuffer(&var_name_buffer, EOS, char);
@@ -1030,10 +1030,10 @@ isVarAtom(word w, ReadData _PL_rd)
 
 
 static Variable
-lookupVariable(const char *name, unsigned int len, ReadData _PL_rd)
+lookupVariable(const char *name, size_t len, ReadData _PL_rd)
 { variable next;
   Variable var;
-  int nv;
+  size_t nv;
 
   if ( name[0] != '_' || name[1] != EOS ) /* anonymous: always add */
   { for_vars(v,
@@ -1655,8 +1655,8 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 
 
 static void
-checkASCII(unsigned char *name, int len, const char *type)
-{ int i;
+checkASCII(unsigned char *name, size_t len, const char *type)
+{ size_t i;
 
   for(i=0; i<len; i++)
   { if ( (name[i]) >= 128 )
@@ -1676,9 +1676,9 @@ considering the fact that the buffer is  in UTF-8. It remembers the last
 returned value, so it doesn't have to start all over again each time.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static size_t
 ptr_to_pos(const unsigned char *p, ReadData _PL_rd)
-{ int i;
+{ size_t i;
 
   if ( p == NULL || p < _PL_rd->posp )
   { _PL_rd->posp = rdbase;
@@ -2112,33 +2112,33 @@ the values.
 	}
 
 
-static int
+static long
 get_int_arg(term_t t, int n ARG_LD)
 { Word p = valTermRef(t);
 
   deRef(p);
 
-  return valInt(argTerm(*p, n-1));
+  return (long)valInt(argTerm(*p, n-1));
 }
 
 
 static term_t
 opPos(op_entry *op, out_entry *args ARG_LD)
 { if ( op->tpos )
-  { int fs = get_int_arg(op->tpos, 1 PASS_LD);
-    int fe = get_int_arg(op->tpos, 2 PASS_LD);
+  { long fs = get_int_arg(op->tpos, 1 PASS_LD);
+    long fe = get_int_arg(op->tpos, 2 PASS_LD);
     term_t r = PL_new_term_ref();
 
     if ( op->kind == OP_INFIX )
-    { int s = get_int_arg(args[0].tpos, 1 PASS_LD);
-      int e = get_int_arg(args[1].tpos, 2 PASS_LD);
+    { long s = get_int_arg(args[0].tpos, 1 PASS_LD);
+      long e = get_int_arg(args[1].tpos, 2 PASS_LD);
 
       PL_unify_term(r,
 		    PL_FUNCTOR,	FUNCTOR_term_position5,
-		    PL_INT, s,
-		    PL_INT, e,
-		    PL_INT, fs,
-		    PL_INT, fe,
+		    PL_LONG, s,
+		    PL_LONG, e,
+		    PL_LONG, fs,
+		    PL_LONG, fe,
 		    PL_LIST, 2, PL_TERM, args[0].tpos,
 		    		PL_TERM, args[1].tpos);
     } else
@@ -2154,10 +2154,10 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 
       PL_unify_term(r,
 		    PL_FUNCTOR,	FUNCTOR_term_position5,
-		    PL_INT, s,
-		    PL_INT, e,
-		    PL_INT, fs,
-		    PL_INT, fe,
+		    PL_LONG, s,
+		    PL_LONG, e,
+		    PL_LONG, fs,
+		    PL_LONG, fe,
 		    PL_LIST, 1, PL_TERM, args[0].tpos);
     }
     
@@ -2496,7 +2496,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
     case T_PUNCTUATION:
       { switch(token->value.character)
 	{ case '(':
-	    { int start = token->start;
+	    { size_t start = token->start;
 
 	      TRY( complex_term(")", term, positions, _PL_rd PASS_LD) );
 	      token = get_token(must_be_op, _PL_rd);	/* skip ')' */

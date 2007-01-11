@@ -92,8 +92,8 @@ COMMON(word) 		pl_unify_with_occurs_check(term_t t1, term_t t2);
 COMMON(fid_t) 		PL_open_signal_foreign_frame(void);
 
 /* pl-atom.c */
-COMMON(word) 		lookupAtom(const char *s, unsigned int len);
-COMMON(word) 		lookupBlob(const char *s, unsigned int len,
+COMMON(word) 		lookupAtom(const char *s, size_t len);
+COMMON(word) 		lookupBlob(const char *s, size_t len,
 				   PL_blob_t *type, int *new);
 COMMON(word) 		pl_atom_hashstat(term_t i, term_t n);
 COMMON(void) 		initAtoms(void);
