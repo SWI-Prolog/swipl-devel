@@ -1349,8 +1349,8 @@ struct definition
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
   ClauseIndex 	hash_info;		/* clause hash-tables */
-  uintptr_t indexPattern;		/* indexed argument pattern */
-  uintptr_t	flags;			/* booleans: */
+  unsigned long indexPattern;		/* indexed argument pattern */
+  unsigned long flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
 		/*	PROFILE_TICKED	   has been ticked this time? */
 		/*	TRACE_ME	   is my call visible? */
@@ -1394,9 +1394,9 @@ struct localFrame
   struct call_node *prof_node;		/* Profiling node */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  uintptr_t generation;			/* generation of the database */
+  unsigned long generation;		/* generation of the database */
 #endif
-  uintptr_t flags;			/* packed intptr_t holding: */
+  unsigned long	flags;			/* packed long holding: */
 		/*	LEVEL	   recursion level (28 bits) */
 		/*	FR_NODEBUG don't debug this frame ? */
 		/*	FR_SKIPPED skipped in the tracer */
@@ -1463,7 +1463,7 @@ struct queryFrame
   term_t	exception;		/* Exception term */
   jmp_buf	exception_jmp_env;	/* longjmp() buffer for exception */
 #endif
-  uintptr_t	flags;
+  unsigned long	flags;
   debug_type	debugSave;		/* saved debugstatus.debugging */
   Word	       *aSave;			/* saved argument-stack */
   int		solutions;		/* # of solutions produced */
@@ -2104,7 +2104,7 @@ typedef struct debuginfo
 #define DEBUGINFO_FEATURE	  0x100000 /* generate debug info */
 
 typedef struct
-{ uintptr_t flags;			/* the feature flags */
+{ unsigned long flags;			/* the feature flags */
 } pl_features_t;
 
 #define trueFeature(mask)	true(&features, mask)

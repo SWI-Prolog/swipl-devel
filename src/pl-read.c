@@ -106,7 +106,7 @@ pl_current_char_conversion(term_t in, term_t out, control_t h)
       break;
     }
     case FRG_REDO:
-      ctx = ForeignContextInt(h);
+      ctx = (int)ForeignContextInt(h);
       break;
     case FRG_CUTTED:
     default:

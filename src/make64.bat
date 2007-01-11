@@ -19,6 +19,7 @@ set INCLUDE=%HOME%\include;%INCLUDE%
 rem ****************************************************************
 
 rem Build default multi-threaded version 
+rem nmake MD=WIN64 /f makefile.mak %*
 nmake GMP=false MD=WIN64 /f makefile.mak %*
 
 rem Build for multi-threading and debugging
