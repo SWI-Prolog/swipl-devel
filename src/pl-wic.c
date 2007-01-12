@@ -1538,7 +1538,7 @@ saveXR__LD(word xr, IOSTREAM *fd ARG_LD)
   } else if ( isString(xr) )
   { char *s;
     pl_wchar_t *w;
-    unsigned len;
+    size_t len;
 
     if ( (s = getCharsString(xr, &len)) )
     { Sputc(XR_STRING, fd);

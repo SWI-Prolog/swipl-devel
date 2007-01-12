@@ -928,10 +928,10 @@ globalWString(unsigned len, const pl_wchar_t *s)
 
 
 char *
-getCharsString__LD(word w, unsigned *len ARG_LD)
+getCharsString__LD(word w, size_t *len ARG_LD)
 { Word p = valPtr(w);
   word m = *p;
-  int wn  = wsizeofInd(m);
+  size_t wn  = wsizeofInd(m);
   int pad = padHdr(m);
   char *s;
 
@@ -949,10 +949,10 @@ getCharsString__LD(word w, unsigned *len ARG_LD)
 
 
 pl_wchar_t *
-getCharsWString__LD(word w, unsigned *len ARG_LD)
+getCharsWString__LD(word w, size_t *len ARG_LD)
 { Word p = valPtr(w);
   word m = *p;
-  int wn  = wsizeofInd(m);
+  size_t wn  = wsizeofInd(m);
   int pad = padHdr(m);
   char *s;
   pl_wchar_t *ws;

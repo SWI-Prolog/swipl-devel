@@ -530,9 +530,12 @@ pl_reg_set_value(term_t h, term_t name, term_t value)
       type = REG_SZ;
       break;
     case PL_STRING:
-      PL_get_string(value, &data, &len);
+    { size_t l;
+      PL_get_string(value, &data, &l);
+      len = l;
       type = REG_SZ;
       break;
+    }
     case PL_INTEGER:
     { DWORD i;
       PL_get_long(value, &i);

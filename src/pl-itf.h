@@ -355,7 +355,7 @@ PL_EXPORT(int)		PL_get_bool(term_t t, int *value);
 PL_EXPORT(int)		PL_get_atom_chars(term_t t, char **a);
 #define PL_get_string_chars(t, s, l) PL_get_string(t,s,l)
 					/* PL_get_string() is depreciated */
-PL_EXPORT(int)		PL_get_string(term_t t, char **s, unsigned int *len);
+PL_EXPORT(int)		PL_get_string(term_t t, char **s, size_t *len);
 PL_EXPORT(int)		PL_get_chars(term_t t, char **s, unsigned int flags);
 PL_EXPORT(int)		PL_get_list_chars(term_t l, char **s,
 					  unsigned int flags);

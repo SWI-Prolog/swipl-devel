@@ -338,7 +338,7 @@ termHashValue(word term, intptr_t *hval ARG_LD)
 	*hval += atomValue(term)->hash_value;
         succeed;
       case TAG_STRING:
-      { unsigned len;
+      { size_t len;
 	char *s;
 
 	s = getCharsString(term, &len);

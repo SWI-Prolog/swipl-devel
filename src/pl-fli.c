@@ -926,7 +926,7 @@ PL_get_atom_nchars(term_t t, unsigned int *len, char **s)
 
 #ifdef O_STRING
 int
-PL_get_string(term_t t, char **s, unsigned int *len)
+PL_get_string(term_t t, char **s, size_t *len)
 { GET_LD
   word w = valHandle(t);
 
