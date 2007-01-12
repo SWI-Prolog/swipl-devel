@@ -10,12 +10,12 @@
   * FIXED: Proper error on erase on clause of static predicate.  Solly
     Brown.
 
-  * MODIFIED: Add ',' between lines in answer substitution.  Ulrigh Neumerkel.
+  * MODIFIED: Add ',' between lines in answer substitution.  Ulrich Neumerkel.
 
   * ADDED: option priority(P) to write_term/3.  Use this in writing
     answer substitutions.  Ulrigh Neumerkel.
 
-  * FIXED: Overflow issues in arithmetic left shift (<<).  Ulrigh Neumerkel.
+  * FIXED: Overflow issues in arithmetic left shift (<<).  Ulrich Neumerkel.
 
   * FIXED: float_fractional_part function for integers.  See mailinglist.
 
