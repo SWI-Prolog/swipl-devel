@@ -1552,7 +1552,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   if ( PL_get_atom(timeout, &a) && a == ATOM_infinite )
   { to = NULL;
   } else if ( PL_is_integer(timeout) )
-  { intptr_t v;
+  { long v;
 
     PL_get_long(timeout, &v);
     if ( v > 0L )
@@ -3204,7 +3204,7 @@ pl_set_stream_position(term_t stream, term_t pos)
 { GET_LD
   IOSTREAM *s;
   int64_t charno, byteno;
-  intptr_t linepos, lineno;
+  long linepos, lineno;
   term_t a = PL_new_term_ref();
 
   if ( !(getRepositionableStream(stream, &s)) )
@@ -4197,9 +4197,9 @@ pl_copy_stream_data3(term_t in, term_t out, term_t len)
       }
     }
   } else
-  { intptr_t n;
+  { int64_t n;
 
-    if ( !PL_get_long_ex(len, &n) )
+    if ( !PL_get_int64_ex(len, &n) )
       fail;
     
     while ( n-- > 0 && (c = Sgetcode(i)) != EOF )

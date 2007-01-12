@@ -177,7 +177,7 @@ rc_save_data(RcMember m, FILE *fd)
 static int
 rc_save_member(RcMember m, FILE *fd)
 { fprintf(fd, "\n<FILE NAME=\"%s\" CLASS=\"%s\" ENCODING=\"%s\" SIZE=%ld",
-	  m->name, m->rc_class, m->encoding, m->size);
+	  m->name, m->rc_class, m->encoding, (long)m->size);
   if ( m->modified )
     fprintf(fd, " MODIFIED=%ld", (long)m->modified);
   fprintf(fd, ">\n");
@@ -225,7 +225,7 @@ rc_save_archive(RcArchive rca, const char *to)
     }
     fprintf(fd, "</ARCHIVE>\n");
     size = ftell(fd) - hdrlen;
-    fprintf(fd, "<FOOT CONTENTLENGTH=%ld>\n", size);
+    fprintf(fd, "<FOOT CONTENTLENGTH=%ld>\n", (long)size);
     if ( fclose(fd) == EOF )
     { rc_errno = RCE_ERRNO;
       return FALSE;

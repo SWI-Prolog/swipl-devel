@@ -2933,8 +2933,8 @@ query.
 
 word
 pl_depth_limit(term_t limit, term_t olimit, term_t oreached)
-{ intptr_t levels;
-  intptr_t clevel = levelFrame(environment_frame) - 1;
+{ long levels;
+  long clevel = levelFrame(environment_frame) - 1;
 
   if ( PL_get_long_ex(limit, &levels) )
   { if ( PL_unify_integer(olimit, depth_limit) &&
@@ -2955,7 +2955,7 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
 		    term_t res, term_t cut, control_t b)
 { switch(ForeignControl(b))
   { case FRG_FIRST_CALL:
-    { intptr_t l, ol, or;
+    { long l, ol, or;
 
       if ( PL_get_long_ex(limit, &l) &&
 	   PL_get_long_ex(olimit, &ol) &&
@@ -2996,8 +2996,8 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
       break;
     }
     case FRG_REDO:
-    { intptr_t levels;
-      intptr_t clevel = levelFrame(environment_frame) - 1;
+    { long levels;
+      long clevel = levelFrame(environment_frame) - 1;
 
       PL_get_long_ex(limit, &levels);
       depth_limit   = clevel + levels + 1; /* 1 for catch/3 */
@@ -3015,7 +3015,7 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
 
 static
 PRED_IMPL("$depth_limit_false", 3, depth_limit_false, 0)
-{ intptr_t ol, or;
+{ long ol, or;
 
   if ( PL_get_long_ex(A1, &ol) &&
        PL_get_long_ex(A2, &or) )
@@ -3034,7 +3034,7 @@ PRED_IMPL("$depth_limit_false", 3, depth_limit_false, 0)
 
 static
 PRED_IMPL("$depth_limit_except", 3, depth_limit_except, 0)
-{ intptr_t ol, or;
+{ long ol, or;
 
   if ( PL_get_long_ex(A1, &ol) &&
        PL_get_long_ex(A2, &or) )
@@ -3425,8 +3425,8 @@ PRED_IMPL("$option", 3, option, PL_FA_NONDETERMINISTIC)
     { if ( streq(k, d->name) )
       { switch(d->type)
 	{ case CMDOPT_LONG:
-	  { intptr_t *val = d->address;
-	    intptr_t newval;
+	  { long *val = d->address;
+	    long newval;
 
 	    if ( !PL_unify_integer(old, *val) ||
 		 !PL_get_long(new, &newval) )

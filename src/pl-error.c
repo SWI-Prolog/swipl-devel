@@ -580,11 +580,31 @@ PL_get_integer_ex(term_t t, int *i)
 
 
 int
-PL_get_long_ex(term_t t, intptr_t *i)
+PL_get_long_ex(term_t t, long *i)
 { if ( PL_get_long(t, i) )
     succeed;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+}
+
+
+int
+PL_get_int64_ex(term_t t, int64_t *i)
+{ if ( PL_get_int64(t, i) )
+    succeed;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+}
+
+
+int
+PL_get_intptr_ex(term_t t, intptr_t *i)
+{
+#if SIZEOF_LONG != SIZEOF_VOIDP && SIZEOF_VOIDP == 8
+   return PL_get_int64_ex(t, i);
+#else
+   return PL_get_long_ex(t, (long*)i);
+#endif
 }
 
 

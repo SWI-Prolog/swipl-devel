@@ -225,7 +225,9 @@ COMMON(int) 		PL_get_nchars_ex(term_t t, size_t *len, char **s,
 COMMON(int) 		PL_get_chars_ex(term_t t, char **s, unsigned int flags);
 COMMON(int) 		PL_get_atom_ex(term_t t, atom_t *a);
 COMMON(int) 		PL_get_integer_ex(term_t t, int *i);
-COMMON(int) 		PL_get_long_ex(term_t t, intptr_t *i);
+COMMON(int) 		PL_get_long_ex(term_t t, long *i);
+COMMON(int) 		PL_get_int64_ex(term_t t, int64_t *i);
+COMMON(int) 		PL_get_intptr_ex(term_t t, intptr_t *i);
 COMMON(int) 		PL_get_bool_ex(term_t t, int *i);
 COMMON(int) 		PL_get_float_ex(term_t t, double *f);
 COMMON(int) 		PL_get_char_ex(term_t t, int *p, int eof);
@@ -777,7 +779,6 @@ COMMON(char *) 		predicateName(Definition def);
 COMMON(word) 		notImplemented(char *name, int arity);
 COMMON(word) 		setBoolean(int *flag, term_t o, term_t n);
 COMMON(word) 		setInteger(int *val, term_t old, term_t new);
-COMMON(word) 		setLong(intptr_t *val, term_t old, term_t new);
 COMMON(bool) 		strprefix(const char *string, const char *prefix);
 COMMON(bool) 		strpostfix(const char *string, const char *postfix);
 COMMON(bool) 		stripostfix(const char *string, const char *postfix);

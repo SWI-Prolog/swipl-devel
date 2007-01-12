@@ -775,20 +775,20 @@ normally 0). longToPointer() does the inverse operation.
 
 static inline ulong
 pointerToLong(void *ptr)
-{ ulong p   = (ulong) ptr;
-  ulong low = p & 0x3L;
+{ uintptr_t p   = (uintptr_t) ptr;
+  uintptr_t low = p & 0x3L;
 
   p -= heap_base;
   p >>= 2;
-  p |= low<<(sizeof(ulong)*8-2);
+  p |= low<<(sizeof(uintptr_t)*8-2);
   
   return p;
 }
 
 
 static inline void *
-longToPointer(ulong p)
-{ ulong low = p >> (sizeof(ulong)*8-2);
+longToPointer(uintptr_t p)
+{ uintptr_t low = p >> (sizeof(uintptr_t)*8-2);
 
   p <<= 2;
   p |= low;
@@ -1349,7 +1349,7 @@ PL_get_pointer__LD(term_t t, void **ptr ARG_LD)
 { int64_t p;
 
   if ( PL_get_int64(t, &p) )
-  { *ptr = longToPointer((ulong)p);
+  { *ptr = longToPointer((uintptr_t)p);
 
     succeed;
   }

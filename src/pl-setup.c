@@ -1640,7 +1640,11 @@ pl_stack_parameter(term_t name, term_t key, term_t old, term_t new)
   if ( !value )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stack_parameter, key);
 
-  return setLong(value, old, new);
+  if ( !PL_unify_int64(old, *value) ||
+       !PL_get_intptr_ex(new, value) )
+    fail;
+
+  succeed;
 }
 
 

@@ -191,16 +191,6 @@ setInteger(int *flag, term_t old, term_t new)
 }
 
 
-word
-setLong(intptr_t *flag, term_t old, term_t new)
-{ if ( !PL_unify_integer(old, *flag) ||
-       !PL_get_long_ex(new, flag) )
-    fail;
-
-  succeed;
-}
-
-
 		 /*******************************
 		 *	       OPTIONS		*
 		 *******************************/
@@ -217,7 +207,7 @@ Variable argument list:
 
 typedef union
 { bool *b;				/* boolean value */
-  intptr_t *l;				/* integer value */
+  long *l;				/* long value */
   int  *i;				/* integer value */
   char **s;				/* string value */
   word *a;				/* atom value */

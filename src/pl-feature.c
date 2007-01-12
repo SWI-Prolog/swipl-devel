@@ -341,7 +341,7 @@ set_feature_unlocked(term_t key, term_t value)
   } else				/* define new feature */
   { feature *f = allocHeap(sizeof(*f));
     atom_t a;
-    intptr_t i;
+    int64_t i;
 
     f->index = -1;
     if ( PL_get_atom(value, &a) )
@@ -351,7 +351,7 @@ set_feature_unlocked(term_t key, term_t value)
 	f->flags = FT_ATOM;
       f->value.a = a;
       PL_register_atom(a);
-    } else if ( PL_get_long(value, &i) )
+    } else if ( PL_get_int64(value, &i) )
     { f->flags = FT_INTEGER;
       f->value.i = i;
     } else
@@ -443,9 +443,9 @@ set_feature_unlocked(term_t key, term_t value)
       break;
     }
     case FT_INTEGER:
-    { intptr_t i;
+    { int64_t i;
 
-      if ( !PL_get_long(value, &i) )
+      if ( !PL_get_int64(value, &i) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, value);
       f->value.i = i;
 #ifdef O_ATOMGC

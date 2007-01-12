@@ -2105,7 +2105,7 @@ get_message_queue(term_t t, message_queue **queue)
   { id = name;
   } else if ( PL_is_functor(t, FUNCTOR_dmessage_queue1) )
   { term_t a = PL_new_term_ref();
-    intptr_t i;
+    long i;
 
     PL_get_arg(1, t, a);
     if ( PL_get_long(a, &i) )
@@ -2530,7 +2530,7 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
   { id = name;
   } else if ( PL_is_functor(t, FUNCTOR_dmutex1) )
   { term_t a = PL_new_term_ref();
-    intptr_t i;
+    long i;
 
     PL_get_arg(1, t, a);
     if ( PL_get_long(a, &i) )

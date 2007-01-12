@@ -77,7 +77,7 @@ PL_put_frame(term_t t, LocalFrame fr)
 
 static int
 PL_get_frame(term_t r, LocalFrame *fr)
-{ intptr_t i;
+{ long i;
   atom_t a;
 
   if ( PL_get_long(r, &i) )
@@ -122,7 +122,7 @@ PL_unify_choice(term_t t, Choice ch)
 
 static int
 PL_get_choice(term_t r, Choice *chp)
-{ intptr_t i;
+{ long i;
 
   if ( PL_get_long(r, &i) )
   { Choice ch = ((Choice)((Word)lBase + i));
@@ -1427,7 +1427,7 @@ pl_tracing()
 word
 pl_skip_level(term_t old, term_t new)
 { atom_t a;
-  intptr_t sl;
+  long sl;
 
   if ( debugstatus.skiplevel == VERY_DEEP )
   { TRY(PL_unify_atom(old, ATOM_very_deep));
@@ -1436,7 +1436,7 @@ pl_skip_level(term_t old, term_t new)
   }
       
   if ( PL_get_long(new, &sl) )
-  { debugstatus.skiplevel = (uintptr_t) sl;
+  { debugstatus.skiplevel = sl;
     succeed;
   }
   if ( PL_get_atom(new, &a) && a == ATOM_very_deep)

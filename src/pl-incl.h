@@ -1822,10 +1822,10 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  type		min;		/* donot shrink below this value */ \
 	  type		max;		/* allocated maximum */		    \
 	  type		limit;		/* top the the range (base+limit) */\
-	  intptr_t		minfree;	/* minimum amount of free space */  \
+	  intptr_t	minfree;	/* minimum amount of free space */  \
 	  bool		gc;		/* Can be GC'ed? */		    \
-	  intptr_t		gced_size;	/* size after last GC */	    \
-	  intptr_t		small;		/* Donot GC below this size */	    \
+	  intptr_t	gced_size;	/* size after last GC */	    \
+	  intptr_t	small;		/* Do not GC below this size */	    \
 	  int		factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \
 	  char		*name;		/* Symbolic name of the stack */    \
