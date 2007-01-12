@@ -28,7 +28,6 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include <stddef.h>
-#include <unistd.h>
 #ifdef __WINDOWS__
 typedef __int64 int64_t;
 #if (_MSC_VER < 1300)
@@ -37,6 +36,7 @@ typedef unsigned long uintptr_t;
 #endif
 typedef intptr_t ssize_t;		/* signed version of size_t */
 #else
+#include <unistd.h>
 #include <inttypes.h>			/* more portable than stdint.h */
 #endif
 
