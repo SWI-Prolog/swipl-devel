@@ -367,7 +367,7 @@ PL_EXPORT(int)		PL_get_nchars(term_t t,
 				      size_t *len, char **s,
 				      unsigned int flags);
 PL_EXPORT(int)		PL_get_integer(term_t t, int *i);
-PL_EXPORT(int)		PL_get_long(term_t t, intptr_t *i);
+PL_EXPORT(int)		PL_get_long(term_t t, long *i);
 PL_EXPORT(int)		PL_get_pointer(term_t t, void **ptr);
 PL_EXPORT(int)		PL_get_float(term_t t, double *f);
 PL_EXPORT(int)		PL_get_functor(term_t t, functor_t *f);
@@ -569,7 +569,7 @@ PL_EXPORT(const char *) PL_cwd(void);
 		 *   QUINTUS WRAPPER SUPPORT	*
 		 *******************************/
 
-PL_EXPORT(int)		PL_cvt_i_integer(term_t p, intptr_t *c);
+PL_EXPORT(int)		PL_cvt_i_integer(term_t p, long *c);
 PL_EXPORT(int)		PL_cvt_i_float(term_t p, double *c);
 PL_EXPORT(int)		PL_cvt_i_single(term_t p, float *c);
 PL_EXPORT(int)		PL_cvt_i_string(term_t p, char **c);

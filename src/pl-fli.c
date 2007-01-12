@@ -558,7 +558,7 @@ PL_atom_wchars(atom_t a, size_t *len)
 		 *******************************/
 
 bool
-PL_cvt_i_integer(term_t p, intptr_t *c)
+PL_cvt_i_integer(term_t p, long *c)
 { GET_LD
   return PL_get_long(p, c);
 }
@@ -1233,7 +1233,7 @@ PL_get_integer(term_t t, int *i)
 
 
 int
-PL_get_long__LD(term_t t, intptr_t *i ARG_LD)
+PL_get_long__LD(term_t t, long *i ARG_LD)
 { word w = valHandle(t);
   
   if ( isTaggedInt(w) )
@@ -1246,7 +1246,7 @@ PL_get_long__LD(term_t t, intptr_t *i ARG_LD)
     if ( val > LONG_MAX || val < LONG_MIN )
       fail;
     
-    *i = (intptr_t)val;
+    *i = (long)val;
     succeed;
   }
   if ( isReal(w) )
@@ -1258,7 +1258,7 @@ PL_get_long__LD(term_t t, intptr_t *i ARG_LD)
       fail;
 #endif
 
-    l = (intptr_t) f;
+    l = (long) f;
     if ( (real)l == f )
     { *i = l;
       succeed;
@@ -1270,7 +1270,7 @@ PL_get_long__LD(term_t t, intptr_t *i ARG_LD)
 
 #undef PL_get_long
 int
-PL_get_long(term_t t, intptr_t *i)
+PL_get_long(term_t t, long *i)
 { GET_LD
   return PL_get_long__LD(t, i PASS_LD);
 }
