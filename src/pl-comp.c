@@ -2565,7 +2565,7 @@ decompile(Clause clause, term_t term, term_t bindings)
   decompileBody(di, I_EXIT, (Code) NULL PASS_LD);
 
   { Word b, ba;
-    size_t var;
+    ssize_t var;
 
     b = newTerm();
 
@@ -2921,7 +2921,7 @@ build_term(functor_t f, decompileInfo *di ARG_LD)
 
   ARGP--;
   for( ; arity-- > 0; a--, ARGP-- )
-  { size_t var;
+  { ssize_t var;
 
     if ( (var = isVarRef(*ARGP)) >= 0 )
       unifyVar(a, di->variables, var PASS_LD);
