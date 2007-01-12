@@ -1046,7 +1046,7 @@ equalIndirect(word w1, word w2)
   if ( *p1 == *p2 )
   { size_t n = wsizeofInd(*p1);
     
-    while( --n >= 0 )
+    while( n-- > 0 )
     { if ( *++p1 != *++p2 )
 	fail;
     }
@@ -1073,7 +1073,7 @@ globalIndirect(word w)
   Word hp = h;
   
   *hp = t;
-  while(--n >= 0)
+  while(n-- > 0)
     *++hp = *++p;
   *++hp = t;
 
