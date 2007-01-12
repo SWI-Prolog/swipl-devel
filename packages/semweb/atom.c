@@ -48,7 +48,7 @@ typedef wchar_t       charW;
 typedef struct text
 { const charA *a;
   const charW *w;
-  unsigned int length;
+  size_t length;
 } text;
 
 

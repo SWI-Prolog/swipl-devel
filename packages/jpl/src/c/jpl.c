@@ -844,7 +844,7 @@ static bool
 	jobject 	*s
 	)
 	{
-	unsigned int	len;
+	size_t		len;
 	pl_wchar_t	*wp;
 	jchar		*jcp;
 	char		*cp;
@@ -895,7 +895,7 @@ static bool
 	jobject 	*s
 	)
 	{
-	unsigned int    len;
+	size_t		len;
 	pl_wchar_t	*wp;
 	jchar		*jcp;
 	char		*cp;

@@ -1604,7 +1604,7 @@ nbio_listen(int socket, int backlog)
 #define fdFromHandle(p) ((int)((long)(p)))
 
 int
-nbio_read(int socket, char *buf, int bufSize)
+nbio_read(int socket, char *buf, size_t bufSize)
 { plsocket *s = lookupSocket(socket);
   int n;
 
@@ -1663,7 +1663,7 @@ nbio_read(int socket, char *buf, int bufSize)
 }
 
 int
-nbio_write(int socket, char *buf, int bufSize)
+nbio_write(int socket, char *buf, size_t bufSize)
 { int len = bufSize;
   char *str = buf;
 

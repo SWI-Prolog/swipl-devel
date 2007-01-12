@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -48,7 +48,7 @@
 #define MAX_ERRORS	50
 #define MAX_WARNINGS	50
 
-#define ENDSNUL ((unsigned int)-1)
+#define ENDSNUL ((size_t)-1)
 
 		 /*******************************
 		 *     PARSER CONTEXT DATA	*

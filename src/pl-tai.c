@@ -734,7 +734,7 @@ PRED_IMPL("format_time", 3, format_time, 0)
   wchar_t *fmt;
   time_t unixt;
   int64_t ut64;
-  unsigned fmtlen;
+  size_t fmtlen;
   redir_context ctx;
 
   if ( !PL_get_wchars(A2, &fmtlen, &fmt,

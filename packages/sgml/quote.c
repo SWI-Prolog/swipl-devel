@@ -149,7 +149,7 @@ static foreign_t
 do_quote(term_t in, term_t quoted, char **map, int maxchr)
 { char *inA = NULL;
   wchar_t *inW = NULL;
-  unsigned len;
+  size_t len;
   const unsigned  char *s;
   charbuf buffer;
   int changes = 0;
@@ -306,7 +306,7 @@ static foreign_t
 xml_name(term_t in, term_t encoding)
 { char *ins;
   wchar_t *inW;
-  unsigned len;
+  size_t len;
   static dtd_charclass *map;
   unsigned int i;
   int maxchr;

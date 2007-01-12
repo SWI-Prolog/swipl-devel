@@ -1192,7 +1192,7 @@ distribution over these atoms.  Note that size equals 2^n.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-unboundStringHashValue(const char *t, unsigned int len)
+unboundStringHashValue(const char *t, size_t len)
 { unsigned int value = 0;
   unsigned int shift = 5;
 

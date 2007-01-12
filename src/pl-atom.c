@@ -1215,7 +1215,7 @@ PL_atom_generator(const char *prefix, int state)
 pl_wchar_t *
 PL_atom_generator_w(const pl_wchar_t *prefix,
 		    pl_wchar_t *buffer,
-		    unsigned int buflen,
+		    size_t buflen,
 		    int state)
 { PL_chars_t txt, hit;
 

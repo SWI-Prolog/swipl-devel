@@ -59,7 +59,7 @@ typedef struct
 
 
 static int
-Xterm_read(void *handle, char *buffer, int count)
+Xterm_read(void *handle, char *buffer, size_t count)
 { xterm *xt = handle;
   int size;
 
@@ -81,7 +81,7 @@ Xterm_read(void *handle, char *buffer, int count)
 
 
 static int
-Xterm_write(void *handle, char *buffer, int count)
+Xterm_write(void *handle, char *buffer, size_t count)
 { xterm *xt = handle;
 
   return write(xt->fd, buffer, count);

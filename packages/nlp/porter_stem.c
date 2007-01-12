@@ -355,7 +355,7 @@ static int unaccent(const char *in, size_t len, char *out, size_t size);
 static foreign_t
 pl_stem(term_t t_in, term_t t_stem)
 { char *word;
-  unsigned int len, end;
+  size_t len, end;
   char *f, *t, *s, *ew;
   char buf[1024];
   char plain[1024];
@@ -460,8 +460,7 @@ static foreign_t
 pl_unaccent(term_t from, term_t to)
 { char buf[1024];
   char *f;
-  unsigned int fl;
-  int len;
+  size_t fl, len;
 
   if ( !PL_get_nchars(from, &fl, &f, CVT_ALL|CVT_EXCEPTION) )
     return FALSE;
@@ -605,7 +604,7 @@ unify_token(const char *s, size_t len, toktype type, void *closure)
 static foreign_t
 pl_tokenize(term_t text, term_t tokens)
 { char *s;
-  unsigned int len;
+  size_t len;
   list l;
 
   if ( !PL_get_nchars(text, &len, &s, CVT_ALL|CVT_EXCEPTION) )
@@ -665,7 +664,7 @@ unify_stem(const char *s, size_t len, toktype type, void *closure)
 static foreign_t
 pl_atom_to_stem_list(term_t text, term_t stems)
 { char *s;
-  unsigned int len;
+  size_t len;
   list l;
 
   if ( !PL_get_nchars(text, &len, &s, CVT_ALL) )

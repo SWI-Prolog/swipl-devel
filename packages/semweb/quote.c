@@ -72,7 +72,7 @@ rdf_quote_uri(term_t uri, term_t quoted)
 { char *in;
   const char *s;
   const char *ok = uri_ok();
-  unsigned len;
+  size_t len;
   int nok;
 
   if ( !PL_get_nchars(uri, &len, &in, CVT_ATOM|REP_UTF8|CVT_EXCEPTION) )

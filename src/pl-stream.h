@@ -102,9 +102,9 @@ stuff.
 #define SIO_MAGIC	(7212676)	/* magic number */
 #define SIO_CMAGIC	(42)		/* we are close (and thus illegal!) */
 
-typedef int   (*Sread_function)(void *handle, char *buf, int bufsize);
-typedef int   (*Swrite_function)(void *handle, char*buf, int bufsize);
-typedef intptr_t  (*Sseek_function)(void *handle, intptr_t pos, int whence);
+typedef int   (*Sread_function)(void *handle, char *buf, size_t bufsize);
+typedef int   (*Swrite_function)(void *handle, char*buf, size_t bufsize);
+typedef long  (*Sseek_function)(void *handle, long pos, int whence);
 typedef int64_t (*Sseek64_function)(void *handle, int64_t pos, int whence);
 typedef int   (*Sclose_function)(void *handle);
 typedef int   (*Scontrol_function)(void *handle, int action, void *arg);
@@ -335,9 +335,9 @@ PL_EXPORT(void)		Sclearerr(IOSTREAM *s);
 PL_EXPORT(void)		Sseterr(IOSTREAM *s, int which, const char *message);
 PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC new_enc, IOENC *old_enc);
 PL_EXPORT(int)		Sflush(IOSTREAM *s);
-PL_EXPORT(intptr_t)		Ssize(IOSTREAM *s);
-PL_EXPORT(intptr_t)		Sseek(IOSTREAM *s, intptr_t pos, int whence);
-PL_EXPORT(intptr_t)		Stell(IOSTREAM *s);
+PL_EXPORT(long)		Ssize(IOSTREAM *s);
+PL_EXPORT(int)		Sseek(IOSTREAM *s, long pos, int whence);
+PL_EXPORT(long)		Stell(IOSTREAM *s);
 PL_EXPORT(int)		Sclose(IOSTREAM *s);
 PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);
 PL_EXPORT(char *)	Sgets(char *buf);
@@ -361,13 +361,13 @@ PL_EXPORT(IOSTREAM *)	Sopen_file(const char *path, const char *how);
 PL_EXPORT(IOSTREAM *)	Sfdopen(int fd, const char *type);
 PL_EXPORT(int)	   	Sfileno(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	Sopen_pipe(const char *command, const char *type);
-PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, int *sizep, const char *mode);
+PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, size_t *sizep, const char *mode);
 PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, int sz, const char *m);
 PL_EXPORT(int)		Sclosehook(void (*hook)(IOSTREAM *s));
 PL_EXPORT(void)		Sfree(void *ptr);
 
 PL_EXPORT(int64_t)	Stell64(IOSTREAM *s);
-PL_EXPORT(int64_t)	Sseek64(IOSTREAM *s, int64_t pos, int whence);
+PL_EXPORT(int)		Sseek64(IOSTREAM *s, int64_t pos, int whence);
 
 PL_EXPORT(int)		ScheckBOM(IOSTREAM *s);
 PL_EXPORT(int)		SwriteBOM(IOSTREAM *s);

@@ -1,4 +1,4 @@
-\chapter{Foreign Language Interface}		\label{sec:foreign}
+<\chapter{Foreign Language Interface}		\label{sec:foreign}
 
 \newlength{\tableft}
 \settowidth{\tableft}{\const{PL_QUERY_ORGSYMBOLFILE}}
@@ -881,28 +881,28 @@ signatures of these functions.  For full documentation consult the
 *_chars() function.
 
 \begin{description}
-    \cfunction{int}{PL_get_atom_nchars}{term_t t, unsigned int *len, char **s}
+    \cfunction{int}{PL_get_atom_nchars}{term_t t, size_t *len, char **s}
 See PL_get_atom_chars().
-    \cfunction{int}{PL_get_list_nchars}{term_t t, unsigned int *len, char **s}
+    \cfunction{int}{PL_get_list_nchars}{term_t t, size_t *len, char **s}
 See PL_get_list_chars().
-    \cfunction{int}{PL_get_nchars}{term_t t, unsigned int *len, char **s,
+    \cfunction{int}{PL_get_nchars}{term_t t, size_t *len, char **s,
 				   unsigned int flags}
 See PL_get_chars().
-    \cfunction{int}{PL_put_atom_nchars}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_put_atom_nchars}{term_t t, size_t len, const char *s}
 See PL_put_atom_chars().
-    \cfunction{int}{PL_put_string_nchars}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_put_string_nchars}{term_t t, size_t len, const char *s}
 See PL_put_string_chars().
-    \cfunction{int}{PL_put_list_ncodes}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_put_list_ncodes}{term_t t, size_t len, const char *s}
 See PL_put_list_codes().
-    \cfunction{int}{PL_put_list_nchars}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_put_list_nchars}{term_t t, size_t len, const char *s}
 See PL_put_list_chars().
-    \cfunction{int}{PL_unify_atom_nchars}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_unify_atom_nchars}{term_t t, size_t len, const char *s}
 See PL_unify_atom_chars().
-    \cfunction{int}{PL_unify_string_nchars}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_unify_string_nchars}{term_t t, size_t len, const char *s}
 See PL_unify_string_chars().
-    \cfunction{int}{PL_unify_list_ncodes}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_unify_list_ncodes}{term_t t, size_t len, const char *s}
 See PL_unify_codes().
-    \cfunction{int}{PL_unify_list_nchars}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_unify_list_nchars}{term_t t, size_t len, const char *s}
 See PL_unify_list_chars().
 \end{description}
 
@@ -910,9 +910,9 @@ In addition, the following functions are available for creating and
 inspecting atoms:
 
 \begin{description}
-    \cfunction{atom_t}{PL_new_atom_nchars}{unsigned int len, const char *s}
+    \cfunction{atom_t}{PL_new_atom_nchars}{size_t len, const char *s}
 Create a new atom as PL_new_atom(), but from length and characters.
-    \cfunction{const char *}{PL_atom_nchars}{atom_t a, unsigned int *len}
+    \cfunction{const char *}{PL_atom_nchars}{atom_t a, size_t *len}
 Extract text and length of an atom.
 \end{description}
 
@@ -944,20 +944,20 @@ creating an atom with PL_new_atom_wchars(), extracting the text using
 PL_atom_wchars() will fail of the atom only contains ISO-Latin-1
 characters.
 
-    \cfunction{int}{PL_get_wchars}{term_t t, unsigned int *len,
+    \cfunction{int}{PL_get_wchars}{term_t t, size_t *len,
 				   pl_wchar_t **s, unsigned flags}
 Wide-character version of PL_get_chars().  The \arg{flags} argument
 is the same as for PL_get_chars().  
 
     \cfunction{int}{PL_unify_wchars}{term_t t, int type,
-				     unsigned int len,
+				     size_t len,
 				     const pl_wchar_t *s}
 Unify \arg{t} with a textual representation of the C wide character
 array \arg{s}.  The \arg{arg}{type} argument defines the Prolog
 representation and is one of \const{PL_ATOM}, \const{PL_STRING},
 \const{PL_CODE_LIST} or \const{PL_CHAR_LIST}.
     \cfunction{int}{PL_unify_wchars_diff}{term_t +t, term_t -tail, int type,
-					  unsigned int len,
+					  size_t len,
 					  const pl_wchar_t *s}
 Difference list version of PL_unify_wchars(), only supporting the
 types \const{PL_CODE_LIST} and \const{PL_CHAR_LIST}.  It serves two
@@ -1091,7 +1091,7 @@ function.
 Put a zero-terminated string in the term-reference. The data will be
 copied.  See also PL_put_string_nchars().
 \cfunction{void}{PL_put_string_nchars}{term_t -t,
-				       unsigned int len,
+				       size_t len,
 				       const char *chars}
 
 Put a string, represented by a length/start pointer pair in the
@@ -1221,7 +1221,7 @@ Unify two Prolog terms and return non-zero on success.
     \cfunction{int}{PL_unify_atom}{term_t ?t, atom_t a}
 Unify \arg{t} with the atom \arg{a} and return non-zero on success.
     \cfunction{int}{PL_unify_chars}{term_t ?t, int flags, 
-				    unsigned int len,
+				    size_t len,
 				    const char *chars}
 New function do deal with unification of \ctype{char*} with various
 encodings to a Prolog representation.  The \arg{flags} argument is
@@ -1243,7 +1243,7 @@ Unify \arg{t} with a Prolog string object created from the
 zero-terminated string \arg{chars}. The data will be copied.
 See also PL_unify_string_nchars().
     \cfunction{void}{PL_unify_string_nchars}{term_t ?t,
-					     unsigned int len,
+					     size_t len,
 					     const char *chars}
 Unify \arg{t} with a Prolog string object created from the string
 created from the \arg{len}/\arg{chars} pair. The data will be copied.
@@ -1333,7 +1333,7 @@ Unify the argument with an atom, as in PL_unify_atom().
    \definition{\const{PL_CHARS} \arg{const char *}}
 Unify the argument with an atom, constructed from the C \ctype{char *},
 as in PL_unify_atom_chars().
-   \definition{\const{PL_NCHARS} \arg{unsigned int, const char *}}
+   \definition{\const{PL_NCHARS} \arg{size_t, const char *}}
 Unify the argument with an atom, constructed from length and
 \ctype{char*} as in PL_unify_atom_nchars().
    \definition{\const{PL_UTF8_CHARS} \arg{const char *}}
@@ -1348,11 +1348,11 @@ locale.
    \definition{\const{PL_MBSTRING} \arg{const char *}}
 Create a packed string object from a multi-byte string in the
 current locale.
-   \definition{\const{PL_NWCHARS} \arg{unsigned int, const wchar_t *}}
+   \definition{\const{PL_NWCHARS} \arg{size_t, const wchar_t *}}
 Create an atom from a length and a wide character pointer.
-   \definition{\const{PL_NWCODES} \arg{unsigned int, const wchar_t *}}
+   \definition{\const{PL_NWCODES} \arg{size_t, const wchar_t *}}
 Create an list of character codes from a length and a wide character pointer.
-   \definition{\const{PL_NWSTRING} \arg{unsigned int, const wchar_t *}}
+   \definition{\const{PL_NWSTRING} \arg{size_t, const wchar_t *}}
 Create a packed string object from a length and a wide character pointer.
    \definition{\const{PL_SHORT} \arg{short}}
 Unify the argument with an integer, as in PL_unify_integer(). As
@@ -1594,12 +1594,12 @@ advised to rely on this.
 Succeeds if \arg{t} refers to a blob, in which case \arg{type} is
 filled with the type of the blob.
 
-    \cfunction{int}{PL_unify_blob}{term_t t, void *blob, unsigned int len,
+    \cfunction{int}{PL_unify_blob}{term_t t, void *blob, size_t len,
 				   PL_blob_t *type}
 Unify \arg{t} to a new blob constructed from the given data and
 associated to the given type.  See also PL_unify_atom_nchars().
 
-    \cfunction{int}{PL_put_blob}{term_t t, void *blob, unsigned int len,
+    \cfunction{int}{PL_put_blob}{term_t t, void *blob, size_t len,
 				 PL_blob_t *type}
 Store the described blob in \arg{t}.  The return value indicates whether
 a new blob was allocated (\const{FALSE}) or the blob is a reference to
@@ -1609,7 +1609,7 @@ return is \const{TRUE} this reference count must be incremented and it
 must be decremented on blob destruction callback.  See also
 PL_put_atom_nchars().
 
-    \cfunction{int}{PL_get_blob}{term_t t, void **blob, unsigned int *len,
+    \cfunction{int}{PL_get_blob}{term_t t, void **blob, size_t *len,
 				 PL_blob_t **type}
 If \arg{t} holds a blob or atom get the data and type and return
 \const{TRUE}.  Otherwise return \const{FALSE}.  Each result pointer
@@ -1617,7 +1617,7 @@ may be \const{NULL}, in which case the requested information is
 ignored.
 
     \cfunction{void *}{PL_blob_data}{atom_t a,
-				     unsigned int *len,
+				     size_t *len,
 				     PL_blob_t **type}
 Get the data and type associated to a blob.  This function is mainly
 used from the callback functions described in \secref{blobtype}.
@@ -2183,7 +2183,7 @@ compatibility with older records.
 \end{itemlist}
 
 \begin{description}
-\cfunction{char *}{PL_record_external}{term_t +t, unsigned int *len}
+\cfunction{char *}{PL_record_external}{term_t +t, size_t *len}
     Record the term \arg{t} into the Prolog database as recorda/3 and
     return an opaque handle to the term.  The returned handle remains
     valid until PL_erase_external() is called on it.

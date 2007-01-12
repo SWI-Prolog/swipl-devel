@@ -70,7 +70,7 @@ atomToName(Atom a)
 { int k = AtomKey(&atom_to_name, a);
   ASymbol s = atom_to_name.symbols[k];
   PceName name;
-  unsigned int len;
+  size_t len;
   const char *textA;
   const wchar_t *textW;
   

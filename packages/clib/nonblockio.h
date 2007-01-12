@@ -132,8 +132,8 @@ extern int	nbio_accept(int master,
 			   struct sockaddr *addr,
 			   socklen_t *addrlen);
 
-extern int	nbio_read(int socket, char *buf, int bufSize);
-extern int 	nbio_write(int socket, char *buf, int bufSize);
+extern int	nbio_read(int socket, char *buf, size_t bufSize);
+extern int 	nbio_write(int socket, char *buf, size_t bufSize);
 extern int	nbio_closesocket(int socket);
 extern int 	nbio_close_input(int socket);
 extern int 	nbio_close_output(int socket);

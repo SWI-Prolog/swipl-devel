@@ -397,7 +397,7 @@ print_literal(literal *lit)
 		   PL_atom_chars(lit->type_or_lang));
 	  break;
 	default:
-	{ unsigned int len;
+	{ size_t len;
 	  const char *s;
 	  const wchar_t *w;
 
@@ -1794,7 +1794,7 @@ static unsigned long
 case_insensitive_atom_hash(atom_t a)
 { const char *s;
   const wchar_t *w;
-  unsigned len;
+  size_t len;
 
   if ( (s = PL_atom_nchars(a, &len)) )
     return string_hashA(s, len);
@@ -2432,7 +2432,7 @@ static int
 save_atom(rdf_db *db, IOSTREAM *out, atom_t a, save_context *ctx)
 { int hash = atom_hash(a) % ctx->saved_size;
   saved *s;
-  unsigned int len;
+  size_t len;
   const char *chars;
   unsigned int i;
   const wchar_t *wchars;
@@ -2953,7 +2953,7 @@ static const char md5_type[] =
 static void
 md5_triple(triple *t, md5_byte_t *digest)
 { md5_state_t state;
-  unsigned int len;
+  size_t len;
   md5_byte_t tmp[2];
   const char *s;
   literal *lit;
@@ -3101,7 +3101,7 @@ static foreign_t
 rdf_atom_md5(term_t text, term_t times, term_t md5)
 { char *s;
   int n, i;
-  unsigned int len;
+  size_t len;
   md5_byte_t digest[16];
 
   if ( !PL_get_nchars(text, &len, &s, CVT_ALL) )
@@ -5706,7 +5706,7 @@ fill_special()
 static foreign_t
 split_url(term_t base, term_t local, term_t url)
 { char *b, *l, *u;
-  unsigned int bl, ll;
+  size_t bl, ll;
 
   if ( local &&
        PL_get_atom_nchars(base, &bl, &b) &&

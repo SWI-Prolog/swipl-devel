@@ -576,7 +576,7 @@ int formatted_string(+Fmt-[Arg...], *len, char **out)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-formatted_string(term_t in, int *len, char **out)
+formatted_string(term_t in, size_t *len, char **out)
 { term_t av = PL_new_term_refs(3);
   static predicate_t format;
   IOSTREAM *fd = Sopenmem(out, len, "w");
@@ -825,7 +825,7 @@ compile_arg(compile_info *info, term_t t)
 	  for(i=0; i<sizeof(double)/sizeof(code); i++)
 	    ADDCODE(info, v.ascode[i]);
 	} else				/* string */
-	{ unsigned int len;
+	{ size_t len;
 	  char *s, *cp;
 
 	  PL_get_string_chars(t, &s, &len);
@@ -1785,14 +1785,14 @@ code to synchronise this problem.
 
 static int
 get_sql_text(context *ctxt, term_t tquery)
-{ unsigned int qlen;
+{ size_t qlen;
   char *q;
 
   if ( PL_is_functor(tquery, FUNCTOR_minus2) )
   { qlen = 0;
     q = NULL;
 
-    if ( !formatted_string(tquery, (int*)&qlen, &q) )
+    if ( !formatted_string(tquery, &qlen, &q) )
       return FALSE;
     ctxt->sqltext = q;
     ctxt->sqllen = qlen;
@@ -2270,7 +2270,7 @@ pl_odbc_column(term_t dsn, term_t db, term_t row, control_t handle)
   { case PL_FIRST_CALL:
     { connection *cn;
       context *ctxt;
-      unsigned int len;
+      size_t len;
       char *s;
 
       if ( !PL_get_nchars(db, &len, &s, CVT_ATOM|CVT_STRING) )
@@ -2822,7 +2822,7 @@ try_null(context *ctxt, parameter *prm, term_t val, const char *expected)
 
 
 static int
-get_parameter_text(term_t t, parameter *prm, unsigned int *len, char **s)
+get_parameter_text(term_t t, parameter *prm, size_t *len, char **s)
 { unsigned int flags = CVT_ATOM|CVT_STRING;
   const char *expected = "text";
 
@@ -2885,7 +2885,7 @@ bind_parameters(context *ctxt, term_t parms)
       case SQL_C_CHAR:
       case SQL_C_BINARY:
       { SQLLEN len;
-	unsigned int l;
+	size_t l;
 	char *s;
 
 					/* check for NULL */
@@ -2966,7 +2966,7 @@ odbc_execute(term_t qid, term_t args, term_t row, control_t handle)
 
 	if ( (ctxt->rc = SQLParamData(ctxt->hstmt, &token)) == SQL_NEED_DATA )
 	{ parameter *p = &ctxt->params[(long)token - 1];
-	  unsigned int len;
+	  size_t len;
 	  char *s;
 
 	  if ( is_sql_null(p->put_data, ctxt->null) )

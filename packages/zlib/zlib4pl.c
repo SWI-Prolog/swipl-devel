@@ -339,7 +339,7 @@ gz_skip_footer(z_context *ctx)
 		 *******************************/
 
 static int				/* inflate */
-zread(void *handle, char *buf, int size)
+zread(void *handle, char *buf, size_t size)
 { z_context *ctx = handle;
   int flush = Z_SYNC_FLUSH;
   int rc;
@@ -460,7 +460,7 @@ zread(void *handle, char *buf, int size)
 
 
 static int				/* deflate */
-zwrite4(void *handle, char *buf, int size, int flush)
+zwrite4(void *handle, char *buf, size_t size, int flush)
 { z_context *ctx = handle;
   Bytef buffer[SIO_BUFSIZE];
   int rc;
@@ -505,7 +505,7 @@ zwrite4(void *handle, char *buf, int size, int flush)
 
 
 static int				/* deflate */
-zwrite(void *handle, char *buf, int size)
+zwrite(void *handle, char *buf, size_t size)
 { return zwrite4(handle, buf, size, Z_NO_FLUSH);
 }
 

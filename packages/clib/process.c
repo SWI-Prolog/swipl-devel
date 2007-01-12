@@ -268,13 +268,13 @@ static atom_t error_file;		/* file for output */
 static int    error_fd;			/* and its fd */
 
 static int
-read_eof(void *handle, char *buf, int count)
+read_eof(void *handle, char *buf, size_t count)
 { return 0;
 }
 
 
 static int
-write_null(void *handle, char *buf, int count)
+write_null(void *handle, char *buf, size_t count)
 { if ( error_fd )
   { if ( error_fd >= 0 )
       write(error_fd, buf, count);

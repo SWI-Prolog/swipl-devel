@@ -826,12 +826,12 @@ openFileDescriptors(unsigned char *buf, int size)
 
 
 void
-protocol(const char *str, int n)
+protocol(const char *str, size_t n)
 { GET_LD
   IOSTREAM *s;
 
   if ( LD && (s = getStream(Sprotocol)) )
-  { while( --n >= 0 )
+  { while( n-- > 0 )
       Sputcode(*str++&0xff, s);
     releaseStream(s);			/* we don not check errors */
   }
@@ -1424,7 +1424,7 @@ error:
 extern IOFUNCTIONS Smemfunctions;
 
 bool
-tellString(char **s, int *size, IOENC enc)
+tellString(char **s, size_t *size, IOENC enc)
 { GET_LD
   IOSTREAM *stream;
   
@@ -2584,19 +2584,19 @@ pl_told()
 		 *******************************/
 
 static int
-Swrite_null(void *handle, char *buf, int size)
+Swrite_null(void *handle, char *buf, size_t size)
 { return size;
 }
 
 
 static int
-Sread_null(void *handle, char *buf, int size)
+Sread_null(void *handle, char *buf, size_t size)
 { return 0;
 }
 
 
-static intptr_t
-Sseek_null(void *handle, intptr_t offset, int whence)
+static long
+Sseek_null(void *handle, long offset, int whence)
 { switch(whence)
   { case SIO_SEEK_SET:
 	return offset;
@@ -3266,13 +3266,14 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
     return PL_error("seek", 4, NULL, ERR_DOMAIN, ATOM_integer, offset);
 
   if ( PL_get_stream_handle(stream, &s) )
-  { if ( (new = Sseek64(s, off, whence)) < 0 )
+  { if ( Sseek64(s, off, whence) < 0 )
     { PL_error("seek", 4, OsError(), ERR_PERMISSION,
 	       ATOM_reposition, ATOM_stream, stream);
       releaseStream(s);
       fail;
     }
 
+    new = Stell64(s);
     releaseStream(s);
     return PL_unify_int64(newloc, new);
   }
@@ -3512,7 +3513,7 @@ typedef struct wrappedIO
 
 
 int
-Sread_user(void *handle, char *buf, int size)
+Sread_user(void *handle, char *buf, size_t size)
 { GET_LD
   wrappedIO *wio = handle;
 
@@ -3552,8 +3553,8 @@ closeWrappedIO(void *handle)
 
 static void
 wrapIO(IOSTREAM *s,
-       int (*read)(void *, char *, int),
-       int (*write)(void *, char *, int))
+       int (*read)(void *, char *, size_t),
+       int (*write)(void *, char *, size_t))
 { wrappedIO *wio = PL_malloc(sizeof(*wio));
 
   wio->wrapped_functions = s->functions;

@@ -1370,7 +1370,7 @@ Sunit_size(IOSTREAM *s)
 Return the size of the underlying data object.  Should be optimized;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-intptr_t
+long
 Ssize(IOSTREAM *s)
 { if ( s->functions->control )
   { intptr_t size;
@@ -1379,9 +1379,13 @@ Ssize(IOSTREAM *s)
       return size;
   }
   if ( s->functions->seek )
-  { intptr_t here = Stell(s);
-    intptr_t end  = Sseek(s, 0, SIO_SEEK_END);
+  { long here = Stell(s);
+    long end;
 
+    if ( Sseek(s, 0, SIO_SEEK_END) == 0 )
+      end = Stell(s);
+    else
+      end = -1;
     Sseek(s, here, SIO_SEEK_SET);
 
     return end;
@@ -1400,7 +1404,7 @@ The first part checks whether  repositioning   the  read  pointer in the
 buffer suffices to achieve the seek.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int64_t
+int
 Sseek64(IOSTREAM *s, int64_t pos, int whence)
 { if ( (s->flags & SIO_INPUT) && s->limitp > s->buffer ) /* something there */
   { int64_t now = Stell64(s);
@@ -1447,7 +1451,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
   if ( s->functions->seek64 )
     pos = (*s->functions->seek64)(s->handle, pos, whence);
   else if ( pos <= LONG_MAX )
-    pos = (*s->functions->seek)(s->handle, (intptr_t)pos, whence);
+    pos = (*s->functions->seek)(s->handle, (long)pos, whence);
   else
   { errno = EINVAL;
     return -1;
@@ -1462,19 +1466,13 @@ update:
     s->position->charno = pos;
   }
 
-  return pos;
+  return 0;
 }
 
 
-intptr_t
-Sseek(IOSTREAM *s, intptr_t pos, int whence)
-{ int64_t p2 = Sseek64(s, pos, whence);
-
-  if ( p2 <= LONG_MAX )
-    return (intptr_t) p2;
-
-  errno = EINVAL;
-  return -1;
+int
+Sseek(IOSTREAM *s, long pos, int whence)
+{ return Sseek64(s, (int64_t)pos, whence);
 }
 
 
@@ -1509,12 +1507,12 @@ Stell64(IOSTREAM *s)
 }
 
 
-intptr_t
+long
 Stell(IOSTREAM *s)
 { int64_t pos = Stell64(s);
 
   if ( pos <= LONG_MAX )
-    return (intptr_t) pos;
+    return (long) pos;
 
   errno = EINVAL;
   return -1;
@@ -2281,7 +2279,7 @@ out:
 		 *******************************/
 
 static int
-Sread_file(void *handle, char *buf, int size)
+Sread_file(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t) handle;
   int bytes;
 
@@ -2303,7 +2301,7 @@ Sread_file(void *handle, char *buf, int size)
 
 
 static int
-Swrite_file(void *handle, char *buf, int size)
+Swrite_file(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t) handle;
   int bytes;
 
@@ -2678,7 +2676,7 @@ S__getiob()
 #endif
 
 static int
-Sread_pipe(void *handle, char *buf, int size)
+Sread_pipe(void *handle, char *buf, size_t size)
 { FILE *fp = handle;
 
   return read(fileno(fp), buf, size);
@@ -2686,7 +2684,7 @@ Sread_pipe(void *handle, char *buf, int size)
 
 
 static int
-Swrite_pipe(void *handle, char *buf, int size)
+Swrite_pipe(void *handle, char *buf, size_t size)
 { FILE *fp = handle;
 
   return write(fileno(fp), buf, size);
@@ -2752,12 +2750,12 @@ MT: we assume these handles are not passed between threads
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct
-{ intptr_t	here;				/* `here' location */
-  intptr_t  size;				/* size of buffer */
-  int  *sizep;				/* pointer to size */
-  intptr_t	allocated;			/* allocated size */
-  char **buffer;			/* allocated buffer */
-  int	malloced;			/* malloc() maintained */
+{ size_t	here;			/* `here' location */
+  size_t	size;			/* size of buffer */
+  size_t       *sizep;			/* pointer to size */
+  size_t	allocated;		/* allocated size */
+  char	      **buffer;			/* allocated buffer */
+  int		malloced;		/* malloc() maintained */
 } memfile;
 
 
@@ -2769,7 +2767,7 @@ Sfree(void *ptr)			/* Windows: must free from same */
 
 static intptr_t
 S__memfile_nextsize(intptr_t needed)
-{ intptr_t size = 512;
+{ size_t size = 512;
 
   while ( size < needed )
     size *= 2;
@@ -2779,7 +2777,7 @@ S__memfile_nextsize(intptr_t needed)
 
 
 static int
-Swrite_memfile(void *handle, char *buf, int size)
+Swrite_memfile(void *handle, char *buf, size_t size)
 { memfile *mf = handle;
 
   if ( mf->here + size + 1 >= mf->allocated )
@@ -2822,7 +2820,7 @@ Swrite_memfile(void *handle, char *buf, int size)
 
 
 static int
-Sread_memfile(void *handle, char *buf, int size)
+Sread_memfile(void *handle, char *buf, size_t size)
 { memfile *mf = handle;
 
   if ( size + mf->here > mf->size )
@@ -2839,7 +2837,7 @@ Sread_memfile(void *handle, char *buf, int size)
 
 
 static intptr_t
-Sseek_memfile(void *handle, intptr_t offset, int whence)
+Sseek_memfile(void *handle, long offset, int whence)
 { memfile *mf = handle;
 
   switch(whence)
@@ -2888,7 +2886,7 @@ IOFUNCTIONS Smemfunctions =
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Sopenmem(char **buffer, int *size, const char* mode)
+Sopenmem(char **buffer, size_t *size, const char* mode)
     Open a memory area as a stream.  Output streams will automatically
     resized using realloc() if *size = 0 or the stream is opened with mode
     "wa".
@@ -2900,7 +2898,7 @@ Sopenmem(char **buffer, int *size, const char* mode)
     { char buf[1024];			(don't allocate for small stuff)
       char *s = buf;
       IOSTREAM *fd;
-      int size = sizeof(buf);
+      size_t size = sizeof(buf);
 
       fd = Sopenmem(&s, &size, "w");
       ...
@@ -2917,10 +2915,10 @@ and other output predicates to create strings.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 IOSTREAM *
-Sopenmem(char **buffer, int *sizep, const char *mode)
+Sopenmem(char **buffer, size_t *sizep, const char *mode)
 { memfile *mf = malloc(sizeof(memfile));
   int flags = SIO_FBUF|SIO_RECORDPOS|SIO_NOMUTEX;
-  int size;
+  size_t size;
 
   if ( !mf )
   { errno = ENOMEM;
@@ -2971,12 +2969,12 @@ Sopenmem(char **buffer, int *sizep, const char *mode)
 */
 
 static int
-Sread_string(void *handle, char *buf, int size)
+Sread_string(void *handle, char *buf, size_t size)
 { return 0;				/* signal EOF */
 }
 
 static int
-Swrite_string(void *handle, char *buf, int size)
+Swrite_string(void *handle, char *buf, size_t size)
 { errno = ENOSPC;			/* signal error */
   return -1;
 }

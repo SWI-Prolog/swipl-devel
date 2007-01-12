@@ -412,7 +412,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	    term_t av = PL_new_term_refs(fdef->arity);
 	    char buf[BUFSIZE];
 	    char *str = buf;
-	    int bufsize = BUFSIZE;
+	    size_t bufsize = BUFSIZE;
 	    unsigned int i;
 	    qid_t qid;
 
@@ -568,7 +568,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 
 		  NEED_ARG;
 		  if ( state.pending_rubber )
-		  { int bufsize = BUFSIZE;
+		  { size_t bufsize = BUFSIZE;
 
 		    str = buf;
 		    tellString(&str, &bufsize, ENC_UTF8);
@@ -590,7 +590,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 
 		      state.column = fd->position->linepos;
 		    } else
-		    { int bufsize = BUFSIZE;
+		    { size_t bufsize = BUFSIZE;
 
 		      str = buf;
 		      tellString(&str, &bufsize, ENC_UTF8);
@@ -613,7 +613,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		 { FMT_ERROR("not enough arguments");
 		 }
 		 if ( state.pending_rubber )
-		  { int bufsize = BUFSIZE;
+		  { size_t bufsize = BUFSIZE;
 
 		    str = buf;
 		    tellString(&str, &bufsize, ENC_UTF8);
@@ -637,7 +637,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 
 		      state.column = fd->position->linepos;
 		    } else
-		    { int bufsize = BUFSIZE;
+		    { size_t bufsize = BUFSIZE;
 
 		      str = buf;
 		      tellString(&str, &bufsize, ENC_UTF8);
@@ -658,7 +658,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	      case '@':
 	        { char buf[BUFSIZE];
 		  char *str = buf;
-		  int bufsize = BUFSIZE;
+		  size_t bufsize = BUFSIZE;
 		  term_t ex = 0;
 		  int rval;
 

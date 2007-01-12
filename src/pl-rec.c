@@ -578,7 +578,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
 #define REC_COMPAT(m)	(((m)&(REC_VMASK|REC_SZMASK)) == REC_HDR)
 
 char *
-PL_record_external(term_t t, unsigned int *len)
+PL_record_external(term_t t, size_t *len)
 { GET_LD
   compile_info info;
   Word p, *vp;

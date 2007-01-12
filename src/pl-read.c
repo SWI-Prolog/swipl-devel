@@ -417,7 +417,7 @@ singletonWarning(const char *which, const char **vars, int nvars)
 
   for(n=0; n<nvars; n++)
   { PL_unify_list(a, h, a);
-    PL_unify_chars(h, REP_UTF8|PL_ATOM, (unsigned)-1, vars[n]);
+    PL_unify_chars(h, REP_UTF8|PL_ATOM, -1, vars[n]);
   }
   PL_unify_nil(a);
 
@@ -2993,7 +2993,7 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
 
   if ( PL_is_variable(atom) )
   { char buf[1024];
-    int bufsize = sizeof(buf);
+    size_t bufsize = sizeof(buf);
     word rval;
     char *s = buf;
     IOSTREAM *stream;

@@ -63,7 +63,7 @@ COMMON(word) 		consPtr(void *p, int ts);
 #endif
 COMMON(char *) 		store_string(const char *s);
 COMMON(void) 		remove_string(char *s);
-COMMON(int) 		unboundStringHashValue(const char *t, unsigned int l);
+COMMON(int) 		unboundStringHashValue(const char *t, size_t l);
 #ifndef xmalloc
 COMMON(void *) 		xmalloc(size_t size);
 COMMON(void *) 		xrealloc(void *mem, size_t size);
@@ -220,7 +220,7 @@ COMMON(int) 		PL_error(const char *pred, int arity, const char *msg,
 			 int id, ...);
 COMMON(char *) 		tostr(char *buf, const char *fmt, ...);
 COMMON(void) 		printMessage(atom_t severity, ...);
-COMMON(int) 		PL_get_nchars_ex(term_t t, unsigned int *len, char **s,
+COMMON(int) 		PL_get_nchars_ex(term_t t, size_t *len, char **s,
 					 unsigned int flags);
 COMMON(int) 		PL_get_chars_ex(term_t t, char **s, unsigned int flags);
 COMMON(int) 		PL_get_atom_ex(term_t t, atom_t *a);
@@ -242,7 +242,7 @@ COMMON(void) 		initIO(void);
 COMMON(void) 		dieIO(void);
 COMMON(void) 		closeFiles(int all);
 COMMON(int) 		openFileDescriptors(unsigned char *buf, int size);
-COMMON(void) 		protocol(const char *s, int n);
+COMMON(void) 		protocol(const char *s, size_t n);
 COMMON(bool) 		getInputStream__LD(term_t t, IOSTREAM **s ARG_LD);
 COMMON(bool) 		getOutputStream(term_t t, IOSTREAM **s);
 COMMON(bool) 		streamStatus(IOSTREAM *s);
@@ -263,7 +263,7 @@ COMMON(word) 		pl_noprotocol(void);
 COMMON(bool) 		seeString(const char *s);
 COMMON(bool) 		seeingString(void);
 COMMON(bool) 		seenString(void);
-COMMON(bool) 		tellString(char **s, int *size, IOENC enc);
+COMMON(bool) 		tellString(char **s, size_t *size, IOENC enc);
 COMMON(bool) 		toldString(void);
 COMMON(word) 		pl_wait_for_input(term_t streams, term_t avail,
 					  term_t tmo);
@@ -390,7 +390,7 @@ COMMON(void) 		PL_cons_list__LD(term_t l, term_t head, term_t tail
 					 ARG_LD);
 COMMON(int)		PL_is_inf(term_t t);
 COMMON(int)		isUCSAtom(Atom a);
-COMMON(atom_t)		lookupUCSAtom(const pl_wchar_t *s, unsigned int len);
+COMMON(atom_t)		lookupUCSAtom(const pl_wchar_t *s, size_t len);
 COMMON(Buffer)		codes_or_chars_to_buffer(term_t l, unsigned int flags,
 						 int wide);
 COMMON(Buffer)		findBuffer(int flags);

@@ -329,7 +329,7 @@ reset_readline()
 
 
 static int
-Sread_readline(void *handle, char *buf, int size)
+Sread_readline(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t)handle;
   int fd = (int) h;
   int ttymode = PL_ttymode(Suser_input); /* Not so nice */

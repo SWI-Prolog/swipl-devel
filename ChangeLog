@@ -7,6 +7,13 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT/MODIFIED: Massive changes in type handling, preparing
+    for Win64 and improving type-safety on other -notably 64-bit- platforms.
+
+    All text+length C interface functions now use the type size_t.  This
+    portability problems on 64-bit code.  Compile your program with all
+    warnings enabled and fix messages concerning type-size issues.
+
   * FIXED: Proper error on erase on clause of static predicate.  Solly
     Brown.
 

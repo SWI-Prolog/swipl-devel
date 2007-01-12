@@ -543,7 +543,7 @@ printMessage(atom_t severity, ...)
 		 *******************************/
 
 int
-PL_get_nchars_ex(term_t t, unsigned int *len, char **s, unsigned int flags)
+PL_get_nchars_ex(term_t t, size_t *len, char **s, unsigned int flags)
 { return PL_get_nchars(t, len, s, flags|CVT_EXCEPTION);
 }
 

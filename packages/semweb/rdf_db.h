@@ -131,7 +131,7 @@ typedef struct literal
     double	real;
     struct
     { record_t  record;
-      unsigned int len;
+      size_t	len;
     } term;				/* external record */
   } value;
   atom_t	type_or_lang;		/* Type or language for literals */

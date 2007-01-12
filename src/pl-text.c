@@ -177,7 +177,7 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
     encodings[2] = ENC_UNKNOWN;
     
     for(enc = encodings; *enc != ENC_UNKNOWN; enc++)
-    { int size;
+    { size_t size;
       IOSTREAM *fd;
     
       r = text->buf;

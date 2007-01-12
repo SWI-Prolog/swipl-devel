@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org/projects/xpce/
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -197,7 +197,7 @@ findHandle(int handle)
 
 
 int
-pceWrite(int handle, const char *buf, int size)
+pceWrite(int handle, const char *buf, size_t size)
 { PceFileHandle h;
 
   if ( !(h=findHandle(handle)) )
@@ -310,7 +310,7 @@ pceSeek(int handle, long offset, int whence)
 /* see also Sread_object() */
 
 int
-pceRead(int handle, char *buf, int size)
+pceRead(int handle, char *buf, size_t size)
 { PceFileHandle h;
 
   if ( !(h=findHandle(handle)) )

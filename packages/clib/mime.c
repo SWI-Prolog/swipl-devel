@@ -249,7 +249,7 @@ get_character_data(term_t from, char **data, size_t *len, int *malloced)
 { atom_t name;
   int arity;
   char *buf;
-  unsigned int size;
+  size_t size;
 
   if ( PL_get_name_arity(from, &name, &arity) && arity > 0 )
   { if ( name == ATOM_stream )

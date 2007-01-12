@@ -501,8 +501,8 @@ __pce_export void	pceGetMethod(PceClass class,
 
 __pce_export int	pceOpen(PceObject obj, int flags, void *encoding);
 __pce_export int	pceClose(int handle);
-__pce_export int	pceWrite(int handle, const char *buf, int size);
-__pce_export int	pceRead(int handle, char *buf, int size);
+__pce_export int	pceWrite(int handle, const char *buf, size_t size);
+__pce_export int	pceRead(int handle, char *buf, size_t size);
 __pce_export long	pceSeek(int handle, long offset, int whence);
 __pce_export int	pceControl(int handle, int cmd, void *closure);
 __pce_export const char *pceOsError();

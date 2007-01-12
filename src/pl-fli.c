@@ -283,7 +283,7 @@ PL_new_atom(const char *s)
 
 
 atom_t
-PL_new_atom_nchars(unsigned int len, const char *s)
+PL_new_atom_nchars(size_t len, const char *s)
 { if ( !GD->initialised )
     initAtoms();
 
@@ -347,7 +347,7 @@ isUCSAtom(Atom a)
 
 
 atom_t
-lookupUCSAtom(const pl_wchar_t *s, unsigned int len)
+lookupUCSAtom(const pl_wchar_t *s, size_t len)
 { int new;
 
   return lookupBlob((const char *)s, len*sizeof(pl_wchar_t),
@@ -356,7 +356,7 @@ lookupUCSAtom(const pl_wchar_t *s, unsigned int len)
 
 
 atom_t
-PL_new_atom_wchars(unsigned int len, const wchar_t *s)
+PL_new_atom_wchars(size_t len, const wchar_t *s)
 { PL_chars_t txt;
 
   if ( !GD->initialised )
@@ -465,11 +465,11 @@ loadUCSAtom(IOSTREAM *fd)
 
 
 int
-PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *s)
+PL_unify_wchars(term_t t, int flags, size_t len, const pl_wchar_t *s)
 { PL_chars_t text;
   int rc;
 
-  if ( len == (unsigned int)-1 )
+  if ( len == (size_t)-1 )
     len = wcslen(s);
 
   text.text.w    = (pl_wchar_t *)s;
@@ -487,11 +487,11 @@ PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *s)
 
 int
 PL_unify_wchars_diff(term_t t, term_t tail, int flags,
-		     unsigned int len, const pl_wchar_t *s)
+		     size_t len, const pl_wchar_t *s)
 { PL_chars_t text;
   int rc;
 
-  if ( len == (unsigned int)-1 )
+  if ( len == (size_t)-1 )
     len = wcslen(s);
 
   text.text.w    = (pl_wchar_t *)s;
@@ -524,7 +524,7 @@ PL_atom_chars(atom_t a)
 
 
 const char *
-PL_atom_nchars(atom_t a, unsigned int *len)
+PL_atom_nchars(atom_t a, size_t *len)
 { Atom x = atomValue(a);
 
   if ( x->type != &ucs_atom )
@@ -538,7 +538,7 @@ PL_atom_nchars(atom_t a, unsigned int *len)
 
 
 const wchar_t *
-PL_atom_wchars(atom_t a, unsigned int *len)
+PL_atom_wchars(atom_t a, size_t *len)
 { Atom x = atomValue(a);
 
   if ( x->type == &ucs_atom )
@@ -905,7 +905,7 @@ PL_get_atom_chars(term_t t, char **s)
 
 
 int
-PL_get_atom_nchars(term_t t, unsigned int *len, char **s)
+PL_get_atom_nchars(term_t t, size_t *len, char **s)
 { GET_LD
   word w = valHandle(t);
 
@@ -1086,8 +1086,7 @@ ok:
 
 
 int
-PL_get_list_nchars(term_t l,
-		   unsigned int *length, char **s, unsigned int flags)
+PL_get_list_nchars(term_t l, size_t *length, char **s, unsigned int flags)
 { Buffer b;
 
   if ( (b = codes_or_chars_to_buffer(l, flags, FALSE)) )
@@ -1120,7 +1119,7 @@ PL_get_list_chars(term_t l, char **s, unsigned flags)
 
 
 int
-PL_get_wchars(term_t l, unsigned int *length, pl_wchar_t **s, unsigned flags)
+PL_get_wchars(term_t l, size_t *length, pl_wchar_t **s, unsigned flags)
 { PL_chars_t text;
 
   if ( !PL_get_text(l, &text, flags) )
@@ -1138,7 +1137,7 @@ PL_get_wchars(term_t l, unsigned int *length, pl_wchar_t **s, unsigned flags)
 
 
 int
-PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
+PL_get_nchars(term_t l, size_t *length, char **s, unsigned flags)
 { PL_chars_t text;
 
   if ( !PL_get_text(l, &text, flags) )
@@ -1816,7 +1815,7 @@ PL_unify_string_chars(term_t t, const char *s)
 }
 
 int
-PL_unify_string_nchars(term_t t, unsigned int len, const char *s)
+PL_unify_string_nchars(term_t t, size_t len, const char *s)
 { GET_LD
   word str = globalString(len, s);
 
@@ -1865,7 +1864,7 @@ PL_put_atom_chars(term_t t, const char *s)
 
 
 void
-PL_put_atom_nchars(term_t t, unsigned int len, const char *s)
+PL_put_atom_nchars(term_t t, size_t len, const char *s)
 { GET_LD
   atom_t a = lookupAtom(s, len);
 
@@ -1884,7 +1883,7 @@ PL_put_string_chars(term_t t, const char *s)
 
 
 void
-PL_put_string_nchars(term_t t, unsigned int len, const char *s)
+PL_put_string_nchars(term_t t, size_t len, const char *s)
 { GET_LD
   word w = globalString(len, s);
 
@@ -1893,7 +1892,7 @@ PL_put_string_nchars(term_t t, unsigned int len, const char *s)
 
 
 void
-PL_put_list_ncodes(term_t t, unsigned int len, const char *chars)
+PL_put_list_ncodes(term_t t, size_t len, const char *chars)
 { GET_LD
   
   if ( len == 0 )
@@ -1920,7 +1919,7 @@ PL_put_list_codes(term_t t, const char *chars)
 
 
 void
-PL_put_list_nchars(term_t t, unsigned int len, const char *chars)
+PL_put_list_nchars(term_t t, size_t len, const char *chars)
 { GET_LD
   
   if ( len == 0 )
@@ -2148,7 +2147,7 @@ PL_unify_atom_chars(term_t t, const char *chars)
 
 
 int
-PL_unify_atom_nchars(term_t t, unsigned int len, const char *chars)
+PL_unify_atom_nchars(term_t t, size_t len, const char *chars)
 { GET_LD
   atom_t a = lookupAtom(chars, len);
   int rval = unifyAtomic(t, a PASS_LD);
@@ -2211,7 +2210,7 @@ codeToAtom(int code)
 
 
 int
-PL_unify_list_ncodes(term_t l, unsigned int len, const char *chars)
+PL_unify_list_ncodes(term_t l, size_t len, const char *chars)
 { GET_LD
   if ( PL_is_variable(l) )
   { term_t tmp = PL_new_term_ref();
@@ -2244,7 +2243,7 @@ PL_unify_list_codes(term_t l, const char *chars)
 
 
 int
-PL_unify_list_nchars(term_t l, unsigned int len, const char *chars)
+PL_unify_list_nchars(term_t l, size_t len, const char *chars)
 { GET_LD
   if ( PL_is_variable(l) )
   { term_t tmp = PL_new_term_ref();
@@ -2284,11 +2283,11 @@ flags: bitwise or of type and representation
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-PL_unify_chars(term_t t, int flags, unsigned int len, const char *s)
+PL_unify_chars(term_t t, int flags, size_t len, const char *s)
 { PL_chars_t text;
   int rc;
 
-  if ( len == (unsigned int)-1 )
+  if ( len == (size_t)-1 )
     len = strlen(s);
 
   text.text.t    = (char *)s;
@@ -2521,7 +2520,7 @@ cont:
       rval = PL_unify_atom_chars(t, va_arg(args, const char *));
       break;
     case PL_NCHARS:
-    { unsigned int len = va_arg(args, unsigned int);
+    { size_t len = va_arg(args, size_t);
       const char *s = va_arg(args, const char *);
 
       rval = PL_unify_atom_nchars(t, len, s);
@@ -2546,7 +2545,7 @@ cont:
     case PL_NUTF8_STRING:
     { PL_chars_t txt;
 
-      txt.length    = va_arg(args, unsigned int);
+      txt.length    = va_arg(args, size_t);
       txt.text.t    = va_arg(args, char *);
       txt.storage   = PL_CHARS_HEAP;
       txt.encoding  = ENC_UTF8;
@@ -2563,7 +2562,7 @@ cont:
     case PL_NWSTRING:
     { PL_chars_t txt;
 
-      txt.length    = va_arg(args, unsigned int);
+      txt.length    = va_arg(args, size_t);
       txt.text.w    = va_arg(args, wchar_t *);
       txt.storage   = PL_CHARS_HEAP;
       txt.encoding  = ENC_WCHAR;
@@ -2789,7 +2788,7 @@ _PL_copy_atomic(term_t t, PL_atomic_t arg) /* internal one */
 		 *******************************/
 
 int
-PL_unify_blob(term_t t, void *blob, unsigned int len, PL_blob_t *type)
+PL_unify_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 { GET_LD
   int new;
   atom_t a = lookupBlob(blob, len, type, &new);
@@ -2802,7 +2801,7 @@ PL_unify_blob(term_t t, void *blob, unsigned int len, PL_blob_t *type)
 
 
 int
-PL_put_blob(term_t t, void *blob, unsigned int len, PL_blob_t *type)
+PL_put_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 { GET_LD
   int new;
   atom_t a = lookupBlob(blob, len, type, &new);
@@ -2815,7 +2814,7 @@ PL_put_blob(term_t t, void *blob, unsigned int len, PL_blob_t *type)
 
 
 int
-PL_get_blob(term_t t, void **blob, unsigned int *len, PL_blob_t **type)
+PL_get_blob(term_t t, void **blob, size_t *len, PL_blob_t **type)
 { GET_LD
   word w = valHandle(t);
 
@@ -2837,7 +2836,7 @@ PL_get_blob(term_t t, void **blob, unsigned int *len, PL_blob_t **type)
 
 
 void *
-PL_blob_data(atom_t a, unsigned int *len, PL_blob_t **type)
+PL_blob_data(atom_t a, size_t *len, PL_blob_t **type)
 { Atom x = atomValue(a);
 
   if ( len )
@@ -3486,7 +3485,7 @@ PL_prompt_string(int fd)
 
 
 void
-PL_add_to_protocol(const char *buf, int n)
+PL_add_to_protocol(const char *buf, size_t n)
 { protocol(buf, n);
 }
 

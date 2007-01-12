@@ -1314,7 +1314,7 @@ unlinkProlog(PceObject hd)
 static PceObject
 getPrintNameProlog(PceObject hd)
 { char *buffer = NULL;
-  int   size   = 0;
+  size_t  size   = 0;
   PceObject rval;
   IOSTREAM *s;
 
@@ -1458,7 +1458,7 @@ termToObject(Term t, PceType type, Atom assoc, int new)
     if ( functor == ATOM_string && arity == 1 )
     { char *s;
       wchar_t *sW;
-      unsigned int len;
+      size_t len;
       Term a = NewTerm();
       PceName pceassoc = atomToAssoc(assoc);
 
@@ -1562,7 +1562,7 @@ termToObject(Term t, PceType type, Atom assoc, int new)
 #ifdef O_STRING
   { char *s;
     wchar_t *w;
-    unsigned int len;
+    size_t len;
 
     if ( PL_get_string(t, &s, &len) )	/* string object (if supported) */
       return cToPceStringA(atomToAssoc(assoc), s, len, FALSE);
@@ -2566,13 +2566,13 @@ pceContextModule()
 #define fdFromHandle(h) ((int)((long)(h)))
 
 static int
-Swrite_pce(void *handle, char *buf, int size)
+Swrite_pce(void *handle, char *buf, size_t size)
 { return pceWrite(fdFromHandle(handle), buf, size);
 }
 
 
 static int
-Sread_pce(void *handle, char *buf, int size)
+Sread_pce(void *handle, char *buf, size_t size)
 { return pceRead(fdFromHandle(handle), buf, size);
 }
 

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -187,16 +187,16 @@ typedef union
 #define PL_INT		 (20)		/* int */
 #define PL_LONG		 (21)		/* long */
 #define PL_DOUBLE	 (22)		/* double */
-#define PL_NCHARS	 (23)		/* unsigned, const char * */
+#define PL_NCHARS	 (23)		/* size_t, const char * */
 #define PL_UTF8_CHARS	 (24)		/* const char * */
 #define PL_UTF8_STRING	 (25)		/* const char * */
 #define PL_INT64	 (26)		/* int64_t */
-#define PL_NUTF8_CHARS	 (27)		/* unsigned, const char * */
-#define PL_NUTF8_CODES	 (29)		/* unsigned, const char * */
-#define PL_NUTF8_STRING	 (30)		/* unsigned, const char * */
-#define PL_NWCHARS	 (31)		/* unsigned, const wchar_t * */
-#define PL_NWCODES	 (32)		/* unsigned, const wchar_t * */
-#define PL_NWSTRING	 (33)		/* unsigned, const wchar_t * */
+#define PL_NUTF8_CHARS	 (27)		/* size_t, const char * */
+#define PL_NUTF8_CODES	 (29)		/* size_t, const char * */
+#define PL_NUTF8_STRING	 (30)		/* size_t, const char * */
+#define PL_NWCHARS	 (31)		/* size_t, const wchar_t * */
+#define PL_NWCODES	 (32)		/* size_t, const wchar_t * */
+#define PL_NWSTRING	 (33)		/* size_t, const wchar_t * */
 #define PL_MBCHARS	 (34)		/* const char * */
 #define PL_MBCODES	 (35)		/* const char * */
 #define PL_MBSTRING	 (36)		/* const char * */
@@ -336,11 +336,11 @@ PL_EXPORT(void)		PL_reset_term_refs(term_t r);
 
 			/* Constants */
 PL_EXPORT(atom_t)	PL_new_atom(const char *s);
-PL_EXPORT(atom_t)	PL_new_atom_nchars(unsigned int len, const char *s);
-PL_EXPORT(atom_t)	PL_new_atom_wchars(unsigned int len, const wchar_t *s);
+PL_EXPORT(atom_t)	PL_new_atom_nchars(size_t len, const char *s);
+PL_EXPORT(atom_t)	PL_new_atom_wchars(size_t len, const wchar_t *s);
 PL_EXPORT(const char *)	PL_atom_chars(atom_t a);
-PL_EXPORT(const char *) PL_atom_nchars(atom_t a, unsigned int *len);
-PL_EXPORT(const wchar_t *) PL_atom_wchars(atom_t a, unsigned int *len);
+PL_EXPORT(const char *) PL_atom_nchars(atom_t a, size_t *len);
+PL_EXPORT(const wchar_t *) PL_atom_wchars(atom_t a, size_t *len);
 #ifndef O_DEBUG_ATOMGC
 PL_EXPORT(void)		PL_register_atom(atom_t a);
 PL_EXPORT(void)		PL_unregister_atom(atom_t a);
@@ -354,18 +354,17 @@ PL_EXPORT(int)		PL_get_atom(term_t t, atom_t *a);
 PL_EXPORT(int)		PL_get_bool(term_t t, int *value);
 PL_EXPORT(int)		PL_get_atom_chars(term_t t, char **a);
 #define PL_get_string_chars(t, s, l) PL_get_string(t,s,l)
-					/* PL_get_string() is depreciated */
+					/* PL_get_string() is depricated */
 PL_EXPORT(int)		PL_get_string(term_t t, char **s, size_t *len);
 PL_EXPORT(int)		PL_get_chars(term_t t, char **s, unsigned int flags);
 PL_EXPORT(int)		PL_get_list_chars(term_t l, char **s,
 					  unsigned int flags);
-PL_EXPORT(int)		PL_get_atom_nchars(term_t t,
-					   unsigned int *length, char **a);
+PL_EXPORT(int)		PL_get_atom_nchars(term_t t, size_t *len, char **a);
 PL_EXPORT(int)		PL_get_list_nchars(term_t l,
-					   unsigned int *length, char **s,
+					   size_t *len, char **s,
 					   unsigned int flags);
 PL_EXPORT(int)		PL_get_nchars(term_t t,
-				      unsigned int *length, char **s,
+				      size_t *len, char **s,
 				      unsigned int flags);
 PL_EXPORT(int)		PL_get_integer(term_t t, int *i);
 PL_EXPORT(int)		PL_get_long(term_t t, intptr_t *i);
@@ -404,15 +403,10 @@ PL_EXPORT(void)		PL_put_atom_chars(term_t t, const char *chars);
 PL_EXPORT(void)		PL_put_string_chars(term_t t, const char *chars);
 PL_EXPORT(void)		PL_put_list_chars(term_t t, const char *chars);
 PL_EXPORT(void)		PL_put_list_codes(term_t t, const char *chars);
-PL_EXPORT(void)		PL_put_atom_nchars(term_t t,
-					   unsigned int l, const char *chars);
-PL_EXPORT(void)		PL_put_string_nchars(term_t t,
-					     unsigned int len,
-					     const char *chars);
-PL_EXPORT(void)		PL_put_list_nchars(term_t t,
-					   unsigned int l, const char *chars);
-PL_EXPORT(void)		PL_put_list_ncodes(term_t t,
-					   unsigned int l, const char *chars);
+PL_EXPORT(void)		PL_put_atom_nchars(term_t t, size_t l, const char *chars);
+PL_EXPORT(void)		PL_put_string_nchars(term_t t, size_t len, const char *chars);
+PL_EXPORT(void)		PL_put_list_nchars(term_t t, size_t l, const char *chars);
+PL_EXPORT(void)		PL_put_list_ncodes(term_t t, size_t l, const char *chars);
 PL_EXPORT(void)		PL_put_integer(term_t t, intptr_t i);
 PL_EXPORT(void)		PL_put_pointer(term_t t, void *ptr);
 PL_EXPORT(void)		PL_put_float(term_t t, double f);
@@ -433,14 +427,11 @@ PL_EXPORT(int)		PL_unify_atom_chars(term_t t, const char *chars);
 PL_EXPORT(int)		PL_unify_list_chars(term_t t, const char *chars);
 PL_EXPORT(int)		PL_unify_list_codes(term_t t, const char *chars);
 PL_EXPORT(int)		PL_unify_string_chars(term_t t, const char *chars);
-PL_EXPORT(int)		PL_unify_atom_nchars(term_t t,
-					     unsigned int l, const char *s);
-PL_EXPORT(int)		PL_unify_list_ncodes(term_t t,
-					     unsigned int l, const char *s);
-PL_EXPORT(int)		PL_unify_list_nchars(term_t t,
-					     unsigned int l, const char *s);
+PL_EXPORT(int)		PL_unify_atom_nchars(term_t t, size_t l, const char *s);
+PL_EXPORT(int)		PL_unify_list_ncodes(term_t t, size_t l, const char *s);
+PL_EXPORT(int)		PL_unify_list_nchars(term_t t, size_t l, const char *s);
 PL_EXPORT(int)		PL_unify_string_nchars(term_t t,
-					       unsigned int len,
+					       size_t len,
 					       const char *chars);
 PL_EXPORT(int)		PL_unify_integer(term_t t, intptr_t n);
 PL_EXPORT(int)		PL_unify_float(term_t t, double f);
@@ -451,7 +442,7 @@ PL_EXPORT(int)		PL_unify_nil(term_t l);
 PL_EXPORT(int)		PL_unify_arg(int index, term_t t, term_t a);
 PL_EXPORT(int)		PL_unify_term(term_t t, ...);
 PL_EXPORT(int)		PL_unify_chars(term_t t, int flags,
-				       unsigned int len, const char *s);
+				       size_t len, const char *s);
 
 
 		 /*******************************
@@ -459,11 +450,11 @@ PL_EXPORT(int)		PL_unify_chars(term_t t, int flags,
 		 *******************************/
 
 PL_EXPORT(int)		PL_unify_wchars(term_t t, int type,
-					unsigned int len, const pl_wchar_t *s);
+					size_t len, const pl_wchar_t *s);
 PL_EXPORT(int)		PL_unify_wchars_diff(term_t t, term_t tail, int type,
-					unsigned int len, const pl_wchar_t *s);
+					size_t len, const pl_wchar_t *s);
 PL_EXPORT(int)		PL_get_wchars(term_t l,
-				      unsigned int *length, pl_wchar_t **s,
+				      size_t *length, pl_wchar_t **s,
 				      unsigned flags);
 PL_EXPORT(size_t)	PL_utf8_strlen(const char *s, size_t len);
 
@@ -527,15 +518,15 @@ typedef struct PL_blob_t
 } PL_blob_t;
 
 PL_EXPORT(int)		PL_is_blob(term_t t, PL_blob_t **type);
-PL_EXPORT(int)		PL_unify_blob(term_t t, void *blob, unsigned int len,
+PL_EXPORT(int)		PL_unify_blob(term_t t, void *blob, size_t len,
 				      PL_blob_t *type);
-PL_EXPORT(int)		PL_put_blob(term_t t, void *blob, unsigned int len,
+PL_EXPORT(int)		PL_put_blob(term_t t, void *blob, size_t len,
 				    PL_blob_t *type);
-PL_EXPORT(int)		PL_get_blob(term_t t, void **blob, unsigned int *len,
+PL_EXPORT(int)		PL_get_blob(term_t t, void **blob, size_t *len,
 				    PL_blob_t **type);
 
 PL_EXPORT(void*)	PL_blob_data(atom_t a,
-				     unsigned int *len,
+				     size_t *len,
 				     struct PL_blob_t **type);
 
 PL_EXPORT(void)		PL_register_blob_type(PL_blob_t *type);
@@ -612,7 +603,7 @@ PL_EXPORT(record_t)	PL_record(term_t term);
 PL_EXPORT(void)		PL_recorded(record_t record, term_t term);
 PL_EXPORT(void)		PL_erase(record_t record);
 
-PL_EXPORT(char *)	PL_record_external(term_t t, unsigned int *size);
+PL_EXPORT(char *)	PL_record_external(term_t t, size_t *size);
 PL_EXPORT(int)		PL_recorded_external(const char *rec, term_t term);
 PL_EXPORT(int)		PL_erase_external(char *rec);
 
@@ -760,14 +751,14 @@ readline overhead.
 #define PL_DISPATCH_INSTALLED 2		/* dispatch function installed? */
 
 PL_EXPORT(int)		PL_dispatch(int fd, int wait);
-PL_EXPORT(void)		PL_add_to_protocol(const char *buf, int count);
+PL_EXPORT(void)		PL_add_to_protocol(const char *buf, size_t count);
 PL_EXPORT(char *)	PL_prompt_string(int fd);
 PL_EXPORT(void)		PL_write_prompt(int dowrite);
 PL_EXPORT(void)		PL_prompt_next(int fd);
 PL_EXPORT(char *)	PL_atom_generator(const char *prefix, int state);
 PL_EXPORT(pl_wchar_t*)  PL_atom_generator_w(const pl_wchar_t *pref,
 					    pl_wchar_t *buffer,
-					    unsigned int buflen,
+					    size_t buflen,
 					    int state);
 PL_EXPORT(void)		PL_clock_wait_ticks(intptr_t waited);
 
@@ -857,13 +848,13 @@ PL_EXPORT(intptr_t)	PL_query(int);	/* get information from Prolog */
 		 *******************************/
 
 typedef struct
-{ uintptr_t	    local_size;		/* Stack sizes */
-  uintptr_t	    global_size;
-  uintptr_t	    trail_size;
-  uintptr_t	    argument_size;
-  char *	    alias;		/* alias name */
-  int		  (*cancel)(int id);	/* cancel function */
-  void *	    reserved[5];	/* reserved for extensions */
+{ long	    local_size;			/* Stack sizes (Kbytes) */
+  long	    global_size;
+  long	    trail_size;
+  long	    argument_size;
+  char *    alias;			/* alias name */
+  int	  (*cancel)(int id);		/* cancel function */
+  void *    reserved[5];		/* reserved for extensions */
 } PL_thread_attr_t;
 
 

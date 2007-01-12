@@ -186,7 +186,7 @@ pl_setopt(term_t Socket, term_t opt)
 #define fdFromHandle(p) ((int)((long)(p)))
 
 static int
-tcp_read_handle(void *handle, char *buf, int bufSize)
+tcp_read_handle(void *handle, char *buf, size_t bufSize)
 { int sock = fdFromHandle(handle);
 
   return nbio_read(sock, buf, bufSize);
@@ -194,7 +194,7 @@ tcp_read_handle(void *handle, char *buf, int bufSize)
 
 
 static int
-tcp_write_handle(void *handle, char *buf, int bufSize)
+tcp_write_handle(void *handle, char *buf, size_t bufSize)
 { int sock = fdFromHandle(handle);
 
   return nbio_write(sock, buf, bufSize);
@@ -325,7 +325,7 @@ udp_send(term_t Socket, term_t Data, term_t To, term_t Options)
   int socket;
   int flags = 0L;
   char *data;
-  unsigned int dlen;
+  size_t dlen;
   ssize_t n;
 
   if ( !PL_get_nchars(Data, &dlen, &data, CVT_ALL|CVT_EXCEPTION) )

@@ -1970,7 +1970,7 @@ ResetStdin()
 }
 
 static int
-Sread_terminal(void *handle, char *buf, int size)
+Sread_terminal(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t)handle;
   int fd = (int)h;
   source_location oldsrc = LD->read_source;

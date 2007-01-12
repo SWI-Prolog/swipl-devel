@@ -1940,7 +1940,7 @@ typedef struct redir_context
   term_t	term;			/* redirect target */
   int		out_format;		/* output type */
   int		out_arity;		/* 2 for difference-list versions */
-  int		size;			/* size of I/O buffer */
+  size_t	size;			/* size of I/O buffer */
   char	       *data;			/* data written */
   char		buffer[1024];		/* fast temporary buffer */
 } redir_context;

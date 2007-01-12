@@ -1991,7 +1991,7 @@ static word
 x_chars(const char *pred, term_t atom, term_t string, int how)
 { char *s;
   pl_wchar_t *ws;
-  unsigned int len;
+  size_t len;
   int arg1;
 
   if ( (how & X_NUMBER) )
@@ -2116,7 +2116,7 @@ pl_char_code(term_t atom, term_t chr)
 static
 PRED_IMPL("atom_number", 2, atom_number, 0)
 { char *s;
-  unsigned len;
+  size_t len;
 
   if ( PL_get_nchars(A1, &len, &s, CVT_ATOM|CVT_STRING) )
   { number n;
@@ -2138,7 +2138,7 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
 static
 PRED_IMPL("collation_key", 2, collation_key, 0)
 { wchar_t *s;
-  unsigned int len;
+  size_t len;
   wchar_t buf[256];
   size_t buflen = sizeof(buf)/sizeof(wchar_t);
   wchar_t *o = buf;
@@ -2432,7 +2432,7 @@ word
 pl_apropos_match(term_t a1, term_t a2)
 { char *s1=NULL, *s2=NULL;
   pl_wchar_t *w1=NULL, *w2=NULL;
-  unsigned int l1, l2;
+  size_t l1, l2;
 
   if ( PL_get_chars(a1, &s1, CVT_ALL|BUF_RING) &&
        PL_get_chars(a2, &s2, CVT_ALL) )
