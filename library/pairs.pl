@@ -54,13 +54,28 @@ O'Keefe.
 %
 %	True if Keys holds the keys of Pairs and Values the values.
 %	
-%	@tbd	Given Prolog indexing, only mode +,?,? is truely
-%		deterministic.
+%	Deterministic if any argument is instantiated to a finite list
+%	and the others are either free or finite lists.
 
-pairs_keys_values([], [], []).
-pairs_keys_values([K-V|Pairs], [K|Keys], [V|Values]) :-
-	pairs_keys_values(Pairs, Keys, Values).
+pairs_keys_values(Pairs, Keys, Values) :-
+	(   nonvar(Pairs) ->
+	    pairs_keys_values_(Pairs, Keys, Values)
+	;   nonvar(Keys) ->
+	    keys_values_pairs(Keys, Values, Pairs)
+	;   values_keys_pairs(Values, Keys, Pairs)
+	).
 
+pairs_keys_values_([], [], []).
+pairs_keys_values_([K-V|Pairs], [K|Keys], [V|Values]) :-
+	pairs_keys_values_(Pairs, Keys, Values).
+
+keys_values_pairs([], [], []).
+keys_values_pairs([K|Ks], [V|Vs], [K-V|Pairs]) :-
+	keys_values_pairs(Ks, Vs, Pairs).
+
+values_keys_pairs([], [], []).
+values_keys_pairs([V|Vs], [K|Ks], [K-V|Pairs]) :-
+	values_keys_pairs(Vs, Ks, Pairs).
 
 %%	pairs_values(+Pairs, -Values)
 %
