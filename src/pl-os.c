@@ -1969,7 +1969,7 @@ ResetStdin()
     GD->os.org_terminal = *Sinput->functions;
 }
 
-static int
+static ssize_t
 Sread_terminal(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t)handle;
   int fd = (int)h;

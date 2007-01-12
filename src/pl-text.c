@@ -965,11 +965,8 @@ Compares two substrings of two text representations.
 int
 PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
 	    size_t len)
-{ size_t l = len;
+{ ssize_t l = len;
   int ifeq = 0;
-
-  if ( o1 > t1->length ) o1 = t1->length;
-  if ( o2 > t2->length ) o2 = t2->length;
 
   if ( l > t1->length - o1 )
   { l = t1->length - o1;

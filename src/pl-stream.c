@@ -114,7 +114,7 @@ typedef wchar_t pl_wchar_t;
 
 int Slinesize = SIO_LINESIZE;		/* Sgets() buffer size */
 
-static int	S__flushbuf(IOSTREAM *s);
+static ssize_t	S__flushbuf(IOSTREAM *s);
 static void	run_close_hooks(IOSTREAM *s);
 static int	S__removebuf(IOSTREAM *s);
 
@@ -294,9 +294,11 @@ Sunlock(IOSTREAM *s)
 		 *	     FLUSH/FILL		*
 		 *******************************/
 
-static int
+/* return values: -1: error, else #bytes written */
+			 
+static ssize_t
 S__flushbuf(IOSTREAM *s)
-{ size_t size;
+{ ssize_t size;
   char *from = s->buffer;
 
   while ( (size = s->bufp - from) > 0 )
@@ -313,16 +315,19 @@ S__flushbuf(IOSTREAM *s)
   }
 
   if ( s->bufp - from == 0 )		/* full flush */
-  { s->bufp = s->buffer;
+  { ssize_t rc = s->bufp - s->buffer;
+    
+    s->bufp = s->buffer;
 
-    return 0;
+    return rc;
   } else				/* partial flush */
-  { size_t left = s->bufp - from;
+  { ssize_t rc = from - s->buffer;
+    size_t left = s->bufp - from;
 
     memmove(s->buffer, from, left);
     s->bufp = s->buffer + left;
 
-    return 0;
+    return rc;
   }
 }
 
@@ -2279,7 +2284,7 @@ out:
 		 *	    FILE STREAMS	*
 		 *******************************/
 
-static size_t
+static ssize_t
 Sread_file(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t) handle;
   size_t bytes;
@@ -2306,7 +2311,7 @@ Sread_file(void *handle, char *buf, size_t size)
 }
 
 
-static size_t
+static ssize_t
 Swrite_file(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t) handle;
   size_t bytes;

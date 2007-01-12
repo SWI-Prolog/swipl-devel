@@ -58,7 +58,7 @@ typedef struct
 } xterm;
 
 
-static int
+static ssize_t
 Xterm_read(void *handle, char *buffer, size_t count)
 { xterm *xt = handle;
   int size;
@@ -80,7 +80,7 @@ Xterm_read(void *handle, char *buffer, size_t count)
 }
 
 
-static int
+static ssize_t
 Xterm_write(void *handle, char *buffer, size_t count)
 { xterm *xt = handle;
 

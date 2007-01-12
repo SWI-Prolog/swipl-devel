@@ -2583,13 +2583,13 @@ pl_told()
 		 *	   NULL-STREAM		*
 		 *******************************/
 
-static int
+static ssize_t
 Swrite_null(void *handle, char *buf, size_t size)
 { return size;
 }
 
 
-static int
+static ssize_t
 Sread_null(void *handle, char *buf, size_t size)
 { return 0;
 }
@@ -3512,7 +3512,7 @@ typedef struct wrappedIO
 } wrappedIO;
 
 
-int
+ssize_t
 Sread_user(void *handle, char *buf, size_t size)
 { GET_LD
   wrappedIO *wio = handle;
@@ -3553,8 +3553,8 @@ closeWrappedIO(void *handle)
 
 static void
 wrapIO(IOSTREAM *s,
-       int (*read)(void *, char *, size_t),
-       int (*write)(void *, char *, size_t))
+       ssize_t (*read)(void *, char *, size_t),
+       ssize_t (*write)(void *, char *, size_t))
 { wrappedIO *wio = PL_malloc(sizeof(*wio));
 
   wio->wrapped_functions = s->functions;

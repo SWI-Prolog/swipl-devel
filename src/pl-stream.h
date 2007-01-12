@@ -28,6 +28,7 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include <stddef.h>
+#include <unistd.h>
 #ifdef __WINDOWS__
 typedef __int64 int64_t;
 #if (_MSC_VER < 1300)

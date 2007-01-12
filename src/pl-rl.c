@@ -328,7 +328,7 @@ reset_readline()
 }
 
 
-static int
+static ssize_t
 Sread_readline(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t)handle;
   int fd = (int) h;

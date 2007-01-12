@@ -40,7 +40,7 @@ static bool	loadWicFd(IOSTREAM *);
 static bool	loadPredicate(IOSTREAM *, int skip ARG_LD);
 static bool	loadImport(IOSTREAM *, int skip ARG_LD);
 static void	saveXRBlobType(PL_blob_t *type, IOSTREAM *fd);
-static void	putString(const char *, unsigned len, IOSTREAM *);
+static void	putString(const char *, size_t len, IOSTREAM *);
 static void	putNum(int64_t, IOSTREAM *);
 static void	putReal(real, IOSTREAM *);
 static void	saveWicClause(Clause, IOSTREAM *);
@@ -393,11 +393,11 @@ static atom_t
 getAtom(IOSTREAM *fd, PL_blob_t *type ARG_LD)
 { char buf[1024];
   char *tmp, *s;
-  int len = getInt(fd);
-  int i;
+  size_t len = getInt(fd);
+  size_t i;
   atom_t a;
 
-  if ( len < (int)sizeof(buf) )
+  if ( len < sizeof(buf) )
     tmp = buf;
   else
     tmp = allocHeap(len);
@@ -451,14 +451,17 @@ getMagicString(IOSTREAM *fd, char *buf, int maxlen)
 
 static int64_t
 getInt64(IOSTREAM *fd)
-{ int64_t first = Getc(fd);
+{ int64_t first;
   int bytes, shift, b;
 
+  DEBUG(4, Sdprintf("getInt64() from %ld --> \n", Stell(fd)));
+
+  first = Getc(fd);
   if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */    
   { first <<= (INT64BITSIZE-6);
     first >>= (INT64BITSIZE-6);
 
-    DEBUG(4, Sdprintf("getInt64() --> " INT64_FORMAT "\n", first));
+    DEBUG(4, Sdprintf(INT64_FORMAT "\n", first));
     return first;
   }
 
@@ -488,7 +491,7 @@ getInt64(IOSTREAM *fd)
   first <<= shift;
   first >>= shift;
   
-  DEBUG(4, Sdprintf("getInt64() --> " INT64_FORMAT "\n", first));
+  DEBUG(4, Sdprintf(INT64_FORMAT "\n", first));
   return first;
 }
 
@@ -1337,10 +1340,10 @@ of a predicate together.
 static Table savedXRTable;		/* saved XR entries */
 static intptr_t  savedXRTableId;		/* next id */
 
-#define STR_NOLEN (~(unsigned)0)
+#define STR_NOLEN ((size_t)-1)
 
 static void
-putString(const char *s, unsigned len, IOSTREAM *fd)
+putString(const char *s, size_t len, IOSTREAM *fd)
 { const char *e;
 
   if ( len == STR_NOLEN )
@@ -1356,7 +1359,7 @@ putString(const char *s, unsigned len, IOSTREAM *fd)
 
 
 static void
-putStringW(const pl_wchar_t *s, unsigned len, IOSTREAM *fd)
+putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
 { const pl_wchar_t *e;
   IOENC oenc = fd->encoding;
 
