@@ -817,7 +817,7 @@ before the I_ENTER instructions.
 
   if ( head )
   { int n;
-    int lastnonvoid = 0;
+    size_t lastnonvoid = 0;
     Word arg;
 
     for ( arg = argTermP(*head, 0), n = 0; n < ci.arity; n++, arg++ )
@@ -837,7 +837,7 @@ automatic update if a predicate is later defined as meta-predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( body && *body != ATOM_true )
-  { int rv, bi;
+  { size_t rv, bi;
 
     if ( head )
     { Output_0(&ci, I_ENTER);
@@ -877,7 +877,7 @@ Finish up the clause.
   clause.code_size = entriesBuffer(&ci.codes, code);
 
   if ( head )
-  { int size  = sizeofClause(clause.code_size);
+  { size_t size  = sizeofClause(clause.code_size);
 
     cl = allocHeap(size);
     memcpy(cl, &clause, sizeofClause(0));
@@ -905,7 +905,7 @@ Finish up the clause.
     cref->clause = cl = (Clause)p;
     memcpy(cl, &clause, sizeofClause(0));
     p = addPointer(p, sizeofClause(clause.code_size));
-    cl->variables += p-p0;
+    cl->variables += (int)(p-p0);
 
     fr->clause = cref;
     fr->context = module;
@@ -1039,7 +1039,7 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	if ( (hard=hasFunctor(*a0, FUNCTOR_ifthen2)) || /* A  -> B ; C */
 	     hasFunctor(*a0, FUNCTOR_softcut2) )        /* A *-> B ; C */
 	{ int var = VAROFFSET(ci->clause->variables++);
-	  int tc_or, tc_jmp;
+	  size_t tc_or, tc_jmp;
 	  int rv;
 	  cutInfo cutsave = ci->cut;
 
@@ -1066,7 +1066,7 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	    balanceVars(valt2, valt1, ci);
 	  OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
 	} else					/* A ; B */
-	{ int tc_or, tc_jmp;
+	{ size_t tc_or, tc_jmp;
 	  int rv;
 
 	  Output_1(ci, C_OR, (code)0);
@@ -1118,7 +1118,7 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	return compileBody(argTermP(*body, 1), call, ci PASS_LD);
       } else if ( fd == FUNCTOR_not_provable1 )		/* \+/1 */
       { int var = VAROFFSET(ci->clause->variables++);
-	int tc_or;
+	size_t tc_or;
 	VarTable vsave;
 	int rv;
 	cutInfo cutsave = ci->cut;
@@ -1140,7 +1140,7 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	if ( ci->islocal )
 	{ OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	} else
-	{ int tc_jmp;
+	{ size_t tc_jmp;
 
 	  Output_1(ci, C_JMP, (code)0);
 	  tc_jmp = PC(ci);
@@ -1244,7 +1244,7 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
     case TAG_INTEGER:
       if ( storage(*arg) != STG_INLINE )
       {	Word p = addressIndirect(*arg);
-	int  n = wsizeofInd(*p);
+	size_t n = wsizeofInd(*p);
 	
 	if ( n == sizeof(int64_t)/sizeof(word) )
 	{ int64_t val = *(int64_t*)(p+1);
@@ -1291,7 +1291,7 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
     } else
     { Word p = addressIndirect(*arg);
 
-      int n  = wsizeofInd(*p);
+      size_t n  = wsizeofInd(*p);
       Output_0(ci, (where & A_HEAD) ? H_STRING : B_STRING);
       Output_n(ci, p, n+1);
       return NONVOID;
@@ -1394,7 +1394,7 @@ isvar:
     return NONVOID;
   } else
   { int ar;
-    int lastnonvoid;
+    size_t lastnonvoid;
     functor_t fdef;
     int isright = (where & A_RIGHT);
 
@@ -1726,7 +1726,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
     { Output_1(ci, A_INTEGER, valInt(*arg));
     } else
     { Word p = addressIndirect(*arg);
-      int  n = wsizeofInd(*p);
+      size_t  n = wsizeofInd(*p);
 
       if ( n == sizeof(int64_t)/sizeof(word) )
       { int64_t val = *(int64_t*)(p+1);
@@ -1851,7 +1851,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 void
 unregisterAtomsClause(Clause clause)
 { Code PC, ep;
-  int c;
+  code c;
 
   PC = clause->codes;
   ep = PC + clause->code_size;
@@ -2329,7 +2329,7 @@ next_arg_ref(term_t argp ARG_LD)
 
 
 static bool
-unifyVar(Word var, term_t *vars, int i ARG_LD)
+unifyVar(Word var, term_t *vars, size_t i ARG_LD)
 { DEBUG(3, Sdprintf("unifyVar(%d, %d, %d)\n", var, vars, i) );
 
   assert(vars[i]);
@@ -2565,7 +2565,7 @@ decompile(Clause clause, term_t term, term_t bindings)
   decompileBody(di, I_EXIT, (Code) NULL PASS_LD);
 
   { Word b, ba;
-    int var;
+    size_t var;
 
     b = newTerm();
 
@@ -2686,7 +2686,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case B_MPZ:
 	  		    *ARGP++ = globalIndirectFromCode(&PC);
 			    continue;
-      { int index;      
+      { size_t index;      
 
 	case B_ARGVAR:
 	case B_ARGFIRSTVAR:
@@ -2743,10 +2743,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case A_FUNC0:
       case A_FUNC1:
       case A_FUNC2:
-			    build_term(functorArithFunction(*PC++), di PASS_LD);
+			    build_term(functorArithFunction((int)*PC++), di PASS_LD);
 			    continue;
       case A_FUNC:
-      			    build_term(functorArithFunction(*PC++), di PASS_LD);
+      			    build_term(functorArithFunction((int)*PC++), di PASS_LD);
       			    PC++;
 			    continue;
 #endif /* O_COMPILE_ARITH */
@@ -2767,7 +2767,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 #if O_CATCHTHROW
 	case B_THROW:	    f = FUNCTOR_dthrow1;	goto f_common;
 #endif
-        case I_USERCALLN:   f = lookupFunctorDef(ATOM_call, *PC++ + 1);
+        case I_USERCALLN:   f = lookupFunctorDef(ATOM_call, (int)*PC++ + 1);
 							goto f_common;
 	case I_APPLY:	    f = FUNCTOR_apply2;		f_common:
 			    build_term(f, di PASS_LD);
@@ -2808,11 +2808,11 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_CALL_FV0:			/* proc */
       case I_CALL_FV1:			/* proc, var */
       case I_CALL_FV2:			/* proc, var, var */
-      { int vars = op - I_CALL_FV0;
+      { int vars = (int)(op - I_CALL_FV0);
 	int i;
 
 	for(i=0; i<vars; i++)
-	{ int index = PC[i+1];		/* = B_VAR <N> (never nested!) */
+	{ int index = (int)PC[i+1];	/* = B_VAR <N> (never nested!) */
 	  
 	  *ARGP++ = makeVarRef(index);
 	}
@@ -2921,7 +2921,7 @@ build_term(functor_t f, decompileInfo *di ARG_LD)
 
   ARGP--;
   for( ; arity-- > 0; a--, ARGP-- )
-  { int var;
+  { size_t var;
 
     if ( (var = isVarRef(*ARGP)) >= 0 )
       unifyVar(a, di->variables, var PASS_LD);
@@ -3501,7 +3501,7 @@ pl_xr_member(term_t ref, term_t term, control_t h)
 		 *	     WAM_LIST		*
 		 *******************************/
 
-#define VARNUM(i) ((i) - (ARGOFFSET / (int) sizeof(word)))
+#define VARNUM(i) ((int)((i) - (ARGOFFSET / (int) sizeof(word))))
 
 Code
 wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
@@ -3545,14 +3545,14 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
     case C_IFTHENELSE:		/* var, jump */
     case C_NOT:
     { int var = VARNUM(*bp++);
-      int jmp = *bp++;
+      size_t jmp = *bp++;
       assert(ci->arguments == 2);
       Sfprintf(out, " var(%d), jmp(%d)", var, jmp);
       break;
     }
     case I_CALL_FV1:
     case I_CALL_FV2:
-    { int vars = op - I_CALL_FV0;
+    { int vars = (int)(op - I_CALL_FV0);
       Procedure proc = (Procedure) *bp++;
 
       Sfprintf(out, " %s", procedureName(proc));
@@ -3627,7 +3627,7 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
 	}
 	case CA1_STRING:
 	{ word m = *bp++;
-	  int  n = wsizeofInd(m);
+	  size_t n = wsizeofInd(m);
 	  Sfprintf(out, " \"%s\"", (char *)bp);
 	  bp += n;
 	  break;
@@ -3635,7 +3635,7 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
 #ifdef O_GMP
 	case CA1_MPZ:
 	{ word m = *bp++;
-	  int  n = wsizeofInd(m);
+	  size_t n = wsizeofInd(m);
 
 	  Sfprintf(out, " <GMP mpz integer>");
 	  bp += n;
@@ -4034,7 +4034,7 @@ word
 pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h)
 { GET_LD
   Clause clause = NULL;
-  int offset;
+  size_t offset;
   Code PC, end;
 
   switch( ForeignControl(h) )

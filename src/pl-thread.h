@@ -70,7 +70,7 @@ typedef struct _PL_thread_info_t
   pid_t		    pid;		/* for identifying */
 #endif
 #ifdef __WINDOWS__
-  uintptr_t	    w32id;		/* Win32 thread HANDLE */
+  long		    w32id;		/* Win32 thread HANDLE */
 #endif
   struct PL_local_data  *thread_data;	/* The thread-local data  */
   module_t	    module;		/* Module for starting goal */

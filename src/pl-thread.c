@@ -1274,7 +1274,7 @@ pl_current_thread(term_t id, term_t status, control_t h)
       return unify_thread_status(status, info);
     }
     case FRG_REDO:
-      current = ForeignContextInt(h);
+      current = (int)ForeignContextInt(h);
     redo:
       for( ; current < MAX_THREADS; current++ )
       { mark m;
@@ -3646,7 +3646,7 @@ localiseDefinition(Definition def)
        id >= def->definition.local->size )
   { int newsize = def->definition.local ? def->definition.local->size : 1;
     LocalDefinitions new;
-    int bytes;
+    size_t bytes;
     int i=0;
 
     do

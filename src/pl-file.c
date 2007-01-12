@@ -84,7 +84,7 @@ standardStreamIndexFromName(atom_t name)
 
   for(ap=standardStreams; *ap; ap++)
   { if ( *ap == name )
-      return (ap - standardStreams);
+      return (int)(ap - standardStreams);
   }
 
   return -1;

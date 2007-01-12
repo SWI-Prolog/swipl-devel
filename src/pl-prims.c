@@ -455,17 +455,18 @@ compareAtoms(atom_t w1, atom_t w2)
   { if ( a1->type->compare )
     { return (*a1->type->compare)(w1, w2);
     } else
-    { int l   = (a1->length <= a2->length ? a1->length : a2->length);
+    { size_t l   = (a1->length <= a2->length ? a1->length : a2->length);
       int v;
 
       if ( (v=memcmp(a1->name, a2->name, l)) != 0 )
 	return v;
-      return (int)a1->length - (int)a2->length;
+      return a1->length == a2->length ? 0 :
+	     a1->length < a2->length ? -1 : 1;
     }
   } else if ( true(a1->type, PL_BLOB_TEXT) &&
 	      true(a2->type, PL_BLOB_TEXT) )
   { PL_chars_t t1, t2;
-    unsigned len;
+    size_t len;
 
     get_atom_text(w1, &t1);
     get_atom_text(w2, &t2);
@@ -481,7 +482,7 @@ compareAtoms(atom_t w1, atom_t w2)
 static int
 compareStrings(word w1, word w2 ARG_LD)
 { PL_chars_t t1, t2;
-  unsigned len;
+  size_t len;
 
   get_string_text(w1, &t1 PASS_LD);
   get_string_text(w2, &t2 PASS_LD);
@@ -516,7 +517,7 @@ tests (alphabetical order) are skipped and the call returns NOTEQ.
 static int
 do_compare(Word p1, Word p2, int eq ARG_LD)
 { word w1, w2;
-  int t1, t2;
+  word t1, t2;
 
 tail_recursion:
   deRef(p1);
@@ -1018,7 +1019,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
       return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_integer, n);
     }
     case FRG_REDO:
-    { int argn = CTX_INT + 1;
+    { int argn = (int)CTX_INT + 1;
       term_t a = PL_new_term_ref();
 
       PL_get_name_arity(term, &name, &arity);
@@ -2096,7 +2097,7 @@ pl_char_code(term_t atom, term_t chr)
 { PL_chars_t txt;
   int n;
 
-  if ( PL_get_text(atom, &txt, CVT_ATOM) && txt.length == 1 )
+  if ( PL_get_text(atom, &txt, CVT_ATOM|CVT_STRING) && txt.length == 1 )
   { if ( txt.encoding == ENC_WCHAR )
       return PL_unify_integer(chr, txt.text.w[0]);
     else
@@ -2226,7 +2227,7 @@ concat(const char *pred,
       return PL_unify_text_range(a1, &t3, 0, L3-L2, otype);
     fail;
   } else				/* -, -, + */
-  { unsigned int at_n;
+  { size_t at_n;
     mark m;
 
     switch ( ForeignControl(ctx) )
@@ -2282,7 +2283,7 @@ pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx)
 static int
 split_atom(term_t list, term_t sep, term_t atom)
 { PL_chars_t st, at;
-  int i, last;
+  size_t i, last;
   term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
 
@@ -2329,7 +2330,7 @@ append_text_to_buffer(Buffer b, PL_chars_t *txt, IOENC *enc)
       addBuffer(b, chr, pl_wchar_t);
     }
   } else				/* promote our buffer */
-  { int len = entriesBuffer(b, char);
+  { size_t len = entriesBuffer(b, char);
     unsigned char *tmp = PL_malloc(len);
     const unsigned char *s = tmp;
     const unsigned char *e = &s[len];
@@ -2503,17 +2504,17 @@ enum sub_type
 
 typedef struct
 { enum sub_type type;			/* Type of enumeration */
-  int n1;				/* 1-st state id */
-  int n2;				/* 2-nd state id */
-  int n3;
+  size_t n1;				/* 1-st state id */
+  size_t n2;				/* 2-nd state id */
+  size_t n3;
 } sub_state;
 
 
 static int
-get_positive_integer_or_unbound(term_t t, int *v)
-{ int i;
+get_positive_integer_or_unbound(term_t t, ssize_t *v)
+{ long i;
 
-  if ( PL_get_integer(t, &i) )
+  if ( PL_get_long(t, &i) )		/* TBD: should be ssize_t */
   { if ( i < 0 )
       PL_error(NULL, 0, NULL, ERR_DOMAIN,
 	       ATOM_not_less_than_zero, t);
@@ -2537,7 +2538,7 @@ sub_text(term_t atom,
 	 control_t h,
 	 int type)			/* PL_ATOM or PL_STRING */
 { PL_chars_t ta, ts;			/* the strings */
-  int b = -1, l = -1, a = -1;		/* the integers */
+  ssize_t b = -1, l = -1, a = -1;	/* the integers */
   sub_state *state;			/* non-deterministic state */
   atom_t expected = (type == PL_STRING ? ATOM_string : ATOM_atom);
   int match;
@@ -2573,7 +2574,7 @@ sub_text(term_t atom,
 	  fail;
 	}
 	if ( a >= 0 )			/* after given: test */
-	{ int off = la-a-ls;
+	{ ssize_t off = la-a-ls;
 
 	  if ( off >= 0 && PL_cmp_text(&ta, (unsigned)off, &ts, 0, ls) == 0 )
 	  { return (PL_unify_integer(len, ls) &&
@@ -3412,7 +3413,7 @@ PRED_IMPL("$option", 3, option, PL_FA_NONDETERMINISTIC)
       }
       break;
     case FRG_REDO:
-      index = CTX_INT;
+      index = (int)CTX_INT;
       goto next;
     case FRG_CUTTED:
       succeed;

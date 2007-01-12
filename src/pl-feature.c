@@ -525,7 +525,7 @@ unify_feature_value(Module m, atom_t key, feature *f, term_t val)
       if ( f->index >= 0 )
       { uintptr_t mask = 1L << (f->index-1);
 
-	return PL_unify_bool_ex(val, trueFeature(mask));
+	return PL_unify_bool_ex(val, trueFeature(mask) != FALSE);
       }
       /*FALLTHROUGH*/
     case FT_ATOM:

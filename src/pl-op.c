@@ -337,7 +337,7 @@ of matching operators and (on backtracking) return the matching ones.
 static void
 addOpToBuffer(Buffer b, atom_t name, int type, int priority)
 { opdef *op = baseBuffer(b, opdef);
-  int mx    = entriesBuffer(b, opdef);
+  int mx    = (int)entriesBuffer(b, opdef);
   int i;
   opdef new;
 
@@ -459,7 +459,7 @@ current_op(Module m, int inherit,
   }
 
   Mark(mrk);
-  mx = entriesBuffer(b, opdef);
+  mx = (int)entriesBuffer(b, opdef);
   match = baseBuffer(b, opdef) + e->index;
   for(; e->index++<mx; match++)
   { if ( match->priority == 0 )		/* canceled operator */
@@ -594,7 +594,7 @@ pl_builtin_op(term_t prec, term_t type, term_t name, control_t h)
       i = 0;
       break;
     case FRG_REDO:
-      i = ForeignContextInt(h);
+      i = (int)ForeignContextInt(h);
       break;
     case FRG_CUTTED:
     default:

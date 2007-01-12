@@ -1259,7 +1259,7 @@ struct clause
     uintptr_t erased;		/* Generation I was erased */
   } generation;
 #endif /*O_LOGICAL_UPDATE*/
-  unsigned int		code_size;	/* size of ->codes */
+  size_t		code_size;	/* size of ->codes */
   unsigned short	variables;	/* # of variables for frame */
   unsigned short	prolog_vars;	/* # real Prolog variables */
 #ifdef O_SHIFT_STACKS

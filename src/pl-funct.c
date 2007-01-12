@@ -45,7 +45,7 @@ static void	  rehashFunctors();
 
 static void
 registerFunctor(FunctorDef fd)
-{ int n = maxFunctorIndex();
+{ size_t n = maxFunctorIndex();
   int amask = (fd->arity < F_ARITY_MASK ? fd->arity : F_ARITY_MASK);
     
   fd->functor = MK_FUNCTOR(n, amask);
@@ -61,7 +61,7 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
   FunctorDef f;
 
   LOCK();
-  v = pointerHashValue(atom, functor_buckets);
+  v = (int)pointerHashValue(atom, functor_buckets);
 
   DEBUG(9, Sdprintf("Lookup functor %s/%d = ", stringAtom(atom), arity));
   for(f = functorDefTable[v]; f; f = f->next)
@@ -97,7 +97,7 @@ static void
 rehashFunctors()
 { FunctorDef *oldtab = functorDefTable;
   int oldbucks       = functor_buckets;
-  int i, mx = maxFunctorIndex();
+  size_t i, mx = maxFunctorIndex();
 
   startCritical;
   functor_buckets *= 2;
@@ -108,7 +108,7 @@ rehashFunctors()
 
   for(i = 0; i<mx; i++)
   { FunctorDef f = getFunctorByIndex(i);
-    int v = pointerHashValue(f->name, functor_buckets);
+    size_t v = pointerHashValue(f->name, functor_buckets);
 
     f->next = functorDefTable[v];
     functorDefTable[v] = f;
@@ -126,7 +126,7 @@ isCurrentFunctor(atom_t atom, unsigned int arity)
   FunctorDef f;
 
   LOCK();
-  v = pointerHashValue(atom, functor_buckets);
+  v = (int)pointerHashValue(atom, functor_buckets);
   for(f = functorDefTable[v]; f; f = f->next)
   { if ( atom == f->name && f->arity == arity )
     { UNLOCK();
@@ -169,7 +169,7 @@ registerBuiltinFunctors()
   GD->statistics.functors = size;
 
   for(d = functors; d->name; d++, f++)
-  { int v = pointerHashValue(d->name, functor_buckets);
+  { size_t v = pointerHashValue(d->name, functor_buckets);
 
     f->name             = d->name;
     f->arity            = d->arity;
@@ -272,7 +272,7 @@ pl_current_functor(term_t name, term_t arity, control_t h)
 { atom_t nm = 0;
   int  ar;
   mark m;
-  int mx, i;
+  size_t mx, i;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:

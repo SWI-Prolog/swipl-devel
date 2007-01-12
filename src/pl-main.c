@@ -67,7 +67,7 @@ static const char exec_vars[512] = EXECVARMAGIC;
 static const char *
 exec_var(const char *name)
 { const char *s=exec_vars + strlen(EXECVARMAGIC);
-  int l = strlen(name);
+  size_t l = strlen(name);
 
   while(s < exec_vars+sizeof(exec_vars))
   { if ( strncmp(name, s, l) == 0 && s[l] == '=' )
@@ -114,7 +114,7 @@ findHome(char *symbols)
 
     if ( (fd = Sopen_file(buf, "r")) )
     { if ( Sfgets(buf, sizeof(buf), fd) )
-      { int l = strlen(buf);
+      { size_t l = strlen(buf);
 
 	while(l > 0 && buf[l-1] <= ' ')
 	  l--;

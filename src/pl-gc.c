@@ -304,10 +304,10 @@ isGlobalRef(word w)
 }
 
 
-static inline int
+static inline size_t
 offset_cell(Word p)
 { word m = *p;				/* was get_value(p) */
-  int offset;
+  size_t offset;
 
   if ( storage(m) == STG_LOCAL )
     offset = wsizeofInd(m) + 1;
@@ -523,7 +523,7 @@ forward:				/* Go into the tree */
 backward:  				/* reversing backwards */
   while( !is_first(current) )
   { word w = get_value(current);
-    int t = tag(w);
+    int t = (int)tag(w);
 
     assert(onStack(global, current));
 
@@ -1180,7 +1180,7 @@ update_relocation_chain(Word current, Word dest ARG_LD)
 
     unmark_first(current);
     current = valPtr(val);
-    tag = tag(val);
+    tag = (int)tag(val);
     val = get_value(current);
     DEBUG(3,
 	  { FliFrame f;

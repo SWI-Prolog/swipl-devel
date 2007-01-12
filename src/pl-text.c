@@ -413,7 +413,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 
 int
 PL_unify_text_range(term_t term, PL_chars_t *text,
-		    unsigned offset, unsigned len, int type)
+		    size_t offset, size_t len, int type)
 { if ( offset == 0 && len == text->length )
   { return PL_unify_text(term, 0, text, type);
   } else
@@ -968,11 +968,11 @@ PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
 { ssize_t l = len;
   int ifeq = 0;
 
-  if ( l > t1->length - o1 )
+  if ( l > (ssize_t)(t1->length - o1) )
   { l = t1->length - o1;
     ifeq = -1;				/* first is short */
   }
-  if ( l > t2->length - o2 )
+  if ( l > (ssize_t)(t2->length - o2) )
   { l = t2->length - o2;
     if ( ifeq == 0 )
       ifeq = 1;

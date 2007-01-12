@@ -754,19 +754,22 @@ int arithChar(Word p)
 
 int
 arithChar(Word p ARG_LD)
-{ int chr;
-  deRef(p);
+{ deRef(p);
   
   if ( isInteger(*p) )
-  { chr = valInt(*p);
+  { intptr_t chr = valInt(*p);
 
-    if ( chr >= 0 && chr < 256 )
-      return chr;
+    if ( chr >= 0 && chr <= 0x10ffff )	/* UNICODE_MAX */
+      return (int)chr;
   } else if ( isAtom(*p) )
-  { Atom a = atomValue(*p);
-    
-    if ( true(a->type, PL_BLOB_TEXT) && a->length == 1 )
-      return a->name[0] & 0xff;		/* ASCII! */
+  { PL_chars_t txt;
+
+    if ( get_atom_text(*p, &txt) && txt.length == 1 )
+    { if ( txt.encoding == ENC_WCHAR )
+	return txt.text.w[0];
+      else
+	return txt.text.t[0]&0xff;
+    }
   }
 
   PL_error(NULL, 0, NULL, ERR_TYPE,
@@ -1068,7 +1071,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
   { case V_INTEGER:
       if ( n2->value.i < LONG_MIN  ||
 	   n2->value.i > LONG_MAX )
-	return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+	return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
       else
 	shift = (intptr_t)n2->value.i;
       break;
@@ -1076,7 +1079,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
     case V_MPZ:
       if ( mpz_cmp_si(n2->value.mpz, LONG_MIN) < 0 ||
 	   mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
-	return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+	return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
       else
 	shift = mpz_get_si(n2->value.mpz);
       break;
@@ -1117,7 +1120,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       { intptr_t msb = (mpz_sizeinbase(n1->value.mpz, 2)-1+shift);
 
 	if ( spaceStack(global)-1024 < msb/8 )
-	  return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+	  return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
 	
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift); 
       } else
@@ -2405,7 +2408,7 @@ PRED_IMPL("$arithmetic_function", 2, arithmetic_function, PL_FA_TRANSPARENT)
   ArithFunction f, a, *ap;
   Module m = NULL;
   term_t head = PL_new_term_ref();
-  int v;
+  size_t v;
   int index, rc;
 
   PL_strip_module(A1, &m, head);
@@ -2515,7 +2518,7 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
       i = 0;
       break;
     case FRG_REDO:
-      i = CTX_INT;
+      i = (int)CTX_INT;
       break;
     case FRG_CUTTED:
     default:
@@ -2523,7 +2526,7 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
   }
 
   tmp = PL_new_term_ref();
-  mx = entriesBuffer(function_array, ArithFunction);
+  mx = (int)entriesBuffer(function_array, ArithFunction);
 
   for( ; i<mx; i++ )
   { ArithFunction f = FunctionFromIndex(i);
@@ -2621,7 +2624,7 @@ static const ar_funcdef ar_funcdefs[] = {
 
 static int
 registerFunction(ArithFunction f, int index)
-{ int i = entriesBuffer(function_array, ArithFunction);
+{ int i = (int)entriesBuffer(function_array, ArithFunction);
 
   if ( index )
   { if ( index != i )
@@ -2650,7 +2653,7 @@ registerBuiltinFunctions()
   memset(f, 0, size * sizeof(struct arithFunction));
 
   for(d = ar_funcdefs, n=0; n<size; n++, f++, d++)
-  { int v = functorHashValue(d->functor, ARITHHASHSIZE);
+  { int v = (int)functorHashValue(d->functor, ARITHHASHSIZE);
 
     f->functor  = d->functor;
     f->function = d->function;

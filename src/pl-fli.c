@@ -1237,7 +1237,11 @@ PL_get_long__LD(term_t t, long *i ARG_LD)
 { word w = valHandle(t);
   
   if ( isTaggedInt(w) )
-  { *i = valInt(w);
+  { intptr_t val = valInt(w);
+
+    if ( val > LONG_MAX || val < LONG_MIN )
+      fail;
+    *i = (long)val;
     succeed;
   }
   if ( isBignum(w) )
@@ -1251,7 +1255,7 @@ PL_get_long__LD(term_t t, long *i ARG_LD)
   }
   if ( isReal(w) )
   { real f = valReal(w);
-    intptr_t l;
+    long l;
     
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
     if ( f > (real)LONG_MAX || f < (real)LONG_MIN )

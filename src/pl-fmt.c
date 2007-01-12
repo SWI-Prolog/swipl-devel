@@ -39,8 +39,8 @@ static char *	formatFloat(int how, int arg, Number f, Buffer out);
 #define MAXRUBBER 100
 
 struct rubber
-{ int where;				/* where is rubber in output */
-  int size;				/* how big should it be */
+{ size_t where;				/* where is rubber in output */
+  size_t size;				/* how big should it be */
   pl_wchar_t pad;			/* padding character */
 };
 
@@ -48,7 +48,7 @@ typedef struct
 { IOSTREAM *out;			/* our output stream */
   int column;				/* current column */
   tmp_buffer buffer;			/* bin for characters with tabs */
-  int buffered;				/* characters in buffer */
+  size_t buffered;			/* characters in buffer */
   int pending_rubber;			/* number of not-filled ~t's */
   struct rubber rub[MAXRUBBER];
 } format_state;
@@ -119,7 +119,7 @@ arguments.  No fuzz with wide characters here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-outstring(format_state *state, const char *s, unsigned int len)
+outstring(format_state *state, const char *s, size_t len)
 { const char *q;
   const char *e = &s[len];
 
@@ -147,7 +147,7 @@ outstring0(format_state *state, const char *s)
 
 
 static int
-oututf8(format_state *state, const char *s, unsigned int len)
+oututf8(format_state *state, const char *s, size_t len)
 { const char *e = &s[len];
 
   while(s<e)
@@ -307,7 +307,7 @@ format_impl(IOSTREAM *out, term_t format, term_t Args)
 word
 pl_format3(term_t out, term_t format, term_t args)
 { redir_context ctx;
-  int rc;
+  word rc;
 
   startCritical;
   if ( !setupOutputRedirect(out, &ctx, FALSE) )
@@ -583,7 +583,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		    { IOSTREAM *old = Scurout;
 
 		      Scurout = fd;
-		      rc = (*f)(argv);
+		      rc = (int)(*f)(argv);
 		      Scurout = old;
 		      if ( !rc )
 			goto out;
@@ -617,7 +617,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 
 		    str = buf;
 		    tellString(&str, &bufsize, ENC_UTF8);
-		    rc = pl_write_term(argv, argv+1);
+		    rc = (int)pl_write_term(argv, argv+1);
 		    toldString();
 		    if ( !rc )
 		      goto out;
@@ -630,7 +630,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		    { IOSTREAM *old = Scurout;
 
 		      Scurout = fd;
-		      rc = pl_write_term(argv, argv+1);
+		      rc = (int)pl_write_term(argv, argv+1);
 		      Scurout = old;
 		      if ( !rc )
 			goto out;
@@ -641,7 +641,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 
 		      str = buf;
 		      tellString(&str, &bufsize, ENC_UTF8);
-		      rc = pl_write_term(argv, argv+1);
+		      rc = (int)pl_write_term(argv, argv+1);
 		      if ( !rc )
 			goto out;
 		      toldString();

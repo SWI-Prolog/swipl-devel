@@ -110,7 +110,7 @@ static int
 atomType(atom_t a, IOSTREAM *fd)
 { Atom atom = atomValue(a);
   char *s = atom->name;
-  int len = atom->length;
+  size_t len = atom->length;
 
   if ( len == 0 )
     return AT_QUOTE;
@@ -171,8 +171,8 @@ PutString(const char *str, IOSTREAM *s)
 
 
 static bool
-PutStringN(const char *str, unsigned int length, IOSTREAM *s)
-{ unsigned int i;
+PutStringN(const char *str, size_t length, IOSTREAM *s)
+{ size_t i;
   const unsigned char *q = (const unsigned char *)str;
 
   for(i=0; i<length; i++, q++)
@@ -215,7 +215,7 @@ PutToken(const char *s, IOSTREAM *stream)
 
 
 static bool
-PutTokenN(const char *s, unsigned int len, IOSTREAM *stream)
+PutTokenN(const char *s, size_t len, IOSTREAM *stream)
 { if ( len > 0 )
     return PutOpenToken(s[0], stream) && PutStringN(s, len, stream);
 
@@ -306,7 +306,7 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 
 
 static bool
-writeQuoted(IOSTREAM *stream, const char *text, int len, int quote,
+writeQuoted(IOSTREAM *stream, const char *text, size_t len, int quote,
 	    write_options *options)
 { const unsigned char *s = (const unsigned char *)text;
 
@@ -437,7 +437,7 @@ int
 writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
 { Atom a = atomValue(atom);
   pl_wchar_t *s = (pl_wchar_t*)a->name;
-  int len = a->length/sizeof(pl_wchar_t);
+  size_t len = a->length/sizeof(pl_wchar_t);
   pl_wchar_t *e = &s[len];
 
   if ( flags & PL_WRT_QUOTED )
