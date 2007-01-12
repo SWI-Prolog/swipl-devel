@@ -284,7 +284,7 @@ another atom.
 
 static void
 registerAtom(Atom a)
-{ int n = entriesBuffer(&atom_array, Atom);
+{ size_t n = entriesBuffer(&atom_array, Atom);
 #ifdef O_ATOMGC				/* try to find a hole! */
   Atom *ap = baseBuffer(&atom_array, Atom);
   Atom *ep = ap+n;
@@ -530,7 +530,7 @@ Mark an atom from the stacks.  We must be prepared to handle fake-atoms!
 
 void
 markAtom(atom_t a)
-{ unsigned int i = indexAtom(a);
+{ size_t i = indexAtom(a);
   Atom ap;
 
   if ( i >= entriesBuffer(&atom_array, Atom) )
@@ -786,7 +786,7 @@ rehashAtoms()
       ap < ep;
       ap++)
   { Atom a = *ap;
-    int v = a->hash_value & mask;
+    size_t v = a->hash_value & mask;
 
     a->next = atomTable[v];
     atomTable[v] = a;
@@ -822,7 +822,7 @@ registerBuiltinAtoms()
   GD->statistics.atoms = size;
 
   for(s = atoms; *s; s++, a++)
-  { int len = strlen(*s);
+  { size_t len = strlen(*s);
     int v0 = unboundStringHashValue(*s, len);
     int v = v0 & (atom_buckets-1);
 
@@ -881,7 +881,7 @@ cleanupAtoms(void)
 
 
 static word
-current_blob(term_t a, term_t type, frg_code call, int i ARG_LD)
+current_blob(term_t a, term_t type, frg_code call, intptr_t i ARG_LD)
 { atom_t type_name = 0;
 
   switch( call )

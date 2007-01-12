@@ -64,8 +64,8 @@ int	PL_demote_text(PL_chars_t *text);
 int	PL_mb_text(PL_chars_t *text, int flags);
 int	PL_canonise_text(PL_chars_t *text);
 
-int	PL_cmp_text(PL_chars_t *t1, unsigned o1, PL_chars_t *t2, unsigned o2,
-		    unsigned len);
+int	PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
+		    size_t len);
 int	PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result);
 
 void	PL_free_text(PL_chars_t *text);

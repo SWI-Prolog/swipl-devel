@@ -248,7 +248,7 @@ which normally calls malloc().
 static void
 leftoverToChains(AllocPool pool)
 { if ( pool->free >= sizeof(struct chunk) )
-  { unsigned m = pool->free/ALIGN_SIZE;
+  { size_t m = pool->free/ALIGN_SIZE;
     Chunk ch = (Chunk)pool->space;
 
     assert(m <= ALLOCFAST/ALIGN_SIZE);
@@ -734,7 +734,7 @@ inline  as  it is simple and usualy very time critical.
 #if O_SHIFT_STACKS
 
 Word
-allocGlobal__LD(int n ARG_LD)
+allocGlobal__LD(size_t n ARG_LD)
 { Word result;
 
   if ( roomStack(global) < (intptr_t) (n * sizeof(word)) )
@@ -751,7 +751,7 @@ allocGlobal__LD(int n ARG_LD)
 }
 
 Word
-allocGlobalNoShift__LD(int n ARG_LD)
+allocGlobalNoShift__LD(size_t n ARG_LD)
 { Word result;
 
   if ( roomStack(global) < (intptr_t) (n * sizeof(word)) )
@@ -768,7 +768,7 @@ allocGlobalNoShift__LD(int n ARG_LD)
 #else
 
 static inline Word
-__allocGlobal(int n ARG_LD)
+__allocGlobal(size_t n ARG_LD)
 { Word result = gTop;
 
   requireStack(global, n * sizeof(word));
@@ -777,7 +777,7 @@ __allocGlobal(int n ARG_LD)
   return result;
 }
 
-Word allocGlobal__LD(int n ARG_LD)
+Word allocGlobal__LD(size_t n ARG_LD)
 { return __allocGlobal(n PASS_LD);
 }
 
@@ -864,9 +864,9 @@ ignored to avoid alignment restriction problems.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Word
-allocString(intptr_t len ARG_LD)
-{ int lw = (len+sizeof(word))/sizeof(word);
-  int pad = (lw*sizeof(word) - len);
+allocString(size_t len ARG_LD)
+{ size_t lw = (len+sizeof(word))/sizeof(word);
+  int pad = (int)(lw*sizeof(word) - len);
   Word p = allocGlobal(2 + lw);
   word m = mkStrHdr(lw, pad);
 
@@ -879,20 +879,20 @@ allocString(intptr_t len ARG_LD)
 
 
 word
-globalString(intptr_t l, const char *s)
+globalString(size_t len, const char *s)
 { GET_LD
-  Word p = allocString(l+1 PASS_LD);
+  Word p = allocString(len+1 PASS_LD);
   char *q = (char *)&p[1];
 
   *q++ = 'B';
-  memcpy(q, s, l);
+  memcpy(q, s, len);
   
   return consPtr(p, TAG_STRING|STG_GLOBAL);
 }
 
 
 word
-globalWString(unsigned len, const pl_wchar_t *s)
+globalWString(size_t len, const pl_wchar_t *s)
 { GET_LD
   const pl_wchar_t *e = &s[len];
   const pl_wchar_t *p;
@@ -932,7 +932,7 @@ getCharsString__LD(word w, size_t *len ARG_LD)
 { Word p = valPtr(w);
   word m = *p;
   size_t wn  = wsizeofInd(m);
-  int pad = padHdr(m);
+  size_t pad = padHdr(m);
   char *s;
 
   if ( len )
@@ -953,7 +953,7 @@ getCharsWString__LD(word w, size_t *len ARG_LD)
 { Word p = valPtr(w);
   word m = *p;
   size_t wn  = wsizeofInd(m);
-  int pad = padHdr(m);
+  size_t pad = padHdr(m);
   char *s;
   pl_wchar_t *ws;
 
@@ -1044,7 +1044,7 @@ equalIndirect(word w1, word w2)
   Word p2 = addressIndirect(w2);
   
   if ( *p1 == *p2 )
-  { int n = wsizeofInd(*p1);
+  { size_t n = wsizeofInd(*p1);
     
     while( --n >= 0 )
     { if ( *++p1 != *++p2 )
@@ -1068,7 +1068,7 @@ globalIndirect(word w)
 { GET_LD
   Word p = addressIndirect(w);
   word t = *p;
-  int  n = wsizeofInd(t);
+  size_t  n = wsizeofInd(t);
   Word h = allocGlobal((n+2));
   Word hp = h;
   
@@ -1086,12 +1086,12 @@ globalIndirectFromCode(Code *PC)
 { GET_LD
   Code pc = *PC;
   word m = *pc++;
-  int  n = wsizeofInd(m);
+  size_t n = wsizeofInd(m);
   Word p = allocGlobal(n+2);
   word r = consPtr(p, tag(m)|STG_GLOBAL);
 
   *p++ = m;
-  while(--n >= 0)
+  while(n-- > 0)
     *p++ = *pc++;
   *p++ = m;
 
@@ -1107,9 +1107,9 @@ equalIndirectFromCode(word a, Code *PC)
   Word pa = addressIndirect(a);
 
   if ( *pc == *pa )
-  { int  n = wsizeofInd(*pc);
+  { size_t n = wsizeofInd(*pc);
 
-    while(--n >= 0)
+    while(n-- > 0)
     { if ( *++pc != *++pa )
 	fail;
     }

@@ -614,7 +614,7 @@ retry:
 					/* deterministic result */
   if ( result == TRUE || result == FALSE )
   { fli_context = ffr->parent;
-    return result;
+    return (int)result;
   }
 
   if ( true(def, NONDETERMINISTIC) )
@@ -3580,7 +3580,7 @@ to give the compiler a hint to put ARGP not into a register.
       Number n;
       Word p, p2;
 
-      offset = *PC++;
+      offset = (int)*PC++;
 
     a_var_n:
       n = (Number)ARGP;
@@ -3881,7 +3881,7 @@ atom is referenced by the goal-term anyway.
 	goto i_usercall_common;
 
     VMI(I_USERCALLN) MARK(USRCLN);
-        callargs = *PC++;
+        callargs = (int)*PC++;
 	next = lTop;
 	a = argFrameP(next, 0);		/* get the (now) instantiated */
 	deRef(a);			/* variable */
@@ -4066,7 +4066,7 @@ first call of $alt/1 simply succeeds.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_OR) MARK(C_OR);
     c_or:
-      { int skip = *PC++;
+      { size_t skip = *PC++;
 	Choice ch = newChoice(CHP_JUMP, FR PASS_LD);
 	ch->value.PC = PC+skip;
 	ARGP = argFrameP(lTop, 0);
@@ -4114,7 +4114,7 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
       common_call_fv:
 	{ Definition def;
 	  Func f;
-	  int rval;
+	  word rval;
 
 	  next = lTop;
 	  def = getProcDefinedDefinition(next, PC, fproc PASS_LD);

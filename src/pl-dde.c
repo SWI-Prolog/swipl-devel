@@ -150,7 +150,7 @@ unify_hsz(term_t term, HSZ hsz)
 }
 
 
-static int
+static word
 unify_hdata(term_t t, HDDEDATA data)
 { char buf[FASTBUFSIZE];
   int len;
@@ -182,7 +182,7 @@ unify_hdata(term_t t, HDDEDATA data)
 static int
 get_hsz(term_t data, HSZ *rval)
 { wchar_t *s;
-  unsigned int len;
+  size_t len;
 
   if ( PL_get_wchars(data, &len, &s, CVT_ALL|CVT_EXCEPTION) )
   { HSZ h = DdeCreateStringHandleW(ddeInst, s, CP_WINUNICODE);
@@ -322,13 +322,13 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 
 	 if ( PL_call_predicate(MODULE_dde, TRUE, pred, argv) )
 	 { wchar_t *s;
-	   unsigned int len;
+	   size_t len;
 
 					/* TBD: error handling */
 	   if ( PL_get_wchars(argv+3, &len, &s, CVT_ALL) )
 	     data = DdeCreateDataHandle(ddeInst,
 					(unsigned char*) s,
-					(len+1)*sizeof(wchar_t),
+					(DWORD)(len+1)*sizeof(wchar_t),
 					0, hsz2, CF_UNICODETEXT, 0);
 	 }
 	 PL_discard_foreign_frame(cid);
@@ -344,7 +344,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 }
 
 
-static int
+static word
 dde_initialise()
 { if ( ddeInst == (DWORD)NULL )
   { if (DdeInitializeW(&ddeInst, (PFNCALLBACK)DdeCallback,
@@ -524,7 +524,7 @@ word
 pl_dde_execute(term_t handle, term_t command, term_t timeout)
 { int hdl;
   wchar_t *cmdstr;
-  unsigned int cmdlen;
+  size_t cmdlen;
   HDDEDATA Hvalue, data;
   DWORD result;
   intptr_t tmo;
@@ -539,7 +539,7 @@ pl_dde_execute(term_t handle, term_t command, term_t timeout)
 
   if ( !(data = DdeCreateDataHandle(ddeInst,
 				    (unsigned char*)cmdstr,
-				    (cmdlen+1)*sizeof(wchar_t),
+				    (DWORD)(cmdlen+1)*sizeof(wchar_t),
 				    0, 0, CF_UNICODETEXT, 0)) )
     return dde_warning("dde_execute/3");
 
@@ -557,7 +557,7 @@ word
 pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
 { int hdl;
   wchar_t *datastr;
-  unsigned datalen;
+  size_t datalen;
   HDDEDATA Hvalue;
   HSZ Hitem;
   intptr_t tmo;
@@ -574,7 +574,7 @@ pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
     tmo = TIMEOUT_VERY_LONG;
 
   Hvalue = DdeClientTransaction((unsigned char*)datastr,
-				(datalen+1)*sizeof(wchar_t),
+				(DWORD)(datalen+1)*sizeof(wchar_t),
 				conv_handle[hdl], Hitem, CF_UNICODETEXT,
 				XTYP_POKE, (DWORD)tmo, NULL);
 

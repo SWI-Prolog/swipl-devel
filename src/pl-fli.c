@@ -205,7 +205,7 @@ PL_reset_term_refs(term_t r)
   FliFrame fr = fli_context;
 
   lTop = (LocalFrame) valTermRef(r);
-  fr->size = (Word) lTop - (Word)addPointer(fr, sizeof(struct fliFrame));
+  fr->size = (int)((Word) lTop - (Word)addPointer(fr, sizeof(struct fliFrame)));
   SECURE(if ( fr->size < 0 || fr->size > 100 )
 	   Sdprintf("Suspect foreign frame size: %d\n", fr->size));
 }
@@ -422,7 +422,7 @@ compareUCSAtom(atom_t h1, atom_t h2)
   Atom a2 = atomValue(h2);
   const pl_wchar_t *s1 = (const pl_wchar_t*)a1->name;
   const pl_wchar_t *s2 = (const pl_wchar_t*)a2->name;
-  unsigned len = a1->length < a2->length ? a1->length : a2->length;
+  size_t len = a1->length < a2->length ? a1->length : a2->length;
 
   len /= sizeof(pl_wchar_t);
   
@@ -431,7 +431,8 @@ compareUCSAtom(atom_t h1, atom_t h2)
       return *s1 - *s2;
   }
 
-  return a1->length - a2->length;
+  return a1->length >  a2->length ? 1 :
+	 a1->length == a2->length ? 0 : -1;
 }
 
 
@@ -969,7 +970,7 @@ findBuffer(int flags)
 char *
 buffer_string(const char *s, int flags)
 { Buffer b = findBuffer(flags);
-  int l = strlen(s) + 1;
+  size_t l = strlen(s) + 1;
 
   addMultipleBuffer(b, s, l, char);
 
@@ -1027,7 +1028,7 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide)
   { arg = argTermP(list, 0);
     deRef(arg);
     if ( isTaggedInt(*arg) )
-    { int i = valInt(*arg);
+    { intptr_t i = valInt(*arg);
       if ( i >= 0 && (wide || i < 256) )
       { type = CODES;
 	goto ok;
@@ -1046,7 +1047,7 @@ ok:
   b = findBuffer(flags);
 
   while( isList(list) )
-  { int c = -1;
+  { intptr_t c = -1;
 
     arg = argTermP(list, 0);
     deRef(arg);
@@ -1063,14 +1064,14 @@ ok:
     }
 
     if ( c < 0 || (!wide && c > 0xff) )
-    { unfindBuffer(flags);
+    { unfindBuffer(flags);		/* TBD: check unicode range */
       return NULL;
     }
 
     if ( wide )
-      addBuffer(b, c, pl_wchar_t);
+      addBuffer(b, (pl_wchar_t)c, pl_wchar_t);
     else
-      addBuffer(b, c, char);
+      addBuffer(b, (unsigned char)c, unsigned char);
 
     tail = argTermP(list, 1);
     deRef(tail);
@@ -1091,7 +1092,7 @@ PL_get_list_nchars(term_t l, size_t *length, char **s, unsigned int flags)
 
   if ( (b = codes_or_chars_to_buffer(l, flags, FALSE)) )
   { char *r;
-    int len = entriesBuffer(b, char);
+    size_t len = entriesBuffer(b, char);
 
     if ( length )
       *length = len;
@@ -1187,7 +1188,11 @@ PL_get_integer__LD(term_t t, int *i ARG_LD)
 { word w = valHandle(t);
   
   if ( isTaggedInt(w) )
-  { *i = valInt(w);
+  { intptr_t val = valInt(w);
+
+    if ( val > INT_MAX || val < INT_MIN )
+      fail;
+    *i = (int)val;
     succeed;
   }
   if ( isBignum(w) )
@@ -3096,7 +3101,7 @@ PL_throw(term_t exception)
   assert(exception_term);
 
   if ( QF )
-    longjmp(QF->exception_jmp_env, exception_term);
+    longjmp(QF->exception_jmp_env, 1);
 
   fail;
 }
@@ -3671,7 +3676,7 @@ PL_action(int action, ...)
 
   switch(action)
   { case PL_ACTION_TRACE:
-      rval = pl_trace();
+      rval = (int)pl_trace();
       break;
     case PL_ACTION_DEBUG:
       debugmode(DBG_ALL, NULL);
@@ -3705,7 +3710,7 @@ PL_action(int action, ...)
 #endif
       break;
     case PL_ACTION_BREAK:
-      rval = pl_break();
+      rval = (int)pl_break();
       break;
     case PL_ACTION_HALT:
     { int a = va_arg(args, int);
@@ -3715,7 +3720,7 @@ PL_action(int action, ...)
       break;
     }
     case PL_ACTION_ABORT:
-      rval = pl_abort(ABORT_NORMAL);
+      rval = (int)pl_abort(ABORT_NORMAL);
       break;
     case PL_ACTION_GUIAPP:
     { int guiapp = va_arg(args, int);

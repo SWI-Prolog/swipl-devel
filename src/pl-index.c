@@ -128,7 +128,7 @@ static inline int
 hashIndex(word key, int buckets)
 { uintptr_t k = key >> LMASK_BITS;
 
-  return (key^k) & (buckets-1);
+  return (int)((key^k) & (buckets-1));
 }
 
 

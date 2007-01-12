@@ -24,7 +24,11 @@
 
 #ifdef __WINDOWS__
 #include <uxnt.h>
+#ifdef WIN64
+#define MD "config/win64.h"
+#else
 #define MD "config/win32.h"
+#endif
 #include <winsock2.h>
 #include "pl-mswchar.h"
 #define CRLF_MAPPING 1
@@ -292,11 +296,11 @@ Sunlock(IOSTREAM *s)
 
 static int
 S__flushbuf(IOSTREAM *s)
-{ int size;
+{ size_t size;
   char *from = s->buffer;
 
   while ( (size = s->bufp - from) > 0 )
-  { int n = (*s->functions->write)(s->handle, from, size);
+  { ssize_t n = (*s->functions->write)(s->handle, from, size);
 
     if ( n > 0 )			/* wrote some */
     { from += n;
@@ -309,19 +313,16 @@ S__flushbuf(IOSTREAM *s)
   }
 
   if ( s->bufp - from == 0 )		/* full flush */
-  { int rc = s->bufp - s->buffer;
+  { s->bufp = s->buffer;
 
-    s->bufp = s->buffer;
-
-    return rc;
+    return 0;
   } else				/* partial flush */
-  { int rc = from - s->buffer;
-    int left = s->bufp - from;
+  { size_t left = s->bufp - from;
 
     memmove(s->buffer, from, left);
     s->bufp = s->buffer + left;
 
-    return rc;
+    return 0;
   }
 }
 
@@ -418,7 +419,7 @@ S__fillbuf(IOSTREAM *s)
 
   if ( s->flags & SIO_NBUF )
   { char chr;
-    int n;
+    ssize_t n;
 
     if ( (n=(*s->functions->read)(s->handle, &chr, 1)) == 1 )
     { c = char_to_int(chr);
@@ -432,7 +433,7 @@ S__fillbuf(IOSTREAM *s)
       goto error;			/* error */
     }
   } else
-  { int n, len;
+  { size_t n, len;
 
     if ( !s->buffer )
     { if ( S__setbuf(s, NULL, 0) < 0 )
@@ -685,7 +686,7 @@ Sputcode(int c, IOSTREAM *s)
       goto simple;
     case ENC_ANSI:
     { char b[MB_LEN_MAX];
-      int n;
+      size_t n;
 
       if ( !s->mbstate )
       { if ( !(s->mbstate = malloc(sizeof(*s->mbstate))) )
@@ -822,7 +823,7 @@ retry:
     }
     case ENC_ANSI:
     { char b[1];
-      int rc, n = 0;
+      size_t rc, n = 0;
       wchar_t wc;
 
       if ( !s->mbstate )
@@ -973,7 +974,7 @@ Sungetcode(int c, IOSTREAM *s)
       goto simple;
     case ENC_ANSI:			/* (*) See above */
     { char b[MB_LEN_MAX];
-      int n;
+      size_t n;
 
       if ( !s->mbstate )		/* do we need a seperate state? */
       { if ( !(s->mbstate = malloc(sizeof(*s->mbstate))) )
@@ -981,11 +982,11 @@ Sungetcode(int c, IOSTREAM *s)
 	memset(s->mbstate, 0, sizeof(*s->mbstate));
       }
 
-      if ( (n = wcrtomb(b, (wchar_t)c, s->mbstate)) > 0  &&
-	   s->bufp - s->unbuffer >= n )
-      { int i;
+      if ( (n = wcrtomb(b, (wchar_t)c, s->mbstate)) != (size_t)-1 &&
+	   s->bufp >= n + s->unbuffer )
+      { size_t i;
 
-	for(i=n-1; i>=0; i--)
+	for(i=n; i-- > 0; )
 	{ unget_byte(b[i], s);
 	}
 
@@ -1137,10 +1138,10 @@ Sfwrite(const void *data, int size, int elms, IOSTREAM *s)
 		 *	       PENDING		*
 		 *******************************/
 
-int
-Sread_pending(IOSTREAM *s, char *buf, int limit, int flags)
+size_t
+Sread_pending(IOSTREAM *s, char *buf, size_t limit, int flags)
 { int done = 0;
-  int n;
+  size_t n;
 
   if ( s->bufp >= s->limitp && (flags & SIO_RP_BLOCK) )
   { int c = S__fillbuf(s);
@@ -1196,7 +1197,7 @@ ScheckBOM(IOSTREAM *s)
   }
 
   for(;;)
-  { int avail = s->limitp - s->bufp;
+  { size_t avail = s->limitp - s->bufp;
     const bomdef *bd;
 
     for(bd=bomdefs; bd->bomlen; bd++)
@@ -1373,7 +1374,7 @@ Return the size of the underlying data object.  Should be optimized;
 long
 Ssize(IOSTREAM *s)
 { if ( s->functions->control )
-  { intptr_t size;
+  { long size;
 
     if ( (*s->functions->control)(s->handle, SIO_GETSIZE, (void *)&size) == 0 )
       return size;
@@ -1877,7 +1878,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	      w++;
 	    }
 	  } else /*if ( align == A_RIGHT ) */
-	  { int w;
+	  { size_t w;
 
 	    if ( fs == fbuf )
 	      w = fe - fs;
@@ -1927,7 +1928,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
   }
 
   SUNLOCK(s);
-  return printed;
+  return (int)printed;
 
 error:
   SUNLOCK(s);
@@ -2278,13 +2279,18 @@ out:
 		 *	    FILE STREAMS	*
 		 *******************************/
 
-static int
+static size_t
 Sread_file(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t) handle;
-  int bytes;
+  size_t bytes;
 
   for(;;)
-  { bytes = read((int)h, buf, size);
+  {
+#ifdef __WINDOWS__
+    bytes = read((int)h, buf, (int)size);
+#else
+    bytes = read((int)h, buf, size);
+#endif
 
     if ( bytes == -1 && errno == EINTR )
     { if ( PL_handle_signals() < 0 )
@@ -2300,13 +2306,18 @@ Sread_file(void *handle, char *buf, size_t size)
 }
 
 
-static int
+static size_t
 Swrite_file(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t) handle;
-  int bytes;
+  size_t bytes;
 
   for(;;)
-  { bytes = write((int)h, buf, size);
+  {
+#ifdef __WINDOWS__
+    bytes = write((int)h, buf, (int)size);
+#else
+    bytes = write((int)h, buf, size);
+#endif
 
     if ( bytes == -1 && errno == EINTR )
     { if ( PL_handle_signals() < 0 )
@@ -2322,8 +2333,8 @@ Swrite_file(void *handle, char *buf, size_t size)
 }
 
 
-static intptr_t
-Sseek_file(void *handle, intptr_t pos, int whence)
+static long
+Sseek_file(void *handle, long pos, int whence)
 { intptr_t h = (intptr_t) handle;
 
 					/* cannot do EINTR according to man */
@@ -2675,19 +2686,27 @@ S__getiob()
 #define pclose(fd)	pt_pclose(fd)
 #endif
 
-static int
+static ssize_t
 Sread_pipe(void *handle, char *buf, size_t size)
 { FILE *fp = handle;
 
+#ifdef __WINDOWS__
+  return read(fileno(fp), buf, (unsigned int)size);
+#else
   return read(fileno(fp), buf, size);
+#endif
 }
 
 
-static int
+static ssize_t
 Swrite_pipe(void *handle, char *buf, size_t size)
 { FILE *fp = handle;
 
+#ifdef __WINDOWS__
+  return write(fileno(fp), buf, (unsigned int)size);
+#else
   return write(fileno(fp), buf, size);
+#endif
 }
 
 
@@ -2765,8 +2784,8 @@ Sfree(void *ptr)			/* Windows: must free from same */
 }
 
 
-static intptr_t
-S__memfile_nextsize(intptr_t needed)
+static size_t
+S__memfile_nextsize(size_t needed)
 { size_t size = 512;
 
   while ( size < needed )
@@ -2776,7 +2795,7 @@ S__memfile_nextsize(intptr_t needed)
 }
 
 
-static int
+static ssize_t
 Swrite_memfile(void *handle, char *buf, size_t size)
 { memfile *mf = handle;
 
@@ -2819,7 +2838,7 @@ Swrite_memfile(void *handle, char *buf, size_t size)
 }
 
 
-static int
+static ssize_t
 Sread_memfile(void *handle, char *buf, size_t size)
 { memfile *mf = handle;
 
@@ -2836,7 +2855,7 @@ Sread_memfile(void *handle, char *buf, size_t size)
 }
 
 
-static intptr_t
+static long
 Sseek_memfile(void *handle, long offset, int whence)
 { memfile *mf = handle;
 
@@ -2844,10 +2863,10 @@ Sseek_memfile(void *handle, long offset, int whence)
   { case SIO_SEEK_SET:
       break;
     case SIO_SEEK_CUR:
-      offset += mf->here;
+      offset += (long)mf->here;		/* Win64: truncates */
       break;
     case SIO_SEEK_END:
-      offset = mf->size - offset;
+      offset = (long)mf->size - offset;	/* Win64 */
       break;
     default:
       errno = EINVAL;
@@ -2968,12 +2987,12 @@ Sopenmem(char **buffer, size_t *sizep, const char *mode)
 /* MT: we assume these handles are not passed between threads
 */
 
-static int
+static ssize_t
 Sread_string(void *handle, char *buf, size_t size)
 { return 0;				/* signal EOF */
 }
 
-static int
+static ssize_t
 Swrite_string(void *handle, char *buf, size_t size)
 { errno = ENOSPC;			/* signal error */
   return -1;
@@ -3004,7 +3023,7 @@ IOFUNCTIONS Sstringfunctions =
 
 
 IOSTREAM *
-Sopen_string(IOSTREAM *s, char *buf, int size, const char *mode)
+Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
 { int flags = SIO_FBUF|SIO_USERBUF;
 
   if ( !s )
@@ -3026,7 +3045,7 @@ Sopen_string(IOSTREAM *s, char *buf, int size, const char *mode)
 
   switch(*mode)
   { case 'r':
-      if ( size < 0 )
+      if ( size == (size_t)-1 )
 	size = strlen(buf);
       flags |= SIO_INPUT;
       break;

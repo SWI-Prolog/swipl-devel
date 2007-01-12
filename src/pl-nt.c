@@ -458,7 +458,7 @@ static const shell_error se_errors[] =
 
 static int
 win_shell(term_t op, term_t file, term_t how)
-{ unsigned int lo, lf;
+{ size_t lo, lf;
   wchar_t *o, *f;
   UINT h;
   HINSTANCE instance;
@@ -666,7 +666,7 @@ PRED_IMPL("win_registry_get_value", 3, win_registry_get_value, 0)
 { DWORD type;
   BYTE  data[MAXREGSTRLEN];
   DWORD len = sizeof(data);
-  unsigned int klen, namlen;
+  size_t klen, namlen;
   wchar_t *k, *name;
   HKEY key;
 

@@ -1194,7 +1194,7 @@ struct atom
   unsigned int	references;	/* reference-count */
 #endif
   struct PL_blob_t *type;	/* blob-extension */
-  unsigned int  length;		/* length of the atom */
+  size_t	length;		/* length of the atom */
   char *	name;		/* name associated with atom */
 };
 
@@ -1394,7 +1394,7 @@ struct localFrame
   struct call_node *prof_node;		/* Profiling node */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  unsigned long generation;		/* generation of the database */
+  uintptr_t	generation;		/* generation of the database */
 #endif
   unsigned long	flags;			/* packed long holding: */
 		/*	LEVEL	   recursion level (28 bits) */

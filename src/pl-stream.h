@@ -34,6 +34,7 @@ typedef __int64 int64_t;
 typedef long intptr_t;
 typedef unsigned long uintptr_t;
 #endif
+typedef intptr_t ssize_t;		/* signed version of size_t */
 #else
 #include <inttypes.h>			/* more portable than stdint.h */
 #endif
@@ -102,8 +103,8 @@ stuff.
 #define SIO_MAGIC	(7212676)	/* magic number */
 #define SIO_CMAGIC	(42)		/* we are close (and thus illegal!) */
 
-typedef int   (*Sread_function)(void *handle, char *buf, size_t bufsize);
-typedef int   (*Swrite_function)(void *handle, char*buf, size_t bufsize);
+typedef ssize_t (*Sread_function)(void *handle, char *buf, size_t bufsize);
+typedef ssize_t (*Swrite_function)(void *handle, char*buf, size_t bufsize);
 typedef long  (*Sseek_function)(void *handle, long pos, int whence);
 typedef int64_t (*Sseek64_function)(void *handle, int64_t pos, int whence);
 typedef int   (*Sclose_function)(void *handle);
@@ -341,8 +342,8 @@ PL_EXPORT(long)		Stell(IOSTREAM *s);
 PL_EXPORT(int)		Sclose(IOSTREAM *s);
 PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);
 PL_EXPORT(char *)	Sgets(char *buf);
-PL_EXPORT(int)		Sread_pending(IOSTREAM *s,
-				      char *buf, int limit, int flags);
+PL_EXPORT(size_t)	Sread_pending(IOSTREAM *s,
+				      char *buf, size_t limit, int flags);
 PL_EXPORT(int)		Sfputs(const char *q, IOSTREAM *s);
 PL_EXPORT(int)		Sputs(const char *q);
 PL_EXPORT(int)		Sfprintf(IOSTREAM *s, const char *fm, ...);
@@ -362,7 +363,7 @@ PL_EXPORT(IOSTREAM *)	Sfdopen(int fd, const char *type);
 PL_EXPORT(int)	   	Sfileno(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	Sopen_pipe(const char *command, const char *type);
 PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, size_t *sizep, const char *mode);
-PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, int sz, const char *m);
+PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, size_t sz, const char *m);
 PL_EXPORT(int)		Sclosehook(void (*hook)(IOSTREAM *s));
 PL_EXPORT(void)		Sfree(void *ptr);
 

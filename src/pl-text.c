@@ -49,9 +49,9 @@ valHandle__LD(term_t r ARG_LD)
 		 *	UNIFIED TEXT STUFF	*
 		 *******************************/
 
-static inline int
-bufsize_text(PL_chars_t *text, unsigned int len)
-{ int unit;
+static inline size_t
+bufsize_text(PL_chars_t *text, size_t len)
+{ size_t unit;
 
   switch(text->encoding)
   { case ENC_ISO_LATIN_1:
@@ -74,7 +74,7 @@ bufsize_text(PL_chars_t *text, unsigned int len)
 void
 PL_save_text(PL_chars_t *text, int flags)
 { if ( (flags & BUF_MALLOC) && text->storage != PL_CHARS_MALLOC )
-  { int bl = bufsize_text(text, text->length+1);
+  { size_t bl = bufsize_text(text, text->length+1);
     void *new = PL_malloc(bl);
 
     memcpy(new, text->text.t, bl);
@@ -82,7 +82,7 @@ PL_save_text(PL_chars_t *text, int flags)
     text->storage = PL_CHARS_MALLOC;
   } else if ( text->storage == PL_CHARS_LOCAL )
   { Buffer b = findBuffer(BUF_RING);
-    int bl = bufsize_text(text, text->length+1);
+    size_t bl = bufsize_text(text, text->length+1);
 
     addMultipleBuffer(b, text->text.t, bl, char);
     text->text.t = baseBuffer(b, char);
@@ -347,8 +347,8 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	  }
 	  case ENC_ANSI:
 	  { const char *s = text->text.t;
-	    int rc, n = text->length;
-	    unsigned int len = 0;
+	    size_t rc, n = text->length;
+	    size_t len = 0;
 	    mbstate_t mbs;
 	    wchar_t wc;
 
@@ -586,10 +586,10 @@ represented.
 static int
 wctobuffer(wchar_t c, mbstate_t *mbs, Buffer buf)
 { char b[MB_LEN_MAX];
-  int n;
+  size_t n;
 
   if ( (n=wcrtomb(b, c, mbs)) > 0 )
-  { int i;
+  { size_t i;
 
     for(i=0; i<n; i++)
       addBuffer(buf, b[i], char);
@@ -739,7 +739,7 @@ PL_canonise_text(PL_chars_t *text)
 	} else
 	{ int chr;
 	  int wide = FALSE;
-	  int len = s - text->text.t;
+	  size_t len = s - text->text.t;
 
 	  while(s<e)
 	  { s = utf8_get_char(s, &chr);
@@ -787,8 +787,7 @@ PL_canonise_text(PL_chars_t *text)
 	int len = 0;
 	int iso = TRUE;
 	char *s = text->text.t;
-	int n = text->length;
-	int rc;
+	size_t rc, n = text->length;
 	wchar_t wc;
 
 	memset(&mbs, 0, sizeof(mbs));
@@ -956,30 +955,33 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PL_cmp_text(PL_chars_t *t1, unsigned o1,
-	    PL_chars_t *t2, unsigned o2,
-	    unsigned len)
+PL_cmp_text(PL_chars_t *t1, size_t o1,
+	    PL_chars_t *t2, size_t o2,
+	    size_t len)
 
 Compares two substrings of two text representations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-PL_cmp_text(PL_chars_t *t1, unsigned o1, PL_chars_t *t2, unsigned o2,
-	    unsigned len)
-{ int l = len;
+PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
+	    size_t len)
+{ size_t l = len;
   int ifeq = 0;
 
-  if ( l > (int)(t1->length - o1) )
+  if ( o1 > t1->length ) o1 = t1->length;
+  if ( o2 > t2->length ) o2 = t2->length;
+
+  if ( l > t1->length - o1 )
   { l = t1->length - o1;
     ifeq = -1;				/* first is short */
   }
-  if ( l > (int)(t2->length - o2) )
+  if ( l > t2->length - o2 )
   { l = t2->length - o2;
     if ( ifeq == 0 )
       ifeq = 1;
   }
 
-  if ( l < 0 )				/* too intptr_t offsets */
+  if ( l == 0 )				/* too long offsets */
     return ifeq;
 
   if ( t1->encoding == ENC_ISO_LATIN_1 && t2->encoding == ENC_ISO_LATIN_1 )
@@ -1028,7 +1030,7 @@ PL_cmp_text(PL_chars_t *t1, unsigned o1, PL_chars_t *t2, unsigned o2,
 
 int
 PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result)
-{ int total_length = 0;
+{ size_t total_length = 0;
   int latin = TRUE;
   int i;
 

@@ -145,12 +145,12 @@ typedef struct
     int		cmps;			/* # string compares for lookup */
 #ifdef O_ATOMGC
     int		gc_active;		/* Atom-GC is in progress */
-    int		builtin;		/* Locked atoms (atom-gc) */
-    int		no_hole_before;		/* You won't find a hole before here */
-    int		margin;			/* # atoms to grow before collect */
-    int		non_garbage;		/* # atoms for after last AGC */
+    size_t	builtin;		/* Locked atoms (atom-gc) */
+    size_t	no_hole_before;		/* You won't find a hole before here */
+    size_t	margin;			/* # atoms to grow before collect */
+    size_t	non_garbage;		/* # atoms for after last AGC */
     int		gc;			/* # atom garbage collections */
-    intptr_t	collected;		/* # collected atoms */
+    long	collected;		/* # collected atoms */
     real	gc_time;		/* Time spent on atom-gc */
     PL_agc_hook_t gc_hook;		/* Current hook */
 #endif

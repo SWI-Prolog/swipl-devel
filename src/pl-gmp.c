@@ -774,4 +774,27 @@ PL_unify_mpq(term_t t, mpq_t mpq)
   return rc;
 }
 
+		 /*******************************
+		 *               WIN64		*
+		 *******************************/
+
+#ifdef WIN64
+size_t
+strnlen(const char *s, size_t maxlen)
+{ size_t len = 0;
+
+  while(*s++ && maxlen-- > 0)
+    len++;
+
+  return len;
+}
+
+
+void
+__GSHandlerCheck()
+{
+}
+
+#endif
+
 #endif /*O_GMP*/

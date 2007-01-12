@@ -38,15 +38,15 @@ symbol lookup and relocations.
 COMMON(void) 		freeHeap__LD(void *mem, size_t n ARG_LD);
 COMMON(word) 		outOfStack(Stack s, stack_overflow_action how);
 COMMON(void)		outOfCore(void) NORETURN;
-COMMON(Word) 		allocGlobal__LD(int words ARG_LD);
-COMMON(Word) 		allocGlobalNoShift__LD(int words ARG_LD);
+COMMON(Word) 		allocGlobal__LD(size_t words ARG_LD);
+COMMON(Word) 		allocGlobalNoShift__LD(size_t words ARG_LD);
 COMMON(void *) 		allocHeap__LD(size_t n ARG_LD);
 COMMON(void) 		initMemAlloc(void);
 COMMON(void) 		cleanupMemAlloc(void);
 COMMON(void) 		mergeAllocPool(AllocPool to, AllocPool from);
 COMMON(word) 		globalFunctor(functor_t def);
-COMMON(word) 		globalString(intptr_t len, const char *s);
-COMMON(word) 		globalWString(unsigned len, const pl_wchar_t *s);
+COMMON(word) 		globalString(size_t len, const char *s);
+COMMON(word) 		globalWString(size_t len, const pl_wchar_t *s);
 COMMON(char *)		getCharsString__LD(word w, size_t *len ARG_LD);
 COMMON(pl_wchar_t *)	getCharsWString__LD(word w, size_t *len ARG_LD);
 COMMON(Word) 		newTerm(void);
@@ -721,7 +721,7 @@ COMMON(void) 		freeLocalData(PL_local_data_t *ld);
 COMMON(word) 		pl_trim_stacks(void);
 COMMON(word) 		pl_limit_stack(term_t s, term_t l);
 COMMON(word) 		pl_stack_parameter(term_t s, term_t k, term_t o, term_t n);
-COMMON(void) 		ensureRoomStack(Stack s, int n);
+COMMON(void) 		ensureRoomStack(Stack s, size_t n);
 COMMON(int) 		_PL_get_signum(term_t sig, int *n);
 
 /* pl-sys.c */

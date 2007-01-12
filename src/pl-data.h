@@ -307,7 +307,7 @@ and while loading .wic files.  It comes at no price.
 #define functorHashValue(f, n)	((f)>>(LMASK_BITS) & ((n)-1))
 #define indexFunctor(w)	((w)>>(LMASK_BITS+F_ARITY_BITS))
 #define valueFunctor(w) fetchBuffer(&functor_array,indexFunctor(w),FunctorDef)
-#define _arityFunc_(w)	(((w) >> LMASK_BITS) & F_ARITY_MASK)
+#define _arityFunc_(w)	((int)(((w) >> LMASK_BITS) & F_ARITY_MASK))
 #define arityFunctor(w) (_arityFunc_(w)!=F_ARITY_MASK ? _arityFunc_(w) \
 						      : valueFunctor(w)->arity)
 #define isAtomFunctor(w) (arityFunctor(w) == 0)
