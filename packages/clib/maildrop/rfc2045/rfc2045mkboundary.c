@@ -13,7 +13,7 @@
 #include	<stdio.h>
 #include	<stdlib.h>
 #include	<time.h>
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define NUMBUFSIZE 60
 #define HAS_GETHOSTNAME 1
 #include <windows.h>
@@ -39,7 +39,7 @@ char	timebuf[NUMBUFSIZE];
 char	cntbuf[60];
 int	cnt=0;
 time_t	mytime;
-#ifndef WIN32
+#ifndef __WINDOWS__
 char	hostnamebuf[256];
 pid_t	mypid;
 #endif
@@ -48,7 +48,7 @@ int	rc;
 
 	time(&mytime);
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 	sprintf(pidbuf, "%ld", GetCurrentThreadId());
 	sprintf(timebuf, "%ld", (long)mytime);
 #else

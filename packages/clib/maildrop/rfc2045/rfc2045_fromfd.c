@@ -16,7 +16,7 @@
 #if	HAVE_UNISTD_H
 #include	<unistd.h>
 #endif
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <io.h>
 #define read _read
 #define lseek _lseek

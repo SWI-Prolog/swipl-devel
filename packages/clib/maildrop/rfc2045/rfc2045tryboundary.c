@@ -16,7 +16,7 @@
 #if    HAVE_STRINGS_H
 #include       <strings.h>
 #endif
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define strncasecmp strnicmp
 #include <io.h>
 #define read _read

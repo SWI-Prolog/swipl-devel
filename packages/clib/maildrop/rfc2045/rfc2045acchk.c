@@ -13,7 +13,7 @@
 #endif
 #include	<stdlib.h>
 #include	<stdio.h>
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define strcasecmp stricmp
 #define strncasecmp strnicmp
 #endif

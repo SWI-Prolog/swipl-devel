@@ -20,7 +20,7 @@
 #include	"rfc822/rfc822.h"
 #include	"rfc2045charset.h"
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define strncasecmp strnicmp
 #endif
 

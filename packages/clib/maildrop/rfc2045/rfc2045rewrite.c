@@ -18,7 +18,7 @@
 #if    HAVE_STRINGS_H
 #include       <strings.h>
 #endif
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define strcasecmp stricmp
 #define strncasecmp strnicmp
 #define write _write
