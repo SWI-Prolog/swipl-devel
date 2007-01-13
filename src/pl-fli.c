@@ -452,7 +452,7 @@ static atom_t
 loadUCSAtom(IOSTREAM *fd)
 { pl_wchar_t buf[256];
   pl_wchar_t *w;
-  unsigned len;
+  size_t len;
   atom_t a;
 
   w = wicGetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));

@@ -1793,7 +1793,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
       case CA1_MPZ:
       { word m = *bp++;
 	size_t wn = wsizeofInd(m);
-	ing mpsize = (int)*bp;
+	int mpsize = (int)*bp;
 	int l = abs(mpsize)*sizeof(mp_limb_t);
 	char *s = (char*)&bp[1];
 	bp += wn;
