@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -129,6 +129,7 @@ leave the details to this function.
 
 #ifndef __WINDOWS__
 #define closesocket(n) close((n))	/* same on Unix */
+typedef int SOCKET;
 #endif
 
 #ifndef SD_SEND

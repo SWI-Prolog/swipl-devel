@@ -22,11 +22,11 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include "form.h"
 #include <SWI-Prolog.h>
 #include <string.h>
 #include <stdlib.h> 
 #include "clib.h"
+#include "form.h"
 
 static int
 isinteger(const char *s, long *val, size_t len)
