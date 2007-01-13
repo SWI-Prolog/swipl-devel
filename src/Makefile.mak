@@ -216,6 +216,7 @@ iprog::
 		$(INSTALL_PROGRAM) ..\bin\plterm.pdb "$(BINDIR)"
 !ENDIF
 !IF "$(MT)" == "true"
+		@echo Installing pthreadVC.dll from $(WINDLLDIR)
 		$(INSTALL_PROGRAM) "$(WINDLLDIR)\pthreadVC.dll" "$(BINDIR)"
 		$(INSTALL_DATA) "$(PTHREADLIBDIR)\pthreadVC.lib" "$(LIBDIR)"
 !ENDIF

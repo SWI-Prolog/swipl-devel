@@ -2293,7 +2293,7 @@ split_atom(term_t list, term_t sep, term_t atom)
        !PL_get_text(sep, &st, CVT_ATOMIC) )
     return -1;
 
-  for(last=i=0; i<=(int)at.length-(int)st.length; )
+  for(last=i=0; (ssize_t)i<=(ssize_t)(at.length-st.length); )
   { if ( PL_cmp_text(&st, 0, &at, i, st.length) == 0 )
     { if ( !PL_unify_list(tail, head, tail) ||
 	   !PL_unify_text_range(head, &at, last, i-last, PL_ATOM) )

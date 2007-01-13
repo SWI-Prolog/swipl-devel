@@ -813,7 +813,7 @@ _xos_rmdir(const char *path)
 
 
 char *
-_xos_getcwd(char *buf, int len)
+_xos_getcwd(char *buf, size_t len)
 { TCHAR buf0[PATH_MAX];
   TCHAR buf1[PATH_MAX];
 

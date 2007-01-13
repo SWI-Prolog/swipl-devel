@@ -36,6 +36,10 @@
 #include <stdio.h>
 #include <io.h>
 #include <direct.h>
+#if (_MSC_VER < 1300)
+typedef long intptr_t;
+typedef unsigned long uintptr_t;
+#endif
 typedef intptr_t ssize_t;		/* signed version of size_t */
 
 #ifndef _UXNT_KERNEL

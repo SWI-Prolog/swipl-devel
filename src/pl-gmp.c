@@ -719,7 +719,7 @@ PL_get_mpq(term_t t, mpq_t mpq)
     { switch(n.type)
       { case V_INTEGER:
 	  if ( n.value.i >= LONG_MIN && n.value.i <= LONG_MAX )
-	  { mpq_set_si(mpq, n.value.i, 1L);
+	  { mpq_set_si(mpq, (long)n.value.i, 1L);
 	    return TRUE;
 	  }
 	  promoteToMPZNumber(&n);

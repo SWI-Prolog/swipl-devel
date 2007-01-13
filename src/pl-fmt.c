@@ -793,13 +793,13 @@ emit_rubber(format_state *state)
   const char *e = &s[entriesBuffer(&state->buffer, char)];
   struct rubber *r = state->rub;
   int rn = state->pending_rubber;
-  int j;
+  size_t j;
 
   for(j = 0; s <= e; j++)
   { int chr;
 
     if ( r->where == j && rn )
-    { int n;
+    { size_t n;
 
       for(n=0; n<r->size; n++)
       { if ( Sputcode(r->pad, state->out) < 0 )

@@ -450,7 +450,7 @@ set_feature_unlocked(term_t key, term_t value)
       f->value.i = i;
 #ifdef O_ATOMGC
       if ( k == ATOM_agc_margin )
-	GD->atoms.margin = i;
+	GD->atoms.margin = (size_t)i;
 #endif
       break;
     }

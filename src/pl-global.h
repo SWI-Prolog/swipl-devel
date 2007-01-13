@@ -105,11 +105,11 @@ typedef struct
   } paths;
 
   struct
-  { intptr_t	heap;			/* heap in use */
-    int		atoms;			/* No. of atoms defined */
-    intptr_t	atomspace;		/* # bytes used to store atoms */
+  { size_t	heap;			/* heap in use */
+    size_t	atoms;			/* No. of atoms defined */
+    size_t	atomspace;		/* # bytes used to store atoms */
 #ifdef O_ATOMGC
-    intptr_t	atomspacefreed;		/* Freed atom-space */
+    size_t	atomspacefreed;		/* Freed atom-space */
 #endif
     int		functors;		/* No. of functors defined */
     int		predicates;		/* No. of predicates defined */
@@ -139,7 +139,7 @@ typedef struct
 
   struct
   { buffer	array;			/* index --> atom */
-    int		buckets;		/* # buckets in char * --> atom */
+    unsigned int buckets;		/* # buckets in char * --> atom */
     Atom *	table;			/* hash-table */
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */

@@ -92,6 +92,10 @@ MS-Windows version
 
 static void profile(intptr_t ticks, PL_local_data_t *ld);
 
+#if (_MSC_VER < 1400)
+typedef DWORD DWORD_PTR;
+#endif
+
 static LARGE_INTEGER last_profile;
 static HANDLE	     mythread;
 static PL_local_data_t *my_LD;

@@ -703,7 +703,7 @@ Sputcode(int c, IOSTREAM *s)
       { if ( reperror(c, s) < 0 )
 	  return -1;
       } else
-      { int i;
+      { size_t i;
 
 	for(i=0; i<n; i++)
 	{ if ( put_byte(b[i]&0xff, s) < 0 )
@@ -1183,7 +1183,7 @@ update the stream encoding.  Return value is one of
 
 typedef struct
 { IOENC encoding;
-  int bomlen;
+  unsigned int bomlen;
   const char *bom;
 } bomdef;
 
@@ -2877,7 +2877,7 @@ Sseek_memfile(void *handle, long offset, int whence)
       errno = EINVAL;
       return -1;
   }
-  if ( offset < 0 || offset > mf->size )
+  if ( offset < 0 || offset > (long)mf->size )
   { errno = EINVAL;
     return -1;
   }
