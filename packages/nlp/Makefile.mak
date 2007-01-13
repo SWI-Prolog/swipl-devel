@@ -20,7 +20,7 @@ all:		double_metaphone.dll porter_stem.dll
 double_metaphone.dll:	$(DMPOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(DMPOBJ) $(PLLIB)
 porter_stem.dll:	$(STEMOBJ)
-		$(LD) /dll /out:$@ $(LDFLAGS) $(STEMOBJ) $(PLLIB)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(STEMOBJ) $(PLLIB) $(LIBS)
 
 !IF "$(CFG)" == "rt"
 install:	idll

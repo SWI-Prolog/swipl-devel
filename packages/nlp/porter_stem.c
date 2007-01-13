@@ -359,7 +359,7 @@ pl_stem(term_t t_in, term_t t_stem)
   char *f, *t, *s, *ew;
   char buf[1024];
   char plain[1024];
-  int l;
+  size_t l;
 
   if ( !PL_get_nchars(t_in, &len, &word, CVT_ALL|CVT_EXCEPTION) )
   { if ( PL_is_number(t_in) )
@@ -385,7 +385,7 @@ pl_stem(term_t t_in, term_t t_stem)
     s = s2;
   }
 
-  end = stem(s, 0, len - 1);
+  end = stem(s, 0, (int)(len - 1));
   s[end + 1] = '\0';
   
   PL_unify_atom_chars(t_stem, s);
@@ -450,9 +450,9 @@ unaccent(const char *in, size_t len, char *out, size_t size)
     *to = '\0';
 
   if ( changes == 0 )
-    return out-to;			/* no change: negative */
+    return (int)(out-to);		/* no change: negative */
 
-  return to-out;
+  return (int)(to-out);
 }
 
 
@@ -575,7 +575,7 @@ unify_token(const char *s, size_t len, toktype type, void *closure)
 
     switch(type)
     { case TOK_INT:
-#ifdef WIN32
+#ifdef __WINDOWS__
       { long val = strtol(s, &ep, 10);
 
 	return PL_unify_integer(l->head, val);

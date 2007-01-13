@@ -3,19 +3,15 @@
 
 
 typedef struct
-{
-    char *str;
-    int length;
-    int bufsize;
-    int free_string_on_destroy;
-}
-metastring;      
+{ char	       *str;
+  size_t	length;
+  size_t	bufsize;
+  int		free_string_on_destroy;
+} metastring;      
 
 
 #ifndef __SWI_PROLOG__
-void
-DoubleMetaphone(char *str,
-                char **codes);
+void DoubleMetaphone(char *str, char **codes);
 #endif
 
 

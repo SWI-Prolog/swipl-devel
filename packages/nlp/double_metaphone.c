@@ -212,7 +212,7 @@ MetaphAdd(metastring * s, char *new_str)
     if (new_str == NULL)
 	return;
 
-    add_length = strlen(new_str);
+    add_length = (int)strlen(new_str);
     if ((s->length + add_length) > (s->bufsize - 1))
       {
 	  IncreaseBuffer(s, add_length);
@@ -238,7 +238,7 @@ DoubleMetaphone(char *str, char **codes)
 
     current = 0;
     /* we need the real length and last prior to padding */
-    length  = strlen(str); 
+    length  = (int)strlen(str); 
     last    = length - 1; 
     original = NewMetaString(str);
     /* Pad original so we can index beyond end */
