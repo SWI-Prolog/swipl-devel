@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -60,6 +60,9 @@ with winmm.lib
 
 #include <windows.h>
 #include <sys/timeb.h>
+#if (_MSC_VER < 1400) 
+typedef DWORD DWORD_PTR;
+#endif
 
 #ifndef SIGALRM
 #define SIGALRM 14
@@ -81,7 +84,7 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 { struct timeb tb;
 
   ftime(&tb);
-  tv->tv_sec  = tb.time;
+  tv->tv_sec  = (long)tb.time;
   tv->tv_usec = tb.millitm * 1000;
 
   return 0;
@@ -453,7 +456,7 @@ on_alarm(int sig)
 
 
 static void CALLBACK
-callTimer(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
+callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
 { Event ev = (Event)dwuser;
 
   ev->flags |= EV_FIRED;

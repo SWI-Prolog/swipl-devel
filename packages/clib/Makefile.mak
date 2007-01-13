@@ -26,7 +26,7 @@ all:		socket.dll cgi.dll memfile.dll mime.dll time.dll readutil.dll \
 		random.dll
 
 readutil.dll:	$(READOBJ)
-		$(LD) /dll /out:$@ $(LDFLAGS) $(READOBJ) $(PLLIB)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(READOBJ) $(PLLIB) $(LIBS)
 socket.dll:	$(SOCKOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(SOCKOBJ) $(PLLIB) $(LIBS)
 cgi.dll:	$(CGIOBJ)
