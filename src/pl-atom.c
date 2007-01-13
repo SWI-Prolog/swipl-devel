@@ -800,10 +800,10 @@ rehashAtoms()
 word
 pl_atom_hashstat(term_t idx, term_t n)
 { GET_LD
-  int i, m;
+  long i, m;
   Atom a;
   
-  if ( !PL_get_integer(idx, &i) || i < 0 || i >= atom_buckets )
+  if ( !PL_get_long(idx, &i) || i < 0 || i >= (long)atom_buckets )
     fail;
   for(m = 0, a = atomTable[i]; a; a = a->next)
     m++;
