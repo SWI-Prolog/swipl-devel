@@ -2241,7 +2241,7 @@ reindexDefinition(Definition def)
 
 
 void
-indexDefinition(Definition def, uintptr_t pattern)
+indexDefinition(Definition def, long pattern)
 { clear(def, AUTOINDEX);
 
   if ( (def->indexPattern & ~NEED_REINDEX) != 0x1L &&

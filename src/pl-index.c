@@ -714,7 +714,7 @@ pl_hash(term_t pred)
 		      ATOM_hash, ATOM_foreign, def);
 
     LOCKDEF(def);
-    indexDefinition(def, 0x1);		/* index in 1st argument */
+    indexDefinition(def, 0x1L);		/* index in 1st argument */
     
     minsize = def->number_of_clauses / 4,
     size = 64;

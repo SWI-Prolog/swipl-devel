@@ -92,7 +92,7 @@ const char *
 atom_summary(atom_t name, unsigned int maxlen)
 { PL_chars_t txt;
   Buffer b;
-  unsigned int i;
+  size_t i;
 
   if ( !get_atom_text(name, &txt) )
     return NULL;
@@ -388,8 +388,8 @@ strlwr(char *s)
 
 bool
 stripostfix(const char *s, const char *e)
-{ int ls = strlen(s);
-  int le = strlen(e);
+{ size_t ls = strlen(s);
+  size_t le = strlen(e);
 
   if ( ls >= le )
     return strcasecmp(&s[ls-le], e) == 0;
@@ -411,7 +411,7 @@ typedef struct
 
 #if !defined(HAVE_MBSCOLL) || !defined(HAVE_MBCASESCOLL)
 static void
-wstolower(wchar_t *w, int len)
+wstolower(wchar_t *w, size_t len)
 { wchar_t *e = &w[len];
 
   for( ; w<e; w++ )
@@ -420,8 +420,8 @@ wstolower(wchar_t *w, int len)
 
 static int
 int_mbscoll(const char *s1, const char *s2, int icase)
-{ int l1 = strlen(s1);
-  int l2 = strlen(s2);
+{ size_t l1 = strlen(s1);
+  size_t l2 = strlen(s2);
   wchar_t *w1;
   wchar_t *w2;
   int ml1, ml2;

@@ -1020,7 +1020,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     { int pcn;
 
       if ( PC && false(frame->predicate, FOREIGN) && frame->clause )
-	pcn = PC - frame->clause->clause->codes;
+	pcn = (int)(PC - frame->clause->clause->codes);
       else
 	pcn = 0;
 

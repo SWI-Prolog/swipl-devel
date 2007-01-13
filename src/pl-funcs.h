@@ -631,7 +631,7 @@ COMMON(word) 		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(void) 		reindexDefinition(Definition def);
 COMMON(void) 		redefineProcedure(Procedure proc, SourceFile sf);
 COMMON(void) 		startConsult(SourceFile f);
-COMMON(void) 		indexDefinition(Definition def, uintptr_t pattern);
+COMMON(void) 		indexDefinition(Definition def, long pattern);
 COMMON(word) 		pl_index(term_t pred);
 COMMON(SourceFile) 	lookupSourceFile(atom_t name);
 COMMON(SourceFile) 	indexToSourceFile(int index);

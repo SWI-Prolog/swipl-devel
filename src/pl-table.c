@@ -184,7 +184,7 @@ rehashHTable(Table ht)
   { Symbol s, n;
 
     for(s=oldtab[i]; s; s = n)
-    { int v = pointerHashValue(s->name, ht->buckets);
+    { int v = (int)pointerHashValue(s->name, ht->buckets);
 
       n = s->next;
       s->next = ht->entries[v];
@@ -203,7 +203,7 @@ addHTable(Table ht, void *name, void *value)
   int v;
 
   LOCK_TABLE(ht);
-  v = pointerHashValue(name, ht->buckets);
+  v = (int)pointerHashValue(name, ht->buckets);
   if ( lookupHTable(ht, name) )
   { UNLOCK_TABLE(ht);
     return NULL;
@@ -237,7 +237,7 @@ deleteSymbolHTable(Table ht, Symbol s)
   TableEnum e;
 
   LOCK_TABLE(ht);
-  v = pointerHashValue(s->name, ht->buckets);
+  v = (int)pointerHashValue(s->name, ht->buckets);
   h = &ht->entries[v];
 
   for( e=ht->enumerators; e; e = e->next )
