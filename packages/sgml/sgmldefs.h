@@ -28,7 +28,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #else
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define HAVE_MALLOC_H 1
 #define HAVE_IO_H 1
 #endif

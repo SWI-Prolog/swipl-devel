@@ -32,7 +32,7 @@
 #define DTD_MINOR_ERRORS 1
 #include <dtd.h>			/* error codes */
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define swprintf _snwprintf
 #endif
 
@@ -84,7 +84,7 @@ typedef struct _catalog_file
 
 static catalog_file *catalog;
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define isDirSep(c) ((c) == '/' || (c) == '\\')
 #define DIRSEPSTR L"\\"
 #else
@@ -117,7 +117,7 @@ DirName(const ichar *f, ichar *dir)
 int
 is_absolute_path(const ichar *name)
 { if (isDirSep(name[0])
-#ifdef WIN32
+#ifdef __WINDOWS__
       || (iswalpha(uc(name)) && name[1] == ':')
 #endif
     )

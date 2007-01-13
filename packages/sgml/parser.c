@@ -45,7 +45,7 @@
 #define DEBUG(g) ((void)0)
 #define ZERO_TERM_LEN (-1)		/* terminated by nul */
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define inline __inline
 #define swprintf _snwprintf
 #endif

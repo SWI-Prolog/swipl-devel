@@ -24,7 +24,7 @@
 
 #define _ISOC99_SOURCE 1		/* fwprintf(), etc prototypes */
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <windows.h>
 #endif
 
