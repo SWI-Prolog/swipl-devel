@@ -129,7 +129,7 @@ CFLAGS=/MD /W3 $(SYMOPT) /EHsc /D__WINDOWS__ /D$(MD) /nologo /c
 
 !IF "$(DBG)" == "false"
 CFLAGS=/DNDEBUG $(CFLAGS)
-LDFLAGS=
+LDFLAGS=/DEBUG
 D=
 DBGLIBS=
 !ELSE
