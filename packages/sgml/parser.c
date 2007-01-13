@@ -401,8 +401,10 @@ entity_value(dtd_parser *p, dtd_entity *e, int *len)
 
   if ( !e->value && (file=entity_file(p->dtd, e)) )
   { int normalise = (e->content == EC_SGML || e->content == EC_CDATA);
+    size_t l;
 
-    e->value = load_sgml_file_to_charp(file, normalise, &e->length);
+    e->value = load_sgml_file_to_charp(file, normalise, &l);
+    e->length = (long)l;
     sgml_free(file);
   }
 
@@ -448,7 +450,7 @@ expand_pentities(dtd_parser *p, const ichar *in, int ilen, ichar *out, int len)
 
 	if ( !expand_pentities(p, eval, ZERO_TERM_LEN, out, len) )
 	  return FALSE;
-	l = istrlen(out);		/* could be better */
+	l = (int)istrlen(out);		/* could be better */
 	out += l;
 	len -= l;
 
@@ -589,7 +591,7 @@ expand_entities(dtd_parser *p, const ichar *in, int len, ocharbuf *out)
 	  goto recover;
 	}
 
-	if ( !expand_entities(p, eval, istrlen(eval), out) )
+	if ( !expand_entities(p, eval, (int)istrlen(eval), out) )
 	  return FALSE;
 
 	continue;
@@ -986,7 +988,7 @@ itake_string(dtd *dtd, const ichar *in, ichar **start, int *len)
     while( *in && *in != q )
       in++;
     if ( *in )
-    { *len = in - (*start);
+    { *len = (int)(in - (*start));
 
       return iskip_layout(dtd, ++in);
     }
@@ -1258,7 +1260,7 @@ process_entity_value_declaration(dtd_parser *p,
       }
       case ET_LITERAL:
       { e->value = istrdup(val);
-	e->length = wcslen(e->value);
+	e->length = (int)wcslen(e->value);
 	return decl;
       }
       default:
@@ -1587,7 +1589,7 @@ shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
   
   m = sgml_calloc(1, sizeof(*m));
   m->from = istrdup(from);
-  m->len  = istrlen(from);
+  m->len  = (int)istrlen(from);
   m->to   = to;
 
   *p = m;
@@ -1809,7 +1811,7 @@ match_map(dtd *dtd, dtd_map *map, ocharbuf *buf)
     return 0;
   }
 
-  return data+buf->size-1-e;
+  return (int)(data+buf->size-1-e);
 }
 
 
@@ -2470,7 +2472,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
       if ( !(end=itake_string(dtd, decl, &start, &len)) )
       { end=itake_nmtoken_chars(dtd, decl, buf, sizeof(buf)/sizeof(ichar));
 	start = buf;
-	len = istrlen(buf);
+	len = (int)istrlen(buf);
       }
       if ( !end )
 	return gripe(ERC_SYNTAX_ERROR, L"Bad attribute default", decl);
@@ -2651,7 +2653,7 @@ push_element(dtd_parser *p, dtd_element *e, int callback)
       { p->state = (e->structure->type == C_CDATA ? S_CDATA : S_RCDATA);
 	p->cdata_state = p->state;
 	p->etag = e->name->name;
-	p->etaglen = istrlen(p->etag);
+	p->etaglen = (int)istrlen(p->etag);
 	sgml_cplocation(&p->startcdata, &p->location);
       } else
 	p->cdata_state = S_PCDATA;
@@ -3073,12 +3075,12 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
       { (void) istrtol(buf, &att->value.number);
       } else
       { att->value.textW  = istrdup(buf);
-	att->value.number = istrlen(buf);
+	att->value.number = (long)istrlen(buf);
       }
       return end;
     case AT_CDATA:		/* CDATA attribute */
       att->value.textW  = istrdup(buf);
-      att->value.number = istrlen(buf);
+      att->value.number = (long)istrlen(buf);
       return end;
     case AT_ID:		/* identifier */
     case AT_IDREF:		/* identifier reference */
@@ -3137,7 +3139,7 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
 
 passed:
   att->value.textW  = istrdup(buf);	/* TBD: more validation */
-  att->value.number = istrlen(buf); 
+  att->value.number = (long)istrlen(buf); 
   return end;
 }
 
@@ -3200,7 +3202,7 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 		atts[attn].flags	= 0;
 		atts[attn].definition   = a;
 		atts[attn].value.textW  = istrdup(nm->name);
-		atts[attn].value.number = istrlen(nm->name);
+		atts[attn].value.number = (long)istrlen(nm->name);
 		attn++;
 		goto next;
 	      }
@@ -3272,12 +3274,12 @@ add_default_attributes(dtd_parser *p, dtd_element *e,
 	switch(a->type)
 	{ case AT_CDATA:
 	    ap->value.textW = a->att_def.cdata;
-	    ap->value.number = istrlen(ap->value.textW);
+	    ap->value.number = (long)istrlen(ap->value.textW);
 	    break;
 	  case AT_NUMBER:
 	    if ( p->dtd->number_mode == NU_TOKEN )
 	    { ap->value.textW  = (ichar*)a->att_def.name->name;
-	      ap->value.number = istrlen(ap->value.textW);
+	      ap->value.number = (long)istrlen(ap->value.textW);
 	    } else
 	    { ap->value.number = a->att_def.number;
 	    }
@@ -3288,7 +3290,7 @@ add_default_attributes(dtd_parser *p, dtd_element *e,
 	    } else
 	    { ap->value.textW = (ichar*)a->att_def.name->name;
 	    }
-	    ap->value.number = istrlen(ap->value.textW);
+	    ap->value.number = (long)istrlen(ap->value.textW);
 	}
 
 	natts++;
@@ -3685,14 +3687,15 @@ process_pi(dtd_parser *p, const ichar *decl)
 
       if ( (s=itake_name(dtd, decl, &nm)) &&
 	   (s=isee_func(dtd, s, CF_VI)) ) 		/* = */
-      { ichar *start; int len;
+      { ichar *start;
+	int len;
 	ichar buf[MAXSTRINGLEN];
 	const ichar *end;
 
 	if ( !(end=itake_string(dtd, s, &start, &len)) )
 	{ end=itake_nmtoken_chars(dtd, s, buf, sizeof(buf)/sizeof(ichar));
 	  start = buf;
-	  len = istrlen(buf);
+	  len = (int)istrlen(buf);
 	}
 
 	if ( end )
@@ -5278,7 +5281,7 @@ format_message(dtd_error *e)
   s = buf+wcslen(buf);
 
   s = format_location(s, 1024-(s-buf), e->location);
-  prefix_len = s-buf;
+  prefix_len = (int)(s-buf);
   left = 1024-prefix_len;
 
   switch(e->id)

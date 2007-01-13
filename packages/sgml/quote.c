@@ -34,7 +34,7 @@ typedef struct charbuf
 { char     buffer[1024];
   char    *bufp;
   char    *end;
-  int      size;
+  size_t   size;
 } charbuf;
 
 
@@ -53,8 +53,8 @@ free_buf(charbuf *b)
 
 
 static int
-room_buf(charbuf *b, int room)
-{ int used = b->end - b->bufp;
+room_buf(charbuf *b, size_t room)
+{ size_t used = b->end - b->bufp;
 
   if ( room + used > b->size )
   { if ( b->bufp == b->buffer )
@@ -78,7 +78,7 @@ room_buf(charbuf *b, int room)
 }
 
 
-static unsigned int
+static size_t
 used_buf(const charbuf *b)
 { return b->end - b->bufp;
 }
@@ -113,7 +113,7 @@ add_char_bufW(charbuf *b, int chr)
 
 static int
 add_str_buf(charbuf *b, const char *s)
-{ int len = strlen(s);
+{ size_t len = strlen(s);
 
   if ( room_buf(b, len+1) )
   { memcpy(b->end, s, len+1);
@@ -128,7 +128,7 @@ add_str_buf(charbuf *b, const char *s)
 
 static int
 add_str_bufW(charbuf *b, const char *s)
-{ int len = strlen(s);
+{ size_t len = strlen(s);
 
   if ( room_buf(b, len*sizeof(wchar_t)) )
   { wchar_t *p = (wchar_t*)b->end;

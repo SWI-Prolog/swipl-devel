@@ -190,7 +190,7 @@ wgetenv(const char *name)
 { const char *vs;
 
   if ( (vs = getenv(name)) )
-  { int wl = mbstowcs(NULL, vs, 0);
+  { size_t wl = mbstowcs(NULL, vs, 0);
 
     if ( wl > 0 )
     { wchar_t *ws = sgml_malloc((wl+1)*sizeof(wchar_t));

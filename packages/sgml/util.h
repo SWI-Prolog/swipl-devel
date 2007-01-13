@@ -104,7 +104,7 @@ void *		ringallo(size_t);
 wchar_t * 	utf8towcs(const char *in);
 char *		wcstoutf8(const wchar_t *in);
 ichar *		load_sgml_file_to_charp(const ichar *file, int normalise_rsre,
-					int *len);
+					size_t *len);
 FILE *		wfopen(const wchar_t *name, const char *mode);
 
 #if defined(USE_STRING_FUNCTIONS) && !defined(UTIL_H_IMPLEMENTATION)

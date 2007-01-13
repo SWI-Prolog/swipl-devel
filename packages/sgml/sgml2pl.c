@@ -855,7 +855,7 @@ istrblank(const ichar *s)
 
 static int
 unify_listval(dtd_parser *p,
-	      term_t t, attrtype type, int len, const ichar *text)
+	      term_t t, attrtype type, size_t len, const ichar *text)
 { if ( type == AT_NUMBERS && p->dtd->number_mode == NU_INTEGER )
   { wchar_t *e;
 

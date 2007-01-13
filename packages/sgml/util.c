@@ -494,7 +494,7 @@ str_summary(wchar_t const *s, int len)
 
 wchar_t *
 utf8towcs(const char *in)
-{ int sl = strlen(in);
+{ size_t sl = strlen(in);
   size_t len = utf8_strlen(in, sl);
   wchar_t *buf = sgml_malloc((len + 1)*sizeof(wchar_t));
   const char *e = in+sl;
@@ -514,7 +514,7 @@ utf8towcs(const char *in)
 
 char *
 wcstoutf8(const wchar_t *in)
-{ int size = 0;
+{ size_t size = 0;
   const wchar_t *s;
   char *rc, *o;
 
@@ -555,7 +555,7 @@ and end.
 
 FILE *
 wfopen(const wchar_t *name, const char *mode)
-{ int mbl = wcstombs(NULL, name, 0);
+{ size_t mbl = wcstombs(NULL, name, 0);
 
   if ( mbl > 0 )
   { char *mbs = sgml_malloc(mbl+1);
@@ -574,7 +574,7 @@ wfopen(const wchar_t *name, const char *mode)
 
 static int
 wopen(const wchar_t *name, int flags)
-{ int mbl = wcstombs(NULL, name, 0);
+{ size_t mbl = wcstombs(NULL, name, 0);
 
   if ( mbl > 0 )
   { char *mbs = sgml_malloc(mbl+1);
@@ -592,14 +592,14 @@ wopen(const wchar_t *name, int flags)
 
 
 ichar *
-load_sgml_file_to_charp(const ichar *file, int normalise_rsre, int *length)
+load_sgml_file_to_charp(const ichar *file, int normalise_rsre, size_t *length)
 { int fd;
 
   if ( (fd = wopen(file, O_RDONLY|O_BINARY)) >= 0 )
   { struct stat buf;
 
     if ( fstat(fd, &buf) == 0 )
-    { long len = buf.st_size;
+    { size_t len = buf.st_size;
       char *r = sgml_malloc(len+1);
 
       if ( r )
@@ -608,7 +608,7 @@ load_sgml_file_to_charp(const ichar *file, int normalise_rsre, int *length)
 	while(len>0)
 	{ int n;
 
-	  if ( (n=read(fd, s, len)) < 0 )
+	  if ( (n=(int)read(fd, s, (unsigned int)len)) < 0 )
 	  { close(fd);			/* I/O error */
 	    sgml_free(r);
 	    return NULL;
