@@ -68,7 +68,7 @@ Searching is done using
 
 typedef struct atom_map
 { long		magic;			/* AM_MAGIC */
-  long		value_count;		/* total # values */
+  size_t	value_count;		/* total # values */
   rwlock	lock;			/* Multi-threaded access */
   avl_tree	tree;			/* AVL tree */
 } atom_map;
@@ -270,7 +270,7 @@ bits
 #define MAP_MIN_INT	(-(long)(1L<<(sizeof(long)*8 - 1 - 1)))
 #define MAP_MAX_INT	(-MAP_MIN_INT - 1)
 
-static int atom_mask;
+static intptr_t atom_mask;
 
 static void
 init_datum_store()
@@ -301,7 +301,7 @@ long_from_datum(datum d)
 
 static inline datum
 atom_to_datum(atom_t a)
-{ unsigned long v = (a>>(ATOM_TAG_BITS-1))|ATOM_TAG;
+{ uintptr_t v = (a>>(ATOM_TAG_BITS-1))|ATOM_TAG;
 
   SECURE(assert(atom_from_datum((datum)v) == a));
   DEBUG(9, Sdprintf("Atom %s --> 0x%lx\n", PL_atom_chars(a), v));
@@ -742,7 +742,8 @@ cmp_atom_set_size(const void *p1, const void *p2)
   if ( ap1->neg != ap2->neg )
     return ap1->neg ? 1 : -1;		/* all negatives at the end */
 
-  return ap1->set->size - ap2->set->size;
+  return ap1->set->size == ap2->set->size ? 0 :
+         ap1->set->size < ap2->set->size ? -1 : 1;
 }
 
 
@@ -945,7 +946,7 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
 
     search.values = NULL;
     if ( (data = avlfind(&map->tree, &search)) )
-    { int size = data->values->size;
+    { long size = (long)data->values->size;
 
       RDUNLOCK(map);
       assert(size > 0);

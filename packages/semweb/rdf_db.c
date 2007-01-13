@@ -567,7 +567,7 @@ free_list(rdf_db *db, list *list)
 
 typedef struct mchunk
 { struct mchunk *next;
-  int used;
+  size_t used;
   char buf[CHUNKSIZE];
 } mchunk;
 
@@ -1755,7 +1755,7 @@ free_triple(rdf_db *db, triple *t)
 
 
 static unsigned long
-string_hashA(const char *t, unsigned int len)
+string_hashA(const char *t, size_t len)
 { unsigned int value = 0;
   unsigned int shift = 5;
 
@@ -1773,7 +1773,7 @@ string_hashA(const char *t, unsigned int len)
 
 
 static unsigned long
-string_hashW(const wchar_t *t, unsigned int len)
+string_hashW(const wchar_t *t, size_t len)
 { unsigned int value = 0;
   unsigned int shift = 5;
 
@@ -2109,7 +2109,7 @@ update_hash(rdf_db *db)
 
     if ( db->need_update )		/* check again */
     { if ( organise_predicates(db) )
-      { long t0 = PL_query(PL_QUERY_USER_CPU);
+      { long t0 = (long)PL_query(PL_QUERY_USER_CPU);
 
 	DEBUG(1, Sdprintf("Re-hash ..."));
 	invalidate_distinct_counts(db);
@@ -2121,7 +2121,7 @@ update_hash(rdf_db *db)
       }
       db->need_update = 0;
     } else if ( WANT_GC(db) )
-    { long t0 = PL_query(PL_QUERY_USER_CPU);
+    { long t0 = (long)PL_query(PL_QUERY_USER_CPU);
 
       DEBUG(1, Sdprintf("rdf_db: GC ..."));
       rehash_triples(db);
@@ -2386,32 +2386,32 @@ destroy_saved(rdf_db *db, save_context *ctx)
   }
 }
 
-#define LONGBITSIZE (sizeof(long)*8)
-#define PLMINLONG   ((long)(1UL<<(LONGBITSIZE-1)))
+#define LONGBITSIZE (sizeof(intptr_t)*8)
+#define PLMINLONG   ((intptr_t)((uintptr_t)1<<(LONGBITSIZE-1)))
 
 static void
-save_int(IOSTREAM *fd, long n)
+save_int(IOSTREAM *fd, intptr_t n)
 { int m;
-  long absn = (n >= 0 ? n : -n);
+  intptr_t absn = (n >= 0 ? n : -n);
 
   if ( n != PLMINLONG )
-  { if ( absn < (1L << 5) )
-    { Sputc((n & 0x3f), fd);
+  { if ( absn < ((intptr_t)1 << 5) )
+    { Sputc((int)(n & 0x3f), fd);
       return;
-    } else if ( absn < (1L << 13) )
-    { Sputc((((n >> 8) & 0x3f) | (1 << 6)), fd);
-      Sputc((n & 0xff), fd);
+    } else if ( absn < ((intptr_t)1 << 13) )
+    { Sputc((int)(((n >> 8) & 0x3f) | (1 << 6)), fd);
+      Sputc((int)(n & 0xff), fd);
       return;
-    } else if ( absn < (1L << 21) )
-    { Sputc((((n >> 16) & 0x3f) | (2 << 6)), fd);
-      Sputc(((n >> 8) & 0xff), fd);
-      Sputc((n & 0xff), fd);
+    } else if ( absn < ((intptr_t)1 << 21) )
+    { Sputc((int)(((n >> 16) & 0x3f) | (2 << 6)), fd);
+      Sputc((int)((n >> 8) & 0xff), fd);
+      Sputc((int)(n & 0xff), fd);
       return;
     }
   }
 
   for(m = sizeof(n); ; m--)
-  { int b = (absn >> (((m-1)*8)-1)) & 0x1ff;
+  { int b = (int)((absn >> (((m-1)*8)-1)) & 0x1ff);
 
     if ( b == 0 )
       continue;
@@ -2421,7 +2421,7 @@ save_int(IOSTREAM *fd, long n)
   Sputc(m | (3 << 6), fd);
 
   for( ; m > 0; m--)
-  { int b = (n >> ((m-1)*8)) & 0xff;
+  { int b = (int)((n >> ((m-1)*8)) & 0xff);
     
     Sputc(b, fd);
   }
@@ -2522,7 +2522,7 @@ write_triple(rdf_db *db, IOSTREAM *out, triple *t, save_context *ctx)
       }
       case OBJ_TERM:
       { const char *s = lit->value.term.record;
-	int len = lit->value.term.len;
+	size_t len = lit->value.term.len;
 	
 	Sputc('T', out);
 	save_int(out, len);
@@ -2960,10 +2960,10 @@ md5_triple(triple *t, md5_byte_t *digest)
 
   md5_init(&state);
   s = PL_blob_data(t->subject, &len, NULL);
-  md5_append(&state, (const md5_byte_t *)s, len);
+  md5_append(&state, (const md5_byte_t *)s, (int)len);
   md5_append(&state, (const md5_byte_t *)"P", 1);
   s = PL_blob_data(t->predicate->name, &len, NULL);
-  md5_append(&state, (const md5_byte_t *)s, len);
+  md5_append(&state, (const md5_byte_t *)s, (int)len);
   tmp[0] = 'O';
   if ( t->object_is_literal )
   { lit = t->object.literal;
@@ -2994,19 +2994,19 @@ md5_triple(triple *t, md5_byte_t *digest)
     lit = NULL;
   }
   md5_append(&state, tmp, 2);
-  md5_append(&state, (const md5_byte_t *)s, len);
+  md5_append(&state, (const md5_byte_t *)s, (int)len);
   if ( lit && lit->qualifier )
   { assert(lit->type_or_lang);
     md5_append(&state,
 	       (const md5_byte_t *)(lit->qualifier == Q_LANG ? "l" : "t"),
 	       1);
     s = PL_blob_data(lit->type_or_lang, &len, NULL);
-    md5_append(&state, (const md5_byte_t *)s, len);
+    md5_append(&state, (const md5_byte_t *)s, (int)len);
   }
   if ( t->source )
   { md5_append(&state, (const md5_byte_t *)"S", 1);
     s = PL_blob_data(t->source, &len, NULL);
-    md5_append(&state, (const md5_byte_t *)s, len);
+    md5_append(&state, (const md5_byte_t *)s, (int)len);
   }
   
   md5_finish(&state, digest);
@@ -3114,7 +3114,7 @@ rdf_atom_md5(term_t text, term_t times, term_t md5)
   for(i=0; i<n; i++)
   { md5_state_t state;
     md5_init(&state);
-    md5_append(&state, (const md5_byte_t *)s, len);
+    md5_append(&state, (const md5_byte_t *)s, (int)len);
     md5_finish(&state, digest);
     s = (char *)digest;
     len = sizeof(digest);
@@ -5049,7 +5049,7 @@ rdf_predicate_property(term_t pred, term_t option, control_t h)
 	return type_error(option, "rdf_predicate_property");
     }
     case PL_REDO:
-      n = PL_foreign_context(h);
+      n = (int)PL_foreign_context(h);
     redo:
       if ( !get_predicate(db, pred, &p) )
 	return FALSE;
@@ -5457,7 +5457,7 @@ static functor_t keys[16];		/* initialised in install_rdf_db() */
 
 static int
 unify_statistics(rdf_db *db, term_t key, functor_t f)
-{ long v;
+{ int64_t v;
 
   if ( f == FUNCTOR_triples1 )
   { v = db->created - db->erased;
@@ -5512,7 +5512,7 @@ unify_statistics(rdf_db *db, term_t key, functor_t f)
   } else
     assert(0);
 
-  return PL_unify_term(key, PL_FUNCTOR, f, PL_LONG, v);
+  return PL_unify_term(key, PL_FUNCTOR, f, PL_INT64, v);
 }
 
 static foreign_t
@@ -5537,7 +5537,7 @@ rdf_statistics(term_t key, control_t h)
 	return type_error(key, "rdf_statistics");
     }
     case PL_REDO:
-      n = PL_foreign_context(h);
+      n = (int)PL_foreign_context(h);
     redo:
       unify_statistics(db, key, keys[n]);
       n++;

@@ -116,10 +116,10 @@ summary:
 
 /* ckalloc(size) -- allocate space; check for success */
 static void *
-ckalloc(int size)
+ckalloc(size_t size)
 { void *ptr;
 
-  if ( !(ptr = malloc((size_t) size)) )
+  if ( !(ptr = malloc(size)) )
   { fprintf(stderr, "Unable to allocate storage.");
     exit(1);
   }
@@ -433,7 +433,7 @@ memswap(void *p1, void *p2, size_t size)
   char buf[256];
 
   while(size > 0)
-  { int bytes = (size > sizeof(buf) ? sizeof(buf) : size);
+  { size_t bytes = (size > sizeof(buf) ? sizeof(buf) : size);
 
     memcpy(buf, s1, bytes);
     memcpy(s1, s2, bytes);
@@ -791,7 +791,7 @@ avlinit(AVL_TREE tree,
   tree->destroy = destroy;
   tree->alloc = alloc;
   tree->free = free;
-  tree->isize = isize;
+  tree->isize = (int)isize;
   tree->client_data = cdata;
   tree->count = 0;
 

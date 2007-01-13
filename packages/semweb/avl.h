@@ -105,7 +105,13 @@ extern AVL_TREE     avlinit(AVL_TREE tree,
 extern void         avlfree(AVL_TREE tree);
 
        /* Routine for manipulating/accessing each data item in a tree */
-extern void      avlwalk(AVL_TREE, void(*) (), SIBLING_ORDER);
+extern void      avlwalk(AVL_TREE,
+			 void (*action)(void *data,
+					SIBLING_ORDER order, 
+					NODE type,
+					int level,
+					int balance),
+			 SIBLING_ORDER);
 
 
        /* Routine for obtaining the size of an AVL tree */

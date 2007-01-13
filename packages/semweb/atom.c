@@ -112,14 +112,14 @@ cmp_atoms(atom_t a1, atom_t a2)
 { text t1, t2;
   int i;
   int dl2 = 0;
-  int n;
+  size_t n;
   
   if ( a1 == a2 )
     return 0;
 
   if ( !get_atom_text(a1, &t1) ||
        !get_atom_text(a2, &t2) )
-  { return (long)a1-(long)a2;		/* non-text atoms? */
+  { goto cmphandles;			/* non-text atoms? */
   }
 
   if ( t1.a && t2.a )
@@ -140,31 +140,32 @@ cmp_atoms(atom_t a1, atom_t a2)
   if ( t1.w && t2.w )
   { const charW *s1 = t1.w;
     const charW *s2 = t2.w;
-    int d;
 
     for(;;s1++, s2++)
     { if ( n-- == 0 )
-      { d = t1.length - t2.length;
-	if ( d == 0 )
+      { if ( t1.length == t2.length )
 	  goto eq;
-	return d;
+	
+	return t1.length < t2.length ? -1 : 1;
+      } else
+      { int d;
+
+	if ( (d=cmpW(*s1, *s2, &dl2)) != 0 )
+	  return d;
       }
-      if ( (d=cmpW(*s1, *s2, &dl2)) != 0 )
-	return d;
     }
   }
   
   for(i=0; ; i++)
-  { int d;
-
-    if ( n-- == 0 )
-    { d = t1.length - t2.length;
-      if ( d == 0 )
-	goto eq;
-      return d;
+  { if ( n-- == 0 )
+    { if ( t1.length == t2.length )
+	  goto eq;
+	
+      return t1.length < t2.length ? -1 : 1;
     } else
     { wint_t c1 = fetch(&t1, i);
       wint_t c2 = fetch(&t2, i);
+      int d;
 
       if ( (d=cmpW(c1, c2, &dl2)) != 0 )
 	return d;
@@ -175,7 +176,8 @@ eq:
   if ( dl2 )
     return dl2;
 
-  return (long)a1-(long)a2;	/* only signal equal on the same atom */
+cmphandles:
+  return a1 < a2 ? -1 : 1;		/* == already covered */
 }
 
 

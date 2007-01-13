@@ -217,7 +217,7 @@ typedef struct rdf_db
   int		gc_count;		/* # garbage collections */
   double	rehash_time;		/* time spent in rehash */
   double	gc_time;		/* time spent in GC */
-  long		core;			/* core in use */
+  size_t	core;			/* core in use */
   predicate   **pred_table;		/* Hash-table of predicates */
   int		pred_table_size;	/* #entries in the table */
   int		pred_count;		/* #predicates */

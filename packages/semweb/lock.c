@@ -331,7 +331,7 @@ unlock_misc(rwlock *lock)
 
 int
 init_lock(rwlock *lock)
-{ int bytes;
+{ size_t bytes;
 
   InitializeCriticalSection(&lock->mutex);
   InitializeCriticalSection(&lock->misc_mutex);
