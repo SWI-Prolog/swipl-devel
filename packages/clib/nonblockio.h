@@ -44,13 +44,13 @@
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 
 #include <io.h>
 #include <winsock2.h>
 typedef size_t socklen_t;
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
 #include <sys/types.h>
 #ifdef HAVE_SYS_TIME_H
@@ -74,7 +74,7 @@ extern int h_errno;
 #define socklen_t size_t
 #endif
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 typedef enum
 { TCP_ERRNO,

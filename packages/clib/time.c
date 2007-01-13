@@ -52,9 +52,9 @@
 #include <pthread.h>
 #endif
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The WIN32 port uses the multimedia timers.   This  module must be linked
+The __WINDOWS__ port uses the multimedia timers.   This  module must be linked
 with winmm.lib
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -88,7 +88,7 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 }
 
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
 #ifdef _REENTRANT
 #define SHARED_TABLE 1
@@ -97,7 +97,7 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 #include <time.h>
 #include <sys/time.h>
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 #ifdef O_DEBUG
 static int debuglevel = 0;
@@ -221,7 +221,7 @@ typedef struct event
   int		 pl_thread_id;		/* Prolog thread ID */
 #endif
 #endif
-#ifdef WIN32
+#ifdef __WINDOWS__
   UINT		 mmid;			/* MultiMedia timer id */
   DWORD		 tid;			/* thread-id of Prolog thread */
 #endif
@@ -390,7 +390,7 @@ callEvent(Event ev)
 static void
 cleanupHandler()
 { 
-#ifndef WIN32
+#ifndef __WINDOWS__
   struct itimerval v;
 
   DEBUG(1, Sdprintf("Removed timer\n"));
@@ -428,7 +428,7 @@ cleanup()
 }
 
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 
 static void
 on_alarm(int sig)
@@ -498,7 +498,7 @@ uninstallEvent(Event ev)
 }
 
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
 #ifdef SHARED_TABLE
 
@@ -746,7 +746,7 @@ uninstallEvent(Event ev)
 }
 
 #endif /*SHARED_TABLE*/
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 
 		 /*******************************

@@ -123,11 +123,11 @@ leave the details to this function.
 #include <sys/types.h>
 #include <assert.h>
 #include <string.h>
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <malloc.h>
 #endif
 
-#ifndef WIN32
+#ifndef __WINDOWS__
 #define closesocket(n) close((n))	/* same on Unix */
 #endif
 
@@ -177,7 +177,7 @@ typedef struct _plsocket
   int		    flags;		/* Misc flags */
   IOSTREAM *	    input;		/* input stream */
   IOSTREAM *	    output;		/* output stream */
-#ifdef WIN32
+#ifdef __WINDOWS__
   nbio_request	    request;		/* our request */
   DWORD		    thread;		/* waiting thread */
   DWORD		    error;		/* error while executing request */
@@ -209,7 +209,7 @@ typedef struct _plsocket
 } plsocket;
 
 static plsocket *lookupSocket(int socket);
-#ifdef WIN32
+#ifdef __WINDOWS__
 static plsocket   *lookupExistingSocket(int socket);
 static const char *WinSockError(unsigned long eno);
 #endif
@@ -250,7 +250,7 @@ nbio_debug(int level)
 		 *	  COMPATIBILITY		*
 		 *******************************/
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 static UINT WM_SOCKET	= WM_APP+20;
 static UINT WM_REQUEST  = WM_APP+21;
 static UINT WM_READY	= WM_APP+22;
@@ -778,7 +778,7 @@ startSocketThread()
   return TRUE;
 }
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 wait_socket() is the Unix way  to  wait   for  input  on  the socket. By
@@ -839,7 +839,7 @@ nbio_select(int n,
 { return select(n, readfds, writefds, exceptfds, timeout); 
 }
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 
 		 /*******************************
@@ -856,7 +856,7 @@ static atom_t ATOM_loopback;
 static plsocket *sockets;
 static int initialised = FALSE;		/* Windows only */
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 static plsocket *
 lookupExistingSocket(int socket)
 { plsocket *p;
@@ -895,7 +895,7 @@ lookupSocket(int socket)
   p->socket = socket;
   p->flags  = SOCK_DISPATCH;		/* by default, dispatch */
   p->magic  = SOCK_MAGIC;
-#ifdef WIN32
+#ifdef __WINDOWS__
   p->w32_flags = 0;
   p->request   = REQ_NONE;
 #endif
@@ -948,7 +948,7 @@ freeSocket(int socket)
 		 *	      ERRORS		*
 		 *******************************/
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The code in BILLY_GETS_BETTER is, according to various documents the
 right code, but it doesn't work, so we do it by hand.
@@ -1051,7 +1051,7 @@ WinSockError(unsigned long error)
 }
 
 #endif /*BILLY_GETS_BETTER*/
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 #ifdef HAVE_H_ERRNO
 typedef struct
@@ -1098,7 +1098,7 @@ nbio_error(int code, nbio_error_map mapid)
   }
 
   {
-#ifdef WIN32
+#ifdef __WINDOWS__
   msg = WinSockError(code);
 #else
 
@@ -1117,7 +1117,7 @@ nbio_error(int code, nbio_error_map mapid)
   } else
 #endif
     msg = strerror(code);
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
   PL_unify_term(except,
 		CompoundArg("error", 2),
@@ -1149,7 +1149,7 @@ nbio_init(const char *module)
   ATOM_broadcast  = PL_new_atom("broadcast");
   ATOM_loopback   = PL_new_atom("loopback");
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 { WSADATA WSAData;
 
   hinstance = GetModuleHandle(module);
@@ -1167,7 +1167,7 @@ nbio_init(const char *module)
   }
   startSocketThread();
 }
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
   UNLOCK();
   return TRUE;
@@ -1178,7 +1178,7 @@ int
 nbio_cleanup(void)
 { if ( initialised )
   {
-#ifdef WIN32
+#ifdef __WINDOWS__
     WSACleanup();
 #endif
   }
@@ -1210,7 +1210,7 @@ nbio_socket(int domain, int type, int protocol)
     return -1;
   }
 
-#ifdef WIN32
+#ifdef __WINDOWS__
   WSAAsyncSelect(sock, State()->hwnd, WM_SOCKET,
 		 FD_READ|FD_WRITE|FD_ACCEPT|FD_CONNECT|FD_CLOSE);
 #endif
@@ -1238,7 +1238,7 @@ nbio_closesocket(int socket)
     }
   } else
   {
-#ifdef WIN32
+#ifdef __WINDOWS__
     if ( true(s, SOCK_CONNECT) )
       shutdown(socket, SD_SEND);
 #endif
@@ -1484,7 +1484,7 @@ nbio_connect(int socket,
        
   s = lookupSocket(socket);
   
-#ifdef WIN32
+#ifdef __WINDOWS__
   if ( connect(socket, serv_addr, addrlen) )
   { s->error = WSAGetLastError();
 
@@ -1500,7 +1500,7 @@ nbio_connect(int socket,
       return -1;
     }
   }
-#else /*!WIN32*/
+#else /*!__WINDOWS__*/
   for(;;)
   { if ( connect(socket, serv_addr, addrlen) )
     { if ( need_retry(errno) )
@@ -1528,7 +1528,7 @@ nbio_accept(int master, struct sockaddr *addr, socklen_t *addrlen)
 	
   m = lookupSocket(master);
 
-#ifdef WIN32
+#ifdef __WINDOWS__
   slave = accept(master, addr, addrlen);
 
   if ( slave == SOCKET_ERROR )
@@ -1550,7 +1550,7 @@ nbio_accept(int master, struct sockaddr *addr, socklen_t *addrlen)
     }
   }
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
   for(;;)
   { if ( !wait_socket(m, master) )
@@ -1578,7 +1578,7 @@ nbio_accept(int master, struct sockaddr *addr, socklen_t *addrlen)
       nbio_setopt(slave, TCP_NONBLOCK);
   }
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
   
   return slave;
 }
@@ -1614,7 +1614,7 @@ nbio_read(int socket, char *buf, size_t bufSize)
     return -1;
   }
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 
   n = recv(socket, buf, bufSize, 0);
   if ( n < 0 )
@@ -1633,7 +1633,7 @@ nbio_read(int socket, char *buf, size_t bufSize)
       errno = EIO;			/* TBD: map s->error to POSIX errno */
   }
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
   for(;;)
   { if ( !wait_socket(s, socket) )
@@ -1654,7 +1654,7 @@ nbio_read(int socket, char *buf, size_t bufSize)
     break;
   }
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
   if ( n == 0 )
     set(s, SOCK_EOF_SEEN);
@@ -1667,7 +1667,7 @@ nbio_write(int socket, char *buf, size_t bufSize)
 { int len = bufSize;
   char *str = buf;
 
-#ifdef WIN32
+#ifdef __WINDOWS__
   while( len > 0 )
   { int n;
 
@@ -1700,7 +1700,7 @@ nbio_write(int socket, char *buf, size_t bufSize)
       return -1;
   }
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
   while( len > 0 )
   { int n;
@@ -1721,7 +1721,7 @@ nbio_write(int socket, char *buf, size_t bufSize)
     str += n;
   }
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
   return bufSize;
 }
@@ -1735,7 +1735,7 @@ nbio_close_input(int socket)
   DEBUG(2, Sdprintf("[%d]: nbio_close_input(%d)\n", PL_thread_self(), socket));
   s->input = NULL;
   s->flags &= ~SOCK_INSTREAM;
-#ifdef WIN32
+#ifdef __WINDOWS__
   if ( false(s, SOCK_LISTEN) )
   { if ( shutdown(socket, SD_RECEIVE) == SOCKET_ERROR )
       Sdprintf("shutdown(%d, SD_RECEIVE) failed: %s\n",
@@ -1761,13 +1761,13 @@ nbio_close_output(int socket)
   if ( s->output )
   { s->output = NULL;
     s->flags &= ~SOCK_OUTSTREAM;
-#if WIN32
+#if __WINDOWS__
     if ( shutdown(socket, SD_SEND) == SOCKET_ERROR )
     {
 #ifdef O_DEBUG
       if ( debugging )
       { const char *msg;
-#ifdef WIN32
+#ifdef __WINDOWS__
 	msg = WinSockError(WSAGetLastError());
 #else
         msg = strerror(errno);

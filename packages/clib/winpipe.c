@@ -33,7 +33,7 @@
 #include <SWI-Prolog.h>
 #include <errno.h>
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <windows.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -259,7 +259,7 @@ tcp_pipe(term_t in, term_t out)
   return TRUE;
 }
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
 static foreign_t
 tcp_pipe(term_t Read, term_t Write)
@@ -282,7 +282,7 @@ tcp_pipe(term_t Read, term_t Write)
   return FALSE;
 }
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 install_t
 install_winpipe()

@@ -44,7 +44,7 @@
 #include <sys/types.h>
 #include <assert.h>
 #include <string.h>
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <malloc.h>
 #endif
 
@@ -538,7 +538,7 @@ tcp_select(term_t Streams, term_t Available, term_t timeout)
     e->next   = map;
     map       = e;
 
-#ifdef WIN32
+#ifdef __WINDOWS__
     FD_SET((SOCKET)fd, &fds);
 #else
     FD_SET(fd, &fds);
@@ -582,7 +582,7 @@ tcp_select(term_t Streams, term_t Available, term_t timeout)
     FD_ZERO(&fds);			/* EINTR may leave fds undefined */
     for(e=map; e; e=e->next)		/* so we rebuild it to be safe */
     {
-#ifdef WIN32
+#ifdef __WINDOWS__
       FD_SET((SOCKET)e->fd, &fds);
 #else
       FD_SET(e->fd, &fds);

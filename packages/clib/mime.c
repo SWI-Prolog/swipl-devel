@@ -26,7 +26,7 @@
 #include <config.h>
 #endif
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define HAVE_MALLOC_H 1
 #endif
 

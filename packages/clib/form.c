@@ -35,7 +35,7 @@
 #endif
 #include <string.h>
 #include "form.h"
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <io.h>
 #endif
 
