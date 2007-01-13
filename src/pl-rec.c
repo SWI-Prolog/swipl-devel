@@ -131,7 +131,7 @@ cleanRecordList(RecordList rl)
 typedef struct
 { tmp_buffer code;			/* code buffer */
   tmp_buffer vars;			/* variable pointers */
-  int	     size;			/* size on global stack */
+  size_t     size;			/* size on global stack */
   uint	     nvars;			/* # variables */
   int	     external;			/* Allow for external storage */
 } compile_info, *CompileInfo;
@@ -180,15 +180,15 @@ independent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline void
-addUintBuffer(Buffer b, uint val)
+addUintBuffer(Buffer b, size_t val)
 { if ( !(val & ~0x7f) )
-    addBuffer(b, val, uchar);
+    addBuffer(b, (uchar)val, uchar);
   else
   { int zips = ((sizeof(val))*8+7-1)/7 - 1;
     int leading = TRUE;
 
     for(; zips >= 0; zips--)
-    { uint d = (val >> zips*7) & 0x7f;
+    { uint d = (uint)((val >> zips*7) & 0x7f);
 
       if ( d || !leading )
       { if ( zips != 0 )
@@ -202,7 +202,7 @@ addUintBuffer(Buffer b, uint val)
 
 
 static inline void
-addSizeInt(CompileInfo info, uint val)
+addSizeInt(CompileInfo info, size_t val)
 { addUintBuffer((Buffer)&info->code, val);
 }
 
@@ -272,7 +272,7 @@ addWord(CompileInfo info, word w)
 
 
 static inline void
-addChars(CompileInfo info, int len, const char *data)
+addChars(CompileInfo info, size_t len, const char *data)
 { addSizeInt(info, len);
 
   addMultipleBuffer(&info->code, data, len, char);
@@ -282,11 +282,9 @@ addChars(CompileInfo info, int len, const char *data)
 static inline void
 addAtomValue(CompileInfo info, atom_t name)
 { Atom a = atomValue(name);
-  uint len = a->length;
 
   addSizeInt(info, a->length);
-
-  addMultipleBuffer(&info->code, a->name, len, char);
+  addMultipleBuffer(&info->code, a->name, a->length, char);
 }
 
 
@@ -412,10 +410,10 @@ right_recursion:
       return;
     }
     case TAG_STRING:
-    { Word f  = addressIndirect(w);
-      int n   = wsizeofInd(*f);
-      int pad = padHdr(*f);		/* see also getCharsString() */
-      intptr_t l  = n*sizeof(word)-pad;
+    { Word f     = addressIndirect(w);
+      size_t n   = wsizeofInd(*f);
+      size_t pad = padHdr(*f);		/* see also getCharsString() */
+      size_t l   = n*sizeof(word)-pad;
 
       info->size += n+2;
       addOpCode(info, PL_TYPE_STRING);
@@ -506,8 +504,8 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
 { compile_info info;
   Record record;
   Word *p;
-  int size;
-  int rsize = SIZERECORD(flags);
+  size_t size;
+  size_t rsize = SIZERECORD(flags);
 #if O_CYCLIC
   Word *m = aTop;
 #endif
@@ -538,9 +536,9 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   
   size = rsize + sizeOfBuffer(&info.code);
   record = allocHeap(size);
-  record->gsize = info.size;
+  record->gsize = (unsigned int)info.size; /* only 28-bit */
   record->nvars = info.nvars;
-  record->size  = size;
+  record->size  = (int)size;
   record->flags = flags;
   if ( flags & R_DUPLICATE )
   { record->references = 1;
@@ -610,7 +608,7 @@ PL_record_external(term_t t, size_t *len)
     addInt64(&info, v);
 
   ret_primitive:
-    scode = sizeOfBuffer(&info.code);
+    scode = (int)sizeOfBuffer(&info.code);
     rec = allocHeap(scode);
     memcpy(rec, info.code.base, scode);
     discardBuffer(&info.code);
@@ -634,7 +632,7 @@ PL_record_external(term_t t, size_t *len)
   while(--n >= 0)
     setVar(**vp++);
   discardBuffer(&info.vars);
-  scode = sizeOfBuffer(&info.code);
+  scode = (int)sizeOfBuffer(&info.code);
   if ( info.nvars == 0 )
     first |= REC_GROUND;
 
@@ -648,7 +646,7 @@ PL_record_external(term_t t, size_t *len)
   addUintBuffer((Buffer)&hdr, info.size);	/* size on stack */
   if ( info.nvars > 0 )
     addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
-  shdr = sizeOfBuffer(&hdr);
+  shdr = (int)sizeOfBuffer(&hdr);
   
   rec = allocHeap(shdr + scode);
   memcpy(rec, hdr.base, shdr);
@@ -932,7 +930,7 @@ right_recursion:
     }
 #endif
   { word fdef;
-    intptr_t arity;
+    int arity;
     case PL_TYPE_COMPOUND:
 
       fdef = fetchWord(b);
@@ -949,7 +947,7 @@ right_recursion:
     case PL_TYPE_EXT_COMPOUND:
     { atom_t name;
 
-      arity = fetchSizeInt(b);
+      arity = (int)fetchSizeInt(b);
       fetchAtom(b, &name);
       fdef = lookupFunctorDef(name, arity);
 
@@ -1193,12 +1191,12 @@ unref_cont:
       fail;
     case TAG_STRING:
       if ( stag == PL_TYPE_STRING )
-      { Word f  = addressIndirect(w);
-	int n   = wsizeofInd(*f);
-	int pad = padHdr(*f);		/* see also getCharsString() */
-	uint l  = n*sizeof(word)-pad;
+      { Word f      = addressIndirect(w);
+	size_t n    = wsizeofInd(*f);
+	size_t pad  = padHdr(*f);		/* see also getCharsString() */
+	size_t l    = n*sizeof(word)-pad;
+	size_t llen = fetchSizeInt(info);
 
-	uint llen = fetchSizeInt(info);
 	if ( llen == l &&
 	     memcmp((char *)(f+1), info->data, l) == 0 )
 	{ info->data += l;
