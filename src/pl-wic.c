@@ -33,7 +33,7 @@
 
 static char *	getString(IOSTREAM *, unsigned *len);
 static int64_t	getInt64(IOSTREAM *);
-static intptr_t	getLong(IOSTREAM *);
+static long	getLong(IOSTREAM *);
 static int	getInt(IOSTREAM *);
 static real	getReal(IOSTREAM *);
 static bool	loadWicFd(IOSTREAM *);
@@ -276,9 +276,9 @@ lookupXrId(intptr_t id)
 
 
 static void
-storeXrId(intptr_t id, word value)
+storeXrId(long id, word value)
 { XrTable t = loadedXrs;
-  int i = id/SUBENTRIES;
+  long i = id/SUBENTRIES;
 
   while ( i >= t->tablesize )
   { Word a = malloc(ALLOCSIZE);
@@ -360,7 +360,7 @@ getString(IOSTREAM *fd, unsigned *length)
 
 
 pl_wchar_t *
-wicGetStringUTF8(IOSTREAM *fd, unsigned *length,
+wicGetStringUTF8(IOSTREAM *fd, size_t *length,
 		 pl_wchar_t *buf, size_t bufsize)
 { size_t i, len = (size_t)wicGetNum(fd);
   IOENC oenc = fd->encoding;
@@ -496,11 +496,11 @@ getInt64(IOSTREAM *fd)
 }
 
 
-static intptr_t
+static long
 getLong(IOSTREAM *fd)
 { int64_t val = getInt64(fd);
 
-  return (intptr_t)val;
+  return (long)val;
 }
 
 
@@ -542,7 +542,7 @@ getReal(IOSTREAM *fd)
 
 word
 getWord(IOSTREAM *s)
-{ uintptr_t v;
+{ word v;
 
   v  = (Sgetc(s) & 0xff) << 24;
   v |= (Sgetc(s) & 0xff) << 16;
@@ -635,7 +635,7 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
     }
     case XR_STRING_UTF8:
     { pl_wchar_t *w;
-      unsigned len;
+      size_t len;
       pl_wchar_t buf[256];
       word s;
       
@@ -968,7 +968,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
   for(;;)
   { switch(Getc(fd) )
     { case 'X':
-      { uintptr_t pattern = getLong(fd);
+      { unsigned long pattern = getLong(fd);
 
 	if ( (def->indexPattern & ~NEED_REINDEX) != pattern )
 	{ if ( def->references == 0 && !def->hash_info )
@@ -1138,7 +1138,7 @@ qlfFixSourcePath(const char *raw)
     
   if ( load_state->has_moved && strprefix(raw, load_state->save_dir) )
   { char *s;
-    int lensave = strlen(load_state->save_dir);
+    size_t lensave = strlen(load_state->save_dir);
     const char *tail = &raw[lensave];
 
     if ( strlen(load_state->load_dir)+1+strlen(tail)+1 > MAXPATHLEN )
@@ -1467,7 +1467,7 @@ putReal(real f, IOSTREAM *fd)
 
 
 static void
-putLong(uintptr_t v, IOSTREAM *fd)	/* always 4 bytes */
+putLong(long v, IOSTREAM *fd)		/* always 4 bytes */
 { Sputc((v>>24)&0xff, fd);
   Sputc((v>>16)&0xff, fd);
   Sputc((v>>8)&0xff, fd);
@@ -1646,7 +1646,7 @@ do_save_qlf_term(Word t, IOSTREAM *fd ARG_LD)
   { functor_t f = functorTerm(*t);
 
     if ( f == FUNCTOR_var1 )
-    { int id = valInt(argTerm(*t, 0));
+    { int id = (int)valInt(argTerm(*t, 0));
 
       Sputc('v', fd);
       putNum(id, fd);
@@ -1779,12 +1779,12 @@ saveWicClause(Clause clause, IOSTREAM *fd)
       case CA1_STRING:
       { word m = *bp;
 	char *s = (char *)++bp;
-	int wn = wsizeofInd(m);
-	int l = wn*sizeof(word) - padHdr(m);
+	size_t wn = wsizeofInd(m);
+	size_t l = wn*sizeof(word) - padHdr(m);
 	bp += wn;
 
 	putNum(l, fd);
-	while(--l >= 0)
+	while(l-- > 0)
 	  Sputc(*s++&0xff, fd);
 	n++;
 	break;
@@ -1792,8 +1792,8 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 #ifdef O_GMP
       case CA1_MPZ:
       { word m = *bp++;
-	int wn = wsizeofInd(m);
-	int mpsize = (int)*bp;
+	size_t wn = wsizeofInd(m);
+	ing mpsize = (int)*bp;
 	int l = abs(mpsize)*sizeof(mp_limb_t);
 	char *s = (char*)&bp[1];
 	bp += wn;
@@ -1972,8 +1972,8 @@ importWic(Procedure proc, IOSTREAM *fd ARG_LD)
 typedef struct source_mark *SourceMark;
 
 struct source_mark
-{ intptr_t	   file_index;
-  SourceMark next;
+{ long		file_index;
+  SourceMark	next;
 };
 
 static SourceMark source_mark_head = NULL;
@@ -2002,7 +2002,7 @@ sourceMark(IOSTREAM *s ARG_LD)
 
 static int
 writeSourceMarks(IOSTREAM *s ARG_LD)
-{ unsigned int n = 0;
+{ long n = 0;
   SourceMark pn, pm = source_mark_head;
 
   DEBUG(1, Sdprintf("Writing source marks: "));
@@ -2024,11 +2024,11 @@ writeSourceMarks(IOSTREAM *s ARG_LD)
 
 
 static int
-qlfSourceInfo(IOSTREAM *s, intptr_t offset, term_t list ARG_LD)
+qlfSourceInfo(IOSTREAM *s, long offset, term_t list ARG_LD)
 { char *str;
   term_t head = PL_new_term_ref();
 
-  if ( Sseek(s, offset, SIO_SEEK_SET) != offset )
+  if ( Sseek(s, offset, SIO_SEEK_SET) != 0 )
     return warning("%s: seek failed: %s", wicFile, OsError());
   if ( Getc(s) != 'F' || !(str=getString(s, NULL)) )
     return warning("QLF format error");
@@ -2045,7 +2045,7 @@ qlfInfo(const char *file,
 { IOSTREAM *s = NULL;
   int lversion;
   int nqlf, i;
-  intptr_t *qlfstart = NULL;
+  long *qlfstart = NULL;
   word rval = TRUE;
   term_t files = PL_copy_term_ref(files0);
   int saved_wsize;
@@ -2075,12 +2075,12 @@ qlfInfo(const char *file,
 
   if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of putLong() */
     return warning("qlf_info/4: seek failed: %s", OsError());
-  nqlf = getWord(s);
+  nqlf = (int)getWord(s);
   DEBUG(1, Sdprintf("Found %d sources at", nqlf));
-  qlfstart = (intptr_t *)allocHeap(sizeof(intptr_t) * nqlf);
+  qlfstart = (long*)allocHeap(sizeof(long) * nqlf);
   Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
   for(i=0; i<nqlf; i++)
-  { qlfstart[i] = getWord(s);
+  { qlfstart[i] = getLong(s);
     DEBUG(1, Sdprintf(" %d", qlfstart[i]));
   }
   DEBUG(1, Sdprintf("\n"));

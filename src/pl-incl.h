@@ -534,7 +534,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 
 /* Definition->indexPattern is set to NEED_REINDEX if the definition's index
    pattern needs to be recomputed */
-#define NEED_REINDEX ((uintptr_t)1L << (LONGBITSIZE-1))
+#define NEED_REINDEX (1UL << (LONGBITSIZE-1))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Foreign language interface definitions.  Note that these macros MUST  be
