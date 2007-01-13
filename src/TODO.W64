@@ -48,3 +48,31 @@ ISSUES
 ================================================================
 
 * Destroying semaphore at end hangs if no output is printed!?
+
+================================================================
+Packages
+================================================================
+
+ * chr		- depends on gmp?
+ * clib		[DONE]
+ * clpqr	[PROLOG]
+ * clpr		[PROLOG]
+ * cpp
+ * cppproxy
+ * db
+ * http		[PROLOG]
+ * inclpr
+ * jasmine	- non-standard
+ * jpl
+ * ltx2html	- non-portable
+ * mp		- outdated
+ * nlp		[DONE]
+ * odbc
+ * pldoc	[PROLOG]
+ * plunit	[PROLOG]
+ * semweb
+ * sgml
+ * ssl
+ * table
+ * xpce
+ * zlib
