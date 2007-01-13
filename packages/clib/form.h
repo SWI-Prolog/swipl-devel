@@ -45,13 +45,13 @@ int		break_form_argument(const char *formdata,
 				    int (*func)(const char *name,
 						const char *value,
 						void *closure), void *closure);
-int		break_multipart(char *formdata, int len,
+int		break_multipart(char *formdata, size_t len,
 				const char *boundary,
 				int (*func)(const char *name,
 					    const char *value,
-					    int valuelen,
+					    size_t valuelen,
 					    const char *filename,
 					    void *closure),
 				void *closure);
-char *		get_raw_form_data(int *lenp);
+char *		get_raw_form_data(size_t *lenp);
 int		decode_form_arguments(const char *data, form_arg *args);

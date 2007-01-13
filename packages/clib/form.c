@@ -60,7 +60,7 @@ dehex(int chr)
 
 
 static int
-form_argument_decode(const char *in, int inlen, char *out, int outlen)
+form_argument_decode(const char *in, size_t inlen, char *out, size_t outlen)
 { const char *ein  = in+inlen;
   int written = 0;
 
@@ -109,7 +109,7 @@ break_form_argument(const char *formdata,
     char *eq = strchr(formdata, '=');
 
     if ( eq )
-    { int len = eq-formdata;
+    { size_t len = eq-formdata;
       char *end;
       int vlen;
 
@@ -143,7 +143,7 @@ break_form_argument(const char *formdata,
 
 static char *
 find_boundary(const char *data, const char *end, const char *boundary)
-{ int blen = strlen(boundary);
+{ size_t blen = strlen(boundary);
 
   while ( data < end &&
 	  !(strncmp(data, boundary, blen) == 0) )
@@ -166,7 +166,7 @@ Find a named attribute in a mime header of a multipart form
 static char *
 attribute_of_multipart_header(const char *name, char *header, char *endheader)
 { char *value;
-  int nlen = strlen(name);
+  size_t nlen = strlen(name);
 
   while( header < endheader &&
 	 !(header[nlen] == '=' && strncmp(header, name, nlen) == 0) )
@@ -224,11 +224,11 @@ next_line(const char *in)
 
 
 int
-break_multipart(char *formdata, int len,
+break_multipart(char *formdata, size_t len,
 		const char *boundary,
 		int (*func)(const char *name,
 			    const char *value,
-			    int valuelen,
+			    size_t valuelen,
 			    const char *filename,
 			    void *closure),
 		void *closure)
@@ -290,7 +290,7 @@ for lenp is the maximum acceptable content-length.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
-get_raw_form_data(int *lenp)
+get_raw_form_data(size_t *lenp)
 { char *method;
   char *s;
 

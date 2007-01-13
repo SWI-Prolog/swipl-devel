@@ -48,10 +48,6 @@
 #include <malloc.h>
 #endif
 
-#ifndef HAVE_SSIZE_T
-#define ssize_t int
-#endif
-
 static atom_t ATOM_reuseaddr;		/* "reuseaddr" */
 static atom_t ATOM_broadcast;		/* "broadcast" */
 static atom_t ATOM_dispatch;		/* "dispatch" */
@@ -185,7 +181,7 @@ pl_setopt(term_t Socket, term_t opt)
 
 #define fdFromHandle(p) ((int)((long)(p)))
 
-static int
+static ssize_t
 tcp_read_handle(void *handle, char *buf, size_t bufSize)
 { int sock = fdFromHandle(handle);
 
@@ -193,7 +189,7 @@ tcp_read_handle(void *handle, char *buf, size_t bufSize)
 }
 
 
-static int
+static ssize_t
 tcp_write_handle(void *handle, char *buf, size_t bufSize)
 { int sock = fdFromHandle(handle);
 
@@ -297,7 +293,11 @@ unify_address(term_t t, struct sockaddr_in *addr)
 static foreign_t
 udp_receive(term_t Socket, term_t Data, term_t From, term_t Options)
 { struct sockaddr_in sockaddr;
+#ifdef __WINDOWS__
+  int alen = sizeof(sockaddr);
+#else
   socklen_t alen = sizeof(sockaddr);
+#endif
   int socket;
   int flags = 0;
   char buf[UDP_MAXDATA];
@@ -321,7 +321,11 @@ udp_receive(term_t Socket, term_t Data, term_t From, term_t Options)
 static foreign_t
 udp_send(term_t Socket, term_t Data, term_t To, term_t Options)
 { struct sockaddr_in sockaddr;
+#ifdef __WINDOWS__
   int alen = sizeof(sockaddr);
+#else
+  int alen = sizeof(sockaddr);
+#endif
   int socket;
   int flags = 0L;
   char *data;
@@ -335,7 +339,13 @@ udp_send(term_t Socket, term_t Data, term_t To, term_t Options)
        !nbio_get_sockaddr(To, &sockaddr) )
     return FALSE;
 
-  if ( (n=sendto(socket, data, dlen, flags,
+  if ( (n=sendto(socket, data,
+#ifdef __WINDOWS__
+		 (int)dlen,
+#else
+		 dlen,
+#endif
+		 flags,
 		 (struct sockaddr*)&sockaddr, alen)) == -1 )
     return nbio_error(errno, TCP_ERRNO);
 
@@ -404,7 +414,11 @@ pl_bind(term_t Socket, term_t Address)
 
   if ( PL_is_variable(Address) )
   { struct sockaddr_in addr;
+#ifdef __WINDOWS__
+    int len = sizeof(addr);
+#else
     socklen_t len = sizeof(addr);
+#endif
 
     if ( getsockname(socket, (struct sockaddr *) &addr, &len) )
       return nbio_error(errno, TCP_ERRNO);

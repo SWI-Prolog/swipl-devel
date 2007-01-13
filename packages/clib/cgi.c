@@ -29,7 +29,7 @@
 #include "clib.h"
 
 static int
-isinteger(const char *s, long *val, int len)
+isinteger(const char *s, long *val, size_t len)
 { char *e;
   
   if ( len < 0 )
@@ -46,7 +46,7 @@ isinteger(const char *s, long *val, int len)
 
 
 static int
-isfloat(const char *s, double *val, int len)
+isfloat(const char *s, double *val, size_t len)
 { char *e;
 
   if ( len < 0 )
@@ -88,7 +88,7 @@ add_to_form(const char *name, const char *value, void *closure)
 
 
 static int
-mp_add_to_form(const char *name, const char *value, int len,
+mp_add_to_form(const char *name, const char *value, size_t len,
 	       const char *file, void *closure)
 { term_t head = PL_new_term_ref();
   term_t tail = (term_t) closure;
@@ -115,7 +115,7 @@ mp_add_to_form(const char *name, const char *value, int len,
 
 static foreign_t
 pl_cgi_get_form(term_t form)
-{ int len = 0;
+{ size_t len = 0;
   char *data = get_raw_form_data(&len);
   term_t list = PL_copy_term_ref(form);
   char *ct, *boundary;

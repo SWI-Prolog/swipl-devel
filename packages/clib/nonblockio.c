@@ -173,7 +173,7 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 typedef struct _plsocket
 { int		    magic;		/* SOCK_MAGIC */
   struct _plsocket *next;		/* next in list */
-  int		    socket;		/* The OS socket */
+  SOCKET	    socket;		/* The OS socket */
   int		    flags;		/* Misc flags */
   IOSTREAM *	    input;		/* input stream */
   IOSTREAM *	    output;		/* output stream */
@@ -187,30 +187,30 @@ typedef struct _plsocket
   { struct
     { struct sockaddr_in addr;		/* accepted address */
       int addrlen;			/* address length */
-      int slave;			/* descriptor of slave */
+      SOCKET slave;			/* descriptor of slave */
     } accept;
     struct
     { struct sockaddr_in addr;		/* accepted address */
-      int addrlen;			/* address length */
+      size_t addrlen;			/* address length */
     } connect;
     struct
     { int bytes;			/* byte count */
       char *buffer;			/* the buffer */
-      int size;				/* buffer size */
+      size_t size;			/* buffer size */
     } read;
     struct
     { int bytes;			/* byte count */
       char *buffer;			/* the buffer */
       int written;
-      int size;				/* buffer size */
+      size_t size;			/* buffer size */
     } write;
   } rdata;
 #endif
 } plsocket;
 
-static plsocket *lookupSocket(int socket);
+static plsocket *lookupSocket(SOCKET socket);
 #ifdef __WINDOWS__
-static plsocket   *lookupExistingSocket(int socket);
+static plsocket   *lookupExistingSocket(SOCKET socket);
 static const char *WinSockError(unsigned long eno);
 #endif
 
@@ -509,7 +509,7 @@ doRequest(plsocket *s)
 
 	if ( connect(s->socket,
 		     (struct sockaddr*)&s->rdata.connect.addr,
-		     s->rdata.connect.addrlen) )
+		     (int)s->rdata.connect.addrlen) )
 	{ s->error = WSAGetLastError();
 	  
 	  switch(s->error)
@@ -571,7 +571,7 @@ doRequest(plsocket *s)
 
 	s->rdata.read.bytes = recv(s->socket,
 				   s->rdata.read.buffer,
-				   s->rdata.read.size,
+				   (int)s->rdata.read.size,
 				   0);
 	if ( s->rdata.read.bytes < 0 )
 	{ s->error = WSAGetLastError();
@@ -598,7 +598,7 @@ doRequest(plsocket *s)
 	DEBUG(2, Sdprintf("send() %d bytes\n", s->rdata.write.size));
 	n = send(s->socket,
 		 s->rdata.write.buffer + s->rdata.write.written,
-		 s->rdata.write.size - s->rdata.write.written,
+		 (int)(s->rdata.write.size - s->rdata.write.written),
 		 0);
 	DEBUG(2, Sdprintf("Wrote %d bytes\n", n));
 	if ( n < 0 )
@@ -622,8 +622,8 @@ doRequest(plsocket *s)
 }
 
 
-static int WINAPI
-socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+static LRESULT WINAPI
+socket_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 { if ( message == WM_REQUEST )
   { plsocket **s = (plsocket **)lParam;
     int i, n = (int)wParam;
@@ -858,7 +858,7 @@ static int initialised = FALSE;		/* Windows only */
 
 #ifdef __WINDOWS__
 static plsocket *
-lookupExistingSocket(int socket)
+lookupExistingSocket(SOCKET socket)
 { plsocket *p;
 
   LOCK();
@@ -875,7 +875,7 @@ lookupExistingSocket(int socket)
 
 
 static plsocket *
-lookupSocket(int socket)
+lookupSocket(SOCKET socket)
 { plsocket *p;
 
   LOCK();
@@ -1195,7 +1195,7 @@ socket(-Socket)
 
 int
 nbio_socket(int domain, int type, int protocol)
-{ int sock;
+{ SOCKET sock;
   plsocket *s;
 	
   assert(initialised);
@@ -1215,7 +1215,7 @@ nbio_socket(int domain, int type, int protocol)
 		 FD_READ|FD_WRITE|FD_ACCEPT|FD_CONNECT|FD_CLOSE);
 #endif
 
-  return sock;
+  return (int)sock;
 }
 
 
@@ -1465,7 +1465,12 @@ nbio_unify_ip4(term_t Ip, unsigned long hip)
 
 int
 nbio_bind(int socket, struct sockaddr *my_addr, size_t addrlen)
-{ if ( bind(socket, my_addr, addrlen) )
+{
+#ifdef __WINDOWS__
+  if ( bind(socket, my_addr, (int)addrlen) )
+#else
+  if ( bind(socket, my_addr, addrlen) )
+#endif
   { nbio_error(errno, TCP_ERRNO);
     return -1;
   }
@@ -1485,7 +1490,7 @@ nbio_connect(int socket,
   s = lookupSocket(socket);
   
 #ifdef __WINDOWS__
-  if ( connect(socket, serv_addr, addrlen) )
+  if ( connect(socket, serv_addr, (int)addrlen) )
   { s->error = WSAGetLastError();
 
     if ( s->error == WSAEWOULDBLOCK )
@@ -1523,13 +1528,16 @@ nbio_connect(int socket,
 
 int
 nbio_accept(int master, struct sockaddr *addr, socklen_t *addrlen)
-{ int slave;
+{ SOCKET slave;
   plsocket *m;
 	
   m = lookupSocket(master);
 
 #ifdef __WINDOWS__
-  slave = accept(master, addr, addrlen);
+{ int alen;
+  slave = accept(master, addr, &alen);
+  *addrlen = alen;
+}
 
   if ( slave == SOCKET_ERROR )
   { m->error = WSAGetLastError();
@@ -1580,7 +1588,7 @@ nbio_accept(int master, struct sockaddr *addr, socklen_t *addrlen)
 
 #endif /*__WINDOWS__*/
   
-  return slave;
+  return (int)slave;
 }
 
 
@@ -1601,9 +1609,9 @@ nbio_listen(int socket, int backlog)
 		 *	  IO-STREAM STUFF	*
 		 *******************************/
 
-#define fdFromHandle(p) ((int)((long)(p)))
+#define fdFromHandle(p) ((int)((intptr_t)(p)))
 
-int
+ssize_t
 nbio_read(int socket, char *buf, size_t bufSize)
 { plsocket *s = lookupSocket(socket);
   int n;
@@ -1616,7 +1624,7 @@ nbio_read(int socket, char *buf, size_t bufSize)
 
 #ifdef __WINDOWS__
 
-  n = recv(socket, buf, bufSize, 0);
+  n = recv(socket, buf, (int)bufSize, 0);
   if ( n < 0 )
   { if ( WSAGetLastError() == WSAEWOULDBLOCK )
     { s->rdata.read.buffer = buf;
@@ -1662,16 +1670,17 @@ nbio_read(int socket, char *buf, size_t bufSize)
   return n;
 }
 
-int
+
+ssize_t
 nbio_write(int socket, char *buf, size_t bufSize)
-{ int len = bufSize;
+{ size_t len = bufSize;
   char *str = buf;
 
 #ifdef __WINDOWS__
-  while( len > 0 )
-  { int n;
+  while( len != 0 )
+  { ssize_t n;
 
-    n = send(socket, str, len, 0);
+    n = send(socket, str, (int)len, 0);
     if ( n < 0 )
     { int error = WSAGetLastError();
 
