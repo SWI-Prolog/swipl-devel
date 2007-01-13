@@ -2526,7 +2526,7 @@ write_triple(rdf_db *db, IOSTREAM *out, triple *t, save_context *ctx)
 	
 	Sputc('T', out);
 	save_int(out, len);
-	while(--len >= 0)
+	while(len-- > 0)
 	  Sputc(*s++, out);
   
 	break;
