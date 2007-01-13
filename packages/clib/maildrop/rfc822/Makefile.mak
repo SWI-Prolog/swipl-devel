@@ -1,6 +1,6 @@
 # Destinations.  Please edit
 prefix=c:\Documents and Settings\jan
-LIBDIR=$(prefix)\lib
+LIBDIR=$(prefix)\lib64
 INCDIR=$(prefix)\include
 
 CC=cl.exe
