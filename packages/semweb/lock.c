@@ -58,7 +58,7 @@ permission_error(const char *op, const char *type, const char *obj,
 		 *	 WINDOWS VERSION	*
 		 *******************************/
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 
 #include <windows.h>
 
@@ -307,7 +307,7 @@ unlock(rwlock *lock, int rd)
     }
   }
 
-  LeaveCriticalSection(&lock->mutex);	/* In our WIN32 emulation we */
+  LeaveCriticalSection(&lock->mutex);	/* In our __WINDOWS__ emulation we */
 					/* must hold the associated mutex */
   return TRUE;
 }
@@ -374,7 +374,7 @@ destroy_lock(rwlock *lock)
   return TRUE;  
 }
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
 		 /*******************************
 		 *	   POSIX VERSION	*
@@ -638,7 +638,7 @@ destroy_lock(rwlock *lock)
   return TRUE;
 }
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 
 #else /*_REENTRANT*/

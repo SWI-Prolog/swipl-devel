@@ -103,7 +103,7 @@ summary:
 #include <string.h>
 #include <assert.h>
 #include "avl.h"		/* public types for avl trees */
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define inline __inline
 #endif
 

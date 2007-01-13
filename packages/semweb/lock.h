@@ -29,9 +29,9 @@
 #include <config.h>
 #endif
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <windows.h>
-#if defined(_REENTRANT) && defined(WIN32)
+#if defined(_REENTRANT) && defined(__WINDOWS__)
 enum
 { SIGNAL     = 0,
   MAX_EVENTS = 1
@@ -49,7 +49,7 @@ typedef struct
 typedef struct rwlock
 {
 #ifdef _REENTRANT
-#ifdef WIN32
+#ifdef __WINDOWS__
   CRITICAL_SECTION	mutex;
   CRITICAL_SECTION	misc_mutex;
   win32_cond_t		rdcondvar;

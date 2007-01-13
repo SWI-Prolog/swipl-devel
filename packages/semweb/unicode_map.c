@@ -1,4 +1,4 @@
-#ifdef WIN32
+#ifdef __WINDOWS__
 typedef int int32_t;
 #else
 #include <inttypes.h>

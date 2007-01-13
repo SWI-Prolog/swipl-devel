@@ -31,7 +31,7 @@
 #define _GNU_SOURCE 1			/* get rwlocks from glibc */
 
 #ifdef _REENTRANT
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <malloc.h>			/* alloca() */
 #define inline __inline
 #ifndef SIZEOF_LONG

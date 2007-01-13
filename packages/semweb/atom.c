@@ -33,7 +33,7 @@
 #include <wchar.h>
 #include <wctype.h>
 #include <assert.h>
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define inline __inline
 #endif
 
