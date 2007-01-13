@@ -71,7 +71,7 @@ Packages
  * pldoc	[PROLOG]
  * plunit	[PROLOG]
  * semweb
- * sgml
+ * sgml		[DONE]
  * ssl
  * table
  * xpce
