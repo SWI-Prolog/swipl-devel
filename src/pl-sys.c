@@ -48,9 +48,9 @@ pl_getenv(term_t var, term_t value)
 
   if ( PL_get_chars_ex(var, &n, CVT_ALL|REP_FN) )
   { char buf[1024];
-    int size;
+    size_t size;
 
-    if ( (size=getenv3(n, buf, sizeof(buf))) >= 0 )
+    if ( (size=getenv3(n, buf, sizeof(buf))) != (size_t)-1 )
     { if ( size < sizeof(buf) )
       { return PL_unify_chars(value, PL_ATOM|REP_FN, size, buf);
       } else

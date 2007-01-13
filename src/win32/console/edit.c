@@ -538,7 +538,7 @@ list_completions(Line ln, int chr)
 		 *******************************/
 
 static void
-output(rlc_console b, TCHAR *s, int len)
+output(rlc_console b, TCHAR *s, size_t len)
 { while(len-- > 0)
   { if ( *s == '\n' )
       rlc_putchar(b, '\r');

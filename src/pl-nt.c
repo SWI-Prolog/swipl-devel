@@ -514,8 +514,8 @@ pl_win_module_file(term_t module, term_t file)
 		 *	  WINDOWS MESSAGES	*
 		 *******************************/
 
-int
-PL_win_message_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+LRESULT
+PL_win_message_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 #ifdef O_PLMT
   if ( hwnd == NULL &&

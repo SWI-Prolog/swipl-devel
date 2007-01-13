@@ -375,8 +375,8 @@ free_expand_info(GlobInfo info)
 
 static void
 add_path(const char *path, GlobInfo info)
-{ int idx = entriesBuffer(&info->strings, char);
-  int n = strlen(path)+1;
+{ int idx = (int)entriesBuffer(&info->strings, char);
+  size_t n = strlen(path)+1;
 
   addMultipleBuffer(&info->strings, path, n, char);
   addBuffer(&info->files, idx, int);
@@ -440,7 +440,7 @@ expand(const char *pattern, GlobInfo info)
 	    end = info->end;
 	    for( ; info->start < end; info->start++ )
 	    { char path[MAXPATHLEN];
-	      int plen;
+	      size_t plen;
   
 	      strcpy(path, expand_entry(info, info->start));
 	      plen = strlen(path);
@@ -501,7 +501,7 @@ expand(const char *pattern, GlobInfo info)
       strcat(path, prefix);
       
       if ( (d=opendir(path[0] ? OsPath(path, tmp) : ".")) )
-      { int plen = strlen(path);
+      { size_t plen = strlen(path);
 
 	if ( plen > 0 && path[plen-1] != '/' )
 	  path[plen++] = '/';

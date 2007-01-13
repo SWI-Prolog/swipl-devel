@@ -909,10 +909,10 @@ PL_EXPORT(void)		PL_prof_exit(void *node);
 #define PL_MSG_IGNORED 0
 #define PL_MSG_HANDLED 1
 
-PL_EXPORT(int)		PL_win_message_proc(HWND hwnd,
+PL_EXPORT(LRESULT)	PL_win_message_proc(HWND hwnd,
 					    UINT message,
-					    UINT wParam,
-					    LONG lParam);
+					    WPARAM wParam,
+					    LPARAM lParam);
 #endif /*_WINDOWS_*/
 
 

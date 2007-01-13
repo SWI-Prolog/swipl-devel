@@ -293,7 +293,7 @@ PRED_IMPL("import_module", 2, import_module,
       i = 0;
       break;
     case FRG_REDO:
-      i = ForeignContextInt(PL__ctx);
+      i = (int)ForeignContextInt(PL__ctx);
       break;
     default:
       succeed;

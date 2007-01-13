@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <io.h>
 #include <direct.h>
+typedef intptr_t ssize_t;		/* signed version of size_t */
 
 #ifndef _UXNT_KERNEL
 #include <sys/stat.h>
@@ -116,8 +117,8 @@ _export int	_xos_same_file(const char *p1, const char *p2);
 _export int	_xos_open(const char *path, int access, ...);
 _export FILE*	_xos_fopen(const char *path, const char *mode);
 _export int	_xos_close(int handle);
-_export int	_xos_read(int handle, void *buf, unsigned int size);
-_export int	_xos_write(int handle, const void *buf, unsigned int size);
+_export ssize_t	_xos_read(int handle, void *buf, size_t size);
+_export ssize_t	_xos_write(int handle, const void *buf, size_t size);
 _export long	_xos_lseek(int handle, long offset, int whence);
 _export long	_xos_tell(int handle);
 _export int	_xos_access(const char *path, int mode);
@@ -128,10 +129,10 @@ _export int	_xos_stat(const char *path, struct _stat *sbuf);
 _export int	_xos_chdir(const char *path);
 _export int	_xos_mkdir(const char *path, int mode);
 _export int	_xos_rmdir(const char *path);
-_export char *	_xos_getcwd(char *buf, int len);
+_export char *	_xos_getcwd(char *buf, size_t len);
 _export int	_xos_errno(void);
 _export int	_xos_exists(const char *path, int flags);
-_export int     _xos_getenv(const char *name, char *buf, int buflen);
+_export size_t  _xos_getenv(const char *name, char *buf, size_t buflen);
 _export int	_xos_setenv(const char *name, char *value, int overwrite);
 
 #define _XOS_ISFILE	0x01

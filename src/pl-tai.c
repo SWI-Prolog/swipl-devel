@@ -177,7 +177,7 @@ get_taia(term_t t, struct taia *taia, double *seconds)
     }
 
     taia->sec.x = (int64_t)ip + TAI_UTC_OFFSET;
-    taia->nano  = (intptr_t)(fp*1e9);
+    taia->nano  = (long)(fp*1e9);
     taia->atto  = 0L;
 
     return TRUE;

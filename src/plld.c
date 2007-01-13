@@ -36,7 +36,11 @@ embedded application.
 
 #ifdef __WINDOWS__
 #if (_MSC_VER >= 1400)			/* VC8 */
+#ifdef WIN64
+#include <config/win64.h>
+#else
 #include <config/win32.h>
+#endif
 #endif
 
 #if (_MSC_VER < 1300)			/* <= VC6 */
@@ -314,7 +318,7 @@ strdup(const char *in)
 
 
 static char *
-strndup(const char *in, int len)
+strndup(const char *in, size_t len)
 { char *r = xmalloc(len+1);
  
   r[len] = '\0'; 

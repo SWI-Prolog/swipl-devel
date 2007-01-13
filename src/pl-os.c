@@ -389,26 +389,26 @@ FreeMemory(void)
 
 static void
 initRandom(void)
-{ intptr_t init;
+{ unsigned int seed;
 
 #ifdef __WINDOWS__
-  init = GetTickCount();
+  seed = (unsigned int)GetTickCount();
 #else
 #ifdef HAVE_GETTIMEOFDAY
   struct timeval tp;
 
   gettimeofday(&tp, NULL);
-  init = tp.tv_sec + tp.tv_usec;
+  seed = (unsigned int)(tp.tv_sec + tp.tv_usec);
 #else
-  init = (intptr_t)time((time_t *) NULL);
+  seed = (unsigned int)time((time_t *) NULL);
 #endif
 #endif
 
 #ifdef HAVE_SRANDOM
-  srandom(init);
+  srandom(seed);
 #else
 #ifdef HAVE_SRAND
-  srand(init);
+  srand(seed);
 #endif
 #endif
 }
@@ -1884,7 +1884,7 @@ ChDir(const char *path)
   AbsoluteFile(path, tmp);
 
   if ( chdir(ospath) == 0 )
-  { int len;
+  { size_t len;
 
     len = strlen(tmp);
     if ( len == 0 || tmp[len-1] != '/' )
@@ -2223,14 +2223,14 @@ requested via getenv/2 from Prolog. Functions
     value, or NULL if the variable did not exist.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-getenv3(const char *name, char *buf, unsigned int len)
+size_t
+getenv3(const char *name, char *buf, size_t len)
 {
 #if O_XOS
   return _xos_getenv(name, buf, len);
 #else
   char *s = getenv(name);
-  int l;
+  size_t l;
 
   if ( s )
   { if ( (l=strlen(s)) < len )
@@ -2241,16 +2241,16 @@ getenv3(const char *name, char *buf, unsigned int len)
     return l;
   }
 
-  return -1;
+  return (size_t)-1;
 #endif
 }
 
 
 char *
-Getenv(const char *name, char *buf, unsigned int len)
-{ int l = getenv3(name, buf, len);
+Getenv(const char *name, char *buf, size_t len)
+{ size_t l = getenv3(name, buf, len);
 
-  if ( l >= 0 && l < (int)len )
+  if ( l != (size_t)-1 && l < len )
     return buf;
 
   return NULL;

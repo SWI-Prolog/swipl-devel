@@ -433,7 +433,7 @@ struct extension_cell
 static char *
 dupStr(const char *str)
 { if (str)
-  { int len = strlen(str)+1;
+  { size_t len = strlen(str)+1;
     char *m = PL_malloc(len);
     memcpy(m, str, len);
     return m;

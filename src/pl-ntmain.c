@@ -146,10 +146,10 @@ First step: bind the  console  I/O   to  the  Sinput/Soutput  and Serror
 streams.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-Srlc_read(void *handle, char *buffer, int size)
+static ssize_t
+Srlc_read(void *handle, char *buffer, size_t size)
 { rlc_console c = handle;
-  int bytes;
+  size_t bytes;
 
   PL_write_prompt(TRUE);
 
@@ -187,17 +187,17 @@ wchar_t stream is out-of-sync and produces   unreadable  output. We will
 therefore pad it with '?' characters to re-sync the stream.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-Srlc_write(void *handle, char *buffer, int size)
+static ssize_t
+Srlc_write(void *handle, char *buffer, size_t size)
 { rlc_console c = handle;
-  int n;
+  ssize_t n;
 
   n = rlc_write(c, (TCHAR*)buffer, size/sizeof(TCHAR));
   n *= sizeof(TCHAR);
 
-  if ( n < size && size-n < sizeof(TCHAR) )
+  if ( n < (ssize_t)size && size-n < sizeof(TCHAR) )
   { char buf[sizeof(TCHAR)];		/* Pad to TCHAR */
-    int i = sizeof(TCHAR) - (size-n);
+    size_t i = sizeof(TCHAR) - (size-n);
 
     memcpy(buf, buffer+n, i);
     for(; i<sizeof(TCHAR); i++)
@@ -321,7 +321,7 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
   rlc_console c;
   IOSTREAM *in, *out, *err;
   TCHAR *s;
-  unsigned int len;
+  size_t len;
 
   memset(&attr, 0, sizeof(attr));
   if ( !PL_get_wchars(title, &len, &s, CVT_ALL|BUF_RING) )
@@ -421,10 +421,10 @@ prolog_complete(RlcCompleteData data)
 
   switch(data->call_type)
   { case COMPLETE_INIT:
-    { int start = ln->point;
+    { size_t start = ln->point;
       wint_t c;
 
-      if ( !ln->data )			/* we donot want to complete on all atoms */
+      if ( !ln->data )		/* we donot want to complete on all atoms */
 	return FALSE;
 
       while(start > 0 && (_istalnum((c=ln->data[start-1])) || c == '_') )
@@ -436,7 +436,7 @@ prolog_complete(RlcCompleteData data)
 	  return FALSE;			/* treat as a filename */
       }
       if ( _istlower(ln->data[start]) )	/* Lower, Aplha ...: an atom */
-      { int patlen = ln->point - start;
+      { size_t patlen = ln->point - start;
 
 	_tcsncpy(data->buf_handle, &ln->data[start], patlen);
 	data->buf_handle[patlen] = '\0';
@@ -445,7 +445,7 @@ prolog_complete(RlcCompleteData data)
 				 data->candidate,
 				 sizeof(data->candidate)/sizeof(TCHAR),
 				 FALSE) )
-	{ data->replace_from = start;
+	{ data->replace_from = (int)start;
 	  data->function = prolog_complete;
 	  return TRUE;
 	}
@@ -645,7 +645,7 @@ call_menu(const TCHAR *name)
   predicate_t pred = PL_predicate("on_menu", 1, "prolog");
   module_t m = PL_new_module(PL_new_atom("prolog"));
   term_t a0 = PL_new_term_ref();
-  int len = _tcslen(name);
+  size_t len = _tcslen(name);
 
   PL_unify_wchars(a0, PL_ATOM, len, name);
   PL_call_predicate(m, PL_Q_NORMAL, pred, a0);
@@ -733,8 +733,8 @@ create_interactor()
 #define WM_SIGNALLED (WM_USER+1)
 #define WM_MENU	     (WM_USER+2)
 
-static WINAPI
-pl_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+static LRESULT WINAPI
+pl_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 { switch(message)
   { case WM_SIGNALLED:
       PL_handle_signals();
@@ -850,14 +850,17 @@ simply calls PL_raise(sig).
 
 static void
 interrupt(rlc_console c, int sig)
-{ DWORD tid;
+{ uintptr_t val;
 
-  if ( rlc_get(c, RLC_APPLICATION_THREAD_ID, &tid) )
-  { uintptr_t hwnd;
+  if ( rlc_get(c, RLC_APPLICATION_THREAD_ID, &val) )
+  { DWORD tid = (DWORD)val;
 
-    PL_w32thread_raise((DWORD)tid, sig);
-    if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) )
+    PL_w32thread_raise(tid, sig);
+    if ( rlc_get(c, RLC_PROLOG_WINDOW, &val) )
+    { HWND hwnd = (HWND)val;
+
       PostMessage((HWND)hwnd, WM_SIGNALLED, 0, 0);
+    }
   }
 }
 
@@ -877,8 +880,8 @@ menu_select(rlc_console c, const TCHAR *name)
   }
 }
 
-static int
-message_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+static LRESULT
+message_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 { switch( PL_win_message_proc(hwnd, message, wParam, lParam) )
   { case PL_MSG_HANDLED:
       return TRUE;
@@ -895,7 +898,7 @@ message_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 static void
 set_window_title(rlc_console c)
 { TCHAR title[256];
-  intptr_t v = PL_query(PL_QUERY_VERSION);
+  int v = (int)PL_query(PL_QUERY_VERSION);
   int major = v / 10000;
   int minor = (v / 100) % 100;
   int patch = v % 100;

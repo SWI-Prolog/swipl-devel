@@ -106,9 +106,9 @@ wcstoutf8(char *dest, const wchar_t *src, size_t len)
 
 /* length of src in UTF-8, excluding terminating EOS */
 
-static int
+static size_t
 wcutf8len(const wchar_t *src)
-{ int len = 0;
+{ size_t len = 0;
 
   for(; *src; src++)
   { if ( *src < 0x80 )
@@ -559,15 +559,15 @@ _xos_close(int handle)
 }
 
 
-int
-_xos_read(int handle, void *buf, unsigned int size)
-{ return _read(handle, buf, size);
+ssize_t
+_xos_read(int handle, void *buf, size_t size)
+{ return _read(handle, buf, (unsigned int)size);
 }
 
 
-int
-_xos_write(int handle, const void *buf, unsigned int size)
-{ return _write(handle, buf, size);
+ssize_t
+_xos_write(int handle, const void *buf, size_t size)
+{ return _write(handle, buf, (unsigned int)size);
 }
 
 
@@ -829,8 +829,8 @@ _xos_getcwd(char *buf, int len)
 		 *	    ENVIRONMENT		*
 		 *******************************/
 
-int
-_xos_getenv(const char *name, char *buf, int buflen)
+size_t
+_xos_getenv(const char *name, char *buf, size_t buflen)
 { TCHAR nm[PATH_MAX];
   TCHAR val[PATH_MAX];
   TCHAR *valp = val;
@@ -841,7 +841,7 @@ _xos_getenv(const char *name, char *buf, int buflen)
   size = GetEnvironmentVariable(nm, valp, PATH_MAX);
 
   if ( size > 0 )
-  { int rc;
+  { size_t rc;
 
     if ( size >= PATH_MAX )
     { if ( (valp = malloc((size+1)*sizeof(TCHAR))) == NULL )

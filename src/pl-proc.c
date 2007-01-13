@@ -2271,7 +2271,7 @@ pl_index(term_t pred)
 		      ATOM_index, PL_new_atom("foreign_procedure"), def);
 
     if ( arity > 0 )
-    { uintptr_t pattern = 0x0;
+    { unsigned long pattern = 0x0;
       int n, card = 0;
       term_t a = PL_new_term_ref();
 
@@ -2353,7 +2353,7 @@ registerSourceFile(SourceFile f)
 { if ( !GD->files.source_files.base )
     initBuffer(&GD->files.source_files);
 
-  f->index = entriesBuffer(&GD->files.source_files, SourceFile) + 1;
+  f->index = (int)entriesBuffer(&GD->files.source_files, SourceFile) + 1;
     
   addBuffer(&GD->files.source_files, f, SourceFile);
 }
@@ -2404,7 +2404,7 @@ lookupSourceFile(atom_t name)
 
 SourceFile
 indexToSourceFile(int index)
-{ int n = entriesBuffer(&GD->files.source_files, SourceFile);
+{ int n = (int)entriesBuffer(&GD->files.source_files, SourceFile);
 
   index--;
   if ( index >= 0 && index < n )
@@ -2497,7 +2497,7 @@ redefineProcedure(Procedure proc, SourceFile sf)
 
 word
 pl_make_system_source_files(void)
-{ int i, n = entriesBuffer(&GD->files.source_files, SourceFile);
+{ int i, n = (int)entriesBuffer(&GD->files.source_files, SourceFile);
 
 
   for(i=0; i<n; i++)
@@ -2579,14 +2579,14 @@ word
 pl_time_source_file(term_t file, term_t time, control_t h)
 { GET_LD
   int index;
-  int mx = entriesBuffer(&GD->files.source_files, SourceFile);
+  int mx = (int)entriesBuffer(&GD->files.source_files, SourceFile);
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
       index = 0;
       break;
     case FRG_REDO:
-      index = ForeignContextInt(h);
+      index = (int)ForeignContextInt(h);
       break;
     case FRG_CUTTED:
     default:

@@ -35,5 +35,5 @@ unsigned int caltime_scan(char *s, struct caltime *ct)
   c = (unsigned char) (*t++ - '0'); if (c > 9) return 0; z = z * 10 + c;
   ct->offset = z * sign;
 
-  return t - s;
+  return (unsigned int)(t - s);
 }

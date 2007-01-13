@@ -125,7 +125,7 @@ prof_new_ticks(HANDLE thread)
 }
 
 static void CALLBACK
-callTimer(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
+callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
 { intptr_t newticks;
 
   SuspendThread(mythread);		/* stop thread to avoid trouble */
@@ -163,7 +163,7 @@ startProfiler(void)
   rval = timeSetEvent(10,
 		      5,		/* resolution (milliseconds) */
 		      callTimer,
-		      (DWORD)0,
+		      (DWORD_PTR)0,
 		      TIME_PERIODIC);
   if ( rval )
     timer = rval;

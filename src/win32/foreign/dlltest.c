@@ -115,7 +115,7 @@ initMClock()
 } 
 
 
-unsigned long
+int64_t
 mclock()
 { struct _timeb now;
 
@@ -127,7 +127,7 @@ mclock()
 
 foreign_t
 pl_mclock(term_t msecs)
-{ return PL_unify_integer(msecs, mclock());
+{ return PL_unify_int64(msecs, mclock());
 }
 
 

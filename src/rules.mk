@@ -154,7 +154,7 @@ GMPLIB=
 # CFLAGS=/DO_DEBUG /DO_SECURE $(CFLAGS)
 
 .c.obj:
-	$(CC) -I. -Irc -I $(PLHOME)\include $(CFLAGS) /Fo$@ $<
+	@$(CC) -I. -Irc -I $(PLHOME)\include $(CFLAGS) /Fo$@ $<
 .cxx.obj:
 	@$(CC) -I. -Irc -I $(PLHOME)\include $(CFLAGS) /Fo$@ $<
 

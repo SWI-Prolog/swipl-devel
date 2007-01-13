@@ -517,7 +517,8 @@ foreign_t
 pl_reg_set_value(term_t h, term_t name, term_t value)
 { HKEY k;
   char *vname;
-  DWORD rval, type, len;
+  DWORD rval, type;
+  size_t len;
   BYTE *data;
 
   if ( !(k = to_key(h)) || !PL_get_atom_chars(name, &vname) )
@@ -576,7 +577,7 @@ pl_reg_set_value(term_t h, term_t name, term_t value)
   }
 
 
-  rval = RegSetValueEx(k, vname, 0L, type, data, len);
+  rval = RegSetValueEx(k, vname, 0L, type, data, (DWORD)len);
   if ( rval == ERROR_SUCCESS )
     PL_succeed;
 

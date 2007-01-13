@@ -20,5 +20,5 @@ unsigned int caldate_scan(char *s, struct caldate *cd)
   z = 0; while ((c = (unsigned char) (*t - '0')) <= 9) { z = z * 10 + c; ++t; }
   cd->day = z;
 
-  return t - s;
+  return (unsigned int)(t - s);
 }
