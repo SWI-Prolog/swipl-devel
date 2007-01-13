@@ -11,7 +11,9 @@
 #include	<stdlib.h>
 #include	<string.h>
 #include	"rfc822.h"
+#ifndef __WINDOWS__
 #include	"config.h"
+#endif
 
 #if	HAVE_STRCASECMP
 

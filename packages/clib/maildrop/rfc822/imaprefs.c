@@ -7,7 +7,9 @@
 ** $Id$
 */
 
+#ifndef __WINDOWS__
 #include	"config.h"
+#endif
 
 #include	<stdio.h>
 #include	<stdlib.h>

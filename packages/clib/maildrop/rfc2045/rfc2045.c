@@ -296,7 +296,7 @@ size_t	l;
 	if (h->workbuflen > 512)
 	{
 	struct	rfc2045 *p;
-	int	l, i;
+	size_t	l, i;
 
 		for (p=h; p->lastpart && !p->lastpart->workclosed;
 				p=p->lastpart)

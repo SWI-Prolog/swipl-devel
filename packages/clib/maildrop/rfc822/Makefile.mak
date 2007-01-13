@@ -1,11 +1,11 @@
 # Destinations.  Please edit
-prefix=E:\jan
+prefix=c:\Documents and Settings\jan
 LIBDIR=$(prefix)\lib
 INCDIR=$(prefix)\include
 
 CC=cl.exe
 AR=lib.exe
-CFLAGS=/MD /W3 /O2 /GX /DNDEBUG /DWIN32 /I.. /nologo /c
+CFLAGS=/MD /W3 /O2 /EHsc /DNDEBUG /D__WINDOWS__ /I.. /nologo /c
 
 OUT=rfc822.lib
 
@@ -21,8 +21,8 @@ $(OUT):	$(OBJ)
 	$(AR) /out:$@ /nologo $(OBJ)
 
 install:	$(OUT)
-		copy $(OUT) $(LIBDIR)
-		copy rfc822.h $(INCDIR)
+		copy $(OUT) "$(LIBDIR)"
+		copy rfc822.h "$(INCDIR)"
 
 clean::
 		del *~ *.obj
