@@ -27,9 +27,16 @@
 
 #include <stdarg.h>
 #include <wchar.h>
-#ifdef WIN32
+#include <stddef.h>
+#ifdef __WINDOWS__
 typedef __int64 int64_t;
+#if (_MSC_VER < 1300)
+typedef long intptr_t;
+typedef unsigned long uintptr_t;
+#endif
+typedef intptr_t ssize_t;		/* signed version of size_t */
 #else
+#include <unistd.h>
 #include <inttypes.h>			/* more portable than stdint.h */
 #endif
 
@@ -48,11 +55,8 @@ stuff.
 
 #ifndef _PL_EXPORT_DONE
 #define _PL_EXPORT_DONE
-#if defined(WIN32) && !defined(__WIN32__)
-#define __WIN32__
-#endif
 
-#if (defined(__WIN32__) || defined(__CYGWIN__)) && !defined(__LCC__)
+#if (defined(__WINDOWS__) || defined(__CYGWIN__)) && !defined(__LCC__)
 #define HAVE_DECLSPEC
 #endif
 
@@ -90,7 +94,7 @@ stuff.
 #define NULL ((void *)0)
 #endif
 
-#if defined(__WIN32__) && !defined(EWOULDBLOCK)
+#if defined(__WINDOWS__) && !defined(EWOULDBLOCK)
 #define EWOULDBLOCK	1000		/* Needed for socket handling */
 #endif
 #define EPLEXCEPTION	1001		/* errno: pending Prolog exception */
@@ -100,8 +104,8 @@ stuff.
 #define SIO_MAGIC	(7212676)	/* magic number */
 #define SIO_CMAGIC	(42)		/* we are close (and thus illegal!) */
 
-typedef int   (*Sread_function)(void *handle, char *buf, int bufsize);
-typedef int   (*Swrite_function)(void *handle, char*buf, int bufsize);
+typedef ssize_t (*Sread_function)(void *handle, char *buf, size_t bufsize);
+typedef ssize_t (*Swrite_function)(void *handle, char*buf, size_t bufsize);
 typedef long  (*Sseek_function)(void *handle, long pos, int whence);
 typedef int64_t (*Sseek64_function)(void *handle, int64_t pos, int whence);
 typedef int   (*Sclose_function)(void *handle);
@@ -120,7 +124,7 @@ typedef struct io_functions
   Sseek_function	seek;		/* seek to position */
   Sclose_function	close;		/* close stream */
   Scontrol_function	control;	/* Info/control */
-  Sseek64_function	seek64;		/* seek to position (long files) */
+  Sseek64_function	seek64;		/* seek to position (intptr_t files) */
 } IOFUNCTIONS;
 
 typedef struct io_position
@@ -128,7 +132,7 @@ typedef struct io_position
   int64_t		charno;		/* character position in file */
   int			lineno;		/* lineno in file */
   int			linepos;	/* position in line */
-  long			reserved[2];	/* future extensions */
+  intptr_t			reserved[2];	/* future extensions */
 } IOPOS;
 
 					/* NOTE: check with encoding_names */
@@ -170,7 +174,7 @@ typedef struct io_stream
   IOENC			encoding;	/* character encoding used */
   struct io_stream *	tee;		/* copy data to this stream */
   mbstate_t *		mbstate;	/* ENC_ANSI decoding */
-  long			reserved[6];	/* reserved for extension */
+  intptr_t			reserved[6];	/* reserved for extension */
 } IOSTREAM;
 
 
@@ -241,6 +245,7 @@ PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */
 #define SIO_GETSIZE	(1)		/* get size of underlying object */
 #define SIO_GETFILENO	(2)		/* get underlying file (if any) */
 #define SIO_SETENCODING	(3)		/* modify encoding of stream */
+#define SIO_FLUSHOUTPUT	(4)		/* flush output */
 
 /* Sread_pending() */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
@@ -333,13 +338,13 @@ PL_EXPORT(void)		Sseterr(IOSTREAM *s, int which, const char *message);
 PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC new_enc, IOENC *old_enc);
 PL_EXPORT(int)		Sflush(IOSTREAM *s);
 PL_EXPORT(long)		Ssize(IOSTREAM *s);
-PL_EXPORT(long)		Sseek(IOSTREAM *s, long pos, int whence);
+PL_EXPORT(int)		Sseek(IOSTREAM *s, long pos, int whence);
 PL_EXPORT(long)		Stell(IOSTREAM *s);
 PL_EXPORT(int)		Sclose(IOSTREAM *s);
 PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);
 PL_EXPORT(char *)	Sgets(char *buf);
-PL_EXPORT(int)		Sread_pending(IOSTREAM *s,
-				      char *buf, int limit, int flags);
+PL_EXPORT(size_t)	Sread_pending(IOSTREAM *s,
+				      char *buf, size_t limit, int flags);
 PL_EXPORT(int)		Sfputs(const char *q, IOSTREAM *s);
 PL_EXPORT(int)		Sputs(const char *q);
 PL_EXPORT(int)		Sfprintf(IOSTREAM *s, const char *fm, ...);
@@ -358,13 +363,13 @@ PL_EXPORT(IOSTREAM *)	Sopen_file(const char *path, const char *how);
 PL_EXPORT(IOSTREAM *)	Sfdopen(int fd, const char *type);
 PL_EXPORT(int)	   	Sfileno(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	Sopen_pipe(const char *command, const char *type);
-PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, int *sizep, const char *mode);
-PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, int sz, const char *m);
+PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, size_t *sizep, const char *mode);
+PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, size_t sz, const char *m);
 PL_EXPORT(int)		Sclosehook(void (*hook)(IOSTREAM *s));
 PL_EXPORT(void)		Sfree(void *ptr);
 
 PL_EXPORT(int64_t)	Stell64(IOSTREAM *s);
-PL_EXPORT(int64_t)	Sseek64(IOSTREAM *s, int64_t pos, int whence);
+PL_EXPORT(int)		Sseek64(IOSTREAM *s, int64_t pos, int whence);
 
 PL_EXPORT(int)		ScheckBOM(IOSTREAM *s);
 PL_EXPORT(int)		SwriteBOM(IOSTREAM *s);
