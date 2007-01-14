@@ -2057,9 +2057,17 @@ ar_integer(Number n1, Number r)
     }
 #endif
     case V_REAL:
-    { if ( n1->value.f < PLMAXINT && n1->value.f > PLMININT )
-      { r->value.i = (n1->value.f > 0 ? (int64_t)(n1->value.f + 0.5)
-			              : (int64_t)(n1->value.f - 0.5));
+    { if ( n1->value.f <= PLMAXINT && n1->value.f >= PLMININT )
+      { if ( n1->value.f > 0 )
+	{ r->value.i = (int64_t)(n1->value.f + 0.5);
+	  if ( r->value.i < 0 )		/* Why can this happen? */
+	    r->value.i = PLMAXINT;
+	} else
+	{ r->value.i = (int64_t)(n1->value.f - 0.5);
+	  if ( r->value.i > 0 )
+	    r->value.i = PLMININT;
+	}
+
 	r->type = V_INTEGER;
 	succeed;
       }
