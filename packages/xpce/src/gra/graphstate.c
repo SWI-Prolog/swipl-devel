@@ -41,7 +41,7 @@ g_save()
 { GraphicsState gs = alloc(sizeof(struct graphics_state));
 
   gs->level	 = (statelist ? statelist->level+1 : 1);
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   gs->thickness  = context.thickness;
   gs->texture    = context.texture;
   gs->foreground = context.colour;

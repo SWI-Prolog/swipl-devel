@@ -229,7 +229,7 @@ parse_font(char *s, LOGFONT *lfont)
 status
 ws_create_font(FontObj f, DisplayObj d)
 { WsFont wsf = alloc(sizeof(ws_font));
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   int widths[FONTTABLESIZE];
 #else
   short widths[FONTTABLESIZE];

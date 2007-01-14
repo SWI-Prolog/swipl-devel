@@ -890,7 +890,7 @@ getPostscriptFormatImage(Image image)
 		*       PREDEFINED IMAGES	*
 		********************************/
 
-#if defined(WIN32) || defined(HAVE_LIBXPM)
+#if defined(__WINDOWS__) || defined(HAVE_LIBXPM)
 #define XPM_PCEIMAGE 1			/* use an XPM image */
 #endif
 

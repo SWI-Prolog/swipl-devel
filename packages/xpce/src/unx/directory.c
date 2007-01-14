@@ -315,7 +315,7 @@ getParentDirectory(Directory d)
 static Chain
 getRootsDirectory(Directory dir)
 { Chain ch = answerObject(ClassChain, EAV);
-#ifdef WIN32
+#ifdef __WINDOWS__
   char buf[MAXPATHLEN];
   extern int get_logical_drive_strings(int, char *);
 

@@ -102,7 +102,7 @@ initialiseFile(FileObj f, Name name, Name encoding)
     { return errorPce(f, NAME_noTempFile, getOsErrorPce(PCE));
     }
 #else
-#ifdef HAVE_TEMPNAM			/* Prefer this on WIN32 */
+#ifdef HAVE_TEMPNAM			/* Prefer this on __WINDOWS__ */
     char *s = tempnam("c:\\tmp", "xpce");
 
     if ( s )
@@ -339,7 +339,7 @@ isAbsoluteFile(FileObj f)
 #define O_BINARY 0
 #endif
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #include <fcntl.h>
 #endif
 
@@ -840,7 +840,7 @@ only slow ...
 static int
 statFile(FileObj f, STAT_TYPE *buf)
 { 
-#ifndef WIN32
+#ifndef __WINDOWS__
   int fno;
 
   if ( f->fd != NULL && (fno = Sfileno(f->fd)) >= 0)
@@ -1197,7 +1197,7 @@ findFile(FileObj f, CharArray path, Name mode)
     const wchar_t *end = pathstr;
     size_t l;
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
     if ( end[0] < 0x80 && isalpha(end[0]) && end[1] == ':' )
       end += 2;
 #endif
@@ -1368,7 +1368,7 @@ makeClassFile(Class class)
 { declareClass(class, &file_decls);
   setLoadStoreFunctionClass(class, loadFile, storeFile);
 
-#if defined(__WIN32__)
+#if defined(__WINDOWS__)
   featureClass(class, NAME_caseSensitive,  OFF);
   featureClass(class, NAME_casePreserving, ON);
   featureClass(class, NAME_8plus3names,    OFF);

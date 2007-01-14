@@ -25,7 +25,7 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-#ifdef __WIN32__			/* timer broken in Win95 */
+#ifdef __WINDOWS__			/* timer broken in Win95 */
 #define SCROLLTIMER_USE_SLEEP 1
 #endif
 

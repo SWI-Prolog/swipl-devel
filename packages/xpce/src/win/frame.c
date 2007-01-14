@@ -244,7 +244,7 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
   { x = pos->x;
     y = pos->y;
 
-#ifdef WIN32
+#ifdef __WINDOWS__
   setpos:
 #endif
     if ( normalise == ON )
@@ -278,7 +278,7 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
   } else if ( notNil(fr->geometry) )
   { ws_x_geometry_frame(fr, fr->geometry, DEFAULT);
   }					
-#ifdef WIN32				/* But in Windows `do-it-yourself' */
+#ifdef __WINDOWS__				/* But in Windows `do-it-yourself' */
   else if ( notNil(fr->transient_for) )
   { Area pa = fr->transient_for->area;
     int xb, yb, ycap;

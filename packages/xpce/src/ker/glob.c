@@ -23,7 +23,7 @@
 */
 
 #define GLOBAL SO_LOCAL
-#if defined(WIN32) || defined(__WIN32__)
+#if defined(__WINDOWS__) || defined(__WINDOWS__)
 #define PUBLIC_GLOBAL _declspec(dllexport)
 #else
 #define PUBLIC_GLOBAL

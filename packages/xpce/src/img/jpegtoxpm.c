@@ -22,19 +22,19 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <msw/include.h>
 #ifdef HAVE_LIBXPM
 #define  FOR_MSW 1
 #include <msw/xpm.h>
 #endif
 /*#define boolean jpeg_boolean*/
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 #include <h/kernel.h>
 #ifdef HAVE_LIBXPM
 #include <X11/xpm.h>
 #endif
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 #undef GLOBAL				/* conflict */
 

@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#if !defined(WIN32) && !defined(__WIN32__)
+#if !defined(__WINDOWS__) && !defined(__WINDOWS__)
 #include <version.h>			/* get MACHINE and PCE_VERSION */
 #endif
 #include <h/kernel.h>
@@ -39,7 +39,7 @@
 #include <h/unix.h>
 #include <errno.h>
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #undef MACHINE
 #define MACHINE "i386"
 #undef OS
@@ -199,7 +199,7 @@ Name
 getOsErrorPce(Pce pce)
 {
 #if HAVE_STRERROR
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   return CtoName(strerror(_xos_errno()));
 #else
   return CtoName(strerror(errno));
@@ -306,7 +306,7 @@ getEnvironmentVariablePce(Pce pce, Name name)
 
   if ( (s = getenv(strName(name))) )
     answer(CtoName(s));
-#if defined(WIN32)			/* case-insensitive files */
+#if defined(__WINDOWS__)			/* case-insensitive files */
   if ( stricmp(strName(name), "PCEHOME") == 0 )
 #else
   if ( streq(strName(name), "PCEHOME") )
@@ -574,7 +574,7 @@ static status
 bannerPce(Pce pce)
 { Name host = get(HostObject(), NAME_system, EAV);
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   writef("XPCE %s for %I%IWin32: NT,2000,XP%I%I\n",
 #else
   writef("XPCE %s for %s-%s and X%dR%d\n",
@@ -619,7 +619,7 @@ infoPce(Pce pce)
   writef("	Release:            %s\n", pce->version);
   writef("	System:             %s\n", pce->machine);
   writef("	Operating System:   %s\n", pce->operating_system);
-#ifdef WIN32				/* TBD: Cygwin? */
+#ifdef __WINDOWS__				/* TBD: Cygwin? */
   writef("	Window System:      windows %s.%s\n",
 	 pce->window_system_version,
 	 pce->window_system_revision);
@@ -1390,7 +1390,7 @@ static classvardecl rc_pce[] =
 	   "				      '3d', grey70),\n"
 	   "    _mark_elevation   @= elevation(mark, 0),\n"
 	   "    _win_pen	  @= number(0))",
-	   /*WIN32*/
+	   /*__WINDOWS__*/
            "and(_dialog_bg     @= colour(win_btnface),\n"
 	   "    _graph_bg      @= colour(win_window),\n"
 	   "    _win_pen       @= number(1),\n"

@@ -302,7 +302,7 @@ signal(), Unix with sigaction (preserves more  context) and systems with
 and without SIGBUS ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 
 #include <excpt.h>
 
@@ -332,7 +332,7 @@ pcePP(Any obj)
 }
 
 
-#else /*__WIN32__*/
+#else /*__WINDOWS__*/
 
 #include <setjmp.h>
 #include <signal.h>
@@ -423,7 +423,7 @@ pcePP(Any obj)
   return s;
 }
 
-#endif /*__WIN32__*/
+#endif /*__WINDOWS__*/
 
 		/********************************
 		*           FUNCTIONS		*

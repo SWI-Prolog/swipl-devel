@@ -102,11 +102,11 @@ typedef struct
 
 } wdraw_context, *WDrawContext;
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #define MoveTo(hdc, x, y) MoveToEx((hdc), (x), (y), NULL);
 #define SetWindowOrg(hdc, x, y) SetWindowOrgEx((hdc), (x), (y), NULL);
 #define SetViewportOrg(hdc, x, y) SetViewportOrgEx((hdc), (x), (y), NULL);
-#endif /*__WIN32__*/
+#endif /*__WINDOWS__*/
 
 static int		cache = 1;	/* Do or don't */
 static int		quick;		/* Prefer speed */

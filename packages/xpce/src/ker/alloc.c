@@ -28,7 +28,7 @@
 #endif
 #ifndef ALLOC_DEBUG
 #ifndef O_RUNTIME
-#if defined(_DEBUG) && defined(WIN32)
+#if defined(_DEBUG) && defined(__WINDOWS__)
 #define ALLOC_DEBUG 2
 #else
 #define ALLOC_DEBUG 0			/* 1 or 2 */

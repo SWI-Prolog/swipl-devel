@@ -31,7 +31,7 @@
 #include <h/unix.h>
 #include <rel/proto.h>
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 extern Class ClassWinMF;
 extern Class ClassWinPrinter;
 #endif
@@ -520,7 +520,7 @@ static struct class_definition classdefs[] =
   { NAME_while, NAME_code, makeClassWhile,
     &ClassWhile, "While-loop control structure" },
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   { NAME_winMetafile, NAME_graphical, makeClassWinMF,
     &ClassWinMF, "Windows .WMF based figure" },
   { NAME_winPrinter, NAME_object, makeClassWinPrinter,

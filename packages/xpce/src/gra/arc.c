@@ -125,7 +125,7 @@ RedrawAreaArc(Arc a, Area area)
 	  a->close, a->fill_pattern);
 }
 
-#endif /* __WIN32__ */
+#endif /* __WINDOWS__ */
 
   if (notNil(a->first_arrow))
   { Any av[4];

@@ -48,7 +48,7 @@ based systems you may redefine these functions to use a window.
 	Behaves like: fgets(buf, size, stdin); 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 
 static FILE *console_in = NULL;
 static FILE *console_out = NULL;
@@ -87,7 +87,7 @@ ensure_console()
   return 1;
 }
 
-#else /* ~WIN32 */
+#else /* ~__WINDOWS__ */
 
 static FILE *console_in = NULL;
 static FILE *console_out = NULL;
@@ -100,7 +100,7 @@ ensure_console()
   return 1;
 }
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 void
 Stub__vCprintf(const char *fmt, va_list args)

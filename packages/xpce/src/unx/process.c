@@ -82,7 +82,7 @@ reduced to the facility to terminate the inferior process.
 #include <sys/ioctl.h>
 #endif
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #define environ _environ	/* declared in STDLIB.H */
 #else
 extern char **environ;		/* Unix version */
@@ -687,7 +687,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 }
 
 #else /*HAVE_FORK*/
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 extern status openProcess(Process p, CharArray cmd, int argc, CharArray *argv);
 #endif
 #endif /*HAVE_FORK*/

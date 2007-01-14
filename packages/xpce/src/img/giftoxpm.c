@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <msw/include.h>
 #define  FOR_MSW 1
 #include <msw/xpm.h>
