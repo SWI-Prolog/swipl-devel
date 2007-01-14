@@ -2055,11 +2055,25 @@ build_op_term(term_t term,
   build_term(term, atom, arity, av, _PL_rd PASS_LD);
 }
 
+
+static bool
+outOfCStack(ReadData _PL_rd)
+{ GET_LD
+  term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex,
+		PL_FUNCTOR, FUNCTOR_resource_error1,
+		  PL_CHARS, "c_stack");
+
+  return errorWarning(NULL, ex, _PL_rd);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 realloca() maintains a buffer using  alloca()   that  has  the requested
-size. The current size is maintained in   a intptr_t just below the returned
-area. This is a intptr_t, to ensure   proper  allignment of the remainder of
-the values.
+size. The current size is  maintained  in   a  intptr_t  just  below the
+returned area. This is a intptr_t, to   ensure  proper allignment of the
+remainder of the values.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define realloca(p, unit, n) \
@@ -2067,6 +2081,7 @@ the values.
 	  if ( ip == NULL || ip[-1] < (n) ) \
 	  { intptr_t nsize = (((n)+(n)/2) + 3) & ~3; \
 	    intptr_t *np = alloca(nsize * unit + sizeof(intptr_t)); \
+	    if ( !np ) return outOfCStack(_PL_rd); \
 	    *np++ = nsize; \
 	    if ( ip ) \
 	      memcpy(np, ip, ip[-1] * unit); \

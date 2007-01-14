@@ -23,6 +23,8 @@
 #	* LGPL (see file COPYING or http://www.gnu.org/)
 ################################################################
 
+STACK=4000000
+
 PLHOME=..
 !include rules.mk
 
@@ -126,9 +128,11 @@ $(PLLIB):	$(OBJ) $(LOCALLIB)
 
 $(PLCON):	$(PLLIB) pl-ntcon.obj
 		$(LD) $(LDFLAGS) /subsystem:console /out:$@ pl-ntcon.obj $(PLLIB)
+		editbin /stack:$(STACK) $(PLCON)
 
 $(PLWIN):	$(PLLIB) pl-ntmain.obj pl.res
 		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) pl.res $(LIBS)
+		editbin /stack:$(STACK) $(PLWIN)
 
 pl.res:		pl.rc pl.ico xpce.ico
 		$(RSC) /fo$@ pl.rc
