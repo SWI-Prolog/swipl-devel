@@ -49,17 +49,29 @@ ISSUES
 
 * Destroying semaphore at end hangs if no output is printed!?
 
+		 /*******************************
+		 *	      STATUS		*
+		 *******************************/
+
+================================================================
+SWI-Prolog
+================================================================
+
+ - Compiles clean
+ - Didn't manage gmp yet, so no unbounded arithmetic
+ - Fails one test
+
 ================================================================
 Packages
 ================================================================
 
- * chr		- depends on gmp?
+ * chr		- depends on gmp
  * clib		[DONE]
  * clpqr	[PROLOG]
  * clpr		[PROLOG]
  * cpp
- * cppproxy
- * db
+ * cppproxy	- non-standard
+ * db		- non-standard
  * http		[PROLOG]
  * inclpr
  * jasmine	- non-standard
@@ -74,5 +86,5 @@ Packages
  * sgml		[DONE]
  * ssl
  * table
- * xpce
+ * xpce		- Compiled libXpm and libjpeg.  Made global preparations
  * zlib
