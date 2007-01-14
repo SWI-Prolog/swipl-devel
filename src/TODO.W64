@@ -59,7 +59,7 @@ SWI-Prolog
 
  - Compiles clean
  - Didn't manage gmp yet, so no unbounded arithmetic
- - Fails one test
+ - Passes all tests
 
 ================================================================
 Packages
