@@ -146,7 +146,12 @@ storeReal(Real r, FileObj file)
 { TRY(storeSlotsObject(r, file));
 
 #if REAL_IN_ONE
-  storeWordFile(file, (Any) r->value);
+  union
+  { double f;
+    Any w;
+  } v;
+  v.f = r->value;
+  storeWordFile(file, v.w);
 #else
 #ifndef WORDS_BIGENDIAN
   storeWordFile(file, (Any) r->value2);
@@ -175,7 +180,12 @@ loadReal(Real r, IOSTREAM *fd, ClassDef def)
   } else
   { 
 #ifdef REAL_IN_ONE
-    r->value = loadWord(fd);
+    union
+    { double f;
+      Any w;
+    } v;
+    v.w = loadWord(fd);
+    r->value = v.f;
 #else
 #ifndef WORDS_BIGENDIAN
     r->value2 = loadWord(fd);

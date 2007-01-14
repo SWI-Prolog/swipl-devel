@@ -57,7 +57,7 @@ StringObj
 getPostscriptObject(Any obj, Bool ls, Area a)
 { StringObj result;
   char *PostScript = NULL;
-  int  size = 0;
+  size_t size = 0;
 
   if ( isNil(documentFonts) )
     documentFonts = globalObject(NAME_DocumentFonts, ClassChain, EAV);

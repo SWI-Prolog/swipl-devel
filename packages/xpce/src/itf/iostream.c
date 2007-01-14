@@ -44,13 +44,13 @@ typedef struct
 } open_object, *OpenObject;
 
 
-static int
-Sread_object(void *handle, char *buf, int size)
+static ssize_t
+Sread_object(void *handle, char *buf, size_t size)
 { OpenObject h = handle;
   Any argv[2];
   CharArray sub;
   int chread;
-  int advance;
+  size_t advance;
 
   if ( isFreedObj(h->object) )
   { errno = EIO;
@@ -108,14 +108,14 @@ Sread_object(void *handle, char *buf, int size)
 }
 
 
-static int
-Swrite_object(void *handle, char *buf, int size)
+static ssize_t
+Swrite_object(void *handle, char *buf, size_t size)
 { OpenObject h = handle;
   string s;
   CharArray ca;
   status rval;
   Int where = toInt(h->point);
-  int advance;
+  size_t advance;
 
   if ( isFreedObj(h->object) )
   { errno = EIO;

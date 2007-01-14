@@ -2563,15 +2563,15 @@ pceContextModule()
 		 *******************************/
 
 #ifdef SWI
-#define fdFromHandle(h) ((int)((long)(h)))
+#define fdFromHandle(h) ((int)((intptr_t)(h)))
 
-static int
+static ssize_t
 Swrite_pce(void *handle, char *buf, size_t size)
 { return pceWrite(fdFromHandle(handle), buf, size);
 }
 
 
-static int
+static ssize_t
 Sread_pce(void *handle, char *buf, size_t size)
 { return pceRead(fdFromHandle(handle), buf, size);
 }
