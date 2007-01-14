@@ -267,13 +267,13 @@ pl_environ(term_t l)
 static atom_t error_file;		/* file for output */
 static int    error_fd;			/* and its fd */
 
-static int
+static ssize_t
 read_eof(void *handle, char *buf, size_t count)
 { return 0;
 }
 
 
-static int
+static ssize_t
 write_null(void *handle, char *buf, size_t count)
 { if ( error_fd )
   { if ( error_fd >= 0 )

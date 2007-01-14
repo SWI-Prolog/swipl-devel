@@ -338,7 +338,7 @@ gz_skip_footer(z_context *ctx)
 		 *	       GZ I/O		*
 		 *******************************/
 
-static int				/* inflate */
+static ssize_t				/* inflate */
 zread(void *handle, char *buf, size_t size)
 { z_context *ctx = handle;
   int flush = Z_SYNC_FLUSH;
@@ -459,7 +459,7 @@ zread(void *handle, char *buf, size_t size)
 }
 
 
-static int				/* deflate */
+static ssize_t				/* deflate */
 zwrite4(void *handle, char *buf, size_t size, int flush)
 { z_context *ctx = handle;
   Bytef buffer[SIO_BUFSIZE];
@@ -504,7 +504,7 @@ zwrite4(void *handle, char *buf, size_t size, int flush)
 }
 
 
-static int				/* deflate */
+static ssize_t				/* deflate */
 zwrite(void *handle, char *buf, size_t size)
 { return zwrite4(handle, buf, size, Z_NO_FLUSH);
 }
@@ -516,7 +516,7 @@ zcontrol(void *handle, int op, void *data)
 
   switch(op)
   { case SIO_FLUSHOUTPUT:
-      return zwrite4(handle, NULL, 0, Z_SYNC_FLUSH);
+      return (int)zwrite4(handle, NULL, 0, Z_SYNC_FLUSH);
     case SIO_SETENCODING:
       return 0;				/* allow switching encoding */
     default:
