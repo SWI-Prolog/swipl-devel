@@ -58,7 +58,7 @@ static StringObj
 getPrintNamePoint(Point p)
 { char buf[200];
 
-  sprintf(buf, "%ld,%ld", valInt(p->x), valInt(p->y));
+  sprintf(buf, INTPTR_FORMAT "," INTPTR_FORMAT, valInt(p->x), valInt(p->y));
   answer(CtoString(buf));
 }
 

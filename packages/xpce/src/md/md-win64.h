@@ -22,14 +22,17 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#ifndef WIN32
-#define WIN32
+#ifndef WIN64
+#define WIN64
 #endif
 
 #pragma warning(4:4244 4305 4018 4550)
 
-#include "md-windows.h"
-
-#define SIZEOF_VOIDP 4
+#define SIZEOF_VOIDP 8
 #define SIZEOF_LONG 4
 #define SIZEOF_DOUBLE 8
+
+/* printf format for intptr_t */
+#define INTPTR "%I64d"
+
+#include "md-windows.h"

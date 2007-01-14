@@ -460,6 +460,12 @@ EOF
 fi
 
 
+AC_CHECK_SIZEOF(void*, 4)
+AC_CHECK_SIZEOF(int,  4)
+AC_CHECK_SIZEOF(long,  4)
+AC_CHECK_SIZEOF(double, 8)
+
+
 dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dnl % Begin Quintus specific configuration
 dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

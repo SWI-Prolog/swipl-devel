@@ -79,22 +79,23 @@ rangeIntItem(IntItem ii, Int low, Int high)
   if ( isDefault(low) )
   { if ( isDefault(high) )
     { t = TypeInt;
-      sprintf(s1, "%ld", PCE_MIN_INT);
-      sprintf(s2, "%ld", PCE_MAX_INT);
+      sprintf(s1, INTPTR_FORMAT, PCE_MIN_INT);
+      sprintf(s2, INTPTR_FORMAT, PCE_MAX_INT);
     } else
-    { sprintf(s1, "%ld", PCE_MIN_INT);
-      sprintf(s2, "%ld", valInt(high));
-      sprintf(buf, "..%ld", valInt(high));
+    { sprintf(s1, INTPTR_FORMAT, PCE_MIN_INT);
+      sprintf(s2, INTPTR_FORMAT, valInt(high));
+      sprintf(buf, ".." INTPTR_FORMAT, valInt(high));
     }
   } else
   { if ( isDefault(high) )
-    { sprintf(s1, "%ld", valInt(low));
-      sprintf(s2, "%ld", PCE_MAX_INT);
-      sprintf(buf, "%ld..", valInt(low));
+    { sprintf(s1, INTPTR_FORMAT, valInt(low));
+      sprintf(s2, INTPTR_FORMAT, PCE_MAX_INT);
+      sprintf(buf, INTPTR_FORMAT "..", valInt(low));
     } else
-    { sprintf(s1, "%ld", valInt(low));
-      sprintf(s2, "%ld", valInt(high));
-      sprintf(buf, "%ld..%ld", valInt(low), valInt(high));
+    { sprintf(s1, INTPTR_FORMAT, valInt(low));
+      sprintf(s2, INTPTR_FORMAT, valInt(high));
+      sprintf(buf, INTPTR_FORMAT ".." INTPTR_FORMAT,
+	      valInt(low), valInt(high));
     }
   }
 

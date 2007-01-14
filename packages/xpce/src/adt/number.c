@@ -103,7 +103,7 @@ static StringObj
 getPrintNameNumber(Number n)
 { char buf[100];
 
-  sprintf(buf, "%ld", n->value);
+  sprintf(buf, INTPTR_FORMAT, n->value);
 
   answer(CtoString(buf));
 }

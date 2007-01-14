@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -109,7 +109,7 @@ generate warnings on accidental use of them.
 #define METHOD_MAX_ARGS		16	/* maximum # args for C-method */
 #define FWD_PCE_MAX_ARGS	10	/* @arg1 ... @arg10 */
 #define SCAN_MAX_ARGS 		32	/* scanstr maximum arguments */
-#define PCE_MAX_INT		((long)((1L<<(sizeof(Any)*8 - TAG_BITS-1))-1))
+#define PCE_MAX_INT		((intptr_t)(((intptr_t)1<<(sizeof(Any)*8 - TAG_BITS-1))-1))
 #define PCE_MIN_INT		(-(PCE_MAX_INT-1))
 #ifndef INT_MAX
 #define INT_MAX			((int)(((unsigned int)1<<(sizeof(int)*8-1))-1))
@@ -312,7 +312,7 @@ typedef struct dCell 	      **DelegateList;   /* See msg-passing.c */
 
 #ifdef VARIABLE_POINTER_OFFSET
 #undef POINTER_OFFSET
-GLOBAL unsigned long pce_data_pointer_offset;
+GLOBAL uintptr_t pce_data_pointer_offset;
 #define POINTER_OFFSET pce_data_pointer_offset
 #else
 #ifndef POINTER_OFFSET
@@ -320,7 +320,7 @@ GLOBAL unsigned long pce_data_pointer_offset;
 #endif
 #endif
 
-#define PointerToCInt(p) (((unsigned long)(p) - POINTER_OFFSET)/sizeof(int))
+#define PointerToCInt(p) (((uintptr_t)(p) - POINTER_OFFSET)/sizeof(int))
 #define PointerToInt(p)	 toInt(PointerToCInt(p))
 #define longToPointer(i) ((Any) (i * sizeof(int) + POINTER_OFFSET))
 #define IntToPointer(i)  longToPointer(valInt(i))
@@ -334,8 +334,8 @@ GLOBAL unsigned long pce_data_pointer_offset;
 #define MASK_MASK	0x00000001	/* 11 Mask Mask */
 #define TAG_BITS	1		/* number of mask bits for INT */
 
-#define MaskOf(obj)		((unsigned long)(obj) & MASK_MASK)
-#define UnMask(obj)		((unsigned long)(obj) & ~MASK_MASK)
+#define MaskOf(obj)		((uintptr_t)(obj) & MASK_MASK)
+#define UnMask(obj)		((uintptr_t)(obj) & ~MASK_MASK)
 
 
 		/********************************
@@ -372,14 +372,22 @@ integer is declared as of type Int (for casting purposes). The following
 test, conversion and computation macro's are provided.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef INTPTR_FORMAT
+#if SIZEOF_INT == SIZEOF_VOIDP
+#define INTPTR_FORMAT "%d"		/* printf format for intptr_t */
+#else
+#define INTPTR_FORMAT "%ld"		/* printf format for intptr_t */
+#endif
+#endif
+
 #undef max
 #undef min
 #define max(a, b)	((a) > (b) ? (a) : (b))
 #define min(a, b)	((a) < (b) ? (a) : (b))
 
-#define isInteger(i)	((unsigned long)(i) & INT_MASK)
-#define toInt(i)	((Int)(((long)(i)<<TAG_BITS)|INT_MASK))
-#define valInt(i)	(((long)(i))>>TAG_BITS)
+#define isInteger(i)	((uintptr_t)(i) & INT_MASK)
+#define toInt(i)	((Int)(((intptr_t)(i)<<TAG_BITS)|INT_MASK))
+#define valInt(i)	(((intptr_t)(i))>>TAG_BITS)
 #define incrInt(i)	((i) = toInt(valInt(i)+1))
 #define decrInt(i)	((i) = toInt(valInt(i)-1))
 #define addInt(i, j)	((i) = toInt(valInt(i) + valInt(j)))
@@ -413,8 +421,8 @@ test, conversion and computation macro's are provided.
 #define makeDFlag(n)		(1L << ((n) - 1 + TAG_BITS))
 #define DFlags(obj)		(((ProgramObject)(obj))->dflags)
 #ifndef TAGGED_LVALUE
-void	setDFlagProgramObject(Any, unsigned long);
-void	clearDFlagProgramObject(Any, unsigned long);
+void	setDFlagProgramObject(Any, uintptr_t);
+void	clearDFlagProgramObject(Any, uintptr_t);
 #define setDFlag(obj, mask)     setDFlagProgramObject((obj), (mask))
 #define clearDFlag(obj, mask)	clearDFlagProgramObject((obj), (mask))
 #else
@@ -528,8 +536,8 @@ void	clearDFlagProgramObject(Any, unsigned long);
 #define F_ISHOSTDATA		makeFlag(23) /* instanceOf(x, ClassHostData) */
 #define F_NOTANY		makeFlag(24) /* Not acceptable to any/object */
 
-#define OBJ_MAGIC		((unsigned long)(0x94L << 25))
-#define OBJ_MAGIC_MASK		((unsigned long)(0xfeL << 25))
+#define OBJ_MAGIC		((uintptr_t)(0x94L << 25))
+#define OBJ_MAGIC_MASK		((uintptr_t)(0xfeL << 25))
 
 #define hasObjectMagic(obj)	((((Instance)(obj))->flags&OBJ_MAGIC_MASK) == \
 					OBJ_MAGIC)
@@ -610,10 +618,10 @@ void	clearDFlagProgramObject(Any, unsigned long);
 		*         CAREFUL CHECKERS	*
 		********************************/
 
-#define validAddress(a)	((unsigned long)(a) >= allocBase && \
-			 (unsigned long)(a) < allocTop)
+#define validAddress(a)	((uintptr_t)(a) >= allocBase && \
+			 (uintptr_t)(a) < allocTop)
 #define isAddress(a)	(validAddress(a) && \
-			 !((unsigned long)(a) & (sizeof(Any)-1)))
+			 !((uintptr_t)(a) & (sizeof(Any)-1)))
 #define validPceDatum(x) (isInteger(x) || isProperObject(x))
 
 
@@ -639,14 +647,14 @@ void	clearDFlagProgramObject(Any, unsigned long);
 		********************************/
 
 #define OBJECT_HEADER \
-  unsigned long flags;			/* general flag field */ \
-  unsigned long references;		/* reference count */ \
+  uintptr_t     flags;			/* general flag field */ \
+  uintptr_t     references;		/* reference count */ \
   Class		class;			/* Associated class */
 
 #define ABSTRACT_OBJECT
 
 #define ABSTRACT_PROGRAM_OBJECT \
-  unsigned long dflags;			/* Debugging flags */
+  uintptr_t	dflags;			/* Debugging flags */
 
 #define ABSTRACT_RECOGNISER \
   Bool		active;			/* Does accept events? */
@@ -1138,7 +1146,7 @@ NewClass(source_sink)
 End;
 
 NewClass(number)
-  long		value;			/* value of the number */
+  intptr_t	value;			/* value of the number */
 End;
 
 NewClass(pce)
@@ -1190,8 +1198,13 @@ NewClass(host_data)
 End;
 
 NewClass(real)
-  unsigned long value1;			/* 1-st part of double */
-  unsigned long value2;			/* 2nd-part of double */
+#if SIZEOF_VOIDP == SIZEOF_DOUBLE
+#define REAL_IN_ONE 1
+  double	value;			/* can store in one slot */
+#else
+  uintptr_t value1;			/* 1-st part of double */
+  uintptr_t value2;			/* 2nd-part of double */
+#endif
 End;
 
 NewClass(recogniser)
@@ -1514,13 +1527,13 @@ typedef struct to_cell *ToCell;		/* TemporaryObjectCell */
 struct to_cell
 { ToCell	next;			/* Next of the stack */
   Any		value;			/* Object there */
-  long		index;			/* Index of the mark */
+  intptr_t	index;			/* Index of the mark */
 };
 
 GLOBAL ToCell	AnswerStack;		/* Stack of `answer objects' */
 GLOBAL int	deferredUnalloced;	/* # deferred unallocs in ->free */
 
-typedef long	AnswerMark;
+typedef intptr_t AnswerMark;
 
 #define markAnswerStack(mark)	{(mark) = AnswerStack->index;}
 #define rewindAnswerStack(mark, obj) \
@@ -1626,8 +1639,8 @@ GLOBAL int	restoreVersion;		/* Version of save file */
 GLOBAL SourceSink LoadFile;		/* Current file for <-object */
 GLOBAL char    *SaveMagic;		/* Magic string for saved objects */
 GLOBAL int	inBoot;			/* is the system in the boot cycle? */
-GLOBAL unsigned long allocBase;		/* lowest allocated memory */
-GLOBAL unsigned long allocTop;		/* highest allocated memory */
+GLOBAL uintptr_t allocBase;		/* lowest allocated memory */
+GLOBAL uintptr_t allocTop;		/* highest allocated memory */
 #ifndef O_RUNTIME
 GLOBAL int	PCEdebugging;		/* PCE->debugging == ON */
 GLOBAL int	PCEdebugBoot;		/* Debug booting phase? */
@@ -1835,8 +1848,8 @@ GLOBAL int hash_shifts;			/* Shifts in append */
 #define COUNT(g)
 #endif
 
-#define unboundedKey(name) (isInteger(name) ? (unsigned long)(name)>>1 \
-					    : (unsigned long)(name)>>2)
+#define unboundedKey(name) (isInteger(name) ? (uintptr_t)(name)>>1 \
+					    : (uintptr_t)(name)>>2)
 
 #if USE_PRIMES
 #define hashKey(name, buckets) (unboundedKey(name) % (buckets))

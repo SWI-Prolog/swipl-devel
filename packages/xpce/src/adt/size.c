@@ -52,7 +52,7 @@ static StringObj
 getPrintNameSize(Size s)
 { char buf[200];
 
-  sprintf(buf, "%ldx%ld", valInt(s->w), valInt(s->h));
+  sprintf(buf, INTPTR_FORMAT "x" INTPTR_FORMAT, valInt(s->w), valInt(s->h));
   answer(CtoString(buf));
 }
 

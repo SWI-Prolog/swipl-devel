@@ -35,7 +35,11 @@ use the function CtoReal().
 
 void
 setReal(Real r, double f)
-{ union
+{
+#if REAL_IN_ONE
+  r->value = f;
+#else
+  union
   { double f;
     unsigned long l[2];
   } v;
@@ -43,12 +47,17 @@ setReal(Real r, double f)
   v.f = f;
   r->value1 = v.l[0];
   r->value2 = v.l[1];
+#endif
 }
 
 
 double
 valReal(Real r)
-{ union
+{
+#if REAL_IN_ONE
+  return r->value;
+#else
+  union
   { double f;
     unsigned long l[2];
   } v;
@@ -57,6 +66,7 @@ valReal(Real r)
   v.l[1] = r->value2;
 
   return v.f;
+#endif
 }
 
 
@@ -135,12 +145,16 @@ static status
 storeReal(Real r, FileObj file)
 { TRY(storeSlotsObject(r, file));
 
+#if REAL_IN_ONE
+  storeWordFile(file, (Any) r->value);
+#else
 #ifndef WORDS_BIGENDIAN
   storeWordFile(file, (Any) r->value2);
   storeWordFile(file, (Any) r->value1);
 #else
   storeWordFile(file, (Any) r->value1);
   storeWordFile(file, (Any) r->value2);
+#endif
 #endif
 
   succeed;
@@ -160,12 +174,16 @@ loadReal(Real r, IOSTREAM *fd, ClassDef def)
     setReal(r, (double)u.f);
   } else
   { 
+#ifdef REAL_IN_ONE
+    r->value = loadWord(fd);
+#else
 #ifndef WORDS_BIGENDIAN
     r->value2 = loadWord(fd);
     r->value1 = loadWord(fd);
 #else
     r->value1 = loadWord(fd);
     r->value2 = loadWord(fd);
+#endif
 #endif
   }
   succeed;
@@ -177,8 +195,12 @@ cloneReal(Real r1, Real r2)
 { clonePceSlots(r1, r2);
   setFlag(r2, F_ISREAL);
 
+#if REAL_IN_ONE
+  r2->value = r1->value;
+#else
   r2->value1 = r1->value1;
   r2->value2 = r1->value2;
+#endif
 
   succeed;
 }
@@ -186,8 +208,13 @@ cloneReal(Real r1, Real r2)
 
 static status
 equalReal(Real r, Real r2)
-{ if ( r->value1 == r2->value1 &&
+{
+#ifdef REAL_IN_ONE
+  if ( r->value == r2->value )
+#else
+  if ( r->value1 == r2->value1 &&
        r->value2 == r2->value2 )
+#endif
     succeed;
   fail;
 }
@@ -195,8 +222,13 @@ equalReal(Real r, Real r2)
 
 static status
 notEqualReal(Real r, Real r2)
-{ if ( r->value1 == r2->value1 &&
+{ 
+#ifdef REAL_IN_ONE
+  if ( r->value == r2->value )
+#else
+  if ( r->value1 == r2->value1 &&
        r->value2 == r2->value2 )
+#endif
     fail;
   succeed;
 }
@@ -284,8 +316,13 @@ getCatchAllReal(Real r, Name selector, int argc, Any *argv)
 
 status
 valueReal(Real r, Real v)
-{ r->value1 = v->value1;
+{
+#if REAL_IN_ONE
+  r->value = v->value;
+#else
+  r->value1 = v->value1;
   r->value2 = v->value2;
+#endif
 
   succeed;
 }
@@ -309,10 +346,16 @@ static char *T_catchAll[] =
 /* Instance Variables */
 
 static vardecl var_real[] =
-{ IV(NAME_value1, "alien:double1", IV_NONE,
+{
+#if REAL_IN_ONE
+  IV(NAME_value, "alien:double", IV_NONE,
+     NAME_storage, "double-value")
+#else
+  IV(NAME_value1, "alien:double1", IV_NONE,
      NAME_storage, "1-st part of double-value"),
   IV(NAME_value2, "alien:double2", IV_NONE,
      NAME_storage, "2-nd part of double-value")
+#endif
 };
 
 /* Send Methods */

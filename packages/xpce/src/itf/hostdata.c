@@ -118,7 +118,7 @@ static StringObj
 getPrintNameHostData(HostData hd)
 { char tmp[25];
 
-  sprintf(tmp, "@%ld/%s",
+  sprintf(tmp, "@" INTPTR_FORMAT "/%s",
 	  valInt(PointerToInt(hd)),
 	  strName(classOfObject(hd)->name));
 

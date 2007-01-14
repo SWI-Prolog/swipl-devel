@@ -212,7 +212,7 @@ pcePPReference(PceObject ref)
 
     if ( rval[0] != '@' )
     { char tmp[256];
-      sprintf(tmp, "@%ld", valInt(ref));
+      sprintf(tmp, "@" INTPTR_FORMAT, valInt(ref));
       return save_string(tmp);
     } else
       return rval;

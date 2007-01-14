@@ -32,8 +32,12 @@ autoconf/config.h based machine-binding file.
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #else
-# if defined(WIN32) || defined(__WIN32__)
-#  include "md/md-win32.h"
+# ifdef __WINDOWS__
+#  ifdef WIN64
+#   include "md/md-win64.h"
+#  else
+#   include "md/md-win32.h"
+#  endif
 # else
 #  error("No config")
 # endif
