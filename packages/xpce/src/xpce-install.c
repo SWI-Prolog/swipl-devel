@@ -72,7 +72,7 @@ interpreter and copy command.
 #define O_BINARY 0
 #endif
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <io.h>				/* read, write, etc */
 #include <direct.h>			/* mkdir, chdir */
 #define IsDirSep(c) ((c) == '/' || (c) == '\\')
@@ -188,7 +188,7 @@ static int
 makedir(char *path)
 { again:
 
-#ifdef WIN32
+#ifdef __WINDOWS__
   if ( mkdir(path) == 0 )
 #else
   if ( mkdir(path, 0777) == 0 )
