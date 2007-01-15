@@ -155,7 +155,8 @@ do_open(200, _, Lines, Options, Parts, In, In) :- !,
 	set_stream(In, file_name(Id)),
 	set_stream(In, record_position(true)).
 					% Handle redirections
-do_open(302, _, Lines, Options, Parts, In, Stream) :-
+do_open(Code, _, Lines, Options, Parts, In, Stream) :-
+	redirect_code(Code),
 	location(Lines, Location), !,
 	parse_url(Location, Parts, Redirected),
 	close(In),
@@ -167,6 +168,9 @@ do_open(Code, Comment, _, _, Parts, In, In) :-
 	throw(error(existence_error(url, Id),
 		    context(_, status(Code, Comment)))).
 
+redirect_code(301).			% moved permanently
+redirect_code(302).			% moved temporary
+redirect_code(303).			% see also
 
 open_socket(Host:Port, In, Out, Options) :-
 	tcp_socket(Socket),

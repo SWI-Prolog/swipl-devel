@@ -1,3 +1,7 @@
+Jan 15, 2007
+
+  * ADDED: Redirect support for 301 and 303.  Yves Raimond.
+
 Dec 13, 2006
 
   * FIXED: avoid passing reply_header option to convert hooks (conflict
