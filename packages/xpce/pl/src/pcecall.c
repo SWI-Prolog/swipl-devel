@@ -27,17 +27,17 @@
 #include <SWI-Prolog.h>
 #include <h/interface.h>
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 
 #include <windows.h>
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
 #include <X11/Xlib.h>
 #include <X11/Intrinsic.h>
 #define HAVE_UNISTD_H 1
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
@@ -82,13 +82,13 @@ typedef struct
 
 typedef struct
 {
-#ifdef WIN32
+#ifdef __WINDOWS__
   HINSTANCE	hinstance;
   HWND		window;
-#else /*WIN32*/
+#else /*__WINDOWS__*/
   int		pipe[2];
   XtInputId 	id;
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 } context_t;
 
 static int init_prolog_goal(prolog_goal *g, term_t goal);
@@ -126,7 +126,7 @@ type_error(term_t actual, const char *expected)
   return PL_raise_exception(ex);
 }
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 
 		 /*******************************
 		 *	  WINDOWS SOLUTION	*
@@ -225,7 +225,7 @@ pl_pce_call(term_t goal)
 }
 
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
 		 /*******************************
 		 *	   X11 SCHEDULING	*
@@ -289,7 +289,7 @@ pl_pce_call(term_t goal)
   return FALSE;
 }
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 
 		 /*******************************
@@ -333,7 +333,7 @@ call_prolog_goal(prolog_goal *g)
 install_t
 install_pcecall()
 {
-#ifdef WIN32
+#ifdef __WINDOWS__
   int tid = PL_thread_self();
 
   if ( tid >= 0 && PL_thread_self() != 1 )

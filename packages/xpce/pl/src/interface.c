@@ -22,11 +22,11 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#if !defined(__WIN32__) && defined(WIN32)
-#define __WIN32__ 1
+#if !defined(__WINDOWS__) && defined(__WINDOWS__)
+#define __WINDOWS__ 1
 #endif
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #define HAVE_MALLOC_H 1
 #define HAVE_SIGNAL_H 1
 #else
@@ -64,7 +64,7 @@
 #define UNLOCK()
 #endif
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #include <windows.h>
 #endif
 
@@ -389,7 +389,7 @@ cToPceType(const char *name)
 #define CloseForeign(fid)	SP_reset_term_refs(fid)
 #define InstallPredicate(n, a, f, flags)
 
-#if defined(__WIN32__)
+#if defined(__WINDOWS__)
 #define PROLOG_INSTALL_DISPATCH_FUNCTION(f) {}
 #else
 #define PROLOG_INSTALL_DISPATCH_FUNCTION(f) \
@@ -533,7 +533,7 @@ static PL_dispatch_hook_t	old_dispatch_hook;
 #define InstallPredicate(n, a, f, flags) \
 	PL_register_foreign(n, a, f, flags)
 
-#if defined(__WIN32__)
+#if defined(__WINDOWS__)
 #define PROLOG_INSTALL_DISPATCH_FUNCTION(f) {}
 #else
 #define PROLOG_INSTALL_DISPATCH_FUNCTION(f) \
@@ -577,7 +577,7 @@ initHostConstants()
 }
 
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #include <console.h>
 
 static RlcUpdateHook old_update_hook;
@@ -648,7 +648,7 @@ uninstall_pl2xpce()
 		 old_dispatch_hook, old_update_hook));
 
   PL_dispatch_hook(old_dispatch_hook);
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   indirect_rlc_update_hook(old_update_hook);
 #endif
   if ( exitpce_hook )
@@ -2707,7 +2707,7 @@ pce_dispatch(int fd)
 
 #ifdef SICSTUS
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 
 void *
 pl_malloc(unsigned int size)
@@ -2726,13 +2726,13 @@ pl_free(void *ptr)
 { SP_free(ptr);
 }
 
-#else /* __WIN32__ */
+#else /* __WINDOWS__ */
 
 #define pl_malloc SP_malloc
 #define pl_realloc SP_realloc
 #define pl_free SP_free
 
-#endif /*__WIN32__*/
+#endif /*__WINDOWS__*/
 
 
 		 /*******************************
@@ -3161,7 +3161,7 @@ do_reset(void)
 }
 
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 static void
 do_redraw(void)
 { pceRedraw(FALSE);			/* FALSE: do not sync Xserver */

@@ -71,7 +71,7 @@ typedef struct
 
 typedef struct
 { int		     owner;		/* owning thread */
-#ifdef WIN32
+#ifdef __WINDOWS__
   HWND		     window;		/* Window for pce_call/1 */
   HINSTANCE	     hinstance;		/* Our instance */
 #else
@@ -100,7 +100,7 @@ undispatch(void *closure)
   if ( ctx->owner )
   { ctx->hook = NULL;
 
-#ifdef WIN32
+#ifdef __WINDOWS__
     if ( ctx->window )
     { DestroyWindow(ctx->window);
       ctx->window = 0;
@@ -178,7 +178,7 @@ domain_error(term_t actual, const char *expected)
   return PL_raise_exception(ex);
 }
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 
 #define WM_CALL (WM_USER+1)
 #define WM_END  (WM_USER+2)
@@ -292,7 +292,7 @@ pl_pce_call(term_t goal)
   return FALSE;
 }
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
 static int
 input_on_fd(int fd)
@@ -377,7 +377,7 @@ pl_pce_end_dispatch()
   return FALSE;
 }
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 static int
 init_prolog_goal(prolog_goal *g, term_t goal)
@@ -501,7 +501,7 @@ pl_pce_dispatch(term_t options)
     return FALSE;
   }
 
-#ifndef WIN32
+#ifndef __WINDOWS__
   if ( pipe(context.pipe) == -1 )
   { DUNLOCK();
     return resource_error("open_files");
@@ -513,7 +513,7 @@ pl_pce_dispatch(term_t options)
   DUNLOCK();
 
 				/* force creation of application context */
-#ifndef WIN32
+#ifndef __WINDOWS__
   pceXtAppContext(NULL);
   pceExistsAssoc(cToPceName("display_manager"));
 #endif
@@ -539,7 +539,7 @@ pl_pce_dispatch(term_t options)
 install_t
 pce_install_dispatch()
 {
-#ifndef WIN32
+#ifndef __WINDOWS__
   context.pipe[0] = -1;
   context.pipe[1] = -1;
 #endif
