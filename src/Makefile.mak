@@ -221,8 +221,8 @@ iprog::
 !ENDIF
 !IF "$(MT)" == "true"
 		@echo Installing pthreadVC.dll from $(WINDLLDIR)
-		$(INSTALL_PROGRAM) "$(WINDLLDIR)\pthreadVC.dll" "$(BINDIR)"
-		$(INSTALL_DATA) "$(PTHREADLIBDIR)\pthreadVC.lib" "$(LIBDIR)"
+		$(INSTALL_PROGRAM) "$(PTHREADLIBDIR)\$(LIBPTHREAD).dll" "$(BINDIR)"
+		$(INSTALL_DATA) "$(PTHREADLIBDIR)\$(LIBPTHREAD).lib" "$(LIBDIR)"
 !ENDIF
 
 install-libs:	idirs iinclude iboot ilib

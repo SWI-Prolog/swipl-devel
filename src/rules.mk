@@ -25,8 +25,14 @@ PLCUSTOM=$(PLBASE)\custom
 # We get pthreadVC.dll, pthreadVC.lib, pthread.h, sched.h and semaphore.h
 # from the locations below
 WINDLLDIR=$(WINDIR)\system32
-PTHREADLIBDIR=$(HOME)\lib
 PTHREADINCDIR=$(HOME)\include
+!IF "$(MD)" == "WIN64"
+PTHREADLIBDIR=$(HOME)\lib64
+LIBPTHREAD=pthreadVC2
+!ELSE
+PTHREADLIBDIR=$(HOME)\lib
+LIBPTHREAD=pthreadVC
+!ENDIF
 
 # The OpenSSL library and include files
 # http://www.slproweb.com/products/Win32OpenSSL.html
@@ -103,11 +109,7 @@ MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" MT="$(MT)" MD="$(MD)" GMP="$(GMP)" /nologo 
 
 LIBS= msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib ole32.lib
 !if "$(MT)" == "true"
-!IF "$(MD)" == "WIN64"
-LIBS=$(LIBS) pthreadVC2.lib
-!ELSE
-LIBS=$(LIBS) pthreadVC.lib
-!ENDIF
+LIBS=$(LIBS) $(LIBPTHREAD).lib
 !ENDIF
 
 # Architecture identifier for Prolog's current_prolog_flag(arch, Arch)
@@ -126,16 +128,15 @@ TERMLIB=$(PLHOME)\lib\plterm.lib
 UXLIB=$(PLHOME)\lib\uxnt.lib
 
 CFLAGS=/MD /W3 $(SYMOPT) /EHsc /D__WINDOWS__ /D$(MD) /nologo /c
+LDFLAGS=/DEBUG /NODEFAULTLIB:libcmt.lib
 
 !IF "$(DBG)" == "false"
 CFLAGS=/DNDEBUG $(CFLAGS)
-LDFLAGS=/DEBUG
 D=
 DBGLIBS=
 !ELSE
 CFLAGS=/D_DEBUG $(CFLAGS)
-LD=link.exe /nologo /incremental:yes
-LDFLAGS=/DEBUG
+LDFLAGS=/incremental:yes $(LDFLAGS)
 D=D
 DBGLIBS=msvcrtd.lib
 !ENDIF
