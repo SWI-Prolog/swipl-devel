@@ -132,9 +132,9 @@ url_cache_file(URL, Dir, Ext, RW, Path) :-
 	hash_term(URL, Hash0),
 	Hash is Hash0 + 100000,		% make sure > 4 characters
 	format(string(Hex), '~16r', [Hash]),
-	sub_atom(Hex, 0, 2, _, L1),
+	sub_atom(Hex, _, 2, 0, L1),
 	ensure_dir(Dir, L1, RW, Dir1),
-	sub_atom(Hex, 2, 2, _, L2),
+	sub_atom(Hex, _, 2, 2, L2),
 	ensure_dir(Dir1, L2, RW, Dir2),
 	url_to_file(URL, File),
 	ensure_ext(File, Ext, FileExt),
