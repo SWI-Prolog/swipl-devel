@@ -146,12 +146,13 @@ storeReal(Real r, FileObj file)
 { TRY(storeSlotsObject(r, file));
 
 #if REAL_IN_ONE
-  union
+{ union
   { double f;
     Any w;
   } v;
   v.f = r->value;
   storeWordFile(file, v.w);
+}
 #else
 #ifndef WORDS_BIGENDIAN
   storeWordFile(file, (Any) r->value2);
