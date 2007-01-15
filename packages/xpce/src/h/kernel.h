@@ -421,8 +421,6 @@ test, conversion and computation macro's are provided.
 #define makeDFlag(n)		(1L << ((n) - 1 + TAG_BITS))
 #define DFlags(obj)		(((ProgramObject)(obj))->dflags)
 #ifndef TAGGED_LVALUE
-void	setDFlagProgramObject(Any, uintptr_t);
-void	clearDFlagProgramObject(Any, uintptr_t);
 #define setDFlag(obj, mask)     setDFlagProgramObject((obj), (mask))
 #define clearDFlag(obj, mask)	clearDFlagProgramObject((obj), (mask))
 #else
