@@ -93,7 +93,7 @@ rdf_cache_file(URL, write, File) :- !,
 	    local_cache_file(URL, LocalFile),
 	    concat_atom([CacheDir, LocalFile], /, File)
 	;   cache_option(global_directory(Dir)),
-	    url_cache_file(URL, Dir, trp, read, File)
+	    url_cache_file(URL, Dir, trp, write, File)
 	),
 	access_file(File, write), !.
 
