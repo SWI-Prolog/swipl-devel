@@ -24,7 +24,7 @@
 
 #include "include.h"
 
-static int WINAPI window_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
+static LRESULT WINAPI window_wnd_proc(HWND w, UINT m, WPARAM wP, LPARAM lP);
 
 static int clearing_update;		/* from ws_redraw_window() */
 static int invert_window = FALSE;	/* invert the window */
@@ -849,8 +849,13 @@ winHandleWindow(PceWindow sw, Int handle)
   setHwndWindow(sw, hwnd);
   assocObjectToHWND(hwnd, sw);
   w = sw->ws_ref;
+#if (_MSC_VER < 1400)
   w->saved_window_procedure = (WNDPROC)GetWindowLong(hwnd, GWL_WNDPROC);
   SetWindowLong(hwnd, GWL_WNDPROC, (LONG) window_wnd_proc);
+#else
+  w->saved_window_procedure = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
+  SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR) window_wnd_proc);
+#endif
   GetWindowRect(hwnd, &rect);
   ServiceMode(is_service_window(sw),
 	      { Area a = sw->area;
