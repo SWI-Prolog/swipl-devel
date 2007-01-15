@@ -266,7 +266,12 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	
 	if ( oproc )			/* refining alien window */
 					/* see winHandleWindow() below */
-	{ SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR) oproc);
+	{
+#if (_MSC_VER < 1400)
+	  SetWindowLong(hwnd, GWL_WNDPROC, (LONG) oproc);
+#else
+	  SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR) oproc);
+#endif
 	  return CallWindowProc(oproc, hwnd, message, wParam, lParam);
 	}
 
