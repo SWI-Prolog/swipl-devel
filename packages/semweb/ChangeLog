@@ -1,3 +1,10 @@
+Jan 16, 2007
+
+  * FIXED: Various issues related to persistency handling after introduction
+    of new load plugin structure.
+
+  * MODIFIED: Source info as created by rdf_load/2 is now always a URI.
+
 Jan 15, 2007
 
   * FIXED: cache writing using global dir.

@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -401,14 +401,14 @@ monitor_transaction(load_journal(DB), begin) :- !,
 monitor_transaction(load_journal(DB), end) :- !,
 	retractall(blocked_db(DB, journal)).
 
-monitor_transaction(parse(file(DB)), begin) :- !,
-	(   blocked_db(DB, persistency)
+monitor_transaction(parse(URI), begin) :- !,
+	(   blocked_db(URI, persistency)
 	->  true
-	;   assert(blocked_db(DB, parse))
+	;   assert(blocked_db(URI, parse))
 	).
-monitor_transaction(parse(file(DB)), end) :- !,
-	(   retract(blocked_db(DB, parse))
-	->  create_db(DB)
+monitor_transaction(parse(URI), end) :- !,
+	(   retract(blocked_db(URI, parse))
+	->  create_db(URI)
 	;   true
 	).
 monitor_transaction(unload(DB), begin) :- !,

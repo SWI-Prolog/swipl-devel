@@ -701,7 +701,9 @@ syntax_error(Stream, _StartLine, Which) :-
 	rdf_db:rdf_file_type/2.
 
 rdf_db:rdf_load_stream(turtle, Stream, Options) :-
-	rdf_process_turtle(Stream, assert_triples, Options).
+	option(base_uri(Id), Options),
+	rdf_transaction(rdf_process_turtle(Stream, assert_triples, Options),
+			parse(Id)).
 
 assert_triples([], _).
 assert_triples([rdf(S,P,O)|T], Location) :-
