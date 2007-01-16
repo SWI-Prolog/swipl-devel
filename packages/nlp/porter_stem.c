@@ -359,7 +359,7 @@ pl_stem(term_t t_in, term_t t_stem)
   char *f, *t, *s, *ew;
   char buf[1024];
   char plain[1024];
-  size_t l;
+  long l;
 
   if ( !PL_get_nchars(t_in, &len, &word, CVT_ALL|CVT_EXCEPTION) )
   { if ( PL_is_number(t_in) )
@@ -371,7 +371,7 @@ pl_stem(term_t t_in, term_t t_stem)
   for(f=word, t=s; f<ew; )
     *t++ = tolower(*f++);
 
-  if ( (l=unaccent(s, t-s, plain, sizeof(plain))) < (int)sizeof(plain) )
+  if ( (l=unaccent(s, t-s, plain, sizeof(plain))) < (long)sizeof(plain) )
   { if ( l >= 0 )
     { if ( s != buf )
 	PL_free(s);

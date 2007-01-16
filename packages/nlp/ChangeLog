@@ -1,3 +1,7 @@
+Jan 16, 2007
+
+ * Added test.pl
+
 Jun 20, 2006
 
  * Fix illegal memory reference in porter_stem.c
