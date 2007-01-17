@@ -1576,7 +1576,7 @@ getSlotObject(Any obj, Any which)
   if ( (var = getInstanceVariableClass(class, which)) )
   { if ( var->type->kind == NAME_alien &&
 	 var->name != CtoName("alien:Any") )
-      answer(toInt((long)inst->slots[valInt(var->offset)]));
+      answer(toInt((intptr_t)inst->slots[valInt(var->offset)]));
     else
       answer(getGetVariable(var, obj));
   }

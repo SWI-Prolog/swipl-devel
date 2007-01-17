@@ -48,7 +48,7 @@
 		********************************/
 
 Any
-cToPceInteger(long int i)
+cToPceInteger(intptr_t i)
 { Int n = toInt(i);
 
   if ( valInt(n) != i )
@@ -194,7 +194,7 @@ cToPceReference(unsigned long val)
 
 
 int
-pceExistsReference(unsigned long ref)
+pceExistsReference(uintptr_t ref)
 { Any addr = longToPointer(ref);
 
   if ( !isProperObject(addr) || isFreedObj(addr) )

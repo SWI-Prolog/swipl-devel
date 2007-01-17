@@ -69,7 +69,7 @@ typedef void *		PceClass;	/* PCE's view of a class */
 typedef void *		PceHostData;	/* PCE's view of a host data handle */
 
 #define INT_MASK_SHIFT	1
-#define PCE_MAX_INT	((long)((1L<<(sizeof(void*)*8 - INT_MASK_SHIFT-1))-1))
+#define PCE_MAX_INT	((intptr_t)(((uintptr_t)1<<(sizeof(void*)*8 - INT_MASK_SHIFT-1))-1))
 #define PCE_MIN_INT	(-(PCE_MAX_INT-1))
 
 typedef long		AnswerMark;	/* Mark on AnswerStack */
@@ -393,7 +393,7 @@ __pce_export int pceInitialise(int handles, const char *home,
 
 __pce_export PceObject	cToPceName_nA(const char *, unsigned int len);
 __pce_export PceObject	cToPceName_nW(const wchar_t *, unsigned int len);
-__pce_export PceObject	cToPceInteger(long);
+__pce_export PceObject	cToPceInteger(intptr_t);
 __pce_export PceObject	cToPceReal(double);
 __pce_export PceObject	cToPceStringA(PceName assoc,
 				      const char *text, unsigned int len,
@@ -409,7 +409,7 @@ __pce_export int	pceLock(PceObject);
 __pce_export PceObject	cToPceTmpCharArray(const char *text);
 __pce_export void	donePceTmpCharArray(PceObject);
 
-__pce_export int	pceExistsReference(unsigned long);
+__pce_export int	pceExistsReference(uintptr_t ref);
 __pce_export char *	pcePPReference(PceObject ref);
 __pce_export int	pceExistsAssoc(PceName assoc);
 __pce_export PceObject  pceObjectFromName(PceName assoc);
