@@ -118,15 +118,15 @@ getInput(LPVOID h)
   return ctx->rc;
 }
   
-static int
-read_console(void *h, char *buf, unsigned len)
+static ssize_t
+read_console(void *h, char *buf, size_t len)
 { HANDLE th;
   input_context ctx;
   DWORD tid;
 
   ctx.input = cin;
   ctx.buf = buf;
-  ctx.len = len;
+  ctx.len = (DWORD)len;
 
   th = CreateThread(NULL, 10240, getInput, &ctx, 0, &tid);
 
@@ -151,12 +151,12 @@ read_console(void *h, char *buf, unsigned len)
 }
 
 
-static int
-write_console(void *h, char *buf, unsigned len)
+static ssize_t
+write_console(void *h, char *buf, size_t len)
 { HANDLE co = (h == Soutput->handle ? cout : cerr);
   DWORD done;
 
-  if ( WriteConsole(co, buf, len, &done, NULL) )
+  if ( WriteConsole(co, buf, (DWORD)len, &done, NULL) )
     return done;
 
   return -1;
@@ -253,8 +253,8 @@ ask_attach(int read)
 }
 
 
-static int
-do_read(void *handle, char *buffer, int size)
+static ssize_t
+do_read(void *handle, char *buffer, size_t size)
 { switch( use_console )
   { case C_ATTACHED:
       return read_console(handle, buffer, size);
@@ -272,8 +272,8 @@ do_read(void *handle, char *buffer, int size)
 }
 
 
-static int
-do_write(void *handle, char *buffer, int size)
+static ssize_t
+do_write(void *handle, char *buffer, size_t size)
 { struct recall *rc = &recall_buffer;
 
   switch(use_console)

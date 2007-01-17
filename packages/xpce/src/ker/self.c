@@ -79,6 +79,8 @@ initialisePce(Pce pce)
  }
 #endif
 
+  assert( sizeof(string) == 2*sizeof(void*) );
+
 #ifndef O_RUNTIME
   assign(pce, debugging,              OFF);
   assign(pce, trap_errors,	      ON);

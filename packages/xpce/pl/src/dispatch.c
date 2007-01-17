@@ -183,8 +183,8 @@ domain_error(term_t actual, const char *expected)
 #define WM_CALL (WM_USER+1)
 #define WM_END  (WM_USER+2)
 
-static int WINAPI
-dispatch_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+static LRESULT WINAPI
+dispatch_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 { switch( message )
   { case WM_CALL:
     { prolog_goal *g = (prolog_goal *)lParam;

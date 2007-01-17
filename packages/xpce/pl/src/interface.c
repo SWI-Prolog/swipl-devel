@@ -22,13 +22,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#if !defined(__WINDOWS__) && defined(__WINDOWS__)
-#define __WINDOWS__ 1
-#endif
-
 #ifdef __WINDOWS__
 #define HAVE_MALLOC_H 1
 #define HAVE_SIGNAL_H 1
+#include "../../src/md.h"
 #else
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -494,13 +491,14 @@ static Functor  FUNCTOR_behaviour1;
 static predicate_t PREDICATE_send_implementation;
 static predicate_t PREDICATE_get_implementation;
 
-static long			pl_max_integer;
 static PL_dispatch_hook_t	old_dispatch_hook;
 
-#define PROLOG_MAX_INTEGER pl_max_integer
-
 #define AtomCharp(a)		PL_atom_chars((a))
+#if SIZEOF_VOIDP == 8 && SIZEOF_VOIDP != SIZEOF_LONG
+#define GetInteger(a, i)	PL_get_int64((a), (i))
+#else
 #define GetInteger(a, i)	PL_get_long((a), (i))
+#endif
 #define GetAtom(a, n)		PL_get_atom((a), (n))
 #define GetFloat(a, f)		PL_get_float((a), (f))
 #define NewTerm()		PL_new_term_ref()
@@ -548,9 +546,7 @@ static PL_dispatch_hook_t	old_dispatch_hook;
 
 static void
 initHostConstants()
-{ pl_max_integer = PL_query(PL_QUERY_MAX_INTEGER);
-  
-  FUNCTOR_behaviour1        = PL_new_functor(ATOM_behaviour, 1);
+{ FUNCTOR_behaviour1        = PL_new_functor(ATOM_behaviour, 1);
   FUNCTOR_error2  	    = PL_new_functor(ATOM_error, 2);
   FUNCTOR_existence_error2  = PL_new_functor(ATOM_existence_error, 2);
   FUNCTOR_get2    	    = PL_new_functor(ATOM_get, 2);
@@ -901,7 +897,7 @@ PceObject referenceToObject(Term a)
 
 static Atom
 nameToAtom(PceName name)
-{ unsigned int len;
+{ size_t len;
   const char *textA;
   const wchar_t *textW;
 
@@ -1164,7 +1160,7 @@ get_object_arg(term_t t, PceObject* obj)
       return TRUE;
     case PL_INTEGER:
       if ( val.i >= PCE_MIN_INT && val.i <= PCE_MAX_INT )
-	*obj = cToPceInteger((long)val.i);
+	*obj = cToPceInteger((intptr_t)val.i);
       else
 	*obj = cToPceReal((double)val.i);
       return TRUE;
@@ -1420,6 +1416,10 @@ termToObject(Term t, PceType type, Atom assoc, int new)
 { Atom functor;
   int arity;
 
+  DEBUG(Sdprintf("termToObject(");
+	PL_write_term(Soutput, t, 1200, 0);
+	Sdprintf(")\n"));
+
   if ( GetNameArity(t, &functor, &arity) )
   { 					/* Just an atom */
     if ( arity == 0 )
@@ -1477,7 +1477,7 @@ termToObject(Term t, PceType type, Atom assoc, int new)
     { PceObject h;
       Term a = NewTerm();
       double f;
-      long r;
+      intptr_t r;
       
       QGetArg(1, t, a);
 
@@ -1548,7 +1548,7 @@ termToObject(Term t, PceType type, Atom assoc, int new)
     }
   } else				/* not a term */
   { double f;
-    long r;
+    intptr_t r;
     
 					/* PL_get_integer() translates */
 					/* `whole' floats to integers */
@@ -1598,7 +1598,7 @@ unifyObject(Term t, PceObject obj, int top)
     case PCE_REAL:			/* float (real object) */
       return UnifyFloat(t, value.real);
     case PCE_NAME:			/* name */
-    { unsigned int len;
+    { size_t len;
       const char *textA;
       const wchar_t *textW;
 	
@@ -1635,7 +1635,7 @@ unifyObject(Term t, PceObject obj, int top)
   if ( pceIsString(obj) )	/* string: handle special */
   { const char *textA;
     const wchar_t *textW;
-    unsigned int len;
+    size_t len;
     Term a = NewTerm();
 
     if ( (textA = pceCharArrayToCA(obj, &len)) )
@@ -2137,7 +2137,7 @@ pl_object1(Term ref)
        arity == 1 )
   { Term a = NewTerm();
     Atom refname;
-    long refi;
+    intptr_t refi;
 
     QGetArg(1, ref, a);
     if ( GetAtom(a, &refname) )

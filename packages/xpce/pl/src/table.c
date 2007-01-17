@@ -29,8 +29,8 @@ struct table
 static struct table atom_to_name;
 static struct table name_to_atom;
 
-#define AtomKey(t, a) (((a)>>5) & (t)->mask)
-#define NameKey(t, a) (((unsigned long)(a)>>2) & (t)->mask)
+#define AtomKey(t, a) (int)(((a)>>5) & (t)->mask)
+#define NameKey(t, a) (int)(((uintptr_t)(a)>>2) & (t)->mask)
 
 static void
 rehashTable(Table t, int aton)
@@ -106,7 +106,7 @@ CachedNameToAtom(PceName name)
 { int k = NameKey(&name_to_atom, name);
   ASymbol s = name_to_atom.symbols[k];
   Atom a;
-  unsigned int len;
+  size_t len;
   const char *textA;
   const wchar_t *textW;
 
