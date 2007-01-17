@@ -67,7 +67,7 @@ cToPceReal(double f)
 
 
 Any
-cToPceStringA(Name assoc, const char *s, unsigned int len, int translate)
+cToPceStringA(Name assoc, const char *s, size_t len, int translate)
 { Any str;
   string ss;
   Any c;
@@ -91,7 +91,7 @@ cToPceStringA(Name assoc, const char *s, unsigned int len, int translate)
 
 
 Any
-cToPceStringW(Name assoc, const wchar_t *s, unsigned int len, int translate)
+cToPceStringW(Name assoc, const wchar_t *s, size_t len, int translate)
 { Any str;
   string ss;
   Any c;
@@ -128,7 +128,7 @@ cToPceName(const char *text)
 
 
 Any
-cToPceName_nA(const char *text, unsigned int len)
+cToPceName_nA(const char *text, size_t len)
 { if ( text )
   { string s;
 
@@ -141,7 +141,7 @@ cToPceName_nA(const char *text, unsigned int len)
 
 
 Any
-cToPceName_nW(const wchar_t *text, unsigned int len)
+cToPceName_nW(const wchar_t *text, size_t len)
 { return WCToName(text, len);
 }
 
@@ -181,7 +181,7 @@ pceObjectFromName(PceName name)
 
 
 Any
-cToPceReference(unsigned long val)
+cToPceReference(uintptr_t val)
 { Instance rval = longToPointer(val);
 
   if ( rval &&
@@ -408,7 +408,7 @@ pceIsString(Any val)
 
 
 char *
-pceCharArrayToCA(Any val, unsigned int *len)
+pceCharArrayToCA(Any val, size_t *len)
 { if ( instanceOfObject(val, ClassCharArray) )
   { CharArray ca = val;
 
@@ -425,7 +425,7 @@ pceCharArrayToCA(Any val, unsigned int *len)
 
 
 wchar_t *
-pceCharArrayToCW(Any val, unsigned int *len)
+pceCharArrayToCW(Any val, size_t *len)
 { if ( instanceOfObject(val, ClassCharArray) )
   { CharArray ca = val;
 
