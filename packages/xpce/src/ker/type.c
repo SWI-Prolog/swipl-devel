@@ -1231,7 +1231,7 @@ name_of_type(StrPart str)
 static Type
 int_range_type(StrPart str)
 { wchar_t *e, *e2;
-  long low, high;
+  intptr_t low, high;
   Type type;
 
   if ( *(e=str->start) == '.' )
