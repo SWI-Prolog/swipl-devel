@@ -327,8 +327,9 @@ PL_EXPORT(int)		Sungetcode(int c, IOSTREAM *s);
 					/* word I/O */
 PL_EXPORT(int)		Sputw(int w, IOSTREAM *s);
 PL_EXPORT(int)		Sgetw(IOSTREAM *s);
-PL_EXPORT(int)		Sfread(void *data, int size, int elems, IOSTREAM *s);
-PL_EXPORT(int)		Sfwrite(const void *data, int size, int elems,
+PL_EXPORT(size_t)	Sfread(void *data, size_t size, size_t elems,
+			       IOSTREAM *s);
+PL_EXPORT(size_t)	Sfwrite(const void *data, size_t size, size_t elems,
 				IOSTREAM *s);
 PL_EXPORT(int)		Sfeof(IOSTREAM *s);
 PL_EXPORT(int)		Sfpasteof(IOSTREAM *s);
