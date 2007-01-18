@@ -1,3 +1,7 @@
+Jan 18, 2006
+
+  * PVW:Optional use of CHR constraints in rule guards.
+
 Nov 20, 2006
 
   * TS: Bug fix in compiler_errors.pl.

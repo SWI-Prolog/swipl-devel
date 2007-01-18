@@ -184,8 +184,7 @@
 			; 	already_in_heads 
 			; 	already_in_heads(id) 
 			; 	no_history
-			;	history(history_name,list(id))
-			;	active_in_guard(id).
+			;	history(history_name,list(id)).
 :- chr_type history_name==	any.
 
 :- chr_type rule_name	==   	any.
@@ -448,25 +447,26 @@ get_occurrence_from_id(C,O,_,_)
 
 % A L L O C C A T I O N   O C C U R R E N C E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-	% cannot store constraint at passive occurrence
+% cannot store constraint at passive occurrence
 occurrence(C,O,RuleNb,ID,_), passive(RuleNb,ID) \ allocation_occurrence(C,O)
-	<=> NO is O + 1, allocation_occurrence(C,NO). 
-	% need not store constraint that is removed
+	<=> NO is O + 1, allocation_occurrence(C,NO).
+
+% need not store constraint that is removed,
+% unless it has to be stored in the guard of the rule
 rule(RuleNb,Rule), occurrence(C,O,RuleNb,ID,_) \ allocation_occurrence(C,O)
-	<=> Rule = pragma(_,ids(IDs1,_),_,_,_), member(ID,IDs1) 
+	<=> \+ is_stored_in_guard(C,RuleNb), Rule = pragma(_,ids(IDs1,_),_,_,_), member(ID,IDs1)
 	| NO is O + 1, allocation_occurrence(C,NO).
-	% need not store constraint when body is true
-rule(RuleNb,Rule), occurrence(C,O,RuleNb,_,_) \ allocation_occurrence(C,O)
-	<=> Rule = pragma(rule(_,_,_,true),_,_,_,_)
-	| NO is O + 1, allocation_occurrence(C,NO).
-	% need not store constraint if does not observe itself
+
+% need not store constraint if does not observe itself
+% (for propagation rules we could have to allocate (history))
 rule(RuleNb,Rule), occurrence(C,O,RuleNb,_,_) \ allocation_occurrence(C,O)
 	<=> Rule = pragma(rule([_|_],_,_,_),_,_,_,_), \+ is_observed(C,O)
 	| NO is O + 1, allocation_occurrence(C,NO).
-	% need not store constraint if does not observe itself and cannot trigger
+% need not store constraint if does not observe itself and cannot trigger
+% (then no history is needed)
 rule(RuleNb,Rule), occurrence(C,O,RuleNb,_,_), least_occurrence(RuleNb,[])
 	\ allocation_occurrence(C,O)
-	<=> Rule = pragma(rule([],Heads,_,_),_,_,_,_), \+ is_observed(C,O)
+	<=> Rule = pragma(rule([],_,_,_),_,_,_,_), \+ is_observed(C,O)
 	| NO is O + 1, allocation_occurrence(C,NO).
 
 rule(RuleNb,Rule), occurrence(C,O,RuleNb,ID,_), allocation_occurrence(C,AO)
@@ -1116,12 +1116,6 @@ check_pragma(Pragma, PragmaRule) :-
 	PragmaRule = pragma(_,_,_,_,RuleNb),
 	history(RuleNb,HistoryName,IDs).
 
-check_pragma(active_in_guard(ID), PragmaRule) :-
-	!,
-	PragmaRule = pragma(_,_,_,_,RuleNb),
-	chr_warning(experimental,'Experimental pragma ~w. Use with care!\n',[active_in_guard(ID)]),
-	active_in_guard(RuleNb,ID).
-
 check_pragma(Pragma,PragmaRule) :-
 	chr_error(syntax(Pragma),'Unknown pragma ~w in ~@.\n', [Pragma,format_rule(PragmaRule)]).
 
@@ -1147,15 +1141,6 @@ has_no_history(_) <=> fail.
 history(RuleNb,Name,IDs) \ named_history(RuleNb,QName,QIDs) <=> QName = Name, QIDs = IDs.
 
 named_history(_,_,_) <=> fail.
-
-:- chr_constraint active_in_guard/2.
-:- chr_option(mode,active_in_guard(+,+)).
-
-:- chr_constraint is_active_in_guard/2.
-:- chr_option(mode,is_active_in_guard(+,+)).
-
-active_in_guard(RuleNb,ID) \ is_active_in_guard(RuleNb,ID) <=> true.
-is_active_in_guard(RuleNb,ID) <=> fail.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1308,141 +1293,194 @@ add_occurrences([H|Hs],[ID|IDs],Type,RuleNb) :-
 % Observation Analysis
 %
 % CLASSIFICATION
-%   Legacy
+%   
 %
-%  - approximative: should make decision in late allocation analysis per body
-%  TODO:
-%    remove
+%
+%
+%
+%
 
-is_observed(C,O) :-
-	is_self_observer(C),
-	ai_is_observed(C,O).
+:- chr_constraint observation_analysis/1.
+:- chr_option(mode, observation_analysis(+)).
 
-:- chr_constraint
-	observes/2,
-	spawns_observer/2,
-	observes_indirectly/2,
-	is_self_observer/1
-	.
-
-:- chr_option(mode,observes(+,+)).
-:- chr_option(mode,spawns_observer(+,+)).
-:- chr_option(mode,observes_indirectly(+,+)).
-:- chr_option(mode,is_self_observer(+)).
-
-spawns_observer(C1,C2) \ spawns_observer(C1,C2) <=> true.
-observes(C1,C2) \ observes(C1,C2) <=> true.
-
-observes_indirectly(C1,C2) \ observes_indirectly(C1,C2) <=> true.
-
-spawns_observer(C1,C2), observes(C2,C3) ==> observes_indirectly(C1,C3).
-spawns_observer(C1,C2), observes_indirectly(C2,C3) ==> observes_indirectly(C1,C3).
-
-observes_indirectly(C,C) \ is_self_observer(C) <=>  true.
-is_self_observer(_) <=> chr_pp_flag(observation_analysis,off). 
-	% true if analysis has not been run,
-	% false if analysis has been run
-
-observation_analysis(Cs) :-
-    ( chr_pp_flag(observation_analysis,on) ->
-	observation_analysis(Cs,Cs)
-    ;
-	true
-    ).
-
-observation_analysis([],_).
-observation_analysis([C|Cs],Constraints) :-
-	get_max_occurrence(C,MO),
-	observation_analysis_occurrences(C,1,MO,Constraints),
-	observation_analysis(Cs,Constraints).
-
-observation_analysis_occurrences(C,O,MO,Cs) :-
-	( O > MO ->
-		true
-	;
-		observation_analysis_occurrence(C,O,Cs),
-		NO is O + 1,
-		observation_analysis_occurrences(C,NO,MO,Cs)
-	).
-
-observation_analysis_occurrence(C,O,Cs) :-
-	get_occurrence(C,O,RuleNb,ID),
-	( is_passive(RuleNb,ID) ->
-		true
-	;
-		get_rule(RuleNb,PragmaRule),
-		PragmaRule = pragma(rule(Heads1,Heads2,_,Body),ids(IDs1,IDs2),_,_,_),	
-		( select2(ID,_Head,IDs1,Heads1,_RIDs1,RHeads1) ->
-			append(RHeads1,Heads2,OtherHeads)
-		; select2(ID,_Head,IDs2,Heads2,_RIDs2,RHeads2) ->
-			append(RHeads2,Heads1,OtherHeads)
-		),
-		observe_heads(C,OtherHeads),
-		observe_body(C,Body,Cs)	
-	).
-
-observe_heads(C,Heads) :-
-	findall(F/A,(member(H,Heads),functor(H,F,A)),Cs),
-	observe_all(C,Cs).
-
-observe_all(C,Cs) :-
-	( Cs = [C1|Cr] ->
-		observes(C,C1),
-		observe_all(C,Cr)
+observation_analysis(Cs), rule(RuleNb,PragmaRule) # Id ==>
+	PragmaRule = pragma(rule(_,_,Guard,Body),_,_,_,_),
+	( chr_pp_flag(store_in_guards, on) ->
+		observation_analysis(RuleNb, Guard, guard, Cs)
 	;
 		true
-	).
+	),
+	observation_analysis(RuleNb, Body, body, Cs)
 
-spawn_all(C,Cs) :-
-	( Cs = [C1|Cr] ->
-		spawns_observer(C,C1),
-		spawn_all(C,Cr)
-	;
-		true
-	).
-spawn_all_triggers(C,Cs) :-
-	( Cs = [C1|Cr] ->
-		( may_trigger(C1) ->
-			spawns_observer(C,C1)
-		;
-			true
-		),
-		spawn_all_triggers(C,Cr)
-	;
-		true
-	).
+	pragma passive(Id).
+observation_analysis(_) <=> true.
 
-observe_body(C,Body,Cs) :-
-	( var(Body) ->
-		spawn_all(C,Cs)
-	; Body = true ->
+observation_analysis(RuleNb, Term, GB, Cs) :-
+	( all_spawned(RuleNb,GB) ->
 		true
-	; Body = fail ->
+	; var(Term) ->
+		spawns_all(RuleNb,GB)
+	; Term = true ->
 		true
-	; Body = (B1,B2) ->
-		observe_body(C,B1,Cs),
-		observe_body(C,B2,Cs)
-	; Body = (B1;B2) ->
-		observe_body(C,B1,Cs),
-		observe_body(C,B2,Cs)
-	; Body = (B1->B2) ->
-		observe_body(C,B1,Cs),
-		observe_body(C,B2,Cs)
-	; functor(Body,F,A), member(F/A,Cs) ->
-		spawns_observer(C,F/A)
-	; Body = (_ = _) ->
-		spawn_all_triggers(C,Cs)
-	; Body = (_ is _) ->
-		spawn_all_triggers(C,Cs)
-	; builtin_binds_b(Body,Vars) ->
+	; Term = fail ->
+		true
+	; Term = '!' ->
+		true
+	; Term = (T1,T2) ->
+		observation_analysis(RuleNb,T1,GB,Cs),
+		observation_analysis(RuleNb,T2,GB,Cs)
+	; Term = (T1;T2) ->
+		observation_analysis(RuleNb,T1,GB,Cs),
+		observation_analysis(RuleNb,T2,GB,Cs)
+	; Term = (T1->T2) ->
+		observation_analysis(RuleNb,T1,GB,Cs),
+		observation_analysis(RuleNb,T2,GB,Cs)
+	; Term = (\+ T) ->
+		observation_analysis(RuleNb,T,GB,Cs)
+	; functor(Term,F,A), member(F/A,Cs) ->
+		spawns(RuleNb,GB,F/A)
+	; Term = (_ = _) ->
+		spawns_all_triggers(RuleNb,GB)
+	; Term = (_ is _) ->
+		spawns_all_triggers(RuleNb,GB)
+	; builtin_binds_b(Term,Vars) ->
 		(  Vars == [] ->
 			true
 		;
-			spawn_all_triggers(C,Cs)
+			spawns_all_triggers(RuleNb,GB)
 		)
 	;
-		spawn_all(C,Cs)
+		spawns_all(RuleNb,GB)
 	).
+
+:- chr_constraint spawns/3.
+:- chr_option(mode, spawns(+,+,+)).
+	
+:- chr_constraint spawns_all/2, spawns_all_triggers/2.
+:- chr_option(mode, spawns_all(+,+)).
+:- chr_option(mode, spawns_all_triggers(+,+)).
+
+spawns_all(RuleNb,GB) \ spawns_all(RuleNb,GB) <=> true.
+spawns_all(RuleNb,guard) \ spawns_all(RuleNb,body) <=> true.
+spawns_all_triggers(RuleNb,GB) \ spawns_all_triggers(RuleNb,GB) <=> true.
+spawns_all_triggers(RuleNb,guard) \ spawns_all_triggers(RuleNb,body) <=> true.
+spawns(RuleNb,GB,C) \ spawns(RuleNb,GB,C) <=> true.
+spawns(RuleNb,guard,C) \ spawns(RuleNb,body,C) <=> true.
+
+spawns_all(RuleNb,GB) \ spawns(RuleNb,GB,_) <=> true.
+spawns_all(RuleNb,guard) \ spawns(RuleNb,body,_) <=> true.
+spawns_all(RuleNb,GB) \ spawns_all_triggers(RuleNb,GB) <=> true.
+spawns_all(RuleNb,guard) \ spawns_all_triggers(RuleNb,body) <=> true.
+
+spawns_all_triggers(RuleNb,GB) \ spawns(RuleNb,GB,C) <=> may_trigger(C) | true.
+spawns_all_triggers(RuleNb,guard) \ spawns(RuleNb,body,C) <=> may_trigger(C) | true.
+
+spawns_all(RuleNb2,_), occurrence(C1,_,RuleNb2,O,_)#Id 
+	 \ 
+		spawns(RuleNb1,GB,C1) 
+	<=>
+		\+ is_passive(RuleNb2,O)
+	 |
+		spawns_all(RuleNb1,GB)
+	pragma 
+		passive(Id).
+
+occurrence(C1,_,RuleNb2,O,_)#Id, spawns_all(RuleNb2,_)
+	==>
+		\+(\+ spawns_all_triggers_implies_spawns_all),	% in the hope it schedules this guard early...
+		\+ is_passive(RuleNb2,O), may_trigger(C1)
+	 |
+		spawns_all_triggers_implies_spawns_all
+	pragma 
+		passive(Id).
+
+:- chr_constraint spawns_all_triggers_implies_spawns_all/0.
+spawns_all_triggers_implies_spawns_all, spawns_all_triggers_implies_spawns_all <=> fail.
+spawns_all_triggers_implies_spawns_all \ 
+	spawns_all_triggers(RuleNb,GB) <=> spawns_all(RuleNb,GB).
+
+spawns_all_triggers(RuleNb2,_), occurrence(C1,_,RuleNb2,O,_)#Id
+	 \
+		spawns(RuleNb1,GB,C1) 
+	<=> 
+		\+ is_passive(RuleNb2,O)
+	 |
+		spawns_all_triggers(RuleNb1,GB)
+	pragma
+		passive(Id).
+
+% a bit dangerous this rule: could start propagating too much too soon?
+spawns(RuleNb2,_,C2), occurrence(C1,_,RuleNb2,O,_)#Id,
+		spawns(RuleNb1,GB,C1)
+	==> 
+		RuleNb1 \== RuleNb2, C1 \== C2,
+		\+ is_passive(RuleNb2,O)
+	| 
+		spawns(RuleNb1,GB,C2)
+	pragma 
+		passive(Id).
+
+spawns(RuleNb2,_,C2), occurrence(C1,_,RuleNb2,O,_)#Id,
+		spawns_all_triggers(RuleNb1,GB)
+	==>
+		\+ is_passive(RuleNb2,O), may_trigger(C1), \+ may_trigger(C2)
+	 |
+		spawns(RuleNb1,GB,C2)
+	pragma 
+		passive(Id).
+
+
+:- chr_constraint all_spawned/2.
+:- chr_option(mode, all_spawned(+,+)).
+spawns_all(RuleNb,guard) \ all_spawned(RuleNb,_) <=> true.
+spawns_all(RuleNb,GB) \ all_spawned(RuleNb,GB) <=> true.
+all_spawned(RuleNb,GB) <=> fail.
+
+:- chr_constraint is_observed/3.
+:- chr_option(mode, is_observed(+,+,+)).
+occurrence(C,O,RuleNb,_,_) \ is_observed(C,O,GB) <=> do_is_observed(C,RuleNb,GB).
+is_observed(_,_,_) <=> throw('this cannot happen?').
+
+:- chr_constraint do_is_observed/3.
+:- chr_option(mode, do_is_observed(+,+,?)).
+
+spawns_all(RuleNb,GB), 
+		occurrence(_,_,RuleNb2,O,_), occurrence(C,_,RuleNb2,_,_)
+	 \ 
+	 	do_is_observed(C,RuleNb,Q)
+	 <=>
+	 	\+ is_passive(RuleNb2,O)
+	  | 
+	  	Q = GB.
+
+spawns(RuleNb,GB,C2), 
+		occurrence(C2,_,RuleNb2,O,_), occurrence(C,_,RuleNb2,_,_) 
+	 \ 
+		do_is_observed(C,RuleNb,Q) 
+	<=> 
+		\+ is_passive(RuleNb2,O)
+	 | 
+	 	Q = GB.
+
+spawns_all_triggers(RuleNb,GB),
+		occurrence(C2,_,RuleNb2,O,_), occurrence(C,_,RuleNb2,_,_)
+	 \ 
+		do_is_observed(C,RuleNb,Q)
+	<=> 
+		\+ is_passive(RuleNb2,O), may_trigger(C2)
+	 | 
+	 	Q = GB.
+
+do_is_observed(_,_,_) <=> chr_pp_flag(observation_analysis,off).
+
+
+is_observed(C,O) :-
+	is_observed(C,O,_),
+	ai_is_observed(C,O).
+
+is_stored_in_guard(C,RuleNb) :-
+	chr_pp_flag(store_in_guards, on),
+	do_is_observed(C,RuleNb,guard).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -4749,7 +4787,11 @@ dynamic_type_check_call(Type,Term,Call) :-
 	% ; nonvar(Type), compound_builtin_type(Type,Term,Goal) ->
 	%	Call = when(nonvar(Term),Goal)
 	% ;
-		Call = when(nonvar(Term),once('$dynamic_type_check'(Type,Term)))
+		( Type == any ->
+			Call = true
+		;
+			Call = when(nonvar(Term),once('$dynamic_type_check'(Type,Term)))
+		)
 	% )
 	.
 
@@ -4954,7 +4996,7 @@ check_storage_head2(Head,O,H1,B) :-
 	functor(Head,F,A),
 	C = F/A,
 	( %( 
-		(H1 \== [], B == true ) 
+		( H1 \== [], B == true ) 
 	  %; 
 	  % \+ is_observed(F/A,O)  % always fails because observation analysis has not been performed yet
 	  %)
@@ -5288,7 +5330,7 @@ head1_code(Head,ID,OtherHeads,OtherIDs,PragmaRule,FA,O,Id,L,T) :-
 		reorder_heads(RuleNb,Head,OtherHeads,OtherIDs,NOtherHeads,NOtherIDs),
 		simplification_code(Head,ID,NOtherHeads,NOtherIDs,PragmaRule,FA,O,Id,L,T)
 	;
-		simpagation_head1_code(Head,ID,OtherHeads,OtherIDs,PragmaRule,FA,Id,L,T)
+		simpagation_head1_code(Head,ID,OtherHeads,OtherIDs,PragmaRule,FA,O,Id,L,T)
 	).
 
 %% Generate code based on one persistent head of a CHR rule
@@ -5328,6 +5370,20 @@ gen_occ_allocation(FA,O,Vars,Susp,Goal) :-
 	;
 		Goal = true
 	).
+
+gen_occ_allocation_in_guard(FA,O,Vars,Susp,Goal) :-
+	get_allocation_occurrence(FA,AO),
+	( chr_pp_flag(debugable,off), O < AO ->
+		allocate_constraint_goal(FA,Susp,Vars,Goal0),
+		( may_trigger(FA) ->
+			Goal = (var(Susp) -> Goal0 ; true)	
+		;
+			Goal = Goal0
+		)
+	;
+		Goal = true
+	).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -5413,7 +5469,7 @@ split_off_simple_guard_new([G|Gs],VarDict,S,C) :-
 
 % simple guard: cheap and benign (does not bind variables)
 simple_guard_new(G,Vars) :-
-	binds_b(G,BoundVars),
+	builtin_binds_b(G,BoundVars),
 	\+ (( member(V,BoundVars), 
 	      memberchk_eq(V,Vars)
 	   )).
@@ -5687,24 +5743,22 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 
 	
 	guard_splitting(Rule,GuardList0),
-	( is_active_in_guard(RuleNb,ID) ->
-		append([Hole1|GuardList0],[Hole2],GuardList)
+	( is_stored_in_guard(F/A, RuleNb) ->
+		GuardList = [Hole1|GuardList0]
 	;
 		GuardList = GuardList0
 	),
-	guard_via_reschedule_new(RestHeads,GuardList,Head,GuardCopyList,GetRestHeads,RescheduledTest),	
+	guard_via_reschedule_new(RestHeads,GuardList,Head,GuardCopyList,GetRestHeads,RescheduledTest),
 
 	rest_heads_retrieval_and_matching(RestHeads,RestIDs,Head,GetRestHeads,Susps,VarDict1,VarDict,[],[],[],GroundVars,_),
 
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
 
-	( is_active_in_guard(RuleNb,ID) ->
-		once(append([Hole1Copy|_],[Hole2Copy],GuardCopyList)),
-		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
-		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
-		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,OldState,After)),
-		Hole1Copy = (GetOldState,Before),
-		Hole2Copy = After
+	( is_stored_in_guard(F/A, RuleNb) ->
+		gen_occ_allocation_in_guard(F/A,O,Vars,Susp,Allocation),
+		gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,_),
+		GuardCopyList = [Hole1Copy|_],
+		Hole1Copy = (Allocation, Attachment)
 	;
 		true
 	),
@@ -5715,7 +5769,7 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 
 	( chr_pp_flag(debugable,on) ->
 		Rule = rule(_,_,Guard,Body),
-		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
+		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),
 		sort_by_key([Susp|Susps],[ID|RestIDs],SortedSusps),
 		DebugTry   = 'chr debug_event'(  try(SortedSusps,[],DebugGuard,DebugBody)),
 		DebugApply = 'chr debug_event'(apply(SortedSusps,[],DebugGuard,DebugBody)),
@@ -5726,12 +5780,12 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	( unconditional_occurrence(F/A,O), chr_pp_flag(late_allocation,on) -> ActualCut = true ; ActualCut = (!) ),	
 	Clause = ( ClauseHead :-
 			FirstMatching, 
-		     RescheduledTest,
-	             Cut,
-	             SuspsDetachments,
-	             SuspDetachment,
-	             BodyCopy
-	         ),
+			RescheduledTest,
+			Cut,
+			SuspsDetachments,
+			SuspDetachment,
+			BodyCopy
+		),
 	L = [Clause | T].
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -6234,7 +6288,7 @@ gen_uncond_susp_detachment(Head,Susp,Role,VarDict,SuspDetachment) :-
 %% |____/|_|_| |_| |_| .__/ \__,_|\__, |\__,_|\__|_|\___/|_| |_| |_|
 %%                   |_|          |___/
 
-simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
+simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,O,Id,L,T) :-
    	PragmaRule = pragma(Rule,ids(_,Heads2IDs),Pragmas,_Name,RuleNb),
    	Rule = rule(_Heads,Heads2,Guard,Body),
 
@@ -6249,25 +6303,23 @@ simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
    	reorder_heads(RuleNb,Head,Heads,IDs,NHeads,NIDs),
    
 	guard_splitting(Rule,GuardList0),
-	( is_active_in_guard(RuleNb,ID) ->
-		append([Hole1|GuardList0],[Hole2],GuardList)
+	( is_stored_in_guard(F/A, RuleNb) ->
+		GuardList = [Hole1|GuardList0]
 	;
 		GuardList = GuardList0
 	),
-	guard_via_reschedule_new(NHeads,GuardList,Head,GuardCopyList,GetRestHeads,RescheduledTest),	
+	guard_via_reschedule_new(NHeads,GuardList,Head,GuardCopyList,GetRestHeads,RescheduledTest),
 
 	rest_heads_retrieval_and_matching(NHeads,NIDs,Head,GetRestHeads,Susps,VarDict1,VarDict,[],[],[],GroundVars,_),
 	split_by_ids(NIDs,Susps,OtherIDs,Susps1,Susps1IDs,Susps2,Susps2IDs), 
 
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
 
-	( is_active_in_guard(RuleNb,ID) ->
-		once(append([Hole1Copy|_],[Hole2Copy],GuardCopyList)),
-		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
-		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
-		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,OldState,After)),
-		Hole1Copy = (GetOldState,Before),
-		Hole2Copy = After
+	( is_stored_in_guard(F/A, RuleNb) ->
+		gen_occ_allocation_in_guard(F/A,O,Vars,Susp,Allocation),
+		gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,_),
+		GuardCopyList = [Hole1Copy|_],
+		Hole1Copy = (Allocation, Attachment)
 	;
 		true
 	),
@@ -6440,8 +6492,8 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,ID,PragmaRule,
 	build_head(F,A,Id,ClauseVars,ClauseHead),
 	
 	guard_splitting(Rule,GuardList0),
-	( is_active_in_guard(RuleNb,ID) ->
-		append([Hole1|GuardList0],[Hole2],GuardList)
+	( is_stored_in_guard(F/A, RuleNb) ->
+		GuardList = [Hole1|GuardList0]
 	;
 		GuardList = GuardList0
 	),
@@ -6459,32 +6511,37 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,ID,PragmaRule,
 	build_head(F,A,Id,RecursiveVars2,RecursiveCall2),
 	
 	guard_body_copies3(Rule,GuardList,VarDict2,GuardCopyList,BodyCopy),
-	( is_active_in_guard(RuleNb,ID) ->
-		once(append([Hole1Copy|_],[Hole2Copy],GuardCopyList)),
-		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
-		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
-		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,OldState,After)),
-		Hole1Copy = (GetOldState,Before),
-		Hole2Copy = After
+	( is_stored_in_guard(F/A, RuleNb) ->
+		GuardCopyList = [GuardAttachment|_] % once( ) ??
 	;
 		true
 	),
-	(   BodyCopy \== true, is_observed(F/A,O) ->
+	
+	( is_observed(F/A,O) ->
 	    gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,Generation),
 	    gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall),
 	    gen_state_cond_call(Susp,F/A,RecursiveCall2,Generation,ConditionalRecursiveCall2)
-	;   Attachment = true,
+	;   
+	    Attachment = true,
 	    ConditionalRecursiveCall = RecursiveCall,
 	    ConditionalRecursiveCall2 = RecursiveCall2
 	),
 	
 	( chr_pp_flag(debugable,on) ->
-		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
+		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),
 		DebugTry   = 'chr debug_event'(  try([OtherSusp|Susps1],[Susp|Susps2],DebugGuard,DebugBody)),
 		DebugApply = 'chr debug_event'(apply([OtherSusp|Susps1],[Susp|Susps2],DebugGuard,DebugBody))
 	;
 		DebugTry = true,
 		DebugApply = true
+	),
+	
+	( is_stored_in_guard(F/A, RuleNb) ->
+		GuardAttachment = Attachment,
+		BodyAttachment = true
+	;	
+		GuardAttachment = true,
+		BodyAttachment = Attachment	% will be true if not observed at all
 	),
 	
 	( member(unique(ID1,UniqueKeys), Pragmas),
@@ -6496,7 +6553,7 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,ID,PragmaRule,
 	     			  DebugTry ->
 	     				DebugApply,
 	     				Susps1Detachments,
-	     				Attachment,
+	     				BodyAttachment,
 	     				BodyCopy,
 	     				ConditionalRecursiveCall2
 	     			;
@@ -6510,17 +6567,17 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,ID,PragmaRule,
 	     Clause =
 	   		( ClauseHead :-
 	          		( CurrentSuspTest,
-	     		  RescheduledTest,
-	     		  DebugTry ->
-	     			DebugApply,
-	     			Susps1Detachments,
-	     			Attachment,
-	     			BodyCopy,
-	     			ConditionalRecursiveCall
-	     		;
-	     			RecursiveCall
+	     		  	  RescheduledTest,
+	     		  	  DebugTry ->
+	     				DebugApply,
+	     				Susps1Detachments,
+	     				BodyAttachment,
+	     				BodyCopy,
+	     				ConditionalRecursiveCall
+	     			;
+	     				RecursiveCall
+	     			)
 	     		)
-	     	)
 	),
 	L = [Clause | T].
 
@@ -6582,15 +6639,7 @@ propagation_single_headed(Head,ID,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) 
 	
 	get_constraint_mode(F/A,Mode),
 	head_arg_matches(HeadPairs,Mode,[],HeadMatching,VarDict,[],GroundVars),
-	guard_body_copies(Rule,VarDict,GuardCopy0,BodyCopy),
-	( is_active_in_guard(RuleNb,ID) ->
-		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
-		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
-		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,OldState,After)),
-		GuardCopy = (GetOldState,Before,GuardCopy0,After)
-	;
-		GuardCopy = GuardCopy0
-	),
+	guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy),
 	
 	% - recursive call -
 	RecursiveCall = NextHead,
@@ -6601,8 +6650,8 @@ propagation_single_headed(Head,ID,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) 
 		ActualCut = !
 	),
 
+	Rule = rule(_,_,Guard,Body),
 	( chr_pp_flag(debugable,on) ->
-		Rule = rule(_,_,Guard,Body),
 		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
 		DebugTry   = 'chr debug_event'(  try([],[Susp],DebugGuard,DebugBody)),
 		DebugApply = 'chr debug_event'(apply([],[Susp],DebugGuard,DebugBody)),
@@ -6626,19 +6675,19 @@ propagation_single_headed(Head,ID,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) 
 		NovelProduction = '$novel_production'(Susp,Tuple),
 		ExtendHistory   = '$extend_history'(Susp,Tuple),
 
-		( Body \== true, is_observed(F/A,O) ->
-		    	gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,Generation),
+		( is_observed(F/A,O) ->
+		  	gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,Generation),
 		    	gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall)
 		;   
 			Attachment = true,
 		    	ConditionalRecursiveCall = RecursiveCall
 		)
-
-   	;
+	;
+		Allocation = true,
 		NovelProduction = true,
 		ExtendHistory   = true,
-		( Body \== true, is_observed(F/A,O) ->
-			Allocation = true,
+		
+		( is_observed(F/A,O) ->
 			get_allocation_occurrence(F/A,AllocO),
 			( O == AllocO ->
 				gen_insert_constraint_internal_goal(F/A,Attachment,VarsSusp,Vars,Susp),
@@ -6646,29 +6695,34 @@ propagation_single_headed(Head,ID,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) 
 			;	% more room for improvement? 
 				Attachment = (Attachment1, Attachment2),
 				gen_occ_allocation(F/A,O,Vars,Susp,Attachment1),
-			    	gen_uncond_attach_goal(F/A,Susp,Vars,Attachment2,Generation)
+				gen_uncond_attach_goal(F/A,Susp,Vars,Attachment2,Generation)
 			),
-			% gen_occ_allocation(F/A,O,Vars,Susp,Allocation),
-		    	% gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,Generation),
 		    	gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall)
 		;   
-			Allocation = true,
 			gen_occ_allocation(F/A,O,Vars,Susp,Attachment),
 		    	ConditionalRecursiveCall = RecursiveCall
 		)
 	),
+	( is_stored_in_guard(F/A, RuleNb) ->
+		GuardAttachment = Attachment,
+		BodyAttachment = true
+	;
+		GuardAttachment = true,
+		BodyAttachment = Attachment	% will be true if not observed at all
+	),
 
 	Clause = (
 	     ClauseHead :-
-	     	HeadMatching,
-	     	Allocation,
-	     	NovelProduction,
-	     	GuardCopy,
-	     	Cut,
-	     	ExtendHistory,
-	     	Attachment,
-	     	BodyCopy,
-	     	ConditionalRecursiveCall
+		HeadMatching,
+		Allocation,
+		NovelProduction,
+		GuardAttachment,
+		GuardCopy,
+		Cut,
+		ExtendHistory,
+		BodyAttachment,
+		BodyCopy,
+		ConditionalRecursiveCall
 	),  
 	ProgramList = [Clause | ProgramTail].
    
@@ -6769,22 +6823,15 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 	head_arg_matches(OtherPairs,Mode,VarDict1,Matching,VarDict),
 	
 	different_from_other_susps(CurrentHead,OtherSusp,PreHeads,RestSusps,DiffSuspGoals), 
-	guard_body_copies(Rule,VarDict,GuardCopy0,BodyCopy),
+	guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy),
 	get_occurrence(F/A,O,_,ID),
-	( is_active_in_guard(RuleNb,ID) ->
-		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
-		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
-		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,OldState,After)),
-		GuardCopy = (GetOldState,Before,GuardCopy0,After)
-	;
-		GuardCopy = GuardCopy0
-	),
 	
-	(   BodyCopy \== true, is_observed(F/A,O) ->
+	( is_observed(F/A,O) ->
 	    init(FirstVarsSusp,FirstVars),
-	    gen_uncond_attach_goal(F/A,Susp,FirstVars,Attach,Generation),
+	    gen_uncond_attach_goal(F/A,Susp,FirstVars,Attachment,Generation),
 	    gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall)
-	;   Attach = true,
+	;   
+	    Attachment = true,
 	    ConditionalRecursiveCall = RecursiveCall
 	),
 	( (is_least_occurrence(RuleNb) ; has_no_history(RuleNb)) ->
@@ -6840,17 +6887,26 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 		DebugApply = true
 	),
 
+	( is_stored_in_guard(F/A, RuleNb) ->
+		GuardAttachment = Attachment,
+		BodyAttachment = true
+	;
+		GuardAttachment = true,
+		BodyAttachment = Attachment	% will be true if not observed at all
+	),
+	
    Clause = (
       ClauseHead :-
 	  (   CurrentSuspTest,
 	     DiffSuspGoals,
              Matching,
 	     NovelProduction,
+	     GuardAttachment,
              GuardCopy,
 	     DebugTry ->
 	     DebugApply,
 	     ExtendHistory,
-             Attach,
+             BodyAttachment,
              BodyCopy,
              ConditionalRecursiveCall
          ;   RecursiveCall

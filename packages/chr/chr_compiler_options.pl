@@ -80,7 +80,7 @@ option_definition(optimize,experimental,Flags) :-
 		  guard_simplification	   - on,
 		  check_impossible_rules   - on,
 		  occurrence_subsumption   - on,
-		  observation		   - on,
+		  observation_analysis	   - on,
 		  ai_observation_analysis  - on,
 		  late_allocation	   - on,
 		  reduced_indexing	   - on,
@@ -97,7 +97,7 @@ option_definition(optimize,full,Flags) :-
 		  guard_simplification	   - on,
 		  check_impossible_rules   - on,
 		  occurrence_subsumption   - on,
-		  observation		   - on,
+		  observation_analysis	   - on,
 		  ai_observation_analysis  - on,
 		  late_allocation	   - on,
 		  reduced_indexing	   - on,
@@ -114,8 +114,8 @@ option_definition(optimize,off,Flags) :-
 		  guard_simplification	   - off,
 		  check_impossible_rules   - off,
 		  occurrence_subsumption   - off,
-		  observation		   - off,
-		  ai_observation_analysis	   - off,
+		  observation_analysis     - off,
+		  ai_observation_analysis  - off,
 		  late_allocation	   - off,
 		  reduced_indexing	   - off
 		].
@@ -176,6 +176,7 @@ option_definition(inline_insertremove,on,Flags) :-
 	Flags = [ inline_insertremove - on ].
 option_definition(inline_insertremove,off,Flags) :-
 	Flags = [ inline_insertremove - off ].
+
 option_definition(type_definition,TypeDef,[]) :-
 	( nonvar(TypeDef) ->
 	TypeDef = type(T,D),
@@ -235,6 +236,9 @@ option_definition(observation,ai,Flags) :-
 			ai_observation_analysis - on
 		].
 
+option_definition(store_in_guards, on, [store_in_guards - on]).
+option_definition(store_in_guards, off, [store_in_guards - off]).
+
 option_definition(solver_events,NMod,Flags) :-
 	Flags =	[solver_events - NMod].
 
@@ -280,6 +284,7 @@ chr_pp_flag_definition(debugable,[on,off]).
 chr_pp_flag_definition(reduced_indexing,[off,on]).
 chr_pp_flag_definition(observation_analysis,[off,on]).
 chr_pp_flag_definition(ai_observation_analysis,[off,on]).
+chr_pp_flag_definition(store_in_guards,[off,on]).
 chr_pp_flag_definition(late_allocation,[off,on]).
 chr_pp_flag_definition(store_counter,[off,on]).
 chr_pp_flag_definition(guard_simplification,[off,on]).
