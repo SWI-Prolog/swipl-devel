@@ -1107,9 +1107,9 @@ Sgetw(IOSTREAM *s)
 		 *	    FREAD/FWRITE	*
 		 *******************************/
 
-int
-Sfread(void *data, int size, int elms, IOSTREAM *s)
-{ int chars = size * elms;
+size_t
+Sfread(void *data, size_t size, size_t elms, IOSTREAM *s)
+{ size_t chars = size * elms;
   char *buf = data;
 
   for( ; chars > 0; chars-- )
@@ -1125,9 +1125,9 @@ Sfread(void *data, int size, int elms, IOSTREAM *s)
 }
 
 
-int
-Sfwrite(const void *data, int size, int elms, IOSTREAM *s)
-{ int chars = size * elms;
+size_t
+Sfwrite(const void *data, size_t size, size_t elms, IOSTREAM *s)
+{ size_t chars = size * elms;
   const char *buf = data;
 
   for( ; chars > 0; chars-- )
