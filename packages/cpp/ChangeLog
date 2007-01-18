@@ -1,3 +1,8 @@
+Jan 18, 2007
+
+ * FIXED/MODIFIED: PlQuery(Module, Name, Args) now calls using Module
+   as context.  Christian Mol.
+
 Apr 11, 2004
 
  * Fixed ambiguity in PlTermvDomainError constructor showing up with g++

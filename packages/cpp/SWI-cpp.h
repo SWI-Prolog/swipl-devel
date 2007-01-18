@@ -449,9 +449,15 @@ public:
     qid = PL_open_query((module_t)0, PL_Q_CATCH_EXCEPTION, p, av.a0);
   }
   PlQuery(const char *module, const char *name, const PlTermv &av)
-  { predicate_t p = PL_predicate(name, av.size, module);
+  { atom_t ma = PL_new_atom(module);
+    atom_t na = PL_new_atom(name);
+    module_t m = PL_new_module(ma);
+    predicate_t p = PL_pred(PL_new_functor(na, av.size), m);
     
-    qid = PL_open_query((module_t)0, PL_Q_CATCH_EXCEPTION, p, av.a0);
+    PL_unregister_atom(ma);
+    PL_unregister_atom(na);
+
+    qid = PL_open_query(m, PL_Q_CATCH_EXCEPTION, p, av.a0);
   }
 
   ~PlQuery()
