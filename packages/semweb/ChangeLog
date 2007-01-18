@@ -1,3 +1,7 @@
+Jan 18, 2007
+
+  * ADDED: loading of rdf embedded in xhtml.  Yves Raimond.
+
 Jan 16, 2007
 
   * FIXED: Various issues related to persistency handling after introduction

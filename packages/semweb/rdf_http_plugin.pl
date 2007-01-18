@@ -59,9 +59,11 @@ rdf_db:rdf_open_hook(url(http, URL), Stream, Format) :-
 %	as it is  quite  likely  many   web-servers  do  not  have these
 %	registered, we use the filename extension as a backup.
 
-guess_format('text/rdf+xml', _, xml).
-guess_format('application/x-turtle', _, turtle).
-guess_format('application/turtle',   _, turtle).
+guess_format('text/rdf+xml',	      _, xml).
+guess_format('application/x-turtle',  _, turtle).
+guess_format('application/turtle',    _, turtle).
+guess_format('text/html',	      _, xhtml).
+guess_format('application/xhtml+xml', _, xhtml).
 guess_format(_, URL, Format) :-
 	file_name_extension(_, Ext, URL),
 	rdf_db:rdf_file_type(Ext, Format).

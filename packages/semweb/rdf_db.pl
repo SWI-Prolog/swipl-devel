@@ -865,10 +865,13 @@ rdf_input_open(file(File), Stream, _) :-
 %	extension.  This predicate is multifile and can thus be extended
 %	by plugins.
 
-rdf_file_type(rdf,  xml).
-rdf_file_type(rdfs, xml).
-rdf_file_type(owl,  xml).
-rdf_file_type(trp,  triples).
+rdf_file_type(rdf,   xml).
+rdf_file_type(rdfs,  xml).
+rdf_file_type(owl,   xml).
+rdf_file_type(htm,   xhtml).
+rdf_file_type(html,  xhtml).
+rdf_file_type(xhtml, xhtml).
+rdf_file_type(trp,   triples).
 
 
 %%	rdf_load_stream(+Format, +Stream, +Options)
@@ -880,6 +883,10 @@ rdf_file_type(trp,  triples).
 rdf_load_stream(xml, Stream, Options) :- !,
 	option(base_uri(Id), Options),
 	rdf_transaction(process_rdf(Stream, assert_triples, Options),
+			parse(Id)).
+rdf_load_stream(xhtml, Stream, Options) :- !,
+	option(base_uri(Id), Options),
+	rdf_transaction(process_rdf(Stream, assert_triples, [embedded(true)|Options]),
 			parse(Id)).
 rdf_load_stream(triples, Stream, Options) :- !,
 	option(base_uri(Id), Options),

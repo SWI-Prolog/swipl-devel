@@ -1256,13 +1256,16 @@ extension.  E.g.\ \exam{rdf_load('file.rdf.gz')}.
 \subsection{Library semweb/rdf_http_plugin}
 \label{sec:http}
 
+\index{xhtml}%
 This module allows for \exam{rdf_load('http://...')}. It exploits the
 library \pllib{http/http_open.pl}. The format of the URL is determined
 from the mime-type returned by the server if this is one of
 \const{text/rdf+xml}, \const{application/x-turtle} or
 \const{application/turtle}. As RDF mime-types are not yet widely
 supported, the plugin uses the extension of the URL if the claimed
-mime-type is not one of the above.
+mime-type is not one of the above.  In addition, it recognises
+\const{text/html} and \const{application/xhtml+xml}, scanning
+the XML content for embedded RDF.
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
