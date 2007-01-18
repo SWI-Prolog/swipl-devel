@@ -1,3 +1,9 @@
+Jan 18, 2007
+
+  * ADDED: html_set_options/1 and html_current_option/1 to html_write.pl.
+    Allows for changing the document type as well as writing XHTML output
+    from the same DCG rules.
+
 Jan 15, 2007
 
   * ADDED: Redirect support for 301 and 303.  Yves Raimond.

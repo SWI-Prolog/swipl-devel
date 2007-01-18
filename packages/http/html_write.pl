@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -49,6 +49,7 @@
 	    html_print_length/2		% +List, -Length
 	  ]).
 :- use_module(library(error)).
+:- use_module(library(sgml)).		% Quote output
 :- use_module(library(quintus)).	% for meta_predicate/1
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -72,8 +73,22 @@ directly, but this is generally not very satisfactory:
 
 This module tries to remedy these problems.   The idea is to translate a
 Prolog term into  an  HTML  document.  We   use  DCG  for  most  of  the
-generation. 
+generation.
+
+---++ International documents
+
+The library supports the generation of international documents, but this
+is currently limited to using UTF-8 encoded HTML or XHTML documents.  It
+is strongly recommended to use the following mime-type.
+
+==
+Content-type: text/html; charset=UTF-8
+==
+
+When generating XHTML documents, the output stream must be in UTF-8
+encoding.
 */
+
 
 		 /*******************************
 		 *	      SETTINGS		*
@@ -137,6 +152,12 @@ init_options :-
 	
 :- initialization
 	init_options.
+
+%%	xml_header(-Header)
+%
+%	First line of XHTML document.  Added by print_html/1.
+
+xml_header('<?xml version=\'1.0\' encoding=\'UTF-8\'?>').
 
 
 		 /*******************************
@@ -329,7 +350,8 @@ html_begin(Env, Attributes) -->
 	post_open(Env).
 
 html_end(Env)   -->			% empty element or omited close
-	{ layout(Env, _, -)
+	{ layout(Env, _, -),
+	  html_current_option(dialect(html))
 	; layout(Env, _, empty)
 	}, !,
 	[].
@@ -404,29 +426,12 @@ attribute_value(Value) -->
 %	==
 %		html(b(Text))
 %	==
+%	
+%	@tbd	Assumes UTF-8 encoding of the output.
 
 html_quoted(Text) -->
-	{ sub_atom(Text, _, _, _, <)
-	; sub_atom(Text, _, _, _, >)
-	; sub_atom(Text, _, _, _, &)
-	}, !,
-	{ atom_chars(Text, Chars),
-	  quote_chars(Chars, QuotedChars),
-	  concat_atom(QuotedChars, Quoted)
-	},
+	{ xml_quote_cdata(Text, Quoted, utf8) },
 	[ Quoted ].
-html_quoted(Text) -->
-	[ Text ].
-
-quote_chars([], []).
-quote_chars([H0|T0], [H|T]) :-
-	quote_char(H0, H),
-	quote_chars(T0, T).
-
-quote_char(<, '&lt;') :- !.
-quote_char(>, '&gt;') :- !.
-quote_char(&, '&amp;') :- !.
-quote_char(X, X).
 
 %%	html_quoted_attribute(+Text)// is det.
 %
@@ -434,32 +439,12 @@ quote_char(X, X).
 %	included in double-quotes.  Note   that  -like  html_quoted//1-,
 %	attributed   values   printed   through   html//1   are   quoted
 %	atomatically.
+%	
+%	@tbd	Assumes UTF-8 encoding of the output.
 
 html_quoted_attribute(Text) -->
-	{ sub_atom(Text, _, _, _, <)
-	; sub_atom(Text, _, _, _, >)
-	; sub_atom(Text, _, _, _, '"')
-	; sub_atom(Text, _, _, _, '&')
-	}, !,
-	{ atom_chars(Text, Chars),
-	  quote_att_chars(Chars, QuotedChars),
-	  concat_atom(QuotedChars, Quoted)
-	},
+	{ xml_quote_attribute(Text, Quoted, utf8) },
 	[ Quoted ].
-html_quoted_attribute(Text) -->
-	[ Text ].
-	
-quote_att_chars([], []).
-quote_att_chars([H0|T0], [H|T]) :-
-	quote_att_char(H0, H),
-	quote_att_chars(T0, T).
-
-quote_att_char(<, '&lt;') :- !.
-quote_att_char(>, '&gt;') :- !.
-quote_att_char(&, '&amp;') :- !.
-quote_att_char('"', '&quot;') :- !.
-%quote_att_char('''', '&apos;') :- !.
-quote_att_char(X, X).
 
 
 		 /*******************************
@@ -576,6 +561,13 @@ print_html(List) :-
 	current_output(Out),
 	write_html(List, Out).
 print_html(Out, List) :-
+	(   html_current_option(dialect(xhtml))
+	->  stream_property(Out, encoding(Enc)),
+	    must_be(oneof([utf8]), Enc),
+	    xml_header(Hdr),
+	    write(Out, Hdr), nl(Out)
+	;   true
+	),
 	write_html(List, Out).
 
 write_html([], _).
@@ -607,13 +599,19 @@ write_nl(N, Out) :-
 %	==
 %		phrase(html(DOM), Tokens),
 %		html_print_length(Tokens, Len),
-%		format('Content-type: text/html~n'),
+%		format('Content-type: text/html; charset=UTF-8~n'),
 %		format('Content-length: ~d~n~n', [Len]),
 %		print_html(Tokens)
 %	==
 
 html_print_length(List, Len) :-
-	html_print_length(List, 0, Len).
+	(   html_current_option(dialect(xhtml))
+	->  xml_header(Hdr),
+	    atom_length(Hdr, L0),
+	    L1 is L0+1			% one for newline
+	;   L1 = 0
+	),
+	html_print_length(List, L1, Len).
 
 html_print_length([], L, L).
 html_print_length([nl(N)|T], L0, L) :- !,
@@ -723,11 +721,11 @@ emacs_prolog_colours:style(html_attribute(_), style(colour := magenta4)).
 
 
 emacs_prolog_colours:identify(html(Element), Summary) :-
-	sformat(Summary, '~w: SGML element', [Element]).
+	format(string(Summary), '~w: SGML element', [Element]).
 emacs_prolog_colours:identify(entity(Entity), Summary) :-
-	sformat(Summary, '~w: SGML entity', [Entity]).
+	format(string(Summary), '~w: SGML entity', [Entity]).
 emacs_prolog_colours:identify(html_attribute(Attr), Summary) :-
-	sformat(Summary, '~w: SGML attribute', [Attr]).
+	format(string(Summary), '~w: SGML attribute', [Attr]).
 
 
 %	prolog:called_by(+Goal, -Called)
