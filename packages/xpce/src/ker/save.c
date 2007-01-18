@@ -691,12 +691,12 @@ status
 checkObjectMagic(IOSTREAM *fd)
 { status rval;
   long l;
-  int ls;
+  long ls;
 
   if ( SaveMagic == NULL )
     SaveMagic = SAVEMAGIC;
 
-  ls = strlen(SaveMagic);
+  ls = (long)strlen(SaveMagic);
 
   if ( (l=loadWord(fd)) == ls )
   { char tmp[LINESIZE];

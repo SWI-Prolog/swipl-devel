@@ -1,15 +1,15 @@
 #define COMMON(type) SO_LOCAL type
 
 /* /home/jan/src/pl/packages/xpce/src/ker/alloc.c */
-COMMON(Any)	alloc(unsigned int n);
-COMMON(void)	unalloc(unsigned int n, Any p);
+COMMON(Any)	alloc(size_t n);
+COMMON(void)	unalloc(size_t n, Any p);
 COMMON(void)	initAlloc(void);
-COMMON(void)	allocRange(void *low, int size);
+COMMON(void)	allocRange(void *low, size_t size);
 COMMON(status)	listWastedCorePce(Pce pce, Bool ppcells);
-COMMON(Any)	alloc(unsigned int n);
-COMMON(void)	unalloc(unsigned int n, Any p);
+COMMON(Any)	alloc(size_t n);
+COMMON(void)	unalloc(size_t n, Any p);
 COMMON(void)	initAlloc(void);
-COMMON(void)	allocRange(void *low, int size);
+COMMON(void)	allocRange(void *low, size_t size);
 COMMON(void)	checkFreeChains(void);
 COMMON(status)	listWastedCorePce(Pce pce, Bool ppcells);
 COMMON(char *)	save_string(const char *s);

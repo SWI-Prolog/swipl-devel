@@ -746,7 +746,7 @@ static int LookupWord (char *buff)
       }
 
   /* Strip off any plural and try the units table again. */
-  i = strlen (buff) - 1;
+  i = (int)strlen (buff) - 1;
   if (buff[i] == 's')
     {
       buff[i] = '\0';

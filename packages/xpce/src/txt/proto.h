@@ -66,8 +66,8 @@ COMMON(void)	str_alloc(String s);
 COMMON(void)	str_unalloc(String s);
 COMMON(String)	str_init(String s, String proto, charA *data);
 COMMON(String)	fstr_inithdr(String s, int iswide, void *data, int len);
-COMMON(status)	str_set_n_ascii(String str, int len, char *text);
-COMMON(status)	str_set_n_wchar(String str, int len, wchar_t *text);
+COMMON(status)	str_set_n_ascii(String str, size_t len, char *text);
+COMMON(status)	str_set_n_wchar(String str, size_t len, wchar_t *text);
 COMMON(status)	str_set_ascii(String str, char *text);
 COMMON(status)	str_set_utf8(String str, const char *text);
 COMMON(status)	str_set_static(String str, const char *text);
@@ -212,9 +212,9 @@ COMMON(void)	register_change_textbuffer(TextBuffer tb, long int where, long int 
 /* /swi40/jan/src/pl/packages/xpce/src/txt/utf8.c */
 COMMON(char *)	F_UTF8_GET_CHAR(const char *in, int *chr);
 COMMON(char *)	F_UTF8_PUT_CHAR(char *out, int chr);
-COMMON(unsigned int) F_UTF8_STRLEN(const char *s, unsigned int len);
-COMMON(unsigned int) F_UTF8_ENCLENW(const wchar_t *s, unsigned int len);
-COMMON(unsigned int) F_UTF8_ENCLENA(const char *s, unsigned int len);
+COMMON(size_t)  F_UTF8_STRLEN(const char *s, size_t len);
+COMMON(size_t)  F_UTF8_ENCLENW(const wchar_t *s, size_t len);
+COMMON(size_t)  F_UTF8_ENCLENA(const char *s, size_t len);
 
 /* /swi40/jan/src/pl/packages/xpce/src/txt/i18n.c */
 COMMON(wchar_t *) charArrayToWC(CharArray ca, size_t *len);

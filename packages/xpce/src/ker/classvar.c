@@ -791,7 +791,7 @@ loadDefaultClassVariables(SourceSink f)
 	  for(;;)
 	  { for(s++; isblank(*s); s++)
 	      ;
-	    l = strlen(s);
+	    l = (int)strlen(s);
 					/* delete [\r\n]*$ */
 	    while( l > 0 && (s[l-1] == '\n' || s[l-1] == '\r') )
 	      s[--l] = EOS;

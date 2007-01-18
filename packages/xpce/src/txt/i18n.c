@@ -164,7 +164,7 @@ stringToMB(String str)
 { rcell *out;
   mbstate_t mbs;
   char b[MB_LEN_MAX];
-  int rc;
+  size_t rc;
 
   memset(&mbs, 0, sizeof(mbs));
 
@@ -175,7 +175,7 @@ stringToMB(String str)
     for( ; s<e; s++ )			/* do we need conversion? */
     { if ( (rc=wcrtomb(b, *s, &mbs)) == 1 && b[0] == *s )
 	continue;
-      if ( rc == -1 )
+      if ( rc == (size_t)-1 )
 	return NULL;			/* cannot convert */
     }
     if ( s == e )
@@ -186,7 +186,7 @@ stringToMB(String str)
     for( ; s <= e; s++ )		/* <=: also 0-byte! */
     { roomBuffer(out, MB_LEN_MAX);
 
-      if ( (rc=wcrtomb(out->bufp, *s, &mbs)) < 0 )
+      if ( (rc=wcrtomb(out->bufp, *s, &mbs)) == (size_t)-1 )
 	return NULL;
       out->bufp += rc;
     }
@@ -198,7 +198,7 @@ stringToMB(String str)
     for( ; s<e; s++ )
     { roomBuffer(out, MB_LEN_MAX);
 
-      if ( (rc=wcrtomb(out->bufp, *s, &mbs)) < 0 )
+      if ( (rc=wcrtomb(out->bufp, *s, &mbs)) == (size_t)-1 )
 	return NULL;
       out->bufp += rc;
     } 

@@ -906,13 +906,13 @@ pceSetProfileHooks(pce_profile_hooks *hooks)
 #undef pceFree
 
 void *
-pceMalloc(int size)
+pceMalloc(size_t size)
 { return (*TheCallbackFunctions.malloc)(size);
 }
 
 
 void *
-pceRealloc(void *ptr, int size)
+pceRealloc(void *ptr, size_t size)
 { return (*TheCallbackFunctions.realloc)(ptr, size);
 }
 

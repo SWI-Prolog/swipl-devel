@@ -119,7 +119,7 @@ getConvertTextBuffer(Any ctx, Editor e)
 static status
 storeTextBuffer(TextBuffer tb, FileObj file)
 { IOENC oenc = file->fd->encoding;
-  size_t i;
+  int i;
 
   TRY(storeSlotsObject(tb, file));
   storeIntFile(file, toInt(tb->size));

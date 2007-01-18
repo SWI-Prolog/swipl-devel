@@ -310,7 +310,7 @@ get_logical_drive_strings(int bufsize, char *buf)
 #define MAXPATHLEN _MAX_PATH
 #endif
 #define strapp(s, q) \
-	{ int l = _tcslen(q); \
+	{ size_t l = _tcslen(q); \
 	  if ( s+l+2 > filter+sizeof(filter)/sizeof(TCHAR) ) \
 	  { errorPce(filters, NAME_representation, NAME_nameTooLong); \
 	    fail; \

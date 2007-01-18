@@ -482,7 +482,11 @@ bindSocket(Socket s, Bool reuse)
 	   (instanceOfObject(s->address, ClassTuple) &&
 	    ((Tuple)s->address)->second == ZERO) )
       { struct sockaddr_in addr;
+#ifdef __WINDOWS__
+	DWORD len = sizeof(addr);
+#else
 	socklen_t len = sizeof(addr);
+#endif
 
 	if ( getsockname(SocketHandle(s), (struct sockaddr *) &addr, &len) )
 	{ return errorPce(s, NAME_socket, NAME_getsockname, SockError());
@@ -521,7 +525,11 @@ acceptSocket(Socket s)
   } else /*if ( s->domain == NAME_inet )*/
 #endif
   { struct sockaddr_in address;
+#ifdef __WINDOWS__
+    DWORD len = sizeof(address);
+#else
     socklen_t len = sizeof(address);
+#endif
 
     if ( (id2=accept(SocketHandle(s), (struct sockaddr *) &address, &len))<0 )
       errorPce(s, NAME_socket, NAME_accept, SockError());
@@ -670,7 +678,11 @@ getPeerNameSocket(Socket s)
   } else /* if ( s->domain = NAME_inet ) */
 #endif /*UNIX_DOMAIN_SOCKETS*/
   { struct sockaddr_in address;
+#ifdef __WINDOWS__
+    DWORD len = sizeof(address);
+#else
     socklen_t len = sizeof(address);
+#endif
     int port;
     unsigned long addr;
     char aname[3*4+4];

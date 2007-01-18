@@ -374,7 +374,7 @@ getFileNameDirectory(Directory d, Name name)
   else
   { const char *dfn = nameToUTF8(d->path);
     size_t dfnl = strlen(dfn);
-    int maxl = strlen(fn) + dfnl + 2;
+    size_t maxl = strlen(fn) + dfnl + 2;
     LocalArray(char, buf, maxl);
 
     memcpy(buf, dfn, dfnl);
@@ -776,7 +776,7 @@ absolutePath(const char *file, char *path, size_t buflen)
 
   canonisePath(path);
 
-  return strlen(path);
+  return (int)strlen(path);
 }
 
 
@@ -872,7 +872,7 @@ expandFileNameW(const wchar_t *pattern, wchar_t *bin, size_t binlen)
     }
 #endif
 
-    size += (l = wcslen(value));
+    size += (int)(l = wcslen(value));
     if ( size >= binlen )
     { ExpandProblem = CtoName("Name too long");
       return -1;
@@ -901,7 +901,7 @@ nouser:
 	    { ExpandProblem = CtoName("Unknown variable");
 	      return -1;
 	    }
-	    size += (l = wcslen(value));
+	    size += (l = (int)wcslen(value));
 	    if ( size >= binlen )
 	    { errno = ENAMETOOLONG;
 	      return -1;

@@ -123,12 +123,12 @@ fstr_inithdr(String s, int iswide, void *data, int len)
 
 
 status
-str_set_n_ascii(String str, int len, char *text)
+str_set_n_ascii(String str, size_t len, char *text)
 { if ( len > STR_MAX_SIZE )
     return errorPce(NIL, NAME_stringTooLong, toInt(len));
 
   str_inithdr(str, FALSE);
-  str->size = len;
+  str->size = (int)len;
   str->s_textA = (charA *) text;
 
   succeed;
@@ -136,12 +136,12 @@ str_set_n_ascii(String str, int len, char *text)
 
 
 status
-str_set_n_wchar(String str, int len, wchar_t *text)
+str_set_n_wchar(String str, size_t len, wchar_t *text)
 { if ( len > STR_MAX_SIZE )
     return errorPce(NIL, NAME_stringTooLong, toInt(len));
 
   str_inithdr(str, TRUE);
-  str->size = len;
+  str->size = (int)len;
   str->s_textW = text;
 
   succeed;
@@ -150,7 +150,7 @@ str_set_n_wchar(String str, int len, wchar_t *text)
 
 status
 str_set_ascii(String str, char *text)
-{ int len = strlen(text);
+{ size_t len = strlen(text);
 
   return str_set_n_ascii(str, len, text);
 }
@@ -193,14 +193,14 @@ str_set_static(): initialise a string from a static C-string
 
 status
 str_set_static(String str, const char *text)
-{ int len = strlen(text);
+{ size_t len = strlen(text);
 
   if ( len > STR_MAX_SIZE )
     return errorPce(NIL, NAME_stringTooLong, toInt(len));
 
   str_inithdr(str, FALSE);
   str->readonly = TRUE;
-  str->size = len;
+  str->size = (int)len;
   str->s_textA = (charA *) text;
 
   succeed;

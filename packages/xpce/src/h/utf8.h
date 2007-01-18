@@ -63,9 +63,9 @@
 extern char *F_UTF8_GET_CHAR(const char *in, int *chr);
 extern char *F_UTF8_PUT_CHAR(char *out, int chr);
 
-extern unsigned int F_UTF8_STRLEN(const char *s, unsigned int len);
-extern unsigned int F_UTF8_ENCLENW(const wchar_t *s, unsigned int len);
-extern unsigned int F_UTF8_ENCLENA(const char *s, unsigned int len);
+extern size_t F_UTF8_STRLEN(const char *s, size_t len);
+extern size_t F_UTF8_ENCLENW(const wchar_t *s, size_t len);
+extern size_t F_UTF8_ENCLENA(const char *s, size_t len);
 
 
 #endif /*UTF8_H_INCLUDED*/

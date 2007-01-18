@@ -225,7 +225,7 @@ initNamesPass1(void)
 
   for( name=(Name)builtin_names; name->data.s_text != NULL; name++)
   { str_inithdr(&name->data, FALSE);
-    name->data.size = strlen((char *)name->data.s_text);
+    name->data.size = (int)strlen((char *)name->data.s_text);
   }
 }
 

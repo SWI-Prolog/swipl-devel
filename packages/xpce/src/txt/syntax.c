@@ -73,7 +73,7 @@ swapBytesTable(SyntaxTable t)
 {
 #define swapchr(x, y)	{ unsigned char z; z=x; x=y; y=z; }
   { unsigned char *s;
-    int i = FLAGS_SIZE(t);
+    size_t i = FLAGS_SIZE(t);
 
     for(s = (unsigned char *)t->table; i > 0; s += 2, i-= 2)
     { swapchr(s[0], s[1]);

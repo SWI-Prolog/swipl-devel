@@ -101,10 +101,10 @@ F_UTF8_PUT_CHAR(char *out, int chr)
 }
 
 
-unsigned int
-F_UTF8_STRLEN(const char *s, unsigned int len)
+size_t
+F_UTF8_STRLEN(const char *s, size_t len)
 { const char *e = &s[len];
-  unsigned int l = 0;
+  size_t l = 0;
 
   while(s<e)
   { int chr;
@@ -117,10 +117,10 @@ F_UTF8_STRLEN(const char *s, unsigned int len)
 }
 
 
-unsigned int
-F_UTF8_ENCLENW(const wchar_t *s, unsigned int len)
+size_t
+F_UTF8_ENCLENW(const wchar_t *s, size_t len)
 { char out[10];
-  unsigned int n = 0;
+  size_t n = 0;
   const wchar_t *e = &s[len];
 
   for( ; s<e; s++)
@@ -133,12 +133,12 @@ F_UTF8_ENCLENW(const wchar_t *s, unsigned int len)
 }
 
 
-unsigned int
-F_UTF8_ENCLENA(const char *s, unsigned int len)
+size_t
+F_UTF8_ENCLENA(const char *s, size_t len)
 { char out[10];
   const unsigned char *f = (const unsigned char *)s;
   const unsigned char *e = &f[len];
-  unsigned int n = 0;
+  size_t n = 0;
 
   for( ; f<e; f++)
   { char *z = F_UTF8_PUT_CHAR(out, *f);

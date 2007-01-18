@@ -158,7 +158,7 @@ Swrite_object(void *handle, char *buf, size_t size)
   ca = StringToScratchCharArray(&s);
 
   if ( (rval = send(h->object, NAME_writeAsFile, where, ca, EAV)) )
-    h->point += advance;
+    h->point += (long)advance;
   doneScratchCharArray(ca);
 
   if ( rval )

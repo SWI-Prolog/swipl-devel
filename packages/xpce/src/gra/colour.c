@@ -213,7 +213,7 @@ getConvertColour(Class class, Name name)
   if ( (s=strName(name))[0] == '#' )
   { int r, g, b;
     int dgs = 0;
-    int l = strlen(s);
+    size_t l = strlen(s);
 
     if ( l == 7 )
       dgs = 2;

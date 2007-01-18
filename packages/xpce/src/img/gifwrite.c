@@ -287,7 +287,7 @@ static int WriteGIF(fp, pic, mask, ptype, w, h, rmap, gmap, bmap, numcols,
 
   if (comment && strlen(comment) > (size_t) 0) {   /* write comment blocks */
     char *sp;
-    int   i, blen;
+    size_t i, blen;
 
     fputc(0x21, fp);     /* EXTENSION block */
     fputc(0xFE, fp);     /* comment extension */
@@ -295,7 +295,7 @@ static int WriteGIF(fp, pic, mask, ptype, w, h, rmap, gmap, bmap, numcols,
     sp = comment;
     while ( (blen=strlen(sp)) > 0) {
       if (blen>255) blen = 255;
-      fputc(blen, fp);
+      fputc((int)blen, fp);
       for (i=0; i<blen; i++, sp++) fputc(*sp, fp);
     }
     fputc(0, fp);    /* zero-length data subblock to end extension */

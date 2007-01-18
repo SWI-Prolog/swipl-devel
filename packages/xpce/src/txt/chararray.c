@@ -773,7 +773,7 @@ initCharArrays(void)
 CharArray
 CtoScratchCharArray(const char *s)
 { CharArray name = scratch_char_arrays;
-  int len = strlen(s);
+  size_t len = strlen(s);
   int n;
 
   for(n = 0; n < SCRATCH_CHAR_ARRAYS; n++, name++)

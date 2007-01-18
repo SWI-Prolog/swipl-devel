@@ -341,13 +341,13 @@ characterName(Any chr)
     default:
     ctrl:
       if ( c < ' ' )
-      {	int l;
+      {	size_t l;
 
 	wcscat(buf, L"\\C-");
 	buf[l=wcslen(buf)] = tolower(c + '@');
 	buf[l+1] = EOS;
       } else
-      { int l;
+      { size_t l;
 
         buf[l=wcslen(buf)] = c;
 	buf[l+1] = EOS;

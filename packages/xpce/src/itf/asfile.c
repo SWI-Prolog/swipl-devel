@@ -196,7 +196,7 @@ findHandle(int handle)
 
 
 
-int
+ssize_t
 pceWrite(int handle, const char *buf, size_t size)
 { PceFileHandle h;
 
@@ -243,7 +243,7 @@ pceWrite(int handle, const char *buf, size_t size)
     ca = StringToScratchCharArray(&s);
 
     if ( (rval = send(h->object, NAME_writeAsFile, where, ca, EAV)) )
-      h->point += size/sizeof(wchar_t);
+      h->point += (long)size/sizeof(wchar_t);
     doneScratchCharArray(ca);
 
     if ( rval )
@@ -309,7 +309,7 @@ pceSeek(int handle, long offset, int whence)
 
 /* see also Sread_object() */
 
-int
+ssize_t
 pceRead(int handle, char *buf, size_t size)
 { PceFileHandle h;
 

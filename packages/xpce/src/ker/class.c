@@ -1280,7 +1280,7 @@ sourceClass(Class class, SendFunc f, char *file, char *rcs)
   { static char rev[] = "$Revision: ";
     char *s, *q;
     char buf[100];
-    int l;
+    size_t l;
 
     for(s=rcs, q=rev; *q && *s == *q; s++, q++)
       ;

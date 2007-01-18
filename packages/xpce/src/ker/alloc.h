@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org/packages/xpce/
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -26,10 +26,10 @@
 #define ALLOCFAST	1024
 
 GLOBAL char    *spaceptr;	/* allocation space */
-GLOBAL unsigned int	spacefree;	/* Free bytes in space */
+GLOBAL size_t	spacefree;	/* Free bytes in space */
 
-GLOBAL long	allocbytes;	/* number of bytes allocated */
-GLOBAL long	wastedbytes;	/* core in allocation chains */
+GLOBAL size_t	allocbytes;	/* number of bytes allocated */
+GLOBAL size_t	wastedbytes;	/* core in allocation chains */
 
 typedef struct zone *Zone;	/* memory zone */
 
@@ -40,7 +40,7 @@ struct zone
   unsigned	size   : 31;		/* Size of the zone (bytes) */
   unsigned long magic;			/* Magic word */
 #endif
-  unsigned long start;			/* Reserved (start of zone) */
+  uintptr_t	start;			/* Reserved (start of zone) */
   Zone		next;			/* Next zone of this size */
 };
 

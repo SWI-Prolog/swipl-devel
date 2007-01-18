@@ -46,7 +46,7 @@
 #ifdef USE_MALLOC
 
 Any
-alloc(unsigned int n)
+alloc(size_t n)
 { void *p;
 
   allocbytes += n;
@@ -58,7 +58,7 @@ alloc(unsigned int n)
 }
 
 void
-unalloc(unsigned int n, Any p)
+unalloc(size_t n, Any p)
 { allocbytes -= n;
 
   free(p);
@@ -77,8 +77,8 @@ initAlloc(void)
 }
 
 void
-allocRange(void *low, int size)
-{ unsigned long l = (unsigned long)low;
+allocRange(void *low, size_t size)
+{ size_t l = (size_t)low;
 
   if ( l < allocBase )
     allocBase = l;
@@ -127,11 +127,11 @@ perfect fit strategy for memory allocation.
 #define offset(structure, field) ((int) &(((structure *)NULL)->field))
 
 static inline Zone
-allocate(int size)
+allocate(size_t size)
 { unsigned char *p;
   long top, base;
   Zone z;
-  unsigned int alloc_size = size + offset(struct zone, start);
+  size_t alloc_size = size + offset(struct zone, start);
 
   if ( alloc_size <= spacefree )
   { z = (Zone) spaceptr;
@@ -205,7 +205,7 @@ count_zone_chain(Zone z)
 
 
 Any
-alloc(unsigned int n)
+alloc(size_t n)
 { void *ptr;
 
   n = roundAlloc(n);
@@ -213,7 +213,7 @@ alloc(unsigned int n)
 
   if ( n <= ALLOCFAST )
   { Zone z;
-    int m = n / sizeof(Zone);
+    size_t m = n / sizeof(Zone);
 
     if ( (z = freeChains[m]) != NULL )	/* perfect fit */
     { 
@@ -272,17 +272,17 @@ alloc(unsigned int n)
 
 
 void
-unalloc(unsigned int n, Any p)
+unalloc(size_t n, Any p)
 { Zone z = p;
   n = roundAlloc(n);
   allocbytes -= n;
   
   if ( n <= ALLOCFAST )
-  { int m = n / sizeof(Zone);
+  { size_t m = n / sizeof(Zone);
     assert((unsigned long)z >= allocBase && (unsigned long)z <= allocTop);
 
 #if ALLOC_DEBUG
-    assert((unsigned long)z % 4 == 0);
+    assert((uintptr_t)z % 4 == 0);
 #if ALLOC_DEBUG > 1
     memset(p, ALLOC_MAGIC_FREE, n);
 #endif
@@ -335,8 +335,8 @@ initAlloc(void)
 
 
 void
-allocRange(void *low, int size)
-{ unsigned long l = (unsigned long)low;
+allocRange(void *low, size_t size)
+{ size_t l = (size_t)low;
 
   if ( l < allocBase )
     allocBase = l;
