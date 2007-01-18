@@ -1,3 +1,7 @@
+Jan 18, 2007
+
+  * ADDED: embedded(Bool) option to process_rdf/3
+
 Jun 25, 2006
 
   * CLEANUP: Delete unused global variable.

@@ -325,10 +325,9 @@ resulting from a single top level RDF object for each RDF element in the
 input as well as the source-location where the description started.
 \arg{Input} is either a file name or term \term{stream}{Stream}. When
 using a stream all triples are associated to the value of the
-\const{base_uri} option.
-This predicate can be used to process arbitrary large RDF files as the
-file is processed object-by-object. The example below simply asserts all
-triples into the database:
+\const{base_uri} option. This predicate can be used to process arbitrary
+large RDF files as the file is processed object-by-object. The example
+below simply asserts all triples into the database:
 
 \begin{code}
 assert_list([], _).
@@ -338,14 +337,23 @@ assert_list([H|T], Source) :-
 
 ?- process_rdf('structure,rdf', assert_list, []).
 \end{code}
-\end{description}
 
 \arg{Options} are described with load_rdf/3. The option
 \const{expand_foreach} is not supported as the container may be in a
-different description.%
-	\footnote{Older versions used the calling convention
-		  \term{process_rdf(+File, +BaseURI, :OnTriples}.  This
-		  order is still recognised for compatibility.}
+different description.  Additional it provides \const{embedded}:
+
+    \begin{description}
+	\termitem{embedded}{Boolean}
+The predicate process_rdf/3 processes arbitrary XML documents, only
+interpreting the content of \const{rdf:RDF} elements. If this option
+is \const{false} (default), it gives a warning on elements that are
+not processed.  The option \term{embedded}{true} can be used to
+process RDF embedded in \jargon{xhtml} without warnings. 
+    \end{description}
+
+\end{description}
+
+
 
 
 \section{Writing RDF graphs}

@@ -85,7 +85,7 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
 }
 
 span.pred-ext
@@ -99,7 +99,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -131,30 +131,30 @@ creates an RDF/XML document from a list of triples.
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
 <DIV class="toc">
-<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Parsing 
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Parsing 
 RDF in Prolog</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Predicates</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">RDF 
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Predicates</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.1"><SPAN class="sec-nr">3.1</SPAN> <SPAN class="sec-title">RDF 
 Object representation</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:3.2"><SPAN class="sec-nr">3.2</SPAN><SPAN class="sec-title">Name 
+<DIV class="toc-h3"><A class="sec" href="#sec:3.2"><SPAN class="sec-nr">3.2</SPAN> <SPAN class="sec-title">Name 
 spaces</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:3.3"><SPAN class="sec-nr">3.3</SPAN><SPAN class="sec-title">Low-level 
+<DIV class="toc-h3"><A class="sec" href="#sec:3.3"><SPAN class="sec-nr">3.3</SPAN> <SPAN class="sec-title">Low-level 
 access</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Writing 
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">Writing 
 RDF graphs</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Testing 
+<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Testing 
 the RDF translator</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Metrics</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Installation</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:7.1"><SPAN class="sec-nr">7.1</SPAN><SPAN class="sec-title">Unix 
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">Metrics</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Installation</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:7.1"><SPAN class="sec-nr">7.1</SPAN> <SPAN class="sec-title">Unix 
 systems</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:7.2"><SPAN class="sec-nr">7.2</SPAN><SPAN class="sec-title">Windows</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:7.2"><SPAN class="sec-nr">7.2</SPAN> <SPAN class="sec-title">Windows</SPAN></A></DIV>
 </DIV>
 
 <P>
 
-<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <P>RDF is a promising standard for representing meta-data about 
 documents on the web as well as exchanging frame-based data (e.g. ontologies). 
@@ -183,7 +183,7 @@ another library and language attached to the system, is getting less
 attractive. In this document we explore the suitability of Prolog for 
 processing XML documents in general and into RDF in particular.
 
-<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Parsing 
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Parsing 
 RDF in Prolog</SPAN></A></H2>
 
 <P>We realised an RDF compiler in Prolog on top of the <B>sgml2pl</B> 
@@ -263,7 +263,7 @@ description(description, About, BagID, Properties) ::=
         }.
 </PRE>
 
-<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Predicates</SPAN></A></H2>
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Predicates</SPAN></A></H2>
 
 <P>The parser is designed to operate in various environments and 
 therefore provides interfaces at various levels. First we describe the 
@@ -355,7 +355,7 @@ elements).
 </DD>
 </DL>
 
-<H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">RDF 
+<H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN> <SPAN class="sec-title">RDF 
 Object representation</SPAN></A></H3>
 
 <A NAME="sec:rdfobject"></A>
@@ -393,7 +393,7 @@ If the literal has an <CODE>rdf:datatype=</CODE><VAR>Type</VAR> a term
 of this format is returned.
 </UL>
 
-<H3><A NAME="sec:3.2"><SPAN class="sec-nr">3.2</SPAN><SPAN class="sec-title">Name 
+<H3><A NAME="sec:3.2"><SPAN class="sec-nr">3.2</SPAN> <SPAN class="sec-title">Name 
 spaces</SPAN></A></H3>
 
 <P>XML name spaces are identified using a URI. Unfortunately various 
@@ -419,7 +419,7 @@ rdf_name_space('http://www.w3.org/1999/02/22-rdf-syntax-ns#').
 rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 </PRE>
 
-<H3><A NAME="sec:3.3"><SPAN class="sec-nr">3.3</SPAN><SPAN class="sec-title">Low-level 
+<H3><A NAME="sec:3.3"><SPAN class="sec-nr">3.3</SPAN> <SPAN class="sec-title">Low-level 
 access</SPAN></A></H3>
 
 <P>The above defined <A NAME="idx:loadrdf23:2"></A><A class="pred" href="#load_rdf/2">load_rdf/[2,3]</A> 
@@ -466,25 +466,33 @@ assert_list([H|T], Source) :-
 ?- process_rdf('structure,rdf', assert_list, []).
 </PRE>
 
-<P></DD>
-</DL>
-
 <P><VAR>Options</VAR> are described with <A NAME="idx:loadrdf3:4"></A><A class="pred" href="#load_rdf/3">load_rdf/3</A>. 
 The option
 <CODE>expand_foreach</CODE> is not supported as the container may be in 
-a different description.<SUP class="fn">1<SPAN class="fn-text">Older 
-versions used the calling convention <CODE>process_rdf(+File, +BaseURI, 
-:OnTriples(process_rdf(+File, +BaseURI, :OnTriples)</CODE> This order is 
-still recognised for compatibility.</SPAN></SUP>
+a different description. Additional it provides <CODE>embedded</CODE>:
 
-<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Writing 
+<DL>
+<DT><STRONG>embedded</STRONG>(<VAR>Boolean</VAR>)</DT>
+<DD class="defbody">
+The predicate <A NAME="idx:processrdf3:5"></A><A class="pred" href="#process_rdf/3">process_rdf/3</A> 
+processes arbitrary XML documents, only interpreting the content of <CODE>rdf:RDF</CODE> 
+elements. If this option is <CODE>false</CODE> (default), it gives a 
+warning on elements that are not processed. The option <CODE>embedded(true)</CODE> 
+can be used to process RDF embedded in <EM>xhtml</EM> without warnings.
+</DD>
+</DL>
+
+<P></DD>
+</DL>
+
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">Writing 
 RDF graphs</SPAN></A></H2>
 
-<P>The library <CODE>library(rdf_write)</CODE> provides the inverse of <A NAME="idx:loadrdf2:5"></A><A class="pred" href="#load_rdf/2">load_rdf/2</A> 
-using the predicate <A NAME="idx:rdfwritexml2:6"></A><A class="pred" href="#rdf_write_xml/2">rdf_write_xml/2</A>. 
+<P>The library <CODE>library(rdf_write)</CODE> provides the inverse of <A NAME="idx:loadrdf2:6"></A><A class="pred" href="#load_rdf/2">load_rdf/2</A> 
+using the predicate <A NAME="idx:rdfwritexml2:7"></A><A class="pred" href="#rdf_write_xml/2">rdf_write_xml/2</A>. 
 In most cases the RDF parser is used in combination with the Semweb 
 package providing <CODE>library(semweb/rdf_db)</CODE>. This library 
-defines <A NAME="idx:rdfsave2:7"></A><SPAN class="pred-ext">rdf_save/2</SPAN> 
+defines <A NAME="idx:rdfsave2:8"></A><SPAN class="pred-ext">rdf_save/2</SPAN> 
 to save a named RDF graph from the database to a file. This library 
 writes a list of rdf terms to a stream. It has been developed for the 
 SeRQL server which computes an RDF graph that needs to be transmitted in 
@@ -513,7 +521,7 @@ rdf_write(File, Triples) :-
 <P></DD>
 </DL>
 
-<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Testing 
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Testing 
 the RDF translator</SPAN></A></H2>
 
 <P>A test-suite and driver program are provided by <CODE>rdf_test.pl</CODE> 
@@ -532,7 +540,7 @@ resulting triples.
 <DT class="pubdef"><A NAME="passed/1"><STRONG>passed</STRONG>(<VAR>+N</VAR>)</A></DT>
 <DD class="defbody">
 Process <CODE>suite/tN.rdf</CODE> and store the resulting triples in
-<CODE>suite/ok/tN.pl</CODE> for later validation by <A NAME="idx:test0:8"></A><A class="pred" href="#test/0">test/0</A>.
+<CODE>suite/ok/tN.pl</CODE> for later validation by <A NAME="idx:test0:9"></A><A class="pred" href="#test/0">test/0</A>.
 </DD>
 <DT class="pubdef"><A NAME="test/0"><STRONG>test</STRONG></A></DT>
 <DD class="defbody">
@@ -540,7 +548,7 @@ Run all tests and classify the result.
 </DD>
 </DL>
 
-<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Metrics</SPAN></A></H2>
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">Metrics</SPAN></A></H2>
 
 <P>It took three days to write and one to document the Prolog RDF 
 parser. A significant part of the time was spent understanding the RDF 
@@ -579,9 +587,9 @@ seconds Prolog startup time to process this file. The <A class="url" href="http:
 Solutions</A> parser (written in Perl) requires 1.5 seconds exluding 
 0.25 seconds startup time.
 
-<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Installation</SPAN></A></H2>
+<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Installation</SPAN></A></H2>
 
-<H3><A NAME="sec:7.1"><SPAN class="sec-nr">7.1</SPAN><SPAN class="sec-title">Unix 
+<H3><A NAME="sec:7.1"><SPAN class="sec-nr">7.1</SPAN> <SPAN class="sec-title">Unix 
 systems</SPAN></A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
@@ -601,7 +609,7 @@ using:
 where
 <CODE>$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
 
-<H3><A NAME="sec:7.2"><SPAN class="sec-nr">7.2</SPAN><SPAN class="sec-title">Windows</SPAN></A></H3>
+<H3><A NAME="sec:7.2"><SPAN class="sec-nr">7.2</SPAN> <SPAN class="sec-title">Windows</SPAN></A></H3>
 
 <P>Run the file <CODE>setup.pl</CODE> by double clicking it. This will 
 install the required files into the SWI-Prolog directory and update the 

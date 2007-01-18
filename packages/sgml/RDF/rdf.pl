@@ -173,7 +173,10 @@ member_attribute(A) :-
 %		
 %		* entity(Name, Value)
 %		Overrule entity values found in the file
-
+%		
+%		* embedded(Boolean)
+%		If =true=, do not give warnings if rdf:RDF is embedded
+%		in other XML data.
 
 process_rdf(File, OnObject, Options0) :-
 	is_list(Options0), !,
@@ -247,17 +250,23 @@ on_begin(NS:'RDF', Attr, _) :-
 	nb_setval(rdf_state, Options).
 on_begin(Tag, Attr, Parser) :-
 	nb_getval(rdf_state, Options),
-	Options \== (-), !,
-	get_sgml_parser(Parser, line(Start)),
-	get_sgml_parser(Parser, file(File)),
-	sgml_parse(Parser,
-		   [ document(Content),
-		     parse(content)
-		   ]),
-	nb_getval(rdf_object_handler, OnTriples),
-	element_to_plrdf(element(Tag, Attr, Content), Objects, Options),
-	rdf_triples(Objects, Triples),
-	call(OnTriples, Triples, File:Start).
+	(   Options == (-)
+	->  nb_getval(rdf_options, RdfOptions),
+	    (	memberchk(embedded(true), RdfOptions)
+	    ->	true
+	    ;	print_message(warning, rdf(unexpected(Tag, Parser)))
+	    )
+	;   get_sgml_parser(Parser, line(Start)),
+	    get_sgml_parser(Parser, file(File)),
+	    sgml_parse(Parser,
+		       [ document(Content),
+			 parse(content)
+		       ]),
+	    nb_getval(rdf_object_handler, OnTriples),
+	    element_to_plrdf(element(Tag, Attr, Content), Objects, Options),
+	    rdf_triples(Objects, Triples),
+	    call(OnTriples, Triples, File:Start)
+	).
 
 %%	on_xmlns(+NS, +URL, +Parser)
 %	
@@ -354,6 +363,11 @@ prolog:message(rdf(not_a_name(Name))) -->
 	[ 'RDF: argument to rdf:ID is not an XML name: ~p'-[Name] ].
 prolog:message(rdf(redefined_id(Id))) -->
 	[ 'RDF: rdf:ID ~p: multiple definitions'-[Id] ].
+prolog:message(rdf(unexpected(Tag, Parser))) -->
+	{ get_sgml_parser(Parser, file(File)),
+	  get_sgml_parser(Parser, line(Line))
+	},
+	[ 'RDF: ~w:~d: Unexpected element ~w'-[File, Line, Tag] ].
 
 
 		 /*******************************
