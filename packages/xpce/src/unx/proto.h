@@ -1,6 +1,6 @@
 #define COMMON(type) SO_LOCAL type
 
-/* /swi40/jan/src/pl/packages/xpce/src/unx/directory.c */
+/* /home/jan/src/pl/packages/xpce/src/unx/directory.c */
 COMMON(status)	cdDirectory(Directory d);
 COMMON(status)	makeClassDirectory(Class class);
 COMMON(char *)	dirName(const char *f, char *dir, size_t dirlen);
@@ -9,7 +9,7 @@ COMMON(int)	isAbsolutePath(const char *p);
 COMMON(int)	absolutePath(const char *file, char *path, size_t buflen);
 COMMON(int)	expandFileNameW(const wchar_t *pattern, wchar_t *bin, size_t binlen);
 
-/* /swi40/jan/src/pl/packages/xpce/src/unx/file.c */
+/* /home/jan/src/pl/packages/xpce/src/unx/file.c */
 COMMON(Name)	expandFileName(Name in);
 COMMON(Name)	getOsNameFile(FileObj f);
 COMMON(status)	closeFile(FileObj f);
@@ -26,24 +26,25 @@ COMMON(status)	checkErrorFile(FileObj f);
 COMMON(status)	storeCharFile(FileObj f, int c);
 COMMON(void)	putstdw(unsigned long w, IOSTREAM *fd);
 COMMON(status)	storeWordFile(FileObj f, Any w);
+COMMON(status)	storeDoubleFile(FileObj file, double f);
 COMMON(status)	storeStringFile(FileObj f, String s);
 COMMON(status)	storeNameFile(FileObj f, Name n);
 COMMON(status)	storeIntFile(FileObj f, Int i);
 COMMON(status)	findFile(FileObj f, CharArray path, Name mode);
 COMMON(status)	makeClassFile(Class class);
 
-/* /swi40/jan/src/pl/packages/xpce/src/unx/process.c */
+/* /home/jan/src/pl/packages/xpce/src/unx/process.c */
 COMMON(void)	killAllProcesses(int status);
 COMMON(status)	pidProcess(Process p, Int pid);
 COMMON(status)	closeInputProcess(Process p);
 COMMON(status)	makeClassProcess(Class class);
 
-/* /swi40/jan/src/pl/packages/xpce/src/unx/socket.c */
+/* /home/jan/src/pl/packages/xpce/src/unx/socket.c */
 COMMON(Name)	SockError(void);
 COMMON(status)	acceptSocket(Socket s);
 COMMON(status)	makeClassSocket(Class class);
 
-/* /swi40/jan/src/pl/packages/xpce/src/unx/stream.c */
+/* /home/jan/src/pl/packages/xpce/src/unx/stream.c */
 COMMON(status)	initialiseStream(Stream s, Int rfd, Int wfd, Code input, Any sep);
 COMMON(status)	closeStream(Stream s);
 COMMON(status)	closeInputStream(Stream s);

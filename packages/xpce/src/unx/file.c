@@ -1069,6 +1069,25 @@ storeWordFile(FileObj f, Any w)
   return checkErrorFile(f);
 }
 
+#ifdef WORDS_BIGENDIAN
+static const int double_byte_order[] = { 7,6,5,4,3,2,1,0 };
+#else
+static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
+#endif
+
+#define BYTES_PER_DOUBLE (sizeof(double_byte_order)/sizeof(int))
+
+status
+storeDoubleFile(FileObj file, double f)
+{ unsigned char *cl = (unsigned char *)&f;
+  unsigned int i;
+
+  for(i=0; i<BYTES_PER_DOUBLE; i++)
+    Sputc(cl[double_byte_order[i]], file->fd);
+
+  return checkErrorFile(file);
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 storeStringFile() stores a string to a   file. For compatibility reasons

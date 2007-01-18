@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Store/load real objects to/from file for 64-bit platforms.  Various
+  other issues with real objects on 64-bit systems.
+
 VERSION 6.6.25, distributed with SWI-Prolog 5.6.25
 ==================================================
 

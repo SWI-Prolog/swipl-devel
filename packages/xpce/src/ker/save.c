@@ -485,6 +485,7 @@ storeSlotsClass(Class class, FileObj file)
   succeed;
 }
 
+
 		/********************************
 		*            LOADING            *
 		*********************************/
@@ -521,6 +522,30 @@ loadWord(IOSTREAM *fd)
 #else /*WORDS_BIGENDIAN*/
   return Sgetw(fd);
 #endif /*WORDS_BIGENDIAN*/
+}
+
+
+#ifdef WORDS_BIGENDIAN
+static const int double_byte_order[] = { 7,6,5,4,3,2,1,0 };
+#else
+static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
+#endif
+
+#define BYTES_PER_DOUBLE (sizeof(double_byte_order)/sizeof(int))
+
+double
+loadDouble(IOSTREAM *fd)
+{ double f;
+  unsigned char *cl = (unsigned char *)&f;
+  unsigned int i;
+
+  for(i=0; i<BYTES_PER_DOUBLE; i++)
+  { int c = Sgetc(fd);
+    
+    cl[double_byte_order[i]] = c;
+  }
+  
+  return f;
 }
 
 

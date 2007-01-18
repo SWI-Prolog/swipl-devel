@@ -1525,7 +1525,7 @@ typedef struct to_cell *ToCell;		/* TemporaryObjectCell */
 struct to_cell
 { ToCell	next;			/* Next of the stack */
   Any		value;			/* Object there */
-  intptr_t	index;			/* Index of the mark */
+  long		index;			/* Index of the mark */
 };
 
 GLOBAL ToCell	AnswerStack;		/* Stack of `answer objects' */

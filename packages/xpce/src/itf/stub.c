@@ -27,6 +27,20 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <signal.h>
+#include <stddef.h>
+#ifdef __WINDOWS__
+typedef __int64 int64_t;
+typedef unsigned __int64 uint64_t;
+#if (_MSC_VER < 1300)
+typedef long intptr_t;
+typedef unsigned long uintptr_t;
+#endif
+#else
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#include <inttypes.h>			/* more portable than stdint.h */
+#endif
 #include <h/interface.h>
 #include "stub.h"
 

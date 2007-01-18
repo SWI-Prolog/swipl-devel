@@ -145,25 +145,7 @@ static status
 storeReal(Real r, FileObj file)
 { TRY(storeSlotsObject(r, file));
 
-#if REAL_IN_ONE
-{ union
-  { double f;
-    Any w;
-  } v;
-  v.f = r->value;
-  storeWordFile(file, v.w);
-}
-#else
-#ifndef WORDS_BIGENDIAN
-  storeWordFile(file, (Any) r->value2);
-  storeWordFile(file, (Any) r->value1);
-#else
-  storeWordFile(file, (Any) r->value1);
-  storeWordFile(file, (Any) r->value2);
-#endif
-#endif
-
-  succeed;
+  return storeDoubleFile(file, valReal(r));
 }
 
 
@@ -179,23 +161,7 @@ loadReal(Real r, IOSTREAM *fd, ClassDef def)
     u.l = loadWord(fd);
     setReal(r, (double)u.f);
   } else
-  { 
-#ifdef REAL_IN_ONE
-    union
-    { double f;
-      Any w;
-    } v;
-    v.w = loadWord(fd);
-    r->value = v.f;
-#else
-#ifndef WORDS_BIGENDIAN
-    r->value2 = loadWord(fd);
-    r->value1 = loadWord(fd);
-#else
-    r->value1 = loadWord(fd);
-    r->value2 = loadWord(fd);
-#endif
-#endif
+  { setReal(r, loadDouble(fd));
   }
   succeed;
 }

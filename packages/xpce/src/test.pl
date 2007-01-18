@@ -3,9 +3,9 @@
     Part of XPCE/SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@science.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -340,6 +340,29 @@ textbuffer(store-2) :-
 
 
 		 /*******************************
+		 *	        REAL		*
+		 *******************************/
+
+real(itf-1) :-
+	D = 213.4753,
+	new(C, chain(D)),
+	get(C, head, D2),
+	D == D2.
+real(add-1) :-
+	D1 is 454.234, D2 is -373.33,
+	new(R1, real(D1)),
+	send(R1, plus, D2),
+	get(R1, value, Sum),
+	Sum =:= D1+D2.
+real(store-1) :-
+	D = 3783.3784378,
+	new(R, real(D)),
+	tmp_file(store, Tmp),
+	send(R, save_in_file, Tmp),
+	get(file(Tmp), object, R2),
+	D == R2.
+
+		 /*******************************
 		 *	  OBJECT-AS-FILE	*
 		 *******************************/
 
@@ -629,6 +652,7 @@ testset(file).				% file (-name) handling
 testset(dir).				% directory (-name) handling
 testset(bom).				% Byte Order Mark hanling
 testset(plterm).			% Prolog terms in XPCE
+testset(real).				% floating point numbers
 testset(textbuffer).
 testset(asfile).			% test pce_open and friends
 testset(selection).			% X11 selection

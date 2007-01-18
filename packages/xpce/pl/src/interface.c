@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org/packages/xpce/
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,13 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#endif
+
+#define SWI 1			/* SWI-Prolog version 2.5! and up */
+
+#ifdef SWI
+#include <SWI-Stream.h>			/* get intptr_t, etc first */
+#include <SWI-Prolog.h>
 #endif
 
 #define DEBUG(g) ((void)0)
@@ -64,8 +71,6 @@
 #ifdef __WINDOWS__
 #include <windows.h>
 #endif
-
-#define SWI 1			/* SWI-Prolog version 2.5! and up */
 
 #ifdef __GNUC__
 #define TermVector(name, size)  Term name[size]
@@ -121,8 +126,6 @@ typedef SP_term_ref	Fid;
 #endif /*SICSTUS*/
 
 #ifdef SWI
-#include <SWI-Stream.h>
-#include <SWI-Prolog.h>
 
 typedef atom_t		Atom;
 typedef term_t		Term;
