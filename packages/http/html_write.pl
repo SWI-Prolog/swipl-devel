@@ -34,6 +34,9 @@
 	    page/4,			% page from head and body
 	    html/3,
 
+	    html_set_options/1,		% +OptionList
+	    html_current_option/1,	% ?Option
+
 					% Useful primitives for expanding
 	    html_begin/3,		% +EnvName[(Attribute...)]
 	    html_end/3,			% +EnvName
@@ -45,6 +48,7 @@
 	    print_html/2,		% +Stream, +List
 	    html_print_length/2		% +List, -Length
 	  ]).
+:- use_module(library(error)).
 :- use_module(library(quintus)).	% for meta_predicate/1
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -71,13 +75,84 @@ Prolog term into  an  HTML  document.  We   use  DCG  for  most  of  the
 generation. 
 */
 
+		 /*******************************
+		 *	      SETTINGS		*
+		 *******************************/
+
+%%	html_set_options(+Options) is det.
+%
+%	Set options for the HTML output.   Options  are stored in prolog
+%	flags to ensure  with  proper   multi-threaded  behaviour  where
+%	setting an option is local to the   thread and new threads start
+%	with the options from the parent thread.  Defined options are:
+%	
+%		* dialect(Dialect)
+%		One of =html= (default) or =xhtml=.
+%		
+%		* doctype(+DocType)
+%		Set the =|<|DOCTYPE|= DocType =|>|= line for page//1 and
+%		page//2.
+
+html_set_options([]).
+html_set_options([H|T]) :-
+	html_set_option(H),
+	html_set_options(T).
+
+html_set_option(dialect(Dialect)) :- !,
+	must_be(oneof([html,xhtml]), Dialect),
+	set_prolog_flag(html_dialect, Dialect).
+html_set_option(doctype(Atom)) :- !,
+	must_be(atom, Atom),
+	set_prolog_flag(html_doctype, Atom).
+html_set_option(O) :-
+	domain_error(html_option, O).
+
+
+%%	html_current_option(?Option) is nondet.
+%
+%	True if Option is an active option for the HTML generator.
+
+html_current_option(dialect(Dialect)) :-
+	current_prolog_flag(html_dialect, Dialect).
+html_current_option(doctype(DocType)) :-
+	current_prolog_flag(html_doctype, DocType).
+
+
+option_default(html_dialect, html).
+option_default(html_doctype, 'HTML PUBLIC "-//IETF//DTD HTML 4.0//EN"').
+
+%%	init_options is det.
+%
+%	Initialise the HTML processing options.
+
+init_options :-
+	(   option_default(Name, Value),
+	    (	current_prolog_flag(Name, _)
+	    ->	true
+	    ;	set_prolog_flag(Name, Value)
+	    ),
+	    fail
+	;   true
+	).
+	
+:- initialization
+	init_options.
+
+
+		 /*******************************
+		 *	       PAGE		*
+		 *******************************/
+
 %%	page(+Content:dom)// is det.
 %%	page(+Head:dom, +Body:dom)// is det.
 %
-%	Generate a page including the HTML =|<!DOCTYPE>|= header.
+%	Generate a page including the   HTML  =|<!DOCTYPE>|= header. The
+%	actual doctype is read from the   option =doctype= as defined by
+%	html_set_options/1.
 
 page(Content) -->
-	[ '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 4.0//EN">\n',
+	{ html_current_option(doctype(DocType)) },
+	[ '<!DOCTYPE HTML ', DocType, '>\n',
 	  '<html>',
 	  nl(1)
 	],
@@ -87,7 +162,8 @@ page(Content) -->
 	].
 
 page(Head, Body) -->
-	[ '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 4.0//EN">\n',
+	{ html_current_option(doctype(DocType)) },
+	[ '<!DOCTYPE HTML ', DocType, '>\n',
 	  '<html>',
 	  nl(1)
 	],
@@ -156,7 +232,7 @@ html(X, M) -->
 do_expand(Token, _) -->			% call user hooks
 	expand(Token), !.
 do_expand(Fmt-Args, _) --> !,
-	{ sformat(String, Fmt, Args)
+	{ format(string(String), Fmt, Args)
 	},
 	html_quoted(String).
 do_expand(\List, _) -->
@@ -181,25 +257,40 @@ do_expand(Token, _) -->
 	}, !,
 	html_quoted(Token).
 do_expand(element(Env, Attributes, Contents), M) --> !,
-	html_begin(Env, Attributes),
-	html(Contents, M),
-	html_end(Env).
+	(   { Contents == [],
+	      html_current_option(dialect(xhtml))
+	    }
+	->  xhtml_empty(Env, Attributes)
+	;   html_begin(Env, Attributes),
+	    html(Contents, M),
+	    html_end(Env)
+	).
 do_expand(Term, M) -->
 	{ Term =.. [Env, Contents]
 	}, !,
 	(   { layout(Env, _, empty)
 	    }
 	->  html_begin(Env, Contents)
-	;   html_begin(Env),
-	    html(Contents, M),
-	    html_end(Env)
+	;   (   { Contents == [],
+		  html_current_option(dialect(xhtml))
+		}
+	    ->  xhtml_empty(Env, [])
+	    ;	html_begin(Env),
+		html(Contents, M),
+		html_end(Env)
+	    )
 	).
 do_expand(Term, M) -->
 	{ Term =.. [Env, Attributes, Contents]
 	}, !,
-	html_begin(Env, Attributes),
-	html(Contents, M),
-	html_end(Env).
+	(   { Contents == [],
+	      html_current_option(dialect(xhtml))
+	    }
+	->  xhtml_empty(Env, Attributes)
+	;   html_begin(Env, Attributes),
+	    html(Contents, M),
+	    html_end(Env)
+	).
 
 %%	html_begin(+Env)// is det.
 %%	html_end(+End)// is det
@@ -229,7 +320,12 @@ html_begin(Env, Attributes) -->
 	[<],
 	[Env],
 	attributes(Attributes),
-	[>],
+	(   { layout(Env, _, empty),
+	      html_current_option(dialect(xhtml))
+	    }
+	->  ['/>']
+	;   [>]
+	),
 	post_open(Env).
 
 html_end(Env)   -->			% empty element or omited close
@@ -243,6 +339,18 @@ html_end(Env)   -->
 	[Env],
 	['>'],
 	post_close(Env).
+
+%%	xhtml_empty(+Env, +Attributes)// is det.
+%
+%	Emit element in xhtml mode with empty content.
+
+xhtml_empty(Env, Attributes) -->
+	pre_open(Env),
+	[<],
+	[Env],
+	attributes(Attributes),
+	['/>'].
+
 
 attributes([]) --> !,
 	[].
@@ -397,6 +505,8 @@ post_close(_) -->
 %	@param Close	Either as Open, or the atom - (minus) to imit the
 %			close-tag or =empty= to indicate the element has
 %			no content model.
+%			
+% 	@tbd	Complete table
 
 :- multifile
 	layout/3.
