@@ -86,5 +86,5 @@ Packages
  * sgml		[DONE]
  * ssl
  * table
- * xpce		- Compiled libXpm and libjpeg.  Made global preparations
+ * xpce		[DONE]
  * zlib
