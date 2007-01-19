@@ -34,7 +34,7 @@ This module is based on pl_odbc.{c,pl},   a  read-only ODBC interface by
 Stefano  De  Giorgi  (s.degiorgi@tin.it).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <windows.h>
 #define HAVE_MKTIME 1
 #define HAVE_GMTIME 1
