@@ -470,7 +470,7 @@ pl_new_table(term_t file, term_t columns, term_t options, term_t handle)
   table->size   = -1;
   table->buffer = NULL;
   table->window = NULL;
-#ifdef WIN32
+#ifdef __WINDOWS__
   table->hfile  = NULL;
   table->hmap   = NULL;
 #endif
@@ -486,7 +486,7 @@ static int
 open_table(Table table)
 { if ( !table->buffer )
   {
-#ifdef WIN32
+#ifdef __WINDOWS__
     BY_HANDLE_FILE_INFORMATION info;
 
     table->hfile = CreateFile(PL_atom_chars(table->file),
@@ -541,7 +541,7 @@ open_table(Table table)
 
     return error(ERR_IO, "open_table/1", id, NULL);
   }
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 #ifdef __unix__
     struct stat buf;
@@ -775,7 +775,7 @@ pl_close_table(term_t handle)
 
   if ( table->buffer )
   {
-#ifdef WIN32
+#ifdef __WINDOWS__
     if ( table->buffer )
       UnmapViewOfFile(table->buffer);
     if ( table->hmap )

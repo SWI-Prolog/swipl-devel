@@ -29,7 +29,7 @@
 
 #include <SWI-Prolog.h>
 #include "order.h"
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <windows.h>
 #endif
 
@@ -81,7 +81,7 @@ typedef struct tabletag
   long	        window_size;		/* size of the current window */
   char	       *buffer;			/* buffer for the file */
   long		size;			/* size of the `window' */
-#ifdef WIN32
+#ifdef __WINDOWS__
   HANDLE	hfile;			/* handle to the file */
   HANDLE	hmap;			/* handle to the map */
 #endif

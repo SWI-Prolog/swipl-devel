@@ -35,7 +35,7 @@
 #include <errno.h>
 #endif
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <malloc.h>
 
 		 /*******************************
@@ -78,7 +78,7 @@ again:
 		 *            ERRORS		*
 		 *******************************/
 
-#if !defined(HAVE_STRERROR) && !defined(WIN32)
+#if !defined(HAVE_STRERROR) && !defined(__WINDOWS__)
 static char *
 strerror(int err)
 { extern char *sys_errlist[];
@@ -109,7 +109,7 @@ error_func(int type, const char *pred, int argi, long argl)
     case ERR_IO:
     { char buf[1024];
 
-#ifdef WIN32
+#ifdef __WINDOWS__
       char *msg = winerror(argi);
       sprintf(buf, "%s: IO error %s", pred, msg);
       free(msg);
