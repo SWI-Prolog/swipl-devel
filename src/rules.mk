@@ -90,11 +90,11 @@ BINDIR=$(PLBASE)\runtime
 # packages have been ported to Win64 yet ...
 
 PLPKG=chr clpqr http plunit pldoc
-PKGS64=$(PLPKG) cpp odbc clib sgml sgml\RDF semweb xpce nlp
+PKGS64=$(PLPKG) cpp odbc clib sgml sgml\RDF semweb xpce nlp zlib
 !IF "$(MD)" == "WIN64"
 PKGS=$(PKGS64)
 !ELSE
-PKGS=$(PKGS64) table jpl ssl zlib
+PKGS=$(PKGS64) table jpl ssl
 !ENDIF
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
