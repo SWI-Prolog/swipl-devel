@@ -7,14 +7,19 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+=================================
+VERSION 5.6.26 (January 19, 2007)
+=================================
+
   * FIXED: A is "c" for Unicode characters.
 
   * PORT/MODIFIED: Massive changes in type handling, preparing
     for Win64 and improving type-safety on other -notably 64-bit- platforms.
 
     All text+length C interface functions now use the type size_t.  This
-    portability problems on 64-bit code.  Compile your program with all
-    warnings enabled and fix messages concerning type-size issues.
+    causes portability problems on 64-bit code.  Compile your program with all
+    warnings enabled and fix messages concerning type-size issues.  Code
+    is binary compatible on 32-bit systems.
 
   * FIXED: Proper error on erase on clause of static predicate.  Solly
     Brown.
