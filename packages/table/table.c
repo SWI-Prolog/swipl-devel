@@ -268,6 +268,22 @@ get_size_ex(term_t t, size_t *v)
 
 
 static int
+get_offset_ex(term_t t, table_offset_t *v)
+{ int64_t i;
+
+  if ( PL_get_int64(t, &i) )
+  { if ( i < 0 )
+      return domain_error(t, "nonneg");
+      
+    *v = (table_offset_t)i;		/* TBD: Check on 32-bit systems */
+    return TRUE;
+  }
+
+  return type_error(t, "integer");
+}
+
+
+static int
 get_table(term_t handle, Table *table)
 { long l;
 
@@ -1332,11 +1348,11 @@ read_record(Table t, table_offset_t start, table_offset_t *end, term_t record)
 foreign_t
 pl_read_record(term_t handle, term_t from, term_t to, term_t record)
 { Table table;
-  size_t start, end;
+  table_offset_t start, end;
 
   if ( !get_table(handle, &table) )
     return error(ERR_INSTANTIATION, "read_record/4", 1, handle);
-  if ( !get_size_ex(from, &start) )
+  if ( !get_offset_ex(from, &start) )
     return FALSE;
 
   if ( !open_table(table) )
@@ -1355,12 +1371,12 @@ pl_read_record(term_t handle, term_t from, term_t to, term_t record)
 foreign_t
 pl_read_record_data(term_t handle, term_t from, term_t to, term_t record)
 { Table table;
-  size_t start, end;
+  table_offset_t start, end;
   size_t len;
 
   if ( !get_table(handle, &table) )
     return error(ERR_INSTANTIATION, "read_record/4", 1, handle);
-  if ( !get_size_ex(from, &start) )
+  if ( !get_offset_ex(from, &start) )
     return FALSE;
 
   if ( !open_table(table) )
@@ -1395,7 +1411,7 @@ pl_read_fields(term_t handle, term_t from, term_t to, term_t fields)
 
   if ( !get_table(handle, &table) )
     return error(ERR_INSTANTIATION, "read_fields/4", 1, handle);
-  if ( !get_size_ex(from, &start) )
+  if ( !get_offset_ex(from, &start) )
     return FALSE;
 
   if ( !open_table(table) ||

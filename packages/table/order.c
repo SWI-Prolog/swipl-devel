@@ -531,7 +531,8 @@ pl_prefix_string(term_t ord, term_t pre, term_t t2)
 static foreign_t
 pl_prefix_string4(term_t ord, term_t pre, term_t post, term_t t2)
 { OrdTable ot;
-  char *s1, *s2;
+  char *s1;
+  const char *s2;
   size_t l1, l2;
   unsigned int flags = (CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING|CVT_EXCEPTION);
 
@@ -539,7 +540,7 @@ pl_prefix_string4(term_t ord, term_t pre, term_t post, term_t t2)
     return error(ERR_INSTANTIATION, "prefix_string/4", 1, ord);
   if ( !PL_get_nchars(pre, &l1, &s1, flags) )
     return FALSE;
-  if ( !PL_get_nchars(t2, &l2, &s2, flags) )
+  if ( !PL_get_nchars(t2, &l2, (char**)&s2, flags) )
     return FALSE;
 
   if ( l1 <= l2 &&
