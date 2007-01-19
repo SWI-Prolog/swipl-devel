@@ -62,6 +62,7 @@ mime_extension(txt,  text/plain).
 					% markup
 mime_extension(htm,  text/html).
 mime_extension(html, text/html).
+mime_extension(xhtml, application/'xhtml+xml').
 mime_extension(sgml, text/'x-sgml').
 mime_extension(sgm,  text/'x-sgml').
 mime_extension(xml,  text/xml).
@@ -98,3 +99,7 @@ mime_extension(ico,  image/'x-ico').
 mime_extension(kml,  application/'vnd.google-earth.kml+xml').
 mime_extension(kmz,  application/'vnd.google-earth.kmz').
 
+					% Flash
+mime_extension(swf,  application/'x-shockwave-flash').
+					% MP3
+mime_extension(mp3,  audio/mpeg).
