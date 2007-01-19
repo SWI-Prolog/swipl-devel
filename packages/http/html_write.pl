@@ -49,6 +49,7 @@
 	    html_print_length/2		% +List, -Length
 	  ]).
 :- use_module(library(error)).
+:- use_module(library(option)).
 :- use_module(library(sgml)).		% Quote output
 :- use_module(library(quintus)).	% for meta_predicate/1
 :- set_prolog_flag(generate_debug_info, false).
@@ -107,6 +108,10 @@ encoding.
 %		* doctype(+DocType)
 %		Set the =|<|DOCTYPE|= DocType =|>|= line for page//1 and
 %		page//2.
+%		
+%	Note  that  the  doctype  is  covered    by  two  prolog  flags:
+%	=html_doctype= for the html dialect  and =xhtml_doctype= for the
+%	xhtml dialect. Dialect muct be switched before doctype.
 
 html_set_options([]).
 html_set_options([H|T]) :-
@@ -118,7 +123,10 @@ html_set_option(dialect(Dialect)) :- !,
 	set_prolog_flag(html_dialect, Dialect).
 html_set_option(doctype(Atom)) :- !,
 	must_be(atom, Atom),
-	set_prolog_flag(html_doctype, Atom).
+	(   current_prolog_flag(html_dialect, html)
+	->  set_prolog_flag(html_doctype, Atom)
+	;   set_prolog_flag(xhtml_doctype, Atom)
+	).
 html_set_option(O) :-
 	domain_error(html_option, O).
 
@@ -130,11 +138,18 @@ html_set_option(O) :-
 html_current_option(dialect(Dialect)) :-
 	current_prolog_flag(html_dialect, Dialect).
 html_current_option(doctype(DocType)) :-
-	current_prolog_flag(html_doctype, DocType).
+	(   current_prolog_flag(html_dialect, html)
+	->  current_prolog_flag(html_doctype, DocType)
+	;   current_prolog_flag(xhtml_doctype, DocType)
+	).
 
 
 option_default(html_dialect, html).
 option_default(html_doctype, 'HTML PUBLIC "-//IETF//DTD HTML 4.0//EN"').
+option_default(xhtml_doctype,
+	       'html PUBLIC "-//W3C//DTD XHTML 1.0 \
+	       Transitional//EN" \
+	       "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"').
 
 %%	init_options is det.
 %
@@ -159,6 +174,12 @@ init_options :-
 
 xml_header('<?xml version=\'1.0\' encoding=\'UTF-8\'?>').
 
+%%	ns(?Which, ?Atom)
+%
+%	Namespace declarations
+
+ns(xhtml, 'http://www.w3.org/1999/xhtml').
+
 
 		 /*******************************
 		 *	       PAGE		*
@@ -173,26 +194,18 @@ xml_header('<?xml version=\'1.0\' encoding=\'UTF-8\'?>').
 
 page(Content) -->
 	{ html_current_option(doctype(DocType)) },
-	[ '<!DOCTYPE HTML ', DocType, '>\n',
-	  '<html>',
-	  nl(1)
+	[ '<!DOCTYPE ', DocType, '>'
 	],
-	html(Content),
-	[ nl(1),
-	  '</html>\n'
-	].
+	html(html(Content)).
 
 page(Head, Body) -->
 	{ html_current_option(doctype(DocType)) },
-	[ '<!DOCTYPE HTML ', DocType, '>\n',
-	  '<html>',
-	  nl(1)
+	[ '<!DOCTYPE ', DocType, '>'
 	],
+	html_begin(html),
 	pagehead(Head),
 	pagebody(Body),
-	[ nl(1),
-	  '</html>\n'
-	].
+	html_end(html).
 
 pagehead(Head) -->
 	{ functor(Head, head, _)
@@ -340,7 +353,7 @@ html_begin(Env, Attributes) -->
 	pre_open(Env),
 	[<],
 	[Env],
-	attributes(Attributes),
+	attributes(Env, Attributes),
 	(   { layout(Env, _, empty),
 	      html_current_option(dialect(xhtml))
 	    }
@@ -373,6 +386,21 @@ xhtml_empty(Env, Attributes) -->
 	attributes(Attributes),
 	['/>'].
 
+
+%%	attributes(+Env, +Attributes)// is det.
+%
+%	Emit attributes for Env. Adds XHTML namespace declaration to the
+%	html tag if not provided by the caller.
+
+attributes(html, L) --> 
+	{ html_current_option(dialect(xhtml)) }, !,
+	(   { option(xmlns(_), L) }
+	->  attributes(L)
+	;   { ns(xhtml, NS) },
+	    attributes([xmlns(NS)|L])
+	).
+attributes(_, L) -->
+	attributes(L).
 
 attributes([]) --> !,
 	[].

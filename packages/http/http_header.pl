@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -238,12 +238,12 @@ html_message_lines([nl|T]) --> !,
 html_message_lines([flush]) -->
 	[].
 html_message_lines([Fmt-Args|T]) --> !,
-	{ sformat(S, Fmt, Args)
+	{ format(string(S), Fmt, Args)
 	},
 	html([S]),
 	html_message_lines(T).
 html_message_lines([Fmt|T]) --> !,
-	{ sformat(S, Fmt, [])
+	{ format(string(S), Fmt, [])
 	},
 	html([S]),
 	html_message_lines(T).
@@ -363,7 +363,7 @@ http_post_data(form_data(Data), Out, HdrExtra) :- !,
 	mime_pack(Data, MimeOut, Boundary),
 	close(MimeOut),
 	size_memory_file(MemFile, Size),
-	sformat(ContentType, 'multipart/form-data; boundary=~w', [Boundary]),
+	format(string(ContentType), 'multipart/form-data; boundary=~w', [Boundary]),
 	http_join_headers(HdrExtra,
 			  [ mime_version('1.0'),
 			    content_type(ContentType)
@@ -381,7 +381,7 @@ http_post_data(List, Out, HdrExtra) :-		% multipart-mixed
 	mime_pack(List, MimeOut, Boundary),
 	close(MimeOut),
 	size_memory_file(MemFile, Size),
-	sformat(ContentType, 'multipart/mixed; boundary=~w', [Boundary]),
+	format(string(ContentType), 'multipart/mixed; boundary=~w', [Boundary]),
 	http_join_headers(HdrExtra,
 			  [ mime_version('1.0'),
 			    content_type(ContentType)
