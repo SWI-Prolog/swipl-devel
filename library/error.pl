@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -108,6 +108,7 @@ must_be(Type, X) :-
 	;   instantiation_error(X)
 	).
 
+has_type(any, _).
 has_type(atom, X)	  :- atom(X).
 has_type(atomic, X)	  :- atomic(X).
 has_type(between(L,U), X) :- (   integer(L) 
