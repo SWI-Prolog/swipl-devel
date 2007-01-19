@@ -939,7 +939,7 @@ find_start_of_record(Table t, table_offset_t start)
   if ( start < 0 || start > (table_offset_t)t->window_size )
     return -1;
 
-  if ( start == t->window_size && start > 0 )
+  if ( start == (table_offset_t)t->window_size && start > 0 )
     start--;
 
   s = t->window + start;
