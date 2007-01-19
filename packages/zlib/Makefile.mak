@@ -12,12 +12,19 @@ PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 CFLAGS=$(CFLAGS) /D__SWI_PROLOG__
 
+!IF "$(MD)" == "WIN64"
+ZLIB=ZLIBWAPI
+CFLAGS=$(CFLAGS) /DZLIB_WINAPI
+!ELSE
+ZLIB=ZLIB1
+!ENDIF
+
 OBJ=		zlib4pl.obj
 
 all:		zlib4pl.dll
 
 zlib4pl.dll:	$(OBJ)
-		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) zlib1.lib $(PLLIB)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(ZLIB).lib $(PLLIB) $(LIBS)
 
 !IF "$(CFG)" == "rt"
 install:	idll
@@ -36,7 +43,7 @@ check::
 ################################################################
 
 idll::
-		copy "$(WINDLLDIR)\zlib1.dll" "$(BINDIR)"
+		copy "$(EXTRALIBDIR)\$(ZLIB).dll" "$(BINDIR)"
 		copy zlib4pl.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
 		copy zlib4pl.pdb "$(BINDIR)"

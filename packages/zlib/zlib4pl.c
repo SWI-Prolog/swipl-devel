@@ -263,7 +263,7 @@ write_gzip_header(z_context *ctx)
   Sputc(gz_magic[1], s);
   Sputc(Z_DEFLATED, s);			/* method */
   Sputc(0, s);				/* flags */
-  write_ulong_lsb(s, stamp);		/* time stamp */
+  write_ulong_lsb(s, (unsigned long)stamp); /* time stamp */
   Sputc(0, s);				/* xflags */
   Sputc(OS_CODE, s);			/* OS identifier */
 
@@ -349,14 +349,14 @@ zread(void *handle, char *buf, size_t size)
     { flush = Z_FINISH;
     } else
     { ctx->zstate.next_in  = (Bytef*)ctx->stream->bufp;
-      ctx->zstate.avail_in = ctx->stream->limitp - ctx->stream->bufp;
+      ctx->zstate.avail_in = (long)(ctx->stream->limitp - ctx->stream->bufp);
       ctx->stream->bufp    = ctx->stream->limitp; /* empty buffer */
     }
   }
 
   DEBUG(1, Sdprintf("Processing %d bytes\n", ctx->zstate.avail_in));
   ctx->zstate.next_out  = (Bytef*)buf;
-  ctx->zstate.avail_out = size;
+  ctx->zstate.avail_out = (long)size;
   
   if ( ctx->format == F_UNKNOWN )
   { Bytef *p;
@@ -368,7 +368,7 @@ zread(void *handle, char *buf, size_t size)
     }
 
     if ( p )
-    { int m = p - ctx->zstate.next_in;
+    { long m = (int)(p - ctx->zstate.next_in);
 
       ctx->format = F_GZIP;
       DEBUG(1, Sdprintf("Skipped gzip header (%d bytes)\n", m));
@@ -430,7 +430,7 @@ zread(void *handle, char *buf, size_t size)
   switch((rc=inflate(&ctx->zstate, Z_NO_FLUSH)))
   { case Z_OK:
     case Z_STREAM_END:
-    { int n = size - ctx->zstate.avail_out;
+    { long n = (long)(size - ctx->zstate.avail_out);
       
       if ( ctx->format == F_GZIP && n > 0 )
 	ctx->crc = crc32(ctx->crc, (Bytef*)buf, n);
@@ -466,7 +466,7 @@ zwrite4(void *handle, char *buf, size_t size, int flush)
   int rc;
 
   ctx->zstate.next_in = (Bytef*)buf;
-  ctx->zstate.avail_in = size;
+  ctx->zstate.avail_in = (long)size;
   if ( ctx->format == F_GZIP && size > 0 )
     ctx->crc = crc32(ctx->crc, ctx->zstate.next_in, ctx->zstate.avail_in);
 
@@ -530,7 +530,7 @@ zcontrol(void *handle, int op, void *data)
 static int
 zclose(void *handle)
 { z_context *ctx = handle;
-  int rc;
+  ssize_t rc;
 
   DEBUG(1, Sdprintf("zclose() ...\n"));
 
