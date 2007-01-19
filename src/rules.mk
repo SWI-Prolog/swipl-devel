@@ -82,11 +82,12 @@ BINDIR=$(PLBASE)\runtime
 # Makefile also checks whether the package directory exists.  Not all
 # packages have been ported to Win64 yet ...
 
-PKGS64=	chr clpqr cpp clib sgml sgml\RDF semweb http xpce nlp plunit pldoc
+PLPKG=chr clpqr http plunit pldoc
+PKGS64=$(PLPKG) cpp odbc clib sgml sgml\RDF semweb xpce nlp
 !IF "$(MD)" == "WIN64"
 PKGS=$(PKGS64)
 !ELSE
-PKGS=$(PKGS64) table odbc jpl ssl zlib
+PKGS=$(PKGS64) table jpl ssl zlib
 !ENDIF
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
