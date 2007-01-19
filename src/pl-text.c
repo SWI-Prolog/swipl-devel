@@ -353,7 +353,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	    wchar_t wc;
 
 	    memset(&mbs, 0, sizeof(mbs));
-	    while( n > 0 && (rc=mbrtowc(&wc, s, n, &mbs)) > 0 )
+	    while( n > 0 && (rc=mbrtowc(&wc, s, n, &mbs)) != (size_t)-1 )
 	    { len++;
 	      n -= rc;
 	      s += rc;
@@ -588,7 +588,7 @@ wctobuffer(wchar_t c, mbstate_t *mbs, Buffer buf)
 { char b[MB_LEN_MAX];
   size_t n;
 
-  if ( (n=wcrtomb(b, c, mbs)) > 0 )
+  if ( (n=wcrtomb(b, c, mbs)) != (size_t)-1 )
   { size_t i;
 
     for(i=0; i<n; i++)
@@ -791,7 +791,7 @@ PL_canonise_text(PL_chars_t *text)
 	wchar_t wc;
 
 	memset(&mbs, 0, sizeof(mbs));
-	while( n > 0 && (rc=mbrtowc(&wc, s, n, &mbs)) > 0 )
+	while( n > 0 && (rc=mbrtowc(&wc, s, n, &mbs)) != (size_t)-1 )
 	{ if ( wc > 0xff )
 	    iso = FALSE;
 	  len++;
@@ -824,7 +824,7 @@ PL_canonise_text(PL_chars_t *text)
 	    }
 
 	    to = text->text.t;
-	    while( n > 0 && (rc=mbrtowc(&wc, from, n, &mbs)) > 0 )
+	    while( n > 0 && (rc=mbrtowc(&wc, from, n, &mbs)) != (size_t)-1 )
 	    { *to++ = (char)wc;
 	      n -= rc;
 	      from += rc;
@@ -847,7 +847,7 @@ PL_canonise_text(PL_chars_t *text)
 	    }
 
 	    to = text->text.w;
-	    while( n > 0 && (rc=mbrtowc(&wc, from, n, &mbs)) > 0 )
+	    while( n > 0 && (rc=mbrtowc(&wc, from, n, &mbs)) != (size_t)-1 )
 	    { *to++ = wc;
 	      n -= rc;
 	      from += rc;
