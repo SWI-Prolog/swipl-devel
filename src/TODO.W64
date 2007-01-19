@@ -65,7 +65,7 @@ SWI-Prolog
 Packages
 ================================================================
 
- * chr		- depends on gmp
+ * chr		[PROLOG]
  * clib		[DONE]
  * clpqr	[PROLOG]
  * clpr		[PROLOG]
@@ -73,13 +73,13 @@ Packages
  * cppproxy	- non-standard
  * db		- non-standard
  * http		[PROLOG]
- * inclpr
+ * inclpr	[PROLOG]
  * jasmine	- non-standard
  * jpl
  * ltx2html	- non-portable
  * mp		- outdated
  * nlp		[DONE]
- * odbc
+ * odbc		[DONE]
  * pldoc	[PROLOG]
  * plunit	[PROLOG]
  * semweb	[DONE]
