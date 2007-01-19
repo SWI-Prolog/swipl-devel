@@ -937,8 +937,8 @@ getReadLineFile(FileObj f)
 
 static StringObj
 getReadFile(FileObj f, Int n)
-{ int size;
-  int m;
+{ size_t size;
+  ssize_t m;
   StringObj s;
 
   TRY( check_file(f, NAME_read) );
@@ -961,7 +961,7 @@ getReadFile(FileObj f, Int n)
   { s = answerObject(ClassString, EAV);
     str_unalloc(&s->data);
     str_inithdr(&s->data, FALSE);
-    s->data.size = size;
+    s->data.size = (int)size;
     str_alloc(&s->data);
 
     if ( (m = Sfread(s->data.s_textA, 1, size, f->fd)) != size )

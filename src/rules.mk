@@ -79,10 +79,15 @@ BINDIR=$(PLBASE)\runtime
 !ENDIF
 
 # Define the packages to be installed automatically.  Note that the
-# Makefile also checks whether the package directory exists.
+# Makefile also checks whether the package directory exists.  Not all
+# packages have been ported to Win64 yet ...
 
-PKGS=	chr clpqr table cpp odbc clib sgml sgml\RDF semweb http \
-	xpce jpl ssl nlp plunit pldoc zlib
+PKGS64=	chr clpqr cpp clib sgml sgml\RDF semweb http xpce nlp plunit pldoc
+!IF "$(MD)" == "WIN64"
+PKGS=$(PKGS64)
+!ELSE
+PKGS=$(PKGS64) table odbc jpl ssl zlib
+!ENDIF
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
 

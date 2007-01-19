@@ -12,7 +12,7 @@ PLHOME=..\..
 LIBDIR=$(PLBASE)\library
 EXDIR=$(PKGDOC)\examples\chr
 CHR=$(LIBDIR)\chr
-PL="$(PLHOME)\bin\plcon.exe"
+PL="$(PLHOME)\bin\plcon.exe" -L200M -G100M -T40M
 
 LIBPL=		chr_runtime.pl chr_op.pl chr_translate.pl chr_debug.pl \
 		chr_messages.pl hprolog.pl pairlist.pl clean_code.pl \
@@ -53,10 +53,10 @@ chr_translate.pl: chr_translate.chr chr_translate_bootstrap2.pl guard_entailment
 		$(PL) -q -f chr_swi_bootstrap.pl \
 		      -g "chr_compile_step3('chr_translate.chr','chr_translate.pl'),halt" \
 		      -t 'halt(1)'
-		$(PL) -L50M -G50M -T20M -p chr=. -q -f chr_swi_bootstrap.pl \
+		$(PL) -p chr=. -q -f chr_swi_bootstrap.pl \
 		      -g "chr_compile_step4('guard_entailment.chr','guard_entailment.pl'),halt" \
 		      -t 'halt(1)'
-		$(PL) -L50M -G50M -T20M -p chr=. -q -f chr_swi_bootstrap.pl \
+		$(PL) -p chr=. -q -f chr_swi_bootstrap.pl \
 		      -g "chr_compile_step4('chr_translate.chr','chr_translate.pl'),halt" \
 		      -t 'halt(1)'
 
