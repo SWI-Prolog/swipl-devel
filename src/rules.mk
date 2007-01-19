@@ -22,15 +22,22 @@ LIBDIR=$(PLBASE)\lib
 INCDIR=$(PLBASE)\include
 PLCUSTOM=$(PLBASE)\custom
 
+# Get extra libraries and include files from here
+
+EXTRAINCDIR=$(HOME)\include
+!IF "$(MD)" == "WIN64"
+EXTRALIBDIR=$(HOME)\lib64
+!ELSE
+EXTRALIBDIR=$(HOME)\lib
+!ENDIF
+
 # We get pthreadVC.dll, pthreadVC.lib, pthread.h, sched.h and semaphore.h
 # from the locations below
 WINDLLDIR=$(WINDIR)\system32
-PTHREADINCDIR=$(HOME)\include
+EXTRAINCDIR=$(HOME)\include
 !IF "$(MD)" == "WIN64"
-PTHREADLIBDIR=$(HOME)\lib64
 LIBPTHREAD=pthreadVC2
 !ELSE
-PTHREADLIBDIR=$(HOME)\lib
 LIBPTHREAD=pthreadVC
 !ENDIF
 
