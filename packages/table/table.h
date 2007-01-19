@@ -53,7 +53,7 @@
 #define CMP_DICT	0x1		/* dictionary order */
 #define CMP_IGNORECASE	0x2		/* ignore case */
 
-typedef long	table_offset_t;			/* general offset */
+typedef ssize_t	table_offset_t;		/* general offset */
 
 typedef struct fieldtag
 { atom_t	name;			/* name of the field */
@@ -78,9 +78,9 @@ typedef struct tabletag
   char	       *escape_table;		/* escape mapping table */
   functor_t	record_functor;		/* functor for record */
   char	       *window;			/* pointer to the current window */
-  long	        window_size;		/* size of the current window */
+  size_t        window_size;		/* size of the current window */
   char	       *buffer;			/* buffer for the file */
-  long		size;			/* size of the `window' */
+  size_t	size;			/* size of the `window' */
 #ifdef __WINDOWS__
   HANDLE	hfile;			/* handle to the file */
   HANDLE	hmap;			/* handle to the map */
@@ -110,7 +110,7 @@ typedef struct fieldquerytag
     void *	ptr;			/* anonymous pointer */
     term_t	term;			/* value as term (read) */
   } value;
-  int		length;			/* length of string */
+  size_t	length;			/* length of string */
   OrdTable	ord;			/* ordering table */
   int 		flags;
 } queryfield, *QueryField;

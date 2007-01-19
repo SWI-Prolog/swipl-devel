@@ -42,7 +42,7 @@ typedef struct
 
 OrdTable	findOrdTable(atom_t name);
 int             compare_strings(const char *s1, const char *s2,
-				int n, OrdTable ot);
+				size_t n, OrdTable ot);
 install_t       install_order(void);
 
 #endif /*_ORDER_H_INCLUDED*/

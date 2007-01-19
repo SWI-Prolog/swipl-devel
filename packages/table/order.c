@@ -388,7 +388,7 @@ pl_order_table_mapping(term_t handle, term_t from, term_t to, control_t ctrl)
 	f = 0;
         break;
       case PL_REDO:
-	f = PL_foreign_context(ctrl);
+	f = (int)PL_foreign_context(ctrl);
         break;
       case PL_CUTTED:
 	return TRUE;
@@ -426,7 +426,7 @@ get_order_table(term_t handle, OrdTable *t)
 
 
 static int
-compare_strings_(const char *s1, const char **S2, int n, OrdTable ot)
+compare_strings_(const char *s1, const char **S2, size_t n, OrdTable ot)
 { const char *e1 = s1 + n;
   const char *s2 = *S2;
 
@@ -477,7 +477,7 @@ compare_strings_(const char *s1, const char **S2, int n, OrdTable ot)
 
 
 int
-compare_strings(const char *s1, const char *s2, int n, OrdTable ot)
+compare_strings(const char *s1, const char *s2, size_t n, OrdTable ot)
 { return compare_strings_(s1, &s2, n, ot);
 }
 
@@ -486,16 +486,18 @@ static foreign_t
 pl_compare_strings(term_t ord, term_t t1, term_t t2, term_t result)
 { OrdTable ot;
   char *s1, *s2;
+  size_t len;
   int rval;
+  unsigned int flags = (CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING|CVT_EXCEPTION);
 
   if ( !get_order_table(ord, &ot) )
     return error(ERR_INSTANTIATION, "compare_strings/4", 1, ord);
-  if ( !PL_get_chars(t1, &s1, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
-    return error(ERR_INSTANTIATION, "compare_strings/4", 2, t1);
-  if ( !PL_get_chars(t2, &s2, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
-    return error(ERR_INSTANTIATION, "compare_strings/4", 3, t2);
+  if ( !PL_get_nchars(t1, &len, &s1, flags) )
+    return FALSE;
+  if ( !PL_get_nchars(t2, &len, &s2, flags) )
+    return FALSE;
 
-  rval = compare_strings(s1, s2, -1, ot);
+  rval = compare_strings(s1, s2, len, ot);
 
   return PL_unify_atom(result,
 		       rval == 0 ? ATOM_eq :
@@ -508,16 +510,17 @@ static foreign_t
 pl_prefix_string(term_t ord, term_t pre, term_t t2)
 { OrdTable ot;
   char *s1, *s2;
-  unsigned int l1;
+  size_t l1, l2;
+  unsigned int flags = (CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING|CVT_EXCEPTION);
 
   if ( !get_order_table(ord, &ot) )
     return error(ERR_INSTANTIATION, "prefix_string/3", 1, ord);
-  if ( !PL_get_chars(pre, &s1, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
-    return error(ERR_INSTANTIATION, "prefix_string/3", 2, pre);
-  if ( !PL_get_chars(t2, &s2, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
-    return error(ERR_INSTANTIATION, "prefix_string/3", 3, t2);
+  if ( !PL_get_nchars(pre, &l1, &s1, flags) )
+    return FALSE;
+  if ( !PL_get_nchars(t2, &l2, &s2, flags) )
+    return FALSE;
 
-  if ( (l1=strlen(s1)) <= strlen(s2) &&
+  if ( l1 <= l2 &&
        compare_strings(s1, s2, l1, ot) == 0 )
     return TRUE;
 
@@ -528,18 +531,18 @@ pl_prefix_string(term_t ord, term_t pre, term_t t2)
 static foreign_t
 pl_prefix_string4(term_t ord, term_t pre, term_t post, term_t t2)
 { OrdTable ot;
-  char *s1;
-  const char *s2;
-  unsigned int l1;
+  char *s1, *s2;
+  size_t l1, l2;
+  unsigned int flags = (CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING|CVT_EXCEPTION);
 
   if ( !get_order_table(ord, &ot) )
     return error(ERR_INSTANTIATION, "prefix_string/4", 1, ord);
-  if ( !PL_get_chars(pre, &s1, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
-    return error(ERR_INSTANTIATION, "prefix_string/4", 2, pre);
-  if ( !PL_get_chars(t2, (char **)&s2, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
-    return error(ERR_INSTANTIATION, "prefix_string/4", 4, t2);
+  if ( !PL_get_nchars(pre, &l1, &s1, flags) )
+    return FALSE;
+  if ( !PL_get_nchars(t2, &l2, &s2, flags) )
+    return FALSE;
 
-  if ( (l1=strlen(s1)) <= strlen(s2) &&
+  if ( l1 <= l2 &&
        compare_strings_(s1, &s2, l1, ot) == 0 )
     return PL_unify_atom_chars(post, s2);
 
@@ -551,18 +554,16 @@ static foreign_t
 pl_sub_string(term_t ord, term_t pre, term_t t2)
 { OrdTable ot;
   char *s1, *s2;
-  unsigned int l1, l2;
+  size_t l1, l2;
   unsigned int offset = 0;
+  unsigned int flags = (CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING|CVT_EXCEPTION);
 
   if ( !get_order_table(ord, &ot) )
     return error(ERR_INSTANTIATION, "sub_string/3", 1, ord);
-  if ( !PL_get_chars(pre, &s1, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
-    return error(ERR_INSTANTIATION, "sub_string/3", 2, pre);
-  if ( !PL_get_chars(t2, &s2, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
-    return error(ERR_INSTANTIATION, "sub_string/3", 3, t2);
-
-  l1 = strlen(s1);
-  l2 = strlen(s2);
+  if ( !PL_get_nchars(pre, &l1, &s1, flags) )
+    return FALSE;
+  if ( !PL_get_nchars(t2, &l2, &s2, flags) )
+    return FALSE;
 
   for( ; l1+offset <= l2; offset++ )
   { if ( compare_strings(s1, s2+offset, l1, ot) == 0 )

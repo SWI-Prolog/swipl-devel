@@ -28,6 +28,8 @@
 
 #define O_ORDER				/* include order.c package */
 
+#include <SWI-Stream.h>
+
 #include "table.h"
 #include "error.h"
 #include <stdlib.h>
@@ -54,8 +56,6 @@
 #ifdef HAVE_FLOATINGPOINT_H
 #include <floatingpoint.h>		/* strtod() prototype */
 #endif
-
-#include <SWI-Stream.h>
 
 #ifdef O_DEBUG
 #define DEBUG(g) g
@@ -203,10 +203,69 @@ init_constants()
 }
 
 
+		 /*******************************
+		 *	       ERRORS		*
+		 *******************************/
+
+static int
+domain_error(term_t actual, const char *expected)
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
+		      PL_FUNCTOR_CHARS, "domain_error", 2,
+		        PL_CHARS, expected,
+		        PL_TERM, actual,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+
+static int
+type_error(term_t actual, const char *expected)
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
+		      PL_FUNCTOR_CHARS, "type_error", 2,
+		        PL_CHARS, expected,
+		        PL_TERM, actual,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+
+static int
+format_error(const char *pred, size_t pos, Field f)
+{ char buf[1024];
+
+  sprintf(buf, "%s: bad record, field %d (%s), char-index %ld",
+	  pred, f->index, PL_atom_chars(f->name), (long)pos);
+
+  return PL_warning(buf);
+}
+
+
 
 		 /*******************************
 		 *	 HIGH-LEVEL GET-*	*
 		 *******************************/
+
+static int
+get_size_ex(term_t t, size_t *v)
+{ int64_t i;
+
+  if ( PL_get_int64(t, &i) )
+  { if ( i < 0 )
+      return domain_error(t, "nonneg");
+      
+    *v = (size_t)i;			/* TBD: Check on 32-bit systems */
+    return TRUE;
+  }
+
+  return type_error(t, "integer");
+}
+
 
 static int
 get_table(term_t handle, Table *table)
@@ -508,7 +567,7 @@ open_table(Table table)
 				    NULL,
 				    PAGE_READONLY,
 				    0L,
-				    table->size,
+				    (DWORD)table->size, /* Truncated? */
 				    NULL);
     if ( !table->hmap )
       goto errio;
@@ -590,15 +649,15 @@ open_table(Table table)
 static foreign_t
 pl_table_window(term_t handle, term_t start, term_t size)
 { Table table;
-  long from;
-  long wsize;
+  size_t from;
+  size_t wsize;
 
   if ( !get_table(handle, &table) )
     return error(ERR_INSTANTIATION, "table_window/3", 1, handle);
-  if ( !PL_get_long(start, &from) || from < 0 )
-    return error(ERR_INSTANTIATION, "table_window/3", 2, start);
-  if ( !PL_get_long(size, &wsize) || wsize < 0 )
-    return error(ERR_INSTANTIATION, "table_window/3", 3, size);
+  if ( !get_size_ex(start, &from) )
+    return FALSE;
+  if ( !get_size_ex(size, &wsize) )
+    return FALSE;
 
   if ( from > table->size )
     from = table->size;
@@ -861,7 +920,7 @@ find_start_of_record(Table t, table_offset_t start)
 { char *s;
   int er = t->record_sep;
 
-  if ( start < 0 || start > t->window_size )
+  if ( start < 0 || start > (table_offset_t)t->window_size )
     return -1;
 
   if ( start == t->window_size && start > 0 )
@@ -890,7 +949,7 @@ previous_record(Table t, table_offset_t start)
 { char *s;
   int er = t->record_sep;
     
-  if ( start < 0 || start > t->window_size )
+  if ( start < 0 || start > (table_offset_t)t->window_size )
     return -1;
 
   s = t->window + start - 1;
@@ -905,12 +964,12 @@ previous_record(Table t, table_offset_t start)
 static foreign_t
 pl_previous_record(term_t handle, term_t here, term_t prev)
 { Table t;
-  table_offset_t start;
+  size_t start;
 
   if ( !get_table(handle, &t) )
     return error(ERR_INSTANTIATION, "previous_record/3", 1, handle);
-  if ( !PL_get_long(here, &start) )
-    return error(ERR_INSTANTIATION, "previous_record/3", 2, here);
+  if ( !get_size_ex(here, &start) )
+    return FALSE;
 
   if ( !open_table(t) )
     PL_fail;
@@ -937,15 +996,15 @@ pl_start_of_record(term_t handle,		/* table */
 		   term_t recstart,		/* return */
 		   control_t control)		/* backtracking control */
 { Table table;
-  table_offset_t n, f, t;
+  size_t n, f, t;
   char *end;				/* pointer to end of search */
   char *start;				/* start of search */
   int er;
 
   switch(PL_foreign_control(control))
   { case PL_FIRST_CALL:
-      if ( !PL_get_long(from, &f) )
-	return error(ERR_INSTANTIATION, "start_of_record/4", 2, from);
+      if ( !get_size_ex(from, &f) )
+	return FALSE;
       break;
     case PL_REDO:
       f = PL_foreign_context(control);
@@ -957,8 +1016,8 @@ pl_start_of_record(term_t handle,		/* table */
 
   if ( !get_table(handle, &table) )
     return error(ERR_INSTANTIATION, "start_of_record/4", 1, handle);
-  if ( !PL_get_long(to, &t) )
-    return error(ERR_INSTANTIATION, "start_of_record/4", 3, t);
+  if ( !get_size_ex(to, &t) )
+    return FALSE;
 
   if ( !open_table(table) )
     return FALSE;
@@ -1071,8 +1130,8 @@ digitval(int chr, int base)
 
 
 static void
-tab_memcpy(Table table, int flags, char *to, const char *from, int len)
-{ int i = len;
+tab_memcpy(Table table, int flags, char *to, const char *from, size_t len)
+{ size_t i = len;
   char *t = to;
 
   if ( flags & FIELD_DOWNCASE )
@@ -1117,7 +1176,7 @@ tab_memcpy(Table table, int flags, char *to, const char *from, int len)
 
 static int
 unify_field_text(Table t, int flags, int type,
-		 term_t arg, const char *s, int len)
+		 term_t arg, const char *s, size_t len)
 { char *tmp;
   int rval = FALSE;
 #ifndef HAVE_ALLOCA
@@ -1202,7 +1261,7 @@ read_field(Table t, Field f, table_offset_t start, table_offset_t *end, term_t a
 	  { type = FIELD_ATOM;
 	    goto case_atom;
 	  }
-	  return error(ERR_FORMAT, "read_record", s-t->window, f);
+	  return format_error("read_record", s-t->window, f);
 	}
       }
 
@@ -1211,7 +1270,7 @@ read_field(Table t, Field f, table_offset_t start, table_offset_t *end, term_t a
 	{ type = FIELD_ATOM;
 	  goto case_atom;
 	}
-	return error(ERR_FORMAT, "read_record", s-t->window, f);
+	return format_error("read_record", s-t->window, f);
       }
 
       return PL_unify_integer(arg, l);
@@ -1230,7 +1289,7 @@ read_field(Table t, Field f, table_offset_t start, table_offset_t *end, term_t a
       { type = FIELD_ATOM;
 	goto case_atom;
       } else
-	return error(ERR_FORMAT, "read_record", s-t->window, f);
+	return format_error("read_record", s-t->window, f);
     }
   }
 
@@ -1273,12 +1332,12 @@ read_record(Table t, table_offset_t start, table_offset_t *end, term_t record)
 foreign_t
 pl_read_record(term_t handle, term_t from, term_t to, term_t record)
 { Table table;
-  table_offset_t start, end;
+  size_t start, end;
 
   if ( !get_table(handle, &table) )
     return error(ERR_INSTANTIATION, "read_record/4", 1, handle);
-  if ( !PL_get_long(from, &start) )
-    return error(ERR_INSTANTIATION, "read_record/4", 2, from);
+  if ( !get_size_ex(from, &start) )
+    return FALSE;
 
   if ( !open_table(table) )
     return FALSE;
@@ -1296,13 +1355,13 @@ pl_read_record(term_t handle, term_t from, term_t to, term_t record)
 foreign_t
 pl_read_record_data(term_t handle, term_t from, term_t to, term_t record)
 { Table table;
-  table_offset_t start, end;
-  int len;
+  size_t start, end;
+  size_t len;
 
   if ( !get_table(handle, &table) )
     return error(ERR_INSTANTIATION, "read_record/4", 1, handle);
-  if ( !PL_get_long(from, &start) )
-    return error(ERR_INSTANTIATION, "read_record/4", 2, from);
+  if ( !get_size_ex(from, &start) )
+    return FALSE;
 
   if ( !open_table(table) )
     return FALSE;
@@ -1336,8 +1395,8 @@ pl_read_fields(term_t handle, term_t from, term_t to, term_t fields)
 
   if ( !get_table(handle, &table) )
     return error(ERR_INSTANTIATION, "read_fields/4", 1, handle);
-  if ( !PL_get_long(from, &start) )
-    return error(ERR_INSTANTIATION, "read_fields/4", 2, from);
+  if ( !get_size_ex(from, &start) )
+    return FALSE;
 
   if ( !open_table(table) ||
        (start = find_start_of_record(table, start)) < 0 )
@@ -1423,7 +1482,7 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
   { case FIELD_ATOM:
     case FIELD_STRING:
     case FIELD_CODELIST:
-    { int len = z-a;
+    { size_t len = z-a;
 #ifdef HAVE_ALLOCA
       char *tmp = alloca(len+1);
 #define DEALLOC()
@@ -1483,7 +1542,7 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
 	}
       } else if ( q->flags & QUERY_SUBSTRING ) /* Use Boyle Moore */
       { if ( q->ord )
-	{ int ls = q->length;
+	{ size_t ls = q->length;
 	  int i;
 
 	  for(i=0; i+ls<=len; i++)
@@ -1495,8 +1554,8 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
           DEALLOC();
 	  return MATCH_NE;
 	} else
-	{ int ls = q->length;
-	  int i;
+	{ size_t ls = q->length;
+	  size_t i;
 
 	  for(i=0; i+ls<=len; i++)
 	  { if ( strncmp(q->value.s, &tmp[i], ls) == 0 )
@@ -1531,7 +1590,7 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
 	else if ( !isBlank(*a) )
 	{ if ( f->flags & FIELD_ALLOWBADNUM )
 	    return MATCH_NE;
-	  error(ERR_FORMAT, "match_record", a-t->window, f);
+	  format_error("match_record", a-t->window, f);
 	  return MATCH_NORECORD;
 	}
       }
@@ -1539,7 +1598,7 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
       if ( !digits )
       { if ( f->flags & FIELD_ALLOWBADNUM )
 	  return MATCH_NE;
-	error(ERR_FORMAT, "match_record", a-t->window, f);
+	format_error("match_record", a-t->window, f);
       }
 
       if ( q->flags & QUERY_READ )
@@ -1561,7 +1620,7 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
       if ( z != e )
       { if ( f->flags & FIELD_ALLOWBADNUM )
 	  return MATCH_NE;
-	error(ERR_FORMAT, "match_record", a-t->window, f);
+	format_error("match_record", a-t->window, f);
 	return MATCH_NORECORD;
       }
 
@@ -1634,7 +1693,7 @@ execute_binary_search(Query q)
 
     switch( match_record(q, here, &next, MR_KEY_ONLY) )
     { case MATCH_NORECORD:
-      { if ( here >= t->window_size )
+      { if ( here >= (table_offset_t)t->window_size )
 	  return FALSE;
 	here = next;
 	continue;
@@ -1675,7 +1734,7 @@ execute_binary_search(Query q)
 
   next:
     if ( low == here )
-    { while(here <= high && here < t->window_size)
+    { while(here <= high && here < (table_offset_t)t->window_size)
       { switch( match_record(q, here, &next, MR_KEY_ONLY) )
 	{ case MATCH_EQ:
 	    return here;
@@ -1958,7 +2017,7 @@ pl_in_table(term_t handle, term_t spec, term_t record, control_t control)
   } 
 
 
-  while(q->offset < q->table->window_size)
+  while(q->offset < (table_offset_t)q->table->window_size)
   { table_offset_t next;
 
     if ( match_record(q, q->offset, &next, 0) == MATCH_EQ )

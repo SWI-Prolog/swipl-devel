@@ -26,6 +26,7 @@
 #include <config.h>
 #endif
 
+#include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include <stdio.h>
 #include "error.h"
@@ -95,15 +96,6 @@ error_func(int type, const char *pred, int argi, long argl)
     { char buf[1024];
 
       sprintf(buf, "%s: instantiation error on argument %d", pred, argi);
-      return PL_warning(buf);
-    }
-    case ERR_FORMAT:
-    { char buf[1024];
-      Field f = (Field) argl;
-
-      sprintf(buf, "%s: bad record, field %d (%s), char-index %d",
-	      pred, f->index, PL_atom_chars(f->name), argi);
-
       return PL_warning(buf);
     }
     case ERR_IO:

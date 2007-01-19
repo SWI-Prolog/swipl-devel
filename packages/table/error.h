@@ -26,8 +26,7 @@
 #define _ERROR_H_INCLUDED
 
 #define ERR_INSTANTIATION 1		/* general badly typed argument */
-#define ERR_FORMAT 	  2		/* bad format in table */
-#define ERR_IO	          3		/* general IO error */
+#define ERR_IO	          2		/* general IO error */
 
 #define error(a,b,c,d) error_func(a,b,c,(long)(d))
 
