@@ -94,9 +94,9 @@ static HANDLE cout;			/* console output handle */
 static HANDLE cerr;
 
 static struct recall
-{ int size;				/* # characters stored */
-  int allocated;			/* # characters allocated */
-  char *data;				/* buffered text; */
+{ size_t size;				/* # characters stored */
+  size_t allocated;			/* # characters allocated */
+  char  *data;				/* buffered text; */
 } recall_buffer;
 
 

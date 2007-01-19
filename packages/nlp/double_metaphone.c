@@ -118,7 +118,7 @@ IsVowel(metastring * s, int pos)
 {
     char c;
 
-    if ((pos < 0) || (pos >= s->length))
+    if ((pos < 0) || (pos >= (int)s->length))
 	return 0;
 
     c = *(s->str + pos);
@@ -157,7 +157,7 @@ GetLength(metastring * s)
 static int
 GetAt(metastring * s, int pos)
 {
-    if ((pos < 0) || (pos >= s->length))
+    if ((pos < 0) || (pos >= (int)s->length))
 	return 0;
 
     return s->str[pos]&0xff;
@@ -167,7 +167,7 @@ GetAt(metastring * s, int pos)
 static void
 SetAt(metastring * s, int pos, int c)
 {
-    if ((pos < 0) || (pos >= s->length))
+    if ((pos < 0) || (pos >= (int)s->length))
 	return;
 
     s->str[pos] = c;
@@ -184,7 +184,7 @@ StringAt(metastring * s, int start, int length, ...)
     char *pos;
     va_list ap;
 
-    if ((start < 0) || (start >= s->length))
+    if ((start < 0) || (start >= (int)s->length))
         return 0;
 
     pos = (s->str + start);
