@@ -38,6 +38,10 @@ Stefano  De  Giorgi  (s.degiorgi@tin.it).
 #include <windows.h>
 #define HAVE_MKTIME 1
 #define HAVE_GMTIME 1
+#if (_MSC_VER >= 1400)
+#define HAVE_SQLLEN 1			/* should depend on SDK version? */
+#define HAVE_SQLULEN 1
+#endif
 #else
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -252,7 +256,7 @@ typedef struct
   SQLSMALLINT  NumCols;			/* # columns */
   SQLSMALLINT  NumParams;		/* # parameters */
   functor_t    db_row;			/* Functor for row */
-  unsigned int sqllen;			/* length of statement */
+  SQLINTEGER   sqllen;			/* length of statement */
   char        *sqltext;			/* statement text */
   unsigned     flags;			/* general flags */
   nulldef     *null;			/* Prolog null value */
@@ -1795,11 +1799,11 @@ get_sql_text(context *ctxt, term_t tquery)
     if ( !formatted_string(tquery, &qlen, &q) )
       return FALSE;
     ctxt->sqltext = q;
-    ctxt->sqllen = qlen;
+    ctxt->sqllen = (SQLINTEGER)qlen;
     set(ctxt, CTX_SQLMALLOCED);
   } else if ( PL_get_nchars(tquery, &qlen, &q, CVT_ATOM|CVT_STRING|BUF_MALLOC))
   { ctxt->sqltext = q;
-    ctxt->sqllen = qlen;
+    ctxt->sqllen = (SQLINTEGER)qlen;
     set(ctxt, CTX_SQLMALLOCED);
   } else
     return type_error(tquery, "atom_or_format");
@@ -2545,7 +2549,7 @@ declare_parameters(context *ctxt, term_t parms)
   { atom_t name;
     int arity;
     SWORD sqlType, fNullable;
-    UDWORD cbColDef = 0;
+    SQLULEN cbColDef = 0;
     SWORD plType = SQL_PL_DEFAULT;
     SQLLEN *vlenptr = NULL;		/* pointer to length */
 
@@ -3392,7 +3396,7 @@ as the wrong number of pad bytes for the first part of the data.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-put_chars(term_t val, int plTypeID, int len, const char *chars)
+put_chars(term_t val, int plTypeID, size_t len, const char *chars)
 { switch( plTypeID )
   { case SQL_PL_DEFAULT:
     case SQL_PL_ATOM:
@@ -3430,7 +3434,7 @@ pl_put_column(context *c, int nth, term_t col)
   if ( !p->ptr_value )			/* use SQLGetData() */
   { char buf[256];
     char *data = buf;
-    SDWORD len;
+    SQLLEN len;
 
     DEBUG(2, Sdprintf("Fetching value for column %d using SQLGetData()\n",
 		      nth+1));
@@ -3449,8 +3453,8 @@ pl_put_column(context *c, int nth, term_t col)
 			  "Please report to bugs@swi-prolog.org");
       } else if ( len >= (SDWORD)sizeof(buf) )
       { int pad = p->cTypeID == SQL_C_CHAR ? 1 : 0;
-	int todo = len-sizeof(buf)+2*pad;
-	SDWORD len2;
+	size_t todo = len-sizeof(buf)+2*pad;
+	SQLLEN len2;
 	char *ep;
 	int part = 2;
 
