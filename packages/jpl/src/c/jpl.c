@@ -857,7 +857,7 @@ static bool
 			{
 			jcp[i] = (jchar)cp[i]; // widen
 			}
-		*s = (*env)->NewString(env,jcp,len);
+		*s = (*env)->NewString(env,jcp,(jsize)len);
 		free(jcp);
 		return TRUE;
 		}
@@ -865,7 +865,7 @@ static bool
 		{
 #if SIZEOF_WCHAR_T == 2
 			{
-			*s = (*env)->NewString(env,wp,len);
+			*s = (*env)->NewString(env,wp,(jsize)len);
 			}
 #else
 			{
@@ -908,7 +908,7 @@ static bool
 			{
 			jcp[i] = (jchar)cp[i]; // widen
 			}
-		*s = (*env)->NewString(env,jcp,len);
+		*s = (*env)->NewString(env,jcp,(jsize)len);
 		free(jcp);
 		return TRUE;
 		}
@@ -916,7 +916,7 @@ static bool
 		{
 #if SIZEOF_WCHAR_T == 2
 			{
-			*s = (*env)->NewString(env,wp,len);
+			*s = (*env)->NewString(env,wp,(jsize)len);
 			}
 #else
 			{

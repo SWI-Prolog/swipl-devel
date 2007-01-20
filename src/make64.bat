@@ -9,8 +9,8 @@ set CVSROOT=:pserver:jan@gollem:/usr/local/plcvs
 set HOME=%USERPROFILE%
 set WINDIR=C:\WINDOWS
 set SDK=C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2
-set JAVA_HOME=C:\j2sdk1.4.2_04
-set JUNIT=%HOME%\lib\junit.jar
+set JAVA_HOME=C:\Program Files\Java\jdk1.5.0_10
+set JUNIT=%HOME%\lib64\junit.jar
 
 CALL "%SDK%\Setenv.cmd" /XP64 /RETAIL
 

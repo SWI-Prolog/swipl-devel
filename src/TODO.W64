@@ -75,7 +75,7 @@ Packages
  * http		[PROLOG]
  * inclpr	[PROLOG]
  * jasmine	- non-standard
- * jpl
+ * jpl		[DONE]
  * ltx2html	- non-portable
  * mp		- outdated
  * nlp		[DONE]
