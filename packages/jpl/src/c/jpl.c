@@ -59,7 +59,7 @@
 
 //=== includes =====================================================================================
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 // OS-specific header (SWI-Prolog FLI and Java Invocation API both seem to need this):
 // but not if we use the .NET 2.0 C compiler
 #include    <windows.h>
@@ -1861,7 +1861,7 @@ int
 jni_create_default_jvm()
     {
 	int  r;
-#ifdef WIN32
+#ifdef __WINDOWS__
 	char *cp;
 	DWORD len;
 
