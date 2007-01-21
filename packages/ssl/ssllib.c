@@ -618,7 +618,7 @@ ssl_cb_pem_passwd(char *buf, int size, int rwflag, void *userdata)
     }
 
     if (passwd) {
-        if ((len = strlen(passwd)) < size) {
+        if ((len = (int)strlen(passwd)) < size) {
             strcpy(buf, passwd);
         } else {
             len = 0;
@@ -1290,6 +1290,17 @@ pthreads_locking_callback(int mode, int type, const char *file, int line)
 }
 
 
+/*  From OpenSSL manual:
+
+    id_function(void) is a function that returns a thread ID. It is not
+    needed on Windows nor on platforms where getpid() returns a different
+    ID for each thread (most notably Linux).
+
+    As for pthreads_win32 version 2, the thread identifier is no longer
+    integral, we are going to test this claim from the manual
+*/
+
+#ifndef __WINDOWS__
 static unsigned long
 pthreads_thread_id(void)
 { unsigned long ret;
@@ -1297,6 +1308,7 @@ pthreads_thread_id(void)
   ret=(unsigned long)pthread_self();
   return(ret);
 }
+#endif
 
 
 int
@@ -1310,7 +1322,9 @@ ssl_thread_setup(void)
     pthread_mutex_init(&(lock_cs[i]), NULL);
   }
 			       
+#ifndef __WINDOWS__
   CRYPTO_set_id_callback(pthreads_thread_id);
+#endif
   CRYPTO_set_locking_callback(pthreads_locking_callback);
 
   return TRUE;
