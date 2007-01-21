@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -41,7 +41,11 @@ SWI-Prolog.h (pl-itf.h) and SWI-Stream.h (pl-stream.h).
 #include "pl-itf.h"
 
 #ifdef __WINDOWS__
+#ifdef WIN64
+#include "config/win64.h"
+#else
 #include "config/win32.h"
+#endif
 #else
 #include <config.h>
 #endif
@@ -174,8 +178,9 @@ input_on_fd(int fd)
 }
 
 
-static char *my_prompt   = NULL;
-static int   in_readline = 0;
+static char *my_prompt    = NULL;
+static int   in_readline  = 0;
+static int   sig_at_level = -1;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Signal handling wrapper.
@@ -191,6 +196,14 @@ We disable readline's signal handling  using   rl_catch_signals  = 0 and
 redo the work ourselves, where we call   the handler directly instead of
 re-sending the signal. See  "info  readline"   for  details  on readline
 signal handling issues.
+
+One of the problems is that the signal   handler may not return after ^C
+<abort>. Earlier versions uses PL_abort_handler()   to reset the basics,
+but  since  the  introduction  of  multi-threading  and  exception-based
+aborts, this no longer works. We set sig_at_level to the current nesting
+level if we receive a signal. If this is still the current nesting level
+if we reach readling again we assumed we broke out of the old invocation
+in a non-convential manner.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct
@@ -243,6 +256,8 @@ rl_sighandler(int sig)
 { sigstate *s;
 
   DEBUG(3, Sdprintf("Signal %d in readline\n", sig));
+
+  sig_at_level = in_readline;
 
   if ( sig == SIGINT )
     rl_free_line_state ();
@@ -319,7 +334,8 @@ event_hook()
 static void
 reset_readline()
 { if ( in_readline )
-    rl_cleanup_after_signal();
+  { restore_signals();
+  }
 
   if ( my_prompt )
     remove_string(my_prompt);
@@ -391,6 +407,11 @@ Sread_readline(void *handle, char *buf, size_t size)
 
 	my_prompt = prompt ? store_string(prompt) : (char *)NULL;
   
+	if ( sig_at_level == in_readline )
+	{ sig_at_level = -1;
+	  reset_readline();
+	}
+
 	if ( in_readline++ )
 	{ int state = rl_readline_state;
   
@@ -414,10 +435,10 @@ Sread_readline(void *handle, char *buf, size_t size)
       }
 
       if ( line )
-      { int l = strlen(line);
+      { size_t l = strlen(line);
 	  
 	if ( l >= size )
-	{ PL_warning("Input line too intptr_t");	/* must be tested! */
+	{ PL_warning("Input line too long");	/* must be tested! */
 	  l = size-1;
 	}
 	memcpy(buf, line, l);
@@ -522,7 +543,6 @@ PL_install_readline()
 		      PL_FA_NOTRACE);
   PL_set_feature("readline",    PL_BOOL, TRUE);
   PL_set_feature("tty_control", PL_BOOL, TRUE);
-  PL_abort_hook(reset_readline);
   PL_license("gpl", "GNU Readline library");
 }
 
