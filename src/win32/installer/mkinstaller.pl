@@ -34,31 +34,41 @@ daily :-
 
 name :-
 	daily, !,
-	version(Major, Minor, Patch),
-	get_time(X), convert_time(X, Y, M, D, H, Min, _, _),
-	format('Name "SWI-Prolog ~0+~48t~d~4+-~0+~48t~d~2+-~0+~48t~d~2+ ~0+~48t~d~2+:~0+~48t~d~2+ (~w.~w.~w++)"~n',
-	       [ Y, M, D, H, Min,
-		 Major, Minor, Patch
-	       ]).
+	get_time(X),
+	format_time(string(Date), '%F', X),
+	format('Name "SWI-Prolog ~w"~n', [Date]).
+
 name :-
 	version(Major, Minor, Patch),
-	get_time(X), convert_time(X, Date),
+	get_time(X),
+	format_time(string(Date), '%F', X),
 	format('Name "SWI-Prolog ~w.~w.~w (~s)"~n',
 	       [Major, Minor, Patch, Date]).
 
+%%	outfile(-File:atom) is det.
+%
+%	Compute the name of the output file.
+
 outfile(File) :-
 	daily, !,
-	get_time(X), convert_time(X, Y, M, D, _, _, _, _),
-	sformat(File, 'w32pl-~0+~48t~d~4+-~0+~48t~d~2+-~0+~48t~d~2+.exe',
-		[Y, M, D]).
+	outarch(Arch),
+	get_time(X),
+	format_time(string(Date), '%F', X),
+	format(atom(File), '~wpl-~w.exe',
+		[Arch, Date]).
 outfile(File) :-
+	outarch(Arch),
 	version(Major, Minor, Patch),
-	sformat(File, 'w32pl~w~w~w.exe',
-		[Major, Minor, Patch]).
+	format(atom(File), '~wpl~w~w~w.exe',
+	       [Arch, Major, Minor, Patch]).
+
+outarch(w64) :-
+	current_prolog_flag(arch, 'x64-win64'), !.
+outarch(w32).
 
 outfile :-
 	outfile(File),
-	format('OutFile "~s"~n', [File]).
+	format('OutFile "~w"~n', [File]).
 
 copy_script :-
 	daily, !,
@@ -80,6 +90,61 @@ run :-
 	outfile,
 	told,
 	copy_script.
+
+
+		 /*******************************
+		 *	       DEFINES		*
+		 *******************************/
+
+:- dynamic
+	def/2.
+
+%%	get_defines is det.
+%
+%	Process /DName and /DName=Value options. Asserts facts to
+%	def(Name, Value)
+
+get_defines :-
+	current_prolog_flag(argv, AV),
+	append(_, [--|Argv], AV), !,
+	maplist(assert_defines, Argv).
+get_defines.
+
+assert_defines(Def) :-
+	atom_codes(Def, Codes),
+	phrase(def(Name, Value), Codes),
+	assert(def(Name, Value)).
+
+def(Name, Value) -->
+	"/D", string(NameCodes), "=", string(ValueCodes), eos, !,
+	{ atom_codes(Name, NameCodes),
+	  atom_codes(Value, ValueCodes)
+	}.
+def(Name, '1') -->
+	"/D", string(NameCodes), eos, !,
+	{ atom_codes(Name, NameCodes)
+	}.
+
+
+%%	expand_defs(+Codes, -Expanded) is det.
+%
+%	Expand ${Name} in Codes using defs
+
+expand_defs([], []) :- !.
+expand_defs([0'$, 0'{|T0], Expanded) :-
+	append(NameCodes, [0'}|Rest], T0), !,
+	atom_codes(Name, NameCodes),
+	(   def(Name, Value)
+	->  true
+	;   throw(error(existence_error(def, Name), _))
+	),
+	atom_codes(Value, ValueCodes),
+	append(ValueCodes, RestOut, Expanded), !,
+	expand_defs(Rest, RestOut).
+expand_defs([H|T0], [H|T]) :-
+	expand_defs(T0, T).
+
+
 
 		 /*******************************
 		 *	       CHECK		*
@@ -138,7 +203,8 @@ token(Value) -->
 	;   string(Codes),
 	    sep
 	), !,
-	{ name(Value, Codes)
+	{ expand_defs(Codes, Expanded),
+	  name(Value, Expanded)
 	}.
 
 sep -->
@@ -230,7 +296,10 @@ ignore_file('porter_stem.pdb').
 		 *******************************/
 
 main :-
-	(   run, check_files, halt
+	(   get_defines,
+	    run,
+	    check_files,
+	    halt
 	;   halt(1)
 	).
 

@@ -902,14 +902,19 @@ set_window_title(rlc_console c)
   int major = v / 10000;
   int minor = (v / 100) % 100;
   int patch = v % 100;
-
 #ifdef O_PLMT
-  _stprintf(title, _T("SWI-Prolog (Multi-threaded, version %d.%d.%d)"),
-	    major, minor, patch);
+  TCHAR *mt = _T("Multi-threaded, ");
 #else
-  _stprintf(title, _T("SWI-Prolog (version %d.%d.%d)"),
-	    major, minor, patch);
+  TCHAR *mt = _T("");
 #endif
+#ifdef WIN64
+  TCHAR *w64 = _T("AMD64, ");			/* TBD: IA64 */
+#else
+  TCHAR *w64 = _T("xx");
+#endif
+
+  _stprintf(title, _T("SWI-Prolog (%s%sversion %d.%d.%d)"),
+	    w64, mt, major, minor, patch);
 
   rlc_title(c, title, NULL, 0);
 }

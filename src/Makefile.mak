@@ -43,12 +43,7 @@ PB=$(PLHOME)\boot
 INCLUDEDIR=$(PLHOME)\include
 CINCLUDE=$(INCLUDEDIR)\SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)\SWI-Stream.h
-!IF "$(MD)" == "WIN64"
-BOOTFILE=boot64.prc
-!ELSE
-BOOTFILE=boot32.prc
-!ENDIF
-STARTUPPATH=$(PLHOME)\$(BOOTFILE)
+STARTUPPATH=$(PLHOME)\$(PLBOOTFILE)
 LIBRARYDIR=$(PLBASE)\library
 
 OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
@@ -302,7 +297,7 @@ installer::
 		$(INSTALL_DATA) win32\installer\options.ini "$(PLBASE)\.."
 		$(INSTALL_DATA) win32\installer\pl.nsi "$(PLBASE)\.."
 		$(INSTALL_DATA) win32\installer\mkinstaller.pl "$(PLBASE)\.."
-		"C:\Program Files\NSIS\MakeNSIS.exe" "$(PLBASE)\..\pl.nsi"
+		"$(NSIS)" $(NSISDEFS) "$(PLBASE)\..\pl.nsi"
 
 ################################################################
 # DLL DEMOS

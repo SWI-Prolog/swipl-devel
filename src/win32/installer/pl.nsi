@@ -6,8 +6,15 @@
 !define GRP    $5 ; Startmenu group
 !define DEFCWD $6 ; Default working directory
 !define SHCTX  $7 ; Shell context (current/all)
+!define ARCH   $8 ; Architecture (x86, ia64 or amd64)
 
-!system "pl\bin\plcon.exe -f mkinstaller.pl -g true -t main" = 0
+!ifdef WIN64
+!define REGKEY SOFTWARE\SWI\Prolog64
+!else
+!define REGKEY SOFTWARE\SWI\Prolog
+!endif
+
+!system "pl\bin\plcon.exe -f mkinstaller.pl -g true -t main -- /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}" = 0
 !include "version.nsi"
 
 SetCompressor bzip2
@@ -19,7 +26,7 @@ ReserveFile "${NSISDIR}\Plugins\InstallOptions.dll"
 ReserveFile "options.ini"
 
 InstallDir $PROGRAMFILES\pl
-InstallDirRegKey HKLM SOFTWARE\SWI\Prolog "home"
+InstallDirRegKey HKLM ${REGKEY} "home"
 ComponentText "This will install the SWI-Prolog on your computer. \
                Select which optional components you want installed."
 DirText "This program will install SWI-Prolog on your computer.\
@@ -32,6 +39,9 @@ InstType "Typical (all except debug symbols)"	# 1
 InstType "Minimal (no graphics)"		# 2
 InstType "Full"					# 3
 
+!ifdef WIN64
+Page custom Check64 "" ": Checking for AMD64 architecture"
+!endif
 Page license
 Page components
 Page directory
@@ -50,10 +60,10 @@ Section "Base system (required)"
   File pl\bin\plterm.dll
   File pl\bin\plregtry.dll
 
-  File pl\bin\pthreadVC.dll
+  File pl\bin\${PTHREAD}.dll
   SetOutPath $INSTDIR
   File /r pl\custom
-  File pl\boot32.prc
+  File pl\${BOOT}
   File pl\COPYING.TXT
   File pl\README.TXT
   File pl\READWIN.TXT
@@ -142,7 +152,7 @@ Section "Base system (required)"
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\index.html
 
-  WriteRegStr HKLM SOFTWARE\SWI\Prolog "home" "$INSTDIR"
+  WriteRegStr HKLM ${REGKEY} "home" "$INSTDIR"
 
   ; Write uninstaller
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SWI-Prolog" "DisplayName" "SWI-Prolog (remove only)"
@@ -222,7 +232,7 @@ Section "C/C++ Interface"
   SetOutPath $INSTDIR\lib
   File pl\lib\libpl.lib
   File pl\lib\plterm.lib
-  File pl\lib\pthreadVC.lib
+  File pl\lib\${PTHREAD}.lib
   SetOutPath $INSTDIR
   File /r pl\include
   SetOutPath $INSTDIR\bin
@@ -373,7 +383,7 @@ Section "ZLIB package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File pl\bin\zlib4pl.dll
-  File pl\bin\zlib1.dll
+  File pl\bin\${ZLIB}.dll
   SetOutPath $INSTDIR\library
   File pl\library\zlib.pl
   SetOutPath $INSTDIR\doc\packages
@@ -471,7 +481,7 @@ Section "Shell Extensions" SecShell
   WriteRegStr HKCR "PrologFile\shell\consult\ddeexec" "Topic" "control"
 !endif
 
-  WriteRegStr HKLM SOFTWARE\SWI\Prolog fileExtension ${EXT}
+  WriteRegStr HKLM ${REGKEY} fileExtension ${EXT}
 
   IfErrors 0 NoError
     MessageBox MB_OK "Could not write registry to register filetypes\n \
@@ -520,9 +530,9 @@ Section "Start Menu shortcuts"
 		 "$INSTDIR\uninstall.exe" \
 		 0
 
-  WriteRegStr HKLM SOFTWARE\SWI\Prolog group   ${GRP}
-  WriteRegStr HKLM SOFTWARE\SWI\Prolog cwd     ${CWD}
-  WriteRegStr HKLM SOFTWARE\SWI\Prolog context ${SHCTX}
+  WriteRegStr HKLM ${REGKEY} group   ${GRP}
+  WriteRegStr HKLM ${REGKEY} cwd     ${CWD}
+  WriteRegStr HKLM ${REGKEY} context ${SHCTX}
 SectionEnd
 
 Section "Update library index"
@@ -597,12 +607,38 @@ Function .onInit
   InitPluginsDir
   File /oname=$PLUGINSDIR\options.ini "options.ini"
 
+!ifdef WIN64
+# We are a 32-bit app, the real path for 64-bit apps is in ProgramW6432
+  ReadEnvStr $INSTDIR ProgramW6432
+!endif
+
+FunctionEnd
+
+################################################################
+# Check 64-bit environment
+# Note that NSIS is a 32-bit executable.  Such executables have
+# set PROCESSOR_ARCHITEW6432 to IA64 or AMD64 on 64-bit platforms
+################################################################
+
+Function Check64
+  ClearErrors
+  ReadEnvStr ${ARCH} PROCESSOR_ARCHITEW6432
+  IfErrors WrongArch
+  StrCmpS ${ARCH} "AMD64" 0 WrongArch
+    Return
+
+WrongArch:
+  MessageBox MB_OK \
+	"Not an AMD64 version of Windows!$\r$\n\
+	 This version of SWI-Prolog runs on 64-bits Windows$\r$\n\
+	 using the AMD64/X64 architecture only"
+  Quit
 FunctionEnd
 
 ################################################################
 # Handle customisation;  Settings are maintained in
 #
-# 	HKLM SOFTWARE\SWI\Prolog
+# 	HKLM ${REGKEY}
 #
 # Using the following mapping:
 #
@@ -614,21 +650,21 @@ Function SetCustom
   Call UserInfo
 
 # Filename extension
-  ReadRegStr ${EXT} HKLM SOFTWARE\SWI\Prolog fileExtension
+  ReadRegStr ${EXT} HKLM ${REGKEY} fileExtension
   StrCmp ${EXT} "" 0 HasExt
     StrCpy ${EXT} "pl"
   HasExt:
   WriteINIStr $PLUGINSDIR\options.ini "Field 4" "State" ${EXT}  
 
 # Startmenu program group
-  ReadRegStr ${GRP} HKLM SOFTWARE\SWI\Prolog group
+  ReadRegStr ${GRP} HKLM ${REGKEY} group
   StrCmp ${GRP} "" 0 HasGroup
     StrCpy ${GRP} "SWI-Prolog"
   HasGroup:
   WriteINIStr $PLUGINSDIR\options.ini "Field 6" "State" ${GRP}  
 
 # Working Directory
-  ReadRegStr ${CWD} HKLM SOFTWARE\SWI\Prolog cwd
+  ReadRegStr ${CWD} HKLM ${REGKEY} cwd
   StrCmp ${CWD} "" 0 HasCWD
     StrCpy ${CWD} ${DEFCWD}
   HasCWD:

@@ -9,6 +9,12 @@
 
 MD=WIN32
 
+!if "$(MD)" == "WIN64"
+!include rules64.mk
+!else
+!include rules32.mk
+!endif
+
 # Installation target directory.  At the moment, the build will probably
 # fail if there is whitespace in the $prefix directory.  You can however
 # copy the result to wherever you want.
@@ -22,30 +28,17 @@ LIBDIR=$(PLBASE)\lib
 INCDIR=$(PLBASE)\include
 PLCUSTOM=$(PLBASE)\custom
 
-# Get extra libraries and include files from here
-
+# Get extra include files from here
 EXTRAINCDIR=$(HOME)\include
-!IF "$(MD)" == "WIN64"
-EXTRALIBDIR=$(HOME)\lib64
-!ELSE
-EXTRALIBDIR=$(HOME)\lib
-!ENDIF
-
-# We get pthreadVC.dll, pthreadVC.lib, pthread.h, sched.h and semaphore.h
-# from the locations below
-WINDLLDIR=$(WINDIR)\system32
-EXTRAINCDIR=$(HOME)\include
-!IF "$(MD)" == "WIN64"
-LIBPTHREAD=pthreadVC2
-!ELSE
-LIBPTHREAD=pthreadVC
-!ENDIF
 
 # The OpenSSL library and include files
 # http://www.slproweb.com/products/Win32OpenSSL.html
 OPENSSL=C:\OpenSSL
 OPENSSLLIBDIR=$(OPENSSL)\lib\VC
 OPENSSLINCDIR=$(OPENSSL)\include
+
+# NullSoft installer
+NSISDEFS=$(NSISDEFS) /DPTHREAD=$(LIBPTHREAD) /DZLIB=$(LIBZLIB) /DBOOT=$(PLBOOTFILE)
 
 # Setup the environment.  Use this to additional libraries and include
 # files to the path.  In particular provide access to the jpeg and xpm
@@ -86,16 +79,10 @@ BINDIR=$(PLBASE)\runtime
 !ENDIF
 
 # Define the packages to be installed automatically.  Note that the
-# Makefile also checks whether the package directory exists.  Not all
-# packages have been ported to Win64 yet ...
+# Makefile also checks whether the package directory exists.
 
 PLPKG=chr clpqr http plunit pldoc
-PKGS64=$(PLPKG) cpp odbc clib table sgml sgml\RDF semweb xpce nlp zlib ssl jpl
-!IF "$(MD)" == "WIN64"
-PKGS=$(PKGS64)
-!ELSE
-PKGS=$(PKGS64)
-!ENDIF
+PKGS=$(PLPKG) cpp odbc clib table sgml sgml\RDF semweb xpce nlp zlib ssl jpl
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
 
@@ -120,18 +107,9 @@ INSTALL_DATA=$(INSTALL)
 MKDIR=mkdir
 MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" MT="$(MT)" MD="$(MD)" GMP="$(GMP)" /nologo /f Makefile.mak
 
-LIBS= msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib ole32.lib
+LIBS=msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib ole32.lib $(EXTRALIBS)
 !if "$(MT)" == "true"
 LIBS=$(LIBS) $(LIBPTHREAD).lib
-!ENDIF
-
-# Architecture identifier for Prolog's current_prolog_flag(arch, Arch)
-
-!IF "$(MD)" == "WIN64"
-ARCH=x64-win64
-LIBS=$(LIBS) bufferoverflowU.lib
-!ELSE
-ARCH=i386-win32
 !ENDIF
 
 # Some libraries used by various packages
