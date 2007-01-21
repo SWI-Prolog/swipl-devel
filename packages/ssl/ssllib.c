@@ -25,7 +25,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
-#ifdef WIN32
+#ifdef __WINDOWS__
 #  include <io.h>
 #  include <winsock2.h>
 #else
@@ -60,7 +60,7 @@
 #define Serror          stderr
 #define Svfprintf       vfprintf
 static int PL_handle_signals(void) { return 0; }
-#ifndef WIN32
+#ifndef __WINDOWS__
 #define closesocket	close
 #endif
 #endif  /* __SWI_PROLOG__ */

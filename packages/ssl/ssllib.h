@@ -25,7 +25,7 @@
 #ifndef SSLLIBH__
 #define SSLLIBH__
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 typedef size_t socklen_t;
 #endif
 

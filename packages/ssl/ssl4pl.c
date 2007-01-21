@@ -27,7 +27,7 @@
 #include <SWI-Prolog.h>
 #include <assert.h>
 #include <string.h>
-#ifdef WIN32
+#ifdef __WINDOWS__
 #  include <io.h>
 #  include <winsock2.h>
 #else
@@ -355,7 +355,7 @@ tcp_init()
   }
   initialised = TRUE;
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 { WSADATA WSAData;
 
   if ( WSAStartup(MAKEWORD(2,0), &WSAData) )
@@ -366,7 +366,7 @@ tcp_init()
    * startSocketThread();
    */
 }
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 #ifdef _REENTRANT
   if ( !ssl_thread_setup() )
