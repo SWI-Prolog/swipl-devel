@@ -610,6 +610,7 @@ Function .onInit
 !ifdef WIN64
 # We are a 32-bit app, the real path for 64-bit apps is in ProgramW6432
   ReadEnvStr $INSTDIR ProgramW6432
+  StrCpy $INSTDIR "$INSTDIR\pl"
 !endif
 
 FunctionEnd
