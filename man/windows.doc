@@ -165,6 +165,7 @@ personalisation file.
 
 
 \subsection{Some useful commands}
+\label{sec:commands}
 
 This section provides a very brief overview of important or
 commonly used SWI-Prolog predicates to control the environment.
@@ -323,6 +324,15 @@ allows such program to run under Windows 95/98/ME, this library is
 licensed such that it cannot be used with Open Source software. Users of
 these old operating systems are forced to stick with version 5.4.7.
 
+For 64-bit versions of Windows, such as Windows XP 64-bit edition and
+Windows vista 64-bit edition, we have two versions of SWI-Prolog. The
+\texttt{w32pl}* installers can be used to install the normal 32-bit
+version of Prolog.  The \texttt{w64pl}* installers install a version
+for the \textsc{AMD64} (= \textsc{X64}) architecture.  There are no
+binaries for the \textsc{IA64} architecture used in older 64-bit
+hardware.  The reference manual has a section comparing these two
+versions.
+
 
 \subsection{Choosing the file-extension}		\label{sec:ext}
 
@@ -339,7 +349,11 @@ other files.
 
 \subsection{Installed programs}
 
-The following tools and programs are installed:
+The table below lists the installed components. Some components are
+marked (32-bits) or (64-bits). Most of this is because the 64-bits
+version is built using more recent tools and from more recent versions
+of required libraries using different naming conventions.  This will
+probably be synchronised in the future.
 
 \begin{center}
 \begin{tabular}{|l|p{4in}|}
@@ -368,21 +382,34 @@ The following tools and programs are installed:
 \hline
 \multicolumn{2}{|c|}{DLLs and other supporting files} \\
 \hline
-\verb$boot32.prc$       & Prolog resource file containing system predicates \\
+\verb$boot32.prc$       & Initial Prolog state (32-bits) \\
+\verb$boot64.prc$       & Initial Prolog state (64-bits) \\
 \verb$\bin\libpl.dll$	& The Prolog kernel \\
 \verb$\bin\plterm.dll$	& The window for \program{plwin.exe} \\
-\verb$\bin\pthreadVC.dll$& POSIX thread runtime library \\
-\verb$\bin\msvcrt.dll$	& Microsoft C runtime library \\
+\verb$\bin\pthreadVC.dll$& POSIX thread runtime library (32-bits) \\
+\verb$\bin\pthreadVC2.dll$& POSIX thread runtime library (64-bits) \\
+\verb$\bin\msvcrt.dll$	& Microsoft C runtime library (32-bits) \\
+\verb$\bin\msvcrt80.dll$ & Microsoft C runtime library (64-bits) \\
 \hline
 \multicolumn{2}{|c|}{Extension DLLs (plugins)} \\
 \hline
-\verb$\bin\xpce2pl.dll$	& The XPCE graphics system \\
-\verb$\bin\socket.dll$	& Prolog socket interface \\
-\verb$\bin\time.dll$	& Timing and alarm library \\
-\verb$\bin\cgi.dll$	& Gather CGI GET and POST arguments \\
-\verb$\bin\odbc4pl.dll$	& ODBC interface \\
-\verb$\bin\sgml2pl.dll$	& SGML/XML parser \\
-\verb$\bin\table.dll$	& Access structured files as tables \\
+\verb$\bin\cgi.dll$		 & Gather CGI GET and POST arguments \\
+\verb$\bin\double_metaphone.dll$ & Soundex (sounds similar) \\
+\verb$\bin\memfile.dll$		 & In-memory temporary `files' \\
+\verb$\bin\odbc4pl.dll$		 & ODBC interface \\
+\verb$\bin\plregtry.dll$	 & Windows registry interface \\
+\verb$\bin\porter_stem.dll$	 & Porter stemming implementation \\
+\verb$\bin\random.dll$		 & Portable random number generator \\
+\verb$\bin\rdf_db.dll$		 & RDF database \\
+\verb$\bin\readutil.dll$	 & Fast reading utility \\
+\verb$\bin\sgml2pl.dll$		 & SGML/XML parser \\
+\verb$\bin\socket.dll$		 & Prolog socket interface \\
+\verb$\bin\table.dll$		 & Access structured files as tables \\
+\verb$\bin\time.dll$		 & Timing and alarm library \\
+\verb$\bin\xpce2pl.dll$		 & The XPCE graphics system \\
+\verb$\bin\zlib1.dll$		 & Compression library (32-bit) \\
+\verb$\bin\zlibwapi.dll$	 & Compression library (64-bit) \\
+\verb$\bin\zlib4pl.dll$		 & Compression library interface \\
 \hline
 \end{tabular}
 \end{center}
@@ -390,9 +417,13 @@ The following tools and programs are installed:
 \subsection{Installed Registry keys and menus}
 
 The filetype \fileext{pl} or chosen alternative (see \secref{ext}) is
-associated to \program{plwin.exe}.  A chosen folder (default SWI-Prolog)
+associated to \program{plwin.exe}. A chosen folder (default SWI-Prolog)
 is added to the start-menu holding shortcuts to Prolog and some related
-utilities. The following registry keys are in use:
+utilities. The following registry keys are in use. The 64-bit version
+uses \texttt{Prolog64} instead of \texttt{Prolog} as a key to accomodate
+installation of both versions on the same machine. Note that opening a
+\fileext{pl} file can be associated with one of the installed Prolog
+version only.
 
 \begin{center}
 \begin{tabular}{|l|p{4in}|}

@@ -1,95 +1,195 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog for MS-Windows</TITLE>
+<TITLE>SWI-Prolog for MS-Windows</TITLE><STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
+}
+
+dt.pubdef
+{ background-color: #c5e1ff;
+}
+
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
+}
+
+div.navigate
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+}
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ 
+}
+
+span.pred-ext
+{ font-weight: bold;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 80%;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
 <BODY BGCOLOR="white"> 
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<CENTER>
 
-<H1>SWI-Prolog for MS-Windows</H1>
-
-</CENTER>
-<HR>
-<CENTER>
-<I>Jan Wielemaker <BR>
+<P>
+<DIV class="title">SWI-Prolog for MS-Windows</DIV>
+<DIV class="author">Jan Wielemaker <BR>
 HCS (formerly SWI), <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:jan@swi-prolog.org">jan@swi-prolog.org</A></I>
-</CENTER>
-<HR>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-<CENTER><H3>Abstract</H3></Center>
-<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
-This document gets you started using SWI-Prolog on MS-Windows. It also 
-describes the components and issues that are specific to MS-Windows. It 
-is by no means a manual or Prolog tutorial. The reference manual is 
-available online or can be downloaded in HTML and PDF format from the <A HREF="http://www.swi-prolog.org/">SWI-Prolog 
+E-mail: <A class="url" href="mailto:jan@swi-prolog.org">jan@swi-prolog.org</A></DIV>
+<DIV class="abstract">
+<DIV class="abstract-title">Abstract</DIV> This document gets you 
+started using SWI-Prolog on MS-Windows. It also describes the components 
+and issues that are specific to MS-Windows. It is by no means a manual 
+or Prolog tutorial. The reference manual is available online or can be 
+downloaded in HTML and PDF format from the <A class="url" href="http://www.swi-prolog.org/">SWI-Prolog 
 website</A>, which also provides links to books, online tutorials and 
 other Prolog related material.
-</TABLE>
+</DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
-<UL>
-<LI><A HREF="#sec:1"><B>1 Using SWI-Prolog</B></A>
-<UL>
-<LI><A HREF="#sec:1.1">1.1 Starting Prolog and loading a program</A>
-<LI><A HREF="#sec:1.2">1.2 Executing a query</A>
-<LI><A HREF="#sec:1.3">1.3 Menu commands</A>
-<LI><A HREF="#sec:1.4">1.4 Editing Prolog programs</A>
-<LI><A HREF="#sec:1.5">1.5 Some useful commands</A>
-</UL>
-<LI><A HREF="#sec:2"><B>2 Using SWI-Prolog with C/C++</B></A>
-<UL>
-<LI><A HREF="#sec:2.1">2.1 Using DevStudio</A>
-<LI><A HREF="#sec:2.2">2.2 Using plld.exe</A>
-</UL>
-<LI><A HREF="#sec:3"><B>3 The installation</B></A>
-<UL>
-<LI><A HREF="#sec:3.1">3.1 Supported Windows versions</A>
-<LI><A HREF="#sec:3.2">3.2 Choosing the file-extension</A>
-<LI><A HREF="#sec:3.3">3.3 Installed programs</A>
-<LI><A HREF="#sec:3.4">3.4 Installed Registry keys and menus</A>
-</UL>
-<LI><A HREF="#sec:4"><B>4 The SWI-Prolog community and foundation</B></A>
-<UL>
-<LI><A HREF="#sec:4.1">4.1 Web-site and mailinglists</A>
-<LI><A HREF="#sec:4.2">4.2 About license conditions</A>
-<LI><A HREF="#sec:4.3">4.3 Supporting SWI-Prolog</A>
-</UL>
-</UL>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Using 
+SWI-Prolog</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:1.1"><SPAN class="sec-nr">1.1</SPAN> <SPAN class="sec-title">Starting 
+Prolog and loading a program</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:1.2"><SPAN class="sec-nr">1.2</SPAN> <SPAN class="sec-title">Executing 
+a query</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:1.3"><SPAN class="sec-nr">1.3</SPAN> <SPAN class="sec-title">Menu 
+commands</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:1.4"><SPAN class="sec-nr">1.4</SPAN> <SPAN class="sec-title">Editing 
+Prolog programs</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:1.5"><SPAN class="sec-nr">1.5</SPAN> <SPAN class="sec-title">Some 
+useful commands</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Using 
+SWI-Prolog with C/C++</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:2.1"><SPAN class="sec-nr">2.1</SPAN> <SPAN class="sec-title">Using 
+DevStudio</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:2.2"><SPAN class="sec-nr">2.2</SPAN> <SPAN class="sec-title">Using 
+plld.exe</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">The 
+installation</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.1"><SPAN class="sec-nr">3.1</SPAN> <SPAN class="sec-title">Supported 
+Windows versions</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.2"><SPAN class="sec-nr">3.2</SPAN> <SPAN class="sec-title">Choosing 
+the file-extension</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.3"><SPAN class="sec-nr">3.3</SPAN> <SPAN class="sec-title">Installed 
+programs</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.4"><SPAN class="sec-nr">3.4</SPAN> <SPAN class="sec-title">Installed 
+Registry keys and menus</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">The 
+SWI-Prolog community and foundation</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.1"><SPAN class="sec-nr">4.1</SPAN> <SPAN class="sec-title">Web-site 
+and mailing lists</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.2"><SPAN class="sec-nr">4.2</SPAN> <SPAN class="sec-title">About 
+license conditions</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.3"><SPAN class="sec-nr">4.3</SPAN> <SPAN class="sec-title">Supporting 
+SWI-Prolog</SPAN></A></DIV>
+</DIV>
 
-<H2><A NAME="sec:1">1 Using SWI-Prolog</A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Using 
+SWI-Prolog</SPAN></A></H2>
 
-<H3><A NAME="sec:1.1">1.1 Starting Prolog and loading a program</A></H3>
+<H3><A NAME="sec:1.1"><SPAN class="sec-nr">1.1</SPAN> <SPAN class="sec-title">Starting 
+Prolog and loading a program</SPAN></A></H3>
 
 <P>The SWI-Prolog executable <B>plwin.exe</B> can be started from the
 <EM>StartMenu</EM> or by opening a <CODE>.pl</CODE> file holding Prolog 
-program text from the Windows explorer.<A NAME=back-to-note-1 HREF="windows.html#note-1"> (1)</A> 
-The installation folder (by default <CODE>C:\Program Files\pl</CODE>) 
+program text from the Windows explorer.<SUP class="fn">1<SPAN class="fn-text">The 
+.PL file extension can be changed during installation. See <A class="sec" href="#sec:3.2">section 
+3.2</A>.</SPAN></SUP> The installation folder (by default <CODE>C:\Program Files\pl</CODE>) 
 contains a subfolder <CODE>demo</CODE> with the file <CODE>likes.pl</CODE>. 
 This file can be opened in Prolog from the StartMenu, by opening <CODE>likes.pl</CODE> 
 in the Windows explorer or using the following command in the Prolog 
 application. Be sure to get the quotes right and terminate the command 
 with a full-stop (<CODE><CODE>.</CODE></CODE>).
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 ?- [swi('demo/likes')].
 </PRE>
-</TABLE>
 
-<H3><A NAME="sec:1.2">1.2 Executing a query</A></H3>
+<H3><A NAME="sec:1.2"><SPAN class="sec-nr">1.2</SPAN> <SPAN class="sec-title">Executing 
+a query</SPAN></A></H3>
 
 <A NAME="sec:execquery"></A>
 
@@ -97,16 +197,16 @@ with a full-stop (<CODE><CODE>.</CODE></CODE>).
 program. The query below asks Prolog what food `sam' likes. The system 
 responds with <TT>X = &lt;<VAR>value</VAR>&gt;</TT> if it can prove the 
 goal for a certain
-<VAR>X</VAR>. The user can type the semi-colon (;)<A NAME=back-to-note-2 HREF="windows.html#note-2"> (2)</A> 
-if (s)he wants another solution, or <font size=-1>RETURN</font> if (s)he 
-is satisfied, after which Prolog will say <B>Yes</B>. If Prolog answers <B>No</B>, 
+<VAR>X</VAR>. The user can type the semi-colon (;)<SUP class="fn">2<SPAN class="fn-text">On 
+most installations, single-character commands are executed without 
+waiting for the <font size=-1>RETURN</font> key.</SPAN></SUP> if (s)he 
+wants another solution, or <font size=-1>RETURN</font> if (s)he is 
+satisfied, after which Prolog will say <B>Yes</B>. If Prolog answers <B>No</B>, 
 it indicates it cannot find any (more) answers to the query. Finally, 
 Prolog can answer using an error message to indicate the query or 
 program contains an error.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 ?- likes(sam, X).
 
 X = dahl ;
@@ -120,9 +220,9 @@ X = chips ;
 No
 ?-
 </PRE>
-</TABLE>
 
-<H3><A NAME="sec:1.3">1.3 Menu commands</A></H3>
+<H3><A NAME="sec:1.3"><SPAN class="sec-nr">1.3</SPAN> <SPAN class="sec-title">Menu 
+commands</SPAN></A></H3>
 
 <A NAME="sec:menu"></A>
 
@@ -131,81 +231,73 @@ accessing the most commonly used commands. We assume not all menu
 entries need to be explained in details. We make some exceptions:
 
 <DL>
-
-<P>
-<DT><B>File/Reload modified files</B><DD>
+<DT><B>File/Reload modified files</B></DT>
+<DD class="defbody">
 This menu reloads all loaded source-files that have been modified using 
-the <A NAME="idx:make0:1"></A><A HREF="#make/0">make/0</A> command 
-described in <B>section ??</B>.
-
-<P>
-<DT><B>File/Navigator ...</B><DD>
+the <A NAME="idx:make0:1"></A><A class="pred" href="#make/0">make/0</A> 
+command described in <A class="sec" href="#sec:1.5">section 1.5</A>.</DD>
+<DT><B>File/Navigator ...</B></DT>
+<DD class="defbody">
 Opens an explorer-like view on Prolog files and the predicates they 
-contain.
-
-<P>
-<DT><B>Settings/Font ...</B><DD>
+contain.</DD>
+<DT><B>Settings/Font ...</B></DT>
+<DD class="defbody">
 Allows for changing the font of the console. On some installation the 
 default font gives redraw and cursor dislocation problems. In this case 
 you may wish to select an alternative. Some built-in commands assume 
-non-proportional fonts.
-
-<P>
-<DT><B>Settings/User init file ...</B><DD>
+non-proportional fonts.</DD>
+<DT><B>Settings/User init file ...</B></DT>
+<DD class="defbody">
 Edits the user personalisation file. If no such file exists it first 
-installes a default file as <CODE>pl.ini</CODE> that contains commonly 
-used settings in comments.
-
-<P>
-<DT><B>Settings/Stack sizes ...</B><DD>
+installs a default file as <CODE>pl.ini</CODE> that contains commonly 
+used settings in comments.</DD>
+<DT><B>Settings/Stack sizes ...</B></DT>
+<DD class="defbody">
 Allows to define the maximum size to which the various Prolog stacks are 
-allowed to grow. The system defaults are chosen to make errornous 
+allowed to grow. The system defaults are chosen to make erroneous 
 programs fail quickly on modest hardware. Programs with large data 
-structures or many choicepoints often need larger stacks. Note that an 
+structures or many choice-points often need larger stacks. Note that an 
 active Prolog process growing over the size of the physical memory of 
-your computer can make the system extremely slow.
-
-<P>
-<DT><B>Run/Interrupt</B><DD>
+your computer can make the system extremely slow.</DD>
+<DT><B>Run/Interrupt</B></DT>
+<DD class="defbody">
 Try to interrupt the running Prolog process. This is the same as using <EM>Control-C</EM>. 
 Sometimes interrupts are not honoured or take very long to process. 
-Closing the window twice provides a way to force Prolog to stop.
-
-<P>
-<DT><B>Run/New thread</B><DD>
+Closing the window twice provides a way to force Prolog to stop.</DD>
+<DT><B>Run/New thread</B></DT>
+<DD class="defbody">
 Creates a new interactor window running in a separate thread of 
 execution. This may be used to inspect the database or program while the 
-main task continues.
-
-<P>
-<DT><B>Debug/Edit spy points ...</B><DD>
+main task continues.</DD>
+<DT><B>Debug/Edit spy points ...</B></DT>
+<DD class="defbody">
 Edit break-points on predicates. From the PceEmacs editor (see
-<A HREF="#sec:edit">section 1.4</A>) break-points can also be set on 
-specific calls from specific clauses.
-
-<P>
-<DT><B>Debug/Graphical debugger ...</B><DD>
+<A class="sec" href="#sec:1.4">section 1.4</A>) break-points can also be 
+set on specific calls from specific clauses.</DD>
+<DT><B>Debug/Graphical debugger ...</B></DT>
+<DD class="defbody">
 Use the source-level debugger on the next spy- or break-point or other 
-call that enables the debugger.
-
-<P>
-<DT><B>Help</B><DD>
+call that enables the debugger.</DD>
+<DT><B>Help</B></DT>
+<DD class="defbody">
 The help menu provides various starting point to related documents. 
 Items flagged with <B>(on www)</B> open your default internet browser on 
 a page of the SWI-Prolog website.
+</DD>
 </DL>
 
-<H3><A NAME="sec:1.4">1.4 Editing Prolog programs</A></H3>
+<H3><A NAME="sec:1.4"><SPAN class="sec-nr">1.4</SPAN> <SPAN class="sec-title">Editing 
+Prolog programs</SPAN></A></H3>
 
 <A NAME="sec:edit"></A>
 
 <P>There are three options for editing. One is to run an editor of 
-choice in a separate window and use the below described <A NAME="idx:make0:2"></A><A HREF="#make/0">make/0</A> 
+choice in a separate window and use the below described <A NAME="idx:make0:2"></A><A class="pred" href="#make/0">make/0</A> 
 command to reload modified files. In addition to this option Prolog can 
 be used to locate predicates, modules and loaded files by specifying the 
-editor of choice for use with the <A NAME="idx:edit1:3"></A><A HREF="#edit/1">edit/1</A> 
+editor of choice for use with the <A NAME="idx:edit1:3"></A><A class="pred" href="#edit/1">edit/1</A> 
 command described below. This is achieved by editing the personalisation 
-file (see <A HREF="#sec:menu">section 1.3</A>) and follow the 
+file (see <A class="sec" href="#sec:1.3">section 1.3</A>) and follow the 
 instructions in the comments.
 
 <P>Finally, you may wish to use the built-in editor called <EM>PceEmacs</EM>. 
@@ -214,15 +306,17 @@ and cross-reference analysis of the program. It is started using the
 command <CODE>?- emacs.</CODE> or can be set as default editor in the 
 personalisation file.
 
-<H3><A NAME="sec:1.5">1.5 Some useful commands</A></H3>
+<H3><A NAME="sec:1.5"><SPAN class="sec-nr">1.5</SPAN> <SPAN class="sec-title">Some 
+useful commands</SPAN></A></H3>
+
+<A NAME="sec:commands"></A>
 
 <P>This section provides a very brief overview of important or commonly 
 used SWI-Prolog predicates to control the environment.
 
 <DL>
-
-<P>
-<DT><A NAME="consult/1"><STRONG>consult</STRONG>(<VAR>+File</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="consult/1"><STRONG>consult</STRONG>(<VAR>+File</VAR>)</A></DT>
+<DD class="defbody">
 Load a source-file. On Windows folders may be specified with the 
 DOS/Windows <CODE><CODE>\</CODE></CODE>, which must be escaped or using 
 the POSIX standard
@@ -236,7 +330,7 @@ examples:
 <CENTER>
 <TABLE BORDER=0 FRAME=void RULES=groups>
 <TR VALIGN=top><TD><TT>?- consult(likes).</TT></TD><TD>Load <CODE>likes.pl</CODE> 
-from the current folder (see <A NAME="idx:pwd0:4"></A><A HREF="#pwd/0">pwd/0</A>). </TD></TR>
+from the current folder (see <A NAME="idx:pwd0:4"></A><A class="pred" href="#pwd/0">pwd/0</A>). </TD></TR>
 <TR VALIGN=top><TD><TT>?- ['C:/Program Files/pl/demo/likes']</TT></TD><TD>Load <CODE>likes.pl</CODE> 
 using absolute path. </TD></TR>
 <TR VALIGN=top><TD><TT>?- ['C:<CODE>\</CODE><CODE>\</CODE>Program&nbsp;Files<CODE>\</CODE><CODE>\</CODE>pl<CODE>\</CODE><CODE>\</CODE>demo<CODE>\</CODE><CODE>\</CODE>likes']</TT></TD><TD>Same 
@@ -244,82 +338,76 @@ using Windows-style path-name </TD></TR>
 </TABLE>
 
 </CENTER>
-
-<P>
-<DT><A NAME="pwd/0"><STRONG>pwd</STRONG></A><DD>
-Print working directory (folder).
-
-<P>
-<DT><A NAME="ls/0"><STRONG>ls</STRONG></A><DD>
-List files in current directory.
-
-<P>
-<DT><A NAME="edit/0"><STRONG>edit</STRONG></A><DD>
+</DD>
+<DT class="pubdef"><A NAME="pwd/0"><STRONG>pwd</STRONG></A></DT>
+<DD class="defbody">
+Print working directory (folder).</DD>
+<DT class="pubdef"><A NAME="ls/0"><STRONG>ls</STRONG></A></DT>
+<DD class="defbody">
+List files in current directory.</DD>
+<DT class="pubdef"><A NAME="edit/0"><STRONG>edit</STRONG></A></DT>
+<DD class="defbody">
 If Prolog is started by opening a <CODE>.pl</CODE> file in the explorer, 
-edit this file. Also available from the menu.
-
-<P>
-<DT><A NAME="edit/1"><STRONG>edit</STRONG>(<VAR>+Spec</VAR>)</A><DD>
+edit this file. Also available from the menu.</DD>
+<DT class="pubdef"><A NAME="edit/1"><STRONG>edit</STRONG>(<VAR>+Spec</VAR>)</A></DT>
+<DD class="defbody">
 Edit file, predicate, module, etc. with the given name. If multiple 
-items are named <VAR>Spec</VAR> it prompts for the desired alternative.
-
-<P>
-<DT><A NAME="make/0"><STRONG>make</STRONG></A><DD>
+items are named <VAR>Spec</VAR> it prompts for the desired alternative.</DD>
+<DT class="pubdef"><A NAME="make/0"><STRONG>make</STRONG></A></DT>
+<DD class="defbody">
 Reload all files that have been changed since they where last loaded. 
-Normally used after editing one or more files.
-
-<P>
-<DT><A NAME="trace/0"><STRONG>trace</STRONG></A><DD>
+Normally used after editing one or more files.</DD>
+<DT class="pubdef"><A NAME="trace/0"><STRONG>trace</STRONG></A></DT>
+<DD class="defbody">
 Start the interactive debugger. There are three ways to use this. 
-Entered as a single goal at the toplevel, the next query will be traced. 
-Alternatively it can be used in conjunction with the goal to be 
+Entered as a single goal at the top-level, the next query will be 
+traced. Alternatively it can be used in conjunction with the goal to be 
 debugged: <CODE>?- trace, run.</CODE> and finally you can include it in 
 your program to start tracing at a particular point or under a 
 particular condition:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
         ...,
         (var(X) -&gt; trace ; true),
         ...,
 </PRE>
-</TABLE>
 
-<P>
-<DT><A NAME="gtrace/0"><STRONG>gtrace</STRONG></A><DD>
+</DD>
+<DT class="pubdef"><A NAME="gtrace/0"><STRONG>gtrace</STRONG></A></DT>
+<DD class="defbody">
 Same as trace, but forces the use of the graphical (source-level) 
-debugger.
-
-<P>
-<DT><A NAME="apropos/1"><STRONG>apropos</STRONG>(<VAR>+Keyword</VAR>)</A><DD>
+debugger.</DD>
+<DT class="pubdef"><A NAME="apropos/1"><STRONG>apropos</STRONG>(<VAR>+Keyword</VAR>)</A></DT>
+<DD class="defbody">
 Search for all predicates that contain <VAR>Keyword</VAR> in their name 
-or short description. If a gui environment is available the results are 
-hyperlinks. Otherwise use <A NAME="idx:help1:5"></A><A HREF="#help/1">help/1</A> 
-to get details on selected hits.
-
-<P>
-<DT><A NAME="help/1"><STRONG>help</STRONG>(<VAR>+Spec</VAR>)</A><DD>
+or short description. If a GUI environment is available the results are 
+hyperlinks. Otherwise use <A NAME="idx:help1:5"></A><A class="pred" href="#help/1">help/1</A> 
+to get details on selected hits.</DD>
+<DT class="pubdef"><A NAME="help/1"><STRONG>help</STRONG>(<VAR>+Spec</VAR>)</A></DT>
+<DD class="defbody">
 Give help on <VAR>Spec</VAR>, which is normally the name of a predicate 
 or C interface function.
+</DD>
 </DL>
 
-<H2><A NAME="sec:2">2 Using SWI-Prolog with C/C++</A></H2>
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Using 
+SWI-Prolog with C/C++</SPAN></A></H2>
 
 <P>Using MSVC or a compiler with compatible calling format you can write 
 C or C++ code that can be loaded into SWI-Prolog and called as a 
 predicate. You can also embed SWI-Prolog in C/C++ applications.
 
 <P>Details on how to interact with Prolog are in the
-<A HREF="http://hcs.science.uva.nl/projects/SWI-Prolog/Manual/">SWI-Prolog 
+<A class="url" href="http://hcs.science.uva.nl/projects/SWI-Prolog/Manual/">SWI-Prolog 
 reference manual</A>. The mailing list archives and TWiki web provide 
 problems and solutions to the many problems that may occur. 
 Documentation of the <CODE>SWI-cpp.h</CODE> C++ include file is 
-available from the <A HREF="http://www.swi-prolog.org/packages">package 
+available from the <A class="url" href="http://www.swi-prolog.org/packages">package 
 documentation</A>. This section only discusses some Windows specific 
 issues.
 
-<H3><A NAME="sec:2.1">2.1 Using DevStudio</A></H3>
+<H3><A NAME="sec:2.1"><SPAN class="sec-nr">2.1</SPAN> <SPAN class="sec-title">Using 
+DevStudio</SPAN></A></H3>
 
 <P>First of all, add the <CODE>include</CODE> folder of the installation 
 to the search-path for headers and the <CODE>lib</CODE> folder to the 
@@ -332,13 +420,13 @@ runtime library.
 embed Prolog, care should be taken that Prolog can find the Prolog 
 installation. For <EM>development</EM>, the simplest way to ensure this 
 is by adding the installation <CODE>bin</CODE> folder to the <CODE>%PATH%</CODE> 
-environment and call <B>PL_initialise()</B> as illustrated below.
-<B>PL_initialise()</B> uses the path of the loaded <CODE>libpl.dll</CODE> 
-module to find the Prolog installation folder.<A NAME=back-to-note-3 HREF="windows.html#note-3"> (3)</A>
+environment and call PL_initialise() as illustrated below. 
+PL_initialise() uses the path of the loaded <CODE>libpl.dll</CODE> 
+module to find the Prolog installation folder.<SUP class="fn">3<SPAN class="fn-text">When 
+the C++ interface from <CODE>SWI-cpp.h</CODE>, these comments apply to 
+the arguments for PlEngine().</SPAN></SUP>
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
   { static char *av[] = { "libpl.dll", NULL };
 
     if ( !PL_initialise(1, av) )
@@ -346,23 +434,20 @@ module to find the Prolog installation folder.<A NAME=back-to-note-3 HREF="windo
     }
   }
 </PRE>
-</TABLE>
 
 <P>To create an executable that does not rely on Prolog one must create 
 a saved-state of the required Prolog code and attach this to the 
-executable. Creating saved-states is described with <A NAME="idx:qsaveprogram2:6"></A><B>qsave_program/2</B> 
+executable. Creating saved-states is described with <A NAME="idx:qsaveprogram2:6"></A><SPAN class="pred-ext">qsave_program/2</SPAN> 
 in the reference manual. This can be attached to a state using the DOS 
 command below to create <CODE>final.exe</CODE> from the executable 
 produced by MSVC and the generated saved-state.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 &gt; copy /b file.exe+file.state final.exe
 </PRE>
-</TABLE>
 
-<H3><A NAME="sec:2.2">2.2 Using plld.exe</A></H3>
+<H3><A NAME="sec:2.2"><SPAN class="sec-nr">2.2</SPAN> <SPAN class="sec-title">Using 
+plld.exe</SPAN></A></H3>
 
 <P>The <B>plld.exe</B> automates most of the above complications and 
 provides compatibility for common tasks on many platforms supported by 
@@ -372,35 +457,41 @@ as the Prolog ones described above. Now, an extension
 <CODE>myext.dll</CODE> is created from the source <CODE>myext.c</CODE> 
 using
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 &gt; plld -shared -o myext myext.c
 </PRE>
-</TABLE>
 
 <P>An embedded executable is created from C, C++ and Prolog files using
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 &gt; plld -o myexe file.c ... file.pl ...
 </PRE>
-</TABLE>
 
-<H2><A NAME="sec:3">3 The installation</A></H2>
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">The 
+installation</SPAN></A></H2>
 
-<H3><A NAME="sec:3.1">3.1 Supported Windows versions</A></H3>
+<H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN> <SPAN class="sec-title">Supported 
+Windows versions</SPAN></A></H3>
 
 <A NAME="sec:winver"></A>
 
 <P>SWI-Prolog 5.5.x and later are UNICODE applications, requiring 
 Windows NT or later (2000, XP). Although Microsoft provides a library 
 that allows such program to run under Windows 95/98/ME, this library is 
-licenced such that it cannot be used with Open Source software. Users of 
+licensed such that it cannot be used with Open Source software. Users of 
 these old operating systems are forced to stick with version 5.4.7.
 
-<H3><A NAME="sec:3.2">3.2 Choosing the file-extension</A></H3>
+<P>For 64-bit versions of Windows, such as Windows XP 64-bit edition and 
+Windows vista 64-bit edition, we have two versions of SWI-Prolog. The
+<TT>w32pl</TT>* installers can be used to install the normal 32-bit 
+version of Prolog. The <TT>w64pl</TT>* installers install a version for 
+the <font size=-1>AMD64</font> (= <font size=-1>X64</font>) 
+architecture. There are no binaries for the <font size=-1>IA64</font> 
+architecture used in older 64-bit hardware. The reference manual has a 
+section comparing these two versions.
+
+<H3><A NAME="sec:3.2"><SPAN class="sec-nr">3.2</SPAN> <SPAN class="sec-title">Choosing 
+the file-extension</SPAN></A></H3>
 
 <A NAME="sec:ext"></A>
 
@@ -415,9 +506,14 @@ alternative extension only for the
 use the normal <CODE>.pl</CODE> extension for libraries and files loaded 
 from other files.
 
-<H3><A NAME="sec:3.3">3.3 Installed programs</A></H3>
+<H3><A NAME="sec:3.3"><SPAN class="sec-nr">3.3</SPAN> <SPAN class="sec-title">Installed 
+programs</SPAN></A></H3>
 
-<P>The following tools and programs are installed:
+<P>The table below lists the installed components. Some components are 
+marked (32-bits) or (64-bits). Most of this is because the 64-bits 
+version is built using more recent tools and from more recent versions 
+of required libraries using different naming conventions. This will 
+probably be synchronised in the future.
 
 <P>
 <CENTER>
@@ -451,41 +547,72 @@ library </TD></TR>
 <TR VALIGN=top><TD COLSPAN=2 ALIGN=center>DLLs and other supporting 
 files</TR>
 <TBODY>
-<TR VALIGN=top><TD><CODE>boot32.prc</CODE> </TD><TD>Prolog resource file 
-containing system predicates </TD></TR>
+<TR VALIGN=top><TD><CODE>boot32.prc</CODE> </TD><TD>Initial Prolog state 
+(32-bits) </TD></TR>
+<TR VALIGN=top><TD><CODE>boot64.prc</CODE> </TD><TD>Initial Prolog state 
+(64-bits) </TD></TR>
 <TR VALIGN=top><TD><CODE>\bin\libpl.dll</CODE> </TD><TD>The Prolog 
 kernel </TD></TR>
 <TR VALIGN=top><TD><CODE>\bin\plterm.dll</CODE> </TD><TD>The window for <B>plwin.exe</B> </TD></TR>
 <TR VALIGN=top><TD><CODE>\bin\pthreadVC.dll</CODE></TD><TD>POSIX thread 
-runtime library </TD></TR>
+runtime library (32-bits) </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\pthreadVC2.dll</CODE></TD><TD>POSIX thread 
+runtime library (64-bits) </TD></TR>
 <TR VALIGN=top><TD><CODE>\bin\msvcrt.dll</CODE> </TD><TD>Microsoft C 
-runtime library </TD></TR>
+runtime library (32-bits) </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\msvcrt80.dll</CODE> </TD><TD>Microsoft C 
+runtime library (64-bits) </TD></TR>
 <TBODY>
 <TR VALIGN=top><TD COLSPAN=2 ALIGN=center>Extension DLLs (plugins)</TR>
 <TBODY>
-<TR VALIGN=top><TD><CODE>\bin\xpce2pl.dll</CODE> </TD><TD>The XPCE 
-graphics system </TD></TR>
-<TR VALIGN=top><TD><CODE>\bin\socket.dll</CODE> </TD><TD>Prolog socket 
-interface </TD></TR>
-<TR VALIGN=top><TD><CODE>\bin\time.dll</CODE> </TD><TD>Timing and alarm 
-library </TD></TR>
 <TR VALIGN=top><TD><CODE>\bin\cgi.dll</CODE> </TD><TD>Gather CGI GET and 
 POST arguments </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\double_metaphone.dll</CODE> </TD><TD>Soundex 
+(sounds similar) </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\memfile.dll</CODE> </TD><TD>In-memory 
+temporary `files' </TD></TR>
 <TR VALIGN=top><TD><CODE>\bin\odbc4pl.dll</CODE> </TD><TD>ODBC interface </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\plregtry.dll</CODE> </TD><TD>Windows 
+registry interface </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\porter_stem.dll</CODE> </TD><TD>Porter 
+stemming implementation </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\random.dll</CODE> </TD><TD>Portable random 
+number generator </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\rdf_db.dll</CODE> </TD><TD>RDF database </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\readutil.dll</CODE> </TD><TD>Fast reading 
+utility </TD></TR>
 <TR VALIGN=top><TD><CODE>\bin\sgml2pl.dll</CODE> </TD><TD>SGML/XML 
 parser </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\socket.dll</CODE> </TD><TD>Prolog socket 
+interface </TD></TR>
 <TR VALIGN=top><TD><CODE>\bin\table.dll</CODE> </TD><TD>Access 
 structured files as tables </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\time.dll</CODE> </TD><TD>Timing and alarm 
+library </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\xpce2pl.dll</CODE> </TD><TD>The XPCE 
+graphics system </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\zlib1.dll</CODE> </TD><TD>Compression 
+library (32-bit) </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\zlibwapi.dll</CODE> </TD><TD>Compression 
+library (64-bit) </TD></TR>
+<TR VALIGN=top><TD><CODE>\bin\zlib4pl.dll</CODE> </TD><TD>Compression 
+library interface </TD></TR>
 </TABLE>
 
 </CENTER>
 
-<H3><A NAME="sec:3.4">3.4 Installed Registry keys and menus</A></H3>
+<H3><A NAME="sec:3.4"><SPAN class="sec-nr">3.4</SPAN> <SPAN class="sec-title">Installed 
+Registry keys and menus</SPAN></A></H3>
 
-<P>The filetype <CODE>.pl</CODE> or chosen alternative (see <A HREF="#sec:ext">section 
+<P>The filetype <CODE>.pl</CODE> or chosen alternative (see <A class="sec" href="#sec:3.2">section 
 3.2</A>) is associated to <B>plwin.exe</B>. A chosen folder (default 
 SWI-Prolog) is added to the start-menu holding shortcuts to Prolog and 
-some related utilities. The following registry keys are in use:
+some related utilities. The following registry keys are in use. The 
+64-bit version uses <TT>Prolog64</TT> instead of <TT>Prolog</TT> as a 
+key to accomodate installation of both versions on the same machine. 
+Note that opening a
+<CODE>.pl</CODE> file can be associated with one of the installed Prolog 
+version only.
 
 <P>
 <CENTER>
@@ -527,19 +654,23 @@ available for scrollback </TD></TR>
 
 </CENTER>
 
-<H2><A NAME="sec:4">4 The SWI-Prolog community and foundation</A></H2>
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">The 
+SWI-Prolog community and foundation</SPAN></A></H2>
 
-<H3><A NAME="sec:4.1">4.1 Web-site and mailinglists</A></H3>
+<H3><A NAME="sec:4.1"><SPAN class="sec-nr">4.1</SPAN> <SPAN class="sec-title">Web-site 
+and mailing lists</SPAN></A></H3>
 
-<P>The SWI-Prolog web-site is located at <A HREF="http://www.swi-prolog.org/">http://www.swi-prolog.org/</A>. 
-Part of the web is powered by <A HREF="http://twiki.org/">TWiki</A>, a
+<P>The SWI-Prolog web-site is located at <A class="url" href="http://www.swi-prolog.org/">http://www.swi-prolog.org/</A>. 
+Part of the web is powered by <A class="url" href="http://twiki.org/">TWiki</A>, 
+a
 <EM>wiki</EM> web that can be edited by any registered user and used to 
 exchange ideas, problems and solutions. The web also provides access to 
-the archive of the mailinglist and allows to (de)register the 
-mailinglist. Finally, it incorporates Bugzilla, the Mozilla project 
-bugtracking system, for reporting bugs and tracking issues.
+the archive of the mailing list and allows to (de)register the mailing 
+list. Finally, it incorporates Bugzilla, the Mozilla project bugtracking 
+system, for reporting bugs and tracking issues.
 
-<H3><A NAME="sec:4.2">4.2 About license conditions</A></H3>
+<H3><A NAME="sec:4.2"><SPAN class="sec-nr">4.2</SPAN> <SPAN class="sec-title">About 
+license conditions</SPAN></A></H3>
 
 <P>The SWI-Prolog license allows it to be used in a wide variety of 
 environments, including closed-source commercial applications. In 
@@ -562,7 +693,8 @@ covered by the GNU General Public License.
 <P>This exception is a proven construct used for <EM>libgcc</EM>, the 
 GNU C-compiler runtime library.
 
-<H3><A NAME="sec:4.3">4.3 Supporting SWI-Prolog</A></H3>
+<H3><A NAME="sec:4.3"><SPAN class="sec-nr">4.3</SPAN> <SPAN class="sec-title">Supporting 
+SWI-Prolog</SPAN></A></H3>
 
 <P>There are several ways to support SWI-Prolog:
 
@@ -570,61 +702,80 @@ GNU C-compiler runtime library.
 <UL>
 <LI>Extend the system with contributions
 <LI>Improve the system by submitting bug reports and patches.
-<LI>Link to <A HREF="http://www.swi-prolog.org">http://www.swi-prolog.org</A> 
+<LI>Link to <A class="url" href="http://www.swi-prolog.org">http://www.swi-prolog.org</A> 
 and refer to SWI-Prolog in publications.
 <LI>Ask for commercial development or support at
-<A HREF="http://www.cognitivetools.com/">http://www.cognitivetools.com/</A>
+<A class="url" href="http://www.cognitivetools.com/">http://www.cognitivetools.com/</A>
 <LI>Support development financially at
-<A HREF="http://www.swi-prolog.org/donate.html">http://www.swi-prolog.org/donate.html</A>.
+<A class="url" href="http://www.swi-prolog.org/donate.html">http://www.swi-prolog.org/donate.html</A>.
 </UL>
-
-<H1><A NAME="document-notes">Footnotes</A></H1>
-
-<DL>
-
-<P>
-<DT><A NAME=note-1 HREF="windows.html#back-to-note-1">note-1</A><DD>
-The .PL file extension can be changed during installation. See <A HREF="#sec:ext">section 
-3.2</A>.
-<DT><A NAME=note-2 HREF="windows.html#back-to-note-2">note-2</A><DD>
-On most installations, single-character commands are executed without 
-waiting for the <font size=-1>RETURN</font> key.
-<DT><A NAME=note-3 HREF="windows.html#back-to-note-3">note-3</A><DD>
-When the C++ interface from <CODE>SWI-cpp.h</CODE>, these comments apply 
-to the arguments for PlEngine().
-</DL>
 
 <H1><A NAME="document-index">Index</A></H1>
 
 <DL>
-
-<P>
-<DT><STRONG>A</STRONG><DD>
-<DT><A HREF="#apropos/1">apropos/1</A><DD>
-<DT><STRONG>C</STRONG><DD>
-<DT><A HREF="#consult/1">consult/1</A><DD>
-<DT><STRONG>E</STRONG><DD>
-<DT><A HREF="#edit/0">edit/0</A><DD>
-<DT><A HREF="#edit/1">edit/1</A><DD>
-<A HREF="#idx:edit1:3">1.4</A>
-<DT><STRONG>G</STRONG><DD>
-<DT><A HREF="#gtrace/0">gtrace/0</A><DD>
-<DT><STRONG>H</STRONG><DD>
-<DT><A HREF="#help/1">help/1</A><DD>
-<A HREF="#idx:help1:5">1.5</A>
-<DT><STRONG>L</STRONG><DD>
-<DT><A HREF="#ls/0">ls/0</A><DD>
-<DT><STRONG>M</STRONG><DD>
-<DT><A HREF="#make/0">make/0</A><DD>
-<A HREF="#idx:make0:1">1.3</A> <A HREF="#idx:make0:2">1.4</A>
-<DT><STRONG>P</STRONG><DD>
-<DT><A HREF="#pwd/0">pwd/0</A><DD>
-<A HREF="#idx:pwd0:4">1.5</A>
-<DT><STRONG>Q</STRONG><DD>
-<DT>qsave_program/2<DD>
-<A HREF="#idx:qsaveprogram2:6">2.1</A>
-<DT><STRONG>T</STRONG><DD>
-<DT><A HREF="#trace/0">trace/0</A><DD>
+<DT><STRONG>A</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#apropos/1">apropos/1</A></DT>
+<DD>
+</DD>
+<DT><STRONG>C</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#consult/1">consult/1</A></DT>
+<DD>
+</DD>
+<DT><STRONG>E</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#edit/0">edit/0</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#edit/1">edit/1</A></DT>
+<DD>
+<A class="idx" href="#idx:edit1:3">1.4</A></DD>
+<DT><STRONG>G</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#gtrace/0">gtrace/0</A></DT>
+<DD>
+</DD>
+<DT><STRONG>H</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#help/1">help/1</A></DT>
+<DD>
+<A class="idx" href="#idx:help1:5">1.5</A></DD>
+<DT><STRONG>L</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#ls/0">ls/0</A></DT>
+<DD>
+</DD>
+<DT><STRONG>M</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#make/0">make/0</A></DT>
+<DD>
+<A class="idx" href="#idx:make0:1">1.3</A> <A class="idx" href="#idx:make0:2">1.4</A></DD>
+<DT><STRONG>P</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#pwd/0">pwd/0</A></DT>
+<DD>
+<A class="idx" href="#idx:pwd0:4">1.5</A></DD>
+<DT><STRONG>Q</STRONG></DT>
+<DD>
+</DD>
+<DT>qsave_program/2</DT>
+<DD>
+<A class="idx" href="#idx:qsaveprogram2:6">2.1</A></DD>
+<DT><STRONG>T</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#trace/0">trace/0</A></DT>
+<DD>
+</DD>
 </DL>
 
 </BODY></HTML>
