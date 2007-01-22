@@ -26,23 +26,6 @@ TODO list porting SWI-Prolog to WIN64 (x86 or amd86)
 	http://fp.gladman.plus.com/computing/gmp4win.htm
 	Binaries: http://oss.netfarm.it/clamav/ [USED]
 
-* Pthread:
-	http://sourceware.org/ml/pthreads-win32/2006/msg00002.html
-
-* OpenSSL:
-	Many hits google for "openssl windows 64"
-
-* XPM:
-* JPEG:
-
-================================================================
-Reworking the sources:
-
-* Replace unsigned long with uintptr_t and long with intptr_t
-	- Done for src, src/src and src/win32/console
-* Make Windows code depend on __WINDOWS__
-	- Done for src
-
 ================================================================
 ISSUES
 ================================================================
