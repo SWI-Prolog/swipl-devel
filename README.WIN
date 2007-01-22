@@ -2,22 +2,24 @@
 			    Jan Wielemaker
 			       06/06/94
 
-		(Last Updated: May 14, 2003 (Version 5.2.0)
+		(Last Updated: Jan 22, 2007 (Version 5.6.26)
 		  
 
 
-This distribution contains SWI-Prolog for Windows 95/98/ME as well as
-NT/2000/XP. SWI-Prolog runs in a simple Window providing traditional
-stream-based interaction (plwin.exe) or as a Win32 console application
-(plcon.exe). Graphics and graphical development tools are provided by
-the XPCE package distributed with this version.
+This distribution contains SWI-Prolog for Windows   NT  and later (2000,
+XP, Vista). The sources can also be  compiled in 64-bit mode for Windows
+XP or Vista 64-bit edition (AMD64). SWI-Prolog   runs in a simple Window
+providing traditional stream-based  interaction  (plwin.exe)   or  as  a
+Windows  console  application  (plcon.exe).    Graphics   and  graphical
+development tools are provided by the XPCE package distributed with this
+version.
 
 
 Installation:
 =============
 
-Run   the   self-extracting    executable     pl.exe    (often    called
-w32pl<version>.exe) and follow the instructions. If   you already have a
+Run the installer named  w32pl<version>.exe (w64pl<version>.exe installs
+the 64-bit version). and follow the instructions.  If you already have a
 version of SWI-Prolog installed settings are   copied as defaults to the
 new installation.
 
@@ -42,20 +44,14 @@ the `loadfile' only and use .PL for  all libraries and indirectly loaded
 files to ensure easy porting to other machines.
 
 
-MSVCRT.DLL
-==========
+MSVCRT.DLL and MSVCR80.DLL
+==========================
 
-There are many versions of this DLL,   most of which are compatible, but
-some not. The SWI-Prolog installation  makes   a  copy of the msvcrt.dll
-shipped with the compiler I use (MSVC 5.0) into the pl\bin directory. If
-there is no copy in the system  directory,   it  will copy the same file
-there too.
-
-To improve sharing, you may  wish  to   remove  this  file  from pl\bin,
-forcing SWI-Prolog to use the system  version.   You  can  also move the
-version shipped with SWI-Prolog  to  your   system  directory,  but this
-*might* break other applications.
-
+The Win32 version is compiled using MSVC 6. The required runtime library
+is shipped with all  versions  of  Windows   NT.  The  Win64  version is
+compiled using MSVC 8, which relies  on   MSVCR80.DLL.  This file is not
+part of the default operating system.  MSVCR80.DLL is distributed in the
+bin folder of Prolog.
 
 Further Installation
 --------------------
@@ -69,15 +65,13 @@ environment variables:
 	set PATH=%PATH%;%SWI_HOME_DIR%\bin
 	set INCLUDE=%INCLUDE%;%SWI_HOME_DIR%\include
 
-In Windows 95, environment variables  are   set  in  autoexec.bat (after
-which the system needs to be rebooted).   In Windows-NT using the System
-properties from the Control-panel.
-
 
 Windows Registry
 ----------------
 
-SWI-Prolog stores information on the current installation on the key
+SWI-Prolog stores information on the current   installation  on the keys
+below. The Win64 version uses Prolog64   instead of Prolog to accomodate
+installing both versions on the same system.
 
 	# HKEY_LOCAL_MACHINE\Software\SWI\Prolog
 	Installation directory, working directory, file-extension and
