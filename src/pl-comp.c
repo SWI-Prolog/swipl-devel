@@ -1246,8 +1246,21 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
       {	Word p = addressIndirect(*arg);
 	size_t n = wsizeofInd(*p);
 	
-	if ( n == sizeof(int64_t)/sizeof(word) )
-	{ int64_t val = *(int64_t*)(p+1);
+	if ( n == WORDS_PER_INT64 )
+	{
+#if ( SIZEOF_VOIDP == 8 )
+          int64_t val = *(int64_t*)(p+1);
+#else
+	  union
+	  { int64_t i;
+	    word w[WORDS_PER_INT64];
+	  } cvt;
+	  int64_t val;
+	  
+	  cvt.w[0] = p[1];
+	  cvt.w[1] = p[2];
+	  val = cvt.i;
+#endif
 
 #if SIZEOF_VOIDP == 8
           Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (intptr_t)val);

@@ -7,13 +7,16 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
-  * Updated documentation.
-
-  * FIXED: Control-C <abort> keeps ringing the bell.  Ulrich Neumerkel.
+  * FIXED: Alignment problem on 32-bit hardware demanding strict alignment.
+    (HPUX on IA64).  David Gray.
 
 =================================
 VERSION 5.6.26 (January 19, 2007)
 =================================
+
+  * Updated documentation.
+
+  * FIXED: Control-C <abort> keeps ringing the bell.  Ulrich Neumerkel.
 
   * FIXED: A is "c" for Unicode characters.
 
