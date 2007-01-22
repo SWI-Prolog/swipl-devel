@@ -327,17 +327,17 @@ find_min([V|Vs],CM,Min) :-
 find_max([],Var,Var).
 find_max([V|Vs],CM,Max) :-
 	( max_gt(V,CM) ->
-		find_min(Vs,V,Max)
+		find_max(Vs,V,Max)
 	;
-		find_min(Vs,CM,Max)
+		find_max(Vs,CM,Max)
 	).
 
 find_ff([],Var,Var).
 find_ff([V|Vs],CM,FF) :-
 	( ff_lt(V,CM) ->
-		find_min(Vs,V,FF)
+		find_ff(Vs,V,FF)
 	;
-		find_min(Vs,CM,FF)
+		find_ff(Vs,CM,FF)
 	).
 
 ff_lt(X,Y) :-
