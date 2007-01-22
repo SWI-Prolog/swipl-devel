@@ -219,7 +219,7 @@ iprog::
 		$(INSTALL_PROGRAM) "$(EXTRALIBDIR)\$(LIBPTHREAD).dll" "$(BINDIR)"
 		$(INSTALL_DATA) "$(EXTRALIBDIR)\$(LIBPTHREAD).lib" "$(LIBDIR)"
 !ENDIF
-!IF "$MSVCRT" != ""
+!IF "$(MSVCRT)" != ""
 		@echo Adding MSVC runtime
 		$(INSTALL_PROGRAM) "$(MSVCRTDIR)\$(MSVCRT)" "$(BINDIR)"
 !ENDIF
