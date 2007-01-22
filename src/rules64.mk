@@ -12,12 +12,16 @@ LIBPTHREAD=pthreadVC2
 # ZLIB library
 LIBZLIB=zlibwapi
 
-# Installer
-NSIS=C:\Program Files (x86)\NSIS\MakeNSIS.exe
-NSISDEFS=/DWIN64
-
 # Architecture ID
 ARCH=x64-win64
 
 # Extra libraries to load
 EXTRALIBS=bufferoverflowU.lib
+
+# MSVC Runtime
+MSVCRTDIR=$(SDK)\Bin\win64\x86\AMD64
+MSVCRT=msvcr80.dll
+
+# Installer
+NSIS=C:\Program Files (x86)\NSIS\MakeNSIS.exe
+NSISDEFS=/DWIN64 /DMSVCRT=$(MSVCRT)

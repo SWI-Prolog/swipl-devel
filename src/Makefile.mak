@@ -215,9 +215,13 @@ iprog::
 		$(INSTALL_PROGRAM) ..\bin\plterm.pdb "$(BINDIR)"
 !ENDIF
 !IF "$(MT)" == "true"
-		@echo Installing pthreadVC.dll from $(WINDLLDIR)
+		@echo Installing pthreadVC.dll
 		$(INSTALL_PROGRAM) "$(EXTRALIBDIR)\$(LIBPTHREAD).dll" "$(BINDIR)"
 		$(INSTALL_DATA) "$(EXTRALIBDIR)\$(LIBPTHREAD).lib" "$(LIBDIR)"
+!ENDIF
+!IF "$MSVCRT" != ""
+		@echo Adding MSVC runtime
+		$(INSTALL_PROGRAM) "$(MSVCRTDIR)\$(MSVCRT)" "$(BINDIR)"
 !ENDIF
 
 install-libs:	idirs iinclude iboot ilib
