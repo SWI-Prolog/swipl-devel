@@ -1,0 +1,65 @@
+\section{SWI-Prolog and 64-bit machines}
+\label{sec:64bits}
+
+\index{bits, 64}%
+SWI-Prolog support for 64-bit\footnote{With 64-bit machines we refer to
+CPUs where memory-addresses (pointers) are 64-bits wide.} machines
+started with version 2.8 on DEC Alpha CPUs running Linux. Initially
+64-bit hardware was developed to deal with the addressing demands of
+large databases, running primarily on expensive server hardware.
+Recently (2007) we see CPUs that support 64-bit addressing become
+commonplace, even in low-budget desktop hardware.  Most todays 64-bit
+platforms are capable of running both 32-bit and 64-bit applications.
+This asks for some clarifications on the advantages and drawbacks of
+64-bit addressing for (SWI-)Prolog.
+
+
+\subsection{Supported platforms}
+\label{sec:64bitsplatforms}
+
+On Unix systems, 64-bit addressing is configured using
+\program{configure}. Traditionally, both \ctype{long} and \ctype{void*}
+are 64-bits on these machines. Version 5.6.26 introduces support for
+64-bit MS-Windows (Windows XP and Vista 64-bit editions) on amd64 (x64)
+hardware.  Win64 uses \ctype{long} integers of only 32-bits.  Version
+5.6.26 introduces support for such platforms.
+
+
+\subsection{Comparing 32- and 64-bits Prolog}
+\label{sec:32vs64bits}
+
+Most of Prolog's memory-usage consists of pointers.  This indicates the
+primary drawback: Prolog memory usage almost doubles when using the 64
+bit addressing model.  Using more memory means copying more data between
+CPU and main memory, slowing down the system.
+
+What are the advantages? First of all, SWI-Prolog's addressing of the
+Prolog stacks doesn't cover the whole address space due to the use of
+\jargon{type tag bits} and \jargon{garbage collection flags}. On 32-bit
+hardware the stacks are limited to 128MB each. This tends to be too low
+for demanding applications on modern hardware.  On 64-bit hardware the
+limit is $2^32$ times higher, exceeding the addressing capabilities of
+todays CPUs and operating systems. This implies Prolog can be started
+with stacks sizes that use the full capabilities of your hardware.
+
+Multi-threaded applications profit much more. SWI-Prolog threads claim
+the full stacksize limit in \jargon{virtual address space} and each
+thread comes with its own set of stacks. This approach quickly exhasut
+virtual memory on 32-bit systems but poses no problems using 64-bit
+addresses.
+
+\index{IA32}\index{AMD64}%
+The implications theoretical performance loss due to increased memory
+bandwidth implied by exchanging wider pointers depend on the design of
+the hardware. We only data for the popular IA32 vs. AMD64 architectures.
+Here is appears that the loss is compensated for by a an instruction set
+that has been optimized for modern programming. In particular, the AMD64
+has more registers and the relative addressing capabilities have been
+extended. Where we see a 10\% performance degradation when placing the
+SWI-Prolog kernel in a Unix shared object, we cannot find a measurable
+difference on AMD64.  Current SWI-Prolog (5.6.26) runs at practically
+the same speed on IA32 and AMD64.
+
+
+\subsection{Choosing between 32- and 64-bits Prolog}
+\label{sec:32vs64bitschoice}
