@@ -14,8 +14,8 @@ interactive application simply by starting the program:
 
 \begin{code}
 machine% pl
-Welcome to SWI-Prolog (Version 5.6.0)
-Copyright (c) 1990-2005 University of Amsterdam.
+Welcome to SWI-Prolog (Version 5.6.26)
+Copyright (c) 1990-2007 University of Amsterdam.
 SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,
 and you are welcome to redistribute it under certain conditions.
 Please visit http://www.swi-prolog.org for details.
@@ -2047,3 +2047,5 @@ we need some way to avoid name clashes with the user's predicates,
 database keys, etc.  Like Edinburgh C-Prolog \cite{CPROLOG:manual} all
 predicates, database keys, etc.\ that should be hidden from the user
 start with a dollar (\chr{\$}) sign (see style_check/1).
+
+\input{bit64.tex}

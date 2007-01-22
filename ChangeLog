@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * Updated documentation.
+
   * FIXED: Control-C <abort> keeps ringing the bell.  Ulrich Neumerkel.
 
 =================================

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.25 Reference Manual: Section 4.42</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.26 Reference Manual: Section 4.42</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="memory.html">
@@ -126,7 +126,7 @@ DDE interface</SPAN></A></H2>
 <A NAME="sec:DDE"></A>
 
 <P>The predicates in this section deal with MS-Windows `Dynamic Data 
-Exchange' or DDE protocol.<SUP class="fn">63<SPAN class="fn-text">This 
+Exchange' or DDE protocol.<SUP class="fn">64<SPAN class="fn-text">This 
 interface is contributed by Don Dwiggins.</SPAN></SUP> A Windows DDE 
 conversation is a form of interprocess communication based on sending 
 reserved window-events between the communicating processes.
@@ -228,11 +228,11 @@ is of the form:
 an atom, indicating <VAR>Goal</VAR> only handles requests on this topic 
 or a variable that also appears in <VAR>Goal</VAR>. <VAR>Item</VAR> and <VAR>Value</VAR> 
 are variables that also appear in <VAR>Goal</VAR>. <VAR>Item</VAR> 
-represents the request data as a Prolog atom.<SUP class="fn">64<SPAN class="fn-text">Up-to 
+represents the request data as a Prolog atom.<SUP class="fn">65<SPAN class="fn-text">Up-to 
 version 3.4.5 this was a list of character codes. As recent versions 
 have atom garbage collection there is no need for this anymore.</SPAN></SUP>
 
-<P>The example below registers the Prolog <A NAME="idx:currentprologflag2:1081"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
+<P>The example below registers the Prolog <A NAME="idx:currentprologflag2:1086"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
 predicate to be accessible from other applications. The request may be 
 given from the same Prolog as well as from another application.
 

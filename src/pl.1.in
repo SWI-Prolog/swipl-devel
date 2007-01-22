@@ -121,7 +121,7 @@ if Prolog was compiled for multi-threading and
 otherwise.
 .RE
 .TP
-.BI \-A size [km]
+.BI \-A size [kmg]
 Sets the argument stack size to
 .I size.
 The default is 1 Mbytes.  The argument-size determines the maximum
@@ -131,7 +131,7 @@ lists do not require the argument stack. See also the
 .B \-L
 option.
 .TP
-.BI \-G size [km]
+.BI \-G size [kmg]
 Sets the global stack size to
 .I size.
 The default is 4 Mbytes.  The global stack is used to store compound
@@ -139,7 +139,7 @@ terms, floating point numbers, big integers and strings. See also the
 .B \-L
 option.
 .TP
-.BI \-L size [km]
+.BI \-L size [kmg]
 Sets the local stack size to
 .I size.
 The default unit is Kbytes.  The local stack is used to store environment
@@ -147,7 +147,9 @@ frames, choicepoints and foreign-language term-references.  Note that
 SWI-Prolog does last-call optimisation to minimize the local stack
 requirements. If the argument ends in
 .B m ,
-the argument is interpreted in Mbytes.
+the argument is interpreted in Mbytes. A
+.B g
+suffix is interpreted in Gbytes (64-bit machines only).
 This flag sets the maximum value to which the stack is
 allowed to grow (default 2048). A maximum is useful to prevent buggy
 programs from claiming all the memory resources.
@@ -156,10 +158,10 @@ sets the limit to the highest possible value.
 .TP
 .BI \-O
 Optimised compilation. See
-.B please/3
+.B set_prolog_flag/3
 in the SWI-Prolog Reference Manual.
 .TP
-.BI \-T size
+.BI \-T size [kmg]
 Sets the trail stack size to
 .I size
 K bytes. The default is 4096. See
@@ -412,7 +414,7 @@ The license terms are in the file
 or on the GNU website at
 .I http://www.gnu.org.
 .SH COPYRIGHT
-Copyright (c) 1993\-2006 University of Amsterdam.
+Copyright (c) 1986\-2007 University of Amsterdam.
 .SH AUTHOR
 Jan Wielemaker
 

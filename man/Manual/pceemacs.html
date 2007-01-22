@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.25 Reference Manual: Section 3.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.26 Reference Manual: Section 3.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="editreload.html">
@@ -128,12 +128,12 @@ the PceEmacs built-in editor</SPAN></A></H2>
 <H3><A NAME="sec:3.4.1"><SPAN class="sec-nr">3.4.1</SPAN> <SPAN class="sec-title">Activating 
 PceEmacs</SPAN></A></H3>
 
-<P>Initially <A NAME="idx:edit1:271"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
+<P>Initially <A NAME="idx:edit1:276"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 uses the editor specified in the <CODE>EDITOR</CODE> environment 
 variable. There are two ways to force it to use the built-in editor. One 
 is to set the prolog-flag <CODE>editor</CODE> to
 <CODE>pce_emacs</CODE> and the other is by starting the editor 
-explicitly using the <A NAME="idx:emacs01:272"></A><SPAN class="pred-ext">emacs/[0,1]</SPAN> 
+explicitly using the <A NAME="idx:emacs01:277"></A><SPAN class="pred-ext">emacs/[0,1]</SPAN> 
 predicates.
 
 <H3><A NAME="sec:3.4.2"><SPAN class="sec-nr">3.4.2</SPAN> <SPAN class="sec-title">Bluffing 
@@ -143,7 +143,7 @@ through PceEmacs</SPAN></A></H3>
 
 <P>PceEmacs closely mimics Richard Stallman's GNU-Emacs commands, adding 
 features from modern window-based editors to make it more acceptable for 
-beginners.<SUP class="fn">14<SPAN class="fn-text">Decent merging with 
+beginners.<SUP class="fn">15<SPAN class="fn-text">Decent merging with 
 MS-Windows control-key conventions is difficult as many conflict with 
 GNU-Emacs. Especially the cut/copy/paste commands conflict with 
 important GNU-Emacs commands.</SPAN></SUP>
@@ -227,7 +227,7 @@ every character you type. It illustrates the current match using a green
 background.
 
 <P>If the target cannot be found, PceEmacs warns you and no longer 
-extends the search-string.<SUP class="fn">15<SPAN class="fn-text">GNU-Emacs 
+extends the search-string.<SUP class="fn">16<SPAN class="fn-text">GNU-Emacs 
 keeps extending the string, but why? Adding more text will not make it 
 match.</SPAN></SUP> During search some characters have special meaning. 
 Typing anything but these characters commits the search, re-starting 
@@ -319,7 +319,7 @@ and the clause is not coloured.
 <LI><I>After the command <CODE>Control-c Control-s</CODE></I><BR>
 Acronym for <B>C</B>check <B>S</B>yntax it performs the same checks as 
 above for the clause surrounding the caret. On a syntax error however, 
-the caret is moved to the expected location of the error.<SUP class="fn">16<SPAN class="fn-text">In 
+the caret is moved to the expected location of the error.<SUP class="fn">17<SPAN class="fn-text">In 
 most cases the location where the parser cannot proceed is further down 
 the file than the actual error-location.</SPAN></SUP>
 
@@ -380,7 +380,7 @@ called </TD></TR>
 <P>Layout is not `just nice', it is <EM>essential</EM> for writing 
 readable code. There is much debate on the proper layout of Prolog. 
 PceEmacs, being a rather small project supports only one particular 
-style for layout.<SUP class="fn">17<SPAN class="fn-text">Defined in 
+style for layout.<SUP class="fn">18<SPAN class="fn-text">Defined in 
 Prolog in the file <CODE>library(emacs/prolog_mode)</CODE>, you may wish 
 to extend this. Please contribute your extensions!</SPAN></SUP> Below 
 are examples of typical constructs.
@@ -431,11 +431,11 @@ your way around</SPAN></A></H4>
 <P>The command <CODE>Alt-.</CODE> extracts name and arity from the caret 
 location and jumps (after conformation or edit) to the definition of the 
 predicate. It does so based on the source-location database of loaded 
-predicates also used by <A NAME="idx:edit1:273"></A><A class="pred" href="listing.html#edit/1">edit/1</A>. 
+predicates also used by <A NAME="idx:edit1:278"></A><A class="pred" href="listing.html#edit/1">edit/1</A>. 
 This makes locating predicates reliable if all sources are loaded and 
-up-to-date (see <A NAME="idx:make0:274"></A><A class="pred" href="consulting.html#make/0">make/0</A>).
+up-to-date (see <A NAME="idx:make0:279"></A><A class="pred" href="consulting.html#make/0">make/0</A>).
 
-<P>In addition, references to files in <A NAME="idx:usemodule12:275"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>, <A NAME="idx:consult1:276"></A><A class="pred" href="consulting.html#consult/1">consult/1</A>, 
+<P>In addition, references to files in <A NAME="idx:usemodule12:280"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>, <A NAME="idx:consult1:281"></A><A class="pred" href="consulting.html#consult/1">consult/1</A>, 
 etc. are red if the file cannot be found and underlined blue if the file 
 can be loaded. A popup allows for opening the referenced file.
 

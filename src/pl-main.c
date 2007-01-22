@@ -176,7 +176,7 @@ defaultSystemInitFile(char *a0)
     *s++ = *base++;
   *s = EOS;
 
-  if ( strlen(buf) > 0 )
+  if ( buf[0] != EOS )
     return store_string(buf);
 
   return store_string("pl");
@@ -199,6 +199,9 @@ memarea_limit(const char *s)
       case 'm':
       case 'M':
 	return (intptr_t)n.value.i K K;
+      case 'g':
+      case 'G':
+	return (intptr_t)n.value.i K K K;
       case 'b':
       case 'B':
 	return (intptr_t)n.value.i;
@@ -969,7 +972,7 @@ usage()
     "    7) %s [options] [-o output] -b bootfile -c file ...\n",
     "Options:\n",
     "    -x state         Start from state (must be first)\n",
-    "    -[LGTA]size[KM]  Specify {Local,Global,Trail,Argument} limits\n",
+    "    -[LGTA]size[KMG] Specify {Local,Global,Trail,Argument} limits\n",
     "    -t toplevel      Toplevel goal\n",
     "    -g goal          Initialisation goal\n",
     "    -f file          User initialisation file\n",

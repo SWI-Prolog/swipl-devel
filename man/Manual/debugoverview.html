@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.25 Reference Manual: Section 2.9</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.26 Reference Manual: Section 2.9</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="topvars.html">
@@ -286,7 +286,7 @@ Continue execution in `no debug' mode.
 <DT><STRONG>Print</STRONG> (<CODE>p</CODE>)</DT>
 <DD class="defbody">
 Set the prolog-flag <CODE>debugger_print_options</CODE> to <TT>[quoted(true), 
-portray(true), max_depth(10)]</TT>. This is the default.
+portray(true), max_depth(10), priority(699)]</TT>. This is the default.
 </DD>
 <DT><STRONG>Retry</STRONG> (<CODE>r</CODE>)</DT>
 <DD class="defbody">
@@ -306,8 +306,8 @@ option is useful to stop tracing a failure driven loop.
 </DD>
 <DT><STRONG>Write</STRONG> (<CODE>w</CODE>)</DT>
 <DD class="defbody">
-Set the prolog-flag <CODE>debugger_print_options</CODE> to <CODE>[quoted(true)]</CODE>, 
-bypassing <A NAME="idx:portray1:97"></A><A class="pred" href="termrw.html#portray/1">portray/1</A>, 
+Set the prolog-flag <CODE>debugger_print_options</CODE> to <CODE>[quoted(true), 
+attributes(write), priority(699)]</CODE>, bypassing <A NAME="idx:portray1:97"></A><A class="pred" href="termrw.html#portray/1">portray/1</A>, 
 etc.
 </DD>
 </DL>
