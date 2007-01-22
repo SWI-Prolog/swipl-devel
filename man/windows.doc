@@ -388,8 +388,7 @@ probably be synchronised in the future.
 \verb$\bin\plterm.dll$	& The window for \program{plwin.exe} \\
 \verb$\bin\pthreadVC.dll$& POSIX thread runtime library (32-bits) \\
 \verb$\bin\pthreadVC2.dll$& POSIX thread runtime library (64-bits) \\
-\verb$\bin\msvcrt.dll$	& Microsoft C runtime library (32-bits) \\
-\verb$\bin\msvcrt80.dll$ & Microsoft C runtime library (64-bits) \\
+\verb$\bin\msvcr80.dll$ & Microsoft C runtime library (64-bits) \\
 \hline
 \multicolumn{2}{|c|}{Extension DLLs (plugins)} \\
 \hline
