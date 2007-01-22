@@ -9,12 +9,11 @@ syntax.
 % See \secref{sicstus_compat} for more on compatibility with the SICStus
 % clp(FD) solver.
 
-Please note that the \pllib{clp/bounds} library is \emph{not} an
-\jargon{autoload} library and therefore this library must be loaded
-explicitely before using it using:
+The \pllib{bounds} library is \emph{not} an \jargon{autoload} library
+and therefore it must be loaded explicitely before using it via:
 
 \begin{code}
-:- use_module(library('clp/bounds')).
+:- use_module(library(bounds)).
 \end{code}
 
 
@@ -63,18 +62,64 @@ The following constraints are supported:
 		constraint ($\sum$\arg{Vars}) \arg{Op} \arg{Value}.
 	\predicate{lex_chain}{1}{+VarsLists}
 		The constraint enforces lexicographic ordering on the lists
-		in the argument. The argument \arg{Vars} is a list of lists
+		in the argument. The argument \arg{VarsLists} is a list of lists
 		of variables and integers. The current implementation
 		was contributed by Markus Triska.
 	\predicate{all_different}{1}{+Vars}
 		Constrains all variabls in the list \arg{Vars} to be pairwise
 		not equal.
 	\predicate{indomain}{1}{+Var}
-		Assigns a value in its domain to variable \arg{Var}. Backtracks
-		over all possible values from lowest to greatest. Contributed by Markus Triska.
+		Unify variable \arg{Var} with a value in its
+		domain. Backtracks over all possible values from
+		lowest to greatest. Contributed by Markus Triska.
 	\predicate{label}{1}{+Vars}
-		All variables are assigned a variable that does not
-		violate the constraint on them. 
+		Equivalent to labeling([], Vars).
+	\predicate{labeling}{2}{+Options, +Vars}
+		All variables in the list \arg{Vars} are assigned
+		values from their respective domains such that no
+		constraint on them is violated. \arg{Options} is a
+		list of options.  One set of options lets you choose
+		the variable selection strategy:
+
+		\begin{description}
+		    \termitem{leftmost}{}
+			    Label the variables in the order they
+			    occur in \arg{Vars} from left to right.
+			    This is the default.
+
+		    \termitem{ff}{}
+			    Label the variable whose domain contains
+			    the smallest number of elements among the
+			    remaining variables next.
+
+		    \termitem{min}{}
+			    Label the variable whose lower bound is
+			    the lowest among the remaining variables
+			    next.
+
+		    \termitem{max}{}
+			    Label the variable whose upper bound is
+			    the highest among the remaining variables
+			    next.
+		\end{description}
+
+		Another set of options lets you search for extrema:
+
+		\begin{description}
+		    \termitem{min}{Expr}
+		    \termitem{max}{Expr}
+			    Label the variables such that \arg{Expr}
+			    assumes the smallest/highest possible
+			    value.
+		\end{description}
+
+	\predicate{serialized}{2}{+Starts,+Durations}
+		\arg{Starts} = $[S_1,\ldots,S_n]$ is a list of
+		variables or integers, and \arg{Durations} =
+		$[D_1,\ldots,D_n]$ is a list of non-negative integers.
+		\arg{Starts} are constrained to denote the starting
+		times of non-overlapping tasks, i.e., $S_i + D_i =< S_j$
+		or $S_j + D_j =< S_i$ for all $1 =< i < j =< n$.
 \end{description}
 
 \noindent Here \arg{Expr} can be one of
@@ -158,7 +203,7 @@ The following is an implementation of the classic alphametics puzzle
 SEND + MORE = MONEY:
 
 \begin{code}
-:- use_module(library('clp/bounds')).
+:- use_module(library(bounds)).
 
 send([[S,E,N,D], [M,O,R,E], [M,O,N,E,Y]])  :-
               Digits   =  [S,E,N,D,M,O,R,Y],
