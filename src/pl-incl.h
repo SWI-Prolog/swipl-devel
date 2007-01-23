@@ -1476,11 +1476,11 @@ struct queryFrame
 };
 
 
-#define FLI_MAGIC 		0x82c4a821
-#define FLI_MAGIC_CLOSED	0x42424242
+#define FLI_MAGIC 		82649821
+#define FLI_MAGIC_CLOSED	42424242
 
 struct fliFrame
-{ intptr_t		magic;			/* Magic code */
+{ int		magic;			/* Magic code */
   int		size;			/* # slots on it */
   FliFrame	parent;			/* parent FLI frame */
   mark		mark;			/* data-stack mark */
@@ -1899,7 +1899,7 @@ typedef enum
 #ifdef NO_SEGV_HANDLING
 #define requireStack(s, n) \
 	{ if ( roomStack(s) < (intptr_t)(n) ) \
- 	    ensureRoomStack((Stack)&LD->stacks.s, n); \
+ 	    ensureRoomStack((void*)&LD->stacks.s, n); \
 	}
 #else /*NO_SEGV_HANDLING*/
 #define requireStack(s, n)
@@ -1907,7 +1907,7 @@ typedef enum
 #else
 #define requireStack(s, n) \
 	{ if ( roomStack(s) < (intptr_t)(n) ) \
- 	    outOfStack((Stack)&LD->stacks.s, STACK_OVERFLOW_FATAL); \
+ 	    outOfStack((void*)&LD->stacks.s, STACK_OVERFLOW_FATAL); \
 	}
 #endif
 

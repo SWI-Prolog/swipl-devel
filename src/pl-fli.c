@@ -1282,9 +1282,8 @@ PL_get_long(term_t t, long *i)
 
 
 int
-PL_get_int64(term_t t, int64_t *i)
-{ GET_LD
-  word w = valHandle(t);
+PL_get_int64__LD(term_t t, int64_t *i ARG_LD)
+{ word w = valHandle(t);
   
   if ( isTaggedInt(w) )
   { *i = valInt(w);
@@ -1312,6 +1311,15 @@ PL_get_int64(term_t t, int64_t *i)
 
   fail;
 }
+
+
+#undef PL_get_int64
+int
+PL_get_int64(term_t t, int64_t *i)
+{ GET_LD
+  return PL_get_int64__LD(t, i PASS_LD);
+}
+#define PL_get_int64(t, i) PL_get_int64__LD(t, i PASS_LD)
 
 
 int
@@ -2117,14 +2125,14 @@ PL_unify_functor(term_t t, functor_t f)
 #endif
 
       { Word a = gTop;
-	word t = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+	word to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
 
 	gTop += 1+arity;
 	*a = f;
 	while( --arity >= 0 )
 	  setVar(*++a);
 
-	bindConst(p, t);
+	bindConst(p, to);
       }
     }
 
@@ -2168,17 +2176,17 @@ PL_unify_atom_nchars(term_t t, size_t len, const char *chars)
 
 
 static atom_t
-uncachedCodeToAtom(int code)
-{ if ( code < 256 )
+uncachedCodeToAtom(int chrcode)
+{ if ( chrcode < 256 )
   { char tmp[1];
 
-    tmp[0] = code;
+    tmp[0] = chrcode;
     return lookupAtom(tmp, 1);
   } else
   { pl_wchar_t tmp[1];
     int new;
 
-    tmp[0] = code;
+    tmp[0] = chrcode;
 
     return lookupBlob((const char *)tmp, sizeof(pl_wchar_t),
 		      &ucs_atom, &new);
@@ -2187,17 +2195,17 @@ uncachedCodeToAtom(int code)
 
 
 atom_t
-codeToAtom(int code)
+codeToAtom(int chrcode)
 { atom_t a;
 
-  if ( code == EOF )
+  if ( chrcode == EOF )
     return ATOM_end_of_file;
 
-  assert(code >= 0);
+  assert(chrcode >= 0);
 
-  if ( code < (1<<15) )
-  { int page  = code / 256;
-    int entry = code % 256;
+  if ( chrcode < (1<<15) )
+  { int page  = chrcode / 256;
+    int entry = chrcode % 256;
     atom_t *pv;
 
     if ( !(pv=GD->atoms.for_code[page]) )
@@ -2208,10 +2216,10 @@ codeToAtom(int code)
     }
 
     if ( !(a=pv[entry]) )
-    { a = uncachedCodeToAtom(code);
+    { a = uncachedCodeToAtom(chrcode);
     }
   } else
-  { a = uncachedCodeToAtom(code);
+  { a = uncachedCodeToAtom(chrcode);
   }
   
   return a;

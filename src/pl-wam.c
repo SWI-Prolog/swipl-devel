@@ -148,6 +148,8 @@ pl_count()
 		 *	     DEBUGGING		*
 		 *******************************/
 
+#ifdef O_DEBUG
+
 static inline intptr_t
 loffset(void *p)
 { if ( p == NULL )
@@ -157,8 +159,6 @@ loffset(void *p)
   return (Word)p-(Word)lBase;
 }
 
-
-#ifdef O_DEBUG
 static void
 DbgPrintInstruction(LocalFrame FR, Code PC)
 { static LocalFrame ofr = NULL;
@@ -2464,9 +2464,13 @@ variable, compare the numbers otherwise.
 	if ( canBind(*k) )
 	{ Word p = allocGlobal(2+WORDS_PER_INT64);
 	  word c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-	  int64_t val = (int64_t)(intptr_t)*PC++;
-	  Word vp = (Word)&val;
+	  union
+	  { int64_t val;
+	    word w[WORDS_PER_INT64];
+	  } cvt;
+	  Word vp = cvt.w;
 
+	  cvt.val = (int64_t)(intptr_t)*PC++;
 	  *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 	  cpInt64Data(p, vp);
 	  *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
@@ -2485,7 +2489,7 @@ variable, compare the numbers otherwise.
 	if ( canBind(*k) )
 	{ Word p = allocGlobal(2+WORDS_PER_INT64);
 	  word c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-	  int i;
+	  size_t i;
 
 	  *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 	  for(i=0; i<WORDS_PER_INT64; i++)
@@ -2495,7 +2499,7 @@ variable, compare the numbers otherwise.
 	  NEXT_INSTRUCTION;
 	} else if ( isBignum(*k) )
 	{ Word vk = valIndirectP(*k);
-	  int i;
+	  size_t i;
 
 	  for(i=0; i<WORDS_PER_INT64; i++)
 	  { if ( *vk++ != (word)*PC++ )
@@ -2581,9 +2585,13 @@ global stack and assign the pointer to *ARGP.
 
     VMI(B_INTEGER) MARK(BINT)
       { Word p = allocGlobal(2+WORDS_PER_INT64);
-	int64_t val = (int64_t)(intptr_t)*PC++;
-	Word vp = (Word)&val;
+	union
+	{ int64_t val;
+	  word w[WORDS_PER_INT64];
+	} cvt;
+	Word vp = cvt.w;
 
+	cvt.val = (int64_t)(intptr_t)*PC++;
 	*ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 	*p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 	cpInt64Data(p, vp);
@@ -2593,7 +2601,7 @@ global stack and assign the pointer to *ARGP.
 
     VMI(B_INT64) MARK(BINT64)
       { Word p = allocGlobal(2+WORDS_PER_INT64);
-	int i;
+	size_t i;
 	
 	*ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 	*p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
@@ -4249,12 +4257,11 @@ that the two arguments are copied in  local variables as they will later
 be overwritten by the arguments for the actual call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
       VMI(I_APPLY) MARK(APPLY);
-      { atom_t functor;
-	Word lp;
-	Module module = (Module) NULL;
+      { Word lp;
 	Word gp;
 	word a1 = 0;
 
+	module = NULL;
 	next = lTop;
 	next->flags = FR->flags;
 	if ( true(DEF, HIDE_CHILDS) )
@@ -4618,11 +4625,11 @@ values found in the clause,  give  a   reference  to  the clause and set
 #endif
 	DEBUG(9, Sdprintf("Searching clause ... "));
 
-      { ClauseRef next;
+      { ClauseRef nextcl;
 	Clause clause;
 
 	lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-	if ( !(CL = firstClause(ARGP, FR, DEF, &next PASS_LD)) )
+	if ( !(CL = firstClause(ARGP, FR, DEF, &nextcl PASS_LD)) )
 	{ DEBUG(9, Sdprintf("No clause matching index.\n"));
 	  if ( debugstatus.debugging )
 	    newChoice(CHP_DEBUG, FR PASS_LD);
@@ -4635,9 +4642,9 @@ values found in the clause,  give  a   reference  to  the clause and set
 	PC = clause->codes;
 	lTop = (LocalFrame)(ARGP + clause->variables);
 
-	if ( next )
+	if ( nextcl )
 	{ Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	  ch->value.clause = next;
+	  ch->value.clause = nextcl;
 	} else if ( debugstatus.debugging )
 	  newChoice(CHP_DEBUG, FR PASS_LD);
 
@@ -4685,10 +4692,10 @@ Leave the clause:
     exit_builtin:
 #ifdef O_ATTVAR
       if ( *valTermRef(LD->attvar.head) ) /* can be faster */
-      { static code exit;
+      { static code cexit;
 
-	exit = encode(I_EXIT);
-	PC = &exit;
+	cexit = encode(I_EXIT);
+	PC = &cexit;
 	goto wakeup;
       }
 #endif

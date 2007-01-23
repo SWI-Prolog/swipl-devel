@@ -274,7 +274,7 @@ nextClauseMultiIndexed(ClauseRef cref, uintptr_t generation,
 
 static inline ClauseRef
 nextClauseArg1(ClauseRef cref, uintptr_t generation,
-	       ClauseRef *next, word key ARG_LD)
+	       ClauseRef *next, word key)
 { for(;cref ; cref = cref->next)
   { Clause clause = cref->clause;
 
@@ -337,7 +337,7 @@ again:
     } else
       cref = def->definition.clauses;
 
-    return nextClauseArg1(cref, gen, next, key PASS_LD);
+    return nextClauseArg1(cref, gen, next, key);
   } else if ( def->indexPattern & NEED_REINDEX )
   { reindexDefinition(def);
     goto again;
@@ -381,7 +381,7 @@ findClause(ClauseRef cref, Word argv,
     if ( !key )
       goto noindex;
 
-    return nextClauseArg1(cref, gen, next, key PASS_LD);
+    return nextClauseArg1(cref, gen, next, key);
   } else if ( def->indexPattern & NEED_REINDEX )
   { reindexDefinition(def);
     return findClause(cref, argv, fr, def, next PASS_LD);
