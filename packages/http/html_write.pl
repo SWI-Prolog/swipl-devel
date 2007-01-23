@@ -411,9 +411,13 @@ attributes(One) -->
 	attribute(One).
 
 attribute(Name=Value) --> !,
-	[' ', Name, '="' ],
+	[' '], name(Name), [ '="' ],
 	attribute_value(Value),
 	['"'].
+attribute(NS:Term) --> !,
+	{ Term =.. [Name, Value]
+	}, !,
+	attribute((NS:Name)=Value).
 attribute(Term) -->
 	{ Term =.. [Name, Value]
 	}, !,
@@ -423,6 +427,10 @@ attribute(Atom) -->			% Value-abbreviated attribute
 	},
 	[ ' ', Atom ].
 
+name(NS:Name) --> !,
+	[NS, :, Name].
+name(Name) -->
+	[ Name ].
 
 %%	attribute_value(+Value)
 %
@@ -591,7 +599,10 @@ print_html(List) :-
 print_html(Out, List) :-
 	(   html_current_option(dialect(xhtml))
 	->  stream_property(Out, encoding(Enc)),
-	    must_be(oneof([utf8]), Enc),
+	    (	Enc == utf8
+	    ->	true
+	    ;	print_message(warning, html(wrong_encoding(Out, Enc)))
+	    ),
 	    xml_header(Hdr),
 	    write(Out, Hdr), nl(Out)
 	;   true
@@ -724,6 +735,9 @@ attr_colours(Term, list-Elements) :-
 	Term = [_|_], !,
 	attr_list_colours(Term, Elements).
 attr_colours(Name=_, built_in-[html_attribute(Name), classify]) :- !.
+attr_colours(NS:Term, built_in-[html_xmlns(NS), html_attribute(Name)-[classify]]) :-
+	compound(Term),
+	Term =.. [Name,_], !.
 attr_colours(Term, html_attribute(Name)-[classify]) :-
 	compound(Term),
 	Term =.. [Name,_], !.
@@ -746,6 +760,7 @@ emacs_prolog_colours:style(html(_), style(bold := @on,
 					  colour := magenta4)).
 emacs_prolog_colours:style(entity(_), style(colour := magenta4)).
 emacs_prolog_colours:style(html_attribute(_), style(colour := magenta4)).
+emacs_prolog_colours:style(html_xmlns(_), style(colour := magenta4)).
 
 
 emacs_prolog_colours:identify(html(Element), Summary) :-
@@ -804,3 +819,5 @@ called_by(_) -->
 
 prolog:message(html(expand_failed(What))) -->
 	[ 'Failed to translate to HTML: ~p'-[What] ].
+prolog:message(html(wrong_encoding(Stream, Enc))) -->
+	[ 'XHTML demands UTF-8 encoding; encoding of ~p is ~w'-[Stream, Enc] ].
