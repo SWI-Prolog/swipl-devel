@@ -62,7 +62,7 @@ dehex(int chr)
 static int
 form_argument_decode(const char *in, size_t inlen, char *out, size_t outlen)
 { const char *ein  = in+inlen;
-  int written = 0;
+  size_t written = 0;
 
   for(; in < ein; in++)
   { switch(*in)
@@ -298,13 +298,20 @@ get_raw_form_data(size_t *lenp)
        strcmp(method, "POST") == 0 )
   { char *lenvar = getenv("CONTENT_LENGTH");
     char *q;
-    int len;
+    long len;
 
     if ( !lenvar )
       return NULL;
-    len = atoi(lenvar);
+    len = atol(lenvar);
+    if ( len < 0 )
+    {
+#ifdef UTIL_H_INCLUDED
+	error("Negative content length");
+#endif
+	return NULL;
+    }
     if ( lenp )
-    { if ( *lenp && len > *lenp )
+    { if ( *lenp && (size_t)len > *lenp )
       {
 #ifdef UTIL_H_INCLUDED
 	error("Contents too long (accept max. %d Kbytes)", *lenp/1024);

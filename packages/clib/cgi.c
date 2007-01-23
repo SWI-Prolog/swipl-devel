@@ -32,7 +32,7 @@ static int
 isinteger(const char *s, long *val, size_t len)
 { char *e;
   
-  if ( len < 0 )
+  if ( len == (size_t)-1 )
     len = strlen(s);
   if ( len == 0 )
     return FALSE;
@@ -49,7 +49,7 @@ static int
 isfloat(const char *s, double *val, size_t len)
 { char *e;
 
-  if ( len < 0 )
+  if ( len == (size_t)-1 )
     len = strlen(s);
   if ( len == 0 )
     return FALSE;

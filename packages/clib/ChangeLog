@@ -1,3 +1,7 @@
+Jan 23, 2007
+
+  * size_t cleanup.
+
 Dec 12, 2006
 
   * FIXED: Error handling in read_line_to_codes/[2,3] and
