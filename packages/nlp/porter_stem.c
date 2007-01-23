@@ -460,7 +460,8 @@ static foreign_t
 pl_unaccent(term_t from, term_t to)
 { char buf[1024];
   char *f;
-  size_t fl, len;
+  int len;
+  size_t fl;
 
   if ( !PL_get_nchars(from, &fl, &f, CVT_ALL|CVT_EXCEPTION) )
     return FALSE;
