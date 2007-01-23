@@ -568,7 +568,7 @@ register_delete_textbuffer(TextBuffer tb, long where, long len)
       }
     }
 
-    cell_size = need_wide ? len*sizeof(charW) : len;
+    cell_size = need_wide ? len*(int)sizeof(charW) : len;
     if ( (udc = new_undo_cell(ub, UndoDeleteSize(cell_size))) == NULL )
       return;
     udc->type   = UNDO_DELETE;
@@ -659,7 +659,7 @@ register_change_textbuffer(TextBuffer tb, long int where, long int len)
       }
     }
 
-    cell_size = need_wide ? len*sizeof(charW) : len;
+    cell_size = need_wide ? len*(int)sizeof(charW) : len;
     if ( (uc = new_undo_cell(ub, UndoChangeSize(cell_size))) == NULL )
       return;
     uc->type   = UNDO_CHANGE;

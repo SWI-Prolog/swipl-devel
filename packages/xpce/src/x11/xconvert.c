@@ -484,10 +484,11 @@ readXpmFile(Image image, IOSTREAM *fd)
   Display *disp = defaultXDisplay();
 
   if ( offset == 0 )			/* only entire file for now */
-  { int size;
+  { long fsize = Ssize(fd);
 
-    if ( (size = Ssize(fd)) >= 0 )
-    { int as = XpmAttributesSize();
+    if ( fsize >= 0 )
+    { size_t size = (size_t)fsize;
+      int as = XpmAttributesSize();
       XpmAttributes *atts = (XpmAttributes *)alloca(as);
 
       memset(atts, 0, as);

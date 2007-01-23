@@ -215,16 +215,9 @@ if test "x$custom_flags" = "xyes" ; then
 	if test "$GCC" = "yes"; then
 		COFLAGS="-O3 -fno-strict-aliasing"
 		LDFLAGS="$LDFLAGS -O3"
-		if test "$ac_cv_header_stdc" = "yes" ; then
-			CWFLAGS=-Wall
-		else
-			CWFLAGS=
-		fi
-		CMFLAGS=
+		CWFLAGS=${CWFLAGS--Wall}
 	else
 		COFLAGS=-O
-		CWFLAGS=
-		CMFLAGS=
 
 		case "$ARCH" in
 			*mips-irix*)

@@ -500,7 +500,7 @@ static PL_dispatch_hook_t	old_dispatch_hook;
 #if SIZEOF_VOIDP == 8 && SIZEOF_VOIDP != SIZEOF_LONG
 #define GetInteger(a, i)	PL_get_int64((a), (i))
 #else
-#define GetInteger(a, i)	PL_get_long((a), (i))
+#define GetInteger(a, i)	PL_get_long((a), (long*)(i))
 #endif
 #define GetAtom(a, n)		PL_get_atom((a), (n))
 #define GetFloat(a, f)		PL_get_float((a), (f))

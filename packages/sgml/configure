@@ -2393,9 +2393,16 @@ LDSOFLAGS=-shared
 CMFLAGS=-fpic
 SO="$PLSOEXT"
 
+if test ! -z "$GCC"; then
+    COFLAGS="-O2 -fno-strict-aliasing"
+    CWFLAGS=${CWFLAGS--Wall}
+else
+    COFLAGS=-O
+
+
 case "$PLARCH" in
   *irix*)	if test -z "$GCC"; then
-  		    CWFLAGS="-woff 1164"
+  		    CWFLAGS="$CWFLAGS -woff 1164"
 		fi
 		;;
   *darwin*)	CMFLAGS="$CMFLAGS -cc-options,-no-cpp-precomp"
@@ -3183,16 +3190,6 @@ _ACEOF
 
 fi
 
-if test ! -z "$GCC"; then
-    if test $gmake = yes; then
-        COFLAGS='$(shell if test -r .coflags; then cat .coflags; else echo "-O2"; fi)'
-    else
-	COFLAGS="-O2 -fno-strict-aliasing"
-    fi
-    CWFLAGS="$CWFLAGS -Wall"
-else
-    COFLAGS=-O
-fi
 CFLAGS="$CMFLAGS"
 echo "$as_me:$LINENO: checking whether byte ordering is bigendian" >&5
 echo $ECHO_N "checking whether byte ordering is bigendian... $ECHO_C" >&6

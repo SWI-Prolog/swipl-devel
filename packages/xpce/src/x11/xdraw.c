@@ -3393,7 +3393,7 @@ str_draw_text_lines(int acc, FontObj font,
       { int c  = str_fetch(&line->text, cn);
 	int cw = c_width(c, font);
 
-	if ( tolower(c) == (unsigned)acc )
+	if ( (int)tolower(c) == acc )
 	{			/* not r_line to avoid double Translate() */
 	  XDrawLine(context.display, context.drawable, context.gcs->workGC,
 		    cx, line->y+baseline+1, cx+cw-2, line->y+baseline+1);

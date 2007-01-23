@@ -476,13 +476,13 @@ zwrite4(void *handle, char *buf, size_t size, int flush)
   switch( (rc = deflate(&ctx->zstate, flush)) )
   { case Z_OK:
     case Z_STREAM_END:
-    { int n = sizeof(buffer) - ctx->zstate.avail_out;
+    { size_t n = sizeof(buffer) - ctx->zstate.avail_out;
 
       DEBUG(1, Sdprintf("Compressed (%s) to %d bytes; left %d\n",
 			rc == Z_OK ? "Z_OK" : "Z_STREAM_END",
 			n, ctx->zstate.avail_in));
 
-      if ( Sfwrite(buffer, 1, n, ctx->stream) < 0 )
+      if ( Sfwrite(buffer, 1, n, ctx->stream) != n )
 	return -1;
       if ( size == 0 && Sflush(ctx->stream) < 0 )
 	return -1;

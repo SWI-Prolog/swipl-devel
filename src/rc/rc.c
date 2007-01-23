@@ -155,10 +155,10 @@ rcextract(const char *archive, char **members)
 	  size_t size = m->size;
 
 	  while( size > 0 )
-	  { size_t n = rc_read(o, buf, sizeof(buf));
+	  { ssize_t n = rc_read(o, buf, sizeof(buf));
 
 	    if ( n > 0 )
-	    { if ( (int)fwrite(buf, sizeof(char), n, fd) != n )
+	    { if ( fwrite(buf, sizeof(char), (size_t)n, fd) != (size_t)n )
 	      { fclose(fd);
 		error("Failure writing %s: %s", m->name, strerror(errno));
 	      }

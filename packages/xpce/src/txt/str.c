@@ -650,7 +650,7 @@ str_next_index(String s, int from, wint_t chr)
   { charW *d = &s->s_textW[from];
     
     for(i=from; i<n; i++, d++)
-      if ( *d == chr )
+      if ( (wint_t)*d == chr )
 	return i;
   }
 
@@ -672,7 +672,7 @@ str_next_rindex(String s, int from, wint_t chr)
   { charW *d = &s->s_textW[from];
     
     for(i=from; i >= 0; i--, d--)
-      if ( *d == chr )
+      if ( (wint_t)*d == chr )
 	return i;
   }
 
@@ -707,7 +707,7 @@ str_count_chr(String s, int from, int to, wint_t chr)
   { charW *d = &s->s_textW[from];
     
     for(i=from; i<to; i++, d++)
-      if ( *d == chr )
+      if ( (wint_t)*d == chr )
 	count++;
   }
 

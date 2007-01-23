@@ -163,7 +163,7 @@ considerLocStillEvent()
       return;
     if ( instanceOfObject(last_window, ClassWindow) &&
 	 !onFlag(last_window, F_FREED|F_FREEING) &&
-	 last_x > 0 && last_y > 0 )
+	 valInt(last_x) > 0 && valInt(last_y) > 0 )
     { ServiceMode(is_service_window(last_window),
 		  { AnswerMark mark;
 		    EventObj e;

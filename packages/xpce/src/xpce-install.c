@@ -422,7 +422,7 @@ ignoreForDir(Ilist l, char *d)
 	len--;
       s[len] = EOS;
 
-      if ( l > 0 )
+      if ( len > 0 )
       { if ( verbose )
 	  printf("ignore %s in %s\n", s, d);
 	to_ignore_list(l, s);

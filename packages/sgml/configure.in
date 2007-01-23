@@ -70,9 +70,16 @@ LDSOFLAGS=-shared
 CMFLAGS=-fpic
 SO="$PLSOEXT"
 
+if test ! -z "$GCC"; then
+    COFLAGS="-O2 -fno-strict-aliasing"
+    CWFLAGS=${CWFLAGS--Wall}
+else
+    COFLAGS=-O
+
+
 case "$PLARCH" in
   *irix*)	if test -z "$GCC"; then
-  		    CWFLAGS="-woff 1164"
+  		    CWFLAGS="$CWFLAGS -woff 1164"
 		fi
 		;;
   *darwin*)	CMFLAGS="$CMFLAGS -cc-options,-no-cpp-precomp"
@@ -95,16 +102,6 @@ AC_PROG_INSTALL
 AC_PROG_CPP
 AC_ISC_POSIX
 AC_HEADER_STDC
-if test ! -z "$GCC"; then
-    if test $gmake = yes; then
-        COFLAGS='$(shell if test -r .coflags; then cat .coflags; else echo "-O2"; fi)'
-    else
-	COFLAGS="-O2 -fno-strict-aliasing"
-    fi
-    CWFLAGS="$CWFLAGS -Wall"
-else
-    COFLAGS=-O
-fi
 CFLAGS="$CMFLAGS"
 AC_C_BIGENDIAN
 AC_C_INLINE

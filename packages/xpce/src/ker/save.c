@@ -563,7 +563,7 @@ loadStringFile(IOSTREAM *fd, String s)
     s->size = size;
 
     str_alloc(s);
-    if ( Sfread(s->s_textA, sizeof(char), size, fd) != size )
+    if ( Sfread(s->s_textA, sizeof(char), size, fd) != (size_t)size )
       fail;
   } else
   { int i;

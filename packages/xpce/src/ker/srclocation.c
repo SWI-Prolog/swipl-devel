@@ -67,7 +67,7 @@ getConvertSourceLocation(SourceLocation loc, Any spec)
 
     if ( (i=str_rindex(s, ':')) > 0 )
     { char lb[20];
-      int j;
+      size_t j;
       string fn;
 
       i++;

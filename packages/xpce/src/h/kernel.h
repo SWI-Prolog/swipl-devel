@@ -175,7 +175,7 @@ different types when passed to a vararg function.
 		********************************/
 
 #if __STRICT_ANSI__
-#undef TAGGED_LVALUE 1
+#undef TAGGED_LVALUE
 #endif
 
 #ifdef __GNUC__

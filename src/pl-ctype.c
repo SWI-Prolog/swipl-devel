@@ -208,7 +208,7 @@ mkfunction(iswupper)
 mkfunction(iswpunct)
 mkfunction(iswspace)
 
-const static char_type char_types[] =
+static const char_type char_types[] =
 { { ATOM_alnum,		fiswalnum },
   { ATOM_alpha,		fiswalpha },
   { ATOM_csym,		fiscsym },

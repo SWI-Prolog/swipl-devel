@@ -97,13 +97,14 @@ AC_PROG_INSTALL
 AC_PROG_CPP
 AC_ISC_POSIX
 AC_HEADER_STDC
+
 if test ! -z "$GCC"; then
-    COFLAGS=-O2
-    CWFLAGS=-Wall
+    COFLAGS="-O2 -fno-strict-aliasing"
+    CWFLAGS=${CWFLAGS--Wall}
 else
     COFLAGS=-O
-    CWFLAGS=
 fi
+
 CFLAGS="$CMFLAGS"
 AC_FUNC_ALLOCA
 AC_C_BIGENDIAN

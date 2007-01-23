@@ -76,10 +76,9 @@ AC_C_BIGENDIAN
 
 if test ! -z "$GCC"; then
     COFLAGS="-O2 -fno-strict-aliasing"
-    CWFLAGS=-Wall
+    CWFLAGS=${CWFLAGS--Wall}
 else
     COFLAGS=-O
-    CWFLAGS=
 fi
 
 AC_CHECK_HEADERS(malloc.h alloca.h)

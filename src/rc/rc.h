@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -46,10 +46,12 @@ typedef unsigned long uintptr_t;
 #  else
 #    include <stddef.h>
 #  endif
+typedef intptr_t ssize_t;		/* signed version of size_t */
 #else
 #  if defined(HAVE_CONFIG_H) || defined(RC_KERNEL)
 #    include <config.h>
 #  endif
+#include <unistd.h>
 #include <inttypes.h>			/* more portable than stdint.h */
 #endif
 
@@ -141,8 +143,8 @@ RcObject        rc_open(RcArchive rca,
 int             rc_close(RcObject o);
 void            rc_stat(RcObject o, RcStatBuf stat);
 rc_offset       rc_seek(RcObject o, rc_offset to, int whence);
-size_t          rc_read(RcObject o, void *buf, size_t bytes);
-size_t          rc_write(RcObject o, void *buf, size_t bytes);
+ssize_t         rc_read(RcObject o, void *buf, size_t bytes);
+ssize_t         rc_write(RcObject o, void *buf, size_t bytes);
 void *          rc_data(RcObject o, uintptr_t *size);
 
 int		rc_append_file(RcArchive rca,

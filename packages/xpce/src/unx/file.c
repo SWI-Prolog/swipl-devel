@@ -938,7 +938,6 @@ getReadLineFile(FileObj f)
 static StringObj
 getReadFile(FileObj f, Int n)
 { size_t size;
-  ssize_t m;
   StringObj s;
 
   TRY( check_file(f, NAME_read) );
@@ -958,19 +957,16 @@ getReadFile(FileObj f, Int n)
   }
 
   if ( f->encoding == NAME_octet )
-  { s = answerObject(ClassString, EAV);
+  { size_t m;
+
+    s = answerObject(ClassString, EAV);
     str_unalloc(&s->data);
     str_inithdr(&s->data, FALSE);
     s->data.size = (int)size;
     str_alloc(&s->data);
 
     if ( (m = Sfread(s->data.s_textA, 1, size, f->fd)) != size )
-    { if ( m >= 0 )
-	deleteString(s, toInt(m), DEFAULT);
-      else
-      { errorPce(f, NAME_ioError, getOsErrorPce(PCE), 0);
-	fail;
-      }
+    { deleteString(s, toInt(m), DEFAULT); 			/* TBD: error? */
     }
   } else
   { tmp_string tmp;

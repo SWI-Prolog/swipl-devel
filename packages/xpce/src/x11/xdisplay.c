@@ -635,7 +635,7 @@ collect_selection_display(Widget w, XtPointer xtp,
       charA *bufA, *outA;
       const charA *in = value;
       const charA *end = &in[*len];
-      wint_t chr;
+      int chr;
 
       if ( l > 8*1024*2024 )		/* sanity check */
       { selection_error = CtoName("Selection too long");

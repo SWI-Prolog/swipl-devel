@@ -73,10 +73,9 @@ AC_CHECK_SIZEOF(long)
 
 if test ! -z "$GCC"; then
     COFLAGS="-O3 -fno-strict-aliasing"
-    CWFLAGS=-Wall
+    CWFLAGS=${CWFLAGS--Wall}
 else
     COFLAGS=-O
-    CWFLAGS=
 fi
 
 AC_OUTPUT(Makefile)

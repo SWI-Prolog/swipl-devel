@@ -61,11 +61,10 @@ AC_FUNC_ALLOCA
 AC_C_BIGENDIAN
 
 if test ! -z "$GCC"; then
-    COFLAGS=-O2
-    CWFLAGS=-Wall
+    COFLAGS="-O2 -fno-strict-aliasing"
+    CWFLAGS=${CWFLAGS--Wall}
 else
     COFLAGS=-O
-    CWFLAGS=
 fi
 
 AC_OUTPUT(Makefile latex2html)

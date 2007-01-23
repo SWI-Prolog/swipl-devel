@@ -902,7 +902,7 @@ paint_attributes(TextImage ti, TextLine l, int from, int to, Colour c)
 }
 
 
-#define PutBuf(c) if ( ((char*)out-(char*)buf) < sizeof(buf) ) *out++ = (c)
+#define PutBuf(c) if ( (size_t)((char*)out-(char*)buf) < sizeof(buf) ) *out++ = (c)
 
 static void
 paint_line(TextImage ti, Area a, TextLine l, int from, int to)

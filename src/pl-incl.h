@@ -825,8 +825,6 @@ REFERENCES
     there is one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#include "pl-data.h"
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Common Prolog objects typedefs. Note that   code is word-aligned for two
 reasons. First of all, we want to get   the maximum speed and second, we
@@ -2174,6 +2172,7 @@ decrease).
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
 #include "pl-error.h"			/* Exception generation */
 #include "pl-thread.h"			/* thread manipulation */
+#include "pl-data.h"			/* Access Prolog data */
 #include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */
 #include "pl-text.h"			/* text manipulation */

@@ -6520,17 +6520,14 @@ _ACEOF
 
 fi
 
+
 if test ! -z "$GCC"; then
     COFLAGS="-O2 -fno-strict-aliasing"
-    if test "$ac_cv_header_stdc" = "yes" || test "$syslibh" = "yes"; then
-        CWFLAGS=-Wall
-    else
-	CWFLAGS=
-    fi
+    CWFLAGS=${CWFLAGS--Wall}
 else
     COFLAGS=-O
-    CWFLAGS=
 fi
+
 CFLAGS="$CMFLAGS"
 echo "$as_me:$LINENO: checking for inline" >&5
 echo $ECHO_N "checking for inline... $ECHO_C" >&6

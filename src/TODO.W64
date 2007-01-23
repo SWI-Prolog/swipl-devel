@@ -48,8 +48,10 @@ SWI-Prolog
 Packages
 ================================================================
 
+				Checked size_t
+ * kernel				X
  * chr		[PROLOG]
- * clib		[DONE]
+ * clib		[DONE]			X
  * clpqr	[PROLOG]
  * clpr		[PROLOG]
  * cpp
@@ -61,13 +63,13 @@ Packages
  * jpl		[DONE]
  * ltx2html	- non-portable
  * mp		- outdated
- * nlp		[DONE]
- * odbc		[DONE]
+ * nlp		[DONE]			X
+ * odbc		[DONE]			X
  * pldoc	[PROLOG]
  * plunit	[PROLOG]
- * semweb	[DONE]
- * sgml		[DONE]
- * ssl		[DONE]
- * table	[DONE]
- * xpce		[DONE]
- * zlib		[DONE]
+ * semweb	[DONE]			X
+ * sgml		[DONE]			X
+ * ssl		[DONE]			X
+ * table	[DONE]			X
+ * xpce		[DONE]			only signed/unsigned left
+ * zlib		[DONE]			X

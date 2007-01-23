@@ -69,10 +69,10 @@ XClientMessageEvent xclient;
 #define dnd_debug3(a,b,c)   printf("%s: %d: " a "\n", __FILE__, __LINE__ , b, c)
 #define dnd_debug4(a,b,c,d) printf("%s: %d: " a "\n", __FILE__, __LINE__ , b, c, d)
 #else
-#define dnd_debug1(a)       
-#define dnd_debug2(a,b)     
-#define dnd_debug3(a,b,c)   
-#define dnd_debug4(a,b,c,d) 
+#define dnd_debug1(a)       ((void)0)
+#define dnd_debug2(a,b)     ((void)0)
+#define dnd_debug3(a,b,c)   ((void)0)
+#define dnd_debug4(a,b,c,d) ((void)0)
 #endif
 
 #define dnd_warning(a) fprintf (stderr, a)

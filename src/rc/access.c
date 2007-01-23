@@ -639,13 +639,11 @@ updateFilePtr(RcObject o)
 
 
 
-size_t
+ssize_t
 rc_read(RcObject o, void *buf, size_t bytes)
 { RcMember m = o->member;
   const char *mdata;
 
-  if ( bytes < 0 )
-    return -1;
   if ( o->offset + bytes > m->size )
     bytes = m->size - o->offset;
 
@@ -679,13 +677,10 @@ rc_read(RcObject o, void *buf, size_t bytes)
 }
 
 
-size_t
+ssize_t
 rc_write(RcObject o, void *buf, size_t bytes)
 { RcMember m = o->member;
 
-  if ( bytes < 0 )
-    return -1;
-  
   if ( o->offset + bytes > m->allocated )
   { rc_size size = m->allocated;
     

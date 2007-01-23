@@ -811,7 +811,7 @@ GETENV(const wchar_t *var, size_t len)
 int
 expandFileNameW(const wchar_t *pattern, wchar_t *bin, size_t binlen)
 { wchar_t *expanded = bin;
-  int size = 0;
+  size_t size = 0;
   wint_t c;
 
   binlen--;				/* space for EOS */

@@ -544,17 +544,14 @@ AC_PROG_CPP
 AC_PROG_CXX
 AC_ISC_POSIX
 AC_HEADER_STDC
+
 if test ! -z "$GCC"; then
     COFLAGS="-O2 -fno-strict-aliasing"
-    if test "$ac_cv_header_stdc" = "yes" || test "$syslibh" = "yes"; then
-        CWFLAGS=-Wall
-    else
-	CWFLAGS=
-    fi
+    CWFLAGS=${CWFLAGS--Wall}
 else
     COFLAGS=-O
-    CWFLAGS=
 fi
+
 CFLAGS="$CMFLAGS"
 AC_C_INLINE
 AC_FUNC_ALLOCA

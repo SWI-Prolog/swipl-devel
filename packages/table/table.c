@@ -1056,7 +1056,7 @@ pl_start_of_record(term_t handle,		/* table */
   if ( !open_table(table) )
     return FALSE;
 					/* find end of search */
-  if ( t < 0 || t > table->window_size )
+  if ( t < 0 || (size_t)t > table->window_size )
     end = table->window + table->window_size;
   else
     end = table->window + t;

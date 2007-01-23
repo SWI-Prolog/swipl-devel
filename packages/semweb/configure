@@ -4295,10 +4295,9 @@ _ACEOF
 
 if test ! -z "$GCC"; then
     COFLAGS="-O3 -fno-strict-aliasing"
-    CWFLAGS=-Wall
+    CWFLAGS=${CWFLAGS--Wall}
 else
     COFLAGS=-O
-    CWFLAGS=
 fi
 
           ac_config_files="$ac_config_files Makefile"

@@ -3705,10 +3705,9 @@ esac
 
 if test ! -z "$GCC"; then
     COFLAGS="-O2 -fno-strict-aliasing"
-    CWFLAGS=-Wall
+    CWFLAGS=${CWFLAGS--Wall}
 else
     COFLAGS=-O
-    CWFLAGS=
 fi
 
 # On IRIX 5.3, sys/types and inttypes.h are conflicting.

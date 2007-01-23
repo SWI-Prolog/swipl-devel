@@ -348,7 +348,7 @@ search_regex(Regex re, Any obj, Int start, Int end, int flags)
 		  re->compiled->re_nsub+1, re->registers, eflags);
     if ( rc == 0 )
     { if ( from != 0 )
-      { int n;
+      { size_t n;
 
 	for(n=0; n <= re->compiled->re_nsub; n++)
 	{ re->registers[n].rm_so += from;
@@ -381,7 +381,7 @@ search_regex(Regex re, Any obj, Int start, Int end, int flags)
 		    re->compiled->re_nsub+1, re->registers, eflags);
       switch(rc)
       { case REG_NOMATCH:
-	{ int n;
+	{ size_t n;
 
 	  if ( match == -1 )
 	    continue;
@@ -449,7 +449,7 @@ matchRegex(Regex re, Any obj, Int start, Int end)
 
 #define validRegister(re, n) ((n) >= 0 && \
 			      re->compiled && \
-			      (n) <= re->compiled->re_nsub)
+			      (n) <= (int)re->compiled->re_nsub)
 
 
 static Int
@@ -524,11 +524,13 @@ registerValueRegex(Regex re, Any obj, CharArray value, Int which)
   if ( sendv(obj, NAME_delete, 2, argv) &&
        (argv[1] = value) &&
        sendv(obj, NAME_insert, 2, argv) )
-  { for(n=0; n <= re->compiled->re_nsub; n++)
-    { if ( re->registers[n].rm_so > start )
-	re->registers[n].rm_so += shift;
-      if ( re->registers[n].rm_eo >= start )
-	re->registers[n].rm_eo += shift;
+  { size_t i;
+
+    for(i=0; i <= re->compiled->re_nsub; i++)
+    { if ( re->registers[i].rm_so > start )
+	re->registers[i].rm_so += shift;
+      if ( re->registers[i].rm_eo >= start )
+	re->registers[i].rm_eo += shift;
     }
     
     succeed;
