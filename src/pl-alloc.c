@@ -1034,6 +1034,32 @@ globalReal(double d)
 
 
 		 /*******************************
+		 *	  64-BIT INTEGERS	*
+		 *******************************/
+
+#ifdef INT64_ALIGNMENT
+
+int64_t					/* take care of alignment! */
+valBignum__LD(word w ARG_LD)
+{ Word p = valIndirectP(w);
+  union
+  { int64_t i;
+    word w[WORDS_PER_INT64];
+  } val;
+  
+#if ( SIZEOF_VOIDP == 4 )
+  val.w[0] = p[0];
+  val.w[1] = p[1];
+#else
+#error "Unsupported int64_t alignment conversion"
+#endif
+
+  return val.i;
+}
+
+#endif
+
+		 /*******************************
 		 *  GENERIC INDIRECT OPERATIONS	*
 		 *******************************/
 

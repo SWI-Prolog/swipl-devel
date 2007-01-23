@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: 64-bit integer handling on machines with alignment
+    conditions.  David Gray.
+
   * FIXED: Various size_t related issues.  With help from Richard O'Keefe.
 
   * FIXED: Alignment problem on 32-bit hardware demanding strict alignment.

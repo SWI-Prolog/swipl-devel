@@ -282,7 +282,11 @@ and while loading .wic files.  It comes at no price.
 #define isMPZNum(w)	(isInteger(w) && \
 			 storage(w) != STG_INLINE && \
 			 wsizeofIndirect(w) > sizeof(int64_t)/sizeof(word))
+#ifndef INT64_ALIGNMENT
 #define valBignum(w)	(*(int64_t *)valIndirectP(w))
+#else
+#define valBignum(w)	valBignum__LD(w PASS_LD)
+#endif
 
 #define isBString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'B')
 #define isWString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'W')

@@ -54,6 +54,9 @@ COMMON(void) 		doublecpy(void *to, void *from);
 COMMON(word) 		globalReal(real f);
 COMMON(word) 		globalLong(int64_t i ARG_LD);
 COMMON(double) 		valReal__LD(word w ARG_LD);
+#ifdef INT64_ALIGNMENT
+COMMON(int64_t)		valBignum__LD(word w ARG_LD);
+#endif
 COMMON(word) 		globalIndirect(word in);
 COMMON(int) 		equalIndirect(word r1, word r2);
 COMMON(word) 		globalIndirectFromCode(Code *PC);
