@@ -10,7 +10,7 @@ syntax.
 % clp(FD) solver.
 
 The \pllib{bounds} library is \emph{not} an \jargon{autoload} library
-and therefore it must be loaded explicitely before using it via:
+and therefore it must be loaded explicitly before using it via:
 
 \begin{code}
 :- use_module(library(bounds)).
@@ -90,7 +90,13 @@ The following constraints are supported:
 		    \termitem{ff}{}
 			    Label the variable whose domain contains
 			    the smallest number of elements among the
-			    remaining variables next.
+			    remaining variables next. This is called
+			    "first-fail". The intention here is
+			    twofold: First, to detect infeasibility
+			    early by always considering the variable
+			    most likely to cause failure; second, to
+			    give priority to variables that are close
+			    to running out of domain elements.
 
 		    \termitem{min}{}
 			    Label the variable whose lower bound is
