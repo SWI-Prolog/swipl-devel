@@ -755,10 +755,15 @@ fi
 
 AC_MSG_CHECKING("alignment restrictions on doubles")
 AC_TRY_RUN(
-[ main()
+[ 
+#include <inttypes.h>
+  main()
   { intptr_t l[10];
     double *p;
     uintptr_t x = (uintptr_t) l;
+
+    if ( sizeof(double) == sizeof(void*) )
+      exit(0);
 
 #if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
     exit(1);
@@ -772,12 +777,43 @@ AC_TRY_RUN(
     exit(0);
   }
 ],
-AC_MSG_RESULT(as intptr_t),
+AC_MSG_RESULT(as void*),
 AC_MSG_RESULT(sizeof(double))
 AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double),
-	  [Define if doubles cannot be aligned as longs]),
+	  [Define if doubles cannot be aligned as pointers]),
 AC_MSG_RESULT(assuming sizeof(double))
 AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)))
+
+AC_MSG_CHECKING("alignment restrictions on int64_t")
+AC_TRY_RUN(
+[ 
+#include <inttypes.h>
+  main()
+  { intptr_t l[10];
+    int64_t *p;
+    uintptr_t x = (uintptr_t) l;
+
+    if ( sizeof(int64_t) == sizeof(void*) )
+      exit(0);
+
+#if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
+    exit(1);
+#endif
+
+    if ( x % sizeof(int64_t) == 0 )
+      x += sizeof(intptr_t);
+    p = (int64_t *) x;
+    *p = 0x123456789abcdefLL;
+
+    exit(0);
+  }
+],
+AC_MSG_RESULT(as void*),
+AC_MSG_RESULT(sizeof(int64_t))
+AC_DEFINE(INT64_ALIGNMENT, sizeof(int64_t),
+	  [Define if int64_t cannot be aligned as pointers]),
+AC_MSG_RESULT(assuming sizeof(int64_t))
+AC_DEFINE(INT64_ALIGNMENT, sizeof(int64_t)))
 
 dnl See whether we can access intptr_t values over non-aligned pointers.  This
 dnl should also check whether it is actually faster to do so.  Note that on
@@ -791,7 +827,9 @@ dnl old test for reference.
 
 AC_MSG_CHECKING("unaligned access")
 AC_TRY_RUN(
-[ main()
+[
+#include <inttypes.h>
+  main()
   { char l[sizeof(intptr_t)*2];
     intptr_t *p;
 

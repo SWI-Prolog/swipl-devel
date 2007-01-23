@@ -20,7 +20,7 @@
 /* Define to 1 if using `alloca.c'. */
 #undef C_ALLOCA
 
-/* Define if doubles cannot be aligned as longs */
+/* Define if doubles cannot be aligned as pointers */
 #undef DOUBLE_ALIGNMENT
 
 /* we have fcntl() and it supports F_SETLKW */
@@ -503,6 +503,9 @@
 
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
+
+/* Define if int64_t cannot be aligned as pointers */
+#undef INT64_ALIGNMENT
 
 /* printf format for int64_t datatype */
 #undef INT64_FORMAT

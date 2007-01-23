@@ -13734,10 +13734,15 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
- main()
+
+#include <inttypes.h>
+  main()
   { intptr_t l[10];
     double *p;
     uintptr_t x = (uintptr_t) l;
+
+    if ( sizeof(double) == sizeof(void*) )
+      exit(0);
 
 #if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
     exit(1);
@@ -13763,8 +13768,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  echo "$as_me:$LINENO: result: as intptr_t" >&5
-echo "${ECHO_T}as intptr_t" >&6
+  echo "$as_me:$LINENO: result: as void*" >&5
+echo "${ECHO_T}as void*" >&6
 else
   echo "$as_me: program exited with status $ac_status" >&5
 echo "$as_me: failed program was:" >&5
@@ -13776,6 +13781,75 @@ echo "${ECHO_T}sizeof(double)" >&6
 
 cat >>confdefs.h <<\_ACEOF
 #define DOUBLE_ALIGNMENT sizeof(double)
+_ACEOF
+
+fi
+rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+fi
+
+echo "$as_me:$LINENO: checking \"alignment restrictions on int64_t\"" >&5
+echo $ECHO_N "checking \"alignment restrictions on int64_t\"... $ECHO_C" >&6
+if test "$cross_compiling" = yes; then
+  echo "$as_me:$LINENO: result: assuming sizeof(int64_t)" >&5
+echo "${ECHO_T}assuming sizeof(int64_t)" >&6
+cat >>confdefs.h <<\_ACEOF
+#define INT64_ALIGNMENT sizeof(int64_t)
+_ACEOF
+
+else
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#include <inttypes.h>
+  main()
+  { intptr_t l[10];
+    int64_t *p;
+    uintptr_t x = (uintptr_t) l;
+
+    if ( sizeof(int64_t) == sizeof(void*) )
+      exit(0);
+
+#if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
+    exit(1);
+#endif
+
+    if ( x % sizeof(int64_t) == 0 )
+      x += sizeof(intptr_t);
+    p = (int64_t *) x;
+    *p = 0x123456789abcdefLL;
+
+    exit(0);
+  }
+
+_ACEOF
+rm -f conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  echo "$as_me:$LINENO: result: as void*" >&5
+echo "${ECHO_T}as void*" >&6
+else
+  echo "$as_me: program exited with status $ac_status" >&5
+echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+( exit $ac_status )
+echo "$as_me:$LINENO: result: sizeof(int64_t)" >&5
+echo "${ECHO_T}sizeof(int64_t)" >&6
+
+cat >>confdefs.h <<\_ACEOF
+#define INT64_ALIGNMENT sizeof(int64_t)
 _ACEOF
 
 fi
@@ -13795,7 +13869,9 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
- main()
+
+#include <inttypes.h>
+  main()
   { char l[sizeof(intptr_t)*2];
     intptr_t *p;
 
