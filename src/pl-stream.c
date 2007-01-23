@@ -699,7 +699,7 @@ Sputcode(int c, IOSTREAM *s)
 	memset(s->mbstate, 0, sizeof(*s->mbstate));
       }
 
-      if ( (n = wcrtomb(b, (wchar_t)c, s->mbstate)) < 0 )
+      if ( (n = wcrtomb(b, (wchar_t)c, s->mbstate)) == (size_t)-1 )
       { if ( reperror(c, s) < 0 )
 	  return -1;
       } else
@@ -785,7 +785,7 @@ Scanrepresent(int c, IOSTREAM *s)
       char b[MB_LEN_MAX];
 
       memset(&state, 0, sizeof(state));
-      if ( wcrtomb(b, (wchar_t)c, &state) >= 0 )
+      if ( wcrtomb(b, (wchar_t)c, &state) != (size_t)-1 )
 	return 0;
       return -1;
     }
@@ -851,7 +851,7 @@ retry:
 	if ( (rc=mbrtowc(&wc, b, 1, s->mbstate)) == 1 )
 	{ c = wc;
 	  goto out;
-	} else if ( rc == -1 )
+	} else if ( rc == (size_t)-1 )
 	{ Sseterr(s, SIO_WARN, "Illegal multibyte Sequence");
 	  goto mberr;
 	}				/* else -2: incomplete */
@@ -910,7 +910,7 @@ retry:
     case ENC_WCHAR:
     { pl_wchar_t chr;
       char *p = (char*)&chr;
-      int n;
+      size_t n;
 
       for(n=0; n<sizeof(pl_wchar_t); n++)
       { int c1 = get_byte(s);
@@ -2287,7 +2287,7 @@ out:
 static ssize_t
 Sread_file(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t) handle;
-  size_t bytes;
+  ssize_t bytes;
 
   for(;;)
   {
@@ -2314,7 +2314,7 @@ Sread_file(void *handle, char *buf, size_t size)
 static ssize_t
 Swrite_file(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t) handle;
-  size_t bytes;
+  ssize_t bytes;
 
   for(;;)
   {
@@ -2848,9 +2848,10 @@ Sread_memfile(void *handle, char *buf, size_t size)
 { memfile *mf = handle;
 
   if ( size + mf->here > mf->size )
-  { size = mf->size - mf->here;
-    if ( size < 0 )
+  { if ( mf->here > mf->size )
       size = 0;
+    else
+      size = mf->size - mf->here;
   }
   
   memcpy(buf, &(*mf->buffer)[mf->here], size);
@@ -2910,7 +2911,7 @@ IOFUNCTIONS Smemfunctions =
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Sopenmem(char **buffer, size_t *size, const char* mode)
+Sopenmem(char **buffer, size_t *sizep, const char* mode)
     Open a memory area as a stream.  Output streams will automatically
     resized using realloc() if *size = 0 or the stream is opened with mode
     "wa".
@@ -2954,7 +2955,7 @@ Sopenmem(char **buffer, size_t *sizep, const char *mode)
   switch(*mode)
   { case 'r':
       flags |= SIO_INPUT;
-      if ( sizep == NULL || *sizep < 0 )
+      if ( sizep == NULL || *sizep == (size_t)-1 )
 	size = (*buffer ? strlen(*buffer) : 0);
       else
 	size = *sizep;
