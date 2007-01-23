@@ -236,6 +236,20 @@ type_error(term_t actual, const char *expected)
 
 
 static int
+existence_error(term_t actual, const char *expected)
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
+		      PL_FUNCTOR_CHARS, "existence_error", 2,
+		        PL_CHARS, expected,
+		        PL_TERM, actual,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+
+static int
 format_error(const char *pred, size_t pos, Field f)
 { char buf[1024];
 
@@ -284,19 +298,21 @@ get_offset_ex(term_t t, table_offset_t *v)
 
 
 static int
-get_table(term_t handle, Table *table)
-{ long l;
+get_table_ex(term_t handle, Table *table)
+{ int64_t l;
 
-  if ( PL_get_long(handle, &l) )
-  { Table t = (Table)l;
+  if ( PL_get_int64(handle, &l) )
+  { Table t = (Table)(intptr_t)l;
 
     if ( t->magic == TABLE_MAGIC )
     { *table = t;
       return TRUE;
     }
+
+    return existence_error(handle, "table");
   }
     
-  return FALSE;
+  return type_error(handle, "table");
 }
 
 
@@ -668,8 +684,8 @@ pl_table_window(term_t handle, term_t start, term_t size)
   size_t from;
   size_t wsize;
 
-  if ( !get_table(handle, &table) )
-    return error(ERR_INSTANTIATION, "table_window/3", 1, handle);
+  if ( !get_table_ex(handle, &table) )
+    return FALSE;
   if ( !get_size_ex(start, &from) )
     return FALSE;
   if ( !get_size_ex(size, &wsize) )
@@ -693,8 +709,8 @@ pl_get_table_attribute(term_t handle, term_t name, term_t value)
   atom_t n;
   int arity;
 
-  if ( !get_table(handle, &table) )
-    return error(ERR_INSTANTIATION, "get_table_attribute/3", 1, handle);
+  if ( !get_table_ex(handle, &table) )
+    return FALSE;
 
   
   if ( PL_get_name_arity(name, &n, &arity) )
@@ -834,8 +850,8 @@ static foreign_t
 pl_open_table(term_t handle)
 { Table table;
 
-  if ( !get_table(handle, &table) )
-    return error(ERR_INSTANTIATION, "open_table/1", 1, handle);
+  if ( !get_table_ex(handle, &table) )
+    return FALSE;
 
   return open_table(table);
 }
@@ -845,8 +861,8 @@ static foreign_t
 pl_close_table(term_t handle)
 { Table table;
 
-  if ( !get_table(handle, &table) )
-    return error(ERR_INSTANTIATION, "close_table/1", 1, handle);
+  if ( !get_table_ex(handle, &table) )
+    return FALSE;
 
   if ( table->buffer )
   {
@@ -885,7 +901,8 @@ pl_free_table(term_t handle)
   if ( !pl_close_table(handle) )
     PL_fail;
 
-  get_table(handle, &table);
+  if ( !get_table_ex(handle, &table) )
+    return FALSE;
   
   table->magic = 0;			/* so it won't be recognised */
   if ( table->escape_table )
@@ -982,8 +999,8 @@ pl_previous_record(term_t handle, term_t here, term_t prev)
 { Table t;
   table_offset_t start;
 
-  if ( !get_table(handle, &t) )
-    return error(ERR_INSTANTIATION, "previous_record/3", 1, handle);
+  if ( !get_table_ex(handle, &t) )
+    return FALSE;
   if ( !get_offset_ex(here, &start) )
     return FALSE;
 
@@ -1031,8 +1048,8 @@ pl_start_of_record(term_t handle,		/* table */
       PL_succeed;
   }
 
-  if ( !get_table(handle, &table) )
-    return error(ERR_INSTANTIATION, "start_of_record/4", 1, handle);
+  if ( !get_table_ex(handle, &table) )
+    return FALSE;
   if ( !get_offset_ex(to, &t) )
     return FALSE;
 
@@ -1351,8 +1368,8 @@ pl_read_record(term_t handle, term_t from, term_t to, term_t record)
 { Table table;
   table_offset_t start, end;
 
-  if ( !get_table(handle, &table) )
-    return error(ERR_INSTANTIATION, "read_record/4", 1, handle);
+  if ( !get_table_ex(handle, &table) )
+    return FALSE;
   if ( !get_offset_ex(from, &start) )
     return FALSE;
 
@@ -1375,8 +1392,8 @@ pl_read_record_data(term_t handle, term_t from, term_t to, term_t record)
   table_offset_t start, end;
   size_t len;
 
-  if ( !get_table(handle, &table) )
-    return error(ERR_INSTANTIATION, "read_record/4", 1, handle);
+  if ( !get_table_ex(handle, &table) )
+    return FALSE;
   if ( !get_offset_ex(from, &start) )
     return FALSE;
 
@@ -1410,8 +1427,8 @@ pl_read_fields(term_t handle, term_t from, term_t to, term_t fields)
   term_t argv[MAXFIELDS*sizeof(term_t)];
 #endif
 
-  if ( !get_table(handle, &table) )
-    return error(ERR_INSTANTIATION, "read_fields/4", 1, handle);
+  if ( !get_table_ex(handle, &table) )
+    return FALSE;
   if ( !get_offset_ex(from, &start) )
     return FALSE;
 
@@ -1960,8 +1977,8 @@ pl_in_table(term_t handle, term_t spec, term_t record, control_t control)
   { case PL_FIRST_CALL:
     { Table t;
       
-      if ( !get_table(handle, &t) )
-	return error(ERR_INSTANTIATION, "in_table/3", 1, handle);
+      if ( !get_table_ex(handle, &t) )
+	return FALSE;
       if ( !open_table(t) )
 	PL_fail;
       if ( !(q=make_query(t, spec)) )
