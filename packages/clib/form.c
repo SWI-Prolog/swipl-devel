@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -59,7 +59,7 @@ dehex(int chr)
 }
 
 
-static int
+static size_t
 form_argument_decode(const char *in, size_t inlen, char *out, size_t outlen)
 { const char *ein  = in+inlen;
   size_t written = 0;
@@ -76,12 +76,12 @@ form_argument_decode(const char *in, size_t inlen, char *out, size_t outlen)
 	  int h2 = dehex(*(++in));
 
 	  if ( h1 < 0 || h2 < 0 )
-	    return -1;
+	    return (size_t)-1;
 	  
 	  if ( ++written < outlen )
 	    *out++ = h1<<4|h2;
 	} else
-	  return -1;			/* syntax error */
+	  return (size_t)-1;		/* syntax error */
 	break;
       default:
 	if ( ++written < outlen )
@@ -111,7 +111,7 @@ break_form_argument(const char *formdata,
     if ( eq )
     { size_t len = eq-formdata;
       char *end;
-      int vlen;
+      size_t vlen;
 
       if ( len > MAXNAME-1 )
 	return ERROR_NAME_TOO_LONG;
@@ -125,7 +125,7 @@ break_form_argument(const char *formdata,
 
       if ( (vlen=form_argument_decode(eq, end-eq, value, MAXVALUE)) >= MAXVALUE )
 	return ERROR_VALUE_TOO_LONG;
-      if ( vlen < 0 )
+      if ( vlen == (size_t)-1 )
 	return ERROR_SYNTAX_ERROR;
 
       (func)(name, value, closure);
