@@ -784,7 +784,7 @@ PL_canonise_text(PL_chars_t *text)
       }
       case ENC_ANSI:
       { mbstate_t mbs;
-	int len = 0;
+	size_t len = 0;
 	int iso = TRUE;
 	char *s = text->text.t;
 	size_t rc, n = text->length;
@@ -1081,7 +1081,7 @@ PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result)
 	  *to++ = *f++;
       }
     }
-    assert(to-result->text.w == total_length);
+    assert((size_t)(to-result->text.w) == total_length);
     *to = EOS;
   }
 
@@ -1093,10 +1093,15 @@ IOSTREAM *
 Sopen_text(PL_chars_t *txt, const char *mode)
 { IOSTREAM *stream;
 
+  if ( !streq(mode, "r") )
+  { errno = EINVAL;
+    return NULL;
+  }
+
   stream = Sopen_string(NULL,
 			txt->text.t,
 			bufsize_text(txt, txt->length),
-			"r");
+			mode);
   stream->encoding = txt->encoding;
 
   return stream;
