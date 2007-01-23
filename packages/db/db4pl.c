@@ -328,7 +328,7 @@ get_long_ex(term_t t, long *v)
 static int
 get_size_ex(term_t t, long *v)
 { if ( get_long_ex(t, v) )
-  { if ( v >= 0 )
+  { if ( *v >= 0 )
       return TRUE;
 
     return pl_error(ERR_DOMAIN, "not_less_than_zero", t);

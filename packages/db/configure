@@ -3138,13 +3138,14 @@ _ACEOF
 
 fi
 
+
 if test ! -z "$GCC"; then
     COFLAGS="-O2 -fno-strict-aliasing"
-    CWFLAGS=-Wall
+    CWFLAGS=${CWFLAGS--Wall}
 else
     COFLAGS=-O
-    CWFLAGS=
 fi
+
 CFLAGS="$CMFLAGS $CIFLAGS"
 # The Ultrix 4.2 mips builtin alloca declared by alloca.h only works
 # for constant arguments.  Useless!
