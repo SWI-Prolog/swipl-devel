@@ -1099,7 +1099,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       if ( dir < 0 )
       {
 #ifdef O_GMP				/* msb() is 0..63 */
-	if ( msb64(n1->value.i) + shift >= (sizeof(int64_t)*8-1) )
+	if ( msb64(n1->value.i) + shift >= (int)(sizeof(int64_t)*8-1) )
 	{ promoteToMPZNumber(n1);
 	  goto mpz;
 	} else
@@ -1894,7 +1894,8 @@ ar_lsb(Number n1, Number r)
 
 static int
 popcount64(int64_t i)
-{ int c, j;
+{ int c;
+  size_t j;
   int64_t m = LL(1);
 
   for(j=0,c=0; j<sizeof(i)*8; j++, m<<=1)

@@ -1636,7 +1636,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 
   if ( getInputStream(A1, &s) )
   { char buf[MAX_PENDING];
-    size_t n, i;
+    ssize_t n, i;
     Word gstore, lp, tp;
 
     if ( Sferror(s) )

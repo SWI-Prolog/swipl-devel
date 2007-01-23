@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Various size_t related issues.  With help from Richard O'Keefe.
+
   * FIXED: Alignment problem on 32-bit hardware demanding strict alignment.
     (HPUX on IA64).  David Gray.
 

@@ -449,7 +449,7 @@ right_recursion:
 	*aTop++ = (Word)f;
 	*aTop++ = (Word)f->definition;
 	f->definition = (functor_t)consInt(info->size);
-	assert(valInt(f->definition) == info->size); /* overflow test */
+	assert(valInt(f->definition) == (intptr_t)info->size); /* overflow test */
       }
 #endif
       
@@ -867,7 +867,7 @@ right_recursion:
       return;
     }
     case PL_TYPE_INTEGER:
-    { int i;
+    { size_t i;
       union
       { int64_t i64;
 	word    w[WORDS_PER_PLINT];

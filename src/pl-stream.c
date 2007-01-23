@@ -1143,7 +1143,7 @@ Sfwrite(const void *data, size_t size, size_t elms, IOSTREAM *s)
 		 *	       PENDING		*
 		 *******************************/
 
-size_t
+ssize_t
 Sread_pending(IOSTREAM *s, char *buf, size_t limit, int flags)
 { int done = 0;
   size_t n;

@@ -2458,7 +2458,7 @@ pl_apropos_match(term_t a1, term_t a2)
 
     for (i2=0; i2<l2; i2++)
     { for(q=w1, s=w2+i2; q<eq && s<es; q++, s++)
-      { if ( *q != *s && *q != towlower(*s) )
+      { if ( *q != *s && *q != (pl_wchar_t)towlower(*s) )
 	  break;
       }
       if ( q == eq )

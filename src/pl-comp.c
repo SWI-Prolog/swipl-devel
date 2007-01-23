@@ -837,7 +837,8 @@ automatic update if a predicate is later defined as meta-predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( body && *body != ATOM_true )
-  { size_t rv, bi;
+  { int rv;
+    size_t bi;
 
     if ( head )
     { Output_0(&ci, I_ENTER);

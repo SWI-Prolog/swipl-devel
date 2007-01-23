@@ -880,7 +880,7 @@ formatNumber(bool split, int div, int radix, bool small, Number i,
       char tmp[256];
       char *buf;
 
-      if ( len+2 > sizeof(tmp) )
+      if ( len+2 > (int)sizeof(tmp) )
 	buf = PL_malloc(len+2);
       else
 	buf = tmp;

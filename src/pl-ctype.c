@@ -80,7 +80,7 @@ fiscsymf(wint_t chr)
 
 static int
 iseof(wint_t chr)
-{ return chr == -1;
+{ return chr == (wint_t)-1;
 }
 
 static int
@@ -105,12 +105,12 @@ isquote(wint_t chr)
 
 static int
 fupper(wint_t chr)
-{ return iswlower(chr) ? towupper(chr) : -1;
+{ return iswlower(chr) ? (int)towupper(chr) : -1;
 }
 
 static int
 flower(wint_t chr)
-{ return iswupper(chr) ? towlower(chr) : -1;
+{ return iswupper(chr) ? (int)towlower(chr) : -1;
 }
 
 static int
@@ -163,7 +163,7 @@ fdigit(wint_t chr)
 
 static int
 rdigit(wint_t d)
-{ if ( d >= 0 && d <= 9 )
+{ if ( (int)d >= 0 && d <= 9 )
     return d+'0';
   return -1;
 }
@@ -185,7 +185,7 @@ fxdigit(wint_t chr)
 
 static int
 rxdigit(wint_t d)
-{ if ( d >= 0 && d <= 9 )
+{ if ( (int)d >= 0 && d <= 9 )
     return d+'0';
   if ( d >= 10 && d <= 15 )
     return d-10+'a';

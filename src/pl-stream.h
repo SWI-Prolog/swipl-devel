@@ -344,7 +344,7 @@ PL_EXPORT(long)		Stell(IOSTREAM *s);
 PL_EXPORT(int)		Sclose(IOSTREAM *s);
 PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);
 PL_EXPORT(char *)	Sgets(char *buf);
-PL_EXPORT(size_t)	Sread_pending(IOSTREAM *s,
+PL_EXPORT(ssize_t)	Sread_pending(IOSTREAM *s,
 				      char *buf, size_t limit, int flags);
 PL_EXPORT(int)		Sfputs(const char *q, IOSTREAM *s);
 PL_EXPORT(int)		Sputs(const char *q);

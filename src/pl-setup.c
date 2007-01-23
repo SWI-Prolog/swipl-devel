@@ -882,7 +882,7 @@ static void
 enforce_limit(intptr_t *size, intptr_t maxarea, const char *name)
 { if ( *size == 0 )
     *size = maxarea;
-  else if ( *size > MAXTAGGEDPTR+1 )
+  else if ( *size > (intptr_t)(MAXTAGGEDPTR+1) )
   { if ( *size != LONG_MAX )		/* user demanded maximum */
       Sdprintf("WARNING: Maximum stack size for %s stack is %d MB\n",
 	       name, (MAXTAGGEDPTR+1) / (1 MB));

@@ -152,7 +152,7 @@ addMPZToBuffer(Buffer b, mpz_t mpz)
 
 void
 addMPZToBuffer(Buffer b, mpz_t mpz)
-{ int size = (mpz_sizeinbase(mpz, 2)+7)/8;
+{ size_t size = (mpz_sizeinbase(mpz, 2)+7)/8;
   int hdrsize;
   size_t count;
 
