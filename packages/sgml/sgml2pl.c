@@ -861,12 +861,12 @@ unify_listval(dtd_parser *p,
 
 #if SIZEOF_LONG == 4 && defined(HAVE_WCSTOLL)
     int64_t v = wcstoll(text, &e, 10);
-    if ( e-text == len && errno != ERANGE )
+    if ( (size_t)(e-text) == len && errno != ERANGE )
       return PL_unify_int64(t, v);
 #else
     long v = wcstol(text, &e, 10);
 
-    if ( e-text == len && errno != ERANGE )
+    if ( (size_t)(e-text) == len && errno != ERANGE )
       return PL_unify_integer(t, v);
 #endif
 					/* TBD: Error!? */

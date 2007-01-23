@@ -807,7 +807,7 @@ isee_identifier(dtd *dtd, const ichar *in, char *id)
 { in = iskip_layout(dtd, in);
 
 					/* match */
-  while (*id && *id == towlower(*in) )
+  while (*id && (wint_t)*id == towlower(*in) )
     id++, in++;
   if ( *id == 0 && !HasClass(dtd, *in, CH_NAME) )
     return iskip_layout(dtd, in);
@@ -1032,7 +1032,7 @@ itake_nmtoken_chars(dtd *dtd, const ichar *in, ichar *out, int len)
   while( HasClass(dtd, *in, CH_NAME) )
   { if ( --len <= 0 )
       gripe(ERC_REPRESENTATION, L"Name token too long");
-    *out++ = (dtd->case_sensitive ? *in++ : towlower(*in++));
+    *out++ = (dtd->case_sensitive ? *in++ : (ichar)towlower(*in++));
   }
   *out++ = '\0';
 
@@ -3704,7 +3704,7 @@ process_pi(dtd_parser *p, const ichar *decl)
 	  if ( istrcaseeq(nm->name, L"encoding") )
 	  { ichar tmp[32];
 
-	    if ( len < sizeof(tmp)/sizeof(ichar)-1 )
+	    if ( len < (int)(sizeof(tmp)/sizeof(ichar)-1) )
 	    { istrncpy(tmp, start, len);
 	      tmp[len] = 0;
 

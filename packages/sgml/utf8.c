@@ -88,7 +88,7 @@ sgml_utf8_put_char(char *out, int chr)
     *out++ = 0x80|((chr>>12)&0x3f);
     *out++ = 0x80|((chr>>6)&0x3f);
     *out++ = 0x80|(chr&0x3f);
-  } else if ( chr < 0x80000000 )
+  } else if ( (unsigned)chr < 0x80000000 )
   { *out++ = 0xfc|((chr>>30)&0x01);
     *out++ = 0x80|((chr>>24)&0x3f);
     *out++ = 0x80|((chr>>18)&0x3f);
