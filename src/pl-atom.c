@@ -753,7 +753,7 @@ PL_unregister_atom(atom_t a)
   LOCK();
   p = atomValue(a);
   p->references--;
-  assert(p->references >= 0);
+  assert((int)p->references != -1);
   UNLOCK();
 #endif
 }
