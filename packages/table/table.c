@@ -980,11 +980,11 @@ previous_record(Table t, table_offset_t start)
 static foreign_t
 pl_previous_record(term_t handle, term_t here, term_t prev)
 { Table t;
-  size_t start;
+  table_offset_t start;
 
   if ( !get_table(handle, &t) )
     return error(ERR_INSTANTIATION, "previous_record/3", 1, handle);
-  if ( !get_size_ex(here, &start) )
+  if ( !get_offset_ex(here, &start) )
     return FALSE;
 
   if ( !open_table(t) )
@@ -1012,7 +1012,8 @@ pl_start_of_record(term_t handle,		/* table */
 		   term_t recstart,		/* return */
 		   control_t control)		/* backtracking control */
 { Table table;
-  size_t n, f, t;
+  size_t n, f;
+  table_offset_t t;
   char *end;				/* pointer to end of search */
   char *start;				/* start of search */
   int er;
@@ -1032,7 +1033,7 @@ pl_start_of_record(term_t handle,		/* table */
 
   if ( !get_table(handle, &table) )
     return error(ERR_INSTANTIATION, "start_of_record/4", 1, handle);
-  if ( !get_size_ex(to, &t) )
+  if ( !get_offset_ex(to, &t) )
     return FALSE;
 
   if ( !open_table(table) )
