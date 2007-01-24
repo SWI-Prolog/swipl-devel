@@ -162,6 +162,19 @@ http_reply(moved(To), Out, HrdExtra) :- !,
 	phrase(reply_header(moved(To, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
+http_reply(see_other(To),Out,HdrExtra) :- !,
+       phrase(page([ title('303 See Other')
+                    ],
+                    [ h1('See Other'),
+                      p(['See other document ',
+                         a(href(To), ' Here')
+                        ]),
+                      address(httpd)
+                    ]),
+               HTML),
+        phrase(reply_header(see_other(To, HTML), HdrExtra), Header),
+        format(Out, '~s', [Header]),
+        print_html(Out, HTML).
 http_reply(not_found(URL), Out, HrdExtra) :- !,
 	phrase(page([ title('404 Not Found')
 		    ],
@@ -460,6 +473,14 @@ reply_header(moved(To, Tokens), HdrExtra) -->
 	content_length(html(Tokens)),
 	content_type(text/html),
 	"\r\n".
+reply_header(see_other(To,Tokens),HdrExtra) -->
+      vstatus(see_other),
+      date(now),
+      header_field('Location',To),
+      header_fields(HdrExtra),
+      content_length(html(Tokens)),
+      content_type(text/html),
+      "\r\n".
 reply_header(status(Status, Tokens), HdrExtra) -->
 	vstatus(Status),
 	date(now),
@@ -486,6 +507,7 @@ vstatus(Status) -->
 status_number(continue)	    --> "100".
 status_number(ok)	    --> "200".
 status_number(moved)	    --> "301".
+status_number(see_other)    --> "303".
 status_number(not_modified) --> "304". 
 status_number(not_found)    --> "404".
 status_number(forbidden)    --> "403".
@@ -498,6 +520,8 @@ status_comment(ok) -->
 	"OK".
 status_comment(moved) -->
 	"Moved Permanently".
+status_comment(see_other) -->
+      "See Other".
 status_comment(not_modified) --> 
 	"Not Modified".
 status_comment(not_found) -->

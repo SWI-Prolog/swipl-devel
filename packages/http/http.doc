@@ -1234,6 +1234,9 @@ must contain an HTTP header.
 Generate a ``301 Moved Permanently'' page with the given target
 \arg{URL}.
 
+	\termitem{see_other}{+URL}
+Generate a ``303 See Other'' page with the given target \arg{URL}.
+
  	\termitem{not_found}{+URL}
 Generate a ``404 Not Found'' page.
 

@@ -1,3 +1,8 @@
+Jan 24, 2007
+
+  * ADDED: Support for 303 (see other) HTTP replies to the server.
+    Yves Raimond.
+
 Jan 18, 2007
 
   * ADDED: html_set_options/1 and html_current_option/1 to html_write.pl.
