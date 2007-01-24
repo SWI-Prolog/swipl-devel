@@ -113,12 +113,15 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
   if ( !(s=lookupHTable(LD->gvar.nb_vars, (void*)name)) )
   { s = addHTable(LD->gvar.nb_vars, (void*)name, (void*)ATOM_nil);
     PL_register_atom(name);
+    PL_register_atom(ATOM_nil);
   }
   assert(s);
 
   old = (word)s->value;
   if ( w == old )
     succeed;
+  if ( isAtom(old) )
+    PL_unregister_atom(old);
 
   if ( backtrackable )
   { if ( isRef(old) )
@@ -129,7 +132,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
     } else
     { Word p = allocGlobal(1);
       *p = old;
-      freezeGlobal(PASS_LD1);
+      freezeGlobal(PASS_LD1);		/* Why is this? */
       if ( storage(old) != STG_GLOBAL )
 	LD->gvar.grefs++;
       s->value = (void*)makeRefG(p);

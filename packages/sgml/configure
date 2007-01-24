@@ -2398,7 +2398,7 @@ if test ! -z "$GCC"; then
     CWFLAGS=${CWFLAGS--Wall}
 else
     COFLAGS=-O
-
+fi
 
 case "$PLARCH" in
   *irix*)	if test -z "$GCC"; then

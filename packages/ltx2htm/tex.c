@@ -1701,7 +1701,7 @@ put_token(Token t, void *ctx)
       pendingblank = (pp->last_type == TOK_SPACE);
       outputBlank(pp);			/* as space! */
       if ( pendingblank &&		/* no blanks in input: concatenate! */
-	   strlen(t->value.string) + pp->line_pos > pp->right_margin )
+	   (int)strlen(t->value.string) + pp->line_pos > pp->right_margin )
 	nl(pp);
       output(pp, "%s", t->value.string);
       break;
@@ -2531,7 +2531,7 @@ put_html_token(Token t, void *ctx)
       pendingblank = (pp->last_type == TOK_SPACE);
       outputBlank(pp);			/* as space! */
       if ( pendingblank &&		/* no blanks in input: concatenate! */
-	   strlen(t->value.string) + pp->line_pos > pp->right_margin )
+	   (int)strlen(t->value.string) + pp->line_pos > pp->right_margin )
 	nl(pp);
       output_html(pp, t->value.string);
       break;

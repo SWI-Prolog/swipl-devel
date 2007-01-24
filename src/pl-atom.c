@@ -535,6 +535,8 @@ markAtom(atom_t a)
 
   if ( i >= entriesBuffer(&atom_array, Atom) )
     return;				/* not an atom */
+  if ( i < GD->atoms.builtin )
+    return;				/* locked range */
 
   ap = fetchBuffer(&atom_array, i, Atom);
 
@@ -628,7 +630,8 @@ collectAtoms(void)
 	GD->atoms.no_hole_before = ap-ap0;
       }
     } else
-      a->references &= ~ATOM_MARKED_REFERENCE;
+    { a->references &= ~ATOM_MARKED_REFERENCE;
+    }
   }
 }
 
@@ -736,25 +739,39 @@ resetAtoms()
 
 void
 PL_register_atom(atom_t a)
-{ Atom p;
+{ 
 #ifdef O_ATOMGC
-  LOCK();
-  p = atomValue(a);
-  p->references++;
-  UNLOCK();
+  size_t index = indexAtom(a);
+
+  if ( index >= GD->atoms.builtin )
+  { Atom p;
+
+    LOCK();
+    p = fetchBuffer(&atom_array, index, Atom);
+    p->references++;
+    UNLOCK();
+  }
 #endif
 }
 
-
 void
 PL_unregister_atom(atom_t a)
-{ Atom p;
+{ 
 #ifdef O_ATOMGC
-  LOCK();
-  p = atomValue(a);
-  p->references--;
-/*assert((int)p->references != -1); TBD: trapped!?*/
-  UNLOCK();
+  size_t index = indexAtom(a);
+
+  if ( index >= GD->atoms.builtin )
+  { Atom p;
+
+    LOCK();
+    p = fetchBuffer(&atom_array, index, Atom);
+    p->references--;
+    if ( p->references == (unsigned)-1 )
+    { Sdprintf("OOPS: -1 references to %s\n", p->name);
+      trap_gdb();
+    }
+    UNLOCK();
+  }
 #endif
 }
 

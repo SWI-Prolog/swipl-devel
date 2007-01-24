@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: atom-reference management.
+
   * FIXED: 64-bit integer handling on machines with alignment
     conditions.  David Gray.
 
