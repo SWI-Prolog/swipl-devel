@@ -148,8 +148,7 @@ pl_count()
 		 *	     DEBUGGING		*
 		 *******************************/
 
-#ifdef O_DEBUG
-
+#if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
 static inline intptr_t
 loffset(void *p)
 { if ( p == NULL )
@@ -158,6 +157,9 @@ loffset(void *p)
   assert((intptr_t)p % sizeof(word) == 0);
   return (Word)p-(Word)lBase;
 }
+#endif
+
+#ifdef O_DEBUG
 
 static void
 DbgPrintInstruction(LocalFrame FR, Code PC)
