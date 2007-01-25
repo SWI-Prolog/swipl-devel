@@ -1,6 +1,10 @@
+Jan 25, 2006
+
+ * PVW: Bugfixes for optional use of CHR constraints in rule guards.
+
 Jan 18, 2006
 
-  * PVW:Optional use of CHR constraints in rule guards.
+  * PVW: Optional use of CHR constraints in rule guards.
 
 Nov 20, 2006
 

@@ -445,29 +445,56 @@ occurrence(C,ON,Rule,ID,_) \ get_occurrence_from_id(QC,QON,Rule,ID)
 get_occurrence_from_id(C,O,_,_)
 	<=> chr_error(internal,'get_occurrence_from_id: missing occurrence ~w:~w\n',[]).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Late allocation
+
+late_allocation_analysis(Cs) :-
+	( chr_pp_flag(late_allocation,on) ->
+		maplist(late_allocation, Cs)
+	;
+		true
+	).
+
+late_allocation(C) :- late_allocation(C,0).
+late_allocation(C,O) :- allocation_occurrence(C,O), !.
+late_allocation(C,O) :- NO is O + 1, late_allocation(C,NO).
+
 % A L L O C C A T I O N   O C C U R R E N C E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% cannot store constraint at passive occurrence
-occurrence(C,O,RuleNb,ID,_), passive(RuleNb,ID) \ allocation_occurrence(C,O)
-	<=> NO is O + 1, allocation_occurrence(C,NO).
+allocation_occurrence(C,0) ==> stored_in_guard_before_next_kept_occurrence(C,0).
 
-% need not store constraint that is removed,
-% unless it has to be stored in the guard of the rule
-rule(RuleNb,Rule), occurrence(C,O,RuleNb,ID,_) \ allocation_occurrence(C,O)
-	<=> \+ is_stored_in_guard(C,RuleNb), Rule = pragma(_,ids(IDs1,_),_,_,_), member(ID,IDs1)
-	| NO is O + 1, allocation_occurrence(C,NO).
+rule(RuleNb,Rule), occurrence(C,O,RuleNb,Id,Type), allocation_occurrence(C,O) ==>
+	\+ is_passive(RuleNb,Id), 
+	Type == propagation,
+	( stored_in_guard_before_next_kept_occurrence(C,O) ->
+		true
+	; Rule = pragma(rule([_|_],_,_,_),_,_,_,_) ->	% simpagation rule
+		is_observed(C,O)
+	; is_least_occurrence(RuleNb) ->		% propagation rule
+		is_observed(C,O)
+	;
+		true
+	).
 
-% need not store constraint if does not observe itself
-% (for propagation rules we could have to allocate (history))
-rule(RuleNb,Rule), occurrence(C,O,RuleNb,_,_) \ allocation_occurrence(C,O)
-	<=> Rule = pragma(rule([_|_],_,_,_),_,_,_,_), \+ is_observed(C,O)
-	| NO is O + 1, allocation_occurrence(C,NO).
-% need not store constraint if does not observe itself and cannot trigger
-% (then no history is needed)
-rule(RuleNb,Rule), occurrence(C,O,RuleNb,_,_), least_occurrence(RuleNb,[])
-	\ allocation_occurrence(C,O)
-	<=> Rule = pragma(rule([],_,_,_),_,_,_,_), \+ is_observed(C,O)
-	| NO is O + 1, allocation_occurrence(C,NO).
+stored_in_guard_before_next_kept_occurrence(C,O) :-
+	chr_pp_flag(store_in_guards, on),
+	NO is O + 1,
+	stored_in_guard_lookahead(C,NO).
+
+:- chr_constraint stored_in_guard_lookahead/2.
+:- chr_option(mode, stored_in_guard_lookahead(+,+)).
+
+occurrence(C,O,RuleNb,Id,_), passive(RuleNb,Id) \ stored_in_guard_lookahead(C,O) <=> 
+	NO is O + 1, stored_in_guard_lookahead(C,NO).
+occurrence(C,O,RuleNb,Id,Type) \ stored_in_guard_lookahead(C,O) <=> 
+	Type == simplification,
+	( is_stored_in_guard(C,RuleNb) ->
+		true
+	;
+		NO is O + 1, stored_in_guard_lookahead(C,NO)
+	).
+stored_in_guard_lookahead(_,_) <=> fail.
+
 
 rule(RuleNb,Rule), occurrence(C,O,RuleNb,ID,_), allocation_occurrence(C,AO)
 	\ least_occurrence(RuleNb,[ID|IDs]) 
@@ -972,7 +999,7 @@ get_ids([C|Cs],[N|IDs],[NC|NCs],N,NN,RC) :-
 	get_ids(Cs,IDs,NCs, M,NN,RC).
 
 check_direct_pragma(passive,Id,PragmaRule) :- !,
-	PragmaRule = pragma(_,ids(IDs1,IDs2),_,_,RuleNb), 
+	PragmaRule = pragma(_,_,_,_,RuleNb), 
 	passive(RuleNb,Id).
 check_direct_pragma(Abbrev,Id,PragmaRule) :- 
 	( direct_pragma(FullPragma),
@@ -1484,20 +1511,6 @@ is_stored_in_guard(C,RuleNb) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Late allocation
-
-late_allocation_analysis(Cs) :-
-	( chr_pp_flag(late_allocation,on) ->
-		late_allocation(Cs)
-	;
-		true
-	).
-
-late_allocation([]).
-late_allocation([C|Cs]) :-
-	allocation_occurrence(C,1),
-	late_allocation(Cs).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%
@@ -4907,7 +4920,7 @@ rule(RuleNb,Rule) \ check_all_passive(RuleNb,[]) <=>
     chr_warning(weird_program,'All heads passive in ~@.\n\tThis rule never fires. Please check your program.\n',[format_rule(Rule)]).
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+
 % collect the storage information
 stored(C,O,yes) \ stored_completing(C,O,Yesses)
 	<=> NO is O + 1, NYesses is Yesses + 1,
@@ -6229,11 +6242,15 @@ active_constraint_detachment(Id,Susp,Head,VarDict,SuspDetachment) :-
 	functor(Head,F,A),
 	C = F/A,
 	( is_stored(C) ->
-		( (Id == [0]; 
-		  (get_allocation_occurrence(C,AO),
-		   get_max_occurrence(C,MO), 
-		   MO < AO )), 
-		  only_ground_indexed_arguments(C), chr_pp_flag(late_allocation,on) ->
+		( 
+			(
+				Id == [0], chr_pp_flag(store_in_guards, off)
+			;
+				( get_allocation_occurrence(C,AO),
+				  get_max_occurrence(C,MO), 
+				  MO < AO )
+			),
+			only_ground_indexed_arguments(C), chr_pp_flag(late_allocation,on) ->
 			SuspDetachment = true
 		;
 			gen_uncond_susp_detachment(Head,Susp,active,VarDict,UnCondSuspDetachment),
@@ -6292,7 +6309,7 @@ simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,O,Id,L,T) :-
    	PragmaRule = pragma(Rule,ids(_,Heads2IDs),Pragmas,_Name,RuleNb),
    	Rule = rule(_Heads,Heads2,Guard,Body),
 
-   	head_info(Head,A,_Vars,Susp,HeadVars,HeadPairs),
+   	head_info(Head,A,Vars,Susp,HeadVars,HeadPairs),
    	get_constraint_mode(F/A,Mode),
    	head_arg_matches(HeadPairs,Mode,[],FirstMatching,VarDict1,[],GroundVars),
 
@@ -6316,10 +6333,9 @@ simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,O,Id,L,T) :-
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
 
 	( is_stored_in_guard(F/A, RuleNb) ->
-		gen_occ_allocation_in_guard(F/A,O,Vars,Susp,Allocation),
 		gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,_),
 		GuardCopyList = [Hole1Copy|_],
-		Hole1Copy = (Allocation, Attachment)
+		Hole1Copy = Attachment
 	;
 		true
 	),
