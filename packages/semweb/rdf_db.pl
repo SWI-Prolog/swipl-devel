@@ -122,6 +122,7 @@
 :- use_module(library(option)).
 :- use_module(library(nb_set)).
 :- use_module(library(error)).
+:- use_module(library(url)).
 :- use_module(rdf_cache).
 
 :- initialization
@@ -649,7 +650,7 @@ rdf_load_db_no_admin(File, Id) :-
 %	the file administration.
 
 rdf_load_db(File) :-
-	file_to_url(File, URL),
+	file_name_to_url(File, URL),
 	rdf_load_db_no_admin(File, URL),
 	rdf_sources_(Sources),
 	(   member(Src, Sources),
@@ -780,7 +781,7 @@ close_input(_, Stream) :-
 
 rdf_input(stream(Stream), stream(Stream), BaseURI) :- !,
 	(   stream_property(Stream, file_name(File))
-	->  file_to_url(File, BaseURI)
+	->  file_name_to_url(File, BaseURI)
 	;   gensym('stream://', BaseURI)
 	).
 rdf_input(Stream, stream(Stream), BaseURI) :-
@@ -788,7 +789,7 @@ rdf_input(Stream, stream(Stream), BaseURI) :-
 	rdf_input(stream(Stream), _, BaseURI).
 rdf_input(FileURL, file(File), FileURL) :-
 	atom(FileURL),
-	file_to_url(File, FileURL), !.
+	file_name_to_url(File, FileURL), !.
 rdf_input(URL, url(Protocol, URL), URL) :-
 	is_url(URL, Protocol), !.
 rdf_input(Spec, file(Path), BaseURI) :-
@@ -797,22 +798,8 @@ rdf_input(Spec, file(Path), BaseURI) :-
 			   [ access(read),
 			     extensions(Exts)
 			   ]),
-	file_to_url(Path, BaseURI).
+	file_name_to_url(Path, BaseURI).
 	
-%%	file_to_url(+File, -URL) is det.
-%%	file_to_url(-File, +URL) is semidet.
-%
-%	Translate betweem a filename and a URL.
-%	
-%	@tbd	Deal with encoding?
-
-file_to_url(File, FileURL) :-
-	nonvar(File), !,
-	absolute_file_name(File, Path),
-	atom_concat('file://', Path, FileURL), !.
-file_to_url(File, FileURL) :-
-	atom_concat('file://', File, FileURL), !.
-
 %%	is_url(+Term, -Protocol) is semidet.
 %
 %	True if Term is an atom denoting a URL of the given Protocol.

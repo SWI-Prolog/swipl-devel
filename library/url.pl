@@ -37,7 +37,9 @@
 	    global_url/3,		% +Local, +Base, -Global
 	    http_location/2,		% ?Parts, ?Location
 	    www_form_encode/2,		% Value <-> Encoded
-	    parse_url_search/2		% Form-data <-> Form fields
+	    parse_url_search/2,		% Form-data <-> Form fields
+
+	    file_name_to_url/2		% ?FileName, ?URL
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(utf8)).
@@ -871,3 +873,22 @@ parse_url_search(Codes, Fields) :-
 parse_url_search(Codes, Fields) :-
 	phrase(csearch(Fields, ""), Codes).
 	
+
+		 /*******************************
+		 *	    FILE URLs		*
+		 *******************************/
+
+%%	file_name_to_url(+File, -URL) is det.
+%%	file_name_to_url(-File, +URL) is semidet.
+%
+%	Translate between a filename and a URL.
+%	
+%	@tbd	Deal with encoding?
+
+file_name_to_url(File, FileURL) :-
+	nonvar(File), !,
+	absolute_file_name(File, Path),
+	atom_concat('file://', Path, FileURL), !.
+file_name_to_url(File, FileURL) :-
+	atom_concat('file://', File, FileURL), !.
+
