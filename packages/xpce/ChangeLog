@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.27, distributed with SWI-Prolog 5.6.27
+==================================================
+
+* PORT: More patches for the Win64 port.
+
 VERSION 6.6.26, distributed with SWI-Prolog 5.6.26
 ==================================================
 

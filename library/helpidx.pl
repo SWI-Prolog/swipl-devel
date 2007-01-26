@@ -698,88 +698,90 @@ predicate(parse_url, 3, 'Analyse or construct a relative URL', 804301, 804604).
 predicate(global_url, 3, 'Make relative URL global', 804607, 804783).
 predicate(http_location, 2, 'Analyse or construct location', 804786, 805241).
 predicate(www_form_encode, 2, 'Encode or decode form-data', 805244, 805736).
-predicate(in, 2, 'Define interval for variable', 806451, 806636).
-predicate(in, 2, 'Define interval for variable', 806639, 806764).
-predicate(tuples_in, 2, 'Symbolic constraints on tuples', 806767, 807219).
-predicate(#>, 2, 'Greater than constraint', 807222, 807358).
-predicate(#<, 2, 'Less than constraint', 807361, 807497).
-predicate(#>=, 2, 'Greater or equal constraint', 807500, 807644).
-predicate(#=<, 2, 'Less of equal constraint', 807647, 807791).
-predicate(#=, 2, 'Equality constraint', 807794, 807930).
-predicate(#\=, 2, 'Non-equal constraint', 807933, 808070).
-predicate(sum, 3, 'Constraint sum of variables', 808073, 808391).
-predicate(lex_chain, 1, 'Constraint on lexicographic ordering', 808394, 808697).
-predicate(all_different, 1, 'Constraint all values to be unique', 808700, 808840).
-predicate(indomain, 1, 'Enumerate values from domain', 808843, 809050).
-predicate(label, 1, 'Solve constraints for variables', 809053, 809296).
-predicate(+, 2, 'Addition', 809299, 809365).
-predicate(*, 2, 'Multiplication', 809368, 809438).
-predicate(-, 2, 'Subtraction', 809441, 809514).
-predicate(max, 2, 'Maximum of two numbers', 809517, 809602).
-predicate(min, 2, 'Minimum of two numbers', 809605, 809690).
-predicate(mod, 2, 'Remainder of division', 809693, 809790).
-predicate(abs, 1, 'Absolute value', 809793, 809865).
-predicate(#=>, 2, 'Constraint implication to the right', 810088, 810172).
-predicate(#<=, 2, 'Constraint implication to the left', 810175, 810259).
-predicate(#<=>, 2, 'Constraint equivalence', 810262, 811481).
-predicate(entailed, 1, 'Check if constraint is entailed', 815127, 815405).
-predicate(inf, 2, 'Find the infimum of an expression', 815408, 815687).
-predicate(sup, 2, 'Find the supremum of an expression', 815690, 815969).
-predicate(minimize, 1, 'Minimizes an expression', 815972, 816220).
-predicate(maximize, 1, 'Maximizes an expression', 816223, 816472).
-predicate(bb_inf, 5, 'Infimum of expression for mixed-integer problems', 816475, 817219).
-predicate(bb_inf, 4, 'Infimum of expression for mixed-integer problems', 817222, 817460).
-predicate(bb_inf, 3, 'Infimum of expression for mixed-integer problems', 817463, 817696).
-predicate(dump, 3, 'Dump constraints on variables', 817699, 818224).
-predicate(all_distinct, 1, 'Demand distinct values', 824451, 824710).
-predicate(vars_in, 2, 'Declare domain of variable as set', 824713, 824982).
-predicate(vars_in, 3, 'Declare domain of variable as interval', 824985, 825236).
-predicate(assignment, 2, 'Solve assignment problem', 827183, 827604).
-predicate(constraint, 3, 'Add linear constraint to state', 827607, 828303).
-predicate(constraint, 4, 'Add named linear constraint to state', 828306, 828532).
-predicate(constraint_add, 4, '', 828535, 828835).
-predicate(gen_state, 1, 'Create empty linear program', 828838, 828976).
-predicate(maximize, 3, 'Maximize objective function in to linear constraints', 828979, 829375).
-predicate(minimize, 3, 'Minimize objective function in to linear constraints', 829378, 829491).
-predicate(objective, 2, 'Fetch value of objective function', 829494, 829749).
-predicate(shadow_price, 3, 'Fetch shadow price in solved state', 829752, 830042).
-predicate(transportation, 4, 'Solve transportation problem', 830045, 830763).
-predicate(variable_value, 3, 'Fetch value of variable in solved state', 830766, 831391).
-predicate(xref_source, 1, 'Cross-reference analysis of source', 836695, 837032).
-predicate(xref_current_source, 1, 'Examine cross-referenced sources', 837035, 837163).
-predicate(xref_clean, 1, 'Remove analysis of source', 837166, 837283).
-predicate(xref_defined, 3, 'Examine defined predicates', 837286, 838002).
-predicate(xref_called, 3, 'Examine called predicates', 838005, 838182).
-predicate(xref_exported, 2, 'Examine exported predicates', 838185, 838350).
-predicate(xref_module, 2, 'Module defined by source', 838353, 838506).
-predicate(xref_built_in, 1, 'Examine defined built-ins', 838509, 838831).
-predicate(called_by, 2, 'Hook (prolog) Extend cross-referencer', 839042, 839854).
-predicate(broadcast, 1, 'Send event notification', 840939, 841334).
-predicate(broadcast_request, 1, 'Request all agents', 841337, 841983).
-predicate(listen, 2, 'Listen to event notifications', 841986, 842463).
-predicate(listen, 3, 'Listen to event notifications', 842466, 843644).
-predicate(unlisten, 1, 'Stop listening to event notifications', 843647, 843792).
-predicate(unlisten, 2, 'Stop listening to event notifications', 843795, 844009).
-predicate(unlisten, 3, 'Stop listening to event notifications', 844012, 844262).
-predicate(listening, 3, 'Who is listening to event notifications?', 844265, 844473).
-predicate(prolog_current_frame, 1, 'Reference to goal''s environment stack', 845074, 845483).
-predicate(prolog_frame_attribute, 3, 'Obtain information on a goal environment', 845486, 849143).
-predicate(prolog_choice_attribute, 3, 'Examine the choice-point stack', 849146, 850195).
-predicate(deterministic, 1, 'Test deterministicy of current clause', 850198, 850587).
-predicate(prolog_trace_interception, 4, 'library(user) Intercept the Prolog tracer', 850672, 854209).
-predicate(prolog_skip_level, 2, 'Indicate deepest recursion to trace', 854212, 854872).
-predicate(prolog_exception_hook, 4, 'Rewrite exceptions', 855313, 857597).
-predicate(exception, 3, 'Hook (user) Handle runtime exceptions', 858245, 859825).
-predicate(prolog_list_goal, 1, 'Hook (user) Intercept tracer ''L'' command', 860314, 860733).
-predicate(debug_control_hook, 1, 'Hook (prolog) Extend spy/1, etc.', 860736, 861979).
-predicate(help_hook, 1, 'Hook (prolog) User-hook in the help-system', 861982, 862638).
-predicate(prolog_load_file, 2, 'Hook (user) Program load_files/2', 862933, 863409).
-predicate(comment_hook, 3, 'Hook (prolog) handle comments in sources', 863412, 864135).
-predicate(rl_read_init_file, 1, 'Read readline(3) init file', 864445, 864699).
-predicate(rl_add_history, 1, 'Add line to readline(3) history', 864702, 864861).
-predicate(eval_license, 0, 'Evaluate licenses of loaded modules', 883061, 883440).
-predicate(license, 2, 'Define license for named module', 883443, 886643).
-predicate(license, 1, 'Define license for current file', 886646, 886819).
+predicate(in, 2, 'Define interval for variable', 806404, 806589).
+predicate(in, 2, 'Define interval for variable', 806592, 806717).
+predicate(tuples_in, 2, 'Symbolic constraints on tuples', 806720, 807172).
+predicate(#>, 2, 'Greater than constraint', 807175, 807311).
+predicate(#<, 2, 'Less than constraint', 807314, 807450).
+predicate(#>=, 2, 'Greater or equal constraint', 807453, 807597).
+predicate(#=<, 2, 'Less of equal constraint', 807600, 807744).
+predicate(#=, 2, 'Equality constraint', 807747, 807883).
+predicate(#\=, 2, 'Non-equal constraint', 807886, 808023).
+predicate(sum, 3, 'Constraint sum of variables', 808026, 808344).
+predicate(lex_chain, 1, 'Constraint on lexicographic ordering', 808347, 808660).
+predicate(all_different, 1, 'Constraint all values to be unique', 808663, 808803).
+predicate(indomain, 1, 'Enumerate values from domain', 808806, 809013).
+predicate(label, 1, 'Solve constraints for variables', 809016, 809091).
+predicate(labeling, 2, 'Solve constraints for variables', 809094, 810554).
+predicate(serialized, 2, 'Constraint intervals to be serialized', 810557, 811081).
+predicate(+, 2, 'Addition', 811084, 811150).
+predicate(*, 2, 'Multiplication', 811153, 811223).
+predicate(-, 2, 'Subtraction', 811226, 811299).
+predicate(max, 2, 'Maximum of two numbers', 811302, 811387).
+predicate(min, 2, 'Minimum of two numbers', 811390, 811475).
+predicate(mod, 2, 'Remainder of division', 811478, 811575).
+predicate(abs, 1, 'Absolute value', 811578, 811650).
+predicate(#=>, 2, 'Constraint implication to the right', 811873, 811957).
+predicate(#<=, 2, 'Constraint implication to the left', 811960, 812044).
+predicate(#<=>, 2, 'Constraint equivalence', 812047, 813266).
+predicate(entailed, 1, 'Check if constraint is entailed', 816906, 817184).
+predicate(inf, 2, 'Find the infimum of an expression', 817187, 817466).
+predicate(sup, 2, 'Find the supremum of an expression', 817469, 817748).
+predicate(minimize, 1, 'Minimizes an expression', 817751, 817999).
+predicate(maximize, 1, 'Maximizes an expression', 818002, 818251).
+predicate(bb_inf, 5, 'Infimum of expression for mixed-integer problems', 818254, 818998).
+predicate(bb_inf, 4, 'Infimum of expression for mixed-integer problems', 819001, 819239).
+predicate(bb_inf, 3, 'Infimum of expression for mixed-integer problems', 819242, 819475).
+predicate(dump, 3, 'Dump constraints on variables', 819478, 820003).
+predicate(all_distinct, 1, 'Demand distinct values', 826230, 826489).
+predicate(vars_in, 2, 'Declare domain of variable as set', 826492, 826761).
+predicate(vars_in, 3, 'Declare domain of variable as interval', 826764, 827015).
+predicate(assignment, 2, 'Solve assignment problem', 828962, 829383).
+predicate(constraint, 3, 'Add linear constraint to state', 829386, 830082).
+predicate(constraint, 4, 'Add named linear constraint to state', 830085, 830311).
+predicate(constraint_add, 4, '', 830314, 830614).
+predicate(gen_state, 1, 'Create empty linear program', 830617, 830755).
+predicate(maximize, 3, 'Maximize objective function in to linear constraints', 830758, 831154).
+predicate(minimize, 3, 'Minimize objective function in to linear constraints', 831157, 831270).
+predicate(objective, 2, 'Fetch value of objective function', 831273, 831528).
+predicate(shadow_price, 3, 'Fetch shadow price in solved state', 831531, 831821).
+predicate(transportation, 4, 'Solve transportation problem', 831824, 832542).
+predicate(variable_value, 3, 'Fetch value of variable in solved state', 832545, 833170).
+predicate(xref_source, 1, 'Cross-reference analysis of source', 838474, 838811).
+predicate(xref_current_source, 1, 'Examine cross-referenced sources', 838814, 838942).
+predicate(xref_clean, 1, 'Remove analysis of source', 838945, 839062).
+predicate(xref_defined, 3, 'Examine defined predicates', 839065, 839781).
+predicate(xref_called, 3, 'Examine called predicates', 839784, 839961).
+predicate(xref_exported, 2, 'Examine exported predicates', 839964, 840129).
+predicate(xref_module, 2, 'Module defined by source', 840132, 840285).
+predicate(xref_built_in, 1, 'Examine defined built-ins', 840288, 840610).
+predicate(called_by, 2, 'Hook (prolog) Extend cross-referencer', 840821, 841633).
+predicate(broadcast, 1, 'Send event notification', 842718, 843113).
+predicate(broadcast_request, 1, 'Request all agents', 843116, 843762).
+predicate(listen, 2, 'Listen to event notifications', 843765, 844242).
+predicate(listen, 3, 'Listen to event notifications', 844245, 845423).
+predicate(unlisten, 1, 'Stop listening to event notifications', 845426, 845571).
+predicate(unlisten, 2, 'Stop listening to event notifications', 845574, 845788).
+predicate(unlisten, 3, 'Stop listening to event notifications', 845791, 846041).
+predicate(listening, 3, 'Who is listening to event notifications?', 846044, 846252).
+predicate(prolog_current_frame, 1, 'Reference to goal''s environment stack', 846853, 847262).
+predicate(prolog_frame_attribute, 3, 'Obtain information on a goal environment', 847265, 850922).
+predicate(prolog_choice_attribute, 3, 'Examine the choice-point stack', 850925, 851974).
+predicate(deterministic, 1, 'Test deterministicy of current clause', 851977, 852366).
+predicate(prolog_trace_interception, 4, 'library(user) Intercept the Prolog tracer', 852451, 855988).
+predicate(prolog_skip_level, 2, 'Indicate deepest recursion to trace', 855991, 856651).
+predicate(prolog_exception_hook, 4, 'Rewrite exceptions', 857092, 859376).
+predicate(exception, 3, 'Hook (user) Handle runtime exceptions', 860024, 861604).
+predicate(prolog_list_goal, 1, 'Hook (user) Intercept tracer ''L'' command', 862093, 862512).
+predicate(debug_control_hook, 1, 'Hook (prolog) Extend spy/1, etc.', 862515, 863758).
+predicate(help_hook, 1, 'Hook (prolog) User-hook in the help-system', 863761, 864417).
+predicate(prolog_load_file, 2, 'Hook (user) Program load_files/2', 864712, 865188).
+predicate(comment_hook, 3, 'Hook (prolog) handle comments in sources', 865191, 865914).
+predicate(rl_read_init_file, 1, 'Read readline(3) init file', 866224, 866478).
+predicate(rl_add_history, 1, 'Add line to readline(3) history', 866481, 866640).
+predicate(eval_license, 0, 'Evaluate licenses of loaded modules', 884840, 885219).
+predicate(license, 2, 'Define license for named module', 885222, 888422).
+predicate(license, 1, 'Define license for current file', 888425, 888598).
 
 
 %   Predicate section/4
@@ -1093,7 +1095,7 @@ section([10, 4], 'Finding Application files', 755773, 757639).
 section([10, 4, 1], 'Passing a path to the application', 757053, 757639).
 section([10, 5], 'The Runtime Environment', 757641, 760288).
 section([10, 5, 1], 'The Runtime Emulator', 757723, 760288).
-section([11], 'THE SWI-PROLOG LIBRARY', 760290, 844474).
+section([11], 'THE SWI-PROLOG LIBRARY', 760290, 846253).
 section([11, 1], 'lists:  List Manipulation', 761747, 767049).
 section([11, 1, 1], 'Set Manipulation', 765326, 767049).
 section([11, 2], 'ordsets:  Ordered Set Manipulation', 767051, 770372).
@@ -1107,58 +1109,58 @@ section([11, 9], 'readutil:  Reading lines, streams and files', 792287, 795678).
 section([11, 10], 'netscape:  Activating your Web-browser', 795680, 797071).
 section([11, 11], 'registry:  Manipulating the Windows registry', 797073, 800951).
 section([11, 12], 'url:  Analysing and constructing URL', 800953, 805737).
-section([11, 13], 'clp/bounds:  Integer Bounds Constraint Solver', 805739, 813521).
-section([11, 13, 1], 'Constraints', 806350, 809866).
-section([11, 13, 2], 'Constraint Implication and Reified Constraints', 809868, 811482).
-section([11, 13, 3], 'Example 1:  Send+More=Money', 811484, 812280).
-section([11, 13, 4], 'Example 2:  Using tuples_in for a train schedule', 812282, 813157).
-section([11, 13, 5], 'SICStus clp(FD) compatibility', 813159, 813521).
-section([11, 14], 'clpqr:  Constraint Logic Programming over Rationals and Reals', 813523, 824118).
-section([11, 14, 1], 'Solver predicates', 814846, 818225).
-section([11, 14, 2], 'Syntax of the predicate arguments', 818227, 822156).
-section([11, 14, 3], 'Use of unification', 822158, 822645).
-section([11, 14, 4], 'Non-linear constraints', 822647, 824118).
-section([11, 15], 'clp/clp_distinct:  Weak arc consistent `all_distinct'' constraint', 824120, 826082).
-section([11, 15, 1], 'Example 1', 825239, 825411).
-section([11, 15, 2], 'Example 2', 825413, 825643).
-section([11, 15, 3], 'Example 3', 825645, 826082).
-section([11, 16], 'simplex:  Solve linear programming problems', 826084, 834728).
-section([11, 16, 1], 'Example 1', 831394, 832147).
-section([11, 16, 2], 'Example 2', 832149, 833762).
-section([11, 16, 3], 'Example 3', 833764, 834728).
-section([11, 17], 'prologxref:  Cross-reference data collection library', 834730, 839855).
-section([11, 17, 1], 'Extending the library', 838834, 839855).
-section([11, 18], 'broadcast:  Broadcast and receive event notifications', 839857, 844474).
-section([12], 'HACKERS CORNER', 844476, 864862).
-section([12, 1], 'Examining the Environment Stack', 844970, 850588).
-section([12, 2], 'Intercepting the Tracer', 850590, 854873).
-section([12, 3], 'Adding context to errors:  prolog_exception_hook', 854875, 857598).
-section([12, 4], 'Hooks using the exception predicate', 857600, 859826).
-section([12, 5], 'Hooks for integrating libraries', 859828, 862639).
-section([12, 6], 'Hooks for loading files', 862641, 864136).
-section([12, 7], 'Readline Interaction', 864138, 864862).
-section([13], 'GLOSSARY OF TERMS', 864864, 877835).
-section([14], 'SWI-PROLOG LICENSE CONDITIONS AND TOOLS', 877837, 893894).
-section([14, 1], 'The SWI-Prolog kernel and foreign libraries', 879325, 881825).
-section([14, 1, 1], 'The SWI-Prolog Prolog libraries', 880144, 881825).
-section([14, 2], 'Contributing to the SWI-Prolog project', 881827, 882393).
-section([14, 3], 'Software support to keep track of license conditions', 882395, 887113).
-section([14, 4], 'Library predicates', 887115, 893894).
-section([14, 4, 1], check, 887184, 887419).
-section([14, 4, 2], lists, 887421, 888295).
-section([14, 4, 3], ordsets, 888297, 888875).
-section([14, 4, 4], ugraphs, 888877, 889755).
-section([14, 4, 5], www_browser, 889757, 889835).
-section([14, 4, 6], readutil, 889837, 890162).
-section([14, 4, 7], registry, 890164, 890642).
-section([14, 4, 8], url, 890644, 890910).
-section([14, 4, 9], 'clp/bounds', 890912, 891672).
-section([14, 4, 10], 'clp/clp_distinct', 891674, 891859).
-section([14, 4, 11], 'clp/simplex', 891861, 892453).
-section([14, 4, 12], clpqr, 892455, 892929).
-section([14, 4, 13], prologxref, 892931, 893431).
-section([14, 4, 14], broadcast, 893433, 893894).
-section([15], 'Bibliography', 893896, 929277).
+section([11, 13], 'clp/bounds:  Integer Bounds Constraint Solver', 805739, 815300).
+section([11, 13, 1], 'Constraints', 806303, 811651).
+section([11, 13, 2], 'Constraint Implication and Reified Constraints', 811653, 813267).
+section([11, 13, 3], 'Example 1:  Send+More=Money', 813269, 814059).
+section([11, 13, 4], 'Example 2:  Using tuples_in for a train schedule', 814061, 814936).
+section([11, 13, 5], 'SICStus clp(FD) compatibility', 814938, 815300).
+section([11, 14], 'clpqr:  Constraint Logic Programming over Rationals and Reals', 815302, 825897).
+section([11, 14, 1], 'Solver predicates', 816625, 820004).
+section([11, 14, 2], 'Syntax of the predicate arguments', 820006, 823935).
+section([11, 14, 3], 'Use of unification', 823937, 824424).
+section([11, 14, 4], 'Non-linear constraints', 824426, 825897).
+section([11, 15], 'clp/clp_distinct:  Weak arc consistent `all_distinct'' constraint', 825899, 827861).
+section([11, 15, 1], 'Example 1', 827018, 827190).
+section([11, 15, 2], 'Example 2', 827192, 827422).
+section([11, 15, 3], 'Example 3', 827424, 827861).
+section([11, 16], 'simplex:  Solve linear programming problems', 827863, 836507).
+section([11, 16, 1], 'Example 1', 833173, 833926).
+section([11, 16, 2], 'Example 2', 833928, 835541).
+section([11, 16, 3], 'Example 3', 835543, 836507).
+section([11, 17], 'prologxref:  Cross-reference data collection library', 836509, 841634).
+section([11, 17, 1], 'Extending the library', 840613, 841634).
+section([11, 18], 'broadcast:  Broadcast and receive event notifications', 841636, 846253).
+section([12], 'HACKERS CORNER', 846255, 866641).
+section([12, 1], 'Examining the Environment Stack', 846749, 852367).
+section([12, 2], 'Intercepting the Tracer', 852369, 856652).
+section([12, 3], 'Adding context to errors:  prolog_exception_hook', 856654, 859377).
+section([12, 4], 'Hooks using the exception predicate', 859379, 861605).
+section([12, 5], 'Hooks for integrating libraries', 861607, 864418).
+section([12, 6], 'Hooks for loading files', 864420, 865915).
+section([12, 7], 'Readline Interaction', 865917, 866641).
+section([13], 'GLOSSARY OF TERMS', 866643, 879614).
+section([14], 'SWI-PROLOG LICENSE CONDITIONS AND TOOLS', 879616, 895777).
+section([14, 1], 'The SWI-Prolog kernel and foreign libraries', 881104, 883604).
+section([14, 1, 1], 'The SWI-Prolog Prolog libraries', 881923, 883604).
+section([14, 2], 'Contributing to the SWI-Prolog project', 883606, 884172).
+section([14, 3], 'Software support to keep track of license conditions', 884174, 888892).
+section([14, 4], 'Library predicates', 888894, 895777).
+section([14, 4, 1], check, 888963, 889198).
+section([14, 4, 2], lists, 889200, 890074).
+section([14, 4, 3], ordsets, 890076, 890654).
+section([14, 4, 4], ugraphs, 890656, 891534).
+section([14, 4, 5], www_browser, 891536, 891614).
+section([14, 4, 6], readutil, 891616, 891941).
+section([14, 4, 7], registry, 891943, 892421).
+section([14, 4, 8], url, 892423, 892689).
+section([14, 4, 9], 'clp/bounds', 892691, 893555).
+section([14, 4, 10], 'clp/clp_distinct', 893557, 893742).
+section([14, 4, 11], 'clp/simplex', 893744, 894336).
+section([14, 4, 12], clpqr, 894338, 894812).
+section([14, 4, 13], prologxref, 894814, 895314).
+section([14, 4, 14], broadcast, 895316, 895777).
+section([15], 'Bibliography', 895779, 931264).
 
 
 %   Predicate function/3
@@ -1336,6 +1338,6 @@ function('PL_halt', 721435, 721748).
 function('PL_malloc', 735017, 735356).
 function('PL_realloc', 735359, 735634).
 function('PL_free', 735637, 735808).
-function('PL_license', 886822, 887112).
+function('PL_license', 888601, 888891).
 
 

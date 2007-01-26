@@ -131,9 +131,11 @@ This library is only available on Windows systems.
 \predicatesummary{all_different}{1}{Constraint all values to be unique}
 \predicatesummary{indomain}{1}{Enumerate values from domain}
 \predicatesummary{label}{1}{Solve constraints for variables}
+\predicatesummary{labeling}{2}{Solve constraints for variables}
 \predicatesummary{lex_chain}{1}{Constraint on lexicographic ordering}
 \predicatesummary{sum}{3}{Constraint sum of variables}
 \predicatesummary{tuples_in}{2}{Symbolic constraints on tuples}
+\predicatesummary{serialized}{2}{Constraint intervals to be serialized}
 \end{summarylist}
 
 \subsection{\pllib{clp/clp_distinct}}

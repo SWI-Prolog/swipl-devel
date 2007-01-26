@@ -57,6 +57,18 @@ full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
 
 
+Version 5.6.27 Patches relative to 5.6.26
+=========================================
+
+* Fixed various signed/unsigned issues resulting from the Windows 64 port.
+
+* Fixed data-alignment issues (portability).
+
+* Fixed issues in semweb package: file/url compatibility issues and a
+  bug in rdf_litindex.pl that can cause crashes (failing to lock atoms).
+
+
+
 Version 5.6.26 Patches relative to 5.6.25
 =========================================
 

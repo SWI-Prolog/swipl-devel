@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+=================================
+VERSION 5.6.27 (January 26, 2007)
+=================================
+
   * ENHANCED: atom-reference management.
 
   * FIXED: 64-bit integer handling on machines with alignment

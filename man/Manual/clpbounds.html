@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.26 Reference Manual: Section A.13</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.27 Reference Manual: Section A.13</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="url.html">
@@ -129,13 +129,12 @@ clp/bounds ): Integer Bounds Constraint Solver</SPAN></A></H2>
 
 <P>The bounds solver is a rather simple integer constraint solver, 
 implemented with attributed variables. Its syntax is a subset of the 
-SICStus clp(FD) syntax. Please note that the <CODE>library(clp/bounds)</CODE> 
-library is <EM>not</EM> an
-<EM>autoload</EM> library and therefore this library must be loaded 
-explicitely before using it using:
+SICStus clp(FD) syntax. The <CODE>library(bounds)</CODE> library is <EM>not</EM> 
+an <EM>autoload</EM> library and therefore it must be loaded explicitly 
+before using it via:
 
 <PRE class="code">
-:- use_module(library('clp/bounds')).
+:- use_module(library(bounds)).
 </PRE>
 
 <H3><A NAME="sec:A.13.1"><SPAN class="sec-nr">A.13.1</SPAN> <SPAN class="sec-title">Constraints</SPAN></A></H3>
@@ -204,9 +203,9 @@ is an integer or variable. It represents the constraint (<VAR>&Sigma;</VAR><VAR>
 <DT class="pubdef"><A NAME="lex_chain/1"><STRONG>lex_chain</STRONG>(<VAR>+VarsLists</VAR>)</A></DT>
 <DD class="defbody">
 The constraint enforces lexicographic ordering on the lists in the 
-argument. The argument <VAR>Vars</VAR> is a list of lists of variables 
-and integers. The current implementation was contributed by Markus 
-Triska.
+argument. The argument <VAR>VarsLists</VAR> is a list of lists of 
+variables and integers. The current implementation was contributed by 
+Markus Triska.
 </DD>
 <DT class="pubdef"><A NAME="all_different/1"><STRONG>all_different</STRONG>(<VAR>+Vars</VAR>)</A></DT>
 <DD class="defbody">
@@ -215,14 +214,68 @@ equal.
 </DD>
 <DT class="pubdef"><A NAME="indomain/1"><STRONG>indomain</STRONG>(<VAR>+Var</VAR>)</A></DT>
 <DD class="defbody">
-Assigns a value in its domain to variable <VAR>Var</VAR>. Backtracks 
+Unify variable <VAR>Var</VAR> with a value in its domain. Backtracks 
 over all possible values from lowest to greatest. Contributed by Markus 
 Triska.
 </DD>
 <DT class="pubdef"><A NAME="label/1"><STRONG>label</STRONG>(<VAR>+Vars</VAR>)</A></DT>
 <DD class="defbody">
-All variables are assigned a variable that does not violate the 
-constraint on them.
+Equivalent to labeling([], Vars).
+</DD>
+<DT class="pubdef"><A NAME="labeling/2"><STRONG>labeling</STRONG>(<VAR>+Options, 
++Vars</VAR>)</A></DT>
+<DD class="defbody">
+All variables in the list <VAR>Vars</VAR> are assigned values from their 
+respective domains such that no constraint on them is violated. <VAR>Options</VAR> 
+is a list of options. One set of options lets you choose the variable 
+selection strategy:
+
+<DL>
+<DT><STRONG>leftmost</STRONG></DT>
+<DD class="defbody">
+Label the variables in the order they occur in <VAR>Vars</VAR> from left 
+to right. This is the default.</DD>
+<DT><STRONG>ff</STRONG></DT>
+<DD class="defbody">
+Label the variable whose domain contains the smallest number of elements 
+among the remaining variables next. This is called "first-fail". The 
+intention here is twofold: First, to detect infeasibility early by 
+always considering the variable most likely to cause failure; second, to 
+give priority to variables that are close to running out of domain 
+elements.</DD>
+<DT><STRONG>min</STRONG></DT>
+<DD class="defbody">
+Label the variable whose lower bound is the lowest among the remaining 
+variables next.</DD>
+<DT><STRONG>max</STRONG></DT>
+<DD class="defbody">
+Label the variable whose upper bound is the highest among the remaining 
+variables next.
+</DD>
+</DL>
+
+<P>Another set of options lets you search for extrema:
+
+<DL>
+<DT><STRONG>min</STRONG>(<VAR>Expr</VAR>)</DT>
+<DD class="defbody">
+</DD>
+<DT><STRONG>max</STRONG>(<VAR>Expr</VAR>)</DT>
+<DD class="defbody">
+Label the variables such that <VAR>Expr</VAR> assumes the 
+smallest/highest possible value.
+</DD>
+</DL>
+
+</DD>
+<DT class="pubdef"><A NAME="serialized/2"><STRONG>serialized</STRONG>(<VAR>+Starts,+Durations</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Starts</VAR> = <VAR>[S_1, ... ,S_n]</VAR> is a list of variables or 
+integers, and <VAR>Durations</VAR> =
+<VAR>[D_1, ... ,D_n]</VAR> is a list of non-negative integers.
+<VAR>Starts</VAR> are constrained to denote the starting times of 
+non-overlapping tasks, i.e., <VAR>S_i + D_i =&lt; S_j</VAR> or <VAR>S_j 
++ D_j =&lt; S_i</VAR> for all <VAR>1 =&lt; i &lt; j =&lt; n</VAR>.
 </DD>
 </DL>
 
@@ -339,7 +392,7 @@ The following is an implementation of the classic alphametics puzzle
 SEND + MORE = MONEY:
 
 <PRE class="code">
-:- use_module(library('clp/bounds')).
+:- use_module(library(bounds)).
 
 send([[S,E,N,D], [M,O,R,E], [M,O,N,E,Y]])  :-
               Digits   =  [S,E,N,D,M,O,R,Y],
