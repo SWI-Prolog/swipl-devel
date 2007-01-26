@@ -1,5 +1,7 @@
 Jan 26, 2007
 
+  * FIXED: Atom-referencing problem in literal index-map.
+
   * FIXED: Various URL/File issues in rdf_db.pl and rdf_edit.pl.  Fixed
     Triple20 modification issues.  Anjo Anjewierden.
 

@@ -422,7 +422,8 @@ new_atom_set(datum a0)
 
   if ( (as = malloc(sizeof(*as))) &&
        (as->atoms = malloc(sizeof(datum)*AS_INITIAL_SIZE)) )
-  { as->size = 1;
+  { lock_datum(a0);
+    as->size = 1;
     as->allocated = AS_INITIAL_SIZE;
     as->atoms[0] = a0;
     SECURE(as->magic = S_MAGIC);
