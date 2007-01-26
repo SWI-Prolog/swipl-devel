@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -1040,6 +1040,9 @@ rdf_reset_db :-
 %		
 %		* document_language(+Lang)
 %		Initial xml:lang saved with rdf:RDF element
+%	
+%	@param File	Location to save the data.  This can also be a 
+%			file-url (=|file://path|=).
 
 :- module_transparent
 	rdf_transaction/1,
@@ -1053,14 +1056,19 @@ rdf_reset_db :-
 rdf_save(File) :-
 	rdf_save2(File, []).
 
-rdf_save(File, Options0) :-
+rdf_save(Spec, Options0) :-
 	is_list(Options0), !,
 	meta_options(Options0, Options),
+	to_file(Spec, File),
 	rdf_save2(File, Options).
-rdf_save(File, DB) :-
+rdf_save(Spec, DB) :-
 	atom(DB), !,			% backward compatibility
+	to_file(Spec, File),
 	rdf_save2(File, [db(DB)]).
 
+to_file(URL, File) :-
+	file_name_to_url(File, URL), !.
+to_file(File, File).
 
 rdf_save2(File, Options) :-
 	option(encoding(Encoding), Options, utf8),

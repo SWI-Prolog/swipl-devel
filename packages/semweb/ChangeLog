@@ -1,3 +1,8 @@
+Jan 26, 2007
+
+  * FIXED: Various URL/File issues in rdf_db.pl and rdf_edit.pl.  Fixed
+    Triple20 modification issues.  Anjo Anjewierden.
+
 Jan 18, 2007
 
   * ADDED: loading of rdf embedded in xhtml.  Yves Raimond.

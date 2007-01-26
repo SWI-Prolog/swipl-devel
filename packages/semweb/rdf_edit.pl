@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -76,6 +76,7 @@
 :- use_module(library(broadcast)).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
+:- use_module(library(url)).
 
 :- meta_predicate
 	rdfe_transaction(:),
@@ -194,7 +195,8 @@ delete(Subject) :-
 		 *	   FILE HANDLING	*
 		 *******************************/
 
-%%	rdfe_load(+File)
+%%	rdfe_load(+File) is det.
+%%	rdfe_load(+File, +Options) is det.
 %	
 %	Load an RDF file and record this action including version information
 %	to facilitate reliable reload.
@@ -640,37 +642,50 @@ user_transaction_member(Update, Subject, Predicate, Object,
 %		* access(ro/rw)
 %		* default(all/fallback)
 
-rdfe_set_file_property(File0, access(Access)) :- !,
-	absolute_file_name(File0, File),
-	retractall(rdf_source_permission(File, _)),
-	assert(rdf_source_permission(File, Access)),
-	broadcast(rdf_file_property(File, access(Access))).
-rdfe_set_file_property(File0, default(Type)) :-
-	absolute_file_name(File0, File),
-	rdfe_set_file_property(File, access(rw)), % must be writeable
+rdfe_set_file_property(File, access(Access)) :- !,
+	to_url(File, URL),
+	retractall(rdf_source_permission(URL, _)),
+	assert(rdf_source_permission(URL, Access)),
+	broadcast(rdf_file_property(URL, access(Access))).
+rdfe_set_file_property(File, default(Type)) :-
+	to_url(File, URL),
+	rdfe_set_file_property(URL, access(rw)), % must be writeable
 	retractall(rdf_current_default_file(_,_)),
-	assert(rdf_current_default_file(File, Type)),
-	broadcast(rdf_file_property(File, default(Type))).
+	assert(rdf_current_default_file(URL, Type)),
+	broadcast(rdf_file_property(URL, default(Type))).
 
 
-%%	rdfe_get_file_property(?File, ?Option)
+%%	rdfe_get_file_property(+FileOrURL, ?Option).
+%%	rdfe_get_file_property(-URL, ?Option).
 %	
 %	Fetch file properties set with rdfe_set_file_property/2.
 
-rdfe_get_file_property(File, access(Access)) :-
-	rdf_source(File),
-	(   rdf_source_permission(File, Access0)
+rdfe_get_file_property(FileOrURL, access(Access)) :-
+	(   ground(FileOrURL)
+	->  to_url(FileOrURL, URL)
+	;   rdf_source(URL),
+	    FileOrURL = URL
+	),
+	(   rdf_source_permission(URL, Access0)
 	->  Access0 = Access
-	;   access_file(File, write)
-	->  assert(rdf_source_permission(File, rw)),
+	;   access_file(URL, write)
+	->  assert(rdf_source_permission(URL, rw)),
 	    Access = rw
-	;   assert(rdf_source_permission(File, ro)),
+	;   assert(rdf_source_permission(URL, ro)),
 	    Access = ro
 	).
-rdfe_get_file_property(File, default(Default)) :-
-	(   rdf_current_default_file(File, Default)
+rdfe_get_file_property(FileOrURL, default(Default)) :-
+	ground(FileOrURL),
+	to_url(FileOrURL, URL),
+	(   rdf_current_default_file(URL, Default)
 	->  true
-	;   File = user,
+	;   FileOrURL = user,
+	    Default = fallback
+	).
+rdfe_get_file_property(URL, default(Default)) :-
+	(   rdf_current_default_file(URL, Default)
+	->  true
+	;   URL = user,
 	    Default = fallback
 	).
 
@@ -687,21 +702,41 @@ check_file_protection(Error) :-
 	).
 
 
+%%	to_url(+Spec, -URL) is det.
+%
+%	Convert a specification into a URL.
+
+to_url(URL, URL) :-
+	atom(URL),
+	sub_atom(URL, B, _, _, '://'),
+	sub_atom(URL, 0, B, _, Protocol),
+	url_protocol(Protocol), !.
+to_url(File, URL) :-
+	file_name_to_url(File, URL).
+
+
+url_protocol(file).
+url_protocol(http).
+url_protocol(https).
+url_protocol(ftp).
+url_protocol(ftps).
+
+
 		 /*******************************
 		 *	     MODIFIED		*
 		 *******************************/
 
-%%	rdfe_is_modified(?File)
+%%	rdfe_is_modified(?Source)
 %	
-%	True if facts have been added, deleted or updated that have File
-%	as `payload'.
+%	True if facts have been added, deleted or updated that have
+%	Source as `payload'.
 
-rdfe_is_modified(File) :-
-	rdf_source(File),
-	rdf_md5(File, MD5),
-	(   unmodified_md5(File, UnmodifiedMD5)
+rdfe_is_modified(Source) :-
+	rdf_source(Source),
+	rdf_md5(Source, MD5),
+	(   unmodified_md5(Source, UnmodifiedMD5)
 	->  true
-	;   rdf_db:rdf_source(File, _Time, _Triples, UnmodifiedMD5)
+	;   rdf_db:rdf_source(Source, _Time, _Triples, UnmodifiedMD5)
 	),
 	UnmodifiedMD5 \== MD5.
 
