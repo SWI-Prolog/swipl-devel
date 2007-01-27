@@ -1156,6 +1156,10 @@ Maximum integer value represented as a `tagged' value.  Tagged integers
 require 1 word storage.  Larger integers are represented as `indirect data'
 and require significantly more space.
 
+    \prologflagitem{max_threads}{integer}{r}
+Provided on multi-threaded versions to indicate the maximum number of 
+Prolog threads supported.  Currently (version 5.6.27) the limit is 100.
+
     \prologflagitem{min_integer}{integer}{r}
 Minimum integer value if integers are \emph{bounded}.  See also
 the flag \const{bounded} and \secref{artypes}.

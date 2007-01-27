@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -780,6 +780,9 @@ initFeatures()
 #ifdef O_PLMT
   defFeature("threads",	FT_BOOL, TRUE, 0);	/* FF_READONLY? */
   defFeature("system_thread_id", FT_INTEGER|FF_READONLY, 0, 0);
+#ifdef MAX_THREADS
+  defFeature("max_threads", FT_INTEGER|FF_READONLY, MAX_THREADS);
+#endif
 #else
   defFeature("threads",	FT_BOOL|FF_READONLY, FALSE, 0);
 #endif
