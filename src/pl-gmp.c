@@ -122,7 +122,7 @@ get_integer(word w, Number n)
   } else
   { GET_LD
     Word p = addressIndirect(w);
-    int wsize = wsizeofInd(*p);
+    size_t wsize = wsizeofInd(*p);
 
     p++;
     if ( wsize == WORDS_PER_INT64 )
@@ -152,7 +152,7 @@ addMPZToBuffer(Buffer b, mpz_t mpz)
 
 void
 addMPZToBuffer(Buffer b, mpz_t mpz)
-{ size_t size = (mpz_sizeinbase(mpz, 2)+7)/8;
+{ long size = (long)(mpz_sizeinbase(mpz, 2)+7)/8;
   int hdrsize;
   size_t count;
 
@@ -264,7 +264,7 @@ mpz_init_set_si64(mpz_t mpz, int64_t i)
 { DEBUG(2, Sdprintf("Converting " INT64_FORMAT " to MPZ\n", i));
 
   if ( i >= LONG_MIN && i <= LONG_MAX )
-  { mpz_init_set_si(mpz, (intptr_t)i);
+  { mpz_init_set_si(mpz, (long)i);
   } else
   { mpz_init(mpz);
     if ( i >= 0 )
@@ -372,8 +372,8 @@ clearNumber(Number n)
 
 void
 initGMP()
-{ mpz_init_set_si(MPZ_MIN_TAGGED, PLMINTAGGEDINT);
-  mpz_init_set_si(MPZ_MAX_TAGGED, PLMAXTAGGEDINT);
+{ mpz_init_set_si64(MPZ_MIN_TAGGED, PLMINTAGGEDINT);
+  mpz_init_set_si64(MPZ_MAX_TAGGED, PLMAXTAGGEDINT);
   mpz_init_set_si64(MPZ_MIN_INT, PLMININT);
   mpz_init_set_si64(MPZ_MAX_INT, PLMAXINT);
 }

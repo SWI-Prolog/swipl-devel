@@ -876,11 +876,11 @@ formatNumber(bool split, int div, int radix, bool small, Number i,
     }
 #ifdef O_GMP
     case V_MPZ:
-    { int len = mpz_sizeinbase(i->value.mpz, radix);
+    { size_t len = mpz_sizeinbase(i->value.mpz, radix);
       char tmp[256];
       char *buf;
 
-      if ( len+2 > (int)sizeof(tmp) )
+      if ( len+2 > sizeof(tmp) )
 	buf = PL_malloc(len+2);
       else
 	buf = tmp;
@@ -893,7 +893,7 @@ formatNumber(bool split, int div, int radix, bool small, Number i,
 	  *s = toupper(*s);
       }
       if ( split || div > 0 )
-      { int before = len-div;
+      { int before = (int)(len-div);
 	int leading;
 	char *s = buf;
 
@@ -906,7 +906,7 @@ formatNumber(bool split, int div, int radix, bool small, Number i,
 	  if ( leading == 0 )
 	    leading = 3;
 	} else
-	{ leading = len;
+	{ leading = (int)len;
 	}
 	for(s=buf; *s; s++)
 	{ if ( before-- == 0 && div > 0 )
@@ -963,7 +963,7 @@ formatFloat(int how, int arg, Number f, Buffer out)
 
 	  mpz_init(iv);
 	  mpz_set_q(iv, f->value.mpq);
-	  fbits = mpz_sizeinbase(iv, 2) + 4*arg;
+	  fbits = (int)mpz_sizeinbase(iv, 2) + 4*arg;
 	  mpz_clear(iv);
 	  break;
 	}
