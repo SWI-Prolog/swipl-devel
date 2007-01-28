@@ -367,6 +367,7 @@ must_be_atom(X) :-
 	rdf_retractall(r,r,o,?),
 	rdf_reachable(r,r,r),
 	rdf_update(r,r,o,t),
+	rdf_update(r,r,o,+,t),
 	rdf_equal(r,r),
 	rdf_source_location(r,-),
 	rdf_subject(r),

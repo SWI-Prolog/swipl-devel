@@ -1,3 +1,7 @@
+Jan 28, 2007
+
+  * FIXED: rdf_meta declaration for rdf_update/5.  Michiel Hildebrand.
+
 Jan 26, 2007
 
   * FIXED: Atom-referencing problem in literal index-map.
