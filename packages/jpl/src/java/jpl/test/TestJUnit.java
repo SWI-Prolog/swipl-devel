@@ -6,6 +6,7 @@ import jpl.Atom;
 import jpl.Compound;
 import jpl.Integer;
 import jpl.JPL;
+import jpl.JRef;
 import jpl.PrologException;
 import jpl.Query;
 import jpl.Term;
@@ -509,5 +510,14 @@ public class TestJUnit extends TestCase {
 		Term list = (Term) Query.oneSolution(goal).get("T");
 		Term[] array = list.toTermArray();
 		assertTrue(array[2].isAtom() && array[2].name().equals("c"));
+	}
+	public void testJRef1() {
+		System.out.println("java.library.path=" + System.getProperties().get("java.library.path"));
+		System.out.println("jpl.c version = " + jpl.fli.Prolog.get_c_lib_version());
+		int i = 76543;
+		Integer I = new Integer(i);
+		Query q = new Query("jpl_call(?,intValue,[],I2)", new Term[] {new JRef(I)});
+		Term I2 = (Term) q.oneSolution().get("I2");
+		assertTrue(I2.isInteger() && I2.intValue() == i);
 	}
 }

@@ -4955,6 +4955,35 @@ JNIEXPORT void JNICALL	/* maybe oughta return jboolean (false iff given object i
 
 
 /*
+ * Class:     jpl_fli_Prolog
+ * Method:    put_jref
+ * Signature: (Ljpl/fli/term_t;Ljava/lang/Object;)V
+ */
+/* added 29/1/2007 PS to support restored but now deprecated jpl.JRef for Rick Moynihan */
+JNIEXPORT void JNICALL 
+ Java_jpl_fli_Prolog_put_1jref(
+	JNIEnv     *env, 
+	jclass      jProlog, 
+	jobject     jterm, 
+	jobject     jref
+	)
+	{
+	term_t		term;
+	jobject		j;		// temp for JNI_jobject_to_term(+,-)
+	atom_t		a;		//  "
+	int			i;		//  "
+
+	if	(	jpl_ensure_pvm_init(env)
+		&&	jni_ensure_jvm()
+		&&	getLongValue(env,jterm,(long*)&term)				// checks that jterm isn't null
+	)
+	{
+		JNI_jobject_to_term(jref,term);					// assumes term is var; OK if jref == null
+	}
+	}
+
+
+/*
  * Class:	  jpl_fli_Prolog
  * Method:	  put_variable
  * Signature: (Ljpl/fli/term_t;)V

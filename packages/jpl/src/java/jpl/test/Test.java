@@ -1,10 +1,7 @@
 package jpl.test;
 
-import jpl.Compound;
-import jpl.Integer;
 import jpl.Query;
 import jpl.Term;
-import jpl.Variable;
 
 // This class contains members which support those tests which are performed from Prolog.
 // See also TestJUnit

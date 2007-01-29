@@ -26,7 +26,6 @@
 //*****************************************************************************/
 package jpl.fli;
 
-import jpl.JPLException;
 
 //----------------------------------------------------------------------/
 // Prolog
@@ -182,7 +181,7 @@ public final class Prolog {
 	public static native void put_float(term_t t, double f);
 	// public static native void put_functor(term_t t, functor_t functor);
 	public static native void put_term(term_t t1, term_t t2);
-	// public static native void put_jref(term_t t, Object ref);
+	public static native void put_jref(term_t t, Object ref);
 	// public static native void put_jboolean(term_t t, boolean b);
 	// public static native void put_jvoid(term_t t);
 
