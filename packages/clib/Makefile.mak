@@ -14,10 +14,6 @@ PKGDLL=socket
 
 SOCKOBJ=	socket.obj nonblockio.obj error.obj
 CGIOBJ=		error.obj form.obj cgi.obj
-CRYPTOBJ=	error.obj crypt.obj \
-		crypt_blowfish\crypt_blowfish.obj \
-		crypt_blowfish\crypt_gensalt.obj \
-		crypt_blowfish\wrapper.obj
 MEMOBJ=		error.obj memfile.obj
 MIMEOBJ=	error.obj mime.obj
 MIMELIBS=	rfc2045.lib rfc822.lib
@@ -27,7 +23,7 @@ RANDOMOBJ=	random.obj
 TIMELIBS=	winmm.lib
 
 all:		socket.dll cgi.dll memfile.dll mime.dll time.dll readutil.dll \
-		random.dll crypt.dll
+		random.dll
 
 readutil.dll:	$(READOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(READOBJ) $(PLLIB) $(LIBS)
@@ -35,8 +31,6 @@ socket.dll:	$(SOCKOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(SOCKOBJ) $(PLLIB) $(LIBS)
 cgi.dll:	$(CGIOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(CGIOBJ) $(PLLIB) $(LIBS)
-crypt.dll:	$(CRYPTOBJ)
-		$(LD) /dll /out:$@ $(LDFLAGS) $(CRYPTOBJ) $(PLLIB) $(LIBS)
 memfile.dll:	$(MEMOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(MEMOBJ) $(PLLIB) $(LIBS)
 mime.dll:	$(MIMEOBJ)
@@ -73,7 +67,6 @@ torture-socket::
 idll::
 		copy socket.dll "$(BINDIR)"
 		copy cgi.dll "$(BINDIR)"
-		copy crypt.dll "$(BINDIR)"
 		copy memfile.dll "$(BINDIR)"
 		copy mime.dll "$(BINDIR)"
 		copy time.dll "$(BINDIR)"
@@ -93,7 +86,6 @@ ilib::
 		copy prolog_server.pl "$(PLBASE)\library"
 		copy streampool.pl "$(PLBASE)\library"
 		copy cgi.pl "$(PLBASE)\library"
-		copy crypt.pl "$(PLBASE)\library"
 		copy memfile.pl "$(PLBASE)\library"
 		copy mime.pl "$(PLBASE)\library"
 		copy random.pl "$(PLBASE)\library"
@@ -104,7 +96,6 @@ uninstall::
 		del "$(BINDIR)\socket.dll"
 		del "$(BINDIR)\streampool.dll"
 		del "$(BINDIR)\cgi.dll"
-		del "$(BINDIR)\crypt.dll"
 		del "$(BINDIR)\memfile.dll"
 		del "$(BINDIR)\mime.dll"
 		del "$(BINDIR)\random.dll"
@@ -112,7 +103,6 @@ uninstall::
 		del "$(BINDIR)\readutil.dll"
 		del "$(PLBASE)\library\socket.pl"
 		del "$(PLBASE)\library\cgi.pl"
-		del "$(PLBASE)\library\crypt.pl"
 		del "$(PLBASE)\library\memfile.pl"
 		del "$(PLBASE)\library\mime.pl"
 		del "$(PLBASE)\library\random.pl"

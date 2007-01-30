@@ -37,7 +37,6 @@
 #include <string.h>
 #include <SWI-Prolog.h>
 #include "clib.h"
-#include "crypt_blowfish/ow-crypt.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Simple interface to the Unix   password  encryption routine. Implemented
