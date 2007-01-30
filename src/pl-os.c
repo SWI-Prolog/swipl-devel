@@ -1735,10 +1735,14 @@ is slow and appears not to cooperate with profile/3.  getwd() is supposed
 to be implemented directly.  What about other Unixes?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(HAVE_GETWD) && (defined(__sun__) || !defined(HAVE_GETCWD))
+#if defined(HAVE_GETWD) && (defined(__sun__) || defined(__sun))
+#undef HAVE_GETCWD
+#endif
+
+#if defined(HAVE_GETWD) && !defined(HAVE_GETCWD)
     rval = getwd(buf);
 #else
-    rval = getcwd(buf, MAXPATHLEN);
+    rval = getcwd(buf, sizeof(buf));
 #endif
     if ( !rval )
     { term_t tmp = PL_new_term_ref();

@@ -126,14 +126,6 @@ extern int	getpagesize(void);
 #define ACCESS_READ	2
 #define ACCESS_WRITE	4
 
-		 /*******************************
-		 *               TYPES		*
-		 *******************************/
-
-#if 0 && defined(__sun__) && defined(__svr4__)
-extern intptr_t random(void);
-extern int srandom(unsigned seed);
-#endif
 
 		/********************************
 		*        TIME CONVERSION        *

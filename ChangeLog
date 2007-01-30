@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Some Solaris SUN-CC issues.  Richard O'Keefe.
+
   * ADDED: library(base64): Base64 encoding and decoding.
 
   * ADDED: max_threads flag.  Paulo Moura.

@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -27,7 +27,7 @@ Solaris has asctime_r() with 3 arguments. Using _POSIX_PTHREAD_SEMANTICS
 is supposed to give the POSIX standard one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef __sun__
+#if defined(__sun__) || defined(__sun)
 #define _POSIX_PTHREAD_SEMANTICS 1
 #endif
 
