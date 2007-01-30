@@ -181,6 +181,12 @@ else
   "WARNING: no getrlimit(); dropping rlimit.pl from targets"
 fi
 
+if test "$ac_cv_func_crypt" = "yes"; then
+  TARGETS="$TARGETS crypt.$SO"
+else
+  "WARNING: no crypt(); dropping crypt.pl from targets"
+fi
+
 PLTARGETS=`echo $TARGETS | sed -e "s/\.$SO/.pl/g" -e "s/files.pl/filesex.pl/"`
 if echo "$PLTARGETS" | grep socket.pl 2>&1 >/dev/null; then
   PLTARGETS="$PLTARGETS streampool.pl"
