@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -41,9 +41,12 @@ numbers.  This should be changed to return arbitrary Prolog  terms  some
 day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#include <math.h>			/* avoid abs() problem with MSVC++ */
-#include <limits.h>
 #include "pl-incl.h"
+#undef abs			/* avoid abs() problem with MSVC++ */
+#include <math.h>
+#undef abs
+#define abs(a) ((a) < 0 ? -(a) : (a))
+#include <limits.h>
 #ifdef HAVE_FLOAT_H
 #include <float.h>
 #ifdef __WINDOWS__
@@ -1975,9 +1978,6 @@ ar_u_minus(Number n1, Number r)
   succeed;
 }
 
-
-#undef abs
-#define abs(a) ((a) < 0 ? -(a) : (a))
 
 static int
 ar_abs(Number n1, Number r)
