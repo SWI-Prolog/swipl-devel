@@ -2143,7 +2143,7 @@ ar_floor(Number n1, Number r)
 	r->type = V_INTEGER;
       } else
       { 
-#ifdef O_GMP:
+#ifdef O_GMP
 	r->type = V_MPZ;
 	mpz_init_set_d(r->value.mpz, n1->value.f);
 	if ( n1->value.f < 0 && 
@@ -2202,7 +2202,7 @@ ar_ceil(Number n1, Number r)
 	 r->type = V_INTEGER;
        } else
        {
-#ifdef O_GMP:
+#ifdef O_GMP
          r->type = V_MPZ;
 	 mpz_init_set_d(r->value.mpz, n1->value.f);
 	 if ( mpz_get_d(r->value.mpz) < n1->value.f )
