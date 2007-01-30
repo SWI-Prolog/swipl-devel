@@ -166,9 +166,17 @@ defFeature(const char *name, int flags, ...)
       break;
     }
     case FT_ATOM:
-    { const char *text = va_arg(args, const char *);
+    { PL_chars_t text;
 
-      f->value.a = PL_new_atom(text);	/* registered: ok */
+      text.text.t    = va_arg(args, char *);
+      text.encoding  = ENC_UTF8;
+      text.storage   = PL_CHARS_HEAP;
+      text.length    = strlen(text.text.t);
+      text.canonical = FALSE;
+
+      f->value.a = textToAtom(&text);	/* registered: ok */
+      PL_free_text(&text);
+
       break;
     }
     case FT_TERM:
