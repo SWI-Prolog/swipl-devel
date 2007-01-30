@@ -5,6 +5,7 @@
 # E-mail: jan@swi.psy.uva.nl
 ################################################################
 
+PLHOME=..\..
 !include ..\rules.mk
 
 LIBOBJ=		html.obj access.obj build.obj util.obj
@@ -13,7 +14,7 @@ PLRC=..\..\bin\plrc.exe
 all:		rc.lib $(PLRC)
 
 $(PLRC):	rc.lib rc.obj
-		$(LD) /subsystem:console /out:$@ rc.obj rc.lib $(LIBS)
+		$(LD) /subsystem:console /out:$@ rc.obj rc.lib $(UXLIB) $(LIBS)
 
 rc.lib:		$(LIBOBJ)
 		if exist $@ del $@

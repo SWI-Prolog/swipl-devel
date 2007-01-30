@@ -169,7 +169,7 @@ foreign_t
 pl_rc_open_archive(term_t file, term_t handle)
 { char *name;
 
-  if ( PL_get_chars_ex(file, &name, CVT_ALL) )
+  if ( PL_get_file_name(file, &name, 0) )
   { RcArchive a = rc_open_archive(name, RC_RDWR|RC_CREATE);
 
     if ( a )

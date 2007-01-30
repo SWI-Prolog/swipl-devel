@@ -461,14 +461,17 @@ attach_archive(RcArchive rca)
 #else /*HAVE_MMAP*/
 #ifdef __WINDOWS__
   DWORD fsize;
+  wchar_t buf[PATH_MAX];
 
-  rca->hfile = CreateFile(rca->path,
-			  GENERIC_READ,
-			  FILE_SHARE_READ,
-			  NULL,
-			  OPEN_EXISTING,
-			  FILE_ATTRIBUTE_NORMAL,
-			  NULL);
+  if ( !_xos_os_filenameW(rca->path, buf, PATH_MAX) )
+    goto errio;
+  rca->hfile = CreateFileW(buf,
+			   GENERIC_READ,
+			   FILE_SHARE_READ,
+			   NULL,
+			   OPEN_EXISTING,
+			   FILE_ATTRIBUTE_NORMAL,
+			   NULL);
   if ( !rca->hfile )
     goto errio;
 
