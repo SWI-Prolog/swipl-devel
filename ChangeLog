@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Deal with unicode archive names in Windows.  Required to start
+    saved-states from non-ascii filenames.   Anjo Anjewierden.
+
   * PORT: Some Solaris SUN-CC issues.  Richard O'Keefe.
 
   * ADDED: library(base64): Base64 encoding and decoding.
