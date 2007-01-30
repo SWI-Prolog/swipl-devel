@@ -27,7 +27,6 @@ CIFLAGS=-I. -Imaildrop/rfc2045 -Imaildrop/rfc822
 CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
 LIBS=@LIBS@
 NETLIBS=@NETLIBS@
-CRYPTLIBS=@CRYPTLIBS@
 MIMELIBS=maildrop/rfc2045/librfc2045.a maildrop/rfc822/librfc822.a 
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
@@ -51,7 +50,11 @@ TARGETS=	@TARGETS@ readutil.@SO@
 UNXOBJ=		error.o process.o
 SOCKOBJ=	error.o socket.o nonblockio.o
 CGIOBJ=		error.o form.o cgi.o
-CRYPTOBJ=	error.o crypt.o
+CRYPTOBJ=	error.o crypt.o \
+		crypt_blowfish/crypt_blowfish.o \
+		crypt_blowfish/x86.S \
+		crypt_blowfish/crypt_gensalt.o \
+		crypt_blowfish/wrapper.o
 MEMOBJ=		error.o memfile.o
 MIMEOBJ=	error.o mime.o
 TIMEOBJ=	error.o time.o
@@ -71,7 +74,7 @@ socket.@SO@:	$(SOCKOBJ)
 cgi.@SO@:	$(CGIOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(CGIOBJ)
 crypt.@SO@:	$(CRYPTOBJ)
-		$(LD) $(LDFLAGS) -o $@ $(CRYPTOBJ) $(CRYPTLIBS)
+		$(LD) $(LDFLAGS) -o $@ $(CRYPTOBJ)
 memfile.@SO@:	$(MEMOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(MEMOBJ) $(LIBS)
 mime.@SO@:	$(MIMEOBJ) $(MIMELIBS)
