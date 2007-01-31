@@ -15379,24 +15379,8 @@ SO_PATH="-Wl,-rpath=$PLBASE/lib/$ARCH"
 DLLIBVAR=LD_LIBRARY_PATH
 
 case "$ARCH" in
-  *solaris* | *sunos5*)
-
-cat >>confdefs.h <<\_ACEOF
-#define SO_LD "/usr/ccs/bin/ld"
-_ACEOF
-
+  *solaris* | *sunos*)
 	SO_LDFLAGS="-G"
-	if test "$GCC" != "yes"; then
-	    SO_pic="-Kpic"
-	    SO_PIC="-KPIC"
-	fi
-	;;
-  *sunos*)
-	cat >>confdefs.h <<\_ACEOF
-#define SO_LD "ld"
-_ACEOF
-
-	SO_LDFLAGS="-assert nodefinitions"
 	if test "$GCC" != "yes"; then
 	    SO_pic="-Kpic"
 	    SO_PIC="-KPIC"

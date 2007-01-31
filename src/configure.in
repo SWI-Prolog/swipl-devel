@@ -1371,18 +1371,8 @@ SO_PATH="-Wl,-rpath=$PLBASE/lib/$ARCH"
 DLLIBVAR=LD_LIBRARY_PATH
 
 case "$ARCH" in
-  *solaris* | *sunos5*)
-	AC_DEFINE(SO_LD, "/usr/ccs/bin/ld",
-		  [Program to use for linking shared objects])
+  *solaris* | *sunos*)
 	SO_LDFLAGS="-G"
-	if test "$GCC" != "yes"; then
-	    SO_pic="-Kpic"
-	    SO_PIC="-KPIC"
-	fi
-	;;
-  *sunos*)
-	AC_DEFINE(SO_LD, "ld")
-	SO_LDFLAGS="-assert nodefinitions"
 	if test "$GCC" != "yes"; then
 	    SO_pic="-Kpic"
 	    SO_PIC="-KPIC"

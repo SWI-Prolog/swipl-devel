@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * DOCS: Updated README, notable installation instructions.
+
+  * PORT: Removed some old sunos issues in configure.  Richard O'Keefe.
+
   * FIXED: Deal with unicode archive names in Windows.  Required to start
     saved-states from non-ascii filenames.   Anjo Anjewierden.
 

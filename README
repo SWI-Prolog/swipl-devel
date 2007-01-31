@@ -1,6 +1,6 @@
 		    SWI-Prolog Distribution Directory
 
-** Last update: Feb  1 2002 (Version 5.0.0)
+** Last update: Jan 31, 2007 (Version 5.6.27)
 
 AUTHOR
 ======
@@ -54,8 +54,23 @@ The SWI-Prolog source tree consists of the following directories:
 BUILDING SWI-Prolog
 ===================
 
-Unix
-----
+Unix using build.templ
+----------------------
+
+The script build.templ automates the   'Unix  step-by-step' instructions
+below. Once you get this right, the   same script will generally suffice
+to compile future versions without hassle.
+
+	* Get and install the required libraries (see Unix step-by-step)
+
+	* Copy build.templ to build and edit according to the comments,
+	instructions in 'Unix  step-by-step' and INSTALL.notes.
+
+	* Run ./build to build and install the system
+
+
+Unix step-by-step
+-----------------
 
 SWI-Prolog configuration under  Unix  is   driven  by  the  GNU-autoconf
 package. Please check INSTALL for the   generic installation options and
@@ -64,6 +79,13 @@ web-page for discussing portability issues is at
 
 	http://gollem.science.uva.nl/twiki/pl/bin/view/Porting/WebHome
 
+SWI-Prolog depends on these libraries:
+
+	* libgmp (http://www.swox.com/gmp/)
+	Provides large (unbounded) integers and rational numbers.  Some
+	of this is used by the constraint libraries.  SWI-Prolog can be
+	built without, but it is strongly recommended to get libgmp.
+
 SWI-Prolog should compile using any Unix-type   system with 32 or larger
 (64) word-length and an ANSI-compliant C-compiler.
 
@@ -71,11 +93,9 @@ If SWI-Prolog crashes during the installation,  the most likely cause is
 that the detection of mmap()  for   stack-memory  management or handling
 exception-based stack guarding is not configured   properly.  If you are
 knowledgeable in these issues, check src/test/mmap.c and src/pl-setup.c.
-Otherwise, run configure using the options below,   first  to get rid of
-exception-handling and second to  fall  back   to  malloc()  based stack
-management.
+Otherwise, run configure using the option below to fall back to malloc()
+based stack management.
 
-	./configure --disable-segv-handling
 	./configure --disable-mapped-stacks
 
 Run `make clean && make' to recompile after reconfiguration.
@@ -110,7 +130,7 @@ MS-Windows.
 
 Otherwise, get yourself the following tools and resources
 
-	* Windows-NT or Windows-2000 (Makefiles require CMD.EXE)
+	* Windows-NT/2000/XP/Vista
 	* MSVC 5.0 or later
 	* MIME, JPEG and XPM libraries. You find precompiled versions in
 
