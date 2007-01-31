@@ -31,9 +31,12 @@
 
 static mpz_t MPZ_MIN_TAGGED;		/* Prolog tagged integers */
 static mpz_t MPZ_MAX_TAGGED;
-static mpz_t MPZ_MIN_INT;		/* Prolog int64_t integers */
-static mpz_t MPZ_MAX_INT;
-
+static mpz_t MPZ_MIN_PLINT;		/* Prolog int64_t integers */
+static mpz_t MPZ_MAX_PLINT;
+#if SIZEOF_LONG	< SIZEOF_VOIDP
+static mpz_t MPZ_MIN_LONG;		/* Prolog int64_t integers */
+static mpz_t MPZ_MAX_LONG;
+#endif
 
 #if 0
 		 /*******************************
@@ -374,8 +377,12 @@ void
 initGMP()
 { mpz_init_set_si64(MPZ_MIN_TAGGED, PLMINTAGGEDINT);
   mpz_init_set_si64(MPZ_MAX_TAGGED, PLMAXTAGGEDINT);
-  mpz_init_set_si64(MPZ_MIN_INT, PLMININT);
-  mpz_init_set_si64(MPZ_MAX_INT, PLMAXINT);
+  mpz_init_set_si64(MPZ_MIN_PLINT, PLMININT);
+  mpz_init_set_si64(MPZ_MAX_PLINT, PLMAXINT);
+#if SIZEOF_LONG < SIZEOF_VOIDP
+  mpz_init_set_si64(MPZ_MIN_LONG, LONG_MAX);
+  mpz_init_set_si64(MPZ_MAX_LONG, LONG_MAX);
+#endif
 }
 
 		 /*******************************
@@ -384,11 +391,17 @@ initGMP()
 
 int
 mpz_to_int64(mpz_t mpz, int64_t *i)
-{ if ( mpz_cmp(mpz, MPZ_MIN_INT) >= 0 &&
-       mpz_cmp(mpz, MPZ_MAX_INT) <= 0 )
+{ if ( mpz_cmp(mpz, MPZ_MIN_PLINT) >= 0 &&
+       mpz_cmp(mpz, MPZ_MAX_PLINT) <= 0 )
   { int64_t v;
 
     mpz_export(&v, NULL, ORDER, sizeof(v), 0, 0, mpz);
+    DEBUG(2,
+	  { char buf[256];
+	    Sdprintf("Convert %s --> %I64d\n",
+		     mpz_get_str(buf, 10, mpz), v);
+	  });
+
     if ( mpz_sgn(mpz) < 0 )
       v = -v;
 
@@ -411,15 +424,24 @@ static word
 put_mpz(mpz_t mpz)
 { int64_t v;
 
+#if SIZEOF_LONG < SIZEOF_VOIDP
+  if ( mpz_cmp(mpz, MPZ_MIN_LONG) >= 0 &&
+       mpz_cmp(mpz, MPZ_MAX_LONG) <= 0 )
+#else
   if ( mpz_cmp(mpz, MPZ_MIN_TAGGED) >= 0 &&
        mpz_cmp(mpz, MPZ_MAX_TAGGED) <= 0 )
-  { intptr_t v = mpz_get_si(mpz);
+#endif
+  { long v = mpz_get_si(mpz);
 
     return consInt(v);
   } else if ( mpz_to_int64(mpz, &v) )
   { GET_LD
     
+#if SIZEOF_LONG < SIZEOF_VOIDP
+    return makeNum(v);
+#else
     return globalLong(v PASS_LD);
+#endif
   } else
   { return globalMPZ(mpz);
   }
