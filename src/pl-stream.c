@@ -493,6 +493,11 @@ static inline void
 update_linepos(IOSTREAM *s, int c)
 { IOPOS *p = s->position;
 
+  if ( c > '\r' )			/* speedup the 99% case a bit */
+  { p->linepos++;
+    return;
+  }
+
   switch(c)
   { case '\n':
       p->lineno++;
