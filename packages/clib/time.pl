@@ -77,14 +77,21 @@
 
 %%	call_with_time_limit(+Time, :Goal) is det.
 %	
-%	Call :Goal, while watching out for a (real-time) limit.  If this
-%	limit is exceeded, the exception time_limit_exceeded is raised.
+%	Call Goal, while watching out for   a (wall-time) limit. If this
+%	limit  is  exceeded,  the   exception  =time_limit_exceeded=  is
+%	raised. Goal is called with once/1.
 %	
-%	Note: Goal is called with once/1.
+%	@tbd	Theoretically, alarm may fire before entering
+%		call_cleanup/2, leaking an alarm handle. This is a
+%		common schema for which I do not have a good solution.
+%	@throws =time_limit_exceeded=
 
 call_with_time_limit(Time, Goal) :-
+	Time > 0, !,
 	alarm(Time, throw(time_limit_exceeded), Id),
 	call_cleanup(once(Goal), time:remove_alarm(Id)).
+call_with_time_limit(_Time, _Goal) :-
+	throw(time_limit_exceeded).
 		     
 current_alarm(Time, Goal, Id, Status) :-
 	current_alarms(Time, Goal, Id, Status, List),
