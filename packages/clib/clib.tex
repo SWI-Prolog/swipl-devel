@@ -714,11 +714,13 @@ on the next pass through a call- or redo-port of the Prolog engine,
 or a call to the PL_handle_signals() routine from SWI-Prolog.  \arg{Id}
 is unified with a reference to the timer.
 
-The resolution of the alarm depends on the underlying implementation.
-On Unix systems it is based on setitimer(), on Windows on timeSetEvent()
-using a resolution specified at 50 milliseconds.  Long-running foreign
-predicates that do not call PL_handle_signals() may further delay the
-alarm.
+The resolution of the alarm depends on the underlying implementation. On
+Unix systems it is based on setitimer(), on Windows on timeSetEvent()
+using a resolution specified at 50 milliseconds.\bug{The maximum time
+for timeSetEvent() used by the Windows application is 1000 seconds.
+Calling with a higher time value raises a \const{resource_error}
+exception.} Long-running foreign predicates that do not call
+PL_handle_signals() may further delay the alarm.
 
 \arg{Options} is a list of \term{\arg{Name}}{Value} terms.  Defined 
 options are:
@@ -726,8 +728,8 @@ options are:
 \begin{description}
     \termitem{remove}{Bool}
 If \const{true} (default \const{false}), the timer is removed
-automatically.  Otherwise it must be delated explicitly using
-\index{remove_alarm/1}\predref{remove_alarm}{1}.
+automatically after fireing. Otherwise it must be destroyed explicitly
+using \index{remove_alarm/1}\predref{remove_alarm}{1}.
 \end{description}
 
     \predicate{alarm}{3}{+Time, :Callable, -Id}
