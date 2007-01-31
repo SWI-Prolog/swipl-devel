@@ -161,15 +161,15 @@ addMPZToBuffer(Buffer b, mpz_t mpz)
 
   growBuffer(b, size+4);
   if ( mpz_sgn(mpz) < 0 )
-    hdrsize = -size;
+    hdrsize = -(long)size;
   else
-    hdrsize = size;
+    hdrsize = (long)size;
   DEBUG(1, Sdprintf("addMPZToBuffer(): Added %d bytes\n", size));
 
-  *b->top++ = (hdrsize>>24)&0xff;
-  *b->top++ = (hdrsize>>16)&0xff;
-  *b->top++ = (hdrsize>> 8)&0xff;
-  *b->top++ = (hdrsize    )&0xff;
+  *b->top++ = (char)((hdrsize>>24)&0xff);
+  *b->top++ = (char)((hdrsize>>16)&0xff);
+  *b->top++ = (char)((hdrsize>> 8)&0xff);
+  *b->top++ = (char)((hdrsize    )&0xff);
 
   mpz_export(b->top, &count, 1, 1, 1, 0, mpz);
   assert(count == size);
