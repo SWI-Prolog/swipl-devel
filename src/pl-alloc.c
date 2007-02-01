@@ -686,9 +686,8 @@ Actually, for normal operation, consPtr() is a macro from pl-data.h
 #undef consPtr
 
 static inline word
-__consPtr(void *p, int ts)
-{
-  GET_LD
+__consPtr(void *p, word ts)
+{ GET_LD
   uintptr_t v = (uintptr_t) p;
 
   v -= base_addresses[ts&STG_MASK];
@@ -697,7 +696,7 @@ __consPtr(void *p, int ts)
 }
 
 word
-consPtr(void *p, int ts)
+consPtr(void *p, word ts)
 { return __consPtr(p, ts);
 }
 

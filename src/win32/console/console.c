@@ -3624,6 +3624,9 @@ initHeapDebug(void)
   }
 }
 
+#endif /*initHeapDebug*/
+
+#ifdef _DEBUG
 
 static void
 Dprintf(const TCHAR *fmt, ...)
@@ -3653,4 +3656,4 @@ Dprint_lines(RlcData b, int from, int to)
   }
 }
 
-#endif /*initHeapDebug*/
+#endif

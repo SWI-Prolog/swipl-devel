@@ -306,7 +306,7 @@ and while loading .wic files.  It comes at no price.
 
 #define F_ARITY_BITS	5		/* upto 32 inlined arity */
 #define F_ARITY_MASK	((1<<F_ARITY_BITS)-1)
-#define MK_FUNCTOR(n, a) (((((n)<<F_ARITY_BITS)|(a))<<LMASK_BITS) | \
+#define MK_FUNCTOR(n, a) (functor_t)(((((n)<<F_ARITY_BITS)|(a))<<LMASK_BITS) | \
 			  TAG_ATOM|STG_GLOBAL)
 #define functorHashValue(f, n)	((f)>>(LMASK_BITS) & ((n)-1))
 #define indexFunctor(w)	((w)>>(LMASK_BITS+F_ARITY_BITS))
