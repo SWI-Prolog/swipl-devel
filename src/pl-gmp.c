@@ -380,7 +380,7 @@ initGMP()
   mpz_init_set_si64(MPZ_MIN_PLINT, PLMININT);
   mpz_init_set_si64(MPZ_MAX_PLINT, PLMAXINT);
 #if SIZEOF_LONG < SIZEOF_VOIDP
-  mpz_init_set_si64(MPZ_MIN_LONG, LONG_MAX);
+  mpz_init_set_si64(MPZ_MIN_LONG, LONG_MIN);
   mpz_init_set_si64(MPZ_MAX_LONG, LONG_MAX);
 #endif
 }
@@ -423,6 +423,12 @@ without any knowledge of the represented data.
 static word
 put_mpz(mpz_t mpz)
 { int64_t v;
+
+    DEBUG(2,
+	  { char buf[256];
+	    Sdprintf("put_mpz(%s)\n",
+		     mpz_get_str(buf, 10, mpz));
+	  });
 
 #if SIZEOF_LONG < SIZEOF_VOIDP
   if ( mpz_cmp(mpz, MPZ_MIN_LONG) >= 0 &&
