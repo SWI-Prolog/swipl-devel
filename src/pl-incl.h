@@ -2185,7 +2185,7 @@ decrease).
 #endif
 
 #define NULL_ATOM ((atom_t)0)
-#define MK_ATOM(n)    		((n)<<7|TAG_ATOM|STG_STATIC)
+#define MK_ATOM(n)    		((atom_t)((n)<<7|TAG_ATOM|STG_STATIC))
 #include "pl-atom.ih"
 #include "pl-funct.ih"
 
