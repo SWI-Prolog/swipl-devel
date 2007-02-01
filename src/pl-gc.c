@@ -1797,7 +1797,7 @@ scan_global(int marked)
   intptr_t cells = 0;
 
   for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
-  { int offset;
+  { size_t offset;
 
     cells++;
 
@@ -1823,8 +1823,8 @@ scan_global(int marked)
     { if ( offset_cell(next-1) != offset )
       { errors++;
 	Sdprintf("ERROR: Illegal indirect cell on global stack at %p-%p\n"
-		 "       tag=%d, offset=%d\n",
-		 current, next, tag(*current), offset);
+		 "       tag=%d, offset=%ld\n",
+		 current, next, tag(*current), (long)offset);
 	trap_gdb();
       }
     }
