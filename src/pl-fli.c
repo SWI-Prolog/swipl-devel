@@ -74,9 +74,6 @@ Prolog int) is used by the garbage collector to update the stack frames.
 #endif
 #define valHandleP(h)		valTermRef(h)
 
-#undef ulong
-#define ulong uintptr_t
-
 static inline word
 valHandle__LD(term_t r ARG_LD)
 { Word p = valTermRef(r);
@@ -773,7 +770,7 @@ it is divided by 4 and the low 2   bits  are placed at the top (they are
 normally 0). longToPointer() does the inverse operation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline ulong
+static inline uintptr_t
 pointerToLong(void *ptr)
 { uintptr_t p   = (uintptr_t) ptr;
   uintptr_t low = p & 0x3L;
@@ -3052,8 +3049,8 @@ _PL_retry(intptr_t v)
 
 foreign_t
 _PL_retry_address(void *v)
-{ if ( (ulong)v & FRG_REDO_MASK )
-    PL_fatal_error("PL_retry_address(0x%lx): bad alignment", (ulong)v);
+{ if ( (uintptr_t)v & FRG_REDO_MASK )
+    PL_fatal_error("PL_retry_address(%p): bad alignment", v);
 
   ForeignRedoPtr(v);
 }

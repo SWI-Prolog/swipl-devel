@@ -25,10 +25,6 @@
 #ifndef PL_GLOBAL_H_INCLUDED
 #define PL_GLOBAL_H_INCLUDED
 
-#ifndef ulong
-#define ulong uintptr_t
-#endif
-
 #ifndef GLOBAL			/* global variables */
 #define GLOBAL extern
 #endif
@@ -70,7 +66,7 @@ typedef struct
 typedef struct
 { char *top_of_heap;			/* highest allocated heap address */
   char *base_of_heap;			/* lowest allocated heap address */
-  ulong rounded_heap_base;		/* heap-base rounded downwards */
+  uintptr_t rounded_heap_base;		/* heap-base rounded downwards */
   pl_defaults_t	    defaults;		/* system default settings */
   pl_options_t	    options;		/* command-line options */
   State		stateList;		/* list of loaded states */
@@ -287,7 +283,7 @@ typedef struct
 #define LD_MAGIC	0x3cfd82b4	/* Valid local-data structure */
 
 typedef struct PL_local_data
-{ ulong		magic;			/* LD_MAGIC */
+{ uintptr_t	magic;			/* LD_MAGIC */
   LocalFrame    environment;		/* Current local frame */
   Choice	choicepoints;		/* Choice-point chain */
   FliFrame      foreign_environment;	/* Current foreign context */
@@ -296,11 +292,11 @@ typedef struct PL_local_data
   Word		frozen_bar;		/* Frozen part of the global stack */
 #endif
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
-  ulong		bases[STG_MASK+1];	/* area base addresses */
+  uintptr_t	bases[STG_MASK+1];	/* area base addresses */
 #ifdef O_PLMT
   int		cancel_counter;		/* check cancellation */
 #endif
-  ulong		pending_signals;	/* PL_raise() pending signals */
+  uintptr_t	pending_signals;	/* PL_raise() pending signals */
   record_t	pending_exception;	/* Pending exception from signal */
   int		current_signal;		/* Currently handled signal */
   int		critical;		/* heap is being modified */
@@ -356,9 +352,9 @@ typedef struct PL_local_data
 
   struct
   { int64_t	inferences;		/* inferences in this thread */
-    ulong	last_cputime;		/* milliseconds last CPU time */
-    ulong	last_systime;		/* milliseconds last SYSTEM time */
-    ulong	last_walltime;		/* milliseconds last Wall time */
+    uintptr_t	last_cputime;		/* milliseconds last CPU time */
+    uintptr_t	last_systime;		/* milliseconds last SYSTEM time */
+    uintptr_t	last_walltime;		/* milliseconds last Wall time */
     double	user_cputime;		/* User saved CPU time */
     double	system_cputime;		/* Kernel saved CPU time */
   } statistics;
@@ -370,9 +366,9 @@ typedef struct PL_local_data
     int		sum_ok;			/* siblings are counted */
     struct call_node *current;		/* `current' node */
     struct call_node *roots;		/* list of root-nodes */
-    ulong	ticks;			/* profile ticks total */
-    ulong	accounting_ticks;	/* Ticks in profCall() and friends */
-    ulong	nodes;			/* #Recorded nodes */
+    uintptr_t	ticks;			/* profile ticks total */
+    uintptr_t	accounting_ticks;	/* Ticks in profCall() and friends */
+    uintptr_t	nodes;			/* #Recorded nodes */
     double	time;			/* recorded CPU time */
   } profile;
 #endif /* O_PROFILE */
@@ -434,8 +430,8 @@ typedef struct PL_local_data
 
 #ifdef O_LIMIT_DEPTH
   struct
-  { ulong limit;
-    ulong reached;
+  { uintptr_t limit;
+    uintptr_t reached;
   } depth_info;
 #endif
 

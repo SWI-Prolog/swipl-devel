@@ -331,7 +331,7 @@ WallTime(void)
 		 *	       MEMORY		*
 		 *******************************/
 
-ulong
+uintptr_t
 UsedMemory(void)
 {
 #if defined(HAVE_GETRUSAGE) && defined(HAVE_RU_IDRSS)
@@ -350,9 +350,9 @@ UsedMemory(void)
 }
 
 
-ulong
+uintptr_t
 FreeMemory(void)
-{ ulong used = UsedMemory();
+{ uintptr_t used = UsedMemory();
 
 #if defined(HAVE_GETRLIMIT) && defined(RLIMIT_DATA)
   struct rlimit limit;

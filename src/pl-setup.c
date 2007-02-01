@@ -31,8 +31,6 @@
 #include <unistd.h>
 #endif
 
-#undef ulong
-#define ulong uintptr_t
 #undef max
 #define max(a,b) ((a) > (b) ? (a) : (b))
 
@@ -735,7 +733,7 @@ PL_handle_signals()
     return 0;
 
   while(!ld->critical && ld->pending_signals)
-  { ulong mask = 1L;
+  { uintptr_t mask = 1;
     int sig = 1;
 
     for( ; mask ; mask <<= 1, sig++ )
@@ -893,7 +891,7 @@ enforce_limit(intptr_t *size, intptr_t maxarea, const char *name)
 
 int
 initPrologStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
-{ ulong maxarea;
+{ uintptr_t maxarea;
 
   maxarea = MAXTAGGEDPTR+1;		/* MAXTAGGEDPTR = 0x..fff.. */
   if ( maxarea > 1024 MB )		/* 64-bit machines */
@@ -1108,15 +1106,15 @@ get_map_fd()
 
 static void
 mapOrOutOf(Stack s)
-{ ulong incr;
+{ uintptr_t incr;
   intptr_t  newroom;
 
   if ( s->top > s->max )
-    incr = ROUND(((ulong)s->top - (ulong)s->max), size_alignment);
+    incr = ROUND(((uintptr_t)s->top - (uintptr_t)s->max), size_alignment);
   else
     incr = size_alignment;
 
-  newroom = (ulong)s->limit - ((ulong)s->max + incr);
+  newroom = (uintptr_t)s->limit - ((uintptr_t)s->max + incr);
   if ( newroom < 0 )
     outOfStack(s, STACK_OVERFLOW_FATAL);
 
@@ -1311,15 +1309,15 @@ freeStacks(PL_local_data_t *ld)
 
 static void
 mapOrOutOf(Stack s)
-{ ulong incr;
+{ uintptr_t incr;
   intptr_t  newroom;
 
   if ( s->top > s->max )
-    incr = ROUND(((ulong)s->top - (ulong)s->max), size_alignment);
+    incr = ROUND(((uintptr_t)s->top - (uintptr_t)s->max), size_alignment);
   else
     incr = size_alignment;
 
-  newroom = (ulong)s->limit - ((ulong)s->max + incr);
+  newroom = (uintptr_t)s->limit - ((uintptr_t)s->max + incr);
   if ( newroom < 0 )
     outOfStack(s, STACK_OVERFLOW_FATAL);
 
@@ -1330,7 +1328,7 @@ mapOrOutOf(Stack s)
 
   DEBUG(1, Sdprintf("mapped %d bytes from 0x%x to 0x%x\n",
 		    incr, (unsigned) s->max,
-		    (ulong) s->max + size_alignment));
+		    (uintptr_t) s->max + size_alignment));
 
   s->max = addPointer(s->max, incr);
 
@@ -1363,7 +1361,7 @@ unmap(Stack s)
   caddress addr = (caddress) align_size((intptr_t) top + size_alignment);
 
   if ( addr < s->max )
-  { if ( !VirtualFree(addr, (ulong)s->max - (ulong)addr, MEM_DECOMMIT) )
+  { if ( !VirtualFree(addr, (uintptr_t)s->max - (uintptr_t)addr, MEM_DECOMMIT) )
       fatalError("Failed to unmap memory: %d", GetLastError());
     s->max = addr;
   }
@@ -1440,7 +1438,7 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
 
 static void
 freeStack(Stack s)
-{ VirtualFree(s->base, (ulong)s->max-(ulong)s->base, MEM_DECOMMIT);
+{ VirtualFree(s->base, (uintptr_t)s->max-(uintptr_t)s->base, MEM_DECOMMIT);
 }
 
 
@@ -1518,7 +1516,7 @@ _PL_segv_handler(int sig)
 		    roomStack(global), roomStack(local), roomStack(trail)));
 
   for(i=0; i<N_STACKS; i++)
-  { intptr_t r = (ulong)stacka[i].max - (ulong)stacka[i].top;
+  { intptr_t r = (uintptr_t)stacka[i].max - (uintptr_t)stacka[i].top;
 
     if ( r < size_alignment )
     { DEBUG(1, Sdprintf("Mapped %s stack (free was %d)\n", stacka[i].name, r));
@@ -1540,12 +1538,12 @@ init_stack(Stack s, char *name, caddress base, intptr_t limit, intptr_t minsize)
 { s->name       = name;
   s->base       = s->max = s->top = base;
   s->limit	= addPointer(base, limit);
-  s->min        = (caddress)((ulong)s->base + minsize);
+  s->min        = (caddress)((uintptr_t)s->base + minsize);
   s->gced_size  = 0L;			/* size after last gc */
   gcPolicy(s, GC_FAST_POLICY);
 
   DEBUG(1, Sdprintf("%-8s stack from 0x%08x to 0x%08x\n",
-		    s->name, (ulong)s->base, (ulong)s->limit));
+		    s->name, (uintptr_t)s->base, (uintptr_t)s->limit));
 
   while(s->max < s->min)
     mapOrOutOf(s);

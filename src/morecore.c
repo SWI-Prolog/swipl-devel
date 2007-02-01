@@ -64,7 +64,7 @@ mycore(intptr_t size)			/* similar to sbrk() */
 { void *mem = top;
 
   if ( top + size >= atop )
-  { void *ntop = (void *)roundup((ulong) top + size, pagsize);
+  { void *ntop = (void *)roundup((uintptr_t) top + size, pagsize);
     if ( mmap(atop, ntop - atop,
 	      PROT_READ|PROT_WRITE, STACK_MAP_TYPE, -1, 0L) != atop )
     { fprintf(stderr, "mycore(): %s\n", strerror(errno));
@@ -84,7 +84,7 @@ void
 start_memory(void * address)
 { pagsize    = getpagesize();
 
-  base       = (void *)roundup((ulong) address, pagsize);
+  base       = (void *)roundup((uintptr_t) address, pagsize);
   top	     = base;
   atop	     = base;
   __morecore = mycore;
@@ -93,7 +93,7 @@ start_memory(void * address)
 #ifdef TEST
 
 #ifndef HAVE_STRTOUL
-ulong
+uintptr_t
 strtoul(const char *s, char **eptr, int base)
 { static unsigned char xmap[256];
   static int xmap_initialised = 0;
@@ -135,7 +135,7 @@ strtoul(const char *s, char **eptr, int base)
 main(int argc, char **argv)
 { static int testvals[] = { 1, 1000, 10000, 100000, -1 };
   int *tv = testvals;
-  ulong base = 0x40000000L;
+  uintptr_t base = 0x40000000L;
 
   if ( argc == 2 )
     base = strtoul(argv[1], NULL, 16);

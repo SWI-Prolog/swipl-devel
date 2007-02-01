@@ -2774,7 +2774,7 @@ pl_clause_from_source(term_t file, term_t line, term_t clause)
 static void
 listGenerations(Definition def)
 { GET_LD
-  ulong gen = environment_frame->generation;
+  uintptr_t gen = environment_frame->generation;
   ClauseRef cl;
 
   Sdprintf("%s has %d clauses at generation %ld (%s)\n",
@@ -2787,7 +2787,7 @@ listGenerations(Definition def)
   { Clause clause = cl->clause;
 
     Sdprintf("%8u: %8u-%10u %s\n",
-	     ((ulong)clause - heap_base)>>2,
+	     ((uintptr_t)clause - heap_base)>>2,
 	     clause->generation.created,
 	     clause->generation.erased,
 	     visibleClause(clause, gen) ? "ok" : "erased");
@@ -2812,7 +2812,7 @@ listGenerations(Definition def)
       { Clause clause = cl->clause;
 
 	Sdprintf("%8u: %8u-%10u %s\n",
-		 ((ulong)clause - heap_base)>>2,
+		 ((uintptr_t)clause - heap_base)>>2,
 		 clause->generation.created,
 		 clause->generation.erased,
 		 visibleClause(clause, gen) ? "ok" : "erased");

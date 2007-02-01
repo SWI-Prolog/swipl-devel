@@ -320,7 +320,7 @@ registerAtom(Atom a)
 word
 lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 { int v0, v;
-  ulong oldheap;
+  uintptr_t oldheap;
   Atom a;
 
   if ( !type->registered )		/* avoid deadlock */

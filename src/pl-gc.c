@@ -31,8 +31,6 @@
 #ifndef HAVE_MEMMOVE			/* Note order!!!! */
 #define memmove(dest, src, n) bcopy(src, dest, n)
 #endif
-#undef ulong
-#define ulong uintptr_t
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is based on
@@ -139,7 +137,7 @@ char tmp[256];				/* for calling print_val(), etc. */
 
 #define get_value(p)	(*(p) & VALUE_MASK)
 #define set_value(p, w)	{ *(p) &= GC_MASK; *(p) |= w; }
-#define val_ptr2(w, s)	((Word)((ulong)valPtr2((w), (s)) & ~0x3L))
+#define val_ptr2(w, s)	((Word)((uintptr_t)valPtr2((w), (s)) & ~(uintptr_t)0x3))
 #define val_ptr(w)	val_ptr2((w), storage(w))
 
 #define inShiftedArea(area, shift, ptr) \

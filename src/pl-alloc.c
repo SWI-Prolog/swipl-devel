@@ -526,7 +526,7 @@ allocBigHeap(size_t size)
   if ( !hTop )
   { hBase = (char *)h;
     hTop = (char *)h + size;
-    heap_base = (ulong)h & ~0x007fffffL; /* 8MB */
+    heap_base = (uintptr_t)h & ~(uintptr_t)0x007fffff; /* 8MB */
   } else
   { SetHBase(h);
     SetHTop((char *)h + size);
@@ -582,7 +582,7 @@ allocHeap__LD(size_t n ARG_LD)
     if ( !hTop )
     { hBase = mem;
       hTop = (char *)mem + n;
-      heap_base = (ulong)mem & ~0x007fffffL; /* 8MB */
+      heap_base = (uintptr_t)mem & ~(uintptr_t)0x007fffff; /* 8MB */
     } else
     { SetHBase(mem);
       SetHTop((char *)mem + n);

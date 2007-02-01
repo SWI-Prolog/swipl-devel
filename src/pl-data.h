@@ -132,9 +132,9 @@ be kept consistent.
 #define TAG_TRAILMASK	0x00000001L	/* mask for tag */
 #define TAG_TRAILADDR	0x00000000L	/* Trail-only: address */
 #define TAG_TRAILVAL	0x00000001L	/* Trail-only: value */
-#define tagTrailPtr(p)	((Word)((ulong)(p)|TAG_TRAILVAL))
-#define isTrailVal(p)	((ulong)(p)&TAG_TRAILVAL)
-#define trailValP(p)	((Word)((ulong)(p)&~TAG_TRAILMASK))
+#define tagTrailPtr(p)	((Word)((uintptr_t)(p)|TAG_TRAILVAL))
+#define isTrailVal(p)	((uintptr_t)(p)&TAG_TRAILVAL)
+#define trailValP(p)	((Word)((uintptr_t)(p)&~TAG_TRAILMASK))
 #define trailVal(p)	(*trailValP(p))
 
 #define STG_MASK	(0x3<<3)

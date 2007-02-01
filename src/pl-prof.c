@@ -57,12 +57,12 @@ typedef struct call_node
   struct call_node *parent;
   void *            handle;		/* handle to procedure-id */
   PL_prof_type_t   *type;
-  ulong		    calls;		/* Calls from the parent */
-  ulong		    redos;		/* redos while here */
-  ulong		    exits;		/* exits to the parent */
-  ulong		    recur;		/* recursive calls */
-  ulong		    ticks;		/* time-statistics */
-  ulong		    sibling_ticks;	/* ticks in a siblings */
+  uintptr_t	    calls;		/* Calls from the parent */
+  uintptr_t	    redos;		/* redos while here */
+  uintptr_t	    exits;		/* exits to the parent */
+  uintptr_t	    recur;		/* recursive calls */
+  uintptr_t	    ticks;		/* time-statistics */
+  uintptr_t	    sibling_ticks;	/* ticks in a siblings */
   struct call_node *next;		/* next in siblings chain */
   struct call_node *siblings;		/* my offspring */
 } call_node;
@@ -427,20 +427,20 @@ typedef struct prof_ref
   void * handle;			/* Procedure handle */
   PL_prof_type_t   *type;
   int   cycle;
-  ulong ticks;
-  ulong sibling_ticks;
-  ulong calls;				/* calls to/from this predicate */
-  ulong redos;				/* redos to/from this predicate */
+  uintptr_t ticks;
+  uintptr_t sibling_ticks;
+  uintptr_t calls;			/* calls to/from this predicate */
+  uintptr_t redos;			/* redos to/from this predicate */
 } prof_ref;
 
 
 typedef struct
 { Definition def;
-  ulong ticks;
-  ulong sibling_ticks;
-  ulong calls;
-  ulong redos;
-  ulong recur;
+  uintptr_t ticks;
+  uintptr_t sibling_ticks;
+  uintptr_t calls;
+  uintptr_t redos;
+  uintptr_t recur;
   prof_ref *callers;
   prof_ref *callees;
 } node_sum;
@@ -496,7 +496,7 @@ add_parent_ref(node_sum *sum,
 
 
 static void
-add_recursive_ref(node_sum *sum, call_node *self, ulong count,
+add_recursive_ref(node_sum *sum, call_node *self, uintptr_t count,
 		  int cycle ARG_LD)
 { prof_ref *r;
 
@@ -993,10 +993,10 @@ PL_prof_exit(void *node)
 		 *******************************/
 
 
-static ulong
+static uintptr_t
 collectSiblingsNode(call_node *n)
 { call_node *s;
-  ulong count = 0;
+  uintptr_t count = 0;
 
   for(s=n->siblings; s; s=s->next)
   { count += collectSiblingsNode(s);

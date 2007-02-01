@@ -1751,10 +1751,6 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
 #define CLAUSE_FAILED		goto clause_failed
 #define BODY_FAILED		goto body_failed
 
-#ifndef ulong
-#define ulong uintptr_t
-#endif
-
 #ifdef O_PROFILE
 #define Profile(g) if ( LD->profile.active ) g
 #else
@@ -1923,7 +1919,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 					/* but for now, I think this */
 					/* is always the same */
 #ifdef JMPBUF_ALIGNMENT
-  while ( (ulong)lTop % JMPBUF_ALIGNMENT )
+  while ( (uintptr_t)lTop % JMPBUF_ALIGNMENT )
     lTop = addPointer(lTop, sizeof(word));
 #endif
 
@@ -1939,8 +1935,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   requireStack(local, sizeof(struct queryFrame)+arity*sizeof(word));
 
   SECURE(checkStacks(environment_frame, NULL));
-  assert((ulong)fli_context > (ulong)environment_frame);
-  assert((ulong)lTop >= (ulong)(fli_context+1));
+  assert((uintptr_t)fli_context > (uintptr_t)environment_frame);
+  assert((uintptr_t)lTop >= (uintptr_t)(fli_context+1));
 
   if ( flags == TRUE )			/* compatibility */
     flags = PL_Q_NORMAL;
