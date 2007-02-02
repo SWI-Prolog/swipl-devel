@@ -524,7 +524,8 @@ static void *
 alarm_loop(void * closure)
 { schedule *sched = TheSchedule();
 
-  LOCK();
+  pthread_mutex_lock(&mutex);		/* for condition variable */
+
   for(;;)
   { Event ev = nextEvent(sched);
 
@@ -556,7 +557,6 @@ alarm_loop(void * closure)
 	continue;
     }
   }
-  UNLOCK();
 
   return NULL;
 }
