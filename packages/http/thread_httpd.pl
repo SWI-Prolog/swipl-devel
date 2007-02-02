@@ -285,9 +285,10 @@ http_worker(Options) :-
 
 done_worker :-
 	thread_self(Self),
+	current_thread(Self, Status),
 	retract(queue_worker(_Queue, Self)),
 	print_message(informational,
-		      httpd_stopped_worker(Self)).
+		      httpd_stopped_worker(Self, Status)).
 
 
 %	thread_httpd:message_level(+Exception, -Level)
@@ -364,8 +365,8 @@ option(Opt, _, Def) :-
 :- multifile
 	prolog:message/3.
 
-prolog:message(httpd_stopped_worker(Self)) -->
-	[ 'Stopped worker ~p'-[Self] ].
+prolog:message(httpd_stopped_worker(Self, Status)) -->
+	[ 'Stopped worker ~p: ~p'-[Self, Status] ].
 
 
 		 /*******************************

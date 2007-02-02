@@ -1,3 +1,7 @@
+Feb 2, 2007
+
+  * ADDED: Report status of stopped worker.
+
 Jan 24, 2007
 
   * ADDED: Support for 303 (see other) HTTP replies to the server.
