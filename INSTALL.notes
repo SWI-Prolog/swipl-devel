@@ -2,8 +2,9 @@
 			=====================
 
 			   Jan Wielemaker
-			(jan@swi.psy.uva.nl)
+		      (wielemak@science.uva.nl)
 
+Last updated: Feb 2, 2007
 
 Configuration, compilation and installation is based on the GNU autoconf
 package and consists of two steps:  builting the basic SWI-Prolog system
@@ -50,20 +51,15 @@ package itself. Most packages are installed with the ./configure && make
 && make install sequence.
 
 
-Building for multiple or different settings
-===========================================
+Using the build.templ script
+----------------------------
 
-To build for a second architecture, you  should either clean the sources
-using `make distclean' or make  a  new   directory  next  to  the source
-directory and run configure in  this   directory.  The  latter procedure
-requires GNU-MAKE.  For example:
-
-	% mkdir rs6000
-	% cd rs6000
-	% ../src/configure
-	% make
-	% make test
-	% make install
+The  bash-script  build.templ  contains  the   default  build  procedure
+outlined above and  some  comments   and  skeleton  environment changes.
+Especially for those who  want  to   update  SWI-Prolog  regulary, it is
+recommended to copy this file to 'build' and edit it to suit your needs.
+The file also gives some  hints   dealing  with non-default locations of
+libraryes, non-standard compiler settings, etc.
 
 
 Put the Prolog kernel in a shared object
@@ -90,19 +86,6 @@ disadvantages:
 	+ Easier linking, especially for complicated embedded systems
 
 
-Building a runtime version
-==========================
-
-The runtime version has  no  tracer,   doesn't  handle  interrupts (just
-exits), has no profiler and no readline   included.  To build it using a
-separate directory:
-
-	% mkdir rt
-	% cd rt
-	% ../src/configure --enable-runtime
-	% make
-	% make install
-
 Some things may need attention:
 ===============================
 
@@ -114,25 +97,14 @@ system. It provides editing of previously  entered commands (history) as
 well as completion on Prolog  atoms   and  filenames (for consult, etc.)
 much like the bash and tcsh shells do.
 
-SWI-Prolog has been linked with versions 1.1,   1.2,  2.0 and 4.0 of the
-readline library.
+SWI-Prolog has been linked with versions 1.1,   1.2, 2.0, 4.0 and 5.1 of
+the readline library.
 
 # Memory mapped stacks.  Segmentation faults during the installation.
 
 Configure will see if mmap() may be used to allocate the stacks.  If you
 think this should be possible, but Configure   says `no', please work on
 test/mmap.c
-
-At the end  of  the  compilation,  the   Prolog  files  from  the  boot/
-subdirectory are compiled using ./pl. On  some systems this installation
-aborts with a segmentation fault (signal 11   on  most machines). If you
-are knowledgeable with low-level  memory   management  using mmap(), you
-might want to look as test/mmap.c  and pl-setup.c, where exception-based
-handling of the stacks is defined. Otherwise,  remove all .o files, redo
-the configuration using --disable-segv-handling and   recompile. If that
-still doesn't solve the problem,   use  --disable-mapped-stacks. If that
-doesn't fix the problem  you  found   something  new.  Please  report to
-prolog-bugs@swi.psy.uva.nl.
 
 Using mmapped stacks works on  most   modern  Unix  platforms, including
 Linux, Solaris, OpenBSD, FreeBSD, IRIX, HP/UX and many more.
@@ -142,6 +114,15 @@ Linux, Solaris, OpenBSD, FreeBSD, IRIX, HP/UX and many more.
 If you get assembler warnings compiling pl-wam.c, try #define NO_ASM_NOP
 1 in config.h. Should be  determined   automatically  by test/nop.c, but
 sometimes appears to fail.
+
+# Old include files
+
+Old versions of SWI-Prolog   installed  $prefix/include/SWI-Prolog.h and
+$prefix/include/SWI-Stream.h that are  incompatible   with  the  current
+releases.     New     versions     install       these      files     in
+$prefix/lib/pl-<version>/include. Please remove the old   files to avoid
+the  compiler  picking  the  wrong  include  files  when  compiling  the
+packages.
 
 
 Platform specific notes
