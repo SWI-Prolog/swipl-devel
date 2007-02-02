@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -1355,9 +1355,14 @@ PL_get_float(term_t t, double *f)
 
 int
 PL_get_pointer__LD(term_t t, void **ptr ARG_LD)
-{ int64_t p;
-
+{
+#if SIZEOF_LONG >= SIZEOF_VOIDP
+  long p;
+  if ( PL_get_long(t, &p) )
+#else
+  int64_t p;
   if ( PL_get_int64(t, &p) )
+#endif
   { *ptr = longToPointer((uintptr_t)p);
 
     succeed;
@@ -1960,14 +1965,20 @@ PL_put_list_chars(term_t t, const char *chars)
 
 
 void
-PL_put_integer__LD(term_t t, intptr_t i ARG_LD)
+PL_put_integer__LD(term_t t, long i ARG_LD)
+{ setHandle(t, makeNum(i));
+}
+
+
+void
+PL_put_intptr__LD(term_t t, intptr_t i ARG_LD)
 { setHandle(t, makeNum(i));
 }
 
 
 #undef PL_put_integer
 void
-PL_put_integer(term_t t, intptr_t i)
+PL_put_integer(term_t t, long i)
 { GET_LD
   setHandle(t, makeNum(i));
 }
@@ -1990,7 +2001,7 @@ _PL_put_number__LD(term_t t, Number n ARG_LD)
 void
 PL_put_pointer(term_t t, void *ptr)
 { GET_LD
-  PL_put_integer(t, pointerToLong(ptr));
+  PL_put_intptr(t, pointerToLong(ptr));
 }
 
 

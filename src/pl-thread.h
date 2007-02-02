@@ -422,6 +422,7 @@ extern void		initPrologThreads(void);
 #define PL_put_atom(t, a)	PL_put_atom__LD(t, a PASS_LD)
 #define PL_is_functor(t, f)	PL_is_functor__LD(t, f PASS_LD)
 #define PL_put_integer(t, i) 	PL_put_integer__LD(t, i PASS_LD)
+#define PL_put_intptr(t, i) 	PL_put_intptr__LD(t, i PASS_LD)
 #define PL_strip_module(q, m, t) PL_strip_module__LD(q, m, t PASS_LD)
 #define PL_get_integer(t, i)	PL_get_integer__LD(t, i PASS_LD)
 #define PL_get_long(t, i)	PL_get_long__LD(t, i PASS_LD)

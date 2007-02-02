@@ -69,7 +69,7 @@ PL_put_frame(term_t t, LocalFrame fr)
 { if ( fr )
   { assert(fr >= lBase && fr < lTop);
 
-    PL_put_integer(t, (Word)fr - (Word)lBase);
+    PL_put_intptr(t, (Word)fr - (Word)lBase);
   } else
     PL_put_atom(t, ATOM_none);
 }
@@ -103,7 +103,7 @@ PL_put_choice(term_t t, Choice ch)
 { if ( ch )
   { assert(ch >= (Choice)lBase && ch < (Choice)lTop);
 
-    PL_put_integer(t, (Word)ch - (Word)lBase);
+    PL_put_intptr(t, (Word)ch - (Word)lBase);
   } else
     PL_put_atom(t, ATOM_none);
 }
@@ -785,7 +785,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     if ( true(def, FOREIGN) )
       PL_put_atom(pc, ATOM_foreign);
     else if ( PC && frame->clause )
-      PL_put_integer(pc, PC-frame->clause->clause->codes);
+      PL_put_intptr(pc, PC-frame->clause->clause->codes);
     else
       PL_put_nil(pc);
     
@@ -1672,7 +1672,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
       if ( pc < 0 )
 	trap_gdb();
 
-      PL_put_integer(result, pc);
+      PL_put_intptr(result, pc);
     } else
     { fail;
     }

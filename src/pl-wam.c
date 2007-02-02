@@ -651,7 +651,7 @@ retry:
   { FunctorDef fd = def->functor;
     term_t ex = PL_new_term_ref();
 
-    PL_put_integer(ex, result);
+    PL_put_intptr(ex, result);
 
     PL_error(stringAtom(fd->name), fd->arity, NULL, ERR_DOMAIN,
 	     ATOM_foreign_return_value, ex);

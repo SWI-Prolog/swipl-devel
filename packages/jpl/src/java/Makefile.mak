@@ -15,6 +15,7 @@ CLS=	jpl\Atom.java \
 	jpl\Compound.java \
 	jpl\Float.java \
 	jpl\Integer.java \
+	jpl\JRef.java \
 	jpl\JPLException.java \
 	jpl\JPL.java \
 	jpl\PrologException.java \
