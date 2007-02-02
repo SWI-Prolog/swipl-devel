@@ -282,6 +282,8 @@ Sunlock(IOSTREAM *s)
     { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
 	rval = S__removebuf(s);
     }
+  } else
+  { assert(0);
   }
 
   SUNLOCK(s);
@@ -298,11 +300,12 @@ Sunlock(IOSTREAM *s)
 			 
 static ssize_t
 S__flushbuf(IOSTREAM *s)
-{ ssize_t size;
-  char *from = s->buffer;
+{ char *from = s->buffer;
+  char *to   = s->bufp;
 
-  while ( (size = s->bufp - from) > 0 )
-  { ssize_t n = (*s->functions->write)(s->handle, from, size);
+  while ( from < to )
+  { size_t size = (size_t)(to - from);
+    ssize_t n = (*s->functions->write)(s->handle, from, size);
 
     if ( n > 0 )			/* wrote some */
     { from += n;
@@ -314,7 +317,7 @@ S__flushbuf(IOSTREAM *s)
     }
   }
 
-  if ( s->bufp - from == 0 )		/* full flush */
+  if ( to == from )			/* full flush */
   { ssize_t rc = s->bufp - s->buffer;
     
     s->bufp = s->buffer;
@@ -322,7 +325,7 @@ S__flushbuf(IOSTREAM *s)
     return rc;
   } else				/* partial flush */
   { ssize_t rc = from - s->buffer;
-    size_t left = s->bufp - from;
+    size_t left = to - from;
 
     memmove(s->buffer, from, left);
     s->bufp = s->buffer + left;
@@ -1554,14 +1557,11 @@ Sclose(IOSTREAM *s)
     return rval;
 
   SLOCK(s);
-  while(s->locks > 0)			/* remove buffer-locks */
-    rval = Sunlock(s);
-
+  s->flags |= SIO_CLOSING;
   rval = S__removebuf(s);
   if ( s->mbstate )
     free(s->mbstate);
 
-  s->flags |= SIO_CLOSING;
 #ifdef __WINDOWS__
   if ( (s->flags & SIO_ADVLOCK) )
   { OVERLAPPED ov;
@@ -1575,6 +1575,8 @@ Sclose(IOSTREAM *s)
   if ( s->functions->close && (*s->functions->close)(s->handle) < 0 )
     rval = -1;
   run_close_hooks(s);
+  while(s->locks > 0)			/* remove buffer-locks */
+    rval = Sunlock(s);
 
   SUNLOCK(s);
 
@@ -1987,15 +1989,16 @@ Svdprintf(const char *fm, va_list args)
 { int rval;
   IOSTREAM *s = Soutput;
 
-  SLOCK(s);
+  Slock(s);
   rval = Svfprintf(s, fm, args);
 #if defined(_DEBUG) && defined(__WINDOWS__)
   Sputc('\0', s);
   s->bufp--;				/* `Unput' */
   OutputDebugString(s->buffer);
 #endif
-  Sflush(s);
-  SUNLOCK(s);
+  if ( Sflush(s) != 0 )
+    rval = -1;
+  Sunlock(s);
 
   return rval;
 }
