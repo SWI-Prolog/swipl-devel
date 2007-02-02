@@ -136,15 +136,17 @@ $(TEX):		$(DOCTOTEX)
 .pl.tex:
 		$(PLTOTEX) $*.pl > $*.tex
 
+docclean::
+		rm -f $(TEX)
+		rm -rf html
+		../../man/runtex --clean $(DOC)
+
 ################################################################
 # Clean
 ################################################################
 
 clean::
 		rm -f $(PLOBJ) *~ *.o *% a.out core config.log
-		rm -f $(TEX)
-		../../man/runtex --clean $(DOC)
-		rm -rf html
 
 distclean:	clean
 		rm -f $(TARGETS) $(PROGRAMS)
