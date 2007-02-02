@@ -1,3 +1,7 @@
+Feb 2, 2007
+
+  * Fixed alloca issues in socket.c.  Richard O'Keefe.
+
 Jan 31, 2007
 
   * Documentation update to document issues in the Windows timer

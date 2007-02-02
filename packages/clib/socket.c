@@ -28,6 +28,14 @@
 #include <config.h>
 #endif
 
+#ifdef __GNUC__
+# define alloca __builtin_alloca
+#else
+# if HAVE_ALLOCA_H
+#  include <alloca.h>
+# endif
+#endif
+
 #ifdef __CYGWIN__
 #undef HAVE_H_ERRNO
 #endif
