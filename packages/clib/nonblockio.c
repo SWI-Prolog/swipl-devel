@@ -544,7 +544,7 @@ doRequest(plsocket *s)
 				       (struct sockaddr*)&s->rdata.accept.addr,
 				       &s->rdata.accept.addrlen);
 
-	DEBUG(2, Sdprintf("Accept() --> %d\n", s->rdata.accept.slave));
+	DEBUG(2, Sdprintf("Accept() --> %p\n", s->rdata.accept.slave));
 
 	if ( s->rdata.accept.slave == SOCKET_ERROR )
 	{ s->error = WSAGetLastError();
@@ -1535,7 +1535,7 @@ nbio_accept(int master, struct sockaddr *addr, socklen_t *addrlen)
   m = lookupSocket(master);
 
 #ifdef __WINDOWS__
-{ int alen;
+{ int alen = (int)*addrlen;
   slave = accept(master, addr, &alen);
   *addrlen = alen;
 }
@@ -1558,6 +1558,8 @@ nbio_accept(int master, struct sockaddr *addr, socklen_t *addrlen)
       return -1;
     }
   }
+
+  DEBUG(1, Sdprintf("Accept: slave = %p\n", slave));
 
 #else /*__WINDOWS__*/
 
