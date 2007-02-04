@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -300,8 +300,12 @@ Sunlock(IOSTREAM *s)
 			 
 static ssize_t
 S__flushbuf(IOSTREAM *s)
-{ char *from = s->buffer;
-  char *to   = s->bufp;
+{ char *from, *to;
+  ssize_t rc;
+
+  SLOCK(s);
+  from = s->buffer;
+  to   = s->bufp;
 
   while ( from < to )
   { size_t size = (size_t)(to - from);
@@ -311,27 +315,27 @@ S__flushbuf(IOSTREAM *s)
     { from += n;
     } else if ( n < 0 )			/* error */
     { s->flags |= SIO_FERR;
-      return -1;
+      rc = -1;
+      goto out;
     } else				/* wrote nothing? */
     { break;
     }
   }
 
   if ( to == from )			/* full flush */
-  { ssize_t rc = s->bufp - s->buffer;
-    
+  { rc = s->bufp - s->buffer;
     s->bufp = s->buffer;
-
-    return rc;
   } else				/* partial flush */
-  { ssize_t rc = from - s->buffer;
-    size_t left = to - from;
+  { size_t left = to - from;
 
+    rc = from - s->buffer;
     memmove(s->buffer, from, left);
     s->bufp = s->buffer + left;
-
-    return rc;
   }
+
+out:
+  SUNLOCK(s);
+  return rc;
 }
 
 
