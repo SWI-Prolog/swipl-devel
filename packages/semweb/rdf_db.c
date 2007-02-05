@@ -2615,9 +2615,9 @@ rdf_save_db(term_t stream, term_t source)
 }
 
 
-static long
+static intptr_t
 load_int(IOSTREAM *fd)
-{ long first = Sgetc(fd);
+{ intptr_t first = Sgetc(fd);
   int bytes, shift, b;
 
   if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */    
@@ -2636,18 +2636,18 @@ load_int(IOSTREAM *fd)
       first |= Sgetc(fd) & 0xff;
     }
 
-    shift = (sizeof(long)-1-bytes)*8 + 2;
+    shift = (sizeof(first)-1-bytes)*8 + 2;
   } else
   { int m;
 
-    bytes = first;
+    bytes = (int)first;
     first = 0L;
 
     for(m=0; m<bytes; m++)
     { first <<= 8;
       first |= Sgetc(fd) & 0xff;
     }
-    shift = (sizeof(long)-bytes)*8;
+    shift = (sizeof(first)-bytes)*8;
   }
 
   first <<= shift;
@@ -2688,11 +2688,15 @@ add_atom(rdf_db *db, atom_t a, ld_context *ctx)
 
 static atom_t
 load_atom(rdf_db *db, IOSTREAM *in, ld_context *ctx)
-{ switch(Sgetc(in))
+{ long from = Stell(in);
+
+  switch(Sgetc(in))
   { case 'X':
-      return ctx->loaded_atoms[load_int(in)];
+    { intptr_t idx = load_int(in);
+      return ctx->loaded_atoms[idx];
+    }
     case 'A':
-    { int len = load_int(in);
+    { size_t len = load_int(in);
       atom_t a;
 
       if ( len < 1024 )
@@ -2710,7 +2714,7 @@ load_atom(rdf_db *db, IOSTREAM *in, ld_context *ctx)
       return a;
     }
     case 'W':
-    { int len = load_int(in);
+    { int len = (int)load_int(in);
       atom_t a;
       wchar_t buf[1024];
       wchar_t *w;
@@ -2821,7 +2825,7 @@ load_triple(rdf_db *db, IOSTREAM *in, ld_context *ctx)
     }
   }
   t->source = load_atom(db, in, ctx);
-  t->line   = load_int(in);
+  t->line   = (unsigned long)load_int(in);
 
   if ( db->tr_first )
   { record_transaction(db, TR_ASSERT, t);     
@@ -2856,7 +2860,7 @@ load_db(rdf_db *db, IOSTREAM *in)
 
   if ( !load_magic(in) )
     return FALSE;
-  version = load_int(in);
+  version = (int)load_int(in);
   
   memset(&ctx, 0, sizeof(ctx));
 
