@@ -45,6 +45,7 @@ If you find this file and know better, please contact info@swi-prolog.org.
 #include <fcntl.h>
 #include <string.h>
 #include <io.h>
+#include "pl-utf8.h"
 
 DWORD RunSilent(const char* strCommand)
 {
@@ -121,47 +122,41 @@ my_pipe(HANDLE *readwrite)
 }
 
 /*------------------------------------------------------------------------------
-  Replacement for 'popen()' under __WINDOWS__.
+  Replacement for 'popen()' under Windows.
+
+  cmd is taken to be encoded in UTF-8 for compatibility with the Unix
+  version.
+
   NOTE: if cmd contains '2>&1', we connect the standard error file handle
     to the standard output file handle.
 ------------------------------------------------------------------------------*/
 
-static char *
-addstr(char *to, const char *s, size_t *left)
-{ size_t len = strlen(s);
+static void
+utf8towcs(wchar_t *o, const char *src)
+{ for( ; *src; )
+  { int wc;
 
-  if ( len < *left )
-  { *left -= len;
-  } else
-  { errno = ENAMETOOLONG;
-    return NULL;
+    src = utf8_get_char(src, &wc);
+    *o++ = wc;
   }
-  strcpy(to, s);
-
-  return to+len;
+  *o = 0;
 }
 
 
 FILE *
 pt_popen(const char *cmd, const char *mode)
-{
-  FILE *fptr = (FILE *)0;
+{ FILE *fptr = NULL;
   PROCESS_INFORMATION piProcInfo;
-  STARTUPINFO siStartInfo;
+  STARTUPINFOW siStartInfo;
   int success, redirect_error = 0;
-  char cmd_buff[2048];
-  char *o = cmd_buff;
-  size_t left = sizeof(cmd_buff)-1;
-  char *err2out;
+  wchar_t *wcmd;
+  wchar_t *err2out;
 
-  const char *shell_cmd = getenv("COMSPEC");
-  if ( !shell_cmd )
-    shell_cmd = "cmd";
-
-  if ( !(o=addstr(o, shell_cmd,   &left)) ) return NULL;
-  if ( !(o=addstr(o, " /S /C \"", &left)) ) return NULL;
-  if ( !(o=addstr(o, cmd,         &left)) ) return NULL;
-  if ( !(o=addstr(o, "\"",        &left)) ) return NULL;
+  size_t utf8len = utf8_strlen(cmd, strlen(cmd));
+  if ( !(wcmd = malloc((utf8len+1)*sizeof(wchar_t))) )
+  { return NULL;
+  }
+  utf8towcs(wcmd, cmd);
 
   my_pipein[0]   = INVALID_HANDLE_VALUE;
   my_pipein[1]   = INVALID_HANDLE_VALUE;
@@ -179,9 +174,9 @@ pt_popen(const char *cmd, const char *mode)
 
   /*
    * Shall we redirect stderr to stdout ? */
-  if ((err2out = strstr(cmd_buff, "2>&1")) != NULL) {
-     /* this option doesn't apply to win32 shells, so we clear it out! */
-     strncpy(err2out,"    ",4);
+  if ( (err2out=wcsstr(wcmd, L"2>&1")) != NULL)
+  { /* this option doesn't apply to win32 shells, so we clear it out! */
+     wcsncpy(err2out, L"    ", 4);
      redirect_error = 1;
   }
 
@@ -199,26 +194,24 @@ pt_popen(const char *cmd, const char *mode)
   siStartInfo.cb           = sizeof(STARTUPINFO);
   siStartInfo.hStdInput    = my_pipein[0];
   siStartInfo.hStdOutput   = my_pipeout[1];
-  if (redirect_error)
+  if ( redirect_error )
     siStartInfo.hStdError  = my_pipeout[1];
   else
     siStartInfo.hStdError  = my_pipeerr[1];
-  siStartInfo.dwFlags    = STARTF_USESTDHANDLES;
+  siStartInfo.dwFlags      = STARTF_USESTDHANDLES;
 
-//  Sdprintf("Command: \"%s\"\n", cmd_buff);
+  success = CreateProcessW(NULL,
+			   wcmd,	// command line 
+			   NULL,	// process security attributes 
+			   NULL,	// primary thread security attributes 
+			   TRUE,	// handles are inherited 
+			   CREATE_NO_WINDOW,  // creation flags: without window (?)
+			   NULL,	// use parent's environment 
+			   NULL,	// use parent's current directory 
+			   &siStartInfo, // STARTUPINFO pointer 
+			   &piProcInfo); // receives PROCESS_INFORMATION 
 
-  success = CreateProcess(NULL,
-     cmd_buff,  	// command line 
-     NULL,              // process security attributes 
-     NULL,              // primary thread security attributes 
-     TRUE,              // handles are inherited 
-     DETACHED_PROCESS,  // creation flags: without window (?)
-     NULL,              // use parent's environment 
-     NULL,              // use parent's current directory 
-     &siStartInfo,      // STARTUPINFO pointer 
-     &piProcInfo);      // receives PROCESS_INFORMATION 
-
-  if (!success)
+  if ( !success )
     goto finito;
 
   /*
@@ -234,8 +227,7 @@ pt_popen(const char *cmd, const char *mode)
 
 finito:
   if (!fptr)
-  {
-    if (my_pipein[0]  != INVALID_HANDLE_VALUE)
+  { if (my_pipein[0]  != INVALID_HANDLE_VALUE)
       CloseHandle(my_pipein[0]);
     if (my_pipein[1]  != INVALID_HANDLE_VALUE)
       CloseHandle(my_pipein[1]);
@@ -248,8 +240,8 @@ finito:
     if (my_pipeerr[1] != INVALID_HANDLE_VALUE)
       CloseHandle(my_pipeerr[1]);
   }
-  return fptr;
 
+  return fptr;
 }
 
 /*------------------------------------------------------------------------------
@@ -257,18 +249,18 @@ finito:
 ------------------------------------------------------------------------------*/
 int
 pt_pclose(FILE *fle)
-{
-  if (fle)
-  {
-    (void)fclose(fle);
+{ if (fle)
+  { (void)fclose(fle);
 
     CloseHandle(my_pipeerr[0]);
     if (my_popenmode == 'r')
       CloseHandle(my_pipein[1]);
     else
-     CloseHandle(my_pipeout[0]);
+      CloseHandle(my_pipeout[0]);
+
     return 0;
   }
+
   return -1;
 }
 

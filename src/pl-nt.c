@@ -384,7 +384,7 @@ System(char *command)			/* command is a UTF-8 string */
 		      NULL,			/* Security stuff */
 		      NULL,			/* Thread security stuff */
 		      FALSE,			/* Inherit handles */
-		      NORMAL_PRIORITY_CLASS,	/* flags */
+		      CREATE_NO_WINDOW,		/* flags */
 		      NULL,			/* environment */
 		      NULL,			/* CWD */
 		      &sinfo,			/* startup info */

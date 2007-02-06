@@ -159,6 +159,7 @@ $(STREAMH):	pl-stream.h $(INCLUDEDIR)
 pl-funct.obj:	pl-funct.ih
 pl-atom.obj:	pl-funct.ih
 pl-wam.obj:	pl-alloc.c pl-index.c pl-fli.c
+pl-stream.obj:	popen.c
 
 # Use these if you have the awk program and want to add new reserved atoms
 # to the C-code

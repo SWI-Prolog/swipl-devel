@@ -23,9 +23,9 @@ nmake MD=WIN64 /f makefile.mak %*
 rem nmake GMP=false MD=WIN64 /f makefile.mak %*
 
 rem Build for multi-threading and debugging
-rem nmake DBG=true /f makefile.mak %*
+rem nmake DBG=true MD=WIN64 /f makefile.mak %*
 
 rem Enable this line to build for single-threading.
-rem nmake MT=false /f makefile.mak %*
+rem nmake MT=false MD=WIN64 /f makefile.mak %*
 
 ENDLOCAL
