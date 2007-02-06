@@ -275,7 +275,6 @@ Section "Package CLIB"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File pl\bin\cgi.dll
-  File pl\bin\crypt.dll
   File pl\bin\memfile.dll
   File pl\bin\mime.dll
   File pl\bin\socket.dll
@@ -284,7 +283,6 @@ Section "Package CLIB"
   File pl\bin\readutil.dll
   SetOutPath $INSTDIR\library
   File pl\library\cgi.pl
-  File pl\library\crypt.pl
   File pl\library\memfile.pl
   File pl\library\mime.pl
   File pl\library\socket.pl

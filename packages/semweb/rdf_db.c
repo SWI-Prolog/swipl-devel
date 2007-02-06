@@ -5502,7 +5502,7 @@ unify_statistics(rdf_db *db, term_t key, functor_t f)
       v = 0;
 
     PL_get_arg(2, key, a);
-    return PL_unify_integer(a, v);
+    return PL_unify_int64(a, v);
   } else if ( f == FUNCTOR_gc2 )
   { return PL_unify_term(key,
 			 PL_FUNCTOR, f,
