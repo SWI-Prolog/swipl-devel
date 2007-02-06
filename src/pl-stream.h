@@ -132,7 +132,7 @@ typedef struct io_position
   int64_t		charno;		/* character position in file */
   int			lineno;		/* lineno in file */
   int			linepos;	/* position in line */
-  intptr_t			reserved[2];	/* future extensions */
+  intptr_t		reserved[2];	/* future extensions */
 } IOPOS;
 
 					/* NOTE: check with encoding_names */
@@ -174,7 +174,7 @@ typedef struct io_stream
   IOENC			encoding;	/* character encoding used */
   struct io_stream *	tee;		/* copy data to this stream */
   mbstate_t *		mbstate;	/* ENC_ANSI decoding */
-  intptr_t			reserved[6];	/* reserved for extension */
+  intptr_t		reserved[6];	/* reserved for extension */
 } IOSTREAM;
 
 
