@@ -12,7 +12,7 @@
                          SSWWII--PPrroolloogg 55..66
 
                         RReeffeerreennccee MMaannuuaall
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._2_7_, _J_a_n_u_a_r_y _2_0_0_7
+           _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._2_8_, _F_e_b_r_u_a_r_y _2_0_0_7
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                     wielemak@science.uva.nl
@@ -1769,6 +1769,11 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          integers  require  1  word  storage.      Larger  integers  are
          represented as `indirect  data' and require significantly  more
          space.
+
+    mmaaxx__tthhrreeaaddss _(_i_n_t_e_g_e_r_)
+         Provided on  multi-threaded  versions to  indicate the  maximum
+         number  of  Prolog  threads  supported.     Currently  (version
+         5.6.27) the limit is 100.
 
     mmiinn__iinntteeggeerr _(_i_n_t_e_g_e_r_)
          Minimum integer value  if integers are _b_o_u_n_d_e_d.   See also  the
