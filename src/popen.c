@@ -125,6 +125,23 @@ my_pipe(HANDLE *readwrite)
   NOTE: if cmd contains '2>&1', we connect the standard error file handle
     to the standard output file handle.
 ------------------------------------------------------------------------------*/
+
+static char *
+addstr(char *to, const char *s, size_t *left)
+{ size_t len = strlen(s);
+
+  if ( len < *left )
+  { *left -= len;
+  } else
+  { errno = ENAMETOOLONG;
+    return NULL;
+  }
+  strcpy(to, s);
+
+  return to+len;
+}
+
+
 FILE *
 pt_popen(const char *cmd, const char *mode)
 {
@@ -133,13 +150,18 @@ pt_popen(const char *cmd, const char *mode)
   STARTUPINFO siStartInfo;
   int success, redirect_error = 0;
   char cmd_buff[2048];
+  char *o = cmd_buff;
+  size_t left = sizeof(cmd_buff)-1;
   char *err2out;
 
   const char *shell_cmd = getenv("COMSPEC");
-  if (! shell_cmd) shell_cmd = "cmd";
-  strcpy(cmd_buff,shell_cmd);
-  strcat(cmd_buff," /c ");
-  strcat(cmd_buff,cmd);
+  if ( !shell_cmd )
+    shell_cmd = "cmd";
+
+  if ( !(o=addstr(o, shell_cmd,   &left)) ) return NULL;
+  if ( !(o=addstr(o, " /S /C \"", &left)) ) return NULL;
+  if ( !(o=addstr(o, cmd,         &left)) ) return NULL;
+  if ( !(o=addstr(o, "\"",        &left)) ) return NULL;
 
   my_pipein[0]   = INVALID_HANDLE_VALUE;
   my_pipein[1]   = INVALID_HANDLE_VALUE;
@@ -157,7 +179,7 @@ pt_popen(const char *cmd, const char *mode)
 
   /*
    * Shall we redirect stderr to stdout ? */
-  if ((err2out = strstr("2>&1",cmd)) != NULL) {
+  if ((err2out = strstr(cmd_buff, "2>&1")) != NULL) {
      /* this option doesn't apply to win32 shells, so we clear it out! */
      strncpy(err2out,"    ",4);
      redirect_error = 1;
@@ -183,8 +205,10 @@ pt_popen(const char *cmd, const char *mode)
     siStartInfo.hStdError  = my_pipeerr[1];
   siStartInfo.dwFlags    = STARTF_USESTDHANDLES;
 
+//  Sdprintf("Command: \"%s\"\n", cmd_buff);
+
   success = CreateProcess(NULL,
-     (LPTSTR)cmd_buff,  // command line 
+     cmd_buff,  	// command line 
      NULL,              // process security attributes 
      NULL,              // primary thread security attributes 
      TRUE,              // handles are inherited 
