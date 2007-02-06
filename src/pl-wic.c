@@ -1411,8 +1411,6 @@ First byte:  bits 8&7  bits 1-6 (low order)
 		3      number of bytes following
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define PLMINLONG   ((intptr_t)(-1L<<(LONGBITSIZE-1)))
-
 static void
 putNum(int64_t n, IOSTREAM *fd)
 { int m;

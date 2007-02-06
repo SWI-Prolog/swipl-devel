@@ -452,7 +452,7 @@ them.  Descriptions:
 #define SMALLSTACK		200 * 1024 /* GC policy */
 
 #define WORDBITSIZE		(8 * sizeof(word))
-#define LONGBITSIZE		(8 * sizeof(intptr_t))
+#define LONGBITSIZE		(8 * sizeof(long))
 #define INTBITSIZE		(8 * sizeof(int))
 #define INT64BITSIZE		(8 * sizeof(int64_t))
 #define WORDS_PER_DOUBLE        ((sizeof(double)+sizeof(word)-1)/sizeof(word))
@@ -1213,8 +1213,8 @@ extern Atom _PL_debug_atom_value(atom_t a);
 #endif
 
 struct index
-{ uintptr_t key;		/* key of index */
-  uintptr_t varmask;	/* variable field mask */
+{ word		key;		/* key of index */
+  word		varmask;	/* variable field mask */
 };
 
 struct functorDef

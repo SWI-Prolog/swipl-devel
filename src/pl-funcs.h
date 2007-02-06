@@ -186,10 +186,9 @@ COMMON(word) 		parseSaveProgramOptions(term_t args,
 			bool *tty, bool *standalone);
 
 /* pl-index.c */
-COMMON(int) 		cardinalityPattern(uintptr_t pattern);
-COMMON(void) 		getIndex(Word argv, uintptr_t pattern, int card,
-			 struct index *
-			 ARG_LD);
+COMMON(int) 		cardinalityPattern(unsigned long pattern);
+COMMON(void) 		getIndex(Word argv, unsigned long pattern, int card,
+				 struct index * ARG_LD);
 COMMON(word) 		getIndexOfTerm(term_t t);
 COMMON(ClauseRef) 	firstClause(Word argv, LocalFrame fr, Definition def,
 			    ClauseRef *next ARG_LD);

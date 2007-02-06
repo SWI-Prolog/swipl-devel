@@ -57,23 +57,23 @@ indexing only on the first argument as this is default.
 
 /* 1 <= c <= 4 */
 
-#define SHIFT(c, a)	((LONGBITSIZE/(c)) * a)
-#define IDX_MASK(c)	(c == 1 ? ~0UL : ((1UL << (LONGBITSIZE/(c))) - 1))
-#define VM(c, a)	((uintptr_t)((IDX_MASK(c) << SHIFT(c, a))))
+#define SHIFT(c, a)	((WORDBITSIZE/(c)) * a)
+#define IDX_MASK(c)	(c == 1 ? ~(word)0 : (((word)1 << (WORDBITSIZE/(c))) - 1))
+#define VM(c, a)	((word)((IDX_MASK(c) << SHIFT(c, a))))
 
 #define Shift(c, a)	(mask_shift[c][a])
 #define Mask(c)		(mask_mask[c])
 #define varMask(c, a)	(variable_mask[c][a])
 
 #define matchIndex(i1, i2)	(((i1).key & (i2).varmask) ==\
-				  ((i2).key & (i1).varmask))
+				 ((i2).key & (i1).varmask))
 
 static uintptr_t variable_mask[][4] =
   { { 0,        0,        0,        0 }, 
 #ifdef DONOT_AVOID_SHIFT_WARNING
     { VM(1, 0), 0,        0,        0 },
 #else
-    { ~0UL,     0,        0,        0 },
+    { ~(word)0, 0,        0,        0 },
 #endif
     { VM(2, 0), VM(2, 1), 0,        0 }, 
     { VM(3, 0), VM(3, 1), VM(3, 2), 0 }, 
@@ -88,23 +88,23 @@ static int mask_shift[][4] =
     { SHIFT(4, 0), SHIFT(4, 1), SHIFT(4, 2), SHIFT(4, 3) }
   };
 
-static uintptr_t mask_mask[] =
+static word mask_mask[] =
   { 0,
 #ifdef DONOT_AVOID_SHIFT_WARNING
     IDX_MASK(1),
 #else
-    ~0UL,
+    ~(word)0,
 #endif
     IDX_MASK(2), IDX_MASK(3), IDX_MASK(4)
   };
 
 
 int
-cardinalityPattern(uintptr_t pattern)
+cardinalityPattern(unsigned long pattern)
 { int result = 0;
 
   for(; pattern; pattern >>= 1)
-    if (pattern & 0x1)
+    if ( pattern & 0x1UL )
       result++;
 
   return result;
@@ -126,7 +126,7 @@ guarantee that the value is non-0 for indexable values.
 
 static inline int
 hashIndex(word key, int buckets)
-{ uintptr_t k = key >> LMASK_BITS;
+{ word k = key >> LMASK_BITS;
 
   return (int)((key^k) & (buckets-1));
 }
@@ -192,11 +192,11 @@ indexOfWord(word w ARG_LD)
 
 
 void
-getIndex(Word argv, uintptr_t pattern, int card, struct index *index
+getIndex(Word argv, unsigned long pattern, int card, struct index *index
 	 ARG_LD)
 { if ( pattern == 0x1L )
   { index->key     = indexOfWord(*argv PASS_LD);
-    index->varmask = (index->key ? ~0UL : 0UL);
+    index->varmask = (index->key ? ~(word)0 : (word)0);
 
     return;
   } else
@@ -204,7 +204,7 @@ getIndex(Word argv, uintptr_t pattern, int card, struct index *index
     int a;
 
     index->key = 0;
-    index->varmask = ~0UL;			/* no variables */
+    index->varmask = ~(word)0;			/* no variables */
 
     for(a = 0; a < card; a++, pattern >>= 1, argv++)
     { for(;(pattern & 0x1) == 0; pattern >>= 1)
@@ -402,7 +402,7 @@ part of the stacks (e.g. backtrailing is not needed).
 
 bool
 reindexClause(Clause clause, Definition def)
-{ uintptr_t pattern = def->indexPattern & ~NEED_REINDEX;
+{ unsigned long pattern = def->indexPattern & ~NEED_REINDEX;
 
   if ( pattern == 0x0 )
     succeed;
