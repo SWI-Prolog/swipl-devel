@@ -1,13 +1,25 @@
 /*  $Id$
 
-    Part of SWI-Prolog SGML/XML parser
+    Part of SWI-Prolog
 
-    Author:  Jan Wielemaker
-    E-mail:  jan@swi.psy.uva.nl
-    WWW:     http://www.swi.psy.uva.nl/projects/SWI-Prolog/
-    Copying: LGPL-2.  See the file COPYING or http://www.gnu.org
+    Author:        Jan Wielemaker
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 1985-2007, University of Amsterdam
 
-    Copyright (C) 1990-2002 SWI, University of Amsterdam. All rights reserved.
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include <SWI-Stream.h>			/* encoding */
@@ -248,6 +260,13 @@ get_max_chr(term_t t, int *maxchr)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) xml_quote_attribute/3 assumes the attribute is   quoted using "" and
+does *not* escape '. Although escaping ' with &apos; is valid XML, it is
+*not* valid html, and this  routine  is   also  used  by  the html_write
+library.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static foreign_t
 xml_quote_attribute(term_t in, term_t out, term_t encoding)
 { static char **map;
@@ -265,7 +284,7 @@ xml_quote_attribute(term_t in, term_t out, term_t encoding)
     map['<']  = "&lt;";
     map['>']  = "&gt;";
     map['&']  = "&amp;";
-    map['\''] = "&apos;";
+/*  map['\''] = "&apos;"; See (*) */
     map['"']  = "&quot;";
   }
 

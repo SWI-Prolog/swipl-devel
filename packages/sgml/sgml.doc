@@ -1200,8 +1200,11 @@ compatibility, making the safe \const{ascii} encoding assumption.
 \begin{description}  
     \predicate{xml_quote_attribute}{3}{+In, -Quoted, +Encoding}
 Map the characters that may not appear in XML attributes to entities.
-Currently these are \verb$<>&'"$. Characters that cannot represented in
-\arg{Encoding} are mapped to XML character entities.
+Currently these are \verb$<>&"$.%
+	\footnote{Older versions also mapped \texttt{'} to
+	          \texttt{\&apos;}.}
+Characters that cannot represented in \arg{Encoding} are mapped to XML
+character entities.
 
     \predicate{xml_quote_attribute}{2}{+In, -Quoted}
 Backward compatibility version for xml_quote_attribute/3.
