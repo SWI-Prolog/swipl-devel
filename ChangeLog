@@ -7,6 +7,17 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+==================================
+VERSION 5.6.28 (February 06, 2007)
+==================================
+
+  * MODIFIED: shell/[1,2] in Windows no longer creates a console window
+    for the sub-process.
+
+  * FIXED: Various issues in open(pipe(Command), ...) on Windows: bugs
+    (potential bufferoverflow), remove length-limit on commands, allow
+    for Unicode commands, properly handle 2>&1.
+
   * DOCS: Updated README, notable installation instructions.
 
   * PORT: Removed some old sunos issues in configure.  Richard O'Keefe.

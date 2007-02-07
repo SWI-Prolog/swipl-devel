@@ -69,31 +69,16 @@ Version 5.6.27 Patches relative to 5.6.26
 
 
 
-Version 5.6.26 Patches relative to 5.6.25
+Version 5.6.28 Patches relative to 5.6.27
 =========================================
 
-Version 5.6.26 contains many changes to   accomodate the Win64 platform.
-Unlike most other 64-bit platforms,  Win64   uses  32-bit long integers.
-This request for consistent use of  the   types  size_t and the new type
-intptr_t (an integer big enough to hold a pointer).
+Prolog
 
-As this was a good opportunity, the SWI-Prolog C-API has been changed to
-use the type size_t for all lengths   of strings. On 32-bit systems this
-is both source and binary compatible. Foreign  code on 64-bit systems is
-typically neither source nor binary compatible. Recompile the code using
-a high warning level of the compiler  and fix reported problems, notably
-those involving incompatible pointer types. Here is a typical example:
+ * Added library(base64)
+ * Fixed various bugs in Windows shell/1,2 and open(pipe(Command), ...)
+ * Various portability fixes.
 
-OLD	{ unsigned int len;
-	  char *s;
-
-	  if ( PL_get_atom_nchars(term, &len, &s) )
-	    ...
-
-NEW	{ size_t len;
-	  char *s;
-
-	  if ( PL_get_atom_nchars(term, &len, &s) )
-	    ...
-
-Failing to make these changes causes undefined behaviour.
+Packages
+ 
+  * Fixed library(http/html_write) not to emit &apos;  Notably shows
+  up in IE, but is officially not standard compliant.
