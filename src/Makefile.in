@@ -371,26 +371,22 @@ idirs::
 
 
 iboot::		
-		cd ../boot; \
-		for f in *.pl; do $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/boot; done
+		for f in $(PLSRC); do $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/boot; done
 
 ilib:		iclp iunicode
-		cd ../library; \
 		for f in $(PLLIBS); do \
-			$(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library; \
+			$(INSTALL_DATA) ../library/$$f $(DESTDIR)$(PLBASE)/library; \
 		done
 
 iclp::
-		cd ../library/clp; \
 		for f in $(CLP); do \
-			$(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library/clp; \
+			$(INSTALL_DATA) ../library/clp/$$f $(DESTDIR)$(PLBASE)/library/clp; \
 		done
 
 
 iunicode::
-		cd ../library/unicode; \
 		for f in $(UNICODE); do \
-			$(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library/unicode; \
+			$(INSTALL_DATA) ../library/unicode/$$f $(DESTDIR)$(PLBASE)/library/unicode; \
 		done
 
 idot::
@@ -400,10 +396,9 @@ idot::
 		$(INSTALL_SCRIPT) ../dotfiles/edit $(DESTDIR)$(PLBASE)/dotfiles
 
 iinclude::
-		cd ../include; \
 		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h stub.c; do \
 		    if [ -f $$f ]; then \
-			$(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/include; \
+			$(INSTALL_DATA) ../include/$$f $(DESTDIR)$(PLBASE)/include; \
 		    fi; \
 		done
 

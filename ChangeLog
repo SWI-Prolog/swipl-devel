@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * INSTALL: Avoid wrong references to local sh-based install script.
+    Richard O'Keefe.
+
+
 ==================================
 VERSION 5.6.28 (February 06, 2007)
 ==================================
