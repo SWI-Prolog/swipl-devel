@@ -30,11 +30,16 @@ esac
 
 if [ "$makeonly" = false ]; then
 # [EDIT] Compiler options.
+# 
+#	CC:	 Which C-compiler to use
 #	COFLAGS: Flags for the optimizer such as "-O3" or "-g"
 # 	CMFLAGS: Machine flags such as "-m64" (64-bits on gcc)
 # 	CIFLAGS: Include-path such as "-I/opt/include"
 # 	LDFLAGS: Link flags such as "-L/opt/lib"
+#
+# Leaving an option blank leaves the choice to configure
 
+# export CC=
 # export COFLAGS=
 # export CMFLAGS=
 # export CIFLAGS=
