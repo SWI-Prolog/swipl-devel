@@ -142,8 +142,8 @@ expand_request(R, R).
 %%	map_exception(+Exception, -Reply, -HdrExtra)
 %	
 %	Map certain defined  exceptions  to   special  reply  codes. The
-%%	http(not_modified)   provides   backward     compatibility    to
-%%	http_reply(not_modified).
+%	http(not_modified)   provides   backward     compatibility    to
+%	http_reply(not_modified).
 
 map_exception(http(not_modified),
 	      not_modified,
@@ -154,6 +154,12 @@ map_exception(http_reply(Reply),
 map_exception(http_reply(Reply, HdrExtra),
 	      Reply,
 	      HdrExtra) :- !.
+map_exception(error(existence_error(http_location, Location), _),
+	      not_found(Location),
+	      [connection(close)]) :- !.
+map_exception(error(permission_error(http_location, access, Location), _),
+	      forbidden(Location),
+	      [connection(close)]) :- !.
 map_exception(E,
 	      server_error(E),
 	      [connection(close)]).

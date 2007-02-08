@@ -179,7 +179,7 @@ http_reply(not_found(URL), Out, HrdExtra) :- !,
 	phrase(page([ title('404 Not Found')
 		    ],
 		    [ h1('Not Found'),
-		      p(['The requested URL ', URL,
+		      p(['The requested URL ', tt(URL),
 			 ' was not found on this server'
 			]),
 		      address(httpd)
