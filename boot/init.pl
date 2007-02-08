@@ -1629,7 +1629,8 @@ resulting code is simply the same), I've removed that.
 '$translate_rule'((LP-->RP), (H:-B)):-
 	'$t_head'(LP, S0, SR, H),
 	'$t_body'(RP, S0, SR, B0),
-	(   B0 = (S0=X, B)		% map a(H,T) :- H = [a,b|T], b(T)
+	(   B0 = (S00=X, B),		% map a(H,T) :- H = [a,b|T], b(T)
+	    S00 == S0
 	->  S0 = X			% into a([a,b|T]) :- b(T).
 	;   B0 = B
 	).

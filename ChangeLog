@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Errornous translation of p --> { _ = 123 }.   Alexey Ilyukhin.
+
   * INSTALL: Avoid wrong references to local sh-based install script.
     Richard O'Keefe.
 
