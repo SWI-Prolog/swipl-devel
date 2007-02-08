@@ -85,8 +85,6 @@ html_find_tag(const char *data, const char *end, const char *tag)
 
     data++;
   }
-
-  return NULL;
 }
 
 
