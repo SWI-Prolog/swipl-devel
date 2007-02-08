@@ -1428,22 +1428,22 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
   { int64_t now = Stell64(s);
 
     if ( now != -1 )
-    { int64_t rval;
+    { int64_t newpos;
       char *nbufp = (char *)-1;
     
       if ( whence == SIO_SEEK_CUR )
       { nbufp = s->bufp + pos*Sunit_size(s);
-	rval = now + pos;
+	newpos = now + pos;
       } else if ( whence == SIO_SEEK_SET )
       { nbufp = s->bufp + (pos - now)*Sunit_size(s);
-	rval = pos;
+	newpos = pos;
       } else
-	rval = -1;			/* should not happen */
+	newpos = -1;			/* should not happen */
 
       if ( nbufp >= s->buffer && nbufp < s->limitp )
       { s->bufp = nbufp;
 
-	pos = rval;
+	pos = newpos;
 	goto update;
       }
     }
