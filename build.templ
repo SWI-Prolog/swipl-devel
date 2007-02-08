@@ -13,6 +13,12 @@
 
 PREFIX=$HOME
 
+# [EDIT] Version of make to use.  This must be GNU-make.  On many
+# proprietary Unix systems this is installed as 'gmake'.  On most
+# open systems make is GNU-make.
+
+MAKE=make
+
 V=`cat VERSION`
 makeonly=false
 
@@ -40,6 +46,6 @@ if [ "$makeonly" = false ]; then
   ./configure --prefix=$PREFIX --with-world 2>&1 | tee configure.out
 fi
 
-make 2>&1 | tee make.out
-make install 2>&1 | tee make-install.out
+$MAKE 2>&1 | tee make.out
+$MAKE install 2>&1 | tee make-install.out
 
