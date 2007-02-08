@@ -69,6 +69,7 @@ options required by ssl_init/3. See package ssl for details.
 %	Create a server at Port that calls Goal for each parsed request.
 %	Options provide a list of options. Defined options are
 %	
+%	| port(?Port)	     | - 	| Port to listen to |
 %	| workers(N)	     | 2 	| Define the number of worker threads |
 %	| timeout(S)	     | infinite	| Drop connections after inactivity   |
 %	| keep_alive_timeout | 10	| Drop Keep-Alive connection timeout  |
