@@ -1019,6 +1019,8 @@ alloc_bitmatrix(int w, int h)
 }
 
 
+#undef setbit				/* conflict in HPUX 11.23 */
+
 static void
 setbit(bitmatrix *m, int i, int j)
 { int ij = m->width*i+j;
