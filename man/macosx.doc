@@ -70,8 +70,8 @@ terminal window. This can either be an X11 \program{xterm} or
 \textsf{Terminal.app} from Utilities.  For comfortable usage it is
 necessary to setup some environment variables.  The procedure depends
 on your shell of choice.  On Tiger the default is \program{bash}.  Add
-the following lines to the file \file{~/.bashrc} (or create this file
-if it does not yet exist).
+the following lines to the file \verb$~/.bashrc$ (or create this
+file if it does not yet exist).
 
 \begin{code}
 # This allows using Prolog graphics if you use Terminal.app
