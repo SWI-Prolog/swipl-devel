@@ -38,7 +38,7 @@
 #define SIZEOF_LONG 4
 #endif
 #else
-#if !defined(__GNUC__) && defined(HAVE_ALLOCA_H)
+#if (!defined(__GNUC__) || defined(__hpux)) && defined(HAVE_ALLOCA_H)
 #include <alloca.h>
 #endif
 #include <errno.h>
@@ -1872,6 +1872,7 @@ triple_hash(rdf_db *db, triple *t, int which)
       v = predicate_hash(t->predicate->root) ^ object_hash(t);
       break;
     default:
+      v = 0;				/* make compiler silent */
       assert(0);
   }
 
@@ -2690,9 +2691,7 @@ add_atom(rdf_db *db, atom_t a, ld_context *ctx)
 
 static atom_t
 load_atom(rdf_db *db, IOSTREAM *in, ld_context *ctx)
-{ long from = Stell(in);
-
-  switch(Sgetc(in))
+{ switch(Sgetc(in))
   { case 'X':
     { intptr_t idx = load_int(in);
       return ctx->loaded_atoms[idx];
@@ -4111,6 +4110,7 @@ init_cursor_from_literal(search_state *state, literal *cursor)
       iv = predicate_hash(p->predicate->root) ^ literal_hash(cursor);
       break;
     default:
+      iv = 0;				/* make compiler silent */
       assert(0);
   }
 
