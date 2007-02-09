@@ -5441,7 +5441,7 @@ gripe(dtd_error_id e, ...)
     { const wchar_t *elem = va_arg(args, wchar_t *); /* element */
       const wchar_t *attr = va_arg(args, wchar_t *); /* attribute */
 
-      swprintf(buf, 1024, L"Element \"%ls\" has no attribute \"%s\"",
+      swprintf(buf, 1024, L"Element \"%ls\" has no attribute \"%ls\"",
 	       elem, attr);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
