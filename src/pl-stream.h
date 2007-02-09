@@ -25,6 +25,13 @@
 #ifndef _PL_STREAM_H
 #define _PL_STREAM_H
 
+/* This appears to make the wide-character support compile and work
+   on HPUX 11.23.  There really should be a cleaner way ...
+*/
+#if defined(__hpux)
+#include <sys/_mbstate_t.h>
+#endif
+
 #include <stdarg.h>
 #include <wchar.h>
 #include <stddef.h>
