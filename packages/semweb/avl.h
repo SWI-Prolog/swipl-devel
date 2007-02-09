@@ -29,11 +29,6 @@ typedef  enum  { IS_TREE, IS_LBRANCH, IS_RBRANCH, IS_LEAF, IS_NULL }  NODE;
 #define NULL_TREE      ((AVLtree) NULL)
 
 
-        /* MIN and MAX macros (used for rebalancing) */
-#define  MIN(a,b)    ((a) < (b) ? (a) : (b))
-#define  MAX(a,b)    ((a) > (b) ? (a) : (b))
-
-
 /* BEGIN Internal definitions */
        /* Directional Definitions */
 typedef  short  DIRECTION;

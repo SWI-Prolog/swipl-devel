@@ -107,6 +107,12 @@ summary:
 #define inline __inline
 #endif
 
+        /* MIN and MAX macros (used for rebalancing) */
+#undef MIN
+#undef MAX
+#define  MIN(a,b)    ((a) < (b) ? (a) : (b))
+#define  MAX(a,b)    ((a) > (b) ? (a) : (b))
+
 /************************************************************************
 *       Auxillary functions
 *
