@@ -397,7 +397,7 @@ idot::
 
 iinclude::
 		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h stub.c; do \
-		    if [ -f $$f ]; then \
+		    if [ -f ../include/$$f ]; then \
 			$(INSTALL_DATA) ../include/$$f $(DESTDIR)$(PLBASE)/include; \
 		    fi; \
 		done
