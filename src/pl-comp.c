@@ -1743,9 +1743,9 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
       size_t  n = wsizeofInd(*p);
 
       if ( n == sizeof(int64_t)/sizeof(word) )
-      { 
+      { p++;
 #if SIZEOF_VOIDP == 8
-	int64_t val = *(int64_t*)(p+1);
+	int64_t val = *(int64_t*)p;
 	Output_1(ci, A_INTEGER, val);
 #else
 	union
@@ -1754,7 +1754,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 	} cvt;
 	Word vp = cvt.w;
 
-	cpInt64Data(vp, p+1);
+	cpInt64Data(vp, p);
 
         if ( cvt.val >= LONG_MIN && cvt.val <= LONG_MAX )
 	{ Output_1(ci, A_INTEGER, (word)cvt.val);
