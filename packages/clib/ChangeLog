@@ -1,3 +1,8 @@
+Feb 9, 2007
+
+  * ADDED: MD5 hashes to crypt.  Added library(crypt) to Windows version
+    (only supporting MD5).
+
 Feb 2, 2007
 
   * Fixed alloca issues in socket.c.  Richard O'Keefe.

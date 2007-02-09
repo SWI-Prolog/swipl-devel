@@ -35,8 +35,12 @@
 #endif
 #include <stdlib.h>
 #include <string.h>
+#include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include "clib.h"
+
+/* md5passwd.c */
+extern char *md5_crypt(const char *pw, const char *salt);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Simple interface to the Unix   password  encryption routine. Implemented
@@ -58,10 +62,10 @@ static pthread_mutex_t crypt_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static foreign_t
 pl_crypt(term_t passwd, term_t encrypted)
-{ char *p, *e;
-  char s[3];
+{ char *pw, *e;
+  char salt[20];
 
-  if ( !PL_get_chars(passwd, &p, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
+  if ( !PL_get_chars(passwd, &pw, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
     return pl_error("crypt", 2, NULL, ERR_ARGTYPE,
 		    1, passwd, "text");
 
@@ -69,51 +73,90 @@ pl_crypt(term_t passwd, term_t encrypted)
   { int rval;
     char *s2;
     
-    s[0] = e[0];
-    s[1] = e[1];
-    s[2] = '\0';
-    LOCK();
-    s2 = crypt(p, s);
-    rval = (strcmp(s2, e) == 0 ? TRUE : FALSE);
-    UNLOCK();
+    if ( strncmp(e, "$1$", 3) == 0 )	/* MD5 Hash */
+    { char *p = strchr(e+3, '$');
+      size_t slen;
 
-    return rval;
+      if ( p && (slen=(size_t)(p-e-3)) < sizeof(salt) )
+      { strncpy(salt, e+3, slen);
+	salt[slen] = 0;
+	s2 = md5_crypt(pw, salt);
+	return (strcmp(s2, e) == 0) ? TRUE : FALSE;
+      } else
+      { Sdprintf("No salt???\n");
+	return FALSE;
+      }
+    } else
+    {
+#ifdef HAVE_CRYPT
+      salt[0] = e[0];
+      salt[1] = e[1];
+      salt[2] = '\0';
+
+      LOCK();
+      s2 = crypt(pw, salt);
+      rval = (strcmp(s2, e) == 0 ? TRUE : FALSE);
+      UNLOCK();
+
+      return rval;
+#else
+      return PL_warning("Password encryption not supported");
+#endif
+    }
   } else
   { term_t tail = PL_copy_term_ref(encrypted);
     term_t head = PL_new_term_ref();
+    int slen = 2;
     int n;
     int (*unify)(term_t t, const char *s) = PL_unify_list_codes;
     char *s2;
     int rval;
 
-    for(n=0; n<2; n++)
+    for(n=0; n<slen; n++)
     { if ( PL_get_list(tail, head, tail) )
       { int i;
 	char *t;
 
 	if ( PL_get_integer(head, &i) && i>=0 && i<=255 )
-	{ s[n] = i;
+	{ salt[n] = i;
 	} else if ( PL_get_atom_chars(head, &t) && t[1] == '\0' )
-	{ s[n] = t[0];
+	{ salt[n] = t[0];
 	  unify = PL_unify_list_chars;
 	} else
-	  return pl_error("crypt", 2, NULL, ERR_ARGTYPE,
+	{ return pl_error("crypt", 2, NULL, ERR_ARGTYPE,
 			  2, head, "character");
+	}
+
+	if ( n == 1 && salt[0] == '$' && salt[1] == '1' )
+	  slen = 3;
+	else if ( n == 2 && salt[2] == '$' )
+	  slen = 8+3;
       } else
 	break;
     }
-    for( ; n < 2; n++ )
+
+#ifndef HAVE_CRYPT
+    slen = 8;
+#endif
+
+    for( ; n < slen; n++ )
     { int c = 'a'+(int)(26.0*rand()/(RAND_MAX+1.0));
 
       if ( rand() & 0x1 )
 	c += 'A' - 'a';
 
-      s[n] = c;
+      salt[n] = c;
     }
-    s[n] = 0;
-
+    salt[n] = 0;
     LOCK();
-    s2 = crypt(p, s);
+    if ( slen > 2 )
+    { s2 = md5_crypt(pw, salt);
+    } else
+    {
+#ifdef HAVE_CRYPT
+      s2 = crypt(pw, salt);
+#endif
+    }
     rval = (*unify)(encrypted, s2);
     UNLOCK();
     

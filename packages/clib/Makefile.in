@@ -51,7 +51,7 @@ TARGETS=	@TARGETS@ readutil.@SO@
 UNXOBJ=		error.o process.o
 SOCKOBJ=	error.o socket.o nonblockio.o
 CGIOBJ=		error.o form.o cgi.o
-CRYPTOBJ=	error.o crypt.o
+CRYPTOBJ=	error.o crypt.o md5.o md5passwd.o
 MEMOBJ=		error.o memfile.o
 MIMEOBJ=	error.o mime.o
 TIMEOBJ=	error.o time.o
@@ -124,7 +124,7 @@ uninstall::
 # Testing
 ################################################################
 
-check:		check-socket check-memfile
+check:		check-socket check-memfile check-unit
 
 torture:	torture-socket
 
@@ -137,6 +137,8 @@ torture-socket::
 check-memfile::
 		$(PL) -q -f testmemfile.pl -F none -g test,halt -t 'halt(1)'
 
+check-unit::
+		$(PL) -q -f test.pl -g true -t run_tests
 
 ################################################################
 # Documentation

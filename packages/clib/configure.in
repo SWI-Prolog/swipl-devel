@@ -65,7 +65,7 @@ CMFLAGS=-fpic
 
 SO="$PLSOEXT"
 
-TARGETS="random.$SO unix.$SO socket.$SO cgi.$SO memfile.$SO files.$SO mime.$SO"
+TARGETS="random.$SO unix.$SO socket.$SO cgi.$SO memfile.$SO files.$SO mime.$SO crypt.$SO"
 
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
@@ -179,12 +179,6 @@ if test "$ac_cv_func_getrlimit" = "yes"; then
   TARGETS="$TARGETS rlimit.$SO"
 else
   "WARNING: no getrlimit(); dropping rlimit.pl from targets"
-fi
-
-if test "$ac_cv_func_crypt" = "yes"; then
-  TARGETS="$TARGETS crypt.$SO"
-else
-  "WARNING: no crypt(); dropping crypt.pl from targets"
 fi
 
 PLTARGETS=`echo $TARGETS | sed -e "s/\.$SO/.pl/g" -e "s/files.pl/filesex.pl/"`
