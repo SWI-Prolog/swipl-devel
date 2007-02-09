@@ -162,6 +162,19 @@ http_reply(moved(To), Out, HrdExtra) :- !,
 	phrase(reply_header(moved(To, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
+http_reply(moved_temporary(To), Out, HrdExtra) :- !,
+	phrase(page([ title('302 Moved Temporary')
+		    ],
+		    [ h1('Moved Temporary'),
+		      p(['The document is currently ',
+			 a(href(To), ' Here')
+			]),
+		      address(httpd)
+		    ]),
+	       HTML),
+	phrase(reply_header(moved_temporary(To, HTML), HrdExtra), Header),
+	format(Out, '~s', [Header]),
+	print_html(Out, HTML).
 http_reply(see_other(To),Out,HdrExtra) :- !,
        phrase(page([ title('303 See Other')
                     ],
@@ -473,6 +486,14 @@ reply_header(moved(To, Tokens), HdrExtra) -->
 	content_length(html(Tokens)),
 	content_type(text/html),
 	"\r\n".
+reply_header(moved_temporary(To, Tokens), HdrExtra) -->
+	vstatus(moved_temporary),
+	date(now),
+	header_field('Location', To),
+	header_fields(HdrExtra),
+	content_length(html(Tokens)),
+	content_type(text/html),
+	"\r\n".
 reply_header(see_other(To,Tokens),HdrExtra) -->
       vstatus(see_other),
       date(now),
@@ -504,15 +525,16 @@ vstatus(Status) -->
 	status_comment(Status),
 	"\r\n".
 
-status_number(continue)	    --> "100".
-status_number(ok)	    --> "200".
-status_number(moved)	    --> "301".
-status_number(see_other)    --> "303".
-status_number(not_modified) --> "304". 
-status_number(not_found)    --> "404".
-status_number(forbidden)    --> "403".
-status_number(authorise)    --> "401".
-status_number(server_error) --> "500".
+status_number(continue)	       --> "100".
+status_number(ok)	       --> "200".
+status_number(moved)	       --> "301".
+status_number(moved_temporary) --> "302".
+status_number(see_other)       --> "303".
+status_number(not_modified)    --> "304". 
+status_number(not_found)       --> "404".
+status_number(forbidden)       --> "403".
+status_number(authorise)       --> "401".
+status_number(server_error)    --> "500".
 
 status_comment(continue) -->
 	"Continue".

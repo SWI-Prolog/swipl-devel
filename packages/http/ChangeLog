@@ -1,3 +1,7 @@
+Feb 9, 2007
+
+  * ADDED: Support for 302 (moved temporary) HTTP replies to the server.
+
 Feb 8, 2007
 
   * ADDED: Map existence_error(http_location, URL) and 
