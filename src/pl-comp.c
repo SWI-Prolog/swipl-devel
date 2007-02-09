@@ -1743,15 +1743,24 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
       size_t  n = wsizeofInd(*p);
 
       if ( n == sizeof(int64_t)/sizeof(word) )
-      { int64_t val = *(int64_t*)(p+1);
+      { 
 #if SIZEOF_VOIDP == 8
+	int64_t val = *(int64_t*)(p+1);
 	Output_1(ci, A_INTEGER, val);
 #else
-        if ( val >= LONG_MIN && val <= LONG_MAX )
-	{ Output_1(ci, A_INTEGER, (word)val);
+	union
+	{ int64_t val;
+	  word w[WORDS_PER_INT64];
+	} cvt;
+	Word vp = cvt.w;
+
+	cpInt64Data(vp, p+1);
+
+        if ( cvt.val >= LONG_MIN && cvt.val <= LONG_MAX )
+	{ Output_1(ci, A_INTEGER, (word)cvt.val);
 	} else
 	{ Output_0(ci, A_INT64);
-	  Output_n(ci, (Word)&val, WORDS_PER_INT64);
+	  Output_n(ci, cvt.w, WORDS_PER_INT64);
 	}
 #endif
       } else				/* GMP */
