@@ -560,7 +560,7 @@ authenticate(Method, '') --> !,
 	atom(Method).
 authenticate(Method, Realm) -->
 	authenticate(Method, ''),
-	"Realm=\"", atom(Realm), "\"".
+	" Realm=\"", atom(Realm), "\"\r\n".
 
 date(Time) -->
 	"Date: ",
