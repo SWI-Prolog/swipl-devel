@@ -340,7 +340,7 @@ reply(/, _) :-
 	ensure_slash_end(Dir0, Dir1),
 	doc_file_href(Dir1, Ref0),
 	atom_concat(Ref0, 'index.html', Index),
-	throw(http_reply(moved(Index))).
+	throw(http_reply(see_other(Index))).
 
 ensure_slash_end(Dir, Dir) :-
 	sub_atom(Dir, _, _, 0, /), !.

@@ -1,3 +1,7 @@
+Feb 9, 2007
+
+* FIXED: Use HTTP 303 for initial redirection to avoid old redirects.
+
 Jan 3, 2007
 
 * FIXED: Section handling of the manual
