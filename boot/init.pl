@@ -1497,6 +1497,9 @@ expand_term(Term, Term).
 '$expand_clauses'([H0|T0], [H|T]) :- !,
 	'$expand_clauses'(H0, H),
 	'$expand_clauses'(T0, T).
+'$expand_clauses'('$source_location'(File, Line):Clause0,
+		  '$source_location'(File, Line):Clause) :- !,
+	'$expand_clauses'(Clause0, Clause).
 '$expand_clauses'((Head :- Body), (Head :- ExpandedBody)) :-
 	nonvar(Body), !,
 	expand_goal(Body,  ExpandedBody).

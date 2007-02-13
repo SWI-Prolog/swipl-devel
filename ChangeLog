@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Allow for goal_expansion in clauses with source-location.
+    Tom Schrijvers.
+
   * FIXED: set_stream_position/2.   Sergey Tikhonov.
 
   * FIXED: Errornous translation of p --> { _ = 123 }.   Alexey Ilyukhin.
