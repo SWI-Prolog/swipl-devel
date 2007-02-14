@@ -2824,7 +2824,7 @@ stream_reposition_prop(IOSTREAM *s, term_t prop ARG_LD)
     int fd = Sfileno(s);
     struct stat buf;
 
-    if ( fstat(fd, &buf) == 0 && (buf.st_mode & S_IFMT) == S_IFREG )
+    if ( fstat(fd, &buf) == 0 && S_ISREG(buf.st_mode) )
       val = ATOM_true;
     else
       val = ATOM_false;

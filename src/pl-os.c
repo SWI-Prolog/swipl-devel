@@ -792,8 +792,7 @@ ExistsFile(const char *path)
 #if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
-  if ( statfunc(OsPath(path, tmp), &buf) == -1 ||
-       (buf.st_mode & S_IFMT) != S_IFREG )
+  if ( statfunc(OsPath(path, tmp), &buf) == -1 || !S_ISREG(buf.st_mode) )
   { DEBUG(2, perror(tmp));
     fail;
   }
@@ -861,7 +860,7 @@ ExistsDirectory(const char *path)
   if ( statfunc(ospath, &buf) < 0 )
     fail;
 
-  if ( (buf.st_mode & S_IFMT) == S_IFDIR )
+  if ( S_ISDIR(buf.st_mode) )
     succeed;
 
   fail;
@@ -2788,9 +2787,9 @@ static char *
 okToExec(const char *s)
 { struct stat stbuff;
 
-  if (statfunc(s, &stbuff) == 0 &&			/* stat it */
-     (stbuff.st_mode & S_IFMT) == S_IFREG &&	/* check for file */
-     access(s, X_OK) == 0)			/* can be executed? */
+  if (statfunc(s, &stbuff) == 0 &&	/* stat it */
+     S_ISREG(stbuff.st_mode) &&		/* check for file */
+     access(s, X_OK) == 0)		/* can be executed? */
     return (char *)s;
   else
     return (char *) NULL;

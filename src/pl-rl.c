@@ -271,7 +271,7 @@ rl_sighandler(int sig)
       if ( func == SIG_DFL )
       { unblockSignal(sig);
 	DEBUG(3, Sdprintf("Re-sending signal\n"));
-	kill(getpid(), sig);
+	raise(sig);			/* was: kill(getpid(), sig); */
       } else if ( func != SIG_IGN )
       { (*func)(sig);
       }
