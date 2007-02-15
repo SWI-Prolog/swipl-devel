@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Missing errno.h in pl-text.c.  Keri Harris.
+
   * PORT: A few minor POSIX compliance enhancements.  Richard O'Keefe.
 
   * FIXED: Allow for goal_expansion in clauses with source-location.
