@@ -929,7 +929,7 @@ loadPredicateFlags(Definition def, IOSTREAM *fd, int skip ARG_LD)
   { int	flags = getInt(fd);
 
     if ( !skip )
-    { uintptr_t lflags = 0L;
+    { unsigned long lflags = 0L;
 
       if ( flags & PRED_SYSTEM )
 	lflags |= SYSTEM;
