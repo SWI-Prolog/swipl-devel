@@ -48,12 +48,6 @@ lookupProcedure(functor_t f, Module m)
   Definition def;
   Symbol s;
   
-  if ( streq(stringAtom(valueFunctor(f)->name), "mike") )
-  { Sdprintf("Creating mike/0\n");
-    trap_gdb();
-  }
-
-
   LOCKMODULE(m);
   if ( (s = lookupHTable(m->procedures, (void *)f)) )
   { DEBUG(3, Sdprintf("lookupProcedure() --> %s\n", procedureName(s->value)));
