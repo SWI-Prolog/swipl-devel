@@ -371,7 +371,7 @@ idirs::
 
 
 iboot::		
-		for f in $(PLSRC); do $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/boot; done
+		for f in $(PLINIT) $(PLSRC); do $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/boot; done
 
 ilib:		iclp iunicode
 		for f in $(PLLIBS); do \
