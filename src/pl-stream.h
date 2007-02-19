@@ -322,6 +322,7 @@ PL_EXPORT(void)		Sreset(void);
 PL_EXPORT(int)		S__fupdatefilepos(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fupdatefilepos_getc(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fillbuf(IOSTREAM *s);
+PL_EXPORT(int)		Sunit_size(IOSTREAM *s);
 					/* byte I/O */
 PL_EXPORT(int)		Sputc(int c, IOSTREAM *s);
 PL_EXPORT(int)		Sfgetc(IOSTREAM *s);

@@ -1362,7 +1362,7 @@ Sflush(IOSTREAM *s)
 		 *	      SEEK		*
 		 *******************************/
 
-static int
+int
 Sunit_size(IOSTREAM *s)
 { switch(s->encoding)
   { case ENC_UNKNOWN:
@@ -1415,6 +1415,10 @@ Ssize(IOSTREAM *s)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Sseek64(IOSTREAM *s, int64_t pos, int whence)
+
+Re-position the stream to byte-no 'pos'.
+
 Maybe we should optimise this to become block-aligned?  Or can we leave
 this to read/write?
 
@@ -1432,10 +1436,10 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
       char *nbufp = (char *)-1;
     
       if ( whence == SIO_SEEK_CUR )
-      { nbufp = s->bufp + pos*Sunit_size(s);
+      { nbufp = s->bufp + pos;
 	newpos = now + pos;
       } else if ( whence == SIO_SEEK_SET )
-      { nbufp = s->bufp + (pos - now)*Sunit_size(s);
+      { nbufp = s->bufp + (pos - now);
 	newpos = pos;
       } else
 	newpos = -1;			/* should not happen */
@@ -1465,7 +1469,6 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
     whence = SIO_SEEK_SET;
   }
   
-  pos *= Sunit_size(s);
   if ( s->functions->seek64 )
     pos = (*s->functions->seek64)(s->handle, pos, whence);
   else if ( pos <= LONG_MAX )
@@ -1474,7 +1477,6 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
   { errno = EINVAL;
     return -1;
   }
-  pos /= Sunit_size(s);
 
 update:
   s->flags &= ~SIO_FEOF;		/* not on eof of file anymore */
@@ -1496,10 +1498,14 @@ Sseek(IOSTREAM *s, long pos, int whence)
 
 
 
+/* Stell64(IOSTREAM *s) returns the current position in the file in
+   bytes
+*/
+
 int64_t
 Stell64(IOSTREAM *s)
 { if ( s->position )
-  { return s->position->byteno/Sunit_size(s);
+  { return s->position->byteno;
   } else if ( s->functions->seek || s->functions->seek64 )
   { int64_t pos;
 
@@ -1507,7 +1513,6 @@ Stell64(IOSTREAM *s)
       pos = (*s->functions->seek64)(s->handle, 0L, SIO_SEEK_CUR);
     else
       pos = (*s->functions->seek)(s->handle, 0L, SIO_SEEK_CUR);
-    pos /= Sunit_size(s);
 
     if ( s->buffer )			/* open */
     { int64_t off = s->bufp - s->buffer;
@@ -1515,7 +1520,7 @@ Stell64(IOSTREAM *s)
       if ( s->flags & SIO_INPUT )
 	off -= s->limitp - s->buffer;
 
-      pos += off/Sunit_size(s);
+      pos += off;
     }
 
     return pos;

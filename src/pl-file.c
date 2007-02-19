@@ -3261,15 +3261,16 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
   else if ( m == ATOM_eof )
     whence = SIO_SEEK_END;
   else
-  { badmethod:
     return PL_error("seek", 4, NULL, ERR_DOMAIN, ATOM_seek_method, method);
-  }
   
   if ( !PL_get_int64(offset, &off) )
     return PL_error("seek", 4, NULL, ERR_DOMAIN, ATOM_integer, offset);
 
   if ( PL_get_stream_handle(stream, &s) )
-  { if ( Sseek64(s, off, whence) < 0 )
+  { int unit = Sunit_size(s);
+
+    off *= unit;
+    if ( Sseek64(s, off, whence) < 0 )
     { PL_error("seek", 4, OsError(), ERR_PERMISSION,
 	       ATOM_reposition, ATOM_stream, stream);
       releaseStream(s);
@@ -3278,6 +3279,8 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
 
     new = Stell64(s);
     releaseStream(s);
+    new /= unit;
+
     return PL_unify_int64(newloc, new);
   }
 
