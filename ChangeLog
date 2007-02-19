@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Stream re-positioning bug.  Mostly affects Windows, but
+    also other systems when using variable-length multi-byte encoding
+    such as UTF-8.  Jeff Rose.
+
   * PORT: Missing errno.h in pl-text.c.  Keri Harris.
 
   * PORT: A few minor POSIX compliance enhancements.  Richard O'Keefe.
