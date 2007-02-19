@@ -139,10 +139,10 @@ $(OUTDIRS):
 		if not exist "$@/$(NULL)" $(MKDIR) "$@"
 
 subdirs:	$(OUTDIRS)
-		chdir rc & $(MAKE)
-		chdir libtai & $(MAKE)
 		chdir win32\uxnt & $(MAKE)
 		chdir win32\console & $(MAKE)
+		chdir rc & $(MAKE)
+		chdir libtai & $(MAKE)
 
 index:
 		$(PLCON) -x $(STARTUPPATH) \
