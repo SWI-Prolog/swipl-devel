@@ -2357,20 +2357,29 @@ line_position/2, character_count/2 and byte_count/2.%
 
     \predicate{seek}{4}{+Stream, +Offset, +Method, -NewLocation}
 Reposition the current point of the given \arg{Stream}.  \arg{Method}
-is one of \const{bof}, \arg{current} or \arg{eof}, indicating
+is one of \const{bof}, \const{current} or \const{eof}, indicating
 positioning relative to the start, current point or end of the
 underlying object.  \arg{NewLocation} is unified with the new offset,
 relative to the start of the stream.
 
-If the seek modifies the current location, the line number and character
-position in the line are set to 0.
+Positions are counted in `units'. A unit is 1 byte, except for
+text-files using 2-byte Unicode encoding (2 bytes) or \emph{wchar}
+encoding (sizeof(wchar_t)). The latter guarantees comfortable
+interaction with wide-character text-objects. Otherwise, the use of
+seek/4 on non-binary files (see open/4) is of limited use, especially
+when using multi-byte text-encodings (e.g.\ UTF-8) or multi-byte newline
+files (e.g.\ DOS/Windows). On text-files, SWI-Prolog offers reliable
+backup to an old position using stream_property/2 and
+set_stream_position/2. Skipping $N$ character codes is achieved calling
+get_code/2 $N$ times or using copy_stream_data/3, directing the output
+to a null-stream (see open_null_stream/1). If the seek modifies the
+current location, the line number and character position in the line are
+set to 0.
 
 If the stream cannot be repositioned, a \const{reposition} error is
 raised. The predicate seek/4 is compatible to Quintus Prolog, though the
 error conditions and signalling is ISO compliant. See also
-stream_property/2 and set_stream_position/2.  Please note that the use
-of seek/4 on non-binary files (see open/4) is of limited use as the
-referred positions are byte offsets.
+stream_property/2 and set_stream_position/2.
 
     \predicate{set_stream}{2}{+Stream, +Attribute}
 Modify an attribute of an existing stream. \arg{Attribute} specifies
