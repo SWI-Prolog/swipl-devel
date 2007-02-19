@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Possible memory corruption in quick-load-file/saved-state
+    handling.  Mike Elston.
+
   * FIXED: Possible assertion failure in pl-stream.c.  Jochem Liem.
 
   * FIXED: Stream re-positioning bug.  Mostly affects Windows, but

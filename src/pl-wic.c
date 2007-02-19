@@ -2013,6 +2013,7 @@ writeSourceMarks(IOSTREAM *s ARG_LD)
     freeHeap(pm, sizeof(*pm));
     n++;
   }
+  source_mark_head = source_mark_tail = NULL;
   
   DEBUG(1, Sdprintf("Written %d marks\n", n));
   putLong(n, s);
