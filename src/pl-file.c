@@ -3251,8 +3251,8 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
   int64_t off, new;
   IOSTREAM *s;
 
-  if ( !(PL_get_atom(method, &m)) )
-    goto badmethod;
+  if ( !(PL_get_atom_ex(method, &m)) )
+    return FALSE;
 
   if ( m == ATOM_bof )
     whence = SIO_SEEK_SET;
