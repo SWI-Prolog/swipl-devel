@@ -2814,6 +2814,10 @@ stream_eof_action_prop(IOSTREAM *s, term_t prop ARG_LD)
 #include <sys/stat.h>
 #endif
 
+#if !defined(S_ISREG) && defined(S_IFREG)
+#define S_ISREG(m) (m&S_IFREG)
+#endif
+
 static int
 stream_reposition_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t val;
