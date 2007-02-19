@@ -259,7 +259,7 @@ StryLock(IOSTREAM *s)
 { if ( !STRYLOCK(s) )
     return -1;
 
-  if ( --s->locks == 0 )
+  if ( !s->locks++ )
   { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
       return S__setbuf(s, NULL, TMPBUFSIZE);
   }

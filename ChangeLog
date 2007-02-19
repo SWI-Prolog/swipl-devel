@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Possible assertion failure in pl-stream.c.  Jochem Liem.
+
   * FIXED: Stream re-positioning bug.  Mostly affects Windows, but
     also other systems when using variable-length multi-byte encoding
     such as UTF-8.  Jeff Rose.
