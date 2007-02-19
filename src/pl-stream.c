@@ -1481,7 +1481,8 @@ update:
 
   if ( s->position )
   { s->flags |= (SIO_NOLINENO|SIO_NOLINEPOS); /* no update this */
-    s->position->charno = pos;
+    s->position->byteno = pos;
+    s->position->charno = pos/Sunit_size(s); /* compatibility */
   }
 
   return 0;
