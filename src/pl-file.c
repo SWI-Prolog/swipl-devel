@@ -3228,8 +3228,7 @@ pl_set_stream_position(term_t stream, term_t pos)
 		    ERR_DOMAIN, ATOM_stream_position, pos);
   }
 
-					/* TBD: use byteno */
-  if ( Sseek64(s, charno, SIO_SEEK_SET) != 0 )
+  if ( Sseek64(s, byteno, SIO_SEEK_SET) != 0 )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_reposition, ATOM_stream, stream);
 

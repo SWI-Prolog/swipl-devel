@@ -1498,7 +1498,7 @@ Sseek(IOSTREAM *s, long pos, int whence)
 int64_t
 Stell64(IOSTREAM *s)
 { if ( s->position )
-  { return s->position->charno;
+  { return s->position->byteno/Sunit_size(s);
   } else if ( s->functions->seek || s->functions->seek64 )
   { int64_t pos;
 
