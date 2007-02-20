@@ -73,8 +73,7 @@ pl_crypt(term_t passwd, term_t encrypted)
 		    1, passwd, "text");
 
   if ( PL_get_chars(encrypted, &e, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
-  { int rval;
-    char *s2;
+  { char *s2;
     
     if ( strncmp(e, "$1$", 3) == 0 )	/* MD5 Hash */
     { char *p = strchr(e+3, '$');
@@ -92,6 +91,8 @@ pl_crypt(term_t passwd, term_t encrypted)
     } else
     {
 #ifdef HAVE_CRYPT
+      int rval;
+    
       salt[0] = e[0];
       salt[1] = e[1];
       salt[2] = '\0';
