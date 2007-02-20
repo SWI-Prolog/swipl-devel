@@ -8,6 +8,18 @@ format=dvi
 rerun='Rerun to get cross-references right'
 maxruns=4
 
+function texclean
+{ rm -f *.idx *.ind *.ilg *.aux *.log *.lof *.out *.toc
+}
+
+# make runtex --clean work without GNU getopt
+case "$1" in
+	--clean)
+	texclean
+	exit 0
+	;;
+esac
+
 appbase=`dirname $0`
 case "$appbase" in
     /*)
@@ -44,10 +56,6 @@ function addinput
 if [ -d $appbase ]; then
   addinput $appbase
 fi
-
-function texclean
-{ rm -f *.idx *.ind *.ilg *.aux *.log *.lof *.out *.toc
-}
 
 case "`uname`" in
    *Darwin*)	PATH=/opt/local/bin:$PATH 	# We need getopt from Darwinports
