@@ -19,6 +19,7 @@ DESTDIR=
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
+RUNTEX=../../man/runtex
 LATEX=latex
 DOC=http
 TEX=$(DOC).tex
@@ -93,7 +94,7 @@ $(HTML):	$(TEX)
 		rmdir html
 
 $(PDF):		$(TEX)
-		../../man/runtex --pdf $(DOC)
+		$(RUNTEXT) --pdf $(DOC)
 
 $(TEX):		$(DOCTOTEX)
 
@@ -109,7 +110,7 @@ $(TEX):		$(DOCTOTEX)
 clean:
 		rm -f *~ *% config.log
 		rm -f $(TEX)
-		runtex --clean $(DOC)
+		$(RUNTEXT) --clean $(DOC)
 		rm -rf html
 
 distclean:	clean
