@@ -23,6 +23,7 @@ CGIGRP=www
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
+RUNTEX=../../../man/runtex
 LATEX=latex
 DOC=rdf2pl
 TEX=$(DOC).tex
@@ -104,7 +105,7 @@ $(HTML):	$(TEX)
 		mv html/index.html $@
 
 $(PDF):		$(TEX)
-		../../../man/runtex --pdf $(DOC)
+		$(RUNTEX) --pdf $(DOC)
 
 $(TEX):		$(DOCTOTEX)
 
@@ -123,4 +124,4 @@ clean:
 distclean:	clean
 		rm -f $(TARGETS) config.h config.cache config.status Makefile
 		rm -f $(TEX)
-		runtex --clean $(DOC)
+		$(RUNTEX) --clean $(DOC)
