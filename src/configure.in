@@ -188,18 +188,18 @@ AC_PROG_AWK
 AC_PATH_PROG(SED, sed, /bin/sed)
 AC_PROG_INSTALL
 dnl Make all paths absolute as we are running some of these scripts
-dnl from different locations.
+dnl from different locations.  Note this can also be ../src/install-sh
 case "$INSTALL" in
-    ./*) INSTALL="`pwd`/$INSTALL" ;;
+    .*) INSTALL="`pwd`/$INSTALL" ;;
 esac
 case "$INSTALL_PROGRAM" in
-    ./*) INSTALL_PROGRAM="`pwd`/$INSTALL_PROGRAM" ;;
+    .*) INSTALL_PROGRAM="`pwd`/$INSTALL_PROGRAM" ;;
 esac
 case "$INSTALL_SCRIPT" in
-    ./*) INSTALL_SCRIPT="`pwd`/$INSTALL_SCRIPT" ;;
+    .*) INSTALL_SCRIPT="`pwd`/$INSTALL_SCRIPT" ;;
 esac
 case "$INSTALL_DATA" in
-    ./*) INSTALL_DATA="`pwd`/$INSTALL_DATA" ;;
+    .*) INSTALL_DATA="`pwd`/$INSTALL_DATA" ;;
 esac
 AC_PROG_CPP
 AC_DEFINE_UNQUOTED(PROG_CPP, "$CPP",

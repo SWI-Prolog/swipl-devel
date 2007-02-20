@@ -2863,16 +2863,16 @@ test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL}'
 test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 case "$INSTALL" in
-    ./*) INSTALL="`pwd`/$INSTALL" ;;
+    .*) INSTALL="`pwd`/$INSTALL" ;;
 esac
 case "$INSTALL_PROGRAM" in
-    ./*) INSTALL_PROGRAM="`pwd`/$INSTALL_PROGRAM" ;;
+    .*) INSTALL_PROGRAM="`pwd`/$INSTALL_PROGRAM" ;;
 esac
 case "$INSTALL_SCRIPT" in
-    ./*) INSTALL_SCRIPT="`pwd`/$INSTALL_SCRIPT" ;;
+    .*) INSTALL_SCRIPT="`pwd`/$INSTALL_SCRIPT" ;;
 esac
 case "$INSTALL_DATA" in
-    ./*) INSTALL_DATA="`pwd`/$INSTALL_DATA" ;;
+    .*) INSTALL_DATA="`pwd`/$INSTALL_DATA" ;;
 esac
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
