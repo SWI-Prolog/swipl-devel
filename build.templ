@@ -50,7 +50,7 @@ if [ "$makeonly" = false ]; then
 # export PKG=
 
 # [EDIT] Packages to skip.  Leaving it blank compiles all packages.
-# export DISABLE_PKGS=jpl ssl odbc
+# export DISABLE_PKGS="jpl ssl odbc"
 
   ./configure --prefix=$PREFIX --with-world 2>&1 | tee configure.out
 fi
