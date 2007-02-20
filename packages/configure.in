@@ -57,7 +57,7 @@ if [ -z "$PKG" ]; then
   PKG="clib cpp odbc table xpce sgml sgml/RDF semweb http chr clpqr nlp ssl pldoc plunit jpl zlib"
 fi
 
-if [ ! -z "$DISABLE_PKGS"; then
+if [ ! -z "$DISABLE_PKGS" ]; then
   for pkg in $DISABLE_PKGS; do
     delpkg $pkg
   done
