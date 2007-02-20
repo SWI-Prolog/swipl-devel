@@ -48,9 +48,7 @@ typedef unsigned long uintptr_t;
 #  endif
 typedef intptr_t ssize_t;		/* signed version of size_t */
 #else
-#  if defined(HAVE_CONFIG_H) || defined(RC_KERNEL)
-#    include <config.h>
-#  endif
+#include <config.h>
 #include <unistd.h>
 #include <inttypes.h>			/* more portable than stdint.h */
 #endif

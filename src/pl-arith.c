@@ -579,6 +579,11 @@ check_float(double f)
     case FP_PINF:
       return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
       break;
+    case FP_NDENORM:			/* pos/neg denormalized non-zero */
+    case FP_PDENORM:
+    case FP_NZERO:			/* pos/neg zero */
+    case FP_PZERO:
+      break;
   }
 #else
 #ifdef HAVE__FPCLASS
