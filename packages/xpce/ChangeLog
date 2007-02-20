@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: PceEmacs: variable-marking inside brace-terms.
+
 VERSION 6.6.27, distributed with SWI-Prolog 5.6.27
 ==================================================
 
