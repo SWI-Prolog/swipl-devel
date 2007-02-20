@@ -1152,6 +1152,8 @@ find_variable(term_position(_,_,_,_,ArgPos), Compound, Caret, Var) :-
 find_variable(list_position(_,_,EP,TP), List, Caret, Var) :-
 	list_pos(EP, TP, List, P, E),
 	find_variable(P, E, Caret, Var).
+find_variable(brace_term_position(_,_,TP), {Term}, Caret, Var) :-
+	find_variable(TP, Term, Caret, Var).
 
 list_pos([], P, T, P, T) :-
 	P \== none, !.
@@ -1172,6 +1174,8 @@ subterm_position(Search, Term, term_position(_,_,_,_,ArgPos), Pos) :- !,
 subterm_position(Search, List, list_position(_,_,EP,TP), Pos) :-
 	list_pos(EP, TP, List, P, E),
 	subterm_position(Search, E, P, Pos).
+subterm_position(Search, {Term}, brace_term_position(_,_,TP), Pos) :-
+	subterm_position(Search, Term, TP, Pos).
 
 
 		 /*******************************
