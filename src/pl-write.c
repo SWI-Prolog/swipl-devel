@@ -671,6 +671,8 @@ writePrimitive(term_t t, write_options *options)
         break;
       case FP_NDENORM:			/* pos/neg denormalized non-zero */
       case FP_PDENORM:
+      case FP_NNORM:			/* pos/neg normalized non-zero */
+      case FP_PNORM:
       case FP_NZERO:			/* pos/neg zero */
       case FP_PZERO:
 	break;
