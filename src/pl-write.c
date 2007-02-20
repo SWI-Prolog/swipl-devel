@@ -669,6 +669,11 @@ writePrimitive(term_t t, write_options *options)
       case FP_PINF:
 	s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
         break;
+      case FP_NDENORM:			/* pos/neg denormalized non-zero */
+      case FP_PDENORM:
+      case FP_NZERO:			/* pos/neg zero */
+      case FP_PZERO:
+	break;
     }
 #else
 #ifdef HAVE__FPCLASS
