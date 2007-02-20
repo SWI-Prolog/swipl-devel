@@ -19,17 +19,7 @@ PREFIX=$HOME
 
 MAKE=make
 
-V=`cat VERSION`
-makeonly=false
-
-case "$1" in
-   --make)	makeonly=true
-		;;
-   *)		;;
-esac
-
-if [ "$makeonly" = false ]; then
-# [EDIT] Compiler options.
+# [EDIT] Compiler and options.
 # 
 #	CC:	 Which C-compiler to use
 #	COFLAGS: Flags for the optimizer such as "-O3" or "-g"
@@ -52,6 +42,20 @@ if [ "$makeonly" = false ]; then
 # [EDIT] Packages to skip.  Leaving it blank compiles all packages.
 # export DISABLE_PKGS="jpl ssl odbc"
 
+################################################################
+# No edit should be needed below this line
+################################################################
+
+V=`cat VERSION`
+makeonly=false
+
+case "$1" in
+   --make)	makeonly=true
+		;;
+   *)		;;
+esac
+
+if [ "$makeonly" = false ]; then
   ./configure --prefix=$PREFIX --with-world 2>&1 | tee configure.out
 fi
 
