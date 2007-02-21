@@ -202,7 +202,7 @@ typedef struct _plsocket
     struct
     { int bytes;			/* byte count */
       char *buffer;			/* the buffer */
-      int written;
+      size_t written;
       size_t size;			/* buffer size */
     } write;
   } rdata;
@@ -589,6 +589,8 @@ doRequest(plsocket *s)
     case REQ_WRITE:
       if ( s->w32_flags & FD_WRITE )
       { int n;
+	int len = (int)(s->rdata.write.size - s->rdata.write.written);
+
 	s->w32_flags &= ~FD_WRITE;
 
 	if ( true(s, SOCK_WAITING) )
@@ -599,14 +601,16 @@ doRequest(plsocket *s)
 	DEBUG(2, Sdprintf("send() %d bytes\n", s->rdata.write.size));
 	n = send(s->socket,
 		 s->rdata.write.buffer + s->rdata.write.written,
-		 (int)(s->rdata.write.size - s->rdata.write.written),
-		 0);
+		 len, 0);
 	DEBUG(2, Sdprintf("Wrote %d bytes\n", n));
 	if ( n < 0 )
 	{ s->error = WSAGetLastError();
 	  if ( s->error == WSAEWOULDBLOCK )
 	    break;
 	  s->rdata.write.bytes = n;
+	  DEBUG(1, Sdprintf("[%d]: send(%d, %d bytes): %s\n",
+			    PL_thread_self(), s->socket, len,
+			    WinSockError(s->error)));
 	  doneRequest(s);
 	} else
 	  s->error = 0;
@@ -923,7 +927,7 @@ freeSocket(int socket)
   p = &sockets;
 
   for( ; *p; p = &(*p)->next)
-  { if ( (*p)->socket == socket )
+  { if ( (*p)->socket == (SOCKET)socket )
     { plsocket *s = *p;
       
       *p = s->next;
@@ -1689,6 +1693,10 @@ nbio_write(int socket, char *buf, size_t bufSize)
 
       if ( error == WSAEWOULDBLOCK )
 	break;
+
+      DEBUG(1, Sdprintf("[%d]: send(%d, %d bytes): %s\n",
+			PL_thread_self(), socket, (int)bufSize,
+			WinSockError(error)));
 
       return -1;
     }
