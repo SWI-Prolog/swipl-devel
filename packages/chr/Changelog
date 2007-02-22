@@ -1,8 +1,13 @@
-Jan 25, 2006
+Feb 22, 2007
+
+ * LDK: O(1) removal from hashtables, with experimental
+        chr_option(ht_removal,on).
+
+Jan 25, 2007
 
  * PVW: Bugfixes for optional use of CHR constraints in rule guards.
 
-Jan 18, 2006
+Jan 18, 2007
 
   * PVW: Optional use of CHR constraints in rule guards.
 

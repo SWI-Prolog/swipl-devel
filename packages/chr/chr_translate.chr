@@ -2784,10 +2784,24 @@ generate_multi_hash_insert_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodie
 	multi_hash_store_name(FA,Index,StoreName),
 	multi_hash_key_direct(FA,Index,Susp,Key,UsedVars),
 	make_get_store_goal(StoreName,Store,GetStoreGoal),
-	Body =
-	(
+	(   chr_pp_flag(ht_removal,on)
+	->  ht_prev_field(Index,PrevField),
+	    set_dynamic_suspension_term_field(PrevField,FA,NextSusp,Result,
+		SetGoal),
+	    Body =
+	    (
+		GetStoreGoal,
+		insert_ht(Store,Key,Susp,Result),
+		(   Result = [_,NextSusp|_]
+		->  SetGoal
+		;   true
+		)
+	    )	
+	;   Body =
+	    (
 		GetStoreGoal, 
 		insert_ht(Store,Key,Susp)
+	    )
 	),
 	generate_multi_hash_insert_constraint_bodies(Indexes,FA,Susp,Bodies,MoreUsedVars).
 
@@ -3011,11 +3025,38 @@ generate_multi_hash_delete_constraint_bodies([Index|Indexes],C,Head,Susp,VarDict
 	multi_hash_store_name(C,Index,StoreName),
 	multi_hash_key(C,Head,Index,Susp,VarDict,KeyBody,Key),
 	make_get_store_goal(StoreName,Store,GetStoreGoal),
-	Body =
-	(
+	(   chr_pp_flag(ht_removal,on)
+	->  ht_prev_field(Index,PrevField),
+	    get_dynamic_suspension_term_field(PrevField,C,Susp,Prev,GetGoal),
+	    set_dynamic_suspension_term_field(PrevField,C,NextSusp,_,
+		SetGoal1),
+	    set_dynamic_suspension_term_field(PrevField,C,NextSusp,Prev,
+		SetGoal2),
+	    Body =
+	    (
+		GetGoal,
+		(   var(Prev)
+		->  GetStoreGoal,
+		    KeyBody,
+		    delete_first_ht(Store,Key,Values),
+		    (   Values = [NextSusp|_]
+		    ->  SetGoal1
+		    ;   true
+		    )
+		;   Prev = [_,_|Values],
+		    setarg(2,Prev,Values),
+		    (   Values = [NextSusp|_]
+		    ->  SetGoal2
+		    ;   true
+		    )
+		)
+	    )
+	;   Body =
+	    (
 		KeyBody,
 		GetStoreGoal, % nb_getval(StoreName,Store),
 		delete_ht(Store,Key,Susp)
+	    )
 	),
 	generate_multi_hash_delete_constraint_bodies(Indexes,FA,Head,Susp,VarDict,Bodies).
 
@@ -3253,7 +3294,7 @@ multi_hash_via_lookup_name(F/A,Index,Name) :-
 	; is_list(Index) ->
 		atom_concat_list(Index,IndexName)
 	),
-	atom_concat_list(['$via1_multi_hash_',F,(/),A,'-',IndexName],Name).
+	atom_concat_list(['$via1_multi_hash_',F,'___',A,'-',IndexName],Name).
 
 multi_hash_store_name(F/A,Index,Name) :-
 	get_target_module(Mod),		
@@ -3262,7 +3303,7 @@ multi_hash_store_name(F/A,Index,Name) :-
 	; is_list(Index) ->
 		atom_concat_list(Index,IndexName)
 	),
-	atom_concat_list(['$chr_store_multi_hash_',Mod,(:),F,(/),A,'-',IndexName],Name).
+	atom_concat_list(['$chr_store_multi_hash_',Mod,'____',F,'___',A,'-',IndexName],Name).
 
 multi_hash_key(FA,Index,Susp,KeyBody,Key) :-
 	( ( integer(Index) ->
@@ -3337,17 +3378,17 @@ multi_hash_key_args(Index,Head,KeyArgs) :-
 		
 global_list_store_name(F/A,Name) :-
 	get_target_module(Mod),		
-	atom_concat_list(['$chr_store_global_list_',Mod,(:),F,(/),A],Name).
+	atom_concat_list(['$chr_store_global_list_',Mod,'____',F,'___',A],Name).
 global_ground_store_name(F/A,Name) :-
 	get_target_module(Mod),		
-	atom_concat_list(['$chr_store_global_ground_',Mod,(:),F,(/),A],Name).
+	atom_concat_list(['$chr_store_global_ground_',Mod,'____',F,'___',A],Name).
 global_singleton_store_name(F/A,Name) :-
 	get_target_module(Mod),		
-	atom_concat_list(['$chr_store_global_singleton_',Mod,(:),F,(/),A],Name).
+	atom_concat_list(['$chr_store_global_singleton_',Mod,'____',F,'___',A],Name).
 
 identifier_store_name(TypeName,Name) :-
 	get_target_module(Mod),		
-	atom_concat_list(['$chr_identifier_lookup_',Mod,(:),TypeName],Name).
+	atom_concat_list(['$chr_identifier_lookup_',Mod,'____',TypeName],Name).
 	
 :- chr_constraint prolog_global_variable/1.
 :- chr_option(mode,prolog_global_variable(+)).
@@ -7196,7 +7237,7 @@ buildName(Fct,Aty,List,Result) :-
    ( (chr_pp_flag(debugable,on) ; (once((is_stored(Fct/Aty), ( has_active_occurrence(Fct/Aty) ; chr_pp_flag(late_allocation,off)), 
    ( may_trigger(Fct/Aty) ; get_allocation_occurrence(Fct/Aty,AO), get_max_occurrence(Fct/Aty,MO), 
    MO >= AO ) ; List \= [0])) ) ) -> 
-	atom_concat(Fct, (/) ,FctSlash),
+	atom_concat(Fct, '___' ,FctSlash),
 	atomic_concat(FctSlash,Aty,FctSlashAty),
 	buildName_(List,FctSlashAty,Result)
    ;
@@ -7227,7 +7268,7 @@ and_pattern(Pos,Pat) :-
 	Pat is (-1)*(Y + 1).
 
 make_name(Prefix,F/A,Name) :-
-	atom_concat_list([Prefix,F,(/),A],Name).
+	atom_concat_list([Prefix,F,'___',A],Name).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Storetype dependent lookup
@@ -8378,12 +8419,16 @@ suspension_term_base_fields(FA,Fields) :-
 				% 2. State
 				% 3. Propagation History
 				% 4. Global List Prev
-				Fields2 = [global_list_prev]
+				Fields2 = [global_list_prev|Fields3]
 			;
 				% 1. ID
 				% 2. State
 				% 3. Propagation History
-				Fields2 = []
+				Fields2 = Fields3
+			),
+			(   chr_pp_flag(ht_removal,on)
+			->  ht_prev_fields(BasicStoreTypes,Fields3)
+			;   Fields3 = []
 			)
 		; may_trigger(FA) ->
 			% 1. ID
@@ -8403,6 +8448,25 @@ suspension_term_base_fields(FA,Fields) :-
 			% 4. Global List Prev
 			Fields2 = [global_list_prev]
 		)
+	).
+
+ht_prev_fields(Stores,Prevs) :-
+	ht_prev_fields_int(Stores,PrevsList),
+	append(PrevsList,Prevs).
+ht_prev_fields_int([],[]).
+ht_prev_fields_int([H|T],Fields) :-
+	(   H = multi_hash(Indexes)
+	->  maplist(ht_prev_field,Indexes,FH),
+	    Fields = [FH|FT]
+	;   Fields = FT
+	),
+	ht_prev_fields_int(T,FT).
+	
+ht_prev_field(Index,Field) :-
+	(   integer(Index)
+	->  atom_concat('multi_hash_prev-',Index,Field)
+	;   Index = [_|_]
+	->  concat_atom(['multi_hash_prev-'|Index],Field)
 	).
 
 get_static_suspension_term_field(FieldName,FA,StaticSuspension,Field) :-

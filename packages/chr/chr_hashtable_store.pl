@@ -36,7 +36,9 @@
 	[ new_ht/1,
 	  lookup_ht/3,
 	  insert_ht/3,
+	  insert_ht/4,
 	  delete_ht/3,
+	  delete_first_ht/3,
 	  value_ht/2
 	]).
 
@@ -110,6 +112,71 @@ insert_ht(HT,Key,Value) :-
 		expand_ht(HT,_Capacity)
 	;
 		true
+	).
+
+% LDK: insert version with extra argument denoting result
+
+insert_ht(HT,Key,Value,Result) :-
+	HT = ht(Capacity,Load,Table),
+	term_hash(Key,Hash),
+	LookupIndex is (Hash mod Capacity) + 1,
+	arg(LookupIndex,Table,LookupBucket),
+	(   var(LookupBucket)
+	->  Result = [Value],
+	    LookupBucket = Key - Result,
+	    NewLoad is Load + 1
+	;   LookupBucket = K - V
+	->  (   K = Key
+	    ->  Result = [Value|V],
+		setarg(2,LookupBucket,Result),
+		NewLoad = Load
+	    ;   Result = [Value],
+		setarg(LookupIndex,Table,[Key - Result,LookupBucket]),
+		NewLoad is Load + 1
+	    )	
+	;   (   lookup_pair_eq(LookupBucket,Key,Pair)
+	    ->  Pair = _-[Values],
+		Result = [Value|Values],
+		setarg(2,Pair,Result),
+		NewLoad = Load
+	    ;   Result = [Value],
+		setarg(LookupIndex,Table,[Key - Result|LookupBucket]),
+		NewLoad is Load + 1
+	    )
+	),
+	setarg(2,HT,NewLoad),
+	(   NewLoad > Capacity
+	->  expand_ht(HT,_)
+	;   true
+	).
+
+% LDK: deletion of the first element of a bucket
+delete_first_ht(HT,Key,Values) :-
+	HT = ht(Capacity,Load,Table),
+	term_hash(Key,Hash),
+	Index is (Hash mod Capacity) + 1,
+	arg(Index,Table,Bucket),
+	(   Bucket = _-[_|Values]
+	->  (   Values = []
+	    ->  setarg(Index,Table,_),
+		NewLoad is Load - 1
+	    ;   setarg(2,Bucket,Values),
+		NewLoad = Load
+	    )
+	;   lookup_pair_eq(Bucket,Key,Pair)
+	->  Pair = _-[_|Values],
+	    (   Values = []
+	    ->  pairlist_delete_eq(Bucket,Key,NewBucket),
+		(   NewBucket = []
+		->  setarg(Index,Table,_)
+		;   NewBucket = [OtherPair]
+		->  setarg(Index,Table,OtherPair)
+		;   setarg(Index,Table,NewBucket)
+		),
+		NewLoad is Load - 1
+	    ;   setarg(2,Pair,Values),
+		NewLoad = Load
+	    )
 	).
 
 delete_ht(HT,Key,Value) :-
