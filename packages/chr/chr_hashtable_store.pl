@@ -135,7 +135,7 @@ insert_ht(HT,Key,Value,Result) :-
 		NewLoad is Load + 1
 	    )	
 	;   (   lookup_pair_eq(LookupBucket,Key,Pair)
-	    ->  Pair = _-[Values],
+	    ->  Pair = _-Values,
 		Result = [Value|Values],
 		setarg(2,Pair,Result),
 		NewLoad = Load
