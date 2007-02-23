@@ -549,6 +549,7 @@ retry:
       context.engine  = LD;
       context.control = control;
   
+      frame->clause = NULL;
       result = F(h0, argc, &context);
     } else
     { if ( false(def, NONDETERMINISTIC) )
@@ -560,6 +561,7 @@ retry:
 	context.engine  = LD;
 	context.control = control;
 
+	frame->clause = NULL;
 	CALLNDETFN(result, argc, &context);
       }
     }
