@@ -7,6 +7,12 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Possible stream lock underrun in at_end_of_stream/1 if there
+    are errors.
+
+  * FIXED: Possibly incorrect call to foreign cleanup handler after
+    a signalled exception (timeout, thread_signal).
+
   * FIXED: Possible memory corruption in quick-load-file/saved-state
     handling.  Mike Elston.
 
