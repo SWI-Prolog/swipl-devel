@@ -71,7 +71,7 @@ Menus
 The current console provides a menu that can be extended from Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(_DEBUG) && !defined(WIN64)
+#ifdef O_DEBUG_HEAP
 static void initHeapDebug(void);
 #include <crtdbg.h>
 #else

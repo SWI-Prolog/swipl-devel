@@ -445,7 +445,8 @@ S__fillbuf(IOSTREAM *s)
       goto error;			/* error */
     }
   } else
-  { size_t n, len;
+  { ssize_t n;
+    size_t len;
 
     if ( !s->buffer )
     { if ( S__setbuf(s, NULL, 0) < 0 )

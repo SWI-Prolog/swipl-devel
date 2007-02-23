@@ -833,6 +833,7 @@ protocol(const char *str, size_t n)
   if ( LD && (s = getStream(Sprotocol)) )
   { while( n-- > 0 )
       Sputcode(*str++&0xff, s);
+    Sflush(s);
     releaseStream(s);			/* we don not check errors */
   }
 }
