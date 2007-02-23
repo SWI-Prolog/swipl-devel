@@ -3421,9 +3421,10 @@ pl_at_end_of_stream1(term_t stream)
       rval = FALSE;
     }
     
-    releaseStream(s);
     if ( rval && Sferror(s) )		/* due to error */
       return streamStatus(s);
+    else
+      releaseStream(s);
 
     return rval;
   }
