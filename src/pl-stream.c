@@ -117,7 +117,7 @@ int Slinesize = SIO_LINESIZE;		/* Sgets() buffer size */
 static ssize_t	S__flushbuf(IOSTREAM *s);
 static void	run_close_hooks(IOSTREAM *s);
 static int	S__removebuf(IOSTREAM *s);
-
+static int	S__seterror(IOSTREAM *s);
 
 #ifdef O_PLMT
 #define SLOCK(s)    if ( s->mutex ) recursiveMutexLock(s->mutex)
@@ -314,7 +314,7 @@ S__flushbuf(IOSTREAM *s)
     if ( n > 0 )			/* wrote some */
     { from += n;
     } else if ( n < 0 )			/* error */
-    { s->flags |= SIO_FERR;
+    { S__seterror(s);
       rc = -1;
       goto out;
     } else				/* wrote nothing? */
@@ -378,7 +378,7 @@ S__fillbuf(IOSTREAM *s)
 
   if ( s->flags & (SIO_FEOF|SIO_FERR) )
   { s->flags |= SIO_FEOF2;		/* reading past eof */
-    goto error;
+    return -1;
   }
 
 #ifdef HAVE_SELECT
@@ -407,7 +407,7 @@ S__fillbuf(IOSTREAM *s)
 	if ( rc < 0 && errno == EINTR )
 	{ if ( PL_handle_signals() < 0 )
 	  { errno = EPLEXCEPTION;
-	    goto error;
+	    return -1;
 	  }
 
 	  continue;
@@ -418,12 +418,12 @@ S__fillbuf(IOSTREAM *s)
 
       if ( rc == 0 )
       { s->flags |= (SIO_TIMEOUT|SIO_FERR);
-	goto error;
+	return -1;
       }
     } else
     { errno = EPERM;			/* no permission to select */
       s->flags |= SIO_FERR;
-      goto error;
+      return -1;
     }
   }
 #endif
@@ -435,14 +435,14 @@ S__fillbuf(IOSTREAM *s)
 
     if ( (n=(*s->functions->read)(s->handle, &chr, 1)) == 1 )
     { c = char_to_int(chr);
-      goto ok;
+      return c;
     } else if ( n == 0 )
     { if ( !(s->flags & SIO_NOFEOF) )
 	s->flags |= SIO_FEOF;
-      goto error;
+      return -1;
     } else
-    { s->flags |= SIO_FERR;
-      goto error;			/* error */
+    { S__seterror(s);
+      return -1;
     }
   } else
   { ssize_t n;
@@ -450,7 +450,7 @@ S__fillbuf(IOSTREAM *s)
 
     if ( !s->buffer )
     { if ( S__setbuf(s, NULL, 0) < 0 )
-	goto error;
+	return -1;
       s->bufp = s->limitp = s->buffer;
       len = s->bufsize;
     } else if ( s->bufp < s->limitp )
@@ -467,29 +467,24 @@ S__fillbuf(IOSTREAM *s)
     if ( (n=(*s->functions->read)(s->handle, s->limitp, len)) > 0 )
     { s->limitp += n;
       c = char_to_int(*s->bufp++);
-      goto ok;
+      return c;
     } else
     { if ( n == 0 )
       { if ( !(s->flags & SIO_NOFEOF) )
 	  s->flags |= SIO_FEOF;
-	goto error;
+	return -1;
 #ifdef EWOULDBLOCK
       } else if ( errno == EWOULDBLOCK )
       { s->bufp = s->buffer;
 	s->limitp = s->buffer;
-	goto error;
+	return -1;
 #endif
       } else
-      { s->flags |= SIO_FERR;
-	goto error;
+      { S__seterror(s);
+	return -1;
       }
     }
   }
-
-error:
-  c = -1;
-ok:
-  return c;
 }
 
 		 /*******************************
@@ -1280,6 +1275,24 @@ Sfeof(IOSTREAM *s)
   return FALSE;
 }
     
+
+static int
+S__seterror(IOSTREAM *s)
+{ if ( s->functions->control )
+  { char *msg;
+
+    if ( (*s->functions->control)(s->handle,
+				  SIO_LASTERROR, 
+				  (void *)&msg) == 0 )
+    { Sseterr(s, SIO_FERR, msg);
+    }
+  } else
+  { s->flags |= SIO_FERR;
+  }
+
+  return 0;
+}
+
 
 int
 Sferror(IOSTREAM *s)
