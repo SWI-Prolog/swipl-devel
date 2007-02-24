@@ -2631,7 +2631,7 @@ Sfdopen(int fd, const char *type)
   return Snew((void *)lfd, flags, &Sfilefunctions);
 }
 
-/* MT: as intptr_t as s is valid, this should be ok
+/* MT: as long as s is valid, this should be ok
 */
 
 int
@@ -2656,60 +2656,6 @@ Sfileno(IOSTREAM *s)
   return n;
 }
 
-
-#define STDIO(n, f) { NULL, NULL, NULL, NULL, \
-		      EOF, SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
-		      ((void *)(n)), &Sfilefunctions, \
-		      0, NULL, \
-		      (void (*)(void *))0, NULL, \
-		      -1, \
-		      0, \
-		      ENC_ISO_LATIN_1 \
-		    }
-
-#define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY)
-#define STDIO_STREAMS \
-  STDIO(0, SIO_STDIO|SIO_LBUF|SIO_INPUT|SIO_NOFEOF),	/* Sinput */ \
-  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPL), 	/* Soutput */ \
-  STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT|SIO_REPPL)	/* Serror */
-
-
-IOSTREAM S__iob[] =
-{ STDIO_STREAMS
-};
-
-
-static const IOSTREAM S__iob0[] =
-{ STDIO_STREAMS
-};
-
-
-void
-SinitStreams()
-{ static int done;
-
-  if ( !done++ )
-  { int i;
-    IOENC enc = initEncoding();
-
-    for(i=0; i<=2; i++)
-    { if ( !isatty(i) )
-	S__iob[i].flags &= ~SIO_ISATTY;
-      if ( S__iob[i].encoding == ENC_ISO_LATIN_1 )
-	S__iob[i].encoding = enc;
-#ifdef O_PLMT
-      S__iob[i].mutex = malloc(sizeof(recursiveMutex));
-      recursiveMutexInit(S__iob[i].mutex);
-#endif
-    }
-  }
-}
-
-
-IOSTREAM *
-S__getiob()
-{ return S__iob;
-}
 
 		 /*******************************
 		 *	       PIPES		*
@@ -3101,6 +3047,68 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
 
   return s;
 }
+
+		 /*******************************
+		 *	 STANDARD HANDLES	*
+		 *******************************/
+
+#define STDIO(n, f) { NULL, NULL, NULL, NULL, \
+		      EOF, SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
+		      ((void *)(n)), &Sfilefunctions, \
+		      0, NULL, \
+		      (void (*)(void *))0, NULL, \
+		      -1, \
+		      0, \
+		      ENC_ISO_LATIN_1 \
+		    }
+
+#define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY)
+#define STDIO_STREAMS \
+  STDIO(0, SIO_STDIO|SIO_LBUF|SIO_INPUT|SIO_NOFEOF),	/* Sinput */ \
+  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPL), 	/* Soutput */ \
+  STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT|SIO_REPPL)	/* Serror */
+
+
+IOSTREAM S__iob[] =
+{ STDIO_STREAMS
+};
+
+
+static const IOSTREAM S__iob0[] =
+{ STDIO_STREAMS
+};
+
+
+void
+SinitStreams()
+{ static int done;
+
+  if ( !done++ )
+  { int i;
+    IOENC enc = initEncoding();
+
+    for(i=0; i<=2; i++)
+    { if ( !isatty(i) )
+	S__iob[i].flags &= ~SIO_ISATTY;
+      if ( S__iob[i].encoding == ENC_ISO_LATIN_1 )
+	S__iob[i].encoding = enc;
+#ifdef O_PLMT
+      S__iob[i].mutex = malloc(sizeof(recursiveMutex));
+      recursiveMutexInit(S__iob[i].mutex);
+#endif
+#ifdef __WINDOWS__
+      pt_init();
+#endif
+    }
+  }
+}
+
+
+IOSTREAM *
+S__getiob()
+{ return S__iob;
+}
+
 
 		 /*******************************
 		 *	       HOOKS		*

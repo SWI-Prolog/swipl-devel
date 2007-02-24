@@ -100,8 +100,75 @@ DWORD RunSilent(const char* strCommand)
 /*------------------------------------------------------------------------------
   Globals for the Routines pt_popen() / pt_pclose()
 ------------------------------------------------------------------------------*/
-static HANDLE my_pipein[2], my_pipeout[2], my_pipeerr[2];
-static char   my_popenmode = ' ';
+
+CRITICAL_SECTION lock;
+#define LOCK()   EnterCriticalSection(&lock);
+#define UNLOCK() LeaveCriticalSection(&lock);
+
+static void
+pt_init()
+{ InitializeCriticalSection(&lock);
+}
+
+
+typedef struct pipe_context
+{ struct pipe_context *next;
+  FILE   *fd;
+  HANDLE in[2];
+  HANDLE out[2];
+  HANDLE err[2];
+  char   mode;				/* 'r' or 'w' */
+} pipe_context;
+
+
+static pipe_context *pipes = NULL;
+
+static pipe_context *
+allocPipeContext()
+{ pipe_context *pc = malloc(sizeof(*pc));
+
+  if ( !pc )
+    return NULL;
+
+  pc->in[0]   = INVALID_HANDLE_VALUE;
+  pc->in[1]   = INVALID_HANDLE_VALUE;
+  pc->out[0]  = INVALID_HANDLE_VALUE;
+  pc->out[1]  = INVALID_HANDLE_VALUE;
+  pc->err[0]  = INVALID_HANDLE_VALUE;
+  pc->err[1]  = INVALID_HANDLE_VALUE;
+
+  return pc;
+}
+
+
+static void
+discardPipeContext(pipe_context *pc)
+{ if (pc->in[0]  != INVALID_HANDLE_VALUE)
+    CloseHandle(pc->in[0]);
+  if (pc->in[1]  != INVALID_HANDLE_VALUE)
+    CloseHandle(pc->in[1]);
+  if (pc->out[0] != INVALID_HANDLE_VALUE)
+    CloseHandle(pc->out[0]);
+  if (pc->out[1] != INVALID_HANDLE_VALUE)
+    CloseHandle(pc->out[1]);
+  if (pc->err[0] != INVALID_HANDLE_VALUE)
+    CloseHandle(pc->err[0]);
+  if (pc->err[1] != INVALID_HANDLE_VALUE)
+    CloseHandle(pc->err[1]);
+
+  free(pc);
+}
+
+
+
+static void
+linkPipeContext(pipe_context *pc)
+{ LOCK();
+  pc->next = pipes;
+  pipes = pc;
+  UNLOCK();
+}
+
 
 static int
 my_pipe(HANDLE *readwrite)
@@ -149,8 +216,9 @@ pt_popen(const char *cmd, const char *mode)
   PROCESS_INFORMATION piProcInfo;
   STARTUPINFOW siStartInfo;
   int success, redirect_error = 0;
-  wchar_t *wcmd;
+  wchar_t *wcmd = NULL;
   wchar_t *err2out;
+  pipe_context *pc;
 
   size_t utf8len = utf8_strlen(cmd, strlen(cmd));
   if ( !(wcmd = malloc((utf8len+1)*sizeof(wchar_t))) )
@@ -158,18 +226,12 @@ pt_popen(const char *cmd, const char *mode)
   }
   utf8towcs(wcmd, cmd);
 
-  my_pipein[0]   = INVALID_HANDLE_VALUE;
-  my_pipein[1]   = INVALID_HANDLE_VALUE;
-  my_pipeout[0]  = INVALID_HANDLE_VALUE;
-  my_pipeout[1]  = INVALID_HANDLE_VALUE;
-  my_pipeerr[0]  = INVALID_HANDLE_VALUE;
-  my_pipeerr[1]  = INVALID_HANDLE_VALUE;
-
-  if (!mode || !*mode)
+  if ( !(pc=allocPipeContext()) )
     goto finito;
-
-  my_popenmode = *mode;
-  if (my_popenmode != 'r' && my_popenmode != 'w')
+  if ( !mode || !*mode )
+    goto finito;
+  pc->mode = *mode;
+  if ( pc->mode != 'r' && pc->mode != 'w' )
     goto finito;
 
   /*
@@ -182,22 +244,24 @@ pt_popen(const char *cmd, const char *mode)
 
   /*
    * Create the Pipes... */
-  if (my_pipe(my_pipein)  == -1 ||
-      my_pipe(my_pipeout) == -1)
+  if (my_pipe(pc->in)  == -1 ||
+      my_pipe(pc->out) == -1)
     goto finito;
-  if (!redirect_error && my_pipe(my_pipeerr) == -1)
-    goto finito;
+  if ( !redirect_error )
+  { if ( my_pipe(pc->err) == -1)
+      goto finito;
+  }
 
   /*
    * Now create the child process */
   ZeroMemory(&siStartInfo, sizeof(STARTUPINFO));
   siStartInfo.cb           = sizeof(STARTUPINFO);
-  siStartInfo.hStdInput    = my_pipein[0];
-  siStartInfo.hStdOutput   = my_pipeout[1];
+  siStartInfo.hStdInput    = pc->in[0];
+  siStartInfo.hStdOutput   = pc->out[1];
   if ( redirect_error )
-    siStartInfo.hStdError  = my_pipeout[1];
+    siStartInfo.hStdError  = pc->out[1];
   else
-    siStartInfo.hStdError  = my_pipeerr[1];
+    siStartInfo.hStdError  = pc->err[1];
   siStartInfo.dwFlags      = STARTF_USESTDHANDLES;
 
   success = CreateProcessW(NULL,
@@ -216,51 +280,69 @@ pt_popen(const char *cmd, const char *mode)
 
   /*
    * These handles listen to the Child process */
-  CloseHandle(my_pipein[0]);  my_pipein[0]  = INVALID_HANDLE_VALUE;
-  CloseHandle(my_pipeout[1]); my_pipeout[1] = INVALID_HANDLE_VALUE;
-  CloseHandle(my_pipeerr[1]); my_pipeerr[1] = INVALID_HANDLE_VALUE;
+  CloseHandle(pc->in[0]);  pc->in[0]  = INVALID_HANDLE_VALUE;
+  CloseHandle(pc->out[1]); pc->out[1] = INVALID_HANDLE_VALUE;
+  if ( pc->err[1] != INVALID_HANDLE_VALUE )
+  { CloseHandle(pc->err[1]);
+    pc->err[1] = INVALID_HANDLE_VALUE;
+  }
 
-  if (my_popenmode == 'r')
-    fptr = _fdopen(_open_osfhandle((intptr_t)my_pipeout[0],_O_BINARY),"r");
+  if ( pc->mode == 'r' )
+    fptr = _fdopen(_open_osfhandle((long)pc->out[0],_O_BINARY),"r");
   else
-    fptr = _fdopen(_open_osfhandle((intptr_t)my_pipein[1],_O_BINARY),"w");
+    fptr = _fdopen(_open_osfhandle((long)pc->in[1],_O_BINARY),"w");
 
 finito:
-  if (!fptr)
-  { if (my_pipein[0]  != INVALID_HANDLE_VALUE)
-      CloseHandle(my_pipein[0]);
-    if (my_pipein[1]  != INVALID_HANDLE_VALUE)
-      CloseHandle(my_pipein[1]);
-    if (my_pipeout[0] != INVALID_HANDLE_VALUE)
-      CloseHandle(my_pipeout[0]);
-    if (my_pipeout[1] != INVALID_HANDLE_VALUE)
-      CloseHandle(my_pipeout[1]);
-    if (my_pipeerr[0] != INVALID_HANDLE_VALUE)
-      CloseHandle(my_pipeerr[0]);
-    if (my_pipeerr[1] != INVALID_HANDLE_VALUE)
-      CloseHandle(my_pipeerr[1]);
+  if ( fptr )
+  { pc->fd = fptr;
+    linkPipeContext(pc);
+  } else
+  { if ( pc )
+      discardPipeContext(pc);
   }
+  if ( wcmd )
+    free(wcmd);
 
   return fptr;
 }
 
 /*------------------------------------------------------------------------------
-  Replacement for 'pclose()' under __WINDOWS__
+  Replacement for 'pclose()' under Win32
 ------------------------------------------------------------------------------*/
 int
-pt_pclose(FILE *fle)
-{ if (fle)
-  { (void)fclose(fle);
+pt_pclose(FILE *fd)
+{ pipe_context **ppc;
+  int rc;
 
-    CloseHandle(my_pipeerr[0]);
-    if (my_popenmode == 'r')
-      CloseHandle(my_pipein[1]);
-    else
-      CloseHandle(my_pipeout[0]);
-
-    return 0;
+  if ( !fd )
+  { errno = EINVAL;
+    return -1;
   }
 
+  rc = fclose(fd);
+  LOCK();
+  for(ppc = &pipes; *ppc; ppc=&(*ppc)->next)
+  { pipe_context *pc = *ppc;
+
+    if ( pc->fd == fd )
+    { *ppc = pc->next;
+
+      UNLOCK();
+      if ( pc->err[0] != INVALID_HANDLE_VALUE )
+	CloseHandle(pc->err[0]);
+      if ( pc->mode == 'r' )
+	CloseHandle(pc->in[0]);
+      else
+	CloseHandle(pc->out[0]);
+
+      free(pc);
+
+      return rc;
+    }
+  }
+
+  UNLOCK();
+  errno = EINVAL;
   return -1;
 }
 
