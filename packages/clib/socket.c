@@ -227,11 +227,41 @@ tcp_close_output_handle(void *handle)
 }
 
 
+static int
+tcp_control(void *handle, int action, void *arg)
+{ int socket = fdFromHandle(handle);
+
+  switch(action)
+  { case SIO_GETFILENO:
+    { SOCKET fd = nbio_fd(socket);
+      SOCKET *fdp = arg;
+      *fdp = fd;
+      return 0;
+    }
+    case SIO_LASTERROR:
+    { const char *s;
+      
+      if ( (s=nbio_last_error(socket)) )
+      { const char **sp = arg;
+	*sp = s;
+	return 0;
+      }
+    }
+    case SIO_SETENCODING:
+    case SIO_FLUSHOUTPUT:
+      return 0;
+    default:
+      return -1;
+  }
+}
+
+
 static IOFUNCTIONS readFunctions =
 { tcp_read_handle,
   tcp_write_handle,
   tcp_seek_null,
   tcp_close_input_handle,
+  tcp_control
 };
 
 
@@ -240,6 +270,7 @@ static IOFUNCTIONS writeFunctions =
   tcp_write_handle,
   tcp_seek_null,
   tcp_close_output_handle,
+  tcp_control
 };
 
 
@@ -307,6 +338,7 @@ udp_receive(term_t Socket, term_t Data, term_t From, term_t Options)
   socklen_t alen = sizeof(sockaddr);
 #endif
   int socket;
+  SOCKET fd;
   int flags = 0;
   char buf[UDP_MAXDATA];
   ssize_t n;
@@ -315,7 +347,10 @@ udp_receive(term_t Socket, term_t Data, term_t From, term_t Options)
        !nbio_get_sockaddr(From, &sockaddr) )
     return FALSE;
   
-  if ( (n=recvfrom(socket, buf, sizeof(buf), flags,
+  if ( (fd=nbio_fd(socket)) < 0 )
+    return nbio_error(errno, TCP_ERRNO);
+
+  if ( (n=recvfrom(fd, buf, sizeof(buf), flags,
 		   (struct sockaddr*)&sockaddr, &alen)) == -1 )
     return nbio_error(errno, TCP_ERRNO);
 
@@ -335,6 +370,7 @@ udp_send(term_t Socket, term_t Data, term_t To, term_t Options)
   int alen = sizeof(sockaddr);
 #endif
   int socket;
+  SOCKET fd;
   int flags = 0L;
   char *data;
   size_t dlen;
@@ -347,7 +383,10 @@ udp_send(term_t Socket, term_t Data, term_t To, term_t Options)
        !nbio_get_sockaddr(To, &sockaddr) )
     return FALSE;
 
-  if ( (n=sendto(socket, data,
+  if ( (fd=nbio_fd(socket)) < 0 )
+    return nbio_error(errno, TCP_ERRNO);
+
+  if ( (n=sendto(fd, data,
 #ifdef __WINDOWS__
 		 (int)dlen,
 #else
@@ -603,12 +642,7 @@ tcp_select(term_t Streams, term_t Available, term_t timeout)
 
     FD_ZERO(&fds);			/* EINTR may leave fds undefined */
     for(e=map; e; e=e->next)		/* so we rebuild it to be safe */
-    {
-#ifdef __WINDOWS__
-      FD_SET((SOCKET)e->fd, &fds);
-#else
-      FD_SET(e->fd, &fds);
-#endif
+    { FD_SET((SOCKET)e->fd, &fds);
     }
   }
 

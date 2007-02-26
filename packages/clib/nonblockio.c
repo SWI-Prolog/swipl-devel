@@ -161,8 +161,6 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #define SOCK_ACCEPT	0x20		/* Set on accepted sockets */
 #define SOCK_NONBLOCK	0x40		/* Set to non-blocking mode */
 #define SOCK_DISPATCH   0x80		/* do not dispatch events */
-#define SOCK_CLOSE_SEEN	0x100		/* FD_CLOSE seen */
-#define SOCK_EOF_SEEN   0x200		/* Seen end-of-file */
 
 #define set(s, f)   ((s)->flags |= (f))
 #define clear(s, f) ((s)->flags &= ~(f))
@@ -173,7 +171,7 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct _plsocket
 { int		    magic;		/* SOCK_MAGIC */
-  struct _plsocket *next;		/* next in list */
+  nbio_sock_t	    id;			/* Integer id */
   SOCKET	    socket;		/* The OS socket */
   int		    flags;		/* Misc flags */
   IOSTREAM *	    input;		/* input stream */
@@ -188,7 +186,7 @@ typedef struct _plsocket
   { struct
     { struct sockaddr_in addr;		/* accepted address */
       int addrlen;			/* address length */
-      SOCKET slave;			/* descriptor of slave */
+      nbio_sock_t slave;		/* descriptor of slave */
     } accept;
     struct
     { struct sockaddr_in addr;		/* accepted address */
@@ -209,9 +207,10 @@ typedef struct _plsocket
 #endif
 } plsocket;
 
-static plsocket *lookupSocket(SOCKET socket);
+static plsocket *allocSocket(SOCKET socket);
+static plsocket *nbio_to_plsocket(nbio_sock_t socket);
+static plsocket *lookupOSSocket(SOCKET socket);
 #ifdef __WINDOWS__
-static plsocket   *lookupExistingSocket(SOCKET socket);
 static const char *WinSockError(unsigned long eno);
 #endif
 
@@ -247,6 +246,12 @@ nbio_debug(int level)
 
 #endif
 
+void					/* allow debugger breakpoint */
+tcp_debug()
+{ Sdprintf("Trapping debugger\n");
+}
+
+
 		 /*******************************
 		 *	  COMPATIBILITY		*
 		 *******************************/
@@ -257,12 +262,50 @@ static UINT WM_REQUEST  = WM_APP+21;
 static UINT WM_READY	= WM_APP+22;
 static UINT WM_DONE	= WM_APP+23;
 
+#if O_DEBUG
+static char *
+request_name(nbio_request request)
+{ switch(request)
+  { case REQ_NONE:    return "req_none";
+    case REQ_ACCEPT:  return "req_accept";
+    case REQ_CONNECT: return "req_connect";
+    case REQ_READ:    return "req_read";
+    case REQ_WRITE:   return "req_write";
+    default:	      return "req_???";
+  }
+}
+
+static char *
+event_name(int ev)
+{ char buf[256];
+  char *o = buf;
+
+  o[0] = '\0';
+  if ( (ev & FD_READ) )    strcat(o, "|FD_READ");
+  if ( (ev & FD_WRITE) )   strcat(o, "|FD_WRITE");
+  if ( (ev & FD_ACCEPT) )  strcat(o, "|FD_ACCEPT");
+  if ( (ev & FD_CONNECT) ) strcat(o, "|FD_CONNECT");
+  if ( (ev & FD_CLOSE) )   strcat(o, "|FD_CLOSE");
+  if ( (ev & FD_OOB) )	   strcat(o, "|FD_OOB");
+  if ( (ev & ~(FD_READ|FD_WRITE|FD_ACCEPT|FD_CONNECT|FD_CLOSE)) )
+    strcat(o, "|FD_???");
+
+  return strdup(buf);
+}
+
+#endif
+
 #define F_SETFL		0
 #define O_NONBLOCK	0
 
 static int
-nbio_fcntl(int fd, int op, int arg)
-{ switch(op)
+nbio_fcntl(nbio_sock_t socket, int op, int arg)
+{ plsocket *s;
+
+  if ( !(s=nbio_to_plsocket(socket)) )
+    return -1;
+
+  switch(op)
   { case F_SETFL:
       switch(arg)
       { case O_NONBLOCK:
@@ -270,12 +313,13 @@ nbio_fcntl(int fd, int op, int arg)
 	  int non_block;
 
 	  non_block = 1;
-	  rval = ioctlsocket(fd, FIONBIO, &non_block);
+	  rval = ioctlsocket(s->socket, FIONBIO, &non_block);
 	  if ( rval )
-	  { lookupSocket(fd)->flags |= SOCK_NONBLOCK;
+	  { s->flags |= SOCK_NONBLOCK;
 	    return 0;
-	  } else
-	    return -1;
+	  }
+
+	  return -1;
 	}
 	default:
 	  return -1;
@@ -298,8 +342,15 @@ static local_state nbio_state;
 
 static int
 doneRequest(plsocket *s)
-{ s->done = TRUE;
+{ SOCKET sock;
+
+  s->done = TRUE;
   s->request = REQ_NONE;
+
+  if ( (s->w32_flags & FD_CLOSE) && (sock=s->socket) >= 0 )
+  { s->socket = -1;
+    closesocket(sock);
+  }
 
   if ( s->thread )
   { DEBUG(2, Sdprintf("doneRequest(): posting %d\n", s->thread));
@@ -312,8 +363,11 @@ doneRequest(plsocket *s)
 
 static int
 waitRequest(plsocket *s)
-{ DEBUG(2, Sdprintf("[%d] (%ld): Waiting ...",
-		    PL_thread_self(), s->thread));
+{ assert(s->magic == SOCK_MAGIC);
+
+  DEBUG(2, Sdprintf("[%d] (%ld): Waiting for %s on %d ...",
+		    PL_thread_self(), s->thread,
+		    request_name(s->request), (int)s->socket));
 
   for(;;)
   { MSG msg;
@@ -342,8 +396,11 @@ waitRequest(plsocket *s)
 
 
 int
-nbio_wait(int socket, nbio_request request)
-{ plsocket *s = lookupSocket(socket);
+nbio_wait(nbio_sock_t socket, nbio_request request)
+{ plsocket *s;
+
+  if ( !(s=nbio_to_plsocket(socket)) )
+    return -1;
 
   s->flags  |= SOCK_WAITING;
   s->done    = FALSE;
@@ -400,14 +457,18 @@ nbio_select(int n,
   if ( readfds )
   { for(i=0; i<n; i++)
     { if ( FD_ISSET(i, readfds) )
-      { plsocket *s = lookupSocket(i);
+      { plsocket *s = nbio_to_plsocket(i);
 
-	s->flags  |= SOCK_WAITING;
-	s->done    = FALSE;
-	s->error   = 0;
-	s->thread  = GetCurrentThreadId();
-	s->request = (s->flags & SOCK_LISTEN) ? REQ_ACCEPT : REQ_READ;
-	sockets[i] = s;
+	if ( s )
+	{ s->flags  |= SOCK_WAITING;
+	  s->done    = FALSE;
+	  s->error   = 0;
+	  s->thread  = GetCurrentThreadId();
+	  s->request = (s->flags & SOCK_LISTEN) ? REQ_ACCEPT : REQ_READ;
+	  sockets[i] = s;
+	} else
+	{ DEBUG(2, Sdprintf("nbio_select(): no socket for %d\n", i));
+	}
       }
     }
   }
@@ -481,22 +542,29 @@ nbio_select(int n,
 
 static int
 placeRequest(plsocket *s, nbio_request request)
-{ s->error   = 0;
+{ if ( s->magic != SOCK_MAGIC )
+    Sdprintf("placeRequest: %p has bad magic\n", s);
+
+  s->error   = 0;
   s->done    = FALSE;
   s->thread  = GetCurrentThreadId();
   s->request = request;
   clear(s, SOCK_WAITING);
 
   SendMessage(State()->hwnd, WM_REQUEST, 1, (LPARAM)&s);
-  DEBUG(2, Sdprintf("%d (%ld): Placed request %d\n",
-		    PL_thread_self(), s->thread, request));
+  DEBUG(2, Sdprintf("%d (%ld): Placed %s request for %d\n",
+		    PL_thread_self(), s->thread,
+		    request_name(request), (int)s->socket));
 
   return TRUE; 
 }
 
 static int
 doRequest(plsocket *s)
-{ switch(s->request)
+{ if ( s->magic != SOCK_MAGIC )
+    Sdprintf("doRequest: %p has bad magic\n", s);
+
+  switch(s->request)
   { case REQ_NONE:
       break;
     case REQ_CONNECT:
@@ -533,31 +601,43 @@ doRequest(plsocket *s)
       break;
     case REQ_ACCEPT:
       if ( s->w32_flags & FD_ACCEPT )
-      { s->w32_flags &= ~FD_ACCEPT;
+      { SOCKET slave;
 
+	s->w32_flags &= ~FD_ACCEPT;
 	if ( true(s, SOCK_WAITING) )
 	{ doneRequest(s);
 	  break;
 	}
 
-	s->rdata.accept.slave = accept(s->socket,
-				       (struct sockaddr*)&s->rdata.accept.addr,
-				       &s->rdata.accept.addrlen);
+	slave = accept(s->socket,
+		       (struct sockaddr*)&s->rdata.accept.addr,
+		       &s->rdata.accept.addrlen);
 
-	DEBUG(2, Sdprintf("Accept() --> %p\n", s->rdata.accept.slave));
-
-	if ( s->rdata.accept.slave == SOCKET_ERROR )
+	if ( slave == SOCKET_ERROR )
 	{ s->error = WSAGetLastError();
 	  
-	  if ( s->error != WSAEWOULDBLOCK )
-	    doneRequest(s);
-	} else
-	{ plsocket *s2;
+	  DEBUG(2, Sdprintf("Accept(%d): %s\n",
+			    (int)s->socket, WinSockError(s->error)));
 
-	  s2 = lookupSocket(s->rdata.accept.slave);
-	  s2->flags |= SOCK_ACCEPT;
-	  s->error = 0;
-	  doneRequest(s);
+	  if ( s->error != WSAEWOULDBLOCK )
+	  { s->rdata.accept.slave = (SOCKET)-1;
+	    doneRequest(s);
+	  }
+	} else
+	{ plsocket *pls;
+
+	  DEBUG(2, Sdprintf("Accept(%d) --> %d\n",
+			    (int)s->socket, (int)slave));
+	  if ( (pls = allocSocket(slave)) )
+	  { pls->flags |= SOCK_ACCEPT;	/* requests */
+
+	    s->rdata.accept.slave = pls->id;
+	    s->error = 0;
+	    doneRequest(s);
+	  } else
+	  { DEBUG(1, Sdprintf("Socket %d already registered; "
+			      "considering bogus\n", (int)slave));
+	  }
 	}
       }
       break;
@@ -583,7 +663,8 @@ doRequest(plsocket *s)
 	    doneRequest(s);
 	  }
 	} else
-	  doneRequest(s);
+	{ doneRequest(s);
+	}
       }
       break;
     case REQ_WRITE:
@@ -656,13 +737,44 @@ socket_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
   { SOCKET sock = (SOCKET) wParam;
     int err     = WSAGETSELECTERROR(lParam);
     int evt     = WSAGETSELECTEVENT(lParam);
-    plsocket *s = lookupExistingSocket(sock);
+    plsocket *s = lookupOSSocket(sock);
+
+    if ( evt&FD_CLOSE )
+    { DEBUG(1,
+	    { char *nm = event_name(evt);
+	      Sdprintf("WM_SOCKET on %d: ev=(%s); err=%s\n", 
+		       (int)sock, nm, err ? WinSockError(err) : "none");
+	      free(nm);
+	    });
+    } else
+    { DEBUG(3,
+	    { char *nm = event_name(evt);
+	      Sdprintf("WM_SOCKET on %d: ev=(%s); err=%s\n", 
+		       (int)sock, nm, err ? WinSockError(err) : "none");
+	      free(nm);
+	    });
+    }
 
     if ( s )
-    { s->w32_flags |= evt;
+    { if ( (s->w32_flags & FD_CLOSE) )
+      { DEBUG(1,
+	      { char *nm = event_name(evt);
+		Sdprintf("Got event %s (err=%s) on closed socket %d=%d\n",
+			 nm, WinSockError(err), s->id, sock);
+		free(nm);
+	      }
+      }
+
+      s->w32_flags |= evt;
       if ( err )
-      { s->error = err;
-	
+      { SOCKET sock = s->socket;
+
+	s->error = err;
+	if ( sock )
+	{ s->socket = -1;
+	  closesocket(sock);
+	}
+
 	switch(s->request)
 	{ case REQ_CONNECT:
 	    break;
@@ -677,11 +789,18 @@ socket_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	    break;
 	}
 	doneRequest(s);
-      } else
+      } else if ( s->socket >= 0 )
       { doRequest(s);
+      } else
+      { doneRequest(s);
       }
+    } else if ( s )
+    { DEBUG(1, Sdprintf("PlSock %p (socket %d) has bad magic number\n",
+			s, sock));
     } else
-      DEBUG(2, Sdprintf("Socket %d is gone\n", sock));
+    { DEBUG(1, Sdprintf("Socket %d is gone (error=%s)\n",
+			sock, WinSockError(err)));
+    }
   }
 
   return DefWindowProc(hwnd, message, wParam, lParam);
@@ -818,7 +937,13 @@ wait_socket(plsocket *s, int fd)
 
 int
 nbio_wait(int socket, nbio_request request)
-{ plsocket *s = lookupSocket(socket);
+{ plsocket *s = lookupExistingSocket(socket);
+
+  if ( !s || s->magic != SOCK_MAGIC )
+  { DEBUG(1, Sdprintf("nbio_wait(%d): no plsocket\n", socket));
+    errno = EINVAL;
+    return -1;
+  }
 
   return wait_socket(s, socket) ? 0 : -1;
 }
@@ -826,11 +951,20 @@ nbio_wait(int socket, nbio_request request)
 
 static int
 nbio_fcntl(int fd, int op, int arg)
-{ int rc = fcntl(fd, op, arg);
+{ plsocket *s = lookupExistingSocket(socket);
+  int rc;
+
+  if ( !s || s->magic != SOCK_MAGIC )
+  { DEBUG(1, Sdprintf("nbio_fcntl(%d): no plsocket\n", fd));
+    errno = EINVAL;
+    return -1;
+  }
+
+  rc = fcntl(fd, op, arg);
 
   if ( rc == 0 )
   { if ( op == F_SETFL && arg == O_NONBLOCK )
-      lookupSocket(fd)->flags |= SOCK_NONBLOCK;
+      s->flags |= SOCK_NONBLOCK;
   } else
     nbio_error(errno, TCP_ERRNO);
 
@@ -858,45 +992,137 @@ static atom_t ATOM_any;
 static atom_t ATOM_broadcast;
 static atom_t ATOM_loopback;
 
-static plsocket *sockets;
+static plsocket **sockets = NULL;	/* id --> plsocket* */
+static size_t	socks_count = 0;	/* #registered sockets */
+static size_t	socks_allocated = 0;	/* #allocated entries */
 static int initialised = FALSE;		/* Windows only */
 
-#ifdef __WINDOWS__
 static plsocket *
-lookupExistingSocket(SOCKET socket)
+lookupOSSocket(SOCKET socket)
 { plsocket *p;
+  size_t i;
 
   LOCK();
-  for(p=sockets; p; p = p->next)
-  { if ( p->socket == socket )
+  for(i=0; i<socks_allocated; i++)
+  { if ( (p=sockets[i]) && p->socket == socket )
     { UNLOCK();
+
+      if ( p->magic != SOCK_MAGIC )
+      { errno = EINVAL;
+	DEBUG(1, Sdprintf("Invalid OS socket: %d\n", socket));
+	return NULL;
+      }
+
       return p;
     }
   }
   UNLOCK();
+
   return NULL;
 }
-#endif
 
 
 static plsocket *
-lookupSocket(SOCKET socket)
+nbio_to_plsocket_raw(nbio_sock_t socket)
 { plsocket *p;
 
-  LOCK();
-  for(p=sockets; p; p = p->next)
-  { if ( p->socket == socket )
-    { UNLOCK();
-      return p;
-    }
-  }
-
-  if ( !(p = PL_malloc(sizeof(plsocket))) )
-  { pl_error(NULL, 0, NULL, ERR_ERRNO);
-    UNLOCK();
+  if ( socket < 0 || (size_t)socket >= socks_allocated )
+  { errno = EINVAL;
     return NULL;
   }
 
+  LOCK();
+  p = sockets[socket];
+  UNLOCK();
+
+  if ( !p || p->magic != SOCK_MAGIC )
+  { DEBUG(1, Sdprintf("Invalid NBIO socket: %d\n", socket));
+    errno = EINVAL;
+    return NULL;
+  }
+
+  return p;
+}
+
+
+static plsocket *
+nbio_to_plsocket(nbio_sock_t socket)
+{ plsocket *p;
+
+  if ( !(p=nbio_to_plsocket_raw(socket)) )
+    return NULL;
+
+#ifdef __WINDOWS__
+  if ( p->socket < 0 )
+  { p->error = WSAECONNRESET;
+    return NULL;
+  }
+#endif
+
+  return p;
+}
+
+
+SOCKET
+nbio_fd(nbio_sock_t socket)
+{ plsocket *p;
+
+  if ( !(p=nbio_to_plsocket(socket)) )
+    return -1;
+
+  return p->socket;
+}
+
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Allocate a wrapper for an OS  socket.   The  wrapper  is allocated in an
+array of pointers, to keep small  integer   identifiers  we can use with
+FD_SET, etc. for implementing a compatible nbio_select().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static plsocket *
+allocSocket(SOCKET socket)
+{ plsocket *p;
+  size_t i;
+
+#ifdef __WINDOWS__
+  if ( (p=lookupOSSocket(socket)) )
+  { DEBUG(1, Sdprintf("WinSock %d already registered on %d\n",
+		      (int)socket, p->id));
+    p->socket = (SOCKET)-1;
+  }
+#endif
+
+  LOCK();
+  if ( socks_count+1 > socks_allocated )
+  { if ( socks_allocated )
+    { size_t newa = socks_allocated*2;
+
+      sockets = PL_realloc(sockets, sizeof(plsocket*)*newa);
+      for(i=socks_allocated; i<newa; i++)
+	sockets[i] = NULL;
+      socks_allocated = newa;
+    } else
+    { socks_allocated = 32;
+      sockets = PL_malloc(sizeof(plsocket*)*socks_allocated);
+      memset(sockets, 0, sizeof(plsocket*)*socks_allocated);
+    }
+  }
+
+  for(i=0; i<socks_allocated; i++)
+  { if ( sockets[i] == NULL )
+    { sockets[i] = p = PL_malloc(sizeof(*p));
+      socks_count++;
+      break;
+    }
+  }
+  UNLOCK();
+
+  assert(i<socks_allocated);
+  
+  memset(p, 0, sizeof(*p));
+  p->id     = (int)i;			/* place in the array */
   p->socket = socket;
   p->flags  = SOCK_DISPATCH;		/* by default, dispatch */
   p->magic  = SOCK_MAGIC;
@@ -905,45 +1131,45 @@ lookupSocket(SOCKET socket)
   p->request   = REQ_NONE;
 #endif
   p->input = p->output = (IOSTREAM*)NULL;
-  p->next   = sockets;
-  sockets   = p;
 
-  DEBUG(2, Sdprintf("[%d]: lookupSocket(%d): bound to %p\n",
+  DEBUG(2, Sdprintf("[%d]: allocSocket(%d): bound to %p\n",
 		    PL_thread_self(), socket, p));
 
-  UNLOCK();
   return p;
 }
 
 
 static int
-freeSocket(int socket)
-{ plsocket **p;
-  int rval;
+freeSocket(plsocket *s)
+{ int rval;
+  nbio_sock_t socket;
+  SOCKET sock;
 
-  DEBUG(2, Sdprintf("Closing %d\n", socket));
+  DEBUG(2, Sdprintf("Closing %d\n", s->id));
+  if ( !s || s->magic != SOCK_MAGIC )
+  { errno = EINVAL;
+    return -1;
+  }
 
   LOCK();
-  p = &sockets;
-
-  for( ; *p; p = &(*p)->next)
-  { if ( (*p)->socket == (SOCKET)socket )
-    { plsocket *s = *p;
-      
-      *p = s->next;
-      PL_free(s);
-      break;
-    }
-  }
+  sockets[s->id] = NULL;
+  socks_count--;
   UNLOCK();
 
-  again:
-  if ( (rval=closesocket(socket)) == SOCKET_ERROR )
-  { if ( errno == EINTR )
-      goto again;
-  }
+  sock = s->socket;
+  socket = s->id;
+  s->magic = 0;
+  PL_free(s);
 
-  DEBUG(2, Sdprintf("freeSocket(%d) returned %d\n", socket, rval));
+  if ( sock >= 0 )
+  { again:
+    if ( (rval=closesocket(sock)) == SOCKET_ERROR )
+    { if ( errno == EINTR )
+	goto again;
+    }
+    DEBUG(2, Sdprintf("freeSocket(%d=%d) returned %d\n",
+		      socket, (int)sock, rval));
+  }
 
   return rval;
 }
@@ -1052,7 +1278,7 @@ WinSockError(unsigned long error)
   }
 
   sprintf(tmp, "Unknown error %ld", error);
-  return strdup(tmp);			/* leaks memory */
+  return strdup(tmp);			/* leaks memory on unknown errors */
 }
 
 #endif /*BILLY_GETS_BETTER*/
@@ -1134,6 +1360,24 @@ nbio_error(int code, nbio_error_map mapid)
   return PL_raise_exception(except);
 }
 
+
+const char *
+nbio_last_error(nbio_sock_t socket)
+{
+#ifdef __WINDOWS__
+  plsocket *s;
+
+  if ( !(s=nbio_to_plsocket_raw(socket)) )
+    return NULL;
+
+  if ( s->error )
+    return WinSockError(s->error);
+#endif
+
+  return NULL;
+}
+
+
 		 /*******************************
 		 *	  INITIALISATION	*
 		 *******************************/
@@ -1198,7 +1442,7 @@ socket(-Socket)
     the format $socket(Id).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+nbio_sock_t
 nbio_socket(int domain, int type, int protocol)
 { SOCKET sock;
   plsocket *s;
@@ -1210,7 +1454,7 @@ nbio_socket(int domain, int type, int protocol)
     return -1;
   }
 
-  if ( !(s=lookupSocket(sock)) )		/* register it */
+  if ( !(s=allocSocket(sock)) )		/* register it */
   { closesocket(sock);
     return -1;
   }
@@ -1220,15 +1464,18 @@ nbio_socket(int domain, int type, int protocol)
 		 FD_READ|FD_WRITE|FD_ACCEPT|FD_CONNECT|FD_CLOSE);
 #endif
 
-  return (int)sock;
+  return s->id;
 }
 
 
 int
-nbio_closesocket(int socket)
+nbio_closesocket(nbio_sock_t socket)
 { plsocket *s;
 
-  s = lookupSocket(socket);
+  if ( !(s = nbio_to_plsocket_raw(socket)) )
+  { DEBUG(1, Sdprintf("nbio_closesocket(%d): no plsocket\n", socket));
+    return -1;
+  }
 
   if ( true(s, SOCK_OUTSTREAM|SOCK_INSTREAM) )
   { int flags = s->flags;		/* may drop out! */
@@ -1245,10 +1492,12 @@ nbio_closesocket(int socket)
   {
 #ifdef __WINDOWS__
     if ( true(s, SOCK_CONNECT) )
-      shutdown(socket, SD_SEND);
+    { if ( s->socket >= 0 )
+	shutdown(s->socket, SD_SEND);
+    }
 #endif
 
-    freeSocket(socket);
+    freeSocket(s);
   }
 
   return 0;
@@ -1256,9 +1505,13 @@ nbio_closesocket(int socket)
 
 
 int
-nbio_setopt(int socket, nbio_option opt, ...)
-{ va_list args;
+nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
+{ plsocket *s;
+  va_list args;
   int rc;
+
+  if ( !(s = nbio_to_plsocket(socket)) )
+    return -1;
 
   va_start(args, opt);
 
@@ -1269,7 +1522,7 @@ nbio_setopt(int socket, nbio_option opt, ...)
     case TCP_REUSEADDR:
     { int val = va_arg(args, int);
 
-      if( setsockopt(socket, SOL_SOCKET, SO_REUSEADDR,
+      if( setsockopt(s->socket, SOL_SOCKET, SO_REUSEADDR,
 		     (const char *)&val, sizeof(val)) == -1)
       { nbio_error(h_errno, TCP_HERRNO);
 	rc = -1;
@@ -1281,7 +1534,7 @@ nbio_setopt(int socket, nbio_option opt, ...)
     case UDP_BROADCAST:
     { int val = va_arg(args, int);
 
-      if( setsockopt(socket, SOL_SOCKET, SO_BROADCAST,
+      if( setsockopt(s->socket, SOL_SOCKET, SO_BROADCAST,
 		     (const char *)&val, sizeof(val)) == -1)
       { nbio_error(h_errno, TCP_HERRNO);
 	rc = -1;
@@ -1292,7 +1545,6 @@ nbio_setopt(int socket, nbio_option opt, ...)
     }
     case TCP_DISPATCH:
     { int val = va_arg(args, int);
-      plsocket *s = lookupSocket(socket);
       
       if ( val )
 	set(s, SOCK_DISPATCH);
@@ -1305,7 +1557,6 @@ nbio_setopt(int socket, nbio_option opt, ...)
     }
     case TCP_INSTREAM:
     { IOSTREAM *in = va_arg(args, IOSTREAM*);
-      plsocket *s = lookupSocket(socket);
 
       s->flags |= SOCK_INSTREAM;
       s->input = in;
@@ -1316,7 +1567,6 @@ nbio_setopt(int socket, nbio_option opt, ...)
     }
     case TCP_OUTSTREAM:
     { IOSTREAM *out = va_arg(args, IOSTREAM*);
-      plsocket *s = lookupSocket(socket);
 
       s->flags |= SOCK_OUTSTREAM;
       s->output = out;
@@ -1337,13 +1587,13 @@ nbio_setopt(int socket, nbio_option opt, ...)
 
 
 int
-nbio_get_flags(int socket)
-{ plsocket *s = lookupSocket(socket);
+nbio_get_flags(nbio_sock_t socket)
+{ plsocket *s;
   
-  if ( s )
-    return s->flags;
+  if ( !(s = nbio_to_plsocket(socket)) )
+    return -1;
 
-  return -1;
+  return s->flags;
 } 
 
 
@@ -1469,33 +1719,38 @@ nbio_unify_ip4(term_t Ip, unsigned long hip)
 
 
 int
-nbio_bind(int socket, struct sockaddr *my_addr, size_t addrlen)
-{
+nbio_bind(nbio_sock_t socket, struct sockaddr *my_addr, size_t addrlen)
+{ plsocket *s;
+
+  if ( !(s = nbio_to_plsocket(socket)) )
+    return -1;
+
 #ifdef __WINDOWS__
-  if ( bind(socket, my_addr, (int)addrlen) )
+  if ( bind(s->socket, my_addr, (int)addrlen) )
 #else
-  if ( bind(socket, my_addr, addrlen) )
+  if ( bind(s->socket, my_addr, addrlen) )
 #endif
   { nbio_error(errno, TCP_ERRNO);
     return -1;
   }
 
-  lookupSocket(socket)->flags |= SOCK_BIND;
+  s->flags |= SOCK_BIND;
 
   return 0;
 }
 
 
 int
-nbio_connect(int socket,
-	    const struct sockaddr *serv_addr,
-	    size_t addrlen)
+nbio_connect(nbio_sock_t socket,
+	     const struct sockaddr *serv_addr,
+	     size_t addrlen)
 { plsocket *s;
        
-  s = lookupSocket(socket);
+  if ( !(s = nbio_to_plsocket(socket)) )
+    return -1;
   
 #ifdef __WINDOWS__
-  if ( connect(socket, serv_addr, (int)addrlen) )
+  if ( connect(s->socket, serv_addr, (int)addrlen) )
   { s->error = WSAGetLastError();
 
     if ( s->error == WSAEWOULDBLOCK )
@@ -1512,7 +1767,7 @@ nbio_connect(int socket,
   }
 #else /*!__WINDOWS__*/
   for(;;)
-  { if ( connect(socket, serv_addr, addrlen) )
+  { if ( connect(s->socket, serv_addr, addrlen) )
     { if ( need_retry(errno) )
       { if ( PL_handle_signals() < 0 )
 	  return -1;
@@ -1531,16 +1786,17 @@ nbio_connect(int socket,
 }
 
 
-int
-nbio_accept(int master, struct sockaddr *addr, socklen_t *addrlen)
+nbio_sock_t
+nbio_accept(nbio_sock_t master, struct sockaddr *addr, socklen_t *addrlen)
 { SOCKET slave;
-  plsocket *m;
+  plsocket *m, *s;
 	
-  m = lookupSocket(master);
+  if ( !(m = nbio_to_plsocket(master)) )
+    return -1;
 
 #ifdef __WINDOWS__
 { int alen = (int)*addrlen;
-  slave = accept(master, addr, &alen);
+  slave = accept(m->socket, addr, &alen);
   *addrlen = alen;
 }
 
@@ -1554,16 +1810,15 @@ nbio_accept(int master, struct sockaddr *addr, socklen_t *addrlen)
 	return FALSE;
       if ( m->error )
 	return nbio_error(m->error, TCP_ERRNO);
-      slave    = m->rdata.accept.slave;
       *addrlen = m->rdata.accept.addrlen;
       memcpy(addr, &m->rdata.accept.addr, m->rdata.accept.addrlen);
+
+      return m->rdata.accept.slave;		/* already registered */
     } else
     { nbio_error(m->error, TCP_ERRNO);
       return -1;
     }
   }
-
-  DEBUG(1, Sdprintf("Accept: slave = %p\n", slave));
 
 #else /*__WINDOWS__*/
 
@@ -1571,7 +1826,7 @@ nbio_accept(int master, struct sockaddr *addr, socklen_t *addrlen)
   { if ( !wait_socket(m, master) )
       return -1;
 
-    slave = accept(master, addr, addrlen);
+    slave = accept(m->socket, addr, addrlen);
 
     if ( slave == SOCKET_ERROR )
     { if ( need_retry(errno) )
@@ -1587,26 +1842,32 @@ nbio_accept(int master, struct sockaddr *addr, socklen_t *addrlen)
       break;
   }
 
-  { plsocket *s = lookupSocket(slave);
-    s->flags |= SOCK_ACCEPT;
-    if ( true(s, SOCK_NONBLOCK) )
-      nbio_setopt(slave, TCP_NONBLOCK);
-  }
-
 #endif /*__WINDOWS__*/
   
-  return (int)slave;
+  s = allocSocket(slave);
+  s->flags |= SOCK_ACCEPT;
+#ifndef __WINDOWS__
+  if ( true(s, SOCK_NONBLOCK) )
+    nbio_setopt(slave, TCP_NONBLOCK);
+#endif
+
+  return s->id;
 }
 
 
 int
-nbio_listen(int socket, int backlog)
-{ if( listen(socket, backlog) == -1 )
+nbio_listen(nbio_sock_t socket, int backlog)
+{ plsocket *s;
+
+  if ( !(s = nbio_to_plsocket(socket)) )
+    return -1;
+
+  if( listen(s->socket, backlog) == -1 )
   { nbio_error(errno, TCP_ERRNO);
     return -1;
   }
 
-  lookupSocket(socket)->flags |= SOCK_LISTEN;
+  s->flags |= SOCK_LISTEN;
 
   return 0;
 }
@@ -1620,20 +1881,22 @@ nbio_listen(int socket, int backlog)
 
 ssize_t
 nbio_read(int socket, char *buf, size_t bufSize)
-{ plsocket *s = lookupSocket(socket);
+{ plsocket *s;
   int n;
 
-  if ( !s || s->magic != SOCK_MAGIC )
-  { errno = EINVAL;
-    DEBUG(1, Sdprintf("nbio_read(): Invalid socket: %d\n", socket));
+  if ( !(s = nbio_to_plsocket(socket)) )
     return -1;
-  }
 
 #ifdef __WINDOWS__
 
-  n = recv(socket, buf, (int)bufSize, 0);
+  DEBUG(3, Sdprintf("[%d] reading from socket %d\n",
+		    PL_thread_self(), socket));
+
+  n = recv(s->socket, buf, (int)bufSize, 0);
   if ( n < 0 )
-  { if ( WSAGetLastError() == WSAEWOULDBLOCK )
+  { int wsaerrno;
+
+    if ( (wsaerrno=WSAGetLastError()) == WSAEWOULDBLOCK )
     { s->rdata.read.buffer = buf;
       s->rdata.read.size   = bufSize;
       placeRequest(s, REQ_READ);
@@ -1645,7 +1908,11 @@ nbio_read(int socket, char *buf, size_t bufSize)
     }
 
     if ( n < 0 )
-      errno = EIO;			/* TBD: map s->error to POSIX errno */
+    { s->error = wsaerrno;
+      errno = EIO;
+    }
+  } else
+  { s->error = 0;
   }
 
 #else /*__WINDOWS__*/
@@ -1656,7 +1923,7 @@ nbio_read(int socket, char *buf, size_t bufSize)
       return -1;
     }
 
-    n = recv(socket, buf, bufSize, 0);
+    n = recv(s->socket, buf, bufSize, 0);
 
     if ( n == -1 && need_retry(errno) )
     { if ( PL_handle_signals() < 0 )
@@ -1671,23 +1938,27 @@ nbio_read(int socket, char *buf, size_t bufSize)
 
 #endif /*__WINDOWS__*/
 
-  if ( n == 0 )
-    set(s, SOCK_EOF_SEEN);
-
   return n;
 }
 
 
 ssize_t
-nbio_write(int socket, char *buf, size_t bufSize)
-{ size_t len = bufSize;
+nbio_write(nbio_sock_t socket, char *buf, size_t bufSize)
+{ plsocket *s;
+  size_t len = bufSize;
   char *str = buf;
+
+  if ( !(s = nbio_to_plsocket(socket)) )
+    return -1;
 
 #ifdef __WINDOWS__
   while( len != 0 )
   { ssize_t n;
 
-    n = send(socket, str, (int)len, 0);
+    DEBUG(3, Sdprintf("[%d] sending %d bytes using socket %d\n",
+		      PL_thread_self(), (int)len, socket));
+
+    n = send(s->socket, str, (int)len, 0);
     if ( n < 0 )
     { int error = WSAGetLastError();
 
@@ -1695,9 +1966,10 @@ nbio_write(int socket, char *buf, size_t bufSize)
 	break;
 
       DEBUG(1, Sdprintf("[%d]: send(%d, %d bytes): %s\n",
-			PL_thread_self(), socket, (int)bufSize,
+			PL_thread_self(), s->socket, (int)bufSize,
 			WinSockError(error)));
 
+      s->error = error;
       return -1;
     }
 
@@ -1706,18 +1978,16 @@ nbio_write(int socket, char *buf, size_t bufSize)
   }
 
   if ( len > 0 )			/* operation would block */
-  { plsocket *s = lookupSocket(socket);
-
-    s->rdata.write.buffer  = str;
+  { s->rdata.write.buffer  = str;
     s->rdata.write.size    = len;
     s->rdata.write.written = 0;
     placeRequest(s, REQ_WRITE);
     if ( !waitRequest(s) )
-    { errno = EPLEXCEPTION;
+    { errno = EPLEXCEPTION;		/* handled Prolog signal */
       return -1;
     }
     if ( s->rdata.write.bytes < 0 )
-      return -1;
+      return -1;			/* error in s->error */
   }
 
 #else /*__WINDOWS__*/
@@ -1725,7 +1995,7 @@ nbio_write(int socket, char *buf, size_t bufSize)
   while( len > 0 )
   { int n;
 
-    n = send(socket, str, len, 0);
+    n = send(s->socket, str, len, 0);
     if ( n < 0 )
     { if ( need_retry(errno) )
       { if ( PL_handle_signals() < 0 )
@@ -1748,41 +2018,60 @@ nbio_write(int socket, char *buf, size_t bufSize)
 
 
 int
-nbio_close_input(int socket)
+nbio_close_input(nbio_sock_t socket)
 { int rc = 0;
-  plsocket *s = lookupSocket(socket);
+  plsocket *s;
 
-  DEBUG(2, Sdprintf("[%d]: nbio_close_input(%d)\n", PL_thread_self(), socket));
+  if ( !(s = nbio_to_plsocket_raw(socket)) )
+    return -1;
+
+  DEBUG(2, Sdprintf("[%d]: nbio_close_input(%d, flags=0x%x)\n",
+		    PL_thread_self(), socket, s->flags));
   s->input = NULL;
   s->flags &= ~SOCK_INSTREAM;
 #ifdef __WINDOWS__
   if ( false(s, SOCK_LISTEN) )
-  { if ( shutdown(socket, SD_RECEIVE) == SOCKET_ERROR )
-      Sdprintf("shutdown(%d, SD_RECEIVE) failed: %s\n",
-	       socket,
+  { SOCKET sock;
+
+    if ( (sock=s->socket) < 0 )
+    { s->error = WSAECONNRESET;
+      rc = -1;
+    } else if ( shutdown(sock, SD_RECEIVE) == SOCKET_ERROR )
+    { Sdprintf("shutdown(%d=%d, SD_RECEIVE) failed: %s\n",
+	       socket, s->socket,
 	       WinSockError(WSAGetLastError()));
+    }
     rc = -1;
   }
 #endif
 
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
-    return freeSocket(socket);
+    return freeSocket(s);
 
   return rc;
 }
 
 
 int
-nbio_close_output(int socket)
+nbio_close_output(nbio_sock_t socket)
 { int rc = 0;
-  plsocket *s = lookupSocket(socket);
+  plsocket *s;
 
-  DEBUG(2, Sdprintf("[%d]: nbio_close_output(%d)\n", PL_thread_self(), socket));
+  if ( !(s = nbio_to_plsocket_raw(socket)) )
+    return -1;
+
+  DEBUG(2, Sdprintf("[%d]: nbio_close_output(%d, flags=0x%x)\n",
+		    PL_thread_self(), socket, s->flags));
   if ( s->output )
-  { s->output = NULL;
+  { SOCKET sock;
+
+    s->output = NULL;
     s->flags &= ~SOCK_OUTSTREAM;
 #if __WINDOWS__
-    if ( shutdown(socket, SD_SEND) == SOCKET_ERROR )
+    if ( (sock=s->socket) < 0 )
+    { s->error = WSAECONNRESET;
+      rc = -1;
+    } else if ( shutdown(sock, SD_SEND) == SOCKET_ERROR )
     {
 #ifdef O_DEBUG
       if ( debugging )
@@ -1792,7 +2081,8 @@ nbio_close_output(int socket)
 #else
         msg = strerror(errno);
 #endif
-        Sdprintf("shutdown(%d, SD_SEND) failed: %s\n", socket, msg);
+        Sdprintf("shutdown(%d=%d, SD_SEND) failed: %s\n",
+		 socket, s->socket, msg);
       }
 #endif
       rc = -1;
@@ -1802,7 +2092,7 @@ nbio_close_output(int socket)
 
   DEBUG(3, Sdprintf("%d->flags = 0x%x\n", socket, s->flags));
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
-    return freeSocket(socket);
+    return freeSocket(s);
 
   return rc;
 }

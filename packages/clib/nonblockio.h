@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2004, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -112,6 +112,8 @@ typedef enum
 #define SOCK_WAITING	0x400		/* using nbio_wait() */
 
 
+typedef int	nbio_sock_t;		/* socket handle (not a file-descr) */
+
 		 /*******************************
 		 *	 BASIC FUNCTIONS	*
 		 *******************************/
@@ -120,25 +122,28 @@ extern int	nbio_init(const char *module);
 extern int	nbio_cleanup(void);
 extern int	nbio_debug(int level);
 
-extern int	nbio_socket(int domain, int type, int protocol);
-extern int	nbio_connect(int socket,
-			    const struct sockaddr *serv_addr,
-			    size_t addrlen);
-extern int	nbio_bind(int socket,
-			 struct sockaddr *my_addr,
-			 size_t addrlen);
-extern int	nbio_listen(int socket, int backlog);
-extern int	nbio_accept(int master,
-			   struct sockaddr *addr,
-			   socklen_t *addrlen);
+extern nbio_sock_t
+		nbio_socket(int domain, int type, int protocol);
+extern int	nbio_connect(nbio_sock_t socket,
+			     const struct sockaddr *serv_addr,
+			     size_t addrlen);
+extern int	nbio_bind(nbio_sock_t socket,
+			  struct sockaddr *my_addr,
+			  size_t addrlen);
+extern int	nbio_listen(nbio_sock_t socket, int backlog);
+extern nbio_sock_t
+		nbio_accept(nbio_sock_t master,
+			    struct sockaddr *addr,
+			    socklen_t *addrlen);
 
-extern ssize_t	nbio_read(int socket, char *buf, size_t bufSize);
-extern ssize_t 	nbio_write(int socket, char *buf, size_t bufSize);
-extern int	nbio_closesocket(int socket);
-extern int 	nbio_close_input(int socket);
-extern int 	nbio_close_output(int socket);
+extern ssize_t	nbio_read(nbio_sock_t socket, char *buf, size_t bufSize);
+extern ssize_t 	nbio_write(nbio_sock_t socket, char *buf, size_t bufSize);
+extern int	nbio_closesocket(nbio_sock_t socket);
+extern int 	nbio_close_input(nbio_sock_t socket);
+extern int 	nbio_close_output(nbio_sock_t socket);
 
-extern int	nbio_wait(int socket, nbio_request);
+extern int	nbio_wait(nbio_sock_t socket, nbio_request);
+extern SOCKET	nbio_fd(nbio_sock_t socket);
 extern int	nbio_select(int n,
 			    fd_set *readfds,
 			    fd_set *writefds,
@@ -149,6 +154,8 @@ extern int	nbio_unify_ip4(term_t ip4, unsigned long hip);
 extern int	nbio_get_ip(term_t ip4, struct in_addr *ip);
 
 extern int	nbio_error(int code, nbio_error_map map);
+extern const char*
+		nbio_last_error(nbio_sock_t socket);
 extern int	nbio_setopt(int socket, nbio_option opt, ...);
 extern int	nbio_get_flags(int socket);
 
