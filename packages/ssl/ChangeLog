@@ -1,3 +1,10 @@
+Feb 26, 2007
+
+  * FIXED: handle encoding changes and addopt SSL interface to work
+    with new nonblockio.[ch].
+
+  * FIXED: Bug#257: Updated demo certficates.  Keri Harris.
+
 Jan 1, 2007
 
   * Bug#245: fail to react on SIO_FLUSHOUTPUT.  Keri Harris.
