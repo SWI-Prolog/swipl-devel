@@ -37,6 +37,12 @@ the MIT licence which is claimed to be compatible (but less restrictive)
 with the LGPL license. We  therefore  assume   we  can  use this file in
 SWI-Prolog without introducing new license problems.
 
+This version is heavily modified:
+
+	* Support Unicode commands (commands are specified in UTF-8)
+	* make popen()/pclose() thread-safe.
+	* Fix leak process-handles
+
 If you find this file and know better, please contact info@swi-prolog.org.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -278,6 +284,9 @@ pt_popen(const char *cmd, const char *mode)
   if ( !success )
     goto finito;
 
+  CloseHandle(piProcInfo.hThread);
+  CloseHandle(piProcInfo.hProcess);
+
   /*
    * These handles listen to the Child process */
   CloseHandle(pc->in[0]);  pc->in[0]  = INVALID_HANDLE_VALUE;
@@ -331,9 +340,10 @@ pt_pclose(FILE *fd)
       if ( pc->err[0] != INVALID_HANDLE_VALUE )
 	CloseHandle(pc->err[0]);
       if ( pc->mode == 'r' )
-	CloseHandle(pc->in[0]);
-      else
-	CloseHandle(pc->out[0]);
+      { CloseHandle(pc->in[1]);
+      } else
+      { CloseHandle(pc->out[0]);
+      }
 
       free(pc);
 
