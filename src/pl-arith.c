@@ -839,7 +839,8 @@ toIntegerNumber(Number n)
     { int64_t l;
 
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-      if ( !((n->value.f >= PLMININT) && (n->value.f <= PLMAXINT)) )
+      if ( !((n->value.f >= (real)PLMININT) &&
+	     (n->value.f <= (real)PLMAXINT)) )
 	fail;
 #endif
 
