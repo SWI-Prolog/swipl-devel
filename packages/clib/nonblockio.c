@@ -129,7 +129,6 @@ leave the details to this function.
 
 #ifndef __WINDOWS__
 #define closesocket(n) close((n))	/* same on Unix */
-typedef int SOCKET;
 #endif
 
 #ifndef SD_SEND
@@ -936,31 +935,25 @@ wait_socket(plsocket *s, int fd)
 
 
 int
-nbio_wait(int socket, nbio_request request)
-{ plsocket *s = lookupExistingSocket(socket);
+nbio_wait(nbio_sock_t socket, nbio_request request)
+{ plsocket *s;
 
-  if ( !s || s->magic != SOCK_MAGIC )
-  { DEBUG(1, Sdprintf("nbio_wait(%d): no plsocket\n", socket));
-    errno = EINVAL;
+  if ( !(s=nbio_to_plsocket(socket)) )
     return -1;
-  }
 
   return wait_socket(s, socket) ? 0 : -1;
 }
 
 
 static int
-nbio_fcntl(int fd, int op, int arg)
-{ plsocket *s = lookupExistingSocket(socket);
+nbio_fcntl(nbio_sock_t socket, int op, int arg)
+{ plsocket *s;
   int rc;
 
-  if ( !s || s->magic != SOCK_MAGIC )
-  { DEBUG(1, Sdprintf("nbio_fcntl(%d): no plsocket\n", fd));
-    errno = EINVAL;
+  if ( !(s=nbio_to_plsocket(socket)) )
     return -1;
-  }
 
-  rc = fcntl(fd, op, arg);
+  rc = fcntl(s->socket, op, arg);
 
   if ( rc == 0 )
   { if ( op == F_SETFL && arg == O_NONBLOCK )
@@ -970,6 +963,13 @@ nbio_fcntl(int fd, int op, int arg)
 
   return rc;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: when called througb wait_for_input/3, the  descriptors in the sets
+are real underlying Unix socket descriptors   and  *not* the nbio_sock_t
+psuedo descriptors.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 nbio_select(int n,
@@ -1083,7 +1083,7 @@ FD_SET, etc. for implementing a compatible nbio_select().
 
 static plsocket *
 allocSocket(SOCKET socket)
-{ plsocket *p;
+{ plsocket *p = NULL;
   size_t i;
 
 #ifdef __WINDOWS__
@@ -1169,6 +1169,8 @@ freeSocket(plsocket *s)
     }
     DEBUG(2, Sdprintf("freeSocket(%d=%d) returned %d\n",
 		      socket, (int)sock, rval));
+  } else
+  { rval = 0;				/* already closed.  Use s->error? */
   }
 
   return rval;

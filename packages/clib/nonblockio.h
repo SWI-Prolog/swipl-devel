@@ -74,6 +74,8 @@ extern int h_errno;
 #define socklen_t size_t
 #endif
 
+typedef int SOCKET;
+
 #endif /*__WINDOWS__*/
 
 typedef enum

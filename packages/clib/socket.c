@@ -187,11 +187,11 @@ pl_setopt(term_t Socket, term_t opt)
 		 *	  IO-STREAM STUFF	*
 		 *******************************/
 
-#define fdFromHandle(p) ((int)((long)(p)))
+#define fdFromHandle(p) ((nbio_sock_t)((long)(p)))
 
 static ssize_t
 tcp_read_handle(void *handle, char *buf, size_t bufSize)
-{ int sock = fdFromHandle(handle);
+{ nbio_sock_t sock = fdFromHandle(handle);
 
   return nbio_read(sock, buf, bufSize);
 }
@@ -199,7 +199,7 @@ tcp_read_handle(void *handle, char *buf, size_t bufSize)
 
 static ssize_t
 tcp_write_handle(void *handle, char *buf, size_t bufSize)
-{ int sock = fdFromHandle(handle);
+{ nbio_sock_t sock = fdFromHandle(handle);
 
   return nbio_write(sock, buf, bufSize);
 }
@@ -213,7 +213,7 @@ tcp_seek_null(void *handle, long offset, int whence)
 
 static int
 tcp_close_input_handle(void *handle)
-{ int socket = fdFromHandle(handle);
+{ nbio_sock_t socket = fdFromHandle(handle);
 
   return nbio_close_input(socket);
 }
@@ -221,7 +221,7 @@ tcp_close_input_handle(void *handle)
 
 static int
 tcp_close_output_handle(void *handle)
-{ int socket = fdFromHandle(handle);
+{ nbio_sock_t socket = fdFromHandle(handle);
 
   return nbio_close_output(socket);
 }
@@ -229,7 +229,7 @@ tcp_close_output_handle(void *handle)
 
 static int
 tcp_control(void *handle, int action, void *arg)
-{ int socket = fdFromHandle(handle);
+{ nbio_sock_t socket = fdFromHandle(handle);
 
   switch(action)
   { case SIO_GETFILENO:
@@ -284,14 +284,14 @@ pl_open_socket(term_t Socket, term_t Read, term_t Write)
     return FALSE;
   handle = (void *)(long)socket;
   
-  in  = Snew(handle, SIO_FILE|SIO_INPUT|SIO_RECORDPOS,  &readFunctions);
+  in  = Snew(handle, SIO_INPUT|SIO_RECORDPOS,  &readFunctions);
   in->encoding = ENC_OCTET;
   if ( !PL_open_stream(Read, in) )
     return FALSE;
   nbio_setopt(socket, TCP_INSTREAM, in);
 
   if ( !(nbio_get_flags(socket) & SOCK_LISTEN) )
-  { out = Snew(handle, SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS, &writeFunctions);
+  { out = Snew(handle, SIO_OUTPUT|SIO_RECORDPOS, &writeFunctions);
     out->encoding = ENC_OCTET;
     if ( !PL_open_stream(Write, out) )
       return FALSE;
@@ -460,14 +460,15 @@ pl_bind(term_t Socket, term_t Address)
     return FALSE;
 
   if ( PL_is_variable(Address) )
-  { struct sockaddr_in addr;
+  { SOCKET fd = nbio_fd(socket);
+    struct sockaddr_in addr;
 #ifdef __WINDOWS__
     int len = sizeof(addr);
 #else
     socklen_t len = sizeof(addr);
 #endif
 
-    if ( getsockname(socket, (struct sockaddr *) &addr, &len) )
+    if ( getsockname(fd, (struct sockaddr *) &addr, &len) )
       return nbio_error(errno, TCP_ERRNO);
     PL_unify_integer(Address, ntohs(addr.sin_port));
   }
