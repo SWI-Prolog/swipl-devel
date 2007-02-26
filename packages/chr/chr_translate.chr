@@ -2434,7 +2434,8 @@ generate_attr_unify_hook_one(Clause) :-
 	Head = attr_unify_hook(Susps,Other),
 	get_target_module(Mod),
 	get_indexed_constraint(1,C),
-	( get_store_type(C,default) ->
+	( get_store_type(C,ST),
+	  ( ST = default ; ST = multi_store(STs), member(default,STs) ) -> 
 		make_run_suspensions(NewSusps,SortedSusps,WakeNewSusps),
 		make_run_suspensions(SortedSusps,SortedSusps,WakeSusps),
 		( atomic_types_suspended_constraint(C) ->
@@ -7303,7 +7304,8 @@ lookup_passive_head(Head,PreJoin,VarDict,GroundVars,Goal,AllSusps) :-
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 lookup_passive_head(default,Head,PreJoin,VarDict,_,Goal,AllSusps) :-
 	functor(Head,F,A),
-	passive_head_via(Head,PreJoin,VarDict,Goal,AllSusps).   
+	passive_head_via(Head,PreJoin,VarDict,Goal,AllSusps),
+	update_store_type(F/A,default).   
 lookup_passive_head(multi_inthash(Indexes),Head,_PreJoin,VarDict,GroundVars,Goal,AllSusps) :-
 	hash_lookup_passive_head(inthash,Indexes,Head,VarDict,GroundVars,Goal,AllSusps,_).
 lookup_passive_head(multi_hash(Indexes),Head,_PreJoin,VarDict,GroundVars,Goal,AllSusps) :-
@@ -7572,10 +7574,13 @@ hash_index_filter([P|Ps],Index,N,NPairs) :-
 assume_constraint_stores([]).
 assume_constraint_stores([C|Cs]) :-
 	( chr_pp_flag(debugable,off),
-	  only_ground_indexed_arguments(C),
+	  ( only_ground_indexed_arguments(C) ; chr_pp_flag(mixed_stores,on) ),
 	  is_stored(C),
 	  get_store_type(C,default) ->
-		get_indexed_arguments(C,IndexedArgs),
+		get_indexed_arguments(C,AllIndexedArgs),
+		get_constraint_mode(C,Modes),
+		findall(Index,(member(Index,AllIndexedArgs),
+		    nth(Index,Modes,+)),IndexedArgs),
 		length(IndexedArgs,NbIndexedArgs),
 		% Construct Index Combinations
 		( NbIndexedArgs > 10 ->
@@ -7588,7 +7593,7 @@ assume_constraint_stores([C|Cs]) :-
 		( get_functional_dependency(C,1,Pattern,Key), 
 		  all_distinct_var_args(Pattern), Key == [] ->
 			assumed_store_type(C,global_singleton)
-		; 
+		; ( only_ground_indexed_arguments(C) ; NbIndexedArgs > 0 ) ->
 			get_constraint_type_det(C,ArgTypes),
 			partition_indexes(Indexes,ArgTypes,HashIndexes,IntHashIndexes,IdentifierIndexes,CompoundIdentifierIndexes),
 			
@@ -7609,8 +7614,12 @@ assume_constraint_stores([C|Cs]) :-
 				append(WrappedIdentifierIndexes,Stores3,Stores2)
 			),
 			append(CompoundIdentifierIndexes,Stores4,Stores3),
-			Stores4 = [global_ground],
+			(   only_ground_indexed_arguments(C) 
+			->  Stores4 = [global_ground]
+			;   Stores4 = [default]
+			),
 			assumed_store_type(C,multi_store(Stores))
+		; 	true
 		)
 	;
 		true
@@ -8437,16 +8446,30 @@ suspension_term_base_fields(FA,Fields) :-
 			( uses_field(FA,generation) ->
 			% 4. Generation Number
 			% 5. Global List Prev
-				Fields2 = [generation,global_list_prev]
+				Fields2 = [generation,global_list_prev|Fields3]
 			;
-				Fields2 = [global_list_prev]
+				Fields2 = [global_list_prev|Fields3]
+			),
+			(   chr_pp_flag(mixed_stores,on),
+			    chr_pp_flag(ht_removal,on)
+			->  get_store_type(FA,StoreType),
+			    basic_store_types(StoreType,BasicStoreTypes),
+			    ht_prev_fields(BasicStoreTypes,Fields3)
+			;   Fields3 = []
 			)
 		;
 			% 1. ID
 			% 2. State
 			% 3. Propagation History
 			% 4. Global List Prev
-			Fields2 = [global_list_prev]
+			Fields2 = [global_list_prev|Fields3],
+			(   chr_pp_flag(mixed_stores,on),
+			    chr_pp_flag(ht_removal,on)
+			->  get_store_type(FA,StoreType),
+			    basic_store_types(StoreType,BasicStoreTypes),
+			    ht_prev_fields(BasicStoreTypes,Fields3)
+			;   Fields3 = []
+			)
 		)
 	).
 

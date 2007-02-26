@@ -85,7 +85,8 @@ option_definition(optimize,experimental,Flags) :-
 		  late_allocation	   - on,
 		  reduced_indexing	   - on,
 		  term_indexing		   - on,
-                  inline_insertremove      - on
+                  inline_insertremove      - on,
+		  mixed_stores		   - on
 		].
 option_definition(optimize,full,Flags) :-
 	Flags = [ functional_dependency_analysis  - on,
@@ -101,7 +102,8 @@ option_definition(optimize,full,Flags) :-
 		  ai_observation_analysis  - on,
 		  late_allocation	   - on,
 		  reduced_indexing	   - on,
-                  inline_insertremove      - on
+                  inline_insertremove      - on,
+		  mixed_stores		   - off
 		].
 
 option_definition(optimize,off,Flags) :-
@@ -263,6 +265,12 @@ option_definition(ht_removal,on,Flags) :-
 option_definition(ht_removal,off,Flags) :-
 	Flags = [ht_removal - off].
 
+option_definition(mixed_stores,on,Flags) :-
+	Flags = [mixed_stores - on].
+option_definition(mixed_stores,off,Flags) :-
+	Flags = [mixed_stores - off].	
+
+
 init_chr_pp_flags :-
 	chr_pp_flag_definition(Name,[DefaultValue|_]),
 	set_chr_pp_flag(Name,DefaultValue),
@@ -303,6 +311,7 @@ chr_pp_flag_definition(toplevel_show_store,[on,off]).
 chr_pp_flag_definition(term_indexing,[off,on]).
 chr_pp_flag_definition(verbosity,[on,off]).
 chr_pp_flag_definition(ht_removal,[off,on]).
+chr_pp_flag_definition(mixed_stores,[off,on]).
 
 chr_pp_flag(Name,Value) :-
 	atom_concat('$chr_pp_',Name,GlobalVar),
