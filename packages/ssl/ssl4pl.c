@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan van der Steen and Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemake@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, SWI-Prolog Foundation
+    Copyright (C): 1985-2007, SWI-Prolog Foundation
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -536,10 +536,13 @@ pl_ssl_control(PL_SSL_INSTANCE *instance, int action, void *data)
 { switch(action)
   { case SIO_GETFILENO:
     { int *p = data;
+      nbio_sock_t ns = instance->sock;
 
-      *p = instance->sock;
-      return 0;
+      if ( (*p = nbio_fd(ns)) >= 0 )
+	return 0;
+      return -1;
     }
+    case SIO_SETENCODING:
     case SIO_FLUSHOUTPUT:
       return 0;
     default:

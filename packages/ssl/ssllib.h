@@ -24,6 +24,7 @@
 
 #ifndef SSLLIBH__
 #define SSLLIBH__
+#include "../clib/nonblockio.h"
 
 #ifdef __WINDOWS__
 typedef size_t socklen_t;
@@ -104,7 +105,7 @@ typedef struct pl_ssl {
 typedef struct ssl_instance {
     PL_SSL              *config;
     SSL                 *ssl;
-    int                  sock;
+    nbio_sock_t          sock;
     int                  close_needed;
 } PL_SSL_INSTANCE;
 
