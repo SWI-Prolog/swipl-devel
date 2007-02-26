@@ -1134,14 +1134,24 @@ check_pragma(Pragma, PragmaRule) :-
 check_pragma(Pragma, PragmaRule) :-
 	Pragma = history(HistoryName,IDs),
 	!,
+	PragmaRule = pragma(_,ids(IDs1,IDs2),_,_,RuleNb),
 	chr_warning(experimental,'Experimental pragma ~w. Use with care!\n',[Pragma]),
-	( IDs == [] ->
-		chr_error(syntax(Pragma),'Invalid empty history.\n',[])
+	( IDs1 \== [] ->
+		chr_error(syntax(Pragma),'Pragma history only implemented for propagation rules.\n',[])
+	; \+ atom(HistoryName) ->
+		chr_error(syntax(Pragma),'Illegal argument for pragma history: ~w is not an atom.\n',[HistoryName])
+	; \+ is_set(IDs) ->
+		chr_error(syntax(Pragma),'Illegal argument for pragma history: ~w is not a set.\n',[IDs])
+	; check_history_pragma_ids(IDs,IDs1,IDs2) ->
+		history(RuleNb,HistoryName,IDs)
 	;
-		true
-	),
-	PragmaRule = pragma(_,_,_,_,RuleNb),
-	history(RuleNb,HistoryName,IDs).
+		chr_error(syntax(Pragma),'Invalid identifier(s) in pragma ~w.\n',[Pragma])
+	).
+
+check_history_pragma_ids([], _, _).
+check_history_pragma_ids([ID|IDs],IDs1,IDs2) :-
+	( memberchk_eq(ID,IDs2) ; memberchk_eq(ID,IDs1) ),
+	check_history_pragma_ids(IDs,IDs1,IDs2).
 
 check_pragma(Pragma,PragmaRule) :-
 	chr_error(syntax(Pragma),'Unknown pragma ~w in ~@.\n', [Pragma,format_rule(PragmaRule)]).
@@ -1166,7 +1176,6 @@ has_no_history(_) <=> fail.
 :- chr_constraint named_history/3.
 
 history(RuleNb,Name,IDs) \ named_history(RuleNb,QName,QIDs) <=> QName = Name, QIDs = IDs.
-
 named_history(_,_,_) <=> fail.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1463,42 +1472,22 @@ spawns_all(RuleNb,guard) \ all_spawned(RuleNb,_) <=> true.
 spawns_all(RuleNb,GB) \ all_spawned(RuleNb,GB) <=> true.
 all_spawned(RuleNb,GB) <=> fail.
 
-:- chr_constraint is_observed/3.
-:- chr_option(mode, is_observed(+,+,+)).
-occurrence(C,O,RuleNb,_,_) \ is_observed(C,O,GB) <=> do_is_observed(C,RuleNb,GB).
-is_observed(_,_,_) <=> throw('this cannot happen?').
 
-:- chr_constraint do_is_observed/3.
-:- chr_option(mode, do_is_observed(+,+,?)).
-
-spawns_all(RuleNb,GB), 
-		occurrence(_,_,RuleNb2,O,_), occurrence(C,_,RuleNb2,_,_)
-	 \ 
-	 	do_is_observed(C,RuleNb,Q)
-	 <=>
-	 	\+ is_passive(RuleNb2,O)
-	  | 
-	  	Q = GB.
-
-spawns(RuleNb,GB,C2), 
-		occurrence(C2,_,RuleNb2,O,_), occurrence(C,_,RuleNb2,_,_) 
-	 \ 
-		do_is_observed(C,RuleNb,Q) 
-	<=> 
-		\+ is_passive(RuleNb2,O)
-	 | 
-	 	Q = GB.
-
-spawns_all_triggers(RuleNb,GB),
-		occurrence(C2,_,RuleNb2,O,_), occurrence(C,_,RuleNb2,_,_)
-	 \ 
-		do_is_observed(C,RuleNb,Q)
-	<=> 
-		\+ is_passive(RuleNb2,O), may_trigger(C2)
-	 | 
-	 	Q = GB.
-
-do_is_observed(_,_,_) <=> chr_pp_flag(observation_analysis,off).
+% Overview of the supported queries:
+%	is_observed(+functor/artiy, +occurrence_number, +(guard;body))
+%		only succeeds if the occurrence is observed by the
+%		guard resp. body (depending on the last argument) of its rule 
+%	is_observed(+functor/artiy, +occurrence_number, -)
+%		succeeds if the occurrence is observed by either the guard or
+%		the body of its rule
+%		NOTE: the last argument is NOT bound by this query
+%
+%	do_is_observed(+functor/artiy,+rule_number,+(guard;body))
+%		succeeds if the given constraint is observed by the given
+%		guard resp. body
+%	do_is_observed(+functor/artiy,+rule_number)
+%		succeeds if the given constraint is observed by the given
+%		rule (either its guard or its body)
 
 
 is_observed(C,O) :-
@@ -1508,6 +1497,93 @@ is_observed(C,O) :-
 is_stored_in_guard(C,RuleNb) :-
 	chr_pp_flag(store_in_guards, on),
 	do_is_observed(C,RuleNb,guard).
+
+:- chr_constraint is_observed/3.
+:- chr_option(mode, is_observed(+,+,+)).
+occurrence(C,O,RuleNb,_,_) \ is_observed(C,O,GB) <=> do_is_observed(C,RuleNb,GB).
+is_observed(_,_,_) <=> fail.	% this will not happen in practice
+
+
+:- chr_constraint do_is_observed/3.
+:- chr_option(mode, do_is_observed(+,+,+)).
+:- chr_constraint do_is_observed/2.
+:- chr_option(mode, do_is_observed(+,+)).
+
+do_is_observed(C,RuleNb,GB) <=> var(GB) | do_is_observed(C,RuleNb).
+
+% (1) spawns_all
+% a constraint C is observed if the GB of the rule it occurs in spawns all,
+% and some non-passive occurrence of some (possibly other) constraint 
+% exists in a rule (could be same rule) with at least one occurrence of C
+
+spawns_all(RuleNb,GB), 
+		occurrence(_,_,RuleNb2,O,_), occurrence(C,_,RuleNb2,_,_)
+	 \ 
+	 	do_is_observed(C,RuleNb,GB)
+	 <=>
+	 	\+ is_passive(RuleNb2,O)
+	  | 
+	  	true.
+
+spawns_all(RuleNb,_), 
+		occurrence(_,_,RuleNb2,O,_), occurrence(C,_,RuleNb2,_,_)
+	 \ 
+	 	do_is_observed(C,RuleNb)
+	 <=>
+	 	\+ is_passive(RuleNb2,O)
+	  | 
+	  	true.
+
+% (2) spawns
+% a constraint C is observed if the GB of the rule it occurs in spawns a
+% constraint C2 that occurs non-passively in a rule (possibly the same rule)
+% as an occurrence of C
+
+spawns(RuleNb,GB,C2), 
+		occurrence(C2,_,RuleNb2,O,_), occurrence(C,_,RuleNb2,_,_) 
+	 \ 
+		do_is_observed(C,RuleNb,GB) 
+	<=> 
+		\+ is_passive(RuleNb2,O)
+	 | 
+	 	true.
+
+spawns(RuleNb,_,C2), 
+		occurrence(C2,_,RuleNb2,O,_), occurrence(C,_,RuleNb2,_,_) 
+	 \ 
+		do_is_observed(C,RuleNb) 
+	<=> 
+		\+ is_passive(RuleNb2,O)
+	 | 
+	 	true.
+
+% (3) spawns_all_triggers
+% a constraint C is observed if the GB of the rule it occurs in spawns all triggers
+% and some non-passive occurrence of some (possibly other) constraint that may trigger 
+% exists in a rule (could be same rule) with at least one occurrence of C
+
+spawns_all_triggers(RuleNb,GB),
+		occurrence(C2,_,RuleNb2,O,_), occurrence(C,_,RuleNb2,_,_)
+	 \ 
+		do_is_observed(C,RuleNb,GB)
+	<=> 
+		\+ is_passive(RuleNb2,O), may_trigger(C2)
+	 | 
+	 	true.
+
+spawns_all_triggers(RuleNb,_),
+		occurrence(C2,_,RuleNb2,O,_), occurrence(C,_,RuleNb2,_,_)
+	 \ 
+		do_is_observed(C,RuleNb)
+	<=> 
+		\+ is_passive(RuleNb2,O), may_trigger(C2)
+	 | 
+	 	true.
+
+% (4) conservativeness
+do_is_observed(_,_,_) <=> chr_pp_flag(observation_analysis,off).
+do_is_observed(_,_) <=> chr_pp_flag(observation_analysis,off).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1838,7 +1914,8 @@ generate_extra_clauses(Constraints,List) :-
 	generate_novel_production(Tail3,Tail4),
 	generate_extend_history(Tail4,Tail5),
 	generate_run_suspensions_clauses(Constraints,Tail5,Tail6),
-	Tail6 = [].
+	generate_empty_named_history_initialisations(Tail6,Tail7),
+	Tail7 = [].
 
 %~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
 % remove_constraint_internal/[1/3]
@@ -2240,6 +2317,52 @@ generate_extend_history(List,Tail) :-
 	;
 		List = Tail
 	).
+
+%~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
+% 
+:- chr_constraint
+	empty_named_history_initialisations/2,
+	generate_empty_named_history_initialisation/1,
+	find_empty_named_histories/0.
+
+generate_empty_named_history_initialisations(List, Tail) :-
+	empty_named_history_initialisations(List, Tail),
+	find_empty_named_histories.
+
+find_empty_named_histories, history(_, Name, []) ==>
+	generate_empty_named_history_initialisation(Name).
+
+generate_empty_named_history_initialisation(Name) \
+	generate_empty_named_history_initialisation(Name) <=> true.
+generate_empty_named_history_initialisation(Name) \
+	empty_named_history_initialisations(List, Tail) # Passive
+  <=>
+	empty_named_history_global_variable(Name, GlobalVariable),
+	List = [(:- nb_setval(GlobalVariable, 0))|Rest],
+	empty_named_history_initialisations(Rest, Tail)
+  pragma passive(Passive).
+
+find_empty_named_histories \
+	generate_empty_named_history_initialisation(_) # Passive <=> true 
+pragma passive(Passive).
+
+find_empty_named_histories,
+	empty_named_history_initialisations(List, Tail) # Passive <=> List = Tail 
+pragma passive(Passive).
+
+find_empty_named_histories <=> 
+	chr_error(internal, 'find_empty_named_histories was not removed', []).
+
+
+empty_named_history_global_variable(Name, GlobalVariable) :-
+	atom_concat('chr empty named history ', Name, GlobalVariable).
+
+empty_named_history_novel_production(Name, nb_getval(GlobalVariable, 0)) :-
+	empty_named_history_global_variable(Name, GlobalVariable).
+
+empty_named_history_extend_history(Name, b_setval(GlobalVariable, 1)) :-
+	empty_named_history_global_variable(Name, GlobalVariable).
+
 
 %~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
 % run_suspensions/2
@@ -6242,7 +6365,7 @@ guard_body_copies2(Rule,VarDict,GuardCopyList,BodyCopy) :-
 	term_variables(RestGuardList,GuardVars),
 	term_variables(RestGuardListCopyCore,GuardCopyVars),
 	% variables that are declared to be ground don't need to be locked
-	ground_vars(H,GroundVars),	
+	ground_vars(H,GroundVars),
 	list_difference_eq(GuardVars,GroundVars,GuardVars_),
 	( chr_pp_flag(guard_locks,on),
           bagof(('chr lock'(Y)) - ('chr unlock'(Y)),
@@ -6710,35 +6833,43 @@ propagation_single_headed(Head,ID,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) 
 
 	Rule = rule(_,_,Guard,Body),
 	( chr_pp_flag(debugable,on) ->
-		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
+		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),
 		DebugTry   = 'chr debug_event'(  try([],[Susp],DebugGuard,DebugBody)),
 		DebugApply = 'chr debug_event'(apply([],[Susp],DebugGuard,DebugBody)),
 		instrument_goal(ActualCut,DebugTry,DebugApply,Cut)
 	;
 		Cut = ActualCut
 	),
-   	( may_trigger(F/A), \+ has_no_history(RuleNb)->
+	( may_trigger(F/A), \+ has_no_history(RuleNb)->
 		use_auxiliary_predicate(novel_production),
 		use_auxiliary_predicate(extend_history),
 		does_use_history(F/A,O),
 		gen_occ_allocation(F/A,O,Vars,Susp,Allocation),
 
 		( named_history(RuleNb,HistoryName,HistoryIDs) ->
-			% Tuple =.. [t,HistoryName,Susp] 
-			Tuple = HistoryName
+			( HistoryIDs == [] ->
+				empty_named_history_novel_production(HistoryName,NovelProduction),
+				empty_named_history_extend_history(HistoryName,ExtendHistory)
+			;
+				Tuple = HistoryName
+			)
 		;
 			Tuple = RuleNb
 		),
 
-		NovelProduction = '$novel_production'(Susp,Tuple),
-		ExtendHistory   = '$extend_history'(Susp,Tuple),
+		( var(NovelProduction) ->
+			NovelProduction = '$novel_production'(Susp,Tuple),
+			ExtendHistory   = '$extend_history'(Susp,Tuple)
+		;
+			true
+		),
 
 		( is_observed(F/A,O) ->
-		  	gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,Generation),
-		    	gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall)
+			gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,Generation),
+			gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall)
 		;   
 			Attachment = true,
-		    	ConditionalRecursiveCall = RecursiveCall
+			ConditionalRecursiveCall = RecursiveCall
 		)
 	;
 		Allocation = true,
@@ -6755,10 +6886,10 @@ propagation_single_headed(Head,ID,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) 
 				gen_occ_allocation(F/A,O,Vars,Susp,Attachment1),
 				gen_uncond_attach_goal(F/A,Susp,Vars,Attachment2,Generation)
 			),
-		    	gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall)
+			gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall)
 		;   
 			gen_occ_allocation(F/A,O,Vars,Susp,Attachment),
-		    	ConditionalRecursiveCall = RecursiveCall
+			ConditionalRecursiveCall = RecursiveCall
 		)
 	),
 	( is_stored_in_guard(F/A, RuleNb) ->
@@ -6903,17 +7034,22 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 		use_auxiliary_predicate(novel_production),
 		use_auxiliary_predicate(extend_history),
 		does_use_history(F/A,O),
-		( named_history(RuleNb,HistoryName,HistoryIDs) ->
-			reverse([OtherSusp|RestSusps],NamedSusps),
-			named_history_susps(HistoryIDs,[ID|RestIDs],[Susp|NamedSusps],HistorySusps),
-			HistorySusps = [HistorySusp|_],
-			
-			( length(HistoryIDs, 1) ->
-				ExtendHistory = '$extend_history'(HistorySusp,HistoryName),
-				NovelProduction = '$novel_production'(HistorySusp,HistoryName)
+		( named_history(RuleNb,HistoryName,HistoryIDs) ->	
+			( HistoryIDs == [] ->
+				empty_named_history_novel_production(HistoryName,NovelProduction),
+				empty_named_history_extend_history(HistoryName,ExtendHistory)
 			;
-				findall(ConstraintSymbol,(member(SomeID,HistoryIDs),get_occurrence_from_id(ConstraintSymbol,_,RuleNb,SomeID)),ConstraintSymbols),
-				Tuple =.. [t,HistoryName|HistorySusps]
+				reverse([OtherSusp|RestSusps],NamedSusps),
+				named_history_susps(HistoryIDs,[ID|RestIDs],[Susp|NamedSusps],HistorySusps),
+				HistorySusps = [HistorySusp|_],
+				
+				( length(HistoryIDs, 1) ->
+					ExtendHistory = '$extend_history'(HistorySusp,HistoryName),
+					NovelProduction = '$novel_production'(HistorySusp,HistoryName)
+				;
+					findall(ConstraintSymbol,(member(SomeID,HistoryIDs),get_occurrence_from_id(ConstraintSymbol,_,RuleNb,SomeID)),ConstraintSymbols),
+					Tuple =.. [t,HistoryName|HistorySusps]
+				)
 			)
 		;
 			HistorySusp = Susp,
