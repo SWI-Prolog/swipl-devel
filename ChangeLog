@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Windows version of open(pipe(Command), ...).  Was leaking memory
+    and handles.
+
   * FIXED: Possible stream lock underrun in at_end_of_stream/1 if there
     are errors.
 
