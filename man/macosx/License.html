@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html><head><title>SWI-Prolog License Conditions</title></head>
+
+
+<body bgcolor="#ffffff">
+<blockquote>
+<blockquote>
+<h1 align="center">
+<hr>
+SWI-Prolog License Conditions
+<hr>
+</h1>
+</blockquote>
+</blockquote>
+
+<h2>Preamble</h2>
+
+<p>
+SWI-Prolog licensing aims at a large audience, combining ideas from
+the <a href="http://www.fsf.org/">Free Software Foundation</a> and the less principal
+<a href="http://www.opensource.org/">Open Source Initiative</a>.  The license aims at:
+
+</p><ul>
+    <li>Make SWI-Prolog itself and its libraries are `As free as possible'.
+    </li><li>Allow for easy integration of <a href="#contrib">contributions</a>.
+    </li><li>Free software can build on SWI-Prolog without limitations.
+    </li><li>Non-free (open or proprietary) software can be produced using
+        SWI-Prolog, although contributed pure <a href="http://www.gnu.org/copyleft/gpl.html">GPL</a> components
+	cannot be used.
+</li></ul>
+
+<p>
+To achieve this, different parts of the system have different licenses.
+SWI-Prolog programs consists of a mixture of `native' code (source compiled
+to machine instructions) and `virtual machine' code (Prolog source compiled to
+SWI-Prolog virtual machine instructions, covering both compiled SWI-Prolog
+libraries and your compiled application).
+
+
+</p><h2>The SWI-Prolog kernel and foreign libraries</h2>
+
+<p>
+The SWI-Prolog kernel and our foreign libraries are distributed
+under the <a href="http://www.gnu.org/copyleft/lesser.html">Lesser GNU Public License</a>, also called the
+<b>LGPL</b>. A Prolog executable consists of the combination of these
+`native' code components and Prolog virtual machine code. The SWI-Prolog
+<b>plrc</b> utility allows for disassembling and re-assembling these
+parts, a process satisfying article <b>6b</b> of the LGPL.
+
+</p><p>
+Under the LGPL SWI-Prolog can be linked to code distributed under
+arbitrary licenses, provided a number of requirements are fullfilled.
+The most important requirement is that, if an application relies on a
+<em>modified</em> version of SWI-Prolog, the modified sources must be
+made available.
+
+
+</p><h3>Contributed foreign libraries</h3>
+
+<p>
+Foreign libraries <em>contributed</em> to the SWI-Prolog project must have
+license conditions that are compatible to the <a href="http://www.gnu.org/copyleft/lesser.html">LGPL</a> or the
+<a href="http://www.gnu.org/copyleft/gpl.html">GPL</a>.  Applications using SWI-Prolog must satisfy the license
+restrictions of all modules.
+
+
+</p><h2>The SWI-Prolog Prolog libraries</h2>
+
+<p>
+Lacking a satisfactory technical solution to handle article <b>6</b> of the
+LGPL, this license cannot be used for the Prolog source code that is part
+of the SWI-Prolog system (both libraries and kernel code).  This situation
+is comparable to <code>libgcc</code>, the runtime library used with the
+GNU C-compiler.  Therefore, we use the same proven license terms as this
+library.  The libgcc license is the <a href="http://www.gnu.org/copyleft/gpl.html">GPL</a>, accompanied with a
+special exception.  Below we rephrased this exception adjusted to our needs:
+
+</p><blockquote><em>
+As a special exception, if you link this library with other files,
+compiled with a Free Software compiler, to produce an executable, this
+library does not by itself cause the resulting executable to be covered
+by the GNU General Public License. This exception does not however
+invalidate any other reasons why the executable file might be covered by
+the GNU General Public License.
+</em></blockquote>
+
+
+<h2>Keeping it free, open and practical</h2>
+
+<p>
+The above sounds a bit complicated. To facilitate this heterogeneous
+license system we have added some machinery to SWI-Prolog:
+
+</p><dl>
+  <dt><b>:- license(License)</b></dt><dd>
+This directive can be used in any SWI-Prolog source file.  <var>License</var>
+denotes one of the established free software licenses or <code>swipl</code>,
+referring to the GPL plus the SWI-Prolog Prolog code exception.
+<p>
+Please check the SWI-Prolog manual for details on accepted license identifiers.
+
+  </p></dd><dt><b>PL_license(const char *module-id, enum PL_license_t license)</b></dt><dd>
+Allows for registering license information from foreign code through the
+foreign-language interface.  For example, the GNU readline library is linked
+to the system using
+
+<p></p><table align="center" bgcolor="#e0e0e0" border="6" width="80%"><tbody><tr><td nowrap="nowrap"><pre>...
+PL_license("libreadline", LICENSE_GPL);
+...
+</pre></td></tr></tbody></table>
+
+  </dd><dt><b>license/0</b></dt><dd>
+This toplevel predicate summarises the license requirements of all loaded
+modules.
+</dd></dl>
+
+
+<h2><a name="contrib">Contributing to the SWI-Prolog project</a></h2>
+
+<p>
+To achieve maximal coherence using SWI-Prolog for Free and Non-Free software
+we advice the use of the LGPL for contributed foreign code and the use of
+the GPL with SWI-Prolog exception for Prolog code for contributed modules.
+
+</p><p>
+As a rule of thumb it is advised to use the above licenses whenever possible
+and only use a strict GPL compliant license only if the module contains other
+code under strict GPL compliant licenses.
+
+</p><p>
+</p><hr>
+<table cellpadding="0" cellspacing="0" width="100%">
+<tbody><td align="right" valign="top">
+<font size="-1">
+This page is maintained using the <a href="http://www.complang.tuwien.ac.at/%7Eschani/chpp/">chpp</a> macro language
+</font>
+</td></tr></tbody></table>
+</body></html>
