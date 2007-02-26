@@ -1,3 +1,2 @@
-V	100225122044Z		A611836B46298A6C	unknown	/C=NL/ST=Noord-Holland/O=Diff Automatisering/OU=Support group/CN=J. van der Steen/emailAddress=info@diff.nl
-V	080226123430Z		A611836B46298A6D	unknown	/C=NL/ST=Noord-Holland/L=Amsterdam/O=Diff Automatisering/OU=Server/CN=J. van der Steen/emailAddress=J.van.der.Steen@diff.nl
-V	080226123542Z		A611836B46298A6E	unknown	/C=NL/ST=Noord-Holland/L=Amsterdam/O=Diff Automatisering/OU=Client/CN=J. van der Steen/emailAddress=J.van.der.Steen@diff.nl
+V	080226140317Z		A611836B46298A6F	unknown	/C=NL/ST=Noord-Holland/L=Amsterdam/O=Diff Automatisering/OU=Server/CN=J. van der Steen/emailAddress=J.van.der.Steen@diff.nl
+V	080226140535Z		A611836B46298A70	unknown	/C=NL/ST=Noord-Holland/L=Amsterdam/O=Diff Automatisering/OU=Client/CN=J. van der Steen/emailAddress=J.van.der.Steen@diff.nl

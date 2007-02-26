@@ -1,3 +1,8 @@
+Last updated:
+
+	* Feb 26, 2007, Jan Wielemaker
+		- Updated paths and copy commands for OpenSSL 0.9.8a
+
 
 1. /usr/share/ssl/misc/CA.pl -newca
 
@@ -26,7 +31,7 @@
     nootjes                             aapjes
     Diff Automatisering                 Diff Automatisering
 
-    creates: newreq.pem
+    creates: newkey.pem and newreq.pem
 
 3. /usr/share/ssl/misc/CA.pl -signreq
 
@@ -36,10 +41,10 @@
 
 4.  Move to server/client directory:
 
-    mv newreq.pem server/server-key.pem
+    mv newkey.pem server/server-key.pem
     mv newcert.pem server/server-cert.pem
 
     Repeat 2-4 for client site using these move commands:
 
-    mv newreq.pem client/client-key.pem
+    mv newkey.pem client/client-key.pem
     mv newcert.pem client/client-cert.pem
