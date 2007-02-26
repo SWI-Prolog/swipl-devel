@@ -921,6 +921,16 @@ ssl_lib_exit(void)
     return 0;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) We use sockets from  the   ../clib/nonblockio.c.  These  sockets are
+integers like Unix file descriptors, but  not the filedescriptor itself.
+nbio_fd() returns the corresponding file/socket descriptor.
+
+Probably this is fine, surely  for   Unix.  Nevertheless,  a much better
+solution would be to wrap the nbio_* functions into an SSL BIO. See "man
+BIO_new", etc. 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 PL_SSL_INSTANCE *
 ssl_ssl(PL_SSL *config, int sock_inst)
 /*
@@ -954,8 +964,8 @@ ssl_ssl(PL_SSL *config, int sock_inst)
      */
     SSL_set_ex_data(instance->ssl, ssl_idx, config);
 
-    if (SSL_set_fd(instance->ssl, sock_inst) == 0) {
-        return NULL;
+    if (SSL_set_fd(instance->ssl, nbio_fd(sock_inst)) == 0) 	/* See (*) above */
+    { return NULL;
     }
     ssl_deb(1, "allocated ssl fd\n");
 
@@ -1078,7 +1088,7 @@ ssl_tcp_listen(PL_SSL *config)
     struct sockaddr_in sa_server;
     int                sock    = -1;
 
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    if ((sock = nbio_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("socket");
         return -1;
     }
@@ -1092,22 +1102,22 @@ ssl_tcp_listen(PL_SSL *config)
         return -1;
     }
 
-    if (bind( sock
-            , (struct sockaddr *) &sa_server
-            , sizeof (sa_server)) < 0) {
-	closesocket(sock);
-        perror("bind");
-        return -3;
+    if ( nbio_bind(sock,
+		  (struct sockaddr *) &sa_server,
+		  sizeof (sa_server)) < 0)
+    { nbio_closesocket(sock);
+      perror("bind");
+      return -3;
     }
 
     /*
      * Receive a TCP connection.
      */
 
-    if (listen(sock, SSL_TCP_QUEUE_MAX) < 0) {
-	closesocket(sock);
-        perror("listen");
-        return -4;
+    if ( nbio_listen(sock, SSL_TCP_QUEUE_MAX) < 0)
+    { closesocket(sock);
+      perror("listen");
+      return -4;
     }
 
     ssl_deb(1, "established tcp server socket\n");
@@ -1123,11 +1133,11 @@ ssl_tcp_connect(PL_SSL *config)
  * Establish TCP client socket
  */
 {
-    int  sock = -1;
+    int  sock;
 
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("socket");
-        return -1;
+    if ( (sock = nbio_socket(AF_INET, SOCK_STREAM, 0)) < 0 )
+    { perror("socket");
+      return -1;
     }
     config->sock = sock;
 
