@@ -69,16 +69,23 @@ Version 5.6.27 Patches relative to 5.6.26
 
 
 
-Version 5.6.28 Patches relative to 5.6.27
+Version 5.6.29 Patches relative to 5.6.28
 =========================================
 
 Prolog
 
- * Added library(base64)
- * Fixed various bugs in Windows shell/1,2 and open(pipe(Command), ...)
- * Various portability fixes.
+  * Various portability issues (notably for Solaris)
+  * Stream-positioning issues
+  * Stream-lock underrun in at_end_of_stream/1 and set_prolog_IO/3.
+  * open(pipe(Command) ...) leaking memory and handles on Windows.
+  * Memory handling in loading quick load files/saved states.
+  * Possible incorrect calls to cleanup handles of non-deterministic
+    foreign code (notably together with call_with_time_limit/2 and
+    thread_signal/2).
 
 Packages
  
-  * Fixed library(http/html_write) not to emit &apos;  Notably shows
-  up in IE, but is officially not standard compliant.
+  * HTTP: keep connections open on not-modified and replying files or
+    streams.
+  * CLIB: redesign of basic socket infrastructure, providing a work-around
+    for handle-identity issues in Windows.

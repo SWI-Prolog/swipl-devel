@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+==================================
+VERSION 5.6.29 (February 26, 2007)
+==================================
+
   * FIXED: Bug#258: set_prolog_IO/3 can trap assertion failure.  Keri
     Harris.
 
