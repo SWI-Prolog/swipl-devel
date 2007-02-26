@@ -14,7 +14,7 @@ all:	$(TEX) $(LOGO)
 	-$(CORRECTINDEX) doc.idx
 	-$(MAKEINDEX) doc
 	touch doc.ind
-	(TEXINPUTS=../../TeX:$$TEXINPUTS; export TEXINPUTS; latex doc)
+	(TEXINPUTS=../../TeX:$$TEXINPUTS; export TEXINPUTS; pdflatex doc)
 
 bib:	doc.aux
 	(TEXINPUTS=../../TeX:$$TEXINPUTS; \

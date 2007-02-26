@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#258: set_prolog_IO/3 can trap assertion failure.  Keri
+    Harris.
+
   * FIXED: Windows version of open(pipe(Command), ...).  Was leaking memory
     and handles.
 

@@ -3590,7 +3590,7 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
     goto out;
 
   if ( PL_compare(A2, A3) == 0 )	/* == */
-  { error = Snew(out->handle, out->flags, out->functions);
+  { error = getStream(Snew(out->handle, out->flags, out->functions));
     error->flags &= ~SIO_ABUF;		/* disable buffering */
     error->flags |= SIO_NBUF;
   } else
