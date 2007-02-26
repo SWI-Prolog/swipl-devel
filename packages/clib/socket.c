@@ -558,6 +558,16 @@ findmap(fdentry *map, int fd)
 }
 
 
+static int
+is_socket_stream(IOSTREAM *s)
+{ if ( s->functions == &readFunctions /* ||
+       s->functions == &writeFunctions */ )
+    return TRUE;
+
+  return FALSE;
+}
+
+
 static foreign_t
 tcp_select(term_t Streams, term_t Available, term_t timeout)
 { fd_set fds;
@@ -575,17 +585,27 @@ tcp_select(term_t Streams, term_t Available, term_t timeout)
   FD_ZERO(&fds);
   while( PL_get_list(streams, head, streams) )
   { IOSTREAM *s;
+#ifdef __WINDOWS__
+    nbio_sock_t fd;
+#else
     int fd;
+#endif
     fdentry *e;
 
     if ( !PL_get_stream_handle(head, &s) )
       return FALSE;
-    if ( (fd=Sfileno(s)) < 0 )
-    { PL_release_stream(s);
-      return pl_error("tcp_select", 3, NULL, ERR_DOMAIN,
-		      head, "file_stream");
-    }
+
+#ifdef __WINDOWS__
+    fd = fdFromHandle(s->handle);
+#else
+    fd = Sfileno(s);
+#endif
+
     PL_release_stream(s);
+    if ( fd < 0 || !is_socket_stream(s) )
+    { return pl_error("tcp_select", 3, NULL, ERR_DOMAIN,
+		      head, "socket_stream");
+    }
 					/* check for input in buffer */
     if ( s->bufp < s->limitp )
     { if ( !PL_unify_list(available, ahead, available) ||
@@ -654,7 +674,7 @@ tcp_select(term_t Streams, term_t Available, term_t timeout)
     case 0: /* Timeout */
       break;
 
-    default: /* Something happend -> check fds */
+    default: /* Something happened -> check fds */
       for(n=min; n <= max; n++)
       { if ( FD_ISSET(n, &fds) )
 	{ if ( !PL_unify_list(available, ahead, available) ||

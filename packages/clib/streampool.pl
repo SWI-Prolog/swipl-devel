@@ -80,7 +80,7 @@ close_stream_pool :-
 
 dispatch_stream_pool(Timeout) :-
 	findall(S, pool(S, _), Pool),
-	catch(wait_for_input(Pool, Ready, Timeout), E, true),
+	catch(tcp_select(Pool, Ready, Timeout), E, true),
 	(   var(E)
 	->  actions(Ready)
 	;   E = error(existence_error(stream, Stream), _)

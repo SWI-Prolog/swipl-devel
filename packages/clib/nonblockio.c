@@ -438,6 +438,14 @@ nbio_wait(nbio_sock_t socket, nbio_request request)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+nbio_select() selects using a set of socket streams. 
+
+NOTE: The Windows versions uses our   nbio_sock_t abstraction, while the
+other version uses  the  raw  Unix   file  descriptors  referencing  the
+underlying socket.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 nbio_select(int n,
 	    fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
@@ -761,7 +769,7 @@ socket_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		Sdprintf("Got event %s (err=%s) on closed socket %d=%d\n",
 			 nm, WinSockError(err), s->id, sock);
 		free(nm);
-	      }
+	      })
       }
 
       s->w32_flags |= evt;
