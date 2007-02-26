@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -57,8 +57,8 @@ subject to change.
 %	current location.  The backtrace is a list of frames.  Each
 %	frame is represented as one of
 %	
-%%		frame(Level, Clause, PC)
-%%		frame(Level, foreign(Name/Arity), foreign)
+%		* frame(Level, Clause, PC)
+%		* frame(Level, foreign(Name/Arity), foreign)
 %	
 %	MaxDepth defines the maximum number of frames returned.
 
