@@ -38,6 +38,7 @@
 :- asserta(user:file_search_path(foreign, '.')).
 
 :- use_module(socket).
+:- use_module(user:socket).		% debugging
 :- use_module(streampool).
 
 tcp_test :-
