@@ -4188,6 +4188,7 @@ free_search_state(search_state *state)
     rdf_free(state->db, state->literal_state, sizeof(*state->literal_state));
   if ( state->allocated )		/* also means redo! */
   { state->db->active_queries--;
+    assert(state->db->active_queries>=0);
     rdf_free(state->db, state, sizeof(*state));
   }  
 }
@@ -4199,6 +4200,7 @@ allow_retry_state(search_state *state)
   { search_state *copy = rdf_malloc(state->db, sizeof(*copy));
     *copy = *state;
     copy->allocated = TRUE;
+    state->db->active_queries++;
 
     state = copy;
   }
@@ -5088,12 +5090,16 @@ typedef struct visited
 } visited;
 
 
+#define AGENDA_LOCAL_MAGIC 742736360
+#define AGENDA_SAVED_MAGIC 742736362
+
 typedef struct agenda
 { visited *head;			/* visited list */
   visited *tail;			/* tail of visited list */
   visited *to_expand;			/* next to expand */
   visited *to_return;			/* next to return */
   visited **hash;			/* hash-table for cycle detection */
+  int	  magic;			/* AGENDA_*_MAGIC */
   int	  hash_size;
   int     size;				/* size of the agenda */
   triple  pattern;			/* partial triple used as pattern */
@@ -5155,7 +5161,9 @@ static agenda *
 save_agenda(rdf_db *db, agenda *a)
 { agenda *r = rdf_malloc(db, sizeof(*r));
 
+  assert(a->magic == AGENDA_LOCAL_MAGIC);
   *r = *a;
+  r->magic = AGENDA_SAVED_MAGIC;
 
   return r;
 }
@@ -5369,6 +5377,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 	return instantiation_error(pred);
 
       memset(&a, 0, sizeof(a));
+      a.magic = AGENDA_LOCAL_MAGIC;
 
       if ( !PL_is_variable(subj) )		/* subj .... obj */
       { switch(get_partial_triple(db, subj, pred, 0, 0, &a.pattern))
@@ -5406,8 +5415,10 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 	  { empty_agenda(db, &a);
 	    return TRUE;
 	  } else			/* mode(+, +, -) or mode(-, +, +) */
-	  { db->active_queries++;
-	    PL_retry_address(save_agenda(db, &a));
+	  { agenda *ra = save_agenda(db, &a);
+	    db->active_queries++;
+	    DEBUG(9, Sdprintf("Saved agenta to %p\n", ra));
+	    PL_retry_address(ra);
 	  }
 	}
       }
@@ -5419,23 +5430,22 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       term_t target_term;
       atom_t r;
 
-      if ( !PL_is_variable(subj) )
+      assert(a->magic == AGENDA_SAVED_MAGIC);
+
+      if ( !PL_is_variable(subj) )	/* +, +, - */
 	target_term = obj;
       else
-	target_term = subj;
+	target_term = subj;		/* -, +, + */
 
       while(next_agenda(db, a, &r))
       { if ( PL_unify_atom(target_term, r) )
-	{ if ( a->target )		/* +, +, + */
-	  { empty_agenda(db, a);
-	    return TRUE;
-	  } else
-	  { PL_retry_address(a);
-	  }
+	{ assert(a->magic == AGENDA_SAVED_MAGIC);
+	  PL_retry_address(a);
 	}
       }
 
       db->active_queries--;
+      assert(db->active_queries>=0);
       empty_agenda(db, a);
       rdf_free(db, a, sizeof(*a));
       return FALSE;
@@ -5443,7 +5453,12 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
     case PL_CUTTED:
     { agenda *a = PL_foreign_context_address(h);
 
+      DEBUG(9, Sdprintf("Cutted; agenda = %p\n", a));
+
+      assert(a->magic == AGENDA_SAVED_MAGIC);
+
       db->active_queries--;
+      assert(db->active_queries>=0);
       empty_agenda(db, a);
       rdf_free(db, a, sizeof(*a));
       return TRUE;
