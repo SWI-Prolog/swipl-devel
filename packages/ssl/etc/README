@@ -1,5 +1,5 @@
 
-1. /usr/local/ssl/misc/CA.pl -newca
+1. /usr/share/ssl/misc/CA.pl -newca
 
     apenoot
     NL
@@ -12,7 +12,7 @@
 
     creates: ./demoCA/
 
-2. /usr/local/ssl/misc/CA.pl -newreq
+2. /usr/share/ssl/misc/CA.pl -newreq
 
     apenoot1                            apenoot2
     NL                                  NL
@@ -28,7 +28,7 @@
 
     creates: newreq.pem
 
-3. /usr/local/ssl/misc/CA.pl -signreq
+3. /usr/share/ssl/misc/CA.pl -signreq
 
     apenoot
 
