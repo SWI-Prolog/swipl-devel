@@ -1,3 +1,8 @@
+Feb 26, 2007
+
+  * FIXED: complete redesign of nonblock.c socket layer to deal with
+    validness of socket handles.  
+
 Feb 9, 2007
 
   * ADDED: MD5 hashes to crypt.  Added library(crypt) to Windows version

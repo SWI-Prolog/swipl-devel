@@ -108,7 +108,7 @@ pl_close_socket(term_t socket)
     return FALSE;
 
   if ( nbio_closesocket(sock) < 0 )
-    return FALSE;
+    return nbio_error(errno, TCP_ERRNO);;
 
   return TRUE;
 }

@@ -44,9 +44,12 @@ tcp_test :-
 	make_server(Port, Socket),
 	thread_create(run_server(Socket), Server, []),
 	client(localhost:Port),
-	thread_join(Server, true).
-
-
+	thread_join(Server, Status),
+	(   Status == true
+	->  true
+	;   format(user_error, 'Server exit-status: ~w~n', [Status]),
+	    fail
+	).
 
 
 		 /*******************************
@@ -60,8 +63,7 @@ server(Port) :-
 run_server(Socket) :-
 	tcp_open_socket(Socket, In, _Out),
 	add_stream_to_pool(In, accept(Socket)),
-	stream_pool_main_loop,
-	tcp_close_socket(Socket).
+	stream_pool_main_loop.
 
 make_server(Port, Socket) :-
 	tcp_socket(Socket),
