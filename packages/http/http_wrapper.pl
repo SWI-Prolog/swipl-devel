@@ -37,6 +37,7 @@
 :- use_module(http_header).
 :- use_module(library(memfile)).
 :- use_module(library(lists)).
+:- use_module(library(debug)).
 
 :- meta_predicate
 	http_wrapper(:, +, +, -, +).
@@ -66,7 +67,12 @@ http_wrapper(GoalSpec, In, Out, Close, Options) :-
 wrapper(Goal, In, Out, Close, Options) :-
 	http_read_request(In, Request0),
 	extend_request(Options, Request0, Request1),
+	memberchk(method(Method), Request1),
+	memberchk(path(Location), Request1),
+	thread_self(Self),
+	debug(http(wrapper), '[~w] ~w ~w ...', [Self, Method, Location]),
 	call_handler(Goal, Request1, Request, Error, MemFile),
+	debug(http(wrapper), '[~w] ~w ~w --> ~p', [Self, Method, Location, Error]),
 	(   var(Error)
 	->  size_memory_file(MemFile, Length),
 	    open_memory_file(MemFile, read, TmpIn),
@@ -147,13 +153,25 @@ expand_request(R, R).
 
 map_exception(http(not_modified),
 	      not_modified,
-	      [connection(close)]) :- !.
+	      [connection('Keep-Alive')]) :- !.
 map_exception(http_reply(Reply),
 	      Reply,
-	      [connection(close)]) :- !.
-map_exception(http_reply(Reply, HdrExtra),
+	      [connection(Close)]) :- !,
+	(   keep_alive(Reply)
+	->  Close = 'Keep-Alive'
+	;   Close = close
+	).
+map_exception(http_reply(Reply, HdrExtra0),
 	      Reply,
-	      HdrExtra) :- !.
+	      HdrExtra) :- !,
+	(   memberchk(close(_), HdrExtra0)
+	->  HdrExtra = HdrExtra0
+	;   HdrExtra = [close(Close)|HdrExtra0],
+	    (   keep_alive(Reply)
+	    ->  Close = 'Keep-Alive'
+	    ;   Close = close
+	    )
+	).
 map_exception(error(existence_error(http_location, Location), _),
 	      not_found(Location),
 	      [connection(close)]) :- !.
@@ -163,6 +181,16 @@ map_exception(error(permission_error(http_location, access, Location), _),
 map_exception(E,
 	      server_error(E),
 	      [connection(close)]).
+
+%%	keep_alive(+Reply) is semidet.	
+%
+%	If true for Reply, the default is to keep the connection open.
+
+keep_alive(not_modified).
+keep_alive(file(_Type, _File)).
+keep_alive(tmp_file(_Type, _File)).
+keep_alive(stream(_In, _Len)).
+keep_alive(cgi_stream(_In, _Len)).
 
 
 %%	join_cgi_header(+Request, +CGIHeader, -Header)

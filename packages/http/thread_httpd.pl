@@ -180,7 +180,7 @@ accept_server(SSL, Goal, Options) :-
 		(   print_message(error, E),
 		    fail
 		)),
-	  debug(connection, 'New HTTPS connection from ~p', [Peer]),
+	  debug(http(connection), 'New HTTPS connection from ~p', [Peer]),
 	  thread_send_message(Queue, ssl_client(SSL, Client, Goal, Peer)),
 	fail.
 accept_server(Socket, Goal, Options) :-
@@ -190,7 +190,7 @@ accept_server(Socket, Goal, Options) :-
 		(   print_message(error, E),
 		    fail
 		)),
-	  debug(connection, 'New HTTP connection from ~p', [Peer]),
+	  debug(http(connection), 'New HTTP connection from ~p', [Peer]),
 	  thread_send_message(Queue, tcp_client(Client, Goal, Peer)),
 	fail.
 
@@ -261,7 +261,7 @@ http_worker(Options) :-
 		  ssl_open(SSL, Client, In, Out)
 	      ),
 	      set_stream(In, timeout(Timeout)),
-	      debug(server, 'Running server goal ~p on ~p -> ~p',
+	      debug(http(server), 'Running server goal ~p on ~p -> ~p',
 		    [Goal, In, Out]),
 	      (	  catch(server_loop(Goal, In, Out, Peer, Options), E, true)
 	      ->  (   var(E)
@@ -270,10 +270,10 @@ http_worker(Options) :-
 		      ->  true
 		      ;	  Level = error
 		      ),
-		      debug(server, 'Caught exception ~q (level ~q)',
+		      debug(http(server), 'Caught exception ~q (level ~q)',
 			    [E, Level]),
 		      print_message(Level, E),
-		      close_connection(In, Out)
+		      close_connection(Peer, In, Out)
 		  )
 	      ;	  print_message(error,
 				goal_failed(server_loop(Goal, In, Out,
@@ -311,9 +311,9 @@ message_level(keep_alive_timeout,		silent).
 %	Handle a client on the given stream. It will keep the connection
 %	open as long as the client wants this
 
-server_loop(_Goal, In, Out, _, _) :-
+server_loop(_Goal, In, Out, Peer, _) :-
 	at_end_of_stream(In), !,
-	close_connection(In, Out).
+	close_connection(Peer, In, Out).
 server_loop(Goal, In, Out, Peer, Options) :-
 	http_wrapper(Goal, In, Out, Connection,
 		     [ request(Request),
@@ -327,7 +327,7 @@ server_loop(Goal, In, Out, Peer, Options) :-
 	    catch(peek_code(In, _), _, throw(keep_alive_timeout)),
 	    set_stream(In, timeout(TimeOut)),
 	    server_loop(Goal, In, Out, Peer, Options)
-	;   close_connection(In, Out),
+	;   close_connection(Peer, In, Out),
 	    after(Request, Options)
 	).
 
@@ -340,12 +340,13 @@ after(Request, Options) :-
 	;   true
 	).
 
-%%	close_connection(+In, +Out)
+%%	close_connection(+Peer, +In, +Out)
 %	
 %	Closes the connection from the server to the client.  Errors are
 %	currently silently ignored.
 
-close_connection(In, Out) :-
+close_connection(Peer, In, Out) :-
+	debug(http(connection), 'Closing connection from ~p', [Peer]),
 	catch(close(In, [force(true)]), _, true),
 	catch(close(Out, [force(true)]), _, true).
 

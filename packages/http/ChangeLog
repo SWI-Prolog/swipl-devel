@@ -1,3 +1,7 @@
+Feb 26, 2007
+
+  * ADDED: Keep connections open on not_modified and replying files.
+
 Feb 9, 2007
 
   * ADDED: Support for 302 (moved temporary) HTTP replies to the server.
