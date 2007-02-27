@@ -1937,7 +1937,7 @@ io(tell-2) :-
 
 popen(pwd-1) :-
 	(   current_prolog_flag(windows, true)
-	->  Command = cd
+	->  Command = 'cmd /c cd'
 	;   Command = pwd
 	),
 	open(pipe(Command), read, Fd),
@@ -1963,9 +1963,13 @@ popen(cat-1) :-
 	    A == Text
 	).
 popen(cat-2) :-
+	(   current_prolog_flag(windows, true)
+	->  Cmd = 'cmd /c rem true'
+	;   Cmd = true
+	),
 	absolute_file_name(swi('library/MANUAL'), Manual),
 	open(Manual, read, Fd),
-	open(pipe(true), write, Pipe),
+	open(pipe(Cmd), write, Pipe),
 	catch(copy_stream_data(Fd, Pipe),
 	      E,
 	      true),
