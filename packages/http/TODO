@@ -1,0 +1,59 @@
+---+ HTTP Server library todo list
+
+---++ Support chunked encoding
+
+Using the HTTP Chunked encoding is several advantages:
+
+	* No need to know the size of the reply in advance, avoiding
+	the need to buffer the reply in a memory file.
+
+	* Many modern browsers will update their window to reflect the
+	data processed sofar.  This allows for ging verbose messages on
+	progress or returning results on best-first basis and allow the
+	client to close the connection when it is satisfied.
+
+A possible approach to implement chunked encoding is to realise a stream
+similar to library(zlib) that performs  encoding   and  decoding of HTTP
+chunked streams.
+
+Next step is interaction with the http_wrapper library.  Ideally we would
+like to add this to the CGI header, but how do we process this?
+
+	==
+	format('Transfer-Encoding: Chunked~n'),
+	==
+
+One  way  may  be  to  define    http_end_header/0,   which  will  cause
+http_wrapper to send the header  and   -if  the  encoding is =chunked=-,
+switch the stream logic accordingly. Alternatively   we  could define an
+alternative to using a CGI header for header info.  For example:
+
+	==
+	reply(Request) :-
+		http_send_header([ content_type('text/html'),
+				   transfer_encoding(chunked)
+				 ]),
+		<start writing HTML>
+	==
+
+
+---++ Debugging
+
+We plan to provide a in-core  store   for  requests with predicates that
+control what requests are stored. This   allows for showing the requests
+as well as replaying requests from the user-thread for easy debugging.
+
+Can we deal with HTTP POST requests?
+
+
+---++ Logging
+
+We should provide centralized logging based on a hook similar to what is
+needed to store debugging information.
+
+
+---++ Dispatching and authorization
+
+Already available in the  SeRQL  package   are  libraries  to centralise
+dispatching dispatching and challenging the   browser  for user/password
+(HTTP 401 reply). Will be moved to core libraries soon.
