@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Reporting stream-errors in non-Windows platforms.
+
   * FIXED: Some issues concerning integer rounding.  MODIFIED: arithmetic
     no longer silently converts floats to ints at some places.  Stricter
     compliance to the standard.  Richard O'Keefe.
