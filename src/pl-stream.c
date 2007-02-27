@@ -1285,11 +1285,11 @@ S__seterror(IOSTREAM *s)
 				  SIO_LASTERROR, 
 				  (void *)&msg) == 0 )
     { Sseterr(s, SIO_FERR, msg);
-    }
-  } else
-  { s->flags |= SIO_FERR;
+      return 0;
+    } 
   }
 
+  s->flags |= SIO_FERR;
   return 0;
 }
 
