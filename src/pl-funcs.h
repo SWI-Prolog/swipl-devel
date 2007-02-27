@@ -128,7 +128,7 @@ COMMON(int) 		indexArithFunction(functor_t fdef, Module m);
 COMMON(functor_t) 	functorArithFunction(int n);
 COMMON(bool) 		ar_func_n(code n, int argc, Number *stack);
 COMMON(int) 		valueExpression(term_t p, Number n ARG_LD);
-COMMON(int) 		toIntegerNumber(Number n);
+COMMON(int) 		toIntegerNumber(Number n, int flags);
 COMMON(int) 		arithChar(Word p ARG_LD);
 
 /* pl-bag.c */

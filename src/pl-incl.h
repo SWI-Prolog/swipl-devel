@@ -917,6 +917,9 @@ typedef struct
 	} value;
 } number, *Number;
 
+#define TOINT_CONVERT_FLOAT	0x1	/* toIntegerNumber() */
+#define TOINT_TRUNCATE		0x2
+
 #ifdef O_GMP
 #define intNumber(n)	((n)->type <=  V_MPZ)
 #else

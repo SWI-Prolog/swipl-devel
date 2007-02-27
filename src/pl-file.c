@@ -2125,24 +2125,51 @@ word
 pl_tab2(term_t out, term_t spaces)
 { GET_LD
   number n;
+  int rval = FALSE;
+  IOSTREAM *s;
 
-  if ( valueExpression(spaces, &n PASS_LD) &&
-       toIntegerNumber(&n) )
-  { int64_t m = n.value.i;
-    IOSTREAM *s;
+  if ( !getOutputStream(out, &s) )
+    fail;
 
-    if ( !getOutputStream(out, &s) )
-      fail;
+  if ( valueExpression(spaces, &n PASS_LD) )
+  { if ( toIntegerNumber(&n, 0) )
+    { int64_t m;
 
-    while(m-- > 0)
-    { if ( Sputcode(' ', s) < 0 )
-	break;
+      switch(n.type)
+      { case V_INTEGER:
+	  m = n.value.i;
+	  break;
+#ifdef O_GMP
+	case V_MPZ:
+	{ if ( !mpz_to_int64(n.value.mpz, &m) )
+	  { PL_error(NULL, 0, NULL, ERR_EVALUATION, ATOM_int_overflow);
+	    goto error;
+	  }
+	}
+#endif
+	default:
+	  assert(0);
+      }
+  
+      while(m-- > 0)
+      { if ( Sputcode(' ', s) < 0 )
+	  break;
+      }
+  
+      rval = TRUE;
     }
 
-    return streamStatus(s);
+    clearNumber(&n);
+  } else
+  { rval = PL_error("tab", 1, NULL, ERR_TYPE, ATOM_integer, spaces);
   }
 
-  return PL_error("tab", 1, NULL, ERR_TYPE, ATOM_integer, spaces);
+  if ( rval )
+    return streamStatus(s);
+
+error:
+  (void)streamStatus(s);
+  fail;
 }
 
 

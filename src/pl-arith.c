@@ -818,15 +818,40 @@ getCharExpression(term_t t, Number r ARG_LD)
 		 *	     CONVERSION		*
 		 *******************************/
 
+static int
+double_in_int64_range(double x)
+{ int k;
+  double y = frexp(x, &k);
+
+  if ( k < 8*(int)sizeof(int64_t) ||
+       (y == -0.5 && k == 8*(int)sizeof(int64_t)) )
+    return TRUE;
+
+  return FALSE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+toIntegerNumber(Number n, int flags)
+
+Convert a number to an integer. Default,   only rationals that happen to
+be integer are converted. If   TOINT_CONVERT_FLOAT  is present, floating
+point  numbers  are  converted  if  they  represent  integers.  If  also
+TOINT_TRUNCATE is provided non-integer floats are truncated to integers.
+
+Note that if a double is  out  of   range  for  int64_t,  it never has a
+fractional part.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
-toIntegerNumber(Number n)
+toIntegerNumber(Number n, int flags)
 { switch(n->type)
   { case V_INTEGER:
       succeed;
 #ifdef O_GMP
     case V_MPZ:
       succeed;
-    case V_MPQ:
+    case V_MPQ:				/* never from stacks iff integer */
       if ( mpz_cmp_ui(mpq_denref(n->value.mpq), 1L) == 0 )
       { mpz_clear(mpq_denref(n->value.mpq));
 	n->value.mpz[0] = mpq_numref(n->value.mpq)[0];
@@ -836,23 +861,28 @@ toIntegerNumber(Number n)
       fail;
 #endif
     case V_REAL:
-    { int64_t l;
-
-#ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-      if ( !((n->value.f >= (real)PLMININT) &&
-	     (n->value.f <= (real)PLMAXINT)) )
-	fail;
+      if ( (flags & TOINT_CONVERT_FLOAT) )
+      { if ( double_in_int64_range(n->value.f) )
+	{ int64_t l = (int64_t)n->value.f;
+	  
+	  if ( (flags & TOINT_TRUNCATE) ||
+	       (double)l == n->value.f )
+	  { n->value.i = l;
+	    n->type = V_INTEGER;
+	    
+	    return TRUE;
+	  }
+	  return FALSE;
+#ifdef O_GMP
+	} else
+	{ mpz_init_set_d(n->value.mpz, n->value.f);
+	  n->type = V_MPZ;
+	  
+	  return TRUE;
 #endif
-
-      l = (int64_t)n->value.f;
-      if ( n->value.f == (real) l )
-      { n->value.i = l;
-	n->type = V_INTEGER;
-	succeed;
+	}
       }
-  
-      fail;
-    }
+      return FALSE;
   }
 
   assert(0);
@@ -1012,9 +1042,9 @@ ar_minus(Number n1, Number n2, Number r)
 
 static int
 ar_mod(Number n1, Number n2, Number r)
-{ if ( !toIntegerNumber(n1) )
+{ if ( !toIntegerNumber(n1, 0) )
     return PL_error("mod", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
-  if ( !toIntegerNumber(n2) )
+  if ( !toIntegerNumber(n2, 0) )
     return PL_error("mod", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
   same_type_numbers(n1, n2);
@@ -1068,9 +1098,9 @@ ar_shift(Number n1, Number n2, Number r, int dir)
   long shift;
   const char *plop = (dir < 0 ? "<<" : ">>");
 
-  if ( !toIntegerNumber(n1) ) 
+  if ( !toIntegerNumber(n1, 0) ) 
     return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n1); 
-  if ( !toIntegerNumber(n2) ) 
+  if ( !toIntegerNumber(n2, 0) ) 
     return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n2); 
 
   if ( ar_sign_i(n1) == 0 )		/* shift of 0 is always 0 */
@@ -1174,9 +1204,9 @@ ar_shift_right(Number n1, Number n2, Number r)
 #define BINAIRY_INT_FUNCTION(name, plop, op, mpop) \
   static int \
   name(Number n1, Number n2, Number r) \
-  { if ( !toIntegerNumber(n1) ) \
+  { if ( !toIntegerNumber(n1, 0) ) \
       return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n1); \
-    if ( !toIntegerNumber(n2) ) \
+    if ( !toIntegerNumber(n2, 0) ) \
       return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n2); \
     same_type_numbers(n1, n2); \
     switch(n1->type) \
@@ -1200,9 +1230,9 @@ ar_shift_right(Number n1, Number n2, Number r)
 #define BINAIRY_INT_FUNCTION(name, plop, op, mpop) \
   static int \
   name(Number n1, Number n2, Number r) \
-  { if ( !toIntegerNumber(n1) ) \
+  { if ( !toIntegerNumber(n1, 0) ) \
       return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n1); \
-    if ( !toIntegerNumber(n2) ) \
+    if ( !toIntegerNumber(n2, 0) ) \
       return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n2); \
     same_type_numbers(n1, n2); \
     switch(n1->type) \
@@ -1352,9 +1382,9 @@ ar_log10(Number n1, Number r)
 
 static int
 ar_div(Number n1, Number n2, Number r)
-{ if ( !toIntegerNumber(n1) )
+{ if ( !toIntegerNumber(n1, 0) )
     return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
-  if ( !toIntegerNumber(n2) )
+  if ( !toIntegerNumber(n2, 0) )
     return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
 #ifdef O_GMP
@@ -1416,9 +1446,9 @@ static int
 ar_rem(Number n1, Number n2, Number r)
 { real f;
 
-  if ( !toIntegerNumber(n1) )
+  if ( !toIntegerNumber(n1, 0) )
     return PL_error("rem", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
-  if ( !toIntegerNumber(n2) )
+  if ( !toIntegerNumber(n2, 0) )
     return PL_error("rem", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
   same_type_numbers(n1, n2);
@@ -1522,8 +1552,8 @@ ar_rationalize(Number n1, Number r)
 
 static int
 ar_rdiv(Number n1, Number n2, Number r)
-{ if ( toIntegerNumber(n1) &&
-       toIntegerNumber(n2) )
+{ if ( toIntegerNumber(n1, 0) &&
+       toIntegerNumber(n2, 0) )
   { promoteToMPZNumber(n1);
     promoteToMPZNumber(n2);
 
@@ -1780,7 +1810,7 @@ ar_min(Number n1, Number n2, Number r)
 
 static int
 ar_negation(Number n1, Number r)
-{ if ( !toIntegerNumber(n1) )
+{ if ( !toIntegerNumber(n1, 0) )
     return PL_error("\\", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
 
   switch(n1->type)
@@ -1827,7 +1857,7 @@ mustBePositive(const char *f, int a, Number n)
 
 static int
 ar_msb(Number n1, Number r)
-{ if ( !toIntegerNumber(n1) )
+{ if ( !toIntegerNumber(n1, 0) )
     return PL_error("msb", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
 
   switch(n1->type)
@@ -1877,7 +1907,7 @@ lsb64(int64_t i)
 
 static int
 ar_lsb(Number n1, Number r)
-{ if ( !toIntegerNumber(n1) )
+{ if ( !toIntegerNumber(n1, 0) )
     return PL_error("lsb", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
 
   switch(n1->type)
@@ -1920,7 +1950,7 @@ popcount64(int64_t i)
 
 static int
 ar_popcount(Number n1, Number r)
-{ if ( !toIntegerNumber(n1) )
+{ if ( !toIntegerNumber(n1, 0) )
     return PL_error("popcount", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
 
   switch(n1->type)
@@ -2134,14 +2164,8 @@ ar_floor(Number n1, Number r)
 #ifdef HAVE_FLOOR
       r->type = V_REAL;
       r->value.f = floor(n1->value.f);
-      if ( !toIntegerNumber(r) )
-      {
-#ifdef O_GMP
-	mpz_init_set_d(r->value.mpz, n1->value.f);
-	r->type = V_MPZ;
-#else
-	return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
-#endif
+      if ( !toIntegerNumber(r, TOINT_CONVERT_FLOAT|TOINT_TRUNCATE) )
+      { return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
       }
 #else /*HAVE_FLOOR*/
       if ( n1->value.f > (double)PLMININT && n1->value.f < (double)PLMAXINT )
@@ -2193,14 +2217,8 @@ ar_ceil(Number n1, Number r)
 #ifdef HAVE_CEIL
        r->type = V_REAL;
        r->value.f = ceil(n1->value.f);
-       if ( !toIntegerNumber(r) )
-       {
-#ifdef O_GMP
-         mpz_init_set_d(r->value.mpz, n1->value.f);
-	 r->type = V_MPZ;
-#else
-         return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
-#endif
+       if ( !toIntegerNumber(r, TOINT_CONVERT_FLOAT|TOINT_TRUNCATE) )
+       { return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
        }
 #else /*HAVE_CEIL*/
        if ( n1->value.f > (double)PLMININT && n1->value.f < (double)PLMAXINT )
@@ -2326,7 +2344,7 @@ static int
 ar_random(Number n1, Number r)
 { uint64_t bound;
 
-  if ( !toIntegerNumber(n1) )
+  if ( !toIntegerNumber(n1, TOINT_CONVERT_FLOAT) )
     return PL_error("random", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
 
   switch(n1->type)

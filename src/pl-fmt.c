@@ -502,7 +502,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 
 		  NEED_ARG;
 		  if ( !valueExpression(argv, &i PASS_LD) ||
-		       !toIntegerNumber(&i) )
+		       !toIntegerNumber(&i, 0) )
 		  { char f[2];
 		    
 		    f[0] = c;
