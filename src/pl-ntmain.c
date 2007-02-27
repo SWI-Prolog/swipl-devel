@@ -910,7 +910,7 @@ set_window_title(rlc_console c)
 #ifdef WIN64
   TCHAR *w64 = _T("AMD64, ");			/* TBD: IA64 */
 #else
-  TCHAR *w64 = _T("xx");
+  TCHAR *w64 = _T("");
 #endif
 
   _stprintf(title, _T("SWI-Prolog (%s%sversion %d.%d.%d)"),
