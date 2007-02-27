@@ -154,7 +154,7 @@ read(Handle, Module, Clause, TermPos, VarNames) :-
 	->  Syntax = system
 	;   true
 	),
-	seek(Handle, 0, current, Here),
+	stream_property(Handle, position(Here)),
 	alternate_syntax(Syntax, Module, Setup, Restore),
 	peek_char(Handle, X),
 	debug(clause_info, 'Using syntax ~w (c=~w)', [Syntax, X]),
@@ -169,29 +169,10 @@ read(Handle, Module, Clause, TermPos, VarNames) :-
 	Restore,
 	(   var(Error)
 	->  !
-	;   text_seek(Handle, Here),
+	;   set_stream_position(Handle, Here),
 	    fail
 	).
 	
-
-%%	text_seek(+Handle, +To)
-%	
-%	Re-position the stream at position `To'.  On decent systems this
-%	is easy, but on M$-Windows with their text-mode files holding an
-%	unknown number of ^M it is   very complicated. We simply restart
-%	reading the file. Not nice, but   alternatives  are really hard,
-%	especially as many files moving  between well designed operating
-%	systems and Windows do not have a consistent line delimiter.
-
-text_seek(Handle, To) :-
-	current_prolog_flag(windows, true), !,
-	seek(Handle, 0, bof, _),
-	open_null_stream(Tmp),
-	call_cleanup(copy_stream_data(Handle, Tmp, To),
-		     close(Tmp)).
-text_seek(Handle, To) :-
-	seek(Handle, To, bof, _).
-
 
 %%	make_varnames(+ReadClause, +Offsets, +Names, -Term) is det.
 %	
