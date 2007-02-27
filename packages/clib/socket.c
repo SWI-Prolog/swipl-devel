@@ -246,6 +246,8 @@ tcp_control(void *handle, int action, void *arg)
 	*sp = s;
 	return 0;
       }
+
+      return -1;
     }
     case SIO_SETENCODING:
     case SIO_FLUSHOUTPUT:
