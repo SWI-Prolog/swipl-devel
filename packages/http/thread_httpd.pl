@@ -36,7 +36,9 @@
 	    http_current_worker/2	% ?Port, ?ThreadID
 	  ]).
 :- use_module(library(debug)).
+:- use_module(library(option)).
 :- use_module(library(lists)).
+:- use_module(library(socket)).
 :- use_module(http_wrapper).
 
 /** <module> Threaded HTTP server
@@ -46,13 +48,10 @@ the same wrapper as xpce_httpd and   inetd_httpd. This server can handle
 multiple clients in Prolog threads and doesn't need XPCE.
 
 In addition to the other two frontends   (XPCE and inetd), this frontend
-provides code to deal with the SSL library for creating an HTTPS server.
-It is activated using the option  ssl(+SSLOptions), where SSLOptions are
-options required by ssl_init/3. See package ssl for details.
-
-@bug	Currently the library depends on library(socket) and
-	library(ssl), both of which are accessed through autoloading.
-	Although this works, it is not elegant. 
+provides hooks for http_ssl_plugin.pl for creating   an HTTPS server. It
+is activated using the  option   ssl(+SSLOptions),  where SSLOptions are
+options required by ssl_init/3. See   http_ssl_plugin.pl and package ssl
+for details.
 */
 
 :- meta_predicate
@@ -63,6 +62,11 @@ options required by ssl_init/3. See package ssl for details.
 	current_server/3,		% Port, Goal, Queue
 	queue_worker/2,			% Queue, ThreadID
 	queue_options/2.		% Queue, Options
+
+:- multifile
+	make_socket_hook/3,
+	accept_hook/2,
+	open_client_hook/5.
 
 %%	http_server(:Goal, +Options) is det.
 %	
@@ -81,46 +85,47 @@ options required by ssl_init/3. See package ssl for details.
 http_server(Goal, Options) :-
 	strip_module(Goal, Module, G),
 	select(port(Port), Options, Options1), !,
-	http_server(G, Module, Port, Options1).
+	after_option(Options1, Module, Options2),
+	make_socket(Port, Options2, Options3),
+	create_workers(Options3),
+	create_server(Module:G, Port, Options3).
 http_server(_Goal, _Options) :-
 	throw(error(existence_error(option, port), _)).
 
 
-http_server(Goal, Module, Port, Options0) :-
-	select(ssl(SSLOptions), Options0, Options1), !,
-	ssl_init(SSL, server, [port(Port)|SSLOptions]),
-	atom_concat('httpsd@', Port, Queue),
-	Options = [ queue(Queue),
-		    ssl_instance(SSL)
-		  | Options1
-		  ],
-	create_pool(Options),
-	create_server(SSL, Module:Goal, Port, Queue, Options).
-http_server(Goal, Module, Port, Options0) :-
+%%	make_socket(?Port, +OptionsIn, -OptionsOut) is det.
+%
+%	Create the HTTP server socket and  worker pool queue. OptionsOut
+%	is quaranteed to hold the option queue(QueueId).
+
+make_socket(Port, Options0, Options) :-
+	make_socket_hook(Port, Options0, Options), !.
+make_socket(Port, Options0, Options) :-
 	tcp_socket(Socket),
 	tcp_setopt(Socket, reuseaddr),
 	tcp_bind(Socket, Port),
 	tcp_listen(Socket, 5),
-	after_option(Options0, Module, Options1),
 	atom_concat('httpd@', Port, Queue),
-	Options = [queue(Queue)|Options1],
-	create_pool(Options),
-	create_server(Socket, Module:Goal, Port, Queue, Options).
+	Options = [ queue(Queue),
+		    tcp_socket(Socket)
+		  | Options0
+		  ].
 
 %%	after_option(+Options0, +Module, -Options)
 %	
 %	Add the module qualifier to the goal for the after(Goal) option
 
 after_option(Options0, Module, Options) :-
-	select(after(After), Options0, Options1), !,
+	select_option(after(After), Options0, Options1), !,
 	strip_module(Module:After, MA, A),
 	Options = [after(MA:A) | Options1].
 after_option(Options, _, Options).
 
 
-create_server(Socket, Goal, Port, Queue, Options) :-
+create_server(Goal, Port, Options) :-
+	memberchk(queue(Queue), Options),
 	atom_concat('http@', Port, Alias),
-	thread_create(accept_server(Socket, Goal, Options), _,
+	thread_create(accept_server(Goal, Options), _,
 		      [ detached(true),
 			local(128),
 			global(128),
@@ -167,24 +172,16 @@ http_current_worker(Port, ThreadID) :-
 	queue_worker(Queue, ThreadID).
 
 
-%%	accept_server(+Socket, :Goal, +Options)
+%%	accept_server(:Goal, +Options)
 %
 %	The goal of a small server-thread accepting new requests and
 %	posting them to the queue of workers.
 
-accept_server(SSL, Goal, Options) :-
-	memberchk(ssl_instance(SSL), Options), !,
-	option(queue(Queue), Options, http_client),
-	repeat,
-	  catch(ssl_accept(SSL, Client, Peer), E,
-		(   print_message(error, E),
-		    fail
-		)),
-	  debug(http(connection), 'New HTTPS connection from ~p', [Peer]),
-	  thread_send_message(Queue, ssl_client(SSL, Client, Goal, Peer)),
-	fail.
-accept_server(Socket, Goal, Options) :-
-	option(queue(Queue), Options, http_client),
+accept_server(Goal, Options) :-
+	accept_hook(Goal, Options), !.
+accept_server(Goal, Options) :-
+	memberchk(tcp_socket(Socket), Options), !,
+	memberchk(queue(Queue), Options),
 	repeat,
 	  catch(tcp_accept(Socket, Client, Peer), E,
 		(   print_message(error, E),
@@ -199,14 +196,14 @@ accept_server(Socket, Goal, Options) :-
 		 *    WORKER QUEUE OPERATIONS	*
 		 *******************************/
 
-%%	create_pool(+Options)
+%%	create_workers(+Options)
 %	
 %	Create the pool of HTTP worker-threads. Each worker has the
 %	alias http_worker_N.
 
-create_pool(Options) :-
+create_workers(Options) :-
 	option(workers(N), Options, 2),
-	option(queue(Queue), Options, http_client),
+	option(queue(Queue), Options),
 	catch(message_queue_create(Queue), _, true),
 	atom_concat(Queue, '_', AliasBase),
 	create_workers(1, N, Queue, AliasBase, Options),
@@ -248,18 +245,14 @@ resize_pool(Queue, Size) :-
 
 http_worker(Options) :-
 	option(timeout(Timeout), Options, infinite),
-	option(queue(Queue), Options, http_client),
+	option(queue(Queue), Options),
 	thread_at_exit(done_worker),
 	repeat,
 	  thread_get_message(Queue, Message),
 	  (   Message == quit
 	  ->  thread_self(Self),
 	      thread_detach(Self)
-	  ;   (   Message = tcp_client(Client, Goal, Peer)
-	      ->  tcp_open_socket(Client, In, Out)
-	      ;	  Message = ssl_client(SSL, Client, Goal, Peer),
-		  ssl_open(SSL, Client, In, Out)
-	      ),
+	  ;   open_client(Message, Goal, Peer, In, Out),
 	      set_stream(In, timeout(Timeout)),
 	      debug(http(server), 'Running server goal ~p on ~p -> ~p',
 		    [Goal, In, Out]),
@@ -283,6 +276,20 @@ http_worker(Options) :-
 	  ),
 	!.
 
+%%	open_client(+Message, -Goal, -Peer, -In, -Out) is det.
+%
+%	Opens the connection to the client in a worker from the message
+%	sent to the queue by accept_server/2.
+
+open_client(Message, Goal, Peer, In, Out) :-
+	open_client_hook(Message, Goal, Peer, In, Out), !.
+open_client(tcp_client(Socket, Goal, Peer), Goal, Peer, In, Out) :-
+	tcp_open_socket(Socket, In, Out).
+
+
+%%	done_worker
+%
+%	Called when worker is terminated due to http_workers/2.
 
 done_worker :-
 	thread_self(Self),
@@ -334,8 +341,7 @@ server_loop(Goal, In, Out, Peer, Options) :-
 %	run `after' hook each time after processing a request.
 
 after(Request, Options) :-
-	(   option(after(After), Options, []),
-	    After \== []
+	(   option(after(After), Options)
 	->  call(After, Request)
 	;   true
 	).
@@ -349,15 +355,6 @@ close_connection(Peer, In, Out) :-
 	debug(http(connection), 'Closing connection from ~p', [Peer]),
 	catch(close(In, [force(true)]), _, true),
 	catch(close(Out, [force(true)]), _, true).
-
-%%	option(+Term, +Options, +Default)
-%	
-%	Fetch option from the list.
-
-option(Opt, Options, _) :-
-	memberchk(Opt, Options), !.
-option(Opt, _, Def) :-
-	arg(1, Opt, Def).
 
 
 		 /*******************************

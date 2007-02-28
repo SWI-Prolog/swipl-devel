@@ -57,3 +57,9 @@ needed to store debugging information.
 Already available in the  SeRQL  package   are  libraries  to centralise
 dispatching dispatching and challenging the   browser  for user/password
 (HTTP 401 reply). Will be moved to core libraries soon.
+
+
+---++ Unbundle SSL
+
+Remove the dependency to SSL from the server library, so library(ssl) is
+not autoloaded when creating an executable.
