@@ -252,7 +252,7 @@ unify_clause((Head :- Read),
 unify_clause(Read, Compiled1, TermPos0, TermPos) :-
 	Read = (_ --> List, _),
 	is_list(List),
-	expand_term(Read, Compiled2),
+	catch(expand_term(Read, Compiled2), E, expand_failed(E, Read)),
 	Compiled2 = (DH :- _),
 	functor(DH, _, Arity),
 	DArg is Arity - 1,
@@ -265,7 +265,7 @@ unify_clause(Read, Compiled1, TermPos0, TermPos) :-
 	match_module(Compiled2, Compiled1, TermPos1, TermPos).
 					% general term-expansion
 unify_clause(Read, Compiled1, TermPos0, TermPos) :-
-	expand_term(Read, Compiled2),
+	catch(expand_term(Read, Compiled2), E, expand_failed(E, Read)),
 	match_module(Compiled2, Compiled1, TermPos0, TermPos).
 					% I don't know ...
 unify_clause(_, _, _, _) :-
@@ -281,6 +281,16 @@ match_module((H1 :- B1), (H2 :- B2), Pos0, Pos) :- !,
 	unify_body(B1, B2, Pos0, Pos).
 match_module(H1, H2, Pos, Pos) :-	% deal with facts
 	unify_clause_head(H1, H2).
+
+%%	expand_failed(+Exception, +Term)
+%
+%	When debugging, indicate that expansion of the term failed.
+
+expand_failed(E, Read) :-
+	debugging(clause_info),
+	message_to_string(E, Msg),
+	debug(clause_info, 'Term-expand ~p failed: ~w', [Read, Msg]),
+	fail.
 
 %%	unify_body(+Read, +Decompiled, +Pos0, -Pos)
 %	
