@@ -124,11 +124,11 @@ distributed as a package known under the name <EM>clib</EM>. The package
 defines a number of Prolog libraries with accompagnying foreign 
 libraries.
 
-<P>On Windows systems, the <CODE>library(unix)</CODE> and <CODE>library(crypt)</CODE> 
-libraries can only be used if the whole SWI-Prolog suite is compiled 
-using
-<A class="url" href="http://www.cygwin.com">Cywin</A>. The other 
-libraries have been ported to native Windows.
+<P>On Windows systems, the <CODE>library(unix)</CODE> library can only 
+be used if the whole SWI-Prolog suite is compiled using
+<A class="url" href="http://www.cygwin.com">Cywin</A>. The <CODE>library(crypt)</CODE> 
+library does not support DES encryption. The other libraries have been 
+ported to native Windows.
 </DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -155,8 +155,8 @@ Support library</SPAN></A></DIV>
 considerations</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">MIME 
 decoding library</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Unix 
-password encryption library</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Password 
+encryption library</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN> <SPAN class="sec-title">Memory 
 files</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN> <SPAN class="sec-title">Time 
@@ -182,8 +182,8 @@ of the user-community.
 Unix process API,
 <CODE>library(socket)</CODE> to deal with inet-domain stream-sockets, <CODE>library(cgi)</CODE> 
 to deal with getting CGI form-data if SWI-Prolog is used as a CGI 
-scripting language and <CODE>library(crypt)</CODE> to provide access to 
-Unix password encryption.
+scripting language and <CODE>library(crypt)</CODE> to provide password 
+encryption and verification.
 
 <H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Unix 
 Process manipulation library</SPAN></A></H2>
@@ -837,24 +837,44 @@ Name of the file the data should be stored in.
 </DD>
 </DL>
 
-<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Unix 
-password encryption library</SPAN></A></H2>
+<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Password 
+encryption library</SPAN></A></H2>
 
 <P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:46"></A><A class="pred" href="#crypt/2">crypt/2</A> 
-for encrypting and testing Unix passwords:
+for encrypting and testing passwords:
 
 <DL>
 <DT class="pubdef"><A NAME="crypt/2"><STRONG>crypt</STRONG>(<VAR>+Plain, 
 ?Encrypted</VAR>)</A></DT>
 <DD class="defbody">
-This predicate can be used in three modes. If <VAR>Encrypted</VAR> is 
-unbound, it will be unified to a string (list of character-codes) 
-holding a random encryption of <VAR>Plain</VAR>. If <VAR>Encrypted</VAR> 
-is bound to a list holding 2 characters and an unbound tail, these two 
-character are used for the <EM>salt</EM> of the encryption. Finally, if <VAR>Encrypted</VAR> 
-is instantiated to an encrypted password the predicate succeeds iff <VAR>Encrypted</VAR> 
-is a valid encryption of
-<VAR>Plain</VAR>.
+This predicate can be used in three modes. To test whether a password 
+matches an encrypted version thereof, simply run with both arguments 
+fully instantiated. To generate a default encrypted version of
+<VAR>Plain</VAR>, run with unbound <VAR>Encrypted</VAR> and this 
+argument is unified to a list of character codes holding an encrypted 
+version.
+
+<P>The library supports two encryption formats: traditional Unix DES 
+hashes (Unix only) and FreeBSD compatible MD5 hashes (all platforms). 
+MD5 hashes start with the magic sequence <CODE>$1$</CODE>, followed by 
+an up to 8 character <EM>salt</EM>. DES hashes start with a 2 character
+<EM>salt</EM>. Note that a DES hash considers only the first 8 
+characters. The MD5 considers the whole string.
+
+<P>Salt and algorithm can be forced by instantiating the start of
+<VAR>Encrypted</VAR> with it. This is typically used to force MD5 
+hashes:
+
+<PRE class="code">
+?- append("$1$", _, E),
+   crypt("My password", E),
+   format('~s~n', [E]).
+
+$1$qdaDeDZn$ZUxSQEESEHIDCHPNc3fxZ1
+</PRE>
+
+<P><VAR>Encrypted</VAR> is always an ASCII string. <VAR>Plain</VAR> only 
+supports ISO-Latin-1 passwords in the current implementation.
 
 <P><VAR>Plain</VAR> is either an atom, SWI-Prolog string, list of 
 characters or list of character-codes. It is not advised to use atoms, 
