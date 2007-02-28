@@ -4098,41 +4098,41 @@ jpl_value_to_type(V, T) :-
 
 %------------------------------------------------------------------------------
 
-% jpl_value_to_type_1(+Value, -Type) :-
-%   Type is the unique most specific JPL type of which Value represents an instance;
-%   called solely by jpl_value_to_type/2, which commits to first solution;
+%%	jpl_value_to_type_1(+Value, -Type) is semidet.
 %
-%   NB some integer values are of JPL-peculiar uniquely most specific subtypes,
-%   i.e. char_byte, char_short, char_int
-%   but all are understood by JPL's internal utilities which call this proc
+%	Type is the  unique  most  specific   JPL  type  of  which Value
+%	represents an instance; called   solely  by jpl_value_to_type/2,
+%	which commits to first solution;
 %
-%   NB we regard float as subtype of double
+%	NB  some  integer  values  are  of  JPL-peculiar  uniquely  most
+%	specific subtypes, i.e. char_byte, char_short,  char_int but all
+%	are understood by JPL's internal utilities which call this proc
 %
-%   NB objects and refs always have straightforward types
+%	NB we regard float as subtype of double
+%
+%	NB objects and refs always have straightforward types
 
-jpl_value_to_type_1(@(false), boolean).
-
-jpl_value_to_type_1(@(true), boolean).
-
+jpl_value_to_type_1(@(false), boolean) :- !.
+jpl_value_to_type_1(@(true), boolean) :- !.
 jpl_value_to_type_1(A, class([java,lang],['String'])) :-   % yes it's a "value"
-	atom(A).
-
+	atom(A), !.
 jpl_value_to_type_1(I, T) :-
-	integer(I),
-	(   I >= 0  ->  (   I < 2**7    ->  T = char_byte
-		    ;   I < 2**15   ->  T = char_short
-		    ;   I < 2**16   ->  T = char_int
-		    ;   I < 2**31   ->  T = int
-		    ;   I < 2**63   ->  T = long
-				    ;   T = overlong
-		    )
-	;   I >= -(2**7)    ->  T = byte
-	;   I >= -(2**15)   ->  T = short
-	;   I >= -(2**31)   ->  T = int
-	;   I >= -(2**63)   ->  T = long
-			;   T = overlong 
+	integer(I), !,
+	(   I >= 0 
+	->  (   I  < 128
+	    ->  T  = char_byte
+	    ;   I  < 32768   		 ->  T = char_short
+	    ;   I  < 65536   		 ->  T = char_int
+	    ;   I  < 2147483648   	 ->  T = int
+	    ;   I =< 9223372036854775807 ->  T = long
+	    				  ;  T = overlong
+	    )
+	;   I >= -128		      ->  T = byte
+	;   I >= -32768		      ->  T = short
+	;   I >= -2147483648          ->  T = int
+	;   I >= -9223372036854775808 ->  T = long
+				       ;  T = overlong 
 	).
-
 jpl_value_to_type_1(F, float) :-
 	float(F).
 
