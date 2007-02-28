@@ -171,10 +171,39 @@ Clean up all resources related to the SSL + TCP/IP socket layers.
 \end{description}
 
 
-\section{Example code}
+\section{Using SSL to provide HTTPS}
 
-Examples of a simple server and client as well as a simple HTTPS server
-can be found in the example directory which is located in
+This packages installs the library \pllib{http/http_ssl_plugin.pl}
+alongside the http package. This library is a plugin for
+\pllib{http/thread_httpd.pl} that makes the threaded HTTP server support
+HTTPS, which is simply HTTP over an SSL socket.  The HTTP server is
+started in HTTPS mode by adding an option \const{ssl} to http_server/2.
+The argument of the \const{ssl} option is an option list passed to
+ssl_init/3. Here is an example that uses the demo certificates
+distributed with the SSL package.
+
+\begin{code}
+https_server(Port, Options) :-
+        http_server(reply,
+                    [ port(Port),
+                      timeout(60),
+                      ssl([ host('localhost'),
+                            cacert_file('etc/demoCA/cacert.pem'),
+                            certificate_file('etc/server/server-cert.pem'),
+                            key_file('etc/server/server-key.pem'),
+                            password('apenoot1')
+                          ])
+                    | Options
+                    ]).
+\end{code}
+
+
+\section{Example code}
+\label{sec:examples}
+
+Examples of a simple server and client (\file{server.pl} and
+\file{client.pl} as well as a simple HTTPS server (\file{https.pl}) can
+be found in the example directory which is located in
 \file{doc/packages/examples/ssl} relative to the SWI-Prolog installation
 directory. The \file{etc} directory contains example certificate files
 as well as a \file{README} on the creation of certificates using OpenSSL

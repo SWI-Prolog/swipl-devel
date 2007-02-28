@@ -85,7 +85,7 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
 }
 
 span.pred-ext
@@ -99,7 +99,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -130,18 +130,20 @@ Prolog processes over the network.
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
 <DIV class="toc">
-<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">About 
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">About 
 SSL</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Overview 
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Overview 
 of the Prolog API</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Example 
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">Using 
+SSL to provide HTTPS</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Example 
 code</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Installation</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Acknowledgments</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">Installation</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Acknowledgments</SPAN></A></DIV>
 </DIV>
 
-<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <P>Raw TCP/IP networking is dangerous for two reasons. It is hard to 
 tell whether the body you think you are talking to is indeed the right 
@@ -157,7 +159,7 @@ similar to
 <CODE>library(socket)</CODE> for raw TCP/IP connections that provides 
 SSL server and client sockets.
 
-<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">About 
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">About 
 SSL</SPAN></A></H2>
 
 <P>The SWI-Prolog SSL interface is built on top of the
@@ -170,7 +172,7 @@ distribution available from
 <P>A good introduction on key- and certificate handling for OpenSSL can 
 be found at <A class="url" href="http://www.tldp.org/HOWTO/SSL-Certificates-HOWTO/">http://www.tldp.org/HOWTO/SSL-Certificates-HOWTO/</A>
 
-<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Overview 
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Overview 
 of the Prolog API</SPAN></A></H2>
 
 <P>An SSL server and client can be built with the following (abstracted) 
@@ -299,17 +301,48 @@ Clean up all resources related to the SSL + TCP/IP socket layers.
 </DD>
 </DL>
 
-<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Example 
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">Using 
+SSL to provide HTTPS</SPAN></A></H2>
+
+<P>This packages installs the library <CODE>library(http/http_ssl_plugin.pl)</CODE> 
+alongside the http package. This library is a plugin for
+<CODE>library(http/thread_httpd.pl)</CODE> that makes the threaded HTTP 
+server support HTTPS, which is simply HTTP over an SSL socket. The HTTP 
+server is started in HTTPS mode by adding an option <CODE>ssl</CODE> to <A NAME="idx:httpserver2:11"></A><SPAN class="pred-ext">http_server/2</SPAN>. 
+The argument of the <CODE>ssl</CODE> option is an option list passed to
+<A NAME="idx:sslinit3:12"></A><A class="pred" href="#ssl_init/3">ssl_init/3</A>. 
+Here is an example that uses the demo certificates distributed with the 
+SSL package.
+
+<PRE class="code">
+https_server(Port, Options) :-
+        http_server(reply,
+                    [ port(Port),
+                      timeout(60),
+                      ssl([ host('localhost'),
+                            cacert_file('etc/demoCA/cacert.pem'),
+                            certificate_file('etc/server/server-cert.pem'),
+                            key_file('etc/server/server-key.pem'),
+                            password('apenoot1')
+                          ])
+                    | Options
+                    ]).
+</PRE>
+
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Example 
 code</SPAN></A></H2>
 
-<P>Examples of a simple server and client as well as a simple HTTPS 
-server can be found in the example directory which is located in
+<A NAME="sec:examples"></A>
+
+<P>Examples of a simple server and client (<CODE>server.pl</CODE> and
+<CODE>client.pl</CODE> as well as a simple HTTPS server (<CODE>https.pl</CODE>) 
+can be found in the example directory which is located in
 <CODE>doc/packages/examples/ssl</CODE> relative to the SWI-Prolog 
 installation directory. The <CODE>etc</CODE> directory contains example 
 certificate files as well as a <CODE>README</CODE> on the creation of 
 certificates using OpenSSL tools.
 
-<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Installation</SPAN></A></H2>
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">Installation</SPAN></A></H2>
 
 <P>The OpenSSL libraries are <EM>not</EM> part of the SWI-Prolog 
 distribution and on systems using packagers with dependency checking, 
@@ -327,7 +360,7 @@ prior to building SWI-Prolog and <CODE>rules.mk</CODE> must be edited to
 reflect the position of the header and libraries if they are not in the 
 standard search path.
 
-<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Acknowledgments</SPAN></A></H2>
+<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Acknowledgments</SPAN></A></H2>
 
 <P>The development of the SWI-Prolog SSL interface has been sponsored by
 <A class="url" href="http://www.sss.co.nz">Scientific Software and 
@@ -342,6 +375,12 @@ Systems Limited</A>.
 <DT>flush_output/1</DT>
 <DD>
 <A class="idx" href="#idx:flushoutput1:9">3</A></DD>
+<DT><STRONG>H</STRONG></DT>
+<DD>
+</DD>
+<DT>http_server/2</DT>
+<DD>
+<A class="idx" href="#idx:httpserver2:11">4</A></DD>
 <DT><STRONG>S</STRONG></DT>
 <DD>
 </DD>
@@ -353,7 +392,7 @@ Systems Limited</A>.
 <A class="idx" href="#idx:sslexit1:6">3</A> <A class="idx" href="#idx:sslexit1:7">3</A></DD>
 <DT><A class="idx" href="#ssl_init/3">ssl_init/3</A></DT>
 <DD>
-<A class="idx" href="#idx:sslinit3:1">3</A> <A class="idx" href="#idx:sslinit3:2">3</A> <A class="idx" href="#idx:sslinit3:10">3</A></DD>
+<A class="idx" href="#idx:sslinit3:1">3</A> <A class="idx" href="#idx:sslinit3:2">3</A> <A class="idx" href="#idx:sslinit3:10">3</A> <A class="idx" href="#idx:sslinit3:12">4</A></DD>
 <DT><A class="idx" href="#ssl_open/3">ssl_open/3</A></DT>
 <DD>
 <A class="idx" href="#idx:sslopen3:5">3</A></DD>

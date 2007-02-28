@@ -12,6 +12,7 @@ PLHOME=..\..
 !include ..\..\src\rules.mk
 PKGDLL=ssl4pl
 EXDIR=		$(PKGDOC)\examples\ssl
+HTTPDIR=	$(PLBASE)\library\http
 CFLAGS=		-D__SWI_PROLOG__ $(CFLAGS)
 
 #
@@ -44,6 +45,8 @@ idll::
 
 ilib::
 		copy ssl.pl "$(PLBASE)\library"
+		if not exist "$(HTTPDIR)/$(NULL)" $(MKDIR) "$(HTTPDIR)"
+		copy http_ssl_plugin.pl "$(HTTPDIR)"
 		$(MAKEINDEX)
 
 xpce-install::

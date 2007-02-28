@@ -48,6 +48,7 @@ INSTALL_DATA=@INSTALL_DATA@
 
 LIBPL=		@PLTARGETS@
 TARGETS=	@TARGETS@
+PLLIBDIR=	$(DESTDIR)$(PLBASE)/library
 EXAMPLES=	client.pl server.pl https.pl
 
 SSLOBJ=		ssl4pl.o ssllib.o ../clib/nonblockio.o ../clib/error.o
@@ -63,8 +64,10 @@ install:	$(TARGETS) $(LIBPL)
 		  $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/lib/$(PLARCH); \
 		done
 		for f in $(LIBPL); do \
-		  $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library; \
+		  $(INSTALL_DATA) $$f $(PLLIBDIR); \
 		done
+		mkdir -p $(PLLIBDIR)/http
+		$(INSTALL_DATA) http_ssl_plugin.pl $(PLLIBDIR)/http
 		$(PL) -f none -g make -t halt
 
 ln-install::
