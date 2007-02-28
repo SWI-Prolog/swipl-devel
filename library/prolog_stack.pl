@@ -140,11 +140,13 @@ where(clause(Clause, PC)) -->
 	{ subgoal_position(Clause, PC, File, CharA, _CharZ),
 	  File \= @(_),			% XPCE Object reference
 	  lineno(File, CharA, Line),
-	  (   user:prolog_clause_name(Clause, PredName)
-	  ->  true
-	  ;   nth_clause(Head, _N, Clause),
-	      predicate_name(user:Head, PredName)
-	  )
+	  clause_predicate_name(Clause, PredName)
+	}, !,
+	[ '~w at ~w:~d'-[PredName, File, Line] ].
+where(clause(Clause, _PC)) -->
+	{ clause_property(Clause, file(File)),
+	  clause_property(Clause, line_count(Line)),
+	  clause_predicate_name(Clause, PredName)
 	}, !,
 	[ '~w at ~w:~d'-[PredName, File, Line] ].
 where(clause(Clause, _PC)) -->
@@ -154,6 +156,18 @@ where(clause(Clause, _PC)) -->
 
 level(Level) -->
 	[ '~|~t[~D]~8+ '-[Level] ].
+
+
+%%	clause_predicate_name(+ClauseRef, -Predname) is det.
+%
+%	Produce a name (typically  Functor/Arity)   for  a  predicate to
+%	which Clause belongs.
+
+clause_predicate_name(Clause, PredName) :-
+	user:prolog_clause_name(Clause, PredName), !.
+clause_predicate_name(Clause, PredName) :-
+	nth_clause(Head, _N, Clause),
+	predicate_name(user:Head, PredName).
 
 
 %%	backtrace(+MaxDepth)
