@@ -576,7 +576,31 @@ if test "x$ac_cv_func_unsetenv" = "xyes"; then
 		 AC_MSG_RESULT(yes))
 fi
 
-AC_MSG_CHECKING("linux gettid")
+AC_CHECK_HEADERS(sys/syscall.h)
+AC_CHECK_FUNCS(syscall)
+
+AC_MSG_CHECKING(whether <sys/syscall.h> has __NR_gettid)
+AC_TRY_COMPILE(
+[ #include <sys/syscall.h> ],
+[ int i = __NR_gettid;
+], AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING(for syscall support for gettid)
+AC_TRY_COMPILE(
+[ #include <unistd.h>
+  #include <sys/syscall.h> ],
+[ syscall(__NR_gettid);
+], ac_syscall_gettid="yes"
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
+if test "x$ac_syscall_gettid" = "xyes"; then
+   AC_DEFINE(HAVE_GETTID_SYSCALL, 1,
+             [Define to 1 if you have syscall support for gettid()])
+else
+
+AC_MSG_CHECKING("linux gettid _syscall0 macro")
 AC_TRY_COMPILE(
 [
 #include <sys/types.h>
@@ -584,10 +608,11 @@ AC_TRY_COMPILE(
 _syscall0(pid_t,gettid)
 ],
 [ pid_t t = gettid();
-], AC_DEFINE(HAVE_GETTID, 1,
-	     [Define if you have Linux gettid()])
+], AC_DEFINE(HAVE_GETTID_MACRO, 1,
+	     [Define to 1 if you have the Linux gettid() _syscall0 macro])
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
+fi
 
 AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_FUNCS(clock_gettime)
@@ -612,9 +637,6 @@ if test "x$ac_pthread_cpuclocks" = "xyes"; then
    AC_DEFINE(PTHREAD_CPUCLOCKS, 1,
              [Define if you have pthread cpu clocks (glibc 2.4 and greater)])
 else
-
-AC_CHECK_HEADERS(sys/syscall.h)
-AC_CHECK_FUNCS(syscall)
 
 AC_MSG_CHECKING(whether <sys/syscall.h> has __NR_clock_gettime)
 AC_TRY_COMPILE(

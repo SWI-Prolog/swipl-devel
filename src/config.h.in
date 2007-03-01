@@ -127,8 +127,11 @@
 /* Define to 1 if you have the `getrusage' function. */
 #undef HAVE_GETRUSAGE
 
-/* Define if you have Linux gettid() */
-#undef HAVE_GETTID
+/* Define to 1 if you have syscall support for gettid() */
+#undef HAVE_GETTID_SYSCALL
+
+/* Define to 1 if you have the Linux gettid() _syscall0 macro */
+#undef HAVE_GETTID_MACRO
 
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY

@@ -73,9 +73,11 @@ APPROACH
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <errno.h>
-#if defined(__linux__) && defined(HAVE_GETTID)
+#if defined(__linux__)
 #include <linux/unistd.h>
+#ifdef HAVE_GETTID_MACRO
 _syscall0(pid_t,gettid)
+#endif
 #endif
 
 #ifdef HAVE_SYS_SYSCALL_H
@@ -847,11 +849,15 @@ set_system_thread_id(PL_thread_info_t *info)
 { 
   info->tid = pthread_self();
   info->has_tid = TRUE;
-#ifdef HAVE_GETTID
+#ifdef HAVE_GETTID_SYSCALL
+  info->pid = syscall(__NR_gettid);
+#else
+#ifdef HAVE_GETTID_MACRO
   info->pid = gettid();
 #else
 #ifdef __WINDOWS__
   info->w32id = GetCurrentThreadId();
+#endif
 #endif
 #endif
 }
