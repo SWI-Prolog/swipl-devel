@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#259: location indication in GUI tracer on Windows.
+
   * FIXED: Reporting stream-errors in non-Windows platforms.
 
   * FIXED: Some issues concerning integer rounding.  MODIFIED: arithmetic
