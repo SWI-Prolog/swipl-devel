@@ -361,6 +361,11 @@ http_post_data(file(Type, File), Out, HdrExtra) :- !,
 	open(File, read, In, [type(binary)]),
 	call_cleanup(copy_stream_data(In, Out),
 		     close(In)).
+http_post_data(string(Codes), Out, HdrExtra) :- !,
+	http_post_data(string(text/plain, Codes), Out, HdrExtra).
+http_post_data(string(Type, Codes), Out, HdrExtra) :- !,
+	phrase(post_header(string(Type, Codes), HdrExtra), Header),
+	format(Out, '~s~s', [Header, Codes]).
 http_post_data(cgi_stream(In, _Len), Out, HdrExtra) :- !,
 	debug(obsolete, 'Obsolete 2nd argument in cgi_stream(In,Len)', []),
 	http_post_data(cgi_stream(In), Out, HdrExtra).
@@ -434,6 +439,11 @@ post_header(file(Type, File), HdrExtra) -->
 post_header(cgi_data(Size), HdrExtra) -->
 	header_fields(HdrExtra),
 	content_length(Size),
+	"\r\n". 
+post_header(string(Type, Codes), HdrExtra) -->
+	header_fields(HdrExtra),
+	content_length(ascii_string(Codes)),
+	content_type(Type),
 	"\r\n". 
 
 
