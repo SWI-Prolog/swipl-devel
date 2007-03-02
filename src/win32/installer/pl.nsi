@@ -301,6 +301,8 @@ Section "SSL Interface"
   File pl\bin\ssl4pl.dll
   SetOutPath $INSTDIR\library
   File pl\library\ssl.pl
+  SetOutPath $INSTDIR\library\http
+  File pl\library\http\http_ssl_plugin.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\ssl.html
   SetOutPath $INSTDIR\doc\packages\examples
