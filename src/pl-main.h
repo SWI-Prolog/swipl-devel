@@ -79,19 +79,11 @@ typedef struct
 #define OS "unknown"
 #endif
 
-#if O_DYNAMIC_STACKS || O_SHIFT_STACKS
-#define DEF_DEFLOCAL	(500*SIZEOF_VOIDP)
-#define DEF_DEFGLOBAL	(1000*SIZEOF_VOIDP)
-#define DEF_DEFTRAIL	(1000*SIZEOF_VOIDP)
+#define DEF_DEFLOCAL	(4000*SIZEOF_VOIDP)
+#define DEF_DEFGLOBAL	(8000*SIZEOF_VOIDP) /* 32MB on 32-bit hardware */
+#define DEF_DEFTRAIL	(8000*SIZEOF_VOIDP)
 #define DEF_DEFARGUMENT (250*SIZEOF_VOIDP)
-#define DEF_DEFHEAP        0		/* unlimited */
-#else					/* static stack areas */
-#define DEF_DEFLOCAL	(50*SIZEOF_VOIDP)
-#define DEF_DEFGLOBAL	(80*SIZEOF_VOIDP)
-#define DEF_DEFTRAIL	(80*SIZEOF_VOIDP)
-#define DEF_DEFARGUMENT	(20*SIZEOF_VOIDP)
-#define DEF_DEFHEAP       0		/* unlimited */
-#endif
+#define DEF_DEFHEAP     0		/* unlimited */
 
 #ifndef DEFLOCAL
 #define DEFLOCAL    DEF_DEFLOCAL

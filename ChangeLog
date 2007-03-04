@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Changed default stack-sizes to 16MB local and 32MB global
+    and trail.  Should not affect anything, except applications creating
+    many threads.  It is adviced to specify stack-sizes with thread_create/3
+    in such applications.
+
   * FIXED: index/1 didn't clean hash-info.   Samer Abdallah.
 
   * FIXED: Bug#264: Typing.  Keri Harris.
