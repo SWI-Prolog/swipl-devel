@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -2041,9 +2041,11 @@ setDynamicProcedure(Procedure proc, bool isdyn)
     attachMutexAndUnlock(def);
   } else				/* dynamic --> static */
   { clear(def, DYNAMIC);
-    if ( def->references && true(def, NEEDSCLAUSEGC|NEEDSREHASH) )
-      registerDirtyDefinition(def);
-    def->references = 0;
+    if ( def->references )
+    { if ( true(def, NEEDSCLAUSEGC|NEEDSREHASH) )
+	registerDirtyDefinition(def);
+      def->references = 0;
+    }
 
     detachMutexAndUnlock(def);
   }
@@ -2240,11 +2242,14 @@ reindexDefinition(Definition def)
 }
 
 
+/* MT: Definition is locked by caller
+*/
+
 void
 indexDefinition(Definition def, long pattern)
 { clear(def, AUTOINDEX);
 
-  if ( (def->indexPattern & ~NEED_REINDEX) != 0x1L &&
+  if ( pattern != 0x1L &&
        true(def, DYNAMIC) && def->references == 0 )
   { if ( def->hash_info )
     { unallocClauseIndexTable(def->hash_info);

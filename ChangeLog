@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: index/1 didn't clean hash-info.   Samer Abdallah.
+
   * FIXED: Bug#264: Typing.  Keri Harris.
 
   * PORT: patch to use libc's syscall(__NR_gettid).  Keri Harris.
