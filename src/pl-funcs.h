@@ -62,7 +62,7 @@ COMMON(int) 		equalIndirect(word r1, word r2);
 COMMON(word) 		globalIndirectFromCode(Code *PC);
 COMMON(word) 		makeRef(Word p);
 #ifndef consPtr
-COMMON(word) 		consPtr(void *p, int ts);
+COMMON(word) 		consPtr(void *p, word ts);
 #endif
 COMMON(char *) 		store_string(const char *s);
 COMMON(void) 		remove_string(char *s);

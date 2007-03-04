@@ -47,6 +47,10 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include <crtdbg.h>
 #endif
 
+#if defined(HAVE_MTRACE) && defined(O_MAINTENANCE)
+#include <mcheck.h>
+#endif
+
 static int	usage(void);
 static int	giveVersionInfo(const char *a);
 static bool	vsysError(const char *fm, va_list args);

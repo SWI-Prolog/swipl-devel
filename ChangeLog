@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#264: Typing.  Keri Harris.
+
   * PORT: patch to use libc's syscall(__NR_gettid).  Keri Harris.
 
   * FIXED: Bug#259: location indication in GUI tracer on Windows.
