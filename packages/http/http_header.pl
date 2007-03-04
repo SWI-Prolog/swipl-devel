@@ -343,7 +343,45 @@ content_length_in_encoding(Enc, Stream, Bytes) :-
 
 %%	http_post_data(+Data, +Out:stream, +HdrExtra) is det.
 %
-%	@tbd	Complete docs
+%	Send data on behalf on an HTTP   POST request. This predicate is
+%	normally called by http_post/4 from   http_client.pl to send the
+%	POST data to the server.  Data is one of:
+%	
+%	  * html(+Tokens)
+%	  Result of html//1 from html_write.pl
+%	  
+%	  * file(+File)
+%	  Send contents of a file. Mime-type is determined by
+%	  file_mime_type/2.
+%	  
+%	  * file(+Type, +File)
+%	  Send file with content of indicated mime-type.
+%	  
+%	  * string(+Codes)
+%	  As string(text/plain, Codes).
+%	  
+%	  * string(+Type, +Codes)
+%	  Send Codes using the indicated MIME-type.
+%	  
+%	  * cgi_stream(+Stream, +Len)
+%	  Read the input from Stream which, like CGI data starts with a partial
+%	  HTTP header. The fields of this header are merged with the provided
+%	  HdrExtra fields. The first Len characters of Stream are used.
+%	  
+%	  * form(+ListOfParameter)
+%	  Send data of the MIME type application/x-www-form-urlencoded as
+% 	  produced by browsers issuing a POST request from an HTML form.
+%	  ListOfParameter is a list of Name=Value or Name(Value).
+%	  
+%	  * form_data(+ListOfData)
+%	  Send data of the MIME type multipart/form-data.  ListOfData is the same
+%	  as for the List alternative described below.
+%	  
+%	  * List
+%	  If the argument is a plain list, it is sent using the MIME type
+%	  multipart/mixed and packed using mime_pack/3. See mime_pack/3
+%	  for details on the argument format.
+
 
 http_post_data(html(HTML), Out, HdrExtra) :-
 	phrase(post_header(html(HTML), HdrExtra), Header),
