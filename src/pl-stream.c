@@ -101,6 +101,9 @@ typedef wchar_t pl_wchar_t;
 #define MB_LEN_MAX 6
 #endif
 
+#define ROUND(p, n) ((((p) + (n) - 1) & ~((n) - 1)))
+#define UNDO_SIZE ROUND(MB_LEN_MAX, sizeof(wchar_t))
+
 #ifndef FALSE
 #define FALSE 0
 #endif
@@ -149,10 +152,10 @@ extern IOENC			initEncoding(void);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note that the  buffer  is  allocated   from  s->unbuffer,  which  starts
-MB_LEN_MAX before s->buffer, so we can always push-back a wide character
-into a multibyte stream. We do  not   do  this for SIO_USERBUF case, but
-this is only used by  the  output   stream  Svfprintf()  where it is not
-needed.
+UNDO_SIZE before s->buffer, so we can always push-back a wide
+character into a multibyte stream. We do not do this for SIO_USERBUF
+case, but this is only used by the output stream Svfprintf() where it is
+not needed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -167,12 +170,12 @@ S__setbuf(IOSTREAM *s, char *buffer, int size)
   { s->unbuffer = s->buffer = buffer;
     s->flags |= SIO_USERBUF;
   } else
-  { if ( !(s->unbuffer = malloc(s->bufsize+MB_LEN_MAX)) )
+  { if ( !(s->unbuffer = malloc(s->bufsize+UNDO_SIZE)) )
     { errno = ENOMEM;
       return -1;
     }
     s->flags &= ~SIO_USERBUF;
-    s->buffer = s->unbuffer + MB_LEN_MAX;
+    s->buffer = s->unbuffer + UNDO_SIZE;
   }
 
   s->limitp = &s->buffer[s->bufsize];
