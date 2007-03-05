@@ -820,28 +820,26 @@ AC_CHECK_LIB(SM, main,
 	     ,
 	     -lX11 -lXt -lICE)
 XLIBS="$XLIBS $XSMLIBS"
-echo "	XLIBS=$XLIBS"
+
 if test ! -z "$x_libraries"; then
   LIBS="-L$x_libraries $XLIBS $ac_oldlibs"
 else
   LIBS="$XLIBS $ac_oldlibs"
 fi
 
-dnl The SunOS 4.1.x linker is broken.  This hacks around this problem
-dnl the real linking hacks around it in yet another way ...
-
-case "$OS" in
-  *sunos*) LIBS="$BEFOREXLIBS -lX11 $XSMLIBS";;
-esac
-
-CPPFLAGS="$XINCLUDES ${CPPFLAGS}"
-CIFLAGS="$XINCLUDES ${CIFLAGS}"
+dnl -lXext appears needed on Debian.  Wat does it do?
+AC_CHECK_LIB(Xext, main, [XLIBS="-lXext $XLIBS"],)
 
 AC_CHECK_LIB(Xinerama, main,
 	     [XLIBS="-lXinerama $XLIBS"]
 	     AC_DEFINE(HAVE_LIBXINERAMA, 1,
 		       "Define if you have the Xinerama library"))
 AC_CHECK_HEADERS(X11/extensions/Xinerama.h)
+
+echo "	XLIBS=$XLIBS"
+
+CPPFLAGS="$XINCLUDES ${CPPFLAGS}"
+CIFLAGS="$XINCLUDES ${CIFLAGS}"
 
 fi dnl WITHX11
 
@@ -961,13 +959,25 @@ dnl * X11 extensions
 dnl * XFT: The Xfree font management system
 dnl ****************************************************************
 
-AC_CHECK_PROGS(XFTCONFIG, xft-config, "false")
-if test "$XFTCONFIG" != "false" ; then
-   AC_DEFINE(USE_XFT, 1,
-	     "Define to use the Xft scalable and anti-aliasing font system")
-   XLIBS="$XLIBS `$XFTCONFIG --libs`"
-   XINCLUDES="$XINCLUDES `$XFTCONFIG --cflags`"
-fi;
+AC_CHECK_PROGS(XFTCONFIG, pkg-config xft-config, "false")
+case "$XFTCONFIG" in
+	pkg-config)
+		if pkg-config --exists xft; then
+			AC_DEFINE(USE_XFT, 1,
+				  "Define to use the Xft scalable and anti-aliasing font system")
+			XLIBS="$XLIBS `pkg-config --libs xft`"
+			XINCLUDES="$XINCLUDES `pkg-config --cflags xft`"
+		fi
+		;;
+	xft-config)
+		AC_DEFINE(USE_XFT, 1,
+			  "Define to use the Xft scalable and anti-aliasing font system")
+		XLIBS="$XLIBS `$XFTCONFIG --libs`"
+		XINCLUDES="$XINCLUDES `$XFTCONFIG --cflags`"
+		;;
+	false)
+		;;
+esac
 
 
 dnl ****************************************************************

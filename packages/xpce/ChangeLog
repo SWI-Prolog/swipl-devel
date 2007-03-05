@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* PORT: Prefer pkg-config over xft-config for finding XFT.  Needed on
+  Redhat Linux FC6.  With help from Jacco van Ossenbruggen.
+
 VERSION 6.6.29, distributed with SWI-Prolog 5.6.29
 ==================================================
 
