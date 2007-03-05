@@ -7357,19 +7357,23 @@ extend_id(Id,[0|Id]).
 next_id([_,N|Ns],[O|Ns]) :-
    O is N + 1.
 
+	% return clause Head
+	% for F/A constraint symbol, predicate identifier Id and arguments Head
 build_head(F,A,Id,Args,Head) :-
-   buildName(F,A,Id,Name),
-   ( (chr_pp_flag(debugable,on) ; is_stored(F/A), has_active_occurrence(F/A),
-	( may_trigger(F/A) ; 
-		get_allocation_occurrence(F/A,AO), 
-		get_max_occurrence(F/A,MO), 
-	MO >= AO ) ) ->	
-	   Head =.. [Name|Args]
-   ;
-	   init(Args,ArgsWOSusp),	% XXX not entirely correct!
-	   Head =.. [Name|ArgsWOSusp]
-  ).
+	buildName(F,A,Id,Name),
+	( (chr_pp_flag(debugable,on) ; is_stored(F/A), ( has_active_occurrence(F/A) ; chr_pp_flag(late_allocation,off)),
+	     ( may_trigger(F/A) ; 
+	     	get_allocation_occurrence(F/A,AO), 
+	     	get_max_occurrence(F/A,MO), 
+	     MO >= AO ) ) ->	
+	        Head =.. [Name|Args]
+	;
+	        init(Args,ArgsWOSusp),	% XXX not entirely correct!
+	        Head =.. [Name|ArgsWOSusp]
+	).
 
+	% return predicate name Result 
+	% for Fct/Aty constraint symbol and predicate identifier List
 buildName(Fct,Aty,List,Result) :-
    ( (chr_pp_flag(debugable,on) ; (once((is_stored(Fct/Aty), ( has_active_occurrence(Fct/Aty) ; chr_pp_flag(late_allocation,off)), 
    ( may_trigger(Fct/Aty) ; get_allocation_occurrence(Fct/Aty,AO), get_max_occurrence(Fct/Aty,MO), 

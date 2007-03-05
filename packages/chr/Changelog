@@ -1,3 +1,9 @@
+Mar 5, 2007
+
+  * TS: Bug fix: setarg/3 instantiation error reported by Mike Elston.
+	Caused by missing suspension argument in debug off, optimize off
+	mode.
+
 Feb 22, 2007
 
  * LDK: O(1) removal from hashtables, with experimental
