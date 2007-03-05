@@ -1,3 +1,8 @@
+Mar 5, 2007
+
+  * ADDED: rdf_load/2, allow for base_uri(-URI) to get access to the named
+    graph a source is loaded into.  Jacco van Ossenbruggen.
+
 Jan 28, 2007
 
   * FIXED: rdf_meta declaration for rdf_update/5.  Michiel Hildebrand.

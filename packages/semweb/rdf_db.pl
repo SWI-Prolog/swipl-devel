@@ -727,6 +727,10 @@ rdf_load(Spec, Options) :-
 	select_option(blank_nodes(ShareMode), Options3, Options4, share),
 	select_option(cache(Cache), Options4, Options5, true),
 	select_option(if(If), Options5, RDFOptions, changed),
+	(   var(BaseURI)
+	->  BaseURI = DefBaseURI
+	;   true
+	),
 	(   must_load(If, BaseURI, Modified)
 	->  do_unload(BaseURI),		% unload old
 	    (   Cache == true,
