@@ -260,23 +260,37 @@ csearch([Parameter|Parameters], Sep) --> !,
 	csearch(Parameters, "&"). 
 
 cparam(Name=Value) --> !, 
-	cform(Name), 
+	cname(Name), 
 	"=", 
-	cform(Value). 
+	cvalue(Value). 
 cparam(NameValue) -->			% allow to feed Name(Value)
 	{ compound(NameValue), !,
 	  NameValue =.. [Name,Value]
 	},
-	cform(Name), 
+	cname(Name), 
 	"=", 
-	cform(Value). 
+	cvalue(Value). 
 cparam(Name)--> 
-	cform(Name). 
+	cname(Name). 
 	
 
-cform(Atom) --> 
+cname(Atom) --> 
 	{ atom_codes(Atom, Codes) },
 	www_encode(Codes, "").
+
+%%	cvalue(+Value)// is det.
+%
+%	Construct a string from  Value.  Value   is  either  atomic or a
+%	code-list.
+
+cvalue(Value) -->
+	{ atomic(Value), !,
+	  atom_codes(Value, Codes)
+	},
+	www_encode(Codes, "").
+cvalue(Codes) -->
+	www_encode(Codes, "").
+
 
 %%	cfragment(+Attributes)//
 
