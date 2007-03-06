@@ -30,28 +30,79 @@ test(md5, []) :-
 
 :- begin_tests(sha).
 
-test(sha1, true(Hash=[136, 67, 215, 249, 36, 22, 33, 29,
+test(sha1, [true(Hash=[136, 67, 215, 249, 36, 22, 33, 29,
 		      233, 235, 185, 99, 255, 76, 226,
-		      129, 37, 147, 40, 120])) :-
+		      129, 37, 147, 40, 120])]) :-
 	sha_hash(foobar, Hash, []).
-test(sha1, true(Hash=[136, 67, 215, 249, 36, 22, 33, 29,
+test(sha1, [true(Hash=[136, 67, 215, 249, 36, 22, 33, 29,
 		      233, 235, 185, 99, 255, 76, 226, 
-		      129, 37, 147, 40, 120])) :-
+		      129, 37, 147, 40, 120])]) :-
 	sha_hash(foobar, Hash, [algorithm(sha1)]).
-test(sha256, true(Hash=[195, 171, 143, 241, 55, 32, 232, 173,
+test(sha256, [true(Hash=[195, 171, 143, 241, 55, 32, 232, 173,
 			144, 71, 221, 57, 70, 107, 60, 137, 
 			116, 229, 146, 194, 250, 56, 61, 74,
-			57, 96, 113, 76, 174, 240, 196, 242])) :-
+			57, 96, 113, 76, 174, 240, 196, 242])]) :-
 	sha_hash(foobar, Hash, [algorithm(sha256)]).
-test(hmac, true(Hash=[80, 49, 254, 61, 152, 156, 109, 21,
+test(hmac, [true(Hash=[80, 49, 254, 61, 152, 156, 109, 21,
 		      55, 160, 19, 250, 110, 115, 157, 162, 
-		      52, 99, 253, 174])) :-
+		      52, 99, 253, 174])]) :-
 	hmac_sha(key, data, Hash, [algorithm(sha1)]).
-test(hmac, true(Hash=[80, 49, 254, 61, 152, 156, 109, 21,
+test(hmac, [true(Hash=[80, 49, 254, 61, 152, 156, 109, 21,
 		      55, 160, 19, 250, 110, 115, 157, 162,
 		      52, 99, 253, 174, 195, 183, 1, 55, 216,
-		      40, 227, 106, 206, 34, 27, 208])) :-
+		      40, 227, 106, 206, 34, 27, 208])]) :-
 	hmac_sha(key, data, Hash, [algorithm(sha256)]).
 
 :- end_tests(sha).
+
+
+:- begin_tests(wiki_sha).
+
+%%	hash_to_atom(+Hash, -Atom)
+%
+%	Translates a hash into representation used  in Wikipedia page on
+%	SHA-1 hashes.
+
+hash_to_atom(Hash, Atom) :-
+	phrase(hash_to_ascii(Hash), Codes),
+	atom_codes(Atom, Codes).
+
+hash_to_ascii([]) -->
+	[].
+hash_to_ascii([B1,B2,B3,B4|T]) -->
+	hex_byte(B1),
+	hex_byte(B2),
+	hex_byte(B3),
+	hex_byte(B4),
+	(   { T == [] }
+	->  []
+	;   " ",
+	    hash_to_ascii(T)
+	).
+	      
+hex_byte(Byte) -->
+	{ High is (Byte>>4) /\ 0xf,
+	  Low  is Byte /\ 0xf
+	},
+	hex(High),
+	hex(Low).
+
+hex(Digit) -->
+	{ code_type(Code, xdigit(Digit))
+	},
+	[Code].
+	  
+test(sha1, [true(Atom='2fd4e1c6 7a2d28fc ed849ee1 bb76e739 1b93eb12')]) :-
+	sha_hash("The quick brown fox jumps over the lazy dog", Hash, [algorithm(sha1)]),
+	hash_to_atom(Hash, Atom).
+test(sha256, [true(Atom='d7a8fbb3 07d78094 69ca9abc b0082e4f 8d5651e4 6d3cdb76 2d02d0bf 37c9e592')]) :-
+	sha_hash("The quick brown fox jumps over the lazy dog", Hash, [algorithm(sha256)]),
+	hash_to_atom(Hash, Atom).
+test(sha256, [true(Atom='e3b0c442 98fc1c14 9afbf4c8 996fb924 27ae41e4 649b934c a495991b 7852b855')]) :-
+	sha_hash('', Hash, [algorithm(sha256)]),
+	hash_to_atom(Hash, Atom).
+
+:- end_tests(wiki_sha).
+
+
 
