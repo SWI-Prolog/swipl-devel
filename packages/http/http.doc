@@ -100,17 +100,24 @@ access method.  It defines one predicate:
 
 \begin{description}
     \predicate{http_open}{3}{+URL, -Stream, +Options}
-Open the data at the HTTP server as a Prolog stream. After this
-predicate succeeds the data can be read from \arg{Stream}.  After
-completion this stream must be closed using the built-in Prolog
-predicate close/1.  \arg{Options} provides additional options:
+Open the data at the HTTP server as a Prolog stream. \arg{URL} is either
+an atom specifying a URL or a list representing a broken-down URL
+compatible to parse_url/2. After this predicate succeeds the data can be
+read from \arg{Stream}. After completion this stream must be closed
+using the built-in Prolog predicate close/1. \arg{Options} provides
+additional options:
 
     \begin{description}
-        \termitem{timeout}{+Timeout}
-If provided, set a timeout on the stream using set_stream/2.  With this
-option if no new data arrives within \arg{Timeout} seconds the
-stream raises an exception. Default is to wait forever
-(\const{infinite}).
+	\termitem{final_url}{-FinalURL}
+Unify \arg{FinalURL} with the final destination. This differs from the
+original \arg{URL} if the returned head of the original indicates an
+HTTP redirect (codes 301, 302 or 303). Without a redirect,
+\arg{FinalURL} is unified with the canonical version of \arg{URL} using
+
+\begin{code}
+	parse_url(URL, Parts),
+	parse_url(FinalURL, Parts)
+\end{code}
 
 	\termitem{header}{+Name, -AtomValue}
 If provided, \arg{AtomValue} is unified with the value of the
@@ -120,26 +127,32 @@ hyphen (\chr{-}).  Multiple of these options may be provided
 to extract multiple header fields.  If the header is not available
 \arg{AtomValue} is unified to the empty atom ('').
 
-	\termitem{size}{-Size}
-If provided \arg{Size} is unified with the value of the
-\const{Content-Length} fields of the reply-header.
-
-	\termitem{proxy}{+Host, +Port}
-Use an HTTP proxy to connect to the outside world.
-
-	\termitem{user_agent}{+Agent}
-Defines the value of the \const{User-Agent} field of the HTTP header.
-Default is \const{SWI-Prolog (http://www.swi-prolog.org)}.
-
-	\termitem{request_header}{+Name = +Value}
-Additional name-value parts are added in the order of appearance to
-the HTTP request header.  No interpretation is done.
-
 	\termitem{method}{Method}
 One of \const{get} (default) or \const{head}.  The \const{head} message
 can be used in combination with the \term{header}{Name, Value} option
 to access information on the resource without actually fetching the
 resource itself.  The returned stream must be closed immediately.
+
+	\termitem{proxy}{+Host, +Port}
+Use an HTTP proxy to connect to the outside world.
+
+	\termitem{request_header}{+Name = +Value}
+Additional name-value parts are added in the order of appearance to
+the HTTP request header.  No interpretation is done.
+
+	\termitem{size}{-Size}
+If provided \arg{Size} is unified with the value of the
+\const{Content-Length} fields of the reply-header.
+
+        \termitem{timeout}{+Timeout}
+If provided, set a timeout on the stream using set_stream/2.  With this
+option if no new data arrives within \arg{Timeout} seconds the
+stream raises an exception. Default is to wait forever
+(\const{infinite}).
+
+	\termitem{user_agent}{+Agent}
+Defines the value of the \const{User-Agent} field of the HTTP header.
+Default is \const{SWI-Prolog (http://www.swi-prolog.org)}.
     \end{description}
 
 Here is a simple example:

@@ -94,7 +94,7 @@ $(HTML):	$(TEX)
 		rmdir html
 
 $(PDF):		$(TEX)
-		$(RUNTEXT) --pdf $(DOC)
+		$(RUNTEX) --pdf $(DOC)
 
 $(TEX):		$(DOCTOTEX)
 

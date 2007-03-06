@@ -1,3 +1,7 @@
+Mar 6, 2007
+
+  * Added final_url option to http_open/3
+
 Mar 5, 2007
 
   * MODIFIED: debug(header, ...) --> debug(http(header), ...)

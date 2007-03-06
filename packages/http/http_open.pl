@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -68,24 +68,31 @@ client support is provided by http_client.pl
 %		  Extra header field
 %		* method(+Method)
 %		  One of =get= (default) or =head=
+%		* final_url(-URL)
+%		  Unified with the final URL to deal with
+%		  redirections.
 %	
 %	@error	existence_error(url, Id)
 
-http_open(Url, Stream, Options) :-
-	atom(Url), !,
-	parse_url(Url, Parts),
+http_open(URL, Stream, Options) :-
+	atom(URL), !,
+	parse_url(URL, Parts),
 	http_open(Parts, Stream, Options).
-http_open(Parts, Stream, Options) :-
+http_open(Parts, Stream, Options0) :-
+	Options = [visited(Parts)|Options0],
 	memberchk(proxy(Host, Port), Options), !,
 	parse_url(Location, Parts),
 	open_socket(Host:Port, In, Out, Options),
-	send_rec_header(Out, In, Stream, Host, Location, Parts, Options).
-http_open(Parts, Stream, Options) :-
+	send_rec_header(Out, In, Stream, Host, Location, Parts, Options),
+	return_final_url(Options).
+http_open(Parts, Stream, Options0) :-
+	Options = [visited(Parts)|Options0],
 	memberchk(host(Host), Parts),
 	option(port(Port), Parts, 80),
 	http_location(Parts, Location),
 	open_socket(Host:Port, In, Out, Options),
-	send_rec_header(Out, In, Stream, Host, Location, Parts, Options).
+	send_rec_header(Out, In, Stream, Host, Location, Parts, Options),
+	return_final_url(Options).
 
 %%	send_rec_header(+Out, +In, -InStream,
 %%			+Host, +Location, +Parts, +Options) is det.
@@ -160,7 +167,7 @@ do_open(Code, _, Lines, Options, Parts, In, Stream) :-
 	location(Lines, Location), !,
 	parse_url(Location, Parts, Redirected),
 	close(In),
-	http_open(Redirected, Stream, Options).
+	http_open(Redirected, Stream, [visited(Redirected)|Options]).
 					% report anything else as error
 do_open(Code, Comment, _, _, Parts, In, In) :-
 	close(In),
@@ -201,17 +208,41 @@ return_fields([_|T], Lines) :-
 	return_fields(T, Lines).
 
 
+%%	return_final_url(+Options) is semidet.
+%
+%	If Options contains final_url(URL), unify URL with the final
+%	URL after redirections.
+
+return_final_url(Options) :-
+	memberchk(final_url(URL), Options),
+	var(URL), !,
+	memberchk(visited(Parts), Options),
+	parse_url(URL, Parts).
+return_final_url(_).
+
+	
+%%	read_header(+In:stream, -Code:int, -Comment:atom, -Lines:list)
+%
+%	Read the HTTP reply-header.
+%	
+%	@param Code	Numeric HTTP reply-code
+%	@param Comment	Comment of reply-code as atom
+%	@param Lines	Remaining header lines as code-lists.
+
 read_header(In, Code, Comment, Lines) :-
 	read_line_to_codes(In, Line),
 	phrase(first_line(Code, Comment), Line),
 	read_line_to_codes(In, Line2),
 	rest_header(Line2, In, Lines).
 
-
 rest_header("", _, []) :- !.		% blank line: end of header
 rest_header(L0, In, [L0|L]) :-
 	read_line_to_codes(In, L1),
 	rest_header(L1, In, L).
+
+%%	content_length(+Header, -Length:int) is semidet.
+%
+%	Find the Content-Length in an HTTP reply-header.
 
 content_length(Lines, Length) :-
 	member(Line, Lines),
@@ -281,7 +312,7 @@ digits([D0|D]) -->
 digits([]) -->
 	[].
 
-%%	rest(-Atom)//
+%%	rest(-Atom:atom)//
 %
 %	Get rest of input as an atom.
 

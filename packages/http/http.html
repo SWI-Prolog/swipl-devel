@@ -255,18 +255,29 @@ protocol and HTTP GET access method. It defines one predicate:
 <DT class="pubdef"><A NAME="http_open/3"><STRONG>http_open</STRONG>(<VAR>+URL, 
 -Stream, +Options</VAR>)</A></DT>
 <DD class="defbody">
-Open the data at the HTTP server as a Prolog stream. After this 
-predicate succeeds the data can be read from <VAR>Stream</VAR>. After 
-completion this stream must be closed using the built-in Prolog 
-predicate <A NAME="idx:close1:1"></A><SPAN class="pred-ext">close/1</SPAN>. <VAR>Options</VAR> 
+Open the data at the HTTP server as a Prolog stream. <VAR>URL</VAR> is 
+either an atom specifying a URL or a list representing a broken-down URL 
+compatible to <A NAME="idx:parseurl2:1"></A><SPAN class="pred-ext">parse_url/2</SPAN>. 
+After this predicate succeeds the data can be read from <VAR>Stream</VAR>. 
+After completion this stream must be closed using the built-in Prolog 
+predicate <A NAME="idx:close1:2"></A><SPAN class="pred-ext">close/1</SPAN>. <VAR>Options</VAR> 
 provides additional options:
 
 <DL>
-<DT><STRONG>timeout</STRONG>(<VAR>+Timeout</VAR>)</DT>
+<DT><STRONG>final_url</STRONG>(<VAR>-FinalURL</VAR>)</DT>
 <DD class="defbody">
-If provided, set a timeout on the stream using <A NAME="idx:setstream2:2"></A><SPAN class="pred-ext">set_stream/2</SPAN>. 
-With this option if no new data arrives within <VAR>Timeout</VAR> 
-seconds the stream raises an exception. Default is to wait forever (<CODE>infinite</CODE>).</DD>
+Unify <VAR>FinalURL</VAR> with the final destination. This differs from 
+the original <VAR>URL</VAR> if the returned head of the original 
+indicates an HTTP redirect (codes 301, 302 or 303). Without a redirect,
+<VAR>FinalURL</VAR> is unified with the canonical version of <VAR>URL</VAR> 
+using
+
+<PRE class="code">
+        parse_url(URL, Parts),
+        parse_url(FinalURL, Parts)
+</PRE>
+
+</DD>
 <DT><STRONG>header</STRONG>(<VAR>+Name, -AtomValue</VAR>)</DT>
 <DD class="defbody">
 If provided, <VAR>AtomValue</VAR> is unified with the value of the 
@@ -275,27 +286,32 @@ case-insensitive and the underscore (<CODE>_</CODE>) matches the hyphen
 (<CODE>-</CODE>). Multiple of these options may be provided to extract 
 multiple header fields. If the header is not available
 <VAR>AtomValue</VAR> is unified to the empty atom ('').</DD>
-<DT><STRONG>size</STRONG>(<VAR>-Size</VAR>)</DT>
-<DD class="defbody">
-If provided <VAR>Size</VAR> is unified with the value of the
-<CODE>Content-Length</CODE> fields of the reply-header.</DD>
-<DT><STRONG>proxy</STRONG>(<VAR>+Host, +Port</VAR>)</DT>
-<DD class="defbody">
-Use an HTTP proxy to connect to the outside world.</DD>
-<DT><STRONG>user_agent</STRONG>(<VAR>+Agent</VAR>)</DT>
-<DD class="defbody">
-Defines the value of the <CODE>User-Agent</CODE> field of the HTTP 
-header. Default is <CODE>SWI-Prolog (http://www.swi-prolog.org)</CODE>.</DD>
-<DT><STRONG>request_header</STRONG>(<VAR>+Name = +Value</VAR>)</DT>
-<DD class="defbody">
-Additional name-value parts are added in the order of appearance to the 
-HTTP request header. No interpretation is done.</DD>
 <DT><STRONG>method</STRONG>(<VAR>Method</VAR>)</DT>
 <DD class="defbody">
 One of <CODE>get</CODE> (default) or <CODE>head</CODE>. The <CODE>head</CODE> 
 message can be used in combination with the <CODE>header(Name, Value)</CODE> 
 option to access information on the resource without actually fetching 
-the resource itself. The returned stream must be closed immediately.
+the resource itself. The returned stream must be closed immediately.</DD>
+<DT><STRONG>proxy</STRONG>(<VAR>+Host, +Port</VAR>)</DT>
+<DD class="defbody">
+Use an HTTP proxy to connect to the outside world.</DD>
+<DT><STRONG>request_header</STRONG>(<VAR>+Name = +Value</VAR>)</DT>
+<DD class="defbody">
+Additional name-value parts are added in the order of appearance to the 
+HTTP request header. No interpretation is done.</DD>
+<DT><STRONG>size</STRONG>(<VAR>-Size</VAR>)</DT>
+<DD class="defbody">
+If provided <VAR>Size</VAR> is unified with the value of the
+<CODE>Content-Length</CODE> fields of the reply-header.</DD>
+<DT><STRONG>timeout</STRONG>(<VAR>+Timeout</VAR>)</DT>
+<DD class="defbody">
+If provided, set a timeout on the stream using <A NAME="idx:setstream2:3"></A><SPAN class="pred-ext">set_stream/2</SPAN>. 
+With this option if no new data arrives within <VAR>Timeout</VAR> 
+seconds the stream raises an exception. Default is to wait forever (<CODE>infinite</CODE>).</DD>
+<DT><STRONG>user_agent</STRONG>(<VAR>+Agent</VAR>)</DT>
+<DD class="defbody">
+Defines the value of the <CODE>User-Agent</CODE> field of the HTTP 
+header. Default is <CODE>SWI-Prolog (http://www.swi-prolog.org)</CODE>.
 </DD>
 </DL>
 
@@ -317,7 +333,7 @@ the resource itself. The returned stream must be closed immediately.
 <P>The example below fetches the modification time of a web-page. Note 
 that
 <VAR>Modified</VAR> is <CODE>''</CODE> if the web-server does not 
-provide a time-stamp for the resource. See also <A NAME="idx:parsetime2:3"></A><SPAN class="pred-ext">parse_time/2</SPAN>.
+provide a time-stamp for the resource. See also <A NAME="idx:parsetime2:4"></A><SPAN class="pred-ext">parse_time/2</SPAN>.
 
 <PRE class="code">
 modified(URL, Stamp) :-
@@ -351,7 +367,7 @@ announces itself as providing <CODE>HTTP/1.1</CODE>.
 -Reply, +Options</VAR>)</A></DT>
 <DD class="defbody">
 Performs a HTTP GET request on the given URL and then reads the reply 
-using <A NAME="idx:httpreaddata3:4"></A><A class="pred" href="#http_read_data/3">http_read_data/3</A>. 
+using <A NAME="idx:httpreaddata3:5"></A><A class="pred" href="#http_read_data/3">http_read_data/3</A>. 
 Defined options are:
 
 <DL>
@@ -383,24 +399,24 @@ their meaning.</DD>
 <DT><STRONG>reply_header</STRONG>(<VAR>Header</VAR>)</DT>
 <DD class="defbody">
 Unify <VAR>Header</VAR> with a list of <VAR>Name</VAR>=<VAR>Value</VAR> 
-pairs expressing all header fields of the reply. See <A NAME="idx:httpreadrequest2:5"></A><A class="pred" href="#http_read_request/2">http_read_request/2</A> 
+pairs expressing all header fields of the reply. See <A NAME="idx:httpreadrequest2:6"></A><A class="pred" href="#http_read_request/2">http_read_request/2</A> 
 for the result format.
 </DD>
 </DL>
 
-<P>Remaining options are passed to <A NAME="idx:httpreaddata3:6"></A><A class="pred" href="#http_read_data/3">http_read_data/3</A>.</DD>
+<P>Remaining options are passed to <A NAME="idx:httpreaddata3:7"></A><A class="pred" href="#http_read_data/3">http_read_data/3</A>.</DD>
 <DT class="pubdef"><A NAME="http_post/4"><STRONG>http_post</STRONG>(<VAR>+URL, 
 +In, -Reply, +Options</VAR>)</A></DT>
 <DD class="defbody">
 Performs a HTTP POST request on the given URL. It is equivalent to
-<A NAME="idx:httpget3:7"></A><A class="pred" href="#http_get/3">http_get/3</A>, 
-except for providing an <EM>input document</EM>, which is posted using <A NAME="idx:httppostdata3:8"></A><A class="pred" href="#http_post_data/3">http_post_data/3</A>.</DD>
+<A NAME="idx:httpget3:8"></A><A class="pred" href="#http_get/3">http_get/3</A>, 
+except for providing an <EM>input document</EM>, which is posted using <A NAME="idx:httppostdata3:9"></A><A class="pred" href="#http_post_data/3">http_post_data/3</A>.</DD>
 <DT class="pubdef"><A NAME="http_read_data/3"><STRONG>http_read_data</STRONG>(<VAR>+Header, 
 -Data, +Options</VAR>)</A></DT>
 <DD class="defbody">
-Read data from an HTTP stream. Normally called from <A NAME="idx:httpget3:9"></A><A class="pred" href="#http_get/3">http_get/3</A> 
+Read data from an HTTP stream. Normally called from <A NAME="idx:httpget3:10"></A><A class="pred" href="#http_get/3">http_get/3</A> 
 or
-<A NAME="idx:httppost4:10"></A><A class="pred" href="#http_post/4">http_post/4</A>. 
+<A NAME="idx:httppost4:11"></A><A class="pred" href="#http_post/4">http_post/4</A>. 
 When dealing with HTTP POST in a server this predicate can be used to 
 retrieve the posted data. <VAR>Header</VAR> is the parsed header.
 <VAR>Options</VAR> is a list of <CODE><VAR>Name</VAR>(Value)</CODE> 
@@ -471,11 +487,17 @@ described in section <A class="sec" href="#sec:3.9">section 3.9</A>.</DD>
 <DT><STRONG>file</STRONG>(<VAR>+File</VAR>)</DT>
 <DD class="defbody">
 Send the contents of <VAR>File</VAR>. The MIME type is derived from the 
-filename extension using <A NAME="idx:filemimetype2:11"></A><SPAN class="pred-ext">file_mime_type/2</SPAN>.</DD>
+filename extension using <A NAME="idx:filemimetype2:12"></A><SPAN class="pred-ext">file_mime_type/2</SPAN>.</DD>
 <DT><STRONG>file</STRONG>(<VAR>+Type, +File</VAR>)</DT>
 <DD class="defbody">
 Send the contents of <VAR>File</VAR> using the provided MIME type, i.e. claiming 
 the <CODE>Content-type</CODE> equals <VAR>Type</VAR>.</DD>
+<DT><STRONG>codes</STRONG>(<VAR>+Codes</VAR>)</DT>
+<DD class="defbody">
+Same as string(text/plain, Codes).</DD>
+<DT><STRONG>codes</STRONG>(<VAR>+Type, +Codes</VAR>)</DT>
+<DD class="defbody">
+Send string (list of character codes) using the indicated MIME-type.</DD>
 <DT><STRONG>cgi_stream</STRONG>(<VAR>+Stream, +Len</VAR>)</DT>
 <DD class="defbody">
 Read the input from <VAR>Stream</VAR> which, like CGI data starts with a 
@@ -523,9 +545,9 @@ value from a file.
 <DT><STRONG>List</STRONG></DT>
 <DD class="defbody">
 If the argument is a plain list, it is sent using the MIME type
-<CODE>multipart/mixed</CODE> and packed using <A NAME="idx:mimepack3:12"></A><SPAN class="pred-ext">mime_pack/3</SPAN>. 
+<CODE>multipart/mixed</CODE> and packed using <A NAME="idx:mimepack3:13"></A><SPAN class="pred-ext">mime_pack/3</SPAN>. 
 See
-<A NAME="idx:mimepack3:13"></A><SPAN class="pred-ext">mime_pack/3</SPAN> 
+<A NAME="idx:mimepack3:14"></A><SPAN class="pred-ext">mime_pack/3</SPAN> 
 for details on the argument format.
 </DD>
 </DL>
@@ -561,18 +583,18 @@ mime-types are automatically handled by the SGML parser.
 <DD class="defbody">
 Handed to <CODE>library(sgml)</CODE> using W3C HTML 4.0 DTD, suppressing 
 and ignoring all HTML syntax errors. <VAR>Options</VAR> is passed to
-<A NAME="idx:loadstructure3:14"></A><SPAN class="pred-ext">load_structure/3</SPAN>.</DD>
+<A NAME="idx:loadstructure3:15"></A><SPAN class="pred-ext">load_structure/3</SPAN>.</DD>
 <DT><STRONG>text/xml</STRONG></DT>
 <DD class="defbody">
 Handed to <CODE>library(sgml)</CODE> using dialect <CODE>xmlns</CODE> 
 (XML + namespaces).
-<VAR>Options</VAR> is passed to <A NAME="idx:loadstructure3:15"></A><SPAN class="pred-ext">load_structure/3</SPAN>. 
+<VAR>Options</VAR> is passed to <A NAME="idx:loadstructure3:16"></A><SPAN class="pred-ext">load_structure/3</SPAN>. 
 In particular,
 <CODE>dialect(xml)</CODE> may be used to suppress namespace handling.</DD>
 <DT><STRONG>text/x-sgml</STRONG></DT>
 <DD class="defbody">
 Handled to <CODE>library(sgml)</CODE> using dialect <CODE>sgml</CODE>. <VAR>Options</VAR> 
-is passed to <A NAME="idx:loadstructure3:16"></A><SPAN class="pred-ext">load_structure/3</SPAN>.
+is passed to <A NAME="idx:loadstructure3:17"></A><SPAN class="pred-ext">load_structure/3</SPAN>.
 </DD>
 </DL>
 
@@ -609,7 +631,7 @@ of the server.
 
 <P>The server-body is the code that handles the request and formulates a 
 reply. To facilitate all mentioned setups, the body is driven by
-<A NAME="idx:httpwrapper5:17"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A>. 
+<A NAME="idx:httpwrapper5:18"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A>. 
 The goal is called with the parsed request (see
 <A class="sec" href="#sec:3.4">section 3.4</A>) as argument and <CODE>current_output</CODE> 
 set to a temporary buffer. Its task is closely related to the task of a 
@@ -639,15 +661,15 @@ special status codes</SPAN></A></H4>
 <A NAME="sec:httpspecials"></A>
 
 <P>Besides returning a page by writing it to the current output stream, 
-the server goal can raise an exception using <A NAME="idx:throw1:18"></A><SPAN class="pred-ext">throw/1</SPAN> 
+the server goal can raise an exception using <A NAME="idx:throw1:19"></A><SPAN class="pred-ext">throw/1</SPAN> 
 to generate special pages such as <CODE>not_found</CODE>, <CODE>moved</CODE>, 
 etc. The defined exceptions are:
 
 <DL>
 <DT><STRONG>http_reply</STRONG>(<VAR>+Reply, +HdrExtra</VAR>)</DT>
 <DD class="defbody">
-Return a result page using <A NAME="idx:httpreply3:19"></A><A class="pred" href="#http_reply/3">http_reply/3</A>. 
-See <A NAME="idx:httpreply3:20"></A><A class="pred" href="#http_reply/3">http_reply/3</A> 
+Return a result page using <A NAME="idx:httpreply3:20"></A><A class="pred" href="#http_reply/3">http_reply/3</A>. 
+See <A NAME="idx:httpreply3:21"></A><A class="pred" href="#http_reply/3">http_reply/3</A> 
 for details.</DD>
 <DT><STRONG>http_reply</STRONG>(<VAR>+Reply</VAR>)</DT>
 <DD class="defbody">
@@ -713,7 +735,7 @@ Enumerate sessions and associated data. All sessions have the
 <VAR>Data</VAR> item <CODE>idle(Seconds)</CODE>, describing the current 
 idle-time of the session. Other data elements are added by the user 
 using
-<A NAME="idx:httpsessionassert1:21"></A><A class="pred" href="#http_session_assert/1">http_session_assert/1</A> 
+<A NAME="idx:httpsessionassert1:22"></A><A class="pred" href="#http_session_assert/1">http_session_assert/1</A> 
 and friends.</DD>
 <DT class="pubdef"><A NAME="http_session_asserta/1"><STRONG>http_session_asserta</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
@@ -751,7 +773,7 @@ builds on top of the low-level request representation described in
 ?Parameters</VAR>)</A></DT>
 <DD class="defbody">
 The predicate is passes the <VAR>Request</VAR> as provided to the 
-handler goal by <A NAME="idx:httpwrapper5:22"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A> 
+handler goal by <A NAME="idx:httpwrapper5:23"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A> 
 as well as a partially instantiated lists describing the requested 
 parameters and their types. Each parameter specification in <VAR>Parameters</VAR> 
 is a term of the format
@@ -829,7 +851,7 @@ reply(Request) :-
 <DT class="pubdef"><A NAME="http_parameters/3"><STRONG>http_parameters</STRONG>(<VAR>+Request, 
 ?Parameters, +Options</VAR>)</A></DT>
 <DD class="defbody">
-In addition to <A NAME="idx:httpparameters2:23"></A><A class="pred" href="#http_parameters/2">http_parameters/2</A>, 
+In addition to <A NAME="idx:httpparameters2:24"></A><A class="pred" href="#http_parameters/2">http_parameters/2</A>, 
 the following options are defined.
 
 <DL>
@@ -841,7 +863,7 @@ from the GET or POST request. All values are returned as atoms.</DD>
 <DD class="defbody">
 If a parameter specification lacks the parameter options, call
 <CODE>call(Goal, +ParamName, -Options)</CODE> to find the options. 
-Intended to share declarations over many calls to <A NAME="idx:httpparameters3:24"></A><A class="pred" href="#http_parameters/3">http_parameters/3</A>. 
+Intended to share declarations over many calls to <A NAME="idx:httpparameters3:25"></A><A class="pred" href="#http_parameters/3">http_parameters/3</A>. 
 Using this construct the above can be written as below.
 
 <PRE class="code">
@@ -872,7 +894,7 @@ format</SPAN></A></H3>
 <A NAME="sec:request"></A>
 
 <P>The body-code (see <A class="sec" href="#sec:3.1">section 3.1</A>) is 
-driven by a <VAR>Request</VAR>. This request is generated from <A NAME="idx:httpreadrequest2:25"></A><A class="pred" href="#http_read_request/2">http_read_request/2</A> 
+driven by a <VAR>Request</VAR>. This request is generated from <A NAME="idx:httpreadrequest2:26"></A><A class="pred" href="#http_read_request/2">http_read_request/2</A> 
 defined in
 <CODE>library(http/http_header)</CODE>.
 
@@ -943,7 +965,7 @@ or <CODE>secure</CODE>.
 </DL>
 
 <P>If the first line of the request is tagged with
-<CODE>HTTP/</CODE><VAR>Major</VAR>.<VAR>Minor</VAR>, <A NAME="idx:httpreadrequest2:26"></A><A class="pred" href="#http_read_request/2">http_read_request/2</A> 
+<CODE>HTTP/</CODE><VAR>Major</VAR>.<VAR>Minor</VAR>, <A NAME="idx:httpreadrequest2:27"></A><A class="pred" href="#http_read_request/2">http_read_request/2</A> 
 reads all input upto the first blank line. This header consists of
 <VAR>Name</VAR>:<VAR>Value</VAR> fields. Each such field appears as a 
 term
@@ -983,9 +1005,9 @@ potentially large amounts of data to the server for processing.
 <P>The <VAR>Request</VAR> parameter above contains the term <CODE>method(post)</CODE>. 
 The data posted is left on the input stream that is available through 
 the term <CODE>input(Stream)</CODE> from the <VAR>Request</VAR> header. 
-This data can be read using <A NAME="idx:httpreaddata3:27"></A><A class="pred" href="#http_read_data/3">http_read_data/3</A> 
+This data can be read using <A NAME="idx:httpreaddata3:28"></A><A class="pred" href="#http_read_data/3">http_read_data/3</A> 
 from the HTTP client library. Here is a demo implementation simply 
-returning the parsed posted data as plain text (assuming <A NAME="idx:pp1:28"></A><SPAN class="pred-ext">pp/1</SPAN> 
+returning the parsed posted data as plain text (assuming <A NAME="idx:pp1:29"></A><SPAN class="pred-ext">pp/1</SPAN> 
 pretty-prints the data).
 
 <PRE class="code">
@@ -1072,7 +1094,7 @@ selected free port.</DD>
 <DT><STRONG>after</STRONG>(<VAR>:Goal</VAR>)</DT>
 <DD class="defbody">
 Specify a goal to be run on the query just like the first argument of
-<A NAME="idx:httpserver2:29"></A><A class="pred" href="#http_server/2">http_server/2</A>. 
+<A NAME="idx:httpserver2:30"></A><A class="pred" href="#http_server/2">http_server/2</A>. 
 This goal however is started <EM>after</EM> the request has been 
 answered. It is called using <CODE>call(Goal, Request)</CODE>. This 
 extension was added to support the FIPA-HTTP protocol, which issues HTTP 
@@ -1116,7 +1138,7 @@ only other option provided is the <CODE>after(:Goal)</CODE> option.
 </DL>
 
 <P>The file <CODE>demo_xpce</CODE> gives a typical example of this 
-wrapper, assuming <CODE>demo_body</CODE> defines the predicate <A NAME="idx:reply1:30"></A><SPAN class="pred-ext">reply/1</SPAN>.
+wrapper, assuming <CODE>demo_body</CODE> defines the predicate <A NAME="idx:reply1:31"></A><SPAN class="pred-ext">reply/1</SPAN>.
 
 <PRE class="code">
 :- use_module(xpce_httpd).
@@ -1130,7 +1152,7 @@ server(Port) :-
 waits for incoming connections. On each accepted connection it collects 
 input until an HTTP request is complete. Then it opens an input stream 
 on the collected data and using the output stream directed to the XPCE
-<B>socket</B> it calls <A NAME="idx:httpwrapper5:31"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A>. 
+<B>socket</B> it calls <A NAME="idx:httpwrapper5:32"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A>. 
 This approach is fundamentally different compared to the other 
 approaches:
 
@@ -1195,7 +1217,7 @@ how much resources are required for processing a request. Too high
 numbers makes your system switch too often between threads or even swap 
 if there is not enough memory to keep all threads in memory, while a too 
 low number causes clients to wait unnecessary for other clients to 
-complete. See also <A NAME="idx:httpworkers2:32"></A><A class="pred" href="#http_workers/2">http_workers/2</A>.</DD>
+complete. See also <A NAME="idx:httpworkers2:33"></A><A class="pred" href="#http_workers/2">http_workers/2</A>.</DD>
 <DT><STRONG>timeout</STRONG>(<VAR>+SecondsOrInfinite</VAR>)</DT>
 <DD class="defbody">
 Determines the maximum period of inactivity handling a request. If no 
@@ -1236,7 +1258,7 @@ Use SSL (Secure Socket Layer) rather than plan TCP/IP. A server created
 this way is accessed using the <CODE>https://</CODE> protocol. SSL 
 allows for encrypted communication to avoid others from tapping the wire 
 as well as improved authentication of client and server. The <VAR>SSLOptions</VAR> 
-option list is passed to <A NAME="idx:sslinit3:33"></A><SPAN class="pred-ext">ssl_init/3</SPAN>. 
+option list is passed to <A NAME="idx:sslinit3:34"></A><SPAN class="pred-ext">ssl_init/3</SPAN>. 
 The port option of the main option list is forwarded to the SSL layer. 
 See the <CODE>library(ssl)</CODE> library for details.
 </DD>
@@ -1246,7 +1268,7 @@ See the <CODE>library(ssl)</CODE> library for details.
 <DT class="pubdef"><A NAME="http_current_server/2"><STRONG>http_current_server</STRONG>(<VAR>?:Goal, 
 ?Port</VAR>)</A></DT>
 <DD class="defbody">
-Query the running servers. Note that <A NAME="idx:httpserver3:34"></A><A class="pred" href="#http_server/3">http_server/3</A> 
+Query the running servers. Note that <A NAME="idx:httpserver3:35"></A><A class="pred" href="#http_server/3">http_server/3</A> 
 can be called multiple times to create multiple servers on different 
 ports.</DD>
 <DT class="pubdef"><A NAME="http_workers/2"><STRONG>http_workers</STRONG>(<VAR>:Port, 
@@ -1302,13 +1324,13 @@ specifications.
 </UL>
 
 <P>The very small generic script for handling inetd based connections is 
-in <CODE>inetd_httpd</CODE>, defining <A NAME="idx:httpserver1:35"></A><SPAN class="pred-ext">http_server/1</SPAN>:
+in <CODE>inetd_httpd</CODE>, defining <A NAME="idx:httpserver1:36"></A><SPAN class="pred-ext">http_server/1</SPAN>:
 
 <DL>
 <DT class="pubdef"><A NAME="http_server/2"><STRONG>http_server</STRONG>(<VAR>:Goal, 
 +Options</VAR>)</A></DT>
 <DD class="defbody">
-Initialises and runs <A NAME="idx:httpwrapper5:36"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A> 
+Initialises and runs <A NAME="idx:httpwrapper5:37"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A> 
 in a loop until failure or end-of-file. This server does not support the <VAR>Port</VAR> 
 option as the port is specified with the <B>inetd</B> configuration. The 
 only supported option is <VAR>After</VAR>.
@@ -1415,7 +1437,7 @@ wrapper library</SPAN></A></H3>
 This module realises the communication between the I/O streams and the 
 body described in <A class="sec" href="#sec:3.1">section 3.1</A>. The 
 interface is realised by
-<A NAME="idx:httpwrapper5:37"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A>:
+<A NAME="idx:httpwrapper5:38"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A>:
 
 <DL>
 <DT class="pubdef"><A NAME="http_wrapper/5"><STRONG>http_wrapper</STRONG>(<VAR>:Goal, 
@@ -1435,7 +1457,7 @@ executes successfully it generates a complete reply from the created
 output. Otherwise it generates an HTTP server error with additional 
 context information derived from the exception.
 
-<P><A NAME="idx:httpwrapper5:38"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A> 
+<P><A NAME="idx:httpwrapper5:39"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A> 
 supports the following options:
 
 <DL>
@@ -1445,7 +1467,7 @@ Return the executed request to the caller.</DD>
 <DT><STRONG>peer</STRONG>(<VAR>+Peer</VAR>)</DT>
 <DD class="defbody">
 Add peer(Peer) to the request header handed to <VAR>Goal</VAR>. The 
-format of <VAR>Peer</VAR> is defined by <A NAME="idx:tcpaccept3:39"></A><SPAN class="pred-ext">tcp_accept/3</SPAN> 
+format of <VAR>Peer</VAR> is defined by <A NAME="idx:tcpaccept3:40"></A><SPAN class="pred-ext">tcp_accept/3</SPAN> 
 from the clib package.
 </DD>
 </DL>
@@ -1475,7 +1497,7 @@ example below is from the session management library (see <A class="sec" href="#
 <DT class="pubdef"><A NAME="http_current_request/1"><STRONG>http_current_request</STRONG>(<VAR>-Request</VAR>)</A></DT>
 <DD class="defbody">
 Get access to the currently executing request. <VAR>Request</VAR> is the 
-same as handed to <VAR>Goal</VAR> of <A NAME="idx:httpwrapper5:40"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A> <EM>after</EM> 
+same as handed to <VAR>Goal</VAR> of <A NAME="idx:httpwrapper5:41"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A> <EM>after</EM> 
 applying rewrite rules as defined by http:request_expansion/2. Raises an 
 existence error if there is no request in progress.</DD>
 <DT class="pubdef"><A NAME="http_relative_path/2"><STRONG>http_relative_path</STRONG>(<VAR>+AbsPath, 
@@ -1483,7 +1505,7 @@ existence error if there is no request in progress.</DD>
 <DD class="defbody">
 Convert an absolute path (without host, fragment or search) into a path 
 relative to the current page, defined as the path component from the 
-current request (see <A NAME="idx:httpcurrentrequest1:41"></A><A class="pred" href="#http_current_request/1">http_current_request/1</A>). 
+current request (see <A NAME="idx:httpcurrentrequest1:42"></A><A class="pred" href="#http_current_request/1">http_current_request/1</A>). 
 This call is intended to create reusable components returning relative 
 paths for easier support of reverse proxies.
 
@@ -1516,7 +1538,7 @@ HTTP headers</SPAN></A></H3>
 <P>The library <CODE>library(http/http_header)</CODE> provides 
 primitives for parsing and composing HTTP headers. Its functionality is 
 normally hidden by the other parts of the HTTP server and client 
-libraries. We provide a brief overview of <A NAME="idx:httpreply3:42"></A><A class="pred" href="#http_reply/3">http_reply/3</A> 
+libraries. We provide a brief overview of <A NAME="idx:httpreply3:43"></A><A class="pred" href="#http_reply/3">http_reply/3</A> 
 which can be accessed from the reply body using an exception as explain 
 in <A class="sec" href="#sec:3.1.1">section 3.1.1</A>.
 
@@ -1532,7 +1554,7 @@ is one of:
 <DL>
 <DT><STRONG>html</STRONG>(<VAR>+HTML</VAR>)</DT>
 <DD class="defbody">
-Produce a HTML page using <A NAME="idx:printhtml1:43"></A><A class="pred" href="#print_html/1">print_html/1</A>, 
+Produce a HTML page using <A NAME="idx:printhtml1:44"></A><A class="pred" href="#print_html/1">print_html/1</A>, 
 normally generated using the
 <CODE>library(http/html_write)</CODE> described in <A class="sec" href="#sec:3.9">section 
 3.9</A>.</DD>
@@ -1581,7 +1603,7 @@ has not changed since the indicated time.</DD>
 <DT><STRONG>server_error</STRONG>(<VAR>+Error</VAR>)</DT>
 <DD class="defbody">
 Generate a ``500 Internal server error'' page with a message generated 
-from a Prolog exception term (see <A NAME="idx:printmessage2:44"></A><SPAN class="pred-ext">print_message/2</SPAN>).
+from a Prolog exception term (see <A NAME="idx:printmessage2:45"></A><SPAN class="pred-ext">print_message/2</SPAN>).
 </DD>
 </DL>
 
@@ -1594,7 +1616,7 @@ library</SPAN></A></H3>
 <A NAME="sec:htmlwrite"></A>
 
 <P>Producing output for the web in the form of an HTML document is a 
-requirement for many Prolog programs. Just using <A NAME="idx:format2:45"></A><SPAN class="pred-ext">format/2</SPAN> 
+requirement for many Prolog programs. Just using <A NAME="idx:format2:46"></A><SPAN class="pred-ext">format/2</SPAN> 
 is satisfactory as it leads to poorly readable programs generating poor 
 HTML. This library is based on using DCG rules.
 
@@ -1604,18 +1626,18 @@ framework for generating legal HTML under (Prolog) program control. It
 is especially useful for the generation of structured pages (e.g. tables) 
 from Prolog data structures.
 
-<P>The normal way to use this library is through the DCG <A NAME="idx:html1:46"></A><A class="pred" href="#html/1">html/1</A>. 
+<P>The normal way to use this library is through the DCG <A NAME="idx:html1:47"></A><A class="pred" href="#html/1">html/1</A>. 
 This grammar-rule provides the central translation from a structured 
 term with embedded calls to additional translation rules to a list of 
-atoms that can then be printed using <A NAME="idx:printhtml12:47"></A><A class="pred" href="#print_html/1">print_html/[1,2]</A>.
+atoms that can then be printed using <A NAME="idx:printhtml12:48"></A><A class="pred" href="#print_html/1">print_html/[1,2]</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="html/1"><STRONG>html</STRONG>(<VAR>:Spec</VAR>)</A><CODE>--&gt;</CODE></DT>
 <DD class="defbody">
-The DCG rule <A NAME="idx:html1:48"></A><A class="pred" href="#html/1">html/1</A> 
+The DCG rule <A NAME="idx:html1:49"></A><A class="pred" href="#html/1">html/1</A> 
 is the main predicate of this library. It translates the specification 
 for an HTML page into a list of atoms that can be written to a stream 
-using <A NAME="idx:printhtml12:49"></A><A class="pred" href="#print_html/1">print_html/[1,2]</A>. 
+using <A NAME="idx:printhtml12:50"></A><A class="pred" href="#print_html/1">print_html/[1,2]</A>. 
 The expansion rules of this predicate may be extended by defining the 
 multifile DCG html_write:expand/1. <VAR>Spec</VAR> is either a single 
 specification or a list of single specifications. Using nested lists is 
@@ -1624,13 +1646,13 @@ not allowed to avoid ambiguity caused by the atom <CODE>[]</CODE>
 <P>
 <UL>
 <LI><I>Atomic data</I><BR>
-Atomic data is quoted using the <A NAME="idx:htmlquoted1:50"></A><A class="pred" href="#html_quoted/1">html_quoted/1</A> 
+Atomic data is quoted using the <A NAME="idx:htmlquoted1:51"></A><A class="pred" href="#html_quoted/1">html_quoted/1</A> 
 DCG.
 
 <P>
 <LI><I><VAR>Fmt</VAR> - <VAR>Args</VAR></I><BR>
 <VAR>Fmt</VAR> and <VAR>Args</VAR> are used as format-specification and 
-argument list to <A NAME="idx:sformat3:51"></A><SPAN class="pred-ext">sformat/3</SPAN>. 
+argument list to <A NAME="idx:sformat3:52"></A><SPAN class="pred-ext">sformat/3</SPAN>. 
 The result is quoted and added to the output list.
 
 <P>
@@ -1661,7 +1683,7 @@ is normally not needed.
 <LI><I><CODE>Tag(Content)</CODE></I><BR>
 Emit HTML element <VAR>Tag</VAR> using <VAR>Content</VAR> and no 
 attributes.
-<VAR>Content</VAR> is handed to <A NAME="idx:html1:52"></A><A class="pred" href="#html/1">html/1</A>. 
+<VAR>Content</VAR> is handed to <A NAME="idx:html1:53"></A><A class="pred" href="#html/1">html/1</A>. 
 See <A class="sec" href="#sec:3.9.3">section 3.9.3</A> for details on 
 the automatically generated layout.
 
@@ -1679,16 +1701,16 @@ concatenation.
 <DT class="pubdef"><A NAME="page/2"><STRONG>page</STRONG>(<VAR>:HeadContent, 
 :BodyContent</VAR>)</A><CODE>--&gt;</CODE></DT>
 <DD class="defbody">
-The DCG rule <A NAME="idx:page2:53"></A><A class="pred" href="#page/2">page/2</A> 
+The DCG rule <A NAME="idx:page2:54"></A><A class="pred" href="#page/2">page/2</A> 
 generated a complete page, including the SGML
 <CODE>DOCTYPE</CODE> declaration. <VAR>HeadContent</VAR> are elements to 
 be placed in the <CODE>head</CODE> element and <VAR>BodyContent</VAR> 
 are elements to be placed in the <CODE>body</CODE> element.
 
 <P>To achieve common style (background, page header and footer), it is 
-possible to define DCG rules <A NAME="idx:head1:54"></A><SPAN class="pred-ext">head/1</SPAN> 
-and/or <A NAME="idx:body1:55"></A><SPAN class="pred-ext">body/1</SPAN>. 
-The <A NAME="idx:page1:56"></A><A class="pred" href="#page/1">page/1</A> 
+possible to define DCG rules <A NAME="idx:head1:55"></A><SPAN class="pred-ext">head/1</SPAN> 
+and/or <A NAME="idx:body1:56"></A><SPAN class="pred-ext">body/1</SPAN>. 
+The <A NAME="idx:page1:57"></A><A class="pred" href="#page/1">page/1</A> 
 rule checks for the definition of these DCG rules in the module it is 
 called from as well as in the <CODE>user</CODE> module. If no definition 
 is found, it creates a head with only the <VAR>HeadContent</VAR> (note 
@@ -1696,8 +1718,8 @@ that the
 <CODE>title</CODE> is obligatory) and a <CODE>body</CODE> with <CODE>bgcolor</CODE> 
 set to <CODE>white</CODE> and the provided <VAR>BodyContent</VAR>.
 
-<P>Note that further customisation is easily achieved using <A NAME="idx:html1:57"></A><A class="pred" href="#html/1">html/1</A> 
-directly as <A NAME="idx:page2:58"></A><A class="pred" href="#page/2">page/2</A> 
+<P>Note that further customisation is easily achieved using <A NAME="idx:html1:58"></A><A class="pred" href="#html/1">html/1</A> 
+directly as <A NAME="idx:page2:59"></A><A class="pred" href="#page/2">page/2</A> 
 is (besides handling the hooks) defined as:
 
 <PRE class="code">
@@ -1712,7 +1734,7 @@ page(Head, Body) --&gt;
 </DD>
 <DT class="pubdef"><A NAME="page/1"><STRONG>page</STRONG>(<VAR>:Contents</VAR>)</A><CODE>--&gt;</CODE></DT>
 <DD class="defbody">
-This version of the <A NAME="idx:page12:59"></A><A class="pred" href="#page/1">page/[1,2]</A> 
+This version of the <A NAME="idx:page12:60"></A><A class="pred" href="#page/1">page/[1,2]</A> 
 only gives you the SGML <CODE>DOCTYPE</CODE> and the <CODE>HTML</CODE> 
 element. <VAR>Contents</VAR> is used to generate both the head and body 
 of the page.</DD>
@@ -1728,7 +1750,7 @@ the begin-tag. Some examples:
 </PRE>
 
 <P>This predicate provides an alternative to using the
-<CODE>\</CODE><VAR>Command</VAR> syntax in the <A NAME="idx:html1:60"></A><A class="pred" href="#html/1">html/1</A> 
+<CODE>\</CODE><VAR>Command</VAR> syntax in the <A NAME="idx:html1:61"></A><A class="pred" href="#html/1">html/1</A> 
 specification. The following two fragments are the same. The preferred 
 solution depends on your preferences as well as whether the 
 specification is generated or entered by the programmer.
@@ -1752,7 +1774,7 @@ table(Rows) --&gt;
 </DD>
 <DT class="pubdef"><A NAME="html_end/1"><STRONG>html_end</STRONG>(<VAR>+End</VAR>)</A><CODE>--&gt;</CODE></DT>
 <DD class="defbody">
-End an element. See <A NAME="idx:htmlbegin1:61"></A><A class="pred" href="#html_begin/1">html_begin/1</A> 
+End an element. See <A NAME="idx:htmlbegin1:62"></A><A class="pred" href="#html_begin/1">html_begin/1</A> 
 for details.
 </DD>
 </DL>
@@ -1760,7 +1782,7 @@ for details.
 <H4><A NAME="sec:3.9.1"><SPAN class="sec-nr">3.9.1</SPAN> <SPAN class="sec-title">Emitting 
 HTML documents</SPAN></A></H4>
 
-<P>The <A NAME="idx:html1:62"></A><A class="pred" href="#html/1">html/1</A> 
+<P>The <A NAME="idx:html1:63"></A><A class="pred" href="#html/1">html/1</A> 
 grammar rules translates a specification into a list of atoms and layout 
 instructions. Currently the layout instructions are terms of the format <CODE>nl(N)</CODE>, 
 requesting at least <VAR>N</VAR> newlines. Multiple consecutive <CODE>nl(1)</CODE> 
@@ -1783,7 +1805,7 @@ Print the token list to the specified output stream
 <DT class="pubdef"><A NAME="html_print_length/2"><STRONG>html_print_length</STRONG>(<VAR>+List, 
 -Length</VAR>)</A></DT>
 <DD class="defbody">
-When calling <A NAME="idx:htmlprint12:63"></A><SPAN class="pred-ext">html_print/[1,2]</SPAN> 
+When calling <A NAME="idx:htmlprint12:64"></A><SPAN class="pred-ext">html_print/[1,2]</SPAN> 
 on <VAR>List</VAR>, <VAR>Length</VAR> characters will be produced. 
 Knowing the length is needed to provide the <CODE>Content-length</CODE> 
 field of an HTTP reply-header.
@@ -1794,19 +1816,19 @@ field of an HTTP reply-header.
 rules for html/1</SPAN></A></H4>
 
 <P>In some cases it is practical to extend the translations imposed by
-<A NAME="idx:html1:65"></A><A class="pred" href="#html/1">html/1</A>. 
+<A NAME="idx:html1:66"></A><A class="pred" href="#html/1">html/1</A>. 
 When using XPCE for example, it is comfortable to be able defining 
 default translation to HTML for objects. We also used this technique to 
 define translation rules for the output of the SWI-Prolog
 <CODE>library(sgml)</CODE> package.
 
-<P>The <A NAME="idx:html1:66"></A><A class="pred" href="#html/1">html/1</A> 
+<P>The <A NAME="idx:html1:67"></A><A class="pred" href="#html/1">html/1</A> 
 rule first calls the multifile ruleset html_write:expand/1.
 
 <DL>
 <DT class="pubdef"><A NAME="html_write:expand/1"><STRONG>html_write:expand</STRONG>(<VAR>+Spec</VAR>)</A><CODE>--&gt;</CODE></DT>
 <DD class="defbody">
-Hook to add additional translationrules for <A NAME="idx:html1:67"></A><A class="pred" href="#html/1">html/1</A>.</DD>
+Hook to add additional translationrules for <A NAME="idx:html1:68"></A><A class="pred" href="#html/1">html/1</A>.</DD>
 <DT class="pubdef"><A NAME="html_quoted/1"><STRONG>html_quoted</STRONG>(<VAR>+Atom</VAR>)</A><CODE>--&gt;</CODE></DT>
 <DD class="defbody">
 Emit the text in <VAR>Atom</VAR>, inserting entity-references for the 
@@ -1839,12 +1861,12 @@ characters before and <VAR>Post</VAR> after the tag. The <VAR>Close</VAR>
 specification is similar, but in addition allows for the atom <CODE>-</CODE>, 
 requesting the output generator to omit the close-tag altogether or <CODE>empty</CODE>, 
 telling the library that the element has declared empty content. In this 
-case the close-tag is not emitted either, but in addition <A NAME="idx:html1:68"></A><A class="pred" href="#html/1">html/1</A> 
+case the close-tag is not emitted either, but in addition <A NAME="idx:html1:69"></A><A class="pred" href="#html/1">html/1</A> 
 interprets <VAR>Arg</VAR> in <CODE>Tag(Arg)</CODE> as a list of 
 attributes rather than the content.
 
 <P>A tag that does not appear in this table is emitted without 
-additional layout. See also <A NAME="idx:printhtml12:69"></A><A class="pred" href="#print_html/1">print_html/[1,2]</A>. 
+additional layout. See also <A NAME="idx:printhtml12:70"></A><A class="pred" href="#print_html/1">print_html/[1,2]</A>. 
 Please consult the library source for examples.
 </DD>
 </DL>
@@ -1853,7 +1875,7 @@ Please consult the library source for examples.
 
 <P>In the following example we will generate a table of Prolog 
 predicates we find from the SWI-Prolog help system based on a keyword. 
-The primary database is defined by the predicate <A NAME="idx:predicate5:70"></A><SPAN class="pred-ext">predicate/5</SPAN> 
+The primary database is defined by the predicate <A NAME="idx:predicate5:71"></A><SPAN class="pred-ext">predicate/5</SPAN> 
 We will make hyperlinks for the predicates pointing to their 
 documentation.
 
@@ -1925,9 +1947,9 @@ on the <CODE>library(http/html_write)</CODE> library</SPAN></A></H4>
 <P>This library is the result of various attempts to reach at a more 
 satisfactory and Prolog-minded way to produce HTML text from a program. 
 We have been using Prolog for the generation of web pages in a number of 
-projects. Just using <A NAME="idx:format2:71"></A><SPAN class="pred-ext">format/2</SPAN> 
+projects. Just using <A NAME="idx:format2:72"></A><SPAN class="pred-ext">format/2</SPAN> 
 never was a real option, generating error-prone HTML from clumsy syntax. 
-We started with a layour on top of <A NAME="idx:format2:72"></A><SPAN class="pred-ext">format/2</SPAN>, 
+We started with a layour on top of <A NAME="idx:format2:73"></A><SPAN class="pred-ext">format/2</SPAN>, 
 keeping track of the current nesting and thus always capable of properly 
 closing the environment.
 
@@ -1943,7 +1965,7 @@ browser, selecting fragments from an analysed document and presenting
 parts of the XPCE documentation using a browser. It has proven to be 
 able to deal with generating pages quickly and comfortably.
 
-<P>In a future version we will probably define a <A NAME="idx:goalexpansion2:73"></A><SPAN class="pred-ext">goal_expansion/2</SPAN> 
+<P>In a future version we will probably define a <A NAME="idx:goalexpansion2:74"></A><SPAN class="pred-ext">goal_expansion/2</SPAN> 
 to do compile-time optimisation of the library. Quotation of known text 
 and invocation of sub-rules using the <CODE>\</CODE><VAR>RuleSet</VAR> 
 and
@@ -1978,7 +2000,7 @@ If part of the query consists of filenames or directories, check them.
 This also applies to files you only read. Passing names as
 <CODE>/etc/passwd</CODE>, but also <CODE>../../../../../etc/passwd</CODE> 
 are tried by experienced hackers to learn about the system they want to 
-attack. So, expand provided names using <A NAME="idx:absolutefilename23:74"></A><SPAN class="pred-ext">absolute_file_name/[2,3]</SPAN> 
+attack. So, expand provided names using <A NAME="idx:absolutefilename23:75"></A><SPAN class="pred-ext">absolute_file_name/[2,3]</SPAN> 
 and verify they are inside a folder reserved for the server. Avoid 
 symbolic links from this subtree to the outside world. The example below 
 checks validity of filenames. The first call ensures proper canonisation 
@@ -1994,7 +2016,7 @@ check_file(File) :-
 
 <P>
 <LI><I>Check scripts</I><BR>
-Should input in any way activate external scripts using <A NAME="idx:shell1:75"></A><SPAN class="pred-ext">shell/1</SPAN> 
+Should input in any way activate external scripts using <A NAME="idx:shell1:76"></A><SPAN class="pred-ext">shell/1</SPAN> 
 or <CODE>open(pipe(Command), ...)</CODE>, verify the argument once more.
 
 <P>
@@ -2060,58 +2082,58 @@ servers are not widely used.
 </DD>
 <DT>absolute_file_name/[2,3]</DT>
 <DD>
-<A class="idx" href="#idx:absolutefilename23:74">4</A></DD>
+<A class="idx" href="#idx:absolutefilename23:75">4</A></DD>
 <DT><STRONG>B</STRONG></DT>
 <DD>
 </DD>
 <DT>body/1</DT>
 <DD>
-<A class="idx" href="#idx:body1:55">3.9</A></DD>
+<A class="idx" href="#idx:body1:56">3.9</A></DD>
 <DT><STRONG>C</STRONG></DT>
 <DD>
 </DD>
 <DT>close/1</DT>
 <DD>
-<A class="idx" href="#idx:close1:1">2.1</A></DD>
+<A class="idx" href="#idx:close1:2">2.1</A></DD>
 <DT><STRONG>F</STRONG></DT>
 <DD>
 </DD>
 <DT>file_mime_type/2</DT>
 <DD>
-<A class="idx" href="#idx:filemimetype2:11">2.2</A></DD>
+<A class="idx" href="#idx:filemimetype2:12">2.2</A></DD>
 <DT>format/2</DT>
 <DD>
-<A class="idx" href="#idx:format2:45">3.9</A> <A class="idx" href="#idx:format2:71">3.9.5</A> <A class="idx" href="#idx:format2:72">3.9.5</A></DD>
+<A class="idx" href="#idx:format2:46">3.9</A> <A class="idx" href="#idx:format2:72">3.9.5</A> <A class="idx" href="#idx:format2:73">3.9.5</A></DD>
 <DT><STRONG>G</STRONG></DT>
 <DD>
 </DD>
 <DT>goal_expansion/2</DT>
 <DD>
-<A class="idx" href="#idx:goalexpansion2:73">3.9.5</A></DD>
+<A class="idx" href="#idx:goalexpansion2:74">3.9.5</A></DD>
 <DT><STRONG>H</STRONG></DT>
 <DD>
 </DD>
 <DT>head/1</DT>
 <DD>
-<A class="idx" href="#idx:head1:54">3.9</A></DD>
+<A class="idx" href="#idx:head1:55">3.9</A></DD>
 <DT><A class="idx" href="#html/1">html/1</A></DT>
 <DD>
-<A class="idx" href="#idx:html1:46">3.9</A> <A class="idx" href="#idx:html1:48">3.9</A> <A class="idx" href="#idx:html1:52">3.9</A> <A class="idx" href="#idx:html1:57">3.9</A> <A class="idx" href="#idx:html1:60">3.9</A> <A class="idx" href="#idx:html1:62">3.9.1</A> <B>3.9.1</B> <A class="idx" href="#idx:html1:65">3.9.2</A> <A class="idx" href="#idx:html1:66">3.9.2</A> <A class="idx" href="#idx:html1:67">3.9.2</A> <A class="idx" href="#idx:html1:68">3.9.3</A></DD>
+<A class="idx" href="#idx:html1:47">3.9</A> <A class="idx" href="#idx:html1:49">3.9</A> <A class="idx" href="#idx:html1:53">3.9</A> <A class="idx" href="#idx:html1:58">3.9</A> <A class="idx" href="#idx:html1:61">3.9</A> <A class="idx" href="#idx:html1:63">3.9.1</A> <B>3.9.1</B> <A class="idx" href="#idx:html1:66">3.9.2</A> <A class="idx" href="#idx:html1:67">3.9.2</A> <A class="idx" href="#idx:html1:68">3.9.2</A> <A class="idx" href="#idx:html1:69">3.9.3</A></DD>
 <DT><A class="idx" href="#html_begin/1">html_begin/1</A></DT>
 <DD>
-<A class="idx" href="#idx:htmlbegin1:61">3.9</A></DD>
+<A class="idx" href="#idx:htmlbegin1:62">3.9</A></DD>
 <DT><A class="idx" href="#html_end/1">html_end/1</A></DT>
 <DD>
 </DD>
 <DT>html_print/[1,2]</DT>
 <DD>
-<A class="idx" href="#idx:htmlprint12:63">3.9.1</A></DD>
+<A class="idx" href="#idx:htmlprint12:64">3.9.1</A></DD>
 <DT><A class="idx" href="#html_print_length/2">html_print_length/2</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#html_quoted/1">html_quoted/1</A></DT>
 <DD>
-<A class="idx" href="#idx:htmlquoted1:50">3.9</A></DD>
+<A class="idx" href="#idx:htmlquoted1:51">3.9</A></DD>
 <DT><A class="idx" href="#html_quoted_attribute/1">html_quoted_attribute/1</A></DT>
 <DD>
 </DD>
@@ -2123,7 +2145,7 @@ servers are not widely used.
 </DD>
 <DT><A class="idx" href="#http_current_request/1">http_current_request/1</A></DT>
 <DD>
-<A class="idx" href="#idx:httpcurrentrequest1:41">3.6</A></DD>
+<A class="idx" href="#idx:httpcurrentrequest1:42">3.6</A></DD>
 <DT><A class="idx" href="#http_current_server/2">http_current_server/2</A></DT>
 <DD>
 </DD>
@@ -2135,49 +2157,49 @@ servers are not widely used.
 </DD>
 <DT><A class="idx" href="#http_get/3">http_get/3</A></DT>
 <DD>
-<A class="idx" href="#idx:httpget3:7">2.2</A> <A class="idx" href="#idx:httpget3:9">2.2</A></DD>
+<A class="idx" href="#idx:httpget3:8">2.2</A> <A class="idx" href="#idx:httpget3:10">2.2</A></DD>
 <DT><A class="idx" href="#http_open/3">http_open/3</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#http_parameters/2">http_parameters/2</A></DT>
 <DD>
-<A class="idx" href="#idx:httpparameters2:23">3.3</A></DD>
+<A class="idx" href="#idx:httpparameters2:24">3.3</A></DD>
 <DT><A class="idx" href="#http_parameters/3">http_parameters/3</A></DT>
 <DD>
-<A class="idx" href="#idx:httpparameters3:24">3.3</A></DD>
+<A class="idx" href="#idx:httpparameters3:25">3.3</A></DD>
 <DT><A class="idx" href="#http_post/4">http_post/4</A></DT>
 <DD>
-<A class="idx" href="#idx:httppost4:10">2.2</A></DD>
+<A class="idx" href="#idx:httppost4:11">2.2</A></DD>
 <DT><A class="idx" href="#http_post_data/3">http_post_data/3</A></DT>
 <DD>
-<A class="idx" href="#idx:httppostdata3:8">2.2</A></DD>
+<A class="idx" href="#idx:httppostdata3:9">2.2</A></DD>
 <DT><A class="idx" href="#http_read_data/3">http_read_data/3</A></DT>
 <DD>
-<A class="idx" href="#idx:httpreaddata3:4">2.2</A> <A class="idx" href="#idx:httpreaddata3:6">2.2</A> <A class="idx" href="#idx:httpreaddata3:27">3.4.1</A></DD>
+<A class="idx" href="#idx:httpreaddata3:5">2.2</A> <A class="idx" href="#idx:httpreaddata3:7">2.2</A> <A class="idx" href="#idx:httpreaddata3:28">3.4.1</A></DD>
 <DT><A class="idx" href="#http_read_request/2">http_read_request/2</A></DT>
 <DD>
-<A class="idx" href="#idx:httpreadrequest2:5">2.2</A> <A class="idx" href="#idx:httpreadrequest2:25">3.4</A> <A class="idx" href="#idx:httpreadrequest2:26">3.4</A></DD>
+<A class="idx" href="#idx:httpreadrequest2:6">2.2</A> <A class="idx" href="#idx:httpreadrequest2:26">3.4</A> <A class="idx" href="#idx:httpreadrequest2:27">3.4</A></DD>
 <DT><A class="idx" href="#http_relative_path/2">http_relative_path/2</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#http_reply/3">http_reply/3</A></DT>
 <DD>
-<A class="idx" href="#idx:httpreply3:19">3.1.1</A> <A class="idx" href="#idx:httpreply3:20">3.1.1</A> <A class="idx" href="#idx:httpreply3:42">3.8</A></DD>
+<A class="idx" href="#idx:httpreply3:20">3.1.1</A> <A class="idx" href="#idx:httpreply3:21">3.1.1</A> <A class="idx" href="#idx:httpreply3:43">3.8</A></DD>
 <DT><A class="idx" href="#http:request_expansion/2">http:request_expansion/2</A></DT>
 <DD>
 </DD>
 <DT>http_server/1</DT>
 <DD>
-<A class="idx" href="#idx:httpserver1:35">3.5.4</A></DD>
+<A class="idx" href="#idx:httpserver1:36">3.5.4</A></DD>
 <DT><A class="idx" href="#http_server/2">http_server/2</A></DT>
 <DD>
-<A class="idx" href="#idx:httpserver2:29">3.5.1</A></DD>
+<A class="idx" href="#idx:httpserver2:30">3.5.1</A></DD>
 <DT><A class="idx" href="#http_server/3">http_server/3</A></DT>
 <DD>
-<A class="idx" href="#idx:httpserver3:34">3.5.3</A></DD>
+<A class="idx" href="#idx:httpserver3:35">3.5.3</A></DD>
 <DT><A class="idx" href="#http_session_assert/1">http_session_assert/1</A></DT>
 <DD>
-<A class="idx" href="#idx:httpsessionassert1:21">3.2</A></DD>
+<A class="idx" href="#idx:httpsessionassert1:22">3.2</A></DD>
 <DT><A class="idx" href="#http_session_asserta/1">http_session_asserta/1</A></DT>
 <DD>
 </DD>
@@ -2198,10 +2220,10 @@ servers are not widely used.
 </DD>
 <DT><A class="idx" href="#http_workers/2">http_workers/2</A></DT>
 <DD>
-<A class="idx" href="#idx:httpworkers2:32">3.5.3</A></DD>
+<A class="idx" href="#idx:httpworkers2:33">3.5.3</A></DD>
 <DT><A class="idx" href="#http_wrapper/5">http_wrapper/5</A></DT>
 <DD>
-<A class="idx" href="#idx:httpwrapper5:17">3.1</A> <A class="idx" href="#idx:httpwrapper5:22">3.3</A> <A class="idx" href="#idx:httpwrapper5:31">3.5.2</A> <A class="idx" href="#idx:httpwrapper5:36">3.5.4</A> <A class="idx" href="#idx:httpwrapper5:37">3.6</A> <A class="idx" href="#idx:httpwrapper5:38">3.6</A> <A class="idx" href="#idx:httpwrapper5:40">3.6</A></DD>
+<A class="idx" href="#idx:httpwrapper5:18">3.1</A> <A class="idx" href="#idx:httpwrapper5:23">3.3</A> <A class="idx" href="#idx:httpwrapper5:32">3.5.2</A> <A class="idx" href="#idx:httpwrapper5:37">3.5.4</A> <A class="idx" href="#idx:httpwrapper5:38">3.6</A> <A class="idx" href="#idx:httpwrapper5:39">3.6</A> <A class="idx" href="#idx:httpwrapper5:41">3.6</A></DD>
 <DT><STRONG>I</STRONG></DT>
 <DD>
 </DD>
@@ -2213,79 +2235,82 @@ servers are not widely used.
 </DD>
 <DT>load_structure/3</DT>
 <DD>
-<A class="idx" href="#idx:loadstructure3:14">2.2.2</A> <A class="idx" href="#idx:loadstructure3:15">2.2.2</A> <A class="idx" href="#idx:loadstructure3:16">2.2.2</A></DD>
+<A class="idx" href="#idx:loadstructure3:15">2.2.2</A> <A class="idx" href="#idx:loadstructure3:16">2.2.2</A> <A class="idx" href="#idx:loadstructure3:17">2.2.2</A></DD>
 <DT><STRONG>M</STRONG></DT>
 <DD>
 </DD>
 <DT>mime_pack/3</DT>
 <DD>
-<A class="idx" href="#idx:mimepack3:12">2.2</A> <A class="idx" href="#idx:mimepack3:13">2.2</A></DD>
+<A class="idx" href="#idx:mimepack3:13">2.2</A> <A class="idx" href="#idx:mimepack3:14">2.2</A></DD>
 <DT><STRONG>P</STRONG></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#page/1">page/1</A></DT>
 <DD>
-<A class="idx" href="#idx:page1:56">3.9</A></DD>
+<A class="idx" href="#idx:page1:57">3.9</A></DD>
 <DT><A class="idx" href="#page/2">page/2</A></DT>
 <DD>
-<A class="idx" href="#idx:page2:53">3.9</A> <A class="idx" href="#idx:page2:58">3.9</A></DD>
+<A class="idx" href="#idx:page2:54">3.9</A> <A class="idx" href="#idx:page2:59">3.9</A></DD>
 <DT>page/[1,2]</DT>
 <DD>
-<A class="idx" href="#idx:page12:59">3.9</A></DD>
+<A class="idx" href="#idx:page12:60">3.9</A></DD>
 <DT>parse_time/2</DT>
 <DD>
-<A class="idx" href="#idx:parsetime2:3">2.1</A></DD>
+<A class="idx" href="#idx:parsetime2:4">2.1</A></DD>
+<DT>parse_url/2</DT>
+<DD>
+<A class="idx" href="#idx:parseurl2:1">2.1</A></DD>
 <DT>pp/1</DT>
 <DD>
-<A class="idx" href="#idx:pp1:28">3.4.1</A></DD>
+<A class="idx" href="#idx:pp1:29">3.4.1</A></DD>
 <DT>predicate/5</DT>
 <DD>
-<A class="idx" href="#idx:predicate5:70">3.9.4</A></DD>
+<A class="idx" href="#idx:predicate5:71">3.9.4</A></DD>
 <DT><A class="idx" href="#print_html/1">print_html/1</A></DT>
 <DD>
-<A class="idx" href="#idx:printhtml1:43">3.8</A></DD>
+<A class="idx" href="#idx:printhtml1:44">3.8</A></DD>
 <DT><A class="idx" href="#print_html/2">print_html/2</A></DT>
 <DD>
 </DD>
 <DT>print_html/[1,2]</DT>
 <DD>
-<A class="idx" href="#idx:printhtml12:47">3.9</A> <A class="idx" href="#idx:printhtml12:49">3.9</A> <A class="idx" href="#idx:printhtml12:69">3.9.3</A></DD>
+<A class="idx" href="#idx:printhtml12:48">3.9</A> <A class="idx" href="#idx:printhtml12:50">3.9</A> <A class="idx" href="#idx:printhtml12:70">3.9.3</A></DD>
 <DT>print_message/2</DT>
 <DD>
-<A class="idx" href="#idx:printmessage2:44">3.8</A></DD>
+<A class="idx" href="#idx:printmessage2:45">3.8</A></DD>
 <DT><STRONG>R</STRONG></DT>
 <DD>
 </DD>
 <DT>reply/1</DT>
 <DD>
-<A class="idx" href="#idx:reply1:30">3.5.2</A></DD>
+<A class="idx" href="#idx:reply1:31">3.5.2</A></DD>
 <DT><STRONG>S</STRONG></DT>
 <DD>
 </DD>
 <DT>set_stream/2</DT>
 <DD>
-<A class="idx" href="#idx:setstream2:2">2.1</A></DD>
+<A class="idx" href="#idx:setstream2:3">2.1</A></DD>
 <DT>sformat/3</DT>
 <DD>
-<A class="idx" href="#idx:sformat3:51">3.9</A></DD>
+<A class="idx" href="#idx:sformat3:52">3.9</A></DD>
 <DT>shell/1</DT>
 <DD>
-<A class="idx" href="#idx:shell1:75">4</A></DD>
+<A class="idx" href="#idx:shell1:76">4</A></DD>
 <DT>socket</DT>
 <DD>
 <A class="sec" href="#sec:3.5.2">3.5.2</A></DD>
 <DT>ssl_init/3</DT>
 <DD>
-<A class="idx" href="#idx:sslinit3:33">3.5.3</A></DD>
+<A class="idx" href="#idx:sslinit3:34">3.5.3</A></DD>
 <DT><STRONG>T</STRONG></DT>
 <DD>
 </DD>
 <DT>tcp_accept/3</DT>
 <DD>
-<A class="idx" href="#idx:tcpaccept3:39">3.6</A></DD>
+<A class="idx" href="#idx:tcpaccept3:40">3.6</A></DD>
 <DT>throw/1</DT>
 <DD>
-<A class="idx" href="#idx:throw1:18">3.1.1</A></DD>
+<A class="idx" href="#idx:throw1:19">3.1.1</A></DD>
 </DL>
 
 </BODY></HTML>
