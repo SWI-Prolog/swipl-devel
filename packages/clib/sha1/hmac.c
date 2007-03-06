@@ -32,6 +32,7 @@
  This is an implementation of HMAC, the FIPS standard keyed hash function
 */
 
+#define _ISOC99_SOURCE
 #include "hmac.h"
 
 #if defined(__cplusplus)

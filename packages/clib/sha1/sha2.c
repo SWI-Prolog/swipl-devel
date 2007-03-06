@@ -77,6 +77,7 @@
 #define UNROLL_SHA2     /* for SHA2 loop unroll     */
 #endif
 
+#define _ISOC99_SOURCE
 #include <string.h>     /* for memcpy() etc.        */
 
 #include "sha2.h"
