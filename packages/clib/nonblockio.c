@@ -920,9 +920,11 @@ without dispatching if no input is available.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-wait_socket(plsocket *s, int fd)
+wait_socket(plsocket *s)
 { if ( true(s, SOCK_DISPATCH) )
-  { if ( true(s, SOCK_NONBLOCK) && !PL_dispatch(fd, PL_DISPATCH_INSTALLED) )
+  { int fd = s->socket;
+
+    if ( true(s, SOCK_NONBLOCK) && !PL_dispatch(fd, PL_DISPATCH_INSTALLED) )
     { fd_set rfds;
       struct timeval tv;
 
@@ -949,7 +951,7 @@ nbio_wait(nbio_sock_t socket, nbio_request request)
   if ( !(s=nbio_to_plsocket(socket)) )
     return -1;
 
-  return wait_socket(s, socket) ? 0 : -1;
+  return wait_socket(s) ? 0 : -1;
 }
 
 
@@ -1833,7 +1835,7 @@ nbio_accept(nbio_sock_t master, struct sockaddr *addr, socklen_t *addrlen)
 #else /*__WINDOWS__*/
 
   for(;;)
-  { if ( !wait_socket(m, master) )
+  { if ( !wait_socket(m) )
       return -1;
 
     slave = accept(m->socket, addr, addrlen);
@@ -1928,7 +1930,7 @@ nbio_read(int socket, char *buf, size_t bufSize)
 #else /*__WINDOWS__*/
 
   for(;;)
-  { if ( !wait_socket(s, socket) )
+  { if ( !wait_socket(s) )
     { errno = EPLEXCEPTION;
       return -1;
     }

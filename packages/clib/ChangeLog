@@ -1,5 +1,6 @@
 Mar 6, 2007
 
+  * FIXED: Waiting for a socket with XPCE enabled.
   * ADDED: SHA-1 and SHA-2 support in new library(sha).
 
 Feb 28, 2007
