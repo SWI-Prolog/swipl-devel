@@ -58,6 +58,10 @@ test(hmac, [true(Hash=[80, 49, 254, 61, 152, 156, 109, 21,
 
 :- begin_tests(wiki_sha).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Test-cases from http://en.wikipedia.org/wiki/SHA-1
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 %%	hash_to_atom(+Hash, -Atom)
 %
 %	Translates a hash into representation used  in Wikipedia page on
@@ -95,11 +99,22 @@ hex(Digit) -->
 test(sha1, [true(Atom='2fd4e1c6 7a2d28fc ed849ee1 bb76e739 1b93eb12')]) :-
 	sha_hash("The quick brown fox jumps over the lazy dog", Hash, [algorithm(sha1)]),
 	hash_to_atom(Hash, Atom).
+test(sha1, [true(Atom='da39a3ee 5e6b4b0d 3255bfef 95601890 afd80709')]) :-
+	sha_hash('', Hash, [algorithm(sha1)]),
+	hash_to_atom(Hash, Atom).
 test(sha256, [true(Atom='d7a8fbb3 07d78094 69ca9abc b0082e4f 8d5651e4 6d3cdb76 2d02d0bf 37c9e592')]) :-
 	sha_hash("The quick brown fox jumps over the lazy dog", Hash, [algorithm(sha256)]),
 	hash_to_atom(Hash, Atom).
 test(sha256, [true(Atom='e3b0c442 98fc1c14 9afbf4c8 996fb924 27ae41e4 649b934c a495991b 7852b855')]) :-
 	sha_hash('', Hash, [algorithm(sha256)]),
+	hash_to_atom(Hash, Atom).
+test(sha512, [true(Atom='07e547d9 586f6a73 f73fbac0 435ed769 51218fb7 d0c8d788 a309d785 436bbb64 \
+			 2e93a252 a954f239 12547d1e 8a3b5ed6 e1bfd709 7821233f a0538f3d b854fee6')]) :-
+	sha_hash("The quick brown fox jumps over the lazy dog", Hash, [algorithm(sha512)]),
+	hash_to_atom(Hash, Atom).
+test(sha512, [true(Atom='cf83e135 7eefb8bd f1542850 d66d8007 d620e405 0b5715dc 83f4a921 d36ce9ce \
+			 47d0d13c 5d85f2b0 ff8318d2 877eec2f 63b931bd 47417a81 a538327a f927da3e')]) :-
+	sha_hash('', Hash, [algorithm(sha512)]),
 	hash_to_atom(Hash, Atom).
 
 :- end_tests(wiki_sha).
