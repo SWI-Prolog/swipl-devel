@@ -10,7 +10,6 @@
 
 PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
-CFLAGS=$(CFLAGS) /DUSE_SHA256
 PKGDLL=socket
 
 SOCKOBJ=	socket.obj nonblockio.obj error.obj
@@ -22,7 +21,8 @@ MIMELIBS=	rfc2045.lib rfc822.lib
 TIMEOBJ=	error.obj time.obj
 READOBJ=	readutil.obj
 RANDOMOBJ=	random.obj
-SHAOBJ=		error.obj sha4pl.obj sha1/sha1.obj sha1/sha2.obj sha1/hmac.obj
+SHAOBJ=		error.obj sha4pl.obj sha1/sha1.obj sha1/sha2.obj \
+		sha1/hmac_sha1.obj sha1/hmac_sha256.obj
 TIMELIBS=	winmm.lib
 
 all:		socket.dll cgi.dll memfile.dll mime.dll time.dll readutil.dll \
@@ -47,6 +47,10 @@ random.dll:	$(RANDOMOBJ)
 sha4pl.dll:	$(SHAOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(SHAOBJ) $(PLLIB) $(LIBS)
 
+sha1/hmac_sha1.obj:	sha1/hmac.c
+		$(CC) -I $(PLHOME)\include $(CFLAGS) /DUSE_SHA1 /Fo$@ $<
+sha1/hmac_sha256.obj:	sha1/hmac.c
+		$(CC) -I $(PLHOME)\include $(CFLAGS) /DUSE_SHA256 /Fo$@ $<
 
 !IF "$(CFG)" == "rt"
 install:	idll
