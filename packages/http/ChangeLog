@@ -1,3 +1,9 @@
+Mar 5, 2007
+
+  * MODIFIED: debug(header, ...) --> debug(http(header), ...)
+
+  * ADDED: codes([Type], Codes) to http_post_data.
+
 Feb 26, 2007
 
   * ADDED: Keep connections open on not_modified and replying files.

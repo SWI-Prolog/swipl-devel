@@ -66,8 +66,8 @@
 http_read_request(In, [input(In)|Request]) :-
 	read_line_to_codes(In, Codes),
 	(   Codes == end_of_file
-	->  debug(header, 'end-of-file', [])
-	;   debug(header, 'First line: ~s~n', [Codes]),
+	->  debug(http(header), 'end-of-file', [])
+	;   debug(http(header), 'First line: ~s~n', [Codes]),
 	    phrase(request(In, Request), Codes)
 	).
 
@@ -80,9 +80,9 @@ http_read_request(In, [input(In)|Request]) :-
 http_read_reply_header(In, [input(In)|Reply]) :-
 	read_line_to_codes(In, Codes),
 	(   Codes == end_of_file
-	->  debug(header, 'end-of-file', []),
+	->  debug(http(header), 'end-of-file', []),
 	    throw(error(syntax(http_reply_header, end_of_file), _))
-	;   debug(header, 'First line: ~s~n', [Codes]),
+	;   debug(http(header), 'First line: ~s~n', [Codes]),
 	    (   phrase(reply(In, Reply), Codes)
 	    ->  true
 	    ;   throw(error(syntax(http_reply_header, Codes), _))
@@ -357,10 +357,10 @@ content_length_in_encoding(Enc, Stream, Bytes) :-
 %	  * file(+Type, +File)
 %	  Send file with content of indicated mime-type.
 %	  
-%	  * string(+Codes)
+%	  * codes(+Codes)
 %	  As string(text/plain, Codes).
 %	  
-%	  * string(+Type, +Codes)
+%	  * codes(+Type, +Codes)
 %	  Send Codes using the indicated MIME-type.
 %	  
 %	  * cgi_stream(+Stream, +Len)
@@ -399,10 +399,10 @@ http_post_data(file(Type, File), Out, HdrExtra) :- !,
 	open(File, read, In, [type(binary)]),
 	call_cleanup(copy_stream_data(In, Out),
 		     close(In)).
-http_post_data(string(Codes), Out, HdrExtra) :- !,
-	http_post_data(string(text/plain, Codes), Out, HdrExtra).
-http_post_data(string(Type, Codes), Out, HdrExtra) :- !,
-	phrase(post_header(string(Type, Codes), HdrExtra), Header),
+http_post_data(codes(Codes), Out, HdrExtra) :- !,
+	http_post_data(codes(text/plain, Codes), Out, HdrExtra).
+http_post_data(codes(Type, Codes), Out, HdrExtra) :- !,
+	phrase(post_header(codes(Type, Codes), HdrExtra), Header),
 	format(Out, '~s~s', [Header, Codes]).
 http_post_data(cgi_stream(In, _Len), Out, HdrExtra) :- !,
 	debug(obsolete, 'Obsolete 2nd argument in cgi_stream(In,Len)', []),
@@ -478,7 +478,7 @@ post_header(cgi_data(Size), HdrExtra) -->
 	header_fields(HdrExtra),
 	content_length(Size),
 	"\r\n". 
-post_header(string(Type, Codes), HdrExtra) -->
+post_header(codes(Type, Codes), HdrExtra) -->
 	header_fields(HdrExtra),
 	content_length(ascii_string(Codes)),
 	content_type(Type),
@@ -967,7 +967,7 @@ http_read_header(Fd, Header) :-
 read_header_data(Fd, Header) :-
 	read_line_to_codes(Fd, Header, Tail),
 	read_header_data(Header, Fd, Tail),
-	debug(header, 'Header = ~n~s~n', [Header]).
+	debug(http(header), 'Header = ~n~s~n', [Header]).
 
 read_header_data("\r\n", _, _) :- !.
 read_header_data("\n", _, _) :- !.
@@ -978,7 +978,7 @@ read_header_data(_, Fd, Tail) :-
 
 parse_header(Text, Header) :-
 	phrase(header(Header), Text),
-	debug(header, 'Fields: ~w~n', [Header]).
+	debug(http(header), 'Fields: ~w~n', [Header]).
 
 header(List) -->
 	header_field(Name, Value), !,

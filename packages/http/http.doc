@@ -296,10 +296,10 @@ filename extension using file_mime_type/2.
 Send the contents of \arg{File} using the provided MIME type,
 i.e.\ claiming the \const{Content-type} equals \arg{Type}.
 
-	\termitem{string}{+Codes}
+	\termitem{codes}{+Codes}
 Same as string(text/plain, Codes).
 
-	\termitem{string}{+Type, +Codes}
+	\termitem{codes}{+Type, +Codes}
 Send string (list of character codes) using the indicated MIME-type.
 
 	\termitem{cgi_stream}{+Stream, +Len}
