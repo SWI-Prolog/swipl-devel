@@ -40,8 +40,8 @@
 
 %%	sha_hash(+Data, -Hash, +Options) is det
 %
-%	Hash is the SHA hash of From,   The  conversion is controlled by
-%	Options:
+%	Hash is the SHA hash of Data, The conversion is controlled
+%	by Options:
 %	
 %	  * algorithm(+Algorithm)
 %	  One of =sha1= (default), =sha224=, =sha256=, =sha384= or

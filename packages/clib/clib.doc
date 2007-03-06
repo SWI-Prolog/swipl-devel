@@ -56,10 +56,11 @@ complicate portability matters while supporting only a limited part of
 the user-community.
 
 This document describes \pllib{unix} to deal with the Unix process API,
-\pllib{socket} to deal with inet-domain stream-sockets, \pllib{cgi} to
-deal with getting CGI form-data if SWI-Prolog is used as a CGI scripting
-language and \pllib{crypt} to provide password encryption and
-verification.
+\pllib{socket} to deal with inet-domain TCP and UDP sockets, \pllib{cgi}
+to deal with getting CGI form-data if SWI-Prolog is used as a CGI
+scripting language, \pllib{crypt} to provide password encryption and
+verification, \pllib{sha} providing cryptographic hash functions and
+\pllib{memfile} providing in-memorty pseudo files.
 
 
 \section{Unix Process manipulation library}
@@ -624,6 +625,7 @@ Name of the file the data should be stored in.
 \end{description}
 
 \section{Password encryption library}
+\label{sec:crypt}
 
 The \pllib{crypt} library defines crypt/2 for encrypting and testing
 passwords:
@@ -662,6 +664,68 @@ or list of character-codes.  It is not advised to use atoms, as this
 implies the password will be available from the Prolog heap as a
 defined atom.
 \end{description}
+
+
+\section{SHA1 and SHA2 Secure Hash Algorithms}
+\label{sec:sha1}
+
+The library \pllib{sha} provides \jargon{Secure Hash Algorihms} approved
+by FIPS (\jargon{Federal Information Processing Standard}). Quoting
+\url[Wikipedia]{http://en.wikipedia.org/wiki/SHA-1}: \textit{``The SHA
+(Secure Hash Algorithm) hash functions refer to five FIPS-approved
+algorithms for computing a condensed digital representation (known as a
+message digest) that is, to a high degree of probability, unique for a
+given input data sequence (the message). These algorithms are called
+“secure” because (in the words of the standard), “for a given algorithm,
+it is computationally infeasible 1) to find a message that corresponds
+to a given message digest, or 2) to find two different messages that
+produce the same message digest. Any change to a message will, with a
+very high probability, result in a different message digest.”''}
+
+The current library supports all 5 approved algorithms, both computing
+the hash-key from data and the \jargon{hash Message Authentication Code}
+(HMAC).
+
+Input is text, represented as an atom, packed string object or
+code-list. Note that these functions operate on byte-sequences and
+therefore are not meaningful on Unicode text. The result is returned as
+a list of byte-values. This is the most general format that is
+comfortable supported by standard Prolog and can easily be transformed
+in other formats.  Commonly used text formats are ASCII created by
+encoding each byte as two hexadecimal digits and ASCII created using
+\jargon{base64} encoding.  Representation as a large integer can be
+desirable for computational processing.
+
+\begin{description}
+    \predicate{sha_hash}{3}{+Data, -Hash, +Options}
+Hash is the SHA hash of Data. \arg{Data} is either an atom, packed
+string or list of character codes. \arg{Hash} is unified with a list of
+integers representing the hash. The conversion is controlled by Options:
+
+    \begin{description}
+        \termitem{algorithm}{+Algorithm}
+One of \const{sha1} (default), \const{sha224}, \const{sha256},
+\const{sha384} or \const{sha512}
+    \end{description}
+
+    \predicate{hmac_sha}{4}{+Key, +Data, -HMAC, +Options}
+Quoting \url[Wikipedia]{http://en.wikipedia.org/wiki/HMAC}: \textit{``A
+keyed-hash message authentication code, or HMAC, is a type of message
+authentication code (MAC) calculated using a cryptographic hash function
+in combination with a secret key. As with any MAC, it may be used to
+simultaneously verify both the data integrity and the authenticity of a
+message. Any iterative cryptographic hash function, such as MD5 or
+SHA-1, may be used in the calculation of an HMAC; the resulting MAC
+algorithm is termed HMAC-MD5 or HMAC-SHA-1 accordingly. The
+cryptographic strength of the HMAC depends upon the cryptographic
+strength of the underlying hash function, on the size and quality of the
+key and the size of the hash output length in bits.''}
+
+\arg{Key} and \arg{Data} are either an atom, packed string or list of
+character codes. \arg{HMAC} is unified with a list of integers
+representing the authentication code.
+\end{description}
+
 
 \section{Memory files}
 

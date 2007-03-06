@@ -157,14 +157,16 @@ considerations</SPAN></A></DIV>
 decoding library</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Password 
 encryption library</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN> <SPAN class="sec-title">Memory 
+<DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN> <SPAN class="sec-title">SHA1 
+and SHA2 Secure Hash Algorithms</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN> <SPAN class="sec-title">Memory 
 files</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN> <SPAN class="sec-title">Time 
+<DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN> <SPAN class="sec-title">Time 
 and alarm library</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN> <SPAN class="sec-title">Limiting 
+<DIV class="toc-h2"><A class="sec" href="#sec:11"><SPAN class="sec-nr">11</SPAN> <SPAN class="sec-title">Limiting 
 process resources</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:11"><SPAN class="sec-nr">11</SPAN> <SPAN class="sec-title">Installation</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:11.1"><SPAN class="sec-nr">11.1</SPAN> <SPAN class="sec-title">Unix 
+<DIV class="toc-h2"><A class="sec" href="#sec:12"><SPAN class="sec-nr">12</SPAN> <SPAN class="sec-title">Installation</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:12.1"><SPAN class="sec-nr">12.1</SPAN> <SPAN class="sec-title">Unix 
 systems</SPAN></A></DIV>
 </DIV>
 
@@ -180,10 +182,12 @@ of the user-community.
 
 <P>This document describes <CODE>library(unix)</CODE> to deal with the 
 Unix process API,
-<CODE>library(socket)</CODE> to deal with inet-domain stream-sockets, <CODE>library(cgi)</CODE> 
-to deal with getting CGI form-data if SWI-Prolog is used as a CGI 
-scripting language and <CODE>library(crypt)</CODE> to provide password 
-encryption and verification.
+<CODE>library(socket)</CODE> to deal with inet-domain TCP and UDP 
+sockets, <CODE>library(cgi)</CODE> to deal with getting CGI form-data if 
+SWI-Prolog is used as a CGI scripting language, <CODE>library(crypt)</CODE> 
+to provide password encryption and verification, <CODE>library(sha)</CODE> 
+providing cryptographic hash functions and
+<CODE>library(memfile)</CODE> providing in-memorty pseudo files.
 
 <H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Unix 
 Process manipulation library</SPAN></A></H2>
@@ -840,6 +844,8 @@ Name of the file the data should be stored in.
 <H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Password 
 encryption library</SPAN></A></H2>
 
+<A NAME="sec:crypt"></A>
+
 <P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:46"></A><A class="pred" href="#crypt/2">crypt/2</A> 
 for encrypting and testing passwords:
 
@@ -883,7 +889,80 @@ defined atom.
 </DD>
 </DL>
 
-<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN> <SPAN class="sec-title">Memory 
+<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN> <SPAN class="sec-title">SHA1 
+and SHA2 Secure Hash Algorithms</SPAN></A></H2>
+
+<A NAME="sec:sha1"></A>
+
+<P>The library <CODE>library(sha)</CODE> provides <EM>Secure Hash 
+Algorihms</EM> approved by FIPS (<EM>Federal Information Processing 
+Standard</EM>). Quoting
+<A class="url" href="http://en.wikipedia.org/wiki/SHA-1">Wikipedia</A>: <I>``The 
+SHA (Secure Hash Algorithm) hash functions refer to five FIPS-approved 
+algorithms for computing a condensed digital representation (known as a 
+message digest) that is, to a high degree of probability, unique for a 
+given input data sequence (the message). These algorithms are called ‚ Ä 
+úsecure ‚ Ä ù because (in the words of the standard), ‚ Ä úfor a given 
+algorithm, it is computationally infeasible 1) to find a message that 
+corresponds to a given message digest, or 2) to find two different 
+messages that produce the same message digest. Any change to a message 
+will, with a very high probability, result in a different message 
+digest. ‚ Ä ù''</I>
+
+<P>The current library supports all 5 approved algorithms, both 
+computing the hash-key from data and the <EM>hash Message Authentication 
+Code</EM> (HMAC).
+
+<P>Input is text, represented as an atom, packed string object or 
+code-list. Note that these functions operate on byte-sequences and 
+therefore are not meaningful on Unicode text. The result is returned as 
+a list of byte-values. This is the most general format that is 
+comfortable supported by standard Prolog and can easily be transformed 
+in other formats. Commonly used text formats are ASCII created by 
+encoding each byte as two hexadecimal digits and ASCII created using
+<EM>base64</EM> encoding. Representation as a large integer can be 
+desirable for computational processing.
+
+<DL>
+<DT class="pubdef"><A NAME="sha_hash/3"><STRONG>sha_hash</STRONG>(<VAR>+Data, 
+-Hash, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Hash is the SHA hash of Data. <VAR>Data</VAR> is either an atom, packed 
+string or list of character codes. <VAR>Hash</VAR> is unified with a 
+list of integers representing the hash. The conversion is controlled by 
+Options:
+
+<DL>
+<DT><STRONG>algorithm</STRONG>(<VAR>+Algorithm</VAR>)</DT>
+<DD class="defbody">
+One of <CODE>sha1</CODE> (default), <CODE>sha224</CODE>, <CODE>sha256</CODE>,
+<CODE>sha384</CODE> or <CODE>sha512</CODE>
+</DD>
+</DL>
+
+</DD>
+<DT class="pubdef"><A NAME="hmac_sha/4"><STRONG>hmac_sha</STRONG>(<VAR>+Key, 
++Data, -HMAC, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Quoting <A class="url" href="http://en.wikipedia.org/wiki/HMAC">Wikipedia</A>: <I>``A 
+keyed-hash message authentication code, or HMAC, is a type of message 
+authentication code (MAC) calculated using a cryptographic hash function 
+in combination with a secret key. As with any MAC, it may be used to 
+simultaneously verify both the data integrity and the authenticity of a 
+message. Any iterative cryptographic hash function, such as MD5 or 
+SHA-1, may be used in the calculation of an HMAC; the resulting MAC 
+algorithm is termed HMAC-MD5 or HMAC-SHA-1 accordingly. The 
+cryptographic strength of the HMAC depends upon the cryptographic 
+strength of the underlying hash function, on the size and quality of the 
+key and the size of the hash output length in bits.''</I>
+
+<P><VAR>Key</VAR> and <VAR>Data</VAR> are either an atom, packed string 
+or list of character codes. <VAR>HMAC</VAR> is unified with a list of 
+integers representing the authentication code.
+</DD>
+</DL>
+
+<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN> <SPAN class="sec-title">Memory 
 files</SPAN></A></H2>
 
 <P>The <CODE>library(memfile)</CODE> provides an alternative to 
@@ -937,7 +1016,7 @@ Return the content of the memory-file as a list of character-codes in <VAR>Codes
 </DD>
 </DL>
 
-<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN> <SPAN class="sec-title">Time 
+<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN> <SPAN class="sec-title">Time 
 and alarm library</SPAN></A></H2>
 
 <P>The <CODE>library(time)</CODE> provides timing and alarm functions.
@@ -1002,7 +1081,7 @@ can be handled using the timeout option of <A NAME="idx:readterm3:57"></A><SPAN 
 </DD>
 </DL>
 
-<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN> <SPAN class="sec-title">Limiting 
+<H2><A NAME="sec:11"><SPAN class="sec-nr">11</SPAN> <SPAN class="sec-title">Limiting 
 process resources</SPAN></A></H2>
 
 <P>The <CODE>library(rlimit)</CODE> library provides an interface to the 
@@ -1059,9 +1138,9 @@ cpu_exceeded(_Sig) :-
 <P></DD>
 </DL>
 
-<H2><A NAME="sec:11"><SPAN class="sec-nr">11</SPAN> <SPAN class="sec-title">Installation</SPAN></A></H2>
+<H2><A NAME="sec:12"><SPAN class="sec-nr">12</SPAN> <SPAN class="sec-title">Installation</SPAN></A></H2>
 
-<H3><A NAME="sec:11.1"><SPAN class="sec-nr">11.1</SPAN> <SPAN class="sec-title">Unix 
+<H3><A NAME="sec:12.1"><SPAN class="sec-nr">12.1</SPAN> <SPAN class="sec-title">Unix 
 systems</SPAN></A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
@@ -1095,7 +1174,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT><A class="idx" href="#alarm/4">alarm/4</A></DT>
 <DD>
-<A class="idx" href="#idx:alarm4:55">9</A></DD>
+<A class="idx" href="#idx:alarm4:55">10</A></DD>
 <DT>at_end_of_stream/1</DT>
 <DD>
 <A class="idx" href="#idx:atendofstream1:27">4</A> <A class="idx" href="#idx:atendofstream1:28">4</A></DD>
@@ -1104,7 +1183,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT>atom_to_term/3</DT>
 <DD>
-<A class="idx" href="#idx:atomtoterm3:48">8</A></DD>
+<A class="idx" href="#idx:atomtoterm3:48">9</A></DD>
 <DT><STRONG>C</STRONG></DT>
 <DD>
 </DD>
@@ -1113,13 +1192,13 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT>catch/3</DT>
 <DD>
-<A class="idx" href="#idx:catch3:54">9</A> <A class="idx" href="#idx:catch3:58">10</A></DD>
+<A class="idx" href="#idx:catch3:54">10</A> <A class="idx" href="#idx:catch3:58">11</A></DD>
 <DT><A class="idx" href="#cgi_get_form/1">cgi_get_form/1</A></DT>
 <DD>
 </DD>
 <DT>close/1</DT>
 <DD>
-<A class="idx" href="#idx:close1:51">8</A></DD>
+<A class="idx" href="#idx:close1:51">9</A></DD>
 <DT><A class="idx" href="#close_stream_pool/0">close_stream_pool/0</A></DT>
 <DD>
 <A class="idx" href="#idx:closestreampool0:36">4.3</A></DD>
@@ -1177,6 +1256,9 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <DT>halt/[0,1]</DT>
 <DD>
 <A class="idx" href="#idx:halt01:5">2</A></DD>
+<DT><A class="idx" href="#hmac_sha/4">hmac_sha/4</A></DT>
+<DD>
+</DD>
 <DT><STRONG>I</STRONG></DT>
 <DD>
 </DD>
@@ -1212,13 +1294,13 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT>once/1</DT>
 <DD>
-<A class="idx" href="#idx:once1:53">9</A></DD>
+<A class="idx" href="#idx:once1:53">10</A></DD>
 <DT>on_signal/2</DT>
 <DD>
 <A class="idx" href="#idx:onsignal2:7">2</A></DD>
 <DT>on_signal/3</DT>
 <DD>
-<A class="idx" href="#idx:onsignal3:59">10</A></DD>
+<A class="idx" href="#idx:onsignal3:59">11</A></DD>
 <DT><A class="idx" href="#open_memory_file/3">open_memory_file/3</A></DT>
 <DD>
 </DD>
@@ -1230,7 +1312,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT>pce_open/3</DT>
 <DD>
-<A class="idx" href="#idx:pceopen3:50">8</A></DD>
+<A class="idx" href="#idx:pceopen3:50">9</A></DD>
 <DT><A class="idx" href="#pipe/2">pipe/2</A></DT>
 <DD>
 <A class="idx" href="#idx:pipe2:8">2</A> <A class="idx" href="#idx:pipe2:10">2</A></DD>
@@ -1242,10 +1324,10 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <A class="idx" href="#idx:read1:26">4</A></DD>
 <DT>read_term/3</DT>
 <DD>
-<A class="idx" href="#idx:readterm3:57">9</A></DD>
+<A class="idx" href="#idx:readterm3:57">10</A></DD>
 <DT><A class="idx" href="#remove_alarm/1">remove_alarm/1</A></DT>
 <DD>
-<A class="idx" href="#idx:removealarm1:52">9</A></DD>
+<A class="idx" href="#idx:removealarm1:52">10</A></DD>
 <DT><A class="idx" href="#rlimit/3">rlimit/3</A></DT>
 <DD>
 </DD>
@@ -1257,13 +1339,16 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT>sformat/3</DT>
 <DD>
-<A class="idx" href="#idx:sformat3:47">8</A></DD>
+<A class="idx" href="#idx:sformat3:47">9</A></DD>
+<DT><A class="idx" href="#sha_hash/3">sha_hash/3</A></DT>
+<DD>
+</DD>
 <DT><A class="idx" href="#size_memory_file/2">size_memory_file/2</A></DT>
 <DD>
 </DD>
 <DT>sleep/1</DT>
 <DD>
-<A class="idx" href="#idx:sleep1:56">9</A></DD>
+<A class="idx" href="#idx:sleep1:56">10</A></DD>
 <DT>socket</DT>
 <DD>
 <A class="sec" href="#sec:4">4</A></DD>
@@ -1308,7 +1393,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <A class="idx" href="#idx:tcpsocket1:40">4.4</A></DD>
 <DT>term_to_atom/2</DT>
 <DD>
-<A class="idx" href="#idx:termtoatom2:49">8</A></DD>
+<A class="idx" href="#idx:termtoatom2:49">9</A></DD>
 <DT><STRONG>U</STRONG></DT>
 <DD>
 </DD>
