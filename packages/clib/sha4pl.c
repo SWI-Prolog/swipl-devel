@@ -29,6 +29,7 @@
 #include <SWI-Prolog.h>
 #include "error.h"
 #include "sha1/sha1.h"
+#include "sha1/sha2.h"
 #include <assert.h>
 
 static atom_t ATOM_sha1;
@@ -100,6 +101,34 @@ pl_sha_hash(term_t from, term_t hash, term_t options)
       sha1(hval, (unsigned char*)data, (unsigned long)datalen);
 
       return PL_unify_list_ncodes(hash, SHA1_DIGEST_SIZE, (char*)hval);
+    }
+    case ALGORITHM_SHA224:
+    { unsigned char hval[SHA224_DIGEST_SIZE];
+
+      sha224(hval, (unsigned char*)data, (unsigned long)datalen);
+
+      return PL_unify_list_ncodes(hash, SHA224_DIGEST_SIZE, (char*)hval);
+    }
+    case ALGORITHM_SHA256:
+    { unsigned char hval[SHA256_DIGEST_SIZE];
+
+      sha256(hval, (unsigned char*)data, (unsigned long)datalen);
+
+      return PL_unify_list_ncodes(hash, SHA256_DIGEST_SIZE, (char*)hval);
+    }
+    case ALGORITHM_SHA384:
+    { unsigned char hval[SHA384_DIGEST_SIZE];
+
+      sha384(hval, (unsigned char*)data, (unsigned long)datalen);
+
+      return PL_unify_list_ncodes(hash, SHA384_DIGEST_SIZE, (char*)hval);
+    }
+    case ALGORITHM_SHA512:
+    { unsigned char hval[SHA512_DIGEST_SIZE];
+
+      sha512(hval, (unsigned char*)data, (unsigned long)datalen);
+
+      return PL_unify_list_ncodes(hash, SHA512_DIGEST_SIZE, (char*)hval);
     }
     default:
       assert(0);
