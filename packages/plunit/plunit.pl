@@ -280,7 +280,7 @@ make_unit_module(Unit, Module) :-
 %
 %	@tbd	Verify options.
 
-expand_test(Name, Options, Body,
+expand_test(Name, Options0, Body,
 	    [ 'unit test'(Name, Line, Options, Module:'unit body'(Id, Vars)),
 	      ('unit body'(Id, Vars) :- !, Body)
 	    ]) :-
@@ -288,7 +288,11 @@ expand_test(Name, Options, Body,
 	prolog_load_context(module, Module),
 	concat_atom([Name, '@line ', Line], Id),
 	term_variables(Body, VarList),
-	Vars =.. [vars|VarList].
+	Vars =.. [vars|VarList],
+	(   is_list(Options0)		% allow for single option without list
+	->  Options = Options0
+	;   Options = [Options0]
+	).
 
 %%	expand(+Term, -Clauses) is semidet.
 
