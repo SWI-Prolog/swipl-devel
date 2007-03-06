@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: plld to honour -o with -c (when used as compiler frontend).
+
   * FIXED: Possible alignment issue when accessing read/write buffers using
     wchar_t.  Andreas Greve.
 

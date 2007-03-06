@@ -1086,9 +1086,13 @@ compileFile(const char *compiler, arglist *options, const char *cfile)
   char *ext;
   arglist *args = copyArgList(options);
 
-  strcpy(ofile, cfile);
-  if ( (ext = (char *)file_name_extension(ofile)) )
-    strcpy(ext, EXT_OBJ);
+  if ( out )
+  { strcpy(ofile, out);
+  } else
+  { strcpy(ofile, cfile);
+    if ( (ext = (char *)file_name_extension(ofile)) )
+      strcpy(ext, EXT_OBJ);
+  }
 
   prependArgList(args, "-c");
 #ifdef __WINDOWS__
