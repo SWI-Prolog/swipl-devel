@@ -59,7 +59,8 @@ FILESOBJ=	error.o files.o
 RLIMITOBJ=	error.o rlimit.o
 RANDOMOBJ=	random.o
 READUTILOBJ=	readutil.o
-SHAOBJ=		error.o sha4pl.o sha1/sha1.o sha1/sha2.o sha1/hmac.o
+SHAOBJ=		error.o sha4pl.o sha1/sha1.o sha1/sha2.o \
+		sha1/hmac_sha1.o sha1/hmac_sha256.o
 
 all:		$(TARGETS)
 
@@ -88,7 +89,9 @@ readutil.@SO@:	$(READUTILOBJ)
 sha4pl.@SO@:	$(SHAOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(SHAOBJ)
 
-sha1/hmac.o:	
+sha1/hmac_sha1.o:	
+		$(CC) -c $(CFLAGS) -DUSE_SHA1 -o $@ sha1/hmac.c
+sha1/hmac_sha256.o:	
 		$(CC) -c $(CFLAGS) -DUSE_SHA256 -o $@ sha1/hmac.c
 
 maildrop/rfc822/librfc822.a:

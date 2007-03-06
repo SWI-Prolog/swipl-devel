@@ -43,9 +43,9 @@ test(sha256, [true(Hash=[195, 171, 143, 241, 55, 32, 232, 173,
 			116, 229, 146, 194, 250, 56, 61, 74,
 			57, 96, 113, 76, 174, 240, 196, 242])]) :-
 	sha_hash(foobar, Hash, [algorithm(sha256)]).
-test(hmac, [true(Hash=[80, 49, 254, 61, 152, 156, 109, 21,
-		      55, 160, 19, 250, 110, 115, 157, 162, 
-		      52, 99, 253, 174])]) :-
+test(hmac, [true(Hash=[16, 65, 82, 197, 191, 220, 160, 123,
+		       198, 51, 238, 189, 70, 25, 159, 2,
+		       85, 201, 244, 157])]) :-
 	hmac_sha(key, data, Hash, [algorithm(sha1)]).
 test(hmac, [true(Hash=[80, 49, 254, 61, 152, 156, 109, 21,
 		      55, 160, 19, 250, 110, 115, 157, 162,
@@ -120,4 +120,67 @@ test(sha512, [true(Atom='cf83e135 7eefb8bd f1542850 d66d8007 d620e405 0b5715dc 8
 :- end_tests(wiki_sha).
 
 
+:- begin_tests(rfc2202).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+HMAC SHA-1 from http://www.ipa.go.jp/security/rfc/RFC2202EN.html
+HMAC SHA-2 from http://www.faqs.org/rfcs/rfc4231.html
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%%	btwoc(+Integer, -Bytes) is det.
+%%	btwoc(-Integer, +Bytes) is det.
+%
+%	Translate between a big integer and and its representation in
+%	bytes.  The first bit is always 0, as Integer is nonneg.
+
+btwoc(Int, Bytes) :-
+	integer(Int), !,
+	int_to_bytes(Int, Bytes).
+btwoc(Int, Bytes) :-
+	is_list(Bytes),
+	bytes_to_int(Bytes, Int).
+
+int_to_bytes(Int, Bytes) :-
+	int_to_bytes(Int, [], Bytes).
+
+int_to_bytes(Int, Bytes0, [Int|Bytes0]) :-
+	Int < 128, !.
+int_to_bytes(Int, Bytes0, Bytes) :-
+	Last is Int /\ 0xff,
+	Int1 is Int >> 8,
+	int_to_bytes(Int1, [Last|Bytes0], Bytes).
+
+
+bytes_to_int([B|T], Int) :-
+	bytes_to_int(T, B, Int).
+
+bytes_to_int([], Int, Int).
+bytes_to_int([B|T], Int0, Int) :-
+	Int1 is (Int0<<8)+B,
+	bytes_to_int(T, Int1, Int).
+
+
+%%	rdf_hmac(+Key:int, +Data:list(code), -Digest:int, +Alogrithm)
+
+rdf_hmac(Key, Data, Digest, SHA) :-
+	btwoc(Key, KeyCodes),
+	hmac_sha(KeyCodes, Data, DigestCodes, [algorithm(SHA)]),
+	btwoc(Digest, DigestCodes).
+
+test(hmac_sha1_1, [true(Digest=0xb617318655057264e28bc0b6fb378c8ef146be00)]) :-
+	rdf_hmac(0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b,
+		 "Hi There",
+		 Digest,
+		 sha1).
+test(hmac_sha256_1, [true(Digest=0xb0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7)]) :-
+	rdf_hmac(0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b,
+		 "Hi There",
+		 Digest,
+		 sha256).
+test(hmac_sha256_2, [true(Digest=0x5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843)]) :-
+	rdf_hmac(0x4a656665,
+		 "what do ya want for nothing?",
+		 Digest,
+		 sha256).
+
+:- end_tests(rfc2202).

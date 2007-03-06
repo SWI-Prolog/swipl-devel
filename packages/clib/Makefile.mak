@@ -22,7 +22,7 @@ MIMELIBS=	rfc2045.lib rfc822.lib
 TIMEOBJ=	error.obj time.obj
 READOBJ=	readutil.obj
 RANDOMOBJ=	random.obj
-SHAOBJ=		error.obj sha4pl.obj sha1/sha2.obj sha1/hmac.obj
+SHAOBJ=		error.obj sha4pl.obj sha1/sha1.obj sha1/sha2.obj sha1/hmac.obj
 TIMELIBS=	winmm.lib
 
 all:		socket.dll cgi.dll memfile.dll mime.dll time.dll readutil.dll \

@@ -54,6 +54,7 @@ typedef enum
 typedef struct
 { sha_algorithm algorithm;
   size_t	digest_size;
+  term_t	algorithm_term;
 } optval;
 
 static int
@@ -62,6 +63,7 @@ sha_options(term_t options, optval *result)
   term_t opt = PL_new_term_ref();
 
 					/* defaults */
+  memset(result, 0, sizeof(*result));
   result->algorithm   = ALGORITHM_SHA1;
   result->digest_size = SHA1_DIGEST_SIZE;
 
@@ -76,7 +78,8 @@ sha_options(term_t options, optval *result)
 
       if ( aname == ATOM_algorithm )
       { atom_t a_algorithm;
-
+	
+	result->algorithm_term = a;
 	if ( !PL_get_atom(a, &a_algorithm) )
 	  return pl_error(NULL, 0, NULL, ERR_TYPE, a, "algorithm");
 	if ( a_algorithm == ATOM_sha1 )
@@ -138,7 +141,7 @@ pl_sha_hash(term_t from, term_t hash, term_t options)
 
 
 static foreign_t
-pl_hmac_sha(term_t key, term_t data, term_t hash, term_t options)
+pl_hmac_sha(term_t key, term_t data, term_t mac, term_t options)
 { char *sdata, *skey;
   size_t datalen, keylen;
   optval opts;
@@ -154,11 +157,23 @@ pl_hmac_sha(term_t key, term_t data, term_t hash, term_t options)
   if ( !sha_options(options, &opts) )
     return FALSE;
 
-  hmac_sha((unsigned char*)skey, (unsigned long)keylen,
-	   (unsigned char*)sdata, (unsigned long)datalen,
-	   digest, (unsigned long)opts.digest_size);
+  switch(opts.algorithm)
+  { case ALGORITHM_SHA1:
+      hmac_sha1((unsigned char*)skey, (unsigned long)keylen,
+		(unsigned char*)sdata, (unsigned long)datalen,
+		digest, (unsigned long)opts.digest_size);
+      break;
+    case ALGORITHM_SHA256:
+      hmac_sha256((unsigned char*)skey, (unsigned long)keylen,
+		  (unsigned char*)sdata, (unsigned long)datalen,
+		  digest, (unsigned long)opts.digest_size);
+      break;
+    default:
+      return pl_error(NULL, 0, "HMAC-SHA only for SHA-1 and SHA-256",
+		      ERR_DOMAIN, opts.algorithm_term, "algorithm");
+  }
 
-  return PL_unify_list_ncodes(hash, opts.digest_size, (char*)digest);
+  return PL_unify_list_ncodes(mac, opts.digest_size, (char*)digest);
 }
 
 

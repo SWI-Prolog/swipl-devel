@@ -57,6 +57,12 @@ extern "C"
 #define sha_hash            sha1_hash
 #define sha_end             sha1_end
 
+#define hmac_sha_begin	    hmac_sha1_begin
+#define hmac_sha_key	    hmac_sha1_key
+#define hmac_sha_data	    hmac_sha1_data
+#define hmac_sha_end	    hmac_sha1_end
+#define hmac_sha	    hmac_sha1
+
 #endif
 
 #ifdef USE_SHA256
@@ -69,6 +75,12 @@ extern "C"
 #define sha_begin           sha256_begin
 #define sha_hash            sha256_hash
 #define sha_end             sha256_end
+
+#define hmac_sha_begin	    hmac_sha256_begin
+#define hmac_sha_key	    hmac_sha256_key
+#define hmac_sha_data	    hmac_sha256_data
+#define hmac_sha_end	    hmac_sha256_end
+#define hmac_sha	    hmac_sha256
 
 #endif
 

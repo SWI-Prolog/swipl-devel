@@ -722,9 +722,11 @@ cryptographic strength of the HMAC depends upon the cryptographic
 strength of the underlying hash function, on the size and quality of the
 key and the size of the hash output length in bits.''}
 
-\arg{Key} and \arg{Data} are either an atom, packed string or list of
-character codes. \arg{HMAC} is unified with a list of integers
-representing the authentication code.
+\arg{Key} and \arg{Data} are either an atom,   packed  string or list of
+character  codes.  \arg{HMAC}  is  unified  with   a  list  of  integers
+representing the authentication code. \arg{Options} is   the same as for
+sha_hash/3, but currently only \const{sha1} and \const{sha256} are
+supported.
 \end{description}
 
 \subsection{License terms}
