@@ -45,8 +45,8 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		@PLTARGETS@ prolog_server.pl
-TARGETS=	@TARGETS@ readutil.@SO@
+LIBPL=		@PLTARGETS@ prolog_server.pl sha.pl
+TARGETS=	@TARGETS@ readutil.@SO@ sha4pl.@SO@
 
 UNXOBJ=		error.o process.o
 SOCKOBJ=	error.o socket.o nonblockio.o
@@ -59,6 +59,7 @@ FILESOBJ=	error.o files.o
 RLIMITOBJ=	error.o rlimit.o
 RANDOMOBJ=	random.o
 READUTILOBJ=	readutil.o
+SHAOBJ=		error.o sha4pl.o sha1/sha1.o
 
 all:		$(TARGETS)
 
@@ -84,6 +85,8 @@ rlimit.@SO@:	$(RLIMITOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(RLIMITOBJ) $(LIBS)
 readutil.@SO@:	$(READUTILOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(READUTILOBJ)
+sha4pl.@SO@:	$(SHAOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(SHAOBJ)
 
 maildrop/rfc822/librfc822.a:
 		(cd maildrop/rfc822 && $(MAKE))
