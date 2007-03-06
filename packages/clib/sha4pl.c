@@ -67,17 +67,17 @@ pl_sha_hash(term_t from, term_t hash, term_t options)
       if ( aname == ATOM_algorithm )
       { atom_t a_algorithm;
 
-	if ( !PL_get_atom(a, &algorithm) )
+	if ( !PL_get_atom(a, &a_algorithm) )
 	  return pl_error("sha_hash", 1, NULL, ERR_TYPE, a, "algorithm");
-	if ( a == ATOM_sha1 )
+	if ( a_algorithm == ATOM_sha1 )
 	  algorithm = ALGORITHM_SHA1;
-	else if ( a == ATOM_sha224 )
+	else if ( a_algorithm == ATOM_sha224 )
 	  algorithm = ALGORITHM_SHA224;
-	else if ( a == ATOM_sha256 )
+	else if ( a_algorithm == ATOM_sha256 )
 	  algorithm = ALGORITHM_SHA256;
-	else if ( a == ATOM_sha384 )
+	else if ( a_algorithm == ATOM_sha384 )
 	  algorithm = ALGORITHM_SHA384;
-	else if ( a == ATOM_sha512 )
+	else if ( a_algorithm == ATOM_sha512 )
 	  algorithm = ALGORITHM_SHA512;
 	else
 	  return pl_error("sha_hash", 1, NULL, ERR_DOMAIN, a, "algorithm");
@@ -99,7 +99,7 @@ pl_sha_hash(term_t from, term_t hash, term_t options)
 
       sha1(hval, (unsigned char*)data, (unsigned long)datalen);
 
-      return PL_unify_string_nchars(hash, SHA1_DIGEST_SIZE, (char*)hval);
+      return PL_unify_list_ncodes(hash, SHA1_DIGEST_SIZE, (char*)hval);
     }
     default:
       assert(0);
