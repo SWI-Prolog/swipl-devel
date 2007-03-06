@@ -1,3 +1,7 @@
+Mar 6, 2007
+
+  * ADDED: SHA-1 and SHA-2 support in new library(sha).
+
 Feb 28, 2007
 
   * Re-renerated HTML docs (outdated)

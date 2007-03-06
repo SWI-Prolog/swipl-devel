@@ -628,7 +628,8 @@ Name of the file the data should be stored in.
 \label{sec:crypt}
 
 The \pllib{crypt} library defines crypt/2 for encrypting and testing
-passwords:
+passwords.  The clib package also provides crytographic hashes as
+described in \secref{sha}
 
 \begin{description}
     \predicate{crypt}{2}{+Plain, ?Encrypted}
@@ -667,7 +668,7 @@ defined atom.
 
 
 \section{SHA1 and SHA2 Secure Hash Algorithms}
-\label{sec:sha1}
+\label{sec:sha}
 
 The library \pllib{sha} provides \jargon{Secure Hash Algorihms} approved
 by FIPS (\jargon{Federal Information Processing Standard}). Quoting
@@ -725,6 +726,35 @@ key and the size of the hash output length in bits.''}
 character codes. \arg{HMAC} is unified with a list of integers
 representing the authentication code.
 \end{description}
+
+\subsection{License terms}
+
+The underlying SHA-2 library is an unmodified copy created by Dr Brian
+Gladman, Worcester, UK.  It is distributed under the license conditions
+below.
+
+The free distribution and use of this software in both source and binary
+form is allowed (with or without changes) provided that:
+
+\begin{enumerate}
+\item
+      distributions of this source code include the above copyright
+      notice, this list of conditions and the following disclaimer;
+
+\item
+      distributions in binary form include the above copyright
+      notice, this list of conditions and the following disclaimer
+      in the documentation and/or other associated materials;
+
+\item
+      the copyright holder's name is not used to endorse products
+      built using this software without specific written permission.
+\end{enumerate}
+
+ALTERNATIVELY, provided that this notice is retained in full, this
+product may be distributed under the terms of the GNU General Public
+License (GPL), in which case the provisions of the GPL apply INSTEAD OF
+those given above.
 
 
 \section{Memory files}
