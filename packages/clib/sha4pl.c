@@ -30,13 +30,10 @@
 
 #include <SWI-Prolog.h>
 #include "error.h"
+#include "sha1/sha1.h"
 #include "sha1/sha2.h"
 #include "sha1/hmac.h"
 #include <assert.h>
-
-#ifndef SHA1_DIGEST_SIZE
-#define SHA1_DIGEST_SIZE 20
-#endif
 
 static atom_t ATOM_sha1;
 static atom_t ATOM_sha224;
@@ -128,9 +125,14 @@ pl_sha_hash(term_t from, term_t hash, term_t options)
 		      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
     return FALSE;
 
-  sha2((unsigned char*)hval, (unsigned long) opts.digest_size,
-       (unsigned char*)data, (unsigned long)datalen);
-  
+  if ( opts.algorithm == ALGORITHM_SHA1 )
+  { sha1((unsigned char*)hval,
+	 (unsigned char*)data, (unsigned long)datalen);
+  } else
+  { sha2((unsigned char*)hval, (unsigned long) opts.digest_size,
+	 (unsigned char*)data, (unsigned long)datalen);
+  }
+
   return PL_unify_list_ncodes(hash, opts.digest_size, (char*)hval);
 }
 

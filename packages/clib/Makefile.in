@@ -59,7 +59,7 @@ FILESOBJ=	error.o files.o
 RLIMITOBJ=	error.o rlimit.o
 RANDOMOBJ=	random.o
 READUTILOBJ=	readutil.o
-SHAOBJ=		error.o sha4pl.o sha1/sha2.o sha1/hmac.o
+SHAOBJ=		error.o sha4pl.o sha1/sha1.o sha1/sha2.o sha1/hmac.o
 
 all:		$(TARGETS)
 
