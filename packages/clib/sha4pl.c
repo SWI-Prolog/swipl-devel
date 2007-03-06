@@ -26,11 +26,17 @@
 #include <config.h>
 #endif
 
+#define USE_SHA256 1
+
 #include <SWI-Prolog.h>
 #include "error.h"
-#include "sha1/sha1.h"
 #include "sha1/sha2.h"
+#include "sha1/hmac.h"
 #include <assert.h>
+
+#ifndef SHA1_DIGEST_SIZE
+#define SHA1_DIGEST_SIZE 20
+#endif
 
 static atom_t ATOM_sha1;
 static atom_t ATOM_sha224;
@@ -48,13 +54,19 @@ typedef enum
 } sha_algorithm;
 
 
-static foreign_t
-pl_sha_hash(term_t from, term_t hash, term_t options)
+typedef struct
+{ sha_algorithm algorithm;
+  size_t	digest_size;
+} optval;
+
+static int
+sha_options(term_t options, optval *result)
 { term_t opts = PL_copy_term_ref(options);
   term_t opt = PL_new_term_ref();
-  sha_algorithm algorithm = ALGORITHM_SHA1;
-  char *data;
-  size_t datalen;
+
+					/* defaults */
+  result->algorithm   = ALGORITHM_SHA1;
+  result->digest_size = SHA1_DIGEST_SIZE;
 
   while(PL_get_list(opts, opt, opts))
   { atom_t aname;
@@ -69,71 +81,82 @@ pl_sha_hash(term_t from, term_t hash, term_t options)
       { atom_t a_algorithm;
 
 	if ( !PL_get_atom(a, &a_algorithm) )
-	  return pl_error("sha_hash", 1, NULL, ERR_TYPE, a, "algorithm");
+	  return pl_error(NULL, 0, NULL, ERR_TYPE, a, "algorithm");
 	if ( a_algorithm == ATOM_sha1 )
-	  algorithm = ALGORITHM_SHA1;
-	else if ( a_algorithm == ATOM_sha224 )
-	  algorithm = ALGORITHM_SHA224;
-	else if ( a_algorithm == ATOM_sha256 )
-	  algorithm = ALGORITHM_SHA256;
-	else if ( a_algorithm == ATOM_sha384 )
-	  algorithm = ALGORITHM_SHA384;
-	else if ( a_algorithm == ATOM_sha512 )
-	  algorithm = ALGORITHM_SHA512;
-	else
-	  return pl_error("sha_hash", 1, NULL, ERR_DOMAIN, a, "algorithm");
+	{ result->algorithm   = ALGORITHM_SHA1;
+	  result->digest_size = SHA1_DIGEST_SIZE;
+	} else if ( a_algorithm == ATOM_sha224 )
+	{ result->algorithm = ALGORITHM_SHA224;
+	  result->digest_size = SHA224_DIGEST_SIZE;
+	} else if ( a_algorithm == ATOM_sha256 )
+	{ result->algorithm = ALGORITHM_SHA256;
+	  result->digest_size = SHA256_DIGEST_SIZE;
+	} else if ( a_algorithm == ATOM_sha384 )
+	{ result->algorithm = ALGORITHM_SHA384;
+	  result->digest_size = SHA384_DIGEST_SIZE;
+	} else if ( a_algorithm == ATOM_sha512 )
+	{ result->algorithm = ALGORITHM_SHA512;
+	  result->digest_size = SHA512_DIGEST_SIZE;
+	} else
+	  return pl_error(NULL, 0, NULL, ERR_DOMAIN, a, "algorithm");
       }
     } else
-    { return pl_error("sha_hash", 1, NULL, ERR_TYPE, opt, "option");
+    { return pl_error(NULL, 0, NULL, ERR_TYPE, opt, "option");
     }
   }
 
   if ( !PL_get_nil(opts) )
     return pl_error("sha_hash", 1, NULL, ERR_TYPE, opts, "list");
 
-  if ( !PL_get_nchars(from, &datalen, &data, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
+  return TRUE;
+}
+
+
+
+
+static foreign_t
+pl_sha_hash(term_t from, term_t hash, term_t options)
+{ char *data;
+  size_t datalen;
+  optval opts;
+  unsigned char hval[SHA2_MAX_DIGEST_SIZE];
+
+  if ( !sha_options(options, &opts) )
     return FALSE;
 
-  switch(algorithm)
-  { case ALGORITHM_SHA1:
-    { unsigned char hval[SHA1_DIGEST_SIZE];
+  if ( !PL_get_nchars(from, &datalen, &data, 
+		      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
+    return FALSE;
 
-      sha1(hval, (unsigned char*)data, (unsigned long)datalen);
+  sha2((unsigned char*)hval, (unsigned long) opts.digest_size,
+       (unsigned char*)data, (unsigned long)datalen);
+  
+  return PL_unify_list_ncodes(hash, opts.digest_size, (char*)hval);
+}
 
-      return PL_unify_list_ncodes(hash, SHA1_DIGEST_SIZE, (char*)hval);
-    }
-    case ALGORITHM_SHA224:
-    { unsigned char hval[SHA224_DIGEST_SIZE];
 
-      sha224(hval, (unsigned char*)data, (unsigned long)datalen);
+static foreign_t
+pl_hmac_sha(term_t key, term_t data, term_t hash, term_t options)
+{ char *sdata, *skey;
+  size_t datalen, keylen;
+  optval opts;
+  unsigned char digest[SHA2_MAX_DIGEST_SIZE];
 
-      return PL_unify_list_ncodes(hash, SHA224_DIGEST_SIZE, (char*)hval);
-    }
-    case ALGORITHM_SHA256:
-    { unsigned char hval[SHA256_DIGEST_SIZE];
+  if ( !PL_get_nchars(key, &keylen, &skey, 
+		      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
+    return FALSE;
+  if ( !PL_get_nchars(data, &datalen, &sdata, 
+		      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
+    return FALSE;
 
-      sha256(hval, (unsigned char*)data, (unsigned long)datalen);
+  if ( !sha_options(options, &opts) )
+    return FALSE;
 
-      return PL_unify_list_ncodes(hash, SHA256_DIGEST_SIZE, (char*)hval);
-    }
-    case ALGORITHM_SHA384:
-    { unsigned char hval[SHA384_DIGEST_SIZE];
+  hmac_sha((unsigned char*)skey, (unsigned long)keylen,
+	   (unsigned char*)sdata, (unsigned long)datalen,
+	   digest, (unsigned long)opts.digest_size);
 
-      sha384(hval, (unsigned char*)data, (unsigned long)datalen);
-
-      return PL_unify_list_ncodes(hash, SHA384_DIGEST_SIZE, (char*)hval);
-    }
-    case ALGORITHM_SHA512:
-    { unsigned char hval[SHA512_DIGEST_SIZE];
-
-      sha512(hval, (unsigned char*)data, (unsigned long)datalen);
-
-      return PL_unify_list_ncodes(hash, SHA512_DIGEST_SIZE, (char*)hval);
-    }
-    default:
-      assert(0);
-      return FALSE;
-  }
+  return PL_unify_list_ncodes(hash, opts.digest_size, (char*)digest);
 }
 
 
@@ -141,7 +164,7 @@ pl_sha_hash(term_t from, term_t hash, term_t options)
 
 install_t
 install_sha4pl()
-{ MKATOM(sha1);
+{ MKATOM(sha1);				/* =160 */
   MKATOM(sha224);
   MKATOM(sha256);
   MKATOM(sha384);
@@ -149,4 +172,5 @@ install_sha4pl()
   MKATOM(algorithm);
 
   PL_register_foreign("sha_hash", 3, pl_sha_hash, 0);
+  PL_register_foreign("hmac_sha", 4, pl_hmac_sha, 0);
 }

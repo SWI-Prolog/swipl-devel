@@ -30,14 +30,15 @@
 */
 
 :- module(crypto_hash,
-	  [ sha_hash/3			% +From, -Hash, +Options
+	  [ sha_hash/3,			% +Data, -Hash, +Options
+	    hmac_sha/4			% +Key, +Data, -Hash, +Options
 	  ]).
 :- use_module(library(shlib)).
 
 :- initialization
    load_foreign_library(foreign(sha4pl)).
 
-%%	sha_hash(+From, -Hash, +Options) is det
+%%	sha_hash(+Data, -Hash, +Options) is det
 %
 %	Hash is the SHA hash of From,   The  conversion is controlled by
 %	Options:
@@ -46,5 +47,9 @@
 %	  One of =sha1= (default), =sha224=, =sha256=, =sha384= or
 %	  =sha512=
 %	  
-%	@param	From is either an atom, string or code-list
+%	@param	Data is either an atom, string or code-list
 %	@param  Hash is a packed string
+
+%%	hmac_sha(+Key, +Data, -Hash, +Options) is det
+%
+%	For Options, see sha_hash/3.
