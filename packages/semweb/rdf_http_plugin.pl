@@ -62,6 +62,7 @@ rdf_db:rdf_open_hook(url(http, URL), Stream, Format) :-
 %	@bug	The turtle parser only parses a subset of n3.
 
 guess_format('text/rdf+xml',	      _, xml).
+guess_format('application/rdf+xml',   _, xml).
 guess_format('application/x-turtle',  _, turtle).
 guess_format('application/turtle',    _, turtle).
 guess_format('text/rdf+n3',	      _, turtle). % Bit dubious

@@ -1,3 +1,7 @@
+Mar 6, 2007
+
+  * ADDED: application/rdf+xml to rdf_http_plugin.pl.  Yves Raimond.
+
 Mar 5, 2007
 
   * ADDED: rdf_load/2, allow for base_uri(-URI) to get access to the named
