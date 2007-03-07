@@ -1086,7 +1086,7 @@ compileFile(const char *compiler, arglist *options, const char *cfile)
   char *ext;
   arglist *args = copyArgList(options);
 
-  if ( out )
+  if ( out && nolink )
   { strcpy(ofile, out);
   } else
   { strcpy(ofile, cfile);
