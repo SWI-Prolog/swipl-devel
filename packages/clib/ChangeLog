@@ -1,3 +1,8 @@
+Mar 7, 2007
+
+  * FIXED: Put debug message "shutdown(6=-1, SD_RECEIVE) failed" under
+    tcp_debug/1.  Mike Elston
+
 Mar 6, 2007
 
   * FIXED: Waiting for a socket with XPCE enabled.

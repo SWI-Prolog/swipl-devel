@@ -2049,9 +2049,9 @@ nbio_close_input(nbio_sock_t socket)
     { s->error = WSAECONNRESET;
       rc = -1;
     } else if ( shutdown(sock, SD_RECEIVE) == SOCKET_ERROR )
-    { Sdprintf("shutdown(%d=%d, SD_RECEIVE) failed: %s\n",
-	       socket, s->socket,
-	       WinSockError(WSAGetLastError()));
+    { DEBUG(1, Sdprintf("shutdown(%d=%d, SD_RECEIVE) failed: %s\n",
+			socket, s->socket,
+			WinSockError(WSAGetLastError())));
     }
     rc = -1;
   }
