@@ -1,6 +1,10 @@
+Mar 7, 2007
+
+  * FIXED: handle throw(http_reply(moved_temporary(URL))) properly.
+
 Mar 6, 2007
 
-  * Added final_url option to http_open/3
+  * ADDED: final_url option to http_open/3
 
 Mar 5, 2007
 

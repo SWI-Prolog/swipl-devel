@@ -590,6 +590,8 @@ status_comment(ok) -->
 	"OK".
 status_comment(moved) -->
 	"Moved Permanently".
+status_comment(moved_temporary) -->
+	"Moved Temporary".
 status_comment(see_other) -->
       "See Other".
 status_comment(not_modified) --> 
