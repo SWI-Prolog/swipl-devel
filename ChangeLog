@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * CLEANUP: Call message system for undefined exported predicates.
+    Mike Elston.
+
   * FIXED: plld to honour -o with -c (when used as compiler frontend).
 
   * FIXED: Possible alignment issue when accessing read/write buffers using

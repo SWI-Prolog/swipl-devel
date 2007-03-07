@@ -317,6 +317,8 @@ prolog_message(redefined_procedure(Type, Proc)) -->
 	[ 'Redefined ~w procedure ~p'-[Type, Proc] ].
 prolog_message(declare_module(Module, abolish(Predicates))) -->
 	[ 'Loading module ~w abolished: ~p'-[Module, Predicates] ].
+prolog_message(undefined_export(Module, PI)) -->
+	[ 'Exported procedure ~q:~q is not defined'-[Module, PI] ].
 prolog_message(discontiguous((-)/2)) -->
 	prolog_message(minus_in_identifier).
 prolog_message(discontiguous(Proc)) -->

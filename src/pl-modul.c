@@ -757,10 +757,12 @@ pl_check_export()
 
 	      if ( !isDefinedProcedure(proc) && /* not defined */
 		   proc->definition->module == module ) /* not imported */
-	      { warning("Exported procedure %s:%s/%d is not defined", 
-			stringAtom(module->name), 
-			stringAtom(def->functor->name), 
-			def->functor->arity);
+	      { printMessage(ATOM_error,
+			     PL_FUNCTOR_CHARS, "undefined_export", 2,
+			       PL_ATOM, module->name,
+			       PL_FUNCTOR, FUNCTOR_divide2,
+			         PL_ATOM, def->functor->name,
+			         PL_INT, (int)def->functor->arity);
 	      }
 	    })
 
