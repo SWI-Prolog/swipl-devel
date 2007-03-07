@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Library record: provide access to named fields in a term.
+    After specs by Richard O'Keefe.
+
   * CLEANUP: Call message system for undefined exported predicates.
     Mike Elston.
 

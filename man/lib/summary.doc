@@ -201,3 +201,9 @@ This library is only available on Windows systems.
 \predicatesummary{unlisten}{3}{Stop listening to event notifications}
 \predicatesummary{listening}{3}{Who is listening to event notifications?}
 \end{summarylist}
+
+\subsection{\pllib{record}}
+
+\begin{summarylist}{ll}
+\predicatesummary{record}{1}{Define named fields in a term}
+\end{summarylist}

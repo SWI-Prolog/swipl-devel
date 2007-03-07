@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.28 Reference Manual: Section 6.3</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.29 Reference Manual: Section 6.3</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="coroutining.html">
@@ -126,8 +126,8 @@ variables</SPAN></A></H2>
 <A NAME="sec:gvar"></A>
 
 <P>Global variables are associations between names (atoms) and terms. 
-They differ in various ways from storing information using <A NAME="idx:assert1:1151"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
-or <A NAME="idx:recorda3:1152"></A><A class="pred" href="db.html#recorda/3">recorda/3</A>.
+They differ in various ways from storing information using <A NAME="idx:assert1:1156"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
+or <A NAME="idx:recorda3:1157"></A><A class="pred" href="db.html#recorda/3">recorda/3</A>.
 
 <P>
 <UL>
@@ -137,8 +137,8 @@ particularly interesting for large data structures such as parsed XML
 documents or the CHR global constraint store.
 
 <P>
-<LI>They support both global assignment using <A NAME="idx:nbsetval2:1153"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A> 
-and backtrackable assignment using <A NAME="idx:bsetval2:1154"></A><A class="pred" href="gvar.html#b_setval/2">b_setval/2</A>.
+<LI>They support both global assignment using <A NAME="idx:nbsetval2:1158"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A> 
+and backtrackable assignment using <A NAME="idx:bsetval2:1159"></A><A class="pred" href="gvar.html#b_setval/2">b_setval/2</A>.
 
 <P>
 <LI>Only one value (which can be an arbitrary complex Prolog term) can 
@@ -153,23 +153,23 @@ namespace and values for global variables.
 module scoping in future versions.
 </UL>
 
-<P>Both <A NAME="idx:bsetval2:1155"></A><A class="pred" href="gvar.html#b_setval/2">b_setval/2</A> 
-and <A NAME="idx:nbsetval2:1156"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A> 
+<P>Both <A NAME="idx:bsetval2:1160"></A><A class="pred" href="gvar.html#b_setval/2">b_setval/2</A> 
+and <A NAME="idx:nbsetval2:1161"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A> 
 implicitly create a variable if the referenced name does not already 
 refer to a variable.
 
 <P>Global variables may be initialised from directives to make them 
 available during the program lifetime, but some considerations are 
 necessary for saved-states and threads. Saved-states to not store global 
-variables, which implies they have to be declared with <A NAME="idx:initialization1:1157"></A><A class="pred" href="consulting.html#initialization/1">initialization/1</A> 
+variables, which implies they have to be declared with <A NAME="idx:initialization1:1162"></A><A class="pred" href="consulting.html#initialization/1">initialization/1</A> 
 to recreate them after loading the saved state. Each thread has its own 
 set of global variables, starting with an empty set. Using
-<A NAME="idx:threadinitialization1:1158"></A><A class="pred" href="threadcreate.html#thread_initialization/1">thread_initialization/1</A> 
+<A NAME="idx:threadinitialization1:1163"></A><A class="pred" href="threadcreate.html#thread_initialization/1">thread_initialization/1</A> 
 to define a global variable it will be defined, restored after reloading 
 a saved state and created in all threads that are created <EM>after</EM> 
 the registration. Finally, global variables can be initialised using the 
 exception hook called
-<A NAME="idx:exception3:1159"></A><A class="pred" href="exception3.html#exception/3">exception/3</A>. 
+<A NAME="idx:exception3:1164"></A><A class="pred" href="exception3.html#exception/3">exception/3</A>. 
 The latter technique is by CHR (see <A class="sec" href="chr.html">chapter 
 7</A>.
 
@@ -189,9 +189,9 @@ assignment is reversed.</DD>
 Get the value associated with the global variable <VAR>Name</VAR> and 
 unify it with <VAR>Value</VAR>. Note that this unification may further 
 instantiate the value of the global variable. If this is undesirable the 
-normal precautions (double negation or <A NAME="idx:copyterm2:1160"></A><A class="pred" href="manipterm.html#copy_term/2">copy_term/2</A>) 
+normal precautions (double negation or <A NAME="idx:copyterm2:1165"></A><A class="pred" href="manipterm.html#copy_term/2">copy_term/2</A>) 
 must be taken. The
-<A NAME="idx:bgetval2:1161"></A><A class="pred" href="gvar.html#b_getval/2">b_getval/2</A> 
+<A NAME="idx:bgetval2:1166"></A><A class="pred" href="gvar.html#b_getval/2">b_getval/2</A> 
 predicate generates errors if <VAR>Name</VAR> is not an atom or the 
 requested variable does not exist.
 </DD>
@@ -201,24 +201,24 @@ requested variable does not exist.
 <DT class="pubdef"><A NAME="nb_setval/2"><STRONG>nb_setval</STRONG>(<VAR>+Name, 
 +Value</VAR>)</A></DT>
 <DD class="defbody">
-Associates a copy of <VAR>Value</VAR> created with <A NAME="idx:duplicateterm2:1162"></A><A class="pred" href="manipterm.html#duplicate_term/2">duplicate_term/2</A> 
+Associates a copy of <VAR>Value</VAR> created with <A NAME="idx:duplicateterm2:1167"></A><A class="pred" href="manipterm.html#duplicate_term/2">duplicate_term/2</A> 
 with the atom <VAR>Name</VAR>. Note that this can be used to set an 
 initial value other than <CODE>[]</CODE> prior to backtrackable 
 assignment.</DD>
 <DT class="pubdef"><A NAME="nb_getval/2"><STRONG>nb_getval</STRONG>(<VAR>+Name, 
 -Value</VAR>)</A></DT>
 <DD class="defbody">
-The <A NAME="idx:nbgetval2:1163"></A><A class="pred" href="gvar.html#nb_getval/2">nb_getval/2</A> 
-predicate is a synonym for <A NAME="idx:bgetval2:1164"></A><A class="pred" href="gvar.html#b_getval/2">b_getval/2</A>, 
+The <A NAME="idx:nbgetval2:1168"></A><A class="pred" href="gvar.html#nb_getval/2">nb_getval/2</A> 
+predicate is a synonym for <A NAME="idx:bgetval2:1169"></A><A class="pred" href="gvar.html#b_getval/2">b_getval/2</A>, 
 introduced for compatibility and symmetry. As most scenarios will use a 
 particular global variable either using non-backtracable or 
-backtrackable assignment, using <A NAME="idx:nbgetval2:1165"></A><A class="pred" href="gvar.html#nb_getval/2">nb_getval/2</A> 
+backtrackable assignment, using <A NAME="idx:nbgetval2:1170"></A><A class="pred" href="gvar.html#nb_getval/2">nb_getval/2</A> 
 can be used to document that the variable is used non-backtracable.</DD>
 <DT class="pubdef"><A NAME="nb_linkval/2"><STRONG>nb_linkval</STRONG>(<VAR>+Name, 
 +Value</VAR>)</A></DT>
 <DD class="defbody">
 Associates the term <VAR>Value</VAR> with the atom <VAR>Name</VAR> 
-without copying it. This is a fast special-purpose variation of <A NAME="idx:nbsetval2:1166"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A> 
+without copying it. This is a fast special-purpose variation of <A NAME="idx:nbsetval2:1171"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A> 
 intended for expert users only because the semantics on backtracking to 
 a point before creating the link are poorly defined for compound terms. 
 The principal term is always left untouched, but backtracking behaviour 
@@ -256,16 +256,16 @@ of SWI-Prolog Global Variables</SPAN></A></H3>
 <P>Global variables have been introduced by various Prolog 
 implementations recently. The implementation of them in SWI-Prolog is 
 based on hProlog by Bart Demoen. In discussion with Bart it was decided 
-that the semantics if hProlog <A NAME="idx:nbsetval2:1167"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A>, 
-which is equivalent to <A NAME="idx:nblinkval2:1168"></A><A class="pred" href="gvar.html#nb_linkval/2">nb_linkval/2</A> 
+that the semantics if hProlog <A NAME="idx:nbsetval2:1172"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A>, 
+which is equivalent to <A NAME="idx:nblinkval2:1173"></A><A class="pred" href="gvar.html#nb_linkval/2">nb_linkval/2</A> 
 is not acceptable for normal Prolog users as the behaviour is influenced 
-by how built-in predicates constructing terms (<A NAME="idx:read1:1169"></A><A class="pred" href="termrw.html#read/1">read/1</A>, 
+by how built-in predicates constructing terms (<A NAME="idx:read1:1174"></A><A class="pred" href="termrw.html#read/1">read/1</A>, 
 =../2, etc.) are implemented.
 
 <P>GNU-Prolog provides a rich set of global variables, including arrays. 
-Arrays can be implemented easily in SWI-Prolog using <A NAME="idx:functor3:1170"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
+Arrays can be implemented easily in SWI-Prolog using <A NAME="idx:functor3:1175"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
 and
-<A NAME="idx:setarg3:1171"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A> 
+<A NAME="idx:setarg3:1176"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A> 
 due to the unrestricted arity of compound terms.
 
 <P></BODY></HTML>

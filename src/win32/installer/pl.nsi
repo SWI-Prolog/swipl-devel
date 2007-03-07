@@ -113,6 +113,7 @@ Section "Base system (required)"
   File pl\library\broadcast.pl
   File pl\library\error.pl
   File pl\library\pairs.pl
+  File pl\library\record.pl
 
 ; WINDOWS
   File pl\library\dde.pl

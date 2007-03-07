@@ -44,3 +44,4 @@ documented at all.
 \input{simplex}
 \input{prologxref}
 \input{broadcast}
+\input{record}

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.28 Reference Manual: Section 4.40</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.29 Reference Manual: Section 4.40</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="statistics.html">
@@ -149,21 +149,21 @@ internal interfaces and report useful application thereof.
 <DL>
 <DT class="pubdef"><A NAME="profile/1"><STRONG>profile</STRONG>(<VAR>:Goal</VAR>)</A></DT>
 <DD class="defbody">
-Execute <VAR>Goal</VAR> just like <A NAME="idx:time1:1069"></A><A class="pred" href="statistics.html#time/1">time/1</A>, 
+Execute <VAR>Goal</VAR> just like <A NAME="idx:time1:1074"></A><A class="pred" href="statistics.html#time/1">time/1</A>, 
 collecting profiling statistics and call <CODE>show_profile(plain, 25)</CODE>. 
 With XPCE installed this opens a graphical interface to the collected 
 profiling data.</DD>
 <DT class="pubdef"><A NAME="profile/3"><STRONG>profile</STRONG>(<VAR>:Goal, 
 +Style, +Number</VAR>)</A></DT>
 <DD class="defbody">
-Execute <VAR>Goal</VAR> just like <A NAME="idx:time1:1070"></A><A class="pred" href="statistics.html#time/1">time/1</A>. 
+Execute <VAR>Goal</VAR> just like <A NAME="idx:time1:1075"></A><A class="pred" href="statistics.html#time/1">time/1</A>. 
 Collect profiling statistics and show the top <VAR>Number</VAR> 
-procedures on the current output stream (see <A NAME="idx:showprofile1:1071"></A><A class="pred" href="profile.html#show_profile/1">show_profile/1</A>) 
-using <VAR>Style</VAR>. The results are kept in the database until <A NAME="idx:resetprofiler0:1072"></A><A class="pred" href="profile.html#reset_profiler/0">reset_profiler/0</A> 
-or <A NAME="idx:profile3:1073"></A><A class="pred" href="profile.html#profile/3">profile/3</A> 
-is called and can be displayed again with <A NAME="idx:showprofile1:1074"></A><A class="pred" href="profile.html#show_profile/1">show_profile/1</A>. 
-The <A NAME="idx:profile1:1075"></A><A class="pred" href="profile.html#profile/1">profile/1</A> 
-predicate is a backward compatibility interface to <A NAME="idx:profile1:1076"></A><A class="pred" href="profile.html#profile/1">profile/1</A>. 
+procedures on the current output stream (see <A NAME="idx:showprofile1:1076"></A><A class="pred" href="profile.html#show_profile/1">show_profile/1</A>) 
+using <VAR>Style</VAR>. The results are kept in the database until <A NAME="idx:resetprofiler0:1077"></A><A class="pred" href="profile.html#reset_profiler/0">reset_profiler/0</A> 
+or <A NAME="idx:profile3:1078"></A><A class="pred" href="profile.html#profile/3">profile/3</A> 
+is called and can be displayed again with <A NAME="idx:showprofile1:1079"></A><A class="pred" href="profile.html#show_profile/1">show_profile/1</A>. 
+The <A NAME="idx:profile1:1080"></A><A class="pred" href="profile.html#profile/1">profile/1</A> 
+predicate is a backward compatibility interface to <A NAME="idx:profile1:1081"></A><A class="pred" href="profile.html#profile/1">profile/1</A>. 
 The other predicates in this section are low-level predicates for 
 special cases.</DD>
 <DT class="pubdef"><A NAME="show_profile/2"><STRONG>show_profile</STRONG>(<VAR>+Style, 
@@ -198,7 +198,7 @@ statistics.</DD>
 Declares the predicate <VAR>Name</VAR>/<VAR>Arity</VAR> to be invisible 
 to the profiler. The time spend in the named predicate is added to the 
 caller and the callees are linked directly to the caller. This is 
-particularly useful for simple meta-predicates such as <A NAME="idx:call1:1077"></A><A class="pred" href="metacall.html#call/1">call/1</A>, <A NAME="idx:ignore1:1078"></A><A class="pred" href="metacall.html#ignore/1">ignore/1</A>, <A NAME="idx:catch3:1079"></A><A class="pred" href="exception.html#catch/3">catch/3</A>, 
+particularly useful for simple meta-predicates such as <A NAME="idx:call1:1082"></A><A class="pred" href="metacall.html#call/1">call/1</A>, <A NAME="idx:ignore1:1083"></A><A class="pred" href="metacall.html#ignore/1">ignore/1</A>, <A NAME="idx:catch3:1084"></A><A class="pred" href="exception.html#catch/3">catch/3</A>, 
 etc.
 </DD>
 </DL>
@@ -292,8 +292,8 @@ profRedo() pass the profiling node where execution resumes.
 to recursion. For this reason the system performs detection of 
 recursion. In the simplest case, recursive procedures increment the 
 `recursive' count on the current node. Mutual recursion however is not 
-easily detected. For example, <A NAME="idx:call1:1080"></A><A class="pred" href="metacall.html#call/1">call/1</A> 
-can call a predicate that uses <A NAME="idx:call1:1081"></A><A class="pred" href="metacall.html#call/1">call/1</A> 
+easily detected. For example, <A NAME="idx:call1:1085"></A><A class="pred" href="metacall.html#call/1">call/1</A> 
+can call a predicate that uses <A NAME="idx:call1:1086"></A><A class="pred" href="metacall.html#call/1">call/1</A> 
 itself. This can be viewed as a recursive invocation, but this is 
 generally not desirable. Recursion is currently assumed if the same 
 predicate <EM>with the same parent</EM> appears higher in the 

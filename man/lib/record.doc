@@ -1,0 +1,101 @@
+\libdoc{record}{Access named fields in a term}
+\label{sec:lib:record}
+
+The library \pllib{record} provides named access to fields in a record
+represented as a compound term such as \exam{point(X, Y)}. The Prolog
+world knows various approaches to solve this problem, unfortunately with
+no consensus. The approach taken by this library is proposed by Richard
+O'Keefe on the SWI-Prolog mailinglist.
+
+The approach automates a technique commonly described in Prolog
+text-books, where access- and modification predicates are defined for
+the record type. Such predicates are subject to normal import/export as
+well as analysis by cross-referencers. Given the simple nature of the
+access predicates, an optimizing compiler can easily inline them for
+optimal preformance.
+
+A record is defined using the directive record/1.  We introduce the
+library with a short example:
+
+\begin{code}
+:- record point(x:integer=0, y:integer=0).
+
+	...,
+        default_point(Point),
+        point_x(Point, X),
+        set_x_of_point(10, Point, Point1),
+
+        make_point([y(20)], YPoint),
+\end{code}
+
+The principal functor and arity of the term used defines the name and
+arity of the compound used as records.  Each argument is described using
+a term of the format below.
+
+\begin{quote}
+<name>[:<type>][=<default>]
+\end{quote}
+
+In this definition, <name> is an atom defining the name of the argument.
+<type> is an optional type specification as defined by must_be/2 from 
+library \pllib{error} and <default> is the default initial value.  The
+<type> defaults to \const{any}.  If no default value is specified the 
+default is an unbound variable.
+
+A record declaration creates a set of predicates through
+\jargon{term-expansion}.  We describe these predicates below.  In this
+description, <constructor> refers to the name of the record (`point'
+in the example above) and <name> to the name of an argument (field).
+
+\begin{itemlist}
+    \item [default_<constructor>(-Record)]
+Create a new record where all fields have their default values. This is
+the same as \mbox{make_<constructor>([], Record)}.
+
+    \item [make_<constructor>(+Fields, -Record)]
+Create a new record where specified fields have the specified values and
+remaining fields have their default value.  Each field is specified as
+a term <name>(<value>).  See example in the introduction.
+
+    \item [make_<constructor>(+Fields, -Record, -RestFields)]
+Same as make_<constructor>/2, but named fields that do not appear in
+\arg{Record} are returned in \arg{RestFields}. This predicate is
+motivated by option-list processing.  See library \pllib{option}.
+
+    \item [<constructor>_<name>(Record, Value)]
+Unify \arg{Value} with argument in \arg{Record} named <name>.%
+	\footnote{Note this is not called `get_' as it performs
+		  unification and can perfectly well instantiate the
+		  argument.}
+
+    \item [set_<name>_of_<constructor>(+Value, +OldRecord, -NewRecord)]
+Replace the value for <name> in \arg{OldRecord} by \arg{Value} and unify
+the result with \arg{NewRecord}.
+
+    \item [set_<name>_of_<constructor>(+Value, !Record)]
+Destructively replace the argument <name> in \arg{Record} by
+\arg{Value} based on setarg/3.  Use with care.
+
+    \item [nb_set_<name>_of_<constructor>(+Value, !Record)]
+As above, but using non-backtrackable assignment based on nb_setarg/3.
+Use with \emph{extreme} care.  
+
+    \item [set_<constructor>_fields(+Fields, +Record0, -Record)]
+Set multiple fields using the same syntax as make_<constructor>/2, but
+starting with \arg{Record0} rather than the default record.
+
+    \item [set_<constructor>_fields(+Fields, +Record0, -Record, -RestFields)]
+Similar to set_<constructor>_fields/4, but fields not defined by
+<constructor> are returned in \arg{RestFields}.
+
+    \item [set_<constructor>_field(+Field, +Record0, -Record)]
+Set a single field specified as a term <name>(<value>).
+\end{itemlist}
+
+\begin{description}
+    \predicate{record}{1}{+Spec}
+The construct \exam{:- record Spec, ...} is used to define access to
+named fields in a compound. It is subject to term-expansion (see
+expand_term/2) and cannot be called as a predicate. See
+\secref{lib:record} for details.
+\end{description}

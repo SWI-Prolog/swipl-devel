@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.28 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.29 Reference Manual</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="mt-xpce.html">
@@ -149,122 +149,122 @@ use Prolog as an embedded logical engine.
 </CENTER>
 <HR>
 <DIV class="toc">
-<DIV class="toc-h2"><A class="sec" href="foreignoverview.html"><SPAN class="sec-nr">9.1</SPAN> <SPAN class="sec-title">Overview 
+<DIV class="toc-h2"><A class="sec" href="foreignoverview.html"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">Overview 
 of the Interface</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="foreignlink.html"><SPAN class="sec-nr">9.2</SPAN> <SPAN class="sec-title">Linking 
+<DIV class="toc-h2"><A class="sec" href="foreignlink.html"><SPAN class="sec-nr">9.2</SPAN><SPAN class="sec-title">Linking 
 Foreign Modules</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreignlink.html#sec:9.2.1"><SPAN class="sec-nr">9.2.1</SPAN> <SPAN class="sec-title">What 
+<DIV class="toc-h3"><A class="sec" href="foreignlink.html#sec:9.2.1"><SPAN class="sec-nr">9.2.1</SPAN><SPAN class="sec-title">What 
 linking is provided?</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreignlink.html#sec:9.2.2"><SPAN class="sec-nr">9.2.2</SPAN> <SPAN class="sec-title">What 
+<DIV class="toc-h3"><A class="sec" href="foreignlink.html#sec:9.2.2"><SPAN class="sec-nr">9.2.2</SPAN><SPAN class="sec-title">What 
 kind of loading should I be using?</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="dynstatic.html"><SPAN class="sec-nr">9.3</SPAN> <SPAN class="sec-title">Dynamic 
+<DIV class="toc-h2"><A class="sec" href="dynstatic.html"><SPAN class="sec-nr">9.3</SPAN><SPAN class="sec-title">Dynamic 
 Linking of shared libraries</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="DLL.html"><SPAN class="sec-nr">9.4</SPAN> <SPAN class="sec-title">Using 
+<DIV class="toc-h2"><A class="sec" href="DLL.html"><SPAN class="sec-nr">9.4</SPAN><SPAN class="sec-title">Using 
 the library shlib for <CODE>.DLL</CODE> and <CODE>.so</CODE> files</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="DLL.html#sec:9.4.1"><SPAN class="sec-nr">9.4.1</SPAN> <SPAN class="sec-title">Static 
+<DIV class="toc-h3"><A class="sec" href="DLL.html#sec:9.4.1"><SPAN class="sec-nr">9.4.1</SPAN><SPAN class="sec-title">Static 
 Linking</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="foreigntypes.html"><SPAN class="sec-nr">9.5</SPAN> <SPAN class="sec-title">Interface 
+<DIV class="toc-h2"><A class="sec" href="foreigntypes.html"><SPAN class="sec-nr">9.5</SPAN><SPAN class="sec-title">Interface 
 Data types</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigntypes.html#sec:9.5.1"><SPAN class="sec-nr">9.5.1</SPAN> <SPAN class="sec-title">Type <CODE>term_t</CODE>: 
+<DIV class="toc-h3"><A class="sec" href="foreigntypes.html#sec:9.5.1"><SPAN class="sec-nr">9.5.1</SPAN><SPAN class="sec-title">Type <CODE>term_t</CODE>: 
 a reference to a Prolog term</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigntypes.html#sec:9.5.1.1"><SPAN class="sec-nr">9.5.1.1</SPAN> <SPAN class="sec-title">Interaction 
+<DIV class="toc-h4"><A class="sec" href="foreigntypes.html#sec:9.5.1.1"><SPAN class="sec-nr">9.5.1.1</SPAN><SPAN class="sec-title">Interaction 
 with the garbage collector and stack-shifter</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigntypes.html#sec:9.5.2"><SPAN class="sec-nr">9.5.2</SPAN> <SPAN class="sec-title">Other 
+<DIV class="toc-h3"><A class="sec" href="foreigntypes.html#sec:9.5.2"><SPAN class="sec-nr">9.5.2</SPAN><SPAN class="sec-title">Other 
 foreign interface types</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="foreigninclude.html"><SPAN class="sec-nr">9.6</SPAN> <SPAN class="sec-title">The 
+<DIV class="toc-h2"><A class="sec" href="foreigninclude.html"><SPAN class="sec-nr">9.6</SPAN><SPAN class="sec-title">The 
 Foreign Include File</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.1"><SPAN class="sec-nr">9.6.1</SPAN> <SPAN class="sec-title">Argument 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.1"><SPAN class="sec-nr">9.6.1</SPAN><SPAN class="sec-title">Argument 
 Passing and Control</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.1.1"><SPAN class="sec-nr">9.6.1.1</SPAN> <SPAN class="sec-title">Non-deterministic 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.1.1"><SPAN class="sec-nr">9.6.1.1</SPAN><SPAN class="sec-title">Non-deterministic 
 Foreign Predicates</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.2"><SPAN class="sec-nr">9.6.2</SPAN> <SPAN class="sec-title">Atoms 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.2"><SPAN class="sec-nr">9.6.2</SPAN><SPAN class="sec-title">Atoms 
 and functors</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.2.1"><SPAN class="sec-nr">9.6.2.1</SPAN> <SPAN class="sec-title">Atoms 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.2.1"><SPAN class="sec-nr">9.6.2.1</SPAN><SPAN class="sec-title">Atoms 
 and atom-garbage collection</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.3"><SPAN class="sec-nr">9.6.3</SPAN> <SPAN class="sec-title">Analysing 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.3"><SPAN class="sec-nr">9.6.3</SPAN><SPAN class="sec-title">Analysing 
 Terms via the Foreign Interface</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.3.1"><SPAN class="sec-nr">9.6.3.1</SPAN> <SPAN class="sec-title">Testing 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.3.1"><SPAN class="sec-nr">9.6.3.1</SPAN><SPAN class="sec-title">Testing 
 the type of a term</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.3.2"><SPAN class="sec-nr">9.6.3.2</SPAN> <SPAN class="sec-title">Reading 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.3.2"><SPAN class="sec-nr">9.6.3.2</SPAN><SPAN class="sec-title">Reading 
 data from a term</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.3.3"><SPAN class="sec-nr">9.6.3.3</SPAN> <SPAN class="sec-title">Exchanging 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.3.3"><SPAN class="sec-nr">9.6.3.3</SPAN><SPAN class="sec-title">Exchanging 
 text using length and string</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.3.4"><SPAN class="sec-nr">9.6.3.4</SPAN> <SPAN class="sec-title">Wide 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.3.4"><SPAN class="sec-nr">9.6.3.4</SPAN><SPAN class="sec-title">Wide 
 character versions</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.3.5"><SPAN class="sec-nr">9.6.3.5</SPAN> <SPAN class="sec-title">Reading 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.3.5"><SPAN class="sec-nr">9.6.3.5</SPAN><SPAN class="sec-title">Reading 
 a list</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.3.6"><SPAN class="sec-nr">9.6.3.6</SPAN> <SPAN class="sec-title">An 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.3.6"><SPAN class="sec-nr">9.6.3.6</SPAN><SPAN class="sec-title">An 
 example: defining write/1 in C</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.4"><SPAN class="sec-nr">9.6.4</SPAN> <SPAN class="sec-title">Constructing 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.4"><SPAN class="sec-nr">9.6.4</SPAN><SPAN class="sec-title">Constructing 
 Terms</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.5"><SPAN class="sec-nr">9.6.5</SPAN> <SPAN class="sec-title">Unifying 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.5"><SPAN class="sec-nr">9.6.5</SPAN><SPAN class="sec-title">Unifying 
 data</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.6"><SPAN class="sec-nr">9.6.6</SPAN> <SPAN class="sec-title">BLOBS: 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.6"><SPAN class="sec-nr">9.6.6</SPAN><SPAN class="sec-title">BLOBS: 
 Using atoms to store arbitrary binary data</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.6.1"><SPAN class="sec-nr">9.6.6.1</SPAN> <SPAN class="sec-title">Defining 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.6.1"><SPAN class="sec-nr">9.6.6.1</SPAN><SPAN class="sec-title">Defining 
 a BLOB type</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.6.2"><SPAN class="sec-nr">9.6.6.2</SPAN> <SPAN class="sec-title">Accessing 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.6.2"><SPAN class="sec-nr">9.6.6.2</SPAN><SPAN class="sec-title">Accessing 
 blobs</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.7"><SPAN class="sec-nr">9.6.7</SPAN> <SPAN class="sec-title">Exchanging 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.7"><SPAN class="sec-nr">9.6.7</SPAN><SPAN class="sec-title">Exchanging 
 GMP numbers</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.8"><SPAN class="sec-nr">9.6.8</SPAN> <SPAN class="sec-title">Calling 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.8"><SPAN class="sec-nr">9.6.8</SPAN><SPAN class="sec-title">Calling 
 Prolog from C</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.8.1"><SPAN class="sec-nr">9.6.8.1</SPAN> <SPAN class="sec-title">Predicate 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.8.1"><SPAN class="sec-nr">9.6.8.1</SPAN><SPAN class="sec-title">Predicate 
 references</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.8.2"><SPAN class="sec-nr">9.6.8.2</SPAN> <SPAN class="sec-title">Initiating 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.8.2"><SPAN class="sec-nr">9.6.8.2</SPAN><SPAN class="sec-title">Initiating 
 a query from C</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.9"><SPAN class="sec-nr">9.6.9</SPAN> <SPAN class="sec-title">Discarding 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.9"><SPAN class="sec-nr">9.6.9</SPAN><SPAN class="sec-title">Discarding 
 Data</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.10"><SPAN class="sec-nr">9.6.10</SPAN> <SPAN class="sec-title">Foreign 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.10"><SPAN class="sec-nr">9.6.10</SPAN><SPAN class="sec-title">Foreign 
 Code and Modules</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.11"><SPAN class="sec-nr">9.6.11</SPAN> <SPAN class="sec-title">Prolog 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.11"><SPAN class="sec-nr">9.6.11</SPAN><SPAN class="sec-title">Prolog 
 exceptions in foreign code</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.12"><SPAN class="sec-nr">9.6.12</SPAN> <SPAN class="sec-title">Catching 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.12"><SPAN class="sec-nr">9.6.12</SPAN><SPAN class="sec-title">Catching 
 Signals (Software Interrupts)</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.13"><SPAN class="sec-nr">9.6.13</SPAN> <SPAN class="sec-title">Miscellaneous</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.13.1"><SPAN class="sec-nr">9.6.13.1</SPAN> <SPAN class="sec-title">Term 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.13"><SPAN class="sec-nr">9.6.13</SPAN><SPAN class="sec-title">Miscellaneous</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.13.1"><SPAN class="sec-nr">9.6.13.1</SPAN><SPAN class="sec-title">Term 
 Comparison</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.13.2"><SPAN class="sec-nr">9.6.13.2</SPAN> <SPAN class="sec-title">Recorded 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.13.2"><SPAN class="sec-nr">9.6.13.2</SPAN><SPAN class="sec-title">Recorded 
 database</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.13.3"><SPAN class="sec-nr">9.6.13.3</SPAN> <SPAN class="sec-title">Getting 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.13.3"><SPAN class="sec-nr">9.6.13.3</SPAN><SPAN class="sec-title">Getting 
 file names</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.14"><SPAN class="sec-nr">9.6.14</SPAN> <SPAN class="sec-title">Errors 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.14"><SPAN class="sec-nr">9.6.14</SPAN><SPAN class="sec-title">Errors 
 and warnings</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.15"><SPAN class="sec-nr">9.6.15</SPAN> <SPAN class="sec-title">Environment 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.15"><SPAN class="sec-nr">9.6.15</SPAN><SPAN class="sec-title">Environment 
 Control from Foreign Code</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.16"><SPAN class="sec-nr">9.6.16</SPAN> <SPAN class="sec-title">Querying 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.16"><SPAN class="sec-nr">9.6.16</SPAN><SPAN class="sec-title">Querying 
 Prolog</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.17"><SPAN class="sec-nr">9.6.17</SPAN> <SPAN class="sec-title">Registering 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.17"><SPAN class="sec-nr">9.6.17</SPAN><SPAN class="sec-title">Registering 
 Foreign Predicates</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.18"><SPAN class="sec-nr">9.6.18</SPAN> <SPAN class="sec-title">Foreign 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.18"><SPAN class="sec-nr">9.6.18</SPAN><SPAN class="sec-title">Foreign 
 Code Hooks</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.19"><SPAN class="sec-nr">9.6.19</SPAN> <SPAN class="sec-title">Storing 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.19"><SPAN class="sec-nr">9.6.19</SPAN><SPAN class="sec-title">Storing 
 foreign data</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.19.1"><SPAN class="sec-nr">9.6.19.1</SPAN> <SPAN class="sec-title">Examples 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.19.1"><SPAN class="sec-nr">9.6.19.1</SPAN><SPAN class="sec-title">Examples 
 for storing foreign data</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.20"><SPAN class="sec-nr">9.6.20</SPAN> <SPAN class="sec-title">Embedding 
+<DIV class="toc-h3"><A class="sec" href="foreigninclude.html#sec:9.6.20"><SPAN class="sec-nr">9.6.20</SPAN><SPAN class="sec-title">Embedding 
 SWI-Prolog in other applications</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.20.1"><SPAN class="sec-nr">9.6.20.1</SPAN> <SPAN class="sec-title">Threading, 
+<DIV class="toc-h4"><A class="sec" href="foreigninclude.html#sec:9.6.20.1"><SPAN class="sec-nr">9.6.20.1</SPAN><SPAN class="sec-title">Threading, 
 Signals and embedded Prolog</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="plld.html"><SPAN class="sec-nr">9.7</SPAN> <SPAN class="sec-title">Linking 
+<DIV class="toc-h2"><A class="sec" href="plld.html"><SPAN class="sec-nr">9.7</SPAN><SPAN class="sec-title">Linking 
 embedded applications using plld</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="plld.html#sec:9.7.1"><SPAN class="sec-nr">9.7.1</SPAN> <SPAN class="sec-title">A 
+<DIV class="toc-h3"><A class="sec" href="plld.html#sec:9.7.1"><SPAN class="sec-nr">9.7.1</SPAN><SPAN class="sec-title">A 
 simple example</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="findhome.html"><SPAN class="sec-nr">9.8</SPAN> <SPAN class="sec-title">The 
+<DIV class="toc-h2"><A class="sec" href="findhome.html"><SPAN class="sec-nr">9.8</SPAN><SPAN class="sec-title">The 
 Prolog `home' directory</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="foreignxmp.html"><SPAN class="sec-nr">9.9</SPAN> <SPAN class="sec-title">Example 
+<DIV class="toc-h2"><A class="sec" href="foreignxmp.html"><SPAN class="sec-nr">9.9</SPAN><SPAN class="sec-title">Example 
 of Using the Foreign Interface</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="foreignnotes.html"><SPAN class="sec-nr">9.10</SPAN> <SPAN class="sec-title">Notes 
+<DIV class="toc-h2"><A class="sec" href="foreignnotes.html"><SPAN class="sec-nr">9.10</SPAN><SPAN class="sec-title">Notes 
 on Using Foreign Code</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreignnotes.html#sec:9.10.1"><SPAN class="sec-nr">9.10.1</SPAN> <SPAN class="sec-title">Memory 
+<DIV class="toc-h3"><A class="sec" href="foreignnotes.html#sec:9.10.1"><SPAN class="sec-nr">9.10.1</SPAN><SPAN class="sec-title">Memory 
 Allocation</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreignnotes.html#sec:9.10.2"><SPAN class="sec-nr">9.10.2</SPAN> <SPAN class="sec-title">Compatibility 
+<DIV class="toc-h3"><A class="sec" href="foreignnotes.html#sec:9.10.2"><SPAN class="sec-nr">9.10.2</SPAN><SPAN class="sec-title">Compatibility 
 between Prolog versions</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreignnotes.html#sec:9.10.3"><SPAN class="sec-nr">9.10.3</SPAN> <SPAN class="sec-title">Debugging 
+<DIV class="toc-h3"><A class="sec" href="foreignnotes.html#sec:9.10.3"><SPAN class="sec-nr">9.10.3</SPAN><SPAN class="sec-title">Debugging 
 Foreign Code</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreignnotes.html#sec:9.10.4"><SPAN class="sec-nr">9.10.4</SPAN> <SPAN class="sec-title">Name 
+<DIV class="toc-h3"><A class="sec" href="foreignnotes.html#sec:9.10.4"><SPAN class="sec-nr">9.10.4</SPAN><SPAN class="sec-title">Name 
 Conflicts in C modules</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreignnotes.html#sec:9.10.5"><SPAN class="sec-nr">9.10.5</SPAN> <SPAN class="sec-title">Compatibility 
+<DIV class="toc-h3"><A class="sec" href="foreignnotes.html#sec:9.10.5"><SPAN class="sec-nr">9.10.5</SPAN><SPAN class="sec-title">Compatibility 
 of the Foreign Interface</SPAN></A></DIV>
 </DIV>
 </BODY></HTML>
