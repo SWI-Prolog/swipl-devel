@@ -45,7 +45,7 @@ This  is  a  SWI-Prolog  implementation  of  the  corresponding  Quintus
 library, based on the generalised arg/3 predicate of SWI-Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%%	contains_term(+Sub, +Term)
+%%	contains_term(+Sub, +Term) is semidet.
 %
 %	Succeeds if Sub is contained in Term (=, deterministically)
 
@@ -53,10 +53,10 @@ contains_term(X, X) :- !.
 contains_term(X, Term) :-
 	compound(Term),
 	arg(_, Term, Arg),
-	contains_term(X, Arg).
+	contains_term(X, Arg), !.
 
 
-%%	contains_var(+Sub, +Term)
+%%	contains_var(+Sub, +Term) is det.
 %
 %	Succeeds if Sub is contained in Term (==, deterministically)
 
@@ -65,7 +65,7 @@ contains_var(X0, X1) :-
 contains_var(X, Term) :-
 	compound(Term),
 	arg(_, Term, Arg),
-	contains_var(X, Arg).
+	contains_var(X, Arg), !.
 
 %%	free_of_term(+Sub, +Term)
 %

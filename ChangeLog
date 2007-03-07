@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Determinsm in contains_term/2 and contains_var/2 (library
+    assoc.pl).
+
   * ADDED: Library record: provide access to named fields in a term.
     After specs by Richard O'Keefe.
 
