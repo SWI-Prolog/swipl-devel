@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@
 
 :- module($qlf,
 	  [ qcompile/1,		% +File
-	    $qload_file/7	% +Path, +Enc, +Module, +Import, +IsModule, -Ac, -LM
+	    '$qload_file'/7	% +Path, +Enc, +Module, +Import, +IsModule, -Ac, -LM
 	  ]).
 
 
@@ -53,19 +53,23 @@ qcompile(File) :-
 			     access(read)
 			   ], Absolute),
 	file_name_extension(ABase, PlExt, Absolute),
-	user:prolog_file_type(PlExt, prolog),
+	(   user:prolog_file_type(PlExt, qlf)
+	->  throw(error(permission_error(compile, qlf, File),
+			context(qcompile/1, 'Conflicting extension')))
+	;   true
+	),
 	user:prolog_file_type(QlfExt, qlf),
 	file_name_extension(ABase, QlfExt, Qlf),
-	$qlf_open(Qlf),
-	flag($compiling, Old, qlf),
-	$set_source_module(OldModule, Module), % avoid this in the module!
+	'$qlf_open'(Qlf),
+	flag('$compiling', Old, qlf),
+	'$set_source_module'(OldModule, Module), % avoid this in the module!
 	(   consult(Module:Absolute)
 	->  Ok = true
 	;   Ok = fail
 	),
-	$set_source_module(_, OldModule),
-	flag($compiling, _, Old),
-	$qlf_close,
+	'$set_source_module'(_, OldModule),
+	flag('$compiling', _, Old),
+	'$qlf_close',
 	Ok == true.
 
 
@@ -74,11 +78,11 @@ qcompile(File) :-
 %
 %	Load predicate for .qlf files.  See init.pl
 
-$qload_file(File, _Enc, Module, Import, IsModule, loaded, LoadedModule) :-
-	$qlf_load(Module:File, LoadedModule),
+'$qload_file'(File, _Enc, Module, Import, IsModule, loaded, LoadedModule) :-
+	'$qlf_load'(Module:File, LoadedModule),
 	check_is_module(IsModule, LoadedModule, File),
 	(   atom(LoadedModule)
-	->  $import_list(Module, LoadedModule, Import)
+	->  '$import_list'(Module, LoadedModule, Import)
 	;   true
 	).
 	

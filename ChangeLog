@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Allow qcompile/1 on files that do not have the standard
+    extension.  Mike Elston.
+
   * FIXED: Determinsm in contains_term/2 and contains_var/2 (library
     assoc.pl).
 
