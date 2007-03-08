@@ -204,6 +204,7 @@ static char *plsysinit;			/* -F file */
 static char *ctmp;			/* base executable */
 static char *pltmp;			/* base saved state */
 static char *out;			/* final output */
+static int  opt_o=FALSE;		/* -o out given */
 
 static int nostate = FALSE;		/* do not make a state */
 static int nolink = FALSE;		/* do not link */
@@ -727,6 +728,7 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "-o") ) 		/* -o out */
     { if ( argc > 1 )
       { out = argv[1];
+	opt_o = TRUE;
 	argc--, argv++;
       } else
 	usage();
@@ -1086,7 +1088,7 @@ compileFile(const char *compiler, arglist *options, const char *cfile)
   char *ext;
   arglist *args = copyArgList(options);
 
-  if ( out && nolink )
+  if ( opt_o && nolink )
   { strcpy(ofile, out);
   } else
   { strcpy(ofile, cfile);
