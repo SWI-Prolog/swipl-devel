@@ -494,7 +494,7 @@ bindSocket(Socket s, Bool reuse)
 	{ if ( s->address == ZERO )
 	    assign(s, address, toInt(ntohs(addr.sin_port)));
 	  else
-	    assign((Tuple)s->address, second, toInt(ntohs(address.sin_port)));
+	    assign((Tuple)s->address, second, toInt(ntohs(addr.sin_port)));
 	}
       }
     }

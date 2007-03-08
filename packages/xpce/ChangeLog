@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#265: socket(tuple(host, 0).  Sebastian Steenbuck.
+
 * PORT: Prefer pkg-config over xft-config for finding XFT.  Needed on
   Redhat Linux FC6.  With help from Jacco van Ossenbruggen.
 
