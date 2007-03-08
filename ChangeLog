@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+===============================
+VERSION 5.6.30 (March 08, 2007)
+===============================
+
   * ADDED: powm(Base, Exp, Modulo) function if GMP support is provided.
 
   * MODIFIED: Allow qcompile/1 on files that do not have the standard

@@ -4069,6 +4069,30 @@ rdf_assert3(term_t subject, term_t predicate, term_t object)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+inc_active_queries(rdf_db *db);
+dec_active_queries(rdf_db *db);
+
+TBD: Either delete this or use atomic inc/dec.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+inc_active_queries(rdf_db *db)
+{ LOCK_MISC(db);
+  db->active_queries++;
+  UNLOCK_MISC(db);
+}
+
+
+static void
+dec_active_queries(rdf_db *db)
+{ LOCK_MISC(db);
+  db->active_queries--;
+  assert(db->active_queries>=0);
+  UNLOCK_MISC(db);
+}
+
+
 typedef struct search_state
 { rdf_db       *db;			/* our database */
   term_t	subject;		/* Prolog term references */
@@ -4187,8 +4211,7 @@ free_search_state(search_state *state)
   if ( state->literal_state )
     rdf_free(state->db, state->literal_state, sizeof(*state->literal_state));
   if ( state->allocated )		/* also means redo! */
-  { state->db->active_queries--;
-    assert(state->db->active_queries>=0);
+  { dec_active_queries(state->db);
     rdf_free(state->db, state, sizeof(*state));
   }  
 }
@@ -4200,7 +4223,7 @@ allow_retry_state(search_state *state)
   { search_state *copy = rdf_malloc(state->db, sizeof(*copy));
     *copy = *state;
     copy->allocated = TRUE;
-    state->db->active_queries++;
+    inc_active_queries(state->db);
 
     state = copy;
   }
@@ -5155,7 +5178,19 @@ empty_agenda(rdf_db *db, agenda *a)
   if ( a->hash )
     rdf_free(db, a->hash, sizeof(visited*)*a->hash_size);
 
-  a->magic = 0;
+  if ( a->magic == AGENDA_SAVED_MAGIC )
+  {  a->magic = 0;
+     rdf_free(db, a, sizeof(*a));
+  } else
+  { a->magic = 0;
+  }
+}
+
+
+static void
+unlock_and_empty_agenda(rdf_db *db, agenda *a)
+{ RDUNLOCK(db);
+  empty_agenda(db, a);
 }
 
 
@@ -5402,6 +5437,8 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       } else
 	return instantiation_error(subj);
 
+      if ( !RDLOCK(db) )
+	return FALSE;
       if ( !update_hash(db) )
 	return FALSE;
       if ( (a.pattern.indexed & BY_S) ) 	/* subj ... */
@@ -5414,17 +5451,17 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       while(next_agenda(db, &a, &r))
       { if ( PL_unify_atom(target_term, r) )
 	{ if ( a.target )		/* mode(+, +, +) */
-	  { empty_agenda(db, &a);
+	  { unlock_and_empty_agenda(db, &a);
 	    return TRUE;
 	  } else			/* mode(+, +, -) or mode(-, +, +) */
 	  { agenda *ra = save_agenda(db, &a);
-	    db->active_queries++;
+	    inc_active_queries(db);
 	    DEBUG(9, Sdprintf("Saved agenta to %p\n", ra));
 	    PL_retry_address(ra);
 	  }
 	}
       }
-      empty_agenda(db, &a);
+      unlock_and_empty_agenda(db, &a);
       return FALSE;
     }
     case PL_REDO:
@@ -5446,10 +5483,8 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 	}
       }
 
-      db->active_queries--;
-      assert(db->active_queries>=0);
-      empty_agenda(db, a);
-      rdf_free(db, a, sizeof(*a));
+      dec_active_queries(db);
+      unlock_and_empty_agenda(db, a);
       return FALSE;
     }
     case PL_CUTTED:
@@ -5459,10 +5494,8 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 
       assert(a->magic == AGENDA_SAVED_MAGIC);
 
-      db->active_queries--;
-      assert(db->active_queries>=0);
-      empty_agenda(db, a);
-      rdf_free(db, a, sizeof(*a));
+      dec_active_queries(db);
+      unlock_and_empty_agenda(db, a);
       return TRUE;
     }
     default:

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.30, distributed with SWI-Prolog 5.6.30
+==================================================
+
 * FIXED: Bug#265: socket(tuple(host, 0).  Sebastian Steenbuck.
 
 * PORT: Prefer pkg-config over xft-config for finding XFT.  Needed on
