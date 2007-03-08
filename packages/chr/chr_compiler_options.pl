@@ -270,6 +270,11 @@ option_definition(mixed_stores,on,Flags) :-
 option_definition(mixed_stores,off,Flags) :-
 	Flags = [mixed_stores - off].	
 
+option_definition(line_numbers,on,Flags) :-
+	Flags = [line_numbers - on].
+option_definition(line_numbers,off,Flags) :-
+	Flags = [line_numbers - off].
+
 
 init_chr_pp_flags :-
 	chr_pp_flag_definition(Name,[DefaultValue|_]),
@@ -312,6 +317,7 @@ chr_pp_flag_definition(term_indexing,[off,on]).
 chr_pp_flag_definition(verbosity,[on,off]).
 chr_pp_flag_definition(ht_removal,[off,on]).
 chr_pp_flag_definition(mixed_stores,[off,on]).
+chr_pp_flag_definition(line_numbers,[off,on]).
 
 chr_pp_flag(Name,Value) :-
 	atom_concat('$chr_pp_',Name,GlobalVar),

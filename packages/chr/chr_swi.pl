@@ -109,7 +109,7 @@ user:file_search_path(chr, library(chr)).
 
 :- multifile chr:'$chr_module'/1.
 
-:- dynamic chr_term/2.			% File, Term
+:- dynamic chr_term/3.			% File, Term
 
 :- dynamic chr_pp/2.		% File, Term
 
@@ -161,7 +161,9 @@ extra_declarations([(:- use_module(chr(chr_runtime)))
 chr_expand(Term, []) :-
 	chr_expandable(Term), !,
 	prolog_load_context(file,File),
-	assert(chr_term(File, Term)).
+	prolog_load_context(term_position,'$stream_position'(_, LineNumber, _, _, _)),
+	add_pragma_to_chr_rule(Term,line_number(LineNumber),NTerm),
+	assert(chr_term(File, LineNumber, NTerm)).
 chr_expand(Term, []) :-
 	Term = (:- chr_preprocessor Preprocessor), !,
 	prolog_load_context(file,File),
@@ -169,7 +171,7 @@ chr_expand(Term, []) :-
 chr_expand(end_of_file, FinalProgram) :-
 	extra_declarations(FinalProgram,Program),
 	prolog_load_context(file,File),
-	findall(T, retract(chr_term(File, T)), CHR0),
+	findall(T, retract(chr_term(File,_Line,T)), CHR0),
 	CHR0 \== [],
 	prolog_load_context(module, Module),
 	add_debug_decl(CHR0, CHR1),
@@ -229,8 +231,8 @@ add_optimise_decl(CHR, CHR).
 %	better issue a warning  rather  than   simply  ignoring  the CHR
 %	declarations.
 
-call_chr_translate(_, In, _Out) :-
-	( chr_translate(In, Out0) ->
+call_chr_translate(File, In, _Out) :-
+	( chr_translate_line_info(In, File, Out0) ->
 	    nb_setval(chr_translated_program,Out0),
 	    fail
 	).
@@ -413,3 +415,16 @@ user:term_expansion(In, Out) :-
 % 	chr_expand(In, Out), !.
 % 
 %% SICStus end
+
+%%% for SSS %%%
+
+add_pragma_to_chr_rule(Name @ Rule, Pragma, Result) :- !,
+	add_pragma_to_chr_rule(Rule,Pragma,NRule),
+	Result = (Name @ NRule).
+add_pragma_to_chr_rule(Rule pragma Pragmas, Pragma, Result) :- !,
+	Result = (Rule pragma (Pragma,Pragmas)).
+add_pragma_to_chr_rule(Head ==> Body, Pragma, Result) :- !,
+	Result = (Head ==> Body pragma Pragma).
+add_pragma_to_chr_rule(Head <=> Body, Pragma, Result) :- !,
+	Result = (Head <=> Body pragma Pragma).
+add_pragma_to_chr_rule(Term,_,Term).

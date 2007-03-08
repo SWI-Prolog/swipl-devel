@@ -1,3 +1,8 @@
+Mar 8, 2007
+
+  * TS: Added maintenance of line numbers through CHR compilation
+	as an option: chr_option(line_numbers,on).
+
 Mar 5, 2007
 
   * TS: Bug fix: setarg/3 instantiation error reported by Mike Elston.

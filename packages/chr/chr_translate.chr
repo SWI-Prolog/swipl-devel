@@ -134,6 +134,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- module(chr_translate,
 	  [ chr_translate/2		% +Decls, -TranslatedDecls
+	  , chr_translate_line_info/3	% +DeclsWithLines, -TranslatedDecls
 	  ]).
 %% SWI begin
 :- use_module(library(lists),[member/2, append/3,reverse/2,permutation/2,last/2]).
@@ -207,6 +208,24 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %------------------------------------------------------------------------------%
+:- chr_constraint chr_source_file/1.
+:- chr_option(mode,chr_source_file(+)).
+:- chr_option(type_declaration,chr_source_file(module_name)).
+%------------------------------------------------------------------------------%
+chr_source_file(_) \ chr_source_file(_) <=> true.
+
+%------------------------------------------------------------------------------%
+:- chr_constraint get_chr_source_file/1.
+:- chr_option(mode,get_chr_source_file(-)).
+:- chr_option(type_declaration,get_chr_source_file(module_name)).
+%------------------------------------------------------------------------------%
+chr_source_file(Mod) \ get_chr_source_file(Query)
+	<=> Query = Mod .
+get_chr_source_file(Query) 
+	<=> Query = user.
+
+
+%------------------------------------------------------------------------------%
 :- chr_constraint target_module/1.
 :- chr_option(mode,target_module(+)).
 :- chr_option(type_declaration,target_module(module_name)).
@@ -222,6 +241,19 @@ target_module(Mod) \ get_target_module(Query)
 	<=> Query = Mod .
 get_target_module(Query)
 	<=> Query = user.
+
+%------------------------------------------------------------------------------%
+:- chr_constraint line_number/2.
+:- chr_option(mode,line_number(+,+)).
+%------------------------------------------------------------------------------%
+line_number(RuleNb,LineNb) \ line_number(RuleNb,LineNumber) <=> true.
+
+%------------------------------------------------------------------------------%
+:- chr_constraint get_line_number/2.
+:- chr_option(mode,get_line_number(+,-)).
+%------------------------------------------------------------------------------%
+line_number(RuleNb,LineNb) \ get_line_number(RuleNb,Q) <=> Q = LineNb.
+get_line_number(RuleNb,Q) <=> Q = 0.			% no line number available
 
 :- chr_constraint indexed_argument/2.			% argument instantiation may enable applicability of rule
 :- chr_option(mode,indexed_argument(+,+)).
@@ -702,8 +734,12 @@ type_indexed_identifier_name(IndexType,Prefix,Name) :-
 %% Translation
 
 chr_translate(Declarations,NewDeclarations) :-
+	chr_translate_line_info(Declarations,'bootstrap',NewDeclarations).
+
+chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	chr_info(banner,'\tThe K.U.Leuven CHR System\t\n\t\tContributors:\tTom Schrijvers, Jon Sneyers, Bart Demoen,\n\t\t\t\tJan Wielemaker\n\t\tCopyright:\tK.U.Leuven, Belgium\n\t\tURL:\t\thttp://www.cs.kuleuven.be/~~toms/CHR/\n',[]),
 	init_chr_pp_flags,
+	chr_source_file(File),
 	partition_clauses(Declarations,Constraints0,Rules0,OtherClauses),
 	check_declared_constraints(Constraints0),
 	generate_show_constraint(Constraints0,Constraints,Rules0,Rules),
@@ -1147,6 +1183,11 @@ check_pragma(Pragma, PragmaRule) :-
 	;
 		chr_error(syntax(Pragma),'Invalid identifier(s) in pragma ~w.\n',[Pragma])
 	).
+check_pragma(Pragma,PragmaRule) :-
+	Pragma = line_number(LineNumber),
+	!,
+	PragmaRule = pragma(_,_,_,_,RuleNb),
+	line_number(RuleNb,LineNumber).
 
 check_history_pragma_ids([], _, _).
 check_history_pragma_ids([ID|IDs],IDs1,IDs2) :-
@@ -5227,7 +5268,8 @@ constraint_code(Constraint, L, T)
 		    get_max_occurrence(Constraint,MO), MO >= AO ) )
 		   ->
 			constraint_prelude(Constraint,Clause),
-			L = [Clause | L1]
+			add_dummy_location(Clause,LocatedClause),
+			L = [LocatedClause | L1]
 		;
 			L = L1
 		),
@@ -5330,7 +5372,8 @@ gen_cond_attach_clause(F/A,Id,L,T) :-
 		),
 		build_head(F,A,Id,AllArgs,Head),
 		Clause = ( Head :- Body ),
-		L = [Clause | T]
+		add_dummy_location(Clause,LocatedClause),
+		L = [LocatedClause | T]
 	;
 		L = T
 	).	
@@ -5534,7 +5577,8 @@ gen_alloc_inc_clause(F/A,O,Id,L,T) :-
 			ConditionalAlloc,
 			CallHead
 	),
-	L = [Clause|T].
+	add_dummy_location(Clause,LocatedClause),
+	L = [LocatedClause|T].
 
 gen_occ_allocation(FA,O,Vars,Susp,Goal) :-
 	get_allocation_occurrence(FA,AO),
@@ -5964,8 +6008,25 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 			SuspDetachment,
 			BodyCopy
 		),
-	L = [Clause | T].
+	add_location(Clause,RuleNb,LocatedClause),
+	L = [LocatedClause | T].
 
+add_location(Clause,RuleNb,NClause) :-
+	( chr_pp_flag(line_numbers,on) ->
+		get_chr_source_file(File),
+		get_line_number(RuleNb,LineNb),
+		NClause = '$source_location'(File,LineNb):Clause
+	;
+		NClause = Clause
+	).
+
+add_dummy_location(Clause,NClause) :-
+	( chr_pp_flag(line_numbers,on) ->
+		get_chr_source_file(File),
+		NClause = '$source_location'(File,1):Clause
+	;
+		NClause = Clause
+	).
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %%	head_arg_matches(+Pairs,+Modes,+VarDict,-Goal,-NVarDict) is det.
 %
@@ -6528,7 +6589,8 @@ simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,O,Id,L,T) :-
                 SuspDetachment,
                 BodyCopy
             ),
-   L = [Clause | T].
+	add_location(Clause,RuleNb,LocatedClause),
+	L = [LocatedClause | T].
 
 split_by_ids([],[],_,[],[]).
 split_by_ids([I|Is],[S|Ss],I1s,S1s,S2s) :-
@@ -6621,7 +6683,8 @@ simpagation_head2_prelude(Head,Head1,Rest,F/A,O,Id1,L,T) :-
 	          ConstraintAllocationGoal,
 	          Delegate
 	   ),
-	L = [PreludeClause|T].
+	add_dummy_location(PreludeClause,LocatedPreludeClause),
+	L = [LocatedPreludeClause|T].
 
 extra_active_delegate_variables(Term,Terms,VarDict,Vars) :-
 	Term =.. [_|Args],
@@ -6760,7 +6823,8 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,ID,PragmaRule,
 	     			)
 	     		)
 	),
-	L = [Clause | T].
+	add_location(Clause,RuleNb,LocatedClause),
+	L = [LocatedClause | T].
 
 gen_state_cond_call(Susp,FA,Call,Generation,ConditionalCall) :-
 	( may_trigger(FA) ->
@@ -6913,7 +6977,8 @@ propagation_single_headed(Head,ID,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) 
 		BodyCopy,
 		ConditionalRecursiveCall
 	),  
-	ProgramList = [Clause | ProgramTail].
+	add_location(Clause,RuleNb,LocatedClause),
+	ProgramList = [LocatedClause | ProgramTail].
    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% multi headed propagation
@@ -6951,7 +7016,8 @@ propagation_prelude(Head,[First|Rest],Rule,F/A,O,Id,L,T) :-
 	       CondAllocation,
 	       NestedCall
 	),
-	L = [Prelude|T].
+	add_dummy_location(Prelude,LocatedPrelude),
+	L = [LocatedPrelude|T].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 propagation_nested_code([],[CurrentHead|PreHeads],RestIDs,Rule,RuleNb,FA,O,Id,L,T) :-
@@ -7106,7 +7172,8 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
          ;   RecursiveCall
          )
    ),
-   L = [Clause|T].
+   add_location(Clause,RuleNb,LocatedClause),
+   L = [LocatedClause|T].
 
 novel_production_calls([],[],[],_,_,true).
 novel_production_calls([ConstraintSymbol|ConstraintSymbols],[ID|IDs],[Suspension|Suspensions],RuleNb,Tuple,(Goal,Goals)) :-
@@ -7868,7 +7935,8 @@ universal_search_iterator_end([CurrentHead|PrevHeads],NextHeads,Rule,F/A,Id,L,T)
 	build_head(F,A,Id,Vars,Head),
 	build_head(F,A,PrevId,PrevVarsAndSusps,PredecessorCall),
 	Clause = ( Head :- PredecessorCall),
-	L = [Clause | T].
+	add_dummy_location(Clause,LocatedClause),
+	L = [LocatedClause | T].
 % 	( H1 == [],
 % 	  functor(CurrentHead,CF,CA),
 % 	  check_fd_lookup_condition(CF,CA,CurrentHead,PrevHeads) ->
@@ -7959,7 +8027,8 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 	   ;   RecursiveHead
 	   )
 	),   
-	L = [Clause|T].
+	add_dummy_location(Clause,LocatedClause),
+	L = [LocatedClause|T].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
