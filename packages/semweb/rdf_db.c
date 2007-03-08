@@ -5154,6 +5154,8 @@ empty_agenda(rdf_db *db, agenda *a)
   }
   if ( a->hash )
     rdf_free(db, a->hash, sizeof(visited*)*a->hash_size);
+
+  a->magic = 0;
 }
 
 
