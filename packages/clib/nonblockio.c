@@ -208,8 +208,8 @@ typedef struct _plsocket
 
 static plsocket *allocSocket(SOCKET socket);
 static plsocket *nbio_to_plsocket(nbio_sock_t socket);
-static plsocket *lookupOSSocket(SOCKET socket);
 #ifdef __WINDOWS__
+static plsocket *lookupOSSocket(SOCKET socket);
 static const char *WinSockError(unsigned long eno);
 #endif
 
@@ -1007,6 +1007,8 @@ static size_t	socks_count = 0;	/* #registered sockets */
 static size_t	socks_allocated = 0;	/* #allocated entries */
 static int initialised = FALSE;		/* Windows only */
 
+#ifdef __WINDOWS__
+
 static plsocket *
 lookupOSSocket(SOCKET socket)
 { plsocket *p;
@@ -1030,6 +1032,8 @@ lookupOSSocket(SOCKET socket)
 
   return NULL;
 }
+
+#endif /*__WINDOWS__*/
 
 
 static plsocket *
@@ -2075,7 +2079,10 @@ nbio_close_output(nbio_sock_t socket)
   DEBUG(2, Sdprintf("[%d]: nbio_close_output(%d, flags=0x%x)\n",
 		    PL_thread_self(), socket, s->flags));
   if ( s->output )
-  { SOCKET sock;
+  {
+#if __WINDOWS__
+    SOCKET sock;
+#endif
 
     s->output = NULL;
     s->flags &= ~SOCK_OUTSTREAM;

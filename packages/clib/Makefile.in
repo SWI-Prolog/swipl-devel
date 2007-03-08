@@ -178,7 +178,7 @@ $(TEX):		$(DOCTOTEX)
 ################################################################
 
 clean:
-		rm -f $(OBJ) *~ *.o *% a.out core config.log
+		rm -f $(OBJ) *~ *.o *% a.out core config.log sha1/*.o
 		-(cd maildrop/rfc822 && $(MAKE) clean)
 		-(cd maildrop/rfc2045 && $(MAKE) clean)
 
