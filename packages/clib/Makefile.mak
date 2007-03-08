@@ -137,6 +137,7 @@ xpce-install::
 
 clean::
 		if exist *.obj del *.obj
+		if exist sha1\*.obj del sha1\*.obj
 		if exist *~ del *~
 
 distclean:	clean
