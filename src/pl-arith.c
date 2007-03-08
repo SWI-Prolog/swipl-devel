@@ -2860,6 +2860,12 @@ ar_func_n(code n, int argc, Number *stack)
 	rval = (*f->function)(sp, &sp[1], &result);
         clearNumber(sp);
 	clearNumber(&sp[1]);
+	break;
+      case 3:
+	rval = (*f->function)(sp, &sp[1], &sp[2], &result);
+        clearNumber(sp);
+	clearNumber(&sp[1]);
+	clearNumber(&sp[2]);
         break;
       default:
 	rval = FALSE;

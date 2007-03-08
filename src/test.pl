@@ -565,7 +565,7 @@ gmp(pow-5) :-
 gmp(powm-1) :-
 	A is powm(2,4,2),
 	A == 0.
-gmp(powm-1) :-
+gmp(powm-2) :-
 	A is powm(2,4,3),
 	A == 1.
 gmp(integer-1) :-			% rounding integer conversion
