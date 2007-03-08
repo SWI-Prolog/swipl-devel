@@ -562,6 +562,12 @@ gmp(pow-5) :-
 	A is -100**5,
 	A < 0,
 	abs(A) =:= 100**5.
+gmp(powm-1) :-
+	A is powm(2,4,2),
+	A == 0.
+gmp(powm-1) :-
+	A is powm(2,4,3),
+	A == 1.
 gmp(integer-1) :-			% rounding integer conversion
 	0 =:= integer(1 rdiv 3),
 	1 =:= integer(2 rdiv 3),

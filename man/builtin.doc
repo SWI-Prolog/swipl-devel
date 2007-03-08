@@ -4321,6 +4321,12 @@ $\arg{Result} = \pow{e}{\arg{Expr}}$
 $\arg{Result} = \pow{\arg{Expr1}}{\arg{Expr2}}$.  With unbounded integers
 and integer values for \arg{Expr1} and a non-negative integer \arg{Expr2},
 the result is always integer.
+    \predicate{powm}{3}{+IntExprBase, +IntExprExp, +IntExprMod}
+$\arg{Result} = (\pow{\arg{IntExprBase}}{\arg{IntExprExp}})
+ \mbox{ modulo } \arg{IntExprMod}$.
+Only available when compiled with unbounded integer support. This
+formula is required for Diffie-Hellman key-exchange, a technique where
+two parties can establish a secret key over a public network.
     \infixop{^}{+Expr1}{+Expr2}
 Same as **/2.  (backward compatibility).
     \predicate{pi}{0}{}

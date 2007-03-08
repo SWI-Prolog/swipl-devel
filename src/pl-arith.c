@@ -730,6 +730,32 @@ valueExpression(term_t t, Number r ARG_LD)
 	PL_reset_term_refs(a);
 	break;
       }
+      case 3:
+      { term_t a = PL_new_term_ref();
+	number n1, n2, n3;
+
+	_PL_get_arg(1, t, a);
+	if ( valueExpression(a, &n1 PASS_LD) )
+	{ _PL_get_arg(2, t, a);
+	  if ( valueExpression(a, &n2 PASS_LD) )
+	  { _PL_get_arg(3, t, a);
+	    if ( valueExpression(a, &n3 PASS_LD) )
+	    { rval = (*f->function)(&n1, &n2, &n3, r);
+	      clearNumber(&n3);
+	    } else
+	    { rval = FALSE;
+	    }
+	    clearNumber(&n2);
+	  } else
+	  { rval = FALSE;
+	  }
+	  clearNumber(&n1);
+	} else
+	  rval = FALSE;
+
+	PL_reset_term_refs(a);
+	break;
+      }
       default:
 	sysError("Illegal arity for arithmic function");
         rval = FALSE;
@@ -1322,6 +1348,33 @@ doreal:
   r->type = V_REAL;
 
   succeed;
+}
+
+
+static int
+ar_powm(Number base, Number exp, Number mod, Number r)
+{ 
+  if ( !intNumber(base) )
+    PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, base);
+  if ( !intNumber(exp) )
+    PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, exp);
+  if ( !intNumber(exp) )
+    PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, exp);
+
+#ifdef O_GMP
+  promoteToMPZNumber(base);
+  promoteToMPZNumber(exp);
+  promoteToMPZNumber(mod);
+
+  r->type = V_MPZ;
+  mpz_init(r->value.mpz);
+  mpz_powm(r->value.mpz, base->value.mpz, exp->value.mpz, mod->value.mpz);
+
+  succeed;
+#else
+  return PL_error("powm", 3, "requires unbounded arithmetic (GMP) support",
+		  ERR_NOT_IMPLEMENTED_FEATURE, "powm/3");
+#endif
 }
 
 
@@ -2652,7 +2705,8 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_cputime0,		ar_cputime),
   ADD(FUNCTOR_msb1,		ar_msb),
   ADD(FUNCTOR_lsb1,		ar_lsb),
-  ADD(FUNCTOR_popcount1,	ar_popcount)
+  ADD(FUNCTOR_popcount1,	ar_popcount),
+  ADD(FUNCTOR_powm3,		ar_powm)
 };
 
 #undef ADD

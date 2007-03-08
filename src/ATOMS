@@ -10,8 +10,6 @@
 # awk you can propagate the changes by hand, but be careful!
 
 
-
-
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -101,6 +99,7 @@ A collected		"collected"
 A collections		"collections"
 A colon			":"
 A comma			","
+A comments		"comments"
 A compound		"compound"
 A context		"context"
 A context_module	"context_module"
@@ -378,10 +377,12 @@ A plus			"+"
 A popcount		"popcount"
 A portray		"portray"
 A position		"position"
+A powm			"powm"
 A predicate_indicator	"predicate_indicator"
 A predicates		"predicates"
 A print			"print"
 A print_message		"print_message"
+A priority		"priority"
 A private_procedure	"private_procedure"
 A procedure		"procedure"
 A profile_mode		"profile_mode"
@@ -574,8 +575,6 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
-A comments		"comments"
-A priority		"priority"
 
 F abs			1
 F access		1
@@ -702,6 +701,7 @@ F plus			2
 F popcount		1
 F portray		1
 F position		1
+F powm			3
 F print			1
 F print_message		2
 F procedure		2

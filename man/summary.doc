@@ -647,6 +647,7 @@ suggest predicates from a keyword.
 \functionsummary{min}{2}{Minimum of two numbers}
 \functionsummary{msb}{1}{Most significant bit}
 \opfuncsummary{mod}{2}{xfx}{300}{Remainder of division}
+\functionsummary{powm}{3}{Integer exponent and modulo}
 \functionsummary{random}{1}{Generate random number}
 \functionsummary{random}{1}{Generate random number}
 \functionsummary{rational}{1}{Convert to rational number}
