@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.29 Reference Manual: Section 4.26</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.30 Reference Manual: Section 4.26</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="charconv.html">
@@ -639,6 +639,15 @@ system.
 <VAR><VAR>Result</VAR> = <VAR>Expr1</VAR>**<VAR>Expr2</VAR></VAR>. With 
 unbounded integers and integer values for <VAR>Expr1</VAR> and a 
 non-negative integer <VAR>Expr2</VAR>, the result is always integer.
+</DD>
+<DT class="pubdef"><A NAME="powm/3"><STRONG>powm</STRONG>(<VAR>+IntExprBase, 
++IntExprExp, +IntExprMod</VAR>)</A></DT>
+<DD class="defbody">
+<VAR><VAR>Result</VAR> = (<VAR>IntExprBase</VAR>**<VAR>IntExprExp</VAR>) 
+modulo <VAR>IntExprMod</VAR></VAR>. Only available when compiled with 
+unbounded integer support. This formula is required for Diffie-Hellman 
+key-exchange, a technique where two parties can establish a secret key 
+over a public network.
 </DD>
 <DT class="pubdef"><A NAME="^/2"><VAR>+Expr1</VAR> <STRONG>^</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
