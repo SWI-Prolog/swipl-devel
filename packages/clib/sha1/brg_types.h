@@ -121,8 +121,12 @@ extern "C" {
 #  endif
 #endif
 
-#if defined( NEED_UINT_64T ) && !defined( BRG_UI64 )
-#  error Please define uint_64t as an unsigned 64 bit type in brg_types.h
+#if !defined( BRG_UI64 )
+  /* JW: Using inttypes appears to work better than above */
+#include <inttypes.h>
+#define BRG_UI64
+#define li_64(h) 0x##h##ull
+  typedef uint64_t uint_64t;
 #endif
 
 #ifndef RETURN_VALUES
