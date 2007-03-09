@@ -549,7 +549,7 @@ if test ! -z "$GCC"; then
     COFLAGS="${COFLAGS--O2 -fno-strict-aliasing}"
     CWFLAGS="${CWFLAGS--Wall}"
 else
-    COFLAGS="${COFLAGS--O}
+    COFLAGS="${COFLAGS--O}"
 fi
 
 CFLAGS="$CMFLAGS"
