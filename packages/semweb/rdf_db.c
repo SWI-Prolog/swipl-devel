@@ -5644,7 +5644,10 @@ erase_triples(rdf_db *db)
 
   db->created = 0;
   db->erased = 0;
+  db->freed = 0;
+  db->erased = 0;
   db->subjects = 0;
+  db->rehash_count = 0;
   memset(db->indexed, 0, sizeof(db->indexed));
   db->duplicates = 0;
   db->generation = 0;

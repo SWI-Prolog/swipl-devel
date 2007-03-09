@@ -1,3 +1,10 @@
+Mar 9, 2007
+
+  * FIXED: reset some more fields in rdf_reset_db, avoiding continuous
+    re-hash after rdf_reset_db/0.
+
+  * FIXED: rdf_persistency to clear file repository on rdf_reset_db.
+
 Mar 8, 2007
 
   * FIXED: locking issue in rdf_reachable/3 and maintaining active-query

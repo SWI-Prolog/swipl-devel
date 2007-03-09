@@ -437,7 +437,13 @@ monitor_transaction(log(_), end) :- !,
 	    fail
 	;   true
 	).
-
+monitor_transaction(reset, begin) :-
+	forall(rdf_source(DB),
+	       monitor_transaction(unload(DB), begin)).
+monitor_transaction(reset, end) :-
+	forall(blocked_db(DB, unload),
+	       monitor_transaction(unload(DB), end)).
+	       
 open_transaction(DB, Fd) :-
 	transaction_message(N, Msg), !,
 	(   transaction_db(N, DB)
