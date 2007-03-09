@@ -1,5 +1,7 @@
 Mar 9, 2007
 
+  * ADDED: reply_html_page/2.  To be documented
+
   * ADDED: Pass protocol(http/https) into request.
 
 Mar 7, 2007

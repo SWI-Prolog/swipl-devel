@@ -30,7 +30,9 @@
 */
 
 :- module(html_write,
-	  [ page/3,			% generate an HTML page
+	  [ reply_html_page/2,		% :Head, :Body
+
+	    page/3,			% generate an HTML page
 	    page/4,			% page from head and body
 	    html/3,
 
@@ -55,6 +57,7 @@
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
+	reply_html_page(:, :),
 	html(:, -, +),
 	page(:, -, +),
 	page(:, :, -, +),
@@ -109,6 +112,9 @@ encoding.
 %		Set the =|<|DOCTYPE|= DocType =|>|= line for page//1 and
 %		page//2.
 %		
+%		* content_type(+ContentType)
+%		Set the =|Content-type|= for reply_html_page/2
+%		
 %	Note  that  the  doctype  is  covered    by  two  prolog  flags:
 %	=html_doctype= for the html dialect  and =xhtml_doctype= for the
 %	xhtml dialect. Dialect muct be switched before doctype.
@@ -127,6 +133,12 @@ html_set_option(doctype(Atom)) :- !,
 	->  set_prolog_flag(html_doctype, Atom)
 	;   set_prolog_flag(xhtml_doctype, Atom)
 	).
+html_set_option(content_type(Atom)) :- !,
+	must_be(atom, Atom),
+	(   current_prolog_flag(html_dialect, html)
+	->  set_prolog_flag(html_content_type, Atom)
+	;   set_prolog_flag(xhtml_content_type, Atom)
+	).
 html_set_option(O) :-
 	domain_error(html_option, O).
 
@@ -142,6 +154,11 @@ html_current_option(doctype(DocType)) :-
 	->  current_prolog_flag(html_doctype, DocType)
 	;   current_prolog_flag(xhtml_doctype, DocType)
 	).
+html_current_option(content_type(ContentType)) :-
+	(   current_prolog_flag(html_dialect, html)
+	->  current_prolog_flag(html_content_type, ContentType)
+	;   current_prolog_flag(xhtml_content_type, ContentType)
+	).
 
 
 option_default(html_dialect, html).
@@ -150,6 +167,8 @@ option_default(xhtml_doctype,
 	       'html PUBLIC "-//W3C//DTD XHTML 1.0 \
 	       Transitional//EN" \
 	       "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"').
+option_default(html_content_type, 'text/html').
+option_default(xhtml_content_type, 'application/xhtml+xml; charset=UTF-8').
 
 %%	init_options is det.
 %
@@ -663,6 +682,19 @@ html_print_length([H|T], L0, L) :-
 	html_print_length(T, L1, L).
 
 
+%%	reply_html_page(:Head, :Body) is det.
+%
+%	Provide the complete reply as required  by http_wrapper.pl for a
+%	page constructed from Head and   Body. The HTTP =|Content-type|=
+%	is provided by html_current_option/1.
+
+reply_html_page(Head, Body) :-
+	html_current_option(content_type(Type)),
+	phrase(page(Head, Body), HTML),
+	format('Content-type: ~w~n~n', [Type]),
+	print_html(HTML).
+
+
 		 /*******************************
 		 *	PCE EMACS SUPPORT	*
 		 *******************************/
@@ -689,6 +721,10 @@ emacs_prolog_colours:goal_colours(pagehead(HTML,_,_),
 emacs_prolog_colours:goal_colours(pagebody(HTML,_,_),
 				  built_in-[Colours, classify, classify]) :-
 	html_colours(HTML, Colours).
+emacs_prolog_colours:goal_colours(reply_html_page(Head, Body),
+				  built_in-[HC, BC]) :-
+	html_colours(Head, HC),
+	html_colours(Body, BC).
 
 
 					% TBD: Check with do_expand!
