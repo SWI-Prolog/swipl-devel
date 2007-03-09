@@ -74,18 +74,23 @@ Version 5.6.29 Patches relative to 5.6.28
 
 Prolog
 
-  * Various portability issues (notably for Solaris)
-  * Stream-positioning issues
-  * Stream-lock underrun in at_end_of_stream/1 and set_prolog_IO/3.
-  * open(pipe(Command) ...) leaking memory and handles on Windows.
-  * Memory handling in loading quick load files/saved states.
-  * Possible incorrect calls to cleanup handles of non-deterministic
-    foreign code (notably together with call_with_time_limit/2 and
-    thread_signal/2).
+  * Added function powm/3
+  * Added library record
+  * Changed default stacks sizes from 4 MB to 32 MB
+  * Various portability issues
+  * Various minor issues.
 
 Packages
  
-  * HTTP: keep connections open on not-modified and replying files or
-    streams.
-  * CLIB: redesign of basic socket infrastructure, providing a work-around
-    for handle-identity issues in Windows.
+  * JPL: Errornous integer check
+  * PlUnit: Allow omitting list for a single test-option:
+    test(name, true(X==42)) :- ...
+  * Clib: Added library(sha), providing SHA-1 and SHA-256 and friends,
+    including HMAC-SHA.  Fix some loose ends in recent socket rewrite.
+  * HTTP: Fixed sending HTTP 302 messages.  Added final_url option to
+    http_open/3 to find the final URL after redirects.  Streamline debug
+    messages.
+  * Semweb: Fixed two locking issues in RDF database.  Fixed two issues
+    concerning rdf_reset_db.  Added MIME-type application/rdf+xml to
+    rdf_http_plugin.pl.  Allow for base_uri(-URI) in rdf_load/2.
+  
