@@ -1,3 +1,7 @@
+Mar 9, 2007
+
+  * ADDED: Pass protocol(http/https) into request.
+
 Mar 7, 2007
 
   * FIXED: handle throw(http_reply(moved_temporary(URL))) properly.

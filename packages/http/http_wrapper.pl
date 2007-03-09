@@ -232,6 +232,8 @@ extend_request([request(R)|T], R0, R) :- !,
 	extend_request(T, R0, R).
 extend_request([peer(P)|T], R0, R) :- !,
 	extend_request(T, [peer(P)|R0], R).
+extend_request([protocol(P)|T], R0, R) :- !,
+	extend_request(T, [protocol(P)|R0], R).
 extend_request([_|T], R0, R) :- !,
 	extend_request(T, R0, R).
 

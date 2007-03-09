@@ -252,11 +252,11 @@ http_worker(Options) :-
 	  (   Message == quit
 	  ->  thread_self(Self),
 	      thread_detach(Self)
-	  ;   open_client(Message, Goal, Peer, In, Out),
+	  ;   open_client(Message, Goal, In, Out, ClientOptions),
 	      set_stream(In, timeout(Timeout)),
 	      debug(http(server), 'Running server goal ~p on ~p -> ~p',
 		    [Goal, In, Out]),
-	      (	  catch(server_loop(Goal, In, Out, Peer, Options), E, true)
+	      (	  catch(server_loop(Goal, In, Out, ClientOptions, Options), E, true)
 	      ->  (   var(E)
 		  ->  true
 		  ;   (   message_level(E, Level)
@@ -266,24 +266,28 @@ http_worker(Options) :-
 		      debug(http(server), 'Caught exception ~q (level ~q)',
 			    [E, Level]),
 		      print_message(Level, E),
+		      memberchk(peer(Peer), ClientOptions),
 		      close_connection(Peer, In, Out)
 		  )
 	      ;	  print_message(error,
 				goal_failed(server_loop(Goal, In, Out,
-							Peer, Options)))
+							ClientOptions, Options)))
 	      ),
 	      fail
 	  ),
 	!.
 
-%%	open_client(+Message, -Goal, -Peer, -In, -Out) is det.
+%%	open_client(+Message, -Goal, -In, -Out, -Options) is det.
 %
 %	Opens the connection to the client in a worker from the message
 %	sent to the queue by accept_server/2.
 
-open_client(Message, Goal, Peer, In, Out) :-
-	open_client_hook(Message, Goal, Peer, In, Out), !.
-open_client(tcp_client(Socket, Goal, Peer), Goal, Peer, In, Out) :-
+open_client(Message, Goal, In, Out, Options) :-
+	open_client_hook(Message, Goal, In, Out, Options), !.
+open_client(tcp_client(Socket, Goal, Peer), Goal, In, Out,
+	    [ peer(Peer),
+	      protocol(http)
+	    ]) :-
 	tcp_open_socket(Socket, In, Out).
 
 
@@ -313,18 +317,19 @@ message_level(error(io_error(read, _), _),	silent).
 message_level(error(timeout_error(read, _), _),	informational).
 message_level(keep_alive_timeout,		silent).
 
-%%	server_loop(:Goal, +In, +Out, +Socket, +Peer, +Options)
+%%	server_loop(:Goal, +In, +Out, +Socket, +ClientOptions, +Options)
 %	
 %	Handle a client on the given stream. It will keep the connection
 %	open as long as the client wants this
 
-server_loop(_Goal, In, Out, Peer, _) :-
+server_loop(_Goal, In, Out, ClientOptions, _) :-
 	at_end_of_stream(In), !,
+	memberchk(peer(Peer), ClientOptions),
 	close_connection(Peer, In, Out).
-server_loop(Goal, In, Out, Peer, Options) :-
+server_loop(Goal, In, Out, ClientOptions, Options) :-
 	http_wrapper(Goal, In, Out, Connection,
-		     [ request(Request),
-		       peer(Peer)
+		     [ request(Request)
+		     | ClientOptions
 		     ]),
 	(   downcase_atom(Connection, 'keep-alive')
 	->  after(Request, Options),
@@ -333,8 +338,9 @@ server_loop(Goal, In, Out, Peer, Options) :-
 	    set_stream(In, timeout(KeepAliveTMO)),
 	    catch(peek_code(In, _), _, throw(keep_alive_timeout)),
 	    set_stream(In, timeout(TimeOut)),
-	    server_loop(Goal, In, Out, Peer, Options)
-	;   close_connection(Peer, In, Out),
+	    server_loop(Goal, In, Out, ClientOptions, Options)
+	;   memberchk(peer(Peer), ClientOptions),
+	    close_connection(Peer, In, Out),
 	    after(Request, Options)
 	).
 

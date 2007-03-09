@@ -61,5 +61,6 @@ thread_httpd:accept_hook(Goal, Options) :-
 	fail.
 
 thread_httpd:open_client_hook(ssl_client(SSL, Client, Goal, Peer),
-			      Goal, Peer, In, Out) :-
+			      Goal, In, Out,
+			      [peer(Peer), protocol(https)]) :-
 	ssl_open(SSL, Client, In, Out).
