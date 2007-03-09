@@ -123,7 +123,11 @@
       defined( THINK_C ) || defined( __VMCMS__ )
 #  define PLATFORM_BYTE_ORDER IS_BIG_ENDIAN
 
-#elif 0     /* **** EDIT HERE IF NECESSARY **** */
+/*** JW: __WINDOWS__ for compiling SWI-Prolog.  None of the above appears to be
+     defined, despite the VS2005 and Platform SDK claiming _M_X64 must be
+     defined
+***/
+#elif __WINDOWS__     /* **** EDIT HERE IF NECESSARY **** */
 #  define PLATFORM_BYTE_ORDER IS_LITTLE_ENDIAN
 #elif 0     /* **** EDIT HERE IF NECESSARY **** */
 #  define PLATFORM_BYTE_ORDER IS_BIG_ENDIAN

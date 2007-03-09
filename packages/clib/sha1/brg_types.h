@@ -86,7 +86,7 @@ extern "C" {
 #    define BRG_UI64
 #    define li_64(h) 0x##h##ull
      typedef unsigned __int64 uint_64t;
-#  elif defined( _MSC_VER ) && ( _MSC_VER < 1300 )    /* 1300 == VC++ 7.0 */
+#  elif defined( _MSC_VER ) 
 #    define BRG_UI64
 #    define li_64(h) 0x##h##ui64
      typedef unsigned __int64 uint_64t;
