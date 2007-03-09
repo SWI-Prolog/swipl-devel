@@ -4294,7 +4294,7 @@ _ACEOF
 
 
 if test ! -z "$GCC"; then
-    COFLAGS="-O3 -fno-strict-aliasing"
+    COFLAGS="${COFLAGS--O3 -fno-strict-aliasing}"
     CWFLAGS=${CWFLAGS--Wall}
 else
     COFLAGS=-O

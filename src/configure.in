@@ -213,15 +213,15 @@ AC_ARG_ENABLE(custom-flags, [  --disable-custom-flags  Do not add custom build o
 	custom_flags=yes)
 if test "x$custom_flags" = "xyes" ; then
 	if test "$GCC" = "yes"; then
-		COFLAGS="-O3 -fno-strict-aliasing"
+		COFLAGS="${COFLAGS--O3 -fno-strict-aliasing}"
 		LDFLAGS="$LDFLAGS -O3"
-		CWFLAGS=${CWFLAGS--Wall}
+		CWFLAGS="${CWFLAGS--Wall}"
 	else
-		COFLAGS=-O
+		COFLAGS="${COFLAGS--O}"
 
 		case "$ARCH" in
 			*mips-irix*)
-				COFLAGS="-O -OPT:Olimit_opt=on"
+				COFLAGS="${COFLAGS--O -OPT:Olimit_opt=on}"
 			;;
 		esac
 	fi

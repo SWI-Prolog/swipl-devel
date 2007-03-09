@@ -3709,10 +3709,10 @@ esac
 
 
 if test ! -z "$GCC"; then
-    COFLAGS="-O2 -fno-strict-aliasing"
+    COFLAGS="${COFLAGS--O2 -fno-strict-aliasing}"
     CWFLAGS=${CWFLAGS--Wall}
 else
-    COFLAGS=-O
+    COFLAGS="${COFLAGS--O}"
 fi
 
 echo "$as_me:$LINENO: checking for socket" >&5

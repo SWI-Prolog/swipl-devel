@@ -3796,15 +3796,15 @@ else
 fi;
 if test "x$custom_flags" = "xyes" ; then
 	if test "$GCC" = "yes"; then
-		COFLAGS="-O3 -fno-strict-aliasing"
+		COFLAGS="${COFLAGS--O3 -fno-strict-aliasing}"
 		LDFLAGS="$LDFLAGS -O3"
-		CWFLAGS=${CWFLAGS--Wall}
+		CWFLAGS="${CWFLAGS--Wall}"
 	else
-		COFLAGS=-O
+		COFLAGS="${COFLAGS--O}"
 
 		case "$ARCH" in
 			*mips-irix*)
-				COFLAGS="-O -OPT:Olimit_opt=on"
+				COFLAGS="${COFLAGS--O -OPT:Olimit_opt=on}"
 			;;
 		esac
 	fi

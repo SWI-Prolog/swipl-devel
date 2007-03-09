@@ -546,10 +546,10 @@ AC_ISC_POSIX
 AC_HEADER_STDC
 
 if test ! -z "$GCC"; then
-    COFLAGS="-O2 -fno-strict-aliasing"
-    CWFLAGS=${CWFLAGS--Wall}
+    COFLAGS="${COFLAGS--O2 -fno-strict-aliasing}"
+    CWFLAGS="${CWFLAGS--Wall}"
 else
-    COFLAGS=-O
+    COFLAGS="${COFLAGS--O}
 fi
 
 CFLAGS="$CMFLAGS"
