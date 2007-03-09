@@ -1,0 +1,554 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog for MacOS X</TITLE><STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
+}
+
+dt.pubdef
+{ background-color: #c5e1ff;
+}
+
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
+}
+
+div.navigate
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+}
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ 
+}
+
+span.pred-ext
+{ font-weight: bold;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 80%;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
+</HEAD>
+<BODY BGCOLOR="white"> 
+
+<P>
+<DIV class="title">SWI-Prolog for MacOS X</DIV>
+<DIV class="author">Jan Wielemaker <BR>
+Paulo Moura</DIV>
+<DIV class="abstract">
+<DIV class="abstract-title">Abstract</DIV> This document briefly 
+explains the MacOS X specific issues for SWI-Prolog. This is by no means 
+a manual or Prolog tutorial. The reference manual is available online or 
+can be downloaded in HTML and PDF format from the <A class="url" href="http://www.swi-prolog.org/">SWI-Prolog 
+website</A>, which also provides links to books, online tutorials and 
+other Prolog related material.
+</DIV>
+
+<H1><A NAME="document-contents">Table of Contents</A></H1>
+
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction 
+-- Darwinports</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Installation</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:2.1"><SPAN class="sec-nr">2.1</SPAN> <SPAN class="sec-title">Using 
+Darwinports</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:2.2"><SPAN class="sec-nr">2.2</SPAN> <SPAN class="sec-title">From 
+the installer</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Running 
+SWI-Prolog</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.1"><SPAN class="sec-nr">3.1</SPAN> <SPAN class="sec-title">Loading 
+a program</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.2"><SPAN class="sec-nr">3.2</SPAN> <SPAN class="sec-title">Executing 
+a query</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.3"><SPAN class="sec-nr">3.3</SPAN> <SPAN class="sec-title">Editing 
+Prolog programs</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.4"><SPAN class="sec-nr">3.4</SPAN> <SPAN class="sec-title">Some 
+useful commands</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">Using 
+SWI-Prolog with C/C++</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Known 
+problems</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">The 
+SWI-Prolog community and foundation</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:6.1"><SPAN class="sec-nr">6.1</SPAN> <SPAN class="sec-title">Web-site 
+and mailing lists</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:6.2"><SPAN class="sec-nr">6.2</SPAN> <SPAN class="sec-title">About 
+license conditions</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:6.3"><SPAN class="sec-nr">6.3</SPAN> <SPAN class="sec-title">Supporting 
+SWI-Prolog</SPAN></A></DIV>
+</DIV>
+
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction 
+-- Darwinports</SPAN></A></H2>
+
+<P>SWI-Prolog is by origin an Unix application, and not a native 
+Macintosh application. It has been brought to the Mac using the
+<A class="url" href="http://darwinports.opendarwin.org/">darwinports</A> 
+project, using (Macintosh) X11 for its graphical capabilities.
+
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Installation</SPAN></A></H2>
+
+<H3><A NAME="sec:2.1"><SPAN class="sec-nr">2.1</SPAN> <SPAN class="sec-title">Using 
+Darwinports</SPAN></A></H3>
+
+<P>Users of the Darwinports system can install the system just like any 
+port using the command below. In addition to the port named
+<CODE>swi-prolog</CODE> providing the stable version, there is a port 
+called
+<CODE>swi-prolog-devel</CODE> providing the development version.
+
+<PRE class="code">
+% sudo port -d selfupdate       # make sure we have the latest portfiles
+% sudo port install swi-prolog
+</PRE>
+
+<P>The swi-prolog port depends on <CODE>readline</CODE>, <CODE>ncurses</CODE>
+<CODE>gmp</CODE> <CODE>libmcrypt</CODE>, <CODE>Xfree86</CODE> and <CODE>jpeg</CODE>,
+
+<H3><A NAME="sec:2.2"><SPAN class="sec-nr">2.2</SPAN> <SPAN class="sec-title">From 
+the installer</SPAN></A></H3>
+
+<P>Opening and installing the meta installer installs the required ports 
+from the Darwinports system. The programs are installed in the directory
+<CODE>/opt/local/bin</CODE>. The main executable is named <CODE>swipl</CODE>.
+
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Running 
+SWI-Prolog</SPAN></A></H2>
+
+<P>Not being a Macintosh Application, SWI-Prolog must be started from a 
+terminal window. This can either be an X11 <B>xterm</B> or
+<B>Terminal.app</B> from Utilities. For comfortable usage it is 
+necessary to setup some environment variables. The procedure depends on 
+your shell of choice. On Tiger the default is <B>bash</B>. Add the 
+following lines to the file <CODE>~/.bashrc</CODE> (or create this file 
+if it does not yet exist).
+
+<PRE class="code">
+# This allows using Prolog graphics if you use Terminal.app
+if [ -z "$DISPLAY" ]; then export DISPLAY=:0; fi
+
+# This sets up the path
+PATH=$PATH:/opt/local/bin
+</PRE>
+
+<P>Now start <B>X11.App</B> and configure it to autostart at login. Open
+<B>Terminal.app</B> or <B>xterm</B> and type
+
+<PRE class="code">
+% swipl
+Welcome to SWI-Prolog (Multi-threaded, Version 5.6.0)
+Copyright (c) 1990-2006 University of Amsterdam.
+SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,
+and you are welcome to redistribute it under certain conditions.
+Please visit http://www.swi-prolog.org for details.
+
+For help, use ?- help(Topic). or ?- apropos(Word).
+
+1 ?-
+</PRE>
+
+<P>If X11 is properly configured, the help system of the graphics 
+subsystem XPCE can now be started using the command below.
+
+<PRE class="code">
+?- manpce.
+</PRE>
+
+<H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN> <SPAN class="sec-title">Loading 
+a program</SPAN></A></H3>
+
+<P>Prolog source files can be loaded by specifying their filename 
+between
+<CODE>[]</CODE>. In addition to a plain filename, files may be searched 
+on a named search-path<SUP class="fn">1<SPAN class="fn-text">See <A NAME="idx:filesearchpath2:1"></A><SPAN class="pred-ext">file_search_path/2</SPAN> 
+in the manual for details.</SPAN></SUP> using the notation <CODE>SearchPath(File)</CODE>. 
+Two defined paths are
+<CODE>library</CODE> for the Prolog library and <CODE>swi</CODE> for the 
+Prolog installation directory. Below we load the file <CODE>likes.pl</CODE> 
+from the
+<CODE>demo</CODE> directory in the installation directory, Be sure to 
+get the quotes right and terminate the command with a full-stop (<CODE><CODE>.</CODE></CODE>).
+
+<PRE class="code">
+?- [swi('demo/likes')].
+</PRE>
+
+<H3><A NAME="sec:3.2"><SPAN class="sec-nr">3.2</SPAN> <SPAN class="sec-title">Executing 
+a query</SPAN></A></H3>
+
+<A NAME="sec:execquery"></A>
+
+<P>After loading a program, one can ask Prolog queries about the 
+program. The query below asks Prolog what food `sam' likes. The system 
+responds with <TT>X = &lt;<VAR>value</VAR>&gt;</TT> if it can prove the 
+goal for a certain
+<VAR>X</VAR>. The user can type the semi-colon (;)<SUP class="fn">2<SPAN class="fn-text">On 
+most installations, single-character commands are executed without 
+waiting for the <font size=-1>RETURN</font> key.</SPAN></SUP> if (s)he 
+wants another solution, or <font size=-1>RETURN</font> if (s)he is 
+satisfied, after which Prolog will say <B>Yes</B>. If Prolog answers <B>No</B>, 
+it indicates it cannot find any (more) answers to the query. Finally, 
+Prolog can answer using an error message to indicate the query or 
+program contains an error.
+
+<PRE class="code">
+?- likes(sam, X).
+
+X = dahl ;
+
+X = tandoori ;
+
+...
+
+X = chips ;
+
+No
+?-
+</PRE>
+
+<H3><A NAME="sec:3.3"><SPAN class="sec-nr">3.3</SPAN> <SPAN class="sec-title">Editing 
+Prolog programs</SPAN></A></H3>
+
+<A NAME="sec:edit"></A>
+
+<P>There are three options for editing. One is to run an editor of 
+choice in a separate window and use the below described <A NAME="idx:make0:2"></A><A class="pred" href="#make/0">make/0</A> 
+command to reload modified files. In addition to this option Prolog can 
+be used to locate predicates, modules and loaded files by specifying the 
+editor of choice for use with the <A NAME="idx:edit1:3"></A><A class="pred" href="#edit/1">edit/1</A> 
+command described below. This is achieved by editing the personalisation 
+file <CODE> /.plrc</CODE>. A commented template is in the directory <CODE>dotfiles</CODE> 
+of the SWI-Prolog installation directory.
+
+<P>Finally, you may wish to use the built-in editor called <EM>PceEmacs</EM>. 
+This editor provides colourisation support based on real-time parsing 
+and cross-reference analysis of the program. It is started using the 
+command <CODE>?- emacs.</CODE> or can be set as default editor in the 
+personalisation file.
+
+<H3><A NAME="sec:3.4"><SPAN class="sec-nr">3.4</SPAN> <SPAN class="sec-title">Some 
+useful commands</SPAN></A></H3>
+
+<P>This section provides a very brief overview of important or commonly 
+used SWI-Prolog predicates to control the environment.
+
+<DL>
+<DT class="pubdef"><A NAME="consult/1"><STRONG>consult</STRONG>(<VAR>+File</VAR>)</A></DT>
+<DD class="defbody">
+Load a source-file. A Prolog list ([ ... ]) can be used to abbreviate 
+the consult command. The file-extension (<CODE>.pl</CODE> can be 
+omitted. Here are some examples:
+
+<P>
+<CENTER>
+<TABLE BORDER=0 FRAME=void RULES=groups>
+<TR VALIGN=top><TD><TT>?- consult(likes).</TT></TD><TD>Load <CODE>likes.pl</CODE> 
+from the current folder (see <A NAME="idx:pwd0:4"></A><A class="pred" href="#pwd/0">pwd/0</A>). </TD></TR>
+<TR VALIGN=top><TD><TT>?- ['/opt/local/lib/swipl-5.6.0/demo/likes']</TT></TD><TD>Load <CODE>likes.pl</CODE> 
+using absolute path. </TD></TR>
+</TABLE>
+
+</CENTER>
+</DD>
+<DT class="pubdef"><A NAME="pwd/0"><STRONG>pwd</STRONG></A></DT>
+<DD class="defbody">
+Print working directory (folder).</DD>
+<DT class="pubdef"><A NAME="ls/0"><STRONG>ls</STRONG></A></DT>
+<DD class="defbody">
+List files in current directory.</DD>
+<DT class="pubdef"><A NAME="edit/0"><STRONG>edit</STRONG></A></DT>
+<DD class="defbody">
+If Prolog is started by opening a <CODE>.pl</CODE> file in the explorer, 
+edit this file. Also available from the menu.</DD>
+<DT class="pubdef"><A NAME="edit/1"><STRONG>edit</STRONG>(<VAR>+Spec</VAR>)</A></DT>
+<DD class="defbody">
+Edit file, predicate, module, etc. with the given name. If multiple 
+items are named <VAR>Spec</VAR> it prompts for the desired alternative.</DD>
+<DT class="pubdef"><A NAME="make/0"><STRONG>make</STRONG></A></DT>
+<DD class="defbody">
+Reload all files that have been changed since they where last loaded. 
+Normally used after editing one or more files.</DD>
+<DT class="pubdef"><A NAME="trace/0"><STRONG>trace</STRONG></A></DT>
+<DD class="defbody">
+Start the interactive debugger. There are three ways to use this. 
+Entered as a single goal at the top-level, the next query will be 
+traced. Alternatively it can be used in conjunction with the goal to be 
+debugged: <CODE>?- trace, run.</CODE> and finally you can include it in 
+your program to start tracing at a particular point or under a 
+particular condition:
+
+<PRE class="code">
+        ...,
+        (var(X) -&gt; trace ; true),
+        ...,
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="gtrace/0"><STRONG>gtrace</STRONG></A></DT>
+<DD class="defbody">
+Same as trace, but forces the use of the graphical (source-level) 
+debugger.</DD>
+<DT class="pubdef"><A NAME="apropos/1"><STRONG>apropos</STRONG>(<VAR>+Keyword</VAR>)</A></DT>
+<DD class="defbody">
+Search for all predicates that contain <VAR>Keyword</VAR> in their name 
+or short description. If a GUI environment is available the results are 
+hyperlinks. Otherwise use <A NAME="idx:help1:5"></A><A class="pred" href="#help/1">help/1</A> 
+to get details on selected hits.</DD>
+<DT class="pubdef"><A NAME="help/1"><STRONG>help</STRONG>(<VAR>+Spec</VAR>)</A></DT>
+<DD class="defbody">
+Give help on <VAR>Spec</VAR>, which is normally the name of a predicate 
+or C interface function.
+</DD>
+</DL>
+
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">Using 
+SWI-Prolog with C/C++</SPAN></A></H2>
+
+<P>To use SWI-Prolog with C or C++ code you must install Apples Xcode 
+environment, providing <B>gcc</B>. If all paths are properly installed, 
+programs can be linked using the <B>plld</B> command described in the 
+manual.
+
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Known 
+problems</SPAN></A></H2>
+
+<P>
+<UL>
+<LI><I>XPCE and the meta-key</I><BR>
+By default, the `Meta' key is bound to X11 <EM>modifier 1</EM> which is 
+set by the `Alt' key. This doesn't work very well for the Mac as the Alt 
+key is commonly used to create alternative characters, while the Command 
+key, which is used for composing commands, is bound to the X11 <EM>modifier 
+2</EM>. For the Apple we therefore bind the XPCE meta modifier to the 
+X11 modifier 2. Wherever the documentation mentions Alt-X or Meta-X this 
+must be read as <EM>Command-X</EM>.
+
+<P>
+<LI><I>Threaded XPCE programs</I><BR>
+XPCE normally initializes Xlib for multi-threaded access using 
+XInitThreads(). It turns out the MacOS X X11 version (tested on Tiger) 
+causes a deadlock on certain keys. We now do not call XInitThreads(). As 
+Xlib access is synchronised using the currently global XPCE lock and 
+XPCE/Prolog interfacing is designed to have only a single Prolog thread 
+talking to XPCE this should not be a serious problem.
+
+<P>
+<LI><I>XPCE programs do not open</I><BR>
+A problem has been reported where starting XPCE programs, including the 
+IDE components such as help, PceEmacs, etc. causes the program to hang. 
+In the end, it turned out the fontconfig/freetype library used by XPCE 
+to render Unicode fonts builds a database on first invocation. This 
+process can take several minutes. Ones created, XPCE applications start 
+quickly.
+
+<P>
+<LI><I>Font display issues</I><BR>
+If fonts do not display correctly (e.g. manpce pages not showing bold 
+styles or editor text in `screen' font looking mis-spaced and 
+misaligned) you may try to rebuild the X11 font cache by using the 
+command <B>sudo /usr/x11r6/bin/ fc-cache</B>.
+</UL>
+
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">The 
+SWI-Prolog community and foundation</SPAN></A></H2>
+
+<H3><A NAME="sec:6.1"><SPAN class="sec-nr">6.1</SPAN> <SPAN class="sec-title">Web-site 
+and mailing lists</SPAN></A></H3>
+
+<P>The SWI-Prolog web-site is located at <A class="url" href="http://www.swi-prolog.org/">http://www.swi-prolog.org/</A>. 
+Part of the web is powered by <A class="url" href="http://twiki.org/">TWiki</A>, 
+a
+<EM>wiki</EM> web that can be edited by any registered user and used to 
+exchange ideas, problems and solutions. The web also provides access to 
+the archive of the mailing list and allows to (de)register the mailing 
+list. Finally, it incorporates Bugzilla, the Mozilla project bugtracking 
+system, for reporting bugs and tracking issues.
+
+<H3><A NAME="sec:6.2"><SPAN class="sec-nr">6.2</SPAN> <SPAN class="sec-title">About 
+license conditions</SPAN></A></H3>
+
+<P>The SWI-Prolog license allows it to be used in a wide variety of 
+environments, including closed-source commercial applications. In 
+practice, redistribution and embedding is allowed, as long as
+<EM>modifications</EM> to the SWI-Prolog source are published following 
+the Free Software rules.
+
+<P>The SWI-Prolog kernel and foreign libraries are licensed under the
+<EM>Lesser General Public License</EM> (LGPL). The Prolog files are 
+licensed under the normal <EM>General Public License</EM> GPL with an 
+additional statement that allows for embedding in proprietary software:
+<BLOCKQUOTE> As a special exception, if you link this library with other 
+files, compiled with a Free Software compiler, to produce an executable, 
+this library does not by itself cause the resulting executable to be 
+covered by the GNU General Public License. This exception does not 
+however invalidate any other reasons why the executable file might be 
+covered by the GNU General Public License.
+</BLOCKQUOTE>
+
+<P>This exception is a proven construct used for <EM>libgcc</EM>, the 
+GNU C-compiler runtime library.
+
+<H3><A NAME="sec:6.3"><SPAN class="sec-nr">6.3</SPAN> <SPAN class="sec-title">Supporting 
+SWI-Prolog</SPAN></A></H3>
+
+<P>There are several ways to support SWI-Prolog:
+
+<P>
+<UL>
+<LI>Extend the system with contributions
+<LI>Improve the system by submitting bug reports and patches.
+<LI>Link to <A class="url" href="http://www.swi-prolog.org">http://www.swi-prolog.org</A> 
+and refer to SWI-Prolog in publications.
+<LI>Ask for commercial development or support at
+<A class="url" href="http://www.cognitivetools.com/">http://www.cognitivetools.com/</A>
+<LI>Support development financially at
+<A class="url" href="http://www.swi-prolog.org/donate.html">http://www.swi-prolog.org/donate.html</A>.
+</UL>
+
+<H1><A NAME="document-index">Index</A></H1>
+
+<DL>
+<DT><STRONG>A</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#apropos/1">apropos/1</A></DT>
+<DD>
+</DD>
+<DT><STRONG>C</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#consult/1">consult/1</A></DT>
+<DD>
+</DD>
+<DT><STRONG>E</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#edit/0">edit/0</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#edit/1">edit/1</A></DT>
+<DD>
+<A class="idx" href="#idx:edit1:3">3.3</A></DD>
+<DT><STRONG>F</STRONG></DT>
+<DD>
+</DD>
+<DT>file_search_path/2</DT>
+<DD>
+<A class="idx" href="#idx:filesearchpath2:1">3.1</A></DD>
+<DT><STRONG>G</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#gtrace/0">gtrace/0</A></DT>
+<DD>
+</DD>
+<DT><STRONG>H</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#help/1">help/1</A></DT>
+<DD>
+<A class="idx" href="#idx:help1:5">3.4</A></DD>
+<DT><STRONG>L</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#ls/0">ls/0</A></DT>
+<DD>
+</DD>
+<DT><STRONG>M</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#make/0">make/0</A></DT>
+<DD>
+<A class="idx" href="#idx:make0:2">3.3</A></DD>
+<DT><STRONG>P</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#pwd/0">pwd/0</A></DT>
+<DD>
+<A class="idx" href="#idx:pwd0:4">3.4</A></DD>
+<DT><STRONG>T</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#trace/0">trace/0</A></DT>
+<DD>
+</DD>
+</DL>
+
+</BODY></HTML>
