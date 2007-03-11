@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Bug#266: Ensure package build exits on first error.  Keri Harris.
+
 ===============================
 VERSION 5.6.30 (March 08, 2007)
 ===============================

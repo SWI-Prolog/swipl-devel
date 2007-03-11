@@ -81,7 +81,7 @@ html::
 
 install::
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || exit 1; fi; \
         done
 	@echo "*** Forcing update of library index ***"
 	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
@@ -89,7 +89,7 @@ install::
 
 rpm-install: html-install
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || exit 1; fi; \
         done
 	@echo "*** Forcing update of library index ***"
 	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
@@ -97,18 +97,18 @@ rpm-install: html-install
 
 pdf-install::
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || exit 1; fi; \
         done
 
 html-install::
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || exit 1; fi; \
         done
 	$(INSTALL_DATA) index.html $(DESTDIR)$(PKGDOC)
 
 ln-install::
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || exit 1; fi; \
         done
 
 configure::
@@ -120,7 +120,7 @@ configure::
 	        echo "**********************"; \
 		echo "* Package $$p"; \
 		echo "**********************"; \
-	        ( cd $$p && $(CONFIG) ); \
+	        ( cd $$p && $(CONFIG) ) || exit 1; \
 	    fi; \
         done
 
@@ -136,9 +136,11 @@ clean::
         done
 
 check::
+	rm -f .FAILED_TESTS
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || touch .FAILED_TESTS; fi; \
         done
+	if [ -f .FAILED_TESTS ]; then exit 1; fi
 
 # test environment
 
