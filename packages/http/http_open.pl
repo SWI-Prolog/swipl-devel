@@ -80,10 +80,12 @@ http_open(URL, Stream, Options) :-
 	http_open(Parts, Stream, Options).
 http_open(Parts, Stream, Options0) :-
 	Options = [visited(Parts)|Options0],
-	memberchk(proxy(Host, Port), Options), !,
+	memberchk(proxy(Host, ProxyPort), Options), !,
 	parse_url(Location, Parts),
-	open_socket(Host:Port, In, Out, Options),
-	send_rec_header(Out, In, Stream, Host, Location, Parts, Options),
+	open_socket(Host:ProxyPort, In, Out, Options),
+	option(port(Port), Parts, 80),
+	host_and_port(Host, Port, HostPort),
+	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options),
 	return_final_url(Options).
 http_open(Parts, Stream, Options0) :-
 	Options = [visited(Parts)|Options0],
@@ -91,8 +93,12 @@ http_open(Parts, Stream, Options0) :-
 	option(port(Port), Parts, 80),
 	http_location(Parts, Location),
 	open_socket(Host:Port, In, Out, Options),
-	send_rec_header(Out, In, Stream, Host, Location, Parts, Options),
+	host_and_port(Host, Port, HostPort),
+	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options),
 	return_final_url(Options).
+
+host_and_port(Host, 80, Host) :- !.
+host_and_port(Host, Port, Host:Port).
 
 %%	send_rec_header(+Out, +In, -InStream,
 %%			+Host, +Location, +Parts, +Options) is det.
