@@ -302,9 +302,9 @@ do_expand(script(Content), _) --> !,	% general CDATA declared content elements?
 	],
 	html_end(script).
 do_expand(&(Entity), _) --> !,
-	{ concat_atom([&, Entity, ;], HTML)
+	{ format(string(String), '&~w;', [Entity])
 	},
-	[ HTML ].
+	[ String ].
 do_expand(Token, _) -->
 	{ atomic(Token)
 	}, !,
@@ -340,10 +340,18 @@ do_expand(Term, M) -->
 	      html_current_option(dialect(xhtml))
 	    }
 	->  xhtml_empty(Env, Attributes)
-	;   html_begin(Env, Attributes),
+	;   { non_empty(Env, Term)
+	    },
+	    html_begin(Env, Attributes),
 	    html(Contents, M),
 	    html_end(Env)
 	).
+
+non_empty(Tag, Term) :-
+	layout(Tag, _, empty), !,
+	print_message(warning, format('Using empty element with content: ~p', [Term])).
+non_empty(_, _).
+
 
 %%	html_begin(+Env)// is det.
 %%	html_end(+End)// is det
