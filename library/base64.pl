@@ -135,21 +135,21 @@ decode(Text) -->
 	[C0, C1, C2, C3], !,
 	{ base64_char(B0, C0),
 	  base64_char(B1, C1)
-	},
+	}, !,
 	{   C3 == 0'=
 	->  (   C2 == 0'=
 	    ->  A is (B0<<18) + (B1<<12),
 	        I0 is (A>>16) /\ 0xff,
 	        Text = [I0|Rest]
-	    ;   base64_char(B2, C2),
-	        A is (B0<<18) + (B1<<12) + (B2<<6),
+	    ;   base64_char(B2, C2)
+	    ->  A is (B0<<18) + (B1<<12) + (B2<<6),
 	        I0 is (A>>16) /\ 0xff,
 	        I1 is  (A>>8) /\ 0xff,
 	        Text = [I0,I1|Rest]
 	    )
 	;   base64_char(B2, C2),
-	    base64_char(B3, C3),
-	    A is (B0<<18) + (B1<<12) + (B2<<6) + B3,
+	    base64_char(B3, C3)
+	->  A is (B0<<18) + (B1<<12) + (B2<<6) + B3,
 	    I0 is (A>>16) /\ 0xff,
 	    I1 is  (A>>8) /\ 0xff,
 	    I2 is      A  /\ 0xff,
