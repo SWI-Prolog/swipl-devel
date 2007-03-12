@@ -1223,12 +1223,16 @@ named_history(_,_,_) <=> fail.
 
 
 format_rule(PragmaRule) :-
-	PragmaRule = pragma(_,_,_,MaybeName,N),
+	PragmaRule = pragma(_,_,_,MaybeName,RuleNumber),
 	( MaybeName = yes(Name) ->
 		write('rule '), write(Name)
 	;
-		write('rule number '), write(N)
-	).
+		write('rule number '), write(RuleNumber)
+	),
+	get_line_number(RuleNumber,LineNumber),
+	write(' (line '),
+	write(LineNumber),
+	write(')').
 
 check_rule_indexing(PragmaRule) :-
 	PragmaRule = pragma(Rule,_,_,_,_),

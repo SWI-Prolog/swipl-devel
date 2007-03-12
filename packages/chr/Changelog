@@ -1,3 +1,7 @@
+Mar 12, 2007
+
+  * TS: Use line numbers in error and warning messages.
+
 Mar 8, 2007
 
   * TS: Added maintenance of line numbers through CHR compilation

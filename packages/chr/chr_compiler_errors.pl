@@ -148,11 +148,18 @@ print_chr_error(_,Message,Params) :-
 
 
 format_rule(PragmaRule) :-
-	PragmaRule = pragma(_,_,_,MaybeName,N),
+	PragmaRule = pragma(_,_,Pragmas,MaybeName,N),
 	( MaybeName = yes(Name) ->
 		write('rule '), write(Name)
 	;
 		write('rule number '), write(N)
+	),
+	( memberchk(line_number(LineNumber),Pragmas) ->
+		write(' (line '),
+		write(LineNumber),
+		write(')')
+	;
+		true
 	).
 
 long_line_with_equality_signs :-
