@@ -4789,8 +4789,11 @@ a tab stop on the position of that argument. This will cause all
 \fmtseq{~t}'s to be distributed between the previous and this tab stop.
 \fmtchar{+} Set a tab stop relative to the current position. Further
 the same as \fmtseq{~|}. \fmtchar{w} Give the next argument to write/1.
-\fmtchar{W} Give the next two argument to write_term/2. This option is
-SWI-Prolog specific.
+
+    \fmtchar{W}
+Give the next two argument to write_term/2.  E.g.\
+\exam{format('~W', [Term, [numbervars(true)]])}.
+This option is SWI-Prolog specific.
 \end{itemize}
 
 Example:
