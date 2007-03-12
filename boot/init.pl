@@ -973,6 +973,7 @@ load_files(Files, Options) :-
 	'$get_option'(autoload(Autoload), Options, false),
 	'$get_option'(derived_from(DerivedFrom), Options, -),
 	'$get_option'(encoding(Encoding), Options, default),
+	current_prolog_flag(generate_debug_info, DebugInfo),
 
 	(   Autoload == false
 	->  flag('$autoloading', AutoLevel, AutoLevel)
@@ -1043,7 +1044,8 @@ load_files(Files, Options) :-
 					    HeapUsed)))
 	),
 	flag('$autoloading', _, AutoLevel),
-	set_prolog_flag(verbose_load, DefVerbose).
+	set_prolog_flag(verbose_load, DefVerbose),
+	set_prolog_flag(generate_debug_info, DebugInfo).
 
 
 '$negate'(false, true).
@@ -1082,12 +1084,10 @@ load_files(Files, Options) :-
 	),
 	'$assert_load_context_module'(Id, OldModule),
 
-	current_prolog_flag(generate_debug_info, DebugInfo),
 	'$style_check'(OldStyle, OldStyle),	% Save style parameters
 	'$open_source'(Absolute, Enc, In,
 		     '$load_file'(In, Id, Import, IsModule, LM)),
 	'$style_check'(_, OldStyle),		% Restore old style
-	set_prolog_flag(generate_debug_info, DebugInfo),
 	'$set_source_module'(_, OldModule).	% Restore old module
 
 '$load_id'(stream(Id, _), Id) :- !.

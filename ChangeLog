@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Restoring generate_debug_info flag over loading .qlf files.
+    Mike Elston.
+
   * FIXED: library(base64): Determinism while decoding.
 
   * PORT: Bug#266: Ensure package build exits on first error.  Keri Harris.
