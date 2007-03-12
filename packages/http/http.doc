@@ -1431,10 +1431,25 @@ To simplify handing the data to a client or storing it into a file,
 the following predicates are available from this library:
 
 \begin{description}
+    \predicate{reply_html_page}{2}{:Head, :Body}
+Writes an HTML page preceeded by an HTTP header as required
+by \pllib{http_wrapper} (CGI-style).  Here is a simple typical
+example:
+
+\begin{code}
+reply(Request) :-
+	reply_html_page(title('Welcome'),
+			[ h1('Welcome'),
+			  p('Welcome to our ...')
+			]).
+\end{code}
+
     \predicate{print_html}{1}{+List}
 Print the token list to the Prolog current output stream.
+
     \predicate{print_html}{2}{+Stream, +List}
 Print the token list to the specified output stream
+
     \predicate{html_print_length}{2}{+List, -Length}
 When calling html_print/[1,2] on \arg{List}, \arg{Length}
 characters will be produced.  Knowing the length is needed to
@@ -1462,7 +1477,7 @@ characters \verb$<&>$.
 
     \dcg{html_quoted_attribute}{1}{+Atom} Emit the
 text in \arg{Atom} suitable for use as an SGML attribute, inserting
-entity-references for the SGML special characters \verb$<&>'"$.
+entity-references for the SGML special characters \verb$<&>"$.
 \end{description}
 
 
