@@ -599,7 +599,6 @@ layout(frame,	   1-1, empty).
 layout(col,	   0-0, empty).
 layout(area,	   1-0, empty).
 layout(input,	   1-0, empty).
-layout(option,	   1-0, empty).
 layout(param,	   1-0, empty).
 
 layout(p,	   2-1, -).		% omited close
