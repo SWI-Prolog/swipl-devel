@@ -174,6 +174,8 @@ typedef struct triple
 
 typedef enum
 { TR_MARK,				/* mark start for nesting */
+  TR_SUB_START,				/* start nested transaction */
+  TR_SUB_END,				/* end nested transaction */
   TR_ASSERT,				/* rdf_assert */
   TR_RETRACT,				/* rdf_retractall */
   TR_UPDATE,				/* rdf_update */
@@ -198,6 +200,7 @@ typedef struct transaction_record
     { source		       *source;
       md5_byte_t	       *digest;
     } md5;
+    record_t		       transaction_id;
   } update;
 } transaction_record;
 
@@ -232,6 +235,7 @@ typedef struct rdf_db
   transaction_record *tr_first;		/* first transaction record */
   transaction_record *tr_last;		/* last transaction record */
   int		tr_nesting;		/* nesting depth of transactions */
+  int		tr_reset;		/* transaction contains reset */
   int 		resetting;		/* We are in rdf_reset_db() */
 
   rwlock	lock;			/* threaded access */

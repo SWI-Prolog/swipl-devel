@@ -1,3 +1,9 @@
+Mar 13, 2007
+
+  * FIXED: Send monitor events on begin/end of nested transactions.
+    Required to make rdf_persistency work properly if RDF operations
+    such as rdf_reset_db and rdf_load are nested in transactions.
+
 Mar 9, 2007
 
   * FIXED: reset some more fields in rdf_reset_db, avoiding continuous

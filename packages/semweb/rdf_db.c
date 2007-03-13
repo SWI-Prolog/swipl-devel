@@ -314,6 +314,28 @@ domain_error(term_t actual, const char *expected)
 
 
 static int
+permission_error(const char *op, const char *type, const char *obj,
+		 const char *msg)
+{ term_t ex = PL_new_term_ref();
+  term_t ctx = PL_new_term_ref();
+
+  if ( msg )
+    PL_unify_term(ctx, PL_FUNCTOR_CHARS, "context", 2,
+		         PL_VARIABLE,
+		         PL_CHARS, msg);
+
+  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
+		      PL_FUNCTOR_CHARS, "permission_error", 3,
+		        PL_CHARS, op,
+		        PL_CHARS, type,
+		        PL_CHARS, obj,
+		      PL_TERM, ctx);
+
+  return PL_raise_exception(ex);
+}
+
+
+static int
 get_atom_ex(term_t t, atom_t *a)
 { if ( PL_get_atom(t, a) )
     return TRUE;
@@ -3868,6 +3890,11 @@ discard_transaction(rdf_db *db)
   for(tr=db->tr_last; tr; tr = prev)
   { prev = tr->previous;
 
+    if ( tr->type == TR_SUB_END )
+    { if ( tr->update.transaction_id )
+	PL_erase(tr->update.transaction_id);
+    }
+
     if ( tr->type == TR_MARK )
     { rdf_free(db, tr, sizeof(*tr));
       truncate_transaction(db, prev);
@@ -3888,7 +3915,7 @@ access?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-commit_transaction(rdf_db *db)
+commit_transaction(rdf_db *db, term_t id)
 { transaction_record *tr, *next;
 
   if ( db->tr_nesting > 0 )		/* commit nested transaction */
@@ -3905,9 +3932,15 @@ commit_transaction(rdf_db *db)
     for(; tr; tr = tr->previous)	/* not the last (tested above) */
     {					/* not the first (we are nested) */
       if ( tr->type == TR_MARK )
-      { tr->previous->next = tr->next;
-	tr->next->previous = tr->previous;
-	rdf_free(db, tr, sizeof(*tr));
+      { transaction_record *end = rdf_malloc(db, sizeof(*end));
+
+	memset(end, 0, sizeof(*end));
+	end->type = TR_SUB_END;
+	end->update.transaction_id = PL_record(id);
+	append_transaction(db, end);
+
+	tr->type = TR_SUB_START;
+	tr->update.transaction_id = end->update.transaction_id;
 	db->tr_nesting--;
 
 	return TRUE;
@@ -3928,6 +3961,19 @@ commit_transaction(rdf_db *db)
       switch(tr->type)
       { case TR_MARK:
 	  break;
+	case TR_SUB_START:
+	{ term_t id = PL_new_term_ref();
+	  PL_recorded(tr->update.transaction_id, id);
+	  broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_begin);
+	  break;
+	}
+	case TR_SUB_END:
+	{ term_t id = PL_new_term_ref();
+	  PL_recorded(tr->update.transaction_id, id);
+	  PL_erase(tr->update.transaction_id);
+	  broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_end);
+	  break;
+	}
 	case TR_ASSERT:
 	  link_triple(db, tr->triple);
 	  db->generation++;
@@ -3968,6 +4014,7 @@ commit_transaction(rdf_db *db)
 	  break;
 	}
 	case TR_RESET:
+	  db->tr_reset = FALSE;
 	  reset_db(db);
 	  break;
 	default:
@@ -3998,7 +4045,7 @@ rdf_transaction(term_t goal, term_t id)
   { int empty = (db->tr_last == NULL || db->tr_last->type == TR_MARK);
 
     if ( empty || db->tr_nesting > 0 )
-    { commit_transaction(db);
+    { commit_transaction(db, id);
     } else
     { broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_begin);
       if ( !LOCKOUT_READERS(db) )	/* interrupt, timeout */
@@ -4006,7 +4053,7 @@ rdf_transaction(term_t goal, term_t id)
 	rc = FALSE;
 	goto discard;
       }
-      commit_transaction(db);
+      commit_transaction(db, id);
       REALLOW_READERS(db);
       broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_end);
     }
@@ -4645,7 +4692,13 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   for( ; p; p = p->next[t.indexed])
   { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
     { if ( db->tr_first )
-      { record_transaction(db, TR_RETRACT, p);
+      { if ( db->tr_reset )
+	{ WRUNLOCK(db);
+	  return permission_error("retract", "triple", "",
+				  "rdf_retractall cannot follow "
+				  "rdf_reset_db in one transaction");
+	}
+	record_transaction(db, TR_RETRACT, p);
       } else
       { erase_triple(db, p);
 	db->generation++;
@@ -5702,8 +5755,9 @@ rdf_reset_db()
     return FALSE;
 
   if ( db->tr_first )
-    record_transaction(db, TR_RESET, NULL);
-  else
+  { record_transaction(db, TR_RESET, NULL);
+    db->tr_reset = TRUE;
+  } else
     reset_db(db);
 
   WRUNLOCK(db);
