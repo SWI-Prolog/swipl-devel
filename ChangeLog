@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: do not stop break-level after exception.  Paulo Moura.
+
   * ADDED: Safety check in PL_new_term_ref() and PL_new_term_refs().
     Ben Chistador.
 

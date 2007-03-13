@@ -73,9 +73,22 @@ pl_break1(term_t goal)
 
   resetTracer();
 
+  for(;;)
   { fid_t cid = PL_open_foreign_frame();
+    term_t ex;
 
-    rval = callProlog(MODULE_user, goal, PL_Q_NORMAL, NULL);
+    rval = callProlog(MODULE_user, goal,
+		      PL_Q_NORMAL|PL_Q_CATCH_EXCEPTION, &ex);
+    if ( !rval && ex )
+    { printMessage(ATOM_error,
+		   PL_FUNCTOR_CHARS, "unhandled_exception", 1,
+		     PL_TERM, ex);
+      tracemode(FALSE, NULL);
+      debugmode(DBG_OFF, NULL);
+      PL_put_atom(goal, ATOM_prolog);
+    } else
+    { break;
+    }
 
     PL_discard_foreign_frame(cid);
   }

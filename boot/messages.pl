@@ -269,7 +269,8 @@ prolog_message(initialization_exception(E)) -->
 	[ 'Prolog initialisation failed:', nl ],
 	translate_message(E).
 prolog_message(unhandled_exception(E)) -->
-	[ 'Unhandled exception: ~p~n'-[E] ].
+	[ 'Unhandled exception: ' ],
+	translate_message(E).
 prolog_message(goal_failed(Goal, Context)) -->
 	[ 'Goal (~w) failed: ~p'-[Goal, Context] ].
 prolog_message(no_current_module(Module)) -->
