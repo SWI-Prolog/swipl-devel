@@ -1689,7 +1689,7 @@ The first 128 characters follow the ISO Prolog standard. All other
 characters not covered by the rules above are considered `solo'
 characters: they form single-character atoms. We would like to have a
 more appropriate distinction between what is known to Prolog as `solo'
-characters and `singleton' characters.
+characters and `symbol' characters.
 \end{itemlist}
 
 
