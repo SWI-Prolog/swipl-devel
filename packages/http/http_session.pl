@@ -33,6 +33,7 @@
 :- module(http_session,
 	  [ http_set_session_options/1,	% +Options
 
+	    http_session_id/1,		% +Request, -SessionId
 	    http_session_id/1,		% -SessionId
 	    http_current_session/2,	% ?SessionId, ?Data
 
@@ -71,12 +72,18 @@ http_session_option(Option) :-
 	retractall(session_setting(Free)),
 	assert(session_setting(Option)).
 
-%%	http_session_id(-SessionId)
+%%	http_session_id(-SessionId) is det.
+%%	http_session_id(+Request, -SessionId) is det.
 %	
 %	Fetch the current session ID from the global request variable.
+%	
+%	@error existence_error(http_session, _)
 
 http_session_id(SessionID) :-
 	http_current_request(Request),
+	http_session_id(Request, SessionID).
+
+http_session_id(Request, SessionID) :-
 	(   memberchk(session(SessionID0), Request)
 	->  SessionID = SessionID0
 	;   throw(error(existence_error(http_session, _), _))
