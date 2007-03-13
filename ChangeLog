@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Safety check in PL_new_term_ref() and PL_new_term_refs().
+    Ben Chistador.
+
   * FIXED: Restoring generate_debug_info flag over loading .qlf files.
     Mike Elston.
 

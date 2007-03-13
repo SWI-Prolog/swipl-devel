@@ -181,6 +181,9 @@ term_t
 PL_new_term_refs(int n)
 { GET_LD
 
+  if ( (void*)fli_context <= (void*)environment_frame )
+    fatalError("PL_new_term_refs(): No foreign environment");
+
   return PL_new_term_refs__LD(n PASS_LD);
 }
 
@@ -188,6 +191,9 @@ PL_new_term_refs(int n)
 term_t
 PL_new_term_ref()
 { GET_LD
+
+  if ( (void*)fli_context <= (void*)environment_frame )
+    fatalError("PL_new_term_ref(): No foreign environment");
 
   return PL_new_term_ref__LD(PASS_LD1);
 }
