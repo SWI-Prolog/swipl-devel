@@ -334,23 +334,23 @@ do_expand(Term, M) -->
 	    )
 	).
 do_expand(Term, M) -->
-	{ Term =.. [Env, Attributes, Contents]
+	{ Term =.. [Env, Attributes, Contents],
+	  check_non_empty(Contents, Env, Term)
 	}, !,
 	(   { Contents == [],
 	      html_current_option(dialect(xhtml))
 	    }
 	->  xhtml_empty(Env, Attributes)
-	;   { non_empty(Env, Term)
-	    },
-	    html_begin(Env, Attributes),
+	;   html_begin(Env, Attributes),
 	    html(Contents, M),
 	    html_end(Env)
 	).
 
-non_empty(Tag, Term) :-
+check_non_empty([], _, _) :- !.
+check_non_empty(_, Tag, Term) :-
 	layout(Tag, _, empty), !,
 	print_message(warning, format('Using empty element with content: ~p', [Term])).
-non_empty(_, _).
+check_non_empty(_, _, _).
 
 
 %%	html_begin(+Env)// is det.
