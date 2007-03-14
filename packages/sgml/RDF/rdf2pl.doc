@@ -179,11 +179,12 @@ using this URI.  If omited or the atom \verb$[]$, local identifiers are
 not tagged.
 
 	\termitem{blank_nodes}{Mode}
-If \arg{Mode} is \const{share}, blank-node properties (i.e.\ complex
-properties without identifier) are reused if they result in exactly the
-same triple-set. Two descriptions are shared if their intermediate
-description is the same.  This means they should produce the same set
-of triples in the same order.
+If \arg{Mode} is \const{share} (default), blank-node properties (i.e.\
+complex properties without identifier) are reused if they result in
+exactly the same triple-set. Two descriptions are shared if their
+intermediate description is the same. This means they should produce the
+same set of triples in the same order. The value \const{noshare} creates
+a new resource for each blank node.
 
 	\termitem{expand_foreach}{Boolean}
 If \arg{Boolean} is \const{true}, expand \const{rdf:aboutEach} into

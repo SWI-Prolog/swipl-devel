@@ -294,11 +294,12 @@ using this URI. If omited or the atom <CODE>[]</CODE>, local identifiers
 are not tagged.</DD>
 <DT><STRONG>blank_nodes</STRONG>(<VAR>Mode</VAR>)</DT>
 <DD class="defbody">
-If <VAR>Mode</VAR> is <CODE>share</CODE>, blank-node properties (i.e. complex 
-properties without identifier) are reused if they result in exactly the 
-same triple-set. Two descriptions are shared if their intermediate 
-description is the same. This means they should produce the same set of 
-triples in the same order.</DD>
+If <VAR>Mode</VAR> is <CODE>share</CODE> (default), blank-node 
+properties (i.e. complex properties without identifier) are reused if 
+they result in exactly the same triple-set. Two descriptions are shared 
+if their intermediate description is the same. This means they should 
+produce the same set of triples in the same order. The value <CODE>noshare</CODE> 
+creates a new resource for each blank node.</DD>
 <DT><STRONG>expand_foreach</STRONG>(<VAR>Boolean</VAR>)</DT>
 <DD class="defbody">
 If <VAR>Boolean</VAR> is <CODE>true</CODE>, expand <CODE>rdf:aboutEach</CODE> 
