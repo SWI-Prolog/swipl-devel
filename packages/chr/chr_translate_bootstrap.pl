@@ -537,9 +537,9 @@ generate_attach_a_constraint_t_p(Total,Position,CFct / CAty ,Mod,Clause) :-
 	or_pattern(Position,Pattern),
 	make_attr(Total,Mask,SuspsList,Attr),
 	nth(Position,SuspsList,Susps),
-	substitute(Susps,SuspsList,[Susp|Susps],SuspsList1),
+	substitute_eq(Susps,SuspsList,[Susp|Susps],SuspsList1),
 	make_attr(Total,Mask,SuspsList1,NewAttr1),
-	substitute(Susps,SuspsList,[Susp],SuspsList2),
+	substitute_eq(Susps,SuspsList,[Susp],SuspsList2),
 	make_attr(Total,NewMask,SuspsList2,NewAttr2),
 	copy_term_nat(SuspsList,SuspsList3),
 	nth(Position,SuspsList3,[Susp]),
@@ -619,9 +619,9 @@ generate_detach_a_constraint_t_p(Total,Position,CFct / CAty ,Mod,Clause) :-
 	and_pattern(Position,DelPattern),
 	make_attr(Total,Mask,SuspsList,Attr),
 	nth(Position,SuspsList,Susps),
-	substitute(Susps,SuspsList,[],SuspsList1),
+	substitute_eq(Susps,SuspsList,[],SuspsList1),
 	make_attr(Total,NewMask,SuspsList1,Attr1),
-	substitute(Susps,SuspsList,NewSusps,SuspsList2),
+	substitute_eq(Susps,SuspsList,NewSusps,SuspsList2),
 	make_attr(Total,Mask,SuspsList2,Attr2),
 	Body =
 	(

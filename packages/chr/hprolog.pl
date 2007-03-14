@@ -1,7 +1,7 @@
 :- module(hprolog,
 	  [ append/2,		        % +ListOfLists, -List
 	    nth/3,			% ?Index, ?List, ?Element
-	    substitute/4,		% +OldVal, +OldList, +NewVal, -NewList
+	    substitute_eq/4,		% +OldVal, +OldList, +NewVal, -NewList
 	    memberchk_eq/2,		% +Val, +List
 	    intersect_eq/3,		% +List1, +List2, -Intersection
 	    list_difference_eq/3,	% +List, -Subtract, -Rest
@@ -73,18 +73,18 @@ nth(Index, List, Element) :-
 	nth1(Index, List, Element).
 
 
-%	substitute(+OldVal, +OldList, +NewVal, -NewList)
+%	substitute_eq(+OldVal, +OldList, +NewVal, -NewList)
 %	
 %	Substitute OldVal by NewVal in OldList and unify the result
-%	with NewList.  JW: Shouldn't this be called substitute_eq/4?
+%	with NewList.
 
-substitute(_, [], _, []) :- ! .
-substitute(X, [U|Us], Y, [V|Vs]) :-
+substitute_eq(_, [], _, []) :- ! .
+substitute_eq(X, [U|Us], Y, [V|Vs]) :-
         (   X == U
 	->  V = Y,
-            substitute(X, Us, Y, Vs)
+            substitute_eq(X, Us, Y, Vs)
         ;   V = U,
-            substitute(X, Us, Y, Vs)
+            substitute_eq(X, Us, Y, Vs)
         ).
 
 %	memberchk_eq(+Val, +List)
