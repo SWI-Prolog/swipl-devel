@@ -4522,6 +4522,7 @@ update_triple(rdf_db *db, term_t action, triple *t)
 					/* Create copy in local memory */
   tmp = *t;
   tmp.allocated = FALSE;
+  tmp.atoms_locked = FALSE;
   if ( t->object_is_literal )
     tmp.object.literal = copy_literal(db, t->object.literal);
 

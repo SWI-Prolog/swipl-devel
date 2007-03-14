@@ -1,3 +1,7 @@
+Mar 14, 2007
+
+  * FIXED: atom-reference issue in rdf_update/[4,5].  Jochem Liem.
+
 Mar 13, 2007
 
   * FIXED: Send monitor events on begin/end of nested transactions.
