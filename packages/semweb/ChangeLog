@@ -1,5 +1,8 @@
 Mar 14, 2007
 
+  * FIXED: rdf_has/3 to use empty reachability matrix after a property
+    is added.
+
   * FIXED: atom-reference issue in rdf_update/[4,5].  Jochem Liem.
 
 Mar 13, 2007

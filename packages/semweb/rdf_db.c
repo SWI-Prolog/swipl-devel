@@ -716,6 +716,7 @@ lookup_predicate(rdf_db *db, atom_t name)
   memset(p, 0, sizeof(*p));
   p->name = name;
   p->root = p;
+  create_reachability_matrix(p->root);
   PL_register_atom(name);
   p->next = db->pred_table[hash];
   db->pred_table[hash] = p;
@@ -990,6 +991,7 @@ organise_predicates(rdf_db *db)
 	  { if ( !p->label )
 	    { Sdprintf("ERROR: %s->label = 0 (root = %s)\n", pname(p), pname(p->root));
 	    }
+	    assert(p->root->reachable);
 	  }
 	});
 
