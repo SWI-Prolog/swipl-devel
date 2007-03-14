@@ -830,6 +830,8 @@ prolog:called_by(pagehead(HTML,_,_), Called) :-
 	phrase(called_by(HTML), Called).
 prolog:called_by(pagebody(HTML,_,_), Called) :-
 	phrase(called_by(HTML), Called).
+prolog:called_by(reply_html_page(Head,Body), Called) :-
+	phrase(called_by([Head,Body]), Called).
 
 called_by(Var) -->
 	{ var(Var) }, !,
