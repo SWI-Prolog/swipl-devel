@@ -1,3 +1,9 @@
+Mar 15, 2007
+
+  * ADDED: Include peer in session management for better security.
+  * ADDED: Broadcast session start/end to allow deletion of derived
+    data.
+
 Mar 11, 2007
 
   * FIXED: http_open/3: send Host: <host>:<port> if port is not 80.

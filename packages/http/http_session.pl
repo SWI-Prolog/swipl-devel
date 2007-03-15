@@ -45,6 +45,7 @@
 	  ]).
 :- use_module(http_wrapper).
 :- use_module(library(debug)).
+:- use_module(library(broadcast)).
 
 /** <module> HTTP Session management
 
@@ -53,13 +54,28 @@ This library defines session management based on HTTP cookies.
 
 :- dynamic
 	session_setting/1,		% Name(Value)
-	current_session/1,		% SessionId
+	current_session/2,		% SessionId, Peer
 	last_used/2,			% SessionId, Time
 	session_data/2.			% SessionId, Data
 
-session_setting(timeout(600)).
+session_setting(timeout(600)).		% timeout in seconds
 session_setting(cookie('swipl_session')).
 session_setting(path(/)).
+
+%%	http_set_session_options(+Options) is det.
+%
+%	Set options for the session library.  Provided options are:
+%	
+%		* timeout(+Seconds)
+%		Session timeout in seconds.  Default is 600 (10 min).
+%		
+%		* cookie(+Cookiekname)
+%		Name to use for the cookie to identify the session.
+%		Default =swipl_session=.
+%		
+%		* path(+Path)
+%		Path to which the cookie is associated.  Default is
+%		=|/|=.
 
 http_set_session_options([]).
 http_set_session_options([H|T]) :-
@@ -104,7 +120,8 @@ http_session(Request0, Request, SessionID) :-
 	memberchk(cookie(Cookies), Request0),
 	session_setting(cookie(Cookie)),
 	memberchk(Cookie=SessionID0, Cookies),
-	valid_session_id(SessionID0), !,
+	peer(Request0, Peer),
+	valid_session_id(SessionID0, Peer), !,
 	SessionID = SessionID0,
 	Request = [session(SessionID)|Request0].
 http_session(Request0, Request, SessionID) :-
@@ -114,7 +131,8 @@ http_session(Request0, Request, SessionID) :-
 	session_setting(path(Path)),
 	format('Set-Cookie: ~w=~w; path=~w~n', [Cookie, SessionID, Path]),
 	Request = [session(SessionID)|Request0],
-	open_session(SessionID).
+	peer(Request0, Peer),
+	open_session(SessionID, Peer).
 
 :- multifile
 	http:request_expansion/2.
@@ -122,24 +140,36 @@ http_session(Request0, Request, SessionID) :-
 http:request_expansion(Request0, Request) :-
 	http_session(Request0, Request, _SessionID).
 
+%%	peer(+Request, -Peer)
+%
+%	Find peer for current request. If   unknown we leave it unbound.
+%	Alternatively we should treat this as an error.
 
-%%	open_session(+SessionID)
+peer(Request, Peer) :-
+	(   memberchk(peer(Peer), Request)
+	->  true
+	;   true
+	).
+
+%%	open_session(+SessionID, +Peer)
 %	
-%	Open a new session.
+%	Open a new session.  Uses broadcast/1 with the term
+%	http_session(begin(SessionID, Peer)).
 
-open_session(SessionID) :-
+open_session(SessionID, Peer) :-
 	get_time(Now),
-	assert(current_session(SessionID)),
-	assert(last_used(SessionID, Now)).
+	assert(current_session(SessionID, Peer)),
+	assert(last_used(SessionID, Now)),
+	broadcast(http_session(begin(SessionID, Peer))).
 
 
-%%	valid_session_id(+SessionID)
+%%	valid_session_id(+SessionID, +Peer)
 %	
 %	Check if this sessionID is known. If so, check the idle time and
 %	update the last_used for this session.
 
-valid_session_id(SessionID) :-
-	current_session(SessionID),
+valid_session_id(SessionID, Peer) :-
+	current_session(SessionID, SessionPeer),
 	get_time(Now),
 	(   session_setting(timeout(Timeout)),
 	    Timeout > 0
@@ -147,9 +177,12 @@ valid_session_id(SessionID) :-
 	    Idle is Now - Last,
 	    (	Idle =< Timeout
 	    ->  true
-	    ;   delete_session(SessionID),
+	    ;   close_session(SessionID),
 		fail
 	    )
+	;   Peer \== SessionPeer
+	->  close_session(SessionID),
+	    fail
 	;   true
 	),
 	retractall(last_used(SessionID, _)),
@@ -200,9 +233,14 @@ http_session_data(Data) :-
 
 %%	http_current_session(?SessionID, ?Data) is nondet.
 %	
-%	Enumerate the current sessions and   associated data. The pseudo
-%	data element idle(Seconds) provides the idle time. Other data is
-%	application specified.
+%	Enumerate the current sessions and   associated data.  There are
+%	two _Pseudo_ data elements:
+%	
+%		* idle(Seconds)
+%		Session has been idle for Seconds.
+%		
+%		* peer(Peer)
+%		Peer of the connection.
 
 http_current_session(SessionID, Data) :-
 	get_time(Now),
@@ -215,6 +253,9 @@ http_current_session(SessionID, Data) :-
 	),
 	(   Data = idle(Idle)
 	;   session_data(SessionID, Data)
+	),
+	(   Data = peer(Peer)
+	;   current_session(SessionID, Peer)
 	).
 
 
@@ -222,10 +263,19 @@ http_current_session(SessionID, Data) :-
 		 *	    GC SESSIONS		*
 		 *******************************/
 
-delete_session(SessionId) :-
-	retractall(current_session(SessionId)),
-	retractall(last_used(SessionId, _)),
-	retractall(session_data(SessionId, _)).
+%%	close_session(+SessionID)
+%
+%	Closes an HTTP session.   Broadcasts http_session(end(SessionId,
+%	Peer)).
+
+close_session(SessionId) :-
+	(   retract(current_session(SessionId, Peer)),
+	    broadcast(http_session(end(SessionId, Peer))),
+	    retractall(last_used(SessionId, _)),
+	    retractall(session_data(SessionId, _)),
+	    fail
+	;   true
+	).
 
 %	http_gc_sessions/0
 %	
@@ -238,7 +288,7 @@ http_gc_sessions :-
 	(   last_used(SessionID, Last),
 	    Idle is Now - Last,
 	    Idle > Timeout,
-	    delete_session(SessionID),
+	    close_session(SessionID),
 	    fail
 	;   true
 	).
@@ -252,7 +302,9 @@ http_gc_sessions.
 %%	gen_cookie(-Cookie)
 %	
 %	Generate a random cookie that  can  be   used  by  a  browser to
-%	identify the current session
+%	identify the current session.
+%	
+%	@tbd	Use /dev/urandom when present
 
 gen_cookie(Cookie) :-
 	R1 is random(65536),
@@ -262,4 +314,3 @@ gen_cookie(Cookie) :-
 	format(atom(Cookie),
 		'~`0t~16r~4|-~`0t~16r~9|-~`0t~16r~14|-~`0t~16r~19|',
 		[R1,R2,R3,R4]).
-
