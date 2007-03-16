@@ -69,28 +69,69 @@ Version 5.6.27 Patches relative to 5.6.26
 
 
 
-Version 5.6.29 Patches relative to 5.6.28
+Version 5.6.31 Patches relative to 5.6.30
 =========================================
 
-Prolog
+================================================================
++++ ChangeLog	16 Mar 2007 15:30:37 -0000	1.1406
++VERSION 5.6.31 (March 16, 2007)
++===============================
++
++  * FIXED: told/seen underflow in lock-count on stream. Steffen Schwigon.
++
++  * FIXED: do not stop break-level after exception.  Paulo Moura.
++
++  * ADDED: Safety check in PL_new_term_ref() and PL_new_term_refs().
++    Ben Chistador.
++
++  * FIXED: Restoring generate_debug_info flag over loading .qlf files.
++    Mike Elston.
++
++  * FIXED: library(base64): Determinism while decoding.
++
++  * PORT: Bug#266: Ensure package build exits on first error.  Keri Harris.
++
++===============================
 
-  * Added function powm/3
-  * Added library record
-  * Changed default stacks sizes from 4 MB to 32 MB
-  * Various portability issues
-  * Various minor issues.
+================================================================
++++ packages/jpl/ChangeLog	16 Mar 2007 10:01:55 -0000	1.10
++Mar 16, 2007
++
++  * INSTALL: Really do not require plunit fro normal distribution.
++
 
-Packages
- 
-  * JPL: Errornous integer check
-  * PlUnit: Allow omitting list for a single test-option:
-    test(name, true(X==42)) :- ...
-  * Clib: Added library(sha), providing SHA-1 and SHA-256 and friends,
-    including HMAC-SHA.  Fix some loose ends in recent socket rewrite.
-  * HTTP: Fixed sending HTTP 302 messages.  Added final_url option to
-    http_open/3 to find the final URL after redirects.  Streamline debug
-    messages.
-  * Semweb: Fixed two locking issues in RDF database.  Fixed two issues
-    concerning rdf_reset_db.  Added MIME-type application/rdf+xml to
-    rdf_http_plugin.pl.  Allow for base_uri(-URI) in rdf_load/2.
-  
+================================================================
++++ packages/http/ChangeLog	15 Mar 2007 14:39:03 -0000	1.58
++Mar 15, 2007
++
++  * ADDED: Include peer in session management for better security.
++  * ADDED: Broadcast session start/end to allow deletion of derived
++    data.
++
++Mar 11, 2007
++
++  * FIXED: http_open/3: send Host: <host>:<port> if port is not 80.
++
++Mar 9, 2007
++
++  * ADDED: reply_html_page/2.  To be documented
++
++  * ADDED: Pass protocol(http/https) into request.
++
+
+================================================================
++++ packages/semweb/ChangeLog	14 Mar 2007 16:11:21 -0000	1.132
++Mar 14, 2007
++
++  * FIXED: rdf_has/3 to use empty reachability matrix after a property
++    is added.
++
++  * FIXED: atom-reference issue in rdf_update/[4,5].  Jochem Liem.
++
++Mar 13, 2007
++
++  * FIXED: Send monitor events on begin/end of nested transactions.
++    Required to make rdf_persistency work properly if RDF operations
++    such as rdf_reset_db and rdf_load are nested in transactions.
++
+
