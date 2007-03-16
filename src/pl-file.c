@@ -757,7 +757,7 @@ closeStream(IOSTREAM *s)
       Sclose(s);
       return FALSE;
     }
-    Sclose(s);
+    Sclose(s);				/* will unlock as well */
   }
 
   succeed;
@@ -2526,7 +2526,7 @@ pl_seeing(term_t f)
 word
 pl_seen()
 { GET_LD
-  IOSTREAM *s = Scurin;
+  IOSTREAM *s = getStream(Scurin);
 
   pl_pop_input_context();
 
@@ -2535,6 +2535,9 @@ pl_seen()
 
   return closeStream(s);
 }
+
+/* MT: Does not create a lock on the stream
+*/
 
 static word
 do_tell(term_t f, atom_t m)
@@ -2597,7 +2600,7 @@ pl_telling(term_t f)
 word
 pl_told()
 { GET_LD
-  IOSTREAM *s = Scurout;
+  IOSTREAM *s = getStream(Scurout);
 
   popOutputContext();
 
