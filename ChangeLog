@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+===============================
+VERSION 5.6.31 (March 16, 2007)
+===============================
+
   * FIXED: told/seen underflow in lock-count on stream. Steffen Schwigon.
 
   * FIXED: do not stop break-level after exception.  Paulo Moura.
