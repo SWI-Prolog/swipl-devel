@@ -1,0 +1,28 @@
+#!/bin/bash
+#
+# Show differences in ChangeLog files since last or given release
+
+version=`cat VERSION`
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+     [0-9]*)
+	  version="$1"
+	  shift
+	  ;;
+     *)
+	  echo "Usage: $0 [version]"
+	  exit 1
+  esac
+done
+
+tag=V`echo $version | sed 's/\./_/g'`
+changed="ChangeLog `find packages -name ChangeLog`"
+
+for f in $changed; do
+  if cvs diff -r $tag $f | grep '^+' | grep -q '^+' ; then
+    echo "================================================================"
+    cvs diff -r $tag $f | grep '^+'
+    echo ""
+  fi
+done
