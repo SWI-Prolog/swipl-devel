@@ -1,3 +1,7 @@
+Mar 16, 2007
+
+  * INSTALL: Really do not require plunit fro normal distribution.
+
 Feb 28, 2007
 
   * FIXED: Bug#260: errornous integer check.  Keri Harris.

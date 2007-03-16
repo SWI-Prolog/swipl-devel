@@ -64,6 +64,10 @@ TSTJAVA=$(TEST)
 
 all:	$(JPLJAR) $(TSTJAR) $(JPLDOC)
 
+jpl_jar:	$(JPLJAR)
+test_jar:	$(TSTJAR)
+jpl_doc:	$(JPLDOC)
+
 $(JPLJAR):	$(JPLJAVA)
 		$(JAVAC) $(JPLJAVA)
 		$(JAR) cf $(JPLJAR) $(JPLJAVA:.java=.class)

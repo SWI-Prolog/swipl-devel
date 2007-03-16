@@ -57,7 +57,7 @@ LIBPL=		jpl.pl
 TARGETS=	libjpl.@SO@
 OBJ=		src/c/jpl.o
 
-all:		$(TARGETS) jpl.jar exjava-compile
+all:		$(TARGETS) jpl.jar exjava-compile jpl_doc
 
 libjpl.@SO@:	$(OBJ)
 		$(LD) $(LDFLAGS) -o $@ $(OBJ) $(JAVALIBS)
@@ -66,7 +66,9 @@ libjpl.@SO@:	$(OBJ)
 		fi
 
 jpl.jar::
-		(cd src/java && $(MAKE) all)
+		(cd src/java && $(MAKE) jpl_jar)
+jpl_doc::
+		(cd src/java && $(MAKE) jpl_doc)
 
 ################################################################
 # Verify the package
@@ -76,8 +78,11 @@ check:		check_pl check_java
 
 check_pl::		
 		$(PL) -q -f test_jpl.pl -g run_tests,halt -t 'halt(1)'
-check_java::
+check_java:	jpltest.jar
 		CLASSPATH=$(JUNIT):jpl.jar:jpltest.jar $(JAVA) junit.textui.TestRunner jpl.test.TestJUnit
+
+jpltest.jar:
+		(cd src/java && $(MAKE) test_jar)
 
 ################################################################
 # Installation
