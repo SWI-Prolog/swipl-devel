@@ -1,3 +1,8 @@
+Mar 16, 2007
+
+  * TS: Extended observation analysis (abstract interpretation)
+	to deal with disjunctions. With Paolo Tacchella.
+
 Mar 14, 2007
 
   * TS: Renamed hprolog:substitute/4 to substitute_eq/4, because of
