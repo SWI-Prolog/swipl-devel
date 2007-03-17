@@ -30,49 +30,51 @@
 */
 
 :- module(unicode_derived_core_properties,
-	  [ unicode_derived_core_property/2
+	  [ unicode_derived_core_property/2,	% ?Code, ?Prop
+	    unicode_property/3			% +File, ?Code, ?Prop
 	  ]).
 :- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [member/2, numlist/3]).
 :- use_module(library(readutil), [read_line_to_codes/2]).
 
 :- dynamic
-	derived_property/2,
-	loaded/0.
+	derived_property/3,
+	loaded/1.
 
-%	unicode_derived_core_property(?Code, ?Prop)
+%	unicode_derived_core_property(+File, ?Code, ?Prop)
 %	
 %	
 
 unicode_derived_core_property(Code, Prop) :-
-	loaded, !,
-	derived_property(Code, Prop).
-unicode_derived_core_property(Code, Prop) :-
-	retractall(derived_property(_,_)),
-	process_file,
-	assert(loaded),
-	derived_property(Code, Prop).
+	unicode_property('DerivedCoreProperties.txt', Code, Prop).	
 
-process_file :-
-	process_file('DerivedCoreProperties.txt').
+unicode_property(File, Code, Prop) :-
+	loaded(File), !,
+	derived_property(File, Code, Prop).
+unicode_property(File, Code, Prop) :-
+	retractall(derived_property(File, _,_)),
+	process_file(File),
+	assert(loaded(File)),
+	unicode_property(File, Code, Prop).
+
 
 process_file(File) :-
 	open(File, read, In),
-	call_cleanup(process_stream(In), close(In)).
+	call_cleanup(process_stream(In, File), close(In)).
 
-process_stream(In) :-
+process_stream(In, File) :-
 	read_line_to_codes(In, Line),
 	(   Line == end_of_file
 	->  true
-	;   process_line(Line),
-	    process_stream(In)
+	;   process_line(Line, File),
+	    process_stream(In, File)
 	).
 
-process_line(Line) :-
+process_line(Line, File) :-
 	debug(unicode_data, 'Line "~s"', [Line]),
 	phrase(line(Codes, Class), Line),
 	forall(member(C, Codes),
-	       assert(derived_property(C, Class))).
+	       assert(derived_property(File, C, Class))).
 	
 
 
