@@ -1,3 +1,8 @@
+Mar 19, 2007
+
+  * ADDED: Include name of parameter in type-errors detected by
+    http_parameters/2.
+
 Mar 15, 2007
 
   * ADDED: Include peer in session management for better security.

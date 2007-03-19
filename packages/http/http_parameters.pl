@@ -112,7 +112,7 @@ fill_param(Name, Values, Options, FormData) :-
 fill_param(Name, Value, Options, FormData) :-
 	(   memberchk(Name=Value0, FormData),
 	    Value0 \== ''		% Not sure
-	->  check_type(Options, Value0, Value)
+	->  check_type(Options, Name, Value0, Value)
 	;   memberchk(default(Value), Options)
 	->  true
 	;   memberchk(optional(true), Options)
@@ -123,19 +123,21 @@ fill_param(Name, Value, Options, FormData) :-
 
 fill_param_list([], _, [], _).
 fill_param_list([Name=Value0|Form], Name, [Value|VT], Options) :- !,
-	check_type(Options, Value0, Value),
+	check_type(Options, Name, Value0, Value),
 	fill_param_list(Form, Name, VT, Options).
 fill_param_list([_|Form], Name, VT, Options) :-
 	fill_param_list(Form, Name, VT, Options).
 
 
-check_type([], Value, Value).
-check_type([H|T], Value0, Value) :-
+check_type([], _, Value, Value).
+check_type([H|T], Field, Value0, Value) :-
 	(   check_type3(H, Value0, Value1)
-	->  check_type(T, Value1, Value)
+	->  check_type(T, Field, Value1, Value)
 	;   check_type2(H, Value0)
-	->  check_type(T, Value0, Value)
-	;   throw(error(type_error(H, Value0), _))
+	->  check_type(T, Field, Value0, Value)
+	;   format(string(Msg), 'HTTP parameter ~w', [Field]),
+	    throw(error(type_error(H, Value0), 
+			context(_, Msg)))
 	).
 
 check_type3(number, Atom, Number) :-
