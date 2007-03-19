@@ -10,6 +10,9 @@ while [ $# -gt 0 ]; do
 	  version="$1"
 	  shift
 	  ;;
+     last)
+	  shift
+	  ;;
      *)
 	  echo "Usage: $0 [version]"
 	  exit 1
@@ -19,10 +22,15 @@ done
 tag=V`echo $version | sed 's/\./_/g'`
 changed="ChangeLog `find packages -name ChangeLog`"
 
+echo "================================================================"
+echo "SWI-Prolog changes since version $version"
+echo "================================================================"
+echo ""
+
 for f in $changed; do
-  if cvs diff -r $tag $f | grep '^+' | grep -q '^+' ; then
+  if cvs diff -ur $tag $f | grep '^+' | grep -q '^+' ; then
     echo "================================================================"
-    cvs diff -r $tag $f | grep '^+'
+    cvs diff -ur $tag $f | grep '^+' | grep -v "=============="
     echo ""
   fi
 done
