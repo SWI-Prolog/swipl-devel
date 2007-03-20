@@ -32,6 +32,7 @@
 :- module(httpd_wrapper,
 	  [ http_wrapper/5,		% :Goal, +In, +Out, -Conn, +Options
 	    http_current_request/1,	% -Request
+	    http_send_header/1,		% +Term
 	    http_relative_path/2	% +AbsPath, -RelPath
 	  ]).
 :- use_module(http_header).
@@ -71,12 +72,13 @@ wrapper(Goal, In, Out, Close, Options) :-
 	memberchk(path(Location), Request1),
 	thread_self(Self),
 	debug(http(wrapper), '[~w] ~w ~w ...', [Self, Method, Location]),
-	call_handler(Goal, Request1, Request, Error, MemFile),
+	call_handler(Goal, Request1, Request, Error, CgiHeader0, MemFile),
 	debug(http(wrapper), '[~w] ~w ~w --> ~p', [Self, Method, Location, Error]),
 	(   var(Error)
 	->  size_memory_file(MemFile, Length),
 	    open_memory_file(MemFile, read, TmpIn),
-	    http_read_header(TmpIn, CgiHeader),
+	    http_read_header(TmpIn, CgiHeader1),
+	    append(CgiHeader0, CgiHeader1, CgiHeader),
 	    join_cgi_header(Request, CgiHeader, Header0),
 	    http_update_encoding(Header0, Encoding, Header),
 	    set_stream(Out, encoding(Encoding)),
@@ -101,20 +103,24 @@ wrapper(Goal, In, Out, Close, Options) :-
 	).
 
 
-%%	call_handler(:Goal, +RequestIn, -RequestOut, -Error, -MemFile)
+%%	call_handler(:Goal, +RequestIn, -RequestOut, -Error, -CgiHeader, -MemFile)
 %	
 %	Process RequestIn using Goal, producing CGI data in MemFile
 
-call_handler(Goal, Request0, Request, Error, MemFile) :-
+call_handler(Goal, Request0, Request, Error, CgiHeader, MemFile) :-
 	new_memory_file(MemFile),
 	open_memory_file(MemFile, write, TmpOut),
 	current_output(OldOut),
 	set_output(TmpOut),
+	b_setval(http_cgi_header, []),
 	(   catch(call_handler(Goal, Request0, Request), Error, true)
 	->  true
 	;   Error = failed
 	),
+	b_getval(http_cgi_header, CgiHeader0),
+	reverse(CgiHeader0, CgiHeader),
 	nb_delete(http_request),
+	nb_delete(http_cgi_header),
 	set_output(OldOut),
 	close(TmpOut).
 
@@ -132,6 +138,16 @@ cleanup(TmpIn, Out, MemFile) :-
 	close(TmpIn),
 	free_memory_file(MemFile).
 
+
+%%	http_send_header(+Header)
+%
+%	This API provides an alternative for writing the header field as
+%	a CGI header. Header has the  format Name(Value), as produced by
+%	http_read_header/2.
+
+http_send_header(Header) :-
+	b_getval(http_cgi_header, CgiHeader0),
+	b_setval(http_cgi_header, [Header|CgiHeader0]).
 
 %%	expand_request(+Request0, -Request)
 %	
@@ -194,6 +210,9 @@ keep_alive(cgi_stream(_In, _Len)).
 
 
 %%	join_cgi_header(+Request, +CGIHeader, -Header)
+%
+%	Merge keep-alive information from  Request   and  CGIHeader into
+%	Header.
 
 join_cgi_header(Request, CgiHeader, [connection(Connect)|Rest]) :-
 	select(connection(CgiConn), CgiHeader, Rest), !,
