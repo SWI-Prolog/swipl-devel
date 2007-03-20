@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: rl_write_history/1 and rl_read_history/1.  Suggested by
+    Samer Abdallah.
+
   * FIXED: Reduce cases that cause a long delay in halt with the
     message "<N> threads wouldn't die"
 

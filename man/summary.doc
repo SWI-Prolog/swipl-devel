@@ -492,7 +492,9 @@ suggest predicates from a keyword.
 \predicatesummary{skip}{1}{Skip to character in current input}
 \predicatesummary{skip}{2}{Skip to character on stream}
 \predicatesummary{rl_add_history}{1}{Add line to readline(3) history}
+\predicatesummary{rl_read_history}{1}{Read readline(3) history}
 \predicatesummary{rl_read_init_file}{1}{Read readline(3) init file}
+\predicatesummary{rl_write_history}{1}{Write readline(3) history}
 \predicatesummary{sleep}{1}{Suspend execution for specified time}
 \predicatesummary{sort}{2}{Sort elements in a list}
 \predicatesummary{source_file}{1}{Examine currently loaded source files}

@@ -164,6 +164,42 @@ pl_rl_add_history(term_t text)
 }
 
 
+static foreign_t
+pl_rl_write_history(term_t fn)
+{ char *s;
+  int rc;
+
+  if ( !PL_get_file_name(fn, &s, 0) )
+    return FALSE;
+
+  if ( (rc=write_history(s)) == 0 )
+    return TRUE;
+
+  errno = rc;
+  return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		  ATOM_write, ATOM_file, fn);
+}
+
+
+
+static foreign_t
+pl_rl_read_history(term_t fn)
+{ char *s;
+  int rc;
+
+  if ( !PL_get_file_name(fn, &s, 0) )
+    return FALSE;
+
+  if ( (rc=read_history(s)) == 0 )
+    return TRUE;
+
+  errno = rc;
+  return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		  ATOM_read, ATOM_file, fn);
+}
+
+
+
 static int
 input_on_fd(int fd)
 { fd_set rfds;
@@ -539,8 +575,9 @@ PL_install_readline()
   Serror->functions  = &GD->os.rl_functions;
 
   PL_register_foreign("rl_read_init_file", 1, pl_rl_read_init_file, 0);
-  PL_register_foreign("rl_add_history",    1, pl_rl_add_history,
-		      PL_FA_NOTRACE);
+  PL_register_foreign("rl_add_history",    1, pl_rl_add_history, PL_FA_NOTRACE);
+  PL_register_foreign("rl_write_history",  1, pl_rl_write_history, 0);
+  PL_register_foreign("rl_read_history",   1, pl_rl_read_history, 0);
   PL_set_feature("readline",    PL_BOOL, TRUE);
   PL_set_feature("tty_control", PL_BOOL, TRUE);
   PL_license("gpl", "GNU Readline library");
