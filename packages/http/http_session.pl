@@ -33,7 +33,6 @@
 :- module(http_session,
 	  [ http_set_session_options/1,	% +Options
 
-	    http_session_id/1,		% +Request, -SessionId
 	    http_session_id/1,		% -SessionId
 	    http_current_session/2,	% ?SessionId, ?Data
 
@@ -252,10 +251,9 @@ http_current_session(SessionID, Data) :-
 	;   true
 	),
 	(   Data = idle(Idle)
+	;   Data = peer(Peer),
+	    current_session(SessionID, Peer)
 	;   session_data(SessionID, Data)
-	),
-	(   Data = peer(Peer)
-	;   current_session(SessionID, Peer)
 	).
 
 
