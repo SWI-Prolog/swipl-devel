@@ -1,3 +1,7 @@
+Mar 20, 2007
+
+* FIXED: Broken HTML for radio buttons.
+
 Feb 9, 2007
 
 * FIXED: Use HTTP 303 for initial redirection to avoid old redirects.

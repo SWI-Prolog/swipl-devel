@@ -98,13 +98,13 @@ radio(Radio, Field, Label, In) -->
 	->  Extra = [checked]
 	;   Extra = []
 	},
-	html(input([ type(radio),
-		     name(Radio),
-		     value(Field)
-		   | Extra
-		   ],
-		   [ Label
-		   ])).
+	html([ input([ type(radio),
+		       name(Radio),
+		       value(Field)
+		     | Extra
+		     ]),
+	       Label
+	     ]).
 
 %%	search_reply(+For, +Options)// is det.
 %
