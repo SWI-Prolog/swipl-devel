@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Reduce cases that cause a long delay in halt with the
+    message "<N> threads wouldn't die"
+
 ===============================
 VERSION 5.6.31 (March 16, 2007)
 ===============================

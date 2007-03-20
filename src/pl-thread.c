@@ -608,12 +608,14 @@ exitPrologThreads()
 #else
   	  if ( t->tid )
 	  { int rc;
+	    int oldstat = t->status;
 	    
+	    t->status = PL_THREAD_CANCELED;
 	    if ( (rc=pthread_cancel(t->tid)) == 0 )
-	    { t->status = PL_THREAD_CANCELED;
-	      canceled++;
+	    { canceled++;
 	    } else
-	    { Sdprintf("Failed to cancel thread %d: %s\n", i, ThError(rc));
+	    { t->status = oldstat;
+	      Sdprintf("Failed to cancel thread %d: %s\n", i, ThError(rc));
 	    }
 	  } else
 	  { DEBUG(1, Sdprintf("Destroying engine %d\n", i));
