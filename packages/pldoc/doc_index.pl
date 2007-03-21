@@ -79,7 +79,8 @@ doc_for_dir(DirSpec, Out, Options) :-
 %	any directory contained in Dir.
 
 dir_index(Dir, Options) -->
-	{ dir_source_files(Dir, Files, Options),
+	{ dir_source_files(Dir, Files0, Options),
+	  sort(Files0, Files),
 	  atom_concat(Dir, '/index.html', File),
 	  b_setval(pldoc_file, File)	% for predref
 	},

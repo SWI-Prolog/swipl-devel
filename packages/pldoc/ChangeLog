@@ -1,3 +1,11 @@
+Mar 21, 2007
+
+* ADDED: Sort files in directory.  Anjo Anjewierden.
+
+* ADDED: Document determinism values (det, nondet, etc.).  Anjo Anjewierden.
+
+* FIXED: typo in docuementation.  Anjo Anjewierden.
+
 Mar 20, 2007
 
 * FIXED: Broken HTML for radio buttons.

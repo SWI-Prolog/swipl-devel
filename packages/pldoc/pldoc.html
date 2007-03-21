@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog Source Documention</TITLE><STYLE type="text/css">
+<TITLE>SWI-Prolog Source Documentation</TITLE><STYLE type="text/css">
 /* Style sheet for SWI-Prolog latex2html
 */
 
@@ -85,7 +85,11 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
+}
+
+span.pred-ext
+{ font-weight: bold;
 }
 
 /* Footnotes */
@@ -95,7 +99,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -106,7 +110,7 @@ font-size: smaller;
 <BODY BGCOLOR="white"> 
 
 <P>
-<DIV class="title">SWI-Prolog Source Documention</DIV>
+<DIV class="title">SWI-Prolog Source Documentation</DIV>
 <DIV class="author">Jan Wielemaker <BR>
 HCS, <BR>
 University of Amsterdam <BR>
@@ -127,44 +131,44 @@ project during program development.
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
 <DIV class="toc">
-<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Structured 
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Overview</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Structured 
 comments</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">File 
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">File 
 and section comments</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Type 
+<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Type 
 and mode declarations</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Tags: <CODE>@</CODE>param, 
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">Tags: <CODE>@</CODE>param, 
 etc.</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Wiki 
+<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Wiki 
 notation</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:7.1"><SPAN class="sec-nr">7.1</SPAN><SPAN class="sec-title">Structuring 
+<DIV class="toc-h3"><A class="sec" href="#sec:7.1"><SPAN class="sec-nr">7.1</SPAN> <SPAN class="sec-title">Structuring 
 conventions</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:7.2"><SPAN class="sec-nr">7.2</SPAN><SPAN class="sec-title">Text 
+<DIV class="toc-h3"><A class="sec" href="#sec:7.2"><SPAN class="sec-nr">7.2</SPAN> <SPAN class="sec-title">Text 
 markup: fonts and links</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">Directory 
+<DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN> <SPAN class="sec-title">Directory 
 indices</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Documentation 
+<DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN> <SPAN class="sec-title">Documentation 
 files</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Running 
+<DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN> <SPAN class="sec-title">Running 
 the documentation system</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:10.1"><SPAN class="sec-nr">10.1</SPAN><SPAN class="sec-title">During 
+<DIV class="toc-h3"><A class="sec" href="#sec:10.1"><SPAN class="sec-nr">10.1</SPAN> <SPAN class="sec-title">During 
 development</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:10.2"><SPAN class="sec-nr">10.2</SPAN><SPAN class="sec-title">As 
+<DIV class="toc-h3"><A class="sec" href="#sec:10.2"><SPAN class="sec-nr">10.2</SPAN> <SPAN class="sec-title">As 
 a manual server</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:10.3"><SPAN class="sec-nr">10.3</SPAN><SPAN class="sec-title">Using 
+<DIV class="toc-h3"><A class="sec" href="#sec:10.3"><SPAN class="sec-nr">10.3</SPAN> <SPAN class="sec-title">Using 
 the browser interface</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:10.3.1"><SPAN class="sec-nr">10.3.1</SPAN><SPAN class="sec-title">Searching</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:10.3.2"><SPAN class="sec-nr">10.3.2</SPAN><SPAN class="sec-title">Views</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:10.3.3"><SPAN class="sec-nr">10.3.3</SPAN><SPAN class="sec-title">Editing</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:11"><SPAN class="sec-nr">11</SPAN><SPAN class="sec-title">Motivation 
+<DIV class="toc-h4"><A class="sec" href="#sec:10.3.1"><SPAN class="sec-nr">10.3.1</SPAN> <SPAN class="sec-title">Searching</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:10.3.2"><SPAN class="sec-nr">10.3.2</SPAN> <SPAN class="sec-title">Views</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:10.3.3"><SPAN class="sec-nr">10.3.3</SPAN> <SPAN class="sec-title">Editing</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:11"><SPAN class="sec-nr">11</SPAN> <SPAN class="sec-title">Motivation 
 of choices</SPAN></A></DIV>
 </DIV>
 
 <P>
 
-<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <P>When developing Prolog source that has to be maintained for a longer 
 period or is developed by a ---possibly distributed--- team some basic 
@@ -186,10 +190,10 @@ as well as the team,
 </UL>
 
 <P>First, we describe the documentation system we developed for 
-SWI-Prolog. In <A class="sec" href="#sec:motivation">section 11</A> we 
-motivate our main choices.
+SWI-Prolog. In <A class="sec" href="#sec:11">section 11</A> we motivate 
+our main choices.
 
-<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></H2>
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Overview</SPAN></A></H2>
 
 <P>Like JavaDoc, the PlDoc infrastructure is based on <EM>structured 
 comments</EM>. Using comments, no changes have to be made to Prolog to 
@@ -210,22 +214,22 @@ input file for LaTeX for producing nicely typeset document.
 <P>To support the developer, the documentation system can be asked to 
 start a web-server that can be used to browse the documentation.
 
-<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Structured 
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Structured 
 comments</SPAN></A></H2>
 
 <P>Structured comments come in two flavours, the line-comment (%) based 
 one, seen mostly in the Prolog community and the block-comment (<CODE>/*</CODE>...<CODE>*/</CODE>) 
 based one, commonly seen in the Java and C domain. As we cannot 
 determine the argument-names, type and modes from following (predicate) 
-code itself, we must supply this in the comment.<SUP class="fn">2<SPAN class="fn-text">See <A class="sec" href="#sec:motivation:modes">section 
+code itself, we must supply this in the comment.<SUP class="fn">2<SPAN class="fn-text">See <A class="sec" href="#sec:11">section 
 11</A>.</SPAN></SUP>. The overall structure of the comment therefore is:
 
 <P><UL COMPACT>
-<LI>Semi-formal type- and mode-description, see <A class="sec" href="#sec:modes">section 
+<LI>Semi-formal type- and mode-description, see <A class="sec" href="#sec:5">section 
 5</A>
-<LI>Wiki-style documentation body, see <A class="sec" href="#sec:wiki">section 
+<LI>Wiki-style documentation body, see <A class="sec" href="#sec:7">section 
 7</A>
-<LI>JavaDoc style tags (<CODE>@</CODE>keyword value, see <A class="sec" href="#sec:tags">section 
+<LI>JavaDoc style tags (<CODE>@</CODE>keyword value, see <A class="sec" href="#sec:6">section 
 6</A>)
 </UL>
 
@@ -237,7 +241,7 @@ with a single %.
 <P>The JavaDoc style keyword list starts at the first line starting with 
 @&lt;<VAR>word</VAR>&gt;.
 
-<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">File 
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">File 
 and section comments</SPAN></A></H2>
 
 <A NAME="sec:sectioncomments"></A>
@@ -288,7 +292,7 @@ HTML or LaTeX.
 */
 </PRE>
 
-<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Type 
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Type 
 and mode declarations</SPAN></A></H2>
 
 <A NAME="sec:modes"></A>
@@ -319,6 +323,18 @@ informally described below:
 
 </CENTER>
 
+<P>The <EM>determinism</EM> values originate from Mercury. Predicates 
+marked as <CODE>det</CODE> must succeed exactly once and not leave any 
+choice-points. The <CODE>semidet</CODE> indicator is used for predicates 
+that either fail or succeed deterministically. The <CODE>nondet</CODE> 
+indicator is the most general one and implies no constraints on the 
+number of times the predicate succeeds and whether or not it leaves 
+choice-points on the last success. Finally, <CODE>multi</CODE> is as <CODE>nondet</CODE>, 
+but demands the predicate to succeed at least one time. Informally,
+<CODE>det</CODE> is used for deterministic transformations (e.g. arithmetic), <CODE>semidet</CODE> 
+for tests, <CODE>nondet</CODE> and
+<CODE>multi</CODE> for <EM>generators</EM>.
+
 <P>Instantiation patterns are:
 
 <P>
@@ -334,7 +350,7 @@ for any type. </TD></TR>
 <TR VALIGN=top><TD>@</TD><TD>Argument is not further instantiated. </TD></TR>
 <TR VALIGN=top><TD>!</TD><TD>Argument contains a mutable structure that 
 may be modified using
-<A NAME="idx:setarg3:1"></A><B>setarg/3</B> or <A NAME="idx:nbsetarg3:2"></A><B>nb_setarg/3</B>. </TD></TR>
+<A NAME="idx:setarg3:1"></A><SPAN class="pred-ext">setarg/3</SPAN> or <A NAME="idx:nbsetarg3:2"></A><SPAN class="pred-ext">nb_setarg/3</SPAN>. </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -356,7 +372,7 @@ system that allows for runtime verification and static type analysis
 %       @compat iso
 </PRE>
 
-<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Tags: <CODE>@</CODE>param, 
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">Tags: <CODE>@</CODE>param, 
 etc.</SPAN></A></H2>
 
 <A NAME="sec:tags"></A>
@@ -413,7 +429,7 @@ Not yet realised behaviour that is enticipated in future versions.
 </DD>
 </DL>
 
-<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Wiki 
+<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Wiki 
 notation</SPAN></A></H2>
 
 <A NAME="sec:wiki"></A>
@@ -422,7 +438,7 @@ notation</SPAN></A></H2>
 written in Wiki notation, based on <A class="url" href="http://www.twiki.org">TWiki</A>, 
 with some Prolog specific additions.
 
-<H3><A NAME="sec:7.1"><SPAN class="sec-nr">7.1</SPAN><SPAN class="sec-title">Structuring 
+<H3><A NAME="sec:7.1"><SPAN class="sec-nr">7.1</SPAN> <SPAN class="sec-title">Structuring 
 conventions</SPAN></A></H3>
 
 <DL>
@@ -460,7 +476,7 @@ is common to describe the behaviour on different terms. Such lists must
 be written as below. &lt;<VAR>Term1</VAR>&gt;, etc. must be valid Prolog 
 terms and end in the newline. The Wiki adds <CODE>' . '</CODE> to the 
 text and reads it using the operator definitions also used to read the 
-mode terms. See <A class="sec" href="#sec:modes">section 5</A>.
+mode terms. See <A class="sec" href="#sec:5">section 5</A>.
 
 <PRE class="code">
    * Term1
@@ -487,7 +503,7 @@ lines that parse into a table-row together for a table. Example:
 <DD>
 Section headers are creates using one of the constructs below taken from 
 TWiki. Section headers are normally not used in the source-code, but can 
-be useful inside README and TODO files. See <A class="sec" href="#sec:dirindex">section 
+be useful inside README and TODO files. See <A class="sec" href="#sec:8">section 
 8</A>.
 
 <PRE class="code">
@@ -515,7 +531,7 @@ indentation of the <CODE>==</CODE> marks.
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:7.2"><SPAN class="sec-nr">7.2</SPAN><SPAN class="sec-title">Text 
+<H3><A NAME="sec:7.2"><SPAN class="sec-nr">7.2</SPAN> <SPAN class="sec-title">Text 
 markup: fonts and links</SPAN></A></H3>
 
 <P>Wiki text markup to realise fonts is mostly based on old plaintext 
@@ -565,7 +581,7 @@ keyword. Typeset as the plain keyword value. </TD></TR>
 
 </CENTER>
 
-<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">Directory 
+<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN> <SPAN class="sec-title">Directory 
 indices</SPAN></A></H2>
 
 <A NAME="sec:dirindex"></A>
@@ -578,7 +594,7 @@ is
 their descriptive summary. Finally, if a file <CODE>TODO</CODE> or <CODE>TODO.TXT</CODE> 
 exists, its content is added at the end of the directory index.
 
-<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Documentation 
+<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN> <SPAN class="sec-title">Documentation 
 files</SPAN></A></H2>
 
 <A NAME="sec:wikifiles"></A>
@@ -603,12 +619,12 @@ If a file =|.myapprc|= exists in the user's home directory the
 application will process this data using setup.pl. ...
 </PRE>
 
-<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Running 
+<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN> <SPAN class="sec-title">Running 
 the documentation system</SPAN></A></H2>
 
 <A NAME="sec:running"></A>
 
-<H3><A NAME="sec:10.1"><SPAN class="sec-nr">10.1</SPAN><SPAN class="sec-title">During 
+<H3><A NAME="sec:10.1"><SPAN class="sec-nr">10.1</SPAN> <SPAN class="sec-title">During 
 development</SPAN></A></H3>
 
 <P>To support the developer with an up-to-date version of the 
@@ -651,7 +667,7 @@ reverse proxy</A>.</DD>
 Allow connections from <VAR>HostOrIP</VAR>. If <VAR>Host</VAR> is an 
 atom starting with a '.', suffix matching is preformed. I.e. 
 <CODE>allow('.uva.nl')</CODE> grants access to all machines in this 
-domain. IP addresses are specified using the library(socket) <A NAME="idx:ip4:3"></A><B>ip/4</B> 
+domain. IP addresses are specified using the library(socket) <A NAME="idx:ip4:3"></A><SPAN class="pred-ext">ip/4</SPAN> 
 term. I.e. to allow access from the 10.0.0.X domain, specify
 <CODE>allow(ip(10,0,0,_))</CODE>.</DD>
 <DT><STRONG>deny</STRONG>(<VAR>+HostOrIP</VAR>)</DT>
@@ -676,14 +692,14 @@ Fails if no server is running.</DD>
 <DT class="pubdef"><A NAME="doc_browser/1"><STRONG>doc_browser</STRONG>(<VAR>+Spec</VAR>)</A></DT>
 <DD class="defbody">
 Open the user's default browser on the specified page. <VAR>Spec</VAR> 
-is handled similar to <A NAME="idx:edit1:4"></A><B>edit/1</B>, resolving 
-anything that relates somehow to the given specification and ask the 
-user to select.<SUP class="fn">bug<SPAN class="fn-text">This flexibility 
-is not yet implemented</SPAN></SUP>.
+is handled similar to <A NAME="idx:edit1:4"></A><SPAN class="pred-ext">edit/1</SPAN>, 
+resolving anything that relates somehow to the given specification and 
+ask the user to select.<SUP class="fn">bug<SPAN class="fn-text">This 
+flexibility is not yet implemented</SPAN></SUP>.
 </DD>
 </DL>
 
-<H3><A NAME="sec:10.2"><SPAN class="sec-nr">10.2</SPAN><SPAN class="sec-title">As 
+<H3><A NAME="sec:10.2"><SPAN class="sec-nr">10.2</SPAN> <SPAN class="sec-title">As 
 a manual server</SPAN></A></H3>
 
 <A NAME="sec:manserver"></A>
@@ -710,7 +726,7 @@ the hosting machine from all locations in a domain is given below.
 </DD>
 </DL>
 
-<H3><A NAME="sec:10.3"><SPAN class="sec-nr">10.3</SPAN><SPAN class="sec-title">Using 
+<H3><A NAME="sec:10.3"><SPAN class="sec-nr">10.3</SPAN> <SPAN class="sec-title">Using 
 the browser interface</SPAN></A></H3>
 
 <A NAME="sec:browser"></A>
@@ -720,7 +736,7 @@ after starting the server using <A NAME="idx:docserver1:6"></A><A class="pred" h
 This section briefly explains the user-interface provided from the 
 browser.
 
-<H4><A NAME="sec:10.3.1"><SPAN class="sec-nr">10.3.1</SPAN><SPAN class="sec-title">Searching</SPAN></A></H4>
+<H4><A NAME="sec:10.3.1"><SPAN class="sec-nr">10.3.1</SPAN> <SPAN class="sec-title">Searching</SPAN></A></H4>
 
 <P>The top-right of the screen provides a search-form. The search string 
 typed is searched as a substring and case-insensitive. Multiple strings 
@@ -748,7 +764,7 @@ file</TT>.</TD></TR>
 search. <B>All</B> searches both the application and manuals. Searching 
 for <B>Summary</B> also implies <B>Name</B>.
 
-<H4><A NAME="sec:10.3.2"><SPAN class="sec-nr">10.3.2</SPAN><SPAN class="sec-title">Views</SPAN></A></H4>
+<H4><A NAME="sec:10.3.2"><SPAN class="sec-nr">10.3.2</SPAN> <SPAN class="sec-title">Views</SPAN></A></H4>
 
 <P>The web-browser supports several views, which we briefly summarise 
 here:
@@ -786,12 +802,12 @@ Section from the manual. The navigation bars allows viewing the
 enclosing section (<EM>Up</EM>).
 </UL>
 
-<H4><A NAME="sec:10.3.3"><SPAN class="sec-nr">10.3.3</SPAN><SPAN class="sec-title">Editing</SPAN></A></H4>
+<H4><A NAME="sec:10.3.3"><SPAN class="sec-nr">10.3.3</SPAN> <SPAN class="sec-title">Editing</SPAN></A></H4>
 
 <P>If the browser is accessed from <CODE>localhost</CODE>, each object 
 that is related to a known source-location has an edit icon at the right 
-side. Clicking this calls <A NAME="idx:edit1:7"></A><B>edit/1</B> on the 
-object, calling the user's default editor in the file. To use the 
+side. Clicking this calls <A NAME="idx:edit1:7"></A><SPAN class="pred-ext">edit/1</SPAN> 
+on the object, calling the user's default editor in the file. To use the 
 built-in PceEmacs editor, either set the Prolog flag <CODE>editor</CODE> 
 to <CODE>pce_emacs</CODE> or run <CODE>?- emacs.</CODE> before clicking 
 an edit button.
@@ -801,7 +817,7 @@ this reloads the source file if it was modified and refreshes the page.
 This supports a comfortable edit-view loop to maintain the source-code 
 documentation.
 
-<H2><A NAME="sec:11"><SPAN class="sec-nr">11</SPAN><SPAN class="sec-title">Motivation 
+<H2><A NAME="sec:11"><SPAN class="sec-nr">11</SPAN> <SPAN class="sec-title">Motivation 
 of choices</SPAN></A></H2>
 
 <A NAME="sec:motivation"></A>

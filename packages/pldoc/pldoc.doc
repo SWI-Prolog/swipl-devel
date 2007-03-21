@@ -14,7 +14,7 @@
 
 \begin{document}
 
-\title{SWI-Prolog Source Documention}
+\title{SWI-Prolog Source Documentation}
 \author{Jan Wielemaker \\
 	HCS, \\
 	University of Amsterdam \\
@@ -190,6 +190,18 @@ informally described below:
 \hline
 \end{tabular}
 \end{center}
+
+The \jargon{determinism} values originate from Mercury. Predicates
+marked as \const{det} must succeed exactly once and not leave any
+choice-points. The \const{semidet} indicator is used for predicates that
+either fail or succeed deterministically. The \const{nondet} indicator
+is the most general one and implies no constraints on the number of
+times the predicate succeeds and whether or not it leaves choice-points
+on the last success. Finally, \const{multi} is as \const{nondet}, but
+demands the predicate to succeed at least one time. Informally,
+\const{det} is used for deterministic transformations (e.g.\
+arithmetic), \const{semidet} for tests, \const{nondet} and
+\const{multi} for \jargon{generators}.
 
 Instantiation patterns are:
 
