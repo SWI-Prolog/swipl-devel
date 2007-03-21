@@ -535,6 +535,10 @@ peek_end_url -->
 
 autolink_extension(pl).
 autolink_extension(txt).
+autolink_extension(gif).
+autolink_extension(png).
+autolink_extension(jpg).
+autolink_extension(jpeg).
 
 %%	autolink_file(?File, -Type) is nondet.
 %

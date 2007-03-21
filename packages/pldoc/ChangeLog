@@ -1,5 +1,8 @@
 Mar 21, 2007
 
+* ADDED: Create link to image files on file.gif, file.png, file.jpg
+  or file.jpeg.   Anjo Anjewierden.
+
 * ADDED: Sort files in directory.  Anjo Anjewierden.
 
 * ADDED: Document determinism values (det, nondet, etc.).  Anjo Anjewierden.

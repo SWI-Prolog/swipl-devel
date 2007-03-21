@@ -461,6 +461,13 @@ application will process this data using setup.pl. ...
 \end{code}
 
 
+\subsection{Linking to images}
+
+Mentioning files with one of the image extensions \fileext{gif},
+\fileext{png}, \fileext{jpeg} or \fileext{jpeg} creates a link to
+the image.  The current version cannot deal with `inline' images.
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Running the documentation system}
 \label{sec:running}
