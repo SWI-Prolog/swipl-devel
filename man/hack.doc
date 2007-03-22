@@ -250,8 +250,17 @@ Applications that use exceptions as part of normal processing must
 do a quick test of the environment before starting expensive gathering
 information on the state of the program.
 
-The hook can call trace/0 to enter trace mode immediately.
+The hook can call trace/0 to enter trace mode immediately. For example
+imagine an application performing an unwanted division by zero while all
+other errors are expected and handled.  We can force the debugger using
+the hook definition below.  Run the program in debug mode (see debug/0)
+to preserve as much as possible of the error context.
 
+\begin{code}
+user:prolog_exception_hook(error(evaluation_error(zero_divisor), _),
+			   _, _, _) :-
+	trace, fail.
+\end{code}
 \end{description}
 
 

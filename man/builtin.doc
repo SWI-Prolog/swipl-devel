@@ -1260,7 +1260,7 @@ exception is not handled by user-code, the interactive top-level will
 trap it to prevent termination.
 
 If we do not take special precautions, the context information
-associated with an unexpected exception (i.e, a programming error) is
+associated with an unexpected exception (i.e., a programming error) is
 lost. Therefore, if an exception is raised, which is not caught using
 catch/3 and the top-level is running, the error will be printed, and the
 system will enter trace mode.
@@ -1282,7 +1282,10 @@ trap the tracer to help analysing the context of the error.
 \end{itemlist}
 
 While looking for the context in which an exception takes place, it is
-advised to switch on debug mode using the predicate debug/0.
+advised to switch on debug mode using the predicate debug/0. The hook
+prolog_exception_hook/4 can be used to add more debugging facilities to
+exceptions. An example is the library \plib{http/http_error}, generating
+a full stack trace on errors in the HTTP server library.
 
 
 \subsection{The exception term}		\label{sec:exceptterm}
