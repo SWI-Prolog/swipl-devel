@@ -1,3 +1,7 @@
+Mar 22, 2007
+
+  * FIXED: Bug#269: time-stamp was emitted in current locale.
+
 Mar 19, 2007
 
   * ADDED: Include name of parameter in type-errors detected by
