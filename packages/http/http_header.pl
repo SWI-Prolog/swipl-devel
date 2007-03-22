@@ -787,7 +787,9 @@ now -->
 
 rfc_date(Time, String, Tail) :-
 	stamp_date_time(Time, Date, 'UTC'),
-	format_time(codes(String, Tail), '%a, %d %b %Y %H:%M:%S GMT', Date).
+	format_time(codes(String, Tail),
+		    '%a, %d %b %Y %H:%M:%S GMT',
+		    Date, posix).
 	
 %%	http_timestamp(+Time, -Atom)
 %	
@@ -795,7 +797,9 @@ rfc_date(Time, String, Tail) :-
 
 http_timestamp(Time, Atom) :-
 	stamp_date_time(Time, Date, 'UTC'),
-	format_time(atom(Atom), '%a, %d %b %Y %H:%M:%S GMT', Date).
+	format_time(codes(Atom),
+		    '%a, %d %b %Y %H:%M:%S GMT',
+		    Date, posix).
 
 
 		 /*******************************

@@ -186,22 +186,26 @@ stretched_cell(T, Cell:table_cell, W:int, ColN:int) :->
 	    get(Graphical, send_method, margin, tuple(_, Method)),
 	    get(Method, argument_type, 2, T2),
 	    send(T2, validate, wrap)
-	->  get(Cell, col_span, Span),
-	    get(Cell, column, Col0),
-	    EndCol is Col0+Span,
-	    cell_width(Col0, EndCol, ColN, W, T, 0, TotalW),
-	    TextW is TotalW - 15,
+	->  spanned_cell_width(Cell, ColN, W, T, TextW),
 	    send(Graphical, margin, TextW, wrap)
 	;   get(Cell, image, Graphical),
 	    get(Graphical, class, device)
-	->  get(Cell, col_span, Span),
-	    get(Cell, column, Col0),
-	    EndCol is Col0+Span,
-	    cell_width(Col0, EndCol, ColN, W, T, 0, TotalW),
-	    TextW is TotalW - 15,
+	->  spanned_cell_width(Cell, ColN, W, T, TextW),
 	    send(Graphical, format, width, TextW)
+	;   get(Cell, image, Graphical),
+	    send(Graphical, has_get_method, auto_align),
+	    get(Graphical, auto_align, @on)
+	->  spanned_cell_width(Cell, ColN, W, T, TextW),
+	    send(Graphical, set, width := TextW)
 	;   true
 	).
+
+spanned_cell_width(Cell, ColN, W, T, TextW) :-
+	get(Cell, col_span, Span),
+	get(Cell, column, Col0),
+	EndCol is Col0+Span,
+	cell_width(Col0, EndCol, ColN, W, T, 0, TotalW),
+	TextW is TotalW - 15.
 
 %	Determine the width of a spanned cell.
 

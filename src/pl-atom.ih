@@ -563,3 +563,5 @@
 #define ATOM_yfx          MK_ATOM(562)
 #define ATOM_yfy          MK_ATOM(563)
 #define ATOM_zero_divisor MK_ATOM(564)
+#define ATOM_locale       MK_ATOM(565)
+#define ATOM_posix        MK_ATOM(566)

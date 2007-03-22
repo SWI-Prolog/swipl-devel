@@ -481,7 +481,7 @@ fmt_not_implemented(const char *key)
 	{ Sfprintf(fd, fmt, val); \
 	}
 #define SUBFORMAT(f) \
-	{ format_time(fd, f, ftm); \
+	{ format_time(fd, f, ftm, posix); \
 	}
 #define OUTCHR(fd, c) \
  	{ Sputcode(c, fd); \
@@ -490,8 +490,23 @@ fmt_not_implemented(const char *key)
 	{ Sfputs(str, fd); \
 	}
 
+static const char *abbred_weekday[] =
+{ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+static const char *weekday[] =
+{ "Sunday", "Monday", "Tuesday", "Wednesday",
+  "Thursday", "Friday", "Satuerday" };
+static const char *abbred_month[] =
+{ "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+};
+static const char *month[] =
+{ "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+};
+
+
 static int
-format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
+format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 { wint_t c;
 
   while((c = *format++))
@@ -502,6 +517,31 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 	  case 'A':			/* %A: weekday */
 	  case 'b':			/* %b: abbreviated month */
 	  case 'B':			/* %B: month */
+	    if ( posix )
+	    { const char *s;
+	      cal_ftm(ftm, HAS_STAMP|HAS_WYDAY);
+
+	      switch( c )
+	      { case 'a':
+		  s = abbred_weekday[ftm->tm.tm_wday];
+		  break;
+		case 'A':
+		  s = weekday[ftm->tm.tm_wday];
+		  break;
+		case 'b':
+		  s = abbred_month[ftm->tm.tm_mon];
+		  break;
+		case 'B':
+		  s = month[ftm->tm.tm_mon];
+		  break;
+		default:
+		  s = NULL;
+		  assert(0);
+	      }
+	      OUTSTR(s);
+	      break;
+	    }
+	    /*FALLTHROUGH*/
 	  case 'c':			/* %c: default representation */
 	  case 'p':			/* %p: AM/PM (locale) */
 	  case 'P':			/* %P: am/pm (locale) */
@@ -725,8 +765,8 @@ Issues:
 	* Sub-second times
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static
-PRED_IMPL("format_time", 3, format_time, 0)
+static  foreign_t
+pl_format_time(term_t out, term_t format, term_t time, int posix)
 { struct taia taia;
   struct caltime ct;
   struct ftm tb;
@@ -737,12 +777,12 @@ PRED_IMPL("format_time", 3, format_time, 0)
   size_t fmtlen;
   redir_context ctx;
 
-  if ( !PL_get_wchars(A2, &fmtlen, &fmt,
+  if ( !PL_get_wchars(format, &fmtlen, &fmt,
 		      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
     fail;
 
   memset(&tb, 0, sizeof(tb));
-  if ( get_taia(A3, &taia, &tb.stamp) )
+  if ( get_taia(time, &taia, &tb.stamp) )
   { double ip;
 
     ut64 = taia.sec.x - TAI_UTC_OFFSET;
@@ -771,20 +811,38 @@ PRED_IMPL("format_time", 3, format_time, 0)
       tb.tzname     = ATOM_utc;
       tb.utcoff     = 0;
     }
-  } else if ( !get_ftm(A3, &tb) )
+  } else if ( !get_ftm(time, &tb) )
   { fail;
   }
 
-  if ( !setupOutputRedirect(A1, &ctx, FALSE) )
+  if ( !setupOutputRedirect(out, &ctx, FALSE) )
     fail;
-  if ( format_time(ctx.stream, fmt, &tb) )
+  if ( format_time(ctx.stream, fmt, &tb, posix) )
     return closeOutputRedirect(&ctx);	/* takes care of I/O errors */
 
   discardOutputRedirect(&ctx);
   fail;
 }
 
+static
+PRED_IMPL("format_time", 3, format_time3, 0)
+{ return pl_format_time(A1, A2, A3, FALSE);
+}
 
+static
+PRED_IMPL("format_time", 4, format_time4, 0)
+{ int posix = FALSE;
+  atom_t locale;
+
+  if ( !PL_get_atom_ex(A4, &locale) )
+    return FALSE;
+  if ( locale == ATOM_posix )
+    posix = TRUE;
+  else
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_locale, A4);
+
+  return pl_format_time(A1, A2, A3, posix);
+}
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -794,5 +852,6 @@ PRED_IMPL("format_time", 3, format_time, 0)
 BeginPredDefs(tai)
   PRED_DEF("stamp_date_time", 3, stamp_date_time, 0)
   PRED_DEF("date_time_stamp", 2, date_time_stamp, 0)
-  PRED_DEF("format_time",     3, format_time,     0)
+  PRED_DEF("format_time",     3, format_time3,    0)
+  PRED_DEF("format_time",     4, format_time4,    0)
 EndPredDefs
