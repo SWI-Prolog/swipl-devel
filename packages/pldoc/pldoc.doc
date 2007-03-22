@@ -424,6 +424,17 @@ PceEmacs can be set as default editor using
 \end{center}
 
 
+\subsection{Inline images}
+
+Images can be included in the documentation by referencing an image file
+using one of the extensions \fileext{gif}, \fileext{png}, \fileext{jpeg}
+or \fileext{jpeg} placed between double square brackets.  For example
+
+\begin{code}
+The [[open.png]] icon is used open an existing file.
+\end{code}
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Directory indices}
 \label{sec:dirindex}

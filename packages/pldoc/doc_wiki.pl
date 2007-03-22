@@ -485,12 +485,18 @@ wiki_face(\predref(Name//Arity), _) -->
 wiki_face(span(class=cvs, CVS), _) -->
 	[$, Word, :], {string(Word)}, wiki_faces(CVS0, []), [$], !,
 	{ strip_ws_tokens(CVS0, CVS) }.
+wiki_face(\image(Name), _) -->
+	['[','['], word_token(BaseS), ['.'], word_token(ExtS), [']',']'],
+	{  concat_atom([BaseS, '.', ExtS], Name),
+	   file_name_extension(_, Ext, Name),
+	   autolink_extension(Ext, image)
+	}.
 wiki_face(\file(Name), _) -->
 	word_token(BaseS), ['.'], word_token(ExtS),
 	{ concat_atom([BaseS, '.', ExtS], Name),
 	  (   autolink_file(Name, _)
 	  ;   file_name_extension(_, Ext, Name),
-	      autolink_extension(Ext)
+	      autolink_extension(Ext, _)
 	  ), !
 	}.
 wiki_face(\file(Name), _) -->
@@ -528,17 +534,17 @@ peek_end_url -->
 peek_end_url -->
 	eos, !.
 
-%%	autolink_extension(?Ext) is nondet.
+%%	autolink_extension(?Ext, ?Type) is nondet.
 %
 %	True if Ext is a filename extensions that create automatic links
 %	in the documentation.
 
-autolink_extension(pl).
-autolink_extension(txt).
-autolink_extension(gif).
-autolink_extension(png).
-autolink_extension(jpg).
-autolink_extension(jpeg).
+autolink_extension(pl, prolog).
+autolink_extension(txt, wiki).
+autolink_extension(gif, image).
+autolink_extension(png, image).
+autolink_extension(jpg, image).
+autolink_extension(jpeg, image).
 
 %%	autolink_file(?File, -Type) is nondet.
 %

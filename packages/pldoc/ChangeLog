@@ -1,3 +1,7 @@
+Mar 22, 2007
+
+* ADDED: Allow for inline images using [[file.png]].   Anjo Anjewierden.
+
 Mar 21, 2007
 
 * ADDED: Create link to image files on file.gif, file.png, file.jpg
