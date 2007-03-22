@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.30 Reference Manual: Section 4.14</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.31 Reference Manual: Section 4.14</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="db.html">
@@ -127,10 +127,10 @@ predicates properties</SPAN></A></H2>
 <A NAME="sec:declare"></A>
 
 <P>This section describes directives which manipulate attributes of 
-predicate definitions. The functors <A NAME="idx:dynamic1:581"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A>, <A NAME="idx:multifile1:582"></A><A class="pred" href="dynamic.html#multifile/1">multifile/1</A> 
+predicate definitions. The functors <A NAME="idx:dynamic1:582"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A>, <A NAME="idx:multifile1:583"></A><A class="pred" href="dynamic.html#multifile/1">multifile/1</A> 
 and
-<A NAME="idx:discontiguous1:583"></A><A class="pred" href="dynamic.html#discontiguous/1">discontiguous/1</A> 
-are operators of priority 1150 (see <A NAME="idx:op3:584"></A><A class="pred" href="operators.html#op/3">op/3</A>), 
+<A NAME="idx:discontiguous1:584"></A><A class="pred" href="dynamic.html#discontiguous/1">discontiguous/1</A> 
+are operators of priority 1150 (see <A NAME="idx:op3:585"></A><A class="pred" href="operators.html#op/3">op/3</A>), 
 which implies the list of predicates they involve can just be a comma 
 separated list:
 
@@ -148,21 +148,21 @@ want to maintain portability to other Prolog implementations.
 <DT class="pubdef"><A NAME="dynamic/1"><STRONG>dynamic</STRONG> <VAR>+Name/+Arity, \ldots</VAR></A></DT>
 <DD class="defbody">
 Informs the interpreter that the definition of the predicate(s) may 
-change during execution (using <A NAME="idx:assert1:585"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
-and/or <A NAME="idx:retract1:586"></A><A class="pred" href="db.html#retract/1">retract/1</A>). 
+change during execution (using <A NAME="idx:assert1:586"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
+and/or <A NAME="idx:retract1:587"></A><A class="pred" href="db.html#retract/1">retract/1</A>). 
 In the multi-threaded version, the clauses of dynamic predicates are 
-shared between the threads. The directive <A NAME="idx:threadlocal1:587"></A><A class="pred" href="threadcom.html#thread_local/1">thread_local/1</A> 
+shared between the threads. The directive <A NAME="idx:threadlocal1:588"></A><A class="pred" href="threadcom.html#thread_local/1">thread_local/1</A> 
 provides an alternative where each threads has its own clause-list for 
 the predicate. Dynamic predicates can be turned into static ones using
-<A NAME="idx:compilepredicates1:588"></A><A class="pred" href="dynamic.html#compile_predicates/1">compile_predicates/1</A>.</DD>
+<A NAME="idx:compilepredicates1:589"></A><A class="pred" href="dynamic.html#compile_predicates/1">compile_predicates/1</A>.</DD>
 <DT class="pubdef"><A NAME="compile_predicates/1"><STRONG>compile_predicates</STRONG>(<VAR>:ListOfNameArity</VAR>)</A></DT>
 <DD class="defbody">
-Compile a list of specified dynamic predicates (see <A NAME="idx:dynamic1:589"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A> 
+Compile a list of specified dynamic predicates (see <A NAME="idx:dynamic1:590"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A> 
 and
-<A NAME="idx:assert1:590"></A><A class="pred" href="db.html#assert/1">assert/1</A>) 
+<A NAME="idx:assert1:591"></A><A class="pred" href="db.html#assert/1">assert/1</A>) 
 into normal static predicates. This call tells the Prolog environment 
-the definition will not change anymore and further calls to <A NAME="idx:assert1:591"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
-or <A NAME="idx:retract1:592"></A><A class="pred" href="db.html#retract/1">retract/1</A> 
+the definition will not change anymore and further calls to <A NAME="idx:assert1:592"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
+or <A NAME="idx:retract1:593"></A><A class="pred" href="db.html#retract/1">retract/1</A> 
 on the named predicates raise a permission error. This predicate is 
 designed to deal with parts of the program that is generated at runtime 
 but does not change during the remainder of the program execution.<SUP class="fn">32<SPAN class="fn-text">The 
@@ -174,12 +174,12 @@ hardware.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="multifile/1"><STRONG>multifile</STRONG> <VAR>+Name/+Arity, \ldots</VAR></A></DT>
 <DD class="defbody">
 Informs the system that the specified predicate(s) may be defined over 
-more than one file. This stops <A NAME="idx:consult1:593"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
+more than one file. This stops <A NAME="idx:consult1:594"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
 from redefining a predicate when a new definition is found.</DD>
 <DT class="pubdef"><A NAME="discontiguous/1"><STRONG>discontiguous</STRONG> <VAR>+Name/+Arity, \ldots</VAR></A></DT>
 <DD class="defbody">
 Informs the system that the clauses of the specified predicate(s) might 
-not be together in the source file. See also <A NAME="idx:stylecheck1:594"></A><A class="pred" href="debugger.html#style_check/1">style_check/1</A>.</DD>
+not be together in the source file. See also <A NAME="idx:stylecheck1:595"></A><A class="pred" href="debugger.html#style_check/1">style_check/1</A>.</DD>
 <DT class="pubdef"><A NAME="index/1"><STRONG>index</STRONG>(<VAR>+Head</VAR>)</A></DT>
 <DD class="defbody">
 Index the clauses of the predicate with the same name and arity as
@@ -225,9 +225,9 @@ sub_type(horse, animal).
 
 <P>Note that this type of indexing makes selecting clauses much faster 
 but remains <EM>linear</EM> with respect to the number of clauses, while 
-hashing as described with <A NAME="idx:hash1:595"></A><A class="pred" href="dynamic.html#hash/1">hash/1</A> 
-provides constant access time. See also <A NAME="idx:hash1:596"></A><A class="pred" href="dynamic.html#hash/1">hash/1</A> 
-and <A NAME="idx:hashterm2:597"></A><A class="pred" href="db.html#hash_term/2">hash_term/2</A>.</DD>
+hashing as described with <A NAME="idx:hash1:596"></A><A class="pred" href="dynamic.html#hash/1">hash/1</A> 
+provides constant access time. See also <A NAME="idx:hash1:597"></A><A class="pred" href="dynamic.html#hash/1">hash/1</A> 
+and <A NAME="idx:hashterm2:598"></A><A class="pred" href="db.html#hash_term/2">hash_term/2</A>.</DD>
 <DT class="pubdef"><A NAME="hash/1"><STRONG>hash</STRONG>(<VAR>+Head</VAR>)</A></DT>
 <DD class="defbody">
 Index the given predicate by hashing on the first argument. This is done 
@@ -236,8 +236,8 @@ argument that can be indexed and at most two that can not be indexed. On
 dynamic predicates the hash-table is resized as the number of clauses 
 grows, providing roughly constant-time access regardless of the number 
 of clauses predicates that can be indexed on the first argument. See 
-also <A NAME="idx:index1:598"></A><A class="pred" href="dynamic.html#index/1">index/1</A>, <A NAME="idx:hashterm2:599"></A><A class="pred" href="db.html#hash_term/2">hash_term/2</A> 
-and <A NAME="idx:predicateproperty2:600"></A><A class="pred" href="examineprog.html#predicate_property/2">predicate_property/2</A>.
+also <A NAME="idx:index1:599"></A><A class="pred" href="dynamic.html#index/1">index/1</A>, <A NAME="idx:hashterm2:600"></A><A class="pred" href="db.html#hash_term/2">hash_term/2</A> 
+and <A NAME="idx:predicateproperty2:601"></A><A class="pred" href="examineprog.html#predicate_property/2">predicate_property/2</A>.
 
 <P></DD>
 </DL>

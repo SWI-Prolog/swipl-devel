@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.30 Reference Manual: Section B.7</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.31 Reference Manual: Section B.7</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="loadfilehook.html">
@@ -135,12 +135,18 @@ for direct interaction with the GNU readline library. See also
 <DD class="defbody">
 Read a readline initialisation file. Readline by default reads
 <CODE> /.inputrc</CODE>. This predicate may be used to read alternative 
-readline initialisation files.
-</DD>
+readline initialisation files.</DD>
 <DT class="pubdef"><A NAME="rl_add_history/1"><STRONG>rl_add_history</STRONG>(<VAR>+Line</VAR>)</A></DT>
 <DD class="defbody">
 Add a line to the Control-P/Control-N history system of the readline 
-library.
+library.</DD>
+<DT class="pubdef"><A NAME="rl_write_history/1"><STRONG>rl_write_history</STRONG>(<VAR>+FileName</VAR>)</A></DT>
+<DD class="defbody">
+Write current history to <VAR>FileName</VAR>. Can be used from <A NAME="idx:athalt1:1519"></A><A class="pred" href="consulting.html#at_halt/1">at_halt/1</A> 
+to save the history.</DD>
+<DT class="pubdef"><A NAME="rl_read_history/1"><STRONG>rl_read_history</STRONG>(<VAR>+FileName</VAR>)</A></DT>
+<DD class="defbody">
+Read history from <VAR>FileName</VAR>, appending to the current history.
 </DD>
 </DL>
 

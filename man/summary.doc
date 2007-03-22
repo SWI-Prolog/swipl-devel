@@ -227,6 +227,7 @@ suggest predicates from a keyword.
 \predicatesummary{format}{2}{Formatted output with arguments}
 \predicatesummary{format}{3}{Formatted output on a stream}
 \predicatesummary{format_time}{3}{C strftime() like date/time formatter}
+\predicatesummary{format_time}{4}{date/time formatter with explicit locale}
 \predicatesummary{format_predicate}{2}{Program format/[1,2]}
 \predicatesummary{term_variables}{2}{Find unbound variables in a term}
 \predicatesummary{term_variables}{3}{Find unbound variables in a term}

@@ -1284,8 +1284,8 @@ trap the tracer to help analysing the context of the error.
 While looking for the context in which an exception takes place, it is
 advised to switch on debug mode using the predicate debug/0. The hook
 prolog_exception_hook/4 can be used to add more debugging facilities to
-exceptions. An example is the library \plib{http/http_error}, generating
-a full stack trace on errors in the HTTP server library.
+exceptions. An example is the library \pllib{http/http_error},
+generating a full stack trace on errors in the HTTP server library.
 
 
 \subsection{The exception term}		\label{sec:exceptterm}
@@ -5221,13 +5221,17 @@ start with a tilde (\%) character.%
 
 \begin{itemize}
     \fmtchar{a}
-The abbreviated weekday name according to the current locale.
+The abbreviated weekday name according to the current locale.  Use
+format_time/4 for POSIX locale.
     \fmtchar{A}
-The full weekday name according to the current locale.
+The full weekday name according to the current locale.   Use
+format_time/4 for POSIX locale.
     \fmtchar{b}
-The abbreviated month name according to the current locale.
+The abbreviated month name according to the current locale.  Use
+format_time/4 for POSIX locale.
     \fmtchar{B}
-The full month name according to the current locale.
+The full month name according to the current locale.  Use
+format_time/4 for POSIX locale.
     \fmtchar{c}
 The  preferred  date  and  time  representation  for the current
 locale. 
@@ -5337,6 +5341,16 @@ The date and time in date(1) format.
     \fmtchar{\%}
 A literal `\%' character.
 \end{itemize}
+
+    \predicate{format_time}{4}{+Out, +Format, +StampOrDateTime, +Locale}
+Format time given a specified \arg{Locale}. This predicate is a
+work-around for lacking proper portable and thread-safe time and locale
+handling in current C libraries.  In its current implementation the only
+value allowed for \arg{Locale} is \const{posix}, which currently only
+modifies the behaviour or the \chr{a}, \chr{A}, \chr{b} and \chr{B}
+format specifiers.  The predicate is used to be able to emit POSIX
+locale week and month names for emitting standardised time-stamps
+such as RFC1123.
 
     \predicate{parse_time}{2}{+Text, -Stamp}
 Parse a textual time representation, producing a time-stamp.  Supported
