@@ -20,6 +20,15 @@ import junit.framework.TestSuite;
 // It needs junit.framework.TestCase and junit.framework.TestSuite, which are not supplied with JPL.
 public class TestJUnit extends TestCase {
 	//
+	public static long fac(long n) { // complements jpl:jpl_test_fac(+integer,-integer)
+		if (n == 1) {
+			return 1;
+		} else if (n > 1) {
+			return n * ((jpl.Integer) Query.oneSolution("jpl_test_fac(?,F)", new Term[] {new jpl.Integer(n-1)}).get("F")).longValue();
+		} else {
+			return 0;
+		}
+	}
 	public TestJUnit(String name) {
 		super(name);
 	}
@@ -215,9 +224,9 @@ public class TestJUnit extends TestCase {
 	}
 	private void testMutualRecursion(int n, long f) { // f is the expected result for fac(n)
 		try {
-			assertEquals("mutual recursive Java<->Prolog factorial: jpl.test.Test.fac(" + n + ") = " + f, jpl.test.Test.fac(n), f);
+			assertEquals("mutual recursive Java<->Prolog factorial: fac(" + n + ") = " + f, fac(n), f);
 		} catch (Exception e) {
-			fail("jpl.test.Test.fac(" + n + ") threw " + e);
+			fail("fac(" + n + ") threw " + e);
 		}
 	}
 	public void testMutualRecursion1() {
@@ -437,11 +446,9 @@ public class TestJUnit extends TestCase {
 	//	public void testMaxInteger1(){
 	//		assertEquals(((Term)(Query.oneSolution("current_prolog_flag(max_integer,I)").get("I"))).longValue(), java.lang.Long.MAX_VALUE); // i.e. 9223372036854775807L
 	//	}
-	public void testSingleton1() {
-		// Query.hasSolution("consult('jpl/test/testSingleton1.pl')");
-		// Query.hasSolution("load_files('jpl/test/testSingleton1.pl',[silent(true)])");
-		assertTrue(Query.hasSolution("style_check(-singleton),consult('test_singleton.pl')"));
-	}
+	//	public void testSingleton1() {
+	//		assertTrue(Query.hasSolution("style_check(-singleton),consult('test_singleton.pl')"));
+	//	}
 	public void testStaticQueryInvalidSourceText2() {
 		String goal = "p(]";
 		try {
@@ -512,8 +519,8 @@ public class TestJUnit extends TestCase {
 		assertTrue(array[2].isAtom() && array[2].name().equals("c"));
 	}
 	public void testJRef1() {
-		System.out.println("java.library.path=" + System.getProperties().get("java.library.path"));
-		System.out.println("jpl.c version = " + jpl.fli.Prolog.get_c_lib_version());
+		// System.out.println("java.library.path=" + System.getProperties().get("java.library.path"));
+		// System.out.println("jpl.c version = " + jpl.fli.Prolog.get_c_lib_version());
 		int i = 76543;
 		Integer I = new Integer(i);
 		Query q = new Query("jpl_call(?,intValue,[],I2)", new Term[] {new JRef(I)});
