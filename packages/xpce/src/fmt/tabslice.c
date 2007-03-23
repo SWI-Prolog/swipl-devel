@@ -303,6 +303,12 @@ getCellTableColumn(TableColumn col, Int y)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Set the <-width of the column to the max of the width of the graphicals.
+If objects have horizontal alignment, maximize  left and right sides and
+sum.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static status
 computeTableColumn(TableColumn col)
 { Table tab = col->table;

@@ -1137,6 +1137,8 @@ stretch_table_slices(Table tab, Vector v, /* table and <-rows or <-columns */
   stretch tmp[2];
   stretch joined;
   int width;
+  int maxshrink = 0;
+  int maxstretch = 0;
   
   for(i=from; i<to; i++)
   { TableSlice slice = getElementVector(v, toInt(i));
@@ -1144,10 +1146,8 @@ stretch_table_slices(Table tab, Vector v, /* table and <-rows or <-columns */
     if ( slice && notNil(slice) && slice->displayed == ON )
     { Stretch s = &stretches[i-from];
       slice_stretchability(slice, s);
-      if ( always )
-      { s->stretch = max(1, s->stretch);
-	s->shrink  = max(1, s->shrink);
-      }
+      maxshrink = max(maxshrink, s->shrink);
+      maxstretch = max(maxstretch, s->stretch);
       nslices++;
     }
   }
@@ -1155,11 +1155,27 @@ stretch_table_slices(Table tab, Vector v, /* table and <-rows or <-columns */
   if ( nslices == 0 )
     return;
 
+  if ( always && (maxshrink == 0 || maxstretch == 0) )
+  { for(i=from; i<to; i++)
+    { Stretch s = &stretches[i-from];
+
+      if ( maxstretch == 0 )
+	s->stretch = 1;
+      if ( maxshrink == 0 )
+	s->shrink = 1;
+    }
+  }
+
   DEBUG(NAME_table,
 	Cprintf("%s: Stretching %d slices from %d into %d+%d-%d\n",
 		pp(tab), nslices, from,
-		into->ideal, into->stretch, into->shrink));
-
+		into->ideal, into->stretch, into->shrink);
+	for(i=from; i<to; i++)
+	{ Stretch s = &stretches[i-from];
+	  Cprintf("\tcol %d: %d-%d+%d\n",
+		  i, s->ideal, s->shrink, s->stretch);
+	});
+	  
   sum_stretches(stretches, nslices, &tmp[0]);
   tmp[1] = *into;
   join_stretches(tmp, 2, &joined);
