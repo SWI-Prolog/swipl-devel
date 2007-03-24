@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Do not call prolog_exception_hook/4 if debugger is
+    suspended (typically in calls from the debugger and IDE tools).
+
   * ADDED: rl_write_history/1 and rl_read_history/1.  Suggested by
     Samer Abdallah.
 

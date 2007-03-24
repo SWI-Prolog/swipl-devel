@@ -3070,7 +3070,8 @@ the moment the code marked (**) handles this not very elegant
 	SECURE(checkData(catcher));	/* verify all data on stacks stack */
 	SECURE(checkStacks(FR, LD->choicepoints));
 
-	if ( exception_hook(FR, catchfr PASS_LD) )
+	if ( debugstatus.suspendTrace == FALSE &&
+	     exception_hook(FR, catchfr PASS_LD) )
 	{ catcher = valTermRef(exception_term);
 	  except = *catcher;
 	  /*catchfr = findCatcher(FR, catcher PASS_LD); already unified */
