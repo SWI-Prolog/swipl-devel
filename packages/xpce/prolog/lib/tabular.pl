@@ -190,7 +190,9 @@ stretched_cell(T, Cell:table_cell, W:int, ColN:int) :->
 		send(T2, validate, wrap)
 	    ->  spanned_cell_width(Cell, ColN, W, T, TextW),
 		send(Graphical, margin, TextW, wrap)
-	    ;   send(Graphical, instance_of, device)
+	    ;   send(Graphical, instance_of, device),
+		get(Graphical, format, Format),
+		get(Format, columns, @off)
 	    ->  spanned_cell_width(Cell, ColN, W, T, TextW),
 		send(Graphical, format, width, TextW)
 	    ;   send(Graphical, has_get_method, auto_align),
