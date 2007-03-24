@@ -1,4 +1,4 @@
-<\chapter{Foreign Language Interface}		\label{sec:foreign}
+\chapter{Foreign Language Interface}		\label{sec:foreign}
 
 \newlength{\tableft}
 \settowidth{\tableft}{\const{PL_QUERY_ORGSYMBOLFILE}}
@@ -1434,7 +1434,7 @@ call_chars(const char *goal)
   term_t g = PL_new_term_ref();
   BOOL rval;
 
-  if ( PL_string_to_term(goal, g) )
+  if ( PL_chars_to_term(goal, g) )
     rval = PL_call(goal, NULL);
   else
     rval = FALSE;

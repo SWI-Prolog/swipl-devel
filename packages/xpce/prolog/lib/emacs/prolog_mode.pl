@@ -76,7 +76,10 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  trace			       = button(prolog),
 	  break_at		       = key('\\C-cb') + button(prolog),
 	  delete_breakpoint	       = button(prolog),
+	  -			       = button(prolog),
 	  edit_breakpoints	       = button(prolog),
+	  edit_exceptions	       = button(prolog),
+	  view_threads		       = button(prolog),
 	  -			       = button(prolog),
 	  check_clause		       = key('\\C-c\\C-s') + button(prolog),
 	  insert_full_stop	       = key(.),
@@ -545,6 +548,16 @@ prolog_navigator(M) :->
 edit_breakpoints(_M) :->
 	"Open Prolog debug settings window"::
 	prolog_ide(open_debug_status).
+
+
+edit_exceptions(_M) :->
+	"Open Prolog Exception editor"::
+	prolog_ide(open_exceptions(@on)).
+
+
+view_threads(_M) :->
+	"View running threads"::
+	prolog_ide(thread_monitor).
 
 
 		 /*******************************

@@ -46,13 +46,13 @@ the IDE components to the autoloading of one single predicate.
 
 :- pce_image_directory(library('trace/icons')).
 
-:- pce_autoload(prolog_debug_status,   library('trace/status')).
-:- pce_autoload(prolog_navigator,      library('trace/browse')).
-:- pce_autoload(prolog_query_frame,    library('trace/query')).
-:- pce_autoload(prolog_thread_monitor, library('swi/thread_monitor')).
-:- pce_autoload(prolog_debug_monitor,  library('swi/pce_debug_monitor')).
-:- pce_autoload(xref_frame,	       library('pce_xref')).
-
+:- pce_autoload(prolog_debug_status,	library('trace/status')).
+:- pce_autoload(prolog_navigator,	library('trace/browse')).
+:- pce_autoload(prolog_query_frame,	library('trace/query')).
+:- pce_autoload(prolog_trace_exception,	library('trace/exceptions')).
+:- pce_autoload(prolog_thread_monitor,	library('swi/thread_monitor')).
+:- pce_autoload(prolog_debug_monitor,	library('swi/pce_debug_monitor')).
+:- pce_autoload(xref_frame,		library('pce_xref')).
 
 		 /*******************************
 		 *	      TOPLEVEL		*
@@ -74,6 +74,7 @@ prolog_ide(Action) :-
 		 *******************************/
 
 :- pce_global(@prolog_ide, new(prolog_ide)).
+:- pce_global(@prolog_exception_window, new(prolog_trace_exception)).
 
 :- pce_begin_class(prolog_ide, application, "Prolog IDE application").
 
@@ -87,6 +88,19 @@ open_debug_status(IDE) :->
 	(   get(IDE, member, prolog_debug_status, W)
 	->  send(W, expose)
 	;   send(prolog_debug_status(IDE), open)
+	).
+
+open_exceptions(IDE, Gui:[bool]) :->
+	"Open/show exceptions"::
+	W = @prolog_exception_window,
+	(   object(W)
+	->  send(W, expose)
+	;   (   Gui == @on
+	    ->	catch(tdebug, _, guitracer)
+	    ;	true
+	    ),
+	    send(W, application, IDE),
+	    send(W, open)
 	).
 
 open_navigator(IDE, Where:[directory|source_location]) :->

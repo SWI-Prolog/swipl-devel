@@ -293,3 +293,16 @@ to_dot_dot([], Tail, Tail).
 to_dot_dot([_], Tail, Tail) :- !.
 to_dot_dot([_|T0], ['..'|T], Tail) :-
 	to_dot_dot(T0, T, Tail).
+
+
+		 /*******************************
+		 *	    IDE SUPPORT		*
+		 *******************************/
+
+% See library('trace/exceptions')
+
+:- multifile
+	prolog:general_exception/2.
+
+prolog:general_exception(http_reply(_), http_reply(_)).
+prolog:general_exception(http_reply(_,_), http_reply(_,_)).

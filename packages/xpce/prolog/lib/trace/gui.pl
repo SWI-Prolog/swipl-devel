@@ -428,7 +428,9 @@ fill_menu_bar(F) :->
 		  ]),
 	send_list(Edit, append,
 		  [ menu_item(breakpoints,
-			      message(F, breakpoints),
+			      message(F, breakpoints)),
+		    menu_item(exceptions,
+			      message(F, exceptions),
 			      end_group := @on),
 		    menu_item(toggle_edit_mode,
 			      message(F, edit))
@@ -593,6 +595,10 @@ edit(F) :->
 breakpoints(_F) :->
 	"Edit spy/break/trace-points"::
 	prolog_ide(open_debug_status).
+
+exceptions(_F) :->
+	"Edit exceptions"::
+	prolog_ide(open_exceptions).
 
 make(_) :->
 	"Run Prolog make"::

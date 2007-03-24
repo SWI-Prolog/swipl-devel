@@ -48,6 +48,8 @@ To use this file, simply load it.
 
 :- multifile
 	user:prolog_exception_hook/4.
+:- dynamic
+	user:prolog_exception_hook/4.
 
 guard(httpd_wrapper:call_handler(_,_,_,_,_)).
 
