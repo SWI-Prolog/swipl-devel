@@ -888,6 +888,10 @@ typedef struct on_halt *	OnHalt;		/* pl-os.c */
 typedef struct find_data_tag *	FindData; 	/* pl-trace.c */
 typedef struct feature *	Feature; 	/* pl-prims.c */
 
+typedef uintptr_t qid_t;		/* external query-id */
+typedef uintptr_t PL_fid_t;		/* external foreign context-id */
+
+#define fid_t PL_fid_t			/* avoid AIX name-clash */
 
 		 /*******************************
 		 *	    ARITHMETIC		*
@@ -1464,6 +1468,7 @@ struct queryFrame
   term_t	exception;		/* Exception term */
   jmp_buf	exception_jmp_env;	/* longjmp() buffer for exception */
 #endif
+  fid_t		foreign_frame;		/* Frame after PL_next_solution() */
   unsigned long	flags;
   debug_type	debugSave;		/* saved debugstatus.debugging */
   Word	       *aSave;			/* saved argument-stack */
@@ -1688,11 +1693,6 @@ value need not be trailed.
 		 /*******************************
 		 *	   FLI INTERNALS	*
 		 *******************************/
-
-typedef uintptr_t qid_t;		/* external query-id */
-typedef uintptr_t PL_fid_t;		/* external foreign context-id */
-
-#define fid_t PL_fid_t			/* avoid AIX name-clash */
 
 #define consTermRef(p)	 ((Word)(p) - (Word)(lBase))
 #define valTermRef(r)	 (&((Word)(lBase))[r])

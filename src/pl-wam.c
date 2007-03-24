@@ -1947,6 +1947,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   flags &= 0x1f;			/* mask reserved flags */
 
   qf->magic		= QID_MAGIC;
+  qf->foreign_frame	= 0;
   qf->flags		= flags;
   qf->saved_environment = environment_frame;
   qf->saved_bfr		= LD->choicepoints;
@@ -2070,6 +2071,8 @@ PL_cut_query(qid_t qid)
   QueryFrame qf = QueryFromQid(qid);
 
   SECURE(assert(qf->magic == QID_MAGIC));
+  if ( qf->foreign_frame )
+    PL_close_foreign_frame(qf->foreign_frame);
 
   if ( false(qf, PL_Q_DETERMINISTIC) )
     discard_query(qf);
@@ -2085,6 +2088,8 @@ PL_close_query(qid_t qid)
   QueryFrame qf = QueryFromQid(qid);
 
   SECURE(assert(qf->magic == QID_MAGIC));
+  if ( qf->foreign_frame )
+    PL_close_foreign_frame(qf->foreign_frame);
 
   if ( false(qf, PL_Q_DETERMINISTIC) )
     discard_query(qf);
@@ -2355,10 +2360,13 @@ Is there a way to make the compiler keep its mouth shut!?
   }
 
   DEF = FR->predicate;
-  if ( QF->solutions )
-  { BODY_FAILED;
+  if ( QF->solutions )			/* retry */
+  { fid_t fid = QF->foreign_frame;
+    QF->foreign_frame = 0;
+    PL_close_foreign_frame(fid);
+    BODY_FAILED;
   } else
-    goto retry_continue;
+    goto retry_continue;		/* first call */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Main entry of the virtual machine cycle.  A branch to `next instruction'
@@ -3214,6 +3222,7 @@ the moment the code marked (**) handles this not very elegant
 	  if ( LD->trim_stack_requested )
 	    trimStacks(PASS_LD1);
 
+	  QF->foreign_frame = PL_open_foreign_frame();
 	  fail;
 	}
       }
@@ -4791,6 +4800,7 @@ bit more careful.
 	      profExit(NULL PASS_LD);
 	  }
 #endif
+ 	  QF->foreign_frame = PL_open_foreign_frame();
 
 	  succeed;
 	}
@@ -5099,6 +5109,7 @@ next_choice:
     { Profile(profRedo(ch->prof_node PASS_LD));
       QF = QueryFromQid(qid);
       set(QF, PL_Q_DETERMINISTIC);
+      QF->foreign_frame = PL_open_foreign_frame();
       fail;
     }
     case CHP_CATCH:			/* catch/3 */

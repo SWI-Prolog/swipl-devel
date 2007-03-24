@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Extend context in which PL_new_term_ref() can be called
+    to include the cases required by JPL.
+
   * MODIFIED: Do not call prolog_exception_hook/4 if debugger is
     suspended (typically in calls from the debugger and IDE tools).
 
