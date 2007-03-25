@@ -5,6 +5,26 @@
 %   Updated: 20 March 1984
 %   Purpose: Graph-processing utilities.
 
+:- module(ugraphs,
+	  [ add_edges/3,		% +Graph, +Edges, -NewGraph
+	    add_vertices/3,		% +Graph, +Vertices, -NewGraph
+	    complement/2,		% +Graph, -NewGraph
+	    compose/3,			% +LeftGraph, +RightGraph, -NewGraph
+	    del_edges/3,		% +Graph, +Edges, -NewGraph
+	    del_vertices/3,		% +Vertices, +Graph, -NewGraph
+	    edges/2,			% +Graph, -Edges
+	    neighbors/3,		% +Vertex, +Graph, -Vertices
+	    neighbours/3,		% +Vertex, +Graph, -Vertices
+	    reachable/3,		% +Vertex, +Graph, -Vertices
+	    top_sort/2,			% +Graph, -Sort
+	    top_sort/3,			% +Graph, -Sort0, -Sort
+	    transitive_closure/2,	% +Graph, -Closure
+	    transpose/2,		% +Graph, -NewGraph
+	    vertices/2,			% +Graph, -Vertices
+	    vertices_edges_to_ugraph/3,	% +Vertices, +Edges, -Graph
+	    ugraph_union/3		% +Graph1, +Graph2, -Graph
+	  ]).
+
 /** <module> Graph manipulation library
 
 The S-representation of a graph is a list of (vertex-neighbours) pairs,
@@ -26,26 +46,6 @@ code linked to SWI-Prolog
 @author Vitor Santos Costa
 @author Jan Wielemaker
 */
-
-:- module(ugraphs,
-	  [ add_edges/3,		% +Graph, +Edges, -NewGraph
-	    add_vertices/3,		% +Graph, +Vertices, -NewGraph
-	    complement/2,		% +Graph, -NewGraph
-	    compose/3,			% +LeftGraph, +RightGraph, -NewGraph
-	    del_edges/3,		% +Graph, +Edges, -NewGraph
-	    del_vertices/3,		% +Vertices, +Graph, -NewGraph
-	    edges/2,			% +Graph, -Edges
-	    neighbors/3,		% +Vertex, +Graph, -Vertices
-	    neighbours/3,		% +Vertex, +Graph, -Vertices
-	    reachable/3,		% +Vertex, +Graph, -Vertices
-	    top_sort/2,			% +Graph, -Sort
-	    top_sort/3,			% +Graph, -Sort0, -Sort
-	    transitive_closure/2,	% +Graph, -Closure
-	    transpose/2,		% +Graph, -NewGraph
-	    vertices/2,			% +Graph, -Vertices
-	    vertices_edges_to_ugraph/3,	% +Vertices, +Edges, -Graph
-	    ugraph_union/3		% +Graph1, +Graph2, -Graph
-	  ]).
 
 :- use_module(library(lists), [
 	append/3,
