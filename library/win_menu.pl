@@ -68,6 +68,7 @@ menu('&Debug',
        '&Edit spy points ...' = user:prolog_ide(open_debug_status),
        '&Edit exceptions ...' = user:prolog_ide(open_exceptions(@on)),
        '&Threads monitor ...' = user:prolog_ide(thread_monitor),
+       'Debug &messages ...'  = user:prolog_ide(debug_monitor),
        'Cross &referencer ...'= user:prolog_ide(xref),			     
        --,
        '&Graphical debugger' = user:guitracer

@@ -80,6 +80,7 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  edit_breakpoints	       = button(prolog),
 	  edit_exceptions	       = button(prolog),
 	  view_threads		       = button(prolog),
+	  view_debug_messages	       = button(prolog),
 	  -			       = button(prolog),
 	  check_clause		       = key('\\C-c\\C-s') + button(prolog),
 	  insert_full_stop	       = key(.),
@@ -558,6 +559,11 @@ edit_exceptions(_M) :->
 view_threads(_M) :->
 	"View running threads"::
 	prolog_ide(thread_monitor).
+
+
+view_debug_messages(_M) :->
+	"View debug/3 messages"::
+	prolog_ide(debug_monitor).
 
 
 		 /*******************************

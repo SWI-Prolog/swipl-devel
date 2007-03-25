@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Windows: menu entries for debug monitor and exception monitor.
+    Also added these to PceEmacs Prolog mode.
+
   * ENHANCED: Extend context in which PL_new_term_ref() can be called
     to include the cases required by JPL.
 
