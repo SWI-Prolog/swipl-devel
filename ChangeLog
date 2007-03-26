@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: library(debug).  Warn if topic is not registered and include
+    the issuing thread in the message if it is not the main thread.  Mike
+    Elston.
+
   * ADDED: Windows: menu entries for debug monitor and exception monitor.
     Also added these to PceEmacs Prolog mode.
 

@@ -38,7 +38,9 @@ removed if the code is compiled in optimise mode.
     \predicate{debug}{1}{+Topic}
 Select all registered topics that unify with \arg{Topic} for debugging.
 This call is normally used from the toplevel to activate a topic for
-debugging.  Topics are de-activated using nodebug/1.
+debugging. If no matching \arg{Topic} is registered a warning is
+printed and the topic is registered for debugging as matching debug
+statements may be loaded later. Topics are de-activated using nodebug/1.
 
     \predicate{nodebug}{1}{+Topic}
 Deactivates topics for debugging.  See debug/1 for the arguments.

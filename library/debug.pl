@@ -46,12 +46,25 @@
 :- dynamic
 	debugging/2.
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Print debug messages
+
+This library is a replacement for  format/3 for printing debug messages.
+Messages are assigned a _topic_. By   dynamically  enabling or disabling
+topics the user can  select  desired   messages.  Debug  statements  are
+removed when the code is compiled for optimization.
+
 See manual for details. With XPCE, you can use the call below to start a
 graphical monitorring tool.
 
-	?- prolog_ide(debug_monitor).
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+==
+?- prolog_ide(debug_monitor).
+==
+
+Using the predicate assertion/1 you  can   make  assumptions  about your
+program explicit, trapping the debugger if the condition does not hold.
+
+@author	Jan Wielemaker
+*/
 
 %%	debugging(+Topic) is semidet.
 %%	debugging(-Topic) is nondet.
@@ -70,23 +83,21 @@ debugging(Topic) :-
 %	topics.
 
 debug(Topic) :-
-	(   (   retract(debugging(Topic, _))
-	    *-> assert(debugging(Topic, true)),
-		fail
-	    ;   assert(debugging(Topic, true))
-	    )
-	->  true
-	;   true
-	).
+	debug(Topic, true).
 nodebug(Topic) :-
+	debug(Topic, false).
+
+debug(Topic, Val) :-
 	(   (   retract(debugging(Topic, _))
-	    *-> assert(debugging(Topic, false)),
+	    *-> assert(debugging(Topic, Val)),
 		fail
-	    ;   assert(debugging(Topic, false))
+	    ;   print_message(warning, debug_no_topic(Val)),
+	        assert(debugging(Topic, Val))
 	    )
 	->  true
 	;   true
 	).
+
 
 %%	debug_topic(+Topic) is det.
 %
@@ -131,7 +142,7 @@ debug(_, _, _).
 print_debug(Topic, Format, Args) :-
 	prolog:debug_print_hook(Topic, Format, Args), !.
 print_debug(_, Format, Args) :-
-	print_message(informational, format(Format, Args)).
+	print_message(informational, debug(Format, Args)).
 
 
 		 /*******************************
@@ -206,3 +217,11 @@ user:goal_expansion(assume(G), Goal) :-
 
 prolog:message(assumption_failed(G)) -->
 	[ 'Assertion failed: ~p'-[G] ].
+prolog:message(debug(Fmt, Args)) -->
+	{ thread_self(Me) },
+	(   { Me == main }
+	->  [ Fmt-Args ]
+	;   [ '[Thread ~w] '-[Me], Fmt-Args ]
+	).
+prolog:message(debug_no_topic(Topic)) -->
+	[ '~q: no matching debug topic (yet)'-[Topic] ].
