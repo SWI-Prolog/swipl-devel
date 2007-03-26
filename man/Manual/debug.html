@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.31 Reference Manual: Section A.8</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.32 Reference Manual: Section A.8</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="check.html">
@@ -168,7 +168,9 @@ true)</TT> is removed if the code is compiled in optimise mode.</DD>
 <DD class="defbody">
 Select all registered topics that unify with <VAR>Topic</VAR> for 
 debugging. This call is normally used from the toplevel to activate a 
-topic for debugging. Topics are de-activated using <A NAME="idx:nodebug1:1416"></A><A class="pred" href="debug.html#nodebug/1">nodebug/1</A>.</DD>
+topic for debugging. If no matching <VAR>Topic</VAR> is registered a 
+warning is printed and the topic is registered for debugging as matching 
+debug statements may be loaded later. Topics are de-activated using <A NAME="idx:nodebug1:1416"></A><A class="pred" href="debug.html#nodebug/1">nodebug/1</A>.</DD>
 <DT class="pubdef"><A NAME="nodebug/1"><STRONG>nodebug</STRONG>(<VAR>+Topic</VAR>)</A></DT>
 <DD class="defbody">
 Deactivates topics for debugging. See <A NAME="idx:debug1:1417"></A><A class="pred" href="debug.html#debug/1">debug/1</A> 

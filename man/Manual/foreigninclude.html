@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.31 Reference Manual: Section 9.6</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.32 Reference Manual: Section 9.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="foreigntypes.html">
@@ -1439,7 +1439,7 @@ call_chars(const char *goal)
   term_t g = PL_new_term_ref();
   BOOL rval;
 
-  if ( PL_string_to_term(goal, g) )
+  if ( PL_chars_to_term(goal, g) )
     rval = PL_call(goal, NULL);
   else
     rval = FALSE;
