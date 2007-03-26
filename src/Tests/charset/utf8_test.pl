@@ -5,9 +5,6 @@
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 
-:- debug(utf8(error)).
-:- debug(utf8(malformed)).
-
 :- dynamic
 	test_dir/1.
 
@@ -104,3 +101,7 @@ collect_messages(Messages, Ref) :-
 	nb_getval(messages, L),
 %	nb_delete(messages),
 	reverse(L, Messages).
+
+:- debug(utf8(error)).
+:- debug(utf8(malformed)).
+
