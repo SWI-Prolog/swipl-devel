@@ -1699,29 +1699,14 @@ generate_attach_body_1(FA,Var,Susp,Body) :-
 
 generate_attach_body_n(F/A,Var,Susp,Body) :-
 	get_constraint_index(F/A,Position),
-	or_pattern(Position,Pattern),
 	get_max_constraint_index(Total),
-	make_attr(Total,Mask,SuspsList,Attr),
-	nth1(Position,SuspsList,Susps),
-	substitute_eq(Susps,SuspsList,[Susp|Susps],SuspsList1),
-	make_attr(Total,Mask,SuspsList1,NewAttr1),
-	substitute_eq(Susps,SuspsList,[Susp],SuspsList2),
-	make_attr(Total,NewMask,SuspsList2,NewAttr2),
-	copy_term(SuspsList,SuspsList3),
-	nth1(Position,SuspsList3,[Susp]),
-	chr_delete(SuspsList3,[Susp],RestSuspsList),
-	set_elems(RestSuspsList,[]),
-	make_attr(Total,Pattern,SuspsList3,NewAttr3),
 	get_target_module(Mod),
+	add_attr(Total,Susp,Position,TAttr,AddGoal,NTAttr),
+	singleton_attr(Total,Susp,Position,NewAttr3),
 	Body =
 	( get_attr(Var,Mod,TAttr) ->
-		TAttr = Attr,
-		( Mask /\ Pattern =:= Pattern ->
-			put_attr(Var, Mod, NewAttr1)
-		;
-			NewMask is Mask \/ Pattern,
-			put_attr(Var, Mod, NewAttr2)
-		)
+		AddGoal,
+		put_attr(Var,Mod,NTAttr)
 	;
 		put_attr(Var,Mod,NewAttr3)
 	), !.
@@ -1767,34 +1752,12 @@ generate_detach_body_1(FA,Var,Susp,Body) :-
 
 generate_detach_body_n(F/A,Var,Susp,Body) :-
 	get_constraint_index(F/A,Position),
-	or_pattern(Position,Pattern),
-	and_pattern(Position,DelPattern),
 	get_max_constraint_index(Total),
-	make_attr(Total,Mask,SuspsList,Attr),
-	nth1(Position,SuspsList,Susps),
-	substitute_eq(Susps,SuspsList,[],SuspsList1),
-	make_attr(Total,NewMask,SuspsList1,Attr1),
-	substitute_eq(Susps,SuspsList,NewSusps,SuspsList2),
-	make_attr(Total,Mask,SuspsList2,Attr2),
-	get_target_module(Mod),
+ 	rem_attr(Total,Var,Susp,Position,TAttr,RemGoal),
+ 	get_target_module(Mod),
 	Body =
 	( get_attr(Var,Mod,TAttr) ->
-		TAttr = Attr,
-		( Mask /\ Pattern =:= Pattern ->
-			'chr sbag_del_element'(Susps,Susp,NewSusps),
-			( NewSusps == [] ->
-				NewMask is Mask /\ DelPattern,
-				( NewMask == 0 ->
-					del_attr(Var,Mod)
-				;
-					put_attr(Var,Mod,Attr1)
-				)
-			;
-				put_attr(Var,Mod,Attr2)
-			)
-		;
-			true
-		)
+		RemGoal
 	;
 		true
 	), !.
@@ -2556,13 +2519,10 @@ generate_attach_increment_one(Clause) :-
 	Clause = (Head :- Body).
 
 generate_attach_increment_many(N,Clause) :-
-	make_attr(N,Mask,SuspsList,Attr),
-	make_attr(N,OtherMask,OtherSuspsList,OtherAttr),
-	Head = attach_increment([Var|Vars],Attr),
-	bagof(G,X ^ Y ^ SY ^ M ^ (member2(SuspsList,OtherSuspsList,X-Y),G = (sort(Y,SY),'chr merge_attributes'(X,SY,M))),Gs),
-	list2conj(Gs,SortGoals),
-	bagof(MS,A ^ B ^ C ^ member((A,'chr merge_attributes'(B,C,MS)),Gs), MergedSuspsList),
-	make_attr(N,MergedMask,MergedSuspsList,NewAttr),
+	Head = attach_increment([Var|Vars],TAttr1),
+	% writeln(merge_attributes_1_before),
+	merge_attributes(N,TAttr1,TAttr2,MergeGoal,Attr),
+	% writeln(merge_attributes_1_after),
 	get_target_module(Mod),
 	( chr_pp_flag(guard_locks,off) ->
 		NotLocked = true
@@ -2572,15 +2532,13 @@ generate_attach_increment_many(N,Clause) :-
 	Body =	
 	(
 		NotLocked,
-		( get_attr(Var,Mod,TOtherAttr) ->
-			TOtherAttr = OtherAttr,
-			SortGoals,
-			MergedMask is Mask \/ OtherMask,
-			put_attr(Var,Mod,NewAttr)
-		;
+		( get_attr(Var,Mod,TAttr2) ->
+			MergeGoal,
 			put_attr(Var,Mod,Attr)
+		;
+			put_attr(Var,Mod,TAttr1)
 		),
-		attach_increment(Vars,Attr)
+		attach_increment(Vars,TAttr1)
 	),
 	Clause = (Head :- Body).
 
@@ -2590,15 +2548,14 @@ generate_attr_unify_hook(Clauses) :-
 	( N == 0 ->
 		Clauses = []
 	; 
-		Clauses = [Clause],
 		( N == 1 ->
-			generate_attr_unify_hook_one(Clause)
+			generate_attr_unify_hook_one(Clauses)
 		;
-			generate_attr_unify_hook_many(N,Clause)
+			generate_attr_unify_hook_many(N,Clauses)
 		)
 	).
 
-generate_attr_unify_hook_one(Clause) :-
+generate_attr_unify_hook_one([Clause]) :-
 	Head = attr_unify_hook(Susps,Other),
 	get_target_module(Mod),
 	get_indexed_constraint(1,C),
@@ -2659,22 +2616,17 @@ generate_attr_unify_hook_one(Clause) :-
 	).
 
 
-generate_attr_unify_hook_many(N,Clause) :-
+generate_attr_unify_hook_many(N,[Clause]) :-
+	chr_pp_flag(dynattr,off), !,
+	Head = attr_unify_hook(Attr,Other),
+	get_target_module(Mod),
 	make_attr(N,Mask,SuspsList,Attr),
-	make_attr(N,OtherMask,OtherSuspsList,OtherAttr),
 	bagof(Sort,A ^ B ^ ( member(A,SuspsList) , Sort = sort(A,B) ) , SortGoalList),
 	list2conj(SortGoalList,SortGoals),
 	bagof(B, A ^ member(sort(A,B),SortGoalList), SortedSuspsList),
-	bagof(C, D ^ E ^ F ^ G ^ (member2(SortedSuspsList,OtherSuspsList,D-E),
-                                  C = (sort(E,F),
-                                       'chr merge_attributes'(D,F,G)) ), 
-              SortMergeGoalList),
-	bagof(G, D ^ F ^ H ^ member((H,'chr merge_attributes'(D,F,G)),SortMergeGoalList) , MergedSuspsList),
-	list2conj(SortMergeGoalList,SortMergeGoals),
-	make_attr(N,MergedMask,MergedSuspsList,MergedAttr),
+	merge_attributes2(N,Mask,SortedSuspsList,TOtherAttr,MergeGoal,MergedAttr),
+	get_all_suspensions2(N,MergedAttr,MergedSuspsList),
 	make_attr(N,Mask,SortedSuspsList,SortedAttr),
-	Head = attr_unify_hook(Attr,Other),
-	get_target_module(Mod),
 	make_run_suspensions_loop(MergedSuspsList,SortedSuspsList,WakeMergedSusps),
 	make_run_suspensions_loop(SortedSuspsList,SortedSuspsList,WakeSortedSusps),
 	( forall((between(1,N,Index), get_indexed_constraint(Index,Constraint)),atomic_types_suspended_constraint(Constraint)) ->
@@ -2694,9 +2646,7 @@ generate_attr_unify_hook_many(N,Clause) :-
 		SortGoals,
 		( var(Other) ->
 			( get_attr(Other,Mod,TOtherAttr) ->
-				TOtherAttr = OtherAttr,
-				SortMergeGoals,
-				MergedMask is Mask \/ OtherMask,
+				MergeGoal,
 				put_attr(Other,Mod,MergedAttr),
 				WakeMergedSusps
 			;
@@ -2709,6 +2659,81 @@ generate_attr_unify_hook_many(N,Clause) :-
 		)	
 	),	
 	Clause = (Head :- Body).
+
+% NEW
+generate_attr_unify_hook_many(N,Clauses) :-
+	Head = attr_unify_hook(Attr,Other),
+	get_target_module(Mod),
+	normalize_attr(Attr,NormalGoal,NormalAttr),
+	normalize_attr(OtherAttr,NormalOtherGoal,NormalOtherAttr),
+	merge_attributes(N,NormalAttr,NormalOtherAttr,MergeGoal,MergedAttr),
+	make_run_suspensions(N),
+	( forall((between(1,N,Index), get_indexed_constraint(Index,Constraint)),atomic_types_suspended_constraint(Constraint)) ->
+		NonvarBody = true	
+	;
+		use_auxiliary_predicate(attach_increment),
+		NonvarBody =
+			( compound(Other) ->
+				term_variables(Other,OtherVars),
+				attach_increment(OtherVars,NormalAttr)
+			;
+				true
+			)
+	), 	
+	Body =
+	(
+		NormalGoal,
+		( var(Other) ->
+			( get_attr(Other,Mod,OtherAttr) ->
+				NormalOtherGoal,
+				MergeGoal,
+				put_attr(Other,Mod,MergedAttr),
+				'$dispatch_run_suspensions'(MergedAttr)
+			;
+				put_attr(Other,Mod,NormalAttr),
+				'$dispatch_run_suspensions'(NormalAttr)
+			)
+		;
+			NonvarBody,
+			'$dispatch_run_suspensions'(NormalAttr)
+		)	
+	),	
+	Clause = (Head :- Body),
+	Clauses = [Clause,DispatchList1,DispatchList2|Dispatchers],
+	DispatchList1 = ('$dispatch_run_suspensions'([])),
+	DispatchList2 = ('$dispatch_run_suspensions'([Pos-List|Rest]) :- '$dispatch_run_suspensions'(Pos,List),'$dispatch_run_suspensions'(Rest)),
+	run_suspensions_dispatchers(N,[],Dispatchers).
+
+% NEW
+run_suspensions_dispatchers(N,Acc,Dispatchers) :-
+	( N > 0 ->
+		get_indexed_constraint(N,C),
+		NAcc = [('$dispatch_run_suspensions'(N,List) :- Body)|Acc],
+		( may_trigger(C) ->
+			run_suspensions_goal(C,List,Body)
+		;
+			Body = true	
+		),
+		M is N - 1,
+		run_suspensions_dispatchers(M,NAcc,Dispatchers)
+	;
+		Dispatchers = Acc
+	).	
+
+% NEW
+make_run_suspensions(N) :-
+	( N > 0 ->
+		( get_indexed_constraint(N,C),
+		  may_trigger(C) ->
+			use_auxiliary_predicate(run_suspensions,C)
+		;
+			true
+		),
+		M is N - 1,
+		make_run_suspensions(M)
+	;
+		true
+	).
 
 make_run_suspensions(AllSusps,OneSusps,Goal) :-
 	make_run_suspensions(1,AllSusps,OneSusps,Goal).
@@ -3315,7 +3340,7 @@ generate_attach_code(type_indexed_identifier_store(Index,IndexType),C,L,T) :-
 		set_elems(Stores1b,[]),
 		Expansion1 = (S1b = Struct1b),
 		Clause1b = user:goal_expansion(Goal1,Expansion1),
-		writeln(Clause1-Clause1b),
+		% writeln(Clause1-Clause1b),
 		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 		type_indexed_identifier_structure(IndexType,Struct2),
@@ -3914,6 +3939,7 @@ compute_derived_info([Renaming1|RestRenamings],PrevMatchings,PrevMatchingFreeHea
 
 simplify_guard(G,B,Info,SG,NB) :-
     conj2list(G,LG),
+    % writeq(guard_entailment:simplify_guards(Info,B,LG,SGL,NB)),nl,
     guard_entailment:simplify_guards(Info,B,LG,SGL,NB),
     list2conj(SGL,SG).
 
@@ -4067,6 +4093,7 @@ rule(RuleNb,Rule) \ prev_guard_list(RuleNb,0,H,G,GuardList,M,[])
     		chr_pp_flag(check_impossible_rules,on),
     		Rule = pragma(rule(Head1,Head2,G,B),Ids,Pragmas,Name,RuleNb),
     		append(M,GuardList,Info),
+		% writeq(guard_entailment:entails_guard(Info,fail)),nl,
     		guard_entailment:entails_guard(Info,fail) 
 	|
     		chr_warning(weird_program,'Heads will never match in ~@.\n\tThis rule will never fire!\n',[format_rule(Rule)]),
@@ -4166,6 +4193,7 @@ simplify_heads([],_GuardList,_G,_Body,[],[]).
 simplify_heads([M|RM],GuardList,G,Body,NewM,NewB) :-
     M = (A = B),
     ( (nonvar(B) ; vars_occur_in(B,RM-GuardList)),
+	% writeq(guard_entailment:entails_guard(GuardList,(A=B))),nl,
 	guard_entailment:entails_guard(GuardList,(A=B)) ->
 	( vars_occur_in(B,G-RM-GuardList) ->
 	    NewB = NextB,
@@ -4180,6 +4208,7 @@ simplify_heads([M|RM],GuardList,G,Body,NewM,NewB) :-
 	)
     ;
 	( nonvar(B), functor(B,BFu,BAr),
+	  % writeq(guard_entailment:entails_guard([functor(A,BFu,BAr)|GuardList],(A=B))),nl,
 	  guard_entailment:entails_guard([functor(A,BFu,BAr)|GuardList],(A=B)) ->
 	    NewB = NextB,
 	    ( vars_occur_in(B,G-RM-GuardList) ->
@@ -4213,6 +4242,7 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]),rule(RuleNb,Rule)
     		chr_pp_flag(check_impossible_rules,on),
     		Rule = pragma(rule(_,_,G,_),_Ids,_Pragmas,_Name,RuleNb),
     		conj2list(G,GL),
+		% writeq(guard_entailment:entails_guard(GL,fail)),nl,
     		guard_entailment:entails_guard(GL,fail) 
 	|
     		chr_warning(weird_program,'Guard will always fail in ~@.\n\tThis rule will never fire!\n',[format_rule(Rule)]),
@@ -4297,7 +4327,8 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]), occurrence(C,O2,RuleNb,ID_o2,_), r
 			( OccSubsum \= chr_pp_void_info 
 %			  unify_stuff(InfoVars,Info3,OccSubsum3) 
 ->
-				( guard_entailment:entails_guard(Info2,OccSubsum2) ->
+				( % writeq(guard_entailment:entails_guard(Info2,OccSubsum2)),nl,
+				  guard_entailment:entails_guard(Info2,OccSubsum2) ->
 			    		passive(RuleNb,ID_o2)
 				; 
 			    		true
@@ -5201,6 +5232,7 @@ check_storage_head1(Head,O,H1,H2,G) :-
 	C = F/A,
 	( H1 == [Head],
 	  H2 == [],
+          % writeq(guard_entailment:entails_guard([chr_pp_headvariables(Head)],G)),nl,
 	  guard_entailment:entails_guard([chr_pp_headvariables(Head)],G),
 	  Head =.. [_|L],
 	  no_matching(L,[]) ->
@@ -6394,10 +6426,8 @@ gen_get_mod_constraints(FA,Vars,TypeDict,ViaGoal,AttrGoal,AllSusps) :-
 	    	TSuspsEqSusps = true, % TSusps = Susps
 		AllSusps = TSusps
 	;
-		TSuspsEqSusps = (TSusps = Susps),
 		get_constraint_index(FA,Pos),
-		make_attr(N,_,SuspsList,Susps),
-		nth1(Pos,SuspsList,AllSusps)
+		get_suspensions(N,Pos,TSusps,TSuspsEqSusps,AllSusps)
 	).
 gen_get_mod_constraints(FA,Var,AttrGoal,AllSusps) :-
 	get_target_module(Mod),
@@ -6410,10 +6440,8 @@ gen_get_mod_constraints(FA,Var,AttrGoal,AllSusps) :-
 	    	TSuspsEqSusps = true, % TSusps = Susps
 		AllSusps = TSusps
 	;
-		TSuspsEqSusps = (TSusps = Susps),
 		get_constraint_index(FA,Pos),
-		make_attr(N,_,SuspsList,Susps),
-		nth1(Pos,SuspsList,AllSusps)
+		get_suspensions(N,Pos,TSusps,TSuspsEqSusps,AllSusps)
 	).
 
 guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy) :-
@@ -7466,10 +7494,6 @@ vars_susp(A,Vars,Susp,VarsSusp) :-
    length(Vars,A),
    append(Vars,[Susp],VarsSusp).
 
-make_attr(N,Mask,SuspsList,Attr) :-
-	length(SuspsList,N),
-	Attr =.. [v,Mask|SuspsList].
-
 or_pattern(Pos,Pat) :-
 	Pow is Pos - 1,
 	Pat is 1 << Pow.      % was 2 ** X
@@ -7481,6 +7505,193 @@ and_pattern(Pos,Pat) :-
 
 make_name(Prefix,F/A,Name) :-
 	atom_concat_list([Prefix,F,'___',A],Name).
+
+%===============================================================================
+% Attribute for attributed variables 
+
+make_attr(N,Mask,SuspsList,Attr) :-
+	length(SuspsList,N),
+	Attr =.. [v,Mask|SuspsList].
+
+get_all_suspensions2(N,Attr,SuspensionsList) :-
+	chr_pp_flag(dynattr,off), !,
+	make_attr(N,_,SuspensionsList,Attr).
+
+% NEW
+get_all_suspensions2(N,Attr,Goal,SuspensionsList) :-
+	% writeln(get_all_suspensions2),
+	length(SuspensionsList,N),
+	Goal = 'chr all_suspensions'(SuspensionsList,1,Attr).	
+
+
+% NEW
+normalize_attr(Attr,NormalGoal,NormalAttr) :-
+	% writeln(normalize_attr),
+	NormalGoal = 'chr normalize_attr'(Attr,NormalAttr).
+
+get_suspensions(N,Position,TAttr,(TAttr = Attr),Suspensions) :-
+	chr_pp_flag(dynattr,off), !,
+	make_attr(N,_,SuspsList,Attr),
+	nth1(Position,SuspsList,Suspensions).
+
+% NEW
+get_suspensions(N,Position,TAttr,Goal,Suspensions) :-
+	% writeln(get_suspensions),
+	Goal = 
+      	( memberchk(Position-Suspensions,TAttr) ->
+			true
+      	;
+      		Suspensions = []
+      	).
+
+%-------------------------------------------------------------------------------
+% +N: number of constraint symbols
+% +Suspension: source-level variable, for suspension
+% +Position: constraint symbol number
+% -Attr: source-level term, for new attribute
+singleton_attr(N,Suspension,Position,Attr) :-
+	chr_pp_flag(dynattr,off), !,
+	or_pattern(Position,Pattern),
+	make_attr(N,Pattern,SuspsList,Attr),
+	nth1(Position,SuspsList,[Suspension]),
+	chr_delete(SuspsList,[Suspension],RestSuspsList),
+	set_elems(RestSuspsList,[]).
+
+% NEW
+singleton_attr(N,Suspension,Position,Attr) :-
+	% writeln(singleton_attr),
+      	Attr = [Position-[Suspension]].
+
+%-------------------------------------------------------------------------------
+% +N: number of constraint symbols
+% +Suspension: source-level variable, for suspension
+% +Position: constraint symbol number
+% +TAttr: source-level variable, for old attribute
+% -Goal: goal for creating new attribute
+% -NTAttr: source-level variable, for new attribute
+add_attr(N,Suspension,Position,TAttr,Goal,NTAttr) :-
+	chr_pp_flag(dynattr,off), !,
+	make_attr(N,Mask,SuspsList,Attr),
+	or_pattern(Position,Pattern),
+	nth1(Position,SuspsList,Susps),
+	substitute_eq(Susps,SuspsList,[Suspension|Susps],SuspsList1),
+	make_attr(N,Mask,SuspsList1,NewAttr1),
+	substitute_eq(Susps,SuspsList,[Suspension],SuspsList2),
+	make_attr(N,NewMask,SuspsList2,NewAttr2),
+	Goal = (
+		TAttr = Attr,
+		( Mask /\ Pattern =:= Pattern ->
+			NTAttr = NewAttr1
+		;
+			NewMask is Mask \/ Pattern,
+			NTAttr = NewAttr2
+		)
+	), !.
+
+% NEW
+add_attr(N,Suspension,Position,TAttr,Goal,NTAttr) :-
+	% writeln(add_attr),
+	Goal =
+		( select(Position-Suspensions,TAttr,RAttr) ->
+			NTAttr = [Position-[Suspension|Suspensions]|RAttr]
+		;
+			NTAttr = [Position-[Suspension]|TAttr]
+		).
+
+rem_attr(N,Var,Suspension,Position,TAttr,Goal) :-
+	chr_pp_flag(dynattr,off), !,
+	or_pattern(Position,Pattern),
+	and_pattern(Position,DelPattern),
+	make_attr(N,Mask,SuspsList,Attr),
+	nth1(Position,SuspsList,Susps),
+	substitute_eq(Susps,SuspsList,[],SuspsList1),
+	make_attr(N,NewMask,SuspsList1,Attr1),
+	substitute_eq(Susps,SuspsList,NewSusps,SuspsList2),
+	make_attr(N,Mask,SuspsList2,Attr2),
+	get_target_module(Mod),
+	Goal = (
+		TAttr = Attr,
+		( Mask /\ Pattern =:= Pattern ->
+			'chr sbag_del_element'(Susps,Suspension,NewSusps),
+			( NewSusps == [] ->
+				NewMask is Mask /\ DelPattern,
+				( NewMask == 0 ->
+					del_attr(Var,Mod)
+				;
+					put_attr(Var,Mod,Attr1)
+				)
+			;
+				put_attr(Var,Mod,Attr2)
+			)
+		;
+			true
+		)
+	), !.
+
+% NEW
+rem_attr(N,Var,Suspension,Position,TAttr,Goal) :-
+	% writeln(rem_attr),
+	get_target_module(Mod),
+	Goal =
+		( select(Position-Suspensions,TAttr,RAttr) ->
+			'chr sbag_del_element'(Suspensions,Suspension,NSuspensions),
+			( NSuspensions == [] ->
+				( RAttr == [] ->
+					del_attr(Var,Mod)
+				;
+					put_attr(Var,Mod,RAttr)
+				)
+			;
+				put_attr(Var,Mod,[Position-NSuspensions|RAttr])
+			)
+		;
+			true
+		).
+
+%-------------------------------------------------------------------------------
+% +N: number of constraint symbols
+% +TAttr1: source-level variable, for attribute
+% +TAttr2: source-level variable, for other attribute
+% -Goal: goal for merging the two attributes
+% -Attr: source-level term, for merged attribute
+merge_attributes(N,TAttr1,TAttr2,Goal,Attr) :-
+	chr_pp_flag(dynattr,off), !,
+	make_attr(N,Mask1,SuspsList1,Attr1),
+	merge_attributes2(N,Mask1,SuspsList1,TAttr2,Goal2,Attr),
+	Goal = (
+		TAttr1 = Attr1,
+		Goal2
+	).
+
+% NEW
+merge_attributes(N,TAttr1,TAttr2,Goal,Attr) :-
+	% writeln(merge_attributes),
+	Goal = (
+		sort(TAttr1,Sorted1),
+		sort(TAttr2,Sorted2),
+		'chr new_merge_attributes'(Sorted1,Sorted2,Attr)
+	).
+		
+
+%-------------------------------------------------------------------------------
+% +N: number of constraint symbols
+% +Mask1: ...
+% +SuspsList1: static term, for suspensions list
+% +TAttr2: source-level variable, for other attribute
+% -Goal: goal for merging the two attributes
+% -Attr: source-level term, for merged attribute
+merge_attributes2(N,Mask1,SuspsList1,TAttr2,Goal,Attr) :-
+	make_attr(N,Mask2,SuspsList2,Attr2),
+	bagof(G,X ^ Y ^ SY ^ M ^ (member2(SuspsList1,SuspsList2,X-Y),G = (sort(Y,SY),'chr merge_attributes'(X,SY,M))),Gs),
+	list2conj(Gs,SortGoals),
+	bagof(MS,A ^ B ^ C ^ member((A,'chr merge_attributes'(B,C,MS)),Gs), SuspsList),
+	make_attr(N,Mask,SuspsList,Attr),
+	Goal = (
+		TAttr2 = Attr2,
+		SortGoals,
+		Mask is Mask1 \/ Mask2
+	).
+	
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Storetype dependent lookup
@@ -8500,6 +8711,7 @@ unconditional_occurrence(C,O) :-
 	PRule = pragma(ORule,_,_,_,_),
 	copy_term_nat(ORule,Rule),
 	Rule = rule(H1,H2,Guard,_),
+	% writeq(guard_entailment:entails_guard([chr_pp_headvariables(H1,H2)],Guard)),nl,
 	guard_entailment:entails_guard([chr_pp_headvariables(H1,H2)],Guard),
 	once((
 		H1 = [Head], H2 == []

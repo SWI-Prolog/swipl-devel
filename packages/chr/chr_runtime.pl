@@ -112,6 +112,10 @@
 	    'chr debug command'/2,	% Char, Command
 
 	    'chr chr_indexed_variables'/2,
+	
+	    'chr all_suspensions'/3,
+	    'chr new_merge_attributes'/3,
+	    'chr normalize_attr'/2,
 
 	    chr_show_store/1,	% +Module
 	    find_chr_constraint/1,
@@ -598,6 +602,49 @@ insert_constraint_internal([Global|Vars], Self, Term, Closure, F, Args) :-
   ;
        R = [X | Xs]
   ).
+
+'chr new_merge_attributes'([],A2,A) :-
+	A = A2.
+'chr new_merge_attributes'([E1|AT1],A2,A) :-
+	( A2 = [E2|AT2] ->
+		'chr new_merge_attributes'(E1,E2,AT1,AT2,A)
+	;
+		A = [E1|AT1]
+	).
+		
+'chr new_merge_attributes'(Pos1-L1,Pos2-L2,AT1,AT2,A) :-
+	( Pos1 < Pos2 ->
+		A = [Pos1-L1|AT],
+		'chr new_merge_attributes'(AT1,[Pos2-L2|AT2],AT)
+	; Pos1 > Pos2 ->
+		A = [Pos2-L2|AT],
+		'chr new_merge_attributes'([Pos1-L1|AT1],AT2,AT)
+	;
+		'chr merge_attributes'(L1,L2,L),
+		A = [Pos1-L|AT],
+		'chr new_merge_attributes'(AT1,AT2,AT)
+	).
+
+'chr all_suspensions'([],_,_).
+'chr all_suspensions'([Susps|SuspsList],Pos,Attr) :-
+	all_suspensions(Attr,Susps,SuspsList,Pos).
+
+all_suspensions([],[],SuspsList,Pos) :-
+	all_suspensions([],[],SuspsList,Pos). % all empty lists
+all_suspensions([APos-ASusps|RAttr],Susps,SuspsList,Pos) :-
+	NPos is Pos + 1,
+	( Pos == APos ->
+		Susps = ASusps,
+		'chr all_suspensions'(SuspsList,NPos,RAttr)
+	;
+		Susps = [],
+		'chr all_suspensions'(SuspsList,NPos,[APos-ASusps|RAttr])
+	).
+
+'chr normalize_attr'([],[]).
+'chr normalize_attr'([Pos-L|R],[Pos-NL|NR]) :-
+	sort(L,NL),
+	'chr normalize_attr'(R,NR).			
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

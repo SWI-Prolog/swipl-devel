@@ -1,3 +1,7 @@
+Mar 26, 2007
+
+  * TS: Experimental dynattr option, for dynamic size attribute terms.
+
 Mar 16, 2007
 
   * TS: Extended observation analysis (abstract interpretation)

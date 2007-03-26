@@ -275,6 +275,10 @@ option_definition(line_numbers,on,Flags) :-
 option_definition(line_numbers,off,Flags) :-
 	Flags = [line_numbers - off].
 
+option_definition(dynattr,on,Flags) :-
+	Flags = [dynattr - on].
+option_definition(dynattr,off,Flags) :-
+	Flags = [dynattr - off].
 
 init_chr_pp_flags :-
 	chr_pp_flag_definition(Name,[DefaultValue|_]),
@@ -318,6 +322,7 @@ chr_pp_flag_definition(verbosity,[on,off]).
 chr_pp_flag_definition(ht_removal,[off,on]).
 chr_pp_flag_definition(mixed_stores,[off,on]).
 chr_pp_flag_definition(line_numbers,[off,on]).
+chr_pp_flag_definition(dynattr,[off,on]).
 
 chr_pp_flag(Name,Value) :-
 	atom_concat('$chr_pp_',Name,GlobalVar),
