@@ -91,7 +91,7 @@ debug(Topic, Val) :-
 	(   (   retract(debugging(Topic, _))
 	    *-> assert(debugging(Topic, Val)),
 		fail
-	    ;   print_message(warning, debug_no_topic(Val)),
+	    ;   print_message(warning, debug_no_topic(Topic)),
 	        assert(debugging(Topic, Val))
 	    )
 	->  true
