@@ -69,69 +69,76 @@ Version 5.6.27 Patches relative to 5.6.26
 
 
 
-Version 5.6.31 Patches relative to 5.6.30
+Version 5.6.32 Patches relative to 5.6.31
 =========================================
 
 ================================================================
-+++ ChangeLog	16 Mar 2007 15:30:37 -0000	1.1406
-+VERSION 5.6.31 (March 16, 2007)
-+===============================
-+
-+  * FIXED: told/seen underflow in lock-count on stream. Steffen Schwigon.
-+
-+  * FIXED: do not stop break-level after exception.  Paulo Moura.
-+
-+  * ADDED: Safety check in PL_new_term_ref() and PL_new_term_refs().
-+    Ben Chistador.
-+
-+  * FIXED: Restoring generate_debug_info flag over loading .qlf files.
-+    Mike Elston.
-+
-+  * FIXED: library(base64): Determinism while decoding.
-+
-+  * PORT: Bug#266: Ensure package build exits on first error.  Keri Harris.
-+
-+===============================
+SWI-Prolog changes since version 5.6.31
+================================================================
 
 ================================================================
-+++ packages/jpl/ChangeLog	16 Mar 2007 10:01:55 -0000	1.10
-+Mar 16, 2007
++++ ChangeLog   26 Mar 2007 14:51:48 -0000
++VERSION 5.6.32 (March 26, 2007)
 +
-+  * INSTALL: Really do not require plunit fro normal distribution.
++  * ENHANCED: library(debug).  Warn if topic is not registered and include
++    the issuing thread in the message if it is not the main thread.  Mike
++    Elston.
 +
-
-================================================================
-+++ packages/http/ChangeLog	15 Mar 2007 14:39:03 -0000	1.58
-+Mar 15, 2007
++  * ADDED: Windows: menu entries for debug monitor and exception monitor.
++    Also added these to PceEmacs Prolog mode.
 +
-+  * ADDED: Include peer in session management for better security.
-+  * ADDED: Broadcast session start/end to allow deletion of derived
-+    data.
++  * ENHANCED: Extend context in which PL_new_term_ref() can be called
++    to include the cases required by JPL.
 +
-+Mar 11, 2007
++  * MODIFIED: Do not call prolog_exception_hook/4 if debugger is
++    suspended (typically in calls from the debugger and IDE tools).
 +
-+  * FIXED: http_open/3: send Host: <host>:<port> if port is not 80.
++  * ADDED: rl_write_history/1 and rl_read_history/1.  Suggested by
++    Samer Abdallah.
 +
-+Mar 9, 2007
-+
-+  * ADDED: reply_html_page/2.  To be documented
-+
-+  * ADDED: Pass protocol(http/https) into request.
++  * FIXED: Reduce cases that cause a long delay in halt with the
++    message "<N> threads wouldn't die"
 +
 
 ================================================================
-+++ packages/semweb/ChangeLog	14 Mar 2007 16:11:21 -0000	1.132
-+Mar 14, 2007
++++ packages/http/ChangeLog     22 Mar 2007 11:02:45 -0000      1.60
++Mar 22, 2007
 +
-+  * FIXED: rdf_has/3 to use empty reachability matrix after a property
-+    is added.
++  * FIXED: Bug#269: time-stamp was emitted in current locale.
 +
-+  * FIXED: atom-reference issue in rdf_update/[4,5].  Jochem Liem.
++Mar 19, 2007
 +
-+Mar 13, 2007
-+
-+  * FIXED: Send monitor events on begin/end of nested transactions.
-+    Required to make rdf_persistency work properly if RDF operations
-+    such as rdf_reset_db and rdf_load are nested in transactions.
++  * ADDED: Include name of parameter in type-errors detected by
++    http_parameters/2.
 +
 
+================================================================
++++ packages/xpce/ChangeLog     26 Mar 2007 14:51:50 -0000
++VERSION 6.6.33, distributed with SWI-Prolog 5.6.32
++
++* ADDED: Edit breakpoints and define how they are handled in the debugger.
++
++* ENHANCED: some issues in table-layout.
++
+
+================================================================
++++ packages/pldoc/ChangeLog    22 Mar 2007 11:37:00 -0000      1.22
++Mar 22, 2007
++
++* ADDED: Allow for inline images using [[file.png]].   Anjo Anjewierden.
++
++Mar 21, 2007
++
++* ADDED: Create link to image files on file.gif, file.png, file.jpg
++  or file.jpeg.   Anjo Anjewierden.
++
++* ADDED: Sort files in directory.  Anjo Anjewierden.
++
++* ADDED: Document determinism values (det, nondet, etc.).  Anjo Anjewierden.
++
++* FIXED: typo in docuementation.  Anjo Anjewierden.
++
++Mar 20, 2007
++
++* FIXED: Broken HTML for radio buttons.
++

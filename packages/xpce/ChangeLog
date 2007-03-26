@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.33, distributed with SWI-Prolog 5.6.32
+==================================================
+
 * ADDED: Edit breakpoints and define how they are handled in the debugger.
 
 * ENHANCED: some issues in table-layout.
