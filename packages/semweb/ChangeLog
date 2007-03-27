@@ -1,3 +1,7 @@
+Mar 27, 2007
+
+  * FIXED: Typo in rdf_estimate_complexity/4 docs.
+
 Mar 14, 2007
 
   * FIXED: rdf_has/3 to use empty reachability matrix after a property

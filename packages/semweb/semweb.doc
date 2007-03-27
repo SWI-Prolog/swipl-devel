@@ -1071,8 +1071,8 @@ of cached results deduced from the database. Modifications changing
 multiple triples increment \arg{Generation} with the number of triples
 modified, providing a heuristic for `how dirty' cached results may be.
 
-    \predicate{rdf_estimate_complexity}{?Subject, ?Predicate, ?Object,
-					-Complexity}
+    \predicate{rdf_estimate_complexity}{4}{?Subject, ?Predicate, ?Object,
+					   -Complexity}
 Return the number of alternatives as indicated by the database 
 internal hashed indexing.  This is a rough measure for the number
 of alternatives we can expect for an rdf_has/3 call using the

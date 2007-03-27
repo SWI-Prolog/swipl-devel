@@ -1440,10 +1440,10 @@ validity of cached results deduced from the database. Modifications
 changing multiple triples increment <VAR>Generation</VAR> with the 
 number of triples modified, providing a heuristic for `how dirty' cached 
 results may be.</DD>
-<DT class="pubdef"><A NAME="rdf_estimate_complexity/?Subject, ?Predicate, ?Object, -Complexity"><STRONG>rdf_estimate_complexity</STRONG>(<VAR>?Subject, 
+<DT class="pubdef"><A NAME="rdf_estimate_complexity/4"><STRONG>rdf_estimate_complexity</STRONG>(<VAR>?Subject, 
 ?Predicate, ?Object, -Complexity</VAR>)</A></DT>
 <DD class="defbody">
-eturn the number of alternatives as indicated by the database internal 
+Return the number of alternatives as indicated by the database internal 
 hashed indexing. This is a rough measure for the number of alternatives 
 we can expect for an <A NAME="idx:rdfhas3:73"></A><A class="pred" href="#rdf_has/3">rdf_has/3</A> 
 call using the given three arguments. When called with three variables, 
@@ -2787,8 +2787,7 @@ See the source file <CODE>avl.c</CODE> for details.
 <DT><A class="idx" href="#rdfe_set_transaction_name/1">rdfe_set_transaction_name/1</A></DT>
 <DD>
 <A class="idx" href="#idx:rdfesettransactionname1:133">7.1</A></DD>
-<DT><A class="idx" href="#rdf_estimate_complexity/?Subject, ?Predicate, ?Object, -Complexity">rdf_estimate_complexity/?Subject, 
-?Predicate, ?Object, -Complexity</A></DT>
+<DT><A class="idx" href="#rdf_estimate_complexity/4">rdf_estimate_complexity/4</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdfe_transaction/1">rdfe_transaction/1</A></DT>
