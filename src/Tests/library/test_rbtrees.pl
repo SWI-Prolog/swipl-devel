@@ -5,7 +5,7 @@ test_rbtrees :-
 
 :- use_module(library(plunit)).
 :- use_module(library(debug)).
-:- use_module(rbtrees).
+:- use_module(library(rbtrees)).
 
 :- begin_tests(rbtrees).
 
