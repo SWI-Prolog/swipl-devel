@@ -85,7 +85,7 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
 }
 
 span.pred-ext
@@ -164,7 +164,7 @@ of choices</SPAN></A></DIV>
 
 <P>
 
-<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <A NAME="sec:intro"></A>
 
@@ -186,7 +186,7 @@ you must return to the application a few years later or you must modify
 and debug someone else's application.
 </UL>
 
-<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">A 
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">A 
 Unit Test box</SPAN></A></H2>
 
 <A NAME="sec:unitbox"></A>
@@ -302,7 +302,7 @@ the body is not considered an error.
 </DD>
 </DL>
 
-<H3><A NAME="sec:2.1"><SPAN class="sec-nr">2.1</SPAN><SPAN class="sec-title">Test 
+<H3><A NAME="sec:2.1"><SPAN class="sec-nr">2.1</SPAN> <SPAN class="sec-title">Test 
 Unit options</SPAN></A></H3>
 
 <A NAME="sec:unitoptions"></A>
@@ -341,7 +341,7 @@ Executed after completion of all tests in the unit.
 </DD>
 </DL>
 
-<H3><A NAME="sec:2.2"><SPAN class="sec-nr">2.2</SPAN><SPAN class="sec-title">Writing 
+<H3><A NAME="sec:2.2"><SPAN class="sec-nr">2.2</SPAN> <SPAN class="sec-title">Writing 
 the test body</SPAN></A></H3>
 
 <A NAME="sec:testbody"></A>
@@ -354,7 +354,7 @@ specify a different expected result. See <A class="sec" href="#sec:2">section
 2</A> for details. In this section we illustrate typical test-scenarios 
 by testing SWI-Prolog built-in and library predicates.
 
-<H4><A NAME="sec:2.2.1"><SPAN class="sec-nr">2.2.1</SPAN><SPAN class="sec-title">Testing 
+<H4><A NAME="sec:2.2.1"><SPAN class="sec-nr">2.2.1</SPAN> <SPAN class="sec-title">Testing 
 deterministic predicates</SPAN></A></H4>
 
 <A NAME="sec:testdet"></A>
@@ -395,7 +395,7 @@ test(member, [nondet]) :-
         member(b, [a,b,c]).
 </PRE>
 
-<H4><A NAME="sec:2.2.2"><SPAN class="sec-nr">2.2.2</SPAN><SPAN class="sec-title">Testing 
+<H4><A NAME="sec:2.2.2"><SPAN class="sec-nr">2.2.2</SPAN> <SPAN class="sec-title">Testing 
 semi-deterministic predicates</SPAN></A></H4>
 
 <A NAME="sec:testsemidet"></A>
@@ -415,7 +415,7 @@ test(is_set, [fail]) :-
         is_set([a,a]).
 </PRE>
 
-<H4><A NAME="sec:2.2.3"><SPAN class="sec-nr">2.2.3</SPAN><SPAN class="sec-title">Testing 
+<H4><A NAME="sec:2.2.3"><SPAN class="sec-nr">2.2.3</SPAN> <SPAN class="sec-title">Testing 
 non-deterministic predicates</SPAN></A></H4>
 
 <A NAME="sec:testnondet"></A>
@@ -435,7 +435,7 @@ test(member, all(X == [a,b,c]) :-
         member(X, [a,b,c]).
 </PRE>
 
-<H4><A NAME="sec:2.2.4"><SPAN class="sec-nr">2.2.4</SPAN><SPAN class="sec-title">Testing 
+<H4><A NAME="sec:2.2.4"><SPAN class="sec-nr">2.2.4</SPAN> <SPAN class="sec-title">Testing 
 error conditions</SPAN></A></H4>
 
 <A NAME="sec:testerror"></A>
@@ -453,7 +453,7 @@ test(div0, [throws(error(evaluation_error(zero_divisor), _))]) :-
      A is 1/0.
 </PRE>
 
-<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Using 
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Using 
 seperate test files</SPAN></A></H2>
 
 <A NAME="sec:testfiles"></A>
@@ -466,7 +466,7 @@ The predicate
 can load all files that are related to source-files loaded into the 
 current project.
 
-<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Running 
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">Running 
 the test-suite</SPAN></A></H2>
 
 <A NAME="sec:running"></A>
@@ -497,7 +497,7 @@ traced. The called user-code can be traced normally though.</SPAN></SUP>
 <P></DD>
 </DL>
 
-<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Tests 
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Tests 
 and production systems</SPAN></A></H2>
 
 <A NAME="sec:state"></A>
@@ -512,7 +512,7 @@ loading the application.
 :- set_test_options([load(never)]).
 </PRE>
 
-<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Controlling 
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">Controlling 
 the test suite</SPAN></A></H2>
 
 <A NAME="sec:options"></A>
@@ -540,7 +540,12 @@ Using <CODE>make</CODE>, tests will be run for reloaded files, but not
 for files loaded the first time. Using
 <CODE>make(all)</CODE> <A NAME="idx:make0:17"></A><SPAN class="pred-ext">make/0</SPAN> 
 will run all test-suites, not only those that belong to files that are 
-reloaded.
+reloaded.</DD>
+<DT><STRONG>silent</STRONG>(<VAR>+Bool</VAR>)</DT>
+<DD class="defbody">
+When <CODE>true</CODE> (default is <CODE>false</CODE>), send 
+informational messages using the `silent' level. In practice this means 
+there is no output except for errors.
 </DD>
 </DL>
 
@@ -552,7 +557,7 @@ sources.
 </DD>
 </DL>
 
-<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Auto-generating 
+<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Auto-generating 
 tests</SPAN></A></H2>
 
 <A NAME="sec:wizard"></A>
@@ -610,7 +615,7 @@ test(reverse, [true(A==[a])]) :-
 :- end_tests(lists).
 </PRE>
 
-<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">Coverage 
+<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN> <SPAN class="sec-title">Coverage 
 analysis</SPAN></A></H2>
 
 <A NAME="sec:cover"></A>
@@ -667,7 +672,7 @@ currently only shows some rough quality measure for test-suite. Later
 versions should provide a report to the developer identifying which 
 clauses are covered, not covered and always failed.
 
-<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Portability 
+<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN> <SPAN class="sec-title">Portability 
 of the test-suite</SPAN></A></H2>
 
 <A NAME="sec:porting"></A>
@@ -688,7 +693,7 @@ in the surrounding module. This implies that support predicates used
 inside the test unit should not conflict with predicates of the module 
 being tested.
 
-<H3><A NAME="sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">PlUnit 
+<H3><A NAME="sec:9.1"><SPAN class="sec-nr">9.1</SPAN> <SPAN class="sec-title">PlUnit 
 on SICStus</SPAN></A></H3>
 
 <A NAME="sec:sicstus"></A>
@@ -719,7 +724,7 @@ conflict with the enclosing module, nor with other test modules loaded
 into the same module.
 </UL>
 
-<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Motivation 
+<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN> <SPAN class="sec-title">Motivation 
 of choices</SPAN></A></H2>
 
 <A NAME="sec:motivation"></A>

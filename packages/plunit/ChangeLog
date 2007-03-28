@@ -1,3 +1,7 @@
+Mar 28, 2007
+
+* Add option silent(Bool) to force completely silent operation.
+
 Mar 6, 2007
 
 * Allow for single option without list

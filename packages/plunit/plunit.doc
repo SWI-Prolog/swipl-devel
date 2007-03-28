@@ -376,6 +376,11 @@ run using run_tests/0 or run_tests/1. Using \const{make}, tests will be
 run for reloaded files, but not for files loaded the first time. Using
 \const{make(all)} make/0 will run all test-suites, not only those that
 belong to files that are reloaded.
+
+    \termitem{silent}{+Bool}
+When \const{true} (default is \const{false}), send informational
+messages using the `silent' level.  In practice this means there
+is no output except for errors.
 \end{description}
 
     \predicate{load_test_files}{1}{+Options}

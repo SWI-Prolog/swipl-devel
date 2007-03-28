@@ -349,14 +349,17 @@ run_unit([H|T]) :- !,
 run_unit(Spec) :-
 	unit_from_spec(Spec, Unit, Tests, Module, UnitOptions),
 	(   option(blocked(Reason), UnitOptions)
-	->  print_message(informational, plunit(blocked(unit(Unit, Reason))))
+	->  info(plunit(blocked(unit(Unit, Reason))))
 	;   setup(Module, UnitOptions)
-	->  print_message(informational, plunit(begin(Spec))),
+	->  info(plunit(begin(Spec))),
 	    forall((Module:'unit test'(Name, Line, Options, Body),
 		    matching_test(Name, Tests)),
 		   run_test(Unit, Name, Line, Options, Body)),
-	    print_message(informational, plunit(end(Spec))),
-	    format(user_error, '~N', []),
+	    info(plunit(end(Spec))),
+	    (	message_level(silent)
+	    ->	true
+	    ;	format(user_error, '~N', [])
+	    ),
 	    cleanup(Module, UnitOptions)
 	;   true
 	).
@@ -675,7 +678,7 @@ report :-
 report_blocked :-
 	predicate_property(blocked(_,_,_,_), number_of_clauses(N)),
 	N > 0,
-	print_message(informational, plunit(blocked(N))),
+	info(plunit(blocked(N))),
 	(   blocked(Unit, Name, Line, Reason),
 	    unit_file(Unit, File),
 	    print_message(informational,
@@ -687,10 +690,10 @@ report_blocked.
 report_failed :-
 	predicate_property(failed(_,_,_,_), number_of_clauses(N)),
 	N > 0, !,
-	print_message(informational, plunit(failed(N))),
+	info(plunit(failed(N))),
 	fail.
 report_failed :-
-	print_message(informational, plunit(failed(0))).
+	info(plunit(failed(0))).
 
 report_failure(Unit, Name, Line, Error) :-
 	print_message(error, plunit(failed(Unit, Name, Line, Error))).
@@ -750,6 +753,24 @@ load_test_files(_Options) :-
 		 /*******************************
 		 *	     MESSAGES		*
 		 *******************************/
+
+%%	info(+Term)
+%
+%	Runs print_message(Level, Term), where Level  is one of =silent=
+%	or =informational= (default).
+
+info(Term) :-
+	message_level(Level),
+	print_message(Level, Term).
+
+message_level(Level) :-
+	current_test_flag(test_options, Options),
+	option(silent(Silent), Options, false),
+	(   Silent == false
+	->  Level = informational
+	;   Level = silent
+	).
+
 
 message(error(context_error(plunit_close(Name, -)), _)) -->
 	[ 'PL-Unit: cannot close unit ~w: no open unit'-[Name] ].
