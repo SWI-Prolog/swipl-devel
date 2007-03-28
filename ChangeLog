@@ -7,6 +7,18 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * TEST: Some small issues that make it possible to mix the old and
+    new test framework so we can use PlUnit for testing libraries and
+    have it working from "make check".
+
+  * FIXED: Error warnings on illegal 1st byte in UTF-8 sequences.
+    Also fixed utf-8 decoding test suite.
+
+  * ADDED: library(rbtrees), providing Red-Black trees.  Copied with
+    permission from Yap.  Details of the library are still under
+    discussion.
+
+
 ===============================
 VERSION 5.6.32 (March 26, 2007)
 ===============================

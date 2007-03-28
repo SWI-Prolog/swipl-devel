@@ -24,6 +24,10 @@
 
 :- set_prolog_flag(optimise, true).
 %:- set_prolog_flag(trace_gc, true).
+:- asserta(user:file_search_path(library, '../packages/plunit')).
+:- [library(plunit)].
+:- set_test_options([load(always), silent(true)]).
+
 :- use_module(library(lists)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -61,27 +65,28 @@ available test sets. The public goals are:
 		 *******************************/
 
 :- dynamic
-	include_code/1.
+	user:include_code/1.
 
 term_expansion((:- if(G)), []) :-
-	(   catch(G, E, (print_message(error, E), fail))
-	->  asserta(include_code(true))
-	;   asserta(include_code(false))
+	prolog_load_context(module, M),
+	(   catch(M:G, E, (print_message(error, E), fail))
+	->  asserta(user:include_code(true))
+	;   asserta(user:include_code(false))
 	).
 term_expansion((:- else), []) :-
-	(   retract(include_code(X))
+	(   retract(user:include_code(X))
 	->  (   X == true
 	    ->  X2 = false 
 	    ;   X2 = true
 	    ),
-	    asserta(include_code(X2))
+	    asserta(user:include_code(X2))
 	;   throw(error(context_error(no_if), _))
 	).
 term_expansion((:- endif), []) :-
-	retract(include_code(_)), !.
+	retract(user:include_code(_)), !.
 
 term_expansion(_, []) :-
-	include_code(X), !,
+	user:include_code(X), !,
 	X == false.
 	    
 

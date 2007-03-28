@@ -881,12 +881,18 @@ retry:
       { int extra = UTF8_FBN(c);
 	int code;
 
+	if ( extra < 0 )
+	{ Sseterr(s, SIO_WARN, "Illegal UTF-8 start");
+	  c = UTF8_MALFORMED_REPLACEMENT;
+	  goto out;
+	}
+
 	code = UTF8_FBV(c,extra);
 	for( ; extra > 0; extra-- )
 	{ int c2 = get_byte(s);
 	  
 	  if ( !ISUTF8_CB(c2) )
-	  { Sseterr(s, SIO_WARN, "Illegal UTF-8 Sequence");
+	  { Sseterr(s, SIO_WARN, "Illegal UTF-8 continuation");
 	    c = UTF8_MALFORMED_REPLACEMENT;
 	    Sungetc(c2, s);
 	    goto out;

@@ -2,7 +2,6 @@
 	  [ utf8_test/0
 	  ]).
 :- use_module(library(readutil)).
-:- use_module(library(debug)).
 :- use_module(library(lists)).
 
 :- dynamic
@@ -30,29 +29,29 @@ length_test(File) :-
 
 test_lines(In) :-
 	line_count(In, LineNo),
-	catch_messages(read_line_to_codes(In, Line), Messages),
+	catch_messages(readline(In, Line), Messages),
 	(   append(Before, "|", Line)
 	->  length(Before, Len),
 	    (	Len == 78
-	    ->	debug(utf8(ok), 'OK:~d', [LineNo])
-	    ;	debug(utf8(error), 'Wrong line:~d: ~w', [LineNo, Before])
+	    ->	utter(utf8(ok), 'OK:~d', [LineNo])
+	    ;	utter(utf8(error), 'Wrong line:~d: ~w', [LineNo, Before])
 	    ),
 	    test_lines(In)
 	;   append(Before, "*", Line),
 	    length(Before, Len),
 	    (   Len == 78
-	    ->	debug(utf8(ok), 'Recovery ok:~d', [LineNo])
-	    ;	debug(utf8(malformed), 'Bad recovery:~d (Len=~d) ~w',
+	    ->	utter(utf8(ok), 'Recovery ok:~d', [LineNo])
+	    ;	utter(utf8(malformed), 'Bad recovery:~d (Len=~d) ~w',
 		      [LineNo, Len, Line])
 	    ),
 	    (	Messages == []
-	    ->	debug(utf8(malformed), 'Warning expected: ~d', [LineNo])
-	    ;	debug(utf8(ok), 'Warning OK: ~d', [LineNo])
+	    ->	utter(utf8(malformed), 'Warning expected: ~d', [LineNo])
+	    ;	utter(utf8(ok), 'Warning OK: ~d', [LineNo])
 	    )
 	->  test_lines(In)
 	;   Line == end_of_file
 	->  true
-	;   debug(utf8(skipped), 'Skipped:~d: ~w', [LineNo, Line]),
+	;   utter(utf8(skipped), 'Skipped:~d: ~w', [LineNo, Line]),
 	    test_lines(In)
 	).
 
@@ -72,13 +71,30 @@ peek_all(In) :-
 	get_code(In, C2),
 	(   C == C2
 	->  true
-	;   debug(utf8(peek), 'Peek error: ~d != ~d', [C, C2])
+	;   utter(utf8(peek), 'Peek error: ~d != ~d', [C, C2])
 	),
 	(   C == -1
 	->  true
 	;   peek_all(In)
 	).
 
+
+		 /*******************************
+		 *	     READ LINE		*
+		 *******************************/
+
+readline(In, Line) :-
+	at_end_of_stream(In), !,
+	Line = end_of_file.
+readline(In, Line) :-
+	get_code(In, C1),
+	readline(C1, In, Line).
+
+readline(10, _, []) :- !.
+readline(-1, _, []) :- !.
+readline(C, In, [C|T]) :-
+	get_code(In, C2),
+	readline(C2, In, T).
 
 		 /*******************************
 		 *	  MESSAGE TRICKS	*
@@ -102,6 +118,23 @@ collect_messages(Messages, Ref) :-
 %	nb_delete(messages),
 	reverse(L, Messages).
 
-:- debug(utf8(error)).
-:- debug(utf8(malformed)).
+
+		 /*******************************
+		 *	      OUTPUT		*
+		 *******************************/
+
+:- dynamic
+	uttering/1.
+
+utter(Term, Fmt, Args) :-
+	(   uttering(Term)
+	->  print_message(informational, format(Fmt, Args))
+	;   true
+	).
+
+utter(Term) :-
+	assert(uttering(Term)).
+
+:- utter(utf8(error)).
+:- utter(utf8(malformed)).
 
