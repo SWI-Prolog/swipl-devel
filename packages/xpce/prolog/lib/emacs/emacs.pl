@@ -153,27 +153,33 @@ make_emacs_mode_list(Sheet) :-
 	;   true
 	).
 	
-default_emacs_mode('.*\\.pl~?$',   		   	prolog).
-default_emacs_mode('\\.(pl|xpce|pceemacs)rc~?', prolog).
-default_emacs_mode('.*\.chr~?$',			chr).
-default_emacs_mode('.*\\.(tex|sty)~?$', 		latex).
-default_emacs_mode('.*\\.doc~?$',	 		latex).
-default_emacs_mode('.*\\.html~?$',	 		html).
-default_emacs_mode('.*\\.php[0-9]?~?$',	 		html).
-default_emacs_mode('.*\\.sgml~?$',	 		sgml).
-default_emacs_mode('.*\\.xml~?$',	 		xml).
-default_emacs_mode('.*\\.rdf~?$',	 		rdf).
-default_emacs_mode('.*\\.rdfs~?$',	 		rdfs).
-default_emacs_mode('.*\\.owl~?$',	 		owl).
-default_emacs_mode('.*\\.ann~?$',	 		annotate).
-default_emacs_mode('.*\\.[ch]~?$', 			c).
-default_emacs_mode('.*\\.java~?$',			java).
-default_emacs_mode('.*\\.C$',				cpp).
-default_emacs_mode('.*\\.cc$',				cpp).
-default_emacs_mode('.*\\.cpp$',				cpp).
-default_emacs_mode('.*\\.idl$',				cpp).
-default_emacs_mode('.*\\.txt~?$',			text).
-default_emacs_mode('[Cc]ompose|README|\\.article',	text).
+%%	default_emacs_mode(+Regex, -Mode) is nondet.
+%
+%	True if Mode is the PceEmacs mode   associated  with a file that
+%	matches Regex.
+
+default_emacs_mode('.*\\.pl~?$',		   prolog).
+default_emacs_mode('.*\\.plu~?$',		   prolog).
+default_emacs_mode('\\.(pl|xpce|pceemacs)rc~?',	   prolog).
+default_emacs_mode('.*\.chr~?$',		   chr).
+default_emacs_mode('.*\\.(tex|sty)~?$',		   latex).
+default_emacs_mode('.*\\.doc~?$',		   latex).
+default_emacs_mode('.*\\.html~?$',		   html).
+default_emacs_mode('.*\\.php[0-9]?~?$',		   html).
+default_emacs_mode('.*\\.sgml~?$',		   sgml).
+default_emacs_mode('.*\\.xml~?$',		   xml).
+default_emacs_mode('.*\\.rdf~?$',		   rdf).
+default_emacs_mode('.*\\.rdfs~?$',		   rdfs).
+default_emacs_mode('.*\\.owl~?$',		   owl).
+default_emacs_mode('.*\\.ann~?$',		   annotate).
+default_emacs_mode('.*\\.[ch]~?$',		   c).
+default_emacs_mode('.*\\.java~?$',		   java).
+default_emacs_mode('.*\\.C$',			   cpp).
+default_emacs_mode('.*\\.cc$',			   cpp).
+default_emacs_mode('.*\\.cpp$',			   cpp).
+default_emacs_mode('.*\\.idl$',			   cpp).
+default_emacs_mode('.*\\.txt~?$',		   text).
+default_emacs_mode('[Cc]ompose|README|\\.article', text).
 default_emacs_mode(Pattern, prolog) :-
 	current_prolog_flag(associate, Ext),
 	concat_atom(['.*\\.', Ext, '~?$'], Pattern).
@@ -186,12 +192,17 @@ make_emacs_interpreter_mode_list(Sheet) :-
 	;   true
 	).
 
+%%	emacs_interpreter_mode(+Regex, -Mode) is nondet.
+%
+%	True if Mode must be used for   a  file starting with #!Path and
+%	Path matches Regex.
+
 emacs_interpreter_mode('.*/pl',				prolog).
 emacs_interpreter_mode('.*/xpce',			prolog).
 emacs_interpreter_mode('.*/perl',			c).
 emacs_interpreter_mode('.*/awk',			c).
 
-%	emacs_content_mode(+Regex, +SearchLimit, +Mode)
+%%	emacs_content_mode(+Regex, +SearchLimit, +Mode)
 %	
 %	Select Mode if Regex matches in the first SearchLimit characters
 %	of the file.
@@ -203,6 +214,11 @@ make_emacs_content_mode_list(Sheet) :-
 	    fail
 	;   true
 	).
+
+%%	emacs_content_mode(?Regex, ?Limit, ?Mode) is nondet.
+%
+%	True if Mode must be used for a   file in which Regex matches in
+%	the first Limit characters of the file.
 
 emacs_content_mode('library(chr)', 	5000,	chr).
 
@@ -217,6 +233,10 @@ make_no_backup_list(Ch) :-
 	),
 	no_backup(Pattern),
 	send(Ch, append, regex(Pattern, CaseSensitive)).
+
+%%	no_backup(?Regex)
+%
+%	True if PceEmacs does not backup files that match Regex.
 
 no_backup('/tmp/.*').
 
