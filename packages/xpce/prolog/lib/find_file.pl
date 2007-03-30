@@ -187,10 +187,14 @@ to_pattern(Chain, Pattern) :-
 	maplist(to_pattern, List, Patterns),
 	concat_atom(Patterns, ';', Pattern).
 	
+%%	file_type(?Extension, ?Type) is nondet.
+%
 %	Allow the user to add rules to this predicate, showing proper
 %	names to the user rather than patterns.  The collection here
 %	is rather arbitrary ...  Maybe we should read the registery
 %	for defined filetypes ...
+%	
+%	@tbd	Merge with MIME-type library
 
 :- multifile
 	file_type/2.
