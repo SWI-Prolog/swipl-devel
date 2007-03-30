@@ -1,3 +1,8 @@
+Mar 30, 2007
+
+  * FIXED: rdf_has/3 can return triples that should not match.  Jochem
+    Liem.
+
 Mar 27, 2007
 
   * FIXED: Typo in rdf_estimate_complexity/4 docs.

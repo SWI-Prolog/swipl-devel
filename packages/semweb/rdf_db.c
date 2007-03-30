@@ -252,6 +252,7 @@ static void	record_transaction(rdf_db *db,
 static void	record_md5_transaction(rdf_db *db,
 				       source *src, md5_byte_t *digest);
 static void	create_reachability_matrix(predicate *root);
+static int	get_predicate(rdf_db *db, term_t t, predicate **p);
 
 
 		 /*******************************
@@ -1118,8 +1119,74 @@ create_reachability_matrix(predicate *root)
 
 static int
 isSubPropertyOf(predicate *sub, predicate *p)
-{ return testbit(sub->root->reachable, sub->label, p->label);
+{ if ( sub->root == p->root )
+    return testbit(sub->root->reachable, sub->label, p->label);
+
+  return FALSE;
 }
+
+		 /*******************************
+		 *   PRINT PREDICATE HIERARCHY	*
+		 *******************************/
+
+static void
+print_predicate_hierarchy(predicate *p, char *visited, int indent)
+{ int i;
+  cell *c;
+
+  if ( visited[p->label]++ == 2 )
+    return;
+
+  for(i=0; i<indent; i++)
+    Sdprintf(" ");
+  Sdprintf("%s (%d)\n", pname(p), p->label);
+  indent++;
+  for(c=p->siblings.head; c; c = c->next)
+  { predicate *p2 = c->value;
+
+    print_predicate_hierarchy(p2, visited, indent);
+  }
+}
+
+static void
+print_reachability_cloud(predicate *p)
+{ int y;
+  predicate *root = p->root;
+  char *visited = alloca(p->reachable->width);
+
+  memset(visited, 0, p->reachable->width);
+  Sdprintf("Predicate cloud for %s:\n", pname(p));
+  print_predicate_hierarchy(root, visited, 0);
+
+  Sdprintf("Reachability matrix:\n");
+  for(y=1; y<p->reachable->heigth; y++)
+  { int x;
+
+    for(x=1; x<p->reachable->width; x++)
+    { if ( testbit(p->reachable, x, y) )
+	Sdprintf("X");
+      else
+	Sdprintf(".");
+    }
+
+    Sdprintf("\n");
+  }
+}
+
+
+static foreign_t
+rdf_print_predicate_cloud(term_t t)
+{ predicate *p;
+  rdf_db *db = DB;
+
+  if ( !get_predicate(db, t, &p) )
+    return FALSE;
+
+  print_reachability_cloud(p);
+
+  return TRUE;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -6028,6 +6095,7 @@ install_rdf_db()
 
 #ifdef O_DEBUG
   PL_register_foreign("rdf_debug",      1, rdf_debug,       0);
+  PL_register_foreign("rdf_print_predicate_cloud", 1, rdf_print_predicate_cloud, 0);
 #endif
 #ifdef O_SECURE
   PL_register_foreign("rdf_dump_literals", 0, dump_literals, 0);
