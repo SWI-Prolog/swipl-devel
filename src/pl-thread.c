@@ -2904,6 +2904,7 @@ detach_engine(PL_engine_t e)
   info->w32id = 0;
 #endif
   memset(&info->tid, 0, sizeof(info->tid));
+  info->has_tid = FALSE;
 
   TLD_set(PL_ldata, NULL);
 }

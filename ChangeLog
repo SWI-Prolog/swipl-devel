@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: PL_set_engine() to properly release the old engine.  With
+    patch from Ramakrishna Venkatraman.
+
   * TEST: Some small issues that make it possible to mix the old and
     new test framework so we can use PlUnit for testing libraries and
     have it working from "make check".
