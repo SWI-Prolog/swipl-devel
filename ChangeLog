@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Body decompilation with very large terms.  Mike Elston.
+
   * FIXED: PL_set_engine() to properly release the old engine.  With
     patch from Ramakrishna Venkatraman.
 

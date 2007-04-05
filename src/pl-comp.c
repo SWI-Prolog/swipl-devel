@@ -2669,6 +2669,8 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       break;
     }
 
+    requireStack(local, sizeof(Word));	/* ARGP is on local stack */
+
     switch( op )
     {
 #if O_DEBUGGER
@@ -2738,9 +2740,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 
 	fdef = (functor_t)XR(*PC++);
       common_bfunctor:
+        requireStack(argument, sizeof(Word));
+        requireStack(local, sizeof(Word)*arityFunctor(fdef));
 	*ARGP = globalFunctor(fdef);
         *aTop++ = ARGP + 1;
-        requireStack(argument, sizeof(Word));
 	ARGP = argTermP(*ARGP, 0);
 	nested++;
 	continue;
@@ -2753,6 +2756,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 
 	fdef = (functor_t)XR(*PC++);
       common_brfunctor:
+	requireStack(local, sizeof(Word)*arityFunctor(fdef));
 	*ARGP = globalFunctor(fdef);
 	ARGP = argTermP(*ARGP, 0);
 	continue;
@@ -2836,6 +2840,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       { int vars = (int)(op - I_CALL_FV0);
 	int i;
 
+	requireStack(local, sizeof(Word)*vars);
 	for(i=0; i<vars; i++)
 	{ int index = (int)PC[i+1];	/* = B_VAR <N> (never nested!) */
 	  
@@ -2937,7 +2942,8 @@ build_term(functor_t f, decompileInfo *di ARG_LD)
   Word a;
 
   if ( arity == 0 )
-  { *ARGP++ = nameFunctor(f);
+  { requireStack(local, sizeof(Word));
+    *ARGP++ = nameFunctor(f);
     return;
   }    
 

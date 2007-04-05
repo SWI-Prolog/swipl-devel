@@ -1933,7 +1933,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    if ( utf8 )
 	      w = utf8_strlen(fs, w);
 
-	    if ( w < arg1 )
+	    if ( (ssize_t)w < arg1 )
 	    { w = arg1 - w;
 	      while(w > 0 )
 	      { OUTCHR(s, pad);
