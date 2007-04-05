@@ -3545,7 +3545,7 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
   ci = &codeTable[op];
 
   if ( clause )
-    Sfprintf(out, "%4d %s", bp - clause->codes, ci->name);
+    Sfprintf(out, "%6d %s", bp - clause->codes, ci->name);
   else
     Sfprintf(out, "VMI %s", ci->name);
 
