@@ -60,6 +60,7 @@ make_update_store_goal(Name,Value,Goal) :- Goal = b_setval(Name,Value).
 %	flatten/3.
 
 append([],[]).
+append([X],X) :- !.
 append([X|Xs],L) :-
 	append(X,T,L),
 	append(Xs,T).

@@ -148,6 +148,7 @@
 :- use_module(clean_code).
 :- use_module(builtins).
 :- use_module(find).
+:- use_module(binomialheap). 
 :- use_module(guard_entailment).
 :- use_module(chr_compiler_options).
 :- use_module(chr_compiler_utility).
@@ -3781,11 +3782,13 @@ multi_hash_enumerate_store_body(I,C,Susp,B) :-
 
 
 :- chr_constraint
-	prev_guard_list/7,
+	prev_guard_list/8,
+	prev_guard_list/6,
 	simplify_guards/1,
 	set_all_passive/1.
 
-:- chr_option(mode,prev_guard_list(+,+,+,+,+,+,+)).
+:- chr_option(mode,prev_guard_list(+,+,+,+,+,+,+,+)).
+:- chr_option(mode,prev_guard_list(+,+,+,+,+,+)).
 :- chr_option(mode,simplify_guards(+)).
 :- chr_option(mode,set_all_passive(+)).
 	
@@ -3813,6 +3816,7 @@ multi_hash_enumerate_store_body(I,C,Susp,B) :-
 
 guard_simplification :- 
     	( chr_pp_flag(guard_simplification,on) ->
+		precompute_head_matchings,
 		simplify_guards(1)
     	;
 		true
@@ -3822,15 +3826,45 @@ guard_simplification :-
 % 	eventually is a list of the negations of earlier guards
 rule(RuleNb,Rule) \ simplify_guards(RuleNb) 
 	<=> 
-		Rule = pragma(rule(Head1,Head2,Guard,_B),_Ids,_Pragmas,_Name,RuleNb),
+		Rule = pragma(rule(Head1,Head2,Guard,_B),ids(IDs1,IDs2),_Pragmas,_Name,RuleNb),
 		append(Head1,Head2,Heads),
 		make_head_matchings_explicit_not_negated(Heads,MatchingFreeHeads,Matchings),
 		multiple_occ_constraints_checked([]),
 		apply_guard_wrt_term(Heads,Guard,SubstitutedHeads),
-		PrevRuleNb is RuleNb-1,
-		prev_guard_list(RuleNb,PrevRuleNb,MatchingFreeHeads,Guard,[],Matchings,[SubstitutedHeads]),
+
+		append(IDs1,IDs2,IDs),
+		findall(tuple(C,O,RuleNb)-(-RuleNb),(member(ID,IDs),get_occurrence_from_id(C,O,RuleNb,ID)),HeapData),
+		empty_q(EmptyHeap),
+		insert_list_q(HeapData,EmptyHeap,Heap),
+		next_prev_rule(Heap,_,Heap1),
+		next_prev_rule(Heap1,PrevRuleNb,NHeap),
+		prev_guard_list(RuleNb,PrevRuleNb,NHeap,MatchingFreeHeads,Guard,[],Matchings,[SubstitutedHeads]),
 		NextRule is RuleNb+1, 
 		simplify_guards(NextRule).
+
+next_prev_rule(Heap,RuleNb,NHeap) :-
+	( find_min_q(Heap,_-Priority) ->
+		Priority = (-RuleNb),
+		normalize_heap(Heap,Priority,NHeap)
+	;
+		RuleNb = 0,
+		NHeap = Heap
+	).
+
+normalize_heap(Heap,Priority,NHeap) :-
+	( find_min_q(Heap,_-Priority) ->
+		delete_min_q(Heap,Heap1,tuple(C,O,_)-_),
+		( O > 1 ->
+			NO is O -1,
+			get_occurrence(C,NO,RuleNb,_),
+			insert_q(Heap1,tuple(C,NO,RuleNb)-(-RuleNb),Heap2)
+		;
+			Heap2 = Heap1
+		),
+		normalize_heap(Heap2,Priority,NHeap)
+	;
+		NHeap = Heap
+	).
 
 %	no more rule
 simplify_guards(_) 
@@ -3842,31 +3876,35 @@ simplify_guards(_)
 % 	the rule we're working on, and its removed head constraints (at least one)
 % 	are a subset of the removed constraints.
 
-rule(PrevRuleNb,PrevRule) \ prev_guard_list(RuleNb,PrevRuleNb,CurrentHeads,G,GuardList,Matchings,GH) 
+rule(PrevRuleNb,PrevRule) \ prev_guard_list(RuleNb,PrevRuleNb,Heap,CurrentHeads,G,GuardList,Matchings,GH) 
 	<=>
-    		PrevRule = pragma(rule(H1,H2,PrevGuard,_B),_Ids,_Pragmas,_Name,PrevRuleNb),
+    		PrevRule = pragma(rule(H1,H2,PrevGuard,_B),_Ids,_Pragmas,_Name,_PrevRuleNb), % PrevRuleNb == _PrevRuleNb
 	    	H1 \== [], 
-    		append(H1,H2,Heads),
-	    	make_head_matchings_explicit(Heads,MatchingFreeHeads,PrevMatchings),
+	    	make_head_matchings_explicit(PrevRuleNb,MatchingFreeHeads,PrevMatchings),
 	    	setof(Renaming,chr_translate:head_subset(MatchingFreeHeads,CurrentHeads,Renaming),Renamings)
     |
+    		append(H1,H2,Heads),
     		compute_derived_info(Renamings,PrevMatchings,MatchingFreeHeads,Heads,PrevGuard,Matchings,CurrentHeads,GH,DerivedInfo,GH_New1),
     		append(GuardList,DerivedInfo,GL1),
 		normalize_conj_list(GL1,GL),
     		append(GH_New1,GH,GH1),
 		normalize_conj_list(GH1,GH_New),
-    		PrevPrevRuleNb is PrevRuleNb-1,
-    		prev_guard_list(RuleNb,PrevPrevRuleNb,CurrentHeads,G,GL,Matchings,GH_New).
+		next_prev_rule(Heap,PrevPrevRuleNb,NHeap),
+    		% PrevPrevRuleNb is PrevRuleNb-1,
+    		prev_guard_list(RuleNb,PrevPrevRuleNb,NHeap,CurrentHeads,G,GL,Matchings,GH_New).
 
 % 	if this isn't the case, we skip this one and try the next rule
-prev_guard_list(RuleNb,N,H,G,GuardList,M,GH) 
+prev_guard_list(RuleNb,N,Heap,H,G,GuardList,M,GH) 
 	<=> 
-		N > 0 
-	|
-    		N1 is N-1, 
-		prev_guard_list(RuleNb,N1,H,G,GuardList,M,GH).
+		( N > 0 ->
+			next_prev_rule(Heap,N1,NHeap),
+	    		% N1 is N-1, 
+			prev_guard_list(RuleNb,N1,NHeap,H,G,GuardList,M,GH)
+		;
+			prev_guard_list(RuleNb,H,G,GuardList,M,GH)
+		).
 
-prev_guard_list(RuleNb,0,H,G,GuardList,M,GH) 
+prev_guard_list(RuleNb,H,G,GuardList,M,GH) 
 	<=>
     		GH \== [] 
 	|
@@ -3875,7 +3913,7 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,GH)
     		term_variables(H,HeadVars),    
     		append([chr_pp_headvariables(HeadVars)|TI],GuardList,Info),
     		normalize_conj_list(Info,InfoL),
-    		prev_guard_list(RuleNb,0,H,G,InfoL,M,[]).
+    		prev_guard_list(RuleNb,H,G,InfoL,M,[]).
 
 head_types_modes_condition([],H,true).
 head_types_modes_condition([GH|GHs],H,(TI1, TI2)) :-
@@ -3887,7 +3925,7 @@ head_types_modes_condition([GH|GHs],H,(TI1, TI2)) :-
 % 	when all earlier guards are added or skipped, we simplify the guard.
 % 	if it's different from the original one, we change the rule
 
-prev_guard_list(RuleNb,0,H,G,GuardList,M,[]), rule(RuleNb,Rule) 
+prev_guard_list(RuleNb,H,G,GuardList,M,[]), rule(RuleNb,Rule) 
 	<=> 
     		Rule = pragma(rule(Head1,Head2,G,B),Ids,Pragmas,Name,RuleNb),
    	 	G \== true,		% let's not try to simplify this ;)
@@ -3896,7 +3934,7 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]), rule(RuleNb,Rule)
     		G \== SimpleGuard     
 	|
     		rule(RuleNb,pragma(rule(Head1,Head2,SimpleGuard,NB),Ids,Pragmas,Name,RuleNb)),
-    		prev_guard_list(RuleNb,0,H,SimpleGuard,GuardList,M,[]).
+    		prev_guard_list(RuleNb,H,SimpleGuard,GuardList,M,[]).
 
 %%	normalize_conj_list(+List,-NormalList) is det.
 %
@@ -3963,22 +4001,53 @@ head_subset(H,Head,Renaming) :-
 
 head_subset([],Remainder,Renaming,Renaming,Remainder).
 head_subset([X|Xs],MultiSet,Renaming,Acc,Remainder) :-
-    	head_member(X,MultiSet,NAcc,Acc,Remainder1),
+    	head_member(MultiSet,X,NAcc,Acc,Remainder1),
     	head_subset(Xs,Remainder1,Renaming,NAcc,Remainder).
 
 % 	check if A is in the list, remove it from Headleft
-head_member(A,[X|Xs],Renaming,Acc,Remainder) :-
+head_member([X|Xs],A,Renaming,Acc,Remainder) :-
     	( variable_replacement(A,X,Acc,Renaming),
 		Remainder = Xs
     	;
-		head_member(A,Xs,Renaming,Acc,RRemainder),
-		Remainder = [X|RRemainder]
+		Remainder = [X|RRemainder],
+		head_member(Xs,A,Renaming,Acc,RRemainder)
     	).
+%-------------------------------------------------------------------------------%
+% memoing code to speed up repeated computation
 
-make_head_matchings_explicit(Heads,MatchingFreeHeads,Matchings) :-
+:- chr_constraint precompute_head_matchings/0.
+
+rule(RuleNb,PragmaRule), precompute_head_matchings ==>
+	PragmaRule = pragma(rule(H1,H2,_G,_B),_Ids,_Pragmas,_Name,_PrevRuleNb),
+	append(H1,H2,Heads),
+	make_head_matchings_explicit_(Heads,MatchingFreeHeads,Matchings),
+	copy_term_nat(MatchingFreeHeads-Matchings,A-B),
+	make_head_matchings_explicit_memo_table(RuleNb,A,B).
+
+precompute_head_matchings <=> true.
+
+:- chr_constraint make_head_matchings_explicit_memo_table/3.
+:- chr_constraint make_head_matchings_explicit_memo_lookup/3.
+
+:- chr_option(mode,make_head_matchings_explicit_memo_table(+,?,?)).
+:- chr_option(mode,make_head_matchings_explicit_memo_lookup(+,?,?)).
+
+make_head_matchings_explicit_memo_table(RuleNb,NHeads,Matchings) \ 
+		make_head_matchings_explicit_memo_lookup(RuleNb,Q1,Q2)
+	<=>
+		Q1 = NHeads,
+		Q2 = Matchings.
+make_head_matchings_explicit_memo_lookup(_,_,_) <=> fail.
+
+make_head_matchings_explicit(RuleNb,MatchingFreeHeads,Matchings) :-
+	make_head_matchings_explicit_memo_lookup(RuleNb,A,B),
+	copy_term_nat(A-B,MatchingFreeHeads-Matchings).
+%-------------------------------------------------------------------------------%
+
+make_head_matchings_explicit_(Heads,MatchingFreeHeads,Matchings) :-
 	extract_arguments(Heads,Arguments),
-	make_matchings_explicit(Arguments,H1_,[],[],_,Matchings),
-	substitute_arguments(Heads,H1_,MatchingFreeHeads).
+	make_matchings_explicit(Arguments,FreeVariables,[],[],_,Matchings),
+	substitute_arguments(Heads,FreeVariables,MatchingFreeHeads).
 
 make_head_matchings_explicit_not_negated(Heads,MatchingFreeHeads,Matchings) :-
     	extract_arguments(Heads,Arguments),
@@ -3993,55 +4062,54 @@ make_head_matchings_explicit_not_negated2(Heads,MatchingFreeHeads,Matchings) :-
 %%	extract_arguments(+ListOfConstraints,-ListOfVariables) is det.
 %
 %	Returns list of arguments of given list of constraints.
-
 extract_arguments([],[]).
-extract_arguments([C|Cs],AllArguments) :-
-    	C =.. [_|Arguments],
+extract_arguments([Constraint|Constraints],AllArguments) :-
+    	Constraint =.. [_|Arguments],
 	append(Arguments,RestArguments,AllArguments),
-    	extract_arguments(Cs,RestArguments).
+    	extract_arguments(Constraints,RestArguments).
 
 %%	substitute_arguments(+InListOfConstraints,ListOfVariables,-OutListOfConstraints) is det.
 %
 %	Substitutes arguments of constraints with those in the given list.
 
 substitute_arguments([],[],[]).
-substitute_arguments([C|Cs],Variables,[NC|NCs]) :-
-	functor(C,F,N),
+substitute_arguments([Constraint|Constraints],Variables,[NConstraint|NConstraints]) :-
+	functor(Constraint,F,N),
 	split_at(N,Variables,Arguments,RestVariables),
-	NC =.. [F|Arguments],
-	substitute_arguments(Cs,RestVariables,NCs).
+	NConstraint =.. [F|Arguments],
+	substitute_arguments(Constraints,RestVariables,NConstraints).
 
 make_matchings_explicit([],[],_,MC,MC,[]).
-make_matchings_explicit([X|R],[NewVar|R2],C,MC,MCO,M) :-
-    ( var(X) ->
-	( memberchk_eq(X,C) ->
-	    list2disj(MC,MC_disj),
-	    M = [(MC_disj ; NewVar == X)|M2],		% or only =    ??
-	    C2 = C
+make_matchings_explicit([Arg|Args],[NewVar|NewVars],VarAcc,MatchingCondition,MatchingConditionO,Matchings) :-
+	( var(Arg) ->
+	    ( memberchk_eq(Arg,VarAcc) ->
+	        list2disj(MatchingCondition,MatchingCondition_disj),
+	        Matchings = [(MatchingCondition_disj ; NewVar == Arg)|RestMatchings],		% or only =    ??
+	        NVarAcc = VarAcc
+	    ;
+	        Matchings = RestMatchings,
+	        NewVar = Arg,
+	        NVarAcc = [Arg|VarAcc]
+	    ),
+	    MatchingCondition2 = MatchingCondition
 	;
-	    M = M2,
-	    NewVar = X,
-	    C2 = [X|C]
+	    functor(Arg,F,A),
+	    Arg =.. [F|RecArgs],
+	    make_matchings_explicit(RecArgs,RecVars,VarAcc,MatchingCondition,MatchingCondition_,RecMatchings),
+	    FlatArg =.. [F|RecVars],
+	    ( RecMatchings == [] ->
+	        Matchings = [functor(NewVar,F,A)|RestMatchings]
+	    ;
+	        list2conj(RecMatchings,ArgM_conj),
+	        list2disj(MatchingCondition,MatchingCondition_disj),
+	        ArgM_ = (NewVar \= FlatArg ; MatchingCondition_disj ; ArgM_conj),
+	        Matchings = [ functor(NewVar,F,A) , ArgM_|RestMatchings]
+	    ),
+	    MatchingCondition2 = [ NewVar \= FlatArg |MatchingCondition_],
+	    term_variables(Args,ArgVars),
+	    append(ArgVars,VarAcc,NVarAcc)
 	),
-	MC2 = MC
-    ;
-	functor(X,F,A),
-	X =.. [F|Args],
-	make_matchings_explicit(Args,NewArgs,C,MC,MC_,ArgM),
-	X_ =.. [F|NewArgs],
-	(ArgM == [] ->
-	    M = [functor(NewVar,F,A) |M2]
-	;
-	    list2conj(ArgM,ArgM_conj),
-	    list2disj(MC,MC_disj),
-	    ArgM_ = (NewVar \= X_ ; MC_disj ; ArgM_conj),
-	    M = [ functor(NewVar,F,A) , ArgM_|M2]
-	),
-	MC2 = [ NewVar \= X_ |MC_],
-	term_variables(Args,ArgVars),
-	append(C,ArgVars,C2)
-    ),
-    make_matchings_explicit(R,R2,C2,MC2,MCO,M2).
+	make_matchings_explicit(Args,NewVars,NVarAcc,MatchingCondition2,MatchingConditionO,RestMatchings).
     
 
 %%	make_matchings_explicit_not_negated(+ListOfTerms,-ListOfVariables,-ListOfMatchings) is det.
@@ -4088,12 +4156,11 @@ apply_guard_wrt_variable(Guard,Variable,NVariable) :-
 %    ALWAYS FAILING HEADS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-rule(RuleNb,Rule) \ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]) 
+rule(RuleNb,Rule) \ prev_guard_list(RuleNb,H,G,GuardList,M,[]) 
 	<=> 
     		chr_pp_flag(check_impossible_rules,on),
     		Rule = pragma(rule(Head1,Head2,G,B),Ids,Pragmas,Name,RuleNb),
     		append(M,GuardList,Info),
-		% writeq(guard_entailment:entails_guard(Info,fail)),nl,
     		guard_entailment:entails_guard(Info,fail) 
 	|
     		chr_warning(weird_program,'Heads will never match in ~@.\n\tThis rule will never fire!\n',[format_rule(Rule)]),
@@ -4104,7 +4171,7 @@ rule(RuleNb,Rule) \ prev_guard_list(RuleNb,0,H,G,GuardList,M,[])
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % now we check the head matchings  (guard may have been simplified meanwhile)
-prev_guard_list(RuleNb,0,H,G,GuardList,M,[]) \ rule(RuleNb,Rule) 
+prev_guard_list(RuleNb,H,G,GuardList,M,[]) \ rule(RuleNb,Rule) 
 	<=> 
     		Rule = pragma(rule(Head1,Head2,G,B),Ids,Pragmas,Name,RuleNb),
     		simplify_heads(M,GuardList,G,B,NewM,NewB),
@@ -4180,7 +4247,7 @@ use_same_args([OA|ROA],[NA|RNA],[Out|ROut],G,Body,NewB) :-
     use_same_args(ROA,RNA,ROut,G,Body,NewB).
 use_same_args([OA|ROA],[NA|RNA],[Out|ROut],G,Body,NewB) :-
     nonvar(OA),!,
-    ( vars_occur_in(OA,Body) ->
+    ( common_variables(OA,Body) ->
         NewB = [NA = OA|NextB]
     ;
         NewB = NextB
@@ -4192,14 +4259,13 @@ use_same_args([OA|ROA],[NA|RNA],[Out|ROut],G,Body,NewB) :-
 simplify_heads([],_GuardList,_G,_Body,[],[]).
 simplify_heads([M|RM],GuardList,G,Body,NewM,NewB) :-
     M = (A = B),
-    ( (nonvar(B) ; vars_occur_in(B,RM-GuardList)),
-	% writeq(guard_entailment:entails_guard(GuardList,(A=B))),nl,
+    ( (nonvar(B) ; common_variables(B,RM-GuardList)),
 	guard_entailment:entails_guard(GuardList,(A=B)) ->
-	( vars_occur_in(B,G-RM-GuardList) ->
+	( common_variables(B,G-RM-GuardList) ->
 	    NewB = NextB,
 	    NewM = NextM
 	;
-	    ( vars_occur_in(B,Body) ->
+	    ( common_variables(B,Body) ->
 		NewB = [A = B|NextB]
 	    ;
 		NewB = NextB
@@ -4208,10 +4274,9 @@ simplify_heads([M|RM],GuardList,G,Body,NewM,NewB) :-
 	)
     ;
 	( nonvar(B), functor(B,BFu,BAr),
-	  % writeq(guard_entailment:entails_guard([functor(A,BFu,BAr)|GuardList],(A=B))),nl,
 	  guard_entailment:entails_guard([functor(A,BFu,BAr)|GuardList],(A=B)) ->
 	    NewB = NextB,
-	    ( vars_occur_in(B,G-RM-GuardList) ->
+	    ( common_variables(B,G-RM-GuardList) ->
 	        NewM = NextM
     	    ;
 		NewM = [functor(A,BFu,BAr)|NextM]
@@ -4223,11 +4288,11 @@ simplify_heads([M|RM],GuardList,G,Body,NewM,NewB) :-
     ),
     simplify_heads(RM,[M|GuardList],G,Body,NextM,NextB).
 
-vars_occur_in(B,G) :-
-    term_variables(B,BVars),
-    term_variables(G,GVars),
-    intersect_eq(BVars,GVars,L),
-    L \== [].
+common_variables(B,G) :-
+	term_variables(B,BVars),
+	term_variables(G,GVars),
+	intersect_eq(BVars,GVars,L),
+	L \== [].
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4237,7 +4302,7 @@ vars_occur_in(B,G) :-
 set_all_passive(RuleNb), occurrence(_,_,RuleNb,ID,_) ==> passive(RuleNb,ID).
 set_all_passive(_) <=> true.
 
-prev_guard_list(RuleNb,0,H,G,GuardList,M,[]),rule(RuleNb,Rule) 
+prev_guard_list(RuleNb,H,G,GuardList,M,[]),rule(RuleNb,Rule) 
 	==> 
     		chr_pp_flag(check_impossible_rules,on),
     		Rule = pragma(rule(_,_,G,_),_Ids,_Pragmas,_Name,RuleNb),
@@ -4264,12 +4329,16 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]),rule(RuleNb,Rule)
 :- chr_constraint multiple_occ_constraints_checked/1.
 :- chr_option(mode,multiple_occ_constraints_checked(+)).
 
-prev_guard_list(RuleNb,0,H,G,GuardList,M,[]), occurrence(C,O,RuleNb,ID,_), 
-		occurrence(C,O2,RuleNb,ID2,_), rule(RuleNb,Rule) \ multiple_occ_constraints_checked(Done) 
+prev_guard_list(RuleNb,H,G,GuardList,M,[]), 
+		occurrence(C,O,RuleNb,ID,_), 
+		occurrence(C,O2,RuleNb,ID2,_), 
+		rule(RuleNb,Rule) 
+		\ 
+		multiple_occ_constraints_checked(Done) 
 	<=>
     		O < O2, 
 	 	chr_pp_flag(occurrence_subsumption,on),
-    		Rule = pragma(rule(H1,H2,_G,_B),_Ids,_Pragmas,_Name,RuleNb),
+    		Rule = pragma(rule(H1,H2,_G,_B),_Ids,_Pragmas,_Name,_RuleNb), % RuleNb == _RuleNb
     		H1 \== [],
     		\+ memberchk_eq(C,Done) 
 	|
@@ -4296,7 +4365,7 @@ passive(RuleNb,ID_o2), occurrence(C,O2,RuleNb,ID_o2,_) \ next_occ_in_rule(RuleNb
 	|
     		next_occ_in_rule(RuleNb,C,O2,ID_o1,NewCond,FH).
 
-prev_guard_list(RuleNb,0,H,G,GuardList,M,[]), occurrence(C,O2,RuleNb,ID_o2,_), rule(RuleNb,Rule) \ next_occ_in_rule(RuleNb,C,O,ID_o1,Cond,FH) 
+prev_guard_list(RuleNb,H,G,GuardList,M,[]), occurrence(C,O2,RuleNb,ID_o2,_), rule(RuleNb,Rule) \ next_occ_in_rule(RuleNb,C,O,ID_o1,Cond,FH) 
 	<=>
     		O2 is O+1,
     		Rule = pragma(rule(H1,H2,G,B),ids(ID1,ID2),_Pragmas,_Name,RuleNb)
@@ -4321,14 +4390,8 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]), occurrence(C,O2,RuleNb,ID_o2,_), r
 			append([chr_pp_active_constraint(FH)|M2],BigCond3,Info),
 			list2conj(CheckCond,OccSubsum),
 			copy_term((NewCond,BigCond2,Info,OccSubsum,FH),(NewCond2,BigCond2_,Info2,OccSubsum2,FH2)),
-%			term_variables(NewCond2-FH2,InfoVars),
-%			flatten_stuff(Info2,Info3),
-%			flatten_stuff(OccSubsum2,OccSubsum3),
-			( OccSubsum \= chr_pp_void_info 
-%			  unify_stuff(InfoVars,Info3,OccSubsum3) 
-->
-				( % writeq(guard_entailment:entails_guard(Info2,OccSubsum2)),nl,
-				  guard_entailment:entails_guard(Info2,OccSubsum2) ->
+			( OccSubsum \= chr_pp_void_info ->
+				( guard_entailment:entails_guard(Info2,OccSubsum2) ->
 			    		passive(RuleNb,ID_o2)
 				; 
 			    		true
@@ -4344,110 +4407,27 @@ next_occ_in_rule(RuleNb,C,O,ID,Cond,Args)
 	<=> 
 		true.
 
-prev_guard_list(RuleNb,0,H,G,GuardList,M,[]), multiple_occ_constraints_checked(Done) 
+prev_guard_list(RuleNb,H,G,GuardList,M,[]), multiple_occ_constraints_checked(Done) 
 	<=> 
 		true.
 
-flatten_stuff([A|B],C) :- !,
-    flatten_stuff(A,C1),
-    flatten_stuff(B,C2),
-    append(C1,C2,C).
-flatten_stuff((A;B),C) :- !,
-    flatten_stuff(A,C1),
-    flatten_stuff(B,C2),
-    append(C1,C2,C).
-flatten_stuff((A,B),C) :- !,
-    flatten_stuff(A,C1),
-    flatten_stuff(B,C2),
-    append(C1,C2,C).
-    
-flatten_stuff(chr_pp_not_in_store(A),[A]) :- !.
-flatten_stuff(X,[]).
-
-unify_stuff(AllInfo,[],[]).
-
-unify_stuff(AllInfo,[H|RInfo],[I|ROS]) :- 
-    H \== I,
-    term_variables(H,HVars),
-    term_variables(I,IVars),
-    intersect_eq(HVars,IVars,SharedVars),
-    check_safe_unif(H,I,SharedVars),
-    variable_replacement(H,I,Repl),
-    check_replacement(Repl),
-    term_variables(Repl,ReplVars),
-    list_difference_eq(ReplVars,HVars,LDiff),
-    intersect_eq(AllInfo,LDiff,LDiff2),
-    LDiff2 == [],
-    H = I,
-    unify_stuff(AllInfo,RInfo,ROS),!.
-    
-unify_stuff(AllInfo,X,[Y|ROS]) :-
-    unify_stuff(AllInfo,X,ROS).
-
-unify_stuff(AllInfo,[Y|RInfo],X) :-
-    unify_stuff(AllInfo,RInfo,X).
-
-check_safe_unif(H,I,SV) :- var(H), !, var(I),
-    ( (memberchk_eq(H,SV);memberchk_eq(I,SV)) ->
-	H == I
-    ;
-	true
-    ).
-
-check_safe_unif([],[],SV) :- !.
-check_safe_unif([H|Hs],[I|Is],SV) :-  !,
-    check_safe_unif(H,I,SV),!,
-    check_safe_unif(Hs,Is,SV).
-    
-check_safe_unif(H,I,SV) :-
-    nonvar(H),!,nonvar(I),
-    H =.. [F|HA],
-    I =.. [F|IA],
-    check_safe_unif(HA,IA,SV).
-
-check_safe_unif2(H,I) :- var(H), !.
-
-check_safe_unif2([],[]) :- !.
-check_safe_unif2([H|Hs],[I|Is]) :-  !,
-    check_safe_unif2(H,I),!,
-    check_safe_unif2(Hs,Is).
-    
-check_safe_unif2(H,I) :-
-    nonvar(H),!,nonvar(I),
-    H =.. [F|HA],
-    I =.. [F|IA],
-    check_safe_unif2(HA,IA).
-
-
-check_replacement(Repl) :- 
-    	check_replacement(Repl,FirstVars),
-    	sort(FirstVars,Sorted),
-    	length(Sorted,L),!,
-    	length(FirstVars,L).
-
-check_replacement([],[]).
-check_replacement([A-B|R],[A|RC]) :- 
-	check_replacement(R,RC).
-
 add_failing_occ(Rule,Heads,NH,ID_o1,FailCond,FH,M,C,Repl) :-
-    Rule = pragma(rule(H1,H2,G,B),ids(ID1,ID2),_Pragmas,_Name,RuleNb),
-    append(ID2,ID1,IDs),
-    missing_partner_cond(Heads,NH,IDs,ID_o1,MPCond,H,C),
-    copy_term((H,Heads,NH),(FH2,FHeads,NH2)),
-    variable_replacement((H,Heads,NH),(FH2,FHeads,NH2),Repl),
-    copy_with_variable_replacement(G,FG,Repl),
-    extract_explicit_matchings(FG,FG2),
-    negate_b(FG2,NotFG),
-    copy_with_variable_replacement(MPCond,FMPCond,Repl),
-    ( check_safe_unif2(FH,FH2),    FH=FH2 ->
-	FailCond = [(NotFG;FMPCond)]
-    ;
-	% in this case, not much can be done
-	% e.g.    c(f(...)), c(g(...)) <=> ...
-	FailCond = [chr_pp_void_info]
-    ).
-
-
+	Rule = pragma(rule(H1,H2,G,B),ids(ID1,ID2),_Pragmas,_Name,RuleNb),
+	append(ID2,ID1,IDs),
+	missing_partner_cond(Heads,NH,IDs,ID_o1,MPCond,H,C),
+	copy_term((H,Heads,NH),(FH2,FHeads,NH2)),
+	variable_replacement((H,Heads,NH),(FH2,FHeads,NH2),Repl),
+	copy_with_variable_replacement(G,FG,Repl),
+	extract_explicit_matchings(FG,FG2),
+	negate_b(FG2,NotFG),
+	copy_with_variable_replacement(MPCond,FMPCond,Repl),
+	( safely_unifiable(FH,FH2), FH=FH2 ->
+	    FailCond = [(NotFG;FMPCond)]
+	;
+	    % in this case, not much can be done
+	    % e.g.    c(f(...)), c(g(...)) <=> ...
+	    FailCond = [chr_pp_void_info]
+	).
 
 missing_partner_cond([],[],[],ID_o1,fail,H2,C).
 missing_partner_cond([H|Hs],[H2|H2s],[ID_o1|IDs],ID_o1,Cond,H,C) :- !,
@@ -4455,11 +4435,6 @@ missing_partner_cond([H|Hs],[H2|H2s],[ID_o1|IDs],ID_o1,Cond,H,C) :- !,
 missing_partner_cond([H|Hs],[NH|NHs],[ID|IDs],ID_o1,Cond,H2,F/A) :-
     Cond = (chr_pp_not_in_store(H);Cond1),
     missing_partner_cond(Hs,NHs,IDs,ID_o1,Cond1,H2,F/A).
-
-extract_explicit_matchings(A=B) :-
-    var(A), var(B), !, A=B.
-extract_explicit_matchings(A==B) :-
-    var(A), var(B), !, A=B.
 
 extract_explicit_matchings((A,B),D) :- !,
 	( extract_explicit_matchings(A) ->
@@ -4475,6 +4450,22 @@ extract_explicit_matchings(A,D) :- !,
 		D = A
     	).
 
+extract_explicit_matchings(A=B) :-
+    var(A), var(B), !, A=B.
+extract_explicit_matchings(A==B) :-
+    var(A), var(B), !, A=B.
+
+safely_unifiable(H,I) :- var(H), !.
+safely_unifiable([],[]) :- !.
+safely_unifiable([H|Hs],[I|Is]) :- !,
+	safely_unifiable(H,I),
+	safely_unifiable(Hs,Is).
+safely_unifiable(H,I) :-
+	nonvar(H),
+	nonvar(I),
+	H =.. [F|HA],
+	I =.. [F|IA],
+	safely_unifiable(HA,IA).
 
 
 
@@ -7592,7 +7583,7 @@ add_attr(N,Suspension,Position,TAttr,Goal,NTAttr) :-
 add_attr(N,Suspension,Position,TAttr,Goal,NTAttr) :-
 	% writeln(add_attr),
 	Goal =
-		( select(Position-Suspensions,TAttr,RAttr) ->
+		( 'chr select'(TAttr,Position-Suspensions,RAttr) ->
 			NTAttr = [Position-[Suspension|Suspensions]|RAttr]
 		;
 			NTAttr = [Position-[Suspension]|TAttr]
@@ -7633,7 +7624,7 @@ rem_attr(N,Var,Suspension,Position,TAttr,Goal) :-
 	% writeln(rem_attr),
 	get_target_module(Mod),
 	Goal =
-		( select(Position-Suspensions,TAttr,RAttr) ->
+		( 'chr select'(TAttr,Position-Suspensions,RAttr) ->
 			'chr sbag_del_element'(Suspensions,Suspension,NSuspensions),
 			( NSuspensions == [] ->
 				( RAttr == [] ->

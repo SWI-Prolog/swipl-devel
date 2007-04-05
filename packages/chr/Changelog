@@ -1,3 +1,8 @@
+Apr 5, 2007
+
+  * TS: Lessened worst bottlenecks in CHR compiler,
+	in the guard simplification phase.
+
 Mar 26, 2007
 
   * TS: Experimental dynattr option, for dynamic size attribute terms.

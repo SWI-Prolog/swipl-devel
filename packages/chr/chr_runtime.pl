@@ -117,6 +117,8 @@
 	    'chr new_merge_attributes'/3,
 	    'chr normalize_attr'/2,
 
+	    'chr select'/3,
+
 	    chr_show_store/1,	% +Module
 	    find_chr_constraint/1,
 
@@ -645,6 +647,14 @@ all_suspensions([APos-ASusps|RAttr],Susps,SuspsList,Pos) :-
 'chr normalize_attr'([Pos-L|R],[Pos-NL|NR]) :-
 	sort(L,NL),
 	'chr normalize_attr'(R,NR).			
+
+'chr select'([E|T],F,R) :-
+	( E = F ->
+		R = T
+	;
+		R = [E|NR],
+		'chr select'(T,F,NR)
+	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
