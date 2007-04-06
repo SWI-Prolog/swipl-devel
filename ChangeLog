@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+===============================
+VERSION 5.6.33 (April 06, 2007)
+===============================
+
   * FIXED: Body decompilation with very large terms.  Mike Elston.
 
   * FIXED: PL_set_engine() to properly release the old engine.  With
