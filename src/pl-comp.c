@@ -2294,12 +2294,52 @@ Then we create a term, back up and fill the arguments.
 
 #undef PC
 #define PC	(di->pc)
-#define ARGP	(di->argp)
+#define ARGP	((Word)lTop)
 #define XR(c)	((word)(c))
+
+#define setARGP(ap) setARGP__LD(ap PASS_LD)
+#define ARGPinc()   ARGPinc__LD(PASS_LD1)
+#define decARGP()   decARGP__LD(PASS_LD1)
+
+static inline void
+setARGP__LD(Word ap ARG_LD)			/* ARGP = ap */
+{ if ( ap > (Word)lTop )
+  { requireStack(local, ((char*)ap - (char*)lTop));
+  } 
+  lTop = (LocalFrame)ap;
+}
+
+
+static inline Word
+ARGPinc__LD(ARG1_LD)			/* == ARGP++ */
+{ Word ap;
+
+  requireStack(local, sizeof(word));
+  ap = (Word)lTop;
+  lTop = (LocalFrame)(ap+1);
+
+  return ap;
+}
+
+
+static inline Word
+decARGP__LD(ARG1_LD)			/* == --ARGP */
+{ Word ap;
+
+  requireStack(local, sizeof(word));
+  ap = (Word)lTop;
+  lTop = (LocalFrame)(ap-1);
+
+  return ap;
+}
+
+
+
+
+
 
 typedef struct
 { Code	 pc;				/* pc for decompilation */
-  Word	 argp;				/* argument pointer */
   int	 nvars;				/* size of var block */
   term_t *variables;			/* variable table */
   term_t bindings;			/* [Offset = Var, ...] */
@@ -2548,6 +2588,7 @@ decompile(Clause clause, term_t term, term_t bindings)
   decompileInfo dinfo;
   decompileInfo *di = &dinfo;
   Word body;
+  LocalFrame lSave;
 
   di->nvars        = VAROFFSET(1) + clause->prolog_vars;
   di->variables    = alloca(di->nvars * sizeof(term_t));
@@ -2586,7 +2627,7 @@ decompile(Clause clause, term_t term, term_t bindings)
     deRef(body);
   }
 
-  ARGP = (Word) lTop;
+  lSave = lTop;
   decompileBody(di, I_EXIT, (Code) NULL PASS_LD);
 
   { Word b, ba;
@@ -2605,12 +2646,13 @@ decompile(Clause clause, term_t term, term_t bindings)
     { ba = b;
     }
 
-    ARGP--;
+    decARGP();
     if ( (var = isVarRef(*ARGP)) >= 0 )
       unifyVar(ba, di->variables, var PASS_LD);
     else
       *ba = *ARGP;
 
+    lTop = lSave;
     return unify_ptrs(body, b PASS_LD);
   }
 }
@@ -2669,8 +2711,6 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       break;
     }
 
-    requireStack(local, sizeof(Word));	/* ARGP is on local stack */
-
     switch( op )
     {
 #if O_DEBUGGER
@@ -2680,19 +2720,19 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
         case A_ENTER:
         case I_NOP:	    continue;
 	case B_CONST:
-			    *ARGP++ = XR(*PC++);
+			    *ARGPinc() = XR(*PC++);
 			    continue;
 	case B_NIL:
-			    *ARGP++ = ATOM_nil;
+			    *ARGPinc() = ATOM_nil;
 			    continue;
 	case B_INTEGER:
 	case A_INTEGER:
-			    *ARGP++ = makeNum((intptr_t)*PC++);
+			    *ARGPinc() = makeNum((intptr_t)*PC++);
 			    continue;
 	case B_INT64:
 	case A_INT64:
 			  { Word p = allocGlobal(2+WORDS_PER_INT64);
-			    *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+			    *ARGPinc() = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 			    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 			    cpInt64Data(p, PC);
 			    *p   = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
@@ -2702,7 +2742,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case A_DOUBLE:
 		  	  { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
 			    
-			    *ARGP++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+			    *ARGPinc() = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 			    *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 			    cpDoubleData(p, PC);
 			    *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
@@ -2711,7 +2751,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case B_STRING:
 	case A_MPZ:
 	case B_MPZ:
-	  		    *ARGP++ = globalIndirectFromCode(&PC);
+	  		    *ARGPinc() = globalIndirectFromCode(&PC);
 			    continue;
       { size_t index;      
 
@@ -2727,25 +2767,26 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case A_VAR2:
 	case B_VAR2:	    index = VAROFFSET(2);	var_common:
 			    if ( nested )
-			      unifyVar(ARGP++, di->variables, index PASS_LD);
+			      unifyVar(ARGPinc(), di->variables, index PASS_LD);
 			    else
-			      *ARGP++ = makeVarRef(index);
+			      *ARGPinc() = makeVarRef(index);
 			    continue;
       }
       case B_VOID:
-			    setVar(*ARGP++);
+			    setVar(*ARGPinc());
 			    continue;
       case B_FUNCTOR:
       { functor_t fdef;
 
 	fdef = (functor_t)XR(*PC++);
       common_bfunctor:
-        requireStack(argument, sizeof(Word));
-        requireStack(local, sizeof(Word)*arityFunctor(fdef));
-	*ARGP = globalFunctor(fdef);
-        *aTop++ = ARGP + 1;
-	ARGP = argTermP(*ARGP, 0);
-	nested++;
+        { word w = globalFunctor(fdef);
+	  requireStack(argument, sizeof(Word));
+	  *ARGPinc() = w;
+	  *aTop++ = ARGP;
+	  setARGP(argTermP(w, 0));
+	}
+        nested++;
 	continue;
       case B_LIST:
 	fdef = FUNCTOR_dot2;
@@ -2756,16 +2797,17 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 
 	fdef = (functor_t)XR(*PC++);
       common_brfunctor:
-	requireStack(local, sizeof(Word)*arityFunctor(fdef));
-	*ARGP = globalFunctor(fdef);
-	ARGP = argTermP(*ARGP, 0);
+	{ word w = globalFunctor(fdef);
+	  *ARGPinc() = w;
+	  setARGP(argTermP(w, 0));
+	}
 	continue;
       case B_RLIST:
 	fdef = FUNCTOR_dot2;
         goto common_brfunctor;
       }
       case I_POPF:
-			    ARGP = *--aTop;
+			    setARGP(*--aTop);
 			    nested--;
 			    continue;
 #if O_COMPILE_ARITH
@@ -2803,21 +2845,21 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
       }
-      case I_FAIL:	    *ARGP++ = ATOM_fail;
+      case I_FAIL:	    *ARGPinc() = ATOM_fail;
 			    pushed++;
 			    continue;
-      case I_TRUE:	    *ARGP++ = ATOM_true;
+      case I_TRUE:	    *ARGPinc() = ATOM_true;
 			    pushed++;
 			    continue;
       case C_LCUT:	    PC++;
 			    /*FALLTHROUGH*/
-      case I_CUT:	    *ARGP++ = ATOM_cut;
+      case I_CUT:	    *ARGPinc() = ATOM_cut;
 			    pushed++;
 			    continue;
-      case I_CATCH:	    *ARGP++ = ATOM_dcatch;
+      case I_CATCH:	    *ARGPinc() = ATOM_dcatch;
 			    pushed++;
 			    continue;
-      case I_CALLCLEANUP:   *ARGP++ = ATOM_dcall_cleanup;
+      case I_CALLCLEANUP:   *ARGPinc() = ATOM_dcall_cleanup;
 			    pushed++;
 			    if ( *PC == encode(I_EXITCLEANUP) )
 			      PC++;
@@ -2844,7 +2886,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	for(i=0; i<vars; i++)
 	{ int index = (int)PC[i+1];	/* = B_VAR <N> (never nested!) */
 	  
-	  *ARGP++ = makeVarRef(index);
+	  *ARGPinc() = makeVarRef(index);
 	}
 	build_term(((Procedure)XR(*PC))->definition->functor->functor, di PASS_LD);
 	pushed++;
@@ -2943,15 +2985,15 @@ build_term(functor_t f, decompileInfo *di ARG_LD)
 
   if ( arity == 0 )
   { requireStack(local, sizeof(Word));
-    *ARGP++ = nameFunctor(f);
+    *ARGPinc() = nameFunctor(f);
     return;
   }    
 
   term = globalFunctor(f);
   a = argTermP(term, arity-1);
 
-  ARGP--;
-  for( ; arity-- > 0; a--, ARGP-- )
+  decARGP();
+  for( ; arity-- > 0; a--, decARGP() )
   { ssize_t var;
 
     if ( (var = isVarRef(*ARGP)) >= 0 )
@@ -2959,9 +3001,9 @@ build_term(functor_t f, decompileInfo *di ARG_LD)
     else
       *a = *ARGP;
   }
-  ARGP++;
+  ARGPinc();
 
-  *ARGP++ = term;
+  *ARGPinc() = term;
 }
 
 #undef PC
