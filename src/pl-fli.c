@@ -1359,17 +1359,24 @@ PL_get_float(term_t t, double *f)
 }
 
 
+#ifdef __WINDOWS__
+#define ULL(x) x ## ui64
+#else
+#define ULL(x) x ## ULL
+#endif
+
 int
 PL_get_pointer__LD(term_t t, void **ptr ARG_LD)
-{
-#if SIZEOF_LONG >= SIZEOF_VOIDP
-  long p;
-  if ( PL_get_long(t, &p) )
-#else
-  int64_t p;
+{ int64_t p;
+
   if ( PL_get_int64(t, &p) )
-#endif
-  { *ptr = longToPointer((uintptr_t)p);
+  {
+#if SIZEOF_VOIDP == 4
+    if ( p & ULL(0xffffffff00000000) )
+      fail;
+#endif    
+
+    *ptr = longToPointer((uintptr_t)p);
 
     succeed;
   }
