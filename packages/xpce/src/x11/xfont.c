@@ -76,11 +76,13 @@ ws_create_font(FontObj f, DisplayObj d)
     if ( !(match = XftFontMatch(r->display_xref, r->screen, p, &fcrc)) )
       return replaceFont(f, d);
 
+#ifdef HAVE_XFTNAMEUNPARSE
     DEBUG(NAME_font,
 	  { char buf[1024];
 	    XftNameUnparse(match, buf, sizeof(buf));
 	    Cprintf("Match = '%s'\n", buf);
 	  });
+#endif
 
 					/* see above (*) */
     if ( FcPatternGetInteger(match, XFT_SPACING, 0, &i) == FcResultMatch )

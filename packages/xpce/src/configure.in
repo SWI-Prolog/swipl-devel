@@ -967,6 +967,7 @@ case "$XFTCONFIG" in
 				  "Define to use the Xft scalable and anti-aliasing font system")
 			XLIBS="$XLIBS `pkg-config --libs xft`"
 			XINCLUDES="$XINCLUDES `pkg-config --cflags xft`"
+			ac_xft=true
 		fi
 		;;
 	xft-config)
@@ -974,10 +975,16 @@ case "$XFTCONFIG" in
 			  "Define to use the Xft scalable and anti-aliasing font system")
 		XLIBS="$XLIBS `$XFTCONFIG --libs`"
 		XINCLUDES="$XINCLUDES `$XFTCONFIG --cflags`"
+		ac_xft=true
 		;;
 	false)
 		;;
 esac
+
+dnl XftNameUnparse() is not available in all versions
+if test "$ac_xft" = true; then
+    AC_CHECK_FUNCS(XftNameUnparse)
+fi
 
 
 dnl ****************************************************************
