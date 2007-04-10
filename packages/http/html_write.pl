@@ -576,6 +576,7 @@ layout(select,	   1-1,	1-1).
 layout(map,	   1-1,	1-1).
 layout(html,	   1-1,	1-1).
 layout(caption,	   1-1,	1-1).
+layout(applet,	   1-1,	1-1).
 
 layout(tr,	   1-0,	0-1).
 layout(option,	   1-0,	0-1).
