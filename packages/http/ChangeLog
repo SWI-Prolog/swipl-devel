@@ -1,3 +1,7 @@
+Apr 10, 2007
+
+  * FIXED: Forcing UTF-8 character set.
+
 Mar 22, 2007
 
   * FIXED: Bug#269: time-stamp was emitted in current locale.

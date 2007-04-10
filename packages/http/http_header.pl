@@ -302,7 +302,7 @@ http_update_encoding(Header0, utf8, [content_type(Type)|Header]) :-
 	select(content_type(Type0), Header0, Header),
 	sub_atom(Type0, 0, _, _, 'text/'), !,
 	(   sub_atom(Type0, S, _, _, ';')
-	->  sub_atom(Type0, 0, B, _, S)
+	->  sub_atom(Type0, 0, S, _, B)
 	;   B = Type0
 	),
 	atom_concat(B, '; charset=UTF-8', Type).
