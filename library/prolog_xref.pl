@@ -512,8 +512,14 @@ process_meta_predicate(Decl) :-
 
 meta_args(I, Arity, _, _, []) :-
 	I > Arity, !.
-meta_args(I, Arity, Decl, Head, [H|T]) :-
+meta_args(I, Arity, Decl, Head, [H|T]) :- 		% :
 	arg(I, Decl, :), !,
+	arg(I, Head, H),
+	I2 is I + 1,
+	meta_args(I2, Arity, Decl, Head, T).
+meta_args(I, Arity, Decl, Head, [H+A|T]) :-		% I --> H+I
+	arg(I, Decl, A), 
+	integer(A), A > 0, !,
 	arg(I, Head, H),
 	I2 is I + 1,
 	meta_args(I2, Arity, Decl, Head, T).

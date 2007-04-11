@@ -39,6 +39,7 @@
 	  ]).
 :- use_module(library(shlib)).
 :- use_module(library(lists), [select/3]).
+:- use_module(library(error)).
 
 /** <module> Read utilities
 
@@ -168,6 +169,7 @@ read_stream_to_terms(C, Fd, [C|T], Tail, Options) :-
 %	options for absolute_file_name/3 and open/4.
 
 read_file_to_codes(Spec, Codes, Options) :-
+	must_be(proper_list, Options),
 	(   select(tail(Tail), Options, Options1)
 	->  true
 	;   Tail = [],
@@ -191,6 +193,7 @@ read_file_to_codes(Spec, Codes, Options) :-
 %	absolute_file_name/3, open/4 and read_term/3.
 
 read_file_to_terms(Spec, Terms, Options) :-
+	must_be(proper_list, Options),
 	(   select(tail(Tail), Options, Options1)
 	->  true
 	;   Tail = [],
