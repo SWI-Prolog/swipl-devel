@@ -1,3 +1,7 @@
+Apr 11, 2007
+
+* FIXED: Two syntax errors in pldoc.css.
+
 Mar 22, 2007
 
 * ADDED: Allow for inline images using [[file.png]].   Anjo Anjewierden.

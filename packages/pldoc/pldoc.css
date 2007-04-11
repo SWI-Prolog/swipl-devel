@@ -95,7 +95,7 @@ table.wiki td
 
 img.icon
 { border: 0;
-  height: 32;
+  height: 32px;
   float: right;
   padding-top: 4px;
 }
@@ -190,7 +190,7 @@ span.search-help
 
 /* Footnotes from latex2html */
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -230,7 +230,7 @@ span.line-no
 { font-weight: normal;
   font-size: 0.8em;
   color: #505050;
-  background-colour: white;
+  background-color: white;
   border: 1px inset;
   margin-right: 1em;
 }
