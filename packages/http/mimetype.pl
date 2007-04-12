@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -33,11 +33,12 @@
 	  [ file_mime_type/2		% +Path, -Type
 	  ]).
 
-%%	file_mime_type(+FileName, -MimeType)
+%%	file_mime_type(+FileName, -MimeType) is semidet.
 %
-%	Simple library to guess the mime-type from the extension of a file.
-%	As various applications need to do this type of inferencing it seems
-%	worthwhile to place this functionality in an extensible library.
+%	Simple library to guess the mime-type   from  the extension of a
+%	file.  As  various  applications  need  to    do  this  type  of
+%	inferencing it seems worthwhile to   place this functionality in
+%	an extensible library.
 %
 %	Please add clauses to mime:mime_extension/2 to add your own types.
 
@@ -95,6 +96,7 @@ mime_extension(tif,  image/tiff).
 mime_extension(tiff, image/tiff).
 mime_extension(xpm,  image/'x-xpixmap').
 mime_extension(ico,  image/'x-ico').
+mime_extension(svg,  image/'svg+xml').
 					% Google earth
 mime_extension(kml,  application/'vnd.google-earth.kml+xml').
 mime_extension(kmz,  application/'vnd.google-earth.kmz').
