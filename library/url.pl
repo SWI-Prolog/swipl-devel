@@ -232,7 +232,7 @@ chost(A) -->
 	).
 
 cport(A) -->
-	(   { memberchk(port(Port), A) }
+	(   { memberchk(port(Port), A), Port \== 80 }
 	->  { number_codes(Port, Codes) },
 	    ":",
 	    www_encode(Codes, "")
