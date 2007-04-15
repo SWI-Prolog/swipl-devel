@@ -142,7 +142,7 @@ leave the details to this function.
 #endif
 
 #ifdef _REENTRANT
-#include <pthread.h>
+#include <pthread.h>			/* TBD: Use Critical Sections in Windows */
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #define LOCK() pthread_mutex_lock(&mutex)
@@ -167,6 +167,12 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #define false(s, f) (!true(s, f))
 
 #define SOCK_MAGIC 0x38da3f2c
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: We must lock  the  structure   to  avoid  freeSocket() called from
+Prolog deleting the socket while there are   still  pending events on it
+that are concurrently executed in the socket thread.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct _plsocket
 { int		    magic;		/* SOCK_MAGIC */
