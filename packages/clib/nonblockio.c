@@ -801,9 +801,6 @@ socket_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
       } else
       { doneRequest(s);
       }
-    } else if ( s )
-    { DEBUG(1, Sdprintf("PlSock %p (socket %d) has bad magic number\n",
-			s, sock));
     } else
     { DEBUG(1, Sdprintf("Socket %d is gone (error=%s)\n",
 			sock, WinSockError(err)));
