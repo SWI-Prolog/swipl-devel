@@ -156,8 +156,8 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #define SOCK_OUTSTREAM	0x02
 #define SOCK_BIND	0x04		/* What have we done? */
 #define SOCK_LISTEN	0x08
-#define SOCK_CONNECT	0x10
-#define SOCK_ACCEPT	0x20		/* Set on accepted sockets */
+#define SOCK_CONNECT	0x10		/* Connected (client) socket */
+#define SOCK_ACCEPT	0x20		/* Accepted (server) socket */
 #define SOCK_NONBLOCK	0x40		/* Set to non-blocking mode */
 #define SOCK_DISPATCH   0x80		/* do not dispatch events */
 
