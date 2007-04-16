@@ -749,8 +749,10 @@ PL_handle_signals()
 #endif
 #ifdef O_ATOMGC
 	if ( sig == SIG_ATOM_GC )
-	  pl_garbage_collect_atoms();
-	else
+	{ if ( GD->statistics.atoms >= GD->atoms.non_garbage + GD->atoms.margin &&
+	       !gc_status.blocked )
+	    pl_garbage_collect_atoms();
+	} else
 #endif
         if ( sig == SIG_EXCEPTION && ld->pending_exception )
 	{ record_t ex = ld->pending_exception;
@@ -775,6 +777,15 @@ PL_handle_signals()
   if ( exception_term )
     return -1;
   return done;
+}
+
+
+void
+endCritical__LD(ARG1_LD)
+{ if ( LD->aborted )
+    pl_abort(ABORT_NORMAL);
+  if ( LD->pending_signals )
+    PL_handle_signals();
 }
 
 

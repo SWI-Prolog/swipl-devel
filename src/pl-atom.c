@@ -317,6 +317,19 @@ registerAtom(Atom a)
 		 *	  GENERAL LOOKUP	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) AGC starting. As we cannot run AGC if   we  are not in a safe state,
+AGC is started using a   software interrupt using PL_raise(SIG_ATOM_GC).
+Earlier versions only fired the signal   at exactly (last+margin) atoms,
+but it is possible the signal is ignored  due to a critical section, the
+thread dying or the thread  starting   an  indefinite wait. Therefore we
+keep signalling every 128  new  atoms.   Sooner  or  later some actually
+active thread will pick up the request and process it.
+
+PL_handle_signals() decides on the actual invocation of atom-gc and will
+thread the signal as bogus if agc has already been performed.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 word
 lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 { int v0, v;
@@ -394,8 +407,12 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 
 #ifdef O_ATOMGC
   if ( GD->atoms.margin != 0 &&
-       GD->statistics.atoms == GD->atoms.non_garbage + GD->atoms.margin )
-    PL_raise(SIG_ATOM_GC);
+       GD->statistics.atoms >= GD->atoms.non_garbage + GD->atoms.margin )
+  { intptr_t x = GD->statistics.atoms - (GD->atoms.non_garbage + GD->atoms.margin);
+
+    if ( x % 128 == 0 )			/* see (*) above */
+      PL_raise(SIG_ATOM_GC);
+  }
 #endif
     
   if ( atom_buckets * 2 < GD->statistics.atoms )
@@ -645,17 +662,17 @@ GC. These issues are described with enterGC() in pl-gc.c.
 word
 pl_garbage_collect_atoms()
 { GET_LD
-  int verbose = trueFeature(TRACE_GC_FEATURE);
-  intptr_t oldcollected = GD->atoms.collected;
-  intptr_t oldheap = GD->statistics.heap;
-  intptr_t freed;
+  intptr_t oldcollected, oldheap, freed;
+  int verbose;
   double t;
   sigset_t set;
 
-  if ( gc_status.blocked )		/* Tricky things; avoid problems. */
-    succeed;
-
   PL_LOCK(L_GC);			
+  if ( gc_status.blocked )		/* Tricky things; avoid problems. */
+  { PL_UNLOCK(L_GC);
+    succeed;
+  }
+
 #ifdef O_PLMT
   if ( GD->gc.active ) 			/* GC in progress: delay */
   { DEBUG(2, Sdprintf("GC active; delaying AGC\n"));
@@ -667,7 +684,7 @@ pl_garbage_collect_atoms()
 
   gc_status.blocked++;			/* avoid recursion */
 
-  if ( verbose )
+  if ( (verbose = trueFeature(TRACE_GC_FEATURE)) )
   {
 #ifdef O_DEBUG_ATOMGC
 /*
@@ -690,6 +707,8 @@ pl_garbage_collect_atoms()
 #ifdef O_PLMT
   forThreadLocalData(markAtomsOnStacks, 0);
 #endif
+  oldcollected = GD->atoms.collected;
+  oldheap = GD->statistics.heap;
   collectAtoms();
   GD->atoms.non_garbage = GD->statistics.atoms;
   t = CpuTime(CPU_USER) - t;
@@ -701,6 +720,7 @@ pl_garbage_collect_atoms()
   unblockSignals(&set);
   UNLOCK();
   PL_UNLOCK(L_THREAD);
+  gc_status.blocked--;
   PL_UNLOCK(L_GC);
     
   if ( verbose )
@@ -710,8 +730,6 @@ pl_garbage_collect_atoms()
 		     PL_LONG, GD->atoms.collected - oldcollected,
 		     PL_INT, GD->statistics.atoms,
 		     PL_DOUBLE, (double)t);
-
-  gc_status.blocked--;
 
   succeed;
 }

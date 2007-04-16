@@ -1130,8 +1130,9 @@ it mean anything?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define startCritical (void)(LD->critical++)
-#define endCritical   if ( --(LD->critical) == 0 && LD->aborted ) \
-			pl_abort(ABORT_NORMAL)
+#define endCritical   if ( --(LD->critical) == 0 && \
+			   (LD->aborted || LD->pending_signals) ) \
+			endCritical__LD(PASS_LD1)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 LIST processing macros.
