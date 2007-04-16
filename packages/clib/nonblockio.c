@@ -142,14 +142,25 @@ leave the details to this function.
 #endif
 
 #ifdef _REENTRANT
-#include <pthread.h>			/* TBD: Use Critical Sections in Windows */
+#if __WINDOWS__
+static CRITICAL_SECTION mutex;
+
+#define LOCK() EnterCriticalSection(&mutex)
+#define UNLOCK() LeaveCriticalSection(&mutex)
+#define INITLOCK() InitializeCriticalSection(&mutex)
+#else
+#include <pthread.h>
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 #define LOCK() pthread_mutex_lock(&mutex)
 #define UNLOCK() pthread_mutex_unlock(&mutex)
+#define INITLOCK()
+#endif
 #else
 #define LOCK()
 #define UNLOCK()
+#define INITLOCK()
 #endif
 
 #define SOCK_INSTREAM	0x01
@@ -711,7 +722,7 @@ doRequest(plsocket *s)
 	  
 	s->rdata.write.written += n;
 	if ( s->rdata.write.written >= s->rdata.write.size )
-	{ s->rdata.write.bytes = s->rdata.write.written;
+	{ s->rdata.write.bytes = (int)s->rdata.write.written;
 	  doneRequest(s);
 	}
       }
@@ -1403,7 +1414,9 @@ nbio_last_error(nbio_sock_t socket)
 
 int
 nbio_init(const char *module)
-{ LOCK();
+{ INITLOCK();				/* is this ok? */
+
+  LOCK();
   if ( initialised )
   { UNLOCK();
     return TRUE;
