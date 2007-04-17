@@ -144,10 +144,14 @@ leave the details to this function.
 #ifdef _REENTRANT
 #if __WINDOWS__
 static CRITICAL_SECTION mutex;
+static CRITICAL_SECTION mutex_free;
 
 #define LOCK() EnterCriticalSection(&mutex)
 #define UNLOCK() LeaveCriticalSection(&mutex)
-#define INITLOCK() InitializeCriticalSection(&mutex)
+#define LOCK_FREE() EnterCriticalSection(&mutex_free)
+#define UNLOCK_FREE() LeaveCriticalSection(&mutex_free)
+#define INITLOCK() (InitializeCriticalSection(&mutex), \
+		    InitializeCriticalSection(&mutex_free))
 #else
 #include <pthread.h>
 
@@ -155,11 +159,15 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define LOCK() pthread_mutex_lock(&mutex)
 #define UNLOCK() pthread_mutex_unlock(&mutex)
+#define LOCK_FREE()
+#define UNLOCK_FREE()
 #define INITLOCK()
 #endif
 #else
 #define LOCK()
 #define UNLOCK()
+#define LOCK_FREE()
+#define UNLOCK_FREE()
 #define INITLOCK()
 #endif
 
@@ -761,7 +769,7 @@ socket_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
   { SOCKET sock = (SOCKET) wParam;
     int err     = WSAGETSELECTERROR(lParam);
     int evt     = WSAGETSELECTEVENT(lParam);
-    plsocket *s = lookupOSSocket(sock);
+    plsocket *s;
 
     if ( evt&FD_CLOSE )
     { DEBUG(1,
@@ -778,6 +786,9 @@ socket_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	      free(nm);
 	    });
     }
+
+    LOCK_FREE();
+    s = lookupOSSocket(sock);
 
     if ( s )
     { if ( (s->w32_flags & FD_CLOSE) )
@@ -822,6 +833,8 @@ socket_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     { DEBUG(1, Sdprintf("Socket %d is gone (error=%s)\n",
 			sock, WinSockError(err)));
     }
+
+    UNLOCK_FREE();
   }
 
   return DefWindowProc(hwnd, message, wParam, lParam);
@@ -1179,6 +1192,7 @@ freeSocket(plsocket *s)
     return -1;
   }
 
+  LOCK_FREE();
   LOCK();
   sockets[s->id] = NULL;
   socks_count--;
@@ -1188,6 +1202,7 @@ freeSocket(plsocket *s)
   socket = s->id;
   s->magic = 0;
   PL_free(s);
+  UNLOCK_FREE();
 
   if ( sock >= 0 )
   { again:
