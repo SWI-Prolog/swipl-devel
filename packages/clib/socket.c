@@ -120,9 +120,6 @@ pl_host_to_address(term_t Host, term_t Ip)
   struct hostent *host;
   char *host_name;
 
-  if ( !nbio_init("socket") )
-    return FALSE;
-
   if ( PL_get_atom_chars(Host, &host_name) )
   { if ( (host = gethostbyname(host_name)) )
     { if ( sizeof(ip) == host->h_length )
@@ -410,9 +407,6 @@ static foreign_t
 create_socket(term_t socket, int type)
 { int sock;
 
-  if ( !nbio_init("socket") )
-    return FALSE;
-
   sock = nbio_socket(AF_INET, type, 0);
   if ( sock < 0 )
     return FALSE;
@@ -521,9 +515,6 @@ pl_accept(term_t Master, term_t Slave, term_t Peer)
 static foreign_t
 pl_gethostname(term_t name)
 { char buf[256];
-
-  if ( !nbio_init("socket") )
-    return FALSE;
 
   if ( gethostname(buf, sizeof(buf)) == 0 )
   { struct hostent *he;
@@ -706,7 +697,9 @@ pl_debug(term_t val)
 
 install_t
 install_socket()
-{ ATOM_reuseaddr  = PL_new_atom("reuseaddr");
+{ nbio_init("socket");
+
+  ATOM_reuseaddr  = PL_new_atom("reuseaddr");
   ATOM_broadcast  = PL_new_atom("broadcast");
   ATOM_dispatch   = PL_new_atom("dispatch");
   ATOM_nonblock   = PL_new_atom("nonblock");
