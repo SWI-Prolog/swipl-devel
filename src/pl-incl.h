@@ -1130,8 +1130,7 @@ it mean anything?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define startCritical (void)(LD->critical++)
-#define endCritical   if ( --(LD->critical) == 0 && \
-			   (LD->aborted || LD->pending_signals) ) \
+#define endCritical   if ( --(LD->critical) == 0 && LD->aborted ) \
 			endCritical__LD(PASS_LD1)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

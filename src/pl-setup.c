@@ -729,10 +729,10 @@ PL_handle_signals()
 { int done = 0;
   PL_local_data_t *ld = LD;
 
-  if ( !ld )
+  if ( !ld || ld->critical )
     return 0;
 
-  while(!ld->critical && ld->pending_signals)
+  while(ld->pending_signals)
   { uintptr_t mask = 1;
     int sig = 1;
 
@@ -784,8 +784,6 @@ void
 endCritical__LD(ARG1_LD)
 { if ( LD->aborted )
     pl_abort(ABORT_NORMAL);
-  if ( LD->pending_signals )
-    PL_handle_signals();
 }
 
 

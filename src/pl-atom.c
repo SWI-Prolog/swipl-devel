@@ -321,13 +321,13 @@ registerAtom(Atom a)
 (*) AGC starting. As we cannot run AGC if   we  are not in a safe state,
 AGC is started using a   software interrupt using PL_raise(SIG_ATOM_GC).
 Earlier versions only fired the signal   at exactly (last+margin) atoms,
-but it is possible the signal is ignored  due to a critical section, the
-thread dying or the thread  starting   an  indefinite wait. Therefore we
-keep signalling every 128  new  atoms.   Sooner  or  later some actually
-active thread will pick up the request and process it.
+but it is possible the signal is not  handled due to the thread dying or
+the thread starting an indefinite  wait.   Therefore  we keep signalling
+every 128 new atoms. Sooner or later   some  actually active thread will
+pick up the request and process it.
 
 PL_handle_signals() decides on the actual invocation of atom-gc and will
-thread the signal as bogus if agc has already been performed.
+treat the signal as bogus if agc has already been performed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
