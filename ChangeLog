@@ -10,7 +10,7 @@
   * FIXED: possible scenario where atom garbage collection is no longer
     automatically started, running out of memory.  Mike Elston.
 
-  * ENHANCED: parse_url(-, +) deos not include HTTP port if this is 80.
+  * ENHANCED: parse_url(-, +) does not include HTTP port if this is 80.
 
   * FIXED: Bug#27: incorrect failure of PL_get_pointer().  Paul
     Singleton.
