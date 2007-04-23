@@ -11,6 +11,7 @@
 :- use_module(user:library(plunit)).
 :- use_module(user:library(readutil)).
 :- use_module(user:library(socket)).
+:- use_module(library(debug)).
 
 read_file_to_codes(File, Codes) :-
 	open(File, read, In),

@@ -128,6 +128,7 @@ typedef struct z_context
 { IOSTREAM	   *stream;		/* Original stream */
   IOSTREAM	   *zstream;		/* Compressed stream (I'm handle of) */
   int		    close_parent;	/* close parent on close */
+  int		    initialized;	/* did inflateInit()? */
   zformat	    format;		/* current format */
   uLong		    crc;		/* CRC check */
   z_stream	    zstate;		/* Zlib state */
@@ -358,13 +359,17 @@ zread(void *handle, char *buf, size_t size)
   ctx->zstate.next_out  = (Bytef*)buf;
   ctx->zstate.avail_out = (long)size;
   
-  if ( ctx->format == F_UNKNOWN )
+  if ( ctx->initialized == FALSE )
   { Bytef *p;
 
     DEBUG(1, Sdprintf("Trying gzip header\n"));
-    while( (p = gz_skip_header(ctx, ctx->zstate.next_in,
-			       ctx->zstate.avail_in)) == HDR_SHORT )
-    { 					/* TBD: read more */
+    if ( ctx->format == F_DEFLATE )
+    { p = NULL;
+    } else
+    { while( (p = gz_skip_header(ctx, ctx->zstate.next_in,
+				 ctx->zstate.avail_in)) == HDR_SHORT )
+      { 					/* TBD: read more */
+      }
     }
 
     if ( p )
@@ -378,6 +383,7 @@ zread(void *handle, char *buf, size_t size)
 					/* init without header */
       switch(inflateInit2(&ctx->zstate, -MAX_WBITS))
       { case Z_OK:
+	  ctx->initialized = TRUE;
 	  ctx->crc = crc32(0L, Z_NULL, 0);
 	  DEBUG(1, Sdprintf("inflateInit2(): Z_OK\n"));
 	  break;
@@ -393,6 +399,7 @@ zread(void *handle, char *buf, size_t size)
     { switch(inflateInit(&ctx->zstate))
       { case Z_OK:
 	  ctx->format = F_DEFLATE;
+	  ctx->initialized = TRUE;
 	  DEBUG(1, Sdprintf("inflateInit(): Z_OK\n"));
 	  break;
 	case Z_MEM_ERROR:		/* no memory */
@@ -516,6 +523,7 @@ zcontrol(void *handle, int op, void *data)
 
   switch(op)
   { case SIO_FLUSHOUTPUT:
+      DEBUG(1, Sdprintf("Flushing output\n"));
       return (int)zwrite4(handle, NULL, 0, Z_SYNC_FLUSH);
     case SIO_SETENCODING:
       return 0;				/* allow switching encoding */
@@ -638,10 +646,10 @@ pl_zopen(term_t org, term_t new, term_t options)
     return FALSE;			/* Error */
   ctx = alloc_zcontext(s);
   ctx->close_parent = close_parent;
+  ctx->format = fmt;
   if ( (s->flags & SIO_OUTPUT) )
   { int rc;
 
-    ctx->format = fmt;
     if ( fmt == F_GZIP )
     { if ( write_gzip_header(ctx) < 0 )
       { free_zcontext(ctx);
@@ -696,7 +704,7 @@ install_zlib4pl()
   ATOM_level        = PL_new_atom("level");
   ATOM_close_parent = PL_new_atom("close_parent");
   ATOM_gzip	    = PL_new_atom("gzip");
-  ATOM_deflate	    = PL_new_atom("define");
+  ATOM_deflate	    = PL_new_atom("deflate");
 
   PL_register_foreign("zopen",  3, pl_zopen,  0);
 #ifdef O_DEBUG
