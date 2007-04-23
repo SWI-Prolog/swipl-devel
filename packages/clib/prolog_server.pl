@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker & Steve Prior
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -35,7 +35,7 @@
 
 :- use_module(library(socket)).
  
-%	prolog_server(?Port, +Options)
+%%	prolog_server(?Port, +Options)
 %	
 %	Create a TCP/IP based server  on  the   given  Port,  so you can
 %	telnet into Prolog and run an  interactive session. This library
@@ -44,7 +44,7 @@
 %	
 %	Currently defined options are:
 %	
-%		# allow(IP)
+%		* allow(IP)
 %		Allow access from IP, a term of the format ip(A,B,C,D).
 %		Multiple of such terms can exist and access is granted
 %		if the peer IP address unifies to one of them.  If no
@@ -53,16 +53,16 @@
 %	
 %	For example:
 %	
+%		==
 %		?- prolog_server(4000, []).
 %
 %		% telnet localhost 4000
 %		Welcome to the SWI-Prolog server on thread 3
 %		
 %		1 ?-
+%		==
 %
-%	BUGS:		
-%
-%	As the connection does not involve a terminal, command history
+%	@bug As the connection does not involve a terminal, command history
 %	and completion are not provided. Neither are interrupts
 %	(Control-C).  To terminate the Prolog shell one must enter the
 %	command "end_of_file."
