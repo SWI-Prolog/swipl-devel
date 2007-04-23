@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.34, distributed with SWI-Prolog 5.6.34
+==================================================
+
 * PORT: Work-around for version problems in Xft libraries.
 
 VERSION 6.6.32, distributed with SWI-Prolog 5.6.32
