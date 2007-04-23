@@ -82,9 +82,10 @@ tcp_get_socket(term_t Socket, int *id)
       return TRUE;
   }
   
-  if ( PL_get_stream_handle(Socket, &s) &&
-       (socket = Sfileno(s)) >= 0 )
-  { *id = socket;
+  if ( PL_get_stream_handle(Socket, &s) )
+  { socket = (int)(intptr_t)s->handle;
+
+    *id = socket;
     return TRUE;
   }
 
