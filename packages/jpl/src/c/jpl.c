@@ -965,7 +965,7 @@ jni_atom_freed(
     {
     const char	*cp = PL_atom_chars(a);
     long	iref;
-    char	cs[11];
+    char	cs[23]; /* was 11 until 24/Apr/2007 */
 
     if ( jni_tag_to_iref( a, &iref) )	/* check format and convert digits to int if ok */
         {
@@ -4732,7 +4732,7 @@ JNIEXPORT jobject JNICALL
     )
     {
 	long		iref;
-	char		abuf[13];
+	char		abuf[23];
     
 	/* empirically, unless the two 'ensure' macros are called in this order, */
 	/* will crash if this is the first native method called */
