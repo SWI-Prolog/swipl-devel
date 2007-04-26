@@ -14,6 +14,9 @@
 VERSION 5.6.34 (April 23, 2007)
 ===============================
 
+  * ADDED: Cross-referencer handles integer arguments in meta-predicate
+    declarations.
+
   * FIXED: possible scenario where atom garbage collection is no longer
     automatically started, running out of memory.  Mike Elston.
 
