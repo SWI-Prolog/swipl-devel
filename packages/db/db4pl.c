@@ -232,14 +232,14 @@ get_dbt(term_t t, dtype type, DBT *dbt)
 
   switch(type)
   { case D_TERM:
-    { unsigned int len;
+    { size_t len;
   
       dbt->data = PL_record_external(t, &len);
       dbt->size = len;
       return TRUE;
     }
     case D_ATOM:
-    { unsigned int len;
+    { size_t len;
       char *s;
 
       if ( PL_get_atom_nchars(t, &len, &s) )
@@ -251,7 +251,7 @@ get_dbt(term_t t, dtype type, DBT *dbt)
       return pl_error(ERR_TYPE, "atom", t);
     }
     case D_CSTRING:
-    { unsigned int len;
+    { size_t len;
       char *s;
 
       if ( PL_get_atom_nchars(t, &len, &s) )

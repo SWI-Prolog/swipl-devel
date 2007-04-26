@@ -62,7 +62,7 @@ typedef unsigned long plhash_t;
 unsigned long
 PL_atom_hash(atom_t a)
 { const char *s;
-  unsigned int len;
+  size_t len;
 
   s = PL_atom_nchars(a, &len);
 
@@ -97,6 +97,7 @@ db_atom_id(dbh *db, atom_t a, atomid_t *id, int flags)
   DBC *cursor;
   DBT k, v;
   DBT av;
+  size_t sz;
 
   if ( (rval = db->db->cursor(db->db, NULL, &cursor, 0)) != 0 )
     return db_status(rval);
@@ -106,7 +107,8 @@ db_atom_id(dbh *db, atom_t a, atomid_t *id, int flags)
   memset(&k,  0, sizeof(k));
   k.data = &hash;
   k.size = sizeof(hash);
-  av.data = (void *)PL_atom_nchars(a, &av.size);
+  av.data = (void *)PL_atom_nchars(a, &sz);
+  av.size = sz;
 
   if ( (rval=cursor->c_get(cursor, &k, &v, DB_SET)) == 0 )
   { DBT k2;
