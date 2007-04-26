@@ -1589,6 +1589,11 @@ Sclose(IOSTREAM *s)
   if ( (s->flags&SIO_CLOSING) )		/* recursive (*) */
     return rval;
 
+  if ( s->upstream )
+  { errno = EPERM;
+    return -1;
+  }
+
   SLOCK(s);
   s->flags |= SIO_CLOSING;
   rval = S__removebuf(s);
@@ -2001,16 +2006,12 @@ Svsprintf(char *buf, const char *fm, va_list args)
 { IOSTREAM s;
   int rval;
 
+  memset(&s, 0, sizeof(s));
   s.bufp      = buf;
   s.limitp    = (char *)(~0L);
   s.buffer    = buf;
   s.flags     = SIO_FBUF|SIO_OUTPUT;
-  s.position  = NULL;
-  s.handle    = NULL;
-  s.functions = NULL;
-  s.mutex     = NULL;
   s.encoding  = ENC_ISO_LATIN_1;
-  s.tee	      = NULL;
   
   if ( (rval = Svfprintf(&s, fm, args)) >= 0 )
     *s.bufp = '\0';
@@ -2321,6 +2322,42 @@ out:
 
 #endif /*0*/
 
+
+		 /*******************************
+		 *	   FILTER STREAMS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Link two streams in a pipeline,  where   filter  filters data for stream
+`parent'. If parent is an output steam we have
+
+	application --> filter --> parent -->
+	  
+If parent is an input stream we have
+
+	--> parent --> filter --> application
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+Sset_filter(IOSTREAM *parent, IOSTREAM *filter)
+{ if ( !parent || parent->magic != SIO_MAGIC )
+  { errno = EINVAL;
+    return -1;
+  }
+
+  if ( filter )
+  { if ( filter->magic != SIO_MAGIC )
+    { errno = EINVAL;
+      return -1;
+    }
+  }
+
+  parent->upstream = filter;
+  if ( filter )
+    filter->downstream = parent;
+
+  return 0;
+}
 
 
 		 /*******************************

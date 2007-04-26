@@ -87,6 +87,18 @@ domain_error(term_t actual, const char *domain)
 
 
 static int
+instantiation_error()
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_CHARS, "inistantiation_error",
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+
+static int
 get_atom_ex(term_t t, atom_t *a)
 { if ( PL_get_atom(t, a) )
     return TRUE;
@@ -149,7 +161,11 @@ alloc_zcontext(IOSTREAM *s)
 
 static void
 free_zcontext(z_context *ctx)
-{ PL_release_stream(ctx->stream);
+{ if ( ctx->stream->upstream )
+    Sset_filter(ctx->stream, NULL);
+  else
+    PL_release_stream(ctx->stream);
+
   PL_free(ctx);
 }
 
@@ -677,7 +693,14 @@ pl_zopen(term_t org, term_t new, term_t options)
   }
 
   ctx->zstream = s2;
-  return PL_unify_stream(new, s2);
+  if ( PL_unify_stream(new, s2) )
+  { Sset_filter(s, s2);
+    PL_release_stream(s);
+
+    return TRUE;
+  } else
+  { return instantiation_error();
+  }    
 }
 
 

@@ -1,3 +1,7 @@
+Apr 26, 2007
+
+* FIXED: Allow passing compressed stream between threads.  Matt Lilley.
+
 Apr 23, 2007
 
 * FIXED: Explicit handling of format option in reader.

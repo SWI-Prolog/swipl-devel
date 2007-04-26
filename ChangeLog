@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Sset_filter() to formalize a filter relation between streams.
+    Incomplete.
+
 ===============================
 VERSION 5.6.34 (April 23, 2007)
 ===============================

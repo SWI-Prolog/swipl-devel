@@ -181,7 +181,9 @@ typedef struct io_stream
   IOENC			encoding;	/* character encoding used */
   struct io_stream *	tee;		/* copy data to this stream */
   mbstate_t *		mbstate;	/* ENC_ANSI decoding */
-  intptr_t		reserved[6];	/* reserved for extension */
+  struct io_stream *	upstream;	/* stream providing our input */
+  struct io_stream *	downstream;	/* stream providing our output */
+  intptr_t		reserved[4];	/* reserved for extension */
 } IOSTREAM;
 
 
@@ -377,6 +379,8 @@ PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, size_t *sizep, const char *mode);
 PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, size_t sz, const char *m);
 PL_EXPORT(int)		Sclosehook(void (*hook)(IOSTREAM *s));
 PL_EXPORT(void)		Sfree(void *ptr);
+PL_EXPORT(int)		Sset_filter(IOSTREAM *parent, IOSTREAM *filter);
+
 
 PL_EXPORT(int64_t)	Stell64(IOSTREAM *s);
 PL_EXPORT(int)		Sseek64(IOSTREAM *s, int64_t pos, int whence);
