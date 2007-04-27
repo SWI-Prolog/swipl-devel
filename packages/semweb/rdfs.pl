@@ -271,11 +271,11 @@ rdfs_member(Element, Set) :-
 	rdf_has(Set, rdf:first, _),
 	rdfs_collection_member(Element, Set).
 rdfs_member(Element, Set) :-
-	rdfs_individual_of(Set, rdf:'Container'), !,
+	rdfs_individual_of(Set, rdfs:'Container'), !,
 	(   nonvar(Element)
 	->  rdf(Set, Predicate, Element),
 	    rdf_member_property(Predicate, _N)
-	;   between(1, inifinite, N),
+	;   between(1, infinite, N),
 	    rdf_member_property(Prop, N),
 	    (	rdf(Set, Prop, Member)
 	    ->	Member = Element

@@ -1,3 +1,7 @@
+Apr 27, 2007
+
+  * FIXED: Bug#279: handling rdfs:Container in rdfs_member/2.
+
 Mar 30, 2007
 
   * FIXED: rdf_has/3 can return triples that should not match.  Jochem
