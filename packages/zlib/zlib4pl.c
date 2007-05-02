@@ -533,7 +533,8 @@ zwrite4(void *handle, char *buf, size_t size, int flush)
 	Sdprintf("ERROR: zwrite(): %s\n", ctx->zstate.msg);
 	return -1;
     }
-  } while ( flush != Z_NO_FLUSH && rc == Z_OK );
+  } while ( ctx->zstate.avail_in > 0 ||
+	    (flush != Z_NO_FLUSH && rc == Z_OK) );
 
   if ( flush != Z_NO_FLUSH && Sflush(ctx->stream) < 0 )
     return -1;

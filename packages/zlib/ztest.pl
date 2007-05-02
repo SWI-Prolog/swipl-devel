@@ -120,4 +120,72 @@ process_client(In, Out) :-
 	       )),
 	format(Out, 'quit.~n', []).
 
+
+		 /*******************************
+		 *	      BIG DATA		*
+		 *******************************/
+
+test(big) :-
+	forall(between(1, 5, I),
+	       (   Max is 10**I,
+		   big(_, Max))).
+
+big(Port, N):- 
+	tcp_socket(SockFd),
+	tcp_setopt(SockFd, reuseaddr),
+	tcp_bind(SockFd, Port),
+	tcp_listen(SockFd, 5),
+	thread_create(client_test(Port, N), Client, []),
+	tcp_accept(SockFd, ClientFd, _Peer),
+	tcp_open_socket(ClientFd, InStream, OutStream),
+	zopen(OutStream, ZOut, [close_parent(false), format(deflate)]),
+	send_data(1, N, ZOut),
+	close(InStream),
+	character_count(ZOut, RawCnt),
+	close(ZOut),
+	character_count(OutStream, CompressedCnt),
+	debug(zlib, 'compressed ~d into ~d bytes~n',
+	      [RawCnt, CompressedCnt]),
+	close(OutStream),
+	tcp_close_socket(SockFd),
+	thread_join(Client, Status),
+	assertion(Status == true).
+	
+send_data(I, N, ZOut) :-
+	I =< N, !,
+	format(ZOut, '~d.~n', [I]),
+	I2 is I + 1,
+	send_data(I2, N, ZOut).
+send_data(_, _, _).
+
+
+client_test(Port, N) :-
+	tcp_socket(SockFd),
+	tcp_connect(SockFd, localhost:Port),
+	tcp_open_socket(SockFd, In, Out),
+	zopen(In, ZIn, [format(deflate)]),
+	get_data(ZIn, N),
+	close(ZIn),
+	close(Out).
+	
+get_data(ZIn, _) :-
+	debugging(data), !,
+	between(0, inf, X),
+	get_byte(ZIn, C),
+	(   C == -1
+	->  !,
+	    format('EOF at ~w~n', [X])
+	;   put_byte(C),
+	    fail
+	).
+get_data(ZIn, N) :-
+	between(1, inf, X),
+	read(ZIn, Term),
+	(   Term == end_of_file
+	->  !,
+	    assertion(X =:= N + 1)
+	;   assertion(Term == X),
+	    fail
+	).
+
 :- end_tests(zlib).
