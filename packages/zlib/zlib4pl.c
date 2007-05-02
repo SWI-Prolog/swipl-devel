@@ -464,21 +464,32 @@ zread(void *handle, char *buf, size_t size)
 	if ( ctx->format == F_GZIP )
 	  ctx->format = F_GZIP_CRC;
       } else
-      { DEBUG(1, Sdprintf("Z_OK: %d bytes\n", n));
+      { DEBUG(1, Sdprintf("inflate(): Z_OK: %d bytes\n", n));
       }
 
       return n;
     }
     case Z_NEED_DICT:
+      DEBUG(1, Sdprintf("Z_NEED_DICT\n"));
+      break;
     case Z_DATA_ERROR:
+      DEBUG(1, Sdprintf("Z_DATA_ERROR\n"));
+      break;
     case Z_STREAM_ERROR:
+      DEBUG(1, Sdprintf("Z_STREAM_ERROR\n"));
+      break;
     case Z_MEM_ERROR:
+      DEBUG(1, Sdprintf("Z_MEM_ERROR\n"));
+      break;
     case Z_BUF_ERROR:
+      DEBUG(1, Sdprintf("Z_BUF_ERROR\n"));
+      break;
     default:
-      if ( ctx->zstate.msg )
-	Sdprintf("ERROR: zread(): %s\n", ctx->zstate.msg);
-      return -1;
+      DEBUG(1, Sdprintf("Inflate error: %d\n", rc));
   }
+  if ( ctx->zstate.msg )
+    Sdprintf("ERROR: zread(): %s\n", ctx->zstate.msg);
+  return -1;
 }
 
 
@@ -487,6 +498,7 @@ zwrite4(void *handle, char *buf, size_t size, int flush)
 { z_context *ctx = handle;
   Bytef buffer[SIO_BUFSIZE];
   int rc;
+  int loops = 0;
 
   ctx->zstate.next_in = (Bytef*)buf;
   ctx->zstate.avail_in = (long)size;
@@ -494,34 +506,37 @@ zwrite4(void *handle, char *buf, size_t size, int flush)
     ctx->crc = crc32(ctx->crc, ctx->zstate.next_in, ctx->zstate.avail_in);
 
   DEBUG(1, Sdprintf("Compressing %d bytes\n", ctx->zstate.avail_in));
-  ctx->zstate.next_out  = buffer;
-  ctx->zstate.avail_out = sizeof(buffer);
-  switch( (rc = deflate(&ctx->zstate, flush)) )
-  { case Z_OK:
-    case Z_STREAM_END:
-    { size_t n = sizeof(buffer) - ctx->zstate.avail_out;
+  do
+  { loops++;
+    ctx->zstate.next_out  = buffer;
+    ctx->zstate.avail_out = sizeof(buffer);
 
-      DEBUG(1, Sdprintf("Compressed (%s) to %d bytes; left %d\n",
-			rc == Z_OK ? "Z_OK" : "Z_STREAM_END",
-			n, ctx->zstate.avail_in));
-
-      if ( Sfwrite(buffer, 1, n, ctx->stream) != n )
+    switch( (rc = deflate(&ctx->zstate, flush)) )
+    { case Z_OK:
+      case Z_STREAM_END:
+      { size_t n = sizeof(buffer) - ctx->zstate.avail_out;
+  
+	DEBUG(1, Sdprintf("Compressed (%s) to %d bytes; left %d\n",
+			  rc == Z_OK ? "Z_OK" : "Z_STREAM_END",
+			  n, ctx->zstate.avail_in));
+  
+	if ( Sfwrite(buffer, 1, n, ctx->stream) != n )
+	  return -1;
+  
+	break;
+      }
+      case Z_BUF_ERROR:
+	DEBUG(1, Sdprintf("zwrite4(): Z_BUF_ERROR\n"));
+        break;
+      case Z_STREAM_ERROR:
+      default:
+	Sdprintf("ERROR: zwrite(): %s\n", ctx->zstate.msg);
 	return -1;
-      if ( size == 0 && Sflush(ctx->stream) < 0 )
-	return -1;
-
-      break;
     }
-    case Z_BUF_ERROR:
-      if ( ctx->zstate.avail_in == 0 && ctx->zstate.avail_out > 0 )
-	return size;			/* nothing to progress: not an error */
-					/* i.e. flush twice.  Better check? */
-      /*FALLTHROUGH*/
-    case Z_STREAM_ERROR:
-    default:
-      Sdprintf("ERROR: zwrite(): %s\n", ctx->zstate.msg);
-      return -1;
-  }
+  } while ( flush != Z_NO_FLUSH && rc == Z_OK );
+
+  if ( flush != Z_NO_FLUSH && Sflush(ctx->stream) < 0 )
+    return -1;
 
   return size;
 }
@@ -572,6 +587,9 @@ zclose(void *handle)
 
   switch(rc)
   { case Z_OK:
+      DEBUG(1, Sdprintf("%s(): Z_OK\n", 
+		        (ctx->stream->flags & SIO_INPUT) ? "inflateEnd"
+							 : "deflateEnd"));
       if ( ctx->close_parent )
       { IOSTREAM *parent = ctx->stream;
 	free_zcontext(ctx);
