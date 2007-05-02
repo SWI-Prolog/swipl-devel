@@ -742,6 +742,7 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	init_chr_pp_flags,
 	chr_source_file(File),
 	partition_clauses(Declarations,Constraints0,Rules0,OtherClauses),
+	chr_compiler_options:sanity_check,
 	check_declared_constraints(Constraints0),
 	generate_show_constraint(Constraints0,Constraints,Rules0,Rules),
 	add_constraints(Constraints),
@@ -1176,13 +1177,13 @@ check_pragma(Pragma, PragmaRule) :-
 	( IDs1 \== [] ->
 		chr_error(syntax(Pragma),'Pragma history only implemented for propagation rules.\n',[])
 	; \+ atom(HistoryName) ->
-		chr_error(syntax(Pragma),'Illegal argument for pragma history: ~w is not an atom.\n',[HistoryName])
+		chr_error(syntax(Pragma),'Illegal argument for pragma history: ~w is not an atom (rule number ~w).\n',[HistoryName,RuleNb])
 	; \+ is_set(IDs) ->
-		chr_error(syntax(Pragma),'Illegal argument for pragma history: ~w is not a set.\n',[IDs])
+		chr_error(syntax(Pragma),'Illegal argument for pragma history: ~w is not a set (rule number ~w).\n',[IDs,RuleNb])
 	; check_history_pragma_ids(IDs,IDs1,IDs2) ->
 		history(RuleNb,HistoryName,IDs)
 	;
-		chr_error(syntax(Pragma),'Invalid identifier(s) in pragma ~w.\n',[Pragma])
+		chr_error(syntax(Pragma),'Invalid identifier(s) in pragma ~w of rule number ~w.\n',[Pragma,RuleNb])
 	).
 check_pragma(Pragma,PragmaRule) :-
 	Pragma = line_number(LineNumber),
@@ -1216,6 +1217,30 @@ has_no_history(_) <=> fail.
 :- chr_option(mode,history(+,+,+)).
 
 :- chr_constraint named_history/3.
+
+history(RuleNb,_,_), history(RuleNb,_,_) ==>
+	chr_error(syntax,'Only one pragma history allowed per rule (rule number ~w)\n',[RuleNb]).	%'
+
+history(RuleNb1,Name,IDs1), history(RuleNb2,Name,IDs2) ==>
+	length(IDs1,L1), length(IDs2,L2),
+	( L1 \== L2 ->
+		chr_error(syntax,'The history named ~w does not always range over an equal amount of occurrences.\n',[Name])
+	;
+		test_named_history_id_pairs(RuleNb1,IDs1,RuleNb2,IDs2)
+	).
+
+test_named_history_id_pairs(_, [], _, []).
+test_named_history_id_pairs(RuleNb1, [ID1|IDs1], RuleNb2, [ID2|IDs2]) :-
+	test_named_history_id_pair(RuleNb1,ID1,RuleNb2,ID2),
+	test_named_history_id_pairs(RuleNb1,IDs1,RuleNb2,IDs2).
+
+:- chr_constraint test_named_history_id_pair/4.
+:- chr_option(mode,test_named_history_id_pair(+,+,+,+)).
+
+occurrence(C,_,RuleNb1,ID1,_), occurrence(C,_,RuleNb2,ID2,_) 
+   \ test_named_history_id_pair(RuleNb1,ID1,RuleNb2,ID2) <=> true.
+test_named_history_id_pair(RuleNb1,ID1,RuleNb2,ID2) <=>
+	chr_error(syntax,'Occurrences of shared history in rules number ~w and ~w do not correspond\n', [RuleNb2,RuleNb1]).
 
 history(RuleNb,Name,IDs) \ named_history(RuleNb,QName,QIDs) <=> QName = Name, QIDs = IDs.
 named_history(_,_,_) <=> fail.
@@ -1483,8 +1508,19 @@ spawns_all_triggers_implies_spawns_all \
 
 spawns_all_triggers(RuleNb2,_), occurrence(C1,_,RuleNb2,O,_)#Id
 	 \
-		spawns(RuleNb1,GB,C1) 
+		spawns(RuleNb1,GB,C1)
 	<=> 
+		may_trigger(C1),
+		\+ is_passive(RuleNb2,O)
+	 |
+		spawns_all_triggers(RuleNb1,GB)
+	pragma
+		passive(Id).
+
+spawns_all_triggers(RuleNb2,_), occurrence(C1,_,RuleNb2,O,_)#Id,
+		spawns(RuleNb1,GB,C1)
+	==> 
+		\+ may_trigger(C1),
 		\+ is_passive(RuleNb2,O)
 	 |
 		spawns_all_triggers(RuleNb1,GB)
@@ -6979,6 +7015,7 @@ propagation_single_headed(Head,ID,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) 
 			ConditionalRecursiveCall = RecursiveCall
 		)
 	),
+
 	( is_stored_in_guard(F/A, RuleNb) ->
 		GuardAttachment = Attachment,
 		BodyAttachment = true
@@ -7151,7 +7188,7 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 		( var(NovelProduction) ->
 			novel_production_calls(ConstraintSymbols,HistoryIDs,HistorySusps,RuleNb,TupleVar,NovelProductions),
 			ExtendHistory = '$extend_history'(HistorySusp,TupleVar),
-			NovelProduction = ( TupleVar = Tuple, NovelProductions)
+			NovelProduction = ( TupleVar = Tuple, NovelProductions )
 		;
 			true
 		)

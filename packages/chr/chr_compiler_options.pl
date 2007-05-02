@@ -332,4 +332,16 @@ chr_pp_flag(Name,Value) :-
 	;
 		V = Value
 	).
+	
+
+% TODO: add whatever goes wrong with (debug,on), (optimize,full) combo here!
+% trivial example of what does go wrong:
+%	b <=> true.
+% !!!
+sanity_check :-
+	chr_pp_flag(store_in_guards, on),
+	chr_pp_flag(ai_observation_analysis, on),
+	chr_warning(any, 'ai_observation_analysis should be turned off when using store_in_guards\n', []),
+	fail.
+sanity_check.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
