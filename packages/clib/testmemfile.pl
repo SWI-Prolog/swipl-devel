@@ -106,12 +106,30 @@ position(pos-1) :-
 
 
 		 /*******************************
+		 *	       ENCODING		*
+		 *******************************/
+
+encoding(enc-1) :-			% Encode to UTF-8
+	String = [97, 254, 500],
+	new_memory_file(MF),
+	open_memory_file(MF, write, Out, [encoding(utf8)]),
+	format(Out, '~s', [String]),
+	close(Out),
+	open_memory_file(MF, read, In, [encoding(octet)]),
+	read_stream_to_codes(In, Codes),
+	close(In),
+	free_memory_file(MF),
+	phrase(utf8_codes(String), Codes).
+
+
+		 /*******************************
 		 *        TEST MAIN-LOOP	*
 		 *******************************/
 
 testset(writemem).
 testset(mematom).
 testset(position).
+testset(encoding).
 
 :- dynamic
 	failed/1,

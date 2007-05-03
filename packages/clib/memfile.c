@@ -44,6 +44,19 @@ atom_to_memory_file(+Atom, -Handle)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static functor_t FUNCTOR_memory_file1;
+static atom_t ATOM_encoding;
+static atom_t ATOM_unknown;
+static atom_t ATOM_octet;
+static atom_t ATOM_ascii;
+static atom_t ATOM_iso_latin_1;
+static atom_t ATOM_text;
+static atom_t ATOM_utf8;
+static atom_t ATOM_unicode_be;
+static atom_t ATOM_unicode_le;
+static atom_t ATOM_wchar_t;
+static atom_t ATOM_read;
+static atom_t ATOM_write;
+
 #define MEMFILE_MAGIC	0x5624a6b3L
 #define NOSIZE ((unsigned int)-1)
 
@@ -141,22 +154,85 @@ alreadyOpen(term_t handle, const char *op)
 }
 
 
+static struct encname
+{ IOENC  code;
+  atom_t *name;
+} encoding_names[] = 
+{ { ENC_UNKNOWN,     &ATOM_unknown },
+  { ENC_OCTET,       &ATOM_octet },
+  { ENC_ASCII,       &ATOM_ascii },
+  { ENC_ISO_LATIN_1, &ATOM_iso_latin_1 },
+  { ENC_ANSI,	     &ATOM_text },
+  { ENC_UTF8,        &ATOM_utf8 },
+  { ENC_UNICODE_BE,  &ATOM_unicode_be },
+  { ENC_UNICODE_LE,  &ATOM_unicode_le },
+  { ENC_WCHAR,	     &ATOM_wchar_t },
+  { ENC_UNKNOWN,     NULL },
+};
+
+
+IOENC
+atom_to_encoding(atom_t a)
+{ struct encname *en;
+
+  for(en=encoding_names; en->name; en++)
+  { if ( *en->name == a ) 
+      return en->code;
+  }
+
+  return ENC_UNKNOWN;
+}
+
+
 static foreign_t
-open_memory_file(term_t handle, term_t mode, term_t stream)
+open_memory_file4(term_t handle, term_t mode, term_t stream, term_t options)
 { memfile *m;
   char *x;
-  char *s;
+  atom_t iom;
   IOSTREAM *fd;
+  IOENC encoding = ENC_UTF8;
+  int enc_set = FALSE;
 
   if ( !get_memfile(handle, &m) )
     return FALSE;
   if ( m->stream )
     return alreadyOpen(handle, "open");
-  if ( !PL_get_atom_chars(mode, &s) )
+  if ( !PL_get_atom(mode, &iom) )
     return pl_error("open_memory_file", 3, NULL, ERR_ARGTYPE, 2,
 		    mode, "io_mode");
 
-  if ( streq(s, "write") )
+  if ( options )
+  { term_t tail = PL_copy_term_ref(options);
+    term_t head = PL_new_term_ref();
+
+    while(PL_get_list(tail, head, tail))
+    { int arity;
+      atom_t name;
+
+      if ( PL_get_name_arity(head, &name, &arity) && arity == 1 )
+      { term_t arg = PL_new_term_ref();
+
+	PL_get_arg(1, head, arg);
+	if ( name == ATOM_encoding )
+	{ atom_t en;
+
+	  if ( PL_get_atom(arg, &en) )
+	  { if ( (encoding = atom_to_encoding(en)) == ENC_UNKNOWN )
+	      return pl_error("open_memory_file", 4, NULL, ERR_DOMAIN,
+			      en, "encoding");
+	    enc_set = TRUE;
+	  } else
+	  { return pl_error("open_memory_file", 4, NULL, ERR_TYPE, en, "encoding");
+	  }
+	}
+      } else
+	return pl_error("open_memory_file", 4, NULL, ERR_TYPE, head, "option");
+    }
+    if ( !PL_get_nil(tail) )
+      return pl_error("open_memory_file", 4, NULL, ERR_TYPE, tail, "list");
+  }
+
+  if ( iom == ATOM_write )
   { x = "w";
     if ( m->atom )
       return pl_error("open_memory_file", 3, NULL, ERR_PERMISSION,
@@ -167,12 +243,15 @@ open_memory_file(term_t handle, term_t mode, term_t stream)
     }
     m->data_size = 0;
     m->size = NOSIZE;			/* don't know */
-    m->encoding = ENC_UTF8;
-  } else if ( streq(s, "read") )
-    x = "r";
-  else
-    return pl_error("open_memory_file", 3, NULL, ERR_DOMAIN,
+    m->encoding = encoding;
+  } else if ( iom == ATOM_read )
+  { x = "r";
+    if ( enc_set == FALSE )
+      encoding = m->encoding;
+  } else
+  { return pl_error("open_memory_file", 3, NULL, ERR_DOMAIN,
 		    mode, "io_mode");
+  }
 
   if ( !(fd = Sopenmem(&m->data, &m->data_size, x)) )
     return pl_error("open_memory_file", 3, NULL, ERR_ERRNO,
@@ -180,11 +259,18 @@ open_memory_file(term_t handle, term_t mode, term_t stream)
 
   fd->close_hook = closehook;
   fd->closure = m;
-  fd->encoding = m->encoding;
+  fd->encoding = encoding;
   m->stream = fd;
 
   return PL_unify_stream(stream, fd);
 }
+
+
+static foreign_t
+open_memory_file(term_t handle, term_t mode, term_t stream)
+{ return open_memory_file4(handle, mode, stream, 0);
+}
+
 
 
 static foreign_t
@@ -345,6 +431,8 @@ memory_file_to_codes(term_t handle, term_t codes)
 }
 
 
+#define MKATOM(n) ATOM_ ## n = PL_new_atom(#n);
+
 install_t
 install_memfile()
 { if ( PL_query(PL_QUERY_VERSION) <= 50505 )
@@ -353,11 +441,24 @@ install_memfile()
   }
 
   FUNCTOR_memory_file1 = PL_new_functor(PL_new_atom("$memory_file"), 1);
+  MKATOM(encoding);
+  MKATOM(unknown);
+  MKATOM(octet);
+  MKATOM(ascii);
+  MKATOM(iso_latin_1);
+  MKATOM(text);
+  MKATOM(utf8);
+  MKATOM(unicode_be);
+  MKATOM(unicode_le);
+  MKATOM(wchar_t);
+  MKATOM(read);
+  MKATOM(write);
 
   PL_register_foreign("new_memory_file",      1, new_memory_file,      0);
   PL_register_foreign("free_memory_file",     1, free_memory_file,     0);
   PL_register_foreign("size_memory_file",     2, size_memory_file,     0);
   PL_register_foreign("open_memory_file",     3, open_memory_file,     0);
+  PL_register_foreign("open_memory_file",     4, open_memory_file4,    0);
   PL_register_foreign("atom_to_memory_file",  2, atom_to_memory_file,  0);
   PL_register_foreign("memory_file_to_atom",  2, memory_file_to_atom,  0);
   PL_register_foreign("memory_file_to_codes", 2, memory_file_to_codes, 0);

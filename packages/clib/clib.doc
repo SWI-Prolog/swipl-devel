@@ -790,6 +790,19 @@ Open the memory-file.  \arg{Mode} is currently one of \const{read}
 or \const{write}.  The resulting \arg{Stream} must be closed
 using close/1.
 
+    \predicate{open_memory_file}{4}{+Handle, +Mode, -Stream, +Options}
+Open a memory-file as open_memory_file/3.  Options:
+
+\begin{description}
+    \termitem{encoding}{+Encoding}
+Set the encoding for a memory file and the created stream. Encoding
+names are the same as used with open/4. By default, memoryfiles
+represent UTF-8 streams, making them capable of storing arbitrary
+Unicode text. In practice the only alternative is \const{octet}, turning
+the memoryfile into binary mode.  Please study SWI-Prolog Unicode and
+encoding issues before using this option.
+\end{description}
+
     \predicate{size_memory_file}{2}{+Handle, -Bytes}
 Return the content-length of the memory-file it \arg{Bytes}.  The
 file should be closed and contain data.
