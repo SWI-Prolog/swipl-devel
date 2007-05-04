@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: memory leak involving GMP numbers for instantiated `output'
+    arguments.  I.e. 0 is 2727 rdiv 22.  Mike Elston.
+
   * ADDED: Sset_filter() to formalize a filter relation between streams.
     Incomplete.
 

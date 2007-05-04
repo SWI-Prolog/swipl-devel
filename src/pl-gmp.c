@@ -515,10 +515,13 @@ PL_unify_number(term_t t, Number n)
 #endif
       if ( isInteger(*p) )
       { number n2;
+	int rc;
 
 	get_integer(*p, &n2);
-	
-	return ar_compare(n, &n2, EQ);
+	rc = ar_compare(n, &n2, EQ);
+	clearNumber(&n2);
+
+	return rc;
       }
       break;
 #ifdef O_GMP
