@@ -127,11 +127,11 @@
 /* Define to 1 if you have the `getrusage' function. */
 #undef HAVE_GETRUSAGE
 
-/* Define to 1 if you have syscall support for gettid() */
-#undef HAVE_GETTID_SYSCALL
-
 /* Define to 1 if you have the Linux gettid() _syscall0 macro */
 #undef HAVE_GETTID_MACRO
+
+/* Define to 1 if you have syscall support for gettid() */
+#undef HAVE_GETTID_SYSCALL
 
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
@@ -595,22 +595,22 @@
 /* Define if SGI-style mmap() is provided: MAP_AUTOGROW|MAP_AUTORESRV */
 #undef SGIMMAP
 
-/* The size of a `int', as computed by sizeof. */
+/* The size of `int', as computed by sizeof. */
 #undef SIZEOF_INT
 
-/* The size of a `long', as computed by sizeof. */
+/* The size of `long', as computed by sizeof. */
 #undef SIZEOF_LONG
 
-/* The size of a `long long', as computed by sizeof. */
+/* The size of `long long', as computed by sizeof. */
 #undef SIZEOF_LONG_LONG
 
-/* The size of a `void*', as computed by sizeof. */
+/* The size of `void*', as computed by sizeof. */
 #undef SIZEOF_VOIDP
 
 /* Define to the extension of shared objects (often .so) */
 #undef SO_EXT
 
-/* Program to use for linking shared objects */
+/* Program to link shared objects */
 #undef SO_LD
 
 /* Flags to use for linking shared objects */
@@ -627,7 +627,7 @@
 
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
-   automatically deduced at run-time.
+   automatically deduced at runtime.
 	STACK_DIRECTION > 0 => grows toward higher addresses
 	STACK_DIRECTION < 0 => grows toward lower addresses
 	STACK_DIRECTION = 0 => direction of growth unknown */

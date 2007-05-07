@@ -1877,17 +1877,19 @@ typedef struct
 	((char *)(addr) >= (char *)LD->stacks.name.base && \
 	 (char *)(addr) <  (char *)LD->stacks.name.limit)
 #endif
-#define usedStack(name) ((char *)LD->stacks.name.top - \
-			 (char *)LD->stacks.name.base)
-#define sizeStack(name) ((char *)LD->stacks.name.max - \
-			 (char *)LD->stacks.name.base)
-#define roomStack(name) ((char *)LD->stacks.name.max - \
-			 (char *)LD->stacks.name.top)
-#define spaceStack(name) ((char *)LD->stacks.name.limit - \
-			 (char *)LD->stacks.name.top)
-#define limitStack(name) ((char *)LD->stacks.name.limit - \
-			 (char *)LD->stacks.name.base)
-#define narrowStack(name) (roomStack(name) < LD->stacks.name.minfree)
+#define usedStackP(s) ((char *)(s)->top - (char *)(s)->base)
+#define sizeStackP(s) ((char *)(s)->max - (char *)(s)->base)
+#define roomStackP(s) ((char *)(s)->max - (char *)(s)->top)
+#define spaceStackP(s) ((char *)(s)->limit - (char *)(s)->top)
+#define limitStackP(s) ((char *)(s)->limit - (char *)(s)->base)
+#define narrowStackP(s) (roomStackP(s) < (s)->minfree)
+
+#define usedStack(name) usedStackP(&LD->stacks.name)
+#define sizeStack(name) sizeStackP(&LD->stacks.name)
+#define roomStack(name) roomStackP(&LD->stacks.name)
+#define spaceStack(name) spaceStackP(&LD->stacks.name)
+#define limitStack(name) limitStackP(&LD->stacks.name)
+#define narrowStack(name) narrowStackP(&LD->stacks.name)
 
 typedef enum
 { STACK_OVERFLOW_SIGNAL,
@@ -1897,14 +1899,14 @@ typedef enum
 } stack_overflow_action;
 
 #if O_DYNAMIC_STACKS
-#ifdef NO_SEGV_HANDLING
+#ifdef O_SEGV_HANDLING
+#define requireStack(s, n)
+#else
 #define requireStack(s, n) \
 	{ if ( roomStack(s) < (intptr_t)(n) ) \
  	    ensureRoomStack((void*)&LD->stacks.s, n); \
 	}
-#else /*NO_SEGV_HANDLING*/
-#define requireStack(s, n)
-#endif /*NO_SEGV_HANDLING*/
+#endif /*O_SEGV_HANDLING*/
 #else
 #define requireStack(s, n) \
 	{ if ( roomStack(s) < (intptr_t)(n) ) \

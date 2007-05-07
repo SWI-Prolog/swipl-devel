@@ -128,15 +128,10 @@ AC_ARG_ENABLE(mapped-stacks, [  --disable-mapped-stacks Do not use mmap for stac
 	      configmmappedstacks="$enableval",
 	      configmmappedstacks=yes)
 
-segvhandling=no
-AC_ARG_ENABLE(segv-handling, [  --enable-segv-handling  Use SIGSEGV to guard stacks],
-	      if test "$enableval" = "yes"; then
-	          segvhandling=yes
-	      fi)
-
-if test "$segvhandling" = "no"; then
-  AC_DEFINE(NO_SEGV_HANDLING)
-fi
+dnl AC_ARG_ENABLE(segv-handling, [  --enable-segv-handling  Use SIGSEGV to guard stacks],
+dnl	      if test "$enableval" = "yes"; then
+dnl	          segvhandling=yes
+dnl	      fi)
 
 AC_ARG_ENABLE(gmp, [  --disable-gmp		  Disable Multi-precision arithmetic],
 	      configgmp="$enableval",
@@ -1260,8 +1255,8 @@ dnl Second test is test/mmap.c, with SEGV handling
 dnl Third test is test/mmap.c, without SEGV handling
 dnl ****************************************************************
 
-mmap_tried=sgi;
-mmap_test=sgimmap.c
+mmap_tried=nosegv;
+mmap_test=mmap.c
 AC_MSG_CHECKING("if we can use mmap for stack allocation")
 while test ! "$MMAP_STACK" = "1" -a ! $mmap_tried = "stop"; do
 echo '#include "confdefs.h"' > conftest.c
@@ -1305,7 +1300,6 @@ if test ! "$MMAP_STACK" = "1"; then
     mmap_test=mmap.c
   elif test "$mmap_tried" = "segv"; then
     mmap_tried=nosegv
-    AC_DEFINE(NO_SEGV_HANDLING)
   else
     mmap_tried=stop
     AC_MSG_RESULT("no");
@@ -1471,7 +1465,8 @@ AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT",
 		   [Define to the extension of shared objects (often .so)])
 AC_DEFINE_UNQUOTED(SO_PATH,	"$DLLIBVAR",
 		   [Search path for shared objects (often LD_LIBRARY_PATH)])
-AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD")
+AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD",
+		   [Program to link shared objects])
 AC_DEFINE_UNQUOTED(SO_LDFLAGS, "$SO_LDFLAGS",
 		   [Flags to use for linking shared objects])
 AC_DEFINE_UNQUOTED(SO_pic,     "$SO_pic",

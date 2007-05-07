@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * CLEANUP: Some cleanup to declarations and stack-shifter, preparing
+    combining the stack-shifter in the normal version.
+
   * FIXED: memory leak involving GMP numbers for instantiated `output'
     arguments.  I.e. 0 is 2727 rdiv 22.  Mike Elston.
 

@@ -2424,6 +2424,33 @@ update_foreign(intptr_t ts, intptr_t ls, intptr_t gs)
 }
 
 
+static void
+update_gvars(intptr_t gs)
+{ GET_LD
+  
+  if ( LD->gvar.nb_vars && LD->gvar.grefs > 0 )
+  { TableEnum e = newTableEnum(LD->gvar.nb_vars);
+    int found = 0;
+    Symbol s;
+
+    while( (s=advanceTableEnum(e)) )
+    { Word p = (Word)&s->value;
+
+      if ( isGlobalRef(*p) )
+      { update_pointer(p, gs);
+	found++;
+      }
+    }
+    freeTableEnum(e);
+    assert(LD->gvar.grefs == found);
+  }
+
+  if ( LD->frozen_bar )
+  { update_pointer(&LD->frozen_bar, gs);
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Entry-point.   Update the  stacks to  reflect  their current  positions.
 This function should be called *after*  the  stacks have been relocated.
@@ -2488,6 +2515,8 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
       update_trail(ls, gs);
     }
     update_foreign(ts, ls, gs);
+    if ( gs )
+      update_gvars(gs);
 
     updateStackHeader(local,  ls);
     updateStackHeader(global, gs);
@@ -2509,51 +2538,85 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+nextStackSize() computes the size to use for s, given it should at least
+have minfree space after the stack  expansion.   We  want stacks to grow
+along a fixed set of sizes to maximize reuse of abandoned stacks.
+
+Note that we allocate local and  global   stacks  in one chunk, so their
+combined size should come from a fixed maximum.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#undef K
+#undef MB
+#define K * 1024
+#define MB * (1024L * 1024L)
+
+static intptr_t
+nextSizeAbove(intptr_t n)
+{ intptr_t size;
+
+  if ( n < 4 MB )
+  { size = 8192;
+    while ( size <= n )
+      size *= 2;
+  } else
+  { size = 4 MB;
+
+    while ( size <= n )
+    { if ( (size + size/2) > n )
+	return size + size/2;
+
+      size *= 2;
+    }
+  }
+
+  return size;
+}
+
+
 static intptr_t
 nextStackSize(Stack s, intptr_t minfree)
-{ intptr_t size  = diffPointers(s->max, s->base);
-  intptr_t limit = diffPointers(s->limit, s->base);
-  intptr_t grow;
+{ intptr_t size  = nextSizeAbove(sizeStackP(s) + minfree);
+  intptr_t limit = limitStackP(s);
 
-  grow = ((minfree+8192) > size/2 ? minfree+8192 : size/2);
-  grow = ROUND(grow, 8192);
-
-  if ( size + grow > limit )
-  { if ( size + grow > (limit*3)/2 )
+  if ( size > limit )
+  { if ( size > limit+limit/2 )
       outOfStack(s, STACK_OVERFLOW_THROW);
 
     outOfStack(s, STACK_OVERFLOW_SIGNAL);
-    grow = limit - size;
-    if ( grow < 32 * 1024 )
-      grow = 32 * 1024;
-    s->limit = addPointer(s->base, size+grow);
   }
-
-  size += grow;
 
   return size;
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Entry point from interpret()
+Stack shifter entry point.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define GL_SEPARATION sizeof(word)
 
 int
 growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t)
 { GET_LD
-  
+  sigset_t mask;
+
+  if ( !(l || g || t) )
+    return TRUE;			/* not a real request */
+
+  if ( shift_status.blocked ||
+       PC != NULL )			/* for now, only at the call-port */
+    return FALSE;
+
+  enterGC();				/* atom-gc synchronisation */
+  blockSignals(&mask);
+  blockGC(PASS_LD1);			/* avoid recursion due to */
+  gc_status.requested = FALSE;		/* printMessage() */
+
   if ( !fr )
     fr = environment_frame;
   if ( !ch )
     ch = LD->choicepoints;
 
-  if ( PC != NULL )			/* for now, only at the call-port */
-    fail;
-
-  if ( (l || g || t) && !shift_status.blocked )
   { TrailEntry tb = tBase;
     Word gb = gBase;
     LocalFrame lb = lBase;
@@ -2566,19 +2629,13 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
     DEBUG(0, verbose = TRUE);
 
     if ( verbose )
-    { int i = 0;
-
-      Sdprintf("Expanding ");
-      if ( l ) Sdprintf("%s%s", i++ ? "and " : "", "local ");
-      if ( g ) Sdprintf("%s%s", i++ ? "and " : "", "global ");
-      if ( t ) Sdprintf("%s%s", i++ ? "and " : "", "trail ");
-      Sdprintf("stacks ");
+    { printMessage(ATOM_informational,
+		   PL_FUNCTOR_CHARS, "shift_stacks", 1,
+		     PL_FUNCTOR_CHARS, "start", 3,
+		       PL_BOOL, l,
+		       PL_BOOL, g,
+		       PL_BOOL, t);
     }
-
-    if ( !fr )
-      fr = environment_frame;
-    if ( !ch )
-      ch = LD->choicepoints;
 
     SECURE(if ( !scan_global(FALSE) ) sysError("Stack not ok at shift entry"));
     SECURE(key = checkStacks(fr, ch));
@@ -2590,7 +2647,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
     }
 
     if ( g || l )
-    { intptr_t loffset = gsize + GL_SEPARATION;
+    { intptr_t loffset = gsize;
       assert(lb == addPointer(gb, loffset));	
 
       if ( g )
@@ -2602,20 +2659,12 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
 	shift_status.local_shifts++;
       }
 
-      gb = xrealloc(gb, lsize + gsize + GL_SEPARATION);
-      lb = addPointer(gb, gsize + GL_SEPARATION);
+      gb = PL_realloc(gb, lsize + gsize);
+      lb = addPointer(gb, gsize);
       if ( g )				/* global enlarged; move local */
-	memmove(lb,   addPointer(gb, loffset), lsize);
-	     /* dest, src,                     size */
+	memmove(lb, addPointer(gb, loffset), lsize);
     }
       
-    if ( verbose )
-    { Sdprintf("to (l+g+t) = %d+%d+%d Kbytes ... ",
-	   lsize / 1024,
-	   gsize / 1024,
-	   tsize / 1024);
-    }
-
 #define PrintStackParms(stack, name, newbase, newsize) \
 	{ Sdprintf("%6s: 0x%08lx ... 0x%08lx --> 0x%08lx ... 0x%08lx\n", \
 		 name, \
@@ -2649,13 +2698,21 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
 	     trap_gdb();
 	   });
     if ( verbose )
-    { Sdprintf("%.2f sec.\n", time);
+    { printMessage(ATOM_informational,
+		   PL_FUNCTOR_CHARS, "shift_stacks", 1,
+		     PL_FUNCTOR_CHARS, "done", 4,
+		       PL_DOUBLE, (double)time,
+		       PL_LONG, lsize,
+		       PL_LONG, gsize,
+		       PL_LONG, tsize);
     }
-
-    succeed;
   }
 
-  fail;
+  unblockGC(PASS_LD1);
+  unblockSignals(&mask);
+  leaveGC();
+
+  return TRUE;
 }
 
 #endif /*O_SHIFT_STACKS*/
