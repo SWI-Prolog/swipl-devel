@@ -1358,12 +1358,18 @@ Create a packed string object from a length and a wide character pointer.
 Unify the argument with an integer, as in PL_unify_integer(). As
 \type{short} is promoted to \type{int}, \const{PL_SHORT} is a
 synonym for \type{PL_INT}.
+   \definition{\const{PL_INTEGER} \arg{long}}
+Unify the argument with an integer, as in PL_unify_integer().
    \definition{\const{PL_INT} \arg{int}}
 Unify the argument with an integer, as in PL_unify_integer().
    \definition{\const{PL_LONG} \arg{long}}
 Unify the argument with an integer, as in PL_unify_integer().
-   \definition{\const{PL_INTEGER} \arg{long}}
-Unify the argument with an integer, as in PL_unify_integer().
+   \definition{\const{PL_INT64} \arg{int64_t}}
+Unify the argument with a 64-bit integer, as in PL_unify_int64().
+   \definition{\const{PL_INTPTR} \arg{intptr_t}}
+Unify the argument with an integer with the same width as a pointer.
+On most machines this is the same as \const{PL_LONG}. but on 64-bit
+MS-Windows pointers are 64-bit while longs are only 32-bits.
    \definition{\const{PL_DOUBLE} \arg{double}}
 Unify the argument with a float, as in PL_unify_float(). Note that,
 as the argument is passed using the C vararg conventions, a float must
