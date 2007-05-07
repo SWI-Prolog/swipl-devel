@@ -200,6 +200,7 @@ typedef union
 #define PL_MBCHARS	 (34)		/* const char * */
 #define PL_MBCODES	 (35)		/* const char * */
 #define PL_MBSTRING	 (36)		/* const char * */
+#define PL_INTPTR	 (37)		/* intptr_t */
 
 
 		/********************************

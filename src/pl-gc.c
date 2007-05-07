@@ -2159,13 +2159,13 @@ garbageCollect(LocalFrame fr, Choice ch)
     printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "gc", 1,
 		   PL_FUNCTOR_CHARS, "done", 7,
-		     PL_LONG, ggar,
-		     PL_LONG, tgar,
+		     PL_INTPTR, ggar,
+		     PL_INTPTR, tgar,
 		     PL_DOUBLE, (double)t,
-		     PL_LONG, usedStack(global),
-		     PL_LONG, usedStack(trail),
-		     PL_LONG, roomStack(global),
-		     PL_LONG, roomStack(trail));
+		     PL_INTPTR, usedStack(global),
+		     PL_INTPTR, usedStack(trail),
+		     PL_INTPTR, roomStack(global),
+		     PL_INTPTR, roomStack(trail));
 
 #ifdef O_PROFILE
   if ( fr && LD->profile.active )
@@ -2737,9 +2737,9 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
 		   PL_FUNCTOR_CHARS, "shift_stacks", 1,
 		     PL_FUNCTOR_CHARS, "done", 4,
 		       PL_DOUBLE, (double)time,
-		       PL_LONG, lsize,
-		       PL_LONG, gsize,
-		       PL_LONG, tsize);
+		       PL_INTPTR, lsize,
+		       PL_INTPTR, gsize,
+		       PL_INTPTR, tsize);
     }
   }
 

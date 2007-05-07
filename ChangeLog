@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: PL_INTPTR type to PL_unify_term().
+
   * FIXED: Avoid error summing time of finished CPU time.
 
   * FIXED: Reporting finished threads using current_thread/2

@@ -2543,6 +2543,11 @@ cont:
     case PL_INT64:
       rval = PL_unify_int64(t, va_arg(args, int64_t));
       break;
+    case PL_INTPTR:
+    { int64_t i = va_arg(args, intptr_t);
+      rval = PL_unify_int64(t, i);
+      break;
+    }
     case PL_POINTER:
       rval = PL_unify_pointer(t, va_arg(args, void *));
       break;
