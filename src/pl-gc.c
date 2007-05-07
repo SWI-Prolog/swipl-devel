@@ -2582,9 +2582,10 @@ nextStackSize(Stack s, intptr_t minfree)
 
   if ( size > limit )
   { if ( size > limit+limit/2 )
-      outOfStack(s, STACK_OVERFLOW_THROW);
-
-    outOfStack(s, STACK_OVERFLOW_SIGNAL);
+    { outOfStack(s, STACK_OVERFLOW_THROW); /* _RAISE? */
+      return 0;
+    } else
+      outOfStack(s, STACK_OVERFLOW_SIGNAL);
   }
 
   return size;
@@ -2599,6 +2600,7 @@ int
 growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t)
 { GET_LD
   sigset_t mask;
+  intptr_t lsize, gsize, tsize;
 
   if ( !(l || g || t) )
     return TRUE;			/* not a real request */
@@ -2606,6 +2608,27 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
   if ( LD->shift_status.blocked ||
        PC != NULL )			/* for now, only at the call-port */
     return FALSE;
+
+  if ( t )
+  { if ( !(tsize = nextStackSize((Stack) &LD->stacks.trail, t)) )
+      fail;
+  } else
+  { tsize = sizeStack(trail);
+  }
+
+  if ( l )
+  { if ( !(lsize = nextStackSize((Stack) &LD->stacks.local, l)) )
+      fail;
+  } else
+  { lsize = sizeStack(local);
+  }
+
+  if ( g )
+  { if ( !(gsize = nextStackSize((Stack) &LD->stacks.global, g)) )
+      fail;
+  } else
+  { gsize = sizeStack(global);
+  }
 
   enterGC();				/* atom-gc synchronisation */
   blockSignals(&mask);
@@ -2620,9 +2643,6 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
   { TrailEntry tb = tBase;
     Word gb = gBase;
     LocalFrame lb = lBase;
-    intptr_t lsize = sizeStack(local);
-    intptr_t gsize = sizeStack(global);
-    intptr_t tsize = sizeStack(trail);
     double time = CpuTime(CPU_USER);
     int verbose = trueFeature(TRACE_GC_FEATURE);
     
@@ -2641,37 +2661,32 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
     SECURE(key = checkStacks(fr, ch));
 
     if ( t )
-    { tsize = nextStackSize((Stack) &LD->stacks.trail, t);
-      tb = PL_realloc(tb, tsize);
+    { tb = PL_realloc(tb, tsize);	/* TBD: error! */
       LD->shift_status.trail_shifts++;
     }
 
     if ( g || l )
-    { intptr_t loffset = gsize;
+    { intptr_t loffset = sizeStack(global); 		/* old size */
       assert(lb == addPointer(gb, loffset));	
 
       if ( g )
-      { gsize = nextStackSize((Stack) &LD->stacks.global, g);
 	LD->shift_status.global_shifts++;
-      }
       if ( l )
-      { lsize = nextStackSize((Stack) &LD->stacks.local, l);
 	LD->shift_status.local_shifts++;
-      }
 
-      gb = PL_realloc(gb, lsize + gsize);
+      gb = PL_realloc(gb, lsize + gsize); /* TBD: Error */
       lb = addPointer(gb, gsize);
       if ( g )				/* global enlarged; move local */
 	memmove(lb, addPointer(gb, loffset), lsize);
     }
       
 #define PrintStackParms(stack, name, newbase, newsize) \
-	{ Sdprintf("%6s: 0x%08lx ... 0x%08lx --> 0x%08lx ... 0x%08lx\n", \
-		 name, \
-		 (uintptr_t) LD->stacks.stack.base, \
-		 (uintptr_t) LD->stacks.stack.max, \
-		 (uintptr_t) newbase, \
-		 (uintptr_t) addPointer(newbase, newsize)); \
+	{ Sdprintf("%6s: %p ... %p --> %p ... %p\n", \
+		   name, \
+		   LD->stacks.stack.base, \
+		   LD->stacks.stack.max, \
+		   newbase, \
+		   addPointer(newbase, newsize)); \
 	}
 
 
