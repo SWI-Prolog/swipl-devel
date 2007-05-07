@@ -300,7 +300,9 @@ prolog_list_to_sort_list(term_t t, int key, list *lp, Word *end)
 
 #ifdef O_SHIFT_STACKS
   if ( roomStack(global) < minfree )
-    growStacks(NULL, NULL, NULL, FALSE, minfree, FALSE);
+  { if ( !growStacks(NULL, NULL, NULL, 0, minfree, 0) )
+      fail;
+  }
 #else
   requireStack(global, minfree);
 #endif

@@ -2134,15 +2134,17 @@ PL_unify_functor(term_t t, functor_t f)
 
       bindConst(p, name);
     } else
-    { 
+    { intptr_t needed = (1+arity) * sizeof(word);
+
 #ifdef O_SHIFT_STACKS
-      if ( roomStack(global) < (1+arity) * (intptr_t)sizeof(word) )
-      { growStacks(environment_frame, NULL, NULL, FALSE, TRUE, FALSE);
+      if ( roomStack(global) < needed )
+      { if ( !growStacks(NULL, NULL, NULL, 0, needed, 0) )
+	  fail;				/* error */
 	p = valHandleP(t);
 	deRef(p);
       }
 #else 
-      requireStack(global, sizeof(word)*(1+arity));
+      requireStack(global, needed);
 #endif
 
       { Word a = gTop;

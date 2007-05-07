@@ -2809,7 +2809,9 @@ the global stack (should we check?  Saves trail! How often?).
 
 #ifdef O_SHIFT_STACKS
 	  if ( gTop + 1 + arity > gMax )
-	    growStacks(FR, BFR, PC, FALSE, TRUE, FALSE);
+	  { if ( !growStacks(FR, BFR, PC, 0, sizeof(word)*(1+arity), 0) )
+	      goto b_throw;
+	  }
 #else
 	  requireStack(global, sizeof(word)*(1+arity));
 #endif
@@ -2843,7 +2845,8 @@ the global stack (should we check?  Saves trail! How often?).
 
 #if O_SHIFT_STACKS
   	  if ( ap + 3 > gMax )
-	  { growStacks(FR, BFR, PC, FALSE, TRUE, FALSE);
+	  { if ( !growStacks(FR, BFR, PC, 0, 3*sizeof(word), 0) )
+	      goto b_throw;
 	    ap = gTop;
 	  }
 #else
