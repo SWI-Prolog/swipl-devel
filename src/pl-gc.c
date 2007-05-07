@@ -2205,7 +2205,7 @@ void
 blockGC(ARG1_LD)
 { gc_status.blocked++;
 #if O_SHIFT_STACKS
-  shift_status.blocked++;
+  LD->shift_status.blocked++;
 #endif
 }
 
@@ -2214,7 +2214,7 @@ void
 unblockGC(ARG1_LD)
 { gc_status.blocked--;
 #if O_SHIFT_STACKS
-  shift_status.blocked--;
+  LD->shift_status.blocked--;
 #endif
 }
 
@@ -2603,7 +2603,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
   if ( !(l || g || t) )
     return TRUE;			/* not a real request */
 
-  if ( shift_status.blocked ||
+  if ( LD->shift_status.blocked ||
        PC != NULL )			/* for now, only at the call-port */
     return FALSE;
 
@@ -2643,7 +2643,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
     if ( t )
     { tsize = nextStackSize((Stack) &LD->stacks.trail, t);
       tb = PL_realloc(tb, tsize);
-      shift_status.trail_shifts++;
+      LD->shift_status.trail_shifts++;
     }
 
     if ( g || l )
@@ -2652,11 +2652,11 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
 
       if ( g )
       { gsize = nextStackSize((Stack) &LD->stacks.global, g);
-	shift_status.global_shifts++;
+	LD->shift_status.global_shifts++;
       }
       if ( l )
       { lsize = nextStackSize((Stack) &LD->stacks.local, l);
-	shift_status.local_shifts++;
+	LD->shift_status.local_shifts++;
       }
 
       gb = PL_realloc(gb, lsize + gsize);
@@ -2692,7 +2692,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
     SetHTop(LD->stacks.trail.max);
 
     time = CpuTime(CPU_USER) - time;
-    shift_status.time += time;
+    LD->shift_status.time += time;
     SECURE(if ( checkStacks(NULL, NULL) != key )
 	   { Sdprintf("Stack checksum failure\n");
 	     trap_gdb();

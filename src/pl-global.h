@@ -459,7 +459,7 @@ typedef struct PL_local_data
   } gc;
 
 #ifdef O_SHIFT_STACKS
-  pl_shift_status_t	_shift_status;	/* Stack shifter status */
+  pl_shift_status_t	shift_status;	/* Stack shifter status */
 #endif
   
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
@@ -520,7 +520,6 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define exception_printed	(LD->exception.printed)
 #define fileerrors		(LD->_fileerrors)
 #define gc_status		(LD->gc.status)
-#define shift_status		(LD->_shift_status)
 #define debugstatus		(LD->_debugstatus)
 #define depth_limit		(LD->depth_info.limit)
 #define depth_reached		(LD->depth_info.reached)

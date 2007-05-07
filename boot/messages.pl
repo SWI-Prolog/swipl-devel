@@ -412,6 +412,17 @@ prolog_message(gc(done(G, T, Time, UG, UT, RG, RT))) -->
 	  'gained ~D+~D in ~2f sec; used ~D+~D; free ~D+~D'-
 	  [G, T, Time, UG, UT, RG, RT]
 	].
+prolog_message(shift_stacks(start(_L,_G,_T))) -->
+	[ 'Stack-shift: ', flush ].
+prolog_message(shift_stacks(done(Time, L, G, T))) -->
+	{ LKB is L//1024,
+	  GKB is G//1024,
+	  TKB is T//1024
+	},
+	[ at_same_line,
+	  'local: ~DKB, global: ~DKB, trail: ~DKB bytes (~2f sec)'-
+	  [LKB, GKB, TKB, Time]
+	].
 prolog_message(agc(start)) -->
 	{ thread_self(Me)
 	},

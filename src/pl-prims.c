@@ -3135,9 +3135,9 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
   } else if ( key == ATOM_stack_shifts )
   {
 #ifdef O_SHIFT_STACKS
-    v[0] = shift_status.global_shifts;
-    v[1] = shift_status.local_shifts;
-    v[2] = (int64_t)(shift_status.time * 1000.0);
+    v[0] = LD->shift_status.global_shifts;
+    v[1] = LD->shift_status.local_shifts;
+    v[2] = (int64_t)(LD->shift_status.time * 1000.0);
     vn = 3;
 #else
     fail;
@@ -3233,11 +3233,11 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
 #endif
 #if O_SHIFT_STACKS
   else if (key == ATOM_global_shifts)
-    v->value.i = shift_status.global_shifts;
+    v->value.i = LD->shift_status.global_shifts;
   else if (key == ATOM_local_shifts)
-    v->value.i = shift_status.local_shifts;
+    v->value.i = LD->shift_status.local_shifts;
   else if (key == ATOM_trail_shifts)
-    v->value.i = shift_status.trail_shifts;
+    v->value.i = LD->shift_status.trail_shifts;
 #else
   else if ( key == ATOM_global_shifts ||
 	    key == ATOM_local_shifts ||

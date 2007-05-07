@@ -1673,12 +1673,10 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   trail    = max(trail,    mintrail);
   argument = max(argument, minargument);
 
-  gBase = (Word) PL_malloc(iglobal + sizeof(word) +
-			   ilocal + sizeof(struct localFrame) +
-			   MAXARITY * sizeof(word));
-  lBase = (LocalFrame)	addPointer(gBase, iglobal+sizeof(word));
-  tBase = (TrailEntry)	PL_malloc(itrail);
-  aBase = (Word *)	PL_malloc(argument);
+  gBase = (Word) PL_malloc(iglobal + ilocal);
+  lBase = (LocalFrame) addPointer(gBase, iglobal);
+  tBase = (TrailEntry) PL_malloc(itrail);
+  aBase = (Word *)     PL_malloc(argument);
 
   init_stack((Stack)&LD->stacks.global,
 	     "global",   iglobal, global,  minglobal);
