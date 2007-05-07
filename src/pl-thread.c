@@ -1287,7 +1287,7 @@ pl_current_thread(term_t id, term_t status, control_t h)
       for( ; current < MAX_THREADS; current++ )
       { mark m;
 
-	if ( !threads[current].has_tid )
+	if ( threads[current].status == PL_THREAD_UNUSED )
 	   continue;
 
 	Mark(m);

@@ -2,6 +2,7 @@
 	  [ qpattern/0,
 	    qpattern/1
 	  ]).
+:- use_module(library(debug)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This tests tries to send messages to   a  queue of multiple readers with
@@ -14,6 +15,8 @@ of signalling and broadcasting the queue condition variable.
 	seen/1.
 
 qpattern :-
+	findall(Th, current_thread(Th, _), Ths),
+	assertion(Ths == [main]),
 	qpattern(100).
 
 qpattern(N) :-
@@ -35,6 +38,7 @@ qpattern(N) :-
 	),
 	(   repeat,
 	    findall(Th, current_thread(Th, _), Ths),
+%	    writeln(Ths),
 	    (	length(Ths, 4)
 	    ->	true
 	    ;	thread_send_message(Queue, go_away),

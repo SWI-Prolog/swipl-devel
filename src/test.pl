@@ -2281,6 +2281,14 @@ thread(at_exit-1) :-
         thread_create(at_exit_work, Id, []),
         thread_join(Id, exited(true)),
 	retract(at_exit_called).
+thread(status-1) :-
+	thread_create(true, Id, []),
+	between(0, 10, _),
+	sleep(0.01),
+	current_thread(Id2, Status),
+	Id2 == Id,
+	Status == true, !,
+	thread_join(Id2, _).
 	
 
 		 /*******************************
