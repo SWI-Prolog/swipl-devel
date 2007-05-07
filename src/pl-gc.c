@@ -2601,6 +2601,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
 { GET_LD
   sigset_t mask;
   intptr_t lsize, gsize, tsize;
+  void *fatal = NULL;			/* stack we couldn't expand due to lack of memory */
 
   if ( !(l || g || t) )
     return TRUE;			/* not a real request */
@@ -2661,23 +2662,42 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
     SECURE(key = checkStacks(fr, ch));
 
     if ( t )
-    { tb = PL_realloc(tb, tsize);	/* TBD: error! */
-      LD->shift_status.trail_shifts++;
+    { void *nw;
+
+      if ( (nw = realloc(tb, tsize)) )
+      { LD->shift_status.trail_shifts++;
+	tb = nw;
+      } else
+      { fatal = &LD->stacks.trail;
+	tsize = sizeStack(trail);
+      }
     }
 
     if ( g || l )
     { intptr_t loffset = sizeStack(global); 		/* old size */
+      void *nw;
+
       assert(lb == addPointer(gb, loffset));	
 
-      if ( g )
-	LD->shift_status.global_shifts++;
-      if ( l )
-	LD->shift_status.local_shifts++;
+      if ( (nw = realloc(gb, lsize + gsize)) )
+      { if ( g )
+	  LD->shift_status.global_shifts++;
+	if ( l )
+	  LD->shift_status.local_shifts++;
 
-      gb = PL_realloc(gb, lsize + gsize); /* TBD: Error */
-      lb = addPointer(gb, gsize);
-      if ( g )				/* global enlarged; move local */
-	memmove(lb, addPointer(gb, loffset), lsize);
+	gb = nw;
+	lb = addPointer(gb, gsize);
+	if ( g )				/* global enlarged; move local */
+	  memmove(lb, addPointer(gb, loffset), lsize);
+      } else
+      { if ( g )
+	  fatal = &LD->stacks.global;
+	else
+	  fatal = &LD->stacks.local;
+
+	gsize = sizeStack(global);
+	lsize = sizeStack(local);
+      }
     }
       
 #define PrintStackParms(stack, name, newbase, newsize) \
@@ -2723,9 +2743,15 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
     }
   }
 
+out:
   unblockGC(PASS_LD1);
   unblockSignals(&mask);
   leaveGC();
+
+  if ( fatal )
+  { DEBUG(1, Sdprintf("Out of %s stack due to failed rellocation\n", ((Stack)fatal)->name));
+    return outOfStack(fatal, STACK_OVERFLOW_THROW);
+  }
 
   return TRUE;
 }

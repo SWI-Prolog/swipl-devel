@@ -1673,10 +1673,15 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   trail    = max(trail,    mintrail);
   argument = max(argument, minargument);
 
-  gBase = (Word) PL_malloc(iglobal + ilocal);
+  gBase = (Word) malloc(iglobal + ilocal);
+  tBase = (TrailEntry) malloc(itrail);
+  aBase = (Word *)     malloc(argument);
+  if ( !gBase || !tBase || !aBase )
+  { freeStacks(LD);
+    fail;
+  }
+
   lBase = (LocalFrame) addPointer(gBase, iglobal);
-  tBase = (TrailEntry) PL_malloc(itrail);
-  aBase = (Word *)     PL_malloc(argument);
 
   init_stack((Stack)&LD->stacks.global,
 	     "global",   iglobal, global,  minglobal);
@@ -1692,10 +1697,15 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
 
 
 void
-freeStacks(PL_local_data_t *ld)
-{ PL_free(ld->stacks.global.base);
-  PL_free(ld->stacks.trail.base);
-  PL_free(ld->stacks.argument.base);
+freeStacks(ARG1_LD)
+{
+#undef LD
+#define LD LOCAL_LD
+  if ( gBase ) { free(gBase); gBase = lBase = NULL; }
+  if ( tBase ) { free(tBase); tBase = NULL; }
+  if ( aBase ) { free(aBase); aBase = NULL; }
+#undef LD
+#define LD GLOBAL_LD
 }
 
 
