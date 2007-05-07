@@ -274,7 +274,7 @@ resetProlog()
   gc_status.blocked    = 0;
   gc_status.requested  = FALSE;
 #if O_SHIFT_STACKS
-  shift_status.blocked = 0;
+  LD->shift_status.blocked = 0;
 #endif
   LD->in_arithmetic    = 0;
 
