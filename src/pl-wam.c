@@ -740,7 +740,7 @@ system is not in a state where we can do garbage collection.
 
 As a consequence the cleanup-handler  of   call_cleanup()  runs  with GC
 disables and so do the callEventHook()  hooks.   The  latter is merely a
-developers issue. Cleanup seems reasoanble too.
+developers issue. Cleanup seems reasonable too.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -906,11 +906,11 @@ getProcDefinition(Procedure proc)
 
 
 static inline Definition
-getProcDefinedDefinition(LocalFrame fr, Code PC, Procedure proc ARG_LD)
+getProcDefinedDefinition(LocalFrame *frp, Code PC, Procedure proc ARG_LD)
 { Definition def = proc->definition;
 
   if ( !def->definition.clauses && false(def, PROC_DEFINED) )
-    def = trapUndefined(fr, PC, proc PASS_LD);
+    def = trapUndefined(frp, PC, proc PASS_LD);
 
 #ifdef O_PLMT
   if ( true(def, P_THREAD_LOCAL) )
@@ -1931,7 +1931,10 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   fr         = &qf->frame;
   fr->parent = NULL;
   fr->flags  = FR_INBOX;
-  def        = getProcDefinedDefinition(fr, NULL, proc PASS_LD);
+  def        = getProcDefinedDefinition(&fr, NULL, proc PASS_LD);
+#ifdef O_SHIFT_STACKS
+  qf	     = (QueryFrame) lTop;
+#endif
   arity	     = def->functor->arity;
 
   requireStack(local, sizeof(struct queryFrame)+arity*sizeof(word));
@@ -3982,9 +3985,11 @@ frame and write  the  module  name  just  below  the  frame.   See  also
 contextModule().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	DEF = getProcDefinedDefinition(next, PC,
+	SAVE_REGISTERS(qid);
+	DEF = getProcDefinedDefinition(&next, PC,
 				       resolveProcedure(functor, module)
 				       PASS_LD);
+	LOAD_REGISTERS(qid);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Save the program counter (note  that   I_USERCALL0  has no argument) and
@@ -4138,7 +4143,9 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
 	  word rval;
 
 	  next = lTop;
-	  def = getProcDefinedDefinition(next, PC, fproc PASS_LD);
+	  SAVE_REGISTERS(qid);
+	  def = getProcDefinedDefinition(&next, PC, fproc PASS_LD);
+	  LOAD_REGISTERS(qid);
 	  f = def->definition.function;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4348,9 +4355,11 @@ program pointer and jump to the common part.
 	{ functor_t fdef;
 
 	  fdef = lookupFunctorDef(functor, arity);
-	  DEF = getProcDefinedDefinition(next, PC,
+	  SAVE_REGISTERS(qid);
+	  DEF = getProcDefinedDefinition(&next, PC,
 					 resolveProcedure(fdef, module)
 					 PASS_LD);
+	  LOAD_REGISTERS(qid);
 	  next->context = module;
 	}
 
@@ -4364,11 +4373,13 @@ Attributed variable handling
       wakeup:
 	DEBUG(1, Sdprintf("Activating wakeup\n"));
 	next = lTop;
-        DEF = getProcDefinedDefinition(lTop, PC,
-				       PROCEDURE_dwakeup1
-				       PASS_LD);
 	next->context = MODULE_system;
         next->flags = FR->flags;
+        SAVE_REGISTERS(qid);
+        DEF = getProcDefinedDefinition(&next, PC,
+				       PROCEDURE_dwakeup1
+				       PASS_LD);
+	LOAD_REGISTERS(qid);
         ARGP = argFrameP(next, 0);
 	ARGP[0] = *valTermRef(LD->attvar.head);
 	setVar(*valTermRef(LD->attvar.head));
@@ -4397,7 +4408,11 @@ execution can continue at `next_instruction'
 #endif
 	   )
 	{ Procedure proc = (Procedure) *PC++;
-	  Definition ndef = getProcDefinedDefinition(lTop, PC, proc PASS_LD);
+	  Definition ndef;
+
+	  SAVE_REGISTERS(qid);
+	  ndef = getProcDefinedDefinition(&lTop, PC, proc PASS_LD);
+	  LOAD_REGISTERS(qid);
 	  arity = ndef->functor->arity;
 
 	  if ( true(FR, FR_WATCHED) )
@@ -4426,10 +4441,12 @@ execution can continue at `next_instruction'
         next->flags = FR->flags;
 	if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
 	  set(next, FR_NODEBUG);
-	{ Procedure proc = (Procedure) *PC++;
-	  DEF = getProcDefinedDefinition(next, PC, proc PASS_LD);
-	}
 	next->context = FR->context;
+	{ Procedure proc = (Procedure) *PC++;
+	  SAVE_REGISTERS(qid);
+	  DEF = getProcDefinedDefinition(&next, PC, proc PASS_LD);
+	  LOAD_REGISTERS(qid);
+	}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This is the common part of the call variations.  By now the following is

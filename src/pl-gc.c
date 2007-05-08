@@ -2528,9 +2528,9 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
   }
 
   if ( ls )
-  { update_pointer(&environment_frame, ls);
-    update_pointer(&fli_context, ls);
-    update_pointer(&LD->choicepoints, ls);
+  { update_pointer(&LD->environment,         ls);
+    update_pointer(&LD->foreign_environment, ls);
+    update_pointer(&LD->choicepoints,        ls);
   }
   if ( gs )
   { update_pointer(&LD->mark_bar, gs);

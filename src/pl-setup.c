@@ -1701,7 +1701,7 @@ freeStacks(ARG1_LD)
 {
 #undef LD
 #define LD LOCAL_LD
-  if ( gBase ) { free(gBase); gBase = lBase = NULL; }
+  if ( gBase ) { free(gBase); gBase = NULL; lBase = NULL; }
   if ( tBase ) { free(tBase); tBase = NULL; }
   if ( aBase ) { free(aBase); aBase = NULL; }
 #undef LD
