@@ -89,7 +89,7 @@ surrounded by a word at the start and end, indicating their length.
 			      DEBUGGING
 
 Debugging a garbage collector is a difficult job.  Bugs --like  bugs  in
-memory  allocation--  usually  cause  crashes  intptr_t  after  the  garbage
+memory  allocation--  usually  cause  crashes  long  after  the  garbage
 collection has finished.   To  simplify  debugging  a  large  number  of
 actions  are  counted  during garbage collection.  At regular points the
 consistency between these counts  is  verified.   This  causes  a  small
@@ -2424,27 +2424,16 @@ update_foreign(intptr_t ts, intptr_t ls, intptr_t gs)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Update global variables. As our pointers   areoffsets  to the stacks, we
+don't actually need to update the variables   themselves.  We do need to
+update the frozen bar however.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 update_gvars(intptr_t gs)
 { GET_LD
   
-  if ( LD->gvar.nb_vars && LD->gvar.grefs > 0 )
-  { TableEnum e = newTableEnum(LD->gvar.nb_vars);
-    int found = 0;
-    Symbol s;
-
-    while( (s=advanceTableEnum(e)) )
-    { Word p = (Word)&s->value;
-
-      if ( isGlobalRef(*p) )
-      { update_pointer(p, gs);
-	found++;
-      }
-    }
-    freeTableEnum(e);
-    assert(LD->gvar.grefs == found);
-  }
-
   if ( LD->frozen_bar )
   { update_pointer(&LD->frozen_bar, gs);
   }
@@ -2570,6 +2559,11 @@ nextSizeAbove(intptr_t n)
       size *= 2;
     }
   }
+					/* enforce real limit */
+  if ( size > (intptr_t)(MAXTAGGEDPTR+1) )
+    size = (intptr_t)(MAXTAGGEDPTR+1);
+  if ( size < n )
+    return 0;				/* still too small */
 
   return size;
 }
@@ -2579,6 +2573,11 @@ static intptr_t
 nextStackSize(Stack s, intptr_t minfree)
 { intptr_t size  = nextSizeAbove(sizeStackP(s) + minfree);
   intptr_t limit = limitStackP(s);
+
+  if ( size == 0 )
+  { outOfStack(s, STACK_OVERFLOW_THROW);
+    return 0;
+  }
 
   if ( size > limit )
   { if ( size > limit+limit/2 )
