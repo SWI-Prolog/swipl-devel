@@ -2678,6 +2678,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
 
     if ( g || l )
     { intptr_t loffset = sizeStack(global); 		/* old size */
+      intptr_t olsize = sizeStack(local);
       void *nw;
 
       assert(lb == addPointer(gb, loffset));	
@@ -2691,7 +2692,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
 	gb = nw;
 	lb = addPointer(gb, gsize);
 	if ( g )				/* global enlarged; move local */
-	  memmove(lb, addPointer(gb, loffset), lsize);
+	  memmove(lb, addPointer(gb, loffset), olsize);
       } else
       { if ( g )
 	  fatal = &LD->stacks.global;
