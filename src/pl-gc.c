@@ -2601,7 +2601,11 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
 { GET_LD
   sigset_t mask;
   intptr_t lsize, gsize, tsize;
-  void *fatal = NULL;			/* stack we couldn't expand due to lack of memory */
+  void *fatal = NULL;		/* stack we couldn't expand due to lack of memory */
+#if O_SECURE
+  word key;
+#endif
+
 
   if ( !(l || g || t) )
     return TRUE;			/* not a real request */

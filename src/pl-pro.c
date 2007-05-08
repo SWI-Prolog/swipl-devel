@@ -504,6 +504,10 @@ last_arg:
       }
       return key + *addressIndirect(*p);
     }
+#ifdef O_GMP
+    if ( isMPZNum(*p) )
+      return 0x62f8da3c;		/* TBD: make key from MPZ */
+#endif
     printk("Illegal indirect datatype");
     return key;
   }
