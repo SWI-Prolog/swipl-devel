@@ -110,7 +110,7 @@ Marking, testing marks and extracting values from GC masked words.
 #if O_SECURE
 char tmp[256];				/* for calling print_val(), etc. */
 #define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__ PASS_LD)
-#define recordMark(p)   { if ( (p) < gLimit ) \
+#define recordMark(p)   { if ( (char*)(p) < (char*)lBase ) \
 			  { assert(onStack(global, p)); \
 			    *mark_top++ = (p); \
 			  } \
@@ -2747,7 +2747,6 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
     }
   }
 
-out:
   unblockGC(PASS_LD1);
   unblockSignals(&mask);
   leaveGC();
