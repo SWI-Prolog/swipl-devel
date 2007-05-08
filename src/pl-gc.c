@@ -261,7 +261,7 @@ print_val(word val, char *buf)
   Ssprintf(buf, "%s at %s(%ld)",
 	   tag_name[tag(val)],
 	   stg_name[storage(val) >> 3],
-	   val >> LMASK_BITS);
+	   (val >> LMASK_BITS)/sizeof(word));
   if ( val & MARK_MASK )
     strcat(buf, "M");
   if ( val & FIRST_MASK )
