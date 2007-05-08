@@ -504,6 +504,11 @@ PL_unify_number(term_t t, Number n)
   if ( canBind(*p) )
   { word w = put_number(n);
 
+#ifdef O_SHIFT_STACKS
+    p = valTermRef(t);			/* put_number can shift the stacks */
+    deRef(p);
+#endif
+
     bindConst(p, w);
     succeed;
   }
