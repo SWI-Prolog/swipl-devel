@@ -1831,8 +1831,20 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	{ case 'c':
 	    *fe++ = va_arg(args, int);
 	    break;
-	  case 'd':
 	  case 'p':
+	  { void *ptr = va_arg(args, void*);
+	    char fmbuf[8], *fp=fmbuf;
+	    *fp++ = '%';
+	    if ( modified )
+	      *fp++ = '#';
+	    *fp++ = 'p';
+	    *fp   = '\0';
+	    sprintf(fs, fmbuf, ptr);
+	    fe = &fs[strlen(fs)];
+
+	    break;
+	  }
+	  case 'd':
 	  case 'i':
 	  case 'o':
 	  case 'u':
