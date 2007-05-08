@@ -3511,8 +3511,8 @@ C_FAIL is equivalent to fail/0. Used to implement \+/1.
 
 #if O_COMPILE_ARITH
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Arithmic is compiled using a  stack  machine.    ARGP  is  used as stack
-pointer and the arithmic stack is allocated   on top of the local stack,
+Arithmic is compiled using a  stack  machine.   ARGP  is  used  as stack
+pointer and the arithemic stack is allocated  on top of the local stack,
 starting at the argument field of the next slot of the stack (where ARGP
 points to when processing the body anyway).
 
@@ -3577,8 +3577,7 @@ to give the compiler a hint to put ARGP not into a register.
 	n->value.mpz->_mp_size  = (int)*p++;
 	n->value.mpz->_mp_alloc = 0;	/* avoid de-allocating */
 	size = sizeof(mp_limb_t) * abs(n->value.mpz->_mp_size);
-	n->value.mpz->_mp_d     = PL_malloc(size);
-	memcpy(n->value.mpz->_mp_d, p, size);
+	n->value.mpz->_mp_d = p;
 
 	p += (size+sizeof(word)-1)/sizeof(word);
  	PC = (Code)p;
@@ -3624,7 +3623,7 @@ to give the compiler a hint to put ARGP not into a register.
 	  goto a_ok;
 	  /*NOTREACHED*/
         default:
-	{ LocalFrame lsave = lTop;	/* may do call-back on Prolog */
+	{ intptr_t lsave = (char*)lTop - (char*)lBase;
 	  fid_t fid;
 	  int rc;
 
@@ -3632,7 +3631,7 @@ to give the compiler a hint to put ARGP not into a register.
 	  fid = PL_open_foreign_frame();
 	  rc = valueExpression(consTermRef(p), n PASS_LD);
 	  PL_close_foreign_frame(fid);
-	  lTop = lsave;
+	  lTop = addPointer(lBase, lsave);
 
 	  if ( rc )
 	  { goto a_ok;
@@ -3761,9 +3760,13 @@ the result (a word) and the number holding the result.  For example:
 	deRef2(ARGP, k);
 
 	if ( canBind(*k) )
-	{ word c = put_number(n);
+	{ word c = put_number(n);	/* can shift */
 
 	  clearNumber(n);
+#ifdef O_SHIFT_STACKS
+	  ARGP = argFrameP(lTop, 0);	/* 1-st argument */
+	  deRef2(ARGP, k);
+#endif
 	  bindConst(k, c);
 #ifdef O_ATTVAR
 	  if ( *valTermRef(LD->attvar.head) ) /* can be faster */
