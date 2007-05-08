@@ -247,30 +247,6 @@ close to zero on single-CPU hardware.
 \end{description}
 
 
-\subsection{Linux: linuxthreads vs.\ NPTL}		\label{sec:nptl}
-
-Linux has introduces POSIX threads (pthread) using an implementation
-called \jargon{linuxthreads}, where each thread was `almost' a process.
-This approach has various disadvantages, such as poor performance and
-non-compliance with several aspects of POSIX. However, there is one
-advantage. Where pthread does not provide a way to get statistics per
-thread, we could get this info from the process-oriented times()
-function.  Since the 2.6.x kernels, Linux by default now uses the
-\jargon{NPTL} implementation which is POSIX compliant.  Unfortunately,
-getting per-thread CPU statistics involves reading /proc and is
-therefore too slow for some applications.
-
-SWI-Prolog is setup to run with the default thread model.  Unfortunately
-there is no way to modify this at runtime, but there is a way to select
-the old thread model on modern machines at \jargon{link time}.  This is
-achieved using the environment variable \env{LD_ASSUME_KERNEL} which must
-be set to a pre-nptl kernel version for linking the main executable.  
-The value \const{2.4.21} is appropriate.  When building from source,
-this flag can be set during the build process.  When using a binary
-distribution one could create a minimal C program and relink the system
-using the plld utility.
-
-
 \section{Thread communication}			\label{sec:threadcom}
 
 \subsection{Message queues}			\label{sec:msgqueue}
