@@ -141,37 +141,36 @@ popVisited(ARG1_LD)
 }
 
 
-					/* see also pl-wam.c, unify() */
+static inline void
+initCyclic(ARG1_LD)
+{ LD->cycle.stack.unit_size = sizeof(Word);
+}
+
+
 static inline void
 linkTermsCyclic(Functor f1, Functor f2 ARG_LD)
 { Word p1 = (Word)&f1->definition;
   Word p2 = (Word)&f2->definition;
 
   *p1 = makeRefG(p2);
-  requireStack(argument, sizeof(Word));
-  *aTop++ = p1;
+  pushSegStack(&LD->cycle.stack, &p1);
 }
 
 
 static inline void
-exitCyclic(Word *base ARG_LD)
-{ Word *sp = aTop;
+exitCyclic(ARG1_LD)
+{ Word p;
 
-  while(sp>base)
-  { Word p;
-
-    sp--;
-    p = *sp;
-    *p = *unRef(*p);
+  while( popSegStack(&LD->cycle.stack, &p) )
+  { *p = *unRef(*p);
   }
-
-  aTop = base;
 }
 
 #else
 
 static inline visited(Functor f ARG_LD) { fail; }
 static inline unvisit(Word *base ARG_LD) { }
+static inline void initCyclic(ARG1_LD) {}
 static inline void exitCyclic(ARG1_LD) {}
 static inline void linkTermsCyclic(Functor f1, Functor f2 ARG_LD) {}
 
@@ -631,11 +630,11 @@ tail_recursion:
 
 int
 compareStandard(Word p1, Word p2, int eq ARG_LD)
-{ Word *m = aTop;
-  int rc;
+{ int rc;
 
+  initCyclic(PASS_LD1);
   rc = do_compare(p1, p2, eq PASS_LD);
-  exitCyclic(m PASS_LD);
+  exitCyclic(PASS_LD1);
 
   return rc;
 }
@@ -872,7 +871,6 @@ PRED_IMPL("=@=", 2, structural_eq, 0)
   Reset r;
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
-  Word *m = aTop;
 
   deRef(p1);
   deRef(p2);
@@ -880,6 +878,7 @@ PRED_IMPL("=@=", 2, structural_eq, 0)
   if ( *p1 == *p2 )
     succeed;
 
+  initCyclic(PASS_LD1);
   initBuffer(&buf);			/* can be faster! */
   rval = structeql(p1, p2, &buf PASS_LD);
   for(r = baseBuffer(&buf, reset); r < topBuffer(&buf, reset); r++)
@@ -887,7 +886,7 @@ PRED_IMPL("=@=", 2, structural_eq, 0)
     setVar(*r->v2);
   }
   discardBuffer(&buf);
-  exitCyclic(m PASS_LD);
+  exitCyclic(PASS_LD1);
 
   return rval;
 }
