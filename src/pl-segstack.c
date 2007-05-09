@@ -136,7 +136,7 @@ clearSegStack(segstack *s)
   c = s->first;
   memset(s, 0, sizeof(*s));
 
-  for(; c; c = n);
+  for(; c; c = n)
   { n = c->next;
     PL_free(c);
   }
