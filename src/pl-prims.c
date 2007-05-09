@@ -1962,7 +1962,7 @@ attributed copied, so futher modification of the attribute list does not
 affect the copy  and  visa  versa.   The  algorithm  deals  with  shared
 variables as well as cyclic  terms.  It   works,  like  unify for cyclic
 terms, by creating references from  the   original  to the reference and
-restoring the references using the argument stack.
+restoring the references using a stack.
 
 There are three types of references between the original and the copy:
 
@@ -1972,7 +1972,7 @@ There are three types of references between the original and the copy:
 	  to the same address.
 	* For attributed variables we create an TAG_ATTVAR link to the
 	  copy.  If we find a TAG_ATTVAR pointing to a TAG_ATTVAR we
-	  no we found a copy.  Unfortunately just trailing the old
+	  know we found a copy.  Unfortunately just trailing the old
 	  location doesn't suffice as we must recreate the link to
 	  the old address, so we push this one first.
 	* Compounds use the old trick to make the functor a reference
