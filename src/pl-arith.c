@@ -468,6 +468,72 @@ PRED_IMPL("=:=", 2, eq, PL_FA_TRANSPARENT)
   return compareNumbers(A1, A2, EQ PASS_LD);
 }
 
+
+		 /*******************************
+		 *	 ARITHMETIC STACK	*
+		 *******************************/
+
+Number
+allocArithStack(ARG1_LD)
+{ Number n;
+
+  if ( LD->arith.stack.top == LD->arith.stack.max )
+  { size_t size;
+
+    if ( LD->arith.stack.base )
+    { size = (size_t)(LD->arith.stack.max - LD->arith.stack.base);
+      LD->arith.stack.base = PL_realloc(LD->arith.stack.base, size*sizeof(number)*2);
+      LD->arith.stack.top  = LD->arith.stack.base+size;
+      size *= 2;
+    } else
+    { size = 16;
+      LD->arith.stack.base = PL_malloc(size*sizeof(number));
+      LD->arith.stack.top  = LD->arith.stack.base;
+    }
+
+    LD->arith.stack.max = LD->arith.stack.base+size;
+  }
+
+  n = LD->arith.stack.top;
+  LD->arith.stack.top++;
+
+  return n;
+}
+
+
+void
+pushArithStack(Number n ARG_LD)
+{ Number np = allocArithStack(PASS_LD1);
+
+  *np = *n;				/* structure copy */
+}
+
+
+void
+resetArithStack(ARG1_LD)
+{ LD->arith.stack.top = LD->arith.stack.base;
+}
+
+
+Number
+argvArithStack(int n ARG_LD)
+{ assert(LD->arith.stack.top - n >= LD->arith.stack.base);
+  
+  return LD->arith.stack.top - n;
+}
+
+
+void
+popArgvArithStack(int n ARG_LD)
+{ assert(LD->arith.stack.top - n >= LD->arith.stack.base);
+  
+  for(; n>0; n--)
+  { LD->arith.stack.top--;
+    clearNumber(LD->arith.stack.top);
+  }
+}
+
+
 		/********************************
 		*           FUNCTIONS           *
 		*********************************/
@@ -2814,71 +2880,60 @@ functorArithFunction(int n)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ar_func_n(code, argc, Number *stack) is executed  by the A_FUNC* virtual
-machine instructions. It invalidates all numbers  it pops from the stack
-using clearNumber()
+ar_func_n(code,  argc)  is  executed  by  the  A_FUNC*  virtual  machine
+instructions. It invalidates all numbers it   pops  from the stack using
+clearNumber()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-ar_func_n(code n, int argc, Number *stack)
+ar_func_n(int findex, int argc ARG_LD)
 { number result;
   int rval;
-  ArithFunction f = FunctionFromIndex((int)n);
-  Number sp = *stack;
+  ArithFunction f = FunctionFromIndex(findex);
+  Number argv = argvArithStack(argc PASS_LD);
 
-  sp -= argc;				/* step to start of argv */
+  if ( f->proc )			/* Prolog implementation */
+  { intptr_t lsafe = (char*)lTop - (char*)lBase;
 
-  if ( f->proc )
-  { GET_LD
-    LocalFrame lSave = lTop;		/* TBD (check with stack!) */
-    term_t h0;
-    int n;
-    fid_t fid;
-
-    lTop = (LocalFrame) (*stack);
-    fid  = PL_open_foreign_frame();
-    h0   = PL_new_term_refs(argc+1);
+    lTop = (LocalFrame)argFrameP(lTop, 1); /* needed for is/2.  See A_IS */
+    { fid_t fid = PL_open_foreign_frame();
+      term_t h0 = PL_new_term_refs(argc+1);
+      int n;
     
-    for(n=0; n<argc; n++)
-    { _PL_put_number(h0+n, &sp[n]);
-      clearNumber(&sp[n]);
-    }
+      for(n=0; n<argc; n++)
+	_PL_put_number(h0+n, argv+n);
 
-    rval = prologFunction(f, h0, &result PASS_LD);
-    PL_close_foreign_frame(fid);
-    lTop = lSave;
+      rval = prologFunction(f, h0, &result PASS_LD);
+      PL_close_foreign_frame(fid);
+    }
+    lTop = addPointer(lBase, lsafe);
   } else
   { switch(argc)
     { case 0:
 	rval = (*f->function)(&result);
         break;
       case 1:
-	rval = (*f->function)(sp, &result);
-        clearNumber(sp);
+	rval = (*f->function)(argv, &result);
         break;
       case 2:
-	rval = (*f->function)(sp, &sp[1], &result);
-        clearNumber(sp);
-	clearNumber(&sp[1]);
+	rval = (*f->function)(argv, argv+1, &result);
 	break;
       case 3:
-	rval = (*f->function)(sp, &sp[1], &sp[2], &result);
-        clearNumber(sp);
-	clearNumber(&sp[1]);
-	clearNumber(&sp[2]);
+	rval = (*f->function)(argv, argv+1, argv+2, &result);
         break;
       default:
 	rval = FALSE;
         sysError("Too many arguments to arithmetic function");
     }
   }
+    
+  popArgvArithStack(argc PASS_LD);
 
   if ( rval )
   { if ( result.type == V_REAL && !check_float(result.value.f) )
       return FALSE;
 
-    *sp++ = result;
-    *stack = sp;
+    pushArithStack(&result PASS_LD);
   }
 
   return rval;

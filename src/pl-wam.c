@@ -3511,10 +3511,9 @@ C_FAIL is equivalent to fail/0. Used to implement \+/1.
 
 #if O_COMPILE_ARITH
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Arithmic is compiled using a  stack  machine.   ARGP  is  used  as stack
-pointer and the arithemic stack is allocated  on top of the local stack,
-starting at the argument field of the next slot of the stack (where ARGP
-points to when processing the body anyway).
+Arithmic is compiled using a stack machine.   The  stack is allocated in
+LD->arith.stack and manipulated through  the functions allocArithStack()
+and friends.
 
 Arguments to functions are pushed on the stack  starting  at  the  left,
 thus `add1(X, Y) :- Y is X + 1' translates to:
@@ -3532,43 +3531,32 @@ a_func0:	% executes arithmic function without arguments, pushing
 		% its value on the stack
 a_func1:	% unary function. Changes the top of the stack.
 a_func2:	% binary function. Pops two values and pushes one.
-
-Note that we do not call `ar_func0(*PC++, &ARGP)' as ARGP is a register
-variable.  Also, for compilers that do register allocation it is unwise
-to give the compiler a hint to put ARGP not into a register.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(A_ENTER) MARK(AENTER)
-      { 
-#ifdef DOUBLE_ALIGNMENT
-	ARGP = (Word) (((uintptr_t)ARGP + (DOUBLE_ALIGNMENT-1)) &
-		       ~(DOUBLE_ALIGNMENT-1));
-#endif
-        NEXT_INSTRUCTION;
+      { NEXT_INSTRUCTION;
       }
 
     VMI(A_INTEGER) MARK(AINT);
-      {	Number n = (Number)ARGP;
+      {	Number n = allocArithStack(PASS_LD1);
 
 	n->value.i = (intptr_t) *PC++;
 	n->type    = V_INTEGER;
-	ARGP       = (Word)(n+1);
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_INT64) MARK(AINT64);
-      {	Number n = (Number)ARGP;
+      {	Number n = allocArithStack(PASS_LD1);
 	Word p = &n->value.w[0];
 
 	cpInt64Data(p, PC);
 	n->type    = V_INTEGER;
-	ARGP       = (Word)(n+1);
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_MPZ) MARK(AMPZ);		/* see globalMPZ() and compiler */
 #ifdef O_GMP
-      {	Number n = (Number)ARGP;
+      {	Number n = allocArithStack(PASS_LD1);
 	Word p = (Word)PC;
 	int size;
 
@@ -3581,7 +3569,6 @@ to give the compiler a hint to put ARGP not into a register.
 
 	p += (size+sizeof(word)-1)/sizeof(word);
  	PC = (Code)p;
-	ARGP = (Word)(n+1);
 	NEXT_INSTRUCTION;
       }
 #else
@@ -3589,12 +3576,11 @@ to give the compiler a hint to put ARGP not into a register.
 #endif
 
     VMI(A_DOUBLE) MARK(ADOUBLE);
-      {	Number n = (Number)ARGP;
+      {	Number n = allocArithStack(PASS_LD1);
 	Word p = &n->value.w[0];
 
 	cpDoubleData(p, PC);
 	n->type       = V_REAL;
-	ARGP          = (Word)(n+1);
 	NEXT_INSTRUCTION;
       }
 
@@ -3606,37 +3592,36 @@ to give the compiler a hint to put ARGP not into a register.
       offset = (int)*PC++;
 
     a_var_n:
-      n = (Number)ARGP;
       p = varFrameP(FR, offset);
       deRef2(p, p2);
 
       switch(tag(*p2))
       { case TAG_INTEGER:
+	  n = allocArithStack(PASS_LD1);
 	  get_integer(*p2, n);
-	a_ok:
-	  ARGP = (Word)(n+1);
 	  NEXT_INSTRUCTION;
-	  /*NOTREACHED*/
 	case TAG_FLOAT:
+	  n = allocArithStack(PASS_LD1);
 	  n->value.f = valReal(*p2);
 	  n->type = V_REAL;
-	  goto a_ok;
-	  /*NOTREACHED*/
+	  NEXT_INSTRUCTION;
         default:
-	{ intptr_t lsave = (char*)lTop - (char*)lBase;
+	{ intptr_t lsafe = (char*)lTop - (char*)lBase;
 	  fid_t fid;
+	  number result;
 	  int rc;
 
-	  lTop = (LocalFrame)(n+1);
+	  lTop = (LocalFrame)argFrameP(lTop, 1); /* for is/2.  See below */
 	  fid = PL_open_foreign_frame();
-	  rc = valueExpression(consTermRef(p), n PASS_LD);
+	  rc = valueExpression(consTermRef(p), &result PASS_LD);
 	  PL_close_foreign_frame(fid);
-	  lTop = addPointer(lBase, lsave);
+	  lTop = addPointer(lBase, lsafe);
 
 	  if ( rc )
-	  { goto a_ok;
+	  { pushArithStack(&result PASS_LD);
+	    NEXT_INSTRUCTION;
 	  } else
-	  { 
+	  { resetArithStack(PASS_LD1);
 #if O_CATCHTHROW
             if ( exception_term )
 	      goto b_throw;
@@ -3679,21 +3664,18 @@ to give the compiler a hint to put ARGP not into a register.
       }
 
     VMI(A_FUNC) MARK(A_FUNC);
-      {	Number n;
-
-	fn = *PC++;
+      {	fn = *PC++;
 	an = (int) *PC++;
 
       common_an:
-	n = (Number) ARGP;
+	if ( !ar_func_n((int)fn, an PASS_LD) )
+	{ resetArithStack(PASS_LD1);
 
-	if ( !ar_func_n(fn, an, &n) )
-	{ if ( exception_term )
+	  if ( exception_term )
 	    goto b_throw;
 	  BODY_FAILED;
 	}
 
-	ARGP = (Word) n;
 	NEXT_INSTRUCTION;
       }
   }
@@ -3720,13 +3702,9 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
     VMI(A_LT) MARK(A_LT);
         cmp = LT;
       acmp:				/* common entry */
-	n = (Number)ARGP;
-	n -= 2;
-	ARGP = (Word)n;
+	n = argvArithStack(2 PASS_LD);
 	rc = ar_compare(n, n+1, cmp);
-	clearNumber(n);
-	clearNumber(n+1);
-	ARGP = argFrameP(lTop, 0);
+	popArgvArithStack(2 PASS_LD);
 	if ( rc )
 	  NEXT_INSTRUCTION;
 	BODY_FAILED;
@@ -3749,22 +3727,25 @@ the result (a word) and the number holding the result.  For example:
 	A_FUNC <sin>		run function on it
 	A_IS			bind value
 	I_EXIT
+
+Note that the left argument is pushed onto the local stack and therefore
+we need to set the  local  stack   pointer  before  doing a call-back to
+Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(A_IS) MARK(A_IS);
-      { Number n = (Number)ARGP;
+      { Number n = argvArithStack(1 PASS_LD);
 	Word k;
 
-	n--;				/* pop the number */
 	ARGP = argFrameP(lTop, 0);	/* 1-st argument */
 	deRef2(ARGP, k);
 
 	if ( canBind(*k) )
 	{ word c = put_number(n);	/* can shift */
 
-	  clearNumber(n);
+	  popArgvArithStack(1 PASS_LD);
 #ifdef O_SHIFT_STACKS
-	  ARGP = argFrameP(lTop, 0);	/* 1-st argument */
+	  ARGP = argFrameP(lTop, 0);
 	  deRef2(ARGP, k);
 #endif
 	  bindConst(k, c);
@@ -3787,7 +3768,7 @@ the result (a word) and the number holding the result.  For example:
 	  { rc = FALSE;
 	  }
 
-	  clearNumber(n);
+	  popArgvArithStack(1 PASS_LD);
 	  if ( rc )
 	    NEXT_INSTRUCTION;
 	}

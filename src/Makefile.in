@@ -296,8 +296,8 @@ tags:		$(srcdir)/TAGS
 $(srcdir)/TAGS:	$(SRC)
 		(cd $(srcdir) && $(ETAGS) $(SRC) $(HDR))
 
-check:
-		$(DEVPL) -f $(srcdir)/test.pl -F none -g test,halt -t 'halt(1)'
+check::
+		$(DEVPL) -f $(srcdir)/test.pl -G4M -L4M -O -F none -g test,halt -t 'halt(1)'
 
 ln-install::
 		@$(MAKE) INSTALL_DATA=`pwd`/../packages/ln-install install

@@ -1792,4 +1792,7 @@ freeLocalData(PL_local_data_t *ld)
   if ( ld->gvar.nb_vars )
     destroyHTable(ld->gvar.nb_vars);
 #endif
+
+  if ( ld->arith.stack.base )
+    PL_free(ld->arith.stack.base);
 }

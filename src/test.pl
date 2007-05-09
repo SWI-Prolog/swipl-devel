@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-:- set_prolog_flag(optimise, true).
+%:- set_prolog_flag(optimise, true).
 %:- set_prolog_flag(trace_gc, true).
 :- asserta(user:file_search_path(library, '../packages/plunit')).
 :- [library(plunit)].

@@ -7,6 +7,13 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * CLEANUP: Add a new small stack for optimized arithmetic to avoid
+    further overloading of the local stack.  Preparing for re-introducing
+    the stack-shifter.
+
+  * FIXED: Memory leak from GMP constants in optimized arithmetic 
+    expressions.
+
   * ADDED: PL_INTPTR type to PL_unify_term().
 
   * FIXED: Avoid error summing time of finished CPU time.
