@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -320,6 +320,12 @@ addFunctor(CompileInfo info, functor_t f)
 }
 
 
+typedef struct
+{ Functor	term;
+  functor_t	fdef;
+} cycle_mark;
+
+
 #define mkAttVarP(p)  ((Word)((word)(p) | 0x1L))
 #define isAttVarP(p)  ((word)(p) & 0x1)
 #define valAttVarP(p) ((Word)((word)(p) & ~0x1L))
@@ -444,10 +450,12 @@ right_recursion:
       } else
       { arity   = arityFunctor(f->definition);
 	functor = f->definition;
+	cycle_mark mark;
 
 	requireStack(argument, sizeof(Word)*2);
-	*aTop++ = (Word)f;
-	*aTop++ = (Word)f->definition;
+	mark.term = f;
+	mark.fdef = f->definition;
+	pushSegStack(&LD->cycle.stack, &mark);
 	f->definition = (functor_t)consInt(info->size);
 	assert(valInt(f->definition) == (intptr_t)info->size); /* overflow test */
       }
@@ -475,26 +483,25 @@ right_recursion:
 
 #if O_CYCLIC
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Argument stack contains pairs of pointer to   term and first word of the
-term (functor) before entering. The first  word itself contains a Prolog
-integer with the current stack-offset for the new term.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+static void
+init_cycle(ARG1_LD)
+{ LD->cycle.stack.unit_size = sizeof(cycle_mark);
+}
+
 
 static void
-unvisit(Word *base ARG_LD)
-{ Word *p = aTop;
-  Word gp;
+unvisit(ARG1_LD)
+{ cycle_mark mark;
 
-  while(p>base)
-  { p -= 2;
-
-    gp  = p[0];
-    *gp = (word)p[1];
+  while( popSegStack(&LD->cycle.stack, &mark) )
+  { mark.term->definition = mark.fdef;
   }
-
-  aTop = base;
 }
+
+#else
+
+static void init_cycle(ARG1_LD) {}
+static void unvisit(ARG1_LD) {}
 
 #endif
 
@@ -506,9 +513,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   Word *p;
   size_t size;
   size_t rsize = SIZERECORD(flags);
-#if O_CYCLIC
-  Word *m = aTop;
-#endif
+  init_cycle(PASS_LD1);
 
   SECURE(checkData(valTermRef(t)));
 
@@ -530,9 +535,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   }
   discardBuffer(&info.vars);
   
-#if O_CYCLIC
-  unvisit(m PASS_LD);
-#endif
+  unvisit(PASS_LD1);
   
   size = rsize + sizeOfBuffer(&info.code);
   record = allocHeap(size);
@@ -585,14 +588,12 @@ PL_record_external(term_t t, size_t *len)
   int scode, shdr;
   char *rec;
   int first = REC_HDR;
-#if O_CYCLIC
-  Word *m = aTop;
-#endif
 
   SECURE(checkData(valTermRef(t)));
   p = valTermRef(t);
   deRef(p);
 
+  init_cycle(PASS_LD1);
   initBuffer(&info.code);
 
   if ( isInteger(*p) )			/* integer-only record */
@@ -636,9 +637,7 @@ PL_record_external(term_t t, size_t *len)
   if ( info.nvars == 0 )
     first |= REC_GROUND;
 
-#if O_CYCLIC
-  unvisit(m PASS_LD);
-#endif
+  unvisit(PASS_LD1);
 
   initBuffer(&hdr);
   addBuffer(&hdr, first, uchar);		/* magic code */
@@ -1825,13 +1824,11 @@ undo_while_saving_term(mark *m, Word term)
   copy_info b;
   uint n;
   Word *p;
-#if O_CYCLIC
-  Word *cycle_mark = aTop;
-#endif
 
   SECURE(checkData(term));
   assert(onStack(local, term));
 
+  init_cycle(PASS_LD1);
   initBuffer(&info.code);
   initBuffer(&info.vars);
   info.size = 0;
@@ -1849,10 +1846,7 @@ undo_while_saving_term(mark *m, Word term)
       setVar(**p);
   }
 
-#if O_CYCLIC
-  unvisit(cycle_mark PASS_LD);
-#endif
-
+  unvisit(PASS_LD1);
   Undo(*m);
   
   b.data = info.code.base;

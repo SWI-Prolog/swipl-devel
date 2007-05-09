@@ -52,6 +52,7 @@ allocSegStack(segstack *stack)
     if ( !chunk )
       return NULL;			/* out of memory */
 
+    chunk->next = NULL;
     chunk->previous = stack->last;
     if ( stack->last )
     { stack->last->next = chunk;
@@ -134,10 +135,11 @@ clearSegStack(segstack *s)
 { segchunk *c, *n;
 
   c = s->first;
-  memset(s, 0, sizeof(*s));
 
   for(; c; c = n)
   { n = c->next;
     PL_free(c);
   }
+
+  memset(s, 0, sizeof(*s));
 }
