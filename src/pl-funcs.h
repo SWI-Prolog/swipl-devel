@@ -82,14 +82,13 @@ COMMON(void)		freezeGlobal(ARG1_LD);
 
 /* pl-wam.c */
 COMMON(word) 		pl_count(void);
-COMMON(bool) 		unify_ptrs(Word t1, Word t2 ARG_LD);
-COMMON(bool) 		can_unify(Word t1, Word t2);
 COMMON(void) 		TrailAssignment(Word p);
 COMMON(void) 		do_undo(mark *m);
 COMMON(Definition) 	getProcDefinition(Procedure proc);
 COMMON(void) 		fix_term_ref_count(void);
 COMMON(word) 		pl_unify_with_occurs_check(term_t t1, term_t t2);
 COMMON(fid_t) 		PL_open_signal_foreign_frame(void);
+COMMON(bool)		foreignWakeup(ARG1_LD);
 
 /* pl-atom.c */
 COMMON(word) 		lookupAtom(const char *s, size_t len);
@@ -538,7 +537,9 @@ COMMON(char *) 		findExecutable(const char *module, char *buf);
 COMMON(int) 		Pause(real time);
 
 /* pl-prims.c */
-COMMON(word) 		pl_notunify(term_t t1, term_t t2);
+COMMON(bool) 		raw_unify_ptrs(Word t1, Word t2 ARG_LD);
+COMMON(bool) 		unify_ptrs(Word t1, Word t2 ARG_LD);
+COMMON(bool) 		can_unify(Word t1, Word t2);
 COMMON(int) 		compareStandard(Word t1, Word t2, int eq ARG_LD);
 COMMON(int) 		lengthList(term_t list, int errors);
 COMMON(word) 		pl_univ(term_t t, term_t l);

@@ -2916,15 +2916,8 @@ int
 PL_unify__LD(term_t t1, term_t t2 ARG_LD)
 { Word p1 = valHandleP(t1);
   Word p2 = valHandleP(t2);
-  mark m;
 
-  Mark(m);
-  if ( !unify(p1, p2 PASS_LD) )
-  { Undo(m);
-    fail;
-  }
-
-  succeed;
+  return unify_ptrs(p1, p2 PASS_LD);
 }
 
 

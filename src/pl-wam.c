@@ -933,266 +933,6 @@ getProcDefinedDefinition(LocalFrame *frp, Code PC, Procedure proc ARG_LD)
 #endif
 }
 
-		 /*******************************
-		 *	   CYCLIC TERMS		*
-		 *******************************/
-
-#if O_CYCLIC
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cyclic term unification. The algorithm has been  described to me by Bart
-Demoen. Here it is (translated from dutch):
-
-I created my own variation. You only need it during general unification.
-Here is a short description:  suppose  you   unify  2  terms  f(...) and
-f(...), which are represented on the heap (=global stack) as:
-
-     +-----+          and     +-----+
-     | f/3 |                  | f/3 |
-     +-----+                  +-----+
-      args                     args'
-
-Before working on args and args', change  this into the structure below,
-using a reference pointer pointing from functor  of the one to the other
-term.
-
-     +-----+          and      +-----+
-     | ----+----------------->| f/3 |
-     +-----+                  +-----+
-      args                     args'
-
-If, during this unification you  find  a   compound  whose  functor is a
-reference to the term at the right hand you know you hit a cycle and the
-terms are the same.
-
-Of course functor_t must be different from ref. Overwritten functors are
-collected in a stack and  reset   regardless  of whether the unification
-succeeded or failed. In SWI-Prolog we use   the  argument stack for this
-purpose.
-
-Initial measurements show a performance degradation for deep unification
-of approx. 30%. On the other hand,  if subterms appear multiple times in
-a term unification can be much faster. As only a small percentage of the
-unifications of a realistic program are   covered by unify() and involve
-deep unification the overall impact of performance is small (< 3%).
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-					/* also in pl-prims.c.  Should merge */
-static inline void
-linkTermsCyclic(Functor f1, Functor f2 ARG_LD)
-{ Word p1 = (Word)&f1->definition;
-  Word p2 = (Word)&f2->definition;
-
-  *p1 = makeRefG(p2);
-  requireStack(argument, sizeof(Word));
-  *aTop++ = p1;
-}
-
-
-static inline void
-exitCyclic(Word *base ARG_LD)
-{ Word *sp = aTop;
-
-  while(sp>base)
-  { Word p;
-
-    sp--;
-    p = *sp;
-    *p = *unRef(*p);
-  }
-
-  aTop = base;
-}
-
-#else /*O_CYCLIC*/
-static inline void exitCyclic(ARG1_LD) {}
-static inline void linkTermsCyclic(Functor f1, Functor f2 ARG_LD) {}
-#endif /*O_CYCLIC*/
-
-
-		/********************************
-		*          UNIFICATION          *
-		*********************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Unify is the general unification procedure. This raw routine should only
-be called by interpret as it  does   not  undo  bindings made during the
-unification in case the unification fails. pl_unify() (implementing =/2)
-does undo bindings and should be used   by  foreign predicates. See also
-unify_ptrs().
-
-Unification depends on the datatypes available in the system and will in
-general need updating if new types are added.  It should be  noted  that
-unify()  is  not  the only place were unification happens.  Other points
-are:
-
-  - various of the virtual machine instructions
-  - various macros, for example APPENDLIST and CLOSELIST
-  - unifyAtomic(): unification of atomic data.
-  - various builtin predicates. They should be flagged some way.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static bool
-do_unify(Word t1, Word t2 ARG_LD)
-{ 
-  word w1;
-  word w2;
-
-right_recursion:
-  w1 = *t1;
-  w2 = *t2;
-
-  while(isRef(w1))			/* this is deRef() */
-  { t1 = unRef(w1);
-    w1 = *t1;
-  }
-  while(isRef(w2))
-  { t2 = unRef(w2);
-    w2 = *t2;
-  }
-
-  if ( isVar(w1) )
-  { if ( isVar(w2) )
-    { if ( t1 < t2 )			/* always point downwards */
-      { *t2 = makeRef(t1);
-	Trail(t2);
-	succeed;
-      }
-      if ( t1 == t2 )
-	succeed;
-      *t1 = makeRef(t2);
-      Trail(t1);
-      succeed;
-    }
-#ifdef O_ATTVAR
-    *t1 = isAttVar(w2) ? makeRef(t2) : w2;
-#else
-    *t1 = w2;
-#endif
-    Trail(t1);
-    succeed;
-  }
-  if ( isVar(w2) )
-  {
-#ifdef O_ATTVAR
-    *t2 = isAttVar(w1) ? makeRef(t1) : w1;
-#else
-    *t2 = w1;
-#endif
-    Trail(t2);
-    succeed;
-  }
-
-#ifdef O_ATTVAR
-  if ( isAttVar(w1) )
-    return assignAttVar(t1, t2 PASS_LD);
-  if ( isAttVar(w2) )
-    return assignAttVar(t2, t1 PASS_LD);
-#endif
-
-  if ( w1 == w2 )
-    succeed;
-  if ( tag(w1) != tag(w2) )
-    fail;
-
-  switch(tag(w1))
-  { case TAG_ATOM:
-      fail;
-    case TAG_INTEGER:
-      if ( storage(w1) == STG_INLINE ||
-	   storage(w2) == STG_INLINE )
-	fail;
-    case TAG_STRING:
-    case TAG_FLOAT:
-      return equalIndirect(w1, w2);
-    case TAG_COMPOUND:
-    { Functor f1 = valueTerm(w1);
-      Functor f2 = valueTerm(w2);
-      Word e;
-
-#if O_CYCLIC
-      while ( isRef(f1->definition) )
-	f1 = (Functor)unRef(f1->definition);
-      while ( isRef(f2->definition) )
-	f2 = (Functor)unRef(f2->definition);
-      if ( f1 == f2 )
-	succeed;
-#endif
-
-      if ( f1->definition != f2->definition )
-	fail;
-
-      t1 = f1->arguments;
-      t2 = f2->arguments;
-      e  = t1+arityFunctor(f1->definition)-1; /* right-recurse on last */
-      linkTermsCyclic(f1, f2 PASS_LD);
-
-      for(; t1 < e; t1++, t2++)
-      { if ( !do_unify(t1, t2 PASS_LD) )
-	  fail;
-      }
-      goto right_recursion;
-    }
-  }
-
-  succeed;
-}
-
-
-static bool
-unify(Word t1, Word t2 ARG_LD)
-{ bool rc;
-  Word *m = aTop;
-
-  rc = do_unify(t1, t2 PASS_LD);
-  exitCyclic(m PASS_LD);
-
-  return rc;
-}
-
-
-static
-PRED_IMPL("=", 2, unify, 0)
-{ PRED_LD
-  Word p0 = valTermRef(A1);
-  mark m;
-  int rval;
-
-  Mark(m);
-  if ( !(rval = unify(p0, p0+1 PASS_LD)) )
-    Undo(m);
-  
-  return rval;  
-}
-
-
-word
-pl_notunify(term_t t1, term_t t2)	/* A \= B */
-{ GET_LD
-  Word p1    = valTermRef(t1);
-  Word p2    = valTermRef(t2);
-
-  return can_unify(p1, p2) ? FALSE : TRUE;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Public unification procedure for  `raw'  data.   See  also  unify()  and
-PL_unify().
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-bool
-unify_ptrs(Word t1, Word t2 ARG_LD)
-{ mark m;
-  bool rval;
-
-  Mark(m);
-  if ( !(rval = unify(t1, t2 PASS_LD)) )
-    Undo(m);
-
-  return rval;  
-}
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 foreignWakeup() calls delayed goals while executing a foreign procedure.
@@ -1201,7 +941,7 @@ therefore this code can only be used in places introducing an (implicit)
 cut such as \=/2 (implemented as A \= B :- ( A = B -> fail ; true )).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+bool
 foreignWakeup(ARG1_LD)
 { if ( *valTermRef(LD->attvar.head) )
   { fid_t fid = PL_open_foreign_frame();
@@ -1223,26 +963,6 @@ foreignWakeup(ARG1_LD)
   succeed;
 }
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-can_unify(t1, t2) succeeds if  two  terms   *can*  be  unified,  without
-actually doing so. This  is  basically   a  stripped  version of unify()
-above. See this function for comments.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-bool
-can_unify(Word t1, Word t2)
-{ GET_LD
-  mark m;
-  bool rval;
-
-  Mark(m);
-  if ( (rval = unify(t1, t2 PASS_LD)) )
-    rval = foreignWakeup(PASS_LD1);
-  Undo(m);
-
-  return rval;  
-}
 
 		 /*******************************
 		 *	   OCCURS-CHECK		*
@@ -2663,7 +2383,7 @@ probably worth more than the 0.001% performance to gain.
       { Word p1 = varFrameP(FR, *PC++);
 	Word p2 = ARGP++;
 
-	if ( unify(p1, p2 PASS_LD) )
+	if ( raw_unify_ptrs(p1, p2 PASS_LD) )
 	  NEXT_INSTRUCTION;
 	CLAUSE_FAILED;
       }
@@ -3253,7 +2973,7 @@ exit(Block, RVal).  First does !(Block).
 	  BODY_FAILED;
 	}
 	
-	if ( unify(argFrameP(blockfr, 2), rval PASS_LD) )
+	if ( raw_unify_ptrs(argFrameP(blockfr, 2), rval PASS_LD) )
 	{ for( ; ; FR = FR->parent )
 	  { SECURE(assert(FR > blockfr));
 	    discardChoicesAfter(FR PASS_LD);
@@ -5141,5 +4861,4 @@ next_choice:
 		 *******************************/
 
 BeginPredDefs(wam)
-  PRED_DEF("=", 2, unify, 0)
 EndPredDefs

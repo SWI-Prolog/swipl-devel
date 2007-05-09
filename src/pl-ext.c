@@ -237,7 +237,6 @@ static const PL_extension foreigns[] = {
   FRG("$clause_from_source",	3, pl_clause_from_source,	0),
 
   FRG("unify_with_occurs_check",2, pl_unify_with_occurs_check,  0),
-  FRG("\\=",			2, pl_notunify,			0),
 
   FRG("repeat",			0, pl_repeat,		     NDET),
   FRG("fail",			0, pl_fail,			0),
