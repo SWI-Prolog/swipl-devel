@@ -2174,10 +2174,13 @@ decrease).
 #include SYSLIB_H
 #endif
 
+#define COMMON(type) SO_LOCAL type
+
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
 #include "pl-error.h"			/* Exception generation */
 #include "pl-thread.h"			/* thread manipulation */
 #include "pl-data.h"			/* Access Prolog data */
+#include "pl-segstack.h"		/* Segmented stacks */
 #include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */
 #include "pl-text.h"			/* text manipulation */

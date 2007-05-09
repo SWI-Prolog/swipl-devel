@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -92,13 +92,24 @@ PRED_IMPL("atomic", 1, atomic, 0)
 
 #if O_CYCLIC
 
+static void
+initvisited(ARG1_LD)
+{ LD->cycle.stack.unit_size = sizeof(Word);
+}
+
+
+static int
+empty_visited(ARG1_LD)
+{ return isEmptySegStack(&LD->cycle.stack);
+}
+
+
 static inline int
 visitedWord(Word p ARG_LD)
 { if ( is_marked(p) )
     succeed;
   set_marked(p);
-  requireStack(argument, sizeof(Word));
-  *aTop++ = p;
+  pushSegStack(&LD->cycle.stack, &p);
   fail;
 }
 
@@ -112,25 +123,21 @@ visited(Functor f ARG_LD)
 
 
 static void
-unvisit(Word *base ARG_LD)
-{ Word *p = aTop;
+unvisit(ARG1_LD)
+{ Word p;
 
-  while(p>base)
-  { p--;
-    clear_marked(*p);
+  while( popSegStack(&LD->cycle.stack, &p) )
+  { clear_marked(p);
   }
-
-  aTop = base;
 }
 
 
 static void
 popVisited(ARG1_LD)
-{ Word *p = aTop;
+{ Word p;
 
-  p--;
-  clear_marked(*p);
-  aTop = p;
+  popSegStack(&LD->cycle.stack, &p);
+  clear_marked(p);
 }
 
 
@@ -201,12 +208,11 @@ last:
 int
 PL_is_ground(term_t t)
 { GET_LD
-
-  Word *m = aTop;
   int rc;
 
+  initvisited(PASS_LD1);
   rc = ground(valTermRef(t) PASS_LD);
-  unvisit(m PASS_LD);
+  unvisit(PASS_LD1);
 
   return rc;
 }
@@ -215,11 +221,11 @@ PL_is_ground(term_t t)
 static
 PRED_IMPL("ground", 1, ground, 0)
 { PRED_LD
-  Word *m = aTop;
   int rc;
 
+  initvisited(PASS_LD1);
   rc = ground(valTermRef(A1) PASS_LD);
-  unvisit(m PASS_LD);
+  unvisit(PASS_LD1);
 
   return rc;
 }
@@ -415,13 +421,12 @@ PRED_IMPL("hash_term", 2, hash_term, 0)
 { PRED_LD
   Word p = valTermRef(A1);
   intptr_t hraw = 0L;
-  Word *m = aTop;
   int rc;
 
   deRef(p);
-
+  initvisited(PASS_LD1);
   rc = termHashValue(*p, &hraw PASS_LD);
-  assert(aTop == m);
+  assert(empty_visited(PASS_LD1));
 
   if ( rc )
   { hraw = hraw & PLMAXTAGGEDINT;	/* ensure tagged */
@@ -1341,9 +1346,11 @@ start:
 int
 numberVars(term_t t, nv_options *options, int n ARG_LD)
 { term_t h2 = PL_copy_term_ref(t);
-  Word *m = aTop;
-  int rval = do_number_vars(h2, options, n PASS_LD);
-  unvisit(m PASS_LD);
+  int rval;
+
+  initvisited(PASS_LD1);
+  rval = do_number_vars(h2, options, n PASS_LD);
+  unvisit(PASS_LD1);
 
   PL_reset_term_refs(h2);
 
@@ -1453,12 +1460,12 @@ static int
 term_variables(term_t t, term_t vars, term_t tail ARG_LD)
 { term_t head = PL_new_term_ref();
   term_t v0   = PL_new_term_refs(0);
-  Word *m     = aTop;
   int i, n;
 
   startCritical;
+  initvisited(PASS_LD1);
   n = term_variables_loop(valTermRef(t), v0, 0 PASS_LD);
-  unvisit(m PASS_LD);
+  unvisit(PASS_LD1);
   endCritical;
 
   for(i=0; i<n; i++)
@@ -1545,14 +1552,14 @@ right_recursion:
 word
 pl_e_free_variables(term_t t, term_t vars)
 { GET_LD
-  Word *vm = aTop;
   Word t2 = valTermRef(t);
   term_t v0 = PL_new_term_refs(0);
   int i, n;
 
   startCritical;
+  initvisited(PASS_LD1);
   n = free_variables_loop(t2, v0, 0, FALSE PASS_LD);
-  unvisit(vm PASS_LD);
+  unvisit(PASS_LD1);
   endCritical;
 
   if ( PL_unify_functor(vars, PL_new_functor(ATOM_v, n)) )

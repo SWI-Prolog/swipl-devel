@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * CLEANUP: Avoid using the argument-stack for cycle detection.  Now
+    uses a segmented stack.
+
   * CLEANUP: Add a new small stack for optimized arithmetic to avoid
     further overloading of the local stack.  Preparing for re-introducing
     the stack-shifter.

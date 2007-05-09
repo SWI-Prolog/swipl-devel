@@ -31,9 +31,6 @@ libraries and avoids Prolog picking wrong   symbols. It also reduces ELF
 symbol lookup and relocations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define COMMON(type) SO_LOCAL type
-
-
 /* pl-alloc.c */
 COMMON(void) 		freeHeap__LD(void *mem, size_t n ARG_LD);
 COMMON(word) 		outOfStack(Stack s, stack_overflow_action how);

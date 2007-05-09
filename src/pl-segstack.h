@@ -22,3 +22,31 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#ifndef PL_SEGSTACK_H_INCLUDED
+#define PL_SEGSTACK_H_INCLUDED
+
+typedef struct segchunk
+{ struct segchunk *next;		/* double linked list */
+  struct segchunk *previous;
+  char  *top;				/* top when closed */
+  char	 data[1];			/* data on my back */
+} segchunk;
+
+typedef struct
+{ segchunk *first;
+  segchunk *last;
+  size_t   unit_size;
+  char	   *base;
+  char	   *top;
+  char	   *max;
+} segstack;
+
+
+COMMON(void *)	allocSegStack(segstack *stack);
+COMMON(int)	pushSegStack(segstack *stack, void* data);
+COMMON(int)	popSegStack(segstack *stack, void *data);
+COMMON(int)	isEmptySegStack(segstack *stack);
+COMMON(void)	clearSegStack(segstack *s);
+
+
+#endif /*PL_SEGSTACK_H_INCLUDED*/

@@ -400,6 +400,12 @@ typedef struct PL_local_data
     } stack;
   } arith;
 
+#if O_CYCLIC
+  struct
+  { segstack stack;			/* stack to find cycles */
+  } cycle;
+#endif
+
   struct
   { char *	_CWDdir;
     size_t	_CWDlen;
