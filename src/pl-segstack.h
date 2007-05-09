@@ -39,13 +39,13 @@ typedef struct
   char	   *base;
   char	   *top;
   char	   *max;
+  size_t    count;
 } segstack;
 
 
 COMMON(void *)	allocSegStack(segstack *stack);
 COMMON(int)	pushSegStack(segstack *stack, void* data);
 COMMON(int)	popSegStack(segstack *stack, void *data);
-COMMON(int)	isEmptySegStack(segstack *stack);
 COMMON(void)	clearSegStack(segstack *s);
 
 

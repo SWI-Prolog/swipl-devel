@@ -84,7 +84,7 @@ initvisited(ARG1_LD)
 
 static int
 empty_visited(ARG1_LD)
-{ return isEmptySegStack(&LD->cycle.stack);
+{ return LD->cycle.stack.count == 0;
 }
 
 
@@ -1998,18 +1998,23 @@ shifted rather than doing it.
 
 
 static inline void
-TrailCyclic(Word p ARG_LD)
-{ requireStack(argument, sizeof(Word));
-  *aTop++ = p;
+initCyclicCopy(ARG1_LD)
+{ LD->cycle.stack.unit_size = sizeof(Word);
 }
 
 
 static inline void
-exitCyclicCopy(Word *m, int flags ARG_LD)
-{ Word *sp;
+TrailCyclic(Word p ARG_LD)
+{ pushSegStack(&LD->cycle.stack, &p);
+}
 
-  for(sp = aTop; sp > m; )
-  { Word p = *--sp;
+
+static inline void
+exitCyclicCopy(size_t count, int flags ARG_LD)
+{ while(LD->cycle.stack.count > count)
+  { Word p;
+
+    popSegStack(&LD->cycle.stack, &p);
 
     if ( isRef(*p) )
     { Word p2 = unRef(*p);
@@ -2021,7 +2026,9 @@ exitCyclicCopy(Word *m, int flags ARG_LD)
       { *p = *p2;			/* cyclic terms */
       }
     } else
-    { Word old = *--sp;
+    { Word old;
+
+      popSegStack(&LD->cycle.stack, &old);
 
       if ( !(flags&COPY_ATTRS) )
       { Word p2 = valPAttVar(*p);
@@ -2033,7 +2040,6 @@ exitCyclicCopy(Word *m, int flags ARG_LD)
       *p = consPtr(old, STG_GLOBAL|TAG_ATTVAR);
     }
   }
-  aTop = sp;
 }
 
 
@@ -2122,7 +2128,7 @@ again:
 	Word from0 = from;
 	Functor f2 = (Functor)allocGlobalNoShift(arity+1);
 	int ground = TRUE;
-	Word *am = aTop;
+	size_t count = LD->cycle.stack.count;
 
 	f2->definition = f1->definition;
 	f1->definition = makeRefG((Word)f2);
@@ -2136,7 +2142,7 @@ again:
 	if ( (flags & COPY_SHARE) )
 	{ ground &= do_copy_term(from, to, flags PASS_LD);
 	  if ( ground )
-	  { exitCyclicCopy(am, flags PASS_LD);
+	  { exitCyclicCopy(count, flags PASS_LD);
 	    gTop = oldtop;
 	    *to0 = *from0;
 	    DEBUG(2, Sdprintf("Shared\n"));
@@ -2158,11 +2164,11 @@ static
 PRED_IMPL("copy_term", 2, copy_term, 0)
 { PRED_LD
   term_t copy = PL_new_term_ref();
-  Word *m = aTop;
   int flags = COPY_SHARE|COPY_ATTRS;
 
+  initCyclicCopy(PASS_LD1);
   do_copy_term(valTermRef(A1), valTermRef(copy), flags PASS_LD);
-  exitCyclicCopy(m, flags PASS_LD);
+  exitCyclicCopy(0, flags PASS_LD);
   
   return PL_unify(copy, A2);
 }
@@ -2170,11 +2176,11 @@ PRED_IMPL("copy_term", 2, copy_term, 0)
 
 static void
 duplicate_term(term_t in, term_t copy ARG_LD)
-{ Word *m = aTop;
-  int flags = COPY_ATTRS;
+{ int flags = COPY_ATTRS;
 
+  initCyclicCopy(PASS_LD1);
   do_copy_term(valTermRef(in), valTermRef(copy), flags PASS_LD);
-  exitCyclicCopy(m, flags PASS_LD);
+  exitCyclicCopy(0, flags PASS_LD);
 }
 
 
@@ -2193,11 +2199,11 @@ static
 PRED_IMPL("copy_term_nat", 2, copy_term_nat, 0)
 { PRED_LD
   term_t copy = PL_new_term_ref();
-  Word *m = aTop;
   int flags = COPY_SHARE;
 
+  initCyclicCopy(PASS_LD1);
   do_copy_term(valTermRef(A1), valTermRef(copy), flags PASS_LD);
-  exitCyclicCopy(m, flags PASS_LD);
+  exitCyclicCopy(0, flags PASS_LD);
   
   return PL_unify(copy, A2);
 }

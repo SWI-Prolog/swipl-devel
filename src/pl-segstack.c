@@ -43,10 +43,11 @@ allocSegStack(segstack *stack)
 { if ( stack->top + stack->unit_size <= stack->max )
   { void *r = stack->top;
     stack->top += stack->unit_size;
+    stack->count++;
 
     return r;
   } else
-  { segchunk *chunk = malloc(CHUNKSIZE);
+  { segchunk *chunk = PL_malloc(CHUNKSIZE);
 
     if ( !chunk )
       return NULL;			/* out of memory */
@@ -63,6 +64,7 @@ allocSegStack(segstack *stack)
     stack->base = chunk->data;
     stack->max  = addPointer(chunk, CHUNKSIZE);
     stack->top  = chunk->data + stack->unit_size;
+    stack->count++;
 
     return chunk->data;
   }
@@ -95,6 +97,7 @@ popSegStack(segstack *stack, void *data)
   if ( stack->top >= stack->base + stack->unit_size )
   { stack->top -= stack->unit_size;
     memcpy(data, stack->top, stack->unit_size);
+    stack->count--;
 
     return TRUE;
   } else
@@ -104,7 +107,7 @@ popSegStack(segstack *stack, void *data)
     { if ( chunk->previous )
       { stack->last = chunk->previous;
 	stack->last->next = NULL;
-	free(chunk);
+	PL_free(chunk);
       
 	chunk = stack->last;
 	stack->base = chunk->data;
@@ -114,7 +117,7 @@ popSegStack(segstack *stack, void *data)
       } 
 #if 0
         else
-      { free(chunk);
+      { PL_free(chunk);
 	stack->first = stack->last = NULL;
 	stack->base = stack->max = stack->top = NULL;
       }
@@ -126,17 +129,6 @@ popSegStack(segstack *stack, void *data)
 }
 
 
-int
-isEmptySegStack(segstack *stack)
-{ if ( stack->top == stack->base &&
-       (!stack->last || !stack->last->previous) )
-    return TRUE;
-
-  return FALSE;
-}
-
-
-
 void
 clearSegStack(segstack *s)
 { segchunk *c, *n;
@@ -146,6 +138,6 @@ clearSegStack(segstack *s)
 
   for(; c; c = n);
   { n = c->next;
-    free(c);
+    PL_free(c);
   }
 }

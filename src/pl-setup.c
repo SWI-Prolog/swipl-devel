@@ -1793,6 +1793,10 @@ freeLocalData(PL_local_data_t *ld)
     destroyHTable(ld->gvar.nb_vars);
 #endif
 
+#ifdef O_CYCLIC
+  clearSegStack(&ld->cycle.stack);
+#endif
+
   if ( ld->arith.stack.base )
     PL_free(ld->arith.stack.base);
 }
