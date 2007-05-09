@@ -41,7 +41,7 @@ static unsigned long last_time	  = 0L;
 static Int	         last_down_bts    = ZERO;
 static int	         last_down_x      = -1000; /* multiclick detection */
 static int	         last_down_y	  = -1000;
-static int	         last_down_time   = 0;
+static unsigned long     last_down_time   = 0;
 static unsigned int	 multi_click_time = 400;
 static int	         multi_click_diff = 4;
 static int	         last_click_type  = CLICK_TYPE_triple;
@@ -91,7 +91,7 @@ initialiseEvent(EventObj e, Name id, Any window,
     int px  = valInt(x);
     int py  = valInt(y);
 
-    DEBUG(NAME_multiclick, Cprintf("t: %d (%d), x: %d (%d), y: %d (%d) --> ",
+    DEBUG(NAME_multiclick, Cprintf("t: %ld (%ld), x: %d (%d), y: %d (%d) --> ",
 				   t, last_down_time, px, last_down_x,
 				   py, last_down_y));
 
