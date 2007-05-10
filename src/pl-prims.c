@@ -2226,7 +2226,8 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
       if ( !growStacks(NULL, NULL, NULL, 0, grow, 0) )
 	return outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
     } else
-      return rc;
+    { succeed;		/* do_copy_term returning FALSE just means not-ground */
+    }
   }
 
 #else
@@ -2562,7 +2563,6 @@ concat(const char *pred,
     fail;
   } else				/* -, -, + */
   { size_t at_n;
-    mark m;
 
     switch ( ForeignControl(ctx) )
     { case FRG_FIRST_CALL:
@@ -2579,20 +2579,12 @@ concat(const char *pred,
 	succeed;
     }
 
-    Mark(m);
-    for(; at_n <= L3; at_n++)
-    { if ( PL_unify_text_range(a2, &t3, at_n, L3-at_n, otype) &&
-	   PL_unify_text_range(a1, &t3, 0,    at_n, otype) )
-      { if ( at_n < L3 )
-	  ForeignRedoInt(at_n+1);
-	else
-	{ rc = TRUE;
-	  goto out;
-	}
-      }
-    }
-    rc = FALSE;
-    goto out;
+    PL_unify_text_range(a2, &t3, at_n, L3-at_n, otype);
+    PL_unify_text_range(a1, &t3, 0,    at_n, otype);
+    if ( at_n < L3 )
+      ForeignRedoInt(at_n+1);
+
+    rc = TRUE;
   }    
 
 out:
