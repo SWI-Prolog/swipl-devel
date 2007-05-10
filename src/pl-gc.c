@@ -2392,10 +2392,10 @@ update_argument(intptr_t ls, intptr_t gs)
 		 *******************************/
 
 static void
-update_trail(intptr_t ls, intptr_t gs)
+update_trail(TrailEntry tb, intptr_t ls, intptr_t gs)
 { GET_LD
-  TrailEntry p = tBase;
-  TrailEntry t = tTop;
+  TrailEntry p = tb;			/* new base */
+  TrailEntry t = tb+(tTop-tBase);	/* new top */
 
   for( ; p < t; p++ )
   { if ( onGlobal(trailValP(p->address)) )
@@ -2501,7 +2501,7 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
 
     if ( gs || ls )
     { update_argument(ls, gs);
-      update_trail(ls, gs);
+      update_trail(tb, ls, gs);
     }
     update_foreign(ts, ls, gs);
     if ( gs )
