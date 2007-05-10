@@ -93,6 +93,8 @@ assignAttVar(Word av, Word value ARG_LD)
 
   a = valPAttVar(*av);
   wake    = allocGlobalNoShift(4);	/* may NOT shift the stacks!!! */
+  if ( !wake )
+    return outOfStack(&LD->stacks.global, STACK_OVERFLOW_THROW);
   wake[0] = FUNCTOR_wakeup3;
   wake[1] = needsRef(*a) ? makeRef(a) : *a;
   wake[2] = needsRef(*value) ? makeRef(value) : *value;

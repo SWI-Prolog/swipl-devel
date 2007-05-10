@@ -625,8 +625,10 @@ mergeAllocPool(AllocPool to, AllocPool from)
 		*********************************/
 
 word
-outOfStack(Stack s, stack_overflow_action how)
+outOfStack(void *stack, stack_overflow_action how)
 { GET_LD
+  Stack s = stack;
+
   LD->trim_stack_requested = TRUE;
 
   switch(how)
@@ -754,9 +756,7 @@ allocGlobalNoShift__LD(size_t n ARG_LD)
 { Word result;
 
   if ( roomStack(global) < (intptr_t) (n * sizeof(word)) )
-  { assert(0);				/* TBD: see copy_term/2 */
     return NULL;
-  }
 
   result = gTop;
   gTop += n;

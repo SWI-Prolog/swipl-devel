@@ -79,9 +79,9 @@ typedef struct
 #define OS "unknown"
 #endif
 
-#define DEF_DEFLOCAL	(4000*SIZEOF_VOIDP)
-#define DEF_DEFGLOBAL	(8000*SIZEOF_VOIDP) /* 32MB on 32-bit hardware */
-#define DEF_DEFTRAIL	(8000*SIZEOF_VOIDP)
+#define DEF_DEFLOCAL	(4096*SIZEOF_VOIDP)
+#define DEF_DEFGLOBAL	(8192*SIZEOF_VOIDP) /* 32MB on 32-bit hardware */
+#define DEF_DEFTRAIL	(8192*SIZEOF_VOIDP)
 #define DEF_DEFARGUMENT (250*SIZEOF_VOIDP)
 #define DEF_DEFHEAP     0		/* unlimited */
 

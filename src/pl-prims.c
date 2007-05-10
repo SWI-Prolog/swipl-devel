@@ -29,7 +29,7 @@
 #undef LD
 #define LD LOCAL_LD
 
-static void	duplicate_term(term_t in, term_t copy ARG_LD);
+static int	duplicate_term(term_t in, term_t copy ARG_LD);
 
 
 		 /*******************************
@@ -1335,7 +1335,8 @@ setarg(term_t n, term_t term, term_t value, int flags)
     { if ( !(flags & SETARG_LINK) )
       { term_t copy = PL_new_term_ref();
 
-	duplicate_term(value, copy PASS_LD);
+	if ( !duplicate_term(value, copy PASS_LD) )
+	  fail;
 	value = copy;
       }
 
@@ -1875,6 +1876,9 @@ PRED_IMPL("unifiable", 3, unifiable, 0)
       Word gp = list+1;
       Word tail = list;
 
+      if ( !list )
+	return outOfStack(&LD->stacks.global, STACK_OVERFLOW_THROW);
+
       *list = ATOM_nil;
       while(--tt >= mt)
       { Word p = tt->address;
@@ -2046,6 +2050,7 @@ exitCyclicCopy(size_t count, int flags ARG_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FALSE: term cannot be shared
 TRUE:  term can be shared (ground)
+-1:    not enough space on the stack
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -2093,19 +2098,25 @@ again:
       { Word attr;			/* the new attributes */
 
 	if ( !onStackArea(global, to) )
-	{ Word t = allocGlobalNoShift(1);
+	{ Word t;
+
+	  if ( !(t = allocGlobalNoShift(1)) )
+	    return -1;
 	  
 	  *to = makeRefG(t);
 	  to = t;
 	}
-	attr = allocGlobalNoShift(1);
+	if ( !(attr = allocGlobalNoShift(1)) )
+	  return -1;
 	TrailCyclic(p PASS_LD);
 	TrailCyclic(from PASS_LD);
 	*from = consPtr(to, STG_GLOBAL|TAG_ATTVAR);
 	*to = consPtr(attr, STG_GLOBAL|TAG_ATTVAR);
 
+					/* copy attribute value */
 	flags &= ~COPY_SHARE;
-	do_copy_term(p, attr, flags PASS_LD);	/* copy attribute value */
+	if ( do_copy_term(p, attr, flags PASS_LD) < 0 )
+	  return -1;
 	return FALSE;
       }
     }
@@ -2126,9 +2137,12 @@ again:
 	Word oldtop = gTop;
 	Word to0 = to;
 	Word from0 = from;
-	Functor f2 = (Functor)allocGlobalNoShift(arity+1);
+	Functor f2;
 	int ground = TRUE;
 	size_t count = LD->cycle.stack.count;
+
+	if ( !(f2 = (Functor)allocGlobalNoShift(arity+1)) )
+	  return -1;
 
 	f2->definition = f1->definition;
 	f1->definition = makeRefG((Word)f2);
@@ -2138,9 +2152,19 @@ again:
 	from = &f1->arguments[0];
 	to   = &f2->arguments[0];
 	while(--arity > 0)
-	  ground &= do_copy_term(from++, to++, flags PASS_LD);
+	{ int rc = do_copy_term(from++, to++, flags PASS_LD);
+	  if ( rc < 0 )
+	    return rc;
+	  ground &= rc;
+	}
+
 	if ( (flags & COPY_SHARE) )
-	{ ground &= do_copy_term(from, to, flags PASS_LD);
+	{ int rc = do_copy_term(from, to, flags PASS_LD);
+
+	  if ( rc < 0 )
+	    return rc;
+
+	  ground &= rc;
 	  if ( ground )
 	  { exitCyclicCopy(count, flags PASS_LD);
 	    gTop = oldtop;
@@ -2160,27 +2184,58 @@ again:
 }
 
 
+static int
+copy_term_refs(term_t from, term_t to, int flags ARG_LD)
+{
+#ifdef O_SHIFT_STACKS
+  intptr_t grow = sizeStack(global)/2;
+
+  for(;; grow *= 2)
+  { int rc;
+    Word gsave = gTop;
+
+    initCyclicCopy(PASS_LD1);
+    rc = do_copy_term(valTermRef(from), valTermRef(to), flags PASS_LD);
+    exitCyclicCopy(0, flags PASS_LD);
+
+    if ( rc == -1 )
+    { gTop = gsave;
+      if ( !growStacks(NULL, NULL, NULL, 0, grow, 0) )
+	return outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
+    } else
+      break;
+  }
+
+  succeed;
+#else
+  int rc;
+
+  initCyclicCopy(PASS_LD1);
+  rc = do_copy_term(valTermRef(from), valTermRef(to), flags PASS_LD);
+  exitCyclicCopy(0, flags PASS_LD);
+  if ( rc == -1 )
+    return outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
+
+  succeed;
+#endif
+}
+
+
 static
 PRED_IMPL("copy_term", 2, copy_term, 0)
 { PRED_LD
   term_t copy = PL_new_term_ref();
-  int flags = COPY_SHARE|COPY_ATTRS;
 
-  initCyclicCopy(PASS_LD1);
-  do_copy_term(valTermRef(A1), valTermRef(copy), flags PASS_LD);
-  exitCyclicCopy(0, flags PASS_LD);
-  
-  return PL_unify(copy, A2);
+  if ( copy_term_refs(A1, copy, COPY_SHARE|COPY_ATTRS PASS_LD) )
+    return PL_unify(copy, A2);
+
+  fail;
 }
 
 
-static void
+static int
 duplicate_term(term_t in, term_t copy ARG_LD)
-{ int flags = COPY_ATTRS;
-
-  initCyclicCopy(PASS_LD1);
-  do_copy_term(valTermRef(in), valTermRef(copy), flags PASS_LD);
-  exitCyclicCopy(0, flags PASS_LD);
+{ return copy_term_refs(in, copy, COPY_ATTRS PASS_LD);
 }
 
 
@@ -2189,9 +2244,10 @@ PRED_IMPL("duplicate_term", 2, duplicate_term, 0)
 { PRED_LD
   term_t copy = PL_new_term_ref();
 
-  duplicate_term(A1, copy PASS_LD);
-  
-  return PL_unify(copy, A2);
+  if ( duplicate_term(A1, copy PASS_LD) )
+    return PL_unify(copy, A2);
+
+  fail;
 }
 
 
@@ -2199,13 +2255,11 @@ static
 PRED_IMPL("copy_term_nat", 2, copy_term_nat, 0)
 { PRED_LD
   term_t copy = PL_new_term_ref();
-  int flags = COPY_SHARE;
 
-  initCyclicCopy(PASS_LD1);
-  do_copy_term(valTermRef(A1), valTermRef(copy), flags PASS_LD);
-  exitCyclicCopy(0, flags PASS_LD);
-  
-  return PL_unify(copy, A2);
+  if ( copy_term_refs(A1, copy, COPY_SHARE PASS_LD) )
+    return PL_unify(copy, A2);
+
+  fail;
 }
 
 #undef LD
