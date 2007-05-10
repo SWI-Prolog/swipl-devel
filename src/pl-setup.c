@@ -975,7 +975,7 @@ emptyStacks()
   destroyGlobalVars();
 #endif
 
-  LD->mark_bar          = gLimit;
+  LD->mark_bar          = (Word)(~(uintptr_t)0);
 }
 
 #if O_DYNAMIC_STACKS

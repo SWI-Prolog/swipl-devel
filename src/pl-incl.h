@@ -1850,17 +1850,14 @@ typedef struct
 #define lBase	(LD->stacks.local.base)
 #define lTop	(LD->stacks.local.top)
 #define lMax	(LD->stacks.local.max)
-#define lLimit	(LD->stacks.local.limit)
 
 #define gBase	(LD->stacks.global.base)
 #define gTop	(LD->stacks.global.top)
 #define gMax	(LD->stacks.global.max)
-#define gLimit	(LD->stacks.global.limit)
 
 #define aBase	(LD->stacks.argument.base)
 #define aTop	(LD->stacks.argument.top)
 #define aMax	(LD->stacks.argument.max)
-#define aLimit	(LD->stacks.argument.limit)
 
 #define SetHTop(val)	{ if ( (char *)(val) > hTop  ) hTop  = (char *)(val); }
 #define SetHBase(val)	{ if ( (char *)(val) < hBase ) hBase = (char *)(val); }
