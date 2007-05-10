@@ -1633,12 +1633,7 @@ pl_stack_parameter(term_t name, term_t key, term_t old, term_t new)
 
 static void
 init_stack(Stack s, char *name, intptr_t size, intptr_t limit, intptr_t minfree)
-{ if ( s->base == NULL )
-  { fatalError("Not enough core to allocate stacks");
-    return;
-  }
-
-  s->name 	= name;
+{ s->name 	= name;
   s->top	= s->base;
   s->limit	= addPointer(s->base, limit);
   s->max	= addPointer(s->base, size);
@@ -1649,7 +1644,12 @@ init_stack(Stack s, char *name, intptr_t size, intptr_t limit, intptr_t minfree)
   s->small      = (s->gc ? SMALLSTACK : 0);
 }
 
-/* malloc() version */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Malloc'ed version of the stacks. Our initial  stack size is a bit bigger
+than the minimum to avoid a stack-shift right at the start, We must find
+a better way to specify the minimum.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
@@ -1659,9 +1659,9 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   intptr_t minargument = 1*SIZEOF_VOIDP K;
 
 #if O_SHIFT_STACKS
-  intptr_t itrail  = 8*SIZEOF_VOIDP K;
-  intptr_t iglobal = 50*SIZEOF_VOIDP K;
-  intptr_t ilocal  = 8*SIZEOF_VOIDP K;
+  intptr_t itrail  = mintrail  + 4*SIZEOF_VOIDP K;
+  intptr_t iglobal = minglobal + 8*SIZEOF_VOIDP K;
+  intptr_t ilocal  = minlocal  + 4*SIZEOF_VOIDP K;
 #else
   intptr_t itrail  = trail;
   intptr_t iglobal = global;
