@@ -1841,33 +1841,32 @@ the trouble. Note that unifying attributed   variables  is no problem as
 these always live on the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static
-PRED_IMPL("unifiable", 3, unifiable, 0)
-{ PRED_LD
-  mark m;
+static int
+unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
+{ mark m;
 
-  if ( PL_is_variable(A1) )
-  { if ( PL_compare(A1, A2) == 0 )
-      return PL_unify_atom(A3, ATOM_nil);
+  if ( PL_is_variable(t1) )
+  { if ( PL_compare(t1, t2) == 0 )
+      return PL_unify_atom(subst, ATOM_nil);
     else
-      return PL_unify_term(A3,
+      return PL_unify_term(subst,
 			   PL_FUNCTOR, FUNCTOR_dot2,
 			     PL_FUNCTOR, FUNCTOR_equals2,
-			       PL_TERM, A1,
-			       PL_TERM, A2,
+			       PL_TERM, t1,
+			       PL_TERM, t2,
 			     PL_ATOM, ATOM_nil);
   }
-  if ( PL_is_variable(A2) )
-  { return PL_unify_term(A3,
+  if ( PL_is_variable(t2) )
+  { return PL_unify_term(subst,
 			 PL_FUNCTOR, FUNCTOR_dot2,
 			   PL_FUNCTOR, FUNCTOR_equals2,
-			     PL_TERM, A2,
-			     PL_TERM, A1,
+			     PL_TERM, t2,
+			     PL_TERM, t1,
 			   PL_ATOM, ATOM_nil);
   }
 
   Mark(m);
-  if ( PL_unify(A1, A2) )
+  if ( PL_unify(t1, t2) )
   { TrailEntry tt = tTop;
     TrailEntry mt = m.trailtop;
 
@@ -1877,7 +1876,9 @@ PRED_IMPL("unifiable", 3, unifiable, 0)
       Word tail = list;
 
       if ( !list )
-	return outOfStack(&LD->stacks.global, STACK_OVERFLOW_THROW);
+      { Undo(m);
+	return -1;
+      }
 
       *list = ATOM_nil;
       while(--tt >= mt)
@@ -1928,11 +1929,33 @@ PRED_IMPL("unifiable", 3, unifiable, 0)
       gTop = gp;			/* may not have used all space */
       tTop = m.trailtop;
 
-      return PL_unify(wordToTermRef(list), A3);
+      return PL_unify(wordToTermRef(list), subst);
     } else
-      return PL_unify_atom(A3, ATOM_nil);
+      return PL_unify_atom(subst, ATOM_nil);
   } else
     fail;
+}
+
+
+static
+PRED_IMPL("unifiable", 3, unifiable, 0)
+{ PRED_LD
+
+#ifdef O_SHIFT_STACKS
+  intptr_t grow = sizeStack(global)/2;
+
+  for(;; grow *= 2)
+  { int rc = unifiable(A1, A2, A3 PASS_LD);
+
+    if ( rc == -1 )
+    { if ( !growStacks(NULL, NULL, NULL, 0, grow, 0) )
+	return outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
+    } else
+      return rc;
+  }
+#else
+  return unifiable(A1, A2, A3 PASS_LD);
+#endif
 }
 
 #if O_CYCLIC
@@ -2203,10 +2226,9 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
       if ( !growStacks(NULL, NULL, NULL, 0, grow, 0) )
 	return outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
     } else
-      break;
+      return rc;
   }
 
-  succeed;
 #else
   int rc;
 

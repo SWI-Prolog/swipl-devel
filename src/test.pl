@@ -255,6 +255,18 @@ cyclic(test-4) :-
 
 
 		 /*******************************
+		 *	    UNIFIABLE		*
+		 *******************************/
+
+unifiable(unifiable-1) :-
+	unifiable(X, 1, S),
+	S == [X=1].
+unifiable(unifiable-2) :-
+	unifiable(a(X,X), a(Y,Z), S),
+	S == [Z=X, Y=X].
+
+
+		 /*******************************
 		 *      INTEGER ARITHMETIC	*
 		 *******************************/
 
@@ -2397,6 +2409,7 @@ testset(write_test).
 testset(format_test).
 testset(unify).
 testset(occurs_check).
+testset(unifiable).
 testset(arithmetic).
 testset(arithmetic_functions).
 testset(floattest).

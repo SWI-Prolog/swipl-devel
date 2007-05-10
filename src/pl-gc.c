@@ -2592,7 +2592,10 @@ nextStackSize(Stack s, intptr_t minfree)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Stack shifter entry point.
+Stack shifter entry point. The arguments l, g and t request expansion of
+the local, global and trail-stacks. Non-0 versions   ask the stack to be
+modified. Positive values enlarge the stack to the next size that has at
+least the specified value free space (i.e. min-free).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
