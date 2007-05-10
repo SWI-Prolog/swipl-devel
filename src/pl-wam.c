@@ -330,12 +330,12 @@ fid_t
 PL_open_signal_foreign_frame()
 { GET_LD
   FliFrame fr;
+  size_t margin = sizeof(struct localFrame) + MAXARITY*sizeof(word);
 
-  lTop = addPointer(lTop, sizeof(struct localFrame) + MAXARITY*sizeof(word));
+  requireStack(local, sizeof(struct fliFrame)+margin);
+  lTop = addPointer(lTop, margin);
   fr = (FliFrame) lTop;
 
-  requireStack(local, sizeof(struct fliFrame));
-  lTop = addPointer(lTop, sizeof(struct fliFrame));
   fr->magic = FLI_MAGIC;
   fr->size = 0;
   Mark(fr->mark);
