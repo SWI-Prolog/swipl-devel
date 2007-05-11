@@ -2543,7 +2543,7 @@ combined size should come from a fixed maximum.
 
 size_t
 nextStackSizeAbove(size_t n)
-{ intptr_t size;
+{ size_t size;
 
   if ( n < 4 MB )
   { size = 8192;
@@ -2560,8 +2560,8 @@ nextStackSizeAbove(size_t n)
     }
   }
 					/* enforce real limit */
-  if ( size > (intptr_t)(MAXTAGGEDPTR+1) )
-    size = (intptr_t)(MAXTAGGEDPTR+1);
+  if ( size > (size_t)(MAXTAGGEDPTR+1) )
+    size = (size_t)(MAXTAGGEDPTR+1);
   if ( size < n )
     return 0;				/* still too small */
 
