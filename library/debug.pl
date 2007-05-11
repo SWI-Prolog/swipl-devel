@@ -79,8 +79,10 @@ debugging(Topic) :-
 %%	debug(+Topic) is det.
 %%	nodebug(+Topic) is det.
 %
-%	Add/remove a topic from being printed.  nodebug(_) removes all
-%	topics.
+%	Add/remove a topic from being   printed.  nodebug(_) removes all
+%	topics. Gives a warning if the topic is not defined unless it is
+%	used from a directive. The latter allows placing debug topics at
+%	the start a a (load-)file without warnings.
 
 debug(Topic) :-
 	debug(Topic, true).
@@ -91,7 +93,10 @@ debug(Topic, Val) :-
 	(   (   retract(debugging(Topic, _))
 	    *-> assert(debugging(Topic, Val)),
 		fail
-	    ;   print_message(warning, debug_no_topic(Topic)),
+	    ;   (   prolog_load_context(file, _)
+		->  true
+		;   print_message(warning, debug_no_topic(Topic))
+		),
 	        assert(debugging(Topic, Val))
 	    )
 	->  true
