@@ -448,9 +448,10 @@ right_recursion:
 
 	return;
       } else
-      { arity   = arityFunctor(f->definition);
+      { cycle_mark mark;
+
+	arity   = arityFunctor(f->definition);
 	functor = f->definition;
-	cycle_mark mark;
 
 	requireStack(argument, sizeof(Word)*2);
 	mark.term = f;
