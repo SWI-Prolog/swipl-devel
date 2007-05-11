@@ -1764,6 +1764,15 @@ PL_is_compound(term_t t)
 
 
 int
+PL_is_callable(term_t t)
+{ GET_LD
+  word w = valHandle(t);
+
+  return (isTerm(w) || isTextAtom(w)) ? TRUE : FALSE;
+}
+
+
+int
 PL_is_functor__LD(term_t t, functor_t f ARG_LD)
 { word w = valHandle(t);
 

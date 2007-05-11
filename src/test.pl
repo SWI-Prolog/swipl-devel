@@ -900,6 +900,8 @@ type_test(type-1) :-
 	var(_), X = Y, var(X), Y = a, nonvar(X).
 type_test(type-2) :-
 	atom(hello), \+ atom(10), \+ atom("hello").
+type_test(type-3) :-
+	callable(atom), callable(term(a)), \+ callable(_Var).
 
 
 		 /*******************************

@@ -954,7 +954,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   intptr_t stack = 0;
   int rc;
 
-  if ( !(PL_is_compound(goal) || PL_is_atom(goal)) )
+  if ( !PL_is_callable(goal) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
 
   LOCK();

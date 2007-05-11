@@ -485,11 +485,7 @@ PRED_IMPL("compound", 1, compound, 0)
 
 static
 PRED_IMPL("callable", 1, callable, 0)
-{ PRED_LD
-  if ( PL_is_atom(A1) || PL_is_compound(A1) )
-    succeed;
-
-  fail;
+{ return PL_is_callable(A1);
 }
 
 
