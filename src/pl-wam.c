@@ -2912,8 +2912,6 @@ the moment the code marked (**) handles this not very elegant
 	  unify_ptrs(p, catcher PASS_LD); /* undo_while_saving_term() also */
 					  /* undoes unify of findCatcher() */
 	  lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
-	  if ( LD->trim_stack_requested )
-	    trimStacks(PASS_LD1);
 	  argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
 	  *valTermRef(exception_printed) = 0;   /* consider it handled */
 	  *valTermRef(exception_bin)     = 0;
@@ -2946,7 +2944,9 @@ the moment the code marked (**) handles this not very elegant
 	  }
 
 	  if ( LD->trim_stack_requested )
-	    trimStacks(PASS_LD1);
+	  { trimStacks(PASS_LD1);
+	    QF = QueryFromQid(qid);	/* may be shifted: recompute */
+	  }
 
 	  QF->foreign_frame = PL_open_foreign_frame();
 	  fail;
@@ -3870,7 +3870,7 @@ so the inline call is expanded to a normal call and may be traced.
 
 	    goto normal_call;
 	  } else
-	  { LocalFrame oldtop = lTop;
+	  { intptr_t oldtop = (char*)lTop - (char*)lBase;
 	    term_t h0;
 	    fid_t fid;
 	
@@ -3941,9 +3941,9 @@ increase lTop too to prepare for asynchronous interrupts.
 	    PL_close_foreign_frame(fid);
 	    LOAD_REGISTERS(qid);
 
-	    ARGP -= nvars;
 	    environment_frame = FR;
-	    lTop = oldtop;
+	    lTop = addPointer(lBase, oldtop);
+	    ARGP = argFrameP(lTop, 0);
 
 	    if ( exception_term )
 	    { if ( rval )

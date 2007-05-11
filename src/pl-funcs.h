@@ -432,6 +432,7 @@ COMMON(word) 		pl_garbage_collect(term_t d);
 COMMON(void) 		blockGC(ARG1_LD);
 COMMON(void) 		unblockGC(ARG1_LD);
 COMMON(Word) 		findGRef(int n);
+COMMON(size_t)		nextStackSizeAbove(size_t n);
 COMMON(int) 		growStacks(LocalFrame fr, Choice ch, Code PC,
 			   intptr_t lminfree, intptr_t gminfree, intptr_t tminfree);
 COMMON(void) 		clearUninitialisedVarsFrame(LocalFrame, Code);

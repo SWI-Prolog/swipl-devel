@@ -2541,8 +2541,8 @@ combined size should come from a fixed maximum.
 #define K * 1024
 #define MB * (1024L * 1024L)
 
-static intptr_t
-nextSizeAbove(intptr_t n)
+size_t
+nextStackSizeAbove(size_t n)
 { intptr_t size;
 
   if ( n < 4 MB )
@@ -2571,8 +2571,13 @@ nextSizeAbove(intptr_t n)
 
 static intptr_t
 nextStackSize(Stack s, intptr_t minfree)
-{ intptr_t size  = nextSizeAbove(sizeStackP(s) + minfree);
+{ intptr_t size;
   intptr_t limit = limitStackP(s);
+
+  if ( minfree > 0 )
+    size = nextStackSizeAbove(sizeStackP(s) + minfree);
+  else
+    size = nextStackSizeAbove(usedStackP(s) + s->minfree);
 
   if ( size == 0 )
   { outOfStack(s, STACK_OVERFLOW_THROW);
@@ -2596,21 +2601,21 @@ Stack shifter entry point. The arguments l, g and t request expansion of
 the local, global and trail-stacks. Non-0 versions   ask the stack to be
 modified. Positive values enlarge the stack to the next size that has at
 least the specified value free space (i.e. min-free).
+
+Negative values cause the stack to shrink to the value nearest above the
+current usage and the minimum free stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t)
+growStacks(LocalFrame fr, Choice ch, Code PC, 
+	   intptr_t l, intptr_t g, intptr_t t)
 { GET_LD
   sigset_t mask;
   intptr_t lsize, gsize, tsize;
-  void *fatal = NULL;		/* stack we couldn't expand due to lack of memory */
+  void *fatal = NULL;	/* stack we couldn't expand due to lack of memory */
 #if O_SECURE
   word key;
 #endif
-
-
-  if ( !(l || g || t) )
-    return TRUE;			/* not a real request */
 
   if ( LD->shift_status.blocked ||
        PC != NULL )			/* for now, only at the call-port */
@@ -2619,6 +2624,8 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
   if ( t )
   { if ( !(tsize = nextStackSize((Stack) &LD->stacks.trail, t)) )
       fail;
+    if ( tsize == sizeStack(trail) )
+      t = 0;
   } else
   { tsize = sizeStack(trail);
   }
@@ -2626,6 +2633,8 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
   if ( l )
   { if ( !(lsize = nextStackSize((Stack) &LD->stacks.local, l)) )
       fail;
+    if ( lsize == sizeStack(local) )
+      l = 0;
   } else
   { lsize = sizeStack(local);
   }
@@ -2633,9 +2642,14 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
   if ( g )
   { if ( !(gsize = nextStackSize((Stack) &LD->stacks.global, g)) )
       fail;
+    if ( gsize == sizeStack(global) )
+      g = 0;
   } else
   { gsize = sizeStack(global);
   }
+
+  if ( !(l || g || t) )
+    return TRUE;			/* not a real request */
 
   enterGC();				/* atom-gc synchronisation */
   blockSignals(&mask);
@@ -2680,11 +2694,14 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
     }
 
     if ( g || l )
-    { intptr_t loffset = sizeStack(global); 		/* old size */
+    { intptr_t ogsize = sizeStack(global); 		/* old size */
       intptr_t olsize = sizeStack(local);
       void *nw;
 
-      assert(lb == addPointer(gb, loffset));	
+      assert(lb == addPointer(gb, ogsize));	
+
+      if ( gsize < ogsize )
+	memmove(addPointer(gb, gsize), lb, olsize);
 
       if ( (nw = realloc(gb, lsize + gsize)) )
       { if ( g )
@@ -2694,8 +2711,8 @@ growStacks(LocalFrame fr, Choice ch, Code PC, intptr_t l, intptr_t g, intptr_t t
 
 	gb = nw;
 	lb = addPointer(gb, gsize);
-	if ( g )				/* global enlarged; move local */
-	  memmove(lb, addPointer(gb, loffset), olsize);
+	if ( gsize > ogsize )	
+	  memmove(lb, addPointer(gb, ogsize), olsize);
       } else
       { if ( g )
 	  fatal = &LD->stacks.global;

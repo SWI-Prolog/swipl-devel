@@ -1378,7 +1378,7 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   global   = (intptr_t) align_size(global);
   trail    = (intptr_t) align_size(trail);
   argument = (intptr_t) align_size(argument);
-  glsize   = global+tsep+local+lsep;
+  glsize   = global+local;
 
   tbase = VirtualAlloc(NULL, trail,    MEM_RESERVE, PAGE_READWRITE);
   abase = VirtualAlloc(NULL, argument, MEM_RESERVE, PAGE_READWRITE);
@@ -1563,17 +1563,6 @@ gcPolicy(Stack s, int policy)
 }
 
 
-word
-pl_trim_stacks()
-{ trimStacks(PASS_LD1);
-
-  gcPolicy((Stack) &LD->stacks.global, GC_FAST_POLICY);
-  gcPolicy((Stack) &LD->stacks.trail,  GC_FAST_POLICY);
-
-  succeed;
-}
-
-
 #else /* O_DYNAMIC_STACKS */
 
 
@@ -1590,12 +1579,6 @@ better start looking for another Prolog system (IBM-PC  is  an  example:
 why does IBM bring computers on the marked that are 10 years out-of-date
 at the moment of announcement?).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-word
-pl_trim_stacks()
-{ succeed;
-}
-
 
 word
 pl_stack_parameter(term_t name, term_t key, term_t old, term_t new)
@@ -1659,9 +1642,9 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   intptr_t minargument = 1*SIZEOF_VOIDP K;
 
 #if O_SHIFT_STACKS
-  intptr_t itrail  = mintrail  + 4*SIZEOF_VOIDP K;
-  intptr_t iglobal = minglobal + 8*SIZEOF_VOIDP K;
-  intptr_t ilocal  = minlocal  + 4*SIZEOF_VOIDP K;
+  intptr_t itrail  = nextStackSizeAbove(mintrail);
+  intptr_t iglobal = nextStackSizeAbove(minglobal);
+  intptr_t ilocal  = nextStackSizeAbove(minlocal);
 #else
   intptr_t itrail  = trail;
   intptr_t iglobal = global;
@@ -1729,16 +1712,22 @@ result from a stack-overflow.
 void
 trimStacks(ARG1_LD)
 {
-#ifdef O_DYNAMIC_STACKS
 #undef LD
 #define LD LOCAL_LD
   TrailEntry te;
   Word dummy = NULL;
 
+#ifdef O_SHIFT_STACKS
+  if ( !growStacks(NULL, NULL, NULL, -1, -1, -1) )
+    return;
+#else
+#ifdef O_DYNAMIC_STACKS
   unmap((Stack) &LD->stacks.local);
   unmap((Stack) &LD->stacks.global);
   unmap((Stack) &LD->stacks.trail);
   unmap((Stack) &LD->stacks.argument);
+#endif /*O_DYNAMIC_STACKS*/
+#endif /*O_SHIFT_STACKS*/
 
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
@@ -1760,8 +1749,21 @@ trimStacks(ARG1_LD)
   }
 #undef LD
 #define LD GLOBAL_LD
-#endif /*O_DYNAMIC_STACKS*/
 }
+
+
+word
+pl_trim_stacks()
+{ trimStacks(PASS_LD1);
+
+#ifdef O_DYNAMIC_STACKS
+  gcPolicy((Stack) &LD->stacks.global, GC_FAST_POLICY);
+  gcPolicy((Stack) &LD->stacks.trail,  GC_FAST_POLICY);
+#endif
+
+  succeed;
+}
+
 
 		 /*******************************
 		 *	    LOCAL DATA		*
