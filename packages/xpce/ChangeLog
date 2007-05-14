@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#281: Error in class tabular.   Bruno Martinez,
+
 * FIXED: Failing double-click detection due to too short datatype.
 
 VERSION 6.6.34, distributed with SWI-Prolog 5.6.34
