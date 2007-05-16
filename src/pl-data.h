@@ -23,8 +23,6 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Proposal for new Prolog data-structures.
-
 Aim
 ===
 
@@ -58,22 +56,21 @@ Sorted to standard order of terms:
 Storage places:
 
 	S	Static (global variable)
-	H	Heap
 	L	Local
 	G	Global
 	T	Trail
-	-	`In the variable'
+	-	Inline
 
-	      INDEX  STORAGE  L  G  H  T  S  -  I
-----------------------------------------------------------------
-Var		0      -                    00
-Integer		1      HG-      10 01       00
-Float		2      HG       10 01
-Atom		3      HS          01    00
-String		4      HG       10 01
-List		5      HG       10 01
-Term		6      HG       10 01
-Reference	7      HLG   11 10 01
+	      INDEX  STORAGE  L  G  T  S  -  I
+-------------------------------------------------------------
+Var		0      -                 00
+Integer		1      G-       01       00
+Float		2      G        01 
+Atom		3      S              00
+String		4      G        01
+List		5      G        01
+Term		6      G        01
+Reference	7      LG    10 01
 ----------------------------------------------------------------
 
 Adding 2 bits for the garbage collector, this adds up to 7-bits tag info,
@@ -139,8 +136,8 @@ be kept consistent.
 
 #define STG_MASK	(0x3<<3)
 #define STG_STATIC	(0x0<<3)	/* storage masks */
-#define STG_GLOBAL	(0x1<<3)
-#define STG_LOCAL	(0x2<<3)
+#define STG_GLOBAL	(0x1<<3)	/* global stack */
+#define STG_LOCAL	(0x2<<3)	/* local stack */
 #define STG_RESERVED	(0x3<<3)
 
 #define STG_INLINE	STG_STATIC
