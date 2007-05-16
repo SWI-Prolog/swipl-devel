@@ -1267,6 +1267,7 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
 word
 pl_current_thread(term_t id, term_t status, control_t h)
 { int current;
+  fid_t fid;
 
   switch(ForeignControl(h))
   { case FRG_FIRST_CALL:
@@ -1283,18 +1284,18 @@ pl_current_thread(term_t id, term_t status, control_t h)
     }
     case FRG_REDO:
       current = (int)ForeignContextInt(h);
-    redo:
-      for( ; current < MAX_THREADS; current++ )
-      { mark m;
 
-	if ( threads[current].status == PL_THREAD_UNUSED )
+    redo:
+      fid = PL_open_foreign_frame();
+      for( ; current < MAX_THREADS; current++ )
+      { if ( threads[current].status == PL_THREAD_UNUSED )
 	   continue;
 
-	Mark(m);
 	if ( unify_thread_id(id, &threads[current]) &&
 	     unify_thread_status(status, &threads[current]) )
 	  ForeignRedoInt(current+1);
-	Undo(m);
+
+	PL_rewind_foreign_frame(fid);
       }
       fail;
     case FRG_CUTTED:
@@ -1889,9 +1890,7 @@ get_message(message_queue *queue, term_t msg)
   int isvar = PL_is_variable(msg) ? 1 : 0;
   word key = (isvar ? 0L : getIndexOfTerm(msg));
   int rval = TRUE;
-  mark m;
-
-  Mark(m);
+  fid_t fid = PL_open_foreign_frame();
 
   ctx.queue = queue;
   ctx.isvar = isvar;
@@ -1923,7 +1922,7 @@ get_message(message_queue *queue, term_t msg)
 	goto out;
       }
 
-      Undo(m);			/* reclaim term */
+      PL_rewind_foreign_frame(fid);
     }
 				/* linux docs say it may return EINTR */
 				/* does it re-lock in that case? */
@@ -1963,9 +1962,7 @@ peek_message(message_queue *queue, term_t msg)
 { thread_message *msgp;
   term_t tmp = PL_new_term_ref();
   word key = getIndexOfTerm(msg);
-  mark m;
-
-  Mark(m);
+  fid_t fid = PL_open_foreign_frame();
 
   simpleMutexLock(&queue->mutex);
   msgp = queue->head;
@@ -1980,7 +1977,7 @@ peek_message(message_queue *queue, term_t msg)
       succeed;
     }
 
-    Undo(m);
+    PL_rewind_foreign_frame(fid);
   }
      
   simpleMutexUnlock(&queue->mutex);
@@ -2721,7 +2718,7 @@ foreign_t
 pl_current_mutex(term_t mutex, term_t owner, term_t count, control_t h)
 { TableEnum e;
   Symbol s;
-  mark mrk;
+  fid_t fid;
 
   switch(ForeignControl(h))
   { case FRG_FIRST_CALL:
@@ -2749,7 +2746,7 @@ pl_current_mutex(term_t mutex, term_t owner, term_t count, control_t h)
       succeed;
   }
 
-  Mark(mrk);
+  fid = PL_open_foreign_frame();
   while ( (s = advanceTableEnum(e)) )
   { pl_mutex *m = s->value;
 
@@ -2758,7 +2755,7 @@ pl_current_mutex(term_t mutex, term_t owner, term_t count, control_t h)
 	 PL_unify_integer(count, m->count) )
     { ForeignRedoPtr(e);
     }
-    Undo(mrk);
+    PL_rewind_foreign_frame(fid);
   }
 
   freeTableEnum(e);
