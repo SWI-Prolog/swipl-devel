@@ -306,13 +306,14 @@ static
 PRED_IMPL("=", 2, unify, 0)
 { PRED_LD
   Word p0 = valTermRef(A1);
-  mark m;
+  tmp_mark m;
   int rval;
 
-  Mark(m);
+  TmpMark(m);
   if ( !(rval = raw_unify_ptrs(p0, p0+1 PASS_LD)) )
-    Undo(m);
-  
+    TmpUndo(m);
+  EndTmpMark(m);
+
   return rval;  
 }
 
@@ -333,12 +334,13 @@ PL_unify().
 
 bool
 unify_ptrs(Word t1, Word t2 ARG_LD)
-{ mark m;
+{ tmp_mark m;
   bool rval;
 
-  Mark(m);
+  TmpMark(m);
   if ( !(rval = raw_unify_ptrs(t1, t2 PASS_LD)) )
-    Undo(m);
+    TmpUndo(m);
+  EndTmpMark(m);
 
   return rval;  
 }
@@ -353,13 +355,14 @@ above. See this function for comments.
 bool
 can_unify(Word t1, Word t2)
 { GET_LD
-  mark m;
+  tmp_mark m;
   bool rval;
 
-  Mark(m);
+  TmpMark(m);
   if ( (rval = raw_unify_ptrs(t1, t2 PASS_LD)) )
     rval = foreignWakeup(PASS_LD1);
-  Undo(m);
+  TmpUndo(m);
+  EndTmpMark(m);
 
   return rval;  
 }
@@ -1149,17 +1152,18 @@ either equal or non-equal. I.e. X and Y are equal or they cannot unify.
 static
 PRED_IMPL("?=", 2, can_compare, 0)
 { PRED_LD
-  mark m;
+  tmp_mark m;
   bool rval;
 
-  Mark(m);
+  TmpMark(m);
   rval = PL_unify(A1, A2);
   if ( rval )
   { if ( m.trailtop != tTop )
       rval = FALSE;			/* can be equal after substitution */
   } else
     rval = TRUE;			/* cannot unify */
-  Undo(m);
+  TmpUndo(m);
+  EndTmpMark(m);
 
   return rval;
 }
@@ -1837,9 +1841,10 @@ the trouble. Note that unifying attributed   variables  is no problem as
 these always live on the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static intptr_t
 unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
-{ mark m;
+{ fid_t fid;
+  intptr_t tmark;
 
   if ( PL_is_variable(t1) )
   { if ( PL_compare(t1, t2) == 0 )
@@ -1861,19 +1866,22 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 			   PL_ATOM, ATOM_nil);
   }
 
-  Mark(m);
+  fid = PL_open_foreign_frame();
+  tmark = (char*)tTop - (char*)tBase;	/* prepare for a shift */
+
   if ( PL_unify(t1, t2) )
   { TrailEntry tt = tTop;
-    TrailEntry mt = m.trailtop;
+    TrailEntry mt = addPointer(tBase, tmark);
 
     if ( tt > mt )
-    { Word list = allocGlobalNoShift((tt-mt)*6+1);
+    { intptr_t needed = (tt-mt)*6+1;
+      Word list = allocGlobalNoShift(needed);
       Word gp = list+1;
       Word tail = list;
 
       if ( !list )
-      { Undo(m);
-	return -1;
+      { PL_rewind_foreign_frame(fid);
+	return -needed;
       }
 
       *list = ATOM_nil;
@@ -1923,7 +1931,7 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 	}
       }
       gTop = gp;			/* may not have used all space */
-      tTop = m.trailtop;
+      tTop = addPointer(tBase, tmark);
 
       return PL_unify(wordToTermRef(list), subst);
     } else
@@ -1938,17 +1946,15 @@ PRED_IMPL("unifiable", 3, unifiable, 0)
 { PRED_LD
 
 #ifdef O_SHIFT_STACKS
-  intptr_t grow = sizeStack(global)/2;
+  for(;;)
+  { intptr_t rc = unifiable(A1, A2, A3 PASS_LD);
 
-  for(;; grow *= 2)
-  { int rc = unifiable(A1, A2, A3 PASS_LD);
-
-    if ( rc == -1 )
-    { if ( !growStacks(NULL, NULL, NULL, 0, grow, 0) )
+    if ( rc < 0 )			/* not enough space */
+    { if ( !growStacks(NULL, NULL, NULL, 0, (-rc)*sizeof(word), 0) )
 	return outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
     } else
       return rc;
-  }
+  } 
 #else
   return unifiable(A1, A2, A3 PASS_LD);
 #endif
@@ -2864,7 +2870,7 @@ sub_text(term_t atom,
   sub_state *state;			/* non-deterministic state */
   atom_t expected = (type == PL_STRING ? ATOM_string : ATOM_atom);
   int match;
-  mark mrk;
+  fid_t fid;
 
 #define la ta.length
 #define ls ts.length
@@ -2996,7 +3002,7 @@ sub_text(term_t atom,
       fail;
   }
 
-  Mark(mrk);
+  fid = PL_open_foreign_frame();
 again:
   switch(state->type)
   { case SUB_SEARCH:
@@ -3089,7 +3095,7 @@ next:
   if ( match )
   { ForeignRedoPtr(state);
   } else
-  { Undo(mrk);
+  { PL_rewind_foreign_frame(fid);
     goto again;
   }
 
