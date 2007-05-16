@@ -2666,6 +2666,7 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
 { PRED_LD
   int i, mx;
   term_t tmp;
+  fid_t fid;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
@@ -2682,11 +2683,10 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
   tmp = PL_new_term_ref();
   mx = (int)entriesBuffer(function_array, ArithFunction);
 
+  fid = PL_open_foreign_frame();
   for( ; i<mx; i++ )
   { ArithFunction f = FunctionFromIndex(i);
-    mark m;
 
-    Mark(m);
     PL_put_functor(tmp, f->functor);
     if ( f->proc &&
 	 PL_unify_term(A1,
@@ -2698,7 +2698,8 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
 	succeed;
       ForeignRedoInt(i);
     }
-    Undo(m);
+
+    PL_rewind_foreign_frame(fid);
   }
 
   fail;

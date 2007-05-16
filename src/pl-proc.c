@@ -1647,8 +1647,7 @@ pl_retract(term_t term, control_t h)
     Word argv;
     ClauseRef next;
     atom_t b;
-    mark mrk;
-    term_t r0;
+    fid_t fid;
 
     PL_strip_module(term, &m, cl);
     get_head_and_body_clause(cl, head, body, NULL PASS_LD);
@@ -1705,14 +1704,12 @@ pl_retract(term_t term, control_t h)
       startCritical;
     }
 
-    Mark(mrk);
-    r0 = PL_new_term_refs(0);
+    fid = PL_open_foreign_frame();
     while( cref )
     { if ( decompile(cref->clause, cl, 0) )
       { retractClauseDefinition(getProcDefinition(proc), cref->clause PASS_LD);
 	if ( !next )
-	{ PL_reset_term_refs(r0);
-	  leaveDefinition(def);
+	{ leaveDefinition(def);
 	  endCritical;
 	  succeed;
 	}
@@ -1721,8 +1718,7 @@ pl_retract(term_t term, control_t h)
 	ForeignRedoPtr(next);
       }
 
-      PL_reset_term_refs(r0);
-      Undo(mrk);
+      PL_rewind_foreign_frame(fid);
 
       cref = findClause(next, argv, environment_frame, def, &next PASS_LD);
     }
@@ -1744,8 +1740,7 @@ pl_retractall(term_t head)
   ClauseRef next;
   Word argv;
   LocalFrame fr = environment_frame;
-  mark m;
-  term_t r0;
+  fid_t fid;
 
   if ( !get_procedure(head, &proc, thehead, GP_FINDHERE) )
     succeed;
@@ -1768,9 +1763,9 @@ pl_retractall(term_t head)
   else
     argv = NULL;			/* retract(foobar) */
 
-  Mark(m);
   startCritical;
   enterDefinition(def);
+  fid = PL_open_foreign_frame();
 
   if ( !(cref = firstClause(argv, fr, def, &next PASS_LD)) )
   { endCritical;
@@ -1778,13 +1773,11 @@ pl_retractall(term_t head)
     succeed;
   }
 
-  r0 = PL_new_term_refs(0);
   while( cref )
   { if ( decompileHead(cref->clause, thehead) )
       retractClauseDefinition(def, cref->clause PASS_LD);
 
-    PL_reset_term_refs(r0);
-    Undo(m);
+    PL_rewind_foreign_frame(fid);
 
     if ( !next )
     { leaveDefinition(def);

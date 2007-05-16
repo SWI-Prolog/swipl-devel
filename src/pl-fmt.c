@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2004, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -230,7 +230,7 @@ word
 pl_current_format_predicate(term_t chr, term_t descr, control_t h)
 { Symbol s = NULL;
   TableEnum e;
-  mark m;
+  fid_t fid;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -248,14 +248,14 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
       succeed;
   }
 
+  fid = PL_open_foreign_frame();
   while( (s=advanceTableEnum(e)) )
-  { Mark(m);
-
-    if ( PL_unify_integer(chr, (intptr_t)s->name) &&
+  { if ( PL_unify_integer(chr, (intptr_t)s->name) &&
 	 unify_definition(descr, ((Procedure)s->value)->definition, 0, 0) )
     { ForeignRedoPtr(e);
     }
-    Undo(m);
+    
+    PL_rewind_foreign_frame(fid);
   }
 
   freeTableEnum(e);

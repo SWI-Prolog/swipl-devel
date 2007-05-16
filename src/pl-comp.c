@@ -3118,7 +3118,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
   term_t h    = PL_new_term_ref();
   term_t b    = PL_new_term_ref();
   LocalFrame fr = environment_frame;
-  mark m;
+  fid_t fid;
 
   switch( ForeignControl(ctx) )
   { case FRG_FIRST_CALL:
@@ -3199,7 +3199,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
   { cref = findClause(cref, argv, fr, def, &next PASS_LD);
   }
 
-  Mark(m);
+  fid = PL_open_foreign_frame();
   while(cref)
   { if ( decompile(cref->clause, term, bindings) )
     { get_head_and_body_clause(term, h, b, NULL PASS_LD);
@@ -3215,7 +3215,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
       }
     }
 
-    Undo(m);
+    PL_rewind_foreign_frame(fid);
     cref = findClause(next, argv, fr, def, &next PASS_LD);
   }
 

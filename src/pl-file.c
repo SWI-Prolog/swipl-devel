@@ -2990,7 +2990,7 @@ pl_stream_property(term_t stream, term_t property, control_t h)
 { GET_LD
   IOSTREAM *s;
   prop_enum *pe;
-  mark m;
+  fid_t fid;
   term_t a1;
 
   switch( ForeignControl(h) )
@@ -3090,17 +3090,18 @@ pl_stream_property(term_t stream, term_t property, control_t h)
   }
 
 
-  Mark(m);
+  fid = PL_open_foreign_frame();
+
   for(;;)
   { if ( pe->s )				/* given stream */
-    { mark m2;
+    { fid_t fid2;
   
       if ( PL_is_variable(stream) )
       { if ( !PL_unify_stream(stream, pe->s) )
 	  goto enum_e;
       }
 
-      Mark(m2);
+      fid2 = PL_open_foreign_frame();
       for( ; pe->p->functor ; pe->p++ )
       { if ( PL_unify_functor(property, pe->p->functor) )
 	{ int rval;
@@ -3124,7 +3125,7 @@ pl_stream_property(term_t stream, term_t property, control_t h)
 	    ForeignRedoPtr(pe);
 	  }
 	}
-	Undo(m2);
+	PL_rewind_foreign_frame(fid2);
       }
       pe->s = NULL;
     }
@@ -3134,7 +3135,7 @@ pl_stream_property(term_t stream, term_t property, control_t h)
     { Symbol symb;
 
       while ( (symb=advanceTableEnum(pe->e)) )
-      { Undo(m);
+      { PL_rewind_foreign_frame(fid);
 	if ( PL_unify_stream(stream, symb->name) )
 	{ pe->s = symb->name;
 	  pe->p = sprop_list;

@@ -1482,10 +1482,9 @@ getKeyEx(term_t key, word *w ARG_LD)
 
 word
 pl_current_key(term_t k, control_t h)
-{ GET_LD
-  TableEnum e;
+{ TableEnum e;
   Symbol s;
-  mark m;
+  fid_t fid;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -1501,14 +1500,14 @@ pl_current_key(term_t k, control_t h)
       succeed;
   }
 
-  Mark(m);
+  fid = PL_open_foreign_frame();
   while( (s=advanceTableEnum(e)) )
   { RecordList l = s->value;
 
     if ( l->firstRecord && unifyKey(k, l->key) )
       ForeignRedoPtr(e);
 
-    Undo(m);
+    PL_rewind_foreign_frame(fid);
   }
 
   freeTableEnum(e);
@@ -1636,14 +1635,15 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
   }
 
 { GET_LD
-  copy = PL_new_term_ref();
-  for( ; record; record = record->next )
-  { mark m;
+  fid_t fid;
 
-    if ( true(record->record, ERASED) )
+  copy = PL_new_term_ref();
+  fid = PL_open_foreign_frame();
+
+  for( ; record; record = record->next )
+  { if ( true(record->record, ERASED) )
       continue;
 
-    Mark(m);
     copyRecordToGlobal(copy, record->record PASS_LD);
     if ( PL_unify(term, copy) && PL_unify_pointer(ref, record) )
     { if ( !record->next )
@@ -1656,7 +1656,8 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
 	ForeignRedoPtr(record->next);
       }
     }
-    Undo(m);
+
+    PL_rewind_foreign_frame(fid);
   }
 }
 

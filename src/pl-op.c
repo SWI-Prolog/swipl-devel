@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -410,7 +410,7 @@ current_op(Module m, int inherit,
   Buffer b;
   int mx;
   opdef *match;
-  mark mrk;
+  fid_t fid;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -458,7 +458,7 @@ current_op(Module m, int inherit,
       fail;				/*NOTREACHED*/
   }
 
-  Mark(mrk);
+  fid = PL_open_foreign_frame();
   mx = (int)entriesBuffer(b, opdef);
   match = baseBuffer(b, opdef) + e->index;
   for(; e->index++<mx; match++)
@@ -469,7 +469,8 @@ current_op(Module m, int inherit,
 	 PL_unify_integer(prec, match->priority) &&
 	 PL_unify_atom(type, operatorTypeToAtom(match->type)) )
       ForeignRedoPtr(e);
-    Undo(mrk);
+
+    PL_rewind_foreign_frame(fid);
   }
 
   discardBuffer(&e->buffer);
@@ -587,7 +588,7 @@ word
 pl_builtin_op(term_t prec, term_t type, term_t name, control_t h)
 { int i;
   const opdef *op;
-  mark m;
+  fid_t fid;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -601,13 +602,13 @@ pl_builtin_op(term_t prec, term_t type, term_t name, control_t h)
       succeed;
   }
 
-  Mark(m);
+  fid = PL_open_foreign_frame();
   for( op = &operators[i]; op->name; op++ )
   { if ( PL_unify_atom(name, op->name) &&
 	 PL_unify_integer(prec, op->priority) &&
 	 PL_unify_atom(type, operatorTypeToAtom(op->type)) )
       ForeignRedoInt(i+1);
-    Undo(m);
+    PL_rewind_foreign_frame(fid);
   }
   fail;
 }

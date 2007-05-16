@@ -271,7 +271,7 @@ word
 pl_current_functor(term_t name, term_t arity, control_t h)
 { atom_t nm = 0;
   int  ar;
-  mark m;
+  fid_t fid;
   size_t mx, i;
 
   switch( ForeignControl(h) )
@@ -299,9 +299,9 @@ pl_current_functor(term_t name, term_t arity, control_t h)
   }
   DEBUG(9, Sdprintf("current_functor(): i = %d\n", i));
 
+  fid = PL_open_foreign_frame();
   LOCK();
   mx = maxFunctorIndex();
-  Mark(m);
   for(; i<mx; i++)
   { FunctorDef fdef = getFunctorByIndex(i);
 
@@ -310,7 +310,7 @@ pl_current_functor(term_t name, term_t arity, control_t h)
       continue;
     if ( !PL_unify_atom(name, fdef->name) ||
 	 !PL_unify_integer(arity, fdef->arity) )
-    { Undo(m);
+    { PL_rewind_foreign_frame(fid);
 
       continue;
     }

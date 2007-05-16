@@ -601,7 +601,7 @@ pl_feature5(term_t key, term_t value,
 	    control_t h)
 { feature_enum *e;
   Symbol s;
-  mark m;
+  fid_t fid;
   Module module;
 
   switch( ForeignControl(h) )
@@ -666,7 +666,7 @@ pl_feature5(term_t key, term_t value,
       succeed;
   }
 
-  Mark(m);
+  fid = PL_open_foreign_frame();
   LOCK();
   for(;;)
   { while( (s=advanceTableEnum(e->table_enum)) )
@@ -690,7 +690,7 @@ pl_feature5(term_t key, term_t value,
       { exception_term = 0;
 	setVar(*valTermRef(exception_bin));
       }
-      Undo(m);
+      PL_rewind_foreign_frame(fid);
     }
 
     if ( e->scope == ATOM_local )
