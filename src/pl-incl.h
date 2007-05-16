@@ -874,7 +874,7 @@ typedef struct queryFrame *	QueryFrame;     /* toplevel query frame */
 typedef struct fliFrame *	FliFrame; 	/* FLI interface frame */
 typedef struct trail_entry *	TrailEntry;	/* Entry of trail stack */
 typedef struct gc_trail_entry *	GCTrailEntry;	/* Entry of trail stack (GC) */
-typedef struct data_mark	mark;		/* backtrack mark */
+typedef struct mark		mark;		/* backtrack mark */
 typedef struct index *		Index;		/* clause indexing */
 typedef struct stack *		Stack;		/* machine stack */
 typedef struct arithFunction * 	ArithFunction;  /* arithmetic function */
@@ -1306,10 +1306,16 @@ typedef struct
   char		argtype;	/* # `external' arguments code takes */
 } code_info;
 
-struct data_mark
+struct mark
 { TrailEntry	trailtop;	/* top of the trail stack */
   Word		globaltop;	/* top of the global stack */
 };
+
+typedef struct tmp_mark
+{ TrailEntry	trailtop;	/* top of the trail stack */
+  Word		globaltop;	/* top of the global stack */
+  Word		saved_mark;	/* saved LD->mark_bar */
+} tmp_mark;
 
 struct functor
 { word		definition;	/* Tagged definition pointer */
@@ -1628,29 +1634,39 @@ struct alloc_pool
 		 *	     MARK/UNDO		*
 		 *******************************/
 
-#define setVar(w)		((w) = (word) 0)
+#define setVar(w)	((w) = (word) 0)
 
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 
-#define Undo(b)			do_undo(&b)
+#define Undo(b)		do_undo(&b)
+#define TmpUndo(b)	do_undo((mark*)&b)
 
 #else /*O_DESTRUCTIVE_ASSIGNMENT*/
 
-#define Undo(b)		{ TrailEntry tt = tTop; \
-			  TrailEntry mt = (b).trailtop; \
-			  while(tt > mt) \
-			  { tt--; \
-			    setVar(*tt->address); \
-			  } \
-			  tTop = tt; \
-			  gTop = (LD->frozen_bar > (b).globaltop ? \
-				  LD->frozen_bar : (b).globaltop); \
-			}
+#define Undo(b)		do { TrailEntry tt = tTop; \
+			     TrailEntry mt = (b).trailtop; \
+			     while(tt > mt) \
+			     { tt--; \
+			       setVar(*tt->address); \
+			     } \
+			     tTop = tt; \
+			     gTop = (LD->frozen_bar > (b).globaltop ? \
+			             LD->frozen_bar : (b).globaltop); \
+			    } while(0)
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
-#define Mark(b)		{ (b).trailtop  = tTop; \
-			  LD->mark_bar = (b).globaltop = gTop; \
-			}
+#define Mark(b)		do { (b).trailtop  = tTop; \
+			     LD->mark_bar = (b).globaltop = gTop; \
+			   } while(0)
+
+#define TmpMark(b)	do { (b).trailtop  = tTop; \
+			     (b).saved_mark = LD->mark_bar; \
+			     LD->mark_bar = (b).globaltop = gTop; \
+			   } while(0)
+
+#define EndTmpMark(b)	do { LD->mark_bar = (b).saved_mark; \
+			   } while(0)
+
 
 		 /*******************************
 		 *	     TRAILING		*
