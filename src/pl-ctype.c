@@ -290,7 +290,7 @@ unify_char_type(term_t type, const char_type *ct, int context, int how)
 static foreign_t
 do_char_type(term_t chr, term_t class, control_t h, int how)
 { generator *gen;
-  mark m;
+  fid_t fid;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -386,7 +386,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
       succeed;
   }
 
-  Mark(m);
+  fid = PL_open_foreign_frame();
   for(;;)
   { int rval;
 
@@ -413,7 +413,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
       }
     }
   next:
-    Undo(m);
+    PL_rewind_foreign_frame(fid);
 
     if ( !advanceGen(gen) )
       break;
