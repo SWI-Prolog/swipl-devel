@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -89,9 +89,9 @@ pl_char_conversion(term_t in, term_t out)
 
 foreign_t
 pl_current_char_conversion(term_t in, term_t out, control_t h)
-{ int ctx;
-  mark m;
-  GET_LD
+{ GET_LD
+  int ctx;
+  fid_t fid;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -114,12 +114,13 @@ pl_current_char_conversion(term_t in, term_t out, control_t h)
       succeed;
   }
 
-  Mark(m);
+  fid = PL_open_foreign_frame();
   for( ; ctx < 256; ctx++)
   { if ( PL_unify_char(in, ctx, CHAR_MODE) &&
 	 PL_unify_char(out, char_conversion_table[ctx], CHAR_MODE) )
       ForeignRedoInt(ctx+1);
-    Undo(m);
+
+    PL_rewind_foreign_frame(fid);
   }
 
   fail;
@@ -2829,17 +2830,15 @@ int
 read_clause(IOSTREAM *s, term_t term ARG_LD)
 { read_data rd;
   int rval;
-  mark m;
+  fid_t fid = PL_open_foreign_frame();
 
 retry:
-  Mark(m);
-
   init_read_data(&rd, s PASS_LD);
   rd.on_error = ATOM_dec10;
   rd.singles = rd.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
   if ( !(rval = read_term(term, &rd PASS_LD)) && rd.has_exception )
   { if ( reportReadError(&rd) )
-    { Undo(m);
+    { PL_rewind_foreign_frame(fid);
       free_read_data(&rd);
       goto retry;
     }
@@ -2915,11 +2914,9 @@ pl_read_term3(term_t from, term_t term, term_t options)
   bool charescapes = -1;
   atom_t dq = NULL_ATOM;
   atom_t mname = NULL_ATOM;
-  mark m;
+  fid_t fid = PL_open_foreign_frame();
 
 retry:
-  Mark(m);
-
   if ( !getInputStream(from, &s) )
     fail;
   init_read_data(&rd, s PASS_LD);
@@ -2981,7 +2978,7 @@ retry:
     }
   } else
   { if ( rd.has_exception && reportReadError(&rd) )
-    { Undo(m);
+    { PL_rewind_foreign_frame(fid);
       free_read_data(&rd);
       goto retry;
     }
