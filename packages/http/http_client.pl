@@ -183,8 +183,11 @@ http_read_reply(In, Data, Options) :-
 	between(0, 1, _),
 	    http_read_reply_header(In, Fields),
 	\+ memberchk(status(continue, _), Fields), !,
-	(   memberchk(status(302, _), Fields),
-	    memberchk(location(Location), Fields)
+	(   memberchk(location(Location), Fields),
+	    (   memberchk(status(moved, _), Fields)
+	    ;	memberchk(status(moved_temporary, _), Fields)
+	    ;	memberchk(status(see_other, _), Fields)
+	    )
 	->  Data = redirect(Location)
 	;   (   select(reply_header(Fields), Options, ReadOptions)
 	    ->  true

@@ -123,7 +123,7 @@ guarded_send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 	user_agent(Agent, Options),
 	method(Options, MNAME),
 	format(Out,
-	       '~w ~w HTTP/1.0\r\n\
+	       '~w ~w HTTP/1.1\r\n\
 	       Host: ~w\r\n\
 	       User-Agent: ~w\r\n\
 	       Connection: close\r\n',
