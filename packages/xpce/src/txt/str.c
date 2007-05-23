@@ -756,7 +756,7 @@ str_from_char16(String s, int c)
   text[0] = c;
   text[1] = '\0';
 
-  str_inithdr(s, FALSE);
+  str_inithdr(s, TRUE);
   s->s_textW = text;
   s->size     = 1;
 }

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: editor->newline if the text-buffer is in wide-character mode
+  on big-endian machines (Mac PPC).
+
 * FIXED: Bug#281: Error in class tabular.   Bruno Martinez,
 
 * FIXED: Failing double-click detection due to too short datatype.
