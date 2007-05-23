@@ -1,3 +1,7 @@
+May 23, 2007
+
+ * FIXED: Preserve extra request-headers over redirect.  Yves Raimond.
+
 May 20, 2007
 
  * FIXED: redirection issues.  Yves Raimond.

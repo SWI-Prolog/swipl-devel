@@ -128,12 +128,12 @@ guarded_send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 	       User-Agent: ~w\r\n\
 	       Connection: close\r\n',
 	       [MNAME, Location, Host, Agent]),
-	x_headers(Options, Out, Options1),
+	x_headers(Options, Out),
 	format(Out, '\r\n', []),
 	flush_output(Out),
 					% read the reply header
 	read_header(In, Code, Comment, Lines),
-	do_open(Code, Comment, Lines, Options1, Parts, In, Stream).
+	do_open(Code, Comment, Lines, Options, Parts, In, Stream).
 
 force_close(S1, S2) :-
 	close(S1, [force(true)]),
@@ -147,18 +147,32 @@ method(Options, MNAME) :-
 	;   MNAME = 'HEAD'
 	).
 
-x_headers(Options0, Out, Options) :-
-	select(request_header(Name=Value), Options0, Options1), !,
-	format(Out, '~w: ~w\r\n', [Name, Value]),
-	x_headers(Options1, Out, Options).
-x_headers(Options, _, Options).
+%%	x_headers(+Options, +Out) is det.
+%
+%	Emit extra headers from   request_header(Name=Value)  options in
+%	Options.
 
+x_headers([], _).
+x_headers([H|T], Out) :- !,
+	x_header(H, Out),
+	x_headers(T, Out).
+
+x_header(request_header(Name=Value), Out) :- !,
+	format(Out, '~w: ~w\r\n', [Name, Value]).
+x_header(_, _).
 
 user_agent(Agent, Options) :-
 	(   option(user_agent(Agent), Options)
 	->  true
 	;   user_agent(Agent)
 	).
+
+%%	do_open(+HTTPStatusCode, +HTTPStatusComment, +Options, +Parts, +In, -FinalIn)
+%
+%	Handle the HTTP status. If 200, we   are ok. If a redirect, redo
+%	the open, returning a new stream. Else issue an error.
+%	
+%	@error	existence_error(url, URL)
 
 do_open(200, _, Lines, Options, Parts, In, In) :- !,
 	return_size(Options, Lines),
@@ -175,7 +189,7 @@ do_open(Code, _, Lines, Options, Parts, In, Stream) :-
 	close(In),
 	http_open(Redirected, Stream, [visited(Redirected)|Options]).
 					% report anything else as error
-do_open(Code, Comment, _, _, Parts, In, In) :-
+do_open(Code, Comment, _,  _, Parts, In, In) :-
 	close(In),
 	parse_url(Id, Parts),
 	throw(error(existence_error(url, Id),
