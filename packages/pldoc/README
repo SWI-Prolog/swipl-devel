@@ -1,4 +1,4 @@
----+ PlDOc --- SWI-Prolog source documentation
+---+ PlDoc --- SWI-Prolog source documentation
 
 The pldoc module processes structured comments   in Prolog source files.
 These  comments  can  be  saved   to    file.   During  development  the
