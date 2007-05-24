@@ -846,10 +846,10 @@ static bool
 	size_t		len;
 	pl_wchar_t	*wp;
 	jchar		*jcp;
-	char		*cp;
+	unsigned char   *cp;
 	unsigned int	i;
 
-	if ( (cp=(char*)PL_atom_nchars(a,&len)) != NULL ) /* got 8-bit chars from trad atom */
+	if ( (cp=(unsigned char*)PL_atom_nchars(a,&len)) != NULL ) /* got 8-bit chars from trad atom */
 		{
 		jcp = (jchar*)malloc(sizeof(jchar)*len);
 		for ( i=0 ; i<len ; i++ )

@@ -1,3 +1,7 @@
+May 24, 2007
+
+  * FIXED: (JW) Exchange of codes 128..255.  Lorenz Wallner.
+
 Mar 16, 2007
 
   * INSTALL: Really do not require plunit fro normal distribution.
