@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -58,7 +58,7 @@ useful for printing or distribution.
 %		* format(+Format)
 %		Currently only supports =html=.
 %		
-%		* directory(+Dir)
+%		* doc_root(+Dir)
 %		Save output to the given directory.  Default is to save
 %		the documentation files in the same directory as the
 %		sources.
@@ -140,7 +140,7 @@ doc_target(FileOrDir, directory(Dir, Index, Members), Options) :-
 		Members).
 	
 			   
-%	file_map(+DocStruct, -List)
+%%	file_map(+DocStruct, -List)
 %	
 %	Create a list of file(PlFile, DocFile) for files that need to
 %	be documented.
@@ -181,7 +181,7 @@ document_file(File, DocFile, Options) :-
 	;   file_name_extension(Base, _, File),
 	    file_name_extension(Base, Ext, DocFile0)
 	),
-	(   option(directory(Dir0), Options),
+	(   option(doc_root(Dir0), Options),
 	    ensure_slash(Dir0, Dir)
 	->  working_directory(PWD, PWD),
 	    atom_concat(PWD, Local, DocFile0),

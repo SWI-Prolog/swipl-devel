@@ -181,23 +181,35 @@ file_index(File, Options) -->
 file_index_header(File, Options) -->
 	prolog:doc_file_index_header(File, Options), !.
 file_index_header(File, Options) -->
-	{ (   option(directory(Dir), Options),
-	      atom_concat(Dir, Local0, File),
-	      atom_concat(/, Local, Local0),
-	      HREF=Local
-	  ->  true
-	  ;   file_base_name(File, Local),
-	      doc_file_href(File, HREF)
-	  ),
+	{ file_base_name(File, Label),
+	  doc_file_href(File, HREF, Options),
 	  ButtonOptions = [button_height(16)|Options]
 	},
 	html(tr(th([colspan(3), class(file)],
-		   [ span(style('float:left'), a(href(HREF), Local)),
+		   [ span(style('float:left'), a(href(HREF), Label)),
 		     span(style('float:right'),
 			  [ \source_button(File, ButtonOptions),
 			    \edit_button(File, ButtonOptions)
 			  ])
 		   ]))).
+
+
+%%	doc_file_href(+File, -HREF, +Options) is det.
+%
+%	HREF is reference to documentation of File.
+
+doc_file_href(File, HREF, Options) :-
+	option(directory(Dir), Options),
+	atom_concat(Dir, Local0, File),
+	atom_concat(/, Local, Local0), !,
+	(   option(files(Map), Options),	% generating files
+	    memberchk(file(File, DocFile), Map)
+	->  file_base_name(DocFile, HREF)
+	;   HREF = Local
+	).
+doc_file_href(File, HREF, _) :-
+	doc_file_href(File, HREF).
+
 
 
 %%	doc_file_href(+Path, -HREF) is det.
@@ -216,8 +228,8 @@ doc_file_href(File, HREF) :-
 
 %%	ensure_slash_start(+File0, -File) is det.
 %
-%	Ensure Fil starts with a /. This maps C:/foobar into /C:/foobar,
-%	so our paths start with /doc/ again ...
+%	Ensure  File  starts  with  a  /.    This  maps  C:/foobar  into
+%	/C:/foobar, so our paths start with /doc/ again ...
 
 ensure_slash_start(File, File) :-
 	sub_atom(File, 0, _, _, /), !.
@@ -289,6 +301,9 @@ object_summary(_, _, _) -->
 %
 %	Provide overview links and search facilities.
 
+doc_links(_Directory, Options) -->
+	{ option(files(_), Options), !
+	}.
 doc_links(Directory, Options) -->
 	{   Directory == ''
 	->  working_directory(Dir, Dir)

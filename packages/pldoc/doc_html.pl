@@ -298,6 +298,8 @@ edit_button(_, _) -->
 %
 %	Add zoom in/out button to show/hide the private documentation.
 
+zoom_button(_, Options) -->
+	{ option(files(_Map), Options) }, !.	% generating files
 zoom_button(Base, Options) -->
 	{   (   option(public_only(true), Options, true)
 	    ->  format(string(HREF), '~w?public_only=false', [Base]),
@@ -321,6 +323,8 @@ zoom_button(Base, Options) -->
 %
 %	Add show-source button.
 
+source_button(_File, Options) -->
+	{ option(files(_Map), Options) }, !.	% generating files
 source_button(File, Options) -->
 	{ (   is_absolute_file_name(File)
 	  ->  doc_file_href(File, HREF0),
@@ -565,7 +569,7 @@ tags(Tags) -->
 
 %%	tag(+Tag, +Value)// is det.
 %
-%	Called from \tag(Name,Value) terms produced by wiki.pl.
+%	Called from \tag(Name, Value) terms produced by doc_wiki.pl.
 
 tag(Tag, Value) -->
 	{   tag_title(Tag, Title)
@@ -588,8 +592,8 @@ tag_class(deprecated,	warn).
 
 %%	params(+Params:list) is det.
 %
-%	Called from \params(List) created by wiki.pl.   Params is a list
-%	of param(Name, Descr).
+%	Called from \params(List) created by   doc_wiki.pl.  Params is a
+%	list of param(Name, Descr).
 
 params(Params) -->
 	html([ dt(class=tag, 'Parameters:'),
@@ -973,19 +977,42 @@ object_ref([H|T], Options) --> !,
 	;   []
 	).
 object_ref(Obj, Options) -->
-	{ object_href(Obj, HREF)
+	{ object_href(Obj, HREF, Options)
 	},
 	html(a(href(HREF), \object_link(Obj, Options))).
 	
-%%	object_href(+Object, -HREF)
+%%	object_href(+Object, -HREF) is det.
+%%	object_href(+Object, -HREF, +Options) is det.
 %
 %	HREF is the URL to access Object.
 
 object_href(Obj, HREF) :-
+	object_href(Obj, HREF, []).
+
+object_href(M:PI0, HREF, Options) :-
+	option(files(Map), Options),
+	current_module(M, File),
+	memberchk(file(File, DocFile), Map), !,
+	expand_pi(PI0, PI),
+	term_to_string(PI, PIS),
+	www_form_encode(PIS, PIEnc),
+	file_base_name(DocFile, LocalFile),	% TBD: proper directory index
+	format(string(HREF), '~w#~w', [LocalFile, PIEnc]).
+object_href(Obj, HREF, _Options) :-
 	term_to_string(Obj, String),
 	www_form_encode(String, Enc),
 	doc_server_root(Root),
 	format(string(HREF), '~wdoc_for?object=~w', [Root, Enc]).
+
+expand_pi(Name//Arity0, Name/Arity) :- !,
+	Arity is Arity0+2.
+expand_pi(PI, PI).
+
+
+%%	term_to_string(+Term, -String) is det.
+%
+%	Convert Term, possibly  holding  variables,   into  a  canonical
+%	string using A, B, ... for variables and _ for singletons.
 
 term_to_string(Term, String) :-
 	State = state(-),
