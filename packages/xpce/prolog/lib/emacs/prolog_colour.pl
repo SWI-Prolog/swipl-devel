@@ -1519,6 +1519,7 @@ identify_pred(dynamic(_Line), F, Summary) :-
 				N))
 	;   new(Summary, string('%N: dynamic predicate', F))
 	).
+identify_pred(global, _, 'Predicate defined in global module user') :- !.
 identify_pred(Class, _, ClassName) :-
 	term_to_atom(Class, ClassName).
 
