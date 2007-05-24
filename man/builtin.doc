@@ -2061,16 +2061,18 @@ arity of a defined predicate that matches the predicate specified by
 What I Mean' string matching.  Internal system predicates are
 not generated, unless \exam{style_check(+dollar)} is active.  Backtracking
 provides all alternative matches.
-    \predicate{clause}{2}{?Head, ?Body}
-True if \arg{Head} can be unified with a clause head and \arg{Body} with the corresponding clause body.  Gives alternative clauses on
-backtracking.  For facts \arg{Body} is unified with the atom \arg{true}.
-Normally clause/2 is used to find clause definitions for a predicate, but it
-can also be used to find clause heads for some body template.
-    \predicate{clause}{3}{?Head, ?Body, ?Reference}
-Equivalent to clause/2, but unifies \arg{Reference} with a unique reference to
-the clause (see also assert/2, erase/1). If \arg{Reference} is instantiated
-to a reference the clause's head and body will be unified with \arg{
-Head} and \arg{Body}.
+
+    \predicate{clause}{2}{:Head, ?Body}
+True if \arg{Head} can be unified with a clause head and \arg{Body} with
+the corresponding clause body. Gives alternative clauses on
+backtracking. For facts \arg{Body} is unified with the atom \arg{true}.
+
+    \predicate{clause}{3}{:Head, ?Body, ?Reference}
+Equivalent to clause/2, but unifies \arg{Reference} with a unique
+reference to the clause (see also assert/2, erase/1). If \arg{Reference}
+is instantiated to a reference the clause's head and body will be
+unified with \arg{Head} and \arg{Body}.
+
     \predicate{nth_clause}{3}{?Pred, ?Index, ?Reference}
 Provides access to the clauses of a predicate using their index number.
 Counting starts at 1.  If \arg{Reference} is specified it unifies \arg{Pred}
