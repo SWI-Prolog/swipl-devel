@@ -63,6 +63,11 @@ useful for printing or distribution.
 %		the documentation files in the same directory as the
 %		sources.
 %		
+%		* man_server(+RootURL)
+%		Root of a manual server used for references to built-in
+%		predicates. Default is
+%		=|http://gollem.science.uva.nl/SWI-Prolog/pldoc/|=
+%		
 %		* index_file(+Base)
 %		Filename for directory indices.  Default is =index=.
 %		
@@ -84,8 +89,11 @@ useful for printing or distribution.
 doc_save(Spec, Options) :-
 	doc_target(Spec, Target, Options),
 	phrase(file_map(Target), FileMap), % Assoc?
-	generate(Target, [files(FileMap)|Options]).
-	
+	Options1 = [files(FileMap)|Options],
+	nb_setval(pldoc_options, Options1),
+	call_cleanup(generate(Target, Options1),
+		     nb_delete(pldoc_options)).
+
 
 %%	generate(+Spec, +Options) is det.
 %
