@@ -9,6 +9,7 @@
 :- chr_option(debug, off).
 :- chr_option(optimize, full).
 :- chr_option(verbosity,off).
+%:- chr_option(dynattr,on).
 :- chr_constraint known/1, test/1, cleanup/0, variables/1.
 entails_guard(A, B) :-
 	copy_term_nat((A, B), (C, F)),
@@ -26,7 +27,8 @@ simplify_guards(A, H, B, G, I) :-
 	copy_term_nat((A, B), (C, E)),
 	term_variables(C, D),
 	variables(D),
-	entails_guard2(C), !,
+	sort(C,Z),
+	entails_guard2(Z), !,
 	simplify(E, F),
 	simplified(B, F, G, H, I), !,
 	cleanup.
