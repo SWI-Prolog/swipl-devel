@@ -880,7 +880,7 @@ fillDefaultOptions()
   if ( strcmp(LIB_PL_DEBUG,pllib) == 0 )
     ensureOption(&coptions, "/MDd");
   else ensureOption(&coptions, "/MD");
-  ensureOption(&coptions, "/DWIN32");
+  ensureOption(&coptions, "/D__WINDOWS__");
   ensureOption(&coptions, "/nologo");
   ensureOption(&ldoptions, "/nologo");
 #endif
@@ -1098,7 +1098,7 @@ compileFile(const char *compiler, arglist *options, const char *cfile)
 
   prependArgList(args, "-c");
 #ifdef __WINDOWS__
-  appendArgList(args, "-DWIN32");
+  appendArgList(args, "-D__WINDOWS__");
   appendArgList(args, "-D_WINDOWS");
 #endif
   appendArgList(args, "-D__SWI_PROLOG__");

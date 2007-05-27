@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#283 plld.exe sets __WINDOWS__ rather then WIN32.
+
   * CLEANUP: Avoid using the argument-stack for cycle detection.  Now
     uses a segmented stack.
 
