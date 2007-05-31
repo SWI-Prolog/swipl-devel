@@ -1,3 +1,7 @@
+May 31, 2007
+
+* Fix test script for encoding issues and empty password
+
 Nov 8, 2006
 
 * CLEANUP: Some gcc warnings

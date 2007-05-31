@@ -38,13 +38,15 @@
 	parms/2,
 	passwd/1.
 
-parms(test, [ user(jan),
-	      password(Pass)
-	    ]) :-
+parms(test, [ user(jan) | Options ]) :-
 	(   passwd(Pass)
 	->  true
 	;   getpass(Pass),			% my private library
 	    assert(passwd(Pass))
+	),
+	(   Pass == ""
+	->  Options = []
+	;   Options = [password(Pass)]
 	).
 	
 
@@ -178,7 +180,7 @@ type(longblob,			% mySql blob
      [ odbc_type(longvarbinary),
        dbms_name('MySQL')		% MySQL specific test
      ]) :-
-	read_file_to_codes('odbc.pdf', Codes, []),
+	read_file_to_codes('odbc.pdf', Codes, [encoding(octet)]),
 	atom_codes(BIG, Codes).
 type(date - 'Type date',
      date = [ date(1960,3,19) ],
