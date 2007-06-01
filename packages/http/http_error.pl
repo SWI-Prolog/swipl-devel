@@ -35,16 +35,19 @@
 :- use_module(library(debug)).
 :- use_module(library(prolog_stack)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module decorates uncaught exceptions of the   user code with a full
-stack-trace. It is based  on  a   hook  introduced  in SWI-Prolog 5.6.5.
-Please  note  that  although  loading  this  module  greatly  simplifies
-debugging, it also provides clues for hackers  on how to compromise your
+/** <module> Decorate uncaught exceptions with stack-trace
+
+This module decorates uncaught exceptions of the user code with a full
+stack-trace. It is based on a hook introduced in SWI-Prolog 5.6.5.
+Please note that although loading this module greatly simplifies
+debugging, it also provides clues for hackers on how to compromise your
 site. The more information you give them, the easier it is to break into
 your server!
 
 To use this file, simply load it.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+@author	Jan Wielemaker
+*/
 
 :- multifile
 	user:prolog_exception_hook/4.
