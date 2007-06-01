@@ -1646,7 +1646,9 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
 
     copyRecordToGlobal(copy, record->record PASS_LD);
     if ( PL_unify(term, copy) && PL_unify_pointer(ref, record) )
-    { if ( !record->next )
+    { PL_close_foreign_frame(fid);
+
+      if ( !record->next )
       { if ( --rl->references == 0 && true(rl, R_DIRTY) )
 	  cleanRecordList(rl);
 	UNLOCK();
@@ -1659,6 +1661,8 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
 
     PL_rewind_foreign_frame(fid);
   }
+
+  PL_close_foreign_frame(fid);
 }
 
   if ( --rl->references == 0 && true(rl, R_DIRTY) )

@@ -1635,6 +1635,8 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 	  *argp = (needsRef(*a) ? makeRef(a) : *a);
       }
     }
+  } else if ( key == ATOM_predicate_indicator )
+  { unify_definition(result, fr->predicate, 0, GP_NAMEARITY);
   } else if ( key == ATOM_parent_goal )
   { Procedure proc;
     term_t head = PL_new_term_ref();

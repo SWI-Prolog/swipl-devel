@@ -2019,6 +2019,21 @@ checkStacks(LocalFrame frame, Choice choice)
   return key;
 }
 
+
+static
+PRED_IMPL("$check_stacks", 1, check_stacks, 0)
+{ char *s = NULL;
+
+  if ( PL_get_atom_chars(A1, &s) )
+    Sdprintf("Checking stacks [%s] ...", s);
+
+  checkStacks(NULL, NULL);
+  if ( s )
+     Sdprintf(" (done)\n");
+
+  succeed;
+}
+
 #endif /*O_SECURE || O_DEBUG*/
 
 #ifdef O_PLMT
@@ -3099,3 +3114,9 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
 
 
 #endif /*O_CLAUSEGC*/
+
+BeginPredDefs(gc)
+#if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
+  PRED_DEF("$check_stacks", 1, check_stacks, 0)
+#endif
+EndPredDefs

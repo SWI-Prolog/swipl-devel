@@ -436,7 +436,12 @@ last_arg:
   { assert(!is_marked(p));
     p2 = unRef(*p);
     if ( p2 > p )
-      printk("Reference to higher address");
+    {
+#ifdef O_ATTVAR
+      if ( !isAttVar(*p2) )
+#endif
+         printk("Reference to higher address");
+    }
     if ( !onLocal(p2) && !onGlobal(p2) )
       printk("Illegal reference pointer at 0x%x --> 0x%x", p, p2);
 

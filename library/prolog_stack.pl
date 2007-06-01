@@ -75,12 +75,10 @@ backtrace(0, _, _, []) :- !.
 backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 	prolog_frame_attribute(Fr, level, Level),
 	(   PC == foreign
-	->  prolog_frame_attribute(Fr, goal, Goal),
-	    predicate_indicator(Goal, Pred),
+	->  prolog_frame_attribute(Fr, predicate_indicator, Pred),
 	    Where = foreign(Pred)
 	;   PC == call
-	->  prolog_frame_attribute(Fr, goal, Goal),
-	    predicate_indicator(Goal, Pred),
+	->  prolog_frame_attribute(Fr, predicate_indicator, Pred),
 	    Where = call(Pred)
 	;   prolog_frame_attribute(Fr, clause, Clause),
 	    Where = clause(Clause, PC)
@@ -94,20 +92,6 @@ backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 	    backtrace(D2, Parent, PC2, Stack)
 	;   Stack = []
 	).
-
-predicate_indicator(M:G, PI) :- !,
-	(   public_module(M)
-	->  predicate_indicator(G, PI)
-	;   PI = M:PI2,
-	    predicate_indicator(G, PI2)
-	).
-predicate_indicator(G, Name/Arity) :-
-	functor(G, Name, Arity).
-
-public_module(user) :- !.
-public_module(system) :- !.
-public_module(M) :-
-	sub_atom(M, 0, _, _, $).
 
 
 %%	print_prolog_backtrace(+Stream, +Backtrace)
