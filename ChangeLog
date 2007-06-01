@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Posible argument-stack issue, notably associated to destructive
+    assignment.  Tom Schrijver.
+
   * FIXED: Error in handling signals in Prolog.  Now caused immediate
     assertion failure due to strickter checking.
 

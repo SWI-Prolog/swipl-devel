@@ -834,32 +834,33 @@ trail-ranged described by the choicepoint.
 As far as I can  see  the  only   first-marks  in  use  at this time are
 references to the trail-stack and we use   the first marks on the global
 stack.
+
+Older versions used the argument stack. We   now use the segmented cycle
+stack to avoid allocation issues on the argument stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_DESTRUCTIVE_ASSIGNMENT
-static void
+static inline void
 push_marked(Word p ARG_LD)
-{ requireStack(argument, sizeof(Word));
-  *aTop++ = p;
+{ pushSegStack(&LD->cycle.stack, &p);
 }
+
 
 static void
-popall_marked(Word *base ARG_LD)
-{ Word *p = aTop;
+popall_marked(ARG1_LD)
+{ Word p;
 
-  while(p>base)
-  { p--;
-    unmark_first(*p);
+  while( popSegStack(&LD->cycle.stack, &p) )
+  { unmark_first(p);
   }
-
-  aTop = base;
 }
+
 
 static void
 mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
 			int assignments ARG_LD)
 { GCTrailEntry te;
-  Word *m = aTop;
+  LD->cycle.stack.unit_size = sizeof(Word);
 
   DEBUG(2, Sdprintf("Scanning %d trailed assignments\n", assignments));
 
@@ -889,7 +890,7 @@ mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
     }
   }
 
-  popall_marked(m PASS_LD);
+  popall_marked(PASS_LD1);
   assert(assignments == 0);
 }
 #endif
