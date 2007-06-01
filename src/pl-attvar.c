@@ -340,7 +340,7 @@ saveWakeup(ARG1_LD)
   { fid_t fid = PL_open_foreign_frame();
     term_t s = PL_new_term_refs(2);
     
-    pl_write(LD->attvar.head), pl_nl();
+    DEBUG(1, pl_write(LD->attvar.head); pl_nl());
 
     *valTermRef(s+0) = *h;
     setVar(*h);
@@ -367,7 +367,7 @@ restoreWakeup(fid_t fid ARG_LD)
     *valTermRef(LD->attvar.head) = p[0];
     *valTermRef(LD->attvar.tail) = p[1];
 
-    pl_write(LD->attvar.head), pl_nl();
+    DEBUG(1, pl_write(LD->attvar.head); pl_nl());
 
     PL_discard_foreign_frame(fid);
   }
