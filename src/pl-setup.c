@@ -345,7 +345,7 @@ dispatch_signal(int sig, int sync)
 { GET_LD
   SigHandler sh = &GD->sig_handlers[sig];
   fid_t fid;
-  LocalFrame lTopSave;
+  uintptr_t lTopSave;
   int saved_current_signal;
 
 #ifdef O_PLMT
@@ -362,7 +362,7 @@ dispatch_signal(int sig, int sync)
 		    pthread_self(),
 		    sync ? " (sync)" : " (async)"));
 	
-  lTopSave = lTop;
+  lTopSave = (char*)lTop - (char*)lBase;
   saved_current_signal = LD->current_signal;
 
   switch(sig)
@@ -438,7 +438,7 @@ dispatch_signal(int sig, int sync)
 
   LD->current_signal = saved_current_signal;
   PL_discard_foreign_frame(fid);
-  lTop = lTopSave;
+  lTop = addPointer(lBase, lTopSave);
 
   unblockGC(PASS_LD1);
 }

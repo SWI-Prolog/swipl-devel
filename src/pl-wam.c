@@ -340,6 +340,7 @@ PL_open_signal_foreign_frame()
   fr->size = 0;
   Mark(fr->mark);
   fr->parent = fli_context;
+  lTop = (LocalFrame)(fr+1);
   fli_context = fr;
 
   return consTermRef(fr);

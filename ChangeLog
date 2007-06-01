@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Error in handling signals in Prolog.  Now caused immediate
+    assertion failure due to strickter checking.
+
   * FIXED: Bug#283 plld.exe sets __WINDOWS__ rather then WIN32.
 
   * CLEANUP: Avoid using the argument-stack for cycle detection.  Now
