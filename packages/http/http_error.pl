@@ -51,15 +51,16 @@ To use this file, simply load it.
 :- dynamic
 	user:prolog_exception_hook/4.
 
-guard(httpd_wrapper:call_handler(_,_,_,_,_)).
+guard(httpd_wrapper:call_handler/6).
 
 user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
 			   error(E, context(prolog_stack(Stack),Msg)),
 			   Fr, Guard) :-
 	Guard \== none,
-	prolog_frame_attribute(Guard, goal, Goal),
+	prolog_frame_attribute(Guard, predicate_indicator, Goal),
+	debug(http_error, 'Got exception ~p (Ctx0=~p, Catcher=~p)',
+	      [E, Ctx0, Goal]),
 	guard(Goal),
-	debug(http_error, 'Got exception ~p (Ctx0=~p)', [E, Ctx0]),
 	get_prolog_backtrace(Fr, 50, Stack0),
 	debug(http_error, 'Stack = ~w', [Stack0]),
 	clean_stack(Stack0, Stack).
@@ -71,8 +72,9 @@ clean_stack([H|T0], [H|T]) :-
 	clean_stack(T0, T).
 
 guard_frame(frame(_,clause(ClauseRef, _))) :-
-	nth_clause(Head, _, ClauseRef),
-	guard(Head).
+	nth_clause(M:Head, _, ClauseRef),
+	functor(Head, Name, Arity),
+	guard(M:Name/Arity).
 	
 
 		 /*******************************

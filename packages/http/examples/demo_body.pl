@@ -166,6 +166,16 @@ reply(Request) :-
 	format('Content-type: text/plain~n~n', []),
 	format('ok~n').
 
+%	/error
+%	
+%	Produce an error.  Load http_error to see the effect.
+
+reply(Request) :-
+	member(path('/error'), Request),
+	A is 1/0,
+	format('Content-type: text/plain~n~n', []),
+	format('A = ~w~n', [A]).
+
 %	... Otherwise
 %	
 %	Print the request itself.
