@@ -51,6 +51,12 @@ intended to check the current execution context. The user must ensure
 the checked parent goal is not removed from the stack due to last-call
 optimisation and be aware of the slow operation on deeply nested calls.
 
+    \termitem{predicate_indicator}{}
+Similar to \const{goal}, but only returning the
+[<module>:]<name>/<arity> term describing the term, not the actual
+arguments.  It avoids creating an illegal term as \const{goal} and
+is used by the library \pllib{prolog_stack}.
+
     \termitem{clause}{}
 \arg{Value} is unified with a reference to the currently running clause.
 Fails if the current goal is associated with a foreign (C) defined
