@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.35, distributed with SWI-Prolog 5.6.35
+==================================================
+
 * FIXED: Bug#285: image<-postscript.  Dmitry.
 
 * FIXED: editor->newline if the text-buffer is in wide-character mode

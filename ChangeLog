@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+============================
+VERSION 5.6.35 (Jun 6, 2007)
+============================
+
   * FIXED: Posible argument-stack issue, notably associated to destructive
     assignment.  Tom Schrijver.
 
