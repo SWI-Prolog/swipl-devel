@@ -32,6 +32,7 @@
 :- module(prolog_main,
 	  [ main/0
 	  ]).
+:- use_module(library(lists)).
 
 /** <module> Provide entry point for scripts
 
@@ -72,6 +73,9 @@ main :-
 	current_prolog_flag(argv, Argv),
 	(   append(_, [--|Av], Argv)
 	->  run_main(M, Av)
+	;   current_prolog_flag(windows, true)
+	->  Argv = [_Prog|Av],
+	    run_main(M, Av)
 	;   run_main(M, [])
 	).
 	

@@ -80,7 +80,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	edit.pl emacs_interface.pl shell.pl check.pl ugraphs.pl \
 	tty.pl readln.pl readutil.pl make.pl option.pl date.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl heaps.pl \
-	www_browser.pl url.pl utf8.pl win_menu.pl assoc.pl nb_set.pl \
+	www_browser.pl url.pl utf8.pl main.pl win_menu.pl assoc.pl nb_set.pl \
 	qpforeign.pl dif.pl when.pl prolog_stack.pl prolog_clause.pl \
 	prolog_xref.pl checklast.pl checkselect.pl operators.pl \
 	prolog_source.pl broadcast.pl pairs.pl base64.pl record.pl \

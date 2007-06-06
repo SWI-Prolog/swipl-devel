@@ -147,6 +147,7 @@ Section "Base system (required)"
   File pl\library\streampool.pl
   File pl\library\option.pl
   File pl\library\date.pl
+  File pl\library\main.pl
 
 ; UNICODE
   SetOutPath $INSTDIR\library\unicode
