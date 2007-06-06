@@ -705,23 +705,6 @@ consPtr(void *p, word ts)
 #define consPtr(p, s) __consPtr(p, s)
 #endif
 
-static inline word
-__makeRef(Word p ARG_LD)
-{ if ( p >= (Word) lBase )
-    return makeRefL(p);
-  else
-    return makeRefG(p);
-}
-
-
-word
-makeRef(Word p)
-{ GET_LD
-  return __makeRef(p PASS_LD);		/* public version */
-}
-
-#define makeRef(p)  __makeRef(p PASS_LD)
-
 
 		/********************************
 		*        GLOBAL STACK           *
