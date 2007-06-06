@@ -6,6 +6,10 @@ Mar 16, 2007
 
   * INSTALL: Really do not require plunit fro normal distribution.
 
+Apr. 24, 2007
+
+  * FIXED: Bug#263.  Crash in 64-bit version.  Fixed by Paul Singleton.
+
 Feb 28, 2007
 
   * FIXED: Bug#260: errornous integer check.  Keri Harris.
