@@ -77,6 +77,8 @@ blocked('i.sgml').
 blocked('sdata.sgml').
 blocked('cent-nul.xml').
 blocked('defent.sgml').
+blocked('comment.xml').
+blocked('badxmlent.xml').
 
 
 %%	utf8(+File)
