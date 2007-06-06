@@ -1,0 +1,2 @@
+[element(test, [a='John & Mary'], ['\n   John & Mary\n'])].
+[sgml(sgml_parser(1949540), 'badxmlent.xml', 3, 'Syntax error: Illegal entity, found "& Mary""'), sgml(sgml_parser(1949540), 'badxmlent.xml', 4, 'Syntax error: Illegal entity, found "& "')].

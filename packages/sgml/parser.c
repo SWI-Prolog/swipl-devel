@@ -596,6 +596,9 @@ expand_entities(dtd_parser *p, const ichar *in, int len, ocharbuf *out)
 
 	continue;
       }
+
+      if ( dtd->dialect != DL_SGML )
+	gripe(ERC_SYNTAX_ERROR, L"Illegal entity", in);
     }
 
   recover:
@@ -4867,7 +4870,15 @@ reprocess:
 	add_icharbuf(p->buffer, chr);
 	p->state = S_ENT;
       } else
-      { add_cdata(p, f[CF_ERO]);
+      {	if ( dtd->dialect != DL_SGML )
+	{ wchar_t buf[3];
+	  buf[0] = '&';
+	  buf[1] = chr;
+	  buf[2] = '\0';
+	  gripe(ERC_SYNTAX_ERROR, L"Illegal entity", buf);
+	}
+
+	add_cdata(p, f[CF_ERO]);
 	p->state = p->cdata_state;
 	goto reprocess;
       }

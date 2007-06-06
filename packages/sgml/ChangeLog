@@ -1,3 +1,7 @@
+Jun 6, 2007
+
+  * FIXED: give error on bad entities in XML mode.
+
 Feb 6, 2007
 
   * MODIFIED: xml_quote_attribute no longer maps ' to &apos;  See note in
