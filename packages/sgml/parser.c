@@ -591,14 +591,21 @@ expand_entities(dtd_parser *p, const ichar *in, int len, ocharbuf *out)
 	  goto recover;
 	}
 
-	if ( !expand_entities(p, eval, (int)istrlen(eval), out) )
-	  return FALSE;
+	if ( e->content == EC_SGML )
+	{ if ( !expand_entities(p, eval, (int)istrlen(eval), out) )
+	    return FALSE;
+	} else
+	{ const ichar *s;
+
+	  for(s=eval; *s; s++)
+	    add_ocharbuf(out, *s);
+	}
 
 	continue;
       }
 
       if ( dtd->dialect != DL_SGML )
-	gripe(ERC_SYNTAX_ERROR, L"Illegal entity", in);
+	gripe(ERC_SYNTAX_ERROR, L"Illegal entity", estart);
     }
 
   recover:
