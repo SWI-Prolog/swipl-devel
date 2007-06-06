@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.32 Reference Manual: Section 4.15</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.35 Reference Manual: Section 4.15</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="dynamic.html">
@@ -274,27 +274,21 @@ specified by
 <VAR>Term</VAR> in the `Do What I Mean' sense. See <A NAME="idx:dwimmatch2:619"></A><A class="pred" href="miscpreds.html#dwim_match/2">dwim_match/2</A> 
 for `Do What I Mean' string matching. Internal system predicates are not 
 generated, unless <CODE>style_check(+dollar)</CODE> is active. 
-Backtracking provides all alternative matches.
-</DD>
-<DT class="pubdef"><A NAME="clause/2"><STRONG>clause</STRONG>(<VAR>?Head, 
+Backtracking provides all alternative matches.</DD>
+<DT class="pubdef"><A NAME="clause/2"><STRONG>clause</STRONG>(<VAR>:Head, 
 ?Body</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Head</VAR> can be unified with a clause head and <VAR>Body</VAR> 
 with the corresponding clause body. Gives alternative clauses on 
-backtracking. For facts <VAR>Body</VAR> is unified with the atom <VAR>true</VAR>. 
-Normally <A NAME="idx:clause2:620"></A><A class="pred" href="examineprog.html#clause/2">clause/2</A> 
-is used to find clause definitions for a predicate, but it can also be 
-used to find clause heads for some body template.
-</DD>
-<DT class="pubdef"><A NAME="clause/3"><STRONG>clause</STRONG>(<VAR>?Head, 
+backtracking. For facts <VAR>Body</VAR> is unified with the atom <VAR>true</VAR>.</DD>
+<DT class="pubdef"><A NAME="clause/3"><STRONG>clause</STRONG>(<VAR>:Head, 
 ?Body, ?Reference</VAR>)</A></DT>
 <DD class="defbody">
-Equivalent to <A NAME="idx:clause2:621"></A><A class="pred" href="examineprog.html#clause/2">clause/2</A>, 
+Equivalent to <A NAME="idx:clause2:620"></A><A class="pred" href="examineprog.html#clause/2">clause/2</A>, 
 but unifies <VAR>Reference</VAR> with a unique reference to the clause 
-(see also <A NAME="idx:assert2:622"></A><A class="pred" href="db.html#assert/2">assert/2</A>, <A NAME="idx:erase1:623"></A><A class="pred" href="db.html#erase/1">erase/1</A>). 
+(see also <A NAME="idx:assert2:621"></A><A class="pred" href="db.html#assert/2">assert/2</A>, <A NAME="idx:erase1:622"></A><A class="pred" href="db.html#erase/1">erase/1</A>). 
 If <VAR>Reference</VAR> is instantiated to a reference the clause's head 
-and body will be unified with <VAR> Head</VAR> and <VAR>Body</VAR>.
-</DD>
+and body will be unified with <VAR>Head</VAR> and <VAR>Body</VAR>.</DD>
 <DT class="pubdef"><A NAME="nth_clause/3"><STRONG>nth_clause</STRONG>(<VAR>?Pred, 
 ?Index, ?Reference</VAR>)</A></DT>
 <DD class="defbody">
@@ -306,7 +300,7 @@ and arity of <VAR>Pred</VAR> are used to determine the predicate. If <VAR>Index<
 is provided <VAR>Reference</VAR> will be unified with the clause 
 reference. If <VAR>Index</VAR> is unbound, backtracking will yield both 
 the indices and the references of all clauses of the predicate. The 
-following example finds the 2nd clause of <A NAME="idx:member2:624"></A><A class="pred" href="lists.html#member/2">member/2</A>:
+following example finds the 2nd clause of <A NAME="idx:member2:623"></A><A class="pred" href="lists.html#member/2">member/2</A>:
 
 <PRE class="code">
 ?- nth_clause(member(_,_), 2, Ref), clause(Head, Body, Ref).
@@ -321,8 +315,8 @@ Body = member(G575, G579)
 -Property</VAR>)</A></DT>
 <DD class="defbody">
 Queries properties of a clause. <VAR>ClauseRef</VAR> is a reference to a 
-clause as produced by <A NAME="idx:clause3:625"></A><A class="pred" href="examineprog.html#clause/3">clause/3</A>, <A NAME="idx:nthclause3:626"></A><A class="pred" href="examineprog.html#nth_clause/3">nth_clause/3</A> 
-or <A NAME="idx:prologframeattribute3:627"></A><A class="pred" href="manipstack.html#prolog_frame_attribute/3">prolog_frame_attribute/3</A>.
+clause as produced by <A NAME="idx:clause3:624"></A><A class="pred" href="examineprog.html#clause/3">clause/3</A>, <A NAME="idx:nthclause3:625"></A><A class="pred" href="examineprog.html#nth_clause/3">nth_clause/3</A> 
+or <A NAME="idx:prologframeattribute3:626"></A><A class="pred" href="manipstack.html#prolog_frame_attribute/3">prolog_frame_attribute/3</A>.
 <VAR>Property</VAR> is one of the following:
 
 <DL>

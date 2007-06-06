@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.32 Reference Manual: Section 6.2</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.35 Reference Manual: Section 6.2</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="attvar.html">
@@ -130,7 +130,7 @@ conditions is the instantiation (binding) of a variable. Scheduling a
 goal to execute immediately after a variable is bound allows may be used 
 to avoid instantiation errors for some built-in predicates (e.g. arithmetic), 
 do work <EM>lazy</EM>, prevent the binding of a variable to a particular 
-value, etc. Using <A NAME="idx:freeze2:1150"></A><A class="pred" href="coroutining.html#freeze/2">freeze/2</A> 
+value, etc. Using <A NAME="idx:freeze2:1149"></A><A class="pred" href="coroutining.html#freeze/2">freeze/2</A> 
 for example we can define a variable can only be assigned an even 
 number:
 
@@ -147,9 +147,9 @@ No
 Delay the execution of <VAR>Goal</VAR> until <VAR>Var</VAR> is bound 
 (i.e. is not a variable or attributed variable). If <VAR>Var</VAR> is 
 bound on entry
-<A NAME="idx:freeze2:1151"></A><A class="pred" href="coroutining.html#freeze/2">freeze/2</A> 
-is equivalent to <A NAME="idx:call1:1152"></A><A class="pred" href="metacall.html#call/1">call/1</A>. 
-The <A NAME="idx:freeze2:1153"></A><A class="pred" href="coroutining.html#freeze/2">freeze/2</A> 
+<A NAME="idx:freeze2:1150"></A><A class="pred" href="coroutining.html#freeze/2">freeze/2</A> 
+is equivalent to <A NAME="idx:call1:1151"></A><A class="pred" href="metacall.html#call/1">call/1</A>. 
+The <A NAME="idx:freeze2:1152"></A><A class="pred" href="coroutining.html#freeze/2">freeze/2</A> 
 predicate is realised using an attributed variable associated with the 
 module <CODE>freeze</CODE>, so <CODE>get_attr(Var, freeze, AttVal)</CODE> 
 can be used to find out whether and which goals are delayed on <VAR>Var</VAR>.</DD>
@@ -165,31 +165,31 @@ is unified to <CODE>true</CODE>.</DD>
 Execute <VAR>Goal</VAR> when <VAR>Condition</VAR> becomes true. <VAR>Condition</VAR> 
 is one of <CODE>?=(X, Y)</CODE>, <CODE>nonvar(X)</CODE>, <CODE>ground(X)</CODE>,
 <CODE><CODE>,</CODE>(Cond1, Cond2)</CODE> or <CODE><CODE>;</CODE>(Cond1, 
-Cond2)</CODE>. See also <A NAME="idx:freeze2:1154"></A><A class="pred" href="coroutining.html#freeze/2">freeze/2</A> 
-and <A NAME="idx:dif2:1155"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A>. 
+Cond2)</CODE>. See also <A NAME="idx:freeze2:1153"></A><A class="pred" href="coroutining.html#freeze/2">freeze/2</A> 
+and <A NAME="idx:dif2:1154"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A>. 
 The implementation can deal with cyclic terms.
 
-<P>The <A NAME="idx:when2:1156"></A><A class="pred" href="coroutining.html#when/2">when/2</A> 
+<P>The <A NAME="idx:when2:1155"></A><A class="pred" href="coroutining.html#when/2">when/2</A> 
 predicate is realised using attributed variable associated with the 
 module <CODE>when</CODE>. It is defined in the autoload library
 <CODE>library(when)</CODE>.</DD>
 <DT class="pubdef"><A NAME="dif/2"><STRONG>dif</STRONG>(<VAR>@A, @B</VAR>)</A></DT>
 <DD class="defbody">
-The <A NAME="idx:dif2:1157"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
+The <A NAME="idx:dif2:1156"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
 predicate provides a constraint stating that <VAR>A</VAR> and
 <VAR>B</VAR> are different terms. If <VAR>A</VAR> and <VAR>B</VAR> can 
 never unify
-<A NAME="idx:dif2:1158"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
+<A NAME="idx:dif2:1157"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
 succeeds deterministically. If <VAR>A</VAR> and <VAR>B</VAR> are 
 identical it fails immediately and finally, if <VAR>A</VAR> and <VAR>B</VAR> 
 can unify, goals are delayed that prevent <VAR>A</VAR> and <VAR>B</VAR> 
 to become equal. The
-<A NAME="idx:dif2:1159"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
+<A NAME="idx:dif2:1158"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
 predicate behaves as if defined by
 <CODE>dif(X, Y) :- when(?=(X, Y), X \== Y)</CODE>. See also <A class="pred" href="compare.html#?=/2">?=/2</A>. 
 The implementation can deal with cyclic terms.
 
-<P>The <A NAME="idx:dif2:1160"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
+<P>The <A NAME="idx:dif2:1159"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
 predicate is realised using attributed variable associated with the 
 module <CODE>dif</CODE>. It is defined in the autoload library
 <CODE>library(dif)</CODE>.

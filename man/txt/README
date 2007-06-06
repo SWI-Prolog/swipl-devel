@@ -4,7 +4,7 @@ Modified for LaTeX2e, tested using teTeX installation by Jan
 Wielemaker.  This read file has been updated.
 
 1) Copy the desired .sty files to your favoriate LaTeX library.
-   I created /usr/lib/teTeX/texmf/tex/latex/doc/ and copied the
+   I created /usr/share/texmf/tex/latex/doc/ and copied the
    .sty files below to this new directory.
 
    txt.sty      - Generates fixed-width font output from LaTeX input.
@@ -19,7 +19,7 @@ Wielemaker.  This read file has been updated.
    rfc.tex      - "Documentation" for the above.
 
 2) Copy the doc.tfm file to your favorite LaTeX font directory.
-   I created /usr/lib/teTeX/texmf/fonts/tfm/doc/ and copied the
+   I created /usr/share/texmf/fonts/tfm/doc/ and copied the
    file there.  Make links or copies using the names docbf.tfm
    and docul.tfm:
 
