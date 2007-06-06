@@ -317,7 +317,7 @@ static int
 odbc_report(HENV henv, HDBC hdbc, HSTMT hstmt, RETCODE rc)
 { SQLCHAR state[16];			/* Normally 5-character ID */
   SQLINTEGER native;			/* was DWORD */
-  SQLCHAR message[SQL_MAX_MESSAGE_LENGTH];
+  SQLCHAR message[SQL_MAX_MESSAGE_LENGTH+1];
   SWORD   msglen;
   RETCODE rce;
   term_t  msg = PL_new_term_ref();
@@ -330,13 +330,15 @@ odbc_report(HENV henv, HDBC hdbc, HSTMT hstmt, RETCODE rc)
 	return TRUE;
       /*FALLTHROUGH*/
     case SQL_SUCCESS:
+      if ( msglen > SQL_MAX_MESSAGE_LENGTH )
+	msglen = SQL_MAX_MESSAGE_LENGTH; /* TBD: get the rest? */
       PL_unify_term(msg, PL_FUNCTOR, FUNCTOR_odbc3,
 			   PL_CHARS,   state,
 		           PL_INTEGER, (long)native,
 		           PL_NCHARS,  msglen, message);
       break;
     case SQL_INVALID_HANDLE:
-      return PL_warning("ODBC INTERNAL ERROR: Invalid handle in error\n");
+      return PL_warning("ODBC INTERNAL ERROR: Invalid handle in error");
     default:
       if ( rc != SQL_ERROR )
 	return TRUE;

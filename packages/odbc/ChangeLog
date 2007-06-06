@@ -1,3 +1,8 @@
+Jun 6, 2007
+
+* Fix possible overflow of diagnostic message, returning rubbish.  Matt
+  Lilley.
+
 May 31, 2007
 
 * Fix test script for encoding issues and empty password
