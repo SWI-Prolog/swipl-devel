@@ -4405,13 +4405,14 @@ end_document_dtd_parser_(dtd_parser *p)
       rval = TRUE;
       break;
     case S_CMT:
+    case S_CMT1:
     case S_CMTE0:
     case S_CMTE1:
     case S_DECLCMT0:
     case S_DECLCMT:
     case S_DECLCMTE0:
       rval = gripe(ERC_SYNTAX_ERROR,
-		   L"Unexpected end-of-file in comment", "");
+		   L"Unexpected end-of-file in comment", L"");
       break;
     case S_ECDATA1:
     case S_ECDATA2:
@@ -4427,24 +4428,24 @@ end_document_dtd_parser_(dtd_parser *p)
     case S_ENT:
     case S_ENT0:
       rval = gripe(ERC_SYNTAX_ERROR,
-		   L"Unexpected end-of-file", "");
+		   L"Unexpected end-of-file", L"");
       break;
 #ifdef UTF8
     case S_UTF8:
       rval = gripe(ERC_SYNTAX_ERROR,
-		   L"Unexpected end-of-file in UTF-8 sequence", "");
+		   L"Unexpected end-of-file in UTF-8 sequence", L"");
       break;
 #endif
     case S_MSCDATA:
     case S_EMSCDATA1:
     case S_EMSCDATA2:
       rval = gripe(ERC_SYNTAX_ERROR,
-		   L"Unexpected end-of-file in CDATA marked section", "");
+		   L"Unexpected end-of-file in CDATA marked section", L"");
       break;
     case S_PI:
     case S_PI2:
       rval = gripe(ERC_SYNTAX_ERROR,
-		   L"Unexpected end-of-file in processing instruction", "");
+		   L"Unexpected end-of-file in processing instruction", L"");
       break;
     default:
       rval = gripe(ERC_SYNTAX_ERROR,
@@ -4662,7 +4663,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 #ifdef UTF8
   if ( p->state == S_UTF8 )
   { if ( (chr & 0xc0) != 0x80 )	/* TBD: recover */
-      gripe(ERC_SYNTAX_ERROR, L"Bad UTF-8 sequence", "");
+      gripe(ERC_SYNTAX_ERROR, L"Bad UTF-8 sequence", L"");
     p->utf8_char <<= 6;
     p->utf8_char |= (chr & ~0xc0);
     if ( --p->utf8_left == 0 )
@@ -5042,7 +5043,7 @@ reprocess:
     }
     case S_CMTO:			/* Seen <!- */
     { if ( f[CF_CMT] == chr )		/* - */
-      { p->state = S_CMT;
+      { p->state = S_CMT1;
 	return;
       } else
       { add_cdata(p, f[CF_MDO1]);
@@ -5052,6 +5053,14 @@ reprocess:
 	p->state = S_PCDATA;
 	return;
       }
+    }
+    case S_CMT1:			/* <!-- */
+    { if ( f[CF_CMT] == chr )		/* <!--- */
+      { if ( dtd->dialect != DL_SGML )
+	  gripe(ERC_SYNTAX_ERROR, L"Illegal comment", L"<!---");
+      }
+      p->state = S_CMT;
+      break;
     }
     case S_CMT:
     { if ( f[CF_CMT] == chr )
@@ -5071,7 +5080,11 @@ reprocess:
 	  (*p->on_decl)(p, (ichar*)"");
 	p->state = S_PCDATA;
       } else
-	p->state = S_CMT;
+      { if ( dtd->dialect != DL_SGML )
+	  gripe(ERC_SYNTAX_ERROR, L"Illegal comment", L"");
+	if ( f[CF_CMT] != chr )
+	  p->state = S_CMT;
+      }
       break;
     }
     case S_GROUP:			/* [...] in declaration */

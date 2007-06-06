@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<test>
+  <!-- comment -->
+  <!--- bad comment -->
+  <!-- bad -- comment -->
+  <!-- ok-comment -->
+  <!-- bad comment end --->
+</test>
+

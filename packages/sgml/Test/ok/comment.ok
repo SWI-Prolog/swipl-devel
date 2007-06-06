@@ -1,0 +1,2 @@
+[element(test, [], ['\n  \n  \n  \n  \n  \n'])].
+[sgml(sgml_parser(1951880), 'comment.xml', 5, 'Syntax error: Illegal comment, found "<!---"'), sgml(sgml_parser(1951880), 'comment.xml', 6, 'Syntax error: Illegal comment'), sgml(sgml_parser(1951880), 'comment.xml', 8, 'Syntax error: Illegal comment')].

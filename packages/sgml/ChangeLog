@@ -1,6 +1,7 @@
 Jun 6, 2007
 
-  * FIXED: give error on bad entities in XML mode.
+  * FIXED: Strict XML comment syntax.  Jacco van Ossenbruggen.
+  * FIXED: give error on bad entities in XML mode.  Jacco van Ossenbruggen.
 
 Feb 6, 2007
 
