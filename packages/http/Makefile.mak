@@ -18,7 +18,8 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		mimepack.pl mimetype.pl dcg_basics.pl \
 		thread_httpd.pl xpce_httpd.pl inetd_httpd.pl \
 		http_wrapper.pl http_open.pl http_session.pl \
-		http_error.pl http_parameters.pl
+		http_error.pl http_parameters.pl http_dispatch.pl \
+		http_authenticate.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
 EXAMPLEEXE=	demo_inetd		

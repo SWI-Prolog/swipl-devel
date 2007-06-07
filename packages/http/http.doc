@@ -400,21 +400,21 @@ is passed to load_structure/3.
 
 \section{The HTTP server libraries}		\label{sec:httpserver}
 
-The HTTP server library consists of two parts.  The first deals with
-connection management and has three different implementation depending
-on the desired type of server.  The second implements a generic wrapper
-for decoding the HTTP request, calling user code to handle the request
-and encode the answer. This design is summarised in \figref{httpserver}.
+The HTTP server library consists of two parts obligatory and one
+optional part. The first deals with connection management and has three
+different implementation depending on the desired type of server. The
+second implements a generic wrapper for decoding the HTTP request,
+calling user code to handle the request and encode the answer. The
+optional \file{http_dispatch} module can be used to assign HTTP
+\jargon{locations} (paths) to predicates. This design is summarised in
+\figref{httpserver}.
 
 \postscriptfig[width=0.8\linewidth]{httpserver}{Design of the HTTP
 server}
 
 The functional body of the user's code is independent from the selected
 server-type, making it easy to switch between the supported server
-types.  Especially the XPCE-based event-driven server is comfortable
-for debugging but less suitable for production servers.  We start
-the description with how the user must formulate the functionality of
-the server.
+types.
 
 
 \subsection{The `Body'}				\label{sec:body}
@@ -464,6 +464,125 @@ Equivalent to \term{http_reply}{not_modified, []}.  This exception is
 for backward compatibility and can be used by the server to indicate
 the referenced resource has not been modified since it was requested
 last time.
+\end{description}
+
+
+\subsection{Dispatching HTTP locations over predicates}
+\label{sec:dispatch}
+
+The library \file{http/http_dispatch.pl} can be between http_wrapper/5
+and the user handlers as described in \secref{body} to distribute
+locations over multiple predicates. This has several advantages:
+
+\begin{itemize}
+    \item It makes a distinction between failure of the predicate
+    and undefined locations, giving a server error on failure and
+    a 404 existence error on undefined locations.
+    
+    \item It is much easier to put a spy-point on specific locations
+    or find the code implementing a location.  In addition, the 
+    edit/1 interface is extended to deal with locations.  This
+    allows for \verb$?- edit('/path1/path2').$ to open an editor
+    on the implementation of the HTTP location \verb$/path1/path2$.
+\end{itemize}
+
+We introduce the library with a small but complete example combining the
+core HTTP libraries. To test the example on port 5000, load the code,
+run \verb$?- server(5000).$ and direct your browser to
+\url{http://localhost:5000}.
+
+\begin{code}
+:- use_module(library('http/thread_httpd')).
+:- use_module(library('http/http_dispatch')).
+:- use_module(library('http/html_write')).
+
+server(Port) :-
+	http_server(http_dispatch, [port(Port)]).
+
+:- http_handler('/', root, []).
+:- http_handler('/hello/world', hello_world, []).
+
+root(_Request) :-
+	reply_html_page([ title('Demo server')
+			],
+			[ p(a(href('hello/world'), hello))
+			]).
+
+hello_world(_Request) :-
+	reply_html_page([ title('Hello World')
+			],
+			[ h1('Hello World'),
+			  p('This is my first page')
+			]).
+\end{code}
+
+\begin{description}
+    \predicate{http_dispatch}{1}{+Request}
+Dispatch \arg{Request} to a predicate defined to handle the path
+component (location) of the request.  Locations are declared using
+http_handler/3.  The predicate http_dispatch/1 is normally called
+from http_server/2.
+
+    \predicate{http_handler}{+Location, :Closure, +Options}
+Call \term{call}{Closure, Request} if an HTTP request for the path
+\arg{Location} is dispatched by http_dispatch/1.  Options include:
+
+    \begin{description}
+	\termitem{time_limit}{+Spec}
+Specify a (wall-)time limit to handle the request. \arg{Spec} is one of
+\const{infinite}, \const{default} or a number expressing seconds. If
+\const{default} or omitted, the setting (see setting/4)
+\const{http:time_limit} is used.
+
+	\termitem{authentication}{+Type}
+Demand authentication. Authentication methods define \arg{Type} and are
+pluggable. The library \file{http_authenticate.pl} provides a plugin for
+user/password based \const{Basic} HTTP authentication.
+
+	\termitem{priority}{+Integer}
+If two handlers handle the same path, the one with the highest priority
+is used. If equal, the last registered is used. Please be aware that the
+order of clauses in multifile predicates can change due to reloading
+files.
+    \end{description}
+
+Note that http_handler/3 is normally invoked as a directive and
+processed using term-expansion. Using term-expansion ensures proper
+update through make/0 when the specification is modified. We do not
+expand when the cross-referencer is running to ensure proper handling of
+the meta-call.
+
+    \predicate{http_delete_handler}{1}{+Path}
+Delete handler for \arg{Path}. Typically, this should only be used for
+handlers that are registered dynamically.  Use the priority option to
+overrule an existing handler.
+
+    \predicate{http_current_handler}{2}{?Location, ?Closure}
+True if \arg{Location} is handled by \arg{Closure}.  It \arg{Location}
+is given, the \arg{Closure} with highest priority is returned.
+
+    \predicate{http_reply_file}{3}{+FileSpec, +Options, +Request}
+Reply a file.  The argument order is defined to allow using the
+predicate as a closure for http_handler/3.  Options include:
+
+    \begin{description}
+	\termitem{cache}{+Boolean}    
+If \const{true} (default), handle If-modified-since and send
+modification time.
+	\termitem{mime_type}{+Type}    
+Overrule mime-type guessing from the filename as provided by
+file_mime_type/
+    \end{description}
+
+Below is an example. Note that the file argument can be a specification
+for absolute_file_name/3 that is searched over application libraries 
+defined using file_search_path/2.
+
+\begin{code}
+:- http_handler('/css/myapp.css',
+		http_reply_file('myapp.css', []),
+		[]).
+\end{code}
 \end{description}
 
 
@@ -526,6 +645,52 @@ Enumerate all associated terms that unify with \arg{Term}.
 \end{description}
 
 
+\subsection{HTTP Authentication}
+\label{sec:auth}
+
+The module \file{http/http_authenticate} provides the basics to validate
+an HTTP \const{Authorization} error. User and password information are
+read from a Unix/Apache compatible password file. This information, as
+well as the validation process is cached to achieve optimal performance.
+
+\begin{description}
+    \predicate{http_authenticate}{+Type, +Request, -User}
+True if Request contains the   information to continue according
+to Type. Type identifies the required authentication technique:
+
+    \begin{description}
+	\termitem{basic}{+PasswordFile}
+	Use HTTP \const{Basic} authetication and verify the password
+	from PasswordFile. PasswordFile is a file holding
+	usernames and passwords in a format compatible to
+	Unix and Apache. Each line is record with \verb$:$
+	separated fields. The first field is the username and
+	the second the password _hash_.  Password hashes are
+	validated using crypt/2.
+    \end{description}
+	
+Successful authorization is  cached  for   60  seconds  to avoid
+overhead of decoding and lookup of the user and password data.
+
+http_authenticate/3 just validates the  header. If authorization
+is not provided the browser must   be challenged, in response to
+which it normally opens a   user-password dialogue. Example code
+realising this is below. The exception   causes the HTTP wrapper
+code to generate an HTTP 401 reply.
+
+\begin{code}
+    ...,
+    (   http_authenticate(basic(passwd), Request, User)
+    ->  true
+    ;   throw(http_reply(authorise(basic, Realm)))
+    ).
+\end{code}
+
+Alternatively \term{basic}{+PasswordFile} can be passed as an option to
+http_handler/3.
+\end{description}
+
+%================================================================
 \subsection{Get parameters from HTML forms}
 \label{sec:httpparam}
 

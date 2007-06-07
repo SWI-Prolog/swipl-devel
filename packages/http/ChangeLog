@@ -1,3 +1,7 @@
+Jun 7, 2007
+
+ * ADDED: http_dispatch and http_authenticate libraries.
+
 Jun 1, 2007
 
  * FIXED: Use new predicate_indicator frame attribute for safe error
