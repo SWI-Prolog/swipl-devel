@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Library settings.pl for distributed management of application
+    settings.  Contributed from MultiMedian project.
+
 ============================
 VERSION 5.6.35 (Jun 6, 2007)
 ============================

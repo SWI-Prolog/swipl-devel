@@ -115,6 +115,7 @@ Section "Base system (required)"
   File pl\library\error.pl
   File pl\library\pairs.pl
   File pl\library\record.pl
+  File pl\library\settings.pl
 
 ; WINDOWS
   File pl\library\dde.pl
