@@ -125,7 +125,11 @@ well integrated into the environment. It can create HTML+CSS and LaTeX
 documentation files as well as act as a web-server for the loaded 
 project during program development.
 
-<P>A demo server is hosted at <A class="url" href="http://gollem.science.uva.nl:8008/">http://gollem.science.uva.nl:8008/</A>
+<P>A demo server, serving all standard libraries from their source as 
+well as the Prolog Reference Manual and package documentation is hosted 
+at <A class="url" href="http://gollem.science.uva.nl/SWI-Prolog/pldoc/">http://gollem.science.uva.nl/SWI-Prolog/pldoc/</A>
+
+<P><CITE><A class="cite" href="#pldoc2006">[5]</A></CITE>
 </DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -147,14 +151,11 @@ notation</SPAN></A></DIV>
 conventions</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:7.2"><SPAN class="sec-nr">7.2</SPAN> <SPAN class="sec-title">Text 
 markup: fonts and links</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:7.3"><SPAN class="sec-nr">7.3</SPAN> <SPAN class="sec-title">Inline 
-images</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:7.3"><SPAN class="sec-nr">7.3</SPAN> <SPAN class="sec-title">Images</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN> <SPAN class="sec-title">Directory 
 indices</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN> <SPAN class="sec-title">Documentation 
 files</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:9.1"><SPAN class="sec-nr">9.1</SPAN> <SPAN class="sec-title">Linking 
-to images</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN> <SPAN class="sec-title">Running 
 the documentation system</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:10.1"><SPAN class="sec-nr">10.1</SPAN> <SPAN class="sec-title">During 
@@ -363,7 +364,7 @@ may be modified using
 <P>In the current version types are represented by an arbitrary term 
 without formal semantics. In future versions we may adopt a formal type 
 system that allows for runtime verification and static type analysis
-<CITE><A class="cite" href="#DBLP:conf/cl/Hermenegildo00">[1]</A>, <A class="cite" href="#DBLP:journals/ai/MycroftO84">[3]</A>, <A class="cite" href="#DBLP:conf/acsc/JefferyHS00">[2]</A></CITE>
+<CITE><A class="cite" href="#DBLP:conf/cl/Hermenegildo00">[1]</A>, <A class="cite" href="#DBLP:journals/ai/MycroftO84">[4]</A>, <A class="cite" href="#DBLP:conf/acsc/JefferyHS00">[2]</A></CITE>
 
 <H3>Examples</H3>
 
@@ -387,48 +388,48 @@ Our tag convention is strongly based on the conventions of javaDoc. It
 is adviced to place tags in the order they are described below.
 
 <DL>
-<DT><B><CODE>@</CODE>param <I>Name</I></B></DT>
+<DT><B><CODE>@</CODE>param <I>Name Description</I></B></DT>
 <DD class="defbody">
 Defines the parameters. Each parameter has its own param tag. The first 
 word is the name of the parameter. The remainder of the tag is the 
 description. Parameter declarations must appear in the argument order 
 used by the predicate.</DD>
-<DT><B><CODE>@</CODE>throws</B></DT>
+<DT><B><CODE>@</CODE>throws <I>Term Description</I></B></DT>
 <DD class="defbody">
 Error condition. First Prolog term is the error term. Remainder is the 
 description.</DD>
-<DT><B><CODE>@</CODE>error</B></DT>
+<DT><B><CODE>@</CODE>error <I>Error Description</I></B></DT>
 <DD class="defbody">
 As <CODE>@</CODE>throws, but the exception is embedded in <CODE>error(Error, 
 Context)</CODE>.</DD>
-<DT><B><CODE>@</CODE>author</B></DT>
+<DT><B><CODE>@</CODE>author <I>Name</I></B></DT>
 <DD class="defbody">
 Author of the module or predicate. Multiple entries are used if there 
 are multiple authors.</DD>
-<DT><B><CODE>@</CODE>version</B></DT>
+<DT><B><CODE>@</CODE>version <I>Version</I></B></DT>
 <DD class="defbody">
-Version of the module.</DD>
-<DT><B><CODE>@</CODE>see</B></DT>
+Version of the module. There is no formal versioning system.</DD>
+<DT><B><CODE>@</CODE>see <I>Text</I></B></DT>
 <DD class="defbody">
-Related material.</DD>
-<DT><B><CODE>@</CODE>deprecated</B></DT>
+Point to related material. Often contains links to predicates or files.</DD>
+<DT><B><CODE>@</CODE>deprecated <I>Alternative</I></B></DT>
 <DD class="defbody">
 The predicate or module is deprecated. The description specifies what to 
 use in new code.</DD>
-<DT><B><CODE>@</CODE>compat</B></DT>
+<DT><B><CODE>@</CODE>compat <I>Standards and systems</I></B></DT>
 <DD class="defbody">
 When implementing libraries or externally defined interfaces this tag 
 describes to which standard the interface is compatible.</DD>
-<DT><B><CODE>@</CODE>copyright</B></DT>
+<DT><B><CODE>@</CODE>copyright <I>Copyright holder</I></B></DT>
 <DD class="defbody">
 Copyright notice.</DD>
-<DT><B><CODE>@</CODE>license</B></DT>
+<DT><B><CODE>@</CODE>license <I>License conditions</I></B></DT>
 <DD class="defbody">
 License conditions that apply to the source.</DD>
-<DT><B><CODE>@</CODE>bug</B></DT>
+<DT><B><CODE>@</CODE>bug <I>Bug description</I></B></DT>
 <DD class="defbody">
 Known problems with the interface or implementation.</DD>
-<DT><B><CODE>@</CODE>tbd</B></DT>
+<DT><B><CODE>@</CODE>tbd <I>Work to be done</I></B></DT>
 <DD class="defbody">
 Not yet realised behaviour that is enticipated in future versions.
 </DD>
@@ -496,11 +497,13 @@ mode terms. See <A class="sec" href="#sec:5">section 5</A>.
 The Wiki provides only for limited support for tables. A table-row is 
 started by a <CODE>|</CODE> sign and the cells are separated by the same 
 character. The last cell must be ended with <CODE>|</CODE>. Multiple 
-lines that parse into a table-row together for a table. Example:
+lines that parse into a table-row together form a table. Example:
 
 <PRE class="code">
-        | Author  | Jan Wielemaker |
-        | Copying | GPL            |
+        | Algorithm    | Time (sec) |
+        | Depth first  | 1.0        |
+        | Breath first | 0.7        |
+        | A*           | 0.3        |
 </PRE>
 
 </DD>
@@ -576,8 +579,8 @@ predicate </TD></TR>
 rule </TD></TR>
 <TR VALIGN=top><TD><TT>name.pl</TT></TD><TD>If &lt;<VAR>name</VAR>&gt;.pl 
 is the name of an existing file in the same directory, create a link. </TD></TR>
-<TR VALIGN=top><TD><TT>\bnfmetaurl </TT></TD><TD>Create a hyperlink to 
-URL. </TD></TR>
+<TR VALIGN=top><TD><TT><CODE>&lt;</CODE>url<CODE>&gt;</CODE> </TT></TD><TD>Create 
+a hyperlink to URL. </TD></TR>
 <TR VALIGN=top><TD><TT>Word</TT></TD><TD>Capitalised words that appear 
 as argument-name are written in <VAR>Italic</VAR> </TD></TR>
 <TR VALIGN=top><TD><TT><VAR>Word: CVS</VAR> </TT></TD><TD>CVS expanded 
@@ -586,12 +589,13 @@ keyword. Typeset as the plain keyword value. </TD></TR>
 
 </CENTER>
 
-<H3><A NAME="sec:7.3"><SPAN class="sec-nr">7.3</SPAN> <SPAN class="sec-title">Inline 
-images</SPAN></A></H3>
+<H3><A NAME="sec:7.3"><SPAN class="sec-nr">7.3</SPAN> <SPAN class="sec-title">Images</SPAN></A></H3>
 
 <P>Images can be included in the documentation by referencing an image 
 file using one of the extensions <CODE>.gif</CODE>, <CODE>.png</CODE>, <CODE>.jpeg</CODE> 
-or <CODE>.jpeg</CODE> placed between double square brackets. For example
+or <CODE>.jpg</CODE>. By default this creates a link to the image file 
+that must be visited to see the image. Inline images can be created by 
+enclosing the filename in double square brackets. For example
 
 <PRE class="code">
 The [[open.png]] icon is used open an existing file.
@@ -617,8 +621,9 @@ files</SPAN></A></H2>
 
 <P>Sometimes it is desirable to document aspects of a package outside 
 the source-files. For this reason the system creates a link to files 
-using the extension <CODE>.txt</CODE>. The referred file is processed as 
-Wiki source. The two fragments below illustrate the relation between an
+using the extension <CODE>.txt</CODE>. The referenced file is processed 
+as Wiki source. The two fragments below illustrate the relation between 
+an
 <CODE>.pl</CODE> file and a <CODE>.txt</CODE> file.
 
 <PRE class="code">
@@ -634,13 +639,6 @@ Wiki source. The two fragments below illustrate the relation between an
 If a file =|.myapprc|= exists in the user's home directory the
 application will process this data using setup.pl. ...
 </PRE>
-
-<H3><A NAME="sec:9.1"><SPAN class="sec-nr">9.1</SPAN> <SPAN class="sec-title">Linking 
-to images</SPAN></A></H3>
-
-<P>Mentioning files with one of the image extensions <CODE>.gif</CODE>,
-<CODE>.png</CODE>, <CODE>.jpeg</CODE> or <CODE>.jpeg</CODE> creates a 
-link to the image. The current version cannot deal with `inline' images.
 
 <H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN> <SPAN class="sec-title">Running 
 the documentation system</SPAN></A></H2>
@@ -870,15 +868,17 @@ the public interface is realised.
 
 <P>Comments can be added through Prolog directives, a route taken by 
 Ciao Prolog with lpdoc <CITE><A class="cite" href="#DBLP:conf/cl/Hermenegildo00">[1]</A></CITE> 
-and Logtalk. We feel structured comments are a better alternative for 
-the following reasons:
+and Logtalk
+<CITE><A class="cite" href="#pmoura03">[3]</A></CITE>. We feel 
+structured comments are a better alternative for the following reasons:
 
 <P>
 <UL>
 <LI>Prolog programmers are used to writing comments as Prolog comments.
 <LI>Using Prolog strings requires unnatural escape sequences for string 
 quotes and long literal values tend to result in hard to find 
-quote-mismatches.
+quote-mismatches. Python uses comments in long strings, fixing this 
+problem using a three double quotes to open and close long comments.
 <LI>Comments should not look like code, as that makes it more difficult 
 to find the actual code.
 </UL>
@@ -944,11 +944,22 @@ systems. In <EM>Computational Logic</EM>, pages 1345--1361, 2000.</DD>
 <DD>
 David Jeffery, Fergus Henderson, and Zoltan Somogyi. Type classes in 
 mercury. In <EM>ACSC</EM>, pages 128--135, 2000.</DD>
-<DT><A NAME="DBLP:journals/ai/MycroftO84"><STRONG>[3]</STRONG></A></DT>
+<DT><A NAME="pmoura03"><STRONG>[3]</STRONG></A></DT>
+<DD>
+Paulo Moura.
+<EM>Logtalk - Design of an Object-Oriented Logic Programming Language</EM>. 
+PhD thesis, Department of Informatics, University of Beira Interior, 
+Portugal, September 2003.</DD>
+<DT><A NAME="DBLP:journals/ai/MycroftO84"><STRONG>[4]</STRONG></A></DT>
 <DD>
 Alan Mycroft and Richard&nbsp;A. O'Keefe. A polymorphic type system for 
 prolog.
-<EM>Artif. Intell.</EM>, 23(3):295--307, 1984.
+<EM>Artif. Intell.</EM>, 23(3):295--307, 1984.</DD>
+<DT><A NAME="pldoc2006"><STRONG>[5]</STRONG></A></DT>
+<DD>
+Jan Wielemaker.
+<EM>SWI-Prolog Source Documentation</EM>. HCS, University of Amsterdam, 
+2006. http://www.swi-prolog.org/packages/pldoc.html.
 
 <P></DD>
 </DL>
