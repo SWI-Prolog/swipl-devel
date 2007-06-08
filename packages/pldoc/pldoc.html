@@ -121,7 +121,7 @@ E-mail: <A class="url" href="mailto:wielemak@science.uva.nl">wielemak@science.uv
 the SWI-Prolog source-code documentation infrastructure. PlDoc is 
 loosely based on JavaDoc, using structured comments to mix documentation 
 with source-code. SWI-Prolog's PlDoc is entirely written in Prolog and 
-well integrated with the environment. It can create HTML+CSS and LaTeX 
+well integrated into the environment. It can create HTML+CSS and LaTeX 
 documentation files as well as act as a web-server for the loaded 
 project during program development.
 
@@ -168,6 +168,7 @@ the browser interface</SPAN></A></DIV>
 <DIV class="toc-h4"><A class="sec" href="#sec:10.3.3"><SPAN class="sec-nr">10.3.3</SPAN> <SPAN class="sec-title">Editing</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:11"><SPAN class="sec-nr">11</SPAN> <SPAN class="sec-title">Motivation 
 of choices</SPAN></A></DIV>
+<DIV class="toc-h1"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Bibliography</SPAN></A></DIV>
 </DIV>
 
 <P>
@@ -361,8 +362,8 @@ may be modified using
 
 <P>In the current version types are represented by an arbitrary term 
 without formal semantics. In future versions we may adopt a formal type 
-system that allows for runtime verification and static type analysis 
-[Ciao assertion language, O'Keefe and Mycroft, Mercury].
+system that allows for runtime verification and static type analysis
+<CITE><A class="cite" href="#DBLP:conf/cl/Hermenegildo00">[1]</A>, <A class="cite" href="#DBLP:journals/ai/MycroftO84">[3]</A>, <A class="cite" href="#DBLP:conf/acsc/JefferyHS00">[2]</A></CITE>
 
 <H3>Examples</H3>
 
@@ -386,7 +387,7 @@ Our tag convention is strongly based on the conventions of javaDoc. It
 is adviced to place tags in the order they are described below.
 
 <DL>
-<DT><B><CODE>@</CODE>param</B></DT>
+<DT><B><CODE>@</CODE>param <I>Name</I></B></DT>
 <DD class="defbody">
 Defines the parameters. Each parameter has its own param tag. The first 
 word is the name of the parameter. The remainder of the tag is the 
@@ -868,8 +869,9 @@ the public interface is realised.
 <H3>Structured comments or directives</H3>
 
 <P>Comments can be added through Prolog directives, a route taken by 
-Ciao Prolog and Logtalk. We feel structured comments are a better 
-alternative for the following reasons:
+Ciao Prolog with lpdoc <CITE><A class="cite" href="#DBLP:conf/cl/Hermenegildo00">[1]</A></CITE> 
+and Logtalk. We feel structured comments are a better alternative for 
+the following reasons:
 
 <P>
 <UL>
@@ -928,6 +930,28 @@ is written in Prolog. Output as HTML is suitable for browsing and not
 very high quality printing on virtually all platforms. Output to LaTeX 
 requires more infrastructure for processing and allows for producing 
 high-quality PDF documents.
+
+<P>
+
+<H1><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Bibliography</SPAN></A></H1>
+
+<DL>
+<DT><A NAME="DBLP:conf/cl/Hermenegildo00"><STRONG>[1]</STRONG></A></DT>
+<DD>
+Manuel&nbsp;V. Hermenegildo. A documentation generator for (c)lp 
+systems. In <EM>Computational Logic</EM>, pages 1345--1361, 2000.</DD>
+<DT><A NAME="DBLP:conf/acsc/JefferyHS00"><STRONG>[2]</STRONG></A></DT>
+<DD>
+David Jeffery, Fergus Henderson, and Zoltan Somogyi. Type classes in 
+mercury. In <EM>ACSC</EM>, pages 128--135, 2000.</DD>
+<DT><A NAME="DBLP:journals/ai/MycroftO84"><STRONG>[3]</STRONG></A></DT>
+<DD>
+Alan Mycroft and Richard&nbsp;A. O'Keefe. A polymorphic type system for 
+prolog.
+<EM>Artif. Intell.</EM>, 23(3):295--307, 1984.
+
+<P></DD>
+</DL>
 
 <H1><A NAME="document-index">Index</A></H1>
 

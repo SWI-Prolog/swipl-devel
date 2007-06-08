@@ -95,7 +95,7 @@ html::		$(TEX)
 		mv html/index.html $(DOC).html
 		rmdir html
 
-$(PDF):		$(TEX)
+$(PDF):
 		../../man/runtex --pdf $(DOC)
 
 $(TEX):		$(DOCTOTEX)

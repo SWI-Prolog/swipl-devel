@@ -27,11 +27,15 @@
 This article presents PlDoc, the SWI-Prolog source-code documentation
 infrastructure.  PlDoc is loosely based on JavaDoc, using structured
 comments to mix documentation with source-code.  SWI-Prolog's PlDoc
-is entirely written in Prolog and well integrated with the environment.
+is entirely written in Prolog and well integrated into the environment.
 It can create HTML+CSS and \LaTeX{} documentation files as well as act
 as a web-server for the loaded project during program development.
 
-A demo server is hosted at \url{http://gollem.science.uva.nl:8008/}
+A demo server, serving all standard libraries from their source as
+well as the Prolog Reference Manual and package documentation is
+hosted at \url{http://gollem.science.uva.nl/SWI-Prolog/pldoc/}
+
+\cite{pldoc2006}
 \end{abstract}
 
 \pagebreak
@@ -222,9 +226,10 @@ Instantiation patterns are:
 \end{center}
 
 In the current version types are represented by an arbitrary term
-without formal semantics. In future versions we may adopt a formal
-type system that allows for runtime verification and static type
-analysis [Ciao assertion language, O'Keefe and Mycroft, Mercury].
+without formal semantics. In future versions we may adopt a formal type
+system that allows for runtime verification and static type analysis
+\cite{DBLP:conf/cl/Hermenegildo00,DBLP:journals/ai/MycroftO84,DBLP:conf/acsc/JefferyHS00}
+
 
 \subsection*{Examples}
 
@@ -247,48 +252,49 @@ Our tag convention is strongly based on the conventions of javaDoc.
 It is adviced to place tags in the order they are described below.
 
 \begin{description}
-    \definition{\chr{@}param}
+    \definition{\chr{@}param {\it Name Description}}
 Defines the parameters. Each parameter has its own param tag. The first
 word is the name of the parameter. The remainder of the tag is the
 description. Parameter declarations must appear in the argument order
 used by the predicate. 
 
-    \definition{\chr{@}throws}
-Error condition. First Prolog term is
-    the error term. Remainder is the description.
+    \definition{\chr{@}throws {\it Term Description}}
+Error condition. First Prolog term is the error term. Remainder is the
+description.
 
-    \definition{\chr{@}error}
+    \definition{\chr{@}error  {\it Error Description}}
 As \chr{@}throws, but the exception is embedded in \term{error}{Error,
 Context}.
 
-    \definition{\chr{@}author}
+    \definition{\chr{@}author {\it Name}}
 Author of the module or predicate. Multiple entries are used if there
 are multiple authors.
 
-    \definition{\chr{@}version}
-Version of the module.  
+    \definition{\chr{@}version {\it Version}}
+Version of the module.  There is no formal versioning system.
 
-    \definition{\chr{@}see}
-Related material.
+    \definition{\chr{@}see {\it Text}}
+Point to related material.  Often contains links to predicates or
+files.
 
-    \definition{\chr{@}deprecated}
+    \definition{\chr{@}deprecated {\it Alternative}}
 The predicate or module is deprecated.  The description specifies what
 to use in new code.
 
-    \definition{\chr{@}compat}
+    \definition{\chr{@}compat {\it Standards and systems}}
 When implementing libraries or externally defined interfaces this tag
 describes to which standard the interface is compatible.
 
-    \definition{\chr{@}copyright}
+    \definition{\chr{@}copyright {\it Copyright holder}}
 Copyright notice.
 
-    \definition{\chr{@}license}
+    \definition{\chr{@}license {\it License conditions}}
 License conditions that apply to the source.
 
-    \definition{\chr{@}bug}
+    \definition{\chr{@}bug {\it Bug description}}
 Known problems with the interface or implementation.
 
-    \definition{\chr{@}tbd}
+    \definition{\chr{@}tbd {\it Work to be done}}
 Not yet realised behaviour that is enticipated in future versions.
 \end{description}
 
@@ -346,11 +352,13 @@ the mode terms.  See \secref{modes}.
 The Wiki provides only for limited support for tables.   A table-row
 is started by a \chr{|} sign and the cells are separated by the same
 character.  The last cell must be ended with \chr{|}.  Multiple lines
-that parse into a table-row together for a table.  Example:
+that parse into a table-row together form a table.  Example:
 
 \begin{verbatim}
-	| Author  | Jan Wielemaker |
-	| Copying | GPL            |
+	| Algorithm    | Time (sec) |
+	| Depth first  | 1.0        |
+	| Breath first | 0.7        |
+	| A*           | 0.3        |
 \end{verbatim}
 
     \item [Section Headers]
@@ -415,7 +423,7 @@ PceEmacs can be set as default editor using
 \tt name//arity & Create a link to a DCG rule \\
 \tt name.pl	& If <name>.pl is the name of an existing file
 		  in the same directory, create a link. \\
-\tt\string<url>	& Create a hyperlink to URL. \\
+\tt\chr{<}url\chr{>} & Create a hyperlink to URL. \\
 \tt Word	& Capitalised words that appear as argument-name
 		  are written in \arg{Italic} \\
 \tt $Word: CVS$ & CVS expanded keyword.  Typeset as the plain
@@ -424,11 +432,13 @@ PceEmacs can be set as default editor using
 \end{center}
 
 
-\subsection{Inline images}
+\subsection{Images}
 
 Images can be included in the documentation by referencing an image file
 using one of the extensions \fileext{gif}, \fileext{png}, \fileext{jpeg}
-or \fileext{jpeg} placed between double square brackets.  For example
+or \fileext{jpg}.  By default this creates a link to the image file that
+must be visited to see the image.  Inline images can be created by
+enclosing the filename in double square brackets.  For example
 
 \begin{code}
 The [[open.png]] icon is used open an existing file.
@@ -453,8 +463,8 @@ exists, its content is added at the end of the directory index.
 
 Sometimes it is desirable to document aspects of a package outside the
 source-files.  For this reason the system creates a link to files using
-the extension \fileext{txt}.  The referred file is processed as Wiki
-source.  The two fragments below illustrate the relation between an
+the extension \fileext{txt}. The referenced file is processed as Wiki
+source. The two fragments below illustrate the relation between an
 \fileext{pl} file and a \fileext{txt} file.
 
 \begin{code}
@@ -470,13 +480,6 @@ source.  The two fragments below illustrate the relation between an
 If a file =|.myapprc|= exists in the user's home directory the
 application will process this data using setup.pl. ...
 \end{code}
-
-
-\subsection{Linking to images}
-
-Mentioning files with one of the image extensions \fileext{gif},
-\fileext{png}, \fileext{jpeg} or \fileext{jpeg} creates a link to
-the image.  The current version cannot deal with `inline' images.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -688,7 +691,8 @@ A program and its documentation consists of various different parts:
 \subsection*{Structured comments or directives}
 
 Comments can be added through Prolog directives, a route taken by Ciao
-Prolog and Logtalk. We feel structured comments are a better alternative
+Prolog with lpdoc \cite{DBLP:conf/cl/Hermenegildo00} and Logtalk
+\cite{pmoura03}. We feel structured comments are a better alternative
 for the following reasons:
 
 \begin{itemize}
@@ -696,7 +700,9 @@ for the following reasons:
           comments.
     \item Using Prolog strings requires unnatural escape sequences for
 	  string quotes and long literal values tend to result in hard
-	  to find quote-mismatches.
+	  to find quote-mismatches. Python uses comments in long
+	  strings, fixing this problem using a three double quotes
+	  to open and close long comments.
     \item Comments should not look like code, as that makes it more
 	  difficult to find the actual code.
 \end{itemize}
@@ -748,6 +754,9 @@ is written in Prolog. Output as HTML is suitable for browsing and not
 very high quality printing on virtually all platforms. Output to
 \LaTeX{} requires more infrastructure for processing and allows for
 producing high-quality PDF documents.
+
+\bibliographystyle{plain}
+\bibliography{pl}
 
 \printindex
 
