@@ -34,8 +34,6 @@ as a web-server for the loaded project during program development.
 A demo server, serving all standard libraries from their source as
 well as the Prolog Reference Manual and package documentation is
 hosted at \url{http://gollem.science.uva.nl/SWI-Prolog/pldoc/}
-
-\cite{pldoc2006}
 \end{abstract}
 
 \pagebreak
@@ -755,7 +753,7 @@ very high quality printing on virtually all platforms. Output to
 \LaTeX{} requires more infrastructure for processing and allows for
 producing high-quality PDF documents.
 
-\bibliographystyle{plain}
+\bibliographystyle{name}
 \bibliography{pl}
 
 \printindex
