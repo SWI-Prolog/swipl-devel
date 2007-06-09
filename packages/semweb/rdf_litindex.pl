@@ -407,7 +407,7 @@ del_tokens([H|T], Literal, Map) :-
 	del_tokens(T, Literal, Map).
 
 
-%%	rdf_tokenize_literal(+Literal, -Tokens)
+%%	rdf_tokenize_literal(+Literal, -Tokens) is semidet.
 %	
 %	Tokenize a literal. We make  this   hookable  as tokenization is
 %	generally domain dependent.
@@ -416,6 +416,7 @@ rdf_tokenize_literal(Literal, Tokens) :-
 	tokenization(Literal, Tokens), !. 		% Hook
 rdf_tokenize_literal(Literal, Tokens) :-
 	text_of(Literal, Text),
+	atom(Text),
 	tokenize_atom(Text, Tokens0),
 	select_tokens(Tokens0, Tokens).
 

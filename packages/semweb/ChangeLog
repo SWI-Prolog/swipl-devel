@@ -1,3 +1,8 @@
+Jun 9, 2007
+
+  * FIXED: Avoid type error in literal indexing code when asserting
+    non-atom literals.
+
 Apr 27, 2007
 
   * FIXED: Bug#279: handling rdfs:Container in rdfs_member/2.
