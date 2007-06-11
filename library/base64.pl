@@ -53,7 +53,7 @@ H = 'Hello World'
 @tbd	Stream I/O
 @tbd	White-space introduction and parsing
 @author	Jan Wielemaker
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+*/
 
 %%	base64(+Plain, -Encoded) is det.
 %%	base64(-Plain, +Encoded) is det.
