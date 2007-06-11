@@ -45,7 +45,7 @@ rfc2045. For example:
 X = 'SGVsbG8gV29ybGQ='
 
 Yes
-2 ?- base64(H, $X).
+2 ?- base64(H, 'SGVsbG8gV29ybGQ=').
 
 H = 'Hello World'
 ==
