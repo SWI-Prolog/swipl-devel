@@ -43,7 +43,8 @@ FLI=	jpl\fli\atom_t.java \
 	jpl\fli\StringHolder.java \
 	jpl\fli\term_t.java
 
-TEST=	jpl\test\Family.java \
+TEST=	jpl\test\CelsiusConverter.java \
+	jpl\test\Family.java \
 	jpl\test\FetchBigTree.java \
 	jpl\test\FetchLongList.java \
 	jpl\test\Ga2.java \
