@@ -570,6 +570,7 @@ static jfieldID    jBooleanHolderValue_f;
 
 const char  *default_args[] = { "pl",
 				"-g", "true",
+				"-nosignals",
 				NULL
 			    };	/* *must* have final NULL */
 
@@ -578,7 +579,7 @@ const char  *default_args[] = { "pl",
 
 static JavaVM	*jvm = NULL;	/* non-null -> JVM successfully loaded & initialised */
 static JNIEnv	*env;		/* if jvm is defined, then so will this be */
-static char		*jvm_ia[1] = {NULL};
+static char		*jvm_ia[2] = {"-Xrs", NULL};
 static char		**jvm_dia = jvm_ia;		/* default JVM init args (after jpl init, until jvm init) */
 static char		**jvm_aia = NULL;		/* actual JVM init args (after jvm init) */
 
