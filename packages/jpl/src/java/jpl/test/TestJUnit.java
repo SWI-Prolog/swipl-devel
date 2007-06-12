@@ -24,7 +24,7 @@ public class TestJUnit extends TestCase {
 		if (n == 1) {
 			return 1;
 		} else if (n > 1) {
-			return n * ((jpl.Integer) Query.oneSolution("jpl_test_fac(?,F)", new Term[] {new jpl.Integer(n-1)}).get("F")).longValue();
+			return n * ((jpl.Integer) Query.oneSolution("jpl_test_fac(?,F)", new Term[] { new jpl.Integer(n - 1) }).get("F")).longValue();
 		} else {
 			return 0;
 		}
@@ -50,7 +50,6 @@ public class TestJUnit extends TestCase {
 	//
 	public void testMasstest() {
 		assertTrue((new Query("assert(diagnose_declaration(_,_,_,[not,a,real,error]))")).hasSolution());
-
 	}
 	public void testSameLibVersions1() {
 		String java_lib_version = JPL.version_string();
@@ -480,17 +479,17 @@ public class TestJUnit extends TestCase {
 	public void testStaticQueryNSolutions1() {
 		String goal = "member(X, [0,1,2,3,4,5,6,7,8,9])";
 		int n = 5;
-		assertTrue("Query.nSolutions(" + goal + ", " + n + ") returns " + n + " solutions", Query.nSolutions(goal,n).length == n);
+		assertTrue("Query.nSolutions(" + goal + ", " + n + ") returns " + n + " solutions", Query.nSolutions(goal, n).length == n);
 	}
 	public void testStaticQueryNSolutions2() {
 		String goal = "member(X, [0,1,2,3,4,5,6,7,8,9])";
 		int n = 0;
-		assertTrue("Query.nSolutions(" + goal + ", " + n + ") returns " + n + " solutions", Query.nSolutions(goal,n).length == n);
+		assertTrue("Query.nSolutions(" + goal + ", " + n + ") returns " + n + " solutions", Query.nSolutions(goal, n).length == n);
 	}
 	public void testStaticQueryNSolutions3() {
 		String goal = "member(X, [0,1,2,3,4,5,6,7,8,9])";
 		int n = 20;
-		assertTrue("Query.nSolutions(" + goal + ", " + n + ") returns 10 solutions", Query.nSolutions(goal,n).length == 10);
+		assertTrue("Query.nSolutions(" + goal + ", " + n + ") returns 10 solutions", Query.nSolutions(goal, n).length == 10);
 	}
 	public void testStaticQueryAllSolutions1() {
 		String goal = "member(X, [0,1,2,3,4,5,6,7,8,9])";
@@ -498,12 +497,12 @@ public class TestJUnit extends TestCase {
 	}
 	public void testStaticQueryHasSolution1() {
 		String goal = "memberchk(13, [?,?,?])";
-		Term[] params = new Term[] {new Integer(12), new Integer(13), new Integer(14)};
+		Term[] params = new Term[] { new Integer(12), new Integer(13), new Integer(14) };
 		assertTrue(Query.hasSolution(goal, params));
 	}
 	public void testStaticQueryHasSolution2() {
 		String goal = "memberchk(23, [?,?,?])";
-		Term[] params = new Term[] {new Integer(12), new Integer(13), new Integer(14)};
+		Term[] params = new Term[] { new Integer(12), new Integer(13), new Integer(14) };
 		assertFalse(Query.hasSolution(goal, params));
 	}
 	public void testUtilListToTermArray1() {
@@ -523,7 +522,7 @@ public class TestJUnit extends TestCase {
 		// System.out.println("jpl.c version = " + jpl.fli.Prolog.get_c_lib_version());
 		int i = 76543;
 		Integer I = new Integer(i);
-		Query q = new Query("jpl_call(?,intValue,[],I2)", new Term[] {new JRef(I)});
+		Query q = new Query("jpl_call(?,intValue,[],I2)", new Term[] { new JRef(I) });
 		Term I2 = (Term) q.oneSolution().get("I2");
 		assertTrue(I2.isInteger() && I2.intValue() == i);
 	}
