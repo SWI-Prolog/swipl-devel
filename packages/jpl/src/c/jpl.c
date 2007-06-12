@@ -4317,29 +4317,6 @@ JNIEXPORT jboolean JNICALL
 
 /*
  * Class:	  jpl_fli_Prolog
- * Method:	  discard_foreign_frame
- * Signature: (Ljpl/fli/fid_t;)V
- */
-JNIEXPORT void JNICALL
- Java_jpl_fli_Prolog_discard_1foreign_1frame(
-    JNIEnv     *env, 
-    jclass	jProlog, 
-	jobject 	jfid
-    )
-    {
-	fid_t		fid;
-
-	if	(	jpl_ensure_pvm_init(env)
-		&&	getLongValue(env,jfid,(long*)&fid)				/* checks that jfid isn't null */
-	    )
-		{
-		PL_discard_foreign_frame(fid);
-		}
-    }
-
-
-/*
- * Class:	  jpl_fli_Prolog
  * Method:	  exception
  * Signature: (Ljpl/fli/qid_t;)Ljpl/fli/term_t;
  */
@@ -4760,33 +4737,6 @@ JNIEXPORT jobject JNICALL
 	} else {
 		return NULL;
 	}
-    }
-
-
-/*
- * Class:	  jpl_fli_Prolog
- * Method:	  open_foreign_frame
- * Signature: ()Ljpl/fli/fid_t;
- */
-JNIEXPORT jobject JNICALL
- Java_jpl_fli_Prolog_open_1foreign_1frame(
-    JNIEnv     *env, 
-	jclass		jProlog
-    )
-    {
-	jobject 	 rval;
-    
-	if	(	jpl_ensure_pvm_init(env)
-		&&	(rval=(*env)->AllocObject(env,jFidT_c)) != NULL 		/* get a new fid_t object */
-		&&	setLongValue(env,rval,(long)PL_open_foreign_frame())	/* open a frame only if alloc succeeds */
-		)
-		{
-		return rval;
-		}
-	else
-		{
-		return NULL;
-		}
     }
 
 
