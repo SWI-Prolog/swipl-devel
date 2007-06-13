@@ -50,7 +50,7 @@ variable(step,		real*,	      get,  "Step for up/down").
 variable(apply_step,	bool := @on,  both, "Apply stepping immediately").
 
 class_variable(format, name,  '%g').
-class_variable(step,   reel*, @nil).
+class_variable(step,   real*, @nil).
 
 initialise(RI, Label:label=name, Default:default=[real], Msg:message=[code]*,
 	   Low:low=[real], High:high=[real]*) :->
