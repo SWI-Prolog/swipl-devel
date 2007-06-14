@@ -348,10 +348,15 @@ save_attribute(body, rdf(_,Name,literal(Literal)), DefNS, Out, Indent, _) :- !,
 	    format(Out, '~N~*|<~w xml:lang="~w">',
 		   [Indent, NameText, LangText])
 	;   Literal = type(Type, Value)
-	->  stream_property(Out, encoding(Encoding)),
-	    rdf_value(Type, QVal, Encoding),
-	    format(Out, '~N~*|<~w rdf:datatype="~w">',
-		   [Indent, NameText, QVal])
+	->  (   rdf_equal(Type, rdf:'XMLLiteral')
+	    ->	format(Out, '~N~*|<~w rdf:parseType="Literal">',
+		       [Indent, NameText]),
+		Value = Literal
+	    ;	stream_property(Out, encoding(Encoding)),
+		rdf_value(Type, QVal, Encoding),
+		format(Out, '~N~*|<~w rdf:datatype="~w">',
+		       [Indent, NameText, QVal])
+	    )
 	;   atomic(Literal)
 	->  format(Out, '~N~*|<~w>', [Indent, NameText]),
 	    Value = Literal

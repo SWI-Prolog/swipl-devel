@@ -1,3 +1,8 @@
+Jun 14, 2007
+
+  * FIXED: return rdf:parseType="Literal" as literal of type
+    rdf:XMLLiteral.
+
 Jan 18, 2007
 
   * ADDED: embedded(Bool) option to process_rdf/3

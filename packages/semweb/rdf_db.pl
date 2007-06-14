@@ -1525,10 +1525,15 @@ save_attribute(body, Name=literal(Literal0), BaseURI, Out, Indent, Options) :- !
 		       [Indent, NameText, LangText])
 	    )
 	;   Literal = type(Type, Value)
-	->  stream_property(Out, encoding(Encoding)),
-	    rdf_value(Type, BaseURI, QVal, Encoding),
-	    format(Out, '~N~*|<~w rdf:datatype="~w">',
-		   [Indent, NameText, QVal])
+	->  (   rdf_equal(Type, rdf:'XMLLiteral')
+	    ->	format(Out, '~N~*|<~w rdf:parseType="Literal">',
+		       [Indent, NameText]),
+		Value = Literal
+	    ;	stream_property(Out, encoding(Encoding)),
+		rdf_value(Type, BaseURI, QVal, Encoding),
+		format(Out, '~N~*|<~w rdf:datatype="~w">',
+		       [Indent, NameText, QVal])
+	    )
 	;   atomic(Literal)
 	->  format(Out, '~N~*|<~w>', [Indent, NameText]),
 	    Value = Literal

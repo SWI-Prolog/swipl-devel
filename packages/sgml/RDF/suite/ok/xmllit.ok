@@ -1,2 +1,2 @@
-rdf(id1, rdf:type, 'http://www.swi.psy.uva.nl/test#test').
-rdf(id1, 'http://www.swi.psy.uva.nl/test#':a, literal([element(b, [], [strong])])).
+rdf(id1, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.swi.psy.uva.nl/test#test').
+rdf(id1, 'http://www.swi.psy.uva.nl/test#a', literal(type('http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral', [element(b, [], [strong])]))).

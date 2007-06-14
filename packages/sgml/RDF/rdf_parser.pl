@@ -272,15 +272,14 @@ aboutResourceEmptyElt(node(URI), _Options) ::=
 
 %%	literal_value(+In, -Value, +Options)
 %	
-%	Translate a literal into its  value.   Notably  if  the value is
-%	plain  CDATA,  remove  the   list.    This   predicate   handles
-%	parseType="Literal" attributes.
+%	Create the literal value for rdf:parseType="Literal" attributes.
+%	The content is the Prolog XML DOM tree for the literal.
+%	
+%	@tbd	Note that the specs demand a canonical textual representation
+%		of the XML data as a Unicode string.  For now the user can
+%		achieve this using the convert_typed_literal hook.
 
-literal_value([Value], Literal, Options) :-
-	atomic(Value), !,
-	mkliteral(Value, Literal, Options).
-literal_value(Value, literal(Value), _).
-
+literal_value(Value, literal(type(rdf:'XMLLiteral', Value)), _).
 
 %%	mkliteral(+Atom, -Object, +Options)
 %	

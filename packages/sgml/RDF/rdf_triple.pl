@@ -328,6 +328,8 @@ global_ref(URI, URI).
 
 global_obj(V, V) :-
 	var(V), !.
+global_obj(literal(type(Local, X)), literal(type(Global, X))) :- !,
+	global_ref(Local, Global).
 global_obj(literal(X), literal(X)) :- !.
 global_obj(Local, Global) :-
 	global_ref(Local, Global).
