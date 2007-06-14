@@ -506,8 +506,8 @@ header(Any gr, Area area, Bool ls)
   { scale = 1.0;
   } else
   { scale = min( (float)w / (float)wgr, (float)h/(float)hgr );
-    paperW = (int)((float)paperW * scale);
-    paperH = (int)((float)paperH * scale);
+    paperW = (int)((float)paperW * scale + 0.999);
+    paperH = (int)((float)paperH * scale + 0.999);
   }
 
   if ( ls == ON )
