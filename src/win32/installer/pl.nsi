@@ -361,6 +361,8 @@ SectionEnd
 
 Section "HTTP Client/Server package"
   SectionIn 1 3
+  SetOutPath $INSTDIR\bin
+  File pl\bin\chunked_http.dll
   SetOutPath $INSTDIR\library
   File /r pl\library\http
   SetOutPath $INSTDIR\doc\packages

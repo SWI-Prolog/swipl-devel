@@ -1,3 +1,7 @@
+Jun 16, 2007
+
+ * ADDED: library(http/http_chunked).
+
 Jun 7, 2007
 
  * ADDED: http_dispatch and http_authenticate libraries.

@@ -185,6 +185,13 @@ S__setbuf(IOSTREAM *s, char *buffer, int size)
 }
 
 
+void
+Ssetbuffer(IOSTREAM *s, char *buffer, size_t size)
+{ S__setbuf(s, buffer, size);
+  s->flags &= ~SIO_USERBUF;
+}
+
+
 static int
 S__removebuf(IOSTREAM *s)
 { if ( s->buffer && s->unbuffer )

@@ -1,6 +1,6 @@
 ################################################################
 # SWI-Prolog `HTTP' package
-# Author:    Jan Wielemaker. jan@swi.psy.uva.nl
+# Author:    Jan Wielemaker. wielemak@science.uva.nl
 # Copyright: GPL (see COPYING or www.gnu.org
 ################################################################
 
@@ -17,6 +17,16 @@ LIBDIR=$(PLBASE)/library/http
 EXDIR=$(PKGDOC)/examples/http
 DESTDIR=
 
+CC=@CC@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
+LIBS=@LIBS@
+LD=@LD@
+LDFLAGS=@LDSOFLAGS@
+
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
 RUNTEX=../../man/runtex
@@ -31,34 +41,35 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
+CHUNKOBJ=	http_chunked.o
 LIBPL=		html_write.pl http_client.pl http_header.pl \
 		http_mime_plugin.pl http_sgml_plugin.pl \
 		mimepack.pl mimetype.pl dcg_basics.pl \
 		thread_httpd.pl xpce_httpd.pl inetd_httpd.pl \
 		http_wrapper.pl http_open.pl http_session.pl \
 		http_error.pl http_parameters.pl http_dispatch.pl \
-		http_authenticate.pl
+		http_authenticate.pl http_chunked.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
 EXAMPLEEXE=	demo_inetd		
 XPCEPL=		http_image.pl
 
-all:		
-		@echo "Nothing to do for this package"
+all:		http_chunked.@SO@
+
+
+http_chunked.@SO@:	$(CHUNKOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(CHUNKOBJ) $(LIBS)
 
 install:	$(LIBPL)
+		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
+		$(INSTALL_PROGRAM) http_chunked.$(SO) $(DESTDIR)$(PLBASE)/lib/$(PLARCH);
 		mkdir -p $(DESTDIR)$(LIBDIR)
 		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(LIBDIR)
 		$(INSTALL_DATA) README $(DESTDIR)$(LIBDIR)
 		$(PL) -f none -g make -t halt
 
 ln-install:	$(LIBPL)
-		mkdir -p $(DESTDIR)$(LIBDIR)
-		for f in $(LIBPL) README; do \
-		    rm -f $(DESTDIR)$(LIBDIR)/$$f; \
-		    ln -s `pwd`/$$f $(DESTDIR)$(LIBDIR); \
-		done
-		$(PL) -f none -g make -t halt
+		$(MAKE) INSTALL_DATA="../ln-install" INSTALL_PROGRAM="../ln-install" install
 
 rpm-install:	install
 
@@ -109,6 +120,7 @@ $(TEX):		$(DOCTOTEX)
 ################################################################
 
 clean:
+		rm -f $(CHUNKOBJ)
 		rm -f *~ *% config.log
 		rm -f $(TEX)
 		$(RUNTEXT) --clean $(DOC)

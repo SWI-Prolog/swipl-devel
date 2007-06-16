@@ -380,7 +380,7 @@ PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, size_t sz, const char
 PL_EXPORT(int)		Sclosehook(void (*hook)(IOSTREAM *s));
 PL_EXPORT(void)		Sfree(void *ptr);
 PL_EXPORT(int)		Sset_filter(IOSTREAM *parent, IOSTREAM *filter);
-
+PL_EXPORT(void)		Ssetbuffer(IOSTREAM *s, char *buf, size_t size);
 
 PL_EXPORT(int64_t)	Stell64(IOSTREAM *s);
 PL_EXPORT(int)		Sseek64(IOSTREAM *s, int64_t pos, int whence);

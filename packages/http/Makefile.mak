@@ -19,11 +19,18 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		thread_httpd.pl xpce_httpd.pl inetd_httpd.pl \
 		http_wrapper.pl http_open.pl http_session.pl \
 		http_error.pl http_parameters.pl http_dispatch.pl \
-		http_authenticate.pl
+		http_authenticate.pl http_chunked.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
 EXAMPLEEXE=	demo_inetd		
 XPCEPL=		http_image.pl
+
+OBJ=		http_chunked.obj
+
+all:		http_chunked.dll
+
+http_chunked.dll:	$(OBJ)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS)
 
 all:		
 
@@ -35,6 +42,10 @@ install::
 		@echo Copying $(LIBPL)
 		@for %f in ($(LIBPL)) do @copy %f "$(LIBDIR)"
 		copy README "$(LIBDIR)\README.TXT"
+		copy http_chunked.dll "$(BINDIR)"
+!IF "$(PDB)" == "true"
+		copy http_chunked.pdb "$(BINDIR)"
+!ENDIF
 		$(MAKEINDEX)
 !ENDIF
 
@@ -54,6 +65,7 @@ xpce-install::
 
 uninstall::
 		cd $(LIBDIR) & del $(LIBPL) README.TXT
+		del "$(BINDIR)\http_chunked.dll"
 		$(MAKEINDEX)
 
 clean::
