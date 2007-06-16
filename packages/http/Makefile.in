@@ -62,7 +62,7 @@ http_chunked.@SO@:	$(CHUNKOBJ)
 
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
-		$(INSTALL_PROGRAM) http_chunked.$(SO) $(DESTDIR)$(PLBASE)/lib/$(PLARCH);
+		$(INSTALL_PROGRAM) http_chunked.@SO@ $(DESTDIR)$(PLBASE)/lib/$(PLARCH);
 		mkdir -p $(DESTDIR)$(LIBDIR)
 		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(LIBDIR)
 		$(INSTALL_DATA) README $(DESTDIR)$(LIBDIR)
