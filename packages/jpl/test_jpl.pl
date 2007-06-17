@@ -1178,6 +1178,23 @@ test(threads2, true(X==true)) :-
 	thread_create(jpl_call('java.lang.System', currentTimeMillis, [], _), ThreadId, []),
 	thread_join(ThreadId, X).
 
+test(threads3,
+	[	true((
+			length(Ss, 1000),
+			sort(Ss, [true])
+		))
+	]
+) :-
+	jpl_call('java.lang.System', currentTimeMillis, [], _),
+	findall(
+		Status,
+		(	between(1, 1000, _),
+			thread_create(jpl_call('java.lang.System', currentTimeMillis, [], _), ThreadId, []),
+			thread_join(ThreadId, Status)
+		),
+		Ss
+	).
+
 test(jref1,
 	[	true((
 			Term1 \== Term2,

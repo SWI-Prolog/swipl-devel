@@ -50,9 +50,9 @@ refactoring (trivial):
 #define	JPL_C_LIB_VERSION_PATCH	 3
 #define	JPL_C_LIB_VERSION_STATUS "alpha"
 
-#define DEBUG(n, g) ((void)0)
-/*#define DEBUG_LEVEL 2 */
-/*#define DEBUG(n, g) ( n >= DEBUG_LEVEL ? g : (void)0 ) */
+/*#define DEBUG(n, g) ((void)0) */
+#define DEBUG_LEVEL 3
+#define DEBUG(n, g) ( n >= DEBUG_LEVEL ? g : (void)0 )
 
 /* disable type-of-ref caching (at least until GC issues are resolved) */
 #define		JPL_CACHE_TYPE_OF_REF		FALSE
@@ -617,6 +617,7 @@ jni_env() /* economically gets a JNIEnv pointer, valid for this thread */
   { case JNI_OK:
       return env;
     case JNI_EDETACHED:
+      DEBUG(2, Sdprintf( "[JPL: jni_env() calls AttachCurrentThread]\n"));
       return (*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL) == 0 ? env : NULL;
     default: /* error */
       return NULL;
