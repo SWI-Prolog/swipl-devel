@@ -331,6 +331,18 @@ test(
 	jpl_get( 'jpl.test.Test', fieldStaticChar2, V).
 
 test(
+	get_field_instance_byte_2,
+	[	setup((
+			jpl_new( 'jpl.test.Test', [], Test)
+		)),
+		true((
+			V == -1
+		))
+	]
+) :-
+	jpl_get( Test, fieldInstanceByte2, V).
+
+test(
 	list_to_array_1,
 	[	true((
 			Type == array(byte)
@@ -1151,5 +1163,30 @@ test(fac10,
      [ true(N==3628800)
      ]) :-
      jpl_test_fac(10, N).
-     
+
+test(threads1,
+	[	true((
+			thread_create(jpl_call('java.lang.System', currentTimeMillis, [], _), ThreadId, []),
+			thread_join(ThreadId, true)
+		))
+	]
+) :-
+	jpl_call('java.lang.System', currentTimeMillis, [], _).
+
+test(threads2, true(X==true)) :-
+	jpl_call('java.lang.System', currentTimeMillis, [], _),
+	thread_create(jpl_call('java.lang.System', currentTimeMillis, [], _), ThreadId, []),
+	thread_join(ThreadId, X).
+
+test(jref1,
+	[	true((
+			Term1 \== Term2,
+			Term1 =@= Term2
+		))
+	]
+) :-
+	length(Term1, 5),
+	jpl:jni_term_to_jref(Term1, JRef),
+	jpl:jni_jref_to_term(JRef, Term2).
+
 :- end_tests(jpl).
