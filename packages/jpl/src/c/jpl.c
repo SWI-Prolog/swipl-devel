@@ -579,7 +579,6 @@ const char  *default_args[] = { "pl",
 /*=== JNI global state (initialised by jni_create_jvm_c) =========================================== */
 
 static JavaVM	*jvm = NULL;	/* non-null -> JVM successfully loaded & initialised */
-static JNIEnv	*envAgc = NULL;		/* initialised by first call of agc_hook */
 static char		*jvm_ia[2] = {"-Xrs", NULL};
 static char		**jvm_dia = jvm_ia;		/* default JVM init args (after jpl init, until jvm init) */
 static char		**jvm_aia = NULL;		/* actual JVM init args (after jvm init) */
@@ -986,10 +985,10 @@ jni_atom_freed(
     const char	*cp = PL_atom_chars(a);
     long	iref;
     char	cs[23]; /* was 11 until 24/Apr/2007 */
+	JNIEnv	*env;
 
-    if (envAgc == NULL)
-      if ((envAgc = jni_env()) == NULL)
-        return TRUE; /* oughta log an error, at least the first time... */
+    if ((env = jni_env()) == NULL)
+      return TRUE; /* oughta log an error, at least the first time... */
     if ( jni_tag_to_iref( a, &iref) )	/* check format and convert digits to int if ok */
         {
         sprintf( cs, "%020lu", iref);	/* reconstruct digits part of tag in cs */
@@ -998,7 +997,7 @@ jni_atom_freed(
 	      DEBUG(0, Sdprintf( "[JPL: garbage-collected tag '%s'=%u is bogus (not canonical)]\n", cp, iref));
 	    }
 	else
-	if ( !jni_free_iref(envAgc,iref) )		/* free it (iff it's in the hashedref table) */
+	if ( !jni_free_iref(env,iref) )		/* free it (iff it's in the hashedref table) */
 	    {
 	      DEBUG(0, Sdprintf( "[JPL: garbage-collected tag '%s' is bogus (not in HashedRefs)]\n", cp));
 	    }
