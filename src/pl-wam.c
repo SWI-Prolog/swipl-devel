@@ -2920,6 +2920,11 @@ the moment the code marked (**) handles this not very elegant
 
 	  PC = findCatchExit();
 
+#if O_DYNAMIC_STACKS
+	  if ( LD->trim_stack_requested )
+	    trimStacks(PASS_LD1);
+#endif
+
 	  goto i_usercall0;
 	} else
 	{ Word p;

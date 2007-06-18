@@ -1717,6 +1717,8 @@ trimStacks(ARG1_LD)
   TrailEntry te;
   Word dummy = NULL;
 
+  LD->trim_stack_requested = FALSE;
+
 #ifdef O_SHIFT_STACKS
   if ( !growStacks(NULL, NULL, NULL, -1, -1, -1) )
     return;
