@@ -167,7 +167,7 @@ user_agent(Agent, Options) :-
 	;   user_agent(Agent)
 	).
 
-%%	do_open(+HTTPStatusCode, +HTTPStatusComment, +Options, +Parts, +In, -FinalIn)
+% %	do_open(+HTTPStatusCode, +HTTPStatusComment, +Header +Options, +Parts, +In, -FinalIn)
 %
 %	Handle the HTTP status. If 200, we   are ok. If a redirect, redo
 %	the open, returning a new stream. Else issue an error.
