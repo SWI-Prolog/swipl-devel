@@ -526,4 +526,7 @@ public class TestJUnit extends TestCase {
 		Term I2 = (Term) q.oneSolution().get("I2");
 		assertTrue(I2.isInteger() && I2.intValue() == i);
 	}
+	public void testBerhhard1() {
+		assertTrue(Query.allSolutions( "consult(library('lists'))" ).length == 1);
+	}
 }
