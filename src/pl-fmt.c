@@ -309,18 +309,18 @@ pl_format3(term_t out, term_t format, term_t args)
 { redir_context ctx;
   word rc;
 
-  startCritical;
-  if ( !setupOutputRedirect(out, &ctx, FALSE) )
-  { endCritical;
-    fail;
-  }
-
-  if ( (rc = format_impl(ctx.stream, format, args)) )
-    rc = closeOutputRedirect(&ctx);
-  else
-    discardOutputRedirect(&ctx);
-       
-  endCritical;
+  EXCEPTION_GUARDED(/*code*/
+		    if ( setupOutputRedirect(out, &ctx, FALSE) )
+		    { if ( (rc = format_impl(ctx.stream, format, args)) )
+			rc = closeOutputRedirect(&ctx);
+		      else
+			discardOutputRedirect(&ctx);
+		    } else
+		      rc = FALSE;
+		    /*cleanup*/,
+		    DEBUG(1, Sdprintf("Cleanup after throw()\n"));
+		    discardOutputRedirect(&ctx);
+		    PL_rethrow(););
 
   return rc;
 }

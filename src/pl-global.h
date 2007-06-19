@@ -334,6 +334,7 @@ typedef struct PL_local_data
     term_t	tmp;			/* tmp for errors */
     term_t	pending;		/* used by the debugger */
     int		in_hook;		/* inside exception_hook() */
+    exception_frame *throw_environment;	/* PL_throw() environments */
   } exception;
 
 #ifdef O_ATTVAR

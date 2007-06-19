@@ -1678,6 +1678,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->aSave             = aTop;
   qf->solutions         = 0;
   qf->exception		= 0;
+  qf->exception_env.parent = NULL;
+  qf->saved_throw_env   = LD->exception.throw_environment;
+
 					/* fill frame arguments */
   ap = argFrameP(fr, 0);
   { int n;
@@ -1775,6 +1778,7 @@ restore_after_query(QueryFrame qf)
 
   LD->choicepoints  = qf->saved_bfr;
   environment_frame = qf->saved_environment;
+  LD->exception.throw_environment = qf->saved_throw_env;
   aTop		    = qf->aSave;
   lTop		    = (LocalFrame)qf;
   if ( true(qf, PL_Q_NODEBUG) )
@@ -2062,7 +2066,7 @@ Is there a way to make the compiler keep its mouth shut!?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   DEBUG(9, Sdprintf("Setjmp env at %p\n", &QF->exception_jmp_env));
-  if ( setjmp(QF->exception_jmp_env) != 0 )
+  if ( setjmp(QF->exception_env.exception_jmp_env) != 0 )
   { FliFrame ffr;
 #ifdef O_PLMT
     __PL_ld = GLOBAL_LD;		/* might be clobbered */
@@ -2083,6 +2087,7 @@ Is there a way to make the compiler keep its mouth shut!?
     goto b_throw;
   }
 
+  LD->exception.throw_environment = &QF->exception_env;
   DEF = FR->predicate;
   if ( QF->solutions )			/* retry */
   { fid_t fid = QF->foreign_frame;

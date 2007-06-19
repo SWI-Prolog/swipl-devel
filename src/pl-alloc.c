@@ -634,7 +634,7 @@ outOfStack(void *stack, stack_overflow_action how)
   switch(how)
   { case STACK_OVERFLOW_FATAL:
       LD->outofstack = s;
-      warning("Out of %s stack", s->name);
+      Sdprintf("ERROR: Out of %s stack (ungraceful overflow)", s->name);
 
       pl_abort(ABORT_FATAL);
       assert(0);

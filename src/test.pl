@@ -751,7 +751,7 @@ meta(call-2) :-
 meta(call-3) :-
 	\+ call((between(0,3,X), !, X = 2)).
 meta(call-4) :-
-	length(X, 100000), call((is_list(X) -> true ; fail)).
+	length(X, 50000), call((is_list(X) -> true ; fail)).
 meta(call-5) :-
 	call((X=a;X=b)), X = b.
 meta(call-6) :-
@@ -1507,9 +1507,13 @@ local_overflow :-
 	choice,
 	local_overflow.
 
-global_overflow(X) :-
+global_overflow(X) :-			% Causes gracefully signalled overflow
 	global_overflow(s(X)).
 
+string_overflow([H|T]) :-		% Causes PL_throw() overflow
+	format(string(H), '~txx~1000000|', []),
+	string_overflow(T).
+		
 
 resource(stack-1) :-
 	catch(local_overflow, E, true),
@@ -1517,6 +1521,16 @@ resource(stack-1) :-
 resource(stack-2) :-			% VERY slow with -DO_SECURE
 	catch(global_overflow(0), E, true),
 	E = error(resource_error(stack), global).
+resource(stack-3) :-
+	catch(string_overflow(_), E1, true),
+	E1 = error(resource_error(stack), global),
+	catch(string_overflow(_), E2, true),
+	E2 = error(resource_error(stack), global).
+resource(stack-4) :-
+	catch(string_overflow(_), E1, true),
+	E1 = error(resource_error(stack), global),
+	catch(global_overflow(_), E2, true),
+	E2 = error(resource_error(stack), global).
 
 
 		 /*******************************

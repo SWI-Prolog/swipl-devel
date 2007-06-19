@@ -3136,17 +3136,29 @@ PL_raise_exception(term_t exception)
 int
 PL_throw(term_t exception)
 { GET_LD
-  QueryFrame QF = find_query(environment_frame);
 
   PL_put_term(exception_bin, exception);
   exception_term = exception_bin;
   assert(exception_term);
 
-  if ( QF )
-    longjmp(QF->exception_jmp_env, 1);
+  if ( LD->exception.throw_environment )
+    longjmp(LD->exception.throw_environment->exception_jmp_env, 1);
 
   fail;
 }
+
+
+int
+PL_rethrow(void)
+{ GET_LD
+
+  if ( LD->exception.throw_environment )
+    longjmp(LD->exception.throw_environment->exception_jmp_env, 1);
+
+  fail;
+}
+
+
 
 		/********************************
 		*      REGISTERING FOREIGNS     *

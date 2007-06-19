@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: More reliable handling of stack overflows.  Notably fixed
+    problems running out of stack multiple times.  In particulary important
+    for continuously running servers executing queries that may run out
+    of stack.
+
   * ADDED: Library settings.pl for distributed management of application
     settings.  Contributed from MultiMedian project.
 

@@ -406,6 +406,7 @@ COMMON(void) 		registerForeignLicenses(void);
 COMMON(void)            bindExtensions(const char *module,
 				       const PL_extension *ext);
 COMMON(void)		initForeign(void);
+COMMON(int)		PL_rethrow(void);
 
 
 /* pl-fmt.c */

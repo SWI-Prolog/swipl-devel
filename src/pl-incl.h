@@ -1454,6 +1454,32 @@ struct choice
 };
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+EXCEPTION_GUARDED(code, cleanup) must be used  in environments that need
+cleanup  should  a  PL_throw()  happen.  The   most  commpn  reason  for
+PL_throw() instead of the nicely   synchronous PL_raise_exception() is a
+stack overflow.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define EXCEPTION_GUARDED(code, cleanup) \
+	{ exception_frame __throw_env; \
+	  __throw_env.parent = LD->exception.throw_environment; \
+	  if ( setjmp(__throw_env.exception_jmp_env) != 0 ) \
+	  { LD->exception.throw_environment = __throw_env.parent; \
+	    cleanup; \
+	  } else \
+	  { LD->exception.throw_environment = &__throw_env; \
+	    code; \
+	    LD->exception.throw_environment = __throw_env.parent; \
+	  } \
+	}
+
+typedef struct exception_frame		/* PL_throw exception environments */
+{ struct exception_frame *parent;	/* parent frame */
+  jmp_buf	exception_jmp_env;	/* longjmp environment */
+} exception_frame;
+
+
 #define QF_NODEBUG		0x0001	/* debug-able query */
 #define QF_DETERMINISTIC	0x0002	/* deterministic success */
 #define	QF_INTERACTIVE		0x0004	/* interactive goal (prolog()) */
@@ -1472,7 +1498,8 @@ struct queryFrame
 #endif
 #if O_CATCHTHROW
   term_t	exception;		/* Exception term */
-  jmp_buf	exception_jmp_env;	/* longjmp() buffer for exception */
+  exception_frame exception_env;	/* Top PL_throw() environment */
+  exception_frame *saved_throw_env;	/* Throw environment of parent query */
 #endif
   fid_t		foreign_frame;		/* Frame after PL_next_solution() */
   unsigned long	flags;
