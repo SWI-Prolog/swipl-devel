@@ -119,6 +119,7 @@ typedef struct chunked_context
 { IOSTREAM	   *stream;		/* Original stream */
   IOSTREAM	   *chunked_stream;	/* Stream I'm handle of */
   int		    close_parent;	/* close parent on close */
+  IOENC		    parent_encoding;	/* Saved encoding of parent */
   size_t	    avail;		/* data available */
 } chunked_context;
 
@@ -250,6 +251,8 @@ chunked_close(void *handle)
   else
     rc = -1;
 
+  ctx->stream->encoding = ctx->parent_encoding;
+
   if ( ctx->close_parent )
   { IOSTREAM *parent = ctx->stream;
     int rc2;
@@ -326,10 +329,15 @@ pl_http_chunked_open(term_t org, term_t new, term_t options)
 
     return FALSE;
   }
+
   if ( max_chunk_size > 0 )
   { char *buf = PL_malloc(max_chunk_size);
     Ssetbuffer(s2, buf, max_chunk_size);
   }
+  
+  s2->encoding = s->encoding;
+  ctx->parent_encoding = s->encoding;
+  s->encoding = ENC_OCTET;
   ctx->chunked_stream = s2;
   if ( PL_unify_stream(new, s2) )
   { Sset_filter(s, s2);

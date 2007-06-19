@@ -99,6 +99,12 @@ connection-based protocols.
 %	mechanism for encoding and decoding   the core chunked protocol,
 %	it does not well support out-of-band data.
 %	
+%	After http_chunked_open/3, the encoding  of   DataStream  is the
+%	same as the  encoding  of  RawStream,   while  the  encoding  of
+%	RawStream is =octet=, the only value   allowed  for HTTP chunked
+%	streams. Closing the DataStream  restores   the  old encoding on
+%	RawStream.
+%	
 %	@error	io_error(read, Stream) where the message context provides
 %		an indication of the problem.  This error is raised if
 %		the input is not valid HTTP chunked data.
