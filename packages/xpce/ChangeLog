@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.36, distributed with SWI-Prolog 5.6.36
+==================================================
+
 * FIXED: Possible 1 point to small boundingbox when writing (scaled)
   postscript.  Bert Bredeweg.
 

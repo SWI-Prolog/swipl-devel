@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -39,6 +39,7 @@
 :- use_module(library(socket)).
 :- use_module(library(url)).
 :- use_module(http_header).
+:- use_module(http_chunked).
 :- use_module(library(debug)).
 :- use_module(library(memfile)).
 :- use_module(library(lists)).
@@ -281,28 +282,8 @@ http_read_data(Fields, Data, Options) :-
 
 http_read_data(In, Fields, Data, Options) :-	% Transfer-encoding: chunked
 	select(transfer_encoding(chunked), Fields, RestFields), !,
-	(    memberchk(to(stream(Out)), Options)
-	->   copy_chunk_data(In, Out, _Foot)
-	;    new_memory_file(MemFile),
-	     open_memory_file(MemFile, write, Stream),
-	     copy_chunk_data(In, Stream, Foot),
-	     close(Stream),
-	     (	 memberchk(to(atom), Options)
-	     ->	 memory_file_to_atom(MemFile, Data0),
-		 free_memory_file(MemFile),
-		 Data = Data0
-	     ;	 memberchk(to(codes), Options)
-	     ->	 memory_file_to_codes(MemFile, Data0),
-		 free_memory_file(MemFile),
-		 Data = Data0
-	     ;   size_memory_file(MemFile, Length),
-		 append([content_length(Length)|RestFields], Foot, NewFields),
-		 open_memory_file(MemFile, read, NewIn),
-		 http_read_data(NewIn, NewFields, Data, Options),
-		 close(NewIn),
-		 free_memory_file(MemFile)
-	     )
-	).
+	http_chunked_open(In, DataStream, []),
+	http_read_data(DataStream, RestFields, Data, Options).
 http_read_data(In, Fields, Data, Options) :-
 	memberchk(to(X), Options), !,
 	(   X = stream(Stream)
@@ -339,21 +320,6 @@ http_read_data(In, Fields, Data, Options) :- 			% call hook
 http_read_data(In, Fields, Data, Options) :-
 	http_read_data(In, Fields, Data, [to(atom)|Options]).
 
-
-%%	copy_chunk_data(+In, +Out, -Footer)
-%
-%	Copy chunk-encoded data (HTTP/1.1, RFC rfc2068) to a new stream
-%	and return the foot.
-
-copy_chunk_data(In, Out, Foot) :-
-	read_line_to_codes(In, Codes),
-	phrase(xinteger(Size), Codes, _), !, 	% _: skip extra header
-	(   Size == 0
-	->  http_read_header(In, Foot)
-	;   copy_stream_data(In, Out, Size),
-	    read_line_to_codes(In, ""),		% skip empty line
-	    copy_chunk_data(In, Out, Foot)
-	).
 
 		 /*******************************
 		 *	       POST		*

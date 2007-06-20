@@ -1,3 +1,8 @@
+Jun 20, 2007
+
+ * ENHANCED: Support chunked encoding in http_get/3 and http_post/4 on the
+   new http_chunked library, reducing memory usage and overhead.
+
 Jun 19, 2007
 
  * ADDED: Support chunked encoding through library(http/http_open) based on

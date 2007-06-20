@@ -14,7 +14,7 @@ Using the HTTP Chunked encoding is several advantages:
 
 A possible approach to implement chunked encoding is to realise a stream
 similar to library(zlib) that performs  encoding   and  decoding of HTTP
-chunked streams.
+chunked streams.  This is now realised in http_chunked.pl
 
 Next step is interaction with the http_wrapper library.  Ideally we would
 like to add this to the CGI header, but how do we process this?

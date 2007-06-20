@@ -3,11 +3,14 @@
 	  ]).
 :- asserta(user:file_search_path(foreign, '.')).
 :- asserta(user:file_search_path(foreign, '../clib')).
+:- asserta(user:file_search_path(foreign, '../sgml')).
 :- asserta(user:file_search_path(library, '.')).
+:- asserta(user:file_search_path(library, '../sgml')).
 :- asserta(user:file_search_path(library, '../plunit')).
 :- asserta(user:file_search_path(library, '../clib')).
 
 :- use_module(user:library(http_open)).
+:- use_module(user:library(http_client)).
 :- use_module(user:library(http_chunked)).
 :- use_module(user:library(plunit)).
 :- use_module(user:library(readutil)).
@@ -37,6 +40,29 @@ test(gollem_chunked, true(Codes == Ref)) :-
      close(In),
      chunked_data(Ref).
      
+:- end_tests(http_open).
+
+:- begin_tests(http_get).
+
+test(gollem, true) :-
+     http_get('http://gollem.science.uva.nl/', Data, [to(codes)]),
+     appendchk(_, "http://www.swi-prolog.org/", _, Data).
+
+test(gollem_chunked, true(Data == Ref)) :-
+     http_get('http://gollem.science.uva.nl/cgi-bin/chunked',
+	      Data, [to(codes)]),
+     chunked_data(Ref).
+
+:- end_tests(http_get).
+
+		 /*******************************
+		 *	       UTIL		*
+		 *******************************/
+
+appendchk(Pre, Middle, Post, List) :-
+	append(Pre, Rest, List),
+	append(Middle, Post, Rest), !.
+
 %%	chunked_data(-String) is det.
 %
 %	Content of the chunked data that is sent by cgi-bin/chunked.
@@ -48,13 +74,3 @@ chunked_data(S) :-
 		), S).
 
 
-:- end_tests(http_open).
-
-
-		 /*******************************
-		 *	       UTIL		*
-		 *******************************/
-
-appendchk(Pre, Middle, Post, List) :-
-	append(Pre, Rest, List),
-	append(Middle, Post, Rest), !.

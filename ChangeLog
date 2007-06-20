@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+=============================
+VERSION 5.6.36 (Jun 20, 2007)
+=============================
+
   * FIXED: More reliable handling of stack overflows.  Notably fixed
     problems running out of stack multiple times.  In particulary important
     for continuously running servers executing queries that may run out

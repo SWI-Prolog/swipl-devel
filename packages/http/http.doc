@@ -186,8 +186,12 @@ modified(URL, Stamp) :-
 close(In).
 \end{code}
 
-
-
+The http_open/3 predicate is designed to be lightweight.  The http_get/3
+and http_post/4 predicates provide more powerful, but also more
+complicated and resource-intensitive alternatives to http_open/3.  The
+http_open/3 predicate supports transfer-encoding hooks as described in
+\secref{transfer}.  In particular, loading \pllib{http/http_chunked}
+provides support for HTTP 1.1 chunked encoding transfer.
 \end{description}
 
 
@@ -1858,11 +1862,38 @@ of the SWI-Prolog reference manual.
 
 
 \section{Transfer encodings}
+\label{sec:transfer}
 
-The HTTP protocol allows for \jargon{transfer encodings}.  
+\index{chunked,encoding}%
+\index{deflate,encoding}%
+The HTTP protocol provides for \jargon{transfer encodings}. These define
+filters applied to the data described by the \const{Content-type}. The
+two most popular transfer encodings are \const{chunked} and
+\const{deflate}. The \const{chunked} encoding avoids the need for
+a \const{Content-length} header, sending the data in chunks, each of
+which is preceeded by a length.  The \const{deflate} encoding provides
+compression.
 
+Tranfer-encodings are supported by filters defined as foreign libraries
+that realise an encoding/decoding stream on top of another stream.
+Currently there are two such libraries: \pllib{http/http_chunked.pl}
+and \pllib{zlib.pl}.
 
+There is an emerging hook interface dealing with transfer encodings. The
+\pllib{http/http_chunked.pl} provides a hook used by
+\pllib{http/http_open.pl} to support chunked encoding in http_open/3.
+Note that both \file{http_open.pl} \emph{and} \file{http_chunked.pl}
+must be loaded for http_open/3 to support chunked encoding.
 
+\subsection{The \pllib{http/http_chunked} library}
+
+\begin{description}
+    \predicate{http_chunked_open}{3}{+RawStream, -DataStream, +Options}
+Create a stream to realise HTTP chunked encoding or decoding. The
+technique is similar to library(zlib), using a Prolog stream as a filter
+on another stream.  See online documentation at
+\url{http://gollem.science.uva.nl/SWI-Prolog/pldoc/} for details.
+\end{description}
 
 
 \section{Status}
