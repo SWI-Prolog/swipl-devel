@@ -1,3 +1,8 @@
+Jun 19, 2007
+
+ * ADDED: Support chunked encoding through library(http/http_open) based on
+   new http_chunked library.
+
 Jun 16, 2007
 
  * ADDED: library(http/http_chunked).

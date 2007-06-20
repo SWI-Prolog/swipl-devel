@@ -1770,7 +1770,7 @@ invocation of sub-rules using the \bsl\arg{RuleSet} and
 that can be done at compile-time.
 
 
-\section{Security}
+\subsection{Security}
 
 Writing servers is an inherently dangerous job that should be carried out
 with some considerations. You have basically started a program on a
@@ -1830,7 +1830,7 @@ and \arg{Arg} as \const{/bin/sh} and he has an uncontrolled shell!
 \end{itemlist}
 
 
-\section{Tips and tricks}
+\subsection{Tips and tricks}
 
 \begin{itemlist}
     \item [URL Locations]
@@ -1855,6 +1855,14 @@ Please check the section \url[``Thread-support
 library(threadutil)'']{http://gollem.science.uva.nl/SWI-Prolog/Manual/thutil.html}
 of the SWI-Prolog reference manual.
 \end{itemlist}
+
+
+\section{Transfer encodings}
+
+The HTTP protocol allows for \jargon{transfer encodings}.  
+
+
+
 
 
 \section{Status}

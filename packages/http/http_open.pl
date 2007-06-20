@@ -42,11 +42,20 @@
 
 user_agent('SWI-Prolog (http://www.swi-prolog.org)').
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Simple HTTP client
+
 This library provides a simple-minded   light-weight HTTP client library
 to get the data from an  URL   using  the GET-method. More advanced HTTP
 client support is provided by http_client.pl
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+@author	Jan Wielemaker
+*/
+
+:- multifile
+	http:encoding_filter/3.		% +Encoding, +In0,  -In
+:- multifile
+	http:current_transfer_encoding/1. % ?Encoding
+
 
 %%	http_open(+Url, -Stream, +Options) is det.
 %	
@@ -122,18 +131,28 @@ send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 guarded_send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 	user_agent(Agent, Options),
 	method(Options, MNAME),
+	http_version(Version),
 	format(Out,
-	       '~w ~w HTTP/1.0\r\n\
+	       '~w ~w HTTP/~w\r\n\
 	       Host: ~w\r\n\
 	       User-Agent: ~w\r\n\
 	       Connection: close\r\n',
-	       [MNAME, Location, Host, Agent]),
+	       [MNAME, Location, Version, Host, Agent]),
 	x_headers(Options, Out),
 	format(Out, '\r\n', []),
 	flush_output(Out),
 					% read the reply header
 	read_header(In, Code, Comment, Lines),
 	do_open(Code, Comment, Lines, Options, Parts, In, Stream).
+
+%%	http_version(-Version:atom) is det.
+%
+%	HTTP version we publish. We  can  only   use  1.1  if we support
+%	chunked encoding, which means http_chunked.pl must be loaded.
+
+http_version('1.1') :-
+	http:current_transfer_encoding(chunked), !.
+http_version('1.0').
 
 force_close(S1, S2) :-
 	close(S1, [force(true)]),
@@ -174,9 +193,10 @@ user_agent(Agent, Options) :-
 %	
 %	@error	existence_error(url, URL)
 
-do_open(200, _, Lines, Options, Parts, In, In) :- !,
+do_open(200, _, Lines, Options, Parts, In0, In) :- !,
 	return_size(Options, Lines),
 	return_fields(Options, Lines),
+	transfer_encoding_filter(Lines, In0, In),
 					% properly re-initialise the stream
 	parse_url(Id, Parts),
 	set_stream(In, file_name(Id)),
@@ -189,7 +209,7 @@ do_open(Code, _, Lines, Options, Parts, In, Stream) :-
 	close(In),
 	http_open(Redirected, Stream, [visited(Redirected)|Options]).
 					% report anything else as error
-do_open(Code, Comment, _,  _, Parts, In, In) :-
+do_open(Code, Comment, _,  _, Parts, In, _) :-
 	close(In),
 	parse_url(Id, Parts),
 	throw(error(existence_error(url, Id),
@@ -241,6 +261,33 @@ return_final_url(Options) :-
 return_final_url(_).
 
 	
+%%	transfer_encoding_filter(+Lines, +In0, -In) is det.
+%
+%	Install filters depending on the encoding.
+
+transfer_encoding_filter(Lines, In0, In) :-
+	transfer_encoding(Lines, Encoding), !,
+	(   http:encoding_filter(Encoding, In0, In)
+	->  true
+	;   domain_error(http_encoding, Encoding)
+	).
+transfer_encoding_filter(_, In, In).
+
+
+%%	transfer_encoding(+Lines, -Encoding) is semidet.
+%
+%	True if Encoding is the value of the =|Transfer-encoding|=
+%	header.
+
+transfer_encoding(Lines, Encoding) :-
+	member(Line, Lines),
+	phrase(transfer_encoding(Encoding0), Line), !,
+	Encoding = Encoding0.
+
+transfer_encoding(Encoding) -->
+	field("transfer-encoding"),
+	rest(Encoding).
+
 %%	read_header(+In:stream, -Code:int, -Comment:atom, -Lines:list)
 %
 %	Read the HTTP reply-header.

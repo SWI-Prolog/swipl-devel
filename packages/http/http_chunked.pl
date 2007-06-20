@@ -109,3 +109,22 @@ connection-based protocols.
 %		an indication of the problem.  This error is raised if
 %		the input is not valid HTTP chunked data.
 
+:- multifile
+	http:encoding_filter/3.		% +Encoding, +In0,  -In
+:- multifile
+	http:current_transfer_encoding/1. % ?Encoding
+
+%	http:encoding_filter(+Encoding, +In0, -In) is semidet.
+%	
+%	Install a filter to deal with =chunked= encoded messages.
+
+http:encoding_filter(chunked, In0, In) :-
+	http_chunked_open(In0, In, 
+			  [ close_parent(true)
+			  ]).
+
+%	http:current_transfer_encoding(?Encoding) is semidet.
+%	
+%	True if Encoding is supported
+
+http:current_transfer_encoding(chunked).
