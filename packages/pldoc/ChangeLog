@@ -1,3 +1,8 @@
+Jun 21, 2007
+
+* ADDED: Deal with edit/non-edit when accessed from behind an Apache
+  reverse proxy.
+
 Jun 8, 2007
 
 * DOCS: Updated some details in the documentation.

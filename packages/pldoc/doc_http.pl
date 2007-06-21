@@ -41,6 +41,7 @@
 :- use_module(library('http/http_parameters')).
 :- use_module(library('http/html_write')).
 :- use_module(library('http/mimetype')).
+:- use_module(library('http/dcg_basics')).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 :- use_module(library(url)).
@@ -272,12 +273,27 @@ allow_edit(_) :-
 	can_edit(false), !, 
 	fail.
 allow_edit(Request) :-
-	memberchk(peer(Peer), Request),
+	(   memberchk(x_forwarded_for(IPAtom), Request),
+	    parse_ip(IPAtom, Peer)
+	->  true
+	;   memberchk(peer(Peer), Request)
+	),
 	match_peer(localhost, +, Peer).
 
 localhost(ip(127,0,0,1)).
 localhost(localhost).
 
+parse_ip(Atom, IP) :-
+	atom_codes(Atom, Codes),
+	phrase(ip(IP), Codes).
+
+%%	ip(?IP)// is semidet.
+%
+%	Parses A.B.C.D into ip(A,B,C,D)
+
+ip(ip(A,B,C,D)) -->
+	integer(A), ".", integer(B), ".", integer(C), ".", integer(D).
+	
 edit_option(Options0, Options) :-
 	select_option(edit(Bool), Options0, Options), !,
 	assert(can_edit(Bool)).
@@ -313,10 +329,10 @@ doc_server_root(Root) :-
 %	Make paths relative to / if it was moved.
 
 normalise_path(Path0, Path) :-
-	doc_server_root(Root),
 	(   doc_server_root(/)
 	->  Path = Path0
-	;   atom_concat(Root, Rest, Path0)
+	;   doc_server_root(Root),
+	    atom_concat(Root, Rest, Path0)
 	->  atom_concat(/, Rest, Path)
 	).
 	
