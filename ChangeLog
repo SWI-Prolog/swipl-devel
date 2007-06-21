@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Allow for unquoted a/b in file-specifications for
+    absolute_file_name/3 and derived predicates.  E.g. 
+    :- use_module(library(semweb/rdf_db)).
+
 =============================
 VERSION 5.6.36 (Jun 20, 2007)
 =============================

@@ -410,6 +410,9 @@ expand_file_search_path(Spec, Expanded) :-
 	'$expand_file_search_path'(Exp0, Exp1, NN, [Alias=Exp0|Used]),
 	arg(1, Spec, Base),
 	'$make_path'(Exp1, Base, Expanded).
+'$expand_file_search_path'(A/B, Expanded, _, _) :- !,
+	'$make_path_from_slash'(A/B, Parts, []),
+	concat_atom(Parts, Expanded).
 '$expand_file_search_path'(Spec, Spec, _, _) :-
 	atomic(Spec).
 
@@ -417,15 +420,28 @@ expand_file_search_path(Spec, Expanded) :-
 	atom_concat(_, /, Dir), !,
 	atom_concat(Dir, File, Path).
 '$make_path'(Dir, File, Path) :-
-	'$concat_atom'([Dir, '/', File], Path).
+	'$make_path_from_slash'(File, Parts, []),
+	'$append'([Dir, /], Parts, AllParts),
+	'$concat_atom'(AllParts, Path).
+
+
+%%	'$make_path_from_slash'(+SlashPath, -Parts, ?Tail) is det.
+%
+%	Translate a/b/c into [a,/,b,/,c]. We cannot   use DCG as the DCG
+%	compiler is not yet defined.
+
+'$make_path_from_slash'(A/B, P0, P) :- !,
+	'$make_path_from_slash'(A, P0, [/|P1]),
+	'$make_path_from_slash'(B, P1, P).
+'$make_path_from_slash'(A, [A|T], T).
 
 
 		/********************************
 		*         FILE CHECKING         *
 		*********************************/
 
-%	absolute_file_name(+Term, +Args, -AbsoluteFile)
-%	absolute_file_name(+Term, -AbsoluteFile, +Args)
+%%	absolute_file_name(+Term, +Args, -AbsoluteFile) is nondet.
+%%	absolute_file_name(+Term, -AbsoluteFile, +Args) is nondet.
 %	
 %	Translate path-specifier into a full   path-name. This predicate
 %	originates from Quintus was introduced  in SWI-Prolog very early
