@@ -163,8 +163,9 @@ in \secref{litindex}.
 	    string.  The query is not indexed on \arg{Object}.
 	\termitem{prefix}{+Text}
 	    Match any literal that starts with \arg{Text}.  This call
-	    is intended for \jargon{completion}.  The query is not
-	    indexed on \arg{Object}.
+	    is intended for \jargon{completion}.  The query is indexed
+	    using the binary tree of literals.  See \secref{litindex}
+	    for details.
 	\termitem{like}{+Pattern}
 	    Match any literal that matches \arg{Pattern} case
 	    insensitively, where the `*' character in \arg{Pattern}
