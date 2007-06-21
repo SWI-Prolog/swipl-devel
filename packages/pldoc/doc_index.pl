@@ -310,10 +310,29 @@ doc_links(Directory, Options) -->
 	;   Dir = Directory
 	},
 	html(div(class(navhdr),
-		 [ span(style('float:left'),  \source_dir_menu(Dir)),
+		 [ span(style('float:left'),
+			div([ \source_dir_menu(Dir),
+			      \version
+			    ])),
 		   span(style('float:right'), \search_form(Options)),
 		   br(clear(both))
 		 ])).
+
+
+%%	version// is det.
+%
+%	Prolog version
+
+version -->
+	{ current_prolog_flag(version, Version),
+	  Major is Version // 10000,
+	  Minor is (Version // 100) mod 100,
+	  Patch is Version mod 100
+	},
+	html(a([ class(prolog_version),
+		 href('http://www.swi-prolog.org')
+	       ],
+	       [' SWI-Prolog ', Major, '.', Minor, '.', Patch])).
 
 
 %%	source_dir_menu(Current)// is det

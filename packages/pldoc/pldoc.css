@@ -238,3 +238,8 @@ span.line-no
 div.comment h1.module
 { margin-top: 0;
 }
+
+a.prolog_version
+{ font-style: italic;
+  font-size: 70%;
+}
