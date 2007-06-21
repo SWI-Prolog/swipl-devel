@@ -283,7 +283,8 @@ http_read_data(Fields, Data, Options) :-
 http_read_data(In, Fields, Data, Options) :-	% Transfer-encoding: chunked
 	select(transfer_encoding(chunked), Fields, RestFields), !,
 	http_chunked_open(In, DataStream, []),
-	http_read_data(DataStream, RestFields, Data, Options).
+	call_cleanup(http_read_data(DataStream, RestFields, Data, Options),
+		     close(DataStream)).
 http_read_data(In, Fields, Data, Options) :-
 	memberchk(to(X), Options), !,
 	(   X = stream(Stream)

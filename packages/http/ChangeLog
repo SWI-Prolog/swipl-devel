@@ -1,3 +1,7 @@
+Jun 21, 2007
+
+* Avoid leaking stream handle in http_get/3 on chunked encoding.
+
 Jun 20, 2007
 
  * ENHANCED: Support chunked encoding in http_get/3 and http_post/4 on the
