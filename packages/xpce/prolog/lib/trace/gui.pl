@@ -414,6 +414,7 @@ fill_menu_bar(F) :->
 	get(MBD, member, menu_bar, MB),
 	send(MB, append, new(Tool, popup(tool))),
 	send(MB, append, new(Edit, popup(edit))),
+	send(MB, append, new(View, popup(view))),
 	send(MB, append, new(Comp, popup(compile))),
 	send(MB, append, new(Help, popup(help)), right),
 	send_list(Tool, append,
@@ -434,6 +435,10 @@ fill_menu_bar(F) :->
 			      end_group := @on),
 		    menu_item(toggle_edit_mode,
 			      message(F, edit))
+		  ]),
+	send_list(View, append,
+		  [ menu_item(threads,
+			      message(F, show_threads))
 		  ]),
 	send_list(Comp, append,
 		  [ menu_item(make,
@@ -478,6 +483,10 @@ show_stack(GUI, CallFrames:prolog, ChoiceFrames:prolog) :->
 	get(GUI, member, stack, StackWindow),
 	send(StackWindow, clear),
 	display_stack(StackWindow, CallFrames, ChoiceFrames).
+
+show_threads(_GUI) :->
+	"Open Thread monitor"::
+	prolog_ide(thread_monitor).
 
 
 		 /*******************************

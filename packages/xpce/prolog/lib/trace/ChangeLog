@@ -1,9 +1,11 @@
 		      SWI-Prolog GUI tracer ChangeLog
 
-
 This ChangeLog logs changes to the debugger   as  well as changes to the
 rest of the system that only affect the debugger.
 
+Jun 22, 2007
+
+* ADDED: View/threads menu item to get the thread-monitor.
 
 VERSION 1.1.1 for SWI-Prolog 5.0.2
 ==================================
