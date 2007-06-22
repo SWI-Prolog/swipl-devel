@@ -178,7 +178,9 @@ rdf_flush_journal(DB, Options) :-
 		 *	       LOAD		*
 		 *******************************/
 
-%%	load_db(-DBs)
+%%	load_db is det.
+%
+%	Reload database from the directory specified by rdf_directory/1.
 
 load_db :-
 	rdf_directory(Dir),
@@ -186,6 +188,13 @@ load_db :-
 	call_cleanup(find_dbs(DBs), working_directory(_, Old)),
 	forall(member(DB, DBs),
 	       load_source(DB)).
+
+%%	find_dbs(-DBs:list(atom)) is det.
+%
+%	DBs is a  list  of  database   (named  graph)  names,  sorted in
+%	increasing file-size. Small files  are   loaded  first  as these
+%	typically contain the schemas and we   want  to avoid re-hashing
+%	large databases due to added rdfs:subPropertyOf triples.
 
 find_dbs(DBs) :-
 	expand_file_name(*, Files),
@@ -225,7 +234,7 @@ unkey([_-H|T0], [H|T]) :-
 	unkey(T0, T).
 
 
-%%	load_source(+SnapshotFile)
+%%	load_source(+DB) is det.
 %	
 %	Load triples and reload  journal   from  the  indicated snapshot
 %	file.
@@ -259,6 +268,11 @@ load_source(DB) :-
 		 *	   LOAD JOURNAL		*
 		 *******************************/
 	
+%%	load_journal(+File:atom, +DB:atom) is det.
+%
+%	Process transactions from the RDF journal File, adding the given
+%	named graph.
+
 load_journal(File, DB) :-
 	open_db(File, read, In,
 		[ encoding(utf8)
@@ -493,7 +507,12 @@ sync_state([DB-MD5|TA], Pre) :-
 
 %%	journal_fd(+DB, -Stream)
 %	
-%	Open existing journal or create new journal for database DB
+%	Open existing journal or create new journal for database DB.
+%	
+%	@tbd	Currently a journal is kept open as long as the process
+%		runs.  Scaling to many named graphs this will overflow
+%		the open file limit on most systems.  We need to close
+%		unused journals.
 
 journal_fd(DB, Fd) :-
 	source_journal_fd(DB, Fd), !.
@@ -513,6 +532,7 @@ journal_fd_(DB, Fd) :-
 	time_stamp(Now),
 	format(Fd, '~q.~n', [start([time(Now)])]),
 	assert(source_journal_fd(DB, Fd)).
+
 
 %%	sync_journal(+DB, +Fd)
 %	
@@ -646,6 +666,10 @@ exists_db(Base) :-
 %%	db_files(+DB, -Snapshot, -Journal).
 %%	db_files(-DB, +Snapshot, -Journal).
 %%	db_files(-DB, -Snapshot, +Journal).
+%
+%	True if named graph DB is represented  by the files Snapshot and
+%	Journal. The filenames are local   to the directory representing
+%	the store.
 
 db_files(DB, Snapshot, Journal) :-
 	nonvar(DB), !,
