@@ -1565,6 +1565,7 @@ executeThreadSignals(int sig)
     next = sg->next;
     PL_recorded(sg->goal, goal);
     PL_erase(sg->goal);
+    DEBUG(1, Sdprintf("[%d] Executing thread signal\n", PL_thread_self()));
     rval = callProlog(sg->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
     freeHeap(sg, sizeof(*sg));
 
