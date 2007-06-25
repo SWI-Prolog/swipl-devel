@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#290: text<-postscript ignores <-wrap: wrap_fixed_width.
+  Tom Conlon.
+
 VERSION 6.6.36, distributed with SWI-Prolog 5.6.36
 ==================================================
 

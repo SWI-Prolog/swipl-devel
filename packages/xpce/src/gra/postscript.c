@@ -1645,6 +1645,9 @@ drawPostScriptImage(Image image, Name hb)
 }
 
 
+#define Wrapped(t)      ((t)->wrap == NAME_wrap || \
+			 (t)->wrap == NAME_wrapFixedWidth)
+
 status
 drawPostScriptText(TextObj t, Name hb)
 { String s = &t->string->data;
@@ -1701,7 +1704,7 @@ drawPostScriptText(TextObj t, Name hb)
       if ( t->underline == ON )
 	flags |= TXT_UNDERLINED;
 
-      if ( t->wrap == NAME_wrap )
+      if ( Wrapped(t) )
       { LocalString(buf, s->iswide, s->size + MAX_WRAP_LINES);
       
 	str_format(buf, s, valInt(t->margin), t->font);
