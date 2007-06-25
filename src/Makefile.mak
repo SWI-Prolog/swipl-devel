@@ -87,7 +87,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	rbtrees.pl settings.pl \
 	$(PLWINLIBS)
 !IF "$(MT)" == "true"
-PLLIBS=$(PLLIBS) threadutil.pl
+PLLIBS=$(PLLIBS) threadutil.pl thread.pl
 !ENDIF
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl
 UNICODE=blocks.pl unicode_data.pl

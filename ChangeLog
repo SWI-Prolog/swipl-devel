@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: library(thread), providing some high-level concurrency
+    predicates.
+
   * FIXED: Bug#291: format_time/3 using %Z for different character
     sets.  I'm not sure about this fix.  I cannot reproduce the problem.
     New code is definitely cleaner though.  Dmitry.
