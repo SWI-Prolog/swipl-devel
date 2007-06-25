@@ -83,7 +83,7 @@ do_tzset()
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-POSIX provides the avriable  timezone,  providing   the  offset  of  the
+POSIX provides the variable  timezone,  providing   the  offset  of  the
 current timezone WEST of GMT in seconds.   Some systems (FreeBSD) do not
 provide that. Instead thet provide  tm_gmtoff   in  struct  tm, but this
 value is EAST and includes the DST offset.
@@ -489,6 +489,26 @@ fmt_not_implemented(const char *key)
 #define OUTSTR(str) \
 	{ Sfputs(str, fd); \
 	}
+#define OUTSTRA(str) \
+	{ foutstra(str, fd); \
+	}
+#define OUTATOM(a) \
+	{ writeAtomToStream(fd, a); \
+	}
+
+static void
+foutstra(const char *str, IOSTREAM *fd)
+{ wchar_t wbuf[256];
+  size_t n;
+
+  if ( (n = mbstowcs(wbuf, str, sizeof(wbuf)/sizeof(wchar_t))) != (size_t)-1 ) 
+  { wchar_t *p;
+
+    for(p=wbuf; n-- > 0; p++)
+      Sputcode(*p, fd);
+  }
+}
+
 
 static const char *abbred_weekday[] =
 { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
@@ -550,7 +570,6 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  case_b:
 	  { char fmt[3];
 	    char buf[256];
-	    wchar_t wbuf[256];
 	    size_t n;
   
 	    fmt[0] = '%';
@@ -560,12 +579,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    cal_ftm(ftm, HAS_STAMP|HAS_WYDAY);
 					/* conversion is not thread-safe under locale switch */
 	    n = strftime(buf, sizeof(buf), fmt, &ftm->tm);
-	    if ( (n = mbstowcs(wbuf, buf, sizeof(wbuf)/sizeof(wchar_t))) != (size_t)-1 )
-	    { wchar_t *p;
-
-	      for(p=wbuf; n-- > 0; p++)
-		Sputcode(*p, fd);
-	    }
+	    OUTSTRA(buf);
 	    break;
 	  }
 	  case 'C':			/* (year/100) as a 2-digit int */
@@ -727,9 +741,9 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  }
 	  case 'Z':			/* Time-zone as name */
 	    if ( ftm->tzname )
-	    { OUTSTR(PL_atom_chars(ftm->tzname));
+	    { OUTATOM(ftm->tzname);
 	    } else
-	    { OUTSTR(tz_name(ftm->tm.tm_isdst));
+	    { OUTSTRA(tz_name(ftm->tm.tm_isdst));
 	    }
 	    break;
 	  case '+':
@@ -738,7 +752,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	      cal_ftm(ftm, HAS_WYDAY);
 	      asctime_r(&ftm->tm, buf);
 	      buf[24] = EOS;
-	      OUTSTR(buf);
+	      OUTSTRA(buf);
 	    }
 	    break;
 	  case '%':
