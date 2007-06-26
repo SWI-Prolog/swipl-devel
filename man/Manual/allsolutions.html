@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.35 Reference Manual: Section 4.29</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.36 Reference Manual: Section 4.29</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="builtinlist.html">
@@ -132,10 +132,10 @@ all Solutions to a Goal</SPAN></A></H2>
 Creates a list of the instantiations <VAR>Template</VAR> gets 
 successively on backtracking over <VAR>Goal</VAR> and unifies the result 
 with <VAR>Bag</VAR>. Succeeds with an empty list if <VAR>Goal</VAR> has 
-no solutions. <A NAME="idx:findall3:946"></A><A class="pred" href="allsolutions.html#findall/3">findall/3</A> 
-is equivalent to <A NAME="idx:bagof3:947"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
+no solutions. <A NAME="idx:findall3:948"></A><A class="pred" href="allsolutions.html#findall/3">findall/3</A> 
+is equivalent to <A NAME="idx:bagof3:949"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
 with all free variables bound with the existential operator (<STRONG><CODE>^</CODE></STRONG>), 
-except that <A NAME="idx:bagof3:948"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
+except that <A NAME="idx:bagof3:950"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
 fails when goal has no solutions.</DD>
 <DT class="pubdef"><A NAME="bagof/3"><STRONG>bagof</STRONG>(<VAR>+Template, 
 +Goal, -Bag</VAR>)</A></DT>
@@ -147,10 +147,10 @@ unifying <VAR>Bag</VAR> with the corresponding alternatives of <VAR>Template</VA
 The construct
 <CODE>+<VAR>Var</VAR><CODE>^</CODE><VAR>Goal</VAR></CODE> tells bagof 
 not to bind <VAR>Var</VAR> in
-<VAR>Goal</VAR>. <A NAME="idx:bagof3:949"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
+<VAR>Goal</VAR>. <A NAME="idx:bagof3:951"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
 fails if <VAR>Goal</VAR> has no solutions.
 
-<P>The example below illustrates <A NAME="idx:bagof3:950"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
+<P>The example below illustrates <A NAME="idx:bagof3:952"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
 and the <STRONG><CODE>^</CODE></STRONG> operator. The variable bindings 
 are printed together on one line to save paper.
 
@@ -184,8 +184,8 @@ No
 <DT class="pubdef"><A NAME="setof/3"><STRONG>setof</STRONG>(<VAR>+Template, 
 +Goal, -Set</VAR>)</A></DT>
 <DD class="defbody">
-Equivalent to <A NAME="idx:bagof3:951"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A>, 
-but sorts the result using <A NAME="idx:sort2:952"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A> 
+Equivalent to <A NAME="idx:bagof3:953"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A>, 
+but sorts the result using <A NAME="idx:sort2:954"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A> 
 to get a sorted list of alternatives without duplicates.
 </DD>
 </DL>

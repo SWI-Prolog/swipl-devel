@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.35 Reference Manual: Section 7.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.36 Reference Manual: Section 7.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="practical.html">
@@ -187,8 +187,8 @@ rule.
 
 <H3><A NAME="sec:7.4.2"><SPAN class="sec-nr">7.4.2</SPAN> <SPAN class="sec-title">Tracing</SPAN></A></H3>
 
-Tracing is enabled with the <A NAME="idx:chrtrace0:1184"></A><A class="pred" href="debugging.html#chr_trace/0">chr_trace/0</A> 
-predicate and disabled with the <A NAME="idx:chrnotrace0:1185"></A><A class="pred" href="debugging.html#chr_notrace/0">chr_notrace/0</A> 
+Tracing is enabled with the <A NAME="idx:chrtrace0:1186"></A><A class="pred" href="debugging.html#chr_trace/0">chr_trace/0</A> 
+predicate and disabled with the <A NAME="idx:chrnotrace0:1187"></A><A class="pred" href="debugging.html#chr_notrace/0">chr_notrace/0</A> 
 predicate.
 
 <P>When enabled the tracer will step through the <CODE>call</CODE>,
@@ -231,11 +231,11 @@ Disable the tracer.
 </DD>
 <DT><STRONG>break</STRONG></DT>
 <DD class="defbody">
-Enter a recursive Prolog top-level. See <A NAME="idx:break0:1186"></A><A class="pred" href="toplevel.html#break/0">break/0</A>.
+Enter a recursive Prolog top-level. See <A NAME="idx:break0:1188"></A><A class="pred" href="toplevel.html#break/0">break/0</A>.
 </DD>
 <DT><STRONG>abort</STRONG></DT>
 <DD class="defbody">
-Exit to the top-level. See <A NAME="idx:abort0:1187"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>.
+Exit to the top-level. See <A NAME="idx:abort0:1189"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>.
 </DD>
 <DT><STRONG>fail</STRONG></DT>
 <DD class="defbody">
@@ -258,15 +258,15 @@ content of the constraint store.
 <DT class="pubdef"><A NAME="chr_trace/0"><STRONG>chr_trace</STRONG></A></DT>
 <DD class="defbody">
 Activate the CHR tracer. By default the CHR tracer is activated and 
-deactivated automatically by the Prolog predicates <A NAME="idx:trace0:1188"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
-and
-<A NAME="idx:notrace0:1189"></A><A class="pred" href="debugger.html#notrace/0">notrace/0</A>.</DD>
-<DT class="pubdef"><A NAME="chr_notrace/0"><STRONG>chr_notrace</STRONG></A></DT>
-<DD class="defbody">
-De-activate the CHR tracer. By default the CHR tracer is activated and 
 deactivated automatically by the Prolog predicates <A NAME="idx:trace0:1190"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 and
 <A NAME="idx:notrace0:1191"></A><A class="pred" href="debugger.html#notrace/0">notrace/0</A>.</DD>
+<DT class="pubdef"><A NAME="chr_notrace/0"><STRONG>chr_notrace</STRONG></A></DT>
+<DD class="defbody">
+De-activate the CHR tracer. By default the CHR tracer is activated and 
+deactivated automatically by the Prolog predicates <A NAME="idx:trace0:1192"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
+and
+<A NAME="idx:notrace0:1193"></A><A class="pred" href="debugger.html#notrace/0">notrace/0</A>.</DD>
 <DT class="pubdef"><A NAME="chr_leash/1"><STRONG>chr_leash</STRONG>(<VAR>+Spec</VAR>)</A></DT>
 <DD class="defbody">
 Define the set of CHR ports on which the CHR tracer asks for user 
@@ -276,7 +276,7 @@ predefined `alias'. Defined aliases are: <CODE>full</CODE> to stop at
 all ports, <CODE>none</CODE> or <CODE>off</CODE> to never stop, and <CODE>default</CODE> 
 to stop at the <CODE>call</CODE>,
 <CODE>exit</CODE>, <CODE>fail</CODE>, <CODE>wake</CODE> and <CODE>apply</CODE> 
-ports. See also <A NAME="idx:leash1:1192"></A><A class="pred" href="debugger.html#leash/1">leash/1</A>.</DD>
+ports. See also <A NAME="idx:leash1:1194"></A><A class="pred" href="debugger.html#leash/1">leash/1</A>.</DD>
 <DT class="pubdef"><A NAME="chr_show_store/1"><STRONG>chr_show_store</STRONG>(<VAR>+Mod</VAR>)</A></DT>
 <DD class="defbody">
 Prints all suspended constraints of module <VAR>Mod</VAR> to the 

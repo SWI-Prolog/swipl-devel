@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.35 Reference Manual: Section 2.15</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.36 Reference Manual: Section 2.15</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="gc.html">
@@ -162,7 +162,7 @@ Character Set</SPAN></A></H4>
 
 <A NAME="sec:processorcharset"></A>
 
-<P><A NAME="idx:isolatin1:199"></A><A NAME="idx:characterset:200"></A>The 
+<P><A NAME="idx:isolatin1:200"></A><A NAME="idx:characterset:201"></A>The 
 processor character set specifies the class of each character used for 
 parsing Prolog source text. Character classification is fixed to use 
 UCS/Unicode as provided by the C-library <CODE>wchar_t</CODE> based 
@@ -268,13 +268,13 @@ and <CODE>''''</CODE> both describe the atom with a single&nbsp;<CODE>'</CODE>.
 
 <P>Character escaping is only available if the
 <CODE>current_prolog_flag(character_escapes, true)</CODE> is active 
-(default). See <A NAME="idx:currentprologflag2:201"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>. 
-Character escapes conflict with <A NAME="idx:writef2:202"></A><A class="pred" href="format.html#writef/2">writef/2</A> 
-in two ways: <CODE>\40</CODE> is interpreted as decimal 40 by <A NAME="idx:writef2:203"></A><A class="pred" href="format.html#writef/2">writef/2</A>, 
+(default). See <A NAME="idx:currentprologflag2:202"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>. 
+Character escapes conflict with <A NAME="idx:writef2:203"></A><A class="pred" href="format.html#writef/2">writef/2</A> 
+in two ways: <CODE>\40</CODE> is interpreted as decimal 40 by <A NAME="idx:writef2:204"></A><A class="pred" href="format.html#writef/2">writef/2</A>, 
 but character escapes handling by read has already interpreted as 32 (40 
 octal). Also, <CODE>\l</CODE> is translated to a single `l'. It is 
-advised to use the more widely supported <A NAME="idx:format23:204"></A><A class="pred" href="format.html#format/2">format/[2,3]</A> 
-predicate instead. If you insist upon using <A NAME="idx:writef2:205"></A><A class="pred" href="format.html#writef/2">writef/2</A>, 
+advised to use the more widely supported <A NAME="idx:format23:205"></A><A class="pred" href="format.html#format/2">format/[2,3]</A> 
+predicate instead. If you insist upon using <A NAME="idx:writef2:206"></A><A class="pred" href="format.html#writef/2">writef/2</A>, 
 either switch <CODE>character_escapes</CODE> to
 <CODE>false</CODE>, or use double <CODE>\\</CODE>, as in <CODE>writef('\\l')</CODE>.
 
@@ -303,7 +303,7 @@ writing international source files is described in <A class="sec" href="projectf
 3.1.3</A>.
 
 <P>The SWI-Prolog Unicode character classification is based on version 
-4.1.0 of the Unicode standard. Please that <A NAME="idx:chartype2:206"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A> 
+4.1.0 of the Unicode standard. Please that <A NAME="idx:chartype2:207"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A> 
 and friends, intended to be used with all text except Prolog source code 
 is based on the C-library locale-based classification routines.
 
@@ -351,7 +351,7 @@ variable checking</SPAN></A></H4>
 clause. It can always be replaced by <CODE>_</CODE>, the <EM>anonymous</EM> 
 variable. In some cases however people prefer to give the variable a 
 name. As mistyping a variable is a common mistake, Prolog systems 
-generally give a warning (controlled by <A NAME="idx:stylecheck1:207"></A><A class="pred" href="debugger.html#style_check/1">style_check/1</A>) 
+generally give a warning (controlled by <A NAME="idx:stylecheck1:208"></A><A class="pred" href="debugger.html#style_check/1">style_check/1</A>) 
 if a variable is used only once. The system can be informed a variable 
 is known to appear once by <EM>starting</EM> it with an underscore. E.g. <CODE>_Name</CODE>. 
 Please note that any variable, except plain <CODE>_</CODE> shares with 

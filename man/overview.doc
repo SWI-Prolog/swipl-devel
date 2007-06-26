@@ -984,6 +984,17 @@ macros.
 Set to \const{true} in \program{plwin.exe} to indicate the console
 supports menus.  See also \secref{plwin}.
 
+    \prologflagitem{cpu_count}{integer}{rw}
+Number of physical CPUs in the system. Unfortunately there is no
+standard to get this number, so on most operating systems this flag is
+not available. It is marked read-write both to allow obtaining this
+value later and to allow pretending the system has more or less
+processors. See also thread_setconcurrency/2 and the library
+\pllib{thread}. Currently this flag is supported in Windows and Linux if
+\file{/proc} is enabled. If you can provide us with a C-code fragment
+getting the number for a specific OS, please submit an enhancement
+report at \url{http://gollem.science.uva.nl/bugzilla/}
+
     \prologflagitem{dde}{bool}{r}
 Set to \const{true} if this instance of Prolog supports DDE as
 described in \secref{DDE}.

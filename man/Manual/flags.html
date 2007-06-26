@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.35 Reference Manual: Section 2.11</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.36 Reference Manual: Section 2.11</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="compilation.html">
@@ -249,6 +249,19 @@ macros.</DD>
 Set to <CODE>true</CODE> in <B>plwin.exe</B> to indicate the console 
 supports menus. See also <A class="sec" href="system.html">section 
 4.34.2</A>.</DD>
+<DT><STRONG>cpu_count</STRONG>(<VAR>integer</VAR>, changeable)</DT>
+<DD class="defbody">
+Number of physical CPUs in the system. Unfortunately there is no 
+standard to get this number, so on most operating systems this flag is 
+not available. It is marked read-write both to allow obtaining this 
+value later and to allow pretending the system has more or less 
+processors. See also <A NAME="idx:threadsetconcurrency2:116"></A><A class="pred" href="threadcreate.html#thread_setconcurrency/2">thread_setconcurrency/2</A> 
+and the library
+<CODE>library(thread)</CODE>. Currently this flag is supported in 
+Windows and Linux if
+<CODE>/proc</CODE> is enabled. If you can provide us with a C-code 
+fragment getting the number for a specific OS, please submit an 
+enhancement report at <A class="url" href="http://gollem.science.uva.nl/bugzilla/">http://gollem.science.uva.nl/bugzilla/</A></DD>
 <DT><STRONG>dde</STRONG>(<VAR>bool</VAR>)</DT>
 <DD class="defbody">
 Set to <CODE>true</CODE> if this instance of Prolog supports DDE as 
@@ -256,8 +269,8 @@ described in <A class="sec" href="DDE.html">section 4.42</A>.</DD>
 <DT><STRONG>debug</STRONG>(<VAR>bool</VAR>, changeable)</DT>
 <DD class="defbody">
 Switch debugging mode on/off. If debug mode is activated the system 
-traps encountered spy-points (see <A NAME="idx:spy1:116"></A><A class="pred" href="debugger.html#spy/1">spy/1</A>) 
-and trace-points (see <A NAME="idx:trace1:117"></A><A class="pred" href="debugger.html#trace/1">trace/1</A>). 
+traps encountered spy-points (see <A NAME="idx:spy1:117"></A><A class="pred" href="debugger.html#spy/1">spy/1</A>) 
+and trace-points (see <A NAME="idx:trace1:118"></A><A class="pred" href="debugger.html#trace/1">trace/1</A>). 
 In addition, tail-recursion optimisation is disabled and the system is 
 more conservative in destroying choice-points to simplify debugging.
 
@@ -267,12 +280,12 @@ memory on programs that behave correctly if debug mode is off.</DD>
 <DD class="defbody">
 If <TT>true</TT>, start the tracer after an error is detected. Otherwise 
 just continue execution. The goal that raised the error will normally 
-fail. See also <A NAME="idx:fileerrors2:118"></A><A class="pred" href="streamstat.html#fileerrors/2">fileerrors/2</A> 
+fail. See also <A NAME="idx:fileerrors2:119"></A><A class="pred" href="streamstat.html#fileerrors/2">fileerrors/2</A> 
 and the prolog-flag <TT>report_error</TT>. May be changed. Default is <TT>true</TT>, 
 except for the runtime version.</DD>
 <DT><STRONG>debugger_print_options</STRONG>(<VAR>term</VAR>, changeable)</DT>
 <DD class="defbody">
-This argument is given as option-list to <A NAME="idx:writeterm2:119"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
+This argument is given as option-list to <A NAME="idx:writeterm2:120"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
 for printing goals by the debugger. Modified by the `w', `p' and `&lt;<VAR>N</VAR>&gt; 
 d' commands of the debugger. Default is <CODE>[quoted(true), 
 portray(true), max_depth(10), attributes(portray)]</CODE>.</DD>
@@ -290,8 +303,8 @@ This flag determines how double-quotes strings are read by Prolog and is
 double quotes are the same as single-quotes and finally, <CODE>string</CODE> 
 reads the text into a Prolog string (see <A class="sec" href="strings.html">section 
 4.23</A>). See also
-<A NAME="idx:atomchars2:120"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
-and <A NAME="idx:atomcodes2:121"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>.</DD>
+<A NAME="idx:atomchars2:121"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
+and <A NAME="idx:atomcodes2:122"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>.</DD>
 <DT><STRONG>dynamic_stacks</STRONG>(<VAR>bool</VAR>)</DT>
 <DD class="defbody">
 If <CODE>true</CODE>, the system uses some form of `sparse-memory 
@@ -302,12 +315,12 @@ As of version 2.5, this is no longer the case.
 <P>Systems using `sparse-memory management' are a bit faster as there is 
 no stack-shifter. On most systems using sparse-memory management memory 
 is actually returned to the system after a garbage collection or call to
-<A NAME="idx:trimstacks0:122"></A><A class="pred" href="memory.html#trim_stacks/0">trim_stacks/0</A> 
-(called by <A NAME="idx:prolog0:123"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A> 
+<A NAME="idx:trimstacks0:123"></A><A class="pred" href="memory.html#trim_stacks/0">trim_stacks/0</A> 
+(called by <A NAME="idx:prolog0:124"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A> 
 after finishing a user-query).</DD>
 <DT><STRONG>editor</STRONG>(<VAR>atom</VAR>, changeable)</DT>
 <DD class="defbody">
-Determines the editor used by <A NAME="idx:edit1:124"></A><A class="pred" href="listing.html#edit/1">edit/1</A>. 
+Determines the editor used by <A NAME="idx:edit1:125"></A><A class="pred" href="listing.html#edit/1">edit/1</A>. 
 See <A class="sec" href="listing.html">section 4.4</A> for details on 
 selecting the editor used.</DD>
 <DT><STRONG>emacs_inferior_process</STRONG>(<VAR>bool</VAR>)</DT>
@@ -323,30 +336,30 @@ initial value is deduced from the environment. See <A class="sec" href="widechar
 2.17.1</A> for details.</DD>
 <DT><STRONG>executable</STRONG>(<VAR>atom</VAR>)</DT>
 <DD class="defbody">
-Path-name of the running executable. Used by <A NAME="idx:qsaveprogram2:125"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A> 
+Path-name of the running executable. Used by <A NAME="idx:qsaveprogram2:126"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A> 
 as default emulator.</DD>
 <DT><STRONG>file_name_variables</STRONG>(<VAR>bool</VAR>, changeable)</DT>
 <DD class="defbody">
 If <CODE>true</CODE> (default <CODE>false</CODE>), expand <CODE>$<VAR>varname</VAR></CODE> 
 and <CODE> </CODE> in arguments of built-in predicates that accept a 
-file name (<A NAME="idx:open3:126"></A><A class="pred" href="IO.html#open/3">open/3</A>, <A NAME="idx:existsfile1:127"></A><A class="pred" href="files.html#exists_file/1">exists_file/1</A>, <A NAME="idx:accessfile2:128"></A><A class="pred" href="files.html#access_file/2">access_file/2</A>, 
+file name (<A NAME="idx:open3:127"></A><A class="pred" href="IO.html#open/3">open/3</A>, <A NAME="idx:existsfile1:128"></A><A class="pred" href="files.html#exists_file/1">exists_file/1</A>, <A NAME="idx:accessfile2:129"></A><A class="pred" href="files.html#access_file/2">access_file/2</A>, 
 etc.). The predicate
-<A NAME="idx:expandfilename2:129"></A><A class="pred" href="files.html#expand_file_name/2">expand_file_name/2</A> 
+<A NAME="idx:expandfilename2:130"></A><A class="pred" href="files.html#expand_file_name/2">expand_file_name/2</A> 
 should be used to expand environment variables and wildcard patterns. 
 This prolog-flag is intended for backward compatibility with older 
 versions of SWI-Prolog.</DD>
 <DT><STRONG>float_format</STRONG>(<VAR>atom</VAR>, changeable)</DT>
 <DD class="defbody">
-C-library printf() format specification used by <A NAME="idx:write1:130"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
+C-library printf() format specification used by <A NAME="idx:write1:131"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
 and friends to determine how floating point numbers are printed. The 
 default is <TT>%g</TT>. The specified value is passed to printf() 
 without further checking. For example, if you want more digits printed, <TT>%.12g</TT> 
 will print all floats using 12 digits instead of the default 6.
 
 <P>When using quoted-write, the output is guaranteed to contain a 
-decimal dot or exponent, so <A NAME="idx:read1:131"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
+decimal dot or exponent, so <A NAME="idx:read1:132"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
 reads a floating point number. See also
-<A NAME="idx:format12:132"></A><A class="pred" href="format.html#format/1">format/[1,2]</A>, <A NAME="idx:writeterm23:133"></A><A class="pred" href="termrw.html#write_term/2">write_term/[2,3]</A>.</DD>
+<A NAME="idx:format12:133"></A><A class="pred" href="format.html#format/1">format/[1,2]</A>, <A NAME="idx:writeterm23:134"></A><A class="pred" href="termrw.html#write_term/2">write_term/[2,3]</A>.</DD>
 <DT><STRONG>gc</STRONG>(<VAR>bool</VAR>, changeable)</DT>
 <DD class="defbody">
 If true (default), the garbage collector is active. If false, neither 
@@ -355,9 +368,9 @@ explicit request. May be changed.</DD>
 <DT><STRONG>generate_debug_info</STRONG>(<VAR>bool</VAR>, changeable)</DT>
 <DD class="defbody">
 If <CODE>true</CODE> (default) generate code that can be debugged using
-<A NAME="idx:trace0:134"></A><A class="pred" href="debugger.html#trace/0">trace/0</A>, <A NAME="idx:spy1:135"></A><A class="pred" href="debugger.html#spy/1">spy/1</A>, 
+<A NAME="idx:trace0:135"></A><A class="pred" href="debugger.html#trace/0">trace/0</A>, <A NAME="idx:spy1:136"></A><A class="pred" href="debugger.html#spy/1">spy/1</A>, 
 etc. Can be set to <CODE>false</CODE> using the
-<STRONG>-nodebug</STRONG>. The predicate <A NAME="idx:loadfiles2:136"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A> 
+<STRONG>-nodebug</STRONG>. The predicate <A NAME="idx:loadfiles2:137"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A> 
 restores the value of this flag after loading a file, causing 
 modifications to be local to a source file. Many of the libraries have
 <CODE>:- set_prolog_flag(generate_debug_info, false)</CODE> to hide 
@@ -410,11 +423,11 @@ SWI-Prolog behaviour. Currently it has the following effect:
 applied to integers that can be divided.
 <LI>In the standard order of terms (see <A class="sec" href="compare.html">section 
 4.6.1</A>), all floats are before all integers.
-<LI><A NAME="idx:atomlength2:137"></A><A class="pred" href="manipatom.html#atom_length/2">atom_length/2</A> 
+<LI><A NAME="idx:atomlength2:138"></A><A class="pred" href="manipatom.html#atom_length/2">atom_length/2</A> 
 yields an instantiation error if the first argument is a number.
-<LI><A NAME="idx:clause23:138"></A><A class="pred" href="examineprog.html#clause/2">clause/[2,3]</A> 
+<LI><A NAME="idx:clause23:139"></A><A class="pred" href="examineprog.html#clause/2">clause/[2,3]</A> 
 raises a permission error when accessing static predicates.
-<LI><A NAME="idx:abolish12:139"></A><A class="pred" href="db.html#abolish/1">abolish/[1,2]</A> 
+<LI><A NAME="idx:abolish12:140"></A><A class="pred" href="db.html#abolish/1">abolish/[1,2]</A> 
 raises a permission error when accessing static predicates.
 </UL>
 </DD>
@@ -452,7 +465,7 @@ flag <CODE>bounded</CODE> and <A class="sec" href="arith.html">section
 Start of the tagged-integer value range.</DD>
 <DT><STRONG>open_shared_object</STRONG>(<VAR>bool</VAR>)</DT>
 <DD class="defbody">
-If true, <A NAME="idx:opensharedobject2:140"></A><A class="pred" href="dynstatic.html#open_shared_object/2">open_shared_object/2</A> 
+If true, <A NAME="idx:opensharedobject2:141"></A><A class="pred" href="dynstatic.html#open_shared_object/2">open_shared_object/2</A> 
 and friends are implemented, providing access to shared libraries (<CODE>.so</CODE> 
 files) or dynamic link libraries (<CODE>.DLL</CODE> files).</DD>
 <DT><STRONG>optimise</STRONG>(<VAR>bool</VAR>, changeable)</DT>
@@ -462,14 +475,14 @@ If <CODE>true</CODE>, compile in optimised mode. The initial value is
 command-line option.
 
 <P>Currently optimise compilation implies compilation of arithmetic, and 
-deletion of redundant <A NAME="idx:true0:141"></A><A class="pred" href="control.html#true/0">true/0</A> 
-that may result from <A NAME="idx:expandgoal2:142"></A><A class="pred" href="consulting.html#expand_goal/2">expand_goal/2</A>.
+deletion of redundant <A NAME="idx:true0:142"></A><A class="pred" href="control.html#true/0">true/0</A> 
+that may result from <A NAME="idx:expandgoal2:143"></A><A class="pred" href="consulting.html#expand_goal/2">expand_goal/2</A>.
 
 <P>Later versions might imply various other optimisations such as 
 integrating small predicates into their callers, eliminating constant 
 expressions and other predictable constructs. Source code optimisation 
 is never applied to predicates that are declared dynamic (see
-<A NAME="idx:dynamic1:143"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A>).</DD>
+<A NAME="idx:dynamic1:144"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A>).</DD>
 <DT><STRONG>pid</STRONG>(<VAR>int</VAR>)</DT>
 <DD class="defbody">
 Process identifier of the running Prolog process. Existence of this flag 
@@ -505,7 +518,7 @@ subset of the readline functionality.</DD>
 <DD class="defbody">
 Set to the absolute-filename of the attached state. Typically this is 
 the file <CODE>boot32.prc</CODE>, the file specified with <STRONG>-x</STRONG> 
-or the running executable. See also <A NAME="idx:resource3:144"></A><A class="pred" href="useresource.html#resource/3">resource/3</A>.</DD>
+or the running executable. See also <A NAME="idx:resource3:145"></A><A class="pred" href="useresource.html#resource/3">resource/3</A>.</DD>
 <DT><STRONG>report_error</STRONG>(<VAR>bool</VAR>, changeable)</DT>
 <DD class="defbody">
 If <TT>true</TT>, print error messages, otherwise suppress them. May be 
@@ -520,14 +533,14 @@ the tracer and profiler).</DD>
 <DD class="defbody">
 If present and <CODE>true</CODE>, Prolog is started from a state saved 
 with
-<A NAME="idx:qsaveprogram12:145"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.</DD>
+<A NAME="idx:qsaveprogram12:146"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.</DD>
 <DT><STRONG>shared_object_extension</STRONG>(<VAR>atom</VAR>)</DT>
 <DD class="defbody">
 Extension used by the operating system for shared objects. <CODE>.so</CODE> 
 for most Unix systems and <CODE>.dll</CODE> for Windows. Used for 
 locating files using the <CODE>file_type</CODE> <CODE>executable</CODE>. 
 See also
-<A NAME="idx:absolutefilename3:146"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>.</DD>
+<A NAME="idx:absolutefilename3:147"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>.</DD>
 <DT><STRONG>shared_object_search_path</STRONG>(<VAR>atom</VAR>)</DT>
 <DD class="defbody">
 Name of the environment variable used by the system to search for shared 
@@ -544,7 +557,7 @@ details.</DD>
 <DD class="defbody">
 On MT systems (<A class="sec" href="threads.html">section 8</A>, refers 
 to the thread-identifier used by the system for the calling thread. See 
-also <A NAME="idx:threadself1:147"></A><A class="pred" href="threadcreate.html#thread_self/1">thread_self/1</A>.</DD>
+also <A NAME="idx:threadself1:148"></A><A class="pred" href="threadcreate.html#thread_self/1">thread_self/1</A>.</DD>
 <DT><STRONG>tail_recursion_optimisation</STRONG>(<VAR>bool</VAR>, changeable)</DT>
 <DD class="defbody">
 Determines whether or not tail-recursion optimisation is enabled. 
@@ -555,7 +568,7 @@ omitted, it is sometimes necessary to enable it during debugging.</DD>
 <DD class="defbody">
 Offset in seconds west of GMT of the current time-zone. Set at 
 initialization time from the <CODE>timezone</CODE> variable associated 
-with the POSIX tzset() function. See also <A NAME="idx:converttime2:148"></A><SPAN class="pred-ext">convert_time/2</SPAN>.</DD>
+with the POSIX tzset() function. See also <A NAME="idx:converttime2:149"></A><SPAN class="pred-ext">convert_time/2</SPAN>.</DD>
 <DT><STRONG>toplevel_print_anon</STRONG>(<VAR>bool</VAR>, changeable)</DT>
 <DD class="defbody">
 If <CODE>true</CODE>, top-level variables starting with an underscore (<CODE>_</CODE>) 
@@ -563,7 +576,7 @@ are printed normally. If <CODE>false</CODE> they are hidden. This may be
 used to hide bindings in complex queries from the top-level.</DD>
 <DT><STRONG>toplevel_print_options</STRONG>(<VAR>term</VAR>, changeable)</DT>
 <DD class="defbody">
-This argument is given as option-list to <A NAME="idx:writeterm2:149"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
+This argument is given as option-list to <A NAME="idx:writeterm2:150"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
 for printing results of queries. Default is <CODE>[quoted(true), 
 portray(true), max_depth(10), attributes(portray)]</CODE>.</DD>
 <DT><STRONG>toplevel_var_size</STRONG>(<VAR>int</VAR>, changeable)</DT>
@@ -579,12 +592,12 @@ will be reported on the terminal. May be changed.</DD>
 <DT><STRONG>tty_control</STRONG>(<VAR>bool</VAR>)</DT>
 <DD class="defbody">
 Determines whether the terminal is switched to raw mode for
-<A NAME="idx:getsinglechar1:150"></A><A class="pred" href="chario.html#get_single_char/1">get_single_char/1</A>, 
+<A NAME="idx:getsinglechar1:151"></A><A class="pred" href="chario.html#get_single_char/1">get_single_char/1</A>, 
 which also reads the user-actions for the trace. May be set. See also 
 the <STRONG>+/-tty</STRONG> command-line option.</DD>
 <DT><STRONG>unix</STRONG>(<VAR>bool</VAR>)</DT>
 <DD class="defbody">
-<A NAME="idx:unix:151"></A>If present and <CODE>true</CODE>, the 
+<A NAME="idx:unix:152"></A>If present and <CODE>true</CODE>, the 
 operating system is some version of Unix. Defined if the C-compiler used 
 to compile this version of SWI-Prolog either defines <CODE>__unix__</CODE> 
 or <CODE>unix</CODE>. On other systems this flag is not available.</DD>
@@ -597,11 +610,11 @@ not defined and if <CODE>error</CODE> (default), an <CODE>existence_error</CODE>
 exception is raised. This flag is local to each module. Switching this 
 flag to
 <CODE>fail</CODE> disables autoloading and thus forces complete and 
-consistent use of <A NAME="idx:usemodule12:152"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
+consistent use of <A NAME="idx:usemodule12:153"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
 to load the required libraries.</DD>
 <DT><STRONG>verbose</STRONG>(<VAR>Atom</VAR>, changeable)</DT>
 <DD class="defbody">
-This flags is used by <A NAME="idx:printmessage2:153"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A>. 
+This flags is used by <A NAME="idx:printmessage2:154"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A>. 
 If its value is <CODE>silent</CODE>, messages of type <CODE>informational</CODE> 
 and <CODE>banner</CODE> are suppressed. The <STRONG>-q</STRONG> switches 
 the value from the initial
@@ -616,13 +629,13 @@ to be used for debugging purposes.</DD>
 If <CODE>false</CODE> normal consult messages will be suppressed. 
 Default is
 <CODE>true</CODE>. The value of this flag is normally controlled by the 
-option <CODE>silent(Bool)</CODE> privided by <A NAME="idx:loadfiles2:154"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>.</DD>
+option <CODE>silent(Bool)</CODE> privided by <A NAME="idx:loadfiles2:155"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>.</DD>
 <DT><STRONG>verbose_file_search</STRONG>(<VAR>bool</VAR>, changeable)</DT>
 <DD class="defbody">
 If <CODE>true</CODE> (default <CODE>false</CODE>), print messages 
-indicating the progress of <A NAME="idx:absolutefilename23:155"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/[2,3]</A> 
+indicating the progress of <A NAME="idx:absolutefilename23:156"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/[2,3]</A> 
 in locating files. Intended for debugging complicated file-search paths. 
-See also <A NAME="idx:filesearchpath2:156"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>.</DD>
+See also <A NAME="idx:filesearchpath2:157"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>.</DD>
 <DT><STRONG>version</STRONG>(<VAR>integer</VAR>)</DT>
 <DD class="defbody">
 The version identifier is an integer with value: 
@@ -633,19 +646,19 @@ holding the three numbers separated by dots. The current representation
 is much easier for implementing version-conditional statements.</DD>
 <DT><STRONG>windows</STRONG>(<VAR>bool</VAR>)</DT>
 <DD class="defbody">
-<A NAME="idx:windows:157"></A>If present and <CODE>true</CODE>, the 
+<A NAME="idx:windows:158"></A>If present and <CODE>true</CODE>, the 
 operating system is an implementation of Microsoft Windows (NT/2000/XP, 
 etc.). This flag is only available on MS-Windows based versions.</DD>
 <DT><STRONG>write_attributes</STRONG>(<VAR>atom</VAR>, changeable)</DT>
 <DD class="defbody">
-Defines how <A NAME="idx:write1:158"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
+Defines how <A NAME="idx:write1:159"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
 an friends write attributed variables. The option values are described 
 with the <CODE>attributes</CODE> option of
-<A NAME="idx:writeterm3:159"></A><A class="pred" href="termrw.html#write_term/3">write_term/3</A>. 
+<A NAME="idx:writeterm3:160"></A><A class="pred" href="termrw.html#write_term/3">write_term/3</A>. 
 Default is <CODE>ignore</CODE>.</DD>
 <DT><STRONG>write_help_with_overstrike</STRONG>(<VAR>bool</VAR>)</DT>
 <DD class="defbody">
-Internal flag used by <A NAME="idx:help1:160"></A><A class="pred" href="help.html#help/1">help/1</A> 
+Internal flag used by <A NAME="idx:help1:161"></A><A class="pred" href="help.html#help/1">help/1</A> 
 when writing to a terminal. If present and <CODE>true</CODE> it prints 
 bold and underlined text using
 <EM>overstrike</EM>.</DD>
