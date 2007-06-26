@@ -42,6 +42,7 @@
 :- use_module(library(lists)).
 :- use_module(library(url)).
 :- use_module(library(debug)).
+:- use_module(library(error)).
 
 /** <module> RDF persistency plugin
 
@@ -326,7 +327,7 @@ process_journal_term(end, _).
 
 rdf_persistency(DB, Bool) :-
 	must_be(atom, DB),
-	must_be(bool, Bool),
+	must_be(boolean, Bool),
 	fail.
 rdf_persistency(DB, false) :- !,
 	(   blocked_db(DB, persistency)
@@ -770,7 +771,7 @@ alphanum(C) -->
 	  code_type(C, alnum)
 	}.
 
-no_enc_extra(0'_) --> "_".
+no_enc_extra(0'_) --> "_".		%'
 
 
 		 /*******************************
@@ -793,20 +794,6 @@ mkdir(Directory) :-
 time_stamp(Int) :-
 	get_time(Now),
 	Int is round(Now).
-
-
-		 /*******************************
-		 *	       TYPES		*
-		 *******************************/
-
-must_be(Type, Value) :-
-	is_type(Type, Value), !.
-must_be(Type, Value) :-
-	throw(error(type_error(Type, Value), _)).
-
-is_type(atom, Value) :- !, atom(Value).
-is_type(bool, Value) :- !, (	 Value == true -> true ; Value == false ).
-
 
 
 		 /*******************************
