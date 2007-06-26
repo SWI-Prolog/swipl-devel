@@ -574,6 +574,9 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* Define if you have Linux compatible /proc/cpuinfo */
+#undef PROCFS_CPUINFO
+
 /* Program to run the C preprocessor */
 #undef PROG_CPP
 

@@ -13317,8 +13317,8 @@ _ACEOF
 
 else
 
-{ echo "$as_me:$LINENO: checking \"linux 2.6 /proc\"" >&5
-echo $ECHO_N "checking \"linux 2.6 /proc\"... $ECHO_C" >&6; }
+{ echo "$as_me:$LINENO: checking linux 2.6 /proc" >&5
+echo $ECHO_N "checking linux 2.6 /proc... $ECHO_C" >&6; }
 if test -f /proc/$$/task/$$/stat -a \
 	`cat /proc/$$/task/$$/stat | wc -w` = "41"; then
    { echo "$as_me:$LINENO: result: yes" >&5
@@ -13334,6 +13334,22 @@ echo "${ECHO_T}no" >&6; }
 fi
 fi
 fi
+
+{ echo "$as_me:$LINENO: checking linux /proc/cpuinfo" >&5
+echo $ECHO_N "checking linux /proc/cpuinfo... $ECHO_C" >&6; }
+if grep 'processor	 *: 0' /proc/cpuinfo 2>&1 > /dev/null; then
+   { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }
+
+cat >>confdefs.h <<\_ACEOF
+#define PROCFS_CPUINFO 1
+_ACEOF
+
+else
+   { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
 
 { echo "$as_me:$LINENO: checking for void*" >&5
 echo $ECHO_N "checking for void*... $ECHO_C" >&6; }

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -332,9 +332,56 @@ WallTime(void)
 		 *******************************/
 
 #ifndef __WINDOWS__			/* Windows version in pl-nt.c */
+
+#ifdef PROCFS_CPUINFO
+static int
+CpuCount()
+{ FILE *fd = fopen("/proc/cpuinfo", "r");
+
+  if ( fd )
+  { char buf[256];
+    int count = 0;
+    
+    while(fgets(buf, sizeof(buf)-1, fd))
+    { int cpu;
+      char *vp;
+
+      if ( (vp = strchr(buf, ':')) )
+      { char *en;
+
+	for(en=vp; en > buf && en[-1] <= ' '; en--)
+	  ;
+	*en = EOS;
+	DEBUG(2, Sdprintf("Got %s = %s\n", buf, vp+2));
+	if ( streq("processor", buf) && isDigit(vp[2]) )
+	{ int cpu = atoi(vp+2);
+
+	  if ( cpu+1 > count )
+	    count = cpu+1;
+	}
+      }
+    }
+
+    fclose(fd);
+    return count;
+  }
+
+  return 0;
+}
+
+#else /*PROCFS_CPUINFO*/
+
+#define CpuCount() 0
+
+#endif /*PROCFS_CPUINFO*/
+
+
 void
 setOSFeatures(void)
-{
+{ int cpu_count = CpuCount();
+
+  if ( cpu_count > 0 )
+    defFeature("cpu_count", FT_INTEGER, cpu_count);
 }
 #endif
 

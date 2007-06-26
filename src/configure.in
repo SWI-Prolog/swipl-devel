@@ -659,7 +659,7 @@ if test "x$ac_linux_cpuclocks" = "xyes"; then
              [Define if you have Linux cpu clocks (2.6.12 and greater)])
 else
 
-AC_MSG_CHECKING("linux 2.6 /proc")
+AC_MSG_CHECKING(linux 2.6 /proc)
 if test -f /proc/$$/task/$$/stat -a \
 	`cat /proc/$$/task/$$/stat | wc -w` = "41"; then
    AC_MSG_RESULT(yes)
@@ -670,6 +670,16 @@ else
 fi
 fi
 fi
+
+AC_MSG_CHECKING(linux /proc/cpuinfo)
+if grep 'processor[	 ]*: 0' /proc/cpuinfo 2>&1 > /dev/null; then
+   AC_MSG_RESULT(yes)
+   AC_DEFINE(PROCFS_CPUINFO, 1,
+	     [Define if you have Linux compatible /proc/cpuinfo])
+else
+   AC_MSG_RESULT(no)
+fi
+
 
 AC_CHECK_SIZEOF(void*, 4)
 AC_CHECK_SIZEOF(long, 4)
