@@ -888,6 +888,7 @@ initFeatures()
 
   setArgvFeature();
   setTZFeature();
+  setOSFeatures();
 }
 
 

@@ -227,6 +227,22 @@ CpuTime(cputime_kind which)
 }
 
 
+static int
+CpuCount()
+{ SYSTEM_INFO si;
+
+  GetSystemInfo(&si);
+
+  return si.dwNumberOfProcessors;
+}
+
+
+void
+setOSFeatures()
+{ defFeature("cpu_count", FT_INTEGER, CpuCount());
+}
+
+
 char *
 findExecutable(const char *module, char *exe)
 { int n;

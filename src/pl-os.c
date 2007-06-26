@@ -328,6 +328,17 @@ WallTime(void)
 }
 
 		 /*******************************
+		 *	      FEATURES		*
+		 *******************************/
+
+#ifndef __WINDOWS__			/* Windows version in pl-nt.c */
+void
+setOSFeatures(void)
+{
+}
+#endif
+
+		 /*******************************
 		 *	       MEMORY		*
 		 *******************************/
 
