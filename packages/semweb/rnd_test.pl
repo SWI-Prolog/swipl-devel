@@ -45,6 +45,8 @@ replay_file('rnd.reply').
 %
 %	Create _N_ Threads, each performing Actions using go/1.
 
+concur(1, Actions) :- !,
+	go(Actions).
 concur(Threads, Actions) :-
 	create_threads(Threads, go(Actions), Ids),
 	wait(Ids).
