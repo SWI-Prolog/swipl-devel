@@ -35,6 +35,7 @@
 	  ]).
 :- use_module(library(debug)).
 :- use_module(library(error)).
+:- use_module(library(lists)).
 
 %:- debug(concurrent).
 
@@ -133,8 +134,9 @@ concurrent(N, Goals, Options) :-
 	forall(between(1, WorkerCount, _),
 	       thread_send_message(Queue, done)),
 	VT =.. [vars|VarList],
-	concur_wait(JobCount, Done, VT, Result),
-	concur_cleanup(Result, Workers, [Queue, Done]),
+	concur_wait(JobCount, Done, VT, Result, Exitted),
+	subtract(Workers, Exitted, RemainingWorkers),
+	concur_cleanup(Result, RemainingWorkers, [Queue, Done]),
 	(   Result == true
 	->  true
 	;   Result = failed(_Worker1, _Job1)
@@ -157,19 +159,27 @@ submit_goals([H|T], I, M, Queue, [Vars|VT]) :-
 	submit_goals(T, I2, M, Queue, VT).
 
 
-%%	concur_wait(+N, +Done:queue, +VT:compound, -Result) is semidet.
+%%	concur_wait(+N, +Done:queue, +VT:compound, -Result, -Exitted) is semidet.
 %
 %	Wait for completion, failure or error.
+%	
+%	@param	Exited  List of thread-ids with threads that completed before
+%			all work was done.
 
-concur_wait(0, _, _, true) :- !.
-concur_wait(N, Done, VT, Status) :-
+concur_wait(0, _, _, true, []) :- !.
+concur_wait(N, Done, VT, Status, Exitted) :-
 	thread_get_message(Done, Exit),
 	debug(concurrent, 'Waiting: received ~p', [Exit]),
 	(   Exit = done(_Worker, Id, Vars)
 	->  arg(Id, VT, Vars),
 	    N2 is N - 1,
-	    concur_wait(N2, Done, VT, Status)
-	;   Status = Exit
+	    concur_wait(N2, Done, VT, Status, Exitted)
+	;   Exit = exit(Thread)
+	->  thread_join(Thread, _),
+	    Exitted = [Thread|Exitted2],
+	    concur_wait(N2, Done, VT, Status, Exitted2)
+	;   Status = Exit,
+	    Exitted2 = []
 	).
 
 
@@ -207,10 +217,12 @@ work(Me, Queue, Done) :-
 	;   true
 	).
 
-%%	concur_cleanup(+Result, +Workers, +Queues) is det.
+%%	concur_cleanup(+Result, +Workers:list, +Queues:list) is det.
 %
-%	Cleanup the concurrent workers and message queues.  We send
-%	all workers the message =done= and join them.
+%	Cleanup the concurrent workers and message  queues. If Result is
+%	not =true=, signal all workers to make them stop prematurely. If
+%	result is true we assume  all   workers  have been instructed to
+%	stop or have stopped themselves.
 
 concur_cleanup(Result, Workers, Queues) :- !,
 	(   Result == true
