@@ -586,10 +586,9 @@ subproperty(1) :-
 
 %%	ptree/1
 %
-%	Property hierarchy handling for  rdf_has/3.   The  routines must
-%	associate a unique root to all   networks of properties, dealing
-%	with   cycles   and   networks   with    multiple   roots.   See
-%	organise_predicates().
+%	Property hierarchy handling for rdf_has/3. The routines maintain
+%	clouds of connected properties and for   each  cloud a bitmatrix
+%	filled with the closure of the rdfs:subPropertyOf relation.
 
 ptree(1) :-
 	rdf_assert(a, rdfs:subPropertyOf, b),
@@ -632,6 +631,11 @@ ptree(6) :-				% two root cycles
 	rdf_has(x, d, y),
 	rdf_has(x, dc, y),
 	rdf_has(x, bc, y).
+ptree(7) :-				% create and break the cycles
+	rdf_assert(x, a, y),
+	rdf_assert(a, rdfs:subPropertyOf, b),
+	rdf_retractall(a, rdfs:subPropertyOf, b),
+	\+ rdf_has(x, b, y).
 
 
 
