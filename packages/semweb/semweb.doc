@@ -1510,12 +1510,38 @@ loading the base state (if any) and replaying the journal (if any). The
 current implementation does not synchronise triples that are in the
 store before attaching a database. They are not removed from the
 database, nor added to the presistent store. Different merging options
-may be supported through the \arg{Options} argument later. \arg{Options}
-is currently ignored. 
+may be supported through the \arg{Options} argument later.  Currently
+defined options are:
+
+    \begin{description}
+	\termitem{concurrency}{+PosInt}
+Number of threads used to reload databased and journals from the
+files in \arg{Directory}.  Default is the number of physical CPUs
+determined by the Prolog flag \const{cpu_count} or 1 (one) on
+systems where this number is unknown.  See also concurrent/3.
+
+	\termitem{max_open_journals}{+PosInt}
+The library maintains a	pool of open journal files.  This option
+specifies the size of this pool.  The default is 10.  Raising the
+option can make sense if many writes occur on many different named
+graphs. The value can be lowered for scenarios where write operations
+are very infrequent.
+
+	\termitem{silent}{Boolean}
+If \const{true}, supress loading messages from rdf_attach_db/2.
+    \end{description}
 
 The database is locked against concurrent access using a file
-\file{lock}. An attempt to attach a locked database raises a
-\const{permission_error} exception.
+\file{lock} in \arg{Directory}. An attempt to attach to a locked
+database raises a \const{permission_error} exception.  The error
+context contains a term \term{rdf_locked}{Args}, where args is
+a list containing \term{time}{Stamp} and \term{pid}{PID}.  The
+error can be caught by the application.  Otherwise it prints:
+
+\begin{code}
+ERROR: No permission to lock rdf_db `/home/jan/src/pl/packages/semweb/DB'
+ERROR: locked at Wed Jun 27 15:37:35 2007 by process id 1748
+\end{code}
 
     \predicate{rdf_detach_db}{0}{}
 Detaches the persistent store.  No triples are removed from the RDF

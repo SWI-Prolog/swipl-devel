@@ -1,13 +1,16 @@
 Jun 27, 2007
 
+  * FIXED: ensure rdf_attach_db/2 can be retried if the database is locked.
+    Enhanced the error message.
+
   * FIXED/ENHANCED: Possible crash in property-hierarchy handling.  Replacing
-  with a much simpler and better algorithm.
+    with a much simpler and better algorithm.
 
   * ENHANCED: Do pooling on open file descriptors to journal files of
-  the persistency layer.
+    the persistency layer.
 
   * ADDED: Exploit concurrent/3 in loading persistent databases using
-  multiple CPUs.
+    multiple CPUs.
 
 Jun 14, 2007
 

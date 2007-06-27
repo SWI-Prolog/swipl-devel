@@ -103,6 +103,10 @@ move the .new to the plain snapshot name as a means of recovery.
 %		* max_open_journals(+Count)
 %		Maximum number of journals kept open.  If not provided,
 %		the default is 10.  See limit_fd_pool/0.
+%		
+%		* silent(+Boolean)
+%		If =true= (default =false=), do not print informational
+%		messages.
 
 rdf_attach_db(DirSpec, Options) :-
 	absolute_file_name(DirSpec,
@@ -115,9 +119,9 @@ rdf_attach_db(DirSpec, Options) :-
 	->  true			% update settings?
 	;   rdf_detach_db,
 	    mkdir(Directory),
+	    lock_db(Directory),
 	    assert(rdf_directory(Directory)),
 	    assert_options(Options),
-	    lock_db(Directory),
 	    stop_monitor,		% make sure not to register load
 	    load_db,
 	    at_halt(rdf_detach_db),
@@ -146,6 +150,7 @@ assert_options([H|T]) :-
 	
 option_type(concurrency(X),       must_be(positive_integer, X)).
 option_type(max_open_journals(X), must_be(positive_integer, X)).
+option_type(silent(X), 		  must_be(boolean, X)).
 
 
 %%	rdf_detach_db is det.
@@ -286,18 +291,22 @@ unkey([_-H|T0], [H|T]) :-
 %	file.
 
 load_source(DB) :-
+	(   rdf_option(silent(true))
+	->  Level = silent
+	;   Level = informational
+	),
 	db_files(DB, SnapshotFile, JournalFile),
 	rdf_retractall(_,_,_,DB),
 	statistics(cputime, T0),
-	print_message(informational, rdf(restore(source(DB)))),
+	print_message(Level, rdf(restore(source(DB)))),
 	(   exists_db(SnapshotFile)
-	->  print_message(informational, rdf(restore(snapshot(SnapshotFile)))),
+	->  print_message(Level, rdf(restore(snapshot(SnapshotFile)))),
 	    db_file(SnapshotFile, AbsFile),
 	    rdf_load_db(AbsFile)
 	;   true
 	),
 	(   exists_db(JournalFile)
-	->  print_message(informational, rdf(restore(journal(JournalFile)))),
+	->  print_message(Level, rdf(restore(journal(JournalFile)))),
 	    load_journal(JournalFile, DB)
 	;   true
 	),
@@ -307,7 +316,7 @@ load_source(DB) :-
 	->  true
 	;   Count = 0
 	),
-	print_message(informational, rdf(restore(done(DB, T, Count)))).
+	print_message(Level, rdf(restore(done(DB, T, Count)))).
 	
 	
 		 /*******************************
@@ -689,8 +698,12 @@ delete_db(DB) :-
 lock_db(Dir) :-
 	lockfile(Dir, File),
 	exists_file(File), !,
-	throw(error(permission_error(lock, rdf_db, Dir),
-		    context(_, 'Database is in use'))).
+	(   catch(read_file_to_terms(File, Terms, []), _, fail),
+	    Terms = [locked(Args)]
+	->  Context = rdf_locked(Args)
+	;   Context = context(_, 'Database is in use')
+	),
+	throw(error(permission_error(lock, rdf_db, Dir), Context)).
 lock_db(Dir) :-
 	lockfile(Dir, File),
 	open(File, write, Out),
@@ -870,7 +883,8 @@ time_stamp(Int) :-
 		 *******************************/
 
 :- multifile
-	prolog:message/3.
+	prolog:message/3,
+	prolog:message_context/3.
 
 prolog:message(rdf(restore(source(DB)))) -->
 	{ file_base_name(DB, Base) },
@@ -883,3 +897,12 @@ prolog:message(rdf(restore(done(_, Time, Count)))) -->
 	[ at_same_line, '~D triples in ~2f sec.'-[Count, Time] ].
 prolog:message(rdf(update_failed(S,P,O,Action))) -->
 	[ 'Failed to update <~p ~p ~p> with ~p'-[S,P,O,Action] ].
+
+prolog:message_context(rdf_locked(Args)) -->
+	{ memberchk(time(Time), Args),
+	  memberchk(pid(Pid), Args),
+	  format_time(string(S), '%+', Time)
+	},
+	[ nl,
+	  'locked at ~s by process id ~w'-[S,Pid] 
+	].
