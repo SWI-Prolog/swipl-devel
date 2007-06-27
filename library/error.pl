@@ -80,8 +80,9 @@ instantiation_error(_Term) :-
 %	True if Term satisfies the type   constraints  for Type. Defined
 %	types are =atom=, =atomic=,   =between=,  =boolean=, =callable=,
 %	=chars=,  =codes=,  =text=,  =compound=,   =constant=,  =float=,
-%	=integer=, =nonneg=, =nonvar=, =number=, =oneof=, =proper_list=,
-%	=symbol=, =var=, =rational= and =string=.
+%	=integer=,  =nonneg=,  =positive_integer=,   =negative_integer=,
+%	=nonvar=, =number=, =oneof=,  =proper_list=,   =symbol=,  =var=,
+%	=rational= and =string=.
 %	
 %	Most of these types are defined by an arity-1 built-in predicate
 %	of the same name. Below  is  a   brief  definition  of the other
@@ -92,7 +93,9 @@ instantiation_error(_Term) :-
 %	| codes | Proper list of Unicode character codes |
 %	| text | One of =atom=, =string=, =chars= or =codes= |
 %	| between(L,U) | Number between L and U (including L and U) |
-%	| nonneg | Non-negative integer |
+%	| nonneg | Integer >= 0 |
+%	| positive_integer | Integer > 0 |
+%	| negative_integer | Integer < 0 |
 %	| oneof(L) | Ground term that is member of L |
 %	| list(Type) | Proper list with elements of Type |
 %
@@ -126,6 +129,8 @@ has_type(float, X)	  :- float(X).
 has_type(ground, X)	  :- ground(X).
 has_type(integer, X)	  :- integer(X).
 has_type(nonneg, X)	  :- integer(X), X >= 0.
+has_type(positive_integer, X)	  :- integer(X), X > 0.
+has_type(negative_integer, X)	  :- integer(X), X < 0.
 has_type(nonvar, X)	  :- nonvar(X).
 has_type(number, X)	  :- number(X).
 has_type(oneof(L), X)	  :- ground(X), memberchk(X, L).
