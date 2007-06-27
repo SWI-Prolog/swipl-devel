@@ -148,10 +148,11 @@ option_type(concurrency(X),       must_be(X, positive_integer)).
 option_type(max_open_journals(X), must_be(X, positive_integer)).
 
 
-%%	rdf_detach_db
+%%	rdf_detach_db is det.
 %
-%	Detach from the current database. Normally  called at the end of
-%	the program through at_halt/1.
+%	Detach from the  current  database.   Succeeds  silently  if  no
+%	database is attached. Normally called at  the end of the program
+%	through at_halt/1. 
 
 rdf_detach_db :-
 	debug(halt, 'Detaching database', []),
@@ -688,7 +689,7 @@ delete_db(DB) :-
 lock_db(Dir) :-
 	lockfile(Dir, File),
 	exists_file(File), !,
-	throw(error(permission_error(lock, Dir),
+	throw(error(permission_error(lock, rdf_db, Dir),
 		    context(_, 'Database is in use'))).
 lock_db(Dir) :-
 	lockfile(Dir, File),

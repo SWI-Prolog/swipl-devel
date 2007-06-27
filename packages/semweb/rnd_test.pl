@@ -43,7 +43,7 @@ replay_file('rnd.reply').
 
 %%	concur(+Threads:int, +Actions:int) is det.
 %
-%	Create Threads, each performing Actions.
+%	Create _N_ Threads, each performing Actions using go/1.
 
 concur(Threads, Actions) :-
 	create_threads(Threads, go(Actions), Ids),
@@ -262,16 +262,22 @@ rl(1, nl).
 %
 %	Generate a random graph.
 
+graph_count(200).
+
 rang(X:Line) :-
-	next(I, 3),
+	graph_count(Count),
+	Max is Count - 1,
+	next(I, Max),
 	rg(I, X),
 	Line = 1.
 %	line(Line).
 
-rg(0, g1).
-rg(1, g2).
-rg(2, g3).
-rg(3, g4).
+term_expansion(rg(x,x), Clauses) :-
+	graph_count(Count),
+	Max is Count - 1,
+	findall(rg(I,N), (between(0, Max, I), atom_concat(g,I,N)), Clauses).
+
+rg(x,x).
 
 line(Line) :-
 	nb_getval(line, Line),
