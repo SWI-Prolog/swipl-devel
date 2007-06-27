@@ -251,8 +251,9 @@ static void	record_transaction(rdf_db *db,
 				   tr_type type, triple *t);
 static void	record_md5_transaction(rdf_db *db,
 				       source *src, md5_byte_t *digest);
-static void	create_reachability_matrix(predicate *root);
+static void	create_reachability_matrix(rdf_db *db, predicate_cloud *cloud);
 static int	get_predicate(rdf_db *db, term_t t, predicate **p);
+static predicate_cloud *new_predicate_cloud(rdf_db *db, predicate **p, size_t count);
 
 
 		 /*******************************
@@ -716,8 +717,7 @@ lookup_predicate(rdf_db *db, atom_t name)
   p = rdf_malloc(db, sizeof(*p));
   memset(p, 0, sizeof(*p));
   p->name = name;
-  p->root = p;
-  create_reachability_matrix(p->root);
+  p->cloud = new_predicate_cloud(db, &p, 1);
   PL_register_atom(name);
   p->next = db->pred_table[hash];
   db->pred_table[hash] = p;
@@ -727,48 +727,6 @@ lookup_predicate(rdf_db *db, atom_t name)
   UNLOCK_MISC(db);
 
   return p;
-}
-
-
-static predicate *
-alloc_dummy_root_predicate(rdf_db *db)
-{ predicate *p;
-
-  p = rdf_malloc(db, sizeof(*p));
-  memset(p, 0, sizeof(*p));
-  p->name = 0;				/* dummy roots have no name */
-  p->root = p;
-  p->oldroot = NULL;
-
-  return p;
-}
-
-#if 0
-/* We do not yet have a safe mechanism to avoid multiple destruction.  As
-   it is anticipated to be very infrequent we'll forget about freeing
-   predicates for the time being.
-*/
-
-static void				/* currently only frees dummy root */
-free_predicate(rdf_db *db, predicate *p)
-{ assert(!p->name);
-
-  free_list(db, &p->siblings);
-  free_list(db, &p->subPropertyOf);
-  rdf_free(db, p, sizeof(*p));
-}
-#endif
-
-
-static inline int
-is_dummy_root(predicate *p)
-{ return p && !p->name;			/* no name --> dummy root */
-}
-
-
-static inline int
-is_virgin_dummy_root(predicate *p)
-{ return is_dummy_root(p) && !p->siblings.head;
 }
 
 
@@ -794,232 +752,164 @@ pname(predicate *p)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cycles at the top. We walk up using  cycle detection. If we find a root,
-this is our initial one. If we fine   another root, create a dummy root,
-bind the multiple roots below it and return the dummy root.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-predicate *
-cycle_root(rdf_db *db, predicate *p, predicate *cr)
-{ if ( !p->visited )
-  { p->visited = TRUE;
-
-    if ( p->subPropertyOf.head )	/* we might be able to go up */
-    { cell *c;
-      int open = 0;
-      
-      for(c=p->subPropertyOf.head; c; c=c->next)
-      { predicate *p2 = c->value;
-
-	if ( !p2->visited )
-	  open++;
-      }
-
-      if ( open )			/* we can go up! */
-      { for(c=p->subPropertyOf.head; c; c=c->next)
-	{ predicate *p2 = c->value;
-	  
-	  if ( !p2->visited )
-	    cr = cycle_root(db, p2, cr);
-	} 
-
-	return cr;
-      }
-    }
-
-    if ( cr )				/* second real root */
-    { if ( is_dummy_root(cr) )
-      { add_list(db, &cr->siblings, p);
-	return cr;
-      } else if ( is_virgin_dummy_root(cr->oldroot) )
-      { add_list(db, &cr->oldroot->siblings, cr);
-	add_list(db, &cr->oldroot->siblings, p);
-
-	return cr->oldroot;
-      } else
-      { predicate *nr = alloc_dummy_root_predicate(db);
-
-	add_list(db, &nr->siblings, cr);
-	add_list(db, &nr->siblings, p);
-
-	return nr;
-      }
-    } else				/* first real root */
-    { return p;
-    }
-  }
-
-  return cr;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-set_root_subtree(db, p, root) sets the subtree below p to use root. We
-know nothing.  
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-set_root_subtree(rdf_db *db, predicate *p, predicate *root, predicate *replace)
-{ if ( p->root == root )		/* cycle */
-  { return;			
-  } else if ( !p->root || p->root == replace )	/* fresh node */
-  { cell *c;
-    p->root = root;
-    for(c=p->siblings.head; c; c=c->next)
-      set_root_subtree(db, c->value, root, replace);
-  } else if ( p->root )			/* join with another tree */
-  { if ( is_dummy_root(p->root) )
-    { add_list(db, &p->root->siblings, root);
-      set_root_subtree(db, root, p->root, root);
-    } else
-    { predicate *newroot;
-
-      if ( is_virgin_dummy_root(root->oldroot) )
-	newroot = root->oldroot;
-      else if ( is_virgin_dummy_root(p->root->oldroot) )
-	newroot = p->root->oldroot;
-      else
-	newroot = alloc_dummy_root_predicate(db);
-      
-      add_list(db, &newroot->siblings, p->root);
-      add_list(db, &newroot->siblings, root);
-      newroot->root = newroot;
-      set_root_subtree(db, p->root, newroot, p->root);
-      set_root_subtree(db, root,    newroot, root);
-    }
-  }
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int organise_predicates()
-
-Assign each predicate its root and return the number of predicates who's
-root has changed.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static int
-organise_predicates(rdf_db *db)
+organise_predicates(rdf_db *db)		/* TBD: rename&move */
 { predicate **ht;
   int i;
   int changed = 0;
-  int seen = 0;
 
-					/* disconnect all */
   for(i=0,ht = db->pred_table; i<db->pred_table_size; i++, ht++)
   { predicate *p;
 
     for( p = *ht; p; p = p->next )
-    { seen++;
-      p->visited = FALSE;
-      p->label = 0;
-      if ( p->reachable )
-      { PL_free(p->reachable);
-	p->reachable = NULL;
-      }
-      p->oldroot = p->root;
-      if ( is_dummy_root(p->root) )
-      { predicate *dummy = p->oldroot;
+    { predicate_cloud *cloud = p->cloud;
 
-	dummy->visited = FALSE;		/* restore virgin status of dummy */
-	dummy->label = 0;
-	if ( dummy->reachable )
-	{ PL_free(dummy->reachable);
-	  dummy->reachable = NULL;
-	}
-	free_list(db, &p->oldroot->siblings);
-      }
-      p->root = NULL;
-    }
-  }
-  assert(seen == db->pred_count);
+      if ( cloud->dirty )
+      { predicate **cp;
+	int i2;
 
-					/* Work from roots */
-  for(i=0,ht = db->pred_table; i<db->pred_table_size; i++, ht++)
-  { predicate *p;
-
-    for( p = *ht; p; p = p->next )
-    { if ( !p->subPropertyOf.head )	/* I'm a top */
-      { set_root_subtree(db, p, p, NULL);
-      }
-    }
-  }
-
-					/* Deal with cycles */
-  for(i=0,ht = db->pred_table; i<db->pred_table_size; i++, ht++)
-  { predicate *p;
-
-    for( p = *ht; p; p = p->next )
-    { if ( !p->root )			/* part of a cluster cycle(s) on top */
-      { predicate *r = cycle_root(db, p, NULL);
-
-	assert(r);
-	set_root_subtree(db, r, r, NULL);
-      }
-    }
-  }
-
-					/* verify and see if anything changed */
-  for(i=0,ht = db->pred_table; i<db->pred_table_size; i++, ht++)
-  { predicate *p;
-
-    for( p = *ht; p; p = p->next )
-    { assert(p->root);
-      if ( p->oldroot != p->root )
-	changed++;
-#if 0					/* may be referenced multiple */
-      if ( is_virgin_dummy_root(p->oldroot) )
-	free_predicate(p->oldroot);	/* has not been reused: discard */
-#endif
-      p->oldroot = NULL;
-      DEBUG(1,
-	    if ( p->root != p )
-	    { Sdprintf("Root of %s = %s\n", pname(p), pname(p->root));
-	    })
-
-      if ( !p->root->reachable )
-	create_reachability_matrix(p->root);
-    }
-  }
-
-
-  DEBUG(0,
-	for(i=0,ht = db->pred_table; i<db->pred_table_size; i++, ht++)
-	{ predicate *p;
-	  
-	  for( p = *ht; p; p = p->next )
-	  { if ( !p->label )
-	    { Sdprintf("ERROR: %s->label = 0 (root = %s)\n", pname(p), pname(p->root));
-	    }
-	    assert(p->root->reachable);
+	for(i2=0, cp = cloud->members; i2 < cloud->size; i2++, cp++)
+	{ if ( (*cp)->hash != cloud->hash )
+	  { (*cp)->hash = cloud->hash;
+	    changed++;
 	  }
-	});
+	}
+	cloud->dirty = FALSE;
+      }
+    }
+  }
 
   return changed;
 }
 
 
+		 /*******************************
+		 *	 PREDICATE CLOUDS	*
+		 *******************************/
+
+static predicate_cloud *
+new_predicate_cloud(rdf_db *db, predicate **p, size_t count)
+{ predicate_cloud *cloud = rdf_malloc(db, sizeof(*cloud));
+  
+  memset(cloud, 0, sizeof(*cloud));
+  cloud->hash = db->next_hash++;
+  if ( count )
+  { cloud->size = count;
+    cloud->members = rdf_malloc(db, sizeof(predicate*)*count);
+    memcpy(cloud->members, p, sizeof(predicate*)*count);
+  }
+  create_reachability_matrix(db, cloud);
+
+  return cloud;
+}
+
+
+static void
+free_predicate_cloud(rdf_db *db, predicate_cloud *cloud)
+{ if ( cloud->members )
+  { rdf_free(db, cloud->members, sizeof(predicate*)*cloud->size);
+  }
+
+  rdf_free(db, cloud, sizeof(*cloud));
+}
+
+
+static long
+triples_in_predicate_cloud(predicate_cloud *cloud)
+{ long triples = 0;
+  predicate **p;
+  int i;
+
+  for(i=0, p=cloud->members; i<cloud->size; i++, p++)
+    triples += (*p)->triple_count;
+  
+  return triples;
+}
+
+
+/* Add the predicates of c2 to c1 and destroy c2.  Returns c1 */
+
+static predicate_cloud *
+append_clouds(rdf_db *db, predicate_cloud *c1, predicate_cloud *c2)
+{ predicate **p;
+  int i;
+    
+  for(i=0, p=c2->members; i<c2->size; i++, p++)
+    (*p)->cloud = c1;
+
+  if ( c1->size > 0 && c2->size > 0 )
+  { c1->members = rdf_realloc(db, c1->members,
+			      c1->size*sizeof(predicate*),
+			      (c1->size+c2->size)*sizeof(predicate*));
+    memcpy(&c1->members[c1->size], c2->members, c2->size*sizeof(predicate*));
+    c1->size += c2->size;
+    free_predicate_cloud(db, c2);
+  } else if ( c2->size > 0 )
+  { c1->members = c2->members;
+    c1->size = c2->size;
+    c2->members = NULL;
+    free_predicate_cloud(db, c2);
+  } else
+  { free_predicate_cloud(db, c2);
+  }
+
+  return c1;
+}
+
+
+
+/* merge two predicate clouds.  If either of them has no triples we
+   can do the merge without rehashing the database.
+*/
+
+static predicate_cloud *
+merge_clouds(rdf_db *db, predicate_cloud *c1, predicate_cloud *c2)
+{ if ( c1 != c2 )
+  { predicate_cloud *cloud;
+
+    if ( triples_in_predicate_cloud(c1) == 0 )
+    { cloud = append_clouds(db, c1, c2);
+    } else if ( triples_in_predicate_cloud(c2) == 0 )
+    { cloud = append_clouds(db, c2, c1);
+    } else
+    { cloud = append_clouds(db, c1, c2);
+      db->need_update++;
+    }
+
+    create_reachability_matrix(db, cloud);
+
+    return cloud;
+  }
+
+  return c1;
+}
+
+
 static unsigned long
 predicate_hash(predicate *p)
-{ return (unsigned long)p >> 2;
+{ return p->hash;
 }
 
 
 static void
 addSubPropertyOf(rdf_db *db, predicate *sub, predicate *super)
 { if ( add_list(db, &sub->subPropertyOf, super) )
-  { add_list(db, &super->siblings, sub);
-    db->need_update++;
-  }
+    merge_clouds(db, sub->cloud, super->cloud);
 }
 
+
+/* deleting an rdfs:subPropertyOf.  This is a bit naughty.  If the
+   cloud is still connected we only need to refresh the reachability
+   matrix.  Otherwise the cloud breaks in maximum two clusters.  We
+   can decide to leave it as is, which saves a re-hash of the triples
+   but harms indexing.  Alternative we can create a new cloud for one
+   of the clusters and re-hash.
+*/
 
 static void
 delSubPropertyOf(rdf_db *db, predicate *sub, predicate *super)
 { if ( del_list(db, &sub->subPropertyOf, super) )
-  { del_list(db, &super->siblings, sub);
-    db->need_update++;
+  { create_reachability_matrix(db, sub->cloud);
   }
 }
 
@@ -1030,10 +920,17 @@ Reachability matrix.
 
 #define WBITSIZE (sizeof(int)*8)
 
-static bitmatrix *
-alloc_bitmatrix(int w, int h)
+static int
+byte_size_bitmatrix(int w, int h)
 { int wsize = ((w*h)+WBITSIZE-1)/WBITSIZE;
-  int size = (int)(long)&((bitmatrix*)NULL)->bits[wsize];
+
+  return (int)(long)&((bitmatrix*)NULL)->bits[wsize];
+}
+
+
+static bitmatrix *
+alloc_bitmatrix(rdf_db *db, int w, int h)
+{ int size = byte_size_bitmatrix(w, h);
   bitmatrix *m = PL_malloc(size);
 
   memset(m, 0, size);
@@ -1041,6 +938,14 @@ alloc_bitmatrix(int w, int h)
   m->heigth = h;
 
   return m;
+}
+
+
+static void
+free_bitmatrix(rdf_db *db, bitmatrix *bm)
+{ int size = byte_size_bitmatrix(bm->width, bm->heigth);
+
+  rdf_free(db, bm, size);
 }
 
 
@@ -1067,14 +972,12 @@ testbit(bitmatrix *m, int i, int j)
 
 
 static int
-number_predicate_hierachy(predicate *p, int i)
-{ if ( !p->label )
-  { cell *c;
+label_predicate_cloud(predicate_cloud *cloud)
+{ predicate **p;
+  int i;
 
-    p->label = i++;
-    for(c = p->siblings.head; c; c = c->next)
-      i = number_predicate_hierachy(c->value, i);
-  }
+  for(i=0, p=cloud->members; i<cloud->size; i++, p++)
+    (*p)->label = i;
 
   return i;
 }
@@ -1094,33 +997,26 @@ fill_reachable(bitmatrix *bm, predicate *p0, predicate *p)
 
 
 static void
-fill_reachable_hierarchy(bitmatrix *bm, predicate *p)
-{ if ( !testbit(bm, p->label, p->label) )
-  { cell *c;
+create_reachability_matrix(rdf_db *db, predicate_cloud *cloud)
+{ bitmatrix *m = alloc_bitmatrix(db, cloud->size, cloud->size);
+  predicate **p;
+  int i;
 
-    DEBUG(1, Sdprintf("Reachability for %s (%d): ", pname(p), p->label));
-    fill_reachable(bm, p, p);
-    DEBUG(1, Sdprintf("\n"));
-    for(c = p->siblings.head; c; c = c->next)
-      fill_reachable_hierarchy(bm, c->value);
-  }
-}
+  label_predicate_cloud(cloud);
+  for(i=0, p=cloud->members; i<cloud->size; i++, p++)
+    fill_reachable(m, *p, *p);
 
+  if ( cloud->reachable )
+    free_bitmatrix(db, cloud->reachable);
 
-static void
-create_reachability_matrix(predicate *root)
-{ int n = number_predicate_hierachy(root, 1);
-  bitmatrix *m = alloc_bitmatrix(n, n);
-
-  fill_reachable_hierarchy(m, root);
-  root->reachable = m;
+  cloud->reachable = m;
 }
 
 
 static int
 isSubPropertyOf(predicate *sub, predicate *p)
-{ if ( sub->root == p->root )
-    return testbit(sub->root->reachable, sub->label, p->label);
+{ if ( sub->cloud == p->cloud )
+    return testbit(sub->cloud->reachable, sub->label, p->label);
 
   return FALSE;
 }
@@ -1130,40 +1026,16 @@ isSubPropertyOf(predicate *sub, predicate *p)
 		 *******************************/
 
 static void
-print_predicate_hierarchy(predicate *p, char *visited, int indent)
-{ int i;
-  cell *c;
-
-  if ( visited[p->label]++ == 2 )
-    return;
-
-  for(i=0; i<indent; i++)
-    Sdprintf(" ");
-  Sdprintf("%s (%d)\n", pname(p), p->label);
-  indent++;
-  for(c=p->siblings.head; c; c = c->next)
-  { predicate *p2 = c->value;
-
-    print_predicate_hierarchy(p2, visited, indent);
-  }
-}
-
-static void
 print_reachability_cloud(predicate *p)
 { int y;
-  predicate *root = p->root;
-  char *visited = alloca(p->reachable->width);
-
-  memset(visited, 0, p->reachable->width);
-  Sdprintf("Predicate cloud for %s:\n", pname(p));
-  print_predicate_hierarchy(root, visited, 0);
+  predicate_cloud *cloud = p->cloud;
 
   Sdprintf("Reachability matrix:\n");
-  for(y=1; y<p->reachable->heigth; y++)
+  for(y=1; y<cloud->reachable->heigth; y++)
   { int x;
 
-    for(x=1; x<p->reachable->width; x++)
-    { if ( testbit(p->reachable, x, y) )
+    for(x=1; x<cloud->reachable->width; x++)
+    { if ( testbit(cloud->reachable, x, y) )
 	Sdprintf("X");
       else
 	Sdprintf(".");
@@ -1951,16 +1823,16 @@ triple_hash(rdf_db *db, triple *t, int which)
       v = atom_hash(t->subject);
       break;
     case BY_P:
-      v = predicate_hash(t->predicate->root);
+      v = predicate_hash(t->predicate);
       break;
     case BY_O:
       v = object_hash(t);
       break;
     case BY_SP:
-      v = atom_hash(t->subject) ^ predicate_hash(t->predicate->root);
+      v = atom_hash(t->subject) ^ predicate_hash(t->predicate);
       break;
     case BY_OP:
-      v = predicate_hash(t->predicate->root) ^ object_hash(t);
+      v = predicate_hash(t->predicate) ^ object_hash(t);
       break;
     default:
       v = 0;				/* make compiler silent */
@@ -4247,7 +4119,7 @@ init_cursor_from_literal(search_state *state, literal *cursor)
       iv = literal_hash(cursor);
       break;
     case BY_OP:
-      iv = predicate_hash(p->predicate->root) ^ literal_hash(cursor);
+      iv = predicate_hash(p->predicate) ^ literal_hash(cursor);
       break;
     default:
       iv = 0;				/* make compiler silent */
@@ -5788,7 +5660,6 @@ erase_predicates(rdf_db *db)
     for( p = *ht; p; p = n )
     { n = p->next;
 
-      free_list(db, &p->siblings);
       free_list(db, &p->subPropertyOf);
 
       rdf_free(db, p, sizeof(*p));
@@ -5798,6 +5669,7 @@ erase_predicates(rdf_db *db)
   }
 
   db->pred_count = 0;
+  db->next_hash = 0;
 }
 
 

@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -94,23 +94,32 @@ typedef struct bitmatrix
 
 typedef struct predicate
 { atom_t	    name;		/* name of the predicate */
-  list	            subPropertyOf;	/* the one I'm subPropertyOf */
-  list		    siblings;		/* my subProperties */
-  struct predicate *root;		/* Root of property tree */
   struct predicate *next;		/* next in hash-table */
-  struct predicate *oldroot;		/* from previous run */
-  bitmatrix	   *reachable;		/* Reachability matrix on root */
-  int		    label;		/* Numeric label */
-  int		    visited;		/* loop detection */
+					/* hierarchy */
+  list	            subPropertyOf;	/* the one I'm subPropertyOf */
+  int		    label;		/* Numeric label in cloud */
+  struct predicate_cloud *cloud;	/* cloud I belong to */
+  unsigned long	    hash;		/* key used for hashing
+  					   (=hash if ->cloud is up-to-date) */
+					/* properties */
   struct predicate *inverse_of;		/* my inverse predicate */
   unsigned 	    transitive : 1;	/* P(a,b)&P(b,c) --> P(a,c) */
+					/* statistics */
   long		    triple_count;	/* # triples on this predicate */
-
   long		    distinct_updated[2];/* Is count still valid? */
   long		    distinct_count[2];  /* Triple count at last update */
   long		    distinct_subjects[2];/* # distinct subject values */
   long		    distinct_objects[2];/* # distinct object values */
 } predicate;
+
+
+typedef struct predicate_cloud
+{ predicate   **members;		/* member predicates */
+  unsigned long hash;			/* hash-code */
+  int		size;			/* size of the cloud */
+  bitmatrix    *reachable;		/* cloud reachability matrix */
+  unsigned	dirty : 1;		/* predicate hash not synchronised */
+} predicate_cloud;
 
 
 typedef struct source
@@ -224,6 +233,7 @@ typedef struct rdf_db
   predicate   **pred_table;		/* Hash-table of predicates */
   int		pred_table_size;	/* #entries in the table */
   int		pred_count;		/* #predicates */
+  unsigned long next_hash;		/* cloud hash keys */
   int		active_queries;		/* Calls with choicepoints */
   int		need_update;		/* We need to update */
   long		agenda_created;		/* #visited nodes in agenda */

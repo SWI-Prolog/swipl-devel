@@ -43,6 +43,7 @@
 :- use_module(library(url)).
 :- use_module(library(debug)).
 :- use_module(library(error)).
+:- use_module(library(thread)).
 
 /** <module> RDF persistency plugin
 
@@ -84,13 +85,24 @@ move the .new to the plain snapshot name as a means of recovery.
 %%	rdf_attach_db(+Directory, +Options)
 %	
 %	Start persistent operations using Directory   as  place to store
-%	files.   There are several cases.
+%	files.   There are several cases:
 %	
 %		* Empty DB, existing directory
 %		Load the DB from the existing directory
 %		
 %		* Full DB, empty directory
 %		Create snapshots for all sources in directory
+%		
+%	Options:
+%	
+%		* concurrency(+Jobs)
+%		Number of threads to use for loading the initial
+%		database.  If not provided it is the number of CPUs
+%		as optained from the flag =cpu_count=.
+%
+%		* max_open_journals(+Count)
+%		Maximum number of journals kept open.  If not provided,
+%		the default is 10.  See limit_fd_pool/0.
 
 rdf_attach_db(DirSpec, Options) :-
 	absolute_file_name(DirSpec,
@@ -104,7 +116,7 @@ rdf_attach_db(DirSpec, Options) :-
 	;   rdf_detach_db,
 	    mkdir(Directory),
 	    assert(rdf_directory(Directory)),
-	    forall(member(O, Options), assert(rdf_option(O))),
+	    assert_options(Options),
 	    lock_db(Directory),
 	    stop_monitor,		% make sure not to register load
 	    load_db,
@@ -121,6 +133,19 @@ rdf_attach_db(DirSpec, Options) :-
 	;   catch(make_directory(Directory), _, fail)
 	), !,
 	rdf_attach_db(Directory, Options).
+
+
+assert_options([]).
+assert_options([H|T]) :-
+	(   option_type(H, Check)
+	->  Check,
+	    assert(rdf_option(H))
+	;   domain_error(rdf_option, H)
+	),
+	assert_options(T).
+	
+option_type(concurrency(X),       must_be(X, positive_integer)).
+option_type(max_open_journals(X), must_be(X, positive_integer)).
 
 
 %%	rdf_detach_db
@@ -182,13 +207,32 @@ rdf_flush_journal(DB, Options) :-
 %%	load_db is det.
 %
 %	Reload database from the directory specified by rdf_directory/1.
+%	First we find all names graphs using find_dbs/1 and then we load
+%	them.
 
 load_db :-
 	rdf_directory(Dir),
 	working_directory(Old, Dir),
 	call_cleanup(find_dbs(DBs), working_directory(_, Old)),
-	forall(member(DB, DBs),
-	       load_source(DB)).
+	make_goals(DBs, Goals),
+	concurrency(Jobs),
+	concurrent(Jobs, Goals, []).
+
+make_goals([], []).
+make_goals([DB|T0], [load_source(DB)|T]) :-
+	make_goals(T0, T).
+
+%%	concurrency(-Jobs)
+%
+%	Number of jobs to run concurrently.
+
+concurrency(Jobs) :-
+	rdf_option(concurrency(Jobs)), !.
+concurrency(Jobs) :-
+	current_prolog_flag(cpu_count, Jobs),
+	Jobs > 0, !.
+concurrency(1).
+
 
 %%	find_dbs(-DBs:list(atom)) is det.
 %
@@ -506,14 +550,13 @@ sync_state([DB-MD5|TA], Pre) :-
 		 *	   JOURNAL FILES	*
 		 *******************************/
 
-%%	journal_fd(+DB, -Stream)
+%%	journal_fd(+DB, -Stream) is det.
 %	
-%	Open existing journal or create new journal for database DB.
-%	
-%	@tbd	Currently a journal is kept open as long as the process
-%		runs.  Scaling to many named graphs this will overflow
-%		the open file limit on most systems.  We need to close
-%		unused journals.
+%	Get an open stream to a journal. If the journal is not open, old
+%	journals are closed to satisfy   the =max_open_journals= option.
+%	Then the journal is opened in   =append= mode. Journal files are
+%	always encoded as UTF-8 for  portability   as  well as to ensure
+%	full coverage of Unicode.
 
 journal_fd(DB, Fd) :-
 	source_journal_fd(DB, Fd), !.
@@ -525,6 +568,7 @@ journal_fd(DB, Fd) :-
 journal_fd_(DB, Fd) :-
 	source_journal_fd(DB, Fd), !.
 journal_fd_(DB, Fd) :-
+	limit_fd_pool,
 	db_files(DB, _Snapshot, Journal),
 	open_db(Journal, append, Fd,
 		[ encoding(utf8),
@@ -532,8 +576,32 @@ journal_fd_(DB, Fd) :-
 		]),
 	time_stamp(Now),
 	format(Fd, '~q.~n', [start([time(Now)])]),
-	assert(source_journal_fd(DB, Fd)).
+	assert(source_journal_fd(DB, Fd)).		% new one at the end
 
+%%	limit_fd_pool is det.
+%
+%	Limit the number of  open   journals  to max_open_journals (10).
+%	Note that calls  from  rdf_monitor/2   are  issued  in different
+%	threads, but as they are part of write operations they are fully
+%	synchronised.
+
+limit_fd_pool :-
+	predicate_property(source_journal_fd(_, _), number_of_clauses(N)), !,
+	(   rdf_option(max_open_journals(Max))
+	->  true
+	;   Max = 10
+	),
+	Close is N - Max,
+	forall(between(1, Close, _),
+	       close_oldest_journal).
+limit_fd_pool.
+
+close_oldest_journal :-
+	source_journal_fd(DB, _Fd), !,
+	debug(rdf_persistency, 'Closing old journal for ~q', [DB]),
+	close_journal(DB).
+close_oldest_journal.
+		       
 
 %%	sync_journal(+DB, +Fd)
 %	
@@ -546,9 +614,9 @@ sync_journal(DB, _) :-
 sync_journal(_, Fd) :-
 	flush_output(Fd).
 
-%%	close_journal(+DB)
+%%	close_journal(+DB) is det.
 %	
-%	Close the journal associated with DB if it is open
+%	Close the journal associated with DB if it is open.
 
 close_journal(DB) :-
 	with_mutex(rdf_journal_file,

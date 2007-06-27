@@ -1,3 +1,14 @@
+Jun 27, 2007
+
+  * FIXED/ENHANCED: Possible crash in property-hierarchy handling.  Replacing
+  with a much simpler and better algorithm.
+
+  * ENHANCED: Do pooling on open file descriptors to journal files of
+  the persistency layer.
+
+  * ADDED: Exploit concurrent/3 in loading persistent databases using
+  multiple CPUs.
+
 Jun 14, 2007
 
   * FIXED: Saving literal(rdf:'XMLLiteral').
