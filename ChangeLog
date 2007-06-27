@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: library(error): types positive_integer and negative_integer.
+
   * ADDED: library(thread), providing some high-level concurrency
     predicates.
 

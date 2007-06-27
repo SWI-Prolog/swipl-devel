@@ -36,8 +36,9 @@
 	  ]).
 
 :- multifile
-	prolog:message/3,
-	prolog:error_message/3.
+	prolog:message/3,		% entire message
+	prolog:error_message/3,		% 1-st argument of error term
+	prolog:message_context/3.	% Context of error messages
 :- discontiguous
 	prolog_message/3.
 
@@ -245,6 +246,8 @@ swi_extra(X) -->
 	{ var(X)
 	}, !,
 	[].
+swi_extra(Context) -->
+	prolog:message_context(Context).
 swi_extra(context(_, Msg)) -->
 	{ nonvar(Msg),
 	  Msg \== ''

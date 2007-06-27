@@ -1071,6 +1071,13 @@ term_colours((prolog:error_message(_) --> _),
 				     ],
 			  classify
 			]).
+term_colours((prolog:message_context(_) --> _),
+	     expanded - [ expanded - [ expanded,
+				       expanded - [ identifier
+						  ]
+				     ],
+			  classify
+			]).
 
 %	XPCE rules
 
