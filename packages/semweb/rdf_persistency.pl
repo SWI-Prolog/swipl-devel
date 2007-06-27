@@ -144,8 +144,8 @@ assert_options([H|T]) :-
 	),
 	assert_options(T).
 	
-option_type(concurrency(X),       must_be(X, positive_integer)).
-option_type(max_open_journals(X), must_be(X, positive_integer)).
+option_type(concurrency(X),       must_be(positive_integer, X)).
+option_type(max_open_journals(X), must_be(positive_integer, X)).
 
 
 %%	rdf_detach_db is det.

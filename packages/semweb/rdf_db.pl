@@ -1045,6 +1045,10 @@ rdf_reset_db :-
 %		
 %		* document_language(+Lang)
 %		Initial xml:lang saved with rdf:RDF element
+%		
+%		* sorted(+Boolean)
+%		If =true= (default =false=), emit subjects sorted on
+%		the full URI.  Useful to make file comparison easier.
 %	
 %	@param File	Location to save the data.  This can also be a 
 %			file-url (=|file://path|=).
@@ -1114,8 +1118,13 @@ cleanup_save(Reason,
 
 rdf_do_save(Out, Options) :-
 	rdf_save_header(Out, Options),
-	forall(rdf_subject(Subject, Options),
-	       rdf_save_non_anon_subject(Out, Subject, Options)),
+	(   option(sorted(true), Options, false)
+	->  setof(Subject, rdf_subject(Subject, Options), Subjects),
+	    forall(member(Subject, Subjects),
+		   rdf_save_non_anon_subject(Out, Subject, Options))
+	;   forall(rdf_subject(Subject, Options),
+		   rdf_save_non_anon_subject(Out, Subject, Options))
+	),
 	rdf_save_footer(Out), !.	% dubious cut; without the
 					% cleanup handlers isn't called!?
 
