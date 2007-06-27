@@ -97,6 +97,7 @@ typedef struct predicate
   struct predicate *next;		/* next in hash-table */
 					/* hierarchy */
   list	            subPropertyOf;	/* the one I'm subPropertyOf */
+  list	            siblings;		/* reverse of subPropertyOf */
   int		    label;		/* Numeric label in cloud */
   struct predicate_cloud *cloud;	/* cloud I belong to */
   unsigned long	    hash;		/* key used for hashing
@@ -117,6 +118,7 @@ typedef struct predicate_cloud
 { predicate   **members;		/* member predicates */
   unsigned long hash;			/* hash-code */
   int		size;			/* size of the cloud */
+  int		deleted;		/* See erase_predicates() */
   bitmatrix    *reachable;		/* cloud reachability matrix */
   unsigned	dirty : 1;		/* predicate hash not synchronised */
 } predicate_cloud;

@@ -717,7 +717,7 @@ lookup_predicate(rdf_db *db, atom_t name)
   p = rdf_malloc(db, sizeof(*p));
   memset(p, 0, sizeof(*p));
   p->name = name;
-  p->cloud = new_predicate_cloud(db, &p, 1);
+  new_predicate_cloud(db, &p, 1);
   PL_register_atom(name);
   p->next = db->pred_table[hash];
   db->pred_table[hash] = p;
@@ -771,7 +771,8 @@ organise_predicates(rdf_db *db)		/* TBD: rename&move */
 	for(i2=0, cp = cloud->members; i2 < cloud->size; i2++, cp++)
 	{ if ( (*cp)->hash != cloud->hash )
 	  { (*cp)->hash = cloud->hash;
-	    changed++;
+	    if ( (*cp)->triple_count > 0 )
+	      changed++;
 	  }
 	}
 	cloud->dirty = FALSE;
@@ -794,9 +795,15 @@ new_predicate_cloud(rdf_db *db, predicate **p, size_t count)
   memset(cloud, 0, sizeof(*cloud));
   cloud->hash = db->next_hash++;
   if ( count )
-  { cloud->size = count;
+  { int i;
+    predicate **p2;
+
+    cloud->size = count;
     cloud->members = rdf_malloc(db, sizeof(predicate*)*count);
     memcpy(cloud->members, p, sizeof(predicate*)*count);
+    
+    for(i=0, p2=cloud->members; i<cloud->size; i++, p2++)
+      (*p2)->cloud = cloud;
   }
   create_reachability_matrix(db, cloud);
 
@@ -885,6 +892,62 @@ merge_clouds(rdf_db *db, predicate_cloud *c1, predicate_cloud *c2)
 }
 
 
+/* split a cloud into multiple disjoint clouds.  The first cloud is 
+   given the hash of the original, so we only need to update if new
+   clouds are created.  Ideally we should se whether it is possible
+   to give the orginal hash to the one and only non-empty cloud to
+   avoid re-hashing alltogether.
+*/
+
+static void
+pred_reachable(predicate *start, char *visited, predicate **nodes, int *size)
+{ if ( !visited[start->label] )
+  { cell *c;
+
+    visited[start->label] = TRUE;
+    nodes[(*size)++] = start;
+    for(c=start->subPropertyOf.head; c; c=c->next)
+      pred_reachable(c->value, visited, nodes, size);
+    for(c=start->siblings.head; c; c=c->next)
+      pred_reachable(c->value, visited, nodes, size);
+  }
+}
+
+
+static int
+split_cloud(rdf_db *db, predicate_cloud *cloud,
+	    predicate_cloud **parts, int size)
+{ char *done        = alloca(cloud->size*sizeof(char));
+  predicate **graph = alloca(cloud->size*sizeof(predicate*));
+  predicate *p;
+  int found = 0;
+  int i;
+  
+  memset(done, 0, cloud->size*sizeof(char));
+  for(i=0; i<cloud->size; i++)
+  { if ( !done[i] )
+    { predicate *start = cloud->members[i];
+      predicate_cloud *new_cloud;
+      int gsize = 0;
+
+      pred_reachable(start, done, graph, &gsize);
+      new_cloud = new_predicate_cloud(db, graph, gsize);
+      if ( found == 0 )
+      { new_cloud->hash = cloud->hash;
+      } else
+      { new_cloud->dirty = TRUE;	/* preds come from another cloud */
+	db->need_update++;
+      }
+      parts[found++] = new_cloud;
+    }
+  }
+
+  free_predicate_cloud(db, cloud);
+
+  return found;
+}
+
+
 static unsigned long
 predicate_hash(predicate *p)
 { return p->hash;
@@ -894,7 +957,9 @@ predicate_hash(predicate *p)
 static void
 addSubPropertyOf(rdf_db *db, predicate *sub, predicate *super)
 { if ( add_list(db, &sub->subPropertyOf, super) )
+  { add_list(db, &super->siblings, sub);
     merge_clouds(db, sub->cloud, super->cloud);
+  }
 }
 
 
@@ -909,7 +974,13 @@ addSubPropertyOf(rdf_db *db, predicate *sub, predicate *super)
 static void
 delSubPropertyOf(rdf_db *db, predicate *sub, predicate *super)
 { if ( del_list(db, &sub->subPropertyOf, super) )
-  { create_reachability_matrix(db, sub->cloud);
+  { del_list(db, &super->siblings, sub);
+ /* if ( not worth the trouble )
+      create_reachability_matrix(db, sub->cloud);
+    else */
+    { predicate_cloud *parts[2];
+      split_cloud(db, sub->cloud, parts, 2);
+    }
   }
 }
 
@@ -5649,7 +5720,7 @@ erase_triples(rdf_db *db)
 }
 
 
-static void				/* TBD: get rid of virtual roots */
+static void
 erase_predicates(rdf_db *db)
 { predicate **ht;
   int i;
@@ -5661,6 +5732,9 @@ erase_predicates(rdf_db *db)
     { n = p->next;
 
       free_list(db, &p->subPropertyOf);
+      free_list(db, &p->siblings);
+      if ( ++p->cloud->deleted == p->cloud->size )
+	free_predicate_cloud(db, p->cloud);
 
       rdf_free(db, p, sizeof(*p));
     }
