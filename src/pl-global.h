@@ -370,6 +370,7 @@ typedef struct PL_local_data
     uintptr_t	ticks;			/* profile ticks total */
     uintptr_t	accounting_ticks;	/* Ticks in profCall() and friends */
     uintptr_t	nodes;			/* #Recorded nodes */
+    double	time_at_start;		/* Time at last start */
     double	time;			/* recorded CPU time */
   } profile;
 #endif /* O_PROFILE */

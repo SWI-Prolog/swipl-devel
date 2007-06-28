@@ -229,6 +229,7 @@ startProfiler(void)
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
   activateProfiler(TRUE PASS_LD);
+  LD->profile.time_at_start = CpuTime(CPU_USER); /* consider using thread-time? */
 
   succeed;
 }
@@ -256,6 +257,8 @@ stopProfiler(void)
 { GET_LD
   if ( !LD->profile.active )
     succeed;
+
+  LD->profile.time += CpuTime(CPU_USER) - LD->profile.time_at_start;
 
   stopItimer();
   activateProfiler(FALSE PASS_LD);
@@ -745,14 +748,11 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 
 static
 PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
-{ PRED_LD
-  int rc;
+{ int rc;
 
   resetProfiler();
   startProfiler();
-  LD->profile.time = CpuTime(CPU_USER);
   rc = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
-  LD->profile.time = CpuTime(CPU_USER) - LD->profile.time;
   stopProfiler();
 
   DEBUG(0,

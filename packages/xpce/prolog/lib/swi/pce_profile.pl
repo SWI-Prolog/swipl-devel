@@ -2,6 +2,7 @@
 	  [ pce_show_profile/0
 	  ]).
 :- use_module(library(pce)).
+:- use_module(library(lists)).
 :- use_module(library(persistent_frame)).
 :- use_module(library(toolbar)).
 :- use_module(library(pce_report)).
