@@ -179,7 +179,7 @@ concur_wait(N, Done, VT, Status, Exitted) :-
 	    Exitted = [Thread|Exitted2],
 	    concur_wait(N2, Done, VT, Status, Exitted2)
 	;   Status = Exit,
-	    Exitted2 = []
+	    Exitted = []
 	).
 
 
