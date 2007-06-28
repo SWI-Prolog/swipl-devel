@@ -273,12 +273,26 @@ allow_edit(_) :-
 	can_edit(false), !, 
 	fail.
 allow_edit(Request) :-
-	(   memberchk(x_forwarded_for(IPAtom), Request),
+	(   memberchk(x_forwarded_for(Forwarded), Request),
+	    primary_forwarded_host(Forwarded, IPAtom),
 	    parse_ip(IPAtom, Peer)
 	->  true
 	;   memberchk(peer(Peer), Request)
 	),
 	match_peer(localhost, +, Peer).
+
+
+%%	primary_forwarded_host(+Spec, -Host) is det.
+%
+%	x_forwarded host contains multiple hosts seperated   by  ', ' if
+%	there are multiple proxy servers in   between.  The first one is
+%	the one the user's browser knows about.
+
+primary_forwarded_host(Spec, Host) :-
+	sub_atom(Spec, B, _, _, ','), !,
+	sub_atom(Spec, 0, B, _, Host).
+primary_forwarded_host(Host, Host).
+
 
 localhost(ip(127,0,0,1)).
 localhost(localhost).
