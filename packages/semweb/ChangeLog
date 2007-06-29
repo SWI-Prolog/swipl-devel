@@ -1,3 +1,7 @@
+Jun 29, 2007
+
+  * ADDED: rdf_active_transaction/1 to query active transactions.
+
 Jun 27, 2007
 
   * FIXED: ensure rdf_attach_db/2 can be retried if the database is locked.

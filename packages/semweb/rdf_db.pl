@@ -52,6 +52,7 @@
 	    rdf_current_predicate/1,	% -Predicate
 	    rdf_transaction/1,		% :Goal
 	    rdf_transaction/2,		% :Goal, +Id
+	    rdf_active_transaction/1,	% ?Id
 
 	    rdf_monitor/2,		% :Goal, +Options
 
@@ -568,6 +569,18 @@ rdf_predicate_property(P, Prop) :-
 
 rdf_transaction(Goal) :-
 	rdf_transaction(Goal, user).
+
+%%	rdf_active_transaction(?Id) is nondet.
+%
+%	True if Id is the identifier of a currently open transaction. If
+%	Id  is  not  instantiated,    backtracking   yields  transaction
+%	identifiers starting with  the   innermost  nested  transaction.
+%	Transaction identifier terms are not copied,  need not be ground
+%	and can be instantiated during the transaction.
+
+rdf_active_transaction(Id) :-
+	rdf_active_transactions_(List),
+	member(Id, List).
 
 %%	rdf_monitor(:Goal, +Options)
 %

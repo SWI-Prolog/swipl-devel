@@ -514,6 +514,16 @@ the nested transaction.
 The \arg{Id} argument may be used to identify the transaction.  It
 is passed to the begin/end events posted to hooks registered with
 rdf_monitor/2.
+
+    \predicate{rdf_active_transaction}{1}{?Id}
+True if \arg{Id} is the identifier of a currently active transaction
+(i.e.\ rdf_active_transaction/1 is called from rdf_transaction/2 with
+matching \arg{Id}). Note that transaction identifier is not copied and
+therefore need not be ground and can be further instantiated during the
+transaction. \arg{Id} is first unified with the innermost transaction
+and backtracking with the identifier of other active transaction. Fails
+if there is no matching transaction active, which includes the case
+where there is no transaction in progress.
 \end{description}
 
 
@@ -2067,7 +2077,7 @@ home]{http://gollem.science.uva.nl/twiki/pl/bin/view/Library/SeRQL}.
 
 This research was supported by the following projects: MIA and
 MultimediaN project (www.multimedian.nl) funded through the BSIK
-programme of the Dutch Government and the FP-6 project HOPS of the
+programme of the Dutch Government, the FP-6 project HOPS of the
 European Commision.
 
 The implementation of AVL trees is based on libavl by Brad Appleton.

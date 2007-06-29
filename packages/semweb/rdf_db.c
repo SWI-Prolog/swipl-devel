@@ -4045,11 +4045,15 @@ static foreign_t
 rdf_transaction(term_t goal, term_t id)
 { int rc;
   rdf_db *db = DB;
+  active_transaction me;
 
   if ( !WRLOCK(db, TRUE) )
     return FALSE;
 
   open_transaction(db);
+  me.parent = db->tr_active;
+  me.id = id;
+  db->tr_active = &me;
 
   rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, PRED_call1, goal);
 
@@ -4073,12 +4077,28 @@ rdf_transaction(term_t goal, term_t id)
   { discard:
     discard_transaction(db);
   }
+  db->tr_active = me.parent;
   WRUNLOCK(db);
 
   return rc;
 }
 
 
+static foreign_t
+rdf_active_transactions(term_t list)
+{ rdf_db *db = DB;
+  term_t tail = PL_copy_term_ref(list);
+  term_t head = PL_new_term_ref();
+  active_transaction *ot;
+
+  for(ot = db->tr_active; ot; ot=ot->parent)
+  { if ( !PL_unify_list(tail, head, tail) ||
+	 !PL_unify(head, ot->id) )
+      return FALSE;
+  }  
+
+  return PL_unify_nil(tail);
+}
 
 
 		 /*******************************
@@ -6031,6 +6051,8 @@ install_rdf_db()
   PL_register_foreign("rdf_estimate_complexity",
 					4, rdf_estimate_complexity, 0);
   PL_register_foreign("rdf_transaction",2, rdf_transaction, META);
+  PL_register_foreign("rdf_active_transactions_",
+					1, rdf_active_transactions, 0);
   PL_register_foreign("rdf_monitor_",   2, rdf_monitor,     META);
 /*PL_register_foreign("rdf_broadcast_", 2, rdf_broadcast,   0);*/
 #ifdef WITH_MD5

@@ -434,6 +434,19 @@ transaction(deadlock-2) :-
 	     ],
 	delete_file(F1),
 	delete_file(F2).
+transaction(active-1) :-
+	\+ rdf_active_transaction(_).
+transaction(active-2) :-
+	rdf_transaction(rdf_active_transaction(x), x).
+transaction(active-3) :-
+	rdf_transaction(findall(X, rdf_active_transaction(X), Xs), x),
+	Xs == [x].
+transaction(active-4) :-
+	rdf_transaction(rdf_active_transaction(Y), X),
+	X == Y.
+transaction(active-5) :-
+	rdf_transaction(rdf_active_transaction(x), X),
+	X == x.
 
 
 		 /*******************************

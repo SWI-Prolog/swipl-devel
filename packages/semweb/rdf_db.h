@@ -30,7 +30,7 @@
 #endif
 #include "lock.h"
 
-#define RDF_VERSION 20500		/* 2.7.0 */
+#define RDF_VERSION 20600		/* 2.6.0 */
 
 #define URL_subPropertyOf \
 	"http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
@@ -216,6 +216,12 @@ typedef struct transaction_record
 } transaction_record;
 
 
+typedef struct active_transaction
+{ struct active_transaction *parent;
+  term_t id;
+} active_transaction;
+
+
 typedef struct rdf_db
 { triple       *by_none, *by_none_tail;
   triple      **table[INDEX_TABLES];
@@ -243,7 +249,9 @@ typedef struct rdf_db
   long		generation;		/* generation-id of the database */
   source      **source_table;		/* Hash table of sources */
   int      	source_table_size;	/* Entries in table */
+
   source	*last_source;		/* last accessed source */
+  active_transaction *tr_active;	/* open transactions */
   transaction_record *tr_first;		/* first transaction record */
   transaction_record *tr_last;		/* last transaction record */
   int		tr_nesting;		/* nesting depth of transactions */
