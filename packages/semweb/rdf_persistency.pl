@@ -775,13 +775,21 @@ db_abs_files(DB, Snapshot, Journal) :-
 	db_file(Snapshot0, Snapshot),
 	db_file(Journal0, Journal).
 
-%%	rdf_journal_file(?DB, -File)
+
+%%	rdf_journal_file(+DB, -File) is semidet.
+%%	rdf_journal_file(-DB, -File) is nondet.
 %	
-%	Return the journal files of  the   current  server. Intended for
-%	external modules for merging journals.
+%	True if File is the absolute  file   name  of  an existing named
+%	graph DB. 
+%	
+%	@tbd	Avoid using private rdf_db:rdf_sources_/1.
 
 rdf_journal_file(DB, Journal) :-
-	rdf_source(DB),
+	(   var(DB)
+	->  rdf_db:rdf_sources_(All),	% also pick the empty sources
+	    member(DB, All)
+	;   true
+	),
 	db_abs_files(DB, _Snapshot, Journal),
 	exists_file(Journal).
 

@@ -1597,9 +1597,9 @@ about the journals, loaded files, etc.
 
 \begin{description}
     \predicate{rdf_journal_file}{2}{?DB, ?JournalFile}
-True if \arg{DB} is a known database that has an active journal in
-\arg{JournalFile}.  Currently the format of the journalfiles is 
-undocumented.  Being Prolog terms they are mostly self-explaining.
+True if \arg{File} is the absolute file name of an existing named graph
+\arg{DB}. Currently the format of the journalfiles is undocumented.
+Being Prolog terms they are mostly self-explaining.
 
     \predicate{rdf_db_to_file}{2}{?DB, ?FileBase}
 Convert between \arg{DB} (see rdf_source/1) and file base-file used
