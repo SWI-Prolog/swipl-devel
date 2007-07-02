@@ -216,6 +216,8 @@ static functor_t FUNCTOR_old_literal1;
 static functor_t FUNCTOR_transaction2;
 static functor_t FUNCTOR_load2;
 static functor_t FUNCTOR_rehash1;
+static functor_t FUNCTOR_begin1;
+static functor_t FUNCTOR_end1;
 
 static atom_t   ATOM_user;
 static atom_t	ATOM_exact;
@@ -3919,6 +3921,17 @@ discard_transaction(rdf_db *db)
 }
 
 
+void
+put_begin_end(term_t t, functor_t be, int level)
+{ term_t av = PL_new_term_ref();
+
+  PL_put_integer(av, level);
+  PL_cons_functor_v(t, be, av);
+}
+
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note  (*)  rdf-monitors  can  modify  the    database   by  opening  new
 transactions. Therefore we first close the  transaction to allow opening
@@ -3929,6 +3942,7 @@ access?
 static int
 commit_transaction(rdf_db *db, term_t id)
 { transaction_record *tr, *next;
+  int tr_level = 0;			/* nesting level */
 
   if ( db->tr_nesting > 0 )		/* commit nested transaction */
   { tr=db->tr_last;
@@ -3975,15 +3989,19 @@ commit_transaction(rdf_db *db, term_t id)
 	  break;
 	case TR_SUB_START:
 	{ term_t id = PL_new_term_ref();
+	  term_t be = PL_new_term_ref();
 	  PL_recorded(tr->update.transaction_id, id);
-	  broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_begin);
+	  put_begin_end(be, FUNCTOR_begin1, ++tr_level);
+	  broadcast(EV_TRANSACTION, (void*)id, (void*)be);
 	  break;
 	}
 	case TR_SUB_END:
 	{ term_t id = PL_new_term_ref();
+	  term_t be = PL_new_term_ref();
 	  PL_recorded(tr->update.transaction_id, id);
 	  PL_erase(tr->update.transaction_id);
-	  broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_end);
+	  put_begin_end(be, FUNCTOR_end1, tr_level--);
+	  broadcast(EV_TRANSACTION, (void*)id, (void*)be);
 	  break;
 	}
 	case TR_ASSERT:
@@ -4063,15 +4081,18 @@ rdf_transaction(term_t goal, term_t id)
     if ( empty || db->tr_nesting > 0 )
     { commit_transaction(db, id);
     } else
-    { broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_begin);
+    { term_t be = PL_new_term_ref();
+      put_begin_end(be, FUNCTOR_begin1, 0);
+      broadcast(EV_TRANSACTION, (void*)id, (void*)be);
+      put_begin_end(be, FUNCTOR_end1, 0);
       if ( !LOCKOUT_READERS(db) )	/* interrupt, timeout */
-      { broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_end);
+      { broadcast(EV_TRANSACTION, (void*)id, (void*)be);
 	rc = FALSE;
 	goto discard;
       }
       commit_transaction(db, id);
       REALLOW_READERS(db);
-      broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_end);
+      broadcast(EV_TRANSACTION, (void*)id, (void*)be);
     }
   } else
   { discard:
@@ -4888,7 +4909,6 @@ broadcast(broadcast_id id, void *a1, void *a2)
 	PL_cons_functor_v(term, FUNCTOR_old_literal1, tmp);
 	break;
       }
-      case EV_TRANSACTION:
       case EV_LOAD:
       { term_t ctx = (term_t)a1;
 	atom_t be  = (atom_t)a2;
@@ -4897,10 +4917,18 @@ broadcast(broadcast_id id, void *a1, void *a2)
 	PL_put_atom(tmp+0, be);		/* begin/end */
 	PL_put_term(tmp+1, ctx);
 
-	PL_cons_functor_v(term,
-			  id == EV_TRANSACTION ? FUNCTOR_transaction2
-					       : FUNCTOR_load2,
-			  tmp);
+	PL_cons_functor_v(term, FUNCTOR_load2, tmp);
+	break;
+      }
+      case EV_TRANSACTION:
+      { term_t ctx = (term_t)a1;
+	term_t be  = (term_t)a2;
+	term_t tmp = PL_new_term_refs(2);
+	
+	PL_put_term(tmp+0, be);		/* begin/end */
+	PL_put_term(tmp+1, ctx);
+
+	PL_cons_functor_v(term, FUNCTOR_transaction2, tmp);
 	break;
       }
       case EV_REHASH:
@@ -5988,6 +6016,8 @@ install_rdf_db()
   MKFUNCTOR(transaction, 2);
   MKFUNCTOR(load, 2);
   MKFUNCTOR(rehash, 1);
+  MKFUNCTOR(begin, 1);
+  MKFUNCTOR(end, 1);
 
   FUNCTOR_colon2 = PL_new_functor(PL_new_atom(":"), 2);
 

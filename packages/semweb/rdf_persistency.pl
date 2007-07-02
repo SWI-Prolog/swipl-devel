@@ -359,10 +359,12 @@ process_journal_term(update(S,P,O,Action), DB) :-
 	->  true
 	;   print_message(warning, rdf(update_failed(S,P,O,Action)))
 	).
-process_journal_term(start(_), _).
+process_journal_term(start(_), _).	% journal open/close
 process_journal_term(end(_), _).
-process_journal_term(begin(_), _).
+process_journal_term(begin(_), _).	% logged transaction (old)
 process_journal_term(end, _).
+process_journal_term(begin(_,_), _).	% logged transaction (current)
+process_journal_term(end(_,_), _).
 
 
 		 /*******************************
@@ -410,6 +412,13 @@ stop_monitor :-
 	rdf_monitor(monitor,
 		    [ -all
 		    ]).
+
+%%	monitor(+Term) is semidet.
+%
+%	Handle an rdf_monitor/2 callback to  deal with persistency. Note
+%	that the monitor calls that come   from rdf_db.pl that deal with
+%	database changes are synchronised. They   do come from different
+%	threads though.
 
 monitor(Msg) :-
 	debug(monitor, 'Monitor: ~p~n', [Msg]),
@@ -465,62 +474,87 @@ monitor(load(BE, Id)) :-
 monitor(transaction(BE, Id)) :-
 	monitor_transaction(Id, BE).
 
-monitor_transaction(load_journal(DB), begin) :- !,
+monitor_transaction(load_journal(DB), begin(_)) :- !,
 	assert(blocked_db(DB, journal)).
-monitor_transaction(load_journal(DB), end) :- !,
+monitor_transaction(load_journal(DB), end(_)) :- !,
 	retractall(blocked_db(DB, journal)).
 
-monitor_transaction(parse(URI), begin) :- !,
+monitor_transaction(parse(URI), begin(_)) :- !,
 	(   blocked_db(URI, persistency)
 	->  true
 	;   assert(blocked_db(URI, parse))
 	).
-monitor_transaction(parse(URI), end) :- !,
+monitor_transaction(parse(URI), end(_)) :- !,
 	(   retract(blocked_db(URI, parse))
 	->  create_db(URI)
 	;   true
 	).
-monitor_transaction(unload(DB), begin) :- !,
+monitor_transaction(unload(DB), begin(_)) :- !,
 	(   blocked_db(DB, persistency)
 	->  true
 	;   assert(blocked_db(DB, unload))
 	).
-monitor_transaction(unload(DB), end) :- !,
+monitor_transaction(unload(DB), end(_)) :- !,
 	(   retract(blocked_db(DB, unload))
 	->  delete_db(DB)
 	;   true
 	).
-monitor_transaction(log(Msg), begin) :- !,
-	(   predicate_property(transaction_message(_,_),
-			       number_of_clauses(N))
-	->  true
-	;   N = 0
-	),
+monitor_transaction(log(Msg), begin(N)) :- !,
 	asserta(transaction_message(N, Msg)).
-monitor_transaction(log(_), end) :- !,
-	retract(transaction_message(N, _)),
-	(   retract(transaction_db(N, DB)),
-	    journal_fd(DB, Fd),
-	    format(Fd, 'end.~n', []),
-	    sync_journal(DB, Fd),
-	    fail
-	;   true
-	).
-monitor_transaction(reset, begin) :-
+monitor_transaction(log(_), end(N)) :-
+	retract(transaction_message(N, _)), !,
+	findall(DB, retract(transaction_db(N, DB)), DBs),
+	end_transactions(DBs, N).    
+monitor_transaction(reset, begin(L)) :-
 	forall(rdf_source(DB),
-	       monitor_transaction(unload(DB), begin)).
-monitor_transaction(reset, end) :-
+	       monitor_transaction(unload(DB), begin(L))).
+monitor_transaction(reset, end(L)) :-
 	forall(blocked_db(DB, unload),
-	       monitor_transaction(unload(DB), end)).
+	       monitor_transaction(unload(DB), end(L))).
 	       
+%%	open_transaction(+DB, +Fd) is det.
+%
+%	Add a begin(Level, Message) term if a transaction involves DB.
+
 open_transaction(DB, Fd) :-
 	transaction_message(N, Msg), !,
 	(   transaction_db(N, DB)
 	->  true
 	;   assert(transaction_db(N, DB)),
-	    format(Fd, 'begin(~q).~n', [Msg])
+	    format(Fd, 'begin(~q, ~q).~n', [N, Msg])
 	).
 open_transaction(_,_).
+
+%%	end_transactions(+DBs:list(atom)) is det.
+%
+%	End a transaction that affected the  given list of databases. We
+%	write the list of other affected databases as an argument to the
+%	end-term to facilitate fast finding of the related transactions.
+%	
+%	@tbd	We need some way to identify transactions using a number
+%		that increments in each journal, so we can use binary
+%		search.  There are some options:
+%		
+%		  * A global counter: difficult to synchronise if we
+%		  want to copy files between databases.
+%		  * Location in the file: fast, but cannot use editor
+%		  and suffers from DOS/Unix newline issues.
+%		  * Current time. We can have multiple transactions in
+%		  a second.
+%		  * Add number to last transaction?  Involves backward
+%		  scan for last transaction in open.  Doable?  Maybe.
+
+end_transactions(DBs, N) :-
+	end_transactions(DBs, DBs, N).
+
+end_transactions([], _, _).
+end_transactions([DB|T], DBs, N) :-
+	journal_fd(DB, Fd),
+	once(select(DB, DBs, Others)),
+	format(Fd, 'end(~q, ~q).~n', [N, Others]),
+	sync_journal(DB, Fd),
+	end_transactions(T, DBs, N).
+
 
 %	State  handling.  We  use   this    for   trapping   changes  by
 %	rdf_load_db/1. In theory, loading such files  can add triples to

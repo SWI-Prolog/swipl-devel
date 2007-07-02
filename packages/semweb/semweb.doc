@@ -1000,10 +1000,12 @@ in version 2.5.0 of this library.
     \termitem{old_literal}{+Literal}
 The literal \arg{Literal} is no longer used by any triple. 
     \termitem{transaction}{+BeginOrEnd, +Id}
-Mark begin or end of the \emph{commit} of a toplevel transaction started
-by rdf_transaction/2. \arg{BeginOrEnd} is \const{begin} or \const{end}.
-\arg{Id} is the second argument of rdf_transaction/2.  The following 
-transaction Ids are pre-defined by the library:
+Mark begin or end of the \emph{commit} of a transaction started by
+rdf_transaction/2. \arg{BeginOrEnd} is \term{begin}{Nesting} or
+\term{end}{Nesting}. \arg{Nesting} expresses the nesting level of
+transactions, starting at `0' for a toplevel transaction. \arg{Id} is
+the second argument of rdf_transaction/2. The following transaction Ids
+are pre-defined by the library:
 
     \begin{description}
 	\termitem{parse}{Id}

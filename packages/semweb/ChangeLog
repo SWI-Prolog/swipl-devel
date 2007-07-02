@@ -1,3 +1,7 @@
+Jul 2, 2007
+
+  * MODIFIED: Pass nesting level along with begin/end of a transaction.
+
 Jun 29, 2007
 
   * ADDED: rdf_active_transaction/1 to query active transactions.
