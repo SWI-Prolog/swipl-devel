@@ -501,7 +501,7 @@ foutstra(const char *str, IOSTREAM *fd)
 { wchar_t wbuf[256];
   size_t n;
 
-  if ( (n = mbstowcs(wbuf, str, sizeof(wbuf)/sizeof(wchar_t))) != (size_t)-1 ) 
+  if ( (n = mbstowcs(wbuf, str, sizeof(wbuf)/sizeof(wbuf[0])-1)) != (size_t)-1 ) 
   { wchar_t *p;
 
     for(p=wbuf; n-- > 0; p++)
