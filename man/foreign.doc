@@ -930,7 +930,7 @@ example, on MS-Windows, this represents 16-bit UCS2 characters, while
 using the GNU C library (glibc) this represents 32-bit UCS4 characters.
 
 \begin{description}
-    \cfunction{atom_t}{PL_new_atom_wchars}{int len, const pl_wchar_t *s}
+    \cfunction{atom_t}{PL_new_atom_wchars}{size_t len, const pl_wchar_t *s}
 Create atom from wide-character string as PL_new_atom_nchars() does for
 ISO-Latin-1 strings. It \arg{s} only contains ISO-Latin-1 characters a
 normal byte-array atom is created.

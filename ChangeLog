@@ -18,7 +18,7 @@
 
   * FIXED: Bug#291: format_time/3 using %Z for different character
     sets.  I'm not sure about this fix.  I cannot reproduce the problem.
-    New code is definitely cleaner though.  Dmitry.
+    New code is definitely cleaner though.  [2nd try]. Dmitry?
 
   * ADDED: Allow for unquoted a/b in file-specifications for
     absolute_file_name/3 and derived predicates.  E.g. 
