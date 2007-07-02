@@ -10,6 +10,7 @@
 # awk you can propagate the changes by hand, but be careful!
 
 
+
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -293,6 +294,7 @@ A listing		"listing"
 A local			"local"
 A local_shifts		"local_shifts"
 A local_stack		"local_stack"
+A locale		"locale"
 A locallimit		"locallimit"
 A localused		"localused"
 A lock			"lock"
@@ -377,6 +379,7 @@ A plus			"+"
 A popcount		"popcount"
 A portray		"portray"
 A position		"position"
+A posix			"posix"
 A powm			"powm"
 A predicate_indicator	"predicate_indicator"
 A predicates		"predicates"
@@ -575,8 +578,6 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
-A locale		"locale"
-A posix			"posix"
 
 F abs			1
 F access		1
@@ -699,6 +700,7 @@ F output		0
 F permission_error	3
 F pi			0
 F pipe			1
+F plus			1
 F plus			2
 F popcount		1
 F portray		1

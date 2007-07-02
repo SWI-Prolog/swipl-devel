@@ -2137,6 +2137,14 @@ ar_u_minus(Number n1, Number r)
 
 
 static int
+ar_u_plus(Number n1, Number r)
+{ cpNumber(r, n1);
+
+  succeed;
+}
+
+
+static int
 ar_abs(Number n1, Number r)
 { switch(n1->type)
   { case V_INTEGER:
@@ -2725,6 +2733,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_rdiv2,		ar_rdiv),
 #endif
   ADD(FUNCTOR_minus1,		ar_u_minus),
+  ADD(FUNCTOR_plus1,		ar_u_plus),
   ADD(FUNCTOR_abs1,		ar_abs),
   ADD(FUNCTOR_max2,		ar_max),
   ADD(FUNCTOR_min2,		ar_min),
