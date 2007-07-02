@@ -329,9 +329,7 @@ load_source(DB) :-
 %	named graph.
 
 load_journal(File, DB) :-
-	open_db(File, read, In,
-		[ encoding(utf8)
-		]),
+	open_db(File, read, In, []),
 	call_cleanup((  read(In, T0),
 			process_journal(T0, In, DB)
 		     ),
@@ -363,8 +361,8 @@ process_journal_term(start(_), _).	% journal open/close
 process_journal_term(end(_), _).
 process_journal_term(begin(_), _).	% logged transaction (old)
 process_journal_term(end, _).
-process_journal_term(begin(_,_), _).	% logged transaction (current)
-process_journal_term(end(_,_), _).
+process_journal_term(begin(_,_,_), _).	% logged transaction (current)
+process_journal_term(end(_,_,_), _).
 
 
 		 /*******************************
@@ -373,8 +371,8 @@ process_journal_term(end(_,_), _).
 
 :- dynamic
 	blocked_db/2,			% DB, Reason
-	transaction_message/2,		% Id, Message
-	transaction_db/2.		% Id, DB
+	transaction_message/2,		% Nesting, Message
+	transaction_db/3.		% Nesting, DB, Id
 
 %%	rdf_persistency(+DB, Bool)
 %
@@ -503,7 +501,7 @@ monitor_transaction(log(Msg), begin(N)) :- !,
 	asserta(transaction_message(N, Msg)).
 monitor_transaction(log(_), end(N)) :-
 	retract(transaction_message(N, _)), !,
-	findall(DB, retract(transaction_db(N, DB)), DBs),
+	findall(DB:Id, retract(transaction_db(N, DB, Id)), DBs),
 	end_transactions(DBs, N).    
 monitor_transaction(reset, begin(L)) :-
 	forall(rdf_source(DB),
@@ -514,18 +512,53 @@ monitor_transaction(reset, end(L)) :-
 	       
 %%	open_transaction(+DB, +Fd) is det.
 %
-%	Add a begin(Level, Message) term if a transaction involves DB.
+%	Add a begin(Id, Level, Message) term if a transaction involves
+%	DB.
 
 open_transaction(DB, Fd) :-
 	transaction_message(N, Msg), !,
-	(   transaction_db(N, DB)
+	(   transaction_db(N, DB, _)
 	->  true
-	;   assert(transaction_db(N, DB)),
-	    format(Fd, 'begin(~q, ~q).~n', [N, Msg])
+	;   next_transaction_id(DB, Id),
+	    assert(transaction_db(N, DB, Id)),
+	    format(Fd, 'begin(~q, ~q, ~q).~n', [Id, N, Msg])
 	).
 open_transaction(_,_).
 
-%%	end_transactions(+DBs:list(atom)) is det.
+
+%%	next_transaction_id(+DB, -Id) is det.
+%
+%	Id is the number to user for  the next logged transaction on DB.
+%	Transactions in each named graph are numbered in sequence.
+%	
+%	@tbd	Start reading from the end, doubling the space of there
+%		are no transactions.
+
+:- dynamic
+	current_transaction_id/2.
+
+next_transaction_id(DB, Id) :-
+	retract(current_transaction_id(DB, Last)), !,
+	Id is Last + 1,
+	assert(current_transaction_id(DB, Id)).
+next_transaction_id(DB, Id) :-
+	catch(open_db(DB, read, In, []),
+	      error(existence_error(_,_),_),
+	      fail), !,
+	read(In, T0),
+	call_cleanup(last_transaction_id(T0, In, 0, Last), close(In)),
+	Id is Last + 1,
+	assert(current_transaction_id(DB, Id)).
+next_transaction_id(DB, 1) :-
+	assert(current_transaction_id(DB, 1)).
+
+last_transaction_id(end_of_file, _, Last, Last) :- !.
+last_transaction_id(begin(Id, _, _), In, _, Last) :-
+	read(In, T1),
+	last_transaction_id(T1, In, Id, Last).
+
+
+%%	end_transactions(+DBs:list(atom:id)) is det.
 %
 %	End a transaction that affected the  given list of databases. We
 %	write the list of other affected databases as an argument to the
@@ -548,10 +581,10 @@ end_transactions(DBs, N) :-
 	end_transactions(DBs, DBs, N).
 
 end_transactions([], _, _).
-end_transactions([DB|T], DBs, N) :-
+end_transactions([DB:Id|T], DBs, N) :-
 	journal_fd(DB, Fd),
-	once(select(DB, DBs, Others)),
-	format(Fd, 'end(~q, ~q).~n', [N, Others]),
+	once(select(DB:Id, DBs, Others)),
+	format(Fd, 'end(~q, ~q, ~q).~n', [Id, N, Others]),
 	sync_journal(DB, Fd),
 	end_transactions(T, DBs, N).
 
@@ -615,8 +648,7 @@ journal_fd_(DB, Fd) :-
 	limit_fd_pool,
 	db_files(DB, _Snapshot, Journal),
 	open_db(Journal, append, Fd,
-		[ encoding(utf8),
-		  close_on_abort(false)
+		[ close_on_abort(false)
 		]),
 	time_stamp(Now),
 	format(Fd, '~q.~n', [start([time(Now)])]),
@@ -654,7 +686,7 @@ close_oldest_journal.
 %	end of the transaction.
 
 sync_journal(DB, _) :-
-	transaction_db(_, DB), !.
+	transaction_db(_, DB, _), !.
 sync_journal(_, Fd) :-
 	flush_output(Fd).
 
@@ -774,7 +806,7 @@ db_file(Base, File) :-
 
 open_db(Base, Mode, Stream, Options) :-
 	db_file(Base, File),
-	open(File, Mode, Stream, Options).
+	open(File, Mode, Stream, [encoding(utf8)|Options]).
 
 exists_db(Base) :-
 	db_file(Base, File),
