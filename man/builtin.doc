@@ -2381,10 +2381,13 @@ to a null-stream (see open_null_stream/1). If the seek modifies the
 current location, the line number and character position in the line are
 set to 0.
 
-If the stream cannot be repositioned, a \const{reposition} error is
-raised. The predicate seek/4 is compatible to Quintus Prolog, though the
-error conditions and signalling is ISO compliant. See also
-stream_property/2 and set_stream_position/2.
+If the stream cannot be repositioned, a \const{permission_error} is
+raised. If applying the offset would result in a file-position less then
+zero, a \const{domain_error} is raised. Behaviour when seeking to
+positions beyond the size of the underlying object depend on the object
+and possibly the operating system. The predicate seek/4 is compatible to
+Quintus Prolog, though the error conditions and signalling is ISO
+compliant. See also stream_property/2 and set_stream_position/2.
 
     \predicate{set_stream}{2}{+Stream, +Attribute}
 Modify an attribute of an existing stream. \arg{Attribute} specifies

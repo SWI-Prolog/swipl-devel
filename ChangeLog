@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Handle seek/4 to negative positions in the object (now throws
+    a domain error).
+
   * ADDED: Arithmetic function +/1.  Mike Elston,
 
   * FIXED: nicely maintain time in profiler/2, which is used by tprofile/1.

@@ -545,6 +545,7 @@ next_transaction_id(DB, Id) :-
 	catch(open_db(DB, read, In, []),
 	      error(existence_error(_,_),_),
 	      fail), !,
+	
 	read(In, T0),
 	call_cleanup(last_transaction_id(T0, In, 0, Last), close(In)),
 	Id is Last + 1,
@@ -563,19 +564,6 @@ last_transaction_id(begin(Id, _, _), In, _, Last) :-
 %	End a transaction that affected the  given list of databases. We
 %	write the list of other affected databases as an argument to the
 %	end-term to facilitate fast finding of the related transactions.
-%	
-%	@tbd	We need some way to identify transactions using a number
-%		that increments in each journal, so we can use binary
-%		search.  There are some options:
-%		
-%		  * A global counter: difficult to synchronise if we
-%		  want to copy files between databases.
-%		  * Location in the file: fast, but cannot use editor
-%		  and suffers from DOS/Unix newline issues.
-%		  * Current time. We can have multiple transactions in
-%		  a second.
-%		  * Add number to last transaction?  Involves backward
-%		  scan for last transaction in open.  Doable?  Maybe.
 
 end_transactions(DBs, N) :-
 	end_transactions(DBs, DBs, N).

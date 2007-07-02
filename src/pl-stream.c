@@ -1507,6 +1507,11 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
   { errno = EINVAL;
     return -1;
   }
+  
+  if ( pos < 0 )
+  { errno = EINVAL;
+    return -1;
+  }
 
 update:
   s->flags &= ~SIO_FEOF;		/* not on eof of file anymore */

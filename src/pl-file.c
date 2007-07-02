@@ -3303,8 +3303,12 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
 
     off *= unit;
     if ( Sseek64(s, off, whence) < 0 )
-    { PL_error("seek", 4, OsError(), ERR_PERMISSION,
-	       ATOM_reposition, ATOM_stream, stream);
+    { if ( errno == EINVAL )
+	PL_error("seek", 4, "offset out of range", ERR_DOMAIN,
+		 ATOM_position, offset);
+      else
+	PL_error("seek", 4, OsError(), ERR_PERMISSION,
+		 ATOM_reposition, ATOM_stream, stream);
       releaseStream(s);
       fail;
     }
