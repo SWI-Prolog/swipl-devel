@@ -4124,6 +4124,10 @@ overflow automatically convert to floating point arithmetic.
     \prefixop{-}{+Expr}
 $\arg{Result} = -\arg{Expr}$
 
+    \prefixop{+}{+Expr}
+$\arg{Result} = \arg{Expr}$.  Note that if \chr{+} is followed by a number
+the parser discards the \chr{+}.  I.e.\ \verb$?- integer(+1)$ succeeds.
+
     \infixop{+}{+Expr1}{+Expr2}
 $\arg{Result} = \arg{Expr1} + \arg{Expr2}$
 

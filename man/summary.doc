@@ -615,6 +615,7 @@ suggest predicates from a keyword.
 \begin{summarylist}{ll}
 \opfuncsummary{*}{2}{yfx}{400}{Multiplication}
 \opfuncsummary{**}{2}{xfx}{200}{Power function}
+\opfuncsummary{+}{1}{fx}{500}{Unary plus (No-op)}
 \opfuncsummary{+}{2}{yfx}{500}{Addition}
 \opfuncsummary{-}{1}{fx}{500}{Unary minus}
 \opfuncsummary{-}{2}{yfx}{500}{Subtraction}
