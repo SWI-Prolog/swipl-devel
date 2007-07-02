@@ -921,7 +921,6 @@ split_cloud(rdf_db *db, predicate_cloud *cloud,
 	    predicate_cloud **parts, int size)
 { char *done        = alloca(cloud->size*sizeof(char));
   predicate **graph = alloca(cloud->size*sizeof(predicate*));
-  predicate *p;
   int found = 0;
   int i;
   
@@ -2425,13 +2424,13 @@ destroy_saved(rdf_db *db, save_context *ctx)
   }
 }
 
-#define LONGBITSIZE (sizeof(intptr_t)*8)
-#define PLMINLONG   ((intptr_t)((uintptr_t)1<<(LONGBITSIZE-1)))
+#define INT64BITSIZE (sizeof(int64_t)*8)
+#define PLMINLONG   ((int64_t)((uint64_t)1<<(INT64BITSIZE-1)))
 
 static void
-save_int(IOSTREAM *fd, intptr_t n)
+save_int(IOSTREAM *fd, int64_t n)
 { int m;
-  intptr_t absn = (n >= 0 ? n : -n);
+  int64_t absn = (n >= 0 ? n : -n);
 
   if ( n != PLMINLONG )
   { if ( absn < ((intptr_t)1 << 5) )
@@ -2654,14 +2653,14 @@ rdf_save_db(term_t stream, term_t source)
 }
 
 
-static intptr_t
+static int64_t
 load_int(IOSTREAM *fd)
-{ intptr_t first = Sgetc(fd);
+{ int64_t first = Sgetc(fd);
   int bytes, shift, b;
 
   if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */    
-  { first <<= (LONGBITSIZE-6);
-    first >>= (LONGBITSIZE-6);
+  { first <<= (INT64BITSIZE-6);
+    first >>= (INT64BITSIZE-6);
 
     return first;
   }
@@ -2729,11 +2728,11 @@ static atom_t
 load_atom(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 { switch(Sgetc(in))
   { case 'X':
-    { intptr_t idx = load_int(in);
+    { intptr_t idx = (intptr_t)load_int(in);
       return ctx->loaded_atoms[idx];
     }
     case 'A':
-    { size_t len = load_int(in);
+    { size_t len = (size_t)load_int(in);
       atom_t a;
 
       if ( len < 1024 )
@@ -2837,7 +2836,7 @@ load_triple(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 	char *s;
   
 	lit->objtype = OBJ_TERM;
-	lit->value.term.len = load_int(in);
+	lit->value.term.len = (size_t)load_int(in);
 	lit->value.term.record = rdf_malloc(db, lit->value.term.len);
 	lit->term_loaded = TRUE;	/* see free_literal() */
 	s = (char *)lit->value.term.record;
