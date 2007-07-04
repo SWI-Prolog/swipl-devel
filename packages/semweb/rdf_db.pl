@@ -1077,6 +1077,7 @@ rdf_reset_db :-
 
 :- module_transparent
 	rdf_transaction/1,
+	rdf_transaction/2,
 	rdf_monitor/2,
 	rdf_save/2,
 	meta_options/2.
