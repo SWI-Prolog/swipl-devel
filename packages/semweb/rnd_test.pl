@@ -38,6 +38,8 @@
 	  ]).
 :- asserta(user:file_search_path(foreign, '.')).
 :- use_module(rdf_db).
+:- use_module(library(thread)).
+:- use_module(library(debug)).
 
 replay_file('rnd.reply').
 
@@ -104,17 +106,17 @@ replay(N) :-
 
 %%	next(-N, +Max)
 %
-%	Produce a random number 0 =< N <= Max. During record/1, write to
-%	file.  Using replay/1, read from file.
+%	Produce a random number 1 =< N <= Max. During record/1, write
+%	to file. Using replay/1, read from file.
 
 next(N, Max) :-
 	nb_getval(rnd_file, X),
 	(   X == none
-	->  N is random(Max+1)
+	->  N is random(Max)+1
 	;   X = in(Fd)
 	->  read(Fd, N)
 	;   X = out(Fd),
-	    N is random(Max),
+	    N is random(Max)+1,
 	    format(Fd, '~q.~n', [N]),
 	    flush_output(Fd)
 	).
@@ -135,7 +137,7 @@ random_actions(N) :-
 	    debug(count, 'Count ~w, Triples ~w', [N, Triples])
 	;   true
 	),
-	next(Op, 9),
+	next(Op, 10),
 	rans(Subject),
 	ranp(Predicate),
 	rano(Object),
@@ -153,25 +155,25 @@ random_actions(N) :-
 %	
 %	@tbd	Test update
 
-do(0, S, P, O, G) :-
+do(1, S, P, O, G) :-
 	debug(bug(S,P,O), 'ASSERT(~q,~q,~q,~q)', [S,P,O,G]),
 	rdf_assert(S,P,O,G).
-do(1, S, P, O, G) :-
+do(2, S, P, O, G) :-
 	debug(bug(S,P,O), 'RETRACTALL(~q,~q,~q,~q)', [S,P,O,G]),
 	rdf_retractall(S,P,O,G).
-do(2, S, _P, _O, _G) :- rdf_s(S).	% allow profiling
-do(3, S, P, _O, _G)  :- rdf_sp(S, P).
-do(4, S, _P, _O, _G) :- has_s(S).
-do(5, S, P, _O, _G)  :- has_sp(S, P).
-do(6, S, P, _O, _G)  :- reach_sp(S, P).
-do(7, _S, P, O, _G)  :- reach_po(P, O).
-do(8, _, P, _, G) :-			% add a random subproperty below me
+do(3, S, _P, _O, _G) :- rdf_s(S).	% allow profiling
+do(4, S, P, _O, _G)  :- rdf_sp(S, P).
+do(5, S, _P, _O, _G) :- has_s(S).
+do(6, S, P, _O, _G)  :- has_sp(S, P).
+do(7, S, P, _O, _G)  :- reach_sp(S, P).
+do(8, _S, P, O, _G)  :- reach_po(P, O).
+do(9, _, P, _, G) :-			% add a random subproperty below me
 	repeat,
 	    ranp(P2),
 	P2 \== P, !,
 	rdf_assert(P2, rdfs:subPropertyOf, P, G),
 	debug(subPropertyOf, 'Added ~p rdfs:subPropertyOf ~p~n', [P2, P]).
-do(9, _, P, _, G) :-			% randomly delete a subproperty
+do(10, _, P, _, G) :-			% randomly delete a subproperty
 	(   rdf(_, rdfs:subPropertyOf, P)
 	->  repeat,
 	       ranp(P2),
@@ -204,60 +206,60 @@ reach_po(P, O) :-
 %	Generate a random subject.
 
 rans(X) :-
-	next(I, 3),
+	next(I, 4),
 	rs(I, X).
 
-rs(0, a).
-rs(1, b).
-rs(2, c).
-rs(3, d).
+rs(1, a).
+rs(2, b).
+rs(3, c).
+rs(4, d).
 
 %%	ranp(-Predicate) is det.
 %
 %	Generate a random predicate.
 
 ranp(X) :-
-	next(I, 3),
+	next(I, 4),
 	rp(I, X).
-rp(0, a).
-rp(1, p1).
-rp(2, p2).
-rp(3, p3).
+rp(1, a).
+rp(2, p1).
+rp(3, p2).
+rp(4, p3).
 
 %%	rano(-Object) is det.
 %
 %	Generate a random object.
 
 rano(X) :-
-	next(I, 12),
+	next(I, 13),
 	ro(I, X).
-ro(0, a).
-ro(1, b).
-ro(2, c).
-ro(3, p1).
-ro(4, literal(1)).
-ro(5, literal(hello_world)).
-ro(6, literal(bye)).
-ro(7, literal(lang(en, bye))).
-ro(8, literal(lang(nl, bye))).
-ro(9, d).
-ro(10, R) :-
+ro(1, a).
+ro(2, b).
+ro(3, c).
+ro(4, p1).
+ro(5, literal(1)).
+ro(6, literal(hello_world)).
+ro(7, literal(bye)).
+ro(8, literal(lang(en, bye))).
+ro(9, literal(lang(nl, bye))).
+ro(10, d).
+ro(11, R) :-
 	next(I, 1000),
 	atom_concat(r, I, R).
-ro(11, literal(L)) :-
+ro(12, literal(L)) :-
 	next(I, 1000),
 	atom_concat(l, I, L).
-ro(12, literal(lang(Lang, L))) :-
+ro(13, literal(lang(Lang, L))) :-
 	next(I, 1000),
 	atom_concat(l, I, L),
 	ranl(Lang).
 
 ranl(Lang) :-
-	next(I, 1),
+	next(I, 2),
 	rl(I, Lang).
 
-rl(0, en).
-rl(1, nl).
+rl(1, en).
+rl(2, nl).
 
 
 %%	rang(-Graph) is det.
@@ -268,16 +270,14 @@ graph_count(200).
 
 rang(X:Line) :-
 	graph_count(Count),
-	Max is Count - 1,
-	next(I, Max),
+	next(I, Count),
 	rg(I, X),
 	Line = 1.
 %	line(Line).
 
 term_expansion(rg(x,x), Clauses) :-
 	graph_count(Count),
-	Max is Count - 1,
-	findall(rg(I,N), (between(0, Max, I), atom_concat(g,I,N)), Clauses).
+	findall(rg(I,N), (between(1, Count, I), atom_concat(g,I,N)), Clauses).
 
 rg(x,x).
 
