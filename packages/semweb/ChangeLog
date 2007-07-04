@@ -1,3 +1,7 @@
+Jul 4, 2007
+
+  * ADDED: various details to rdf_persistency to improve logging transactions.
+
 Jul 2, 2007
 
   * MODIFIED: Pass nesting level along with begin/end of a transaction.

@@ -107,6 +107,11 @@ move the .new to the plain snapshot name as a means of recovery.
 %		* silent(+Boolean)
 %		If =true= (default =false=), do not print informational
 %		messages.
+%		
+%		* log_nested_transactions(+Boolean)
+%		If =true=, nested _log_ transactions are added to the
+%		journal information.  By default (=false=), no log-term
+%		is added for nested transactions.
 
 rdf_attach_db(DirSpec, Options) :-
 	absolute_file_name(DirSpec,
@@ -148,9 +153,10 @@ assert_options([H|T]) :-
 	),
 	assert_options(T).
 	
-option_type(concurrency(X),       must_be(positive_integer, X)).
-option_type(max_open_journals(X), must_be(positive_integer, X)).
-option_type(silent(X), 		  must_be(boolean, X)).
+option_type(concurrency(X),		must_be(positive_integer, X)).
+option_type(max_open_journals(X),	must_be(positive_integer, X)).
+option_type(silent(X),			must_be(boolean, X)).
+option_type(log_nested_transactions(X),	must_be(boolean, X)).
 
 
 %%	rdf_detach_db is det.
@@ -359,9 +365,9 @@ process_journal_term(update(S,P,O,Action), DB) :-
 	).
 process_journal_term(start(_), _).	% journal open/close
 process_journal_term(end(_), _).
-process_journal_term(begin(_), _).	% logged transaction (old)
+process_journal_term(begin(_), _).	% logged transaction (compatibility)
 process_journal_term(end, _).
-process_journal_term(begin(_,_,_), _).	% logged transaction (current)
+process_journal_term(begin(_,_,_,_), _).% logged transaction (current)
 process_journal_term(end(_,_,_), _).
 
 
@@ -371,7 +377,7 @@ process_journal_term(end(_,_,_), _).
 
 :- dynamic
 	blocked_db/2,			% DB, Reason
-	transaction_message/2,		% Nesting, Message
+	transaction_message/3,		% Nesting, Time, Message
 	transaction_db/3.		% Nesting, DB, Id
 
 %%	rdf_persistency(+DB, Bool)
@@ -498,9 +504,12 @@ monitor_transaction(unload(DB), end(_)) :- !,
 	;   true
 	).
 monitor_transaction(log(Msg), begin(N)) :- !,
-	asserta(transaction_message(N, Msg)).
+	check_nested(N),
+	get_time(Time),
+	asserta(transaction_message(N, Time, Msg)).
 monitor_transaction(log(_), end(N)) :-
-	retract(transaction_message(N, _)), !,
+	check_nested(N),
+	retract(transaction_message(N, _, _)), !,
 	findall(DB:Id, retract(transaction_db(N, DB, Id)), DBs),
 	end_transactions(DBs, N).    
 monitor_transaction(reset, begin(L)) :-
@@ -510,18 +519,33 @@ monitor_transaction(reset, end(L)) :-
 	forall(blocked_db(DB, unload),
 	       monitor_transaction(unload(DB), end(L))).
 	       
+
+%%	check_nested(+Level) is semidet.
+%
+%	True if we must log this transaction.   This  is always the case
+%	for toplevel transactions. Nested transactions   are only logged
+%	if log_nested_transactions(true) is defined.
+
+check_nested(0) :- !.
+check_nested(_) :-
+	rdf_option(log_nested_transactions(true)).
+
+
 %%	open_transaction(+DB, +Fd) is det.
 %
-%	Add a begin(Id, Level, Message) term if a transaction involves
-%	DB.
+%	Add a begin(Id, Level, Time,  Message)   term  if  a transaction
+%	involves DB. Id is an incremental   integer, where each database
+%	has its own counter. Level is the nesting level, Time a floating
+%	point timestamp and Message te message   provided as argument to
+%	the log message.
 
 open_transaction(DB, Fd) :-
-	transaction_message(N, Msg), !,
+	transaction_message(N, Time, Msg), !,
 	(   transaction_db(N, DB, _)
 	->  true
 	;   next_transaction_id(DB, Id),
 	    assert(transaction_db(N, DB, Id)),
-	    format(Fd, 'begin(~q, ~q, ~q).~n', [Id, N, Msg])
+	    format(Fd, 'begin(~q, ~q, ~2f, ~q).~n', [Id, N, Time, Msg])
 	).
 open_transaction(_,_).
 
@@ -529,10 +553,10 @@ open_transaction(_,_).
 %%	next_transaction_id(+DB, -Id) is det.
 %
 %	Id is the number to user for  the next logged transaction on DB.
-%	Transactions in each named graph are numbered in sequence.
-%	
-%	@tbd	Start reading from the end, doubling the space of there
-%		are no transactions.
+%	Transactions in each  named  graph   are  numbered  in sequence.
+%	Searching the Id of the last transaction is performed by the 2nd
+%	clause starting 1Kb from the end   and doubling this offset each
+%	failure.
 
 :- dynamic
 	current_transaction_id/2.
@@ -542,19 +566,37 @@ next_transaction_id(DB, Id) :-
 	Id is Last + 1,
 	assert(current_transaction_id(DB, Id)).
 next_transaction_id(DB, Id) :-
-	catch(open_db(DB, read, In, []),
+	db_files(DB, _, Journal),
+	catch(open_db(Journal, read, In, []),
 	      error(existence_error(_,_),_),
 	      fail), !,
-	
-	read(In, T0),
-	call_cleanup(last_transaction_id(T0, In, 0, Last), close(In)),
+	call_cleanup(iterative_expand(In, Last), close(In)),
 	Id is Last + 1,
 	assert(current_transaction_id(DB, Id)).
 next_transaction_id(DB, 1) :-
 	assert(current_transaction_id(DB, 1)).
 
+iterative_expand(In, Last) :-
+	between(10, 62, Step),		% 62 is big enough and safer than infinite
+	    Offset is -(1<<Step),
+	    catch(seek(In, Offset, eof, _), E, true),
+	    (	var(E)
+	    ->	skip(In, 10)		% records are line-based
+	    ;	seek(In, 0, bof, _), !,
+		WholeFile = true
+	    ),
+	    read(In, T0),
+	    last_transaction_id(T0, In, 0, Last),
+	    (	WholeFile == true	% we scanned the whole file
+	    ;   Last > 0		% we found a transaction
+	    ), !.
+iterative_expand(_, 0).
+
 last_transaction_id(end_of_file, _, Last, Last) :- !.
-last_transaction_id(begin(Id, _, _), In, _, Last) :-
+last_transaction_id(end(Id, _, _), In, _, Last) :-
+	read(In, T1),
+	last_transaction_id(T1, In, Id, Last).
+last_transaction_id(_, In, Id, Last) :-
 	read(In, T1),
 	last_transaction_id(T1, In, Id, Last).
 
@@ -564,6 +606,12 @@ last_transaction_id(begin(Id, _, _), In, _, Last) :-
 %	End a transaction that affected the  given list of databases. We
 %	write the list of other affected databases as an argument to the
 %	end-term to facilitate fast finding of the related transactions.
+%	
+%	In each database, the transaction is   ended with a term end(Id,
+%	Nesting, Others), where  Id  and   Nesting  are  the transaction
+%	identifier and nesting (see open_transaction/2)  and Others is a
+%	list of DB:Id,  indicating  other   databases  affected  by  the
+%	transaction.
 
 end_transactions(DBs, N) :-
 	end_transactions(DBs, DBs, N).

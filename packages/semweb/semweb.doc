@@ -511,9 +511,10 @@ its change records into the outer transaction, while discarding a
 nested transaction simply destroys the change records belonging to
 the nested transaction.
 
-The \arg{Id} argument may be used to identify the transaction.  It
-is passed to the begin/end events posted to hooks registered with
-rdf_monitor/2.
+The \arg{Id} argument may be used to identify the transaction. It is
+passed to the begin/end events posted to hooks registered with
+rdf_monitor/2. The \arg{Id} \term{log}{Term} can be used to enrich the
+journal files with additional history context. See \secref{enrich}.
 
     \predicate{rdf_active_transaction}{1}{?Id}
 True if \arg{Id} is the identifier of a currently active transaction
@@ -1504,13 +1505,13 @@ Unify \arg{Keys} with the total key-count of the index and
 \subsection{Module semweb/rdf_persistency}
 \label{sec:persistency}
 
-\index{Persistent store}% The \pllib{semweb/rdf_persistency} provides
-reliable persistent storage for the RDF data. The store uses a directory
-with files for each source (see rdf_source/1) present in the database.
-Each source is represented by two files, one in binary format (see
-rdf_save_db/2) representing the base state and one represented as Prolog
-terms representing the changes made since the base state. The latter is
-called the \jargon{journal}.
+\index{Persistent store}% 
+The \pllib{semweb/rdf_persistency} provides reliable persistent storage
+for the RDF data. The store uses a directory with files for each source
+(see rdf_source/1) present in the database. Each source is represented
+by two files, one in binary format (see rdf_save_db/2) representing the
+base state and one represented as Prolog terms representing the changes
+made since the base state. The latter is called the \jargon{journal}.
 
 
 \begin{description}
@@ -1541,6 +1542,11 @@ are very infrequent.
 
 	\termitem{silent}{Boolean}
 If \const{true}, supress loading messages from rdf_attach_db/2.
+
+	\termitem{log_nested_transactions}{Boolean}
+If \const{true}, nested \emph{log} transactions are added to the journal
+information. By default (\const{false}), no log-term is added for nested
+transactions.
     \end{description}
 
 The database is locked against concurrent access using a file
@@ -1592,16 +1598,90 @@ large databases can be slow and the application may wish to schedule
 such actions at quiet times or scheduled maintenance periods.
 \end{description}
 
-The above predicates suffice for most applications.  The predicates
-below provide access to the journal files and the base state files
-and are intented to provide additional services, such as reasoning 
-about the journals, loaded files, etc.
+\subsubsection{Enriching the journals}
+\label{sec:enrich}
+
+The above predicates suffice for most applications. The predicates in
+this section provide access to the journal files and the base state
+files and are intented to provide additional services, such as reasoning
+about the journals, loaded files, etc.%
+    \footnote{A library \pllib{rdf_history} is under development 
+	      exploiting these features supporting wiki style editing
+	      of RDF.}
+
+Using \term{rdf_transaction}{Goal, log(Message)}, we can add additional
+records to enrich the journal of affected databases with \arg{Term} and
+some additional bookkeeping information. Such a transaction adds a term
+\term{begin}{Id, Nest, Time, Message} before the change operations on
+each affected database and \term{end}{Id, Nest, Affected} after the
+change operations. Here is an example call and content of the journal
+file \file{mydb.jrn}.  A full explanation of the terms that appear in
+the journal is in the description of rdf_journal_file/2.
+
+\begin{code}
+?- rdf_transaction(rdf_assert(s,p,o,mydb), log(by(jan))).
+\end{code}
+
+\begin{code}
+start([time(1183540570)]).
+begin(1, 0, 1183540570.36, by(jan)).
+assert(s, p, o).
+end(1, 0, []).
+end([time(1183540578)]).
+\end{code}
 
 \begin{description}
-    \predicate{rdf_journal_file}{2}{?DB, ?JournalFile}
-True if \arg{File} is the absolute file name of an existing named graph
-\arg{DB}. Currently the format of the journalfiles is undocumented.
-Being Prolog terms they are mostly self-explaining.
+    \predicate{rdf_journal_file}{2}{?DB, ?JournalFile} True if
+\arg{File} is the absolute file name of an existing named graph
+\arg{DB}. A journal file contains a sequence of Prolog terms of the
+following format.%
+	\footnote{Future versions of this library may use an XML
+		  based language neutral format.}
+
+\begin{description}
+    \termitem{start}{Attributes}
+Journal has been opened.  Currently \arg{Attributes} contains a
+term \term{time}{Stamp}.
+
+    \termitem{end}{Attributes}
+Journal was closed.  Currently \arg{Attributes} contains a
+term \term{time}{Stamp}.
+
+    \termitem{assert}{Subject, Predicate, Object}
+A triple \{Subject, Predicate, Object\} was added to the database.
+
+    \termitem{assert}{Subject, Predicate, Object, Line}
+A triple \{Subject, Predicate, Object\} was added to the database
+with given \arg{Line} context.
+
+    \termitem{retract}{Subject, Predicate, Object}
+A triple  \{Subject, Predicate, Object\} was deleted from the database.
+Note that an rdf_retractall/3 call can retract multiple triples.  Each
+of them have a record in the journal.  This allows for `undo'.
+
+    \termitem{retract}{Subject, Predicate, Object, Line}
+Same as above, for a triple with associated line info.
+
+    \termitem{update}{Subject, Predicate, Object, Action}
+See rdf_update/4.
+
+    \termitem{begin}{Id, Nest, Time, Message}
+Added before the changes in each database affected by a transaction
+with transaction identifier \term{log}{Message}.  \arg{Id} is an
+integer counting the logged transactions to this database.  Numbers
+are increasing and designed for binary search within the journal file.
+\arg{Nest} is the nesting level, where `0' is a toplevel transaction.
+\arg{Time} is a time-stamp, currently using float notation with two
+fractional digits.  \arg{Message} is the term provided by the user
+as argument of the \term{log}{Message} transaction.
+
+    \termitem{end}{Id, Nest, Others}
+Added after the changes in each database affected by a transaction with
+transaction identifier \term{log}{Message}. \arg{Id} and \arg{Nest}
+match the begin-term.  \arg{Others} gives a list of other databases
+affected by this transaction and the \arg{Id} of these records.  The
+terms in this list have the format \arg{DB}:\arg{Id}.
+\end{description}
 
     \predicate{rdf_db_to_file}{2}{?DB, ?FileBase}
 Convert between \arg{DB} (see rdf_source/1) and file base-file used
