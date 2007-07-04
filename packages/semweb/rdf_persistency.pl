@@ -512,6 +512,14 @@ monitor_transaction(log(_), end(N)) :-
 	retract(transaction_message(N, _, _)), !,
 	findall(DB:Id, retract(transaction_db(N, DB, Id)), DBs),
 	end_transactions(DBs, N).    
+monitor_transaction(log(Msg, DB), begin(N)) :- !,
+	check_nested(N),
+	get_time(Time),
+	asserta(transaction_message(N, Time, Msg)),
+	journal_fd(DB, Fd),
+	open_transaction(DB, Fd).
+monitor_transaction(log(Msg, _DB), end(N)) :-
+	monitor_transaction(log(Msg), end(N)).
 monitor_transaction(reset, begin(L)) :-
 	forall(rdf_source(DB),
 	       monitor_transaction(unload(DB), begin(L))).

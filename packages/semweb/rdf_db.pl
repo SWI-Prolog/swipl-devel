@@ -375,7 +375,8 @@ must_be_atom(X) :-
 	rdf_set_predicate(r, +),
 	rdf_predicate_property(r, -),
 	rdf_estimate_complexity(r,r,r,-),
-	rdf_transaction(:).
+	rdf_transaction(:),
+	rdf_transaction(:, +).
 
 %%	rdf_equal(?Resource1, ?Resource2)
 %	
@@ -563,12 +564,20 @@ rdf_predicate_property(P, Prop) :-
 		 *	    TRANSACTION		*
 		 *******************************/
 
-%%	rdf_transaction(:Goal)
+%%	rdf_transaction(:Goal) is semidet.
+%%	rdf_transaction(:Goal, +Id) is semidet.
 %	
 %	Backward compatibility
 
 rdf_transaction(Goal) :-
-	rdf_transaction(Goal, user).
+	rdf_transaction_(Goal, user).
+rdf_transaction(Goal, Id) :-
+	(   nonvar(Id),
+	    Id = log(_, DB)
+	->  must_be(atom, DB)
+	;   true
+	),
+	rdf_transaction_(Goal, Id).
 
 %%	rdf_active_transaction(?Id) is nondet.
 %

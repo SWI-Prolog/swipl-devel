@@ -6079,7 +6079,7 @@ install_rdf_db()
   PL_register_foreign("rdf_sources_",   1, rdf_sources,     0);
   PL_register_foreign("rdf_estimate_complexity",
 					4, rdf_estimate_complexity, 0);
-  PL_register_foreign("rdf_transaction",2, rdf_transaction, META);
+  PL_register_foreign("rdf_transaction_",2, rdf_transaction, META);
   PL_register_foreign("rdf_active_transactions_",
 					1, rdf_active_transactions, 0);
   PL_register_foreign("rdf_monitor_",   2, rdf_monitor,     META);

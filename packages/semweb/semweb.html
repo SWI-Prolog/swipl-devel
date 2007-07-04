@@ -2088,6 +2088,15 @@ end(1, 0, []).
 end([time(1183540578)]).
 </PRE>
 
+<P>Using <CODE>rdf_transaction(Goal, log(Message, DB))</CODE>, where <VAR>DB</VAR> 
+is an atom denoting a (possibly empty) named graph, the system 
+guarantees that a non-empty transaction will leave a possibly empty 
+transaction record in DB. This feature assumes named graphs are named 
+after the user making the changes. If a user action does not affect the 
+user's graph, such as deleting a triple from another graph, we still 
+find record of all actions performed by some user in the journal of that 
+user.
+
 <DL>
 <DT class="pubdef"><A NAME="rdf_journal_file/2"><STRONG>rdf_journal_file</STRONG>(<VAR>?DB, 
 ?JournalFile</VAR>)</A></DT>

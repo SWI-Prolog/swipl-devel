@@ -1630,6 +1630,14 @@ end(1, 0, []).
 end([time(1183540578)]).
 \end{code}
 
+Using \term{rdf_transaction}{Goal, log(Message, DB)}, where \arg{DB} is
+an atom denoting a (possibly empty) named graph, the system guarantees
+that a non-empty transaction will leave a possibly empty transaction
+record in DB. This feature assumes named graphs are named after the user
+making the changes. If a user action does not affect the user's graph,
+such as deleting a triple from another graph, we still find record of
+all actions performed by some user in the journal of that user.
+
 \begin{description}
     \predicate{rdf_journal_file}{2}{?DB, ?JournalFile} True if
 \arg{File} is the absolute file name of an existing named graph
