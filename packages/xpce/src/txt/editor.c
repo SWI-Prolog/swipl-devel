@@ -3191,7 +3191,13 @@ insertSelfFillEditor(Editor e, Int times, Int chr)
   le = getScanTextBuffer(tb, e->caret, NAME_line, ZERO, NAME_end);
 
   if ( valInt(getColumnEditor(e, le)) > valInt(e->right_margin) )
-    send(e, NAME_autoFill, EAV);
+  { Regex re = getClassVariableValueObject(e, NAME_autoFillRegex);
+
+    if ( !instanceOfObject(re, ClassRegex) )
+      re = DEFAULT;
+
+    send(e, NAME_autoFill, e->caret, re, EAV);
+  }
 
   if ( tisclosebrace(e->text_buffer->syntax, c) &&
        getClassVariableValueObject(e, NAME_showOpenBracket) == ON )
@@ -3202,17 +3208,37 @@ insertSelfFillEditor(Editor e, Int times, Int chr)
 
 
 static status
-autoFillEditor(Editor e, Int caret)
+autoFillEditor(Editor e, Int caret, Regex re)
 { TextBuffer tb = e->text_buffer;
   Int from, to, lm;
   
   if ( isDefault(caret) )
     caret = e->caret;
-
   from = getScanTextBuffer(tb, e->caret, NAME_line, ZERO, NAME_start);
   to = getScanTextBuffer(tb, sub(e->caret, ONE), NAME_paragraph,
 			 ZERO, NAME_end);
-  lm = getIndentationEditor(e, from, DEFAULT);
+    
+  if ( isDefault(re) )
+  { lm = getIndentationEditor(e, from, DEFAULT);
+  } else
+  { TextBuffer tb = e->text_buffer;
+    long eol = end_of_line(e, from);
+    Int n = getMatchRegex(re, tb, from, toInt(eol));
+
+    if ( n )
+    { from = add(from, n);
+      lm = getColumnEditor(e, from);
+
+      DEBUG(NAME_fill,
+	    Cprintf("autofill: n=%d, from=%d, lm=%d\n",
+		    valInt(n), valInt(from), valInt(lm)));
+    } else
+    { DEBUG(NAME_fill,
+	    Cprintf("autofill regex %p did not match\n", re));
+
+      lm = getIndentationEditor(e, from, DEFAULT);
+    } 
+  }
 
   fillEditor(e, from, to, lm, DEFAULT, OFF);
 
@@ -4607,6 +4633,8 @@ static char *T_mark[] =
 	};
 static char *T_scrollTo[] = 
 	{ "index=[int]", "screenline=[int]" };
+static char *T_autoFill[] =
+        { "from=[int]", "skip=[regex]" };
 
 /* Instance Variables */
 
@@ -4909,7 +4937,7 @@ static senddecl send_editor[] =
      NAME_insert, "Insert typed character n times"),
   SM(NAME_insertSelfFill, 2, T_timesADintD_characterADcharD, insertSelfEditor,
      NAME_insert, "Insert char n times; adjust margins"),
-  SM(NAME_autoFill, 1, "from=[int]", autoFillEditor,
+  SM(NAME_autoFill, 2, T_autoFill, autoFillEditor,
      NAME_insert, "Fill after ->insert_self_fill detected a long line"),
   SM(NAME_newline, 1, "[int]", newlineEditor,
      NAME_insert, "Insert newlines"),
@@ -5122,6 +5150,8 @@ static classvardecl rc_editor[] =
      "Search/replace case"),
   RC(NAME_fillMode, "bool", "@off",
      "If @on, auto-fill"),
+  RC(NAME_autoFillRegex, "regex*", "regex('[^\n]*\t *')",
+     "If not @nil, skip this"),
   RC(NAME_font, "font", "fixed",
      "Default font"),
   RC(NAME_labelFont, "font", "bold",

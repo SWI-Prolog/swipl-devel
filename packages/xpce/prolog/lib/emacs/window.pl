@@ -832,12 +832,12 @@ drop(E, Obj:object) :->
 	send(Mode, drop, Obj).
 
 
-auto_fill(E, Caret:[int]) :->
+auto_fill(E, Caret:[int], Regex:[regex]) :->
 	"Delegate to mode"::
 	(   get(E, mode, Mode),
 	    get(Mode?class, send_method, auto_fill, _)
-	->  send(Mode, auto_fill, Caret)
-	;   send_super(E, auto_fill)
+	->  send(Mode, auto_fill, Caret, Regex)
+	;   send_super(E, auto_fill, Caret, Regex)
 	).
 
 

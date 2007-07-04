@@ -338,7 +338,7 @@ justify_paragraph(M) :->
 	send(M, fill_paragraph, 1).
 
 
-auto_fill(M, From:[int]) :->
+auto_fill(M, From:[int], Regex:[regex]) :->
 	"Auto fill in comment mode"::
 	(   From == @default
 	->  get(M, caret, Caret)
@@ -350,7 +350,7 @@ auto_fill(M, From:[int]) :->
 	        send(M, looking_at, CS, Start)
 	    ->	send(M, fill_comment_paragraph, @off, Start)
 	    ;	get(M, editor, Editor),
-	        send_class(Editor, editor, auto_fill(Caret))
+	        send_class(Editor, editor, auto_fill(Caret, Regex))
 	    )
 	).
 

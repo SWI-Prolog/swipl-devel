@@ -188,6 +188,7 @@
   BUILTIN_NAME("auto_crop")
   BUILTIN_NAME("auto_fill")
   BUILTIN_NAME("auto_fill_mode")
+  BUILTIN_NAME("auto_fill_regex")
   BUILTIN_NAME("auto_hide")
   BUILTIN_NAME("auto_label_align")
   BUILTIN_NAME("auto_layout")
