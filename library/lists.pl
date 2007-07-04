@@ -197,7 +197,14 @@ permutation([X|Xs], Ys1, [_|Bound]) :-
 
 %%	flatten(+List1, ?List2) is det.
 %
-%	Is true when Lis2 is a non nested version of List1.
+%	Is true it List2 is a non nested version of List1.
+%	
+%	@depricated	Ending up needing flatten/3 often indicates,
+%			like append/3 for appending two lists, a bad
+%			design.  Efficient code that generates lists
+%			from generated small lists must use difference
+%			lists, often possible through grammar rules for
+%			optimal readability.
 
 flatten(List, FlatList) :-
 	flatten(List, [], FlatList0), !,
@@ -206,10 +213,10 @@ flatten(List, FlatList) :-
 flatten(Var, Tl, [Var|Tl]) :-
 	var(Var), !.
 flatten([], Tl, Tl) :- !.
-flatten([Hd|Tl], Tail, List) :-
+flatten([Hd|Tl], Tail, List) :- !,
 	flatten(Hd, FlatHeadTail, List), 
 	flatten(Tl, Tail, FlatHeadTail).
-flatten(Atom, Tl, [Atom|Tl]).
+flatten(NonList, Tl, [NonList|Tl]).
 
 %%	sumlist(+List, -Sum) is det.
 %	

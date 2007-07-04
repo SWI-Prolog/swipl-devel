@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Remove choicepoint from flatten/3.  Mike Elston.
+
   * FIXED: Handle seek/4 to negative positions in the object (now throws
     a domain error).
 
