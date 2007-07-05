@@ -3707,7 +3707,8 @@ library(sort).  Please examine the implementation of locale_sort/2
 as an example of using this call.
 
 The \arg{Key} is an implementation defined and generally unreadable
-string.
+string.  On systems that do not support locale-handling, \arg{Key}
+is simply unified with \arg{Atom}.
 
     \predicate{locale_sort}{2}{+List, -Sorted}
 Sort a list of atoms using the current locale.  \arg{List} is a list
