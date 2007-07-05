@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Included various Cygwin issues contributed by Corinna Vinschen.
+
   * FIXED: Remove choicepoint from flatten/3.  Mike Elston.
 
   * FIXED: Handle seek/4 to negative positions in the object (now throws

@@ -29,12 +29,12 @@ of the NT POSIX layer.
 
 Cygwin provides a fairly complete emulation of the POSIX standard, while
 allowing access to the native Win32  API   at  the same time. The cygwin
-ports therefore uses almost  exclusively  the   POSIX  source.  The only
-exception is the stack-allocation that uses  the VirtualAlloc() API from
-Win32 because it is better and  the   mmap()  emulation of cygwin is not
-good enough at the moment.
+ports therefore uses exclusively  the  POSIX source.  The only exception
+is the  stack-allocation that uses  the VirtualAlloc() API from Win32 on
+older versions of Cygwin, because the mmap() emulation of cygwin was not
+good enough up to Cygwin release 1.5.19.
 
-Cygwin is an excelent platform for   porting native Unix applications to
+Cygwin is an excellent platform for  porting native Unix applications to
 Windows without much work. Though the native Win32 version of SWI-Prolog
 can run under Cygwin, it is limited  in this environment. It cannot load
 shared objects created in  Cygwin  and   it  doesn't  use  Cygwins POSIX

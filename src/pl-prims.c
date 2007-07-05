@@ -2475,7 +2475,9 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
 
 static
 PRED_IMPL("collation_key", 2, collation_key, 0)
-{ wchar_t *s;
+{
+#ifdef HAVE_WCSXFRM
+  wchar_t *s;
   size_t len;
   wchar_t buf[256];
   size_t buflen = sizeof(buf)/sizeof(wchar_t);
@@ -2498,6 +2500,9 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
       o = PL_malloc(buflen*sizeof(wchar_t));
     }
   }
+#else
+  notImplemented("collation_key", 2);
+#endif
 }
 
 

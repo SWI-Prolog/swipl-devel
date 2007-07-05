@@ -411,3 +411,6 @@ typedef int mode_t;
 
 /* setenv comes from uxnt.c */
 #define HAVE_SETENV 1
+
+/* Define to 1 if you have the 'wcsxfrm' function. */
+#define HAVE_WCSXFRM 1

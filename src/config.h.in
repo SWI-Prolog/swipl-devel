@@ -492,7 +492,7 @@
 /* Define to 1 if you have the <vfork.h> header file. */
 #undef HAVE_VFORK_H
 
-/* On Cygwin we should use VirtualAlloc() */
+/* On older Cygwin versions we should use VirtualAlloc() */
 #undef HAVE_VIRTUALALLOC
 
 /* Define if __attribute__ visibility is supported */
@@ -500,6 +500,12 @@
 
 /* Define to 1 if you have the `waitpid' function. */
 #undef HAVE_WAITPID
+
+/* Define to 1 if you have the <wchar.h> header file. */
+#undef HAVE_WCHAR_H
+
+/* Define to 1 if you have the `wcsxfrm' function. */
+#undef HAVE_WCSXFRM
 
 /* Define to 1 if `fork' works. */
 #undef HAVE_WORKING_FORK

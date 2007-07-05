@@ -905,7 +905,7 @@ fillDefaultOptions()
   }
 #if defined(__CYGWIN__)
   /* Tack correct suffix to out, otherwise cat in createOutput fails. */
-  if ( out )
+  if ( out && !nolink )
   { replaceExtension(out, shared || embed_shared ? "dll" : "exe", tmp);
     /* Dont call free(out), it could be an argv member. */
     out = strdup(tmp);
