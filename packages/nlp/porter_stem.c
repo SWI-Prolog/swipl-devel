@@ -360,6 +360,7 @@ pl_stem(term_t t_in, term_t t_stem)
   char buf[1024];
   char plain[1024];
   long l;
+  int rc;
 
   if ( !PL_get_nchars(t_in, &len, &word, CVT_ALL|CVT_EXCEPTION) )
   { if ( PL_is_number(t_in) )
@@ -388,11 +389,11 @@ pl_stem(term_t t_in, term_t t_stem)
   end = stem(s, 0, (int)(len - 1));
   s[end + 1] = '\0';
   
-  PL_unify_atom_chars(t_stem, s);
+  rc = PL_unify_atom_chars(t_stem, s);
   if ( s != plain && s != buf )
     PL_free(s);
 
-  return TRUE;
+  return rc;
 }
 
 

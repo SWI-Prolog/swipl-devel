@@ -1,3 +1,7 @@
+Jul 5, 2007
+
+ * FIXED: porter_stem(+,+) always succeeded!
+
 Jan 16, 2007
 
  * Added test.pl
