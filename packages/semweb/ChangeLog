@@ -1,3 +1,8 @@
+Jul 9, 2007
+
+  * MODIFIED: various issues around named graphs and sources.  Work in
+    progress.
+
 Jul 4, 2007
 
   * ADDED: various details to rdf_persistency to improve logging transactions.

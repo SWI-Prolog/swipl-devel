@@ -663,7 +663,7 @@ rdfe_set_file_property(File, default(Type)) :-
 rdfe_get_file_property(FileOrURL, access(Access)) :-
 	(   ground(FileOrURL)
 	->  to_url(FileOrURL, URL)
-	;   rdf_source(URL),
+	;   rdf_source(_DB, URL),
 	    FileOrURL = URL
 	),
 	(   rdf_source_permission(URL, Access0)
@@ -732,31 +732,31 @@ url_protocol(ftps).
 %	Source as `payload'.
 
 rdfe_is_modified(Source) :-
-	rdf_source(Source),
-	rdf_md5(Source, MD5),
+	rdf_source(DB, Source),
+	rdf_md5(DB, MD5),
 	(   unmodified_md5(Source, UnmodifiedMD5)
 	->  true
-	;   rdf_db:rdf_source(Source, _Time, _Triples, UnmodifiedMD5)
+	;   rdf_db:rdf_source(DB, Source, _Time, _Triples, UnmodifiedMD5)
 	),
 	UnmodifiedMD5 \== MD5.
 
 
 rdfe_clear_modified :-
-	forall(rdf_source(File),
+	forall(rdf_graph(File),
 	       rdfe_clear_modified(File)).
 
 %%	rdfe_clear_modified(+DB) is det.
 %
 %	Consider the current state of DB as _unmodified_.
 
-rdfe_clear_modified(File) :-
-	atom(File),
-	retractall(unmodified_md5(File, _)),
-	rdf_md5(File, MD5),
-	(   rdf_db:rdf_source(File, _Time, _Triples, UnmodifiedMD5),
+rdfe_clear_modified(DB) :-
+	atom(DB),
+	retractall(unmodified_md5(DB, _)),
+	rdf_md5(DB, MD5),
+	(   rdf_db:rdf_source(DB, _File, _Time, _Triples, UnmodifiedMD5),
 	    MD5 == UnmodifiedMD5
 	->  true
-	;   assert(unmodified_md5(File, MD5))
+	;   assert(unmodified_md5(DB, MD5))
 	).
 
 

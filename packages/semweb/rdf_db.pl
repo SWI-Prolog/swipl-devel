@@ -74,7 +74,9 @@
 	    rdf_md5/2,			% +DB, -MD5
 	    rdf_atom_md5/3,		% +Text, +Times, -MD5
 
+	    rdf_graph/1,		% ?DB
 	    rdf_source/1,		% ?File
+	    rdf_source/2,		% ?DB, ?SourceURL
 	    rdf_make/0,			% Reload modified databases
 
 	    rdf_source_location/2,	% +Subject, -Source
@@ -131,12 +133,12 @@
 
 :- multifile
 	ns/2,
-	rdf_meta_specification/2.	% Unbound Head, Head
+	rdf_meta_specification/2.	% UnboundHead, Head
 :- dynamic
-	ns/2,				% ID, URL
-	rdf_source/4.			% File, ModTimeAtLoad, Triples, MD5
+	ns/2,			% ID, URL
+	rdf_source/5.		% DB, SourceURL, ModTimeAtLoad, Triples, MD5
 :- volatile
-	rdf_source/4.
+	rdf_source/5.
 :- discontiguous
 	term_expansion/2.
 
@@ -480,7 +482,7 @@ rdf_source_location(Subject, Source) :-
 %	@param KeyValue	Term of the form Key(Value).
 
 rdf_statistics(sources(Count)) :-
-	predicate_property(rdf_source(_,_,_,_), number_of_clauses(Count)).
+	predicate_property(rdf_source(_,_,_,_,_), number_of_clauses(Count)).
 rdf_statistics(subjects(Count)) :-
 	rdf_statistics_(subjects(Count)).
 rdf_statistics(properties(Count)) :-
@@ -678,9 +680,9 @@ rdf_load_db(File) :-
 	rdf_sources_(Sources),
 	(   member(Src, Sources),
 	    rdf_md5(Src, MD5),
-	    rdf_statistics_(triples(Src, Triples)),
-	    retractall(rdf_source(Src, _, _, _)),
-	    assert(rdf_source(Src, 0, Triples, MD5)),
+	    rdf_statistics_(triples(DB, Triples)),
+	    retractall(rdf_source(DB, _, _, _, _)),
+	    assert(rdf_source(DB, -, 0, Triples, MD5)),
 	    fail
 	;   true
 	).
@@ -714,7 +716,12 @@ rdf_load_db(File) :-
 %	    
 %	    * base_uri(+URI)
 %	    URI that is used for rdf:about="" and other RDF constructs
-%	    that are relative to the base uri.
+%	    that are relative to the base uri.  Default is the source
+%	    URL.
+%	    
+%	    * db(+DB)
+%	    Named graph in which to load the data.  It is *not* allowed
+%	    to load two sources into the same named graph.
 %	    
 %	    * if(Condition)
 %	    When to load the file. One of =true=, =changed= (default) or
@@ -738,38 +745,40 @@ rdf_load(Spec, Options) :-
 	->  true
 	;   Options1 = Options
 	),
-	rdf_input(Spec, Input, DefBaseURI),
+	rdf_input(Spec, Input, SourceURL),
 	(   rdf_input_info(Input, Modified, DefFormat)
 	->  true
 	;   Modified = 0,
 	    DefFormat = xml
 	),
-	select_option(base_uri(BaseURI), Options1, Options2, DefBaseURI),
+	select_option(base_uri(BaseURI), Options1, Options2, SourceURL),
 	select_option(format(Format), Options2, Options3, DefFormat),
 	select_option(blank_nodes(ShareMode), Options3, Options4, share),
 	select_option(cache(Cache), Options4, Options5, true),
-	select_option(if(If), Options5, RDFOptions, changed),
+	select_option(if(If), Options5, Options6, changed),
+	select_option(db(DB), Options6, RDFOptions, SourceURL),
 	(   var(BaseURI)
-	->  BaseURI = DefBaseURI
+	->  BaseURI = SourceURL
 	;   true
 	),
-	(   must_load(If, BaseURI, Modified)
-	->  do_unload(BaseURI),		% unload old
+	(   must_load(If, DB, Modified)
+	->  do_unload(DB),		% unload old
 	    (   Cache == true,
-		read_cache(BaseURI, Modified, CacheFile),
-	        catch(rdf_load_db_no_admin(CacheFile, cache(BaseURI)), _, fail)
+		read_cache(SourceURL, Modified, CacheFile),
+	        catch(rdf_load_db_no_admin(CacheFile, cache(DB)), _, fail)
 	    ->	Action = load
 	    ;   rdf_input_open(Input, Stream, Format),
 		must_be(ground, Format),
 		call_cleanup(rdf_load_stream(Format, Stream,
 					     [ base_uri(BaseURI),
-					       blank_nodes(ShareMode)
+					       blank_nodes(ShareMode),
+					       db(DB)
 					     | RDFOptions
 					     ]),
 			     close_input(Input, Stream)), !,
 		(   Cache == true,
-		    rdf_cache_file(BaseURI, write, CacheFile)
-		->  catch(save_cache(BaseURI, CacheFile), E,
+		    rdf_cache_file(SourceURL, write, CacheFile)
+		->  catch(save_cache(DB, CacheFile), E,
 			  print_message(warning, E))
 		;   true
 		),
@@ -778,13 +787,13 @@ rdf_load(Spec, Options) :-
 		;   Action = parsed
 		)
 	    ),
-	    rdf_statistics_(triples(BaseURI, Triples)),
-	    rdf_md5(BaseURI, MD5),
-	    assert(rdf_source(BaseURI, Modified, Triples, MD5))
+	    rdf_statistics_(triples(DB, Triples)),
+	    rdf_md5(DB, MD5),
+	    assert(rdf_source(DB, SourceURL, Modified, Triples, MD5))
 	;   Action = none,
-	    rdf_source(BaseURI, _, Triples, MD5)
+	    rdf_source(DB, _, _, Triples, MD5)
 	),
-	report_loaded(Action, Input, BaseURI, Triples, T0, Options).
+	report_loaded(Action, Input, DB, Triples, T0, Options).
 
 %%	close_input(+Input, +Stream) is det.
 %
@@ -916,26 +925,26 @@ read_cache(BaseURI, Modified, CacheFile) :-
 	CacheModified >= Modified.
 
 
-%%	must_load(+Condition, +BaseURI, +ModifiedSrc)
+%%	must_load(+Condition, +DB, +ModifiedSrc) is semidet.
 %
 %	True if source must be reloaded.
 
 must_load(true, _, _) :- !.
-must_load(changed, BaseURI, ModifiedSrc) :- !,
-	(   rdf_source(BaseURI, ModifiedLoaded, _, _)
+must_load(changed, DB, ModifiedSrc) :- !,
+	(   rdf_source(DB, _SourceURL, ModifiedLoaded, _, _)
 	->  ModifiedSrc > ModifiedLoaded
 	;   true
 	).
-must_load(not_loaded, BaseURI, _) :- !,
-	\+ rdf_source(BaseURI, _, _, _).
+must_load(not_loaded, DB, _) :- !,
+	\+ rdf_source(DB, _SourceURL, _, _, _).
 must_load(Cond, _, _) :-
 	throw(eror(domain_error(condition, Cond), _)).
 
 
-% %	report_loaded(+Action, +Source, +BaseURI, +Triples, +StartCPU, +Options)
+%%	report_loaded(+Action, +Source, +DB, +Triples, +StartCPU, +Options)
 
 report_loaded(none, _, _, _, _, _) :- !.
-report_loaded(Action, Source, BaseURI, Triples, T0, Options) :-
+report_loaded(Action, Source, DB, Triples, T0, Options) :-
 	statistics(cputime, T1),
 	Time is T1 - T0,
 	(   option(silent(true), Options)
@@ -943,7 +952,7 @@ report_loaded(Action, Source, BaseURI, Triples, T0, Options) :-
 	;   Level = informational
 	),
 	print_message(Level,
-		      rdf(loaded(Action, Source, BaseURI, Triples, Time))).
+		      rdf(loaded(Action, Source, DB, Triples, Time))).
 
 
 
@@ -963,24 +972,49 @@ rdf_unload(Spec) :-
 	rdf_input(Spec, _, BaseURI),
 	do_unload(BaseURI).
 
-do_unload(Spec) :-
-	retractall(rdf_source(Spec, _, _, _)),
-	rdf_transaction((rdf_retractall(_,_,_,Spec:_),
-			 rdf_retractall(_,_,_,Spec)),
-			unload(Spec)).
+do_unload(DB) :-
+	retractall(rdf_source(DB, _, _, _, _)),
+	rdf_transaction((rdf_retractall(_,_,_,DB:_),
+			 rdf_retractall(_,_,_,DB)),
+			unload(DB)).
 
+
+%%	rdf_graph(+DB) is semidet.
+%%	rdf_graph(-DB) is nondet.
+%
+%	True if DB is a current named graph with at least one triple.
+
+rdf_graph(DB) :-
+	atom(DB), !,
+	rdf_statistics_(triples(DB, Triples)),
+	Triples > 0.
+rdf_graph(DB) :-
+	rdf_sources_(Sources),
+	member(DB, Sources),
+	rdf_statistics_(triples(DB, Triples)),
+	Triples > 0.
+
+%%	rdf_source(?DB, ?Source) is nondet.
+%
+%	True if named graph DB is loaded from Source.
+
+rdf_source(DB, SourceURL) :-
+	rdf_source(DB,SourceURL,_,_,_),
+	SourceURL \== (-).
 
 %%	rdf_source(?Source)
 %	
-%	Query the loaded sources.  
+%	True if Source is a loaded source.
+%	
+%	@depricated	Use rdf_graph/1 or rdf_source/2.
 
-rdf_source(File) :-
-	rdf_source(File,_,_,_).		% loaded files
-rdf_source(File) :- 
+rdf_source(DB) :-
+	rdf_source(DB,_,_,_,_).		% loaded files
+rdf_source(DB) :- 
 	rdf_sources_(Sources),		% other sources
-	member(File, Sources),
-	\+ rdf_source(File,_,_,_),
-	rdf_statistics_(triples(File, Triples)),
+	member(DB, Sources),
+	\+ rdf_source(DB,_,_,_,_),
+	rdf_statistics_(triples(DB, Triples)),
 	Triples > 0.
 
 %%	rdf_make
@@ -989,9 +1023,9 @@ rdf_source(File) :-
 %	time they were loaded.
 
 rdf_make :-
-	forall((rdf_source(File, Time, _Triples, _),
+	forall((rdf_source(DB, SourceURL, Time, _Triples, _),
 		Time \== 0),
-	       catch(rdf_load(File), _, true)).
+	       catch(rdf_load(SourceURL, [db(DB)]), _, true)).
 
 %%	save_cache(+DB, +Cache) is det.
 %
@@ -1026,7 +1060,7 @@ assert_triples([H|_], _) :-
 %	statistics.
 
 rdf_reset_db :-
-	retractall(rdf_source(_,_,_,_)),
+	retractall(rdf_source(_,_,_,_,_)),
 	rdf_transaction(rdf_reset_db_, reset).
 
 

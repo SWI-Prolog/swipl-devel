@@ -521,7 +521,7 @@ monitor_transaction(log(Msg, DB), begin(N)) :- !,
 monitor_transaction(log(Msg, _DB), end(N)) :-
 	monitor_transaction(log(Msg), end(N)).
 monitor_transaction(reset, begin(L)) :-
-	forall(rdf_source(DB),
+	forall(rdf_graph(DB),
 	       monitor_transaction(unload(DB), begin(L))).
 monitor_transaction(reset, end(L)) :-
 	forall(blocked_db(DB, unload),
@@ -649,7 +649,7 @@ push_state(Id) :-
 	asserta(pre_load_state(Id, State)).
 
 get_state(State) :-
-	findall(DB-MD5, (rdf_source(DB), rdf_md5(DB, MD5)), State0),
+	findall(DB-MD5, (rdf_graph(DB), rdf_md5(DB, MD5)), State0),
 	keysort(State0, State).
 
 sync_state(Id) :-
