@@ -648,6 +648,21 @@ colourise_file_list([H|T], TB, [PH|PT]) :-
 	colourise_files(H, TB, PH),
 	colourise_file_list(T, TB, PT).
 
+
+%%	colourise_directory(+Arg, +TB, +Pos)
+%
+%	Colourise argument that should be an existing directory.
+
+colourise_directory(Spec, TB, Pos) :-
+	(   TB = @SourceId,		% HACK
+	    catch(xref_source_file(Spec, Path, SourceId,
+				   [file_type(directory)]),
+		  _, fail)
+	->  colour_item(directory(Path), TB, Pos)
+	;   colour_item(nofile, TB, Pos)
+	).
+
+
 %	colourise_class(ClassName, TB, Pos)
 %
 %	Colourise an XPCE class.  
@@ -925,7 +940,7 @@ goal_colours(clause(_,_),	     built_in-[db,classify]).
 goal_colours(clause(_,_,_),	     built_in-[db,classify,classify]).
 % XPCE stuff
 goal_colours(pce_autoload(_,_),	     classify-[classify,file]).
-goal_colours(pce_image_directory(_), classify-[file]).
+goal_colours(pce_image_directory(_), classify-[directory]).
 goal_colours(new(_, _),		     built_in-[classify,pce_new]).
 goal_colours(send_list(_,_,_),	     built_in-pce_arg_list).
 goal_colours(send(_,_),		     built_in-[pce_arg,pce_selector]).
@@ -1015,6 +1030,7 @@ def_style(string,		style(colour := navy_blue)).
 def_style(nofile,		style(colour := red)).
 def_style(file(_),		style(colour := blue,
 				      underline  := @on)).
+def_style(directory(_),		style(colour := blue)).
 def_style(class(built_in,_),	style(colour := blue,
 				      underline := @on)).
 def_style(class(library(_),_),	style(colour := navy_blue,
@@ -1208,6 +1224,9 @@ specified_item(db, Term, TB, Pos) :- !,
 					% files
 specified_item(file, Term, TB, Pos) :- !,
 	colourise_files(Term, TB, Pos).
+					% directory
+specified_item(directory, Term, TB, Pos) :- !,
+	colourise_directory(Term, TB, Pos).
 					% [Name/Arity, ...]
 specified_item(exports, Term, TB, Pos) :- !,
 	colourise_exports(Term, TB, Pos).
@@ -1748,6 +1767,8 @@ identify_fragment(Term,  _, Summary) :-
 identify_fragment(var,  _, 'Variable').
 identify_fragment(file(Path), _, Summary) :-
 	new(Summary, string('File %s', Path)).
+identify_fragment(directory(Path), _, Summary) :-
+	new(Summary, string('Directory %s', Path)).
 identify_fragment(type_error(Type), _, Summary) :-
 	new(Summary, string('Type error: argument must be a %s', Type)).
 identify_fragment(module(Module), _, Summary) :-

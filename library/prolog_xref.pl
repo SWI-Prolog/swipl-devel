@@ -43,6 +43,7 @@
 	    xref_built_in/1,		% ?Callable
 	    xref_expand/2,		% +Term, -Expanded
 	    xref_source_file/3,		% +Spec, -Path, +Source
+	    xref_source_file/4,		% +Spec, -Path, +Source, +Options
 	    xref_public_list/4,		% +Path, -Export, +Src
 	    xref_meta/2,		% +Goal, -Called
 	    xref_hook/1,		% ?Callable
@@ -56,6 +57,7 @@
 	      [pop_operators/0, push_op/3, push_operators/1]).
 :- use_module(library(shlib), [current_foreign_library/2]).
 :- use_module(library(prolog_source)).
+:- use_module(library(option)).
 
 :- dynamic
 	called/3,			% Head, Src, From
@@ -1224,11 +1226,15 @@ hooking can be databases, (HTTP) URIs, etc.
 	prolog:xref_source_directory/2.		% +Source, -Dir
 
 
-%%	xref_source_file(+Spec, -File, +Src)
+%%	xref_source_file(+Spec, -File, +Src) is semidet.
+%%	xref_source_file(+Spec, -File, +Src, +Options) is semidet.
 %	
 %	Find named source file from Spec, relative to Src.
 
 xref_source_file(Plain, File, Source) :-
+	xref_source_file(Plain, File, Source, []).
+
+xref_source_file(Plain, File, Source, Options) :-
 	atom(Plain),
 	\+ is_absolute_file_name(Plain),
 	(   prolog:xref_source_directory(Source, Dir)
@@ -1237,17 +1243,18 @@ xref_source_file(Plain, File, Source) :-
 	    file_directory_name(Source, Dir)
 	),
 	concat_atom([Dir, /, Plain], Spec),
-	do_xref_source_file(Spec, File), !.
-xref_source_file(Spec, File, _) :-
-	do_xref_source_file(Spec, File), !.
-xref_source_file(Spec, _, _) :-
+	do_xref_source_file(Spec, File, Options), !.
+xref_source_file(Spec, File, _, Options) :-
+	do_xref_source_file(Spec, File, Options), !.
+xref_source_file(Spec, _, _, _) :-
 	verbose,
 	print_message(warning, error(existence_error(file, Spec), _)),
 	fail.
 
-do_xref_source_file(Spec, File) :-
+do_xref_source_file(Spec, File, Options) :-
+	option(file_type(Type), Options, prolog),
 	absolute_file_name(Spec,
-			   [ file_type(prolog),
+			   [ file_type(Type),
 			     access(read),
 			     file_errors(fail)
 			   ], File), !.

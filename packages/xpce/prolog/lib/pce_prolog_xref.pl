@@ -43,6 +43,7 @@
 	    xref_built_in/1,		% ?Callable
 	    xref_expand/2,		% +Term, -Expanded
 	    xref_source_file/3,		% +Spec, -Path, +Source
+	    xref_source_file/4,		% +Spec, -Path, +Source, +Options
 	    xref_public_list/4,		% +Path, -Export, +Src
 	    xref_meta/2,		% +Goal, -Called
 	    xref_hook/1,		% ?Callable
