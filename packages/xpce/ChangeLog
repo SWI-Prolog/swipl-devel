@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#294: PceEmacs colouring of pce_image_directory arg. 
+
 * FIXED: Bug#290: text<-postscript ignores <-wrap: wrap_fixed_width.
   Tom Conlon.
 
