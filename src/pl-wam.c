@@ -2047,7 +2047,10 @@ depart_continue() to do the normal thing or to the backtrack point.
   QF  = QueryFromQid(qid);
   SECURE(assert(QF->magic == QID_MAGIC));
   if ( true(QF, PL_Q_DETERMINISTIC) )	/* last one succeeded */
-  { Undo(QF->choice.mark);
+  { fid_t fid = QF->foreign_frame;
+    QF->foreign_frame = 0;
+    PL_close_foreign_frame(fid);
+    Undo(QF->choice.mark);
     fail;
   }
   FR  = &QF->frame;
