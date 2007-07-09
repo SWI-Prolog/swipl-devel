@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.37, distributed with SWI-Prolog 5.6.37
+==================================================
+
 * FIXED: Bug#294: PceEmacs colouring of pce_image_directory arg. 
 
 * FIXED: Bug#290: text<-postscript ignores <-wrap: wrap_fixed_width.
