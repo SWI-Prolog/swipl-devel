@@ -1,3 +1,7 @@
+Jul 9, 2007
+
+  * FIXED: xml:lang with empty literals.  Jochem Liem.
+
 Jun 14, 2007
 
   * FIXED: return rdf:parseType="Literal" as literal of type

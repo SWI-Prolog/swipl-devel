@@ -250,11 +250,14 @@ propertyElt(Id, Name, unparsed(Value), Options) ::=
 		       ]),
 		Value).
 
-emptyPropertyElt(Id, literal(''), Options) ::=
+emptyPropertyElt(Id, Literal, Options) ::=
 	\attrs([ \?idAttr(Id, Options),
 		 \?parseLiteral
 	       | \noMoreAttrs
-	       ]), !.
+	       ]),
+	{ !,
+	  mkliteral('', Literal, Options)
+	}.
 emptyPropertyElt(Id,
 		 description(description, About, BagID, Properties),
 		 Options) ::=
@@ -284,7 +287,7 @@ literal_value(Value, literal(type(rdf:'XMLLiteral', Value)), _).
 %%	mkliteral(+Atom, -Object, +Options)
 %	
 %	Translate attribute value Atom into an RDF object using the
-%%	lang(Lang) option from Options.
+%	lang(Lang) option from Options.
 
 mkliteral(Text, literal(Val), Options) :-
 	atom(Text),
