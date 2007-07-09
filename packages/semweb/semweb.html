@@ -802,6 +802,10 @@ and implemented by <A NAME="idx:processrdf3:38"></A><SPAN class="pred-ext">proce
 In addition, the following options are provided:
 
 <DL>
+<DT><STRONG>db</STRONG>(<VAR>+DB</VAR>)</DT>
+<DD class="defbody">
+Load the data in the given named graph. The default is the URL of the 
+source.</DD>
 <DT><STRONG>cache</STRONG>(<VAR>+Bool</VAR>)</DT>
 <DD class="defbody">
 If <CODE>true</CODE> (default), try to use cached data or create a cache 
@@ -833,10 +837,8 @@ level is
 <DT class="pubdef"><A NAME="rdf_unload/1"><STRONG>rdf_unload</STRONG>(<VAR>+Spec</VAR>)</A></DT>
 <DD class="defbody">
 Remove all triples loaded from <VAR>Spec</VAR>. <VAR>Spec</VAR> is 
-either the name of a loaded database (see <A NAME="idx:rdfsource1:41"></A><A class="pred" href="#rdf_source/1">rdf_source/1</A>) 
-or a file specification. If
-<VAR>Spec</VAR> does not refer to a loaded database the predicate 
-succeeds silently.</DD>
+either a graph name or a source specificatipn. If <VAR>Spec</VAR> does 
+not refer to a loaded database the predicate succeeds silently.</DD>
 <DT class="pubdef"><A NAME="rdf_save/1"><STRONG>rdf_save</STRONG>(<VAR>+File</VAR>)</A></DT>
 <DD class="defbody">
 Save all known triples to the given <VAR>File</VAR>. Same as
@@ -908,13 +910,24 @@ tag to be interpreted using <VAR>XMLLang</VAR>.
 </DL>
 
 </DD>
-<DT class="pubdef"><A NAME="rdf_source/1"><STRONG>rdf_source</STRONG>(<VAR>?File</VAR>)</A></DT>
+<DT class="pubdef"><A NAME="rdf_graph/1"><STRONG>rdf_graph</STRONG>(<VAR>?DB</VAR>)</A></DT>
 <DD class="defbody">
-Test or enumerate the sources known in the database. This is the 
-name-part of the 4-th argument of <A NAME="idx:rdf4:42"></A><A class="pred" href="#rdf/4">rdf/4</A>. 
-If a file is loaded using
-<A NAME="idx:rdfload1:43"></A><A class="pred" href="#rdf_load/1">rdf_load/1</A>, 
-this is the name of the loaded file.</DD>
+True if <VAR>DB</VAR> is the name of a graph with at least one triple.</DD>
+<DT class="pubdef"><A NAME="rdf_source/1"><STRONG>rdf_source</STRONG>(<VAR>?DB</VAR>)</A></DT>
+<DD class="defbody">
+Depricated. Use <A NAME="idx:rdfgraph1:41"></A><A class="pred" href="#rdf_graph/1">rdf_graph/1</A> 
+or <A NAME="idx:rdfsource2:42"></A><A class="pred" href="#rdf_source/2">rdf_source/2</A> 
+in new code.</DD>
+<DT class="pubdef"><A NAME="rdf_source/2"><STRONG>rdf_source</STRONG>(<VAR>?DB, 
+?SourceURL</VAR>)</A></DT>
+<DD class="defbody">
+True if the named graph <VAR>DB</VAR> was loaded from the source
+<VAR>SourceURL</VAR>. A named graph is associated with a <VAR>SourceURL</VAR> 
+by
+<A NAME="idx:rdfload2:43"></A><A class="pred" href="#rdf_load/2">rdf_load/2</A>. 
+The association is stored in the internal binary format, which ensures 
+proper maintenance of the original source through caching and the 
+persistency layer.</DD>
 <DT class="pubdef"><A NAME="rdf_make/0"><STRONG>rdf_make</STRONG></A></DT>
 <DD class="defbody">
 Re-load all RDF sourcefiles (see <A NAME="idx:rdfsource1:44"></A><A class="pred" href="#rdf_source/1">rdf_source/1</A>) 
@@ -2831,7 +2844,7 @@ See the source file <CODE>avl.c</CODE> for details.
 <A class="idx" href="#idx:rdf3:2">3</A> <A class="idx" href="#idx:rdf3:5">3.1</A> <A class="idx" href="#idx:rdf3:6">3.1</A> <A class="idx" href="#idx:rdf3:7">3.1</A> <A class="idx" href="#idx:rdf3:8">3.1</A> <A class="idx" href="#idx:rdf3:13">3.2</A> <A class="idx" href="#idx:rdf3:17">3.3.1</A> <A class="idx" href="#idx:rdf3:28">3.3.2</A> <A class="idx" href="#idx:rdf3:58">3.5</A> <A class="idx" href="#idx:rdf3:118">5</A> <A class="idx" href="#idx:rdf3:168">8</A></DD>
 <DT><A class="idx" href="#rdf/4">rdf/4</A></DT>
 <DD>
-<A class="idx" href="#idx:rdf4:4">3.1</A> <A class="idx" href="#idx:rdf4:42">3.4</A> <A class="idx" href="#idx:rdf4:105">4.6</A></DD>
+<A class="idx" href="#idx:rdf4:4">3.1</A> <A class="idx" href="#idx:rdf4:105">4.6</A></DD>
 <DT><A class="idx" href="#rdf_active_transaction/1">rdf_active_transaction/1</A></DT>
 <DD>
 <A class="idx" href="#idx:rdfactivetransaction1:33">3.3.2</A></DD>
@@ -2985,6 +2998,9 @@ See the source file <CODE>avl.c</CODE> for details.
 <DT><A class="idx" href="#rdf_global_term/2">rdf_global_term/2</A></DT>
 <DD>
 </DD>
+<DT><A class="idx" href="#rdf_graph/1">rdf_graph/1</A></DT>
+<DD>
+<A class="idx" href="#idx:rdfgraph1:41">3.4</A></DD>
 <DT><A class="idx" href="#rdf_has/3">rdf_has/3</A></DT>
 <DD>
 <A class="idx" href="#idx:rdfhas3:10">3.1</A> <A class="idx" href="#idx:rdfhas3:14">3.2</A> <A class="idx" href="#idx:rdfhas3:15">3.2</A> <A class="idx" href="#idx:rdfhas3:75">3.7</A></DD>
@@ -3011,10 +3027,10 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT><A class="idx" href="#rdf_load/1">rdf_load/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfload1:37">3.4</A> <A class="idx" href="#idx:rdfload1:43">3.4</A> <A class="idx" href="#idx:rdfload1:78">3.7</A> <A class="idx" href="#idx:rdfload1:150">7.3</A></DD>
+<A class="idx" href="#idx:rdfload1:37">3.4</A> <A class="idx" href="#idx:rdfload1:78">3.7</A> <A class="idx" href="#idx:rdfload1:150">7.3</A></DD>
 <DT><A class="idx" href="#rdf_load/2">rdf_load/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfload2:46">3.4.1</A> <A class="idx" href="#idx:rdfload2:68">3.6</A> <A class="idx" href="#idx:rdfload2:72">3.6</A> <A class="idx" href="#idx:rdfload2:80">4</A> <A class="idx" href="#idx:rdfload2:87">4.1</A></DD>
+<A class="idx" href="#idx:rdfload2:43">3.4</A> <A class="idx" href="#idx:rdfload2:46">3.4.1</A> <A class="idx" href="#idx:rdfload2:68">3.6</A> <A class="idx" href="#idx:rdfload2:72">3.6</A> <A class="idx" href="#idx:rdfload2:80">4</A> <A class="idx" href="#idx:rdfload2:87">4.1</A></DD>
 <DT>rdf_load/[1,2]</DT>
 <DD>
 <A class="idx" href="#idx:rdfload12:48">3.4.3</A> <A class="idx" href="#idx:rdfload12:50">3.4.4</A> <A class="idx" href="#idx:rdfload12:54">3.4.4</A></DD>
@@ -3146,7 +3162,10 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT><A class="idx" href="#rdf_source/1">rdf_source/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfsource1:41">3.4</A> <A class="idx" href="#idx:rdfsource1:44">3.4</A> <A class="idx" href="#idx:rdfsource1:101">4.6</A> <A class="idx" href="#idx:rdfsource1:109">4.6.1</A></DD>
+<A class="idx" href="#idx:rdfsource1:44">3.4</A> <A class="idx" href="#idx:rdfsource1:101">4.6</A> <A class="idx" href="#idx:rdfsource1:109">4.6.1</A></DD>
+<DT><A class="idx" href="#rdf_source/2">rdf_source/2</A></DT>
+<DD>
+<A class="idx" href="#idx:rdfsource2:42">3.4</A></DD>
 <DT><A class="idx" href="#rdf_source_location/2">rdf_source_location/2</A></DT>
 <DD>
 </DD>

@@ -677,9 +677,9 @@ rdf_load_db_no_admin(File, Id) :-
 rdf_load_db(File) :-
 	file_name_to_url(File, URL),
 	rdf_load_db_no_admin(File, URL),
-	rdf_sources_(Sources),
-	(   member(Src, Sources),
-	    rdf_md5(Src, MD5),
+	rdf_graphs_(DBList),
+	(   member(DB, DBList),
+	    rdf_md5(DB, MD5),
 	    rdf_statistics_(triples(DB, Triples)),
 	    retractall(rdf_source(DB, _, _, _, _)),
 	    assert(rdf_source(DB, -, 0, Triples, MD5)),
@@ -776,6 +776,7 @@ rdf_load(Spec, Options) :-
 					     | RDFOptions
 					     ]),
 			     close_input(Input, Stream)), !,
+		rdf_set_graph_source(DB, SourceURL),
 		(   Cache == true,
 		    rdf_cache_file(SourceURL, write, CacheFile)
 		->  catch(save_cache(DB, CacheFile), E,
@@ -904,15 +905,15 @@ rdf_file_type(trp,   triples).
 %	@tbd	Handle mime-types?
 
 rdf_load_stream(xml, Stream, Options) :- !,
-	option(base_uri(Id), Options),
+	option(db(Id), Options),
 	rdf_transaction(process_rdf(Stream, assert_triples, Options),
 			parse(Id)).
 rdf_load_stream(xhtml, Stream, Options) :- !,
-	option(base_uri(Id), Options),
+	option(db(Id), Options),
 	rdf_transaction(process_rdf(Stream, assert_triples, [embedded(true)|Options]),
 			parse(Id)).
 rdf_load_stream(triples, Stream, Options) :- !,
-	option(base_uri(Id), Options),
+	option(db(Id), Options),
 	rdf_load_db_(Stream, Id).
 
 %%	read_cache(+BaseURI, +SourceModified, -CacheFile) is semidet.
@@ -989,7 +990,7 @@ rdf_graph(DB) :-
 	rdf_statistics_(triples(DB, Triples)),
 	Triples > 0.
 rdf_graph(DB) :-
-	rdf_sources_(Sources),
+	rdf_graphs_(Sources),
 	member(DB, Sources),
 	rdf_statistics_(triples(DB, Triples)),
 	Triples > 0.
@@ -999,8 +1000,8 @@ rdf_graph(DB) :-
 %	True if named graph DB is loaded from Source.
 
 rdf_source(DB, SourceURL) :-
-	rdf_source(DB,SourceURL,_,_,_),
-	SourceURL \== (-).
+	rdf_graph(DB),
+	rdf_graph_source_(DB, SourceURL).
 
 %%	rdf_source(?Source)
 %	
@@ -1011,7 +1012,7 @@ rdf_source(DB, SourceURL) :-
 rdf_source(DB) :-
 	rdf_source(DB,_,_,_,_).		% loaded files
 rdf_source(DB) :- 
-	rdf_sources_(Sources),		% other sources
+	rdf_graphs_(Sources),		% other sources
 	member(DB, Sources),
 	\+ rdf_source(DB,_,_,_,_),
 	rdf_statistics_(triples(DB, Triples)),

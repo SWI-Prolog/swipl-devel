@@ -1,7 +1,7 @@
 Jul 9, 2007
 
-  * MODIFIED: various issues around named graphs and sources.  Work in
-    progress.
+  * MODIFIED: various issues around named graphs and sources.  New option
+    db(DB) to rdf_load/2, new predicates rdf_graph/1 and rdf_source/2.
 
 Jul 4, 2007
 

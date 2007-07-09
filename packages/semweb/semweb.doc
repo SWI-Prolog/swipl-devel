@@ -551,6 +551,10 @@ to the RDF parser and implemented by process_rdf/3.  In addition, the
 following options are provided:
 
 \begin{description}
+    \termitem{db}{+DB}
+Load the data in the given named graph.  The default is the URL of the
+source.
+
     \termitem{cache}{+Bool}
 If \const{true} (default), try to use cached data or create a cache
 file.  Otherwise load the source.
@@ -575,10 +579,9 @@ printed using level \const{silent}. Otherwise the level is
 \end{description}
 
     \predicate{rdf_unload}{1}{+Spec}
-Remove all triples loaded from \arg{Spec}. \arg{Spec} is either the name
-of a loaded database (see rdf_source/1) or a file specification. If
-\arg{Spec} does not refer to a loaded database the predicate succeeds
-silently.
+Remove all triples loaded from \arg{Spec}. \arg{Spec} is either a graph
+name or a source specificatipn. If \arg{Spec} does not refer to a loaded
+database the predicate succeeds silently.
 
     \predicate{rdf_save}{1}{+File}
 Save all known triples to the given \arg{File}.  Same as
@@ -642,10 +645,18 @@ that this option will cause all literals without language tag to be
 interpreted using \arg{XMLLang}.
     \end{description}
 
-    \predicate{rdf_source}{1}{?File}
-Test or enumerate the sources known in the database. This is the
-name-part of the 4-th argument of rdf/4.  If a file is loaded using
-rdf_load/1, this is the name of the loaded file.
+    \predicate{rdf_graph}{1}{?DB}
+True if \arg{DB} is the name of a graph with at least one triple.
+
+    \predicate{rdf_source}{1}{?DB}
+Depricated.  Use rdf_graph/1 or rdf_source/2 in new code.
+
+    \predicate{rdf_source}{2}{?DB, ?SourceURL}
+True if the named graph \arg{DB} was loaded from the source
+\arg{SourceURL}. A named graph is associated with a \arg{SourceURL} by
+rdf_load/2.  The association is stored in the internal binary format,
+which ensures proper maintenance of the original source through caching
+and the persistency layer.
 
     \predicate{rdf_make}{0}{}
 Re-load all RDF sourcefiles (see rdf_source/1) that have changed since

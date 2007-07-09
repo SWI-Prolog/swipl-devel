@@ -30,7 +30,7 @@
 #endif
 #include "lock.h"
 
-#define RDF_VERSION 20600		/* 2.6.0 */
+#define RDF_VERSION 20700		/* 2.7.0 */
 
 #define URL_subPropertyOf \
 	"http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
@@ -63,7 +63,7 @@
 #define INDEX_TABLES 		        7
 #define INITIAL_TABLE_SIZE   		8*1024
 #define INITIAL_PREDICATE_TABLE_SIZE	1024
-#define INITIAL_SOURCE_TABLE_SIZE	64
+#define INITIAL_GRAPH_TABLE_SIZE	64
 
 #define MAX_HASH_FACTOR 8		/* factor to trigger re-hash */
 #define MIN_HASH_FACTOR 4		/* factor after re-hash */
@@ -124,15 +124,16 @@ typedef struct predicate_cloud
 } predicate_cloud;
 
 
-typedef struct source
-{ struct source    *next;		/* next in table */
-  atom_t	    name;		/* name of the source */
+typedef struct graph
+{ struct graph    *next;		/* next in table */
+  atom_t	    name;		/* name of the graph */
+  atom_t	    source;		/* URL graph was loaded from */
   int		    triple_count;	/* # triples associated to it */
 #ifdef WITH_MD5
   unsigned	    md5 : 1;		/* do/don't record MD5 */
   md5_byte_t 	    digest[16];		/* MD5 digest */
 #endif
-} source;  
+} graph;  
 
 
 typedef struct literal
@@ -164,8 +165,8 @@ typedef struct triple
   { literal *	literal;
     atom_t	resource;
   } object;
-  atom_t	source;			/* where it comes from */
-  unsigned long line;			/* source-line number */
+  atom_t	graph;			/* where it comes from */
+  unsigned long line;			/* graph-line number */
 					/* indexing */
   struct triple*next[INDEX_TABLES];	/* hash-table next links */
 					/* flags */
@@ -208,7 +209,7 @@ typedef struct transaction_record
       unsigned long		line;
     } src;
     struct
-    { source		       *source;
+    { graph		       *graph;
       md5_byte_t	       *digest;
     } md5;
     record_t		       transaction_id;
@@ -247,10 +248,10 @@ typedef struct rdf_db
   long		agenda_created;		/* #visited nodes in agenda */
   long		duplicates;		/* #duplicate triples */
   long		generation;		/* generation-id of the database */
-  source      **source_table;		/* Hash table of sources */
-  int      	source_table_size;	/* Entries in table */
+  graph      **graph_table;		/* Hash table of sources */
+  int      	graph_table_size;	/* Entries in table */
 
-  source	*last_source;		/* last accessed source */
+  graph	*last_graph;		/* last accessed graph */
   active_transaction *tr_active;	/* open transactions */
   transaction_record *tr_first;		/* first transaction record */
   transaction_record *tr_last;		/* last transaction record */

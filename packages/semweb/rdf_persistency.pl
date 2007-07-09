@@ -892,11 +892,11 @@ db_abs_files(DB, Snapshot, Journal) :-
 %	True if File is the absolute  file   name  of  an existing named
 %	graph DB. 
 %	
-%	@tbd	Avoid using private rdf_db:rdf_sources_/1.
+%	@tbd	Avoid using private rdf_db:rdf_graphs_/1.
 
 rdf_journal_file(DB, Journal) :-
 	(   var(DB)
-	->  rdf_db:rdf_sources_(All),	% also pick the empty sources
+	->  rdf_db:rdf_graphs_(All),	% also pick the empty graphs
 	    member(DB, All)
 	;   true
 	),

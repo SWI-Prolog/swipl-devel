@@ -701,7 +701,7 @@ syntax_error(Stream, _StartLine, Which) :-
 	rdf_db:rdf_file_type/2.
 
 rdf_db:rdf_load_stream(turtle, Stream, Options) :-
-	option(base_uri(Id), Options),
+	option(db(Id), Options),
 	rdf_transaction(rdf_process_turtle(Stream, assert_triples, Options),
 			parse(Id)).
 

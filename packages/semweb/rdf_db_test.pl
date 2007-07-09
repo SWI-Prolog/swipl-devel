@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -36,6 +36,7 @@
 :- use_module(rdf_db).
 :- use_module(rdfs).
 :- use_module(library(xsdp_types)).
+:- use_module(library(lists)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 RDF-DB test file.  A test is a clause of the form:
@@ -203,6 +204,7 @@ lang_data :-
 lang_data(S, A) :-
 	rdf_assert(S, A, literal(lang(nl, 'Jan'))),
 	rdf_assert(S, A, literal(lang(en, 'John'))),
+	rdf_assert(S, A, literal(lang(en, ''))),
 	rdf_assert(S, A, literal('Johannes')).
 
 same_set(S1, S2) :-
@@ -215,6 +217,7 @@ lang(1) :-
 	findall(X, rdf(x, a, literal(X)), Xs),
 	Xs == [ lang(nl, 'Jan'),
 		lang(en, 'John'),
+		lang(en, ''),
 		'Johannes'
 	      ]. 
 lang(2) :-
@@ -227,6 +230,7 @@ lang(3) :-
 	findall(X, rdf(x, a, literal(X)), Xs),
 	Xs =@= [ lang(nl, 'Jan'),
 		 lang(en, 'John'),
+		 lang(en, ''),
 		 lang(_,  'Johannes')
 	       ].
 lang(4) :-
@@ -238,7 +242,11 @@ lang(save_db) :-
 	save_reload_db,
 	X = lang(_,_),
 	findall(X, rdf(x, a, literal(X)), Xs),
-	(   Xs =@= [ lang(nl, 'Jan'),  lang(en, 'John'), lang(_, 'Johannes') ]
+	(   Xs =@= [ lang(nl, 'Jan'), 
+		     lang(en, 'John'),
+		     lang(en, ''),
+		     lang(_, 'Johannes') 
+		   ]
 	->  true
 	;   format(user_error, 'Xs = ~w~n', [Xs]),
 	    fail
@@ -248,7 +256,11 @@ lang(save) :-
 	save_reload,
 	findall(X, rdf(x, a, literal(X)), Xs),
 	(   same_set(Xs,
-		     [ lang(nl, 'Jan'),  lang(en, 'John'), 'Johannes' ])
+		     [ lang(nl, 'Jan'),
+		       lang(en, 'John'),
+		       lang(en, ''),
+		       'Johannes' 
+		     ])
 	->  true
 	;   format(user_error, 'Xs = ~q~n', [Xs]),
 	    fail
@@ -456,11 +468,11 @@ transaction(active-5) :-
 label(1) :-
 	rdf_global_id(rdfs:label, Label),
 	lang_data(x, Label),
-	findall(L, rdfs_label(x, L), Ls), Ls = ['Jan', 'John', 'Johannes'].
+	findall(L, rdfs_label(x, L), Ls), Ls = ['Jan', 'John', '', 'Johannes'].
 label(2) :-
 	rdf_global_id(rdfs:label, Label),
 	lang_data(x, Label),
-	findall(L, rdfs_label(x, en, L), Ls), Ls = ['John'].
+	findall(L, rdfs_label(x, en, L), Ls), Ls = ['John', ''].
 
 
 		 /*******************************
@@ -692,6 +704,18 @@ duplicates(1) :-
 
 
 		 /*******************************
+		 *	      SOURCE		*
+		 *******************************/
+
+source(1) :-
+	rdf_assert(a,b,c,test),
+	rdf_db:rdf_set_graph_source(test, 'test.rdf'),
+	rdf_source(test, X),
+	X == 'test.rdf'.
+
+
+
+		 /*******************************
 		 *	      SCRIPTS		*
 		 *******************************/
 
@@ -781,6 +805,7 @@ testset(subproperty).
 testset(ptree).
 testset(reachable).
 testset(duplicates).
+testset(source).
 
 %	testdir(Dir)
 %	

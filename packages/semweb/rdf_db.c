@@ -183,7 +183,7 @@ static functor_t FUNCTOR_literals1;
 static functor_t FUNCTOR_subject1;
 static functor_t FUNCTOR_predicate1;
 static functor_t FUNCTOR_object1;
-static functor_t FUNCTOR_source1;
+static functor_t FUNCTOR_graph1;
 static functor_t FUNCTOR_indexed8;
 
 static functor_t FUNCTOR_exact1;
@@ -235,7 +235,7 @@ static predicate_t PRED_call1;
 
 #define MATCH_EXACT 		0x01	/* exact triple match */
 #define MATCH_SUBPROPERTY	0x02	/* Use subPropertyOf relations */
-#define MATCH_SRC		0x04	/* Match source location */
+#define MATCH_SRC		0x04	/* Match graph location */
 #define MATCH_INVERSE		0x08	/* use symmetric match too */
 #define MATCH_QUAL		0x10	/* Match qualifiers too */
 #define MATCH_DUPLICATE		(MATCH_EXACT|MATCH_QUAL)
@@ -252,7 +252,7 @@ static void	reset_db(rdf_db *db);
 static void	record_transaction(rdf_db *db,
 				   tr_type type, triple *t);
 static void	record_md5_transaction(rdf_db *db,
-				       source *src, md5_byte_t *digest);
+				       graph *src, md5_byte_t *digest);
 static void	create_reachability_matrix(rdf_db *db, predicate_cloud *cloud);
 static int	get_predicate(rdf_db *db, term_t t, predicate **p);
 static predicate_cloud *new_predicate_cloud(rdf_db *db, predicate **p, size_t count);
@@ -483,9 +483,9 @@ print_object(triple *t)
 static void
 print_src(triple *t)
 { if ( t->line == NO_LINE )
-    Sdprintf(" [%s]", PL_atom_chars(t->source));
+    Sdprintf(" [%s]", PL_atom_chars(t->graph));
   else
-    Sdprintf(" [%s:%ld]", PL_atom_chars(t->source), t->line);
+    Sdprintf(" [%s:%ld]", PL_atom_chars(t->graph), t->line);
 }
 
 
@@ -1263,29 +1263,29 @@ object_branch_factor(rdf_db *db, predicate *p, int which)
 
 
 		 /*******************************
-		 *	     SOURCE FILES	*
+		 *	   NAMED GRAPHS		*
 		 *******************************/
 
 /* MT: all calls must be locked
 */
 
 static void
-init_source_table(rdf_db *db)
-{ int bytes = sizeof(predicate*)*INITIAL_SOURCE_TABLE_SIZE;
+init_graph_table(rdf_db *db)
+{ int bytes = sizeof(predicate*)*INITIAL_GRAPH_TABLE_SIZE;
 
-  db->source_table = rdf_malloc(db, bytes);
-  memset(db->source_table, 0, bytes);
-  db->source_table_size = INITIAL_SOURCE_TABLE_SIZE;
+  db->graph_table = rdf_malloc(db, bytes);
+  memset(db->graph_table, 0, bytes);
+  db->graph_table_size = INITIAL_GRAPH_TABLE_SIZE;
 }
 
 
-static source *
-lookup_source(rdf_db *db, atom_t name, int create)
-{ int hash = atom_hash(name) % db->source_table_size;
-  source *src;
+static graph *
+lookup_graph(rdf_db *db, atom_t name, int create)
+{ int hash = atom_hash(name) % db->graph_table_size;
+  graph *src;
 
   LOCK_MISC(db);
-  for(src=db->source_table[hash]; src; src = src->next)
+  for(src=db->graph_table[hash]; src; src = src->next)
   { if ( src->name == name )
     { UNLOCK_MISC(db);
       return src;
@@ -1302,8 +1302,8 @@ lookup_source(rdf_db *db, atom_t name, int create)
   src->name = name;
   src->md5 = TRUE;
   PL_register_atom(name);
-  src->next = db->source_table[hash];
-  db->source_table[hash] = src;
+  src->next = db->graph_table[hash];
+  db->graph_table[hash] = src;
   UNLOCK_MISC(db);
 
   return src;
@@ -1311,39 +1311,41 @@ lookup_source(rdf_db *db, atom_t name, int create)
 
 
 static void
-erase_sources(rdf_db *db)
-{ source **ht;
+erase_graphs(rdf_db *db)
+{ graph **ht;
   int i;
 
-  for(i=0,ht = db->source_table; i<db->source_table_size; i++, ht++)
-  { source *src, *n;
+  for(i=0,ht = db->graph_table; i<db->graph_table_size; i++, ht++)
+  { graph *src, *n;
 
     for( src = *ht; src; src = n )
     { n = src->next;
 
       PL_unregister_atom(src->name);
+      if ( src->source )
+	PL_unregister_atom(src->source);
       rdf_free(db, src, sizeof(*src));
     }
 
     *ht = NULL;
   }
 
-  db->last_source = NULL;
+  db->last_graph = NULL;
 }
 
 
 static void
-register_source(rdf_db *db, triple *t)
-{ source *src;
+register_graph(rdf_db *db, triple *t)
+{ graph *src;
 
-  if ( !t->source )
+  if ( !t->graph )
     return;
 
-  if ( db->last_source && db->last_source->name == t->source )
-  { src = db->last_source;
+  if ( db->last_graph && db->last_graph->name == t->graph )
+  { src = db->last_graph;
   } else
-  { src = lookup_source(db, t->source, TRUE);
-    db->last_source = src;
+  { src = lookup_graph(db, t->graph, TRUE);
+    db->last_graph = src;
   } 
 
   src->triple_count++;
@@ -1358,17 +1360,17 @@ register_source(rdf_db *db, triple *t)
 
 
 static void
-unregister_source(rdf_db *db, triple *t)
-{ source *src;
+unregister_graph(rdf_db *db, triple *t)
+{ graph *src;
 
-  if ( !t->source )
+  if ( !t->graph )
     return;
 
-  if ( db->last_source && db->last_source->name == t->source )
-  { src = db->last_source;
+  if ( db->last_graph && db->last_graph->name == t->graph )
+  { src = db->last_graph;
   } else
-  { src = lookup_source(db, t->source, TRUE);
-    db->last_source = src;
+  { src = lookup_graph(db, t->graph, TRUE);
+    db->last_graph = src;
   } 
 
   src->triple_count--;
@@ -1383,14 +1385,14 @@ unregister_source(rdf_db *db, triple *t)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-rdf_sources_(-ListOfSources)
+rdf_graphs_(-ListOfGraphs)
 
-Return a list holding the names  of   all  currently defined sources. We
+Return a list holding the names  of   all  currently defined graphs. We
 return a list to avoid the need for complicated long locks.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static foreign_t
-rdf_sources(term_t list)
+rdf_graphs(term_t list)
 { int i;
   term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
@@ -1398,10 +1400,10 @@ rdf_sources(term_t list)
 
   if ( !RDLOCK(db) )
     return FALSE;
-  for(i=0; i<db->source_table_size; i++)
-  { source *src;
+  for(i=0; i<db->graph_table_size; i++)
+  { graph *src;
 
-    for(src=db->source_table[i]; src; src = src->next)
+    for(src=db->graph_table[i]; src; src = src->next)
     { if ( !PL_unify_list(tail, head, tail) ||
 	   !PL_unify_atom(head, src->name) )
       { RDUNLOCK(db);
@@ -1414,6 +1416,78 @@ rdf_sources(term_t list)
   return PL_unify_nil(tail);
 }
 
+
+static foreign_t
+rdf_graph_source(term_t graph_name, term_t source)
+{ atom_t gn;
+  int rc = FALSE;
+  rdf_db *db = DB;
+
+  if ( !get_atom_or_var_ex(graph_name, &gn) )
+    return FALSE;
+
+  if ( gn )
+  { graph *s;
+
+    if ( !RDLOCK(db) )
+      return FALSE;
+    if ( (s = lookup_graph(db, gn, FALSE)) && s->source)
+    { rc = PL_unify_atom(source, s->source);
+    }
+    RDUNLOCK(db);
+  } else
+  { atom_t src;
+
+    if ( get_atom_ex(source, &src) )
+    { int i;
+      graph **ht;
+
+      if ( !RDLOCK(db) )
+	return FALSE;
+
+      for(i=0,ht = db->graph_table; i<db->graph_table_size; i++, ht++)
+      { graph *s;
+      
+	for( s = *ht; s; s = s->next )
+	{ if ( s->source == src )
+	    rc = PL_unify_atom(graph_name, s->name);
+	}
+      }
+
+      RDUNLOCK(db);
+    }
+  }
+
+  return rc;
+}
+
+
+static foreign_t
+rdf_set_graph_source(term_t graph_name, term_t source)
+{ atom_t gn, src;
+  int rc = FALSE;
+  rdf_db *db = DB;
+  graph *s;
+
+  if ( !get_atom_ex(graph_name, &gn) ||
+       !get_atom_ex(source, &src) )
+    return FALSE;
+
+  if ( !RDLOCK(db) )
+    return FALSE;
+  if ( (s = lookup_graph(db, gn, TRUE)) )
+  { if ( s->source != src )
+    { if ( s->source )
+	PL_unregister_atom(s->source);
+      s->source = src;
+      PL_register_atom(s->source);
+    }
+    rc = TRUE;
+  }
+  RDUNLOCK(db);
+
+  return rc;
+}
 
 		 /*******************************
 		 *	     LITERALS		*
@@ -1752,7 +1826,7 @@ init_tables(rdf_db *db)
   }
 
   init_pred_table(db);
-  init_source_table(db);
+  init_graph_table(db);
   init_literal_table(db);
 }
 
@@ -2013,7 +2087,7 @@ link_triple_silent(rdf_db *db, triple *t)
 ok:
   db->created++;
   t->predicate->triple_count++;
-  register_source(db, t);
+  register_graph(db, t);
 }
 
 
@@ -2202,7 +2276,7 @@ erase_triple_silent(rdf_db *db, triple *t)
     }
     db->erased++;
     t->predicate->triple_count--;
-    unregister_source(db, t);
+    unregister_graph(db, t);
 
     if ( t->object_is_literal )
     { literal *lit = t->object.literal;
@@ -2303,7 +2377,7 @@ match_triples(triple *t, triple *p, unsigned flags)
   if ( !match_object(t, p, flags) )
     return FALSE;
   if ( flags & MATCH_SRC )
-  { if ( p->source && t->source != p->source )
+  { if ( p->graph && t->graph != p->graph )
       return FALSE;
     if ( p->line && t->line != p->line )
       return FALSE;
@@ -2330,22 +2404,22 @@ Quick Load Format (implemented in pl-wic.c).
 
 	<file> 		::= <magic>
 			    <version>
-			    [<source-file>]
-			    [<md5>]
+			    ['S' <graph-name>]
+			    ['F' <graph-source>]
+			    ['M' <md5>]
 			    {<triple>}
 			    'E'
 
 	<magic> 	::= "RDF-dump\n"
 	<version> 	::= <integer>
 
-	<md5>		::= 'M'
-			    <byte>* 		(16 bytes digest)
+	<md5>		::= <byte>* 		(16 bytes digest)
 
 	<triple>	::= 'T'
 	                    <subject>
 			    <predicate>
 			    <object>
-			    <source>
+			    <graph>
 
 	<subject>	::= <resource>
 	<predicate>	::= <resource>
@@ -2361,14 +2435,15 @@ Quick Load Format (implemented in pl-wic.c).
 
 	<string>	::= <integer><bytes>
 
-	<source-file>	::= <atom>
+	<graph-name>	::= <atom>
+	<graph-source>	::= <atom>
 
-	<source>	::= <source-file>
+	<graph>	::= <graph-file>
 			    <line>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define SAVE_MAGIC "RDF-dump\n"
-#define SAVE_VERSION 1
+#define SAVE_VERSION 2
 
 typedef struct saved
 { atom_t name;
@@ -2577,14 +2652,25 @@ write_triple(rdf_db *db, IOSTREAM *out, triple *t, save_context *ctx)
     save_atom(db, out, t->object.resource, ctx);
   }
 
-  save_atom(db, out, t->source, ctx);
+  save_atom(db, out, t->graph, ctx);
   save_int(out, t->line);
 }
 
 
 static void
+write_source(rdf_db *db, IOSTREAM *out, atom_t src, save_context *ctx)
+{ graph *s = lookup_graph(db, src, FALSE);
+
+  if ( s && s->source )
+  { Sputc('F', out);
+    save_atom(db, out, s->source, ctx);
+  }
+}
+
+
+static void
 write_md5(rdf_db *db, IOSTREAM *out, atom_t src)
-{ source *s = lookup_source(db, src, FALSE);
+{ graph *s = lookup_graph(db, src, FALSE);
 
   if ( s )
   { md5_byte_t *p = s->digest;
@@ -2609,8 +2695,9 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
   Sfprintf(out, "%s", SAVE_MAGIC);
   save_int(out, SAVE_VERSION);
   if ( src )
-  { Sputc('S', out);
+  { Sputc('S', out);			/* start of graph header */
     save_atom(db, out, src, &ctx);
+    write_source(db, out, src, &ctx);
     write_md5(db, out, src);
   }
   if ( Sferror(out) )
@@ -2620,7 +2707,7 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
 
   for(t = db->by_none; t; t = t->next[BY_NONE])
   { if ( !t->erased &&
-	 (!src || t->source == src) )
+	 (!src || t->graph == src) )
     { write_triple(db, out, t, &ctx);
       if ( Sferror(out) )
 	return FALSE;
@@ -2640,13 +2727,13 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
 
 
 static foreign_t
-rdf_save_db(term_t stream, term_t source)
+rdf_save_db(term_t stream, term_t graph)
 { IOSTREAM *out;
   atom_t src;
 
   if ( !PL_get_stream_handle(stream, &out) )
     return type_error(stream, "stream");
-  if ( !get_atom_or_var_ex(source, &src) )
+  if ( !get_atom_or_var_ex(graph, &src) )
     return FALSE;
 
   return save_db(DB, out, src);
@@ -2698,7 +2785,7 @@ typedef struct ld_context
 { long		loaded_id;
   atom_t       *loaded_atoms;
   long		atoms_size;
-  source       *source;
+  graph       *graph;
   md5_byte_t    digest[16];
   int		md5;
 } ld_context;
@@ -2860,7 +2947,7 @@ load_triple(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 	assert(0);
     }
   }
-  t->source = load_atom(db, in, ctx);
+  t->graph = load_atom(db, in, ctx);
   t->line   = (unsigned long)load_int(in);
 
   if ( db->tr_first )
@@ -2907,7 +2994,7 @@ load_db(rdf_db *db, IOSTREAM *in)
 	  return FALSE;
         break;
       case 'S':
-	ctx.source = lookup_source(db, load_atom(db, in, &ctx), TRUE);
+	ctx.graph = lookup_graph(db, load_atom(db, in, &ctx), TRUE);
         break;
       case 'M':
       { int i;
@@ -2915,17 +3002,20 @@ load_db(rdf_db *db, IOSTREAM *in)
 	for(i=0; i<16; i++)
 	  ctx.digest[i] = Sgetc(in);
 
-	if ( ctx.source && ctx.source->md5 )
-	{ ctx.md5 = ctx.source->md5;
+	if ( ctx.graph && ctx.graph->md5 )
+	{ ctx.md5 = ctx.graph->md5;
 	  if ( db->tr_first )
-	  { record_md5_transaction(db, ctx.source, NULL);
+	  { record_md5_transaction(db, ctx.graph, NULL);
 	  } else
-	  { ctx.source->md5 = FALSE;
+	  { ctx.graph->md5 = FALSE;
 	  }
 	}
 
 	break;
       }
+      case 'F':
+	ctx.graph->source = load_atom(db, in, &ctx);
+	break;
       case 'E':
 	if ( ctx.loaded_atoms )
 	  rdf_free(db, ctx.loaded_atoms, sizeof(atom_t)*ctx.atoms_size);
@@ -2934,10 +3024,10 @@ load_db(rdf_db *db, IOSTREAM *in)
 	{ if ( db->tr_first )
 	  { md5_byte_t *d = rdf_malloc(db, sizeof(ctx.digest));
 	    memcpy(d, ctx.digest, sizeof(ctx.digest));
-	    record_md5_transaction(db, ctx.source, d);
+	    record_md5_transaction(db, ctx.graph, d);
 	  } else
-	  { sum_digest(ctx.source->digest, ctx.digest);
-	    ctx.source->md5 = ctx.md5;
+	  { sum_digest(ctx.graph->digest, ctx.digest);
+	    ctx.graph->md5 = ctx.md5;
 	  }
 	}
 
@@ -3043,9 +3133,9 @@ md5_triple(triple *t, md5_byte_t *digest)
     s = PL_blob_data(lit->type_or_lang, &len, NULL);
     md5_append(&state, (const md5_byte_t *)s, (int)len);
   }
-  if ( t->source )
+  if ( t->graph )
   { md5_append(&state, (const md5_byte_t *)"S", 1);
-    s = PL_blob_data(t->source, &len, NULL);
+    s = PL_blob_data(t->graph, &len, NULL);
     md5_append(&state, (const md5_byte_t *)s, (int)len);
   }
   
@@ -3090,20 +3180,20 @@ md5_unify_digest(term_t t, md5_byte_t digest[16])
 
 
 static foreign_t
-rdf_md5(term_t file, term_t md5)
+rdf_md5(term_t graph_name, term_t md5)
 { atom_t src;
   int rc;
   rdf_db *db = DB;
 
-  if ( !get_atom_or_var_ex(file, &src) )
+  if ( !get_atom_or_var_ex(graph_name, &src) )
     return FALSE;
 
   if ( src )
-  { source *s;
+  { graph *s;
 
     if ( !RDLOCK(db) )
       return FALSE;
-    if ( (s = lookup_source(db, src, FALSE)) )
+    if ( (s = lookup_graph(db, src, FALSE)) )
     { rc = md5_unify_digest(md5, s->digest);
     } else
     { md5_byte_t digest[16];
@@ -3114,7 +3204,7 @@ rdf_md5(term_t file, term_t md5)
     RDUNLOCK(db);
   } else
   { md5_byte_t digest[16];
-    source **ht;
+    graph **ht;
     int i;
     
     memset(&digest, 0, sizeof(digest));
@@ -3122,8 +3212,8 @@ rdf_md5(term_t file, term_t md5)
     if ( !RDLOCK(db) )
       return FALSE;
 
-    for(i=0,ht = db->source_table; i<db->source_table_size; i++, ht++)
-    { source *s;
+    for(i=0,ht = db->graph_table; i<db->graph_table_size; i++, ht++)
+    { graph *s;
       
       for( s = *ht; s; s = s->next )
 	sum_digest(digest, s->digest);
@@ -3298,14 +3388,14 @@ get_object(rdf_db *db, term_t object, triple *t)
 static int
 get_src(term_t src, triple *t)
 { if ( src && !PL_is_variable(src) )
-  { if ( PL_get_atom(src, &t->source) )
+  { if ( PL_get_atom(src, &t->graph) )
     { t->line = NO_LINE;
     } else if ( PL_is_functor(src, FUNCTOR_colon2) )
     { term_t a = PL_new_term_ref();
       long line;
       
       PL_get_arg(1, src, a);
-      if ( !get_atom_or_var_ex(a, &t->source) )
+      if ( !get_atom_or_var_ex(a, &t->graph) )
 	return FALSE;
       PL_get_arg(2, src, a);
       if ( PL_get_long(a, &line) )
@@ -3313,7 +3403,7 @@ get_src(term_t src, triple *t)
       else if ( !PL_is_variable(a) )
 	return type_error(a, "integer");
     } else
-      return type_error(src, "rdf_source");
+      return type_error(src, "rdf_graph");
   }
 
   return TRUE;
@@ -3431,7 +3521,7 @@ get_partial_triple(rdf_db *db,
     } else
       return type_error(object, "rdf_object");
   }
-					/* the source */
+					/* the graph */
   if ( !get_src(src, t) )
     return FALSE;
 
@@ -3490,8 +3580,8 @@ inverse_partial_triple(triple *t)
 
 
 static int
-get_source(term_t src, triple *t)
-{ if ( PL_get_atom(src, &t->source) )
+get_graph(term_t src, triple *t)
+{ if ( PL_get_atom(src, &t->graph) )
   { t->line = NO_LINE;
     return TRUE;
   }
@@ -3501,7 +3591,7 @@ get_source(term_t src, triple *t)
     long line;
 
     PL_get_arg(1, src, a);
-    if ( !get_atom_ex(a, &t->source) )
+    if ( !get_atom_ex(a, &t->graph) )
       return FALSE;
     PL_get_arg(2, src, a);
     if ( !get_long_ex(a, &line) )
@@ -3511,31 +3601,31 @@ get_source(term_t src, triple *t)
     return TRUE;
   }
 
-  return type_error(src, "rdf_source");
+  return type_error(src, "rdf_graph");
 }
 
 
 static int
-unify_source(term_t src, triple *t)
+unify_graph(term_t src, triple *t)
 { if ( t->line == NO_LINE )
-  { if ( !PL_unify_atom(src, t->source) )
+  { if ( !PL_unify_atom(src, t->graph) )
       return PL_unify_term(src,
 			   PL_FUNCTOR, FUNCTOR_colon2,
-			     PL_ATOM, t->source,
+			     PL_ATOM, t->graph,
 			     PL_VARIABLE);  
     return TRUE;
   } else
     return PL_unify_term(src,
 			 PL_FUNCTOR, FUNCTOR_colon2,
-			   PL_ATOM, t->source,
+			   PL_ATOM, t->graph,
 			   PL_LONG, t->line);
 }
 
 
 static int
-same_source(triple *t1, triple *t2)
+same_graph(triple *t1, triple *t2)
 { return t1->line   == t2->line &&
-         t1->source == t2->source;
+         t1->graph == t2->graph;
 }
 
 
@@ -3643,7 +3733,7 @@ unify_triple(term_t subject, term_t pred, term_t object,
   if ( !PL_unify_atom(subject, t->subject) ||
        !PL_unify_atom(pred, p->name) ||
        !unify_object(object, t) ||
-       (src && !unify_source(src, t)) )
+       (src && !unify_graph(src, t)) )
   { PL_discard_foreign_frame(fid);
     return FALSE;
   } else
@@ -3820,12 +3910,12 @@ record_transaction(rdf_db *db, tr_type type, triple *t)
 
 
 static void
-record_md5_transaction(rdf_db *db, source *src, md5_byte_t *digest)
+record_md5_transaction(rdf_db *db, graph *src, md5_byte_t *digest)
 { transaction_record *tr = rdf_malloc(db, sizeof(*tr));
 
   memset(tr, 0, sizeof(*tr));
   tr->type = TR_UPDATE_MD5,
-  tr->update.md5.source = src;
+  tr->update.md5.graph = src;
   tr->update.md5.digest = digest;
 
   append_transaction(db, tr);
@@ -4020,18 +4110,18 @@ commit_transaction(rdf_db *db, term_t id)
 	  db->generation++;
 	  break;
 	case TR_UPDATE_SRC:
-	  if ( tr->triple->source != tr->update.src.atom )
-	  { if ( tr->triple->source )
-	      unregister_source(db, tr->triple);
-	    tr->triple->source = tr->update.src.atom;
-	    if ( tr->triple->source )
-	      register_source(db, tr->triple);
+	  if ( tr->triple->graph != tr->update.src.atom )
+	  { if ( tr->triple->graph )
+	      unregister_graph(db, tr->triple);
+	    tr->triple->graph = tr->update.src.atom;
+	    if ( tr->triple->graph )
+	      register_graph(db, tr->triple);
 	  }
 	  tr->triple->line = tr->update.src.line;
 	  db->generation++;
 	  break;
 	case TR_UPDATE_MD5:
-	{ source *src = tr->update.md5.source;
+	{ graph *src = tr->update.md5.graph;
 	  md5_byte_t *digest = tr->update.md5.digest;
 	  if ( digest )
 	  { sum_digest(digest, src->digest);
@@ -4135,12 +4225,12 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
     return FALSE;
   }
   if ( src )
-  { if ( !get_source(src, t) )
+  { if ( !get_graph(src, t) )
     { free_triple(db, t);
       return FALSE;
     }
   } else
-  { t->source = ATOM_user;
+  { t->graph = ATOM_user;
     t->line = NO_LINE;
   }
 
@@ -4620,22 +4710,22 @@ update_triple(rdf_db *db, term_t action, triple *t)
     } else
     { tmp.object.resource = t2.object.resource;
     }
-  } else if ( PL_is_functor(action, FUNCTOR_source1) )
+  } else if ( PL_is_functor(action, FUNCTOR_graph1) )
   { triple t2;
 
-    if ( !get_source(a, &t2) )
+    if ( !get_graph(a, &t2) )
       return FALSE;
-    if ( t2.source == t->source && t2.line == t->line )
+    if ( t2.graph == t->graph && t2.line == t->line )
       return TRUE;
     if ( db->tr_first )
-    { record_update_src_transaction(db, t, t2.source, t2.line);
+    { record_update_src_transaction(db, t, t2.graph, t2.line);
     } else
-    { if ( t->source )
-	unregister_source(db, t);
-      t->source = t2.source;
+    { if ( t->graph )
+	unregister_graph(db, t);
+      t->graph = t2.graph;
       t->line = t2.line;
-      if ( t->source )
-	register_source(db, t);
+      if ( t->graph )
+	register_graph(db, t);
     }
 
     return TRUE;			/* considered no change */
@@ -4653,7 +4743,7 @@ update_triple(rdf_db *db, term_t action, triple *t)
   } else
   { new->object.resource = tmp.object.resource;
   }
-  new->source		 = tmp.source;
+  new->graph		 = tmp.graph;
   new->line		 = tmp.line;
 
   free_triple(db, &tmp);
@@ -4855,7 +4945,7 @@ broadcast(broadcast_id id, void *a1, void *a2)
 	PL_put_atom(tmp+0, t->subject);
 	PL_put_atom(tmp+1, t->predicate->name);
 	unify_object(tmp+2, t);
-	unify_source(tmp+3, t);
+	unify_graph(tmp+3, t);
 
 	PL_cons_functor_v(term, funct, tmp);
 	break;
@@ -4870,7 +4960,7 @@ broadcast(broadcast_id id, void *a1, void *a2)
 	PL_put_atom(tmp+0, t->subject);
 	PL_put_atom(tmp+1, t->predicate->name);
 	unify_object(tmp+2, t);
-	unify_source(tmp+3, t);
+	unify_graph(tmp+3, t);
 
 	if ( t->subject != new->subject )
 	{ action = FUNCTOR_subject1;
@@ -4881,9 +4971,9 @@ broadcast(broadcast_id id, void *a1, void *a2)
 	} else if ( !match_object(t, new, MATCH_QUAL) )
 	{ action = FUNCTOR_object1;
 	  unify_object(a, new);
-	} else if ( !same_source(t, new) )
-	{ action = FUNCTOR_source1;
-	  unify_source(a, new);
+	} else if ( !same_graph(t, new) )
+	{ action = FUNCTOR_graph1;
+	  unify_graph(a, new);
 	} else
 	{ return;			/* no change */
 	}
@@ -5654,14 +5744,14 @@ unify_statistics(rdf_db *db, term_t key, functor_t f)
   } else if ( f == FUNCTOR_literals1 )
   { v = db->literals.count;
   } else if ( f == FUNCTOR_triples2 && PL_is_functor(key, f) )
-  { source *src;
+  { graph *src;
     term_t a = PL_new_term_ref();
     atom_t name;
 
     PL_get_arg(1, key, a);
     if ( !PL_get_atom(a, &name) )
       return type_error(a, "atom");
-    if ( (src = lookup_source(db, name, FALSE)) )
+    if ( (src = lookup_graph(db, name, FALSE)) )
       v = src->triple_count;
     else
       v = 0;
@@ -5800,7 +5890,7 @@ reset_db(rdf_db *db)
 
   erase_triples(db);
   erase_predicates(db);
-  erase_sources(db);
+  erase_graphs(db);
   db->need_update = FALSE;
   db->agenda_created = 0;
   avlfree(&db->literals);
@@ -5984,7 +6074,7 @@ install_rdf_db()
   MKFUNCTOR(subject, 1);
   MKFUNCTOR(predicate, 1);
   MKFUNCTOR(object, 1);
-  MKFUNCTOR(source, 1);
+  MKFUNCTOR(graph, 1);
   MKFUNCTOR(indexed, 8);
   MKFUNCTOR(exact, 1);
   MKFUNCTOR(substring, 1);
@@ -6076,7 +6166,9 @@ install_rdf_db()
 					2, rdf_predicate_property, NDET);
   PL_register_foreign("rdf_current_predicates",
 					1, rdf_current_predicates, 0);
-  PL_register_foreign("rdf_sources_",   1, rdf_sources,     0);
+  PL_register_foreign("rdf_graphs_",    1, rdf_graphs,      0);
+  PL_register_foreign("rdf_set_graph_source", 2, rdf_set_graph_source, 0);
+  PL_register_foreign("rdf_graph_source_", 2, rdf_graph_source, 0);
   PL_register_foreign("rdf_estimate_complexity",
 					4, rdf_estimate_complexity, 0);
   PL_register_foreign("rdf_transaction_",2, rdf_transaction, META);
