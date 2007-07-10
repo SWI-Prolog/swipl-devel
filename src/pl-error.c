@@ -575,6 +575,9 @@ PL_get_integer_ex(term_t t, int *i)
 { if ( PL_get_integer(t, i) )
     succeed;
 
+  if ( PL_is_integer(t) )
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_int);
+
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
@@ -584,6 +587,9 @@ PL_get_long_ex(term_t t, long *i)
 { if ( PL_get_long(t, i) )
     succeed;
 
+  if ( PL_is_integer(t) )
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_long);
+
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
@@ -592,6 +598,9 @@ int
 PL_get_int64_ex(term_t t, int64_t *i)
 { if ( PL_get_int64(t, i) )
     succeed;
+
+  if ( PL_is_integer(t) )
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_int64_t);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }

@@ -565,3 +565,6 @@
 #define ATOM_yfx          MK_ATOM(564)
 #define ATOM_yfy          MK_ATOM(565)
 #define ATOM_zero_divisor MK_ATOM(566)
+#define ATOM_int          MK_ATOM(567)
+#define ATOM_long         MK_ATOM(568)
+#define ATOM_int64_t      MK_ATOM(569)

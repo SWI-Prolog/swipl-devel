@@ -578,6 +578,9 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
+A int			"int"
+A long			"long"
+A int64_t		"int64_t"
 
 F abs			1
 F access		1
