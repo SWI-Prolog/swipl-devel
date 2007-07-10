@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -39,6 +39,18 @@ predicates findall/3, bagof/3 and setof/3.  These predicates are:
 
 The (toplevel) remainder of the all-solutions predicates is  written  in
 Prolog.
+
+Possible enhancements:
+
+	* Create bag as object-by-handle (no more global stuff needed)
+	* Store global size accumulated sofar, so we can
+		- Throw an error if we have too many solutions for the
+		  stack
+		- Allocate stack at once, so we can create the list
+		  without checking and unification.
+	* Collect setof/3 results in an avl tree, so we can kill
+	  duplicates as we go along.
+	* Make versions limiting time and/or # solutions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define alist LD->bags.bags		/* Each thread has its own */
