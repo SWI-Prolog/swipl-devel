@@ -492,48 +492,73 @@ PRED_IMPL("callable", 1, callable, 0)
 }
 
 
+static void
+popnVisited(int popn ARG_LD)
+{ while(--popn >= 0)
+  { popVisited(PASS_LD1);
+  }
+}
+
+
 static int
 is_acyclic(Word p ARG_LD)
 { int arity;
   Functor f;
-  int rc;
+  int popn = 0;
 
+last:
   deRef(p);
   if ( !isTerm(*p) )
+  { popnVisited(popn PASS_LD);
     succeed;
+  }
 
   f = valueTerm(*p);
   arity = arityFunctor(f->definition);
   p = f->arguments;
   if ( visited(f PASS_LD) )	/* Got a cycle! */
+  { popnVisited(popn PASS_LD);
     fail;
+  }
+  popn++;
 
-  rc = TRUE;
-  for(; arity-- > 0; p++)
+  for(; --arity > 0; p++)
   { if ( !is_acyclic(p PASS_LD) )
-    { rc = FALSE;
-      break;
+    { popnVisited(popn PASS_LD);
+      fail;
     }
   }
-  popVisited(PASS_LD1);
-
-  return rc;
+  goto last;
 }
 
 
 static
 PRED_IMPL("acyclic_term", 1, acyclic_term, 0)
 { PRED_LD
+  int rc;
 
-  return is_acyclic(valTermRef(A1) PASS_LD);
+  startCritical;
+  initvisited(PASS_LD1);
+  rc = is_acyclic(valTermRef(A1) PASS_LD);
+  assert(empty_visited(PASS_LD1));
+  endCritical;
+
+  return rc;
 }
 
 
 static
 PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
 { PRED_LD
+  int rc;
 
-  return is_acyclic(valTermRef(A1) PASS_LD) ? FALSE : TRUE;
+  startCritical;
+  initvisited(PASS_LD1);
+  rc = is_acyclic(valTermRef(A1) PASS_LD);
+  assert(empty_visited(PASS_LD1));
+  endCritical;
+
+  return rc ? FALSE : TRUE;
 }
 
 

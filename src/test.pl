@@ -245,12 +245,19 @@ cyclic(hash_term-1) :-
 cyclic(streq-1) :-
 	X = [X], Y = [Y], X =@= Y.
 cyclic(test-1) :-
-	X = f(X), cyclic_term(X).
+	X = f(X),
+	cyclic_term(X).
 cyclic(test-2) :-
-	acyclic_term(f(x)).
+	X = f(X),
+	cyclic_term(a(X, a)).
 cyclic(test-3) :-
-	acyclic_term(_).
+	X = f(X),
+	cyclic_term(a(a, X)).
 cyclic(test-4) :-
+	acyclic_term(f(x)).
+cyclic(test-5) :-
+	acyclic_term(_).
+cyclic(test-6) :-
 	X = f(a), acyclic_term(a(X, X)).
 
 
