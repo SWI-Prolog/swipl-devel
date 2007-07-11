@@ -1487,6 +1487,9 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf,
       } while( c > 0x80 );
 
       goto next;
+    } else if ( c == EOS )
+    { errorWarning("end_of_file_in_string", 0, _PL_rd);
+      return FALSE;
     }
 
     addBuffer(buf, c, char);
