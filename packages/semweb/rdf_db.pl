@@ -428,7 +428,7 @@ rdf_member_property(P, N) :-
 %
 %	Generate a unique blank node identifier for a subject.
 %	
-%	@depricated	New code should use rdf_bnode/1.
+%	@deprecated	New code should use rdf_bnode/1.
 
 rdf_node(Resource) :-
 	rdf_bnode(Resource).
@@ -1007,7 +1007,7 @@ rdf_source(DB, SourceURL) :-
 %	
 %	True if Source is a loaded source.
 %	
-%	@depricated	Use rdf_graph/1 or rdf_source/2.
+%	@deprecated	Use rdf_graph/1 or rdf_source/2.
 
 rdf_source(DB) :-
 	rdf_source(DB,_,_,_,_).		% loaded files
