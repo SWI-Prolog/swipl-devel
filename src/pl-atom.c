@@ -353,7 +353,8 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	     memcmp(s, a->name, length) == 0 )
 	{ 
 #ifdef O_ATOMGC
-	  a->references++;
+	  if ( indexAtom(a->atom) >= GD->atoms.builtin )
+	    a->references++;
 #endif
           UNLOCK();
 	  *new = FALSE;
@@ -986,6 +987,19 @@ PRED_IMPL("current_atom", 1, current_atom, PL_FA_NONDETERMINISTIC)
   return current_blob(A1, 0, CTX_CNTRL, CTX_INT PASS_LD);
 }
 
+static
+PRED_IMPL("$atom_references", 2, atom_references, 0)
+{ PRED_LD
+  atom_t atom;
+
+  if ( PL_get_atom_ex(A1, &atom) )
+  { Atom av = atomValue(atom);
+
+    return PL_unify_integer(A2, av->references);
+  }
+
+  fail;
+}
 
 		 /*******************************
 		 *	 ATOM COMPLETION	*
@@ -1288,4 +1302,5 @@ PL_atom_generator_w(const pl_wchar_t *prefix,
 BeginPredDefs(atom)
   PRED_DEF("current_blob",  2, current_blob, PL_FA_NONDETERMINISTIC)
   PRED_DEF("current_atom", 1, current_atom, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$atom_references", 2, atom_references, 0)
 EndPredDefs

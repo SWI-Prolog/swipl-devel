@@ -2248,7 +2248,7 @@ codeToAtom(int chrcode)
     }
 
     if ( !(a=pv[entry]) )
-    { a = uncachedCodeToAtom(chrcode);
+    { a = pv[entry] = uncachedCodeToAtom(chrcode);
     }
   } else
   { a = uncachedCodeToAtom(chrcode);

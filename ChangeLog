@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: intended caching of character-code -> atom was actually
+    not functional.
+
   * FIXED: Possible crash in read/1.   Ulrich Neumerkel.
 
   * ENHANCED: cyclic/1 and acyclic/1 now use last-argument optimization and

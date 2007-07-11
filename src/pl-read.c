@@ -218,6 +218,7 @@ multi-threading.
 typedef struct
 { unsigned char *here;			/* current character */
   unsigned char *base;			/* base of clause */
+  unsigned char *end;			/* end of the clause */
   unsigned char *token_start;		/* start of most recent read token */
   struct token token;			/* current token */
   bool _unget;				/* unget_token() */
@@ -241,12 +242,14 @@ typedef struct
   term_t	subtpos;		/* Report Subterm positions */
   term_t	comments;		/* Report comments */
 
+  atom_t	locked;			/* atom that must be unlocked */
   struct var_table vt;			/* Data about variables */
   struct read_buffer _rb;		/* keep read characters here */
 } read_data, *ReadData;
 
 #define	rdhere		  (_PL_rd->here)
 #define	rdbase		  (_PL_rd->base)
+#define	rdend		  (_PL_rd->end)
 #define	last_token_start  (_PL_rd->token_start)
 #define	cur_token	  (_PL_rd->token)
 #define	unget		  (_PL_rd->_unget)
@@ -279,9 +282,31 @@ free_read_data(ReadData _PL_rd)
 { if ( rdbase && rdbase != rb.fast )
     PL_free(rdbase);
 
+  if ( _PL_rd->locked )
+    PL_unregister_atom(_PL_rd->locked);
+
   discardBuffer(&var_name_buffer);
   discardBuffer(&var_buffer);
 }
+
+
+#define NeedUnlock(a) need_unlock(a, _PL_rd)
+#define Unlock(a) unlock(a, _PL_rd)
+
+static void
+need_unlock(atom_t a, ReadData _PL_rd)
+{ _PL_rd->locked = a;
+}
+
+
+static void
+unlock(atom_t a, ReadData _PL_rd)
+{ if (  _PL_rd->locked == a )
+  { _PL_rd->locked = 0;
+    PL_unregister_atom(a);
+  }
+}
+
 
 #define DO_CHARESCAPE true(_PL_rd, CHARESCAPE)
 
@@ -960,19 +985,24 @@ skipped.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static unsigned char *
-raw_read(ReadData _PL_rd ARG_LD)
-{ if ( (rb.stream->flags & SIO_ISATTY) && Sfileno(rb.stream) >= 0 )
-  { unsigned char *s;
-    ttybuf tab;
+raw_read(ReadData _PL_rd, unsigned char **endp ARG_LD)
+{ unsigned char *s;
+
+  if ( (rb.stream->flags & SIO_ISATTY) && Sfileno(rb.stream) >= 0 )
+  { ttybuf tab;
     
     PushTty(rb.stream, &tab, TTY_SAVE);		/* make sure tty is sane */
     PopTty(rb.stream, &ttytab);
     s = raw_read2(_PL_rd PASS_LD);
     PopTty(rb.stream, &tab);
-
-    return s;
   } else
-    return raw_read2(_PL_rd PASS_LD);
+  { s = raw_read2(_PL_rd PASS_LD);
+  }
+
+  if ( endp )
+    *endp = _PL_rd->_rb.here;
+
+  return s;
 }
 
 
@@ -1457,7 +1487,7 @@ addUTF8Buffer(Buffer b, int c)
 
 
 static int
-get_string(unsigned char *in, unsigned char **end, Buffer buf,
+get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer buf,
 	   ReadData _PL_rd)
 { int quote;
   int c;
@@ -1487,7 +1517,7 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf,
       } while( c > 0x80 );
 
       goto next;
-    } else if ( c == EOS )
+    } else if ( in > ein )
     { errorWarning("end_of_file_in_string", 0, _PL_rd);
       return FALSE;
     }
@@ -1738,6 +1768,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  txt.encoding  = ENC_UTF8;
 		  txt.canonical = FALSE;
 		  cur_token.value.atom = textToAtom(&txt);
+		  NeedUnlock(cur_token.value.atom);
 
 		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n", c == '(' ? "FUNC" : "NAME",
@@ -1783,7 +1814,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		    syntaxError("illegal_number", _PL_rd);
 		}
     case_solo:
-    case SO:	{ cur_token.value.atom = codeToAtom(c);
+    case SO:	{ cur_token.value.atom = codeToAtom(c);		/* not registered */
 		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n",
 				  *rdhere == '(' ? "FUNC" : "NAME",
@@ -1815,6 +1846,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "symbol");
 		  cur_token.value.atom = lookupAtom((char *)start, rdhere-start);
+		  NeedUnlock(cur_token.value.atom);
 		  cur_token.type = (end == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n",
 				    end == '(' ? "FUNC" : "NAME",
@@ -1831,7 +1863,6 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		      { rdhere++;
 			cur_token.value.atom = (c == '[' ? ATOM_nil : ATOM_curl);
 			cur_token.type = rdhere[0] == '(' ? T_FUNCTOR : T_NAME;
-			PL_register_atom(cur_token.value.atom);
 			DEBUG(9, Sdprintf("NAME: %s\n",
 					  stringAtom(cur_token.value.atom)));
 			goto out;
@@ -1847,7 +1878,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  PL_chars_t txt;
 
 		  initBuffer(&b);
-		  if ( !get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd) )
+		  if ( !get_string(rdhere-1, rdend, &rdhere, (Buffer)&b, _PL_rd) )
 		    fail;
 		  txt.text.t    = baseBuffer(&b, char);
 		  txt.length    = entriesBuffer(&b, char);
@@ -1855,6 +1886,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  txt.encoding  = ENC_UTF8;
 		  txt.canonical = FALSE;
 		  cur_token.value.atom = textToAtom(&txt);
+		  NeedUnlock(cur_token.value.atom);
 		  PL_free_text(&txt);
 		  cur_token.type = (rdhere[0] == '(' ? T_FUNCTOR : T_NAME);
 		  discardBuffer(&b);
@@ -1866,7 +1898,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  int type;
 
 		  initBuffer(&b);
-		  if ( !get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd) )
+		  if ( !get_string(rdhere-1, rdend, &rdhere, (Buffer)&b, _PL_rd) )
 		    fail;
 		  txt.text.t    = baseBuffer(&b, char);
 		  txt.length    = entriesBuffer(&b, char);
@@ -1899,7 +1931,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  PL_chars_t txt;
 
 		  initBuffer(&b);
-		  if ( !get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd) )
+		  if ( !get_string(rdhere-1, rdend, &rdhere, (Buffer)&b, _PL_rd) )
 		    fail;
 		  txt.text.t    = baseBuffer(&b, char);
 		  txt.length    = entriesBuffer(&b, char);
@@ -2430,7 +2462,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
     case T_NAME:
       *name = TRUE;
       PL_put_atom(term, token->value.atom);
-      PL_unregister_atom(token->value.atom);
+      Unlock(token->value.atom);
       goto atomic_out;
     case T_NUMBER:
       _PL_put_number(term, &token->value.number);
@@ -2456,7 +2488,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
       { if ( must_be_op )
 	{ *name = TRUE;
 	  PL_put_atom(term, token->value.atom);
-	  PL_unregister_atom(token->value.atom);
+	  Unlock(token->value.atom);
 	  goto atomic_out;
 	} else
 	{ term_t av[16];
@@ -2508,7 +2540,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	  }
 
 	  build_term(term, functor, argc, argv, _PL_rd PASS_LD);
-	  PL_unregister_atom(functor);
+	  Unlock(functor);
 	}
 	succeed;
       }
@@ -2669,7 +2701,7 @@ read_term(term_t term, ReadData rd ARG_LD)
   term_t result;
   Word p;
 
-  if ( !(rd->base = raw_read(rd PASS_LD)) )
+  if ( !(rd->base = raw_read(rd, &rd->end PASS_LD)) )
     fail;
 
   rd->here = rd->base;
@@ -2747,7 +2779,7 @@ backSkipBlanks(const unsigned char *start, const unsigned char *end)
 word
 pl_raw_read2(term_t from, term_t term)
 { GET_LD
-  unsigned char *s, *t2, *top;
+  unsigned char *s, *e, *t2, *top;
   read_data rd;
   word rval;
   IOSTREAM *in;
@@ -2758,13 +2790,13 @@ pl_raw_read2(term_t from, term_t term)
     fail;
 
   init_read_data(&rd, in PASS_LD);
-  if ( !(s = raw_read(&rd PASS_LD)) )
+  if ( !(s = raw_read(&rd, &e PASS_LD)) )
   { rval = PL_raise_exception(rd.exception);
     goto out;
   }
 
 					/* strip the input from blanks */
-  top = backSkipBlanks(s, rd._rb.here-1);
+  top = backSkipBlanks(s, e-1);
   t2 = backSkipUTF8(s, top, &chr);
   if ( chr == '.' )
     top = backSkipBlanks(s, t2);

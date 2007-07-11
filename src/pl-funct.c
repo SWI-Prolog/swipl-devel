@@ -284,7 +284,7 @@ pl_current_functor(term_t name, term_t arity, control_t h)
 	return PL_error("current_functor", 2, NULL, ERR_DOMAIN,
 			ATOM_integer, arity);
 
-      if ( !PL_is_variable(name) )
+      if ( !(PL_is_atom(name) || PL_is_variable(name)) )
 	return PL_error("current_functor", 2, NULL, ERR_DOMAIN,
 			ATOM_atom, name);
       i = 0;
