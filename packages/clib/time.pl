@@ -56,8 +56,22 @@
 %	options are:
 %	
 %		* remove(Bool)
-%		If Bool is true, remove the alarm-event (as
+%		If =true= (default =false=), remove the alarm-event (as
 %		remove_alarm/1) after it has been fired.
+%		* install(Bool)
+%		If =false= (default =true=) do not install the alarm.
+%		It must be installed seperately using install_alarm/1.
+
+%%	install_alarm(+Id) is det.
+%
+%	Install an alarm allocated using alarm(Time, Goal, Id,
+%	[install(false)]).  Typically used with call_cleanup/2:
+%	
+%	==
+%		alarm(Time, Goal1, Id, [install(false)]),
+%		call_cleanup((install_alarm(Id), Goal2),
+%			     remove_alarm(Id)),
+%	==
 
 %%	remove_alarm(+Id) is det.
 %	
