@@ -33,6 +33,7 @@
 	  [ alarm/3,			% +Time, :Callable, -Id
 	    alarm/4,			% +Time, :Callable, -Id, +Options
 	    remove_alarm/1,		% +Id
+	    install_alarm/1,		% +Id
 	    current_alarm/4,		% ?At, ?:Goal, ?Id, ?Status
 	    call_with_time_limit/2	% +Time, :Callable
 	  ]).
