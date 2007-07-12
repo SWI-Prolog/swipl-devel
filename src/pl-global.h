@@ -146,7 +146,7 @@ typedef struct
     size_t	margin;			/* # atoms to grow before collect */
     size_t	non_garbage;		/* # atoms for after last AGC */
     int		gc;			/* # atom garbage collections */
-    long	collected;		/* # collected atoms */
+    int64_t	collected;		/* # collected atoms */
     real	gc_time;		/* Time spent on atom-gc */
     PL_agc_hook_t gc_hook;		/* Current hook */
 #endif

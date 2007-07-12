@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: statistics on atoms freed by atom-GC to use 64-bit counter on
+    all platforms.  Ulrich Neumerkel.
+
   * MODIFIED: Allow for modern style --help, etc. commandline options.
     Ulrich Neumerkel.
 
