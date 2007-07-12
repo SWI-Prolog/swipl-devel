@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Instantiation by cleanup-handler of call_cleanup/[2,3] has
+    been made visible to the outside world.   Ulrich Neumerkel.
+
+  * DOCS: various minor updates.  Ulrich Neumerkel.
+
   * FIXED: error message when trying to reposition user streams and
     the type-property for user streams.  Ulrich Neumerkel.
 

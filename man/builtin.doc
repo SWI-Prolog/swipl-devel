@@ -1205,6 +1205,18 @@ reading all terms into a list, close the file and call member/2 because
 without call_cleanup/3 there is no way to gain control if the
 choice-point left by repeat is killed by a cut.
 
+The call_cleanup/2 can also be used to test determinism of a goal,
+providing a portable alternative to deterministic/1:
+
+\begin{code}
+?- call_cleanup((X=1;X=2), Det=yes).
+
+X = 1 ;
+
+X = 2,
+Det = yes ;
+\end{code}
+
 This predicate is a SWI-Prolog extension. See also call_cleanup/2 for
 compatibility to other Prolog implementations.
 

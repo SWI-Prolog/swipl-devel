@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -788,7 +788,7 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
   callEventHook(PLEV_FRAMEFINISHED, fr);
 #endif
 
-  PL_discard_foreign_frame(cid);
+  PL_close_foreign_frame(cid);
 }
 
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
