@@ -1071,6 +1071,18 @@ function will read the first character and  then skip all character upto
 and including the newline.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+Sgetcode_intr(IOSTREAM *s)
+{ int c;
+
+  do
+  { c = Sgetcode(s);
+  } while ( c == -1 && errno == EINTR && PL_handle_signals() >= 0 );
+
+  return c;
+}
+
+
 int
 getSingleChar(IOSTREAM *stream)
 { GET_LD
@@ -1085,19 +1097,19 @@ getSingleChar(IOSTREAM *stream)
   if ( !trueFeature(TTY_CONTROL_FEATURE) )
   { int c2;
 
-    c2 = Sgetcode(stream);
+    c2 = Sgetcode_intr(stream);
     while( c2 == ' ' || c2 == '\t' )	/* skip blanks */
-      c2 = Sgetcode(stream);
+      c2 = Sgetcode_intr(stream);
     c = c2;
     while( c2 != EOF && c2 != '\n' )	/* read upto newline */
-      c2 = Sgetcode(stream);
+      c2 = Sgetcode_intr(stream);
   } else
   { if ( stream->position )
     { IOPOS oldpos = *stream->position;
-      c = Sgetcode(stream);
+      c = Sgetcode_intr(stream);
       *stream->position = oldpos;
     } else
-      c = Sgetcode(stream);
+      c = Sgetcode_intr(stream);
   }
 
   if ( c == 4 || c == 26 )		/* should ask the terminal! */

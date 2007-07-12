@@ -724,6 +724,9 @@ PL_signal(int sigandflags, handler_t func)
 }
 
 
+/* return: -1: exception in handler, otherwise number of handled signals
+*/
+
 int
 PL_handle_signals()
 { int done = 0;
