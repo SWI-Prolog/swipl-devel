@@ -151,7 +151,7 @@ by fresh variables.
 Coroutining deals with having Prolog goals scheduled for execution as
 soon as some conditions is fulfilled.  In Prolog the most commonly
 used conditions is the instantiation (binding) of a variable. Scheduling
-a goal to execute immediately after a variable is bound allows may
+a goal to execute immediately after a variable is bound can
 be used to avoid instantiation errors for some built-in predicates
 (e.g.\ arithmetic), do work \jargon{lazy}, prevent the binding of
 a variable to a particular value, etc.  Using freeze/2 for example
