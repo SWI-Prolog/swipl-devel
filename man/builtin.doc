@@ -3364,7 +3364,9 @@ of \arg{Term}.%
 	\nopredref{free_variables}{2}. The name term_variables/2 is more
 	widely used. The old predicate is still available from the
 	library \pllib{backcomp}.}
-See also term_variables/3.  For example:
+The variables in \arg{List} are ordered in order of appearence
+traversing \arg{Term} depth-first and left-to-right. See also
+term_variables/3. For example:
 
 \begin{code}
 ?- term_variables(a(X, b(Y, X), Z), L).
