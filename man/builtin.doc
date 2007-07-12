@@ -4,16 +4,35 @@
 
 We have tried to keep the predicate descriptions clear and concise.
 First the predicate name is printed in bold face, followed by the
-arguments in italics.  Arguments are preceded by a `+', `-' or `?' sign.
-`+' indicates the argument is input to the predicate, `-' denotes output
-and `?' denotes `either input or output'.%
-    \footnote{These marks do \strong{not} suggest instantiation (e.g.\
-    var(+Var)).} Constructs like `op/3' refer to the predicate `op' with
-    arity `3'.
-Finally, arguments may have the `:' specifier, which implies the
-argument is module-sensitive. Normally the argument is a
-\jargon{callable} term referring to a predicate in a specific module.
-See \secref{modules} for more information on module-handing.
+arguments in italics.  Arguments are preceded by a mode indicator
+There is no complete agreement on mode indicators in the Prolog
+community.  We use the following definitions:%
+	\footnote{These definitions are taken from PlDoc.  The current
+		  manual has only one mode declaration per predicate and
+		  therefore predicates with mode (+,-) and (-,+) are 
+		  described as (?,?).  The \chr{@}-mode is often replaced
+		  by \chr{+}.}
+
+\begin{center}
+\begin{tabular}{lp{0.7\linewidth}}
+\hline
++ &	Argument must be fully instantiated to a term that satisfies the
+	required argument type. Think of the argument as \jargon{input}. \\
+- &	Argument must be unbound. Think of the argument as \jargon{output}. \\
+? &	Argument must be bound to a \emph{partial term} of the indicated
+	type.  Note that a variable is a partial term for any type.
+	Think of the argument as either \jargon{input} or \jargon{output} or
+	\emph{both} input and output.  E.g.\ In
+	\exam{stream_property(S, reposition(Bool))}, the \const{reposition}
+	part of the term is input and the uninstantiated \arg{Bool} is output. \\
+: &	Argument is a meta-argument.  Implies \chr{+}. See \secref{modules}
+	for more information on module-handing. \\
+@ &	Argument is not further instantiated. Typically used for type-tests.\\
+! &	Argument contains a mutable structure that may be modified using
+	setarg/3 or nb_setarg/3. \\
+\hline
+\end{tabular}
+\end{center}
 
 
 \section{Character representation}		\label{sec:chars}
