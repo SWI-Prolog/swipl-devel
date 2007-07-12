@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: error message when trying to reposition user streams and
+    the type-property for user streams.  Ulrich Neumerkel.
+
   * ENHANCED: intended caching of character-code -> atom was actually
     not functional.
 

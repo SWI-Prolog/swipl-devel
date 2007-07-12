@@ -2514,6 +2514,20 @@ IOFUNCTIONS Sfilefunctions =
 };
 
 
+IOFUNCTIONS Sttyfunctions =
+{ Sread_file,
+  Swrite_file,
+  NULL,
+  Sclose_file,
+  Scontrol_file,
+#ifdef O_LARGEFILES
+  Sseek_file64
+#else
+  NULL
+#endif
+};
+
+
 IOSTREAM *
 Snew(void *handle, int flags, IOFUNCTIONS *functions)
 { IOSTREAM *s;
@@ -3126,7 +3140,7 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
 
 #define STDIO(n, f) { NULL, NULL, NULL, NULL, \
 		      EOF, SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
-		      ((void *)(n)), &Sfilefunctions, \
+		      ((void *)(n)), &Sttyfunctions, \
 		      0, NULL, \
 		      (void (*)(void *))0, NULL, \
 		      -1, \
@@ -3134,7 +3148,7 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
 		      ENC_ISO_LATIN_1 \
 		    }
 
-#define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY)
+#define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY|SIO_TEXT)
 #define STDIO_STREAMS \
   STDIO(0, SIO_STDIO|SIO_LBUF|SIO_INPUT|SIO_NOFEOF),	/* Sinput */ \
   STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPL), 	/* Soutput */ \
@@ -3161,7 +3175,9 @@ SinitStreams()
 
     for(i=0; i<=2; i++)
     { if ( !isatty(i) )
-	S__iob[i].flags &= ~SIO_ISATTY;
+      { S__iob[i].flags &= ~SIO_ISATTY;
+	S__iob[i].functions = &Sfilefunctions; /* Check for pipe? */
+      }
       if ( S__iob[i].encoding == ENC_ISO_LATIN_1 )
 	S__iob[i].encoding = enc;
 #ifdef O_PLMT
