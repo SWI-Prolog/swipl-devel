@@ -666,7 +666,8 @@ GC. These issues are described with enterGC() in pl-gc.c.
 word
 pl_garbage_collect_atoms()
 { GET_LD
-  intptr_t oldcollected, oldheap, freed;
+  intptr_t oldheap, freed;
+  int64_t oldcollected;
   int verbose;
   double t;
   sigset_t set;
@@ -731,7 +732,7 @@ pl_garbage_collect_atoms()
     printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "agc", 1,
 		   PL_FUNCTOR_CHARS, "done", 3,
-		     PL_LONG, GD->atoms.collected - oldcollected,
+		     PL_INT64, GD->atoms.collected - oldcollected,
 		     PL_INT, GD->statistics.atoms,
 		     PL_DOUBLE, (double)t);
 
