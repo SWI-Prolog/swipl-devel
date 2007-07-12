@@ -2499,6 +2499,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	  term_t pa;			/* argument */
 	  term_t pe;			/* term-end */
 	  term_t ph;
+	  int unlock;
 
 	  if ( positions )
 	  { pa = PL_new_term_ref();
@@ -2515,6 +2516,8 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    pa = pe = ph = 0;
 
 	  functor = token->value.atom;
+	  unlock = (_PL_rd->locked == functor);
+	  _PL_rd->locked = 0;
 	  argc = 0, argv;
 	  get_token(must_be_op, _PL_rd); /* skip '(' */
 
@@ -2529,7 +2532,11 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    if ( positions )
 	    { PL_unify_list(pa, ph, pa);
 	    }
-	    TRY( complex_term(",)", argv[argc], ph, _PL_rd PASS_LD) );
+	    if ( !complex_term(",)", argv[argc], ph, _PL_rd PASS_LD) )
+	    { if ( unlock )
+		PL_unregister_atom(functor);
+	      fail;
+	    }
 	    argc++;
 	    token = get_token(must_be_op, _PL_rd); /* `,' or `)' */
 	  } while(token->value.character == ',');
@@ -2540,7 +2547,8 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	  }
 
 	  build_term(term, functor, argc, argv, _PL_rd PASS_LD);
-	  Unlock(functor);
+	  if ( unlock )
+	    PL_unregister_atom(functor);
 	}
 	succeed;
       }
