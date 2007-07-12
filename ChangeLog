@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Clarify undefined predicate messages from toplevel.
+    Ulrich Neumerkel.
+
   * FIXED: Possible crash in profiler wehn using with JPL.  Alexandre Vautier.
 
   * FIXED: statistics on atoms freed by atom-GC to use 64-bit counter on

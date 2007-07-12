@@ -83,10 +83,13 @@ $dwim_correct_goal(Goal, _, NewGoal) :-
 	;   NewGoal = fail
 	).
 
-existence_error(user:Name/Arity) :- !,
-	throw(error(existence_error(procedure, Name/Arity), _)).
-existence_error(PredSpec) :-
-	throw(error(existence_error(procedure, PredSpec), _)).
+existence_error(PredSpec) :- !,
+	(   PredSpec = user:Spec
+	->  true
+	;   Spec = PredSpec
+	),
+	throw(error(existence_error(procedure, Spec),
+		    context(toplevel, 'DWIM could not correct goal'))).
 
 correct_goal(Goal, Bindings, [Dwim], DwimGoal) :-
 	strip_module(Goal, _, G1), 
