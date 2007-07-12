@@ -74,26 +74,32 @@
 :- initialization
    load_foreign_library(foreign(time)).
 
-:- meta_predicate(call_with_time_limit(+, :)).
+:- module_transparent
+	call_with_time_limit/2.
 
 %%	call_with_time_limit(+Time, :Goal) is det.
 %	
 %	Call Goal, while watching out for   a (wall-time) limit. If this
 %	limit  is  exceeded,  the   exception  =time_limit_exceeded=  is
-%	raised. Goal is called with once/1.
-%	
-%	@tbd	Theoretically, alarm may fire before entering
-%		call_cleanup/2, leaking an alarm handle. This is a
-%		common schema for which I do not have a good solution.
+%	raised. Goal is called as in once/1.
+%
 %	@throws =time_limit_exceeded=
 
 call_with_time_limit(Time, Goal) :-
 	Time > 0, !,
-	alarm(Time, throw(time_limit_exceeded), Id),
-	call_cleanup(once(Goal), time:remove_alarm_notrace(Id)).
+	strip_module(Goal, M, G),
+	call_with_time_limit2(Time, M:G).
 call_with_time_limit(_Time, _Goal) :-
 	throw(time_limit_exceeded).
 		     
+call_with_time_limit2(Time, Goal) :-
+	alarm(Time, throw(time_limit_exceeded), Id, [install(false)]),
+	call_cleanup(time_limited(Id, Goal), remove_alarm_notrace(Id)).
+
+time_limited(Id, Goal) :-
+	install_alarm(Id),
+	Goal, !.
+
 current_alarm(Time, Goal, Id, Status) :-
 	current_alarms(Time, Goal, Id, Status, List),
 	member(alarm(Time, Goal, Id, Status), List).

@@ -1,5 +1,11 @@
 Jul 12, 2007
 
+  * FIXED: call_with_time_limit/2 if the alarm fires before call_cleanup
+    is entered, a theoretical problem using short timeouts on a loaded
+    machine.
+
+  * ADDED: install_alarm/1.
+
   * FIXED: Avoid exit of Prolog on uncaught exception from 
     call_with_time_limit/2.  Ulrich Neumerkel.
 

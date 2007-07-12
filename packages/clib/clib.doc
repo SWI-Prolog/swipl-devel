@@ -826,7 +826,7 @@ in \arg{Codes}.
 The \pllib{time} provides timing and alarm functions.  
 
 \begin{description}
-    \predicate{alarm}{4}{+Time, :Callable, -Id, +Option}
+    \predicate{alarm}{4}{+Time, :Callable, -Id, +Options}
 Schedule \arg{Callable} to be called \arg{Time} seconds from now.
 \arg{Time} is a number (integer or float).  \arg{Callable} is called
 on the next pass through a call- or redo-port of the Prolog engine,
@@ -849,10 +849,18 @@ options are:
 If \const{true} (default \const{false}), the timer is removed
 automatically after fireing. Otherwise it must be destroyed explicitly
 using remove_alarm/1.
+    \termitem{install}{Bool}
+If \const{false} (default \const{true}), the timer is allocated but not
+scheduled for execution.   It must be started later using install_alarm/1.
 \end{description}
 
     \predicate{alarm}{3}{+Time, :Callable, -Id}
 Same as \term{alarm}{Time, Callable, Id, []}.
+
+    \predicate{install_alarm}{1}{+Id}
+Activate an alarm allocated usign alarm/4 with the option
+\term{install}{false}.  This is intended to reclaim alarms reliably
+using call_cleanup/2.  See the implementation of call_with_time_limit/2.
 
     \predicate{remove_alarm}{1}{+Id}
 Remove an alarm.  If it is not yet fired, it will not be fired

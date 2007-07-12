@@ -196,6 +196,7 @@ static void	on_alarm(int sig);
 
 static module_t	   MODULE_user;
 static atom_t	   ATOM_remove;
+static atom_t	   ATOM_install;
 static atom_t	   ATOM_done;
 static atom_t	   ATOM_next;
 static atom_t	   ATOM_scheduled;
@@ -209,6 +210,7 @@ static predicate_t PREDICATE_call1;
 #define EV_DONE		0x0001		/* Handled this one */
 #define EV_REMOVE	0x0002		/* Automatically remove */
 #define EV_FIRED	0x0004		/* Windows: got this one */
+#define EV_NOINSTALL	0x0008		/* Only allocate; do not install */
 
 typedef struct event
 { record_t	 goal;			/* Thing to call */
@@ -217,6 +219,7 @@ typedef struct event
   struct event  *previous;		/* idem */
   unsigned long  flags;			/* misc flags */
   long		 magic;			/* validate magic */
+  double	 time;			/* Specified time */
   struct timeval at;			/* Time to deliver */
 #ifdef SHARED_TABLE
   pthread_t	 thread_id;		/* Thread to call in */
@@ -465,12 +468,12 @@ callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
 
 
 static int
-installEvent(Event ev, double t)
+installEvent(Event ev)
 { MMRESULT rval;
 
   insertEvent(ev);
 
-  rval = timeSetEvent((int)(t*1000),
+  rval = timeSetEvent((int)(ev->time*1000),
 		      50,			/* resolution (milliseconds) */
 		      callTimer,
 		      (DWORD)ev,
@@ -607,7 +610,7 @@ on_alarm(int sig)
 
 
 static int
-installEvent(Event ev, double t)
+installEvent(Event ev)
 { LOCK();
 
   ev->thread_id = pthread_self();
@@ -830,7 +833,14 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
 	      return FALSE;
 	    if ( t )
 	      flags |= EV_REMOVE;
-	  }	    
+	  } else if ( name == ATOM_install )
+	  { int t = TRUE;
+
+	    if ( !pl_get_bool_ex(arg, &t) )
+	      return FALSE;
+	    if ( !t )
+	      flags |= EV_NOINSTALL;
+	  }
 	}
       }
     }
@@ -852,6 +862,7 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
 
   if ( !(ev = allocEvent(&tv)) )
     return FALSE;
+  ev->time = t;
   if ( !unify_timer(id, ev) )
   { freeEvent(ev);
     return FALSE;
@@ -862,9 +873,11 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
   ev->module = m;
   ev->goal = PL_record(callable);
 
-  if ( !installEvent(ev, t) )
-  { freeEvent(ev);
-    return FALSE;
+  if ( !(ev->flags & EV_NOINSTALL) )
+  { if ( !installEvent(ev) )
+    { freeEvent(ev);
+      return FALSE;
+    }
   }
 
   return TRUE;
@@ -877,7 +890,23 @@ alarm3(term_t time, term_t callable, term_t id)
 }
 
 
-foreign_t
+static foreign_t
+install_alarm(term_t alarm)
+{ Event ev = NULL;
+
+  if ( !get_timer(alarm, &ev) )
+    return FALSE;
+
+  if ( !installEvent(ev) )
+  { freeEvent(ev);
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+static foreign_t
 remove_alarm(term_t alarm)
 { Event ev = NULL;
 
@@ -890,7 +919,7 @@ remove_alarm(term_t alarm)
 }
 
 
-foreign_t
+static foreign_t
 current_alarms(term_t time, term_t goal, term_t id, term_t status,
 	       term_t matching)
 { Event ev;
@@ -979,6 +1008,7 @@ install()
   FUNCTOR_module2 = PL_new_functor(PL_new_atom(":"), 2);
 
   ATOM_remove	  = PL_new_atom("remove");
+  ATOM_install	  = PL_new_atom("install");
   ATOM_done	  = PL_new_atom("done");
   ATOM_next	  = PL_new_atom("next");
   ATOM_scheduled  = PL_new_atom("scheduled");
@@ -988,6 +1018,7 @@ install()
   PL_register_foreign("alarm",          4, alarm4,         PL_FA_TRANSPARENT);
   PL_register_foreign("alarm",          3, alarm3,         PL_FA_TRANSPARENT);
   PL_register_foreign("remove_alarm",   1, remove_alarm,   0);
+  PL_register_foreign("install_alarm",  1, install_alarm,  0);
   PL_register_foreign("remove_alarm_notrace",1, remove_alarm,   PL_FA_NOTRACE);
   PL_register_foreign("current_alarms", 5, current_alarms, 0);
 #ifdef O_DEBUG

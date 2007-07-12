@@ -1079,7 +1079,7 @@ and alarm library</SPAN></A></H2>
 
 <DL>
 <DT class="pubdef"><A NAME="alarm/4"><STRONG>alarm</STRONG>(<VAR>+Time, 
-:Callable, -Id, +Option</VAR>)</A></DT>
+:Callable, -Id, +Options</VAR>)</A></DT>
 <DD class="defbody">
 Schedule <VAR>Callable</VAR> to be called <VAR>Time</VAR> seconds from 
 now.
@@ -1106,6 +1106,12 @@ If <CODE>true</CODE> (default <CODE>false</CODE>), the timer is removed
 automatically after fireing. Otherwise it must be destroyed explicitly 
 using <A NAME="idx:removealarm1:55"></A><A class="pred" href="#remove_alarm/1">remove_alarm/1</A>.
 </DD>
+<DT><STRONG>install</STRONG>(<VAR>Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>false</CODE> (default <CODE>true</CODE>), the timer is 
+allocated but not scheduled for execution. It must be started later 
+using <A NAME="idx:installalarm1:56"></A><A class="pred" href="#install_alarm/1">install_alarm/1</A>.
+</DD>
 </DL>
 
 </DD>
@@ -1113,6 +1119,13 @@ using <A NAME="idx:removealarm1:55"></A><A class="pred" href="#remove_alarm/1">r
 :Callable, -Id</VAR>)</A></DT>
 <DD class="defbody">
 Same as <CODE>alarm(Time, Callable, Id,[])</CODE>.</DD>
+<DT class="pubdef"><A NAME="install_alarm/1"><STRONG>install_alarm</STRONG>(<VAR>+Id</VAR>)</A></DT>
+<DD class="defbody">
+Activate an alarm allocated usign <A NAME="idx:alarm4:57"></A><A class="pred" href="#alarm/4">alarm/4</A> 
+with the option
+<CODE>install(false)</CODE>. This is intended to reclaim alarms reliably 
+using <A NAME="idx:callcleanup2:58"></A><SPAN class="pred-ext">call_cleanup/2</SPAN>. 
+See the implementation of <A NAME="idx:callwithtimelimit2:59"></A><A class="pred" href="#call_with_time_limit/2">call_with_time_limit/2</A>.</DD>
 <DT class="pubdef"><A NAME="remove_alarm/1"><STRONG>remove_alarm</STRONG>(<VAR>+Id</VAR>)</A></DT>
 <DD class="defbody">
 Remove an alarm. If it is not yet fired, it will not be fired any more.</DD>
@@ -1125,15 +1138,15 @@ is the next to be fired and <VAR>scheduled</VAR> otherwise.</DD>
 <DT class="pubdef"><A NAME="call_with_time_limit/2"><STRONG>call_with_time_limit</STRONG>(<VAR>+Time, 
 :Goal</VAR>)</A></DT>
 <DD class="defbody">
-True if Goal completes within Time. <VAR>Goal</VAR> is executed as in <A NAME="idx:once1:56"></A><SPAN class="pred-ext">once/1</SPAN>. 
+True if Goal completes within Time. <VAR>Goal</VAR> is executed as in <A NAME="idx:once1:60"></A><SPAN class="pred-ext">once/1</SPAN>. 
 If <VAR>Goal</VAR> doesn't complete within <VAR>Time</VAR> seconds, exit 
-using the exception <CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:57"></A><SPAN class="pred-ext">catch/3</SPAN>.
+using the exception <CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:61"></A><SPAN class="pred-ext">catch/3</SPAN>.
 
-<P>Please note that this predicate uses <A NAME="idx:alarm4:58"></A><A class="pred" href="#alarm/4">alarm/4</A> 
+<P>Please note that this predicate uses <A NAME="idx:alarm4:62"></A><A class="pred" href="#alarm/4">alarm/4</A> 
 and therefore is <EM>not</EM> capable to break out of long running goals 
-such as <A NAME="idx:sleep1:59"></A><SPAN class="pred-ext">sleep/1</SPAN>, 
+such as <A NAME="idx:sleep1:63"></A><SPAN class="pred-ext">sleep/1</SPAN>, 
 blocking I/O or other long-running (foreign) predicates. Blocking I/O 
-can be handled using the timeout option of <A NAME="idx:readterm3:60"></A><SPAN class="pred-ext">read_term/3</SPAN>.
+can be handled using the timeout option of <A NAME="idx:readterm3:64"></A><SPAN class="pred-ext">read_term/3</SPAN>.
 </DD>
 </DL>
 
@@ -1154,7 +1167,7 @@ Query and/or set the limit for <VAR>Resource</VAR>. Time-values are in
 seconds and size-values are counted in bytes. The following values are 
 supported by this library. Please note that not all resources may be 
 available and accessible on all platforms. This predicate can throw a 
-variety of exceptions. In portable code this should be guarded with <A NAME="idx:catch3:61"></A><SPAN class="pred-ext">catch/3</SPAN>. 
+variety of exceptions. In portable code this should be guarded with <A NAME="idx:catch3:65"></A><SPAN class="pred-ext">catch/3</SPAN>. 
 The defined resources are:
 <BLOCKQUOTE>
 <TABLE BORDER=0 FRAME=void RULES=groups>
@@ -1174,7 +1187,7 @@ address </TD></TR>
 
 <P>When the process hits a limit POSIX systems normally send the process 
 a signal that terminates it. These signals may be catched using 
-SWI-Prolog's <A NAME="idx:onsignal3:62"></A><SPAN class="pred-ext">on_signal/3</SPAN> 
+SWI-Prolog's <A NAME="idx:onsignal3:66"></A><SPAN class="pred-ext">on_signal/3</SPAN> 
 primitive. The code below illustrates this behaviour. Please note that 
 asynchronous signal handling is dangerous, especially when using 
 threads. 100% fail-safe operation cannot be guaranteed, but this 
@@ -1230,7 +1243,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT><A class="idx" href="#alarm/4">alarm/4</A></DT>
 <DD>
-<A class="idx" href="#idx:alarm4:58">10</A></DD>
+<A class="idx" href="#idx:alarm4:57">10</A> <A class="idx" href="#idx:alarm4:62">10</A></DD>
 <DT>at_end_of_stream/1</DT>
 <DD>
 <A class="idx" href="#idx:atendofstream1:27">4</A> <A class="idx" href="#idx:atendofstream1:28">4</A></DD>
@@ -1243,12 +1256,15 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <DT><STRONG>C</STRONG></DT>
 <DD>
 </DD>
+<DT>call_cleanup/2</DT>
+<DD>
+<A class="idx" href="#idx:callcleanup2:58">10</A></DD>
 <DT><A class="idx" href="#call_with_time_limit/2">call_with_time_limit/2</A></DT>
 <DD>
-</DD>
+<A class="idx" href="#idx:callwithtimelimit2:59">10</A></DD>
 <DT>catch/3</DT>
 <DD>
-<A class="idx" href="#idx:catch3:57">10</A> <A class="idx" href="#idx:catch3:61">11</A></DD>
+<A class="idx" href="#idx:catch3:61">10</A> <A class="idx" href="#idx:catch3:65">11</A></DD>
 <DT><A class="idx" href="#cgi_get_form/1">cgi_get_form/1</A></DT>
 <DD>
 </DD>
@@ -1318,6 +1334,9 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <DT><STRONG>I</STRONG></DT>
 <DD>
 </DD>
+<DT><A class="idx" href="#install_alarm/1">install_alarm/1</A></DT>
+<DD>
+<A class="idx" href="#idx:installalarm1:56">10</A></DD>
 <DT>ip/4</DT>
 <DD>
 <A class="idx" href="#idx:ip4:43">4.4</A> <A class="idx" href="#idx:ip4:44">4.4</A></DD>
@@ -1350,13 +1369,13 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT>once/1</DT>
 <DD>
-<A class="idx" href="#idx:once1:56">10</A></DD>
+<A class="idx" href="#idx:once1:60">10</A></DD>
 <DT>on_signal/2</DT>
 <DD>
 <A class="idx" href="#idx:onsignal2:7">2</A></DD>
 <DT>on_signal/3</DT>
 <DD>
-<A class="idx" href="#idx:onsignal3:62">11</A></DD>
+<A class="idx" href="#idx:onsignal3:66">11</A></DD>
 <DT>open/4</DT>
 <DD>
 <A class="idx" href="#idx:open4:54">9</A></DD>
@@ -1386,7 +1405,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <A class="idx" href="#idx:read1:26">4</A></DD>
 <DT>read_term/3</DT>
 <DD>
-<A class="idx" href="#idx:readterm3:60">10</A></DD>
+<A class="idx" href="#idx:readterm3:64">10</A></DD>
 <DT><A class="idx" href="#remove_alarm/1">remove_alarm/1</A></DT>
 <DD>
 <A class="idx" href="#idx:removealarm1:55">10</A></DD>
@@ -1410,7 +1429,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT>sleep/1</DT>
 <DD>
-<A class="idx" href="#idx:sleep1:59">10</A></DD>
+<A class="idx" href="#idx:sleep1:63">10</A></DD>
 <DT>socket</DT>
 <DD>
 <A class="sec" href="#sec:4">4</A></DD>
