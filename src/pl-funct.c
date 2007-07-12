@@ -32,6 +32,8 @@ See pl-atom.c for many useful comments on the representation.
 
 #define LOCK()   PL_LOCK(L_FUNCTOR)
 #define UNLOCK() PL_UNLOCK(L_FUNCTOR)
+#undef LD
+#define LD LOCAL_LD
 
 #define functor_buckets (GD->functors.buckets)
 #define functorDefTable (GD->functors.table)
@@ -57,9 +59,11 @@ registerFunctor(FunctorDef fd)
 
 functor_t
 lookupFunctorDef(atom_t atom, unsigned int arity)
-{ int v;
+{ GET_LD
+  int v;
   FunctorDef f;
 
+  startCritical;
   LOCK();
   v = (int)pointerHashValue(atom, functor_buckets);
 
@@ -68,6 +72,7 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
   { if (atom == f->name && f->arity == arity)
     { DEBUG(9, Sdprintf("%p (old)\n", f));
       UNLOCK();
+      endCritical;
       return f->functor;
     }
   }
@@ -88,6 +93,7 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
     rehashFunctors();
 
   UNLOCK();
+  endCritical;
 
   return f->functor;
 }
@@ -95,7 +101,8 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
 
 static void
 rehashFunctors()
-{ FunctorDef *oldtab = functorDefTable;
+{ GET_LD
+  FunctorDef *oldtab = functorDefTable;
   int oldbucks       = functor_buckets;
   size_t i, mx = maxFunctorIndex();
 
@@ -153,7 +160,8 @@ FUNCTOR(NULL_ATOM, 0)
 
 static void
 allocFunctorTable()
-{ int size = functor_buckets * sizeof(FunctorDef);
+{ GET_LD
+  int size = functor_buckets * sizeof(FunctorDef);
 
   functorDefTable = allocHeap(size);
   memset(functorDefTable, 0, size);
@@ -162,7 +170,8 @@ allocFunctorTable()
 
 static void
 registerBuiltinFunctors()
-{ int size = sizeof(functors)/sizeof(builtin_functor) - 1;
+{ GET_LD
+  int size = sizeof(functors)/sizeof(builtin_functor) - 1;
   FunctorDef f = allocHeap(size * sizeof(struct functorDef));
   const builtin_functor *d;
 
@@ -269,7 +278,8 @@ checkFunctors()
 
 word
 pl_current_functor(term_t name, term_t arity, control_t h)
-{ atom_t nm = 0;
+{ GET_LD
+  atom_t nm = 0;
   int  ar;
   fid_t fid;
   size_t mx, i;

@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Handle interrupt/abort during atom and functor creation.
+    Ulrich Neumerkel.
+
   * ENHANCED: Clarify undefined predicate messages from toplevel.
     Ulrich Neumerkel.
 

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -332,13 +332,15 @@ treat the signal as bogus if agc has already been performed.
 
 word
 lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
-{ int v0, v;
+{ GET_LD
+  int v0, v;
   uintptr_t oldheap;
   Atom a;
 
   if ( !type->registered )		/* avoid deadlock */
     PL_register_blob_type(type);
 
+  startCritical;
   LOCK();
   v0 = unboundStringHashValue(s, length);
   v  = v0 & (atom_buckets-1);
@@ -357,6 +359,7 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	    a->references++;
 #endif
           UNLOCK();
+	  endCritical;
 	  *new = FALSE;
 	  return a->atom;
 	}
@@ -373,6 +376,7 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	  a->references++;
 #endif
           UNLOCK();
+	  endCritical;
 	  *new = FALSE;
 	  return a->atom;
 	}
@@ -380,31 +384,29 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
     }
   }
 
-  { GET_LD
-    oldheap = GD->statistics.heap;
-    a = allocHeap(sizeof(struct atom));
-    a->length = length;
-    a->type = type;
-    if ( false(type, PL_BLOB_NOCOPY) )
-    { a->name = allocHeap(length+1);
-      memcpy(a->name, s, length);
-      a->name[length] = EOS;
-    } else
-    { a->name = (char *)s;
-    }
+  oldheap = GD->statistics.heap;
+  a = allocHeap(sizeof(struct atom));
+  a->length = length;
+  a->type = type;
+  if ( false(type, PL_BLOB_NOCOPY) )
+  { a->name = allocHeap(length+1);
+    memcpy(a->name, s, length);
+    a->name[length] = EOS;
+  } else
+  { a->name = (char *)s;
+  }
 #ifdef O_HASHTERM
-    a->hash_value = v0;
+  a->hash_value = v0;
 #endif
 #ifdef O_ATOMGC
-    a->references = 1;
+  a->references = 1;
 #endif
-    registerAtom(a);
-    if ( true(type, PL_BLOB_UNIQUE) )
-    { a->next       = atomTable[v];
-      atomTable[v]  = a;
-    }
-    GD->statistics.atoms++;
+  registerAtom(a);
+  if ( true(type, PL_BLOB_UNIQUE) )
+  { a->next       = atomTable[v];
+    atomTable[v]  = a;
   }
+  GD->statistics.atoms++;
 
 #ifdef O_ATOMGC
   if ( GD->atoms.margin != 0 &&
@@ -426,6 +428,7 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
   *new = TRUE;
   if ( type->acquire )
     (*type->acquire)(a->atom);
+  endCritical;
 
   return a->atom;
 }
