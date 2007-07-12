@@ -1,3 +1,8 @@
+Jul 12, 2007
+
+  * FIXED: Avoid exit of Prolog on uncaught exception from 
+    call_with_time_limit/2.  Ulrich Neumerkel.
+
 May 3, 2007
 
   * ADDED: open_memory_file/4, providing encoding facilities.  Matt Lilley.

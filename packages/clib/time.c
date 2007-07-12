@@ -988,6 +988,7 @@ install()
   PL_register_foreign("alarm",          4, alarm4,         PL_FA_TRANSPARENT);
   PL_register_foreign("alarm",          3, alarm3,         PL_FA_TRANSPARENT);
   PL_register_foreign("remove_alarm",   1, remove_alarm,   0);
+  PL_register_foreign("remove_alarm_notrace",1, remove_alarm,   PL_FA_NOTRACE);
   PL_register_foreign("current_alarms", 5, current_alarms, 0);
 #ifdef O_DEBUG
   PL_register_foreign("time_debug",	1, pl_time_debug,  0);

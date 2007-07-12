@@ -37,6 +37,7 @@
 	    call_with_time_limit/2	% +Time, :Callable
 	  ]).
 :- use_module(library(lists)).
+:- set_prolog_flag(generate_debug_info, false).
 
 %%	alarm(+Time, :Callable, -Id) is det.
 %%	alarm(+Time, :Callable, -Id, +Options) is det.
@@ -89,7 +90,7 @@
 call_with_time_limit(Time, Goal) :-
 	Time > 0, !,
 	alarm(Time, throw(time_limit_exceeded), Id),
-	call_cleanup(once(Goal), time:remove_alarm(Id)).
+	call_cleanup(once(Goal), time:remove_alarm_notrace(Id)).
 call_with_time_limit(_Time, _Goal) :-
 	throw(time_limit_exceeded).
 		     
