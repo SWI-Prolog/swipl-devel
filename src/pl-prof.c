@@ -790,6 +790,9 @@ profile(int sig)
 
 #define count 1
 
+  if ( !LD )
+    return;
+
 #if _AIX
   if ( !LD->profile.active )
     return;
