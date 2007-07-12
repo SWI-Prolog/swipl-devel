@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.36 Reference Manual: Section 2.15</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.37 Reference Manual: Section 2.15</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="gc.html">
@@ -318,7 +318,7 @@ to specify Unicode code points in ASCII files.
 <P>
 <LI><I>Atoms and Variables</I><BR>
 We handle them in one item as they are closely related. The Unicode 
-standard defines a syntax for identifiers in computer languages.<SUP class="fn">7<SPAN class="fn-text"><A class="url" href="http://www.unicode.org/reports/tr31/">http://www.unicode.org/reports/tr31/</A></SPAN></SUP> 
+standard defines a syntax for identifiers in computer languages.<SUP class="fn">8<SPAN class="fn-text"><A class="url" href="http://www.unicode.org/reports/tr31/">http://www.unicode.org/reports/tr31/</A></SPAN></SUP> 
 In this syntax identifiers start with <CODE>ID_Start</CODE> followed by 
 a sequence of <CODE>ID_Continue</CODE> codes. Such sequences are handled 
 as a single token in SWI-Prolog. The token is a <EM>variable</EM> iff it 
@@ -359,7 +359,7 @@ variables of the same name. The term <CODE>t(_X, _X)</CODE> is
 equivalent to <CODE>t(X, X)</CODE>, which is <EM>different</EM> from <CODE>t(_, _)</CODE>.
 
 <P>As Unicode requires variables to start with an underscore in many 
-languages this schema needs to be extended.<SUP class="fn">8<SPAN class="fn-text">After 
+languages this schema needs to be extended.<SUP class="fn">9<SPAN class="fn-text">After 
 a proposal by Richard O'Keefe.</SPAN></SUP> First we define the two 
 classes of named variables.
 
@@ -374,7 +374,7 @@ or
 <P>
 <LI><I>Normal variables</I><BR>
 All other variables are `normal' variables. Note this makes <CODE>_var</CODE> 
-a normal variable.<SUP class="fn">9<SPAN class="fn-text">Some Prolog 
+a normal variable.<SUP class="fn">10<SPAN class="fn-text">Some Prolog 
 dialects write variables this way.</SPAN></SUP>
 </UL>
 

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.36 Reference Manual: Section 2.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.37 Reference Manual: Section 2.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="initgoal.html">
@@ -128,61 +128,70 @@ options</SPAN></A></H2>
 <P>The full set of command-line options is given below:
 
 <DL>
-<DT><STRONG>-help</STRONG> <VAR></VAR></DT>
+<DT><STRONG>--help</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
-When given as the only option, it summarises the most important options.</DD>
-<DT><STRONG>-v</STRONG> <VAR></VAR></DT>
+When given as the only option, it summarises the most important options. 
+Also available as <STRONG>-h</STRONG> and <STRONG>-help</STRONG>.</DD>
+<DT><STRONG>--version</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
 When given as the only option, it summarises the version and the 
-architecture identifier.</DD>
-<DT><STRONG>-arch</STRONG> <VAR></VAR></DT>
+architecture identifier. Also available as <STRONG>-v</STRONG>.</DD>
+<DT><STRONG>--arch</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
 When given as the only option, it prints the architecture identifier 
 (see current_prolog_flag(arch, Arch)) and exits. See also
-<STRONG>-dump-runtime-variables</STRONG>.</DD>
-<DT><STRONG>-dump-runtime-variables</STRONG> <VAR></VAR></DT>
+<STRONG>-dump-runtime-variables</STRONG>. Also available as
+<STRONG>-arch</STRONG>.</DD>
+<DT><STRONG>--dump-runtime-variables</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
 When given as the only option, it prints a sequence of variable settings 
 that can be used in shell-scripts to deal with Prolog parameters. This 
 feature is also used by <B>plld</B> (see <A class="sec" href="plld.html">section 
-9.7</A>). Below is a typical example of using this feature.
+9.7</A>). Below is a typical example of using this feature. Also 
+available as
+<STRONG>-dump-runtime-variables</STRONG>.
 
 <PRE class="code">
-eval `pl -dump-runtime-variables`
+eval `pl --dump-runtime-variables`
 cc -I$PLBASE/include -L$PLBASE/runtime/$PLARCH ...
 </PRE>
 
-</DD>
-<DT><STRONG>-q</STRONG> <VAR></VAR></DT>
+<P>The option can be followed by <CODE>=sh</CODE> to dump in POSIX shell 
+format (default) or <CODE>cmd</CODE> to dump in MS-Windows <B>cmd.exe</B> 
+compatible format.</DD>
+<DT><STRONG>--quiet</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
 <A NAME="idx:verbose:61"></A><A NAME="idx:quiet:62"></A>Set the 
 prolog-flag <CODE>verbose</CODE> to <CODE>silent</CODE>, suppressing 
-informational and banner messages.</DD>
-<DT><STRONG>-L</STRONG><VAR>size[km]</VAR></DT>
+informational and banner messages. Also available as <STRONG>-q</STRONG>.</DD>
+<DT><STRONG>-L</STRONG><VAR>size[kmg]</VAR></DT>
 <DD class="defbody">
-Give local stack limit (2 Mbytes default). Note that there is no space 
-between the size option and its argument. By default, the argument is 
-interpreted in Kbytes. Postfixing the argument with <CODE>m</CODE> 
-causes the argument to be interpreted in Mbytes. The following example 
-specifies 32 Mbytes local stack.
+Give local stack limit (default 16Mb on 32-bit and 32Mb on 64-bit 
+hardware). Note that there is no space between the size option and its 
+argument. By default, the argument is interpreted in Kbytes. Postfix the 
+argument with <CODE>m</CODE> for Mbytes or <CODE>g</CODE> for Gbytes. 
+The following example specifies 64 Mbytes local stack.
 
 <PRE class="code">
-% pl -L32m
+% pl -L64m
 </PRE>
 
 <P>A maximum is useful to stop buggy programs from claiming all memory 
 resources. <STRONG>-L0</STRONG> sets the limit to the highest possible 
-value. See <A class="sec" href="limits.html">section 2.18</A>.</DD>
-<DT><STRONG>-G</STRONG><VAR>size[km]</VAR></DT>
+value.<SUP class="fn">4<SPAN class="fn-text">On 64-bit systems there is 
+no relevant limit and <STRONG>-L0</STRONG> is interpreted as 1Gb. It is 
+possible to ask for larger stack-sizes such as <STRONG>-L32g</STRONG></SPAN></SUP> 
+See <A class="sec" href="limits.html">section 2.18</A>.</DD>
+<DT><STRONG>-G</STRONG><VAR>size[kmg]</VAR></DT>
 <DD class="defbody">
 Give global stack limit (4 Mbytes default). See <STRONG>-L</STRONG> for 
 more details.</DD>
-<DT><STRONG>-T</STRONG><VAR>size[km]</VAR></DT>
+<DT><STRONG>-T</STRONG><VAR>size[kmg]</VAR></DT>
 <DD class="defbody">
 Give trail stack limit (4 Mbytes default). This limit is relatively high 
 because trail-stack overflows are not often caused by program bugs. See
 <STRONG>-L</STRONG> for more details.</DD>
-<DT><STRONG>-A</STRONG><VAR>size[km]</VAR></DT>
+<DT><STRONG>-A</STRONG><VAR>size[kmg]</VAR></DT>
 <DD class="defbody">
 Give argument stack limit (1 Mbytes default). The argument stack limits 
 the maximum nesting of terms that can be compiled and executed. 

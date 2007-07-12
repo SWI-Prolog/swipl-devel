@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.36 Reference Manual: Section 4.19</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.37 Reference Manual: Section 4.19</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="chario.html">
@@ -126,18 +126,18 @@ reading and writing</SPAN></A></H2>
 <A NAME="sec:termrw"></A>
 
 <P>This section describes the basic term reading and writing predicates. 
-The predicates <A NAME="idx:format12:757"></A><A class="pred" href="format.html#format/1">format/[1,2]</A> 
-and <A NAME="idx:writef2:758"></A><A class="pred" href="format.html#writef/2">writef/2</A> 
+The predicates <A NAME="idx:format12:761"></A><A class="pred" href="format.html#format/1">format/[1,2]</A> 
+and <A NAME="idx:writef2:762"></A><A class="pred" href="format.html#writef/2">writef/2</A> 
 provide formatted output. Writing to Prolog datastructures such as atoms 
-or code-lists is supported by <A NAME="idx:withoutputto2:759"></A><A class="pred" href="IO.html#with_output_to/2">with_output_to/2</A> 
-and <A NAME="idx:format3:760"></A><A class="pred" href="format.html#format/3">format/3</A>.
+or code-lists is supported by <A NAME="idx:withoutputto2:763"></A><A class="pred" href="IO.html#with_output_to/2">with_output_to/2</A> 
+and <A NAME="idx:format3:764"></A><A class="pred" href="format.html#format/3">format/3</A>.
 
 <P>There are two ways to manipulate the output format. The predicate
-<A NAME="idx:print12:761"></A><A class="pred" href="termrw.html#print/1">print/[1,2]</A> 
-may be programmed using <A NAME="idx:portray1:762"></A><A class="pred" href="termrw.html#portray/1">portray/1</A>. 
+<A NAME="idx:print12:765"></A><A class="pred" href="termrw.html#print/1">print/[1,2]</A> 
+may be programmed using <A NAME="idx:portray1:766"></A><A class="pred" href="termrw.html#portray/1">portray/1</A>. 
 The format of floating point numbers may be manipulated using the 
 prolog_flag (see
-<A NAME="idx:currentprologflag2:763"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>) <CODE>float_format</CODE>.
+<A NAME="idx:currentprologflag2:767"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>) <CODE>float_format</CODE>.
 
 <P>Reading is sensitive to the prolog_flag <CODE>character_escapes</CODE>, 
 which controls the interpretation of the <CODE><CODE>\</CODE></CODE> 
@@ -147,7 +147,7 @@ character in quoted atoms and strings.
 <DT class="pubdef"><A NAME="write_term/2"><STRONG>write_term</STRONG>(<VAR>+Term, 
 +Options</VAR>)</A></DT>
 <DD class="defbody">
-The predicate <A NAME="idx:writeterm2:764"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
+The predicate <A NAME="idx:writeterm2:768"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
 is the generic form of all Prolog term-write predicates. Valid options 
 are:
 
@@ -158,8 +158,8 @@ Define how attributed variables (see <A class="sec" href="attvar.html">section
 6.1</A>) are written. The default is determined by the prolog flag <CODE>write_attributes</CODE>. 
 Defined values are <CODE>ignore</CODE> (ignore the attribute), <CODE>dots</CODE> 
 (write the attributes as <CODE>{...}</CODE>), <CODE>write</CODE> (simply 
-hand the attributes recursively to <A NAME="idx:writeterm2:765"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>) 
-and <CODE>portray</CODE> (hand the attributes to <A NAME="idx:attrportrayhook2:766"></A><A class="pred" href="attvar.html#attr_portray_hook/2">attr_portray_hook/2</A>).</DD>
+hand the attributes recursively to <A NAME="idx:writeterm2:769"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>) 
+and <CODE>portray</CODE> (hand the attributes to <A NAME="idx:attrportrayhook2:770"></A><A class="pred" href="attvar.html#attr_portray_hook/2">attr_portray_hook/2</A>).</DD>
 <DT><STRONG>backquoted_string</STRONG>(<VAR>Bool</VAR>)</DT>
 <DD class="defbody">
 If <CODE>true</CODE>, write a string object (see <A class="sec" href="strings.html">section 
@@ -199,19 +199,19 @@ the prolog-flags <CODE>toplevel_print_options</CODE> and
 <DD class="defbody">
 Define the reference module (default <CODE>user</CODE>). This defines 
 the default value for the <CODE>character_escapes</CODE> option as well 
-as the operator definitions to use. See also <A NAME="idx:op3:767"></A><A class="pred" href="operators.html#op/3">op/3</A>.</DD>
+as the operator definitions to use. See also <A NAME="idx:op3:771"></A><A class="pred" href="operators.html#op/3">op/3</A>.</DD>
 <DT><STRONG>numbervars</STRONG>(<VAR>Bool</VAR>)</DT>
 <DD class="defbody">
 If <CODE>true</CODE>, terms of the format <CODE>$VAR(N)</CODE>, where &lt;<VAR>N</VAR>&gt; 
 is a positive integer, will be written as a variable name. If <VAR>N</VAR> 
 is an atom it is written without quotes. This extension allows for 
 writing variables with user-provided names. The default is
-<CODE>false</CODE>. See also <A NAME="idx:numbervars3:768"></A><A class="pred" href="manipterm.html#numbervars/3">numbervars/3</A>.</DD>
+<CODE>false</CODE>. See also <A NAME="idx:numbervars3:772"></A><A class="pred" href="manipterm.html#numbervars/3">numbervars/3</A>.</DD>
 <DT><STRONG>portray</STRONG>(<VAR>Bool</VAR>)</DT>
 <DD class="defbody">
-If <CODE>true</CODE>, the hook <A NAME="idx:portray1:769"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
-is called before printing a term that is not a variable. If <A NAME="idx:portray1:770"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
-succeeds, the term is considered printed. See also <A NAME="idx:print1:771"></A><A class="pred" href="termrw.html#print/1">print/1</A>. 
+If <CODE>true</CODE>, the hook <A NAME="idx:portray1:773"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
+is called before printing a term that is not a variable. If <A NAME="idx:portray1:774"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
+succeeds, the term is considered printed. See also <A NAME="idx:print1:775"></A><A class="pred" href="termrw.html#print/1">print/1</A>. 
 The default is <CODE>false</CODE>. This option is an extension to the 
 ISO write_term options.</DD>
 <DT><STRONG>priority</STRONG>(<VAR>Integer</VAR>)</DT>
@@ -237,7 +237,7 @@ quoted. The default is <CODE>false</CODE>.
 <DT class="pubdef"><A NAME="write_term/3"><STRONG>write_term</STRONG>(<VAR>+Stream, 
 +Term, +Options</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:writeterm2:772"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>, 
+As <A NAME="idx:writeterm2:776"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>, 
 but output is sent to <VAR>Stream</VAR> rather than the current output.</DD>
 <DT class="pubdef"><A NAME="write_canonical/1"><STRONG>write_canonical</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
@@ -245,14 +245,14 @@ Write <VAR>Term</VAR> on the current output stream using standard
 parenthesised prefix notation (i.e., ignoring operator declarations). 
 Atoms that need quotes are quoted. Terms written with this predicate can 
 always be read back, regardless of current operator declarations. 
-Equivalent to <A NAME="idx:writeterm2:773"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
+Equivalent to <A NAME="idx:writeterm2:777"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
 using the options <CODE>ignore_ops</CODE>,
-<CODE>quoted</CODE> and <CODE>numbervars</CODE> after <A NAME="idx:numbervars4:774"></A><A class="pred" href="manipterm.html#numbervars/4">numbervars/4</A> 
+<CODE>quoted</CODE> and <CODE>numbervars</CODE> after <A NAME="idx:numbervars4:778"></A><A class="pred" href="manipterm.html#numbervars/4">numbervars/4</A> 
 using the
 <CODE>singletons</CODE> option.
 
-<P>Note that due to the use of <A NAME="idx:numbervars4:775"></A><A class="pred" href="manipterm.html#numbervars/4">numbervars/4</A>, 
-non-ground terms must be written using a <EM>single</EM> <A NAME="idx:writecanonical1:776"></A><A class="pred" href="termrw.html#write_canonical/1">write_canonical/1</A> 
+<P>Note that due to the use of <A NAME="idx:numbervars4:779"></A><A class="pred" href="manipterm.html#numbervars/4">numbervars/4</A>, 
+non-ground terms must be written using a <EM>single</EM> <A NAME="idx:writecanonical1:780"></A><A class="pred" href="termrw.html#write_canonical/1">write_canonical/1</A> 
 call. This used to be the case anyhow, as garbage collection between 
 multiple calls to one of the write predicates can change the <CODE>_G</CODE>&lt;<VAR>NNN</VAR>&gt; 
 identity of the variables.</DD>
@@ -263,7 +263,7 @@ Write <VAR>Term</VAR> in canonical form on <VAR>Stream</VAR>.</DD>
 <DT class="pubdef"><A NAME="write/1"><STRONG>write</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 Write <VAR>Term</VAR> to the current output, using brackets and 
-operators where appropriate. See <A NAME="idx:currentprologflag2:777"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
+operators where appropriate. See <A NAME="idx:currentprologflag2:781"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
 for controlling floating point output format.</DD>
 <DT class="pubdef"><A NAME="write/2"><STRONG>write</STRONG>(<VAR>+Stream, 
 +Term</VAR>)</A></DT>
@@ -273,7 +273,7 @@ Write <VAR>Term</VAR> to <VAR>Stream</VAR>.</DD>
 <DD class="defbody">
 Write <VAR>Term</VAR> to the current output, using brackets and 
 operators where appropriate. Atoms that need quotes are quoted. Terms 
-written with this predicate can be read back with <A NAME="idx:read1:778"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
+written with this predicate can be read back with <A NAME="idx:read1:782"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
 provided the currently active operator declarations are identical.</DD>
 <DT class="pubdef"><A NAME="writeq/2"><STRONG>writeq</STRONG>(<VAR>+Stream, 
 +Term</VAR>)</A></DT>
@@ -281,9 +281,9 @@ provided the currently active operator declarations are identical.</DD>
 Write <VAR>Term</VAR> to <VAR>Stream</VAR>, inserting quotes.</DD>
 <DT class="pubdef"><A NAME="print/1"><STRONG>print</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Prints <VAR>Term</VAR> on the current output stream similar to <A NAME="idx:write1:779"></A><A class="pred" href="termrw.html#write/1">write/1</A>, 
+Prints <VAR>Term</VAR> on the current output stream similar to <A NAME="idx:write1:783"></A><A class="pred" href="termrw.html#write/1">write/1</A>, 
 but for each (sub)term of <VAR>Term</VAR> first the dynamic predicate
-<A NAME="idx:portray1:780"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
+<A NAME="idx:portray1:784"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
 is called. If this predicate succeeds <VAR>print</VAR> assumes the 
 (sub)term has been written. This allows for user defined term writing.</DD>
 <DT class="pubdef"><A NAME="print/2"><STRONG>print</STRONG>(<VAR>+Stream, 
@@ -293,17 +293,17 @@ Print <VAR>Term</VAR> to <VAR>Stream</VAR>.</DD>
 <DT class="pubdef"><A NAME="portray/1"><STRONG>portray</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 A dynamic predicate, which can be defined by the user to change the 
-behaviour of <A NAME="idx:print1:781"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
-on (sub)terms. For each subterm encountered that is not a variable <A NAME="idx:print1:782"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
-first calls <A NAME="idx:portray1:783"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
+behaviour of <A NAME="idx:print1:785"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
+on (sub)terms. For each subterm encountered that is not a variable <A NAME="idx:print1:786"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
+first calls <A NAME="idx:portray1:787"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
 using the term as argument. For lists only the list as a whole is given 
-to <A NAME="idx:portray1:784"></A><A class="pred" href="termrw.html#portray/1">portray/1</A>. 
-If portray succeeds <A NAME="idx:print1:785"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
+to <A NAME="idx:portray1:788"></A><A class="pred" href="termrw.html#portray/1">portray/1</A>. 
+If portray succeeds <A NAME="idx:print1:789"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
 assumes the term has been written.</DD>
 <DT class="pubdef"><A NAME="read/1"><STRONG>read</STRONG>(<VAR>-Term</VAR>)</A></DT>
 <DD class="defbody">
 Read the next Prolog term from the current input stream and unify it 
-with <VAR>Term</VAR>. On a syntax error <A NAME="idx:read1:786"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
+with <VAR>Term</VAR>. On a syntax error <A NAME="idx:read1:790"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
 displays an error message, attempts to skip the erroneous term and 
 fails. On reaching end-of-file
 <VAR>Term</VAR> is unified with the atom <CODE>end_of_file</CODE>.</DD>
@@ -313,17 +313,17 @@ fails. On reaching end-of-file
 Read <VAR>Term</VAR> from <VAR>Stream</VAR>.</DD>
 <DT class="pubdef"><A NAME="read_clause/1"><STRONG>read_clause</STRONG>(<VAR>-Term</VAR>)</A></DT>
 <DD class="defbody">
-Equivalent to <A NAME="idx:read1:787"></A><A class="pred" href="termrw.html#read/1">read/1</A>, 
+Equivalent to <A NAME="idx:read1:791"></A><A class="pred" href="termrw.html#read/1">read/1</A>, 
 but warns the user for variables only occurring once in a term 
 (singleton variables, see <A class="sec" href="syntax.html">section 
 2.15.1.5</A>) which do not start with an underscore if <CODE>style_check(singleton)</CODE> 
-is active (default). Used to read Prolog source files (see <A NAME="idx:consult1:788"></A><A class="pred" href="consulting.html#consult/1">consult/1</A>). 
-New code should use <A NAME="idx:readterm2:789"></A><A class="pred" href="termrw.html#read_term/2">read_term/2</A> 
+is active (default). Used to read Prolog source files (see <A NAME="idx:consult1:792"></A><A class="pred" href="consulting.html#consult/1">consult/1</A>). 
+New code should use <A NAME="idx:readterm2:793"></A><A class="pred" href="termrw.html#read_term/2">read_term/2</A> 
 with the option <CODE>singletons(warning)</CODE>.</DD>
 <DT class="pubdef"><A NAME="read_clause/2"><STRONG>read_clause</STRONG>(<VAR>+Stream, 
 -Term</VAR>)</A></DT>
 <DD class="defbody">
-Read a clause from <VAR>Stream</VAR>. See <A NAME="idx:readclause1:790"></A><A class="pred" href="termrw.html#read_clause/1">read_clause/1</A>.</DD>
+Read a clause from <VAR>Stream</VAR>. See <A NAME="idx:readclause1:794"></A><A class="pred" href="termrw.html#read_clause/1">read_clause/1</A>.</DD>
 <DT class="pubdef"><A NAME="read_term/2"><STRONG>read_term</STRONG>(<VAR>-Term, 
 +Options</VAR>)</A></DT>
 <DD class="defbody">
@@ -331,10 +331,10 @@ Read a term from the current input stream and unify the term with
 <VAR>Term</VAR>. The reading is controlled by options from the list of
 <VAR>Options</VAR>. If this list is empty, the behaviour is the same as 
 for
-<A NAME="idx:read1:791"></A><A class="pred" href="termrw.html#read/1">read/1</A>. 
+<A NAME="idx:read1:795"></A><A class="pred" href="termrw.html#read/1">read/1</A>. 
 The options are upward compatible to Quintus Prolog. The argument order 
 is according to the ISO standard. Syntax-errors are always reported 
-using exception-handling (see <A NAME="idx:catch3:792"></A><A class="pred" href="exception.html#catch/3">catch/3</A>). 
+using exception-handling (see <A NAME="idx:catch3:796"></A><A class="pred" href="exception.html#catch/3">catch/3</A>). 
 Options:
 
 <DL>
@@ -347,27 +347,27 @@ depends on the prolog flag with the same name.</DD>
 <DT><STRONG>character_escapes</STRONG>(<VAR>Bool</VAR>)</DT>
 <DD class="defbody">
 Defines how to read <CODE>\</CODE> escape-sequences in quoted atoms. See 
-the prolog-flags <CODE>character_escapes</CODE>, <A NAME="idx:currentprologflag2:793"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>. 
+the prolog-flags <CODE>character_escapes</CODE>, <A NAME="idx:currentprologflag2:797"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>. 
 (SWI-Prolog).</DD>
 <DT><STRONG>comments</STRONG>(<VAR>-Comments</VAR>)</DT>
 <DD class="defbody">
 Unify <VAR>Comments</VAR> with a list of <VAR>Position</VAR>-<VAR>Comment</VAR>, 
 where
-<VAR>Position</VAR> is a stream-position object (see <A NAME="idx:streampositiondata3:794"></A><A class="pred" href="IO.html#stream_position_data/3">stream_position_data/3</A>) 
+<VAR>Position</VAR> is a stream-position object (see <A NAME="idx:streampositiondata3:798"></A><A class="pred" href="IO.html#stream_position_data/3">stream_position_data/3</A>) 
 indicating the start of a comment and <VAR>Comment</VAR> is a 
 string-object containing the text including delimiters of a comment. It 
-returns all comments from where the <A NAME="idx:readterm2:795"></A><A class="pred" href="termrw.html#read_term/2">read_term/2</A> 
+returns all comments from where the <A NAME="idx:readterm2:799"></A><A class="pred" href="termrw.html#read_term/2">read_term/2</A> 
 call started upto the end of the term read.</DD>
 <DT><STRONG>double_quotes</STRONG>(<VAR>Bool</VAR>)</DT>
 <DD class="defbody">
 Defines how to read " ... " strings. See the prolog-flags
-<CODE>double_quotes</CODE>, <A NAME="idx:currentprologflag2:796"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>. 
+<CODE>double_quotes</CODE>, <A NAME="idx:currentprologflag2:800"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>. 
 (SWI-Prolog).</DD>
 <DT><STRONG>module</STRONG>(<VAR>Module</VAR>)</DT>
 <DD class="defbody">
 Specify <VAR>Module</VAR> for operators, <CODE>character_escapes</CODE> 
 flag and <CODE>double_quotes</CODE> flag. The value of the latter two is 
-overruled if the corresponding <A NAME="idx:readterm3:797"></A><A class="pred" href="termrw.html#read_term/3">read_term/3</A> 
+overruled if the corresponding <A NAME="idx:readterm3:801"></A><A class="pred" href="termrw.html#read_term/3">read_term/3</A> 
 option is provided. If no module is specified, the current 
 `source-module' is used. (SWI-Prolog).</DD>
 <DT><STRONG>singletons</STRONG>(<VAR>Vars</VAR>)</DT>
@@ -377,17 +377,17 @@ only once in the <VAR>Term</VAR> read. Variables starting with an
 underscore (`<CODE>_</CODE>') are not included in this list. (ISO). If <VAR>Vars</VAR> 
 is the constant <CODE>warning</CODE>, singleton variables are reported 
 using
-<A NAME="idx:printmessage2:798"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A>.</DD>
+<A NAME="idx:printmessage2:802"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A>.</DD>
 <DT><STRONG>syntax_errors</STRONG>(<VAR>Atom</VAR>)</DT>
 <DD class="defbody">
 If <CODE>error</CODE> (default), throw and exception on a syntax error. 
 Other values are <CODE>fail</CODE>, which causes a message to be printed 
 using
-<A NAME="idx:printmessage2:799"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A>, 
+<A NAME="idx:printmessage2:803"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A>, 
 after which the predicate fails, <CODE>quiet</CODE> which causes the 
 predicate to fail silently and <CODE>dec10</CODE> which causes syntax 
-errors to be printed, after which <A NAME="idx:readterm23:800"></A><A class="pred" href="termrw.html#read_term/2">read_term/[2,3]</A> 
-continues reading the next term. Using <CODE>dec10</CODE>, <A NAME="idx:readterm23:801"></A><A class="pred" href="termrw.html#read_term/2">read_term/[2,3]</A> 
+errors to be printed, after which <A NAME="idx:readterm23:804"></A><A class="pred" href="termrw.html#read_term/2">read_term/[2,3]</A> 
+continues reading the next term. Using <CODE>dec10</CODE>, <A NAME="idx:readterm23:805"></A><A class="pred" href="termrw.html#read_term/2">read_term/[2,3]</A> 
 never fails. (Quintus, SICStus).</DD>
 <DT><STRONG>subterm_positions</STRONG>(<VAR>TermPos</VAR>)</DT>
 <DD class="defbody">
@@ -430,11 +430,11 @@ corresponding subterm.
 <DT><STRONG>term_position</STRONG>(<VAR>Pos</VAR>)</DT>
 <DD class="defbody">
 Unifies <VAR>Pos</VAR> with the starting position of the term read. <VAR>Pos</VAR> 
-if of the same format as use by <A NAME="idx:streamproperty2:802"></A><A class="pred" href="IO.html#stream_property/2">stream_property/2</A>.</DD>
+if of the same format as use by <A NAME="idx:streamproperty2:806"></A><A class="pred" href="IO.html#stream_property/2">stream_property/2</A>.</DD>
 <DT><STRONG>variables</STRONG>(<VAR>Vars</VAR>)</DT>
 <DD class="defbody">
 Unify <VAR>Vars</VAR> with a list of variables in the term. The 
-variables appear in the order they have been read. See also <A NAME="idx:termvariables2:803"></A><A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A>. 
+variables appear in the order they have been read. See also <A NAME="idx:termvariables2:807"></A><A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A>. 
 (ISO).</DD>
 <DT><STRONG>variable_names</STRONG>(<VAR>Vars</VAR>)</DT>
 <DD class="defbody">
@@ -449,25 +449,25 @@ is a variable that shares with the corresponding variable in <VAR>Term</VAR>.
 <DT class="pubdef"><A NAME="read_term/3"><STRONG>read_term</STRONG>(<VAR>+Stream, 
 -Term, +Options</VAR>)</A></DT>
 <DD class="defbody">
-Read term with options from <VAR>Stream</VAR>. See <A NAME="idx:readterm2:804"></A><A class="pred" href="termrw.html#read_term/2">read_term/2</A>.</DD>
+Read term with options from <VAR>Stream</VAR>. See <A NAME="idx:readterm2:808"></A><A class="pred" href="termrw.html#read_term/2">read_term/2</A>.</DD>
 <DT class="pubdef"><A NAME="read_history/6"><STRONG>read_history</STRONG>(<VAR>+Show, 
 +Help, +Special, +Prompt, -Term, -Bindings</VAR>)</A></DT>
 <DD class="defbody">
-Similar to <A NAME="idx:readterm2:805"></A><A class="pred" href="termrw.html#read_term/2">read_term/2</A> 
+Similar to <A NAME="idx:readterm2:809"></A><A class="pred" href="termrw.html#read_term/2">read_term/2</A> 
 using the option <CODE>variable_names</CODE>, but allows for history 
-substitutions. <A NAME="idx:readhistory6:806"></A><A class="pred" href="termrw.html#read_history/6">read_history/6</A> 
+substitutions. <A NAME="idx:readhistory6:810"></A><A class="pred" href="termrw.html#read_history/6">read_history/6</A> 
 is used by the top level to read the user's actions. <VAR>Show</VAR> is 
 the command the user should type to show the saved events. <VAR>Help</VAR> 
 is the command to get an overview of the capabilities. <VAR>Special</VAR> 
 is a list of commands that are not saved in the history. <VAR>Prompt</VAR> 
 is the first prompt given. Continuation prompts for more lines are 
-determined by <A NAME="idx:prompt2:807"></A><A class="pred" href="termrw.html#prompt/2">prompt/2</A>. 
+determined by <A NAME="idx:prompt2:811"></A><A class="pred" href="termrw.html#prompt/2">prompt/2</A>. 
 A
 <CODE>%w</CODE> in the prompt is substituted by the event number. See
 <A class="sec" href="history.html">section 2.7</A> for available 
 substitutions.
 
-<P>SWI-Prolog calls <A NAME="idx:readhistory6:808"></A><A class="pred" href="termrw.html#read_history/6">read_history/6</A> 
+<P>SWI-Prolog calls <A NAME="idx:readhistory6:812"></A><A class="pred" href="termrw.html#read_history/6">read_history/6</A> 
 as follows:
 
 <PRE class="code">
@@ -478,7 +478,7 @@ read_history(h, '!h', [trace], '%w ?- ', Goal, Bindings)
 <DT class="pubdef"><A NAME="prompt/2"><STRONG>prompt</STRONG>(<VAR>-Old, 
 +New</VAR>)</A></DT>
 <DD class="defbody">
-Set prompt associated with <A NAME="idx:read1:809"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
+Set prompt associated with <A NAME="idx:read1:813"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
 and its derivatives. <VAR>Old</VAR> is first unified with the current 
 prompt. On success the prompt will be set to <VAR>New</VAR> if this is 
 an atom. Otherwise an error message is displayed. A prompt is printed if 
@@ -489,7 +489,7 @@ stream is <VAR>user</VAR>.</DD>
 <DT class="pubdef"><A NAME="prompt1/1"><STRONG>prompt1</STRONG>(<VAR>+Prompt</VAR>)</A></DT>
 <DD class="defbody">
 Sets the prompt for the next line to be read. Continuation lines will be 
-read using the prompt defined by <A NAME="idx:prompt2:810"></A><A class="pred" href="termrw.html#prompt/2">prompt/2</A>.
+read using the prompt defined by <A NAME="idx:prompt2:814"></A><A class="pred" href="termrw.html#prompt/2">prompt/2</A>.
 </DD>
 </DL>
 

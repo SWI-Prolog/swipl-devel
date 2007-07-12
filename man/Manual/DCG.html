@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.36 Reference Manual: Section 4.12</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.37 Reference Manual: Section 4.12</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="block3.html">
@@ -125,7 +125,7 @@ Grammar rules</SPAN></A></H2>
 
 <A NAME="sec:DCG"></A>
 
-<P><A NAME="idx:DCG:539"></A>Grammar rules form a comfortable interface 
+<P><A NAME="idx:DCG:543"></A>Grammar rules form a comfortable interface 
 to <EM>difference-lists</EM>. They are designed both to support writing 
 parsers that build a parse-tree from a list as for generating a flat 
 list from a term. Unfortunately, Definite Clause Grammar (DCG) handling 
@@ -134,7 +134,7 @@ but the details differ slightly.
 
 <P>Grammar rules look like ordinary clauses using --&gt;/2 for 
 separating the head and body rather then :-/2 . Expanding grammar rules 
-is done by <A NAME="idx:expandterm2:540"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A>, 
+is done by <A NAME="idx:expandterm2:544"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A>, 
 which adds two additional argument to each term for representing the 
 difference list. We will illustrate the behaviour by defining a rule-set 
 for parsing an integer.
@@ -165,8 +165,8 @@ ordinary Prolog code and finally, a list is interpreted as a sequence of
 literals. The Prolog control-constructs ( \+/1 , -&gt;/2 , ;// 2, ,/2 
 and !/0 ) can be used in grammar rules.
 
-<P>Grammar rule-sets are called using the built-in predicates <A NAME="idx:phrase2:541"></A><A class="pred" href="DCG.html#phrase/2">phrase/2</A> 
-and <A NAME="idx:phrase3:542"></A><A class="pred" href="DCG.html#phrase/3">phrase/3</A>:
+<P>Grammar rule-sets are called using the built-in predicates <A NAME="idx:phrase2:545"></A><A class="pred" href="DCG.html#phrase/2">phrase/2</A> 
+and <A NAME="idx:phrase3:546"></A><A class="pred" href="DCG.html#phrase/3">phrase/3</A>:
 
 <DL>
 <DT class="pubdef"><A NAME="phrase/2"><STRONG>phrase</STRONG>(<VAR>+RuleSet, 

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.36 Reference Manual: Section 4.17</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.37 Reference Manual: Section 4.17</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="IO.html">
@@ -131,11 +131,11 @@ of streams</SPAN></A></H2>
 <DD class="defbody">
 Wait for input on one of the streams in <VAR>ListOfStreams</VAR> and 
 return a list of streams on which input is available in <VAR>ReadyList</VAR>.
-<A NAME="idx:waitforinput3:710"></A><A class="pred" href="streamstat.html#wait_for_input/3">wait_for_input/3</A> 
+<A NAME="idx:waitforinput3:714"></A><A class="pred" href="streamstat.html#wait_for_input/3">wait_for_input/3</A> 
 waits for at most <VAR>TimeOut</VAR> seconds. <VAR>Timeout</VAR> may be 
 specified as a floating point number to specify fractions of a second. 
-If <VAR>Timeout</VAR> equals <CODE>infinite</CODE>, <A NAME="idx:waitforinput3:711"></A><A class="pred" href="streamstat.html#wait_for_input/3">wait_for_input/3</A> 
-waits indefinitely.<SUP class="fn">40<SPAN class="fn-text">For 
+If <VAR>Timeout</VAR> equals <CODE>infinite</CODE>, <A NAME="idx:waitforinput3:715"></A><A class="pred" href="streamstat.html#wait_for_input/3">wait_for_input/3</A> 
+waits indefinitely.<SUP class="fn">41<SPAN class="fn-text">For 
 compatibility reasons, a <VAR>Timeout</VAR> value of 0 (integer) also 
 waits indefinitely. To call select() without giving up the CPU pass the 
 float 0.0. If compatibility with versions older than 5.1.3 is desired 
@@ -158,12 +158,12 @@ pipes, etc. On non-Unix systems select() is generally only implemented
 for socket-based streams. See also <CODE>library(socket)</CODE> from the <CODE>clib</CODE> 
 package.
 
-<P>Note that <A NAME="idx:waitforinput3:712"></A><A class="pred" href="streamstat.html#wait_for_input/3">wait_for_input/3</A> 
+<P>Note that <A NAME="idx:waitforinput3:716"></A><A class="pred" href="streamstat.html#wait_for_input/3">wait_for_input/3</A> 
 returns streams that have data waiting. This does not mean you can, for 
-example, call <A NAME="idx:read2:713"></A><A class="pred" href="termrw.html#read/2">read/2</A> 
+example, call <A NAME="idx:read2:717"></A><A class="pred" href="termrw.html#read/2">read/2</A> 
 on the stream without blocking as the stream might hold an incomplete 
 term. The predicate
-<A NAME="idx:setstream2:714"></A><A class="pred" href="IO.html#set_stream/2">set_stream/2</A> 
+<A NAME="idx:setstream2:718"></A><A class="pred" href="IO.html#set_stream/2">set_stream/2</A> 
 using the option <CODE>timeout(Seconds)</CODE> can be used to make the 
 stream generate an exception if no new data arrives for within the 
 timeout. Suppose two processes communicate by exchanging Prolog terms. 
@@ -184,7 +184,7 @@ incomplete term:
 -Count</VAR>)</A></DT>
 <DD class="defbody">
 Byte-position in <VAR>Stream</VAR>. For binary streams this is the same 
-as <A NAME="idx:charactercount2:715"></A><A class="pred" href="streamstat.html#character_count/2">character_count/2</A>. 
+as <A NAME="idx:charactercount2:719"></A><A class="pred" href="streamstat.html#character_count/2">character_count/2</A>. 
 For text files the number may be different due to multi-byte encodings 
 or additional record separators (such as Control-M in Windows).</DD>
 <DT class="pubdef"><A NAME="character_count/2"><STRONG>character_count</STRONG>(<VAR>+Stream, 
@@ -211,14 +211,14 @@ count by one, provided it is positive.</DD>
 Define error behaviour on errors when opening a file for reading or 
 writing. Valid values are the atoms <CODE>on</CODE> (default) and <CODE>off</CODE>. 
 First <VAR>Old</VAR> is unified with the current value. Then the new 
-value is set to <VAR>New</VAR>.<SUP class="fn">41<SPAN class="fn-text">Note 
-that Edinburgh Prolog defines <A NAME="idx:fileerrors0:716"></A><SPAN class="pred-ext">fileerrors/0</SPAN> 
-and <A NAME="idx:nofileerrors0:717"></A><SPAN class="pred-ext">nofileerrors/0</SPAN>. 
+value is set to <VAR>New</VAR>.<SUP class="fn">42<SPAN class="fn-text">Note 
+that Edinburgh Prolog defines <A NAME="idx:fileerrors0:720"></A><SPAN class="pred-ext">fileerrors/0</SPAN> 
+and <A NAME="idx:nofileerrors0:721"></A><SPAN class="pred-ext">nofileerrors/0</SPAN>. 
 As this does not allow you to switch back to the old mode I think this 
 definition is better.</SPAN></SUP>
 
 <P>With the introduction of exception-handling, it is advised to use
-<A NAME="idx:catch3:718"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
+<A NAME="idx:catch3:722"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
 to catch possibly file-errors and act accordingly. Note that if <EM>fileerrors</EM> 
 is <CODE>off</CODE>, <EM>no</EM> exception is generated.
 </DD>

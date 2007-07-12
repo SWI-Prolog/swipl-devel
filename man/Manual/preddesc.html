@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.36 Reference Manual: Section 4.1</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.37 Reference Manual: Section 4.1</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="builtin.html">
@@ -127,15 +127,40 @@ of Predicate Descriptions</SPAN></A></H2>
 
 <P>We have tried to keep the predicate descriptions clear and concise. 
 First the predicate name is printed in bold face, followed by the 
-arguments in italics. Arguments are preceded by a `+', `-' or `?' sign. 
-`+' indicates the argument is input to the predicate, `-' denotes output 
-and `?' denotes `either input or output'.<SUP class="fn">20<SPAN class="fn-text">These 
-marks do <STRONG>not</STRONG> suggest instantiation (e.g. var(+Var)).</SPAN></SUP> 
-Constructs like `op/3' refer to the predicate `op' with arity `3'. 
-Finally, arguments may have the `:' specifier, which implies the 
-argument is module-sensitive. Normally the argument is a
-<EM>callable</EM> term referring to a predicate in a specific module. 
+arguments in italics. Arguments are preceded by a mode indicator There 
+is no complete agreement on mode indicators in the Prolog community. We 
+use the following definitions:<SUP class="fn">21<SPAN class="fn-text">These 
+definitions are taken from PlDoc. The current manual has only one mode 
+declaration per predicate and therefore predicates with mode (+,-) and 
+(-,+) are described as (?,?). The <CODE>@</CODE>-mode is often replaced 
+by <CODE><CODE>+</CODE></CODE>.</SPAN></SUP>
+
+<P>
+<CENTER>
+<TABLE BORDER=2 FRAME=hsides RULES=groups>
+<TR VALIGN=top><TD>+</TD><TD>Argument must be fully instantiated to a 
+term that satisfies the required argument type. Think of the argument as <EM>input</EM>. </TD></TR>
+<TR VALIGN=top><TD>-</TD><TD>Argument must be unbound. Think of the 
+argument as <EM>output</EM>. </TD></TR>
+<TR VALIGN=top><TD>?</TD><TD>Argument must be bound to a <EM>partial 
+term</EM> of the indicated type. Note that a variable is a partial term 
+for any type. Think of the argument as either <EM>input</EM> or <EM>output</EM> 
+or
+<EM>both</EM> input and output. E.g. In
+<CODE>stream_property(S, reposition(Bool))</CODE>, the <CODE>reposition</CODE> 
+part of the term is input and the uninstantiated <VAR>Bool</VAR> is 
+output. </TD></TR>
+<TR VALIGN=top><TD>:</TD><TD>Argument is a meta-argument. Implies <CODE><CODE>+</CODE></CODE>. 
 See <A class="sec" href="modules.html">section 5</A> for more 
-information on module-handing.
+information on module-handing. </TD></TR>
+<TR VALIGN=top><TD>@</TD><TD>Argument is not further instantiated. 
+Typically used for type-tests.</TD></TR>
+<TR VALIGN=top><TD>!</TD><TD>Argument contains a mutable structure that 
+may be modified using
+<A NAME="idx:setarg3:303"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A> 
+or <A NAME="idx:nbsetarg3:304"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>. </TD></TR>
+</TABLE>
+
+</CENTER>
 
 <P></BODY></HTML>
