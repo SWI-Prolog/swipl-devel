@@ -936,7 +936,7 @@ getPrologOptions()
 { FILE *fd;
   char cmd[512];
 
-  sprintf(cmd, "%s -dump-runtime-variables", pl);
+  sprintf(cmd, "%s --dump-runtime-variables", pl);
   if ( verbose )
     printf("\teval `%s`\n", cmd);
 

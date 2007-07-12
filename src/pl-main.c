@@ -401,6 +401,12 @@ overnight. Returns -1 on error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
+isoption(const char *av, const char *opt)
+{ return (streq(av, opt) || av[0] == '-' && streq(av+1, opt));
+}
+
+
+static int
 parseCommandLineOptions(int argc0, char **argv, int *compile)
 { int argc = argc0;
 
@@ -411,8 +417,6 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 
     if ( streq(s, "-" ) )		/* pl <plargs> -- <app-args> */
       break;
-    if ( *s == '-' )
-      continue;				/* don't handle --intptr_t=value */
 
     if ( streq(s, "tty") )	/* +/-tty */
     { if ( s[-1] == '+' )
@@ -421,13 +425,19 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	clearFeatureMask(TTY_CONTROL_FEATURE);
 
       continue;
-    } else if ( streq(s, "nosignals") )
+    } else if ( isoption(s, "nosignals") )
     { clearFeatureMask(SIGNALS_FEATURE);
       continue;
-    } else if ( streq(s, "nodebug") )
+    } else if ( isoption(s, "nodebug") )
     { clearFeatureMask(DEBUGINFO_FEATURE);
       continue;
+    } else if ( streq(s, "-quiet") )
+    { GD->options.silent = TRUE;
+      continue;
     }
+
+    if ( *s == '-' )
+      continue;				/* don't handle --long=value */
 
     while(*s)
     { switch(*s)
@@ -964,10 +974,10 @@ static int
 usage()
 { static const cline lines[] = {
     "%s: Usage:\n",
-    "    1) %s -help      Display this message\n",
-    "    2) %s -v         Display version information\n",
-    "    3) %s -arch      Display architecture\n",
-    "    4) %s -dump-runtime-variables[=format]\n"
+    "    1) %s --help     Display this message (also -h)\n",
+    "    2) %s --version  Display version information (also -v)\n",
+    "    3) %s --arch     Display architecture\n",
+    "    4) %s --dump-runtime-variables[=format]\n"
     "                     Dump link info in sh(1) format\n",
     "    5) %s [options]\n",
     "    6) %s [options] [-o output] -c file ...\n",
@@ -981,10 +991,10 @@ usage()
     "    -F file          System initialisation file\n",
     "    -s file          Script source file\n",
     "    [+/-]tty         Allow tty control\n",
-    "    -nosignals       Do not modify any signal handling\n",
-    "    -nodebug         Omit generation of debug info\n",
     "    -O               Optimised compilation\n",
-    "    -q               Quiet operation\n",
+    "    --nosignals      Do not modify any signal handling\n",
+    "    --nodebug        Omit generation of debug info\n",
+    "    --quiet          Quiet operation (also -q)\n",
     NULL
   };
   const cline *lp = lines;
@@ -1091,12 +1101,19 @@ runtime_vars(int format)
 
 static int
 giveVersionInfo(const char *a)
-{ if ( streq(a, "-help") )
+{ if ( *a != '-' )
+    return FALSE;
+
+  if ( streq(a, "-help") || streq(a, "--help") || streq(a, "-h") )
     return usage();
-  if ( streq(a, "-arch") )
+  if ( streq(a, "-arch") || streq(a, "--arch") )
     return arch();
-  if ( streq(a, "-v") )
+  if ( streq(a, "--version") || streq(a, "-v") )
     return version();
+
+  if ( a[1] == '-' )			/* allow for --name versions */
+    a++;
+
   if ( streq(a, "-dump-runtime-variables") )
     return runtime_vars(FMT_SH);
   if ( streq(a, "-dump-runtime-variables=sh") )

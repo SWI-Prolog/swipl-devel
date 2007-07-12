@@ -175,57 +175,70 @@ require the Prolog system.
 The full set of command-line options is given below:
 
 \begin{description}
-    \cmdlineoptionitem{-help}{}
+    \cmdlineoptionitem{--help}{}
 When given as the only option, it summarises the most important options.
+Also available as \cmdlineoption{-h} and \cmdlineoption{-help}.  
 
-    \cmdlineoptionitem{-v}{}
+    \cmdlineoptionitem{--version}{}
 When given as the only option, it summarises the version and the
-architecture identifier.
+architecture identifier.  Also available as \cmdlineoption{-v}.
 
-    \cmdlineoptionitem{-arch}{}
+    \cmdlineoptionitem{--arch}{}
 When given as the only option, it prints the architecture identifier
 (see current_prolog_flag(arch, Arch)) and exits. See also
-\cmdlineoption{-dump-runtime-variables}.
+\cmdlineoption{-dump-runtime-variables}. Also available as
+\cmdlineoption{-arch}.
 
-    \cmdlineoptionitem{-dump-runtime-variables}{}
+    \cmdlineoptionitem{--dump-runtime-variables}{}
 When given as the only option, it prints a sequence of variable settings
 that can be used in shell-scripts to deal with Prolog parameters.  This
 feature is also used by \program{plld} (see \secref{plld}).  Below is
-a typical example of using this feature.
+a typical example of using this feature. Also available as
+\cmdlineoption{-dump-runtime-variables}.
 
 \begin{code}
-eval `pl -dump-runtime-variables`
+eval `pl --dump-runtime-variables`
 cc -I$PLBASE/include -L$PLBASE/runtime/$PLARCH ...
 \end{code}
 
-    \cmdlineoptionitem{-q}{}
+The option can be followed by \const{=sh} to dump in POSIX shell format
+(default) or \const{cmd} to dump in MS-Windows \program{cmd.exe}
+compatible format.
+
+    \cmdlineoptionitem{--quiet}{}
 \index{verbose}\index{quiet}%
 Set the prolog-flag \const{verbose} to \const{silent}, suppressing
-informational and banner messages.
+informational and banner messages.  Also available as \cmdlineoption{-q}.
 
-    \cmdlineoptionitem*{-L}{size[km]}
-Give local stack limit (2 Mbytes default). Note that there is no space
-between the size option and its argument.  By default, the argument is
-interpreted in Kbytes.  Postfixing the argument with \const{m} causes
-the argument to be interpreted in Mbytes. The following example
-specifies 32 Mbytes local stack.
+    \cmdlineoptionitem*{-L}{size[kmg]}
+Give local stack limit (default 16Mb on 32-bit and 32Mb on 64-bit
+hardware). Note that there is no space between the size option and its
+argument. By default, the argument is interpreted in Kbytes. Postfix the
+argument with \const{m} for Mbytes or \const{g} for Gbytes. The
+following example specifies 64 Mbytes local stack.
+
 \begin{code}
-% pl -L32m
+% pl -L64m
 \end{code}
 A maximum is useful to stop buggy programs from claiming all memory
 resources. \cmdlineoption{-L0} sets the limit to the highest possible
-value. See \secref{limits}.
+value.%
+	\footnote{On 64-bit systems there is no relevant limit and 
+		  \cmdlineoption{-L0} is interpreted as 1Gb.  It is
+		  possible to ask for larger stack-sizes such as
+		  \cmdlineoption{-L32g}}
+See \secref{limits}.
 
-    \cmdlineoptionitem*{-G}{size[km]}
+    \cmdlineoptionitem*{-G}{size[kmg]}
 Give global stack limit (4 Mbytes default). See \cmdlineoption{-L} for
 more details.
 
-    \cmdlineoptionitem*{-T}{size[km]}
+    \cmdlineoptionitem*{-T}{size[kmg]}
 Give trail stack limit (4 Mbytes default). This limit is relatively high
 because trail-stack overflows are not often caused by program bugs. See
 \cmdlineoption{-L} for more details.
 
-    \cmdlineoptionitem*{-A}{size[km]}
+    \cmdlineoptionitem*{-A}{size[kmg]}
 Give argument stack limit (1 Mbytes default). The argument stack limits
 the maximum nesting of terms that can be compiled and executed. 
 SWI-Prolog does `last-argument optimisation' to avoid many deeply nested

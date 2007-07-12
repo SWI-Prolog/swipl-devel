@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Allow for modern style --help, etc. commandline options.
+    Ulrich Neumerkel.
+
   * MODIFIED: Instantiation by cleanup-handler of call_cleanup/[2,3] has
     been made visible to the outside world.   Ulrich Neumerkel.
 

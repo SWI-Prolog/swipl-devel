@@ -4,7 +4,7 @@
 @PL@ \- SWI-Prolog @PLVERSION@
 .SH SYNOPSIS
 .B @PL@
-.RB [ \-help | \-v | \-arch | \-dump\-runtime\-variables ]
+.RB [ \-\-help | \-\-version | \-\-arch | \-\-dump\-runtime\-variables ]
 .br
 .B @PL@
 [options]
@@ -46,16 +46,16 @@ for details.
 
 .SH OPTIONS
 .TP
-.B \-help
+.B \-\-help
 Gives a summary of the most important options.
 .TP
-.B \-v
+.B \-\-version
 Displays version and architecture information.
 .TP
-.B \-arch
+.B \-\-arch
 Prints the architecture identifier.
 .TP
-.B \-dump\-runtime\-variables[=format]
+.B \-\-dump\-runtime\-variables[=format]
 Dump information that is generally useful for installation scripts in
 a form defined by
 .IR format .
@@ -219,7 +219,7 @@ systems using the following first line
 .BR #!@prefix@/bin/@PL@ " option ... " \-s
 .RE
 .TP
-.B \-q
+.B \-\-quiet \-q
 Operate silently.  This option suppresses all
 .I informational
 messages, such as for compiling files.
@@ -288,6 +288,10 @@ installation. You may wish to switch tty control off if SWI-Prolog is
 used from an editor such as GNU Emacs. If switched off,
 .B get_single_char/1
 and the tracer will wait for a carriage return.
+.TP
+.B \-\-nosignals
+Disable handling of signals.  Often used if SWI-Prolog is embedded in
+another application on Unix systems.
 .TP
 .B \-\-
 Stops scanning for more arguments.
