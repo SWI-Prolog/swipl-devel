@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Properly handle errors from DdeAccessData().  Still unclear 
+    why this function fails though??
+
   * FIXED: Bug#297: Memory leak in arithmetic overflow of <<.  Keri Harris.
 
   * FIXED: Bug#295: compilation issues in different modes (not really
