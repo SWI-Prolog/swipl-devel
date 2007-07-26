@@ -2068,7 +2068,7 @@ variables used in the B_THROW instruction.
 Is there a way to make the compiler keep its mouth shut!?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  DEBUG(9, Sdprintf("Setjmp env at %p\n", &QF->exception_jmp_env));
+  DEBUG(9, Sdprintf("Setjmp env at %p\n", &QF->exception_env.exception_jmp_env));
   if ( setjmp(QF->exception_env.exception_jmp_env) != 0 )
   { FliFrame ffr;
 #ifdef O_PLMT

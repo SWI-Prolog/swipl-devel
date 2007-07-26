@@ -728,7 +728,7 @@ COMMON(bool) 		restoreStack(Stack s);
 COMMON(void) 		trimStacks(ARG1_LD);
 COMMON(void) 		resetStacks(void);
 COMMON(void) 		emptyStacks(void);
-COMMON(void) 		freeStacks(PL_local_data_t *ld);
+COMMON(void) 		freeStacks(ARG1_LD);
 COMMON(void) 		freeLocalData(PL_local_data_t *ld);
 COMMON(word) 		pl_trim_stacks(void);
 COMMON(word) 		pl_limit_stack(term_t s, term_t l);

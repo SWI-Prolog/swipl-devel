@@ -74,6 +74,7 @@ SWI-Prolog.h (pl-itf.h) and SWI-Stream.h (pl-stream.h).
 
 #undef ESC				/* will be redefined ... */
 #include <stdio.h>			/* readline needs it */
+#include <errno.h>
 #define savestring(x)			/* avoid definition there */
 #include <readline/readline.h>
 extern int rl_done;			/* should be in readline.h, but */

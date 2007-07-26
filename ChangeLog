@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#295: compilation issues in different modes (not really
+    used anymore).  Keri Harris.
+
   * FIXED: Handle interrupt/abort during atom and functor creation.
     Ulrich Neumerkel.
 

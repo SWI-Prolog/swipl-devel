@@ -733,7 +733,7 @@ on_alarm(int sig)
 
 
 static int
-installEvent(Event ev, double t)
+installEvent(Event ev)
 { insertEvent(ev);
   re_schedule();
 

@@ -355,13 +355,16 @@ dispatch_signal(int sig, int sync)
 
     return;				/* what else?? */
   }
-#endif
 
   DEBUG(1, Sdprintf("Got signal %d in thread %d (=%d) %s\n",
 		    sig, LD->thread.info->pl_tid,
 		    pthread_self(),
 		    sync ? " (sync)" : " (async)"));
-	
+#else
+  DEBUG(1, Sdprintf("Got signal %d %s\n",
+		    sig, sync ? " (sync)" : " (async)"));
+#endif
+
   lTopSave = (char*)lTop - (char*)lBase;
   saved_current_signal = LD->current_signal;
 
@@ -1663,7 +1666,7 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   tBase = (TrailEntry) malloc(itrail);
   aBase = (Word *)     malloc(argument);
   if ( !gBase || !tBase || !aBase )
-  { freeStacks(LD);
+  { freeStacks(PASS_LD1);
     fail;
   }
 

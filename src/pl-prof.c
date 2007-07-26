@@ -748,7 +748,8 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 
 static
 PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
-{ int rc;
+{ PRED_LD
+  int rc;
 
   resetProfiler();
   startProfiler();

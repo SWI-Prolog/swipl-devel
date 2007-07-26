@@ -123,7 +123,7 @@ clean:
 		rm -f $(CHUNKOBJ)
 		rm -f *~ *% config.log
 		rm -f $(TEX)
-		$(RUNTEXT) --clean $(DOC)
+		$(RUNTEX) --clean $(DOC)
 		rm -rf html
 
 distclean:	clean

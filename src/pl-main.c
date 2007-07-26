@@ -402,7 +402,7 @@ overnight. Returns -1 on error.
 
 static int
 isoption(const char *av, const char *opt)
-{ return (streq(av, opt) || av[0] == '-' && streq(av+1, opt));
+{ return (streq(av, opt) || (av[0] == '-' && streq(av+1, opt)));
 }
 
 
@@ -1228,7 +1228,7 @@ PL_cleanup(int rval)
   }
 
   cleanupSignals();
-  freeStacks(LD);
+  freeStacks(PASS_LD1);
 #ifdef HAVE_DMALLOC_H
   dmalloc_verify(0);
 #endif
