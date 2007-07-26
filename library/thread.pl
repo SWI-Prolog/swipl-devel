@@ -177,7 +177,7 @@ concur_wait(N, Done, VT, Status, Exitted) :-
 	;   Exit = exit(Thread)
 	->  thread_join(Thread, _),
 	    Exitted = [Thread|Exitted2],
-	    concur_wait(N2, Done, VT, Status, Exitted2)
+	    concur_wait(N, Done, VT, Status, Exitted2)
 	;   Status = Exit,
 	    Exitted = []
 	).

@@ -18,6 +18,10 @@ test(fail, fail) :-
 	concurrent(2, [_A=3, fail, _B = 4], []).
 test(error, throws(x)) :-
 	concurrent(2, [_A=3, throw(x), _B = 4], []).
+test(concur, true) :-
+	forall(between(0, 200, _),
+	       (   concurrent(2, [X=1,Y=2], []),
+		   ground(X-Y))).
 
 test(first, true(X==1)) :-
 	first_solution(X, [X=1,X=1], []).
