@@ -1253,8 +1253,9 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       { intptr_t msb = (mpz_sizeinbase(n1->value.mpz, 2)-1+shift);
 
 	if ( spaceStack(global)-1024 < msb/8 )
+	{ mpz_clear(r->value.mpz);
 	  return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
-	
+	}
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift); 
       } else
 	mpz_fdiv_q_2exp(r->value.mpz, n1->value.mpz, shift); 
