@@ -4364,9 +4364,12 @@ $\arg{Result} = \lg{\arg{Expr}}$
     \predicate{exp}{1}{+Expr}
 $\arg{Result} = \pow{e}{\arg{Expr}}$
     \infixop{**}{+Expr1}{+Expr2}
-$\arg{Result} = \pow{\arg{Expr1}}{\arg{Expr2}}$.  With unbounded integers
-and integer values for \arg{Expr1} and a non-negative integer \arg{Expr2},
-the result is always integer.
+$\arg{Result} = \pow{\arg{Expr1}}{\arg{Expr2}}$. With unbounded integers
+and integer values for \arg{Expr1} and a non-negative integer
+\arg{Expr2}, the result is always integer. The integer expressions
+$\pow{0}{I}$, $\pow{1}{I}$ and $\pow{-1}{I}$ are guaranteed to work for
+any integer $I$.  Other integer base values generate a \const{resource}
+error if the result does not fit in memory.
     \predicate{powm}{3}{+IntExprBase, +IntExprExp, +IntExprMod}
 $\arg{Result} = (\pow{\arg{IntExprBase}}{\arg{IntExprExp}})
  \mbox{ modulo } \arg{IntExprMod}$.

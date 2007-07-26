@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -581,8 +581,12 @@ gmp(pow-2) :-
 gmp(pow-3) :-
 	A is 0**0, A = 1.
 gmp(pow-4) :-
-	A is 1.5**2, A = 2.25.
+	A is -1**0, A = 1.
 gmp(pow-5) :-
+	A is -1**0, A = 1.
+gmp(pow-6) :-
+	A is -1**((1<<100)+1), A == -1.
+gmp(pow-7) :-
 	A is -100**5,
 	A < 0,
 	abs(A) =:= 100**5.

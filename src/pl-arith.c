@@ -1132,6 +1132,20 @@ ar_minus(Number n1, Number n2, Number r)
   fail;
 }
 
+
+static int
+ar_even(Number i)
+{ switch(i->type)
+  { case V_INTEGER:
+      return i->value.i % 2 == 0;
+    case V_MPZ:
+      return mpz_fdiv_ui(i->value.mpz, 2) == 0;
+    default:
+      assert(0);
+  }
+}
+
+
 static int
 ar_mod(Number n1, Number n2, Number r)
 { if ( !toIntegerNumber(n1, 0) )
@@ -1185,6 +1199,13 @@ msb64(int64_t i)
 
 
 static int
+int_too_big()
+{ GET_LD
+  return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+}
+
+
+static int
 ar_shift(Number n1, Number n2, Number r, int dir) 
 { GET_LD
   long shift;
@@ -1204,7 +1225,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
   { case V_INTEGER:
       if ( n2->value.i < LONG_MIN  ||
 	   n2->value.i > LONG_MAX )
-	return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+	return int_too_big();
       else
 	shift = (long)n2->value.i;
       break;
@@ -1212,7 +1233,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
     case V_MPZ:
       if ( mpz_cmp_si(n2->value.mpz, LONG_MIN) < 0 ||
 	   mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
-	return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+	return int_too_big();
       else
 	shift = mpz_get_si(n2->value.mpz);
       break;
@@ -1254,7 +1275,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 
 	if ( spaceStack(global)-1024 < msb/8 )
 	{ mpz_clear(r->value.mpz);
-	  return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+	  return int_too_big();
 	}
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift); 
       } else
@@ -1369,16 +1390,59 @@ ar_pow(Number n1, Number n2, Number r)
   if ( intNumber(n1) && intNumber(n2) )
   { unsigned long exp;
 
+    switch(n1->type)			/* test for 0**X and 1**X */
+    { case V_INTEGER:
+	if ( n1->value.i == 0 )
+	{ ret0:
+	  r->type = V_INTEGER;
+	  if ( ar_sign_i(n2) == 0 )	/* 0**0 --> 1 */
+	    r->value.i = 1;
+	  else
+	    r->value.i = 0;
+	  succeed;
+	}
+        if ( n1->value.i == 1 )
+	{ ret1:
+	  r->type = V_INTEGER;
+	  r->value.i = 1;
+	  succeed;
+	}
+	if ( n1->value.i == -1 )
+	{ ret_1:
+	  r->type = V_INTEGER;
+	  if ( ar_even(n2) )
+	    r->value.i = 1;
+	  else
+	    r->value.i = -1;
+	  succeed;
+	}
+        break;
+      case V_MPZ:
+	if ( mpz_cmp_si(n1->value.mpz, 0) == 0 )
+	  goto ret0;
+        if ( mpz_cmp_si(n1->value.mpz, 1) == 0 )
+	  goto ret1;
+        if ( mpz_cmp_si(n1->value.mpz, -1) == 0 )
+	  goto ret_1;
+	break;
+      default:
+	assert(0);
+    }
+
+					/* get the exponent */
     switch(n2->type)
     { case V_INTEGER:
-	if ( n2->value.i < 0 || n2->value.i > LONG_MAX )
+	if ( n2->value.i < 0 )
 	  goto doreal;
+        if ( n2->value.i > LONG_MAX )
+	  return int_too_big();
 	exp = (long)n2->value.i;
 	break;
       case V_MPZ:
-	if ( mpz_sgn(n2->value.mpz) < 0 ||
-	     mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
+	if ( mpz_sgn(n2->value.mpz) < 0 )
 	  goto doreal;
+        if ( mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
+	  return int_too_big();
         exp = mpz_get_ui(n2->value.mpz);
 	break;
       default:
