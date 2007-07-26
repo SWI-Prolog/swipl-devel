@@ -471,7 +471,6 @@ pl_dde_request(term_t handle, term_t item,
 	       term_t value, term_t timeout)
 { int hdl;
   int rval;
-  int ddeErr;
   HSZ Hitem;
   DWORD result, valuelen;
   HDDEDATA Hvalue;
@@ -480,10 +479,9 @@ pl_dde_request(term_t handle, term_t item,
   int fmti;
 
   if ( !get_conv_handle(handle, &hdl) ||
-       !get_hsz(item, &Hitem) )
+       !get_hsz(item, &Hitem) ||
+       !PL_get_long_ex(timeout, &tmo) )
     fail;
-  if ( !PL_get_long(timeout, &tmo) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, timeout);
 
   if ( tmo <= 0 )
     tmo = TIMEOUT_VERY_LONG;
@@ -494,23 +492,25 @@ pl_dde_request(term_t handle, term_t item,
     if ( Hvalue )
       break;
   }
-  ddeErr = DdeGetLastError(ddeInst);
   DdeFreeStringHandle(ddeInst, Hitem);
 
   if ( Hvalue)
   { char *valuedata;
 
-    valuedata = DdeAccessData(Hvalue, &valuelen);
-    DEBUG(0, Sdprintf("valuelen = %ld; format = %d\n", valuelen, fmti));
-    if ( fmt[fmti] == CF_TEXT )
-    { DEBUG(0, Sdprintf("ANSI text\n"));
-      rval = PL_unify_string_chars(value, valuedata);
-    } else
-      rval = PL_unify_wchars(value, PL_STRING, -1, (wchar_t*)valuedata);
-    DdeUnaccessData(Hvalue);
-    return rval;
+    if ( (valuedata = DdeAccessData(Hvalue, &valuelen)) )
+    { DEBUG(0, Sdprintf("valuelen = %ld; format = %d\n", valuelen, fmti));
+      if ( fmt[fmti] == CF_TEXT )
+      { DEBUG(0, Sdprintf("ANSI text\n"));
+	rval = PL_unify_string_chars(value, valuedata);
+      } else
+	rval = PL_unify_wchars(value, PL_STRING, -1, (wchar_t*)valuedata);
+      DdeUnaccessData(Hvalue);
+      return rval;
+    } else 
+    { return dde_warning("access_data");
+    }
   } else
-  { const char * errmsg = dde_error_message(ddeErr);
+  { const char *errmsg = dde_error_message(-1);
 
     return PL_unify_term(value,
 			 PL_FUNCTOR, FUNCTOR_error1, /* error(Message) */
