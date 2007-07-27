@@ -378,7 +378,27 @@ CpuCount()
 
 #else /*PROCFS_CPUINFO*/
 
+#ifdef HAVE_SYSCTLBYNAME	/* MacOS X */
+
+#include <sys/param.h>
+#include <sys/sysctl.h>
+
+int
+CpuCount()
+{ int     count ;
+  size_t  size=sizeof(count) ;
+
+  if ( sysctlbyname("hw.ncpu", &count, &size, NULL, 0) )
+    return 0;
+
+  return count;
+}
+
+#else
+
 #define CpuCount() 0
+
+#endif /*sysctlbyname*/
 
 #endif /*PROCFS_CPUINFO*/
 

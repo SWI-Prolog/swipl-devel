@@ -13,7 +13,8 @@
     X == Low.  Keri Harris.
 
   * PORT: Bug#298: enhance systems supporting cpu_count flag.  Keri Harris.
-
+    Also added support for sysctlbyname() to get this value for MacOS X.
+	
   * FIXED: Some issues in **/1 (pow) using integers.  Ulrich Neumerkel.
 
   * FIXED: concurrent/2.  After test program by Markus Triska.

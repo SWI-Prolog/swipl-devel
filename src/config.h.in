@@ -319,6 +319,9 @@
 /* Define if struct rusage contains the field ru_idrss */
 #undef HAVE_RU_IDRSS
 
+/* Define if you have sysconf support for _SC_NPROCESSORS_CONF */
+#undef HAVE_SC_NPROCESSORS_CONF
+
 /* Define to 1 if you have the `select' function. */
 #undef HAVE_SELECT
 
@@ -417,6 +420,9 @@
 
 /* Define to 1 if you have the `sysconf' function. */
 #undef HAVE_SYSCONF
+
+/* Define to 1 if you have the `sysctlbyname' function. */
+#undef HAVE_SYSCTLBYNAME
 
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
    */
@@ -580,9 +586,6 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* Define if you have sysconf support for _SC_NPROCESSORS_CONF */
-#undef HAVE_SC_NPROCESSORS_CONF
-
 /* Define if you have Linux compatible /proc/cpuinfo */
 #undef PROCFS_CPUINFO
 
@@ -607,16 +610,16 @@
 /* Define if SGI-style mmap() is provided: MAP_AUTOGROW|MAP_AUTORESRV */
 #undef SGIMMAP
 
-/* The size of `int', as computed by sizeof. */
+/* The size of a `int', as computed by sizeof. */
 #undef SIZEOF_INT
 
-/* The size of `long', as computed by sizeof. */
+/* The size of a `long', as computed by sizeof. */
 #undef SIZEOF_LONG
 
-/* The size of `long long', as computed by sizeof. */
+/* The size of a `long long', as computed by sizeof. */
 #undef SIZEOF_LONG_LONG
 
-/* The size of `void*', as computed by sizeof. */
+/* The size of a `void*', as computed by sizeof. */
 #undef SIZEOF_VOIDP
 
 /* Define to the extension of shared objects (often .so) */
@@ -639,7 +642,7 @@
 
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
-   automatically deduced at runtime.
+   automatically deduced at run-time.
 	STACK_DIRECTION > 0 => grows toward higher addresses
 	STACK_DIRECTION < 0 => grows toward lower addresses
 	STACK_DIRECTION = 0 => direction of growth unknown */
