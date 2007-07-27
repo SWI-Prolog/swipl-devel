@@ -320,7 +320,7 @@ pl_format3(term_t out, term_t format, term_t args)
 		    /*cleanup*/,
 		    DEBUG(1, Sdprintf("Cleanup after throw()\n"));
 		    discardOutputRedirect(&ctx);
-		    PL_rethrow(););
+		    rc = PL_rethrow(););
 
   return rc;
 }

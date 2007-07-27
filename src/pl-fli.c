@@ -3106,23 +3106,6 @@ PL_foreign_control(control_t h)
 }
 
 
-static QueryFrame
-find_query(LocalFrame fr)
-{ if ( fr )
-  { QueryFrame qf;
-
-    while(fr->parent)
-      fr = fr->parent;
-    
-    qf = (QueryFrame)addPointer(fr, -(intptr_t)offsetof(struct queryFrame, frame));
-
-    return qf;
-  }
-
-  return NULL;
-}
-
-
 int
 PL_raise_exception(term_t exception)
 { GET_LD

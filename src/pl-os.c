@@ -351,8 +351,7 @@ CpuCount()
     int count = 0;
     
     while(fgets(buf, sizeof(buf)-1, fd))
-    { int cpu;
-      char *vp;
+    { char *vp;
 
       if ( (vp = strchr(buf, ':')) )
       { char *en;

@@ -748,8 +748,7 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 
 static
 PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
-{ PRED_LD
-  int rc;
+{ int rc;
 
   resetProfiler();
   startProfiler();
@@ -757,9 +756,11 @@ PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
   stopProfiler();
 
   DEBUG(0,
-	Sdprintf("Created %ld nodes (%ld bytes); %ld ticks (%ld overhead)\n",
-		 nodes, nodes*sizeof(call_node),
-		 LD->profile.ticks, LD->profile.accounting_ticks));
+	{ PRED_LD
+	    Sdprintf("Created %ld nodes (%ld bytes); %ld ticks (%ld overhead)\n",
+		     nodes, nodes*sizeof(call_node),
+		     LD->profile.ticks, LD->profile.accounting_ticks);
+	});
 
   return rc;
 }
