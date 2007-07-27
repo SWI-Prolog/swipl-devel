@@ -134,6 +134,7 @@ typedef struct
   size_t     size;			/* size on global stack */
   uint	     nvars;			/* # variables */
   int	     external;			/* Allow for external storage */
+  int	     lock;			/* lock compiled atoms */
 } compile_info, *CompileInfo;
 
 #define	PL_TYPE_VARIABLE	(1)	/* variable */
@@ -296,7 +297,8 @@ addAtom(CompileInfo info, atom_t a)
   } else
   { addOpCode(info, PL_TYPE_ATOM);
     addWord(info, a);
-    PL_register_atom(a);
+    if ( info->lock )
+      PL_register_atom(a);
   }
 }
 
@@ -523,6 +525,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   info.size = 0;
   info.nvars = 0;
   info.external = (flags & R_EXTERNAL);
+  info.lock = !info.external;
 
   compile_term_to_heap(valTermRef(t), &info PASS_LD);
   p = topBuffer(&info.vars, Word);
@@ -627,6 +630,7 @@ PL_record_external(term_t t, size_t *len)
   info.size = 0;
   info.nvars = 0;
   info.external = TRUE;
+  info.lock = FALSE;
 
   compile_term_to_heap(p, &info PASS_LD);
   n = info.nvars;
@@ -1840,6 +1844,7 @@ undo_while_saving_term(mark *m, Word term)
   info.size = 0;
   info.nvars = 0;
   info.external = FALSE;
+  info.lock = FALSE;
 
   compile_term_to_heap(term, &info PASS_LD);
   p = topBuffer(&info.vars, Word);

@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: atoms in exceptions had their reference count incremented,
+    harming atom-gc and ultimately overflowing the reference count.
+    Ulrich Neumerkel.
+
   * FIXED/MODIFIED: number_codes(-,+) and friends to issue a type_error
     instead of a representation error if the list is not a code or char
     list.  Ulrich Neumerkel.
