@@ -671,6 +671,19 @@ fi
 fi
 fi
 
+AC_MSG_CHECKING(for sysconf support for _SC_NPROCESSORS_CONF)
+AC_TRY_COMPILE(
+[ #include <unistd.h> ],
+[ long n = sysconf(_SC_NPROCESSORS_CONF);
+], ac_sc_nprocessors_conf="yes"
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
+if test "x$ac_sc_nprocessors_conf" = "xyes"; then
+   AC_DEFINE(HAVE_SC_NPROCESSORS_CONF, 1,
+             [Define if you have sysconf support for _SC_NPROCESSORS_CONF])
+else
+
 AC_MSG_CHECKING(linux /proc/cpuinfo)
 if grep 'processor[	 ]*: 0' /proc/cpuinfo 2>&1 > /dev/null; then
    AC_MSG_RESULT(yes)
@@ -678,6 +691,7 @@ if grep 'processor[	 ]*: 0' /proc/cpuinfo 2>&1 > /dev/null; then
 	     [Define if you have Linux compatible /proc/cpuinfo])
 else
    AC_MSG_RESULT(no)
+fi
 fi
 
 

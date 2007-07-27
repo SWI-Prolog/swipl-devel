@@ -580,6 +580,9 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* Define if you have sysconf support for _SC_NPROCESSORS_CONF */
+#undef HAVE_SC_NPROCESSORS_CONF
+
 /* Define if you have Linux compatible /proc/cpuinfo */
 #undef PROCFS_CPUINFO
 
