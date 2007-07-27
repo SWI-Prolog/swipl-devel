@@ -1977,21 +1977,21 @@ you find \textit{Preferences} in the \textit{File} menu.
 \hline
 Option & Default & Area name & Description \\
 \hline
-\cmdlineoption{-L} & 2M & \bf local stack & The local stack is used to store
+\cmdlineoption{-L} & 16M & \bf local stack & The local stack is used to store
                        the execution environments of procedure
                        invocations. The space for an environment is
                        reclaimed when it fails, exits without leaving
-                       choice points, the alternatives are cut of with
+                       choice points, the alternatives are cut off with
                        the !/0 predicate or no choice points have
                        been created since the invocation and the last
                        subclause is started (tail recursion optimisation). \\
-\cmdlineoption{-G} & 4M & \bf global stack & The global stack is used
+\cmdlineoption{-G} & 32M & \bf global stack & The global stack is used
                        to store terms created during Prolog's
                        execution. Terms on this stack will be reclaimed
                        by backtracking to a point before the term
                        was created or by garbage collection (provided the
                        term is no longer referenced). \\
-\cmdlineoption{-T} & 4M & \bf trail stack & The trail stack is used to store
+\cmdlineoption{-T} & 32M & \bf trail stack & The trail stack is used to store
                        assignments during execution.  Entries on this
                        stack remain alive until backtracking before the
                        point of creation or the garbage collector 
