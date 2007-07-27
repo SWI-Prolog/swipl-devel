@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED/MODIFIED: atom_length/2 to raise a type error on illegal 1st
+    argument instead of failing silently.  Ulrich Neumerkel.
+
   * FIXED: 32-bit systems reporting negative heap usage when over 2GB.
     Ulrich Neumerkel.
 

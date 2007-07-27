@@ -2325,9 +2325,9 @@ pl_atom_length(term_t w, term_t n)
   PL_chars_t txt;
 
   if ( trueFeature(ISO_FEATURE) )
-    flags = CVT_ATOM|CVT_STRING;	/* strings are not known to ISO */
+    flags = CVT_ATOM|CVT_STRING|CVT_EXCEPTION;	/* strings are not known to ISO */
   else
-    flags = CVT_ALL;
+    flags = CVT_ALL|CVT_EXCEPTION;
 
   if ( PL_get_text(w, &txt, flags) )
   { int nval;
