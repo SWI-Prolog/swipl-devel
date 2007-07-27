@@ -438,11 +438,11 @@ Pattern} in their name or summary description.  Lowercase letters in
 \end{tabular}\end{center}
 
     \predicate{explain}{1}{+ToExplain}
-Give an explanation on the given `object'.  The argument may be
-any Prolog data object.  If the argument is an atom, a term of
-the form \arg{Name/Arity} or a term of the form {\em
-Module:Name/Arity}, explain will try to explain the predicate
-as well as possible references to it.
+Give an explanation on the given `object'. The argument may be any
+Prolog data object. If the argument is an atom, a term of the form
+\arg{Name/Arity} or a term of the form {\em Module:Name/Arity},
+explain/1 describes the predicate as well as possible references to it.
+See also gxref/0.
 
     \predicate{explain}{2}{+ToExplain, -Explanation}
 Unify \arg{Explanation} with an explanation for \arg{ToExplain}.
@@ -534,7 +534,7 @@ Yes
 
 \section{Overview of the Debugger}		\label{sec:debugoverview}
 
-SWI-Prolog has a 6-port tracer, extending the standard 4-port tracer
+SWI-Prolog has a 6-port) tracer, extending the standard 4-port tracer
 \cite{Clocksin:87} with two additional ports. The optional \arg{unify}
 port allows the user to inspect the result after unification of the
 head. The \arg{exception} port shows exceptions raised by throw/1 or one
@@ -611,7 +611,7 @@ Repeat the last find command (see `/').}
     \traceoption{A}{Alternatives}{
 Show all goals that have alternatives.} 
     \traceoption{C}{Context}{
-Toggle `Show Context'. If \const{on} the context module of the goal is
+Toggle `Show Context'. If \const{on}, the context module of the goal is
 displayed between square brackets (see \secref{modules}).
 Default is \const{off}.} 
     \traceoption{L}{Listing}{
@@ -666,7 +666,7 @@ code optimisation removes part of the choice- and exit-points.
 Backtrack points are not shown if either the goal succeeded
 deterministically or its alternatives were removed using the cut.  When
 running in debug mode (debug/0) choice points are only destroyed when
-removed by the cut.  In debug mode, tail recursion optimisation is
+removed by the cut.  In debug mode, last call optimisation is
 switched off.%
     \footnote{This implies the system can run out of local stack in debug
               mode, while no problems arise when running in non-debug mode.}
@@ -718,7 +718,7 @@ vs.\ Windows).
 \subsubsection{Using PrologScript}	\label{sec:plscript}
 
 New in version 4.0.5 is the possibility to use a Prolog source file
-directly as a Unix script-file.  the same mechanism is useful to
+directly as a Unix script-file.  The same mechanism is useful to
 specify additional parameters for running a Prolog file on Windows.
 
 If the first letter of a Prolog file is \verb$#$, the first line is
@@ -778,7 +778,7 @@ allows the user to start Prolog source files directly through the
 Windows file-type association.  Windows however makes it rather
 complicated to provide additional parameters, such as the required
 stack-size for an individual Prolog file.  The \verb$#!$ line provides
-for this, providing a more flexible approach then changing the global
+for this, providing a more flexible approach than changing the global
 defaults.  The following starts Prolog with unlimited stack-size on
 the given source file:
 
@@ -1984,7 +1984,7 @@ Option & Default & Area name & Description \\
                        choice points, the alternatives are cut off with
                        the !/0 predicate or no choice points have
                        been created since the invocation and the last
-                       subclause is started (tail recursion optimisation). \\
+                       subclause is started (last call optimisation). \\
 \cmdlineoption{-G} & 32M & \bf global stack & The global stack is used
                        to store terms created during Prolog's
                        execution. Terms on this stack will be reclaimed
