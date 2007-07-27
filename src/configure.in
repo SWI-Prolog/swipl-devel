@@ -336,25 +336,29 @@ case "$ARCH" in
 esac
 
   if test "$GCC" = "yes"; then
-AC_MSG_CHECKING("whether gcc supports -pthread")
-ocflags="$CFLAGS"
-CFLAGS="$CFLAGS -pthread"
-AC_TRY_LINK([
+  for PTHREAD in -pthread -pthreads; do
+    if test "$pthread_ok" = "false"; then
+      AC_MSG_CHECKING("whether gcc supports $PTHREAD")
+      ocflags="$CFLAGS"
+      CFLAGS="$CFLAGS $PTHREAD"
+      AC_TRY_LINK([
 #include <pthread.h>
-	    ],
-	    [ static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-	      pthread_mutex_lock(&m);
-	      pthread_mutex_unlock(&m);
-#if !(defined(_REENTRANT) || defined(_THREAD_SAFE))
-  this should not be compiled
+		  ],
+		  [ static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+		    pthread_mutex_lock(&m);
+		    pthread_mutex_unlock(&m);
+#if !(defined(_REENTRANT) || defined(_THREAD_SAFE)) 
+	this should not be compiled
 #endif
-	    ],
-	    pthread_ok=true
-	    CMFLAGS="$CMFLAGS -pthread"
-	    LDFLAGS="$LDFLAGS -pthread"
-	    AC_MSG_RESULT(yes),
-	    CFLAGS="$ocflags"
-	    AC_MSG_RESULT(no))
+		  ],
+		  pthread_ok=true
+		  CMFLAGS="$CMFLAGS $PTHREAD"
+		  LDFLAGS="$LDFLAGS $PTHREAD"
+		  AC_MSG_RESULT(yes),
+		  CFLAGS="$ocflags"
+		  AC_MSG_RESULT(no))
+      fi
+    done
   fi
 
   if test "$pthread_ok" = "false"; then

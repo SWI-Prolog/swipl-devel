@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: check for -pthreads in addition to -pthread.  Lucas Barbuto.
+
   * FIXED: Bug#299: possible that between(+Low, inf, X) *only* returns
     X == Low.  Keri Harris.
 
