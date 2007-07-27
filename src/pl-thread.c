@@ -1309,7 +1309,7 @@ pl_current_thread(term_t id, term_t status, control_t h)
 Sum the amount of heap allocated through all threads allocation-pools.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-intptr_t
+size_t
 threadLocalHeapUsed(void)
 { int i;
   PL_thread_info_t *info;

@@ -1650,7 +1650,7 @@ struct free_chunk
 struct alloc_pool
 { char	       *space;			/* pointer to free space */
   size_t	free;			/* size of free space */
-  intptr_t 		allocated;		/* total bytes allocated */
+  size_t 	allocated;		/* total bytes allocated */
 					/* fast perfect fit chains */
   Chunk  	free_chains[ALLOCFAST/sizeof(Chunk)+1];
   int		free_count[ALLOCFAST/sizeof(Chunk)+1];

@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: 32-bit systems reporting negative heap usage when over 2GB.
+    Ulrich Neumerkel.
+
   * FIXED: atoms in exceptions had their reference count incremented,
     harming atom-gc and ultimately overflowing the reference count.
     Ulrich Neumerkel.

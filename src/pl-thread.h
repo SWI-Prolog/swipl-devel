@@ -325,7 +325,7 @@ extern foreign_t	pl_current_mutex(term_t mutex,
 const char *		threadName(int id);
 void			executeThreadSignals(int sig);
 foreign_t		pl_attach_xterm(term_t in, term_t out);
-intptr_t			threadLocalHeapUsed(void);
+size_t			threadLocalHeapUsed(void);
 int			attachConsole(void);
 Definition		localiseDefinition(Definition def);
 int			PL_mutex_lock(struct pl_mutex *m);

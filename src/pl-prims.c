@@ -3422,9 +3422,9 @@ QP_STATISTICS is defined. The compatibility   is pretty complete, except
 the `atoms' key that is defined by both and this ambiguous.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static intptr_t
+static size_t
 heapUsed(void)
-{ intptr_t heap = GD->statistics.heap;	/* Big allocations */
+{ size_t heap = GD->statistics.heap;	/* Big allocations */
   
   heap += GD->alloc_pool.allocated;	/* global small allocations */
 #ifdef O_PLMT
