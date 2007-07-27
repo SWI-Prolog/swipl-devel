@@ -3508,8 +3508,8 @@ character.%
     \predicate{number_chars}{2}{?Number, ?CharList}
 Similar to atom_chars/2, but converts between a number and its
 representation as a list of one-character atoms. Fails with a
-\except{representation_error} if \arg{Number} is unbound and
-\arg{CharList} does not describe a number.
+\except{syntax_error} if \arg{Number} is unbound and \arg{CharList} does
+not describe a number.
 
     \predicate{number_codes}{2}{?Number, ?CodeList}
 As number_chars/2, but converts to a list of character codes rather than
@@ -3519,7 +3519,11 @@ identically to improve handling of non-ISO source.
     \predicate{atom_number}{2}{?Atom, ?Number}
 Realises the popular combination of atom_codes/2 and number_codes/2 to
 convert between atom and number (integer or float) in one predicate,
-avoiding the intermediate list.
+avoiding the intermediate list. Calling in mode +,- to convert numbers
+represented as atoms is often good style. Converting numbers to atoms,
+which in turn are assembled into larger units before communication them
+to the outside world is bad style. Consider using streams or
+with_output_to/2 to reduce the number of expensive intermediate atoms.
 
     \predicate{name}{2}{?AtomOrInt, ?String}
 \arg{String} is a list of character codes representing the same text

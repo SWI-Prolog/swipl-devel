@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED/MODIFIED: number_codes(-,+) and friends to issue a type_error
+    instead of a representation error if the list is not a code or char
+    list.  Ulrich Neumerkel.
+
   * PORT: check for -pthreads in addition to -pthread.  Lucas Barbuto.
 
   * FIXED: Bug#299: possible that between(+Low, inf, X) *only* returns

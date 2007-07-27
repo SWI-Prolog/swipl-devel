@@ -2392,10 +2392,8 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
       return PL_error(pred, 2, NULL,
 		      ERR_TYPE, ATOM_list, string);
     s = NULL;
-    if ( !PL_get_wchars(string, &len, &ws, CVT_LIST) )
-      return PL_error(pred, 2, NULL,
-		      ERR_REPRESENTATION,
-		      ATOM_character_code);
+    if ( !PL_get_wchars(string, &len, &ws, CVT_LIST|CVT_EXCEPTION) )
+      fail;
   }
 
   how &= X_MASK;
