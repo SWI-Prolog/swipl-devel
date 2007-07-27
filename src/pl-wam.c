@@ -812,18 +812,23 @@ marks.
 Note this function doesn't call Trail() for   the address as it can only
 be called from setarg/3 and the argument  is thus always a term-argument
 on the global stack.
+
+(*) Enabling this test triggers an asserion error in unifiable/3. In any
+case, we need tighter assignment of  LD->mark_bar as foreign frames that
+surround each foreign predicate currently creates a mark.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-TrailAssignment(Word p)
-{ GET_LD
-  Word old = allocGlobal(1);
+TrailAssignment__LD(Word p ARG_LD)
+{ /*if ( p < LD->mark_bar )  see (*) */
+  { Word old = allocGlobal(1);
 
-  assert(!(*p & (MARK_MASK|FIRST_MASK)));
-  *old = *p;				/* save the old value on the global */
-  requireStack(trail, 2*sizeof(struct trail_entry));
-  (tTop++)->address = p;
-  (tTop++)->address = tagTrailPtr(old);
+    assert(!(*p & (MARK_MASK|FIRST_MASK)));
+    *old = *p;				/* save the old value on the global */
+    requireStack(trail, 2*sizeof(struct trail_entry));
+    (tTop++)->address = p;
+    (tTop++)->address = tagTrailPtr(old);
+  }
 }
 
 
