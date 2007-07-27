@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#299: possible that between(+Low, inf, X) *only* returns
+    X == Low.  Keri Harris.
+
   * PORT: Bug#298: enhance systems supporting cpu_count flag.  Keri Harris.
 
   * FIXED: Some issues in **/1 (pow) using integers.  Ulrich Neumerkel.

@@ -208,7 +208,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	}
 
 	PL_unify(n, low);
-	if ( cmpNumbers(&l, &h) == 0 )
+	if ( hinf == FALSE && cmpNumbers(&l, &h) == 0 )
 	{ clearInteger(&l);
 	  clearInteger(&h);
 	  succeed;
