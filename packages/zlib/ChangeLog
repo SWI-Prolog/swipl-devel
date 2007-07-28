@@ -1,3 +1,7 @@
+Jul 28, 2007
+
+* FIXED: Bug#300: memory loss when returning the stream fails.  Keri Harris.
+
 May 2, 2007
 
 * FIXED: Compress (deflate) large amounts of data.  Added test to ztest.pl.

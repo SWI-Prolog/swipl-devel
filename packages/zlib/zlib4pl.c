@@ -712,13 +712,14 @@ pl_zopen(term_t org, term_t new, term_t options)
   }
 
   ctx->zstream = s2;
+  Sset_filter(s, s2);
+  PL_release_stream(s);
   if ( PL_unify_stream(new, s2) )
-  { Sset_filter(s, s2);
-    PL_release_stream(s);
-
-    return TRUE;
+  { return TRUE;
   } else
-  { return instantiation_error();
+  { ctx->close_parent = FALSE;
+    Sclose(s2);
+    return instantiation_error();
   }    
 }
 
