@@ -297,7 +297,9 @@ pl_new_order_table(term_t name, term_t options)
   exact_table(t);
 
   if ( !PL_get_atom(name, &t->name) )
+  { free(t);
     return error(ERR_INSTANTIATION, "new_order_table/2", 1, name);
+  }
 
   while(PL_get_list(tail, head, tail))
   { atom_t name;
@@ -318,7 +320,9 @@ pl_new_order_table(term_t name, term_t options)
 	if ( get_order_table(a, &from) )
 	{ copy_table(t, from);
 	} else
+	{ free(t);
 	  return FALSE;
+	}
       } else if ( arity == 1 )
       { fid_t fid = PL_open_foreign_frame();
 	term_t a = PL_new_term_ref();
@@ -335,7 +339,9 @@ pl_new_order_table(term_t name, term_t options)
 
 	if ( !PL_get_arg(1, head, c) || !get_char(c, &from) ||
 	     !PL_get_arg(2, head, c) || !get_char(c, &to) )
+	{ free(t);
 	  return FALSE;
+	}
 
 	ORD(t, from) = to;
 
@@ -344,6 +350,7 @@ pl_new_order_table(term_t name, term_t options)
 	goto err1;
     } else
     { err1:
+      free(t);
       return error(ERR_INSTANTIATION, "new_order_table/2", 2, options);
     }
   }

@@ -419,7 +419,9 @@ pl_new_table(term_t file, term_t columns, term_t options, term_t handle)
   table->escape_table = NULL;
 
   if ( !PL_get_atom(file, &table->file) )
+  { free(table);
     return error(ERR_INSTANTIATION, "open_table/4", 1, file);
+  }
 
   while(PL_get_list(tail, head, tail))
   { int arity;
@@ -430,7 +432,9 @@ pl_new_table(term_t file, term_t columns, term_t options, term_t handle)
 	 !PL_get_arg(1, head, arg) ||
 	 !PL_get_atom(arg, &typename) ||
 	 !get_type(typename, &fields[nfields].type) )
+    { free(table);
       return error(ERR_INSTANTIATION, "new_table/4", 2, columns);
+    }
 
     fields[nfields].index = nfields;	/* index number (0..) */
     fields[nfields].width = 0;		/* variable-width field */
@@ -461,12 +465,15 @@ pl_new_table(term_t file, term_t columns, term_t options, term_t handle)
 	  }
 	} else
 	{ colerr:
+	  free(table);
 	  return error(ERR_INSTANTIATION, "new_table/4", 2, columns);
 	}
       }
       if ( !PL_get_nil(tail2) )
+      { free(table);
 	return error(ERR_INSTANTIATION, "new_table/4", 2, columns);
-      
+      }
+
       if ( fields[nfields].flags & FIELD_SORTED )
 	table->keyfield = nfields;
 
@@ -479,7 +486,9 @@ pl_new_table(term_t file, term_t columns, term_t options, term_t handle)
     nfields++;
   }
   if ( !PL_get_nil(tail) )
+  { free(table);
     return error(ERR_INSTANTIATION, "new_table/4", 2, columns);
+  }
 
   table->record_sep = '\n';
   table->field_sep  = ' ';
@@ -540,6 +549,7 @@ pl_new_table(term_t file, term_t columns, term_t options, term_t handle)
   }
   if ( !PL_get_nil(tail) )
   { err3:
+    free(table);
     return error(ERR_INSTANTIATION, "new_table/4", 3, options);
   }
 
@@ -908,6 +918,7 @@ pl_free_table(term_t handle)
   if ( table->escape_table )
     free(table->escape_table);
 
+  free(table->fields);
   free(table);
 
   PL_succeed;
