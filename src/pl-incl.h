@@ -2154,6 +2154,13 @@ typedef struct
 #define setFeatureMask(mask)	set(&features, mask)
 #define clearFeatureMask(mask)	clear(&features, mask)
 
+typedef enum
+{ OCCURS_CHECK_FALSE = 0,
+  OCCURS_CHECK_TRUE,
+  OCCURS_CHECK_ERROR
+} occurs_check_t;
+
+
 #ifdef O_LIMIT_DEPTH
 #define DEPTH_NO_LIMIT	(~0x0L)		/* Highest value */
 #endif

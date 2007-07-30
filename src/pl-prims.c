@@ -30,6 +30,8 @@
 #define LD LOCAL_LD
 
 static int	duplicate_term(term_t in, term_t copy ARG_LD);
+static bool	unify_with_occurs_check(Word t1, Word t2,
+					occurs_check_t mode ARG_LD);
 
 
 		 /*******************************
@@ -292,13 +294,24 @@ right_recursion:
 
 bool
 raw_unify_ptrs(Word t1, Word t2 ARG_LD)
-{ bool rc;
+{ switch(LD->feature.occurs_check)
+  { case OCCURS_CHECK_FALSE:
+    { bool rc;
 
-  initCyclic(PASS_LD1);
-  rc = do_unify(t1, t2 PASS_LD);
-  exitCyclic(PASS_LD1);
+      initCyclic(PASS_LD1);
+      rc = do_unify(t1, t2 PASS_LD);
+      exitCyclic(PASS_LD1);
 
-  return rc;
+      return rc;
+    }
+    case OCCURS_CHECK_TRUE:
+      return unify_with_occurs_check(t1, t2, OCCURS_CHECK_TRUE PASS_LD);
+    case OCCURS_CHECK_ERROR:
+      return unify_with_occurs_check(t1, t2, OCCURS_CHECK_ERROR PASS_LD);
+    default:
+      assert(0);
+      fail;
+  }
 }
 
 
@@ -311,7 +324,9 @@ PRED_IMPL("=", 2, unify, 0)
 
   TmpMark(m);
   if ( !(rval = raw_unify_ptrs(p0, p0+1 PASS_LD)) )
-    TmpUndo(m);
+  { if ( !exception_term )
+      TmpUndo(m);
+  }
   EndTmpMark(m);
 
   return rval;  
@@ -365,6 +380,174 @@ can_unify(Word t1, Word t2)
   EndTmpMark(m);
 
   return rval;  
+}
+
+		 /*******************************
+		 *	   OCCURS-CHECK		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int var_occurs_in(Word v, Word t)
+    Succeeds of the term `v' occurs in `t'.  v must be dereferenced on
+    entry.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+var_occurs_in(Word v, Word t)
+{ GET_LD
+
+right_recursion:
+  deRef(t);
+  if ( v == t )
+    succeed;
+
+  if ( isTerm(*t) )
+  { Functor f = valueTerm(*t);
+    int arity = arityFunctor(f->definition);
+
+    t = f->arguments;
+    for( ; --arity > 0; t++)
+    { if ( var_occurs_in(v, t) )
+	succeed;
+    }
+    goto right_recursion;
+  }
+
+  fail;
+}
+
+
+static int
+failed_unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
+{ if ( mode == OCCURS_CHECK_TRUE )
+    fail;
+
+  return PL_error(NULL, 0, NULL, ERR_OCCURS_CHECK, t1, t2);
+}
+
+
+static bool
+unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
+{ word w1;
+  word w2;
+
+right_recursion:
+  w1 = *t1;
+  w2 = *t2;
+
+  while(isRef(w1))			/* this is deRef() */
+  { t1 = unRef(w1);
+    w1 = *t1;
+  }
+  while(isRef(w2))
+  { t2 = unRef(w2);
+    w2 = *t2;
+  }
+
+  if ( t1 == t2 )
+    succeed;
+
+  if ( isVar(w1) )
+  { if ( isVar(w2) )
+    { if ( t1 < t2 )			/* always point downwards */
+      { *t2 = makeRef(t1);
+	Trail(t2);
+	succeed;
+      }
+      *t1 = makeRef(t2);
+      Trail(t1);
+      succeed;
+    }
+    if ( var_occurs_in(t1, t2) )
+      return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
+#ifdef O_ATTVAR
+    *t1 = isAttVar(w2) ? makeRef(t2) : w2;
+#else
+    *t1 = w2;
+#endif
+    Trail(t1);
+    succeed;
+  }
+  if ( isVar(w2) )
+  { if ( var_occurs_in(t2, t1) )
+      return failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
+
+#ifdef O_ATTVAR
+    *t2 = isAttVar(w1) ? makeRef(t1) : w1;
+#else
+    *t2 = w1;
+#endif
+    Trail(t2);
+    succeed;
+  }
+
+#ifdef O_ATTVAR
+  if ( isAttVar(w1) )
+  { if ( var_occurs_in(t1, t2) )
+      return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
+    return assignAttVar(t1, t2 PASS_LD);
+  }
+  if ( isAttVar(w2) )
+  { if ( var_occurs_in(t2, t1) )
+      return failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
+    return assignAttVar(t2, t1 PASS_LD);
+  }
+#endif
+
+  if ( w1 == w2 )
+    succeed;
+  if ( tag(w1) != tag(w2) )
+    fail;
+
+  switch(tag(w1))
+  { case TAG_ATOM:
+      fail;
+    case TAG_INTEGER:
+      if ( storage(w1) == STG_INLINE ||
+	   storage(w2) == STG_INLINE )
+	fail;
+    case TAG_STRING:
+    case TAG_FLOAT:
+      return equalIndirect(w1, w2);
+    case TAG_COMPOUND:
+    { int arity;
+      Functor f1 = valueTerm(w1);
+      Functor f2 = valueTerm(w2);
+
+      if ( f1->definition != f2->definition )
+	fail;
+
+      arity = arityFunctor(f1->definition);
+      t1 = f1->arguments;
+      t2 = f2->arguments;
+
+      for(; --arity > 0; t1++, t2++)
+      { if ( !unify_with_occurs_check(t1, t2, mode PASS_LD) )
+	  fail;
+      }
+      goto right_recursion;
+    }
+  }
+
+  succeed;
+}
+
+
+static
+PRED_IMPL("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
+{ PRED_LD
+  mark m;
+  Word p1, p2;
+  word rval;
+
+  Mark(m);
+  p1 = valTermRef(A1);
+  p2 = valTermRef(A2);
+  rval = unify_with_occurs_check(p1, p2, OCCURS_CHECK_TRUE PASS_LD);
+  if ( !rval )
+    Undo(m);
+
+  return rval;
 }
 
 
@@ -3881,6 +4064,7 @@ PRED_IMPL("$style_check", 2, style_check, 0)
 BeginPredDefs(prims)
   PRED_DEF("=", 2, unify, 0)
   PRED_DEF("\\=", 2, not_unify, 0)
+  PRED_DEF("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
   PRED_DEF("nonvar", 1, nonvar, 0)
   PRED_DEF("var", 1, var, 0)
   PRED_DEF("integer", 1, integer, 0)

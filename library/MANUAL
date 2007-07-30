@@ -1066,9 +1066,10 @@ aapprrooppooss((_+_P_a_t_t_e_r_n))
 
 eexxppllaaiinn((_+_T_o_E_x_p_l_a_i_n))
     Give an explanation on  the given `object'.  The argument may be any
-    Prolog data object.   If the argument is an atom, a term of the form
-    _N_a_m_e_/_A_r_i_t_y  or a term  of the  form _M_o_d_u_l_e_:_N_a_m_e_/_A_r_i_t_y, explain  will
-    try to explain the predicate as well as possible references to it.
+    Prolog  data object.   If  the argument is  an atom,  a term of  the
+    form  _N_a_m_e_/_A_r_i_t_y or a term of the form  _M_o_d_u_l_e_:_N_a_m_e_/_A_r_i_t_y, explain/1
+    describes  the predicate as well as possible references to it.   See
+    also gxref/0.
 
 
 eexxppllaaiinn((_+_T_o_E_x_p_l_a_i_n_, _-_E_x_p_l_a_n_a_t_i_o_n))
@@ -1146,7 +1147,7 @@ Yes
 
 22..99 OOvveerrvviieeww ooff tthhee DDeebbuuggggeerr
 
-SWI-Prolog has  a 6-port  tracer, extending the  standard 4-port  tracer
+SWI-Prolog has  a 6-port) tracer,  extending the standard 4-port  tracer
 [Clocksin & Melish, 1987]  with two  additional  ports.    The  optional
 _u_n_i_f_y port allows  the user to inspect  the result after unification  of
 the head.  The _e_x_c_e_p_t_i_o_n port shows exceptions raised  by throw/1 or one
@@ -1224,7 +1225,7 @@ A ((AAlltteerrnnaattiivveess))
     Show all goals that have alternatives.
 
 C ((CCoonntteexxtt))
-    Toggle  `Show Context'.   If on  the context module  of the goal  is
+    Toggle  `Show Context'.   If on, the context  module of the goal  is
     displayed between square brackets (see section 5).  Default is off.
 
 L ((LLiissttiinngg))
@@ -1296,8 +1297,8 @@ because code optimisation  removes part of the choice- and  exit-points.
 Backtrack  points   are  not   shown  if  either   the  goal   succeeded
 deterministically or its alternatives were removed using the cut.   When
 running in  debug mode (debug/0) choice  points are only destroyed  when
-removed by  the cut.    In debug  mode, tail  recursion optimisation  is
-switched off.
+removed by the cut.   In debug mode, last call optimisation  is switched
+off.
 
 Reference information to  all predicates available for manipulating  the
 debugger is in section 4.38.
@@ -1343,7 +1344,7 @@ size of the program and the operating system (Unix vs. Windows).
 22..1100..22..11 UUssiinngg PPrroollooggSSccrriipptt
 
 New in  version 4.0.5  is the possibility  to use  a Prolog source  file
-directly  as a  Unix  script-file.   the  same  mechanism is  useful  to
+directly  as a  Unix  script-file.   The  same  mechanism is  useful  to
 specify additional parameters for running a Prolog file on Windows.
 
 If the  first letter of a  Prolog file is #,  the first line is  treated
@@ -1392,7 +1393,7 @@ the  user to  start Prolog  source files  directly  through the  Windows
 file-type  association.   Windows  however makes  it rather  complicated
 to provide  additional parameters, such  as the required stack-size  for
 an individual  Prolog file.   The #! line  provides for this,  providing
-a  more flexible  approach  then changing  the  global  defaults.    The
+a  more flexible  approach  than changing  the  global  defaults.    The
 following starts  Prolog with unlimited stack-size  on the given  source
 file:
 
@@ -1492,7 +1493,6 @@ environments.
 
 
 ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_V_a_l_u_e))
-
     The   predicate  current_prolog_flag/2  defines   an  interface   to
     installation   features:    options  compiled  in,  version,   home,
     etc.    With both arguments  unbound, it  will generate all  defined
@@ -1797,6 +1797,18 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
 
     mmiinn__ttaaggggeedd__iinntteeggeerr _(_i_n_t_e_g_e_r_)
          Start of the tagged-integer value range.
+
+    ooccccuurrss__cchheecckk _(_a_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
+         This flag  controls unification that  creates an infinite  tree
+         (also called  _c_y_c_l_i_c _t_e_r_m  and can have  three values.    Using
+         false (default),  unification  succeeds,  creating an  infinite
+         tree, Using  true, unify  behaves as  unify_with_occurs_check/2,
+         failing silently.   Using error, an attempt to create  a cyclic
+         term results  in  an occurs_check  exception.   The  latter  is
+         intented for debugging unintentional creation of  cyclic terms.
+         Note that  this flag  is  a global  flag modifying  fundamental
+         behaviour of Prolog.   Changing the  flag from its default  may
+         cause libraries to stop functioning properly.
 
     ooppeenn__sshhaarreedd__oobbjjeecctt _(_b_o_o_l_)
          If  true,  open_shared_object/2 and  friends  are  implemented,
@@ -2551,28 +2563,28 @@ stack size  in Kbytes.   A  GUI for modifying  these values is  provided
 using the XPCE package.  To use this, start the  XPCE manual tools using
 manpce/0, after which you find _P_r_e_f_e_r_e_n_c_e_s in the _F_i_l_e menu.
        ___________________________________________________________
-       |_Option_|Default_|Area_name______|Description____________|_||-L||2Mllooccaa||llTssttaacckkhe|l||||ocal|stack is used
+       |_Option_|Default_|Area_name______|Description____________|_||-L||16Mlloocc||aallTssttaacckkhe|l||||ocal|stack is used
 
-       |        |                        to  store   the  execu- |             |            ||
-       |        |                        tion  environments   of |             |            ||
-       |        |                        procedure  invocations. |             |            ||
-       |        |                        The  space for  an  en- |             |            ||
-       |        |                        vironment is  reclaimed |             |            ||
-       |        |                        when  it  fails,  exits |             |            ||
-       |        |                        without leaving  choice |             |            ||
-       |        |                        points,   the  alterna- |             |            ||
-       |        |                        tives are  cut of  with |             |            ||
-       |        |                                                |             |            ||
+       |        |                        to  store   the  execu- |             |             ||
+       |        |                        tion  environments   of |             |             ||
+       |        |                        procedure  invocations. |             |             ||
+       |        |                        The  space for  an  en- |             |             ||
+       |        |                        vironment is  reclaimed |             |             ||
+       |        |                        when  it  fails,  exits |             |             ||
+       |        |                        without leaving  choice |             |             ||
+       |        |                        points,   the  alterna- |             |             ||
+       |        |                        tives are cut  off with |             |             ||
+       |        |                                                |             |             ||
 
-       |        |                        the  !/0  predicate  or |             |            ||
-       |        |                        no  choice points  have |             |            ||
-       |        |                        been created  since the |             |            ||
-       |        |                        invocation and the last |             |            ||
-       |        |                        subclause  is   started |             |            ||
-       |        |                        (tail recursion optimi- |             |            ||
-       ||       ||      |               ||sation).                ||            |            ||
+       |        |                        the  !/0  predicate  or |             |             ||
+       |        |                        no  choice points  have |             |             ||
+       |        |                        been created  since the |             |             ||
+       |        |                        invocation and the last |             |             ||
+       |        |                        subclause  is   started |             |             ||
+       |        |                        (last  call   optimisa- |             |             ||
+       ||       ||      |               ||tion).                  ||            |             ||
 
-       |   -G   | 4M    |gglloobbaall ssttaacckk   ||Theusglobaled stacktois store| terms
+       |   -G   | 32M   |gglloobbaall ssttaacckk   ||Theusglobaled stacktois store| terms
        |        |       |               ||created during Prolog's |
        |        |       |               ||execution.    Terms  on |
        |        |       |               ||                        |
@@ -2584,7 +2596,7 @@ manpce/0, after which you find _P_r_e_f_e_r_e_n_c_e_s in the _F_i_
 
        |        |       |               ||(provided  the term  is |
        ||       ||      ||              ||no||longer referenced).  ||
-       |   -T   | 4M    |ttrraaiill ssttaacckk    ||Theusetraild stackto isstore|  as-
+       |   -T   | 32M   |ttrraaiill ssttaacckk    ||Theusetraild stackto isstore|  as-
        |        |       |               ||signments during execu- |
        |        |       |               ||                        |
        |        |       |               ||tion.   Entries on this |
@@ -4430,7 +4442,7 @@ uunniiffyy__wwiitthh__ooccccuurrss__cchheecckk((_+_T_
     I.e.   the  first  creates  a  _c_y_c_l_i_c_-_t_e_r_m,  which  is   printed  as
     an  infinitely   nested  f/1  term  (see  the  max_depth  option  of
     write_term/2).  The second executes  logically sound unification and
-    thus fails.
+    thus fails.  See also the Prolog flag occurs_check.
 
 
 _+_T_e_r_m_1 \= _+_T_e_r_m_2
@@ -6907,7 +6919,9 @@ nnuummbbeerrvvaarrss((_+_T_e_r_m_, _+_S_t_a_r_t_, _-_E
 
 tteerrmm__vvaarriiaabblleess((_+_T_e_r_m_, _-_L_i_s_t))
     Unify  _L_i_s_t with  a list of  variables, each  sharing with a  unique
-    variable of _T_e_r_m.  See also term_variables/3.  For example:
+    variable  of _T_e_r_m.   The variables in _L_i_s_t  are ordered in order  of
+    appearence traversing _T_e_r_m  depth-first and left-to-right.  See also
+    term_variables/3.  For example:
 
     ?- term_variables(a(X, b(Y, X), Z), L).
 
@@ -7043,8 +7057,8 @@ cchhaarr__ccooddee((_?_A_t_o_m_, _?_C_o_d_e))
 nnuummbbeerr__cchhaarrss((_?_N_u_m_b_e_r_, _?_C_h_a_r_L_i_s_t))
     Similar  to  atom_chars/2,  but  converts between  a number  and  its
     representation  as a  list of  one-character atoms.    Fails with  a
-    representation_error  if _N_u_m_b_e_r  is unbound  and  _C_h_a_r_L_i_s_t does  not
-    describe a number.
+    syntax_error if _N_u_m_b_e_r  is unbound and _C_h_a_r_L_i_s_t does not  describe a
+    number.
 
 
 nnuummbbeerr__ccooddeess((_?_N_u_m_b_e_r_, _?_C_o_d_e_L_i_s_t))
@@ -7056,7 +7070,12 @@ nnuummbbeerr__ccooddeess((_?_N_u_m_b_e_r_, _?_C_o_d_e_
 aattoomm__nnuummbbeerr((_?_A_t_o_m_, _?_N_u_m_b_e_r))
     Realises  the popular combination of atom_codes/2 and number_codes/2
     to  convert  between  atom and  number  (integer  or float)  in  one
-    predicate, avoiding the intermediate list.
+    predicate,  avoiding the  intermediate list.   Calling  in mode  +,-
+    to  convert  numbers  represented  as atoms  is  often  good  style.
+    Converting  numbers  to atoms,  which  in  turn are  assembled  into
+    larger  units before communication them to the outside world  is bad
+    style.    Consider using streams  or with_output_to/2 to reduce  the
+    number of expensive intermediate atoms.
 
 
 nnaammee((_?_A_t_o_m_O_r_I_n_t_, _?_S_t_r_i_n_g))
@@ -7937,8 +7956,11 @@ eexxpp((_+_E_x_p_r))
 
 _+_E_x_p_r_1 ** _+_E_x_p_r_2
     _R_e_s_u_l_t = _E_x_p_r_1 to the power _E_x_p_r_2.    With  unbounded  integers and
-    integer  values  for _E_x_p_r_1  and a  non-negative integer  _E_x_p_r_2,  the
-    result is always integer.
+    integer   values  for  _E_x_p_r_1  and  a  non-negative   integer  _E_x_p_r_2,
+    the   result  is   always  integer.       The  integer   expressions
+    0 to the power I,    1 to the power I  and   -1 to the power I   are
+    guaranteed  to work for  any integer I.   Other integer base  values
+    generate a resource error if the result does not fit in memory.
 
 
 ppoowwmm((_+_I_n_t_E_x_p_r_B_a_s_e_, _+_I_n_t_E_x_p_r_E_x_p_, _+_I_n_t_E_x_p_r_M_o_d))
@@ -19656,7 +19678,7 @@ Index
 /\/2, 480                            ugraphs.pl _l_i_b_r_a_r_y, 1123
 =\=/2, 444                           Unicode, 76
 |/2, 204                             unifiable/3, 196
-#=/2, 1197                           unify_with_occurs_check/2, 186
+#=/2, 1197                           unify_with_occurs_check/2, 60, 186
 #>=/2, 1195                          union/3, 1095
 #>/2, 1193                           Unix, 7
 #=</2, 1196                          unix, 60
@@ -19706,7 +19728,7 @@ Index
 \, 92
 _PL_get_arg(), 894                   windows,w60ith_mutex/2, 786, 787, 806
 64-bits
-   platforms, 85                     with_output_to/2,537310,, 314,567362,
+   platforms, 85                     with_output_to/2,403310,, 314,537362,, 567
 
 abolish/1, 17, 241, 242              working_directory/2, 559, 588,  597,
 abolish/2, 242, 834                        598
@@ -20097,7 +20119,7 @@ gtrace/0, 111, 796
 GUI, 8
 guitracer/0,  23,   108--110,  119,
       612, 616
-gxref/0, 116, 1257
+gxref/0, 47, 116, 1257
 halt/0, 51, 602, 603
 halt/1, 603, 1022
 halt/[0

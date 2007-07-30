@@ -285,6 +285,34 @@ setWriteAttributes(atom_t a)
 
 
 static int
+getOccursCheckMask(atom_t a, occurs_check_t *val)
+{ if ( a == ATOM_false )
+  { *val = OCCURS_CHECK_FALSE;
+  } else if ( a == ATOM_true )
+  { *val = OCCURS_CHECK_TRUE;
+  } else if ( a == ATOM_error )
+  { *val = OCCURS_CHECK_ERROR;
+  } else
+    fail;
+
+  succeed;
+}
+
+
+static int
+setOccursCheck(atom_t a)
+{ if ( getOccursCheckMask(a, &LD->feature.occurs_check) )
+  { succeed;
+  } else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_occurs_check, value);
+  }
+}
+
+
+static int
 setEncoding(atom_t a)
 { IOENC enc = atom_to_encoding(a);
 
@@ -435,6 +463,8 @@ set_feature_unlocked(term_t key, term_t value)
       { rval = setUnknown(a, &m->flags);
       } else if ( k == ATOM_write_attributes )
       { rval = setWriteAttributes(a);
+      } else if ( k == ATOM_occurs_check )
+      { rval = setOccursCheck(a);
       } else if ( k == ATOM_encoding )
       { rval = setEncoding(a);
       }
@@ -838,6 +868,7 @@ initFeatures()
   defFeature("char_conversion", FT_BOOL, FALSE, CHARCONVERSION_FEATURE);
   defFeature("backquoted_string", FT_BOOL, FALSE, BACKQUOTED_STRING_FEATURE);
   defFeature("write_attributes", FT_ATOM, "ignore");
+  defFeature("occurs_check", FT_ATOM, "false");
   defFeature("double_quotes", FT_ATOM, "codes");
   defFeature("unknown", FT_ATOM, "error");
   defFeature("debug", FT_BOOL, FALSE, 0);

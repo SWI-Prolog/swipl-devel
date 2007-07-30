@@ -128,6 +128,8 @@ iso_message(busy(Type, Object)) -->
 iso_message(syntax_error(Id)) -->
 	[ 'Syntax error: ' ],
 	syntax_error(Id).
+iso_message(occurs_check(Var, In)) -->
+	[ 'Cannot unify ~p with ~p: would create an infinite tree'-[Var, In] ].
 
 syntax_error(end_of_clause) -->
 	[ 'Unexpected end of clause' ].

@@ -890,7 +890,7 @@ No
 I.e.\ the first creates a \jargon{cyclic-term}, which is printed as
 an infinitely nested \functor{f}{1} term (see the \const{max_depth}
 option of write_term/2). The second executes logically sound unification
-and thus fails.
+and thus fails.  See also the Prolog flag \const{occurs_check}.
 
     \infixop{\=}{+Term1}{+Term2}
 Equivalent to \exam{\Snot Term1 = Term2}.

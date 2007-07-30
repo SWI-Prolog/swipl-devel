@@ -183,3 +183,4 @@
 #define FUNCTOR_warning3     MK_FUNCTOR(182, 3)
 #define FUNCTOR_xor2         MK_FUNCTOR(183, 2)
 #define FUNCTOR_xpceref1     MK_FUNCTOR(184, 1)
+#define FUNCTOR_occurs_check2 MK_FUNCTOR(185, 2)

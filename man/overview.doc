@@ -893,7 +893,6 @@ environments.
 
 \begin{description}
     \predicate{current_prolog_flag}{2}{?Key, -Value}
-
 The predicate current_prolog_flag/2 defines an interface to installation
 features: options compiled in, version, home, etc. With both arguments
 unbound, it will generate all defined prolog-flags. With the `Key'
@@ -1190,6 +1189,18 @@ the flag \const{bounded} and \secref{artypes}.
 
     \prologflagitem{min_tagged_integer}{integer}{r}
 Start of the tagged-integer value range.
+
+    \prologflagitem{occurs_check}{atom}{rw}
+This flag controls unification that creates an infinite tree (also
+called \jargon{cyclic term} and can have three values. Using
+\const{false} (default), unification succeeds, creating an infinite
+tree, Using \const{true}, unify behaves as unify_with_occurs_check/2,
+failing silently. Using \const{error}, an attempt to create a cyclic
+term results in an \const{occurs_check} exception. The latter is
+intented for debugging unintentional creation of cyclic terms.
+Note that this flag is a global flag modifying fundamental behaviour
+of Prolog.  Changing the flag from its default may cause libraries
+to stop functioning properly.
 
     \prologflagitem{open_shared_object}{bool}{r}
 If true, open_shared_object/2 and friends are implemented, providing

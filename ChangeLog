@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Prolog flag occurs_check using false, true and error.  After
+    discussion with Ulrich Neumerkel.
+
   * FIXED: Bug#304: Possible incorrect error in arithmetic.  Keri Harris.
 
   * ENHANCED: deal with GMP number overflows through allocation hooks.

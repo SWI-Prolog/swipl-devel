@@ -58,6 +58,7 @@
 #define ERR_NOT_IMPLEMENTED_PROC 33	/* name, arity */
 #define ERR_FORMAT	       34	/* message */
 #define ERR_FORMAT_ARG	       35	/* seq, term */
+#define ERR_OCCURS_CHECK       36	/* Word, Word */
 
 #define MSG_ERRNO		((char *)(-1))
 

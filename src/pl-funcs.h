@@ -85,7 +85,6 @@ COMMON(void) 		TrailAssignment__LD(Word p ARG_LD);
 COMMON(void) 		do_undo(mark *m);
 COMMON(Definition) 	getProcDefinition(Procedure proc);
 COMMON(void) 		fix_term_ref_count(void);
-COMMON(word) 		pl_unify_with_occurs_check(term_t t1, term_t t2);
 COMMON(fid_t) 		PL_open_signal_foreign_frame(void);
 COMMON(bool)		foreignWakeup(ARG1_LD);
 

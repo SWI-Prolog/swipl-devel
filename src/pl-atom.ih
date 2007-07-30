@@ -568,3 +568,4 @@
 #define ATOM_int          MK_ATOM(567)
 #define ATOM_long         MK_ATOM(568)
 #define ATOM_int64_t      MK_ATOM(569)
+#define ATOM_occurs_check MK_ATOM(570)

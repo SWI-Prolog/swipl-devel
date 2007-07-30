@@ -581,6 +581,7 @@ A zero_divisor		"zero_divisor"
 A int			"int"
 A long			"long"
 A int64_t		"int64_t"
+A occurs_check		"occurs_check"
 
 F abs			1
 F access		1
@@ -767,3 +768,4 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
+F occurs_check		2

@@ -430,6 +430,7 @@ typedef struct PL_local_data
   { Table	  table;		/* Feature table */
     pl_features_t mask;			/* Masked access to booleans */
     int		  write_attributes;	/* how to write attvars? */
+    occurs_check_t occurs_check;	/* Unify and occurs check */
   } feature;
 
   struct
