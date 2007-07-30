@@ -734,9 +734,18 @@ PL_get_mpz(term_t t, mpz_t mpz)
   { number n;
 
     get_integer(*p, &n);
-    promoteToMPZNumber(&n);
-    mpz_set(mpz, n.value.mpz);
-    clearNumber(&n);
+    switch(n.type)
+    { case V_INTEGER:
+	promoteToMPZNumber(&n);
+        mpz_set(mpz, n.value.mpz);
+	clearNumber(&n);
+	break;
+      case V_MPZ:
+	mpz_set(mpz, n.value.mpz);
+        break;
+      default:
+	assert(0);
+    }
 
     return TRUE;
   }
