@@ -1,3 +1,8 @@
+Jul 30, 2007
+
+  * FIXED: Bug#302: memory leak in atom_to_memory_file/2 with filled 
+    output argument.  Keri Harris.
+
 Jul 12, 2007
 
   * FIXED: call_with_time_limit/2 if the alarm fires before call_cleanup

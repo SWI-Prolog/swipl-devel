@@ -114,7 +114,12 @@ new_memory_file(term_t handle)
   m->data = 0;
   m->size = 0;
 
-  return unify_memfile(handle, m);
+  if ( unify_memfile(handle, m) )
+    return TRUE;
+
+  m->magic = 0;
+  free(m);
+  return FALSE;
 }
 
 
@@ -369,7 +374,14 @@ atom_to_memory_file(term_t atom, term_t handle)
       m->size = m->data_size;
     }
 
-    return unify_memfile(handle, m);
+    if ( unify_memfile(handle, m) )
+      return TRUE;
+    else
+    { PL_unregister_atom(m->atom);
+      m->magic = 0;
+      free(m);
+      return FALSE;
+    }
   } else
   { return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1,
 		    atom, "atom");
