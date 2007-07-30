@@ -1867,6 +1867,7 @@ int _PL_nop_counter;
 int
 PL_next_solution(qid_t qid)
 { GET_LD
+  AR_CTX
   QueryFrame QF;			/* Query frame */
   LocalFrame FR;			/* current frame */
   Word	     ARGP = NULL;		/* current argument pointer */
@@ -2086,6 +2087,8 @@ Is there a way to make the compiler keep its mouth shut!?
     while(ffr && (void *)ffr > (void *)FR) /* discard foreign contexts */
       ffr = ffr->parent;
     fli_context = ffr;
+
+    AR_CLEANUP();
 
     if ( LD->current_signal ) 
     { unblockSignal(LD->current_signal);
@@ -3273,7 +3276,8 @@ a_func2:	% binary function. Pops two values and pushes one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(A_ENTER) MARK(AENTER)
-      { NEXT_INSTRUCTION;
+      { AR_BEGIN();
+	NEXT_INSTRUCTION;
       }
 
     VMI(A_INTEGER) MARK(AINT);
@@ -3444,6 +3448,7 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
 	n = argvArithStack(2 PASS_LD);
 	rc = ar_compare(n, n+1, cmp);
 	popArgvArithStack(2 PASS_LD);
+	AR_END();
 	if ( rc )
 	  NEXT_INSTRUCTION;
 	BODY_FAILED;
@@ -3483,6 +3488,7 @@ Prolog.
 	{ word c = put_number(n);	/* can shift */
 
 	  popArgvArithStack(1 PASS_LD);
+	  AR_END();
 #ifdef O_SHIFT_STACKS
 	  ARGP = argFrameP(lTop, 0);
 	  deRef2(ARGP, k);
@@ -3501,6 +3507,7 @@ Prolog.
 
 	    get_integer(*k, &left);
 	    rc = (cmpNumbers(&left, n) == 0);
+	    clearNumber(&left);
 	  } else if ( isReal(*k) && floatNumber(n) )
 	  { rc = (valReal(*k) == n->value.f);
 	  } else
@@ -3508,6 +3515,7 @@ Prolog.
 	  }
 
 	  popArgvArithStack(1 PASS_LD);
+	  AR_END();
 	  if ( rc )
 	    NEXT_INSTRUCTION;
 	}

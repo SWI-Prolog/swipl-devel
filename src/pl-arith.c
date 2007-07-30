@@ -416,8 +416,11 @@ ar_compare(Number n1, Number n2, int what)
 
 static word
 compareNumbers(term_t n1, term_t n2, int what ARG_LD)
-{ number left, right;
+{ AR_CTX
+  number left, right;
   int rc;
+
+  AR_BEGIN();
 
   if ( valueExpression(n1, &left PASS_LD) &&
        valueExpression(n2, &right PASS_LD) )
@@ -425,11 +428,12 @@ compareNumbers(term_t n1, term_t n2, int what ARG_LD)
     
     clearNumber(&left);
     clearNumber(&right);
+  } else 
+    rc = FALSE;
 
-    return rc;
-  }
+  AR_END();
 
-  fail;
+  return rc;
 }
 
 static
@@ -841,7 +845,7 @@ valueExpression(term_t t, Number r ARG_LD)
 #endif /*HAVE___TRY*/
 
     if ( r->type == V_REAL && !check_float(r->value.f) )
-      return FALSE;
+      rval = FALSE;
 
     return rval;
   }
@@ -1277,7 +1281,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	{ mpz_clear(r->value.mpz);
 	  return int_too_big();
 	}
-	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift); 
+	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift);
       } else
 	mpz_fdiv_q_2exp(r->value.mpz, n1->value.mpz, shift); 
       succeed; 
@@ -2604,18 +2608,20 @@ ar_cputime(Number r)
 static
 PRED_IMPL("is", 2, is, PL_FA_TRANSPARENT)	/* -Value is +Expr */
 { PRED_LD
+  AR_CTX
   number arg;
+  int rc;
 
-  if ( valueExpression(A2, &arg PASS_LD) )
-  { int rc;
+  AR_BEGIN();
 
-    rc = PL_unify_number(A1, &arg);
+  if ( (rc=valueExpression(A2, &arg PASS_LD)) )
+  { rc = PL_unify_number(A1, &arg);
     clearNumber(&arg);
-    
-    return rc;
   }
 
-  fail;
+  AR_END();
+
+  return rc;
 }
 
 

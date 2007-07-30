@@ -936,3 +936,14 @@ COMMON(int)		unify_thread_id(term_t id, PL_thread_info_t *info);
 COMMON(int) 		enableThreads(int enable);
 
 
+/* pl-gmp.c */
+COMMON(int)	PL_unify_number(term_t t, Number n);
+COMMON(void)	get_number(word w, Number n  ARG_LD);
+COMMON(int)	PL_get_number(term_t t, Number n);
+COMMON(word)	put_number(Number n);
+COMMON(void)	promoteToRealNumber(Number n);
+COMMON(void)	same_type_numbers(Number n1, Number n2);
+COMMON(void)    promoteNumber(Number n1, numtype type);
+COMMON(int)	cmpNumbers(Number n1, Number n2);
+COMMON(void)	cpNumber(Number to, Number from);
+

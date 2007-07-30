@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/*#define O_DEBUG 1*/
+#define O_DEBUG 1
 #include "pl-incl.h"
 #undef LD
 #define LD LOCAL_LD
@@ -38,30 +38,140 @@ static mpz_t MPZ_MIN_LONG;		/* Prolog int64_t integers */
 static mpz_t MPZ_MAX_LONG;
 #endif
 
-#if 0
+
 		 /*******************************
 		 *	MEMMORY MANAGEMENT	*
 		 *******************************/
 
-/*See also clearNumber()*/
+#if O_MY_GMP_ALLOC
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+GMP doesn't (yet) allow for handling  memory overflows. You can redefine
+the allocation handles, but you are not  allowed to return NULL or abort
+the execution using longjmp(). As our  normal   GMP  numbers live on the
+global stack, we however can  cleanup   the  temporary  numbers that are
+created during the Prolog function evaluation  and use longjmp() through
+STACK_OVERFLOW_THROW.   Patrick Pelissier acknowledged this should work.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+gmp_too_big()
+{ GET_LD
+
+  DEBUG(1, Sdprintf("Signalling GMP overflow\n"));
+
+  return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_THROW);
+}
+
+#define TOO_BIG_GMP(n) ((n) > 1000 && (n) > limitStack(global))
 
 static void *
 mp_alloc(size_t bytes)
-{
+{ GET_LD
+  mp_mem_header *mem;
+
+  if ( TOO_BIG_GMP(bytes) ||
+       !(mem = malloc(sizeof(mp_mem_header)+bytes)) )
+  { gmp_too_big();
+    pl_abort(ABORT_FATAL);
+    return NULL;			/* make compiler happy */
+  }
+
+  GMP_LEAK_CHECK(LD->gmp.allocated += bytes);
+
+  mem->next = NULL;
+  mem->context = LD->gmp.context;
+  if ( LD->gmp.tail )
+  { mem->prev = LD->gmp.tail;
+    LD->gmp.tail->next = mem;
+    LD->gmp.tail = mem;
+  } else
+  { mem->prev = NULL;
+    LD->gmp.head = LD->gmp.tail = mem;
+  }
+  DEBUG(9, Sdprintf("GMP: alloc %ld@%p\n", bytes, &mem[1]));
+
+  return &mem[1];
 }
 
 
 static void *
 mp_realloc(void *ptr, size_t oldsize, size_t newsize)
-{
+{ GET_LD
+  mp_mem_header *oldmem = ((mp_mem_header*)ptr)-1;
+  mp_mem_header *newmem;
+
+  if ( TOO_BIG_GMP(newsize) ||
+       !(newmem = realloc(oldmem, sizeof(mp_mem_header)+newsize)) )
+  { gmp_too_big();
+    pl_abort(ABORT_FATAL);
+    return NULL;			/* make compiler happy */
+  }
+
+  if ( oldmem != newmem )		/* re-link if moved */
+  { if ( newmem->prev )
+      newmem->prev->next = newmem;
+    else
+      LD->gmp.head = newmem;
+
+    if ( newmem->next )
+      newmem->next->prev = newmem;
+    else
+      LD->gmp.tail = newmem;
+  }
+
+  GMP_LEAK_CHECK(LD->gmp.allocated -= oldsize;
+		 LD->gmp.allocated += newsize);
+  DEBUG(9, Sdprintf("GMP: realloc %ld@%p --> %ld@%p\n", oldsize, ptr, newsize, &newmem[1]));
+
+  return &newmem[1];
 }
 
 
 static void
-free(void *ptr, size_t size)
-{
+mp_free(void *ptr, size_t size)
+{ GET_LD
+  mp_mem_header *mem = ((mp_mem_header*)ptr)-1;
+
+  if ( mem == LD->gmp.head )
+  { LD->gmp.head = LD->gmp.head->next;
+    if ( LD->gmp.head )
+      LD->gmp.head->prev = NULL;
+    else
+      LD->gmp.tail = NULL;
+  } else if ( mem == LD->gmp.tail )
+  { LD->gmp.tail = LD->gmp.tail->prev;
+    LD->gmp.tail->next = NULL;
+  } else
+  { mem->prev->next = mem->next;
+    mem->next->prev = mem->prev;
+  }
+
+  free(mem);
+  DEBUG(9, Sdprintf("GMP: free: %ld@%p\n", size, ptr));
+  GMP_LEAK_CHECK(LD->gmp.allocated -= size);
+}
+
+
+void
+mp_cleanup(ar_context *ctx)
+{ GET_LD
+  mp_mem_header *mem, *next;
+
+  if ( LD->gmp.context )
+  { for(mem=LD->gmp.head; mem; mem=next)
+    { next = mem->next;
+      if ( mem->context == LD->gmp.context )
+      { DEBUG(9, Sdprintf("GMP: cleanup of %p\n", &mem[1]));
+	mp_free(&mem[1], 0);
+      }
+    }
+  }
+
+  LD->gmp.context = ctx->parent;
 }
 #endif
+
 
 #ifdef __WINDOWS__
 #undef isascii
@@ -264,7 +374,11 @@ skipMPZOnCharp(const char *data)
 
 static void
 mpz_init_set_si64(mpz_t mpz, int64_t i)
-{ DEBUG(2, Sdprintf("Converting " INT64_FORMAT " to MPZ\n", i));
+{ 
+#if SIZEOF_LONG == 8
+  mpz_init_set_si(mpz, (long)i);
+#else
+  DEBUG(2, Sdprintf("Converting " INT64_FORMAT " to MPZ\n", i));
 
   if ( i >= LONG_MIN && i <= LONG_MAX )
   { mpz_init_set_si(mpz, (long)i);
@@ -278,8 +392,8 @@ mpz_init_set_si64(mpz_t mpz, int64_t i)
       mpz_neg(mpz, mpz);
     }
   }
-
   DEBUG(2, gmp_printf("\t--> %Zd\n", mpz));
+#endif
 }
 
 
@@ -382,6 +496,9 @@ initGMP()
 #if SIZEOF_LONG < SIZEOF_VOIDP
   mpz_init_set_si64(MPZ_MIN_LONG, LONG_MIN);
   mpz_init_set_si64(MPZ_MAX_LONG, LONG_MAX);
+#endif
+#ifdef O_MY_GMP_ALLOC
+  mp_set_memory_functions(mp_alloc, mp_realloc, mp_free);
 #endif
 }
 

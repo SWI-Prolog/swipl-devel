@@ -2221,10 +2221,10 @@ decrease).
 #include "pl-thread.h"			/* thread manipulation */
 #include "pl-data.h"			/* Access Prolog data */
 #include "pl-segstack.h"		/* Segmented stacks */
+#include "pl-gmp.h"			/* GNU-GMP support */
 #include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */
 #include "pl-text.h"			/* text manipulation */
-#include "pl-gmp.h"			/* GNU-GMP support */
 
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */
 #undef leave

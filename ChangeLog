@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: deal with GMP number overflows through allocation hooks.
+
+  * FIXED: A is Expr memory leak if Expr yields a GMP number and A is
+    instantiated to a non-GMP integer.
+
   * FIXED: PL_get_mpz().  Matt Lilley.
 
   * FIXED/MODIFIED: atom_length/2 to raise a type error on illegal 1st

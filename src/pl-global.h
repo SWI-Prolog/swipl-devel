@@ -360,6 +360,15 @@ typedef struct PL_local_data
     double	system_cputime;		/* Kernel saved CPU time */
   } statistics;
 
+#ifdef O_GMP
+  struct
+  { size_t	allocated;		/* memory allocated */
+    ar_context *context;		/* current allocation context */
+    mp_mem_header *head;		/* linked list of allocated chunks */
+    mp_mem_header *tail;
+  } gmp;
+#endif
+
 #ifdef O_PROFILE
   struct
   { int		active;			/* profiler is on */
