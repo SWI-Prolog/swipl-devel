@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#304: Possible incorrect error in arithmetic.  Keri Harris.
+
   * ENHANCED: deal with GMP number overflows through allocation hooks.
 
   * FIXED: A is Expr memory leak if Expr yields a GMP number and A is
