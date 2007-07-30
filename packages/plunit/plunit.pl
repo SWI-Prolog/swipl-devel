@@ -475,7 +475,11 @@ run_test(Unit, Name, Line, Options, Body) :-
 	    cleanup(Module, Options)
 	).
 run_test(Unit, Name, Line, Options, Body) :-
-	option(throws(Expect), Options),
+	(   option(throws(Expect), Options)
+	->  true
+	;   option(error(ErrorExpect), Options)
+	->  Expect = error(ErrorExpect, _)
+	),
 	unit_module(Unit, Module),
 	setup(Module, Options), !,			% true
 	statistics(runtime, [T0,_]),

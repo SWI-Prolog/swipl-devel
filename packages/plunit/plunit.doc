@@ -153,6 +153,10 @@ If \arg{Error} is of the format \term{error}{Formal, Context},
 \arg{Formal} is verified using =@=/2, but \arg{Context} simply
 using unification (=/2).
 
+    \termitem{error}{Error}
+Body must throw \term{error}{Error, _Context}.  See \const{throws}
+for details.
+
     \termitem{all}{Vars Cmp List}
 Similar to \term{true}{Vars Cmp Values}, but used for non-deterministic
 predicates.  Each element is compared using \arg{Cmp}.  Order matters.
