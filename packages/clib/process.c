@@ -87,6 +87,13 @@ pl_fork(term_t a0)
 }
 
 
+#define free_argv(n) \
+	{ int _k; \
+	  for( _k=1; _k <= n; _k++) \
+	    free(argv[_k]); \
+	  free(argv); \
+	}
+
 static foreign_t
 pl_exec(term_t cmd)
 { int argc;
@@ -103,14 +110,17 @@ pl_exec(term_t cmd)
     { char *s;
 
       if ( PL_get_arg(i, cmd, a) &&
-	   PL_get_chars(a, &s, CVT_ALL|BUF_MALLOC) )
+	   PL_get_chars(a, &s, CVT_ALL|REP_MB|BUF_MALLOC) )
 	argv[i] = s;
       else
+      { free_argv(i-1);
 	return pl_error("exec", 1, NULL, ERR_ARGTYPE, i, a, "atomic");
+      }
     }
     argv[argc+1] = NULL;
 
     execvp(argv[0], argv);
+    free_argv(argc);
     return pl_error("exec", 1, NULL, ERR_ERRNO, errno, argv[0], "execute");
   }
   
