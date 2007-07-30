@@ -1211,8 +1211,7 @@ int_too_big()
 
 static int
 ar_shift(Number n1, Number n2, Number r, int dir) 
-{ GET_LD
-  long shift;
+{ long shift;
   const char *plop = (dir < 0 ? "<<" : ">>");
 
   if ( !toIntegerNumber(n1, 0) ) 
@@ -1275,14 +1274,8 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       r->type = V_MPZ; 
       mpz_init(r->value.mpz); 
       if ( dir < 0 )
-      { intptr_t msb = (mpz_sizeinbase(n1->value.mpz, 2)-1+shift);
-
-	if ( spaceStack(global)-1024 < msb/8 )
-	{ mpz_clear(r->value.mpz);
-	  return int_too_big();
-	}
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift);
-      } else
+      else
 	mpz_fdiv_q_2exp(r->value.mpz, n1->value.mpz, shift); 
       succeed; 
 #endif
