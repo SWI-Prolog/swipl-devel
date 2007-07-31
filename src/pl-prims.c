@@ -2639,21 +2639,41 @@ word
 pl_char_code(term_t atom, term_t chr)
 { PL_chars_t txt;
   int n;
+  int vatom = PL_is_variable(atom);
+  int vchr  = PL_is_variable(chr);
+  int achr = -1;
+  int cchr = -1;
 
-  if ( PL_get_text(atom, &txt, CVT_ATOM|CVT_STRING) && txt.length == 1 )
-  { if ( txt.encoding == ENC_WCHAR )
-      return PL_unify_integer(chr, txt.text.w[0]);
-    else
-      return PL_unify_integer(chr, txt.text.t[0]&0xff);
-  } else if ( PL_get_integer(chr, &n) )
-  { if ( n >= 0 )
-      return PL_unify_atom(atom, codeToAtom(n));
-
-    return PL_error("char_code", 2, NULL, ERR_REPRESENTATION,
-		    ATOM_character_code);
+  if ( vatom && vchr )
+    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+  
+  if ( !vatom )
+  { if ( PL_get_text(atom, &txt, CVT_ATOM|CVT_STRING) && txt.length == 1 )
+    { if ( txt.encoding == ENC_WCHAR )
+	achr = txt.text.w[0];
+      else
+	achr = txt.text.t[0]&0xff;
+    } else
+    { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, atom);
+    }
   }
 
-  return PL_error("char_code", 2, NULL, ERR_TYPE, ATOM_character, atom);
+  if ( !vchr )
+  { if ( !PL_get_integer_ex(chr, &n) )
+      fail;
+
+    if ( n >= 0 && n <= 0x10ffff )
+      cchr = n;
+    else
+      return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_character_code);
+  }
+  
+  if ( achr == cchr )
+    succeed;
+  if ( vatom )
+    return PL_unify_atom(atom, codeToAtom(cchr));
+  else
+    return PL_unify_integer(chr, achr);
 }
 
 

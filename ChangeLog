@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Fully ISO compliant errors from char_code/2.  Ulrich Neumerkel.
+
   * ADDED: Prolog flag occurs_check using false, true and error.  After
     discussion with Ulrich Neumerkel.
 

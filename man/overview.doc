@@ -1574,14 +1574,6 @@ the Prolog books referenced in the introduction. Below are some
 non-standard or non-common constructs that are accepted by SWI-Prolog:
 
 \begin{itemlist}
-    \item [\exam{0'<char>}]
-This construct is not accepted by all Prolog systems that claim to have
-Edinburgh compatible syntax. It describes the character code of <char>.
-To test whether \chr{C} is a lower case character one can use
-\exam{between(0'a, 0'z, C)}. If character codes are enabled (default)
-<char> can use \chr{\} escape sequences.  The sequence \verb$0'\t$
-represents the \textsc{tab} character using symbolic notation.
-
     \item [\exam{/* \ldots /* \ldots */ \ldots */}]
 The \exam{/* \ldots */} comment statement can be nested. This is useful
 if some code with \exam{/* \ldots */} comment statements in it should be
