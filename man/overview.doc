@@ -1223,7 +1223,7 @@ dynamic/1).
 
     \prologflagitem{pid}{int}{r}
 Process identifier of the running Prolog process.  Existence of this
-flag is implementation dependent.
+flag is implementation defined.
 
     \prologflagitem{pipe}{bool}{rw}
 If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
@@ -1266,8 +1266,8 @@ disabling various useful development features (currently the tracer and
 profiler).
 
     \prologflagitem{saved_program}{bool}{r}
-If present and \const{true}, Prolog is started from a state saved with
-qsave_program/[1,2].
+If present and \const{true}, Prolog has been started from a state saved
+with qsave_program/[1,2].
 
     \prologflagitem{shared_object_extension}{atom}{r}
 Extension used by the operating system for shared objects. \fileext{so}
@@ -1286,8 +1286,10 @@ or the command-line option \cmdlineoption{-nosignals} is active.  See
 \secref{sigembedded} for details.
 
     \prologflagitem{system_thread_id}{int}{r}
-On MT systems (\secref{threads}, refers to the thread-identifier used by
-the system for the calling thread.  See also thread_self/1.
+Available in multi-threaded version (see \secref{threads}) where the
+operating system provides system-wide integer thread identifiers. The
+integer is the thread-identifier used by the operating system for the
+calling thread. See also thread_self/1.
 
     \prologflagitem{last_call_optimisation}{bool}{rw}
 Determines whether or not last-call optimisation is enabled.
@@ -1826,7 +1828,7 @@ character classification (uppercase, lowercase, digit, etc.) and
 operations such as case-conversion are unambiguously defined.
 
 For this reason SWI-Prolog has two representations for atoms and string
-objects (see \secref{strings}. If the text fits in ISO Latin-1, it is
+objects (see \secref{strings}). If the text fits in ISO Latin-1, it is
 represented as an array of 8-bit characters.  Otherwise the text is
 represented as an array of 32-bit numbers.  This representational issue
 is completely transparent to the Prolog user.  Users of the foreign

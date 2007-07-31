@@ -612,7 +612,7 @@ With the introduction of atom-garbage collection in version 3.3.0, atoms
 no longer live as long as the process. Instead, their lifetime is
 guaranteed only as long as they are referenced. In the single-threaded
 version, atom garbage collections are only invoked at the
-\jargon{call-port}. In the multi-threaded version (see \secref{threads},
+\jargon{call-port}. In the multi-threaded version (see \secref{threads}),
 they appear asynchronously, except for the invoking thread.
 
 For dealing with atom garbage collection, two additional functions are
