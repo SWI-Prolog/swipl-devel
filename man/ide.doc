@@ -254,7 +254,7 @@ the environment variable \env{EDITOR} or by defining rules for
 prolog_edit:edit_source/1 (see \secref{listing}).
 
 The use of a built-in editor, which is selected by setting the
-prolog-flag \const{editor} to \const{pce_emacs}, has advantages. The
+Prolog flag \const{editor} to \const{pce_emacs}, has advantages. The
 XPCE \class{editor} object around which the built-in PceEmacs is built
 can be opened as a Prolog stream allowing analysis of your source by the
 real Prolog system.
@@ -322,7 +322,7 @@ the top-level and watch the files being reloaded.%
 
 Initially edit/1 uses the editor specified in the \env{EDITOR}
 environment variable. There are two ways to force it to use the built-in
-editor. One is to set the prolog-flag \const{editor} to
+editor. One is to set the Prolog flag \const{editor} to
 \const{pce_emacs} and the other is by starting the editor explicitly
 using the emacs/[0,1] predicates.
 

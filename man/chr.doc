@@ -585,7 +585,7 @@ See also leash/1.
     \predicate{chr_show_store}{1}{+Mod}
 Prints all suspended constraints of module \arg{Mod} to the standard
 output. This predicate is automatically called by the SWI-Prolog top-level at
-the end of each query for every CHR module currently loaded.  The prolog-flag
+the end of each query for every CHR module currently loaded.  The Prolog flag
 \const{chr_toplevel_show_store} controls whether the top-level shows the
 constraint stores. The value \const{true} enables it.  Any other value
 disables it.

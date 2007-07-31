@@ -65,8 +65,8 @@ running Prolog process.%
 
 The \jargon{static linking} schema can be used on all versions of
 SWI-Prolog. Whether or not dynamic linking is supported can be deduced
-from the prolog-flag \const{open_shared_object} (see
-current_prolog_flag/2). If this prolog-flag yields true,
+from the Prolog flag \const{open_shared_object} (see
+current_prolog_flag/2). If this Prolog flag yields true,
 open_shared_object/2 and related predicates are defined. See
 \secref{shlib} for a suitable high-level interface to these predicates.
 
@@ -136,7 +136,7 @@ PL_register_foreign().
 
 This section discusses the functionality of the (autoload) library
 \file{shlib.pl}, providing an interface to shared libraries.   This
-library can only be used if the prolog-flag \const{open_shared_object} is
+library can only be used if the Prolog flag \const{open_shared_object} is
 enabled.
 
 \begin{description}
@@ -1464,7 +1464,7 @@ call_chars(const char *goal)
     In the current implementation, the string is surrounded by
     \arg{chr} and any occurrence of \arg{chr} is doubled.  In the
     future the behaviour will depend on the \const{character_escape}
-    prolog-flag.  See current_prolog_flag/2.
+    Prolog flag.  See current_prolog_flag/2.
 \end{description}
 
 

@@ -443,7 +443,7 @@ terminate the application.
 This may be used to verify your application is running in the runtime
 environment rather than the development environment.
 \item [clause/[2,3] do not work on static predicates]
-This prolog-flag inhibits listing your program.  It is only a very limited
+This Prolog flag inhibits listing your program.  It is only a very limited
 protection however.
 \end{itemlist}
 

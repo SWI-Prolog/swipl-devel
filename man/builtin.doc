@@ -89,7 +89,7 @@ characters are are atom_chars/2, atom_codes/2, number_codes/2 and
 number_chars/2. For character I/O on streams there is get_char/[1,2],
 get_code/[1,2], get_byte/[1,2], peek_char/[1,2], peek_code/[1,2],
 peek_byte/[1,2], put_code/[1,2], put_char/[1,2] and put_byte/[1,2]. The
-prolog-flag \const{double_quotes} (see current_prolog_flag/2) controls
+Prolog flag \const{double_quotes} (see current_prolog_flag/2) controls
 how text between double-quotes is interpreted.
 
 
@@ -177,7 +177,7 @@ The following options are currently supported:
     \termitem{autoload}{Bool}
 If \const{true} (default \const{false}), indicate this load is a
 \jargon{demand} load. This implies that, depending on the setting of the
-prolog-flag \const{verbose_autoload} the load-action is printed at
+Prolog flag \const{verbose_autoload} the load-action is printed at
 level \const{informational} or \const{silent}.  See also print_message/2
 and current_prolog_flag/2.
 
@@ -355,7 +355,7 @@ user:file_search_path(foreign, swi(lib)).
 The file_search_path/2 expansion is used by all loading predicates as
 well as by absolute_file_name/[2,3].
 
-The prolog-flag \const{verbose_file_search} can be set to \const{true}
+The Prolog flag \const{verbose_file_search} can be set to \const{true}
 to help debugging Prolog's search for files.
 
     \predicate{expand_file_search_path}{2}{+Spec, -Path}
@@ -703,8 +703,8 @@ of a location term. This multi-file predicate is normally not defined.
 If it succeeds, edit/1 assumes the editor is started.
 
 If it fails, edit/1 uses its internal defaults, which are defined by
-the prolog-flag \const{editor} and/or the environment variable
-\env{EDITOR}.  The following rules apply.  If the prolog-flag \const{editor}
+the Prolog flag \const{editor} and/or the environment variable
+\env{EDITOR}.  The following rules apply.  If the Prolog flag \const{editor}
 is of the format \verb|$|<name>, the editor is determined by the environment
 variable <name>.  Else, if this flag is \const{pce_emacs} or \const{built_in}
 \emph{and} XPCE is loaded or can be loaded, the built-in Emacs clone is used.
@@ -3034,7 +3034,7 @@ Yes
 \end{code}
 
 Used by the top-level and debugger to limit screen output.  See also
-the prolog-flags \const{toplevel_print_options} and
+the Prolog flags \const{toplevel_print_options} and
 \const{debugger_print_options}.
 
     \termitem{module}{Module}
@@ -3159,7 +3159,7 @@ same name.
 
     \termitem{character_escapes}{Bool}
 Defines how to read \verb$\$ escape-sequences in quoted atoms.
-See the prolog-flags \const{character_escapes}, current_prolog_flag/2.
+See the Prolog flags \const{character_escapes}, current_prolog_flag/2.
 (SWI-Prolog).
 
     \termitem{comments}{-Comments}
@@ -3171,7 +3171,7 @@ comments from where the read_term/2 call started upto the end of the
 term read.
 
     \termitem{double_quotes}{Bool}
-Defines how to read "\ldots" strings. See the prolog-flags
+Defines how to read "\ldots" strings. See the Prolog flags
 \const{double_quotes}, current_prolog_flag/2.  (SWI-Prolog).
 
     \termitem{module}{Module}
@@ -3701,7 +3701,7 @@ As char_type/2, but uses character-codes rather than one-character
 atoms.  Please note that both predicates are as flexible as possible.
 They handle either representation if the argument is instantiated
 and only will instantiate with an integer code or one-character atom
-depending of the version used. See also the prolog-flag
+depending of the version used. See also the Prolog flag
 \const{double_quotes}, atom_chars/2 and atom_codes/2.
 \end{description}
 
@@ -3932,7 +3932,7 @@ features, they are provided for ISO compliance.
     \predicate{char_conversion}{2}{+CharIn, +CharOut}
 Define that term-input (see read_term/3) maps each character read as
 \arg{CharIn} to the character \arg{CharOut}. Character conversion is
-only executed if the prolog-flag \const{char_conversion} is set to
+only executed if the Prolog flag \const{char_conversion} is set to
 \const{true} and not inside quoted atoms or strings. The initial table
 maps each character onto itself. See also current_char_conversion/2.
     \predicate{current_char_conversion}{2}{?CharIn, ?CharOut}
@@ -5117,7 +5117,7 @@ this Prolog run. Please note that Prolog system-arguments and
 application arguments are separated by \const{--}.  Integer arguments
 are passed as Prolog integers, float arguments and Prolog floating
 point numbers and all other arguments as Prolog atoms.  New applications
-should use the prolog-flag \const{argv}.  See also prolog prolog-flag
+should use the Prolog flag \const{argv}.  See also prolog Prolog flag
 \const{argv}.
 
 A stand-alone program could use the following skeleton to handle
@@ -5591,7 +5591,7 @@ call expand_file_name/2 followed by member/2 on \arg{Spec} before
 proceeding.  This is a SWI-Prolog extension.
 \end{description}
 
-The prolog-flag \const{verbose_file_search} can be set to \const{true}
+The Prolog flag \const{verbose_file_search} can be set to \const{true}
 to help debugging Prolog's search for files.
 
 Compatibility considerations to common argument-order in ISO as well as
@@ -5906,7 +5906,7 @@ Name & Default & Description \\
                         System maintenance use only. \\         
 \const{discontiguous} & on & Warn if the clauses for a predicate are not
                         together in the same source file. \\
-\const{string}     & off & Backward compatibility.  See the prolog-flag
+\const{string}     & off & Backward compatibility.  See the Prolog flag
 			\const{double_quotes} (current_prolog_flag/2). \\
 \const{charset}	   & off & Warn on atoms and variables holding non-ASCII
 			   characters that are not quoted. See also
