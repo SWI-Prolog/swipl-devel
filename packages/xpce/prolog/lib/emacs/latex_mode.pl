@@ -139,12 +139,12 @@ insert_self(M, Times:[int], Id:[char]) :->
 %	fails, language mode won't do any filling.  We call default text
 %	filling.
 
-auto_fill(M, From:[int]) :->
+auto_fill(M, From:[int], Skip:[regex]) :->
 	"Auto fill in comment mode"::
-	(   send_super(M, auto_fill, From) % auto-fill comments
+	(   send_super(M, auto_fill, From, Skip) % auto-fill comments
 	->  true
 	;   get(M, editor, Editor),
-	    send_class(Editor, editor, auto_fill(From))
+	    send_class(Editor, editor, auto_fill(From, Skip))
 	).
 
 
