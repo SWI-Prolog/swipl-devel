@@ -896,7 +896,7 @@ environments.
 The predicate current_prolog_flag/2 defines an interface to installation
 features: options compiled in, version, home, etc. With both arguments
 unbound, it will generate all defined Prolog flags. With the `Key'
-instantiated it unify the value of the Prolog flag. Flag values are
+instantiated it unifies the value of the Prolog flag. Flag values are
 typed. Flags marked as \const{bool} can have the values \const{true} and
 \const{false}. Some prolog flags are not defined in all versions, which
 is normally indicated in the documentation below as \textit{``if present
@@ -947,8 +947,9 @@ on. Used to select foreign files for the right architecture. See also
 \secref{shlib} and file_search_path/2.
 
     \prologflagitem{associate}{atom}{rw}
-On Windows systems, this is set to the filename-extension (e.g.\
-\const{pl} or \const{pro} associated with \program{plwin.exe}.
+On Windows systems, this is set to the filename extension (\const{pl}
+(default) or \const{pro} (can be selected in the installer)) associated
+with \program{plwin.exe}.
 
     \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
@@ -1037,12 +1038,12 @@ If \const{true}, show the context module while printing a stack-frame in
 the tracer.  Normally controlled using the `C' option of the tracer.
 
     \prologflagitem{double_quotes}{codes,chars,atom,string}{rw}
-This flag determines how double-quotes strings are read by Prolog and is
----like character_escapes--- maintained for each module. If
+This flag determines how double quoted strings are read by Prolog and
+is ---like \const{character_escapes}--- maintained for each module. If
 \const{codes} (default), a list of character-codes is returned, if
 \const{chars} a list of one-character atoms, if \const{atom} double
 quotes are the same as single-quotes and finally, \const{string} reads
-the text into a Prolog string (see \secref{strings}).   See also
+the text into a Prolog string (see \secref{strings}). See also
 atom_chars/2 and atom_codes/2.
 
     \prologflagitem{dynamic_stacks}{bool}{r}
@@ -1076,10 +1077,10 @@ default emulator.
 
     \prologflagitem{file_name_variables}{bool}{rw}
 If \const{true} (default \const{false}), expand \file{\$\arg{varname}}
-and \file{~} in arguments of built-in predicates that accept a file name
-(open/3, exists_file/1, access_file/2, etc.).   The predicate
-expand_file_name/2 should be used to expand environment variables
-and wildcard patterns. This Prolog flag is intended for backward
+and \chr{~} in arguments of built-in predicates that accept a file
+name (open/3, exists_file/1, access_file/2, etc.). The predicate
+expand_file_name/2 can be used to expand environment variables and
+wildcard patterns. This Prolog flag is intended for backward
 compatibility with older versions of SWI-Prolog.
 
     \prologflagitem{float_format}{atom}{rw}
@@ -1114,10 +1115,6 @@ details from a normal trace.%
     \prologflagitem{gmp_version}{integer}{r}
 If Prolog is linked with GMP, this flag gives the major version of the
 GMP library used.  See also \secref{gmpforeign}.
-
-    \prologflagitem{gnu_libpthread_version}{atom}{r}
-Linux systems only.  Reports the version of the Linux thread library
-used.  See \secref{nptl} for how it may affect you.
 
     \prologflagitem{gui}{bool}{r}
 Set to \const{true} if XPCE is around and can be used for graphics.

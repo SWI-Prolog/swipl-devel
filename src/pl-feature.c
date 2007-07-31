@@ -902,20 +902,6 @@ initFeatures()
   }
 #endif
 
-#if defined(HAVE_CONFSTR) && defined(_CS_GNU_LIBPTHREAD_VERSION)
-  { char buf[100];
-
-    if ( confstr(_CS_GNU_LIBPTHREAD_VERSION, buf, sizeof(buf)) )
-    { char *p;
-
-      for(p=buf; *p; p++)
-	*p = tolower(*p);
-
-      defFeature("gnu_libpthread_version", FT_ATOM|FF_READONLY, buf);
-    }
-  }
-#endif
-
   setArgvFeature();
   setTZFeature();
   setOSFeatures();

@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Deleted outdated flag gnu_libpthread_version.
+
   * MODIFIED: Renamed flag 'tail_recursion_optimisation' to
     'last_call_optimisation'.  Ulrich Neumerkel.
 
