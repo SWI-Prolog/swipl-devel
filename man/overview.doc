@@ -1397,9 +1397,14 @@ If the flag is a system-defined flag that is not marked
 \except{permission_error}.  If the provided \arg{Value} does not
 match the type of the flag, a \except{type_error} is raised.
 
-In addition to ISO, SWI-Prolog allows for user-defined prolog flags.
-The type of the flag is determined from the initial value and cannot
-be changed afterwards.
+In addition to ISO, SWI-Prolog allows for user-defined prolog flags. The
+type of the flag is determined from the initial value and cannot be
+changed afterwards. Defined types are \const{boolean} (if the initial
+value is one of \const{false}, \const{true}, \const{on} or \const{off}),
+\const{atom} if the initial value is any other atom, \const{integer} if
+the value is an integer that can be expressed as a 64-bit signed value.
+Any other initial value results in an untyped flag that can represent
+any valid Prolog term.
 \end{description}
 
 
@@ -1702,7 +1707,7 @@ In this syntax identifiers start with \const{ID_Start} followed by a
 sequence of \const{ID_Continue} codes. Such sequences are handled as a
 single token in SWI-Prolog. The token is a \emph{variable} iff it starts
 with an uppercase character or an underscore (\chr{_}). Otherwise it is
-an atom.  Note that many languages do not not have the notion of
+an atom.  Note that many languages do not have the notion of
 character-case.  In such languages variables \emph{must} be written as 
 \verb$_name$.
 
