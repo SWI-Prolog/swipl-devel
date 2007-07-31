@@ -1014,8 +1014,8 @@ described in \secref{DDE}.
     \prologflagitem{debug}{bool}{rw}
 Switch debugging mode on/off.  If debug mode is activated the system
 traps encountered spy-points (see spy/1) and trace-points (see trace/1).
-In addition, tail-recursion optimisation is disabled and the system is
-more conservative in destroying choice-points to simplify debugging.
+In addition, last-call optimisation is disabled and the system is
+more conservative in destroying choice points to simplify debugging.
 
 Disabling these optimisations can cause the system to run out of memory
 on programs that behave correctly if debug mode is off.
@@ -1289,10 +1289,10 @@ or the command-line option \cmdlineoption{-nosignals} is active.  See
 On MT systems (\secref{threads}, refers to the thread-identifier used by
 the system for the calling thread.  See also thread_self/1.
 
-    \prologflagitem{tail_recursion_optimisation}{bool}{rw}
-Determines whether or not tail-recursion optimisation is enabled.
+    \prologflagitem{last_call_optimisation}{bool}{rw}
+Determines whether or not last-call optimisation is enabled.
 Normally the value of this flag is equal to the \const{debug} flag.  As
-programs may run out of stack if tail-recursion optimisation is omitted,
+programs may run out of stack if last-call optimisation is omitted,
 it is sometimes necessary to enable it during debugging.
 
     \prologflagitem{timezone}{integer}{r}
@@ -1375,7 +1375,7 @@ of Microsoft Windows (NT/2000/XP, etc.). This flag is only available on
 MS-Windows based versions.
 
     \prologflagitem{write_attributes}{atom}{rw}
-Defines how write/1 an friends write attributed variables.  The option
+Defines how write/1 and friends write attributed variables.  The option
 values are described with the \const{attributes} option of
 write_term/3.  Default is \const{ignore}.
 
@@ -1466,7 +1466,7 @@ first try to import the predicate from the module's default module. If
 this fails the \jargon{auto loader} is activated. On first activation an
 index to all library files in all library directories is loaded in core
 (see library_directory/1 and file_search_path/2). If the undefined
-predicate can be located in the one of the libraries that library file
+predicate can be located in one of the libraries that library file
 is automatically loaded and the call to the (previously undefined)
 predicate is restarted. By default this mechanism loads the file
 silently. The current_prolog_flag/2 \const{verbose_autoload} is provided

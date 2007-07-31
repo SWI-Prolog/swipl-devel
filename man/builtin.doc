@@ -5837,8 +5837,8 @@ successful completion. See once/1.  Later implementations may have the
 same semantics as call/1.
     \predicate{debug}{0}{}
 Start debugger. In debug mode, Prolog stops at spy- and trace-points,
-disables tail-recursion optimisation and aggressive destruction of
-choice-points to make debugging information accessible.  Implemented
+disables last-call optimisation and aggressive destruction of
+choice points to make debugging information accessible.  Implemented
 by the Prolog flag \plflag{debug}.
     \predicate{nodebug}{0}{}
 Stop debugger.  Implemented by the prolog flag \plflag{debug}.  See

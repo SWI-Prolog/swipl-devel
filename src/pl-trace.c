@@ -1208,7 +1208,7 @@ resetTracer(void)
   debugstatus.skiplevel    = 0;
   debugstatus.retryFrame   = NULL;
 
-  setFeatureMask(TAILRECURSION_FEATURE);
+  setFeatureMask(LASTCALL_FEATURE);
 }
 
 
@@ -1366,7 +1366,7 @@ debugmode(debug_type doit, debug_type *old)
   if ( debugstatus.debugging != doit )
   { if ( doit )
     { debugstatus.skiplevel = VERY_DEEP;
-      clearFeatureMask(TAILRECURSION_FEATURE);
+      clearFeatureMask(LASTCALL_FEATURE);
       if ( doit == DBG_ALL )
       { LocalFrame fr = environment_frame;
 
@@ -1384,7 +1384,7 @@ debugmode(debug_type doit, debug_type *old)
 	doit = DBG_ON;
       }
     } else
-    { setFeatureMask(TAILRECURSION_FEATURE);
+    { setFeatureMask(LASTCALL_FEATURE);
     }
     debugstatus.debugging = doit;
     printMessage(ATOM_silent,

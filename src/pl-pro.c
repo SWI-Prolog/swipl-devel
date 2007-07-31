@@ -329,7 +329,7 @@ prologToplevel(volatile atom_t goal)
       
       tracemode(FALSE, NULL);
       debugmode(DBG_OFF, NULL);
-      setFeatureMask(TAILRECURSION_FEATURE);
+      setFeatureMask(LASTCALL_FEATURE);
       if ( PL_get_atom(except, &a) && a == ATOM_aborted )
       { aborted = TRUE;
       } else if ( !PL_is_functor(except, FUNCTOR_error2) )

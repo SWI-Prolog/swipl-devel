@@ -3968,13 +3968,13 @@ The task of I_CALL is to  save  necessary  information  in  the  current
 frame,  fill  the next frame and initialise the machine registers.  Then
 execution can continue at `next_instruction'
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-#define TAILRECURSION 1
+#define LASTCALL 1
       VMI(I_DEPART)
 							 MARK(DEPART);
-#if TAILRECURSION
+#if LASTCALL
 	if ( (void *)BFR <= (void *)FR
 #if O_DEBUGGER
-	     && trueFeature(TAILRECURSION_FEATURE)
+	     && trueFeature(LASTCALL_FEATURE)
 #endif
 	   )
 	{ Procedure proc = (Procedure) *PC++;
@@ -4004,7 +4004,7 @@ execution can continue at `next_instruction'
 
 	  goto depart_continue;
 	}
-#endif /*TAILRECURSION*/
+#endif /*LASTCALL*/
 	/*FALLTHROUGH*/
       VMI(I_CALL)					MARK(CALL);
         next = lTop;

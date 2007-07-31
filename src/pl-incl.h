@@ -2140,7 +2140,7 @@ typedef struct debuginfo
 #define FILEVARS_FEATURE	  0x02000 /* Expand $var and ~ in filename */
 #define AUTOLOAD_FEATURE	  0x04000 /* do autoloading */
 #define CHARCONVERSION_FEATURE	  0x08000 /* do character-conversion */
-#define TAILRECURSION_FEATURE	  0x10000 /* Tail recursion enabled? */
+#define LASTCALL_FEATURE	  0x10000 /* Last call optimization enabled? */
 #define EX_ABORT_FEATURE	  0x20000 /* abort with exception */
 #define BACKQUOTED_STRING_FEATURE 0x40000 /* `a string` */
 #define SIGNALS_FEATURE		  0x80000 /* Handle signals */

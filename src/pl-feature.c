@@ -784,8 +784,7 @@ initFeatures()
   defFeature("optimise", FT_BOOL, GD->cmdline.optimise, OPTIMISE_FEATURE);
   defFeature("generate_debug_info", FT_BOOL,
 	     trueFeature(DEBUGINFO_FEATURE), DEBUGINFO_FEATURE);
-  defFeature("tail_recursion_optimisation", FT_BOOL,
-	     TRUE, TAILRECURSION_FEATURE);
+  defFeature("last_call_optimisation", FT_BOOL, TRUE, LASTCALL_FEATURE);
 #ifdef O_PLMT
   defFeature("abort_with_exception", FT_BOOL|FF_READONLY,
 	     TRUE, EX_ABORT_FEATURE);
