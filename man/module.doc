@@ -14,7 +14,7 @@ entire program.
 For this reason, it is desirable that each source module has its own
 predicate space.  A module consists of a declaration for its name,
 its \jargon{public predicates} and the predicates themselves.  This
-approach allow the programmer to use short (local) names for support
+approach allows the programmer to use short (local) names for support
 predicates without worrying about name conflicts with the support
 predicates of other modules.  The module declaration also makes
 explicit which predicates are meant for public usage and which for
