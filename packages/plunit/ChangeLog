@@ -1,3 +1,7 @@
+Aug 1, 2007
+
+* FIXED: Ran failing tests twice due to unwanted choicepoint.
+
 Jul 30, 2007
 
 * ADDER: allow for error(Error) as alias for throws(error(Error, _)).

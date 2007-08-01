@@ -40,16 +40,26 @@ please visit http://www.swi-prolog.org/packages/plunit.html.
 :- dynamic
 	include_code/1.
 
+including :-
+	include_code(X), !,
+	X == true.
+including.
+
 if_expansion((:- if(G)), []) :-
-	(   catch(G, E, (print_message(error, E), fail))
-	->  asserta(include_code(true))
-	;   asserta(include_code(false))
+	(   including
+	->  (   catch(G, E, (print_message(error, E), fail))
+	    ->  asserta(include_code(true))
+	    ;   asserta(include_code(false))
+	    )
+	;   asserta(include_code(else_false))
 	).
 if_expansion((:- else), []) :-
 	(   retract(include_code(X))
 	->  (   X == true
 	    ->  X2 = false 
-	    ;   X2 = true
+	    ;   X == false
+	    ->	X2 = true
+	    ;	X2 = X
 	    ),
 	    asserta(include_code(X2))
 	;   throw(error(context_error(no_if), _))
@@ -58,8 +68,7 @@ if_expansion((:- endif), []) :-
 	retract(include_code(_)), !.
 
 if_expansion(_, []) :-
-	include_code(X), !,
-	X == false.
+	\+ including.
 	    
 user:term_expansion(In, Out) :-
 	prolog_load_context(module, plunit),
