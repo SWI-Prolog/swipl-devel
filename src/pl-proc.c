@@ -148,6 +148,9 @@ resetProcedure(Procedure proc, bool isnew)
   { def->indexCardinality = 0;
     if ( def->functor->arity == 0 )
     { def->indexPattern = 0x0;
+    } else if ( true(def, DYNAMIC) )
+    { def->indexPattern = 0x1;
+      set(def, AUTOINDEX);
     } else
     { def->indexPattern = (0x0 | NEED_REINDEX);
       set(def, AUTOINDEX);
@@ -819,7 +822,9 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   } else
   { if ( def->number_of_clauses == 25 &&
 	 true(def, AUTOINDEX) )
+    { DEBUG(2, Sdprintf("Request re-index for %s\n", predicateName(def)));
       def->indexPattern |= NEED_REINDEX;
+    }
   }
   UNLOCKDEF(def);
 
@@ -2034,6 +2039,9 @@ setDynamicProcedure(Procedure proc, bool isdyn)
 
       return PL_error(NULL, 0, msg,
 		      ERR_MODIFY_STATIC_PROC, proc);
+    } else if ( def->functor->arity > 0 )
+    { def->indexPattern = 0x1;
+      set(def, AUTOINDEX);
     }
   ok:
     set(def, DYNAMIC);

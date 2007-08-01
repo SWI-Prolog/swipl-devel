@@ -1687,7 +1687,7 @@ This section describes the implication for the source files, while
 writing international source files is described in \secref{intsrcfile}.
 
 The SWI-Prolog Unicode character classification is based on version
-4.1.0 of the Unicode standard. Please that char_type/2 and friends,
+4.1.0 of the Unicode standard. Please note that char_type/2 and friends,
 intended to be used with all text except Prolog source code is based on
 the C-library locale-based classification routines.
 

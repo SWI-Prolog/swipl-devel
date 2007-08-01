@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: indexing issues with dynamic predicate with few clauses.
+    Could lead to unindexed and therefore non-deterministic code that
+    should be deterministic. Ulrich Neumerkel.
+
   * MODIFIED: Deleted outdated flag gnu_libpthread_version.
 
   * MODIFIED: Renamed flag 'tail_recursion_optimisation' to
