@@ -115,7 +115,7 @@ below shows the default value for this search-path.
 		& \bf Unix 	& \bf Windows \\
 \hline
 \bf local	& \file{.} 	& \file{.} \\
-\bf home	& \file{~} 	& \file{%HOME%} or
+\bf home	& \chr{~} 	& \file{%HOME%} or
                         	  \file{%HOMEDRIVE%\%HOMEPATH%} \\
 global		& 		& SWI-Home directory or
 				  \file{%WINDIR%} or \file{%SYSTEMROOT%} \\
@@ -131,6 +131,9 @@ option.  If \arg{File} denotes an absolute path, this file is loaded,
 otherwise the file is searched for using the same conventions as for
 the default startup file. Finally, if \arg{file} is
 \const{none}, no file is loaded.
+
+See also the \cmdlineoption{-s} (script) and \cmdlineoption{-F}
+(system-wide initialisation) in \secref{cmdline} and \secref{initgoal}.
 
 
 \section{Initialisation files and goals}		\label{sec:initgoal}
