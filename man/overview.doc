@@ -1319,7 +1319,15 @@ variable in a top-level query that is saved for re-use using the
 
     \prologflagitem{trace_gc}{bool}{rw}
 If true (false is the default), garbage collections and stack-shifts
-will be reported on the terminal.  May be changed.
+will be reported on the terminal. May be changed. Values are reported in
+bytes as $G$+$T$, where $G$ is the global stack value and $T$ the trail
+stack value. `Gained' describes the number of bytes reclaimed. `used'
+the number of bytes on the stack after GC and `free' the number of bytes
+allocated, but not in use. Below is an example output.
+
+\begin{code}
+% GC: gained 236,416+163,424 in 0.00 sec; used 13,448+5,808; free 72,568+47,440
+\end{code}
 
     \prologflagitem{tty_control}{bool}{r}
 Determines whether the terminal is switched to raw mode for
