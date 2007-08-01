@@ -79,6 +79,8 @@
 	\mbox{{\reffont #1(}{\rm #2}{\tt )}}}
 \newcommand{\funcref}[2]{%		% function(Args...)
 	\mbox{{\reffont #1(}{\it #2}{\tt )}}}
+\newcommand{\prologflag}{1}{%
+	\mbox{\reffont #1}}
 
 %	Descriptions (definitions) of various things
 
@@ -113,10 +115,11 @@
 \newcommand{\pleaseoption}[3]{%
 	\definition{#1 {\it #2} {\rm(default: \it #3)}}%
 	\ignorespaces}
+%\prologflagitem{Name}{Type}{Access}
 \newcommand{\prologflagitem}[3]{%
 	\definition{#1 {\it (#2%
 	    \ifthenelse{\equal{rw}{#3}}{, changeable}{})}}%
-	\ignorespaces}
+	\index{flag:#1}\ignorespaces}
 \newcommand{\escapeitem}[1]{%
 	\definition{\Sesc{\tt #1}}
 	\ignorespaces}
