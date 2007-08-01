@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -115,6 +115,8 @@ cmd(predref({RawName}, {Arity}), #lref(pred, RefName, Text)) :-
 cmd(nopredref({RawName}, {Arity}), Text) :-
 	clean_name(RawName, Name),
 	sformat(Text, '~w/~w', [Name, Arity]).
+cmd(prologflag({Name}), #lref(flag, RefName, Name)) :-
+	atom_concat('flag:', Name, RefName).
 cmd(functor({RawName}, {Arity}), Text) :-
 	clean_name(RawName, Name),
 	sformat(Text, '~w/~w', [Name, Arity]).
@@ -201,7 +203,8 @@ cmd(termitem({Name}, {[]}), #defitem(#strong(+Name))).
 cmd(termitem({Name}, {Arg}),
     #defitem([#strong(+Name), #embrace(#var(+Arg))])).
 cmd(prologflagitem({Name}, {Type}, {Access}),
-    #defitem([#strong(Name), #embrace([#var(Type)|Change])])) :-
+    #defitem(pubdef, #label(RefName, [#strong(Name), #embrace([#var(Type)|Change])]))) :-
+	atom_concat('flag:', Name, RefName),
 	(   Access == r
 	->  Change = []
 	;   Change = nospace(', changeable')

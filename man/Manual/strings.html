@@ -163,9 +163,10 @@ language interface (See <A class="sec" href="foreign.html">chapter 9</A>.
 There are two ways to make
 <A NAME="idx:read1:895"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
 read text into strings, both controlled through Prolog flags. One is by 
-setting the <CODE>double_quotes</CODE> flag to <CODE>string</CODE> and 
-the other is by setting the <CODE>backquoted_string</CODE> flag to <CODE>true</CODE>. 
-In latter case, <CODE>`Hello world`</CODE> is read into a string and
+setting the <A class="flag" href="flags.html#flag:double_quotes">double_quotes</A> 
+flag to <CODE>string</CODE> and the other is by setting the <A class="flag" href="flags.html#flag:backquoted_string">backquoted_string</A> 
+flag to <CODE>true</CODE>. In latter case, <CODE>`Hello world`</CODE> is 
+read into a string and
 <A NAME="idx:writeterm2:896"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
 prints strings between back-quotes if <CODE>quoted</CODE> is
 <CODE>true</CODE>. This flag provides compatibility to LPA Prolog string 

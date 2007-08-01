@@ -144,7 +144,7 @@ first argument may \g{unify} with the first argument of the \g{goal}.
 Whole number.  On all implementations of SWI-Prolog integers are
 at least 64-bit signed values.  When linked to the GNU GMP library,
 integer arithmetic is unbounded.  See also current_prolog_flag/2,
-flags \const{bounded}, \const{max_integer} and \const{min_integer}.
+flags \prologflag{bounded}, \prologflag{max_integer} and \prologflag{min_integer}.
 
     \glossitem{interpreted}
 As opposed to \g{compiled}, interpreted means the Prolog system attempts

@@ -128,7 +128,7 @@ Graphical Debugger</SPAN></A></H2>
 <P>SWI-Prolog offers two debuggers. One is the traditional text-console 
 based 4-port Prolog tracer and the other is a window-based source-level 
 debugger. The window-based debugger requires XPCE installed. It operates 
-based on the <A NAME="idx:prologtraceinterception4:283"></A><A class="pred" href="tracehook.html#prolog_trace_interception/4">prolog_trace_interception/4</A> 
+based on the <A NAME="idx:prologtraceinterception4:286"></A><A class="pred" href="tracehook.html#prolog_trace_interception/4">prolog_trace_interception/4</A> 
 hook and other low-level functionality described in <A class="sec" href="hack.html">chapter 
 B</A>.
 
@@ -143,11 +143,11 @@ debugger just presents a (much better) overview of the current state.
 the window-based debugger</SPAN></A></H3>
 
 <P>Whether the text-based or window-based debugger is used is controlled 
-using the predicates <A NAME="idx:guitracer0:284"></A><A class="pred" href="guitracer.html#guitracer/0">guitracer/0</A> 
-and <A NAME="idx:noguitracer0:285"></A><A class="pred" href="guitracer.html#noguitracer/0">noguitracer/0</A>. 
-Entering debug mode is controlled using the normal predicates for this: <A NAME="idx:trace0:286"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
+using the predicates <A NAME="idx:guitracer0:287"></A><A class="pred" href="guitracer.html#guitracer/0">guitracer/0</A> 
+and <A NAME="idx:noguitracer0:288"></A><A class="pred" href="guitracer.html#noguitracer/0">noguitracer/0</A>. 
+Entering debug mode is controlled using the normal predicates for this: <A NAME="idx:trace0:289"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 and
-<A NAME="idx:spy1:287"></A><A class="pred" href="debugger.html#spy/1">spy/1</A>. 
+<A NAME="idx:spy1:290"></A><A class="pred" href="debugger.html#spy/1">spy/1</A>. 
 In addition, PceEmacs prolog mode provides the command
 <STRONG>Prolog/Break at</STRONG> (<CODE>Control-c b</CODE>) to insert a 
 break-point at a specific location in the source-code.
@@ -161,13 +161,13 @@ used from a background thread.
 <DD class="defbody">
 This predicate installs the above-mentioned hooks that redirect tracing 
 to the window-based environment. No window appears. The debugger window 
-appears as actual tracing is started through <A NAME="idx:trace0:288"></A><A class="pred" href="debugger.html#trace/0">trace/0</A>, 
-by hitting a spy-point defined by <A NAME="idx:spy1:289"></A><A class="pred" href="debugger.html#spy/1">spy/1</A> 
+appears as actual tracing is started through <A NAME="idx:trace0:291"></A><A class="pred" href="debugger.html#trace/0">trace/0</A>, 
+by hitting a spy-point defined by <A NAME="idx:spy1:292"></A><A class="pred" href="debugger.html#spy/1">spy/1</A> 
 or a break-point defined using PceEmacs command <STRONG>Prolog/Break at</STRONG> (<CODE>Control-c 
 b</CODE>).</DD>
 <DT class="pubdef"><A NAME="noguitracer/0"><STRONG>noguitracer</STRONG></A></DT>
 <DD class="defbody">
-Disable the hooks installed by <A NAME="idx:guitracer0:290"></A><A class="pred" href="guitracer.html#guitracer/0">guitracer/0</A>, 
+Disable the hooks installed by <A NAME="idx:guitracer0:293"></A><A class="pred" href="guitracer.html#guitracer/0">guitracer/0</A>, 
 reverting to normal text-console based tracing.</DD>
 <DT class="pubdef"><A NAME="gtrace/0"><STRONG>gtrace</STRONG></A></DT>
 <DD class="defbody">

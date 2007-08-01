@@ -140,7 +140,7 @@ Name Extensions</SPAN></A></H4>
 
 <A NAME="sec:fileext"></A>
 
-<P><A NAME="idx:pl:260"></A><A NAME="idx:pro:261"></A>The first 
+<P><A NAME="idx:pl:263"></A><A NAME="idx:pro:264"></A>The first 
 consideration is what extension to use for the source-files. Tradition 
 calls for <CODE>.pl</CODE>, but conflicts with Perl force the use of 
 another extension on systems where extensions have global meaning, such 
@@ -170,7 +170,7 @@ to load through your file-manager. Use
 <H4><A NAME="sec:3.1.1.2"><SPAN class="sec-nr">3.1.1.2</SPAN> <SPAN class="sec-title">Project 
 Directories</SPAN></A></H4>
 
-<P><A NAME="idx:Sdiv:262"></A><A NAME="idx:chrSneg:263"></A>Large 
+<P><A NAME="idx:Sdiv:265"></A><A NAME="idx:chrSneg:266"></A>Large 
 projects are generally composed of sub-projects, each using their own 
 directory or directory-structure. If nobody else will ever touch your 
 files and you use only one computer there is little to worry about, but 
@@ -179,7 +179,7 @@ this is rarely the case with a large project.
 <P>To improve portability, SWI-Prolog uses the POSIX notation for 
 filenames, which uses the forward slash (<CODE><CODE>/</CODE></CODE>) to 
 separate directories. Just before hitting the file-system it uses
-<A NAME="idx:prologtoosfilename2:264"></A><A class="pred" href="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A> 
+<A NAME="idx:prologtoosfilename2:267"></A><A class="pred" href="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A> 
 to convert the filename to the conventions used by the hosting operating 
 system. It is <EM>strongly</EM> advised to write paths using the <CODE><CODE>/</CODE></CODE>, 
 especially on systems using the
@@ -187,16 +187,16 @@ especially on systems using the
 violates the portability rules and requires you to <EM>double</EM> the <CODE><CODE>\</CODE></CODE> 
 due to the Prolog quoted-atom escape rules.
 
-<P>Portable code should use <A NAME="idx:prologtoosfilename2:265"></A><A class="pred" href="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A> 
+<P>Portable code should use <A NAME="idx:prologtoosfilename2:268"></A><A class="pred" href="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A> 
 to convert computed paths into system-paths when constructing commands 
-for <A NAME="idx:shell1:266"></A><A class="pred" href="system.html#shell/1">shell/1</A> 
+for <A NAME="idx:shell1:269"></A><A class="pred" href="system.html#shell/1">shell/1</A> 
 and friends.
 
 <H4><A NAME="sec:3.1.1.3"><SPAN class="sec-nr">3.1.1.3</SPAN> <SPAN class="sec-title">Sub-projects 
 using search-paths</SPAN></A></H4>
 
 <P>Thanks to Quintus, Prolog adapted an extensible mechanism for 
-searching files using <A NAME="idx:filesearchpath2:267"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>. 
+searching files using <A NAME="idx:filesearchpath2:270"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>. 
 This mechanism allows for comfortable and readable specifications.
 
 <P>Suppose you have extensive library packages on graph-algorithms, 
@@ -207,7 +207,7 @@ directory with sub-directories for each of these sub-projects.
 <P>Next, there are three options. One is to add the sub-projects to the 
 directory-hierarchy of the current project. Another is to use a 
 completely dislocated directory and finally the sub-project can be added 
-to the SWI-Prolog hierarchy. Using local installation, a typical <A NAME="idx:filesearchpath2:268"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
+to the SWI-Prolog hierarchy. Using local installation, a typical <A NAME="idx:filesearchpath2:271"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
 is:
 
 <PRE class="code">
@@ -223,7 +223,7 @@ path-alias <CODE>swi</CODE> as basis. For a system-wide installation use
 an absolute-path.
 
 <P>Extensive sub-projects with a small well-defined API should define a 
-load-file using <A NAME="idx:usemodule1:269"></A><A class="pred" href="import.html#use_module/1">use_module/1</A> 
+load-file using <A NAME="idx:usemodule1:272"></A><A class="pred" href="import.html#use_module/1">use_module/1</A> 
 calls to import the various library-components and export the API.
 
 <H3><A NAME="sec:3.1.2"><SPAN class="sec-nr">3.1.2</SPAN> <SPAN class="sec-title">Project 
@@ -254,13 +254,13 @@ in silent-mode, and calls one of the starting predicates from
 <P>
 <LI><I><CODE>save.pl</CODE></I><BR>
 Use this file to create a saved-state of the application by loading
-<CODE>load.pl</CODE> and call <A NAME="idx:qsaveprogram2:270"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A> 
+<CODE>load.pl</CODE> and call <A NAME="idx:qsaveprogram2:273"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A> 
 to generate a saved-state with the proper options.
 
 <P>
 <LI><I><CODE>debug.pl</CODE></I><BR>
 Loads the program for debugging. In addition to loading <CODE>load.pl</CODE> 
-this file defines rules for <A NAME="idx:portray1:271"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
+this file defines rules for <A NAME="idx:portray1:274"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
 to modify printing rules for complex terms and customisation rules for 
 the debugger and editing environment. It may start some of these tools.
 </UL>

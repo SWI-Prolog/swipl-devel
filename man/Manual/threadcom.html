@@ -138,7 +138,7 @@ threads to wait for data or conditions without using the CPU.
 
 <P>Each thread has a message-queue attached to it that is identified by 
 the thread. Additional queues are created using
-<A NAME="idx:messagequeuecreate1:1234"></A><A class="pred" href="threadcom.html#message_queue_create/1">message_queue_create/1</A>.
+<A NAME="idx:messagequeuecreate1:1233"></A><A class="pred" href="threadcom.html#message_queue_create/1">message_queue_create/1</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="thread_send_message/2"><STRONG>thread_send_message</STRONG>(<VAR>+QueueOrThreadId, 
@@ -146,7 +146,7 @@ the thread. Additional queues are created using
 <DD class="defbody">
 Place <VAR>Term</VAR> in the given queue or default queue of the 
 indicated thread (which can even be the message queue of itself (see
-<A NAME="idx:threadself1:1235"></A><A class="pred" href="threadcreate.html#thread_self/1">thread_self/1</A>). 
+<A NAME="idx:threadself1:1234"></A><A class="pred" href="threadcreate.html#thread_self/1">thread_self/1</A>). 
 Any term can be placed in a message queue, but note that the term is 
 copied to the receiving thread and variable-bindings are thus lost. This 
 call returns immediately.
@@ -182,7 +182,7 @@ in its queue and continues execution using <VAR>A</VAR> is <CODE>gnat</CODE>.
    thread_send_message(Thread_1, a(gnat)),
 </PRE>
 
-<P>See also <A NAME="idx:threadpeekmessage1:1236"></A><A class="pred" href="threadcom.html#thread_peek_message/1">thread_peek_message/1</A>.</DD>
+<P>See also <A NAME="idx:threadpeekmessage1:1235"></A><A class="pred" href="threadcom.html#thread_peek_message/1">thread_peek_message/1</A>.</DD>
 <DT class="pubdef"><A NAME="thread_peek_message/1"><STRONG>thread_peek_message</STRONG>(<VAR>?Term</VAR>)</A></DT>
 <DD class="defbody">
 Examines the thread message-queue and compares the queued terms with <VAR>Term</VAR> 
@@ -192,13 +192,13 @@ case the call succeeds (possibly instantiating
 <DT class="pubdef"><A NAME="message_queue_create/1"><STRONG>message_queue_create</STRONG>(<VAR>?Queue</VAR>)</A></DT>
 <DD class="defbody">
 If <VAR>Queue</VAR> is an atom, create a named queue. To avoid ambiguity 
-of <A NAME="idx:threadsendmessage2:1237"></A><A class="pred" href="threadcom.html#thread_send_message/2">thread_send_message/2</A>, 
+of <A NAME="idx:threadsendmessage2:1236"></A><A class="pred" href="threadcom.html#thread_send_message/2">thread_send_message/2</A>, 
 the name of a queue may not be in use as a thread-name. If <VAR>Queue</VAR> 
 is unbound an anonymous queue is created and <VAR>Queue</VAR> is unified 
 to its identifier.</DD>
 <DT class="pubdef"><A NAME="message_queue_destroy/1"><STRONG>message_queue_destroy</STRONG>(<VAR>+Queue</VAR>)</A></DT>
 <DD class="defbody">
-Destroy a message queue created with <A NAME="idx:messagequeuecreate1:1238"></A><A class="pred" href="threadcom.html#message_queue_create/1">message_queue_create/1</A>. 
+Destroy a message queue created with <A NAME="idx:messagequeuecreate1:1237"></A><A class="pred" href="threadcom.html#message_queue_create/1">message_queue_create/1</A>. 
 It is
 <EM>not</EM> allows to destroy the queue of a thread. Neither is it 
 allowed to destroy a queue other threads are waiting for or, for 
@@ -209,13 +209,13 @@ are absolutely sure it is safe.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="thread_get_message/2"><STRONG>thread_get_message</STRONG>(<VAR>+Queue, 
 ?Term</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:threadgetmessage1:1239"></A><A class="pred" href="threadcom.html#thread_get_message/1">thread_get_message/1</A>, 
+As <A NAME="idx:threadgetmessage1:1238"></A><A class="pred" href="threadcom.html#thread_get_message/1">thread_get_message/1</A>, 
 operating on a given queue. It is allowed (but not advised) to get 
 messages from the queue of other threads.</DD>
 <DT class="pubdef"><A NAME="thread_peek_message/2"><STRONG>thread_peek_message</STRONG>(<VAR>+Queue, 
 ?Term</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:threadpeekmessage1:1240"></A><A class="pred" href="threadcom.html#thread_peek_message/1">thread_peek_message/1</A>, 
+As <A NAME="idx:threadpeekmessage1:1239"></A><A class="pred" href="threadcom.html#thread_peek_message/1">thread_peek_message/1</A>, 
 operating on a given queue. It is allowed to peek into another thread's 
 message queue, an operation that can be used to check whether a thread 
 has swallowed a message sent to it.</DD>
@@ -272,7 +272,7 @@ interrupts are only checked at safe points in the virtual machine.
 Nevertheless, signalling in multi-threaded environments should be 
 handled with care as the receiving thread may hold a <EM>mutex</EM> (see 
 with_mutex). Signalling probably only makes sense to start debugging 
-threads and to cancel no-longer-needed threads with <A NAME="idx:throw1:1241"></A><A class="pred" href="exception.html#throw/1">throw/1</A>, 
+threads and to cancel no-longer-needed threads with <A NAME="idx:throw1:1240"></A><A class="pred" href="exception.html#throw/1">throw/1</A>, 
 where the receiving thread should be designed carefully do handle 
 exceptions at any point.
 
@@ -282,7 +282,7 @@ exceptions at any point.
 <DD class="defbody">
 Make thread <VAR>ThreadId</VAR> execute <VAR>Goal</VAR> at the first 
 opportunity. In the current implementation, this implies at the first 
-pass through the <EM>Call-port</EM>. The predicate <A NAME="idx:threadsignal2:1242"></A><A class="pred" href="threadcom.html#thread_signal/2">thread_signal/2</A> 
+pass through the <EM>Call-port</EM>. The predicate <A NAME="idx:threadsignal2:1241"></A><A class="pred" href="threadcom.html#thread_signal/2">thread_signal/2</A> 
 itself places <VAR>Goal</VAR> into the signalled-thread's signal queue 
 and returns immediately.
 
@@ -291,8 +291,8 @@ multi-threading, mainly because the status of mutexes cannot be
 guaranteed easily. At the call-port, the Prolog virtual machine holds no 
 locks and therefore the asynchronous execution is safe.
 
-<P><VAR>Goal</VAR> can be any valid Prolog goal, including <A NAME="idx:throw1:1243"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
-to make the receiving thread generate an exception and <A NAME="idx:trace0:1244"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
+<P><VAR>Goal</VAR> can be any valid Prolog goal, including <A NAME="idx:throw1:1242"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
+to make the receiving thread generate an exception and <A NAME="idx:trace0:1243"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 to start tracing the receiving thread.
 
 <P>In the Windows version, the receiving thread immediately executes the 
@@ -310,7 +310,7 @@ and dynamic predicates</SPAN></A></H3>
 threads can share and exchange data using dynamic predicates. The 
 multi-threaded version knows about two types of dynamic predicates. By 
 default, a predicate declared
-<EM>dynamic</EM> (see <A NAME="idx:dynamic1:1245"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A>) 
+<EM>dynamic</EM> (see <A NAME="idx:dynamic1:1244"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A>) 
 is shared by all threads. Each thread may assert, retract and run the 
 dynamic predicate. Synchronisation inside Prolog guarantees the 
 consistency of the predicate. Updates are
@@ -321,20 +321,20 @@ ensure application invariants on the predicate are maintained.
 
 <P>Besides shared predicates, dynamic predicates can be declared with 
 the
-<A NAME="idx:threadlocal1:1246"></A><A class="pred" href="threadcom.html#thread_local/1">thread_local/1</A> 
+<A NAME="idx:threadlocal1:1245"></A><A class="pred" href="threadcom.html#thread_local/1">thread_local/1</A> 
 directive. Such predicates share their attributes, but the clause-list 
 is different in each thread.
 
 <DL>
 <DT class="pubdef"><A NAME="thread_local/1"><STRONG>thread_local</STRONG> <VAR>+Functor/+Arity, \ldots</VAR></A></DT>
 <DD class="defbody">
-This directive is related to the <A NAME="idx:dynamic1:1247"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A> 
-directive. It tells the system that the predicate may be modified using <A NAME="idx:assert1:1248"></A><A class="pred" href="db.html#assert/1">assert/1</A>, <A NAME="idx:retract1:1249"></A><A class="pred" href="db.html#retract/1">retract/1</A>, 
+This directive is related to the <A NAME="idx:dynamic1:1246"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A> 
+directive. It tells the system that the predicate may be modified using <A NAME="idx:assert1:1247"></A><A class="pred" href="db.html#assert/1">assert/1</A>, <A NAME="idx:retract1:1248"></A><A class="pred" href="db.html#retract/1">retract/1</A>, 
 etc. during execution of the program. Unlike normal shared dynamic data 
 however each thread has its own clause-list for the predicate. As a 
 thread starts, this clause list is empty. If there are still clauses as 
 the thread terminates these are automatically reclaimed by the system 
-(see also <A NAME="idx:volatile1:1250"></A><A class="pred" href="runtime.html#volatile/1">volatile/1</A>). 
+(see also <A NAME="idx:volatile1:1249"></A><A class="pred" href="runtime.html#volatile/1">volatile/1</A>). 
 The thread_local property implies the properties dynamic and volatile.
 
 <P>Thread-local dynamic predicates are intended for maintaining 

@@ -161,9 +161,9 @@ format (default) or <CODE>cmd</CODE> to dump in MS-Windows <B>cmd.exe</B>
 compatible format.</DD>
 <DT><STRONG>--quiet</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
-<A NAME="idx:verbose:61"></A><A NAME="idx:quiet:62"></A>Set the 
-prolog-flag <CODE>verbose</CODE> to <CODE>silent</CODE>, suppressing 
-informational and banner messages. Also available as <STRONG>-q</STRONG>.</DD>
+<A NAME="idx:verbose:61"></A><A NAME="idx:quiet:62"></A>Set the Prolog 
+flag <A class="flag" href="flags.html#flag:verbose">verbose</A> to <CODE>silent</CODE>, 
+suppressing informational and banner messages. Also available as <STRONG>-q</STRONG>.</DD>
 <DT><STRONG>-L</STRONG><VAR>size[kmg]</VAR></DT>
 <DD class="defbody">
 Give local stack limit (default 16Mb on 32-bit and 32Mb on 64-bit 
@@ -210,12 +210,14 @@ determine output file for compilation.</DD>
 <DD class="defbody">
 Optimised compilation. See <A NAME="idx:currentprologflag2:63"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
 flag
-<CODE>optimise</CODE> for details.</DD>
+<A class="flag" href="flags.html#flag:optimise">optimise</A> for 
+details.</DD>
 <DT><STRONG>-nodebug</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
 Disable debugging. See the <A NAME="idx:currentprologflag2:64"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
 flag
-<CODE>generate_debug_info</CODE> for details.</DD>
+<A class="flag" href="flags.html#flag:generate_debug_info">generate_debug_info</A> 
+for details.</DD>
 <DT><STRONG>-s</STRONG> <VAR>file</VAR></DT>
 <DD class="defbody">
 Use <VAR>file</VAR> as a script-file. The script file is loaded after 
@@ -273,8 +275,9 @@ interaction with other applications.</DD>
 <DD class="defbody">
 Inhibit any signal handling by Prolog, a property that is sometimes 
 desirable for embedded applications. This option sets the flag
-<CODE>signals</CODE> to <CODE>false</CODE>. See <A class="sec" href="foreigninclude.html">section 
-9.6.20.1</A> for details.</DD>
+<A class="flag" href="flags.html#flag:signals">signals</A> to <CODE>false</CODE>. 
+See <A class="sec" href="foreigninclude.html">section 9.6.20.1</A> for 
+details.</DD>
 <DT><STRONG>-x</STRONG> <VAR>bootfile</VAR></DT>
 <DD class="defbody">
 Boot from <VAR>bootfile</VAR> instead of the system's default boot file. 
@@ -297,8 +300,8 @@ for details on using this file-location mechanism.</DD>
 <A NAME="idx:commandlinearguments:73"></A>Stops scanning for more 
 arguments, so you can pass arguments for your application after this 
 one. See <A NAME="idx:currentprologflag2:74"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
-using the flag <CODE>argv</CODE> for obtaining the command-line 
-arguments.
+using the flag <A class="flag" href="flags.html#flag:argv">argv</A> for 
+obtaining the command-line arguments.
 </DD>
 </DL>
 

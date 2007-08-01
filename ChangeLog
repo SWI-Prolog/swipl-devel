@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Turned Prolog flags into linked objects in the manual.
+    TBD: fix all LaTeX sources and handle them in PlDoc.
+    Ulrich Neumerkel.
+
   * FIXED: abort from various built-ins dealing with cyclic terms.
     Ulrich Neumerkel.
 

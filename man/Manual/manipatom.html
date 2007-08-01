@@ -126,21 +126,21 @@ and Constructing Atoms</SPAN></A></H2>
 <A NAME="sec:manipatom"></A>
 
 <P>These predicates convert between Prolog constants and lists of 
-character codes. The predicates <A NAME="idx:atomcodes2:849"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>, <A NAME="idx:numbercodes2:850"></A><A class="pred" href="manipatom.html#number_codes/2">number_codes/2</A> 
-and <A NAME="idx:name2:851"></A><A class="pred" href="manipatom.html#name/2">name/2</A> 
+character codes. The predicates <A NAME="idx:atomcodes2:848"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>, <A NAME="idx:numbercodes2:849"></A><A class="pred" href="manipatom.html#number_codes/2">number_codes/2</A> 
+and <A NAME="idx:name2:850"></A><A class="pred" href="manipatom.html#name/2">name/2</A> 
 behave the same when converting from a constant to a list of character 
-codes. When converting the other way around, <A NAME="idx:atomcodes2:852"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A> 
-will generate an atom, <A NAME="idx:numbercodes2:853"></A><A class="pred" href="manipatom.html#number_codes/2">number_codes/2</A> 
-will generate a number or exception and <A NAME="idx:name2:854"></A><A class="pred" href="manipatom.html#name/2">name/2</A> 
+codes. When converting the other way around, <A NAME="idx:atomcodes2:851"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A> 
+will generate an atom, <A NAME="idx:numbercodes2:852"></A><A class="pred" href="manipatom.html#number_codes/2">number_codes/2</A> 
+will generate a number or exception and <A NAME="idx:name2:853"></A><A class="pred" href="manipatom.html#name/2">name/2</A> 
 will return a number if possible and an atom otherwise.
 
-<P>The ISO standard defines <A NAME="idx:atomchars2:855"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
+<P>The ISO standard defines <A NAME="idx:atomchars2:854"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
 to describe the `broken-up' atom as a list of one-character atoms 
-instead of a list of codes. Up-to version 3.2.x, SWI-Prolog's <A NAME="idx:atomchars2:856"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
+instead of a list of codes. Up-to version 3.2.x, SWI-Prolog's <A NAME="idx:atomchars2:855"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
 behaved, compatible to Quintus and SICStus Prolog, like atom_codes. As 
 of 3.3.x SWI-Prolog
-<A NAME="idx:atomcodes2:857"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A> 
-and <A NAME="idx:atomchars2:858"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
+<A NAME="idx:atomcodes2:856"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A> 
+and <A NAME="idx:atomchars2:857"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
 are compliant to the ISO standard.
 
 <P>To ease the pain of all variations in the Prolog community, all 
@@ -160,11 +160,11 @@ is unbound and <VAR>String</VAR> is a list of character codes, it will
 <DT class="pubdef"><A NAME="atom_chars/2"><STRONG>atom_chars</STRONG>(<VAR>?Atom, 
 ?CharList</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:atomcodes2:859"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>, 
+As <A NAME="idx:atomcodes2:858"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>, 
 but <VAR>CharList</VAR> is a list of one-character atoms rather than a 
 list of character codes<SUP class="fn">47<SPAN class="fn-text">Up-to 
-version 3.2.x, <A NAME="idx:atomchars2:860"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
-behaved as the current <A NAME="idx:atomcodes2:861"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>. 
+version 3.2.x, <A NAME="idx:atomchars2:859"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
+behaved as the current <A NAME="idx:atomcodes2:860"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>. 
 The current definition is compliant with the ISO standard</SPAN></SUP>.
 
 <PRE class="code">
@@ -184,25 +184,30 @@ available from the library <CODE>backcomp.pl</CODE></SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="number_chars/2"><STRONG>number_chars</STRONG>(<VAR>?Number, 
 ?CharList</VAR>)</A></DT>
 <DD class="defbody">
-Similar to <A NAME="idx:atomchars2:862"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A>, 
+Similar to <A NAME="idx:atomchars2:861"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A>, 
 but converts between a number and its representation as a list of 
 one-character atoms. Fails with a
-<CODE>representation_error</CODE> if <VAR>Number</VAR> is unbound and
-<VAR>CharList</VAR> does not describe a number.</DD>
+<CODE>syntax_error</CODE> if <VAR>Number</VAR> is unbound and <VAR>CharList</VAR> 
+does not describe a number.</DD>
 <DT class="pubdef"><A NAME="number_codes/2"><STRONG>number_codes</STRONG>(<VAR>?Number, 
 ?CodeList</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:numberchars2:863"></A><A class="pred" href="manipatom.html#number_chars/2">number_chars/2</A>, 
+As <A NAME="idx:numberchars2:862"></A><A class="pred" href="manipatom.html#number_chars/2">number_chars/2</A>, 
 but converts to a list of character codes rather than one-character 
 atoms. In the mode -, +, both predicates behave identically to improve 
 handling of non-ISO source.</DD>
 <DT class="pubdef"><A NAME="atom_number/2"><STRONG>atom_number</STRONG>(<VAR>?Atom, 
 ?Number</VAR>)</A></DT>
 <DD class="defbody">
-Realises the popular combination of <A NAME="idx:atomcodes2:864"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A> 
-and <A NAME="idx:numbercodes2:865"></A><A class="pred" href="manipatom.html#number_codes/2">number_codes/2</A> 
+Realises the popular combination of <A NAME="idx:atomcodes2:863"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A> 
+and <A NAME="idx:numbercodes2:864"></A><A class="pred" href="manipatom.html#number_codes/2">number_codes/2</A> 
 to convert between atom and number (integer or float) in one predicate, 
-avoiding the intermediate list.</DD>
+avoiding the intermediate list. Calling in mode +,- to convert numbers 
+represented as atoms is often good style. Converting numbers to atoms, 
+which in turn are assembled into larger units before communication them 
+to the outside world is bad style. Consider using streams or
+<A NAME="idx:withoutputto2:865"></A><A class="pred" href="IO.html#with_output_to/2">with_output_to/2</A> 
+to reduce the number of expensive intermediate atoms.</DD>
 <DT class="pubdef"><A NAME="name/2"><STRONG>name</STRONG>(<VAR>?AtomOrInt, 
 ?String</VAR>)</A></DT>
 <DD class="defbody">
@@ -280,9 +285,9 @@ L = [gnu, gnat]
 <DD class="defbody">
 True if <VAR>Atom</VAR> is an atom of <VAR>Length</VAR> characters long. 
 This predicate also works for strings (see <A class="sec" href="strings.html">section 
-4.23</A>). If the prolog flag <CODE>iso</CODE> is <EM>not</EM> set, it 
-also accepts integers and floats, expressing the number of characters 
-output when given to <A NAME="idx:write1:873"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
+4.23</A>). If the prolog flag <A class="flag" href="flags.html#flag:iso">iso</A> 
+is <EM>not</EM> set, it also accepts integers and floats, expressing the 
+number of characters output when given to <A NAME="idx:write1:873"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
 as well as code-lists and character-lists, expressing the length of the 
 list.<SUP class="fn">bug<SPAN class="fn-text">Note that <CODE>[]</CODE> 
 is both an atom an empty code/character list. The predicate <A NAME="idx:atomlength2:874"></A><A class="pred" href="manipatom.html#atom_length/2">atom_length/2</A> 

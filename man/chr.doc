@@ -211,7 +211,7 @@ When the option is off (default), the behavior of a binding in the guard is unde
 This option controls the degree of optimization.
 Possible values are \texttt{full}, to enable all available
 optimizations, and \texttt{off} (default), to disable all optimizations.  
-The default is derived from the SWI-Prolog flag \const{optimise}, where
+The default is derived from the SWI-Prolog flag \prologflag{optimise}, where
 \const{true} is mapped to \const{full}.  Therefore the command-line
 option \cmdlineoption{-O} provides full CHR optimization.
 If optimization is enabled, debugging must be disabled.
@@ -220,7 +220,7 @@ If optimization is enabled, debugging must be disabled.
 This options enables or disables the possibility to debug the CHR code.
 Possible values are \texttt{on} (default) and \texttt{off}. See
 \secref{debugging} for more details on debugging.  The default is
-derived from the prolog flag \const{generate_debug_info}, which
+derived from the prolog flag \prologflag{generate_debug_info}, which
 is \const{true} by default.  See \cmdlineoption{-nodebug}.
 If debugging is enabled, optimization must be disabled.
 \end{description}
@@ -465,8 +465,8 @@ might cause conflicts.
 The CHR debugging facilities are currently rather limited. Only tracing
 is currently available. To use the CHR debugging facilities for a CHR
 file it must be compiled for debugging. Generating debug info is
-controlled by the CHR option \const{debug}, whose default is derived
-from the SWI-Prolog flag \const{generate_debug_info}.  Therefore debug
+controlled by the CHR option \prologflag{debug}, whose default is derived
+from the SWI-Prolog flag \prologflag{generate_debug_info}.  Therefore debug
 info is provided unless the \cmdlineoption{-nodebug} is used.
 
 

@@ -141,7 +141,7 @@ value for this search-path.
 <TR VALIGN=top><TD></TD><TD><B>Unix</B></TD><TD><B>Windows </B></TD></TR>
 <TBODY>
 <TR VALIGN=top><TD><B>local</B></TD><TD><CODE>.</CODE> </TD><TD><CODE>.</CODE> </TD></TR>
-<TR VALIGN=top><TD><B>home</B></TD><TD><CODE> </CODE> </TD><TD><CODE>%HOME%</CODE> 
+<TR VALIGN=top><TD><B>home</B></TD><TD><CODE><CODE>~</CODE></CODE> </TD><TD><CODE>%HOME%</CODE> 
 or
 <CODE>%HOMEDRIVE%%HOMEPATH%</CODE> </TD></TR>
 <TR VALIGN=top><TD>global</TD><TD></TD><TD>SWI-Home directory or
@@ -157,5 +157,9 @@ denotes an absolute path, this file is loaded, otherwise the file is
 searched for using the same conventions as for the default startup file. 
 Finally, if <VAR>file</VAR> is
 <CODE>none</CODE>, no file is loaded.
+
+<P>See also the <STRONG>-s</STRONG> (script) and <STRONG>-F</STRONG> 
+(system-wide initialisation) in <A class="sec" href="cmdline.html">section 
+2.4</A> and <A class="sec" href="initgoal.html">section 2.3</A>.
 
 <P></BODY></HTML>

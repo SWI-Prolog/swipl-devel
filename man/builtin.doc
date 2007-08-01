@@ -89,7 +89,7 @@ characters are are atom_chars/2, atom_codes/2, number_codes/2 and
 number_chars/2. For character I/O on streams there is get_char/[1,2],
 get_code/[1,2], get_byte/[1,2], peek_char/[1,2], peek_code/[1,2],
 peek_byte/[1,2], put_code/[1,2], put_char/[1,2] and put_byte/[1,2]. The
-Prolog flag \const{double_quotes} (see current_prolog_flag/2) controls
+Prolog flag \prologflag{double_quotes} (see current_prolog_flag/2) controls
 how text between double-quotes is interpreted.
 
 
@@ -177,7 +177,7 @@ The following options are currently supported:
     \termitem{autoload}{Bool}
 If \const{true} (default \const{false}), indicate this load is a
 \jargon{demand} load. This implies that, depending on the setting of the
-Prolog flag \const{verbose_autoload} the load-action is printed at
+Prolog flag \prologflag{verbose_autoload} the load-action is printed at
 level \const{informational} or \const{silent}.  See also print_message/2
 and current_prolog_flag/2.
 
@@ -188,7 +188,7 @@ file.
 
     \termitem{encoding}{Encoding}
 Specify the way characters are encoded in the file.  Default is taken
-from the prolog flag \const{encoding}.  See \secref{encoding} for 
+from the prolog flag \prologflag{encoding}.  See \secref{encoding} for 
 details.
 
     \termitem{expand}{Bool}
@@ -224,7 +224,7 @@ instead of the loading directive.
 If \const{true}, load the file without printing a message. The
 specified value is the default for all files loaded as a result of
 loading the specified files. This option writes the prolog flag
-\const{verbose_load} with the negation of \arg{Bool}.
+\prologflag{verbose_load} with the negation of \arg{Bool}.
 
     \termitem{stream}{Input}
 This SWI-Prolog extension compiles the data from the stream
@@ -355,7 +355,7 @@ user:file_search_path(foreign, swi(lib)).
 The file_search_path/2 expansion is used by all loading predicates as
 well as by absolute_file_name/[2,3].
 
-The Prolog flag \const{verbose_file_search} can be set to \const{true}
+The Prolog flag \prologflag{verbose_file_search} can be set to \const{true}
 to help debugging Prolog's search for files.
 
     \predicate{expand_file_search_path}{2}{+Spec, -Path}
@@ -703,8 +703,8 @@ of a location term. This multi-file predicate is normally not defined.
 If it succeeds, edit/1 assumes the editor is started.
 
 If it fails, edit/1 uses its internal defaults, which are defined by
-the Prolog flag \const{editor} and/or the environment variable
-\env{EDITOR}.  The following rules apply.  If the Prolog flag \const{editor}
+the Prolog flag \prologflag{editor} and/or the environment variable
+\env{EDITOR}.  The following rules apply.  If the Prolog flag \prologflag{editor}
 is of the format \verb|$|<name>, the editor is determined by the environment
 variable <name>.  Else, if this flag is \const{pce_emacs} or \const{built_in}
 \emph{and} XPCE is loaded or can be loaded, the built-in Emacs clone is used.
@@ -856,9 +856,8 @@ so called ``standard order''. This order is defined as follows:
     \item \arg{Atoms} are compared alphabetically.
     \item \arg{Strings} are compared alphabetically.
     \item \arg{Numbers} are compared by value. Integers and floats are
-          treated identically. If the prolog_flag (see current_prolog_flag/2)
-	  \const{iso} is defined, all floating point numbers precede
-	  all integers.
+          treated identically. If the Prolog flag \prologflag{iso} is defined,
+	  all floating point numbers precede all integers.
     \item \arg{Compound} terms are first checked on their arity, then 
           on their functor-name (alphabetically) and finally recursively
 	  on their arguments, leftmost argument first. 
@@ -890,7 +889,7 @@ No
 I.e.\ the first creates a \jargon{cyclic-term}, which is printed as
 an infinitely nested \functor{f}{1} term (see the \const{max_depth}
 option of write_term/2). The second executes logically sound unification
-and thus fails.  See also the Prolog flag \const{occurs_check}.
+and thus fails.  See also the Prolog flag \prologflag{occurs_check}.
 
     \infixop{\=}{+Term1}{+Term2}
 Equivalent to \exam{\Snot Term1 = Term2}.
@@ -1280,10 +1279,9 @@ the exception context can be retrieved using PL_exception().
 \index{debugging,exceptions}%
 Before the introduction of exceptions in SWI-Prolog a runtime error was
 handled by printing an error message, after which the predicate failed.
-If the prolog_flag (see current_prolog_flag/2) \const{debug_on_error}
-was in effect (default), the tracer was switched on. The combination of
-the error message and trace information is generally sufficient to
-locate the error.
+If the Prolog flag \prologflag{debug_on_error} was in effect (default),
+the tracer was switched on. The combination of the error message and
+trace information is generally sufficient to locate the error.
 
 With exception handling, things are different. A programmer may wish to
 trap an exception using catch/3 to avoid it reaching the user. If the
@@ -1299,8 +1297,8 @@ system will enter trace mode.
 If the system is in an non-interactive callback from foreign code and
 there is no catch/3 active in the current context, it cannot determine
 whether or not the exception will be caught by the external routine
-calling Prolog.  It will then base its behaviour on the prolog_flag
-debug_on_error:
+calling Prolog.  It will then base its behaviour on the Prolog flag
+\prologflag{debug_on_error}:
 
 \begin{itemlist}
     \item [current_prolog_flag(debug_on_error, false)]
@@ -1366,7 +1364,7 @@ exceptions in a human-readable format. \arg{Kind} is one of
 the stream \const{user_error}.
 
 \index{silent}\index{quiet}%
-If the prolog flag (see current_prolog_flag/2) \const{verbose} is
+If the prolog flag (see current_prolog_flag/2) \prologflag{verbose} is
 \const{silent}, messages with \arg{Kind} \const{informational},
 or \const{banner} are treated as silent.  See \cmdlineoption{-q}.
 
@@ -1525,11 +1523,10 @@ form {\tt SIG_}<SIGNAME>. The Prolog name for a signal is the lowercase
 version of <SIGNAME>. The predicate current_signal/3 may be used to map
 between names and signals.
 
-Initially, some signals are mapped to \const{throw}, while all
-other signals are \const{default}.  The following signals throw
-an exception:  \const{ill}, \const{fpe}, \const{segv}, \const{pipe},
-\const{alrm}, \const{bus}, \const{xcpu}, \const{xfsz} and
-\const{vtalrm}.
+Initially, some signals are mapped to \const{throw}, while all other
+signals are \const{default}. The following signals throw an exception:
+\const{ill}, \const{fpe}, \const{segv}, \const{pipe}, \const{alrm},
+\const{bus}, \const{xcpu}, \const{xfsz} and \const{vtalrm}.
 
     \predicate{current_signal}{3}{?Name, ?Id, ?Handler}
 Enumerate the currently defined signal handling.  \arg{Name} is the
@@ -1710,7 +1707,7 @@ procedures.  This is odd, as for dealing with dynamic procedures there
 is already retract/1 and retractall/1.  The abolish/1 predicate has been
 introduced in DEC-10 Prolog precisely for dealing with static procedures.
 In SWI-Prolog, abolish/1 works on static procedures, unless the prolog
-flag \const{iso} is set to \const{true}.
+flag \prologflag{iso} is set to \const{true}.
 
 It is advised to use retractall/1 for erasing all clauses of a dynamic
 predicate.
@@ -2052,7 +2049,7 @@ predicate.  This property is set using multifile/1.
     \termitem{nodebug}{}
 Details of the predicate are not shown by the debugger. This is the
 default for built-in predicates.  User predicates can be compiled this
-way using the Prolog flag \const{generate_debug_info}.
+way using the Prolog flag \prologflag{generate_debug_info}.
 
     \termitem{notrace}{}
 Do not show ports of this predicate in the debugger.
@@ -2208,7 +2205,7 @@ option as stream-names are global.  See also set_stream/2.
     \termitem{encoding}{Encoding}
 Define the encoding used for reading and writing text to this stream.
 The default encoding for type \const{text} is derived from the Prolog
-flag \const{encoding}. For \const{binary} streams the default encoding
+flag \prologflag{encoding}. For \const{binary} streams the default encoding
 is \const{octet}. For details on encoding issues, see \secref{encoding}.
 
     \termitem{bom}{Bool}
@@ -2982,13 +2979,13 @@ The predicates format/[1,2] and writef/2 provide formatted output.
 Writing to Prolog datastructures such as atoms or code-lists is
 supported by with_output_to/2 and format/3.
 
-There are two ways to manipulate the output format.  The predicate
-print/[1,2] may be programmed using portray/1.  The format of floating
-point numbers may be manipulated using the prolog_flag (see
-current_prolog_flag/2) \const{float_format}.
+There are two ways to manipulate the output format. The predicate
+print/[1,2] may be programmed using portray/1. The format of floating
+point numbers may be manipulated using the Prolog flag
+\prologflag{float_format}.
 
-Reading is sensitive to the prolog_flag \const{character_escapes}, which
-controls the interpretation of the \chr{\} character in quoted
+Reading is sensitive to the Prolog flag \prologflag{character_escapes},
+which controls the interpretation of the \chr{\} character in quoted
 atoms and strings.
 
 \begin{description}
@@ -2999,7 +2996,7 @@ predicates.  Valid options are:
 \begin{description}
     \termitem{attributes}{Atom}
 Define how attributed variables (see \secref{attvar}) are written. The
-default is determined by the prolog flag \const{write_attributes}.
+default is determined by the prolog flag \prologflag{write_attributes}.
 Defined values are \const{ignore} (ignore the attribute), \const{dots}
 (write the attributes as \verb${...}$), \const{write} (simply hand
 the attributes recursively to write_term/2) and \const{portray}
@@ -3034,12 +3031,12 @@ Yes
 \end{code}
 
 Used by the top-level and debugger to limit screen output.  See also
-the Prolog flags \const{toplevel_print_options} and
-\const{debugger_print_options}.
+the Prolog flags \prologflag{toplevel_print_options} and
+\prologflag{debugger_print_options}.
 
     \termitem{module}{Module}
 Define the reference module (default \const{user}).  This defines
-the default value for the \const{character_escapes} option as well
+the default value for the \prologflag{character_escapes} option as well
 as the operator definitions to use.  See also op/3.
 
     \termitem{numbervars}{Bool}
@@ -3159,7 +3156,7 @@ same name.
 
     \termitem{character_escapes}{Bool}
 Defines how to read \verb$\$ escape-sequences in quoted atoms.
-See the Prolog flags \const{character_escapes}, current_prolog_flag/2.
+See the Prolog flags \prologflag{character_escapes}, current_prolog_flag/2.
 (SWI-Prolog).
 
     \termitem{comments}{-Comments}
@@ -3171,12 +3168,12 @@ comments from where the read_term/2 call started upto the end of the
 term read.
 
     \termitem{double_quotes}{Bool}
-Defines how to read "\ldots" strings. See the Prolog flags
-\const{double_quotes}, current_prolog_flag/2.  (SWI-Prolog).
+Defines how to read "\ldots" strings. See the Prolog flag
+\prologflag{double_quotes}.  (SWI-Prolog).
 
     \termitem{module}{Module}
-Specify \arg{Module} for operators, \const{character_escapes} flag
-and \const{double_quotes} flag. The value of the latter two is overruled
+Specify \arg{Module} for operators, \prologflag{character_escapes} flag
+and \prologflag{double_quotes} flag. The value of the latter two is overruled
 if the corresponding read_term/3 option is provided.  If no module is
 specified, the current `source-module' is used.  (SWI-Prolog).
 
@@ -3581,7 +3578,7 @@ L = [gnu, gnat]
     \predicate{atom_length}{2}{+Atom, -Length}
 True if \arg{Atom} is an atom of \arg{Length} characters long. This
 predicate also works for strings (see \secref{strings}). If the prolog
-flag \const{iso} is \emph{not} set, it also accepts integers and floats,
+flag \prologflag{iso} is \emph{not} set, it also accepts integers and floats,
 expressing the number of characters output when given to write/1 as well
 as code-lists and character-lists, expressing the length of the list.%
     \bug{Note that \const{[]} is both an atom an empty code/character
@@ -3702,7 +3699,7 @@ atoms.  Please note that both predicates are as flexible as possible.
 They handle either representation if the argument is instantiated
 and only will instantiate with an integer code or one-character atom
 depending of the version used. See also the Prolog flag
-\const{double_quotes}, atom_chars/2 and atom_codes/2.
+\prologflag{double_quotes}, atom_chars/2 and atom_codes/2.
 \end{description}
 
 
@@ -3793,8 +3790,8 @@ String objects by default have no lexical representation and thus
 can only be created using the predicates below or through the foreign
 language interface (See \chapref{foreign}. There are two ways to make
 read/1 read text into strings, both controlled through Prolog flags. One
-is by setting the \const{double_quotes} flag to \const{string} and the
-other is by setting the \const{backquoted_string} flag to \const{true}.
+is by setting the \prologflag{double_quotes} flag to \const{string} and the
+other is by setting the \prologflag{backquoted_string} flag to \const{true}.
 In latter case, \verb$`Hello world`$ is read into a string and
 write_term/2 prints strings between back-quotes if \const{quoted} is
 \const{true}. This flag provides compatibility to LPA Prolog string
@@ -3932,7 +3929,7 @@ features, they are provided for ISO compliance.
     \predicate{char_conversion}{2}{+CharIn, +CharOut}
 Define that term-input (see read_term/3) maps each character read as
 \arg{CharIn} to the character \arg{CharOut}. Character conversion is
-only executed if the Prolog flag \const{char_conversion} is set to
+only executed if the Prolog flag \prologflag{char_conversion} is set to
 \const{true} and not inside quoted atoms or strings. The initial table
 maps each character onto itself. See also current_char_conversion/2.
     \predicate{current_char_conversion}{2}{?CharIn, ?CharOut}
@@ -4051,12 +4048,12 @@ library} \index{GMP}(GMP), integer arithmetic is \emph{unbounded}, which
 means that the size of integers is limited by available memory only.
 Without GMP, SWI-Prolog integers are 64-bits, regardless of the native
 integer size of the platform. The type of integer support can be
-detected using the Prolog flags \const{bounded}, \const{min_integer} and
-\const{max_integer}. As the use of GMP is default, most of the following
+detected using the Prolog flags \prologflag{bounded}, \prologflag{min_integer} and
+\prologflag{max_integer}. As the use of GMP is default, most of the following
 descriptions assume unbounded integer arithmetic.
 
 Internally, SWI-Prolog has three integer representations. Small integers
-(defined by the Prolog flag \const{max_tagged_integer}) are encoded
+(defined by the Prolog flag \prologflag{max_tagged_integer}) are encoded
 directly. Larger integers are represented as 64-bit value on the
 global stack. Integers that do not fit in 64-bit are represented as
 serialised GNU MPZ structures on the global stack.
@@ -4180,7 +4177,7 @@ $\arg{Result} = \arg{Expr1} \times \arg{Expr2}$
 
     \infixop{/}{+Expr1}{+Expr2}
 $\arg{Result} = \frac{\arg{Expr1}}{\arg{Expr2}}$
-The the flag \const{iso} is \const{true}, both arguments are converted
+The the flag \prologflag{iso} is \const{true}, both arguments are converted
 to float and the return value is a float. Otherwise (default), if both
 arguments are integers the operation returns an integer if the division
 is exact. If at least one of the arguments is rational and the other
@@ -5117,8 +5114,8 @@ this Prolog run. Please note that Prolog system-arguments and
 application arguments are separated by \const{--}.  Integer arguments
 are passed as Prolog integers, float arguments and Prolog floating
 point numbers and all other arguments as Prolog atoms.  New applications
-should use the Prolog flag \const{argv}.  See also prolog Prolog flag
-\const{argv}.
+should use the Prolog flag \prologflag{argv}.  See also prolog Prolog flag
+\prologflag{argv}.
 
 A stand-alone program could use the following skeleton to handle
 command-line arguments. See also \secref{cmdlinecomp}.
@@ -5591,7 +5588,7 @@ call expand_file_name/2 followed by member/2 on \arg{Spec} before
 proceeding.  This is a SWI-Prolog extension.
 \end{description}
 
-The Prolog flag \const{verbose_file_search} can be set to \const{true}
+The Prolog flag \prologflag{verbose_file_search} can be set to \const{true}
 to help debugging Prolog's search for files.
 
 Compatibility considerations to common argument-order in ISO as well as
@@ -5710,7 +5707,7 @@ exceptions.  Rebuilding the environment is safer if the Prolog stacks
 are corrupt.  Therefore the system will use the rebuild-strategy if
 the abort was generated by an internal consistency check and the
 exception mechanism otherwise.  Prolog can be forced to use the
-rebuild-strategy setting the prolog flag \const{abort_with_exception}
+rebuild-strategy setting the prolog flag \prologflag{abort_with_exception}
 to \const{false}.
 
     \predicate{halt}{0}{}
@@ -5730,10 +5727,9 @@ See also halt/0.
 
     \predicate{prolog}{0}{}
 This goal starts the default interactive top level. Queries are read
-from the stream \const{user_input}. See also the \const{history}
-prolog_flag (current_prolog_flag/2). The prolog/0 predicate is
-terminated (succeeds) by typing the end-of-file character (On most
-systems control-D).
+from the stream \const{user_input}. See also the Prolog flag
+\prologflag{history}. The prolog/0 predicate is terminated (succeeds) by
+typing the end-of-file character (typically control-D).
 \end{description}
 
 The following two hooks allow for expanding queries and handling the
@@ -5907,7 +5903,7 @@ Name & Default & Description \\
 \const{discontiguous} & on & Warn if the clauses for a predicate are not
                         together in the same source file. \\
 \const{string}     & off & Backward compatibility.  See the Prolog flag
-			\const{double_quotes} (current_prolog_flag/2). \\
+			\prologflag{double_quotes} (current_prolog_flag/2). \\
 \const{charset}	   & off & Warn on atoms and variables holding non-ASCII
 			   characters that are not quoted. See also
 			   \secref{processorcharset}. \\
@@ -6026,7 +6022,7 @@ time critical segments of the code.  After the garbage collection
 trim_stacks/0 is invoked to release the collected memory resources.
 
     \predicate{garbage_collect_atoms}{0}{}
-Reclaim unused atoms. Normally invoked after \const{agc_margin} (a
+Reclaim unused atoms. Normally invoked after \prologflag{agc_margin} (a
 prolog flag) atoms have been created. On multi-threaded versions the
 actual collection is delayed until there there are no threads performing
 normal garbage collection. In this case garbage_collect_atoms/0 returns

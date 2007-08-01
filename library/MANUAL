@@ -12,7 +12,7 @@
                          SSWWII--PPrroolloogg 55..66
 
                         RReeffeerreennccee MMaannuuaall
-             _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._3_8_, _J_u_l_y _2_0_0_7
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._3_8_, _A_u_g_u_s_t _2_0_0_7
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                     wielemak@science.uva.nl
@@ -785,6 +785,9 @@ changed with the  `-f file' option.   If _F_i_l_e denotes an absolute  path,
 this file is loaded,  otherwise the file is searched for using  the same
 conventions as for the default startup file.  Finally,  if _f_i_l_e is none,
 no file is loaded.
+
+See  also  the  -s  (script)  and  -F  (system-wide  initialisation)  in
+section 2.4 and section 2.3.
 
 
 22..33 IInniittiiaalliissaattiioonn ffiilleess aanndd ggooaallss
@@ -850,7 +853,7 @@ The full set of command-line options is given below:
     (default) or cmd to dump in MS-Windows cmd.exe compatible format.
 
 ----qquuiieett
-    Set  the prolog-flag  verbose to  silent, suppressing  informational
+    Set  the Prolog  flag verbose to  silent, suppressing  informational
     and banner messages.  Also available as -q.
 
 --LL_s_i_z_e_[_k_m_g_]
@@ -1013,9 +1016,9 @@ provides  an index  into  this  file.    'MANUAL'  is created  from  the
 LaTeX sources  with a modified version  of dvitty, using overstrike  for
 printing bold  text and  underlining for  rendering italic text.    XPCE
 is shipped  with swi_help,  presenting the information  from the  online
-help in a  hypertext window.  The prolog-flag  write_help_with_overstrike
+help in a hypertext  window.  The Prolog flag  write_help_with_overstrike
 controls whether  or not help/1  writes its  output using overstrike  to
-realise bold  and underlined  output or  not.   If  this prolog-flag  is
+realise bold  and underlined  output or  not.   If this  Prolog flag  is
 not  set it  is initialised  by the  help library  to true  if the  TERM
 variable equals  xterm and false  otherwise.  If  this default does  not
 satisfy you, add the  following line to your personal startup  file (see
@@ -1081,8 +1084,8 @@ eexxppllaaiinn((_+_T_o_E_x_p_l_a_i_n_, _-_E_x_p_l_a_n_
 
 SWI-Prolog offers a query substitution mechanism called `history'.   The
 availability of  this feature is controlled  by set_prolog_flag/2,  using
-the  history prolog-flag.    By  default, history  is available  if  the
-prolog-flag readline  is false.    To enable  this feature,  remembering
+the  history Prolog  flag.   By  default,  history is  available if  the
+Prolog flag  readline is  false.   To enable  this feature,  remembering
 the last  50 commands,  put the  following into your  startup file  (see
 section 2.2):
 
@@ -1159,10 +1162,10 @@ and the system is  in debugging mode (see spy/1 and debug/0) or  when an
 exception is raised.
 
 The interactive top-level  goal trace/0 means ``trace the next  query''.
-The  tracer shows  the  port,  displaying  the port  name,  the  current
-depth of  the recursion and  the goal.   The goal  is printed using  the
-Prolog predicate write_term/2.  The style is defined  by the prolog-flag
-debugger_print_options  and can be modified using this flag or  using the
+The tracer shows the  port, displaying the port name, the  current depth
+of the  recursion and the goal.   The goal  is printed using the  Prolog
+predicate  write_term/2.     The style  is  defined  by the  Prolog  flag
+debugger_print_options and can be modified using this flag or  using the
 w, p and d commands of the tracer.
 1 ?- visible(+all), leash(-exit).
 
@@ -1269,7 +1272,7 @@ n ((NNoo ddeebbuugg))
     Continue execution in `no debug' mode.
 
 p ((PPrriinntt))
-    Set   the   prolog-flag  debugger_print_options  to   [quoted(true),
+    Set   the  Prolog  flag   debugger_print_options to   [quoted(true),
     portray(true), max_depth(10), priority(699)].  This is the default.
 
 r ((RReettrryy))
@@ -1287,8 +1290,8 @@ u ((UUpp))
     option is useful to stop tracing a failure driven loop.
 
 w ((WWrriittee))
-    Set       the       prolog-flag       debugger_print_options       to
-    [quoted(true), attributes(write), priority(699)],          bypassing
+    Set        the       Prolog        flag       debugger_print_options
+    to    [quoted(true), attributes(write), priority(699)],    bypassing
     portray/1, etc.
 
 The   ideal  4   port  model   as  described   in   many  Prolog   books
@@ -1494,14 +1497,14 @@ environments.
 
 ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_V_a_l_u_e))
     The   predicate  current_prolog_flag/2  defines   an  interface   to
-    installation   features:    options  compiled  in,  version,   home,
-    etc.    With both arguments  unbound, it  will generate all  defined
-    prolog-flags.   With  the `Key' instantiated  it unify the value  of
-    the  prolog-flag.  Flag values are typed.  Flags marked  as bool can
+    installation  features:   options compiled in,  version, home,  etc.
+    With  both arguments unbound,  it will  generate all defined  Prolog
+    flags.   With  the `Key'  instantiated it unifies  the value of  the
+    Prolog  flag.   Flag values  are typed.   Flags  marked as bool  can
     have  the values true and false.  Some prolog flags are  not defined
     in  all versions, which is  normally indicated in the  documentation
-    below  as _`_`_i_f _p_r_e_s_e_n_t  _a_n_d _t_r_u_e_'_'.   A boolean prolog-flag is  true
-    iff  the prolog-flag  is present  aanndd the  _V_a_l_u_e is  the atom  true.
+    below  as _`_`_i_f _p_r_e_s_e_n_t _a_n_d  _t_r_u_e_'_'.  A  boolean Prolog flag is  true
+    iff  the Prolog  flag is  present aanndd the  _V_a_l_u_e is  the atom  true.
     Tests for such flags should be written as below.
 
             (   current_prolog_flag(windows, true)
@@ -1544,8 +1547,9 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          architecture.  See also section 9.4 and file_search_path/2.
 
     aassssoocciiaattee _(_a_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
-         On  Windows systems,  this  is  set to  the  filename-extension
-         (e.g. pl or pro associated with plwin.exe.
+         On Windows  systems,  this  is set  to the  filename  extension
+         (pl  (default) or  pro  (can  be selected  in  the  installer))
+         associated with plwin.exe.
 
     aauuttoollooaadd _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If true (default) autoloading of library functions  is enabled.
@@ -1558,8 +1562,8 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          is mainly for compatibility to LPA Prolog.
 
     bboouunnddeedd _(_b_o_o_l_)
-         ISO prolog-flag.    If true,  integer  representation is  bound
-         by  min_integer  and max_integer.    If  false integers  can  be
+         ISO Prolog  flag.   If  true, integer  representation is  bound
+         by  min_integer and max_integer.    If  false integers  can  be
          arbitrary large  and  the min_integer and  max_integer are  not
          present.  See section 4.26.2.1.
 
@@ -1612,10 +1616,10 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
 
     ddeebbuugg _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          Switch debugging  mode  on/off.   If  debug  mode is  activated
-         the  system  traps  encountered  spy-points  (see   spy/1)  and
-         trace-points  (see  trace/1).     In  addition,  tail-recursion
-         optimisation is  disabled and the  system is more  conservative
-         in destroying choice-points to simplify debugging.
+         the system traps encountered spy-points (see spy/1)  and trace-
+         points (see  trace/1).    In addition,  last-call  optimisation
+         is disabled and the  system is more conservative in  destroying
+         choice points to simplify debugging.
 
          Disabling these optimisations can  cause the system to run  out
          of memory on  programs that behave  correctly if debug mode  is
@@ -1625,7 +1629,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          If  true,  start  the  tracer  after   an  error  is  detected.
          Otherwise just continue  execution.   The goal that raised  the
          error  will normally  fail.    See  also fileerrors/2  and  the
-         prolog-flag report_error.   May be changed.   Default is  true,
+         Prolog flag report_error.   May be changed.   Default is  true,
          except for the runtime version.
 
     ddeebbuuggggeerr__pprriinntt__ooppttiioonnss _(_t_e_r_m_, _c_h_a_n_g_e_a_b_l_e_)
@@ -1640,8 +1644,8 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          the tracer.
 
     ddoouubbllee__qquuootteess _(_c_o_d_e_s_,_c_h_a_r_s_,_a_t_o_m_,_s_t_r_i_n_g_, _c_h_a_n_g_e_a_b_l_e_)
-         This flag  determines  how double-quotes  strings are  read  by
-         Prolog and is ---like  character_escapes--- maintained for  each
+         This flag  determines how  double  quoted strings  are read  by
+         Prolog and is ---like character_escapes--- maintained  for each
          module.    If codes  (default), a  list  of character-codes  is
          returned,  if chars  a list  of  one-character atoms,  if  atom
          double  quotes  are the  same  as  single-quotes  and  finally,
@@ -1683,9 +1687,9 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          If   true  (default   false),   expand   $varname  and   ~   in
          arguments  of  built-in predicates  that  accept  a  file  name
          (open/3, exists_file/1,  access_file/2,  etc.).   The  predicate
-         expand_file_name/2  should  be  used   to  expand   environment
-         variables and wildcard patterns.  This  prolog-flag is intended
-         for backward compatibility with older versions of SWI-Prolog.
+         expand_file_name/2 can be used to expand environment  variables
+         and  wildcard patterns.    This  Prolog  flag is  intended  for
+         backward compatibility with older versions of SWI-Prolog.
 
     ffllooaatt__ffoorrmmaatt _(_a_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
          C-library printf()  format  specification used  by write/1  and
@@ -1717,10 +1721,6 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          If  Prolog is  linked  with  GMP,  this flag  gives  the  major
          version of the GMP library used.  See also section 9.6.7.
 
-    ggnnuu__lliibbpptthhrreeaadd__vveerrssiioonn _(_a_t_o_m_)
-         Linux systems only.   Reports the  version of the Linux  thread
-         library used.  See section ???? for how it may affect you.
-
     gguuii _(_b_o_o_l_)
          Set to true if XPCE is around and can be used for graphics.
 
@@ -1728,8 +1728,8 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          If _i_n_t_e_g_e_r >0,  support Unix csh(1)  like history as described
          in section  2.7.    Otherwise,  only support  reusing  commands
          through the command-line  editor.  The  default is to set  this
-         prolog-flag to  0 if  a  command-line editor  is provided  (see
-         prolog-flag readline) and 15 otherwise.
+         Prolog flag  to 0  if a  command-line editor  is provided  (see
+         Prolog flag readline) and 15 otherwise.
 
     hhoommee _(_a_t_o_m_)
          SWI-Prolog's  notion  of   the  home-directory.      SWI-Prolog
@@ -1742,7 +1742,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          the console window.
 
     iinntteeggeerr__rroouunnddiinngg__ffuunnccttiioonn _(_d_o_w_n_,_t_o_w_a_r_d___z_e_r_o_)
-         ISO prolog-flag  describing rounding by  // and rem  arithmetic
+         ISO Prolog flag  describing rounding by  // and rem  arithmetic
          functions.  Value depends on the C-compiler used.
 
     iissoo _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
@@ -1773,7 +1773,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          switched off using the configure option --disable-largefile.
 
     mmaaxx__aarriittyy _(_u_n_b_o_u_n_d_e_d_)
-         ISO  prolog-flag  describing  there  is  no  maximum  arity  to
+         ISO  Prolog  flag describing  there  is  no  maximum  arity  to
          compound terms.
 
     mmaaxx__iinntteeggeerr _(_i_n_t_e_g_e_r_)
@@ -1831,7 +1831,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
 
     ppiidd _(_i_n_t_)
          Process identifier of  the running Prolog  process.   Existence
-         of this flag is implementation dependent.
+         of this flag is implementation defined.
 
     ppiippee _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If  true,  open(pipe(command), mode, Stream),   etc.  are  sup-
@@ -1865,7 +1865,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
 
     rreeppoorrtt__eerrrroorr _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If true, print  error messages, otherwise  suppress them.   May
-         be changed.  See also  the debug_on_error prolog-flag.   Default
+         be changed.  See also  the debug_on_error Prolog flag.   Default
          is true, except for the runtime version.
 
     rruunnttiimmee _(_b_o_o_l_)
@@ -1874,8 +1874,8 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          tracer and profiler).
 
     ssaavveedd__pprrooggrraamm _(_b_o_o_l_)
-         If present and true, Prolog is started from a  state saved with
-         qsave_program/[1,2].
+         If present  and  true, Prolog  has been  started  from a  state
+         saved with qsave_program/[1,2].
 
     sshhaarreedd__oobbjjeecctt__eexxtteennssiioonn _(_a_t_o_m_)
          Extension used  by  the operating  system for  shared  objects.
@@ -1894,15 +1894,18 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          is active.  See section 9.6.20.1 for details.
 
     ssyysstteemm__tthhrreeaadd__iidd _(_i_n_t_)
-         On MT systems (section 8, refers to  the thread-identifier used
-         by the system for the calling thread.  See also thread_self/1.
+         Available  in  multi-threaded version  (see  section  8)  where
+         the  operating  system  provides  system-wide   integer  thread
+         identifiers.   The  integer  is the  thread-identifier used  by
+         the  operating  system  for the  calling  thread.     See  also
+         thread_self/1.
 
-    ttaaiill__rreeccuurrssiioonn__ooppttiimmiissaattiioonn _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         Determines  whether  or  not  tail-recursion   optimisation  is
-         enabled.     Normally the  value  of  this  flag  is  equal  to
-         the  debug  flag.      As  programs   may  run  out  of   stack
-         if  tail-recursion optimisation  is  omitted, it  is  sometimes
-         necessary to enable it during debugging.
+    llaasstt__ccaallll__ooppttiimmiissaattiioonn _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         Determines whether  or not last-call  optimisation is  enabled.
+         Normally the  value of this  flag is equal  to the debug  flag.
+         As programs  may run  out  of stack  if last-call  optimisation
+         is omitted,  it  is  sometimes necessary  to enable  it  during
+         debugging.
 
     ttiimmeezzoonnee _(_i_n_t_e_g_e_r_)
          Offset in seconds  west of GMT of  the current time-zone.   Set
@@ -1927,7 +1930,13 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
     ttrraaccee__ggcc _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If  true  (false  is  the  default),  garbage  collections  and
          stack-shifts  will  be  reported on  the  terminal.     May  be
-         changed.
+         changed.   Values are  reported in  bytes as G+T,  where G  is
+         the global stack value and  T the trail stack value.   `Gained'
+         describes the number of bytes reclaimed.  `used'  the number of
+         bytes on  the stack  after GC and  `free' the  number of  bytes
+         allocated, but not in use.  Below is an example output.
+
+         % GC: gained 236,416+163,424 in 0.00 sec; used 13,448+5,808; free 72,568+47,440
 
     ttttyy__ccoonnttrrooll _(_b_o_o_l_)
          Determines whether  the terminal  is switched to  raw mode  for
@@ -1973,10 +1982,11 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
 
     vveerrssiioonn _(_i_n_t_e_g_e_r_)
          The version identifier is an integer with value:
+
                           10000_*Major+ 100_*Minor+_P_a_t_c_h
 
-         Note that  in releases  up to 2.7.10  this prolog-flag  yielded
-         an  atom   holding  the  three   numbers  separated  by   dots.
+         Note  that  in   releases  up  to   2.7.10  this  Prolog   flag
+         yielded an atom  holding the three  numbers separated by  dots.
          The  current representation  is  much easier  for  implementing
          version-conditional statements.
 
@@ -1986,7 +1996,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          available on MS-Windows based versions.
 
     wwrriittee__aattttrriibbuutteess _(_a_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
-         Defines  how write/1  an  friends write  attributed  variables.
+         Defines how  write/1  and friends  write attributed  variables.
          The option values are  described with the attributes option  of
          write_term/3.  Default is ignore.
 
@@ -2004,7 +2014,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
 
 
 sseett__pprroolloogg__ffllaagg((_+_K_e_y_, _+_V_a_l_u_e))
-    Define  a new prolog-flag or change its value.  _K_e_y is an atom.   If
+    Define  a new Prolog flag or change its value.  _K_e_y is an atom.   If
     the  flag is  a system-defined  flag that is  not marked  _c_h_a_n_g_e_a_b_l_e
     above,  an  attempt to  modify the flag  yields a  permission_error.
     If  the  provided _V_a_l_u_e  does not  match  the type  of the  flag,  a
@@ -2012,7 +2022,12 @@ sseett__pprroolloogg__ffllaagg((_+_K_e_y_, _+_V_a_l_u_
 
     In  addition  to  ISO,  SWI-Prolog allows  for  user-defined  prolog
     flags.   The type of the  flag is determined from the  initial value
-    and cannot be changed afterwards.
+    and  cannot be changed  afterwards.   Defined types are boolean  (if
+    the  initial value is one  of false, true, on  or off), atom if  the
+    initial value is any  other atom, integer if the value is an integer
+    that  can be expressed as a 64-bit signed value.  Any  other initial
+    value  results  in an  untyped  flag that  can represent  any  valid
+    Prolog term.
 
 
 22..1122 AAnn oovveerrvviieeww ooff hhooookk pprreeddiiccaatteess
@@ -2088,14 +2103,14 @@ portability.
 
 If ---at  runtime--- an undefined predicate  is trapped the system  will
 first try  to import  the predicate  from the  module's default  module.
-If  this fails  the  _a_u_t_o _l_o_a_d_e_r  is activated.    On  first  activation
-an  index to  all library  files in  all library  directories is  loaded
-in  core  (see  library_directory/1 and  file_search_path/2).     If  the
-undefined predicate  can be  located in  the one of  the libraries  that
-library file  is automatically loaded  and the  call to the  (previously
-undefined) predicate is restarted.  By default this  mechanism loads the
-file silently.   The  current_prolog_flag/2verbose_autoload is  provided
-to  get verbose  loading.    The prolog-flag  autoload  can be  used  to
+If this  fails the _a_u_t_o  _l_o_a_d_e_r is  activated.   On first activation  an
+index  to all  library files  in all  library directories  is loaded  in
+core (see library_directory/1 and file_search_path/2).   If the undefined
+predicate  can be  located in  one of  the libraries  that library  file
+is  automatically loaded  and  the call  to the  (previously  undefined)
+predicate  is restarted.    By  default this  mechanism loads  the  file
+silently.    The current_prolog_flag/2 verbose_autoload  is provided  to
+get  verbose  loading.    The  Prolog  flag  autoload  can  be  used  to
 enable/disable the entire auto load system.
 
 The auto-loader only  works if the unknown  flag (see unknown/2) is  set
@@ -2191,14 +2206,6 @@ SWI-Prolog uses ISO-Prolog standard syntax, which  is closely compatible
 to Edinburgh Prolog syntax.   A description of this syntax can  be found
 in the  Prolog books  referenced in the  introduction.   Below are  some
 non-standard or non-common constructs that are accepted by SWI-Prolog:
-
-  o 0'<_c_h_a_r>
-    This  construct is not accepted by all Prolog systems that  claim to
-    have  Edinburgh compatible syntax.  It describes the  character code
-    of  <_c_h_a_r>.   To test  whether C is  a lower case  character one can
-    use between(0'a, 0'z, C).   If character codes are enabled (default)
-    <_c_h_a_r>  can use \  escape sequences.   The  sequence 0'\t represents
-    the tab character using symbolic notation.
 
   o /* .../* ...*/ ...*/
     The  /* ...*/  comment statement  can be  nested.    This is  useful
@@ -2320,9 +2327,9 @@ This  section describes  the implication  for  the source  files,  while
 writing international source files is described in section 3.1.3.
 
 The  SWI-Prolog Unicode  character classification  is  based on  version
-4.1.0 of  the Unicode standard.    Please that char_type/2 and  friends,
-intended to be used with all text except Prolog source  code is based on
-the C-library locale-based classification routines.
+4.1.0  of the  Unicode  standard.    Please  note  that char_type/2  and
+friends, intended to be used with all text except  Prolog source code is
+based on the C-library locale-based classification routines.
 
   o _Q_u_o_t_e_d _a_t_o_m_s _a_n_d _s_t_r_i_n_g_s
     Any  character  of  any script  can  be  used in  quoted  atoms  and
@@ -2337,7 +2344,7 @@ the C-library locale-based classification routines.
     by  a sequence of ID_Continue codes.  Such sequences are  handled as
     a  single token  in SWI-Prolog.    The token  is a  _v_a_r_i_a_b_l_e iff  it
     starts with  an uppercase character or an underscore (_).  Otherwise
-    it is an atom.   Note that many languages do not not have the notion
+    it  is an atom.   Note  that many languages do  not have the  notion
     of  character-case.  In such languages variables _m_u_s_t be  written as
     _name.
 
@@ -2424,7 +2431,7 @@ classification (uppercase, lowercase, digit, etc.)   and operations such
 as case-conversion are unambiguously defined.
 
 For this reason SWI-Prolog has two representations for  atoms and string
-objects (see  section 4.23.   If  the text  fits in ISO  Latin-1, it  is
+objects (see  section 4.23).   If the  text fits in  ISO Latin-1, it  is
 represented as  an array  of 8-bit characters.    Otherwise the text  is
 represented as an array of 32-bit numbers.   This representational issue
 is completely  transparent to  the Prolog user.    Users of the  foreign
@@ -2675,7 +2682,7 @@ MMeemmoorryy aarreeaass  On 32-bit hardware, SWI-Prolog data is packe
     64-bit hardware there are no meaningful limits.
 
 IInntteeggeerrss  Integers  are  64-bit  on  32  as  well  as  64-bit  machines.
-    Integers  up to the value of  the max_tagged_integer prolog-flag  are
+    Integers  up to the value of  the max_tagged_integerProlog  flag are
     represented more efficiently  on the stack.  For clauses and records
     the difference is much smaller.
 
@@ -3024,11 +3031,10 @@ to change.    You may  specify your  favourite editor  using the  prolog
 flag editor,  the environment variable EDITOR  or by defining rules  for
 prolog_edit:edit_source/1 (see section 4.4).
 
-The  use  of  a built-in  editor,  which  is  selected  by  setting  the
-prolog-flag  editor to  pce_emacs,  has advantages.    The  XPCE  _e_d_i_t_o_r
-object around  which the  built-in PceEmacs  is built can  be opened  as
-a Prolog  stream allowing  analysis of  your source by  the real  Prolog
-system.
+The use of  a built-in editor, which  is selected by setting the  Prolog
+flag  editor to  pce_emacs, has  advantages.    The XPCE  _e_d_i_t_o_r  object
+around which the  built-in PceEmacs is built  can be opened as a  Prolog
+stream allowing analysis of your source by the real Prolog system.
 
 
 33..33..11 LLooccaattiinngg tthhiinnggss ttoo eeddiitt
@@ -3085,7 +3091,7 @@ and watch the files being reloaded.
 
 Initially edit/1  uses the  editor specified in  the EDITOR  environment
 variable.   There are two ways to  force it to use the built-in  editor.
-One is to  set the prolog-flag editor  to pce_emacs and the other is  by
+One is to  set the Prolog flag editor  to pce_emacs and the other is  by
 starting the editor explicitly using the emacs/[0,1] predicates.
 
 
@@ -3640,7 +3646,7 @@ breaking  atoms  and  numbers  into  characters  are  are  atom_chars/2,
 atom_codes/2,  number_codes/2 and  number_chars/2.    For  character  I/O
 on  streams  there  is get_char/[1,2],  get_code/[1,2],  get_byte/[1,2],
 peek_char/[1,2],   peek_code/[1,2],   peek_byte/[1,2],   put_code/[1,2],
-put_char/[1,2]  and  put_byte/[1,2].     The  prolog-flag  double_quotes
+put_char/[1,2]  and  put_byte/[1,2].     The  Prolog  flag  double_quotes
 (see current_prolog_flag/2) controls how  text between double-quotes  is
 interpreted.
 
@@ -3717,7 +3723,7 @@ llooaadd__ffiilleess((_+_F_i_l_e_s_, _+_O_p_t_i_o_n_s)
     aauuttoollooaadd((_B_o_o_l))
          If  true  (default false),  indicate  this  load  is  a  _d_e_m_a_n_d
          load.   This  implies that,  depending  on the  setting of  the
-         prolog-flag  verbose_autoload  the  load-action  is  printed  at
+         Prolog  flag verbose_autoload  the load-action  is  printed  at
          level informational  or silent.   See also  print_message/2 and
          current_prolog_flag/2.
 
@@ -3893,7 +3899,7 @@ ffiillee__sseeaarrcchh__ppaatthh((_+_A_l_i_a_s_, _?_P_
     The  file_search_path/2expansion  is used by all loading  predicates
     as well as by absolute_file_name/[2,3].
 
-    The  prolog-flag  verbose_file_search  can be  set  to true  to  help
+    The  Prolog  flag verbose_file_search can  be set  to  true to  help
     debugging Prolog's search for files.
 
 
@@ -4239,8 +4245,8 @@ pprroolloogg__eeddiitt::eeddiitt__ssoouurrccee((_+_L_
     defined.  If it succeeds, edit/1 assumes the editor is started.
 
     If  it fails, edit/1 uses  its internal defaults, which are  defined
-    by  the prolog-flag editor  and/or the environment variable  EDITOR.
-    The  following  rules  apply.    If  the prolog-flag  editor  is  of
+    by  the Prolog flag editor  and/or the environment variable  EDITOR.
+    The  following  rules apply.     If the  Prolog  flag editor  is  of
     the  format $<_n_a_m_e>,  the  editor is  determined by  the environment
     variable  <_n_a_m_e>.   Else, if this flag  is pce_emacs or built_in _a_n_d
     XPCE  is  loaded or  can  be loaded,  the  built-in Emacs  clone  is
@@ -4406,8 +4412,8 @@ the so called ``standard order''.  This order is defined as follows:
  4. _S_t_r_i_n_g_s are compared alphabetically.
 
  5. _N_u_m_b_e_r_s  are compared  by value.   Integers  and floats are  treated
-    identically.   If the prolog_flag (see current_prolog_flag/2)  iso is
-    defined, all floating point numbers precede all integers.
+    identically.  If  the Prolog flag iso is defined, all floating point
+    numbers precede all integers.
 
  6. _C_o_m_p_o_u_n_d  terms are  first checked  on  their arity,  then on  their
     functor-name  (alphabetically)  and  finally  recursively  on  their
@@ -4813,10 +4819,9 @@ tthhrrooww((_+_E_x_c_e_p_t_i_o_n))
 
 Before  the introduction  of exceptions  in SWI-Prolog  a runtime  error
 was handled  by printing  an error  message, after  which the  predicate
-failed.   If  the prolog_flag (see current_prolog_flag/2) debug_on_error
-was in effect  (default), the tracer was  switched on.  The  combination
-of the  error message and trace  information is generally sufficient  to
-locate the error.
+failed.  If the  Prolog flag debug_on_errorwas in effect  (default), the
+tracer was switched on.  The combination of the  error message and trace
+information is generally sufficient to locate the error.
 
 With exception handling,  things are different.   A programmer may  wish
 to trap an  exception using catch/3 to avoid  it reaching the user.   If
@@ -4832,7 +4837,7 @@ the system will enter trace mode.
 If the system  is in an non-interactive  callback from foreign code  and
 there is no catch/3  active in the current context, it  cannot determine
 whether or  not the  exception will  be caught by  the external  routine
-calling Prolog.    It will  then base  its behaviour on  the prolog_flag
+calling Prolog.   It  will then  base its behaviour  on the Prolog  flag
 debug_on_error:
 
   o _c_u_r_r_e_n_t___p_r_o_l_o_g___f_l_a_g_(_d_e_b_u_g___o_n___e_r_r_o_r_, _f_a_l_s_e_)
@@ -4953,7 +4958,7 @@ mmeessssaaggee__hhooookk((_+_T_e_r_m_, _+_K_i_n_d_, _+
 
 
 mmeessssaaggee__ttoo__ssttrriinngg((_+_T_e_r_m_, _-_S_t_r_i_n_g))
-    Translates  a message-term into a  string object (see section  4.23.
+    Translates  a message-term into a string object (see  section 4.23).
     Primarily  intended  to  write  messages to  Windows  in  XPCE  (see
     section 1.5) or other GUI environments.
 
@@ -6539,11 +6544,10 @@ Writing  to  Prolog  datastructures  such  as  atoms  or  code-lists  is
 supported by with_output_to/2and format/3.
 
 There are  two ways  to manipulate  the output  format.   The  predicate
-print/[1,2]  may  be  programmed  using  portray/1.      The  format  of
-floating point  numbers may  be manipulated  using the  prolog_flag  (see
-current_prolog_flag/2) float_format.
+print/[1,2] may be programmed  using portray/1.  The format  of floating
+point numbers may be manipulated using the Prolog flag float_format.
 
-Reading  is  sensitive   to  the  prolog_flag  character_escapes,   which
+Reading  is  sensitive  to  the  Prolog  flag  character_escapes,   which
 controls  the interpretation  of the  \ character  in  quoted atoms  and
 strings.
 
@@ -6587,7 +6591,7 @@ wwrriittee__tteerrmm((_+_T_e_r_m_, _+_O_p_t_i_o_n_s))
          Yes
 
          Used  by   the   top-level  and   debugger  to   limit   screen
-         output.   See also the  prolog-flags toplevel_print_options  and
+         output.   See also the Prolog  flags toplevel_print_options and
          debugger_print_options.
 
     mmoodduullee((_M_o_d_u_l_e))
@@ -6725,7 +6729,7 @@ rreeaadd__tteerrmm((_-_T_e_r_m_, _+_O_p_t_i_o_n_s))
 
     cchhaarraacctteerr__eessccaappeess((_B_o_o_l))
          Defines  how  to  read  \  escape-sequences  in  quoted  atoms.
-         See the  prolog-flags character_escapes, current_prolog_flag/2.
+         See the Prolog  flags character_escapes, current_prolog_flag/2.
          (SWI-Prolog).
 
     ccoommmmeennttss((_-_C_o_m_m_e_n_t_s))
@@ -6737,11 +6741,11 @@ rreeaadd__tteerrmm((_-_T_e_r_m_, _+_O_p_t_i_o_n_s))
          call started upto the end of the term read.
 
     ddoouubbllee__qquuootteess((_B_o_o_l))
-         Defines  how to  read  "..." strings.    See  the  prolog-flags
-         double_quotes, current_prolog_flag/2.  (SWI-Prolog).
+         Defines  how to  read  "..." strings.     See the  Prolog  flag
+         double_quotes.  (SWI-Prolog).
 
     mmoodduullee((_M_o_d_u_l_e))
-         Specify  _M_o_d_u_l_e  for  operators,   character_escapes   flag  and
+         Specify  _M_o_d_u_l_e  for  operators,   character_escapes  flag  and
          double_quotes flag.  The  value of the latter two is  overruled
          if  the corresponding  read_term/3  option  is provided.     If
          no module  is specified, the  current `source-module' is  used.
@@ -7276,7 +7280,7 @@ ccooddee__ttyyppee((_?_C_o_d_e_, _?_T_y_p_e))
     possible.    They handle  either representation if  the argument  is
     instantiated  and  only will  instantiate with  an  integer code  or
     one-character  atom depending  of the version  used.   See also  the
-    prolog-flag double_quotes, atom_chars/2 and atom_codes/2.
+    Prolog flag double_quotes, atom_chars/2 and atom_codes/2.
 
 
 44..2222..11 CCaassee ccoonnvveerrssiioonn
@@ -7496,8 +7500,8 @@ features, they are provided for ISO compliance.
 cchhaarr__ccoonnvveerrssiioonn((_+_C_h_a_r_I_n_, _+_C_h_a_r_O_u_t))
     Define  that term-input (see  read_term/3)  maps each character  read
     as  _C_h_a_r_I_n to the character _C_h_a_r_O_u_t.   Character conversion is  only
-    executed  if the prolog-flag char_conversion is set to true  and not
-    inside  quoted  atoms or  strings.    The  initial table  maps  each
+    executed  if  the Prolog  flag char_conversion is  set  to true  and
+    not  inside quoted atoms  or strings.   The initial table maps  each
     character onto itself.  See also current_char_conversion/2.
 
 
@@ -8701,8 +8705,8 @@ uunniixx((_+_C_o_m_m_a_n_d))
          application arguments are separated  by --.  Integer  arguments
          are  passed as  Prolog  integers,  float arguments  and  Prolog
          floating  point  numbers and  all  other  arguments  as  Prolog
-         atoms.  New applications should use the prolog-flag argv.   See
-         also prolog prolog-flag argv.
+         atoms.  New applications should use the Prolog flag argv.   See
+         also prolog Prolog flag argv.
 
          A  stand-alone program  could  use  the following  skeleton  to
          handle command-line arguments.  See also section 2.10.2.4.
@@ -9164,7 +9168,7 @@ aabbssoolluuttee__ffiillee__nnaammee((_+_S_p_e_c_, _+_
          expand_file_name/2  followed  by   member/2   on  _S_p_e_c   before
          proceeding.  This is a SWI-Prolog extension.
 
-    The  prolog-flag  verbose_file_search  can be  set  to true  to  help
+    The  Prolog  flag verbose_file_search can  be set  to  true to  help
     debugging Prolog's search for files.
 
     Compatibility  considerations  to common  argument-order in  ISO  as
@@ -9287,7 +9291,7 @@ aabboorrtt
     corrupt.    Therefore the  system will use  the rebuild-strategy  if
     the  abort was generated  by an internal  consistency check and  the
     exception  mechanism otherwise.   Prolog  can be  forced to use  the
-    rebuild-strategy  setting  the prolog  flag  abort_with_exception  to
+    rebuild-strategy  setting  the prolog  flag  abort_with_exception to
     false.
 
 
@@ -9305,11 +9309,10 @@ hhaalltt((_+_S_t_a_t_u_s))
 
 
 pprroolloogg
-    This  goal starts the  default interactive top  level.  Queries  are
-    read  from the stream user_input.   See also the history prolog_flag
-    (current_prolog_flag/2).    The  prolog/0  predicate  is  terminated
-    (succeeds)  by typing  the  end-of-file character  (On most  systems
-    control-D).
+    This  goal  starts  the default  interactive  top  level.    Queries
+    are  read from  the stream  user_input.    See also  the Prolog  flag
+    history.   The prolog/0 predicate is terminated (succeeds) by typing
+    the end-of-file character (typically control-D).
 
 The following  two hooks allow  for expanding  queries and handling  the
 result of  a query.    These hooks are  used by  the top-level  variable
@@ -9430,8 +9433,8 @@ nnoottrraaccee((_+_G_o_a_l))
 
 ddeebbuugg
     Start  debugger.     In  debug  mode,   Prolog  stops  at  spy-  and
-    trace-points,  disables tail-recursion  optimisation and  aggressive
-    destruction   of   choice-points  to   make  debugging   information
+    trace-points,   disables   last-call  optimisation  and   aggressive
+    destruction   of  choice  points   to  make  debugging   information
     accessible.  Implemented by the Prolog flag debug.
 
 
@@ -9513,7 +9516,7 @@ ssttyyllee__cchheecckk((_+_S_p_e_c))
     | discontiguous |  on    |Warn if the clauses  for a predicate  are |
     |               |        |not together in the same source file.     |
     | string        |  off   |Backward    compatibility.            See |
-    |               |        |the       prolog-flag       double_quotes |
+    |               |        |the     Prolog     flag     double_quotes |
     |               |        |(current_prolog_flag/2).                  |
 
     | charset       |  off   |Warn on atoms and variables holding  non- |
@@ -10056,7 +10059,7 @@ space these support predicates will be visible from the entire program.
 For this  reason, it is  desirable that each source  module has its  own
 predicate space.    A module  consists of  a declaration  for its  name,
 its _p_u_b_l_i_c  _p_r_e_d_i_c_a_t_e_s and  the predicates  themselves.   This  approach
-allow the programmer  to use short (local) names for  support predicates
+allows the programmer to use short (local) names  for support predicates
 without worrying  about name  conflicts with the  support predicates  of
 other  modules.    The  module  declaration also  makes  explicit  which
 predicates are  meant for public usage  and which for private  purposes.
@@ -11506,7 +11509,7 @@ cchhrr__sshhooww__ssttoorree((_+_M_o_d))
     Prints  all  suspended constraints  of module  _M_o_d  to the  standard
     output.   This predicate  is automatically called by the  SWI-Prolog
     top-level  at the end of each  query for every CHR module  currently
-    loaded.    The prolog-flag  chr_toplevel_show_store controls  whether
+    loaded.    The Prolog flag  chr_toplevel_show_store controls  whether
     the  top-level shows the constraint stores.  The value  true enables
     it.  Any other value disables it.
 
@@ -12705,8 +12708,8 @@ platforms) and loaded into the the running Prolog process..
 
 The _s_t_a_t_i_c  _l_i_n_k_i_n_g schema can  be used on  all versions of  SWI-Prolog.
 Whether or  not dynamic  linking is  supported can be  deduced from  the
-prolog-flag  open_shared_object  (see current_prolog_flag/2).    If  this
-prolog-flag yields true, open_shared_object/2 and related predicates are
+Prolog  flag open_shared_object (see  current_prolog_flag/2).    If  this
+Prolog flag yields true, open_shared_object/2 and related predicates are
 defined.  See  section 9.4 for a suitable high-level interface  to these
 predicates.
 
@@ -12775,7 +12778,7 @@ ccaallll__sshhaarreedd__oobbjjeecctt__ffuunnccttiioon
 
 This  section discusses  the  functionality  of the  (autoload)  library
 shlib.pl, providing an interface to shared libraries.   This library can
-only be used if the prolog-flag open_shared_object is enabled.
+only be used if the Prolog flag open_shared_objectis enabled.
 
 
 llooaadd__ffoorreeiiggnn__lliibbrraarryy((_+_L_i_b_, _+_E_n_t_r_y))
@@ -13249,7 +13252,7 @@ With  the introduction  of  atom-garbage  collection in  version  3.3.0,
 atoms  no  longer  live  as  long  as  the  process.    Instead,   their
 lifetime is  guaranteed only as  long as  they are referenced.   In  the
 single-threaded version,  atom garbage collections  are only invoked  at
-the  _c_a_l_l_-_p_o_r_t.   In  the multi-threaded  version (see  section 8,  they
+the _c_a_l_l_-_p_o_r_t.    In the multi-threaded  version (see  section 8),  they
 appear asynchronously, except for the invoking thread.
 
 For dealing with  atom garbage collection, two additional  functions are
@@ -14207,7 +14210,7 @@ char * PPLL__qquuoottee(_i_n_t _c_h_r_, _c_o_n_s_t _c_h_a
 
     In  the  current implementation,  the string  is  surrounded by  _c_h_r
     and  any  occurrence  of  _c_h_r  is  doubled.     In  the  future  the
-    behaviour  will depend  on the  character_escape prolog-flag.    See
+    behaviour  will depend  on the  character_escape  Prolog flag.    See
     current_prolog_flag/2.
 
 
@@ -16464,7 +16467,7 @@ development version, except for the following features:
     runtime environment rather than the development environment.
 
   o _c_l_a_u_s_e_/_[_2_,_3
-    do not work  on static predicates] This prolog-flag inhibits listing
+    do not work  on static predicates] This Prolog flag inhibits listing
     your program.  It is only a very limited protection however.
 
 The  following  fragment   is  an  example  for  building  the   runtime
@@ -19155,7 +19158,7 @@ ssttrruuccttuurree
 
 ssttrriinngg
     Used  for the  following representations  of text:   a packed  array
-    (see  section 4.23, SWI-Prolog specific), a list of  character codes
+    (see section 4.23),  SWI-Prolog specific), a list of character codes
     or a list of one-character _a_t_o_m_s.
 
 ssuucccceeeedd
@@ -19667,188 +19670,188 @@ Bibliography
 
 Index
 
-'MANUAL' _l_i_b_r_a_r_y, 43                 tty_size/2, 546
---disable-segv-handling, 1045        ttyflush/0, 337, 531
--lpl _l_i_b_r_a_r_y, 1046                   tuples_in/2, 1192, 1218
--lreadline _l_i_b_r_a_r_y, 1074
-.pl, 91                              UCS, 76
-.pro, 91                             ugraph _l_i_b_r_a_r_y, 1123
-?=/2, 195                            ugraph_union/3, 1136
-=:=/2, 445                           ugraphs _l_i_b_r_a_r_y, 1123, 1318
-/\/2, 480                            ugraphs.pl _l_i_b_r_a_r_y, 1123
-=\=/2, 444                           Unicode, 76
-|/2, 204                             unifiable/3, 196
-#=/2, 1197                           unify_with_occurs_check/2, 60, 186
-#>=/2, 1195                          union/3, 1095
-#>/2, 1193                           Unix, 7
-#=</2, 1196                          unix, 60
-#</2, 1194                           unix/1, 21, 559
-#\=/2, 1198                          unknown/2, 63, 629, 684, 1075
-,/2, 202                             unlisten/1, 1273
-{}/1, 1222                           unlisten/2, 1274
-!/0, 201                             unlisten/3, 1275
-!/1, 236                             unload_foreign_library/1, 834
-/, 92                                unsetenv/1, 556, 557
-//2, 455                             upcase_atom/2, 414, 418
-./2, 464                             update view, 260
-=/2, 185                             URL, 552
-==/2, 183                            url _l_i_b_r_a_r_y, 1171, 1182, 1322
-#<=>/2, 1216                         use_module/1, 62, 93, 675
->=/2, 443                            use_module/2, 63, 676
->/2, 440                             use_module/[1
-^/2, 496                                2], 53, 60, 106, 123,  124, 126,
-///2, 458                                  674, 677, 679, 693, 1304
-->/2, 205                            user profile file, 39
-=</2, 442                            UTF-8, 76
-#<=/2, 1215                          utf-8, 122
-<</2, 478
-</2, 441                             var/1, 12, 166, 704, 864
--/1, 450                             variable_value/3, 1253
--/2, 453, 1208                       vars_in/2, 1236, 1237
-\=/2, 187                            vars_in/3, 1236, 1238
-\/1, 482                             verbose, 41
-\==/2, 184                           vertices/2, 1125
-\+/1, 207                            vertices_edges_to_ugraph/3, 1124
-\//2, 479                            visible/1, 628, 1286
-+/1, 451                             volatile/1, 278, 782, 1063
-+/2, 452, 1206
-**/2, 494                            wait_for_input/3,w297,h316en _l_i_b_r_a_r_y, 717
-#=>/2, 1214
->>/2, 477                            when/2,w75,i717ldcard_match/2, 668
-;/2, 203
-*->/2, 206                           win_exec/2,w548,i551,n552_has_menu/0, 573
-=@=/2, 188
-\=@=/2, 189                          win_insert_menu/2,w573--575in_insert_menu_item/4, 573, 575
-@>=/2, 193
-@>/2, 192                            win_registry_get_value/3,w554in_shell/2, 548, 552, 553, 1172
-*/2, 454, 1207
-@=</2, 191                           win_window_pos/1,W572indow interface, 8
-@</2, 190
-=../2, 386                           window_title/2,W571indows, 7
-\, 92
-_PL_get_arg(), 894                   windows,w60ith_mutex/2, 786, 787, 806
-64-bits
-   platforms, 85                     with_output_to/2,403310,, 314,537362,, 567
+'MANUAL' _l_i_b_r_a_r_y, 43                 sub_atom/5, 412, 427
+--disable-segv-handling, 1045        sub_string/5, 427
+-lpl _l_i_b_r_a_r_y, 1046                   sublist/3, 524
+-lreadline _l_i_b_r_a_r_y, 1074             subset/2, 1096
+.pl, 91                              subtract/3, 1094
+.pro, 91                             succ/2, 437
+?=/2, 195                            sum/3, 1199
+=:=/2, 445                           sumlist/2, 1088
+/\/2, 480                            sup/2, 1225
+=\=/2, 444                           swi/pce_profile _l_i_b_r_a_r_y, 635
+|/2, 204                             swi_edit _l_i_b_r_a_r_y, 160
+#=/2, 1197                           swi_help _l_i_b_r_a_r_y, 43
+#>=/2, 1195                          swritef/2, 533
+#>/2, 1193                           swritef/3, 314, 532
+#=</2, 1196
+#</2, 1194                           TAB
+#\=/2, 1198                             completion, 98
+,/2, 202                             tab/1, 333
+{}/1, 1222                           tab/2, 334
+!/0, 201                             tan/1, 486
+!/1, 236                             tdebug/0, 799, 803
+/, 92                                tdebug/1, 798, 799, 802
+//2, 455                             tell/1, 20,  284,  286,  299,  300,
+./2, 464                                   302, 303
+=/2, 185                             telling/1, 299, 300, 305
+==/2, 183                            term//1, 314
+#<=>/2, 1216                         term_expansion/2,  62,  123,   139--
+>=/2, 443                                  141, 146, 152, 605, 739
+>/2, 440                             term_to_atom/2, 314, 405, 956
+^/2, 496                             term_variables/2, 75, 378, 389, 390
+///2, 458                            term_variables/3, 389, 390
+->/2, 205                            terms
+=</2, 442                               cyclic, 75
+#<=/2, 1215                          thread _l_i_b_r_a_r_y, 60
+<</2, 478                            thread_at_exit/1, 763, 811
+</2, 441                             thread_create/3, 757, 760, 817, 819
+-/1, 450                             thread_detach/1, 757, 760
+-/2, 453, 1208                       thread_exit/1, 759, 761, 766
+\=/2, 187                            thread_get_message/1, 772, 776
+\/1, 482                             thread_get_message/2, 776
+\==/2, 184                           thread_initialization/1, 719, 762
+\+/1, 207                            thread_join/2, 757, 759, 761, 766
+\//2, 479                            thread_local/1, 264, 278, 781, 782
++/1, 451                             thread_peek_message/1, 772, 773, 777
++/2, 452, 1206                       thread_peek_message/2, 777
+**/2, 494                            thread_self/1, 60, 758, 763, 771
+#=>/2, 1214                          thread_send_message/2, 771, 774
+>>/2, 477                            thread_setconcurrency/2, 60, 764
+;/2, 203                             thread_signal/2,   780,  790,   798,
+*->/2, 206                                 1004
+=@=/2, 188                           thread_statistics/3, 767
+\=@=/2, 189                          threads/0, 793
+@>=/2, 193                           throw/1, 17, 51, 75, 218--220, 232,
+@>/2, 192                                  601,  766,  779,   780,  999,
+*/2, 454, 1207                             1001, 1289--1291
+@=</2, 191                           time/1, 499, 634, 637, 638
+@</2, 190                            time_file/2, 586
+=../2, 386                           tmp_file/2, 594
+\, 92                                tnodebug/0, 801
+_PL_get_arg(), 894                   tnodebug/1, 800, 803
+64-bits                              told/0, 307
+   platforms, 85                     top_sort/2,t1137op_sort/3, 1138
 
-abolish/1, 17, 241, 242              working_directory/2, 559, 588,  597,
-abolish/2, 242, 834                        598
-abolish/[1                           write(), 963
-   2], 60                            write/1, 60,  75,  367,  371,  405,
-abort/0, 41, 51, 60, 286, 297, 601,        410, 531, 536, 882, 920, 963
-      742, 790, 1022, 1032           write/2, 368
-abs/1, 460, 1212                     write_canonical/1, 365, 536
-absolute_file_name/2, 32,  124, 136, write_canonical/2, 366, 388
-      587, 589, 597, 1068            write_canonical/[1
-absolute_file_name/3, 60,  62,  116,    2], 17
-      123,   133,  587,  588,  832,  write_term/2,  51,  60,  186,  363--
-      1017, 1018, 1169, 1170               365,  388,  422,   531,  536,
-absolute_file_name/[2                      709
-   3], 60, 132, 588                  write_term/3, 60, 62, 364, 387
-access_file/2, 60, 577, 588          write_term/[2
-acos/1, 488                             3], 17, 60
-acquire(), 960                       writef/1, 530
-acyclic_term/1, 75, 179, 180         writef/2, 32, 71, 362, 531, 532
-add_edges/3, 1129                    writef/[1
-add_import_module/3, 695, 696           2], 527
-add_nb_set/2, 1143                   writeln/1, 529
-add_nb_set/3, 1143--1145             writeq/1, 369, 531, 536
-add_vertices/3, 1127                 writeq/2, 370
-agent, 1268                          www_browser _l_i_b_r_a_r_y, 1319
-all_different/1, 1201                www_form_encode/2, 1187
-all_distinct/1, 1236, 1239, 1241     www_open_url/1, 1172
-Alpha
-   DEC, 16                           X-Windows, 7
-AMD64, 86                            X11, 8
-append/1, 299, 303                   xor/2, 481
-append/3, 407, 1077                  XPCE, 8
-apply/2, 211                         xref_built_in/1, 1265
-apropos/1, 45, 46, 62, 1295          xref_called/3, 1262
-arg/3, 385                           xref_clean/1, 1260
-arithmetic_function/1,   503,   504, xref_current_source/1, 1259
-      998                            xref_defined/3, 1261
-asin/1, 487                          xref_exported/2, 1263
-assert/1, 123,  131, 240, 246--249,  xref_module/2, 1264
-      260,   264,  265,  278,  681,  xref_source/1, 1258
-      700, 719, 782, 1304
-assert/2, 249--251, 258, 281
-asserta/1, 41, 131, 247
-asserta/2, 250, 258
-assertion/1, 1163
-assertions, 1163
-assertz/1, 248, 1304
-assertz/2, 251, 258
-assignment/2, 1243
-assoc _l_i_b_r_a_r_y, 1110, 1141
-assoc_to_list/2, 1111
-at_end_of_stream/0, 357
-at_end_of_stream/1, 358, 361
+abolish/1, 17, 241, 242              tprofile/1, 804, 805
+abolish/2, 242, 834                  trace/0, 51,  60,  108,  109,  119,
+abolish/[1                                 613,  619,  744,   745,  780,
+   2], 60                                  1022, 1289
+abort/0, 41, 51, 60, 286, 297, 601,  trace/1, 60, 618
+      742, 790, 1022, 1032           trace/2, 619
+abs/1, 460, 1212                     tracing/0, 614
+absolute_file_name/2, 32,  124, 136, transitive_closure/2, 1139
+      587, 589, 597, 1068            transportation/4, 1252
+absolute_file_name/3, 60,  62,  116, transpose/2, 1131
+      123,   133,  587,  588,  832,  trim_stacks/0, 60, 647, 648, 651
+      1017, 1018, 1169, 1170         true/0, 60, 199, 215
+absolute_file_name/[2                truncate/1, 473
+   3], 60, 132, 588                  tspy/1, 796, 803
+access_file/2, 60, 577, 588          tspy/2, 802
+acos/1, 488                          tty_get_capability/3, 542, 544, 546
+acquire(), 960                       tty_goto/2, 543, 545
+acyclic_term/1, 75, 179, 180         tty_put/2, 544, 545
+add_edges/3, 1129                    tty_size/2, 546
+add_import_module/3, 695, 696        ttyflush/0, 337, 531
+add_nb_set/2, 1143                   tuples_in/2, 1192, 1218
+add_nb_set/3, 1143--1145
+add_vertices/3, 1127                 UCS, 76
+agent, 1268                          ugraph _l_i_b_r_a_r_y, 1123
+all_different/1, 1201                ugraph_union/3, 1136
+all_distinct/1, 1236, 1239, 1241     ugraphs _l_i_b_r_a_r_y, 1123, 1318
+Alpha                                ugraphs.pl _l_i_b_r_a_r_y, 1123
+   DEC, 16                           Unicode, 76
+AMD64, 86                            unifiable/3, 196
+append/1, 299, 303                   unify_with_occurs_check/2, 60, 186
+append/3, 407, 1077                  union/3, 1095
+apply/2, 211                         Unix, 7
+apropos/1, 45, 46, 62, 1295          unix, 60
+arg/3, 385                           unix/1, 21, 559
+arithmetic_function/1,   503,   504, unknown/2, 63, 629, 684, 1075
+      998                            unlisten/1, 1273
+asin/1, 487                          unlisten/2, 1274
+assert/1, 123,  131, 240, 246--249,  unlisten/3, 1275
+      260,   264,  265,  278,  681,  unload_foreign_library/1, 834
+      700, 719, 782, 1304            unsetenv/1, 556, 557
+assert/2, 249--251, 258, 281         upcase_atom/2, 414, 418
+asserta/1, 41, 131, 247              update view, 260
+asserta/2, 250, 258                  URL, 552
+assertion/1, 1163                    url _l_i_b_r_a_r_y, 1171, 1182, 1322
+assertions, 1163                     use_module/1, 62, 93, 675
+assertz/1, 248, 1304                 use_module/2, 63, 676
+assertz/2, 251, 258                  use_module/[1
+assignment/2, 1243                      2], 53, 60, 106, 123,  124, 126,
+assoc _l_i_b_r_a_r_y, 1110, 1141                  674, 677, 679, 693, 1304
+assoc_to_list/2, 1111                user profile file, 39
+at_end_of_stream/0, 357              UTF-8, 76
+at_end_of_stream/1, 358, 361         utf-8, 122
 at_end_of_stream/[0
-   1], 291, 1165
-at_halt/1,   143,  144,   602,  763,
-      1034, 1043, 1302
-at_initialization/1, 143, 145, 1039
-atan/1, 489
-atan/2, 490
-atom/1, 173, 864
-atom_chars/2,  60,  122,  314,  342,
-      397, 399, 401, 415
+   1], 291, 1165                     var/1, 12, 166, 704, 864
+at_halt/1,   143,  144,   602,  763, variable_value/3, 1253
+      1034, 1043, 1302               vars_in/2, 1236, 1237
+at_initialization/1, 143, 145, 1039  vars_in/3, 1236, 1238
+atan/1, 489                          verbose, 41
+atan/2, 490                          vertices/2, 1125
+atom/1, 173, 864                     vertices_edges_to_ugraph/3, 1124
+atom_chars/2,  60,  122,  314,  342, visible/1, 628, 1286
+      397, 399, 401, 415             volatile/1, 278, 782, 1063
 atom_codes/2,   21,  60,  122,  314,
-      397--399, 403, 415
-atom_concat/3, 407, 408, 426
-atom_length/2, 60, 410, 425
-atom_number/2, 314, 403
-atom_prefix/2, 411
-atom_to_term/3, 406
-atomic/1, 175
-attach_console/0, 795--797, 1022
-attr_portray_hook/2, 363, 709
-attr_unify_hook/2, 703, 708
-attvar/1, 704
-autoload/0, 128, 1060, 1062, 1155
+      397--399, 403, 415             wait_for_input/3, 297, 316
+atom_concat/3, 407, 408, 426         when _l_i_b_r_a_r_y, 717
+atom_length/2, 60, 410, 425          when/2, 75, 717
+atom_number/2, 314, 403              wildcard_match/2, 668
+atom_prefix/2, 411                   win_exec/2, 548, 551, 552
+atom_to_term/3, 406                  win_has_menu/0, 573
+atomic/1, 175                        win_insert_menu/2, 573--575
+attach_console/0, 795--797, 1022     win_insert_menu_item/4, 573, 575
+attr_portray_hook/2, 363, 709        win_registry_get_value/3, 554
+attr_unify_hook/2, 703, 708          win_shell/2, 548, 552, 553, 1172
+attvar/1, 704                        win_window_pos/1, 572
+autoload/0, 128, 1060, 1062, 1155    Windowwinterface,i8ndow_title/2, 571
 
-b_getval/2, 721, 723
-b_setval/2, 719, 720, 1291
-backcomp _l_i_b_r_a_r_y, 17, 21
-bagof/3, 75, 141, 517--519
-bb_inf/3, 1230
-bb_inf/4, 1229
-bb_inf/5, 1228
-between/3, 436, 1089
-bits
-   64, 84
-blackboard, 1268
-block/3, 232, 233
-BOM, 78
-bounds _l_i_b_r_a_r_y, 1188
-break/0, 41, 51, 600, 742, 1022
-broadcast, 1268
-broadcast _l_i_b_r_a_r_y, 1268, 1328
-broadcast/1, 1269, 1270
-broadcast_request/1, 1270
-Byte Order Mark, 78
-byte_count/2, 295, 317
-call/1,  21,  115, 141,  177,  209,
-      211,   219,  620,  643,  645,
-      715, 976
-call/2, 210
-call/[2-6], 210
-call_cleanup/2, 216, 217, 314, 1284
-call_cleanup/3, 216, 786
-call_cleanup/[2-3], 787
-call_shared_object_function/2, 830
+b_getval/2, 721, 723                 Windows, 7
+b_setval/2, 719, 720, 1291           windows, 60
+backcomp _l_i_b_r_a_r_y, 17, 21             with_mutex/2, 786, 787, 806
+bagof/3, 75, 141, 517--519           with_output_to/2,   310,  314,   362,
+bb_inf/3, 1230                             403, 537, 567
+bb_inf/4, 1229                       working_directory/2, 559, 588,  597,
+bb_inf/5, 1228                             598
+between/3, 436, 1089                 write(), 963
+bits                                 write/1, 60,  75,  367,  371,  405,
+   64, 84                                  410, 531, 536, 882, 920, 963
+blackboard, 1268                     write/2, 368
+block/3, 232, 233                    write_canonical/1, 365, 536
+BOM, 78                              write_canonical/2, 366, 388
+bounds _l_i_b_r_a_r_y, 1188                 write_canonical/[1
+break/0, 41, 51, 600, 742, 1022         2], 17
+broadcast, 1268                      write_term/2,  51,  60,  186,  363--
+broadcast _l_i_b_r_a_r_y, 1268, 1328              365,  388,  422,   531,  536,
+broadcast/1, 1269, 1270                    709
+broadcast_request/1, 1270            write_term/3, 60, 62, 364, 387
+Byte Order Mark, 78                  write_term/[2
+byte_count/2, 295, 317               wri3],t17,e60f/1, 530
+call/1,  21,  115, 141,  177,  209,  writef/2, 32, 71, 362, 531, 532
+      211,   219,  620,  643,  645,  writef/[1
+      715, 976                          2], 527
+call/2, 210                          writeln/1, 529
+call/[2-6], 210                      writeq/1, 369, 531, 536
+call_cleanup/2, 216, 217, 314, 1284  writeq/2, 370
+call_cleanup/3, 216, 786             www_browser _l_i_b_r_a_r_y, 1319
+call_cleanup/[2-3], 787              www_form_encode/2, 1187
+call_shared_object_function/2, 830   www_open_url/1, 1172
 call_with_depth_limit/3, 215
-callable/1, 177, 1257
-catch/3,  17,  19,  218--221,  232,
-      321,   378,  643,  757,  765,
-      766, 1283, 1289--1291
-ceil/1, 476
-ceiling/1, 475, 476
-char_code/2, 122, 400
-char_conversion/2, 60, 432, 433
-char_type/2, 73, 414--417
-character set, 70
-character_count/2, 295, 317, 318
-chdir/1, 597, 598
+callable/1, 177, 1257                X-Windows, 7
+catch/3,  17,  19,  218--221,  232,  X11, 8
+      321,   378,  643,  757,  765,  xor/2, 481
+      766, 1283, 1289--1291          XPCE, 8
+ceil/1, 476                          xref_built_in/1, 1265
+ceiling/1, 475, 476                  xref_called/3, 1262
+char_code/2, 122, 400                xref_clean/1, 1260
+char_conversion/2, 60, 432, 433      xref_current_source/1, 1259
+char_type/2, 73, 414--417            xref_defined/3, 1261
+character set, 70                    xref_exported/2, 1263
+character_count/2, 295, 317, 318     xref_module/2, 1264
+chdir/1, 597, 598                    xref_source/1, 1258
 check _l_i_b_r_a_r_y, 130, 278, 1152, 1315
 check/0, 128, 1152, 1153
 check_old_select/0, 22
@@ -19932,10 +19935,9 @@ current_predicate/1, 277
 current_predicate/2, 276, 277
 current_prolog_flag/2, 21,  41,  59,
       60,  63,  67,  71, 122,  124,
-      182,   221,  224,  362,  367,
-      378,   604,  630,  661,  824,
-      836,  957, 1037,  1046, 1075,
-      1304
+      224,   367,  378,  630,  661,
+      824,  836,  957, 1037,  1046,
+      1075, 1304
 current_signal/3, 229, 230
 current_stream/3, 292
 current_thread/2,   759,  760,  763,
@@ -20048,6 +20050,88 @@ file_search_path/2, 39, 41,  60, 63,
 fileerrors/2, 60, 321
 findall/3, 75, 141, 197, 517, 700
 flag/3, 259, 274, 394
+flag:abort_with_exception, 60
+flag:agc_margin, 60
+flag:allow_variable_name_as_functor,
+      60
+flag:arch, 60
+flag:argv, 60
+flag:associate, 60
+flag:autoload, 60
+flag:backquoted_string, 60
+flag:bounded, 60
+flag:c_cc, 60
+flag:c_ldflags, 60
+flag:c_libs, 60
+flag:char_conversion, 60
+flag:character_escapes, 60
+flag:compiled_at, 60
+flag:console_menu, 60
+flag:cpu_count, 60
+flag:dde, 60
+flag:debug, 60
+flag:debug_on_error, 60
+flag:debugger_print_options, 60
+flag:debugger_show_context, 60
+flag:double_quotes, 60
+flag:dynamic_stacks, 60
+flag:editor, 60
+flag:emacs_inferior_process, 60
+flag:encoding, 60
+flag:executable, 60
+flag:file_name_variables, 60
+flag:float_format, 60
+flag:gc, 60
+flag:generate_debug_info, 60
+flag:gmp_version, 60
+flag:gui, 60
+flag:history, 60
+flag:home, 60
+flag:hwnd, 60
+flag:integer_rounding_function, 60
+flag:iso, 60
+flag:large_files, 60
+flag:last_call_optimisation, 60
+flag:max_arity, 60
+flag:max_integer, 60
+flag:max_tagged_integer, 60
+flag:max_threads, 60
+flag:min_integer, 60
+flag:min_tagged_integer, 60
+flag:occurs_check, 60
+flag:open_shared_object, 60
+flag:optimise, 60
+flag:pid, 60
+flag:pipe, 60
+flag:prompt_alternatives_no_bindings,
+      60
+flag:readline, 60
+flag:report_error, 60
+flag:resource_database, 60
+flag:runtime, 60
+flag:saved_program, 60
+flag:shared_object_extension, 60
+flag:shared_object_search_path, 60
+flag:signals, 60
+flag:system_thread_id, 60
+flag:timezone, 60
+flag:toplevel_print_anon, 60
+flag:toplevel_print_options, 60
+flag:toplevel_var_size, 60
+flag:trace_gc, 60
+flag:tty_control, 60
+flag:unix, 60
+flag:unknown, 60
+flag:verbose, 60
+flag:verbose_autoload, 60
+flag:verbose_file_search, 60
+flag:verbose_load, 60
+flag:version, 60
+flag:windows, 60
+flag:write_attributes, 60
+flag:write_help_with_overstrike, 60
+flag:xpce, 60
+flag:xpce_version, 60
 flatten/2, 1087
 float/1, 169, 468
 float_fractional_part/1, 471
@@ -20626,7 +20710,6 @@ put_code/1, 325, 331, 332
 put_code/2, 77, 332, 359, 361
 put_code/[1
    2], 122
-
 qcompile/1, 124, 146, 151, 152, 752
 qsave_program/1, 1061
 qsave_program/2,  14,  58,  60,  94,
@@ -20637,6 +20720,7 @@ qsave_program/[1
       1064
 quiet, 41, 224
 quintus _l_i_b_r_a_r_y, 21, 688, 701
+
 random/1, 465
 rational
    number, 447
@@ -20785,86 +20869,5 @@ string_to_atom/2, 423
 string_to_list/2, 424
 strip_module/3, 692
 style_check/1, 74, 82, 83, 267, 630
-sub_atom/5, 412, 427
-sub_string/5, 427
-sublist/3, 524
-subset/2, 1096
-subtract/3, 1094
-succ/2, 437
-sum/3, 1199
-sumlist/2, 1088
-sup/2, 1225
-swi/pce_profile _l_i_b_r_a_r_y, 635
-swi_edit _l_i_b_r_a_r_y, 160
-swi_help _l_i_b_r_a_r_y, 43
-swritef/2, 533
-swritef/3, 314, 532
-
-TAB
-   completion, 98
-tab/1, 333
-tab/2, 334
-tan/1, 486
-tdebug/0, 799, 803
-tdebug/1, 798, 799, 802
-tell/1,  20,  284, 286,  299,  300,
-      302, 303
-telling/1, 299, 300, 305
-term//1, 314
-term_expansion/2,   62,  123,  139--
-      141, 146, 152, 605, 739
-term_to_atom/2, 314, 405, 956
-term_variables/2, 75, 378, 389, 390
-term_variables/3, 389, 390
-terms
-   cyclic, 75
-thread _l_i_b_r_a_r_y, 60
-thread_at_exit/1, 763, 811
-thread_create/3, 757, 760, 817, 819
-thread_detach/1, 757, 760
-thread_exit/1, 759, 761, 766
-thread_get_message/1, 772, 776
-thread_get_message/2, 776
-thread_initialization/1, 719, 762
-thread_join/2, 757, 759, 761, 766
-thread_local/1, 264, 278, 781, 782
-thread_peek_message/1, 772, 773, 777
-thread_peek_message/2, 777
-thread_self/1, 60, 758, 763, 771
-thread_send_message/2, 771, 774
-thread_setconcurrency/2, 60, 764
-thread_signal/2,   780,  790,   798,
-      1004
-thread_statistics/3, 767
-threads/0, 793
-throw/1, 17, 51, 75, 218--220, 232,
-      601,   766,  779,  780,  999,
-      1001, 1289--1291
-time/1, 499, 634, 637, 638
-time_file/2, 586
-tmp_file/2, 594
-tnodebug/0, 801
-tnodebug/1, 800, 803
-told/0, 307
-top_sort/2, 1137
-top_sort/3, 1138
-tprofile/1, 804, 805
-trace/0,  51,  60, 108,  109,  119,
-      613,   619,  744,  745,  780,
-      1022, 1289
-trace/1, 60, 618
-trace/2, 619
-tracing/0, 614
-transitive_closure/2, 1139
-transportation/4, 1252
-transpose/2, 1131
-trim_stacks/0, 60, 647, 648, 651
-true/0, 60, 199, 215
-truncate/1, 473
-tspy/1, 796, 803
-tspy/2, 802
-tty_get_capability/3, 542, 544, 546
-tty_goto/2, 543, 545
-tty_put/2, 544, 545
 
                                   1331

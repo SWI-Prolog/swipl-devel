@@ -125,7 +125,7 @@ character support</SPAN></A></H2>
 
 <A NAME="sec:widechars"></A>
 
-<P><A NAME="idx:UTF8:230"></A><A NAME="idx:Unicode:231"></A><A NAME="idx:UCS:232"></A><A NAME="idx:internationalization:233"></A>SWI-Prolog 
+<P><A NAME="idx:UTF8:233"></A><A NAME="idx:Unicode:234"></A><A NAME="idx:UCS:235"></A><A NAME="idx:internationalization:236"></A>SWI-Prolog 
 supports <EM>wide characters</EM>, characters with character codes above 
 255 that cannot be represented in a single <EM>byte</EM>.
 <EM>Universal Character Set</EM> (UCS) is the ISO/IEC 10646 standard 
@@ -137,7 +137,7 @@ classification (uppercase, lowercase, digit, etc.) and operations such
 as case-conversion are unambiguously defined.
 
 <P>For this reason SWI-Prolog has two representations for atoms and 
-string objects (see <A class="sec" href="strings.html">section 4.23</A>. 
+string objects (see <A class="sec" href="strings.html">section 4.23</A>). 
 If the text fits in ISO Latin-1, it is represented as an array of 8-bit 
 characters. Otherwise the text is represented as an array of 32-bit 
 numbers. This representational issue is completely transparent to the 
@@ -166,21 +166,22 @@ Especially on MS-Windows the 16-bit Unicode standard, represented by
 pairs of bytes is also popular.
 
 <P>Prolog I/O streams have a property called <EM>encoding</EM> which 
-specifies the used encoding that influence <A NAME="idx:getcode2:234"></A><A class="pred" href="chario.html#get_code/2">get_code/2</A> 
-and <A NAME="idx:putcode2:235"></A><A class="pred" href="chario.html#put_code/2">put_code/2</A> 
+specifies the used encoding that influence <A NAME="idx:getcode2:237"></A><A class="pred" href="chario.html#get_code/2">get_code/2</A> 
+and <A NAME="idx:putcode2:238"></A><A class="pred" href="chario.html#put_code/2">put_code/2</A> 
 as well as all the other text I/O predicates.
 
 <P>The default encoding for files is derived from the Prolog flag
-<CODE>encoding</CODE>, which is initialised from the environment. If the 
-environment variable <CODE>LANG</CODE> ends in "UTF-8", this encoding is 
-assumed. Otherwise the default is <CODE>text</CODE> and the translation 
-is left to the wide-character functions of the C-library.
+<A class="flag" href="flags.html#flag:encoding">encoding</A>, which is 
+initialised from the environment. If the environment variable <CODE>LANG</CODE> 
+ends in "UTF-8", this encoding is assumed. Otherwise the default is <CODE>text</CODE> 
+and the translation is left to the wide-character functions of the 
+C-library.
 <SUP class="fn">11<SPAN class="fn-text">The Prolog native UTF-8 mode is 
 considerably faster than the generic mbrtowc() one.</SPAN></SUP> The 
-encoding can be specified explicitly in <A NAME="idx:loadfiles2:236"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A> 
-for loading Prolog source with an alternative encoding, <A NAME="idx:open4:237"></A><A class="pred" href="IO.html#open/4">open/4</A> 
-when opening files or using <A NAME="idx:setstream2:238"></A><A class="pred" href="IO.html#set_stream/2">set_stream/2</A> 
-on any open stream. For Prolog source files we also provide the <A NAME="idx:encoding1:239"></A><A class="pred" href="consulting.html#encoding/1">encoding/1</A> 
+encoding can be specified explicitly in <A NAME="idx:loadfiles2:239"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A> 
+for loading Prolog source with an alternative encoding, <A NAME="idx:open4:240"></A><A class="pred" href="IO.html#open/4">open/4</A> 
+when opening files or using <A NAME="idx:setstream2:241"></A><A class="pred" href="IO.html#set_stream/2">set_stream/2</A> 
+on any open stream. For Prolog source files we also provide the <A NAME="idx:encoding1:242"></A><A class="pred" href="consulting.html#encoding/1">encoding/1</A> 
 directive that can be used to switch between encodings that are 
 compatible to US-ASCII (<CODE>ascii</CODE>,
 <CODE>iso_latin_1</CODE>, <CODE>utf8</CODE> and many locales). See also
@@ -229,7 +230,7 @@ significant byte first. Can only represent 16-bit characters.
 <P>Note that not all encodings can represent all characters. This 
 implies that writing text to a stream may cause errors because the 
 stream cannot represent these characters. The behaviour of a stream on 
-these errors can be controlled using <A NAME="idx:setstream2:240"></A><A class="pred" href="IO.html#set_stream/2">set_stream/2</A>. 
+these errors can be controlled using <A NAME="idx:setstream2:243"></A><A class="pred" href="IO.html#set_stream/2">set_stream/2</A>. 
 Initially the terminal stream write the characters using Prolog escape 
 sequences while other streams generate an I/O exception.
 
@@ -238,7 +239,7 @@ Byte Order Mark</SPAN></A></H4>
 
 <A NAME="sec:bom"></A>
 
-<P><A NAME="idx:BOM:241"></A><A NAME="idx:ByteOrderMark:242"></A>From <A class="sec" href="widechars.html">section 
+<P><A NAME="idx:BOM:244"></A><A NAME="idx:ByteOrderMark:245"></A>From <A class="sec" href="widechars.html">section 
 2.17.1</A>, you may have got the impression text-files are complicated. 
 This section deals with a related topic, making live often easier for 
 the user, but providing another worry to the programmer.
@@ -255,12 +256,12 @@ often explicitly forbid the the use of a UTF-8 BOM. In other cases there
 is additional information telling the encoding making the use of a BOM 
 redundant or even illegal.
 
-<P>The BOM is handled by SWI-Prolog <A NAME="idx:open4:243"></A><A class="pred" href="IO.html#open/4">open/4</A> 
+<P>The BOM is handled by SWI-Prolog <A NAME="idx:open4:246"></A><A class="pred" href="IO.html#open/4">open/4</A> 
 predicate. By default, text-files are probed for the BOM when opened for 
 reading. If a BOM is found, the encoding is set accordingly and the 
-property <CODE>bom(true)</CODE> is available through <A NAME="idx:streamproperty2:244"></A><A class="pred" href="IO.html#stream_property/2">stream_property/2</A>. 
+property <CODE>bom(true)</CODE> is available through <A NAME="idx:streamproperty2:247"></A><A class="pred" href="IO.html#stream_property/2">stream_property/2</A>. 
 When opening a file for writing, writing a BOM can be requested using 
 the option <CODE>bom(true)</CODE> with
-<A NAME="idx:open4:245"></A><A class="pred" href="IO.html#open/4">open/4</A>.
+<A NAME="idx:open4:248"></A><A class="pred" href="IO.html#open/4">open/4</A>.
 
 <P></BODY></HTML>

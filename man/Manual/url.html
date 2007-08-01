@@ -128,9 +128,9 @@ url ): Analysing and constructing URL</SPAN></A></H2>
 <P>This library deals with the analysis and construction of a URL,
 <B>U</B>niversal <B>R</B>esource <B>L</B>ocator. URL is the basis for 
 communicating locations of resources (data) on the web. A URL consists 
-of a protocol identifier (e.g. <A NAME="idx:HTTP:1441">HTTP</A>, <A NAME="idx:FTP:1442">FTP</A>), 
+of a protocol identifier (e.g. <A NAME="idx:HTTP:1440">HTTP</A>, <A NAME="idx:FTP:1441">FTP</A>), 
 and a protocol-specific syntax further defining the location. URLs are 
-standardized in <A NAME="idx:RFC1738:1443">RFC-1738</A>.
+standardized in <A NAME="idx:RFC1738:1442">RFC-1738</A>.
 
 <P>The implementation in this library covers only a small portion of the 
 defined protocols. Though the initial implementation followed RFC-1738 
@@ -154,7 +154,7 @@ components are:
 <DD class="defbody">
 The used protocol. This is, after the optional <CODE>url:</CODE>, an 
 identifier separated from the remainder of the URL using <CODE><CODE>:</CODE></CODE>.
-<A NAME="idx:parseurl2:1444"></A><A class="pred" href="url.html#parse_url/2">parse_url/2</A> 
+<A NAME="idx:parseurl2:1443"></A><A class="pred" href="url.html#parse_url/2">parse_url/2</A> 
 assumes the <CODE>http</CODE> protocol if no protocol is specified and 
 the URL can be parsed as a valid HTTP url. In addition to the RFC-1738 
 specified protocols, the <CODE>file:</CODE> protocol is supported as 
@@ -206,7 +206,7 @@ a URL.</DD>
 <DT class="pubdef"><A NAME="parse_url/3"><STRONG>parse_url</STRONG>(<VAR>?URL, 
 +BaseURL, ?Parts</VAR>)</A></DT>
 <DD class="defbody">
-Same as <A NAME="idx:parseurl2:1445"></A><A class="pred" href="url.html#parse_url/2">parse_url/2</A>, 
+Same as <A NAME="idx:parseurl2:1444"></A><A class="pred" href="url.html#parse_url/2">parse_url/2</A>, 
 but dealing a url that is relative to the given
 <VAR>BaseURL</VAR>. This is used to analyse or construct a URI found in 
 the document behind <VAR>BaseURL</VAR>.</DD>
@@ -217,7 +217,7 @@ Transform a (possibly) relative URL into a global one.</DD>
 <DT class="pubdef"><A NAME="http_location/2"><STRONG>http_location</STRONG>(<VAR>?Parts, 
 ?Location</VAR>)</A></DT>
 <DD class="defbody">
-Similar to <A NAME="idx:parseurl2:1446"></A><A class="pred" href="url.html#parse_url/2">parse_url/2</A>, 
+Similar to <A NAME="idx:parseurl2:1445"></A><A class="pred" href="url.html#parse_url/2">parse_url/2</A>, 
 but only deals with the location part of an HTTP URL. That is, the path, 
 search and fragment specifiers. In the HTTP protocol, the first line of 
 a message is

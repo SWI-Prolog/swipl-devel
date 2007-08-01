@@ -210,7 +210,7 @@ compatible format.
 
     \cmdlineoptionitem{--quiet}{}
 \index{verbose}\index{quiet}%
-Set the Prolog flag \const{verbose} to \const{silent}, suppressing
+Set the Prolog flag \prologflag{verbose} to \const{silent}, suppressing
 informational and banner messages.  Also available as \cmdlineoption{-q}.
 
     \cmdlineoptionitem*{-L}{size[kmg]}
@@ -257,11 +257,11 @@ determine output file for compilation.
 
     \cmdlineoptionitem{-O}{}
 Optimised compilation. See current_prolog_flag/2 flag
-\const{optimise} for details.
+\prologflag{optimise} for details.
 
     \cmdlineoptionitem{-nodebug}{}
 Disable debugging.  See the current_prolog_flag/2 flag
-\const{generate_debug_info} for details.
+\prologflag{generate_debug_info} for details.
 
     \cmdlineoptionitem{-s}{file}
 Use \arg{file} as a script-file.  The script file is loaded after
@@ -314,7 +314,7 @@ with other applications.
     \cmdlineoptionitem{-nosignals}{}
 Inhibit any signal handling by Prolog, a property that is sometimes
 desirable for embedded applications. This option sets the flag
-\const{signals} to \const{false}. See \secref{sigembedded} for details.
+\prologflag{signals} to \const{false}. See \secref{sigembedded} for details.
 
     \cmdlineoptionitem{-x}{bootfile}
 Boot from \arg{bootfile} instead of the system's default boot file. A
@@ -335,7 +335,7 @@ details on using this file-location mechanism.
 \index{commandline, arguments}%
 Stops scanning for more arguments, so you can pass arguments for your
 application after this one.  See current_prolog_flag/2 using the
-flag \const{argv} for obtaining the command-line arguments.
+flag \prologflag{argv} for obtaining the command-line arguments.
 \end{description}
 
 The following options are for system maintenance. They are given
@@ -390,7 +390,7 @@ created from the \LaTeX{} sources with a modified version of
 \program{dvitty}, using overstrike for printing bold text and
 underlining for rendering italic text. XPCE is shipped with
 \pllib{swi_help}, presenting the information from the online help in a
-hypertext window. The Prolog flag \const{write_help_with_overstrike}
+hypertext window. The Prolog flag \prologflag{write_help_with_overstrike}
 controls whether or not help/1 writes its output using overstrike to
 realise bold and underlined output or not. If this Prolog flag is not set it
 is initialised by the help library to \const{true} if the \const{TERM}
@@ -457,8 +457,8 @@ Backtracking yields further explanations.
 
 SWI-Prolog offers a query substitution mechanism called `history'. The
 availability of this feature is controlled by set_prolog_flag/2, using
-the \const{history} Prolog flag. By default, history is available if the
-Prolog flag \const{readline} is \const{false}. To enable this feature,
+the \prologflag{history} Prolog flag. By default, history is available if the
+Prolog flag \prologflag{readline} is \const{false}. To enable this feature,
 remembering the last 50 commands, put the following into your startup
 file (see \secref{initfile}):
 
@@ -552,7 +552,7 @@ The interactive top-level goal trace/0 means ``trace the next query''.
 The tracer shows the port, displaying the port name, the current depth
 of the recursion and the goal. The goal is printed using the Prolog
 predicate write_term/2.  The style is defined by the Prolog flag
-\const{debugger_print_options} and can be modified using this flag
+\prologflag{debugger_print_options} and can be modified using this flag
 or using the \const{w}, \const{p} and \const{d} commands of the tracer.
 
 \begin{figure}
@@ -627,7 +627,7 @@ Enter a Prolog break environment (see break/0).}
 Continue execution, stop at next port. (Also return, space).} 
     \traceoption{d}{Display}{
 Set the \term{max_depth}{Depth} option of
-\const{debugger_print_options}, limiting the depth to which terms are
+\prologflag{debugger_print_options}, limiting the depth to which terms are
 printed.  See also the \const{w} and \const{p} options.}
     \traceoption{e}{Exit}{
 Terminate Prolog (see halt/0).} 
@@ -645,7 +645,7 @@ Continue execution, stop at next spy point.}
     \traceoption{n}{No debug}{
 Continue execution in `no debug' mode.} 
     \traceoption{p}{Print}{
-Set the Prolog flag \const{debugger_print_options} to
+Set the Prolog flag \prologflag{debugger_print_options} to
 \texttt{[quoted(true), portray(true), max_depth(10), priority(699)]}. This is the
 default.}
     \traceoption{r}{Retry}{
@@ -659,7 +659,7 @@ Continue execution, stop at the next port of {\bf the parent} goal (thus
 skipping this goal and all calls to children of this goal). This option
 is useful to stop tracing a failure driven loop.} 
     \traceoption{w}{Write}{
-Set the Prolog flag \const{debugger_print_options} to
+Set the Prolog flag \prologflag{debugger_print_options} to
 \exam{[quoted(true), attributes(write), priority(699)]}, bypassing portray/1, etc.}
 \end{description}
 
@@ -956,7 +956,7 @@ with \program{plwin.exe}.
 
     \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
-Note that autoloading only works if the flag \const{unknown} is
+Note that autoloading only works if the flag \prologflag{unknown} is
 \emph{not} set to \const{fail}. See \secref{autoload}.
 
     \prologflagitem{backquoted_string}{bool}{rw}
@@ -966,9 +966,9 @@ mainly for compatibility to LPA Prolog.
 
     \prologflagitem{bounded}{bool}{r}
 ISO Prolog flag. If \const{true}, integer representation is bound by
-\const{min_integer} and \const{max_integer}.  If \const{false} integers
-can be arbitrary large and the \const{min_integer}
-and \const{max_integer} are not present.  See \secref{artypes}.
+\prologflag{min_integer} and \prologflag{max_integer}.  If \const{false} integers
+can be arbitrary large and the \prologflag{min_integer}
+and \prologflag{max_integer} are not present.  See \secref{artypes}.
 
     \prologflagitem{c_cc}{atom}{r}
 Name of the C-compiler used to compile SWI-Prolog.  Normally either gcc
@@ -1042,7 +1042,7 @@ the tracer.  Normally controlled using the `C' option of the tracer.
 
     \prologflagitem{double_quotes}{codes,chars,atom,string}{rw}
 This flag determines how double quoted strings are read by Prolog and
-is ---like \const{character_escapes}--- maintained for each module. If
+is ---like \prologflag{character_escapes}--- maintained for each module. If
 \const{codes} (default), a list of character-codes is returned, if
 \const{chars} a list of one-character atoms, if \const{atom} double
 quotes are the same as single-quotes and finally, \const{string} reads
@@ -1126,7 +1126,7 @@ Set to \const{true} if XPCE is around and can be used for graphics.
 If $\arg{integer}> 0$, support Unix \program{csh(1)} like history as
 described in \secref{history}. Otherwise, only support reusing commands
 through the command-line editor. The default is to set this Prolog flag to 0
-if a command-line editor is provided (see Prolog flag \const{readline}) and
+if a command-line editor is provided (see Prolog flag \prologflag{readline}) and
 15 otherwise.
 
     \prologflagitem{home}{atom}{r}
@@ -1172,7 +1172,7 @@ ISO Prolog flag describing there is no maximum arity to compound terms.
 
     \prologflagitem{max_integer}{integer}{r}
 Maximum integer value if integers are \emph{bounded}.  See also
-the flag \const{bounded} and \secref{artypes}.
+the flag \prologflag{bounded} and \secref{artypes}.
 
     \prologflagitem{max_tagged_integer}{integer}{r}
 Maximum integer value represented as a `tagged' value.  Tagged integers
@@ -1185,7 +1185,7 @@ Prolog threads supported.  Currently (version 5.6.27) the limit is 100.
 
     \prologflagitem{min_integer}{integer}{r}
 Minimum integer value if integers are \emph{bounded}.  See also
-the flag \const{bounded} and \secref{artypes}.
+the flag \prologflag{bounded} and \secref{artypes}.
 
     \prologflagitem{min_tagged_integer}{integer}{r}
 Start of the tagged-integer value range.
@@ -1196,7 +1196,7 @@ called \jargon{cyclic term} and can have three values. Using
 \const{false} (default), unification succeeds, creating an infinite
 tree, Using \const{true}, unify behaves as unify_with_occurs_check/2,
 failing silently. Using \const{error}, an attempt to create a cyclic
-term results in an \const{occurs_check} exception. The latter is
+term results in an \prologflag{occurs_check} exception. The latter is
 intented for debugging unintentional creation of cyclic terms.
 Note that this flag is a global flag modifying fundamental behaviour
 of Prolog.  Changing the flag from its default may cause libraries
@@ -1293,13 +1293,13 @@ calling thread. See also thread_self/1.
 
     \prologflagitem{last_call_optimisation}{bool}{rw}
 Determines whether or not last-call optimisation is enabled.
-Normally the value of this flag is equal to the \const{debug} flag.  As
+Normally the value of this flag is equal to the \prologflag{debug} flag.  As
 programs may run out of stack if last-call optimisation is omitted,
 it is sometimes necessary to enable it during debugging.
 
     \prologflagitem{timezone}{integer}{r}
 Offset in seconds west of GMT of the current time-zone. Set at
-initialization time from the \const{timezone} variable associated
+initialization time from the \prologflag{timezone} variable associated
 with the POSIX tzset() function.  See also convert_time/2.
 
     \prologflagitem{toplevel_print_anon}{bool}{rw}
@@ -1484,8 +1484,8 @@ index to all library files in all library directories is loaded in core
 predicate can be located in one of the libraries that library file
 is automatically loaded and the call to the (previously undefined)
 predicate is restarted. By default this mechanism loads the file
-silently. The current_prolog_flag/2 \const{verbose_autoload} is provided
-to get verbose loading. The Prolog flag \const{autoload} can be used to
+silently. The current_prolog_flag/2 \prologflag{verbose_autoload} is provided
+to get verbose loading. The Prolog flag \prologflag{autoload} can be used to
 enable/disable the entire auto load system.
 
 The auto-loader only works if the unknown flag (see unknown/2) is set to
@@ -1677,7 +1677,7 @@ two ways: \verb$\40$ is interpreted as decimal 40 by writef/2, but
 character escapes handling by read has already interpreted as 32 (40
 octal). Also, \fmtseq{\l} is translated to a single `l'. It is advised
 to use the more widely supported format/[2,3] predicate instead. If you
-insist upon using writef/2, either switch \const{character_escapes} to
+insist upon using writef/2, either switch \prologflag{character_escapes} to
 \const{false}, or use double \fmtseq{\\}, as in \verb$writef('\\l')$.
 
 \subsubsection{Syntax for non-decimal numbers}	\label{sec:nondecsyntax}
@@ -1872,7 +1872,7 @@ specifies the used encoding that influence get_code/2 and put_code/2 as
 well as all the other text I/O predicates.
 
 The default encoding for files is derived from the Prolog flag
-\const{encoding}, which is initialised from the environment.  If the
+\prologflag{encoding}, which is initialised from the environment.  If the
 environment variable \const{LANG} ends in "UTF-8", this encoding is
 assumed. Otherwise the default is \const{text} and the translation
 is left to the wide-character functions of the C-library.
@@ -2076,7 +2076,7 @@ limits.
 
     \item[Integers]
 Integers are 64-bit on 32 as well as 64-bit machines.  Integers up to
-the value of the \const{max_tagged_integer} Prolog flag are represented
+the value of the \prologflag{max_tagged_integer} Prolog flag are represented
 more efficiently on the stack.  For clauses and records the difference
 is much smaller.
 

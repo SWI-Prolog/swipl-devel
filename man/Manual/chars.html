@@ -134,7 +134,7 @@ providing support for national character sets, of which iso-latin-1 (ISO
 to represent a sequence of character-codes.
 
 <P>ISO Prolog introduces three types, two of which are used for 
-characters and one for accessing binary streams (see <A NAME="idx:open4:305"></A><A class="pred" href="IO.html#open/4">open/4</A>). 
+characters and one for accessing binary streams (see <A NAME="idx:open4:308"></A><A class="pred" href="IO.html#open/4">open/4</A>). 
 These types are:
 
 <P>
@@ -142,7 +142,7 @@ These types are:
 <LI><I>code</I><BR>
 A <EM>character-code</EM> is an integer representing a single character. 
 As files may use multi-byte encoding for supporting different character 
-sets (<A NAME="idx:utf8:306">utf-8</A> encoding for example), reading a 
+sets (<A NAME="idx:utf8:309">utf-8</A> encoding for example), reading a 
 code from a text-file is in general not the same as reading a byte.
 <LI><I>char</I><BR>
 Alternatively, characters may be represented as
@@ -174,15 +174,16 @@ peek_code(Stream, 97).
 
 <P>These multiple-representations are handled by a large number of 
 built-in predicates, all of which are ISO-compatible. For converting 
-between code and character there is <A NAME="idx:charcode2:307"></A><A class="pred" href="manipatom.html#char_code/2">char_code/2</A>. 
-For breaking atoms and numbers into characters are are <A NAME="idx:atomchars2:308"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A>, <A NAME="idx:atomcodes2:309"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>, <A NAME="idx:numbercodes2:310"></A><A class="pred" href="manipatom.html#number_codes/2">number_codes/2</A> 
+between code and character there is <A NAME="idx:charcode2:310"></A><A class="pred" href="manipatom.html#char_code/2">char_code/2</A>. 
+For breaking atoms and numbers into characters are are <A NAME="idx:atomchars2:311"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A>, <A NAME="idx:atomcodes2:312"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>, <A NAME="idx:numbercodes2:313"></A><A class="pred" href="manipatom.html#number_codes/2">number_codes/2</A> 
 and
-<A NAME="idx:numberchars2:311"></A><A class="pred" href="manipatom.html#number_chars/2">number_chars/2</A>. 
-For character I/O on streams there is <A NAME="idx:getchar12:312"></A><A class="pred" href="chario.html#get_char/1">get_char/[1,2]</A>,
-<A NAME="idx:getcode12:313"></A><A class="pred" href="chario.html#get_code/1">get_code/[1,2]</A>, <A NAME="idx:getbyte12:314"></A><A class="pred" href="chario.html#get_byte/1">get_byte/[1,2]</A>, <A NAME="idx:peekchar12:315"></A><A class="pred" href="chario.html#peek_char/1">peek_char/[1,2]</A>, <A NAME="idx:peekcode12:316"></A><A class="pred" href="chario.html#peek_code/1">peek_code/[1,2]</A>,
-<A NAME="idx:peekbyte12:317"></A><A class="pred" href="chario.html#peek_byte/1">peek_byte/[1,2]</A>, <A NAME="idx:putcode12:318"></A><A class="pred" href="chario.html#put_code/1">put_code/[1,2]</A>, <A NAME="idx:putchar12:319"></A><A class="pred" href="chario.html#put_char/1">put_char/[1,2]</A> 
-and <A NAME="idx:putbyte12:320"></A><A class="pred" href="chario.html#put_byte/1">put_byte/[1,2]</A>. 
-The prolog-flag <CODE>double_quotes</CODE> (see <A NAME="idx:currentprologflag2:321"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>) 
+<A NAME="idx:numberchars2:314"></A><A class="pred" href="manipatom.html#number_chars/2">number_chars/2</A>. 
+For character I/O on streams there is <A NAME="idx:getchar12:315"></A><A class="pred" href="chario.html#get_char/1">get_char/[1,2]</A>,
+<A NAME="idx:getcode12:316"></A><A class="pred" href="chario.html#get_code/1">get_code/[1,2]</A>, <A NAME="idx:getbyte12:317"></A><A class="pred" href="chario.html#get_byte/1">get_byte/[1,2]</A>, <A NAME="idx:peekchar12:318"></A><A class="pred" href="chario.html#peek_char/1">peek_char/[1,2]</A>, <A NAME="idx:peekcode12:319"></A><A class="pred" href="chario.html#peek_code/1">peek_code/[1,2]</A>,
+<A NAME="idx:peekbyte12:320"></A><A class="pred" href="chario.html#peek_byte/1">peek_byte/[1,2]</A>, <A NAME="idx:putcode12:321"></A><A class="pred" href="chario.html#put_code/1">put_code/[1,2]</A>, <A NAME="idx:putchar12:322"></A><A class="pred" href="chario.html#put_char/1">put_char/[1,2]</A> 
+and <A NAME="idx:putbyte12:323"></A><A class="pred" href="chario.html#put_byte/1">put_byte/[1,2]</A>. 
+The Prolog flag <A class="flag" href="flags.html#flag:double_quotes">double_quotes</A> 
+(see <A NAME="idx:currentprologflag2:324"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>) 
 controls how text between double-quotes is interpreted.
 
 <P></BODY></HTML>

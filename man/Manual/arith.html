@@ -253,13 +253,14 @@ library</EM> <A NAME="idx:GMP:913"></A>(GMP), integer arithmetic is <EM>unbounde
 which means that the size of integers is limited by available memory 
 only. Without GMP, SWI-Prolog integers are 64-bits, regardless of the 
 native integer size of the platform. The type of integer support can be 
-detected using the Prolog flags <CODE>bounded</CODE>, <CODE>min_integer</CODE> 
+detected using the Prolog flags <A class="flag" href="flags.html#flag:bounded">bounded</A>, <A class="flag" href="flags.html#flag:min_integer">min_integer</A> 
 and
-<CODE>max_integer</CODE>. As the use of GMP is default, most of the 
-following descriptions assume unbounded integer arithmetic.
+<A class="flag" href="flags.html#flag:max_integer">max_integer</A>. As 
+the use of GMP is default, most of the following descriptions assume 
+unbounded integer arithmetic.
 
 <P>Internally, SWI-Prolog has three integer representations. Small 
-integers (defined by the Prolog flag <CODE>max_tagged_integer</CODE>) 
+integers (defined by the Prolog flag <A class="flag" href="flags.html#flag:max_tagged_integer">max_tagged_integer</A>) 
 are encoded directly. Larger integers are represented as 64-bit value on 
 the global stack. Integers that do not fit in 64-bit are represented as 
 serialised GNU MPZ structures on the global stack.
@@ -405,13 +406,13 @@ I.e. <CODE>?- integer(+1)</CODE> succeeds.</DD>
 <DT class="pubdef"><A NAME="//2"><VAR>+Expr1</VAR> <STRONG>/</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = <VAR>Expr1</VAR>/<VAR>Expr2</VAR></VAR> The the 
-flag <CODE>iso</CODE> is <CODE>true</CODE>, both arguments are converted 
-to float and the return value is a float. Otherwise (default), if both 
-arguments are integers the operation returns an integer if the division 
-is exact. If at least one of the arguments is rational and the other 
-argument is integer, the operation returns a rational number. In all 
-other cases the return value is a float. See also <A class="pred" href="arith.html#///2">///2</A> 
-and <A NAME="idx:rdiv2:926"></A><A class="pred" href="arith.html#rdiv/2">rdiv/2</A>.</DD>
+flag <A class="flag" href="flags.html#flag:iso">iso</A> is <CODE>true</CODE>, 
+both arguments are converted to float and the return value is a float. 
+Otherwise (default), if both arguments are integers the operation 
+returns an integer if the division is exact. If at least one of the 
+arguments is rational and the other argument is integer, the operation 
+returns a rational number. In all other cases the return value is a 
+float. See also <A class="pred" href="arith.html#///2">///2</A> and <A NAME="idx:rdiv2:926"></A><A class="pred" href="arith.html#rdiv/2">rdiv/2</A>.</DD>
 <DT class="pubdef"><A NAME="mod/2"><VAR>+IntExpr1</VAR> <STRONG>mod</STRONG> <VAR>+IntExpr2</VAR></A></DT>
 <DD class="defbody">
 Modulo:
@@ -643,7 +644,12 @@ system.
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = <VAR>Expr1</VAR>**<VAR>Expr2</VAR></VAR>. With 
 unbounded integers and integer values for <VAR>Expr1</VAR> and a 
-non-negative integer <VAR>Expr2</VAR>, the result is always integer.
+non-negative integer
+<VAR>Expr2</VAR>, the result is always integer. The integer expressions
+<VAR>0 ** I</VAR>, <VAR>1 ** I</VAR> and <VAR>-1 ** I</VAR> are 
+guaranteed to work for any integer <VAR>I</VAR>. Other integer base 
+values generate a <CODE>resource</CODE> error if the result does not fit 
+in memory.
 </DD>
 <DT class="pubdef"><A NAME="powm/3"><STRONG>powm</STRONG>(<VAR>+IntExprBase, 
 +IntExprExp, +IntExprMod</VAR>)</A></DT>

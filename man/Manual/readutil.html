@@ -140,17 +140,17 @@ shared object if performance of these predicates is critical.
 Read the next line of input from <VAR>Stream</VAR> and unify the result 
 with
 <VAR>Codes</VAR> <EM>after</EM> the line has been read. A line is ended 
-by a newline character or end-of-file. Unlike <A NAME="idx:readlinetocodes3:1426"></A><A class="pred" href="readutil.html#read_line_to_codes/3">read_line_to_codes/3</A>, 
+by a newline character or end-of-file. Unlike <A NAME="idx:readlinetocodes3:1425"></A><A class="pred" href="readutil.html#read_line_to_codes/3">read_line_to_codes/3</A>, 
 this predicate removes trailing newline character.
 
 <P>On end-of-file the atom <CODE>end_of_file</CODE> is returned. See 
 also
-<A NAME="idx:atendofstream01:1427"></A><A class="pred" href="chario.html#at_end_of_stream/0">at_end_of_stream/[0,1]</A>.</DD>
+<A NAME="idx:atendofstream01:1426"></A><A class="pred" href="chario.html#at_end_of_stream/0">at_end_of_stream/[0,1]</A>.</DD>
 <DT class="pubdef"><A NAME="read_line_to_codes/3"><STRONG>read_line_to_codes</STRONG>(<VAR>+Stream, 
 -Codes, ?Tail</VAR>)</A></DT>
 <DD class="defbody">
 Diference-list version to read an input line to a list of character 
-codes. Reading stops at the newline or end-of-file character, but unlike <A NAME="idx:readlinetocodes2:1428"></A><A class="pred" href="readutil.html#read_line_to_codes/2">read_line_to_codes/2</A>, 
+codes. Reading stops at the newline or end-of-file character, but unlike <A NAME="idx:readlinetocodes2:1427"></A><A class="pred" href="readutil.html#read_line_to_codes/2">read_line_to_codes/2</A>, 
 the newline is retained in the output. This predicate is especially 
 useful for readine a block of lines upto some delimiter. The following 
 example reads an HTTP header ended by a blank line:
@@ -176,26 +176,26 @@ Read all input until end-of-file and unify the result to <VAR>Codes</VAR>.</DD>
 <DT class="pubdef"><A NAME="read_stream_to_codes/3"><STRONG>read_stream_to_codes</STRONG>(<VAR>+Stream, 
 -Codes, ?Tail</VAR>)</A></DT>
 <DD class="defbody">
-Difference-list version of <A NAME="idx:readstreamtocodes2:1429"></A><A class="pred" href="readutil.html#read_stream_to_codes/2">read_stream_to_codes/2</A>.</DD>
+Difference-list version of <A NAME="idx:readstreamtocodes2:1428"></A><A class="pred" href="readutil.html#read_stream_to_codes/2">read_stream_to_codes/2</A>.</DD>
 <DT class="pubdef"><A NAME="read_file_to_codes/3"><STRONG>read_file_to_codes</STRONG>(<VAR>+Spec, 
 -Codes, +Options</VAR>)</A></DT>
 <DD class="defbody">
 Read a file to a list of character codes. <VAR>Spec</VAR> is a 
-file-specification for <A NAME="idx:absolutefilename3:1430"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>. <VAR>Codes</VAR> 
+file-specification for <A NAME="idx:absolutefilename3:1429"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>. <VAR>Codes</VAR> 
 is the resulting code-list. <VAR>Options</VAR> is a list of options for
-<A NAME="idx:absolutefilename3:1431"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
-and <A NAME="idx:open4:1432"></A><A class="pred" href="IO.html#open/4">open/4</A>. 
+<A NAME="idx:absolutefilename3:1430"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+and <A NAME="idx:open4:1431"></A><A class="pred" href="IO.html#open/4">open/4</A>. 
 In addition, the option
 <CODE>tail(Tail)</CODE> is defined, forming a difference-list.</DD>
 <DT class="pubdef"><A NAME="read_file_to_terms/3"><STRONG>read_file_to_terms</STRONG>(<VAR>+Spec, 
 -Terms, +Options</VAR>)</A></DT>
 <DD class="defbody">
-Read a file to a list of prolog terms (see <A NAME="idx:read1:1433"></A><A class="pred" href="termrw.html#read/1">read/1</A>). <VAR>Spec</VAR> 
-is a file-specification for <A NAME="idx:absolutefilename3:1434"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>. <VAR>Terms</VAR> 
+Read a file to a list of prolog terms (see <A NAME="idx:read1:1432"></A><A class="pred" href="termrw.html#read/1">read/1</A>). <VAR>Spec</VAR> 
+is a file-specification for <A NAME="idx:absolutefilename3:1433"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>. <VAR>Terms</VAR> 
 is the resulting list of Prolog terms. <VAR>Options</VAR> is a list of 
 options for
-<A NAME="idx:absolutefilename3:1435"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
-and <A NAME="idx:open4:1436"></A><A class="pred" href="IO.html#open/4">open/4</A>. 
+<A NAME="idx:absolutefilename3:1434"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+and <A NAME="idx:open4:1435"></A><A class="pred" href="IO.html#open/4">open/4</A>. 
 In addition, the option
 <CODE>tail(Tail)</CODE> is defined, forming a difference-list.
 </DD>
