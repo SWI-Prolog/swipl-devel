@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Type error from apply/2.  Ulrich Neumerkel.
+
   * FIXED: indexing issues with dynamic predicate with few clauses.
     Could lead to unindexed and therefore non-deterministic code that
     should be deterministic. Ulrich Neumerkel.

@@ -3887,8 +3887,9 @@ the arguments of this term in the frame.
 	      *ARGP = linkVal(args);
 	  }
 	} else
-	{ PL_error("apply", 2, NULL, ERR_TYPE,
-		   ATOM_callable, wordToTermRef(gp));
+	{ lTop = argFrameP(next, 2);
+	  PL_error("apply", 2, NULL, ERR_TYPE,
+		   ATOM_callable, wordToTermRef(argFrameP(next, 0)));
 	  goto b_throw;
 	}
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
