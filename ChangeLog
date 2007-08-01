@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: abort from various built-ins dealing with cyclic terms.
+    Ulrich Neumerkel.
+
   * FIXED: Type error from apply/2.  Ulrich Neumerkel.
 
   * FIXED: indexing issues with dynamic predicate with few clauses.

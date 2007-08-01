@@ -200,6 +200,8 @@ pl_throw_abort()
   { fid_t fid = PL_open_foreign_frame();
     term_t ex = PL_new_term_ref();
 
+    clearSegStack(&LD->cycle.stack);	/* can do no harm */
+
     PL_put_atom(ex, ATOM_aborted);
     PL_throw(ex);			/* use longjmp() to ensure */
 
@@ -236,6 +238,7 @@ pl_abort(abort_type type)
   if ( !trueFeature(READLINE_FEATURE) )
     PopTty(Sinput, &ttytab);
   LD->outofstack = NULL;
+  clearSegStack(LD->cycle.stack);
   closeFiles(FALSE);
   resetReferences();
 #ifdef O_PROFILE
