@@ -188,7 +188,7 @@ architecture identifier.  Also available as \cmdlineoption{-v}.
 
     \cmdlineoptionitem{--arch}{}
 When given as the only option, it prints the architecture identifier
-(see current_prolog_flag(arch, Arch)) and exits. See also
+(see Prolog flag \prologflag{arch}) and exits. See also
 \cmdlineoption{-dump-runtime-variables}. Also available as
 \cmdlineoption{-arch}.
 
@@ -901,7 +901,7 @@ features: options compiled in, version, home, etc. With both arguments
 unbound, it will generate all defined Prolog flags. With the `Key'
 instantiated it unifies the value of the Prolog flag. Flag values are
 typed. Flags marked as \const{bool} can have the values \const{true} and
-\const{false}. Some prolog flags are not defined in all versions, which
+\const{false}. Some Prolog flags are not defined in all versions, which
 is normally indicated in the documentation below as \textit{``if present
 and true''}. A boolean Prolog flag is true iff the Prolog flag is
 present {\bf and} the \arg{Value} is the atom \const{true}. Tests for
@@ -966,9 +966,9 @@ mainly for compatibility to LPA Prolog.
 
     \prologflagitem{bounded}{bool}{r}
 ISO Prolog flag. If \const{true}, integer representation is bound by
-\prologflag{min_integer} and \prologflag{max_integer}.  If \const{false} integers
-can be arbitrary large and the \prologflag{min_integer}
-and \prologflag{max_integer} are not present.  See \secref{artypes}.
+\prologflag{min_integer} and \prologflag{max_integer}. If \const{false}
+integers can be arbitrary large and the \prologflag{min_integer} and
+\prologflag{max_integer} are not present. See \secref{artypes}.
 
     \prologflagitem{c_cc}{atom}{r}
 Name of the C-compiler used to compile SWI-Prolog.  Normally either gcc
@@ -1196,11 +1196,11 @@ called \jargon{cyclic term} and can have three values. Using
 \const{false} (default), unification succeeds, creating an infinite
 tree, Using \const{true}, unify behaves as unify_with_occurs_check/2,
 failing silently. Using \const{error}, an attempt to create a cyclic
-term results in an \prologflag{occurs_check} exception. The latter is
-intented for debugging unintentional creation of cyclic terms.
-Note that this flag is a global flag modifying fundamental behaviour
-of Prolog.  Changing the flag from its default may cause libraries
-to stop functioning properly.
+term results in an \except{occurs_check} exception. The latter
+is intented for debugging unintentional creation of cyclic terms. Note
+that this flag is a global flag modifying fundamental behaviour of
+Prolog. Changing the flag from its default may cause libraries to stop
+functioning properly.
 
     \prologflagitem{open_shared_object}{bool}{r}
 If true, open_shared_object/2 and friends are implemented, providing
@@ -1256,9 +1256,9 @@ the file \file{boot32.prc}, the file specified with \cmdlineoption{-x}
 or the running executable.  See also resource/3.
 
     \prologflagitem{report_error}{bool}{rw}
-If {\tt true}, print error messages, otherwise suppress them.  May be
-changed.  See also the {\tt debug_on_error} Prolog flag.  Default is {\tt
-true}, except for the runtime version.  
+If \const{true}, print error messages, otherwise suppress them. May
+be changed. See also the \prologflag{debug_on_error} Prolog flag.
+Default is \const{true}, except for the runtime version. 
 
     \prologflagitem{runtime}{bool}{r}
 If present and \const{true}, SWI-Prolog is compiled with -DO_RUNTIME,
@@ -1299,8 +1299,8 @@ it is sometimes necessary to enable it during debugging.
 
     \prologflagitem{timezone}{integer}{r}
 Offset in seconds west of GMT of the current time-zone. Set at
-initialization time from the \prologflag{timezone} variable associated
-with the POSIX tzset() function.  See also convert_time/2.
+initialization time from the \const{timezone} variable associated with
+the POSIX tzset() function. See also convert_time/2.
 
     \prologflagitem{toplevel_print_anon}{bool}{rw}
 If \const{true}, top-level variables starting with an underscore
@@ -1408,7 +1408,7 @@ If the flag is a system-defined flag that is not marked
 \except{permission_error}.  If the provided \arg{Value} does not
 match the type of the flag, a \except{type_error} is raised.
 
-In addition to ISO, SWI-Prolog allows for user-defined prolog flags. The
+In addition to ISO, SWI-Prolog allows for user-defined Prolog flags. The
 type of the flag is determined from the initial value and cannot be
 changed afterwards. Defined types are \const{boolean} (if the initial
 value is one of \const{false}, \const{true}, \const{on} or \const{off}),
@@ -1577,7 +1577,7 @@ order of the library directories is changed.
 \section{Garbage Collection}			\label{sec:gc}
 
 SWI-Prolog provides garbage-collection, last-call optimization and atom
-garbage collection.  These features are controlled using prolog flags
+garbage collection.  These features are controlled using Prolog flags
 (see current_prolog_flag/2).
 
 

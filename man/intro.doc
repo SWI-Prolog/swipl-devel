@@ -382,7 +382,7 @@ of the operator-table does not influence other modules. This is
 consistent with the proposed ISO behaviour and a necessity to have
 any usable handling of operators in a multi-threaded environment.
     \item [set_prolog_flag(character_escapes, Bool)]
-This prolog flag is now an interface to changing attributes on the
+This Prolog flag is now an interface to changing attributes on the
 current source-module, effectively making this flag module-local as
 well.  This is required for consistent handling of sources written
 with ISO (obligatory) character-escape sequences together with old

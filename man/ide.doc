@@ -125,7 +125,7 @@ these tasks.  Here is a tentative list.
 
 \begin{itemlist}
     \item [\file{load.pl}]
-Use this file to set up the environment (prolog flags and file search
+Use this file to set up the environment (Prolog flags and file search
 paths) and load the sources.  Quite commonly this file also provides
 convenient predicates to parse command-line options and start the
 application.
@@ -249,7 +249,7 @@ SWI-Prolog does not enforce the use of a particular editor for writing
 down Prolog source code. Editors are complicated programs that must be
 mastered in detail for real productive programming and if you are
 familiar with a specific editor you should not be forced to change. You
-may specify your favourite editor using the prolog flag \prologflag{editor},
+may specify your favourite editor using the Prolog flag \prologflag{editor},
 the environment variable \env{EDITOR} or by defining rules for
 prolog_edit:edit_source/1 (see \secref{listing}).
 
@@ -719,7 +719,7 @@ editor at the right location.
 
     \item [Select editor]
 External editors are selected using the \env{EDITOR} environment
-variable, by setting the prolog flag \prologflag{editor} or by defining the
+variable, by setting the Prolog flag \prologflag{editor} or by defining the
 hook prolog_edit:edit_source/1.
 
     \item [Update Prolog after editing]
