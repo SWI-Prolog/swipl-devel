@@ -2963,7 +2963,7 @@ Linker used to link the raw executable.  Default is to use the C-compiler
     \cmdlineoptionitem{-cc}{C-compiler}
 Compiler for \fileext{c} files found on the command-line.  Default is the
 compiler used to build SWI-Prolog accessible through the Prolog flag
-\prolog_flag{c_cc} (Win32: \program{cl.exe})..
+\prologflag{c_cc} (Win32: \program{cl.exe})..
     \cmdlineoptionitem{-c++}{C++-compiler}
 Compiler for C++ sources (extensions \fileext{cpp}, \fileext{cxx},
 \fileext{cc} or \fileext{C}) files found on the command-line.  Default is

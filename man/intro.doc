@@ -12,20 +12,19 @@ guided by requests from the user community, especially focussing on
 (I/O) performance, standard compliance, teaching and the program
 development environment.
 
-SWI-Prolog is based on a very restricted form of the WAM (Warren
-Abstract Machine) described in \cite{Bowen:83} which defines only 7
-instructions. Prolog can easily be compiled into this language and the
-abstract machine code is easily decompiled back into Prolog.  As it is
-also possible to wire a standard 4-port debugger in the WAM
-interpreter there is no need for a distinction between compiled and
-interpreted code.  Besides simplifying the design of the Prolog system
-itself this approach has advantages for program development: the
-compiler is simple and fast, the user does not have to decide in
-advance whether debugging is required and the system only runs slightly
-slower when in debug mode.  The price we have to pay is some
-performance degradation (taking out the debugger from the WAM
-interpreter improves performance by about 20\%) and somewhat
-additional memory usage to help the decompiler and debugger.
+SWI-Prolog is based on a very simple Prolog virtual machine called ZIP
+\cite{Bowen:83,Neumerkel:93} which defines only 7 instructions. Prolog can easily be
+compiled into this language and the abstract machine code is easily
+decompiled back into Prolog. As it is also possible to wire a standard
+4-port debugger in the virtual machine there is no need for a
+distinction between compiled and interpreted code. Besides simplifying
+the design of the Prolog system itself this approach has advantages for
+program development: the compiler is simple and fast, the user does not
+have to decide in advance whether debugging is required and the system
+only runs slightly slower when in debug mode. The price we have to pay
+is some performance degradation (taking out the debugger from the VM
+interpreter improves performance by about 20\%) and somewhat additional
+memory usage to help the decompiler and debugger.
 
 SWI-Prolog extends the minimal set of instructions described in
 \cite{Bowen:83} to improve performance. While extending this set care
@@ -59,10 +58,10 @@ This manual describes version \versionshort{} of SWI-Prolog. SWI-Prolog
 has been used now for many years. The application range includes Prolog
 course material, meta-interpreters, simulation of parallel Prolog,
 learning systems, natural language processing, complex interactive
-systems, web-server and web-server components. Although we experienced
-rather obvious and critical bugs can remain unnoticed for a remarkable
-long period, we assume the basic Prolog system is fairly stable. Bugs
-can be expected in infrequently used built-in predicates.
+systems, web-server and web-server components. Although in our
+experience rather obvious and critical bugs can remain unnoticed for a
+remarkable long period, we assume the basic Prolog system is fairly
+stable. Bugs can be expected in infrequently used built-in predicates.
 
 Some bugs are known to the author. They are described as footnotes in
 this manual.

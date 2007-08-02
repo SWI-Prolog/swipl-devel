@@ -226,24 +226,22 @@ exception (see throw/1 and catch/3).
 
     \predicate{thread_statistics}{3}{+Id, +Key, -Value}
 Obtains statistical information on thread \arg{Id} as statistics/2
-does in single-threaded applications.  This call returns all keys
-of statistics/2, although only information statistics about the
-stacks and CPU time yield different values for each thread.%
-	\footnote{Getting the CPU-time of a different thread is
-		  not supported on all platforms.  For Microsoft,
-		  it does not work in 95/98/ME.  For POSIX systems
-		  it requires times() to return values specific for
-		  the calling thread. See also \secref{nptl}.}
+does in single-threaded applications.  This call supports all keys
+of statistics/2, although only stack sizes and CPU time yield
+different values for each thread.%
+	\footnote{Getting the CPU-time of a specific thread is
+		  not supported on all platforms. On some platforms
+		  it returns total process CPU time instead of the
+		  thread CPU time. Thread CPU time is supported on
+		  MS-Windows and most recent Linux versions.}
 
     \predicate{mutex_statistics}{0}{}
-Print usage statistics on internal mutexes and mutexes associated
-with dynamic predicates.  For each mutex two numbers are printed:
-the number of times the mutex was acquired and the number of
-\jargon{collisions}: the number times the calling thread has to
-wait for the mutex.  The collision-count is not available on
-Windows as this would break portability to Windows-95/98/ME or
-significantly harm performance.  Generally collision count is
-close to zero on single-CPU hardware.
+Print usage statistics on internal mutexes and mutexes associated with
+dynamic predicates. For each mutex two numbers are printed: the number
+of times the mutex was acquired and the number of \jargon{collisions}:
+the number times the calling thread has to wait for the mutex. The
+collision-count is not available on MS-Windows. Generally collision
+count is close to zero on single-CPU hardware.
 \end{description}
 
 
