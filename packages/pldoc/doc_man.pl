@@ -518,10 +518,18 @@ dom(CDATA, _) -->
 %		$ File#sec:NR :
 %		Rewrite to section(Level, NT, FilePath)
 %		
+%		$ File#flag:Name :
+%		Rewrite to section(Level, NT, FilePath)#flag:Name
+%		
 %	@param Class	Class of the <A>.  Supported classes are
 %	
 %		$ sec  : Link to a section
 %		$ pred : Link to a predicate
+%		$ flag : link to a Prolog flag
+%		
+%	@param Ref0	Initial reference from the =a= element
+%	@param Path	Currently loaded file
+%	@paran ManRef	PlDoc server reference
 
 rewrite_ref(pred, Ref0, _, Ref) :-		% Predicate reference
 	sub_atom(Ref0, _, _, A, '#'), !,
@@ -543,6 +551,16 @@ rewrite_ref(sec, File, Path, Ref) :-		% Section is a file
 	Obj = section(_, _, SecPath),
 	man_index(Obj, _, _, _, _), !,
 	object_href(Obj, Ref).
+rewrite_ref(flag, Ref0, Path, Ref) :-
+	sub_atom(Ref0, B, _, A, '#'), !,
+	sub_atom(Ref0, 0, B, _, File),
+	sub_atom(Ref0, _, A, 0, Fragment),
+	file_directory_name(Path, Dir),
+	concat_atom([Dir, /, File], SecPath),
+	Obj = section(_, _, SecPath),
+	man_index(Obj, _, _, _, _), !,
+	object_href(Obj, Ref1),
+	format(string(Ref), '~w#~w', [Ref1, Fragment]).
 
 %%	atom_to_pi(+Atom, -PredicateIndicator) is semidet.
 %	
