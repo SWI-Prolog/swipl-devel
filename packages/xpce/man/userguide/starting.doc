@@ -436,7 +436,7 @@ fileviewer(Dir) :-
 
 view(DirObj, F) :-
 	send(new(V, view(F)), open),
-	get(DirObj, file, F, FileObj),
+	get(DirObj, file(F), FileObj),
 	send(V, load(FileObj)).
 \end{pcecode}
 
@@ -464,16 +464,16 @@ the button. A \class{message} is a dormant send-operation. When pressed,
 the button executes
 
 \begin{code}
-send(@prolog, view, B?selection?key)
+send(@prolog, view, DirObj, B?selection?key)
 \end{code}
 
 If a message is sent to @prolog, this calls a predicate with the name of
 the {\em selector} of the message and an arity that equals the number of
-arguments to the message (1 here).
+arguments to the message (2 here).
 
-The argument is a term with principal functor \class{?} and defines an
-`obtainer', a dormant get-operation. It is defined as a Prolog
-infix operator of type {\tt yfx}, priority 500. This implies that
+The second argument is a term with principal functor \class{?} and
+defines an `obtainer', a dormant get-operation. It is defined as a
+Prolog infix operator of type {\tt yfx}, priority 500. This implies that
 \mbox{\tt B?selection?key} should be read as%
     \footnote{Initial versions of \product{} lacked the obtainer.  In this
 	      case the browser {\em B} would be passed to the predicate
@@ -499,18 +499,11 @@ all UI objects associated with the frame.  The garbage collector
 destroys all related objects.
 
 Line 10 fills the \class{browser} with the files from the specified
-directory. The expression \mbox{\tt directory(Dir)?files} defines an
+directory. The expression \mbox{\tt DirObj?files} defines an
 obtainer operating on an instance of class \class{directory}. The
 obtainer evaluates to a \class{chain}, \product{}'s notion of a list, holding
-the names of all files in the directory. This expression is the same as:
-
-\begin{code}
-	...,
-	new(Dobj, directory(Dir)),
-	get(Dobj, files, Chain),
-	send(B, members, Chain),
-	...
-\end{code}
+the names of all files in the directory. This chain is sent to the
+members-method of the browser \arg{B}.
 
 Again, the garbage collector takes care of the directory and chain
 objects.  The browser automatically converts the given names to
@@ -525,10 +518,11 @@ each of the windows to compute its desired size, after which the
 frame aligns the windows, decides on their final geometry and creates
 the Window-system counterpart.
 
-The view/1 callback predicate simply opens an instance of \class{view},
-a window specialised in text-editing and loads the file into the view.
-The method `view ->load' expects an instance of class \class{file}.
-Again, the type-conversion will deal with this. 
+The view/2 callback predicate opens an instance of \class{view},
+a window specialised in text-editing, gets the file-object for the given
+filename F. and loads the file into the view. The method `view ->load'
+expects an instance of class \class{file}. Again, the type-conversion
+will deal with this. 
 
 
 \section{Summary}
