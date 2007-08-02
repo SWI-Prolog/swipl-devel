@@ -1146,6 +1146,7 @@ ar_even(Number i)
       return mpz_fdiv_ui(i->value.mpz, 2) == 0;
     default:
       assert(0);
+      fail;
   }
 }
 
