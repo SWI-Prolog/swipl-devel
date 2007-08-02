@@ -144,7 +144,7 @@ version, home, etc. With both arguments unbound, it will generate all
 defined Prolog flags. With the `Key' instantiated it unifies the value 
 of the Prolog flag. Flag values are typed. Flags marked as <CODE>bool</CODE> 
 can have the values <CODE>true</CODE> and
-<CODE>false</CODE>. Some prolog flags are not defined in all versions, 
+<CODE>false</CODE>. Some Prolog flags are not defined in all versions, 
 which is normally indicated in the documentation below as <I>``if 
 present and true''</I>. A boolean Prolog flag is true iff the Prolog 
 flag is present <B>and</B> the <VAR>Value</VAR> is the atom <CODE>true</CODE>. 
@@ -216,8 +216,9 @@ ISO Prolog flag. If <CODE>true</CODE>, integer representation is bound
 by
 <A class="flag" href="flags.html#flag:min_integer">min_integer</A> and <A class="flag" href="flags.html#flag:max_integer">max_integer</A>. 
 If <CODE>false</CODE> integers can be arbitrary large and the <A class="flag" href="flags.html#flag:min_integer">min_integer</A> 
-and <A class="flag" href="flags.html#flag:max_integer">max_integer</A> 
-are not present. See <A class="sec" href="arith.html">section 4.26.2.1</A>.</DD>
+and
+<A class="flag" href="flags.html#flag:max_integer">max_integer</A> are 
+not present. See <A class="sec" href="arith.html">section 4.26.2.1</A>.</DD>
 <DT class="pubdef"><A NAME="flag:c_cc"><STRONG>c_cc</STRONG>(<VAR>atom</VAR>)</A></DT>
 <DD class="defbody">
 Name of the C-compiler used to compile SWI-Prolog. Normally either gcc 
@@ -468,11 +469,11 @@ called <EM>cyclic term</EM> and can have three values. Using
 <CODE>false</CODE> (default), unification succeeds, creating an infinite 
 tree, Using <CODE>true</CODE>, unify behaves as <A NAME="idx:unifywithoccurscheck2:143"></A><A class="pred" href="compare.html#unify_with_occurs_check/2">unify_with_occurs_check/2</A>, 
 failing silently. Using <CODE>error</CODE>, an attempt to create a 
-cyclic term results in an <A class="flag" href="flags.html#flag:occurs_check">occurs_check</A> 
-exception. The latter is intented for debugging unintentional creation 
-of cyclic terms. Note that this flag is a global flag modifying 
-fundamental behaviour of Prolog. Changing the flag from its default may 
-cause libraries to stop functioning properly.</DD>
+cyclic term results in an <CODE>occurs_check</CODE> exception. The 
+latter is intented for debugging unintentional creation of cyclic terms. 
+Note that this flag is a global flag modifying fundamental behaviour of 
+Prolog. Changing the flag from its default may cause libraries to stop 
+functioning properly.</DD>
 <DT class="pubdef"><A NAME="flag:open_shared_object"><STRONG>open_shared_object</STRONG>(<VAR>bool</VAR>)</A></DT>
 <DD class="defbody">
 If true, <A NAME="idx:opensharedobject2:144"></A><A class="pred" href="dynstatic.html#open_shared_object/2">open_shared_object/2</A> 
@@ -531,9 +532,10 @@ the file <CODE>boot32.prc</CODE>, the file specified with <STRONG>-x</STRONG>
 or the running executable. See also <A NAME="idx:resource3:148"></A><A class="pred" href="useresource.html#resource/3">resource/3</A>.</DD>
 <DT class="pubdef"><A NAME="flag:report_error"><STRONG>report_error</STRONG>(<VAR>bool</VAR>, changeable)</A></DT>
 <DD class="defbody">
-If <TT>true</TT>, print error messages, otherwise suppress them. May be 
-changed. See also the <TT>debug_on_error</TT> Prolog flag. Default is <TT>true</TT>, 
-except for the runtime version.</DD>
+If <CODE>true</CODE>, print error messages, otherwise suppress them. May 
+be changed. See also the <A class="flag" href="flags.html#flag:debug_on_error">debug_on_error</A> 
+Prolog flag. Default is <CODE>true</CODE>, except for the runtime 
+version.</DD>
 <DT class="pubdef"><A NAME="flag:runtime"><STRONG>runtime</STRONG>(<VAR>bool</VAR>)</A></DT>
 <DD class="defbody">
 If present and <CODE>true</CODE>, SWI-Prolog is compiled with 
@@ -577,8 +579,8 @@ omitted, it is sometimes necessary to enable it during debugging.</DD>
 <DT class="pubdef"><A NAME="flag:timezone"><STRONG>timezone</STRONG>(<VAR>integer</VAR>)</A></DT>
 <DD class="defbody">
 Offset in seconds west of GMT of the current time-zone. Set at 
-initialization time from the <A class="flag" href="flags.html#flag:timezone">timezone</A> 
-variable associated with the POSIX tzset() function. See also <A NAME="idx:converttime2:152"></A><SPAN class="pred-ext">convert_time/2</SPAN>.</DD>
+initialization time from the <CODE>timezone</CODE> variable associated 
+with the POSIX tzset() function. See also <A NAME="idx:converttime2:152"></A><SPAN class="pred-ext">convert_time/2</SPAN>.</DD>
 <DT class="pubdef"><A NAME="flag:toplevel_print_anon"><STRONG>toplevel_print_anon</STRONG>(<VAR>bool</VAR>, changeable)</A></DT>
 <DD class="defbody">
 If <CODE>true</CODE>, top-level variables starting with an underscore (<CODE>_</CODE>) 
@@ -703,7 +705,7 @@ If the flag is a system-defined flag that is not marked
 <CODE>permission_error</CODE>. If the provided <VAR>Value</VAR> does not 
 match the type of the flag, a <CODE>type_error</CODE> is raised.
 
-<P>In addition to ISO, SWI-Prolog allows for user-defined prolog flags. 
+<P>In addition to ISO, SWI-Prolog allows for user-defined Prolog flags. 
 The type of the flag is determined from the initial value and cannot be 
 changed afterwards. Defined types are <CODE>boolean</CODE> (if the 
 initial value is one of <CODE>false</CODE>, <CODE>true</CODE>, <CODE>on</CODE> 

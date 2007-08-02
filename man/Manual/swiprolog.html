@@ -134,28 +134,30 @@ focussing on (in arbitrary order) interaction with the environment,
 scalability, (I/O) performance, standard compliance, teaching and the 
 program development environment.
 
-<P>SWI-Prolog is based on a very restricted form of the WAM (Warren 
-Abstract Machine) described in <CITE><A class="cite" href="Bibliography.html#Bowen:83">Bowen &amp; 
-Byrd, 1983</A></CITE> which defines only 7 instructions. Prolog can 
-easily be compiled into this language and the abstract machine code is 
-easily decompiled back into Prolog. As it is also possible to wire a 
-standard 4-port debugger in the WAM interpreter there is no need for a 
+<P>SWI-Prolog is based on a very simple Prolog virtual machine called 
+ZIP
+<CITE><A class="cite" href="Bibliography.html#Bowen:83">Bowen <EM>et al.</EM>, 
+1983</A>, <A class="cite" href="Bibliography.html#Neumerkel:93">Neumerkel, 
+1993</A></CITE> which defines only 7 instructions. Prolog can easily be 
+compiled into this language and the abstract machine code is easily 
+decompiled back into Prolog. As it is also possible to wire a standard 
+4-port debugger in the virtual machine there is no need for a 
 distinction between compiled and interpreted code. Besides simplifying 
 the design of the Prolog system itself this approach has advantages for 
 program development: the compiler is simple and fast, the user does not 
 have to decide in advance whether debugging is required and the system 
 only runs slightly slower when in debug mode. The price we have to pay 
-is some performance degradation (taking out the debugger from the WAM 
+is some performance degradation (taking out the debugger from the VM 
 interpreter improves performance by about 20%) and somewhat additional 
 memory usage to help the decompiler and debugger.
 
 <P>SWI-Prolog extends the minimal set of instructions described in
-<CITE><A class="cite" href="Bibliography.html#Bowen:83">Bowen &amp; 
-Byrd, 1983</A></CITE> to improve performance. While extending this set 
-care has been taken to maintain the advantages of decompilation and 
-tracing of compiled code. The extensions include specialised 
-instructions for unification, predicate invocation, some frequently used 
-built-in predicates, arithmetic, and control (<A class="pred" href="control.html#;/2">;/2</A>, <A class="pred" href="control.html#|/2">|/2</A>), 
+<CITE><A class="cite" href="Bibliography.html#Bowen:83">Bowen <EM>et al.</EM>, 
+1983</A></CITE> to improve performance. While extending this set care 
+has been taken to maintain the advantages of decompilation and tracing 
+of compiled code. The extensions include specialised instructions for 
+unification, predicate invocation, some frequently used built-in 
+predicates, arithmetic, and control (<A class="pred" href="control.html#;/2">;/2</A>, <A class="pred" href="control.html#|/2">|/2</A>), 
 if-then (<A class="pred" href="control.html#send_arrow/2">-&gt;/2</A>) 
 and negation-by-failure (<A class="pred" href="control.html#\+/1">\+/1</A>).
 

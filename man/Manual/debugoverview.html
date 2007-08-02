@@ -125,13 +125,14 @@ of the Debugger</SPAN></A></H2>
 
 <A NAME="sec:debugoverview"></A>
 
-<P>SWI-Prolog has a 6-port) tracer, extending the standard 4-port tracer
-<CITE><A class="cite" href="Bibliography.html#Clocksin:87">Clocksin &amp; 
+<P>SWI-Prolog has a 6-port) tracer, extending the standard 4-port Byrd 
+box model tracer <CITE><A class="cite" href="Bibliography.html#Byrd:80">Byrd, 
+1980</A>, <A class="cite" href="Bibliography.html#Clocksin:87">Clocksin &amp; 
 Melish, 1987</A></CITE> with two additional ports. The optional <VAR>unify</VAR> 
 port allows the user to inspect the result after unification of the 
 head. The <VAR>exception</VAR> port shows exceptions raised by <A NAME="idx:throw1:84"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
-or one of the built-in predicates. See <A class="sec" href="exception.html">section 
-4.9</A>.
+or one of the built-in predicates. See
+<A class="sec" href="exception.html">section 4.9</A>.
 
 <P>The standard ports are called <CODE>call</CODE>, <CODE>exit</CODE>, <CODE>redo</CODE>,
 <CODE>fail</CODE> and <CODE>unify</CODE>. The tracer is started by the <A NAME="idx:trace0:85"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
@@ -314,8 +315,8 @@ etc.
 </DD>
 </DL>
 
-<P>The ideal 4 port model as described in many Prolog books
-<CITE><A class="cite" href="Bibliography.html#Clocksin:87">Clocksin &amp; 
+<P>The ideal 4 port Byrd box model <CITE><A class="cite" href="Bibliography.html#Byrd:80">Byrd, 
+1980</A></CITE> as described in many Prolog books <CITE><A class="cite" href="Bibliography.html#Clocksin:87">Clocksin &amp; 
 Melish, 1987</A></CITE> is not visible in many Prolog implementations 
 because code optimisation removes part of the choice- and exit-points. 
 Backtrack points are not shown if either the goal succeeded 

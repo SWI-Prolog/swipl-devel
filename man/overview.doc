@@ -544,11 +544,12 @@ Yes
 
 \section{Overview of the Debugger}		\label{sec:debugoverview}
 
-SWI-Prolog has a 6-port) tracer, extending the standard 4-port tracer
-\cite{Clocksin:87} with two additional ports. The optional \arg{unify}
-port allows the user to inspect the result after unification of the
-head. The \arg{exception} port shows exceptions raised by throw/1 or one
-of the built-in predicates. See \secref{exception}.
+SWI-Prolog has a 6-port) tracer, extending the standard 4-port Byrd box
+model tracer \cite{Byrd:80,Clocksin:87} with two additional ports. The
+optional \arg{unify} port allows the user to inspect the result after
+unification of the head. The \arg{exception} port shows exceptions
+raised by throw/1 or one of the built-in predicates. See
+\secref{exception}.
 
 The standard ports are called \const{call}, \const{exit}, \const{redo},
 \const{fail} and \const{unify}. The tracer is started by the trace/0
@@ -670,16 +671,17 @@ Set the Prolog flag \prologflag{debugger_print_options} to
 \exam{[quoted(true), attributes(write), priority(699)]}, bypassing portray/1, etc.}
 \end{description}
 
-The ideal 4 port model as described in many Prolog books
-\cite{Clocksin:87} is not visible in many Prolog implementations because
-code optimisation removes part of the choice- and exit-points.
-Backtrack points are not shown if either the goal succeeded
-deterministically or its alternatives were removed using the cut.  When
-running in debug mode (debug/0) choice points are only destroyed when
-removed by the cut.  In debug mode, last call optimisation is
-switched off.%
-    \footnote{This implies the system can run out of local stack in debug
-              mode, while no problems arise when running in non-debug mode.}
+The ideal 4 port Byrd box model \cite{Byrd:80} as described in many
+Prolog books \cite{Clocksin:87} is not visible in many Prolog
+implementations because code optimisation removes part of the choice-
+and exit-points. Backtrack points are not shown if either the goal
+succeeded deterministically or its alternatives were removed using the
+cut. When running in debug mode (debug/0) choice points are only
+destroyed when removed by the cut. In debug mode, last call optimisation
+is switched off.%
+	\footnote{This implies the system can run out of local
+		  stack in debug mode, while no problems arise when
+		  running in non-debug mode.}
 
 Reference information to all predicates available for manipulating the
 debugger is in \secref{debugger}.

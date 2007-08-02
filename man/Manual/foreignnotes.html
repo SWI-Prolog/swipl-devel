@@ -139,7 +139,7 @@ PL_malloc() or PL_realloc() do not return.
 by PL_get_chars() using the <CODE>BUF_MALLOC</CODE> argument. Portable 
 applications may use both PL_malloc() and friends or malloc() and 
 friends but should not mix these two sets of functions on the same 
-memory.<SUP class="fn">78<SPAN class="fn-text">These functions were 
+memory.<SUP class="fn">79<SPAN class="fn-text">These functions were 
 introduced in SWI-Prolog 5.0.9 to realise guaranteed portability. 
 Foreign code that must be compatible with older versions can check the <CODE>PLVERSION</CODE> 
 macro.</SPAN></SUP>
@@ -173,7 +173,7 @@ between Prolog versions</SPAN></A></H3>
 extensions between different Prolog versions. Only much less frequently 
 used stream interface has been responsible for binary incompatibilities.
 
-<P><A NAME="idx:PLVERSION:1352"></A>Source-code that relies on new 
+<P><A NAME="idx:PLVERSION:1345"></A>Source-code that relies on new 
 features of the foreign interface can use the macro <CODE>PLVERSION</CODE> 
 to find the version of
 <CODE>SWI-Prolog.h</CODE> and PL_query() using the option

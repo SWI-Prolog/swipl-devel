@@ -23,11 +23,11 @@
 \newcommand{\product}{{\sc xpce}}
 \newcommand{\plainproduct}{XPCE}
 \newcommand{\productpl}{{\sc xpce/p}rolog}
-\newcommand{\productversion}{6.5.22}
+\newcommand{\productversion}{6.6.37}
 \newcommand{\quintus}{Quintus}
 \newenvironment{xpceonly}{}{}
 \excludecomment{pwonly}
-\newcommand{\productdate}{July 2005}
+\newcommand{\productdate}{August 2007}
 
 \renewcommand{\runningtitle}{\product{} \productversion}
 \def\booktitle{Programming in XPCE/Prolog}

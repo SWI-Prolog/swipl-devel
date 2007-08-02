@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+================================
+VERSION 5.6.38 (August 02, 2007)
+================================
+
   * FIXED: Bug in retract/1, combining unit clauses and non-unit clauses.
 
   * FIXED: rl_add_history for non-UTF-8 locales.  Ulrich Neumerkel.

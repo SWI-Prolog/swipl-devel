@@ -139,7 +139,8 @@ architecture identifier. Also available as <STRONG>-v</STRONG>.</DD>
 <DT><STRONG>--arch</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
 When given as the only option, it prints the architecture identifier 
-(see current_prolog_flag(arch, Arch)) and exits. See also
+(see Prolog flag <A class="flag" href="flags.html#flag:arch">arch</A>) 
+and exits. See also
 <STRONG>-dump-runtime-variables</STRONG>. Also available as
 <STRONG>-arch</STRONG>.</DD>
 <DT><STRONG>--dump-runtime-variables</STRONG> <VAR></VAR></DT>
@@ -251,14 +252,22 @@ to
 is a predicate which prints the welcome message. The welcome message can 
 thus be suppressed by giving <STRONG>-g</STRONG> <VAR>true</VAR>. <VAR>goal</VAR> 
 can be a complex term. In this case quotes are normally needed to 
-protect it from being expanded by the Unix shell.</DD>
+protect it from being expanded by the shell. A save way to run a goal 
+non-interactively is here:
+
+<PRE class="code">
+% pl &lt;options&gt; -g go,halt -t 'halt(1)'
+</PRE>
+
+</DD>
 <DT><STRONG>-t</STRONG> <VAR>goal</VAR></DT>
 <DD class="defbody">
 Use <VAR>goal</VAR> as interactive top-level instead of the default goal
 <A NAME="idx:prolog0:65"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A>. <VAR>goal</VAR> 
 can be a complex term. If the top-level goal succeeds SWI-Prolog exits 
-with status 0. If it fails the exit status is 1. This flag also 
-determines the goal started by <A NAME="idx:break0:66"></A><A class="pred" href="toplevel.html#break/0">break/0</A> 
+with status 0. If it fails the exit status is 1. If the toplevel raises 
+an exception, this is printed as an uncaught error and the toplevel is 
+restarted. This flag also determines the goal started by <A NAME="idx:break0:66"></A><A class="pred" href="toplevel.html#break/0">break/0</A> 
 and <A NAME="idx:abort0:67"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>. 
 If you want to stop the user from entering interactive mode start the 
 application with `<STRONG>-g</STRONG> <VAR>goal</VAR>' and give `halt' 

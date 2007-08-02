@@ -125,7 +125,7 @@ context to errors: prolog_exception_hook</SPAN></A></H2>
 
 <A NAME="sec:excepthook"></A>
 
-<P>The hook <A NAME="idx:prologexceptionhook4:1487"></A><A class="pred" href="excepthook.html#prolog_exception_hook/4">prolog_exception_hook/4</A> 
+<P>The hook <A NAME="idx:prologexceptionhook4:1480"></A><A class="pred" href="excepthook.html#prolog_exception_hook/4">prolog_exception_hook/4</A> 
 has been introduced in SWI-Prolog 5.6.5 to provide dedicated exception 
 handling facilities for application frameworks. For example 
 non-interactive server applications that wish to provide extensive 
@@ -138,14 +138,14 @@ context for exceptions for offline debugging.
 This hook predicate, if defined in the module <CODE>user</CODE>, is 
 between raising an exception and handling it. It is intended to allow a 
 program adding additional context to an exception to simplify diagnosing 
-the problem. <VAR>ExceptionIn</VAR> is the exception term as raised by <A NAME="idx:throw1:1488"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
+the problem. <VAR>ExceptionIn</VAR> is the exception term as raised by <A NAME="idx:throw1:1481"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
 or one of the bullt-in predicates. The output argument <VAR>ExceptionOut</VAR> 
 describes the exception that is actually raised. <VAR>Frame</VAR> is the 
-innermost frame. See <A NAME="idx:prologframeattribute3:1489"></A><A class="pred" href="manipstack.html#prolog_frame_attribute/3">prolog_frame_attribute/3</A> 
+innermost frame. See <A NAME="idx:prologframeattribute3:1482"></A><A class="pred" href="manipstack.html#prolog_frame_attribute/3">prolog_frame_attribute/3</A> 
 and the library
 <CODE>library(prolog_stack)</CODE> for getting information from this.
 <VAR>CatcherFrame</VAR> is a reference to the frame calling the matching
-<A NAME="idx:catch3:1490"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
+<A NAME="idx:catch3:1483"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
 or <CODE>none</CODE> of the exception is not caught.
 
 <P>The hook is run in `nodebug' mode. If it succeeds <VAR>ExceptionOut</VAR> 
@@ -154,7 +154,7 @@ is used for further processing. The hook is <EM>never</EM> called
 recursively. The hook is <EM>not</EM> allowed to modify <VAR>ExceptionOut</VAR> 
 in such as way that it no longer unifies with the catching frame.
 
-<P>Typically, <A NAME="idx:prologexceptionhook4:1491"></A><A class="pred" href="excepthook.html#prolog_exception_hook/4">prolog_exception_hook/4</A> 
+<P>Typically, <A NAME="idx:prologexceptionhook4:1484"></A><A class="pred" href="excepthook.html#prolog_exception_hook/4">prolog_exception_hook/4</A> 
 is used to fill the second argument of <CODE>error(Formal, Context)</CODE> 
 exceptions. <VAR>Formal</VAR> is defined by the ISO standard, while 
 SWI-Prolog defines <VAR>Context</VAR> as a term <CODE>context(Location, 
@@ -166,11 +166,11 @@ calling context, such as a full stack trace.
 a quick test of the environment before starting expensive gathering 
 information on the state of the program.
 
-<P>The hook can call <A NAME="idx:trace0:1492"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
+<P>The hook can call <A NAME="idx:trace0:1485"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 to enter trace mode immediately. For example imagine an application 
 performing an unwanted division by zero while all other errors are 
 expected and handled. We can force the debugger using the hook 
-definition below. Run the program in debug mode (see <A NAME="idx:debug0:1493"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>) 
+definition below. Run the program in debug mode (see <A NAME="idx:debug0:1486"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>) 
 to preserve as much as possible of the error context.
 
 <PRE class="code">
