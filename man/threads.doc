@@ -767,7 +767,7 @@ in the following identified cases:
 \begin{itemlist}
     \item [Compatibility with the single-threaded version]
 In the single-threaded version, foreign threads must serialise access
-the the one and only thread engine.  Functions from this section allow
+the one and only thread engine.  Functions from this section allow
 sharing one engine among multiple threads.
 
     \item [Many native threads with infrequent Prolog work]
@@ -866,7 +866,7 @@ Using XPCE in the foreground simplifies debugging of the UI and
 generally provides the most comfortable development environment.
 The GUI creates new threads using thread_create/3 and, after
 work in the thread is completed, the sub-thread signals the
-main thread of the the completion using in_pce_thread/1.
+main thread of the completion using in_pce_thread/1.
 
 \begin{description}
     \predicate{in_pce_thread}{1}{:Goal}

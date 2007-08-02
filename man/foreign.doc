@@ -50,7 +50,7 @@ which attaches the extensions calls Prolog and the SWI-Prolog kernel
 distributed as a C-library are linked together to form a new executable.
 Using \jargon{dynamic linking}, the extensions are linked to a shared
 library (\fileext{so} file on most Unix systems) or dynamic-link library
-(\fileext{DLL} file on Microsoft platforms) and loaded into the the
+(\fileext{DLL} file on Microsoft platforms) and loaded into the 
 running Prolog process.%
     \footnote{The system also contains code to load \fileext{o} files
               directly for some operating systems, notably Unix systems

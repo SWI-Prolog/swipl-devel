@@ -1956,7 +1956,7 @@ doesn't produce any output. This solves all problems, or \ldots
 
 Some formats start of as US-ASCII and may contain some encoding mark to
 switch to UTF-8, such as the \verb$encoding="UTF-8"$ in an XML header.
-Such formats often explicitly forbid the the use of a UTF-8 BOM. In
+Such formats often explicitly forbid the use of a UTF-8 BOM. In
 other cases there is additional information telling the encoding making
 the use of a BOM redundant or even illegal.
 

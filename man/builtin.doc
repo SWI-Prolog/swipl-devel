@@ -6236,13 +6236,13 @@ The two atoms match if:
 \end{shortlist}
     \predicate{dwim_match}{3}{+Atom1, +Atom2, -Difference}
 Equivalent to dwim_match/2, but unifies \arg{Difference} with an atom
-identifying the the difference between \arg{Atom1} and \arg{Atom2}.  The
+identifying the difference between \arg{Atom1} and \arg{Atom2}.  The
 return values are (in the same order as above): \const{equal},
 \const{mismatched_char}, \const{inserted_char}, \const{transposed_char},
 \const{separated} and \const{transposed_word}.
     \predicate{wildcard_match}{2}{+Pattern, +String}
 True if \arg{String} matches the wildcard pattern \arg{Pattern}.
-\arg{Pattern} is very similar the the Unix csh pattern matcher. The
+\arg{Pattern} is very similar the Unix csh pattern matcher. The
 patterns are given below:
 
 \begin{center}\begin{tabular}{ll}
