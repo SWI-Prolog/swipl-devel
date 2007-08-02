@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug in retract/1, combining unit clauses and non-unit clauses.
+
   * FIXED: rl_add_history for non-UTF-8 locales.  Ulrich Neumerkel.
 
   * ENHANCED: Turned Prolog flags into linked objects in the manual.

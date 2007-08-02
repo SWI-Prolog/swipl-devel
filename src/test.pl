@@ -1133,6 +1133,12 @@ proc(retract-2) :-
 	assert((test(X, Y) :- X is Y + 3)),
 	retract((test(A, B) :- Body)),
 	Body == (A is B + 3).
+proc(retract-3) :-
+	assert(myunit(1)),
+	assert(myunit(2) :- x),
+	retract(myunit(2) :- X),
+	X == x,
+	retractall(myunit(_)).		% cleanup
 proc(current_predicate-1) :-
 	setof(X, current_predicate(cpxx/X), L), % order is not defined!
 	L == [0, 2].

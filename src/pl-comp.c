@@ -2610,8 +2610,8 @@ decompile(Clause clause, term_t term, term_t bindings)
       _PL_get_arg(2, term, b);
 
       if ( PL_unify_atom(b, ATOM_true) )
-      { _PL_get_arg(1, term, term);
-	return decompile_head(clause, term, di PASS_LD);
+      { _PL_get_arg(1, term, b);
+	return decompile_head(clause, b, di PASS_LD);
       }
     }
 
