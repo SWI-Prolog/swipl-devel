@@ -5964,16 +5964,16 @@ thread_cputime  & MT-version: seconds CPU time used by finished threads.
 		  a few more.  Verify it gives plausible results before
 		  using. \\
 \hline
-\multicolumn{2}{|c|}{Compatibility keys} \\
+\multicolumn{2}{|c|}{Compatibility keys (times in milliseconds)} \\
 \hline
 runtime		& [ CPU time, CPU time since last ]
 		  (milliseconds) \\
 system_time	& [ System CPU time, System CPU time since last ]
 		  (milliseconds)\\
-real_time	& [ Wall time, Wall time since last ] (seconds since 1970) \\
+real_time	& [ Wall time, Wall time since last ] (see get_time/1) \\
 memory		& [ Total unshared data, free memory ]
 		  (Uses getrusage() if available, otherwise incomplete own
-		  statistics. \\
+		  statistics.) \\
 stacks		& [ global use, local use ] \\
 program		& [ heap, 0 ] \\
 global_stack	& [ global use, global free ] \\

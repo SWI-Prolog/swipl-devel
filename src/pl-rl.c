@@ -142,20 +142,20 @@ static foreign_t
 pl_rl_add_history(term_t text)
 { atom_t a;
   static atom_t last = 0;
-  PL_chars_t txt;
 
   if ( PL_get_atom_ex(text, &a) )
-  { if ( a != last )
+  { char *txt;
+
+    if ( a != last )
     { if ( last )
 	PL_unregister_atom(last);
       last = a;
       PL_register_atom(last);
 
-      PL_get_text(text, &txt, CVT_ATOM);
-      PL_text_recode(&txt, ENC_UTF8);
-
-      add_history(txt.text.t);
-      PL_free_text(&txt);
+      if ( PL_get_chars(text, &txt, CVT_ATOM|REP_MB|CVT_EXCEPTION) )
+	add_history(txt);
+      else
+	return FALSE;
     }
 
     return TRUE;
