@@ -1137,6 +1137,7 @@ ar_minus(Number n1, Number n2, Number r)
 }
 
 
+#ifdef O_GMP
 static int
 ar_even(Number i)
 { switch(i->type)
@@ -1149,6 +1150,7 @@ ar_even(Number i)
       fail;
   }
 }
+#endif
 
 
 static int
