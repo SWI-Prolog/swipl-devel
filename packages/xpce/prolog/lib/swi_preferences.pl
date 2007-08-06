@@ -64,30 +64,15 @@ locate_preferences(xpce_user, File) :-
 	get(string('%s/Defaults', Dir), value, File).
 locate_preferences(prolog, File) :-
 	'$option'(init_file, Base, Base), % should be in current_prolog_flag!
-	member(Access, [read, write]),
-	absolute_file_name(user_profile(Base),
-			   [ access(Access),
-			     file_errors(fail),
-			     solutions(all)
-			   ], File),
-	(   Access == read
-	;   valid_location(File)
-	), !.
-	
-%%	valid_location(+PrefFile)
-%	
-%	See whether this is a valid non-local location for the
-%	preferences file. This should deal with the possibility that our
-%	working directory is ~ or the Prolog home.
-
-valid_location(PrefFile) :-
-	file_directory_name(PrefFile, Dir),
-	(   \+ absolute_file_name('.', Dir)
+	(   absolute_file_name(user_profile(Base), File,
+			       [ access(read),
+				 file_errors(fail)
+			       ])
 	->  true
-	;   expand_file_name(~, [Dir])
-	->  true
-	;   current_prolog_flag(windows, true),
-	    current_prolog_flag(home, Dir)
+	;   absolute_file_name(app_preferences(Base), File,
+			       [ access(write),
+				 file_errors(fail)
+			       ])
 	).
 
 %%	default_preferences(+Id, -File)
@@ -110,6 +95,10 @@ default_preferences(xpce_user, File) :-
 			     file_errors(fail)
 			   ], File), !.
 
+
+%%	ensure_xpce_config_dir(-Dir)
+%
+%	Ensure existence of the personal XPCE config directory.
 
 ensure_xpce_config_dir(Dir) :-
 	catch(expand_file_name('~/.xpce', [Dir]), _, fail),

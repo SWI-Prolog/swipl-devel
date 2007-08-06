@@ -192,6 +192,42 @@ gather_arg(file(Mode, Title), File) :-
 		 owner := HWND,
 		 File)).
 
+
+		 /*******************************
+		 *	    APPLICATION		*
+		 *******************************/
+
+%%	init_win_app
+%
+%	If Prolog is started using --win_app, try to change directory
+%	to <My Documents>\Prolog.
+
+init_win_app :-
+	current_prolog_flag(argv, Argv),
+	'$append'(Pre, ['--win_app'|_Post], Argv),
+	\+ '$member'(--, Pre), !,
+	catch(my_prolog, E, print_message(warning, E)).
+init_win_app.
+
+my_prolog :-
+	win_folder(personal, MyDocs),
+	atom_concat(MyDocs, '/Prolog', PrologDir),
+	(   ensure_dir(PrologDir)
+	->  working_directory(_, PrologDir)
+	;   working_directory(_, MyDocs)
+	).
+
+
+ensure_dir(Dir) :-
+	exists_directory(Dir), !.
+ensure_dir(Dir) :-
+	catch(make_directory(Dir), E, (print_message(warning, E), fail)).
+
+
+:- initialization
+   init_win_app.
+
+
 		 /*******************************
 		 *	      MESSAGES		*
 		 *******************************/

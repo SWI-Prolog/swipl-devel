@@ -88,7 +88,7 @@
 :- multifile user:file_search_path/2.
 :- dynamic   user:file_search_path/2.
 
-user:file_search_path(config, user_profile('.xpce')).
+user:file_search_path(config, app_preferences('.xpce')).
 
 config_version(1).			% version of the config package
 
