@@ -56,6 +56,12 @@ with a full-stop (\chr{.}).
 ?- [swi('demo/likes')].
 \end{code}
 
+If Prolog is started from the start menu it is passed the option
+\texttt{--win_app}, which causes it to start in the local equivalent of
+\file{My Documents\bsl{}Prolog}.  This folder is created if it does not
+exist.
+
+
 \subsection{Executing a query}			\label{sec:execquery}
 
 After loading a program, one can ask Prolog queries about the program.
@@ -319,8 +325,8 @@ An embedded executable is created from C, C++ and Prolog files using
 \subsection{Supported Windows versions}			\label{sec:winver}
 
 SWI-Prolog 5.5.x and later are UNICODE applications, requiring Windows
-NT or later (2000, XP). Although Microsoft provides a library that
-allows such program to run under Windows 95/98/ME, this library is
+NT or later (2000, XP, Vista). Although Microsoft provides a library
+that allows such program to run under Windows 95/98/ME, this library is
 licensed such that it cannot be used with Open Source software. Users of
 these old operating systems are forced to stick with version 5.4.7.
 
@@ -431,7 +437,6 @@ version only.
 \hline
 \verb$fileExtension$		& Extension used for Prolog files \\
 \verb$group$			& Start-menu group \\
-\verb$cwd$			& Default folder for shortcut \\
 \verb$home$			& Installation directory \\
 \hline
 \multicolumn{2}{|c|}{\tt HKEY_CURRENT_USER\bsl{}Software\bsl{}SWI\bsl{}Prolog} \\
@@ -452,6 +457,14 @@ version only.
 \hline
 \end{tabular}
 \end{center}
+
+
+\subsection{Creating a desktop menu item}
+
+If you want a desktop entry for SWI-Prolog, right-drag
+\program{plwin.exe} to the desktop and select `Create shortcut'. Then
+edit the properties and add \const{--win_app} to the commandline to make
+the application start in \file{My Documents\bsl{}Prolog}.
 
 
 \section{The SWI-Prolog community and foundation}

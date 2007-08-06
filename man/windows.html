@@ -157,6 +157,8 @@ the file-extension</SPAN></A></DIV>
 programs</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:3.4"><SPAN class="sec-nr">3.4</SPAN> <SPAN class="sec-title">Installed 
 Registry keys and menus</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.5"><SPAN class="sec-nr">3.5</SPAN> <SPAN class="sec-title">Creating 
+a desktop menu item</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">The 
 SWI-Prolog community and foundation</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:4.1"><SPAN class="sec-nr">4.1</SPAN> <SPAN class="sec-title">Web-site 
@@ -187,6 +189,11 @@ with a full-stop (<CODE><CODE>.</CODE></CODE>).
 <PRE class="code">
 ?- [swi('demo/likes')].
 </PRE>
+
+<P>If Prolog is started from the start menu it is passed the option
+<TT>--win_app</TT>, which causes it to start in the local equivalent of
+<CODE>MyDocuments\Prolog</CODE>. This folder is created if it does not 
+exist.
 
 <H3><A NAME="sec:1.2"><SPAN class="sec-nr">1.2</SPAN> <SPAN class="sec-title">Executing 
 a query</SPAN></A></H3>
@@ -476,10 +483,11 @@ Windows versions</SPAN></A></H3>
 <A NAME="sec:winver"></A>
 
 <P>SWI-Prolog 5.5.x and later are UNICODE applications, requiring 
-Windows NT or later (2000, XP). Although Microsoft provides a library 
-that allows such program to run under Windows 95/98/ME, this library is 
-licensed such that it cannot be used with Open Source software. Users of 
-these old operating systems are forced to stick with version 5.4.7.
+Windows NT or later (2000, XP, Vista). Although Microsoft provides a 
+library that allows such program to run under Windows 95/98/ME, this 
+library is licensed such that it cannot be used with Open Source 
+software. Users of these old operating systems are forced to stick with 
+version 5.4.7.
 
 <P>For 64-bit versions of Windows, such as Windows XP 64-bit edition and 
 Windows vista 64-bit edition, we have two versions of SWI-Prolog. The
@@ -620,7 +628,6 @@ version only.
 <TR VALIGN=top><TD><CODE>fileExtension</CODE> </TD><TD>Extension used 
 for Prolog files </TD></TR>
 <TR VALIGN=top><TD><CODE>group</CODE> </TD><TD>Start-menu group </TD></TR>
-<TR VALIGN=top><TD><CODE>cwd</CODE> </TD><TD>Default folder for shortcut </TD></TR>
 <TR VALIGN=top><TD><CODE>home</CODE> </TD><TD>Installation directory </TD></TR>
 <TBODY>
 <TR VALIGN=top><TD COLSPAN=2 ALIGN=center><TT>HKEY_CURRENT_USER<CODE>\</CODE>Software<CODE>\</CODE>SWI<CODE>\</CODE>Prolog</TT></TR>
@@ -651,6 +658,14 @@ available for scrollback </TD></TR>
 </TABLE>
 
 </CENTER>
+
+<H3><A NAME="sec:3.5"><SPAN class="sec-nr">3.5</SPAN> <SPAN class="sec-title">Creating 
+a desktop menu item</SPAN></A></H3>
+
+<P>If you want a desktop entry for SWI-Prolog, right-drag
+<B>plwin.exe</B> to the desktop and select `Create shortcut'. Then edit 
+the properties and add <CODE>--win_app</CODE> to the commandline to make 
+the application start in <CODE>MyDocuments\Prolog</CODE>.
 
 <H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">The 
 SWI-Prolog community and foundation</SPAN></A></H2>
