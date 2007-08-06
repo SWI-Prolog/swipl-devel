@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.37 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.38 Reference Manual</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="readline.html">
@@ -144,8 +144,8 @@ Argument count (is number of arguments) of a <A class="gloss" href="glossary.htm
 <DD class="defbody">
 Add a <A class="gloss" href="glossary.html#gloss:clause">clause</A> to a <A class="gloss" href="glossary.html#gloss:predicate">predicate</A>. 
 Clauses can be added at either end of the clause-list of a <A class="gloss" href="glossary.html#gloss:predicate">predicate</A>. 
-See <A NAME="idx:assert1:1518"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
-and <A NAME="idx:assertz1:1519"></A><A class="pred" href="db.html#assertz/1">assertz/1</A>.</DD>
+See <A NAME="idx:assert1:1519"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
+and <A NAME="idx:assertz1:1520"></A><A class="pred" href="db.html#assertz/1">assertz/1</A>.</DD>
 <DT><A NAME="gloss:atom"><STRONG>atom</STRONG></A></DT>
 <DD class="defbody">
 Textual constant. Used as name for <A class="gloss" href="glossary.html#gloss:compound">compound</A> 
@@ -172,7 +172,7 @@ and
 <DD class="defbody">
 Predicate that is part of the Prolog system. Built in predicates cannot 
 be redefined by the user, unless this is overruled using
-<A NAME="idx:redefinesystempredicate1:1520"></A><A class="pred" href="db.html#redefine_system_predicate/1">redefine_system_predicate/1</A>.</DD>
+<A NAME="idx:redefinesystempredicate1:1521"></A><A class="pred" href="db.html#redefine_system_predicate/1">redefine_system_predicate/1</A>.</DD>
 <DT><A NAME="gloss:body"><STRONG>body</STRONG></A></DT>
 <DD class="defbody">
 Part of a <A class="gloss" href="glossary.html#gloss:clause">clause</A> 
@@ -220,7 +220,7 @@ is defined, unless this <A class="gloss" href="glossary.html#gloss:predicate">pr
 is <A class="gloss" href="glossary.html#gloss:module-transparent">module transparent</A>, 
 in which case the <A class="gloss" href="glossary.html#gloss:context-module">context module</A> 
 is inherited from the parent
-<A class="gloss" href="glossary.html#gloss:goal">goal</A>. See also <A NAME="idx:moduletransparent1:1521"></A><A class="pred" href="manipmodule.html#module_transparent/1">module_transparent/1</A>.</DD>
+<A class="gloss" href="glossary.html#gloss:goal">goal</A>. See also <A NAME="idx:moduletransparent1:1522"></A><A class="pred" href="manipmodule.html#module_transparent/1">module_transparent/1</A>.</DD>
 <DT><A NAME="gloss:dynamic"><STRONG>dynamic [predicate]</STRONG></A></DT>
 <DD class="defbody">
 A <A class="gloss" href="glossary.html#gloss:dynamic">dynamic</A> 
@@ -237,7 +237,7 @@ said to be <A class="gloss" href="glossary.html#gloss:exported">exported</A>
 from a <A class="gloss" href="glossary.html#gloss:module">module</A> if 
 it appears in the <A class="gloss" href="glossary.html#gloss:public-list">public list</A>. 
 This implies that the predicate can be <A class="gloss" href="glossary.html#gloss:imported">imported</A> 
-into another module to make it visible there. See also <A NAME="idx:usemodule12:1522"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>.</DD>
+into another module to make it visible there. See also <A NAME="idx:usemodule12:1523"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>.</DD>
 <DT><A NAME="gloss:fact"><STRONG>fact</STRONG></A></DT>
 <DD class="defbody">
 <A class="gloss" href="glossary.html#gloss:clause">Clause</A> without a <A class="gloss" href="glossary.html#gloss:body">body</A>. 
@@ -320,7 +320,7 @@ with the first argument of the <A class="gloss" href="glossary.html#gloss:goal">
 <DD class="defbody">
 Whole number. On all implementations of SWI-Prolog integers are at least 
 64-bit signed values. When linked to the GNU GMP library, integer 
-arithmetic is unbounded. See also <A NAME="idx:currentprologflag2:1523"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>, 
+arithmetic is unbounded. See also <A NAME="idx:currentprologflag2:1524"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>, 
 flags <A class="flag" href="flags.html#flag:bounded">bounded</A>, <A class="flag" href="flags.html#flag:max_integer">max_integer</A> 
 and <A class="flag" href="flags.html#flag:min_integer">min_integer</A>.</DD>
 <DT><A NAME="gloss:interpreted"><STRONG>interpreted</STRONG></A></DT>
@@ -350,7 +350,7 @@ Sometimes also called a <A class="gloss" href="glossary.html#gloss:meta-predicat
 <DT><A NAME="gloss:multifile"><STRONG>multifile [predicate]</STRONG></A></DT>
 <DD class="defbody">
 Predicate for which the definition is distributed over multiple 
-source-files. See <A NAME="idx:multifile1:1524"></A><A class="pred" href="dynamic.html#multifile/1">multifile/1</A>.</DD>
+source-files. See <A NAME="idx:multifile1:1525"></A><A class="pred" href="dynamic.html#multifile/1">multifile/1</A>.</DD>
 <DT><A NAME="gloss:neck"><STRONG>neck</STRONG></A></DT>
 <DD class="defbody">
 Operator (<CODE><CODE>:-</CODE></CODE>) separating <A class="gloss" href="glossary.html#gloss:head">head</A> 

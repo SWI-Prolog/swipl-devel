@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.37 Reference Manual: Section 2.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.38 Reference Manual: Section 2.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="initgoal.html">
@@ -160,9 +160,16 @@ cc -I$PLBASE/include -L$PLBASE/runtime/$PLARCH ...
 <P>The option can be followed by <CODE>=sh</CODE> to dump in POSIX shell 
 format (default) or <CODE>cmd</CODE> to dump in MS-Windows <B>cmd.exe</B> 
 compatible format.</DD>
+<DT><STRONG>--win_app</STRONG> <VAR></VAR></DT>
+<DD class="defbody">
+This option is available only in <B>plwin.exe</B> and is used for the 
+start-menu item. If causes <B>plwin</B> to start in the folder
+<CODE>...\My Documents\Prolog</CODE> or local equivalent thereof (see
+<A NAME="idx:winfolder2:61"></A><A class="pred" href="system.html#win_folder/2">win_folder/2</A>). 
+The <CODE>Prolog</CODE> subdirectory is created if it does not exist.</DD>
 <DT><STRONG>--quiet</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
-<A NAME="idx:verbose:61"></A><A NAME="idx:quiet:62"></A>Set the Prolog 
+<A NAME="idx:verbose:62"></A><A NAME="idx:quiet:63"></A>Set the Prolog 
 flag <A class="flag" href="flags.html#flag:verbose">verbose</A> to <CODE>silent</CODE>, 
 suppressing informational and banner messages. Also available as <STRONG>-q</STRONG>.</DD>
 <DT><STRONG>-L</STRONG><VAR>size[kmg]</VAR></DT>
@@ -209,13 +216,13 @@ Used in combination with <STRONG>-c</STRONG> or <STRONG>-b</STRONG> to
 determine output file for compilation.</DD>
 <DT><STRONG>-O</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
-Optimised compilation. See <A NAME="idx:currentprologflag2:63"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
+Optimised compilation. See <A NAME="idx:currentprologflag2:64"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
 flag
 <A class="flag" href="flags.html#flag:optimise">optimise</A> for 
 details.</DD>
 <DT><STRONG>-nodebug</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
-Disable debugging. See the <A NAME="idx:currentprologflag2:64"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
+Disable debugging. See the <A NAME="idx:currentprologflag2:65"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
 flag
 <A class="flag" href="flags.html#flag:generate_debug_info">generate_debug_info</A> 
 for details.</DD>
@@ -263,19 +270,19 @@ non-interactively is here:
 <DT><STRONG>-t</STRONG> <VAR>goal</VAR></DT>
 <DD class="defbody">
 Use <VAR>goal</VAR> as interactive top-level instead of the default goal
-<A NAME="idx:prolog0:65"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A>. <VAR>goal</VAR> 
+<A NAME="idx:prolog0:66"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A>. <VAR>goal</VAR> 
 can be a complex term. If the top-level goal succeeds SWI-Prolog exits 
 with status 0. If it fails the exit status is 1. If the toplevel raises 
 an exception, this is printed as an uncaught error and the toplevel is 
-restarted. This flag also determines the goal started by <A NAME="idx:break0:66"></A><A class="pred" href="toplevel.html#break/0">break/0</A> 
-and <A NAME="idx:abort0:67"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>. 
+restarted. This flag also determines the goal started by <A NAME="idx:break0:67"></A><A class="pred" href="toplevel.html#break/0">break/0</A> 
+and <A NAME="idx:abort0:68"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>. 
 If you want to stop the user from entering interactive mode start the 
 application with `<STRONG>-g</STRONG> <VAR>goal</VAR>' and give `halt' 
 as top-level.</DD>
 <DT><STRONG>-tty</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
 Unix only. Switches controlling the terminal for allowing 
-single-character commands to the tracer and <A NAME="idx:getsinglechar1:68"></A><A class="pred" href="chario.html#get_single_char/1">get_single_char/1</A>. 
+single-character commands to the tracer and <A NAME="idx:getsinglechar1:69"></A><A class="pred" href="chario.html#get_single_char/1">get_single_char/1</A>. 
 By default manipulating the terminal is enabled unless the system 
 detects it is not connected to a terminal or it is running as a 
 GNU-Emacs inferior process. This flag is sometimes required for smooth 
@@ -293,22 +300,22 @@ Boot from <VAR>bootfile</VAR> instead of the system's default boot file.
 A bootfile is a file resulting from a Prolog compilation using the
 <STRONG>-b</STRONG> or <STRONG>-c</STRONG> option or a program saved 
 using
-<A NAME="idx:qsaveprogram12:69"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.</DD>
+<A NAME="idx:qsaveprogram12:70"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.</DD>
 <DT><STRONG>-p</STRONG> <VAR>alias=path1[:path2 ... ]</VAR></DT>
 <DD class="defbody">
 Define a path alias for file_search_path. <VAR>alias</VAR> is the name 
 of the alias, <VAR>path1 ...</VAR> is a list of values for the alias. On 
 Windows the list-separator is <CODE><CODE>;</CODE></CODE>. On other 
 systems it is <CODE><CODE>:</CODE></CODE>. A value is either a term of 
-the form alias(value) or pathname. The computed aliases are added to <A NAME="idx:filesearchpath2:70"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
-using <A NAME="idx:asserta1:71"></A><A class="pred" href="db.html#asserta/1">asserta/1</A>, 
-so they precede predefined values for the alias. See <A NAME="idx:filesearchpath2:72"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
+the form alias(value) or pathname. The computed aliases are added to <A NAME="idx:filesearchpath2:71"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
+using <A NAME="idx:asserta1:72"></A><A class="pred" href="db.html#asserta/1">asserta/1</A>, 
+so they precede predefined values for the alias. See <A NAME="idx:filesearchpath2:73"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
 for details on using this file-location mechanism.</DD>
 <DT><STRONG><TT>--</TT></STRONG> <VAR></VAR></DT>
 <DD class="defbody">
-<A NAME="idx:commandlinearguments:73"></A>Stops scanning for more 
+<A NAME="idx:commandlinearguments:74"></A>Stops scanning for more 
 arguments, so you can pass arguments for your application after this 
-one. See <A NAME="idx:currentprologflag2:74"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
+one. See <A NAME="idx:currentprologflag2:75"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
 using the flag <A class="flag" href="flags.html#flag:argv">argv</A> for 
 obtaining the command-line arguments.
 </DD>
