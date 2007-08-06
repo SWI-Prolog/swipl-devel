@@ -203,6 +203,8 @@ gather_arg(file(Mode, Title), File) :-
 %	to <My Documents>\Prolog.
 
 init_win_app :-
+	current_prolog_flag(associated_file, _), !.
+init_win_app :-
 	current_prolog_flag(argv, Argv),
 	'$append'(Pre, ['--win_app'|_Post], Argv),
 	\+ '$member'(--, Pre), !,
