@@ -208,6 +208,13 @@ The option can be followed by \const{=sh} to dump in POSIX shell format
 (default) or \const{cmd} to dump in MS-Windows \program{cmd.exe}
 compatible format.
 
+    \cmdlineoptionitem{--win_app}{}
+This option is available only in \program{plwin.exe} and is used for the
+start-menu item. If causes \program{plwin} to start in the folder
+\verb$...\My Documents\Prolog$ or local equivalent thereof (see
+win_folder/2).  The \file{Prolog} subdirectory is created if it 
+does not exist.
+
     \cmdlineoptionitem{--quiet}{}
 \index{verbose}\index{quiet}%
 Set the Prolog flag \prologflag{verbose} to \const{silent}, suppressing
