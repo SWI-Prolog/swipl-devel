@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -261,16 +261,15 @@ bookmarks_file(BM, Access:[{read,write}], File:name) :<-
 	    F \== @nil,
 	    send(F, access, Access)
 	->  get(F, absolute_path, File)
-	;   new(F, file('~/.xpce/emacs_bookmarks')),
+	;   get(@pce, application_data, DataDir),
 	    (   Access == write
-	    ->  get(F, directory_name, DirName),
-		new(D, directory(DirName)),
-		(   send(D, exists)
+	    ->  (   send(DataDir, exists)
 		->  true
-		;   send(D, make)
+		;   send(DataDir, make)
 		)
 	    ;   true
 	    ),
+	    get(DataDir, file, emacs_bookmarks, F),
 	    get(F, absolute_path, File),
 	    send(BM, slot, file, File)		% use the absolute path
 	).

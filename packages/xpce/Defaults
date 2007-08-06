@@ -34,4 +34,4 @@ display.system_fonts:	[ normal    := font(helvetica, roman,   12), \
 
 ! Finally, parse the user's defaults file.
 
-#include ~/.xpce/Defaults
+#include $PCEAPPDATA/Defaults

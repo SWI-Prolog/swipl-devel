@@ -60,6 +60,23 @@ static void	run_pce_atexit_hooks(void);
 #endif
 #endif
 
+static int
+setAppDataPce(Pce pce)
+{ Name appdataname;
+
+#ifdef __WINDOWS__
+  if ( !(appdataname = ws_appdata("xpce")) )
+    appdataname = CtoName("~/.xpce");
+#else
+  appdataname = CtoName("~/.xpce");
+#endif
+  assign(pce, application_data, newObject(ClassDirectory, appdataname, EAV));
+
+  succeed;
+}
+
+
+
 /* The MacOS X hack.  The mac loader doesn't want to load ker/glob.o, from
    libXPCE.a as it only contains common variables.  This is fixed by adding
    a function and calling it from here.  See __APPLE__ below.
@@ -93,7 +110,7 @@ initialisePce(Pce pce)
 
   assign(pce, home,		      DEFAULT);
   assign(pce, defaults,		      CtoString("$PCEHOME/Defaults"));
-  assign(pce, application_data,	      newObject(ClassDirectory, CtoName("~/.xpce"), EAV));
+  setAppDataPce(pce);
   assign(pce, version,                CtoName(PCE_VERSION));
   assign(pce, machine,                CtoName(MACHINE));
   assign(pce, operating_system,       CtoName(OS));
@@ -303,18 +320,26 @@ getHomePce(Pce pce)
 }
 
 
+#ifdef __WINDOWS__
+#define vareq(s, q) (stricmp(s, q) == 0)
+#else
+#define vareq(s, q) (strcmp(s,q) == 0)
+#endif
+
 Name
 getEnvironmentVariablePce(Pce pce, Name name)
 { char *s;
 
   if ( (s = getenv(strName(name))) )
     answer(CtoName(s));
-#if defined(__WINDOWS__)			/* case-insensitive files */
-  if ( stricmp(strName(name), "PCEHOME") == 0 )
-#else
-  if ( streq(strName(name), "PCEHOME") )
-#endif
+  if ( vareq(strName(name), "PCEHOME") )
     answer(get(PCE, NAME_home, EAV));
+  if ( vareq(strName(name), "PCEAPPDATA") )
+  { Directory dir = get(PCE, NAME_applicationData, EAV);
+
+    if ( dir )
+      return get(dir, NAME_path, EAV);
+  }
 
   fail;
 }

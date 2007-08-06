@@ -96,17 +96,17 @@ default_preferences(xpce_user, File) :-
 			   ], File), !.
 
 
-%%	ensure_xpce_config_dir(-Dir)
+%%	ensure_xpce_config_dir(-Dir:atom)
 %
 %	Ensure existence of the personal XPCE config directory.
 
 ensure_xpce_config_dir(Dir) :-
-	catch(expand_file_name('~/.xpce', [Dir]), _, fail),
-	new(D, directory(Dir)),
-	(   send(D, exists)
+	get(@pce, application_data, AppDir),
+	(   send(AppDir, exists)
 	->  true
-	;   send(D, make)
-	).
+	;   send(AppDir, make)
+	),
+	get(AppDir, path, Dir).
 
 
 copy_file(From, To) :-
