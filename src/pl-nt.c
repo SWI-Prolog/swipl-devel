@@ -617,6 +617,125 @@ dlclose(void *handle)
 
 
 		 /*******************************
+		 *	      FOLDERS		*
+		 *******************************/
+
+#include <Shlobj.h>
+
+typedef struct folderid
+{ int csidl;
+  const char *name;
+} folderid;
+
+static const folderid folderids[] =
+{ { CSIDL_COMMON_ALTSTARTUP, "common_altstartup" },
+  { CSIDL_ALTSTARTUP, "altstartup" },
+  { CSIDL_APPDATA, "appdata" },
+  { CSIDL_CONTROLS, "controls" },
+  { CSIDL_COOKIES, "cookies" },
+  { CSIDL_DESKTOP, "desktop" },
+  { CSIDL_COMMON_DESKTOPDIRECTORY, "common_desktopdirectory" },
+  { CSIDL_DESKTOPDIRECTORY, "desktopdirectory" },
+  { CSIDL_COMMON_FAVORITES, "common_favorites" },
+  { CSIDL_FAVORITES, "favorites" },
+  { CSIDL_FONTS, "fonts" },
+  { CSIDL_HISTORY, "history" },
+  { CSIDL_INTERNET_CACHE, "internet_cache" },
+  { CSIDL_INTERNET, "internet" },
+  { CSIDL_DRIVES, "drives" },
+  { CSIDL_PERSONAL, "personal" },
+  { CSIDL_NETWORK, "network" },
+  { CSIDL_NETHOOD, "nethood" },
+  { CSIDL_PERSONAL, "personal" },
+  { CSIDL_PRINTERS, "printers" },
+  { CSIDL_PRINTHOOD, "printhood" },
+  { CSIDL_COMMON_PROGRAMS, "common_programs" },
+  { CSIDL_PROGRAMS, "programs" },
+  { CSIDL_RECENT, "recent" },
+  { CSIDL_BITBUCKET, "bitbucket" },
+  { CSIDL_SENDTO, "sendto" },
+  { CSIDL_COMMON_STARTMENU, "common_startmenu" },
+  { CSIDL_STARTMENU, "startmenu" },
+  { CSIDL_COMMON_STARTUP, "common_startup" },
+  { CSIDL_STARTUP, "startup" },
+  { CSIDL_TEMPLATES, "templates" },
+  { 0, NULL }
+};
+
+
+static int
+unify_csidl_path(term_t t, int csidl)
+{ wchar_t buf[MAX_PATH];
+	      
+  if ( SHGetSpecialFolderPathW(0, buf, csidl, FALSE) )
+  { wchar_t *p;
+
+    for(p=buf; *p; p++)
+    { if ( *p == '\\' )
+	*p = '/';
+    }
+
+    return PL_unify_wchars(t, PL_ATOM, -1, buf);
+  } else
+    return PL_error(NULL, 0, WinError(), ERR_SYSCALL, "SHGetSpecialFolderPath");
+}
+
+
+static
+PRED_IMPL("win_folder", 2, win_folder, PL_FA_NONDETERMINISTIC)
+{ int n;
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+      if ( PL_is_variable(A1) )
+      { n = 0;
+	goto generate;
+      } else
+      { char *s;
+
+	if ( PL_get_chars(A1, &s, CVT_ATOM|CVT_EXCEPTION) )
+	{ const folderid *fid;
+
+	  for(fid = folderids; fid->name; fid++)
+	  { if ( streq(s, fid->name) )
+	      return unify_csidl_path(A2, fid->csidl);
+	  }
+
+	  { atom_t dom = PL_new_atom("win_folder");
+
+	    PL_error(NULL, 0, NULL, ERR_DOMAIN, dom, A1);
+	    PL_unregister_atom(dom);
+	    return FALSE;
+	  }
+	} else
+	  return FALSE;
+      }
+    case FRG_REDO:
+    { fid_t fid;
+
+      n = (int)CTX_INT+1;
+
+      generate:
+	fid = PL_open_foreign_frame();
+	for(; folderids[n].name; n++)
+	{ if ( unify_csidl_path(A2, folderids[n].csidl) &&
+	       PL_unify_atom_chars(A1, folderids[n].name) )
+	  { PL_close_foreign_frame(fid);
+	    ForeignRedoInt(n);
+	  }
+	  PL_rewind_foreign_frame(fid);
+	}
+	PL_close_foreign_frame(fid);
+	return FALSE;
+    }
+    default:
+      succeed;
+  }
+}
+
+
+
+		 /*******************************
 		 *	      REGISTRY		*
 		 *******************************/
 
@@ -781,6 +900,7 @@ BeginPredDefs(win)
   PRED_DEF("win_shell", 2, win_shell2, 0)
   PRED_DEF("win_shell", 3, win_shell3, 0)
   PRED_DEF("win_registry_get_value", 3, win_registry_get_value, 0) 
+  PRED_DEF("win_folder", 2, win_folder, PL_FA_NONDETERMINISTIC)
 EndPredDefs
 
 #endif /*__WINDOWS__*/

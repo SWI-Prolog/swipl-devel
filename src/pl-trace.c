@@ -579,6 +579,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
     case EOS:
     case ' ':
     case '\n':
+    case '\r':
     case 'c':	FeedBack("creep\n");
 		clear(frame, FR_SKIPPED);
 		return ACTION_CONTINUE;

@@ -3148,7 +3148,7 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
 		      ENC_ISO_LATIN_1 \
 		    }
 
-#define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY|SIO_TEXT)
+#define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY)
 #define STDIO_STREAMS \
   STDIO(0, SIO_STDIO|SIO_LBUF|SIO_INPUT|SIO_NOFEOF),	/* Sinput */ \
   STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPL), 	/* Soutput */ \
