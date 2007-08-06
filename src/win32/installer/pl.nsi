@@ -4,9 +4,8 @@
 !define EXT    $3 ; Filename extension for Prolog sources
 !define CWD    $4 ; Working directory for startmenu shortcut
 !define GRP    $5 ; Startmenu group
-!define DEFCWD $6 ; Default working directory
-!define SHCTX  $7 ; Shell context (current/all)
-!define ARCH   $8 ; Architecture (x86, ia64 or amd64)
+!define SHCTX  $6 ; Shell context (current/all)
+!define ARCH   $7 ; Architecture (x86, ia64 or amd64)
 
 !ifdef WIN64
 !define REGKEY SOFTWARE\SWI\Prolog64
@@ -17,6 +16,7 @@
 !system "pl\bin\plcon.exe -f mkinstaller.pl -g true -t main -- /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT} /DMSVCRT=${MSVCRT}" = 0
 !include "version.nsi"
 
+RequestExecutionLevel admin
 SetCompressor bzip2
 MiscButtonText "<back" "next>" "abort" "finished"
 
@@ -531,7 +531,7 @@ Section "Start Menu shortcuts"
   NoOldXPCE:
   CreateShortCut "$SMPROGRAMS\${GRP}\Prolog.lnk" \
 		 "$INSTDIR\bin\plwin.exe" \
-		 "" \
+		 "--win_app" \
 		 "$INSTDIR\bin\plwin.exe" \
 		 0
   SetOutPath $INSTDIR
@@ -683,13 +683,6 @@ Function SetCustom
   HasGroup:
   WriteINIStr $PLUGINSDIR\options.ini "Field 6" "State" ${GRP}  
 
-# Working Directory
-  ReadRegStr ${CWD} HKLM ${REGKEY} cwd
-  StrCmp ${CWD} "" 0 HasCWD
-    StrCpy ${CWD} ${DEFCWD}
-  HasCWD:
-  WriteINIStr $PLUGINSDIR\options.ini "Field 8" "State" ${CWD}
-
 # Start the dialog
   Push ${TEMP1}
   InstallOptions::dialog "$PLUGINSDIR\options.ini"
@@ -699,7 +692,6 @@ Function SetCustom
 # Get the results
   ReadINIStr ${EXT} $PLUGINSDIR\options.ini "Field 4" "State"
   ReadINIStr ${GRP} $PLUGINSDIR\options.ini "Field 6" "State"
-  ReadINIStr ${CWD} $PLUGINSDIR\options.ini "Field 8" "State"
 FunctionEnd
 
 Function UserInfo
@@ -727,14 +719,12 @@ Function UserInfo
     Goto done
 
   Win9x:
-    StrCpy ${DEFCWD} $INSTDIR\demo
     StrCpy ${SHCTX}  "current"
     Goto end
 
   done:
     StrCmp ${SHCTX} "all" 0 +2
       SetShellVarContext all
-    StrCpy ${DEFCWD} $DESKTOP\Prolog
 
   end:
 FunctionEnd
