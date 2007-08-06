@@ -459,6 +459,12 @@ version only.
 \end{center}
 
 
+\subsection{Execution level}
+
+The installer asks for the \const{admin} execution level (Vista) to be
+able to write shortcuts and registry keys.
+
+
 \subsection{Creating a desktop menu item}
 
 If you want a desktop entry for SWI-Prolog, right-drag
