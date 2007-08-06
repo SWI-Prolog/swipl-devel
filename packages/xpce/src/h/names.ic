@@ -146,6 +146,7 @@
   BUILTIN_NAME("append_line")
   BUILTIN_NAME("appendf")
   BUILTIN_NAME("application")
+  BUILTIN_NAME("application_data")
   BUILTIN_NAME("applications")
   BUILTIN_NAME("apply")
   BUILTIN_NAME("apply_preferences")

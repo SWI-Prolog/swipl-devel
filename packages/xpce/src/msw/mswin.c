@@ -235,6 +235,35 @@ ws_user()
 }
 
 
+#include <Shlobj.h>
+
+Name
+ws_appdata(const char *sub)
+{ TCHAR buf[MAX_PATH];
+
+  if ( SHGetSpecialFolderPath(0, buf, CSIDL_APPDATA, TRUE) )
+  { wchar_t *p;
+
+    for(p=buf; *p; p++)
+    { if ( *p == '\\' )
+	*p = '/';
+    }
+    if ( sub )
+    { const char *s;
+
+      *p++ = '/';
+      for(s=sub; *s; )
+	*p++ = *s++;
+      *p = EOS;
+    }
+
+    return TCHARToName(buf);
+  }
+
+  fail;
+}
+
+
 int
 ws_mousebuttons()
 { return GetSystemMetrics(SM_CMOUSEBUTTONS);

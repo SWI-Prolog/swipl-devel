@@ -93,6 +93,7 @@ initialisePce(Pce pce)
 
   assign(pce, home,		      DEFAULT);
   assign(pce, defaults,		      CtoString("$PCEHOME/Defaults"));
+  assign(pce, application_data,	      newObject(ClassDirectory, CtoName("~/.xpce"), EAV));
   assign(pce, version,                CtoName(PCE_VERSION));
   assign(pce, machine,                CtoName(MACHINE));
   assign(pce, operating_system,       CtoName(OS));
@@ -1227,6 +1228,8 @@ static vardecl var_pce[] =
      NAME_environment, "PCE's home directory"),
   IV(NAME_defaults, "source_sink|char_array", IV_BOTH,
      NAME_environment, "File/rc from which to load defaults"),
+  IV(NAME_applicationData, "directory", IV_BOTH,
+     NAME_environment, "Directory for application data"),
   IV(NAME_version, "name", IV_NONE,
      NAME_version, "Version indication"),
   IV(NAME_machine, "name", IV_GET,
