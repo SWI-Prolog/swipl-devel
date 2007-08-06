@@ -5052,6 +5052,20 @@ for Prolog files (see \file{README.TXT} on the Windows version):
 Ext = pl
 \end{code}
 
+    \predicate{win_folder}{2}{?Name, -Directory}
+Is true if \arg{Name} is the Windows `CSIDL' of \arg{Directory}.  If
+\arg{Name} is unbound all known Windows special paths are generated.
+\arg{Name} is the CSIDL after deleting the leading \const{CSIDL_} and
+mapping the constant to lowercase.  Check the Windows documentation
+for the function SHGetSpecialFolderPath() for a description of the
+defined constants.  This example extracts the `My Documents' foldder:
+
+\begin{code}
+?- win_folder(personal, MyDocuments).
+
+MyDocuments = 'C:/Documents and Settings/jan/My Documents'
+\end{code}
+
     \predicate{getenv}{2}{+Name, -Value}
 Get environment variable. Fails silently if the variable does not exist.
 Please note that environment variable names are case-sensitive on Unix
