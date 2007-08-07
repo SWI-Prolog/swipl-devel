@@ -551,7 +551,7 @@ Yes
 
 \section{Overview of the Debugger}		\label{sec:debugoverview}
 
-SWI-Prolog has a 6-port) tracer, extending the standard 4-port Byrd box
+SWI-Prolog has a 6-port tracer, extending the standard 4-port Byrd box
 model tracer \cite{Byrd:80,Clocksin:87} with two additional ports. The
 optional \arg{unify} port allows the user to inspect the result after
 unification of the head. The \arg{exception} port shows exceptions
