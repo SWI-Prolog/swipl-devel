@@ -2090,13 +2090,28 @@ areas is limited to 128 Mb for each of the areas, except for the program
 heap, which is not limited.  On 64-bit hardware there are no meaningful
 limits.
 
-    \item[Integers]
-Integers are 64-bit on 32 as well as 64-bit machines.  Integers up to
-the value of the \prologflag{max_tagged_integer} Prolog flag are represented
-more efficiently on the stack.  For clauses and records the difference
-is much smaller.
+    \item[Nesting of terms]
+Many build-in predicates process nested terms using recursive C
+functions. Too deeply nested terms generally cause a fatal crash. All
+these functions avoid recursion on the right-most argument and therefore
+terms are not limited on the nesting level of the last argument. This
+notably covers long lists. Most functions use a stack for correct
+handling of rational trees (cyclic terms). This stack is segmented,
+where different segments are allocated using malloc(). Overflow causes a
+non-graceful exit.
 
-    \item[Floats]
+    \item[Integers]
+On most systems SWI-Prolog is compiled with support for unbounded
+integers by means of the GNU GMP library. In practice this means that
+integers are bound by the global stack size. Too large integers cause a
+\except{resource_error}. On systems that lack GMP, integers are 64-bit
+on 32 as well as 64-bit machines.
+
+Integers up to the value of the \prologflag{max_tagged_integer} Prolog
+flag are represented more efficiently on the stack. For clauses and
+records the difference is much smaller.
+
+    \item[Floating point numbers]
 Floating point numbers are represented as C-native double precision
 floats, 64 bit IEEE on most machines.
 \end{description}
