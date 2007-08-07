@@ -3494,7 +3494,8 @@ atom is referenced by the goal-term anyway.
 	  functor = lookupFunctorDef(fdef->name, arity + callargs);
 	  args    = argTermP(goal, 0);
 	} else
-	{ PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(a));
+	{ lTop = (LocalFrame)argFrameP(next, 1);
+	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(a));
 	  goto b_throw;
 	}
 
