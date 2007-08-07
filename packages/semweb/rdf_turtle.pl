@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2004-2006, University of Amsterdam
+    Copyright (C): 2004-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -616,12 +616,16 @@ resource_token(C0, In, C, Prefix:Name) :-
 	name(C2, In, C, Name).
 
 
+%%	uri_chars(+Char, +In:stream, -NextChar, -UriChars) is semidet.
+
 uri_chars(0'>, In, C, []) :- !,
 	get_code(In, C).
 uri_chars(0'\\, In, C, [H|T]) :- !,
 	get_code(In, C1),
 	string_escape(C1, In, C2, H),
 	uri_chars(C2, In, C, T).
+uri_chars(-1, _, _, _) :- !,
+	fail.
 uri_chars(C0, In, C, [C0|T]) :-
 	get_code(In, C1),
 	uri_chars(C1, In, C, T).
@@ -684,13 +688,17 @@ turtle_ws(0xA).
 turtle_ws(0xD).
 turtle_ws(0x20).
 
-syntax_error(Stream, _StartLine, Which) :-
+syntax_error(Stream, -1, Which) :- !,
 	stream_property(Stream, file_name(File)),
 	line_count(Stream, LineNo),
 	line_position(Stream, LinePos),
 	character_count(Stream, CharIndex),
 	throw(error(syntax_error(Which),
 		    file(File, LineNo, LinePos, CharIndex))).
+syntax_error(Stream, LineNo, Which) :-
+	stream_property(Stream, file_name(File)),
+	throw(error(syntax_error(Which),
+		    file(File, LineNo, -1, -1))).
 
 		 /*******************************
 		 *	    RDF-DB HOOK		*
