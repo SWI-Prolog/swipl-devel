@@ -9,6 +9,7 @@ various Prolog dialects supported by XPCE.
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(pce_style_item)).
+:- use_module(library(pce_report)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Create the main window, consisting of a frame holding a dialog window with
@@ -20,6 +21,7 @@ wysiwyg(File) :-
 	new(Fr, frame(File)),
 	send(Fr, append, new(D, dialog)),
 	send(new(V, view), below, D),
+	send(new(report_dialog), below, V),
 	send(V, font, normal),
 	send(D, append,
 	     button(define_style,
@@ -27,7 +29,6 @@ wysiwyg(File) :-
 	send(D, append,
 	     menu(style, toggle,
 		  and(message(@prolog, set_style, Fr, @arg1),
-		      message(V, selection, 0, 0),
 		      message(@receiver, clear_selection))),
 	     right),
 	append_style(Fr, bold,   style(font := bold)),
@@ -44,10 +45,10 @@ style-name.
 set_style(Fr, Style) :-
 	get(Fr, member, view, V),
 	get(V, selection, point(Start, End)),
-	(   Start == End
-	->  send(Fr, report, warning, 'No selection')
-	;   get(V, text_buffer, TB),
+	(   get(V, mark_status, active)
+	->  get(V, text_buffer, TB),
 	    new(_, fragment(TB, Start, End-Start, Style))
+	;   send(Fr, report, warning, 'No selection')
 	).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
