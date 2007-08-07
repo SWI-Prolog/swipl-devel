@@ -126,12 +126,12 @@ Write</SPAN></A></H2>
 <A NAME="sec:format"></A>
 
 <P>The current version of SWI-Prolog provides two formatted write 
-predicates. The first is <A NAME="idx:writef12:959"></A><A class="pred" href="format.html#writef/1">writef/[1,2]</A>, 
-which is compatible with Edinburgh C-Prolog. The second is <A NAME="idx:format12:960"></A><A class="pred" href="format.html#format/1">format/[1,2]</A>, 
+predicates. The first is <A NAME="idx:writef12:960"></A><A class="pred" href="format.html#writef/1">writef/[1,2]</A>, 
+which is compatible with Edinburgh C-Prolog. The second is <A NAME="idx:format12:961"></A><A class="pred" href="format.html#format/1">format/[1,2]</A>, 
 which is compatible with Quintus Prolog. We hope the Prolog community 
 will once define a standard formatted write predicate. If you want 
 performance use
-<A NAME="idx:format12:961"></A><A class="pred" href="format.html#format/1">format/[1,2]</A> 
+<A NAME="idx:format12:962"></A><A class="pred" href="format.html#format/1">format/[1,2]</A> 
 as this predicate is defined in C. Otherwise compatibility reasons might 
 tell you which predicate to use.
 
@@ -161,7 +161,7 @@ then provides all the terms required to be output.
 <CENTER>
 <TABLE BORDER=2 FRAME=box RULES=groups>
 <TR VALIGN=top><TD><CODE>\n</CODE> </TD><TD>Output a newline character 
-(see also <A NAME="idx:nl01:962"></A><A class="pred" href="chario.html#nl/0">nl/[0,1]</A>) </TD></TR>
+(see also <A NAME="idx:nl01:963"></A><A class="pred" href="chario.html#nl/0">nl/[0,1]</A>) </TD></TR>
 <TR VALIGN=top><TD><CODE>\l</CODE> </TD><TD>Output a line separator 
 (same as <CODE>\n</CODE>) </TD></TR>
 <TR VALIGN=top><TD><CODE>\r</CODE> </TD><TD>Output a carriage-return 
@@ -191,17 +191,17 @@ is formatted according to the specification.
 <P>
 <CENTER>
 <TABLE BORDER=2 FRAME=box RULES=groups>
-<TR VALIGN=top><TD><CODE>%t</CODE> </TD><TD><A NAME="idx:print1:963"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
+<TR VALIGN=top><TD><CODE>%t</CODE> </TD><TD><A NAME="idx:print1:964"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
 the next item (mnemonic: term) </TD></TR>
-<TR VALIGN=top><TD><CODE>%w</CODE> </TD><TD><A NAME="idx:write1:964"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
+<TR VALIGN=top><TD><CODE>%w</CODE> </TD><TD><A NAME="idx:write1:965"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
 the next item </TD></TR>
-<TR VALIGN=top><TD><CODE>%q</CODE> </TD><TD><A NAME="idx:writeq1:965"></A><A class="pred" href="termrw.html#writeq/1">writeq/1</A> 
+<TR VALIGN=top><TD><CODE>%q</CODE> </TD><TD><A NAME="idx:writeq1:966"></A><A class="pred" href="termrw.html#writeq/1">writeq/1</A> 
 the next item </TD></TR>
 <TR VALIGN=top><TD><CODE>%d</CODE> </TD><TD>Write the term, ignoring 
 operators. See also
-<A NAME="idx:writeterm2:966"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>. 
-Mnemonic: old Edinburgh <A NAME="idx:display1:967"></A><SPAN class="pred-ext">display/1</SPAN>. </TD></TR>
-<TR VALIGN=top><TD><CODE>%p</CODE> </TD><TD><A NAME="idx:print1:968"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
+<A NAME="idx:writeterm2:967"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>. 
+Mnemonic: old Edinburgh <A NAME="idx:display1:968"></A><SPAN class="pred-ext">display/1</SPAN>. </TD></TR>
+<TR VALIGN=top><TD><CODE>%p</CODE> </TD><TD><A NAME="idx:print1:969"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
 the next item (identical to <CODE>%t</CODE>) </TD></TR>
 <TR VALIGN=top><TD><CODE>%n</CODE> </TD><TD>Put the next item as a 
 character (i.e., it is a character code) </TD></TR>
@@ -209,7 +209,7 @@ character (i.e., it is a character code) </TD></TR>
 where N is the second item (an integer) </TD></TR>
 <TR VALIGN=top><TD><CODE>%s</CODE> </TD><TD>Write the next item as a 
 String (so it must be a list of characters) </TD></TR>
-<TR VALIGN=top><TD><CODE>%f</CODE> </TD><TD>Perform a <A NAME="idx:ttyflush0:969"></A><A class="pred" href="chario.html#ttyflush/0">ttyflush/0</A> 
+<TR VALIGN=top><TD><CODE>%f</CODE> </TD><TD>Perform a <A NAME="idx:ttyflush0:970"></A><A class="pred" href="chario.html#ttyflush/0">ttyflush/0</A> 
 (no items used) </TD></TR>
 <TR VALIGN=top><TD><CODE>%Nc</CODE> </TD><TD>Write the next item 
 Centered in <VAR>N</VAR> columns. </TD></TR>
@@ -226,7 +226,7 @@ be an atom, integer, float or string. </TD></TR>
 <DT class="pubdef"><A NAME="swritef/3"><STRONG>swritef</STRONG>(<VAR>-String, 
 +Format, +Arguments</VAR>)</A></DT>
 <DD class="defbody">
-Equivalent to <A NAME="idx:writef2:970"></A><A class="pred" href="format.html#writef/2">writef/2</A>, 
+Equivalent to <A NAME="idx:writef2:971"></A><A class="pred" href="format.html#writef/2">writef/2</A>, 
 but ``writes'' the result on <VAR>String</VAR> instead of the current 
 output stream. Example:
 
@@ -329,16 +329,16 @@ Floating point in <B>E</B> or <B>f</B> notation, whichever is shorter.
 <LI><CODE>i</CODE><BR>
 Ignore next argument of the argument list. Produces no output.
 <LI><CODE>k</CODE><BR>
-Give the next argument to (<A NAME="idx:writecanonical1:971"></A><A class="pred" href="termrw.html#write_canonical/1">write_canonical/1</A>).
+Give the next argument to (<A NAME="idx:writecanonical1:972"></A><A class="pred" href="termrw.html#write_canonical/1">write_canonical/1</A>).
 <LI><CODE>n</CODE><BR>
 Output a newline character.
 <LI><CODE>N</CODE><BR>
 Only output a newline if the last character output on this stream was 
 not a newline. Not properly implemented yet.
 <LI><CODE>p</CODE><BR>
-Give the next argument to <A NAME="idx:print1:972"></A><A class="pred" href="termrw.html#print/1">print/1</A>.
+Give the next argument to <A NAME="idx:print1:973"></A><A class="pred" href="termrw.html#print/1">print/1</A>.
 <LI><CODE>q</CODE><BR>
-Give the next argument to <A NAME="idx:writeq1:973"></A><A class="pred" href="termrw.html#writeq/1">writeq/1</A>.
+Give the next argument to <A NAME="idx:writeq1:974"></A><A class="pred" href="termrw.html#writeq/1">writeq/1</A>.
 <LI><CODE>r</CODE><BR>
 Print integer in radix the numeric argument notation. Thus
 <CODE>~16r</CODE> prints its argument hexadecimal. The argument should 
@@ -349,7 +349,7 @@ Same as <B>r</B>, but uses upper case letters for digits above 9.
 
 <P>
 <LI><CODE>s</CODE><BR>
-Output text from a list of character codes or a string (see <A NAME="idx:string1:974"></A><A class="pred" href="typetest.html#string/1">string/1</A> 
+Output text from a list of character codes or a string (see <A NAME="idx:string1:975"></A><A class="pred" href="typetest.html#string/1">string/1</A> 
 and
 <A class="sec" href="strings.html">section 4.23</A>) from the next 
 argument.
@@ -358,7 +358,7 @@ argument.
 <LI><CODE>@</CODE><BR>
 Interpret the next argument as a goal and execute it. Output written to 
 the <CODE>current_output</CODE> stream is inserted at this place. Goal 
-is called in the module calling <A NAME="idx:format3:975"></A><A class="pred" href="format.html#format/3">format/3</A>. 
+is called in the module calling <A NAME="idx:format3:976"></A><A class="pred" href="format.html#format/3">format/3</A>. 
 This option is not present in the original definition by Quintus, but 
 supported by some other Prolog systems.
 
@@ -381,11 +381,11 @@ stop.
 <LI><CODE><CODE>+</CODE></CODE><BR>
 Set a tab stop relative to the current position. Further the same as <CODE>~|</CODE>. 
 <LI><CODE>w</CODE><BR>
-Give the next argument to <A NAME="idx:write1:976"></A><A class="pred" href="termrw.html#write/1">write/1</A>.
+Give the next argument to <A NAME="idx:write1:977"></A><A class="pred" href="termrw.html#write/1">write/1</A>.
 
 <P>
 <LI><CODE>W</CODE><BR>
-Give the next two argument to <A NAME="idx:writeterm2:977"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>. 
+Give the next two argument to <A NAME="idx:writeterm2:978"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>. 
 E.g. <CODE>format('&nbsp;W', [Term, [numbervars(true)]])</CODE>. This 
 option is SWI-Prolog specific.
 </UL>
@@ -413,12 +413,12 @@ Runtime: .................. 3.45  Inferences: .......... 60,345
 <DT class="pubdef"><A NAME="format/3"><STRONG>format</STRONG>(<VAR>+Output, 
 +Format, +Arguments</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:format2:978"></A><A class="pred" href="format.html#format/2">format/2</A>, 
+As <A NAME="idx:format2:979"></A><A class="pred" href="format.html#format/2">format/2</A>, 
 but write the output on the given <VAR>Output</VAR>. The de-facto 
 standard only allows <VAR>Output</VAR> to be a stream. The SWI-Prolog 
 implementation allows all valid arguments for
-<A NAME="idx:withoutputto2:979"></A><A class="pred" href="IO.html#with_output_to/2">with_output_to/2</A>.<SUP class="fn">56<SPAN class="fn-text">Earlier 
-versions defined <A NAME="idx:sformat23:980"></A><SPAN class="pred-ext">sformat/[2,3]</SPAN>. 
+<A NAME="idx:withoutputto2:980"></A><A class="pred" href="IO.html#with_output_to/2">with_output_to/2</A>.<SUP class="fn">56<SPAN class="fn-text">Earlier 
+versions defined <A NAME="idx:sformat23:981"></A><SPAN class="pred-ext">sformat/[2,3]</SPAN>. 
 These predicates have been moved to the library <CODE>library(backcomp)</CODE>.</SPAN></SUP> 
 For example:
 

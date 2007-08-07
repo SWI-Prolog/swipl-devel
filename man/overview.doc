@@ -107,7 +107,10 @@ consult/1) the user's startup file. The base-name of this file follows
 conventions of the operating system. On MS-Windows, it is the file
 \file{pl.ini} and on Unix systems \file{.plrc}. The file is searched
 using the file_search_path/2 clauses for \const{user_profile}. The table
-below shows the default value for this search-path.
+below shows the default value for this search-path. The phrase <appdata>
+refers to the Windows CSIDL name for the folder. The actual name depends
+on the Windows language. English versions typically use
+\file{Application Data}. See also win_folder/2
 
 \begin{center}
 \begin{tabular}{|l|l|l|}
@@ -115,10 +118,7 @@ below shows the default value for this search-path.
 		& \bf Unix 	& \bf Windows \\
 \hline
 \bf local	& \file{.} 	& \file{.} \\
-\bf home	& \chr{~} 	& \file{%HOME%} or
-                        	  \file{%HOMEDRIVE%\%HOMEPATH%} \\
-global		& 		& SWI-Home directory or
-				  \file{%WINDIR%} or \file{%SYSTEMROOT%} \\
+\bf home	& \chr{~} 	& <appdata>/SWI-Prolog \\
 \hline
 \end{tabular}
 \end{center}

@@ -130,11 +130,11 @@ program development</SPAN></A></H3>
 <A NAME="sec:develcomp"></A>
 
 <P>During program development, programs are normally loaded using
-<A NAME="idx:consult1:102"></A><A class="pred" href="consulting.html#consult/1">consult/1</A>, 
+<A NAME="idx:consult1:103"></A><A class="pred" href="consulting.html#consult/1">consult/1</A>, 
 or the list abbreviation. It is common practice to organise a project as 
 a collection of source files and a <EM>load-file</EM>, a Prolog file 
-containing only <A NAME="idx:usemodule12:103"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
-or <A NAME="idx:ensureloaded1:104"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A> 
+containing only <A NAME="idx:usemodule12:104"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
+or <A NAME="idx:ensureloaded1:105"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A> 
 directives, possibly with a definition of the <EM>entry-point</EM> of 
 the program, the predicate that is normally used to start the program. 
 This file is often called <CODE>load.pl</CODE>. If the entry-point is 
@@ -291,7 +291,7 @@ a saved-state</SPAN></A></H4>
 <P>For larger programs, as well as for programs that are required to run 
 on systems that do not have the SWI-Prolog development system installed, 
 creating a saved state is the best solution. A saved state is created 
-using <A NAME="idx:qsaveprogram12:105"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A> 
+using <A NAME="idx:qsaveprogram12:106"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A> 
 or using the linker plld(1). A saved state is a file containing 
 machine-independent intermediate code in a format dedicated for fast 
 loading. Optionally, the emulator may be integrated in the saved state, 
@@ -304,17 +304,17 @@ using the -c command-line option</SPAN></A></H4>
 <A NAME="sec:cmdlinecomp"></A>
 
 <P>This mechanism loads a series of Prolog source files and then creates 
-a saved-state as <A NAME="idx:qsaveprogram2:106"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A> 
+a saved-state as <A NAME="idx:qsaveprogram2:107"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A> 
 does. The command syntax is:
 
 <PRE class="code">
 % pl [option ...] [-o output] -c file ...
 </PRE>
 
-<P>The <VAR>options</VAR> argument are options to <A NAME="idx:qsaveprogram2:107"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A> 
+<P>The <VAR>options</VAR> argument are options to <A NAME="idx:qsaveprogram2:108"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A> 
 written in the format below. The option-names and their values are 
 described with
-<A NAME="idx:qsaveprogram2:108"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A>.
+<A NAME="idx:qsaveprogram2:109"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A>.
 <BLOCKQUOTE>
 <CODE>--</CODE><EM>option-name</EM><CODE>=</CODE><EM>option-value
 </EM></BLOCKQUOTE>

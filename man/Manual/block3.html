@@ -125,13 +125,13 @@ font-size: smaller;
 
 <A NAME="sec:block3"></A>
 
-<P>The <A NAME="idx:block3:534"></A><A class="pred" href="block3.html#block/3">block/3</A> 
-predicate and friends have been introduced before ISO compatible <A NAME="idx:catch3:535"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
+<P>The <A NAME="idx:block3:535"></A><A class="pred" href="block3.html#block/3">block/3</A> 
+predicate and friends have been introduced before ISO compatible <A NAME="idx:catch3:536"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
 exception handling for compatibility with some Prolog implementation. 
-The only feature not covered by <A NAME="idx:catch3:536"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
-and <A NAME="idx:throw1:537"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
-is the possibility to execute global cuts. New code should use <A NAME="idx:catch3:538"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
-and <A NAME="idx:throw1:539"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
+The only feature not covered by <A NAME="idx:catch3:537"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
+and <A NAME="idx:throw1:538"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
+is the possibility to execute global cuts. New code should use <A NAME="idx:catch3:539"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
+and <A NAME="idx:throw1:540"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
 to deal with exceptions.
 
 <DL>
@@ -141,20 +141,20 @@ to deal with exceptions.
 Execute <VAR>Goal</VAR> in a <EM>block</EM>. <VAR>Label</VAR> is the 
 name of the block. <VAR>Label</VAR> is normally an atom, but the system 
 imposes no type constraints and may even be a variable. <VAR>ExitValue</VAR> 
-is normally unified to the second argument of an <A NAME="idx:exit2:540"></A><A class="pred" href="block3.html#exit/2">exit/2</A> 
+is normally unified to the second argument of an <A NAME="idx:exit2:541"></A><A class="pred" href="block3.html#exit/2">exit/2</A> 
 call invoked by <VAR>Goal</VAR>.
 </DD>
 <DT class="pubdef"><A NAME="exit/2"><STRONG>exit</STRONG>(<VAR>+Label, 
 +Value</VAR>)</A></DT>
 <DD class="defbody">
-Calling <A NAME="idx:exit2:541"></A><A class="pred" href="block3.html#exit/2">exit/2</A> 
+Calling <A NAME="idx:exit2:542"></A><A class="pred" href="block3.html#exit/2">exit/2</A> 
 makes the innermost <VAR>block</VAR> which <VAR>Label</VAR> unifies 
 exit. The block's <VAR>ExitValue</VAR> is unified with <VAR>Value</VAR>. 
 If this unification fails the block fails.
 </DD>
 <DT class="pubdef"><A NAME="fail/1"><STRONG>fail</STRONG>(<VAR>+Label</VAR>)</A></DT>
 <DD class="defbody">
-Calling <A NAME="idx:fail1:542"></A><A class="pred" href="block3.html#fail/1">fail/1</A> 
+Calling <A NAME="idx:fail1:543"></A><A class="pred" href="block3.html#fail/1">fail/1</A> 
 makes the innermost <VAR>block</VAR> which <VAR>Label</VAR> unifies fail 
 immediately. Implemented as
 

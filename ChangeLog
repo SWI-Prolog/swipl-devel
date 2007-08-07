@@ -7,6 +7,15 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED:  Various issues in the Windows version.  Prolog now starts
+    in <personal>\Prolog (typicall My Documents\Prolog) and personal settings
+    is in <appdata>\SWI-Prolog (pl.ini) and <appdata>\xpce (Defaults,
+    Geometry, emacs_bookmarks, etc.) <appdata> is typically called
+    Application Data.  Michael Covington.
+
+  * FIXED: plwin.exe, non-functioning <RETURN> in tracer and toplevel.
+    Pierpaolo Bernardi
+
 ================================
 VERSION 5.6.38 (August 02, 2007)
 ================================

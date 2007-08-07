@@ -133,7 +133,10 @@ of the operating system. On MS-Windows, it is the file
 <CODE>pl.ini</CODE> and on Unix systems <CODE>.plrc</CODE>. The file is 
 searched using the <A NAME="idx:filesearchpath2:60"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
 clauses for <CODE>user_profile</CODE>. The table below shows the default 
-value for this search-path.
+value for this search-path. The phrase &lt;<VAR>appdata</VAR>&gt; refers 
+to the Windows CSIDL name for the folder. The actual name depends on the 
+Windows language. English versions typically use
+<CODE>ApplicationData</CODE>. See also <A NAME="idx:winfolder2:61"></A><A class="pred" href="system.html#win_folder/2">win_folder/2</A>
 
 <P>
 <CENTER>
@@ -141,11 +144,7 @@ value for this search-path.
 <TR VALIGN=top><TD></TD><TD><B>Unix</B></TD><TD><B>Windows </B></TD></TR>
 <TBODY>
 <TR VALIGN=top><TD><B>local</B></TD><TD><CODE>.</CODE> </TD><TD><CODE>.</CODE> </TD></TR>
-<TR VALIGN=top><TD><B>home</B></TD><TD><CODE><CODE>~</CODE></CODE> </TD><TD><CODE>%HOME%</CODE> 
-or
-<CODE>%HOMEDRIVE%%HOMEPATH%</CODE> </TD></TR>
-<TR VALIGN=top><TD>global</TD><TD></TD><TD>SWI-Home directory or
-<CODE>%WINDIR%</CODE> or <CODE>%SYSTEMROOT%</CODE> </TD></TR>
+<TR VALIGN=top><TD><B>home</B></TD><TD><CODE><CODE>~</CODE></CODE> </TD><TD>&lt;<VAR>appdata</VAR>&gt;/SWI-Prolog </TD></TR>
 </TABLE>
 
 </CENTER>

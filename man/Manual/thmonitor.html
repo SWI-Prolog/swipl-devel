@@ -129,7 +129,7 @@ threads</SPAN></A></H2>
 predicates from this section because almost any usage of these 
 predicates is unsafe. For example checking the existence of a thread 
 before signalling it is of no use as it may vanish between the two 
-calls. Catching exceptions using <A NAME="idx:catch3:1224"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
+calls. Catching exceptions using <A NAME="idx:catch3:1225"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
 is the only safe way to deal with thread-existence errors.
 
 <P>These predicates are provided for diagnosis and monitoring tasks. See 
@@ -141,9 +141,9 @@ high-level primitives.
 ?Status</VAR>)</A></DT>
 <DD class="defbody">
 Enumerates identifiers and status of all currently known threads. 
-Calling <A NAME="idx:currentthread2:1225"></A><A class="pred" href="thmonitor.html#current_thread/2">current_thread/2</A> 
+Calling <A NAME="idx:currentthread2:1226"></A><A class="pred" href="thmonitor.html#current_thread/2">current_thread/2</A> 
 does not influence any thread. See also
-<A NAME="idx:threadjoin2:1226"></A><A class="pred" href="threadcreate.html#thread_join/2">thread_join/2</A>. 
+<A NAME="idx:threadjoin2:1227"></A><A class="pred" href="threadcreate.html#thread_join/2">thread_join/2</A>. 
 For threads that have an alias-name, this name is returned in <VAR>Id</VAR> 
 instead of the numerical thread identifier.
 <VAR>Status</VAR> is one of:
@@ -161,14 +161,14 @@ The <VAR>Goal</VAR> of the thread has been completed and failed.</DD>
 The <VAR>Goal</VAR> of the thread has been completed and succeeded.</DD>
 <DT><STRONG>exited</STRONG>(<VAR>Term</VAR>)</DT>
 <DD class="defbody">
-The <VAR>Goal</VAR> of the thread has been terminated using <A NAME="idx:threadexit1:1227"></A><A class="pred" href="threadcreate.html#thread_exit/1">thread_exit/1</A> 
+The <VAR>Goal</VAR> of the thread has been terminated using <A NAME="idx:threadexit1:1228"></A><A class="pred" href="threadcreate.html#thread_exit/1">thread_exit/1</A> 
 with <VAR>Term</VAR> as argument. If the underlying native thread has 
 exited (using pthread_exit()) <VAR>Term</VAR> is unbound.</DD>
 <DT><STRONG>exception</STRONG>(<VAR>Term</VAR>)</DT>
 <DD class="defbody">
 The <VAR>Goal</VAR> of the thread has been terminated due to an uncaught 
-exception (see <A NAME="idx:throw1:1228"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
-and <A NAME="idx:catch3:1229"></A><A class="pred" href="exception.html#catch/3">catch/3</A>).
+exception (see <A NAME="idx:throw1:1229"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
+and <A NAME="idx:catch3:1230"></A><A class="pred" href="exception.html#catch/3">catch/3</A>).
 </DD>
 </DL>
 
@@ -176,8 +176,8 @@ and <A NAME="idx:catch3:1229"></A><A class="pred" href="exception.html#catch/3">
 <DT class="pubdef"><A NAME="thread_statistics/3"><STRONG>thread_statistics</STRONG>(<VAR>+Id, 
 +Key, -Value</VAR>)</A></DT>
 <DD class="defbody">
-Obtains statistical information on thread <VAR>Id</VAR> as <A NAME="idx:statistics2:1230"></A><A class="pred" href="statistics.html#statistics/2">statistics/2</A> 
-does in single-threaded applications. This call supports all keys of <A NAME="idx:statistics2:1231"></A><A class="pred" href="statistics.html#statistics/2">statistics/2</A>, 
+Obtains statistical information on thread <VAR>Id</VAR> as <A NAME="idx:statistics2:1231"></A><A class="pred" href="statistics.html#statistics/2">statistics/2</A> 
+does in single-threaded applications. This call supports all keys of <A NAME="idx:statistics2:1232"></A><A class="pred" href="statistics.html#statistics/2">statistics/2</A>, 
 although only stack sizes and CPU time yield different values for each 
 thread.<SUP class="fn">71<SPAN class="fn-text">Getting the CPU-time of a 
 specific thread is not supported on all platforms. On some platforms it 

@@ -12,7 +12,7 @@
                          SSWWII--PPrroolloogg 55..66
 
                         RReeffeerreennccee MMaannuuaall
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._3_8_, _A_u_g_u_s_t _2_0_0_7
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._3_9_, _A_u_g_u_s_t _2_0_0_7
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                     wielemak@science.uva.nl
@@ -770,14 +770,15 @@ consult/1) the user's startup file.  The base-name  of this file follows
 conventions of  the operating  system.   On MS-Windows,  it is the  file
 pl.ini  and on  Unix systems  .plrc.   The  file is  searched using  the
 file_search_path/2 clauses for user_profile.  The table below  shows the
-default value for this search-path.
+default value for this search-path.   The phrase <_a_p_p_d_a_t_a> refers to the
+Windows CSIDL  name for  the folder.   The  actual name  depends on  the
+Windows language.  English versions typically use ApplicationData.   See
+also win_folder/2
 
-     _______________________________________________________________
-     |________________|UUnniixx__||WWiinnddoowwss________________________________________________________________________________||
-     || llooccaall  ||.    |.                                              |
-
-     | hhoommee   ||~    |%HOME% or %HOMEDRIVE%\%HOMEPATH%               |
-     |_global_|____|SWI-Home_directory_or_%WINDIR%_or_%SYSTEMROOT%_|_
+                   ___________________________________
+                   |______________|UUnniixx__||WWiinnddoowwss__________________________||
+                   || llooccaall ||.    |.                   |
+                   |_hhoommee__||~____|<_a_p_p_d_a_t_a>/SWI-Prolog_|
 
 After the  first startup  file is found  it is  loaded and Prolog  stops
 looking for further startup files.  The name of the  startup file can be
@@ -19827,7 +19828,7 @@ atom_codes/2,   21,  60,  122,  314, when _l_i_b_r_a_r_y, 718
       397--399, 403, 415             when/2, 75, 718
 atom_concat/3, 407, 408, 426         wildcard_match/2, 669
 atom_length/2, 60, 410, 425          win_exec/2, 548, 551, 552
-atom_number/2, 314, 403              win_folder/2, 41, 555
+atom_number/2, 314, 403              win_folder/2, 39, 41, 555
 atom_prefix/2, 411                   win_has_menu/0, 574
 atom_to_term/3, 406                  win_insert_menu/2, 574--576
 atomic/1, 175                        win_insert_menu_item/4, 574, 576

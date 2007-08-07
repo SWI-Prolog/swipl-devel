@@ -130,21 +130,21 @@ box model tracer <CITE><A class="cite" href="Bibliography.html#Byrd:80">Byrd,
 1980</A>, <A class="cite" href="Bibliography.html#Clocksin:87">Clocksin &amp; 
 Melish, 1987</A></CITE> with two additional ports. The optional <VAR>unify</VAR> 
 port allows the user to inspect the result after unification of the 
-head. The <VAR>exception</VAR> port shows exceptions raised by <A NAME="idx:throw1:85"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
+head. The <VAR>exception</VAR> port shows exceptions raised by <A NAME="idx:throw1:86"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
 or one of the built-in predicates. See
 <A class="sec" href="exception.html">section 4.9</A>.
 
 <P>The standard ports are called <CODE>call</CODE>, <CODE>exit</CODE>, <CODE>redo</CODE>,
-<CODE>fail</CODE> and <CODE>unify</CODE>. The tracer is started by the <A NAME="idx:trace0:86"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
+<CODE>fail</CODE> and <CODE>unify</CODE>. The tracer is started by the <A NAME="idx:trace0:87"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 command, when a spy point is reached and the system is in debugging mode 
-(see <A NAME="idx:spy1:87"></A><A class="pred" href="debugger.html#spy/1">spy/1</A> 
-and <A NAME="idx:debug0:88"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>) 
+(see <A NAME="idx:spy1:88"></A><A class="pred" href="debugger.html#spy/1">spy/1</A> 
+and <A NAME="idx:debug0:89"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>) 
 or when an exception is raised.
 
-<P>The interactive top-level goal <A NAME="idx:trace0:89"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
+<P>The interactive top-level goal <A NAME="idx:trace0:90"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 means ``trace the next query''. The tracer shows the port, displaying 
 the port name, the current depth of the recursion and the goal. The goal 
-is printed using the Prolog predicate <A NAME="idx:writeterm2:90"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>. 
+is printed using the Prolog predicate <A NAME="idx:writeterm2:91"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>. 
 The style is defined by the Prolog flag
 <A class="flag" href="flags.html#flag:debugger_print_options">debugger_print_options</A> 
 and can be modified using this flag or using the <CODE>w</CODE>, <CODE>p</CODE> 
@@ -177,7 +177,7 @@ Yes
 
 <A NAME="fig:tracer"></A>
 
-<P>On <EM>leashed ports</EM> (set with the predicate <A NAME="idx:leash1:91"></A><A class="pred" href="debugger.html#leash/1">leash/1</A>, 
+<P>On <EM>leashed ports</EM> (set with the predicate <A NAME="idx:leash1:92"></A><A class="pred" href="debugger.html#leash/1">leash/1</A>, 
 default are
 <CODE>call</CODE>, <CODE>exit</CODE>, <CODE>redo</CODE> and <CODE>fail</CODE>) 
 the user is prompted for an action. All actions are single character 
@@ -187,12 +187,12 @@ the command-line option <STRONG>-tty</STRONG> is active. Tracer options:
 <DL>
 <DT><STRONG>Spy</STRONG> (<CODE>+</CODE>)</DT>
 <DD class="defbody">
-Set a spy point (see <A NAME="idx:spy1:92"></A><A class="pred" href="debugger.html#spy/1">spy/1</A>) 
+Set a spy point (see <A NAME="idx:spy1:93"></A><A class="pred" href="debugger.html#spy/1">spy/1</A>) 
 on the current predicate.
 </DD>
 <DT><STRONG>No spy</STRONG> (<CODE>-</CODE>)</DT>
 <DD class="defbody">
-Remove the spy point (see <A NAME="idx:nospy1:93"></A><A class="pred" href="debugger.html#nospy/1">nospy/1</A>) 
+Remove the spy point (see <A NAME="idx:nospy1:94"></A><A class="pred" href="debugger.html#nospy/1">nospy/1</A>) 
 from the current predicate.
 </DD>
 <DT><STRONG>Find</STRONG> (<CODE>/</CODE>)</DT>
@@ -212,8 +212,8 @@ port of any goal with name <CODE>solve</CODE> </TD></TR>
 <TR VALIGN=top><TD><TT>/c solve(a, _)</TT></TD><TD>Search for a call to solve/2 
 whose first argument is a variable or the atom <CODE>a</CODE> </TD></TR>
 <TR VALIGN=top><TD><TT>/a member(_, _)</TT></TD><TD>Search for any port 
-on <A NAME="idx:member2:94"></A><A class="pred" href="lists.html#member/2">member/2</A>. 
-This is equivalent to setting a spy point on <A NAME="idx:member2:95"></A><A class="pred" href="lists.html#member/2">member/2</A>. </TD></TR>
+on <A NAME="idx:member2:95"></A><A class="pred" href="lists.html#member/2">member/2</A>. 
+This is equivalent to setting a spy point on <A NAME="idx:member2:96"></A><A class="pred" href="lists.html#member/2">member/2</A>. </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -234,15 +234,15 @@ goal is displayed between square brackets (see <A class="sec" href="modules.html
 </DD>
 <DT><STRONG>Listing</STRONG> (<CODE>L</CODE>)</DT>
 <DD class="defbody">
-List the current predicate with <A NAME="idx:listing1:96"></A><A class="pred" href="listing.html#listing/1">listing/1</A>.
+List the current predicate with <A NAME="idx:listing1:97"></A><A class="pred" href="listing.html#listing/1">listing/1</A>.
 </DD>
 <DT><STRONG>Abort</STRONG> (<CODE>a</CODE>)</DT>
 <DD class="defbody">
-Abort Prolog execution (see <A NAME="idx:abort0:97"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>).
+Abort Prolog execution (see <A NAME="idx:abort0:98"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>).
 </DD>
 <DT><STRONG>Break</STRONG> (<CODE>b</CODE>)</DT>
 <DD class="defbody">
-Enter a Prolog break environment (see <A NAME="idx:break0:98"></A><A class="pred" href="toplevel.html#break/0">break/0</A>).
+Enter a Prolog break environment (see <A NAME="idx:break0:99"></A><A class="pred" href="toplevel.html#break/0">break/0</A>).
 </DD>
 <DT><STRONG>Creep</STRONG> (<CODE>c</CODE>)</DT>
 <DD class="defbody">
@@ -256,7 +256,7 @@ and <CODE>p</CODE> options.
 </DD>
 <DT><STRONG>Exit</STRONG> (<CODE>e</CODE>)</DT>
 <DD class="defbody">
-Terminate Prolog (see <A NAME="idx:halt0:99"></A><A class="pred" href="toplevel.html#halt/0">halt/0</A>).
+Terminate Prolog (see <A NAME="idx:halt0:100"></A><A class="pred" href="toplevel.html#halt/0">halt/0</A>).
 </DD>
 <DT><STRONG>Fail</STRONG> (<CODE>f</CODE>)</DT>
 <DD class="defbody">
@@ -310,7 +310,7 @@ option is useful to stop tracing a failure driven loop.
 <DD class="defbody">
 Set the Prolog flag <A class="flag" href="flags.html#flag:debugger_print_options">debugger_print_options</A> 
 to <CODE>[quoted(true), attributes(write), priority(699)]</CODE>, 
-bypassing <A NAME="idx:portray1:100"></A><A class="pred" href="termrw.html#portray/1">portray/1</A>, 
+bypassing <A NAME="idx:portray1:101"></A><A class="pred" href="termrw.html#portray/1">portray/1</A>, 
 etc.
 </DD>
 </DL>
@@ -321,7 +321,7 @@ Melish, 1987</A></CITE> is not visible in many Prolog implementations
 because code optimisation removes part of the choice- and exit-points. 
 Backtrack points are not shown if either the goal succeeded 
 deterministically or its alternatives were removed using the cut. When 
-running in debug mode (<A NAME="idx:debug0:101"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>) 
+running in debug mode (<A NAME="idx:debug0:102"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>) 
 choice points are only destroyed when removed by the cut. In debug mode, 
 last call optimisation is switched off.<SUP class="fn">5<SPAN class="fn-text">This 
 implies the system can run out of local stack in debug mode, while no 
