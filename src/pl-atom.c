@@ -790,7 +790,7 @@ PL_unregister_atom(atom_t a)
     p = fetchBuffer(&atom_array, index, Atom);
     p->references--;
     if ( p->references == (unsigned)-1 )
-    { Sdprintf("OOPS: -1 references to %s\n", p->name);
+    { Sdprintf("OOPS: -1 references to '%s'\n", p->name);
       trap_gdb();
     }
     UNLOCK();
