@@ -30,7 +30,7 @@ ask_employee :-
 	send_list(Dialog, append, 
 		  [ new(N1, text_item(first_name)),
 		    new(N2, text_item(family_name)),
-		    new(S,  new(S, menu(sex))),
+		    new(S,  menu(sex)),
 		    new(A,  int_item(age, low := 18, high := 65)),
 		    new(D,  menu(department, cycle)),
 		    button(cancel, message(Dialog, destroy)),
