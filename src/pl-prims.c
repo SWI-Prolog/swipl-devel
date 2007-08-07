@@ -458,7 +458,7 @@ right_recursion:
       Trail(t1);
       succeed;
     }
-    if ( var_occurs_in(t1, t2) )
+    if ( onStack(global, t1) && var_occurs_in(t1, t2) )
       return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
 #ifdef O_ATTVAR
     *t1 = isAttVar(w2) ? makeRef(t2) : w2;
@@ -469,7 +469,7 @@ right_recursion:
     succeed;
   }
   if ( isVar(w2) )
-  { if ( var_occurs_in(t2, t1) )
+  { if ( onStack(global, t2) && var_occurs_in(t2, t1) )
       return failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
 
 #ifdef O_ATTVAR

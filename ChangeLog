@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Trivial extra check in unify_with_occurs_check/2 to speed up
+    a common case.  Ulrich Neumerkel.
+
   * MODIFIED:  Various issues in the Windows version.  Prolog now starts
     in <personal>\Prolog (typicall My Documents\Prolog) and personal settings
     is in <appdata>\SWI-Prolog (pl.ini) and <appdata>\xpce (Defaults,
