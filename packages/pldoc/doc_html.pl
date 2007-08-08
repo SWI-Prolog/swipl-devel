@@ -649,7 +649,7 @@ pred_dt([H|T], Class, Done0, Done, Options) -->
 
 
 pred_mode(mode(Head,Vars), Done0, Done, Options) --> !,
-	{ bind_vars(Vars) },
+	{ bind_vars(Head, Vars) },
 	pred_mode(Head, Done0, Done, Options).
 pred_mode(Head is Det, Done0, Done, Options) --> !,
 	anchored_pred_head(Head, Done0, Done, Options),
@@ -657,10 +657,29 @@ pred_mode(Head is Det, Done0, Done, Options) --> !,
 pred_mode(Head, Done0, Done, Options) -->
 	anchored_pred_head(Head, Done0, Done, Options).
 
+bind_vars(Term, Bindings) :-
+	bind_vars(Bindings),
+	anon_vars(Term).
+
 bind_vars([]).
 bind_vars([Name=Var|T]) :-
 	Var = '$VAR'(Name),
 	bind_vars(T).
+
+%%	anon_vars(+Term) is det.
+%
+%	Bind remaining variables in Term to '$VAR'('_'), so they are
+%	printed as '_'.
+
+anon_vars(Var) :-
+	var(Var), !,
+	Var = '$VAR'('_').
+anon_vars(Term) :-
+	compound(Term), !,
+	Term =.. [_|Args],
+	maplist(anon_vars, Args).
+anon_vars(_).
+
 
 anchored_pred_head(Head, Done0, Done, Options) -->
 	{ anchor_name(Head, PI, Name)
@@ -854,7 +873,7 @@ term(Term, Bindings) -->
 	}, !,
 	pred_head(Term).
 term(Term, Bindings) -->
-	{ bind_vars(Bindings) },
+	{ bind_vars(Term, Bindings) },
 	argtype(Term).
 	
 
