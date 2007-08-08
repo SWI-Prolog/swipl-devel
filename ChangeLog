@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+================================
+VERSION 5.6.39 (August 08, 2007)
+================================
+
   * FIXED: Windows: handling of //host.domain/path filenames.  Dave Eyers.
 
   * FIXED: Exception from call(1, a, b).  Ulrich Neumerkel.

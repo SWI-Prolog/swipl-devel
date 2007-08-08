@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.39, distributed with SWI-Prolog 5.6.39
+==================================================
+
+* ADDED: @pce<->application_data to reflect the directory for storing
+  user application settings.
+
 VERSION 6.6.37, distributed with SWI-Prolog 5.6.37
 ==================================================
 

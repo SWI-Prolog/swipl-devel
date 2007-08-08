@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.38 Reference Manual: Section 2.18</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.39 Reference Manual: Section 2.18</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="widechars.html">
@@ -240,13 +240,28 @@ contains both type and value information. The size of the various memory
 areas is limited to 128 Mb for each of the areas, except for the program 
 heap, which is not limited. On 64-bit hardware there are no meaningful 
 limits.</DD>
+<DT><B>Nesting of terms</B></DT>
+<DD>
+Many build-in predicates process nested terms using recursive C 
+functions. Too deeply nested terms generally cause a fatal crash. All 
+these functions avoid recursion on the right-most argument and therefore 
+terms are not limited on the nesting level of the last argument. This 
+notably covers long lists. Most functions use a stack for correct 
+handling of rational trees (cyclic terms). This stack is segmented, 
+where different segments are allocated using malloc(). Overflow causes a 
+non-graceful exit.</DD>
 <DT><B>Integers</B></DT>
 <DD>
-Integers are 64-bit on 32 as well as 64-bit machines. Integers up to the 
-value of the <A class="flag" href="flags.html#flag:max_tagged_integer">max_tagged_integer</A> 
+On most systems SWI-Prolog is compiled with support for unbounded 
+integers by means of the GNU GMP library. In practice this means that 
+integers are bound by the global stack size. Too large integers cause a
+<CODE>resource_error</CODE>. On systems that lack GMP, integers are 
+64-bit on 32 as well as 64-bit machines.
+
+<P>Integers up to the value of the <A class="flag" href="flags.html#flag:max_tagged_integer">max_tagged_integer</A> 
 Prolog flag are represented more efficiently on the stack. For clauses 
 and records the difference is much smaller.</DD>
-<DT><B>Floats</B></DT>
+<DT><B>Floating point numbers</B></DT>
 <DD>
 Floating point numbers are represented as C-native double precision 
 floats, 64 bit IEEE on most machines.
