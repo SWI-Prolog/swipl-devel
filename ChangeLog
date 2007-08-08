@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Windows: handling of //host.domain/path filenames.  Dave Eyers.
+
   * FIXED: Exception from call(1, a, b).  Ulrich Neumerkel.
 
   * ENHANCED: Trivial extra check in unify_with_occurs_check/2 to speed up
