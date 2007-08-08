@@ -123,11 +123,12 @@ This predicate will fail if no more records are left before the mark.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
-PRED_IMPL("$collect_bag", 2, collect_bag, 0)
+PRED_IMPL("$collect_bag", 3, collect_bag, 0)
 { PRED_LD
   
   term_t bindings = A1;
   term_t bag = A2;
+  term_t tail = A3;
 
   term_t var_term = PL_new_term_refs(4);	/* v() term on global stack */
   term_t list     = var_term+1;			/* list to construct */
@@ -143,7 +144,7 @@ PRED_IMPL("$collect_bag", 2, collect_bag, 0)
     fail;				/* trapped the mark */
   }
 
-  PL_put_nil(list);
+  PL_put_term(list, tail);
 					/* get variable term on global stack */
   copyRecordToGlobal(binding, a->record PASS_LD);
   DEBUG(9, Sdprintf("First binding (%p): ", a->record);
@@ -224,6 +225,6 @@ PRED_IMPL("$discard_bag", 0, discard_bag, 0)
 
 BeginPredDefs(bag)
   PRED_DEF("$record_bag", 1, record_bag, 0)
-  PRED_DEF("$collect_bag", 2, collect_bag, 0)
+  PRED_DEF("$collect_bag", 3, collect_bag, 0)
   PRED_DEF("$discard_bag", 0, discard_bag, 0)
 EndPredDefs

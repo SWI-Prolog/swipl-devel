@@ -31,12 +31,14 @@
 
 :- module('$bags',
 	  [ findall/3, 
+	    findall/4,
 	    bagof/3, 
 	    setof/3
 	  ]).
 
 :- module_transparent
 	findall/3, 
+	findall/4,
 	setof/3, 
 	bagof/3, 
 	assert_bag/2.
@@ -49,10 +51,17 @@
 %	Goal fails immediately.
 
 findall(Var, Goal, Bag) :-
+	findall(Var, Goal, Bag, []).
+
+%%	findall(-Var, +Goal, -Bag, +Tail) is det.
+%
+%	Difference-list version of the classical findall/3.
+
+findall(Var, Goal, Bag, Tail) :-
 	assert_bag(v-Var, Goal),
-	collect_bags([], [v-VarBag]), !,
+	collect_bags([], [v-VarBag], Tail), !,
 	VarBag = Bag.
-findall(_, _, []).
+findall(_, _, Tail, Tail).
 
 %%	setof(+Var, +Goal, -Set) is semidet.
 %
@@ -73,7 +82,7 @@ setof(Var, Goal, Set) :-
 bagof(Gen, Goal, Bag) :-
 	'$e_free_variables'(Gen^Goal, Vars),
 	assert_bag(Vars-Gen, Goal), 
-	collect_bags([], Bags), 
+	collect_bags([], Bags, []), 
 	'$member'(Vars-Bag, Bags),
 	Bag \== [].
 
@@ -85,7 +94,7 @@ assert_bag(Templ, G) :-
 	fail.
 assert_bag(_, _).
 
-collect_bags(Sofar, Result) :-
-	'$collect_bag'(Vars, Bag), !,
-	collect_bags([Vars-Bag|Sofar], Result).
-collect_bags(L, L).
+collect_bags(Sofar, Result, Tail) :-
+	'$collect_bag'(Vars, Bag, Tail), !,
+	collect_bags([Vars-Bag|Sofar], Result, Tail).
+collect_bags(L, L, _).

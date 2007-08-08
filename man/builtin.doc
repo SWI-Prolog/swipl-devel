@@ -4542,7 +4542,7 @@ and \arg{Set2}.
 \section{Finding all Solutions to a Goal}	\label{sec:allsolutions}
 
 \begin{description}
-    \predicate{findall}{3}{+Template, +Goal, -Bag}
+    \predicate{findall}{3}{+Template, :Goal, -Bag}
 Creates a list of the instantiations \arg{Template} gets successively on
 backtracking over \arg{Goal} and unifies the result with \arg{Bag}.
 Succeeds with an empty list if \arg{Goal} has no solutions. findall/3 is
@@ -4550,7 +4550,16 @@ equivalent to bagof/3 with all free variables bound with the existential
 operator (\op{^}), except that bagof/3 fails when goal has no
 solutions.
 
-    \predicate{bagof}{3}{+Template, +Goal, -Bag}
+    \predicate{findall}{4}{+Template, :Goal, -Bag, +Tail}
+As findall/3, but returns the result as the difference-list
+\arg{Bag}-\arg{Tail}.   The 3-argument version is defined as
+
+\begin{code}
+findall(Templ, Goal, Bag) :-
+	findall(Templ, Goal, Bag, []) 
+\end{code}
+
+    \predicate{bagof}{3}{+Template, :Goal, -Bag}
 Unify \arg{Bag} with the alternatives of \arg{Template}, if \arg{Goal} has
 free variables besides the one sharing with \arg{Template} bagof will
 backtrack over the alternatives of these free variables, unifying \arg{Bag} with the corresponding alternatives of \arg{Template}. The construct

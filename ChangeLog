@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+
+  * ADDED: findall/4.  Ulrich Neumerkel.
+
 ================================
 VERSION 5.6.39 (August 08, 2007)
 ================================
