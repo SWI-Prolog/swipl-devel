@@ -3147,7 +3147,7 @@ a_func2:	% binary function. Pops two values and pushes one.
 	n->value.mpz->_mp_size  = (int)*p++;
 	n->value.mpz->_mp_alloc = 0;	/* avoid de-allocating */
 	size = sizeof(mp_limb_t) * abs(n->value.mpz->_mp_size);
-	n->value.mpz->_mp_d = p;
+	n->value.mpz->_mp_d = (void*)p;
 
 	p += (size+sizeof(word)-1)/sizeof(word);
  	PC = (Code)p;
