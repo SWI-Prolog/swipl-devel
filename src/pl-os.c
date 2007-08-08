@@ -1372,7 +1372,7 @@ canoniseFileName(char *path)
   if ( in[0] == '/' && in[1] == '/' && isAlpha(in[2]) )
   { char *s;
 
-    for(s = in+3; *s && isAlpha(*s); s++)
+    for(s = in+3; *s && (isAlpha(*s) || *s == '.'); s++)
       ;
     if ( *s == '/' )
     { in = out = s+1;
