@@ -187,8 +187,10 @@ gather_arg(file(Mode, Title), File) :-
 			   tuple('All files',   	   '*.*'))
 	),
 	current_prolog_flag(hwnd, HWND),
+	working_directory(CWD, CWD),
 	call(get(@display, win_file_name, 	% avoid autoloading
 		 Mode, Filter, Title,
+		 directory := CWD,
 		 owner := HWND,
 		 File)).
 
