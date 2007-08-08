@@ -119,7 +119,7 @@ with @<word>.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{File and section comments}
+\section{File (module) comments}
 \label{sec:sectioncomments}
 
 An important aspect is documentation of the file or module as a whole,
@@ -129,27 +129,10 @@ equivalent would be to put the module comment in front of the module
 declaration. The module declaration itself however is an important index
 to the content of the file and is therefore best kept first.
 
-The general comment-structure for section comments is to use a
-section-type identifier between angled brackets, followed by the title
-of the section. Defined values for \arg{Type} are given in the table
-below.%
-	\footnote{Currently only \emph{module} is supported}.
-
-\begin{center}
-\begin{tabular}{ll}
-\hline
-\multicolumn{2}{c}{{\tt\string/** <}\arg{Type}{\tt\string>}\arg{Title}} \\
-\multicolumn{2}{c}{{\tt\%\%~~}{\tt\string<}\arg{Type}{\tt\string>}\arg{Title}} \\
-\hline
-<Type> & Description \\
-\hline
-module	& Comment of a module file \\
-section & Section inside the module documentation \\
-subsection & Sub-section inside a section \\
-subsubsection & Sub-Sub-section inside a sub-section \\
-\hline
-\end{tabular}
-\end{center}
+The general comment-structure for module comments is to use a type
+identifier between angled brackets, followed by the title of the
+section.  Currently the only type provided is \const{module}.  Other
+types may be added later.
 
 \subsection*{Example}
 
@@ -184,7 +167,7 @@ informally described below:
 		\ora 'nondet' \\
 		\ora 'multi' \\
 <head>		\isa <functor>'('<argspec> {',' <argspec>}')' \\
-		\isa <functor> \\
+		\ora <functor> \\
 <argspec>	\isa [<instantiation>]<argname>[':'<type>] \\
 <instantiation> \isa '+' $\mid$ '-' $\mid$ '?' $\mid$ ':'
 		     $\mid$ '@' $\mid$ '!' \\

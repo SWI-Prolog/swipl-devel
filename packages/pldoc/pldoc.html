@@ -138,7 +138,7 @@ at <A class="url" href="http://gollem.science.uva.nl/SWI-Prolog/pldoc/">http://g
 <DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Structured 
 comments</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">File 
-and section comments</SPAN></A></DIV>
+(module) comments</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Type 
 and mode declarations</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">Tags: <CODE>@</CODE>param, 
@@ -246,7 +246,7 @@ with a single %.
 @&lt;<VAR>word</VAR>&gt;.
 
 <H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">File 
-and section comments</SPAN></A></H2>
+(module) comments</SPAN></A></H2>
 
 <A NAME="sec:sectioncomments"></A>
 
@@ -258,29 +258,10 @@ module declaration. The module declaration itself however is an
 important index to the content of the file and is therefore best kept 
 first.
 
-<P>The general comment-structure for section comments is to use a 
-section-type identifier between angled brackets, followed by the title 
-of the section. Defined values for <VAR>Type</VAR> are given in the 
-table below.<SUP class="fn">3<SPAN class="fn-text">Currently only <EM>module</EM> 
-is supported</SPAN></SUP>.
-
-<P>
-<CENTER>
-<TABLE BORDER=2 FRAME=hsides RULES=groups>
-<TR VALIGN=top><TD COLSPAN=2 ALIGN=center><TT>/** &lt;</TT><VAR>Type</VAR><TT>&gt;</TT><VAR>Title</VAR></TR>
-<TR VALIGN=top><TD COLSPAN=2 ALIGN=center><TT>%%&nbsp;&nbsp;</TT><TT>&lt;</TT><VAR>Type</VAR><TT>&gt;</TT><VAR>Title</VAR></TR>
-<TBODY>
-<TR VALIGN=top><TD>&lt;<VAR>Type</VAR>&gt; </TD><TD>Description </TD></TR>
-<TBODY>
-<TR VALIGN=top><TD>module</TD><TD>Comment of a module file </TD></TR>
-<TR VALIGN=top><TD>section</TD><TD>Section inside the module 
-documentation </TD></TR>
-<TR VALIGN=top><TD>subsection</TD><TD>Sub-section inside a section </TD></TR>
-<TR VALIGN=top><TD>subsubsection</TD><TD>Sub-Sub-section inside a 
-sub-section </TD></TR>
-</TABLE>
-
-</CENTER>
+<P>The general comment-structure for module comments is to use a type 
+identifier between angled brackets, followed by the title of the 
+section. Currently the only type provided is <CODE>module</CODE>. Other 
+types may be added later.
 
 <H3>Example</H3>
 
@@ -317,7 +298,7 @@ informally described below:
 <TR VALIGN=top><TD></TD><TD ALIGN=right>|</TD><TD>'multi' </TD></TR>
 <TR VALIGN=top><TD>&lt;<VAR>head</VAR>&gt; </TD><TD ALIGN=right>::=</TD><TD>&lt;<VAR>functor</VAR>&gt;'('&lt;<VAR>argspec</VAR>&gt; 
 ',' &lt;<VAR>argspec</VAR>&gt;')' </TD></TR>
-<TR VALIGN=top><TD></TD><TD ALIGN=right>::=</TD><TD>&lt;<VAR>functor</VAR>&gt; </TD></TR>
+<TR VALIGN=top><TD></TD><TD ALIGN=right>|</TD><TD>&lt;<VAR>functor</VAR>&gt; </TD></TR>
 <TR VALIGN=top><TD>&lt;<VAR>argspec</VAR>&gt; </TD><TD ALIGN=right>::=</TD><TD>[&lt;<VAR>instantiation</VAR>&gt;]&lt;<VAR>argname</VAR>&gt;[':'&lt;<VAR>type</VAR>&gt;] </TD></TR>
 <TR VALIGN=top><TD>&lt;<VAR>instantiation</VAR>&gt; </TD><TD ALIGN=right>::=</TD><TD>'+' <VAR>|</VAR> 
 '-' <VAR>|</VAR> '?' <VAR>|</VAR> ':'
@@ -807,7 +788,7 @@ predicates with their full documentation. Using the <B>zoom</B> button
 the user can select to view both public and documentated private 
 predicates. Using the <B>source</B> button, the system shows the source 
 with syntax highlighting as in PceEmacs and formatted structured 
-comments.<SUP class="fn">4<SPAN class="fn-text">This mode is still 
+comments.<SUP class="fn">3<SPAN class="fn-text">This mode is still 
 incomplete. It would be nice to add line-numbers and links to 
 documentation and definitions in the sources.</SPAN></SUP>
 
