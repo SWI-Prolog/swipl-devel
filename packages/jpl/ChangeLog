@@ -1,3 +1,8 @@
+Aug 8, 2007
+
+  * FIXED: JRef handling on 64-bit non-Windows platforms. 
+    Fixed by Paul Singleton.
+
 May 24, 2007
 
   * FIXED: (JW) Exchange of codes 128..255.  Lorenz Wallner.

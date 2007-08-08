@@ -4949,7 +4949,7 @@ JNIEXPORT void JNICALL
 	term_t		term;
 	jobject		j;		// temp for JNI_jobject_to_term(+,-)
 	atom_t		a;		//  "
-	int			i;		//  "
+	long		i;		//  "
 
 	if	(	jpl_ensure_pvm_init(env)
 		&&	jni_ensure_jvm()
