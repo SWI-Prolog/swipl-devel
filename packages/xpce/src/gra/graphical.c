@@ -2366,7 +2366,7 @@ cy_object(lg_object *o)
 static void
 place_object(lg_object *o)
 { if ( o->update )
-  { Any av[2];
+  { Any av[4];
     
     o->update = FALSE;
     av[0] = toInt(o->area.x);
@@ -2374,7 +2374,10 @@ place_object(lg_object *o)
     
     if ( o->gr->area->x != av[0] ||
 	 o->gr->area->y != av[1] )
-      qadSendv(o->gr, NAME_set, 2, av);
+    { av[2] = DEFAULT;
+      av[3] = DEFAULT;
+      qadSendv(o->gr, NAME_set, 4, av);
+    }
   }
 }
 
