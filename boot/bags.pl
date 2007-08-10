@@ -139,6 +139,7 @@ setof(Templ, Goal, List) :-
 	'$e_free_variables'(Templ^Goal, Vars),
 	(   Vars == []
 	->  findall(Templ, Goal, Answers),
+	    Answers \== [],
 	    sort(Answers, List)
 	;   findall(Vars-Templ, Goal, Answers),
 	    sort(Answers, Sorted),
