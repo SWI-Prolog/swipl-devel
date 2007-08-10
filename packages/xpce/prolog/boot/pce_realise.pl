@@ -309,11 +309,11 @@ implementation inherited from a template.
 Other cases are reported by checkpce/0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-send_binder(Class, Sel, Binder) :-
-	bagof(B, pce_lazy_send_method(Class, Sel, B), Binders),
+send_binder(Sel, Class, Binder) :-
+	bagof(B, pce_lazy_send_method(Sel, Class, B), Binders),
 	last(Binders, Binder).
-get_binder(Class, Sel, Binder) :-
-	bagof(B, pce_lazy_get_method(Class, Sel, B), Binders),
+get_binder(Sel, Class, Binder) :-
+	bagof(B, pce_lazy_get_method(Sel, Class, B), Binders),
 	last(Binders, Binder).
 
 call_binder(ClassName, Selector, Binder) :-
