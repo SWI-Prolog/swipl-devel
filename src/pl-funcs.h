@@ -250,7 +250,7 @@ COMMON(bool) 		getInputStream__LD(term_t t, IOSTREAM **s ARG_LD);
 COMMON(bool) 		getOutputStream(term_t t, IOSTREAM **s);
 COMMON(bool) 		streamStatus(IOSTREAM *s);
 COMMON(atom_t) 		fileNameStream(IOSTREAM *s);
-COMMON(int) 		getSingleChar(IOSTREAM *s);
+COMMON(int) 		getSingleChar(IOSTREAM *s, int signals);
 COMMON(bool) 		readLine(IOSTREAM *in, IOSTREAM *out, char *buffer);
 COMMON(bool) 		LockStream(void);
 COMMON(bool) 		UnlockStream(void);

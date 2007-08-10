@@ -750,13 +750,13 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
 
   cid  = PL_open_foreign_frame();
 
-  if ( fr->predicate == PROCEDURE_call_cleanup3->definition &&
+  if ( fr->predicate == PROCEDURE_setup_and_call_cleanup4->definition &&
        false(fr, FR_CATCHED) )		/* from handler */
-  { term_t catcher = argFrameP(fr, 1) - (Word)lBase;
+  { term_t catcher = argFrameP(fr, 2) - (Word)lBase;
 
     set(fr, FR_CATCHED);
     if ( unify_finished(catcher, reason) )
-    { term_t clean = argFrameP(fr, 2) - (Word)lBase;
+    { term_t clean = argFrameP(fr, 3) - (Word)lBase;
       term_t ex;
       int rval;
       
@@ -2555,8 +2555,8 @@ call the 1-st argument.  See also I_CATCH.
 	  newChoice(CHP_CATCH, FR PASS_LD);
 
 	set(FR, FR_WATCHED);
-				/* = B_VAR0 */
-	*argFrameP(lTop, 0) = linkVal(argFrameP(FR, 0));
+				/* = B_VAR1 */
+	*argFrameP(lTop, 0) = linkVal(argFrameP(FR, 1));
 
 	goto i_usercall0;
       }
@@ -2572,7 +2572,7 @@ parent (it is the entry of PL_next_solution()),
       { while( BFR && BFR->type == CHP_DEBUG )
 	  BFR = BFR->parent;
 
-	if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
+	if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 4) )
 	{ assert(BFR->type == CHP_CATCH);
 
 	  DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));

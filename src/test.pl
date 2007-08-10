@@ -1004,19 +1004,34 @@ set(X, 1) :- type(X).
 set(X, 2) :- type(X).
 
 sets(setof-1) :-
-	setof(A-Pairs, setof(B, foo(A,B), Pairs), Result),
-	Result = [1 - [a,d],2 - [b,e],3 - [c,f]].
+	setof(A-Pairs, setof(B, foo(A,B), Pairs), Result0),
+	keysort(Result0, Result),
+	Result = [ 1 - [a,d],
+		   2 - [b,e],
+		   3 - [c,f]
+		 ].
 sets(setof-2) :-
-	setof(X-Ys, setof(Y, set(X,Y), Ys), R),
+	setof(X-Ys, setof(Y, set(X,Y), Ys), R0),
 	string_to_atom(S, "string"),
-	R =@= [3.14-[1, 2],
-	       42-[1, 2],
-	       atom-[1, 2],
-	       S-[1, 2],
-	       compound(1)-[1, 2],
-	       [a, list]-[1, 2],
-	       compound(_A, _B)-[1, 2],
-	       compound(A, A)-[1, 2]].
+	keysort(R0, R),
+	(   R =@= [3.14-[1, 2],
+		   42-[1, 2],
+		   atom-[1, 2],
+		   S-[1, 2],
+		   compound(1)-[1, 2],
+		   [a, list]-[1, 2],
+		   compound(_A0, _B0)-[1, 2], % order is not defined
+		   compound(A, A)-[1, 2]]
+	->  true
+	;   R =@= [3.14-[1, 2],
+		   42-[1, 2],
+		   atom-[1, 2],
+		   S-[1, 2],
+		   compound(1)-[1, 2],
+		   [a, list]-[1, 2],
+		   compound(A, A)-[1, 2],
+		   compound(_A1, _B1)-[1, 2]]
+	).
 sets(vars-1) :-
 	'$e_free_variables'(A^satisfy(B^C^(setof(D:E,
 						 (country(E), area(E, D)),

@@ -401,7 +401,7 @@ again:
 	exitFromDebugger(0);
       }
     } else
-    { int c = getSingleChar(Sdin);
+    { int c = getSingleChar(Sdin, FALSE);
 
       if ( c == EOF )
       { Sfputs("EOF: exit\n", Sdout);
@@ -1261,7 +1261,7 @@ again:
   Sfputs("\nAction (h for help) ? ", Sdout);
   Sflush(Sdout);
   ResetTty();                           /* clear pending input -- atoenne -- */
-  c = getSingleChar(Sdin);
+  c = getSingleChar(Sdin, FALSE);
 
   switch(c)
   { case 'a':	Sfputs("abort\n", Sdout);

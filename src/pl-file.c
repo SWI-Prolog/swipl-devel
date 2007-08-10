@@ -1072,19 +1072,23 @@ and including the newline.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-Sgetcode_intr(IOSTREAM *s)
+Sgetcode_intr(IOSTREAM *s, int signals)
 { int c;
 
   do
-  { c = Sgetcode(s);
-  } while ( c == -1 && errno == EINTR && PL_handle_signals() >= 0 );
+  { Sclearerr(s);
+    c = Sgetcode(s);
+  } while ( c == -1 && 
+	    errno == EINTR &&
+	    (!signals || PL_handle_signals() >= 0)
+	  );
 
   return c;
 }
 
 
 int
-getSingleChar(IOSTREAM *stream)
+getSingleChar(IOSTREAM *stream, int signals)
 { GET_LD
   int c;
   ttybuf buf;
@@ -1097,19 +1101,19 @@ getSingleChar(IOSTREAM *stream)
   if ( !trueFeature(TTY_CONTROL_FEATURE) )
   { int c2;
 
-    c2 = Sgetcode_intr(stream);
+    c2 = Sgetcode_intr(stream, signals);
     while( c2 == ' ' || c2 == '\t' )	/* skip blanks */
-      c2 = Sgetcode_intr(stream);
+      c2 = Sgetcode_intr(stream, signals);
     c = c2;
     while( c2 != EOF && c2 != '\n' )	/* read upto newline */
-      c2 = Sgetcode_intr(stream);
+      c2 = Sgetcode_intr(stream, signals);
   } else
   { if ( stream->position )
     { IOPOS oldpos = *stream->position;
-      c = Sgetcode_intr(stream);
+      c = Sgetcode_intr(stream, signals);
       *stream->position = oldpos;
     } else
-      c = Sgetcode_intr(stream);
+      c = Sgetcode_intr(stream, signals);
   }
 
   if ( c == 4 || c == 26 )		/* should ask the terminal! */
@@ -1908,7 +1912,7 @@ word
 pl_get_single_char(term_t chr)
 { GET_LD
   IOSTREAM *s = getStream(Suser_input);
-  int c = getSingleChar(s);
+  int c = getSingleChar(s, TRUE);
 
   if ( c == EOF )
   { PL_unify_integer(chr, -1);

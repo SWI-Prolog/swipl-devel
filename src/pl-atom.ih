@@ -58,7 +58,7 @@
 #define ATOM_busy         MK_ATOM(57)
 #define ATOM_byte         MK_ATOM(58)
 #define ATOM_call         MK_ATOM(59)
-#define ATOM_call_cleanup MK_ATOM(60)
+#define ATOM_setup_and_call_cleanup MK_ATOM(60)
 #define ATOM_callable     MK_ATOM(61)
 #define ATOM_callpred     MK_ATOM(62)
 #define ATOM_canceled     MK_ATOM(63)

@@ -2058,7 +2058,8 @@ typedef struct
 #define PROCEDURE_event_hook1		(GD->procedures.event_hook1)
 #define PROCEDURE_print_message2	(GD->procedures.print_message2)
 #define PROCEDURE_dcall1		(GD->procedures.dcall1)
-#define PROCEDURE_call_cleanup3		(GD->procedures.call_cleanup3)
+#define PROCEDURE_setup_and_call_cleanup4 \
+				(GD->procedures.setup_and_call_cleanup4)
 #define PROCEDURE_dwakeup1		(GD->procedures.dwakeup1)
 #define PROCEDURE_dthread_init0		(GD->procedures.dthread_init0)
 #define PROCEDURE_exception_hook4	(GD->procedures.exception_hook4)

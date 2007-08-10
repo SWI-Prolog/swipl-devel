@@ -94,6 +94,19 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_TERM, actual);
       break;
     }
+    case ERR_CHARS_TYPE:		/* ERR_INSTANTIATION if var(actual) */
+    { const char *expected = va_arg(args, const char*);
+      term_t actual        = va_arg(args, term_t);
+
+      if ( PL_is_variable(actual) && !streq(expected, "variable") )
+	goto err_instantiation;
+
+      PL_unify_term(formal,
+		    PL_FUNCTOR, FUNCTOR_type_error2,
+		      PL_CHARS, expected,
+		      PL_TERM, actual);
+      break;
+    }
     case ERR_AR_TYPE:			/* arithmetic type error */
     { atom_t expected = va_arg(args, atom_t);
       Number num      = va_arg(args, Number);

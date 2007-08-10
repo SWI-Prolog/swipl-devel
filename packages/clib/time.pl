@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -108,12 +108,9 @@ call_with_time_limit(_Time, _Goal) :-
 	throw(time_limit_exceeded).
 		     
 call_with_time_limit2(Time, Goal) :-
-	alarm(Time, throw(time_limit_exceeded), Id, [install(false)]),
-	call_cleanup(time_limited(Id, Goal), remove_alarm_notrace(Id)).
-
-time_limited(Id, Goal) :-
-	install_alarm(Id),
-	Goal, !.
+	setup_and_call_cleanup(alarm(Time, throw(time_limit_exceeded), Id),
+			       Goal,
+			       remove_alarm_notrace(Id)).
 
 current_alarm(Time, Goal, Id, Status) :-
 	current_alarms(Time, Goal, Id, Status, List),

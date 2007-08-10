@@ -1327,7 +1327,7 @@ vsysError(const char *fm, va_list args)
 action:
   Sfprintf(Serror, "\nAction? "); Sflush(Soutput);
   ResetTty();
-  switch(getSingleChar(Sinput))
+  switch(getSingleChar(Sinput, FALSE))
   { case 'a':
       pl_abort(ABORT_FATAL);
       break;

@@ -1224,6 +1224,20 @@ This predicate is equivalent to \term{call_cleanup}{Goal, _, Cleanup},
 calling \arg{Cleanup} regardless of the reason for termination and
 without providing information.  This predicate provides compatibility
 to a number of other Prolog implementations.
+
+    \predicate{setup_and_call_cleanup}{3}{:Setup, :Goal, :Cleanup}
+This predicate is introduced to allow for the proper definition of
+predicates with temporary side-effects under asynchronous interrupts
+from call_with_time_limit/2 (package clib) or thread_signal/2. It
+behaves as if defined below, but the \arg{Cleanup} handler is also
+called if the interrupt occurs between \arg{Setup} and the
+call_cleanup/2 call.
+
+\begin{code}
+setup_and_call_cleanup(Setup, Goal, Cleanup) :-
+	Setup,
+	call_cleanup(Goal, Cleanup).
+\end{code}
 \end{description}
 
 
@@ -4560,11 +4574,12 @@ findall(Templ, Goal, Bag) :-
 \end{code}
 
     \predicate{bagof}{3}{+Template, :Goal, -Bag}
-Unify \arg{Bag} with the alternatives of \arg{Template}, if \arg{Goal} has
-free variables besides the one sharing with \arg{Template} bagof will
-backtrack over the alternatives of these free variables, unifying \arg{Bag} with the corresponding alternatives of \arg{Template}. The construct
-\exam{+\arg{Var}{^}\arg{Goal}} tells bagof not to bind \arg{Var} in
-\arg{Goal}. bagof/3 fails if \arg{Goal} has no solutions.
+Unify \arg{Bag} with the alternatives of \arg{Template}, if \arg{Goal}
+has free variables besides the one sharing with \arg{Template} bagof
+will backtrack over the alternatives of these free variables, unifying
+\arg{Bag} with the corresponding alternatives of \arg{Template}. The
+construct \exam{+\arg{Var}{^}\arg{Goal}} tells bagof not to bind
+\arg{Var} in \arg{Goal}. bagof/3 fails if \arg{Goal} has no solutions.
 
 The example below illustrates bagof/3 and the \op{^} operator. The
 variable bindings are printed together on one line to save paper.
@@ -4593,6 +4608,7 @@ A = G324, B = c, C = G326, Cs = [e, f, g] ;
 No
 5 ?-
 \end{code}
+
     \predicate{setof}{3}{+Template, +Goal, -Set}
 Equivalent to bagof/3, but sorts the result using sort/2 to get a sorted
 list of alternatives without duplicates.

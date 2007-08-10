@@ -108,7 +108,7 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	      catch/3,
 	      once/1,
 	      ignore/1,
-	      call_cleanup/3,
+	      setup_and_call_cleanup/4,
 	      (^)/2)).
 
 :- module_transparent
@@ -135,6 +135,8 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	ignore/1,
 	block/3,
 	catch/3,
+	setup_and_call_cleanup/3,
+	setup_and_call_cleanup/4,
 	call_cleanup/2,
 	call_cleanup/3,
 	apply/2.
@@ -223,7 +225,7 @@ fail(Label) :-
 	'$cut'(Label),				% handled by compiler
 	fail.
 
-%	catch(:Goal, +Catcher, :Recover)
+%%	catch(:Goal, +Catcher, :Recover)
 %	throw(+Exception)
 %
 %	ISO compliant exception handling.  '$throw'/1 is compiled to
@@ -235,16 +237,26 @@ catch(_Goal, _Catcher, _Recover) :-
 throw(Exception) :-
 	'$throw'(Exception).
 
-%	call_cleanup(:Goal, +Catcher, :Cleanup)
+%%	setup_and_call_cleanup(:Setup, :Goal, :Cleanup).
+%%	setup_and_call_cleanup(:Setup, :Goal, +Catcher, :Cleanup).
+%%	call_cleanup(:Goal, :Cleanup)
+%%	call_cleanup(:Goal, +Catcher, :Cleanup)
 %
 %	Call Cleanup as Goal finished (deterministic success, failure,
 %	exception or cut).  '$call_cleanup' translated to I_CALLCLEANUP.
 
-call_cleanup(Goal, Cleanup) :-
-	call_cleanup(Goal, _Catcher, Cleanup).
-
-call_cleanup(_Goal, _Catcher, _Cleanup) :-
+setup_and_call_cleanup(Setup, _Goal, _Catcher, _Cleanup) :-
+	Setup,
 	'$call_cleanup'.
+
+setup_and_call_cleanup(Setup, Goal, Cleanup) :-
+	setup_and_call_cleanup(Setup, Goal, _Catcher, Cleanup).
+
+call_cleanup(Goal, Cleanup) :-
+	setup_and_call_cleanup(true, Goal, _Catcher, Cleanup).
+
+call_cleanup(Goal, Catcher, Cleanup) :-
+	setup_and_call_cleanup(true, Goal, Catcher, Cleanup).
 
 
 		/********************************

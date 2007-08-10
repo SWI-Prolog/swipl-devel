@@ -225,7 +225,7 @@ typedef struct
     Procedure	prolog_trace_interception4;
     Procedure	portray;		/* portray/1 */
     Procedure   dcall1;			/* $call/1 */
-    Procedure	call_cleanup3;		/* call_cleanup/2 */
+    Procedure	setup_and_call_cleanup4; /* setup_and_call_cleanup/4 */
     Procedure	undefinterc4;		/* $undefined_procedure/4 */
     Procedure   dthread_init0;		/* $thread_init/0 */
 #ifdef O_ATTVAR

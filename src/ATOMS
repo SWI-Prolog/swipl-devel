@@ -71,7 +71,7 @@ A built_in_procedure	"built_in_procedure"
 A busy			"busy"
 A byte			"byte"
 A call			"call"
-A call_cleanup		"call_cleanup"
+A setup_and_call_cleanup "setup_and_call_cleanup"
 A callable		"callable"
 A callpred		"$callpred"
 A canceled		"canceled"
@@ -608,7 +608,7 @@ F break			3
 F buffer		1
 F busy			2
 F call			1
-F call_cleanup		3
+F setup_and_call_cleanup 4
 F callpred		2
 F catch			3
 F ceil			1

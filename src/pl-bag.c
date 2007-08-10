@@ -29,6 +29,122 @@
 #undef LD
 #define LD LOCAL_LD
 
+
+		 /*******************************
+		 *      NEW IMPLEMENTATION	*
+		 *******************************/
+
+#define FINDALL_MAGIC	0x37ac78fe
+
+typedef struct findall_bag
+{ long		magic;			/* FINDALL_MAGIC */
+  segstack	answers;		/* list of ansers */
+  size_t	solutions;		/* count # solutions */
+  size_t	gsize;			/* required size on stack */
+} findall_bag;
+
+
+static int
+get_bag(term_t t, findall_bag **bag ARG_LD)
+{ findall_bag *b;
+
+  if ( PL_get_pointer(t, (void**)&b) && b->magic == FINDALL_MAGIC )
+  { *bag = b;
+    return TRUE;
+  } else
+    return PL_error(NULL, 0, NULL, ERR_CHARS_TYPE, "pointer", t);
+}
+
+static 
+PRED_IMPL("$new_findall_bag", 1, new_findall_bag, 0)
+{ PRED_LD
+  findall_bag *bag = allocHeap(sizeof(*bag));
+
+  memset(bag, 0, sizeof(*bag));
+  bag->magic = FINDALL_MAGIC;
+  bag->answers.unit_size = sizeof(Record);
+
+  return PL_unify_pointer(A1, bag);
+}
+
+
+static
+PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
+{ PRED_LD
+  findall_bag *bag;
+  Record r;
+
+  if ( !get_bag(A1, &bag PASS_LD) )
+    return FALSE;
+
+  r = compileTermToHeap(A2, 0);
+  pushSegStack(&bag->answers, &r);
+  bag->gsize += r->gsize;
+  bag->solutions++;
+
+  if ( bag->gsize + bag->solutions*3 > spaceStack(global)/sizeof(word) )
+  { garbageCollect(NULL, NULL);
+
+    if ( bag->gsize + bag->solutions*3 > spaceStack(global)/sizeof(word) )
+      return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
+  }
+
+  return TRUE;
+}
+
+
+static 
+PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
+{ PRED_LD
+  findall_bag *bag;
+  Record r;
+  term_t list = PL_copy_term_ref(A3);
+  term_t answer = PL_new_term_ref();
+
+  if ( !get_bag(A1, &bag PASS_LD) )
+    return FALSE;
+
+  while(popSegStack(&bag->answers, &r))
+  { copyRecordToGlobal(answer, r PASS_LD);
+    PL_cons_list(list, answer, list);
+
+    freeRecord(r);
+  }
+
+  clearSegStack(&bag->answers);
+  bag->magic = 0;
+  freeHeap(bag, sizeof(*bag));
+
+  return PL_unify(A2, list);
+}
+
+
+static
+PRED_IMPL("$destroy_findall_bag", 1, destroy_findall_bag, 0)
+{ PRED_LD
+  findall_bag *bag;
+
+  if ( PL_get_pointer(A1, (void**)&bag) && bag->magic == FINDALL_MAGIC )
+  { Record r; 
+
+    bag->magic = 0;
+    while(popSegStack(&bag->answers, &r))
+      freeRecord(r);
+
+    clearSegStack(&bag->answers);
+    freeHeap(bag, sizeof(*bag));
+  }
+
+  succeed;
+}
+
+
+
+
+		 /*******************************
+		 *     OLD IMPLEMENTATION	*
+		 *******************************/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines support  predicates  for  the  Prolog  all-solutions
 predicates findall/3, bagof/3 and setof/3.  These predicates are:
@@ -224,6 +340,12 @@ PRED_IMPL("$discard_bag", 0, discard_bag, 0)
 		 *******************************/
 
 BeginPredDefs(bag)
+  PRED_DEF("$new_findall_bag", 1, new_findall_bag, 0)
+  PRED_DEF("$add_findall_bag", 2, add_findall_bag, 0)
+  PRED_DEF("$collect_findall_bag", 3, collect_findall_bag, 0)
+  PRED_DEF("$destroy_findall_bag", 1, destroy_findall_bag, 0)
+
+					/* old stuff */
   PRED_DEF("$record_bag", 1, record_bag, 0)
   PRED_DEF("$collect_bag", 3, collect_bag, 0)
   PRED_DEF("$discard_bag", 0, discard_bag, 0)

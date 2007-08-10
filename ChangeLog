@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Various issues around findall/3, bagof/3 and setof/3.  Not
+    yet fully tested.
 
   * ADDED: findall/4.  Ulrich Neumerkel.
 

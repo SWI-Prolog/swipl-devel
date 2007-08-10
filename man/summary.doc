@@ -480,6 +480,7 @@ suggest predicates from a keyword.
 \predicatesummary{set_stream}{2}{Set stream attribute}
 \predicatesummary{set_stream_position}{2}{Seek stream to position}
 \predicatesummary{set_tty}{2}{Set `tty' stream}
+\predicatesummary{setup_and_call_cleanup}{3}{Undo side-effects safely}
 \predicatesummary{setarg}{3}{Destructive assignment on term}
 \predicatesummary{setenv}{2}{Set shell environment variable}
 \predicatesummary{setlocale}{3}{Set/query C-library regional information}
