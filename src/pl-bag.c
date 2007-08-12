@@ -52,7 +52,9 @@ get_bag(term_t t, findall_bag **bag ARG_LD)
   { *bag = b;
     return TRUE;
   } else
-    return PL_error(NULL, 0, NULL, ERR_CHARS_TYPE, "pointer", t);
+  { PL_error(NULL, 0, NULL, ERR_CHARS_TYPE, "pointer", t);
+    return FALSE;
+  }
 }
 
 static 
@@ -82,12 +84,8 @@ PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
   bag->gsize += r->gsize;
   bag->solutions++;
 
-  if ( bag->gsize + bag->solutions*3 > spaceStack(global)/sizeof(word) )
-  { garbageCollect(NULL, NULL);
-
-    if ( bag->gsize + bag->solutions*3 > spaceStack(global)/sizeof(word) )
-      return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
-  }
+  if ( bag->gsize + bag->solutions*3 > limitStack(global)/sizeof(word) )
+    return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
 
   return TRUE;
 }
@@ -103,6 +101,13 @@ PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
 
   if ( !get_bag(A1, &bag PASS_LD) )
     return FALSE;
+
+  if ( bag->gsize + bag->solutions*3 > spaceStack(global)/sizeof(word) )
+  { garbageCollect(NULL, NULL);
+
+    if ( bag->gsize + bag->solutions*3 > spaceStack(global)/sizeof(word) )
+      return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
+  }
 
   while(popSegStack(&bag->answers, &r))
   { copyRecordToGlobal(answer, r PASS_LD);
