@@ -781,7 +781,6 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
       if ( !rval && ex )
 	PL_raise_exception(ex);
     }
-
   }
 
 #ifdef O_DEBUGGER
@@ -2548,7 +2547,7 @@ call the 1-st argument.  See also I_CATCH.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(I_CALLCLEANUP)
-      { if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
+      { if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 4) )
 	{ assert(BFR->type == CHP_DEBUG);
 	  BFR->type = CHP_CATCH;
 	} else
