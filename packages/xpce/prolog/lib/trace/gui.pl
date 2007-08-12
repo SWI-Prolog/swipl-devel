@@ -253,60 +253,6 @@ prolog_frame_attribute(Thread, Frame, Attribute, Value) :-
 
 
 		 /*******************************
-		 *	       EVENTS		*
-		 *******************************/
-
-%user:prolog_event_hook(Term) :-
-%	debug('prolog_event_hook(~w).~n', [Term]),
-%	fail.
-user:prolog_event_hook(frame_finished(Frame)) :-
-	thread_self(Thread),
-	gui(Thread, _, Gui),
-	send(Gui, frame_finished, Frame),
-	fail.
-user:prolog_event_hook(exit_break(Level)) :-
-	thread_self(Thread),
-	gui(Thread, Level, Gui),
-	send(Gui, destroy),
-	fail.
-user:prolog_event_hook(finished_query(_Qid, YesNo)) :-
-	thread_self(Thread),		% only main?
-	break_level(Level),
-	gui(Thread, Level, Ref),
-	send(Ref, query_finished, YesNo),
-	fail.
-user:prolog_event_hook(thread_finished(Thread)) :-
-	gui(Thread, _, Gui),
-	current_thread(Thread, Status),
-	in_pce_thread(send(Gui, thread_finished, Status)),
-	fail.
-
-user:message_hook('$aborted', _, _Lines) :-
-	aborted,
-	fail.
-user:message_hook(query(YesNo), _, _Lines) :-
-	query_finished(YesNo),
-	fail.
-user:message_hook(query(YesNo, _Bindings), _, _Lines) :-
-	query_finished(YesNo),
-	fail.
-
-aborted :-
-	thread_self(Thread),
-	gui(Thread, Level, Gui),
-	(   Level \== 0
-	->  send(Gui, destroy)
-	;   send(Gui, aborted)
-	).
-
-query_finished(YesNo) :-
-	thread_self(Thread),
-	break_level(Level),
-	gui(Thread, Level, Gui),
-	send(Gui, query_finished, YesNo).
-
-
-		 /*******************************
 		 *     DEBUGGER APPLICATION	*
 		 *******************************/
 
@@ -366,6 +312,7 @@ initialise(F, Level:int, Thread0:'int|name') :->
 	send(RD, warning_delay, 0),
 	send(S, label, 'Call Stack'),
 	send(S, name, stack),
+	ignore(send(F, frame_finished, 0)),	% FR_WATCHED issue
 	asserta(gui(Thread, Level, F)).
  
 unlink(F) :->
@@ -693,6 +640,11 @@ listing(F, Module:name, Predicate:name, Arity:int) :->
 	"List the specified predicate"::
 	send(F?source, listing, Module, Predicate, Arity).
 
+/* NOTE: lazy creation of this message interferes with call_cleanup/2 used
+   by findall/3 from XPCE's lazy  method   binder.  Therefore  we make a
+   dummy call to this method in ->initialise.
+*/
+
 frame_finished(F, Frame:int) :->
 	"This frame was terminated; remove it"::
 	get(F, member, stack, StackView),
@@ -988,3 +940,57 @@ value(F, Value:prolog) :<-
 	prolog_frame_attribute(F, Frame, argument(ArgN), Value).
 	
 :- pce_end_class(prolog_frame_var_fragment).
+
+
+		 /*******************************
+		 *	       EVENTS		*
+		 *******************************/
+
+%user:prolog_event_hook(Term) :-
+%	debug('prolog_event_hook(~w).~n', [Term]),
+%	fail.
+user:prolog_event_hook(frame_finished(Frame)) :-
+	thread_self(Thread),
+	gui(Thread, _, Gui),
+	send(Gui, frame_finished, Frame),
+	fail.
+user:prolog_event_hook(exit_break(Level)) :-
+	thread_self(Thread),
+	gui(Thread, Level, Gui),
+	send(Gui, destroy),
+	fail.
+user:prolog_event_hook(finished_query(_Qid, YesNo)) :-
+	thread_self(Thread),		% only main?
+	break_level(Level),
+	gui(Thread, Level, Ref),
+	send(Ref, query_finished, YesNo),
+	fail.
+user:prolog_event_hook(thread_finished(Thread)) :-
+	gui(Thread, _, Gui),
+	current_thread(Thread, Status),
+	in_pce_thread(send(Gui, thread_finished, Status)),
+	fail.
+
+user:message_hook('$aborted', _, _Lines) :-
+	aborted,
+	fail.
+user:message_hook(query(YesNo), _, _Lines) :-
+	query_finished(YesNo),
+	fail.
+user:message_hook(query(YesNo, _Bindings), _, _Lines) :-
+	query_finished(YesNo),
+	fail.
+
+aborted :-
+	thread_self(Thread),
+	gui(Thread, Level, Gui),
+	(   Level \== 0
+	->  send(Gui, destroy)
+	;   send(Gui, aborted)
+	).
+
+query_finished(YesNo) :-
+	thread_self(Thread),
+	break_level(Level),
+	gui(Thread, Level, Gui),
+	send(Gui, query_finished, YesNo).
