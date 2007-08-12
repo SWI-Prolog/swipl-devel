@@ -144,6 +144,42 @@ PRED_IMPL("$destroy_findall_bag", 1, destroy_findall_bag, 0)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bind_bagof_keys(+Vars, +List:Key-Terms) is det
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static
+PRED_IMPL("$bind_bagof_keys", 2, bind_bagof_keys, 0)
+{ PRED_LD
+  term_t list = PL_copy_term_ref(A2);
+  term_t head = PL_new_term_ref();
+  term_t a = PL_new_term_ref();
+  term_t key = PL_new_term_ref();
+  term_t vars;
+  int i, arity;
+
+  if ( !PL_get_name_arity(A1, NULL, &arity) )
+    fail;
+  vars = PL_new_term_refs(arity);
+  for(i=1; i<=arity; i++)
+  { _PL_get_arg(i, A1, vars+i-1);
+  }
+  
+  while(PL_get_list(list, head, list))
+  { if ( !PL_get_arg(1, head, key) )
+      fail;
+
+    for(i=1; i<=arity; i++)
+    { _PL_get_arg(i, key, a);
+      if ( PL_is_variable(a) )
+      { PL_unify(a, vars+i-1);
+      }
+    }
+  }
+
+  succeed;
+}
+
 
 
 		 /*******************************
@@ -349,6 +385,7 @@ BeginPredDefs(bag)
   PRED_DEF("$add_findall_bag", 2, add_findall_bag, 0)
   PRED_DEF("$collect_findall_bag", 3, collect_findall_bag, 0)
   PRED_DEF("$destroy_findall_bag", 1, destroy_findall_bag, 0)
+  PRED_DEF("$bind_bagof_keys", 2, bind_bagof_keys, 0)
 
 					/* old stuff */
   PRED_DEF("$record_bag", 1, record_bag, 0)

@@ -1041,6 +1041,11 @@ sets(vars-1) :-
 					   {place(A)})),
 			    Free),
 	Free == v(D, E).
+sets(bagof-1) :-
+	List = [_,_,_],
+	bagof(X, member(X, List), Xs),
+	Xs == List.
+
 
 		 /*******************************
 		 *	       NAME		*

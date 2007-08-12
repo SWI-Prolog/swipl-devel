@@ -1403,13 +1403,17 @@ PL_get_name_arity(term_t t, atom_t *name, int *arity)
   if ( isTerm(w) )
   { FunctorDef fd = valueFunctor(functorTerm(w));
 
-    *name =  fd->name;
-    *arity = fd->arity;
+    if ( name )
+      *name =  fd->name;
+    if ( arity )
+      *arity = fd->arity;
     succeed;
   }
   if ( isTextAtom(w) )
-  { *name = (atom_t)w;
-    *arity = 0;
+  { if ( name )
+      *name = (atom_t)w;
+    if ( arity )
+      *arity = 0;
     succeed;
   }
 

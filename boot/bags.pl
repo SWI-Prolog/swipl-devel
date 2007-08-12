@@ -56,6 +56,7 @@
 findall(Templ, Goal, List) :-
 	findall(Templ, Goal, List, []).
 
+
 findall(Templ, Goal, List, Tail) :-
 	strip_module(Goal, M, G),
 	fa_local(Templ, M:G, List, Tail).
@@ -82,21 +83,23 @@ bagof(Templ, Goal, List) :-
 	->  findall(Templ, Goal, List),
 	    List \== []
 	;   findall(Vars-Templ, Goal, Answers),
+	    '$bind_bagof_keys'(Vars, Answers),
 	    keysort(Answers, Sorted),
 	    pick(Sorted, Vars, List, _)
 	).
 
 pick(Bags, Vars1, Bag1, Resort1) :-
 	pick_first(Bags, Vars0, Bag0, RestBags, Resort0),
-	(   RestBags == []
-	->  Bag1 = Bag0,
-	    Vars1 = Vars0,
-	    Resort1 = Resort0
-	;   Bag1 = Bag0,
-	    Vars1 = Vars0,
-	    Resort1 = Resort0
-	;   pick(RestBags, Vars1, Bag1, Resort1)
-	).
+	select_bag(RestBags, Vars0, Bag0, Resort0, Vars1, Bag1, Resort1).
+
+select_bag([], Vars0, Bag0, Resort0, Vars1, Bag1, Resort1) :- !, % last one: deterministic
+	unify_bag(Vars0, Bag0, Resort0, Vars1, Bag1, Resort1).
+select_bag(_, Vars0, Bag0, Resort0, Vars1, Bag1, Resort1) :-
+	unify_bag(Vars0, Bag0, Resort0, Vars1, Bag1, Resort1).
+select_bag(RestBags, _, _, _, Vars1, Bag1, Resort1) :-
+	pick(RestBags, Vars1, Bag1, Resort1).
+
+unify_bag(Vars, Bag, Resort, Vars, Bag, Resort).
 
 
 %%	pick_first(+Bags, +Vars, -Bag1, -RestBags, -ReSort) is semidet.
@@ -120,7 +123,7 @@ pick_same([V-H|T0], Vars, [H|T], Bag, ReSort) :-
 	V == Vars, !,
 	pick_same(T0, Vars, T, Bag, ReSort).
 pick_same([V-H|T0], Vars, [H|T], Bag, true) :-
-	V =@= Vars, !,
+	V =@= Vars, !,			% variant
 	pick_same(T0, Vars, T, Bag, _).
 pick_same([H|T0], Vars, Bag1, [H|Bag], true) :-
 	arg(1, H, Key),
