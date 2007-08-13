@@ -1045,6 +1045,11 @@ sets(bagof-1) :-
 	List = [_,_,_],
 	bagof(X, member(X, List), Xs),
 	Xs == List.
+sets(setof-3) :-
+	List = [_,_,_],
+	setof(X, member(X, List), Xs),
+	sort(List, LS),
+	Xs == LS.
 
 
 		 /*******************************

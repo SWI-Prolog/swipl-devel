@@ -145,6 +145,7 @@ setof(Templ, Goal, List) :-
 	    Answers \== [],
 	    sort(Answers, List)
 	;   findall(Vars-Templ, Goal, Answers),
+	     '$bind_bagof_keys'(Vars, Answers),
 	    sort(Answers, Sorted),
 	    pick(Sorted, Vars, List0, ReSort),
 	    re_sort(ReSort, List0, List)
