@@ -1638,7 +1638,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     *end = (ucharp)in;
     succeed;
   }
-					/* Real numbers */
+					/* floating point numbers */
 					/* we should use strtod_l() here */
   if ( *in == '.' && isDigit(in[1]) )
   { double n;
@@ -1670,7 +1670,9 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
         break;
     }
 
-    if ( !scan_decimal(&in, &exponent) || exponent.type != V_INTEGER )
+    if ( !isDigit(*in) ||
+	 !scan_decimal(&in, &exponent) ||
+	 exponent.type != V_INTEGER )
       fail;				/* too large exponent */
 
     promoteToRealNumber(value);

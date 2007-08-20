@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: silently accept floats with illegal exponent.  Ulrich Neumerkel.
+
   * FIXED: Errors of atom_to_term/3.  Ulrich Neumerkel.
 
   * MODIFIED: Added noprofile declarations for findall, bagof, setof,
