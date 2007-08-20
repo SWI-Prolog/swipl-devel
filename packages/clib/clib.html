@@ -1138,9 +1138,11 @@ is the next to be fired and <VAR>scheduled</VAR> otherwise.</DD>
 <DT class="pubdef"><A NAME="call_with_time_limit/2"><STRONG>call_with_time_limit</STRONG>(<VAR>+Time, 
 :Goal</VAR>)</A></DT>
 <DD class="defbody">
-True if Goal completes within Time. <VAR>Goal</VAR> is executed as in <A NAME="idx:once1:60"></A><SPAN class="pred-ext">once/1</SPAN>. 
-If <VAR>Goal</VAR> doesn't complete within <VAR>Time</VAR> seconds, exit 
-using the exception <CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:61"></A><SPAN class="pred-ext">catch/3</SPAN>.
+True if <VAR>Goal</VAR> completes within <VAR>Time</VAR> seconds. <VAR>Goal</VAR> 
+is executed as in <A NAME="idx:once1:60"></A><SPAN class="pred-ext">once/1</SPAN>. 
+If <VAR>Goal</VAR> doesn't complete within <VAR>Time</VAR> seconds (wall 
+time), exit using the exception
+<CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:61"></A><SPAN class="pred-ext">catch/3</SPAN>.
 
 <P>Please note that this predicate uses <A NAME="idx:alarm4:62"></A><A class="pred" href="#alarm/4">alarm/4</A> 
 and therefore is <EM>not</EM> capable to break out of long running goals 
