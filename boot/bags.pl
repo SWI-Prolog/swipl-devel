@@ -42,6 +42,14 @@
 	bagof/3,
 	setof/3.
 
+:- noprofile((
+	findall/4,
+	findall/3,
+	bagof/3,
+	setof/3,
+	fa_local/4,
+	fa_loop/5)).
+
 %%      findall(-Var, +Goal, -Bag) is det.
 %%      findall(-Var, +Goal, -Bag, +Tail) is det.
 %

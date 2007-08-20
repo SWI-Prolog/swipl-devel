@@ -108,6 +108,9 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	      catch/3,
 	      once/1,
 	      ignore/1,
+	      call_cleanup/2,
+	      call_cleanup/3,
+	      setup_and_call_cleanup/3,
 	      setup_and_call_cleanup/4,
 	      (^)/2)).
 

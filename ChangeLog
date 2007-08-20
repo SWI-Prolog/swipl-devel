@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Added noprofile declarations for findall, bagof, setof,
+    call_cleanup and frieds.  Makes profile output more readable.
+
   * ENHANCED: Various issues around findall/3, bagof/3 and setof/3.  Not
     yet fully tested.
 
