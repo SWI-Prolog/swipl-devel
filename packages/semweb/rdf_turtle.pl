@@ -522,20 +522,52 @@ e(0'e).
 e(0'E).
 
 sign(0'-).
-sign(0'+).
+sign(0'+).				%'
 
-					% string
-turtle_string(-1, In, _, []) :- !,
+%%	turtle_string(+Char, +In, -NextChar, -String) is det.
+%
+%	Extract a turtle string. We have  seen   a  single  ". There are
+%	-like Python- two types  of  turtle   strings,  one  written  as
+%	"hello" and the other as """hello""".
+
+turtle_string(0'", In, Next, String) :-
+	get_code(In, C),
+	(   C == 0'"
+	->  get_code(In, C2),
+	    turtle_q_string(C2, In, Next, q3, String)
+	;   Next = C,
+	    String = []
+	).
+turtle_string(C, In, Next, String) :-
+	turtle_q_string(C, In, Next, q1, String).
+
+
+turtle_q_string(-1, In, _, _, []) :- !,
 	syntax_error(In, -1, unexpected_end_of_input).
-turtle_string(0'", In, C, []) :- !,
-	get_code(In, C).
-turtle_string(0'\\, In, C, [H|T]) :- !,
+turtle_q_string(0'", In, C, Q, String) :- !,
+	get_code(In, C2),
+	(   Q == q1
+	->  C = C2,
+	    String = []
+	;   /* Q == q3 */
+	    C2 == 0'"
+        ->  get_code(In, C3),
+	    (	C3 == 0'"
+	    ->  get_code(In, C),
+	        String = []
+	    ;   String = [0'", 0'"|Rest],
+	        turtle_q_string(C3, In, C, q3, Rest)
+	    )
+	;   String = [0'"|Rest],
+	    turtle_q_string(C2, In, C, q3, Rest)
+	).
+turtle_q_string(0'\\, In, C, Q, [H|T]) :- !,
 	get_code(In, C1),
 	string_escape(C1, In, C2, H),
-	turtle_string(C2, In, C, T).
-turtle_string(C0, In, C, [C0|T]) :-
+	turtle_q_string(C2, In, C, Q, T).
+turtle_q_string(C0, In, C, Q, [C0|T]) :-
 	get_code(In, C1),
-	turtle_string(C1, In, C, T).
+	turtle_q_string(C1, In, C, Q, T).
 
 
 string_escape(0'n, In, C, 0'\n) :- !,

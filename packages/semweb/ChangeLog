@@ -1,3 +1,7 @@
+Aug 20, 2007
+
+  * ADDED: rdf_turtle.pl: handle """long string""".   Yves Raimond.
+
 Aug 7, 2007
 
   * FIXED: Error handling for non-terminated <... URI in rdf_turtle.pl.
