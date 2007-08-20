@@ -41,7 +41,6 @@
 	, debugging/0
 	, rational/3
 	, concat_atom/2
-	, term_to_atom/2
 	, atom_prefix/2
 	, dwim_match/2
 	, source_file/1
@@ -312,9 +311,6 @@ concat_atom([A, B], C) :- !,
 	atom_concat(A, B, C).
 concat_atom(L, Atom) :-
 	$concat_atom(L, Atom).
-
-term_to_atom(Term, Atom) :-
-	atom_to_term(Atom, Term, 0).
 
 dwim_match(A1, A2) :-
 	dwim_match(A1, A2, _).

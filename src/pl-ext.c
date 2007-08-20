@@ -166,7 +166,6 @@ static const PL_extension foreigns[] = {
   FRG("$concat_atom",		2, pl_concat_atom,		0),
   FRG("concat_atom",		3, pl_concat_atom3,		0),
   FRG("atom_length",		2, pl_atom_length,		0),
-  FRG("atom_to_term",		3, pl_atom_to_term,		0),
   FRG("$e_free_variables",	2, pl_e_free_variables,		0),
 
   FRG("$open_wic",		1, pl_open_wic,			0),

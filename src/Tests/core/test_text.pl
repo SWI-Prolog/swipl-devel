@@ -34,7 +34,9 @@ or character codes.  Please define a test-set for each predicate.
 */
 
 test_text :-
-	run_tests([char_code
+	run_tests([ char_code,
+		    term_to_atom,
+		    atom_to_term
 		  ]).
 
 :- begin_tests(char_code).
@@ -61,3 +63,21 @@ test(error, error(representation_error(character_code))) :-
 	char_code(_,0xfffffff).
 
 :- end_tests(char_code).
+
+:- begin_tests(term_to_atom).
+
+test(write, A == 'foo(a)') :-
+	term_to_atom(foo(a), A).
+test(read, T == foo(a)) :-
+	term_to_atom(T, 'foo(a)').
+
+:- end_tests(term_to_atom).
+
+:- begin_tests(atom_to_term).
+
+test(read, T-V == foo(A)-[A = 'A'] ) :-
+	atom_to_term('foo(A)', T, V).
+test(error, error(instantiation_error)) :-
+	atom_to_term(_, _, _).
+
+:- end_tests(atom_to_term).

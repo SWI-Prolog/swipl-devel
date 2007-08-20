@@ -3041,15 +3041,15 @@ pl_read_term(term_t term, term_t options)
 		 *	   TERM <->ATOM		*
 		 *******************************/
 
-word
-pl_atom_to_term(term_t atom, term_t term, term_t bindings)
+static int
+atom_to_term(term_t atom, term_t term, term_t bindings)
 { GET_LD
   PL_chars_t txt;
 
-  if ( PL_is_variable(atom) )
+  if ( !bindings && PL_is_variable(atom) ) /* term_to_atom(+, -) */
   { char buf[1024];
     size_t bufsize = sizeof(buf);
-    word rval;
+    int rval;
     char *s = buf;
     IOSTREAM *stream;
     PL_chars_t txt;
@@ -3073,10 +3073,10 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
     return rval;
   }
 
-  if ( PL_get_text_ex(atom, &txt, CVT_ALL) )
+  if ( PL_get_text(atom, &txt, CVT_ALL|CVT_EXCEPTION) )
   { GET_LD
     read_data rd;
-    word rval;
+    int rval;
     IOSTREAM *stream;
     source_location oldsrc = LD->read_source;
 
@@ -3085,6 +3085,8 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
     init_read_data(&rd, stream PASS_LD);
     if ( PL_is_variable(bindings) || PL_is_list(bindings) )
       rd.varnames = bindings;
+    else if ( bindings )
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, bindings);
 
     if ( !(rval = read_term(term, &rd PASS_LD)) && rd.has_exception )
       rval = PL_raise_exception(rd.exception);
@@ -3096,6 +3098,18 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
   }
 
   fail;
+}
+
+
+static
+PRED_IMPL("atom_to_term", 3, atom_to_term, 0)
+{ return atom_to_term(A1, A2, A3);
+}
+
+
+static
+PRED_IMPL("term_to_atom", 2, term_to_atom, 0)
+{ return atom_to_term(A2, A1, 0);
 }
 
 
@@ -3125,4 +3139,6 @@ PL_chars_to_term(const char *s, term_t t)
 BeginPredDefs(read)
   PRED_DEF("read_clause", 1, read_clause, 0)
   PRED_DEF("read_clause", 2, read_clause, 0)
+  PRED_DEF("atom_to_term", 3, atom_to_term, 0)
+  PRED_DEF("term_to_atom", 2, term_to_atom, 0)
 EndPredDefs

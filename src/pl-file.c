@@ -2111,7 +2111,7 @@ pl_prompt1(term_t prompt)
 
   if ( PL_get_atom(prompt, &a) )
   { prompt1(a);
-  } else if ( PL_get_text_ex(prompt, &txt,  CVT_ALL) )
+  } else if ( PL_get_text(prompt, &txt,  CVT_ALL|CVT_EXCEPTION) )
   { prompt1(textToAtom(&txt));
   } else
     fail;

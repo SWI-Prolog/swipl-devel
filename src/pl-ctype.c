@@ -474,7 +474,7 @@ static foreign_t
 modify_case_atom(term_t in, term_t out, int down)
 { PL_chars_t tin, tout;
 
-  if ( !PL_get_text_ex(in, &tin, CVT_ATOMIC) )
+  if ( !PL_get_text(in, &tin, CVT_ATOMIC|CVT_EXCEPTION) )
     return FALSE;
 
   if ( PL_get_text(out, &tout, CVT_ATOMIC) )

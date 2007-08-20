@@ -579,13 +579,6 @@ PL_get_chars_ex(term_t t, char **s, unsigned int flags)
 
 
 int
-PL_get_text_ex(term_t t, PL_chars_t *txt, unsigned int flags)
-{ return PL_get_text(t, txt, flags);
-}
-
-
-
-int
 PL_get_atom_ex(term_t t, atom_t *a)
 { if ( PL_get_atom(t, a) )
     succeed;
