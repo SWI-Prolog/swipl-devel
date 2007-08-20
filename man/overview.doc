@@ -983,7 +983,7 @@ mainly for compatibility to LPA Prolog.
     \prologflagitem{bounded}{bool}{r}
 ISO Prolog flag. If \const{true}, integer representation is bound by
 \prologflag{min_integer} and \prologflag{max_integer}. If \const{false}
-integers can be arbitrary large and the \prologflag{min_integer} and
+integers can be arbitrarily large and the \prologflag{min_integer} and
 \prologflag{max_integer} are not present. See \secref{artypes}.
 
     \prologflagitem{c_cc}{atom}{r}
