@@ -282,8 +282,8 @@ cis_times(sup, B, P) :-
         ).
 cis_times(n(N), B, P) :- cis_times_(B, N, P).
 
-cis_times_(inf, A, P) :- cis_times(inf, A, P).
-cis_times_(sup, A, P) :- cis_times(sup, A, P).
+cis_times_(inf, A, P) :- cis_times(inf, n(A), P).
+cis_times_(sup, A, P) :- cis_times(sup, n(A), P).
 cis_times_(n(B), A, n(P)) :- P is A * B.
 
 % compactified is/2 for expressions of interest
@@ -778,9 +778,10 @@ domain_contract_less(D0, M, D) :-
         ;   domain_contract_less_(D0, M, D)
         ).
 
-intervals_contract_less([], _) --> [].
+intervals_contract_less([], _)               --> [].
 intervals_contract_less([n(A0)-n(B0)|Is], M) -->
-        { A is A0 // M, B is B0 // M, numlist(A, B, Ns) }, Ns,
+        { A is A0 // M, B is B0 // M, numlist(A, B, Ns) },
+        dlist(Ns),
         intervals_contract_less(Is, M).
 
 domain_contract_less_(empty, _, empty).
@@ -1102,6 +1103,30 @@ sum1([],Sum,Op,Value) :- call(Op,Sum,Value).
 sum1([X|Xs],Acc,Op,Value) :-
         NAcc #= Acc + X,
         sum1(Xs,NAcc,Op,Value).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+lex_chain([]).
+lex_chain([Ls|Lss]) :-
+        lex_chain_lag(Lss, Ls),
+        lex_chain(Lss).
+
+lex_chain_lag([], _).
+lex_chain_lag([Ls|Lss], Ls0) :-
+        lex_le(Ls0, Ls),
+        lex_chain_lag(Lss, Ls).
+
+lex_le([], []).
+lex_le([V1|V1s], [V2|V2s]) :-
+        V1 #=< V2,
+        (   integer(V1) ->
+            (   integer(V2) ->
+                (   V1 =:= V2 -> lex_le(V1s, V2s) ;  true )
+            ;   freeze(V2, lex_le([V1|V1s], [V2|V2s]))
+            )
+        ;   freeze(V1, lex_le([V1|V1s], [V2|V2s]))
+        ).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1712,9 +1737,9 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             (   nonvar(Y) -> kill(MState), Z is X * Y
             ;   X =:= 0 ->
                 kill(MState),
-                Z = 0,
                 get(Y, YD, YExp),
-                put(Y, YD, YExp) % constrain Y to integers
+                put(Y, YD, YExp), % constrain Y to integers
+                Z = 0
             ;   nonvar(Z) -> kill(MState), 0 =:= Z mod X, Y is Z // X
             ;   get(Y, YD, _),
                 get(Z, ZD, ZPs),
@@ -1768,8 +1793,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 )
             ;   true
             )
-        ;
-            get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,YExp), get(Z,ZD,ZL,ZU,_),
+        ;   get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,YExp), get(Z,ZD,ZL,ZU,_),
             min_divide(ZL,ZU,YL,YU,TXL),
             NXL cis max(XL,ceiling(TXL)),
             max_divide(ZL,ZU,YL,YU,TXU),
@@ -1799,7 +1823,6 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             ;   true
             )
         ).
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % X / Y = Z
@@ -2235,7 +2258,10 @@ domain_to_list(Domain, List) :- domain_to_list(Domain, List, []).
 domain_to_list(split(_, Left, Right)) -->
         domain_to_list(Left), domain_to_list(Right).
 domain_to_list(empty)                 --> [].
-domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, Ns.
+domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, dlist(Ns).
+
+dlist([])     --> [].
+dlist([L|Ls]) --> [L], dlist(Ls).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Testing
