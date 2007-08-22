@@ -1537,8 +1537,8 @@ put(X, Dom, Exp) :-
                 put_attr(X, clpfd, clpfd(Dom, Exp)),
                 Attr = clpfd(OldDom, _OldExp),
 %                 format("putting dom: ~w\n", [Dom]),
-%                 (   OldDom == Dom -> true
-                (   domain_intervals(Dom, Is),
+                (   OldDom == Dom -> true
+                ;   domain_intervals(Dom, Is),
                     domain_intervals(OldDom, Is) -> true
                 ;   trigger_props(Exp)
                 )
