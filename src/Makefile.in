@@ -146,7 +146,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	prolog_stack.pl prolog_clause.pl prolog_xref.pl prolog_source.pl \
 	broadcast.pl pairs.pl base64.pl record.pl rbtrees.pl settings.pl \
 	thread.pl
-CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl
+CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
 builddirs = ../lib ../lib/$(ARCH)

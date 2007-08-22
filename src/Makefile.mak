@@ -89,7 +89,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 !IF "$(MT)" == "true"
 PLLIBS=$(PLLIBS) threadutil.pl thread.pl
 !ENDIF
-CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl
+CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 UNICODE=blocks.pl unicode_data.pl
 MANDIR= "$(PLBASE)\doc\Manual"
 

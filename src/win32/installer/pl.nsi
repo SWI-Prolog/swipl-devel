@@ -215,6 +215,7 @@ Section "CLP"
   File pl\library\clp\clp_events.pl
   File pl\library\clp\clp_distinct.pl
   File pl\library\clp\simplex.pl
+  File pl\library\clp\clpfd.pl
 SectionEnd
 
 Section "CLP on real and rational numbers: CLP(Q,R)"
