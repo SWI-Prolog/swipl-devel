@@ -103,7 +103,8 @@
                   tuples_in/2,
                   labeling/2,
                   label/1,
-                  indomain/1
+                  indomain/1,
+                  lex_chain/1
                  ]).
 
 
@@ -1536,7 +1537,7 @@ put(X, Dom, Exp) :-
         ;   (   get_attr(X, clpfd, Attr) ->
                 put_attr(X, clpfd, clpfd(Dom, Exp)),
                 Attr = clpfd(OldDom, _OldExp),
-%                 format("putting dom: ~w\n", [Dom]),
+                %format("putting dom: ~w\n", [Dom]),
                 (   OldDom == Dom -> true
                 ;   domain_intervals(Dom, Is),
                     domain_intervals(OldDom, Is) -> true
