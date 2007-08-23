@@ -668,8 +668,8 @@ domain_expand(D0, M, D) :-
 domain_expand_(empty, _, empty).
 domain_expand_(from_to(From0, To0), M, D) :-
         (   M =:= 1 -> D = from_to(From0, To0)
-        ;   From0 = inf -> To cis1 To0*n(M), D = from_to(inf, To)
-        ;   To0 = sup -> From cis1 From0*n(M), D = from_to(From, sup)
+        ;   From0 == inf -> To cis1 To0*n(M), D = from_to(inf, To)
+        ;   To0 == sup -> From cis1 From0*n(M), D = from_to(From, sup)
         ;   % domain is bounded
             To1 cis1 To0 + n(1),
             First cis1 From0*n(M),
@@ -2057,7 +2057,7 @@ run_propagator(reified_eq(X,Y,B), MState) :-
             ;   nonvar(Y) -> run_propagator(reified_eq(Y,X,B), MState)
             ;   X == Y -> B = 1
             ;   get(X, _, XL, XU, _),
-                get(Y, _, YL, XU, _),
+                get(Y, _, YL, YU, _),
                 (   XL cis_gt YU -> B = 0
                 ;   YL cis_gt XU -> B = 0
                 ;   true
