@@ -2219,7 +2219,9 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 
 attr_unify_hook(clpfd(Dom,Ps), Other) :-
         (   nonvar(Other) ->
-            must_be(integer, Other),
+            (   integer(Other) -> true
+            ;   type_error(integer, Other)
+            ),
             domain_contains(Dom, Other),
             trigger_props(Ps),
             do_queue
