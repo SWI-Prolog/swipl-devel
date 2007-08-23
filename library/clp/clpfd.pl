@@ -871,33 +871,31 @@ indomain(Var) :-
         (   var(Var) ->
             finite_domain(Var),
             get(Var, Dom, _),
-            indomain_(Dom, Var)
+            indomain_(up, Dom, Var)
         ;   must_be(integer, Var)
         ).
 
-indomain_(Var) :-
+indomain_(Order, Var) :-
         (   var(Var) ->
             get(Var, Dom, _),
-            indomain_(Dom, Var)
-%             domain_to_list(Dom, DomLs),
-%             random_permutation(DomLs, DomLs1),
-%             member(Var, DomLs1)
+            indomain_(Order, Dom, Var)
         ;   must_be(integer, Var)
         ).
 
+indomain_(up, Dom, Var)   :- indomain_up(Dom, Var).
+indomain_(down, Dom, Var) :- indomain_down(Dom, Var).
 
-random_permutation([], []) :- !.
-random_permutation(Ls0, Ls) :-
-        length(Ls0, L),
-        I is random(L),
-        nth0(I, Ls0, Elem),
-        delete(Ls0, Elem, Ls1),
-        Ls = [Elem|Rest],
-        random_permutation(Ls1, Rest).
 
-indomain_(from_to(n(From), n(To)), Var) :- between(From, To, Var).
-indomain_(split(_, Left, _), Var)       :- indomain_(Left, Var).
-indomain_(split(_, _, Right), Var)      :- indomain_(Right, Var).
+indomain_up(from_to(n(From), n(To)), Var) :- between(From, To, Var).
+indomain_up(split(_, Left, _), Var)       :- indomain_up(Left, Var).
+indomain_up(split(_, _, Right), Var)      :- indomain_up(Right, Var).
+
+indomain_down(from_to(n(From), n(To)), Var) :-
+        numlist(From, To, Ns0),
+        reverse(Ns0, Ns1),
+        member(Var, Ns1).
+indomain_down(split(_, _, Right), Var) :- indomain_down(Right, Var).
+indomain_down(split(_, Left, _), Var)  :- indomain_down(Left, Var).
 
 %% label(+Vars)
 %
@@ -920,14 +918,15 @@ label(Vs) :- labeling([], Vs).
 % default.
 %
 %   * ff
-% "First fail". Label the variable with smallest domain next, in order
-% to detect infeasibility early. This is often a good strategy.
+% "First fail". Label the leftmost variable with smallest domain next,
+% in order to detect infeasibility early. This is often a good
+% strategy.
 %
 %   * min
-% Label the variable whose lower bound is the lowest next.
+% Label the leftmost variable whose lower bound is the lowest next.
 %
 %   * max
-% Label the variable whose upper bound is the highest next.
+% Label the leftmost variable whose upper bound is the highest next.
 %
 % The second set of options lets you influence the order of solutions:
 %
@@ -951,7 +950,7 @@ labeling(Options, Vars) :-
         is_acyclic_list(Options),
         is_acyclic_list(Vars),
         maplist(finite_domain, Vars),
-        label(Options, leftmost, none, Vars).
+        label(Options, leftmost, up, none, Vars).
 
 finite_domain(Var) :-
         (   var(Var) ->
@@ -965,31 +964,36 @@ finite_domain(Var) :-
         ).
 
 
-label([Option|Options], Selection, Optimisation, Vars) :-
+label([Option|Options], Selection, Order, Optimisation, Vars) :-
         (   var(Option)-> instantiation_error(Option)
         ;   selection(Option) ->
-            label(Options, Option, Optimisation, Vars)
+            label(Options, Option, Order, Optimisation, Vars)
+        ;   order(Option) ->
+            label(Options, Selection, Option, Optimisation, Vars)
         ;   optimization(Option) ->
-            label(Options, Selection, Option, Vars)
+            label(Options, Selection, Order, Option, Vars)
         ;   domain_error(labeling_option, Option)
         ).
-label([], Selection, Optimisation, Vars) :-
+label([], Selection, Order, Optimisation, Vars) :-
         ( Optimisation == none ->
-            label(Vars, Selection)
-        ;   optimize(Vars, Selection, Optimisation)
+            label(Vars, Selection, Order)
+        ;   optimize(Vars, Selection, Order, Optimisation)
         ).
 
 
-label([],_) :- !.
-label(Vars,Selection) :-
+label([], _, _) :- !.
+label(Vars, Selection, Order) :-
         select_var(Selection, Vars, Var, RVars),
-        indomain_(Var),
-        label(RVars,Selection).
+        indomain_(Order, Var),
+        label(RVars, Selection, Order).
 
 selection(ff).
 selection(min).
 selection(max).
 selection(leftmost).
+
+order(up).
+order(down).
 
 optimization(min(_)).
 optimization(max(_)).
@@ -1058,24 +1062,24 @@ delete_eq([X|Xs],Y,List) :-
             delete_eq(Xs,Y,Tail)
         ).
 
-optimize(Vars, Selection, Opt) :-
+optimize(Vars, Selection, Order, Opt) :-
         copy_term(Vars-Opt, Vars1-Opt1),
-        once(label(Vars1, Selection)),
+        once(label(Vars1, Selection, Order)),
         functor(Opt1, Direction, _),
         maplist(arg(1), [Opt,Opt1], [Expr,Expr1]),
-        optimize(Direction, Selection, Vars, Expr1, Expr).
+        optimize(Direction, Selection, Order, Vars, Expr1, Expr).
 
-optimize(Direction, Selection, Vars, Expr0, Expr) :-
+optimize(Direction, Selection, Order, Vars, Expr0, Expr) :-
         Val0 is Expr0,
         copy_term(Vars-Expr, Vars1-Expr1),
         (   Direction == min -> Tighten = (Expr1 #< Val0)
         ;   Tighten = (Expr1 #> Val0) % max
         ),
-        (   Tighten, label(Vars1, Selection) ->
-            optimize(Direction, Selection, Vars, Expr1, Expr)
+        (   Tighten, label(Vars1, Selection, Order) ->
+            optimize(Direction, Selection, Order, Vars, Expr1, Expr)
         ;
-              (   Expr #= Expr0, label(Vars, Selection)
-              ;   Expr #\= Expr0, label(Vars, Selection)
+              (   Expr #= Expr0, label(Vars, Selection, Order)
+              ;   Expr #\= Expr0, label(Vars, Selection, Order)
               )
         ).
 
@@ -1234,12 +1238,12 @@ pop_queue(E) :-
 
 fetch_constraint_(C) :-
         pop_queue(ps(C0,State)),
-        (   State == dead -> fetch_constraint(C)
+        (   State == dead -> fetch_constraint_(C)
         ;   C = C0
         ).
 
-% fetch a cheap constraint
-fetch_constraint(C) :- fetch_constraint_(C).
+% % fetch a cheap constraint
+% fetch_constraint(C) :-
 %         b_getval('$clpfd_queue', H-T),
 %         nonvar(H),
 %         (   cheap_constraint(H, C, Rest) ->
@@ -1574,7 +1578,7 @@ activate_propagator(propagator(P,MState)) :-
         ).
 
 do_queue :-
-        (   fetch_constraint(C) ->
+        (   fetch_constraint_(C) ->
             activate_propagator(C),
             %C = propagator(Prop,_),
             %functor(Prop, FP, _),
@@ -2215,9 +2219,7 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 
 attr_unify_hook(clpfd(Dom,Ps), Other) :-
         (   nonvar(Other) ->
-            (   integer(Other) -> true
-            ;   type_error(integer, Other)
-            ),
+            must_be(integer, Other),
             domain_contains(Dom, Other),
             trigger_props(Ps),
             do_queue
