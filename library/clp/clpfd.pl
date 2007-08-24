@@ -988,6 +988,7 @@ label(Vars, Selection, Order) :-
         label(RVars, Selection, Order).
 
 selection(ff).
+selection(ffc).
 selection(min).
 selection(max).
 selection(leftmost).
@@ -998,50 +999,83 @@ order(down).
 optimization(min(_)).
 optimization(max(_)).
 
-select_var(leftmost,[Var|Vars],Var,Vars).
-select_var(min,[V|Vs],Var,RVars) :-
-        find_min(Vs,V,Var),
-        delete_eq([V|Vs],Var,RVars).
-select_var(max,[V|Vs],Var,RVars) :-
-        find_max(Vs,V,Var),
-        delete_eq([V|Vs],Var,RVars).
-select_var(ff,[V|Vs],Var,RVars) :-
-        find_ff(Vs,V,Var),
-        delete_eq([V|Vs],Var,RVars).
+select_var(leftmost, [Var|Vars], Var, Vars).
+select_var(min, [V|Vs], Var, RVars) :-
+        find_min(Vs, V, Var),
+        delete_eq([V|Vs], Var, RVars).
+select_var(max, [V|Vs], Var, RVars) :-
+        find_max(Vs, V, Var),
+        delete_eq([V|Vs], Var, RVars).
+select_var(ff, [V|Vs], Var, RVars) :-
+        find_ff(Vs, V, Var),
+        delete_eq([V|Vs], Var, RVars).
+select_var(ffc, Vars0, Var, Vars) :-
+        find_ffc(Vars0, Var),
+        delete_eq(Vars0, Var, Vars).
 
-find_min([],Var,Var).
-find_min([V|Vs],CM,Min) :-
-        (   min_lt(V,CM) ->
-            find_min(Vs,V,Min)
-        ;   find_min(Vs,CM,Min)
+find_min([], Var, Var).
+find_min([V|Vs], CM, Min) :-
+        (   min_lt(V, CM) ->
+            find_min(Vs, V, Min)
+        ;   find_min(Vs, CM, Min)
         ).
 
-find_max([],Var,Var).
-find_max([V|Vs],CM,Max) :-
-        (   max_gt(V,CM) ->
-            find_max(Vs,V,Max)
-        ;   find_max(Vs,CM,Max)
+find_max([], Var, Var).
+find_max([V|Vs], CM, Max) :-
+        (   max_gt(V, CM) ->
+            find_max(Vs, V, Max)
+        ;   find_max(Vs, CM, Max)
         ).
 
-find_ff([],Var,Var).
-find_ff([V|Vs],CM,FF) :-
-        (   ff_lt(V,CM) ->
-            find_ff(Vs,V,FF)
-        ;   find_ff(Vs,CM,FF)
+find_ff([], Var, Var).
+find_ff([V|Vs], CM, FF) :-
+        (   ff_lt(V, CM) ->
+            find_ff(Vs, V, FF)
+        ;   find_ff(Vs, CM, FF)
+        ).
+
+find_ffc(Vars0, Var) :-
+        find_ff(Vars0, _, SD),
+        (   var(SD) ->
+            find_ffc(Vars0, SD, Var)
+        ;   Var = SD
+        ).
+
+find_ffc([], Var, Var).
+find_ffc([V|Vs], Prev, FF) :-
+        (   ffc_lt(V, Prev) ->
+            find_ffc(Vs, V, FF)
+        ;   find_ffc(Vs, Prev, FF)
         ).
 
 ff_lt(X, Y) :-
         (   var(X) ->
             get(X, DX, _),
             domain_num_elements(DX, NX)
-        ;   NX = 0 % 1 ?
+        ;   NX = n(1)
         ),
         (   var(Y) ->
             get(Y, DY, _),
             domain_num_elements(DY, NY)
-        ;   NY = 0 % 1 ?
+        ;   NY = n(1)
         ),
         NX cis_lt NY.
+
+ffc_lt(X, Y) :-
+        (   var(X) ->
+            get(X, XD, XPs),
+            domain_num_elements(XD, NXD),
+            length(XPs, NXPs)
+        ;   NXD = n(0), NXPs = n(0)
+        ),
+        (   var(Y) ->
+            get(Y, YD, YPs),
+            domain_num_elements(YD, NYD),
+            length(YPs, NYPs)
+        ;   NYD = n(0), NYPs = n(0)
+        ),
+        NXD == NYD,
+        NXPs > NYPs.
 
 min_lt(X,Y) :- bounds(X,LX,_), bounds(Y,LY,_), LX cis_lt LY.
 
@@ -1052,7 +1086,7 @@ bounds(X, L, U) :-
             get(X, Dom, _),
             domain_infimum(Dom, L),
             domain_supremum(Dom, U)
-        ;   X = L, X = U
+        ;   L = n(X), U = L
         ).
 
 delete_eq([],_,[]).
@@ -1092,8 +1126,8 @@ optimize(Direction, Selection, Order, Vars, Expr0, Expr) :-
 all_different([]).
 all_different([X|Xs]) :- different(Xs, X), all_different(Xs).
 
-different([],_).
-different([Y|Ys],X) :- neq(X,Y), different(Ys,X).
+different([], _).
+different([Y|Ys], X) :- neq(X, Y), different(Ys, X).
 
 %all_different(Ls) :- all_distinct(Ls).
 
@@ -1102,12 +1136,12 @@ different([Y|Ys],X) :- neq(X,Y), different(Ys,X).
 % Constrain the sum of all integer or variables in 'Vars' to the
 % relation 'Op' (for example: #=<) with respect to Expr.
 
-sum(Xs,Op,Value) :- sum1(Xs,0,Op,Value).
+sum(Ls, Op, Value) :- sum(Ls, 0, Op, Value).
 
-sum1([],Sum,Op,Value) :- call(Op,Sum,Value).
-sum1([X|Xs],Acc,Op,Value) :-
+sum([], Sum, Op, Value) :- call(Op, Sum, Value).
+sum([X|Xs], Acc, Op, Value) :-
         NAcc #= Acc + X,
-        sum1(Xs,NAcc,Op,Value).
+        sum(Xs, NAcc, Op, Value).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
