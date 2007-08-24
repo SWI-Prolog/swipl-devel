@@ -257,7 +257,31 @@ set_associated_file :-
 set_associated_file.
 
 
-%	load_associated_file/0
+%%	start_pldoc
+%
+%	If the option  =|--pldoc[=port]|=  is   given,  load  the PldDoc
+%	system.
+
+start_pldoc :-
+	current_prolog_flag(argv, Argv),
+	'$member'(Av, Argv),
+	(   Av == (--)
+	->  !
+	;   atom_concat('--pldoc', Rest, Av)
+	->  (   Rest == ''
+	    ->	call((doc_server(_),
+		      doc_browser))
+	    ;	atom_concat(=, PortAtom, Rest),
+		catch(atom_number(PortAtom, Port), _, fail)
+	    ->	call(doc_server(Port))
+	    ;	print_message(error, option_usage(pldoc)),
+		halt(1)
+	    )
+	).
+start_pldoc.
+
+
+%%	load_associated_file
 %	
 %	Load the file-name set by set_associated_file/0 from the
 %	commandline arguments. Not the expand(false) to avoid expanding
@@ -311,7 +335,8 @@ initialise_prolog :-
 	'$load_gnu_emacs_interface',
 	'$option'(init_file, OsFile, OsFile),
 	prolog_to_os_filename(File, OsFile),
-	'$load_init_file'(File), 
+	'$load_init_file'(File),
+	start_pldoc,
 	'$load_script_file',
 	load_associated_file,
 	'$option'(goal, GoalAtom, GoalAtom), 

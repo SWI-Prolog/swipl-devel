@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: experimental --pldoc[=port] option to start PlDoc before loading
+    an application as in "pl --pldoc -s myprogram.pl"
+
   * ADDED: library(clpfd) by Markus Triska.
 
   * FIXED: silently accept floats with illegal exponent.  Ulrich Neumerkel.

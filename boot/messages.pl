@@ -306,6 +306,8 @@ prolog_message(io_warning(Stream, Message)) -->
 	[ '~p:~d:~d: ~w'-[Obj, LineNo, LinePos, Message] ].
 prolog_message(io_warning(Stream, Message)) -->
 	[ 'stream ~p: ~w'-[Stream, Message] ].
+prolog_message(option_usage(pldoc)) -->
+	[ 'Usage: --pldoc[=port]' ].
 
 
 		 /*******************************
