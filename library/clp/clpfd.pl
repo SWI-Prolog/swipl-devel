@@ -1133,7 +1133,7 @@ different([Y|Ys], X) :- neq(X, Y), different(Ys, X).
 
 %% sum(+Vars, +Op, +Expr)
 %
-% Constrain the sum of all integer or variables in 'Vars' to the
+% Constrain the sum of all integers or variables in 'Vars' to the
 % relation 'Op' (for example: #=<) with respect to Expr.
 
 sum(Ls, Op, Value) :- sum(Ls, 0, Op, Value).
