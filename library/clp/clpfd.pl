@@ -1507,8 +1507,6 @@ is_acyclic_list(Ls) :-
 %
 %  Constrain 'Var' to elements of 'Domain'. 'Domain' is one of:
 %
-%         * I
-%           The integer I.
 %         * Lower..Upper
 %           All integers I such that Lower =< I =< Upper. The atoms
 %           "inf" and "sup" denote negative and positive infinity,
