@@ -1444,7 +1444,7 @@ reify(Expr, B) :-
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   A drep is a user-accesible and visible domain representation. N,
+   A drep is a user-accessible and visible domain representation. N,
    N..M, and D1 \/ D2 are dreps, if D1 and D2 are dreps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
