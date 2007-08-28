@@ -870,8 +870,7 @@ intervals_to_domain(Is, D) :-
 indomain(Var) :-
         (   var(Var) ->
             finite_domain(Var),
-            get(Var, Dom, _),
-            indomain_(up, Dom, Var)
+            indomain_(up, Var)
         ;   must_be(integer, Var)
         ).
 
