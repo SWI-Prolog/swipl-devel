@@ -1251,7 +1251,7 @@ all_in_domain([A|As], [T|Ts]) :-
    constraints, possible triggering new ones, until fixpoint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-% %LIFO queue
+% % LIFO queue
 % make_queue :- nb_setval('$propagator_queue',[]).
 
 % push_queue(E) :-
@@ -1262,7 +1262,7 @@ all_in_domain([A|As], [T|Ts]) :-
 %         b_setval('$propagator_queue',Q).
 
 
-%FIFO queue
+% FIFO queue
 make_queue :- nb_setval('$clpfd_queue', Q-Q).
 push_queue(E) :-
         b_getval('$clpfd_queue', H-[E|T]), b_setval('$clpfd_queue', H-T).
@@ -1274,30 +1274,6 @@ fetch_constraint_(C) :-
         pop_queue(ps(C0,State)),
         (   State == dead -> fetch_constraint_(C)
         ;   C = C0
-        ).
-
-% % fetch a cheap constraint
-% fetch_constraint(C) :-
-%         b_getval('$clpfd_queue', H-T),
-%         nonvar(H),
-%         (   cheap_constraint(H, C, Rest) ->
-%             b_setval('$clpfd_queue', Rest-T)
-%         ;   fetch_constraint_(C)
-%         ).
-
-cheap_constraint(H, C, Rest) :-
-        (   var(H) -> fail
-        ;   H = [Constraint|Cs],
-            Constraint = ps(C0,State),
-            (   State = dead -> cheap_constraint(H, C, Rest)
-            ;   C0 = propagator(Prop,_),
-                functor(Prop, Type, _),
-                %format("~w  ", [Type]),
-                (   Type \== rel_tuple -> C = C0, Rest = Cs
-                ;   Rest = [Constraint|Rest1],
-                    cheap_constraint(Cs, C, Rest1)
-                )
-            )
         ).
 
 :- make_queue.
@@ -1491,10 +1467,9 @@ merge_remaining([N-M|NMs], B0, B, Rest) :-
 
 cyclic_list(L0) :- cyclic_term(L0), cyclic_list(L0, []).
 
-cyclic_list(L0, Seen) :-
-        \+ var(L0),
-        L0 = [_|Tail],
-        (   member(Tail, Seen) -> true ; cyclic_list(Tail, [L0|Seen]) ).
+cyclic_list([_|Tail], Seen) :-
+        \+ var(Tail),
+        (   memberchk(Tail, Seen) -> true ; cyclic_list(Tail, [Tail|Seen]) ).
 
 is_acyclic_list(Ls) :-
         (   cyclic_list(Ls) ->
@@ -1557,30 +1532,30 @@ domains([], _).
 domains([V|Vs], D) :- domain(V, D), domains(Vs, D).
 
 
-get(X, Dom, Exp) :-
-        (   get_attr(X, clpfd, Attr) -> Attr = clpfd(Dom, Exp)
-        ;   var(X) -> default_domain(Dom), Exp = []
+get(X, Dom, Ps) :-
+        (   get_attr(X, clpfd, Attr) -> Attr = clpfd(Dom, Ps)
+        ;   var(X) -> default_domain(Dom), Ps = []
         ).
 
-get(X, Dom, Inf, Sup, Exp) :-
-        get(X, Dom, Exp),
+get(X, Dom, Inf, Sup, Ps) :-
+        get(X, Dom, Ps),
         domain_infimum(Dom, Inf),
         domain_supremum(Dom, Sup).
 
-put(X, Dom, Exp) :-
+put(X, Dom, Ps) :-
         Dom \== empty,
         (   Dom = from_to(F, F) -> F = n(X)
         ;   (   get_attr(X, clpfd, Attr) ->
-                put_attr(X, clpfd, clpfd(Dom, Exp)),
-                Attr = clpfd(OldDom, _OldExp),
+                put_attr(X, clpfd, clpfd(Dom, Ps)),
+                Attr = clpfd(OldDom, _OldPs),
                 %format("putting dom: ~w\n", [Dom]),
                 (   OldDom == Dom -> true
                 ;   domain_intervals(Dom, Is),
                     domain_intervals(OldDom, Is) -> true
-                ;   trigger_props(Exp)
+                ;   trigger_props(Ps)
                 )
             ;   var(X) -> %format('\t~w in ~w .. ~w\n',[X,L,U]),
-                put_attr(X, clpfd, clpfd(Dom, Exp))
+                put_attr(X, clpfd, clpfd(Dom, Ps))
             ;   true
             )
         ).
@@ -1774,8 +1749,8 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             (   nonvar(Y) -> kill(MState), Z is X * Y
             ;   X =:= 0 ->
                 kill(MState),
-                get(Y, YD, YExp),
-                put(Y, YD, YExp), % constrain Y to integers
+                get(Y, YD, YPs),
+                put(Y, YD, YPs), % constrain Y to integers
                 Z = 0
             ;   nonvar(Z) -> kill(MState), 0 =:= Z mod X, Y is Z // X
             ;   get(Y, YD, _),
@@ -1830,7 +1805,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 )
             ;   true
             )
-        ;   get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,YExp), get(Z,ZD,ZL,ZU,_),
+        ;   get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,_), get(Z,ZD,ZL,ZU,_),
             min_divide(ZL,ZU,YL,YU,TXL),
             NXL cis max(XL,ceiling(TXL)),
             max_divide(ZL,ZU,YL,YU,TXU),
@@ -2318,4 +2293,3 @@ test_subdomain(L1, L2) :-
         list_to_domain(L1, D1),
         list_to_domain(L2, D2),
         domain_subdomain(D1, D2).
-
