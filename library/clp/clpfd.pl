@@ -332,7 +332,7 @@ cis_ceiling(sup, sup).
 cis_ceiling(inf, inf).
 cis_ceiling(n(A), n(B)) :- B is ceiling(A).
 
-cis_div(sup, Y, Z) :- ( cis_geq_zero(Y) -> Z = inf ; Z = inf ).
+cis_div(sup, Y, Z) :- ( cis_geq_zero(Y) -> Z = sup ; Z = inf ).
 cis_div(inf, Y, Z) :- ( cis_geq_zero(Y) -> Z = inf ; Z = sup ).
 cis_div(n(X), Y, Z) :- cis_div_(Y, X, Z).
 
