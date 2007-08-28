@@ -878,24 +878,17 @@ indomain(Var) :-
 indomain_(Order, Var) :-
         (   var(Var) ->
             get(Var, Dom, _),
-            indomain_(Order, Dom, Var)
+            order_dom_next(Order, Dom, Next),
+            (   Var = Next
+            ;   Var #\= Next,
+                indomain_(Order, Var)
+            )
         ;   must_be(integer, Var)
         ).
 
-indomain_(up, Dom, Var)   :- indomain_up(Dom, Var).
-indomain_(down, Dom, Var) :- indomain_down(Dom, Var).
+order_dom_next(up, Dom, Next)   :- domain_infimum(Dom, n(Next)).
+order_dom_next(down, Dom, Next) :- domain_supremum(Dom, n(Next)).
 
-
-indomain_up(from_to(n(From), n(To)), Var) :- between(From, To, Var).
-indomain_up(split(_, Left, _), Var)       :- indomain_up(Left, Var).
-indomain_up(split(_, _, Right), Var)      :- indomain_up(Right, Var).
-
-indomain_down(from_to(n(From), n(To)), Var) :-
-        numlist(From, To, Ns0),
-        reverse(Ns0, Ns1),
-        member(Var, Ns1).
-indomain_down(split(_, _, Right), Var) :- indomain_down(Right, Var).
-indomain_down(split(_, Left, _), Var)  :- indomain_down(Left, Var).
 
 %% label(+Vars)
 %
