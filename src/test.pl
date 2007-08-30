@@ -146,7 +146,11 @@ syntax(number-2) :-
 syntax(zero-1) :-
 	term_to_atom(T, 'hello(\000\"\000\x")'),
 	T == hello([0, 120]).
-
+syntax(latin-1) :-
+	atom_codes(A, [247]),
+	atom_to_term(A, T, []),
+	atom_codes(T, [247]).
+	
 
 		 /*******************************
 		 *	       WRITE		*

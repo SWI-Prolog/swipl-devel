@@ -7,6 +7,12 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: The symbols in the range 128..255 are now considered SOLO
+    characters, compatible to the documentation.   Ulrich Neumerkel.
+
+  * FIXED: Various issues read dealing with Unicode and backquoted
+    strings.   Ulrich Neumerkel.
+
   * ADDED: experimental --pldoc[=port] option to start PlDoc before loading
     an application as in "pl --pldoc -s myprogram.pl"
 

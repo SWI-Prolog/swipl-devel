@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -714,12 +714,12 @@ char _PL_char_types[] = {
    CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, 
 			  /* 160-255 (G1 graphics) */
 			  /* ISO Latin 1 is assumed */
-   SP, SY, SY, SY, SY, SY, SY, SY, SY, SY, LC, SY, SY, SY, SY, SY,
-   SY, SY, SY, SY, SY, SY, SY, SY, SY, SY, LC, SY, SY, SY, SY, SY,   
+   SP, SO, SO, SO, SO, SO, SO, SO, SO, SO, LC, SO, SO, SO, SO, SO,
+   SO, SO, SO, SO, SO, SO, SO, SO, SO, SO, LC, SO, SO, SO, SO, SO,   
    UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC,
-   UC, UC, UC, UC, UC, UC, UC, SY, UC, UC, UC, UC, UC, UC, UC, LC,
+   UC, UC, UC, UC, UC, UC, UC, SO, UC, UC, UC, UC, UC, UC, UC, LC,
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
-   LC, LC, LC, LC, LC, LC, LC, SY, LC, LC, LC, LC, LC, LC, LC, LC
+   LC, LC, LC, LC, LC, LC, LC, SO, LC, LC, LC, LC, LC, LC, LC, LC
 };
 
 

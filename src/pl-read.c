@@ -812,8 +812,9 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		} else
 		{ set_start_line;
 		  addToBuffer('/', _PL_rd);
-		  if ( isSymbol(c) )
-		  { while( c != EOF && isSymbol(c) )
+		  if ( isSymbolW(c) )
+		  { while( c != EOF && isSymbolW(c) &&
+			   !(c == '`' && _PL_rd->backquoted_string) )
 		    { addToBuffer(c, _PL_rd);
 		      c = getchr();
 		    }
@@ -894,8 +895,9 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		set_start_line;
 		dotseen++;
 		c = getchr();
-		if ( isSymbol(c) )
-		{ while( c != EOF && isSymbol(c) )
+		if ( isSymbolW(c) )
+		{ while( c != EOF && isSymbolW(c) &&
+			 !(c == '`' && _PL_rd->backquoted_string) )
 		  { addToBuffer(c, _PL_rd);
 		    c = getchr();
 		  }
@@ -1218,6 +1220,24 @@ SkipIdCont(unsigned char *in)
   { s = (unsigned char*)utf8_get_char((char*)in, &chr);
 
     if ( !PlIdContW(chr) )
+      return in;
+  }  
+
+  return in;
+}
+
+
+static unsigned char *
+SkipSymbol(unsigned char *in, ReadData _PL_rd)
+{ int chr;
+  unsigned char *s;
+
+  for( ; *in; in=s)
+  { s = (unsigned char*)utf8_get_char((char*)in, &chr);
+
+    if ( !isSymbolW(chr) )
+      return in;
+    if ( chr == '`' && _PL_rd->backquoted_string )
       return in;
   }  
 
@@ -1733,7 +1753,6 @@ static Token
 get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 { int c;
   unsigned char *start;
-  int end;
 
   if ( unget )
   { unget = FALSE;
@@ -1760,6 +1779,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		{ PL_chars_t txt;
 
 		  rdhere = SkipIdCont(rdhere);
+		symbol:
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "atom");
 		  
@@ -1827,35 +1847,20 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     case SY:	if ( c == '`' && _PL_rd->backquoted_string )
 		  goto case_bq;
 
-                { start = rdhere - 1;
-		  while( isSymbol(*rdhere) &&
-			 !(*rdhere == '`' && _PL_rd->backquoted_string) )
-		    rdhere++;
-		  end = *rdhere;
-
-		  if ( rdhere == start+1 )
-		  { if ( (c == '+' || c == '-') &&	/* +- number */
-			 !must_be_op &&
-			 isDigit(*rdhere) )
-		    { goto case_digit;
-		    }
-		    if ( c == '.' && isBlank(*rdhere) )	/* .<blank> */
-		    { cur_token.type = T_FULLSTOP;
-		      break;
-		    }
+    	        rdhere = SkipSymbol(rdhere, _PL_rd);
+		if ( rdhere == start+1 )
+		{ if ( (c == '+' || c == '-') &&	/* +- number */
+		       !must_be_op &&
+		       isDigit(*rdhere) )
+		  { goto case_digit;
 		  }
-
-		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
-		    checkASCII(start, rdhere-start, "symbol");
-		  cur_token.value.atom = lookupAtom((char *)start, rdhere-start);
-		  NeedUnlock(cur_token.value.atom);
-		  cur_token.type = (end == '(' ? T_FUNCTOR : T_NAME);
-		  DEBUG(9, Sdprintf("%s: %s\n",
-				    end == '(' ? "FUNC" : "NAME",
-				    stringAtom(cur_token.value.atom)));
-
-		  break;
+		  if ( c == '.' && isBlank(*rdhere) )	/* .<blank> */
+		  { cur_token.type = T_FULLSTOP;
+		    break;
+		  }
 		}
+
+		goto symbol;
     case PU:	{ switch(c)
 		  { case '{':
 		    case '[':

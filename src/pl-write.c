@@ -106,6 +106,10 @@ varName(term_t t, char *name)
 #define AT_SOLO		4
 #define AT_SPECIAL	5
 
+/* Note: this only deals with ISO Latin-1 atoms; wide atoms are handled
+   by writeUCSAtom()
+*/
+
 static int
 atomType(atom_t a, IOSTREAM *fd)
 { Atom atom = atomValue(a);
