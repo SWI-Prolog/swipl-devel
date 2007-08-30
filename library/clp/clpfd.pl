@@ -1481,7 +1481,7 @@ cyclic_list([_|Tail], Seen) :-
 is_acyclic_list(Ls) :-
         (   cyclic_list(Ls) ->
             domain_error(acyclic_list, Ls)
-        ;   must_be(list, Ls)
+        ;   must_be(proper_list, Ls)
         ).
 
 %% +Var in +Domain
