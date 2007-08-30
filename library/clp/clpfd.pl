@@ -1399,8 +1399,7 @@ myimpl(X, Y) :-
 
 reify(Expr, B) :-
         B in 0..1,
-        (   var(Expr) ->
-            B = Expr
+        (   var(Expr) -> B = Expr
         ;   integer(Expr) -> B = Expr
         ;   Expr = (L #>= R) ->
             parse_clpfd(L, LR), parse_clpfd(R, RR),
@@ -1420,6 +1419,12 @@ reify(Expr, B) :-
         ;   Expr = (L #\= R) ->
             parse_clpfd(L, LR), parse_clpfd(R, RR),
             Prop = propagator(reified_neq(LR,RR,B), mutable(passive)),
+            init_propagator(LR, Prop), init_propagator(RR, Prop),
+            init_propagator(B, Prop),
+            trigger_prop(Prop)
+        ;   Expr = (L #/\ R) ->
+            reify(L, LR), reify(R, RR),
+            Prop = propagator(reified_and(LR,RR,B), mutable(passive)),
             init_propagator(LR, Prop), init_propagator(RR, Prop),
             init_propagator(B, Prop),
             trigger_prop(Prop)
@@ -2108,6 +2113,23 @@ run_propagator(reified_neq(X,Y,B), MState) :-
         ;   B =:= 1 -> X #\= Y
         ;   B =:= 0 -> X = Y
         ).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+run_propagator(reified_and(X,Y,B), MState) :-
+        (   var(B) ->
+            (   nonvar(X) ->
+                (   X =:= 0 -> B = 0
+                ;   X =:= 1 -> B = Y
+                )
+            ;   nonvar(Y) -> run_propagator(reified_and(Y,X,B), MState)
+            ;   true
+            )
+        ;   B =:= 0 ->
+            (   X == 1 -> Y = 0
+            ;   Y == 1 -> X = 0
+            ;   true
+            )
+        ;   B =:= 1 -> X = 1, Y = 1
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(pimpl(X, Y), MState) :-
@@ -2126,11 +2148,11 @@ run_propagator(pimpl(X, Y), MState) :-
 
 run_propagator(por(X, Y, Z), MState) :-
         (   nonvar(X) ->
-            (   X =:= 0 -> Y in 0..1, Y = Z
-            ;   X =:= 1 -> Y in 0..1, Z = 1
+            (   X =:= 0 -> Y = Z
+            ;   X =:= 1 -> Z = 1
             )
         ;   nonvar(Y) -> run_propagator(por(Y,X,Z), MState)
-        ;   [X,Y,Z] ins 0..1
+        ;   true
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
