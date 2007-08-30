@@ -2179,6 +2179,7 @@ min_divide(L1,U1,L2,U2,Min) :-
 
 %all_distinct(Ls) :- all_different(Ls).
 all_distinct(Ls) :-
+        length(Ls, _),
         MState = mutable(passive),
         all_distinct(Ls, [], MState),
         do_queue.
