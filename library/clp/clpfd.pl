@@ -1274,10 +1274,7 @@ fetch_constraint_(C) :-
 :- make_queue.
 
 parse_clpfd(Expr, Result) :-
-        (   var(Expr) ->
-            get(Expr, Dom, Es),
-            put(Expr, Dom, Es), % constrain Expr to integers
-            Result = Expr
+        (   var(Expr) -> Result = Expr
         ;   integer(Expr) -> Result = Expr
         ;   Expr = (L + R) ->
             parse_clpfd(L, RL), parse_clpfd(R, RR),
@@ -1425,6 +1422,12 @@ reify(Expr, B) :-
         ;   Expr = (L #/\ R) ->
             reify(L, LR), reify(R, RR),
             Prop = propagator(reified_and(LR,RR,B), mutable(passive)),
+            init_propagator(LR, Prop), init_propagator(RR, Prop),
+            init_propagator(B, Prop),
+            trigger_prop(Prop)
+        ;   Expr = (L #\/ R) ->
+            reify(L, LR), reify(R, RR),
+            Prop = propagator(reified_or(LR,RR,B), mutable(passive)),
             init_propagator(LR, Prop), init_propagator(RR, Prop),
             init_propagator(B, Prop),
             trigger_prop(Prop)
@@ -1758,11 +1761,7 @@ run_propagator(pplus(X,Y,Z), MState) :-
 run_propagator(ptimes(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Z is X * Y
-            ;   X =:= 0 ->
-                kill(MState),
-                get(Y, YD, YPs),
-                put(Y, YD, YPs), % constrain Y to integers
-                Z = 0
+            ;   X =:= 0 -> kill(MState), Z = 0
             ;   nonvar(Z) -> kill(MState), 0 =:= Z mod X, Y is Z // X
             ;   get(Y, YD, _),
                 get(Z, ZD, ZPs),
@@ -2124,11 +2123,30 @@ run_propagator(reified_and(X,Y,B), MState) :-
             ;   true
             )
         ;   B =:= 0 ->
-            (   X == 1 -> Y = 0
-            ;   Y == 1 -> X = 0
+            (   X == 1 -> kill(MState), Y = 0
+            ;   Y == 1 -> kill(MState), X = 0
             ;   true
             )
-        ;   B =:= 1 -> X = 1, Y = 1
+        ;   B =:= 1 -> kill(MState), X = 1, Y = 1
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+run_propagator(reified_or(X,Y,B), MState) :-
+        (   var(B) ->
+            (   nonvar(X) ->
+                (   X =:= 1 -> B = 1
+                ;   X =:= 0 -> B = Y
+                )
+            ;   nonvar(Y) -> run_propagator(reified_or(Y,X,B), MState)
+            ;   true
+            )
+        ;   B =:= 0 -> kill(MState), X = 0, Y = 0
+        ;   B =:= 1 ->
+            (   X == 0 -> Y = 1
+            ;   Y == 0 -> X = 1
+            ;   true
+            )
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
