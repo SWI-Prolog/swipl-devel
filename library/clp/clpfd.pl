@@ -1116,7 +1116,10 @@ optimize(Direction, Selection, Order, Vars, Expr0, Expr) :-
 % Constrain 'Vars' to be pairwise distinct.
 
 all_different([]).
-all_different([X|Xs]) :- different(Xs, X), all_different(Xs).
+all_different([X|Xs]) :-
+        X in inf..sup,
+        different(Xs, X),
+        all_different(Xs).
 
 different([], _).
 different([Y|Ys], X) :- neq(X, Y), different(Ys, X).
@@ -1366,7 +1369,13 @@ mymin(X, Y, Z) :-
 X #>= Y :- parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY).
 X #=< Y :- parse_clpfd(X,RX), parse_clpfd(Y,RY), leq(RX,RY).
 X #= Y  :- parse_clpfd(X,RX), parse_clpfd(Y,RX).
-X #\= Y :- parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY).
+X #\= Y :-
+        (   var(X), integer(Y) ->
+            get(X, XD, XPs),
+            domain_remove(XD, Y, XD1),
+            put(X, XD1, XPs)
+        ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
+        ).
 X #> Y  :- Z #= Y + 1, X #>= Z.
 X #< Y  :- Y #> X.
 
@@ -1405,6 +1414,12 @@ reify(Expr, B) :-
         ;   Expr = (L #= R)  ->
             parse_clpfd(L, LR), parse_clpfd(R, RR),
             Prop = propagator(reified_eq(LR,RR,B), mutable(passive)),
+            init_propagator(LR, Prop), init_propagator(RR, Prop),
+            init_propagator(B, Prop),
+            trigger_prop(Prop)
+        ;   Expr = (L #\= R) ->
+            parse_clpfd(L, LR), parse_clpfd(R, RR),
+            Prop = propagator(reified_neq(LR,RR,B), mutable(passive)),
             init_propagator(LR, Prop), init_propagator(RR, Prop),
             init_propagator(B, Prop),
             trigger_prop(Prop)
@@ -2069,6 +2084,31 @@ run_propagator(reified_eq(X,Y,B), MState) :-
         ;   B =:= 1 -> X = Y
         ;   B =:= 0 -> X #\= Y
         ).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+run_propagator(reified_neq(X,Y,B), MState) :-
+        (   var(B) ->
+            (   nonvar(X) ->
+                (   nonvar(Y) ->
+                    kill(MState),
+                    (   X =\= Y -> B = 1 ; B = 0)
+                ;   get(Y, _, YL, YU, _),
+                    (   YL cis_gt n(X) -> B = 1
+                    ;   YU cis_lt n(X) -> B = 0
+                    ;   true
+                    )
+                )
+            ;   nonvar(Y) -> run_propagator(reified_neq(Y,X,B), MState)
+            ;   X == Y -> B = 0
+            ;   get(X, _, XL, XU, _),
+                get(Y, _, YL, YU, _),
+                (   XL cis_gt YU -> B = 1
+                ;   YL cis_gt XU -> B = 1
+                ;   true
+                )
+            )
+        ;   B =:= 1 -> X #\= Y
+        ;   B =:= 0 -> X = Y
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(pimpl(X, Y), MState) :-
@@ -2124,6 +2164,7 @@ all_distinct(Ls) :-
 
 all_distinct([], _, _).
 all_distinct([X|Right], Left, MState) :-
+        X in inf..sup,
         \+ list_contains(Right, X),
         (   var(X) ->
             Prop = propagator(pdistinct(Left,Right,X), mutable(passive)),
