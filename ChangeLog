@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Properly handle occurs_check flag in unifiable/3.  Ulrich Neumerkel.
+
   * MODIFIED: The symbols in the range 128..255 are now considered SOLO
     characters, compatible to the documentation.   Ulrich Neumerkel.
 

@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -62,6 +62,8 @@ test(unify, fail) :-
 	X = f(X).
 test(unify, fail) :-
 	unify(X, f(X)).
+test(unifiable, fail) :-
+	unifiable(X, f(X), _).
 
 :- end_tests(occurs_check_fail).
 
@@ -76,6 +78,8 @@ test(unify, error(occurs_check(X, f(X)))) :-
 	X = f(X).
 test(unify, error(occurs_check(X, f(X)))) :-
 	unify(X, f(X)).
+test(unifiable, error(occurs_check(X, f(X)))) :-
+	unifiable(X, f(X), _).
 
 :- end_tests(occurs_check_error).
 

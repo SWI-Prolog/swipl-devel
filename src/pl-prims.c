@@ -2049,6 +2049,31 @@ the trouble. Note that unifying attributed   variables  is no problem as
 these always live on the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+unifiable_occurs_check(term_t t1, term_t t2 ARG_LD)
+{ switch(LD->feature.occurs_check)
+  { case OCCURS_CHECK_FALSE:
+      return TRUE;
+    case OCCURS_CHECK_TRUE:
+    case OCCURS_CHECK_ERROR:
+    { Word p1 = valTermRef(t1);
+      Word p2 = valTermRef(t2);
+
+      deRef(p1);
+      if ( !var_occurs_in(p1, p2) )
+	return TRUE;
+
+      return failed_unify_with_occurs_check(p1, p2,
+					    LD->feature.occurs_check
+					    PASS_LD);
+    }
+    default:
+      assert(0);
+      fail;
+  }
+}
+
+
 static intptr_t
 unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 { fid_t fid;
@@ -2056,17 +2081,24 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 
   if ( PL_is_variable(t1) )
   { if ( PL_compare(t1, t2) == 0 )
-      return PL_unify_atom(subst, ATOM_nil);
-    else
+    { return PL_unify_atom(subst, ATOM_nil);
+    } else
+    { if ( !unifiable_occurs_check(t1, t2 PASS_LD) )
+	fail;
+
       return PL_unify_term(subst,
 			   PL_FUNCTOR, FUNCTOR_dot2,
 			     PL_FUNCTOR, FUNCTOR_equals2,
 			       PL_TERM, t1,
 			       PL_TERM, t2,
 			     PL_ATOM, ATOM_nil);
+    }
   }
   if ( PL_is_variable(t2) )
-  { return PL_unify_term(subst,
+  { if ( !unifiable_occurs_check(t2, t1 PASS_LD) )
+      fail;
+
+    return PL_unify_term(subst,
 			 PL_FUNCTOR, FUNCTOR_dot2,
 			   PL_FUNCTOR, FUNCTOR_equals2,
 			     PL_TERM, t2,
