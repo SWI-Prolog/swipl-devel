@@ -2059,7 +2059,7 @@ run_propagator(reified_geq(X,Y,B), MState) :-
                 )
             )
         ;   B =:= 1 -> kill(MState), X #>= Y
-        ;   B == 0 -> kill(MState), X #< Y
+        ;   B =:= 0 -> kill(MState), X #< Y
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2096,7 +2096,7 @@ run_propagator(reified_neq(X,Y,B), MState) :-
                     (   X =\= Y -> B = 1 ; B = 0)
                 ;   get(Y, _, YL, YU, _),
                     (   YL cis_gt n(X) -> B = 1
-                    ;   YU cis_lt n(X) -> B = 0
+                    ;   YU cis_lt n(X) -> B = 1
                     ;   true
                     )
                 )
