@@ -1117,7 +1117,8 @@ optimize(Direction, Selection, Order, Vars, Expr0, Expr) :-
 
 all_different([]).
 all_different([X|Xs]) :-
-        X in inf..sup,
+        get(X, XD, XPs),
+        put(X, XD, XPs), % constrain to integers
         different(Xs, X),
         all_different(Xs).
 
@@ -2207,7 +2208,8 @@ all_distinct(Ls) :-
 
 all_distinct([], _, _).
 all_distinct([X|Right], Left, MState) :-
-        X in inf..sup,
+        get(X, XD, XPs),
+        put(X, XD, XPs), % constrain to integers
         \+ list_contains(Right, X),
         (   var(X) ->
             Prop = propagator(pdistinct(Left,Right,X), mutable(passive)),
