@@ -1274,7 +1274,10 @@ fetch_constraint_(C) :-
 :- make_queue.
 
 parse_clpfd(Expr, Result) :-
-        (   var(Expr) -> Result = Expr
+        (   var(Expr) ->
+            get(Expr, ED, EPs),
+            put(Expr, ED, EPs), % constrain to integers
+            Result = Expr
         ;   integer(Expr) -> Result = Expr
         ;   Expr = (L + R) ->
             parse_clpfd(L, RL), parse_clpfd(R, RR),
