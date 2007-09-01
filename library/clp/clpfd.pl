@@ -75,6 +75,7 @@
                   op(730, yfx, (#\)),
                   op(720, yfx, (#/\)),
                   op(710,  fy, (#\)),
+                  op(710,  fy, (#\)),
                   op(700, xfx, (#>)),
                   op(700, xfx, (#<)),
                   op(700, xfx, (#>=)),
@@ -90,6 +91,7 @@
                   (#=<)/2,
                   (#=)/2,
                   (#\=)/2,
+                  (#\)/1,
                   (#<==>)/2,
                   (#==>)/2,
                   (#<==)/2,
@@ -180,6 +182,8 @@ _reified_, which means reflecting their truth values into Boolean
 variables. Let P and Q denote conjunctions ((#/\)/2) or disjunctions
 ((#\/)/2) of reifiable constraints or Boolean variables, then:
 
+    * #\ Q
+    True iff Q is false.
     * P #<==> Q
     True iff P and Q are equivalent.
     * P #==> Q
@@ -1380,9 +1384,10 @@ X #\= Y :-
 X #> Y  :- Z #= Y + 1, X #>= Z.
 X #< Y  :- Y #> X.
 
+#\ Q       :- reify(Q, 0), do_queue.
 L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 L #==> R   :- reify(L, BL), reify(R, BR), myimpl(BL, BR), do_queue.
-L #<== R   :- reify(L, BL), reify(R, BR), myimpl(BL, BR), do_queue.
+L #<== R   :- reify(L, BL), reify(R, BR), myimpl(BR, BL), do_queue.
 L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 L #\/ R    :- reify(L, BL), reify(R, BR), myor(BL, BR, 1), do_queue.
 
@@ -1435,6 +1440,12 @@ reify(Expr, B) :-
             init_propagator(LR, Prop), init_propagator(RR, Prop),
             init_propagator(B, Prop),
             trigger_prop(Prop)
+        ;   Expr = (#\ Q) ->
+            reify(Q, QR),
+            Prop = propagator(reified_not(QR,B), mutable(passive)),
+            init_propagator(QR, Prop), init_propagator(B, Prop),
+            trigger_prop(Prop)
+        ;   type_error(integer, Expr)
         ).
 
 
@@ -2135,7 +2146,6 @@ run_propagator(reified_and(X,Y,B), MState) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 run_propagator(reified_or(X,Y,B), MState) :-
         (   var(B) ->
             (   nonvar(X) ->
@@ -2151,6 +2161,15 @@ run_propagator(reified_or(X,Y,B), MState) :-
             ;   Y == 0 -> X = 1
             ;   true
             )
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+run_propagator(reified_not(X,Y), MState) :-
+        (   X == 0 -> kill(MState), Y = 1
+        ;   X == 1 -> kill(MState), Y = 0
+        ;   Y == 0 -> kill(MState), X = 1
+        ;   Y == 1 -> kill(MState), X = 0
+        ;   true
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
