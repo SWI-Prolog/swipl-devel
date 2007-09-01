@@ -111,6 +111,7 @@
 
 
 :- use_module(library(error)).
+:- use_module(library(gensym)).
 
 :- op(700, xfx, cis).
 :- op(700, xfx, cis1).
@@ -1121,8 +1122,11 @@ optimize(Direction, Selection, Order, Vars, Expr0, Expr) :-
 
 all_different([]).
 all_different([X|Xs]) :-
-        get(X, XD, XPs),
-        put(X, XD, XPs), % constrain to integers
+        (   var(X) ->
+            get(X, XD, XPs),
+            put(X, XD, XPs)  % constrain to integers
+        ;   true
+        ),
         different(Xs, X),
         all_different(Xs).
 
@@ -1169,7 +1173,6 @@ lex_le([V1|V1s], [V2|V2s]) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- initialization(nb_setval('$clpfd_tuples_counter', 0)).
 
 tuples_in(Tuples, Relation) :-
         ground(Relation),
@@ -1204,10 +1207,7 @@ take_firsts([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
         take_firsts(Rest, Fs, Oss).
 
 tuple_freeze(Tuple, Relation) :-
-        nb_getval('$clpfd_tuples_counter', Count0),
-        Count is Count0 + 1,
-        nb_setval('$clpfd_tuples_counter', Count),
-        atom_concat('$clpfd_rel_', Count0, RID),
+        gensym('$clpfd_rel_', RID),
         nb_setval(RID, Relation),
         Prop = propagator(rel_tuple(RID,Tuple), mutable(passive)),
         tuple_freeze(Tuple, Tuple, Prop).
@@ -2227,8 +2227,6 @@ all_distinct(Ls) :-
 
 all_distinct([], _, _).
 all_distinct([X|Right], Left, MState) :-
-        get(X, XD, XPs),
-        put(X, XD, XPs), % constrain to integers
         \+ list_contains(Right, X),
         (   var(X) ->
             Prop = propagator(pdistinct(Left,Right,X), mutable(passive)),
