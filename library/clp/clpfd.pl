@@ -1378,7 +1378,8 @@ X #\= Y :-
         (   var(X), integer(Y) ->
             get(X, XD, XPs),
             domain_remove(XD, Y, XD1),
-            put(X, XD1, XPs)
+            put(X, XD1, XPs),
+            do_queue
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
         ).
 X #> Y  :- Z #= Y + 1, X #>= Z.
