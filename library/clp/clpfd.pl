@@ -1120,20 +1120,21 @@ optimize(Direction, Selection, Order, Vars, Expr0, Expr) :-
 %
 % Constrain 'Vars' to be pairwise distinct.
 
-all_different([]).
-all_different([X|Xs]) :-
+all_different(Ls) :-
+        length(Ls, _),
+        all_different(Ls, []),
+        do_queue.
+
+all_different([], _).
+all_different([X|Right], Left) :-
+        \+ list_contains(Right, X),
         (   var(X) ->
-            get(X, XD, XPs),
-            put(X, XD, XPs)  % constrain to integers
-        ;   true
+            Prop = propagator(pdifferent(Left,Right,X), mutable(passive)),
+            init_propagator(X, Prop),
+            trigger_prop(Prop)
+        ;   exclude_fire(Left, Right, X)
         ),
-        different(Xs, X),
-        all_different(Xs).
-
-different([], _).
-different([Y|Ys], X) :- neq(X, Y), different(Ys, X).
-
-%all_different(Ls) :- all_distinct(Ls).
+        all_different(Right, [X|Left]).
 
 %% sum(+Vars, +Op, +Expr)
 %
@@ -1630,12 +1631,17 @@ init_propagator(Var, Prop) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+run_propagator(pdifferent(Left,Right,X), _MState) :-
+        (   ground(X) -> exclude_fire(Left, Right, X)
+        ;   true
+        ).
+
 run_propagator(pdistinct(Left,Right,X), _MState) :-
         (   ground(X) -> exclude_fire(Left, Right, X)
-        ;   %outof_reducer(Left, Right, X),
+        ;   %outof_reducer(Left, Right, X)
             %(   var(X) -> kill_if_isolated(Left, Right, X, MState)
             %;   true
-            %)
+            %),
             true
         ).
 
