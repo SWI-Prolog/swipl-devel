@@ -2337,6 +2337,7 @@ attr_unify_hook(clpfd(Dom,Ps), Other) :-
             domains_intersection(Dom, OD, Dom1),
             append(Ps, OPs, Ps1),
             put(Other, Dom1, Ps1),
+            trigger_props(Ps1),
             do_queue
         ).
 
