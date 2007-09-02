@@ -1127,7 +1127,6 @@ all_different(Ls) :-
 
 all_different([], _).
 all_different([X|Right], Left) :-
-        \+ list_contains(Right, X),
         (   var(X) ->
             Prop = propagator(pdifferent(Left,Right,X), mutable(passive)),
             init_propagator(X, Prop),
