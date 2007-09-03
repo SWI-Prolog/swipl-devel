@@ -522,13 +522,19 @@ prolog_message(query(no)) -->
 	[ nl, 'No' ].
 prolog_message(query(yes)) -->
 	[ nl, 'Yes' ].
-prolog_message(query(yes, [])) -->
-	[ 'More? ', flush ].
-prolog_message(query(yes, Bindings)) -->
+prolog_message(query(Yes, Bindings)) -->
 	bindings(Bindings),
-	[ ' ', flush ].
+	prompt(Yes, Bindings).
 prolog_message(query(eof)) -->
 	[ nl ].
+
+prompt(yes, []) --> !,
+	[ nl, 'Yes' ].
+prompt(yes, _) --> !.
+prompt(more, []) --> !,
+	[ 'More? ', flush ].
+prompt(more, _) --> !,
+	[ ' ', flush ].
 
 bindings([]) -->
 	[].

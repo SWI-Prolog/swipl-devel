@@ -329,6 +329,7 @@ initialise_prolog :-
 	'$set_file_search_paths',
 	once(print_predicate(_, [print], PrintOptions)),
 	set_prolog_flag(toplevel_print_options, PrintOptions),
+	set_prolog_flag(prompt_alternatives_on, determinism),
 	'$set_debugger_print_options'(print),
 	'$run_at_initialization',
 	'$load_system_init_file',
@@ -577,27 +578,27 @@ subst_chars([H|T]) -->
 	print_message(query, query(no)),
 	fail.
 
-%	write_bindings(+Bindings, +Deterministic)
+%%	write_bindings(+Bindings, +Deterministic)
 %	
-%	Write    bindings    resulting     from      a     query.     If
-%	prompt_alternatives_no_bindings  is  true  we  also  prompt  for
-%	alternatives  if  the  query  makes  no  bindings  but  succeeds
-%	non-deterministically, so the user can   prompt  for alternative
-%	side-effects.
+%	Write   bindings   resulting   from   a     query.    The   flag
+%	prompt_alternatives_on determines whether the   user is prompted
+%	for alternatives. =groundness= gives   the  classical behaviour,
+%	=determinism= is considered more adequate and informative.
 
 write_bindings(Bindings0, Det) :-
 	bind_vars(Bindings0),
 	filter_bindings(Bindings0, Bindings),
 	write_bindings2(Bindings, Det).
 
-write_bindings2([], Det) :-
-	(   Det == true
-	;   \+ current_prolog_flag(prompt_alternatives_no_bindings, true)
-	), !,
+write_bindings2([], _) :-
+	current_prolog_flag(prompt_alternatives_on, groundness), !,
 	print_message(query, query(yes)).
+write_bindings2(Bindings, true) :-
+	current_prolog_flag(prompt_alternatives_on, determinism), !,
+	print_message(query, query(yes, Bindings)).
 write_bindings2(Bindings, _Det) :-
 	repeat,
-	    print_message(query, query(yes, Bindings)),
+	    print_message(query, query(more, Bindings)),
 	    get_respons(Action),
 	(   Action == redo
 	->  !, fail
@@ -660,7 +661,7 @@ answer_respons(Char, redo) :-
 	trace,
 	print_message(query, if_tty('; [trace]')).
 answer_respons(Char, continue) :-
-	memberchk(Char, [0'c, 0'a, 0' , 10, 13, 0'y, 0'Y]), !.
+	memberchk(Char, "ca \n\ryY"), !.
 answer_respons(0'b, show_again) :- !,
 	break.
 answer_respons(Char, show_again) :-

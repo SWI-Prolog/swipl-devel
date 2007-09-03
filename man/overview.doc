@@ -1246,19 +1246,13 @@ If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
 Can be changed to disable the use of pipes in applications testing this
 feature.  Not recommended.
 
-    \prologflagitem{prompt_alternatives_no_bindings}{bool}{rw}
-If present and true, the top-level prints for alternatives if the query
-succeeded with pending choice-point, regardless of whether or not the
-query has variables. As there are no variables to bind it prints
-the answer \textit{More?}.  Here is an example
-
-\begin{code}
-?- set_prolog_flag(prompt_alternatives_no_bindings, true).
-?- (write(hello);write(world)).
-hello
-More? ;
-world
-\end{code}
+    \prologflagitem{prompt_alternatives_on}{atom}{rw}
+\index{prompt, alternatives}%
+Determines prompting for alternatives in the Prolog toplevel. Default is
+\const{determinism}, which implies the system prompts for alternatives
+if the goal succeeded while leaving choicepoints.  Many classical Prolog
+systems behave as \const{groundness}: they prompt for alternatives if
+and only if the query contains variables.
 
     \prologflagitem{readline}{bool}{r}
 If true, SWI-Prolog is linked with the readline library.  This is done

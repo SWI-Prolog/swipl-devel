@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Replaced prompt_alternatives_no_bindings flag with
+    prompt_alternatives_on with the values groundness and determinism. 
+    Default is determinism.  After discussions on mailinglist,
+    comp.lang.prolog and direct by mail.
+
   * FIXED: Properly handle occurs_check flag in unifiable/3.  Ulrich Neumerkel.
 
   * MODIFIED: The symbols in the range 128..255 are now considered SOLO

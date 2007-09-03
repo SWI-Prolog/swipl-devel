@@ -868,10 +868,15 @@ so called ``standard order''. This order is defined as follows:
     \infixop{==}{+Term1}{+Term2}
 True if \arg{Term1} is equivalent to \arg{Term2}. A variable is only
 identical to a sharing variable.
+
     \infixop{\==}{+Term1}{+Term2}
 Equivalent to \exam{\Snot Term1 == Term2}.
+
     \infixop{=}{+Term1}{+Term2}
 Unify \arg{Term1} with \arg{Term2}. True if the unification succeeds.
+For behaviour on cyclic terms see the Prolog flag
+\prologflag{occurs_check}.
+
     \predicate{unify_with_occurs_check}{2}{+Term1, +Term2}
 As \predref{=}{2}, but using \jargon{sound-unification}. That is, a
 variable only unifies to a term if this term does not contain the
@@ -886,10 +891,13 @@ A = f(f(f(f(f(f(f(f(f(f(...))))))))))
 No
 \end{code}
 
-I.e.\ the first creates a \jargon{cyclic-term}, which is printed as
-an infinitely nested \functor{f}{1} term (see the \const{max_depth}
-option of write_term/2). The second executes logically sound unification
-and thus fails.  See also the Prolog flag \prologflag{occurs_check}.
+\index{occurs_check}%
+I.e.\ the first creates a \jargon{cyclic-term}, which is printed as an
+infinitely nested \functor{f}{1} term (see the \const{max_depth} option
+of write_term/2). The second executes logically sound unification and
+thus fails. Note that the behaviour of unification through
+\predref{=}{2} as well as implicit unification in the head can be
+changed using the Prolog flag \prologflag{occurs_check}.
 
     \infixop{\=}{+Term1}{+Term2}
 Equivalent to \exam{\Snot Term1 = Term2}.
