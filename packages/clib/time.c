@@ -550,8 +550,11 @@ alarm_loop(void * closure)
 	  ev->flags |= EV_FIRED;
 	  pthread_kill(ev->thread_id, SIGALRM);
 	  break;
+	case 0:
 	case EINTR:
 	  continue;
+	default:
+	  Sdprintf("alarm/4: pthread_cond_timedwait(): %s\n", strerror(rc));
       }
     } else
     { int rc = pthread_cond_wait(&cond, &mutex);
