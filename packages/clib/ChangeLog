@@ -1,3 +1,7 @@
+Sep 3, 2007
+
+  * Possible not working timer alarm.  Ulrich Neumerkel.
+
 Jul 30, 2007
 
   * FIXED: Bug#302: memory leak in atom_to_memory_file/2 with filled 

@@ -334,7 +334,7 @@ insertEvent(Event ev)
 	e->previous->next = ev;
       e->previous = ev;
 
-      if ( sched->first == e )			/* allocated as first */
+      if ( sched->first == e )		/* allocated as first */
 	sched->first = ev;
 
       return;
@@ -855,7 +855,7 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
   gettimeofday(&tv, NULL);
   tv.tv_usec += (long)((t-floor(t))*1000000);
   tv.tv_sec  += (long)t;
-  if ( tv.tv_usec > 1000000 )
+  if ( tv.tv_usec >= 1000000 )
   { tv.tv_usec -= 1000000;
     tv.tv_sec++;
   }
