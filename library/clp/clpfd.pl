@@ -930,9 +930,9 @@ label(Vs) :- labeling([], Vs).
 %   * min(Expr)
 %   * max(Expr)
 %
-% This first generates all solutions such that the arithmetic
-% expression 'Expr' assumes the smallest/highest possible value it can
-% obtain (with respect to existing constraints).
+% This generates solutions in ascending/descending order with respect
+% to the evaluation of the arithmetic expression 'Expr'. All variables
+% of 'Expr' must also be contained in 'Vars'.
 %
 % If more than one option of a category is specified, the one
 % occurring rightmost in the option list takes precedence over all
@@ -941,11 +941,8 @@ label(Vs) :- labeling([], Vs).
 %
 
 labeling(Options, Vars) :-
-        (   var(Options) -> instantiation_error(Options)
-        ;   true
-        ),
-        is_acyclic_list(Options),
-        is_acyclic_list(Vars),
+        must_be(proper_list, Options),
+        must_be(proper_list, Vars),
         maplist(finite_domain, Vars),
         label(Options, leftmost, up, none, Vars).
 
@@ -1109,8 +1106,10 @@ optimize(Direction, Selection, Order, Vars, Expr0, Expr) :-
         (   Tighten, label(Vars1, Selection, Order) ->
             optimize(Direction, Selection, Order, Vars, Expr1, Expr)
         ;
-              (   Expr #= Expr0, label(Vars, Selection, Order)
-              ;   Expr #\= Expr0, label(Vars, Selection, Order)
+              (   Expr #= Val0, label(Vars, Selection, Order)
+              ;   Expr #\= Val0,
+                  Opt =.. [Direction,Expr],
+                  optimize(Vars, Selection, Order, Opt)
               )
         ).
 
@@ -1496,18 +1495,6 @@ merge_remaining([N-M|NMs], B0, B, Rest) :-
             merge_remaining(NMs, B1, B, Rest)
         ).
 
-cyclic_list(L0) :- cyclic_term(L0), cyclic_list(L0, []).
-
-cyclic_list([_|Tail], Seen) :-
-        \+ var(Tail),
-        (   memberchk(Tail, Seen) -> true ; cyclic_list(Tail, [Tail|Seen]) ).
-
-is_acyclic_list(Ls) :-
-        (   cyclic_list(Ls) ->
-            domain_error(acyclic_list, Ls)
-        ;   must_be(proper_list, Ls)
-        ).
-
 %% +Var in +Domain
 %
 %  Constrain 'Var' to elements of 'Domain'. 'Domain' is one of:
@@ -1539,7 +1526,7 @@ fd_variable(V) :-
 
 Vs ins D :-
         (   var(Vs) -> true
-        ;   is_acyclic_list(Vs),
+        ;   must_be(proper_list, Vs),
             maplist(fd_variable, Vs)
         ),
         (   is_drep(D) -> true
@@ -1614,13 +1601,21 @@ activate_propagator(propagator(P,MState)) :-
             run_propagator(P, MState)
         ).
 
+:- nb_setval('$clpfd_queue_status', enabled).
+
+disable_queue :- b_setval('$clpfd_queue_status', disabled).
+enable_queue  :- b_setval('$clpfd_queue_status', enabled), do_queue.
+
 do_queue :-
-        (   fetch_constraint_(C) ->
-            activate_propagator(C),
-            %C = propagator(Prop,_),
-            %functor(Prop, FP, _),
-            %format("\n\ngot: ~w\n\n", [FP]),
-            do_queue
+        (   b_getval('$clpfd_queue_status', enabled) ->
+            (   fetch_constraint_(C) ->
+                activate_propagator(C),
+                %C = propagator(Prop,_),
+                %functor(Prop, FP, _),
+                %format("\n\ngot: ~w\n\n", [FP]),
+                do_queue
+            ;   true
+            )
         ;   true
         ).
 
@@ -1632,12 +1627,18 @@ init_propagator(Var, Prop) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run_propagator(pdifferent(Left,Right,X), _MState) :-
-        (   ground(X) -> exclude_fire(Left, Right, X)
+        (   ground(X) ->
+            disable_queue,
+            exclude_fire(Left, Right, X),
+            enable_queue
         ;   true
         ).
 
 run_propagator(pdistinct(Left,Right,X), _MState) :-
-        (   ground(X) -> exclude_fire(Left, Right, X)
+        (   ground(X) ->
+            disable_queue,
+            exclude_fire(Left, Right, X),
+            enable_queue
         ;   %outof_reducer(Left, Right, X)
             %(   var(X) -> kill_if_isolated(Left, Right, X, MState)
             %;   true
@@ -1707,7 +1708,10 @@ run_propagator(rel_tuple(RID, Tuple), MState) :-
             Us = [_|_],
             (   Us = [Single] -> kill(MState), Single = Tuple
             ;   Changed =:= 0 -> true
-            ;   b_setval(RID, Us), tuple_domain(Tuple, Us)
+            ;   b_setval(RID, Us),
+                disable_queue,
+                tuple_domain(Tuple, Us),
+                enable_queue
             )
         ).
 
@@ -1742,7 +1746,7 @@ run_propagator(pplus(X,Y,Z), MState) :-
             put(X, XD2, XPs),
             put(Y, YD2, YPs)
         ;   get(X, XD, XL, XU, XPs), get(Y, YD, YL, YU, YPs),
-            get(Z, ZD, ZL, ZU, ZPs),
+            get(Z, _, ZL, ZU, _),
             NXL cis max(XL, ZL-YU),
             NXU cis min(XU, ZU-YL),
             (   NXL == XL, NXU == XU -> true
@@ -2233,7 +2237,7 @@ all_distinct(Ls) :-
 
 all_distinct([], _, _).
 all_distinct([X|Right], Left, MState) :-
-        \+ list_contains(Right, X),
+        %\+ list_contains(Right, X),
         (   var(X) ->
             Prop = propagator(pdistinct(Left,Right,X), mutable(passive)),
             init_propagator(X, Prop),
