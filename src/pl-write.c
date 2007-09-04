@@ -817,21 +817,9 @@ writeList2(term_t list, write_options *options)
   
   TRY(Putc('[', options->out));
   for(;;)
-  { Word addr;
-    visited *v;
-
-    PL_get_list(l, head, l);
-    addr = address_of(l);
+  { PL_get_list(l, head, l);
     TRY(writeTerm(head, 999, options));
 
-    if ( has_visited(options->visited, addr) )
-    { return PutString("|**]", options->out);
-    } else
-    { visited *v = alloca(sizeof(*v));
-      v->address = addr;
-      v->next = options->visited;
-      options->visited = v;
-    }
     if ( PL_get_nil(l) )
       break;
     if ( ++options->depth >= options->max_depth && options->max_depth )
@@ -841,6 +829,21 @@ writeList2(term_t list, write_options *options)
       TRY(writeTerm(l, 999, options));
       break;
     }
+
+					/* cycle detection */
+    { Word addr =  address_of(l);;
+      visited *v;
+
+      if ( has_visited(options->visited, addr) )
+      { return PutString("|**]", options->out);
+      } else
+      { visited *v = alloca(sizeof(*v));
+	v->address = addr;
+	v->next = options->visited;
+	options->visited = v;
+      }
+    }
+
     TRY(PutString(", ", options->out));
   }
 
