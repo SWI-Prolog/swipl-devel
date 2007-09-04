@@ -267,7 +267,7 @@
 #define ATOM_jump         MK_ATOM(266)
 #define ATOM_kernel       MK_ATOM(267)
 #define ATOM_key          MK_ATOM(268)
-#define ATOM_key_value_pair MK_ATOM(269)
+#define ATOM_pair         MK_ATOM(269)
 #define ATOM_larger       MK_ATOM(270)
 #define ATOM_larger_equal MK_ATOM(271)
 #define ATOM_level        MK_ATOM(272)

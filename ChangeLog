@@ -7,8 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
-  * FIXED: handling of cyclic terms in is_list/1, =../2 and write/1.
-    Ulrich Neumerkel.
+  * FIXED: handling of cyclic terms in is_list/1, =../2, write/1, sort/2
+    and friends. Ulrich Neumerkel.
 
   * FIXED: properly handle occurs_check=error case in dif/2.
     Ulrich Neumerkel and Tom Schrijvers.

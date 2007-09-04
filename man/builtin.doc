@@ -4499,7 +4499,9 @@ functor `\const{.}' and arity~2 and the second argument is a list.%
 		  there should only be very few cases where a
 		  quick-and-dirty is_list/1 is a good choice. Richard
 		  O'Keefe pointed at this issue.}
-This predicate acts as if defined by the following definition:
+This predicate acts as if defined by the definition below on
+\jargon{acyclic} terms. The implementation is \emph{fails} safely if
+\arg{Term} represents a cyclic list.
 
 \begin{code}
 is_list(X) :-
@@ -4520,11 +4522,14 @@ True if \arg{Int} represents the number of elements of list \arg{List}. Can be u
 True if \arg{Sorted} can be unified with a list holding the
 elements of \arg{List}, sorted to the standard order of terms (see
 \secref{compare}).  Duplicates are removed.  The implementation is
-in C, using \jargon{natural merge sort}%
+in C, using \jargon{natural merge sort}.%
 	\footnote{Contributed by Richard O'Keefe.}
+The sort/2 predicate can sort a cyclic list, returning a non-cyclic
+version with the same elements.
 
     \predicate{msort}{2}{+List, -Sorted}
-Equivalent to sort/2, but does not remove duplicates.
+Equivalent to sort/2, but does not remove duplicates.  Fails with
+a \except{type_error} if \arg{List} is not a list or a cyclic list.
 
     \predicate{keysort}{2}{+List, -Sorted}
 List is a proper list whose elements are \exam{\arg{Key}-\arg{Value}},
@@ -4537,6 +4542,8 @@ Sorting on more than one criterion can be done using terms as keys,
 putting the first criterion as argument 1, the second as argument 2,
 etc. The order of multiple elements that have the same \arg{Key} is not
 changed. The implementation is in C, using \jargon{natural merge sort}.
+Fails with a \except{type_error} if \arg{List} is not a list or a cyclic
+list or one of the elements of \arg{List} is not a \jargon{pair}.
 
     \predicate{predsort}{3}{+Pred, +List, -Sorted}
 Sorts similar to sort/2, but determines the order of two terms by

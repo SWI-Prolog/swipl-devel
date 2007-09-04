@@ -287,18 +287,19 @@ will be.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-prolog_list_to_sort_list(term_t t, int key, list *lp, Word *end)
+prolog_list_to_sort_list(term_t t, int remove_dups, int key, list *lp, Word *end)
 { GET_LD
-  intptr_t n = lengthList(t, TRUE);
-  Word l;
+  Word l, tail;
   list p;
-  intptr_t minfree;
+  intptr_t len, minfree;
 
-  if ( n < 0 )
-    fail;				/* not a proper list */
-  minfree = sizeof(word)*n*3;
-  if ( minfree > spaceStack(global) )
-    garbageCollect(NULL, NULL);
+  l = valTermRef(t);
+  deRef(l);
+  len = skip_list(l, &tail PASS_LD);
+  if ( !(isNil(*tail) ||			/* proper list */
+	 (isList(*tail) && remove_dups)) )	/* sort/2 on cyclic list */
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, t);
+  minfree = sizeof(word)*len*3;
 
 #ifdef O_SHIFT_STACKS
   if ( roomStack(global) < minfree )
@@ -306,15 +307,18 @@ prolog_list_to_sort_list(term_t t, int key, list *lp, Word *end)
       fail;
   }
 #else
+  if ( minfree > spaceStack(global) )
+    garbageCollect(NULL, NULL);
   requireStack(global, minfree);
 #endif
 
   p = (list)gTop;
   *lp = p;
-  l = valTermRef(t);
+
+  l = valTermRef(t);			/* may be shifted */
   deRef(l);
 
-  for(;;)
+  while(len-- > 0)
   { p->item.term = HeadList(l);
     deRef(p->item.term);
     if ( key )
@@ -326,21 +330,22 @@ prolog_list_to_sort_list(term_t t, int key, list *lp, Word *end)
       } else
       { term_t t = wordToTermRef(p->item.term);
 
-	return PL_error("keysort", 2, NULL,
-			ERR_TYPE, ATOM_key_value_pair, t);
+	return PL_error("keysort", 2, NULL, ERR_TYPE, ATOM_pair, t);
       }
     }
     l = TailList(l);
     deRef(l);
-    if ( isList(*l) )
-    { p->next = p+1;
+    if ( len > 0 )
+    { assert(isList(*l));
+      p->next = p+1;
       p++;
-    } else
-    { p->next = NULL;
-      *end = (Word)(p+1);
-      succeed;
     }
   }
+
+  p->next = NULL;
+  *end = (Word)(p+1);
+
+  succeed;
 }
 
 
@@ -379,7 +384,7 @@ pl_nat_sort(term_t in, term_t out, int remove_dups, int compare_keys ARG_LD)
     term_t tmp = PL_new_term_ref();
     Word top = NULL;
 
-    if ( prolog_list_to_sort_list(in, compare_keys, &l, &top) )
+    if ( prolog_list_to_sort_list(in, remove_dups, compare_keys, &l, &top) )
     { l = nat_sort(l, remove_dups, compare_keys);
       put_sort_list(tmp, l);
       gTop = top;

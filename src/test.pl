@@ -269,9 +269,9 @@ cyclic(test-6) :-
 cyclic(list-1) :-
 	L = [a|L], \+ is_list(L).
 cyclic(sort-1) :-
-	L = [a|L],
-	catch(sort(L, _), error(E, _), true),
-	E == type_error(list, L).
+	L = [a,b,c|L],
+	sort(L, List),
+	List == [a,b,c].
 
 
 		 /*******************************

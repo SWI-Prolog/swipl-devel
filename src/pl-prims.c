@@ -1595,7 +1595,7 @@ PRED_IMPL("nb_linkarg", 3, nb_linkarg, 0)
 }
 
 
-static intptr_t
+intptr_t
 skip_list(Word l, Word *tailp ARG_LD)
 { intptr_t length = 0;
   Word s; /* slow */
