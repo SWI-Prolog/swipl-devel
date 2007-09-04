@@ -268,6 +268,10 @@ cyclic(test-6) :-
 	X = f(a), acyclic_term(a(X, X)).
 cyclic(list-1) :-
 	L = [a|L], \+ is_list(L).
+cyclic(sort-1) :-
+	L = [a|L],
+	catch(sort(L, _), error(E, _), true),
+	E == type_error(list, L).
 
 
 		 /*******************************
