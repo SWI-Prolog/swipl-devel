@@ -1619,6 +1619,24 @@ skip_list(Word l, Word *tailp ARG_LD)
   return length;
 }
 
+/** '$skip_list'(+Xs0, -Length, -Xs) is det.
+
+If Xs0 is not a cyclic list, true   if append(L, Xs, Xs0), Xs0 \= [_|_],
+length(L, Length) is true. If Xs0 is a   cyclic list, Length is at least
+as long as the cycle length and Xs  contains the `remainder' of the list
+after skipping the first Length elements.
+*/
+
+PRED_IMPL("$skip_list", 3, skip_list, 0)
+{ PRED_LD
+  Word l = valTermRef(A1), tail;
+
+  if ( !PL_unify_integer(A2, skip_list(l, &tail PASS_LD)) )
+    fail;
+
+  return unify_ptrs(valTermRef(A3), tail PASS_LD);
+}
+
 
 /*  Determine the length of a list.  Returns:
 
@@ -4189,4 +4207,5 @@ BeginPredDefs(prims)
   PRED_DEF("setarg", 3, setarg, 0)
   PRED_DEF("nb_setarg", 3, nb_setarg, 0)
   PRED_DEF("nb_linkarg", 3, nb_linkarg, 0)
+  PRED_DEF("$skip_list", 3, skip_list, 0)
 EndPredDefs

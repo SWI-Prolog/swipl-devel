@@ -785,10 +785,17 @@ default_module(Me, Super) :-
 %	Is true when N is the length of List.
 
 length(List, Length) :-
-	$length(List, Length), !.		% written in C
-length(List, Length) :-
-	var(Length),
-        length3(List, Length, 0).
+	(   integer(Length)
+	->  '$length'(List, Length)
+	;   '$skip_list'(List, Length0, Tail),
+	    (	Tail == []
+	    ->	Length = Length0
+	    ;	var(Tail)
+	    ->  length3(Tail, Length, Length0)
+	    ;	throw(error(type_error(list,Tail),
+			    context(length/2, _)))
+	    )
+	).
 
 length3([], N, N).
 length3([_|List], N, N0) :-
