@@ -38,9 +38,8 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog  new-style  foreign-language  interface.   This  new  foreign
 interface is a mix of the old  interface using the ideas on term-handles
-from  Quintus  Prolog.  Term-handles  are    integers  (uintptr_t),
-describing the offset of the term-location relative   to the base of the
-local stack.
+from Quintus Prolog. Term-handles are   integers (uintptr_t), describing
+the offset of the term-location relative to the base of the local stack.
 
 If a C-function has to  store  intermediate   results,  it  can do so by
 creating a new term-reference using   PL_new_term_ref().  This functions

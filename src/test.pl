@@ -163,11 +163,14 @@ write_test(q-2) :-
 write_test(q-3) :-
 	term_to_atom(+(a), X), X == '+a'.
 write_test(q-4) :-
-	term_to_atom('/*', X), X == '\'/*\''.
+	term_to_atom('/*', X), X == '\'/*\''.	%'
 write_test(q-5) :-
 	term_to_atom('/**', X), X == '\'/**\''.
 write_test(q-6) :-
 	term_to_atom('*/*', X), X == '*/*'.
+write_test(c-1) :-
+	T = [a,b,c|T],
+	term_to_atom(T, X), X == '[a, b, c|**]'.
 
 
 		 /*******************************
@@ -263,6 +266,8 @@ cyclic(test-5) :-
 	acyclic_term(_).
 cyclic(test-6) :-
 	X = f(a), acyclic_term(a(X, X)).
+cyclic(list-1) :-
+	L = [a|L], \+ is_list(L).
 
 
 		 /*******************************
@@ -953,6 +958,10 @@ term(univ-3) :-
 	3.4 =.. X, X == [3.4].
 term(univ-4) :-
 	a(a,b,c) =.. [a, a | L], L == [b,c].
+term(univ-5) :-
+	L = [a|L],
+	catch(_T =.. L, error(E, _), true),
+	E == type_error(list, L).
 
 
 

@@ -1595,34 +1595,54 @@ PRED_IMPL("nb_linkarg", 3, nb_linkarg, 0)
 }
 
 
+static intptr_t
+skip_list(Word l, Word *tailp ARG_LD)
+{ intptr_t length = 0;
+  Word s; /* slow */
+
+  deRef(l);
+  s = l;
+
+  if ( isList(*l) )
+  { for(;;)
+    { length++; l = TailList(l); deRef(l);
+      if ( l == s ) break;
+      if ( !isList(*l) ) break;
+      length++; l = TailList(l); deRef(l);
+      if ( l == s ) break;
+      if ( !isList(*l) ) break;
+      s = TailList(s); deRef(s);
+    }
+  }
+  *tailp = l;
+
+  return length;
+}
+
 
 /*  Determine the length of a list. If the list is not proper (or not
     a list at all) -1 is returned.
 
  ** Mon Apr 18 16:29:01 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
-int
+intptr_t
 lengthList(term_t list, int errors)
 { GET_LD
-  int length = 0;
+  intptr_t length = 0;
   Word l = valTermRef(list);
+  Word tail;
 
-  deRef(l);
+  length = skip_list(l, &tail PASS_LD);
 
-  while(isList(*l) )
-  { length++;
-    l = TailList(l);
-    deRef(l);
-  }
-
-  if ( isNil(*l) )
+  if ( isNil(*tail) )
     return length;
 
   if ( errors )
     PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, wordToTermRef(l));
 
-  return isVar(*l) ? -2 : -1;
+  return isVar(*tail) ? -2 : -1;
 }
+
 
 word
 pl_univ(term_t t, term_t list)

@@ -542,7 +542,7 @@ COMMON(bool) 		raw_unify_ptrs(Word t1, Word t2 ARG_LD);
 COMMON(bool) 		unify_ptrs(Word t1, Word t2 ARG_LD);
 COMMON(bool) 		can_unify(Word t1, Word t2);
 COMMON(int) 		compareStandard(Word t1, Word t2, int eq ARG_LD);
-COMMON(int) 		lengthList(term_t list, int errors);
+COMMON(intptr_t) 	lengthList(term_t list, int errors);
 COMMON(word) 		pl_univ(term_t t, term_t l);
 COMMON(int) 		numberVars(term_t t, nv_options *opts, int n ARG_LD);
 COMMON(word) 		pl_e_free_variables(term_t t, term_t l);

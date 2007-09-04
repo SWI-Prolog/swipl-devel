@@ -289,7 +289,7 @@ will be.
 static int
 prolog_list_to_sort_list(term_t t, int key, list *lp, Word *end)
 { GET_LD
-  int n = lengthList(t, TRUE);
+  intptr_t n = lengthList(t, TRUE);
   Word l;
   list p;
   intptr_t minfree;

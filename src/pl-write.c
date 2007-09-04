@@ -811,6 +811,54 @@ writeTerm(term_t t, int prec, write_options *options)
 
 
 static bool
+writeList2(term_t list, write_options *options)
+{ term_t head = PL_new_term_ref();
+  term_t l    = PL_copy_term_ref(list);
+  
+  TRY(Putc('[', options->out));
+  for(;;)
+  { Word addr;
+    visited *v;
+
+    PL_get_list(l, head, l);
+    addr = address_of(l);
+    TRY(writeTerm(head, 999, options));
+
+    if ( has_visited(options->visited, addr) )
+    { return PutString("|**]", options->out);
+    } else
+    { visited *v = alloca(sizeof(*v));
+      v->address = addr;
+      v->next = options->visited;
+      options->visited = v;
+    }
+    if ( PL_get_nil(l) )
+      break;
+    if ( ++options->depth >= options->max_depth && options->max_depth )
+      return PutString("|...]", options->out);
+    if ( !PL_is_functor(l, FUNCTOR_dot2) )
+    { TRY(Putc('|', options->out));
+      TRY(writeTerm(l, 999, options));
+      break;
+    }
+    TRY(PutString(", ", options->out));
+  }
+
+  return Putc(']', options->out);
+}
+
+
+static bool
+writeList(term_t list, write_options *options)
+{ visited *v = options->visited;
+  int rc = writeList2(list, options);
+  options->visited = v;
+
+  return rc;
+}
+
+
+static bool
 writeTerm2(term_t t, int prec, write_options *options)
 { atom_t functor;
   int arity, n;
@@ -940,27 +988,7 @@ writeTerm2(term_t t, int prec, write_options *options)
 	}
       } else if ( arity == 2 )
       { if ( functor == ATOM_dot )	/* [...] */
-	{ term_t head = PL_new_term_ref();
-	  term_t l    = PL_copy_term_ref(t);
-  
-	  TRY(Putc('[', out));
-	  for(;;)
-	  { PL_get_list(l, head, l);
-  
-	    TRY(writeTerm(head, 999, options));
-	    if ( PL_get_nil(l) )
-	      break;
-	    if ( ++options->depth >= options->max_depth && options->max_depth )
-	      return PutString("|...]", options->out);
-	    if ( !PL_is_functor(l, FUNCTOR_dot2) )
-	    { TRY(Putc('|', out));
-	      TRY(writeTerm(l, 999, options));
-	      break;
-	    }
-	    TRY(PutString(", ", out));
-	  }
-	  return Putc(']', out);
-	}
+	  return writeList(t, options);
   
 					  /* <term> op <term> */
 	if ( currentOperator(options->module, functor, OP_INFIX,
