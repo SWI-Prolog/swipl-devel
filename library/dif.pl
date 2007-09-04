@@ -44,6 +44,8 @@
 %   Cleaned up code. Now uses just one or node for every call to dif/2.
 % Update Jul 8, 2005 (JW)
 %   Fixed spelling unifyable --> unifiable
+% Update Sep 4, 2007 (JW)
+%   Added support for current_prolog_flag(occurs_check, error) case
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 :- module(dif,[dif/2]).
@@ -59,7 +61,11 @@ dif(X,Y) :-
 %%	node(Parent,Children,Variables,Counter)
 
 dif_c_c(X,Y,OrNode) :-
-	( unifiable(X,Y,Unifier) ->
+	(	( current_prolog_flag(occurs_check, error) ->
+			catch(unifiable(X,Y,Unifier), error(occurs_check(_,_),_), fail)
+		  ; 
+			unifiable(X,Y,Unifier)
+		) ->
 		( Unifier == [] ->
 			or_one_fail(OrNode)
 		;
@@ -68,6 +74,7 @@ dif_c_c(X,Y,OrNode) :-
 	;
 		or_succeed(OrNode)
 	).
+
 
 dif_c_c_l(Unifier,OrNode) :-
 	length(Unifier,N),

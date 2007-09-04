@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: properly handle occurs_check=error case in dif/2.
+    Ulrich Neumerkel and Tom Schrijvers.
+
   * MODIFIED: Replaced prompt_alternatives_no_bindings flag with
     prompt_alternatives_on with the values groundness and determinism. 
     Default is determinism.  After discussions on mailinglist,
