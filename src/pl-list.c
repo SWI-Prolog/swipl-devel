@@ -297,6 +297,8 @@ prolog_list_to_sort_list(term_t t, int key, list *lp, Word *end)
   if ( n < 0 )
     fail;				/* not a proper list */
   minfree = sizeof(word)*n*3;
+  if ( minfree > spaceStack(global) )
+    garbageCollect(NULL, NULL);
 
 #ifdef O_SHIFT_STACKS
   if ( roomStack(global) < minfree )

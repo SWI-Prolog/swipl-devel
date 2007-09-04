@@ -1620,8 +1620,11 @@ skip_list(Word l, Word *tailp ARG_LD)
 }
 
 
-/*  Determine the length of a list. If the list is not proper (or not
-    a list at all) -1 is returned.
+/*  Determine the length of a list.  Returns:
+
+	len >=  0 if list is proper
+	len == -1 if list is not a list
+	len == -2 if list is incomplete (i.e. tail is unbound)
 
  ** Mon Apr 18 16:29:01 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
