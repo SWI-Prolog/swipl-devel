@@ -367,7 +367,7 @@ process_journal_term(start(_), _).	% journal open/close
 process_journal_term(end(_), _).
 process_journal_term(begin(_), _).	% logged transaction (compatibility)
 process_journal_term(end, _).
-process_journal_term(begin(_,_,_,_), _).% logged transaction (current)
+process_journal_term(begin(_,_,_,_), _). % logged transaction (current)
 process_journal_term(end(_,_,_), _).
 
 
