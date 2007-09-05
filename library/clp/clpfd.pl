@@ -1421,15 +1421,15 @@ L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 L #==> R   :- reify(L, BL), reify(R, BR), myimpl(BL, BR), do_queue.
 L #<== R   :- reify(L, BL), reify(R, BR), myimpl(BR, BL), do_queue.
 
-%% #/\(A, B)
+%% #/\(P, Q)
 %
-% A and B hold.
+% P and Q hold.
 
 L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 
-%% #\/(A, B)
+%% #\/(P, Q)
 %
-% A or B holds.
+% P or Q holds.
 
 L #\/ R    :- reify(L, BL), reify(R, BR), myor(BL, BR, 1), do_queue.
 
