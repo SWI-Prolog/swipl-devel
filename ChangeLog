@@ -7,6 +7,15 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+===================================
+VERSION 5.6.40 (September 05, 2007)
+===================================
+
+  * ADDED: type list to must_be/2.   Ulrich Neumerkel.
+
+  * FIXED: read foo.%comment (no space between . and %) when processing
+    comments.
+
   * ENHANCED: efficiency of length/2.  Ulrich Neumerkel.
 
   * FIXED: handling of cyclic terms in is_list/1, =../2, write/1, sort/2
@@ -40,8 +49,7 @@
   * MODIFIED: Added noprofile declarations for findall, bagof, setof,
     call_cleanup and frieds.  Makes profile output more readable.
 
-  * ENHANCED: Various issues around findall/3, bagof/3 and setof/3.  Not
-    yet fully tested.
+  * ENHANCED: Various issues around findall/3, bagof/3 and setof/3.
 
   * ADDED: findall/4.  Ulrich Neumerkel.
 

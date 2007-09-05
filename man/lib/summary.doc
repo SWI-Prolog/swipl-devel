@@ -152,6 +152,7 @@ This library is only available on Windows systems.
 \predicatesummary{assignment}{2}{Solve assignment problem}
 \predicatesummary{constraint}{3}{Add linear constraint to state}
 \predicatesummary{constraint}{4}{Add named linear constraint to state}
+\predicatesummary{constraint_add}{4}{Extend a named constraint}
 \predicatesummary{gen_state}{1}{Create empty linear program}
 \predicatesummary{maximize}{3}{Maximize objective function in to linear constraints}
 \predicatesummary{minimize}{3}{Minimize objective function in to linear constraints}

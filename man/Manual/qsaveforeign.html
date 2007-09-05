@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.39 Reference Manual: Section 10.2</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.40 Reference Manual: Section 10.2</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="qsavelimits.html">
@@ -151,7 +151,7 @@ must make runtime checks to find the correct way of linking. Suppose we
 have a source-file <CODE>myextension.c</CODE> defining the installation 
 function install().
 
-<P>If this file is compiled into a shared library, <A NAME="idx:loadforeignlibrary1:1365"></A><A class="pred" href="DLL.html#load_foreign_library/1">load_foreign_library/1</A> 
+<P>If this file is compiled into a shared library, <A NAME="idx:loadforeignlibrary1:1372"></A><A class="pred" href="DLL.html#load_foreign_library/1">load_foreign_library/1</A> 
 will load this library and call the installation function to initialise 
 the foreign code. If it is loaded as a static extension, define 
 install() as the predicate install/0 :
@@ -185,11 +185,11 @@ load_foreign_extensions :-                      % shared library
 :- initialization load_foreign_extensions.
 </PRE>
 
-<P>The path alias <CODE>foreign</CODE> is defined by <A NAME="idx:filesearchpath2:1366"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>. 
+<P>The path alias <CODE>foreign</CODE> is defined by <A NAME="idx:filesearchpath2:1373"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>. 
 By default it searches the directories <CODE>&lt;<VAR>home</VAR>&gt;/lib/&lt;<VAR>arch</VAR>&gt;</CODE> 
 and
 <CODE>&lt;<VAR>home</VAR>&gt;/lib</CODE>. The application can specify 
 additional rules for
-<A NAME="idx:filesearchpath2:1367"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>.
+<A NAME="idx:filesearchpath2:1374"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>.
 
 <P></BODY></HTML>

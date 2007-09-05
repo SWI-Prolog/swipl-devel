@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.40, distributed with SWI-Prolog 5.6.40
+==================================================
+
 * FIXED: Possible crash in graphical->layout.  Anjo Anjewierden.
 
 VERSION 6.6.39, distributed with SWI-Prolog 5.6.39

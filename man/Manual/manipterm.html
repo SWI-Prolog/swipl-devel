@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.39 Reference Manual: Section 4.20</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.40 Reference Manual: Section 4.20</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="termrw.html">
@@ -132,7 +132,7 @@ and Constructing Terms</SPAN></A></H2>
 True if <VAR>Term</VAR> is a term with functor <VAR>Functor</VAR> and 
 arity
 <VAR>Arity</VAR>. If <VAR>Term</VAR> is a variable it is unified with a 
-new term holding only variables. <A NAME="idx:functor3:813"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
+new term holding only variables. <A NAME="idx:functor3:818"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
 silently fails on instantiation faults<SUP class="fn">43<SPAN class="fn-text">In 
 version 1.2 instantiation faults led to error messages. The new version 
 can be used to do type testing without the need to catch illegal 
@@ -152,7 +152,7 @@ successive arguments of the term. On successful unification, <VAR>Arg</VAR>
 is unified with the argument number. Backtracking yields alternative 
 solutions.<SUP class="fn">44<SPAN class="fn-text">The instantiation 
 pattern (-, +, ?) is an extension to `standard' Prolog. Some systems 
-provide genarg/3 that covers this pattern.</SPAN></SUP> The predicate <A NAME="idx:arg3:814"></A><A class="pred" href="manipterm.html#arg/3">arg/3</A> 
+provide genarg/3 that covers this pattern.</SPAN></SUP> The predicate <A NAME="idx:arg3:819"></A><A class="pred" href="manipterm.html#arg/3">arg/3</A> 
 fails silently if <VAR><VAR>Arg</VAR> = 0</VAR> or
 <VAR><VAR>Arg</VAR> &gt; <EM>arity</EM></VAR> and raises the exception
 <CODE>domain_error(not_less_then_zero, <VAR>Arg</VAR>)</CODE> if <VAR><VAR>Arg</VAR> 
@@ -191,12 +191,12 @@ B = '$VAR'(1)
 End = 2
 </PRE>
 
-<P>See also the <CODE>numbervars</CODE> option to <A NAME="idx:writeterm3:815"></A><A class="pred" href="termrw.html#write_term/3">write_term/3</A> 
-and <A NAME="idx:numbervars4:816"></A><A class="pred" href="manipterm.html#numbervars/4">numbervars/4</A>.</DD>
+<P>See also the <CODE>numbervars</CODE> option to <A NAME="idx:writeterm3:820"></A><A class="pred" href="termrw.html#write_term/3">write_term/3</A> 
+and <A NAME="idx:numbervars4:821"></A><A class="pred" href="manipterm.html#numbervars/4">numbervars/4</A>.</DD>
 <DT class="pubdef"><A NAME="numbervars/4"><STRONG>numbervars</STRONG>(<VAR>+Term, 
 +Start, -End, +Options</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:numbervars3:817"></A><A class="pred" href="manipterm.html#numbervars/3">numbervars/3</A>, 
+As <A NAME="idx:numbervars3:822"></A><A class="pred" href="manipterm.html#numbervars/3">numbervars/3</A>, 
 but providing the following options:
 
 <DL>
@@ -206,7 +206,7 @@ Name of the functor to use instead of <CODE>$VAR</CODE>.</DD>
 <DT><STRONG>attvar</STRONG>(<VAR>+Action</VAR>)</DT>
 <DD class="defbody">
 What to do if an attributed variable is encountered. Options are
-<CODE>skip</CODE>, which causes <A NAME="idx:numbervars3:818"></A><A class="pred" href="manipterm.html#numbervars/3">numbervars/3</A> 
+<CODE>skip</CODE>, which causes <A NAME="idx:numbervars3:823"></A><A class="pred" href="manipterm.html#numbervars/3">numbervars/3</A> 
 to ignore the attributed variable, <CODE>bind</CODE> which causes it to 
 thread it as a normal variable and assign the next <CODE>'$VAR'</CODE>(N) 
 term to it or (default)
@@ -215,11 +215,11 @@ behaviour was decided after a long discussion between David Reitter,
 Richard O'Keefe, Bart Demoen and Tom Schrijvers.</SPAN></SUP></DD>
 <DT><STRONG>singletons</STRONG>(<VAR>+Bool</VAR>)</DT>
 <DD class="defbody">
-If <CODE>true</CODE> (default <CODE>false</CODE>), <A NAME="idx:numbervars4:819"></A><A class="pred" href="manipterm.html#numbervars/4">numbervars/4</A> 
+If <CODE>true</CODE> (default <CODE>false</CODE>), <A NAME="idx:numbervars4:824"></A><A class="pred" href="manipterm.html#numbervars/4">numbervars/4</A> 
 does singleton detection. Singleton variables are unified with <CODE>'$VAR'('_')</CODE>, 
-causing them to be printed as <CODE>_</CODE> by <A NAME="idx:writeterm2:820"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
-using the numbervars option. This option is exploited by <A NAME="idx:portrayclause2:821"></A><A class="pred" href="listing.html#portray_clause/2">portray_clause/2</A> 
-and <A NAME="idx:writecanonical2:822"></A><A class="pred" href="termrw.html#write_canonical/2">write_canonical/2</A>.
+causing them to be printed as <CODE>_</CODE> by <A NAME="idx:writeterm2:825"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
+using the numbervars option. This option is exploited by <A NAME="idx:portrayclause2:826"></A><A class="pred" href="listing.html#portray_clause/2">portray_clause/2</A> 
+and <A NAME="idx:writecanonical2:827"></A><A class="pred" href="termrw.html#write_canonical/2">write_canonical/2</A>.
 </DD>
 </DL>
 
@@ -229,12 +229,12 @@ and <A NAME="idx:writecanonical2:822"></A><A class="pred" href="termrw.html#writ
 <DD class="defbody">
 Unify <VAR>List</VAR> with a list of variables, each sharing with a 
 unique variable of <VAR>Term</VAR>.<SUP class="fn">46<SPAN class="fn-text">This 
-predicate used to be called free_variables/2 . The name <A NAME="idx:termvariables2:823"></A><A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A> 
+predicate used to be called free_variables/2 . The name <A NAME="idx:termvariables2:828"></A><A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A> 
 is more widely used. The old predicate is still available from the 
 library <CODE>library(backcomp)</CODE>.</SPAN></SUP> The variables in <VAR>List</VAR> 
 are ordered in order of appearence traversing <VAR>Term</VAR> 
 depth-first and left-to-right. See also
-<A NAME="idx:termvariables3:824"></A><A class="pred" href="manipterm.html#term_variables/3">term_variables/3</A>. 
+<A NAME="idx:termvariables3:829"></A><A class="pred" href="manipterm.html#term_variables/3">term_variables/3</A>. 
 For example:
 
 <PRE class="code">
@@ -250,20 +250,20 @@ Z = G371
 <DT class="pubdef"><A NAME="term_variables/3"><STRONG>term_variables</STRONG>(<VAR>+Term, 
 -List, ?Tail</VAR>)</A></DT>
 <DD class="defbody">
-Difference list version of <A NAME="idx:termvariables2:825"></A><A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A>. 
+Difference list version of <A NAME="idx:termvariables2:830"></A><A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A>. 
 I.e. <VAR>Tail</VAR> is the tail of the variable-list <VAR>List</VAR>.</DD>
 <DT class="pubdef"><A NAME="copy_term/2"><STRONG>copy_term</STRONG>(<VAR>+In, 
 -Out</VAR>)</A></DT>
 <DD class="defbody">
 Create a version if <VAR>In</VAR> with renamed (fresh) variables and 
 unify it to <VAR>Out</VAR>. Attributed variables (see <A class="sec" href="attvar.html">section 
-6.1</A>) have their attributed copied. The implementation of <A NAME="idx:copyterm2:826"></A><A class="pred" href="manipterm.html#copy_term/2">copy_term/2</A> 
+6.1</A>) have their attributed copied. The implementation of <A NAME="idx:copyterm2:831"></A><A class="pred" href="manipterm.html#copy_term/2">copy_term/2</A> 
 can deal with infinite trees (cyclic terms). As pure Prolog cannot 
 distinguish a ground term from another ground term with exactly the same 
 structure, ground sub-terms are <EM>shared</EM> between <VAR>In</VAR> 
-and <VAR>Out</VAR>. Sharing ground terms does affect <A NAME="idx:setarg3:827"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A>. 
+and <VAR>Out</VAR>. Sharing ground terms does affect <A NAME="idx:setarg3:832"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A>. 
 SWI-Prolog provides
-<A NAME="idx:duplicateterm2:828"></A><A class="pred" href="manipterm.html#duplicate_term/2">duplicate_term/2</A> 
+<A NAME="idx:duplicateterm2:833"></A><A class="pred" href="manipterm.html#duplicate_term/2">duplicate_term/2</A> 
 to create a true copy of a term.
 </DD>
 </DL>
@@ -288,12 +288,12 @@ discussing the use of global variables.
 Extra-logical predicate. Assigns the <VAR>Arg</VAR>-th argument of the 
 compound term <VAR>Term</VAR> with the given <VAR>Value</VAR>. The 
 assignment is undone if backtracking brings the state back into a 
-position before the <A NAME="idx:setarg3:829"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A> 
-call. See also <A NAME="idx:nbsetarg3:830"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>.
+position before the <A NAME="idx:setarg3:834"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A> 
+call. See also <A NAME="idx:nbsetarg3:835"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>.
 
 <P>This predicate may be used for destructive assignment to terms, using 
 them as an extra-logical storage bin. Always try hard to avoid the use 
-of <A NAME="idx:setarg3:831"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A> 
+of <A NAME="idx:setarg3:836"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A> 
 as it is not supported by many Prolog systems and one has to be very 
 careful about unexpected copying as well as unexpected not copying of 
 terms.</DD>
@@ -301,19 +301,19 @@ terms.</DD>
 +Term, +Value</VAR>)</A></DT>
 <DD class="defbody">
 Assigns the <VAR>Arg</VAR>-th argument of the compound term <VAR>Term</VAR> 
-with the given <VAR>Value</VAR> as <A NAME="idx:setarg3:832"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A>, 
+with the given <VAR>Value</VAR> as <A NAME="idx:setarg3:837"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A>, 
 but on backtracking the assignment is <EM>not</EM> reversed. If <VAR>Term</VAR> 
-is not atomic, it is duplicated using <A NAME="idx:duplicateterm2:833"></A><A class="pred" href="manipterm.html#duplicate_term/2">duplicate_term/2</A>. 
+is not atomic, it is duplicated using <A NAME="idx:duplicateterm2:838"></A><A class="pred" href="manipterm.html#duplicate_term/2">duplicate_term/2</A>. 
 This predicate uses the same technique as
-<A NAME="idx:nbsetval2:834"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A>. 
-We therefore refer to the description of <A NAME="idx:nbsetval2:835"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A> 
+<A NAME="idx:nbsetval2:839"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A>. 
+We therefore refer to the description of <A NAME="idx:nbsetval2:840"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A> 
 for details on non-backtrackable assignment of terms. This predicate is 
 compatible to GNU-Prolog <CODE>setarg(A,T,V,false)</CODE>, removing the 
-type-restriction on <VAR>Value</VAR>. See also <A NAME="idx:nblinkarg3:836"></A><A class="pred" href="manipterm.html#nb_linkarg/3">nb_linkarg/3</A>. 
+type-restriction on <VAR>Value</VAR>. See also <A NAME="idx:nblinkarg3:841"></A><A class="pred" href="manipterm.html#nb_linkarg/3">nb_linkarg/3</A>. 
 Below is an example for counting the number of solutions of a goal. Note 
 that this implementation is thread-safe, reentrant and capable of 
 handling exceptions. Realising these features with a traditional 
-implementation based on assert/retract or <A NAME="idx:flag3:837"></A><A class="pred" href="db.html#flag/3">flag/3</A> 
+implementation based on assert/retract or <A NAME="idx:flag3:842"></A><A class="pred" href="db.html#flag/3">flag/3</A> 
 is much more complicated.
 
 <PRE class="code">
@@ -334,19 +334,19 @@ succeeds_n_times(Goal, Times) :-
 <DT class="pubdef"><A NAME="nb_linkarg/3"><STRONG>nb_linkarg</STRONG>(<VAR>+Arg, 
 +Term, +Value</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:nbsetarg3:838"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>, 
-but like <A NAME="idx:nblinkval2:839"></A><A class="pred" href="gvar.html#nb_linkval/2">nb_linkval/2</A> 
+As <A NAME="idx:nbsetarg3:843"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>, 
+but like <A NAME="idx:nblinkval2:844"></A><A class="pred" href="gvar.html#nb_linkval/2">nb_linkval/2</A> 
 it does <EM>not</EM> duplicate
-<VAR>Value</VAR>. Use with extreme care and consult the documentation of <A NAME="idx:nblinkval2:840"></A><A class="pred" href="gvar.html#nb_linkval/2">nb_linkval/2</A> 
+<VAR>Value</VAR>. Use with extreme care and consult the documentation of <A NAME="idx:nblinkval2:845"></A><A class="pred" href="gvar.html#nb_linkval/2">nb_linkval/2</A> 
 before use.</DD>
 <DT class="pubdef"><A NAME="duplicate_term/2"><STRONG>duplicate_term</STRONG>(<VAR>+In, 
 -Out</VAR>)</A></DT>
 <DD class="defbody">
-Version of <A NAME="idx:copyterm2:841"></A><A class="pred" href="manipterm.html#copy_term/2">copy_term/2</A> 
+Version of <A NAME="idx:copyterm2:846"></A><A class="pred" href="manipterm.html#copy_term/2">copy_term/2</A> 
 that also copies ground terms and therefore ensures destructive 
-modification using <A NAME="idx:setarg3:842"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A> 
-does not affect the copy. See also <A NAME="idx:nbsetval2:843"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A>, <A NAME="idx:nblinkval2:844"></A><A class="pred" href="gvar.html#nb_linkval/2">nb_linkval/2</A>, <A NAME="idx:nbsetarg3:845"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A> 
-and <A NAME="idx:nblinkarg3:846"></A><A class="pred" href="manipterm.html#nb_linkarg/3">nb_linkarg/3</A>.
+modification using <A NAME="idx:setarg3:847"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A> 
+does not affect the copy. See also <A NAME="idx:nbsetval2:848"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A>, <A NAME="idx:nblinkval2:849"></A><A class="pred" href="gvar.html#nb_linkval/2">nb_linkval/2</A>, <A NAME="idx:nbsetarg3:850"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A> 
+and <A NAME="idx:nblinkarg3:851"></A><A class="pred" href="manipterm.html#nb_linkarg/3">nb_linkarg/3</A>.
 </DD>
 </DL>
 

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.39 Reference Manual: Section 2.11</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.40 Reference Manual: Section 2.11</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="compilation.html">
@@ -215,7 +215,7 @@ between backquotes into a string object (see <A class="sec" href="strings.html">
 ISO Prolog flag. If <CODE>true</CODE>, integer representation is bound 
 by
 <A class="flag" href="flags.html#flag:min_integer">min_integer</A> and <A class="flag" href="flags.html#flag:max_integer">max_integer</A>. 
-If <CODE>false</CODE> integers can be arbitrary large and the <A class="flag" href="flags.html#flag:min_integer">min_integer</A> 
+If <CODE>false</CODE> integers can be arbitrarily large and the <A class="flag" href="flags.html#flag:min_integer">min_integer</A> 
 and
 <A class="flag" href="flags.html#flag:max_integer">max_integer</A> are 
 not present. See <A class="sec" href="arith.html">section 4.26.2.1</A>.</DD>
@@ -503,22 +503,14 @@ is implementation defined.</DD>
 If true, <CODE>open(pipe(command), mode, Stream)</CODE>, etc. are 
 supported. Can be changed to disable the use of pipes in applications 
 testing this feature. Not recommended.</DD>
-<DT class="pubdef"><A NAME="flag:prompt_alternatives_no_bindings"><STRONG>prompt_alternatives_no_bindings</STRONG>(<VAR>bool</VAR>, changeable)</A></DT>
+<DT class="pubdef"><A NAME="flag:prompt_alternatives_on"><STRONG>prompt_alternatives_on</STRONG>(<VAR>atom</VAR>, changeable)</A></DT>
 <DD class="defbody">
-If present and true, the top-level prints for alternatives if the query 
-succeeded with pending choice-point, regardless of whether or not the 
-query has variables. As there are no variables to bind it prints the 
-answer <I>More?</I>. Here is an example
-
-<PRE class="code">
-?- set_prolog_flag(prompt_alternatives_no_bindings, true).
-?- (write(hello);write(world)).
-hello
-More? ;
-world
-</PRE>
-
-</DD>
+<A NAME="idx:promptalternatives:150"></A>Determines prompting for 
+alternatives in the Prolog toplevel. Default is
+<CODE>determinism</CODE>, which implies the system prompts for 
+alternatives if the goal succeeded while leaving choicepoints. Many 
+classical Prolog systems behave as <CODE>groundness</CODE>: they prompt 
+for alternatives if and only if the query contains variables.</DD>
 <DT class="pubdef"><A NAME="flag:readline"><STRONG>readline</STRONG>(<VAR>bool</VAR>)</A></DT>
 <DD class="defbody">
 If true, SWI-Prolog is linked with the readline library. This is done by 
@@ -529,7 +521,7 @@ subset of the readline functionality.</DD>
 <DD class="defbody">
 Set to the absolute-filename of the attached state. Typically this is 
 the file <CODE>boot32.prc</CODE>, the file specified with <STRONG>-x</STRONG> 
-or the running executable. See also <A NAME="idx:resource3:150"></A><A class="pred" href="useresource.html#resource/3">resource/3</A>.</DD>
+or the running executable. See also <A NAME="idx:resource3:151"></A><A class="pred" href="useresource.html#resource/3">resource/3</A>.</DD>
 <DT class="pubdef"><A NAME="flag:report_error"><STRONG>report_error</STRONG>(<VAR>bool</VAR>, changeable)</A></DT>
 <DD class="defbody">
 If <CODE>true</CODE>, print error messages, otherwise suppress them. May 
@@ -544,14 +536,14 @@ the tracer and profiler).</DD>
 <DT class="pubdef"><A NAME="flag:saved_program"><STRONG>saved_program</STRONG>(<VAR>bool</VAR>)</A></DT>
 <DD class="defbody">
 If present and <CODE>true</CODE>, Prolog has been started from a state 
-saved with <A NAME="idx:qsaveprogram12:151"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.</DD>
+saved with <A NAME="idx:qsaveprogram12:152"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.</DD>
 <DT class="pubdef"><A NAME="flag:shared_object_extension"><STRONG>shared_object_extension</STRONG>(<VAR>atom</VAR>)</A></DT>
 <DD class="defbody">
 Extension used by the operating system for shared objects. <CODE>.so</CODE> 
 for most Unix systems and <CODE>.dll</CODE> for Windows. Used for 
 locating files using the <CODE>file_type</CODE> <CODE>executable</CODE>. 
 See also
-<A NAME="idx:absolutefilename3:152"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>.</DD>
+<A NAME="idx:absolutefilename3:153"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>.</DD>
 <DT class="pubdef"><A NAME="flag:shared_object_search_path"><STRONG>shared_object_search_path</STRONG>(<VAR>atom</VAR>)</A></DT>
 <DD class="defbody">
 Name of the environment variable used by the system to search for shared 
@@ -569,7 +561,7 @@ details.</DD>
 Available in multi-threaded version (see <A class="sec" href="threads.html">section 
 8</A>) where the operating system provides system-wide integer thread 
 identifiers. The integer is the thread-identifier used by the operating 
-system for the calling thread. See also <A NAME="idx:threadself1:153"></A><A class="pred" href="threadcreate.html#thread_self/1">thread_self/1</A>.</DD>
+system for the calling thread. See also <A NAME="idx:threadself1:154"></A><A class="pred" href="threadcreate.html#thread_self/1">thread_self/1</A>.</DD>
 <DT class="pubdef"><A NAME="flag:last_call_optimisation"><STRONG>last_call_optimisation</STRONG>(<VAR>bool</VAR>, changeable)</A></DT>
 <DD class="defbody">
 Determines whether or not last-call optimisation is enabled. Normally 
@@ -580,7 +572,7 @@ omitted, it is sometimes necessary to enable it during debugging.</DD>
 <DD class="defbody">
 Offset in seconds west of GMT of the current time-zone. Set at 
 initialization time from the <CODE>timezone</CODE> variable associated 
-with the POSIX tzset() function. See also <A NAME="idx:converttime2:154"></A><SPAN class="pred-ext">convert_time/2</SPAN>.</DD>
+with the POSIX tzset() function. See also <A NAME="idx:converttime2:155"></A><SPAN class="pred-ext">convert_time/2</SPAN>.</DD>
 <DT class="pubdef"><A NAME="flag:toplevel_print_anon"><STRONG>toplevel_print_anon</STRONG>(<VAR>bool</VAR>, changeable)</A></DT>
 <DD class="defbody">
 If <CODE>true</CODE>, top-level variables starting with an underscore (<CODE>_</CODE>) 
@@ -588,7 +580,7 @@ are printed normally. If <CODE>false</CODE> they are hidden. This may be
 used to hide bindings in complex queries from the top-level.</DD>
 <DT class="pubdef"><A NAME="flag:toplevel_print_options"><STRONG>toplevel_print_options</STRONG>(<VAR>term</VAR>, changeable)</A></DT>
 <DD class="defbody">
-This argument is given as option-list to <A NAME="idx:writeterm2:155"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
+This argument is given as option-list to <A NAME="idx:writeterm2:156"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
 for printing results of queries. Default is <CODE>[quoted(true), 
 portray(true), max_depth(10), attributes(portray)]</CODE>.</DD>
 <DT class="pubdef"><A NAME="flag:toplevel_var_size"><STRONG>toplevel_var_size</STRONG>(<VAR>int</VAR>, changeable)</A></DT>
@@ -615,12 +607,12 @@ is an example output.
 <DT class="pubdef"><A NAME="flag:tty_control"><STRONG>tty_control</STRONG>(<VAR>bool</VAR>)</A></DT>
 <DD class="defbody">
 Determines whether the terminal is switched to raw mode for
-<A NAME="idx:getsinglechar1:156"></A><A class="pred" href="chario.html#get_single_char/1">get_single_char/1</A>, 
+<A NAME="idx:getsinglechar1:157"></A><A class="pred" href="chario.html#get_single_char/1">get_single_char/1</A>, 
 which also reads the user-actions for the trace. May be set. See also 
 the <STRONG>+/-tty</STRONG> command-line option.</DD>
 <DT class="pubdef"><A NAME="flag:unix"><STRONG>unix</STRONG>(<VAR>bool</VAR>)</A></DT>
 <DD class="defbody">
-<A NAME="idx:unix:157"></A>If present and <CODE>true</CODE>, the 
+<A NAME="idx:unix:158"></A>If present and <CODE>true</CODE>, the 
 operating system is some version of Unix. Defined if the C-compiler used 
 to compile this version of SWI-Prolog either defines <CODE>__unix__</CODE> 
 or <CODE>unix</CODE>. On other systems this flag is not available.</DD>
@@ -633,11 +625,11 @@ not defined and if <CODE>error</CODE> (default), an <CODE>existence_error</CODE>
 exception is raised. This flag is local to each module. Switching this 
 flag to
 <CODE>fail</CODE> disables autoloading and thus forces complete and 
-consistent use of <A NAME="idx:usemodule12:158"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
+consistent use of <A NAME="idx:usemodule12:159"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
 to load the required libraries.</DD>
 <DT class="pubdef"><A NAME="flag:verbose"><STRONG>verbose</STRONG>(<VAR>Atom</VAR>, changeable)</A></DT>
 <DD class="defbody">
-This flags is used by <A NAME="idx:printmessage2:159"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A>. 
+This flags is used by <A NAME="idx:printmessage2:160"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A>. 
 If its value is <CODE>silent</CODE>, messages of type <CODE>informational</CODE> 
 and <CODE>banner</CODE> are suppressed. The <STRONG>-q</STRONG> switches 
 the value from the initial
@@ -652,13 +644,13 @@ to be used for debugging purposes.</DD>
 If <CODE>false</CODE> normal consult messages will be suppressed. 
 Default is
 <CODE>true</CODE>. The value of this flag is normally controlled by the 
-option <CODE>silent(Bool)</CODE> privided by <A NAME="idx:loadfiles2:160"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>.</DD>
+option <CODE>silent(Bool)</CODE> privided by <A NAME="idx:loadfiles2:161"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>.</DD>
 <DT class="pubdef"><A NAME="flag:verbose_file_search"><STRONG>verbose_file_search</STRONG>(<VAR>bool</VAR>, changeable)</A></DT>
 <DD class="defbody">
 If <CODE>true</CODE> (default <CODE>false</CODE>), print messages 
-indicating the progress of <A NAME="idx:absolutefilename23:161"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/[2,3]</A> 
+indicating the progress of <A NAME="idx:absolutefilename23:162"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/[2,3]</A> 
 in locating files. Intended for debugging complicated file-search paths. 
-See also <A NAME="idx:filesearchpath2:162"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>.</DD>
+See also <A NAME="idx:filesearchpath2:163"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>.</DD>
 <DT class="pubdef"><A NAME="flag:version"><STRONG>version</STRONG>(<VAR>integer</VAR>)</A></DT>
 <DD class="defbody">
 The version identifier is an integer with value: 
@@ -669,19 +661,19 @@ holding the three numbers separated by dots. The current representation
 is much easier for implementing version-conditional statements.</DD>
 <DT class="pubdef"><A NAME="flag:windows"><STRONG>windows</STRONG>(<VAR>bool</VAR>)</A></DT>
 <DD class="defbody">
-<A NAME="idx:windows:163"></A>If present and <CODE>true</CODE>, the 
+<A NAME="idx:windows:164"></A>If present and <CODE>true</CODE>, the 
 operating system is an implementation of Microsoft Windows (NT/2000/XP, 
 etc.). This flag is only available on MS-Windows based versions.</DD>
 <DT class="pubdef"><A NAME="flag:write_attributes"><STRONG>write_attributes</STRONG>(<VAR>atom</VAR>, changeable)</A></DT>
 <DD class="defbody">
-Defines how <A NAME="idx:write1:164"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
+Defines how <A NAME="idx:write1:165"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
 and friends write attributed variables. The option values are described 
 with the <CODE>attributes</CODE> option of
-<A NAME="idx:writeterm3:165"></A><A class="pred" href="termrw.html#write_term/3">write_term/3</A>. 
+<A NAME="idx:writeterm3:166"></A><A class="pred" href="termrw.html#write_term/3">write_term/3</A>. 
 Default is <CODE>ignore</CODE>.</DD>
 <DT class="pubdef"><A NAME="flag:write_help_with_overstrike"><STRONG>write_help_with_overstrike</STRONG>(<VAR>bool</VAR>)</A></DT>
 <DD class="defbody">
-Internal flag used by <A NAME="idx:help1:166"></A><A class="pred" href="help.html#help/1">help/1</A> 
+Internal flag used by <A NAME="idx:help1:167"></A><A class="pred" href="help.html#help/1">help/1</A> 
 when writing to a terminal. If present and <CODE>true</CODE> it prints 
 bold and underlined text using
 <EM>overstrike</EM>.</DD>

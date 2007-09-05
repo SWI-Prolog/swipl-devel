@@ -855,6 +855,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			addUTF8Buffer(cbuf, '%');
 			continue;
 		      }
+		      Sungetcode(c, rb.stream); /* unsafe: see Sungetcode() */
+		      c = '\n';
 		    }
 		    break;
 		  }
@@ -867,7 +869,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      addToBuffer(' ', _PL_rd);
 		  }
 		}
-		goto handle_c;
+		goto handle_c;		/* is the newline */
      case '\'': if ( rb.here > rb.base && isDigit(rb.here[-1]) )
 		{ addToBuffer(c, _PL_rd); 		/* <n>' */
 		  if ( rb.here[-2] == '0' )		/* 0'<c> */

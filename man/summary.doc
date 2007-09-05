@@ -218,7 +218,7 @@ suggest predicates from a keyword.
 \predicatesummary{file_search_path}{2}{Define path-aliases for locating files}
 \predicatesummary{fileerrors}{2}{Do/Don't warn on file errors}
 \predicatesummary{findall}{3}{Find all solutions to a goal}
-\predicatesummary{findall}{3}{Difference list version of findall/3}
+\predicatesummary{findall}{4}{Difference list version of findall/3}
 \predicatesummary{flag}{3}{Simple global variable system}
 \predicatesummary{float}{1}{Type check for a floating point number}
 \predicatesummary{flush_output}{0}{Output pending characters on current stream}

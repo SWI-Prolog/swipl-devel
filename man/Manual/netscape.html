@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.39 Reference Manual: Section A.10</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.40 Reference Manual: Section A.10</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="readutil.html">
@@ -139,17 +139,17 @@ and browser specific task. It distinguishes between the following cases:
 <P>
 <UL>
 <LI><I>MS-Windows</I><BR>
-If it detects MS-Windows it uses <A NAME="idx:winshell2:1431"></A><A class="pred" href="system.html#win_shell/2">win_shell/2</A> 
+If it detects MS-Windows it uses <A NAME="idx:winshell2:1438"></A><A class="pred" href="system.html#win_shell/2">win_shell/2</A> 
 to open the <VAR>URL</VAR>. The behaviour and browser started depends on 
 the Window and Windows-shell configuration, but in general it should be 
 the behaviour expected by the user.
 
 <P>
 <LI><I>Other platforms</I><BR>
-On other platforms it tests the environment variable (see <A NAME="idx:getenv2:1432"></A><A class="pred" href="system.html#getenv/2">getenv/2</A>) 
+On other platforms it tests the environment variable (see <A NAME="idx:getenv2:1439"></A><A class="pred" href="system.html#getenv/2">getenv/2</A>) 
 named <CODE>BROWSER</CODE> or uses <B>netscape</B> if this variable is 
 not set. If the browser is either <CODE>mozilla</CODE> or <CODE>netscape</CODE>,
-<A NAME="idx:wwwopenurl1:1433"></A><A class="pred" href="netscape.html#www_open_url/1">www_open_url/1</A> 
+<A NAME="idx:wwwopenurl1:1440"></A><A class="pred" href="netscape.html#www_open_url/1">www_open_url/1</A> 
 first tries to open a new window on a running using the <CODE>-remote</CODE> 
 option of netscape. If this fails or the browser is not <CODE>mozilla</CODE> 
 or <CODE>netscape</CODE> the system simply passes the URL as first 

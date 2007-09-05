@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.39 Reference Manual: Section 2.13</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.40 Reference Manual: Section 2.13</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="hooks.html">
@@ -129,23 +129,23 @@ loading of libraries</SPAN></A></H2>
 first try to import the predicate from the module's default module. If 
 this fails the <EM>auto loader</EM> is activated. On first activation an 
 index to all library files in all library directories is loaded in core 
-(see <A NAME="idx:librarydirectory1:188"></A><A class="pred" href="consulting.html#library_directory/1">library_directory/1</A> 
-and <A NAME="idx:filesearchpath2:189"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>). 
+(see <A NAME="idx:librarydirectory1:189"></A><A class="pred" href="consulting.html#library_directory/1">library_directory/1</A> 
+and <A NAME="idx:filesearchpath2:190"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>). 
 If the undefined predicate can be located in one of the libraries that 
 library file is automatically loaded and the call to the (previously 
 undefined) predicate is restarted. By default this mechanism loads the 
-file silently. The <A NAME="idx:currentprologflag2:190"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> <A class="flag" href="flags.html#flag:verbose_autoload">verbose_autoload</A> 
+file silently. The <A NAME="idx:currentprologflag2:191"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> <A class="flag" href="flags.html#flag:verbose_autoload">verbose_autoload</A> 
 is provided to get verbose loading. The Prolog flag <A class="flag" href="flags.html#flag:autoload">autoload</A> 
 can be used to enable/disable the entire auto load system.
 
-<P>The auto-loader only works if the unknown flag (see <A NAME="idx:unknown2:191"></A><A class="pred" href="debugger.html#unknown/2">unknown/2</A>) 
+<P>The auto-loader only works if the unknown flag (see <A NAME="idx:unknown2:192"></A><A class="pred" href="debugger.html#unknown/2">unknown/2</A>) 
 is set to
 <CODE>trace</CODE> (default). A more appropriate interaction with this 
 flag should be considered.
 
 <P>Autoloading only handles (library) source files that use the module 
 mechanism described in <A class="sec" href="modules.html">chapter 5</A>. 
-The files are loaded with <A NAME="idx:usemodule2:192"></A><A class="pred" href="import.html#use_module/2">use_module/2</A> 
+The files are loaded with <A NAME="idx:usemodule2:193"></A><A class="pred" href="import.html#use_module/2">use_module/2</A> 
 and only the trapped undefined predicate will be imported to the module 
 where the undefined predicate was called. Each library directory must 
 hold a file <CODE>INDEX.pl</CODE> that contains an index to all library 
@@ -156,17 +156,17 @@ format:
 index(Name, Arity, Module, File).
 </PRE>
 
-<P>The predicate <A NAME="idx:make0:193"></A><A class="pred" href="consulting.html#make/0">make/0</A> 
-updates the autoload index. It searches for all library directories (see <A NAME="idx:librarydirectory1:194"></A><A class="pred" href="consulting.html#library_directory/1">library_directory/1</A> 
-and <A NAME="idx:filesearchpath2:195"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>) 
+<P>The predicate <A NAME="idx:make0:194"></A><A class="pred" href="consulting.html#make/0">make/0</A> 
+updates the autoload index. It searches for all library directories (see <A NAME="idx:librarydirectory1:195"></A><A class="pred" href="consulting.html#library_directory/1">library_directory/1</A> 
+and <A NAME="idx:filesearchpath2:196"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>) 
 holding the file <CODE>MKINDEX.pl</CODE> or <CODE>INDEX.pl</CODE>. If 
 the current user can write or create the file <CODE>INDEX.pl</CODE> and 
 it does not exist or is older than the directory or one of its files, 
 the index for this directory is updated. If the file <CODE>MKINDEX.pl</CODE> 
 exists updating is achieved by loading this file, normally containing a 
 directive calling
-<A NAME="idx:makelibraryindex2:196"></A><A class="pred" href="autoload.html#make_library_index/2">make_library_index/2</A>. 
-Otherwise <A NAME="idx:makelibraryindex1:197"></A><A class="pred" href="autoload.html#make_library_index/1">make_library_index/1</A> 
+<A NAME="idx:makelibraryindex2:197"></A><A class="pred" href="autoload.html#make_library_index/2">make_library_index/2</A>. 
+Otherwise <A NAME="idx:makelibraryindex1:198"></A><A class="pred" href="autoload.html#make_library_index/1">make_library_index/1</A> 
 is called, creating an index for all <CODE>*.pl</CODE> files containing 
 a module.
 
@@ -185,7 +185,7 @@ predicate the following search schema is followed:
 <LI>If there is a library file that defines the module in which the 
 undefined predicate is trapped, this file is used.
 <LI>Otherwise library files are considered in the order they appear in 
-the <A NAME="idx:librarydirectory1:198"></A><A class="pred" href="consulting.html#library_directory/1">library_directory/1</A> 
+the <A NAME="idx:librarydirectory1:199"></A><A class="pred" href="consulting.html#library_directory/1">library_directory/1</A> 
 predicate and within the directory alphabetically.
 </OL>
 
@@ -222,17 +222,17 @@ predicates for the XPCE package.
 <DT class="pubdef"><A NAME="reload_library_index/0"><STRONG>reload_library_index</STRONG></A></DT>
 <DD class="defbody">
 Force reloading the index after modifying the set of library directories 
-by changing the rules for <A NAME="idx:librarydirectory1:199"></A><A class="pred" href="consulting.html#library_directory/1">library_directory/1</A>, <A NAME="idx:filesearchpath2:200"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>, 
+by changing the rules for <A NAME="idx:librarydirectory1:200"></A><A class="pred" href="consulting.html#library_directory/1">library_directory/1</A>, <A NAME="idx:filesearchpath2:201"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>, 
 adding or deleting <CODE>INDEX.pl</CODE> files. This predicate does <EM>not</EM> 
-update the <CODE>INDEX.pl</CODE> files. Check <A NAME="idx:makelibraryindex12:201"></A><A class="pred" href="autoload.html#make_library_index/1">make_library_index/[1,2]</A> 
+update the <CODE>INDEX.pl</CODE> files. Check <A NAME="idx:makelibraryindex12:202"></A><A class="pred" href="autoload.html#make_library_index/1">make_library_index/[1,2]</A> 
 and
-<A NAME="idx:make0:202"></A><A class="pred" href="consulting.html#make/0">make/0</A> 
+<A NAME="idx:make0:203"></A><A class="pred" href="consulting.html#make/0">make/0</A> 
 for updating the index files.
 
 <P>Normally, the index is reloaded automatically if a predicate cannot 
 be found in the index and the set of library directories has changed. 
 Using
-<A NAME="idx:reloadlibraryindex0:203"></A><A class="pred" href="autoload.html#reload_library_index/0">reload_library_index/0</A> 
+<A NAME="idx:reloadlibraryindex0:204"></A><A class="pred" href="autoload.html#reload_library_index/0">reload_library_index/0</A> 
 is necessary if directories are removed or the order of the library 
 directories is changed.
 </DD>

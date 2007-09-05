@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.39 Reference Manual: Section 2.18</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.40 Reference Manual: Section 2.18</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="widechars.html">
@@ -147,11 +147,11 @@ bytes.
 <P>The PrologScript facility described in <A class="sec" href="compilation.html">section 
 2.10.2.1</A> provides a mechanism for specifying options with the 
 load-file. On Windows the default stack-sizes are controlled using the 
-Windows <A NAME="idx:registry:251">registry</A> on the key <CODE>HKEY_CURRENT_USER\Software\SWI\Prolog</CODE> 
+Windows <A NAME="idx:registry:252">registry</A> on the key <CODE>HKEY_CURRENT_USER\Software\SWI\Prolog</CODE> 
 using the names <CODE>localSize</CODE>, <CODE>globalSize</CODE> and <CODE>trailSize</CODE>. 
 The value is a <CODE>DWORD</CODE> expressing the default stack size in 
 Kbytes. A GUI for modifying these values is provided using the XPCE 
-package. To use this, start the XPCE manual tools using <A NAME="idx:manpce0:252"></A><SPAN class="pred-ext">manpce/0</SPAN>, 
+package. To use this, start the XPCE manual tools using <A NAME="idx:manpce0:253"></A><SPAN class="pred-ext">manpce/0</SPAN>, 
 after which you find <I>Preferences</I> in the <I>File</I> menu.
 
 <P>
@@ -200,7 +200,7 @@ heap</SPAN></A></H4>
 
 <A NAME="sec:heap"></A>
 
-<P><A NAME="idx:stackmemorymanagement:253"></A><A NAME="idx:memorylayout:254"></A>With 
+<P><A NAME="idx:stackmemorymanagement:254"></A><A NAME="idx:memorylayout:255"></A>With 
 the heap, we refer to the memory area used by malloc() and friends. 
 SWI-Prolog uses the area to store atoms, functors, predicates and their 
 clauses, records and other dynamic data. As of SWI-Prolog 2.8.5, no 
@@ -225,10 +225,10 @@ head), which is limited to 1024. Raising this limit is easy and
 relatively cheap, removing it is harder.</DD>
 <DT><B>Atoms and Strings</B></DT>
 <DD>
-SWI-Prolog has no limits on the sizes of atoms and strings. <A NAME="idx:read1:255"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
+SWI-Prolog has no limits on the sizes of atoms and strings. <A NAME="idx:read1:256"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
 and its derivatives however normally limit the number of newlines in an 
 atom or string to 5 to improve error detection and recovery. This can be 
-switched off with <A NAME="idx:stylecheck1:256"></A><A class="pred" href="debugger.html#style_check/1">style_check/1</A>.
+switched off with <A NAME="idx:stylecheck1:257"></A><A class="pred" href="debugger.html#style_check/1">style_check/1</A>.
 
 <P>The number of atoms is limited to 16777216 (16M) on 32-bit machines. 
 On 64-bit machines this is virtually unlimited. See also <A class="sec" href="foreigninclude.html">section 
@@ -278,6 +278,6 @@ the module system. As large parts of the system are written in Prolog
 itself we need some way to avoid name clashes with the user's 
 predicates, database keys, etc. Like Edinburgh C-Prolog <CITE><A class="cite" href="Bibliography.html#CPROLOG:manual">Pereira, 
 1986</A></CITE> all predicates, database keys, etc. that should be 
-hidden from the user start with a dollar (<CODE>$</CODE>) sign (see <A NAME="idx:stylecheck1:257"></A><A class="pred" href="debugger.html#style_check/1">style_check/1</A>).
+hidden from the user start with a dollar (<CODE>$</CODE>) sign (see <A NAME="idx:stylecheck1:258"></A><A class="pred" href="debugger.html#style_check/1">style_check/1</A>).
 
 <P></BODY></HTML>

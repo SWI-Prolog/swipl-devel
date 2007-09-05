@@ -1507,6 +1507,7 @@ typedef struct PL_blob_t
   int			(*release)(atom_t a);
   int			(*compare)(atom_t a, atom_t b);
   int			(*write)(IOSTREAM *s, atom_t a, int flags);
+  int			(*acquire)(atom_t a);
   ...
 } PL_blob_t;
 \end{code}
