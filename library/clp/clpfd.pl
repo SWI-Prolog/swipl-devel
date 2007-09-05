@@ -941,8 +941,8 @@ label(Vs) :- labeling([], Vs).
 %
 
 labeling(Options, Vars) :-
-        must_be(proper_list, Options),
-        must_be(proper_list, Vars),
+        must_be(list, Options),
+        must_be(list, Vars),
         maplist(finite_domain, Vars),
         label(Options, leftmost, up, none, Vars).
 
@@ -1526,7 +1526,7 @@ fd_variable(V) :-
 
 Vs ins D :-
         (   var(Vs) -> true
-        ;   must_be(proper_list, Vs),
+        ;   must_be(list, Vs),
             maplist(fd_variable, Vs)
         ),
         (   is_drep(D) -> true
