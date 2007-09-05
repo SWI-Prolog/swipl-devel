@@ -869,8 +869,8 @@ intervals_to_domain(Is, D) :-
 
 %% indomain(?Var)
 %
-% Bind 'Var' to all feasible values of its domain on backtracking. The
-% domain of 'Var' must be finite.
+% Bind Var to all feasible values of its domain on backtracking. The
+% domain of Var must be finite.
 
 indomain(Var) :-
         (   var(Var) ->
@@ -903,15 +903,15 @@ label(Vs) :- labeling([], Vs).
 %% labeling(+Options, +Vars)
 %
 % Labeling means systematically trying out values for the finite
-% domain variables 'Vars' until all of them are ground. The domain of
-% each variable in 'Vars' must be finite. 'Options' is a list of
-% options that let you exhibit some control over the search process.
-% Two sets of options exist: One for variable selection strategy, and
-% one for optimisation. The variable selection strategy lets you
-% specify which variable should be labeled next and is one of:
+% domain variables Vars until all of them are ground. The domain of
+% each variable in Vars must be finite. Options is a list of options
+% that let you exhibit some control over the search process. Two sets
+% of options exist: One for variable selection strategy, and one for
+% optimisation. The variable selection strategy lets you specify which
+% variable should be labeled next and is one of:
 %
 %   * leftmost
-% Label the variables in the order they occur in 'Vars'. This is the
+% Label the variables in the order they occur in Vars. This is the
 % default.
 %
 %   * ff
@@ -931,8 +931,8 @@ label(Vs) :- labeling([], Vs).
 %   * max(Expr)
 %
 % This generates solutions in ascending/descending order with respect
-% to the evaluation of the arithmetic expression 'Expr'. All variables
-% of 'Expr' must also be contained in 'Vars'.
+% to the evaluation of the arithmetic expression Expr. All variables
+% of Expr must also be contained in Vars.
 %
 % If more than one option of a category is specified, the one
 % occurring rightmost in the option list takes precedence over all
@@ -1117,7 +1117,7 @@ optimize(Direction, Selection, Order, Vars, Expr0, Expr) :-
 
 %% all_different(+Vars)
 %
-% Constrain 'Vars' to be pairwise distinct.
+% Constrain Vars to be pairwise distinct.
 
 all_different(Ls) :-
         length(Ls, _),
@@ -1136,8 +1136,8 @@ all_different([X|Right], Left) :-
 
 %% sum(+Vars, +Op, +Expr)
 %
-% Constrain the sum of all integers or variables in 'Vars' to the
-% relation 'Op' (for example: #=<) with respect to Expr.
+% Constrain the sum of all integers or variables in Vars to the
+% relation Op (for example: #=<) with respect to Expr.
 
 sum(Ls, Op, Value) :- sum(Ls, 0, Op, Value).
 
@@ -1412,11 +1412,25 @@ X #> Y  :- Z #= Y + 1, X #>= Z.
 
 X #< Y  :- Y #> X.
 
+%% #\(+Q)
+%
+% The reifiable constraint Q does not hold.
+
 #\ Q       :- reify(Q, 0), do_queue.
 L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 L #==> R   :- reify(L, BL), reify(R, BR), myimpl(BL, BR), do_queue.
 L #<== R   :- reify(L, BL), reify(R, BR), myimpl(BR, BL), do_queue.
+
+%% #/\(A, B)
+%
+% A and B hold.
+
 L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
+
+%% #\/(A, B)
+%
+% A or B holds.
+
 L #\/ R    :- reify(L, BL), reify(R, BR), myor(BL, BR, 1), do_queue.
 
 myor(X, Y, Z) :-
@@ -1525,7 +1539,7 @@ merge_remaining([N-M|NMs], B0, B, Rest) :-
 
 %% in(+Var, +Domain)
 %
-%  Constrain 'Var' to elements of 'Domain'. 'Domain' is one of:
+%  Constrain Var to elements of Domain. Domain is one of:
 %
 %         * Lower..Upper
 %           All integers I such that Lower =< I =< Upper. The atoms
@@ -1550,7 +1564,7 @@ fd_variable(V) :-
 
 %% ins(?Vars, +Domain)
 %
-%  Constrain the variables or integers in 'Vars' to 'Domain'.
+%  Constrain the variables or integers in Vars to Domain.
 
 Vs ins D :-
         (   var(Vs) -> true
