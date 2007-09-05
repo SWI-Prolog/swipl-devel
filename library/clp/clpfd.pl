@@ -178,8 +178,8 @@ The most important finite domain _constraints_ are:
     * Expr #> Expr
     * Expr #< Expr
 
-The constraints #=/2, #\=/2, #</2, #>/2, #=</2, #>=/2 can be
-_reified_, which means reflecting their truth values into Boolean
+The constraints #=/2, #\=/2, #</2, #>/2, #=</2, #>=/2 and #\/1 can be
+_reified_, which means reflecting their truth values into Boolean 0/1
 variables. Let P and Q denote conjunctions ((#/\)/2) or disjunctions
 ((#\/)/2) of reifiable constraints or Boolean variables, then:
 
@@ -867,6 +867,46 @@ intervals_to_domain(Is, D) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+%% in(+Var, +Domain)
+%
+%  Constrain Var to elements of Domain. Domain is one of:
+%
+%         * Lower..Upper
+%           All integers _I_ such that _Lower_ =< _I_ =< _Upper_. The atoms
+%           *inf* and *sup* denote negative and positive infinity,
+%           respectively.
+%         * Domain1 \/ Domain2
+%           The union of Domain1 and Domain2.
+
+V in D :-
+        fd_variable(V),
+        (   is_drep(D) -> true
+        ;   must_be(integer, D)
+        ),
+        drep_to_domain(D, Dom),
+        domain(V, Dom).
+
+fd_variable(V) :-
+        (   var(V) -> true
+        ;   integer(V) -> true
+        ;   type_error(integer, V)
+        ).
+
+%% ins(?Vars, +Domain)
+%
+%  Constrain the variables or integers in Vars to Domain.
+
+Vs ins D :-
+        (   var(Vs) -> true
+        ;   must_be(list, Vs),
+            maplist(fd_variable, Vs)
+        ),
+        (   is_drep(D) -> true
+        ;   must_be(integer, D)
+        ),
+        drep_to_domain(D, Dom),
+        domains(Vs, Dom).
+
 %% indomain(?Var)
 %
 % Bind Var to all feasible values of its domain on backtracking. The
@@ -1147,98 +1187,6 @@ sum([X|Xs], Acc, Op, Value) :-
         sum(Xs, NAcc, Op, Value).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-lex_chain([]).
-lex_chain([Ls|Lss]) :-
-        lex_chain_lag(Lss, Ls),
-        lex_chain(Lss).
-
-lex_chain_lag([], _).
-lex_chain_lag([Ls|Lss], Ls0) :-
-        lex_le(Ls0, Ls),
-        lex_chain_lag(Lss, Ls).
-
-lex_le([], []).
-lex_le([V1|V1s], [V2|V2s]) :-
-        V1 #=< V2,
-        (   integer(V1) ->
-            (   integer(V2) ->
-                (   V1 =:= V2 -> lex_le(V1s, V2s) ;  true )
-            ;   freeze(V2, lex_le([V1|V1s], [V2|V2s]))
-            )
-        ;   freeze(V1, lex_le([V1|V1s], [V2|V2s]))
-        ).
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-tuples_in(Tuples, Relation) :-
-        ground(Relation),
-        tuples_domain(Tuples, Relation),
-        do_queue.
-
-tuples_domain([], _).
-tuples_domain([Tuple|Tuples], Relation) :-
-        relation_unifiable(Relation, Tuple, Us, 0, _),
-        (   ground(Tuple) -> memberchk(Tuple, Relation)
-        ;   tuple_domain(Tuple, Us),
-            tuple_freeze(Tuple, Us)
-        ),
-        tuples_domain(Tuples, Relation).
-
-tuple_domain([], _).
-tuple_domain([T|Ts], Relation0) :-
-        take_firsts(Relation0, Firsts, Relation1),
-        ( var(T) ->
-            (   Firsts = [Unique] -> T = Unique
-            ;   list_to_domain(Firsts, FDom),
-                get(T, TDom, TPs),
-                domains_intersection(FDom, TDom, TDom1),
-                put(T, TDom1, TPs)
-            )
-        ;   true
-        ),
-        tuple_domain(Ts, Relation1).
-
-take_firsts([], [], []).
-take_firsts([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
-        take_firsts(Rest, Fs, Oss).
-
-tuple_freeze(Tuple, Relation) :-
-        gensym('$clpfd_rel_', RID),
-        nb_setval(RID, Relation),
-        Prop = propagator(rel_tuple(RID,Tuple), mutable(passive)),
-        tuple_freeze(Tuple, Tuple, Prop).
-
-tuple_freeze([],  _, _).
-tuple_freeze([T|Ts], Tuple, Prop) :-
-        ( var(T) ->
-            %Prop = propagator(rel_tuple(RID,Tuple), mutable(passive)),
-            init_propagator(T, Prop),
-            trigger_prop(Prop)
-        ;   true
-        ),
-        tuple_freeze(Ts, Tuple, Prop).
-
-relation_unifiable([], _, [], Changed, Changed).
-relation_unifiable([R|Rs], Tuple, Us, Changed0, Changed) :-
-        (   all_in_domain(R, Tuple) ->
-            Us = [R|Rest],
-            relation_unifiable(Rs, Tuple, Rest, Changed0, Changed)
-        ;   relation_unifiable(Rs, Tuple, Us, 1, Changed)
-        ).
-
-all_in_domain([], []).
-all_in_domain([A|As], [T|Ts]) :-
-        ( var(T) ->
-            get(T, Dom, _),
-            domain_contains(Dom, A)
-        ;   T =:= A
-        ),
-        all_in_domain(As, Ts).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Constraint propagation proceeds as follows: Each CLP(FD) variable
@@ -1417,8 +1365,23 @@ X #< Y  :- Y #> X.
 % The reifiable constraint Q does _not_ hold.
 
 #\ Q       :- reify(Q, 0), do_queue.
+
+%% P #<==> Q
+%
+% P and Q are equivalent.
+
 L #<==> R  :- reify(L, B), reify(R, B), do_queue.
+
+%% P #==> Q
+%
+% P implies Q.
+
 L #==> R   :- reify(L, BL), reify(R, BR), myimpl(BL, BR), do_queue.
+
+%% P #<== Q
+%
+% Q implies P.
+
 L #<== R   :- reify(L, BL), reify(R, BR), myimpl(BR, BL), do_queue.
 
 %% #/\(P, Q)
@@ -1537,46 +1500,6 @@ merge_remaining([N-M|NMs], B0, B, Rest) :-
             merge_remaining(NMs, B1, B, Rest)
         ).
 
-%% in(+Var, +Domain)
-%
-%  Constrain Var to elements of Domain. Domain is one of:
-%
-%         * Lower..Upper
-%           All integers I such that Lower =< I =< Upper. The atoms
-%           "inf" and "sup" denote negative and positive infinity,
-%           respectively.
-%         * Domain1 \/ Domain2
-%           The union of Domain1 and Domain2.
-
-V in D :-
-        fd_variable(V),
-        (   is_drep(D) -> true
-        ;   must_be(integer, D)
-        ),
-        drep_to_domain(D, Dom),
-        domain(V, Dom).
-
-fd_variable(V) :-
-        (   var(V) -> true
-        ;   integer(V) -> true
-        ;   type_error(integer, V)
-        ).
-
-%% ins(?Vars, +Domain)
-%
-%  Constrain the variables or integers in Vars to Domain.
-
-Vs ins D :-
-        (   var(Vs) -> true
-        ;   must_be(list, Vs),
-            maplist(fd_variable, Vs)
-        ),
-        (   is_drep(D) -> true
-        ;   must_be(integer, D)
-        ),
-        drep_to_domain(D, Dom),
-        domains(Vs, Dom).
-
 domain(V, Dom) :-
         (   var(V) ->
             get(V, Dom0, VPs),
@@ -1665,6 +1588,107 @@ init_propagator(Var, Prop) :-
         (   var(Var) -> get(Var, Dom, Ps), put(Var, Dom, [Prop|Ps])
         ;   true
         ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% lex_chain(+Lists)
+%
+% Constrains Lists to be lexicographically non-decreasing.
+
+lex_chain([]).
+lex_chain([Ls|Lss]) :-
+        lex_chain_lag(Lss, Ls),
+        lex_chain(Lss).
+
+lex_chain_lag([], _).
+lex_chain_lag([Ls|Lss], Ls0) :-
+        lex_le(Ls0, Ls),
+        lex_chain_lag(Lss, Ls).
+
+lex_le([], []).
+lex_le([V1|V1s], [V2|V2s]) :-
+        V1 #=< V2,
+        (   integer(V1) ->
+            (   integer(V2) ->
+                (   V1 =:= V2 -> lex_le(V1s, V2s) ;  true )
+            ;   freeze(V2, lex_le([V1|V1s], [V2|V2s]))
+            )
+        ;   freeze(V1, lex_le([V1|V1s], [V2|V2s]))
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%% tuples_in(+Tuples, +Relation).
+%
+% Relation is a list of ground lists of integers. Tuples is a list of
+% lists containing integers and finite domain variables. Tuples are
+% constrained to be elements of Relation.
+
+tuples_in(Tuples, Relation) :-
+        ground(Relation),
+        tuples_domain(Tuples, Relation),
+        do_queue.
+
+tuples_domain([], _).
+tuples_domain([Tuple|Tuples], Relation) :-
+        relation_unifiable(Relation, Tuple, Us, 0, _),
+        (   ground(Tuple) -> memberchk(Tuple, Relation)
+        ;   tuple_domain(Tuple, Us),
+            tuple_freeze(Tuple, Us)
+        ),
+        tuples_domain(Tuples, Relation).
+
+tuple_domain([], _).
+tuple_domain([T|Ts], Relation0) :-
+        take_firsts(Relation0, Firsts, Relation1),
+        ( var(T) ->
+            (   Firsts = [Unique] -> T = Unique
+            ;   list_to_domain(Firsts, FDom),
+                get(T, TDom, TPs),
+                domains_intersection(FDom, TDom, TDom1),
+                put(T, TDom1, TPs)
+            )
+        ;   true
+        ),
+        tuple_domain(Ts, Relation1).
+
+take_firsts([], [], []).
+take_firsts([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
+        take_firsts(Rest, Fs, Oss).
+
+tuple_freeze(Tuple, Relation) :-
+        gensym('$clpfd_rel_', RID),
+        nb_setval(RID, Relation),
+        Prop = propagator(rel_tuple(RID,Tuple), mutable(passive)),
+        tuple_freeze(Tuple, Tuple, Prop).
+
+tuple_freeze([],  _, _).
+tuple_freeze([T|Ts], Tuple, Prop) :-
+        ( var(T) ->
+            %Prop = propagator(rel_tuple(RID,Tuple), mutable(passive)),
+            init_propagator(T, Prop),
+            trigger_prop(Prop)
+        ;   true
+        ),
+        tuple_freeze(Ts, Tuple, Prop).
+
+relation_unifiable([], _, [], Changed, Changed).
+relation_unifiable([R|Rs], Tuple, Us, Changed0, Changed) :-
+        (   all_in_domain(R, Tuple) ->
+            Us = [R|Rest],
+            relation_unifiable(Rs, Tuple, Rest, Changed0, Changed)
+        ;   relation_unifiable(Rs, Tuple, Us, 1, Changed)
+        ).
+
+all_in_domain([], []).
+all_in_domain([A|As], [T|Ts]) :-
+        ( var(T) ->
+            get(T, Dom, _),
+            domain_contains(Dom, A)
+        ;   T =:= A
+        ),
+        all_in_domain(As, Ts).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -2269,6 +2293,10 @@ min_divide(L1,U1,L2,U2,Min) :-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Weak arc consistent all_distinct/1 constraint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%% all_distinct(+Ls).
+%
+% Like all_different/1, with stronger propagation.
 
 %all_distinct(Ls) :- all_different(Ls).
 all_distinct(Ls) :-
