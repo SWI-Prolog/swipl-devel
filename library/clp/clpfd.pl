@@ -1378,7 +1378,7 @@ L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 
 L #==> R   :- reify(L, BL), reify(R, BR), myimpl(BL, BR), do_queue.
 
-%% P #<== Q
+%% #<==(P, Q)
 %
 % Q implies P.
 
