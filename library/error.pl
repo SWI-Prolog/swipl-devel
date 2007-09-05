@@ -81,7 +81,7 @@ instantiation_error(_Term) :-
 %	types are =atom=, =atomic=,   =between=,  =boolean=, =callable=,
 %	=chars=,  =codes=,  =text=,  =compound=,   =constant=,  =float=,
 %	=integer=,  =nonneg=,  =positive_integer=,   =negative_integer=,
-%	=nonvar=, =number=, =oneof=,  =proper_list=,   =symbol=,  =var=,
+%	=nonvar=, =number=, =oneof=,  =list=,   =symbol=,  =var=,
 %	=rational= and =string=.
 %	
 %	Most of these types are defined by an arity-1 built-in predicate
@@ -135,6 +135,7 @@ has_type(nonvar, X)	  :- nonvar(X).
 has_type(number, X)	  :- number(X).
 has_type(oneof(L), X)	  :- ground(X), memberchk(X, L).
 has_type(proper_list, X)  :- is_list(X).
+has_type(list, X)  	  :- is_list(X).
 has_type(symbol, X)	  :- atom(X).
 has_type(var, X)	  :- var(X).
 has_type(rational, X)	  :- rational(X).
