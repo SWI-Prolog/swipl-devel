@@ -1414,7 +1414,7 @@ X #< Y  :- Y #> X.
 
 %% #\(+Q)
 %
-% The reifiable constraint Q does not hold.
+% The reifiable constraint Q does _not_ hold.
 
 #\ Q       :- reify(Q, 0), do_queue.
 L #<==> R  :- reify(L, B), reify(R, B), do_queue.
