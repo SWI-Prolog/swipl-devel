@@ -47,7 +47,7 @@
    No artificial limits (using GMP)
    ---------------------------------
 
-   ?- N is 2^66, X #\= N.
+   ?- N is 2**66, X #\= N.
    %@ X = _G1676{inf..73786976294838206463 \/ 73786976294838206465..sup}
 
    Often stronger propagation
@@ -150,8 +150,8 @@ P = ([9, 5, 6, 7]+[1, 0, 8, 5]=[1, 0, 6, 5, 2])
 
 Most predicates of this library are _constraints_: They generalise
 arithmetic evaluation of integer expressions in that propagation can
-proceed in all directions. This library also provides _enumeration
-predicates_, which let you systematically search for solutions on
+proceed in all directions. This library also provides _enumeration_
+_predicates_, which let you systematically search for solutions on
 variables whose domains have become finite.
 
 A finite domain _expression_ is one of:
@@ -1369,10 +1369,28 @@ mymin(X, Y, Z) :-
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
+%% #>=(?X, ?Y)
+%
+% X is greater than or equal to Y.
 
 X #>= Y :- parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY).
+
+%% #=<(?X, ?Y)
+%
+% X is less than or equal to Y.
+
 X #=< Y :- parse_clpfd(X,RX), parse_clpfd(Y,RY), leq(RX,RY).
+
+%% #=(?X, ?Y)
+%
+% X equals Y.
+
 X #= Y  :- parse_clpfd(X,RX), parse_clpfd(Y,RX).
+
+%% #\=(?X, ?Y)
+%
+% X is not Y.
+
 X #\= Y :-
         (   var(X), integer(Y) ->
             get(X, XD, XPs),
@@ -1381,7 +1399,17 @@ X #\= Y :-
             do_queue
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
         ).
+
+%% #>(?X, ?Y)
+%
+% X is greater than Y.
+
 X #> Y  :- Z #= Y + 1, X #>= Z.
+
+%% #<(?X, ?Y)
+%
+% X is less than Y.
+
 X #< Y  :- Y #> X.
 
 #\ Q       :- reify(Q, 0), do_queue.
@@ -1495,7 +1523,7 @@ merge_remaining([N-M|NMs], B0, B, Rest) :-
             merge_remaining(NMs, B1, B, Rest)
         ).
 
-%% +Var in +Domain
+%% in(+Var, +Domain)
 %
 %  Constrain 'Var' to elements of 'Domain'. 'Domain' is one of:
 %
@@ -1520,7 +1548,7 @@ fd_variable(V) :-
         ;   type_error(integer, V)
         ).
 
-%% ?Vars ins +Domain
+%% ins(?Vars, +Domain)
 %
 %  Constrain the variables or integers in 'Vars' to 'Domain'.
 
