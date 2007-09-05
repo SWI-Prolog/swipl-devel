@@ -1619,19 +1619,24 @@ skip_list(Word l, Word *tailp ARG_LD)
   return length;
 }
 
-/** '$skip_list'(+Xs0, -Length, -Xs) is det.
+/** '$skip_list'(-Length, +Xs0, -Xs) is det.
 
-If Xs0 is not a cyclic list, true   if append(L, Xs, Xs0), Xs0 \= [_|_],
-length(L, Length) is true. If Xs0 is a   cyclic list, Length is at least
-as long as the cycle length and Xs  contains the `remainder' of the list
-after skipping the first Length elements.
+Xs0, Xs is a pair of list differences. Xs0   is the input list and Xs is
+the minimal remaining list. Examination of   Xs  permits to classify the
+list Xs0:
+ 
+	Xs        | list type of Xs0   | Length
+	[]    ... | well formed        | length
+	Var   ... | open               | elements skipped
+	[_|_] ... | infinite           | upper bound for cycle
+	Term  ... | malformed          | elements skipped
 */
 
 PRED_IMPL("$skip_list", 3, skip_list, 0)
 { PRED_LD
-  Word l = valTermRef(A1), tail;
+  Word l = valTermRef(A2), tail;
 
-  if ( !PL_unify_integer(A2, skip_list(l, &tail PASS_LD)) )
+  if ( !PL_unify_integer(A1, skip_list(l, &tail PASS_LD)) )
     fail;
 
   return unify_ptrs(valTermRef(A3), tail PASS_LD);

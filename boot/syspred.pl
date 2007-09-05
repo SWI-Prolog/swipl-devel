@@ -787,7 +787,7 @@ default_module(Me, Super) :-
 length(List, Length) :-
 	(   integer(Length)
 	->  '$length'(List, Length)
-	;   '$skip_list'(List, Length0, Tail),
+	;   '$skip_list'(Length0, List, Tail),
 	    (	Tail == []
 	    ->	Length = Length0
 	    ;	var(Tail)
