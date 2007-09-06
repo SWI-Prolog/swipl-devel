@@ -508,7 +508,7 @@ write_element_content([H|T], Out, State) :-
 		 *	     NAMESPACES		*
 		 *******************************/
 
-%	add_missing_namespaces(+DOM0, +NsMap, -DOM)
+%%	add_missing_namespaces(+DOM0, +NsMap, -DOM)
 %	
 %	Add xmlns:NS=URI definitions to the toplevel element(s) to
 %	deal with missing namespaces.
@@ -532,14 +532,23 @@ add_missing_ns([H|T], Atts0, Atts) :-
 	generate_ns(H, NS),
 	add_missing_ns(T, [xmlns:NS=H|Atts0], Atts).
 
+%%	generate_ns(+URI, -NS) is det.
+%
+%	Generate a namespace (NS) identifier for URI.
+
 generate_ns(URI, NS) :-
 	default_ns(URI, NS), !.
 generate_ns(_, NS) :-
 	gensym(xns, NS).
 
-default_ns('http://www.w3.org/2001/XMLSchema-instance', xsi).
+:- multifile
+	rdf_db:ns/2.
 
-%	missing_namespaces(+DOM, +NSMap, -Missing)
+default_ns('http://www.w3.org/2001/XMLSchema-instance', xsi).
+default_ns(URI, NS) :-
+	rdf_db:ns(NS, URI).
+
+%%	missing_namespaces(+DOM, +NSMap, -Missing)
 %	
 %	Return a list of URIs appearing in DOM that are not covered
 %	by xmlns definitions.
