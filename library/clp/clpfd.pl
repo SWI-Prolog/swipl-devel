@@ -106,7 +106,8 @@
                   labeling/2,
                   label/1,
                   indomain/1,
-                  lex_chain/1
+                  lex_chain/1,
+                  serialized/2
                  ]).
 
 
@@ -1494,9 +1495,9 @@ merge_overlapping([A-B0|ABs0], [A-B|ABs]) :-
 
 merge_remaining([], B, B, []).
 merge_remaining([N-M|NMs], B0, B, Rest) :-
-        Next cis B0 + n(1),
+        Next cis1 B0 + n(1),
         (   N cis_gt Next -> B = B0, Rest = [N-M|NMs]
-        ;   B1 cis max(B0,M),
+        ;   B1 cis1 max(B0,M),
             merge_remaining(NMs, B1, B, Rest)
         ).
 
@@ -1780,6 +1781,11 @@ run_propagator(rel_tuple(RID, Tuple), MState) :-
                 enable_queue
             )
         ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+run_propagator(pserialized(Var,Duration,Left,SDs), _MState) :-
+        myserialized(Duration, Left, SDs, Var).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % X + Y = Z
@@ -2276,18 +2282,18 @@ run_propagator(por(X, Y, Z), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 max_times(L1,U1,L2,U2,Max) :-
-	Max cis max(max(L1*L2,L1*U2),max(U1*L2,U1*U2)).
+        Max cis max(max(L1*L2,L1*U2),max(U1*L2,U1*U2)).
 min_times(L1,U1,L2,U2,Min) :-
-	Min cis min(min(L1*L2,L1*U2),min(U1*L2,U1*U2)).
+        Min cis min(min(L1*L2,L1*U2),min(U1*L2,U1*U2)).
 
 max_divide(L1,U1,L2,U2,Max) :-
-	(   L2 cis_leq n(0) , U2 cis_geq n(0) -> Max = sup
-	;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
-	).
+        (   L2 cis_leq n(0) , U2 cis_geq n(0) -> Max = sup
+        ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
+        ).
 min_divide(L1,U1,L2,U2,Min) :-
-	(   L2 cis_leq n(0) , U2 cis_geq n(0) -> Min = inf
-	;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
-	).
+        (   L2 cis_leq n(0) , U2 cis_geq n(0) -> Min = inf
+        ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2393,6 +2399,108 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
             )
         ;   num_subsets(Ss, Dom, Num0, Num, NonSubs)
         ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% serialized/2; see Dorndorf et al. 2000, "Constraint Propagation
+% Techniques for the Disjunctive Scheduling Problem"
+
+% attribute: serialized(Duration, Left, Right)
+%   Left and Right are lists of Start-Duration pairs representing
+%   other tasks occupying the same resource
+
+% Currently implements 2-b-consistency
+
+%% serialized(+Starts, +Durations)
+%
+%  Starts = [S_1,...,S_n], is a list of variables or integers,
+%  Durations = [D_1,...,D_n] is a list of non-negative integers.
+%  Constrains Starts and Durations to denote a set of non-overlapping
+%  tasks, i.e.: S_i + D_i =< S_j or S_j + D_j =< S_i for all 1 =< i <
+%  j =< n.
+
+serialized(Starts, Durations) :-
+        pair_up(Starts, Durations, SDs),
+        serialize(SDs, []),
+        do_queue.
+
+pair_up([], [], []).
+pair_up([A|As], [B|Bs], [A-n(B)|ABs]) :- pair_up(As, Bs, ABs).
+
+serialize([], _).
+serialize([Start-D|SDs], Left) :-
+        (   var(Start) ->
+            Prop = propagator(pserialized(Start,D,Left,SDs), mutable(passive)),
+            init_propagator(Start, Prop),
+            trigger_prop(Prop)
+        ;   true
+        ),
+        myserialized(D, Left, SDs, Start),
+        serialize(SDs, [Start-D|Left]).
+
+% consistency check / propagation
+
+myserialized(Duration, Left, Right, Start) :-
+        myserialized(Left, Start, Duration),
+        myserialized(Right, Start, Duration).
+
+
+earliest_start_time(Start, EST) :-
+        (   get(Start, D, _) ->
+            domain_infimum(D, EST)
+        ;   EST = n(Start)
+        ).
+
+latest_start_time(Start, LST) :-
+        (   get(Start, D, _) ->
+            domain_supremum(D, LST)
+        ;   LST = n(Start)
+        ).
+
+
+myserialized([], _, _).
+myserialized([S_I-D_I|SDs], S_J, D_J) :-
+        (   var(S_I) ->
+            serialize_lower_bound(S_I, D_I, Start, D_J),
+            (   var(S_I) -> serialize_upper_bound(S_I, D_I, Start, D_J)
+            ;   true
+            )
+        ;   var(S_J) ->
+            serialize_lower_bound(S_J, D_J, S, D_I),
+            (   var(S_J) -> serialize_upper_bound(S_J, D_J, S, D_I)
+            ;   true
+            )
+        ;   D_I = n(D_II), D_J = n(D_JJ),
+            (   S_I + D_II =< S_J -> true
+            ;   S_J + D_JJ =< S_I -> true
+            ;   fail
+            )
+        ),
+        myserialized(SDs, S_J, D_J).
+
+serialize_lower_bound(I, D_I, J, D_J) :-
+        get(I, DomI, Ps),
+        domain_infimum(DomI, EST_I),
+        latest_start_time(J, LST_J),
+        (   Sum cis EST_I + D_I, Sum cis_gt LST_J ->
+            earliest_start_time(J, EST_J),
+            EST cis EST_J+D_J,
+            domain_remove_smaller_than(DomI, EST, DomI1),
+            put(I, DomI1, Ps)
+        ;   true
+        ).
+
+serialize_upper_bound(I, D_I, J, D_J) :-
+        get(I, DomI, Ps),
+        domain_supremum(DomI, LST_I),
+        earliest_start_time(J, EST_J),
+        (   Sum cis EST_J + D_J, Sum cis_gt LST_I ->
+            latest_start_time(J, LST_J),
+            LST cis LST_J-D_I,
+            domain_remove_greater_than(DomI, LST, DomI1),
+            put(I, DomI1, Ps)
+        ;   true
+        ).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
