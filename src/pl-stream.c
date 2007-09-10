@@ -626,8 +626,10 @@ unget_byte(int c, IOSTREAM *s)
 
   *--s->bufp = c;
   if ( p )
-  { p->charno--;
+  { p->charno--;			/* FIXME: not correct */
     p->byteno--;
+    if ( c == '\n' )
+      p->lineno--;
     s->flags |= (SIO_NOLINENO|SIO_NOLINEPOS);
   }
 }
