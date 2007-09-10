@@ -382,7 +382,7 @@ prim_search_spec(Quoted) -->
 	}.
 prim_search_spec(Spec) -->
 	nonblanks(Codes),
-	{   Codes = [0'-|Rest]
+	{   Codes = [0'-|Rest]		% '
 	->  atom_codes(Word, Rest),
 	    Spec = not(Word)
 	;   Codes \== "",
@@ -402,7 +402,11 @@ prim_search_spec(Spec) -->
 
 prolog:doc_object_summary(Obj, Category, File, Summary) :-
 	current_prolog_flag(home, SWI),
-	doc_comment(Obj, File:_Line, Summary, _Comment),
+	doc_comment(Obj0, File:_Line, Summary, _Comment),
+	(   is_list(Obj0)
+	->  member(Obj, Obj0)
+	;   Obj = Obj0
+	),
 	Obj \= _:module(_Title),		% HACK.  See ref_object//1
 	(   sub_atom(File, 0, _, _, SWI)
 	->  Category = library
