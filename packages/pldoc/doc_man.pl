@@ -508,28 +508,28 @@ dom(CDATA, _) -->
 
 %%	rewrite_ref(+Class, +Ref0, +Path, -ManRef) is semidet.
 %
-%	Rewrite HREFS from the internal manual format to the server
-%	format.  Reformatted:
+%	Rewrite Ref0 from the HTML reference manual format to the server
+%	format. Reformatted:
 %	
 %		$ File#Name/Arity :
 %		Local reference using the manual presentation
-%		/man?predicate=PI.
+%		=|/man?predicate=PI|=.
 %		
 %		$ File#sec:NR :
-%		Rewrite to section(Level, NT, FilePath)
+%		Rewrite to =|section(Level, NT, FilePath)|=
 %		
 %		$ File#flag:Name :
-%		Rewrite to section(Level, NT, FilePath)#flag:Name
+%		Rewrite to =|section(Level, NT, FilePath)#flag:Name|=
 %		
 %	@param Class	Class of the <A>.  Supported classes are
 %	
-%		$ sec  : Link to a section
-%		$ pred : Link to a predicate
-%		$ flag : link to a Prolog flag
+%		| sec  | Link to a section     |
+%		| pred | Link to a predicate   |
+%		| flag | link to a Prolog flag |
 %		
 %	@param Ref0	Initial reference from the =a= element
 %	@param Path	Currently loaded file
-%	@paran ManRef	PlDoc server reference
+%	@param ManRef	PlDoc server reference
 
 rewrite_ref(pred, Ref0, _, Ref) :-		% Predicate reference
 	sub_atom(Ref0, _, _, A, '#'), !,
