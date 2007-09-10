@@ -630,7 +630,7 @@ unget_byte(int c, IOSTREAM *s)
     p->byteno--;
     if ( c == '\n' )
       p->lineno--;
-    s->flags |= (SIO_NOLINENO|SIO_NOLINEPOS);
+    s->flags |= SIO_NOLINEPOS;
   }
 }
 

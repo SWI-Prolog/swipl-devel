@@ -199,7 +199,7 @@ permutation([X|Xs], Ys1, [_|Bound]) :-
 %
 %	Is true it List2 is a non nested version of List1.
 %	
-%	@depricated	Ending up needing flatten/3 often indicates,
+%	@deprecated	Ending up needing flatten/3 often indicates,
 %			like append/3 for appending two lists, a bad
 %			design.  Efficient code that generates lists
 %			from generated small lists must use difference

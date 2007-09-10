@@ -847,15 +847,22 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			addToBuffer(' ', _PL_rd);
 		    }
 		    if ( c == '\n' )
-		    { if ( something_read )
-			addToBuffer(c, _PL_rd);
+		    { IOPOS p;
+		      if ( rb.stream->position )
+			p = *rb.stream->position;
+
 		      c = getchr();
 		      if ( c == '%' )
-		      { addUTF8Buffer(cbuf, '\n');
+		      { if ( something_read )
+			{ addToBuffer('\n', _PL_rd);
+			}
+			addUTF8Buffer(cbuf, '\n');
 			addUTF8Buffer(cbuf, '%');
 			continue;
 		      }
 		      Sungetcode(c, rb.stream); /* unsafe: see Sungetcode() */
+		      if ( rb.stream->position )
+			*rb.stream->position = p;
 		      c = '\n';
 		    }
 		    break;
