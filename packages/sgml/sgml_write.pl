@@ -237,7 +237,7 @@ emit_xml_encoding(Out, Options) :-
 emit_xml_encoding(_, _).
 
 
-%	emit_doctype(+Options, +Data, +Stream)
+%%	emit_doctype(+Options, +Data, +Stream)
 %	
 %	Emit the document-type declaration.
 %	There is a problem with the first clause if we are emitting SGML:
@@ -280,7 +280,7 @@ write_doctype(Out, DocType, PubId, SysId) :-
 	format(Out, '<!DOCTYPE ~w PUBLIC "~w" "~w">~n~n', [DocType,PubId,SysId]).
 
 
-%	emit(+Element, +Out, +State, +Options)
+%%	emit(+Element, +Out, +State, +Options)
 %	
 %	Emit a single element
 
@@ -347,7 +347,7 @@ att_length([A0|T], State, Len0, Len) :-
 
 alen(URI:Name=Value, State, Len) :- !,
 	atom_length(Value, AL),
-	atom_length(Name, NL),
+	vlen(Name, NL),
 	get_state(State, nsmap, Nsmap),
 	(   memberchk(NS=URI, Nsmap)
 	->  atom_length(NS, NsL)
@@ -356,8 +356,24 @@ alen(URI:Name=Value, State, Len) :- !,
 	Len is AL+NL+NsL+3.
 alen(Name=Value, _, Len) :-
 	atom_length(Name, NL),
-	atom_length(Value, AL),
+	vlen(Value, AL),
 	Len is AL+NL+3.
+
+vlen(Value, Len) :-
+	is_list(Value), !,
+	vlen_list(Value, 0, Len).
+vlen(Value, Len) :-
+	atom_length(Value, Len).
+
+vlen_list([], L, L).
+vlen_list([H|T], L0, L) :-
+	atom_length(H, HL),
+	(   L0 == 0
+	->  L1 is L0 + HL
+	;   L1 is L0 + HL + 1
+	),
+	vlen_list(T, L1, L).
+
 
 emit_name(Name, Out, _) :-
 	atom(Name), !,

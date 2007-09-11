@@ -1,3 +1,8 @@
+Sep 11, 2007
+
+  * FIXED: xml_write/3 for multi-valued attributes such as IDREFS, NAMES,
+    etc.  Victor de Boer and Anjo Anjewierden.
+
 Jun 6, 2007
 
   * MODIFIED: Avoid recursive expansion of entities, unless marked as
