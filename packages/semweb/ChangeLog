@@ -1,3 +1,7 @@
+Sep 12, 2007
+
+  * ADDED: @base to the turtle parser (Yves Raimond)
+
 Aug 20, 2007
 
   * ADDED: rdf_turtle.pl: handle """long string""".   Yves Raimond.

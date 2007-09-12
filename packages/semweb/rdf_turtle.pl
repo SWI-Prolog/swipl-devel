@@ -190,6 +190,11 @@ triples(State, []) -->
 	uri(State, URI),
 	{ setarg(1, State, URI)
 	}.
+triples(State, []) -->
+      ['@',name(base)],!,
+      uri(State,URI),
+      { setarg(1,State,URI)
+      }.
 triples(State, Triples) -->
 	subject(State, Subject, Triples, T),
 	(   predicate_object_list(State, Subject, T, [])
