@@ -785,7 +785,7 @@ default_module(Me, Super) :-
 %	Is true when N is the length of List.
 
 length(List, Length) :-
-	(   integer(Length)
+	(   nonvar(Length)
 	->  '$length'(List, Length)
 	;   '$skip_list'(Length0, List, Tail),
 	    (	Tail == []

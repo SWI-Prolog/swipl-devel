@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: recent patch of length/2 caused error in length(X, a). 
+    Ulrich Neumerkel.
+
 ===================================
 VERSION 5.6.40 (September 05, 2007)
 ===================================
