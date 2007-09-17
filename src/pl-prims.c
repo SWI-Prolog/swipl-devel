@@ -680,8 +680,10 @@ static int
 ground(Word p ARG_LD)
 { int rc1, rc2;
 
+  startCritical;
   rc1 = ph_ground(p, ph_mark PASS_LD);  /* mark functors */
   rc2 = ph_ground(p, ph_unmark PASS_LD);  /* unmark the very same functors */
+  endCritical;
   assert(rc1 == rc2);
   return rc1;
 }
