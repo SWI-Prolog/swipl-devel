@@ -328,7 +328,7 @@
 #define ATOM_none         MK_ATOM(327)
 #define ATOM_noprofile    MK_ATOM(328)
 #define ATOM_not          MK_ATOM(329)
-#define ATOM_not_empty_list MK_ATOM(330)
+#define ATOM_non_empty_list MK_ATOM(330)
 #define ATOM_not_equals   MK_ATOM(331)
 #define ATOM_not_implemented MK_ATOM(332)
 #define ATOM_not_less_than_one MK_ATOM(333)

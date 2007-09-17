@@ -1724,7 +1724,7 @@ pl_univ(term_t t, term_t list)
     if ( !PL_get_list(tail, head, tail) )
     { if ( PL_get_nil(tail) )
 	return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			ATOM_not_empty_list, tail);
+			ATOM_non_empty_list, tail);
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, tail);
     }
 
