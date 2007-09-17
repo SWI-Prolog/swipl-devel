@@ -75,7 +75,7 @@ permission_error(Action, Type, Term) :-
 instantiation_error(_Term) :-
 	throw(error(instantiation_error, _)).
 
-%%	must_be(+Type, +Term) is det.
+%%	must_be(+Type, @Term) is det.
 %
 %	True if Term satisfies the type   constraints  for Type. Defined
 %	types are =atom=, =atomic=,   =between=,  =boolean=, =callable=,
@@ -99,17 +99,45 @@ instantiation_error(_Term) :-
 %	| oneof(L) | Ground term that is member of L |
 %	| list(Type) | Proper list with elements of Type |
 %
-%	@error Throws instantiation_error if Term is
-%	insufficiently instantiated and type_error(Type, Term) if Term
-%	is not of Type.
+%	@throws instantiation_error if Term is insufficiently
+%	instantiated and type_error(Type, Term) if Term is not of Type.
 
 must_be(Type, X) :-
 	(   has_type(Type, X)
 	->  true
-	;   ground(X)
+	;   is_not(Type, X)
+	).
+
+%%	is_not(+Type, @Term)
+%
+%	Throws appropriate error. It is _known_ that Term is not of type
+%	Type.
+%
+%	@throws type_error(Type, Term)
+%	@throws instantiation_error
+
+is_not(list, X) :- !,
+	not_a_list(list, X).
+is_not(chars, X) :- !,
+	not_a_list(chars, X).
+is_not(codes, X) :- !,
+	not_a_list(codes, X).
+is_not(Type, X) :-
+	(   ground(X)
 	->  type_error(Type, X)
 	;   instantiation_error(X)
 	).
+
+not_a_list(Type, X) :-
+	'$skip_list'(_, X, Rest),
+	(   var(Rest)
+	->  instantiation_error(X)
+	;   type_error(Type, X)
+	).
+
+%%	has_type(+Type, @Term) is semidet.
+%
+%	True if Term satisfies Type.
 
 has_type(any, _).
 has_type(atom, X)	  :- atom(X).
