@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Faster implementation of ground/1 using less memory.
+    Ulrich Neumerkel.
+
   * FIXED: recent patch of length/2 caused error in length(X, a). 
     Ulrich Neumerkel.
 

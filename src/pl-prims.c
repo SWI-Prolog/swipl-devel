@@ -609,9 +609,48 @@ PRED_IMPL("atomic", 1, atomic, 0)
 }
 
 
+		 /*******************************
+		 *	       GROUND		*
+		 *******************************/
+
+typedef enum
+{ ph_mark,
+  ph_unmark
+} phase;
+
+static inline int
+ph_visitedWord(Word p, phase ph ARG_LD)
+{ switch(ph)
+  { case ph_mark:
+      if ( is_marked(p) )
+	succeed;
+      set_marked(p);
+      break;
+    case ph_unmark:
+      if ( !is_marked(p) )
+	succeed;
+      clear_marked(p);
+  }
+  fail;
+}
+
+static inline int
+ph_visited(Functor f, phase ph ARG_LD)
+{ Word p = &f->definition;
+
+  return ph_visitedWord(p, ph PASS_LD);
+}
+
+/* missing optimisations:
+
+   i  recurse only when at least another nontrivial case is open
+
+   ii programmed stack
+*/
+
 static int
-ground(Word p ARG_LD)
-{ int arity;
+ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
+{ int arity, i;
   Functor f;
 
 last:
@@ -625,11 +664,11 @@ last:
   f = valueTerm(*p);
   arity = arityFunctor(f->definition);
   p = f->arguments;
-  if ( visited(f PASS_LD) )	/* already been here, so it must be ground */
+  if ( ph_visited(f, ph PASS_LD) )	/* already been here, so it must be ground */
     succeed;
 
   for(; --arity > 0; p++)
-  { if ( !ground(p PASS_LD) )
+  { if ( !ph_ground(p, ph PASS_LD) )
       fail;
   }
 
@@ -637,29 +676,30 @@ last:
 }
 
 
+static int
+ground(Word p ARG_LD)
+{ int rc1, rc2;
+
+  rc1 = ph_ground(p, ph_mark PASS_LD);  /* mark functors */
+  rc2 = ph_ground(p, ph_unmark PASS_LD);  /* unmark the very same functors */
+  assert(rc1 == rc2);
+  return rc1;
+}
+
+
 int
 PL_is_ground(term_t t)
 { GET_LD
-  int rc;
 
-  initvisited(PASS_LD1);
-  rc = ground(valTermRef(t) PASS_LD);
-  unvisit(PASS_LD1);
-
-  return rc;
+  return ground(valTermRef(t) PASS_LD);
 }
 
 
 static
 PRED_IMPL("ground", 1, ground, 0)
 { PRED_LD
-  int rc;
 
-  initvisited(PASS_LD1);
-  rc = ground(valTermRef(A1) PASS_LD);
-  unvisit(PASS_LD1);
-
-  return rc;
+  return ground(valTermRef(A1) PASS_LD);
 }
 
 
