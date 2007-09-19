@@ -80,7 +80,7 @@ values_keys_pairs([V|Vs], [K|Ks], [K-V|Pairs]) :-
 %%	pairs_values(+Pairs, -Values) is det.
 %
 %	Remove the keys  from  a  list   of  Key-Value  pairs.  Same  as
-%	pairs_keys_values(Pairs, _, Keys)
+%	pairs_keys_values(Pairs, _, Values)
 
 pairs_values([], []).
 pairs_values([_-V|T0], [V|T]) :-
