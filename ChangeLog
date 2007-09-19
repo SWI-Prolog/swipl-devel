@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: catch(_,_,garbage_collect).  More generally, instantiation errors
+    in meta-calling could corrupt the local stack.  Ulrich Neumerkel.  
+
   * FIXED: not_empty_list --> non_empty_list.  Ulrich Neumerkel.
 
   * library(error): fixed errors for lists.  Ulrich Neumerkel.

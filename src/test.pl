@@ -1618,6 +1618,12 @@ gc(gc-3) :-
 		garbage_collect,
 		X == a
 	      ).
+gc(gc-4) :-
+	catch(_,_,garbage_collect).
+gc(gc-5) :-
+	catch(25,_,garbage_collect).
+gc(gc-6) :-
+	catch(1.25,_,garbage_collect).
 gc(agc-1) :-
 	garbage_collect_atoms.
 gc(agc-2) :-

@@ -3467,8 +3467,12 @@ atom is referenced by the goal-term anyway.
 	    NEXT_INSTRUCTION;
 	  }
 	} else
-	{ lTop = (LocalFrame)argFrameP(next, 1);
+	{ fid_t fid;
+
+	  lTop = (LocalFrame)argFrameP(next, 1);
+	  fid = PL_open_foreign_frame();
 	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(a));
+	  PL_close_foreign_frame(fid);
 	  goto b_throw;
 	}
 	goto i_usercall_common;
