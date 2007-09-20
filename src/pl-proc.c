@@ -284,13 +284,13 @@ get_arity(term_t t, int maxarity, int *arity)
     fail;
   if ( a < 0 )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		    ATOM_not_less_than_zero, a);
+		    ATOM_not_less_than_zero, t);
   if ( maxarity >= 0 && a > maxarity )
   { char buf[100];
 
     return PL_error(NULL, 0,
 		    tostr(buf, "limit is %d, request = %d",
-			  maxarity, arity),
+			  maxarity, a),
 		    ERR_REPRESENTATION, ATOM_max_arity);
   }
 
