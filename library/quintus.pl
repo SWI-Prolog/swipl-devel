@@ -269,11 +269,12 @@ public(_).
 		 *	TERM MANIPULATION	*
 		 *******************************/
 
-%%	subsumes_chk(@X, @Y) is semidet.
+%%	subsumes_chk(@General, @Specific) is semidet.
 %
-%	Temporary hack for subsumes_chk/2 in ordinary Prolog world. This
-%	comes from the SWI-Prolog port of  ALE.   If  all  works fine we
-%	might move this to the kernel.
+%	True if only by binding variables in Specific General can be
+%	made equal (==) to Specific.  Does not bind any variables.
+%	
+%	@tbd	More efficient implementation
 
 subsumes_chk(X,Y) :-
   \+ \+ (copy_term(Y,Y2),
