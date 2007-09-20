@@ -281,10 +281,9 @@ test(copy, [ true(Copy =@= hello(X,X))
 Body must fail.</DD>
 <DT><STRONG>throws</STRONG>(<VAR>Error</VAR>)</DT>
 <DD class="defbody">
-Body must throw <VAR>Error</VAR>. The error is verified using =@=/2. If <VAR>Error</VAR> 
-is of the format <CODE>error(Formal, Context)</CODE>,
-<VAR>Formal</VAR> is verified using =@=/2, but <VAR>Context</VAR> simply 
-using unification (=/2).</DD>
+Body must throw <VAR>Error</VAR>. The error is verified using
+<CODE>subsumes_chk(Error, Generated)</CODE>. I.e. the generated error 
+must be more specific than the specified <VAR>Error</VAR>.</DD>
 <DT><STRONG>error</STRONG>(<VAR>Error</VAR>)</DT>
 <DD class="defbody">
 Body must throw <CODE>error(Error, _Context)</CODE>. See <CODE>throws</CODE> 

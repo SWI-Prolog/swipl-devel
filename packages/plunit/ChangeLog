@@ -1,14 +1,22 @@
+Sep 20, 2007
+
+* FIXED: avoid a loop if a test throws an error holding a cyclic term.
+
+* MODIFIED: errors are now verified using subsumes_chk/2 instead of =@=.
+
+* PORT: =@= is now correctly bound to variant/2 for SICStus.
+
 Aug 1, 2007
 
 * FIXED: Ran failing tests twice due to unwanted choicepoint.
 
 Jul 30, 2007
 
-* ADDER: allow for error(Error) as alias for throws(error(Error, _)).
+* ADDED: allow for error(Error) as alias for throws(error(Error, _)).
 
 Mar 28, 2007
 
-* Add option silent(Bool) to force completely silent operation.
+* ADDED: option silent(Bool) to force completely silent operation.
 
 Mar 6, 2007
 

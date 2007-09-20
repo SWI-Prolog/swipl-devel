@@ -148,10 +148,9 @@ test(copy, [ true(Copy =@= hello(X,X))
 Body must fail.
 
     \termitem{throws}{Error}
-Body must throw \arg{Error}. The error is verified using =@=/2.
-If \arg{Error} is of the format \term{error}{Formal, Context},
-\arg{Formal} is verified using =@=/2, but \arg{Context} simply
-using unification (=/2).
+Body must throw \arg{Error}. The error is verified using
+\term{subsumes_chk}{Error, Generated}.  I.e.\ the generated error
+must be more specific than the specified \arg{Error}.
 
     \termitem{error}{Error}
 Body must throw \term{error}{Error, _Context}.  See \const{throws}

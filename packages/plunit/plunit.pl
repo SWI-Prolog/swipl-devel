@@ -81,6 +81,7 @@ sicstus :- catch(current_prolog_flag(system_type, _), _, fail).
 :- if(swi).
 :- set_prolog_flag(generate_debug_info, false).
 :- use_module(library(option)).
+:- use_module(library(quintus), [subsumes_chk/2]).
 
 current_test_flag(Name, Value) :-
 	current_prolog_flag(Name, Value).
@@ -583,8 +584,14 @@ cmp_list([E0|ET], [V0|VT], Op) :-
 
 cmp(Var  == Value, Var,  ==, Value).
 cmp(Var =:= Value, Var, =:=, Value).
-cmp(Var =@= Value, Var, =@=, Value).
 cmp(Var  =  Value, Var,  =,  Value).
+:- if(swi).
+cmp(Var =@= Value, Var, =@=, Value).
+:- else.
+:- if(sicstus).
+cmp(Var =@= Value, Var, variant, Value). % variant/2 is the same =@=
+:- endif.
+:- endif.
 
 
 %%	call_test(:Goal, -Det) is nondet.
@@ -613,12 +620,12 @@ call_test(Goal, true) :-
 :- endif.
 
 %%	match_error(+Expected, +Received) is semidet.
+%
+%	True if the Received errors matches the expected error. Matching
+%	is based on subsumes_chk/2.
 
 match_error(Expect, Rec) :-
-	Expect =@= Rec, !.
-match_error(error(FormalEx, ContextEx), error(FormalRec, ContextRec)) :-
-	FormalEx =@= FormalRec,
-	ContextEx = ContextRec.
+	subsumes_chk(Expect, Rec).
 
 %%	setup(+Module, +Options) is semidet.
 %
@@ -671,8 +678,34 @@ success(Unit, Name, Line, Det, Time, Options) :-
 	flush_output(user_error).
 
 failure(Unit, Name, Line, E, _Options) :-
-	assert(failed(Unit, Name, Line, E)),
-	report_failure(Unit, Name, Line, E).
+	report_failure(Unit, Name, Line, E),
+	assert_cyclic(failed(Unit, Name, Line, E)).
+
+%%	assert_cyclic(+Term) is det.
+%
+%	Assert  a  possibly  cyclic  unit   clause.  Current  SWI-Prolog
+%	assert/1 does not handle cyclic terms,  so we emulate this using
+%	the recorded database.
+%	
+%	@tbd	Implement cycle-safe assert and remove this.
+
+:- if(swi).
+assert_cyclic(Term) :-
+	acyclic_term(Term), !,
+	assert(Term).
+assert_cyclic(Term) :-
+	Term =.. [Functor|Args],
+	recorda(cyclic, Args, Id),
+	functor(Term, _, Arity),
+	length(NewArgs, Arity),
+	Head =.. [Functor|NewArgs],
+	assert((Head :- recorded(_, Var, Id), Var = NewArgs)).
+:- else.
+:- if(sicstus).
+:- endif.
+assert_cyclic(Term) :-
+	assert(Term).
+:- endif.
 
 
 		 /*******************************
