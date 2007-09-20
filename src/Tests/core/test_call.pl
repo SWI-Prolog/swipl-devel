@@ -35,7 +35,8 @@ or character codes.  Please define a test-set for each predicate.
 
 test_call :-
 	run_tests([ apply,
-		    callN
+		    callN,
+		    no_autoload
 		  ]).
 
 :- begin_tests(apply).
@@ -54,3 +55,16 @@ test(error, error(type_error(callable, 1))) :-
 :- end_tests(callN).
 
 
+:- begin_tests(no_autoload, [ setup(set_prolog_flag(autoload, false)),
+			      cleanup(set_prolog_flag(autoload, true))
+			    ]).
+
+known(t) :- 
+	this_should_not_be_defined(V),
+	call(V).
+
+test(unknown, error(existence_error(procedure, 
+				    _:this_should_not_be_defined/1))) :-
+	known(t).
+
+:- end_tests(no_autoload).

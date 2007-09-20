@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Crash on unknown predicate if autoloader is switched off.
+    Ulrich Neumerkel. 
+
   * FIXED: catch(_,_,garbage_collect).  More generally, instantiation errors
     in meta-calling could corrupt the local stack.  Ulrich Neumerkel.  
 

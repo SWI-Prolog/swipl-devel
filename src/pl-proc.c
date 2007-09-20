@@ -1550,14 +1550,10 @@ trapUndefined_unlocked(LocalFrame *frp, Code PC, Procedure proc ARG_LD)
 				/* No one wants to intercept */
 error:
   if ( GD->bootsession )
-    sysError("Undefined predicate: %s", predicateName(def));
-  else if ( true(module, UNKNOWN_ERROR) )
-  { Definition caller;
-    if ( (*frp)->parent )
-      caller = (*frp)->parent->predicate;
-    else
-      caller = NULL;
-    PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, def, caller);
+  { sysError("Undefined predicate: %s", predicateName(def));
+  } else if ( true(module, UNKNOWN_ERROR) )
+  {			/* caller is in environment frame, which is default */
+    PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, def, NULL);
   } else
   { fid_t fid = PL_open_foreign_frame();
     term_t pred = PL_new_term_ref();
