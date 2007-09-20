@@ -882,7 +882,7 @@ intervals_to_domain(Is, D) :-
 V in D :-
         fd_variable(V),
         (   is_drep(D) -> true
-        ;   must_be(integer, D)
+        ;   domain_error(clpfd_domain, D)
         ),
         drep_to_domain(D, Dom),
         domain(V, Dom).
@@ -2404,7 +2404,7 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 % serialized/2; see Dorndorf et al. 2000, "Constraint Propagation
 % Techniques for the Disjunctive Scheduling Problem"
 
-% attribute: serialized(Duration, Left, Right)
+% attribute: serialized(Var, Duration, Left, Right)
 %   Left and Right are lists of Start-Duration pairs representing
 %   other tasks occupying the same resource
 
