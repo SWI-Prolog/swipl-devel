@@ -1,5 +1,7 @@
 Sep 20, 2007
 
+* DOCS: Fixed typos.  Ulrich Neumerkel.
+
 * FIXED: avoid a loop if a test throws an error holding a cyclic term.
 
 * MODIFIED: errors are now verified using subsumes_chk/2 instead of =@=.

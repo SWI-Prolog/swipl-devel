@@ -46,7 +46,7 @@ There is really no excuse not to write tests!
 
 Automatic testing of software during development is probably the most
 important Quality Assurance measure. Tests can validate the final
-system, which is nice or your users.  Most (Prolog) developers
+system, which is nice for your users.  Most (Prolog) developers
 however forget it is not just a burden during development.
 
 \begin{itemize}
@@ -68,8 +68,8 @@ however forget it is not just a burden during development.
 
 Tests are written in pure Prolog and enclosed within the directives
 begin_tests/1,2 and end_tests/1. They can be embedded inside a normal
-source module, or be placed in a seperate test-file that loads the files
-that to be tested. Code inside a test box is normal Prolog code. The
+source module, or be placed in a separate test-file that loads the files
+to be tested. Code inside a test box is normal Prolog code. The
 entry points are defined by rules using the head \term{test}{Name} or
 \term{test}{Name, Options}, where \arg{Name} is a ground term and
 \arg{Options} is a list describing additional properties of the test.
@@ -85,17 +85,17 @@ test(reverse) :-
 :- end_tests(lists).
 \end{code}
 
-The second argument of the test-head defines additional processing
+The optional second argument of the test-head defines additional processing
 options.  Defined options are:
 
 \begin{description}
     \termitem{blocked}{+Reason:atom}
 The test is currently disabled.   Tests are flagged as blocked if they
-are known not to work but this accepted as something that must be fixed
+are known not to work, but this is accepted as something that must be fixed
 in the future.
 
     \termitem{condition}{:Goal}
-Test pre-conditions for running the test.  If the condition fails
+Test pre-condition for running the test.  If the condition fails
 the test is skipped.  The condition can be used as an alternative
 to the \const{setup} option.  The only difference is that failure
 of a condition skips the test and is considered an error when using
@@ -130,7 +130,7 @@ test(read, [ setup(create_file(Tmp)),
     \termitem{true}{Vars Cmp Values}
 Body must succeed deterministically. Bindings are compared to Values.
 \arg{Cmp} is typically one of =/2, ==/2, =:=/2 or =@=/2,%
-    \footnote{The =@= predicate (denoted \emph{structureal equivalence})
+    \footnote{The =@= predicate (denoted \emph{structural equivalence})
 	      is the same as variant/2 in SICStus.}
 but any test can be used. This is the same as inserting the test at the
 end of the conjunction, but it allows the test engine to distinguish
@@ -260,7 +260,7 @@ Semi-deterministic predicates are predicates that either fail or succeed
 exactly once and, for well behaved predicates, leave no choicepoints.
 Testing such predicates the the same as testing deterministic
 predicates.  Negative tests must be specified using the option
-\const{fail} or by negating the boty using \verb$\+/1$.
+\const{fail} or by negating the body using \verb$\+/1$.
 
 \begin{code}
 test(is_set) :-
@@ -299,13 +299,13 @@ test(div0) :-
      catch(A is 1/0, error(E, _), true),
      E =@= evaluation_error(zero_divisor).
 
-test(div0, [throws(error(evaluation_error(zero_divisor), _))]) :-
+test(div0, [error(evaluation_error(zero_divisor))]) :-
      A is 1/0.
 \end{code}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Using seperate test files}
+\section{Using separate test files}
 \label{sec:testfiles}
 
 Test-units can be embedded in normal Prolog source-files. Alternatively,
@@ -331,7 +331,7 @@ Run only the specified tests.  \arg{Spec} can be a list to run multiple
 tests.  A single specification is either the name of a test unit or
 a term <Unit>:<Tests>, running only the specified test.  <Tests> is
 either the name of a test or a list of names. Running particular
-tests is particulary useful for tracing a test:%
+tests is particularly useful for tracing a test:%
 \footnote{Unfortunately the body of the test is called through
 meta-calling, so it cannot be traced. The called user-code can be traced
 normally though.}
@@ -348,7 +348,7 @@ normally though.}
 
 Most applications do not want the test-suite to end up in the
 final application.  There are several ways to achieve this.  One
-is to places all tests in seperate files and not to load the tests
+is to place all tests in separate files and not to load the tests
 when creating the production environment.  Alternatively, use the
 directive below before loading the application.
 
@@ -412,7 +412,7 @@ using examples. First step is to log the queries into a file. This is
 accomplished with the commands below. \file{Queries.pl} is the name in
 which to store all queries. The user can choose any filename for this
 purpose.   Multiple Prolog instances can share the same name, as data
-is appended to this file and write is poperly locked to avoid file
+is appended to this file and write is properly locked to avoid file
 corruption.
 
 \begin{code}
@@ -469,7 +469,7 @@ answer application by David H.D. Warren and Fernando C.N. Pereira.
 
 \begin{code}
 1 ?- show_coverage(test_chat).
-Chat Natural Language Question Anwering Test
+Chat Natural Language Question Answering Test
 ...
 
 ==================================================================
@@ -530,9 +530,9 @@ tested.
 
 The core library, \file{plunit.pl} can be loaded on SICStus.  It depends
 on a small compatibility file called \file{swi.pl}.  To deploy PlUnit
-with SICSTus, copy \file{plunit.pl} and \file{swi.pl} to a directory
+with SICStus, copy \file{plunit.pl} and \file{swi.pl} to a directory
 that is searched by the \const{library} search-path.
-Issues with the SICSTus port.
+Issues with the SICStus port.
 
 \begin{itemize}
     \item Only \file{plunit.pl}.  Both coverage analysis and the test
@@ -544,7 +544,7 @@ Issues with the SICSTus port.
 
     \item The \const{run} option is not supported.
 
-    \item Tests are loaded into the enclosing module instead of a seperate
+    \item Tests are loaded into the enclosing module instead of a separate
           test module. This means that predicates in the test module may
 	  not conflict with the enclosing module, nor with other test
 	  modules loaded into the same module.
@@ -560,7 +560,7 @@ Issues with the SICSTus port.
 There are two approaches for testing. In one extreme the tests are
 written using declarations dealing with setup, cleanup, running and
 testing the result. In the other extreme a test it simply a Prolog goal
-that is supposed to succeed. We have choosen to allow for any mixture of
+that is supposed to succeed. We have chosen to allow for any mixture of
 these approaches. Written down as test/1 we opt for the simple
 succeeding goal approach. Using options to the test the user can choose
 for a more declarative specification.  The user can mix both approaches.

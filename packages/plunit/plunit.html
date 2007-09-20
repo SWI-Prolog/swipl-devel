@@ -143,7 +143,7 @@ non-deterministic predicates</SPAN></A></DIV>
 <DIV class="toc-h4"><A class="sec" href="#sec:2.2.4"><SPAN class="sec-nr">2.2.4</SPAN> <SPAN class="sec-title">Testing 
 error conditions</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Using 
-seperate test files</SPAN></A></DIV>
+separate test files</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">Running 
 the test-suite</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Tests 
@@ -172,7 +172,7 @@ of choices</SPAN></A></DIV>
 
 <P>Automatic testing of software during development is probably the most 
 important Quality Assurance measure. Tests can validate the final 
-system, which is nice or your users. Most (Prolog) developers however 
+system, which is nice for your users. Most (Prolog) developers however 
 forget it is not just a burden during development.
 
 <P>
@@ -195,9 +195,9 @@ Unit Test box</SPAN></A></H2>
 <A NAME="idx:begintests1:1"></A><A class="pred" href="#begin_tests/1">begin_tests/1</A>,2 
 and <A NAME="idx:endtests1:2"></A><SPAN class="pred-ext">end_tests/1</SPAN>. 
 They can be embedded inside a normal source module, or be placed in a 
-seperate test-file that loads the files that to be tested. Code inside a 
-test box is normal Prolog code. The entry points are defined by rules 
-using the head <CODE>test(Name)</CODE> or
+separate test-file that loads the files to be tested. Code inside a test 
+box is normal Prolog code. The entry points are defined by rules using 
+the head <CODE>test(Name)</CODE> or
 <CODE>test(Name, Options)</CODE>, where <VAR>Name</VAR> is a ground term 
 and
 <VAR>Options</VAR> is a list describing additional properties of the 
@@ -213,19 +213,19 @@ test(reverse) :-
 :- end_tests(lists).
 </PRE>
 
-<P>The second argument of the test-head defines additional processing 
-options. Defined options are:
+<P>The optional second argument of the test-head defines additional 
+processing options. Defined options are:
 
 <DL>
 <DT><STRONG>blocked</STRONG>(<VAR>+Reason:atom</VAR>)</DT>
 <DD class="defbody">
 The test is currently disabled. Tests are flagged as blocked if they are 
-known not to work but this accepted as something that must be fixed in 
-the future.</DD>
+known not to work, but this is accepted as something that must be fixed 
+in the future.</DD>
 <DT><STRONG>condition</STRONG>(<VAR>:Goal</VAR>)</DT>
 <DD class="defbody">
-Test pre-conditions for running the test. If the condition fails the 
-test is skipped. The condition can be used as an alternative to the <CODE>setup</CODE> 
+Test pre-condition for running the test. If the condition fails the test 
+is skipped. The condition can be used as an alternative to the <CODE>setup</CODE> 
 option. The only difference is that failure of a condition skips the 
 test and is considered an error when using the <CODE>setup</CODE> 
 option.</DD>
@@ -262,7 +262,7 @@ test(read, [ setup(create_file(Tmp)),
 <DD class="defbody">
 Body must succeed deterministically. Bindings are compared to Values.
 <VAR>Cmp</VAR> is typically one of =/2, ==/2, =:=/2 or =@=/2,<SUP class="fn">1<SPAN class="fn-text">The 
-=@= predicate (denoted <EM>structureal equivalence</EM>) is the same as <A NAME="idx:variant2:4"></A><SPAN class="pred-ext">variant/2</SPAN> 
+=@= predicate (denoted <EM>structural equivalence</EM>) is the same as <A NAME="idx:variant2:4"></A><SPAN class="pred-ext">variant/2</SPAN> 
 in SICStus.</SPAN></SUP> but any test can be used. This is the same as 
 inserting the test at the end of the conjunction, but it allows the test 
 engine to distinguish between failure of <A NAME="idx:copyterm2:5"></A><SPAN class="pred-ext">copy_term/2</SPAN> 
@@ -408,7 +408,7 @@ succeed exactly once and, for well behaved predicates, leave no
 choicepoints. Testing such predicates the the same as testing 
 deterministic predicates. Negative tests must be specified using the 
 option
-<CODE>fail</CODE> or by negating the boty using <CODE>\+/1</CODE>.
+<CODE>fail</CODE> or by negating the body using <CODE>\+/1</CODE>.
 
 <PRE class="code">
 test(is_set) :-
@@ -452,12 +452,12 @@ test(div0) :-
      catch(A is 1/0, error(E, _), true),
      E =@= evaluation_error(zero_divisor).
 
-test(div0, [throws(error(evaluation_error(zero_divisor), _))]) :-
+test(div0, [error(evaluation_error(zero_divisor))]) :-
      A is 1/0.
 </PRE>
 
 <H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Using 
-seperate test files</SPAN></A></H2>
+separate test files</SPAN></A></H2>
 
 <A NAME="sec:testfiles"></A>
 
@@ -488,7 +488,7 @@ Run only the specified tests. <VAR>Spec</VAR> can be a list to run
 multiple tests. A single specification is either the name of a test unit 
 or a term &lt;<VAR>Unit</VAR>&gt;:&lt;<VAR>Tests</VAR>&gt;, running only 
 the specified test. &lt;<VAR>Tests</VAR>&gt; is either the name of a 
-test or a list of names. Running particular tests is particulary useful 
+test or a list of names. Running particular tests is particularly useful 
 for tracing a test:<SUP class="fn">2<SPAN class="fn-text">Unfortunately 
 the body of the test is called through meta-calling, so it cannot be 
 traced. The called user-code can be traced normally though.</SPAN></SUP>
@@ -506,8 +506,8 @@ and production systems</SPAN></A></H2>
 <A NAME="sec:state"></A>
 
 <P>Most applications do not want the test-suite to end up in the final 
-application. There are several ways to achieve this. One is to places 
-all tests in seperate files and not to load the tests when creating the 
+application. There are several ways to achieve this. One is to place all 
+tests in separate files and not to load the tests when creating the 
 production environment. Alternatively, use the directive below before 
 loading the application.
 
@@ -581,7 +581,7 @@ functionality using examples. First step is to log the queries into a
 file. This is accomplished with the commands below. <CODE>Queries.pl</CODE> 
 is the name in which to store all queries. The user can choose any 
 filename for this purpose. Multiple Prolog instances can share the same 
-name, as data is appended to this file and write is poperly locked to 
+name, as data is appended to this file and write is properly locked to 
 avoid file corruption.
 
 <PRE class="code">
@@ -641,7 +641,7 @@ answer application by David H.D. Warren and Fernando C.N. Pereira.
 
 <PRE class="code">
 1 ?- show_coverage(test_chat).
-Chat Natural Language Question Anwering Test
+Chat Natural Language Question Answering Test
 ...
 
 ==================================================================
@@ -703,9 +703,9 @@ on SICStus</SPAN></A></H3>
 
 <P>The core library, <CODE>plunit.pl</CODE> can be loaded on SICStus. It 
 depends on a small compatibility file called <CODE>swi.pl</CODE>. To 
-deploy PlUnit with SICSTus, copy <CODE>plunit.pl</CODE> and <CODE>swi.pl</CODE> 
+deploy PlUnit with SICStus, copy <CODE>plunit.pl</CODE> and <CODE>swi.pl</CODE> 
 to a directory that is searched by the <CODE>library</CODE> search-path. 
-Issues with the SICSTus port.
+Issues with the SICStus port.
 
 <P>
 <UL>
@@ -721,7 +721,7 @@ suites.
 <LI>The <CODE>run</CODE> option is not supported.
 
 <P>
-<LI>Tests are loaded into the enclosing module instead of a seperate 
+<LI>Tests are loaded into the enclosing module instead of a separate 
 test module. This means that predicates in the test module may not 
 conflict with the enclosing module, nor with other test modules loaded 
 into the same module.
@@ -737,7 +737,7 @@ of choices</SPAN></A></H2>
 <P>There are two approaches for testing. In one extreme the tests are 
 written using declarations dealing with setup, cleanup, running and 
 testing the result. In the other extreme a test it simply a Prolog goal 
-that is supposed to succeed. We have choosen to allow for any mixture of 
+that is supposed to succeed. We have chosen to allow for any mixture of 
 these approaches. Written down as <A NAME="idx:test1:20"></A><SPAN class="pred-ext">test/1</SPAN> 
 we opt for the simple succeeding goal approach. Using options to the 
 test the user can choose for a more declarative specification. The user 
