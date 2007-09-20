@@ -1262,7 +1262,7 @@ parse_clpfd(Expr, Result) :-
         ;   Expr = (L / R) ->
             parse_clpfd(L, RL), parse_clpfd(R, RR), RR #\= 0,
             mydiv(RL, RR, Result)
-        ;   type_error(integer, Expr)
+        ;   domain_error(clpfd_expression, Expr)
         ).
 
 trigger_twice(Prop) :-
