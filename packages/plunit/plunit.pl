@@ -851,13 +851,25 @@ message(plunit(failed(0))) --> !,
 	[ 'All tests passed'-[] ].
 message(plunit(failed(N))) -->
 	[ '~D tests failed'-[N] ].
-message(plunit(failed(Unit, Name, Line, succeeded(Time)))) -->
+message(plunit(failed(Unit, Name, Line, Failure))) -->
        { unit_file(Unit, File) },
-       [ '~w:~w: test ~w: must fail but succeeded in ~2f seconds~n'-
-	 [File, Line, Name, Time] ].
-message(plunit(failed(Unit, Name, Line, Error))) -->
-	{ unit_file(Unit, File) },
-	[ '~w:~w: test ~w: ~p~n'-[File, Line, Name, Error] ].
+       [ '~w:~w: test ~w: '- [File, Line, Name] ],
+       failure(Failure).
+
+
+failure(succeeded(Time)) --> !,
+	[ 'must fail but succeeded in ~2f seconds~n'-[Time] ].
+failure(wrong_error(Expected, Error)) --> !,
+	{ copy_term(Expected-Error, Ex-E),
+	  numbervars(Ex-E, 0, _, [singletons(true)])
+	},
+	[ 'wrong error', nl, 
+	  '    Expected: ~p'-[Ex], nl,
+	  '    Got:      ~p'-[E], nl
+	].
+failure(Why) -->
+	[ '~p~n'-[Why] ].
+
 
 :- if(swi).
 

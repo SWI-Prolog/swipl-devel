@@ -1,5 +1,7 @@
 Sep 20, 2007
 
+* ENHANCED: Message on wrong error
+
 * DOCS: Fixed typos.  Ulrich Neumerkel.
 
 * FIXED: avoid a loop if a test throws an error holding a cyclic term.
