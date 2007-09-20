@@ -127,9 +127,10 @@ test(read, [ setup(create_file(Tmp)),
 	Term = hello(_).
 \end{code}
 
-    \termitem{true}{Vars Cmp Values}
-Body must succeed deterministically. Bindings are compared to Values.
-\arg{Cmp} is typically one of =/2, ==/2, =:=/2 or =@=/2,%
+    \termitem{true}{AnswerTerm Cmp Value}
+Body must succeed deterministically. AnswerTerm is compared to Value
+using the comparison operator \arg{Cmp}. \arg{Cmp} is typically one of
+=/2, ==/2, =:=/2 or =@=/2,%
     \footnote{The =@= predicate (denoted \emph{structural equivalence})
 	      is the same as variant/2 in SICStus.}
 but any test can be used. This is the same as inserting the test at the
@@ -156,14 +157,20 @@ must be more specific than the specified \arg{Error}.
 Body must throw \term{error}{Error, _Context}.  See \const{throws}
 for details.
 
-    \termitem{all}{Vars Cmp List}
-Similar to \term{true}{Vars Cmp Values}, but used for non-deterministic
-predicates.  Each element is compared using \arg{Cmp}.  Order matters.
+    \termitem{all}{AnswerTerm Cmp Instances}
+Similar to \term{true}{AnswerTerm Cmp Values}, but used for non-deterministic
+predicates. Each element is compared using \arg{Cmp}. Order matters. For
+example:
 
-    \termitem{set}{Vars Cmp List}
-Similar to \term{true}{Vars Cmp Values}, but used for non-deterministic
-predicates.  Each element is compared using \arg{Cmp}.  Order and
-duplicates with respect to \arg{Cmp} are ignored.
+\begin{code}
+test(or, all(X == [1,2])) :-
+	( X = 1 ; X = 2 ).
+\end{code}
+
+    \termitem{set}{AnswerTerm Cmp Instances}
+Similar to \term{all}{AnswerTerm Cmp Instances}, but ignores order and
+duplicates with respect to \arg{Cmp} in the comparison. Each element is
+compared using \arg{Cmp}. 
 
     \termitem{nondet}{}
 If this keyword appears in the option list, non-deterministic success
@@ -185,7 +192,7 @@ argument of test/2 rules).
 
 Defined options are:
     \begin{description}
-	\termitem{blocked}{+Reaosn}
+	\termitem{blocked}{+Reason}
 Test-unit has been blocked for the given \arg{Reason}.
 
         \termitem{condition}{:Goal}
@@ -258,7 +265,7 @@ test(member, [nondet]) :-
 
 Semi-deterministic predicates are predicates that either fail or succeed
 exactly once and, for well behaved predicates, leave no choicepoints.
-Testing such predicates the the same as testing deterministic
+Testing such predicates is the same as testing deterministic
 predicates.  Negative tests must be specified using the option
 \const{fail} or by negating the body using \verb$\+/1$.
 

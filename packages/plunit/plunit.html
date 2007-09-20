@@ -258,10 +258,11 @@ test(read, [ setup(create_file(Tmp)),
 </PRE>
 
 </DD>
-<DT><STRONG>true</STRONG>(<VAR>Vars Cmp Values</VAR>)</DT>
+<DT><STRONG>true</STRONG>(<VAR>AnswerTerm Cmp Value</VAR>)</DT>
 <DD class="defbody">
-Body must succeed deterministically. Bindings are compared to Values.
-<VAR>Cmp</VAR> is typically one of =/2, ==/2, =:=/2 or =@=/2,<SUP class="fn">1<SPAN class="fn-text">The 
+Body must succeed deterministically. AnswerTerm is compared to Value 
+using the comparison operator <VAR>Cmp</VAR>. <VAR>Cmp</VAR> is 
+typically one of =/2, ==/2, =:=/2 or =@=/2,<SUP class="fn">1<SPAN class="fn-text">The 
 =@= predicate (denoted <EM>structural equivalence</EM>) is the same as <A NAME="idx:variant2:4"></A><SPAN class="pred-ext">variant/2</SPAN> 
 in SICStus.</SPAN></SUP> but any test can be used. This is the same as 
 inserting the test at the end of the conjunction, but it allows the test 
@@ -288,16 +289,23 @@ must be more specific than the specified <VAR>Error</VAR>.</DD>
 <DD class="defbody">
 Body must throw <CODE>error(Error, _Context)</CODE>. See <CODE>throws</CODE> 
 for details.</DD>
-<DT><STRONG>all</STRONG>(<VAR>Vars Cmp List</VAR>)</DT>
+<DT><STRONG>all</STRONG>(<VAR>AnswerTerm Cmp Instances</VAR>)</DT>
 <DD class="defbody">
-Similar to <CODE>true(Vars Cmp Values)</CODE>, but used for 
+Similar to <CODE>true(AnswerTerm Cmp Values)</CODE>, but used for 
 non-deterministic predicates. Each element is compared using <VAR>Cmp</VAR>. 
-Order matters.</DD>
-<DT><STRONG>set</STRONG>(<VAR>Vars Cmp List</VAR>)</DT>
+Order matters. For example:
+
+<PRE class="code">
+test(or, all(X == [1,2])) :-
+        ( X = 1 ; X = 2 ).
+</PRE>
+
+</DD>
+<DT><STRONG>set</STRONG>(<VAR>AnswerTerm Cmp Instances</VAR>)</DT>
 <DD class="defbody">
-Similar to <CODE>true(Vars Cmp Values)</CODE>, but used for 
-non-deterministic predicates. Each element is compared using <VAR>Cmp</VAR>. 
-Order and duplicates with respect to <VAR>Cmp</VAR> are ignored.</DD>
+Similar to <CODE>all(AnswerTerm Cmp Instances)</CODE>, but ignores order 
+and duplicates with respect to <VAR>Cmp</VAR> in the comparison. Each 
+element is compared using <VAR>Cmp</VAR>.</DD>
 <DT><STRONG>nondet</STRONG></DT>
 <DD class="defbody">
 If this keyword appears in the option list, non-deterministic success of 
@@ -325,7 +333,7 @@ rules).
 <P>Defined options are:
 
 <DL>
-<DT><STRONG>blocked</STRONG>(<VAR>+Reaosn</VAR>)</DT>
+<DT><STRONG>blocked</STRONG>(<VAR>+Reason</VAR>)</DT>
 <DD class="defbody">
 Test-unit has been blocked for the given <VAR>Reason</VAR>.</DD>
 <DT><STRONG>condition</STRONG>(<VAR>:Goal</VAR>)</DT>
@@ -405,7 +413,7 @@ semi-deterministic predicates</SPAN></A></H4>
 
 <P>Semi-deterministic predicates are predicates that either fail or 
 succeed exactly once and, for well behaved predicates, leave no 
-choicepoints. Testing such predicates the the same as testing 
+choicepoints. Testing such predicates is the same as testing 
 deterministic predicates. Negative tests must be specified using the 
 option
 <CODE>fail</CODE> or by negating the body using <CODE>\+/1</CODE>.
