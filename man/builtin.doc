@@ -5951,7 +5951,9 @@ Name & Default & Description \\
 \hline
 \const{singleton}  & on & read_clause/1 (used by consult/1) warns
                         on variables only appearing once in a term (clause)
-                        which have a name not starting with an underscore. \\
+                        which have a name not starting with an
+			underscore. See \secref{singleton} for details
+			on variable handling and warnings. \\
 \const{atom}       & on & read/1 and derivatives will produce an
                         error message on quoted atoms or strings longer
                         than 5 lines. \\

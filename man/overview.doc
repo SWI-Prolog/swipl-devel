@@ -1747,16 +1747,18 @@ characters and `symbol' characters.
 
 \subsubsection{Singleton variable checking}	\label{sec:singleton}
 
-A singleton variable is a variable that appears only one time in a
-clause. It can always be replaced by \verb$_$, the \jargon{anonymous}
-variable. In some cases however people prefer to give the variable a
-name. As mistyping a variable is a common mistake, Prolog systems
-generally give a warning (controlled by style_check/1) if a variable is
-used only once. The system can be informed a variable is known to appear
-once by \emph{starting} it with an underscore. E.g.\ \verb$_Name$.
-Please note that any variable, except plain \verb$_$ shares with
-variables of the same name.  The term \verb$t(_X, _X)$ is equivalent
-to \verb$t(X, X)$, which is \emph{different} from \verb$t(_, _)$.
+\index{singleton,variable}\index{anonymous,variable}%
+A \jargon{singleton variable} is a variable that appears only one time
+in a clause. It can always be replaced by \verb$_$, the
+\jargon{anonymous} variable. In some cases however people prefer to give
+the variable a name. As mistyping a variable is a common mistake, Prolog
+systems generally give a warning (controlled by style_check/1) if a
+variable is used only once. The system can be informed a variable is
+known to appear once by \emph{starting} it with an underscore. E.g.\
+\verb$_Name$. Please note that any variable, except plain \verb$_$
+shares with variables of the same name. The term \verb$t(_X, _X)$ is
+equivalent to \verb$t(X, X)$, which is \emph{different} from \verb$t(_,
+_)$.
 
 As Unicode requires variables to start with an underscore in many
 languages this schema needs to be extended.%
@@ -1777,7 +1779,8 @@ a normal variable.%
 
 Any normal variable appearing exactly ones in the clause \emph{and}
 any named singleton variables appearing more than once are reported.
-Below are some examples with warnings in the right column.
+Below are some examples with warnings in the right column.  Singleton
+messages can be suppressed using the style_check/1 directive.
 
 \begin{center}
 \begin{tabular}{|l|l|}
