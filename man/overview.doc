@@ -919,7 +919,7 @@ instantiated it unifies the value of the Prolog flag. Flag values are
 typed. Flags marked as \const{bool} can have the values \const{true} and
 \const{false}. Some Prolog flags are not defined in all versions, which
 is normally indicated in the documentation below as \textit{``if present
-and true''}. A boolean Prolog flag is true iff the Prolog flag is
+and true''}. A Boolean Prolog flag is true iff the Prolog flag is
 present {\bf and} the \arg{Value} is the atom \const{true}. Tests for
 such flags should be written as below.
 
@@ -1208,12 +1208,12 @@ Start of the tagged-integer value range.
 
     \prologflagitem{occurs_check}{atom}{rw}
 This flag controls unification that creates an infinite tree (also
-called \jargon{cyclic term} and can have three values. Using
+called \jargon{cyclic term}) and can have three values. Using
 \const{false} (default), unification succeeds, creating an infinite
-tree, Using \const{true}, unify behaves as unify_with_occurs_check/2,
+tree. Using \const{true}, unification behaves as unify_with_occurs_check/2,
 failing silently. Using \const{error}, an attempt to create a cyclic
 term results in an \except{occurs_check} exception. The latter
-is intented for debugging unintentional creation of cyclic terms. Note
+is intended for debugging unintentional creations of cyclic terms. Note
 that this flag is a global flag modifying fundamental behaviour of
 Prolog. Changing the flag from its default may cause libraries to stop
 functioning properly.
@@ -1374,7 +1374,7 @@ used for debugging purposes.
     \prologflagitem{verbose_load}{bool}{rw}
 If \const{false} normal consult messages will be suppressed.  Default is
 \const{true}.  The value of this flag is normally controlled by the
-option \term{silent}{Bool} privided by load_files/2.
+option \term{silent}{Bool} provided by load_files/2.
 
     \prologflagitem{verbose_file_search}{bool}{rw}
 If \const{true} (default \const{false}), print messages indicating the
@@ -1611,7 +1611,7 @@ SWI-Prolog offers ISO compatible extensions to the Edinburgh syntax.
 
 \subsubsection{Processor Character Set}		\label{sec:processorcharset}
 
-\index{iso latin 1}\index{character set}%
+\index{ISO Latin 1}\index{character set}%
 The processor character set specifies the class of each character used
 for parsing Prolog source text.  Character classification is fixed to
 use UCS/Unicode as provided by the C-library \ctype{wchar_t} based
