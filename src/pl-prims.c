@@ -4198,6 +4198,21 @@ PRED_IMPL("$style_check", 2, style_check, 0)
 
 
 		 /*******************************
+		 *	       THROW		*
+		 *******************************/
+
+static
+PRED_IMPL("throw", 1, throw, 0)
+{ PRED_LD
+
+  if ( PL_is_variable(A1) )
+    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+
+  return PL_raise_exception(A1);
+}
+
+
+		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
@@ -4255,4 +4270,5 @@ BeginPredDefs(prims)
   PRED_DEF("nb_setarg", 3, nb_setarg, 0)
   PRED_DEF("nb_linkarg", 3, nb_linkarg, 0)
   PRED_DEF("$skip_list", 3, skip_list, 0)
+  PRED_DEF("throw", 1, throw, 0)
 EndPredDefs

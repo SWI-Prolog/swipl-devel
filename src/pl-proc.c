@@ -1258,9 +1258,9 @@ pl_garbage_collect_clauses(void)
     for(c=GD->procedures.dirty; c; c=c->next)
     { Definition def = c->definition;
 
-      assert(false(def, DYNAMIC));
       assert(true(def, P_DIRTYREG));
-      assert(def->references == 0);
+      if ( false(def, DYNAMIC) )
+	assert(def->references == 0);
     }
 
     markPredicatesInEnvironments(LD);
@@ -1277,20 +1277,24 @@ pl_garbage_collect_clauses(void)
       
       next = cell->next;
 
-      if ( def->references )
-      { assert(def->references == 1);
-	def->references = 0;
-	last = cell;
-      } else
-      { DEBUG(1, Sdprintf("gcClausesDefinition(%s)\n", predicateName(def)));
-	gcClausesDefinition(def);
-	clear(def, P_DIRTYREG);
-	freeHeap(cell, sizeof(*cell));
-	if ( last )
-	  last->next = next;
-	else
-	  GD->procedures.dirty = next;
+      if ( false(def, DYNAMIC) )
+      { if ( def->references )
+	{ assert(def->references == 1);
+	  def->references = 0;
+	  last = cell;
+	  continue;
+	} else
+	{ DEBUG(1, Sdprintf("gcClausesDefinition(%s)\n", predicateName(def)));
+	  gcClausesDefinition(def);
+	}
       }
+  
+      clear(def, P_DIRTYREG);
+      freeHeap(cell, sizeof(*cell));
+      if ( last )
+	last->next = next;
+      else
+	GD->procedures.dirty = next;
     }
 
 #ifdef O_PLMT

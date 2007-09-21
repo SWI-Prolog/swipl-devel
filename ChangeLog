@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Possibly crash combining abolish and loading files with a
+    :- dynamic directive.  Ulrich Neumerkel.
+
+  * FIXED: Exception on throw(_).  Ulrich Neumerkel.
+
   * FIXED: Crash on abolish(foo/(-1)).  Ulrich Neumerkel.  Also fixed
     error message on too high arity.
 

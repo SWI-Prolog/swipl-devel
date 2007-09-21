@@ -229,16 +229,11 @@ fail(Label) :-
 	fail.
 
 %%	catch(:Goal, +Catcher, :Recover)
-%	throw(+Exception)
 %
-%	ISO compliant exception handling.  '$throw'/1 is compiled to
-%	the virtual instruction B_THROW.  See pl-wam.c for details.
+%	ISO compliant exception handling.
 
 catch(_Goal, _Catcher, _Recover) :-
 	'$catch'.
-
-throw(Exception) :-
-	'$throw'(Exception).
 
 %%	setup_and_call_cleanup(:Setup, :Goal, :Cleanup).
 %%	setup_and_call_cleanup(:Setup, :Goal, +Catcher, :Cleanup).

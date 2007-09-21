@@ -1617,11 +1617,6 @@ re-definition.
       { Output_0(ci, B_EXIT);
 	succeed;
 #endif
-#if O_CATCHTHROW
-      } else if ( functor == FUNCTOR_dthrow1 )
-      { Output_0(ci, B_THROW);
-	succeed;
-#endif
       }
       Output_1(ci, call, (code) proc);
 
