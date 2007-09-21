@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Correct exception on too many open files.  Ulrich Neumerkel.
+
   * FIXED: Possibly crash combining abolish and loading files with a
     :- dynamic directive.  Ulrich Neumerkel.
 

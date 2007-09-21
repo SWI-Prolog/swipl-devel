@@ -308,7 +308,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 	case EMFILE:
 	case ENFILE:
 	  PL_unify_term(formal,
-			PL_FUNCTOR, FUNCTOR_representation_error1,
+			PL_FUNCTOR, FUNCTOR_resource_error1,
 			  PL_ATOM, ATOM_max_files);
 	  break;
 #ifdef EPIPE
