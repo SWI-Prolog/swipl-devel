@@ -81,6 +81,20 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       err_instantiation:
       PL_unify_atom(formal, ATOM_instantiation_error);
       break;
+    case ERR_MUST_BE_VAR:
+    { int argn = va_arg(args, int);
+      term_t bound = va_arg(args, term_t);
+
+      if ( !msg && (msg = alloca(100)) )
+      { Ssprintf(msg, "%d-%s argument",
+		 argn, argn == 1 ? "st" : argn == 2 ? "nd" : "th");
+      }
+
+      PL_unify_term(formal,
+		    PL_FUNCTOR, FUNCTOR_representation_error1,
+		      PL_ATOM, ATOM_variable);
+      break;
+    }
     case ERR_TYPE:			/* ERR_INSTANTIATION if var(actual) */
     { atom_t expected = va_arg(args, atom_t);
       term_t actual   = va_arg(args, term_t);

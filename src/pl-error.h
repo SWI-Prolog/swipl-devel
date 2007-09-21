@@ -60,6 +60,7 @@
 #define ERR_FORMAT_ARG	       35	/* seq, term */
 #define ERR_OCCURS_CHECK       36	/* Word, Word */
 #define ERR_CHARS_TYPE	       37	/* char *, term */
+#define ERR_MUST_BE_VAR	       38	/* int argn, term_t term */
 
 #define MSG_ERRNO		((char *)(-1))
 

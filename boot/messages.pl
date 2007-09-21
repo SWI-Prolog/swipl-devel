@@ -97,6 +97,8 @@ iso_message(domain_error(Domain, Actual)) -->
 	[ 'Domain error: `~w'' expected, found `~p'''-[Domain, Actual] ].
 iso_message(instantiation_error) -->
 	[ 'Arguments are not sufficiently instantiated' ].
+iso_message(representation_error(variable)) -->
+	[ 'Cannot represent: argument must be unbound' ].
 iso_message(representation_error(What)) -->
 	[ 'Cannot represent due to `~w'''-[What] ].
 iso_message(permission_error(Action, built_in_procedure, Pred)) -->

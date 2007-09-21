@@ -452,7 +452,7 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
   } else if ( isAttVar(*av) )
   { return put_attr(av, name, vp PASS_LD);
   } else
-  { return PL_error("put_attr", 3, NULL, ERR_TYPE, ATOM_var, A1);
+  { return PL_error("put_attr", 3, NULL, ERR_MUST_BE_VAR, 1, A1);
   }
 }
 
@@ -470,7 +470,7 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
   { make_new_attvar(av PASS_LD);
     deRef(av);
   } else if ( !isAttVar(*av) )
-  { return PL_error("put_attrs", 2, NULL, ERR_TYPE, ATOM_var, A1);
+  { return PL_error("put_attrs", 2, NULL, ERR_MUST_BE_VAR, 1, A1);
   }
 
   vp = valPAttVar(*av);

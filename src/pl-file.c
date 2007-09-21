@@ -1663,15 +1663,16 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
     if ( n < 0 )			/* should not happen */
       return streamStatus(s);
 
-    gstore = allocGlobal(n*3);
+    gstore = allocGlobal(n*3);		/* TBD: shift */
     lp = valTermRef(A2);
     deRef(lp);
     tp = valTermRef(A3);
     deRef(tp);
 
     if ( !isVar(*lp) )
-      return PL_error(NULL, 0, NULL, ERR_INSTANTIATION, A2);
+      return PL_error(NULL, 0, NULL, ERR_MUST_BE_VAR, 2, A2);
     *lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+    Trail(lp);
 
     for(i=0; i<n; )
     { *gstore++ = FUNCTOR_dot2;
