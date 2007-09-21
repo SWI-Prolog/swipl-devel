@@ -146,7 +146,7 @@ of the Prolog flag. Flag values are typed. Flags marked as <CODE>bool</CODE>
 can have the values <CODE>true</CODE> and
 <CODE>false</CODE>. Some Prolog flags are not defined in all versions, 
 which is normally indicated in the documentation below as <I>``if 
-present and true''</I>. A boolean Prolog flag is true iff the Prolog 
+present and true''</I>. A Boolean Prolog flag is true iff the Prolog 
 flag is present <B>and</B> the <VAR>Value</VAR> is the atom <CODE>true</CODE>. 
 Tests for such flags should be written as below.
 
@@ -465,15 +465,15 @@ Start of the tagged-integer value range.</DD>
 <DT class="pubdef"><A NAME="flag:occurs_check"><STRONG>occurs_check</STRONG>(<VAR>atom</VAR>, changeable)</A></DT>
 <DD class="defbody">
 This flag controls unification that creates an infinite tree (also 
-called <EM>cyclic term</EM> and can have three values. Using
+called <EM>cyclic term</EM>) and can have three values. Using
 <CODE>false</CODE> (default), unification succeeds, creating an infinite 
-tree, Using <CODE>true</CODE>, unify behaves as <A NAME="idx:unifywithoccurscheck2:145"></A><A class="pred" href="compare.html#unify_with_occurs_check/2">unify_with_occurs_check/2</A>, 
+tree. Using <CODE>true</CODE>, unification behaves as <A NAME="idx:unifywithoccurscheck2:145"></A><A class="pred" href="compare.html#unify_with_occurs_check/2">unify_with_occurs_check/2</A>, 
 failing silently. Using <CODE>error</CODE>, an attempt to create a 
 cyclic term results in an <CODE>occurs_check</CODE> exception. The 
-latter is intented for debugging unintentional creation of cyclic terms. 
-Note that this flag is a global flag modifying fundamental behaviour of 
-Prolog. Changing the flag from its default may cause libraries to stop 
-functioning properly.</DD>
+latter is intended for debugging unintentional creations of cyclic 
+terms. Note that this flag is a global flag modifying fundamental 
+behaviour of Prolog. Changing the flag from its default may cause 
+libraries to stop functioning properly.</DD>
 <DT class="pubdef"><A NAME="flag:open_shared_object"><STRONG>open_shared_object</STRONG>(<VAR>bool</VAR>)</A></DT>
 <DD class="defbody">
 If true, <A NAME="idx:opensharedobject2:146"></A><A class="pred" href="dynstatic.html#open_shared_object/2">open_shared_object/2</A> 
@@ -644,7 +644,7 @@ to be used for debugging purposes.</DD>
 If <CODE>false</CODE> normal consult messages will be suppressed. 
 Default is
 <CODE>true</CODE>. The value of this flag is normally controlled by the 
-option <CODE>silent(Bool)</CODE> privided by <A NAME="idx:loadfiles2:161"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>.</DD>
+option <CODE>silent(Bool)</CODE> provided by <A NAME="idx:loadfiles2:161"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>.</DD>
 <DT class="pubdef"><A NAME="flag:verbose_file_search"><STRONG>verbose_file_search</STRONG>(<VAR>bool</VAR>, changeable)</A></DT>
 <DD class="defbody">
 If <CODE>true</CODE> (default <CODE>false</CODE>), print messages 

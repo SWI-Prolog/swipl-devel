@@ -126,14 +126,14 @@ support to keep track of license conditions</SPAN></A></H2>
 <A NAME="sec:softlicense"></A>
 
 <P>Given the above, it is possible that SWI-Prolog packages and 
-extensions will rely on the GPL.<SUP class="fn">84<SPAN class="fn-text">On 
+extensions will rely on the GPL.<SUP class="fn">85<SPAN class="fn-text">On 
 the Unix version, the default toplevel uses the GNU readline library for 
 command-line editing. This library is distributed under the GPL. In 
 practice this problem is small as most final applications have Prolog 
 embedded, without direct access to the commandline and therefore without 
 need for <CODE>libreadline</CODE>.</SPAN></SUP> The predicates below 
 allow for registering license requirements for Prolog files and foreign 
-modules. The predicate <A NAME="idx:evallicense0:1534"></A><A class="pred" href="softlicense.html#eval_license/0">eval_license/0</A> 
+modules. The predicate <A NAME="idx:evallicense0:1590"></A><A class="pred" href="softlicense.html#eval_license/0">eval_license/0</A> 
 reports which components from the currenly configured system are 
 distributed under copy-left and open source enforcing licenses (the GPL) 
 and therefore must be replaced before distributing linked applications 
@@ -158,7 +158,7 @@ are:
 <DT><STRONG>swipl</STRONG></DT>
 <DD class="defbody">
 Indicates this module is distributed under the GNU General Public 
-License (GPL) with the SWI-Prolog exception:<SUP class="fn">85<SPAN class="fn-text">This 
+License (GPL) with the SWI-Prolog exception:<SUP class="fn">86<SPAN class="fn-text">This 
 exception is a straight re-phrasing of the license used for <CODE>libgcc</CODE>, 
 the GNU-C runtime library facing similar technical issues.</SPAN></SUP>
 <BLOCKQUOTE><I>As a special exception, if you link this library with 
@@ -196,7 +196,7 @@ clauses for the multifile predicate license:license/3. Below is an
 example. The second argument is either <CODE>gpl</CODE> or <CODE>lgpl</CODE> 
 to indicate compatibility to these licenses. Other values cause the 
 license to interpreted as <EM>proprietary</EM>. Proprietary licenses are 
-reported by <A NAME="idx:evallicense0:1535"></A><A class="pred" href="softlicense.html#eval_license/0">eval_license/0</A>. 
+reported by <A NAME="idx:evallicense0:1591"></A><A class="pred" href="softlicense.html#eval_license/0">eval_license/0</A>. 
 See the file <CODE>boot/license.pl</CODE> for details.
 
 <PRE class="code">
@@ -214,7 +214,7 @@ license:license(mylicense, lgpl,
 <DT class="pubdef"><A NAME="license/1"><STRONG>license</STRONG>(<VAR>+LicenseId</VAR>)</A></DT>
 <DD class="defbody">
 Intented as a directive in Prolog source files. It takes the current 
-filename and calls <A NAME="idx:license2:1536"></A><A class="pred" href="softlicense.html#license/2">license/2</A>.</DD>
+filename and calls <A NAME="idx:license2:1592"></A><A class="pred" href="softlicense.html#license/2">license/2</A>.</DD>
 <DT class="pubdef"><A NAME="PL_license()"><VAR>void</VAR> <STRONG>PL_license</STRONG>(<VAR>const 
 char *LicenseId, const char *Component</VAR>)</A></DT>
 <DD class="defbody">

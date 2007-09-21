@@ -125,10 +125,11 @@ Interaction</SPAN></A></H2>
 
 <A NAME="sec:readline"></A>
 
-<P>The following predicates are available if
-<CODE>current_prolog_flag(readline, true)</CODE> succeeds. They allow 
-for direct interaction with the GNU readline library. See also
-<STRONG>readline</STRONG>(3)
+<P>The following predicates are available if SWI-Prolog is linked to the 
+GNU readline library. This is by default the case on non-Windows 
+installations and indicated by the Prolog flag <A class="flag" href="flags.html#flag:readline">readline</A>.<SUP class="fn">84<SPAN class="fn-text"><B>plwin.exe</B> 
+uses its own history system and does <EM>not</EM> support these 
+predicates.</SPAN></SUP> See also <STRONG>readline</STRONG>(3)
 
 <DL>
 <DT class="pubdef"><A NAME="rl_read_init_file/1"><STRONG>rl_read_init_file</STRONG>(<VAR>+File</VAR>)</A></DT>
@@ -142,7 +143,7 @@ Add a line to the Control-P/Control-N history system of the readline
 library.</DD>
 <DT class="pubdef"><A NAME="rl_write_history/1"><STRONG>rl_write_history</STRONG>(<VAR>+FileName</VAR>)</A></DT>
 <DD class="defbody">
-Write current history to <VAR>FileName</VAR>. Can be used from <A NAME="idx:athalt1:1526"></A><A class="pred" href="consulting.html#at_halt/1">at_halt/1</A> 
+Write current history to <VAR>FileName</VAR>. Can be used from <A NAME="idx:athalt1:1529"></A><A class="pred" href="consulting.html#at_halt/1">at_halt/1</A> 
 to save the history.</DD>
 <DT class="pubdef"><A NAME="rl_read_history/1"><STRONG>rl_read_history</STRONG>(<VAR>+FileName</VAR>)</A></DT>
 <DD class="defbody">

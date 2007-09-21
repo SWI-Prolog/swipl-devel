@@ -126,9 +126,9 @@ Predicates</SPAN></A></H2>
 <A NAME="sec:control"></A>
 
 <P>The predicates of this section implement control structures. Normally 
-the constructs in this section, except for <A NAME="idx:repeat0:464"></A><A class="pred" href="control.html#repeat/0">repeat/0</A>, 
+the constructs in this section, except for <A NAME="idx:repeat0:467"></A><A class="pred" href="control.html#repeat/0">repeat/0</A>, 
 are translated by the compiler. Please note that complex goals passed as 
-arguments to meta-predicates such as <A NAME="idx:findall3:465"></A><A class="pred" href="allsolutions.html#findall/3">findall/3</A> 
+arguments to meta-predicates such as <A NAME="idx:findall3:468"></A><A class="pred" href="allsolutions.html#findall/3">findall/3</A> 
 below cause the goal to be compiled to a temporary location before 
 execution. It is faster to define a sub-predicate (i.e. one_character_atom/1 
 in the example below) and make a call to this simple predicate.
@@ -141,12 +141,12 @@ one_character_atoms(As) :-
 <DL>
 <DT class="pubdef"><A NAME="fail/0"><STRONG>fail</STRONG></A></DT>
 <DD class="defbody">
-Always fail. The predicate <A NAME="idx:fail0:466"></A><A class="pred" href="control.html#fail/0">fail/0</A> 
+Always fail. The predicate <A NAME="idx:fail0:469"></A><A class="pred" href="control.html#fail/0">fail/0</A> 
 is translated into a single virtual machine instruction.
 </DD>
 <DT class="pubdef"><A NAME="true/0"><STRONG>true</STRONG></A></DT>
 <DD class="defbody">
-Always succeed. The predicate <A NAME="idx:true0:467"></A><A class="pred" href="control.html#true/0">true/0</A> 
+Always succeed. The predicate <A NAME="idx:true0:470"></A><A class="pred" href="control.html#true/0">true/0</A> 
 is translated into a single virtual machine instruction.
 </DD>
 <DT class="pubdef"><A NAME="repeat/0"><STRONG>repeat</STRONG></A></DT>
@@ -245,7 +245,7 @@ execute <VAR>Else</VAR>.
 an
 <VAR>Else</VAR> branch, is translated as the normal conjunction <VAR>A</VAR>,
 <VAR>B</VAR>.<SUP class="fn">bug<SPAN class="fn-text">The decompiler 
-implemented by <A NAME="idx:clause2:468"></A><A class="pred" href="examineprog.html#clause/2">clause/2</A> 
+implemented by <A NAME="idx:clause2:471"></A><A class="pred" href="examineprog.html#clause/2">clause/2</A> 
 returns this construct as a normal conjunction too.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="\+/1"><STRONG>\+</STRONG> <VAR>+Goal</VAR></A></DT>
 <DD class="defbody">

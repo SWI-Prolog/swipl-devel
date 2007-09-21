@@ -128,6 +128,7 @@ of Terms</SPAN></A></H1>
 <DL>
 <DT><A NAME="gloss:anonymou"><STRONG>anonymous [variable]</STRONG></A></DT>
 <DD class="defbody">
+<A NAME="idx:anonymousvariable:1530"></A><A NAME="idx:variableanonymous:1531"></A> 
 The variable <CODE>_</CODE> is called the <A class="gloss" href="glossary.html#gloss:anonymou">anonymous</A> 
 variable. Multiple occurrences of <CODE>_</CODE> in a single <A class="gloss" href="glossary.html#gloss:term">term</A> 
 are not <A class="gloss" href="glossary.html#gloss:shared">shared</A>.</DD>
@@ -139,20 +140,23 @@ and <VAR>a2</VAR> are the first and second argument of the term
 <CODE>myterm(A1, a2)</CODE>.</DD>
 <DT><A NAME="gloss:arity"><STRONG>arity</STRONG></A></DT>
 <DD class="defbody">
-Argument count (is number of arguments) of a <A class="gloss" href="glossary.html#gloss:compound">compound</A> <A class="gloss" href="glossary.html#gloss:term">term</A>.</DD>
+<A NAME="idx:arity:1532"></A>Argument count (is number of arguments) of 
+a <A class="gloss" href="glossary.html#gloss:compound">compound</A> <A class="gloss" href="glossary.html#gloss:term">term</A>.</DD>
 <DT><A NAME="gloss:assert"><STRONG>assert</STRONG></A></DT>
 <DD class="defbody">
-Add a <A class="gloss" href="glossary.html#gloss:clause">clause</A> to a <A class="gloss" href="glossary.html#gloss:predicate">predicate</A>. 
+<A NAME="idx:assert:1533"></A>Add a <A class="gloss" href="glossary.html#gloss:clause">clause</A> 
+to a <A class="gloss" href="glossary.html#gloss:predicate">predicate</A>. 
 Clauses can be added at either end of the clause-list of a <A class="gloss" href="glossary.html#gloss:predicate">predicate</A>. 
-See <A NAME="idx:assert1:1527"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
-and <A NAME="idx:assertz1:1528"></A><A class="pred" href="db.html#assertz/1">assertz/1</A>.</DD>
+See <A NAME="idx:assert1:1534"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
+and <A NAME="idx:assertz1:1535"></A><A class="pred" href="db.html#assertz/1">assertz/1</A>.</DD>
 <DT><A NAME="gloss:atom"><STRONG>atom</STRONG></A></DT>
 <DD class="defbody">
-Textual constant. Used as name for <A class="gloss" href="glossary.html#gloss:compound">compound</A> 
+<A NAME="idx:atom:1536"></A>Textual constant. Used as name for <A class="gloss" href="glossary.html#gloss:compound">compound</A> 
 terms, to represent constants or text.</DD>
 <DT><A NAME="gloss:backtracking"><STRONG>backtracking</STRONG></A></DT>
 <DD class="defbody">
-Searching process used by Prolog. If a predicate offers multiple
+<A NAME="idx:backtracking:1537"></A>Searching process used by Prolog. If 
+a predicate offers multiple
 <A class="gloss" href="glossary.html#gloss:clause">clauses</A> to solve 
 a <A class="gloss" href="glossary.html#gloss:goal">goal</A>, they are 
 tried one-by-one until one <A class="gloss" href="glossary.html#gloss:succeed">succeeds</A>. 
@@ -164,23 +168,24 @@ causing Prolog to reject the previously chosen <A class="gloss" href="glossary.h
 and try the next one.</DD>
 <DT><A NAME="gloss:binding"><STRONG>binding [of a variable]</STRONG></A></DT>
 <DD class="defbody">
-Current value of the <A class="gloss" href="glossary.html#gloss:variable">variable</A>. 
+<A NAME="idx:binding:1538"></A>Current value of the <A class="gloss" href="glossary.html#gloss:variable">variable</A>. 
 See also <A class="gloss" href="glossary.html#gloss:backtracking">backtracking</A> 
 and
 <A class="gloss" href="glossary.html#gloss:query">query</A>.</DD>
 <DT><A NAME="gloss:built-in"><STRONG>built-in [predicate]</STRONG></A></DT>
 <DD class="defbody">
-Predicate that is part of the Prolog system. Built in predicates cannot 
-be redefined by the user, unless this is overruled using
-<A NAME="idx:redefinesystempredicate1:1529"></A><A class="pred" href="db.html#redefine_system_predicate/1">redefine_system_predicate/1</A>.</DD>
+<A NAME="idx:builtinpredicate:1539"></A>Predicate that is part of the 
+Prolog system. Built in predicates cannot be redefined by the user, 
+unless this is overruled using
+<A NAME="idx:redefinesystempredicate1:1540"></A><A class="pred" href="db.html#redefine_system_predicate/1">redefine_system_predicate/1</A>.</DD>
 <DT><A NAME="gloss:body"><STRONG>body</STRONG></A></DT>
 <DD class="defbody">
-Part of a <A class="gloss" href="glossary.html#gloss:clause">clause</A> 
+<A NAME="idx:body:1541"></A>Part of a <A class="gloss" href="glossary.html#gloss:clause">clause</A> 
 behind the <A class="gloss" href="glossary.html#gloss:neck">neck</A> 
 operator (<CODE><CODE>:-</CODE></CODE>).</DD>
 <DT><A NAME="gloss:clause"><STRONG>clause</STRONG></A></DT>
 <DD class="defbody">
-`Sentence' of a Prolog program. A <A class="gloss" href="glossary.html#gloss:clause">clause</A> 
+<A NAME="idx:clause:1542"></A>`Sentence' of a Prolog program. A <A class="gloss" href="glossary.html#gloss:clause">clause</A> 
 consists of a <A class="gloss" href="glossary.html#gloss:head">head</A> 
 and
 <A class="gloss" href="glossary.html#gloss:body">body</A> separated by 
@@ -202,7 +207,7 @@ is translated to a sequence of instructions. See also <A class="gloss" href="glo
 SWI-Prolog always compiles your program before executing it.</DD>
 <DT><A NAME="gloss:compound"><STRONG>compound [term]</STRONG></A></DT>
 <DD class="defbody">
-Also called <A class="gloss" href="glossary.html#gloss:structure">structure</A>. 
+<A NAME="idx:compound:1543"></A>Also called <A class="gloss" href="glossary.html#gloss:structure">structure</A>. 
 It consists of a name followed by <VAR>N</VAR>
 <A class="gloss" href="glossary.html#gloss:argument">arguments</A>, each 
 of which are <A class="gloss" href="glossary.html#gloss:term">terms</A>. <VAR>N</VAR> 
@@ -210,8 +215,9 @@ is called the
 <A class="gloss" href="glossary.html#gloss:arity">arity</A> of the term.</DD>
 <DT><A NAME="gloss:context-module"><STRONG>context module</STRONG></A></DT>
 <DD class="defbody">
-If a <A class="gloss" href="glossary.html#gloss:term">term</A> is 
-referring to a <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> 
+<A NAME="idx:contextmodule:1544"></A><A NAME="idx:modulecontex:1545"></A>If 
+a <A class="gloss" href="glossary.html#gloss:term">term</A> is referring 
+to a <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> 
 in a <A class="gloss" href="glossary.html#gloss:module">module</A>, the
 <A class="gloss" href="glossary.html#gloss:context-module">context module</A> 
 is used to find the target module. The context module of a <A class="gloss" href="glossary.html#gloss:goal">goal</A> 
@@ -220,10 +226,10 @@ is defined, unless this <A class="gloss" href="glossary.html#gloss:predicate">pr
 is <A class="gloss" href="glossary.html#gloss:module-transparent">module transparent</A>, 
 in which case the <A class="gloss" href="glossary.html#gloss:context-module">context module</A> 
 is inherited from the parent
-<A class="gloss" href="glossary.html#gloss:goal">goal</A>. See also <A NAME="idx:moduletransparent1:1530"></A><A class="pred" href="manipmodule.html#module_transparent/1">module_transparent/1</A>.</DD>
+<A class="gloss" href="glossary.html#gloss:goal">goal</A>. See also <A NAME="idx:moduletransparent1:1546"></A><A class="pred" href="manipmodule.html#module_transparent/1">module_transparent/1</A>.</DD>
 <DT><A NAME="gloss:dynamic"><STRONG>dynamic [predicate]</STRONG></A></DT>
 <DD class="defbody">
-A <A class="gloss" href="glossary.html#gloss:dynamic">dynamic</A> 
+<A NAME="idx:dynamicpredicate:1547"></A><A NAME="idx:predicatedynamic:1548"></A>A <A class="gloss" href="glossary.html#gloss:dynamic">dynamic</A> 
 predicate is a predicate to which <A class="gloss" href="glossary.html#gloss:clause">clauses</A> 
 may be
 <A class="gloss" href="glossary.html#gloss:assert">assert</A>ed and from 
@@ -232,15 +238,16 @@ be <A class="gloss" href="glossary.html#gloss:retract">retract</A>ed
 while the program is running. See also <A class="gloss" href="glossary.html#gloss:update-view">update view</A>.</DD>
 <DT><A NAME="gloss:exported"><STRONG>exported [predicate]</STRONG></A></DT>
 <DD class="defbody">
-A <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> is 
-said to be <A class="gloss" href="glossary.html#gloss:exported">exported</A> 
+<A NAME="idx:exportedpredicate:1549"></A><A NAME="idx:predicateexported:1550"></A>A <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> 
+is said to be <A class="gloss" href="glossary.html#gloss:exported">exported</A> 
 from a <A class="gloss" href="glossary.html#gloss:module">module</A> if 
 it appears in the <A class="gloss" href="glossary.html#gloss:public-list">public list</A>. 
 This implies that the predicate can be <A class="gloss" href="glossary.html#gloss:imported">imported</A> 
-into another module to make it visible there. See also <A NAME="idx:usemodule12:1531"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>.</DD>
+into another module to make it visible there. See also <A NAME="idx:usemodule12:1551"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>.</DD>
 <DT><A NAME="gloss:fact"><STRONG>fact</STRONG></A></DT>
 <DD class="defbody">
-<A class="gloss" href="glossary.html#gloss:clause">Clause</A> without a <A class="gloss" href="glossary.html#gloss:body">body</A>. 
+<A NAME="idx:fact:1552"></A><A class="gloss" href="glossary.html#gloss:clause">Clause</A> 
+without a <A class="gloss" href="glossary.html#gloss:body">body</A>. 
 This is called a fact because interpreted as logic, there is no 
 condition to be satisfied. The example below states <CODE>john</CODE> is 
 a person.
@@ -264,7 +271,7 @@ Computer code expressed in other languages than Prolog. SWI-Prolog can
 only cooperate directly with the C and C++ computer languages.</DD>
 <DT><A NAME="gloss:functor"><STRONG>functor</STRONG></A></DT>
 <DD class="defbody">
-Combination of name and <A class="gloss" href="glossary.html#gloss:arity">arity</A> 
+<A NAME="idx:functor:1553"></A>Combination of name and <A class="gloss" href="glossary.html#gloss:arity">arity</A> 
 of a <A class="gloss" href="glossary.html#gloss:compound">compound</A> 
 term. The term
 <CODE>foo(a, b, c)</CODE> is said to be a term belonging to the functor 
@@ -272,7 +279,8 @@ foo/3 . foo/0 is used to refer to the <A class="gloss" href="glossary.html#gloss
 <CODE>foo</CODE>.</DD>
 <DT><A NAME="gloss:goal"><STRONG>goal</STRONG></A></DT>
 <DD class="defbody">
-Question stated to the Prolog engine. A <A class="gloss" href="glossary.html#gloss:goal">goal</A> 
+<A NAME="idx:goal:1554"></A><A NAME="idx:query:1555"></A>Question stated 
+to the Prolog engine. A <A class="gloss" href="glossary.html#gloss:goal">goal</A> 
 is either an <A class="gloss" href="glossary.html#gloss:atom">atom</A> 
 or a <A class="gloss" href="glossary.html#gloss:compound">compound</A> 
 term. A <A class="gloss" href="glossary.html#gloss:goal">goal</A> 
@@ -284,25 +292,26 @@ or <A class="gloss" href="glossary.html#gloss:fail">fails</A> if Prolog
 fails to prove the <A class="gloss" href="glossary.html#gloss:goal">goal</A>.</DD>
 <DT><A NAME="gloss:hashing"><STRONG>hashing</STRONG></A></DT>
 <DD class="defbody">
-<A class="gloss" href="glossary.html#gloss:indexing">Indexing</A> 
+<A NAME="idx:hashing:1556"></A><A class="gloss" href="glossary.html#gloss:indexing">Indexing</A> 
 technique used for quick lookup.</DD>
 <DT><A NAME="gloss:head"><STRONG>head</STRONG></A></DT>
 <DD class="defbody">
-Part of a <A class="gloss" href="glossary.html#gloss:clause">clause</A> 
+<A NAME="idx:head:1557"></A>Part of a <A class="gloss" href="glossary.html#gloss:clause">clause</A> 
 before the <A class="gloss" href="glossary.html#gloss:neck">neck</A> 
 instruction. This is an atom or <A class="gloss" href="glossary.html#gloss:compound">compound</A> 
 term.</DD>
 <DT><A NAME="gloss:imported"><STRONG>imported [predicate]</STRONG></A></DT>
 <DD class="defbody">
-A <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> is 
-said to be <A class="gloss" href="glossary.html#gloss:imported">imported</A> 
+<A NAME="idx:importedpredicate:1558"></A><A NAME="idx:predicateimported:1559"></A>A <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> 
+is said to be <A class="gloss" href="glossary.html#gloss:imported">imported</A> 
 into a <A class="gloss" href="glossary.html#gloss:module">module</A> if 
 it is defined in another <A class="gloss" href="glossary.html#gloss:module">module</A> 
 and made available in this <A class="gloss" href="glossary.html#gloss:module">module</A>. 
 See also <A class="sec" href="modules.html">chapter 5</A>.</DD>
 <DT><A NAME="gloss:indexing"><STRONG>indexing</STRONG></A></DT>
 <DD class="defbody">
-Indexing is a technique used to quickly select candidate <A class="gloss" href="glossary.html#gloss:clause">clauses</A> 
+<A NAME="idx:indexing:1560"></A>Indexing is a technique used to quickly 
+select candidate <A class="gloss" href="glossary.html#gloss:clause">clauses</A> 
 of a <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> 
 for a specific <A class="gloss" href="glossary.html#gloss:goal">goal</A>. 
 In most Prolog systems, including SWI-Prolog, indexing is done on the 
@@ -318,47 +327,48 @@ of which the first argument may <A class="gloss" href="glossary.html#gloss:unify
 with the first argument of the <A class="gloss" href="glossary.html#gloss:goal">goal</A>.</DD>
 <DT><A NAME="gloss:integer"><STRONG>integer</STRONG></A></DT>
 <DD class="defbody">
-Whole number. On all implementations of SWI-Prolog integers are at least 
-64-bit signed values. When linked to the GNU GMP library, integer 
-arithmetic is unbounded. See also <A NAME="idx:currentprologflag2:1532"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>, 
+<A NAME="idx:integer:1561"></A>Whole number. On all implementations of 
+SWI-Prolog integers are at least 64-bit signed values. When linked to 
+the GNU GMP library, integer arithmetic is unbounded. See also <A NAME="idx:currentprologflag2:1562"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>, 
 flags <A class="flag" href="flags.html#flag:bounded">bounded</A>, <A class="flag" href="flags.html#flag:max_integer">max_integer</A> 
 and <A class="flag" href="flags.html#flag:min_integer">min_integer</A>.</DD>
 <DT><A NAME="gloss:interpreted"><STRONG>interpreted</STRONG></A></DT>
 <DD class="defbody">
-As opposed to <A class="gloss" href="glossary.html#gloss:compile">compiled</A>, 
+<A NAME="idx:interpreted:1563"></A>As opposed to <A class="gloss" href="glossary.html#gloss:compile">compiled</A>, 
 interpreted means the Prolog system attempts to prove a <A class="gloss" href="glossary.html#gloss:goal">goal</A> 
 by directly reading the <A class="gloss" href="glossary.html#gloss:clause">clauses</A> 
 rather than executing instructions from an (abstract) instruction set 
 that is not or only indirectly related to Prolog.</DD>
 <DT><A NAME="gloss:meta-predicate"><STRONG>meta-predicate</STRONG></A></DT>
 <DD class="defbody">
-A <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> 
+<A NAME="idx:metapredicate:1564"></A>A <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> 
 that reasons about other <A class="gloss" href="glossary.html#gloss:predicate">predicates</A>, 
 either by calling them, (re)defining them or querying <A class="gloss" href="glossary.html#gloss:property">properties</A>.</DD>
 <DT><A NAME="gloss:module"><STRONG>module</STRONG></A></DT>
 <DD class="defbody">
-Collection of predicates. Each module defines a name-space for 
-predicates. <A class="gloss" href="glossary.html#gloss:built-in">built-in</A> 
+<A NAME="idx:module:1565"></A>Collection of predicates. Each module 
+defines a name-space for predicates. <A class="gloss" href="glossary.html#gloss:built-in">built-in</A> 
 predicates are accessible from all modules. Predicates can be published 
 (<A class="gloss" href="glossary.html#gloss:exported">exported</A>) and <A class="gloss" href="glossary.html#gloss:imported">imported</A> 
 to make their definition available to other modules.</DD>
 <DT><A NAME="gloss:module-transparent"><STRONG>module transparent [predicate]</STRONG></A></DT>
 <DD class="defbody">
-A <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> 
+<A NAME="idx:moduletransparent:1566"></A><A NAME="idx:transparent:1567"></A>A <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> 
 that does not change the <A class="gloss" href="glossary.html#gloss:context-module">context module</A>. 
 Sometimes also called a <A class="gloss" href="glossary.html#gloss:meta-predicate">meta-predicate</A>.</DD>
 <DT><A NAME="gloss:multifile"><STRONG>multifile [predicate]</STRONG></A></DT>
 <DD class="defbody">
 Predicate for which the definition is distributed over multiple 
-source-files. See <A NAME="idx:multifile1:1533"></A><A class="pred" href="dynamic.html#multifile/1">multifile/1</A>.</DD>
+source-files. See <A NAME="idx:multifile1:1568"></A><A class="pred" href="dynamic.html#multifile/1">multifile/1</A>.</DD>
 <DT><A NAME="gloss:neck"><STRONG>neck</STRONG></A></DT>
 <DD class="defbody">
-Operator (<CODE><CODE>:-</CODE></CODE>) separating <A class="gloss" href="glossary.html#gloss:head">head</A> 
+<A NAME="idx:neck:1569"></A>Operator (<CODE><CODE>:-</CODE></CODE>) 
+separating <A class="gloss" href="glossary.html#gloss:head">head</A> 
 from <A class="gloss" href="glossary.html#gloss:body">body</A> in a <A class="gloss" href="glossary.html#gloss:clause">clause</A>.</DD>
 <DT><A NAME="gloss:operator"><STRONG>operator</STRONG></A></DT>
 <DD class="defbody">
-Symbol (<A class="gloss" href="glossary.html#gloss:atom">atom</A>) that 
-may be placed before its <A class="gloss" href="glossary.html#gloss:operand">operand</A> 
+<A NAME="idx:operator:1570"></A>Symbol (<A class="gloss" href="glossary.html#gloss:atom">atom</A>) 
+that may be placed before its <A class="gloss" href="glossary.html#gloss:operand">operand</A> 
 (prefix), after its <A class="gloss" href="glossary.html#gloss:operand">operand</A> 
 (postfix) or between its two <A class="gloss" href="glossary.html#gloss:operand">operands</A> 
 (infix).
@@ -367,15 +377,16 @@ may be placed before its <A class="gloss" href="glossary.html#gloss:operand">ope
 canonical term <CODE>+(a,b)</CODE>.</DD>
 <DT><A NAME="gloss:operand"><STRONG>operand</STRONG></A></DT>
 <DD class="defbody">
-<A class="gloss" href="glossary.html#gloss:argument">Argument</A> of an <A class="gloss" href="glossary.html#gloss:operator">operator</A>.</DD>
+<A NAME="idx:operand:1571"></A><A class="gloss" href="glossary.html#gloss:argument">Argument</A> 
+of an <A class="gloss" href="glossary.html#gloss:operator">operator</A>.</DD>
 <DT><A NAME="gloss:precedence"><STRONG>precedence</STRONG></A></DT>
 <DD class="defbody">
-The <A class="gloss" href="glossary.html#gloss:priority">priority</A> of 
-an <A class="gloss" href="glossary.html#gloss:operator">operator</A>. 
+<A NAME="idx:precedence:1572"></A>The <A class="gloss" href="glossary.html#gloss:priority">priority</A> 
+of an <A class="gloss" href="glossary.html#gloss:operator">operator</A>. 
 Operator precedence is used to interpret <CODE>a+b*c</CODE> as <CODE>+(a, *(b,c))</CODE>.</DD>
 <DT><A NAME="gloss:predicate"><STRONG>predicate</STRONG></A></DT>
 <DD class="defbody">
-Collection of <A class="gloss" href="glossary.html#gloss:clause">clauses</A> 
+<A NAME="idx:predicate:1573"></A>Collection of <A class="gloss" href="glossary.html#gloss:clause">clauses</A> 
 with the same <A class="gloss" href="glossary.html#gloss:functor">functor</A> 
 (name/<A class="gloss" href="glossary.html#gloss:arity">arity</A>). If a <A class="gloss" href="glossary.html#gloss:goal">goal</A> 
 is proved, the system looks for a <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> 
@@ -385,37 +396,38 @@ and then tries these <A class="gloss" href="glossary.html#gloss:clause">clauses<
 one-by-one. See also <A class="gloss" href="glossary.html#gloss:backtracking">backtracking</A>.</DD>
 <DT><A NAME="gloss:priority"><STRONG>priority</STRONG></A></DT>
 <DD class="defbody">
-In the context of <A class="gloss" href="glossary.html#gloss:operator">operators</A> 
+<A NAME="idx:priority:1574"></A>In the context of <A class="gloss" href="glossary.html#gloss:operator">operators</A> 
 a synonym for <A class="gloss" href="glossary.html#gloss:precedence">precedence</A>.</DD>
 <DT><A NAME="gloss:program"><STRONG>program</STRONG></A></DT>
 <DD class="defbody">
-Collection of <A class="gloss" href="glossary.html#gloss:predicate">predicates</A>.</DD>
+<A NAME="idx:program:1575"></A>Collection of <A class="gloss" href="glossary.html#gloss:predicate">predicates</A>.</DD>
 <DT><A NAME="gloss:property"><STRONG>property</STRONG></A></DT>
 <DD class="defbody">
-Attribute of an object. SWI-Prolog defines various <EM>*_property</EM> 
-predicates to query the status of predicates, clauses. etc.</DD>
+<A NAME="idx:property:1576"></A>Attribute of an object. SWI-Prolog 
+defines various <EM>*_property</EM> predicates to query the status of 
+predicates, clauses. etc.</DD>
 <DT><A NAME="gloss:prove"><STRONG>prove</STRONG></A></DT>
 <DD class="defbody">
-Process where Prolog attempts to prove a <A class="gloss" href="glossary.html#gloss:query">query</A> 
+<A NAME="idx:prove:1577"></A>Process where Prolog attempts to prove a <A class="gloss" href="glossary.html#gloss:query">query</A> 
 using the available
 <A class="gloss" href="glossary.html#gloss:predicate">predicates</A>.</DD>
 <DT><A NAME="gloss:public-list"><STRONG>public list</STRONG></A></DT>
 <DD class="defbody">
-List of <A class="gloss" href="glossary.html#gloss:predicate">predicates</A> 
+<A NAME="idx:publiclist:1578"></A>List of <A class="gloss" href="glossary.html#gloss:predicate">predicates</A> 
 exported from a <A class="gloss" href="glossary.html#gloss:module">module</A>.</DD>
 <DT><A NAME="gloss:query"><STRONG>query</STRONG></A></DT>
 <DD class="defbody">
 See <A class="gloss" href="glossary.html#gloss:goal">goal</A>.</DD>
 <DT><A NAME="gloss:retract"><STRONG>retract</STRONG></A></DT>
 <DD class="defbody">
-Remove a <A class="gloss" href="glossary.html#gloss:clause">clause</A> 
+<A NAME="idx:retract:1579"></A>Remove a <A class="gloss" href="glossary.html#gloss:clause">clause</A> 
 from a <A class="gloss" href="glossary.html#gloss:predicate">predicate</A>. 
 See also <A class="gloss" href="glossary.html#gloss:dynamic">dynamic</A>,
 <A class="gloss" href="glossary.html#gloss:update-view">update view</A> 
 and <A class="gloss" href="glossary.html#gloss:assert">assert</A>.</DD>
 <DT><A NAME="gloss:shared"><STRONG>shared</STRONG></A></DT>
 <DD class="defbody">
-Two <A class="gloss" href="glossary.html#gloss:variable">variables</A> 
+<A NAME="idx:shared:1580"></A>Two <A class="gloss" href="glossary.html#gloss:variable">variables</A> 
 are called <A class="gloss" href="glossary.html#gloss:shared">shared</A> 
 after they are <A class="gloss" href="glossary.html#gloss:unify">unified</A>. 
 This implies if either of them is <A class="gloss" href="glossary.html#gloss:binding">bound</A>, 
@@ -431,7 +443,7 @@ B = a
 </DD>
 <DT><A NAME="gloss:singleton"><STRONG>singleton [variable]</STRONG></A></DT>
 <DD class="defbody">
-<A class="gloss" href="glossary.html#gloss:variable">Variable</A> 
+<A NAME="idx:singleton:1581"></A><A class="gloss" href="glossary.html#gloss:variable">Variable</A> 
 appearing only one time in a <A class="gloss" href="glossary.html#gloss:clause">clause</A>. 
 SWI-Prolog normally warns for this to avoid you making spelling 
 mistakes. If a variable appears on purpose only once in a clause, write 
@@ -440,11 +452,11 @@ Rules for naming a variable and avoiding a warning are given in <A class="sec" h
 2.15.1.5</A>.</DD>
 <DT><A NAME="gloss:solution"><STRONG>solution</STRONG></A></DT>
 <DD class="defbody">
-<A class="gloss" href="glossary.html#gloss:binding">Bindings</A> 
+<A NAME="idx:solution:1582"></A><A class="gloss" href="glossary.html#gloss:binding">Bindings</A> 
 resulting from a successfully <A class="gloss" href="glossary.html#gloss:prove">prove</A>n <A class="gloss" href="glossary.html#gloss:goal">goal</A>.</DD>
 <DT><A NAME="gloss:structure"><STRONG>structure</STRONG></A></DT>
 <DD class="defbody">
-Synonym for <A class="gloss" href="glossary.html#gloss:compound">compound</A> 
+<A NAME="idx:structure:1583"></A>Synonym for <A class="gloss" href="glossary.html#gloss:compound">compound</A> 
 term.</DD>
 <DT><A NAME="gloss:string"><STRONG>string</STRONG></A></DT>
 <DD class="defbody">
@@ -453,12 +465,12 @@ Used for the following representations of text: a packed array (see <A class="se
 one-character <A class="gloss" href="glossary.html#gloss:atom">atoms</A>.</DD>
 <DT><A NAME="gloss:succeed"><STRONG>succeed</STRONG></A></DT>
 <DD class="defbody">
-A <A class="gloss" href="glossary.html#gloss:goal">goal</A> is said to 
-have <A class="gloss" href="glossary.html#gloss:succeed">succeeded</A> 
+<A NAME="idx:succeed:1584"></A>A <A class="gloss" href="glossary.html#gloss:goal">goal</A> 
+is said to have <A class="gloss" href="glossary.html#gloss:succeed">succeeded</A> 
 if it has been <A class="gloss" href="glossary.html#gloss:prove">proven</A>.</DD>
 <DT><A NAME="gloss:term"><STRONG>term</STRONG></A></DT>
 <DD class="defbody">
-Value in Prolog. A <A class="gloss" href="glossary.html#gloss:term">term</A> 
+<A NAME="idx:term:1585"></A>Value in Prolog. A <A class="gloss" href="glossary.html#gloss:term">term</A> 
 is either a <A class="gloss" href="glossary.html#gloss:variable">variable</A>, <A class="gloss" href="glossary.html#gloss:atom">atom</A>, 
 integer, float or <A class="gloss" href="glossary.html#gloss:compound">compound</A> 
 term. In addition, SWI-Prolog also defines the type <A class="gloss" href="glossary.html#gloss:string">string</A></DD>
@@ -467,9 +479,9 @@ term. In addition, SWI-Prolog also defines the type <A class="gloss" href="gloss
 See <A class="gloss" href="glossary.html#gloss:module-transparent">module transparent</A>.</DD>
 <DT><A NAME="gloss:unify"><STRONG>unify</STRONG></A></DT>
 <DD class="defbody">
-Prolog process to make two terms equal by assigning variables in one 
-term to values at the corresponding location of the other term. For 
-example:
+<A NAME="idx:unify:1586"></A>Prolog process to make two terms equal by 
+assigning variables in one term to values at the corresponding location 
+of the other term. For example:
 
 <PRE class="code">
 ?- foo(a, B) = foo(A, b).
@@ -482,7 +494,8 @@ B = b
 not directed.</DD>
 <DT><A NAME="gloss:update-view"><STRONG>update view</STRONG></A></DT>
 <DD class="defbody">
-How Prolog behaves when a <A class="gloss" href="glossary.html#gloss:dynamic">dynamic</A> <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> 
+<A NAME="idx:updateview:1587"></A><A NAME="idx:viewupdate:1588"></A>How 
+Prolog behaves when a <A class="gloss" href="glossary.html#gloss:dynamic">dynamic</A> <A class="gloss" href="glossary.html#gloss:predicate">predicate</A> 
 is changed while it is running. There are two models. In most older 
 Prolog systems the change becomes immediately visible to the <A class="gloss" href="glossary.html#gloss:goal">goal</A>, 
 in modern systems including SWI-Prolog, the running <A class="gloss" href="glossary.html#gloss:goal">goal</A> 
@@ -490,7 +503,8 @@ is not affected. Only new <A class="gloss" href="glossary.html#gloss:goal">goals
 `see' the new definition.</DD>
 <DT><A NAME="gloss:variable"><STRONG>variable</STRONG></A></DT>
 <DD class="defbody">
-A Prolog variable is a value that `is not yet bound'. After <A class="gloss" href="glossary.html#gloss:binding">binding</A> 
+<A NAME="idx:variable:1589"></A>A Prolog variable is a value that `is 
+not yet bound'. After <A class="gloss" href="glossary.html#gloss:binding">binding</A> 
 a variable, it cannot be modified. <A class="gloss" href="glossary.html#gloss:backtracking">Backtracking</A> 
 to a point in the execution before the variable was bound will turn it 
 back into a variable:

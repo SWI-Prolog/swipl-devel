@@ -151,7 +151,7 @@ Character Set</SPAN></A></H4>
 
 <A NAME="sec:processorcharset"></A>
 
-<P><A NAME="idx:isolatin1:206"></A><A NAME="idx:characterset:207"></A>The 
+<P><A NAME="idx:ISOLatin1:206"></A><A NAME="idx:characterset:207"></A>The 
 processor character set specifies the class of each character used for 
 parsing Prolog source text. Character classification is fixed to use 
 UCS/Unicode as provided by the C-library <CODE>wchar_t</CODE> based 
@@ -337,16 +337,18 @@ variable checking</SPAN></A></H4>
 
 <A NAME="sec:singleton"></A>
 
-<P>A singleton variable is a variable that appears only one time in a 
-clause. It can always be replaced by <CODE>_</CODE>, the <EM>anonymous</EM> 
-variable. In some cases however people prefer to give the variable a 
-name. As mistyping a variable is a common mistake, Prolog systems 
-generally give a warning (controlled by <A NAME="idx:stylecheck1:214"></A><A class="pred" href="debugger.html#style_check/1">style_check/1</A>) 
+<P><A NAME="idx:singletonvariable:214"></A><A NAME="idx:anonymousvariable:215"></A>A <EM>singleton 
+variable</EM> is a variable that appears only one time in a clause. It 
+can always be replaced by <CODE>_</CODE>, the
+<EM>anonymous</EM> variable. In some cases however people prefer to give 
+the variable a name. As mistyping a variable is a common mistake, Prolog 
+systems generally give a warning (controlled by <A NAME="idx:stylecheck1:216"></A><A class="pred" href="debugger.html#style_check/1">style_check/1</A>) 
 if a variable is used only once. The system can be informed a variable 
 is known to appear once by <EM>starting</EM> it with an underscore. E.g. <CODE>_Name</CODE>. 
 Please note that any variable, except plain <CODE>_</CODE> shares with 
 variables of the same name. The term <CODE>t(_X, _X)</CODE> is 
-equivalent to <CODE>t(X, X)</CODE>, which is <EM>different</EM> from <CODE>t(_, _)</CODE>.
+equivalent to <CODE>t(X, X)</CODE>, which is <EM>different</EM> from
+<CODE>t(_, _)</CODE>.
 
 <P>As Unicode requires variables to start with an underscore in many 
 languages this schema needs to be extended.<SUP class="fn">9<SPAN class="fn-text">After 
@@ -370,7 +372,9 @@ dialects write variables this way.</SPAN></SUP>
 
 <P>Any normal variable appearing exactly ones in the clause <EM>and</EM> 
 any named singleton variables appearing more than once are reported. 
-Below are some examples with warnings in the right column.
+Below are some examples with warnings in the right column. Singleton 
+messages can be suppressed using the <A NAME="idx:stylecheck1:217"></A><A class="pred" href="debugger.html#style_check/1">style_check/1</A> 
+directive.
 
 <P>
 <CENTER>

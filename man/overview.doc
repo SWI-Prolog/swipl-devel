@@ -1757,8 +1757,8 @@ variable is used only once. The system can be informed a variable is
 known to appear once by \emph{starting} it with an underscore. E.g.\
 \verb$_Name$. Please note that any variable, except plain \verb$_$
 shares with variables of the same name. The term \verb$t(_X, _X)$ is
-equivalent to \verb$t(X, X)$, which is \emph{different} from \verb$t(_,
-_)$.
+equivalent to \verb$t(X, X)$, which is \emph{different} from
+\verb$t(_, _)$.
 
 As Unicode requires variables to start with an underscore in many
 languages this schema needs to be extended.%
