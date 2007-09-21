@@ -1,3 +1,9 @@
+Sep 21, 2007
+
+* ENHANCED: Verify test-set and test options.
+
+* ADDED: Allow for Var == Value as shorthand for true(Var == Value).
+
 Sep 20, 2007
 
 * ENHANCED: Message on wrong error

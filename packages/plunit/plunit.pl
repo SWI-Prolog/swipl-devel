@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 2006-2007, University of Amsterdam
 
     This file is covered by the `The Artistic License', also in use by
     Perl.  See http://www.perl.com/pub/a/language/misc/Artistic.html
@@ -188,6 +188,7 @@ begin_tests(Unit) :-
 	begin_tests(Unit, []).
 
 begin_tests(Unit, Options) :-
+	valid_options(Options, test_set_option),
 	make_unit_module(Unit, Name),
 	source_location(File, Line),
 	begin_tests(Unit, Name, File:Line, Options).
@@ -288,7 +289,8 @@ make_unit_module(Unit, Module) :-
 
 %%	expand_test(+Name, +Options, +Body, -Clause) is det.
 %
-%	@tbd	Verify options.
+%	Expand test(Name, Options) :-  Body  into   a  clause  for
+%	'unit test'/4 and 'unit body'/2.
 
 expand_test(Name, Options0, Body,
 	    [ 'unit test'(Name, Line, Options, Module:'unit body'(Id, Vars)),
@@ -300,9 +302,21 @@ expand_test(Name, Options0, Body,
 	term_variables(Body, VarList),
 	Vars =.. [vars|VarList],
 	(   is_list(Options0)		% allow for single option without list
-	->  Options = Options0
-	;   Options = [Options0]
-	).
+	->  Options1 = Options0
+	;   Options1 = [Options0]
+	),
+	maplist(expand_option, Options1, Options),
+	valid_options(Options, test_option).
+
+expand_option(Var, _) :-
+	var(Var), !,
+	throw(error(instantiation_error)).
+expand_option(A == B, true(A==B)) :- !.
+expand_option(A = B, true(A=B)) :- !.
+expand_option(A =@= B, true(A=@=B)) :- !.
+expand_option(A =:= B, true(A=:=B)) :- !.
+expand_option(O, O).
+
 
 %%	expand(+Term, -Clauses) is semidet.
 
@@ -327,6 +341,80 @@ user:term_expansion(Term, Expanded) :-
 	->  source_location(File, _),
 	    expand(Term, Expanded)
 	).
+
+
+		 /*******************************
+		 *	       OPTIONS		*
+		 *******************************/
+
+:- if(swi).
+:- use_module(library(error)).
+:- else.
+must_be(list, X) :- !,
+	(   is_list(X)
+	->  true
+	;   is_not(list, X)
+	).
+must_be(Type, X) :-
+	(   call(Type, X)
+	->  true
+	;   is_not(Type, X)
+	).
+
+is_not(Type, X) :-
+	(   ground(X)
+	->  throw(error(type_error(Type, X), _))
+	;   throw(error(instantiation_error, _))
+	).
+:- endif.
+
+%%	valid_options(+Options, :Pred) is det.
+%
+%	Verify Options to be a list of valid options according to
+%	Pred.
+%
+%	@throws	=type_error= or =instantiation_error=.
+
+valid_options(Options, Pred) :-
+	must_be(list, Options),
+	verify_options(Options, Pred).
+
+verify_options([], _).
+verify_options([H|T], Pred) :-
+	(   call(Pred, H)
+	->  verify_options(T, Pred)
+	;   throw(error(domain_error(Pred, H), _))
+	).
+
+
+%%	test_option(+Option) is semidet.
+%
+%	True if Option is a valid option for test(Name, Options).
+
+test_option(Option) :-
+	test_set_option(Option), !.
+test_option(true(_)).
+test_option(fail).
+test_option(true).
+test_option(throws(_)).
+test_option(error(_)).
+test_option(all(_)).
+test_option(set(_)).
+test_option(nondet).
+
+%%	test_option(+Option) is semidet.
+%
+%	True if Option is a valid option for :- begin_tests(Name,
+%	Options).
+
+test_set_option(blocked(X)) :-
+	must_be(ground, X).
+test_set_option(condition(X)) :-
+	must_be(callable, X).
+test_set_option(setup(X)) :-
+	must_be(callable, X).
+test_set_option(cleanup(X)) :-
+	must_be(callable, X).
 
 
 		 /*******************************
@@ -475,7 +563,7 @@ run_test(Unit, Name, Line, Options, Body) :-
 		Time is (T1 - T0)/1000.0,
 		(   catch(Cmp, _, fail)			% tbd: error
 		->  success(Unit, Name, Line, Det, Time, Options)
-		;   failure(Unit, Name, Line, wrong_answer, Options)
+		;   failure(Unit, Name, Line, wrong_answer(Cmp), Options)
 		),
 		cleanup(Module, Options)
 	    ;	failure(Unit, Name, Line, E, Options),
@@ -861,15 +949,31 @@ failure(succeeded(Time)) --> !,
 	[ 'must fail but succeeded in ~2f seconds~n'-[Time] ].
 failure(wrong_error(Expected, Error)) --> !,
 	{ copy_term(Expected-Error, Ex-E),
-	  numbervars(Ex-E, 0, _, [singletons(true)])
+	  numbervars(Ex-E, 0, _, [singletons(true)]),
+	  write_options(OPS)
 	},
 	[ 'wrong error', nl, 
-	  '    Expected: ~p'-[Ex], nl,
-	  '    Got:      ~p'-[E], nl
+	  '    Expected: ~W'-[Ex, OPS], nl,
+	  '    Got:      ~W'-[E, OPS], nl
+	].
+failure(wrong_answer(Cmp)) -->
+	{ Cmp =.. [Op,Answer,Expected], !,
+	  copy_term(Expected-Answer, Ex-A),
+	  numbervars(Ex-A, 0, _, [singletons(true)]),
+	  write_options(OPS)
+	},
+	[ 'wrong answer (compared using ~w)'-[Op], nl, 
+	  '    Expected: ~W'-[Ex, OPS], nl,
+	  '    Got:      ~W'-[A, OPS], nl
 	].
 failure(Why) -->
 	[ '~p~n'-[Why] ].
 
+write_options([ numbervars(true),
+		quoted(true),
+		portray(true),
+		max_depth(10)
+	      ]).
 
 :- if(swi).
 

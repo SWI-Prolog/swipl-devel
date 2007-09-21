@@ -145,6 +145,10 @@ test(copy, [ true(Copy =@= hello(X,X))
 	copy_term(hello(Y,Y), Copy).
 \end{code}
 
+    \termitem{AnswerTerm Cmp Value}
+Equivalent to \term{true}{AnswerTerm Cmp Value} if \arg{Cmp} is one
+of the comparison operators given above.
+
     \termitem{fail}{}
 Body must fail.
 

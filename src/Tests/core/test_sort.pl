@@ -56,7 +56,7 @@ test(cyclic, R == [a,b,c]) :-
 test(empty, R == []) :-
 	msort([], R).
 test(unique, R == [a,a,b]) :-
-	sort([a,b,a], R).
+	msort([a,b,a], R).
 test(cyclic, [ setup(L=[a,b,c|L]),
 	       error(type_error(list, L))
 	     ]) :-
