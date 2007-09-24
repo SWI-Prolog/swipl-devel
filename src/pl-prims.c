@@ -3567,8 +3567,8 @@ pl_halt(term_t code)
   }
 #endif
 
-  if ( !PL_get_integer(code, &status) )
-    status = 1;
+  if ( !PL_get_integer_ex(code, &status) )
+    fail;
 
   PL_halt(status);
   /*NOTREACHED*/
