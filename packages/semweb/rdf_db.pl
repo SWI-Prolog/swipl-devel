@@ -834,18 +834,32 @@ rdf_input(stream(Stream), stream(Stream), BaseURI) :- !,
 rdf_input(Stream, stream(Stream), BaseURI) :-
 	is_stream(Stream), !,
 	rdf_input(stream(Stream), _, BaseURI).
-rdf_input(FileURL, file(File), FileURL) :-
+rdf_input(FileURL, file(File), BaseURI) :-
 	atom(FileURL),
-	file_name_to_url(File, FileURL), !.
+	file_name_to_url(File0, FileURL), !,
+	file_input(File0, File, BaseURI).
 rdf_input(URL, url(Protocol, URL), URL) :-
 	is_url(URL, Protocol), !.
 rdf_input(Spec, file(Path), BaseURI) :-
+	file_input(Spec, Path, BaseURI).
+
+file_input(Spec, Path, BaseURI) :-
 	findall(Ext, (rdf_file_type(Ext, _);Ext=''), Exts),
 	absolute_file_name(Spec, Path,
 			   [ access(read),
 			     extensions(Exts)
 			   ]),
-	file_name_to_url(Path, BaseURI).
+	file_name_to_url(Path, BaseURI0),
+	clean_base_uri(BaseURI0, BaseURI).
+
+%%	clean_base_uri(+BaseURI0, -BaseURI) is det.
+%
+%	BaseURI  is  BaseURI0  after    removing  packaging  extensions.
+%	Currently only deals with =|.gz|=.
+
+clean_base_uri(BaseURI0, BaseURI) :-
+	file_name_extension(BaseURI, gz, BaseURI0), !.
+clean_base_uri(BaseURI, BaseURI).
 	
 %%	is_url(+Term, -Protocol) is semidet.
 %

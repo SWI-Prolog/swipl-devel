@@ -1,3 +1,7 @@
+Sep 24, 2007
+
+  * ADDED: also search for .gz extension for file:// URLs.
+
 Sep 12, 2007
 
   * ADDED: @base to the turtle parser (Yves Raimond)
