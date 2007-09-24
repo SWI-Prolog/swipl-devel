@@ -358,7 +358,7 @@ prolog_message(dwim_undefined(Goal, Alternatives)) -->
 	],
 	dwim_message(Alternatives).
 prolog_message(dwim_correct(Into)) -->
-	[ 'Correct to: ~w? '-[Into], flush ].
+	[ 'Correct to: ~q? '-[Into], flush ].
 prolog_message(error(loop_error(Spec), file_search(Used))) -->
 	[ 'File search: too many levels of indirections on: ~p'-[Spec], nl,
 	  '    Used alias expansions:', nl

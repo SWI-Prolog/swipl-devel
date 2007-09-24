@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: DWIM correction: use ~q rather than ~w.
+
   * FIXED: read_pending_input/3 if 0-bytes are available.  Jeff Rose.
 
 ===================================
