@@ -1662,6 +1662,8 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
     n = Sread_pending(s, buf, sizeof(buf), 0);
     if ( n < 0 )			/* should not happen */
       return streamStatus(s);
+    if ( n == 0 )
+      return PL_unify(A2, A3);
 
     gstore = allocGlobal(n*3);		/* TBD: shift */
     lp = valTermRef(A2);
