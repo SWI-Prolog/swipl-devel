@@ -1,3 +1,7 @@
+Sep 25, 2007
+
+ * FIXED: Allow multiple inclusions.  Mary Ellen Foster.
+
 Jan 18, 2007
 
  * FIXED/MODIFIED: PlQuery(Module, Name, Args) now calls using Module

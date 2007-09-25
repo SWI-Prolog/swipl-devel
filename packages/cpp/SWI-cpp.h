@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -21,6 +21,9 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
+
+#ifndef _SWI_CPP_H
+#define _SWI_CPP_H
 
 #include <SWI-Prolog.h>
 #include <string.h>
@@ -922,3 +925,5 @@ public:
 #define A8  _av[7]        
 #define A9  _av[8]        
 #define A10 _av[9]        
+
+#endif /*_SWI_CPP_H*/
