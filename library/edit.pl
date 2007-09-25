@@ -35,13 +35,15 @@
 	  ]).
 :- use_module(library(lists), [append/3, member/2, nth1/3]).
 :- use_module(library(make), [make/0]).
+:- set_prolog_flag(generate_debug_info, false).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Editor interface
+
 This module implements the generic editor  interface. It consists of two
 extensible parts with little  in  between.   The  first  part deals with
 translating the input into source-location, and the second with starting
 an editor.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+*/
 
 :- multifile
 	locate/3,			% +Partial, -FullSpec, -Location
@@ -84,7 +86,7 @@ edit :-
 	current_prolog_flag(associated_file, File), !,
 	edit(file(File)).
 edit :-
-	throw(error(existence_error(flag, associated_file), _)).
+	throw(error(context_error(edit, no_default_file), _)).
 
 
 		 /*******************************

@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Error message when using edit/0 if there is no default file.
+
   * MODIFIED: time_file/2 throws an exception instead of failing silently
     if the time cannot be fetched.
 

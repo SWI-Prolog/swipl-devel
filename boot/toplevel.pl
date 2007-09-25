@@ -608,7 +608,7 @@ write_bindings2(Bindings, _Det) :-
 	    print_message(query, query(yes))
 	).
 
-%	bind_vars(+Bindings)
+%%	bind_vars(+Bindings)
 %	
 %	Bind variables to '$VAR'(Name), so they are printed by the names
 %	used in the query. Note that by   binding  in the reverse order,
@@ -622,7 +622,7 @@ bind_vars([Name=Var|T]) :-
 	;   true
 	).
 
-%	filter_bindings(+Bindings0, -Bindings)
+%%	filter_bindings(+Bindings0, -Bindings)
 %	
 %	Remove bindings that must not be printed.
 

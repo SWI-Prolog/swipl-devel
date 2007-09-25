@@ -215,6 +215,14 @@ swi_message(not_implemented(Type, What)) -->
 swi_message(context_error(nodirective, Goal)) -->
 	{ goal_to_predicate_indicator(Goal, PI) },
 	[ 'Wrong context: ~p can only be used in a directive'-[PI] ].
+swi_message(context_error(edit, no_default_file)) -->
+	(   { current_prolog_flag(windows, true) }
+	->  [ 'Edit/0 can only be used if plwin.exe was \
+	       started by double-clicking a Prolog source file' ]
+	;   [ 'Edit/0 can only be used if an initial file is loaded \
+	       using the "-s file" commandline option'
+	    ]
+	).
 swi_message(format_argument_type(Fmt, Arg)) -->
 	[ 'Illegal argument to format sequence ~~~w: ~p'-[Fmt, Arg] ].
 swi_message(format(Msg)) -->
