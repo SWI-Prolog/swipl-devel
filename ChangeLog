@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: writeq/1 and ~q in format/3 honour numbervars(true).  Ulrich
+    Neumerkel.
+
   * ENHANCED: Error message when using edit/0 if there is no default file.
 
   * MODIFIED: time_file/2 throws an exception instead of failing silently
