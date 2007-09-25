@@ -217,10 +217,9 @@ swi_message(context_error(nodirective, Goal)) -->
 	[ 'Wrong context: ~p can only be used in a directive'-[PI] ].
 swi_message(context_error(edit, no_default_file)) -->
 	(   { current_prolog_flag(windows, true) }
-	->  [ 'Edit/0 can only be used if plwin.exe was \
-	       started by double-clicking a Prolog source file' ]
-	;   [ 'Edit/0 can only be used if an initial file is loaded \
-	       using the "-s file" commandline option'
+	->  [ 'Edit/0 can only be used after opening a \
+	      Prolog file by double-clicking it' ]
+	;   [ 'Edit/0 can only be used with the "-s file" commandline option'
 	    ]
 	).
 swi_message(format_argument_type(Fmt, Arg)) -->
