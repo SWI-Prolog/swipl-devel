@@ -814,7 +814,7 @@ close_input(stream(_), _) :- !.
 close_input(_, Stream) :-
 	close(Stream).
 
-%%	rdf_input(+Term, -Input, -BaseURI)
+%%	rdf_input(+Term, -Input, -BaseURI) is semidet.
 %
 %	Resolve input description Term.  Unify   Input  with a canonical
 %	description of the input, which is one of:
@@ -847,7 +847,8 @@ file_input(Spec, Path, BaseURI) :-
 	findall(Ext, (rdf_file_type(Ext, _);Ext=''), Exts),
 	absolute_file_name(Spec, Path,
 			   [ access(read),
-			     extensions(Exts)
+			     extensions(Exts),
+			     file_errors(fail)
 			   ]),
 	file_name_to_url(Path, BaseURI0),
 	clean_base_uri(BaseURI0, BaseURI).

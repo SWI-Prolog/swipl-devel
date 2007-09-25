@@ -489,7 +489,7 @@
 #define ATOM_threads_created MK_ATOM(488)
 #define ATOM_throw        MK_ATOM(489)
 #define ATOM_tilde        MK_ATOM(490)
-#define ATOM_time         MK_ATOM(491)
+#define ATOM_dtime        MK_ATOM(491)
 #define ATOM_time_stamp   MK_ATOM(492)
 #define ATOM_timeout      MK_ATOM(493)
 #define ATOM_timeout_error MK_ATOM(494)
@@ -569,3 +569,4 @@
 #define ATOM_long         MK_ATOM(568)
 #define ATOM_int64_t      MK_ATOM(569)
 #define ATOM_occurs_check MK_ATOM(570)
+#define ATOM_time         MK_ATOM(571)

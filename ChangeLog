@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: time_file/2 throws an exception instead of failing silently
+    if the time cannot be fetched.
+
+  * MODIFIED: numbers are no longer accepted as filenames.
+
   * FIXED: Type error in single-threaded compilation.  Lucas Barbuto.
 
   * FIXED: Exception on halt/1 on type errors.  Ulrich Neumerkel.

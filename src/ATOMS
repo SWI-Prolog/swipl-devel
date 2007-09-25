@@ -502,7 +502,7 @@ A threads		"threads"
 A threads_created	"threads_created"
 A throw			"throw"
 A tilde			"~"
-A time			"$time"
+A dtime			"$time"
 A time_stamp		"time_stamp"
 A timeout		"timeout"
 A timeout_error		"timeout_error"
@@ -582,6 +582,7 @@ A int			"int"
 A long			"long"
 A int64_t		"int64_t"
 A occurs_check		"occurs_check"
+A time			"time"
 
 F abs			1
 F access		1
@@ -752,7 +753,7 @@ F syntax_error		3
 F tan			1
 F term_expansion	2
 F term_position		5
-F time			2
+F dtime			2
 F timeout_error		2
 F trace			1
 F traceinterc		3

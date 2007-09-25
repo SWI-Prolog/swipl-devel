@@ -3701,6 +3701,8 @@ add_option(term_t options, functor_t f, atom_t val)
   PL_reset_term_refs(head);
 }
 
+#define CVT_FILENAME (CVT_ATOM|CVT_STRING|CVT_LIST)
+
 int
 PL_get_file_name(term_t n, char **namep, int flags)
 { GET_LD
@@ -3735,10 +3737,10 @@ PL_get_file_name(term_t n, char **namep, int flags)
   }
 
   if ( flags & PL_FILE_NOERRORS )
-  { if ( !PL_get_chars(n, &name, CVT_ALL|REP_FN) )
+  { if ( !PL_get_chars(n, &name, CVT_FILENAME|REP_FN) )
       fail;
   } else
-  { if ( !PL_get_chars_ex(n, &name, CVT_ALL|REP_FN) )
+  { if ( !PL_get_chars_ex(n, &name, CVT_FILENAME|REP_FN) )
       fail;
   }
 
@@ -3787,7 +3789,7 @@ pl_time_file(term_t name, term_t t)
   { intptr_t time;
 
     if ( (time = LastModifiedFile(fn)) == -1 )
-      fail;
+      return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION, ATOM_time, ATOM_file, name);
 
     return unifyTime(t, time);
   }
