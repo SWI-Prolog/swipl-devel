@@ -37,7 +37,9 @@
 #define IS_LITTLE_ENDIAN   1234 /* byte 0 is least significant (i386) */
 
 /* Include files where endian defines and byteswap functions may reside */
-#if defined( __FreeBSD__ ) || defined( __OpenBSD__ ) || defined( __NetBSD__ )
+#if defined(__i386__) && defined(__sun__)
+#  include <sys/isa_defs.h>
+#elif defined( __FreeBSD__ ) || defined( __OpenBSD__ ) || defined( __NetBSD__ )
 #  include <sys/endian.h>
 #elif defined( BSD ) && ( BSD >= 199103 ) || defined( __APPLE__ ) || \
       defined( __CYGWIN32__ ) || defined( __DJGPP__ ) || defined( __osf__ )

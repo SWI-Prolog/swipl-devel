@@ -1,3 +1,7 @@
+Sep 25, 2007
+
+  * Make SHA routines compile on Solaris
+
 Sep 3, 2007
 
   * Possible not working timer alarm.  Ulrich Neumerkel.

@@ -238,7 +238,7 @@ pl_abort(abort_type type)
   if ( !trueFeature(READLINE_FEATURE) )
     PopTty(Sinput, &ttytab);
   LD->outofstack = NULL;
-  clearSegStack(LD->cycle.stack);
+  clearSegStack(&LD->cycle.stack);
   closeFiles(FALSE);
   resetReferences();
 #ifdef O_PROFILE

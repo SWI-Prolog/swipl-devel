@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Type error in single-threaded compilation.  Lucas Barbuto.
+
   * FIXED: Exception on halt/1 on type errors.  Ulrich Neumerkel.
 
   * ENHANCED: DWIM correction: use ~q rather than ~w.
