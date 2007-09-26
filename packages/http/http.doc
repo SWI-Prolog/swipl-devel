@@ -136,6 +136,10 @@ resource itself.  The returned stream must be closed immediately.
 	\termitem{proxy}{+Host, +Port}
 Use an HTTP proxy to connect to the outside world.
 
+	\termitem{authorization}{+Authorization}
+Send authorization.  Currently only supports \term{basic}{User,
+Password}.
+
 	\termitem{request_header}{+Name = +Value}
 Additional name-value parts are added in the order of appearance to
 the HTTP request header.  No interpretation is done.

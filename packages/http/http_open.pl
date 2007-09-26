@@ -39,6 +39,7 @@
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(error)).
+:- use_module(library(base64)).
 
 user_agent('SWI-Prolog (http://www.swi-prolog.org)').
 
@@ -73,6 +74,8 @@ client support is provided by http_client.pl
 %		  Use an HTTP proxy server
 %		* user_agent(+Agent)
 %		  User agent for identifying
+%		* authorization(+Term)
+%		  Currently Term is basic(User, Password)
 %		* request_header(Name=Value)
 %		  Extra header field
 %		* method(+Method)
@@ -178,7 +181,16 @@ x_headers([H|T], Out) :- !,
 
 x_header(request_header(Name=Value), Out) :- !,
 	format(Out, '~w: ~w\r\n', [Name, Value]).
+x_header(authorization(Authorization), Out) :- !,
+	auth_header(Authorization, Out).
 x_header(_, _).
+
+auth_header(basic(User, Password), Out) :- !,
+	format(codes(Codes), '~w:~w', [User, Password]),
+	phrase(base64(Codes), Base64Codes),
+	format(Out, 'Authorization: basic ~s\r\n', [Base64Codes]).
+auth_header(Auth, _) :-
+	domain_error(authorization, Auth).
 
 user_agent(Agent, Options) :-
 	(   option(user_agent(Agent), Options)
@@ -186,7 +198,8 @@ user_agent(Agent, Options) :-
 	;   user_agent(Agent)
 	).
 
-% %	do_open(+HTTPStatusCode, +HTTPStatusComment, +Header +Options, +Parts, +In, -FinalIn)
+%%	do_open(+HTTPStatusCode, +HTTPStatusComment, +Header,
+%%		+Options, +Parts, +In, -FinalIn) is det.
 %
 %	Handle the HTTP status. If 200, we   are ok. If a redirect, redo
 %	the open, returning a new stream. Else issue an error.
@@ -209,11 +222,27 @@ do_open(Code, _, Lines, Options, Parts, In, Stream) :-
 	close(In),
 	http_open(Redirected, Stream, [visited(Redirected)|Options]).
 					% report anything else as error
-do_open(Code, Comment, _,  _, Parts, In, _) :-
-	close(In),
+do_open(Code, Comment, _,  _, Parts, _, _) :-
 	parse_url(Id, Parts),
-	throw(error(existence_error(url, Id),
-		    context(_, status(Code, Comment)))).
+	(   map_error_code(Code, Error)
+	->  Formal =.. [Error, url, Id]
+	;   Formal = existence_error(url, Id)
+	),
+	throw(error(Formal, context(_, status(Code, Comment)))).
+
+%%	map_error_code(+HTTPCode, -PrologError) is semidet.
+%
+%	Map HTTP error codes to Prolog errors.
+%	
+%	@tbd	Many more maps. Unfortunately many have no sensible Prolog
+%		counterpart.
+
+map_error_code(401, permission_error).
+map_error_code(403, permission_error).
+map_error_code(404, existence_error).
+map_error_code(405, permission_error).
+map_error_code(407, permission_error).
+map_error_code(410, existence_error).
 
 redirect_code(301).			% moved permanently
 redirect_code(302).			% moved temporary
