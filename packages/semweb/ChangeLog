@@ -1,3 +1,7 @@
+Sep 26, 2007
+
+  * ADDED: rdf_turtle.pl now processed HTTP URLs transparently.
+
 Sep 24, 2007
 
   * ADDED: also search for .gz extension for file:// URLs.

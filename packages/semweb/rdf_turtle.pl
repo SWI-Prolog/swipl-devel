@@ -38,6 +38,7 @@
 :- use_module(library('semweb/rdf_db')).
 :- use_module(library(debug)).
 :- use_module(library(url)).
+:- use_module(library(http/http_open)).
 
 :- meta_predicate
 	rdf_process_turtle(+,:,+).
@@ -114,9 +115,19 @@ process_stream(State, In, OnObject) :-
 	).
 
 
+%%	open_input(+Input, -Stream) is det.
+%
+%	Open given input.
+%
+%	@tbd	Synchronize with input handling of rdf_db.pl.
+%	@error	existence_error, permission_error
+
 open_input(stream(Stream), Stream) :- !.
 open_input(Stream, Stream) :-
 	is_stream(Stream), !.
+open_input(URL, Stream) :-
+	sub_atom(URL, 0, _, _, 'http://'), !,
+	http_open(URL, Stream, []).
 open_input(File, Stream) :-
 	absolute_file_name(File, Path,
 			   [ access(read),
