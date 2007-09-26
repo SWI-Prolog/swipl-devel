@@ -84,19 +84,19 @@ is_variant2([X|Xs]) :-
 	is_variant2(Xs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-time(Phase,Goal) :-
-	statistics(runtime,[T1|_]),
-	call(Goal),
-	statistics(runtime,[T2|_]),
-	T is T2 - T1,
-	format('    ~w ~46t ~D~80| ms\n',[Phase,T]),
-	deterministic(Det),
-	( Det == true ->
-		true
-	;
-		format('\t\tNOT DETERMINISTIC!\n',[])
-	).
-% time(_,Goal) :- call(Goal).
+% time(Phase,Goal) :-
+% 	statistics(runtime,[T1|_]),
+% 	call(Goal),
+% 	statistics(runtime,[T2|_]),
+% 	T is T2 - T1,
+% 	format('    ~w ~46t ~D~80| ms\n',[Phase,T]),
+% 	deterministic(Det),
+% 	( Det == true ->
+% 		true
+% 	;
+% 		format('\t\tNOT DETERMINISTIC!\n',[])
+% 	).
+time(_,Goal) :- call(Goal).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 replicate(N,E,L) :-
