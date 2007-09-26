@@ -36,6 +36,9 @@ clean_clause(Clause,NClause) :-
 		;
 			NClause = (NHead :- NBody)
 		)
+	; Clause = '$source_location'(File,Line) : ActualClause ->
+		NClause = '$source_location'(File,Line) :  NActualClause,
+		clean_clause(ActualClause,NActualClause)
 	;
 		NClause = Clause
 	).

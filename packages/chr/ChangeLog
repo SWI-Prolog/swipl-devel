@@ -1,3 +1,13 @@
+Sep 26, 2007
+
+  * TS: Code cleaning was hampered by line numbers.
+	Reported by Mike Elston.
+
+May 2, 2007
+
+  * PVW: Bug fix in observation analysis.
+  * PVW: Consistency checks of experimental history pragma.
+
 Apr 5, 2007
 
   * TS: Lessened worst bottlenecks in CHR compiler,
