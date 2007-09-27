@@ -697,7 +697,8 @@ rdf_load_db(File) :-
 	rdf_load_stream/3,
 	rdf_input_info/3,
 	rdf_file_type/2,
-	url_protocol/1.
+	url_protocol/1,
+	exists_url/1.
 
 %%	rdf_load(+FileOrList) is det.
 %%	rdf_load(+FileOrList, +Options) is det.
@@ -770,7 +771,8 @@ rdf_load(Spec, Options0) :-
 	    ->	Action = load
 	    ;   rdf_input_open(Input, Stream, Format),
 		must_be(ground, Format),
-		call_cleanup(rdf_load_stream(Format, Stream,
+		rdf_format(Format, RDFFormat),
+		call_cleanup(rdf_load_stream(RDFFormat, Stream,
 					     [ base_uri(BaseURI),
 					       blank_nodes(ShareMode),
 					       db(DB)
@@ -806,6 +808,16 @@ fix_options(DB, Options) :-
 	Options = [db(DB)].
 fix_options(Options, Options).
 
+%%	rdf_format(+FormatIn, -Format)
+%
+%	Remove format envelopes, such as gzip(Format).
+
+rdf_format(Format, Format) :-
+	atom(Format), !.
+rdf_format(Format0, Format) :-
+	arg(1, Format0, Format1),
+	rdf_format(Format1, Format).
+
 %%	close_input(+Input, +Stream) is det.
 %
 %	Close input if it was not specified as a stream.
@@ -825,6 +837,9 @@ close_input(_, Stream) :-
 %	
 %	BaseURI is unified with a default base   URI. Note that this may
 %	be overruled from the options of rdf_load/2.
+%	
+%	@tbd	More generic mechanism to deal with encoding envelopes
+%		such as gzip compression.
 
 rdf_input(stream(Stream), stream(Stream), BaseURI) :- !,
 	(   stream_property(Stream, file_name(File))
@@ -838,8 +853,13 @@ rdf_input(FileURL, file(File), BaseURI) :-
 	atom(FileURL),
 	file_name_to_url(File0, FileURL), !,
 	file_input(File0, File, BaseURI).
-rdf_input(URL, url(Protocol, URL), URL) :-
-	is_url(URL, Protocol), !.
+rdf_input(URL0, url(Protocol, URL), URL0) :-
+	is_url(URL0, Protocol),
+	(   gzip_extend(URL0, URL),
+	    exists_url(url(Protocol, URL))
+	->  true
+	;   URL=URL0
+	).
 rdf_input(Spec, file(Path), BaseURI) :-
 	file_input(Spec, Path, BaseURI).
 
@@ -852,6 +872,11 @@ file_input(Spec, Path, BaseURI) :-
 			   ]),
 	file_name_to_url(Path, BaseURI0),
 	clean_base_uri(BaseURI0, BaseURI).
+
+gzip_extend(Path, Path).
+gzip_extend(Path0, Path) :-
+	rdf_file_type(Ext, gzip),
+	file_name_extension(Path0, Ext, Path).
 
 %%	clean_base_uri(+BaseURI0, -BaseURI) is det.
 %
@@ -874,6 +899,12 @@ is_url(URL, Protocol) :-
 	sub_atom(URL, 0, B, _, RawProtocol),
 	downcase_atom(RawProtocol, Protocol),
 	url_protocol(Protocol).
+
+%%	exists_url(+URL) is semidet.
+%
+%	True if URL exists.
+
+%	(no default clauses)
 
 %%	url_protocol(+Protocol) is det.
 %

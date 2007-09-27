@@ -157,6 +157,8 @@ init_state(In, Stream, Options, State) :-
 	->  true
 	;   In = stream(_)
 	->  BaseURI = []
+	;   is_absolute_url(In)
+	->  BaseURI = In
 	;   absolute_file_name(In, File),
 	    atom_concat('file://', File, BaseURI)
 	),

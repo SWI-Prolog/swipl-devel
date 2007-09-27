@@ -47,10 +47,14 @@ from an HTTP server.
 	rdf_db:url_protocol/1.
 
 rdf_db:rdf_open_hook(url(http, URL), Stream, Format) :-
+	atom(Format), !,
 	http_open(URL, Stream,
 		  [ header(content_type, Type)
 		  ]),
-	guess_format(Type, URL, Format).
+	(   ground(Format)
+	->  true
+	;   guess_format(Type, URL, Format)
+	).
 
 
 %%	guess_format(+ContentType, +URL, -Format)
@@ -68,9 +72,14 @@ guess_format('application/turtle',    _, turtle).
 guess_format('text/rdf+n3',	      _, turtle). % Bit dubious
 guess_format('text/html',	      _, xhtml).
 guess_format('application/xhtml+xml', _, xhtml).
-guess_format(_, URL, Format) :-
-	file_name_extension(_, Ext, URL),
-	rdf_db:rdf_file_type(Ext, Format).
+guess_format(Mime, URL, Format) :-
+	file_name_extension(Base, Ext, URL),
+	rdf_db:rdf_file_type(Ext, Format0),
+	(   Format0 == gzip
+	->  guess_format(Mime, Base, Format1),
+	    Format = gzip(Format1)
+	;   Format = Format0
+	).
 
 
 rdf_db:rdf_input_info(url(http, URL), Modified, Format) :-
@@ -85,3 +94,9 @@ rdf_db:rdf_input_info(url(http, URL), Modified, Format) :-
 	parse_time(Date, Modified).
 
 rdf_db:url_protocol(http).
+
+rdf_db:exists_url(url(http, URL)) :-
+	catch(http_open(URL, Stream,
+			[ method(head)
+			]), _, fail),
+	close(Stream).

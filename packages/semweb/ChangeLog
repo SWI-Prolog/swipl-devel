@@ -1,3 +1,7 @@
+Sep 27, 2007
+
+  * ENHANCED: Make zlib and http plugins cooperate.
+
 Sep 26, 2007
 
   * ADDED: rdf_turtle.pl now processed HTTP URLs transparently.
