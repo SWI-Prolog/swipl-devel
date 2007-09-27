@@ -708,9 +708,16 @@ If \const{true} (default \const{false}), create a local cache
 directory if none exists and the directory can be created.
 
 	\termitem{global_directory}{Atom}
-Must point to a writeable directory.  Sub-directories are created
-to speedup indexing on filesystems that perform poorly on directories
-with large numbers of files.  Initially not defined.
+Global directory to use for caching. The directory is created if the
+option \const{create_global_directory} is also given and set to
+\const{true}. Sub-directories are created to speedup indexing on
+filesystems that perform poorly on directories with large numbers of
+files. Initially not defined.
+
+	\termitem{create_global_directory}{Bool}
+If \const{true} (default \const{false}), create a global cache
+directory if none exists.
+
     \end{description}
 \end{description}
 

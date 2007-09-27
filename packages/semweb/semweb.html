@@ -984,10 +984,17 @@ If <CODE>true</CODE> (default <CODE>false</CODE>), create a local cache
 directory if none exists and the directory can be created.</DD>
 <DT><STRONG>global_directory</STRONG>(<VAR>Atom</VAR>)</DT>
 <DD class="defbody">
-Must point to a writeable directory. Sub-directories are created to 
-speedup indexing on filesystems that perform poorly on directories with 
-large numbers of files. Initially not defined.
-</DD>
+Global directory to use for caching. The directory is created if the 
+option <CODE>create_global_directory</CODE> is also given and set to
+<CODE>true</CODE>. Sub-directories are created to speedup indexing on 
+filesystems that perform poorly on directories with large numbers of 
+files. Initially not defined.</DD>
+<DT><STRONG>create_global_directory</STRONG>(<VAR>Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>true</CODE> (default <CODE>false</CODE>), create a global cache 
+directory if none exists.
+
+<P></DD>
 </DL>
 
 </DD>

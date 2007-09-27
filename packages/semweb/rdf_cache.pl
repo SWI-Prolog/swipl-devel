@@ -41,6 +41,9 @@ set_setfault_options :-
 %	  
 %	  * global_directory(Dir)
 %	  Writeable directory for storing cached parsed files.
+%	  
+%	  * create_global_directory(Bool)
+%	  If =true=, try to create the global cache directory.
 
 rdf_set_cache_options([]) :- !.
 rdf_set_cache_options([H|T]) :- !,
@@ -55,12 +58,19 @@ rdf_set_cache_options(Opt) :-
 	),
 	functor(Gen, Name, Arity),
 	retractall(cache_option(Gen)),
-	assert(cache_option(Opt)).
+	expand_option(Opt, EOpt),
+	assert(cache_option(EOpt)).
 
-cache_option(enabled,		     boolean).
-cache_option(local_directory,	     atom).
-cache_option(create_local_directory, boolean).
-cache_option(global_directory,	     atom).
+cache_option(enabled,		      boolean).
+cache_option(local_directory,	      atom).
+cache_option(create_local_directory,  boolean).
+cache_option(global_directory,	      atom).
+cache_option(create_global_directory, boolean).
+
+expand_option(global_directory(Local), global_directory(Global)) :- !,
+	absolute_file_name(Local, Global).
+expand_option(Opt, Opt).
+
 
 %%	rdf_cache_location(+URL, +ReadWrite, -File) is semidet.
 %
@@ -93,9 +103,18 @@ rdf_cache_file(URL, write, File) :- !,
 	    local_cache_file(URL, LocalFile),
 	    concat_atom([CacheDir, LocalFile], /, File)
 	;   cache_option(global_directory(Dir)),
+	    ensure_global_cache(Dir),
 	    url_cache_file(URL, Dir, trp, write, File)
 	),
 	access_file(File, write), !.
+
+
+ensure_global_cache(Dir) :-
+	exists_directory(Dir), !.
+ensure_global_cache(Dir) :-
+	cache_option(create_global_directory(true)),
+	make_directory(Dir),
+	print_message(informational, rdf(cache_created(Dir))).
 
 
 		 /*******************************
@@ -186,3 +205,13 @@ replace(0'\\) --> "-".			% not allowed in Windows filename
 replace(0':)  --> "-".			% idem
 replace(0'?)  --> "-".			% idem
 replace(0'*)  --> "-".			% idem
+
+
+		 /*******************************
+		 *	       MESSAGES		*
+		 *******************************/
+
+:- multifile prolog:message/3.
+
+prolog:message(rdf(cache_created(Dir))) -->
+	[ 'Created RDF cache directory ~w'-[Dir] ].
