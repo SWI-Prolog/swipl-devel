@@ -729,7 +729,7 @@ setup(Module, Options) :-
 	    ;	print_message(error, E), 	% TBD
 		fail
 	    )
-	;   print_message(error, goal_failed(Setup)),
+	;   print_message(error, error(goal_failed(Setup), _)),
 	    fail
 	).
 setup(Module, Options) :-
