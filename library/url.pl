@@ -699,7 +699,7 @@ fragment_char(0'?) --> "?", !.
 %	
 %	Performs UTF-8 decoding of percent encoded strings.
 
-pchar(0' ) --> "+", !.			% ?
+pchar(0' ) --> "+", !.			%' ?
 pchar(C) -->
 	[C],
 	{   unreserved(C)
@@ -747,13 +747,18 @@ sub_delim(0'=).
 %	Characters that can be represented without procent escaping
 %	RFC 3986, section 2.3
 
-unreserved(C) :-
-	code_type(C, alnum),
-	C < 128.
-unreserved(0'-).
-unreserved(0'.).
-unreserved(0'_).
-unreserved(0'~).			% 0'
+term_expansion(unreserved(map), Clauses) :-
+	findall(unreserved(C), unreserved_(C), Clauses).
+
+unreserved_(C) :-
+	between(1, 128, C),
+	code_type(C, alnum).
+unreserved_(0'-).
+unreserved_(0'.).
+unreserved_(0'_).
+unreserved_(0'~).			% 0'
+
+unreserved(map).			% Expanded
 
 
 		 /*******************************
@@ -797,10 +802,11 @@ www_encode([H|T], Extra) -->
 www_encode([], _) -->
 	"".
 
+percent_encode(C, _Extra) -->
+	{ unreserved(C) }, !,
+	[C].
 percent_encode(C, Extra) -->
-	{ unreserved(C)
-	; memberchk(C, Extra)
-	}, !,
+	{ memberchk(C, Extra) }, !,
 	[C].
 percent_encode(0' , _) --> !, "+".
 percent_encode(C, _) -->
