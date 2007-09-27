@@ -51,16 +51,17 @@
 %	Parse an XML file holding an RDF term into a list of RDF triples.
 %	see rdf_triple.pl for a definition of the output format. Options:
 %
-%	# base_uri(URI)
-%	URI to use as base
+%		* base_uri(URI)
+%		URI to use as base
 %
-%	# expand_foreach(Bool)
-%	Apply each(Container, Pred, Object) on the members of Container
+%		* expand_foreach(Bool)
+%		Apply each(Container, Pred, Object) on the members of
+%		Container
 %		
-%	# namespaces([NS=URL, ...])
-%	Return list of namespaces declared using xmlns:NS=URL in
-%	the document.  This can be used to update the namespace
-%	list with rdf_register_ns/2.
+%		* namespaces([NS=URL, ...])
+%		Return list of namespaces declared using xmlns:NS=URL in
+%		the document.  This can be used to update the namespace
+%		list with rdf_register_ns/2.
 
 load_rdf(File, Triples) :-
 	load_rdf(File, Triples, []).
