@@ -31,7 +31,8 @@
 
 
 :- module(http_open,
-	  [ http_open/3			% +URL, -Stream, +Options
+	  [ http_open/3,		% +URL, -Stream, +Options
+	    http_set_authorization/2	% +URL, +Authorization
 	  ]).
 :- use_module(library(url)).
 :- use_module(library(readutil)).
@@ -89,24 +90,27 @@ client support is provided by http_client.pl
 http_open(URL, Stream, Options) :-
 	atom(URL), !,
 	parse_url(URL, Parts),
-	http_open(Parts, Stream, Options).
+	add_authorization(URL, Options, Options1),
+	http_open(Parts, Stream, Options1).
 http_open(Parts, Stream, Options0) :-
-	Options = [visited(Parts)|Options0],
-	memberchk(proxy(Host, ProxyPort), Options), !,
+	memberchk(proxy(Host, ProxyPort), Options0), !,
 	parse_url(Location, Parts),
+	Options = [visited(Parts)|Options0],
 	open_socket(Host:ProxyPort, In, Out, Options),
 	option(port(Port), Parts, 80),
 	host_and_port(Host, Port, HostPort),
-	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options),
+	add_authorization(Parts, Options, Options1),
+	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options1),
 	return_final_url(Options).
 http_open(Parts, Stream, Options0) :-
-	Options = [visited(Parts)|Options0],
 	memberchk(host(Host), Parts),
 	option(port(Port), Parts, 80),
 	http_location(Parts, Location),
+	Options = [visited(Parts)|Options0],
 	open_socket(Host:Port, In, Out, Options),
 	host_and_port(Host, Port, HostPort),
-	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options),
+	add_authorization(Parts, Options, Options1),
+	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options1),
 	return_final_url(Options).
 
 host_and_port(Host, 80, Host) :- !.
@@ -416,5 +420,74 @@ rest(A,L,[]) :-
 	atom_codes(A, L).
 
 
+		 /*******************************
+		 *   AUTHORIZATION MANAGEMENT	*
+		 *******************************/
+
+%%	http_set_authorization(+URL, +Authorization) is det.
+%
+%	Set user/password to supply with URLs   that have URL as prefix.
+%	If  Authorization  is  the   atom    =|-|=,   possibly   defined
+%	authorization is cleared.  For example:
+%	
+%	==
+%	?- http_set_authorization('http://www.example.com/private/',
+%				  basic('John', 'Secret'))
+%	==
+%	
+%	@tbd	Move to a separate module, so http_get/3, etc. can use this
+%		too.
 	
+:- dynamic
+	stored_authorization/2,
+	cached_authorization/2.
+
+http_set_authorization(URL, Authorization) :-
+	must_be(atom, URL),
+	retractall(stored_authorization(URL, _)),
+	(   Authorization = (-)
+	->  true
+	;   check_authorization(Authorization),
+	    assert(stored_authorization(URL, Authorization))
+	),
+	retractall(cached_authorization(_,_)).
+
+check_authorization(Var) :-
+	var(Var), !,
+	instantiation_error(Var).
+check_authorization(basic(User, Password)) :-
+	must_be(atom, User),
+	must_be(atom, Password).
+
+%%	authorization(+URL, -Authorization) is semdet.
+%
+%	True if Authorization must be supplied for URL.
+%	
+%	@tbd	Cleanup cache if it gets too big.
+
+authorization(_, _) :-
+	\+ stored_authorization(_, _), !,
+	fail.
+authorization(URL, Authorization) :-
+	cached_authorization(URL, Authorization), !,
+	Authorization \== (-).
+authorization(URL, Authorization) :-
+	(   stored_authorization(Prefix, Authorization),
+	    sub_atom(URL, 0, _, _, Prefix)
+	->  assert(cached_authorization(URL, Authorization))
+	;   assert(cached_authorization(URL, -)),
+	    fail
+	).
+	
+add_authorization(_, Options, Options) :-
+	option(authorization(_), Options), !.
+add_authorization(For, Options0, Options) :-
+	stored_authorization(_, _) ->	% quick test to avoid work
+	(   atom(For)
+	->  URL = For
+	;   parse_url(URL, For)
+	),
+	authorization(URL, Auth), !,
+	Options = [authorization(Auth)|Options0].
+add_authorization(_, Options, Options).
 	

@@ -1,5 +1,8 @@
 Sep 26, 2007
 
+ * ADDED: http_set_authorization/2 in library(http/http_open) to provide
+   authorization defauls.
+
  * ADDED: authorization(basic(User, Passowrd)) to the options of http_open/3.
    Now generates a permission error for common applicable 4xx errors.
 

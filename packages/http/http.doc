@@ -138,7 +138,7 @@ Use an HTTP proxy to connect to the outside world.
 
 	\termitem{authorization}{+Authorization}
 Send authorization.  Currently only supports \term{basic}{User,
-Password}.
+Password}.  See also http_set_authorization/2.
 
 	\termitem{request_header}{+Name = +Value}
 Additional name-value parts are added in the order of appearance to
@@ -196,6 +196,16 @@ complicated and resource-intensitive alternatives to http_open/3.  The
 http_open/3 predicate supports transfer-encoding hooks as described in
 \secref{transfer}.  In particular, loading \pllib{http/http_chunked}
 provides support for HTTP 1.1 chunked encoding transfer.
+
+\predicate{http_set_authorization}{2}{+URLPrefix, +Authorization}
+Set user/password to supply with URLs that start with \arg{URLPrefix}.
+If  Authorization  is  the   atom    =|-|=,   possibly   defined
+authorization is cleared.  For example:
+
+\begin{code}
+?- http_set_authorization('http://www.example.com/private/',
+			  basic('John', 'Secret'))
+\end{code}
 \end{description}
 
 
