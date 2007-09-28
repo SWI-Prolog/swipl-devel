@@ -426,6 +426,52 @@ file \const{user} or a string), unify \arg{File} with an absolute path to
 the file and \arg{Line} with the line-number in the file. New code
 should use prolog_load_context/2.
 
+    \predicate{at_initialization}{1}{+Goal}
+Register \arg{Goal} to be run when the system initialises.
+Initialisation takes place after reloading a .qlf (formerly .wic) file
+as well as after reloading a saved-state.  The hooks are run in the
+order they were registered.  A warning message is issued if \arg{Goal}
+fails, but execution continues.  See also at_halt/1
+
+    \predicate{at_halt}{1}{+Goal}
+Register \arg{Goal} to be run from PL_cleanup(), which is called when
+the system halts. The hooks are run in the reverse order they were
+registered (FIFO). Success or failure executing a hook is ignored. If
+the hook raises an exception this is printed using print_message/2. An
+attempt to call halt/[0,1] from a hook is ignored.
+
+    \predicate{initialization}{1}{+Goal}
+Call \arg{Goal} and register it using at_initialization/1.  Directives
+that do other things than creating clauses, records, flags or setting
+predicate attributes should normally be written using this tag to
+ensure the initialisation is executed when a saved system starts.
+See also qsave_program/[1,2].
+
+    \predicate{compiling}{0}{}
+True if the system is compiling source files with the \cmdlineoption{-c}
+option or qcompile/1 into an intermediate code file. Can be used to
+perform conditional code optimisations in term_expansion/2 (see also the
+\cmdlineoption{-O} option) or to omit execution of directives during
+compilation.
+\end{description}
+
+
+\subsection{Conditional compilation and program transformation}
+
+\index{if, directive}\index{transformation,of program}%
+ISO Prolog defines no way for program transformation such as macro
+expansion or conditional compilation. Expansion through term_expansion/2
+and expand_term/2 can be seen as part of the de-facto standard.  This
+machanism can do arbitrary translation between valid Prolog terms read
+from the source file to Prolog terms handed to the compiler.  As
+term_expansion/2 can return a list, the transformation does not need
+to be term-to-term.
+
+Various Prolog dialects provide the analogous goal_expansion/2 and
+expand_goal/2, that allow for translation of individual body terms,
+freeing the user of the task to disassemble each clause.
+
+\begin{description}
     \predicate{term_expansion}{2}{+Term1, -Term2}
 Dynamic and multifile predicate, normally not defined. When defined by
 the user all terms read during consulting are given to this
@@ -478,48 +524,30 @@ This predicate is normally called by the compiler to perform
 preprocessing. First it calls goal_expansion/2. If this fails it returns
 the first argument.
 
-    \predicate{at_initialization}{1}{+Goal}
-Register \arg{Goal} to be run when the system initialises.
-Initialisation takes place after reloading a .qlf (formerly .wic) file
-as well as after reloading a saved-state.  The hooks are run in the
-order they were registered.  A warning message is issued if \arg{Goal}
-fails, but execution continues.  See also at_halt/1
-
-    \predicate{at_halt}{1}{+Goal}
-Register \arg{Goal} to be run from PL_cleanup(), which is called when
-the system halts. The hooks are run in the reverse order they were
-registered (FIFO). Success or failure executing a hook is ignored. If
-the hook raises an exception this is printed using print_message/2. An
-attempt to call halt/[0,1] from a hook is ignored.
-
-    \predicate{initialization}{1}{+Goal}
-Call \arg{Goal} and register it using at_initialization/1.  Directives
-that do other things than creating clauses, records, flags or setting
-predicate attributes should normally be written using this tag to
-ensure the initialisation is executed when a saved system starts.
-See also qsave_program/[1,2].
-
-    \predicate{compiling}{0}{}
-True if the system is compiling source files with the \cmdlineoption{-c}
-option or qcompile/1 into an intermediate code file. Can be used to
-perform conditional code optimisations in term_expansion/2 (see also the
-\cmdlineoption{-O} option) or to omit execution of directives during
-compilation.
-
     \predicate{preprocessor}{2}{-Old, +New}
-Read the input file via a Unix process that acts as preprocessor. A
+Read the input file via an external process that acts as preprocessor. A
 preprocessor is specified as an atom. The first occurrence of the string
 `\const{\%f}' is replaced by the name of the file to be loaded. The
-resulting atom is called as a Unix command and the standard output of
-this command is loaded. To use the Unix C preprocessor one should
-define:
+standard output of resulting command is loaded. To use the Unix C
+preprocessor one should define:
 
 \begin{code}
 ?- preprocessor(Old, '/lib/cpp -C -P %f'), consult(...).
 
 Old = none
 \end{code}
+
+Using \program{cpp} for Prolog preprocessing is not ideal as the
+tokenization rules for comment and quoted strings differ between C and
+Prolog.
 \end{description}
+
+
+
+
+
+
+
 
 
 \subsection{Loading files, active code and threads}
@@ -545,7 +573,7 @@ issue during development. Such clauses can be reclaimed with
 garbage_collect_clauses/0.
 
 \begin{description}
-    \predicate{garbage_collect_clauses}{0}
+    \predicate{garbage_collect_clauses}{0}{}
 Cleanup all \jargon{dirty} predicates, where dirty predicates are
 defined to be predicates that have both old and new definitions due 
 to reloading a source file while the predicate was active.  Of course,

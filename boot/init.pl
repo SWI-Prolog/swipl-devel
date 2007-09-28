@@ -1415,6 +1415,9 @@ expand_term(Term, Expanded) :-		% local term-expansion
 expand_term(Head --> Body, Expanded) :-
 	'$translate_rule'(Head --> Body, Expanded0), !,
 	'$expand_clauses'(Expanded0, Expanded).
+expand_term(Term, []) :-
+	'$if_expansion'(Term, X),
+	X == [], !.
 expand_term(Term0, Term) :-
 	'$goal_expansion_module'(_), !,
 	'$expand_clauses'(Term0, Term).
@@ -1472,6 +1475,59 @@ expand_term(Term, Term).
 '$consult_clauses'([H|T], File) :-
 	'$consult_clause'(H, File),
 	'$consult_clauses'(T, File).
+
+
+		 /*******************************
+		 *	:- IF ... :- ENDIF	*
+		 *******************************/
+
+:- thread_local
+	'$include_code'/1.
+
+'$including' :-
+	'$include_code'(X), !,
+	X == true.
+'$including'.
+
+'$if_expansion'((:- if(G)), []) :-
+	(   '$including'
+	->  (   catch('$eval_if'(G), E, (print_message(error, E), fail))
+	    ->  asserta('$include_code'(true))
+	    ;   asserta('$include_code'(false))
+	    )
+	;   asserta('$include_code'(else_false))
+	).
+'$if_expansion'((:- elif(G)), []) :-
+	(   retract('$include_code'(Old))
+	->  (   Old == true
+	    ->  asserta('$include_code'(else_false))
+	    ;   Old == false,
+		catch('$eval_if'(G), E, (print_message(error, E), fail))
+	    ->  asserta('$include_code'(true))
+	    ;	asserta('$include_code'(Old))
+	    )
+	;    throw(error(context_error(no_if), _))
+	).
+'$if_expansion'((:- else), []) :-
+	(   retract('$include_code'(X))
+	->  (   X == true
+	    ->  X2 = false 
+	    ;   X == false
+	    ->	X2 = true
+	    ;	X2 = X
+	    ),
+	    asserta('$include_code'(X2))
+	;   throw(error(context_error(no_if), _))
+	).
+'$if_expansion'((:- endif), []) :-
+	retract('$include_code'(_)), !.
+
+'$if_expansion'(_, []) :-
+	\+ '$including'.
+
+'$eval_if'(G) :-
+	expand_goal(G, G2),
+	G2.
 
 
 		 /*******************************

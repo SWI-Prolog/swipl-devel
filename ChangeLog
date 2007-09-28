@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDING: :-if, :- else, :- endif for conditional compilation.  Intended
+    to simplify exchanging code	with YAP.
+
   * ADDED: Prolog flags dialect (swi) and version_number (replaces
     old version).  Paul Singleton and Vitor Santos Costa.
 
