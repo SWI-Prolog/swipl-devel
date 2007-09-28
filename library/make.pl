@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -33,13 +33,11 @@
 	  [ make/0
 	  ]).
 :- use_module(library(check)).
+:- set_prolog_flag(generate_debug_info, false).
 
-:- system_module.
+/** <module>  Make: reload modified source files.
 
-
-		/********************************
-		*              MAKE             *
-		*********************************/
+*/
 
 %%	make
 %	
@@ -62,7 +60,7 @@ modified_file(File) :-
 	;   File = Source,
 	    LoadTime = Time
 	),
-	time_file(File, Modified),
+	catch(time_file(File, Modified), _, fail),
 	Modified > LoadTime.
 
 reload([]).
@@ -76,7 +74,7 @@ reload([H|T]) :-
 %	into multiple modules this should be handled more carefully.
 
 reload_file(File) :-
-	findall(Context, $load_context_module(File, Context), Modules),
+	findall(Context, '$load_context_module'(File, Context), Modules),
 	(   Modules = []
 	->  consult(user:File)
 	;   Modules = [Module]
