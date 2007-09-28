@@ -189,9 +189,12 @@ suggest predicates from a keyword.
 \oppredsummary{dynamic}{1}{fx}{1150}{Indicate predicate definition may change}
 \predicatesummary{edit}{0}{Edit current script- or associated file}
 \predicatesummary{edit}{1}{Edit a file, predicate, module (extensible)}
+\predicatesummary{elif}{0}{Part of conditional compilation (directive)}
+\predicatesummary{else}{0}{Part of conditional compilation (directive)}
 \predicatesummary{empty_assoc}{1}{Create/test empty association tree}
 \predicatesummary{empty_nb_set}{1}{Test/create an empty non-backtrackable set}
 \predicatesummary{encoding}{1}{Define encoding inside a source file}
+\predicatesummary{endif}{0}{End of conditional compilation (directive)}
 \predicatesummary{ensure_loaded}{1}{Consult a file if that has not yet been done}
 \predicatesummary{erase}{1}{Erase a database record or clause}
 \predicatesummary{eval_license}{0}{Evaluate licenses of loaded modules}
@@ -272,6 +275,7 @@ suggest predicates from a keyword.
 \predicatesummary{help}{0}{Give help on help}
 \predicatesummary{help}{1}{Give help on predicates and show parts of manual}
 \predicatesummary{help_hook}{1}{\hook{prolog} User-hook in the help-system}
+\predicatesummary{if}{1}{Start conditional compilation (directive)}
 \predicatesummary{ignore}{1}{Call the argument, but always succeed}
 \predicatesummary{import}{1}{Import a predicate from a module}
 \predicatesummary{import_module}{2}{Query import modules}

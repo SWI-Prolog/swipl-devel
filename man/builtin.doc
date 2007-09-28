@@ -458,7 +458,7 @@ compilation.
 
 \subsection{Conditional compilation and program transformation}
 
-\index{if, directive}\index{transformation,of program}%
+\index{transformation,of program}%
 ISO Prolog defines no way for program transformation such as macro
 expansion or conditional compilation. Expansion through term_expansion/2
 and expand_term/2 can be seen as part of the de-facto standard.  This
@@ -539,15 +539,27 @@ Old = none
 
 Using \program{cpp} for Prolog preprocessing is not ideal as the
 tokenization rules for comment and quoted strings differ between C and
-Prolog.
+Prolog.  Another problem is availability and compatibility with regard
+to option processing of \program{cpp}.
 \end{description}
 
+\subsubsection{Conditional compilation}
 
+\index{if, directive}%
+Conditional compilation builds on the same principle as
+term_expansion/2, goal_expansion/2 and the expansion of grammar rules to
+compile sections of the source-code conditionally.
 
-
-
-
-
+\begin{description}
+    \directive{if}{1}{:Goal}
+Compile subsequent code only if \arg{Goal} succeeds.
+    \directive{elif}{1}{:Goal}
+Equivalent to :- else. :-if(Goal) :- endif.
+    \directive{else}{0}{}
+Start `else' branch.
+    \directive{endif}{0}{}
+End of conditional compilation.
+\end{description}
 
 
 \subsection{Loading files, active code and threads}
