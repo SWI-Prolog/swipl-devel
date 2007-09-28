@@ -200,7 +200,7 @@ genarg(N, T, A) :-			% SWI-Prolog arg/3 is generic
 %	@bug	Should map relevant Quintus flag identifiers.
 
 prolog_flag(version, Version) :- !,
-	current_prolog_flag(version, N),
+	current_prolog_flag(version_number, N),
 	current_prolog_flag(arch, Arch),
 	current_prolog_flag(compiled_at, Compiled),
 	Major is N // 10000,

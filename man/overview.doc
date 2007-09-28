@@ -14,7 +14,7 @@ interactive application simply by starting the program:
 
 \begin{code}
 machine% pl
-Welcome to SWI-Prolog (Version 5.6.26)
+Welcome to SWI-Prolog (Version 5.6.42)
 Copyright (c) 1990-2007 University of Amsterdam.
 SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,
 and you are welcome to redistribute it under certain conditions.
@@ -1056,6 +1056,15 @@ max_depth(10), attributes(portray)]}.
 If \const{true}, show the context module while printing a stack-frame in
 the tracer.  Normally controlled using the `C' option of the tracer.
 
+    \prologflagitem{dialect}{atom}{r}
+Fixed to \const{swi}.  The code below is a reliable and portable way to
+detect SWI-Prolog.
+	
+\begin{code}
+is_dialect(swi) :-
+	catch(current_prolog_flag(dialect, swi), _, fail).
+\end{code}
+
     \prologflagitem{double_quotes}{codes,chars,atom,string}{rw}
 This flag determines how double quoted strings are read by Prolog and
 is ---like \prologflag{character_escapes}--- maintained for each module. If
@@ -1382,6 +1391,11 @@ progress of absolute_file_name/[2,3] in locating files.  Intended for
 debugging complicated file-search paths.  See also file_search_path/2.
 
     \prologflagitem{version}{integer}{r}
+Deprecated.  New code must use \prologflag{version_number}.  In future
+versions this flag is likely to change to a descriptive atom for
+compatibilty with other Prolog dialects.
+
+    \prologflagitem{version_number}{integer}{r}
 The version identifier is an integer with value: $$10000 \times
 \arg{Major} + 100 \times \arg{Minor} + \arg{Patch}$$
 Note that in releases up to 2.7.10 this Prolog flag yielded an atom holding

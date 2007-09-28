@@ -391,7 +391,7 @@ foreign_attribute(Head, 'PL_FA_TRANSPARENT') :-
 %	Output the generic header declarations needed and some comments
 
 make_C_file_header(Out) :-
-	current_prolog_flag(version, Version),
+	current_prolog_flag(version_number, Version),
 	get_time(Time),
 	convert_time(Time, Y, M, D, H, Min, _, _),
 	format(Out, '/*  SWI-Prolog link wrapper~n', []),

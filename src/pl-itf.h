@@ -25,6 +25,10 @@
 #ifndef _FLI_H_INCLUDED
 #define _FLI_H_INCLUDED
 
+#ifndef __SWI_PROLOG__			/* use this to switch on Prolog dialect */
+#define __SWI_PROLOG__			/* normally defined by the plld compiler driver */
+#endif
+
 #include <stdarg.h>
 #include <stdlib.h>			/* get size_t */
 #include <stddef.h>

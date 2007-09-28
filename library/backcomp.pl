@@ -69,7 +69,7 @@ compatibility predicates.
 '$arch'(Arch, unknown) :-
 	current_prolog_flag(arch, Arch).
 '$version'(Version) :-
-	current_prolog_flag(version, Version).
+	current_prolog_flag(version_number, Version).
 '$home'(Home) :-
 	current_prolog_flag(home, Home).
 '$argv'(Argv) :-

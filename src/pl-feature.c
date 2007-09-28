@@ -774,6 +774,8 @@ initFeatures()
   defFeature("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
   defFeature("version",	FT_INTEGER|FF_READONLY, PLVERSION);
+  defFeature("version_number", FT_INTEGER|FF_READONLY, PLVERSION);
+  defFeature("dialect", FT_ATOM|FF_READONLY, "swi");
   if ( systemDefaults.home )
     defFeature("home", FT_ATOM|FF_READONLY, systemDefaults.home);
   if ( GD->paths.executable )

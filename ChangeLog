@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Prolog flags dialect (swi) and version_number (replaces
+    old version).  Paul Singleton and Vitor Santos Costa.
+
   * FIXED: writeq/1 and ~q in format/3 honour numbervars(true).  Ulrich
     Neumerkel.
 

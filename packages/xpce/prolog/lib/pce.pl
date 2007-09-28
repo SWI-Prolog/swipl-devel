@@ -111,7 +111,7 @@ reexports the content of these files.
 	      ]).
 
 set_version :-
-	current_prolog_flag(version, PlVersion),
+	current_prolog_flag(version_number, PlVersion),
 	send(@pce, catch_error_signals, @on),
 	Major is PlVersion // 10000,
 	Minor is (PlVersion // 100) mod 100,

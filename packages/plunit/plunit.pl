@@ -74,7 +74,7 @@ user:term_expansion(In, Out) :-
 	prolog_load_context(module, plunit),
 	if_expansion(In, Out).
 
-swi     :- catch(current_prolog_flag(compiled_at, _), _, fail).
+swi     :- catch(current_prolog_flag(dialect, swi), _, fail).
 sicstus :- catch(current_prolog_flag(system_type, _), _, fail).
 
 
