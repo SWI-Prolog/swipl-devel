@@ -10,6 +10,7 @@
 \prefixop{+}{-}=item		1 0
 \cfunction{-}{+}{+}=item	1 0
 \cmacro{-}{-}{+}=item		1 0
+\resitem{-}=item		1 0
 \fmtchar{+}=item		1 0
 \prologflagitem{-}{-}{-}=item	1 0
 \glossitem{-}=item
@@ -53,6 +54,7 @@
 \const{+}
 \plflag{+}
 \type{+}
+\resource{-}
 \except{+}
 \module{+}
 \infixterm{+}{+}{+}

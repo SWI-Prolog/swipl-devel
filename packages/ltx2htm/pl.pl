@@ -84,6 +84,7 @@ cmd(exam(		{A1}), #code(+A1)).
 cmd(jargon(		{A1}), #em(+A1)).
 cmd(chr(		{A1}), #code(+A1)).
 cmd(const(		{A1}), #code(+A1)).
+cmd(resource(		{A1}), #code(A1)).
 cmd(key(		{A1}), #code(+A1)).
 cmd(plflag(		{A1}), #code(+A1)).
 cmd(module(		{A1}), #code(+A1)).
@@ -184,6 +185,11 @@ cmd(cmacro({RType}, {Name}, {Args}),
 			    ]))) :-
 	sformat(RefName, '~w()', [Name]),
 	add_to_index(RefName, +RefName).
+cmd(resitem({Resource}),
+    #defitem(pubdef, #label(Resource,
+			    [ #strong(Resource)
+			    ]))) :-
+	add_to_index(Resource, +Resource).
 cmd(prefixop({RawName}, {Arg}),
     #defitem(pubdef, #label(RefName, [#strong(Name), ' ', #var(Arg)]))) :-
 	clean_name(RawName, Name),
