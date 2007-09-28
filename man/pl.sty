@@ -129,6 +129,9 @@
 \newcommand{\directive}[3]{%
 	\defentry{:- #1({\it #3})}%
 	\index{#1/#2}\ignorespaces}
+\newcommand{\resitem}[1]{%
+	\defentry{#1}%
+	\index{#1}\ignorespaces}
 \newcommand{\predicate}[3]{%
 	\ifthenelse{\equal{#2}{0}}{%
 	    \defentry{#1}}{%
@@ -218,6 +221,7 @@
 \newcommand{\module}[1]{\mbox{\reffont #1}}
 \newcommand{\fileext}[1]{\mbox{\texttt{.#1}}}
 \newcommand{\option}[1]{\mbox{\tt #1}}
+\newcommand{\resource}[1]{\mbox{\reffont #1}}
 \newcommand{\cmdlineoption}[1]{\mbox{\tt #1}}
 \newcommand{\argoption}[2]{\mbox{\tt #1 \em #2}}
 \newcommand{\ctype}[1]{{\texttt{#1}}}
