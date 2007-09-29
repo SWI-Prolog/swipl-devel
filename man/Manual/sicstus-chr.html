@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.40 Reference Manual: Section 7.6</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section 7.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="examples.html">
@@ -144,13 +144,13 @@ differences should be noted:
 <UL>
 <LI><I>The constraints/1 declaration</I><BR>
 This declaration is deprecated. It has been replaced with the
-<A NAME="idx:chrconstraint1:1208"></A><A class="pred" href="practical.html#chr_constraint/1">chr_constraint/1</A> 
+<A NAME="idx:chrconstraint1:1219"></A><A class="pred" href="practical.html#chr_constraint/1">chr_constraint/1</A> 
 declaration.
 
 <P>
 <LI><I>The option/2 declaration</I><BR>
 This declaration is deprecated. It has been replaced with the
-<A NAME="idx:chroption2:1209"></A><A class="pred" href="SyntaxAndSemantics.html#chr_option/2">chr_option/2</A> 
+<A NAME="idx:chroption2:1220"></A><A class="pred" href="SyntaxAndSemantics.html#chr_option/2">chr_option/2</A> 
 declaration.
 
 <P>
@@ -170,7 +170,7 @@ during compilation.
 <LI><I>Guard bindings</I><BR>
 The <TT>check_guard_bindings</TT> option only turns invalid calls to 
 unification into failure. In SICStus this option does more: it 
-intercepts instantiation errors from Prolog built-ins such as <A NAME="idx:is2:1210"></A><A class="pred" href="arith.html#is/2">is/2</A> 
+intercepts instantiation errors from Prolog built-ins such as <A NAME="idx:is2:1221"></A><A class="pred" href="arith.html#is/2">is/2</A> 
 and turns them into failure. In SWI-Prolog, we do not go this far, as we 
 like to separate concerns more. The CHR compiler is aware of the CHR 
 code, the Prolog system and programmer should be aware of the 

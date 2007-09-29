@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.40 Reference Manual: Section 2.11</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section 2.11</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="compilation.html">
@@ -296,6 +296,17 @@ portray(true), max_depth(10), attributes(portray)]</CODE>.</DD>
 If <CODE>true</CODE>, show the context module while printing a 
 stack-frame in the tracer. Normally controlled using the `C' option of 
 the tracer.</DD>
+<DT class="pubdef"><A NAME="flag:dialect"><STRONG>dialect</STRONG>(<VAR>atom</VAR>)</A></DT>
+<DD class="defbody">
+Fixed to <CODE>swi</CODE>. The code below is a reliable and portable way 
+to detect SWI-Prolog.
+
+<PRE class="code">
+is_dialect(swi) :-
+        catch(current_prolog_flag(dialect, swi), _, fail).
+</PRE>
+
+</DD>
 <DT class="pubdef"><A NAME="flag:double_quotes"><STRONG>double_quotes</STRONG>(<VAR>codes,chars,atom,string</VAR>, changeable)</A></DT>
 <DD class="defbody">
 This flag determines how double quoted strings are read by Prolog and is 
@@ -652,6 +663,11 @@ indicating the progress of <A NAME="idx:absolutefilename23:162"></A><A class="pr
 in locating files. Intended for debugging complicated file-search paths. 
 See also <A NAME="idx:filesearchpath2:163"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>.</DD>
 <DT class="pubdef"><A NAME="flag:version"><STRONG>version</STRONG>(<VAR>integer</VAR>)</A></DT>
+<DD class="defbody">
+Deprecated. New code must use <A class="flag" href="flags.html#flag:version_number">version_number</A>. 
+In future versions this flag is likely to change to a descriptive atom 
+for compatibilty with other Prolog dialects.</DD>
+<DT class="pubdef"><A NAME="flag:version_number"><STRONG>version_number</STRONG>(<VAR>integer</VAR>)</A></DT>
 <DD class="defbody">
 The version identifier is an integer with value: 
 <BLOCKQUOTE><VAR>10000 &times; <VAR>Major</VAR> + 100 &times; <VAR>Minor</VAR> 

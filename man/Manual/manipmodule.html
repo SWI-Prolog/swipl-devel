@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.40 Reference Manual: Section 5.8</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section 5.8</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="dynamic-modules.html">
@@ -129,7 +129,7 @@ Handling Predicates</SPAN></A></H2>
 built-in predicates that handle modules.
 
 <DL>
-<DT class="pubdef"><A NAME="module/2"><STRONG>module</STRONG>(<VAR>+Module, +PublicList</VAR>)</A></DT>
+<DT class="pubdef"><A NAME="module/2">:- <STRONG>module</STRONG>(<VAR>+Module, +PublicList</VAR>)</A></DT>
 <DD class="defbody">
 This directive can only be used as the first term of a source file. It 
 declares the file to be a <EM>module file</EM>, defining <VAR>Module</VAR> 
@@ -142,7 +142,7 @@ well as to modules importing this module. See also <A class="sec" href="operator
 <DT class="pubdef"><A NAME="module_transparent/1"><STRONG>module_transparent</STRONG> <VAR>+Preds</VAR></A></DT>
 <DD class="defbody">
 <VAR>Preds</VAR> is a comma separated list of name/arity pairs (like
-<A NAME="idx:dynamic1:1129"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A>). 
+<A NAME="idx:dynamic1:1140"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A>). 
 Each goal associated with a transparent declared predicate will inherit 
 the <EM>context module</EM> from its parent goal.</DD>
 <DT class="pubdef"><A NAME="meta_predicate/1"><STRONG>meta_predicate</STRONG> <VAR>+Heads</VAR></A></DT>
@@ -159,11 +159,11 @@ Generates all currently known modules.</DD>
 Is true if <VAR>File</VAR> is the file from which <VAR>Module</VAR> was 
 loaded.
 <VAR>File</VAR> is the internal canonical filename. See also
-<A NAME="idx:sourcefile12:1130"></A><A class="pred" href="consulting.html#source_file/1">source_file/[1,2]</A>.</DD>
+<A NAME="idx:sourcefile12:1141"></A><A class="pred" href="consulting.html#source_file/1">source_file/[1,2]</A>.</DD>
 <DT class="pubdef"><A NAME="context_module/1"><STRONG>context_module</STRONG>(<VAR>-Module</VAR>)</A></DT>
 <DD class="defbody">
 Unify <VAR>Module</VAR> with the context module of the current goal.
-<A NAME="idx:contextmodule1:1131"></A><A class="pred" href="manipmodule.html#context_module/1">context_module/1</A> 
+<A NAME="idx:contextmodule1:1142"></A><A class="pred" href="manipmodule.html#context_module/1">context_module/1</A> 
 itself is transparent.</DD>
 <DT class="pubdef"><A NAME="strip_module/3"><STRONG>strip_module</STRONG>(<VAR>+Term, 
 -Module, -Plain</VAR>)</A></DT>
@@ -178,8 +178,8 @@ is unified to
 <DD class="defbody">
 Add a predicate to the public list of the context module. This implies 
 the predicate will be imported into another module if this module is 
-imported with <A NAME="idx:usemodule12:1132"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>. 
-Note that predicates are normally exported using the directive <A NAME="idx:module2:1133"></A><A class="pred" href="manipmodule.html#module/2">module/2</A>. <A NAME="idx:export1:1134"></A><A class="pred" href="manipmodule.html#export/1">export/1</A> 
+imported with <A NAME="idx:usemodule12:1143"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>. 
+Note that predicates are normally exported using the directive <A NAME="idx:module2:1144"></A><A class="pred" href="manipmodule.html#module/2">module/2</A>. <A NAME="idx:export1:1145"></A><A class="pred" href="manipmodule.html#export/1">export/1</A> 
 is meant to handle export from dynamically created modules.</DD>
 <DT class="pubdef"><A NAME="export_list/2"><STRONG>export_list</STRONG>(<VAR>+Module, 
 ?Exports</VAR>)</A></DT>
@@ -187,16 +187,16 @@ is meant to handle export from dynamically created modules.</DD>
 Unifies <VAR>Exports</VAR> with a list of terms. Each term has the name 
 and arity of a public predicate of <VAR>Module</VAR>. The order of the 
 terms in
-<VAR>Exports</VAR> is not defined. See also <A NAME="idx:predicateproperty2:1135"></A><A class="pred" href="examineprog.html#predicate_property/2">predicate_property/2</A>.</DD>
+<VAR>Exports</VAR> is not defined. See also <A NAME="idx:predicateproperty2:1146"></A><A class="pred" href="examineprog.html#predicate_property/2">predicate_property/2</A>.</DD>
 <DT class="pubdef"><A NAME="import_module/2"><STRONG>import_module</STRONG>(<VAR>+Module, 
 -Import</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Import</VAR> is defined as an import module for <VAR>Module</VAR>. 
 All normal modules only import from <CODE>user</CODE>, which imports 
 from
-<CODE>system</CODE>. The predicates <A NAME="idx:addimportmodule3:1136"></A><A class="pred" href="manipmodule.html#add_import_module/3">add_import_module/3</A> 
+<CODE>system</CODE>. The predicates <A NAME="idx:addimportmodule3:1147"></A><A class="pred" href="manipmodule.html#add_import_module/3">add_import_module/3</A> 
 and
-<A NAME="idx:deleteimportmodule2:1137"></A><A class="pred" href="manipmodule.html#delete_import_module/2">delete_import_module/2</A> 
+<A NAME="idx:deleteimportmodule2:1148"></A><A class="pred" href="manipmodule.html#delete_import_module/2">delete_import_module/2</A> 
 can be used to manipulate the import list.</DD>
 <DT class="pubdef"><A NAME="add_import_module/3"><STRONG>add_import_module</STRONG>(<VAR>+Module, 
 +Import, +StartOrEnd</VAR>)</A></DT>
@@ -204,8 +204,8 @@ can be used to manipulate the import list.</DD>
 If <VAR>Import</VAR> is not already an import module for <VAR>Module</VAR>, 
 add it to this list at the <CODE>start</CODE> or <CODE>end</CODE> 
 depending on
-<VAR>StartOrEnd</VAR>. See also <A NAME="idx:importmodule2:1138"></A><A class="pred" href="manipmodule.html#import_module/2">import_module/2</A> 
-and <A NAME="idx:deleteimportmodule2:1139"></A><A class="pred" href="manipmodule.html#delete_import_module/2">delete_import_module/2</A>.</DD>
+<VAR>StartOrEnd</VAR>. See also <A NAME="idx:importmodule2:1149"></A><A class="pred" href="manipmodule.html#import_module/2">import_module/2</A> 
+and <A NAME="idx:deleteimportmodule2:1150"></A><A class="pred" href="manipmodule.html#delete_import_module/2">delete_import_module/2</A>.</DD>
 <DT class="pubdef"><A NAME="delete_import_module/2"><STRONG>delete_import_module</STRONG>(<VAR>+Module, 
 +Import</VAR>)</A></DT>
 <DD class="defbody">
@@ -220,11 +220,11 @@ module <CODE>user</CODE>, this will generate <CODE>user</CODE> and <CODE>system<
 For any other module, this will generate the module itself, followed by <CODE>user</CODE> 
 and <CODE>system</CODE>.
 
-<P>Backward compatibility. New code should use <A NAME="idx:importmodule2:1140"></A><A class="pred" href="manipmodule.html#import_module/2">import_module/2</A>.</DD>
+<P>Backward compatibility. New code should use <A NAME="idx:importmodule2:1151"></A><A class="pred" href="manipmodule.html#import_module/2">import_module/2</A>.</DD>
 <DT class="pubdef"><A NAME="module/1"><STRONG>module</STRONG>(<VAR>+Module</VAR>)</A></DT>
 <DD class="defbody">
 The call <CODE>module(<VAR>Module</VAR>)</CODE> may be used to switch 
-the default working module for the interactive top-level (see <A NAME="idx:prolog0:1141"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A>). 
+the default working module for the interactive top-level (see <A NAME="idx:prolog0:1152"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A>). 
 This may be used to when debugging a module. The example below lists the 
 clauses of file_of_label/2 in the module <CODE>tex</CODE>.
 

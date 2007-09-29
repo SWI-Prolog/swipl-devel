@@ -218,8 +218,8 @@ skipall(Line, Line, []).
 %	Identify line as describing a predicate
 
 predicate_line(Name, Arity) -->
-	optional_module,
 	optional_directive,
+	optional_module,
 	atom(Name),
 	arguments(Arity), !,
 	{   (   integer(Arity),
@@ -265,11 +265,12 @@ predicate_line(Name, 2) -->			% infix operator
 	predarg,
 	skip_blanks.
 predicate_line(Name, 0) -->
+	optional_directive,
 	optional_module,
 	atom(Name).
 
 optional_directive -->
-	starts(":- "), !,
+	starts(":-"), !,
 	skip_blanks.
 optional_directive -->
 	{ true }.

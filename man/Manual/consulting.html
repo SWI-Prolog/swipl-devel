@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.40 Reference Manual: Section 4.3</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section 4.3</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="chars.html">
@@ -488,20 +488,77 @@ loaded using <A NAME="idx:include1:390"></A><A class="pred" href="consulting.htm
 <TR VALIGN=top><TD><CODE>stream</CODE> </TD><TD>Stream identifier (see <A NAME="idx:currentinput1:391"></A><A class="pred" href="IO.html#current_input/1">current_input/1</A>) </TD></TR>
 <TR VALIGN=top><TD><CODE>directory</CODE> </TD><TD>Directory in which <VAR>File</VAR> 
 lives. </TD></TR>
+<TR VALIGN=top><TD><CODE>dialect</CODE> </TD><TD>Compatibility mode. See <A NAME="idx:expectsdialect1:392"></A><A class="pred" href="dialect.html#expects_dialect/1">expects_dialect/1</A>. </TD></TR>
 <TR VALIGN=top><TD><CODE>term_position</CODE> </TD><TD>Position of last 
 term read. Term of the form
-<TT>'$stream_position'(0,&lt;<VAR>Line</VAR>&gt;,0,0,0)</TT>. See also <A NAME="idx:streampositiondata3:392"></A><A class="pred" href="IO.html#stream_position_data/3">stream_position_data/3</A>. </TD></TR>
+<TT>'$stream_position'(0,&lt;<VAR>Line</VAR>&gt;,0,0,0)</TT>. See also <A NAME="idx:streampositiondata3:393"></A><A class="pred" href="IO.html#stream_position_data/3">stream_position_data/3</A>. </TD></TR>
 </TABLE>
 
 </CENTER>
-Quintus compatibility predicate. See also <A NAME="idx:sourcelocation2:393"></A><A class="pred" href="consulting.html#source_location/2">source_location/2</A>.</DD>
+Quintus compatibility predicate. See also <A NAME="idx:sourcelocation2:394"></A><A class="pred" href="consulting.html#source_location/2">source_location/2</A>.</DD>
 <DT class="pubdef"><A NAME="source_location/2"><STRONG>source_location</STRONG>(<VAR>-File, 
 -Line</VAR>)</A></DT>
 <DD class="defbody">
 If the last term has been read from a physical file (i.e., not from the 
 file <CODE>user</CODE> or a string), unify <VAR>File</VAR> with an 
 absolute path to the file and <VAR>Line</VAR> with the line-number in 
-the file. New code should use <A NAME="idx:prologloadcontext2:394"></A><A class="pred" href="consulting.html#prolog_load_context/2">prolog_load_context/2</A>.</DD>
+the file. New code should use <A NAME="idx:prologloadcontext2:395"></A><A class="pred" href="consulting.html#prolog_load_context/2">prolog_load_context/2</A>.</DD>
+<DT class="pubdef"><A NAME="at_initialization/1"><STRONG>at_initialization</STRONG>(<VAR>+Goal</VAR>)</A></DT>
+<DD class="defbody">
+Register <VAR>Goal</VAR> to be run when the system initialises. 
+Initialisation takes place after reloading a .qlf (formerly .wic) file 
+as well as after reloading a saved-state. The hooks are run in the order 
+they were registered. A warning message is issued if <VAR>Goal</VAR> 
+fails, but execution continues. See also <A NAME="idx:athalt1:396"></A><A class="pred" href="consulting.html#at_halt/1">at_halt/1</A></DD>
+<DT class="pubdef"><A NAME="at_halt/1"><STRONG>at_halt</STRONG>(<VAR>+Goal</VAR>)</A></DT>
+<DD class="defbody">
+Register <VAR>Goal</VAR> to be run from PL_cleanup(), which is called 
+when the system halts. The hooks are run in the reverse order they were 
+registered (FIFO). Success or failure executing a hook is ignored. If 
+the hook raises an exception this is printed using <A NAME="idx:printmessage2:397"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A>. 
+An attempt to call <A NAME="idx:halt01:398"></A><A class="pred" href="toplevel.html#halt/0">halt/[0,1]</A> 
+from a hook is ignored.</DD>
+<DT class="pubdef"><A NAME="initialization/1"><STRONG>initialization</STRONG>(<VAR>+Goal</VAR>)</A></DT>
+<DD class="defbody">
+Call <VAR>Goal</VAR> and register it using <A NAME="idx:atinitialization1:399"></A><A class="pred" href="consulting.html#at_initialization/1">at_initialization/1</A>. 
+Directives that do other things than creating clauses, records, flags or 
+setting predicate attributes should normally be written using this tag 
+to ensure the initialisation is executed when a saved system starts. See 
+also <A NAME="idx:qsaveprogram12:400"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.</DD>
+<DT class="pubdef"><A NAME="compiling/0"><STRONG>compiling</STRONG></A></DT>
+<DD class="defbody">
+True if the system is compiling source files with the <STRONG>-c</STRONG> 
+option or <A NAME="idx:qcompile1:401"></A><A class="pred" href="consulting.html#qcompile/1">qcompile/1</A> 
+into an intermediate code file. Can be used to perform conditional code 
+optimisations in <A NAME="idx:termexpansion2:402"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
+(see also the
+<STRONG>-O</STRONG> option) or to omit execution of directives during 
+compilation.
+</DD>
+</DL>
+
+<H3><A NAME="sec:4.3.1"><SPAN class="sec-nr">4.3.1</SPAN> <SPAN class="sec-title">Conditional 
+compilation and program transformation</SPAN></A></H3>
+
+<A NAME="sec:progtransform"></A>
+
+<P><A NAME="idx:transformationofprogram:403"></A>ISO Prolog defines no 
+way for program transformation such as macro expansion or conditional 
+compilation. Expansion through <A NAME="idx:termexpansion2:404"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
+and <A NAME="idx:expandterm2:405"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A> 
+can be seen as part of the de-facto standard. This machanism can do 
+arbitrary translation between valid Prolog terms read from the source 
+file to Prolog terms handed to the compiler. As
+<A NAME="idx:termexpansion2:406"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
+can return a list, the transformation does not need to be term-to-term.
+
+<P>Various Prolog dialects provide the analogous <A NAME="idx:goalexpansion2:407"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+and
+<A NAME="idx:expandgoal2:408"></A><A class="pred" href="consulting.html#expand_goal/2">expand_goal/2</A>, 
+that allow for translation of individual body terms, freeing the user of 
+the task to disassemble each clause.
+
+<DL>
 <DT class="pubdef"><A NAME="term_expansion/2"><STRONG>term_expansion</STRONG>(<VAR>+Term1, 
 -Term2</VAR>)</A></DT>
 <DD class="defbody">
@@ -519,96 +576,64 @@ and record the indicated source-location with it.
 </BLOCKQUOTE>
 
 <P>When compiling a module (see <A class="sec" href="modules.html">chapter 
-5</A> and the directive <A NAME="idx:module2:395"></A><A class="pred" href="manipmodule.html#module/2">module/2</A>),
-<A NAME="idx:expandterm2:396"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A> 
-will first try <A NAME="idx:termexpansion2:397"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
+5</A> and the directive <A NAME="idx:module2:409"></A><A class="pred" href="manipmodule.html#module/2">module/2</A>),
+<A NAME="idx:expandterm2:410"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A> 
+will first try <A NAME="idx:termexpansion2:411"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
 in the module being compiled to allow for term-expansion rules that are 
 local to a module. If there is no local definition, or the local 
-definition fails to translate the term, <A NAME="idx:expandterm2:398"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A> 
-will try <A NAME="idx:termexpansion2:399"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
+definition fails to translate the term, <A NAME="idx:expandterm2:412"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A> 
+will try <A NAME="idx:termexpansion2:413"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
 in module
 <CODE>user</CODE>. For compatibility with SICStus and Quintus Prolog, 
-this feature should not be used. See also <A NAME="idx:expandterm2:400"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A>, <A NAME="idx:goalexpansion2:401"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+this feature should not be used. See also <A NAME="idx:expandterm2:414"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A>, <A NAME="idx:goalexpansion2:415"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
 and
-<A NAME="idx:expandgoal2:402"></A><A class="pred" href="consulting.html#expand_goal/2">expand_goal/2</A>.</DD>
+<A NAME="idx:expandgoal2:416"></A><A class="pred" href="consulting.html#expand_goal/2">expand_goal/2</A>.</DD>
 <DT class="pubdef"><A NAME="expand_term/2"><STRONG>expand_term</STRONG>(<VAR>+Term1, 
 -Term2</VAR>)</A></DT>
 <DD class="defbody">
 This predicate is normally called by the compiler to perform 
-preprocessing. First it calls <A NAME="idx:termexpansion2:403"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>. 
+preprocessing. First it calls <A NAME="idx:termexpansion2:417"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>. 
 If this predicate fails it performs a grammar-rule translation. If this 
 fails it returns the first argument.</DD>
 <DT class="pubdef"><A NAME="goal_expansion/2"><STRONG>goal_expansion</STRONG>(<VAR>+Goal1, 
 -Goal2</VAR>)</A></DT>
 <DD class="defbody">
-Like <A NAME="idx:termexpansion2:404"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>, <A NAME="idx:goalexpansion2:405"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
-provides for macro-expansion of Prolog source-code. Between <A NAME="idx:expandterm2:406"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A> 
+Like <A NAME="idx:termexpansion2:418"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>, <A NAME="idx:goalexpansion2:419"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+provides for macro-expansion of Prolog source-code. Between <A NAME="idx:expandterm2:420"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A> 
 and the actual compilation, the body of clauses analysed and the goals 
-are handed to <A NAME="idx:expandgoal2:407"></A><A class="pred" href="consulting.html#expand_goal/2">expand_goal/2</A>, 
-which uses the <A NAME="idx:goalexpansion2:408"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+are handed to <A NAME="idx:expandgoal2:421"></A><A class="pred" href="consulting.html#expand_goal/2">expand_goal/2</A>, 
+which uses the <A NAME="idx:goalexpansion2:422"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
 hook to do user-defined expansion.
 
-<P>The predicate <A NAME="idx:goalexpansion2:409"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+<P>The predicate <A NAME="idx:goalexpansion2:423"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
 is first called in the module that is being compiled, and then on the <CODE>user</CODE> 
 module. If <VAR>Goal</VAR> is of the form <VAR>Module</VAR>:<VAR>Goal</VAR> 
 where <VAR>Module</VAR> is instantiated,
-<A NAME="idx:goalexpansion2:410"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+<A NAME="idx:goalexpansion2:424"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
 is called on <VAR>Goal</VAR> using rules from module
 <VAR>Module</VAR> followed by <CODE>user</CODE>.
 
 <P>Only goals appearing in the body of clauses when reading a 
 source-file are expanded using mechanism, and only if they appear 
-literally in the clause, or as an argument to the meta-predicates <A NAME="idx:not1:411"></A><A class="pred" href="metacall.html#not/1">not/1</A>, <A NAME="idx:call1:412"></A><A class="pred" href="metacall.html#call/1">call/1</A>, <A NAME="idx:once1:413"></A><A class="pred" href="metacall.html#once/1">once/1</A>,
-<A NAME="idx:ignore1:414"></A><A class="pred" href="metacall.html#ignore/1">ignore/1</A>, <A NAME="idx:findall3:415"></A><A class="pred" href="allsolutions.html#findall/3">findall/3</A>, <A NAME="idx:bagof3:416"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A>, <A NAME="idx:setof3:417"></A><A class="pred" href="allsolutions.html#setof/3">setof/3</A> 
-or <A NAME="idx:forall2:418"></A><A class="pred" href="forall2.html#forall/2">forall/2</A>. 
+literally in the clause, or as an argument to the meta-predicates <A NAME="idx:not1:425"></A><A class="pred" href="metacall.html#not/1">not/1</A>, <A NAME="idx:call1:426"></A><A class="pred" href="metacall.html#call/1">call/1</A>, <A NAME="idx:once1:427"></A><A class="pred" href="metacall.html#once/1">once/1</A>,
+<A NAME="idx:ignore1:428"></A><A class="pred" href="metacall.html#ignore/1">ignore/1</A>, <A NAME="idx:findall3:429"></A><A class="pred" href="allsolutions.html#findall/3">findall/3</A>, <A NAME="idx:bagof3:430"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A>, <A NAME="idx:setof3:431"></A><A class="pred" href="allsolutions.html#setof/3">setof/3</A> 
+or <A NAME="idx:forall2:432"></A><A class="pred" href="forall2.html#forall/2">forall/2</A>. 
 A real predicate definition is required to deal with dynamically 
 constructed calls.</DD>
 <DT class="pubdef"><A NAME="expand_goal/2"><STRONG>expand_goal</STRONG>(<VAR>+Goal1, 
 -Goal2</VAR>)</A></DT>
 <DD class="defbody">
 This predicate is normally called by the compiler to perform 
-preprocessing. First it calls <A NAME="idx:goalexpansion2:419"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>. 
+preprocessing. First it calls <A NAME="idx:goalexpansion2:433"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>. 
 If this fails it returns the first argument.</DD>
-<DT class="pubdef"><A NAME="at_initialization/1"><STRONG>at_initialization</STRONG>(<VAR>+Goal</VAR>)</A></DT>
-<DD class="defbody">
-Register <VAR>Goal</VAR> to be run when the system initialises. 
-Initialisation takes place after reloading a .qlf (formerly .wic) file 
-as well as after reloading a saved-state. The hooks are run in the order 
-they were registered. A warning message is issued if <VAR>Goal</VAR> 
-fails, but execution continues. See also <A NAME="idx:athalt1:420"></A><A class="pred" href="consulting.html#at_halt/1">at_halt/1</A></DD>
-<DT class="pubdef"><A NAME="at_halt/1"><STRONG>at_halt</STRONG>(<VAR>+Goal</VAR>)</A></DT>
-<DD class="defbody">
-Register <VAR>Goal</VAR> to be run from PL_cleanup(), which is called 
-when the system halts. The hooks are run in the reverse order they were 
-registered (FIFO). Success or failure executing a hook is ignored. If 
-the hook raises an exception this is printed using <A NAME="idx:printmessage2:421"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A>. 
-An attempt to call <A NAME="idx:halt01:422"></A><A class="pred" href="toplevel.html#halt/0">halt/[0,1]</A> 
-from a hook is ignored.</DD>
-<DT class="pubdef"><A NAME="initialization/1"><STRONG>initialization</STRONG>(<VAR>+Goal</VAR>)</A></DT>
-<DD class="defbody">
-Call <VAR>Goal</VAR> and register it using <A NAME="idx:atinitialization1:423"></A><A class="pred" href="consulting.html#at_initialization/1">at_initialization/1</A>. 
-Directives that do other things than creating clauses, records, flags or 
-setting predicate attributes should normally be written using this tag 
-to ensure the initialisation is executed when a saved system starts. See 
-also <A NAME="idx:qsaveprogram12:424"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.</DD>
-<DT class="pubdef"><A NAME="compiling/0"><STRONG>compiling</STRONG></A></DT>
-<DD class="defbody">
-True if the system is compiling source files with the <STRONG>-c</STRONG> 
-option or <A NAME="idx:qcompile1:425"></A><A class="pred" href="consulting.html#qcompile/1">qcompile/1</A> 
-into an intermediate code file. Can be used to perform conditional code 
-optimisations in <A NAME="idx:termexpansion2:426"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
-(see also the
-<STRONG>-O</STRONG> option) or to omit execution of directives during 
-compilation.</DD>
 <DT class="pubdef"><A NAME="preprocessor/2"><STRONG>preprocessor</STRONG>(<VAR>-Old, 
 +New</VAR>)</A></DT>
 <DD class="defbody">
-Read the input file via a Unix process that acts as preprocessor. A 
+Read the input file via an external process that acts as preprocessor. A 
 preprocessor is specified as an atom. The first occurrence of the string 
 `<CODE>%f</CODE>' is replaced by the name of the file to be loaded. The 
-resulting atom is called as a Unix command and the standard output of 
-this command is loaded. To use the Unix C preprocessor one should 
-define:
+standard output of resulting command is loaded. To use the Unix C 
+preprocessor one should define:
 
 <PRE class="code">
 ?- preprocessor(Old, '/lib/cpp -C -P %f'), consult(...).
@@ -616,10 +641,84 @@ define:
 Old = none
 </PRE>
 
-<P></DD>
+<P>Using <B>cpp</B> for Prolog preprocessing is not ideal as the 
+tokenization rules for comment and quoted strings differ between C and 
+Prolog. Another problem is availability and compatibility with regard to 
+option processing of <B>cpp</B>.
+</DD>
 </DL>
 
-<H3><A NAME="sec:4.3.1"><SPAN class="sec-nr">4.3.1</SPAN> <SPAN class="sec-title">Loading 
+<H4><A NAME="sec:4.3.1.1"><SPAN class="sec-nr">4.3.1.1</SPAN> <SPAN class="sec-title">Conditional 
+compilation</SPAN></A></H4>
+
+<A NAME="sec:conditionalcompilation"></A>
+
+<P><A NAME="idx:ifdirective:434"></A>Conditional compilation builds on 
+the same principle as
+<A NAME="idx:termexpansion2:435"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>, <A NAME="idx:goalexpansion2:436"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+and the expansion of grammar rules to compile sections of the 
+source-code conditionally. One of the reasons for introducing 
+conditional compilation is to simplify writing portable code. See <A class="sec" href="dialect.html">section 
+C</A> for more information. Here is a simple example:
+
+<PRE class="code">
+:- if(\+source_exports(library(lists), suffix/2)).
+
+suffix(Suffix, List) :-
+        append(_, Suffix, List).
+
+:- endif.
+</PRE>
+
+<P>Note that these directives can only be appear as separate terms in 
+the input. Typical usage scenarios include:
+
+<P>
+<UL>
+<LI>Load different libraries on different dialects
+<LI>Define a predicate if it is missing as a system predicate
+<LI>Realise totally different implementations for a particular part of 
+the code due to different capabilities.
+<LI>Realise different configuration options for your software.
+</UL>
+
+<DL>
+<DT class="pubdef"><A NAME="if/1">:- <STRONG>if</STRONG>(<VAR>:Goal</VAR>)</A></DT>
+<DD class="defbody">
+Compile subsequent code only if <VAR>Goal</VAR> succeeds. For enhanced 
+portability, <VAR>Goal</VAR> is processed by <A NAME="idx:expandgoal2:437"></A><A class="pred" href="consulting.html#expand_goal/2">expand_goal/2</A> 
+before execution. If an error occurs, the error is printed and 
+processing proceeds as if
+<VAR>Goal</VAR> has failed.</DD>
+<DT class="pubdef"><A NAME="elif/1">:- <STRONG>elif</STRONG>(<VAR>:Goal</VAR>)</A></DT>
+<DD class="defbody">
+Equivalent to :- else. :-if(Goal) ... :- endif. In a sequence as below, 
+the section below the first matching elif is processed, If no test 
+succeeds the else branch is processed.
+
+<PRE class="code">
+:- if(test1).
+section_1.
+:- elif(test2).
+section_2.
+:- elif(test3).
+section_3.
+:- else.
+section_else.
+:- endif.
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="else/0">:- <STRONG>else</STRONG></A></DT>
+<DD class="defbody">
+Start `else' branch.</DD>
+<DT class="pubdef"><A NAME="endif/0">:- <STRONG>endif</STRONG></A></DT>
+<DD class="defbody">
+End of conditional compilation.
+</DD>
+</DL>
+
+<H3><A NAME="sec:4.3.2"><SPAN class="sec-nr">4.3.2</SPAN> <SPAN class="sec-title">Loading 
 files, active code and threads</SPAN></A></H3>
 
 <P>Traditionally, Prolog environments allow for reloading files holding 
@@ -631,7 +730,7 @@ use of the development environment:
 <LI>Trace a goal
 <LI>Find unexpected behaviour of a predicate
 <LI>Enter a <EM>break</EM> using the <B>b</B> command
-<LI>Fix the sources and reload them using <A NAME="idx:make0:427"></A><A class="pred" href="consulting.html#make/0">make/0</A>
+<LI>Fix the sources and reload them using <A NAME="idx:make0:438"></A><A class="pred" href="consulting.html#make/0">make/0</A>
 <LI>Exit the break, <EM>retry</EM> using the <B>r</B> command
 </UL>
 
@@ -641,22 +740,22 @@ while new goals use the reloaded definition, which is why the
 clauses of predicates that are active during the reload cannot be 
 reclaimed. Normally a small amount of dead clauses should not be an 
 issue during development. Such clauses can be reclaimed with
-<A NAME="idx:garbagecollectclauses0:428"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A>.
+<A NAME="idx:garbagecollectclauses0:439"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="garbage_collect_clauses/0"><STRONG>garbage_collect_clauses</STRONG></A></DT>
 <DD class="defbody">
-leanup all <EM>dirty</EM> predicates, where dirty predicates are defined 
-to be predicates that have both old and new definitions due to reloading 
-a source file while the predicate was active. Of course, predicates that 
-are active using <A NAME="idx:garbagecollectclauses0:429"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A> 
+Cleanup all <EM>dirty</EM> predicates, where dirty predicates are 
+defined to be predicates that have both old and new definitions due to 
+reloading a source file while the predicate was active. Of course, 
+predicates that are active using <A NAME="idx:garbagecollectclauses0:440"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A> 
 cannot be reclaimed and remain <EM>dirty</EM>. Predicate are -like 
 atoms- shared resources and therefore all threads are suspended during 
 the execution of this predicate.
 </DD>
 </DL>
 
-<H4><A NAME="sec:4.3.1.1"><SPAN class="sec-nr">4.3.1.1</SPAN> <SPAN class="sec-title">Threads 
+<H4><A NAME="sec:4.3.2.1"><SPAN class="sec-nr">4.3.2.1</SPAN> <SPAN class="sec-title">Threads 
 and reloading running code</SPAN></A></H4>
 
 <P>As of version 5.5.30, there is basic thread-safety for reloading 
@@ -665,7 +764,7 @@ source files. Reloading a file freezes all threads after marking the
 active predicates originating from the file being reloaded. The threads 
 are resumed after the file has been loaded. In addition, after 
 completing loading the outermost file the system runs
-<A NAME="idx:garbagecollectclauses0:430"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A>.
+<A NAME="idx:garbagecollectclauses0:441"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A>.
 
 <P>What does that mean? Unfortunately it does <EM>not</EM> mean we can 
 `hot-swap' modules. Consider the case where thread <VAR>A</VAR> is 
@@ -684,7 +783,7 @@ can be implemented on top of the <EM>logical update view</EM>. It would
 allow threads to do a controlled update between processing independent 
 jobs.
 
-<H3><A NAME="sec:4.3.2"><SPAN class="sec-nr">4.3.2</SPAN> <SPAN class="sec-title">Quick 
+<H3><A NAME="sec:4.3.3"><SPAN class="sec-nr">4.3.3</SPAN> <SPAN class="sec-title">Quick 
 load files</SPAN></A></H3>
 
 <A NAME="sec:qlf"></A>
@@ -699,9 +798,9 @@ loaded on any implementation of SWI-Prolog. Note however that clauses
 are stored as virtual machine instructions. Changes to the compiler will 
 generally make old compiled files unusable.
 
-<P>Quick Load Files are created using <A NAME="idx:qcompile1:431"></A><A class="pred" href="consulting.html#qcompile/1">qcompile/1</A>. 
+<P>Quick Load Files are created using <A NAME="idx:qcompile1:442"></A><A class="pred" href="consulting.html#qcompile/1">qcompile/1</A>. 
 They are loaded using
-<A NAME="idx:consult1:432"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
+<A NAME="idx:consult1:443"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
 or one of the other file-loading predicates described in
 <A class="sec" href="consulting.html">section 4.3</A>. If consult is 
 given the explicit <CODE>.pl</CODE> file, it will load the Prolog 
@@ -713,7 +812,7 @@ otherwise.
 <DL>
 <DT class="pubdef"><A NAME="qcompile/1"><STRONG>qcompile</STRONG>(<VAR>+File</VAR>)</A></DT>
 <DD class="defbody">
-Takes a single file specification like <A NAME="idx:consult1:433"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
+Takes a single file specification like <A NAME="idx:consult1:444"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
 (i.e., accepts constructs like <CODE>library(LibFile)</CODE> and, in 
 addition to the normal compilation, creates a <EM>Quick Load File</EM> 
 from <VAR>File</VAR>. The file-extension of this file is <CODE>.qlf</CODE>. 
@@ -728,14 +827,14 @@ stored in the
 the
 <CODE>.pl</CODE> file.
 
-<P>For <A NAME="idx:termexpansion2:434"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>, 
+<P>For <A NAME="idx:termexpansion2:445"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>, 
 the same rules as described in
 <A class="sec" href="compilation.html">section 2.10</A> apply.
 
 <P>Conditional execution or optimisation may test the predicate
-<A NAME="idx:compiling0:435"></A><A class="pred" href="consulting.html#compiling/0">compiling/0</A>.
+<A NAME="idx:compiling0:446"></A><A class="pred" href="consulting.html#compiling/0">compiling/0</A>.
 
-<P>Source references (<A NAME="idx:sourcefile2:436"></A><A class="pred" href="consulting.html#source_file/2">source_file/2</A>) 
+<P>Source references (<A NAME="idx:sourcefile2:447"></A><A class="pred" href="consulting.html#source_file/2">source_file/2</A>) 
 in the Quick Load File refer to the Prolog source file from which the 
 compiled code originates.
 </DD>

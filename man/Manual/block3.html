@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.40 Reference Manual: Section 4.11</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section 4.11</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="signal.html">
@@ -125,13 +125,13 @@ font-size: smaller;
 
 <A NAME="sec:block3"></A>
 
-<P>The <A NAME="idx:block3:543"></A><A class="pred" href="block3.html#block/3">block/3</A> 
-predicate and friends have been introduced before ISO compatible <A NAME="idx:catch3:544"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
+<P>The <A NAME="idx:block3:554"></A><A class="pred" href="block3.html#block/3">block/3</A> 
+predicate and friends have been introduced before ISO compatible <A NAME="idx:catch3:555"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
 exception handling for compatibility with some Prolog implementation. 
-The only feature not covered by <A NAME="idx:catch3:545"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
-and <A NAME="idx:throw1:546"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
-is the possibility to execute global cuts. New code should use <A NAME="idx:catch3:547"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
-and <A NAME="idx:throw1:548"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
+The only feature not covered by <A NAME="idx:catch3:556"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
+and <A NAME="idx:throw1:557"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
+is the possibility to execute global cuts. New code should use <A NAME="idx:catch3:558"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
+and <A NAME="idx:throw1:559"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
 to deal with exceptions.
 
 <DL>
@@ -141,20 +141,20 @@ to deal with exceptions.
 Execute <VAR>Goal</VAR> in a <EM>block</EM>. <VAR>Label</VAR> is the 
 name of the block. <VAR>Label</VAR> is normally an atom, but the system 
 imposes no type constraints and may even be a variable. <VAR>ExitValue</VAR> 
-is normally unified to the second argument of an <A NAME="idx:exit2:549"></A><A class="pred" href="block3.html#exit/2">exit/2</A> 
+is normally unified to the second argument of an <A NAME="idx:exit2:560"></A><A class="pred" href="block3.html#exit/2">exit/2</A> 
 call invoked by <VAR>Goal</VAR>.
 </DD>
 <DT class="pubdef"><A NAME="exit/2"><STRONG>exit</STRONG>(<VAR>+Label, 
 +Value</VAR>)</A></DT>
 <DD class="defbody">
-Calling <A NAME="idx:exit2:550"></A><A class="pred" href="block3.html#exit/2">exit/2</A> 
+Calling <A NAME="idx:exit2:561"></A><A class="pred" href="block3.html#exit/2">exit/2</A> 
 makes the innermost <VAR>block</VAR> which <VAR>Label</VAR> unifies 
 exit. The block's <VAR>ExitValue</VAR> is unified with <VAR>Value</VAR>. 
 If this unification fails the block fails.
 </DD>
 <DT class="pubdef"><A NAME="fail/1"><STRONG>fail</STRONG>(<VAR>+Label</VAR>)</A></DT>
 <DD class="defbody">
-Calling <A NAME="idx:fail1:551"></A><A class="pred" href="block3.html#fail/1">fail/1</A> 
+Calling <A NAME="idx:fail1:562"></A><A class="pred" href="block3.html#fail/1">fail/1</A> 
 makes the innermost <VAR>block</VAR> which <VAR>Label</VAR> unifies fail 
 immediately. Implemented as
 

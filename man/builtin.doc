@@ -458,6 +458,7 @@ compilation.
 
 
 \subsection{Conditional compilation and program transformation}
+\label{sec:progtransform}
 
 \index{transformation,of program}%
 ISO Prolog defines no way for program transformation such as macro
@@ -552,15 +553,57 @@ Conditional compilation builds on the same principle as
 term_expansion/2, goal_expansion/2 and the expansion of grammar rules to
 compile sections of the source-code conditionally. One of the reasons
 for introducing conditional compilation is to simplify writing portable
-code.  See \secref{dialect} for details.
+code. See \secref{dialect} for more information. Here is a simple
+example:
+
+\begin{code}
+:- if(\+source_exports(library(lists), suffix/2)).
+
+suffix(Suffix, List) :-
+	append(_, Suffix, List).
+
+:- endif.
+\end{code}
+
+Note that these directives can only be appear as separate terms in the
+input.  Typical usage scenarios include:
+
+\begin{itemize}
+    \item Load different libraries on different dialects
+    \item Define a predicate if it is missing as a system predicate
+    \item Realise totally different implementations for a particular
+    part of the code due to different capabilities.
+    \item Realise different configuration options for your software.
+\end{itemize}
+
 
 \begin{description}
     \directive{if}{1}{:Goal}
-Compile subsequent code only if \arg{Goal} succeeds.
+Compile subsequent code only if \arg{Goal} succeeds.  For enhanced
+portability, \arg{Goal} is processed by expand_goal/2 before execution.
+If an error occurs, the error is printed and processing proceeds as if
+\arg{Goal} has failed.
+
     \directive{elif}{1}{:Goal}
-Equivalent to :- else. :-if(Goal) ... :- endif.
+Equivalent to :- else. :-if(Goal) ... :- endif.  In a sequence as below,
+the section below the first matching elif is processed, If no test
+succeeds the else branch is processed.
+
+\begin{code}
+:- if(test1).
+section_1.
+:- elif(test2).
+section_2.
+:- elif(test3).
+section_3.
+:- else.
+section_else.
+:- endif.
+\end{code}
+
     \directive{else}{0}{}
 Start `else' branch.
+
     \directive{endif}{0}{}
 End of conditional compilation.
 \end{description}

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.40 Reference Manual: Section 6.1</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section 6.1</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="extvar.html">
@@ -137,7 +137,7 @@ to the one realised by Bart Demoen for hProlog <CITE><A class="cite" href="Bibli
 first possible opportunity. In the current implementation the hooks are 
 executed immediately after a successful unification of the clause-head 
 or successful completion of a foreign language (built-in) predicate. 
-Each attribute is associated to a module and the hook (<A NAME="idx:attrunifyhook2:1152"></A><A class="pred" href="attvar.html#attr_unify_hook/2">attr_unify_hook/2</A>) 
+Each attribute is associated to a module and the hook (<A NAME="idx:attrunifyhook2:1163"></A><A class="pred" href="attvar.html#attr_unify_hook/2">attr_unify_hook/2</A>) 
 is executed in this module. The example below realises a very simple and 
 incomplete finite domain reasoner.
 
@@ -188,7 +188,7 @@ attr_unify_hook(Domain, Y) :-
 clause) the variable a <EM>domain</EM>, a set of values it can be 
 unified with. In the second clause first associates the domain with a 
 fresh variable and then unifies X to this variable to deal with the 
-possibility that X already has a domain. The predicate <A NAME="idx:attrunifyhook2:1153"></A><A class="pred" href="attvar.html#attr_unify_hook/2">attr_unify_hook/2</A> 
+possibility that X already has a domain. The predicate <A NAME="idx:attrunifyhook2:1164"></A><A class="pred" href="attvar.html#attr_unify_hook/2">attr_unify_hook/2</A> 
 is a hook called after a variable with a domain is assigned a value. In 
 the simple case where the variable is bound to a concrete value we 
 simply check whether this value is in the domain. Otherwise we take the 
@@ -200,10 +200,10 @@ domain of the variable (third example).
 <DL>
 <DT class="pubdef"><A NAME="attvar/1"><STRONG>attvar</STRONG>(<VAR>@Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> is an attributed variable. Note that <A NAME="idx:var1:1154"></A><A class="pred" href="typetest.html#var/1">var/1</A> 
+Succeeds if <VAR>Term</VAR> is an attributed variable. Note that <A NAME="idx:var1:1165"></A><A class="pred" href="typetest.html#var/1">var/1</A> 
 also succeeds on attributed variables. Attributed variables are created 
 with
-<A NAME="idx:putattr3:1155"></A><A class="pred" href="attvar.html#put_attr/3">put_attr/3</A>.</DD>
+<A NAME="idx:putattr3:1166"></A><A class="pred" href="attvar.html#put_attr/3">put_attr/3</A>.</DD>
 <DT class="pubdef"><A NAME="put_attr/3"><STRONG>put_attr</STRONG>(<VAR>+Var, 
 +Module, +Value</VAR>)</A></DT>
 <DD class="defbody">
@@ -211,7 +211,7 @@ If <VAR>Var</VAR> is a variable or attributed variable, set the value
 for the attribute named <VAR>Module</VAR> to <VAR>Value</VAR>. If an 
 attribute with this name is already associated with <VAR>Var</VAR>, the 
 old value is replaced. Backtracking will restore the old value (i.e. an 
-attribute is a mutable term. See also <A NAME="idx:setarg3:1156"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A>). 
+attribute is a mutable term. See also <A NAME="idx:setarg3:1167"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A>). 
 This predicate raises a type error if
 <VAR>Var</VAR> is not a variable or <VAR>Module</VAR> is not an atom.</DD>
 <DT class="pubdef"><A NAME="get_attr/3"><STRONG>get_attr</STRONG>(<VAR>+Var, 
@@ -242,11 +242,11 @@ Normally this predicate fails to veto binding the variable to
 <VAR>VarValue</VAR>, forcing backtracking to undo the binding. If
 <VAR>VarValue</VAR> is another attributed variable the hook often 
 combines the two attribute and associates the combined attribute with
-<VAR>VarValue</VAR> using <A NAME="idx:putattr3:1157"></A><A class="pred" href="attvar.html#put_attr/3">put_attr/3</A>.</DD>
+<VAR>VarValue</VAR> using <A NAME="idx:putattr3:1168"></A><A class="pred" href="attvar.html#put_attr/3">put_attr/3</A>.</DD>
 <DT class="pubdef"><A NAME="attr_portray_hook/2"><STRONG>attr_portray_hook</STRONG>(<VAR>+AttValue, 
 +Var</VAR>)</A></DT>
 <DD class="defbody">
-Called by <A NAME="idx:writeterm2:1158"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
+Called by <A NAME="idx:writeterm2:1169"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
 and friends for each attribute if the option
 <CODE>attributes(portray)</CODE> is in effect. If the hook succeeds the 
 attribute is considered printed. Otherwise <CODE>Module = ...</CODE> is 
@@ -257,8 +257,8 @@ printed to indicate the existence of a variable.
 <H3><A NAME="sec:6.1.1"><SPAN class="sec-nr">6.1.1</SPAN> <SPAN class="sec-title">Special 
 purpose predicates for attributes</SPAN></A></H3>
 
-<P>Normal user code should deal with <A NAME="idx:putattr3:1159"></A><A class="pred" href="attvar.html#put_attr/3">put_attr/3</A>, <A NAME="idx:getattr3:1160"></A><A class="pred" href="attvar.html#get_attr/3">get_attr/3</A> 
-and <A NAME="idx:delattr2:1161"></A><A class="pred" href="attvar.html#del_attr/2">del_attr/2</A>. 
+<P>Normal user code should deal with <A NAME="idx:putattr3:1170"></A><A class="pred" href="attvar.html#put_attr/3">put_attr/3</A>, <A NAME="idx:getattr3:1171"></A><A class="pred" href="attvar.html#get_attr/3">get_attr/3</A> 
+and <A NAME="idx:delattr2:1172"></A><A class="pred" href="attvar.html#del_attr/2">del_attr/2</A>. 
 The routines in this section fetch or set the entire attribute list of a 
 variables. Use of these predicates is anticipated to be restricted to 
 printing and other special purpose operations.
@@ -275,13 +275,13 @@ is
 <DT class="pubdef"><A NAME="put_attrs/2"><STRONG>put_attrs</STRONG>(<VAR>+Var, 
 -Attributes</VAR>)</A></DT>
 <DD class="defbody">
-Set all attributes of <VAR>Var</VAR>. See <A NAME="idx:getattrs2:1162"></A><A class="pred" href="attvar.html#get_attrs/2">get_attrs/2</A> 
+Set all attributes of <VAR>Var</VAR>. See <A NAME="idx:getattrs2:1173"></A><A class="pred" href="attvar.html#get_attrs/2">get_attrs/2</A> 
 for a description of
 <VAR>Attributes</VAR>.</DD>
 <DT class="pubdef"><A NAME="copy_term_nat/2"><STRONG>copy_term_nat</STRONG>(<VAR>+Term, 
 -Copy</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:copyterm2:1163"></A><A class="pred" href="manipterm.html#copy_term/2">copy_term/2</A>. 
+As <A NAME="idx:copyterm2:1174"></A><A class="pred" href="manipterm.html#copy_term/2">copy_term/2</A>. 
 Attributes however, are <EM>not</EM> copied but replaced by fresh 
 variables.
 </DD>

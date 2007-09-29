@@ -189,7 +189,7 @@ suggest predicates from a keyword.
 \oppredsummary{dynamic}{1}{fx}{1150}{Indicate predicate definition may change}
 \predicatesummary{edit}{0}{Edit current script- or associated file}
 \predicatesummary{edit}{1}{Edit a file, predicate, module (extensible)}
-\predicatesummary{elif}{0}{Part of conditional compilation (directive)}
+\predicatesummary{elif}{1}{Part of conditional compilation (directive)}
 \predicatesummary{else}{0}{Part of conditional compilation (directive)}
 \predicatesummary{empty_assoc}{1}{Create/test empty association tree}
 \predicatesummary{empty_nb_set}{1}{Test/create an empty non-backtrackable set}
