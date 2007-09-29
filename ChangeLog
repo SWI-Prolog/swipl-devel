@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+===================================
+VERSION 5.6.43 (September 29, 2007)
+===================================
+
   * ADDED: requests_dialect/1 and many more for adding Prolog portability.
     See manual.
 

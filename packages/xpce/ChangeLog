@@ -1,6 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.43, distributed with SWI-Prolog 5.6.43
+==================================================
+
+* MODIFIED: Use new portability flags.
+
+* UPDATED: About dialog.
+
 VERSION 6.6.40, distributed with SWI-Prolog 5.6.40
 ==================================================
 
