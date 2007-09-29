@@ -127,7 +127,9 @@
 	\item[\tt #1]%
 	\ignorespaces}
 \newcommand{\directive}[3]{%
-	\defentry{:- #1({\it #3})}%
+	\ifthenelse{\equal{#2}{0}}{%
+	    \defentry{:- #1}}{%
+	    \defentry{:- #1({\it #3})}}%
 	\index{#1/#2}\ignorespaces}
 \newcommand{\resitem}[1]{%
 	\defentry{#1}%
