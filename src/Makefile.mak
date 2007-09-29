@@ -84,12 +84,14 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	qpforeign.pl dif.pl when.pl prolog_stack.pl prolog_clause.pl \
 	prolog_xref.pl checklast.pl checkselect.pl operators.pl \
 	prolog_source.pl broadcast.pl pairs.pl base64.pl record.pl \
-	rbtrees.pl settings.pl \
+	rbtrees.pl settings.pl dialect.pl \
 	$(PLWINLIBS)
 !IF "$(MT)" == "true"
 PLLIBS=$(PLLIBS) threadutil.pl thread.pl
 !ENDIF
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
+DIALECT=yap.pl
+YAP=	README.TXT
 UNICODE=blocks.pl unicode_data.pl
 MANDIR= "$(PLBASE)\doc\Manual"
 
@@ -239,6 +241,7 @@ install-libs:	idirs iinclude iboot ilib
 IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
 		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
+		"$(PLBASE)\library\dialect" "$(PLBASE)\library\dialect\yap" \
 		"$(PLBASE)\library\unicode" $(MANDIR)
 
 $(IDIRS):
@@ -250,13 +253,21 @@ iboot:
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
-ilib:		iclp iunicode
+ilib:		iclp idialect iyap iunicode
 		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"
 
 iclp::
 		chdir $(PLHOME)\library\clp & \
 			for %f in ($(CLP)) do copy %f "$(PLBASE)\library\clp"
+
+idialect:	iyap
+		chdir $(PLHOME)\library\dialect & \
+			for %f in ($(DIALECT)) do copy %f "$(PLBASE)\library\dialect"
+
+iyap::
+		chdir $(PLHOME)\library\dialect\yap & \
+			for %f in ($(YAP)) do copy %f "$(PLBASE)\library\dialect\yap"
 
 iunicode::
 		chdir $(PLHOME)\library\unicode & \

@@ -46,7 +46,8 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
-		profile.tex attvar.tex chr.tex xref.tex bit64.tex
+		profile.tex attvar.tex chr.tex xref.tex bit64.tex \
+		dialect.tex
 STYFILES=	html.sty txt.sty
 
 .SUFFIXES:

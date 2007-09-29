@@ -412,6 +412,7 @@ Determine loading context.  The following keys are defined:
 			files being loaded using include/1. \\
 \const{stream}        & Stream identifier (see current_input/1) \\
 \const{directory}     & Directory in which \arg{File} lives. \\
+\const{dialect}	      & Compatibility mode.  See expects_dialect/1. \\
 \const{term_position} & Position of last term read.  Term of the form
 			\mbox{\tt '\$stream_position'(0,<Line>,0,0,0)}.
 			See also stream_position_data/3. \\
@@ -544,17 +545,20 @@ to option processing of \program{cpp}.
 \end{description}
 
 \subsubsection{Conditional compilation}
+\label{sec:conditionalcompilation}
 
 \index{if, directive}%
 Conditional compilation builds on the same principle as
 term_expansion/2, goal_expansion/2 and the expansion of grammar rules to
-compile sections of the source-code conditionally.
+compile sections of the source-code conditionally. One of the reasons
+for introducing conditional compilation is to simplify writing portable
+code.  See \secref{dialect} for details.
 
 \begin{description}
     \directive{if}{1}{:Goal}
 Compile subsequent code only if \arg{Goal} succeeds.
     \directive{elif}{1}{:Goal}
-Equivalent to :- else. :-if(Goal) :- endif.
+Equivalent to :- else. :-if(Goal) ... :- endif.
     \directive{else}{0}{}
 Start `else' branch.
     \directive{endif}{0}{}

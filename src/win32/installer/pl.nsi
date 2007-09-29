@@ -117,6 +117,7 @@ Section "Base system (required)"
   File pl\library\pairs.pl
   File pl\library\record.pl
   File pl\library\settings.pl
+  File pl\library\dialect.pl
 
 ; WINDOWS
   File pl\library\dde.pl
@@ -227,6 +228,13 @@ Section "CLP on real and rational numbers: CLP(Q,R)"
   File /r pl\library\clp\clpqr
   File pl\library\clp\clpr.pl
   File pl\library\clp\clpq.pl
+SectionEnd
+
+Section "YAP Portability support"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library\dialect
+  File pl\library\dialect\yap.pl
+  File /r pl\library\dialect\yap
 SectionEnd
 
 Section "Demo files"

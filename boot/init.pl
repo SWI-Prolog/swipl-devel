@@ -1111,16 +1111,45 @@ load_files(Files, Options) :-
 	'$start_consult'(Id),
 	'$compile_type'(What),
 	(   flag('$compiling', wic, wic)	% TBD
-	->  '$add_directive_wic'('$assert_load_context_module'(Id,OldModule))
+	->  '$add_directive_wic'('$assert_load_context_module'(Id, OldModule))
 	;   true
 	),
 	'$assert_load_context_module'(Id, OldModule),
 
-	'$style_check'(OldStyle, OldStyle),	% Save style parameters
+	
+	'$save_lex_state'(LexState),
 	'$open_source'(Absolute, Enc, In,
 		     '$load_file'(In, Id, Import, IsModule, LM)),
-	'$style_check'(_, OldStyle),		% Restore old style
+	'$restore_lex_state'(LexState),
 	'$set_source_module'(_, OldModule).	% Restore old module
+
+:- thread_local
+	'$current_load_dialect'/1.
+
+%%	'$set_dialect'(-Old, +New) is det.
+%
+%	Switch the currently expected dialect.
+
+'$set_dialect'(Old, New) :-
+	Old == New, !,
+	(   '$current_load_dialect'(Dialect)
+	->  true
+	;   Dialect = swi
+	).
+'$set_dialect'(Old, Dialect) :-
+	(   retract('$current_load_dialect'(Old))
+	->  true
+	;   Old = swi
+	),
+	assert('$current_load_dialect'(Dialect)).
+
+'$save_lex_state'(lexstate(Style, Dialect)) :-
+	'$style_check'(Style, Style),
+	'$set_dialect'(Dialect, Dialect).
+'$restore_lex_state'(lexstate(Style, Dialect)) :-
+	'$style_check'(_, Style),
+	'$set_dialect'(_, Dialect).
+
 
 '$load_id'(stream(Id, _), Id) :- !.
 '$load_id'(Id, Id).
@@ -1134,16 +1163,21 @@ load_files(Files, Options) :-
 	;   What = 'boot compiled'
 	).
 
-%	'$load_context_module'(+File, -Module)
+%%	'$load_context_module'(+File, -Module)
+%	
 %	Record the module a file was loaded from (see make/0)
+%	
+%	@tbd	Should also know which predicates are imported!
 
-'$load_context_module'(File, Module) :-
-	recorded('$load_context_module', File/Module, _).
+:- dynamic
+	'$load_context_module'/2.
 
 '$assert_load_context_module'(File, Module) :-
-	recorded('$load_context_module', File/Module, _), !.
-'$assert_load_context_module'(File, Module) :-
-	recordz('$load_context_module', File/Module, _).
+	(   '$load_context_module'(File, Module)
+	->  true
+	;   assert('$load_context_module'(File, Module))
+	).
+
 
 %   '$load_file'(+FirstTerm, +In, +Path, +Import, +IsModule, -Module)
 %
@@ -2002,11 +2036,12 @@ at_halt(Spec) :-
 
 '$load_wic_files'(Module, Files) :-
 	'$execute_directive'('$set_source_module'(OldM, Module), []),
-	'$style_check'(OldS, 2'1111),
+	'$save_lex_state'(LexState),
+	'$style_check'(_, 2'1111),
 	flag('$compiling', OldC, wic),
 	consult(Files),
 	'$execute_directive'('$set_source_module'(_, OldM), []),
-	'$execute_directive'('$style_check'(_, OldS), []),
+	'$execute_directive'('$restore_lex_state'(LexState), []),
 	flag('$compiling', _, OldC).
 
 

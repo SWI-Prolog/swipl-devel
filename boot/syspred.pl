@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module($syspreds,
+:- module('$syspreds',
 	[ leash/1
 	, visible/1
 	, style_check/1
@@ -47,9 +47,9 @@
 	, prolog_load_context/2
 	, stream_position_data/3
 	, current_predicate/2
-	, $defined_predicate/1
+	, '$defined_predicate'/1
 	, predicate_property/2
-	, $predicate_property/2
+	, '$predicate_property'/2
 	, clause_property/2
 	, recorda/2
 	, recordz/2
@@ -81,50 +81,50 @@
 		*           DEBUGGER            *
 		*********************************/
 
-$map_bits(_, [], Bits, Bits) :- !.
-$map_bits(Pred, [H|T], Old, New) :-
-	$map_bits(Pred, H, Old, New0),
-	$map_bits(Pred, T, New0, New).
-$map_bits(Pred, +Name, Old, New) :- !, 		% set a bit
+'$map_bits'(_, [], Bits, Bits) :- !.
+'$map_bits'(Pred, [H|T], Old, New) :-
+	'$map_bits'(Pred, H, Old, New0),
+	'$map_bits'(Pred, T, New0, New).
+'$map_bits'(Pred, +Name, Old, New) :- !, 		% set a bit
 	call(Pred, Name, Bits), !,
 	New is Old \/ Bits.
-$map_bits(Pred, -Name, Old, New) :- !, 		% clear a bit
+'$map_bits'(Pred, -Name, Old, New) :- !, 		% clear a bit
 	call(Pred, Name, Bits), !,
 	New is Old /\ (\Bits).
-$map_bits(Pred, ?(Name), Old, Old) :-		% ask a bit
+'$map_bits'(Pred, ?(Name), Old, Old) :-		% ask a bit
 	call(Pred, Name, Bits),
 	Old /\ Bits > 0.
 
-$port_bit(      call, 2'000000001).
-$port_bit(      exit, 2'000000010).
-$port_bit(      fail, 2'000000100).
-$port_bit(      redo, 2'000001000).
-$port_bit(     unify, 2'000010000).
-$port_bit(     break, 2'000100000).
-$port_bit(  cut_call, 2'001000000).
-$port_bit(  cut_exit, 2'010000000).
-$port_bit( exception, 2'100000000).
-$port_bit(       cut, 2'011000000).
-$port_bit(       all, 2'000111111).
-$port_bit(      full, 2'000101111).
-$port_bit(      half, 2'000101101).
+'$port_bit'(      call, 2'000000001).
+'$port_bit'(      exit, 2'000000010).
+'$port_bit'(      fail, 2'000000100).
+'$port_bit'(      redo, 2'000001000).
+'$port_bit'(     unify, 2'000010000).
+'$port_bit'(     break, 2'000100000).
+'$port_bit'(  cut_call, 2'001000000).
+'$port_bit'(  cut_exit, 2'010000000).
+'$port_bit'( exception, 2'100000000).
+'$port_bit'(       cut, 2'011000000).
+'$port_bit'(       all, 2'000111111).
+'$port_bit'(      full, 2'000101111).
+'$port_bit'(      half, 2'000101101).
 
 leash(Ports) :-
-	$leash(Old, Old),
-	$map_bits($port_bit, Ports, Old, New),
-	$leash(_, New).
+	'$leash'(Old, Old),
+	'$map_bits'('$port_bit', Ports, Old, New),
+	'$leash'(_, New).
 
 visible(Ports) :-
-	$visible(Old, Old),
-	$map_bits($port_bit, Ports, Old, New),
-	$visible(_, New).
+	'$visible'(Old, Old),
+	'$map_bits'('$port_bit', Ports, Old, New),
+	'$visible'(_, New).
 
-$map_style_check(atom,     	    2'0000001).
-$map_style_check(singleton, 	    2'0000010).
-$map_style_check(dollar,   	    2'0000100).
-$map_style_check((discontiguous),   2'0001000).
-$map_style_check(dynamic,	    2'0010000).
-$map_style_check(charset,	    2'0100000).
+'$map_style_check'(atom,     	    2'0000001).
+'$map_style_check'(singleton, 	    2'0000010).
+'$map_style_check'(dollar,   	    2'0000100).
+'$map_style_check'((discontiguous),   2'0001000).
+'$map_style_check'(dynamic,	    2'0010000).
+'$map_style_check'(charset,	    2'0100000).
 
 style_check(+string) :- !,
 	set_prolog_flag(double_quotes, string).
@@ -133,14 +133,14 @@ style_check(-string) :- !,
 style_check(?(string)) :- !,
 	current_prolog_flag(double_quotes, string).
 style_check(Spec) :-
-	$style_check(Old, Old),
-	$map_bits($map_style_check, Spec, Old, New),
-	$style_check(_, New).
+	'$style_check'(Old, Old),
+	'$map_bits'('$map_style_check', Spec, Old, New),
+	'$style_check'(_, New).
 
 :- module_transparent
 	trace/1,
 	trace/2,
-	$trace/2,
+	'$trace'/2,
 	spy/1,
 	nospy/1.
 
@@ -166,20 +166,20 @@ trace([H|T], Ps) :- !,
 	trace(T, Ps).
 trace(Pred, Ports) :-
 	set_prolog_flag(debug, true),
-	$find_predicate(Pred, Preds),
+	'$find_predicate'(Pred, Preds),
 	Preds \== [],
-	(   $member(Head, Preds),
+	(   '$member'(Head, Preds),
 	        (   Head = _:_
 		->  QHead0 = Head
 		;   QHead0 = user:Head
 		),
-		$define_predicate(QHead0),
+		'$define_predicate'(QHead0),
 	        (   predicate_property(QHead0, imported_from(M))
 		->  QHead0 = _:Plain,
 		    QHead = M:Plain
 		;   QHead = QHead0
 		),
-	        $trace(Ports, QHead),
+	        '$trace'(Ports, QHead),
 	        trace_ports(QHead, Tracing),
 	        print_message(informational, trace(QHead, Tracing)),
 	    fail
@@ -192,27 +192,27 @@ trace_alias(redo, [trace_redo]).
 trace_alias(exit, [trace_exit]).
 trace_alias(fail, [trace_fail]).
 
-$trace([], _) :- !.
-$trace([H|T], Head) :- !,
-	$trace(H, Head),
-	$trace(T, Head).
-$trace(+H, Head) :-
+'$trace'([], _) :- !.
+'$trace'([H|T], Head) :- !,
+	'$trace'(H, Head),
+	'$trace'(T, Head).
+'$trace'(+H, Head) :-
 	trace_alias(H, A0), !,
 	tag_list(A0, +, A1),
-	$trace(A1, Head).
-$trace(+H, Head) :- !,
+	'$trace'(A1, Head).
+'$trace'(+H, Head) :- !,
 	trace_alias(_, [H]),
-	$set_predicate_attribute(Head, H, 1).
-$trace(-H, Head) :-
+	'$set_predicate_attribute'(Head, H, 1).
+'$trace'(-H, Head) :-
 	trace_alias(H, A0), !,
 	tag_list(A0, -, A1),
-	$trace(A1, Head).
-$trace(-H, Head) :- !,
+	'$trace'(A1, Head).
+'$trace'(-H, Head) :- !,
 	trace_alias(_, [H]),
-	$set_predicate_attribute(Head, H, 0).
-$trace(H, Head) :-
+	'$set_predicate_attribute'(Head, H, 0).
+'$trace'(H, Head) :-
 	atom(H),
-	$trace(+H, Head).
+	'$trace'(+H, Head).
 
 tag_list([], _, []).
 tag_list([H0|T0], F, [H1|T1]) :-
@@ -226,10 +226,10 @@ spy([H|T]) :- !,
 spy(Spec) :-
 	prolog:debug_control_hook(spy(Spec)), !.
 spy(Spec) :-
-	$find_predicate(Spec, Preds),
-	$member(Head, Preds),
-	    $define_predicate(Head),
-	    $spy(Head),
+	'$find_predicate'(Spec, Preds),
+	'$member'(Head, Preds),
+	    '$define_predicate'(Head),
+	    '$spy'(Head),
 	fail.
 spy(_).
 
@@ -240,9 +240,9 @@ nospy([H|T]) :- !,
 nospy(Spec) :-
 	prolog:debug_control_hook(nospy(Spec)), !.
 nospy(Spec) :-
-	$find_predicate(Spec, Preds),
-	$member(Head, Preds),
-	    $nospy(Head),
+	'$find_predicate'(Spec, Preds),
+	'$member'(Head, Preds),
+	    '$nospy'(Head),
 	fail.
 nospy(_).
 
@@ -251,7 +251,7 @@ nospyall :-
 	fail.
 nospyall :-
 	spy_point(Head),
-	    $nospy(Head),
+	    '$nospy'(Head),
 	fail.
 nospyall.
 
@@ -269,19 +269,19 @@ debugging :-
 
 spy_point(Module:Head) :-
 	current_predicate(_, Module:Head),
-	$get_predicate_attribute(Module:Head, spy, 1),
+	'$get_predicate_attribute'(Module:Head, spy, 1),
 	\+ predicate_property(Module:Head, imported_from(_)).
 
 trace_point(Module:Head, Ports) :-
 	current_predicate(_, Module:Head),
-	    $get_predicate_attribute(Module:Head, trace_any, 1),
+	    '$get_predicate_attribute'(Module:Head, trace_any, 1),
 	    \+ predicate_property(Module:Head, imported_from(_)),
 	    trace_ports(Module:Head, Ports).
 
 trace_ports(Head, Ports) :-
 	findall(Port,
 		(trace_alias(Port, [AttName]),
-		 $get_predicate_attribute(Head, AttName, 1)),
+		 '$get_predicate_attribute'(Head, AttName, 1)),
 		Ports).
 
 
@@ -310,7 +310,7 @@ rational(Rat, M, N) :-
 concat_atom([A, B], C) :- !,
 	atom_concat(A, B, C).
 concat_atom(L, Atom) :-
-	$concat_atom(L, Atom).
+	'$concat_atom'(L, Atom).
 
 dwim_match(A1, A2) :-
 	dwim_match(A1, A2, _).
@@ -324,13 +324,13 @@ atom_prefix(Atom, Prefix) :-
 		*********************************/
 
 source_file(File) :-
-	$time_source_file(File, _).
+	'$time_source_file'(File, _).
 source_file(File) :-
 	atom(File),
 	absolute_file_name(File, Abs),	% canonise
-	$time_source_file(Abs, _).
+	'$time_source_file'(Abs, _).
 
-%	prolog_load_context(+Key, -Value)
+%%	prolog_load_context(+Key, -Value)
 %
 %	Provides context information for  term_expansion and directives.
 %	Note  that  only  the  line-number  info    is   valid  for  the
@@ -340,19 +340,21 @@ source_file(File) :-
 	prolog_load_context/2.
 
 prolog_load_context(module, Module) :-
-	$set_source_module(Module, Module).
+	'$set_source_module'(Module, Module).
 prolog_load_context(file, F) :-
 	source_location(F, _).
 prolog_load_context(source, F) :-	% SICStus compatibility
 	source_location(F, _).
 prolog_load_context(stream, S) :-
 	source_location(F, _),
-	(   system:$load_input(F, S0)
+	(   system:'$load_input'(F, S0)
 	->  S = S0
 	).
 prolog_load_context(directory, D) :-
 	source_location(F, _),
 	file_directory_name(F, D).
+prolog_load_context(dialect, D) :-
+	'$set_dialect'(D, D).
 prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
 	source_location(_, L).
 
@@ -362,7 +364,7 @@ prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
 
 %	stream_position_data(?Field, +Pos, ?Date)
 %	
-%	Extract values from stream position objects. $stream_position is
+%	Extract values from stream position objects. '$stream_position' is
 %	of the format '$stream_position'(Byte, Char, Line, LinePos)
 
 stream_position_data(char_count,    '$stream_position'(Char,_,_,_), Char).
@@ -384,11 +386,11 @@ stream_position_data(byte_count,    '$stream_position'(_,_,_,Byte), Byte).
 :- module_transparent call_with_depth_limit/3.
 
 call_with_depth_limit(G, Limit, Result) :-
-	$depth_limit(Limit, OLimit, OReached),
-	(   catch(G, E, $depth_limit_except(OLimit, OReached, E)),
-	    $depth_limit_true(Limit, OLimit, OReached, Result, Det),
+	'$depth_limit'(Limit, OLimit, OReached),
+	(   catch(G, E, '$depth_limit_except'(OLimit, OReached, E)),
+	    '$depth_limit_true'(Limit, OLimit, OReached, Result, Det),
 	    ( Det == ! -> ! ; true )
-	;   $depth_limit_false(OLimit, OReached, Result)
+	;   '$depth_limit_false'(OLimit, OReached, Result)
 	).
 
 
@@ -412,7 +414,7 @@ etc.
 
 :- module_transparent
 	current_predicate/2,
-	$defined_predicate/1.
+	'$defined_predicate'/1.
 
 current_predicate(Name, Head) :-
 	var(Head), !,
@@ -422,30 +424,30 @@ current_predicate(Name, Module:Head) :-
 	(var(Module) ; var(Head)), !,
 	generate_current_predicate(Name, Module, Head).
 current_predicate(Name, Term) :-
-	$c_current_predicate(Name, Term),
-	$defined_predicate(Term), !.
+	'$c_current_predicate'(Name, Term),
+	'$defined_predicate'(Term), !.
 current_predicate(Name, Term) :-
 	strip_module(Term, Module, Head),
 	default_module(Module, DefModule),
-	$c_current_predicate(Name, DefModule:Head),
-	$defined_predicate(DefModule:Head), !.
+	'$c_current_predicate'(Name, DefModule:Head),
+	'$defined_predicate'(DefModule:Head), !.
 current_predicate(Name, Term) :-
 	current_prolog_flag(autoload, true),
 	strip_module(Term, Module, Head),
 	functor(Head, Name, Arity),
-	$find_library(Module, Name, Arity, _LoadModule, _Library), !.
+	'$find_library'(Module, Name, Arity, _LoadModule, _Library), !.
 
 generate_current_predicate(Name, Module, Head) :-
 	current_module(Module),
-	$c_current_predicate(Name, Module:Head),
-	$defined_predicate(Module:Head).
+	'$c_current_predicate'(Name, Module:Head),
+	'$defined_predicate'(Module:Head).
 
-$defined_predicate(Head) :-
-	$get_predicate_attribute(Head, defined, 1), !.
+'$defined_predicate'(Head) :-
+	'$get_predicate_attribute'(Head, defined, 1), !.
 
 :- module_transparent
 	predicate_property/2,
-	$predicate_property/2.
+	'$predicate_property'/2.
 
 predicate_property(Pred, Property) :-
 	Property == undefined, !,
@@ -455,66 +457,66 @@ predicate_property(Pred, Property) :-
 	), !,
 	current_module(Module),
 	Term = Module:Head,
-	$c_current_predicate(_, Term),
-	\+ $defined_predicate(Term),		% Speed up a bit
+	'$c_current_predicate'(_, Term),
+	\+ '$defined_predicate'(Term),		% Speed up a bit
 	\+ current_predicate(_, Term).
 predicate_property(Pred, Property) :-
 	current_predicate(_, Pred),
-	$predicate_property(Property, Pred).
+	'$predicate_property'(Property, Pred).
 
-$predicate_property(interpreted, Pred) :-
-	$get_predicate_attribute(Pred, foreign, 0).
-$predicate_property(built_in, Pred) :-
-	$get_predicate_attribute(Pred, system, 1).
-$predicate_property(exported, Pred) :-
-	$get_predicate_attribute(Pred, exported, 1).
-$predicate_property(foreign, Pred) :-
-	$get_predicate_attribute(Pred, foreign, 1).
-$predicate_property((dynamic), Pred) :-
-	$get_predicate_attribute(Pred, (dynamic), 1).
-$predicate_property((volatile), Pred) :-
-	$get_predicate_attribute(Pred, (volatile), 1).
-$predicate_property((thread_local), Pred) :-
-	$get_predicate_attribute(Pred, (thread_local), 1).
-$predicate_property((multifile), Pred) :-
-	$get_predicate_attribute(Pred, (multifile), 1).
-$predicate_property(imported_from(Module), Pred) :-
-	$get_predicate_attribute(Pred, imported, Module).
-$predicate_property(transparent, Pred) :-
-	$get_predicate_attribute(Pred, transparent, 1).
-$predicate_property(indexed(Pattern), Pred) :-
-	$get_predicate_attribute(Pred, indexed, Pattern).
-$predicate_property(file(File), Pred) :-
+'$predicate_property'(interpreted, Pred) :-
+	'$get_predicate_attribute'(Pred, foreign, 0).
+'$predicate_property'(built_in, Pred) :-
+	'$get_predicate_attribute'(Pred, system, 1).
+'$predicate_property'(exported, Pred) :-
+	'$get_predicate_attribute'(Pred, exported, 1).
+'$predicate_property'(foreign, Pred) :-
+	'$get_predicate_attribute'(Pred, foreign, 1).
+'$predicate_property'((dynamic), Pred) :-
+	'$get_predicate_attribute'(Pred, (dynamic), 1).
+'$predicate_property'((volatile), Pred) :-
+	'$get_predicate_attribute'(Pred, (volatile), 1).
+'$predicate_property'((thread_local), Pred) :-
+	'$get_predicate_attribute'(Pred, (thread_local), 1).
+'$predicate_property'((multifile), Pred) :-
+	'$get_predicate_attribute'(Pred, (multifile), 1).
+'$predicate_property'(imported_from(Module), Pred) :-
+	'$get_predicate_attribute'(Pred, imported, Module).
+'$predicate_property'(transparent, Pred) :-
+	'$get_predicate_attribute'(Pred, transparent, 1).
+'$predicate_property'(indexed(Pattern), Pred) :-
+	'$get_predicate_attribute'(Pred, indexed, Pattern).
+'$predicate_property'(file(File), Pred) :-
 	source_file(Pred, File).
-$predicate_property(line_count(LineNumber), Pred) :-
-	$get_predicate_attribute(Pred, line_count, LineNumber).
-$predicate_property(notrace, Pred) :-
-	$get_predicate_attribute(Pred, trace, 0).
-$predicate_property(nodebug, Pred) :-
-	$get_predicate_attribute(Pred, hide_childs, 1).
-$predicate_property(spying, Pred) :-
-	$get_predicate_attribute(Pred, spy, 1).
-$predicate_property(hashed(N), Pred) :-
-	$get_predicate_attribute(Pred, hashed, N),
+'$predicate_property'(line_count(LineNumber), Pred) :-
+	'$get_predicate_attribute'(Pred, line_count, LineNumber).
+'$predicate_property'(notrace, Pred) :-
+	'$get_predicate_attribute'(Pred, trace, 0).
+'$predicate_property'(nodebug, Pred) :-
+	'$get_predicate_attribute'(Pred, hide_childs, 1).
+'$predicate_property'(spying, Pred) :-
+	'$get_predicate_attribute'(Pred, spy, 1).
+'$predicate_property'(hashed(N), Pred) :-
+	'$get_predicate_attribute'(Pred, hashed, N),
 	N > 0.
-$predicate_property(references(N), Pred) :-
-	$get_predicate_attribute(Pred, references, N),
+'$predicate_property'(references(N), Pred) :-
+	'$get_predicate_attribute'(Pred, references, N),
 	N \== 0.			% show negative for debugging!
-$predicate_property(number_of_clauses(N), Pred) :-
-	$get_predicate_attribute(Pred, number_of_clauses, N).
-$predicate_property(noprofile, Pred) :-
-	$get_predicate_attribute(Pred, noprofile, 1).
+'$predicate_property'(number_of_clauses(N), Pred) :-
+	'$get_predicate_attribute'(Pred, number_of_clauses, N).
+'$predicate_property'(noprofile, Pred) :-
+	'$get_predicate_attribute'(Pred, noprofile, 1).
 
 :- index(clause_property(0, 1)).
 
 clause_property(Clause, line_count(LineNumber)) :-
-	$get_clause_attribute(Clause, line_count, LineNumber).
+	'$get_clause_attribute'(Clause, line_count, LineNumber).
 clause_property(Clause, file(File)) :-
-	$get_clause_attribute(Clause, file, File).
+	'$get_clause_attribute'(Clause, file, File).
 clause_property(Clause, fact) :-
-	$get_clause_attribute(Clause, fact, true).
+	'$get_clause_attribute'(Clause, fact, true).
 clause_property(Clause, erased) :-
-	$get_clause_attribute(Clause, erased, true).
+	'$get_clause_attribute'(Clause, erased, true).
 
 
 recorda(Key, Value) :-
@@ -534,7 +536,7 @@ recorded(Key, Value) :-
 require([]).
 require([N/A|T]) :- !,
 	functor(Head, N, A),
-	$require(Head),
+	'$require'(Head),
 	require(T).
 require([H|_T]) :-
 	throw(error(type_error(predicate_indicator, H), _)).
@@ -545,18 +547,18 @@ require([H|_T]) :-
 		*********************************/
 
 current_module(Module) :-
-	$current_module(Module, _).
+	'$current_module'(Module, _).
 
 current_module(Module, File) :-
-	$current_module(Module, File),
+	'$current_module'(Module, File),
 	File \== [].
 
 module(Module) :-
 	atom(Module),
 	current_module(Module), !,
-	$module(_, Module).
+	'$module'(_, Module).
 module(Module) :-
-	$module(_, Module),
+	'$module'(_, Module),
 	print_message(warning, no_current_module(Module)).
 
 		/********************************
@@ -653,7 +655,7 @@ thread_statistics.
 		*********************************/
 
 shell(Command, Status) :-
-	$shell(Command, Status).
+	'$shell'(Command, Status).
 
 shell(Command) :-
 	shell(Command, 0).
@@ -676,16 +678,16 @@ shell :-
 
 on_signal(Signal, Old, New) :-
 	atom(Signal), !,
-	$on_signal(_Num, Signal, Old, New).
+	'$on_signal'(_Num, Signal, Old, New).
 on_signal(Signal, Old, New) :-
 	integer(Signal), !,
-	$on_signal(Signal, _Name, Old, New).
+	'$on_signal'(Signal, _Name, Old, New).
 on_signal(Signal, _Old, _New) :-
 	throw(error(type_error(signal, Signal), on_signal/3)).
 
 current_signal(Name, Id, Handler) :-
 	between(1, 32, Id),
-	$on_signal(Id, Name, Handler, Handler).
+	'$on_signal'(Id, Name, Handler, Handler).
 
 
 		 /*******************************
@@ -710,7 +712,7 @@ open_shared_object(File, Flags, Handle) :- % compatibility
 	open_shared_object(File, Handle, Flags).
 open_shared_object(File, Handle, Flags) :-
 	map_dlflags(Flags, Mask),
-	$open_shared_object(File, Handle, Mask).
+	'$open_shared_object'(File, Handle, Mask).
 
 open_shared_object(File, Handle) :-
 	open_shared_object(File, [], Handle). % use pl-load.c defaults
@@ -731,13 +733,13 @@ format(Fmt) :-
 
 absolute_file_name(Name, Abs) :-
 	atomic(Name), !,
-	$absolute_file_name(Name, Abs).
+	'$absolute_file_name'(Name, Abs).
 absolute_file_name(Term, Abs) :-
-	$chk_file(Term, [''], [access(read)], File), !,
-	$absolute_file_name(File, Abs).
+	'$chk_file'(Term, [''], [access(read)], File), !,
+	'$absolute_file_name'(File, Abs).
 absolute_file_name(Term, Abs) :-
-	$chk_file(Term, [''], [], File), !,
-	$absolute_file_name(File, Abs).
+	'$chk_file'(Term, [''], [], File), !,
+	'$absolute_file_name'(File, Abs).
 
 
 		/********************************
@@ -749,7 +751,7 @@ absolute_file_name(Term, Abs) :-
 %	is compiled with the -DODEBUG cpp flag.  Only to simplify maintenance.
 
 garbage_collect :-
-	$garbage_collect(0).
+	'$garbage_collect'(0).
 
 %	arithmetic_function(Spec)
 %	Register a predicate as an arithmetic function.  Takes Name/Arity
@@ -765,7 +767,7 @@ arithmetic_function(Spec) :-
 	), !,
 	PredArity is Arity + 1,
 	functor(Head, Name, PredArity),
-	$arithmetic_function(Module:Head, 0).
+	'$arithmetic_function'(Module:Head, 0).
 
 %	default_module(+Me, -Super)
 %	Is true if `Super' is `Me' or a super (auto import) module of `Me'.
@@ -809,7 +811,7 @@ length3([_|List], N, N0) :-
 
 %	numbervars(+Term, +StartIndex, -EndIndex)
 %	
-%	Number all unbound variables in Term   using  $VAR(N), where the
+%	Number all unbound variables in Term   using  '$VAR'(N), where the
 %	first N is StartIndex and EndIndex is  unified to the index that
 %	will be given to the next variable.
 

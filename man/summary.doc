@@ -201,6 +201,7 @@ suggest predicates from a keyword.
 \predicatesummary{exception}{3}{\hook{user} Handle runtime exceptions}
 \predicatesummary{exists_directory}{1}{Check existence of directory}
 \predicatesummary{exists_file}{1}{Check existence of file}
+\predicatesummary{exists_source}{1}{Check existence of a Prolog source}
 \predicatesummary{exit}{2}{Exit from named block. See block/3}
 \predicatesummary{expand_answer}{2}{Expand answer of query}
 \predicatesummary{expand_file_name}{2}{Wildcard expansion of file names}
@@ -208,6 +209,7 @@ suggest predicates from a keyword.
 \predicatesummary{expand_goal}{2}{Compiler: expand goal in clause-body}
 \predicatesummary{expand_query}{4}{Expanded entered query}
 \predicatesummary{expand_term}{2}{Compiler: expand read term into clause(s)}
+\predicatesummary{expects_dialect}{1}{For which Prolog dialect is this code written?}
 \predicatesummary{explain}{1}{\pllib{explain} Explain argument}
 \predicatesummary{explain}{2}{\pllib{explain} 2nd argument is explanation of first}
 \predicatesummary{export}{1}{Export a predicate from a module}
@@ -504,6 +506,7 @@ suggest predicates from a keyword.
 \predicatesummary{rl_write_history}{1}{Write readline(3) history}
 \predicatesummary{sleep}{1}{Suspend execution for specified time}
 \predicatesummary{sort}{2}{Sort elements in a list}
+\predicatesummary{source_exports}{2}{Check whether source exports a predicate}
 \predicatesummary{source_file}{1}{Examine currently loaded source files}
 \predicatesummary{source_file}{2}{Obtain source file of predicate}
 \predicatesummary{source_location}{2}{Location of last read term}

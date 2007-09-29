@@ -38,7 +38,7 @@
 
 \newcommand{\vmajor}{5}
 \newcommand{\vminor}{6}
-\newcommand{\vpatch}{42}
+\newcommand{\vpatch}{43}
 \newcommand{\vmonth}{October}
 \newcommand{\vyear}{2007}
 
@@ -171,6 +171,7 @@ Copyright \copyright\ 1990--\vyear, University of Amsterdam
 \appendix
 \include{lib/library}
 \include{hack}
+\include{dialect}
 \include{glossary}
 \include{license}
 \include{summary}

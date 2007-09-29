@@ -145,8 +145,10 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	checklast.pl checkselect.pl operators.pl date.pl \
 	prolog_stack.pl prolog_clause.pl prolog_xref.pl prolog_source.pl \
 	broadcast.pl pairs.pl base64.pl record.pl rbtrees.pl settings.pl \
-	thread.pl
+	thread.pl dialect.pl
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
+DIALECT=yap.pl
+YAP=	README.TXT
 UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
 builddirs = ../lib ../lib/$(ARCH)
@@ -335,7 +337,8 @@ install-libs:	idirs iboot ilib iruntime iinclude iman idot
 			-t halt
 
 installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
-		library/clp library/unicode include dotfiles
+		library/clp library/unicode include dotfiles \
+		library/dialect library/dialect/yap
 
 iruntime::
 		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(ARCH)
@@ -374,7 +377,7 @@ idirs::
 iboot::		
 		for f in $(PLINIT) $(PLSRC); do $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/boot; done
 
-ilib:		iclp iunicode
+ilib:		iclp idialect iunicode
 		for f in $(PLLIBS); do \
 			$(INSTALL_DATA) ../library/$$f $(DESTDIR)$(PLBASE)/library; \
 		done
@@ -384,6 +387,15 @@ iclp::
 			$(INSTALL_DATA) ../library/clp/$$f $(DESTDIR)$(PLBASE)/library/clp; \
 		done
 
+idialect:	iyap
+		for f in $(DIALECT); do \
+			$(INSTALL_DATA) ../library/dialect/$$f $(DESTDIR)$(PLBASE)/library/dialect; \
+		done
+
+iyap::
+		for f in $(YAP); do \
+			$(INSTALL_DATA) ../library/dialect/yap/$$f $(DESTDIR)$(PLBASE)/library/dialect/yap; \
+		done
 
 iunicode::
 		for f in $(UNICODE); do \

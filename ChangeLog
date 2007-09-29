@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: requests_dialect/1 and many more for adding Prolog portability.
+    See manual.
+
   * ADDING: :-if, :- else, :- endif for conditional compilation.  Intended
     to simplify exchanging code	with YAP.
 
