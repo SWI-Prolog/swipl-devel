@@ -2378,7 +2378,7 @@ openStream(term_t file, term_t mode, term_t options)
 
 					/* FILE */
   if ( PL_get_chars(file, &path,
-		    CVT_ATOM|CVT_STRING|CVT_INTEGER|CVT_EXCEPTION|REP_FN) )
+		    CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_FN) )
   { if ( !(s = Sopen_file(path, how)) )
     { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
 	       ATOM_open, ATOM_source_sink, file);

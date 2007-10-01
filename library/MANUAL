@@ -19157,7 +19157,7 @@ ssoouurrccee__eexxppoorrttss((_+_S_p_e_c_, _+_E_x_p_o_
     Fails without error otherwise.
 
 
-1133..11 SSttrraatteeggiieess ffoorr wwrriittiinngg ppoorrttaabbllee ccooddee
+1133..11 SSoommee ccoonnssiiddeerraattiioonnss ffoorr wwrriittiinngg ppoorrttaabbllee ccooddee
 
 The  traditional  way  to  write  portable  code  is  to  define  custom
 predicates  for  all  potentially non-portable  code  and  define  these

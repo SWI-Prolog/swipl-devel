@@ -794,9 +794,9 @@ predicate(rl_read_history, 1, 'Read readline(3) history', 886280, 886441).
 predicate(expects_dialect, 1, 'For which Prolog dialect is this code written?', 888411, 889816).
 predicate(exists_source, 1, 'Check existence of a Prolog source', 889819, 890062).
 predicate(source_exports, 2, 'Check whether source exports a predicate', 890065, 890282).
-predicate(eval_license, 0, 'Evaluate licenses of loaded modules', 914514, 914893).
-predicate(license, 2, 'Define license for named module', 914896, 918096).
-predicate(license, 1, 'Define license for current file', 918099, 918272).
+predicate(eval_license, 0, 'Evaluate licenses of loaded modules', 914539, 914918).
+predicate(license, 2, 'Define license for named module', 914921, 918121).
+predicate(license, 1, 'Define license for current file', 918124, 918297).
 
 
 %   Predicate section/4
@@ -1156,31 +1156,31 @@ section([12, 4], 'Hooks using the exception predicate', 878820, 881046).
 section([12, 5], 'Hooks for integrating libraries', 881048, 883859).
 section([12, 6], 'Hooks for loading files', 883861, 885356).
 section([12, 7], 'Readline Interaction', 885358, 886442).
-section([13], 'COMPATIBILITY WITH OTHER PROLOG DIALECTS', 886444, 896315).
-section([13, 1], 'Strategies for writing portable code', 890285, 896315).
-section([14], 'GLOSSARY OF TERMS', 896317, 909288).
-section([15], 'SWI-PROLOG LICENSE CONDITIONS AND TOOLS', 909290, 925570).
-section([15, 1], 'The SWI-Prolog kernel and foreign libraries', 910778, 913278).
-section([15, 1, 1], 'The SWI-Prolog Prolog libraries', 911597, 913278).
-section([15, 2], 'Contributing to the SWI-Prolog project', 913280, 913846).
-section([15, 3], 'Software support to keep track of license conditions', 913848, 918566).
-section([15, 4], 'Library predicates', 918568, 925570).
-section([15, 4, 1], check, 918637, 918872).
-section([15, 4, 2], lists, 918874, 919748).
-section([15, 4, 3], ordsets, 919750, 920328).
-section([15, 4, 4], ugraphs, 920330, 921208).
-section([15, 4, 5], www_browser, 921210, 921288).
-section([15, 4, 6], readutil, 921290, 921615).
-section([15, 4, 7], registry, 921617, 922095).
-section([15, 4, 8], url, 922097, 922363).
-section([15, 4, 9], 'clp/bounds', 922365, 923229).
-section([15, 4, 10], 'clp/clp_distinct', 923231, 923416).
-section([15, 4, 11], 'clp/simplex', 923418, 924055).
-section([15, 4, 12], clpqr, 924057, 924531).
-section([15, 4, 13], prologxref, 924533, 925033).
-section([15, 4, 14], broadcast, 925035, 925496).
-section([15, 4, 15], record, 925498, 925570).
-section([16], 'Bibliography', 925572, 968119).
+section([13], 'COMPATIBILITY WITH OTHER PROLOG DIALECTS', 886444, 896340).
+section([13, 1], 'Some considerations for writing portable code', 890285, 896340).
+section([14], 'GLOSSARY OF TERMS', 896342, 909313).
+section([15], 'SWI-PROLOG LICENSE CONDITIONS AND TOOLS', 909315, 925595).
+section([15, 1], 'The SWI-Prolog kernel and foreign libraries', 910803, 913303).
+section([15, 1, 1], 'The SWI-Prolog Prolog libraries', 911622, 913303).
+section([15, 2], 'Contributing to the SWI-Prolog project', 913305, 913871).
+section([15, 3], 'Software support to keep track of license conditions', 913873, 918591).
+section([15, 4], 'Library predicates', 918593, 925595).
+section([15, 4, 1], check, 918662, 918897).
+section([15, 4, 2], lists, 918899, 919773).
+section([15, 4, 3], ordsets, 919775, 920353).
+section([15, 4, 4], ugraphs, 920355, 921233).
+section([15, 4, 5], www_browser, 921235, 921313).
+section([15, 4, 6], readutil, 921315, 921640).
+section([15, 4, 7], registry, 921642, 922120).
+section([15, 4, 8], url, 922122, 922388).
+section([15, 4, 9], 'clp/bounds', 922390, 923254).
+section([15, 4, 10], 'clp/clp_distinct', 923256, 923441).
+section([15, 4, 11], 'clp/simplex', 923443, 924080).
+section([15, 4, 12], clpqr, 924082, 924556).
+section([15, 4, 13], prologxref, 924558, 925058).
+section([15, 4, 14], broadcast, 925060, 925521).
+section([15, 4, 15], record, 925523, 925595).
+section([16], 'Bibliography', 925597, 968144).
 
 
 %   Predicate function/3
@@ -1358,6 +1358,6 @@ function('PL_halt', 734457, 734770).
 function('PL_malloc', 748050, 748389).
 function('PL_realloc', 748392, 748667).
 function('PL_free', 748670, 748841).
-function('PL_license', 918275, 918565).
+function('PL_license', 918300, 918590).
 
 
