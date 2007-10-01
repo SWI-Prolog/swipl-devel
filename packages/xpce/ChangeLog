@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Pass Prolog exceptions on send(@prolog, ...).  Alexandre Vautier.
+
 VERSION 6.6.43, distributed with SWI-Prolog 5.6.43
 ==================================================
 

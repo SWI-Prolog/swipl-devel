@@ -2227,7 +2227,7 @@ PrologSend(PceObject prolog, PceObject sel, int argc, PceObject *argv)
     for(i=0; i<argc; i++)
       put_object(terms+i, argv[i]);
 
-    qid  = PL_open_query(m, DebugMode, pred, terms);
+    qid  = PL_open_query(m, DebugMode|PL_Q_PASS_EXCEPTION, pred, terms);
     rval = PL_next_solution(qid);
     PL_cut_query(qid);
   } else
