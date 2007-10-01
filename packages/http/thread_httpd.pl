@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -33,9 +33,11 @@
 	  [ http_current_server/2,	% ?:Goal, ?Port
 	    http_server/2,		% :Goal, +Options
 	    http_workers/2,		% +Port, ?WorkerCount
-	    http_current_worker/2	% ?Port, ?ThreadID
+	    http_current_worker/2,	% ?Port, ?ThreadID
+	    http_stop_server/2		% +Port, +Options
 	  ]).
 :- use_module(library(debug)).
+:- use_module(library(error)).
 :- use_module(library(option)).
 :- use_module(library(lists)).
 :- use_module(library(socket)).
@@ -59,7 +61,7 @@ for details.
 	http_current_server(:, ?).
 
 :- dynamic
-	current_server/3,		% Port, Goal, Queue
+	current_server/4,		% Port, Goal, Thread, Queue
 	queue_worker/2,			% Queue, ThreadID
 	queue_options/2.		% Queue, Options
 
@@ -132,7 +134,7 @@ create_server(Goal, Port, Options) :-
 			trail(128),
 			alias(Alias)
 		      ]),
-	assert(current_server(Port, Goal, Queue)).
+	assert(current_server(Port, Goal, Alias, Queue)).
 
 
 %%	http_current_server(:Goal, ?Port) is nondet.
@@ -141,7 +143,7 @@ create_server(Goal, Port, Options) :-
 
 http_current_server(Goal, Port) :-
 	strip_module(Goal, Module, G),
-	current_server(Port, Module:G, _).
+	current_server(Port, Module:G, _, _).
 
 
 %%	http_workers(+Port, -Workers) is det.
@@ -152,7 +154,7 @@ http_current_server(Goal, Port) :-
 %	(one) can be used to profile the worker using tprofile/1.
 
 http_workers(Port, Workers) :-
-	current_server(Port, _, Queue),
+	current_server(Port, _, _, Queue),
 	(   integer(Workers)
 	->  resize_pool(Queue, Workers)
 	;   findall(W, queue_worker(Queue, W), WorkerIDs),
@@ -168,7 +170,7 @@ http_workers(Port, Workers) :-
 %	statistics.
 
 http_current_worker(Port, ThreadID) :-
-	current_server(Port, _, Queue),
+	current_server(Port, _, _, Queue),
 	queue_worker(Queue, ThreadID).
 
 
@@ -178,8 +180,13 @@ http_current_worker(Port, ThreadID) :-
 %	posting them to the queue of workers.
 
 accept_server(Goal, Options) :-
+	catch(accept_server2(Goal, Options), http_stop, true),
+	thread_self(Thread),
+	retract(current_server(_Port, _, Thread, _Queue)).
+
+accept_server2(Goal, Options) :-
 	accept_hook(Goal, Options), !.
-accept_server(Goal, Options) :-
+accept_server2(Goal, Options) :-
 	memberchk(tcp_socket(Socket), Options), !,
 	memberchk(queue(Queue), Options),
 	repeat,
@@ -190,6 +197,28 @@ accept_server(Goal, Options) :-
 	  debug(http(connection), 'New HTTP connection from ~p', [Peer]),
 	  thread_send_message(Queue, tcp_client(Client, Goal, Peer)),
 	fail.
+
+
+%%	http_stop_server(+Port, +Options)
+%
+%	Stop the indicated  HTTP  server   gracefully.  First  stops all
+%	workers, then stops the server.
+%	
+%	@tbd	Realise non-graceful stop
+
+http_stop_server(Port, _Options) :-
+	must_be(integer, Port),
+	http_workers(Port, 0),
+	current_server(Port, _, Thread, Queue),
+	message_queue_destroy(Queue),
+	retractall(queue_options(Queue, _)),
+	thread_signal(Thread, throw(http_stop)),
+	catch(connect(localhost:Port), _, true).
+
+connect(Address) :-
+        tcp_socket(Socket),
+        tcp_connect(Socket, Address),
+	tcp_close_socket(Socket).
 
 
 		 /*******************************
@@ -222,6 +251,11 @@ create_workers(I, N, Queue, AliasBase, Options) :-
 	create_workers(I2, N, Queue, AliasBase, Options).
 
 
+%%	resize_pool(+Queue, +Workers) is det.
+%
+%	Create or destroy workers. If workers   are  destroyed, the call
+%	waits until the desired number of waiters is reached.
+
 resize_pool(Queue, Size) :-
 	findall(W, queue_worker(Queue, W), Workers),
 	length(Workers, Now),
@@ -234,7 +268,9 @@ resize_pool(Queue, Size) :-
 	->  true
 	;   Now > Size
 	->  Excess is Now - Size,
-	    forall(between(1, Excess, _), thread_send_message(Queue, quit))
+	    thread_self(Me),
+	    forall(between(1, Excess, _), thread_send_message(Queue, quit(Me))),
+	    forall(between(1, Excess, _), thread_get_message(quitted(_)))
 	).
 
 
@@ -249,9 +285,10 @@ http_worker(Options) :-
 	thread_at_exit(done_worker),
 	repeat,
 	  thread_get_message(Queue, Message),
-	  (   Message == quit
+	  (   Message = quit(Sender)
 	  ->  thread_self(Self),
-	      thread_detach(Self)
+	      thread_detach(Self),
+	      thread_send_message(Sender, quitted(Self))
 	  ;   open_client(Message, Goal, In, Out, ClientOptions),
 	      set_stream(In, timeout(Timeout)),
 	      debug(http(server), 'Running server goal ~p on ~p -> ~p',
