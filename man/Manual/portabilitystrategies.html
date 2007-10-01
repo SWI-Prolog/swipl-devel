@@ -1,0 +1,253 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section C.1</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="dialect.html">
+<LINK REL=next HREF="glossary.html">
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
+}
+
+dt.pubdef
+{ background-color: #c5e1ff;
+}
+
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
+}
+
+div.navigate
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+}
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ 
+}
+
+span.pred-ext
+{ font-weight: bold;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 80%;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="dialect.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="glossary.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:C.1"><SPAN class="sec-nr">C.1</SPAN> <SPAN class="sec-title">Some 
+considerations for writing portable code</SPAN></A></H2>
+
+<A NAME="sec:portabilitystrategies"></A>
+
+<P>The traditional way to write portable code is to define custom 
+predicates for all potentially non-portable code and define these 
+separately for all Prolog dialects one wishes to support. Here are some 
+considerations.
+
+<P>
+<UL>
+<LI>Probably the best reason for this is that it allows to define 
+minimal semantics required by the application for the portability 
+predicates. Such functionality can often be mapped efficiently to the 
+target dialect. Contrary, if code was written for dialect <VAR>X</VAR>, 
+the defined semantics are those of dialect <VAR>X</VAR>. Emulating all 
+extreme cases and full error handling compatibility may be tedious and 
+result in a much slower implementation that needed. Take for example
+<A NAME="idx:callcleanup2:1550"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/2</A>. 
+The SICStus definition is fundamentally different from the SWI 
+definition, but 99% of the applications just want to make calls like 
+below to guarantee <VAR>StreamIn</VAR> is closed, even if <SPAN class="pred-ext">process/1</SPAN> 
+misbehaves.
+
+<PRE class="code">
+        call_cleanup(process(StreamIn), close(In))
+</PRE>
+
+<P>
+<LI>As a drawback, the code becomes full of <I>my_call_cleanup</I>, etc. and 
+every potential portability conflict needs to be abstracted. It is hard 
+for people who have to maintain such code later to grasp the exact 
+semantics of the <I>my_*</I> predicates and applications that combine 
+multiple libraries using this compatibility approach are likely to 
+encounter conflicts between the portability layers. A good start is not 
+to use <I>my_*</I>, but a prefix derived from the library or application 
+name or names that explain the intended semantics more precisely.
+
+<P>
+<LI>Another problem is that most code is initially not written with 
+portability in mind. Instead, ports are requested by users or arise from 
+the desire to switch Prolog dialect. Typically, we want to achieve 
+compatibility with the new Prolog dialect with minimal changes, often 
+keeping compatibility with the original dialect(s). This problem is well 
+known from the C/Unix world and we advice anyone to study the philosophy 
+of
+<A class="url" href="http://www.gnu.org/software/autoconf/">GNU autoconf</A>, 
+from which we will illustrate some highlights below.
+</UL>
+
+<P>The GNU autoconf suite, known to most people as <B>configure</B>, was 
+an answer to the frustrating life of Unix/C programmers when Unix 
+dialects were about as abundant and poorly standardised as Prolog 
+dialects today. Writing a portable C program can only be achieved using 
+cpp, the C preprocessor. The C preprocessor performs two tasks: macro 
+expansion and conditional compilation. Prolog realises macro expansion 
+through <A NAME="idx:termexpanstion2:1551"></A><SPAN class="pred-ext">term_expanstion/2</SPAN> 
+and <A NAME="idx:goalexpansion2:1552"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>. 
+Conditional compilation is achieved using <CODE>:- if(Condition)</CODE> 
+as explained in
+<A class="sec" href="consulting.html">section 4.3.1.1</A>. The situation 
+appears similar.
+
+<P>The important lesson learned from GNU autoconf is that the <EM>last</EM> 
+resort for conditional compilation to achieve portability is to switch 
+on the platform or dialect. Instead, GNU autoconf allows you to write 
+tests for specific properties of the platform. Most of these are whether 
+or not some function or file is available. Then there are some standard 
+tests for difficult-to-write-portable situations and finally there is a 
+framework that allows you to write arbitrary C programs and check 
+whether they can be compiled and/or whether they show the intended 
+behaviour. Using a separate <B>configure</B> program is needed in C, as 
+you cannot perform C compilation step or run C programs from the C 
+preprocessor. In most Prolog environments we do not need this 
+distinction as the compiler is integrated into the runtime environment 
+and Prolog has excelent reflexion capabilities.
+
+<P>We must learn from the distinction to test for features instead of 
+platform (dialect), as this makes the platform specific code robust for 
+future changes of the dialect. Suppose we need <A NAME="idx:compare3:1553"></A><A class="pred" href="compare.html#compare/3">compare/3</A> 
+as defined in this manual. The <A NAME="idx:compare3:1554"></A><A class="pred" href="compare.html#compare/3">compare/3</A> 
+predicate is not part of the ISO standard, but many systems support it 
+and it is not unlikely it will become ISO standard or the intended 
+dialect will start supporting it. GNU autoconf strongly advises to test 
+for the availability:
+
+<PRE class="code">
+:- if(\+current_predicate(_, compare(_,_,_))).
+compare(&lt;, Term1, Term2) :-
+        Term1 @&lt; Term2, !.
+compare(&gt;, Term1, Term2) :-
+        Term1 @&gt; Term2, !.
+compare(=, Term1, Term2) :-
+        Term1 == Term2.
+:- endif.
+</PRE>
+
+<P>This code is <B>much</B> more robust against changes to the intended 
+dialect and, possible at least as important, will provide compatibility 
+to dialects you didn't even consider porting to right now.
+
+<P>In a more challenging case, the target Prolog has <A NAME="idx:compare3:1555"></A><A class="pred" href="compare.html#compare/3">compare/3</A>, 
+but the semantics are different. What to do? One option is to write a
+<A NAME="idx:mycompare3:1556"></A><SPAN class="pred-ext">my_compare/3</SPAN> 
+and change all occurrences in the code. Alternatively you can rename 
+calls using <A NAME="idx:goalexpansion2:1557"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+like below. This construct will not only deal with Prolog dialects 
+lacking compare as well as those that only implement it for numeric 
+comparison or have changed the argument order. Of course, writing 
+rock-solid code would require a complete test-suite, but this example 
+will probably cover all Prolog dialects that allow for conditional 
+compilation, have core ISO facilities and provide <A NAME="idx:goalexpansion2:1558"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>, 
+the things we claim a Prolog dialect should have to start writing 
+portable code for it.
+
+<PRE class="code">
+:- if(\+catch(compare(&lt;,a,b), _, fail)).
+compare_standard_order(&lt;, Term1, Term2) :-
+        Term1 @&lt; Term2, !.
+compare_standard_order(&gt;, Term1, Term2) :-
+        Term1 @&gt; Term2, !.
+compare_standard_order(=, Term1, Term2) :-
+        Term1 == Term2.
+
+goal_expansion(compare(Order, Term1, Term2),
+               compare_standard_order(Order, Term1, Term2)).
+:- endif.
+</PRE>
+
+<P></BODY></HTML>

@@ -1,0 +1,255 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section A.19</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="broadcast.html">
+<LINK REL=next HREF="hack.html">
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
+}
+
+dt.pubdef
+{ background-color: #c5e1ff;
+}
+
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
+}
+
+div.navigate
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+}
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ 
+}
+
+span.pred-ext
+{ font-weight: bold;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 80%;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="broadcast.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="hack.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:A.19"><SPAN class="sec-nr">A.19</SPAN> <SPAN class="sec-title">library( 
+record ): Access named fields in a term</SPAN></A></H2>
+
+<A NAME="record"></A>
+<A NAME="sec:lib:record"></A>
+
+<P>The library <CODE>library(record)</CODE> provides named access to 
+fields in a record represented as a compound term such as <CODE>point(X, 
+Y)</CODE>. The Prolog world knows various approaches to solve this 
+problem, unfortunately with no consensus. The approach taken by this 
+library is proposed by Richard O'Keefe on the SWI-Prolog mailinglist.
+
+<P>The approach automates a technique commonly described in Prolog 
+text-books, where access- and modification predicates are defined for 
+the record type. Such predicates are subject to normal import/export as 
+well as analysis by cross-referencers. Given the simple nature of the 
+access predicates, an optimizing compiler can easily inline them for 
+optimal preformance.
+
+<P>A record is defined using the directive <A NAME="idx:record1:1485"></A><A class="pred" href="record.html#record/1">record/1</A>. 
+We introduce the library with a short example:
+
+<PRE class="code">
+:- record point(x:integer=0, y:integer=0).
+
+        ...,
+        default_point(Point),
+        point_x(Point, X),
+        set_x_of_point(10, Point, Point1),
+
+        make_point([y(20)], YPoint),
+</PRE>
+
+<P>The principal functor and arity of the term used defines the name and 
+arity of the compound used as records. Each argument is described using 
+a term of the format below.
+<BLOCKQUOTE>
+&lt;<VAR>name</VAR>&gt;[:&lt;<VAR>type</VAR>&gt;][=&lt;<VAR>default</VAR>&gt;]
+</BLOCKQUOTE>
+
+<P>In this definition, &lt;<VAR>name</VAR>&gt; is an atom defining the 
+name of the argument.
+&lt;<VAR>type</VAR>&gt; is an optional type specification as defined by <A NAME="idx:mustbe2:1486"></A><SPAN class="pred-ext">must_be/2</SPAN> 
+from library <CODE>library(error)</CODE> and &lt;<VAR>default</VAR>&gt; 
+is the default initial value. The
+&lt;<VAR>type</VAR>&gt; defaults to <CODE>any</CODE>. If no default 
+value is specified the default is an unbound variable.
+
+<P>A record declaration creates a set of predicates through
+<EM>term-expansion</EM>. We describe these predicates below. In this 
+description, &lt;<VAR>constructor</VAR>&gt; refers to the name of the 
+record (`point' in the example above) and &lt;<VAR>name</VAR>&gt; to the 
+name of an argument (field).
+
+<P>
+<UL>
+<LI><I>default_&lt;<VAR>constructor</VAR>&gt;(-Record)</I><BR>
+Create a new record where all fields have their default values. This is 
+the same as make_&lt;<VAR>constructor</VAR>&gt;([], Record) .
+
+<P>
+<LI><I>make_&lt;<VAR>constructor</VAR>&gt;(+Fields, -Record)</I><BR>
+Create a new record where specified fields have the specified values and 
+remaining fields have their default value. Each field is specified as a 
+term &lt;<VAR>name</VAR>&gt;(&lt;<VAR>value</VAR>&gt;). See example in 
+the introduction.
+
+<P>
+<LI><I>make_&lt;<VAR>constructor</VAR>&gt;(+Fields, -Record, 
+-RestFields)</I><BR>
+Same as make_&lt;<VAR>constructor</VAR>&gt;/2, but named fields that do 
+not appear in
+<VAR>Record</VAR> are returned in <VAR>RestFields</VAR>. This predicate 
+is motivated by option-list processing. See library <CODE>library(option)</CODE>.
+
+<P>
+<LI><I>&lt;<VAR>constructor</VAR>&gt;_&lt;<VAR>name</VAR>&gt;(Record, 
+Value)</I><BR>
+Unify <VAR>Value</VAR> with argument in <VAR>Record</VAR> named &lt;<VAR>name</VAR>&gt;.<SUP class="fn">82<SPAN class="fn-text">Note 
+this is not called `get_' as it performs unification and can perfectly 
+well instantiate the argument.</SPAN></SUP>
+
+<P>
+<LI><I>set_&lt;<VAR>name</VAR>&gt;_of_&lt;<VAR>constructor</VAR>&gt;(+Value, 
++OldRecord, -NewRecord)</I><BR>
+Replace the value for &lt;<VAR>name</VAR>&gt; in <VAR>OldRecord</VAR> by <VAR>Value</VAR> 
+and unify the result with <VAR>NewRecord</VAR>.
+
+<P>
+<LI><I>set_&lt;<VAR>name</VAR>&gt;_of_&lt;<VAR>constructor</VAR>&gt;(+Value, 
+!Record)</I><BR>
+Destructively replace the argument &lt;<VAR>name</VAR>&gt; in <VAR>Record</VAR> 
+by
+<VAR>Value</VAR> based on <A NAME="idx:setarg3:1487"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A>. 
+Use with care.
+
+<P>
+<LI><I>nb_set_&lt;<VAR>name</VAR>&gt;_of_&lt;<VAR>constructor</VAR>&gt;(+Value, 
+!Record)</I><BR>
+As above, but using non-backtrackable assignment based on <A NAME="idx:nbsetarg3:1488"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>. 
+Use with <EM>extreme</EM> care.
+
+<P>
+<LI><I>set_&lt;<VAR>constructor</VAR>&gt;_fields(+Fields, +Record0, 
+-Record)</I><BR>
+Set multiple fields using the same syntax as make_&lt;<VAR>constructor</VAR>&gt;/2, 
+but starting with <VAR>Record0</VAR> rather than the default record.
+
+<P>
+<LI><I>set_&lt;<VAR>constructor</VAR>&gt;_fields(+Fields, +Record0, 
+-Record, -RestFields)</I><BR>
+Similar to set_&lt;<VAR>constructor</VAR>&gt;_fields/4, but fields not 
+defined by
+&lt;<VAR>constructor</VAR>&gt; are returned in <VAR>RestFields</VAR>.
+
+<P>
+<LI><I>set_&lt;<VAR>constructor</VAR>&gt;_field(+Field, +Record0, 
+-Record)</I><BR>
+Set a single field specified as a term &lt;<VAR>name</VAR>&gt;(&lt;<VAR>value</VAR>&gt;).
+</UL>
+
+<DL>
+<DT class="pubdef"><A NAME="record/1"><STRONG>record</STRONG>(<VAR>+Spec</VAR>)</A></DT>
+<DD class="defbody">
+The construct <CODE>:- record Spec, ...</CODE> is used to define access 
+to named fields in a compound. It is subject to term-expansion (see
+<A NAME="idx:expandterm2:1489"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A>) 
+and cannot be called as a predicate. See
+<A class="sec" href="record.html">section A.19</A> for details.
+</DD>
+</DL>
+
+</BODY></HTML>
