@@ -101,7 +101,7 @@ set_paths :-
 
 
 set_version :-
-	prolog_flag(version_number, PlId),
+	prolog_flag(version, PlId),
 	atom_chars(PlId, Chars),
 	append(" (", _, Rest),
 	append(V0, Rest, Chars), !,

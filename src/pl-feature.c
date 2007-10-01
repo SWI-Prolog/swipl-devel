@@ -66,8 +66,9 @@ option, but 90% of the features are   read-only  or never changed and we
 want to be able to have a lot and don't harm thread_create/3 too much.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void	setArgvFeature();
-static void	setTZFeature();
+static void setArgvFeature();
+static void setTZFeature();
+static void setVersionFeature(void);
 
 typedef struct _feature
 { short		flags;			/* Type | Flags */
@@ -774,7 +775,6 @@ initFeatures()
   defFeature("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
   defFeature("version",	FT_INTEGER|FF_READONLY, PLVERSION);
-  defFeature("version_number", FT_INTEGER|FF_READONLY, PLVERSION);
   defFeature("dialect", FT_ATOM|FF_READONLY, "swi");
   if ( systemDefaults.home )
     defFeature("home", FT_ATOM|FF_READONLY, systemDefaults.home);
@@ -907,12 +907,14 @@ initFeatures()
   setArgvFeature();
   setTZFeature();
   setOSFeatures();
+  setVersionFeature();
 }
 
 
 static void
 setArgvFeature()
-{ term_t e = PL_new_term_ref();
+{ fid_t fid = PL_open_foreign_frame();
+  term_t e = PL_new_term_ref();
   term_t l = PL_new_term_ref();
   int argc    = GD->cmdline.argc;
   char **argv = GD->cmdline.argv;
@@ -926,6 +928,7 @@ setArgvFeature()
   }
 
   defFeature("argv", FT_TERM, l);
+  PL_discard_foreign_frame(fid);
 }
 
 
@@ -934,4 +937,23 @@ setTZFeature()
 { tzset();
 
   defFeature("timezone", FT_INTEGER|FF_READONLY, timezone);
+}
+
+
+static void
+setVersionFeature(void)
+{ fid_t fid = PL_open_foreign_frame();
+  term_t t = PL_new_term_ref();
+  int major = PLVERSION/10000;
+  int minor = (PLVERSION/100)%100;
+  int patch = (PLVERSION%100);
+
+  PL_unify_term(t, PL_FUNCTOR_CHARS, "swi", 4,
+		PL_INT, major,
+		PL_INT, minor,
+		PL_INT, patch,
+		PL_ATOM, ATOM_nil);
+
+  defFeature("version_data", FF_READONLY|FT_TERM, t);
+  PL_discard_foreign_frame(fid);
 }

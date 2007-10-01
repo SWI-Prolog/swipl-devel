@@ -1391,16 +1391,17 @@ progress of absolute_file_name/[2,3] in locating files.  Intended for
 debugging complicated file-search paths.  See also file_search_path/2.
 
     \prologflagitem{version}{integer}{r}
-Deprecated.  New code must use \prologflag{version_number}.  In future
-versions this flag is likely to change to a descriptive atom for
-compatibilty with other Prolog dialects.
-
-    \prologflagitem{version_number}{integer}{r}
 The version identifier is an integer with value: $$10000 \times
 \arg{Major} + 100 \times \arg{Minor} + \arg{Patch}$$
 Note that in releases up to 2.7.10 this Prolog flag yielded an atom holding
 the three numbers separated by dots. The current representation is much
 easier for implementing version-conditional statements.
+
+    \prologflagitem{version_data}{swi(Major, Minor, Patch, Extra)}
+Part of the dialect compatibility layer, See also the Prolog flag
+\prologflag{dialect} and \secref{dialect}. \arg{Extra} provides
+platform specific version information.  Currently it is simply unified
+to \const{[]}.
 
     \prologflagitem{windows}{bool}{r}
 \index{windows}%

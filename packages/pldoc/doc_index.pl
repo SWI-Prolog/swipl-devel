@@ -324,10 +324,7 @@ doc_links(Directory, Options) -->
 %	Prolog version
 
 version -->
-	{ current_prolog_flag(version_number, Version),
-	  Major is Version // 10000,
-	  Minor is (Version // 100) mod 100,
-	  Patch is Version mod 100
+	{ current_prolog_flag(version_data, swi(Major, Minor, Patch, _))
 	},
 	html(a([ class(prolog_version),
 		 href('http://www.swi-prolog.org')
