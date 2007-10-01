@@ -19104,7 +19104,7 @@ the library dialect.pl.
   o The   version_number   is   bound   to   an   integer   with   value
     10; 000m* ajor+100m *inor +patch.  I.e. 50642 is version 5.6.42.
 
-  o Condional   compilation   using  :- if(Condition)   ...:- endif   is
+  o Conditional   compilation  using  :- if(Condition)  ...:- endif   is
     supported.  See section 4.3.1.1.
 
   o The  predicate  expects_dialect/1 allows  for specifying  for  which
@@ -19157,7 +19157,7 @@ ssoouurrccee__eexxppoorrttss((_+_S_p_e_c_, _+_E_x_p_o_
     Fails without error otherwise.
 
 
-1133..11 SSttrraatteeggiieess ffoorr wwrriittiinngg ccoommppaattiibbllee ccooddee
+1133..11 SSttrraatteeggiieess ffoorr wwrriittiinngg ppoorrttaabbllee ccooddee
 
 The  traditional  way  to  write  portable  code  is  to  define  custom
 predicates  for  all  potentially non-portable  code  and  define  these
@@ -19165,18 +19165,17 @@ separately for  all Prolog  dialects one wishes  to support.   Here  are
 some considerations.
 
   o Probably  the  best reason  for this  is that  it  allows to  define
-    minimal   semantics  required  by   the  application  for  for   the
-    portability  predicates.   Such  functionality can  often be  mapped
-    efficiently  to the target dialect.   Contrary, if code was  written
-    for  dialect  X, the  defined  semantics are  those of  dialect X.
-    Emulating  all extreme cases  and full error handling  compatibility
-    may  be tedious  and  result in  a much  slower implementation  that
-    needed.   Take for  example call_cleanup/2.  The SICStus  definition
-    is  fundamentally  different from  the SWI  definition,  but 99%  of
-    the  applications just  want to  make calls like  this to  guarantee
-    _S_t_r_e_a_m_I_n is closed, even if process/1 misbehaves.
+    minimal  semantics required by  the application for the  portability
+    predicates.   Such functionality can often be mapped  efficiently to
+    the  target dialect.    Contrary, if  code was  written for  dialect
+    X,  the defined semantics are  those of dialect X.   Emulating all
+    extreme  cases and full error handling compatibility may  be tedious
+    and  result in a much slower  implementation that needed.  Take  for
+    example  call_cleanup/2.   The SICStus  definition is  fundamentally
+    different from the  SWI definition, but 99% of the applications just
+    want to make  calls like below to guarantee _S_t_r_e_a_m_I_n is closed, even
+    if process/1 misbehaves.
 
-            ...
             call_cleanup(process(StreamIn), close(In))
 
   o As  a drawback,  the code becomes  full of _m_y___c_a_l_l___c_l_e_a_n_u_p, etc.  and
@@ -19186,9 +19185,10 @@ some considerations.
     combine  multiple libraries  using this  compatibility approach  are
     likely  to encounter conflicts  between the portability  layers.   A
     good  start  is not  to  use _m_y___*, but  a  prefix derived  from  the
-    library or application name.
+    library  or  application name  or names  that  explain the  intended
+    semantics more precisely.
 
-  o Another  problem is  that most  code is not  initially written  with
+  o Another  problem is  that most  code is initially  not written  with
     portability  in mind.    Instead, ports  are requested  by users  or
     arise from the desire  to switch Prolog dialect.  Typically, we want
     to  achieve compatibility with the  new Prolog dialect with  minimal
@@ -19207,18 +19207,19 @@ through term_expanstion/2 and goal_expansion/2.  Conditional compilation
 is  achieved using  :- if(Condition) as  explained  in section  4.3.1.1.
 The situation appears similar.
 
-The important lesson learned  from GNU autoconf is that the  last resort
+The important lesson learned  from GNU autoconf is that the  _l_a_s_t resort
 for conditional compilation  to achieve portability is to switch  on the
 platform or dialect.   Instead, GNU  autoconf allows you to write  tests
 for specific  properties of  the platform.   Most  of these are  whether
 or  not some  function  or file  is  available.    Then there  are  some
 standard tests  for difficult-to-write-portable  situations and  finally
 there  is a  framework that  allows you  to write  arbitrary C  programs
-and  check wether  they can  be compiled  and/or whether  they show  the
-intended behaviour.   Using  a seperate configure  program is needed  in
+and check  whether they  can be  compiled and/or whether  they show  the
+intended behaviour.   Using  a separate configure  program is needed  in
 C, as  you cannot  perform C  compilation step  or run  C programs  from
 the C  preprocessor.  In  most Prolog environments  we do not need  this
-distinction as the compiler is integrated into the runtime environment.
+distinction as the  compiler is integrated into the runtime  environment
+and Prolog has excelent reflexion capabilities.
 
 We  must learn  from the  distinction to  test for  features instead  of
 platform (dialect), as this makes the platform specific  code robust for
@@ -19226,7 +19227,7 @@ future changes of the dialect.  Suppose we need  compare/3 as defined in
 this manual.   The compare/3 predicate is not part of the  ISO standard,
 but  many systems  support it  and it  is not  unlikely  it will  become
 ISO standard  or the  intended dialect will  start supporting  it.   GNU
-autoconf strongly advices to test for the availability:
+autoconf strongly advises to test for the availability:
 
 :- if(\+current_predicate(_, compare(_,_,_))).
 compare(<, Term1, Term2) :-
@@ -19243,7 +19244,7 @@ dialects you didn't even consider porting to right now.
 
 In a  more challenging case,  the target Prolog  has compare/3, but  the
 semantics  are different.    What to  do?    One option  is  to write  a
-my_compare/3 and change all occurences  in the code.   Alternatively you
+my_compare/3 and change all occurrences in the code.   Alternatively you
 can rename  calls using  goal_expansion/2 like  below.   This  construct
 will  not only  deal with  Prolog dialects  lacking compare  as well  as
 those that  only implement  it for  numeric comparison  or have  changed
