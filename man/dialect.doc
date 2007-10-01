@@ -30,7 +30,7 @@ library \pllib{dialect.pl}.
     value $10,000 \times major + 100 \times minor + patch$.  I.e.\
     50642 is version 5.6.42.
 
-    \item Condional compilation using \exam{:- if(Condition)} \ldots
+    \item Conditional compilation using \exam{:- if(Condition)} \ldots
     \exam{:- endif} is supported.  See \secref{conditionalcompilation}.
 
     \item The predicate expects_dialect/1 allows for specifying for
@@ -85,7 +85,7 @@ indicator.  Fails without error otherwise.
 \end{description}
 
 
-\section{Strategies for writing compatible code}
+\section{Strategies for writing portable code}
 \label{sec:portabilitystrategies}
 
 The traditional way to write portable code is to define custom
@@ -95,7 +95,7 @@ are some considerations.
 
 \begin{itemize}
     \item Probably the best reason for this is that it allows to
-    define minimal semantics required by the application for
+    define minimal semantics required by the application 
     for the portability predicates.  Such functionality can often
     be mapped efficiently to the target dialect.  Contrary, if
     code was written for dialect $X$, the defined semantics are
@@ -104,11 +104,10 @@ are some considerations.
     much slower implementation that needed.  Take for example
     call_cleanup/2.  The SICStus definition is fundamentally 
     different from the SWI definition, but 99\% of the applications
-    just want to make calls like this to guarantee \arg{StreamIn}
+    just want to make calls like below to guarantee \arg{StreamIn}
     is closed, even if \predref{process}{1} misbehaves.
 
 \begin{code}
-	...
 	call_cleanup(process(StreamIn), close(In))
 \end{code}
 
@@ -119,9 +118,10 @@ are some considerations.
     and applications that combine multiple libraries using this
     compatibility approach are likely to encounter conflicts between
     the portability layers.  A good start is not to use \textit{my_*},
-    but a prefix derived from the library or application name.
+    but a prefix derived from the library or application name or names
+    that explain the intended semantics more precisely.
 
-    \item Another problem is that most code is not initially written 
+    \item Another problem is that most code is initially not written 
     with portability in mind.  Instead, ports are requested by users
     or arise from the desire to switch Prolog dialect.  Typically, we
     want to achieve compatibility with the new Prolog dialect with
@@ -142,18 +142,19 @@ through term_expanstion/2 and goal_expansion/2. Conditional compilation
 is achieved using \exam{:- if(Condition)} as explained in
 \secref{conditionalcompilation}. The situation appears similar.
 
-The important lesson learned from GNU autoconf is that the last resort
-for conditional compilation to achieve portability is to switch on the
-platform or dialect. Instead, GNU autoconf allows you to write tests for
-specific properties of the platform. Most of these are whether or not
-some function or file is available. Then there are some standard tests
-for difficult-to-write-portable situations and finally there is a
-framework that allows you to write arbitrary C programs and check wether
-they can be compiled and/or whether they show the intended behaviour.
-Using a seperate \program{configure} program is needed in C, as you
-cannot perform C compilation step or run C programs from the C
+The important lesson learned from GNU autoconf is that the \emph{last}
+resort for conditional compilation to achieve portability is to switch
+on the platform or dialect. Instead, GNU autoconf allows you to write
+tests for specific properties of the platform. Most of these are whether
+or not some function or file is available. Then there are some standard
+tests for difficult-to-write-portable situations and finally there is a
+framework that allows you to write arbitrary C programs and check
+whether they can be compiled and/or whether they show the intended
+behaviour. Using a separate \program{configure} program is needed in C,
+as you cannot perform C compilation step or run C programs from the C
 preprocessor. In most Prolog environments we do not need this
-distinction as the compiler is integrated into the runtime environment.
+distinction as the compiler is integrated into the runtime environment
+and Prolog has excelent reflexion capabilities.
 
 We must learn from the distinction to test for features instead of
 platform (dialect), as this makes the platform specific code robust for
@@ -161,7 +162,7 @@ future changes of the dialect. Suppose we need compare/3 as defined in
 this manual. The compare/3 predicate is not part of the ISO standard,
 but many systems support it and it is not unlikely it will become ISO
 standard or the intended dialect will start supporting it. GNU autoconf
-strongly advices to test for the availability:
+strongly advises to test for the availability:
 
 \begin{code}
 :- if(\+current_predicate(_, compare(_,_,_))).
@@ -180,7 +181,7 @@ to dialects you didn't even consider porting to right now.
 
 In a more challenging case, the target Prolog has compare/3, but the
 semantics are different. What to do? One option is to write a
-my_compare/3 and change all occurences in the code. Alternatively you
+my_compare/3 and change all occurrences in the code. Alternatively you
 can rename calls using goal_expansion/2 like below. This construct will
 not only deal with Prolog dialects lacking compare as well as those that
 only implement it for numeric comparison or have changed the argument
