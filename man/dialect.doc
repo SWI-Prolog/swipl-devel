@@ -22,13 +22,13 @@ of the facilities are implemented in the base system.  Others in the
 library \pllib{dialect.pl}.
 
 \begin{itemize}
-    \item The \prologflag{dialect} is an unambiguous and fast way to
-    find out which Prolog dialect executes your program.  It has the 
+    \item The Prolog flag \prologflag{dialect} is an unambiguous and fast way to
+    find out which Prolog dialect executes your program. It has the
     value \const{swi} for SWI-Prolog and \const{yap} on YAP.
 
-    \item The \prologflag{version_number} is bound to an integer with
-    value $10,000 \times major + 100 \times minor + patch$.  I.e.\
-    50642 is version 5.6.42.
+    \item The Prolog flag \prologflag{version_number} is bound to an integer with
+    value $10,000 \times major + 100 \times minor + patch$. I.e.\ 50642
+    is version 5.6.42.
 
     \item Conditional compilation using \exam{:- if(Condition)} \ldots
     \exam{:- endif} is supported.  See \secref{conditionalcompilation}.

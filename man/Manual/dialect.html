@@ -1,0 +1,237 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.43 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="readline.html">
+<LINK REL=next HREF="portabilitystrategies.html">
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
+}
+
+dt.pubdef
+{ background-color: #c5e1ff;
+}
+
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
+}
+
+div.navigate
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+}
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ 
+}
+
+span.pred-ext
+{ font-weight: bold;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 80%;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="readline.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="portabilitystrategies.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H1><A NAME="sec:C"><SPAN class="sec-nr">C</SPAN> <SPAN class="sec-title">Compatibility 
+with other Prolog dialects</SPAN></A></H1>
+
+<A NAME="sec:dialect"></A>
+<BLOCKQUOTE><I>The facilities here have not yet fully agreed upon and 
+are subject to change.
+</I></BLOCKQUOTE>
+
+<P><A NAME="idx:YAPprolog:1541"></A><A NAME="idx:portableprologcode:1542"></A>This 
+chapter explains issues for writing portable Prolog programs. It was 
+started after discussion with Vitor Santos Costa, the leading developer 
+of YAP Prolog<SUP class="fn">85<SPAN class="fn-text"><A class="url" href="http://yap.sourceforge.net/">http://yap.sourceforge.net/</A></SPAN></SUP> 
+YAP and SWI-Prolog have expressed the ambition to enhance the 
+portability beyond the trivial Prolog examples, including complex 
+libraries involving foreign code.
+
+<P>Although it is our aim to enhance compatibility, we are still faced 
+with many incompatibilities between the dialects. As a first step both 
+YAP and SWI will provide some instruments that help developing portable 
+code. A first release of these tools appears in SWI-Prolog 5.6.43. Some 
+of the facilities are implemented in the base system. Others in the 
+library <CODE>library(dialect.pl)</CODE>.
+
+<P>
+<UL>
+<LI>The Prolog flag <A class="flag" href="flags.html#flag:dialect">dialect</A> 
+is an unambiguous and fast way to find out which Prolog dialect executes 
+your program. It has the value <CODE>swi</CODE> for SWI-Prolog and <CODE>yap</CODE> 
+on YAP.
+
+<P>
+<LI>The Prolog flag <A class="flag" href="flags.html#flag:version_number">version_number</A> 
+is bound to an integer with value <VAR>10,000 &times; major + 100 &times; 
+minor + patch</VAR>. I.e. 50642 is version 5.6.42.
+
+<P>
+<LI>Conditional compilation using <CODE>:- if(Condition)</CODE> ...<CODE>:- 
+endif</CODE> is supported. See <A class="sec" href="consulting.html">section 
+4.3.1.1</A>.
+
+<P>
+<LI>The predicate <A NAME="idx:expectsdialect1:1543"></A><A class="pred" href="dialect.html#expects_dialect/1">expects_dialect/1</A> 
+allows for specifying for which Prolog system the code was written.
+
+<P>
+<LI>The predicates <A NAME="idx:existssource1:1544"></A><A class="pred" href="dialect.html#exists_source/1">exists_source/1</A> 
+and <A NAME="idx:sourceexports2:1545"></A><A class="pred" href="dialect.html#source_exports/2">source_exports/2</A> 
+can be used to query the library content. The <A NAME="idx:require1:1546"></A><A class="pred" href="consulting.html#require/1">require/1</A> 
+directive can be used to get access to predicates without knowing their 
+location.
+
+<P>
+<LI>Foreign code can expect <CODE>__SWI_PROLOG__</CODE> when compiled 
+for SWI-Prolog and <CODE>__YAP_PROLOG__</CODE> when compiled on YAP.
+</UL>
+
+<DL>
+<DT class="pubdef"><A NAME="expects_dialect/1">:- <STRONG>expects_dialect</STRONG>(<VAR>+Dialect</VAR>)</A></DT>
+<DD class="defbody">
+This directive states that the code following the directive is written 
+for the given Prolog <VAR>Dialect</VAR>. See also <A class="flag" href="flags.html#flag:dialect">dialect</A>. 
+The declaration holds until the end of the file in which it appears. The 
+current dialect is available using <A NAME="idx:prologloadcontext2:1547"></A><A class="pred" href="consulting.html#prolog_load_context/2">prolog_load_context/2</A>.
+
+<P>The exact behaviour of this predicate is still subject to discussion. 
+Of course, if <VAR>Dialect</VAR> matches the running dialect the 
+directive has no effect. Otherwise we check for the existence of
+<CODE>library(dialect/Dialect)</CODE> and load it if the file is found. 
+Currently, this file has this functionality:
+
+<P>
+<UL>
+<LI>Define system predicates of the requested dialect we do not have.
+
+<P>
+<LI>Apply <A NAME="idx:goalexpansion2:1548"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+rules that map conflicting predicates to versions emulating the 
+requested dialect. These expansion rules reside in the dialect 
+compatibility module, but are applied if prolog_load_context(dialect, 
+Dialect) is active.
+
+<P>
+<LI>Modify the search path for library directories, putting libraries 
+compatible to the target dialect before the native libraries.
+
+<P>
+<LI>Setup support for the default filename extension of the dialect.
+</UL>
+</DD>
+<DT class="pubdef"><A NAME="exists_source/1"><STRONG>exists_source</STRONG>(<VAR>+Spec</VAR>)</A></DT>
+<DD class="defbody">
+Is true if <VAR>Spec</VAR> exists as a Prolog source. <VAR>Spec</VAR> 
+uses the same conventions as <A NAME="idx:loadfiles2:1549"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>. 
+Fails without error if <VAR>Spec</VAR> cannot be found.</DD>
+<DT class="pubdef"><A NAME="source_exports/2"><STRONG>source_exports</STRONG>(<VAR>+Spec, 
++Export</VAR>)</A></DT>
+<DD class="defbody">
+Is true if source <VAR>Spec</VAR> exports <VAR>Export</VAR>, a predicate 
+indicator. Fails without error otherwise.
+</DD>
+</DL>
+
+<P>
+<HR>
+<CENTER>
+
+<H2>Section Index</H2>
+
+</CENTER>
+<HR>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="portabilitystrategies.html"><SPAN class="sec-nr">C.1</SPAN> <SPAN class="sec-title">Some 
+considerations for writing portable code</SPAN></A></DIV>
+</DIV>
+</BODY></HTML>
