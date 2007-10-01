@@ -166,6 +166,7 @@ install::
 		cp -a Manual $(WWWMAN)
 		tar zcf $(FTPDIR)/refman/HTMLmanual.tar.gz Manual
 		install -m 644 $(PDF) $(FTPDIR)/refman/refman.pdf
+		rsync -aCv --delete Manual liduop:/home/web/hcs/projects/SWI-Prolog
 
 beta-install::
 		rm -rf $(BETAMAN)

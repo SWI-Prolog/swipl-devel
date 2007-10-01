@@ -85,7 +85,7 @@ indicator.  Fails without error otherwise.
 \end{description}
 
 
-\section{Strategies for writing portable code}
+\section{Some considerations for writing portable code}
 \label{sec:portabilitystrategies}
 
 The traditional way to write portable code is to define custom
