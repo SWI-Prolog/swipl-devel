@@ -337,6 +337,8 @@ inc_rule_count(NC)
 
 :- chr_constraint occurrence/5.
 :- chr_option(mode,occurrence(+,+,+,+,+)).
+:- chr_type occurrence_type ---> simplification ; propagation.
+:- chr_option(type_declaration,occurrence(any,any,any,any,occurrence_type)).
 
 :- chr_constraint get_occurrence/4.
 :- chr_option(mode,get_occurrence(+,+,-,-)).
@@ -366,6 +368,7 @@ inc_rule_count(NC)
 
 :- chr_constraint least_occurrence/2.
 :- chr_option(mode,least_occurrence(+,+)).
+:- chr_option(type_declaration,least_occurrence(any,list)).
 
 :- chr_constraint is_least_occurrence/1.
 :- chr_option(mode,is_least_occurrence(+)).
@@ -1215,6 +1218,7 @@ has_no_history(_) <=> fail.
 
 :- chr_constraint history/3.
 :- chr_option(mode,history(+,+,+)).
+:- chr_option(type_declaration,history(any,any,list)).
 
 :- chr_constraint named_history/3.
 
@@ -1462,10 +1466,14 @@ observation_analysis(RuleNb, Term, GB, Cs) :-
 
 :- chr_constraint spawns/3.
 :- chr_option(mode, spawns(+,+,+)).
+:- chr_type spawns_type ---> guard ; body.
+:- chr_option(type_declaration,spawns(any,spawns_type,any)).
 	
 :- chr_constraint spawns_all/2, spawns_all_triggers/2.
 :- chr_option(mode, spawns_all(+,+)).
+:- chr_option(type_declaration,spawns_all(any,spawns_type)).
 :- chr_option(mode, spawns_all_triggers(+,+)).
+:- chr_option(type_declaration,spawns_all_triggers(any,spawns_type)).
 
 spawns_all(RuleNb,GB) \ spawns_all(RuleNb,GB) <=> true.
 spawns_all(RuleNb,guard) \ spawns_all(RuleNb,body) <=> true.
@@ -1804,6 +1812,7 @@ generate_detach_body_n(F/A,Var,Susp,Body) :-
 %%	generate_indexed_variables_body(+ConstraintSymbol,+ArgList,-Body,-VarList) is det.
 :- chr_constraint generate_indexed_variables_body/4.
 :- chr_option(mode,generate_indexed_variables_body(+,?,+,?)).
+:- chr_option(type_declaration,generate_indexed_variables_body(constraint,any,any,any)).
 %-------------------------------------------------------------------------------
 constraint_mode(F/A,ArgModes) \ generate_indexed_variables_body(F/A,Args,Body,Vars) <=>
 	get_indexing_spec(F/A,Specs),
@@ -3825,6 +3834,7 @@ multi_hash_enumerate_store_body(I,C,Susp,B) :-
 
 :- chr_option(mode,prev_guard_list(+,+,+,+,+,+,+,+)).
 :- chr_option(mode,prev_guard_list(+,+,+,+,+,+)).
+:- chr_option(type_declaration,prev_guard_list(any,any,any,any,any,list)).
 :- chr_option(mode,simplify_guards(+)).
 :- chr_option(mode,set_all_passive(+)).
 	
@@ -5147,11 +5157,12 @@ type_alias(TypePat,Alias) \ atomic_type(Type)
 
 :- chr_option(mode,stored(+,+,+)).
 :- chr_option(type_declaration,stored(any,int,storedinfo)).
-:- chr_option(type_definition,type(storedinfo,[yes,no,maybe])).
+:- chr_type storedinfo ---> yes ; no ; maybe. 
 :- chr_option(mode,stored_complete(+,+,+)).
 :- chr_option(mode,maybe_complementary_guards(+,+,?,?)).
 :- chr_option(mode,guard_list(+,+,+,+)).
 :- chr_option(mode,check_all_passive(+,+)).
+:- chr_option(type_declaration,check_all_passive(any,list)).
 
 % change yes in maybe when yes becomes passive
 passive(RuleNb,ID), occurrence(C,O,RuleNb,ID,_) \ 
@@ -5310,7 +5321,7 @@ constraints_code(Constraints,Clauses) :-
 %===============================================================================
 :- chr_constraint constraints_code1/3.
 :- chr_option(mode,constraints_code1(+,+,+)).
-:- chr_option(type_declaration,constraints_code(list,any,any)).
+:- chr_option(type_declaration,constraints_code1(list,any,any)).
 %-------------------------------------------------------------------------------
 constraints_code1([],L,T) <=> L = T.
 constraints_code1([C|RCs],L,T) 
