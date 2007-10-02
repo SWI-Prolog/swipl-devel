@@ -35,6 +35,8 @@
 	    select_option/3,		% +Term, +Options, -RestOpts
 	    select_option/4		% +Term, +Options, -RestOpts, +Default
 	  ]).
+:- use_module(library(lists)).
+
 
 %%	option(?Option, +OptionList, +Default)
 %
