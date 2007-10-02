@@ -775,13 +775,13 @@ hello_world(_Request) :-
 <DD class="defbody">
 Dispatch <VAR>Request</VAR> to a predicate defined to handle the path 
 component (location) of the request. Locations are declared using
-<A NAME="idx:httphandler3:30"></A><SPAN class="pred-ext">http_handler/3</SPAN>. 
+<A NAME="idx:httphandler3:30"></A><A class="pred" href="#http_handler/3">http_handler/3</A>. 
 The predicate <A NAME="idx:httpdispatch1:31"></A><A class="pred" href="#http_dispatch/1">http_dispatch/1</A> 
 is normally called from <A NAME="idx:httpserver2:32"></A><A class="pred" href="#http_server/2">http_server/2</A>.</DD>
-<DT class="pubdef"><A NAME="http_handler/+Location, :Closure, +Options"><STRONG>http_handler</STRONG>(<VAR>+Location, 
+<DT class="pubdef"><A NAME="http_handler/3"><STRONG>http_handler</STRONG>(<VAR>+Location, 
 :Closure, +Options</VAR>)</A></DT>
 <DD class="defbody">
-all <CODE>call(Closure, Request)</CODE> if an HTTP request for the path
+Call <CODE>call(Closure, Request)</CODE> if an HTTP request for the path
 <VAR>Location</VAR> is dispatched by <A NAME="idx:httpdispatch1:33"></A><A class="pred" href="#http_dispatch/1">http_dispatch/1</A>. 
 Options include:
 
@@ -808,7 +808,7 @@ files.
 </DD>
 </DL>
 
-<P>Note that <A NAME="idx:httphandler3:35"></A><SPAN class="pred-ext">http_handler/3</SPAN> 
+<P>Note that <A NAME="idx:httphandler3:35"></A><A class="pred" href="#http_handler/3">http_handler/3</A> 
 is normally invoked as a directive and processed using term-expansion. 
 Using term-expansion ensures proper update through <A NAME="idx:make0:36"></A><SPAN class="pred-ext">make/0</SPAN> 
 when the specification is modified. We do not expand when the 
@@ -827,7 +827,7 @@ is given, the <VAR>Closure</VAR> with highest priority is returned.</DD>
 +Options, +Request</VAR>)</A></DT>
 <DD class="defbody">
 Reply a file. The argument order is defined to allow using the predicate 
-as a closure for <A NAME="idx:httphandler3:37"></A><SPAN class="pred-ext">http_handler/3</SPAN>. 
+as a closure for <A NAME="idx:httphandler3:37"></A><A class="pred" href="#http_handler/3">http_handler/3</A>. 
 Options include:
 
 <DL>
@@ -978,7 +978,7 @@ exception causes the HTTP wrapper code to generate an HTTP 401 reply.
 
 <P>Alternatively <CODE>basic(+PasswordFile)</CODE> can be passed as an 
 option to
-<A NAME="idx:httphandler3:43"></A><SPAN class="pred-ext">http_handler/3</SPAN>.
+<A NAME="idx:httphandler3:43"></A><A class="pred" href="#http_handler/3">http_handler/3</A>.
 </DD>
 </DL>
 
@@ -1511,6 +1511,14 @@ finish their jobs (i.e. no worker is abandoned while serving a client).
 <P>This can be used to tune the number of workers for performance. 
 Another possible application is to reduce the pool to one worker to 
 facilitate easier debugging.</DD>
+<DT class="pubdef"><A NAME="http_stop_server/2"><STRONG>http_stop_server</STRONG>(<VAR>+Port, 
++Options</VAR>)</A></DT>
+<DD class="defbody">
+Stop the HTTP server at Port. Halting a server is done
+<I>gracefully</I>, which means that requests being processed are not 
+abandoned. The <VAR>Options</VAR> list is for future refinements of this 
+predicate such as a forced immediate abort of the server, but is 
+currently ignored.</DD>
 <DT class="pubdef"><A NAME="http_current_worker/2"><STRONG>http_current_worker</STRONG>(<VAR>?Port, 
 ?ThreadID</VAR>)</A></DT>
 <DD class="defbody">
@@ -2481,13 +2489,9 @@ servers are not widely used.
 <DT><A class="idx" href="#http_get/3">http_get/3</A></DT>
 <DD>
 <A class="idx" href="#idx:httpget3:7">2.1</A> <A class="idx" href="#idx:httpget3:14">2.2</A> <A class="idx" href="#idx:httpget3:16">2.2</A></DD>
-<DT>http_handler/3</DT>
+<DT><A class="idx" href="#http_handler/3">http_handler/3</A></DT>
 <DD>
 <A class="idx" href="#idx:httphandler3:30">3.2</A> <A class="idx" href="#idx:httphandler3:35">3.2</A> <A class="idx" href="#idx:httphandler3:37">3.2</A> <A class="idx" href="#idx:httphandler3:43">3.4</A></DD>
-<DT><A class="idx" href="#http_handler/+Location, :Closure, +Options">http_handler/+Location, 
-:Closure, +Options</A></DT>
-<DD>
-</DD>
 <DT><A class="idx" href="#http_open/3">http_open/3</A></DT>
 <DD>
 <A class="idx" href="#idx:httpopen3:6">2.1</A> <A class="idx" href="#idx:httpopen3:9">2.1</A> <A class="idx" href="#idx:httpopen3:10">2.1</A> <A class="idx" href="#idx:httpopen3:100">4</A> <A class="idx" href="#idx:httpopen3:101">4</A></DD>
@@ -2552,6 +2556,9 @@ servers are not widely used.
 <DD>
 <A class="idx" href="#idx:httpsetauthorization2:3">2.1</A></DD>
 <DT><A class="idx" href="#http_set_session_options/1">http_set_session_options/1</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#http_stop_server/2">http_stop_server/2</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#http_workers/2">http_workers/2</A></DT>

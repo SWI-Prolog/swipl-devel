@@ -541,7 +541,7 @@ component (location) of the request.  Locations are declared using
 http_handler/3.  The predicate http_dispatch/1 is normally called
 from http_server/2.
 
-    \predicate{http_handler}{+Location, :Closure, +Options}
+    \predicate{http_handler}{3}{+Location, :Closure, +Options}
 Call \term{call}{Closure, Request} if an HTTP request for the path
 \arg{Location} is dispatched by http_dispatch/1.  Options include:
 
@@ -1175,6 +1175,13 @@ in the queue, discarding the excess workers as they finish their jobs
 This can be used to tune the number of workers for performance.  Another
 possible application is to reduce the pool to one worker to facilitate
 easier debugging.
+
+    \predicate{http_stop_server}{2}{+Port, +Options}
+Stop the HTTP server at Port. Halting a server is done
+\textit{gracefully}, which means that requests being processed are not
+abandoned. The \arg{Options} list is for future refinements of this
+predicate such as a forced immediate abort of the server, but is
+currently ignored.
 
     \predicate{http_current_worker}{2}{?Port, ?ThreadID}
 True if \arg{ThreadID} is the identifier of a Prolog thread serving
