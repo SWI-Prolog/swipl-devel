@@ -403,7 +403,7 @@ store_setting(setting(Module:Name, Value), _) :-
 	    assert(value(Name, Module, Value)),
 	    broadcast(settings(changed(Module:Name, Default, Value)))
 	).
-store_setting(setting(Module:Name, Value), Options) :-
+store_setting(setting(Module:Name, Value), Options) :- !,
 	(   option(undefined(load), Options, load)
 	->  assert(value(Name, Module, Value))
 	;   existence_error(setting, Module:Name)
