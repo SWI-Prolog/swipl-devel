@@ -489,17 +489,22 @@ clearNumber(Number n)
 
 void
 initGMP()
-{ mpz_init_set_si64(MPZ_MIN_TAGGED, PLMINTAGGEDINT);
-  mpz_init_set_si64(MPZ_MAX_TAGGED, PLMAXTAGGEDINT);
-  mpz_init_set_si64(MPZ_MIN_PLINT, PLMININT);
-  mpz_init_set_si64(MPZ_MAX_PLINT, PLMAXINT);
+{ if ( !GD->gmp.initialised )
+  { GD->gmp.initialised = TRUE;
+
+    mpz_init_set_si64(MPZ_MIN_TAGGED, PLMINTAGGEDINT);
+    mpz_init_set_si64(MPZ_MAX_TAGGED, PLMAXTAGGEDINT);
+    mpz_init_set_si64(MPZ_MIN_PLINT, PLMININT);
+    mpz_init_set_si64(MPZ_MAX_PLINT, PLMAXINT);
 #if SIZEOF_LONG < SIZEOF_VOIDP
-  mpz_init_set_si64(MPZ_MIN_LONG, LONG_MIN);
-  mpz_init_set_si64(MPZ_MAX_LONG, LONG_MAX);
+    mpz_init_set_si64(MPZ_MIN_LONG, LONG_MIN);
+    mpz_init_set_si64(MPZ_MAX_LONG, LONG_MAX);
 #endif
 #ifdef O_MY_GMP_ALLOC
-  mp_set_memory_functions(mp_alloc, mp_realloc, mp_free);
+    if ( !GD->gmp.keep_alloc_functions )
+      mp_set_memory_functions(mp_alloc, mp_realloc, mp_free);
 #endif
+  }
 }
 
 		 /*******************************

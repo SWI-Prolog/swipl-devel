@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: GMP foreign code interaction.  Roberto Bagnara.
+
   * MODIFIED: Deleted prolog flag version_numer and added version_data.
 
   * MODIFIED: Also do not allow integers in open/3.

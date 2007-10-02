@@ -3709,7 +3709,7 @@ PL_fatal_error(const char *fm, ...)
 
 int
 PL_action(int action, ...)
-{ int rval;
+{ int rval = TRUE;
   va_list args;
 
   va_start(args, action);
@@ -3720,7 +3720,6 @@ PL_action(int action, ...)
       break;
     case PL_ACTION_DEBUG:
       debugmode(DBG_ALL, NULL);
-      rval = TRUE;
       break;
     case PL_ACTION_BACKTRACE:
 #ifdef O_DEBUGGER
@@ -3732,17 +3731,18 @@ PL_action(int action, ...)
       { Sfprintf(Serror,
 		 "\n[Cannot print stack while in %ld-th garbage collection]\n",
 		 gc_status.collections);
-	fail;
+	rval = FALSE;
+	break;
       }
       if ( GD->bootsession || !GD->initialised )
       { Sfprintf(Serror,
 		 "\n[Cannot print stack while initialising]\n");
-	fail;
+	rval = FALSE;
+	break;
       }
       om = systemMode(TRUE);		/* Also show hidden frames */
       backTrace(environment_frame, a);
       systemMode(om);
-      rval = TRUE;
     }
 #else
       warning("No Prolog backtrace in runtime version");
@@ -3765,7 +3765,6 @@ PL_action(int action, ...)
     case PL_ACTION_GUIAPP:
     { int guiapp = va_arg(args, int);
       GD->os.gui_app = guiapp;
-      rval = TRUE;
       break;
     }
     case PL_ACTION_WRITE:
@@ -3782,10 +3781,26 @@ PL_action(int action, ...)
     case PL_ACTION_ATTACH_CONSOLE:
     {
 #ifdef O_PLMT
-      return attachConsole();
+      rval = attachConsole();
 #else
-      return FALSE;
+      rval = FALSE;
 #endif
+      break;
+    }
+    case PL_GMP_SET_ALLOC_FUNCTIONS:
+    { int set = va_arg(args, int);
+
+#ifdef O_GMP
+      if ( !GD->gmp.initialised )
+      { GD->gmp.keep_alloc_functions = !set;
+	initGMP();
+      } else
+      { rval = FALSE;
+      }
+#else
+      rval = FALSE;
+#endif
+      break;
     }
     default:
       sysError("PL_action(): Illegal action: %d", action);

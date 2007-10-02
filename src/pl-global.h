@@ -175,6 +175,13 @@ typedef struct
     int		  _loaded;		/* system extensions are loaded */
   } foreign;
 
+#ifdef O_GMP
+  struct
+  { int initialised;			/* is GMP initialised? */
+    int keep_alloc_functions;		/* do not change allocation */
+  } gmp;
+#endif
+
   struct				/* pl-format.c */
   { Table	predicates;
   } format;

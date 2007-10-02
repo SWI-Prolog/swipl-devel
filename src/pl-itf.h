@@ -824,6 +824,7 @@ PL_EXPORT(int)  PL_handle_signals(void);
 #define PL_ACTION_FLUSH		9	/* Flush Prolog i/o buffer */
 #define PL_ACTION_GUIAPP	10	/* Win32: set when this is a gui */
 #define PL_ACTION_ATTACH_CONSOLE 11	/* MT: Attach a console */
+#define PL_GMP_SET_ALLOC_FUNCTIONS 12	/* GMP: do not change allocation functions */
 
 PL_EXPORT(int)	 PL_action(int, ...);	/* perform some action */
 PL_EXPORT(void) PL_on_halt(void (*)(int, void *), void *);

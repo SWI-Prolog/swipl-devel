@@ -1638,8 +1638,27 @@ If SWI-Prolog is linked with the GNU Multiple Precision Arithmetic
 Library (GMP, used by default), the foreign interface provides functions
 for exchanging numeric values to GMP types.  To access these functions
 the header \verb$<gmp.h>$ must be included \emph{before}
-\verb$<SWI-Prolog.h>$.   Here is an example exploiting the function
-mpz_nextprime():
+\verb$<SWI-Prolog.h>$. Foreign code using GMP linked to SWI-Prolog asks
+for some considerations.
+
+\begin{itemize}
+    \item SWI-Prolog normally rebinds the GMP allocation functions using
+    mp_set_memory_functions(). This means SWI-Prolog must be initialised
+    before the foreign code touches any GMP function.  You can call
+    \verb$PL_action(PL_GMP_SET_ALLOC_FUNCTIONS, TRUE)$ to force Prolog's
+    GMP initialization without doing the rest of the
+    Prolog initialization.  If you do not want Prolog rebinding the
+    GMP allocation, call \verb$PL_action(PL_GMP_SET_ALLOC_FUNCTIONS,
+    FALSE)$ \emph{before} initializing Prolog.
+
+    \item On Windows, each DLL has its own memory pool.  To make exchange
+    of GMP numbers between Prolog and foreign code possible you must
+    either let Prolog rebind the allocation functions (default) or you
+    must recompile SWI-Prolog to link to a DLL version of the GMP
+    library.
+\end{itemize}
+
+Here is an example exploiting the function mpz_nextprime():
 
 \begin{code}
 #include <gmp.h>
@@ -2311,6 +2330,17 @@ are listed in \tabref{action}.
 \const{PL_ACTION_ATTACH_CONSOLE} &
 			      Attach a console to a thread if it does
 			      not have one.  See attach_console/0. \\
+\const{PL_GMP_SET_ALLOC_FUNCTIONS} &
+			      Takes and integer argument. If
+			      \const{TRUE}, the GMP allocation are
+			      immediately bound to the Prolog
+			      functions.  If \const{FALSE}, SWI-Prolog
+			      will never rebind the GMP allocation
+			      functions.  See mp_set_memory_functions()
+			      in the GMP documentation.
+			      The action returns \const{FALSE} if there
+			      is no GMP support or GMP is already
+			      initialised. \\
 \hline
 \end{tabular}\end{quote}
 
