@@ -5357,7 +5357,7 @@ Return the current time as a \arg{TimeStamp}.  The granularity is system
 dependent.  See \secref{dattimedata}.
 
     \predicate{stamp_date_time}{3}{+TimeStamp, -DateTime, +TimeZone}
-Convert a \arg{TimeZone} to a \arg{DateTime} in the given time zone.
+Convert a \arg{TimeStamp} to a \arg{DateTime} in the given time zone.
 See \secref{dattimedata} for details on the data-types.  \arg{TimeZone}
 describes the timezone for the conversion.  It is one of \const{local}
 to extract the local time, \const{'UTC'} to extract at UTC time or an
