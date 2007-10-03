@@ -112,7 +112,7 @@ doc_server(Port) :-
 		   ]).
 
 doc_server(Port, _) :-
-	doc_current_server(Port), !.
+	catch(doc_current_server(Port), _, fail), !.
 doc_server(Port, Options) :-
 	prepare_editor,
 	auth_options(Options, Options1),
@@ -132,6 +132,9 @@ doc_server(Port, Options) :-
 
 doc_current_server(Port) :-
 	http_current_server(doc_reply, Port), !.
+doc_current_server(Port) :-
+	findall(P, http_current_server(_, P), Ports),
+	Ports = [Port], !.		% only one; hope its the right one
 doc_current_server(_) :-
 	existence_error(http_server, doc_reply).
 
