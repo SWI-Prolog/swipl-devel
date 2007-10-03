@@ -132,6 +132,8 @@ doc_server(Port, Options) :-
 
 doc_current_server(Port) :-
 	http_current_server(doc_reply, Port), !.
+doc_current_server(_) :-
+	existence_error(http_server, doc_reply).
 
 %%	doc_browser is det.
 %%	doc_browser(+What) is semidet.
