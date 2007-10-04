@@ -279,6 +279,10 @@ Sopen_object(Any obj, const char *mode)
 	  }
 	}
 	    
+	s->newline = (f->newline_mode == NAME_posix ? SIO_NL_POSIX :
+		      f->newline_mode == NAME_dos   ? SIO_NL_DOS :
+						      SIO_NL_DETECT);
+
 	f->fd = ofd;
 	f->status = oldstat;
 	if ( !rc )

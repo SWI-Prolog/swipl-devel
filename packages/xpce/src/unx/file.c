@@ -1288,7 +1288,7 @@ static vardecl var_file[] =
      NAME_filter, "Name of input/output filter used"),
   IV(NAME_bom, "[bool]", IV_BOTH,
      NAME_encoding, "Byte Order Mark"),
-  IV(NAME_newlineMode, "{posix,dos}", IV_BOTH,
+  IV(NAME_newlineMode, "{posix,dos,detect}", IV_BOTH,
      NAME_encoding, "Newline representation"),
   IV(NAME_fd, "alien:FILE *", IV_NONE,
      NAME_internal, "Unix file (stream) handle")
