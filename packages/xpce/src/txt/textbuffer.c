@@ -156,8 +156,11 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
   if ( restoreVersion <= 17 )		/* PRE Unicode */
   { Sfread(Address(tb, 0), sizeof(char), tb->size, fd);
   } else
-  { fd->encoding = ENC_UTF8;
-    for(i=0; i<tb->size; i++)
+  { size_t end = (size_t)tb->size;
+
+    fd->encoding = ENC_UTF8;
+
+    for(i=0; i<end; i++)
     { chr = Sgetcode(fd);
 
       if ( chr <= 0xff )
@@ -166,7 +169,7 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
 	break;
     }
 
-    if ( i < tb->size )			/* non-ISO characters: promote */
+    if ( i < end )			/* non-ISO characters: promote */
     { charW *w = pceMalloc(tb->allocated * sizeof(charW));
       const charA *f = Address(tb, 0);
       const charA *e = &f[i];
@@ -180,7 +183,7 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
       tb->buffer.iswide = TRUE;
       tb->tb_bufferW[i++] = chr;
   
-      for(; i<tb->size; i++)
+      for(; i<end; i++)
       { chr = Sgetcode(fd);
   
 	tb->tb_bufferW[i] = chr;
@@ -212,7 +215,8 @@ cloneTextBuffer(TextBuffer tb, TextBuffer clone)
 
   clonePceSlots(tb, clone);
 
-  bytes = istbA(tb) ? clone->allocated : clone->allocated*sizeof(charW);
+  bytes = istbA(tb) ? (size_t)clone->allocated
+		    : (size_t)clone->allocated*sizeof(charW);
 
   clone->undo_buffer = NULL;
   clone->tb_bufferA = pceMalloc(bytes);
@@ -1850,7 +1854,7 @@ change_textbuffer(TextBuffer tb, int where, String s)
   } else
   { for( w=where, n=0; n < s->size; n++, w++ )
     { long i = Index(tb, w);
-      wint_t new = str_fetch(s, n);
+      charW new = str_fetch(s, n);
 
       if ( tb->tb_bufferW[i] != new )
       { if ( tisendsline(tb->syntax, tb->tb_bufferW[i]) )
@@ -2117,7 +2121,8 @@ potential duplication of memory usage.
 
 static int
 insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
-{ long grow, here, size;
+{ long grow, here;
+  size_t size;
   IOSTREAM *fd;
 
   if ( times <= 0 )
@@ -2421,11 +2426,11 @@ end_change(TextBuffer tb, int where)
 
 static int
 room(TextBuffer tb, int where, int grow)
-{ int shift;
+{ ssize_t shift;
 
   if ( grow + tb->size > tb->allocated )
-  { int s = ROUND(tb->size + grow, ALLOC);
-    int ag = tb->allocated - tb->gap_end;
+  { size_t s = ROUND(tb->size + grow, ALLOC);
+    size_t ag = tb->allocated - tb->gap_end;
 
     shift = s - tb->allocated;
     tb->tb_bufferA = pceRealloc(tb->tb_bufferA,
@@ -2440,13 +2445,17 @@ room(TextBuffer tb, int where, int grow)
 
   shift = where - tb->gap_start;
   if ( shift < 0 )				/* move gap towards start */
-  { memmove(Address(tb, tb->gap_end + shift),
+  { size_t move = (size_t)-shift;
+
+    memmove(Address(tb, tb->gap_end + shift),
 	    Address(tb, where),
-	    istbA(tb) ? -shift : sizeof(charW) * -shift);
+	    istbA(tb) ? move : sizeof(charW) * move);
   } else if ( shift > 0 )			/* move gap towards end */
-  { memmove(Address(tb, tb->gap_start),
+  { size_t move = (size_t)shift;
+
+    memmove(Address(tb, tb->gap_start),
 	    Address(tb, tb->gap_end),
-	    istbA(tb) ? shift : sizeof(charW) * shift);
+	    istbA(tb) ? move : sizeof(charW) * move);
   }    
   tb->gap_start += shift;			/* move the gap pointers */
   tb->gap_end += shift;
