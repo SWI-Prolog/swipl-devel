@@ -683,12 +683,10 @@ Sputcode(int c, IOSTREAM *s)
   if ( s->tee && s->tee->magic == SIO_MAGIC )
     Sputcode(c, s->tee);
 
-#ifdef CRLF_MAPPING
-  if ( c == '\n' && (s->flags&SIO_TEXT) )
+  if ( c == '\n' && (s->flags&SIO_TEXT) && s->newline == SIO_NL_DOS )
   { if ( Sputcode('\r', s) < 0 )
       return -1;
   }
-#endif
 
   switch(s->encoding)
   { case ENC_OCTET:
@@ -831,10 +829,7 @@ int
 Sgetcode(IOSTREAM *s)
 { int c;
 
-#ifdef CRLF_MAPPING
 retry:
-#endif
-
   switch(s->encoding)
   { case ENC_OCTET:
     case ENC_ISO_LATIN_1:
@@ -963,10 +958,10 @@ retry:
   }
 
 out:
-#ifdef CRLF_MAPPING
-  if ( c == '\r' && (s->flags&SIO_TEXT) && !(s->flags&SIO_ISATTY) )
+  if ( c == '\r' && (s->flags&SIO_TEXT) &&
+       !(s->flags&SIO_ISATTY) &&
+       s->newline == SIO_NL_DOS )
     goto retry;
-#endif
 
   if ( s->tee && s->tee->magic == SIO_MAGIC && c != -1 )
     Sputcode(c, s->tee);
@@ -2548,6 +2543,9 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   s->timeout       = -1;		/* infinite */
   s->posbuf.lineno = 1;
   s->encoding      = ENC_ISO_LATIN_1;
+#if CRLF_MAPPING
+  s->newline       = SIO_NL_DOS;
+#endif
   if ( flags & SIO_RECORDPOS )
     s->position = &s->posbuf;
 #ifdef O_PLMT
@@ -3188,6 +3186,9 @@ SinitStreams()
 #endif
 #ifdef __WINDOWS__
       pt_init();
+#endif
+#if CRLF_MAPPING
+      S__iob[i].newline = SIO_NL_DOS;
 #endif
     }
   }

@@ -2436,6 +2436,11 @@ Unify \arg{IOMode} to the mode given to open/4 for opening the stream.
 Values are: \const{read}, \const{write}, \const{append} and the
 SWI-Prolog extension \const{update}.
 
+    \termitem{newline}{NewlineMode}
+One of \const{posix} or \const{dos}.  If \const{dos}, text-streams
+will emit \verb$\r\n$ for \verb$\n$ and discard \verb$\r$ from input
+streams.  Default depends on the operating system.
+
     \termitem{output}{}
 True if \arg{Stream} has mode \const{write}, \const{append} or
 \const{update}.
@@ -2553,6 +2558,10 @@ stream.  See \secref{encoding} for supported encodings.
     \termitem{eof_action}{Action}
 Set end-of-file handling to one of \const{eof_code}, \const{reset} or
 \const{error}.
+
+    \termitem{newline}{NewlineMode}
+Set input or output translation for newlines. See corresponding
+stream_property/2 for details.
 
     \termitem{timeout}{Seconds}
 This option can be used to make streams generate an exception if it

@@ -570,3 +570,4 @@
 #define ATOM_int64_t      MK_ATOM(569)
 #define ATOM_occurs_check MK_ATOM(570)
 #define ATOM_time         MK_ATOM(571)
+#define ATOM_dos          MK_ATOM(572)

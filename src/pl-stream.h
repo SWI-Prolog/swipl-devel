@@ -156,6 +156,9 @@ typedef enum
   ENC_WCHAR				/* pl_wchar_t */
 } IOENC;
 
+#define SIO_NL_POSIX  0			/* newline as \n */
+#define SIO_NL_DOS   1			/* newline as \r\n */
+
 typedef struct io_stream
 { char		       *bufp;		/* `here' */
   char		       *limitp;		/* read/write limit */
@@ -183,7 +186,8 @@ typedef struct io_stream
   mbstate_t *		mbstate;	/* ENC_ANSI decoding */
   struct io_stream *	upstream;	/* stream providing our input */
   struct io_stream *	downstream;	/* stream providing our output */
-  intptr_t		reserved[4];	/* reserved for extension */
+  unsigned		newline : 2;	/* Newline mode */
+  intptr_t		reserved[3];	/* reserved for extension */
 } IOSTREAM;
 
 

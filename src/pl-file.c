@@ -1417,6 +1417,20 @@ pl_set_stream(term_t stream, term_t attr)
 	  goto error;
 	}
 	goto ok;
+      } else if ( aname == ATOM_newline )
+      { atom_t val;
+
+	if ( !PL_get_atom_ex(a, &val) )
+	  goto error;
+	if ( val == ATOM_posix )
+	  s->newline = SIO_NL_POSIX;
+	else if ( val == ATOM_dos )
+	  s->newline = SIO_NL_DOS;
+	else
+	{ PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_newline, a);
+	  goto error;
+	}
+	goto ok;
       }
     }
   }
@@ -2934,6 +2948,19 @@ stream_bom_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 
 static int
+stream_newline_prop(IOSTREAM *s, term_t prop ARG_LD)
+{ switch ( s->newline ) 
+  { case SIO_NL_POSIX:
+      return PL_unify_atom(prop, ATOM_posix);
+    case SIO_NL_DOS:
+      return PL_unify_atom(prop, ATOM_dos);
+  }
+
+  fail;
+}
+
+
+static int
 stream_encoding_prop(IOSTREAM *s, term_t prop ARG_LD)
 { return PL_unify_atom(prop, encoding_to_atom(s->encoding));
 }
@@ -2992,6 +3019,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_tty1,	    stream_tty_prop },
   { FUNCTOR_encoding1,	    stream_encoding_prop },
   { FUNCTOR_bom1,	    stream_bom_prop },
+  { FUNCTOR_newline1,	    stream_newline_prop },
   { FUNCTOR_representation_errors1, stream_reperror_prop },
   { 0,			    NULL }
 };

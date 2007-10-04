@@ -184,3 +184,4 @@
 #define FUNCTOR_xor2         MK_FUNCTOR(183, 2)
 #define FUNCTOR_xpceref1     MK_FUNCTOR(184, 1)
 #define FUNCTOR_occurs_check2 MK_FUNCTOR(185, 2)
+#define FUNCTOR_newline1     MK_FUNCTOR(186, 1)

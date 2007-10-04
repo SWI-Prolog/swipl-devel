@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Explicit DOS/POSIX newline handling.  Work in progress to
+  simplify dealing with files on mixed Windows/Non-Windows environments.
+
   * ENHANCED: GMP foreign code interaction.  Roberto Bagnara.
 
   * MODIFIED: Deleted prolog flag version_numer and added version_data.

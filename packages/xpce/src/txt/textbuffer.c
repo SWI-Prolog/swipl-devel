@@ -2109,7 +2109,7 @@ Insert the contents of file `file'  into   the  text  buffer at position
 otherwise.
 
 The most common case for this function is  to read an entire file simply
-once into the buffer. The simplest apprach is   to  read the file into a
+once into the buffer. The simplest approach is   to read the file into a
 string and use the string insertion function   below, but the price is a
 potential duplication of memory usage.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
