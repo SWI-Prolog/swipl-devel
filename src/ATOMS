@@ -10,7 +10,6 @@
 # awk you can propagate the changes by hand, but be careful!
 
 
-
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -71,7 +70,6 @@ A built_in_procedure	"built_in_procedure"
 A busy			"busy"
 A byte			"byte"
 A call			"call"
-A setup_and_call_cleanup "setup_and_call_cleanup"
 A callable		"callable"
 A callpred		"$callpred"
 A canceled		"canceled"
@@ -142,6 +140,7 @@ A delete		"delete"
 A depth_limit_exceeded	"depth_limit_exceeded"
 A destroy		"destroy"
 A detached		"detached"
+A detect		"detect"
 A development		"development"
 A dexit			"$exit"
 A dforeign_registered    "$foreign_registered"
@@ -155,6 +154,7 @@ A dload			"$load"
 A dmessage_queue	"$message_queue"
 A dmutex		"$mutex"
 A domain_error		"domain_error"
+A dos			"dos"
 A dot			"."
 A dots			"dots"
 A double_quotes		"double_quotes"
@@ -163,6 +163,7 @@ A dprof_node		"$profile_node"
 A dstream		"$stream"
 A dthread_init		"$thread_init"
 A dthrow		"$throw"
+A dtime			"$time"
 A dwakeup		"$wakeup"
 A dynamic		"dynamic"
 A e			"e"
@@ -267,6 +268,8 @@ A initialization	"initialization"
 A input			"input"
 A inserted_char		"inserted_char"
 A instantiation_error	"instantiation_error"
+A int			"int"
+A int64_t		"int64_t"
 A int_overflow		"int_overflow"
 A integer		"integer"
 A io_error		"io_error"
@@ -280,7 +283,6 @@ A join			"join"
 A jump			"jump"
 A kernel		"kernel"
 A key			"key"
-A pair			"pair"
 A larger		">"
 A larger_equal		">="
 A level			"level"
@@ -301,6 +303,7 @@ A lock			"lock"
 A locked		"locked"
 A log			"log"
 A log10			"log10"
+A long			"long"
 A lower			"lower"
 A lsb			"lsb"
 A lshift		"<<"
@@ -338,10 +341,10 @@ A newline		"newline"
 A nil			"[]"
 A no_memory		"no_memory"
 A nodebug		"nodebug"
+A non_empty_list	"non_empty_list"
 A none			"none"
 A noprofile		"noprofile"
 A not			"not"
-A non_empty_list	"non_empty_list"
 A not_equals		"\\="
 A not_implemented	"not_implemented"
 A not_less_than_one	"not_less_than_one"
@@ -353,6 +356,7 @@ A number		"number"
 A number_of_clauses	"number_of_clauses"
 A numbervar_option	"numbervar_option"
 A numbervars		"numbervars"
+A occurs_check		"occurs_check"
 A octet		        "octet"
 A off     		"off"
 A on			"on"
@@ -363,6 +367,7 @@ A operator_specifier	"operator_specifier"
 A optimise		"optimise"
 A or			"\\/"
 A output		"output"
+A pair			"pair"
 A paren			"paren"
 A parent		"parent"
 A parent_goal		"parent_goal"
@@ -438,6 +443,7 @@ A seek_method		"seek_method"
 A select		"select"
 A semicolon		";"
 A separated		"separated"
+A setup_and_call_cleanup "setup_and_call_cleanup"
 A shared		"shared"
 A shared_object		"shared_object"
 A shared_object_handle	"shared_object_handle"
@@ -502,7 +508,7 @@ A threads		"threads"
 A threads_created	"threads_created"
 A throw			"throw"
 A tilde			"~"
-A dtime			"$time"
+A time			"time"
 A time_stamp		"time_stamp"
 A timeout		"timeout"
 A timeout_error		"timeout_error"
@@ -578,12 +584,6 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
-A int			"int"
-A long			"long"
-A int64_t		"int64_t"
-A occurs_check		"occurs_check"
-A time			"time"
-A dos			"dos"
 
 F abs			1
 F access		1
@@ -610,7 +610,6 @@ F break			3
 F buffer		1
 F busy			2
 F call			1
-F setup_and_call_cleanup 4
 F callpred		2
 F catch			3
 F ceil			1
@@ -647,6 +646,7 @@ F dprof_node		1
 F dstream		1
 F dthread_init		0
 F dthrow		1
+F dtime			2
 F dwakeup		1
 F e			0
 F encoding		1
@@ -699,8 +699,10 @@ F minus			2
 F mod			2
 F mode			1
 F msb			1
+F newline		1
 F not_implemented	2
 F not_provable		1
+F occurs_check		2
 F or			2
 F output		0
 F permission_error	3
@@ -731,6 +733,7 @@ F retry			1
 F round			1
 F rshift		2
 F semicolon		2
+F setup_and_call_cleanup 4
 F shared_object		2
 F shell			2
 F sign			1
@@ -754,7 +757,6 @@ F syntax_error		3
 F tan			1
 F term_expansion	2
 F term_position		5
-F dtime			2
 F timeout_error		2
 F trace			1
 F traceinterc		3
@@ -770,5 +772,3 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
-F occurs_check		2
-F newline		1

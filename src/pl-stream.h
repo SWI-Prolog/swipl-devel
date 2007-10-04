@@ -157,7 +157,8 @@ typedef enum
 } IOENC;
 
 #define SIO_NL_POSIX  0			/* newline as \n */
-#define SIO_NL_DOS   1			/* newline as \r\n */
+#define SIO_NL_DOS    1			/* newline as \r\n */
+#define SIO_NL_DETECT 3			/* detect processing mode */
 
 typedef struct io_stream
 { char		       *bufp;		/* `here' */

@@ -1426,7 +1426,14 @@ pl_set_stream(term_t stream, term_t attr)
 	  s->newline = SIO_NL_POSIX;
 	else if ( val == ATOM_dos )
 	  s->newline = SIO_NL_DOS;
-	else
+	else if ( val == ATOM_detect )
+	{ if ( false(s, SIO_INPUT) )
+	  { PL_error(NULL, 0, "detect only allowed for input streams",
+		     ERR_DOMAIN, ATOM_newline, a);
+	    goto error;
+	  }
+	  s->newline = SIO_NL_DETECT;
+	} else
 	{ PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_newline, a);
 	  goto error;
 	}
@@ -2951,6 +2958,7 @@ static int
 stream_newline_prop(IOSTREAM *s, term_t prop ARG_LD)
 { switch ( s->newline ) 
   { case SIO_NL_POSIX:
+    case SIO_NL_DETECT:
       return PL_unify_atom(prop, ATOM_posix);
     case SIO_NL_DOS:
       return PL_unify_atom(prop, ATOM_dos);

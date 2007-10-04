@@ -959,9 +959,15 @@ retry:
 
 out:
   if ( c == '\r' && (s->flags&SIO_TEXT) &&
-       !(s->flags&SIO_ISATTY) &&
-       s->newline == SIO_NL_DOS )
-    goto retry;
+       !(s->flags&SIO_ISATTY) )
+  { switch(s->newline)
+    { case SIO_NL_DETECT:
+	s->newline = SIO_NL_DOS;
+        /*FALLTHROUGH*/
+      case SIO_NL_DOS:
+	goto retry;
+    }
+  }
 
   if ( s->tee && s->tee->magic == SIO_MAGIC && c != -1 )
     Sputcode(c, s->tee);
