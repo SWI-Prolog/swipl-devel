@@ -25,6 +25,13 @@
 #ifndef _PL_STREAM_H
 #define _PL_STREAM_H
 
+/* This appears to make the wide-character support compile and work
+   on HPUX 11.23.  There really should be a cleaner way ...
+*/
+#if defined(__hpux)
+#include <sys/_mbstate_t.h>
+#endif
+
 #include <stdarg.h>
 #include <wchar.h>
 #include <stddef.h>
@@ -132,7 +139,7 @@ typedef struct io_position
   int64_t		charno;		/* character position in file */
   int			lineno;		/* lineno in file */
   int			linepos;	/* position in line */
-  intptr_t			reserved[2];	/* future extensions */
+  intptr_t		reserved[2];	/* future extensions */
 } IOPOS;
 
 					/* NOTE: check with encoding_names */
@@ -148,6 +155,10 @@ typedef enum
   ENC_UNICODE_LE,			/* little endian unicode file */
   ENC_WCHAR				/* pl_wchar_t */
 } IOENC;
+
+#define SIO_NL_POSIX  0			/* newline as \n */
+#define SIO_NL_DOS    1			/* newline as \r\n */
+#define SIO_NL_DETECT 3			/* detect processing mode */
 
 typedef struct io_stream
 { char		       *bufp;		/* `here' */
@@ -174,7 +185,10 @@ typedef struct io_stream
   IOENC			encoding;	/* character encoding used */
   struct io_stream *	tee;		/* copy data to this stream */
   mbstate_t *		mbstate;	/* ENC_ANSI decoding */
-  intptr_t			reserved[6];	/* reserved for extension */
+  struct io_stream *	upstream;	/* stream providing our input */
+  struct io_stream *	downstream;	/* stream providing our output */
+  unsigned		newline : 2;	/* Newline mode */
+  intptr_t		reserved[3];	/* reserved for extension */
 } IOSTREAM;
 
 
@@ -246,6 +260,7 @@ PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */
 #define SIO_GETFILENO	(2)		/* get underlying file (if any) */
 #define SIO_SETENCODING	(3)		/* modify encoding of stream */
 #define SIO_FLUSHOUTPUT	(4)		/* flush output */
+#define SIO_LASTERROR	(5)		/* string holding last error */
 
 /* Sread_pending() */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
@@ -312,9 +327,9 @@ PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */
 PL_EXPORT(void)		SinitStreams();
 PL_EXPORT(void)		Scleanup(void);
 PL_EXPORT(void)		Sreset(void);
-PL_EXPORT(int)		S__fupdatefilepos(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fupdatefilepos_getc(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fillbuf(IOSTREAM *s);
+PL_EXPORT(int)		Sunit_size(IOSTREAM *s);
 					/* byte I/O */
 PL_EXPORT(int)		Sputc(int c, IOSTREAM *s);
 PL_EXPORT(int)		Sfgetc(IOSTREAM *s);
@@ -344,7 +359,7 @@ PL_EXPORT(long)		Stell(IOSTREAM *s);
 PL_EXPORT(int)		Sclose(IOSTREAM *s);
 PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);
 PL_EXPORT(char *)	Sgets(char *buf);
-PL_EXPORT(size_t)	Sread_pending(IOSTREAM *s,
+PL_EXPORT(ssize_t)	Sread_pending(IOSTREAM *s,
 				      char *buf, size_t limit, int flags);
 PL_EXPORT(int)		Sfputs(const char *q, IOSTREAM *s);
 PL_EXPORT(int)		Sputs(const char *q);
@@ -368,6 +383,8 @@ PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, size_t *sizep, const char *mode);
 PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, size_t sz, const char *m);
 PL_EXPORT(int)		Sclosehook(void (*hook)(IOSTREAM *s));
 PL_EXPORT(void)		Sfree(void *ptr);
+PL_EXPORT(int)		Sset_filter(IOSTREAM *parent, IOSTREAM *filter);
+PL_EXPORT(void)		Ssetbuffer(IOSTREAM *s, char *buf, size_t size);
 
 PL_EXPORT(int64_t)	Stell64(IOSTREAM *s);
 PL_EXPORT(int)		Sseek64(IOSTREAM *s, int64_t pos, int whence);
