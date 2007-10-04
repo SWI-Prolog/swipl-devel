@@ -64,6 +64,11 @@ initialiseFile(FileObj f, Name name, Name encoding)
   assign(f, status, NAME_closed);
   assign(f, bom, DEFAULT);
   assign(f, path, DEFAULT);
+#ifdef __WINDOWS__
+  assign(f, newline_mode, NAME_dos);
+#else
+  assign(f, newline_mode, NAME_posix);
+#endif
   f->fd = NULL;
   
   kindFile(f, encoding);
@@ -1283,6 +1288,8 @@ static vardecl var_file[] =
      NAME_filter, "Name of input/output filter used"),
   IV(NAME_bom, "[bool]", IV_BOTH,
      NAME_encoding, "Byte Order Mark"),
+  IV(NAME_newlineMode, "{posix,dos}", IV_BOTH,
+     NAME_encoding, "Newline representation"),
   IV(NAME_fd, "alien:FILE *", IV_NONE,
      NAME_internal, "Unix file (stream) handle")
 };

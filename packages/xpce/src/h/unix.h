@@ -94,6 +94,7 @@ NewClass(fileobj)
   Name		status;			/* current open mode */
   Name		filter;			/* I/O filter used */
   Bool		bom;			/* Use/has BOM marker? */
+  Name		newline_mode;		/* Newline mode {dos,posix} */
   IOSTREAM     *fd;			/* file descriptor */
 End;
 
