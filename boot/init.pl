@@ -1553,6 +1553,7 @@ expand_term(Term, Term).
 	    asserta('$include_code'(X2))
 	;   throw(error(context_error(no_if), _))
 	).
+'$if_expansion'(end_of_file, end_of_file) :- !. % TBD: Check completeness
 '$if_expansion'((:- endif), []) :-
 	retract('$include_code'(_)), !.
 

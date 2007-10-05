@@ -59,7 +59,11 @@ variable(xref_generation,
 	 both,
 	 "Last generation we analysed").
 
-class_variable(undo_buffer_size, int, 40000).
+class_variable(undo_buffer_size,      int, 40000).
+class_variable(newline_existing_file, {posix,dos,detect}, detect).
+class_variable(newline_new_file,      {posix,dos},        posix).
+:- if(current_prolog_flag(windows, true)).
+class_variable(newline_new_file,      {posix,dos},        posix).
 
 initialise(B, File:file*, Name:[name]) :->
 	"Create from file and name"::
