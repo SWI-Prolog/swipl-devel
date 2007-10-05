@@ -216,7 +216,14 @@ loadFile(FileObj f, IOSTREAM *fd, ClassDef def)
     assign(f, encoding, (f->kind == NAME_binary ? NAME_octet : NAME_text));
   if ( !isDefault(f->bom) && !isBoolean(f->bom) )
     assign(f, bom, DEFAULT);
-
+  if ( !isName(f->newline_mode) )
+  {
+#ifdef __WINDOWS__
+    assign(f, newline_mode, NAME_dos);
+#else
+    assign(f, newline_mode, NAME_posix);
+#endif
+  }
   assign(f, status, NAME_closed);
   f->fd = NULL;
 
