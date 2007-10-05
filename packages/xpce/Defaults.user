@@ -25,6 +25,16 @@
 
 !editor.exact_case:	@on
 
+! How PceEmacs deals with DOS (\r\n) and POSIX (\n) newline separators.
+! Default for existing files is to detect and safe in the old format.
+! Default for new files depends on the platform, but can be overruled
+! by this declaration.  Setting the new file is particulary interesting
+! when sharing files between Windows and Unix, such as through a shared
+! filesystem, zip-exchange or exchange through a version control system
+
+!emacs_buffer.newline_existing_file: detect
+!emacs_buffer.newline_new_file: posix
+
 ! Spelling program options for the ispell demo and checker for PceEmacs.
 ! Ispell is available on most Unix installations.
 

@@ -477,6 +477,12 @@ encoding(M,
 	;   send(M, report, warning, "No file")
 	).
 
+newline_mode(M, Mode:mode={posix,dos}) :->
+	"Set save-mode for newlines"::
+	get(M, text_buffer, TB),
+	get(TB, file, File),
+	send(File, newline_mode, Mode).
+
 
 		 /*******************************
 		 *	       PRINT		*

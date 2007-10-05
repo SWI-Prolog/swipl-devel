@@ -63,7 +63,10 @@ class_variable(undo_buffer_size,      int, 40000).
 class_variable(newline_existing_file, {posix,dos,detect}, detect).
 class_variable(newline_new_file,      {posix,dos},        posix).
 :- if(current_prolog_flag(windows, true)).
+class_variable(newline_new_file,      {posix,dos},        dos).
+:- else.
 class_variable(newline_new_file,      {posix,dos},        posix).
+:- endif.
 
 initialise(B, File:file*, Name:[name]) :->
 	"Create from file and name"::
@@ -246,12 +249,16 @@ file(B, File:file) :->
 	(   send(directory(File?name), exists)
 	->  send(File, error, open_file, read, 'is a directory')
 	;   send(File, exists)
-	->  ignore(send(B, insert_file, 0, File)),
+	->  get(B, newline_existing_file, OpenMode),
+	    send(File, newline_mode, OpenMode),
+	    ignore(send(B, insert_file, 0, File)),
 	    send(B, reset_undo),
 	    send(B, modified, @off),
 	    send(B, slot, time_stamp, File?time)
 	;   send(B, reset_undo),
-	    send(B, modified, @off)
+	    send(B, modified, @off),
+	    get(B, newline_new_file, Mode),
+	    send(File, newline_mode, Mode)
 	),
 	send(B, slot, file, File),
 	new(F2, file(File?absolute_path)),

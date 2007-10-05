@@ -2166,22 +2166,23 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
 done:
   if ( Sferror(fd) )
   { tb->gap_start = where;		/* forget about it */
-    if ( instanceOfObject(file, ClassFile) )
-    { FileObj f = (FileObj)file;
-
-      switch(fd->newline)
-      { case SIO_NL_POSIX:
-	case SIO_NL_DETECT:
-	  assign(f, newline_mode, NAME_posix);
-	  break;
-	case SIO_NL_DOS:
-	  assign(f, newline_mode, NAME_dos);
-	break;
-      }
-    }
     Sclose(fd);
 
     return errorPce(file, NAME_ioError, getOsErrorPce(PCE));
+  }
+
+  if ( instanceOfObject(file, ClassFile) )
+  { FileObj f = (FileObj)file;
+
+    switch(fd->newline)
+    { case SIO_NL_POSIX:
+      case SIO_NL_DETECT:
+	assign(f, newline_mode, NAME_posix);
+	break;
+      case SIO_NL_DOS:
+	assign(f, newline_mode, NAME_dos);
+      break;
+    }
   }
 
   Sclose(fd);

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Support posix/dos newline detection in PceEmacs.  Preserves
+  file mode over load/save.
+
 * FIXED: Pass Prolog exceptions on send(@prolog, ...).  Alexandre Vautier.
 
 VERSION 6.6.43, distributed with SWI-Prolog 5.6.43
