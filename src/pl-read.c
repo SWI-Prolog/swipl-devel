@@ -847,9 +847,9 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			addToBuffer(' ', _PL_rd);
 		    }
 		    if ( c == '\n' )
-		    { IOPOS p;
-		      if ( rb.stream->position )
-			p = *rb.stream->position;
+		    { IOPOS p, *pp;
+		      if ( (pp=rb.stream->position) )
+			p = *pp;
 
 		      c = getchr();
 		      if ( c == '%' )
@@ -861,8 +861,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			continue;
 		      }
 		      Sungetcode(c, rb.stream); /* unsafe: see Sungetcode() */
-		      if ( rb.stream->position )
-			*rb.stream->position = p;
+		      if ( pp )
+			*pp = p;
 		      c = '\n';
 		    }
 		    break;
@@ -2209,7 +2209,7 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 		    PL_LIST, 2, PL_TERM, args[0].tpos,
 		    		PL_TERM, args[1].tpos);
     } else
-    { int s, e;
+    { long s, e;
       
       if ( op->kind == OP_PREFIX )
       { s = fs;
@@ -2487,8 +2487,8 @@ simple_term(bool must_be_op, term_t term, bool *name,
       if ( positions )
       { PL_unify_term(positions,
 		      PL_FUNCTOR, FUNCTOR_minus2,
-		      PL_LONG, token->start,
-		      PL_LONG, token->end);
+		      PL_INTPTR, token->start,
+		      PL_INTPTR, token->end);
       }
       succeed;
     case T_STRING:
@@ -2496,8 +2496,8 @@ simple_term(bool must_be_op, term_t term, bool *name,
       if ( positions )
       { PL_unify_term(positions,
 		      PL_FUNCTOR, FUNCTOR_string_position2,
-		      PL_LONG, token->start,
-		      PL_LONG, token->end);
+		      PL_INTPTR, token->start,
+		      PL_INTPTR, token->end);
       }
       succeed;
     case T_FUNCTOR:
@@ -2523,10 +2523,10 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    ph = PL_new_term_ref();
 	    PL_unify_term(positions,
 			  PL_FUNCTOR, FUNCTOR_term_position5,
-			  PL_LONG, token->start,
+			  PL_INTPTR, token->start,
 			  PL_TERM, pe,
-			  PL_LONG, token->start,
-			  PL_LONG, token->end,
+			  PL_INTPTR, token->start,
+			  PL_INTPTR, token->end,
 			  PL_TERM, pa);
 	  } else
 	    pa = pe = ph = 0;
@@ -2595,7 +2595,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 
 		PL_unify_term(positions,
 			      PL_FUNCTOR, FUNCTOR_brace_term_position3,
-			      PL_LONG, token->start,
+			      PL_INTPTR, token->start,
 			      PL_TERM, pe,
 			      PL_TERM, pa);
 	      } else
@@ -2622,7 +2622,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 
 		PL_unify_term(positions,
 			      PL_FUNCTOR, FUNCTOR_list_position4,
-			      PL_LONG, token->start,
+			      PL_INTPTR, token->start,
 			      PL_TERM, pe,
 			      PL_TERM, pa,
 			      PL_TERM, pt);
