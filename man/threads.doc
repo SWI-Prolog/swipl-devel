@@ -111,7 +111,7 @@ Wait for the termination of thread with given \arg{Id}.  Then unify
 the result-status of the thread with \arg{Status}.
 After this call, \arg{Id} becomes invalid and all resources associated
 with the thread are reclaimed.  Note that threads with the attribute
-\term{detached}{true} cannot be joined.  See also current_thread/2.
+\term{detached}{true} cannot be joined.  See also thread_property/2.
 
 A thread that has been completed without thread_join/2 being called on
 it is partly reclaimed: the Prolog stacks are released and the C-thread
@@ -142,10 +142,11 @@ placed in detached state.  This may be the result of PL_thread_self/1.
 
 One of the possible applications is to simplify debugging. Threads that
 are created as \jargon{detached} leave no traces if they crash. For
-not-detached threads the status can be inspected using current_thread/2.
-Threads nobody is waiting for may be created normally and detach
-themselves just before completion.  This way they leave no traces on
-normal completion and their reason for failure can be inspected.
+not-detached threads the status can be inspected using
+thread_property/2. Threads nobody is waiting for may be created normally
+and detach themselves just before completion. This way they leave no
+traces on normal completion and their reason for failure can be
+inspected.
 
     \predicate{thread_exit}{1}{+Term}
 Terminates the thread immediately, leaving \term{exited}{Term} as
@@ -169,7 +170,8 @@ Run \arg{Goal} just before releasing the thread resources. This is to be
 compared to at_halt/1, but only for the current thread. These hooks are
 ran regardless of why the execution of the thread has been completed. As
 these hooks are run, the return-code is already available through
-current_thread/2 using the result of thread_self/1 as thread-identifier.
+thread_property/2 using the result of thread_self/1 as
+thread-identifier.
 
     \predicate{thread_setconcurrency}{2}{-Old, +New}
 \index{Solaris}%
@@ -196,13 +198,21 @@ also \secref{thutil}, describing more high-level primitives.
 
 
 \begin{description}
-    \predicate{current_thread}{2}{?Id, ?Status}
-Enumerates identifiers and status of all currently known threads.
-Calling current_thread/2 does not influence any thread.  See also
+    \predicate{thread_property}{2}{?Id, ?Property}
+True if thread \arg{Id} has \arg{Property}.  Either or both arguments
+may be unbound, enumerating all relations on backtracking. 
+Calling thread_property/2 does not influence any thread.  See also
 thread_join/2.  For threads that have an alias-name, this name is
 returned in \arg{Id} instead of the numerical thread identifier.
-\arg{Status} is one of:
+Defined properties are:
 
+\begin{description}
+	\termitem{alias}{Alias}
+ \arg{Alias} is the alias name of thread \arg{Id}.
+	\termitem{detached}{Boolean}
+Current detached status of the thread.
+	\termitem{status}{Status}
+Current status of the thread.  \arg{Status} is one of:
 \begin{description}
     \termitem{running}{}
 The thread is running.  This is the initial status of a thread.  Please
@@ -223,6 +233,7 @@ exited (using pthread_exit()) \arg{Term} is unbound.
 The \arg{Goal} of the thread has been terminated due to an uncaught
 exception (see throw/1 and catch/3).
 \end{description}
+    \end{description}
 
     \predicate{thread_statistics}{3}{+Id, +Key, -Value}
 Obtains statistical information on thread \arg{Id} as statistics/2

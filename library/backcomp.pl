@@ -52,7 +52,8 @@
 	    checklist/2,		% :Goal, +List
 	    convert_time/2,		% +Stamp, -String
 	    convert_time/8,		% +String, -YMDmhs.ms
-	    'C'/3			% +List, -Head, -Tail
+	    'C'/3,			% +List, -Head, -Tail
+	    current_thread/2		% ?Thread, ?Status
 	  ]).
 
 /** <module> Backward compatibility
@@ -245,3 +246,11 @@ convert_time(Stamp, Y, Mon, Day, Hour, Min, Sec, MilliSec) :-
 %	@deprecated Do not use in normal code; DCG no longer generates it.
 
 'C'([H|T], H, T).
+
+
+%%	current_thread(?Thread, ?Status) is nondet.
+%
+%	@deprecated Replaced by thread_property/2
+
+current_thread(Thread, Status) :-
+	thread_property(Thread, status(Status)).

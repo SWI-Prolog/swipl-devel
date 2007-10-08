@@ -58,7 +58,7 @@ threads :-
 	format('~*t~60|~n', "-"),
 	format('~t~w~20|  ~w~32|~n', ['Thread', 'Status']),
 	format('~*t~60|~n', "-"),
-	current_thread(Id, Status),
+	thread_property(Id, status(Status)),
 	format('~t~w~20|  ~p~32|~n', [Id, Status]),
 	fail.
 threads :-
@@ -69,7 +69,7 @@ threads :-
 %	Join all terminated threads.
 
 join_threads :-
-	(   current_thread(Id, Status),
+	(   thread_property(Id, status(Status)),
 	    rip_thread(Status, Id),
 	    fail ; true
 	).
@@ -178,7 +178,7 @@ tspy(Spec, ThreadID) :-
 %	spy-points or errors.
 
 tdebug :-
-	forall(current_thread(Id, running),
+	forall(thread_property(Id, status(running)),
 	       thread_signal(Id, gdebug)).
 
 tdebug(ThreadID) :-
@@ -190,7 +190,7 @@ tdebug(ThreadID) :-
 %	Disable debug-mode in all threads or the specified Thread.
 
 tnodebug :-
-	forall(current_thread(Id, running),
+	forall(thread_property(Id, status(running)),
 	       thread_signal(Id, nodebug)).
 
 tnodebug(ThreadID) :-

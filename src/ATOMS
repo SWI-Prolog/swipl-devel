@@ -473,6 +473,7 @@ A start			"start"
 A stat			"stat"
 A static_procedure	"static_procedure"
 A statistics		"statistics"
+A status		"status"
 A stderr		"stderr"
 A stream		"stream"
 A stream_option		"stream_option"
@@ -504,6 +505,7 @@ A thread_initialization "thread_initialization"
 A thread_local		"thread_local"
 A thread_local_procedure "thread_local_procedure"
 A thread_option		"thread_option"
+A thread_property	"thread_property"
 A threads		"threads"
 A threads_created	"threads_created"
 A throw			"throw"
@@ -632,6 +634,7 @@ F dcall			1
 F dcut			1
 F dde_error		2
 F debugging		1
+F detached		1
 F dexit			2
 F dforeign_registered   2
 F dgarbage_collect 	1
@@ -747,6 +750,7 @@ F softcut		2
 F spy			1
 F sqrt			1
 F star			2
+F status		1
 F stream		4
 F stream_position	4
 F string		1

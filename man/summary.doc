@@ -156,7 +156,6 @@ suggest predicates from a keyword.
 \predicatesummary{current_predicate}{2}{Examine existing predicates}
 \predicatesummary{current_signal}{3}{Current software signal mapping}
 \predicatesummary{current_stream}{3}{Examine open streams}
-\predicatesummary{current_thread}{2}{Examine Prolog threads}
 \predicatesummary{cyclic_term}{1}{Test term for cycles}
 \predicatesummary{date_time_stamp}{2}{Convert sate structure to time-stamp}
 \predicatesummary{date_time_value}{3}{Extract info from a date structure}
@@ -549,6 +548,7 @@ suggest predicates from a keyword.
 \predicatesummary{thread_local}{1}{Declare thread-specific clauses for a predicate}
 \predicatesummary{thread_peek_message}{1}{Test for message}
 \predicatesummary{thread_peek_message}{2}{Test for message in a queue}
+\predicatesummary{thread_property}{2}{Examine Prolog threads}
 \predicatesummary{thread_self}{1}{Get identifier of current thread}
 \predicatesummary{thread_send_message}{2}{Send message to another thread}
 \predicatesummary{thread_setconcurrency}{2}{Number of active threads}

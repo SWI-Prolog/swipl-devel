@@ -967,7 +967,7 @@ user:prolog_event_hook(finished_query(_Qid, YesNo)) :-
 	fail.
 user:prolog_event_hook(thread_finished(Thread)) :-
 	gui(Thread, _, Gui),
-	current_thread(Thread, Status),
+	thread_property(Thread, status(Status)),
 	in_pce_thread(send(Gui, thread_finished, Status)),
 	fail.
 

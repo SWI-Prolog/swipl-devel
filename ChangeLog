@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: thread_property/2 following the prosed threading standard.
+    Moved current_thread/2 to the compatibility library.  Paulo Moura.
+
   * FIXED: 64-bit issue in subterm_positions option of read_term/3.
 
   * ADDED: Explicit DOS/POSIX newline handling.  Work in progress to

@@ -84,10 +84,12 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     case ERR_MUST_BE_VAR:
     { int argn = va_arg(args, int);
       term_t bound = va_arg(args, term_t);
+      char buf[50];
 
-      if ( !msg && (msg = alloca(100)) )
-      { Ssprintf(msg, "%d-%s argument",
+      if ( !msg )
+      { Ssprintf(buf, "%d-%s argument",
 		 argn, argn == 1 ? "st" : argn == 2 ? "nd" : "th");
+	msg = buf;
       }
 
       PL_unify_term(formal,

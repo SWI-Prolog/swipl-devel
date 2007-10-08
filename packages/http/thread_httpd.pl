@@ -337,7 +337,7 @@ open_client(tcp_client(Socket, Goal, Peer), Goal, In, Out,
 
 done_worker :-
 	thread_self(Self),
-	current_thread(Self, Status),
+	thread_property(Self, status(Status)),
 	retract(queue_worker(_Queue, Self)),
 	print_message(informational,
 		      httpd_stopped_worker(Self, Status)).

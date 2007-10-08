@@ -379,7 +379,6 @@ static const PL_extension foreigns[] = {
   FRG("thread_create",		3, pl_thread_create,	     META),
   FRG("thread_join",		2, pl_thread_join,	        0),
   FRG("thread_exit",		1, pl_thread_exit,		0),
-  FRG("current_thread",		2, pl_current_thread,        NDET),
   FRG("thread_kill",		2, pl_thread_kill,              0),
   FRG("thread_send_message",	2, pl_thread_send_message,	0),
   FRG("thread_get_message",	1, pl_thread_get_message,	0),

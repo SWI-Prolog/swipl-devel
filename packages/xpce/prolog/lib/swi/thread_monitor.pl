@@ -226,7 +226,7 @@ update(TB) :->
 	"Update with thread-status"::
 	get(TB, dict, Dict),
 	send(Dict, for_all, message(@arg1, seen, @off)),
-	forall(current_thread(Id, Status),
+	forall(thread_property(Id, status(Status)),
 	       send(TB, update_thread, Id, Status)),
 	send(Dict, for_all,
 	     if(@arg1?seen == @off,

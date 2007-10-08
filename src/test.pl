@@ -2378,7 +2378,7 @@ thread(status-1) :-
 	thread_create(true, Id, []),
 	between(0, 10, _),
 	sleep(0.01),
-	current_thread(Id2, Status),
+	thread_property(Id2, status(Status)),
 	Id2 == Id,
 	Status == true, !,
 	thread_join(Id2, _).

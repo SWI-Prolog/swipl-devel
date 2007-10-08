@@ -15,7 +15,7 @@ of signalling and broadcasting the queue condition variable.
 	seen/1.
 
 qpattern :-
-	findall(Th, current_thread(Th, _), Ths),
+	findall(Th, thread_property(Th, status(_)), Ths),
 	assertion(Ths == [main]),
 	qpattern(100).
 
@@ -37,7 +37,7 @@ qpattern(N) :-
 	;   true
 	),
 	(   repeat,
-	    findall(Th, current_thread(Th, _), Ths),
+	    findall(Th, thread_property(Th, status(_)), Ths),
 %	    writeln(Ths),
 	    (	length(Ths, 4)
 	    ->	true

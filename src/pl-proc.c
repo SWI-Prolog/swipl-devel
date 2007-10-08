@@ -310,7 +310,7 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
   if ( PL_is_functor(head, FUNCTOR_divide2) )
   { term_t a = PL_new_term_ref();
     atom_t name;
-    int arity;
+    int arity = 0;
 
     _PL_get_arg(1, head, a);
     if ( !PL_get_atom_ex(a, &name) )
@@ -1809,7 +1809,7 @@ do_abolish(Module m, term_t atom, term_t arity)
   functor_t f;
   Procedure proc;
   atom_t name;
-  int a;
+  int a = 0;
 
   if ( !PL_get_atom_ex(atom, &name) ||
        !get_arity(arity, MAXARITY, &a) )

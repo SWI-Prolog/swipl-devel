@@ -1264,43 +1264,194 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
 }
 
 
-word
-pl_current_thread(term_t id, term_t status, control_t h)
-{ int current;
-  fid_t fid;
+		 /*******************************
+		 *	  THREAD PROPERTY	*
+		 *******************************/
 
-  switch(ForeignControl(h))
+static int
+thread_alias_propery(PL_thread_info_t *info, term_t prop ARG_LD)
+{ if ( info->name )
+    return PL_unify_atom(prop, info->name);
+
+        fail;
+}
+
+static int
+thread_status_propery(PL_thread_info_t *info, term_t prop ARG_LD)
+{ return unify_thread_status(prop, info);
+    }
+
+static int
+thread_detached_propery(PL_thread_info_t *info, term_t prop ARG_LD)
+{ return PL_unify_bool_ex(prop, info->detached);
+}
+
+
+typedef struct
+{ functor_t functor;			/* functor of property */
+  int (*function)();			/* function to generate */
+} tprop;
+
+
+static const tprop tprop_list [] =
+{ { FUNCTOR_alias1,	    thread_alias_propery },
+  { FUNCTOR_status1,	    thread_status_propery },
+  { FUNCTOR_detached1,	    thread_detached_propery },
+  { 0,			    NULL }
+};
+
+
+typedef struct
+{ int 		tid;
+  const tprop  *p;
+  int		enum_threads;
+  int		enum_properties;
+} tprop_enum;
+
+
+static int
+get_prop_def(term_t t, const tprop **def)
+{ functor_t f;
+
+  if ( PL_get_functor(t, &f) ) 
+  { const tprop *p = tprop_list;
+
+    for( ; p->functor; p++ )
+    { if ( f == p->functor )
+      { *def = p;
+        return TRUE;
+      }
+    }
+
+    PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_thread_property, t);
+    return -1;
+      }
+
+  if ( PL_is_variable(t) )
+    return 0;
+
+  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_thread_property, t);
+  return -1;
+}
+
+
+static int
+advance_state(tprop_enum *state)
+{ if ( state->enum_properties )
+  { state->p++;
+    if ( state->p->functor )
+      succeed;
+
+    state->p = tprop_list;
+  }
+  if ( state->enum_threads )
+  { do
+    { state->tid++;
+      if ( state->tid >= MAX_THREADS )
+	fail;
+    } while ( threads[state->tid].status == PL_THREAD_UNUSED );
+
+    succeed;
+  }
+
+  fail;
+}
+
+
+static
+PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  term_t thread = A1;
+  term_t property = A2;
+  tprop_enum statebuf;
+  tprop_enum *state;
+
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { PL_thread_info_t *info;
 
-      if ( PL_is_variable(id) )
-      { current = 1;
-	goto redo;
-      }
-      if ( !get_thread(id, &info, FALSE) )
-        fail;
+      memset(&statebuf, 0, sizeof(statebuf));
+      state = &statebuf;
 
-      return unify_thread_status(status, info);
+      if ( PL_is_variable(thread) )
+      { switch( get_prop_def(property, &statebuf.p) )
+	{ case 1:
+	    state->tid = 1;
+	    state->enum_threads = TRUE;
+	    goto enumerate;
+	  case 0:
+	    state->p = tprop_list;
+	    state->tid = 1;
+	    state->enum_threads = TRUE;
+	    state->enum_properties = TRUE;
+	    goto enumerate;
+	  case -1:
+	    fail;
+	}
+      } else if ( get_thread(thread, &info, TRUE) )
+      { state->tid = info->pl_tid;
+
+	switch( get_prop_def(property, &statebuf.p) )
+	{ case 1:
+	    goto enumerate;
+	  case 0:
+	    state->p = tprop_list;
+	    state->enum_properties = TRUE;
+	    goto enumerate;
+	  case -1:
+      fail;
+	}
+      } else
+      { fail;
+      }
     }
     case FRG_REDO:
-      current = (int)ForeignContextInt(h);
-
-    redo:
-      fid = PL_open_foreign_frame();
-      for( ; current < MAX_THREADS; current++ )
-      { if ( threads[current].status == PL_THREAD_UNUSED )
-	   continue;
-
-	if ( unify_thread_id(id, &threads[current]) &&
-	     unify_thread_status(status, &threads[current]) )
-	  ForeignRedoInt(current+1);
-
-	PL_rewind_foreign_frame(fid);
-      }
-      fail;
+      state = CTX_PTR;
+      break;
     case FRG_CUTTED:
-    default:
+      state = CTX_PTR;
+      freeHeap(state, sizeof(*state));
       succeed;
+    default:
+      assert(0);
+  }
+
+enumerate:
+  { term_t arg = PL_new_term_ref();
+
+    if ( !state->enum_properties )
+      PL_get_arg(1, property, arg);
+  
+    for(;;)
+    { PL_thread_info_t *info = &threads[state->tid];
+      
+      if ( (*state->p->function)(info, arg PASS_LD) )
+      { if ( state->enum_properties )
+	  PL_unify_term(property, PL_FUNCTOR, state->p->functor,
+				    PL_TERM, arg);
+	if ( state->enum_threads )
+	  unify_thread_id(thread, info);
+  
+	if ( advance_state(state) )
+	{ if ( state == &statebuf )
+	  { tprop_enum *copy = allocHeap(sizeof(*copy));
+  
+	    *copy = *state;
+	    state = copy;
+	  }
+  
+	  ForeignRedoPtr(state);
+	}
+
+      succeed;
+  }
+      
+      if ( !advance_state(state) )
+      { if ( state != &statebuf )
+	  freeHeap(state, sizeof(*state));
+	fail;
+      }
+    }
   }
 }
 
@@ -3853,6 +4004,7 @@ BeginPredDefs(thread)
 #ifdef O_PLMT
   PRED_DEF("thread_detach", 1, thread_detach, 0)
   PRED_DEF("thread_statistics", 3, thread_statistics, 0)
+  PRED_DEF("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
   PRED_DEF("message_queue_create", 1, message_queue_create, 0)
   PRED_DEF("thread_get_message", 2, thread_get_message, 0)
   PRED_DEF("thread_peek_message", 2, thread_peek_message, 0)
