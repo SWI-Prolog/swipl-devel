@@ -109,7 +109,7 @@ call_with_time_limit(_Time, _Goal) :-
 		     
 call_with_time_limit2(Time, Goal) :-
 	setup_and_call_cleanup(alarm(Time, throw(time_limit_exceeded), Id),
-			       Goal,
+			       once(Goal),
 			       remove_alarm_notrace(Id)).
 
 current_alarm(Time, Goal, Id, Status) :-
