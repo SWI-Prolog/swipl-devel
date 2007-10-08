@@ -14,9 +14,9 @@ INDEX.pl
 packages/Makefile
 .pkg-config
 Makefile
-include/
-lib/
-linux/
+include
+lib
+linux
 packages/chr/Makefile
 packages/chr/chr_translate.pl
 packages/chr/chr_translate_bootstrap1.pl
@@ -33,7 +33,7 @@ packages/configure
 packages/cpp/Makefile
 packages/http/Makefile
 packages/jpl/Makefile
-packages/jpl/docs/java_api/javadoc/
+packages/jpl/docs/java_api/javadoc
 packages/jpl/jpl.jar
 packages/jpl/src/java/Makefile
 packages/ltx2htm/Makefile
@@ -55,13 +55,13 @@ packages/table/Makefile
 packages/xpce/CXX/demo/Makefile
 packages/xpce/Makefile
 packages/xpce/lib/x86_64-linux
-packages/xpce/linux/
+packages/xpce/linux
 packages/xpce/man/reference/index.obj
 packages/xpce/pl/src/Makefile.bin
 packages/xpce/prolog/lib/.pwd
 packages/xpce/prolog/lib/Makefile
 packages/xpce/prolog/pwboot/Makefile
 packages/xpce/sicstus/src/Makefile
-packages/xpce/src/names/
+packages/xpce/src/names
 packages/xpce/xpce.spec
 packages/zlib/Makefile
