@@ -19,7 +19,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-tag=V`echo $version | sed 's/\./_/g'`
+tag=V$version
 changed="ChangeLog `find packages -name ChangeLog`"
 
 echo "================================================================"
@@ -28,9 +28,9 @@ echo "================================================================"
 echo ""
 
 for f in $changed; do
-  if cvs diff -ur $tag $f | grep '^+' | grep -q '^+' ; then
+  if git diff $tag -- $f | grep '^+' | grep -q '^+' ; then
     echo "================================================================"
-    cvs diff -ur $tag $f | grep '^+' | grep -v "=============="
+    git diff $tag -- $f | grep '^+' | grep -v "=============="
     echo ""
   fi
 done
