@@ -1821,6 +1821,7 @@ typedef struct
 #define OPT_ATOM	(3)
 #define OPT_TERM	(4)		/* arbitrary term */
 #define OPT_LONG	(5)
+#define OPT_NATLONG	(6)		/* > 0 */
 #define OPT_TYPE_MASK	0xff
 #define OPT_INF		0x100		/* allow 'inf' */
 

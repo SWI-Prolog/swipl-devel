@@ -325,6 +325,7 @@ suggest predicates from a keyword.
 \predicatesummary{merge_set}{3}{Merge two sorted sets}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
 \predicatesummary{message_queue_create}{1}{Create queue for thread communication}
+\predicatesummary{message_queue_create}{2}{Create queue for thread communication}
 \predicatesummary{message_queue_destroy}{1}{Destroy queue for thread communication}
 \predicatesummary{message_queue_size}{2}{Query number of waiting terms in queue}
 \predicatesummary{message_to_string}{2}{Translate message-term to string}

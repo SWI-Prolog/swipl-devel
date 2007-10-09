@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: message_queue_create/2 for ISO compatibility.  Paulo Moura.
+
   * FIXED: library(url): use %20 instead of + for encoding spaces.
     Christopher Sutton .
 

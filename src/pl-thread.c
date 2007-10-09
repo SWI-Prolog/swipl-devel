@@ -2313,6 +2313,38 @@ PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
 }
 
 
+static const opt_spec message_queue_options[] = 
+{ { ATOM_alias,		OPT_ATOM },
+  { ATOM_max_size,	OPT_NATLONG },
+  { NULL_ATOM,		0 }
+};
+
+
+static
+PRED_IMPL("message_queue_create", 2, message_queue_create2, 0)
+{ int rval;
+  atom_t alias = 0;
+  long max_size = -1;			/* to be processed */
+
+  if ( !scan_options(A2, 0,
+		     ATOM_queue_option, message_queue_options,
+		     &alias,
+		     &max_size) )
+    fail;
+
+  if ( alias )
+  { if ( !PL_unify_atom(A1, alias) )
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, A1);
+  }
+
+  LOCK();
+  rval = (unlocked_message_queue_create(A1) ? TRUE : FALSE);
+  UNLOCK();
+
+  return rval;
+}
+
+
 static
 PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
 { message_queue *q;
@@ -4006,6 +4038,7 @@ BeginPredDefs(thread)
   PRED_DEF("thread_statistics", 3, thread_statistics, 0)
   PRED_DEF("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
   PRED_DEF("message_queue_create", 1, message_queue_create, 0)
+  PRED_DEF("message_queue_create", 2, message_queue_create2, 0)
   PRED_DEF("thread_get_message", 2, thread_get_message, 0)
   PRED_DEF("thread_peek_message", 2, thread_peek_message, 0)
   PRED_DEF("message_queue_destroy", 1, message_queue_destroy, 0)

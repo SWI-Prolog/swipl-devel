@@ -290,6 +290,15 @@ scan_options(term_t options, int flags, atom_t optype,
 
 	    break;
 	  }
+	  case OPT_NATLONG:
+	  { if ( !PL_get_long(val, values[n].l) )
+	      goto itemerror;
+	    if ( *(values[n].l) <= 0 )
+	      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			      ATOM_not_less_than_one, val);
+
+	    break;
+	  }
 	  case OPT_STRING:
 	  { char *str;
 

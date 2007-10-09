@@ -323,6 +323,19 @@ of thread_send_message/2, the name of a queue may not be in use as a
 thread-name.  If \arg{Queue} is unbound an anonymous queue is created
 and \arg{Queue} is unified to its identifier.
 
+    \predicate{message_queue_create}{2}{-Queue, +Options}
+Create a message queue from \arg{Options}.  Defined options are.
+
+    \begin{description}
+	\termitem{alias}{+Alias}
+Same as \term{message_queue_create}{Alias}, but according to the
+ISO draft on Prolog threads.
+	\termitem{max_size}{+Size}
+Maximum number of terms in the queue.  If this number is reached,
+thread_send_message/2 will block until the queue is drained. 
+\textbf{not yet implemented}.
+    \end{description}
+
     \predicate{message_queue_destroy}{1}{+Queue}
 Destroy a message queue created with message_queue_create/1.  It is
 \emph{not} allows to destroy the queue of a thread.  Neither is it

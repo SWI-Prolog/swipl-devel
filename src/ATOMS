@@ -10,6 +10,7 @@
 # awk you can propagate the changes by hand, but be careful!
 
 
+
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -316,6 +317,7 @@ A max_dde_handles	"max_dde_handles"
 A max_depth		"max_depth"
 A max_files		"max_files"
 A max_path_length	"max_path_length"
+A max_size		"max_size"
 A max_variable_length	"max_variable_length"
 A memory		"memory"
 A message		"message"
@@ -405,6 +407,7 @@ A protocol		"protocol"
 A prove			":-"
 A punct			"punct"
 A query			"?-"
+A queue_option		"queue_option"
 A quiet			"quiet"
 A quote			"quote"
 A quoted		"quoted"
