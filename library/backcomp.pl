@@ -253,4 +253,9 @@ convert_time(Stamp, Y, Mon, Day, Hour, Min, Sec, MilliSec) :-
 %	@deprecated Replaced by thread_property/2
 
 current_thread(Thread, Status) :-
+	nonvar(Thread), !,
+	catch(thread_property(Thread, status(Status)),
+	      error(existence_error(thread, _), _),
+	      fail).
+current_thread(Thread, Status) :-
 	thread_property(Thread, status(Status)).
