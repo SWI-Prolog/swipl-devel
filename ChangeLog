@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: BUF_MALLOC with REP_MB in PL_get_chars().  Causes a failure
+    in exec/1.  Alexandre Vautier
+
+Moved from CVS to GIT.
+
   * ADDED: thread_property/2 following the prosed threading standard.
     Moved current_thread/2 to the compatibility library.  Paulo Moura.
 

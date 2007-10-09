@@ -58,6 +58,7 @@ bufsize_text(PL_chars_t *text, size_t len)
   { case ENC_ISO_LATIN_1:
     case ENC_ASCII:
     case ENC_UTF8:
+    case ENC_ANSI:
       unit = sizeof(char);
       break;
     case ENC_WCHAR:
