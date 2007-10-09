@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: library(url): use %20 instead of + for encoding spaces.
+    Christopher Sutton .
+
   * FIXED: BUF_MALLOC with REP_MB in PL_get_chars().  Causes a failure
     in exec/1.  Alexandre Vautier
 

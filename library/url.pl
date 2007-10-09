@@ -808,7 +808,7 @@ percent_encode(C, _Extra) -->
 percent_encode(C, Extra) -->
 	{ memberchk(C, Extra) }, !,
 	[C].
-percent_encode(0' , _) --> !, "+".
+%percent_encode(0' , _) --> !, "+".	% Deprecated: use %20
 percent_encode(C, _) -->
 	{ C =< 128 }, !,
 	percent_byte(C).
