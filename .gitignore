@@ -6,6 +6,7 @@
 *.qlf
 *.out
 *.class
+TAGS
 config.h
 config.log
 config.status
