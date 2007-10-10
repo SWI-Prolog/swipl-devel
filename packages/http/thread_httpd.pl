@@ -424,3 +424,4 @@ prolog:message(httpd_stopped_worker(Self, Status)) -->
 	prolog:meta_goal/2.
 
 prolog:meta_goal(http_server(G, _), [G+1]).
+prolog:meta_goal(http_current_server(G, _), [G+1]).
