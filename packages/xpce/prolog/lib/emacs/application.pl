@@ -253,9 +253,6 @@ modes(_Emacs, ModeNames:chain) :<-
 
 :- pce_group(help).
 
-:- dynamic
-	help_file/1.
-
 :- pce_help_file(emacs, pce_help('emacs.hlp')).
 :- pce_help_file(emacs_customise, pce_help('customise.hlp')).
 
