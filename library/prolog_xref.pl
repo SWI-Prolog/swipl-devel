@@ -653,17 +653,23 @@ hook(term_expansion(_,_)).
 hook(resource(_,_,_)).
 
 hook(emacs_prolog_colours:goal_colours(_,_)).
+hook(emacs_prolog_colours:style(_,_)).
+hook(emacs_prolog_colours:identify(_,_)).
 hook(pce_principal:pce_class(_,_,_,_,_,_)).
 hook(pce_principal:send_implementation(_,_,_)).
 hook(pce_principal:get_implementation(_,_,_,_)).
 hook(pce_principal:pce_lazy_get_method(_,_,_)).
 hook(pce_principal:pce_lazy_send_method(_,_,_)).
+hook(pce_principal:pce_uses_template(_,_)).
 hook(prolog:locate_clauses(_,_)).
 hook(prolog:message(_,_,_)).
+hook(prolog:message_context(_,_,_)).
 hook(prolog:debug_control_hook(_)).
 hook(prolog:help_hook(_)).
 hook(prolog:show_profile_hook(_,_)).
+hook(prolog:general_exception(_,_)).
 hook(prolog_edit:load).
+hook(prolog_edit:locate(_,_,_)).
 hook(shlib:unload_all_foreign_libraries).
 hook(system:'$foreign_registered'(_, _)).
 hook(user:exception(_,_,_)).
@@ -676,6 +682,8 @@ hook(user:prolog_list_goal(_)).
 hook(user:prolog_predicate_name(_,_)).
 hook(user:prolog_trace_interception(_,_,_,_)).
 hook(user:prolog_event_hook(_)).
+hook(user:prolog_exception_hook(_,_,_,_)).
+
 
 %%	arith_callable(+Spec, -Callable)
 %	

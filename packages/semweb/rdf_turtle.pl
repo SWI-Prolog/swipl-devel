@@ -769,3 +769,13 @@ assert_triples([rdf(S,P,O)|T], Location) :-
 	assert_triples(T, Location).
 
 rdf_db:rdf_file_type(ttl, turtle).
+
+
+		 /*******************************
+		 *	   XREF SUPPORT		*
+		 *******************************/
+
+:- multifile
+	prolog:meta_goal/2.
+
+prolog:meta_goal(rdf_process_turtle(_,G,_), [G+2]).

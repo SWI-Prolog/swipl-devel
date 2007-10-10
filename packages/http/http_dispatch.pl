@@ -478,6 +478,7 @@ gen_option(Opt, GenOpt) :-
 	prolog:meta_goal/2.
 
 prolog:meta_goal(http_handler(_, G, _), [G+1]).
+prolog:meta_goal(http_current_handler(_, G), [G+1]).
 
 
 		 /*******************************
