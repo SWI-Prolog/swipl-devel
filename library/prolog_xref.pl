@@ -143,25 +143,35 @@ xref_source(Source) :-
 	xref_setup(Src, In, State),
 	call_cleanup(collect(Src, In), xref_cleanup(State)).
 
-xref_setup(Src, In, state(In, Xref, Ref)) :-
+:- thread_local
+	xref_stream/1.			% input stream
+
+xref_setup(Src, In, state(In, Xref, [SRef|HRefs])) :-
 	prolog_open_source(Src, In),
+	asserta(xref_stream(In), SRef),
 	(   current_prolog_flag(xref, Xref)
 	->  true
 	;   Xref = false
 	),
 	set_prolog_flag(xref, true),
 	(   verbose
-	->  Ref = []
-	;   asserta(user:message_hook(_,_,_), Ref)
+	->  HRefs = []
+	;   asserta(user:message_hook(_,_,_), Ref),
+	    HRefs = [Ref]
 	).
 
-xref_cleanup(state(In, Xref, Ref)) :-
+xref_cleanup(state(In, Xref, Refs)) :-
 	prolog_close_source(In),
 	set_prolog_flag(xref, Xref),
-	(   Ref \== []
-	->  erase(Ref)
-	;   true
-	).
+	maplist(erase, Refs).
+
+%%	xref_input_stream(-Stream) is det.
+%
+%	Current input stream for cross-referencer.
+
+xref_input_stream(Stream) :-
+	xref_stream(Var), !,
+	Stream = Var.
 
 %%	xref_push_op(Source, +Prec, +Type, :Name)
 %	
@@ -470,6 +480,11 @@ process_directive(op(P, A, N), Src) :-
 	xref_push_op(Src, P, A, N).
 process_directive(style_check(X), _) :-
 	style_check(X).
+process_directive(encoding(Enc), _) :-
+	(   xref_input_stream(Stream)
+	->  set_stream(Stream, encoding(Enc))
+	;   true			% can this happen?
+	).
 process_directive(system_module, _) :-
 	style_check(+dollar).
 process_directive(set_prolog_flag(character_escapes, Esc), _) :-
