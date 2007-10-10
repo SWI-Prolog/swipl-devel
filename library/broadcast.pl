@@ -165,10 +165,13 @@ canonical_listener(Templ, Templ).
 		 *	  GOAL EXPANSION	*
 		 *******************************/
 
-goal_expansion(listen(L,T,G0), listen(L,T,G)) :-
+:- multifile
+	user:goal_expansion/2.
+
+user:goal_expansion(listen(L,T,G0), listen(L,T,G)) :-
 	expand_goal(G0, G).
-goal_expansion(listen(T,G0), listen(T,G)) :-
+user:goal_expansion(listen(T,G0), listen(T,G)) :-
 	expand_goal(G0, G).
-goal_expansion(unlisten(L,T,G0), unlisten(L,T,G)) :-
+user:goal_expansion(unlisten(L,T,G0), unlisten(L,T,G)) :-
 	expand_goal(G0, G).
 
