@@ -424,4 +424,9 @@ prolog:message(sgml(Parser, File, Line, Message)) -->
 	prolog:called_by/2.
 
 prolog:called_by(sgml_parse(_, Options), Called) :-
-	findall(G+3, member(call(_, G), Options), Called).
+	is_list(Options),
+	findall(G+3,
+		(   member(call(_, G), Options),
+		    callable(G)
+		),
+		Called).
