@@ -99,6 +99,14 @@
 :- dynamic
 	meta_goal/2.
 
+called_by(Goal, Called) :-
+	prolog:called_by(Goal, Called), !.
+called_by(on_signal(_,_,New), [New+1]) :-
+	(   new == throw
+	;   new == default
+	), !, fail.
+
+
 		 /*******************************
 		 *	     BUILT-INS		*
 		 *******************************/
@@ -520,7 +528,7 @@ process_meta_predicate(Decl) :-
 	functor(Head, Name, Arity),
 	meta_args(1, Arity, Decl, Head, Meta),
 	(   (   prolog:meta_goal(Head, _)
-	    ;   prolog:called_by(Head, _)
+	    ;   called_by(Head, _)
 	    ;   meta_goal(Head, _)
 	    )
 	->  true
@@ -588,7 +596,6 @@ xref_meta(call_cleanup(A, B),	[A, B]).
 xref_meta(call_cleanup(A, _, B),[A, B]).
 xref_meta(setup_and_call_cleanup(A, B, C),[A, B, C]).
 xref_meta(setup_and_call_cleanup(A, B, _, C),[A, B, C]).
-xref_meta(on_signal(_,_,A),	[A+1]).
 xref_meta(with_mutex(_,A),	[A]).
 xref_meta(assume(G),		[G]).	% library(debug)
 xref_meta(assertion(G),		[G]).	% library(debug)
@@ -691,7 +698,7 @@ arith_callable(Name/Arity, Goal) :-
 process_body(Var, _, _) :-
 	var(Var), !.
 process_body(Goal, Origin, Src) :-
-	prolog:called_by(Goal, Called), !,
+	called_by(Goal, Called), !,
 	(   is_list(Called)
 	->  true
 	;   throw(error(type_error(list, Called), _))
