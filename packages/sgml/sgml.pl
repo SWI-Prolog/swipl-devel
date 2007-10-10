@@ -60,6 +60,7 @@
 	    xml_name/1,			% +In
 	    xml_is_dom/1		% +Term
 	  ]).
+:- use_module(library(lists)).
 
 :- multifile user:file_search_path/2.
 :- dynamic   user:file_search_path/2.
@@ -413,3 +414,14 @@ prolog:message(sgml(Parser, File, Line, Message)) -->
 	{ get_sgml_parser(Parser, dialect(Dialect))
 	},
 	[ 'SGML2PL(~w): ~w:~w: ~w'-[Dialect, File, Line, Message] ].
+
+
+		 /*******************************
+		 *	   XREF SUPPORT		*
+		 *******************************/
+
+:- multifile
+	prolog:called_by/2.
+
+prolog:called_by(sgml_parse(_, Options), Called) :-
+	findall(G+3, member(call(_, G), Options), Called).
