@@ -1,5 +1,7 @@
 Oct 10, 2007
 
+  * ADDED: register_namespaces(Bool) option to rdf_load/2
+
   * FIXED: Interaction between locking and signals (possible deeadlock).
 
 Sep 27, 2007

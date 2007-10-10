@@ -197,6 +197,31 @@ rdf_register_ns(Alias, URI, Options) :-
 rdf_register_ns(Alias, URI, _) :-
 	assert(ns(Alias, URI)).
 
+%%	register_file_ns(+Map:list(NS=URL)) is det.
+%	
+%	Register a namespace as encounted in   the  namespace list of an
+%	RDF document. We only register if  both the abbreviation and URL
+%	are not already known. Is there a   better  way? This code could
+%	also do checks on the consistency   of  RDF and other well-known
+%	namespaces.
+%	
+%	@tbd	Better error handling
+
+register_file_ns([]) :- !.
+register_file_ns([NS=URL|T]) :- !,
+	register_file_ns(NS=URL),
+	register_file_ns(T).
+register_file_ns([]=_) :- !.		% xmlns= (overall default)
+register_file_ns(NS=URL) :-
+	(   rdf_db:ns(NS, URL)
+	->  true
+	;   rdf_db:ns(NS, _)
+	->  true			% redefined abbreviation
+	;   rdf_db:ns(_, URL)
+	->  true			% redefined URL
+	;   rdf_register_ns(NS, URL)
+	).
+
 
 %%	rdf_global_id(?Id, ?GlobalId) is det.
 %
@@ -731,6 +756,10 @@ rdf_load_db(File) :-
 %	    * cache(Bool)
 %	    If =false=, do not use or create a cache file.
 %	    
+%	    * register_namespaces(Bool)
+%	    If =true= (default =false=), register xmlns= namespace
+%	    declarations as ns/2 namespaces if there is no conflict.
+%	    
 %	Other options are forwarded to process_rdf/3.
 
 rdf_load(Spec) :-
@@ -758,10 +787,15 @@ rdf_load(Spec, Options0) :-
 	select_option(blank_nodes(ShareMode), Options3, Options4, share),
 	select_option(cache(Cache), Options4, Options5, true),
 	select_option(if(If), Options5, Options6, changed),
-	select_option(db(DB), Options6, RDFOptions, SourceURL),
+	select_option(db(DB), Options6, Options7, SourceURL),
+	select_option(register_namespaces(RegNS), Options7, RDFOptions0, false),
 	(   var(BaseURI)
 	->  BaseURI = SourceURL
 	;   true
+	),
+	(   RegNS == true
+	->  RDFOptions = [ namespaces(NSList)|RDFOptions0]
+	;   RDFOptions = RDFOptions0
 	),
 	(   must_load(If, DB, Modified)
 	->  do_unload(DB),		% unload old
@@ -779,6 +813,7 @@ rdf_load(Spec, Options0) :-
 					     | RDFOptions
 					     ]),
 			     close_input(Input, Stream)), !,
+		register_file_ns(NSList),
 		rdf_set_graph_source(DB, SourceURL),
 		(   Cache == true,
 		    rdf_cache_file(SourceURL, write, CacheFile)

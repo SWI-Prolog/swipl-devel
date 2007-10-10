@@ -829,7 +829,12 @@ not loaded, but does not check for modifications.</DD>
 If <VAR>Bool</VAR> is <CODE>true</CODE>, the message reporting 
 completion is printed using level <CODE>silent</CODE>. Otherwise the 
 level is
-<CODE>informational</CODE>. See also <A NAME="idx:printmessage2:40"></A><SPAN class="pred-ext">print_message/2</SPAN>.
+<CODE>informational</CODE>. See also <A NAME="idx:printmessage2:40"></A><SPAN class="pred-ext">print_message/2</SPAN>.</DD>
+<DT><STRONG>register_namespaces</STRONG>(<VAR>+Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>true</CODE> (default <CODE>false</CODE>), register <CODE>xmlns:ns=url</CODE> 
+namespace declarations as rdf_db:ns(ns,url) namespaces if there is no 
+conflict.
 </DD>
 </DL>
 

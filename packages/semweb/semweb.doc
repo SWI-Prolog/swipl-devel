@@ -576,6 +576,11 @@ source if it was not loaded, but does not check for modifications.
 If \arg{Bool} is \const{true}, the message reporting completion is
 printed using level \const{silent}. Otherwise the level is
 \const{informational}.  See also print_message/2.
+
+    \termitem{register_namespaces}{+Bool}
+If \const{true} (default \const{false}), register \verb$xmlns:ns=url$
+namespace declarations as rdf_db:ns(ns,url) namespaces if there is no
+conflict.
 \end{description}
 
     \predicate{rdf_unload}{1}{+Spec}

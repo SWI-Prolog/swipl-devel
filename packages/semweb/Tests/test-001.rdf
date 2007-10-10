@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE rdf:RDF [
+        <!ENTITY rdf 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+        <!ENTITY test 'http://www.swi-prolog.org/ns/test/'>
+   ]>
+
+<!-- Simple test data
+ -->
+
+<rdf:RDF xmlns:rdf="&rdf;"
+         xmlns:test="&test;">
+
+<test:Root>
+</test:Root>
+
+</rdf:RDF>
