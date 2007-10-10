@@ -168,6 +168,7 @@ submit_goals([H|T], I, M, Queue, [Vars|VT]) :-
 
 concur_wait(0, _, _, true, []) :- !.
 concur_wait(N, Done, VT, Status, Exitted) :-
+	debug(concurrent, 'Waiting: ...', []),
 	thread_get_message(Done, Exit),
 	debug(concurrent, 'Waiting: received ~p', [Exit]),
 	(   Exit = done(_Worker, Id, Vars)
