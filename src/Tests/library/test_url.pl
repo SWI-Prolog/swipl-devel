@@ -76,9 +76,9 @@ test_b('http://gollem/%d0%b5%d0%b7%d1%83%d0%bf%d1%80',
        [protocol(http), host('gollem'), path('/езупр')]).
 test_b('http://gollem/?name=value', 
        [protocol(http), host(gollem), path(/), search([name=value])]).
-test_b('http://gollem/?name=w1+w2', 
+test_b('http://gollem/?name=w1%20w2', 
        [protocol(http), host(gollem), path(/), search([name='w1 w2'])]).
-test_b('http://gollem/?name=w1+w2&a=b', 
+test_b('http://gollem/?name=w1%20w2&a=b', 
        [protocol(http), host(gollem), path(/), search([name='w1 w2',a=b])]).
 
 
