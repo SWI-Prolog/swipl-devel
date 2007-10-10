@@ -5411,7 +5411,7 @@ static foreign_t
 		}
 	if ( n != i )
 		{
-		if ( jvm_dia[0] != NULL ) /* definitely not first time? */
+		if ( jvm_dia != jvm_ia ) /* BUGFIX 10/Oct/2007 Bernhard (was jvm_dia[0] != NULL); definitely not first time? */
 			{
 			free(jvm_dia);
 			}
