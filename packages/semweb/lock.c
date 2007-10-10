@@ -158,7 +158,8 @@ rdlock(rwlock *lock)
   { int rc = win32_cond_wait(&lock->rdcondvar, &lock->mutex);
 
     if ( rc == WAIT_INTR )
-    { LeaveCriticalSection(&lock->mutex);
+    { lock->waiting_readers--;
+      LeaveCriticalSection(&lock->mutex);
       return FALSE;
     } else if ( rc == 0 )
     { if ( lock->allow_readers == TRUE )
@@ -209,7 +210,8 @@ wrlock(rwlock *lock, int allow_readers)
   { int rc = win32_cond_wait(&lock->wrcondvar, &lock->mutex);
 
     if ( rc == WAIT_INTR )
-    { LeaveCriticalSection(&lock->mutex);
+    { lock->waiting_writers--;
+      LeaveCriticalSection(&lock->mutex);
       return FALSE;
     } else if ( rc == 0 )
     { if ( lock->writer == -1 && lock->readers == 0 )
@@ -242,7 +244,8 @@ lockout_readers(rwlock *lock)
   { int rc = win32_cond_wait(&lock->upcondvar, &lock->mutex);
 
     if ( rc == WAIT_INTR )
-    { LeaveCriticalSection(&lock->mutex);
+    { lock->waiting_upgrade--;
+      LeaveCriticalSection(&lock->mutex);
       return FALSE;
     } else if ( rc == 0 )
     { if ( lock->readers == 0 )
@@ -411,7 +414,10 @@ rdlock(rwlock *lock)
 
     if ( rc == EINTR )
     { if ( PL_handle_signals() < 0 )
+      { lock->waiting_readers--;
+	pthread_mutex_unlock(&lock->mutex);
 	return FALSE;
+      }
       continue;
     } else if ( rc == 0 )
     { if ( lock->allow_readers == TRUE )
@@ -473,7 +479,10 @@ wrlock(rwlock *lock, int allow_readers)
 
     if ( rc == EINTR )
     { if ( PL_handle_signals() < 0 )
+      { lock->waiting_writers--;
+	pthread_mutex_unlock(&lock->mutex);
 	return FALSE;
+      }
       continue;
     } else if ( rc == 0 )
     { if ( lock->writer == -1 && lock->readers == 0 )
@@ -507,7 +516,10 @@ lockout_readers(rwlock *lock)
 
     if ( rc == EINTR )
     { if ( PL_handle_signals() < 0 )
+      { lock->waiting_upgrade--;
+	pthread_mutex_unlock(&lock->mutex);
 	return FALSE;
+      }
       continue;
     } else if ( rc == 0 )
     { if ( lock->readers == 0 )
