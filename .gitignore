@@ -5,6 +5,12 @@
 *.old
 *.qlf
 *.out
+*.aux
+*.idx
+*.ilg
+*.ind
+*.log
+*.toc
 *.class
 TAGS
 config.h
@@ -46,6 +52,7 @@ packages/pldoc/Makefile
 packages/plld.sh
 packages/plunit/Makefile
 packages/semweb/Makefile
+packages/semweb/semweb.tex
 packages/sgml/.coflags
 packages/sgml/Makefile
 packages/sgml/RDF/Makefile
