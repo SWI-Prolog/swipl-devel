@@ -2698,12 +2698,41 @@ unlocked_pl_mutex_create(term_t mutex)
 }
 
 
-foreign_t
-pl_mutex_create(term_t mutex)
+static
+PRED_IMPL("mutex_create", 1, mutex_create1, 0)
 { int rval;
 
   LOCK();
-  rval = (unlocked_pl_mutex_create(mutex) ? TRUE : FALSE);
+  rval = (unlocked_pl_mutex_create(A1) ? TRUE : FALSE);
+  UNLOCK();
+
+  return rval;
+}
+
+
+static const opt_spec mutex_options[] = 
+{ { ATOM_alias,		OPT_ATOM },
+  { NULL_ATOM,		0 }
+};
+
+
+static
+PRED_IMPL("mutex_create", 2, mutex_create2, 0)
+{ int rval;
+  atom_t alias = 0;
+
+  if ( !scan_options(A2, 0,
+		     ATOM_mutex_option, mutex_options,
+		     &alias) )
+    fail;
+
+  if ( alias )
+  { if ( !PL_unify_atom(A1, alias) )
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, A1);
+  }
+
+  LOCK();
+  rval = (unlocked_pl_mutex_create(A1) ? TRUE : FALSE);
   UNLOCK();
 
   return rval;
@@ -4044,6 +4073,8 @@ BeginPredDefs(thread)
   PRED_DEF("message_queue_destroy", 1, message_queue_destroy, 0)
   PRED_DEF("thread_setconcurrency", 2, thread_setconcurrency, 0)
   PRED_DEF("mutex_statistics", 0, mutex_statistics, 0)
+  PRED_DEF("mutex_create", 1, mutex_create1, 0)
+  PRED_DEF("mutex_create", 2, mutex_create2, 0)
   PRED_DEF("message_queue_size", 2, message_queue_size, 0)
 #endif
 EndPredDefs

@@ -522,6 +522,15 @@ Create a mutex.  if \arg{MutexId} is an atom, a \jargon{named} mutex is
 created.  If it is a variable, an anonymous mutex reference is returned.
 There is no limit to the number of mutexes that can be created.
 
+    \predicate{mutex_create}{2}{-MutexId, +Options}
+Create a mutex using options.  Defined options are:
+
+    \begin{description}
+    	\termitem{alias}{Alias}
+Set the alias name.  Using \term{mutex_create}{X, [alias(name)]}
+is prefered over the equivalent \term{mutex_create}{name}.
+    \end{description}
+
     \predicate{mutex_destroy}{1}{+MutexId}
 Destroy a mutex.  After this call, \arg{MutexId} becomes invalid and
 further references yield an \except{existence_error} exception.

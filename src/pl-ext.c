@@ -385,7 +385,6 @@ static const PL_extension foreigns[] = {
   FRG("thread_peek_message",	1, pl_thread_peek_message,	0),
   FRG("thread_signal",		2, pl_thread_signal,	     META),
   FRG("thread_at_exit",		1, pl_thread_at_exit,	     META),
-  FRG("mutex_create",		1, pl_mutex_create,		0),
   FRG("mutex_destroy",		1, pl_mutex_destroy,		0),
   FRG("mutex_lock",		1, pl_mutex_lock,		0),
   FRG("mutex_trylock",		1, pl_mutex_trylock,		0),

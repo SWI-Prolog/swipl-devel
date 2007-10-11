@@ -310,7 +310,6 @@ extern foreign_t	pl_thread_signal(term_t thread, term_t goal);
 extern foreign_t	pl_thread_at_exit(term_t goal);
 extern int		PL_thread_self(void);
 
-extern foreign_t	pl_mutex_create(term_t mutex);
 extern foreign_t	pl_mutex_destroy(term_t mutex);
 extern foreign_t	pl_mutex_lock(term_t mutex);
 extern foreign_t	pl_mutex_trylock(term_t mutex);
