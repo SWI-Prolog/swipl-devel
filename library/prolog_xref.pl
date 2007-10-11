@@ -562,7 +562,8 @@ xref_meta((A; B), 		[A, B]).
 xref_meta((A| B), 		[A, B]).
 xref_meta((A -> B),		[A, B]).
 xref_meta((A *-> B),		[A, B]).
-xref_meta(findall(_V, G, _L),	[G]).
+xref_meta(findall(_V,G,_L),	[G]).
+xref_meta(findall(_V,G,_L,_T),	[G]).
 xref_meta(setof(_V, G, _L),	[G]).
 xref_meta(bagof(_V, G, _L),	[G]).
 xref_meta(forall(A, B),		[A, B]).
@@ -652,6 +653,8 @@ hook(goal_expansion(_,_)).
 hook(term_expansion(_,_)).
 hook(resource(_,_,_)).
 
+hook(emacs_prolog_colours:goal_classification(_,_)).
+hook(emacs_prolog_colours:term_colours(_,_)).
 hook(emacs_prolog_colours:goal_colours(_,_)).
 hook(emacs_prolog_colours:style(_,_)).
 hook(emacs_prolog_colours:identify(_,_)).

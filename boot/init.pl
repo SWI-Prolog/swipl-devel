@@ -1680,6 +1680,8 @@ expand_goal(A, B) :-
         '$do_expand_body'(B, EB).
 '$do_expand_body'(findall(V, G, B), findall(V, EG, B)) :- !,
         '$do_expand_body'(G, EG).
+'$do_expand_body'(findall(V, G, B, T), findall(V, EG, B, T)) :- !,
+        '$do_expand_body'(G, EG).
 '$do_expand_body'(bagof(V, G, B), bagof(V, EG, B)) :- !,
         '$do_expand_body'(G, EG).
 '$do_expand_body'(setof(V, G, B), setof(V, EG, B)) :- !,

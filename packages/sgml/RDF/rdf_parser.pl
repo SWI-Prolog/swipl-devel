@@ -316,9 +316,6 @@ typed_literal(Type, [Text], literal(type(Type, Text)), _Options) :- !.
 typed_literal(Type, Content, literal(type(Type, Content)), _Options).
 	
 
-idTermAttr(id(Id), Options) ::=
-	\idAttr(Id, Options).
-
 idAboutAttr(id(Id), Options) ::=
 	\idAttr(Id, Options), !.
 idAboutAttr(about(About), Options) ::=
@@ -327,11 +324,6 @@ idAboutAttr(node(About), _Options) ::=
 	\nodeIDAttr(About), !.
 idAboutAttr(AboutEach, Options) ::=
 	\aboutEachAttr(AboutEach, Options).
-
-idRefAttr(Id, Options) ::=
-	\idAttr(Id, Options), !.
-idRefAttr(about(URI), Options) ::=
-	\resourceAttr(URI, Options).
 
 %%	an_rdf_object(-Object, +OptionsURI)
 %
@@ -745,7 +737,14 @@ emacs_prolog_colours:goal_classification(\_, expanded).
 :- dynamic
 	prolog:meta_goal/2.
 :- multifile
-	prolog:meta_goal/2.
+	prolog:meta_goal/2,
+	prolog:called_by/2.
 
 prolog:meta_goal(rewrite(A, _), [A]).
 prolog:meta_goal(\A,		[A+1]).
+
+prolog:called_by(attrs(Attrs, _Term), Called) :-
+	findall(G+1, sub_term(\?G, Attrs), Called, Tail),
+	findall(G+1, sub_term(\G, Attrs), Tail).
+
+
