@@ -675,20 +675,9 @@ reperror(int c, IOSTREAM *s)
 
 
 
-int
-Sputcode(int c, IOSTREAM *s)
-{ if ( c < 0 )
-    return reperror(c, s);
-
-  if ( s->tee && s->tee->magic == SIO_MAGIC )
-    Sputcode(c, s->tee);
-
-  if ( c == '\n' && (s->flags&SIO_TEXT) && s->newline == SIO_NL_DOS )
-  { if ( Sputcode('\r', s) < 0 )
-      return -1;
-  }
-
-  switch(s->encoding)
+static int
+put_code(int c, IOSTREAM *s)
+{ switch(s->encoding)
   { case ENC_OCTET:
     case ENC_ISO_LATIN_1:
       if ( c >= 256 )
@@ -783,6 +772,23 @@ Sputcode(int c, IOSTREAM *s)
   }
 
   return S__updatefilepos(s, c);
+}
+
+
+int
+Sputcode(int c, IOSTREAM *s)
+{ if ( c < 0 )
+    return reperror(c, s);
+
+  if ( s->tee && s->tee->magic == SIO_MAGIC )
+    Sputcode(c, s->tee);
+
+  if ( c == '\n' && (s->flags&SIO_TEXT) && s->newline == SIO_NL_DOS )
+  { if ( put_code('\r', s) < 0 )
+      return -1;
+  }
+
+  return put_code(c, s);
 }
 
 
