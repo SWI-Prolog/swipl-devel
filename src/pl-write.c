@@ -832,7 +832,6 @@ writeList2(term_t list, write_options *options)
 
 					/* cycle detection */
     { Word addr =  address_of(l);
-      visited *v;
 
       if ( has_visited(options->visited, addr) )
       { return PutString("|**]", options->out);

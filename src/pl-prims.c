@@ -650,7 +650,7 @@ ph_visited(Functor f, phase ph ARG_LD)
 
 static int
 ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
-{ int arity, i;
+{ int arity;
   Functor f;
 
 last:
