@@ -187,3 +187,4 @@
 #define FUNCTOR_warning3     MK_FUNCTOR(186, 3)
 #define FUNCTOR_xor2         MK_FUNCTOR(187, 2)
 #define FUNCTOR_xpceref1     MK_FUNCTOR(188, 1)
+#define FUNCTOR_locked2      MK_FUNCTOR(189, 2)

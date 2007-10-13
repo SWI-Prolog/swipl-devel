@@ -578,11 +578,27 @@ Unlock all mutexes held by the current thread.  This call is especially
 useful to handle thread-termination using abort/0 or exceptions.  See
 also thread_signal/2.
 
+    \predicate{mutex_property}{2}{?MutexId, ?Property}
+True if Property is a property of MutexId.  Defined properties are:
+
+    \begin{description}
+	\termitem{alias}{Alias}
+Mutex has defined alias name.  See mutex_create/2 using the `alias'
+option.
+
+	\termitem{locked}{Owner, Count}
+Mutex is locked \arg{Count} times by threads \arg{Owner}.  Note that,
+unless \arg{Owner} is the calling thread, the locked status can change
+at any time.  There is no useful application of this property, except
+for diagnostic purposes.
+    \end{description}
+
     \predicate{current_mutex}{3}{?MutexId, ?ThreadId, ?Count}
 Enumerates all existing mutexes.  If the mutex is held by some thread,
 \arg{ThreadId} is unified with the identifier of the holding thread and
 \arg{Count} with the recursive count of the mutex. Otherwise,
-\arg{ThreadId} is \const{[]} and \arg{Count} is 0.
+\arg{ThreadId} is \const{[]} and \arg{Count} is 0.  Deprecated. new
+code should use mutex_property/2.
 \end{description}
 
 

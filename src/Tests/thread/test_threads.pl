@@ -34,7 +34,8 @@ This module is a Unit test for Prolog built-ins that process threads.
 
 
 test_threads :-
-	run_tests([ thread_property
+	run_tests([ thread_property,
+		    mutex_property
 		  ]).
 
 
@@ -130,3 +131,33 @@ test(existence, error(domain_error(thread_property, a))) :-
 	thread_property(_, a).
 
 :- end_tests(thread_property).
+
+
+		 /*******************************
+		 *	       MUTEXES		*
+		 *******************************/
+
+:- begin_tests(mutex_property).
+
+test(alias, Alias == m42) :-
+	mutex_create(X, [alias(m42)]),
+	mutex_property(X, alias(Alias)),
+	mutex_destroy(X).
+
+test(generate, true) :-
+	mutex_create(X, [alias(m43)]),
+	mutex_create(Y, [alias(m44)]),
+	findall(I, mutex_property(_, alias(I)), Is),
+	mutex_destroy(X),
+	mutex_destroy(Y),
+	subset([m43,m44], Is).
+
+test(locked, [By,Count] == [Me,1]) :-
+	thread_self(Me),
+	mutex_create(X, []),
+	mutex_lock(X),
+	mutex_property(X, locked(By, Count)),
+	mutex_unlock(X),
+	mutex_destroy(X).
+
+:- end_tests(mutex_property).

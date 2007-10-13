@@ -339,6 +339,7 @@ A msb			"msb"
 A multifile		"multifile"
 A mutex			"mutex"
 A mutex_option		"mutex_option"
+A mutex_property	"mutex_property"
 A natural		"natural"
 A newline		"newline"
 A nil			"[]"
@@ -780,3 +781,4 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
+F locked		2

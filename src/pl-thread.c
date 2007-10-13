@@ -1273,13 +1273,13 @@ thread_alias_propery(PL_thread_info_t *info, term_t prop ARG_LD)
 { if ( info->name )
     return PL_unify_atom(prop, info->name);
 
-        fail;
+  fail;
 }
 
 static int
 thread_status_propery(PL_thread_info_t *info, term_t prop ARG_LD)
 { return unify_thread_status(prop, info);
-    }
+}
 
 static int
 thread_detached_propery(PL_thread_info_t *info, term_t prop ARG_LD)
@@ -1310,11 +1310,11 @@ typedef struct
 
 
 static int
-get_prop_def(term_t t, const tprop **def)
+get_prop_def(term_t t, atom_t expected, const tprop *list, const tprop **def)
 { functor_t f;
 
   if ( PL_get_functor(t, &f) ) 
-  { const tprop *p = tprop_list;
+  { const tprop *p = list;
 
     for( ; p->functor; p++ )
     { if ( f == p->functor )
@@ -1323,14 +1323,14 @@ get_prop_def(term_t t, const tprop **def)
       }
     }
 
-    PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_thread_property, t);
+    PL_error(NULL, 0, NULL, ERR_DOMAIN, expected, t);
     return -1;
-      }
+  }
 
   if ( PL_is_variable(t) )
     return 0;
 
-  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_thread_property, t);
+  PL_error(NULL, 0, NULL, ERR_TYPE, expected, t);
   return -1;
 }
 
@@ -1374,7 +1374,8 @@ PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
       state = &statebuf;
 
       if ( PL_is_variable(thread) )
-      { switch( get_prop_def(property, &statebuf.p) )
+      { switch( get_prop_def(property, ATOM_thread_property,
+			     tprop_list, &statebuf.p) )
 	{ case 1:
 	    state->tid = 1;
 	    state->enum_threads = TRUE;
@@ -1391,7 +1392,8 @@ PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
       } else if ( get_thread(thread, &info, TRUE) )
       { state->tid = info->pl_tid;
 
-	switch( get_prop_def(property, &statebuf.p) )
+	switch( get_prop_def(property, ATOM_thread_property,
+			     tprop_list, &statebuf.p) )
 	{ case 1:
 	    goto enumerate;
 	  case 0:
@@ -1443,8 +1445,8 @@ enumerate:
 	  ForeignRedoPtr(state);
 	}
 
-      succeed;
-  }
+	succeed;
+      }
       
       if ( !advance_state(state) )
       { if ( state != &statebuf )
@@ -2975,6 +2977,210 @@ pl_current_mutex(term_t mutex, term_t owner, term_t count, control_t h)
   fail;
 }
 
+		 /*******************************
+		 *	  MUTEX_PROPERTY	*
+		 *******************************/
+
+static int				/* mutex_property(Mutex, alias(Name)) */
+mutex_alias_property(pl_mutex *m, term_t prop ARG_LD)
+{ if ( isAtom(m->id) )
+    return PL_unify_atom(prop, m->id);
+
+  fail;
+}
+
+
+static int				/* mutex_property(Mutex, locked(By, Count)) */
+mutex_locked_property(pl_mutex *m, term_t a1, term_t a2 ARG_LD)
+{ if ( m->owner )
+  { return unify_thread_id(a1, &threads[m->owner]) &&
+           PL_unify_integer(a2, m->count);
+  }
+
+  fail;
+}
+
+
+static const tprop mprop_list [] =
+{ { FUNCTOR_alias1,	    mutex_alias_property },
+  { FUNCTOR_locked2,	    mutex_locked_property },
+  { 0,			    NULL }
+};
+
+
+typedef struct
+{ TableEnum e;				/* Enumerator on mutex-table */
+  pl_mutex *m;				/* current mutex */
+  const tprop *p;			/* Pointer in properties */
+  int enum_properties;			/* Enumerate the properties */
+} mprop_enum;
+
+
+static int
+advance_mstate(mprop_enum *state)
+{ if ( state->enum_properties )
+  { state->p++;
+    if ( state->p->functor )
+      succeed;
+
+    state->p = mprop_list;
+  }
+  if ( state->e )
+  { Symbol s;
+
+    if ( (s = advanceTableEnum(state->e)) )
+    { state->m = s->value;
+
+      succeed;
+    }
+  }
+
+  fail;
+}
+
+
+static void
+free_mstate(mprop_enum *state)
+{ if ( state->e )
+    freeTableEnum(state->e);
+
+  freeHeap(state, sizeof(*state));
+}
+
+
+static
+PRED_IMPL("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  term_t mutex = A1;
+  term_t property = A2;
+  mprop_enum statebuf;
+  mprop_enum *state;
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+    { memset(&statebuf, 0, sizeof(statebuf));
+      state = &statebuf;
+
+      if ( PL_is_variable(mutex) )
+      { switch( get_prop_def(property, ATOM_mutex_property,
+			     mprop_list, &state->p) )
+	{ case 1:
+	    state->e = newTableEnum(GD->thread.mutexTable);
+	    goto enumerate;
+	  case 0:
+	    state->e = newTableEnum(GD->thread.mutexTable);
+	    state->p = mprop_list;
+	    state->enum_properties = TRUE;
+	    goto enumerate;
+	  case -1:
+	    fail;
+	}
+      } else if ( get_mutex(mutex, &state->m, FALSE) )
+      { switch( get_prop_def(property, ATOM_mutex_property,
+			     mprop_list, &state->p) )
+	{ case 1:
+	    goto enumerate;
+	  case 0:
+	    state->p = mprop_list;
+	    state->enum_properties = TRUE;
+	    goto enumerate;
+	  case -1:
+	    fail;
+	}
+      } else
+      { fail;
+      }
+    }
+    case FRG_REDO:
+      state = CTX_PTR;
+      break;
+    case FRG_CUTTED:
+      state = CTX_PTR;
+      free_mstate(state);
+      succeed;
+    default:
+      assert(0);
+  }
+
+enumerate:
+  if ( !state->m )			/* first time, enumerating mutexes */
+  { Symbol s;
+
+    assert(state->e);
+    if ( (s=advanceTableEnum(state->e)) )
+    { state->m = s->value;
+    } else
+    { freeTableEnum(state->e);
+      assert(state != &statebuf);
+      fail;
+    }
+  }
+
+
+  { term_t a1 = PL_new_term_ref();
+    term_t a2 = PL_new_term_ref();
+
+    if ( !state->enum_properties )
+    { PL_get_arg(1, property, a1);
+      PL_get_arg(2, property, a2);
+    }
+
+    for(;;)
+    { int arity = arityFunctor(state->p->functor);
+      int rval;
+
+      switch(arity)
+      { case 1:
+	  rval = (*state->p->function)(state->m, a1 PASS_LD);
+	  break;
+	case 2:
+	  rval = (*state->p->function)(state->m, a1, a2 PASS_LD);
+	  break;
+	default:
+	  assert(0);
+	  rval = FALSE;
+      }
+
+      if ( (*state->p->function)(state->m, a1, a2 PASS_LD) )
+      { if ( state->enum_properties )
+	{ switch ( arity )
+	  { case 1:
+	      PL_unify_term(property,
+			    PL_FUNCTOR, state->p->functor,
+			      PL_TERM, a1);
+	      break;
+	    case 2:
+	      PL_unify_term(property,
+			    PL_FUNCTOR, state->p->functor,
+			      PL_TERM, a1, PL_TERM, a2);
+	  }
+	}
+	if ( state->e )
+	  unify_mutex(mutex, state->m);
+  
+	if ( advance_mstate(state) )
+	{ if ( state == &statebuf )
+	  { mprop_enum *copy = allocHeap(sizeof(*copy));
+  
+	    *copy = *state;
+	    state = copy;
+	  }
+  
+	  ForeignRedoPtr(state);
+	}
+
+	succeed;
+      }
+      
+      if ( !advance_mstate(state) )
+      { if ( state != &statebuf )
+	  free_mstate(state);
+	fail;
+      }
+    }
+  }
+}
+
 
 		 /*******************************
 		 *	FOREIGN INTERFACE	*
@@ -4075,6 +4281,7 @@ BeginPredDefs(thread)
   PRED_DEF("mutex_statistics", 0, mutex_statistics, 0)
   PRED_DEF("mutex_create", 1, mutex_create1, 0)
   PRED_DEF("mutex_create", 2, mutex_create2, 0)
+  PRED_DEF("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC)
   PRED_DEF("message_queue_size", 2, message_queue_size, 0)
 #endif
 EndPredDefs
