@@ -2576,7 +2576,7 @@ parent (it is the entry of PL_next_solution()),
 
 	if ( BFR->frame == FR && BFR->type == CHP_CATCH )
 	{ DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));
-	  for(BFR = BFR->parent; BFR->frame == FR; BFR = BFR->parent)
+	  for(BFR = BFR->parent; BFR > (Choice)FR; BFR = BFR->parent)
 	  { assert(BFR->type == CHP_DEBUG);
 	  }
 
