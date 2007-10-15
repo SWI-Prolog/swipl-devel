@@ -59,7 +59,7 @@ done
 gittag="V${major}.${minor}.${patch}"
 
 if confirm "Tag the GIT repository with $gittag? "; then
-    git tag -m "Release tag for ${major}.${minor}.${patch}" $gittag
+    git tag -f -m "Release tag for ${major}.${minor}.${patch}" $gittag
 fi
 if confirm "Upload new LSM entry to lsm@execpc.com? "; then
     mail -s add lsm@execpc.com < pl.lsm
