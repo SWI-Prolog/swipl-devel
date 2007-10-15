@@ -72,14 +72,15 @@ guess_format('application/turtle',    _, turtle).
 guess_format('text/rdf+n3',	      _, turtle). % Bit dubious
 guess_format('text/html',	      _, xhtml).
 guess_format('application/xhtml+xml', _, xhtml).
-guess_format(Mime, URL, Format) :-
-	file_name_extension(Base, Ext, URL),
-	rdf_db:rdf_file_type(Ext, Format0),
-	(   Format0 == gzip
-	->  guess_format(Mime, Base, Format1),
-	    Format = gzip(Format1)
-	;   Format = Format0
-	).
+guess_format(_Mime, URL, Format) :-
+	zip_extension(URL, PlainUrl, Format, PlainFormat),
+	file_name_extension(_Base, Ext, PlainUrl),
+	rdf_db:rdf_file_type(Ext, PlainFormat).
+
+
+zip_extension(URL0, URL, gzip(Format), Format) :-
+	file_name_extension(URL, gz, URL0), !.
+zip_extension(URL, URL, Format, Format).
 
 
 rdf_db:rdf_input_info_hook(url(http, URL), Modified, Format) :-

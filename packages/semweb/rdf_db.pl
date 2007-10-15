@@ -889,7 +889,7 @@ rdf_input(FileURL, file(File), BaseURI) :-
 	file_name_to_url(File0, FileURL), !,
 	file_input(File0, File, BaseURI).
 rdf_input(URL0, url(Protocol, URL), URL0) :-
-	is_url(URL0, Protocol),
+	is_url(URL0, Protocol), !,
 	(   gzip_extend(URL0, URL),
 	    exists_url(url(Protocol, URL))
 	->  true
@@ -910,8 +910,7 @@ file_input(Spec, Path, BaseURI) :-
 
 gzip_extend(Path, Path).
 gzip_extend(Path0, Path) :-
-	rdf_file_type(Ext, gzip),
-	file_name_extension(Path0, Ext, Path).
+	file_name_extension(Path0, gz, Path).
 
 %%	clean_base_uri(+BaseURI0, -BaseURI) is det.
 %

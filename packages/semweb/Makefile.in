@@ -132,6 +132,7 @@ $(TEX):		$(DOCTOTEX)
 check::
 		$(PL) -q -f rdf_db_test.pl -g test,halt -t 'halt(1)'
 		$(PL) -q -f litmap_test.pl -g test,halt -t 'halt(1)'
+		$(PL) -q -f test.pl -g run_tests,halt -t 'halt(1)'
 
 
 ################################################################
