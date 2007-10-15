@@ -1008,12 +1008,10 @@ writeTerm2(term_t t, int prec, write_options *options)
 				? op_pri-1 : op_pri, 
 			options));
 	  if ( functor == ATOM_comma )
-	  { TRY(Putc(',', out));
+	  { TRY(PutString(", ", out));
 	  } else
 	  { TRY(writeAtom(functor, options));
 	  }
-	  if ( functor == ATOM_comma )
-	    TRY(Putc(' ', out));
 	  TRY(writeTerm(r, 
 			op_type == OP_XFX || op_type == OP_YFX
 				? op_pri-1 : op_pri, 
