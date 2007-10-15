@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Quoted write of 0 'infix op' X.  Tom Schrijvers.
+
   * ADDED: Make cross-referencer aware of :- encoding directive.
 
   * ADDED: message_queue_create/2 for ISO compatibility.  Paulo Moura.

@@ -155,6 +155,8 @@ atomType(atom_t a, IOSTREAM *fd)
 		 *	 PRIMITIVE WRITES	*
 		 *******************************/
 
+#define TRUE_WITH_SPACE 2		/* OK, and emitted leading space before token */
+
 static bool
 Putc(int c, IOSTREAM *s)
 { return Sputcode(c, s) == EOF ? FALSE : TRUE;
@@ -194,34 +196,58 @@ and given character require a space to ensure a token-break.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-PutOpenToken(int c, IOSTREAM *s)
+needSpace(int c, IOSTREAM *s)
 { if ( c == EOF )
   { s->lastc = EOF;
-    return TRUE;
+    return FALSE;
   } else if ( s->lastc != EOF &&
 	      ((isAlphaW(s->lastc) && isAlphaW(c)) ||
 	       (isSymbolW(s->lastc) && isSymbolW(c)) ||
-	       (s->lastc != '(' && !isBlank(s->lastc) && c == '(')) )
-  { return Putc(' ', s);
+	       (s->lastc != '(' && !isBlank(s->lastc) && c == '(') ||
+	       (c == '\'' && isDigit(s->lastc))) )
+  { return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
+PutOpenToken(int c, IOSTREAM *s)
+{ if ( needSpace(c, s) )
+  { TRY(Putc(' ', s));
+    return TRUE_WITH_SPACE;
   }
 
   return TRUE;
 }
 
 
-static bool
+static int
 PutToken(const char *s, IOSTREAM *stream)
 { if ( s[0] )
-    return PutOpenToken(s[0], stream) && PutString(s, stream);
+  { int rc;
+
+    TRY(rc=PutOpenToken(s[0], stream));
+    TRY(PutString(s, stream));
+
+    return rc;
+  }
 
   return TRUE;
 }
 
 
-static bool
+static int
 PutTokenN(const char *s, size_t len, IOSTREAM *stream)
 { if ( len > 0 )
-    return PutOpenToken(s[0], stream) && PutStringN(s, len, stream);
+  { int rc;
+
+    TRY(rc=PutOpenToken(s[0], stream));
+    TRY(PutStringN(s, len, stream));
+
+    return rc;
+  }
 
   return TRUE;
 }
@@ -235,9 +261,14 @@ openbrace to avoid interpretation as a term.   E.g. not (a,b) instead of
 not(a,b).  Reported by Stefan.Mueller@dfki.de.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 PutOpenBrace(IOSTREAM *s)
-{ return PutOpenToken('(', s) && Putc('(', s);
+{ int rc;
+
+  TRY(rc=PutOpenToken('(', s));
+  TRY(Putc('(', s));
+
+  return rc;
 }
 
 
@@ -396,7 +427,7 @@ writeBlob(atom_t a, write_options *options)
 }
 
 
-static bool
+static int				/* FALSE, TRUE or TRUE_WITH_SPACE */
 writeAtom(atom_t a, write_options *options)
 { Atom atom = atomValue(a);
 
@@ -415,10 +446,15 @@ writeAtom(atom_t a, write_options *options)
       case AT_QUOTE:
       case AT_FULLSTOP:
       default:
-	return writeQuoted(options->out,
-			   atom->name,
-			   atom->length,
-			   '\'', options);
+      { int rc;
+
+	TRY(rc=PutOpenToken('\'', options->out));
+	TRY(writeQuoted(options->out,
+			atom->name,
+			atom->length,
+			'\'', options));
+	return rc;
+      }
     }
   } else
     return PutTokenN(atom->name, atom->length, options->out);
@@ -997,7 +1033,7 @@ writeTerm2(term_t t, int prec, write_options *options)
 			     &op_type, &op_pri) )
 	{ term_t l = PL_new_term_ref();
 	  term_t r = PL_new_term_ref();
-  
+	  
 	  PL_get_arg(1, t, l);
 	  PL_get_arg(2, t, r);
   
@@ -1010,7 +1046,12 @@ writeTerm2(term_t t, int prec, write_options *options)
 	  if ( functor == ATOM_comma )
 	  { TRY(PutString(", ", out));
 	  } else
-	  { TRY(writeAtom(functor, options));
+	  { switch(writeAtom(functor, options))
+	    { case FALSE:
+		fail;
+	      case TRUE_WITH_SPACE:
+		TRY(Putc(' ', out));
+	    } 
 	  }
 	  TRY(writeTerm(r, 
 			op_type == OP_XFX || op_type == OP_YFX

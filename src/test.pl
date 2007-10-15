@@ -163,11 +163,15 @@ write_test(q-2) :-
 write_test(q-3) :-
 	term_to_atom(+(a), X), X == '+a'.
 write_test(q-4) :-
-	term_to_atom('/*', X), X == '\'/*\''.	%'
+	term_to_atom('/*', X), X == '\'/*\''.	%0'
 write_test(q-5) :-
 	term_to_atom('/**', X), X == '\'/**\''.
 write_test(q-6) :-
 	term_to_atom('*/*', X), X == '*/*'.
+write_test(q-7) :-
+	term_to_atom(p(0|a), X), X == 'p((0 \'|\' a))'.
+write_test(q-8) :-
+	term_to_atom(p(a|b), X), X == 'p((a\'|\'b))'.
 write_test(c-1) :-
 	T = [a,b,c|T],
 	term_to_atom(T, X), X == '[a, b, c|**]'.
