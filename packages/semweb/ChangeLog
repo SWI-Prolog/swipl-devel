@@ -1,3 +1,7 @@
+Oct 15, 2007
+
+  * FIXED: rdf_load/2 for loading .gz files.  Michiel Hildebrand.
+
 Oct 10, 2007
 
   * ADDED: register_namespaces(Bool) option to rdf_load/2

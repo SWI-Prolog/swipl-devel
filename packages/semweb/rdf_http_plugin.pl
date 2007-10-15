@@ -43,7 +43,7 @@ from an HTTP server.
 
 :- multifile
 	rdf_db:rdf_open_hook/3,
-	rdf_db:rdf_input_info/3,
+	rdf_db:rdf_input_info_hook/3,
 	rdf_db:url_protocol/1.
 
 rdf_db:rdf_open_hook(url(http, URL), Stream, Format) :-
@@ -82,7 +82,7 @@ guess_format(Mime, URL, Format) :-
 	).
 
 
-rdf_db:rdf_input_info(url(http, URL), Modified, Format) :-
+rdf_db:rdf_input_info_hook(url(http, URL), Modified, Format) :-
 	http_open(URL, Stream,
 		  [ header(content_type, Type),
 		    header(last_modified, Date),

@@ -42,10 +42,10 @@ rdf_load/2 to seemlessly load .gz files.
 
 :- multifile
 	rdf_db:rdf_open_hook/3,
-	rdf_db:rdf_file_type/2.
+	rdf_db:rdf_input_info_hook/3.
 
-rdf_db:rdf_open_hook(file(GZFile), Stream, Format) :- !,
-	file_name_extension(File, gz, GZFile),
+rdf_db:rdf_open_hook(file(GZFile), Stream, gzip(Format)) :-
+	file_name_extension(File, gz, GZFile), !,
 	file_name_extension(_, Ext, File),
 	rdf_db:rdf_file_type(Ext, Format),
 	gzopen(GZFile, read, Stream, [type(binary)]).
@@ -53,7 +53,8 @@ rdf_db:rdf_open_hook(Source, Stream, gzip(Format)) :-
 	rdf_db:rdf_input_open(Source, Stream0, Format),
 	zopen(Stream0, Stream, []).
 
-%	Register the file extension. We do not yet know what type the
-%	file is.
-
-rdf_db:rdf_file_type(gz, gzip).
+rdf_db:rdf_input_info_hook(file(GZFile), Modified, gzip(Format)) :-
+	file_name_extension(File, gz, GZFile), !,
+	file_name_extension(_, Ext, File),
+	rdf_db:rdf_file_type(Ext, Format),
+	time_file(GZFile, Modified).

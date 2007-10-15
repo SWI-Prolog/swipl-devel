@@ -720,7 +720,7 @@ rdf_load_db(File) :-
 :- multifile
 	rdf_open_hook/3,
 	rdf_load_stream/3,
-	rdf_input_info/3,
+	rdf_input_info_hook/3,
 	rdf_file_type/2,
 	url_protocol/1,
 	exists_url/1.
@@ -899,7 +899,7 @@ rdf_input(Spec, file(Path), BaseURI) :-
 	file_input(Spec, Path, BaseURI).
 
 file_input(Spec, Path, BaseURI) :-
-	findall(Ext, (rdf_file_type(Ext, _);Ext=''), Exts),
+	findall(Ext, (rdf_file_type(Ext, _);Ext=gz;Ext=''), Exts),
 	absolute_file_name(Spec, Path,
 			   [ access(read),
 			     extensions(Exts),
@@ -955,6 +955,8 @@ is_url(URL, Protocol) :-
 %	Return the last modification  time  of   Input  as  a POSIX time
 %	stamp as well as the format of the input.
 
+rdf_input_info(Input, Modified, Format) :-
+	rdf_input_info_hook(Input, Modified, Format), !.
 rdf_input_info(file(File), Modified, Format) :-
 	time_file(File, Modified),
 	file_name_extension(_, Ext, File),
