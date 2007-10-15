@@ -54,10 +54,10 @@ for f in pl.lsm pl.spec; do
     fi
 done
 
-cvstag="V${major}_${minor}_${patch}"
+gittag="V${major}.${minor}.${patch}"
 
-if confirm "Tag the CVS repository with $cvstag? "; then
-    cvs rtag -F $cvstag pl
+if confirm "Tag the GIT repository with $gittag? "; then
+    git tag -m "Release tag for ${major}.${minor}.${patch}" $gittag
 fi
 if confirm "Upload new LSM entry to lsm@execpc.com? "; then
     mail -s add lsm@execpc.com < pl.lsm
