@@ -745,14 +745,11 @@ developers issue. Cleanup seems reasonable too.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-frameFinished(LocalFrame fr, enum finished reason ARG_LD)
-{ fid_t cid;
-
-  cid  = PL_open_foreign_frame();
-
-  if ( fr->predicate == PROCEDURE_setup_and_call_cleanup4->definition &&
+callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
+{ if ( fr->predicate == PROCEDURE_setup_and_call_cleanup4->definition &&
        false(fr, FR_CATCHED) )		/* from handler */
-  { term_t catcher = argFrameP(fr, 2) - (Word)lBase;
+  { fid_t cid  = PL_open_foreign_frame();
+    term_t catcher = argFrameP(fr, 2) - (Word)lBase;
 
     set(fr, FR_CATCHED);
     if ( unify_finished(catcher, reason) )
@@ -781,13 +778,24 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
       if ( !rval && ex )
 	PL_raise_exception(ex);
     }
+    
+    PL_close_foreign_frame(cid);
   }
+}
+
+
+static void
+frameFinished(LocalFrame fr, enum finished reason ARG_LD)
+{ fid_t cid;
+
+  callCleanupHandler(fr, reason PASS_LD);
 
 #ifdef O_DEBUGGER
+  cid  = PL_open_foreign_frame();
   callEventHook(PLEV_FRAMEFINISHED, fr);
+  PL_close_foreign_frame(cid);
 #endif
 
-  PL_close_foreign_frame(cid);
 }
 
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
@@ -2547,12 +2555,7 @@ call the 1-st argument.  See also I_CATCH.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(I_CALLCLEANUP)
-      { if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 4) )
-	{ assert(BFR->type == CHP_DEBUG);
-	  BFR->type = CHP_CATCH;
-	} else
-	  newChoice(CHP_CATCH, FR PASS_LD);
-
+      { newChoice(CHP_CATCH, FR PASS_LD);
 	set(FR, FR_WATCHED);
 				/* = B_VAR1 */
 	*argFrameP(lTop, 0) = linkVal(argFrameP(FR, 1));
@@ -2571,11 +2574,11 @@ parent (it is the entry of PL_next_solution()),
       { while( BFR && BFR->type == CHP_DEBUG )
 	  BFR = BFR->parent;
 
-	if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 4) )
-	{ assert(BFR->type == CHP_CATCH);
-
-	  DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));
-	  BFR = BFR->parent;
+	if ( BFR->frame == FR && BFR->type == CHP_CATCH )
+	{ DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));
+	  for(BFR = BFR->parent; BFR->frame == FR; BFR = BFR->parent)
+	  { assert(BFR->type == CHP_DEBUG);
+	  }
 
 	  frameFinished(FR, FINISH_EXITCLEANUP PASS_LD);
 	  if ( exception_term )
@@ -4580,6 +4583,7 @@ next_choice:
 	      if ( false(DEF, DYNAMIC) )
 		FR->generation = GD->generation;
 #endif
+	      clear(FR, FR_CATCHED);
 	      goto retry_continue;
 	  }
 	} else
@@ -4708,6 +4712,8 @@ next_choice:
       fail;
     }
     case CHP_CATCH:			/* catch/3 */
+      Undo(ch->mark);
+      callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
     case CHP_DEBUG:			/* Just for debugging purposes */
     case CHP_NONE:			/* used for C_SOFTCUT */
       BFR  = ch->parent;

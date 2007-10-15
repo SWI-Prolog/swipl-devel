@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: debug interaction of setup_and_call_cleanup/4.  Michiel Hildebrand.
+
   * FIXED: Quoted write of 0 'infix op' X.  Tom Schrijvers.
 
   * ADDED: Make cross-referencer aware of :- encoding directive.

@@ -25,10 +25,10 @@
 :- module(test_call, [test_call/0]).
 :- use_module(library(plunit)).
 
-/** <module> Test Prolog core call processing primitives
+/** <module> Test Prolog core meta-calling primitives
 
-This module is a Unit test for  Prolog built-ins that process characters
-or character codes.  Please define a test-set for each predicate.
+This module is  a  Unit  test  for   Prolog  built-ins  that  deal  with
+meta-calling. Please define a test-set for each predicate.
 
 @author	Jan Wielemaker
 */
@@ -36,7 +36,8 @@ or character codes.  Please define a test-set for each predicate.
 test_call :-
 	run_tests([ apply,
 		    callN,
-		    no_autoload
+		    no_autoload,
+		    setup_and_call_cleanup
 		  ]).
 
 :- begin_tests(apply).
@@ -68,3 +69,58 @@ test(unknown, error(existence_error(procedure,
 	known(t).
 
 :- end_tests(no_autoload).
+
+:- begin_tests(setup_and_call_cleanup,
+	       [ setup(retractall(v(_)))
+	       ]).
+
+:- dynamic
+	v/1.
+
+test(true, X == 42) :-
+	setup_and_call_cleanup(A=42, true, assert(v(A))),
+	retract(v(X)).
+     
+test(true_debug, [ true(X == 42),
+		   setup(debug),
+		   cleanup(nodebug)
+		 ]) :-
+	setup_and_call_cleanup(A=42, true, assert(v(A))),
+	retract(v(X)).
+     
+test(fail, X == 42) :-
+	\+ setup_and_call_cleanup(A=42, fail, assert(v(A))),
+	retract(v(X)).
+     
+test(fail2, X =@= [42,_]) :-
+	\+ setup_and_call_cleanup(A=42, (B=2,fail), assert(v([A,B]))),
+	retract(v(X)).
+     
+test(fail_debug, [ true(X == 42),
+		   setup(debug),
+		   cleanup(nodebug)
+		 ]) :-
+	\+ setup_and_call_cleanup(A=42, fail, assert(v(A))),
+	retract(v(X)).
+     
+test(fail_debug2, [ true(X =@= [42,_]),
+		    setup(debug),
+		    cleanup(nodebug)
+		  ]) :-
+	\+ setup_and_call_cleanup(A=42, (B=2,fail), assert(v([A,B]))),
+	retract(v(X)).
+     
+test(error, [X,E] == [42,error(x)]) :-
+	catch(setup_and_call_cleanup(A=42, throw(error(x)), assert(v(A))),
+	      E, true),
+	retract(v(X)).
+     
+test(error_debug, [ true([X,E] == [42,error(x)]),
+		    setup(debug),
+		    cleanup(nodebug)
+		 ]) :-
+	catch(setup_and_call_cleanup(A=42, throw(error(x)), assert(v(A))),
+	      E, true),
+	retract(v(X)).
+     
+:- end_tests(setup_and_call_cleanup).
