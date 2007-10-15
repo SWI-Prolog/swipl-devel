@@ -12,6 +12,8 @@
 *.log
 *.toc
 *.class
+*.bbl
+*.blg
 TAGS
 config.h
 config.log
@@ -24,6 +26,10 @@ Makefile
 include
 lib
 linux
+man/MANUAL.pdf
+man/dvi2tty
+man/txt.sty
+man/txt/dvi2tty/dvi2tty
 packages/chr/Makefile
 packages/chr/chr_translate.pl
 packages/chr/chr_translate_bootstrap1.pl
