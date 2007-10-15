@@ -2981,7 +2981,7 @@ pl_current_mutex(term_t mutex, term_t owner, term_t count, control_t h)
 		 *	  MUTEX_PROPERTY	*
 		 *******************************/
 
-static int				/* mutex_property(Mutex, alias(Name)) */
+static int			/* mutex_property(Mutex, alias(Name)) */
 mutex_alias_property(pl_mutex *m, term_t prop ARG_LD)
 { if ( isAtom(m->id) )
     return PL_unify_atom(prop, m->id);
@@ -2990,7 +2990,7 @@ mutex_alias_property(pl_mutex *m, term_t prop ARG_LD)
 }
 
 
-static int				/* mutex_property(Mutex, locked(By, Count)) */
+static int			/* mutex_property(Mutex, locked(By, Count)) */
 mutex_locked_property(pl_mutex *m, term_t a1, term_t a2 ARG_LD)
 { if ( m->owner )
   { return unify_thread_id(a1, &threads[m->owner]) &&
@@ -3117,42 +3117,47 @@ enumerate:
   }
 
 
-  { term_t a1 = PL_new_term_ref();
-    term_t a2 = PL_new_term_ref();
+  { term_t args = PL_new_term_refs(2);
+    int arity = 0;
 
     if ( !state->enum_properties )
-    { PL_get_arg(1, property, a1);
-      PL_get_arg(2, property, a2);
+    { int i;
+
+      arity = arityFunctor(state->p->functor);
+      for(i=0; i<arity; i++)
+	PL_get_arg(i+1, property, args+i);
     }
 
     for(;;)
-    { int arity = arityFunctor(state->p->functor);
-      int rval;
+    { int rval;
+
+      if ( state->enum_properties )
+	arity = arityFunctor(state->p->functor);
 
       switch(arity)
       { case 1:
-	  rval = (*state->p->function)(state->m, a1 PASS_LD);
+	  rval = (*state->p->function)(state->m, args PASS_LD);
 	  break;
 	case 2:
-	  rval = (*state->p->function)(state->m, a1, a2 PASS_LD);
+	  rval = (*state->p->function)(state->m, args, args+1 PASS_LD);
 	  break;
 	default:
 	  assert(0);
 	  rval = FALSE;
       }
 
-      if ( (*state->p->function)(state->m, a1, a2 PASS_LD) )
+      if ( rval )
       { if ( state->enum_properties )
 	{ switch ( arity )
 	  { case 1:
 	      PL_unify_term(property,
 			    PL_FUNCTOR, state->p->functor,
-			      PL_TERM, a1);
+			      PL_TERM, args);
 	      break;
 	    case 2:
 	      PL_unify_term(property,
 			    PL_FUNCTOR, state->p->functor,
-			      PL_TERM, a1, PL_TERM, a2);
+			      PL_TERM, args, PL_TERM, args+1);
 	  }
 	}
 	if ( state->e )
