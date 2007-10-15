@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+=================================
+VERSION 5.6.43 (October 15, 2007)
+=================================
+
   * ADDED: message_queue_property/2, replacing message_queue_size/2.
     ISO compatibility.
 

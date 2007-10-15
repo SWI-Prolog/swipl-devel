@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.44, distributed with SWI-Prolog 5.6.44
+==================================================
+
 * ADDED: Support posix/dos newline detection in PceEmacs.  Preserves
   file mode over load/save.
 
