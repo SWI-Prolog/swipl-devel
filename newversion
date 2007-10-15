@@ -36,7 +36,8 @@ sed "s/^#define PLVERSION.*/#define PLVERSION $numversion/" $f > $tmp
 if cmp $f $tmp; then
     rm -f $tmp
 else
-    cp $tmp $f
+    cat $tmp > $f
+    rm $tmp
     cp -p $f include/SWI-Prolog.h
     echo "Updated #define PLVERSION in $f and include/SWI-Prolog.h"
 fi
@@ -49,7 +50,8 @@ for f in pl.lsm pl.spec; do
     if cmp $f $tmp; then
 	rm -f $tmp
     else
-	cp $tmp $f
+	cat $tmp > $f
+	rm $tmp
 	echo "Updated version in $f"
     fi
 done
