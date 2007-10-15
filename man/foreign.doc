@@ -1648,8 +1648,8 @@ for some considerations.
     \verb$PL_action(PL_GMP_SET_ALLOC_FUNCTIONS, TRUE)$ to force Prolog's
     GMP initialization without doing the rest of the
     Prolog initialization.  If you do not want Prolog rebinding the
-    GMP allocation, call \verb$PL_action(PL_GMP_SET_ALLOC_FUNCTIONS,
-    FALSE)$ \emph{before} initializing Prolog.
+    GMP allocation, call \verb$PL_action(PL_GMP_SET_ALLOC_FUNCTIONS, FALSE)$
+    \emph{before} initializing Prolog.
 
     \item On Windows, each DLL has its own memory pool.  To make exchange
     of GMP numbers between Prolog and foreign code possible you must

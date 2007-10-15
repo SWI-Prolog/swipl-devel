@@ -136,7 +136,7 @@ an extra argument to all predicates (e.g. `assert(Module, Term)').
 Another is to tag the term somehow to indicate which module is desired 
 (e.g. `assert(Module:Term)'). Both approaches are not very attractive as 
 they make the user responsible for choosing the correct module, inviting 
-unclear programming by asserting in other modules. The predicate <A NAME="idx:assert1:1134"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
+unclear programming by asserting in other modules. The predicate <A NAME="idx:assert1:1135"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
 is supposed to assert in the module it is called from and should do so 
 without being told explicitly. For this reason, the notion <EM>context 
 module</EM> has been introduced.
@@ -155,9 +155,9 @@ default, this module is the definition module of the predicate running
 the goal. For meta-predicates however, this is the context module of the 
 goal that invoked them. We call this <EM>module_transparent</EM> in 
 SWI-Prolog. In the `using maplist' example above, the predicate
-<A NAME="idx:maplist3:1135"></A><A class="pred" href="applylist.html#maplist/3">maplist/3</A> 
+<A NAME="idx:maplist3:1136"></A><A class="pred" href="applylist.html#maplist/3">maplist/3</A> 
 is declared module_transparent. This implies the context module remains <CODE>extend</CODE>, 
-the context module of add_extension/3. This way <A NAME="idx:maplist3:1136"></A><A class="pred" href="applylist.html#maplist/3">maplist/3</A> 
+the context module of add_extension/3. This way <A NAME="idx:maplist3:1137"></A><A class="pred" href="applylist.html#maplist/3">maplist/3</A> 
 can decide to call extend_atom in module
 <CODE>extend</CODE> rather than in its own definition module.
 

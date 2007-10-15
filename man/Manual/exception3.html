@@ -125,15 +125,15 @@ using the exception predicate</SPAN></A></H2>
 
 <A NAME="sec:exception3"></A>
 
-<P>This section describes the predicate <A NAME="idx:exception3:1510"></A><A class="pred" href="exception3.html#exception/3">exception/3</A>, 
+<P>This section describes the predicate <A NAME="idx:exception3:1514"></A><A class="pred" href="exception3.html#exception/3">exception/3</A>, 
 which can be defined by the user in the module <CODE>user</CODE> as a 
 multifile predicate. Unlike the name suggests, this is actually a <EM>hook</EM> 
 predicate that has no relation to Prolog exceptions as defined by the 
 ISO predicates
-<A NAME="idx:catch3:1511"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
-and <A NAME="idx:throw1:1512"></A><A class="pred" href="exception.html#throw/1">throw/1</A>.
+<A NAME="idx:catch3:1515"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
+and <A NAME="idx:throw1:1516"></A><A class="pred" href="exception.html#throw/1">throw/1</A>.
 
-<P>The predicate <A NAME="idx:exception3:1513"></A><A class="pred" href="exception3.html#exception/3">exception/3</A> 
+<P>The predicate <A NAME="idx:exception3:1517"></A><A class="pred" href="exception3.html#exception/3">exception/3</A> 
 is called by the kernel on a couple of events, allowing the user to 
 `fix' errors just in time events. The mechanism allows for <EM>lazy</EM> 
 creation of objects such as predicates.
@@ -144,8 +144,8 @@ creation of objects such as predicates.
 <DD class="defbody">
 Dynamic predicate, normally not defined. Called by the Prolog system on 
 run-time exceptions that can be repaired `just in time'. The values for <VAR>Exception</VAR> 
-are described below. See also <A NAME="idx:catch3:1514"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
-and <A NAME="idx:throw1:1515"></A><A class="pred" href="exception.html#throw/1">throw/1</A>.
+are described below. See also <A NAME="idx:catch3:1518"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
+and <A NAME="idx:throw1:1519"></A><A class="pred" href="exception.html#throw/1">throw/1</A>.
 
 <P>If this hook predicate succeeds it must instantiate the <VAR>Action</VAR> 
 argument to the atom <CODE>fail</CODE> to make the operation fail 
@@ -168,8 +168,8 @@ If the predicate fails Prolog will generate an
 <DT><STRONG>undefined_global_variable</STRONG></DT>
 <DD class="defbody">
 <VAR>Context</VAR> is instantiated to the name of the missing global 
-variable. The hook must call <A NAME="idx:nbsetval2:1516"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A> 
-or <A NAME="idx:bsetval2:1517"></A><A class="pred" href="gvar.html#b_setval/2">b_setval/2</A> 
+variable. The hook must call <A NAME="idx:nbsetval2:1520"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A> 
+or <A NAME="idx:bsetval2:1521"></A><A class="pred" href="gvar.html#b_setval/2">b_setval/2</A> 
 before returning with the action <CODE>retry</CODE>.
 </DD>
 </DL>

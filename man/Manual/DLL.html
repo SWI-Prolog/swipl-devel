@@ -137,11 +137,11 @@ is enabled.
 <DD class="defbody">
 Search for the given foreign library and link it to the current 
 SWI-Prolog instance. The library may be specified with or without the 
-extension. First, <A NAME="idx:absolutefilename3:1313"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+extension. First, <A NAME="idx:absolutefilename3:1317"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
 is used to locate the file. If this succeeds, the full path is passed to 
 the low-level function to open the library. Otherwise, the plain library 
 name is passed, exploiting the operating-system defined search mechanism 
-for the shared library. The <A NAME="idx:filesearchpath2:1314"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
+for the shared library. The <A NAME="idx:filesearchpath2:1318"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
 alias mechanism defines the alias <CODE>foreign</CODE>, which refers to 
 the directories <CODE>&lt;<VAR>plhome</VAR>&gt;/lib/&lt;<VAR>arch</VAR>&gt;</CODE> 
 and
@@ -157,7 +157,7 @@ predicates.
 </DD>
 <DT class="pubdef"><A NAME="load_foreign_library/1"><STRONG>load_foreign_library</STRONG>(<VAR>+Lib</VAR>)</A></DT>
 <DD class="defbody">
-Equivalent to <A NAME="idx:loadforeignlibrary2:1315"></A><A class="pred" href="DLL.html#load_foreign_library/2">load_foreign_library/2</A>. 
+Equivalent to <A NAME="idx:loadforeignlibrary2:1319"></A><A class="pred" href="DLL.html#load_foreign_library/2">load_foreign_library/2</A>. 
 For the entry-point, this function first identifies the `base-name' of 
 the library, which is defined to be the file-name with path nor 
 extension. It will then try the entry-point
@@ -168,7 +168,7 @@ function install(). Otherwise no install function will be called.
 <DD class="defbody">
 If the foreign library defines the function uninstall_&lt;<VAR>base</VAR>&gt;() 
 or uninstall(), this function will be called without arguments and its 
-return value is ignored. Next, <A NAME="idx:abolish2:1316"></A><A class="pred" href="db.html#abolish/2">abolish/2</A> 
+return value is ignored. Next, <A NAME="idx:abolish2:1320"></A><A class="pred" href="db.html#abolish/2">abolish/2</A> 
 is used to remove all known foreign predicates defined in the library. 
 Finally the library itself is detached from the process.
 </DD>

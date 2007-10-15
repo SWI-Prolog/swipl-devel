@@ -141,14 +141,14 @@ is advised to use the predicates from <A class="sec" href="DLL.html">section
 library in MS-Windows). This file is attached to the current process and
 <VAR>Handle</VAR> is unified with a handle to the library. Equivalent to
 <CODE>open_shared_object(File, [], Handle)</CODE>. See also
-<A NAME="idx:loadforeignlibrary12:1311"></A><A class="pred" href="DLL.html#load_foreign_library/1">load_foreign_library/[1,2]</A>.
+<A NAME="idx:loadforeignlibrary12:1315"></A><A class="pred" href="DLL.html#load_foreign_library/1">load_foreign_library/[1,2]</A>.
 
 <P>On errors, an exception <CODE>shared_object(Action, Message)</CODE> 
 is raised. <VAR>Message</VAR> is the return value from dlerror().</DD>
 <DT class="pubdef"><A NAME="open_shared_object/3"><STRONG>open_shared_object</STRONG>(<VAR>+File, 
 -Handle, +Options</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:opensharedobject2:1312"></A><A class="pred" href="dynstatic.html#open_shared_object/2">open_shared_object/2</A>, 
+As <A NAME="idx:opensharedobject2:1316"></A><A class="pred" href="dynstatic.html#open_shared_object/2">open_shared_object/2</A>, 
 but allows for additional flags to be passed.
 <VAR>Options</VAR> is a list of atoms. <CODE>now</CODE> implies the 
 symbols are resolved immediately rather than lazy (default). <CODE>global</CODE> 

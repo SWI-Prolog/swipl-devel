@@ -136,12 +136,12 @@ predicates.
 modules are visible in all other modules as well.
 <LI>Quintus has the `meta_predicate/1' declaration were SWI-Prolog has 
 the
-<A NAME="idx:moduletransparent1:1153"></A><A class="pred" href="manipmodule.html#module_transparent/1">module_transparent/1</A> 
+<A NAME="idx:moduletransparent1:1154"></A><A class="pred" href="manipmodule.html#module_transparent/1">module_transparent/1</A> 
 declaration.
 <LI>Operator declarations are local to a module and may be exported.
 </UL>
 
-<P>The <A NAME="idx:metapredicate1:1154"></A><A class="pred" href="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
+<P>The <A NAME="idx:metapredicate1:1155"></A><A class="pred" href="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
 declaration causes the compiler to tag arguments that pass module 
 sensitive information with the module using the :/2 operator. This 
 approach has some disadvantages:
@@ -164,16 +164,16 @@ disadvantages. If a predicate <VAR>A</VAR> passes module sensitive
 information to a predicate <VAR>B</VAR>, passing the same information to 
 a module sensitive system predicate both <VAR>A</VAR> and <VAR>B</VAR> 
 should be declared transparent. Using the Quintus approach only <VAR>A</VAR> 
-needs to be treated special (i.e., declared with <A NAME="idx:metapredicate1:1155"></A><A class="pred" href="manipmodule.html#meta_predicate/1">meta_predicate/1</A>)<SUP class="fn">68<SPAN class="fn-text">Although 
+needs to be treated special (i.e., declared with <A NAME="idx:metapredicate1:1156"></A><A class="pred" href="manipmodule.html#meta_predicate/1">meta_predicate/1</A>)<SUP class="fn">68<SPAN class="fn-text">Although 
 this would make it impossible to call <VAR>B</VAR> directly.</SPAN></SUP>. 
 A second problem arises if the body of a transparent predicate uses 
 module sensitive predicates for which it wants to refer to its own 
-module. Suppose we want to define <A NAME="idx:findall3:1156"></A><A class="pred" href="allsolutions.html#findall/3">findall/3</A> 
-using <A NAME="idx:assert1:1157"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
+module. Suppose we want to define <A NAME="idx:findall3:1157"></A><A class="pred" href="allsolutions.html#findall/3">findall/3</A> 
+using <A NAME="idx:assert1:1158"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
 and
-<A NAME="idx:retract1:1158"></A><A class="pred" href="db.html#retract/1">retract/1</A><SUP class="fn">69<SPAN class="fn-text">The 
-system version uses <A NAME="idx:recordz2:1159"></A><A class="pred" href="db.html#recordz/2">recordz/2</A> 
-and <A NAME="idx:recorded3:1160"></A><A class="pred" href="db.html#recorded/3">recorded/3</A>.</SPAN></SUP>. 
+<A NAME="idx:retract1:1159"></A><A class="pred" href="db.html#retract/1">retract/1</A><SUP class="fn">69<SPAN class="fn-text">The 
+system version uses <A NAME="idx:recordz2:1160"></A><A class="pred" href="db.html#recordz/2">recordz/2</A> 
+and <A NAME="idx:recorded3:1161"></A><A class="pred" href="db.html#recorded/3">recorded/3</A>.</SPAN></SUP>. 
 The example in <A class="fig" href="modulecompat.html#fig:findall">figure 
 6</A> gives the solution.
 
@@ -213,9 +213,9 @@ meta_predicate</SPAN></A></H3>
 
 <A NAME="sec:metapredicate"></A>
 
-<P>The Quintus <A NAME="idx:metapredicate1:1161"></A><A class="pred" href="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
+<P>The Quintus <A NAME="idx:metapredicate1:1162"></A><A class="pred" href="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
 directive can in many cases be replaced by the transparent declaration. 
-Below is the definition of <A NAME="idx:metapredicate1:1162"></A><A class="pred" href="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
+Below is the definition of <A NAME="idx:metapredicate1:1163"></A><A class="pred" href="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
 as available from <CODE>library(quintus)</CODE>.
 
 <PRE class="code">

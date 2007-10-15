@@ -664,17 +664,18 @@ in locating files. Intended for debugging complicated file-search paths.
 See also <A NAME="idx:filesearchpath2:163"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>.</DD>
 <DT class="pubdef"><A NAME="flag:version"><STRONG>version</STRONG>(<VAR>integer</VAR>)</A></DT>
 <DD class="defbody">
-Deprecated. New code must use <A class="flag" href="flags.html#flag:version_number">version_number</A>. 
-In future versions this flag is likely to change to a descriptive atom 
-for compatibilty with other Prolog dialects.</DD>
-<DT class="pubdef"><A NAME="flag:version_number"><STRONG>version_number</STRONG>(<VAR>integer</VAR>)</A></DT>
-<DD class="defbody">
 The version identifier is an integer with value: 
 <BLOCKQUOTE><VAR>10000 &times; <VAR>Major</VAR> + 100 &times; <VAR>Minor</VAR> 
 + <VAR>Patch</VAR></VAR></BLOCKQUOTE>
 Note that in releases up to 2.7.10 this Prolog flag yielded an atom 
 holding the three numbers separated by dots. The current representation 
 is much easier for implementing version-conditional statements.</DD>
+<DT class="pubdef"><A NAME="flag:version_data"><STRONG>version_data</STRONG>(<VAR>swi(Major, Minor, Patch, Extra)</VAR>, changeable)</A></DT>
+<DD class="defbody">
+art of the dialect compatibility layer, See also the Prolog flag
+<A class="flag" href="flags.html#flag:dialect">dialect</A> and <A class="sec" href="dialect.html">section 
+C</A>. <VAR>Extra</VAR> provides platform specific version information. 
+Currently it is simply unified to <CODE>[]</CODE>.</DD>
 <DT class="pubdef"><A NAME="flag:windows"><STRONG>windows</STRONG>(<VAR>bool</VAR>)</A></DT>
 <DD class="defbody">
 <A NAME="idx:windows:164"></A>If present and <CODE>true</CODE>, the 
