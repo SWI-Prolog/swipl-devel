@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: message_queue_property/2, replacing message_queue_size/2.
+    ISO compatibility.
+
   * FIXED: debug interaction of setup_and_call_cleanup/4.  Michiel Hildebrand.
 
   * FIXED: Quoted write of 0 'infix op' X.  Tom Schrijvers.

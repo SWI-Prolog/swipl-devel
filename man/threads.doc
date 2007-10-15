@@ -355,13 +355,19 @@ As thread_peek_message/1, operating on a given queue. It is allowed
 to peek into another thread's message queue, an operation that can be
 used to check whether a thread has swallowed a message sent to it.
 
-    \predicate{message_queue_size}{2}{+Queue, -Size}
-Unify \arg{Size} with the number of terms waiting in \arg{Queue}.  Note
-that due to concurrent access the returned value may be outdated before
-it is returned.  It can be used for debugging purposes as well as work
-distribution purposes.
-\end{description}
+    \predicate{message_queue_property}{2}{?Queue, ?Property}
+True if \arg{Property} is a property of \arg{Queue}.  Defined properties
+are:
 
+    \begin{description}
+        \termitem{alias}{Alias}
+Queue has the given alias name.
+	\termitem{size}{Size}
+Queue currently contains \arg{Size} terms. Note that due to concurrent
+access the returned value may be outdated before it is returned. It can
+be used for debugging purposes as well as work distribution purposes.
+    \end{description}
+\end{description}
 
 Explicit message queues are designed with the \jargon{worker-pool} model
 in mind, where multiple threads wait on a single queue and pick up the

@@ -323,6 +323,7 @@ A memory		"memory"
 A message		"message"
 A message_lines		"message_lines"
 A message_queue		"message_queue"
+A message_queue_property "message_queue_property"
 A meta_predicate	"meta_predicate"
 A min			"min"
 A min_free		"min_free"
@@ -749,6 +750,7 @@ F signal		1
 F signal		2
 F sin			1
 F singletons		1
+F size			1
 F smaller		2
 F smaller_equal		2
 F softcut		2

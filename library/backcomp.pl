@@ -53,7 +53,8 @@
 	    convert_time/2,		% +Stamp, -String
 	    convert_time/8,		% +String, -YMDmhs.ms
 	    'C'/3,			% +List, -Head, -Tail
-	    current_thread/2		% ?Thread, ?Status
+	    current_thread/2,		% ?Thread, ?Status
+	    message_queue_size/2	% +Queue, -TermsWaiting
 	  ]).
 
 /** <module> Backward compatibility
@@ -259,3 +260,13 @@ current_thread(Thread, Status) :-
 	      fail).
 current_thread(Thread, Status) :-
 	thread_property(Thread, status(Status)).
+
+
+%%	message_queue_size(+Queue, -Size) is det.
+%
+%	True if Queue holds Size terms.
+%	
+%	@deprecated Please use message_queue_property(Queue, Size)
+
+message_queue_size(Queue, Size) :-
+	message_queue_property(Queue, size(Size)).

@@ -350,7 +350,7 @@ static void	unaliasThread(atom_t name);
 static void	run_thread_exit_hooks();
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
-static int	get_message_queue(term_t t, message_queue **queue);
+static int	get_message_queue_unlocked(term_t t, message_queue **queue);
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static pl_mutex *mutexCreate(atom_t name);
 static double   ThreadCPUTime(PL_thread_info_t *info, int which);
@@ -2174,7 +2174,7 @@ pl_thread_send_message(term_t queue, term_t msg)
 { message_queue *q;
 
   LOCK();
-  if ( !get_message_queue(queue, &q) )
+  if ( !get_message_queue_unlocked(queue, &q) )
   { UNLOCK();
     fail;
   }
@@ -2255,7 +2255,7 @@ unlocked_message_queue_create(term_t queue)
 */
 
 static int
-get_message_queue(term_t t, message_queue **queue)
+get_message_queue_unlocked(term_t t, message_queue **queue)
 { atom_t name;
   word id = 0;
   int tid;
@@ -2300,6 +2300,18 @@ get_message_queue(term_t t, message_queue **queue)
   }
 
   return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, t);
+}
+
+
+static int
+get_message_queue(term_t t, message_queue **queue)
+{ int rc;
+
+  LOCK();
+  rc = get_message_queue_unlocked(t, queue);
+  UNLOCK();
+
+  return rc;
 }
 
 
@@ -2353,7 +2365,7 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
   Symbol s;
 
   LOCK();
-  if ( !get_message_queue(A1, &q) )
+  if ( !get_message_queue_unlocked(A1, &q) )
   { UNLOCK();
     fail;
   }
@@ -2378,25 +2390,187 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
 }
 
 
-static 
-PRED_IMPL("message_queue_size", 2, message_queue_size, 0)
-{ message_queue *q;
+		 /*******************************
+		 *    MESSAGE QUEUE PROPERTY	*
+		 *******************************/
+
+static int			/* message_queue_property(Queue, alias(Name)) */
+message_queue_alias_property(message_queue *q, term_t prop ARG_LD)
+{ if ( isAtom(q->id) )
+    return PL_unify_atom(prop, q->id);
+
+  fail;
+}
+
+
+static int			/* message_queue_property(Queue, size(Size)) */
+message_queue_size_property(message_queue *q, term_t prop ARG_LD)
+{ int n;
   thread_message *m;
-  int rc, n;
 
-  LOCK();
-  rc = get_message_queue(A1, &q);
-  UNLOCK();
-  if ( !rc )
-    fail;
-
-
+  startCritical;
   simpleMutexLock(&q->mutex);
   for(n=0, m=q->head; m; m = m->next)
     n++;
   simpleMutexUnlock(&q->mutex);
+  endCritical;
 
-  return PL_unify_integer(A2, n);
+  return PL_unify_integer(prop, n);
+}
+
+
+static const tprop qprop_list [] =
+{ { FUNCTOR_alias1,	    message_queue_alias_property },
+  { FUNCTOR_size1,	    message_queue_size_property },
+  { 0,			    NULL }
+};
+
+
+typedef struct
+{ TableEnum e;				/* Enumerator on queue-table */
+  message_queue *q;			/* current queue */
+  const tprop *p;			/* Pointer in properties */
+  int enum_properties;			/* Enumerate the properties */
+} qprop_enum;
+
+
+static int
+advance_qstate(qprop_enum *state)
+{ if ( state->enum_properties )
+  { state->p++;
+    if ( state->p->functor )
+      succeed;
+
+    state->p = qprop_list;
+  }
+  if ( state->e )
+  { Symbol s;
+
+    if ( (s = advanceTableEnum(state->e)) )
+    { state->q = s->value;
+
+      succeed;
+    }
+  }
+
+  fail;
+}
+
+
+static void
+free_qstate(qprop_enum *state)
+{ if ( state->e )
+    freeTableEnum(state->e);
+
+  freeHeap(state, sizeof(*state));
+}
+
+
+static 
+PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  term_t queue = A1;
+  term_t property = A2;
+  qprop_enum statebuf;
+  qprop_enum *state;
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+    { memset(&statebuf, 0, sizeof(statebuf));
+      state = &statebuf;
+
+      if ( PL_is_variable(queue) )
+      { switch( get_prop_def(property, ATOM_message_queue_property,
+			     qprop_list, &state->p) )
+	{ case 1:
+	    state->e = newTableEnum(queueTable);
+	    goto enumerate;
+	  case 0:
+	    state->e = newTableEnum(queueTable);
+	    state->p = qprop_list;
+	    state->enum_properties = TRUE;
+	    goto enumerate;
+	  case -1:
+	    fail;
+	}
+      } else if ( get_message_queue(queue, &state->q) )
+      { switch( get_prop_def(property, ATOM_message_queue_property,
+			     qprop_list, &state->p) )
+	{ case 1:
+	    goto enumerate;
+	  case 0:
+	    state->p = qprop_list;
+	    state->enum_properties = TRUE;
+	    goto enumerate;
+	  case -1:
+	    fail;
+	}
+      } else
+      { fail;
+      }
+    }
+    case FRG_REDO:
+      state = CTX_PTR;
+      break;
+    case FRG_CUTTED:
+      state = CTX_PTR;
+      free_qstate(state);
+      succeed;
+    default:
+      assert(0);
+  }
+
+enumerate:
+  if ( !state->q )			/* first time, enumerating queues */
+  { Symbol s;
+
+    assert(state->e);
+    if ( (s=advanceTableEnum(state->e)) )
+    { state->q = s->value;
+    } else
+    { freeTableEnum(state->e);
+      assert(state != &statebuf);
+      fail;
+    }
+  }
+
+
+  { term_t a1 = PL_new_term_ref();
+
+    if ( !state->enum_properties )
+      PL_get_arg(1, property, a1);
+
+    for(;;)
+    { if ( (*state->p->function)(state->q, a1 PASS_LD) )
+      { if ( state->enum_properties )
+	{ PL_unify_term(property,
+			PL_FUNCTOR, state->p->functor,
+			  PL_TERM, a1);
+	}
+	if ( state->e )
+	  unify_queue(queue, state->q);
+  
+	if ( advance_qstate(state) )
+	{ if ( state == &statebuf )
+	  { qprop_enum *copy = allocHeap(sizeof(*copy));
+  
+	    *copy = *state;
+	    state = copy;
+	  }
+  
+	  ForeignRedoPtr(state);
+	}
+
+	succeed;
+      }
+      
+      if ( !advance_qstate(state) )
+      { if ( state != &statebuf )
+	  free_qstate(state);
+	fail;
+      }
+    }
+  }
 }
 
 
@@ -2410,12 +2584,8 @@ thread_get_message(-Message)
 static
 PRED_IMPL("thread_get_message", 2, thread_get_message, 0)
 { message_queue *q;
-  int rc;
   
-  LOCK();
-  rc=get_message_queue(A1, &q);
-  UNLOCK();
-  if ( !rc )
+  if ( !get_message_queue(A1, &q) )
     fail;
   
   return get_message(q, A2);
@@ -2425,12 +2595,8 @@ PRED_IMPL("thread_get_message", 2, thread_get_message, 0)
 static
 PRED_IMPL("thread_peek_message", 2, thread_peek_message, 0)
 { message_queue *q;
-  int rc;
   
-  LOCK();
-  rc=get_message_queue(A1, &q);
-  UNLOCK();
-  if ( !rc )
+  if ( !get_message_queue(A1, &q) )
     fail;
   
   return peek_message(q, A2);
@@ -4279,6 +4445,7 @@ BeginPredDefs(thread)
   PRED_DEF("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
   PRED_DEF("message_queue_create", 1, message_queue_create, 0)
   PRED_DEF("message_queue_create", 2, message_queue_create2, 0)
+  PRED_DEF("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
   PRED_DEF("thread_get_message", 2, thread_get_message, 0)
   PRED_DEF("thread_peek_message", 2, thread_peek_message, 0)
   PRED_DEF("message_queue_destroy", 1, message_queue_destroy, 0)
@@ -4287,6 +4454,5 @@ BeginPredDefs(thread)
   PRED_DEF("mutex_create", 1, mutex_create1, 0)
   PRED_DEF("mutex_create", 2, mutex_create2, 0)
   PRED_DEF("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("message_queue_size", 2, message_queue_size, 0)
 #endif
 EndPredDefs
