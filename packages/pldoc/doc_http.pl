@@ -54,6 +54,7 @@
 :- use_module(pldoc(doc_search)).
 :- use_module(pldoc(doc_man)).
 :- use_module(pldoc(doc_wiki)).
+:- use_module(pldoc(doc_util)).
 
 /** <module> Documentation server
 
@@ -354,7 +355,7 @@ normalise_path(Path0, Path) :-
 	    atom_concat(Root, Rest, Path0)
 	->  atom_concat(/, Rest, Path)
 	).
-	
+
 
 		 /*******************************
 		 *	    USER REPLIES	*
@@ -376,11 +377,6 @@ reply(/, _) :-
 	doc_file_href(Dir1, Ref0),
 	atom_concat(Ref0, 'index.html', Index),
 	throw(http_reply(see_other(Index))).
-
-ensure_slash_end(Dir, Dir) :-
-	sub_atom(Dir, _, _, 0, /), !.
-ensure_slash_end(Dir0, Dir) :-
-	atom_concat(Dir0, /, Dir).
 
 %	/file?file=REF
 %	
@@ -432,8 +428,9 @@ reply('/edit', _Request) :-
 
 reply('/directory', Request) :-
 	http_parameters(Request,
-			[ dir(Dir, [])
+			[ dir(Dir0, [])
 			]),
+	expand_alias(Dir0, Dir),
 	(   allowed_directory(Dir)
 	->  format(string(IndexFile), '~w/index.html', [Dir]),
 	    doc_file_href(IndexFile, HREF),
@@ -465,7 +462,7 @@ allowed_file(File) :-
 
 %	/doc/Path
 %	
-%	Reply documentation of file. Path is   the  absolute path of the
+%	Reply documentation of a file. Path is  the absolute path of the
 %	file for which to return the  documentation. Extension is either
 %	none, the Prolog extension or the HTML extension.
 %	
@@ -477,7 +474,8 @@ reply(ReqPath, Request) :-
 	(   sub_atom(ReqPath, _, _, 0, /)
 	->  atom_concat(ReqPath, 'index.html', File),
 	    throw(http_reply(moved(File)))
-	;   clean_path(AbsFile0, AbsFile),
+	;   clean_path(AbsFile0, AbsFile1),
+	    expand_alias(AbsFile1, AbsFile),
 	    is_absolute_file_name(AbsFile)
 	->  documentation(AbsFile, Request)
 	).

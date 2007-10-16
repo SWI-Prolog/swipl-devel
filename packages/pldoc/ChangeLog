@@ -1,3 +1,8 @@
+Oct 16, 2007
+
+* ENHANCED: Introduce path aliases to get constant paths for the SWI-Prolog
+  library.
+
 Sep 10, 2007
 
 * FIXED: Search for comments with multiple modes.

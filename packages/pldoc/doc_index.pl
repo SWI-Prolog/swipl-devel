@@ -42,6 +42,7 @@
 :- use_module(doc_html).
 :- use_module(doc_wiki).
 :- use_module(doc_search).
+:- use_module(doc_util).
 :- use_module(library('http/html_write')).
 :- use_module(library(readutil)).
 :- use_module(library(url)).
@@ -217,10 +218,11 @@ doc_file_href(File, HREF, _) :-
 %	Create a /doc HREF from Path.  There   are  some nasty things we
 %	should take care of.
 %	
-%		* Windows paths may start with Drive:
+%		* Windows paths may start with =|L:|= (mapped to =|/L:|=)
 %		* Paths may contain spaces and other weird stuff
 
-doc_file_href(File, HREF) :-
+doc_file_href(File0, HREF) :-
+	insert_alias(File0, File),
 	ensure_slash_start(File, SlashFile),
 	http_location([path(SlashFile)], Escaped),
 	doc_server_root(Root),
