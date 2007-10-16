@@ -88,6 +88,17 @@ test(true_debug, [ true(X == 42),
 	setup_and_call_cleanup(A=42, true, assert(v(A))),
 	retract(v(X)).
      
+test(cut, X == 42) :-
+	setup_and_call_cleanup(A=42, (true;true), assert(v(A))), !,
+	retract(v(X)).
+     
+test(cut_debug, [ true(X == 42),
+		   setup(debug),
+		   cleanup(nodebug)
+		 ]) :-
+	setup_and_call_cleanup(A=42, (true;true), assert(v(A))), !,
+	retract(v(X)).
+     
 test(fail, X == 42) :-
 	\+ setup_and_call_cleanup(A=42, fail, assert(v(A))),
 	retract(v(X)).
