@@ -22,9 +22,6 @@ Making solid progress.  remaining issues:
 
 	* Should also link to PceEmacs
 
----++ Add source-button at predicate level, as well as anchors in the
-      generated source-files.
-
 ---++ UI
 
 	* Fix directory menu for IE [PARTIAL]

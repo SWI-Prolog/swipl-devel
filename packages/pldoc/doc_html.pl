@@ -44,6 +44,7 @@
 	    source_button/4,		% +File, +Options, //
 	    pred_edit_button/4,		% +PredInd, +Options, //
 	    object_edit_button/4,	% +Obj, +Options, //
+	    object_source_button/4,	% +Obj, +Options, //
 
 	    private/2,			% +Obj, +Options
 	    file/3,			% +File, //
@@ -698,26 +699,18 @@ anchored_pred_head(Head, Done0, Done, Options) -->
 
 pred_edit_button(_, Options) -->
 	{ \+ option(edit(true), Options) }, !.
-pred_edit_button(M:PI, Options) --> 
-	{ atom(M) }, !,
-	pred_edit_button(PI, [module(M)|Options]).
-pred_edit_button(//(Head), Options) --> !,
-	{ functor(Head, Name, Arity),
-	  PredArity is Arity + 2
-	},
-	pred_edit_button(Name/PredArity, Options).
-pred_edit_button(Name//Arity, Options) --> !,
-	{ PredArity is Arity + 2
-	},
-	pred_edit_button(Name/PredArity, Options).	  
-pred_edit_button(Name/Arity, Options) -->
+pred_edit_button(PI0, Options0) -->
+	{ canonise_predref(PI0, PI, Options0, Options) },
+	pred_edit_button2(PI, Options).
+	
+pred_edit_button2(Name/Arity, Options) -->
 	{ functor(Head, Name, Arity),
 	  option(module(M), Options, _),
 	  \+ ( current_module(M),
 	       source_file(M:Head, _File)
 	     )
 	}, !.
-pred_edit_button(Name/Arity, Options) -->
+pred_edit_button2(Name/Arity, Options) -->
 	{ doc_server_root(Root),
 	  www_form_encode(Name, QName),
 	  (   option(module(M), Options)
@@ -730,19 +723,14 @@ pred_edit_button(Name/Arity, Options) -->
 		     [Root, QName, Arity])
 	  )
 	},
-	html(span(style('float:right'),
-		  a([ onClick(OnClick)
-		    ],
-		    img([ height=14,
-			  style('border:0;'),
-			  src(Root+'edit.gif')
-			])))).
-pred_edit_button(_/_, _) --> !,
+	html(a([ onClick(OnClick)
+	       ],
+	       img([ height=12,
+		     style('border:0;'),
+		     src(Root+'edit.gif')
+		   ]))).
+pred_edit_button2(_, _) --> !,
 	[].
-pred_edit_button(Head, Options) -->
-	{ functor(Head, Name, Arity)
-	},
-	pred_edit_button(Name/Arity, Options).
 
 
 %%	object_edit_button(+Object, +Options)// is det.
@@ -756,6 +744,58 @@ object_edit_button(PI, Options) -->
 	pred_edit_button(PI, Options).
 object_edit_button(_, _) -->
 	[].
+
+
+%%	pred_source_button(+PredIndicator, +Options)// is det.
+%
+%	Create a button for viewing the source of a predicate.
+
+pred_source_button(PI0, Options0) -->
+	{ canonise_predref(PI0, PI, Options0, Options),
+	  option(module(M), Options, _),
+	  pred_source_href(PI, M, HREF), !,
+	  doc_server_root(Root)
+	},
+	html(a([ href(HREF)
+	       ],
+	       img([ height=12,
+		     style('border:0;'),
+		     src(Root+'source.gif')
+		   ]))).
+pred_source_button(_, _) -->
+	[].
+
+
+%%	object_source_button(+Object, +Options)// is det.
+%
+%	Create a button	for showing the source of Object.
+
+object_source_button(PI, Options) -->
+	{ pi(PI) }, !,
+	pred_source_button(PI, Options).
+object_source_button(_, _) -->
+	[].
+
+
+%%	canonise_predref(+PredRef, -PI:Name/Arity, +Options0, -Options) is det.
+%
+%	Canonise a predicate reference. A   possible module qualifier is
+%	added as module(M) to Options.
+
+canonise_predref(M:PI0, PI, Options0, [module(M),Options]) :- !,
+	canonise_predref(PI0, PI, Options0, Options).
+canonise_predref(//(Head), PI, Options0, Options) :-	!,
+	functor(Head, Name, Arity),
+	PredArity is Arity + 2,
+	canonise_predref(Name/PredArity, PI, Options0, Options).
+canonise_predref(Name//Arity, PI, Options0, Options) :- !,
+	PredArity is Arity + 2,
+	canonise_predref(Name/PredArity, PI, Options0, Options).
+canonise_predref(PI, PI, Options, Options) :-
+	PI = _/_, !.
+canonise_predref(Head, PI, Options0, Options) :-
+	functor(Head, Name, Arity),
+	canonise_predref(Name/Arity, PI, Options0, Options).
 
 
 %%	pred_head(+Term) is det.
@@ -986,6 +1026,22 @@ relative_file(Head, RelFile) :-
 	in_file(Head, DefFile),
 	relative_file_name(DefFile, CurrentFile, RelFile).
 	
+%%	pred_source_href(+Pred:predicate_indicator, +Module, -HREF) is semidet.
+%
+%	HREF is a URL to show the predicate source in its file.
+
+pred_source_href(Name/Arity, Module, HREF) :-
+	format(string(FragmentId), '~w/~d', [Name, Arity]),
+	www_form_encode(FragmentId, EncId),
+	functor(Head, Name, Arity),
+	(   catch(relative_file(Module:Head, File), _, fail)
+	->  format(string(HREF), '~w?source=true#~w', [File, EncId])
+	;   in_file(Module:Head, File),
+	    doc_server_root(Root),
+	    format(string(HREF), '~wdoc~w?source=true#~w', [Root, File, EncId])
+	).
+
+
 %%	object_ref(+Object, +Options)// is det.
 %
 %	Create a hyperlink to Object. Points to the /doc_for URL. Object

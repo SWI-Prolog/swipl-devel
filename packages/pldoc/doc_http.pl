@@ -451,9 +451,11 @@ allowed_directory(Dir) :-
 
 %%	allowed_file(+File) is semidet.
 %
-%	True if we are allowed to serve File.  Currently means the
-%	directory must be allowed.
+%	True if we are allowed to serve   File.  Currently means we have
+%	predicates loaded from File or the directory must be allowed.
 
+allowed_file(File) :-
+	source_file(_, File), !.
 allowed_file(File) :-
 	absolute_file_name(File, Canonical),
 	file_directory_name(Canonical, Dir),

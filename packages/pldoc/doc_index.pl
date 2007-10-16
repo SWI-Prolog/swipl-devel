@@ -282,8 +282,11 @@ object_summary(doc(Obj, _Pos, Summary), _Section, Options) --> !,
 	->  html(tr(class(Class),
 		    [ td(\object_ref(Obj, Options)),
 		      td(class(summary), DOM),
-		      td(align(right),
-			 \object_edit_button(Obj, Options))
+		      td([align(right), width('30')],
+			 span(style('float:right'),
+			      [ \object_source_button(Obj, Options),
+				\object_edit_button(Obj, Options)
+			      ]))
 		    ]))
 	;   []
 	).

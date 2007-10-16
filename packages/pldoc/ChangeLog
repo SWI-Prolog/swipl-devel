@@ -1,5 +1,7 @@
 Oct 16, 2007
 
+* ADDED: Source-reference to individual predicates.
+
 * ENHANCED: Introduce path aliases to get constant paths for the SWI-Prolog
   library.
 
