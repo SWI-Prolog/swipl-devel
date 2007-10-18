@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Wrong calls to GC from sort/2 and findall/3. Can cause crashes
+    as well as errornous results.
+
 =================================
 VERSION 5.6.44 (October 15, 2007)
 =================================

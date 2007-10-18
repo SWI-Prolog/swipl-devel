@@ -2096,6 +2096,11 @@ garbageCollect(LocalFrame fr, Choice ch)
   if ( gc_status.blocked || !trueFeature(GC_FEATURE) )
     return;
 
+  if ( !fr )
+    fr = LD->environment;
+  if ( !ch )
+    ch = LD->choicepoints;
+
   enterGC();
   blockSignals(&mask);
   blockGC(PASS_LD1);			/* avoid recursion due to */
@@ -2196,8 +2201,6 @@ garbageCollect(LocalFrame fr, Choice ch)
 word
 pl_garbage_collect(term_t d)
 { GET_LD
-  LocalFrame fr = environment_frame;
-  Choice ch = LD->choicepoints;
 
 #if O_DEBUG
   int ol = GD->debug_level;
@@ -2209,7 +2212,7 @@ pl_garbage_collect(term_t d)
     GD->debug_level = nl;
   }
 #endif
-  garbageCollect(fr, ch);
+  garbageCollect(NULL, NULL);
 #if O_DEBUG
   GD->debug_level = ol;
 #endif
