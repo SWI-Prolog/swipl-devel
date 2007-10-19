@@ -291,14 +291,14 @@ unbound variable an arbitrary thread is restarted to scan the queue.%
 		  for background information.}
 
     \predicate{thread_get_message}{1}{?Term}
-Examines the thread message-queue and if necessary blocks execution
+Examines the thread message queue and if necessary blocks execution
 until a term that unifies to \arg{Term} arrives in the queue.  After
-a term from the queue has been unified unified to \arg{Term}, the
-term is deleted from the queue and this predicate returns.
+a term from the queue has been unified to \arg{Term}, the
+term is deleted from the queue.
 
 Please note that not-unifying messages remain in the queue.  After
 the following has been executed, thread 1 has the term \term{b}{gnu}
-in its queue and continues execution using \arg{A} is \const{gnat}.
+in its queue and continues execution using \arg{A}~=~\const{gnat}.
 
 \begin{code}
    <thread 1>
