@@ -332,8 +332,9 @@ Same as \term{message_queue_create}{Alias}, but according to the
 ISO draft on Prolog threads.
 	\termitem{max_size}{+Size}
 Maximum number of terms in the queue.  If this number is reached,
-thread_send_message/2 will block until the queue is drained. 
-\textbf{not yet implemented}.
+thread_send_message/2 will suspend until the queue is drained. 
+The option can be used if the source, sending messages to the
+queue, is faster than the drain, consuming the messages.
     \end{description}
 
     \predicate{message_queue_destroy}{1}{+Queue}

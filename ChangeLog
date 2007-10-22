@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: implemented the max_size property for message queues.
+
   * FIXED: Wrong calls to GC from sort/2 and findall/3. Can cause crashes
     as well as errornous results.
 
