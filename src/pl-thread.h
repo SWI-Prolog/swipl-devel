@@ -84,12 +84,17 @@ typedef struct message_queue
 { simpleMutex	       mutex;		/* Message queue mutex */
 #ifdef __WINDOWS__
   win32_cond_t	       cond_var;
+  win32_cond_t	       drain_var;
 #else
-  pthread_cond_t       cond_var;	/* condition variable of queue */
+  pthread_cond_t       cond_var;	/* condvar for reading */
+  pthread_cond_t       drain_var;	/* condvar for writing */
 #endif
   struct _thread_msg   *head;		/* Head of message queue */
   struct _thread_msg   *tail;		/* Tail of message queue */
   word		       id;		/* Id of the queue */
+  long		       size;		/* # terms in queue */
+  long		       max_size;	/* Max # terms in queue */
+  int		       wait_for_drain;	/* A thread is waiting for write */
   int		       waiting;		/* # waiting threads */
   int		       waiting_var;	/* # waiting with unbound */
 } message_queue;

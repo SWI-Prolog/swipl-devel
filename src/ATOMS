@@ -701,6 +701,7 @@ F log10			1
 F lsb			1
 F lshift		2
 F max			2
+F max_size		1
 F message_lines		1
 F min			2
 F minus			1

@@ -344,13 +344,14 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 
 static PL_thread_info_t *alloc_thread(void);
 static void	destroy_message_queue(message_queue *queue);
-static void	init_message_queue(message_queue *queue);
+static void	init_message_queue(message_queue *queue, long max_size);
 static void	freeThreadSignals(PL_local_data_t *ld);
 static void	unaliasThread(atom_t name);
 static void	run_thread_exit_hooks();
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
 static int	get_message_queue_unlocked(term_t t, message_queue **queue);
+static int	get_message_queue(term_t t, message_queue **queue);
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static pl_mutex *mutexCreate(atom_t name);
 static double   ThreadCPUTime(PL_thread_info_t *info, int which);
@@ -530,7 +531,7 @@ initPrologThreads()
   PL_local_data.thread.info = info;
   PL_local_data.thread.magic = PL_THREAD_MAGIC;
   set_system_thread_id(info);
-  init_message_queue(&PL_local_data.thread.messages);
+  init_message_queue(&PL_local_data.thread.messages, -1);
 
   GD->statistics.thread_cputime = 0.0;
   GD->statistics.threads_created = 1;
@@ -1024,7 +1025,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     ldnew->feature.table	 = copyHTable(LD->feature.table);
     PL_UNLOCK(L_FEATURE);
   }
-  init_message_queue(&info->thread_data->thread.messages);
+  init_message_queue(&info->thread_data->thread.messages, -1);
 
   pthread_attr_init(&attr);
   if ( info->detached )
@@ -1760,6 +1761,13 @@ freeThreadSignals(PL_local_data_t *ld)
 		 *	  MESSAGE QUEUES	*
 		 *******************************/
 
+typedef enum
+{ QUEUE_WAIT_READ,			/* wait for message */
+  QUEUE_WAIT_DRAIN			/* wait for queue to drain */
+} queue_wait_type;
+
+static int dispatch_cond_wait(message_queue *queue, queue_wait_type wait);
+
 #ifdef __WINDOWS__
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Earlier implementations used pthread-win32 condition   variables.  As we
@@ -1909,8 +1917,18 @@ typedef struct _thread_msg
 
 
 static void
+free_thread_message(thread_message *msg)
+{ if ( msg->message )
+    PL_erase(msg->message);
+
+  freeHeap(msg, sizeof(*msg));
+}
+
+
+static int
 queue_message(message_queue *queue, term_t msg)
 { thread_message *msgp;
+  int rval = TRUE;
 
   msgp = allocHeap(sizeof(*msgp));
   msgp->next    = NULL;
@@ -1919,12 +1937,35 @@ queue_message(message_queue *queue, term_t msg)
   
   simpleMutexLock(&queue->mutex);
 
+  if ( queue->max_size > 0 && queue->size >= queue->max_size )
+  { queue->wait_for_drain++;
+
+    while ( queue->size >= queue->max_size )
+    { if ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN) == EINTR )
+      { if ( !LD )			/* needed for clean exit */
+	{ Sdprintf("Forced exit from queue_message()\n");
+	  exit(1);
+	}
+	
+	if ( PL_handle_signals() < 0 )	/* thread-signal */
+	{ rval = FALSE;
+	  free_thread_message(msgp);
+	  queue->wait_for_drain--;
+	  goto out;
+	}
+      }
+    }
+
+    queue->wait_for_drain--;
+  }  
+
   if ( !queue->head )
   { queue->head = queue->tail = msgp;
   } else
   { queue->tail->next = msgp;
     queue->tail = msgp;
   }
+  queue->size++;
 
   if ( queue->waiting )
   { if ( queue->waiting > queue->waiting_var && queue->waiting > 1 )
@@ -1940,7 +1981,9 @@ queue_message(message_queue *queue, term_t msg)
   { DEBUG(1, Sdprintf("No waiters\n"));
   }
 
+out:
   simpleMutexUnlock(&queue->mutex);
+  return rval;
 }
 
 
@@ -1962,27 +2005,15 @@ cleanup_get_message(void *context)
 #ifdef __WINDOWS__
 
 static int
-dispatch_cond_wait(message_queue *queue)
-{ return win32_cond_wait(&queue->cond_var, &queue->mutex);
+dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
+{ return win32_cond_wait((wait == QUEUE_WAIT_READ ? &queue->cond_var : &queue->drain_var),
+			 &queue->mutex);
 }
 
 #else /*__WINDOWS__*/
 
-#if 0
-
 static int
-dispatch_cond_wait(message_queue *queue)
-{ int rc;
-
-  rc = pthread_cond_wait(&queue->cond_var, &queue->mutex);
-
-  return rc;
-}
-
-#else
-
-static int
-dispatch_cond_wait(message_queue *queue)
+dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
 { struct timeval now;
   struct timespec timeout;
   int rc;
@@ -1997,7 +2028,9 @@ dispatch_cond_wait(message_queue *queue)
       timeout.tv_sec += 1;
     }
 
-    rc = pthread_cond_timedwait(&queue->cond_var, &queue->mutex, &timeout);
+    rc = pthread_cond_timedwait((wait == QUEUE_WAIT_READ ? &queue->cond_var
+							 : &queue->drain_var),
+				&queue->mutex, &timeout);
 #ifdef O_DEBUG
     if ( LD && LD->thread.info )	/* can be absent during shutdown */
     { switch( LD->thread.info->ldata_status )
@@ -2016,26 +2049,18 @@ dispatch_cond_wait(message_queue *queue)
 
     switch( rc )
     { case ETIMEDOUT:
-      { if ( LD->pending_signals )
+	if ( LD->pending_signals )
 	  return EINTR;
 
-	if ( queue->head )
-	{ DEBUG(1, Sdprintf("[%d]: ETIMEDOUT: queue not empty\n",
-			    PL_thread_self()));
-	  return 0;
-	}
-
-	continue;
-      }
+	return 0;
       default:
 	return rc;
     }
   }
 }
-#endif
-
 
 #endif /*__WINDOWS__*/
+
 
 static int
 get_message(message_queue *queue, term_t msg)
@@ -2071,8 +2096,12 @@ get_message(message_queue *queue, term_t msg)
 	{ if ( !(queue->head = msgp->next) )
 	    queue->tail = NULL;
 	}
-	PL_erase(msgp->message);
-	freeHeap(msgp, sizeof(*msgp));
+	free_thread_message(msgp);
+	queue->size--;
+	if ( queue->wait_for_drain )
+	{ DEBUG(1, Sdprintf("Queue drained. wakeup writers\n"));
+	  cv_signal(&queue->drain_var);
+	}
 	goto out;
       }
 
@@ -2083,7 +2112,7 @@ get_message(message_queue *queue, term_t msg)
     queue->waiting++;
     queue->waiting_var += isvar;
     DEBUG(1, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
-    while( dispatch_cond_wait(queue) == EINTR )
+    while( dispatch_cond_wait(queue, QUEUE_WAIT_READ) == EINTR || !queue->head )
     { DEBUG(1, Sdprintf("%d: EINTR\n", PL_thread_self()));
 
       if ( !LD )			/* needed for clean exit */
@@ -2157,14 +2186,19 @@ destroy_message_queue(message_queue *queue)
   
   simpleMutexDelete(&queue->mutex);
   cv_destroy(&queue->cond_var);
+  if ( queue->max_size > 0 )
+    cv_destroy(&queue->drain_var);
 }
 
 
 static void
-init_message_queue(message_queue *queue)
+init_message_queue(message_queue *queue, long max_size)
 { memset(queue, 0, sizeof(*queue));
   simpleMutexInit(&queue->mutex);
   cv_init(&queue->cond_var, NULL);
+  queue->max_size = max_size;
+  if ( queue->max_size > 0 )
+    cv_init(&queue->drain_var, NULL);
 }
 
 					/* Prolog predicates */
@@ -2173,16 +2207,10 @@ word
 pl_thread_send_message(term_t queue, term_t msg)
 { message_queue *q;
 
-  LOCK();
-  if ( !get_message_queue_unlocked(queue, &q) )
-  { UNLOCK();
+  if ( !get_message_queue(queue, &q) )
     fail;
-  }
 
-  queue_message(q, msg);
-  UNLOCK();
-
-  succeed;
+  return queue_message(q, msg);
 }
 
 
@@ -2214,7 +2242,7 @@ unify_queue(term_t t, message_queue *q)
 
 
 static message_queue *
-unlocked_message_queue_create(term_t queue)
+unlocked_message_queue_create(term_t queue, long max_size)
 { Symbol s;
   atom_t name = NULL_ATOM;
   message_queue *q;
@@ -2240,7 +2268,7 @@ unlocked_message_queue_create(term_t queue)
   }
 
   q = PL_malloc(sizeof(*q));
-  init_message_queue(q);
+  init_message_queue(q, max_size);
   q->id    = id;
   addHTable(queueTable, (void *)id, q);
 
@@ -2320,7 +2348,7 @@ PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
 { int rval;
 
   LOCK();
-  rval = (unlocked_message_queue_create(A1) ? TRUE : FALSE);
+  rval = (unlocked_message_queue_create(A1, -1) ? TRUE : FALSE);
   UNLOCK();
 
   return rval;
@@ -2336,9 +2364,9 @@ static const opt_spec message_queue_options[] =
 
 static
 PRED_IMPL("message_queue_create", 2, message_queue_create2, 0)
-{ int rval;
-  atom_t alias = 0;
+{ atom_t alias = 0;
   long max_size = -1;			/* to be processed */
+  message_queue *q;
 
   if ( !scan_options(A2, 0,
 		     ATOM_queue_option, message_queue_options,
@@ -2352,10 +2380,10 @@ PRED_IMPL("message_queue_create", 2, message_queue_create2, 0)
   }
 
   LOCK();
-  rval = (unlocked_message_queue_create(A1) ? TRUE : FALSE);
+  q = unlocked_message_queue_create(A1, max_size);
   UNLOCK();
 
-  return rval;
+  return q ? TRUE : FALSE;
 }
 
 
@@ -2405,23 +2433,23 @@ message_queue_alias_property(message_queue *q, term_t prop ARG_LD)
 
 static int			/* message_queue_property(Queue, size(Size)) */
 message_queue_size_property(message_queue *q, term_t prop ARG_LD)
-{ int n;
-  thread_message *m;
+{ return PL_unify_integer(prop, q->size);
+}
 
-  startCritical;
-  simpleMutexLock(&q->mutex);
-  for(n=0, m=q->head; m; m = m->next)
-    n++;
-  simpleMutexUnlock(&q->mutex);
-  endCritical;
 
-  return PL_unify_integer(prop, n);
+static int			/* message_queue_property(Queue, max_size(Size)) */
+message_queue_max_size_property(message_queue *q, term_t prop ARG_LD)
+{ if ( q->max_size > 0 )
+    return PL_unify_integer(prop, q->size);
+
+  fail;
 }
 
 
 static const tprop qprop_list [] =
 { { FUNCTOR_alias1,	    message_queue_alias_property },
   { FUNCTOR_size1,	    message_queue_size_property },
+  { FUNCTOR_max_size1,	    message_queue_max_size_property },
   { 0,			    NULL }
 };
 
@@ -3401,7 +3429,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   info->detached   = TRUE;		/* C-side should join me */
   info->status     = PL_THREAD_RUNNING;
   info->open_count = 1;
-  init_message_queue(&info->thread_data->thread.messages);
+  init_message_queue(&info->thread_data->thread.messages, -1);
 
   ldnew->prompt			 = ldmain->prompt;
   ldnew->modules		 = ldmain->modules;
