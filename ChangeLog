@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+=================================
+VERSION 5.6.45 (October 22, 2007)
+=================================
+
   * MODIFIED: Replaced mutex property locked by status(locked(Owner,Count)),
     after discussion with XSB and YAP.  As mutex_property/2 now completely
     replaces current_mutex/3, this predicate is moved to the backcomp.pl
