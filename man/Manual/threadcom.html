@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section 8.3</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.45 Reference Manual: Section 8.3</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="thmonitor.html">
@@ -164,14 +164,14 @@ the POSIX thread functions pthread_cond_signal() v.s. pthread_cond_broadcastt()
 for background information.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="thread_get_message/1"><STRONG>thread_get_message</STRONG>(<VAR>?Term</VAR>)</A></DT>
 <DD class="defbody">
-Examines the thread message-queue and if necessary blocks execution 
+Examines the thread message queue and if necessary blocks execution 
 until a term that unifies to <VAR>Term</VAR> arrives in the queue. After 
-a term from the queue has been unified unified to <VAR>Term</VAR>, the 
-term is deleted from the queue and this predicate returns.
+a term from the queue has been unified to <VAR>Term</VAR>, the term is 
+deleted from the queue.
 
 <P>Please note that not-unifying messages remain in the queue. After the 
 following has been executed, thread 1 has the term <CODE>b(gnu)</CODE> 
-in its queue and continues execution using <VAR>A</VAR> is <CODE>gnat</CODE>.
+in its queue and continues execution using <VAR>A</VAR>&nbsp;=&nbsp;<CODE>gnat</CODE>.
 
 <PRE class="code">
    &lt;thread 1&gt;
@@ -211,8 +211,9 @@ ISO draft on Prolog threads.
 <DD class="defbody">
 Maximum number of terms in the queue. If this number is reached,
 <A NAME="idx:threadsendmessage2:1259"></A><A class="pred" href="threadcom.html#thread_send_message/2">thread_send_message/2</A> 
-will block until the queue is drained.
-<B>not yet implemented</B>.
+will suspend until the queue is drained. The option can be used if the 
+source, sending messages to the queue, is faster than the drain, 
+consuming the messages.
 </DD>
 </DL>
 

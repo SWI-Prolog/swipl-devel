@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section C.1</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.45 Reference Manual: Section C.1</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="dialect.html">
@@ -139,7 +139,7 @@ target dialect. Contrary, if code was written for dialect <VAR>X</VAR>,
 the defined semantics are those of dialect <VAR>X</VAR>. Emulating all 
 extreme cases and full error handling compatibility may be tedious and 
 result in a much slower implementation that needed. Take for example
-<A NAME="idx:callcleanup2:1554"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/2</A>. 
+<A NAME="idx:callcleanup2:1553"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/2</A>. 
 The SICStus definition is fundamentally different from the SWI 
 definition, but 99% of the applications just want to make calls like 
 below to guarantee <VAR>StreamIn</VAR> is closed, even if <SPAN class="pred-ext">process/1</SPAN> 
@@ -177,8 +177,8 @@ dialects were about as abundant and poorly standardised as Prolog
 dialects today. Writing a portable C program can only be achieved using 
 cpp, the C preprocessor. The C preprocessor performs two tasks: macro 
 expansion and conditional compilation. Prolog realises macro expansion 
-through <A NAME="idx:termexpanstion2:1555"></A><SPAN class="pred-ext">term_expanstion/2</SPAN> 
-and <A NAME="idx:goalexpansion2:1556"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>. 
+through <A NAME="idx:termexpanstion2:1554"></A><SPAN class="pred-ext">term_expanstion/2</SPAN> 
+and <A NAME="idx:goalexpansion2:1555"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>. 
 Conditional compilation is achieved using <CODE>:- if(Condition)</CODE> 
 as explained in
 <A class="sec" href="consulting.html">section 4.3.1.1</A>. The situation 
@@ -200,8 +200,8 @@ and Prolog has excelent reflexion capabilities.
 
 <P>We must learn from the distinction to test for features instead of 
 platform (dialect), as this makes the platform specific code robust for 
-future changes of the dialect. Suppose we need <A NAME="idx:compare3:1557"></A><A class="pred" href="compare.html#compare/3">compare/3</A> 
-as defined in this manual. The <A NAME="idx:compare3:1558"></A><A class="pred" href="compare.html#compare/3">compare/3</A> 
+future changes of the dialect. Suppose we need <A NAME="idx:compare3:1556"></A><A class="pred" href="compare.html#compare/3">compare/3</A> 
+as defined in this manual. The <A NAME="idx:compare3:1557"></A><A class="pred" href="compare.html#compare/3">compare/3</A> 
 predicate is not part of the ISO standard, but many systems support it 
 and it is not unlikely it will become ISO standard or the intended 
 dialect will start supporting it. GNU autoconf strongly advises to test 
@@ -222,17 +222,17 @@ compare(=, Term1, Term2) :-
 dialect and, possible at least as important, will provide compatibility 
 to dialects you didn't even consider porting to right now.
 
-<P>In a more challenging case, the target Prolog has <A NAME="idx:compare3:1559"></A><A class="pred" href="compare.html#compare/3">compare/3</A>, 
+<P>In a more challenging case, the target Prolog has <A NAME="idx:compare3:1558"></A><A class="pred" href="compare.html#compare/3">compare/3</A>, 
 but the semantics are different. What to do? One option is to write a
-<A NAME="idx:mycompare3:1560"></A><SPAN class="pred-ext">my_compare/3</SPAN> 
+<A NAME="idx:mycompare3:1559"></A><SPAN class="pred-ext">my_compare/3</SPAN> 
 and change all occurrences in the code. Alternatively you can rename 
-calls using <A NAME="idx:goalexpansion2:1561"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+calls using <A NAME="idx:goalexpansion2:1560"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
 like below. This construct will not only deal with Prolog dialects 
 lacking compare as well as those that only implement it for numeric 
 comparison or have changed the argument order. Of course, writing 
 rock-solid code would require a complete test-suite, but this example 
 will probably cover all Prolog dialects that allow for conditional 
-compilation, have core ISO facilities and provide <A NAME="idx:goalexpansion2:1562"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>, 
+compilation, have core ISO facilities and provide <A NAME="idx:goalexpansion2:1561"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>, 
 the things we claim a Prolog dialect should have to start writing 
 portable code for it.
 

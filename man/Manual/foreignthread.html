@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section 8.6</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.45 Reference Manual: Section 8.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="thutil.html">
@@ -127,7 +127,7 @@ mixed C and Prolog applications</SPAN></A></H2>
 
 <P>All foreign-code linked to the multi-threading version of SWI-Prolog 
 should be thread-safe (<EM>reentrant</EM>) or guarded in Prolog using
-<A NAME="idx:withmutex2:1301"></A><A class="pred" href="threadsync.html#with_mutex/2">with_mutex/2</A> 
+<A NAME="idx:withmutex2:1300"></A><A class="pred" href="threadsync.html#with_mutex/2">with_mutex/2</A> 
 from simultaneous access from multiple Prolog threads. If you want to 
 write mixed multi-threaded C and Prolog application you should first 
 familiarise yourself with writing multi-threaded applications in C 
@@ -218,7 +218,7 @@ handler is installed
 <EM>for all threads</EM>. Globally installed handlers are executed after 
 the thread-local handlers. If the handler is installed local for the 
 current thread only (<VAR>global</VAR> == <CODE>FALSE</CODE>) it is 
-stored in the same FIFO queue as used by <A NAME="idx:threadatexit1:1302"></A><A class="pred" href="threadcreate.html#thread_at_exit/1">thread_at_exit/1</A>.
+stored in the same FIFO queue as used by <A NAME="idx:threadatexit1:1301"></A><A class="pred" href="threadcreate.html#thread_at_exit/1">thread_at_exit/1</A>.
 </DD>
 </DL>
 

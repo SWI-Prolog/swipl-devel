@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section A.19</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.45 Reference Manual: Section A.19</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="broadcast.html">
@@ -139,7 +139,7 @@ well as analysis by cross-referencers. Given the simple nature of the
 access predicates, an optimizing compiler can easily inline them for 
 optimal preformance.
 
-<P>A record is defined using the directive <A NAME="idx:record1:1489"></A><A class="pred" href="record.html#record/1">record/1</A>. 
+<P>A record is defined using the directive <A NAME="idx:record1:1488"></A><A class="pred" href="record.html#record/1">record/1</A>. 
 We introduce the library with a short example:
 
 <PRE class="code">
@@ -162,7 +162,7 @@ a term of the format below.
 
 <P>In this definition, &lt;<VAR>name</VAR>&gt; is an atom defining the 
 name of the argument.
-&lt;<VAR>type</VAR>&gt; is an optional type specification as defined by <A NAME="idx:mustbe2:1490"></A><SPAN class="pred-ext">must_be/2</SPAN> 
+&lt;<VAR>type</VAR>&gt; is an optional type specification as defined by <A NAME="idx:mustbe2:1489"></A><SPAN class="pred-ext">must_be/2</SPAN> 
 from library <CODE>library(error)</CODE> and &lt;<VAR>default</VAR>&gt; 
 is the default initial value. The
 &lt;<VAR>type</VAR>&gt; defaults to <CODE>any</CODE>. If no default 
@@ -213,13 +213,13 @@ and unify the result with <VAR>NewRecord</VAR>.
 !Record)</I><BR>
 Destructively replace the argument &lt;<VAR>name</VAR>&gt; in <VAR>Record</VAR> 
 by
-<VAR>Value</VAR> based on <A NAME="idx:setarg3:1491"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A>. 
+<VAR>Value</VAR> based on <A NAME="idx:setarg3:1490"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A>. 
 Use with care.
 
 <P>
 <LI><I>nb_set_&lt;<VAR>name</VAR>&gt;_of_&lt;<VAR>constructor</VAR>&gt;(+Value, 
 !Record)</I><BR>
-As above, but using non-backtrackable assignment based on <A NAME="idx:nbsetarg3:1492"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>. 
+As above, but using non-backtrackable assignment based on <A NAME="idx:nbsetarg3:1491"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>. 
 Use with <EM>extreme</EM> care.
 
 <P>
@@ -246,7 +246,7 @@ Set a single field specified as a term &lt;<VAR>name</VAR>&gt;(&lt;<VAR>value</V
 <DD class="defbody">
 The construct <CODE>:- record Spec, ...</CODE> is used to define access 
 to named fields in a compound. It is subject to term-expansion (see
-<A NAME="idx:expandterm2:1493"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A>) 
+<A NAME="idx:expandterm2:1492"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A>) 
 and cannot be called as a predicate. See
 <A class="sec" href="record.html">section A.19</A> for details.
 </DD>

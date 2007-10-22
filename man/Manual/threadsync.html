@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.43 Reference Manual: Section 8.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.45 Reference Manual: Section 8.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="threadcom.html">
@@ -239,25 +239,20 @@ True if Property is a property of MutexId. Defined properties are:
 <DD class="defbody">
 Mutex has defined alias name. See <A NAME="idx:mutexcreate2:1283"></A><A class="pred" href="threadsync.html#mutex_create/2">mutex_create/2</A> 
 using the `alias' option.</DD>
-<DT><STRONG>locked</STRONG>(<VAR>Owner, Count</VAR>)</DT>
+<DT><STRONG>status</STRONG>(<VAR>Status</VAR>)</DT>
 <DD class="defbody">
-Mutex is locked <VAR>Count</VAR> times by threads <VAR>Owner</VAR>. Note 
-that, unless <VAR>Owner</VAR> is the calling thread, the locked status 
-can change at any time. There is no useful application of this property, 
-except for diagnostic purposes.
+Current status of the mutex. One of <CODE>unlocked</CODE> if the mutex 
+is currently not locked or <CODE>locked(Owner, Count)</CODE> if mutex is 
+locked
+<VAR>Count</VAR> times by threads <VAR>Owner</VAR>. Note that, unless <VAR>Owner</VAR> 
+is the calling thread, the locked status can change at any time. There 
+is no useful application of this property, except for diagnostic 
+purposes.<SUP class="fn">bug<SPAN class="fn-text">As <VAR>Owner</VAR> 
+and <VAR>Count</VAR> are fetched separately from the mutex, the values 
+may be inconsistent.</SPAN></SUP>
 </DD>
 </DL>
 
-</DD>
-<DT class="pubdef"><A NAME="current_mutex/3"><STRONG>current_mutex</STRONG>(<VAR>?MutexId, 
-?ThreadId, ?Count</VAR>)</A></DT>
-<DD class="defbody">
-Enumerates all existing mutexes. If the mutex is held by some thread,
-<VAR>ThreadId</VAR> is unified with the identifier of the holding thread 
-and
-<VAR>Count</VAR> with the recursive count of the mutex. Otherwise,
-<VAR>ThreadId</VAR> is <CODE>[]</CODE> and <VAR>Count</VAR> is 0. 
-Deprecated. new code should use <A NAME="idx:mutexproperty2:1284"></A><A class="pred" href="threadsync.html#mutex_property/2">mutex_property/2</A>.
 </DD>
 </DL>
 
