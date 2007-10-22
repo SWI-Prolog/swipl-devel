@@ -380,7 +380,7 @@ pl_nat_sort(term_t in, term_t out, int remove_dups, int compare_keys ARG_LD)
 { if ( PL_get_nil(in) )
     return PL_unify_atom(out, ATOM_nil);
   else
-  { list l;
+  { list l = 0;
     term_t tmp = PL_new_term_ref();
     Word top = NULL;
 

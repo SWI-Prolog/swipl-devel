@@ -345,7 +345,7 @@ reentrant access is tried.
 #ifdef HAVE_RL_EVENT_HOOK
 static int
 event_hook()
-{ if ( Sinput && Sinput->position )
+{ if ( Sinput->position )
   { intptr_t c0 = Sinput->position->charno;
 
     while( !input_on_fd(0) )

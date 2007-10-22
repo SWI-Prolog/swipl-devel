@@ -1096,7 +1096,7 @@ exception somewhere.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef offset
-#define offset(s, f) ((int)(&((struct s *)NULL)->f))
+#define offset(s, f) ((size_t)(&((struct s *)NULL)->f))
 #endif
 
 #ifdef O_DEBUGGER
@@ -4037,7 +4037,7 @@ true:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
       normal_call:
-	requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
+	requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Initialise those slots of the frame that are common to Prolog predicates
@@ -4257,7 +4257,7 @@ values found in the clause,  give  a   reference  to  the clause and set
 	  newChoice(CHP_DEBUG, FR PASS_LD);
 
 			/* require space for the args of the next frame */
-	requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
+	requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
       }
 
 	SECURE(
@@ -4535,7 +4535,7 @@ clause_failed:				/* shallow backtracking */
       { ch = newChoice(CHP_DEBUG, FR PASS_LD);
       }
 
-      requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
+      requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
       NEXT_INSTRUCTION;
     }
   }  
@@ -4679,7 +4679,7 @@ next_choice:
       }
 
 			/* require space for the args of the next frame */
-      requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
+      requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
       NEXT_INSTRUCTION;
     }
     case CHP_FOREIGN:

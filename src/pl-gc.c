@@ -152,7 +152,7 @@ char tmp[256];				/* for calling print_val(), etc. */
 #define onTrail(p)	topPointerOnStack(trail, p)
 
 #ifndef offset
-#define offset(s, f) ((int)(&((struct s *)NULL)->f))
+#define offset(s, f) ((size_t)(&((struct s *)NULL)->f))
 #endif
 
 #define ttag(x)		(((word)(x))&TAG_TRAILMASK)

@@ -1088,7 +1088,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 #endif /*O_DEBUGGER*/
 
 #ifndef offset
-#define offset(s, f) ((int)(&((struct s *)NULL)->f))
+#define offset(s, f) ((size_t)(&((struct s *)NULL)->f))
 #endif
 
 static QueryFrame
