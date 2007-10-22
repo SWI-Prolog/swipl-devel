@@ -149,7 +149,6 @@ suggest predicates from a keyword.
 \predicatesummary{current_key}{1}{Examine existing database keys}
 \predicatesummary{current_module}{1}{Examine existing modules}
 \predicatesummary{current_module}{2}{Examine existing modules}
-\predicatesummary{current_mutex}{3}{Examine existing mutexes}
 \predicatesummary{current_op}{3}{Examine current operator declarations}
 \predicatesummary{current_output}{1}{Get the current output stream}
 \predicatesummary{current_predicate}{1}{Examine existing predicates (ISO)}

@@ -593,19 +593,16 @@ True if Property is a property of MutexId.  Defined properties are:
 Mutex has defined alias name.  See mutex_create/2 using the `alias'
 option.
 
-	\termitem{locked}{Owner, Count}
-Mutex is locked \arg{Count} times by threads \arg{Owner}.  Note that,
-unless \arg{Owner} is the calling thread, the locked status can change
-at any time.  There is no useful application of this property, except
-for diagnostic purposes.
+	\termitem{status}{Status}
+Current status of the mutex. One of \const{unlocked} if the mutex is
+currently not locked or \term{locked}{Owner, Count} if mutex is locked
+\arg{Count} times by threads \arg{Owner}. Note that, unless \arg{Owner}
+is the calling thread, the locked status can change at any time. There
+is no useful application of this property, except for diagnostic
+purposes.%
+	\bug{As \arg{Owner} and \arg{Count} are fetched separately from
+	     the mutex, the values may be inconsistent.}
     \end{description}
-
-    \predicate{current_mutex}{3}{?MutexId, ?ThreadId, ?Count}
-Enumerates all existing mutexes.  If the mutex is held by some thread,
-\arg{ThreadId} is unified with the identifier of the holding thread and
-\arg{Count} with the recursive count of the mutex. Otherwise,
-\arg{ThreadId} is \const{[]} and \arg{Count} is 0.  Deprecated. new
-code should use mutex_property/2.
 \end{description}
 
 

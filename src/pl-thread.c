@@ -3123,59 +3123,11 @@ pl_mutex_destroy(term_t mutex)
 }
 
 
-foreign_t
-pl_current_mutex(term_t mutex, term_t owner, term_t count, control_t h)
-{ TableEnum e;
-  Symbol s;
-  fid_t fid;
-
-  switch(ForeignControl(h))
-  { case FRG_FIRST_CALL:
-    { if ( PL_is_variable(mutex) )
-      { e = newTableEnum(GD->thread.mutexTable);
-      } else
-      { pl_mutex *m;
-
-        if ( get_mutex(mutex, &m, FALSE) &&
-	     unify_mutex_owner(owner, m->owner) &&
-	     PL_unify_integer(count, m->count) )
-	  succeed;
-
-	fail;
-      }
-      break;
-    }
-    case FRG_REDO:
-      e = ForeignContextPtr(h);
-      break;
-    case FRG_CUTTED:
-      e = ForeignContextPtr(h);
-      freeTableEnum(e);
-    default:
-      succeed;
-  }
-
-  fid = PL_open_foreign_frame();
-  while ( (s = advanceTableEnum(e)) )
-  { pl_mutex *m = s->value;
-
-    if ( unify_mutex(mutex, m) &&
-	 unify_mutex_owner(owner, m->owner) &&
-	 PL_unify_integer(count, m->count) )
-    { ForeignRedoPtr(e);
-    }
-    PL_rewind_foreign_frame(fid);
-  }
-
-  freeTableEnum(e);
-  fail;
-}
-
 		 /*******************************
 		 *	  MUTEX_PROPERTY	*
 		 *******************************/
 
-static int			/* mutex_property(Mutex, alias(Name)) */
+static int		/* mutex_property(Mutex, alias(Name)) */
 mutex_alias_property(pl_mutex *m, term_t prop ARG_LD)
 { if ( isAtom(m->id) )
     return PL_unify_atom(prop, m->id);
@@ -3184,11 +3136,19 @@ mutex_alias_property(pl_mutex *m, term_t prop ARG_LD)
 }
 
 
-static int			/* mutex_property(Mutex, locked(By, Count)) */
-mutex_locked_property(pl_mutex *m, term_t a1, term_t a2 ARG_LD)
+static int		/* mutex_property(Mutex, status(locked(By, Count))) */
+mutex_status_property(pl_mutex *m, term_t prop ARG_LD)
 { if ( m->owner )
-  { return unify_thread_id(a1, &threads[m->owner]) &&
-           PL_unify_integer(a2, m->count);
+  { int owner = m->owner;
+    int count = m->count;
+    term_t owner_term = PL_new_term_ref();
+    
+    return (PL_unify_term(prop, PL_FUNCTOR, FUNCTOR_locked2,
+			    PL_TERM, owner_term,
+			    PL_INT, count) &&
+	    unify_mutex_owner(owner_term, owner));
+  } else
+  { return PL_unify_atom(prop, ATOM_unlocked);
   }
 
   fail;
@@ -3197,7 +3157,7 @@ mutex_locked_property(pl_mutex *m, term_t a1, term_t a2 ARG_LD)
 
 static const tprop mprop_list [] =
 { { FUNCTOR_alias1,	    mutex_alias_property },
-  { FUNCTOR_locked2,	    mutex_locked_property },
+  { FUNCTOR_status1,	    mutex_status_property },
   { 0,			    NULL }
 };
 
@@ -3311,48 +3271,19 @@ enumerate:
   }
 
 
-  { term_t args = PL_new_term_refs(2);
-    int arity = 0;
+  { term_t arg = PL_new_term_ref();
 
     if ( !state->enum_properties )
-    { int i;
-
-      arity = arityFunctor(state->p->functor);
-      for(i=0; i<arity; i++)
-	PL_get_arg(i+1, property, args+i);
-    }
+      PL_get_arg(1, property, arg);
 
     for(;;)
     { int rval;
 
-      if ( state->enum_properties )
-	arity = arityFunctor(state->p->functor);
-
-      switch(arity)
-      { case 1:
-	  rval = (*state->p->function)(state->m, args PASS_LD);
-	  break;
-	case 2:
-	  rval = (*state->p->function)(state->m, args, args+1 PASS_LD);
-	  break;
-	default:
-	  assert(0);
-	  rval = FALSE;
-      }
-
-      if ( rval )
+      if ( (*state->p->function)(state->m, arg PASS_LD) )
       { if ( state->enum_properties )
-	{ switch ( arity )
-	  { case 1:
-	      PL_unify_term(property,
+	{ PL_unify_term(property,
 			    PL_FUNCTOR, state->p->functor,
-			      PL_TERM, args);
-	      break;
-	    case 2:
-	      PL_unify_term(property,
-			    PL_FUNCTOR, state->p->functor,
-			      PL_TERM, args, PL_TERM, args+1);
-	  }
+			      PL_TERM, arg);
 	}
 	if ( state->e )
 	  unify_mutex(mutex, state->m);

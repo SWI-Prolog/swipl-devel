@@ -320,10 +320,6 @@ extern foreign_t	pl_mutex_lock(term_t mutex);
 extern foreign_t	pl_mutex_trylock(term_t mutex);
 extern foreign_t	pl_mutex_unlock(term_t mutex);
 extern foreign_t	pl_mutex_unlock_all(void);
-extern foreign_t	pl_current_mutex(term_t mutex,
-					 term_t owner,
-					 term_t count,
-					 control_t h);
 
 const char *		threadName(int id);
 void			executeThreadSignals(int sig);

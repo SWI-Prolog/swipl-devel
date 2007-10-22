@@ -156,7 +156,7 @@ test(locked, [By,Count] == [Me,1]) :-
 	thread_self(Me),
 	mutex_create(X, []),
 	mutex_lock(X),
-	mutex_property(X, locked(By, Count)),
+	mutex_property(X, status(locked(By, Count))),
 	mutex_unlock(X),
 	mutex_destroy(X).
 

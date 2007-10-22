@@ -54,6 +54,7 @@
 	    convert_time/8,		% +String, -YMDmhs.ms
 	    'C'/3,			% +List, -Head, -Tail
 	    current_thread/2,		% ?Thread, ?Status
+	    current_mutex/3,		% ?Mutex, ?Owner, ?Count
 	    message_queue_size/2	% +Queue, -TermsWaiting
 	  ]).
 
@@ -260,6 +261,23 @@ current_thread(Thread, Status) :-
 	      fail).
 current_thread(Thread, Status) :-
 	thread_property(Thread, status(Status)).
+
+%%	current_mutex(?Mutex, ?Owner, ?Count) is nondet.
+%
+%	@deprecated Replaced by mutex_property/2
+
+current_mutex(Mutex, Owner, Count) :-
+	nonvar(Mutex), !,
+	catch(mutex_property(Mutex, status(Status)),
+	      error(existence_error(mutex, _), _),
+	      fail),
+	map_mutex_status(Status, Owner, Count).
+current_mutex(Mutex, Owner, Count) :-
+	mutex_property(Mutex, status(Status)),
+	map_mutex_status(Status, Owner, Count).
+
+map_mutex_status(unlocked, [], 0).
+map_mutex_status(locked(Owner, Count), Owner, Count).
 
 
 %%	message_queue_size(+Queue, -Size) is det.

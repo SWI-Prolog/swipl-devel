@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Replaced mutex property locked by status(locked(Owner,Count)),
+    after discussion with XSB and YAP.  As mutex_property/2 now completely
+    replaces current_mutex/3, this predicate is moved to the backcomp.pl
+    library.
+
   * ADDED: implemented the max_size property for message queues.
 
   * FIXED: Wrong calls to GC from sort/2 and findall/3. Can cause crashes

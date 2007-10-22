@@ -10,7 +10,6 @@
 # awk you can propagate the changes by hand, but be careful!
 
 
-
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -559,6 +558,7 @@ A univ			"=.."
 A unknown		"unknown"
 A unlimited		"unlimited"
 A unlock		"unlock"
+A unlocked		"unlocked"
 A update		"update"
 A upper			"upper"
 A user			"user"
