@@ -4561,9 +4561,13 @@ add_jpl_to_ldpath(_).
 
 add_java_to_ldpath :-
 	current_prolog_flag(windows, true), !,
+	% JDK directories
 	add_java_dir(jvm, '\\jre\\bin\\client', Extra1),
 	add_java_dir(java, '\\jre\\bin', Extra2),
-	append(Extra1, Extra2, Extra),
+	% JRE directories
+	add_java_dir(jvm, '\\bin\\client', Extra3),
+	add_java_dir(java, '\\bin', Extra4), % Will add unneeded JAVA_HOME/bin to PATH, when JDK is used, but it shouldn't affect dll loading
+	flatten([Extra1, Extra2, Extra3, Extra4], Extra),
 	(   Extra \== []
 	->  print_message(informational,
 			  format('Added ~w to %PATH%', [Extra])),
@@ -4580,7 +4584,7 @@ add_java_dir(DLL, SubPath, Dirs) :-
 	->  Dirs = []
 	;   java_home(JavaHome)
 	->  atom_concat(JavaHome, SubPath, ClientDir),
-	    Dirs = [ClientDir]
+	    (exists_directory(ClientDir) -> Dirs = [ClientDir] ; Dirs = [])
 	;   Dirs = []
 	).
 	    
@@ -4590,13 +4594,17 @@ add_java_dir(DLL, SubPath, Dirs) :-
 %
 %	@param Home	JAVA home in OS notation
 
+java_home_win_key(jre, 'HKEY_LOCAL_MACHINE/Software/JavaSoft/Java Runtime Environment').
+java_home_win_key(jdk, 'HKEY_LOCAL_MACHINE/Software/JavaSoft/Java Development Kit').
+
 java_home(Home) :-
 	getenv('JAVA_HOME', Home),
 	exists_directory(Home), !.
+
 java_home(Home) :-
 	current_prolog_flag(windows, true), !,
-	Key0 = 'HKEY_LOCAL_MACHINE/Software/JavaSoft/Java Development Kit',
-	win_registry_get_value(Key0, 'CurrentVersion', Version),
+	java_home_win_key(_, Key0),	% currently user can't specify whether jre or jdk is preferable
+	catch(win_registry_get_value(Key0, 'CurrentVersion', Version), _, fail),
 	concat_atom([Key0, Version], /, Key),
 	win_registry_get_value(Key, 'JavaHome', Home),
 	exists_directory(Home), !.

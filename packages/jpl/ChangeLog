@@ -1,3 +1,8 @@
+Oct 23, 2007
+
+  * ADDED: On Windows, automatically find the JRE is the SDK is not present.
+    Ilmars Poikans.
+
 Aug 8, 2007
 
   * FIXED: JRef handling on 64-bit non-Windows platforms. 
