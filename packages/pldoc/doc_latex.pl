@@ -37,6 +37,7 @@
 :- use_module(library(error)).
 :- use_module(library(option)).
 :- use_module(library(lists)).
+:- use_module(library(debug)).
 :- use_module(doc_html, [doc_file_objects/5]).
 :- use_module(doc_wiki).
 :- use_module(doc_process).
@@ -133,8 +134,14 @@ latex(ul(Content)) -->
 latex(li(Content)) -->
 	latex(cmd(item)),
 	latex(Content).
-latex(dd(class=defbody, Content)) -->
+latex(dl(_, Content)) -->
+	[ open(description) ],
+	latex(Content),
+	[ close(description) ].
+latex(dd(_, Content)) -->
 	latex(Content).
+latex(dt(class=term, Content)) -->
+	latex(cmd(termitem(Content))).
 latex(\Cmd, List, Tail) :-
 	call(Cmd, List, Tail).
 
@@ -151,6 +158,10 @@ indent(section) --> !,       [ nl(2) ].
 indent(subsection) --> !,    [ nl(2) ].
 indent(subsubsection) --> !, [ nl(2) ].
 indent(predicate) --> !,     [ start_item ].
+indent(dcg) --> !,           [ start_item ].
+indent(infixop) --> !,       [ start_item ].
+indent(prefixop) --> !,      [ start_item ].
+indent(postfixop) --> !,     [ start_item ].
 indent(_) --> [].
 
 outdent(item) --> !,	      [ ' ' ].
@@ -158,6 +169,10 @@ outdent(section) --> !,       [ nl(2) ].
 outdent(subsection) --> !,    [ nl(2) ].
 outdent(subsubsection) --> !, [ nl(2) ].
 outdent(predicate) --> !,     [ nl(1) ].
+outdent(dcg) --> !,           [ nl(1) ].
+outdent(infixop) --> !,       [ nl(1) ].
+outdent(prefixop) --> !,      [ nl(1) ].
+outdent(postfixop) --> !,     [ nl(1) ].
 outdent(_) --> [].
 
 latex_arguments([]) --> [].
@@ -496,17 +511,63 @@ print_latex_token(nl(N), Out) :- !,
 	format(Out, '~N', []),
 	forall(between(2,N,_), nl(Out)).
 print_latex_token(verb(Verb), Out) :-
-	member(C, [$,'|',@]),
-	\+ sub_atom(Verb, _, _, _, C), !,
-	format(Out, '\\verb~w~w~w', [C,Verb,C]).
+	is_list(Verb), Verb \== [], !,
+	concat_atom(Verb, Atom),
+	print_latex_token(verb(Atom), Out).
+print_latex_token(verb(Verb), Out) :- !,
+	(   member(C, [$,'|',@,=,'"',^,!]),
+	    \+ sub_atom(Verb, _, _, _, C)
+	->  format(Out, '\\verb~w~w~w', [C,Verb,C])
+	;   assertion(fail)
+	).
 print_latex_token(code(Code), Out) :- !,
 	format(Out, '~N\\begin{code}~n', []),
 	format(Out, '~w', [Code]),
 	format(Out, '~N\\end{code}~n', []).
 print_latex_token(Rest, Out) :-
 	(   atomic(Rest)
-	->  write(Out, Rest)		% TBD: escape special chars
+	->  print_latex(Out, Rest)
 	;   %type_error(latex_token, Rest)
 	    write(Out, Rest)
 	).
 
+%%	print_latex(+Out, +Text:atomic, -Newlines:int) is det.
+%
+%	Print Text, such that it comes out as normal LaTeX text.
+%	
+%	@param Newlines	Number of newlines at the end of Text.
+
+print_latex(Out, String) :-
+	print_latex(Out, String, Newlines),
+	nl(Out, Newlines).
+
+print_latex(Out, String, Newlines) :-
+	atom_chars(String, Chars),
+	print_chars(Chars, Out, 0, Newlines).
+
+print_chars([], _, NL, NL).
+print_chars(['\n'|T], Out, NL0, NL) :- !,
+	NL1 is NL0+1,
+	print_chars(T, Out, NL1, NL).
+print_chars([' '|T], Out, 0, NL) :- !,
+	put_char(Out, ' '),
+	print_chars(T, Out, 0, NL).
+print_chars([' '|T], Out, NL0, NL) :-
+	print_chars(T, Out, NL0, NL).
+print_chars([H|T], Out, NL0, NL) :-
+	nl(Out, NL0),
+	print_char(H, Out),
+	print_chars(T, Out, 0, NL).
+
+
+nl(Out, N) :-
+	forall(between(1, N, _), nl(Out)).
+
+
+print_char('<', Out) :- !, write(Out, '$<$').
+print_char('>', Out) :- !, write(Out, '$>$').
+print_char('{', Out) :- !, write(Out, '\\{').
+print_char('}', Out) :- !, write(Out, '\\}').
+print_char('$', Out) :- !, write(Out, '\\$').
+print_char('\\',Out) :- !, write(Out, '\\bsl{}').
+print_char(C,   Out) :- put_char(Out, C).
