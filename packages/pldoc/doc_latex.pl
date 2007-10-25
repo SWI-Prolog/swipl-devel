@@ -55,7 +55,16 @@ extracting module doc_wiki.pl into LaTeX using the pl.sty style file.
 %%	latex_for_file(+File, +Out, +Options) is det.
 %
 %	Generate a LaTeX description of all commented predicates in
-%	File.
+%	File.   Options:
+%	
+%		* stand_alone(+Bool)
+%		If =true= (default), create a document that can be run
+%		through LaTeX.  If =false=, produce a document to be
+%		included in another LaTeX document.
+%		
+%		* public_only(+Bool)
+%		If =true= (default), only emit documentation for
+%		exported predicates.
 
 latex_for_file(FileSpec, Out, Options) :-
 	absolute_file_name(FileSpec,
@@ -69,7 +78,9 @@ latex_for_file(FileSpec, Out, Options) :-
 		     | \objects(Objects, FileOptions)
 		     ]),
 	       Tokens),
-	print_latex_tokens(Tokens, Out).
+	latex_header(Out, Options),
+	print_latex_tokens(Tokens, Out),
+	latex_footer(Out, Options).
 
 
 %%	latex_for_wiki_file(+File, +Out, +Options)
@@ -140,12 +151,19 @@ latex(dl(_, Content)) -->
 	[ close(description) ].
 latex(dd(_, Content)) -->
 	latex(Content).
-latex(dt(class=term, Content)) -->
-	latex(cmd(termitem(Content))).
+latex(dd(Content)) -->
+	latex(Content).
+latex(dt(class=term, \term(Term, Bindings))) -->
+	{ bind_vars(Bindings),
+	  Term =.. [Functor|Args]
+	}, !,
+	latex(cmd(termitem(Functor, \pred_args(Args, 1)))).
 latex(\Cmd, List, Tail) :-
 	call(Cmd, List, Tail).
 
 % low level commands
+latex(latex(Text)) -->
+	[ latex(Text) ].
 latex(cmd(Term)) -->
 	{ Term =.. [Cmd|Args] },
 	indent(Cmd),
@@ -153,10 +171,13 @@ latex(cmd(Term)) -->
 	latex_arguments(Args),
 	outdent(Cmd).
 
-indent(item) --> !,          [ start_item ].
+indent(begin) --> !,         [ nl(1) ].
+indent(end) --> !,           [ nl(1) ].
 indent(section) --> !,       [ nl(2) ].
 indent(subsection) --> !,    [ nl(2) ].
 indent(subsubsection) --> !, [ nl(2) ].
+indent(item) --> !,          [ start_item ].
+indent(term_item) --> !,     [ start_item ].
 indent(predicate) --> !,     [ start_item ].
 indent(dcg) --> !,           [ start_item ].
 indent(infixop) --> !,       [ start_item ].
@@ -164,7 +185,10 @@ indent(prefixop) --> !,      [ start_item ].
 indent(postfixop) --> !,     [ start_item ].
 indent(_) --> [].
 
+outdent(begin) --> !,         [ nl(1) ].
+outdent(end) --> !,           [ nl(1) ].
 outdent(item) --> !,	      [ ' ' ].
+outdent(termitem) --> !,      [ nl(1) ].
 outdent(section) --> !,       [ nl(2) ].
 outdent(subsection) --> !,    [ nl(2) ].
 outdent(subsubsection) --> !, [ nl(2) ].
@@ -224,6 +248,29 @@ tag(Tag, Value) -->
 	},
 	latex([cmd(item(opt(Title))), Value]).
 
+
+%%	params(+Params:list) is det.
+%
+%	Called from \params(List) created by   doc_wiki.pl.  Params is a
+%	list of param(Name, Descr).
+
+params(Params) -->
+	latex([ cmd(item('Parameters:')),
+		cmd(begin(tabular, latex('lp{0.6\\linewidth}'))),
+		\param_list(Params),
+		cmd(end(tabular))
+	      ]).
+
+param_list([]) -->
+	[].
+param_list([H|T]) -->
+	param(H),
+	param_list(T).
+
+param(param(Name,Descr)) -->
+	[ nl(1) ],
+	latex(cmd(arg(Name))), [ latex('&') ],
+	latex(Descr), [latex('\\\\')].
 
 %%	file_header(+File, +Options)// is det.
 %
@@ -480,6 +527,22 @@ argtype(Term) -->
 %	html([' is ', b(class=det, Det)]).
 
 
+%%	term(+Term, +Bindings)// is det.
+%
+%	Process the \term element as produced by doc_wiki.pl.
+%	
+%	@tbd	Properly merge with pred_head//1
+
+term(Atom, []) -->
+	{ atomic(Atom) }, !,
+	latex(Atom).
+term(Term, Bindings) -->
+	{ bind_vars(Bindings),
+	  Term =.. [Functor|Args]
+	}, !,
+	latex(cmd(term(Functor, \pred_args(Args, 1)))).
+
+
 		 /*******************************
 		 *	    PRINT TOKENS	*
 		 *******************************/
@@ -524,6 +587,8 @@ print_latex_token(code(Code), Out) :- !,
 	format(Out, '~N\\begin{code}~n', []),
 	format(Out, '~w', [Code]),
 	format(Out, '~N\\end{code}~n', []).
+print_latex_token(latex(Code), Out) :- !,
+	write(Out, Code).
 print_latex_token(Rest, Out) :-
 	(   atomic(Rest)
 	->  print_latex(Out, Rest)
@@ -569,5 +634,35 @@ print_char('>', Out) :- !, write(Out, '$>$').
 print_char('{', Out) :- !, write(Out, '\\{').
 print_char('}', Out) :- !, write(Out, '\\}').
 print_char('$', Out) :- !, write(Out, '\\$').
+print_char('#', Out) :- !, write(Out, '\\#').
 print_char('\\',Out) :- !, write(Out, '\\bsl{}').
 print_char(C,   Out) :- put_char(Out, C).
+
+
+		 /*******************************
+		 *	   HEADER/FOOTER	*
+		 *******************************/
+
+latex_header(Out, Options) :-
+	(   option(stand_alone(true), Options, true)
+	->  forall(header(Line), format(Out, '~w~n', [Line]))
+	;   true
+	).
+
+latex_footer(Out, Options) :-
+	(   option(stand_alone(true), Options, true)
+	->  forall(footer(Line), format(Out, '~w~n', [Line]))
+	;   true
+	).
+
+header('\\documentclass[11pt]{article}').
+header('\\usepackage{times}').
+header('\\usepackage{pl}').
+header('\\usepackage{html}').
+header('\\sloppy').
+header('\\makeindex').
+header('').
+header('\\begin{document}').
+
+footer('\\printindex').
+footer('\\end{document}').
