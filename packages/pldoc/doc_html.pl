@@ -45,7 +45,9 @@
 	    pred_edit_button/4,		% +PredInd, +Options, //
 	    object_edit_button/4,	% +Obj, +Options, //
 	    object_source_button/4,	% +Obj, +Options, //
-
+					% Support other backends
+	    doc_file_objects/5,		% +FileSpec, -File, -Objects, -FileOpts, +Options
+					% Output routines
 	    private/2,			% +Obj, +Options
 	    file/3,			% +File, //
 	    image/3,			% +File, //
@@ -112,26 +114,46 @@ doc_for_file(FileSpec, Out, Options) :-
 	print_html(Out, Tokens).
 
 prolog_file(FileSpec, Options) -->
-	{ absolute_file_name(FileSpec,
-			     [ file_type(prolog),
-			       access(read)
-			     ],
-			     File),
-	  Pos = File:_Line,
-	  findall(doc(Obj,Pos,Comment),
-		  doc_comment(Obj, Pos, _, Comment), Objs0),
-	  module_info(File, ModuleOptions, Options),
-	  file_info(Objs0, Objs1, FileOptions, ModuleOptions),
-	  doc_hide_private(Objs1, Objs, ModuleOptions),
+	{ doc_file_objects(FileSpec, File, Objects, FileOptions, Options),
 	  b_setval(pldoc_file, File),	% TBD: delete?
 	  file_directory_name(File, Dir)
 	},
 	html([ \doc_links(Dir, FileOptions),
 	       \file_header(File, FileOptions)
-	     | \objects(Objs, FileOptions)
+	     | \objects(Objects, FileOptions)
 	     ]),
-	undocumented(Objs, FileOptions).
+	undocumented(Objects, FileOptions).
 	  
+%%	file_objects(+FileSpec, -File, -Objects, -FileOptions, +Options) is det.
+%
+%	Extracts  relevant  information  for  FileSpec  from  the  PlDoc
+%	database.  FileOptions contains:
+%	
+%		* file(Title:string, Comment:string)
+%		* module(Module:atom)
+%		* public(Public:list(predicate_indicator)
+%	
+%	Objects contains
+%	
+%		* doc(PI:predicate_indicator, File:Line, Comment)
+%		
+%	@param FileSpec File specification as used for load_files/2.
+%	@param File	Prolog canonical filename
+
+doc_file_objects(FileSpec, File, Objects, FileOptions, Options) :-
+	absolute_file_name(FileSpec,
+			   [ file_type(prolog),
+			     access(read)
+			   ],
+			   File),
+	Pos = File:_Line,
+	findall(doc(Obj,Pos,Comment),
+		doc_comment(Obj, Pos, _, Comment), Objs0),
+	module_info(File, ModuleOptions, Options),
+	file_info(Objs0, Objs1, FileOptions, ModuleOptions),
+	doc_hide_private(Objs1, Objects, ModuleOptions).
+
+
 %%	module_info(+File, -ModuleOptions, +OtherOptions) is det.
 %
 %	Add options module(Name),  public(Exports)   to  OtherOptions if
@@ -508,11 +530,6 @@ object_page(Obj, Options) -->
 	       \objects([Obj], Options)
 	     ]).
 
-	
-
-
-
-
 
 		 /*******************************
 		 *	       PRINT		*
@@ -688,8 +705,10 @@ anchored_pred_head(Head, Done0, Done, Options) -->
 	(   { memberchk(PI, Done0) }
 	->  { Done = Done0 },
 	    pred_head(Head)
-	;   pred_edit_button(Head, Options),
-	    html(a(name=Name, \pred_head(Head))),
+	;   html([ span(style('float:right'),
+			\pred_edit_button(Head, Options)),
+		   a(name=Name, \pred_head(Head))
+		 ]),
 	    { Done = [PI|Done0] }
 	).
 
