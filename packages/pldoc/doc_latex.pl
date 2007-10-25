@@ -134,6 +134,10 @@ latex(a(Attrs, Content)) -->
 	).
 latex(code(Code)) -->
 	[ verb(Code) ].
+latex(b(Code)) -->
+	latex(cmd(textbf(Code))).
+latex(i(Code)) -->
+	latex(cmd(textit(Code))).
 latex(var(Var)) -->
 	latex(cmd(arg(Var))).
 latex(pre(_Class, Code)) -->
