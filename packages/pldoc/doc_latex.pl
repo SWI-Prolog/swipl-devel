@@ -248,7 +248,19 @@ file(File) -->
 predref(Name/Arity) -->
 	latex(cmd(predref(Name, Arity))).
 
+%%	tags(+Tags:list(Tag)) is det.
+%
+%	Emit tag list.  
+
+tags([\params(Params)|Rest]) --> !,
+	params(Params),
+	tags_list(Rest).
 tags(List) -->
+	tags_list(List).
+
+tags_list([]) -->
+	[].
+tags_list(List) -->
 	[ nl(2) ],
 	latex(cmd(begin(description))),
 	latex(List),
@@ -277,10 +289,9 @@ tag(Tag, Value) -->
 %	list of param(Name, Descr).
 
 params(Params) -->
-	latex([ cmd(tag('Parameters:')),
-		cmd(begin(tabular, latex('lp{0.6\\linewidth}'))),
+	latex([ cmd(begin(parameters)),
 		\param_list(Params),
-		cmd(end(tabular))
+		cmd(end(parameters))
 	      ]).
 
 param_list([]) -->
