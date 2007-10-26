@@ -39,10 +39,16 @@
 :- use_module(library(option)).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
-:- use_module(doc_html, [doc_file_objects/5]).
 :- use_module(doc_wiki).
 :- use_module(doc_process).
 :- use_module(doc_modes).
+:- use_module(doc_html,			% we cannot import all as the
+	      [ doc_file_objects/5,	% \commands have the same name
+		doc_tag_title/2,
+		pred_anchor_name/3,
+		private/2,
+		is_pi/1
+	      ]).
 
 /** <module> PlDoc LaTeX backend
 
@@ -239,7 +245,7 @@ indent(subsection) --> !,    [ nl(2) ].
 indent(subsubsection) --> !, [ nl(2) ].
 indent(item) --> !,          [ nl(1), indent(4) ].
 indent(tag) --> !,           [ nl(1), indent(4) ].
-indent(term_item) --> !,     [ nl(1), indent(4) ].
+indent(termitem) --> !,      [ nl(1), indent(4) ].
 indent(predicate) --> !,     [ nl(1), indent(4) ].
 indent(dcg) --> !,           [ nl(1), indent(4) ].
 indent(infixop) --> !,       [ nl(1), indent(4) ].
@@ -364,14 +370,7 @@ tags_list(List) -->
 %	Called from \tag(Name, Value) terms produced by doc_wiki.pl.
 
 tag(Tag, Value) -->
-	{   pldoc_html:tag_title(Tag, Title)
-	->  true
-	;   Title = Tag
-	},
-	{   pldoc_html:tag_class(Tag, Class)
-	->  true
-	;   Class = tag
-	},
+	{ doc_tag_title(Tag, Title) },
 	latex([cmd(tag(Title)), Value]).
 
 
@@ -451,11 +450,11 @@ object(Obj, Mode0, Mode, Options) -->
 	object(Obj, Pos, Comment, Mode0, Mode, Options).
 
 object(Obj, Pos, Comment, Mode0, Mode, Options) -->
-	{ pldoc_html:pi(Obj), !,
+	{ is_pi(Obj), !,
 	  is_structured_comment(Comment, Prefixes),
 	  indented_lines(Comment, Prefixes, Lines),
 	  process_modes(Lines, Pos, Modes, Args, Lines1),
-	  (   pldoc_html:private(Obj, Options)
+	  (   private(Obj, Options)
 	  ->  Class = privdef		% private definition
 	  ;   Class = pubdef		% public definition
 	  ),
@@ -506,6 +505,7 @@ pop_mode(Mode, [H|Rest0], Rest) -->
 %	Emit the \predicate{}{}{} header.
 %	
 %	@param Modes	List as returned by process_modes/5.
+%	@param Class	One of =privdef= or =pubdef=.
 %	
 %	@tbd	Determinism
 
@@ -556,8 +556,7 @@ anon_vars(_).
 
 
 anchored_pred_head(Head, Done0, Done, Options) -->
-	{ pldoc_html:anchor_name(Head, PI, _Name)
-	},
+	{ pred_anchor_name(Head, PI, _Name) },
 	(   { memberchk(PI, Done0) }
 	->  { Done = Done0 },
 	    pred_head(Head, Options)

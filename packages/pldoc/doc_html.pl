@@ -47,8 +47,11 @@
 	    object_source_button/4,	% +Obj, +Options, //
 					% Support other backends
 	    doc_file_objects/5,		% +FileSpec, -File, -Objects, -FileOpts, +Options
-					% Output routines
+	    doc_tag_title/2,		% +Tag, -Title
+	    pred_anchor_name/3,		% +Head, -PI, -Anchor
 	    private/2,			% +Obj, +Options
+	    is_pi/1,			% @Term
+					% Output routines
 	    file/3,			% +File, //
 	    image/3,			% +File, //
 	    tags/3,			% +Tags, //
@@ -387,7 +390,7 @@ object(Obj, Mode0, Mode, Options) -->
 	object(Obj, Pos, Comment, Mode0, Mode, Options).
 
 object(Obj, Pos, Comment, Mode0, Mode, Options) -->
-	{ pi(Obj), !,
+	{ is_pi(Obj), !,
 	  is_structured_comment(Comment, Prefixes),
 	  indented_lines(Comment, Prefixes, Lines),
 	  process_modes(Lines, Pos, Modes, Args, Lines1),
@@ -468,7 +471,7 @@ undocumented_pred(Name/Arity, Options) -->
 		
 select_undocumented([], _, _, []).
 select_undocumented([PI|T0], M, Objs, [PI|T]) :-
-	pi(PI),
+	is_pi(PI),
 	\+ in_doc(M:PI, Objs),
 	select_undocumented(T0, M, Objs, T).
 select_undocumented([_|T0], M, Objs, T) :-
@@ -496,14 +499,17 @@ eq_pi(Name/A, Name//DCGA) :-
 eq_pi(Name//DCGA, Name/A) :-
 	A =:= DCGA+2.
 
-%%	pi(@Term) is semidet.
+%%	is_pi(@Term) is semidet.
 %
 %	True if Term is a predicate indicator.
 
-pi(_:PI) :- !,
-	pi(PI).
-pi(_/_).
-pi(_//_).
+is_pi(Var) :-
+	var(Var), !,
+	fail.
+is_pi(_:PI) :- !,
+	is_pi(PI).
+is_pi(_/_).
+is_pi(_//_).
 
 
 		 /*******************************
@@ -591,15 +597,21 @@ tags(Tags) -->
 %	Called from \tag(Name, Value) terms produced by doc_wiki.pl.
 
 tag(Tag, Value) -->
-	{   tag_title(Tag, Title)
-	->  true
-	;   Title = Tag
+	{   doc_tag_title(Tag, Title)
 	},
 	{   tag_class(Tag, Class)
 	->  true
 	;   Class = tag
 	},
 	html([dt(class=Class, Title), dd(Value)]).
+
+%%	doc_tag_title(+Tag, -Title) is det.
+%
+%	Title is the name to use for Tag in the generated documentation.
+
+doc_tag_title(Tag, Title) :-
+	tag_title(Tag, Title), !.
+doc_tag_title(Tag, Tag).
 
 tag_title(compat, 'Compatibility').
 tag_title(tbd,    'To be done').
@@ -700,8 +712,7 @@ anon_vars(_).
 
 
 anchored_pred_head(Head, Done0, Done, Options) -->
-	{ anchor_name(Head, PI, Name)
-	},
+	{ pred_anchor_name(Head, PI, Name) },
 	(   { memberchk(PI, Done0) }
 	->  { Done = Done0 },
 	    pred_head(Head)
@@ -759,7 +770,7 @@ pred_edit_button2(_, _) --> !,
 object_edit_button(_, Options) -->
 	{ \+ option(edit(true), Options) }, !.
 object_edit_button(PI, Options) -->
-	{ pi(PI) }, !,
+	{ is_pi(PI) }, !,
 	pred_edit_button(PI, Options).
 object_edit_button(_, _) -->
 	[].
@@ -790,7 +801,7 @@ pred_source_button(_, _) -->
 %	Create a button	for showing the source of Object.
 
 object_source_button(PI, Options) -->
-	{ pi(PI) }, !,
+	{ is_pi(PI) }, !,
 	pred_source_button(PI, Options).
 object_source_button(_, _) -->
 	[].
@@ -1271,14 +1282,14 @@ doc_for_wiki_file(FileSpec, Out, _Options) :-
 		 *	      ANCHORS		*
 		 *******************************/
 
-%%	anchor_name(+Head, -PI:atom/integer, -Anchor:string) is det.
+%%	pred_anchor_name(+Head, -PI:atom/integer, -Anchor:string) is det.
 %
 %	Create an HTML anchor name from Head.
 
-anchor_name(//(Head), Name/Arity, Anchor) :- !,
+pred_anchor_name(//(Head), Name/Arity, Anchor) :- !,
 	functor(Head, Name, DCGArity),
 	Arity is DCGArity+2,
 	format(string(Anchor), '~w/~d', [Name, Arity]).
-anchor_name(Head, Name/Arity, Anchor) :-
+pred_anchor_name(Head, Name/Arity, Anchor) :-
 	functor(Head, Name, Arity),
 	format(string(Anchor), '~w/~d', [Name, Arity]).
