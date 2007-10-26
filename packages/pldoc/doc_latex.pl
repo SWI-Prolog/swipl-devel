@@ -54,10 +54,20 @@
 
 This  module  translates  the  Herbrand   term  from  the  documentation
 extracting module doc_wiki.pl into a  LaTeX   document  for  us with the
-pl.sty LaTeX style file.
+pl.sty LaTeX style file. The function of  this module is very similar to
+doc_html.pl, providing the HTML backend,  and the implementation follows
+the same paradigm. The module can
 
-@tbd	See TODO
-@author	Jan Wielemaker
+	* Generate LaTeX documentation for a Prolog file, both for
+	printing and embedding in a larger document using
+	latex_for_file/3.
+
+	* Generate LaTeX from a Wiki file using latex_for_wiki_file/3
+	
+	* Generate LaTeX for a single predicate or a list of predicates
+	for embedding in a document using latex_for_predicates/3.
+
+@tbd See TODO @author Jan Wielemaker
 */
 
 %%	latex_for_file(+File, +Out, +Options) is det.
@@ -604,9 +614,12 @@ pred_head(Head, Options) -->			% Plain terms
 	latex(cmd(predicate(opt(Atts), 
 			    Functor, Arity, \pred_args(Args, 1)))).
 
-attributes(Options, Attrs) :-
-	option(det(Det), Options), !,
-	Attrs = ['is ', Det].
+attributes(Options, ['is ', Det|Attrs]) :-
+	select_option(det(Det), Options, Options1), !,
+	attributes(Options1, Attrs).
+attributes(Options, [' ', i('[private]')|Attrs]) :-
+	select_option(class(privdef), Options, Options1), !,
+	attributes(Options1, Attrs).
 attributes(_, []).
 
 op_type(fx,  prefix).
