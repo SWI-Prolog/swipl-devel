@@ -2,6 +2,9 @@
 \documentclass[11pt,twoside]{report}
 \usepackage{pl}
 \usepackage{html}
+\usepackage{logo}
+\usepackage{fancyheadings}
+\usepackage{fancychap}
 %\onefile
 \sloppy
 \makeindex
