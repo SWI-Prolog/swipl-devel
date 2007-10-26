@@ -220,7 +220,16 @@ outdent(prefixop) --> !,      [ nl(1) ].
 outdent(postfixop) --> !,     [ nl(1) ].
 outdent(_) --> [].
 
+%%	latex_arguments(+Args:list)// is det.
+%
+%	Write LaTeX command arguments. If  an   argument  is of the form
+%	opt(Arg) it is written as  [Arg],   Otherwise  it  is written as
+%	{Arg}. Note that opt([]) is omitted. I think no LaTeX command is
+%	designed to handle an empty optional argument special.
+
 latex_arguments([]) --> [].
+latex_arguments([opt([])|T]) --> !,
+	latex_arguments(T).
 latex_arguments([opt(H)|T]) --> !,
 	[ '[' ],
 	latex(H),
@@ -432,8 +441,8 @@ pred_dt([H|T], Done0, Done, Options) -->
 pred_mode(mode(Head,Vars), Done0, Done, Options) --> !,
 	{ bind_vars(Head, Vars) },
 	pred_mode(Head, Done0, Done, Options).
-pred_mode(Head is _Det, Done0, Done, Options) --> !,
-	anchored_pred_head(Head, Done0, Done, Options).
+pred_mode(Head is Det, Done0, Done, Options) --> !,
+	anchored_pred_head(Head, Done0, Done, [det(Det)|Options]).
 pred_mode(Head, Done0, Done, Options) -->
 	anchored_pred_head(Head, Done0, Done, Options).
 
@@ -477,14 +486,12 @@ anchored_pred_head(Head, Done0, Done, Options) -->
 %	Emit a predicate head. The functor is  typeset as a =span= using
 %	class =pred= and the arguments and =var= using class =arglist=.
 
-pred_head(//(Head), _Options) --> !,
-	{ Head =.. [Functor|Args],
+pred_head(//(Head), Options) --> !,
+	{ attributes(Options, Atts),
+	  Head =.. [Functor|Args],
 	  length(Args, Arity)
 	},
-	latex(cmd(dcg(Functor, Arity, \pred_args(Args, 1)))).
-pred_head(Head, _Options) -->
-	{ atom(Head) }, !,
-	latex(cmd(predicate(Head, 0, ''))).
+	latex(cmd(dcg(opt(Atts), Functor, Arity, \pred_args(Args, 1)))).
 pred_head(Head, _Options) -->			% Infix operators
 	{ Head =.. [Functor,Left,Right],
 	  current_op(_,Type,Functor),
@@ -503,11 +510,18 @@ pred_head(Head, _Options) -->			% Postfix operators
 	  op_type(Type, postfix), !
 	},
 	latex(cmd(postfixop(Functor, \pred_arg(Arg, 1)))).
-pred_head(Head, _Options) -->			% Plain terms
-	{ Head =.. [Functor|Args],
+pred_head(Head, Options) -->			% Plain terms
+	{ attributes(Options, Atts),
+	  Head =.. [Functor|Args],
 	  length(Args, Arity)
 	},
-	latex(cmd(predicate(Functor, Arity, \pred_args(Args, 1)))).
+	latex(cmd(predicate(opt(Atts), 
+			    Functor, Arity, \pred_args(Args, 1)))).
+
+attributes(Options, Attrs) :-
+	option(det(Det), Options), !,
+	Attrs = ['is ', Det].
+attributes(_, []).
 
 op_type(fx,  prefix).
 op_type(fy,  prefix).

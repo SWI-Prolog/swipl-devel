@@ -131,16 +131,30 @@
 \newcommand{\resitem}[1]{%
 	\defentry{#1}%
 	\index{#1}\ignorespaces}
-\newcommand{\predicate}[3]{%
+\makeatletter
+\def\predicate{\@ifnextchar[{\@attpredicate}{\@predicate}}
+\def\@predicate#1#2#3{%
 	\ifthenelse{\equal{#2}{0}}{%
 	    \defentry{#1}}{%
 	    \defentry{#1({\it #3})}}%
 	\index{#1/#2}\ignorespaces}
-\newcommand{\dcg}[3]{%
+\def\@attpredicate[#1]#2#3#4{%
+	\ifthenelse{\equal{#3}{0}}{%
+	    \defentry{#2 #1}}{%
+	    \defentry{#2({\it #4}) #1}}%
+	\index{#2/#3}\ignorespaces}
+\def\dcg{\@ifnextchar[{\@attdcg}{\@dcg}}
+\def\@dcg#1#2#3{%
 	\ifthenelse{\equal{#2}{0}}{%
 	    \defentry{#1}}{%
 	    \defentry{#1({\it #3}) \texttt{//}}}%
 	\index{#1/#2}\ignorespaces}
+\def\@attdcg[#1]#2#3#4{%
+	\ifthenelse{\equal{#3}{0}}{%
+	    \defentry{#2 #1}}{%
+	    \defentry{#2({\it #4}) \texttt{//} #1}}%
+	\index{#2//#3}\ignorespaces}
+\makeatother
 \newcommand{\infixop}[3]{%
 	\defentry{{\it #2} #1 {\it #3}}%
 	\index{#1/2}\ignorespaces}
