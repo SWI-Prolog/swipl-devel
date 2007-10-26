@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: PlDoc LaTeX backend, installed as library/pldoc/doc_latex.pl.
+
   * CLEANUP: Fix some gcc 4.2.1 warnings.  None of these are bugs.
 
 =================================
