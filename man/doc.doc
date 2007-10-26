@@ -3,8 +3,7 @@
 \usepackage{pl}
 \usepackage{html}
 \usepackage{logo}
-\usepackage{fancyheadings}
-\usepackage{fancychap}
+\usepackage{plpage}
 %\onefile
 \sloppy
 \makeindex

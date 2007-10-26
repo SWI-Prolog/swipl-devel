@@ -1,0 +1,32 @@
+%% Define Prolog manual page and header layout
+
+\usepackage{fancyheadings}
+\usepackage{fancychap}
+
+%	PAGESTYLE
+%
+%       Chapter                            date
+%       ---------------------------------------
+%
+%	bla, bla, bla, ...
+%	
+%       \bottomleft    - page -    \bottomright
+
+\def\arabicday{\number\year-\number\month-\number\day}
+
+\providecommand{\runningtitle}{none}
+
+\ifthenelse{\equal{\runningtitle}{none}}{%
+	\relax}{%
+\pagestyle{fancyplain}
+\headheight 14pt
+\def\chaptermark{\mbox{}}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{#1}} % remember chapter title
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+
+\lhead[\fancyplain{}{\bf\thepage}]{\fancyplain{}{\bf\rightmark}}
+\rhead[\fancyplain{}{\bf\leftmark}]{\fancyplain{}{\bf\thepage}}
+\footrulewidth 0.2pt
+\lfoot[\tiny \runningtitle]{}
+\rfoot[]{\tiny \runningtitle}
+\cfoot{}}

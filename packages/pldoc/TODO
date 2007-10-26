@@ -20,12 +20,13 @@ Making solid progress.  remaining issues:
 
 ---++ LaTeX generation
 
-	* Split pl.sty into plain version and the logo/fancychap stuff.
 	* pl.sty: Add support for multiple mode-lines into \predicate, etc.
 	* pl.sty: Add support for determinism indicator
 	* Allow definition of outer header level (chapter, section, ...)
-	* Fix output layout (merge nl(N) statements)
-	* Move parameters into a plain table (parameters must be first)
+	* Generate summary file
+	* Generate entire directory
+		- Need some driver file to now which files to generate
+		  and provide the overall header
 
 ---++ Integrate with help/apropos
 
