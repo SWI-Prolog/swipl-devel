@@ -141,7 +141,7 @@
 \def\@attpredicate[#1]#2#3#4{%
 	\ifthenelse{\equal{#3}{0}}{%
 	    \defentry{#2 #1}}{%
-	    \defentry{#2({\it #4}) #1}}%
+	    \defentry{#2({\it #4}) {\rm #1}}}%
 	\index{#2/#3}\ignorespaces}
 \def\dcg{\@ifnextchar[{\@attdcg}{\@dcg}}
 \def\@dcg#1#2#3{%
@@ -152,7 +152,7 @@
 \def\@attdcg[#1]#2#3#4{%
 	\ifthenelse{\equal{#3}{0}}{%
 	    \defentry{#2 #1}}{%
-	    \defentry{#2({\it #4}) \texttt{//} #1}}%
+	    \defentry{#2({\it #4}) \texttt{//} {\rm #1}}}%
 	\index{#2//#3}\ignorespaces}
 \makeatother
 \newcommand{\infixop}[3]{%
