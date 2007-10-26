@@ -342,6 +342,7 @@ renamed_tag(exception, throws).
 
 tag_order(param,       1).
 tag_order(throws,      2).
+tag_order(error,       2).		% same as throw
 tag_order(author,      3).
 tag_order(version,     4).
 tag_order(see,	       5).
@@ -351,14 +352,13 @@ tag_order(copyright,   8).
 tag_order(license,     9).
 tag_order(bug,	      10).
 tag_order(tbd,	      11).
-tag_order(error,       2).
 
 
 %%	combine_tags(+TaggedTags:list, -Tags:list) is det.
 %
 %	Creates the final tag-list.  Tags is a list of
 %	
-%		* \params(List of param(Name, Descr))
+%		* \params(list(param(Name, Descr)))
 %		* \tag(Name, Descr)
 %	
 %	Descr is a list of tokens.
