@@ -31,7 +31,8 @@
 
 :- module(pldoc_latex,
 	  [ latex_for_file/3,		% +FileSpec, +Out, +Options
-	    latex_for_wiki_file/3	% +FileSpec, +Out, +Options
+	    latex_for_wiki_file/3,	% +FileSpec, +Out, +Options
+	    latex_for_predicates/3	% +PI, +Out, +Options
 	  ]).
 :- use_module(library(readutil)).
 :- use_module(library(error)).
@@ -88,7 +89,7 @@ latex_for_file(FileSpec, Out, Options) :-
 	latex_footer(Out, Options).
 
 
-%%	latex_for_wiki_file(+File, +Out, +Options)
+%%	latex_for_wiki_file(+File, +Out, +Options) is det.
 %
 %	Generate a LaTeX translation of a Wiki file.
 
@@ -107,6 +108,34 @@ latex_for_wiki_file(FileSpec, Out, Options) :-
 		     ),
 		     (nb_delete(pldoc_file),
 		      nb_delete(pldoc_options))).
+
+
+%%	latex_for_predicates(+PI:list, +Out, +Options) is det.
+%
+%	Generate LaTeX for a list  of   predicate  indicators. This does
+%	*not*   produce   the    \begin{description}...\end{description}
+%	environment, just a plain list of \predicate, etc. statements.
+
+latex_for_predicates([], _Out, _Options) :- !.
+latex_for_predicates([H|T], Out, Options) :- !,
+	latex_for_predicates(H, Out, Options),
+	latex_for_predicates(T, Out, Options).
+latex_for_predicates(PI, Out, Options) :-
+	PI = _:_/_, !,
+	(   doc_comment(PI, Pos, _Summary, Comment)
+	->  true
+	;   Comment = ''
+	),
+	phrase(object(PI, Pos, Comment, [description], _, Options),
+	       Tokens),
+	print_latex_tokens([nl_exact(0)|Tokens], Out).
+latex_for_predicates(Spec, Out, Options) :-
+	user:'$find_predicate'(Spec, Preds),
+	maplist(to_pi, Preds, List),
+	latex_for_predicates(List, Out, Options).
+
+to_pi(M:Head, M:Name/Arity) :-
+	functor(Head, Name, Arity).
 
 
 		 /*******************************
