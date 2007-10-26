@@ -107,8 +107,14 @@ latex_for_wiki_file(FileSpec, Out, _Options) :-
 latex([]) --> !,
 	[].
 latex(Atomic) -->
-	{ atomic(Atomic) }, !,
-	[ Atomic ].
+	{ atomic(Atomic), !,
+	  findall(x, sub_atom(Atomic, _, _, _, '\n'), Xs),
+	  length(Xs, Lines)
+	},
+	(   {Lines == 0}
+	->  [ Atomic ]
+	;   [ nl(Lines) ]
+	).
 latex([H|T]) -->
 	(   latex(H)
 	->  latex(T)
@@ -124,7 +130,7 @@ latex(h2(_Class, Content)) -->
 latex(h3(_Class, Content)) -->
 	latex(cmd(subsubsection(Content))).
 latex(p(Content)) -->
-	[ par ],
+	[ nl_exact(2) ],
 	latex(Content).
 latex(a(Attrs, Content)) -->
 	{ attribute(href(HREF), Attrs) },
@@ -132,6 +138,14 @@ latex(a(Attrs, Content)) -->
 	->  latex(cmd(url(HREF)))
 	;   latex(cmd(url(opt(Content), HREF)))
 	).
+latex(code(CodeList)) -->
+	{ is_list(CodeList), !,
+	  concat_atom(CodeList, Atom)
+	},
+	[ verb(Atom) ].
+latex(code(Code)) -->
+	{ identifier(Code) }, !,
+	latex(cmd(const(Code))).
 latex(code(Code)) -->
 	[ verb(Code) ].
 latex(b(Code)) -->
@@ -143,16 +157,16 @@ latex(var(Var)) -->
 latex(pre(_Class, Code)) -->
 	[ code(Code) ].
 latex(ul(Content)) -->
-	[ open(itemize) ],
+	latex(cmd(begin(itemize))),
 	latex(Content),
-	[ close(itemize) ].
+	latex(cmd(end(itemize))).
 latex(li(Content)) -->
 	latex(cmd(item)),
 	latex(Content).
 latex(dl(_, Content)) -->
-	[ open(description) ],
+	latex(cmd(begin(description))),
 	latex(Content),
-	[ close(description) ].
+	latex(cmd(end(description))).
 latex(dd(_, Content)) -->
 	latex(Content).
 latex(dd(Content)) -->
@@ -176,22 +190,24 @@ latex(cmd(Term)) -->
 	outdent(Cmd).
 
 indent(begin) --> !,         [ nl(1) ].
-indent(end) --> !,           [ nl(1) ].
+indent(end) --> !,           [ nl_exact(1) ].
 indent(section) --> !,       [ nl(2) ].
 indent(subsection) --> !,    [ nl(2) ].
 indent(subsubsection) --> !, [ nl(2) ].
-indent(item) --> !,          [ start_item ].
-indent(term_item) --> !,     [ start_item ].
-indent(predicate) --> !,     [ start_item ].
-indent(dcg) --> !,           [ start_item ].
-indent(infixop) --> !,       [ start_item ].
-indent(prefixop) --> !,      [ start_item ].
-indent(postfixop) --> !,     [ start_item ].
+indent(item) --> !,          [ nl(1), indent(4) ].
+indent(tag) --> !,           [ nl(1), indent(4) ].
+indent(term_item) --> !,     [ nl(1), indent(4) ].
+indent(predicate) --> !,     [ nl(1), indent(4) ].
+indent(dcg) --> !,           [ nl(1), indent(4) ].
+indent(infixop) --> !,       [ nl(1), indent(4) ].
+indent(prefixop) --> !,      [ nl(1), indent(4) ].
+indent(postfixop) --> !,     [ nl(1), indent(4) ].
 indent(_) --> [].
 
-outdent(begin) --> !,         [ nl(1) ].
+outdent(begin) --> !,         [ nl_exact(1) ].
 outdent(end) --> !,           [ nl(1) ].
 outdent(item) --> !,	      [ ' ' ].
+outdent(tag) --> !,           [ nl(1) ].
 outdent(termitem) --> !,      [ nl(1) ].
 outdent(section) --> !,       [ nl(2) ].
 outdent(subsection) --> !,    [ nl(2) ].
@@ -233,9 +249,11 @@ predref(Name/Arity) -->
 	latex(cmd(predref(Name, Arity))).
 
 tags(List) -->
-	[ open(description) ],
+	[ nl(2) ],
+	latex(cmd(begin(description))),
 	latex(List),
-	[ close(description) ].
+	latex(cmd(end(description))),
+	[ nl(2) ].
 
 %%	tag(+Tag, +Value)// is det.
 %
@@ -250,7 +268,7 @@ tag(Tag, Value) -->
 	->  true
 	;   Class = tag
 	},
-	latex([cmd(item(opt(Title))), Value]).
+	latex([cmd(tag(Title)), Value]).
 
 
 %%	params(+Params:list) is det.
@@ -259,7 +277,7 @@ tag(Tag, Value) -->
 %	list of param(Name, Descr).
 
 params(Params) -->
-	latex([ cmd(item('Parameters:')),
+	latex([ cmd(tag('Parameters:')),
 		cmd(begin(tabular, latex('lp{0.6\\linewidth}'))),
 		\param_list(Params),
 		cmd(end(tabular))
@@ -273,8 +291,8 @@ param_list([H|T]) -->
 
 param(param(Name,Descr)) -->
 	[ nl(1) ],
-	latex(cmd(arg(Name))), [ latex('&') ],
-	latex(Descr), [latex('\\\\')].
+	latex(cmd(arg(Name))), [ latex(' & ') ],
+	latex(Descr), [latex(' \\\\')].
 
 %%	file_header(+File, +Options)// is det.
 %
@@ -366,13 +384,13 @@ need_mode(Mode, Stack, Rest) -->
 	}, !,
 	pop_mode(Mode, Stack, Rest).	
 need_mode(Mode, Stack, [Mode|Stack]) --> !,
-	[ open(Mode) ].
+	latex(cmd(begin(Mode))).
 
 pop_mode(Mode, Stack, Stack) -->
 	{ Stack = [Mode|_] }, !,
 	[].
 pop_mode(Mode, [H|Rest0], Rest) -->
-	[ close(H) ],
+	latex(cmd(end(H))),
 	pop_mode(Mode, Rest0, Rest).
 
 
@@ -385,6 +403,7 @@ pop_mode(Mode, [H|Rest0], Rest) -->
 %	@tbd	Determinism
 
 pred_dt(Modes, Class, Options) -->
+	[nl(2)],
 	pred_dt(Modes, [], _Done, [class(Class)|Options]).
 
 pred_dt([], Done, Done, _) -->
@@ -556,7 +575,15 @@ term(Term, Bindings) -->
 %	Print primitive LaTeX tokens to Output
 
 print_latex_tokens([], _).
-print_latex_tokens([H|T], Out) :-	% TBD: join white space
+print_latex_tokens([nl(N)|T0], Out) :- !,
+	max_nl(T0, T, N, NL),
+	nl(Out, NL),
+	print_latex_tokens(T, Out).
+print_latex_tokens([nl_exact(N)|T0], Out) :- !,
+	nl_exact(T0, T,N, NL),
+	nl(Out, NL),
+	print_latex_tokens(T, Out).
+print_latex_tokens([H|T], Out) :-
 	print_latex_token(H, Out),
 	print_latex_tokens(T, Out).
 
@@ -566,14 +593,8 @@ print_latex_token(curl(open), Out) :- !,
 	format(Out, '{', []).
 print_latex_token(curl(close), Out) :- !,
 	format(Out, '}', []).
-print_latex_token(open(Env), Out) :- !,
-	format(Out, '~N\\begin{~w}~n', [Env]).
-print_latex_token(close(Env), Out) :- !,
-	format(Out, '~N\\end{~w}~n', [Env]).
-print_latex_token(par, Out) :- !,
-	format(Out, '\n\n', []).
-print_latex_token(start_item, Out) :- !,
-	format(Out, '~N   ', []).
+print_latex_token(indent(N), Out) :- !,
+	format(Out, '~t~*|', [N]).
 print_latex_token(nl(N), Out) :- !,
 	format(Out, '~N', []),
 	forall(between(2,N,_), nl(Out)).
@@ -600,33 +621,37 @@ print_latex_token(Rest, Out) :-
 	    write(Out, Rest)
 	).
 
-%%	print_latex(+Out, +Text:atomic, -Newlines:int) is det.
+%%	print_latex(+Out, +Text:atomic) is det.
 %
 %	Print Text, such that it comes out as normal LaTeX text.
-%	
-%	@param Newlines	Number of newlines at the end of Text.
 
 print_latex(Out, String) :-
-	print_latex(Out, String, Newlines),
-	nl(Out, Newlines).
-
-print_latex(Out, String, Newlines) :-
 	atom_chars(String, Chars),
-	print_chars(Chars, Out, 0, Newlines).
+	print_chars(Chars, Out).
 
-print_chars([], _, NL, NL).
-print_chars(['\n'|T], Out, NL0, NL) :- !,
-	NL1 is NL0+1,
-	print_chars(T, Out, NL1, NL).
-print_chars([' '|T], Out, 0, NL) :- !,
-	put_char(Out, ' '),
-	print_chars(T, Out, 0, NL).
-print_chars([' '|T], Out, NL0, NL) :-
-	print_chars(T, Out, NL0, NL).
-print_chars([H|T], Out, NL0, NL) :-
-	nl(Out, NL0),
+print_chars([], _).
+print_chars([H|T], Out) :-
 	print_char(H, Out),
-	print_chars(T, Out, 0, NL).
+	print_chars(T, Out).
+
+
+%%	max_nl(T0, T, M0, M)
+%
+%	Remove leading sequence of nl(N) and return the maximum of it.
+
+max_nl([nl(M1)|T0], T, M0, M) :- !,
+	M2 is max(M1, M0),
+	max_nl(T0, T, M2, M).
+max_nl([nl_exact(M1)|T0], T, _, M) :- !,
+	nl_exact(T0, T, M1, M).
+max_nl(T, T, M, M).
+
+nl_exact([nl(_)|T0], T, M0, M) :- !,
+	max_nl(T0, T, M0, M).
+nl_exact([nl_exact(M1)|T0], T, M0, M) :- !,
+	M2 is max(M1, M0),
+	max_nl(T0, T, M2, M).
+nl_exact(T, T, M, M).
 
 
 nl(Out, N) :-
@@ -641,6 +666,21 @@ print_char('$', Out) :- !, write(Out, '\\$').
 print_char('#', Out) :- !, write(Out, '\\#').
 print_char('\\',Out) :- !, write(Out, '\\bsl{}').
 print_char(C,   Out) :- put_char(Out, C).
+
+
+%%	identifier(+Atom) is semidet.
+%
+%	True if Atom is (lower, alnum*).
+
+identifier(Atom) :-
+	atom_chars(Atom, [C0|Chars]),
+	char_type(C0, lower),
+	all_chartype(Chars, alnum).
+
+all_chartype([], _).
+all_chartype([H|T], Type) :-
+	char_type(H, Type),
+	all_chartype(T, Type).
 
 
 		 /*******************************
@@ -662,11 +702,11 @@ latex_footer(Out, Options) :-
 header('\\documentclass[11pt]{article}').
 header('\\usepackage{times}').
 header('\\usepackage{pl}').
-header('\\usepackage{html}').
 header('\\sloppy').
 header('\\makeindex').
 header('').
 header('\\begin{document}').
 
+footer('').
 footer('\\printindex').
 footer('\\end{document}').

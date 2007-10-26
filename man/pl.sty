@@ -161,6 +161,8 @@
 	\ifthenelse{\equal{}{#2}}{%
 	    #1}{%
 	    #1(#2)}}}
+\newcommand{\tag}[1]{%			PlDoc @keyword expansion
+	\item[#1]}
 \newcommand{\cfunction}[3]{%
 	\defentry{{\tt #1} #2{\rm (}{\it #3}{\rm )}}%
 	\index{#2()}\ignorespaces}
