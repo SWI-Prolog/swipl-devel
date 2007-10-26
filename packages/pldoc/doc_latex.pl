@@ -46,9 +46,10 @@
 /** <module> PlDoc LaTeX backend
 
 This  module  translates  the  Herbrand   term  from  the  documentation
-extracting module doc_wiki.pl into LaTeX using the pl.sty style file.
+extracting module doc_wiki.pl into a  LaTeX   document  for  us with the
+pl.sty LaTeX style file.
 
-@tbd	Totally incomplete; finish
+@tbd	See TODO
 @author	Jan Wielemaker
 */
 
@@ -262,9 +263,9 @@ tags_list([]) -->
 	[].
 tags_list(List) -->
 	[ nl(2) ],
-	latex(cmd(begin(description))),
+	latex(cmd(begin(tags))),
 	latex(List),
-	latex(cmd(end(description))),
+	latex(cmd(end(tags))),
 	[ nl(2) ].
 
 %%	tag(+Tag, +Value)// is det.
@@ -319,7 +320,8 @@ file_header(File, Options) -->
 	  section_comment_header(Lines, _Header, Lines1),
 	  wiki_lines_to_dom(Lines1, [], DOM)
 	},
-	latex(DOM).
+	latex(DOM),
+	latex(cmd(vspace('0.7cm'))).
 file_header(File, Options) -->
 	{ file_base_name(File, Base)
 	},
