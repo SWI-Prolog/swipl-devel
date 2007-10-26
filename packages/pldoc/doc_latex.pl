@@ -66,6 +66,10 @@ pl.sty LaTeX style file.
 %		* public_only(+Bool)
 %		If =true= (default), only emit documentation for
 %		exported predicates.
+%		
+%		* section_level(+Level)
+%		Outermost section level produced. Level is the
+%		name of a LaTeX section command.  Default is =section=.
 
 latex_for_file(FileSpec, Out, Options) :-
 	absolute_file_name(FileSpec,
@@ -88,22 +92,29 @@ latex_for_file(FileSpec, Out, Options) :-
 %
 %	Generate a LaTeX translation of a Wiki file.
 
-latex_for_wiki_file(FileSpec, Out, _Options) :-
+latex_for_wiki_file(FileSpec, Out, Options) :-
 	absolute_file_name(FileSpec, File,
 			   [ access(read)
 			   ]),
 	read_file_to_codes(File, String, []),
 	b_setval(pldoc_file, File),
+	b_setval(pldoc_options, Options),
 	call_cleanup((wiki_string_to_dom(String, [], DOM),
 		      phrase(latex(DOM), Tokens),
-		      print_latex_tokens(Tokens, Out)
+		      latex_header(Out, Options),
+		      print_latex_tokens(Tokens, Out),
+		      latex_footer(Out, Options)
 		     ),
-		     nb_delete(pldoc_file)).
+		     (nb_delete(pldoc_file),
+		      nb_delete(pldoc_options))).
 
 
 		 /*******************************
 		 *	 LATEX PRODUCTION	*
 		 *******************************/
+
+:- thread_local
+	fragile/0.			% provided when in fragile mode
 
 latex([]) --> !,
 	[].
@@ -125,11 +136,13 @@ latex([H|T]) -->
 
 % high level commands
 latex(h1(_Class, Content)) -->
-	latex(cmd(section(Content))).
+	latex_section(0, Content).
 latex(h2(_Class, Content)) -->
-	latex(cmd(subsection(Content))).
+	latex_section(1, Content).
 latex(h3(_Class, Content)) -->
-	latex(cmd(subsubsection(Content))).
+	latex_section(2, Content).
+latex(h4(_Class, Content)) -->
+	latex_section(3, Content).
 latex(p(Content)) -->
 	[ nl_exact(2) ],
 	latex(Content).
@@ -226,20 +239,29 @@ outdent(_) --> [].
 %	opt(Arg) it is written as  [Arg],   Otherwise  it  is written as
 %	{Arg}. Note that opt([]) is omitted. I think no LaTeX command is
 %	designed to handle an empty optional argument special.
+%	
+%	During processing the arguments it asserts fragile/0 to allow is
+%	taking care of LaTeX fragile   constructs  (i.e. constructs that
+%	are not allows inside {...}).
 
-latex_arguments([]) --> [].
-latex_arguments([opt([])|T]) --> !,
-	latex_arguments(T).
-latex_arguments([opt(H)|T]) --> !,
+latex_arguments(List, Out, Tail) :-
+	asserta(fragile, Ref),
+	call_cleanup(fragile_list(List, Out, Tail),
+		     erase(Ref)).
+	
+fragile_list([]) --> [].
+fragile_list([opt([])|T]) --> !,
+	fragile_list(T).
+fragile_list([opt(H)|T]) --> !,
 	[ '[' ],
 	latex(H),
 	[ ']' ],
-	latex_arguments(T).
-latex_arguments([H|T]) -->
+	fragile_list(T).
+fragile_list([H|T]) -->
 	[ curl(open) ],
 	latex(H),
 	[ curl(close) ],
-	latex_arguments(T).
+	fragile_list(T).
 
 
 attribute(Att, Attrs) :-
@@ -248,10 +270,41 @@ attribute(Att, Attrs) :-
 attribute(Att, One) :-
 	option(Att, [One]).
 
+%%	latex_section(+Level, +Content)// is det.
+%
+%	Emit a LaTeX section,  keeping  track   of  the  desired highest
+%	section level.
+%	
+%	@param Level	Desired level, relative to the base-level.  Must
+%			be a non-negative integer.
+
+latex_section(Level, Content) -->
+	{ (   catch(b_getval(pldoc_options, Options), _, fail)
+	  ->  option(section_level(LaTexSection), Options, section)
+	  ;   LaTexSection = section
+	  ),
+	  latex_section_level(LaTexSection, BaseLevel),
+	  FinalLevel is BaseLevel+Level,
+	  (   latex_section_level(SectionCommand, FinalLevel)
+	  ->  Term =.. [SectionCommand, Content]
+	  ;   domain_error(latex_section_level, FinalLevel)
+	  )
+	},
+	latex(cmd(Term)).
+
+latex_section_level(chapter,	   0).
+latex_section_level(section,	   1).
+latex_section_level(subsection,	   2).
+latex_section_level(subsubsection, 3).
+latex_section_level(paragraph,	   4).
+
 
 		 /*******************************
 		 *	   \ COMMANDS		*
 		 *******************************/
+file(File) -->
+	{ fragile }, !,
+	latex(cmd(texttt(File))).
 file(File) -->
 	latex(cmd(file(File))).
 
@@ -341,8 +394,11 @@ file_header(File, Options) -->
 %
 %	Emit the file-header and manipulation buttons.
 
-file_title(Title, _File, _Options) -->
-	latex(cmd(section(Title))).
+file_title(Title, _File, Options) -->
+	{ option(section_level(Level), Options, section),
+	  Section =.. [Level,Title]
+	},
+	latex(cmd(Section)).
 
 
 %%	objects(+Objects:list, +Options)// is det.
@@ -485,6 +541,8 @@ anchored_pred_head(Head, Done0, Done, Options) -->
 %
 %	Emit a predicate head. The functor is  typeset as a =span= using
 %	class =pred= and the arguments and =var= using class =arglist=.
+%	
+%	@tbd Support determinism in operators
 
 pred_head(//(Head), Options) --> !,
 	{ attributes(Options, Atts),
