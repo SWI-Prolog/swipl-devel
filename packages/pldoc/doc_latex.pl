@@ -67,13 +67,14 @@ the same paradigm. The module can
 	* Generate LaTeX for a single predicate or a list of predicates
 	for embedding in a document using latex_for_predicates/3.
 
-@tbd See TODO @author Jan Wielemaker
+@tbd See TODO
+@author Jan Wielemaker
 */
 
 %%	latex_for_file(+File, +Out, +Options) is det.
 %
 %	Generate a LaTeX description of all commented predicates in
-%	File.   Options:
+%	File, writing the LaTeX text to the stream Out. Options:
 %	
 %		* stand_alone(+Bool)
 %		If =true= (default), create a document that can be run
@@ -107,7 +108,16 @@ latex_for_file(FileSpec, Out, Options) :-
 
 %%	latex_for_wiki_file(+File, +Out, +Options) is det.
 %
-%	Generate a LaTeX translation of a Wiki file.
+%	Write a LaTeX translation of a Wiki file to the steam Out.
+%	Options:
+%	
+%		* public_only(+Bool)
+%		If =true= (default), only emit documentation for
+%		exported predicates.
+%		
+%		* section_level(+Level)
+%		Outermost section level produced. Level is the
+%		name of a LaTeX section command.  Default is =section=.
 
 latex_for_wiki_file(FileSpec, Out, Options) :-
 	absolute_file_name(FileSpec, File,
@@ -130,7 +140,8 @@ latex_for_wiki_file(FileSpec, Out, Options) :-
 %
 %	Generate LaTeX for a list  of   predicate  indicators. This does
 %	*not*   produce   the    \begin{description}...\end{description}
-%	environment, just a plain list of \predicate, etc. statements.
+%	environment, just a plain list   of \predicate, etc. statements.
+%	The current implementation ignores Options.
 
 latex_for_predicates([], _Out, _Options) :- !.
 latex_for_predicates([H|T], Out, Options) :- !,
