@@ -421,8 +421,11 @@ pred_dt([], Done, Done, _) -->
 	[].
 pred_dt([H|T], Done0, Done, Options) -->
 	pred_mode(H, Done0, Done1, Options),
-	pred_dt(T, Done1, Done, Options).
-
+	(   {T == []}
+	->  []
+	;   latex(cmd(nodescription)),
+	    pred_dt(T, Done1, Done, Options)
+	).
 
 pred_mode(mode(Head,Vars), Done0, Done, Options) --> !,
 	{ bind_vars(Head, Vars) },
