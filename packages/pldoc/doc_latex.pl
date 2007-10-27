@@ -45,6 +45,7 @@
 :- use_module(doc_html,			% we cannot import all as the
 	      [ doc_file_objects/5,	% \commands have the same name
 		doc_tag_title/2,
+		existing_linked_file/2,
 		pred_anchor_name/3,
 		private/2,
 		is_pi/1
@@ -71,6 +72,14 @@ the same paradigm. The module can
 @author Jan Wielemaker
 */
 
+:- thread_local
+	options/1.
+
+current_options(Options) :-
+	options(Current), !,
+	Options = Current.
+current_options([]).
+
 %%	latex_for_file(+File, +Out, +Options) is det.
 %
 %	Generate a LaTeX description of all commented predicates in
@@ -90,20 +99,25 @@ the same paradigm. The module can
 %		name of a LaTeX section command.  Default is =section=.
 
 latex_for_file(FileSpec, Out, Options) :-
+	phrase(latex_tokens_for_file(FileSpec, Options), Tokens),
+	print_latex(Out, Tokens, Options).
+
+
+%%	latex_tokens_for_file(+FileSpec, +Options)//
+
+latex_tokens_for_file(FileSpec, Options, Tokens, Tail) :-
 	absolute_file_name(FileSpec,
 			   [ file_type(prolog),
 			     access(read)
 			   ],
 			   File),
-	file_base_name(File, _Base),
 	doc_file_objects(FileSpec, File, Objects, FileOptions, Options),
-	phrase(latex([ \file_header(File, FileOptions)
-		     | \objects(Objects, FileOptions)
-		     ]),
-	       Tokens),
-	latex_header(Out, Options),
-	print_latex_tokens(Tokens, Out),
-	latex_footer(Out, Options).
+	asserta(options(Options), Ref),
+	call_cleanup(phrase(latex([ \file_header(File, FileOptions)
+				  | \objects(Objects, FileOptions)
+				  ]),
+			    Tokens, Tail),
+		     erase(Ref)).
 
 
 %%	latex_for_wiki_file(+File, +Out, +Options) is det.
@@ -120,20 +134,21 @@ latex_for_file(FileSpec, Out, Options) :-
 %		name of a LaTeX section command.  Default is =section=.
 
 latex_for_wiki_file(FileSpec, Out, Options) :-
+	phrase(latex_tokens_for_wiki_file(FileSpec, Options), Tokens),
+	print_latex(Out, Tokens, Options).
+
+latex_tokens_for_wiki_file(FileSpec, Options, Tokens, Tail) :-
 	absolute_file_name(FileSpec, File,
 			   [ access(read)
 			   ]),
 	read_file_to_codes(File, String, []),
 	b_setval(pldoc_file, File),
-	b_setval(pldoc_options, Options),
+	asserta(options(Options), Ref),
 	call_cleanup((wiki_string_to_dom(String, [], DOM),
-		      phrase(latex(DOM), Tokens),
-		      latex_header(Out, Options),
-		      print_latex_tokens(Tokens, Out),
-		      latex_footer(Out, Options)
+		      phrase(latex(DOM), Tokens, Tail)
 		     ),
 		     (nb_delete(pldoc_file),
-		      nb_delete(pldoc_options))).
+		      erase(Ref))).
 
 
 %%	latex_for_predicates(+PI:list, +Out, +Options) is det.
@@ -339,10 +354,8 @@ attribute(Att, One) :-
 %			be a non-negative integer.
 
 latex_section(Level, Content) -->
-	{ (   catch(b_getval(pldoc_options, Options), _, fail)
-	  ->  option(section_level(LaTexSection), Options, section)
-	  ;   LaTexSection = section
-	  ),
+	{ current_options(Options),
+	  option(section_level(LaTexSection), Options, section),
 	  latex_section_level(LaTexSection, BaseLevel),
 	  FinalLevel is BaseLevel+Level,
 	  (   latex_section_level(SectionCommand, FinalLevel)
@@ -358,15 +371,56 @@ latex_section_level(subsection,	   2).
 latex_section_level(subsubsection, 3).
 latex_section_level(paragraph,	   4).
 
+deepen_section_level(Level0, Level1) :-
+	latex_section_level(Level0, N),
+	N1 is N + 1,
+	latex_section_level(Level1, N1).
+
 
 		 /*******************************
 		 *	   \ COMMANDS		*
 		 *******************************/
+
+%%	include(+File, +Type)// is det.
+%
+%	Called from [[File]].
+
+include(File, Type) -->
+	{ existing_linked_file(File, Path) }, !,
+	include_file(Path, Type).
+include(File, _) -->
+	latex(code(['[[', File, ']]'])).
+
+include_file(Path, image) --> !,
+	latex(cmd(includegraphics(Path))).
+include_file(Path, Type) -->
+	{ assertion(memberchk(Type, [prolog,wiki])),
+	  current_options(Options0),
+	  select_option(stand_alone(_), Options0, Options1, _),
+	  select_option(section_level(Level0), Options1, Options2, section),
+	  deepen_section_level(Level0, Level),
+	  Options = [stand_alone(false), section_level(Level)|Options2]
+	},
+	(   {Type == prolog}
+	->  latex_tokens_for_file(Path, Options)
+	;   latex_tokens_for_wiki_file(Path, Options)
+	).
+
+%%	file(+File)// is det.
+%
+%	Called from implicitely linked files.  The HTML version creates
+%	a hyperlink.  We just name the file.
+
 file(File) -->
 	{ fragile }, !,
 	latex(cmd(texttt(File))).
 file(File) -->
 	latex(cmd(file(File))).
+
+%%	predref(+PI)// is det.
+%
+%	Called  from  name/arity  or   name//arity    patterns   in  the
+%	documentation.
 
 predref(Name/Arity) -->
 	latex(cmd(predref(Name, Arity))).
@@ -375,7 +429,8 @@ predref(Name//Arity) -->
 
 %%	tags(+Tags:list(Tag)) is det.
 %
-%	Emit tag list.  
+%	Emit tag list produced by the   Wiki processor from the @keyword
+%	commands.
 
 tags([\params(Params)|Rest]) --> !,
 	params(Params),
@@ -715,6 +770,12 @@ term(Term, Bindings) -->
 		 /*******************************
 		 *	    PRINT TOKENS	*
 		 *******************************/
+
+print_latex(Out, Tokens, Options) :-
+	latex_header(Out, Options),
+	print_latex_tokens(Tokens, Out),
+	latex_footer(Out, Options).
+
 
 %%	print_latex_tokens(+Tokens, +Out)
 %

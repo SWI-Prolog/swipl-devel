@@ -46,14 +46,15 @@
 	    object_edit_button/4,	% +Obj, +Options, //
 	    object_source_button/4,	% +Obj, +Options, //
 					% Support other backends
-	    doc_file_objects/5,		% +FileSpec, -File, -Objects, -FileOpts, +Options
+	    doc_file_objects/5,		% +FSpec, -File, -Objs, -FileOpts, +Opts
+	    existing_linked_file/2,	% +FileSpec, -Path
 	    doc_tag_title/2,		% +Tag, -Title
 	    pred_anchor_name/3,		% +Head, -PI, -Anchor
 	    private/2,			% +Obj, +Options
 	    is_pi/1,			% @Term
 					% Output routines
 	    file/3,			% +File, //
-	    image/3,			% +File, //
+	    include/4,			% +File, +Type, //
 	    tags/3,			% +Tags, //
 	    file_header/4,		% +File, +Options, //
 	    objects/4,			% +Objects, +Options, //
@@ -1242,16 +1243,20 @@ existing_linked_file(File, Path) :-
 			   ]).
 
 
-%%	image(+FileName)// is det.
+%%	include(+FileName, +Type)// is det.
 %
-%	Create an inline image from a link   to another file if the file
-%	exists. Called by \image(File) terms in   the DOM term generated
-%	by wiki.pl.
+%	Inline FileName. If this is an image file, show an inline image.
+%	Else we create a link  like   file//1.  Called by \include(File,
+%	Type)  terms  in  the  DOM  term  generated  by  wiki.pl  if  it
+%	encounters [[file.ext]].
 
-image(File) -->
+include(File, image) -->
 	{ existing_linked_file(File, _) }, !,
 	html(img([src(File), alt(File)])).
-image(File) -->
+include(File, _Type) -->
+	{ existing_linked_file(File, _) }, !,
+	file(File).
+include(File, _) -->
 	html(code(class(file), ['[[',File,']]'])).
 
 

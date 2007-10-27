@@ -485,12 +485,12 @@ wiki_face(\predref(Name//Arity), _) -->
 wiki_face(span(class=cvs, CVS), _) -->
 	[$, Word, :], {string(Word)}, wiki_faces(CVS0, []), [$], !,
 	{ strip_ws_tokens(CVS0, CVS) }.
-wiki_face(\image(Name), _) -->
+wiki_face(\include(Name, Type), _) -->
 	['[','['], word_token(BaseS), ['.'], word_token(ExtS), [']',']'],
 	{  concat_atom([BaseS, '.', ExtS], Name),
 	   file_name_extension(_, Ext, Name),
-	   autolink_extension(Ext, image)
-	}.
+	   autolink_extension(Ext, Type)
+	}, !.
 wiki_face(\file(Name), _) -->
 	word_token(BaseS), ['.'], word_token(ExtS),
 	{ concat_atom([BaseS, '.', ExtS], Name),
