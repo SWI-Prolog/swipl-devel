@@ -230,6 +230,10 @@ latex(ul(Content)) -->
 	latex(cmd(begin(itemize))),
 	latex(Content),
 	latex(cmd(end(itemize))).
+latex(ol(Content)) -->
+	latex(cmd(begin(enumerate))),
+	latex(Content),
+	latex(cmd(end(enumerate))).
 latex(li(Content)) -->
 	latex(cmd(item)),
 	latex(Content).
@@ -366,6 +370,8 @@ file(File) -->
 
 predref(Name/Arity) -->
 	latex(cmd(predref(Name, Arity))).
+predref(Name//Arity) -->
+	latex(cmd(dcgref(Name, Arity))).
 
 %%	tags(+Tags:list(Tag)) is det.
 %
