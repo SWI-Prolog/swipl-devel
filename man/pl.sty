@@ -88,8 +88,8 @@
 	\onlinebreak%
 	\ifthenelse{\equal{\@nodescription}{true}}{%
 	    \def\@nodescription{false}%
-	    \makebox[-\leftmargin]{\mbox{}}\mbox{\bf #1}\\}{%
-	    \item[\mbox{#1}]\hfill\mbox{}\linebreak}}
+	    \makebox[-\leftmargin]{\mbox{}}\makebox[\linewidth+\leftmargin][l]{\bf #1}\\}{%
+	    \item[{\makebox[\linewidth+\leftmargin][l]{#1}}]}}
 \newcommand{\nodescription}{\def\@nodescription{true}}
 
 \makeatletter
@@ -141,7 +141,7 @@
 \def\@attpredicate[#1]#2#3#4{%
 	\ifthenelse{\equal{#3}{0}}{%
 	    \defentry{#2 #1}}{%
-	    \defentry{#2({\it #4}) {\rm #1}}}%
+	    \defentry{#2({\it #4})\hfill{\rm #1}}}%
 	\index{#2/#3}\ignorespaces}
 \def\dcg{\@ifnextchar[{\@attdcg}{\@dcg}}
 \def\@dcg#1#2#3{%
@@ -152,7 +152,7 @@
 \def\@attdcg[#1]#2#3#4{%
 	\ifthenelse{\equal{#3}{0}}{%
 	    \defentry{#2 #1}}{%
-	    \defentry{#2({\it #4}) \texttt{//} {\rm #1}}}%
+	    \defentry{#2({\it #4}) \texttt{//}\hfill{\rm #1}}}%
 	\index{#2//#3}\ignorespaces}
 \makeatother
 \newcommand{\infixop}[3]{%
