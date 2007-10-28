@@ -1250,6 +1250,11 @@ existing_linked_file(File, Path) :-
 %	Type)  terms  in  the  DOM  term  generated  by  wiki.pl  if  it
 %	encounters [[file.ext]].
 
+include(PI, predicate) --> !,
+	(   html_tokens_for_predicates(PI, [])
+	->  []
+	;   html(['[[', \predref(PI), ']]'])
+	).
 include(File, image) -->
 	{ existing_linked_file(File, _) }, !,
 	html(img([src(File), alt(File)])).
@@ -1258,6 +1263,40 @@ include(File, _Type) -->
 	file(File).
 include(File, _) -->
 	html(code(class(file), ['[[',File,']]'])).
+
+
+%%	html_tokens_for_predicates(+PI, +Options)// is semidet.
+%
+%	Inline description for a predicate as produced by the text below
+%	from wiki processing.
+%	
+%	==
+%		* [[member/2]]
+%		* [[append/3]]
+%	==
+
+html_tokens_for_predicates([], _Options) -->
+	[].
+html_tokens_for_predicates([H|T], Options) --> !,
+	html_tokens_for_predicates(H, Options),
+	html_tokens_for_predicates(T, Options).
+html_tokens_for_predicates(PI, Options) -->
+	{ PI = _:_/_, !,
+	  (   doc_comment(PI, Pos, _Summary, Comment)
+	  ->  true
+	  ;   Comment = ''
+	  )
+	},
+	object(PI, Pos, Comment, [dl], _, Options).
+html_tokens_for_predicates(Spec, Options) -->
+	{ user:'$find_predicate'(Spec, Preds),
+	  maplist(to_pi, Preds, List)
+	},
+	html_tokens_for_predicates(List, Options).
+
+
+to_pi(M:Head, M:Name/Arity) :-
+	functor(Head, Name, Arity).
 
 
 		 /*******************************

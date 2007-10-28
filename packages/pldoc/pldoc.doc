@@ -329,6 +329,19 @@ the mode terms.  See \secref{modes}.
      Description
 \end{code}
 
+    \item [Predicate description lists]
+Especially for processing Wiki files, the Wiki notation allows for
+including the description of a predicate `in-line', where the
+documentation is extracted from a loaded source file. For example:
+
+\begin{code}
+The following predicates are considered Prolog's prime list processing
+primitives:
+
+    * [[member/2]]
+    * [[append/3]]
+\end{code}
+
     \item [Tables]
 The Wiki provides only for limited support for tables.   A table-row
 is started by a \chr{|} sign and the cells are separated by the same

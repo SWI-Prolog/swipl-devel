@@ -158,23 +158,29 @@ latex_tokens_for_wiki_file(FileSpec, Options, Tokens, Tail) :-
 %	environment, just a plain list   of \predicate, etc. statements.
 %	The current implementation ignores Options.
 
-latex_for_predicates([], _Out, _Options) :- !.
-latex_for_predicates([H|T], Out, Options) :- !,
-	latex_for_predicates(H, Out, Options),
-	latex_for_predicates(T, Out, Options).
-latex_for_predicates(PI, Out, Options) :-
-	PI = _:_/_, !,
-	(   doc_comment(PI, Pos, _Summary, Comment)
-	->  true
-	;   Comment = ''
-	),
-	phrase(object(PI, Pos, Comment, [description], _, Options),
-	       Tokens),
-	print_latex_tokens([nl_exact(0)|Tokens], Out).
 latex_for_predicates(Spec, Out, Options) :-
-	user:'$find_predicate'(Spec, Preds),
-	maplist(to_pi, Preds, List),
-	latex_for_predicates(List, Out, Options).
+	phrase(latex_tokens_for_predicates(Spec, Options), Tokens),
+	print_latex(Out, [nl_exact(0)|Tokens], Options).
+
+latex_tokens_for_predicates([], _Options) -->
+	[].
+latex_tokens_for_predicates([H|T], Options) --> !,
+	latex_tokens_for_predicates(H, Options),
+	latex_tokens_for_predicates(T, Options).
+latex_tokens_for_predicates(PI, Options) -->
+	{ PI = _:_/_, !,
+	  (   doc_comment(PI, Pos, _Summary, Comment)
+	  ->  true
+	  ;   Comment = ''
+	  )
+	},
+	object(PI, Pos, Comment, [description], _, Options).
+latex_tokens_for_predicates(Spec, Options) -->
+	{ user:'$find_predicate'(Spec, Preds),
+	  maplist(to_pi, Preds, List)
+	},
+	latex_tokens_for_predicates(List, Options).
+
 
 to_pi(M:Head, M:Name/Arity) :-
 	functor(Head, Name, Arity).
@@ -385,6 +391,11 @@ deepen_section_level(Level0, Level1) :-
 %
 %	Called from [[File]].
 
+include(PI, predicate) --> !,
+	(   latex_tokens_for_predicates(PI, [])
+	->  []
+	;   latex(['[[', \predref(PI), ']]'])
+	).
 include(File, Type) -->
 	{ existing_linked_file(File, Path) }, !,
 	include_file(Path, Type).
@@ -655,7 +666,7 @@ anchored_pred_head(Head, Done0, Done, Options) -->
 %	@tbd Support determinism in operators
 
 pred_head(//(Head), Options) --> !,
-	{ attributes(Options, Atts),
+	{ pred_attributes(Options, Atts),
 	  Head =.. [Functor|Args],
 	  length(Args, Arity)
 	},
@@ -679,20 +690,31 @@ pred_head(Head, _Options) -->			% Postfix operators
 	},
 	latex(cmd(postfixop(Functor, \pred_arg(Arg, 1)))).
 pred_head(Head, Options) -->			% Plain terms
-	{ attributes(Options, Atts),
+	{ pred_attributes(Options, Atts),
 	  Head =.. [Functor|Args],
 	  length(Args, Arity)
 	},
 	latex(cmd(predicate(opt(Atts), 
 			    Functor, Arity, \pred_args(Args, 1)))).
 
-attributes(Options, ['is ', Det|Attrs]) :-
-	select_option(det(Det), Options, Options1), !,
-	attributes(Options1, Attrs).
-attributes(Options, [' ', i('[private]')|Attrs]) :-
-	select_option(class(privdef), Options, Options1), !,
-	attributes(Options1, Attrs).
-attributes(_, []).
+%%	pred_attributes(+Options, -Attributes) is det.
+%
+%	Create a comma-separated list of   predicate attributes, such as
+%	determinism, etc.
+
+pred_attributes(Options, Attrs) :-
+	findall(A, pred_att(Options, A), As),
+	insert_comma(As, Attrs).
+
+pred_att(Options, Det) :-
+	option(det(Det), Options).
+pred_att(Options, private) :-
+	option(class(privdef), Options).
+
+insert_comma([H1,H2|T0], [H1, ','|T]) :- !,
+	insert_comma([H2|T0], T).
+insert_comma(L, L).
+
 
 op_type(fx,  prefix).
 op_type(fy,  prefix).

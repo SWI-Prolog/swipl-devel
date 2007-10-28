@@ -80,6 +80,9 @@
 	\mbox{\reffont #1}}
 
 %	Descriptions (definitions) of various things
+%	Note: I do not know where the 1ex comes from. This should fit
+%	exactly, but appearently some dimension is missing.  I suspect
+%	a space creaping in somewhere.
 
 \def\@nodescription{false}
 
@@ -88,8 +91,8 @@
 	\onlinebreak%
 	\ifthenelse{\equal{\@nodescription}{true}}{%
 	    \def\@nodescription{false}%
-	    \makebox[-\leftmargin]{\mbox{}}\makebox[\linewidth+\leftmargin][l]{\bf #1}\\}{%
-	    \item[{\makebox[\linewidth+\leftmargin][l]{#1}}]}}
+	    \makebox[-\leftmargin]{\mbox{}}\makebox[\linewidth+\leftmargin-1ex][l]{\bf #1}\\}{%
+	    \item[{\makebox[\linewidth+\leftmargin-1ex][l]{#1}}]}}
 \newcommand{\nodescription}{\def\@nodescription{true}}
 
 \makeatletter
@@ -141,7 +144,7 @@
 \def\@attpredicate[#1]#2#3#4{%
 	\ifthenelse{\equal{#3}{0}}{%
 	    \defentry{#2 #1}}{%
-	    \defentry{#2({\it #4})\hfill{\rm #1}}}%
+	    \defentry{#2({\it #4})\hfill{\it\footnotesize[#1]}}}%
 	\index{#2/#3}\ignorespaces}
 \def\dcg{\@ifnextchar[{\@attdcg}{\@dcg}}
 \def\@dcg#1#2#3{%
@@ -152,7 +155,7 @@
 \def\@attdcg[#1]#2#3#4{%
 	\ifthenelse{\equal{#3}{0}}{%
 	    \defentry{#2 #1}}{%
-	    \defentry{#2({\it #4}) \texttt{//}\hfill{\rm #1}}}%
+	    \defentry{#2({\it #4}) \texttt{//}\hfill{\it\footnotesize[#1]}}}%
 	\index{#2//#3}\ignorespaces}
 \makeatother
 \newcommand{\infixop}[3]{%
@@ -431,7 +434,7 @@
 
 \newenvironment{parameters}%
 	{\par%
-	 \begin{tabular}{lp{0.9\linewidth}}
-	 \multicolumn{2}{r}{\footnotesize Parameters} \\
+	 \makebox[\linewidth]{\hfill\footnotesize Parameters}
+	 \begin{tabular*}{\linewidth}{lp{0.7\linewidth}}
 	 \hline}%
-	{\end{tabular}}
+	{\end{tabular*}}
