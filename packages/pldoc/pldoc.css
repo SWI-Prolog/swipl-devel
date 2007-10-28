@@ -36,6 +36,13 @@ table.paramlist td
 { font-weight: bold;
 }
 
+span.pred-tag
+{ float: right;
+  font-size: 80%;
+  font-style: italic;
+  color: #202020;
+}
+
 dt.tag
 { font-weight: bold;
 }

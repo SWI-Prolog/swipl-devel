@@ -92,6 +92,13 @@ span.pred-ext
 { font-weight: bold;
 }
 
+span.pred-tag
+{ float: right;
+font-size: 80%;
+font-style: italic;
+color: #202020;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -847,7 +854,7 @@ PlDoc in a LaTeX document</SPAN></A></H3>
 <P>The LaTeX backend aims at producing quality paper documentation as 
 well as integration of predicate description and Wiki files in LaTeX 
 documents such as articles and technical reports. It is realised by the 
-library pldoc/<CODE>doc_latex.pl</CODE>.
+library <CODE>doc_latex.pl</CODE>.
 
 <P>The best practice for using the LaTeX backend is yet to be 
 established. For now we anticipate processing a Wiki document saved in a 
@@ -877,10 +884,16 @@ fragment:
 <H4><A NAME="sec:10.4.1"><SPAN class="sec-nr">10.4.1</SPAN> <SPAN class="sec-title">Predicate 
 reference for the LaTeX backend</SPAN></A></H4>
 
-<P>High-level access is provided by <A class="pred" href="#doc_latex/3">doc_latex/3</A>.
+<P>High-level access is provided by <A class="pred" href="#doc_latex/3">doc_latex/3</A>, 
+while more low level access is provided by the remaining predicates. 
+Generated LaTeX depends on the style file <CODE>pldoc.sty</CODE>, which 
+is a plain copy of <CODE>pl.sty</CODE> from the SWI-Prolog manual 
+sources. The installation installs
+<CODE>pldoc.sty</CODE> in the <CODE>pldoc</CODE> subdirectory of the 
+Prolog manual.
 
 <DL>
-<DT class="pubdef"><A NAME="doc_latex/3"><STRONG>doc_latex</STRONG>(<VAR>+Spec, 
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="doc_latex/3"><STRONG>doc_latex</STRONG>(<VAR>+Spec, 
 +OutFile, +Options</VAR>)</A></DT>
 <DD class="defbody">
 Process one or more objects, writing the LaTeX output to
@@ -904,15 +917,8 @@ otherwise process using <A class="pred" href="#latex_for_wiki_file/3">latex_for_
 </DL>
 
 <P>Typically <VAR>Spec</VAR> is either a list of filenames or a list of 
-predicate indicators.
-</DD>
-</DL>
-
-<P>The LaTeX backend provides the following set of predicates for 
-generating LaTeX from Prolog files as well as Wiki files.
-
-<DL>
-<DT class="pubdef"><A NAME="latex_for_file/3"><STRONG>latex_for_file</STRONG>(<VAR>+File, 
+predicate indicators.</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="latex_for_file/3"><STRONG>latex_for_file</STRONG>(<VAR>+File, 
 +Out, +Options</VAR>)</A></DT>
 <DD class="defbody">
 Generate a LaTeX description of all commented predicates in
@@ -938,7 +944,7 @@ command. Default is <CODE>section</CODE>.
 </DL>
 
 </DD>
-<DT class="pubdef"><A NAME="latex_for_wiki_file/3"><STRONG>latex_for_wiki_file</STRONG>(<VAR>+File, 
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="latex_for_wiki_file/3"><STRONG>latex_for_wiki_file</STRONG>(<VAR>+File, 
 +Out, +Options</VAR>)</A></DT>
 <DD class="defbody">
 Write a LaTeX translation of a Wiki file to the steam <VAR>Out</VAR>.
@@ -958,7 +964,7 @@ command. Default is <CODE>section</CODE>.
 </DL>
 
 </DD>
-<DT class="pubdef"><A NAME="latex_for_predicates/3"><STRONG>latex_for_predicates</STRONG>(<VAR>+PI:list, 
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="latex_for_predicates/3"><STRONG>latex_for_predicates</STRONG>(<VAR>+PI:list, 
 +Out, +Options</VAR>)</A></DT>
 <DD class="defbody">
 Generate LaTeX for a list of predicate indicators. This does
