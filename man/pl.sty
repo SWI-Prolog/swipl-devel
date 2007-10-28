@@ -126,6 +126,16 @@
 \newcommand{\fmtchar}[1]{%
 	\item[\tt #1]%
 	\ignorespaces}
+
+%	\directive{Name}{Arity}{Args}
+%	\predicate[Attibutes]{Name}{Arity}{Args}
+%	\infixop{Name}{Left}{Right}
+%	\prefixop{Name}{Right}
+%	\dcg[Attibutes]{Name}{Arity}{Args}
+%	
+%	Predicate   descriptions.   Must   appear   in   a   description
+%	environment.
+
 \newcommand{\directive}[3]{%
 	\ifthenelse{\equal{#2}{0}}{%
 	    \defentry{:- #1}}{%
@@ -164,22 +174,47 @@
 \newcommand{\prefixop}[2]{%
 	\defentry{#1 {\it #2}}%
 	\index{#1/1}\ignorespaces}
+
+%	\termitem{functor}{Args}
+%	\infixtermitem{functor}{Left}{Right}
+%	\prefixtermitem{functor}{Right}
+%	\postfixtermitem{functor}{Left}
+%	
+%	Terms in description lists. Typically used to describe various
+%	possible values or types for a term.
+
 \newcommand{\termitem}[2]{%
 	\ifthenelse{\equal{}{#2}}{%
 	    \definition{#1}}{%
 	    \definition{#1({\it #2})}}\ignorespaces}
+\newcommand{\infixtermitem}[3]{%
+	    \definition{{\it #2} #1 {\it #3}}\ignorespaces}
+\newcommand{\prefixtermitem}[2]{%
+	    \definition{#1 {\it #2}}\ignorespaces}
+\newcommand{\postfixtermitem}[2]{%
+	    \definition{{\it #2} #1}\ignorespaces}
+
+%	\term{functor}{Args}
+%	\infixterm{functor}{Left}{Right}
+%	\prefixterm{functor}{Right}
+%	\postfixterm{functor}{Left}
+%	
+%	Terms used in running text.
+
 \def\term{}
 \renewcommand{\term}[2]{%
 	\ifthenelse{\equal{\protect}{\protect#2}}{%
 	    {\reffont #1}}{%
 	    {\reffont #1}({\it #2})}}
 \newcommand{\infixterm}[3]{{\it #2} #1 {\it #3}}
+\newcommand{\prefixterm}[2]{#1 {\it #2}}
+\newcommand{\postfixterm}[2]{{\it #2} #1}
 \newcommand{\errorterm}[2]{\mbox{\tt%
 	\ifthenelse{\equal{}{#2}}{%
 	    #1}{%
 	    #1(#2)}}}
-\newcommand{\tag}[1]{%			PlDoc @keyword expansion
-	\item[#1]}
+
+
 \newcommand{\cfunction}[3]{%
 	\defentry{{\tt #1} #2{\rm (}{\it #3}{\rm )}}%
 	\index{#2()}\ignorespaces}
@@ -211,12 +246,19 @@
 	\ignorespaces}
 
 
-\renewcommand{\arg}[1]{\ifmmode\mbox{\em #1}\else{\em #1}\fi}
+%	\tag{Keyword}
+%	
+%	PlDoc @keyword expansion
+
+\newcommand{\tag}[1]{%
+	\item[#1]}
+
 \newcommand{\bnfmeta}[1]{\ifmmode{\langle\mbox{\it #1}\rangle}\else$\langle\mbox{\it #1}\rangle$\fi}
 \newcommand{\bnfor}{\ifmmode\mid\else$\mid$\fi}
 \newcommand{\isa}{& ::= &}
 \newcommand{\ora}{& $\mid$ &}
 
+\renewcommand{\arg}[1]{\ifmmode\mbox{\em #1}\else{\it #1}\fi}
 \newcommand{\class}[1]{{\em #1}\index{#1 \string\idxtype{class}}}
 \newcommand{\classs}[1]{{\em #1s}\index{#1 \string\idxtype{class}}}
 \newcommand{\demo}[1]{{\sf #1}\index{#1 \string\idxtype{demo}}}
@@ -256,7 +298,7 @@
 \newcommand{\libdoc}[2]{\section{\pllib{#1}: #2}}
 \newcommand{\key}[1]{{\sf #1}}
 \newcommand{\menu}[2]{%
-)	{\sf #1}%
+	{\sf #1}%
 	\ifthenelse{\equal{#2}{}}{%
 	    }{%
 	    ~(\texttt{#2})}}

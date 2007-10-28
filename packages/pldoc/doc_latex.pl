@@ -30,7 +30,8 @@
 */
 
 :- module(pldoc_latex,
-	  [ latex_for_file/3,		% +FileSpec, +Out, +Options
+	  [ doc_latex/3,		% +Items, +OutFile, +Options
+	    latex_for_file/3,		% +FileSpec, +Out, +Options
 	    latex_for_wiki_file/3,	% +FileSpec, +Out, +Options
 	    latex_for_predicates/3	% +PI, +Out, +Options
 	  ]).
@@ -79,6 +80,70 @@ current_options(Options) :-
 	options(Current), !,
 	Options = Current.
 current_options([]).
+
+%%	doc_latex(+Spec, +OutFile, +Options) is det.
+%
+%	Process one or  more  objects,  writing   the  LaTeX  output  to
+%	OutFile.  Spec is one of:
+%	
+%		* Name/Arity
+%		Generate documentation for predicate
+%		
+%		* Name//Arity
+%		Generate documentation for DCG rule
+%		
+%		* File
+%		If File is a prolog file (as defined by
+%		prolog_file_type/2), process using latex_for_file/3,
+%		otherwise process using latex_for_wiki_file/3
+%		
+%	Typically Spec is either a  list  of   filenames  or  a  list of
+%	predicate indicators. 
+	
+
+doc_latex(Spec, OutFile, Options) :-
+	asserta(options(Options), Ref),
+	call_cleanup(phrase(process_items(Spec, [body], Options), Tokens),
+		     erase(Ref)),
+	open(OutFile, write, Out),
+	call_cleanup(print_latex(Out, Tokens, Options),
+		     close(Out)).
+
+process_items([], Mode, _) --> !,
+	pop_mode(body, Mode, _).
+process_items([H|T], Mode, Options) -->
+	process_items(H, Mode, Mode1, Options),
+	process_items(T, Mode1, Options).
+process_items(Spec, Mode, Options) -->
+	{Mode = [Mode0|_]},
+	process_items(Spec, Mode, Mode1, Options),
+	pop_mode(Mode0, Mode1, _).
+
+process_items(PI, Mode0, Mode, Options) -->
+	{ is_pi(PI) }, !,
+	need_mode(description, Mode0, Mode),
+	latex_tokens_for_predicates(PI, Options).
+process_items(FileSpec, Mode0, Mode, Options) -->
+	{   (   absolute_file_name(FileSpec,
+				   [ file_type(prolog),
+				     access(read),
+				     file_errors(fail)
+				   ],
+				   File)
+	    ->  true
+	    ;	absolute_file_name(FileSpec,
+				   [ access(read)
+				   ],
+				   File)
+	    ),
+	    file_name_extension(_Base, Ext, File)
+	},
+	need_mode(body, Mode0, Mode),
+	(   { prolog_file_type(Ext, prolog) }
+	->  latex_tokens_for_file(File, Options)
+	;   latex_tokens_for_wiki_file(File, Options)
+	).
+
 
 %%	latex_for_file(+File, +Out, +Options) is det.
 %
@@ -162,8 +227,7 @@ latex_for_predicates(Spec, Out, Options) :-
 	phrase(latex_tokens_for_predicates(Spec, Options), Tokens),
 	print_latex(Out, [nl_exact(0)|Tokens], Options).
 
-latex_tokens_for_predicates([], _Options) -->
-	[].
+latex_tokens_for_predicates([], _Options) --> !.
 latex_tokens_for_predicates([H|T], Options) --> !,
 	latex_tokens_for_predicates(H, Options),
 	latex_tokens_for_predicates(T, Options).
@@ -176,14 +240,20 @@ latex_tokens_for_predicates(PI, Options) -->
 	},
 	object(PI, Pos, Comment, [description], _, Options).
 latex_tokens_for_predicates(Spec, Options) -->
-	{ user:'$find_predicate'(Spec, Preds),
-	  maplist(to_pi, Preds, List)
+	{ findall(PI, documented_pi(Spec, PI), List),
+	  (   List == []
+	  ->  print_message(warning, pldoc(no_predicates_from(Spec)))
+	  ;   true
+	  )
 	},
 	latex_tokens_for_predicates(List, Options).
 
+documented_pi(Spec, PI) :-
+	generalise_spec(Spec, PI),
+	doc_comment(PI, _Pos, _Summary, _Comment).
 
-to_pi(M:Head, M:Name/Arity) :-
-	functor(Head, Name, Arity).
+generalise_spec(Name/Arity, _M:Name/Arity).
+generalise_spec(Name//Arity, _M:Name//Arity).
 
 
 		 /*******************************
@@ -266,11 +336,8 @@ latex(dd(_, Content)) -->
 	latex(Content).
 latex(dd(Content)) -->
 	latex(Content).
-latex(dt(class=term, \term(Term, Bindings))) -->
-	{ bind_vars(Bindings),
-	  Term =.. [Functor|Args]
-	}, !,
-	latex(cmd(termitem(Functor, \pred_args(Args, 1)))).
+latex(dt(class=term, \term(Term, Bindings))) --> 
+	termitem(Term, Bindings).
 latex(\Cmd, List, Tail) :-
 	call(Cmd, List, Tail).
 
@@ -284,35 +351,43 @@ latex(cmd(Term)) -->
 	latex_arguments(Args),
 	outdent(Cmd).
 
-indent(begin) --> !,         [ nl(1) ].
-indent(end) --> !,           [ nl_exact(1) ].
-indent(section) --> !,       [ nl(2) ].
-indent(subsection) --> !,    [ nl(2) ].
-indent(subsubsection) --> !, [ nl(2) ].
-indent(item) --> !,          [ nl(1), indent(4) ].
-indent(tag) --> !,           [ nl(1), indent(4) ].
-indent(termitem) --> !,      [ nl(1), indent(4) ].
-indent(predicate) --> !,     [ nl(1), indent(4) ].
-indent(dcg) --> !,           [ nl(1), indent(4) ].
-indent(infixop) --> !,       [ nl(1), indent(4) ].
-indent(prefixop) --> !,      [ nl(1), indent(4) ].
-indent(postfixop) --> !,     [ nl(1), indent(4) ].
-indent(_) --> [].
+indent(begin) --> !,	       [ nl(2) ].
+indent(end) --> !,	       [ nl_exact(1) ].
+indent(section) --> !,	       [ nl(2) ].
+indent(subsection) --> !,      [ nl(2) ].
+indent(subsubsection) --> !,   [ nl(2) ].
+indent(item) --> !,	       [ nl(1), indent(4) ].
+indent(definition) --> !,      [ nl(1), indent(4) ].
+indent(tag) --> !,	       [ nl(1), indent(4) ].
+indent(termitem) --> !,	       [ nl(1), indent(4) ].
+indent(prefixtermitem) --> !,  [ nl(1), indent(4) ].
+indent(infixtermitem) --> !,   [ nl(1), indent(4) ].
+indent(postfixtermitem) --> !, [ nl(1), indent(4) ].
+indent(predicate) --> !,       [ nl(1), indent(4) ].
+indent(dcg) --> !,	       [ nl(1), indent(4) ].
+indent(infixop) --> !,	       [ nl(1), indent(4) ].
+indent(prefixop) --> !,	       [ nl(1), indent(4) ].
+indent(postfixop) --> !,       [ nl(1), indent(4) ].
+indent(_) -->		       [].
 
-outdent(begin) --> !,         [ nl_exact(1) ].
-outdent(end) --> !,           [ nl(1) ].
-outdent(item) --> !,	      [ ' ' ].
-outdent(tag) --> !,           [ nl(1) ].
-outdent(termitem) --> !,      [ nl(1) ].
-outdent(section) --> !,       [ nl(2) ].
-outdent(subsection) --> !,    [ nl(2) ].
-outdent(subsubsection) --> !, [ nl(2) ].
-outdent(predicate) --> !,     [ nl(1) ].
-outdent(dcg) --> !,           [ nl(1) ].
-outdent(infixop) --> !,       [ nl(1) ].
-outdent(prefixop) --> !,      [ nl(1) ].
-outdent(postfixop) --> !,     [ nl(1) ].
-outdent(_) --> [].
+outdent(begin) --> !,		[ nl_exact(1) ].
+outdent(end) --> !,		[ nl(2) ].
+outdent(item) --> !,		[ ' ' ].
+outdent(tag) --> !,		[ nl(1) ].
+outdent(termitem) --> !,	[ nl(1) ].
+outdent(prefixtermitem) --> !,	[ nl(1) ].
+outdent(infixtermitem) --> !,	[ nl(1) ].
+outdent(postfixtermitem) --> !,	[ nl(1) ].
+outdent(definition) --> !,	[ nl(1) ].
+outdent(section) --> !,		[ nl(2) ].
+outdent(subsection) --> !,	[ nl(2) ].
+outdent(subsubsection) --> !,	[ nl(2) ].
+outdent(predicate) --> !,	[ nl(1) ].
+outdent(dcg) --> !,		[ nl(1) ].
+outdent(infixop) --> !,		[ nl(1) ].
+outdent(prefixop) --> !,	[ nl(1) ].
+outdent(postfixop) --> !,	[ nl(1) ].
+outdent(_) -->			[].
 
 %%	latex_arguments(+Args:list)// is det.
 %
@@ -394,7 +469,7 @@ deepen_section_level(Level0, Level1) :-
 include(PI, predicate) --> !,
 	(   latex_tokens_for_predicates(PI, [])
 	->  []
-	;   latex(['[[', \predref(PI), ']]'])
+	;   latex(cmd(item(['[[', \predref(PI), ']]'])))
 	).
 include(File, Type) -->
 	{ existing_linked_file(File, Path) }, !,
@@ -673,20 +748,17 @@ pred_head(//(Head), Options) --> !,
 	latex(cmd(dcg(opt(Atts), Functor, Arity, \pred_args(Args, 1)))).
 pred_head(Head, _Options) -->			% Infix operators
 	{ Head =.. [Functor,Left,Right],
-	  current_op(_,Type,Functor),
-	  op_type(Type, infix), !
+	  is_op(Functor, infix), !
 	},
 	latex(cmd(infixop(Functor, \pred_arg(Left, 1), \pred_arg(Right, 2)))).
 pred_head(Head, _Options) -->			% Prefix operators
 	{ Head =.. [Functor,Arg],
-	  current_op(_,Type,Functor),
-	  op_type(Type, prefix), !
+	  is_op(Functor, prefix), !
 	},
 	latex(cmd(prefixop(Functor, \pred_arg(Arg, 1)))).
 pred_head(Head, _Options) -->			% Postfix operators
 	{ Head =.. [Functor,Arg],
-	  current_op(_,Type,Functor),
-	  op_type(Type, postfix), !
+	  is_op(Functor, postfix), !
 	},
 	latex(cmd(postfixop(Functor, \pred_arg(Arg, 1)))).
 pred_head(Head, Options) -->			% Plain terms
@@ -715,6 +787,10 @@ insert_comma([H1,H2|T0], [H1, ','|T]) :- !,
 	insert_comma([H2|T0], T).
 insert_comma(L, L).
 
+
+is_op(Functor, Type) :-
+	current_op(_Pri, F, Functor),
+	op_type(F, Type).
 
 op_type(fx,  prefix).
 op_type(fy,  prefix).
@@ -767,26 +843,68 @@ argtype(Term) -->
 		 ]) },
 	latex(S).
 
-%pred_det(unknown) -->
-%	[].
-%pred_det(Det) -->
-%	html([' is ', b(class=det, Det)]).
-
-
 %%	term(+Term, +Bindings)// is det.
 %
 %	Process the \term element as produced by doc_wiki.pl.
 %	
 %	@tbd	Properly merge with pred_head//1
 
-term(Atom, []) -->
-	{ atomic(Atom) }, !,
-	latex(Atom).
 term(Term, Bindings) -->
-	{ bind_vars(Bindings),
-	  Term =.. [Functor|Args]
+	{ bind_vars(Bindings) },
+	term(Term).
+
+term('$VAR'(Name)) --> !,
+	latex(cmd(arg(Name))).
+term(Compound) -->
+	{ callable(Compound), !,
+	  Compound =.. [Functor|Args]
 	}, !,
+	term_with_args(Functor, Args).
+term(Rest) -->
+	latex(Rest).
+
+term_with_args(Functor, [Left, Right]) -->
+	{ is_op(Functor, infix) }, !,
+	latex(cmd(infixterm(Functor, \term(Left), \term(Right)))).
+term_with_args(Functor, [Arg]) -->
+	{ is_op(Functor, prefix) }, !,
+	latex(cmd(prefixterm(Functor, \term(Arg)))).
+term_with_args(Functor, [Arg]) -->
+	{ is_op(Functor, postfix) }, !,
+	latex(cmd(postfixterm(Functor, \term(Arg)))).
+term_with_args(Functor, Args) -->
 	latex(cmd(term(Functor, \pred_args(Args, 1)))).
+
+
+%%	termitem(+Term, +Bindings)// is det.
+%
+%	Create a termitem or one of its variations.
+
+termitem(Term, Bindings) -->
+	{ bind_vars(Bindings) },
+	termitem(Term).
+
+termitem('$VAR'(Name)) --> !,
+	latex(cmd(termitem(var(Name), ''))).
+termitem(Compound) -->
+	{ callable(Compound), !,
+	  Compound =.. [Functor|Args]
+	}, !,
+	termitem_with_args(Functor, Args).
+termitem(Rest) -->
+	latex(cmd(termitem(Rest, ''))).
+
+termitem_with_args(Functor, [Left, Right]) -->
+	{ is_op(Functor, infix) }, !,
+	latex(cmd(infixtermitem(Functor, \term(Left), \term(Right)))).
+termitem_with_args(Functor, [Arg]) -->
+	{ is_op(Functor, prefix) }, !,
+	latex(cmd(prefixtermitem(Functor, \term(Arg)))).
+termitem_with_args(Functor, [Arg]) -->
+	{ is_op(Functor, postfix) }, !,
+	latex(cmd(postfixtermitem(Functor, \term(Arg)))).
+termitem_with_args(Functor, Args) -->
+	latex(cmd(termitem(Functor, \pred_args(Args, 1)))).
 
 
 		 /*******************************
