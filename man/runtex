@@ -169,7 +169,7 @@ while [ $cont != "no" ]; do
         make -f $appbase/Makefile.pdf
     fi
     rm -f $doc.log
-    $tex $doc
+    $tex $doc -file-line-error -halt-on-error >/dev/null
     if [ $? != 0 ]; then
         rm -f $doc.idx.$$
         exit $?;
