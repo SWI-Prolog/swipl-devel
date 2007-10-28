@@ -3,7 +3,7 @@
 The LaTeX backend aims at producing quality paper documentation as well
 as integration of predicate description and Wiki files in LaTeX
 documents such as articles and technical reports.  It is realised by
-the library pldoc/doc_latex.pl.
+the library doc_latex.pl.
 
 The best practice for using the LaTeX backend is yet to be established.
 For now we anticipate processing a Wiki document saved in a .txt file
@@ -30,13 +30,13 @@ We generate latex.tex from latex.txt using this Makefile fragment:
 
 ---+++ Predicate reference for the LaTeX backend
 
-High-level access is provided by doc_latex/3.
+High-level access is provided by doc_latex/3, while more low level
+access is provided by the remaining predicates. Generated LaTeX depends
+on the style file =|pldoc.sty|=, which is a plain copy of =|pl.sty|=
+from the SWI-Prolog manual sources. The installation installs
+=|pldoc.sty|= in the =pldoc= subdirectory of the Prolog manual.
 
 	* [[doc_latex/3]]
-
-The LaTeX backend provides the following set of predicates for
-generating LaTeX from Prolog files as well as Wiki files.
-
 	* [[latex_for_file/3]]
 	* [[latex_for_wiki_file/3]]
 	* [[latex_for_predicates/3]]

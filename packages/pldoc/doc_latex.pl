@@ -1053,7 +1053,8 @@ latex_header(Out, Options) :-
 	(   option(stand_alone(true), Options, true)
 	->  forall(header(Line), format(Out, '~w~n', [Line]))
 	;   true
-	).
+	),
+	forall(generated(Line), format(Out, '~w~n', [Line])).
 
 latex_footer(Out, Options) :-
 	(   option(stand_alone(true), Options, true)
@@ -1063,7 +1064,7 @@ latex_footer(Out, Options) :-
 
 header('\\documentclass[11pt]{article}').
 header('\\usepackage{times}').
-header('\\usepackage{pl}').
+header('\\usepackage{pldoc}').
 header('\\sloppy').
 header('\\makeindex').
 header('').
@@ -1072,3 +1073,7 @@ header('\\begin{document}').
 footer('').
 footer('\\printindex').
 footer('\\end{document}').
+
+generated('% This LaTeX document was generated using the LaTeX backend of PlDoc,').
+generated('% The SWI-Prolog documentation system').
+generated('').

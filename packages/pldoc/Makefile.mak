@@ -18,14 +18,17 @@ LIBPL=		doc_html.pl doc_wiki.pl doc_modes.pl doc_register.pl \
 		doc_library.pl hooks.pl doc_htmlsrc.pl doc_colour.pl \
 		doc_util.pl
 PUBPL=		pldoc.pl doc_http.pl doc_latex.pl
-SUPPORT=	pldoc.css pldoc.js pllisting.css \
+SUPPORT=	pldoc.css pldoc.js pllisting.css pldoc.sty \
 		edit.gif zoomin.gif zoomout.gif reload.gif favicon.ico \
 		up.gif source.gif
 DOCALL=		$(LIBPL) $(SUPPORT)
 EXAMPLES=	doc_log.pl README
 EXAMPLEEXE=	man_server.pl
 
-all:		
+all:		pldoc.sty
+
+pldoc.sty:	..\..\man\pl.sty
+		copy $< $@
 
 !IF "$(CFG)" == "rt"
 install::
