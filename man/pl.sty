@@ -153,7 +153,7 @@
 	\index{#1/#2}\ignorespaces}
 \def\@attpredicate[#1]#2#3#4{%
 	\ifthenelse{\equal{#3}{0}}{%
-	    \defentry{#2 #1}}{%
+	    \defentry{#2\hfill{\it\footnotesize[#1]}}}{%
 	    \defentry{#2({\it #4})\hfill{\it\footnotesize[#1]}}}%
 	\index{#2/#3}\ignorespaces}
 \def\dcg{\@ifnextchar[{\@attdcg}{\@dcg}}
@@ -164,7 +164,7 @@
 	\index{#1/#2}\ignorespaces}
 \def\@attdcg[#1]#2#3#4{%
 	\ifthenelse{\equal{#3}{0}}{%
-	    \defentry{#2 #1}}{%
+	    \defentry{#2 \texttt{//}\hfill{\it\footnotesize[#1]}}}{%
 	    \defentry{#2({\it #4}) \texttt{//}\hfill{\it\footnotesize[#1]}}}%
 	\index{#2//#3}\ignorespaces}
 \makeatother

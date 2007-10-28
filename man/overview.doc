@@ -911,7 +911,7 @@ of certain predicates to achieve compatibility with other Prolog
 environments.
 
 \begin{description}
-    \predicate{current_prolog_flag}{2}{?Key, -Value}
+    \predicate[ISO]{current_prolog_flag}{2}{?Key, -Value}
 The predicate current_prolog_flag/2 defines an interface to installation
 features: options compiled in, version, home, etc. With both arguments
 unbound, it will generate all defined Prolog flags. With the `Key'
@@ -1426,7 +1426,7 @@ Available and set to \const{true} if the XPCE graphics system is loaded.
 Available and set to the version of the loaded XPCE system.
 \end{description}
 
-    \predicate{set_prolog_flag}{2}{+Key, +Value}
+    \predicate[ISO]{set_prolog_flag}{2}{+Key, +Value}
 Define a new Prolog flag or change its value.  \arg{Key} is an atom.
 If the flag is a system-defined flag that is not marked
 \jargon{changeable} above, an attempt to modify the flag yields a
