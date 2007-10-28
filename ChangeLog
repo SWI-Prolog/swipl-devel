@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: library(dialect/iso/iso_predicates), describing properties
+    of ISO predicates.  Modified version of a file contributed by Paulo
+    Moura.
+
   * FIXED: Bug#316: Memory overflow and very slow printing of very long
     lists due to cycle detection.  Keri Harris.
 
