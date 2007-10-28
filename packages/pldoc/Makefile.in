@@ -4,7 +4,7 @@
 # Copyright: GPL (see COPYING or www.gnu.org
 ################################################################
 
-.SUFFIXES: .tex .dvi .doc .pl
+.SUFFIXES: .txt .tex .dvi .doc .pl
 
 SHELL=@SHELL@
 PLBASE=@PLBASE@
@@ -33,12 +33,12 @@ INSTALL_DATA=@INSTALL_DATA@
 LIBPL=		doc_html.pl doc_wiki.pl doc_modes.pl doc_register.pl \
 		doc_process.pl doc_index.pl doc_search.pl doc_man.pl \
 		doc_library.pl hooks.pl doc_htmlsrc.pl doc_colour.pl \
-		doc_util.pl doc_latex.pl
+		doc_util.pl
 SUPPORT=	pldoc.css pldoc.js pllisting.css \
 		edit.gif zoomin.gif zoomout.gif reload.gif favicon.ico \
 		up.gif source.gif
 DOCALL=		$(LIBPL) $(SUPPORT)
-PUBPL=		pldoc.pl doc_http.pl
+PUBPL=		pldoc.pl doc_http.pl doc_latex.pl
 EXAMPLES=	doc_log.pl README
 EXAMPLEEXE=	man_server.pl
 
@@ -105,6 +105,8 @@ $(TEX):		$(DOCTOTEX)
 		$(DOCTOTEX) $*.doc > $*.tex
 .pl.tex:
 		$(PLTOTEX) $*.pl > $*.tex
+.txt.tex:
+		pl -f none -g "doc_latex('$*.txt','$*.tex',[stand_alone(false)]),halt" -t "halt(1)"
 
 ################################################################
 # Clean

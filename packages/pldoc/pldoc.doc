@@ -2,6 +2,7 @@
 \usepackage{times}
 \usepackage{pl}
 \usepackage{html}
+\usepackage{plpage}
 \sloppy
 \makeindex
 
@@ -82,11 +83,10 @@ framework and other runtime and compiletime analysis tools that may be
 developed in the future.
 
 Documentation for all or some of the loaded files can be written to file
-in either HTML+CSS or \LaTeX{}%
-	\footnote{\LaTeX is not yet supported.}
-format. Each source file is documented in a single file. In addition,
-the documentation generator will generate an index file that can be used
-a index for a browser or input file for \LaTeX{} for producing nicely
+in either HTML+CSS or \LaTeX{} (see \secref{doclatex}) format. Each
+source file is documented in a single file. In addition, the
+documentation generator will generate an index file that can be used as
+an index for a browser or input file for \LaTeX{} for producing nicely
 typeset document.
 
 To support the developer, the documentation system can be asked to start
@@ -654,6 +654,13 @@ Prolog source-files have a \emph{reload} button attached. Clicking this
 reloads the source file if it was modified and refreshes the page. This
 supports a comfortable edit-view loop to maintain the source-code
 documentation.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Including PlDoc in a LaTeX document
+% Eating our own docfood
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{latex.tex}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

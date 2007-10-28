@@ -35,15 +35,16 @@
 	    latex_for_wiki_file/3,	% +FileSpec, +Out, +Options
 	    latex_for_predicates/3	% +PI, +Out, +Options
 	  ]).
+:- use_module(library(pldoc)).
 :- use_module(library(readutil)).
 :- use_module(library(error)).
 :- use_module(library(option)).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
-:- use_module(doc_wiki).
-:- use_module(doc_process).
-:- use_module(doc_modes).
-:- use_module(doc_html,			% we cannot import all as the
+:- use_module(pldoc(doc_wiki)).
+:- use_module(pldoc(doc_process)).
+:- use_module(pldoc(doc_modes)).
+:- use_module(pldoc(doc_html),		% we cannot import all as the
 	      [ doc_file_objects/5,	% \commands have the same name
 		doc_tag_title/2,
 		existing_linked_file/2,
@@ -266,6 +267,11 @@ generalise_spec(Name//Arity, _M:Name//Arity).
 latex([]) --> !,
 	[].
 latex(Atomic) -->
+	{ atomic(Atomic),
+	  sub_atom(Atomic, 0, _, 0, 'LaTeX')
+	}, !,
+	[ latex('\\LaTeX{}') ].
+latex(Atomic) -->
 	{ atomic(Atomic), !,
 	  findall(x, sub_atom(Atomic, _, _, _, '\n'), Xs),
 	  length(Xs, Lines)
@@ -282,14 +288,14 @@ latex([H|T]) -->
 	).
 
 % high level commands
-latex(h1(_Class, Content)) -->
-	latex_section(0, Content).
-latex(h2(_Class, Content)) -->
-	latex_section(1, Content).
-latex(h3(_Class, Content)) -->
-	latex_section(2, Content).
-latex(h4(_Class, Content)) -->
-	latex_section(3, Content).
+latex(h1(Attrs, Content)) -->
+	latex_section(0, Attrs, Content).
+latex(h2(Attrs, Content)) -->
+	latex_section(1, Attrs, Content).
+latex(h3(Attrs, Content)) -->
+	latex_section(2, Attrs, Content).
+latex(h4(Attrs, Content)) -->
+	latex_section(3, Attrs, Content).
 latex(p(Content)) -->
 	[ nl_exact(2) ],
 	latex(Content).
@@ -316,7 +322,7 @@ latex(i(Code)) -->
 latex(var(Var)) -->
 	latex(cmd(arg(Var))).
 latex(pre(_Class, Code)) -->
-	[ code(Code) ].
+	[ nl_exact(2), code(Code), nl_exact(2) ].
 latex(ul(Content)) -->
 	latex(cmd(begin(itemize))),
 	latex(Content),
@@ -426,7 +432,7 @@ attribute(Att, Attrs) :-
 attribute(Att, One) :-
 	option(Att, [One]).
 
-%%	latex_section(+Level, +Content)// is det.
+%%	latex_section(+Level, +Attributes, +Content)// is det.
 %
 %	Emit a LaTeX section,  keeping  track   of  the  desired highest
 %	section level.
@@ -434,7 +440,7 @@ attribute(Att, One) :-
 %	@param Level	Desired level, relative to the base-level.  Must
 %			be a non-negative integer.
 
-latex_section(Level, Content) -->
+latex_section(Level, Attrs, Content) -->
 	{ current_options(Options),
 	  option(section_level(LaTexSection), Options, section),
 	  latex_section_level(LaTexSection, BaseLevel),
@@ -444,7 +450,16 @@ latex_section(Level, Content) -->
 	  ;   domain_error(latex_section_level, FinalLevel)
 	  )
 	},
-	latex(cmd(Term)).
+	latex(cmd(Term)),
+	section_label(Attrs).
+
+section_label(Attrs) -->
+	{ memberchk(name(Name), Attrs), !,
+	  atom_concat('sec:', Name, Label)
+	},
+	latex(cmd(label(Label))).
+section_label(_) -->
+	[].
 
 latex_section_level(chapter,	   0).
 latex_section_level(section,	   1).
@@ -958,7 +973,7 @@ print_latex_token(verb(Verb), Out) :- !,
 print_latex_token(code(Code), Out) :- !,
 	format(Out, '~N\\begin{code}~n', []),
 	format(Out, '~w', [Code]),
-	format(Out, '~N\\end{code}~n', []).
+	format(Out, '~N\\end{code}', []).
 print_latex_token(latex(Code), Out) :- !,
 	write(Out, Code).
 print_latex_token(Rest, Out) :-

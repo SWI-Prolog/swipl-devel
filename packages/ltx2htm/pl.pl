@@ -137,24 +137,24 @@ cmd(definition({Tag}),
     #defitem(#b(+Tag))).
 cmd('DCG'(A,B,C), X) :-
 	cmd(predicate(A,B,C), X).
-cmd(predicate({RawName}, {'0'}, {_}),
+cmd(predicate(_A, {RawName}, {'0'}, {_}),
     #defitem(pubdef, #label(RefName, #strong(Name)))) :-
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/0', [Name]),
 	add_to_index(RefName, +RefName).
-cmd(predicate({RawName}, {Arity}, {Args}),
+cmd(predicate(_A, {RawName}, {Arity}, {Args}),
     #defitem(pubdef, #label(RefName,
 			    [ #strong(Name), #embrace(#var(+Args))
 			    ]))) :-
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
-cmd(dcg({RawName}, {'0'}, {_}),
+cmd(dcg(_A, {RawName}, {'0'}, {_}),
     #defitem(pubdef, [#label(RefName, #strong(Name)), #code(-->)])) :-
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/0', [Name]),
 	add_to_index(RefName, +RefName).
-cmd(dcg({RawName}, {Arity}, {Args}),
+cmd(dcg(_A, {RawName}, {Arity}, {Args}),
     #defitem(pubdef, [#label(RefName,
 			     [ #strong(Name), #embrace(#var(+Args))
 			     ]),
@@ -163,7 +163,7 @@ cmd(dcg({RawName}, {Arity}, {Args}),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
-cmd(directive({RawName}, {'0'}, {Args}),
+cmd(directive({RawName}, {'0'}, {_}),
     #defitem(pubdef, #label(RefName,
 			    [ ':- ', #strong(Name)
 			    ]))) :- !,
@@ -215,6 +215,8 @@ cmd(constitem({Name}), #defitem(#label(RefName, #strong(+Name)))) :-
 cmd(termitem({Name}, {[]}), #defitem(#strong(+Name))).
 cmd(termitem({Name}, {Arg}),
     #defitem([#strong(+Name), #embrace(#var(+Arg))])).
+cmd(infixtermitem({Name}, {Left}, {Right}),
+    #defitem([#var(+Left), ' ', #strong(+Name), ' ', #var(+Right)])).
 cmd(prologflagitem({Name}, {Type}, {Access}),
     #defitem(pubdef, #label(RefName, [#strong(Name), #embrace([#var(Type)|Change])]))) :-
 	atom_concat('flag:', Name, RefName),

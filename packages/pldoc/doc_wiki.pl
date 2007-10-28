@@ -265,19 +265,32 @@ rest_par([_-L1|LT], ['\n'|Par], Rest) :-
 
 %%	section_line(+Tokens, -Section) is det.
 %
-%	Extract a section using the Wiki conventions
+%	Extract a section using the Twiki   conventions. The section may
+%	be preceeded by [Word], in which case we generate an anchor name
+%	Word for the section.
 
 section_line([-,-,-|Rest], Section) :-
 	plusses(Rest, Section).
 
-plusses([+, ' '|Rest], h1(class(wiki), Content)) :-
-	strip_ws_tokens(Rest, Content).
-plusses([+, +, ' '|Rest], h2(class(wiki), Content)) :-
-	strip_ws_tokens(Rest, Content).
-plusses([+, +, +, ' '|Rest], h3(class(wiki), Content)) :-
-	strip_ws_tokens(Rest, Content).
-plusses([+, +, +, +, ' '|Rest], h4(class(wiki), Content)) :-
-	strip_ws_tokens(Rest, Content).
+plusses([+, ' '|Rest], h1(Attrs, Content)) :-
+	hdr_attributes(Rest, Attrs, Content).
+plusses([+, +, ' '|Rest], h2(Attrs, Content)) :-
+	hdr_attributes(Rest, Attrs, Content).
+plusses([+, +, +, ' '|Rest], h3(Attrs, Content)) :-
+	hdr_attributes(Rest, Attrs, Content).
+plusses([+, +, +, +, ' '|Rest], h4(Attrs, Content)) :-
+	hdr_attributes(Rest, Attrs, Content).
+
+hdr_attributes(List, Attrs, Content) :-
+	strip_leading_ws(List, List2),
+	(   List2 = ['[',Word,']'|List3],
+	    atomic(Word)
+	->  strip_ws_tokens(List3, Content),
+	    string_to_atom(Word, Name),
+	    Attrs = [class(wiki), name(Name)]
+	;   Attrs = class(wiki),
+	    strip_ws_tokens(List, Content)
+	).
 
 
 %%	strip_ws_tokens(+Tokens, -Stripped)

@@ -165,6 +165,10 @@ the browser interface</SPAN></A></DIV>
 <DIV class="toc-h4"><A class="sec" href="#sec:10.3.1"><SPAN class="sec-nr">10.3.1</SPAN> <SPAN class="sec-title">Searching</SPAN></A></DIV>
 <DIV class="toc-h4"><A class="sec" href="#sec:10.3.2"><SPAN class="sec-nr">10.3.2</SPAN> <SPAN class="sec-title">Views</SPAN></A></DIV>
 <DIV class="toc-h4"><A class="sec" href="#sec:10.3.3"><SPAN class="sec-nr">10.3.3</SPAN> <SPAN class="sec-title">Editing</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:10.4"><SPAN class="sec-nr">10.4</SPAN> <SPAN class="sec-title">Including 
+PlDoc in a LaTeX document</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:10.4.1"><SPAN class="sec-nr">10.4.1</SPAN> <SPAN class="sec-title">Predicate 
+reference for the LaTeX backend</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:11"><SPAN class="sec-nr">11</SPAN> <SPAN class="sec-title">Motivation 
 of choices</SPAN></A></DIV>
 <DIV class="toc-h1"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Bibliography</SPAN></A></DIV>
@@ -209,11 +213,11 @@ support the test framework and other runtime and compiletime analysis
 tools that may be developed in the future.
 
 <P>Documentation for all or some of the loaded files can be written to 
-file in either HTML+CSS or LaTeX<SUP class="fn">1<SPAN class="fn-text">LaTeX 
-is not yet supported.</SPAN></SUP> format. Each source file is 
-documented in a single file. In addition, the documentation generator 
-will generate an index file that can be used a index for a browser or 
-input file for LaTeX for producing nicely typeset document.
+file in either HTML+CSS or LaTeX (see <A class="sec" href="#sec:10.4">section 
+10.4</A>) format. Each source file is documented in a single file. In 
+addition, the documentation generator will generate an index file that 
+can be used as an index for a browser or input file for LaTeX for 
+producing nicely typeset document.
 
 <P>To support the developer, the documentation system can be asked to 
 start a web-server that can be used to browse the documentation.
@@ -225,7 +229,7 @@ comments</SPAN></A></H2>
 one, seen mostly in the Prolog community and the block-comment (<CODE>/*</CODE>...<CODE>*/</CODE>) 
 based one, commonly seen in the Java and C domain. As we cannot 
 determine the argument-names, type and modes from following (predicate) 
-code itself, we must supply this in the comment.<SUP class="fn">2<SPAN class="fn-text">See <A class="sec" href="#sec:11">section 
+code itself, we must supply this in the comment.<SUP class="fn">1<SPAN class="fn-text">See <A class="sec" href="#sec:11">section 
 11</A>.</SPAN></SUP>. The overall structure of the comment therefore is:
 
 <P><UL COMPACT>
@@ -471,6 +475,21 @@ mode terms. See <A class="sec" href="#sec:5">section 5</A>.
      Description
    * Term2
      Description
+</PRE>
+
+</DD>
+<DT><B>Predicate description lists</B></DT>
+<DD>
+Especially for processing Wiki files, the Wiki notation allows for 
+including the description of a predicate `in-line', where the 
+documentation is extracted from a loaded source file. For example:
+
+<PRE class="code">
+The following predicates are considered Prolog's prime list processing
+primitives:
+
+    * [[member/2]]
+    * [[append/3]]
 </PRE>
 
 </DD>
@@ -788,7 +807,7 @@ predicates with their full documentation. Using the <B>zoom</B> button
 the user can select to view both public and documentated private 
 predicates. Using the <B>source</B> button, the system shows the source 
 with syntax highlighting as in PceEmacs and formatted structured 
-comments.<SUP class="fn">3<SPAN class="fn-text">This mode is still 
+comments.<SUP class="fn">2<SPAN class="fn-text">This mode is still 
 incomplete. It would be nice to add line-numbers and links to 
 documentation and definitions in the sources.</SPAN></SUP>
 
@@ -819,6 +838,135 @@ an edit button.
 this reloads the source file if it was modified and refreshes the page. 
 This supports a comfortable edit-view loop to maintain the source-code 
 documentation.
+
+<H3><A NAME="sec:10.4"><SPAN class="sec-nr">10.4</SPAN> <SPAN class="sec-title">Including 
+PlDoc in a LaTeX document</SPAN></A></H3>
+
+<P><A NAME="sec:doclatex"></A>
+
+<P>The LaTeX backend aims at producing quality paper documentation as 
+well as integration of predicate description and Wiki files in LaTeX 
+documents such as articles and technical reports. It is realised by the 
+library pldoc/<CODE>doc_latex.pl</CODE>.
+
+<P>The best practice for using the LaTeX backend is yet to be 
+established. For now we anticipate processing a Wiki document saved in a 
+.txt file using <A class="pred" href="#doc_latex/3">doc_latex/3</A> to 
+produce either a simple complete LaTeX document or a partial document 
+that is included into the the main document using the LaTeX <CODE>\input</CODE> 
+command. Typically, this is best established by writing a <I>Prolog 
+Script</I> that generates the required LaTeX document and call this from 
+a <I>Makefile</I>. We give a simple example from PlDoc, creating this 
+section from the wiki-file <CODE>latex.txt</CODE> below.
+
+<PRE class="code">
+:- use_module(library(doc_latex)).
+:- [my_program].
+</PRE>
+
+<P>We generate latex.tex from <CODE>latex.txt</CODE> using this Makefile 
+fragment:
+
+<PRE class="code">
+.SUFFIXES: .txt .tex
+
+.txt.tex:
+        pl -f script.pl -g "doc_latex('$*.txt','$*.tex',[stand_alone(false)]),halt" -t "halt(1)"
+</PRE>
+
+<H4><A NAME="sec:10.4.1"><SPAN class="sec-nr">10.4.1</SPAN> <SPAN class="sec-title">Predicate 
+reference for the LaTeX backend</SPAN></A></H4>
+
+<P>High-level access is provided by <A class="pred" href="#doc_latex/3">doc_latex/3</A>.
+
+<DL>
+<DT class="pubdef"><A NAME="doc_latex/3"><STRONG>doc_latex</STRONG>(<VAR>+Spec, 
++OutFile, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Process one or more objects, writing the LaTeX output to
+<VAR>OutFile</VAR>. <VAR>Spec</VAR> is one of:
+
+<DL>
+<DT><VAR><VAR>Name</VAR></VAR> <STRONG>/</STRONG> <VAR><VAR>Arity</VAR></VAR></DT>
+<DD class="defbody">
+Generate documentation for predicate
+</DD>
+<DT><VAR><VAR>Name</VAR></VAR> <STRONG>//</STRONG> <VAR><VAR>Arity</VAR></VAR></DT>
+<DD class="defbody">
+Generate documentation for DCG rule
+</DD>
+<DT><STRONG><VAR>File</VAR></STRONG></DT>
+<DD class="defbody">
+If File is a prolog file (as defined by
+<SPAN class="pred-ext">prolog_file_type/2</SPAN>), process using <A class="pred" href="#latex_for_file/3">latex_for_file/3</A>, 
+otherwise process using <A class="pred" href="#latex_for_wiki_file/3">latex_for_wiki_file/3</A>
+</DD>
+</DL>
+
+<P>Typically <VAR>Spec</VAR> is either a list of filenames or a list of 
+predicate indicators.
+</DD>
+</DL>
+
+<P>The LaTeX backend provides the following set of predicates for 
+generating LaTeX from Prolog files as well as Wiki files.
+
+<DL>
+<DT class="pubdef"><A NAME="latex_for_file/3"><STRONG>latex_for_file</STRONG>(<VAR>+File, 
++Out, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Generate a LaTeX description of all commented predicates in
+<VAR>File</VAR>, writing the LaTeX text to the stream <VAR>Out</VAR>. <VAR>Options</VAR>:
+
+<DL>
+<DT><STRONG>stand_alone</STRONG>(<VAR>+Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>true</CODE> (default), create a document that can be run 
+through LaTeX . If <CODE>false</CODE>, produce a document to be included 
+in another LaTeX document.
+</DD>
+<DT><STRONG>public_only</STRONG>(<VAR>+Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>true</CODE> (default), only emit documentation for exported 
+predicates.
+</DD>
+<DT><STRONG>section_level</STRONG>(<VAR>+Level</VAR>)</DT>
+<DD class="defbody">
+Outermost section level produced. Level is the name of a LaTeX section 
+command. Default is <CODE>section</CODE>.
+</DD>
+</DL>
+
+</DD>
+<DT class="pubdef"><A NAME="latex_for_wiki_file/3"><STRONG>latex_for_wiki_file</STRONG>(<VAR>+File, 
++Out, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Write a LaTeX translation of a Wiki file to the steam <VAR>Out</VAR>.
+<VAR>Options</VAR>:
+
+<DL>
+<DT><STRONG>public_only</STRONG>(<VAR>+Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>true</CODE> (default), only emit documentation for exported 
+predicates.
+</DD>
+<DT><STRONG>section_level</STRONG>(<VAR>+Level</VAR>)</DT>
+<DD class="defbody">
+Outermost section level produced. Level is the name of a LaTeX section 
+command. Default is <CODE>section</CODE>.
+</DD>
+</DL>
+
+</DD>
+<DT class="pubdef"><A NAME="latex_for_predicates/3"><STRONG>latex_for_predicates</STRONG>(<VAR>+PI:list, 
++Out, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Generate LaTeX for a list of predicate indicators. This does
+<B>not</B> produce the <CODE>\</CODE>begin{description}...<CODE>\</CODE>end{description} 
+environment, just a plain list of <CODE>\</CODE>predicate, etc. 
+statements. The current implementation ignores <VAR>Options</VAR>.
+</DD>
+</DL>
 
 <H2><A NAME="sec:11"><SPAN class="sec-nr">11</SPAN> <SPAN class="sec-title">Motivation 
 of choices</SPAN></A></H2>
@@ -962,6 +1110,9 @@ prolog.
 <DT><A class="idx" href="#doc_collect/1">doc_collect/1</A></DT>
 <DD>
 </DD>
+<DT><A class="idx" href="#doc_latex/3">doc_latex/3</A></DT>
+<DD>
+</DD>
 <DT><A class="idx" href="#doc_load_library/0">doc_load_library/0</A></DT>
 <DD>
 <A class="idx" href="#idx:docloadlibrary0:5">10.2</A></DD>
@@ -983,6 +1134,18 @@ prolog.
 <DT>ip/4</DT>
 <DD>
 <A class="idx" href="#idx:ip4:3">10.1</A></DD>
+<DT><STRONG>L</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#latex_for_file/3">latex_for_file/3</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#latex_for_predicates/3">latex_for_predicates/3</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#latex_for_wiki_file/3">latex_for_wiki_file/3</A></DT>
+<DD>
+</DD>
 <DT><STRONG>N</STRONG></DT>
 <DD>
 </DD>

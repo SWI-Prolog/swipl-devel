@@ -3,8 +3,8 @@
 % Predicate definitions (in a description
 
 \definition{+}=item		1 0
-\predicate{+}{-}{+}=item	1 0
-\dcg{+}{-}{+}=item		1 0
+\predicate[+]{+}{-}{+}=item	1 0
+\dcg[+]{+}{-}{+}=item		1 0
 \directive{+}{-}{-}=item	1 0
 \infixop{+}{+}{+}=item		1 0
 \prefixop{+}{-}=item		1 0
@@ -32,6 +32,7 @@
 \longoption{+}{+}
 \longoptionitem{+}{+}=item	1 0
 \termitem{+}{+}=item		1 0
+\infixtermitem{+}{+}{+}=item	1 0
 \constitem{+}=item		1 0
 \term{+}{+}
 \errorterm{+}{+}
