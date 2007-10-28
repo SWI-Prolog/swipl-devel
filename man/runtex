@@ -53,8 +53,26 @@ function addinput
   fi
 }
 
+function addbstinput
+{ if [ -z "$BSTINPUTS" ]; then
+    export BSTINPUTS="$1::"
+  else
+    export BSTINPUTS=$BSTINPUTS:$1::
+  fi
+}
+
+function addbibinput
+{ if [ -z "$BIBINPUTS" ]; then
+    export BIBINPUTS="$1::"
+  else
+    export BIBINPUTS=$BIBINPUTS:$1::
+  fi
+}
+
 if [ -d $appbase ]; then
   addinput $appbase
+  addbstinput $appbase
+  addbibinput $appbase
 fi
 
 case "`uname`" in
