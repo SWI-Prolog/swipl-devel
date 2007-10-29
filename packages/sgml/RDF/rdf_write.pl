@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2004-2006, University of Amsterdam
+    Copyright (C): 2004-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -37,19 +37,29 @@
 :- use_module(library(sgml)).
 :- use_module(library(sgml_write)).
 :- use_module(library(assoc)).
+:- use_module(library(pairs)).
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module write an RDF/XML document  from   a  list  of triples of the
+/** <module> Write RDF/XML from a list of triples
+
+This module writes an RDF/XML document  from   a  list of triples of the
 format rdf(Subject, Predicate, Object).  It   is  primarily intended for
 communicating computed RDF model fragments   to  external programs using
 RDF/XML.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+@author	Jan Wielemaker
+@see	library(semweb/rdf_db) offers saving a named graph directly from
+	the RDF database.
+*/
 
 
 		 /*******************************
 		 *	     WRITE RDFXML	*
 		 *******************************/
+
+%%	rdf_write_xml(+Out:stream, +Triples:list(rdf(S,P,O))) is det.
+%
+%	Write an RDF/XML serialization of Triples to Out.
 
 rdf_write_xml(Out, Triples) :-
 	sort(Triples, Unique),
@@ -62,7 +72,7 @@ rdf_write_xml(Out, Triples) :-
 		 *	  HEADER/FOOTER		*
 		 *******************************/
 
-%	rdf_write_header(+Out, +Triples)
+%%	rdf_write_header(+Out, +Triples)
 %
 %	Save XML document header, doctype and open the RDF environment.
 %	This predicate also sets up the namespace notation.
@@ -100,15 +110,16 @@ xml_encoding_name(iso_latin_1, 'ISO-8859-1').
 xml_encoding_name(utf8,        'UTF-8').
 
 
-%	used_namespaces(+Triples, -List)
+%%	used_namespaces(+Triples:list(rdf(S,P,O)), -List:atom) is det.
 %
-%	Return the list of namespaces used in a set of triples
+%	Return the list of namespace abbreviations used in a set of
+%	triples.
 
 used_namespaces(Triples, NSList) :-
 	decl_used_predicate_ns(Triples),
 	resources(Triples, Resources),
 	empty_assoc(A0),
-	put_assoc(rdf, A0, *, A1),	% needed for rdt:RDF
+	put_assoc(rdf, A0, *, A1),	% needed for rdf:RDF
 	res_used_namespaces(Resources, _NoNS, A1, A),
 	assoc_to_list(A, List),
 	keys(List, NSList).
@@ -127,6 +138,10 @@ res_used_namespaces([Resource|T], NoNS, A0, A) :-
 res_used_namespaces([R|T0], [R|T], A0, A) :-
 	res_used_namespaces(T0, T, A0, A).
 
+%%	resources(+Triples:list(rdf(S,P,O)), -Resources:list(atom)) is det.
+%
+%	Resources is the set of resources referenced in Triples.
+
 resources(Triples, Resources) :-
 	phrase(resources(Triples), Raw),
 	sort(Raw, Resources).
@@ -135,17 +150,21 @@ resources([]) -->
 	[].
 resources([rdf(S,P,O)|T]) -->
 	[S,P],
-	(   { atom(O)}
-	->  [O]
-	;   []
-	),
+	object_resources(O),
 	resources(T).
 	
+object_resources(Atom) -->
+	{ atom(Atom) }, !,
+	[ Atom ].
+object_resources(literal(type(Type, _))) -->
+	[ Type ].
+object_resources(_) -->
+	[].
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-For every URL used as a predicate  we   *MUST*  define a namespace as we
-cannot use names holding /, :, etc. as XML identifiers.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+%%	decl_used_predicate_ns(+Triples:list(rdf(S,P,O)))
+%
+%	For every URL used as a predicate   we *MUST* define a namespace
+%	as we cannot use names holding /, :, etc. as XML identifiers.
 
 :- thread_local
 	predicate_ns/2.
@@ -169,7 +188,7 @@ decl_predicate_ns(Pred) :-
 	xml_codes(LocalCodes), !,
 	(   NSCodes \== []
 	->  atom_codes(NS, NSCodes),
-	    (   between(1, 1000000, N),
+	    (   between(1, infinite, N),
 		atom_concat(ns, N, Id),
 		\+ ns(Id, _)
 	    ->  rdf_register_ns(Id, NS),
@@ -187,7 +206,7 @@ xml_codes([H|T]) :-
 
 xml_code(X) :-
 	code_type(X, csym), !.
-xml_code(0'-).
+xml_code(0'-).				% '
 
 
 rdf_write_footer(Out) :-
@@ -428,7 +447,7 @@ rdf_save_list(ListTriples, Out, List, DefNS, Indent, Anon) :-
 	;   true
 	).
 
-%	anonymous_subject(+Subject)
+%%	anonymous_subject(+Subject)
 %	
 %	Test if a resource is anonymous. This is highly dubious.
 %	Probably we need to store this in the database.  The current
@@ -462,7 +481,7 @@ rdf_att_id(Id, _, NS:Local) :-
 rdf_att_id(Id, _, Id).
 
 
-%	rdf_value(+Resource, -Text, +Encoding)
+%%	rdf_value(+Resource, -Text, +Encoding)
 %	
 %	According  to  "6.4  RDF  URI  References"  of  the  RDF  Syntax
 %	specification, a URI reference is  UNICODE string not containing
@@ -471,28 +490,25 @@ rdf_att_id(Id, _, Id).
 %	
 %	NOTE: the to_be_described/1 trick  ensures   entity  rewrite  in
 %	resources that start with 'http://t-d-b.org?'. This   is  a of a
-%	hack to save the artchive data   in  the MultiMedian project. We
+%	hack to save the artchive data   in  the MultimediaN project. We
 %	should use a more general mechanism.
-%	
-%	NOTE: < 5.6.3 doesn't  export   rdf_quote_uri/2.  Remove rdf_db:
-%	after a while.
 
 rdf_value(V, Text, Encoding) :-
 	to_be_described(Prefix),
 	atom_concat(Prefix, V1, V), !,
 	ns(NS, Full),
 	atom_concat(Full, Local, V1), !,
-	rdf_db:rdf_quote_uri(Local, QLocal0),
+	rdf_quote_uri(Local, QLocal0),
 	xml_quote_attribute(QLocal0, QLocal, Encoding),
 	concat_atom([Prefix, '&', NS, (';'), QLocal], Text).
 rdf_value(V, Text, Encoding) :-
 	ns(NS, Full),
 	atom_concat(Full, Local, V), !,
-	rdf_db:rdf_quote_uri(Local, QLocal0),
+	rdf_quote_uri(Local, QLocal0),
 	xml_quote_attribute(QLocal0, QLocal, Encoding),
 	concat_atom(['&', NS, (';'), QLocal], Text).
 rdf_value(V, Q, Encoding) :-
-	rdf_db:rdf_quote_uri(V, Q0),
+	rdf_quote_uri(V, Q0),
 	xml_quote_attribute(Q0, Q, Encoding).
 
 to_be_described('http://t-d-b.org?').

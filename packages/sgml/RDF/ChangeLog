@@ -1,3 +1,7 @@
+Oct 29, 2007
+
+  * FIXED: extract namespaces used in typed literals.   Yves Raimond.
+
 Jul 9, 2007
 
   * FIXED: xml:lang with empty literals.  Jochem Liem.
