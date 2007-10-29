@@ -1,6 +1,7 @@
 *.o
 *.a
 *.so
+*.dylib
 *~
 *.old
 *.qlf

@@ -33,6 +33,7 @@ AC_SUBST(MKLIBS)		dnl system libraries to make
 AC_SUBST(BUILDDIR)
 AC_SUBST(CNFG)
 AC_SUBST(DLLIBVAR)
+AC_SUBST(RLPREFIX)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
@@ -296,6 +297,7 @@ case "$ARCH" in
 	;;
 esac
 
+
 dnl ****************************************************************
 dnl How script args are handled
 dnl ****************************************************************
@@ -316,6 +318,216 @@ else
     AC_MSG_RESULT(does not breakdown arguments)
 fi
 rm -f testconf.args
+
+
+dnl ****************************************************************
+dnl Setup shared library and dynamic linking
+dnl ****************************************************************
+
+AC_ARG_ENABLE(load-foreign, [  --disable-load-foreign  No shared-lib interface],
+	      configshared="$enableval",
+	      configshared=yes)
+
+PLSHARED=no
+if test "$configshared" = "yes"; then
+  AC_CHECK_HEADERS(dlfcn.h)
+  AC_CHECK_LIB(dl, dlopen)
+  if test "$ac_cv_lib_dl_dlopen" = "yes"; then
+    AC_CHECK_FUNCS(dlopen)
+  else
+    AC_CHECK_LIB(dld, shl_load)
+    AC_CHECK_FUNCS(shl_load)
+  fi
+fi
+
+dnl On SCO, dlopen is in libc.so and requires dlfcn.h to compile.  Thanks
+dnl to Tamas Laufer.
+
+if test ! "$ac_cv_func_dlopen" = "yes"; then
+AC_MSG_CHECKING("dlopen in libc")
+AC_TRY_COMPILE(
+[
+#ifdef HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
+#ifndef RTLD_NOW
+#define RTLD_NOW 0
+#endif
+],
+[ dlopen("foobar", RTLD_NOW);
+], ac_cv_func_dlopen=yes
+   AC_DEFINE(HAVE_DLOPEN, 1,
+	     [Define if you have a working dlopen()])
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+fi
+
+if test "$ac_cv_func_dlopen" = yes -o "$ac_cv_func_shl_load" = yes; then
+  PLSHARED=yes
+fi
+
+if test "$PLSHARED" = "yes"; then
+
+dnl Some versions of (g)cc need to export the symbols from the main program
+dnl using -export-dynamic or (older versions) -rdynamic.  See whether
+dnl this gcc understands this flag.
+
+case "$ARCH" in
+  *darwin*)
+	exportdynamic=done
+	;;
+esac
+
+if test "$exportdynamic" != "done"; then
+AC_MSG_CHECKING(whether LDFLAGS need -export-dynamic)
+  old_ldflags="$LDFLAGS"
+  LDFLAGS="-export-dynamic $LDFLAGS"
+  AC_TRY_RUN(
+main()
+{ exit(0);
+},
+     if grep 'unrecognized option `-export-dynamic'"'" config.log >/dev/null; then
+       AC_MSG_RESULT(no)
+       LDFLAGS="$old_ldflags"
+     else
+       AC_MSG_RESULT(yes)
+       exportdynamic=done
+     fi,
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags",
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags")
+fi	dnl test for -exportdynamic
+
+if test "$exportdynamic" != "done"; then
+AC_MSG_CHECKING("whether LDFLAGS need -rdynamic")
+  old_ldflags="$LDFLAGS"
+  LDFLAGS="-rdynamic $LDFLAGS"
+  AC_TRY_RUN(
+main()
+{ exit(0);
+},
+     if grep 'unrecognized option `-rdynamic'"'" config.log >/dev/null; then
+       AC_MSG_RESULT(no)
+       LDFLAGS="$old_ldflags"
+     else
+       AC_MSG_RESULT(yes)
+     fi,
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags",
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags")
+fi	dnl test for -rdynamic
+
+dnl Some specific OS stuff
+
+SO_LDFLAGS="-shared"
+SO_pic="-fpic"
+SO_PIC="-fPIC"
+SO_LD="$CC"
+SO_EXT="so"
+SO_PATH="-Wl,-rpath=$PLBASE/lib/$ARCH"
+DLLIBVAR=LD_LIBRARY_PATH
+
+case "$ARCH" in
+  *solaris* | *sunos*)
+	SO_LDFLAGS="-G"
+	if test "$GCC" != "yes"; then
+	    SO_pic="-Kpic"
+	    SO_PIC="-KPIC"
+	fi
+	;;
+  *hppa*|*hpux*)
+	SO_EXT="sl"
+	LDFLAGS="$LDFLAGS -Wl,-E"
+	if test "$GCC" != "yes"; then
+	    SO_LDFLAGS="-Wl,-b"
+	fi
+	;;
+  *osf*)
+	SO_LD=ld
+	SO_LDFLAGS="-shared -expect_unresolved \*"
+	SO_pic="-std"
+	if test "$MT" = yes; then
+	  AC_CHECK_LIB(exc, main)
+	fi
+	;;
+  *aix*)
+	SO_EXT="o"
+	DLLIBVAR=LIBPATH
+	if test "$GCC" = "yes"; then
+	    LDFLAGS="$LDFLAGS -Wl,-bE:../include/SWI-Exports"
+	    SO_LDFLAGS="-Wl,-bI:$PLBASE/include/SWI-Exports"
+	else
+	    LDFLAGS="$LDFLAGS -bE:../include/SWI-Exports"
+	    SO_LDFLAGS="-bI:$PLBASE/include/SWI-Exports"
+	fi
+	;;
+  *x86_64*linux)
+	if test "x$MKSHARED" = "x"; then
+	    MKSHARED=yes
+	fi
+	;;
+  *darwin*)
+	if test "x$MKSHARED" = "x"; then
+	    MKSHARED=yes
+	fi
+	PL=swipl
+	SO_EXT=dylib
+	SO_pic="-fno-common"
+	SO_PIC="-fno-common"
+	SO_LDFLAGS="-bundle -dynamic -flat_namespace -undefined suppress"
+	SO_PATH=""
+	DLLIBVAR=DYLD_LIBRARY_PATH
+	AC_DEFINE(USE_SEM_OPEN, 1,
+		  [Define if we must use sem_open() instead of the preferred sem_init()])
+	AC_DEFINE(LD_SYMBOL_PREFIX, "_",
+		  [String used to prefix all symbols requested through dlsym()])
+	CMFLAGS="-no-cpp-precomp"
+	;;
+  *cygwin*)
+	SO_EXT="dll"
+	SO_pic=""
+	SO_PIC=""
+	DLLIBVAR=PATH
+	;;
+# Seems we can simple add the executable add the end.  This is arranged
+# in plld.c based on the the __BEOS__ symbol.
+# *beos*)
+#	AC_DEFINE(SO_FORMAT_LDFLAGS,
+#		  ["-nostart -Xlinker -soname=\"%s\"", soout])
+#	;;
+  *)
+	;;
+esac
+
+AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT",
+		   [Define to the extension of shared objects (often .so)])
+AC_DEFINE_UNQUOTED(SO_PATH,	"$DLLIBVAR",
+		   [Search path for shared objects (often LD_LIBRARY_PATH)])
+AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD",
+		   [Program to link shared objects])
+AC_DEFINE_UNQUOTED(SO_LDFLAGS, "$SO_LDFLAGS",
+		   [Flags to use for linking shared objects])
+AC_DEFINE_UNQUOTED(SO_pic,     "$SO_pic",
+		   [Flags for compiling position-independent small object])
+AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
+		   [Flags for compiling position-independent BIG object])
+AC_DEFINE_UNQUOTED(PROG_PL,    "$PL",
+		   [Name of the SWI-Prolog executable (normally pl)])
+case "$ARCH" in
+  *cygwin*)
+	PLSO=cygpl.$SO_EXT
+	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libpl.dll.a $(DEF)'
+	;;
+  *)
+	PLSO=libpl.$SO_EXT
+	SONAMEOPT=-Wl,-soname=$PLSO.$PLVERSION
+	;;
+esac
+
+fi	dnl PLSHARED
+
 
 dnl ****************************************************************
 dnl Finding libraries
@@ -449,7 +661,43 @@ if test "$checkucb" = "yes"; then
     AC_CHECK_LIB(ucb, rindex)
 fi
 
-if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
+dnl Hacks for MacOS handling of libreadline.  We want to prefer the MacOS X
+dnl libraries, but we need to get libreadline from Darwinports, as the BSD
+dnl version is severely limited.
+
+case "$ARCH" in
+  *darwin*)
+	if test -z "$RLPREFIX"; then
+	  RLPREFIX=/opt/local
+        fi
+	;;
+esac
+
+if test ! -z "$RLPREFIX"; then
+  AC_MSG_CHECKING(Whether setting for RLPREFIX is ok)
+  if test -f $RLPREFIX/include/readline/readline.h -a \
+	  -f $RLPREFIX/lib/libreadline.$SO_EXT; then
+    LIBS="$LIBS $RLPREFIX/lib/libreadline.$SO_EXT"
+    AC_MSG_RESULT(Using $RLPREFIX)
+    AC_DEFINE(HAVE_LIBREADLINE, 1, 
+	      [Define to 1 if you have libreadline])
+    AC_DEFINE(HAVE_READLINE_READLINE_H, 1,
+	      [Define to 1 if you have <readline/readline.h>])
+    ocflags="$CFLAGS"
+    CFLAGS="-I$RLPREFIX/include $CFLAGS"
+    AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
+    AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input rl_done)
+    AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
+    AC_CHECK_FUNCS(rl_filename_completion_function)
+    FreeBSD="$ocflags"
+    readline_ok=yes
+  else
+    AC_MSG_RESULT(no)
+    RLPREFIX=
+  fi
+fi
+
+if test ! "$runtime" = "yes" -a "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
   oldlibs="$LIBS"
   AC_CHECK_LIB(readline, main)
 
@@ -480,47 +728,7 @@ else
   readline_ok=yes			# specified absent
 fi
 
-AC_ARG_ENABLE(load-foreign, [  --disable-load-foreign  No shared-lib interface],
-	      configshared="$enableval",
-	      configshared=yes)
-
-PLSHARED=no
-if test "$configshared" = "yes"; then
-  AC_CHECK_HEADERS(dlfcn.h)
-  AC_CHECK_LIB(dl, dlopen)
-  if test "$ac_cv_lib_dl_dlopen" = "yes"; then
-    AC_CHECK_FUNCS(dlopen)
-  else
-    AC_CHECK_LIB(dld, shl_load)
-    AC_CHECK_FUNCS(shl_load)
-  fi
-fi
-
-dnl On SCO, dlopen is in libc.so and requires dlfcn.h to compile.  Thanks
-dnl to Tamas Laufer.
-
-if test ! "$ac_cv_func_dlopen" = "yes"; then
-AC_MSG_CHECKING("dlopen in libc")
-AC_TRY_COMPILE(
-[
-#ifdef HAVE_DLFCN_H
-#include <dlfcn.h>
-#endif
-#ifndef RTLD_NOW
-#define RTLD_NOW 0
-#endif
-],
-[ dlopen("foobar", RTLD_NOW);
-], ac_cv_func_dlopen=yes
-   AC_DEFINE(HAVE_DLOPEN, 1,
-	     [Define if you have a working dlopen()])
-   AC_MSG_RESULT(yes),
-   AC_MSG_RESULT(no))
-fi
-
-if test "$ac_cv_func_dlopen" = yes -o "$ac_cv_func_shl_load" = yes; then
-  PLSHARED=yes
-fi
+dnl ================================================================
 
 AC_MSG_CHECKING(for cc -c -o)
   cat > conftest.c << _EOP_
@@ -1353,171 +1561,6 @@ case "$ARCH" in
 	fi
         ;;
 esac
-if test "$ac_cv_func_dlopen" = "yes" || \
-   test "$ac_cv_func_shl_load" = "yes"; then
-
-dnl Some versions of (g)cc need to export the symbols from the main program
-dnl using -export-dynamic or (older versions) -rdynamic.  See whether
-dnl this gcc understands this flag.
-
-case "$ARCH" in
-  *darwin*)
-	exportdynamic=done
-	;;
-esac
-
-if test "$exportdynamic" != "done"; then
-AC_MSG_CHECKING("whether LDFLAGS need -export-dynamic")
-  old_ldflags="$LDFLAGS"
-  LDFLAGS="-export-dynamic $LDFLAGS"
-  AC_TRY_RUN(
-main()
-{ exit(0);
-},
-     if grep 'unrecognized option `-export-dynamic'"'" config.log >/dev/null; then
-       AC_MSG_RESULT(no)
-       LDFLAGS="$old_ldflags"
-     else
-       AC_MSG_RESULT(yes)
-       exportdynamic=done
-     fi,
-     AC_MSG_RESULT(no)
-     LDFLAGS="$old_ldflags",
-     AC_MSG_RESULT(no)
-     LDFLAGS="$old_ldflags")
-fi	dnl test for -exportdynamic
-
-if test "$exportdynamic" != "done"; then
-AC_MSG_CHECKING("whether LDFLAGS need -rdynamic")
-  old_ldflags="$LDFLAGS"
-  LDFLAGS="-rdynamic $LDFLAGS"
-  AC_TRY_RUN(
-main()
-{ exit(0);
-},
-     if grep 'unrecognized option `-rdynamic'"'" config.log >/dev/null; then
-       AC_MSG_RESULT(no)
-       LDFLAGS="$old_ldflags"
-     else
-       AC_MSG_RESULT(yes)
-     fi,
-     AC_MSG_RESULT(no)
-     LDFLAGS="$old_ldflags",
-     AC_MSG_RESULT(no)
-     LDFLAGS="$old_ldflags")
-fi	dnl test for -rdynamic
-
-dnl Some specific OS stuff
-
-SO_LDFLAGS="-shared"
-SO_pic="-fpic"
-SO_PIC="-fPIC"
-SO_LD="$CC"
-SO_EXT="so"
-SO_PATH="-Wl,-rpath=$PLBASE/lib/$ARCH"
-DLLIBVAR=LD_LIBRARY_PATH
-
-case "$ARCH" in
-  *solaris* | *sunos*)
-	SO_LDFLAGS="-G"
-	if test "$GCC" != "yes"; then
-	    SO_pic="-Kpic"
-	    SO_PIC="-KPIC"
-	fi
-	;;
-  *hppa*|*hpux*)
-	SO_EXT="sl"
-	LDFLAGS="$LDFLAGS -Wl,-E"
-	if test "$GCC" != "yes"; then
-	    SO_LDFLAGS="-Wl,-b"
-	fi
-	;;
-  *osf*)
-	SO_LD=ld
-	SO_LDFLAGS="-shared -expect_unresolved \*"
-	SO_pic="-std"
-	if test "$MT" = yes; then
-	  AC_CHECK_LIB(exc, main)
-	fi
-	;;
-  *aix*)
-	SO_EXT="o"
-	DLLIBVAR=LIBPATH
-	if test "$GCC" = "yes"; then
-	    LDFLAGS="$LDFLAGS -Wl,-bE:../include/SWI-Exports"
-	    SO_LDFLAGS="-Wl,-bI:$PLBASE/include/SWI-Exports"
-	else
-	    LDFLAGS="$LDFLAGS -bE:../include/SWI-Exports"
-	    SO_LDFLAGS="-bI:$PLBASE/include/SWI-Exports"
-	fi
-	;;
-  *x86_64*linux)
-	if test "x$MKSHARED" = "x"; then
-	    MKSHARED=yes
-	fi
-	;;
-  *darwin*)
-	if test "x$MKSHARED" = "x"; then
-	    MKSHARED=yes
-	fi
-	PL=swipl
-	SO_EXT=dylib
-	SO_pic="-fno-common"
-	SO_PIC="-fno-common"
-	SO_LDFLAGS="-bundle -dynamic -flat_namespace -undefined suppress"
-	SO_PATH=""
-	DLLIBVAR=DYLD_LIBRARY_PATH
-	AC_DEFINE(USE_SEM_OPEN, 1,
-		  [Define if we must use sem_open() instead of the preferred sem_init()])
-	AC_DEFINE(LD_SYMBOL_PREFIX, "_",
-		  [String used to prefix all symbols requested through dlsym()])
-dnl	AC_DEFINE(SO_FORMAT_LDFLAGS,
-dnl		  ["-bundle -dynamic -o \"%s\"", soout],
-dnl		  [Arguments to pass to sprintf() to create SO_LDFLAGS])
-	CMFLAGS="-no-cpp-precomp"
-	;;
-  *cygwin*)
-	SO_EXT="dll"
-	SO_pic=""
-	SO_PIC=""
-	DLLIBVAR=PATH
-	;;
-# Seems we can simple add the executable add the end.  This is arranged
-# in plld.c based on the the __BEOS__ symbol.
-# *beos*)
-#	AC_DEFINE(SO_FORMAT_LDFLAGS,
-#		  ["-nostart -Xlinker -soname=\"%s\"", soout])
-#	;;
-  *)
-	;;
-esac
-
-AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT",
-		   [Define to the extension of shared objects (often .so)])
-AC_DEFINE_UNQUOTED(SO_PATH,	"$DLLIBVAR",
-		   [Search path for shared objects (often LD_LIBRARY_PATH)])
-AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD",
-		   [Program to link shared objects])
-AC_DEFINE_UNQUOTED(SO_LDFLAGS, "$SO_LDFLAGS",
-		   [Flags to use for linking shared objects])
-AC_DEFINE_UNQUOTED(SO_pic,     "$SO_pic",
-		   [Flags for compiling position-independent small object])
-AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
-		   [Flags for compiling position-independent BIG object])
-AC_DEFINE_UNQUOTED(PROG_PL,    "$PL",
-		   [Name of the SWI-Prolog executable (normally pl)])
-case "$ARCH" in
-  *cygwin*)
-	PLSO=cygpl.$SO_EXT
-	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libpl.dll.a $(DEF)'
-	;;
-  *)
-	PLSO=libpl.$SO_EXT
-	SONAMEOPT=-Wl,-soname=$PLSO.$PLVERSION
-	;;
-esac
-
-fi	dnl dlopen or shl_load
 
 dnl ================================================================
 
