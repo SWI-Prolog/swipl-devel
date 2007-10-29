@@ -9,7 +9,8 @@
 */
 
 :- module(iso_predicates,
-	  [ iso_builtin_predicate/1
+	  [ iso_builtin_predicate/1,	% ?Term
+	    iso_builtin_function/1	% ?Term
 	  ]).
 
 /** <module> Define ISO builtin predicates
@@ -159,3 +160,37 @@ iso_builtin_predicate(halt).
 iso_builtin_predicate(halt(_)).
 
 
+%%	iso_builtin_function(?Head:callable) is nondet.
+%
+%	True if Head describes a builtin  arithmetic function as defined
+%	by the ISO Prolog standard (ISO/IEC 1321 l-l).
+
+iso_builtin_function(_ + _).
+iso_builtin_function(_ - _).
+iso_builtin_function(_ * _).
+iso_builtin_function(_ // _).
+iso_builtin_function(_ / _).
+iso_builtin_function(_ rem _).
+iso_builtin_function(_ mod _).
+iso_builtin_function(_ ** _).
+iso_builtin_function(_ >> _).
+iso_builtin_function(_ << _).
+iso_builtin_function(_ /\ _).
+iso_builtin_function(_ \/ _).
+iso_builtin_function(- _).
+iso_builtin_function(abs(_)).
+iso_builtin_function(sign(_)).
+iso_builtin_function(float_integer_part(_)).
+iso_builtin_function(float_fractional_part(_)).
+iso_builtin_function(float(_)).
+iso_builtin_function(floor(_)).
+iso_builtin_function(truncate(_)).
+iso_builtin_function(round(_)).
+iso_builtin_function(ceiling(_)).
+iso_builtin_function(sin(_)).
+iso_builtin_function(cos(_)).
+iso_builtin_function(atan(_)).
+iso_builtin_function(exp(_)).
+iso_builtin_function(log(_)).
+iso_builtin_function(sqrt(_)).
+iso_builtin_function(\(_)).
