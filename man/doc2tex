@@ -19,6 +19,7 @@ sub printTeX
   s/(\\class(get|send|both){)\\index{[^}]*}/\1/g;
 
 # Prolog special arguments ...
+# TBD: pick these up automatically from pl.sty
 
   s/\\file{([^}]*\\bnfmeta[^}]*)}/\\metafile{\1}/g;
   s/\\file{([^}]*\\arg[^}]*)}/\\metafile{\1}/g;
@@ -32,9 +33,15 @@ sub printTeX
   s/{#=<}/{\\Scle}/g;
   s/{#=}/{\\Sceq}/g;
   s/{#\\=}/{\\Scne}/g;
+  s/{#\\}/{\\Snot}/g;
+  s/{#\/}/{\\Sor}/g;
+  s/{#/\}/{\\Sand}/g;
   s/{#<=>}/{\\Sequiv}/g;
   s/{#<=}/{\\Slimpl}/g;
   s/{#=>}/{\\Srimpl}/g;
+  s/{#<==}/{\\Slimplies}/g;
+  s/{#==>}/{\\Srimplies}/g;
+  s/{#<==>}/{\\Scequal}/g;
   s/{#=\\=}/{\\Scine}/g;
   s/{#=:=}/{\\Scieq}/g;
   s/{!}/{\\Scut}/g;
