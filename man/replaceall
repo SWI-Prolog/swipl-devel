@@ -1,0 +1,19 @@
+#!/bin/bash -f
+
+from="$1"
+to="$2"
+
+if [ -z "$from" ]; then
+   echo "Usage: $0 from to"
+fi
+
+files=`find . -name '*.doc' | xargs grep -l "$1"`
+for f in $files; do
+  cp -p $f $f.bak
+  sed "s|$1|$2|g" $f.bak > $f
+  if cmp -s $f.bak $f; then
+    mv $f.bak $f	# no change
+  else
+    echo "	modified $f"
+  fi
+done
