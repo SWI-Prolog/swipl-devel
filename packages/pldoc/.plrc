@@ -6,7 +6,7 @@
 :- asserta(user:file_search_path(library, '.')).
 :- asserta(user:file_search_path(pldoc, '.')).
 
-:- load_files([pldoc, doc_http], [silent(true), if(not_loaded)]).
+:- load_files([pldoc, doc_http, doc_latex], [silent(true), if(not_loaded)]).
 :- debug(pldoc).
 
 %	Using doc_server(4004, []), the server   is publically available

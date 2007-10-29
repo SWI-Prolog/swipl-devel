@@ -76,7 +76,8 @@ the same paradigm. The module can
 */
 
 :- thread_local
-	options/1.
+	options/1,
+	documented/1.
 
 current_options(Options) :-
 	options(Current), !,
@@ -97,19 +98,37 @@ current_options([]).
 %		* File
 %		If File is a prolog file (as defined by
 %		prolog_file_type/2), process using latex_for_file/3,
-%		otherwise process using latex_for_wiki_file/3
+%		otherwise process using latex_for_wiki_file/3.
 %		
 %	Typically Spec is either a  list  of   filenames  or  a  list of
-%	predicate indicators. 
-	
+%	predicate indicators.   Defined options are:
+%	
+%		* stand_alone(+Bool)
+%		If =true= (default), create a document that can be run
+%		through LaTeX.  If =false=, produce a document to be
+%		included in another LaTeX document.
+%		
+%		* public_only(+Bool)
+%		If =true= (default), only emit documentation for
+%		exported predicates.
+%		
+%		* section_level(+Level)
+%		Outermost section level produced. Level is the
+%		name of a LaTeX section command.  Default is =section=.
+%		
+%		* summary(+File)
+%		Write summary declarations to the named File.
 
 doc_latex(Spec, OutFile, Options) :-
+	load_urldefs,
+	retractall(documented(_)),
 	asserta(options(Options), Ref),
 	call_cleanup(phrase(process_items(Spec, [body], Options), Tokens),
 		     erase(Ref)),
 	open(OutFile, write, Out),
 	call_cleanup(print_latex(Out, Tokens, Options),
-		     close(Out)).
+		     close(Out)),
+	latex_summary(Options).
 
 process_items([], Mode, _) --> !,
 	pop_mode(body, Mode, _).
@@ -150,22 +169,12 @@ process_items(FileSpec, Mode0, Mode, Options) -->
 %%	latex_for_file(+File, +Out, +Options) is det.
 %
 %	Generate a LaTeX description of all commented predicates in
-%	File, writing the LaTeX text to the stream Out. Options:
-%	
-%		* stand_alone(+Bool)
-%		If =true= (default), create a document that can be run
-%		through LaTeX.  If =false=, produce a document to be
-%		included in another LaTeX document.
-%		
-%		* public_only(+Bool)
-%		If =true= (default), only emit documentation for
-%		exported predicates.
-%		
-%		* section_level(+Level)
-%		Outermost section level produced. Level is the
-%		name of a LaTeX section command.  Default is =section=.
+%	File, writing the LaTeX text to the stream Out. Supports
+%	the options =stand_alone=, =public_only= and =section_level=.
+%	See doc_latex/3 for a description of the options.
 
 latex_for_file(FileSpec, Out, Options) :-
+	load_urldefs,
 	phrase(latex_tokens_for_file(FileSpec, Options), Tokens),
 	print_latex(Out, Tokens, Options).
 
@@ -189,18 +198,13 @@ latex_tokens_for_file(FileSpec, Options, Tokens, Tail) :-
 
 %%	latex_for_wiki_file(+File, +Out, +Options) is det.
 %
-%	Write a LaTeX translation of a Wiki file to the steam Out.
-%	Options:
-%	
-%		* public_only(+Bool)
-%		If =true= (default), only emit documentation for
-%		exported predicates.
-%		
-%		* section_level(+Level)
-%		Outermost section level produced. Level is the
-%		name of a LaTeX section command.  Default is =section=.
+%	Write a LaTeX translation of  a  Wiki   file  to  the steam Out.
+%	Supports   the   options   =stand_alone=,    =public_only=   and
+%	=section_level=.  See  doc_latex/3  for  a  description  of  the
+%	options.
 
 latex_for_wiki_file(FileSpec, Out, Options) :-
+	load_urldefs,
 	phrase(latex_tokens_for_wiki_file(FileSpec, Options), Tokens),
 	print_latex(Out, Tokens, Options).
 
@@ -226,6 +230,7 @@ latex_tokens_for_wiki_file(FileSpec, Options, Tokens, Tail) :-
 %	The current implementation ignores Options.
 
 latex_for_predicates(Spec, Out, Options) :-
+	load_urldefs,
 	phrase(latex_tokens_for_predicates(Spec, Options), Tokens),
 	print_latex(Out, [nl_exact(0)|Tokens], Options).
 
@@ -268,11 +273,11 @@ generalise_spec(Name//Arity, _M:Name//Arity).
 latex([]) --> !,
 	[].
 latex(Atomic) -->
-	{ atomic(Atomic),
+	{ string(Atomic),
 	  sub_atom(Atomic, 0, _, 0, 'LaTeX')
 	}, !,
 	[ latex('\\LaTeX{}') ].
-latex(Atomic) -->
+latex(Atomic) -->			% can this actually happen?
 	{ atomic(Atomic), !,
 	  findall(x, sub_atom(Atomic, _, _, _, '\n'), Xs),
 	  length(Xs, Lines)
@@ -281,6 +286,9 @@ latex(Atomic) -->
 	->  [ Atomic ]
 	;   [ nl(Lines) ]
 	).
+latex(List) -->
+	latex_special(List, Rest), !,
+	latex(Rest).
 latex([H|T]) -->
 	(   latex(H)
 	->  latex(T)
@@ -375,6 +383,8 @@ indent(dcg) --> !,	       [ nl(1), indent(4) ].
 indent(infixop) --> !,	       [ nl(1), indent(4) ].
 indent(prefixop) --> !,	       [ nl(1), indent(4) ].
 indent(postfixop) --> !,       [ nl(1), indent(4) ].
+indent(predicatesummary) --> !,[ nl(1) ].
+indent(oppredsummary) --> !,   [ nl(1) ].
 indent(_) -->		       [].
 
 outdent(begin) --> !,		[ nl_exact(1) ].
@@ -394,7 +404,33 @@ outdent(dcg) --> !,		[ nl(1) ].
 outdent(infixop) --> !,		[ nl(1) ].
 outdent(prefixop) --> !,	[ nl(1) ].
 outdent(postfixop) --> !,	[ nl(1) ].
+outdent(predicatesummary) --> !,[ nl(1) ].
+outdent(oppredsummary) --> !,   [ nl(1) ].
 outdent(_) -->			[].
+
+%%	latex_special(String, Rest)// is semidet.
+%
+%	Deals with special sequences of symbols.
+
+latex_special(In, Rest) -->
+	{ url_chars(In, Chars, Rest),
+	  special(Chars),
+	  atom_chars(Atom, Chars),
+	  urldef_name(Atom, Name)
+	}, !,
+	latex([cmd(Name), latex('{}')]).
+
+special(Chars) :-
+	memberchk(\, Chars), !.
+special(Chars) :-
+	length(Chars, Len),
+	Len > 1.
+
+url_chars([H|T0], [H|T], Rest) :-
+	urlchar(H), !,
+	url_chars(T0, T, Rest).
+url_chars(L, [], L).
+
 
 %%	latex_arguments(+Args:list)// is det.
 %
@@ -417,16 +453,35 @@ fragile_list([opt([])|T]) --> !,
 	fragile_list(T).
 fragile_list([opt(H)|T]) --> !,
 	[ '[' ],
-	latex(H),
+	latex_arg(H),
 	[ ']' ],
 	fragile_list(T).
 fragile_list([H|T]) -->
 	[ curl(open) ],
-	latex(H),
+	latex_arg(H),
 	[ curl(close) ],
 	fragile_list(T).
 
+%%	latex_arg(+In)//
+%
+%	Write a LaTeX argument.  If  we  can,   we  will  use  a defined
+%	urldef_name/2.
 
+latex_arg(H) -->
+	{ atomic(H),
+	  string_to_atom(H, Atom),
+	  urldef_name(Atom, Name)
+	}, !,
+	latex(cmd(Name)).
+latex_arg(H) -->
+	{ maplist(atom, H),
+	  concat_atom(H, Atom),
+	  urldef_name(Atom, Name)
+	}, !,
+	latex(cmd(Name)).
+latex_arg(H) -->
+	latex(H).
+	
 attribute(Att, Attrs) :-
 	is_list(Attrs), !,
 	option(Att, Attrs).
@@ -649,7 +704,8 @@ object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	  ),
 	  DOM = [\pred_dt(Modes, Class, POptions), dd(class=defbody, DOM1)],
 	  wiki_lines_to_dom(Lines1, Args, DOM0),
-	  strip_leading_par(DOM0, DOM1)
+	  strip_leading_par(DOM0, DOM1),
+	  assert(documented(Obj))
 	},
 	need_mode(description, Mode0, Mode),
 	latex(DOM).
@@ -911,6 +967,59 @@ termitem_with_args(Functor, Args) -->
 
 
 		 /*******************************
+		 *	SUMMARY PROCESSING	*
+		 *******************************/
+
+%%	latex_summary(+Options)
+%
+%	If Options contains  summary(+File),  write   a  summary  of all
+%	documented predicates to File.
+
+latex_summary(Options) :-
+	option(summary(File), Options), !,
+	findall(Obj, documented(Obj), Objs),
+	maplist(pi_sort_key, Objs, Keyed),
+	keysort(Keyed, KSorted),
+	pairs_values(KSorted, SortedObj),
+	phrase(summarylist(SortedObj, Options), Tokens),
+	open(File, write, Out),
+	call_cleanup(print_latex(Out, Tokens, Options),
+		     close(Out)).
+latex_summary(_) :-
+	retractall(documented(_)).
+
+pi_sort_key(M:PI, PI-(M:PI)) :- !.
+pi_sort_key(PI, PI-PI).
+
+object_name_arity(_:Name/Arity, Name, Arity).
+object_name_arity(Name/Arity, Name, Arity).
+
+summarylist(Objs, Options) -->
+	latex(cmd(begin(summarylist, ll))),
+	summary(Objs, Options),
+	latex(cmd(end(summarylist))).
+
+summary([], _) -->
+	[].
+summary([H|T], Options) -->
+	summary_line(H, Options),
+	summary(T, Options).
+
+summary_line(Obj, _Options) -->
+	{ doc_comment(Obj, _Pos, Summary, _Comment) ->
+	  atom_codes(Summary, Codes),
+	  phrase(pldoc_wiki:tokens(Tokens), Codes), % TBD: proper export
+	  object_name_arity(Obj, Name, Arity)
+	},
+	(   { strip_module(Obj, M, _),
+	      current_op(Pri, Ass, M:Name)
+	    }
+	->  latex(cmd(oppredsummary(Name, Arity, Ass, Pri, Tokens)))
+	;   latex(cmd(predicatesummary(Name, Arity, Tokens)))
+	).
+	
+
+		 /*******************************
 		 *	    PRINT TOKENS	*
 		 *******************************/
 
@@ -1031,6 +1140,85 @@ all_chartype([], _).
 all_chartype([H|T], Type) :-
 	char_type(H, Type),
 	all_chartype(T, Type).
+
+
+		 /*******************************
+		 *    LATEX SPECIAL SEQUENCES	*
+		 *******************************/
+
+%%	urldef_name(?String, ?DefName)
+%
+%	True if \DefName is  a  urldef   for  String.  UrlDefs are LaTeX
+%	sequences that can be used to  represent strings with symbols in
+%	fragile environments. Whenever a word can   be  expressed with a
+%	urldef, we will  do  this  to   enhance  the  robustness  of the
+%	generated LaTeX code.
+
+:- dynamic
+	urldef_name/2,
+	urlchar/1,			% true if C appears in ine of them
+	urldefs_loaded/1.
+
+%%	load_urldefs.
+%%	load_urldefs(+File)
+%
+%	Load   =|\urldef|=   definitions   from    File   and   populate
+%	urldef_name/2. See =|pldoc.sty|= for details.
+
+load_urldefs :-
+	urldefs_loaded(_), !.
+load_urldefs :-
+	absolute_file_name(library('pldoc/pldoc.sty'), File,
+			   [ access(read) ]),
+	load_urldefs(File).
+
+load_urldefs(File) :-
+	urldefs_loaded(File), !.
+load_urldefs(File) :-
+	open(File, read, In),
+	call_cleanup((   read_line_to_codes(In, L0),
+			 process_urldefs(L0, In)),
+		     close(In)),
+	assert(urldefs_loaded(File)).
+
+process_urldefs(end_of_file, _) :- !.
+process_urldefs(Line, In) :-
+	(   phrase(urldef(Name, String), Line)
+	->  assert(urldef_name(String, Name)),
+	    assert_chars(String)
+	;   true
+	),
+	read_line_to_codes(In, L2),
+	process_urldefs(L2, In).
+
+assert_chars(String) :-
+	atom_chars(String, Chars),
+	(   member(C, Chars),
+	    \+ urlchar(C),
+	    assert(urlchar(C)),
+	    fail
+	;   true
+	).
+
+urldef(Name, String) -->
+	"\\urldef{\\", string(NameS), "}\\satom{", string(StringS), "}",
+	ws,
+	(   "%"
+	->  string(_)
+	;   []
+	),
+	eol, !,
+	{ atom_codes(Name, NameS),
+	  atom_codes(String, StringS)
+	}.
+
+ws --> [C], { C =< 32 }, !, ws.
+ws --> [].
+
+string([]) --> [].
+string([H|T]) --> [H], string(T).
+	
+eol([],[]).
 
 
 		 /*******************************

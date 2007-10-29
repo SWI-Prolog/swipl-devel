@@ -386,7 +386,7 @@ canonical_char(X, X).
 
 remove_trailing_spaces([], []).
 remove_trailing_spaces([0' |T], []) :-
-	maplist(=(0' ), T), !.
+	maplist(=(0' ), T), !.		% '
 remove_trailing_spaces([H|T0], [H|T]) :-
 	remove_trailing_spaces(T0, T).
 
@@ -394,83 +394,85 @@ remove_trailing_spaces([H|T0], [H|T]) :-
 		 *               C		*
 		 *******************************/
 
+cmd(backslash, #code(\)).
+cmd(bsl, #code(\)).
 cmd(Cmd, HTML) :-
-	special(Cmd, Atom),
+	urldef(Cmd, Atom), !,
 	HTML = #code(Atom).
 
 
-special('Sexe', '#!').
-special('Scgt', #>).
-special('Scge', #>=).
-special('Sclt', #<).
-special('Scle', #=<).
-special('Scne', #\=).
-special('Sceq', '#=').
-special('Sequiv', #<=>).
-special('Slimpl', #<=).
-special('Srimpl', #=>).
-special('Scine', #=\=).
-special('Scieq', #=:=).
-special('Scut', !).
-special('Scomma',  (,)).
-special('Sifthen',  (->)).
-special('Ssoftcut',  (*->)).
-special('Sdot', '.').
-special('Ssemicolon',  (;)).
-special('Slt', <).
-special('Seq', =).
-special('Suniv', =..).
-special('Saeq', =:=).
-special('Sle', =<).
-special('Sel', <=).
-special('Sequal', ==).
-special('Sstructeq', =@=).
-special('Sstructneq', \=@=).
-special('Sane', =\=).
-special('Sgt', >).
-special('Sge', >=).
-special('Stlt', @<).
-special('Stle', @=<).
-special('Stgt', @>).
-special('Stge', @>=).
-special('Snot', \+).
-special('Sne', \=).
-special('Snequal', \==).
-special('Shat', ^).
-special('Sbar',  ('|')).
-special('Stimes', *).
-special('Spow', **).
-special('Splus', +).
-special('Sminus', -).
-special('Sdiv', /).
-special('Sidiv', //).
-special('Sand', /\).
-special('Slshift', <<).
-special('Srshift', >>).
-special('Sneg', \).
-special('Sesc', \).
-special('Sor', \/).
-special('Sdollar', $).
-special('Squest', ?).
-special('Smodule', :).
-special('Sneck',  (:-)).
-special('Sdirective',  (?-)).
-special('Sdcg',  (-->)).
-special('Scurl',  ({})).
-special('SxXX',  'xXX..\\').
-special('Bc', '\\c').
-special('Bn', '\\n').
-special('Br', '\\r').
-special('Bl', '\\l').
-special('BB', \\).
-special('Stilde', ~).
-special('Spercent', '%').
-special('Shash', #).
-special(backslash, \).
-special(bsl, \).
+		 /*******************************
+		 *    LATEX SPECIAL SEQUENCES	*
+		 *******************************/
+
+%	NOTE: This code is copied from doc_latex.pl from PlDoc.
+
+%%	urldef(?DefName, ?String)
+%
+%	True if \DefName is  a  urldef   for  String.  UrlDefs are LaTeX
+%	sequences that can be used to  represent strings with symbols in
+%	fragile environments. Whenever a word can   be  expressed with a
+%	urldef, we will  do  this  to   enhance  the  robustness  of the
+%	generated LaTeX code.
+
+:- dynamic
+	urldef/2,
+	urldefs_loaded/1.
+
+%%	load_urldefs.
+%%	load_urldefs(+File)
+%
+%	Load   =|\urldef|=   definitions   from    File   and   populate
+%	urldef_name/2. See =|pldoc.sty|= for details.
+
+load_urldefs :-
+	urldefs_loaded(_), !.
+load_urldefs :-
+	absolute_file_name(library('pldoc/pldoc.sty'), File,
+			   [ access(read) ]),
+	load_urldefs(File).
+
+load_urldefs(File) :-
+	urldefs_loaded(File), !.
+load_urldefs(File) :-
+	open(File, read, In),
+	call_cleanup((   read_line_to_codes(In, L0),
+			 process_urldefs(L0, In)),
+		     close(In)),
+	assert(urldefs_loaded(File)).
+
+process_urldefs(end_of_file, _) :- !.
+process_urldefs(Line, In) :-
+	(   phrase(urldef(Name, String), Line)
+	->  assert(urldef(Name, String))
+	;   true
+	),
+	read_line_to_codes(In, L2),
+	process_urldefs(L2, In).
+
+urldef(Name, String) -->
+	"\\urldef{\\", string(NameS), "}\\satom{", string(StringS), "}",
+	ws,
+	(   "%"
+	->  string(_)
+	;   []
+	),
+	eol, !,
+	{ atom_codes(Name, NameS),
+	  atom_codes(String, StringS)
+	}.
+
+ws --> [C], { C =< 32 }, !, ws.
+ws --> [].
+
+string([]) --> [].
+string([H|T]) --> [H], string(T).
+	
+eol(L,L).
+
 
 clean_name([\Special], Out) :-
-	special(Special, Out), !.
+	urldef(Special, Out), !.
 clean_name([\tt, Out], Out) :- !.
 clean_name($(Out), Out) :- !.
 clean_name([Out], Out) :- !.
@@ -494,3 +496,5 @@ n_list(N, X, [X|T]) :-
 	N > 0,
 	N2 is N - 1,
 	n_list(N2, X, T).
+
+:- load_urldefs.
