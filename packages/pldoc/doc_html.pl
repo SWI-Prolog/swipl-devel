@@ -1296,14 +1296,21 @@ html_tokens_for_predicates(PI, Options) -->
 	},
 	object(PI, Pos, Comment, [dl], _, Options).
 html_tokens_for_predicates(Spec, Options) -->
-	{ user:'$find_predicate'(Spec, Preds),
-	  maplist(to_pi, Preds, List)
+	{ findall(PI, documented_pi(Spec, PI), List),
+	  (   List == []
+	  ->  print_message(warning, pldoc(no_predicates_from(Spec)))
+	  ;   true
+	  )
 	},
 	html_tokens_for_predicates(List, Options).
 
 
-to_pi(M:Head, M:Name/Arity) :-
-	functor(Head, Name, Arity).
+documented_pi(Spec, PI) :-
+	generalise_spec(Spec, PI),
+	doc_comment(PI, _Pos, _Summary, _Comment).
+
+generalise_spec(Name/Arity, _M:Name/Arity).
+generalise_spec(Name//Arity, _M:Name//Arity).
 
 
 		 /*******************************
