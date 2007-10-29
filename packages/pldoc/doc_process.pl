@@ -258,7 +258,8 @@ process_structured_comment(FilePos, Comment, Prefixes) :-
 	->  Header = \section(Type, Title),
 	    Id =.. [Type,Title],
 	    compile_clause('$pldoc'(Id, FilePos, Title, Comment), FilePos)
-	;   process_modes(Lines, FilePos, Modes, _, RestLines)
+	;   prolog_load_context(module, Module),
+	    process_modes(Lines, Module, FilePos, Modes, _, RestLines)
 	->  store_modes(Modes, FilePos),
 	    modes_to_predicate_indicators(Modes, [PI0|PIs]),
 	    summary_from_lines(RestLines, Summary),

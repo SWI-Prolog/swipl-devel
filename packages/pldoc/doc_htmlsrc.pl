@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -42,6 +42,7 @@
 :- use_module(doc_modes).
 :- use_module(doc_process).
 :- use_module(library('http/html_write')).
+:- use_module(library(prolog_xref)).
 
 /** <module> HTML source pretty-printer
 
@@ -152,7 +153,11 @@ html_fragment(fragment(Start, End, structured_comment, []),
 	    print_html(Out, Tokens)
 	;   stream_property(In, file_name(File)),
 	    line_count(In, Line),
-	    process_modes(Lines0, File:Line, Modes, Args, Lines1),
+	    (	xref_module(File, Module)
+	    ->	true
+	    ;	Module = user
+	    ),
+	    process_modes(Lines0, Module, File:Line, Modes, Args, Lines1),
 	    DOM = [\pred_dt(Modes, pubdef, []), dd(class=defbody, DOM1)],
 	    wiki_lines_to_dom(Lines1, Args, DOM0),
 	    strip_leading_par(DOM0, DOM1),

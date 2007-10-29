@@ -30,7 +30,7 @@
 */
 
 :- module(pldoc_modes,
-	  [ process_modes/5,		% +Lines, -Modes, -Args, -RestLines
+	  [ process_modes/6,		% +Lines, +M, +FP, -Modes, -Av, -RLines
 	    store_modes/2,		% +Modes, +SourcePos
 	    mode/2,			% ?:Head, -Det
 	    is_mode/1,			% @Mode
@@ -70,7 +70,8 @@ operator declarations in this module.
 :- dynamic
 	mode/3.				% ?Mode, ?Module, ?Det
 
-%%	process_modes(+Lines:lines, +FilePos, -Modes:list, -Args:list(atom),
+%%	process_modes(+Lines:lines, +Module, +FilePos,
+%%		      -Modes:list, -Args:list(atom),
 %%		      -RestLines:lines) is det.
 %
 %	Process the formal header lines  (upto   the  first blank line),
@@ -81,9 +82,9 @@ operator declarations in this module.
 %	@param Modes	List if mode(Head, Bindings) terms
 %	@param Args	List of argument-names appearing in modes
 
-process_modes(Lines, FilePos, ModeDecls, Vars, RestLines) :-
+process_modes(Lines, Module, FilePos, ModeDecls, Vars, RestLines) :-
 	mode_lines(Lines, ModeText, [], RestLines),
-	modes(ModeText, FilePos, ModeDecls),
+	modes(ModeText, Module, FilePos, ModeDecls),
 	extract_varnames(ModeDecls, Vars0, []),
 	sort(Vars0, Vars).
 	
@@ -114,13 +115,18 @@ non_empty_lines([_-L|Lines0], ModeText, ModeTail, Lines) :-
 	non_empty_lines(Lines0, ModeTail0, ModeTail, Lines).
 
 
-%%	modes(+Text:codes, +FilePos, -ModeDecls) is det.
+%%	modes(+Text:codes, +Module, +FilePos, -ModeDecls) is det.
 %
 %	Read mode declaration. This consists of a number of Prolog terms
 %	which may or may not be closed by  a Prolog full-stop. 
 %	
 %	@param Text		Input text as list of codes.
+%	@param Module		Module the comment comes from
 %	@param ModeDecls	List of mode(Term, Bindings)
+
+modes(Text, Module, FilePos, Decls) :-
+	prepare_module_operators(Module), 
+	modes(Text, FilePos, Decls).
 
 modes(Text, FilePos, Decls) :-
 	catch(read_mode_terms(Text, FilePos, '', Decls), E, true),
@@ -128,7 +134,7 @@ modes(Text, FilePos, Decls) :-
 	->  !
 	;   E = error(syntax_error(end_of_file), _)
 	->  fail
-	;   !, print_message(warning, E),	% TBD: location!
+	;   !, print_message(warning, E),
 	    Decls = []
 	).
 modes(Text, FilePos, Decls) :-
@@ -168,7 +174,6 @@ read_modes(T0, In, [T0|Rest]) :-
 	read_modes(T1, In, Rest).
 
 read_mode_term(In, mode(Term, Bindings)) :-
-	prepare_module_operators,
 	read_term(In, Term,
 		  [ variable_names(Bindings),
 		    module(pldoc_modes)
@@ -182,8 +187,7 @@ read_mode_term(In, mode(Term, Bindings)) :-
 :- dynamic
 	prepared_module/2.
 
-prepare_module_operators :-
-	prolog_load_context(module, Module),
+prepare_module_operators(Module) :-
 	(   prepared_module(Module, _)
 	->  true
 	;   unprepare_module_operators,

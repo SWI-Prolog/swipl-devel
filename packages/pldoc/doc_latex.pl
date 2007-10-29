@@ -637,7 +637,8 @@ object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	{ is_pi(Obj), !,
 	  is_structured_comment(Comment, Prefixes),
 	  indented_lines(Comment, Prefixes, Lines),
-	  process_modes(Lines, Pos, Modes, Args, Lines1),
+	  strip_module(user:Obj, Module, _),
+	  process_modes(Lines, Module, Pos, Modes, Args, Lines1),
 	  (   private(Obj, Options)
 	  ->  Class = privdef		% private definition
 	  ;   Class = pubdef		% public definition
