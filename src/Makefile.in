@@ -149,6 +149,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 DIALECT=yap.pl
 YAP=	README.TXT
+ISO=	iso_predicates.pl
 UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
 builddirs = ../lib ../lib/$(ARCH)
@@ -338,7 +339,7 @@ install-libs:	idirs iboot ilib iruntime iinclude iman idot
 
 installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
 		library/clp library/unicode include dotfiles \
-		library/dialect library/dialect/yap
+		library/dialect library/dialect/yap library/dialect/iso
 
 iruntime::
 		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(ARCH)
@@ -387,7 +388,7 @@ iclp::
 			$(INSTALL_DATA) ../library/clp/$$f $(DESTDIR)$(PLBASE)/library/clp; \
 		done
 
-idialect:	iyap
+idialect:	iyap iiso
 		for f in $(DIALECT); do \
 			$(INSTALL_DATA) ../library/dialect/$$f $(DESTDIR)$(PLBASE)/library/dialect; \
 		done
@@ -395,6 +396,11 @@ idialect:	iyap
 iyap::
 		for f in $(YAP); do \
 			$(INSTALL_DATA) ../library/dialect/yap/$$f $(DESTDIR)$(PLBASE)/library/dialect/yap; \
+		done
+
+iiso::
+		for f in $(ISO); do \
+			$(INSTALL_DATA) ../library/dialect/iso/$$f $(DESTDIR)$(PLBASE)/library/dialect/iso; \
 		done
 
 iunicode::

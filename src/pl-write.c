@@ -847,7 +847,7 @@ writeTerm(term_t t, int prec, write_options *options)
 
 
 static bool
-writeList2(term_t list, write_options *options)
+writeList2(term_t list, write_options *options, int cyclic)
 { term_t head = PL_new_term_ref();
   term_t l    = PL_copy_term_ref(list);
   
@@ -871,7 +871,7 @@ writeList2(term_t list, write_options *options)
 
       if ( has_visited(options->visited, addr) )
       { return PutString("|**]", options->out);
-      } else
+      } else if ( cyclic )
       { visited *v = alloca(sizeof(*v));
 	v->address = addr;
 	v->next = options->visited;
@@ -889,7 +889,12 @@ writeList2(term_t list, write_options *options)
 static bool
 writeList(term_t list, write_options *options)
 { visited *v = options->visited;
-  int rc = writeList2(list, options);
+  Word l = valTermRef(list);
+  Word tail;
+  intptr_t len = skip_list(l, &tail PASS_LD);
+  int rc;
+
+  rc = writeList2(list, options, isList(*tail));
   options->visited = v;
 
   return rc;

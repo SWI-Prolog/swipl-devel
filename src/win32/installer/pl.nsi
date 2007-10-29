@@ -237,6 +237,12 @@ Section "YAP Portability support"
   File /r pl\library\dialect\yap
 SectionEnd
 
+Section "ISO information support"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library\dialect
+  File /r pl\library\dialect\iso
+SectionEnd
+
 Section "Demo files"
   SectionIn 1 3
   SetOutPath $INSTDIR

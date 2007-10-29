@@ -46,6 +46,9 @@
 #(defitem(Label),	[ html('<DT>'), Label,
 			  html('<DD class="defbody">')
 			]).
+#(predtag(Value),	[ html('<span class="pred-tag">'), Value,
+			  html('</span>')
+			]).
 
 		 /*******************************
 		 *	    INDEX HACK		*
@@ -137,33 +140,37 @@ cmd(definition({Tag}),
     #defitem(#b(+Tag))).
 cmd('DCG'(A,B,C), X) :-
 	cmd(predicate(A,B,C), X).
-cmd(predicate({RawName}, {'0'}, {_}),
-    #defitem(pubdef, #label(RefName, #strong(Name)))) :-
+cmd(predicate(A, {RawName}, {'0'}, {_}),
+    #defitem(pubdef, Content)) :-
+	pred_tag(A, Content, [#label(RefName, #strong(Name))]),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/0', [Name]),
 	add_to_index(RefName, +RefName).
-cmd(predicate({RawName}, {Arity}, {Args}),
-    #defitem(pubdef, #label(RefName,
-			    [ #strong(Name), #embrace(#var(+Args))
-			    ]))) :-
+cmd(predicate(A, {RawName}, {Arity}, {Args}),
+    #defitem(pubdef, Content)) :-
+	pred_tag(A, Content,
+		 [#label(RefName, [#strong(Name), #embrace(#var(+Args))])]),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
-cmd(dcg({RawName}, {'0'}, {_}),
-    #defitem(pubdef, [#label(RefName, #strong(Name)), #code(-->)])) :-
+cmd(dcg(A, {RawName}, {'0'}, {_}),
+    #defitem(pubdef, Content)) :-
+	pred_tag(A, Content, [#label(RefName, #strong(Name)), #code(//)]),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/0', [Name]),
 	add_to_index(RefName, +RefName).
-cmd(dcg({RawName}, {Arity}, {Args}),
-    #defitem(pubdef, [#label(RefName,
-			     [ #strong(Name), #embrace(#var(+Args))
-			     ]),
-	      #code(-->)
-	     ])) :-
+cmd(dcg(A, {RawName}, {Arity}, {Args}),
+    #defitem(pubdef, Content)) :-
+	pred_tag(A, Content, 
+		 [ #label(RefName,
+			  [ #strong(Name), #embrace(#var(+Args))
+			  ]),
+		   #code(//)
+		 ]),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
-cmd(directive({RawName}, {'0'}, {Args}),
+cmd(directive({RawName}, {'0'}, {_}),
     #defitem(pubdef, #label(RefName,
 			    [ ':- ', #strong(Name)
 			    ]))) :- !,
@@ -215,6 +222,8 @@ cmd(constitem({Name}), #defitem(#label(RefName, #strong(+Name)))) :-
 cmd(termitem({Name}, {[]}), #defitem(#strong(+Name))).
 cmd(termitem({Name}, {Arg}),
     #defitem([#strong(+Name), #embrace(#var(+Arg))])).
+cmd(infixtermitem({Name}, {Left}, {Right}),
+    #defitem([#var(+Left), ' ', #strong(+Name), ' ', #var(+Right)])).
 cmd(prologflagitem({Name}, {Type}, {Access}),
     #defitem(pubdef, #label(RefName, [#strong(Name), #embrace([#var(Type)|Change])]))) :-
 	atom_concat('flag:', Name, RefName),
@@ -336,6 +345,9 @@ select_csym([H|T0], [H|T]) :-
 select_csym([_|T0], T) :-
 	select_csym(T0, T).
 
+
+pred_tag([], L, L).
+pred_tag([Value], [#predtag(#embrace("[]", +Value))|L], L).
 
 		 /*******************************
 		 *	     GLOSSARY		*

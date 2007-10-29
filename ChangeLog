@@ -7,7 +7,15 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
-  * ADDED: PlDoc LaTeX backend, installed as library/pldoc/doc_latex.pl.
+
+  * ADDED: library(dialect/iso/iso_predicates), describing properties
+    of ISO predicates.  Modified version of a file contributed by Paulo
+    Moura.
+
+  * FIXED: Bug#316: Memory overflow and very slow printing of very long
+    lists due to cycle detection.  Keri Harris.
+
+  * ADDED: PlDoc LaTeX backend, installed as library/doc_latex.pl.
 
   * CLEANUP: Fix some gcc 4.2.1 warnings.  None of these are bugs.
 

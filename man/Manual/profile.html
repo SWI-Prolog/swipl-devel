@@ -97,6 +97,13 @@ span.pred-ext
 { font-weight: bold;
 }
 
+span.pred-tag
+{ float: right;
+font-size: 80%;
+font-style: italic;
+color: #202020;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -212,12 +219,13 @@ profiling data</SPAN></A></H3>
 4.40.3</A> itself is not very attractive. Therefore, the results are 
 combined per predicate, collecting all <EM>callers</EM> and and <EM>callees</EM> 
 as well as the propagation of time and activations in both directions.
-<B>Figure ??</B> illustrates this. The central yellowish line is the 
-`current' predicate with counts for time spent in the predicate 
-(`Self'), time spent in its children (`Siblings'), activations through 
-the call and redo ports. Above that are the <EM>callers</EM>. Here, the 
-two time fields indicate how much time is spent serving each of the 
-callers. The columns sum to the time in the yellowish line. The caller
+<A class="fig" href="profile.html#fig:profnode">Figure 5</A> illustrates 
+this. The central yellowish line is the `current' predicate with counts 
+for time spent in the predicate (`Self'), time spent in its children 
+(`Siblings'), activations through the call and redo ports. Above that 
+are the <EM>callers</EM>. Here, the two time fields indicate how much 
+time is spent serving each of the callers. The columns sum to the time 
+in the yellowish line. The caller
 <EM><VAR>&lt;</VAR>recursive<VAR>&gt;</VAR></EM> are the number of 
 recursive calls. Below the yellowish lines are the callees, with the 
 time spent in the callee itself for serving the current predicate and 
@@ -230,8 +238,16 @@ of the callees.
 detail window to the given caller or callee, showing the documentation 
 (if it is a built-in) and/or jumping to the source.
 
-<P>The statistics shown in the report-field of <B>figure ??</B> show the 
-following information:
+<P><A NAME="fig:profnode"></A>
+<CENTER>
+<IMG SRC="profnode.gif">
+</CENTER>
+<TABLE ALIGN=center WIDTH="75%"><TR><TD>
+<B>Figure 5 : </B> Execution profiler showing the activity of the 
+predicate chat:inv_map_list/5.</TABLE>
+
+<P>The statistics shown in the report-field of <A class="fig" href="profile.html#fig:profnode">figure 
+5</A> show the following information:
 
 <P>
 <UL>

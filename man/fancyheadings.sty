@@ -1,0 +1,205 @@
+% fancyheadings.sty version 1.98
+% Fancy headers and footers.
+% Piet van Oostrum, Dept of Computer Science, University of Utrecht
+% Padualaan 14, P.O. Box 80.089, 3508 TB Utrecht, The Netherlands
+% Telephone: +31 30 2531806. Email: piet@cs.ruu.nl
+% Sep 16, 1994
+% version 1.4: Correction for use with \reversemargin
+% Sep 29, 1994:
+% version 1.5: Added the \iftopfloat, \ifbotfloat and \iffloatpage commands
+% Oct 4, 1994:
+% version 1.6: Reset single spacing in headers/footers for use with
+% setspace.sty or doublespace.sty
+% Oct 4, 1994:
+% version 1.7: changed \let\@mkboth\markboth to
+% \def\@mkboth{\protect\markboth} to make it more robust
+% Dec 5, 1994:
+% version 1.8: corrections for amsbook/amsart: define \@chapapp and (more
+% importantly) use the \chapter/sectionmark definitions from ps@headings if
+% they exist (which should be true for all standard classes).
+% May 31, 1995:
+% version 1.9: The proposed \renewcommand{\headrulewidth}{\iffloatpage...
+% construction in the doc did not work properly with the fancyplain style. 
+% June 1, 1995:
+% version 1.91: The definition of \@mkboth wasn't restored on subsequent
+% \pagestyle{fancy}'s.
+% June 1, 1995:
+% version 1.92: The sequence \pagestyle{fancyplain} \pagestyle{plain}
+% \pagestyle{fancy} would erroneously select the plain version.
+% June 1, 1995:
+% version 1.93: \fancypagestyle command added.
+% Dec 11, 1995:
+% version 1.94: suggested by Conrad Hughes <chughes@maths.tcd.ie>
+% CJCH, Dec 11, 1995: added \footruleskip to allow control over footrule
+% position (old hardcoded value of .3\normalbaselineskip is far too high
+% when used with very small footer fonts).
+% Jan 31, 1996:
+% version 1.95: call \@normalsize in the reset code if that is defined,
+% otherwise \normalsize.
+% this is to solve a problem with ucthesis.cls, as this doesn't
+% define \@currsize. Unfortunately for latex209 calling \normalsize doesn't
+% work as this is optimized to do very little, so there \@normalsize should
+% be called. Hopefully this code works for all versions of LaTeX known to
+% mankind.  
+% April 25, 1996:
+% version 1.96: initialize \headwidth to a magic (negative) value to catch
+% most common cases that people change it before calling \pagestyle{fancy}.
+% Note it can't be initialized when reading in this file, because
+% \textwidth could be changed afterwards. This is quite probable.
+% We also switch to \MakeUppercase rather than \uppercase and introduce a
+% \nouppercase command for use in headers. and footers.
+% May 3, 1996:
+% version 1.97: Two changes:
+% 1. Undo the change in version 1.8 (using the pagestyle{headings} defaults
+% for the chapter and section marks. The current version of amsbook and
+% amsart classes don't seem to need them anymore. Moreover the standard
+% latex classes don't use \markboth if twoside isn't selected, and this is
+% confusing as \leftmark doesn't work as expected.
+% 2. include a call to \ps@empty in ps@@fancy. This is to solve a problem
+% in the amsbook and amsart classes, that make global changes to \topskip,
+% which are reset in \ps@empty. Hopefully this doesn't break other things.
+% May 7, 1996:
+% version 1.98:
+% Added % after the line  \def\nouppercase
+% BY THE WAY, THIS IS THE LAST RELEASE OF VERSION 1.
+
+\let\fancy@def\gdef
+\def\lhead{\@ifnextchar[{\@xlhead}{\@ylhead}}
+\def\@xlhead[#1]#2{\fancy@def\@elhead{#1}\fancy@def\@olhead{#2}}
+\def\@ylhead#1{\fancy@def\@elhead{#1}\fancy@def\@olhead{#1}}
+
+\def\chead{\@ifnextchar[{\@xchead}{\@ychead}}
+\def\@xchead[#1]#2{\fancy@def\@echead{#1}\fancy@def\@ochead{#2}}
+\def\@ychead#1{\fancy@def\@echead{#1}\fancy@def\@ochead{#1}}
+
+\def\rhead{\@ifnextchar[{\@xrhead}{\@yrhead}}
+\def\@xrhead[#1]#2{\fancy@def\@erhead{#1}\fancy@def\@orhead{#2}}
+\def\@yrhead#1{\fancy@def\@erhead{#1}\fancy@def\@orhead{#1}}
+
+\def\lfoot{\@ifnextchar[{\@xlfoot}{\@ylfoot}}
+\def\@xlfoot[#1]#2{\fancy@def\@elfoot{#1}\fancy@def\@olfoot{#2}}
+\def\@ylfoot#1{\fancy@def\@elfoot{#1}\fancy@def\@olfoot{#1}}
+
+\def\cfoot{\@ifnextchar[{\@xcfoot}{\@ycfoot}}
+\def\@xcfoot[#1]#2{\fancy@def\@ecfoot{#1}\fancy@def\@ocfoot{#2}}
+\def\@ycfoot#1{\fancy@def\@ecfoot{#1}\fancy@def\@ocfoot{#1}}
+
+\def\rfoot{\@ifnextchar[{\@xrfoot}{\@yrfoot}}
+\def\@xrfoot[#1]#2{\fancy@def\@erfoot{#1}\fancy@def\@orfoot{#2}}
+\def\@yrfoot#1{\fancy@def\@erfoot{#1}\fancy@def\@orfoot{#1}}
+
+\newdimen\headrulewidth
+\newdimen\footrulewidth
+\newdimen\plainheadrulewidth
+\newdimen\plainfootrulewidth
+\newdimen\headwidth
+\newdimen\footruleskip
+\newif\if@fancyplain \@fancyplainfalse
+\def\fancyplain#1#2{\if@fancyplain#1\else#2\fi}
+\headwidth=-123456789sp %magic constant
+
+% Command to reset various things in the headers:
+% a.o.  single spacing (taken from setspace.sty)
+% and the catcode of ^^M (so that epsf files in the header work if a
+% verbatim crosses a page boundary)
+% It also defines a \nouppercase command that disables \uppercase and
+% \Makeuppercase. It can only be used in the headers and footers.
+\def\fancy@reset{\restorecr
+ \def\baselinestretch{1}%
+ \def\nouppercase##1{{\let\uppercase\relax\let\MakeUppercase\relax##1}}%
+ \ifx\undefined\@newbaseline% NFSS not present; 2.09 or 2e
+   \ifx\@normalsize\undefined \normalsize % for ucthesis.cls
+   \else \@normalsize \fi
+ \else% NFSS (2.09) present
+  \@newbaseline%
+ \fi}
+
+% Initialization of the head and foot text.
+
+\headrulewidth 0.4pt
+\footrulewidth\z@
+\plainheadrulewidth\z@
+\plainfootrulewidth\z@
+\footruleskip .3\normalbaselineskip
+
+\lhead[\fancyplain{}{\sl\rightmark}]{\fancyplain{}{\sl\leftmark}}
+%  i.e. empty on ``plain'' pages, \rightmark on even, \leftmark on odd pages
+\chead{}
+\rhead[\fancyplain{}{\sl\leftmark}]{\fancyplain{}{\sl\rightmark}}
+%  i.e. empty on ``plain'' pages, \leftmark on even, \rightmark on odd pages
+\lfoot{}
+\cfoot{\rm\thepage} % page number
+\rfoot{}
+
+% Put together a header or footer given the left, center and
+% right text, fillers at left and right and a rule.
+% The \lap commands put the text into an hbox of zero size,
+% so overlapping text does not generate an errormessage.
+
+\def\@fancyhead#1#2#3#4#5{#1\hbox to\headwidth{\fancy@reset\vbox{\hbox
+{\rlap{\parbox[b]{\headwidth}{\raggedright#2\strut}}\hfill
+\parbox[b]{\headwidth}{\centering#3\strut}\hfill
+\llap{\parbox[b]{\headwidth}{\raggedleft#4\strut}}}\headrule}}#5}
+
+\def\@fancyfoot#1#2#3#4#5{#1\hbox to\headwidth{\fancy@reset\vbox{\footrule
+\hbox{\rlap{\parbox[t]{\headwidth}{\raggedright#2\strut}}\hfill
+\parbox[t]{\headwidth}{\centering#3\strut}\hfill
+\llap{\parbox[t]{\headwidth}{\raggedleft#4\strut}}}}}#5}
+
+\def\headrule{{\if@fancyplain\let\headrulewidth\plainheadrulewidth\fi
+\hrule\@height\headrulewidth\@width\headwidth \vskip-\headrulewidth}}
+
+\def\footrule{{\if@fancyplain\let\footrulewidth\plainfootrulewidth\fi
+\vskip-\footruleskip\vskip-\footrulewidth
+\hrule\@width\headwidth\@height\footrulewidth\vskip\footruleskip}}
+
+\def\ps@fancy{%
+\@ifundefined{@chapapp}{\let\@chapapp\chaptername}{}%for amsbook
+% Define \MakeUppercase for old LaTeXen.
+% Note: we used \def rather than \let, so that \let\uppercase\relax (from
+% the original documentation) will still work.
+\@ifundefined{MakeUppercase}{\def\MakeUppercase{\uppercase}}{}
+\@ifundefined{chapter}{\def\sectionmark##1{\markboth
+{\MakeUppercase{\ifnum \c@secnumdepth>\z@
+ \thesection\hskip 1em\relax \fi ##1}}{}}%
+\def\subsectionmark##1{\markright {\ifnum \c@secnumdepth >\@ne
+ \thesubsection\hskip 1em\relax \fi ##1}}}%
+{\def\chaptermark##1{\markboth {\MakeUppercase{\ifnum \c@secnumdepth>\m@ne
+ \@chapapp\ \thechapter. \ \fi ##1}}{}}
+\def\sectionmark##1{\markright{\MakeUppercase{\ifnum \c@secnumdepth >\z@
+ \thesection. \ \fi ##1}}}}%
+%\csname ps@headings\endcsname % use \ps@headings defaults if they exist
+\ps@@fancy
+\gdef\ps@fancy{\@fancyplainfalse\ps@@fancy}%
+% Initialize \headwidth if the user didn't
+\ifdim\headwidth<0sp
+% This catches the case that \headwidth hasn't been initialized and the
+% case that the user added something to \headwidth in the expectation that
+% it was initialized to \textwidth. We compensate this now. This loses if
+% the user intended to multiply it by a factor. But that case is more
+% likely done by saying something like \headwidth=1.2\textwidth The doc
+% says you have to change \headwidth after the first call to,
+% \pagestyle{fancy}. This code is just to catch the most common cases were
+% that requirement is violated.
+    \advance\headwidth123456789sp\advance\headwidth\textwidth\fi}
+\def\ps@fancyplain{\ps@fancy \let\ps@plain\ps@plain@fancy}
+\def\ps@plain@fancy{\@fancyplaintrue\ps@@fancy}
+\def\ps@@fancy{%
+\ps@empty % This is for amsbook/amsart, which do strange things with \topskip
+\def\@mkboth{\protect\markboth}%
+\def\@oddhead{\@fancyhead\@lodd\@olhead\@ochead\@orhead\@rodd}%
+\def\@oddfoot{\@fancyfoot\@lodd\@olfoot\@ocfoot\@orfoot\@rodd}%
+\def\@evenhead{\@fancyhead\@rodd\@elhead\@echead\@erhead\@lodd}%
+\def\@evenfoot{\@fancyfoot\@rodd\@elfoot\@ecfoot\@erfoot\@lodd}%
+}
+\def\@lodd{\if@reversemargin\hss\else\relax\fi}
+\def\@rodd{\if@reversemargin\relax\else\hss\fi}
+
+\let\latex@makecol\@makecol
+\def\@makecol{\let\topfloat\@toplist\let\botfloat\@botlist\latex@makecol}
+\def\iftopfloat#1#2{\ifx\topfloat\empty #2\else #1\fi}
+\def\ifbotfloat#1#2{\ifx\botfloat\empty #2\else #1\fi}
+\def\iffloatpage#1#2{\if@fcolmade #1\else #2\fi}
+
+\newcommand{\fancypagestyle}[2]{%
+  \@namedef{ps@#1}{\let\fancy@def\def#2\relax\ps@fancy}}

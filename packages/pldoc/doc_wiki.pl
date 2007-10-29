@@ -133,6 +133,8 @@ list_item(Lines, _, Indent, [SubList|LIT], LIT, Rest) :-	% sub-list
 	take_par(Lines, SubList, Rest).
 
 %%	rest_list_item(+Lines, +Type, +Indent, -RestItem, -RestLines) is det
+%
+%	Extract the remainder (after the first line) of a list item.
 
 rest_list_item([], _, _, [], []).
 rest_list_item([_-[]|L], _, _, [], L) :- !.	% empty line
@@ -145,6 +147,7 @@ rest_list_item([_-L1|L0], Type, N, ['\n'|LI], L) :-
 	append(L1, LIT, LI),
 	rest_list_item(L0, Type, N, LIT, L).
 
+
 %%	rest_list(+Lines, +Type, +Indent,
 %%		  -Items, -ItemTail, -RestLines) is det.
 
@@ -153,7 +156,7 @@ rest_list(Lines, Type, N, Items, IT, Rest) :-
 	rest_list(Rest0, Type, N, IT0, IT, Rest).
 rest_list(Rest, _, _, IT, IT, Rest).
 
-%%	list_item_Line(?Type, +Line, -Rest) is det.
+%%	list_item_prefix(?Type, +Line, -Rest) is det.
 
 list_item_prefix(ul, [*, ' '|T], T) :- !.
 list_item_prefix(dl, [$, ' '|T], T) :-
@@ -165,11 +168,16 @@ list_item_prefix(ol, [N, '.', ' '|T], T) :-
 
 %%	ul_to_dl(+UL, -DL) is semidet.
 %
-%	Translate an UL list into a DL list if all entries are of the
-%	form "* <term> nl, <description>"
+%	Translate an UL list into a DL list   if  all entries are of the
+%	form "* <term> nl, <description>" or all   items  are of the for
+%	[[PredicateIndicator]].
 
-ul_to_dl(ul(Items), dl(class(termlist), DLItems)) :-
-	term_items(Items, DLItems, []).
+ul_to_dl(ul(Items), Description) :-
+	term_items(Items, DLItems, []),
+	(   terms_to_predicate_includes(DLItems, Preds)
+	->  Description = dl(class(predicates), Preds)
+	;   Description = dl(class(termlist), DLItems)
+	).
 
 term_items([], T, T).
 term_items([LI|LIs], DLItems, Tail) :-
@@ -187,7 +195,11 @@ term_item(li(Tokens),
 	    dd(Descr)
 	  | Tail
 	  ], Tail) :-
-	(   append(TermTokens, ['\n'|Descr], Tokens)
+	(   (   append(TermTokens, ['\n'|Descr], Tokens)
+	    ->	true
+	    ;	TermTokens = Tokens,
+		Descr = []
+	    )
 	->  new_memory_file(MemFile),
 	    open_memory_file(MemFile, write, Out),
 	    forall(member(T, TermTokens),
@@ -206,6 +218,21 @@ read_dt_term(In, Term, Bindings) :-
 		  [ variable_names(Bindings),
 		    module(pldoc_modes)
 		  ]).
+
+terms_to_predicate_includes([], []).
+terms_to_predicate_includes([dt(class=term, \term([[PI]], [])), dd([])|T0],
+			    [\include(PI, predicate)|T]) :-
+	is_pi(PI),
+	terms_to_predicate_includes(T0, T).
+
+is_pi(Name/Arity) :-
+	atom(Name),
+	integer(Arity),
+	between(0, 20, Arity).
+is_pi(Name//Arity) :-
+	atom(Name),
+	integer(Arity),
+	between(0, 20, Arity).
 
 
 %%	row(-Cells)// is det.
@@ -238,19 +265,32 @@ rest_par([_-L1|LT], ['\n'|Par], Rest) :-
 
 %%	section_line(+Tokens, -Section) is det.
 %
-%	Extract a section using the Wiki conventions
+%	Extract a section using the Twiki   conventions. The section may
+%	be preceeded by [Word], in which case we generate an anchor name
+%	Word for the section.
 
 section_line([-,-,-|Rest], Section) :-
 	plusses(Rest, Section).
 
-plusses([+, ' '|Rest], h1(class(wiki), Content)) :-
-	strip_ws_tokens(Rest, Content).
-plusses([+, +, ' '|Rest], h2(class(wiki), Content)) :-
-	strip_ws_tokens(Rest, Content).
-plusses([+, +, +, ' '|Rest], h3(class(wiki), Content)) :-
-	strip_ws_tokens(Rest, Content).
-plusses([+, +, +, +, ' '|Rest], h4(class(wiki), Content)) :-
-	strip_ws_tokens(Rest, Content).
+plusses([+, ' '|Rest], h1(Attrs, Content)) :-
+	hdr_attributes(Rest, Attrs, Content).
+plusses([+, +, ' '|Rest], h2(Attrs, Content)) :-
+	hdr_attributes(Rest, Attrs, Content).
+plusses([+, +, +, ' '|Rest], h3(Attrs, Content)) :-
+	hdr_attributes(Rest, Attrs, Content).
+plusses([+, +, +, +, ' '|Rest], h4(Attrs, Content)) :-
+	hdr_attributes(Rest, Attrs, Content).
+
+hdr_attributes(List, Attrs, Content) :-
+	strip_leading_ws(List, List2),
+	(   List2 = ['[',Word,']'|List3],
+	    atomic(Word)
+	->  strip_ws_tokens(List3, Content),
+	    string_to_atom(Word, Name),
+	    Attrs = [class(wiki), name(Name)]
+	;   Attrs = class(wiki),
+	    strip_ws_tokens(List, Content)
+	).
 
 
 %%	strip_ws_tokens(+Tokens, -Stripped)
@@ -408,6 +448,7 @@ structure_term(\tags(Tags), tags, [Tags]) :- !.
 structure_term(\params(Params), params, [Params]) :- !.
 structure_term(param(Name,Descr), param(Name), [Descr]) :- !.
 structure_term(\tag(Name,Value), tag(Name), [Value]) :- !.
+structure_term(\include(What,Type), include(What,Type), []) :- !.
 structure_term(dl(Att, Args), dl(Att), [Args]) :- !.
 structure_term(dt(Att, Args), dt(Att), [Args]) :- !.
 structure_term(table(Att, Args), table(Att), [Args]) :- !.
@@ -450,6 +491,18 @@ word_token(Word) -->
 	[Word],
 	{ string(Word) }.
 
+functor_name(Name) -->
+	[ Word ],
+	{ functor_name(Word), !,
+	  string_to_atom(Word, Name)
+	}.
+
+arity(Arity) -->
+	[ Word ],
+	{ catch(atom_number(Word, Arity), _, fail),
+	  Arity >= 0, Arity < 20
+	}.
+
 wiki_face(var(Word), ArgNames) -->
 	[Word],
 	{ string(Word),			% punctuation and blanks are atoms
@@ -469,28 +522,24 @@ wiki_face(code(Code), _) -->
 wiki_face(code(Code), _) -->
 	[=,'|'], wiki_faces(Code, []), ['|',=], !.
 wiki_face(\predref(Name/Arity), _) -->
-	[ NameS, '/', ArityWord ],
+	[ NameS, '/' ], arity(Arity),
 	{ functor_name(NameS),
-	  catch(atom_number(ArityWord, Arity), _, fail),
-	  Arity >= 0, Arity < 100, !,
 	  string_to_atom(NameS, Name)
 	}.
 wiki_face(\predref(Name//Arity), _) -->
-	[ NameS, '/', '/', ArityWord ],
+	[ NameS, '/', '/' ], arity(Arity),
 	{ functor_name(NameS),
-	  catch(atom_number(ArityWord, Arity), _, fail),
-	  Arity >= 0, Arity < 100, !,
 	  string_to_atom(NameS, Name)
 	}.
 wiki_face(span(class=cvs, CVS), _) -->
 	[$, Word, :], {string(Word)}, wiki_faces(CVS0, []), [$], !,
 	{ strip_ws_tokens(CVS0, CVS) }.
-wiki_face(\image(Name), _) -->
+wiki_face(\include(Name, Type), _) -->
 	['[','['], word_token(BaseS), ['.'], word_token(ExtS), [']',']'],
 	{  concat_atom([BaseS, '.', ExtS], Name),
 	   file_name_extension(_, Ext, Name),
-	   autolink_extension(Ext, image)
-	}.
+	   autolink_extension(Ext, Type)
+	}, !.
 wiki_face(\file(Name), _) -->
 	word_token(BaseS), ['.'], word_token(ExtS),
 	{ concat_atom([BaseS, '.', ExtS], Name),
@@ -520,7 +569,7 @@ wiki_face(FT, ArgNames) -->
 
 functor_name(String) :-
 	sub_atom(String, 0, 1, _, Char),
-	char_type(Char, alpha).
+	char_type(Char, lower).
 
 url_protocol(String) :-	sub_atom(String, 0, _, 0, http).
 url_protocol(String) :-	sub_atom(String, 0, _, 0, ftp).
