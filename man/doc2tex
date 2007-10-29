@@ -34,8 +34,8 @@ sub printTeX
   s/{#=}/{\\Sceq}/g;
   s/{#\\=}/{\\Scne}/g;
   s/{#\\}/{\\Snot}/g;
-  s/{#\/}/{\\Sor}/g;
-  s/{#/\}/{\\Sand}/g;
+  s/{#\\\/}/{\\Sor}/g;
+  s/{#\/\\}/{\\Sand}/g;
   s/{#<=>}/{\\Sequiv}/g;
   s/{#<=}/{\\Slimpl}/g;
   s/{#=>}/{\\Srimpl}/g;

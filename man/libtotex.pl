@@ -7,7 +7,7 @@
 :- use_module(library(error)).
 
 libtotex(Lib, Out, Options) :-
-	use_module(Lib, []),
+	user:use_module(Lib),		% we want the operators in user
 	doc_latex(Lib, Out,
 		  [ stand_alone(false)
 		  | Options
@@ -25,9 +25,20 @@ libtotex(LibAtom) :-
 	file_name_extension(Base, tex, TeXLocalFile),
 	atom_concat('lib/', TeXLocalFile, TeXFile),
 	atom_concat('lib/summaries.d/', TeXLocalFile, SummaryTeXFile),
+	ensure_dir('lib/summaries.d'),
 	libtotex(File, TeXFile,
 		 [ summary(SummaryTeXFile)
 		 ]).
+
+ensure_dir(Dir) :-
+	exists_directory(Dir), !.
+ensure_dir(Dir) :-
+	make_directory(Dir).
+
+
+%%	libtotex
+%
+%	Usage: pl -q -s libtotex.pl -g libtotex -- file ...
 
 libtotex :-
 	main.
