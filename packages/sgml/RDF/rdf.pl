@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2002-2006, University of Amsterdam
+    Copyright (C): 2002-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -51,17 +51,20 @@
 %	Parse an XML file holding an RDF term into a list of RDF triples.
 %	see rdf_triple.pl for a definition of the output format. Options:
 %
-%		* base_uri(URI)
+%		* base_uri(+URI)
 %		URI to use as base
 %
-%		* expand_foreach(Bool)
+%		* expand_foreach(+Bool)
 %		Apply each(Container, Pred, Object) on the members of
 %		Container
 %		
-%		* namespaces([NS=URL, ...])
+%		* namespaces(-Namespaces:list(NS=URL))
 %		Return list of namespaces declared using xmlns:NS=URL in
 %		the document.  This can be used to update the namespace
 %		list with rdf_register_ns/2.
+%	
+%	@see	Use process_rdf/3 for processing large documents in
+%		_|call-back|_ style.
 
 load_rdf(File, Triples) :-
 	load_rdf(File, Triples, []).
@@ -167,7 +170,7 @@ member_attribute(A) :-
 %		a triple rdf(S, P, RDFObject) instead of rdf(S, P,
 %		literal(type(Type, Content)).
 %		
-%		* namespaces([NS=URL, ...])
+%		*  namespaces(-Namespaces:list(NS=URL))
 %		Return list of namespaces declared using xmlns:NS=URL in
 %		the document.  This can be used to update the namespace
 %		list with rdf_register_ns/2.

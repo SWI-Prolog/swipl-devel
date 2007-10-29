@@ -1,0 +1,12 @@
+---+ RDF/XML parser and writer
+
+This directory implements the RDF/XML parser   on  top of the SWI-Prolog
+XML parser. The main entry  point  is   provided  by  load_rdf/3  or the
+call-back version process_rdf/3.
+
+In addition, rdf_write.pl provides writing (serialization) of an RDD/XML
+document from a list of triples.
+
+	* [[load_rdf/3]]
+	* [[process_rdf/3]]
+	* [[rdf_write_xml/2]]
