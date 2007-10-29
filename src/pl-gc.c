@@ -2200,9 +2200,9 @@ garbageCollect(LocalFrame fr, Choice ch)
 
 word
 pl_garbage_collect(term_t d)
-{ GET_LD
-
+{ 
 #if O_DEBUG
+  GET_LD
   int ol = GD->debug_level;
   int nl;
 
