@@ -40,6 +40,7 @@
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(memfile)).
+:- use_module(library(operators)).
 
 /** <module> Analyse PlDoc mode declarations
 
@@ -48,7 +49,6 @@ predicate. The formal  part  is  processed   by  read_term/3  using  the
 operator declarations in this module.
 
 @author	  Jan Wielemaker
-@version  $Revision$, $Date$
 @license  GPL
 */
 
@@ -168,10 +168,51 @@ read_modes(T0, In, [T0|Rest]) :-
 	read_modes(T1, In, Rest).
 
 read_mode_term(In, mode(Term, Bindings)) :-
+	prepare_module_operators,
 	read_term(In, Term,
 		  [ variable_names(Bindings),
 		    module(pldoc_modes)
 		  ]).
+
+
+%%	prepare_module_operators is det.
+%
+%	Import operators from current source module.
+
+:- dynamic
+	prepared_module/2.
+
+prepare_module_operators :-
+	prolog_load_context(module, Module),
+	(   prepared_module(Module, _)
+	->  true
+	;   unprepare_module_operators,
+	    public_operators(Module, Ops),
+	    (	Ops \== []
+	    ->	push_operators(Ops, Undo),
+		asserta(prepared_module(Module, Undo))
+	    ;	true
+	    )
+	).
+
+unprepare_module_operators :-
+	forall(retract(prepared_module(_, Undo)),
+	       pop_operators(Undo)).
+	
+
+%%	public_operators(+Module, -List:list(op(Pri,Assoc,Name))) is det.
+%
+%	List is the list of operators exported from Module through its
+%	module header.
+%	
+%	@tbd	Must be provided by a public interface from the core
+
+public_operators(Module, List) :-
+	Goal = Module:'$exported_op'(P,A,N),
+	predicate_property(Goal, _), !,
+	findall(op(P,A,N), Module:'$exported_op'(P,A,N), List).
+public_operators(_, []).
+
 
 %%	extract_varnames(+Bindings, -VarNames, ?VarTail) is det.
 %
