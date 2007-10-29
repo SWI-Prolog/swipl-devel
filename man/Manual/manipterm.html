@@ -133,7 +133,7 @@ and Constructing Terms</SPAN></A></H2>
 <A NAME="sec:manipterm"></A>
 
 <DL>
-<DT class="pubdef"><A NAME="functor/3"><STRONG>functor</STRONG>(<VAR>?Term, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="functor/3"><STRONG>functor</STRONG>(<VAR>?Term, 
 ?Functor, ?Arity</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Term</VAR> is a term with functor <VAR>Functor</VAR> and 
@@ -147,7 +147,7 @@ instantiations first.</SPAN></SUP> If <VAR>Term</VAR> is an atom or
 number, <VAR>Functor</VAR> will be unified with
 <VAR>Term</VAR> and arity will be unified with the integer 0 (zero).
 </DD>
-<DT class="pubdef"><A NAME="arg/3"><STRONG>arg</STRONG>(<VAR>?Arg, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="arg/3"><STRONG>arg</STRONG>(<VAR>?Arg, 
 +Term, ?Value</VAR>)</A></DT>
 <DD class="defbody">
 <VAR>Term</VAR> should be instantiated to a term, <VAR>Arg</VAR> to an 
@@ -164,7 +164,7 @@ fails silently if <VAR><VAR>Arg</VAR> = 0</VAR> or
 <VAR><VAR>Arg</VAR> &gt; <EM>arity</EM></VAR> and raises the exception
 <CODE>domain_error(not_less_then_zero, <VAR>Arg</VAR>)</CODE> if <VAR><VAR>Arg</VAR> 
 &lt; 0</VAR>.</DD>
-<DT class="pubdef"><A NAME="=../2"><VAR>?Term</VAR> <STRONG>=..</STRONG> <VAR>?List</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="=../2"><VAR>?Term</VAR> <STRONG>=..</STRONG> <VAR>?List</VAR></A></DT>
 <DD class="defbody">
 <VAR>List</VAR> is a list which head is the functor of <VAR>Term</VAR> 
 and the remaining arguments are the arguments of the term. Each of the 
@@ -259,7 +259,7 @@ Z = G371
 <DD class="defbody">
 Difference list version of <A NAME="idx:termvariables2:845"></A><A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A>. 
 I.e. <VAR>Tail</VAR> is the tail of the variable-list <VAR>List</VAR>.</DD>
-<DT class="pubdef"><A NAME="copy_term/2"><STRONG>copy_term</STRONG>(<VAR>+In, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="copy_term/2"><STRONG>copy_term</STRONG>(<VAR>+In, 
 -Out</VAR>)</A></DT>
 <DD class="defbody">
 Create a version if <VAR>In</VAR> with renamed (fresh) variables and 

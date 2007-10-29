@@ -197,29 +197,29 @@ Unfortunately compiled arithmetic cannot be traced, which is why it is
 optional.
 
 <DL>
-<DT class="pubdef"><A NAME=">/2"><VAR>+Expr1</VAR> <STRONG>&gt;</STRONG> <VAR>+Expr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME=">/2"><VAR>+Expr1</VAR> <STRONG>&gt;</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
 True if expression <VAR>Expr1</VAR> evaluates to a larger number than <VAR>Expr2</VAR>.</DD>
-<DT class="pubdef"><A NAME="</2"><VAR>+Expr1</VAR> <STRONG>&lt;</STRONG> <VAR>+Expr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="</2"><VAR>+Expr1</VAR> <STRONG>&lt;</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
 True if expression <VAR>Expr1</VAR> evaluates to a smaller number than <VAR>Expr2</VAR>.</DD>
-<DT class="pubdef"><A NAME="=</2"><VAR>+Expr1</VAR> <STRONG>=&lt;</STRONG> <VAR>+Expr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="=</2"><VAR>+Expr1</VAR> <STRONG>=&lt;</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
 True if expression <VAR>Expr1</VAR> evaluates to a smaller or equal 
 number to <VAR>Expr2</VAR>.</DD>
-<DT class="pubdef"><A NAME=">=/2"><VAR>+Expr1</VAR> <STRONG>&gt;=</STRONG> <VAR>+Expr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME=">=/2"><VAR>+Expr1</VAR> <STRONG>&gt;=</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
 True if expression <VAR>Expr1</VAR> evaluates to a larger or equal 
 number to <VAR>Expr2</VAR>.</DD>
-<DT class="pubdef"><A NAME="=\=/2"><VAR>+Expr1</VAR> <STRONG>=\=</STRONG> <VAR>+Expr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="=../2"><VAR>+Expr1</VAR> <STRONG>=..</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
 True if expression <VAR>Expr1</VAR> evaluates to a number non-equal to
 <VAR>Expr2</VAR>.</DD>
-<DT class="pubdef"><A NAME="=:=/2"><VAR>+Expr1</VAR> <STRONG>=:=</STRONG> <VAR>+Expr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="=../2"><VAR>+Expr1</VAR> <STRONG>=..</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
 True if expression <VAR>Expr1</VAR> evaluates to a number equal to <VAR> 
 Expr2</VAR>.</DD>
-<DT class="pubdef"><A NAME="is/2"><VAR>-Number</VAR> <STRONG>is</STRONG> <VAR>+Expr</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="is/2"><VAR>-Number</VAR> <STRONG>is</STRONG> <VAR>+Expr</VAR></A></DT>
 <DD class="defbody">
 True if <VAR>Number</VAR> has successfully been unified with the number
 <VAR>Expr</VAR> evaluates to. If <VAR>Expr</VAR> evaluates to a float 
@@ -393,7 +393,7 @@ integer operations that would cause overflow automatically convert to
 floating point arithmetic.
 
 <DL>
-<DT class="pubdef"><A NAME="-/1"><STRONG>-</STRONG> <VAR>+Expr</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="-/1"><STRONG>-</STRONG> <VAR>+Expr</VAR></A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = -<VAR>Expr</VAR></VAR></DD>
 <DT class="pubdef"><A NAME="+/1"><STRONG>+</STRONG> <VAR>+Expr</VAR></A></DT>
@@ -401,16 +401,16 @@ floating point arithmetic.
 <VAR><VAR>Result</VAR> = <VAR>Expr</VAR></VAR>. Note that if <CODE><CODE>+</CODE></CODE> 
 is followed by a number the parser discards the <CODE><CODE>+</CODE></CODE>. 
 I.e. <CODE>?- integer(+1)</CODE> succeeds.</DD>
-<DT class="pubdef"><A NAME="+/2"><VAR>+Expr1</VAR> <STRONG>+</STRONG> <VAR>+Expr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="+/2"><VAR>+Expr1</VAR> <STRONG>+</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = <VAR>Expr1</VAR> + <VAR>Expr2</VAR></VAR></DD>
-<DT class="pubdef"><A NAME="-/2"><VAR>+Expr1</VAR> <STRONG>-</STRONG> <VAR>+Expr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="-/2"><VAR>+Expr1</VAR> <STRONG>-</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = <VAR>Expr1</VAR> - <VAR>Expr2</VAR></VAR></DD>
-<DT class="pubdef"><A NAME="*/2"><VAR>+Expr1</VAR> <STRONG>*</STRONG> <VAR>+Expr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="*/2"><VAR>+Expr1</VAR> <STRONG>*</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = <VAR>Expr1</VAR> &times; <VAR>Expr2</VAR></VAR></DD>
-<DT class="pubdef"><A NAME="//2"><VAR>+Expr1</VAR> <STRONG>/</STRONG> <VAR>+Expr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="//2"><VAR>+Expr1</VAR> <STRONG>/</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = <VAR>Expr1</VAR>/<VAR>Expr2</VAR></VAR> The the 
 flag <A class="flag" href="flags.html#flag:iso">iso</A> is <CODE>true</CODE>, 
@@ -420,7 +420,7 @@ returns an integer if the division is exact. If at least one of the
 arguments is rational and the other argument is integer, the operation 
 returns a rational number. In all other cases the return value is a 
 float. See also <A class="pred" href="arith.html#///2">///2</A> and <A NAME="idx:rdiv2:945"></A><A class="pred" href="arith.html#rdiv/2">rdiv/2</A>.</DD>
-<DT class="pubdef"><A NAME="mod/2"><VAR>+IntExpr1</VAR> <STRONG>mod</STRONG> <VAR>+IntExpr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="mod/2"><VAR>+IntExpr1</VAR> <STRONG>mod</STRONG> <VAR>+IntExpr2</VAR></A></DT>
 <DD class="defbody">
 Modulo:
 <VAR>Result</VAR> = <VAR>IntExpr1</VAR> - (<VAR>IntExpr1</VAR> // <VAR>IntExpr2</VAR>) <VAR> &times; </VAR> <VAR>IntExpr2</VAR> 
@@ -439,11 +439,11 @@ negative values is illustrated in the table below.
 
 </CENTER>
 </DD>
-<DT class="pubdef"><A NAME="rem/2"><VAR>+IntExpr1</VAR> <STRONG>rem</STRONG> <VAR>+IntExpr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="rem/2"><VAR>+IntExpr1</VAR> <STRONG>rem</STRONG> <VAR>+IntExpr2</VAR></A></DT>
 <DD class="defbody">
 Remainder of division:
 <VAR>Result</VAR> is float_fractional_part(<VAR>IntExpr1</VAR>/<VAR>IntExpr2</VAR>)</DD>
-<DT class="pubdef"><A NAME="///2"><VAR>+IntExpr1</VAR> <STRONG>//</STRONG> <VAR>+IntExpr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="///2"><VAR>+IntExpr1</VAR> <STRONG>//</STRONG> <VAR>+IntExpr2</VAR></A></DT>
 <DD class="defbody">
 Integer division:
 <VAR>Result</VAR> is truncate(<VAR>Expr1</VAR>/<VAR>Expr2</VAR>)</DD>
@@ -452,10 +452,10 @@ Integer division:
 Rational number division. This function is only available if SWI-Prolog 
 has been compiled with rational number support. See
 <A class="sec" href="arith.html">section 4.26.2.2</A> for details.</DD>
-<DT class="pubdef"><A NAME="abs/1"><STRONG>abs</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="abs/1"><STRONG>abs</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Evaluate <VAR>Expr</VAR> and return the absolute value of it.</DD>
-<DT class="pubdef"><A NAME="sign/1"><STRONG>sign</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="sign/1"><STRONG>sign</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Evaluate to -1 if <VAR><VAR>Expr</VAR> &lt; 0</VAR>, 1 if <VAR><VAR>Expr</VAR> 
 &gt; 0</VAR> and 0 if
@@ -487,14 +487,14 @@ object. The recommended way to specify the character code of the letter
 Evaluates to a random integer <VAR>i</VAR> for which <VAR>0 =&lt; i &lt; <VAR>IntExpr</VAR></VAR>. 
 The seed of this random generator is determined by the system clock when 
 SWI-Prolog was started.</DD>
-<DT class="pubdef"><A NAME="round/1"><STRONG>round</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="round/1"><STRONG>round</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Evaluates <VAR>Expr</VAR> and rounds the result to the nearest integer.</DD>
 <DT class="pubdef"><A NAME="integer/1"><STRONG>integer</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Same as <A NAME="idx:round1:948"></A><A class="pred" href="arith.html#round/1">round/1</A> 
 (backward compatibility).</DD>
-<DT class="pubdef"><A NAME="float/1"><STRONG>float</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="float/1"><STRONG>float</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Translate the result to a floating point number. Normally, Prolog will 
 use integers whenever possible. When used around the 2nd argument of
@@ -542,27 +542,27 @@ A = 1 rdiv 10
 </PRE>
 
 </DD>
-<DT class="pubdef"><A NAME="float_fractional_part/1"><STRONG>float_fractional_part</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="float_fractional_part/1"><STRONG>float_fractional_part</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Fractional part of a floating-point number. Negative if <VAR>Expr</VAR> 
 is negative, rational if <VAR>Expr</VAR> is rational and 0 if <VAR>Expr</VAR> 
 is integer. The following relation is always true:
 <VAR>X is float_fractional_part(X) + float_integer_part(X)</VAR>.</DD>
-<DT class="pubdef"><A NAME="float_integer_part/1"><STRONG>float_integer_part</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="float_integer_part/1"><STRONG>float_integer_part</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Integer part of floating-point number. Negative if <VAR>Expr</VAR> is 
 negative, <VAR>Expr</VAR> if <VAR>Expr</VAR> is integer.</DD>
-<DT class="pubdef"><A NAME="truncate/1"><STRONG>truncate</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="truncate/1"><STRONG>truncate</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Truncate <VAR>Expr</VAR> to an integer. If <VAR><VAR>Expr</VAR> &gt;= 0</VAR> 
 this is the same as <CODE>floor(Expr)</CODE>. For <VAR><VAR>Expr</VAR> &lt; 
 0</VAR> this is the same as
 <CODE>ceil(Expr)</CODE>. E.i. truncate rounds towards zero.</DD>
-<DT class="pubdef"><A NAME="floor/1"><STRONG>floor</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="floor/1"><STRONG>floor</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Evaluates <VAR>Expr</VAR> and returns the largest integer smaller or 
 equal to the result of the evaluation.</DD>
-<DT class="pubdef"><A NAME="ceiling/1"><STRONG>ceiling</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="ceiling/1"><STRONG>ceiling</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Evaluates <VAR>Expr</VAR> and returns the smallest integer larger or 
 equal to the result of the evaluation.</DD>
@@ -570,39 +570,39 @@ equal to the result of the evaluation.</DD>
 <DD class="defbody">
 Same as <A NAME="idx:ceiling1:954"></A><A class="pred" href="arith.html#ceiling/1">ceiling/1</A> 
 (backward compatibility).</DD>
-<DT class="pubdef"><A NAME=">>/2"><VAR>+IntExpr</VAR> <STRONG>&gt;&gt;</STRONG> <VAR>+IntExpr</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME=">>/2"><VAR>+IntExpr</VAR> <STRONG>&gt;&gt;</STRONG> <VAR>+IntExpr</VAR></A></DT>
 <DD class="defbody">
 Bitwise shift <VAR>IntExpr1</VAR> by <VAR>IntExpr2</VAR> bits to the 
 right. The operation performs <EM>arithmetic shift</EM>, which implies 
 that the inserted most significant bits are copies of the original most 
 significant bit.</DD>
-<DT class="pubdef"><A NAME="<</2"><VAR>+IntExpr</VAR> <STRONG>&lt;&lt;</STRONG> <VAR>+IntExpr</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="<</2"><VAR>+IntExpr</VAR> <STRONG>&lt;&lt;</STRONG> <VAR>+IntExpr</VAR></A></DT>
 <DD class="defbody">
 Bitwise shift <VAR>IntExpr1</VAR> by <VAR>IntExpr2</VAR> bits to the 
 left.</DD>
-<DT class="pubdef"><A NAME="\//2"><VAR>+IntExpr</VAR> <STRONG>\/</STRONG> <VAR>+IntExpr</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="\//2"><VAR>+IntExpr</VAR> <STRONG>\/</STRONG> <VAR>+IntExpr</VAR></A></DT>
 <DD class="defbody">
 Bitwise `or' <VAR>IntExpr1</VAR> and <VAR>IntExpr2</VAR>.</DD>
-<DT class="pubdef"><A NAME="/\/2"><VAR>+IntExpr</VAR> <STRONG>/\</STRONG> <VAR>+IntExpr</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="/\/2"><VAR>+IntExpr</VAR> <STRONG>/\</STRONG> <VAR>+IntExpr</VAR></A></DT>
 <DD class="defbody">
 Bitwise `and' <VAR>IntExpr1</VAR> and <VAR>IntExpr2</VAR>.</DD>
 <DT class="pubdef"><A NAME="xor/2"><VAR>+IntExpr</VAR> <STRONG>xor</STRONG> <VAR>+IntExpr</VAR></A></DT>
 <DD class="defbody">
 Bitwise `exclusive or' <VAR>IntExpr1</VAR> and <VAR>IntExpr2</VAR>.</DD>
-<DT class="pubdef"><A NAME="\/1"><STRONG>\</STRONG> <VAR>+IntExpr</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="\/1"><STRONG>\</STRONG> <VAR>+IntExpr</VAR></A></DT>
 <DD class="defbody">
 Bitwise negation. The returned value is the one's complement of
 <VAR>IntExpr</VAR>.</DD>
-<DT class="pubdef"><A NAME="sqrt/1"><STRONG>sqrt</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="sqrt/1"><STRONG>sqrt</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = sqrt(<VAR>Expr</VAR>)</VAR>
 </DD>
-<DT class="pubdef"><A NAME="sin/1"><STRONG>sin</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="sin/1"><STRONG>sin</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = sin(<VAR>Expr</VAR>)</VAR>. <VAR>Expr</VAR> is 
 the angle in radians.
 </DD>
-<DT class="pubdef"><A NAME="cos/1"><STRONG>cos</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="cos/1"><STRONG>cos</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = cos(<VAR>Expr</VAR>)</VAR>. <VAR>Expr</VAR> is 
 the angle in radians.
@@ -622,7 +622,7 @@ is the angle in radians.
 <VAR><VAR>Result</VAR> = arccos(<VAR>Expr</VAR>)</VAR>. <VAR>Result</VAR> 
 is the angle in radians.
 </DD>
-<DT class="pubdef"><A NAME="atan/1"><STRONG>atan</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="atan/1"><STRONG>atan</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = arctan(<VAR>Expr</VAR>)</VAR>. <VAR>Result</VAR> 
 is the angle in radians.
@@ -635,7 +635,7 @@ is the angle in radians. The return value is in the range <VAR>[- pi ...
 pi ]</VAR>. Used to convert between rectangular and polar coordinate 
 system.
 </DD>
-<DT class="pubdef"><A NAME="log/1"><STRONG>log</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="log/1"><STRONG>log</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = ln(<VAR>Expr</VAR>)</VAR>
 </DD>
@@ -643,11 +643,11 @@ system.
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = log10(<VAR>Expr</VAR>)</VAR>
 </DD>
-<DT class="pubdef"><A NAME="exp/1"><STRONG>exp</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="exp/1"><STRONG>exp</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = e **<VAR>Expr</VAR></VAR>
 </DD>
-<DT class="pubdef"><A NAME="**/2"><VAR>+Expr1</VAR> <STRONG>**</STRONG> <VAR>+Expr2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="**/2"><VAR>+Expr1</VAR> <STRONG>**</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
 <VAR><VAR>Result</VAR> = <VAR>Expr1</VAR>**<VAR>Expr2</VAR></VAR>. With 
 unbounded integers and integer values for <VAR>Expr1</VAR> and a 

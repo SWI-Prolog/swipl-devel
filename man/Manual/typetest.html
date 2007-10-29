@@ -133,19 +133,19 @@ Type of a Term</SPAN></A></H2>
 <A NAME="sec:typetest"></A>
 
 <DL>
-<DT class="pubdef"><A NAME="var/1"><STRONG>var</STRONG>(<VAR>+Term</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="var/1"><STRONG>var</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Term</VAR> currently is a free variable.
 </DD>
-<DT class="pubdef"><A NAME="nonvar/1"><STRONG>nonvar</STRONG>(<VAR>+Term</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="nonvar/1"><STRONG>nonvar</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Term</VAR> currently is not a free variable.
 </DD>
-<DT class="pubdef"><A NAME="integer/1"><STRONG>integer</STRONG>(<VAR>+Term</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="integer/1"><STRONG>integer</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Term</VAR> is bound to an integer.
 </DD>
-<DT class="pubdef"><A NAME="float/1"><STRONG>float</STRONG>(<VAR>+Term</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="float/1"><STRONG>float</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Term</VAR> is bound to a floating point number.
 </DD>
@@ -164,7 +164,7 @@ are in canonical form, which means <VAR>Denominator</VAR> is a positive
 integer and there are no common divisors between <VAR>Numerator</VAR> 
 and <VAR>Denominator</VAR>.
 </DD>
-<DT class="pubdef"><A NAME="number/1"><STRONG>number</STRONG>(<VAR>+Term</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="number/1"><STRONG>number</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Term</VAR> is bound to an integer or floating point number.<SUP class="fn">24<SPAN class="fn-text">As 
 rational numbers are not atomic in the current implementation and we do 
@@ -172,7 +172,7 @@ not want to break the rule that <A NAME="idx:number1:462"></A><A class="pred" hr
 implies <A NAME="idx:atomic1:463"></A><A class="pred" href="typetest.html#atomic/1">atomic/1</A>, <A NAME="idx:number1:464"></A><A class="pred" href="typetest.html#number/1">number/1</A> 
 fails on rational numbers. This will change if rational numbers become 
 atomic.</SPAN></SUP></DD>
-<DT class="pubdef"><A NAME="atom/1"><STRONG>atom</STRONG>(<VAR>+Term</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="atom/1"><STRONG>atom</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Term</VAR> is bound to an atom.</DD>
 <DT class="pubdef"><A NAME="string/1"><STRONG>string</STRONG>(<VAR>+Term</VAR>)</A></DT>
@@ -193,13 +193,13 @@ Yes
 </PRE>
 
 </DD>
-<DT class="pubdef"><A NAME="atomic/1"><STRONG>atomic</STRONG>(<VAR>+Term</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="atomic/1"><STRONG>atomic</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Term</VAR> is bound to an atom, string, integer or floating 
 point number. Note that string refers to the built-in type. See
 <A NAME="idx:string1:465"></A><A class="pred" href="typetest.html#string/1">string/1</A>. 
 Strings in the classical Prolog sense are lists and therefore compound.</DD>
-<DT class="pubdef"><A NAME="compound/1"><STRONG>compound</STRONG>(<VAR>+Term</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="compound/1"><STRONG>compound</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Term</VAR> is bound to a compound term. See also <A NAME="idx:functor3:466"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
 and =../2.</DD>

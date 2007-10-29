@@ -158,19 +158,19 @@ arguments, leftmost argument first.
 </OL>
 
 <DL>
-<DT class="pubdef"><A NAME="==/2"><VAR>+Term1</VAR> <STRONG>==</STRONG> <VAR>+Term2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="==/2"><VAR>+Term1</VAR> <STRONG>==</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 True if <VAR>Term1</VAR> is equivalent to <VAR>Term2</VAR>. A variable 
 is only identical to a sharing variable.</DD>
-<DT class="pubdef"><A NAME="\==/2"><VAR>+Term1</VAR> <STRONG>\==</STRONG> <VAR>+Term2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="\==/2"><VAR>+Term1</VAR> <STRONG>\==</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 Equivalent to <CODE><CODE>\+</CODE>Term1 == Term2</CODE>.</DD>
-<DT class="pubdef"><A NAME="=/2"><VAR>+Term1</VAR> <STRONG>=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="=/2"><VAR>+Term1</VAR> <STRONG>=</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 Unify <VAR>Term1</VAR> with <VAR>Term2</VAR>. True if the unification 
 succeeds. For behaviour on cyclic terms see the Prolog flag
 <A class="flag" href="flags.html#flag:occurs_check">occurs_check</A>.</DD>
-<DT class="pubdef"><A NAME="unify_with_occurs_check/2"><STRONG>unify_with_occurs_check</STRONG>(<VAR>+Term1, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="unify_with_occurs_check/2"><STRONG>unify_with_occurs_check</STRONG>(<VAR>+Term1, 
 +Term2</VAR>)</A></DT>
 <DD class="defbody">
 As <A class="pred" href="compare.html#=/2">=/2</A>, but using <EM>sound-unification</EM>. 
@@ -193,10 +193,10 @@ The second executes logically sound unification and thus fails. Note
 that the behaviour of unification through
 <A class="pred" href="compare.html#=/2">=/2</A> as well as implicit 
 unification in the head can be changed using the Prolog flag <A class="flag" href="flags.html#flag:occurs_check">occurs_check</A>.</DD>
-<DT class="pubdef"><A NAME="\=/2"><VAR>+Term1</VAR> <STRONG>\=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="\=/2"><VAR>+Term1</VAR> <STRONG>\=</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 Equivalent to <CODE><CODE>\+</CODE>Term1 = Term2</CODE>.</DD>
-<DT class="pubdef"><A NAME="=@=/2"><VAR>+Term1</VAR> <STRONG>=@=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="=../2"><VAR>+Term1</VAR> <STRONG>=..</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 True if <VAR>Term1</VAR> is `structurally equal' to <VAR>Term2</VAR>. 
 Structural equivalence is weaker than equivalence (<A class="pred" href="compare.html#==/2">==/2</A>), 
@@ -214,27 +214,26 @@ identical and they have the same `pattern' of variables. Examples:
 
 </BLOCKQUOTE>
 
-<P>The predicates <A class="pred" href="compare.html#=@=/2">=@=/2</A> 
-and <A class="pred" href="compare.html#\=@=/2">\=@=/2</A> are 
-cycle-safe. Attributed variables are considered structurally equal iff 
-their attributes are structurally equal.</DD>
+<P>The predicates <SPAN class="pred-ext">=@=/2</SPAN> and <A class="pred" href="compare.html#\=@=/2">\=@=/2</A> 
+are cycle-safe. Attributed variables are considered structurally equal 
+iff their attributes are structurally equal.</DD>
 <DT class="pubdef"><A NAME="\=@=/2"><VAR>+Term1</VAR> <STRONG>\=@=</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 Equivalent to <CODE>`<CODE>\+</CODE>Term1 =@= Term2'</CODE>.</DD>
-<DT class="pubdef"><A NAME="@</2"><VAR>+Term1</VAR> <STRONG>@&lt;</STRONG> <VAR>+Term2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="@</2"><VAR>+Term1</VAR> <STRONG>@&lt;</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 True if <VAR>Term1</VAR> is before <VAR>Term2</VAR> in the standard 
 order of terms.</DD>
-<DT class="pubdef"><A NAME="@=</2"><VAR>+Term1</VAR> <STRONG>@=&lt;</STRONG> <VAR>+Term2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="@=</2"><VAR>+Term1</VAR> <STRONG>@=&lt;</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 True if both terms are equal (<A class="pred" href="compare.html#==/2">==/2</A>) 
 or <VAR>Term1</VAR> is before <VAR>Term2</VAR> in the standard order of 
 terms.</DD>
-<DT class="pubdef"><A NAME="@>/2"><VAR>+Term1</VAR> <STRONG>@&gt;</STRONG> <VAR>+Term2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="@>/2"><VAR>+Term1</VAR> <STRONG>@&gt;</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 True if <VAR>Term1</VAR> is after <VAR>Term2</VAR> in the standard order 
 of terms.</DD>
-<DT class="pubdef"><A NAME="@>=/2"><VAR>+Term1</VAR> <STRONG>@&gt;=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="@>=/2"><VAR>+Term1</VAR> <STRONG>@&gt;=</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 True if both terms are equal (<A class="pred" href="compare.html#==/2">==/2</A>) 
 or <VAR>Term1</VAR> is after <VAR>Term2</VAR> in the standard order of 

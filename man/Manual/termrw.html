@@ -151,7 +151,7 @@ which controls the interpretation of the <CODE><CODE>\</CODE></CODE>
 character in quoted atoms and strings.
 
 <DL>
-<DT class="pubdef"><A NAME="write_term/2"><STRONG>write_term</STRONG>(<VAR>+Term, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="write_term/2"><STRONG>write_term</STRONG>(<VAR>+Term, 
 +Options</VAR>)</A></DT>
 <DD class="defbody">
 The predicate <A NAME="idx:writeterm2:788"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
@@ -242,12 +242,12 @@ quoted. The default is <CODE>false</CODE>.
 </DL>
 
 </DD>
-<DT class="pubdef"><A NAME="write_term/3"><STRONG>write_term</STRONG>(<VAR>+Stream, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="write_term/3"><STRONG>write_term</STRONG>(<VAR>+Stream, 
 +Term, +Options</VAR>)</A></DT>
 <DD class="defbody">
 As <A NAME="idx:writeterm2:796"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>, 
 but output is sent to <VAR>Stream</VAR> rather than the current output.</DD>
-<DT class="pubdef"><A NAME="write_canonical/1"><STRONG>write_canonical</STRONG>(<VAR>+Term</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="write_canonical/1"><STRONG>write_canonical</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 Write <VAR>Term</VAR> on the current output stream using standard 
 parenthesised prefix notation (i.e., ignoring operator declarations). 
@@ -264,26 +264,26 @@ non-ground terms must be written using a <EM>single</EM> <A NAME="idx:writecanon
 call. This used to be the case anyhow, as garbage collection between 
 multiple calls to one of the write predicates can change the <CODE>_G</CODE>&lt;<VAR>NNN</VAR>&gt; 
 identity of the variables.</DD>
-<DT class="pubdef"><A NAME="write_canonical/2"><STRONG>write_canonical</STRONG>(<VAR>+Stream, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="write_canonical/2"><STRONG>write_canonical</STRONG>(<VAR>+Stream, 
 +Term</VAR>)</A></DT>
 <DD class="defbody">
 Write <VAR>Term</VAR> in canonical form on <VAR>Stream</VAR>.</DD>
-<DT class="pubdef"><A NAME="write/1"><STRONG>write</STRONG>(<VAR>+Term</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="write/1"><STRONG>write</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 Write <VAR>Term</VAR> to the current output, using brackets and 
 operators where appropriate. The Prolog flag <A class="flag" href="flags.html#flag:float_format">float_format</A> 
 controlls floating point output format.</DD>
-<DT class="pubdef"><A NAME="write/2"><STRONG>write</STRONG>(<VAR>+Stream, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="write/2"><STRONG>write</STRONG>(<VAR>+Stream, 
 +Term</VAR>)</A></DT>
 <DD class="defbody">
 Write <VAR>Term</VAR> to <VAR>Stream</VAR>.</DD>
-<DT class="pubdef"><A NAME="writeq/1"><STRONG>writeq</STRONG>(<VAR>+Term</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="writeq/1"><STRONG>writeq</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 Write <VAR>Term</VAR> to the current output, using brackets and 
 operators where appropriate. Atoms that need quotes are quoted. Terms 
 written with this predicate can be read back with <A NAME="idx:read1:801"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
 provided the currently active operator declarations are identical.</DD>
-<DT class="pubdef"><A NAME="writeq/2"><STRONG>writeq</STRONG>(<VAR>+Stream, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="writeq/2"><STRONG>writeq</STRONG>(<VAR>+Stream, 
 +Term</VAR>)</A></DT>
 <DD class="defbody">
 Write <VAR>Term</VAR> to <VAR>Stream</VAR>, inserting quotes.</DD>
@@ -308,14 +308,14 @@ using the term as argument. For lists only the list as a whole is given
 to <A NAME="idx:portray1:807"></A><A class="pred" href="termrw.html#portray/1">portray/1</A>. 
 If portray succeeds <A NAME="idx:print1:808"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
 assumes the term has been written.</DD>
-<DT class="pubdef"><A NAME="read/1"><STRONG>read</STRONG>(<VAR>-Term</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="read/1"><STRONG>read</STRONG>(<VAR>-Term</VAR>)</A></DT>
 <DD class="defbody">
 Read the next Prolog term from the current input stream and unify it 
 with <VAR>Term</VAR>. On a syntax error <A NAME="idx:read1:809"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
 displays an error message, attempts to skip the erroneous term and 
 fails. On reaching end-of-file
 <VAR>Term</VAR> is unified with the atom <CODE>end_of_file</CODE>.</DD>
-<DT class="pubdef"><A NAME="read/2"><STRONG>read</STRONG>(<VAR>+Stream, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="read/2"><STRONG>read</STRONG>(<VAR>+Stream, 
 -Term</VAR>)</A></DT>
 <DD class="defbody">
 Read <VAR>Term</VAR> from <VAR>Stream</VAR>.</DD>
@@ -332,7 +332,7 @@ with the option <CODE>singletons(warning)</CODE>.</DD>
 -Term</VAR>)</A></DT>
 <DD class="defbody">
 Read a clause from <VAR>Stream</VAR>. See <A NAME="idx:readclause1:813"></A><A class="pred" href="termrw.html#read_clause/1">read_clause/1</A>.</DD>
-<DT class="pubdef"><A NAME="read_term/2"><STRONG>read_term</STRONG>(<VAR>-Term, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="read_term/2"><STRONG>read_term</STRONG>(<VAR>-Term, 
 +Options</VAR>)</A></DT>
 <DD class="defbody">
 Read a term from the current input stream and unify the term with
@@ -455,7 +455,7 @@ is a variable that shares with the corresponding variable in <VAR>Term</VAR>.
 </DL>
 
 </DD>
-<DT class="pubdef"><A NAME="read_term/3"><STRONG>read_term</STRONG>(<VAR>+Stream, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="read_term/3"><STRONG>read_term</STRONG>(<VAR>+Stream, 
 -Term, +Options</VAR>)</A></DT>
 <DD class="defbody">
 Read term with options from <VAR>Stream</VAR>. See <A NAME="idx:readterm2:826"></A><A class="pred" href="termrw.html#read_term/2">read_term/2</A>.</DD>

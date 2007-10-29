@@ -163,7 +163,7 @@ well as changes to the working directory. New code is advised to use
 these predicates to manage input and output streams.
 
 <DL>
-<DT class="pubdef"><A NAME="open/4"><STRONG>open</STRONG>(<VAR>+SrcDest, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="open/4"><STRONG>open</STRONG>(<VAR>+SrcDest, 
 +Mode, -Stream, +Options</VAR>)</A></DT>
 <DD class="defbody">
 ISO compliant predicate to open a stream. <VAR>SrcDes</VAR> is either an 
@@ -266,7 +266,7 @@ page before trusting your locks!
 
 <P>The option <CODE>reposition</CODE> is not supported in SWI-Prolog. 
 All streams connected to a file may be repositioned.</DD>
-<DT class="pubdef"><A NAME="open/3"><STRONG>open</STRONG>(<VAR>+SrcDest, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="open/3"><STRONG>open</STRONG>(<VAR>+SrcDest, 
 +Mode, ?Stream</VAR>)</A></DT>
 <DD class="defbody">
 Equivalent to <A NAME="idx:open4:665"></A><A class="pred" href="IO.html#open/4">open/4</A> 
@@ -277,18 +277,18 @@ Open a stream that produces no output. All counting functions are
 enabled on such a stream. An attempt to read from a null-stream will 
 immediately signal end-of-file. Similar to Unix <CODE>/dev/null</CODE>.
 <VAR>Stream</VAR> can be an atom, giving the null-stream an alias name.</DD>
-<DT class="pubdef"><A NAME="close/1"><STRONG>close</STRONG>(<VAR>+Stream</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="close/1"><STRONG>close</STRONG>(<VAR>+Stream</VAR>)</A></DT>
 <DD class="defbody">
 Close the specified stream. If <VAR>Stream</VAR> is not open an error 
 message is displayed. If the closed stream is the current input or 
 output stream the terminal is made the current input or output.</DD>
-<DT class="pubdef"><A NAME="close/2"><STRONG>close</STRONG>(<VAR>+Stream, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="close/2"><STRONG>close</STRONG>(<VAR>+Stream, 
 +Options</VAR>)</A></DT>
 <DD class="defbody">
 Provides <CODE>close(Stream, [force(true)])</CODE> as the only option. 
 Called this way, any resource error (such as write-errors while flushing 
 the output buffer) are ignored.</DD>
-<DT class="pubdef"><A NAME="stream_property/2"><STRONG>stream_property</STRONG>(<VAR>?Stream, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="stream_property/2"><STRONG>stream_property</STRONG>(<VAR>?Stream, 
 ?StreamProperty</VAR>)</A></DT>
 <DD class="defbody">
 ISO compatible predicate for querying status of open I/O streams.
@@ -406,7 +406,7 @@ the stream refers to some other object.
 True if <VAR>Term</VAR> is a stream name or valid stream handle. This 
 predicate realises a safe test for the existence of a stream alias or 
 handle.</DD>
-<DT class="pubdef"><A NAME="set_stream_position/2"><STRONG>set_stream_position</STRONG>(<VAR>+Stream, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="set_stream_position/2"><STRONG>set_stream_position</STRONG>(<VAR>+Stream, 
 +Pos</VAR>)</A></DT>
 <DD class="defbody">
 Set the current position of <VAR>Stream</VAR> to <VAR>Pos</VAR>. <VAR>Pos</VAR> 
@@ -703,22 +703,22 @@ Between Edinburgh and ISO I/O</SPAN></A></H3>
 and the explicit stream based I/O predicates.
 
 <DL>
-<DT class="pubdef"><A NAME="set_input/1"><STRONG>set_input</STRONG>(<VAR>+Stream</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="set_input/1"><STRONG>set_input</STRONG>(<VAR>+Stream</VAR>)</A></DT>
 <DD class="defbody">
 Set the current input stream to become <VAR>Stream</VAR>. Thus, 
 open(file, read, Stream), set_input(Stream) is equivalent to see(file).
 </DD>
-<DT class="pubdef"><A NAME="set_output/1"><STRONG>set_output</STRONG>(<VAR>+Stream</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="set_output/1"><STRONG>set_output</STRONG>(<VAR>+Stream</VAR>)</A></DT>
 <DD class="defbody">
 Set the current output stream to become <VAR>Stream</VAR>. See also
 <A NAME="idx:withoutputto2:723"></A><A class="pred" href="IO.html#with_output_to/2">with_output_to/2</A>.
 </DD>
-<DT class="pubdef"><A NAME="current_input/1"><STRONG>current_input</STRONG>(<VAR>-Stream</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="current_input/1"><STRONG>current_input</STRONG>(<VAR>-Stream</VAR>)</A></DT>
 <DD class="defbody">
 Get the current input stream. Useful to get access to the status 
 predicates associated with streams.
 </DD>
-<DT class="pubdef"><A NAME="current_output/1"><STRONG>current_output</STRONG>(<VAR>-Stream</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="current_output/1"><STRONG>current_output</STRONG>(<VAR>-Stream</VAR>)</A></DT>
 <DD class="defbody">
 Get the current output stream.
 </DD>

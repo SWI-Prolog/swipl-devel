@@ -146,21 +146,21 @@ one_character_atoms(As) :-
 </PRE>
 
 <DL>
-<DT class="pubdef"><A NAME="fail/0"><STRONG>fail</STRONG></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="fail/0"><STRONG>fail</STRONG></A></DT>
 <DD class="defbody">
 Always fail. The predicate <A NAME="idx:fail0:480"></A><A class="pred" href="control.html#fail/0">fail/0</A> 
 is translated into a single virtual machine instruction.
 </DD>
-<DT class="pubdef"><A NAME="true/0"><STRONG>true</STRONG></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="true/0"><STRONG>true</STRONG></A></DT>
 <DD class="defbody">
 Always succeed. The predicate <A NAME="idx:true0:481"></A><A class="pred" href="control.html#true/0">true/0</A> 
 is translated into a single virtual machine instruction.
 </DD>
-<DT class="pubdef"><A NAME="repeat/0"><STRONG>repeat</STRONG></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="repeat/0"><STRONG>repeat</STRONG></A></DT>
 <DD class="defbody">
 Always succeed, provide an infinite number of choice points.
 </DD>
-<DT class="pubdef"><A NAME="!/0"><STRONG>!</STRONG></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="!/0"><STRONG>!</STRONG></A></DT>
 <DD class="defbody">
 Cut. Discard choice points of parent frame and frames created after the 
 parent frame. As of SWI-Prolog 3.3, the semantics of the cut are 
@@ -189,7 +189,7 @@ cuts a/0 </TD></TR>
 
 </CENTER>
 </DD>
-<DT class="pubdef"><A NAME=",/2"><VAR>+Goal1</VAR> <STRONG>,</STRONG> <VAR>+Goal2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME=",/2"><VAR>+Goal1</VAR> <STRONG>,</STRONG> <VAR>+Goal2</VAR></A></DT>
 <DD class="defbody">
 Conjunction. True if both `Goal1' and `Goal2' can be proved. It is 
 defined as (this definition does not lead to a loop as the second comma 
@@ -200,7 +200,7 @@ Goal1, Goal2 :- Goal1, Goal2.
 </PRE>
 
 </DD>
-<DT class="pubdef"><A NAME=";/2"><VAR>+Goal1</VAR> <STRONG>;</STRONG> <VAR>+Goal2</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME=";/2"><VAR>+Goal1</VAR> <STRONG>;</STRONG> <VAR>+Goal2</VAR></A></DT>
 <DD class="defbody">
 The `or' predicate is defined as:
 
@@ -214,7 +214,7 @@ _Goal1 ; Goal2 :- Goal2.
 <DD class="defbody">
 Equivalent to <A class="pred" href="control.html#;/2">;/2</A>. Retained 
 for compatibility only. New code should use <A class="pred" href="control.html#;/2">;/2</A>.</DD>
-<DT class="pubdef"><A NAME="send_arrow/2"><VAR>+Condition</VAR> <STRONG>-&gt;</STRONG> <VAR>+Action</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="send_arrow/2"><VAR>+Condition</VAR> <STRONG>-&gt;</STRONG> <VAR>+Action</VAR></A></DT>
 <DD class="defbody">
 If-then and If-Then-Else. The <A class="pred" href="control.html#send_arrow/2">-&gt;/2</A> 
 construct commits to the choices made at its left-hand side, destroying 
@@ -254,7 +254,7 @@ an
 <VAR>B</VAR>.<SUP class="fn">bug<SPAN class="fn-text">The decompiler 
 implemented by <A NAME="idx:clause2:482"></A><A class="pred" href="examineprog.html#clause/2">clause/2</A> 
 returns this construct as a normal conjunction too.</SPAN></SUP></DD>
-<DT class="pubdef"><A NAME="\+/1"><STRONG>\+</STRONG> <VAR>+Goal</VAR></A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="\+/1"><STRONG>\+</STRONG> <VAR>+Goal</VAR></A></DT>
 <DD class="defbody">
 True if `Goal' cannot be proven (mnemonic: <CODE><CODE>+</CODE></CODE> 
 refers to <EM>provable</EM> and the backslash (<CODE><CODE>\</CODE></CODE>) 

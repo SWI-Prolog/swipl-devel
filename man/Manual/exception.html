@@ -141,7 +141,7 @@ the debugger and fail, which was the normal behaviour before the
 introduction of exceptions.
 
 <DL>
-<DT class="pubdef"><A NAME="catch/3"><STRONG>catch</STRONG>(<VAR>:Goal, 
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="catch/3"><STRONG>catch</STRONG>(<VAR>:Goal, 
 +Catcher, :Recover</VAR>)</A></DT>
 <DD class="defbody">
 Behaves as <A NAME="idx:call1:505"></A><A class="pred" href="metacall.html#call/1">call/1</A> 
@@ -159,7 +159,7 @@ is very comparable to
 <A NAME="idx:call1:511"></A><A class="pred" href="metacall.html#call/1">call/1</A>. 
 Recovery from an exception is much slower, especially if the 
 exception-term is large due to the copying thereof.</DD>
-<DT class="pubdef"><A NAME="throw/1"><STRONG>throw</STRONG>(<VAR>+Exception</VAR>)</A></DT>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="throw/1"><STRONG>throw</STRONG>(<VAR>+Exception</VAR>)</A></DT>
 <DD class="defbody">
 Raise an exception. The system looks for the innermost <A NAME="idx:catch3:512"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
 ancestor for which <VAR>Exception</VAR> unifies with the <VAR>Catcher</VAR> 

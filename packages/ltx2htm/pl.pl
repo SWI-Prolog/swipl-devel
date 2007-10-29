@@ -204,15 +204,19 @@ cmd(resitem({Resource}),
 			    [ #strong(Resource)
 			    ]))) :-
 	add_to_index(Resource, +Resource).
-cmd(prefixop({RawName}, {Arg}),
-    #defitem(pubdef, #label(RefName, [#strong(Name), ' ', #var(Arg)]))) :-
+cmd(prefixop(A, {RawName}, {Arg}),
+    #defitem(pubdef, Content)) :-
+	pred_tag(A, Content,
+		 #label(RefName, [#strong(Name), ' ', #var(Arg)])),
 	clean_name(RawName, Name),
 	predicate_refname(Name, 1, RefName),
 	add_to_index(RefName, +RefName).
-cmd(infixop({RawName}, {Arg1}, {Arg2}),
-    #defitem(pubdef, #label(RefName,
-		    [ #var(Arg1), ' ', #strong(Name), ' ', #var(Arg2)
-		    ]))) :-
+cmd(infixop(A, {RawName}, {Arg1}, {Arg2}),
+    #defitem(pubdef, Content)) :-
+	pred_tag(A, Content,
+		 #label(RefName,
+			[ #var(Arg1), ' ', #strong(Name), ' ', #var(Arg2)
+			])),
 	clean_name(RawName, Name),
 	predicate_refname(Name, 2, RefName),
 	add_to_index(RefName, +RefName).

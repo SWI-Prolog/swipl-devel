@@ -4280,23 +4280,23 @@ see \secref{artypes} for details), integer operations that would cause
 overflow automatically convert to floating point arithmetic.
 
 \begin{description}
-    \prefixop{-}{+Expr}
+    \prefixop[ISO]{-}{+Expr}
 $\arg{Result} = -\arg{Expr}$
 
     \prefixop{+}{+Expr}
 $\arg{Result} = \arg{Expr}$.  Note that if \chr{+} is followed by a number
 the parser discards the \chr{+}.  I.e.\ \verb$?- integer(+1)$ succeeds.
 
-    \infixop{+}{+Expr1}{+Expr2}
+    \infixop[ISO]{+}{+Expr1}{+Expr2}
 $\arg{Result} = \arg{Expr1} + \arg{Expr2}$
 
-    \infixop{-}{+Expr1}{+Expr2}
+    \infixop[ISO]{-}{+Expr1}{+Expr2}
 $\arg{Result} = \arg{Expr1} - \arg{Expr2}$
 
-    \infixop{*}{+Expr1}{+Expr2}
+    \infixop[ISO]{*}{+Expr1}{+Expr2}
 $\arg{Result} = \arg{Expr1} \times \arg{Expr2}$
 
-    \infixop{/}{+Expr1}{+Expr2}
+    \infixop[ISO]{/}{+Expr1}{+Expr2}
 $\arg{Result} = \frac{\arg{Expr1}}{\arg{Expr2}}$
 The the flag \prologflag{iso} is \const{true}, both arguments are converted
 to float and the return value is a float. Otherwise (default), if both
@@ -4306,7 +4306,7 @@ argument is integer, the operation returns a rational number. In all
 other cases the return value is a float.  See also \predref{//}{2}
 and rdiv/2.
 
-    \infixop{mod}{+IntExpr1}{+IntExpr2}
+    \infixop[ISO]{mod}{+IntExpr1}{+IntExpr2}
 Modulo:
 \mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1} // \arg{IntExpr2})
 $\times$ \arg{IntExpr2}}
@@ -4322,11 +4322,11 @@ behaviour with negative values is illustrated in the table below.
 \end{tabular}
 \end{center}
 
-    \infixop{rem}{+IntExpr1}{+IntExpr2}
+    \infixop[ISO]{rem}{+IntExpr1}{+IntExpr2}
 Remainder of division:
 \mbox{\arg{Result} is float_fractional_part(\arg{IntExpr1}/\arg{IntExpr2})}
 
-    \infixop{//}{+IntExpr1}{+IntExpr2}
+    \infixop[ISO]{//}{+IntExpr1}{+IntExpr2}
 Integer division:
 \mbox{\arg{Result} is truncate(\arg{Expr1}/\arg{Expr2})}
 
@@ -4335,10 +4335,10 @@ Rational number division. This function is only available if
 SWI-Prolog has been compiled with rational number support. See
 \secref{rational} for details.
 
-    \predicate{abs}{1}{+Expr}
+    \predicate[ISO]{abs}{1}{+Expr}
 Evaluate \arg{Expr} and return the absolute value of it.
 
-    \predicate{sign}{1}{+Expr}
+    \predicate[ISO]{sign}{1}{+Expr}
 Evaluate to -1 if $\arg{Expr} < 0$, 1 if $\arg{Expr} > 0$ and 0 if
 $\arg{Expr} = 0$.
 
@@ -4365,10 +4365,10 @@ Evaluates to a random integer \arg{i} for which $0 \leq i < \arg{IntExpr}$.
 The seed of this random generator is determined by the system clock when
 SWI-Prolog was started.
 
-    \predicate{round}{1}{+Expr}
+    \predicate[ISO]{round}{1}{+Expr}
 Evaluates \arg{Expr} and rounds the result to the nearest integer.
 
-    \predicate[ISO]{integer}{1}{+Expr}
+    \predicate{integer}{1}{+Expr}
 Same as round/1 (backward compatibility).
 
     \predicate[ISO]{float}{1}{+Expr}
@@ -4413,59 +4413,59 @@ A = 1 rdiv 4
 A = 1 rdiv 10
 \end{code}
 
-    \predicate{float_fractional_part}{1}{+Expr}
+    \predicate[ISO]{float_fractional_part}{1}{+Expr}
 Fractional part of a floating-point number.  Negative if \arg{Expr} is
 negative, rational if \arg{Expr} is rational and 0 if \arg{Expr} is
 integer.  The following relation is always true:
 $X is float_fractional_part(X) + float_integer_part(X)$.
 
-    \predicate{float_integer_part}{1}{+Expr}
+    \predicate[ISO]{float_integer_part}{1}{+Expr}
 Integer part of floating-point number. Negative if \arg{Expr} is
 negative, \arg{Expr} if \arg{Expr} is integer.
 
-    \predicate{truncate}{1}{+Expr}
+    \predicate[ISO]{truncate}{1}{+Expr}
 Truncate \arg{Expr} to an integer.  If $\arg{Expr} \geq 0$ this is the
 same as \term{floor}{Expr}.  For $\arg{Expr} < 0$ this is the same as
 \term{ceil}{Expr}.  E.i.\ truncate rounds towards zero.
 
-    \predicate{floor}{1}{+Expr}
+    \predicate[ISO]{floor}{1}{+Expr}
 Evaluates \arg{Expr} and returns the largest integer smaller or equal
 to the result of the evaluation.
 
-    \predicate{ceiling}{1}{+Expr}
+    \predicate[ISO]{ceiling}{1}{+Expr}
 Evaluates \arg{Expr} and returns the smallest integer larger or equal
 to the result of the evaluation.
 
     \predicate{ceil}{1}{+Expr}
 Same as ceiling/1 (backward compatibility).
 
-    \infixop{>>}{+IntExpr}{+IntExpr}
+    \infixop[ISO]{>>}{+IntExpr}{+IntExpr}
 Bitwise shift \arg{IntExpr1} by \arg{IntExpr2} bits to the right.  The
 operation performs \jargon{arithmetic shift}, which implies that the
 inserted most significant bits are copies of the original most
 significant bit.
 
-    \infixop{<<}{+IntExpr}{+IntExpr}
+    \infixop[ISO]{<<}{+IntExpr}{+IntExpr}
 Bitwise shift \arg{IntExpr1} by \arg{IntExpr2} bits to the left.
 
-    \infixop{\/}{+IntExpr}{+IntExpr}
+    \infixop[ISO]{\/}{+IntExpr}{+IntExpr}
 Bitwise `or' \arg{IntExpr1} and \arg{IntExpr2}.
 
-    \infixop{/\}{+IntExpr}{+IntExpr}
+    \infixop[ISO]{/\}{+IntExpr}{+IntExpr}
 Bitwise `and' \arg{IntExpr1} and \arg{IntExpr2}.
 
     \infixop{xor}{+IntExpr}{+IntExpr}
 Bitwise `exclusive or' \arg{IntExpr1} and \arg{IntExpr2}.
 
-    \prefixop{\}{+IntExpr}
+    \prefixop[ISO]{\}{+IntExpr}
 Bitwise negation.  The returned value is the one's complement of
 \arg{IntExpr}.
 
-    \predicate{sqrt}{1}{+Expr}
+    \predicate[ISO]{sqrt}{1}{+Expr}
 $\arg{Result} = \sqrt{\arg{Expr}}$
-    \predicate{sin}{1}{+Expr}
+    \predicate[ISO]{sin}{1}{+Expr}
 $\arg{Result} = \sin{\arg{Expr}}$. \arg{Expr} is the angle in radians.
-    \predicate{cos}{1}{+Expr}
+    \predicate[ISO]{cos}{1}{+Expr}
 $\arg{Result} = \cos{\arg{Expr}}$. \arg{Expr} is the angle in radians.
     \predicate{tan}{1}{+Expr}
 $\arg{Result} = \tan{\arg{Expr}}$. \arg{Expr} is the angle in radians.
@@ -4473,19 +4473,19 @@ $\arg{Result} = \tan{\arg{Expr}}$. \arg{Expr} is the angle in radians.
 $\arg{Result} = \arcsin{\arg{Expr}}$. \arg{Result} is the angle in radians.
     \predicate{acos}{1}{+Expr}
 $\arg{Result} = \arccos{\arg{Expr}}$. \arg{Result} is the angle in radians.
-    \predicate{atan}{1}{+Expr}
+    \predicate[ISO]{atan}{1}{+Expr}
 $\arg{Result} = \arctan{\arg{Expr}}$. \arg{Result} is the angle in radians.
     \predicate{atan}{2}{+YExpr, +XExpr}
 $\arg{Result} = \arctan{\frac{\arg{YExpr}}{\arg{XExpr}}}$. \arg{Result} is the
 angle in radians.  The return value is in the range $[-\pi\ldots\pi]$.
 Used to convert between rectangular and polar coordinate system.
-    \predicate{log}{1}{+Expr}
+    \predicate[ISO]{log}{1}{+Expr}
 $\arg{Result} = \ln{\arg{Expr}}$
     \predicate{log10}{1}{+Expr}
 $\arg{Result} = \lg{\arg{Expr}}$
-    \predicate{exp}{1}{+Expr}
+    \predicate[ISO]{exp}{1}{+Expr}
 $\arg{Result} = \pow{e}{\arg{Expr}}$
-    \infixop{**}{+Expr1}{+Expr2}
+    \infixop[ISO]{**}{+Expr1}{+Expr2}
 $\arg{Result} = \pow{\arg{Expr1}}{\arg{Expr2}}$. With unbounded integers
 and integer values for \arg{Expr1} and a non-negative integer
 \arg{Expr2}, the result is always integer. The integer expressions
