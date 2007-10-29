@@ -52,6 +52,7 @@
 	    pred_anchor_name/3,		% +Head, -PI, -Anchor
 	    private/2,			% +Obj, +Options
 	    is_pi/1,			% @Term
+	    is_op_type/2,		% +Atom, ?Type
 					% Output routines
 	    file/3,			% +File, //
 	    include/4,			% +File, +Type, //
@@ -842,28 +843,25 @@ pred_head(Head) -->
 	html(b(class=pred, Head)).
 pred_head(Head) -->			% Infix operators
 	{ Head =.. [Functor,Left,Right],
-	  current_op(_,Type,Functor),
-	  op_type(Type, infix), !
-	},
+	  is_op_type(Functor, infix)
+	}, !,
 	html([ var(class=arglist, \pred_arg(Left, 1)),
-	       b(class=pred, Functor),
+	       ' ', b(class=pred, Functor), ' ',
 	       var(class=arglist, \pred_arg(Right, 2))
 	     ]).
 pred_head(Head) -->			% Prefix operators
 	{ Head =.. [Functor,Arg],
-	  current_op(_,Type,Functor),
-	  op_type(Type, prefix), !
-	},
-	html([ b(class=pred, Functor),
+	  is_op_type(Functor, prefix)
+	}, !,
+	html([ b(class=pred, Functor), ' ',
 	       var(class=arglist, \pred_arg(Arg, 1))
 	     ]).
 pred_head(Head) -->			% Postfix operators
 	{ Head =.. [Functor,Arg],
-	  current_op(_,Type,Functor),
-	  op_type(Type, postfix), !
-	},
+	  is_op_type(Functor, postfix)
+	}, !,
 	html([ var(class=arglist, \pred_arg(Arg, 1)),
-	       b(class=pred, Functor)
+	       ' ', b(class=pred, Functor)
 	     ]).
 pred_head(Head) -->			% Plain terms
 	{ Head =.. [Functor|Args] },
@@ -871,6 +869,15 @@ pred_head(Head) -->			% Plain terms
 	       var(class=arglist,
 		   [ '(', \pred_args(Args, 1), ')' ])
 	     ]).
+
+%%	is_op_type(+Atom, ?Type)
+%
+%	True if Atom is an operator of   Type.  Type is one of =prefix=,
+%	=infix= or =postfix=.
+
+is_op_type(Functor, Type) :-
+	current_op(_Pri, F, Functor),
+	op_type(F, Type).
 
 op_type(fx,  prefix).
 op_type(fy,  prefix).

@@ -1,3 +1,10 @@
+Oct 29, 2007
+
+* ADDED: Support for local operators in comment parser.
+
+* ADDED: library(doc_latex): generate LaTeX from Wiki files and Prolog
+  source files.
+
 Oct 16, 2007
 
 * ADDED: Source-reference to individual predicates.

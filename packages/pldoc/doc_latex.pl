@@ -50,7 +50,8 @@
 		existing_linked_file/2,
 		pred_anchor_name/3,
 		private/2,
-		is_pi/1
+		is_pi/1,
+		is_op_type/2
 	      ]).
 
 /** <module> PlDoc LaTeX backend
@@ -763,17 +764,17 @@ pred_head(//(Head), Options) --> !,
 	latex(cmd(dcg(opt(Atts), Functor, Arity, \pred_args(Args, 1)))).
 pred_head(Head, _Options) -->			% Infix operators
 	{ Head =.. [Functor,Left,Right],
-	  is_op(Functor, infix), !
+	  is_op_type(Functor, infix), !
 	},
 	latex(cmd(infixop(Functor, \pred_arg(Left, 1), \pred_arg(Right, 2)))).
 pred_head(Head, _Options) -->			% Prefix operators
 	{ Head =.. [Functor,Arg],
-	  is_op(Functor, prefix), !
+	  is_op_type(Functor, prefix), !
 	},
 	latex(cmd(prefixop(Functor, \pred_arg(Arg, 1)))).
 pred_head(Head, _Options) -->			% Postfix operators
 	{ Head =.. [Functor,Arg],
-	  is_op(Functor, postfix), !
+	  is_op_type(Functor, postfix), !
 	},
 	latex(cmd(postfixop(Functor, \pred_arg(Arg, 1)))).
 pred_head(Head, Options) -->			% Plain terms
@@ -801,20 +802,6 @@ pred_att(Options, private) :-
 insert_comma([H1,H2|T0], [H1, ','|T]) :- !,
 	insert_comma([H2|T0], T).
 insert_comma(L, L).
-
-
-is_op(Functor, Type) :-
-	current_op(_Pri, F, Functor),
-	op_type(F, Type).
-
-op_type(fx,  prefix).
-op_type(fy,  prefix).
-op_type(xf,  postfix).
-op_type(yf,  postfix).
-op_type(xfx, infix).
-op_type(xfy, infix).
-op_type(yfx, infix).
-op_type(yfy, infix).
 
 
 pred_args([], _) -->
@@ -879,13 +866,13 @@ term(Rest) -->
 	latex(Rest).
 
 term_with_args(Functor, [Left, Right]) -->
-	{ is_op(Functor, infix) }, !,
+	{ is_op_type(Functor, infix) }, !,
 	latex(cmd(infixterm(Functor, \term(Left), \term(Right)))).
 term_with_args(Functor, [Arg]) -->
-	{ is_op(Functor, prefix) }, !,
+	{ is_op_type(Functor, prefix) }, !,
 	latex(cmd(prefixterm(Functor, \term(Arg)))).
 term_with_args(Functor, [Arg]) -->
-	{ is_op(Functor, postfix) }, !,
+	{ is_op_type(Functor, postfix) }, !,
 	latex(cmd(postfixterm(Functor, \term(Arg)))).
 term_with_args(Functor, Args) -->
 	latex(cmd(term(Functor, \pred_args(Args, 1)))).
@@ -910,13 +897,13 @@ termitem(Rest) -->
 	latex(cmd(termitem(Rest, ''))).
 
 termitem_with_args(Functor, [Left, Right]) -->
-	{ is_op(Functor, infix) }, !,
+	{ is_op_type(Functor, infix) }, !,
 	latex(cmd(infixtermitem(Functor, \term(Left), \term(Right)))).
 termitem_with_args(Functor, [Arg]) -->
-	{ is_op(Functor, prefix) }, !,
+	{ is_op_type(Functor, prefix) }, !,
 	latex(cmd(prefixtermitem(Functor, \term(Arg)))).
 termitem_with_args(Functor, [Arg]) -->
-	{ is_op(Functor, postfix) }, !,
+	{ is_op_type(Functor, postfix) }, !,
 	latex(cmd(postfixtermitem(Functor, \term(Arg)))).
 termitem_with_args(Functor, Args) -->
 	latex(cmd(termitem(Functor, \pred_args(Args, 1)))).
