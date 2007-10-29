@@ -31,19 +31,21 @@
 
 
 :- module(prolog_operator,
-	[ push_operators/1,
+	[ push_operators/1,		% +List
+	  push_operators/2,		% +List, -Undo
 	  pop_operators/0,
+	  pop_operators/1,		% +Undo
 	  push_op/3			% Precedence, Type, Name
 	]).
 
 
 /** <module> Manage operators
 
-Often, one wants to define operators to improve the readibility of some
-very specific code. Operators in Prolog are global objects and changing
+Often, one wants to define operators to  improve the readibility of some
+very specific code. Operators in Prolog  are global objects and changing
 operators changes syntax and possible semantics of existing sources. For
-this reason it is desirable to reset operator declarations after the
-code that needs them has been read. This module defines a rather cruel
+this reason it is desirable  to   reset  operator declarations after the
+code that needs them has been read.   This module defines a rather cruel
 -but portable- method to do this. 
 
 Usage:
@@ -59,6 +61,10 @@ hello_world World :-
 
 :- pop_operators.
 ==
+
+While the above are for  source-code,   the  calls  push_operators/2 and
+pop_operators/1 can be used  for  local   processing  where  it  is more
+comfortable to carry the undo context around.
 
 NOTE: In recent versions of SWI-Prolog operators   are local to a module
 and can be exported using the syntax   below.  This is not portable, but
@@ -79,20 +85,25 @@ otherwise a more structured approach for operator handling.
 
 :- module_transparent
 	push_operators/1,
+	push_operators/2,
 	push_op/3.
 
-%%	push_operators(+New) is det.
+%%	push_operators(:New) is det.
+%%	push_operators(:New, -Undo) is det.
 %	
 %	Installs the operators from New, where New is a list of op(Prec,
 %	Type, :Name). The modifications to the operator table are undone
 %	in a matching call to pop_operators/0.
 
-push_operators(New) :-
+push_operators(New, Undo) :-
 	strip_module(New, Module, Ops0),
 	tag_ops(Ops0, Module, Ops),
-	assert_op(mark),
 	undo_operators(Ops, Undo),
-	set_operators(Ops),
+	set_operators(Ops).
+
+push_operators(New) :-
+	push_operators(New, Undo),
+	assert_op(mark),
 	assert_op(Undo).
 
 %%	push_op(+Precedence, +Type, :Name) is det.
@@ -123,6 +134,13 @@ pop_operators :-
 	;   set_operators(Undo),
 	    fail
 	).
+
+%%	pop_operators(+Undo) is det.
+%
+%	Reset operators as pushed by push_operators/2.
+
+pop_operators(Undo) :-
+	set_operators(Undo).
 
 tag_ops([], _, []).
 tag_ops([op(P,Tp,N0)|T0], M, [op(P,Tp,N)|T]) :-
