@@ -952,19 +952,19 @@ label(Vs) :- labeling([], Vs).
 % variable should be labeled next and is one of:
 %
 %   * leftmost
-% Label the variables in the order they occur in Vars. This is the
-% default.
+%   Label the variables in the order they occur in Vars. This is the
+%   default.
 %
 %   * ff
-% "First fail". Label the leftmost variable with smallest domain next,
-% in order to detect infeasibility early. This is often a good
-% strategy.
+%   _|First fail|_. Label the leftmost variable with smallest domain next,
+%   in order to detect infeasibility early. This is often a good
+%   strategy.
 %
 %   * min
-% Label the leftmost variable whose lower bound is the lowest next.
+%   Label the leftmost variable whose lower bound is the lowest next.
 %
 %   * max
-% Label the leftmost variable whose upper bound is the highest next.
+%   Label the leftmost variable whose upper bound is the highest next.
 %
 % The second set of options lets you influence the order of solutions:
 %
