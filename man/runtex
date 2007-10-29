@@ -7,6 +7,7 @@ tex=latex
 format=dvi
 rerun='Rerun to get cross-references right'
 maxruns=4
+quiet=false
 
 function texclean
 { rm -f *.idx *.ind *.ilg *.aux *.log *.lof *.out *.toc
@@ -93,7 +94,7 @@ if [ "x`getopt --test`" = "x--" ]; then
    esac
 fi
 
-TEMP=`getopt -o n --long tex:,pdf,help,dvi,clean,maxruns,inputs: \
+TEMP=`getopt -o n --long tex:,pdf,help,dvi,quiet,clean,maxruns,inputs: \
      -n $program -- "$@"`
 if [ $? != 0 ] ; then echo "$program: use $program --help for options" >&2 ; exit 1 ; fi
 eval set -- "$TEMP"
@@ -107,6 +108,9 @@ while true ; do
         --dvi)
 	    tex=latex
 	    format=dvi
+	    shift ;;
+	--quiet)
+	    quiet=true;
 	    shift ;;
 	--maxruns)
 	    maxruns="$2"
@@ -187,7 +191,11 @@ while [ $cont != "no" ]; do
         make -f $appbase/Makefile.pdf
     fi
     rm -f $doc.log
-    $tex $doc -file-line-error -halt-on-error >/dev/null
+    if [ $quiet == true ]; then
+        $tex $doc -file-line-error -halt-on-error >/dev/null
+    else
+	$tex $doc
+    fi
     if [ $? != 0 ]; then
         rm -f $doc.idx.$$
         exit $?;

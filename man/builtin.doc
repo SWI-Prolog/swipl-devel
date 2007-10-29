@@ -952,14 +952,14 @@ so called ``standard order''. This order is defined as follows:
 
 
 \begin{description}
-    \infixop{==}{+Term1}{+Term2}
+    \infixop[ISO]{==}{+Term1}{+Term2}
 True if \arg{Term1} is equivalent to \arg{Term2}. A variable is only
 identical to a sharing variable.
 
-    \infixop{\==}{+Term1}{+Term2}
+    \infixop[ISO]{\==}{+Term1}{+Term2}
 Equivalent to \exam{\Snot Term1 == Term2}.
 
-    \infixop{=}{+Term1}{+Term2}
+    \infixop[ISO]{=}{+Term1}{+Term2}
 Unify \arg{Term1} with \arg{Term2}. True if the unification succeeds.
 For behaviour on cyclic terms see the Prolog flag
 \prologflag{occurs_check}.
@@ -986,10 +986,10 @@ thus fails. Note that the behaviour of unification through
 \predref{=}{2} as well as implicit unification in the head can be
 changed using the Prolog flag \prologflag{occurs_check}.
 
-    \infixop{\=}{+Term1}{+Term2}
+    \infixop[ISO]{\=}{+Term1}{+Term2}
 Equivalent to \exam{\Snot Term1 = Term2}.
 
-    \infixop{=@=}{+Term1}{+Term2}
+    \infixop[ISO]{=..}{+Term1}{+Term2}
 True if \arg{Term1} is `structurally equal' to \arg{Term2}.
 Structural equivalence is weaker than equivalence (\predref{==}{2}), but
 stronger than unification (\predref{=}{2}). Two terms are structurally
@@ -1013,17 +1013,17 @@ attributes are structurally equal.
     \infixop{\=@=}{+Term1}{+Term2}
 Equivalent to \exam{`\Snot Term1 =@= Term2'}.
 
-    \infixop{@<}{+Term1}{+Term2}
+    \infixop[ISO]{@<}{+Term1}{+Term2}
 True if \arg{Term1} is before \arg{Term2} in the standard order of terms.
 
-    \infixop{@=<}{+Term1}{+Term2}
+    \infixop[ISO]{@=<}{+Term1}{+Term2}
 True if both terms are equal (\predref{==}{2}) or \arg{Term1} is
 before \arg{Term2} in the standard order of terms.
 
-    \infixop{@>}{+Term1}{+Term2}
+    \infixop[ISO]{@>}{+Term1}{+Term2}
 True if \arg{Term1} is after \arg{Term2} in the standard order of terms.
 
-    \infixop{@>=}{+Term1}{+Term2}
+    \infixop[ISO]{@>=}{+Term1}{+Term2}
 True if both terms are equal (\predref{==}{2}) or \arg{Term1} is
 after \arg{Term2} in the standard order of terms.
 
@@ -1095,14 +1095,14 @@ condition.%
 \exam{t4 :- \Snot (a, !, fail ; b).}    & \% cuts {a}/0 \\
 \end{tabular}\end{center}
 
-\infixop{,}{+Goal1}{+Goal2}
+\infixop[ISO]{,}{+Goal1}{+Goal2}
 Conjunction.  True if both `Goal1' and `Goal2' can be proved.  It is
 defined as (this definition does not lead to a loop as the second comma
 is handled by the compiler):
 \begin{code}
 Goal1, Goal2 :- Goal1, Goal2.
 \end{code}
-\infixop{;}{+Goal1}{+Goal2}
+\infixop[ISO]{;}{+Goal1}{+Goal2}
 The `or' predicate is defined as:
 \begin{code}
 Goal1 ; _Goal2 :- Goal1.
@@ -1113,7 +1113,7 @@ _Goal1 ; Goal2 :- Goal2.
 Equivalent to \predref{;}{2}.  Retained for compatibility only.  New code
 should use \predref{;}{2}.
 
-\infixop{->}{+Condition}{+Action}
+\infixop[ISO]{->}{+Condition}{+Action}
 If-then and If-Then-Else. The \predref{->}{2} construct commits to
 the choices made at its left-hand side, destroying choice-points created
 inside the clause (by \predref{;}{2}), or by goals called by
@@ -1148,7 +1148,7 @@ The construct \arg{A} \verb$*->$ \arg{B}, i.e.\ without an
 	\bug{The decompiler implemented by clause/2 returns this
 	     construct as a normal conjunction too.}
 
-\prefixop{\+}{+Goal}
+\prefixop[ISO]{\+}{+Goal}
 True if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
 provable} and the backslash (\chr{\}) is normally used to
 indicate negation in Prolog).
@@ -3419,7 +3419,7 @@ $\arg{Arg} > \mbox{\em arity}$ and raises the exception
 \errorterm{domain_error}{not_less_then_zero, \arg{Arg}} if $\arg{Arg} <
 0$.
 
-    \infixop{=..}{?Term}{?List}
+    \infixop[ISO]{=..}{?Term}{?List}
 \arg{List} is a list which head is the functor of \arg{Term} and the
 remaining arguments are the arguments of the term. Each of the
 arguments may be a variable, but not both.  This predicate is called
@@ -4116,29 +4116,29 @@ performance. Unfortunately compiled arithmetic cannot be traced, which
 is why it is optional.
 
 \begin{description}
-    \infixop{>}{+Expr1}{+Expr2}
+    \infixop[ISO]{>}{+Expr1}{+Expr2}
 True if expression \arg{Expr1} evaluates to a larger number than \arg{Expr2}.
 
-\infixop{<}{+Expr1}{+Expr2}
+\infixop[ISO]{<}{+Expr1}{+Expr2}
 True if expression \arg{Expr1} evaluates to a smaller number than \arg{Expr2}.
 
-\infixop{=<}{+Expr1}{+Expr2}
+\infixop[ISO]{=<}{+Expr1}{+Expr2}
 True if expression \arg{Expr1} evaluates to a smaller or equal number
 to \arg{Expr2}.
 
-\infixop{>=}{+Expr1}{+Expr2}
+\infixop[ISO]{>=}{+Expr1}{+Expr2}
 True if expression \arg{Expr1} evaluates to a larger or equal number
 to \arg{Expr2}.
 
-\infixop{=\=}{+Expr1}{+Expr2}
+\infixop[ISO]{=..}{+Expr1}{+Expr2}
 True if expression \arg{Expr1} evaluates to a number non-equal to
 \arg{Expr2}.
 
-\infixop{=:=}{+Expr1}{+Expr2}
+\infixop[ISO]{=..}{+Expr1}{+Expr2}
 True if expression \arg{Expr1} evaluates to a number equal to \arg{
 Expr2}.
 
-\infixop{is}{-Number}{+Expr}
+\infixop[ISO]{is}{-Number}{+Expr}
 True if \arg{Number} has successfully been unified with the number
 \arg{Expr} evaluates to.  If \arg{Expr} evaluates to a float that can be
 represented using an integer (i.e, the value is integer and within the

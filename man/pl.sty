@@ -145,6 +145,7 @@
 	\defentry{#1}%
 	\index{#1}\ignorespaces}
 \makeatletter
+\def\predatt#1{\hfill{\it\footnotesize[#1]}}
 \def\predicate{\@ifnextchar[{\@attpredicate}{\@predicate}}
 \def\@predicate#1#2#3{%
 	\ifthenelse{\equal{#2}{0}}{%
@@ -153,8 +154,8 @@
 	\index{#1/#2}\ignorespaces}
 \def\@attpredicate[#1]#2#3#4{%
 	\ifthenelse{\equal{#3}{0}}{%
-	    \defentry{#2\hfill{\it\footnotesize[#1]}}}{%
-	    \defentry{#2({\it #4})\hfill{\it\footnotesize[#1]}}}%
+	    \defentry{#2\predatt{#1}}}{%
+	    \defentry{#2({\it #4})\predatt{#1}}}%
 	\index{#2/#3}\ignorespaces}
 \def\dcg{\@ifnextchar[{\@attdcg}{\@dcg}}
 \def\@dcg#1#2#3{%
@@ -164,16 +165,24 @@
 	\index{#1/#2}\ignorespaces}
 \def\@attdcg[#1]#2#3#4{%
 	\ifthenelse{\equal{#3}{0}}{%
-	    \defentry{#2 \texttt{//}\hfill{\it\footnotesize[#1]}}}{%
-	    \defentry{#2({\it #4}) \texttt{//}\hfill{\it\footnotesize[#1]}}}%
+	    \defentry{#2 \texttt{//}\predatt{#1}}}{%
+	    \defentry{#2({\it #4}) \texttt{//}\predatt{#1}}}%
 	\index{#2//#3}\ignorespaces}
-\makeatother
-\newcommand{\infixop}[3]{%
+\def\infixop{\@ifnextchar[{\@attinfixop}{\@infixop}}
+\def\@infixop#1#2#3{%
 	\defentry{{\it #2} #1 {\it #3}}%
 	\index{#1/2}\ignorespaces}
-\newcommand{\prefixop}[2]{%
+\def\@attinfixop[#1]#2#3#4{%
+	\defentry{{\it #3} #2 {\it #4}\predatt{#1}}%
+	\index{#2/2}\ignorespaces}
+\def\prefixop{\@ifnextchar[{\@attprefixop}{\@prefixop}}
+\def\@prefixop#1#2{%
 	\defentry{#1 {\it #2}}%
 	\index{#1/1}\ignorespaces}
+\def\@attprefixop[#1]#2#3{%
+	\defentry{#1 {\it #2}\predatt{#1}}%
+	\index{#1/1}\ignorespaces}
+\makeatother
 
 %	\termitem{functor}{Args}
 %	\infixtermitem{functor}{Left}{Right}
