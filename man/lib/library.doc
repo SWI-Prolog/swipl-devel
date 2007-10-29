@@ -38,6 +38,7 @@ documented at all.
 \input{netscape}
 \input{registry}
 \input{url}
+\input{clpfd}
 \input{bounds}
 \input{clpqr}
 \input{clpdistinct}

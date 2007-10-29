@@ -4,7 +4,7 @@
 # Building the various versions of the documentation requires
 # a lot of software to be at the right place.  Generally, please
 # pick the required version from the SWI-Prolog home page at
-# http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+# http://www.swi-prolog.org/
 #
 # If you insist building it yourself, at least check the following
 #
@@ -15,10 +15,13 @@
 #		- pdflatex
 #		- latex2html from the html subdirectory of Prolog
 #		- gcc (for ccp as well as building modified dvi2tty)
+#	* The PlDoc generated manuals need to installed system as
+#	  $(PUBLICPL)
 #
 ################################################################
 
-PL=		../linux/pl
+PUBLICPL=	pl
+PL=		../linux/$(PUBLICPL)
 
 CP=		ln -fs
 CCCP=		gcc -E -C -P
@@ -42,7 +45,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
 		lib/nbset.tex lib/clpdistinct.tex lib/summary.tex \
 		lib/simplex.tex lib/assoc.tex lib/prologxref.tex \
 		lib/ugraphs.tex lib/ordsets.tex lib/broadcast.tex \
-		lib/record.tex
+		lib/record.tex lib/clpfd.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
@@ -173,6 +176,16 @@ beta-install::
 		cp -a Manual $(BETAMAN)
 		install -m 644 MANUAL.pdf $(FTPDIR)/BETA/Manual.pdf
 		tar zcf $(FTPDIR)/BETA/Manual.html.tgz Manual
+
+################################################################
+# PlDoc generated manual files
+################################################################
+
+LIBTOTEX=$(PUBLICPL) -q -s libtotex.pl -g libtotex --
+
+lib/clpfd.tex:	../library/clp/clpfd.pl
+		$(LIBTOTEX) 'library(clpfd)'
+
 
 ################################################################
 # Windows readme

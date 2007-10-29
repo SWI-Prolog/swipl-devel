@@ -115,6 +115,10 @@ This library is only available on Windows systems.
 \predicatesummary{www_form_encode}{2}{Encode or decode form-data}
 \end{summarylist}
 
+\subsection{\pllib{clp/clpfd}}
+
+\input{summaries.d/clpfd.tex}
+
 \subsection{\pllib{clp/bounds}}
 
 \begin{summarylist}{ll}
