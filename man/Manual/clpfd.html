@@ -205,10 +205,10 @@ strictly smaller than Expr2 </TD></TR>
 
 </BLOCKQUOTE>
 
-<P>The constraints <A class="pred" href="clpfd.html##=/2">#=/2</A>, <A class="pred" href="clpfd.html##\=/2">#\=/2</A>, <A class="pred" href="clpfd.html##</2">#&lt;/2</A>, <A class="pred" href="clpfd.html##>/2">#&gt;/2</A>, <A class="pred" href="clpfd.html##=</2">#=&lt;/2</A>, <A class="pred" href="clpfd.html##>=/2">#&gt;=/2</A> 
+<P>The constraints <A class="pred" href="clpbounds.html##=/2">#=/2</A>, <A class="pred" href="clpbounds.html##\=/2">#\=/2</A>, <A class="pred" href="clpfd.html##</2">#&lt;/2</A>, <A class="pred" href="clpbounds.html##>/2">#&gt;/2</A>, <A class="pred" href="clpbounds.html##=</2">#=&lt;/2</A>, <A class="pred" href="clpbounds.html##>=/2">#&gt;=/2</A> 
 and <A class="pred" href="clpfd.html##\/1">#\/1</A> can be
 <I>reified</I>, which means reflecting their truth values into Boolean 
-0/1 variables. Let P and Q denote conjunctions (<A class="pred" href="clpfd.html##/\/2">#/\/2</A>) 
+0/1 variables. Let P and Q denote conjunctions (<SPAN class="pred-ext">#/\/2</SPAN>) 
 or disjunctions (<A class="pred" href="clpfd.html##\//2">#\//2</A>) of 
 reifiable constraints or Boolean variables, then:
 <BLOCKQUOTE>
@@ -313,43 +313,31 @@ Constrain <VAR>Vars</VAR> to be pairwise distinct.</DD>
 <DT class="pubdef"><A NAME="sum/3"><STRONG>sum</STRONG>(<VAR>+Vars, +Op, 
 +Expr</VAR>)</A></DT>
 <DD class="defbody">
-Constrain the sum of all integers or variables in <VAR>Vars</VAR> to the 
-relation <VAR>Op</VAR> (for example: <CODE>#=&lt;</CODE>) with respect 
-to <VAR>Expr</VAR>.</DD>
-<DT class="pubdef"><A NAME="#>=/2"><VAR>?X</VAR> <STRONG>#&gt;=</STRONG> <VAR>?Y</VAR></A></DT>
-<DD class="defbody">
-<VAR>X</VAR> is greater than or equal to <VAR>Y</VAR>.</DD>
-<DT class="pubdef"><A NAME="#=</2"><VAR>?X</VAR> <STRONG>#=&lt;</STRONG> <VAR>?Y</VAR></A></DT>
-<DD class="defbody">
-<VAR>X</VAR> is less than or equal to <VAR>Y</VAR>.</DD>
-<DT class="pubdef"><A NAME="#=/2"><VAR>?X</VAR> <STRONG>#=</STRONG> <VAR>?Y</VAR></A></DT>
-<DD class="defbody">
-<VAR>X</VAR> equals <VAR>Y</VAR>.</DD>
-<DT class="pubdef"><A NAME="#\=/2"><VAR>?X</VAR> <STRONG>#\=</STRONG> <VAR>?Y</VAR></A></DT>
-<DD class="defbody">
-<VAR>X</VAR> is not <VAR>Y</VAR>.</DD>
-<DT class="pubdef"><A NAME="#>/2"><VAR>?X</VAR> <STRONG>#&gt;</STRONG> <VAR>?Y</VAR></A></DT>
-<DD class="defbody">
-<VAR>X</VAR> is greater than <VAR>Y</VAR>.</DD>
+Constrain the sum of a list. The <A class="pred" href="clpfd.html#sum/3">sum/3</A> 
+constraint demands that "sumlist(<VAR>Vars</VAR>) <VAR>Op</VAR> <VAR>Expr</VAR>" 
+holds. I.e.
+
+<PRE class="code">
+        sum(List, #=&lt; 100)
+</PRE>
+
+</DD>
 <DT class="pubdef"><A NAME="#</2"><VAR>?X</VAR> <STRONG>#&lt;</STRONG> <VAR>?Y</VAR></A></DT>
 <DD class="defbody">
 <VAR>X</VAR> is less than <VAR>Y</VAR>.</DD>
 <DT class="pubdef"><A NAME="#\/1"><STRONG>#\</STRONG> <VAR>+Q</VAR></A></DT>
 <DD class="defbody">
 The reifiable constraint <VAR>Q</VAR> does <I>not</I> hold.</DD>
-<DT class="pubdef"><A NAME="#<==>/2"><VAR>P</VAR> <STRONG>#&lt;==&gt;</STRONG> <VAR>Q</VAR></A></DT>
+<DT class="pubdef"><A NAME="#<==>/2"><VAR>?P</VAR> <STRONG>#&lt;==&gt;</STRONG> <VAR>?Q</VAR></A></DT>
 <DD class="defbody">
 <VAR>P</VAR> and <VAR>Q</VAR> are equivalent.</DD>
-<DT class="pubdef"><A NAME="#==>/2"><VAR>P</VAR> <STRONG>#==&gt;</STRONG> <VAR>Q</VAR></A></DT>
+<DT class="pubdef"><A NAME="#==>/2"><VAR>?P</VAR> <STRONG>#==&gt;</STRONG> <VAR>?Q</VAR></A></DT>
 <DD class="defbody">
 <VAR>P</VAR> implies <VAR>Q</VAR>.</DD>
-<DT class="pubdef"><A NAME="#<==/2"><VAR>P</VAR> <STRONG>#&lt;==</STRONG> <VAR>Q</VAR></A></DT>
+<DT class="pubdef"><A NAME="#<==/2"><VAR>?P</VAR> <STRONG>#&lt;==</STRONG> <VAR>?Q</VAR></A></DT>
 <DD class="defbody">
-<VAR>Q</VAR> implies <VAR>P</VAR>.</DD>
-<DT class="pubdef"><A NAME="#/\/2"><VAR>P</VAR> <STRONG>#/\</STRONG> <VAR>Q</VAR></A></DT>
-<DD class="defbody">
-<VAR>P</VAR> and <VAR>Q</VAR> hold.</DD>
-<DT class="pubdef"><A NAME="#\//2"><VAR>P</VAR> <STRONG>#\/</STRONG> <VAR>Q</VAR></A></DT>
+?<VAR>Q</VAR> implies ?<VAR>P</VAR>.</DD>
+<DT class="pubdef"><A NAME="#\//2"><VAR>?P</VAR> <STRONG>#\/</STRONG> <VAR>?Q</VAR></A></DT>
 <DD class="defbody">
 <VAR>P</VAR> or <VAR>Q</VAR> holds.</DD>
 <DT class="pubdef"><A NAME="lex_chain/1"><STRONG>lex_chain</STRONG>(<VAR>+Lists</VAR>)</A></DT>
@@ -368,12 +356,19 @@ with stronger propagation.</DD>
 <DT class="pubdef"><A NAME="serialized/2"><STRONG>serialized</STRONG>(<VAR>+Starts, 
 +Durations</VAR>)</A></DT>
 <DD class="defbody">
+Constraint a set of intervals to a non-overlapping sequence.
 <VAR>Starts</VAR> = [S_1,...,S_n], is a list of variables or integers,
 <VAR>Durations</VAR> = [D_1,...,D_n] is a list of non-negative integers. 
 Constrains <VAR>Starts</VAR> and <VAR>Durations</VAR> to denote a set of 
 non-overlapping tasks, i.e.: S_i + D_i <CODE>=&lt;</CODE> S_j or S_j + 
 D_j <CODE>=&lt;</CODE> S_i for all 1 <CODE>=&lt;</CODE> i <VAR>&lt;</VAR> 
 j <CODE>=&lt;</CODE> n.
+
+<DL>
+<DT><B>See also</B><DD> Dorndorf et al. 2000, "Constraint Propagation 
+Techniques for the Disjunctive Scheduling Problem"
+</DL>
+
 </DD>
 </DL>
 

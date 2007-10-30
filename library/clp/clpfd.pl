@@ -1170,10 +1170,14 @@ all_different([X|Right], Left) :-
         ),
         all_different(Right, [X|Left]).
 
-%% sum(+Vars, +Op, +Expr)
+%%	sum(+Vars, +Op, +Expr)
 %
-% Constrain the sum of all integers or variables in Vars to the
-% relation Op (for example: #=<) with respect to Expr.
+%	Constrain the sum of a list.  The sum/3 constraint demands that
+%	"sumlist(Vars) Op Expr" holds.  I.e.
+%	
+%	==
+%		sum(List, #=< 100)
+%	==
 
 sum(Ls, Op, Value) :- sum(Ls, 0, Op, Value).
 
@@ -1313,25 +1317,25 @@ mymin(X, Y, Z) :-
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
-%% #>=(?X, ?Y)
+%% ?X #>= ?Y
 %
 % X is greater than or equal to Y.
 
 X #>= Y :- parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY).
 
-%% #=<(?X, ?Y)
+%% ?X #=< ?Y
 %
 % X is less than or equal to Y.
 
 X #=< Y :- parse_clpfd(X,RX), parse_clpfd(Y,RY), leq(RX,RY).
 
-%% #=(?X, ?Y)
+%% ?X #= ?Y
 %
 % X equals Y.
 
 X #= Y  :- parse_clpfd(X,RX), parse_clpfd(Y,RX).
 
-%% #\=(?X, ?Y)
+%% ?X #\= ?Y
 %
 % X is not Y.
 
@@ -1344,7 +1348,7 @@ X #\= Y :-
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
         ).
 
-%% #>(?X, ?Y)
+%% ?X #> ?Y
 %
 % X is greater than Y.
 
@@ -1356,37 +1360,37 @@ X #> Y  :- Z #= Y + 1, X #>= Z.
 
 X #< Y  :- Y #> X.
 
-%% #\(+Q)
+%% #\ +Q
 %
 % The reifiable constraint Q does _not_ hold.
 
 #\ Q       :- reify(Q, 0), do_queue.
 
-%% P #<==> Q
+%% ?P #<==> ?Q
 %
 % P and Q are equivalent.
 
 L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 
-%% P #==> Q
+%% ?P #==> ?Q
 %
 % P implies Q.
 
 L #==> R   :- reify(L, BL), reify(R, BR), myimpl(BL, BR), do_queue.
 
-%% #<==(P, Q)
+%% ?P #<== ?Q
 %
-% Q implies P.
+% ?Q implies ?P.
 
 L #<== R   :- reify(L, BL), reify(R, BR), myimpl(BR, BL), do_queue.
 
-%% #/\(P, Q)
+%% ?P, #/\ ?Q
 %
 % P and Q hold.
 
 L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 
-%% #\/(P, Q)
+%% ?P #\/ ?Q
 %
 % P or Q holds.
 
@@ -2405,13 +2409,17 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 
 % Currently implements 2-b-consistency
 
-%% serialized(+Starts, +Durations)
+%%	serialized(+Starts, +Durations)
 %
-%  Starts = [S_1,...,S_n], is a list of variables or integers,
-%  Durations = [D_1,...,D_n] is a list of non-negative integers.
-%  Constrains Starts and Durations to denote a set of non-overlapping
-%  tasks, i.e.: S_i + D_i =< S_j or S_j + D_j =< S_i for all 1 =< i <
-%  j =< n.
+%	Constraint a set of  intervals   to  a non-overlapping sequence.
+%	Starts = [S_1,...,S_n], is a  list   of  variables  or integers,
+%	Durations = [D_1,...,D_n] is a   list  of non-negative integers.
+%	Constrains  Starts  and   Durations   to    denote   a   set  of
+%	non-overlapping tasks, i.e.: S_i + D_i =<   S_j  or S_j + D_j =<
+%	S_i for all 1 =< i < j =< n.
+%  
+%  @see Dorndorf et al. 2000, "Constraint Propagation Techniques for the
+%	Disjunctive Scheduling Problem"
 
 serialized(Starts, Durations) :-
         pair_up(Starts, Durations, SDs),

@@ -28,8 +28,8 @@
 */
 
 :- module(online,
-	[ online_index/2
-	, online_index/0
+	[ online_index/2,
+	  online_index/0
 	]).
 :- use_module(library(debug)).
 
@@ -89,6 +89,7 @@ online_index :-
 	online_index(Manual, Index).
 
 online_index(In, Out) :-
+	load_urldefs,
 	parse_summaries('summary.doc'),
 	open(In, read, InFd),
 	call_cleanup(read_index(InFd), close(InFd)),
@@ -450,7 +451,7 @@ section_index([C|R]) -->
 	skip_blanks.
 
 subindex([S|R]) -->
-	char(0'.), !,
+	char(0'.), !,			% '
 	number(S),
 	subindex(R).
 subindex([]) -->
@@ -593,7 +594,11 @@ next_index(L, N) :-
 		*       PARSE SUMMARIES         *
 		********************************/
 	
-%	parse_summaries(+File)
+:- dynamic
+	summary_file/2.
+
+%%	parse_summaries(+File)
+%
 %	Reads the predicate summary chapter of the manual to get the
 %	summary descriptions.  Normally this file is called summary.doc
 
@@ -605,8 +610,10 @@ parse_summaries(File) :-
 	;   DocFile = File
 	),
 	open(DocFile, read, In),
-	parse_summary_stream(In),
-	close(In).
+	asserta(summary_file(File, In), Ref),
+	call_cleanup(parse_summary_stream(In),
+		     (	 erase(Ref),
+			 close(In))).
 
 parse_summary_stream(In) :-
 	at_end_of_stream(In), !.
@@ -657,7 +664,12 @@ parse_summary(0, _, _) -->		% include a file
 	"\\input",
 	tex_arg(File),
 	string(_),
-	{ parse_summaries(File)
+	{ summary_file(Parent, _),
+	  absolute_file_name(File, Path,
+			     [ access(read),
+			       relative_to(Parent)
+			     ]),
+	  parse_summaries(Path)
 	}.
 parse_summary(0, _, _) -->
 	(   "%"
@@ -690,7 +702,14 @@ tex_arg(Value) -->
 	"{",
 	tex_arg_string(String),
 	"}",
-	{ name(Value, String) }.
+	{ name(Value0, String),
+	  (   atom(Value0),
+	      atom_concat(\, Cmd, Value0),
+	      urldef(Cmd, Value1)
+	  ->  Value = Value1
+	  ;   Value = Value0
+	  )
+	}.
 
 tex_arg_string(Value) -->
 	"{", !,
@@ -731,14 +750,15 @@ tex_expand(predref(Name, Arity), Out) :- !,
 tex_expand(hook(Module), Out) :- !,
 	flatten(["Hook (", Module, ")"], Out).
 tex_expand(In, "") :-
-	format('ERROR: could not expand TeX command ~w~n', [In]).
+	format('ERROR: could not expand TeX command ~q~n', [In]).
 
 untex(S) -->
 	"\\", !,
 	tex_command(Cmd),
 	tex_args(Args),
 	{ TexTerm =.. [Cmd|Args],
-	  tex_expand(TexTerm, S0)},
+	  tex_expand(TexTerm, S0)
+	},
 	untex(S1),
 	{ append(S0, S1, S)
 	}.
@@ -773,3 +793,64 @@ string([C|R]) -->
 	string(R).
 
 peek(C, [C|T], [C|T]).
+
+
+%	NOTE: This code is copied from doc_latex.pl from PlDoc.
+
+%%	urldef(?DefName, ?String)
+%
+%	True if \DefName is  a  urldef   for  String.  UrlDefs are LaTeX
+%	sequences that can be used to  represent strings with symbols in
+%	fragile environments. Whenever a word can   be  expressed with a
+%	urldef, we will  do  this  to   enhance  the  robustness  of the
+%	generated LaTeX code.
+
+:- dynamic
+	urldef/2,
+	urldefs_loaded/1.
+
+%%	load_urldefs.
+%%	load_urldefs(+File)
+%
+%	Load   =|\urldef|=   definitions   from    File   and   populate
+%	urldef_name/2. See =|pldoc.sty|= for details.
+
+load_urldefs :-
+	urldefs_loaded(_), !.
+load_urldefs :-
+	load_urldefs('pl.sty').
+
+load_urldefs(File) :-
+	urldefs_loaded(File), !.
+load_urldefs(File) :-
+	open(File, read, In),
+	call_cleanup((   read_line_to_codes(In, L0),
+			 process_urldefs(L0, In)),
+		     close(In)),
+	assert(urldefs_loaded(File)).
+
+process_urldefs(end_of_file, _) :- !.
+process_urldefs(Line, In) :-
+	(   phrase(urldef(Name, String), Line)
+	->  assert(urldef(Name, String))
+	;   true
+	),
+	read_line_to_codes(In, L2),
+	process_urldefs(L2, In).
+
+urldef(Name, String) -->
+	"\\urldef{\\", string(NameS), "}\\satom{", string(StringS), "}",
+	ws,
+	(   "%"
+	->  string(_)
+	;   []
+	),
+	eol, !,
+	{ atom_codes(Name, NameS),
+	  atom_codes(String, StringS)
+	}.
+
+ws --> [C], { C =< 32 }, !, ws.
+ws --> [].
+
+eol([],[]).
