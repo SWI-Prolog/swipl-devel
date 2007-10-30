@@ -153,45 +153,40 @@ Most predicates of this library are _constraints_: They generalise
 arithmetic evaluation of integer expressions in that propagation can
 proceed in all directions. This library also provides _enumeration_
 _predicates_, which let you systematically search for solutions on
-variables whose domains have become finite.
+variables whose domains have become finite. A finite domain _expression_
+is one of:
 
-A finite domain _expression_ is one of:
+    | an integer	 | Given value			 |
+    | a variable	 | Unknown value		 |
+    | -Expr		 | Unary minus			 |
+    | Expr + Expr	 | Addition			 |
+    | Expr * Expr	 | Multiplication		 |
+    | Expr - Expr.	 | Substraction			 |
+    | min(Expr,Expr) | Minimum of two values	 |
+    | max(Expr,Expr) | Maximum of two values	 |
+    | Expr mod Expr	 | Remainder of integer division |
+    | abs(Expr)	 | Absolute value		 |
+    | Expr / Expr	 | integer division		 |
 
-    * an integer
-    * a variable
-    * -Expr
-    * Expr + Expr
-    * Expr * Expr
-    * Expr - Expr.
-    * min(Expr,Expr)
-    * max(Expr,Expr)
-    * Expr mod Expr
-    * abs(Expr)
-    * Expr / Expr
-      (integer division)
+The most important finite domain _constraints_ are given in the tabe
+below.
 
-The most important finite domain _constraints_ are:
-
-    * Expr #>= Expr
-    * Expr #=< Expr
-    * Expr #=  Expr
-    * Expr #\= Expr
-    * Expr #> Expr
-    * Expr #< Expr
+    | Expr1 #>= Expr2  | Expr1 is larger or equal to Expr2  |
+    | Expr1 #=< Expr2  | Expr1 is smaller or equal to Expr2 |
+    | Expr1 #=  Expr2  | Expr1 is equal to Expr2 |
+    | Expr1 #\= Expr2  | Expr1 is not equal to Expr2 |
+    | Expr1 #> Expr2   | Expr1 is strictly larger than Expr2 |
+    | Expr1 #< Expr2   | Expr1 is strictly smaller than Expr2 |
 
 The constraints #=/2, #\=/2, #</2, #>/2, #=</2, #>=/2 and #\/1 can be
 _reified_, which means reflecting their truth values into Boolean 0/1
 variables. Let P and Q denote conjunctions (#/\/2) or disjunctions
 (#\//2) of reifiable constraints or Boolean variables, then:
 
-    * #\ Q
-    True iff Q is false.
-    * P #<==> Q
-    True iff P and Q are equivalent.
-    * P #==> Q
-    True iff P implies Q.
-    * P #<== Q
-    True iff Q implies P.
+    | #\ Q      | True iff Q is false	          |
+    | P #<==> Q | True iff P and Q are equivalent |
+    | P #==> Q  | True iff P implies Q	          |
+    | P #<== Q  | True iff Q implies P	          |
 
 If SWI Prolog is compiled with support for arbitrary precision
 integers (using GMP), there is no limit on the size of domains.

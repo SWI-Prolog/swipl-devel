@@ -314,22 +314,76 @@ or construct location</TD></TR>
 or decode form-data</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.9"><SPAN class="sec-nr">E.4.9</SPAN> <SPAN class="sec-title"><CODE>library(clp/bounds)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.9"><SPAN class="sec-nr">E.4.9</SPAN> <SPAN class="sec-title"><CODE>library(clp/clpfd)</CODE></SPAN></A></H3>
 
 <TABLE>
-<TR><TD><A class="pred" href="clpbounds.html#in/2">in/2</A></TD><TD>Define 
+<TR><TD><A class="pred" href="clpfd.html##/\/2">#/\/2</A></TD><TD>P and 
+Q hold.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##</2">#&lt;/2</A></TD><TD>X is 
+less than Y.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##<==/2">#&lt;==/2</A></TD><TD>Q 
+implies P.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##<==>/2">#&lt;==&gt;/2</A></TD><TD>P 
+and Q are equivalent.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##=/2">#=/2</A></TD><TD>X equals 
+Y.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##=</2">#=&lt;/2</A></TD><TD>X 
+is less than or equal to Y.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##==>/2">#==&gt;/2</A></TD><TD>P 
+implies Q.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##>/2">#&gt;/2</A></TD><TD>X is 
+greater than Y.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##>=/2">#&gt;=/2</A></TD><TD>X 
+is greater than or equal to Y.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##\/1">#\/1</A></TD><TD>The 
+reifiable constraint Q does _not_ hold.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##\//2">#\//2</A></TD><TD>P or Q 
+holds.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##\=/2">#\=/2</A></TD><TD>X is 
+not Y.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#all_different/1">all_different/1</A></TD><TD>Constrain 
+Vars to be pairwise distinct.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#all_distinct/1">all_distinct/1</A></TD><TD>Like 
+all_different/1, with stronger propagation.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#in/2">in/2</A></TD><TD>Constrain 
+Var to elements of Domain.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#indomain/1">indomain/1</A></TD><TD>Bind 
+Var to all feasible values of its domain on backtracking.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#ins/2">ins/2</A></TD><TD>Constrain 
+the variables or integers in Vars to Domain.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#label/1">label/1</A></TD><TD>Equivalent 
+to labeling([], Vars).</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#labeling/2">labeling/2</A></TD><TD>Labeling 
+means systematically trying out values for the finite domain variables 
+Vars until all of them are ground.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#lex_chain/1">lex_chain/1</A></TD><TD>Constrains 
+Lists to be lexicographically non-decreasing.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#serialized/2">serialized/2</A></TD><TD>Starts 
+= [S_1,...,S_n], is a list of variables or integers, Durations = 
+[D_1,...,D_n] is a list of non-negative integers.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#sum/3">sum/3</A></TD><TD>Constrain 
+the sum of all integers or variables in Vars to the relation Op (for 
+example: <CODE>#=&lt;</CODE>) with respect to Expr.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#tuples_in/2">tuples_in/2</A></TD><TD>Relation 
+is a list of ground lists of integers.</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.10"><SPAN class="sec-nr">E.4.10</SPAN> <SPAN class="sec-title"><CODE>library(clp/bounds)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="clpfd.html#in/2">in/2</A></TD><TD>Define 
 interval for variable</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html##>/2">#&gt;/2</A></TD><TD>Greater 
+<TR><TD><A class="pred" href="clpfd.html##>/2">#&gt;/2</A></TD><TD>Greater 
 than constraint</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html##</2">#&lt;/2</A></TD><TD>Less 
+<TR><TD><A class="pred" href="clpfd.html##</2">#&lt;/2</A></TD><TD>Less 
 than constraint</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html##>=/2">#&gt;=/2</A></TD><TD>Greater 
+<TR><TD><A class="pred" href="clpfd.html##>=/2">#&gt;=/2</A></TD><TD>Greater 
 or equal constraint</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html##=</2">#=&lt;/2</A></TD><TD>Less 
+<TR><TD><A class="pred" href="clpfd.html##=</2">#=&lt;/2</A></TD><TD>Less 
 of equal constraint</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html##\=/2">#\=/2</A></TD><TD>Non-equal 
+<TR><TD><A class="pred" href="clpfd.html##\=/2">#\=/2</A></TD><TD>Non-equal 
 constraint</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html##=/2">#=/2</A></TD><TD>Equality 
+<TR><TD><A class="pred" href="clpfd.html##=/2">#=/2</A></TD><TD>Equality 
 constraint</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html##<=>/2">#&lt;=&gt;/2</A></TD><TD>Constraint 
 equivalence</TD></TR>
@@ -337,28 +391,28 @@ equivalence</TD></TR>
 implication to the left</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html##=>/2">#=&gt;/2</A></TD><TD>Constraint 
 implication to the right</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html#all_different/1">all_different/1</A></TD><TD>Constraint 
+<TR><TD><A class="pred" href="clpfd.html#all_different/1">all_different/1</A></TD><TD>Constraint 
 all values to be unique</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html#indomain/1">indomain/1</A></TD><TD>Enumerate 
+<TR><TD><A class="pred" href="clpfd.html#indomain/1">indomain/1</A></TD><TD>Enumerate 
 values from domain</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html#label/1">label/1</A></TD><TD>Solve 
+<TR><TD><A class="pred" href="clpfd.html#label/1">label/1</A></TD><TD>Solve 
 constraints for variables</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html#labeling/2">labeling/2</A></TD><TD>Solve 
+<TR><TD><A class="pred" href="clpfd.html#labeling/2">labeling/2</A></TD><TD>Solve 
 constraints for variables</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html#lex_chain/1">lex_chain/1</A></TD><TD>Constraint 
+<TR><TD><A class="pred" href="clpfd.html#lex_chain/1">lex_chain/1</A></TD><TD>Constraint 
 on lexicographic ordering</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html#sum/3">sum/3</A></TD><TD>Constraint 
+<TR><TD><A class="pred" href="clpfd.html#sum/3">sum/3</A></TD><TD>Constraint 
 sum of variables</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html#tuples_in/2">tuples_in/2</A></TD><TD>Symbolic 
+<TR><TD><A class="pred" href="clpfd.html#tuples_in/2">tuples_in/2</A></TD><TD>Symbolic 
 constraints on tuples</TD></TR>
-<TR><TD><A class="pred" href="clpbounds.html#serialized/2">serialized/2</A></TD><TD>Constraint 
+<TR><TD><A class="pred" href="clpfd.html#serialized/2">serialized/2</A></TD><TD>Constraint 
 intervals to be serialized</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.10"><SPAN class="sec-nr">E.4.10</SPAN> <SPAN class="sec-title"><CODE>library(clp/clp_distinct)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.11"><SPAN class="sec-nr">E.4.11</SPAN> <SPAN class="sec-title"><CODE>library(clp/clp_distinct)</CODE></SPAN></A></H3>
 
 <TABLE>
-<TR><TD><A class="pred" href="clpclp_distinct.html#all_distinct/1">all_distinct/1</A></TD><TD>Demand 
+<TR><TD><A class="pred" href="clpfd.html#all_distinct/1">all_distinct/1</A></TD><TD>Demand 
 distinct values</TD></TR>
 <TR><TD><A class="pred" href="clpclp_distinct.html#vars_in/2">vars_in/2</A></TD><TD>Declare 
 domain of variable as set</TD></TR>
@@ -366,7 +420,7 @@ domain of variable as set</TD></TR>
 domain of variable as interval</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.11"><SPAN class="sec-nr">E.4.11</SPAN> <SPAN class="sec-title"><CODE>library(clp/simplex)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.12"><SPAN class="sec-nr">E.4.12</SPAN> <SPAN class="sec-title"><CODE>library(clp/simplex)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="simplex.html#assignment/2">assignment/2</A></TD><TD>Solve 
@@ -393,7 +447,7 @@ transportation problem</TD></TR>
 value of variable in solved state</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.12"><SPAN class="sec-nr">E.4.12</SPAN> <SPAN class="sec-title"><CODE>library(clpqr)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.13"><SPAN class="sec-nr">E.4.13</SPAN> <SPAN class="sec-title"><CODE>library(clpqr)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="clpqr.html#entailed/1">entailed/1</A></TD><TD>Check 
@@ -416,7 +470,7 @@ of expression for mixed-integer problems</TD></TR>
 constraints on variables</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.13"><SPAN class="sec-nr">E.4.13</SPAN> <SPAN class="sec-title"><CODE>library(prologxref)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.14"><SPAN class="sec-nr">E.4.14</SPAN> <SPAN class="sec-title"><CODE>library(prologxref)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="prologxref.html#prolog:called_by/2">prolog:called_by/2</A></TD><TD><I>(hook)</I> 
@@ -439,7 +493,7 @@ defined by source</TD></TR>
 analysis of source</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.14"><SPAN class="sec-nr">E.4.14</SPAN> <SPAN class="sec-title"><CODE>library(broadcast)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.15"><SPAN class="sec-nr">E.4.15</SPAN> <SPAN class="sec-title"><CODE>library(broadcast)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="broadcast.html#broadcast/1">broadcast/1</A></TD><TD>Send 
@@ -460,7 +514,7 @@ listening to event notifications</TD></TR>
 is listening to event notifications?</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.15"><SPAN class="sec-nr">E.4.15</SPAN> <SPAN class="sec-title"><CODE>library(record)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.16"><SPAN class="sec-nr">E.4.16</SPAN> <SPAN class="sec-title"><CODE>library(record)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="record.html#record/1">record/1</A></TD><TD>Define 

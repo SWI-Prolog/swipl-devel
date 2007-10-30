@@ -156,21 +156,21 @@ internal interfaces and report useful application thereof.
 <DL>
 <DT class="pubdef"><A NAME="profile/1"><STRONG>profile</STRONG>(<VAR>:Goal</VAR>)</A></DT>
 <DD class="defbody">
-Execute <VAR>Goal</VAR> just like <A NAME="idx:time1:1105"></A><A class="pred" href="statistics.html#time/1">time/1</A>, 
+Execute <VAR>Goal</VAR> just like <A NAME="idx:time1:1103"></A><A class="pred" href="statistics.html#time/1">time/1</A>, 
 collecting profiling statistics and call <CODE>show_profile(plain, 25)</CODE>. 
 With XPCE installed this opens a graphical interface to the collected 
 profiling data.</DD>
 <DT class="pubdef"><A NAME="profile/3"><STRONG>profile</STRONG>(<VAR>:Goal, 
 +Style, +Number</VAR>)</A></DT>
 <DD class="defbody">
-Execute <VAR>Goal</VAR> just like <A NAME="idx:time1:1106"></A><A class="pred" href="statistics.html#time/1">time/1</A>. 
+Execute <VAR>Goal</VAR> just like <A NAME="idx:time1:1104"></A><A class="pred" href="statistics.html#time/1">time/1</A>. 
 Collect profiling statistics and show the top <VAR>Number</VAR> 
-procedures on the current output stream (see <A NAME="idx:showprofile1:1107"></A><A class="pred" href="profile.html#show_profile/1">show_profile/1</A>) 
-using <VAR>Style</VAR>. The results are kept in the database until <A NAME="idx:resetprofiler0:1108"></A><A class="pred" href="profile.html#reset_profiler/0">reset_profiler/0</A> 
-or <A NAME="idx:profile3:1109"></A><A class="pred" href="profile.html#profile/3">profile/3</A> 
-is called and can be displayed again with <A NAME="idx:showprofile1:1110"></A><A class="pred" href="profile.html#show_profile/1">show_profile/1</A>. 
-The <A NAME="idx:profile1:1111"></A><A class="pred" href="profile.html#profile/1">profile/1</A> 
-predicate is a backward compatibility interface to <A NAME="idx:profile1:1112"></A><A class="pred" href="profile.html#profile/1">profile/1</A>. 
+procedures on the current output stream (see <A NAME="idx:showprofile1:1105"></A><A class="pred" href="profile.html#show_profile/1">show_profile/1</A>) 
+using <VAR>Style</VAR>. The results are kept in the database until <A NAME="idx:resetprofiler0:1106"></A><A class="pred" href="profile.html#reset_profiler/0">reset_profiler/0</A> 
+or <A NAME="idx:profile3:1107"></A><A class="pred" href="profile.html#profile/3">profile/3</A> 
+is called and can be displayed again with <A NAME="idx:showprofile1:1108"></A><A class="pred" href="profile.html#show_profile/1">show_profile/1</A>. 
+The <A NAME="idx:profile1:1109"></A><A class="pred" href="profile.html#profile/1">profile/1</A> 
+predicate is a backward compatibility interface to <A NAME="idx:profile1:1110"></A><A class="pred" href="profile.html#profile/1">profile/1</A>. 
 The other predicates in this section are low-level predicates for 
 special cases.</DD>
 <DT class="pubdef"><A NAME="show_profile/2"><STRONG>show_profile</STRONG>(<VAR>+Style, 
@@ -205,7 +205,7 @@ statistics.</DD>
 Declares the predicate <VAR>Name</VAR>/<VAR>Arity</VAR> to be invisible 
 to the profiler. The time spend in the named predicate is added to the 
 caller and the callees are linked directly to the caller. This is 
-particularly useful for simple meta-predicates such as <A NAME="idx:call1:1113"></A><A class="pred" href="metacall.html#call/1">call/1</A>, <A NAME="idx:ignore1:1114"></A><A class="pred" href="metacall.html#ignore/1">ignore/1</A>, <A NAME="idx:catch3:1115"></A><A class="pred" href="exception.html#catch/3">catch/3</A>, 
+particularly useful for simple meta-predicates such as <A NAME="idx:call1:1111"></A><A class="pred" href="metacall.html#call/1">call/1</A>, <A NAME="idx:ignore1:1112"></A><A class="pred" href="metacall.html#ignore/1">ignore/1</A>, <A NAME="idx:catch3:1113"></A><A class="pred" href="exception.html#catch/3">catch/3</A>, 
 etc.
 </DD>
 </DL>
@@ -299,8 +299,8 @@ profRedo() pass the profiling node where execution resumes.
 to recursion. For this reason the system performs detection of 
 recursion. In the simplest case, recursive procedures increment the 
 `recursive' count on the current node. Mutual recursion however is not 
-easily detected. For example, <A NAME="idx:call1:1116"></A><A class="pred" href="metacall.html#call/1">call/1</A> 
-can call a predicate that uses <A NAME="idx:call1:1117"></A><A class="pred" href="metacall.html#call/1">call/1</A> 
+easily detected. For example, <A NAME="idx:call1:1114"></A><A class="pred" href="metacall.html#call/1">call/1</A> 
+can call a predicate that uses <A NAME="idx:call1:1115"></A><A class="pred" href="metacall.html#call/1">call/1</A> 
 itself. This can be viewed as a recursive invocation, but this is 
 generally not desirable. Recursion is currently assumed if the same 
 predicate <EM>with the same parent</EM> appears higher in the 

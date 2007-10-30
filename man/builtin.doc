@@ -989,7 +989,7 @@ changed using the Prolog flag \prologflag{occurs_check}.
     \infixop[ISO]{\=}{+Term1}{+Term2}
 Equivalent to \exam{\Snot Term1 = Term2}.
 
-    \infixop[ISO]{=..}{+Term1}{+Term2}
+    \infixop{=@=}{+Term1}{+Term2}
 True if \arg{Term1} is `structurally equal' to \arg{Term2}.
 Structural equivalence is weaker than equivalence (\predref{==}{2}), but
 stronger than unification (\predref{=}{2}). Two terms are structurally
@@ -2759,9 +2759,9 @@ Get the current output stream.
 Run \arg{Goal} as once/1, while characters written to the current output
 is sent to \arg{Output}. The predicate is SWI-Prolog specific, inspired
 by various posts to the mailinglist. It provides a flexible replacement
-for predicates such as sformat/3, swritef/3, term_to_atom/2,
-atom_number/2 converting numbers to atoms, etc.  The predicate format/3
-accepts the same terms as output argument.
+for predicates such as \nopredref{sformat}{3}, swritef/3,
+term_to_atom/2, atom_number/2 converting numbers to atoms, etc. The
+predicate format/3 accepts the same terms as output argument.
 
 Applications should generally avoid creating atoms by breaking and
 concatenating other atoms as the creation of large numbers of
@@ -4740,35 +4740,36 @@ front of the arguments obtained from the list(s). For example:
 X = [1, 2, 3]
 \end{code}
 
-we will phrase this as ``\arg{Predicate} is applied on \ldots''
+we phrase this as ``\arg{Predicate} is applied on \ldots''
 
 \begin{description}
-    \predicate{maplist}{2}{+Pred, +List}
+    \predicate{maplist}{2}{:Pred, +List}
 \arg{Pred} is applied successively on each element of \arg{List} until
 the end of the list or \arg{Pred} fails. In the latter case the
 maplist/2 fails.%
 	\footnote{The maplist/2 predicate replaces the obsolete
 		  \nopredref{checklist}{2} predicate.}
 
-    \predicate{maplist}{3}{+Pred, ?List1, ?List2}
+    \predicate{maplist}{3}{:Pred, ?List1, ?List2}
 Apply \arg{Pred} on all successive pairs of elements from \arg{List1}
 and \arg{List2}. Fails if \arg{Pred} can not be applied to a pair. See
 the example above.
 
-    \predicate{maplist}{4}{+Pred, ?List1, ?List2, ?List3}
+    \predicate{maplist}{4}{:Pred, ?List1, ?List2, ?List3}
 Apply \arg{Pred} on all successive triples of elements from \arg{List1},
 \arg{List2} and \arg{List3}. Fails if \arg{Pred} can not be applied to a
 triple. See the example above.
 
-    \predicate{sublist}{3}{+Pred, +List1, ?List2}
+    \predicate{sublist}{3}{:Pred, +List1, ?List2}
 Unify \arg{List2} with a list of all elements of \arg{List1} to which
 \arg{Pred} applies.
 \end{description}
 
+
 \section{Forall}			\label{sec:forall2}
 
 \begin{description}
-    \predicate{forall}{2}{+Cond, +Action}
+    \predicate[semidet]{forall}{2}{:Cond, :Action}
 For all alternative bindings of \arg{Cond} \arg{Action} can be proven.
 The example verifies that all arithmetic statements in the list \arg{L}
 are correct. It does not say which is wrong if one proves wrong.
@@ -5009,9 +5010,9 @@ As format/2, but write the output on the given \arg{Output}. The
 de-facto standard only allows \arg{Output} to be a stream. The
 SWI-Prolog implementation allows all valid arguments for
 with_output_to/2.%
-	\footnote{Earlier versions defined sformat/[2,3].  These
-		  predicates have been moved to the library
-		  \pllib{backcomp}.}
+	\footnote{Earlier versions defined \nopredref{sformat}{3}.
+	These predicates have been moved to the library
+	\pllib{backcomp}.}
 For example:
 
 \begin{code}

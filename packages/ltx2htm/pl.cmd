@@ -102,6 +102,11 @@
 \opfuncsummary{+}{-}{-}{-}{+}
 \opsummary{-}{-}{+}{+}
 
+% PlDoc keyword processing
+
+{tags}=list
+\tag{+}=item		1 0
+
 % C++
 
 \classitem{-}=item
@@ -208,6 +213,12 @@
 \Stilde
 \Spercent
 \Shash
+\Scnot
+\Scand
+\Scor
+\Scequal
+\Srimplies
+\Slimplies
 \backslash
 \bsl
 

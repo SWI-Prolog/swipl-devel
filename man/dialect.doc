@@ -138,7 +138,7 @@ dialects were about as abundant and poorly standardised as Prolog
 dialects today. Writing a portable C program can only be achieved using
 cpp, the C preprocessor. The C preprocessor performs two tasks: macro
 expansion and conditional compilation. Prolog realises macro expansion
-through term_expanstion/2 and goal_expansion/2. Conditional compilation
+through term_expansion/2 and goal_expansion/2. Conditional compilation
 is achieved using \exam{:- if(Condition)} as explained in
 \secref{conditionalcompilation}. The situation appears similar.
 

@@ -1,0 +1,380 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.45 Reference Manual: Section A.13</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="url.html">
+<LINK REL=next HREF="clpbounds.html">
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
+}
+
+dt.pubdef
+{ background-color: #c5e1ff;
+}
+
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
+}
+
+div.navigate
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+}
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ 
+}
+
+span.pred-ext
+{ font-weight: bold;
+}
+
+span.pred-tag
+{ float: right;
+font-size: 80%;
+font-style: italic;
+color: #202020;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 80%;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="url.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="clpbounds.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:A.13"><SPAN class="sec-nr">A.13</SPAN> <SPAN class="sec-title">clpfd.pl 
+-- Constraint Logic Programming over Finite Domains</SPAN></A></H2>
+
+<P><A NAME="sec:clpfd"></A>
+
+<DL>
+<DT><B>author</B><DD> Markus Triska
+</DL>
+
+<P>Constraint programming is a declarative formalism that lets you 
+describe conditions a solution should satisfy. This library provides 
+CLP(FD), Constraint Logic Programming over Finite Domains. It can be 
+used to model and solve various combinatorial problems from diverse 
+areas such as planning, scheduling, and graph colouring.
+
+<P>As an example, consider the cryptoarithmetic puzzle SEND + MORE = 
+MONEY, where different letters denote distinct integers between 0 and 9. 
+It can be modeled in CLP(FD) as follows:
+
+<PRE class="code">
+:- use_module(library(clpfd)).
+
+puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
+        Vars = [S,E,N,D,M,O,R,Y], Vars ins 0..9,
+        all_different(Vars),
+                  S*1000 + E*100 + N*10 + D +
+                  M*1000 + O*100 + R*10 + E #=
+        M*10000 + O*1000 + N*100 + E*10 + Y,
+        M #&gt; 0, S #&gt; 0,
+        label(Vars).
+
+?- puzzle(P).
+P = ([9, 5, 6, 7]+[1, 0, 8, 5]=[1, 0, 6, 5, 2])
+</PRE>
+
+<P>Most predicates of this library are <I>constraints</I>: They 
+generalise arithmetic evaluation of integer expressions in that 
+propagation can proceed in all directions. This library also provides <I>enumeration</I>
+<I>predicates</I>, which let you systematically search for solutions on 
+variables whose domains have become finite. A finite domain <I>expression</I> 
+is one of:
+<BLOCKQUOTE>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD>an integer</TD><TD>Given value </TD></TR>
+<TR VALIGN=top><TD>a variable</TD><TD>Unknown value </TD></TR>
+<TR VALIGN=top><TD>-Expr</TD><TD>Unary minus </TD></TR>
+<TR VALIGN=top><TD>Expr + Expr</TD><TD>Addition </TD></TR>
+<TR VALIGN=top><TD>Expr * Expr</TD><TD>Multiplication </TD></TR>
+<TR VALIGN=top><TD>Expr - Expr.</TD><TD>Substraction </TD></TR>
+<TR VALIGN=top><TD>min(Expr,Expr)</TD><TD>Minimum of two values </TD></TR>
+<TR VALIGN=top><TD>max(Expr,Expr)</TD><TD>Maximum of two values </TD></TR>
+<TR VALIGN=top><TD>Expr mod Expr</TD><TD>Remainder of integer division </TD></TR>
+<TR VALIGN=top><TD>abs(Expr)</TD><TD>Absolute value </TD></TR>
+<TR VALIGN=top><TD>Expr / Expr</TD><TD>integer division </TD></TR>
+</TABLE>
+
+</BLOCKQUOTE>
+
+<P>The most important finite domain <I>constraints</I> are given in the 
+tabe below.
+<BLOCKQUOTE>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD>Expr1 <CODE>#&gt;=</CODE> Expr2</TD><TD>Expr1 is 
+larger or equal to Expr2 </TD></TR>
+<TR VALIGN=top><TD>Expr1 <CODE>#=&lt;</CODE> Expr2</TD><TD>Expr1 is 
+smaller or equal to Expr2 </TD></TR>
+<TR VALIGN=top><TD>Expr1 <CODE>#=</CODE> Expr2</TD><TD>Expr1 is equal to 
+Expr2 </TD></TR>
+<TR VALIGN=top><TD>Expr1 <CODE>#\=</CODE> Expr2</TD><TD>Expr1 is not 
+equal to Expr2 </TD></TR>
+<TR VALIGN=top><TD>Expr1 <CODE>#&gt;</CODE> Expr2</TD><TD>Expr1 is 
+strictly larger than Expr2 </TD></TR>
+<TR VALIGN=top><TD>Expr1 <CODE>#&lt;</CODE> Expr2</TD><TD>Expr1 is 
+strictly smaller than Expr2 </TD></TR>
+</TABLE>
+
+</BLOCKQUOTE>
+
+<P>The constraints <A class="pred" href="clpfd.html##=/2">#=/2</A>, <A class="pred" href="clpfd.html##\=/2">#\=/2</A>, <A class="pred" href="clpfd.html##</2">#&lt;/2</A>, <A class="pred" href="clpfd.html##>/2">#&gt;/2</A>, <A class="pred" href="clpfd.html##=</2">#=&lt;/2</A>, <A class="pred" href="clpfd.html##>=/2">#&gt;=/2</A> 
+and <A class="pred" href="clpfd.html##\/1">#\/1</A> can be
+<I>reified</I>, which means reflecting their truth values into Boolean 
+0/1 variables. Let P and Q denote conjunctions (<A class="pred" href="clpfd.html##/\/2">#/\/2</A>) 
+or disjunctions (<A class="pred" href="clpfd.html##\//2">#\//2</A>) of 
+reifiable constraints or Boolean variables, then:
+<BLOCKQUOTE>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD><CODE>#\</CODE> Q</TD><TD>True iff Q is false </TD></TR>
+<TR VALIGN=top><TD>P <CODE>#&lt;==&gt;</CODE> Q</TD><TD>True iff P and Q 
+are equivalent </TD></TR>
+<TR VALIGN=top><TD>P <CODE>#==&gt;</CODE> Q</TD><TD>True iff P implies Q </TD></TR>
+<TR VALIGN=top><TD>P <CODE>#&lt;==</CODE> Q</TD><TD>True iff Q implies P </TD></TR>
+</TABLE>
+
+</BLOCKQUOTE>
+
+<P>If SWI Prolog is compiled with support for arbitrary precision 
+integers (using GMP), there is no limit on the size of domains.
+
+<DL>
+<DT class="pubdef"><A NAME="in/2"><VAR>+Var</VAR> <STRONG>in</STRONG> <VAR>+Domain</VAR></A></DT>
+<DD class="defbody">
+Constrain <VAR>Var</VAR> to elements of <VAR>Domain</VAR>. <VAR>Domain</VAR> 
+is one of:
+
+<DL>
+<DT><VAR><VAR>Lower</VAR></VAR> <STRONG>..</STRONG> <VAR><VAR>Upper</VAR></VAR></DT>
+<DD class="defbody">
+All integers <I>I</I> such that <I>Lower</I> <CODE>=&lt;</CODE> <I>I</I> <CODE>=&lt;</CODE> <I>Upper</I>. 
+The atoms
+<B>inf</B> and <B>sup</B> denote negative and positive infinity, 
+respectively.
+</DD>
+<DT><VAR><VAR>Domain1</VAR></VAR> <STRONG><CODE>\/</CODE></STRONG> <VAR><VAR>Domain2</VAR></VAR></DT>
+<DD class="defbody">
+The union of Domain1 and Domain2.
+</DD>
+</DL>
+
+</DD>
+<DT class="pubdef"><A NAME="ins/2"><VAR>?Vars</VAR> <STRONG>ins</STRONG> <VAR>+Domain</VAR></A></DT>
+<DD class="defbody">
+Constrain the variables or integers in <VAR>Vars</VAR> to <VAR>Domain</VAR>.</DD>
+<DT class="pubdef"><A NAME="indomain/1"><STRONG>indomain</STRONG>(<VAR>?Var</VAR>)</A></DT>
+<DD class="defbody">
+Bind <VAR>Var</VAR> to all feasible values of its domain on 
+backtracking. The domain of <VAR>Var</VAR> must be finite.</DD>
+<DT class="pubdef"><A NAME="label/1"><STRONG>label</STRONG>(<VAR>+Vars</VAR>)</A></DT>
+<DD class="defbody">
+Equivalent to labeling([], <VAR>Vars</VAR>).</DD>
+<DT class="pubdef"><A NAME="labeling/2"><STRONG>labeling</STRONG>(<VAR>+Options, 
++Vars</VAR>)</A></DT>
+<DD class="defbody">
+Labeling means systematically trying out values for the finite domain 
+variables <VAR>Vars</VAR> until all of them are ground. The domain of 
+each variable in <VAR>Vars</VAR> must be finite. <VAR>Options</VAR> is a 
+list of options that let you exhibit some control over the search 
+process. Two sets of options exist: One for variable selection strategy, 
+and one for optimisation. The variable selection strategy lets you 
+specify which variable should be labeled next and is one of:
+
+<DL>
+<DT><STRONG>leftmost</STRONG></DT>
+<DD class="defbody">
+Label the variables in the order they occur in <VAR>Vars</VAR>. This is 
+the default.
+</DD>
+<DT><STRONG>ff</STRONG></DT>
+<DD class="defbody">
+<I>First fail</I>. Label the leftmost variable with smallest domain 
+next, in order to detect infeasibility early. This is often a good 
+strategy.
+</DD>
+<DT><STRONG>min</STRONG></DT>
+<DD class="defbody">
+Label the leftmost variable whose lower bound is the lowest next.
+</DD>
+<DT><STRONG>max</STRONG></DT>
+<DD class="defbody">
+Label the leftmost variable whose upper bound is the highest next.
+</DD>
+</DL>
+
+<P>The second set of options lets you influence the order of solutions:
+
+<DL>
+<DT><STRONG>min</STRONG>(<VAR>Expr</VAR>)</DT>
+<DD class="defbody">
+</DD>
+<DT><STRONG>max</STRONG>(<VAR>Expr</VAR>)</DT>
+<DD class="defbody">
+</DD>
+</DL>
+
+<P>This generates solutions in ascending/descending order with respect 
+to the evaluation of the arithmetic expression Expr. All variables of 
+Expr must also be contained in <VAR>Vars</VAR>.
+
+<P>If more than one option of a category is specified, the one occurring 
+rightmost in the option list takes precedence over all others of that 
+category. Labeling is always complete and always terminates.</DD>
+<DT class="pubdef"><A NAME="all_different/1"><STRONG>all_different</STRONG>(<VAR>+Vars</VAR>)</A></DT>
+<DD class="defbody">
+Constrain <VAR>Vars</VAR> to be pairwise distinct.</DD>
+<DT class="pubdef"><A NAME="sum/3"><STRONG>sum</STRONG>(<VAR>+Vars, +Op, 
++Expr</VAR>)</A></DT>
+<DD class="defbody">
+Constrain the sum of all integers or variables in <VAR>Vars</VAR> to the 
+relation <VAR>Op</VAR> (for example: <CODE>#=&lt;</CODE>) with respect 
+to <VAR>Expr</VAR>.</DD>
+<DT class="pubdef"><A NAME="#>=/2"><VAR>?X</VAR> <STRONG>#&gt;=</STRONG> <VAR>?Y</VAR></A></DT>
+<DD class="defbody">
+<VAR>X</VAR> is greater than or equal to <VAR>Y</VAR>.</DD>
+<DT class="pubdef"><A NAME="#=</2"><VAR>?X</VAR> <STRONG>#=&lt;</STRONG> <VAR>?Y</VAR></A></DT>
+<DD class="defbody">
+<VAR>X</VAR> is less than or equal to <VAR>Y</VAR>.</DD>
+<DT class="pubdef"><A NAME="#=/2"><VAR>?X</VAR> <STRONG>#=</STRONG> <VAR>?Y</VAR></A></DT>
+<DD class="defbody">
+<VAR>X</VAR> equals <VAR>Y</VAR>.</DD>
+<DT class="pubdef"><A NAME="#\=/2"><VAR>?X</VAR> <STRONG>#\=</STRONG> <VAR>?Y</VAR></A></DT>
+<DD class="defbody">
+<VAR>X</VAR> is not <VAR>Y</VAR>.</DD>
+<DT class="pubdef"><A NAME="#>/2"><VAR>?X</VAR> <STRONG>#&gt;</STRONG> <VAR>?Y</VAR></A></DT>
+<DD class="defbody">
+<VAR>X</VAR> is greater than <VAR>Y</VAR>.</DD>
+<DT class="pubdef"><A NAME="#</2"><VAR>?X</VAR> <STRONG>#&lt;</STRONG> <VAR>?Y</VAR></A></DT>
+<DD class="defbody">
+<VAR>X</VAR> is less than <VAR>Y</VAR>.</DD>
+<DT class="pubdef"><A NAME="#\/1"><STRONG>#\</STRONG> <VAR>+Q</VAR></A></DT>
+<DD class="defbody">
+The reifiable constraint <VAR>Q</VAR> does <I>not</I> hold.</DD>
+<DT class="pubdef"><A NAME="#<==>/2"><VAR>P</VAR> <STRONG>#&lt;==&gt;</STRONG> <VAR>Q</VAR></A></DT>
+<DD class="defbody">
+<VAR>P</VAR> and <VAR>Q</VAR> are equivalent.</DD>
+<DT class="pubdef"><A NAME="#==>/2"><VAR>P</VAR> <STRONG>#==&gt;</STRONG> <VAR>Q</VAR></A></DT>
+<DD class="defbody">
+<VAR>P</VAR> implies <VAR>Q</VAR>.</DD>
+<DT class="pubdef"><A NAME="#<==/2"><VAR>P</VAR> <STRONG>#&lt;==</STRONG> <VAR>Q</VAR></A></DT>
+<DD class="defbody">
+<VAR>Q</VAR> implies <VAR>P</VAR>.</DD>
+<DT class="pubdef"><A NAME="#/\/2"><VAR>P</VAR> <STRONG>#/\</STRONG> <VAR>Q</VAR></A></DT>
+<DD class="defbody">
+<VAR>P</VAR> and <VAR>Q</VAR> hold.</DD>
+<DT class="pubdef"><A NAME="#\//2"><VAR>P</VAR> <STRONG>#\/</STRONG> <VAR>Q</VAR></A></DT>
+<DD class="defbody">
+<VAR>P</VAR> or <VAR>Q</VAR> holds.</DD>
+<DT class="pubdef"><A NAME="lex_chain/1"><STRONG>lex_chain</STRONG>(<VAR>+Lists</VAR>)</A></DT>
+<DD class="defbody">
+Constrains <VAR>Lists</VAR> to be lexicographically non-decreasing.</DD>
+<DT class="pubdef"><A NAME="tuples_in/2"><STRONG>tuples_in</STRONG>(<VAR>+Tuples, 
++Relation</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Relation</VAR> is a list of ground lists of integers. <VAR>Tuples</VAR> 
+is a list of lists containing integers and finite domain variables. <VAR>Tuples</VAR> 
+are constrained to be elements of <VAR>Relation</VAR>.</DD>
+<DT class="pubdef"><A NAME="all_distinct/1"><STRONG>all_distinct</STRONG>(<VAR>+Ls</VAR>)</A></DT>
+<DD class="defbody">
+Like <A class="pred" href="clpfd.html#all_different/1">all_different/1</A>, 
+with stronger propagation.</DD>
+<DT class="pubdef"><A NAME="serialized/2"><STRONG>serialized</STRONG>(<VAR>+Starts, 
++Durations</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Starts</VAR> = [S_1,...,S_n], is a list of variables or integers,
+<VAR>Durations</VAR> = [D_1,...,D_n] is a list of non-negative integers. 
+Constrains <VAR>Starts</VAR> and <VAR>Durations</VAR> to denote a set of 
+non-overlapping tasks, i.e.: S_i + D_i <CODE>=&lt;</CODE> S_j or S_j + 
+D_j <CODE>=&lt;</CODE> S_i for all 1 <CODE>=&lt;</CODE> i <VAR>&lt;</VAR> 
+j <CODE>=&lt;</CODE> n.
+</DD>
+</DL>
+
+<P></BODY></HTML>

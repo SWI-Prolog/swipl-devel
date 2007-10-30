@@ -495,3 +495,14 @@
 	 \begin{tabular*}{\linewidth}{lp{0.7\linewidth}}
 	 \hline}%
 	{\end{tabular*}}
+
+%	\begin{shortlist} ... \end{shortlist}
+%
+%	As itemize environment, but do not include extra space between the
+%	items.
+
+\newenvironment{shortlist}{%
+	\begin{itemize}\setlength{\itemsep}{0pt}}{%
+	\end{itemize}}
+
+

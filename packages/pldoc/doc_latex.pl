@@ -333,9 +333,10 @@ latex(var(Var)) -->
 latex(pre(_Class, Code)) -->
 	[ nl_exact(2), code(Code), nl_exact(2) ].
 latex(ul(Content)) -->
-	latex(cmd(begin(itemize))),
+	{ if_short_list(Content, shortlist, itemize, Env) },
+	latex(cmd(begin(Env))),
 	latex(Content),
-	latex(cmd(end(itemize))).
+	latex(cmd(end(Env))).
 latex(ol(Content)) -->
 	latex(cmd(begin(enumerate))),
 	latex(Content),
@@ -353,6 +354,8 @@ latex(dd(Content)) -->
 	latex(Content).
 latex(dt(class=term, \term(Term, Bindings))) --> 
 	termitem(Term, Bindings).
+latex(table(Attrs, Content)) -->
+	latex_table(Attrs, Content).
 latex(\Cmd, List, Tail) :-
 	call(Cmd, List, Tail).
 
@@ -385,6 +388,7 @@ indent(prefixop) --> !,	       [ nl(1), indent(4) ].
 indent(postfixop) --> !,       [ nl(1), indent(4) ].
 indent(predicatesummary) --> !,[ nl(1) ].
 indent(oppredsummary) --> !,   [ nl(1) ].
+indent(hline) --> !, 	       [ nl(1) ].
 indent(_) -->		       [].
 
 outdent(begin) --> !,		[ nl_exact(1) ].
@@ -406,6 +410,7 @@ outdent(prefixop) --> !,	[ nl(1) ].
 outdent(postfixop) --> !,	[ nl(1) ].
 outdent(predicatesummary) --> !,[ nl(1) ].
 outdent(oppredsummary) --> !,   [ nl(1) ].
+outdent(hline) --> !, 	        [ nl(1) ].
 outdent(_) -->			[].
 
 %%	latex_special(String, Rest)// is semidet.
@@ -487,6 +492,43 @@ attribute(Att, Attrs) :-
 	option(Att, Attrs).
 attribute(Att, One) :-
 	option(Att, [One]).
+
+if_short_list(Content, If, Else, Env) :-
+	(   short_list(Content)
+	->  Env = If
+	;   Env = Else
+	).
+
+%%	short_list(+Content) is semidet.
+%
+%	True if Content describes the content of a dl or ul/ol list
+%	where each elemenent has short content.
+
+short_list([]).
+short_list([_,dd(Content)|T]) :- !,
+	short_content(Content),
+	short_list(T).
+short_list([_,dd(_, Content)|T]) :- !,
+	short_content(Content),
+	short_list(T).
+short_list([li(Content)|T]) :-
+	short_content(Content),
+	short_list(T).
+
+short_content(Content) :-
+	phrase(latex(Content), Tokens),
+	summed_string_len(Tokens, 0, Len),
+	Len < 50.
+
+summed_string_len([], Len, Len).
+summed_string_len([H|T], L0, L) :-
+	atomic(H), !,
+	atom_length(H, AL),
+	L1 is L0 + AL,
+	summed_string_len(T, L1, L).
+summed_string_len([_|T], L0, L) :-
+	summed_string_len(T, L0, L).
+
 
 %%	latex_section(+Level, +Attributes, +Content)// is det.
 %
@@ -647,7 +689,8 @@ file_header(File, Options) -->
 	{ is_structured_comment(Comment, Prefixes),
 	  indented_lines(Comment, Prefixes, Lines),
 	  section_comment_header(Lines, _Header, Lines1),
-	  wiki_lines_to_dom(Lines1, [], DOM)
+	  wiki_lines_to_dom(Lines1, [], DOM0),
+	  tags_to_front(DOM0, DOM)
 	},
 	latex(DOM),
 	latex(cmd(vspace('0.7cm'))).
@@ -656,16 +699,24 @@ file_header(File, Options) -->
 	},
 	file_title([Base], File, Options).
 
+tags_to_front(DOM0, DOM) :-
+	append(Content, [\tags(Tags)], DOM0), !,
+	DOM = [\tags(Tags)|Content].
+tags_to_front(DOM, DOM).
 
 %%	file_title(+Title:list, +File, +Options)// is det
 %
 %	Emit the file-header and manipulation buttons.
 
-file_title(Title, _File, Options) -->
+file_title(Title, File, Options) -->
 	{ option(section_level(Level), Options, section),
-	  Section =.. [Level,Title]
+	  Section =.. [Level,Title],
+	  file_base_name(File, BaseExt),
+	  file_name_extension(Base, _, BaseExt),
+	  atom_concat('sec:', Base, Label)
 	},
-	latex(cmd(Section)).
+	latex(cmd(Section)),
+	latex(cmd(label(Label))).
 
 
 %%	objects(+Objects:list, +Options)// is det.
@@ -964,6 +1015,53 @@ termitem_with_args(Functor, [Arg]) -->
 	latex(cmd(postfixtermitem(Functor, \term(Arg)))).
 termitem_with_args(Functor, Args) -->
 	latex(cmd(termitem(Functor, \pred_args(Args, 1)))).
+
+
+%%	latex_table(Attrs, Content)// is det.
+%
+%	Emit a table in LaTeX.
+
+latex_table(_Attrs, Content) -->
+	{ max_columns(Content, 0, N),
+	  make_frame(N, l, List),
+	  atom_chars(Format, ['|'|List])
+	},
+%	latex(cmd(begin(table, opt(h)))),
+	latex(cmd(begin(quote))),
+	latex(cmd(begin(tabular, Format))),
+	latex(cmd(hline)),
+	rows(Content),
+	latex(cmd(hline)),
+	latex(cmd(end(tabular))),
+	latex(cmd(end(quote))).
+%	latex(cmd(end(table))).
+	
+max_columns([], C, C).
+max_columns([tr(List)|T], C0, C) :-
+	length(List, C1),
+	C2 is max(C0, C1),
+	max_columns(T, C2, C).
+
+make_frame(0, _, []) :- !.
+make_frame(N, C, [C,'|'|T]) :-
+	N2 is N - 1,
+	make_frame(N2, C, T).
+
+rows([]) -->
+	[].
+rows([tr(Content)|T]) -->
+	row(Content),
+	rows(T).
+
+row([]) -->
+	[ latex(' \\\\'), nl(1) ].
+row([td(Content)|T]) -->
+	latex(Content),
+	(   {T == []}
+	->  []
+	;   [ latex(' & ') ]
+	),
+	row(T).
 
 
 		 /*******************************

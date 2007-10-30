@@ -734,9 +734,10 @@ onto atoms, code-lists, etc.</SPAN></A></H3>
 Run <VAR>Goal</VAR> as <A NAME="idx:once1:724"></A><A class="pred" href="metacall.html#once/1">once/1</A>, 
 while characters written to the current output is sent to <VAR>Output</VAR>. 
 The predicate is SWI-Prolog specific, inspired by various posts to the 
-mailinglist. It provides a flexible replacement for predicates such as <A NAME="idx:sformat3:725"></A><SPAN class="pred-ext">sformat/3</SPAN>, <A NAME="idx:swritef3:726"></A><A class="pred" href="format.html#swritef/3">swritef/3</A>, <A NAME="idx:termtoatom2:727"></A><A class="pred" href="manipatom.html#term_to_atom/2">term_to_atom/2</A>,
-<A NAME="idx:atomnumber2:728"></A><A class="pred" href="manipatom.html#atom_number/2">atom_number/2</A> 
-converting numbers to atoms, etc. The predicate <A NAME="idx:format3:729"></A><A class="pred" href="format.html#format/3">format/3</A> 
+mailinglist. It provides a flexible replacement for predicates such as 
+sformat/3 , <A NAME="idx:swritef3:725"></A><A class="pred" href="format.html#swritef/3">swritef/3</A>,
+<A NAME="idx:termtoatom2:726"></A><A class="pred" href="manipatom.html#term_to_atom/2">term_to_atom/2</A>, <A NAME="idx:atomnumber2:727"></A><A class="pred" href="manipatom.html#atom_number/2">atom_number/2</A> 
+converting numbers to atoms, etc. The predicate <A NAME="idx:format3:728"></A><A class="pred" href="format.html#format/3">format/3</A> 
 accepts the same terms as output argument.
 
 <P>Applications should generally avoid creating atoms by breaking and 
@@ -744,8 +745,8 @@ concatenating other atoms as the creation of large numbers of
 intermediate atoms generally leads to poor performance, even more so in 
 multi-threaded applications. This predicate supports creating 
 difference-lists from character data efficiently. The example below 
-defines the DCG rule <A NAME="idx:term1:730"></A> to insert a term in 
-the output:
+defines the DCG rule <A NAME="idx:term1:729"></A><SPAN class="pred-ext">term/3</SPAN> 
+to insert a term in the output:
 
 <PRE class="code">
 term(Term, In, Tail) :-
@@ -760,9 +761,9 @@ X = [104, 101, 108, 108, 111]
 <DT><B>A Stream handle or alias</B></DT>
 <DD class="defbody">
 Temporary switch current output to the given stream. Redirection using
-<A NAME="idx:withoutputto2:731"></A><A class="pred" href="IO.html#with_output_to/2">with_output_to/2</A> 
+<A NAME="idx:withoutputto2:730"></A><A class="pred" href="IO.html#with_output_to/2">with_output_to/2</A> 
 guarantees the original output is restored, also if
-<VAR>Goal</VAR> fails or raises an exception. See also <A NAME="idx:callcleanup2:732"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/2</A>.</DD>
+<VAR>Goal</VAR> fails or raises an exception. See also <A NAME="idx:callcleanup2:731"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/2</A>.</DD>
 <DT><STRONG>atom</STRONG>(<VAR>-Atom</VAR>)</DT>
 <DD class="defbody">
 Create an atom from the emitted characters. Please note the remark 
@@ -774,14 +775,14 @@ Create a string-object as defined in <A class="sec" href="strings.html">section
 <DT><STRONG>codes</STRONG>(<VAR>-Codes</VAR>)</DT>
 <DD class="defbody">
 Create a list of character codes from the emitted characters, similar to
-<A NAME="idx:atomcodes2:733"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>.</DD>
+<A NAME="idx:atomcodes2:732"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>.</DD>
 <DT><STRONG>codes</STRONG>(<VAR>-Codes, -Tail</VAR>)</DT>
 <DD class="defbody">
 Create a list of character codes as a difference-list.</DD>
 <DT><STRONG>chars</STRONG>(<VAR>-Chars</VAR>)</DT>
 <DD class="defbody">
 Create a list of one-character-atoms codes from the emitted characters, 
-similar to <A NAME="idx:atomchars2:734"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A>.</DD>
+similar to <A NAME="idx:atomchars2:733"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A>.</DD>
 <DT><STRONG>chars</STRONG>(<VAR>-Chars, -Tail</VAR>)</DT>
 <DD class="defbody">
 Create a list of one-character-atoms as a difference-list.

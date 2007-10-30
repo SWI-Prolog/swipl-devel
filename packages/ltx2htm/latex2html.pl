@@ -131,7 +131,8 @@ latex2html_module :-
 	;   asserta(tex:tex_extension_module(M))
 	),
 	M:dynamic((cmd/2, cmd/3, cmd/4, env/2, (#)/2)),
-	M:discontiguous((cmd/2, cmd/3, cmd/4, env/2, (#)/2)).
+	M:discontiguous((cmd/2, cmd/3, cmd/4, env/2, (#)/2)),
+	M:dynamic((list_command/4)).
 
 %	Load a tex command file
 
@@ -746,7 +747,8 @@ env(Env, [Open, HtmlItems, Close]) :-		% General lists
 	tex_environment_function(List, list), !,
 	arg(1, Env, Args),
 	arg(2, Env, Tokens),
-	(   list_command(List, Args, Open, Close),
+	(   tex_extension_module(M),
+	    M:list_command(List, Args, Open, Close),
 	    items(Tokens, Items),
 	    translate_items(Items, List, HtmlItems)
 	->  true

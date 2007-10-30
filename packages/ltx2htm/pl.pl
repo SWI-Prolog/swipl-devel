@@ -51,6 +51,13 @@
 			]).
 
 		 /*******************************
+		 *	   ENVIRONMENTS		*
+		 *******************************/
+
+list_command(tags,     _, html('<DL>'), html('</DL>')).
+
+
+		 /*******************************
 		 *	    INDEX HACK		*
 		 *******************************/
 
@@ -114,6 +121,12 @@ cmd(argoption({RawName}, {ArgName}),
 	clean_tt(RawName, Name).
 cmd(predref({RawName}, {Arity}), #lref(pred, RefName, Text)) :-
 	clean_name(RawName, Name),
+	predicate_refname(Name, Arity, RefName),
+	sformat(Text, '~w/~w', [Name, Arity]).
+cmd(dcgref({RawName}, {DCGArity}), #lref(pred, RefName, Text)) :-
+	clean_name(RawName, Name),
+	atom_number(DCGArity, ArityInt),
+	Arity is ArityInt + 2,
 	predicate_refname(Name, Arity, RefName),
 	sformat(Text, '~w/~w', [Name, Arity]).
 cmd(nopredref({RawName}, {Arity}), Text) :-
@@ -390,6 +403,15 @@ remove_trailing_spaces([0' |T], []) :-
 remove_trailing_spaces([H|T0], [H|T]) :-
 	remove_trailing_spaces(T0, T).
 
+
+		 /*******************************
+		 *	   PlDoc KEYWORDS	*
+		 *******************************/
+
+cmd(tag({Tag}),
+    [ html('<DT><B>'), +Tag, html('</B><DD>') ]).
+
+
 		 /*******************************
 		 *               C		*
 		 *******************************/
@@ -468,7 +490,7 @@ ws --> [].
 string([]) --> [].
 string([H|T]) --> [H], string(T).
 	
-eol(L,L).
+eol([],[]).
 
 
 clean_name([\Special], Out) :-

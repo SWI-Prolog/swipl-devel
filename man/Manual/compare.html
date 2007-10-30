@@ -196,7 +196,7 @@ unification in the head can be changed using the Prolog flag <A class="flag" hre
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="\=/2"><VAR>+Term1</VAR> <STRONG>\=</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 Equivalent to <CODE><CODE>\+</CODE>Term1 = Term2</CODE>.</DD>
-<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="=../2"><VAR>+Term1</VAR> <STRONG>=..</STRONG> <VAR>+Term2</VAR></A></DT>
+<DT class="pubdef"><A NAME="=@=/2"><VAR>+Term1</VAR> <STRONG>=@=</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 True if <VAR>Term1</VAR> is `structurally equal' to <VAR>Term2</VAR>. 
 Structural equivalence is weaker than equivalence (<A class="pred" href="compare.html#==/2">==/2</A>), 
@@ -214,9 +214,10 @@ identical and they have the same `pattern' of variables. Examples:
 
 </BLOCKQUOTE>
 
-<P>The predicates <SPAN class="pred-ext">=@=/2</SPAN> and <A class="pred" href="compare.html#\=@=/2">\=@=/2</A> 
-are cycle-safe. Attributed variables are considered structurally equal 
-iff their attributes are structurally equal.</DD>
+<P>The predicates <A class="pred" href="compare.html#=@=/2">=@=/2</A> 
+and <A class="pred" href="compare.html#\=@=/2">\=@=/2</A> are 
+cycle-safe. Attributed variables are considered structurally equal iff 
+their attributes are structurally equal.</DD>
 <DT class="pubdef"><A NAME="\=@=/2"><VAR>+Term1</VAR> <STRONG>\=@=</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 Equivalent to <CODE>`<CODE>\+</CODE>Term1 =@= Term2'</CODE>.</DD>
