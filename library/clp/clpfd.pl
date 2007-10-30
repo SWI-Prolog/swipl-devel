@@ -181,8 +181,8 @@ The most important finite domain _constraints_ are:
 
 The constraints #=/2, #\=/2, #</2, #>/2, #=</2, #>=/2 and #\/1 can be
 _reified_, which means reflecting their truth values into Boolean 0/1
-variables. Let P and Q denote conjunctions ((#/\)/2) or disjunctions
-((#\/)/2) of reifiable constraints or Boolean variables, then:
+variables. Let P and Q denote conjunctions (#/\/2) or disjunctions
+(#\//2) of reifiable constraints or Boolean variables, then:
 
     * #\ Q
     True iff Q is false.

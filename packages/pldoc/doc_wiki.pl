@@ -427,7 +427,7 @@ param_tags(T, [], T).
 %%	wiki_faces(+Structure, +ArgNames, -HTML) is det.
 %
 %	Given the wiki structure, analyse the content of the paragraphs,
-%	list items and gtable cells and apply font faces and links.
+%	list items and table cells and apply font faces and links.
 
 wiki_faces(DOM0, ArgNames, DOM) :-
 	structure_term(DOM0, Functor, Content0), !,
@@ -523,12 +523,16 @@ wiki_face(code(Code), _) -->
 	[=,'|'], wiki_faces(Code, []), ['|',=], !.
 wiki_face(\predref(Name/Arity), _) -->
 	[ NameS, '/' ], arity(Arity),
-	{ functor_name(NameS),
+	{ functor_name(NameS), !,
 	  string_to_atom(NameS, Name)
+	}.
+wiki_face(\predref(Name/Arity), _) -->
+	symbol_string(S), [ '/' ], arity(Arity), !,
+	{ atom_chars(Name, S)
 	}.
 wiki_face(\predref(Name//Arity), _) -->
 	[ NameS, '/', '/' ], arity(Arity),
-	{ functor_name(NameS),
+	{ functor_name(NameS), !,
 	  string_to_atom(NameS, Name)
 	}.
 wiki_face(span(class=cvs, CVS), _) -->
@@ -566,6 +570,43 @@ wiki_face(FT, ArgNames) -->
 	->  FT = T
 	;   wiki_faces(T, ArgNames, FT)
 	}.
+
+%%	symbol_string(-String)// is nondet
+%
+%	Accept  a  non-empty  sequence  of   Prolog  symbol  characters,
+%	starting with the shortest match.
+
+symbol_string([S]) -->
+	[S],
+	{ prolog_symbol_char(S) }.
+symbol_string([H|T]) -->
+	[H],
+	{ prolog_symbol_char(H) },
+	symbol_string(T).
+
+%%	prolog_symbol_char(?Char)
+%
+%	True if char is classified by Prolog as a symbol char.
+
+prolog_symbol_char(#).
+prolog_symbol_char($).
+prolog_symbol_char(&).
+prolog_symbol_char(*).
+prolog_symbol_char(+).
+prolog_symbol_char(-).
+prolog_symbol_char(.).
+prolog_symbol_char(/).
+prolog_symbol_char(:).
+prolog_symbol_char(<).
+prolog_symbol_char(=).
+prolog_symbol_char(>).
+prolog_symbol_char(?).
+prolog_symbol_char(@).
+prolog_symbol_char(\).
+prolog_symbol_char(^).
+prolog_symbol_char(`).
+prolog_symbol_char(~).
+
 
 functor_name(String) :-
 	sub_atom(String, 0, 1, _, Char),
