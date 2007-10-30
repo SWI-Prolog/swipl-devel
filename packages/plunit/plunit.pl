@@ -486,7 +486,10 @@ cleanup :-
 
 run_tests_in_files(Files) :-
 	findall(Unit, unit_in_files(Files, Unit), Units),
-	run_tests(Units).
+	(   Units == []
+	->  true
+	;   run_tests(Units)
+	).
 
 unit_in_files(Files, Unit) :-
 	is_list(Files), !,
@@ -746,13 +749,18 @@ setup(_,_).
 
 %%	cleanup(+Module, +Options) is det.
 %
-%	Call the cleanup handler and succeed,   regardless of any errors
-%	or failure without notice.
+%	Call the cleanup handler and succeed.   Failure  or error of the
+%	cleanup handler is reported, but tests continue normally.
 
 cleanup(Module, Options) :-
 	option(cleanup(Cleanup), Options, true),
-	ignore(catch(Module:Cleanup, _, true)).
-
+	(   catch(Module:Cleanup, E, true)
+	->  (   var(E)
+	    ->	true
+	    ;	print_message(warning, E)
+	    )
+	;   print_message(warning, goal_failed(Cleanup, '(cleanup handler)'))
+	).
 
 success(Unit, Name, Line, Det, Time, Options) :-
 	assert(passed(Unit, Name, Line, Det, Time)),

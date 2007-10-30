@@ -1,3 +1,9 @@
+Oct 30, 2007
+
+* ENHANCED: Report error or failure in cleanup handler (Mark van Assem)
+* ENHANCED: Do not report '% All tests passed' if no tests are
+  executed after a make/0.
+
 Sep 21, 2007
 
 * ENHANCED: Verify test-set and test options.
