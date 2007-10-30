@@ -43,7 +43,8 @@
 :- use_module(library(assoc)).
 :- use_module(library(option)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> XML/SGML writer module
+
 This library provides the inverse functionality   of  the sgml.pl parser
 library, writing XML, SGML and HTML documents from the parsed output. It
 is intended to allow rewriting in a  different dialect or encoding or to
@@ -57,11 +58,17 @@ very hazardous area.
 The Prolog-based low-level character and  escape   handling  is the real
 bottleneck in this library and will probably be   moved  to C in a later
 stage.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	xml_write( [+Stream,] +Data, +Options)
-%	sgml_write([+Stream,] +Data, +Options)
-%	html_write([+Stream,] +Data, +Options)
+@see	library(http/html_write) provides a high-level library for
+	emitting HTML and XHTML.
+*/
+
+%%	xml_write(+Data, +Options) is det.
+%%	sgml_write(+Data, +Options) is det.
+%%	html_write(+Data, +Options) is det.
+%%	xml_write(+Stream, +Data, +Options) is det.
+%%	sgml_write(+Stream, +Data, +Options) is det.
+%%	html_write(+Stream, +Data, +Options) is det.
 %	
 %	Write a term as created by the SGML/XML parser to a stream in
 %	SGML or XML format.  Options:
@@ -94,7 +101,7 @@ stage.
 %		If Bool is 'false', do not emit the <xml ...> header
 %		line.  (xml_write/3 only)
 %		
-%		* nsmap([Id=URI ...])
+%		* nsmap(Map:list(Id=URI))
 %		When emitting embedded XML, assume these namespaces
 %		are already defined from the environment.  (xml_write/3
 %		only).
@@ -109,15 +116,26 @@ stage.
 %		* net(Bool)
 %		Use/do not use Null End Tags.
 %		For XML, this applies only to empty elements, so you get
+%		
+%		==
 %		    <foo/>	(default, net(true))
 %		    <foo></foo>	(net(false))
+%		==
+%		
 %		For SGML, this applies to empty elements, so you get
+%		
+%		==
 %		    <foo>	(if foo is declared to be EMPTY in the DTD)
 %		    <foo></foo>	(default, net(false))
 %		    <foo//	(net(true))
+%		==
+%
 %		and also to elements with character content not containing /
+%		
+%		==
 %		    <b>xxx</b>	(default, net(false))
 %		    <b/xxx/	(net(true)).
+%		==
 %
 %	Note that if the stream is UTF-8, the system will write special
 %	characters as UTF-8 sequences, while if it is ISO Latin-1 it
@@ -388,7 +406,7 @@ emit_name(URI:Name, Out, State) :-
 emit_name(Term, Out, _) :-
 	write(Out, Term).
 
-%	update_nsmap(+Attributes, !State)
+%%	update_nsmap(+Attributes, !State)
 %	
 %	Modify the nsmap of State to reflect modifications due to xmlns
 %	arguments.
@@ -414,7 +432,7 @@ set_nsmap(NS, URI, Map0, Map) :-
 set_nsmap(NS, URI, Map, [NS=URI|Map]).
 
 
-%	content(+Content, +Out, +Element, +State, +Options)
+%%	content(+Content, +Out, +Element, +State, +Options)
 %	
 %	Emit the content part of a structure  as well as the termination
 %	for the content. For empty content   we have three versions: XML
@@ -607,12 +625,12 @@ sgml_write_attribute(Out, Values, State) :-
 	is_list(Values), !,
 	get_state(State, entity_map, EntityMap),
 	put_char(Out, '"'),
-	write_quoted_list(Values, Out, """&", EntityMap),
+	write_quoted_list(Values, Out, """<&>", EntityMap),
 	put_char(Out, '"').
 sgml_write_attribute(Out, Value, State) :-
 	get_state(State, entity_map, EntityMap),
 	put_char(Out, '"'),
-	write_quoted(Out, Value, """&", EntityMap),
+	write_quoted(Out, Value, """<&>", EntityMap),
 	put_char(Out, '"').
 
 write_quoted_list([], _, _, _).
@@ -702,7 +720,7 @@ inc_indent(State, Inc) :-
 		 *	   DTD HANDLING		*
 		 *******************************/
 
-%	empty_element(+State, +Element)
+%%	empty_element(+State, +Element)
 %	
 %	True if Element is declared  with   EMPTY  content in the (SGML)
 %	DTD.
@@ -712,7 +730,7 @@ empty_element(State, Element) :-
 	DTD \== (-),
 	dtd_property(DTD, element(Element, _, empty)).
 	
-%	dtd_character_entities(+DTD, -Map)
+%%	dtd_character_entities(+DTD, -Map)
 %	
 %	Return an assoc mapping character entities   to their name. Note
 %	that the entity representation is a bit dubious. Entities should
@@ -763,8 +781,12 @@ new_state(Dialect,
 	[],		% NS=Full map
 	Net		% Null End-Tags?
     )) :-
-	( Dialect == sgml -> Net = false ; Net = true ),
-	empty_assoc(EntityMap).
+	(   Dialect == sgml
+	->  Net = false,
+	    empty_assoc(EntityMap)
+	;   Net = true,
+	    xml_entities(EntityMap)
+	).
 
 get_state(State, Field, Value) :-
 	state(Field, Arg),
@@ -773,6 +795,14 @@ get_state(State, Field, Value) :-
 set_state(State, Field, Value) :-
 	state(Field, Arg),
 	setarg(Arg, State, Value).
+
+xml_entities(Map) :-
+	list_to_assoc([ 60 - lt,
+			61 - amp,
+			62 - gt,
+			39 - apos,
+			34 - quot
+		      ], Map).
 
 
 		 /*******************************

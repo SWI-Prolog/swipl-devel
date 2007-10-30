@@ -1,3 +1,7 @@
+Oct 30, 2007
+
+  * FIXED: xml_write/3 quoting of < in attributes.  Dmitry Kuzmin.
+
 Sep 11, 2007
 
   * FIXED: xml_write/3 for multi-valued attributes such as IDREFS, NAMES,
