@@ -7716,11 +7716,11 @@ _+_E_x_p_r_1 >= _+_E_x_p_r_2                                        
     _E_x_p_r_2.
 
 
-_+_E_x_p_r_1 =.. _+_E_x_p_r_2                                                 _[_I_S_O_]
+_+_E_x_p_r_1 =\= _+_E_x_p_r_2                                                 _[_I_S_O_]
     True if expression _E_x_p_r_1 evaluates to a number non-equal to _E_x_p_r_2.
 
 
-_+_E_x_p_r_1 =.. _+_E_x_p_r_2                                                 _[_I_S_O_]
+_+_E_x_p_r_1 =:= _+_E_x_p_r_2                                                 _[_I_S_O_]
     True if expression _E_x_p_r_1 evaluates to a number equal to  _E_x_p_r_2.
 
 
@@ -20320,14 +20320,16 @@ Bibliography
 
 Index
 
-'MANUAL' _l_i_b_r_a_r_y, 43                 set_input/1, 304, 308, 316
---disable-segv-handling, 1056        set_output/1, 309, 317
--lpl _l_i_b_r_a_r_y, 1057                   set_prolog_flag/2,  21,  49, 59,  61,
--lreadline _l_i_b_r_a_r_y, 1085                   446
-.pl, 91                              set_prolog_IO/3, 305
-.pro, 91                             set_stream/2,  77,  293,  298,  304,
-?=/2, 201                                  305, 323
-/\/2, 487                            set_stream_position/2, 298, 301, 303
+'MANUAL' _l_i_b_r_a_r_y, 43                 select/3, 22, 1092
+--disable-segv-handling, 1056        serialized/2, 1216, 1234
+-lpl _l_i_b_r_a_r_y, 1057                   set_input/1, 304, 308, 316
+-lreadline _l_i_b_r_a_r_y, 1085             set_output/1, 309, 317
+.pl, 91                              set_prolog_flag/2,  21,  49, 59,  61,
+.pro, 91                                   446
+?=/2, 201                            set_prolog_IO/3, 305
+=:=/2, 452                           set_stream/2,  77,  293,  298,  304,
+/\/2, 487                                  305, 323
+=\=/2, 451                           set_stream_position/2, 298, 301, 303
 |/2, 210                             set_tty/2, 553
 #=/2, 1226                           setarg/3, 121, 398, 400, 401,  403,
 #<==>/2, 1209                              714, 736, 1306
@@ -20380,7 +20382,7 @@ Index
 */2, 461, 1236                       stamp_date_time/3, 570, 573, 574
 @=</2, 197                           startup file, 39
 @</2, 196                            statistics _l_i_b_r_a_r_y, 644
-=../2, 393, 451, 452                 statistics/0, 642
+=../2, 393                           statistics/0, 642
 \, 92                                statistics/2, 506, 641, 776
 _PL_get_arg(), 905                   stream_position_data/3,   137,   298,
 64-bits                                    302, 385, 1327
@@ -21517,7 +21519,5 @@ see/1, 20, 291, 293, 306--308
 seeing/1, 306, 307, 311
 seek/4, 298, 301, 303
 seen/0, 313
-select/3, 22, 1092
-serialized/2, 1216, 1234
 
                                   1366

@@ -4130,11 +4130,11 @@ to \arg{Expr2}.
 True if expression \arg{Expr1} evaluates to a larger or equal number
 to \arg{Expr2}.
 
-\infixop[ISO]{=..}{+Expr1}{+Expr2}
+\infixop[ISO]{=\=}{+Expr1}{+Expr2}
 True if expression \arg{Expr1} evaluates to a number non-equal to
 \arg{Expr2}.
 
-\infixop[ISO]{=..}{+Expr1}{+Expr2}
+\infixop[ISO]{=:=}{+Expr1}{+Expr2}
 True if expression \arg{Expr1} evaluates to a number equal to \arg{
 Expr2}.
 

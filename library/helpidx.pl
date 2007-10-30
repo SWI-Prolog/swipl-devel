@@ -310,8 +310,8 @@ predicate(>, 2, 'Arithmetic larger', 374532, 374728).
 predicate(<, 2, 'Arithmetic smaller', 374731, 374928).
 predicate(=<, 2, 'Arithmetic smaller or equal', 374931, 375141).
 predicate(>=, 2, 'Arithmetic larger or equal', 375144, 375354).
-predicate(=.., 2, '``Univ.\'\' Term to list conversion', 375357, 375554).
-predicate(=.., 2, '``Univ.\'\' Term to list conversion', 375557, 375751).
+predicate(=\=, 2, 'Arithmetic not equal', 375357, 375554).
+predicate(=:=, 2, 'Arithmetic equal', 375557, 375751).
 predicate(is, 2, 'Evaluate arithmetic expression', 375754, 376620).
 predicate(-, 1, 'Unary minus', 382512, 382642).
 predicate(+, 1, 'Unary plus (No-op)', 382645, 382806).
@@ -1199,7 +1199,7 @@ section([15, 4, 13], clpqr, 946329, 946803).
 section([15, 4, 14], prologxref, 946805, 947305).
 section([15, 4, 15], broadcast, 947307, 947768).
 section([15, 4, 16], record, 947770, 947842).
-section([16], 'Bibliography', 947844, 990700).
+section([16], 'Bibliography', 947844, 990774).
 
 
 %   Predicate function/3
