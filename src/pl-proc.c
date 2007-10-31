@@ -2589,34 +2589,43 @@ pl_source_file(term_t descr, term_t file, control_t h)
   fail;
 }
 
-
-word
-pl_time_source_file(term_t file, term_t time, control_t h)
-{ GET_LD
+static
+PRED_IMPL("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
   int index;
   int mx = (int)entriesBuffer(&GD->files.source_files, SourceFile);
+  term_t file = A1;
+  term_t time = A2;
+  term_t type = A3;			/* user or system */
+  fid_t fid;
 
-  switch( ForeignControl(h) )
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       index = 0;
       break;
     case FRG_REDO:
-      index = (int)ForeignContextInt(h);
+      index = (int)CTX_INT;
       break;
     case FRG_CUTTED:
     default:
       succeed;
   }
 
+  fid = PL_open_foreign_frame();
   for(; index < mx; index++)
   { SourceFile f = fetchBuffer(&GD->files.source_files, index, SourceFile);
 
-    if ( !f->system )
-    { if ( PL_unify_atom(file, f->name) && unifyTime(time, f->time) )
-	ForeignRedoInt(index+1);
+    if ( PL_unify_atom(file, f->name) &&
+	 unifyTime(time, f->time) &&
+	 PL_unify_atom(type, f->system ? ATOM_system : ATOM_user) )
+    { PL_close_foreign_frame(fid);
+      ForeignRedoInt(index+1);
     }
+
+    PL_rewind_foreign_frame(fid);
   }
 
+  PL_close_foreign_frame(fid);
   fail;
 }
 
@@ -2916,3 +2925,12 @@ pl_list_generations(term_t desc)
 
 
 #endif /*O_MAINTENANCE*/
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(proc)
+  PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
+EndPredDefs

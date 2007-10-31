@@ -54,7 +54,7 @@ make :-
 	list_undefined.
 
 modified_file(File) :-
-	'$time_source_file'(Source, Time),
+	'$time_source_file'(Source, Time, user),
 	(   '$derived_source'(Source, File, LoadTime)
 	->  true
 	;   File = Source,

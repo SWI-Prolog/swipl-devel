@@ -229,7 +229,6 @@ static const PL_extension foreigns[] = {
   FRG("$get_clause_attribute",  3, pl_get_clause_attribute,	0),
   FRG("$require",		1, pl_require,		     META),
   FRG("source_file",		2, pl_source_file,      NDET|META),
-  FRG("$time_source_file",	2, pl_time_source_file,	     NDET),
   FRG("$start_consult",		1, pl_start_consult,		0),
   FRG("$make_system_source_files",0,pl_make_system_source_files,0),
   FRG("$default_predicate",	2, pl_default_predicate,     META),
@@ -554,6 +553,7 @@ DECL_PLIST(btree);
 DECL_PLIST(ctype);
 DECL_PLIST(tai);
 DECL_PLIST(gc);
+DECL_PLIST(proc);
 
 void
 initBuildIns(void)
@@ -579,6 +579,7 @@ initBuildIns(void)
   REG_PLIST(ctype);
   REG_PLIST(tai);
   REG_PLIST(gc);
+  REG_PLIST(proc);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
 #endif

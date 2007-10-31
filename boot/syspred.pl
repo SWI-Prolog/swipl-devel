@@ -107,7 +107,7 @@
 '$port_bit'(       cut, 2'011000000).
 '$port_bit'(       all, 2'000111111).
 '$port_bit'(      full, 2'000101111).
-'$port_bit'(      half, 2'000101101).
+'$port_bit'(      half, 2'000101101).	% '
 
 leash(Ports) :-
 	'$leash'(Old, Old),
@@ -323,12 +323,22 @@ atom_prefix(Atom, Prefix) :-
 		*             SOURCE            *
 		*********************************/
 
+%%	source_file(-File) is nondet.
+%%	source_file(+File) is semidet.
+%
+%	True if File is loaded into  Prolog.   If  File is unbound it is
+%	bound to the canonical name for it. If File is bound it succeeds
+%	if the canonical name  as   defined  by  absolute_file_name/2 is
+%	known as a loaded filename.
+
 source_file(File) :-
-	'$time_source_file'(File, _).
-source_file(File) :-
-	atom(File),
-	absolute_file_name(File, Abs),	% canonise
-	'$time_source_file'(Abs, _).
+	(   ground(File)
+	->  ( 	'$time_source_file'(File, _, user)
+	    ;	absolute_file_name(File, Abs),
+		'$time_source_file'(Abs, _, user)
+	    ), !
+	;   '$time_source_file'(File, _, user)
+	).
 
 %%	prolog_load_context(+Key, -Value)
 %
