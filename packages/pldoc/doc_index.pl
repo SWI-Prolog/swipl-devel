@@ -367,12 +367,16 @@ source_dirs([H|T], WD) -->
 	html(option([onClick(Call)|Attrs], H)),
 	source_dirs(T, WD).	
 
-%%	source_directory(?Dir) is nondet.
+%%	source_directory(+Dir) is semidet.
+%%	source_directory(-Dir) is det.
 %
 %	True if Dir is a directory  from   which  we  have loaded Prolog
 %	sources.
 
 source_directory(Dir) :-
-	source_file(File),
-	once(source_file(_, File)),
-	file_directory_name(File, Dir).
+	(   ground(Dir)
+	->  '$time_source_file'(File, _Time, _System),
+	    file_directory_name(File, Dir), !
+	;   '$time_source_file'(File, _Time, _System),
+	    file_directory_name(File, Dir)
+	).

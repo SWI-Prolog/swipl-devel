@@ -648,7 +648,6 @@ COMMON(void) 		cleanupSourceFiles(void);
 COMMON(void) 		addProcedureSourceFile(SourceFile sf, Procedure proc);
 COMMON(word) 		pl_make_system_source_files(void);
 COMMON(word) 		pl_source_file(term_t descr, term_t file, control_t h);
-COMMON(word) 		pl_time_source_file(term_t file, term_t t, control_t h);
 COMMON(word) 		pl_start_consult(term_t file);
 COMMON(word) 		pl_default_predicate(term_t d1, term_t d2);
 COMMON(Definition) 	autoImport(functor_t f, Module m);
