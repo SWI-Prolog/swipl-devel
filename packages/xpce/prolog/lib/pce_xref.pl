@@ -712,6 +712,50 @@ top_node('.',		prolog_directory_node).
 top_node('alias',	toc_folder).
 top_node('/',		prolog_directory_node).
 
+
+:- pce_group(filter).
+
+filter_file_name(Tree, String:char_array*) :->
+	"Only show files having String as substring"::
+	(   String == @nil
+	->  send(Tree, filter_files, @nil)
+	;   send(Tree, filter_files,
+		 message(@arg1?base_name, sub, String))
+	).
+
+filter_files(Tree, Filter:code*) :->
+	"Highlight files that match Filter"::
+	send(Tree, collapse_all),
+	send(Tree, selection, @nil),
+	(   Filter == @nil
+	->  send(Tree, expand_id, '.'),
+	    send(Tree, expand_id, project)
+	;   get(Tree?tree, root, Root),
+	    send(Root, for_all,
+		 if(and(message(@arg1, instance_of, prolog_file_node),
+			message(Filter, forward, @arg1)),
+		    message(Tree, show_node_path, @arg1)))
+	).
+	
+show_node_path(Tree, Node:node) :->
+	"Select Node and make sure all parents are expanded"::
+	send(Node, selected, @on),
+	send(Tree, expand_parents, Node).
+
+expand_parents(Tree, Node:node) :->
+	(   get(Node, collapsed, @nil)
+	->  true
+	;   send(Node, collapsed, @off)
+	),
+	send(Node?parents, for_all, message(Tree, expand_parents, @arg1)).
+
+collapse_all(Tree) :->
+	"Collapse all nodes"::
+	get(Tree?tree, root, Root),
+	send(Root, for_all,
+	     if(@arg1?collapsed == @off,
+		message(@arg1, collapsed, @on))).
+
 :- pce_end_class(xref_file_tree).
 
 
@@ -771,12 +815,15 @@ set_flags(DN) :->
 :- pce_begin_class(prolog_file_node, toc_file,
 		   "Represent a file").
 
-variable(flags, name*, get, "Warning status").
+variable(flags,		name*, get, "Warning status").
+variable(base_name,	name,  get, "Base-name of file").
 
 initialise(FN, File:name) :->
 	"Create from a file"::
 	absolute_file_name(File, Path),
 	send_super(FN, initialise, new(T, xref_file_text(Path)), Path),
+	file_base_name(File, Base),
+	send(FN, slot, base_name, Base),
 	send(T, default_action, info).
 
 basename(FN, BaseName:name) :<-
