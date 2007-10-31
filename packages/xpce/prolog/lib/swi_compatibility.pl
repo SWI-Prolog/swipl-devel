@@ -68,11 +68,11 @@ callable_predicate(Spec) :-
 %	True is file has been modified since the last time it was loaded.
 
 modified_since_last_loaded(File) :-
-	'$time_source_file'(File, LoadTime), !,
+	'$time_source_file'(File, LoadTime, user), !,
 	time_file(File, Modified),
 	Modified @> LoadTime.
 modified_since_last_loaded(InFile) :-
-	'$time_source_file'(File, LoadTime),
+	'$time_source_file'(File, LoadTime, user),
 	same_file(InFile, File), !,
 	time_file(File, Modified),
 	Modified @> LoadTime.
