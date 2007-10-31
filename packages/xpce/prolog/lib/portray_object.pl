@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of XPCE --- The SWI-Prolog GUI toolkit
+/*  Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org/projects/xpce/
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -36,47 +34,60 @@
 
 
 :- use_module(library(pce)).
-:- require([ maplist/3
-	   , memberchk/2
+:- require([ maplist/3,
+	     memberchk/2
 	   ]).
 
-%   Note: you may wish to incorporate portray_object/2 with the
-%   standard portray mechanism of your Prolog.  In that case:
-%
-%%	portray(Object) :-
-%%		object(Object), !,
-%%		portray_object(Object).
+/** <module> Create Human readable XPCE object descriptions
 
+Note: you may wish to  incorporate   portray_object/2  with the standard
+portray mechanism of your Prolog. In that case:
 
-%   Sometimes the use of object references can be a new nuisance, in particular
-%   while writing and debugging PCE programs.  Suppose you have done:
-%
-%%	new(@s, spatial(xref=x+w, yref=x+h/2, xref=x, yref=y+h))
-%
-%   then
-%
-%%	object(@s, S)
-%	S = spatial(@1234, @1235, @1236, @1237, @default, @default)
-%
-%   is not of much use.  portray_object/2 makes life easier:
-%
-%%	portray_object(@s, S)
-%	S = spatial(xref=x+w, yref=x+h/2, xref=x, yref=y+h)
-%
-%   More or less expanding the arguments until they become readable.
-%   portray_object/3 uses rules which specify how each object will be
-%   portrayed.  You can make private extensions to these rules if you like.
+==
+portray(Object) :-
+	object(Object), !,
+	portray_object(Object).
+==		
 
+Sometimes the use of  object  references  can   be  a  new  nuisance, in
+particular while writing and debugging PCE   programs.  Suppose you have
+done:
 
-%   +portray_class(Description, Term)
+==
+    new(@s, spatial(xref=x+w, yref=x+h/2, xref=x, yref=y+h))
+==
+
+then
+
+==
+    object(@s, S)
+    S = spatial(@1234, @1235, @1236, @1237, @default, @default)
+==
+
+is not of much use.  portray_object/2 makes life easier:
+
+==
+    portray_object(@s, S)
+    S = spatial(xref=x+w, yref=x+h/2, xref=x, yref=y+h)
+==
+
+More or less  expanding  the  arguments   until  they  become  readable.
+portray_object/3 uses rules which  specify  how   each  object  will  be
+portrayed. You can make private extensions to these rules if you like.
+*/
+
+%%	portray_class(Description, Term)
 %
-%   Term is a template which may contain object references
-%   which need to be portrayed recursively (indicated with the "p/" prefix):
+%	Term is a template which  may   contain  object references which
+%	need to be  portrayed  recursively   (indicated  with  the  "p/"
+%	prefix):
 %
-%%	portray_class(constraint(A, B, C), _, constraint(A, B, p/C)).
+%	==
+%	portray_class(constraint(A, B, C), _, constraint(A, B, p/C)).
+%	==	
 %
-%   Which should not touch the first two arguments (A and B), but
-%   portrays C recursively.
+%	Which should not touch the first two   arguments  (A and B), but
+%	portrays C recursively.
 
 vararg_class(Class) :-
 	get(@pce, convert, Class, class, TheClass),
@@ -125,6 +136,7 @@ portray_class(A, A).
 tag_p(X, p/X).
 
 %%	global_object(+Ref)
+%
 %	Declare commonly known objects
 
 global_object(@nil).
@@ -156,20 +168,20 @@ global_object(@black_image).
 global_object(@on).
 global_object(@off).
 
-%%   portray_object(+@Object)
+%%	portray_object(@Object)
 %
-%   Prints the result of portray_object/2 on the display.
+%	Prints the result of portray_object/2 on the display.
 
 portray_object(Object) :-
 	portray_object(Object, Term), 
 	print(Term), nl, !.
 
 
-%%   portray_object(+@Object, -Term)
+%%	portray_object(@Object, -Term)
 %
-%   Expands the object description of Object in a human readable form
-%   and returs this in Term.  portray_object/2 uses the rules found under
-%   portray_class/2.
+%	Expands the object description of  Object   in  a human readable
+%	form and returs this in Term.   portray_object/2  uses the rules
+%	found under portray_class/2.
 
 portray_object(Obj, Term) :-
 	portray_object(Obj, Term, []).
