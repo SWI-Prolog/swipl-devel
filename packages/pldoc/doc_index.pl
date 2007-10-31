@@ -375,8 +375,8 @@ source_dirs([H|T], WD) -->
 
 source_directory(Dir) :-
 	(   ground(Dir)
-	->  '$time_source_file'(File, _Time, _System),
+	->  '$time_source_file'(File, _Time1, _System1),
 	    file_directory_name(File, Dir), !
-	;   '$time_source_file'(File, _Time, _System),
+	;   '$time_source_file'(File, _Time2, _System2),
 	    file_directory_name(File, Dir)
 	).
