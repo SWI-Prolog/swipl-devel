@@ -490,7 +490,7 @@ process_directive(style_check(X), _) :-
 	style_check(X).
 process_directive(encoding(Enc), _) :-
 	(   xref_input_stream(Stream)
-	->  set_stream(Stream, encoding(Enc))
+	->  catch(set_stream(Stream, encoding(Enc)), _, true)
 	;   true			% can this happen?
 	).
 process_directive(system_module, _) :-
