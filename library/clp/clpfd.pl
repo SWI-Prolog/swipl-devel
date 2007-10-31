@@ -156,24 +156,24 @@ _predicates_, which let you systematically search for solutions on
 variables whose domains have become finite. A finite domain _expression_
 is one of:
 
-    | an integer	 | Given value			 |
-    | a variable	 | Unknown value		 |
-    | -Expr		 | Unary minus			 |
-    | Expr + Expr	 | Addition			 |
-    | Expr * Expr	 | Multiplication		 |
-    | Expr - Expr.	 | Substraction			 |
-    | min(Expr,Expr) | Minimum of two values	 |
-    | max(Expr,Expr) | Maximum of two values	 |
-    | Expr mod Expr	 | Remainder of integer division |
-    | abs(Expr)	 | Absolute value		 |
-    | Expr / Expr	 | integer division		 |
+    | an integer         | Given value                   |
+    | a variable         | Unknown value                 |
+    | -Expr              | Unary minus                   |
+    | Expr + Expr        | Addition                      |
+    | Expr * Expr        | Multiplication                |
+    | Expr - Expr.       | Subtraction                   |
+    | min(Expr,Expr)     | Minimum of two expressions    |
+    | max(Expr,Expr)     | Maximum of two expressions    |
+    | Expr mod Expr      | Remainder of integer division |
+    | abs(Expr)          | Absolute value                |
+    | Expr / Expr        | Integer division              |
 
-The most important finite domain _constraints_ are given in the tabe
+The most important finite domain _constraints_ are given in the table
 below.
 
-    | Expr1 #>= Expr2  | Expr1 is larger or equal to Expr2  |
-    | Expr1 #=< Expr2  | Expr1 is smaller or equal to Expr2 |
-    | Expr1 #=  Expr2  | Expr1 is equal to Expr2 |
+    | Expr1 #>= Expr2  | Expr1 is larger than or equal to Expr2  |
+    | Expr1 #=< Expr2  | Expr1 is smaller than or equal to Expr2 |
+    | Expr1 #=  Expr2  | Expr1 equals Expr2 |
     | Expr1 #\= Expr2  | Expr1 is not equal to Expr2 |
     | Expr1 #> Expr2   | Expr1 is strictly larger than Expr2 |
     | Expr1 #< Expr2   | Expr1 is strictly smaller than Expr2 |
@@ -183,10 +183,10 @@ _reified_, which means reflecting their truth values into Boolean 0/1
 variables. Let P and Q denote conjunctions (#/\/2) or disjunctions
 (#\//2) of reifiable constraints or Boolean variables, then:
 
-    | #\ Q      | True iff Q is false	          |
+    | #\ Q      | True iff Q is false             |
     | P #<==> Q | True iff P and Q are equivalent |
-    | P #==> Q  | True iff P implies Q	          |
-    | P #<== Q  | True iff Q implies P	          |
+    | P #==> Q  | True iff P implies Q            |
+    | P #<== Q  | True iff Q implies P            |
 
 If SWI Prolog is compiled with support for arbitrary precision
 integers (using GMP), there is no limit on the size of domains.
@@ -1014,8 +1014,15 @@ label([], Selection, Order, Optimisation, Vars) :-
 label([], _, _) :- !.
 label(Vars, Selection, Order) :-
         select_var(Selection, Vars, Var, RVars),
-        indomain_(Order, Var),
-        label(RVars, Selection, Order).
+        (   var(Var) ->
+            get(Var, Dom, _),
+            order_dom_next(Order, Dom, Next),
+            (   Var = Next, label(RVars, Selection, Order)
+            ;   Var #\= Next, label(Vars, Selection, Order)
+            )
+        ;   must_be(integer, Var),
+            label(RVars, Selection, Order)
+        ).
 
 selection(ff).
 selection(ffc).
@@ -1170,14 +1177,14 @@ all_different([X|Right], Left) :-
         ),
         all_different(Right, [X|Left]).
 
-%%	sum(+Vars, +Op, +Expr)
+%%      sum(+Vars, +Op, +Expr)
 %
-%	Constrain the sum of a list.  The sum/3 constraint demands that
-%	"sumlist(Vars) Op Expr" holds.  I.e.
-%	
-%	==
-%		sum(List, #=< 100)
-%	==
+%       Constrain the sum of a list.  The sum/3 constraint demands that
+%       "sumlist(Vars) Op Expr" hold, e.g.:
+%       
+%       ==
+%               sum(List, #=< 100)
+%       ==
 
 sum(Ls, Op, Value) :- sum(Ls, 0, Op, Value).
 
@@ -1384,7 +1391,7 @@ L #==> R   :- reify(L, BL), reify(R, BR), myimpl(BL, BR), do_queue.
 
 L #<== R   :- reify(L, BL), reify(R, BR), myimpl(BR, BL), do_queue.
 
-%% ?P, #/\ ?Q
+%% ?P #/\ ?Q
 %
 % P and Q hold.
 
@@ -2409,17 +2416,17 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 
 % Currently implements 2-b-consistency
 
-%%	serialized(+Starts, +Durations)
+%%      serialized(+Starts, +Durations)
 %
-%	Constraint a set of  intervals   to  a non-overlapping sequence.
-%	Starts = [S_1,...,S_n], is a  list   of  variables  or integers,
-%	Durations = [D_1,...,D_n] is a   list  of non-negative integers.
-%	Constrains  Starts  and   Durations   to    denote   a   set  of
-%	non-overlapping tasks, i.e.: S_i + D_i =<   S_j  or S_j + D_j =<
-%	S_i for all 1 =< i < j =< n.
+%       Constrain a set of intervals to a non-overlapping sequence.
+%       Starts = [S_1,...,S_n], is a list of variables or integers,
+%       Durations = [D_1,...,D_n] is a list of non-negative integers.
+%       Constrains Starts and Durations to denote a set of
+%       non-overlapping tasks, i.e.: S_i + D_i =< S_j or S_j + D_j =<
+%       S_i for all 1 =< i < j =< n.
 %  
 %  @see Dorndorf et al. 2000, "Constraint Propagation Techniques for the
-%	Disjunctive Scheduling Problem"
+%       Disjunctive Scheduling Problem"
 
 serialized(Starts, Durations) :-
         pair_up(Starts, Durations, SDs),
