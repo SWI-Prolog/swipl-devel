@@ -1790,18 +1790,14 @@ discussed below.  See also dynamic/1.
 
 The second way of storing arbitrary terms in the database is using the
 ``recorded database''. In this database terms are associated with a
-\arg{key}. A key can be an atom, integer or term. In the last case
+\arg{key}. A key can be an atom, small integer or term. In the last case
 only the functor and arity determine the key. Each key has a chain of
 terms associated with it. New terms can be added either at the head or
-at the tail of this chain. This mechanism is considerably faster than
-the assert/retract mechanism as terms are not compiled, but just copied
-into the heap.
+at the tail of this chain.  
 
 The third mechanism is a special purpose one. It associates an integer
 or atom with a key, which is an atom, integer or term. Each key can only
-have one atom or integer associated with it. It is faster than the
-mechanisms described above, but can only be used to store simple status
-information like counters, etc.
+have one atom or integer associated with it.
 
 \begin{description}
     \predicate[ISO]{abolish}{1}{:PredicateIndicator}
@@ -1820,9 +1816,11 @@ flag \prologflag{iso} is set to \const{true}.
 
 It is advised to use retractall/1 for erasing all clauses of a dynamic
 predicate.
+
     \predicate{abolish}{2}{+Name, +Arity}
 Same as \exam{abolish(Name/Arity)}.  The predicate abolish/2 conforms to
 the Edinburgh standard, while abolish/1 is ISO compliant.
+
     \predicate{redefine_system_predicate}{1}{+Head}
 This directive may be used both in module \const{user} and in normal
 modules to redefine any system predicate.  If the system definition is
@@ -1832,24 +1830,31 @@ to the module.  The system definition remains in the module \const{system}.
 
 Redefining system predicate facilitates the definition of compatibility
 packages.  Use in other context is discouraged.
+
     \predicate[ISO]{retract}{1}{+Term}
 When \arg{Term} is an atom or a term it is unified with the first unifying fact
 or clause in the database. The fact or clause is removed from the database.
+
     \predicate{retractall}{1}{+Head}
 All facts or clauses in the database for which the \arg{head}
 unifies with \arg{Head} are removed.
+
     \predicate{assert}{1}{+Term}
 Assert a fact or clause in the database. \arg{Term} is asserted as the last
 fact or clause of the corresponding predicate.
+
     \predicate[ISO]{asserta}{1}{+Term}
 Equivalent to assert/1, but \arg{Term} is asserted as first clause or fact
 of the predicate.
+
     \predicate[ISO]{assertz}{1}{+Term}
 Equivalent to assert/1.
+
     \predicate{assert}{2}{+Term, -Reference}
 Equivalent to assert/1, but \arg{Reference} is unified with a unique
 reference to the asserted clause. This key can later be used with
 clause/3 or erase/1.
+
     \predicate{asserta}{2}{+Term, -Reference}
 Equivalent to assert/2, but \arg{Term} is asserted as first clause or fact
 of the predicate.
@@ -1858,9 +1863,12 @@ of the predicate.
 Equivalent to assert/2.
 
     \predicate{recorda}{3}{+Key, +Term, -Reference}
-Assert \arg{Term} in the recorded database under key \arg{Key}. \arg{Key} is an
-integer, atom or term. \arg{Reference} is unified with a unique reference
-to the record (see erase/1).
+Assert \arg{Term} in the recorded database under key \arg{Key}.
+\arg{Key} is a small integer (range \prologflag{min_tagged_integer}
+\ldots \prologflag{max_tagged_integer}, atom or compound term. If the
+key is a compound term, only the name and arity define the key.
+\arg{Reference} is unified with a unique reference to the record (see
+erase/1).
 
     \predicate{recorda}{2}{+Key, +Term}
 Equivalent to \exam{recorda(\arg{Key}, \arg{Value}, _)}.
