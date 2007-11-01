@@ -126,6 +126,12 @@ locate(Name, FullSpec, Location) :-
 	locate(Name/_, FullSpec, Location).
 locate(Name/Arity, Module:Name/Arity, Location) :-
 	locate(Module:Name/Arity, Location).
+locate(Name//DCGArity, FullSpec, Location) :-
+	(   integer(DCGArity)
+	->  Arity is DCGArity+2,
+	    locate(Name/Arity, FullSpec, Location)
+	;   locate(Name/_, FullSpec, Location) % demand arity >= 2
+	).
 locate(Name/Arity, library(File), [file(PlPath)]) :-
 	atom(Name),
 	'$autoload':load_library_index,

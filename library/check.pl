@@ -71,9 +71,9 @@ check :-
 %	@see gxref/0 provides a graphical cross-referencer.
 
 list_undefined :-
-	$style_check(Old, Old), 
+	'$style_check'(Old, Old), 
 	style_check(+dollar), 
-	call_cleanup(list_undefined_, $style_check(_, Old)).
+	call_cleanup(list_undefined_, '$style_check'(_, Old)).
 
 list_undefined_ :-
 	findall(Pred, undefined_predicate(Pred), Preds),
@@ -97,7 +97,7 @@ undefined_predicate(Module:Head) :-
 	predicate_property(Module:Head, undefined), 
 	\+ predicate_property(Module:Head, imported_from(_)),
 	functor(Head, Functor, Arity), 
-	\+ $in_library(Functor, Arity),
+	\+ '$in_library'(Functor, Arity),
 	\+ system_undefined(Module:Functor/Arity).
 
 system_undefined(user:prolog_trace_interception/4).
@@ -136,13 +136,13 @@ referenced(Term, Module, Ref) :-
 %	Show predicates that need be linked via the autoload mechanism
 
 list_autoload :-
-	$style_check(Old, Old), 
+	'$style_check'(Old, Old), 
 	style_check(+dollar), 
 	current_prolog_flag(autoload, OldAutoLoad),
 	set_prolog_flag(autoload, false),
 	call_cleanup(list_autoload_, 
 		     (	 set_prolog_flag(autoload, OldAutoLoad),
-			 $style_check(_, Old)
+			 '$style_check'(_, Old)
 		     )).
 	
 list_autoload_ :-
@@ -157,8 +157,8 @@ autoload_predicate(Module, Library, Name/Arity) :-
 	predicate_property(Module:Head, undefined), 
 	(   \+ predicate_property(Module:Head, imported_from(_)), 
 	    functor(Head, Name, Arity), 
-	    $in_library(Name, Arity),
-	    $find_library(Module, Name, Arity, _LoadModule, Library),
+	    '$in_library'(Name, Arity),
+	    '$find_library'(Module, Name, Arity, _LoadModule, Library),
 	    referenced(Module:Head, Module, _)
 	->  true
 	).
@@ -169,9 +169,9 @@ autoload_predicate(Module, Library, Name/Arity) :-
 %	Show redefined system predicates
 
 list_redefined :-
-	$style_check(Old, Old), 
+	'$style_check'(Old, Old), 
 	style_check(+dollar), 
-	call_cleanup(list_redefined_, $style_check(_, Old)).
+	call_cleanup(list_redefined_, '$style_check'(_, Old)).
 	
 list_redefined_ :-
 	current_module(Module),
@@ -179,8 +179,8 @@ list_redefined_ :-
 	current_predicate(_, Module:Head),
 	\+ predicate_property(Module:Head, imported_from(_)),
 	(   import_module(Module, Super),
-	    $c_current_predicate(_, Super:Head),
-	    $syspreds:$defined_predicate(Super:Head),
+	    '$c_current_predicate'(_, Super:Head),
+	    '$syspreds':'$defined_predicate'(Super:Head),
 	    \+ predicate_property(Super:Head, (dynamic)),
 	    \+ predicate_property(Super:Head, imported_from(Module)),
 	    functor(Head, Name, Arity),

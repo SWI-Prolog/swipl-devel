@@ -231,8 +231,6 @@ syntax_error(E) :-
 %	style checking options. Src is the  canonical source as required
 %	by the cross-referencer.
 
-fix_operators('$:-'(_), _) :- !,	% deal with swi('boot/init.pl')
-	style_check(+dollar).
 fix_operators((:- Directive), Src) :- !,
 	process_directive(Directive, Src).
 fix_operators(_, _).
@@ -241,10 +239,6 @@ process_directive(style_check(X), _) :- !,
 	style_check(X).
 process_directive(system_mode(on), _) :- !,
 	style_check(+dollar).
-process_directive($(Name), _) :-
-	atom(Name),
-	style_check(+dollar),
-	fail.				% allow for other expansions
 process_directive(op(P,T,N), _) :- !,
 	catch(emacs_push_op(P, T, N), _, true).
 process_directive(module(_Name, Export), _) :- !,
@@ -772,13 +766,14 @@ colourise_declarations((Head,Tail), TB,
 colourise_declarations(Last, TB, Pos) :-
 	colourise_declaration(Last, TB, Pos).
 
-colourise_declaration($(Name)/Arity, TB, Pos) :-
-	atom(Name),
-	style_check(?(dollar)), !,	% deal with system boot-files
-	atom_concat($, Name, TheName),
-	colourise_declaration(TheName/Arity, TB, Pos).
 colourise_declaration(Name/Arity, TB, Pos) :-
 	atom(Name), integer(Arity), !,
+	functor(Goal, Name, Arity),
+	goal_classification(TB, Goal, [], Class),
+	colour_item(goal(Class, Goal), TB, Pos).
+colourise_declaration(Name//DCGArity, TB, Pos) :-
+	atom(Name), integer(DCGArity), !,
+	Arity is DCGArity+2,
 	functor(Goal, Name, Arity),
 	goal_classification(TB, Goal, [], Class),
 	colour_item(goal(Class, Goal), TB, Pos).

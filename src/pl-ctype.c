@@ -692,7 +692,7 @@ EndPredDefs
 		 *	PROLOG CHARACTERS	*
 		 *******************************/
 
-char _PL_char_types[] = {
+const char _PL_char_types[] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
    CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, 
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */
@@ -778,8 +778,6 @@ initCharTypes()
 bool
 systemMode(bool accept)
 { bool old = SYSTEM_MODE ? TRUE : FALSE;
-
-  _PL_char_types[(int)'$'] = (accept ? LC : SY);
 
   if ( accept )
     debugstatus.styleCheck |= DOLLAR_STYLE;

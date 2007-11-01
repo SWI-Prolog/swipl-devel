@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module($qlf,
+:- module('$qlf',
 	  [ qcompile/1,		% +File
 	    '$qload_file'/7	% +Path, +Enc, +Module, +Import, +IsModule, -Ac, -LM
 	  ]).

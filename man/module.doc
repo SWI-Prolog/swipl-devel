@@ -127,9 +127,9 @@ equivalent to ensure_loaded/1, except that it raises an error if
     \predicate{use_module}{2}{+File, +ImportList}
 Load the file specified with \arg{File} (only one file is accepted).
 \arg{File} should be a module file. \arg{ImportList} is a list of
-name/arity pairs specifying the predicates that should be imported from
-the loaded module.  If a predicate is specified that is not exported from
-the loaded module a warning will be printed.  The predicate will
+predicate indicators specifying the predicates that will be imported
+from the loaded module. If a predicate is specified that is not exported
+from the loaded module a warning will be printed. The predicate will
 nevertheless be imported to simplify debugging.
 
     \predicate{import}{1}{+Head}
@@ -397,10 +397,11 @@ built-in predicates that handle modules.
 This directive can only be used as the first term of a source file. It
 declares the file to be a \jargon{module file}, defining \arg{Module} and
 exporting the predicates of \arg{PublicList}. \arg{PublicList} is a
-list of predicate indicators (name/arity pairs) or operator declarations
-using the format \term{op}{Precedence, Type, Name}.  Operators
-defined in the export list are available inside the module as well as
-to modules importing this module.  See also \secref{operators}.
+list of predicate indicators (name/arity or name//arity pairs) or
+operator declarations using the format \term{op}{Precedence, Type,
+Name}. Operators defined in the export list are available inside the
+module as well as to modules importing this module. See also
+\secref{operators}.
 
     \prefixop{module_transparent}{+Preds}
 \arg{Preds} is a comma separated list of name/arity pairs (like

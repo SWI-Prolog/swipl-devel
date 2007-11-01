@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-extern char _PL_char_types[];	/* array of character types */
+extern const char _PL_char_types[];	/* array of character types */
 
 #define CT  0			/* control-character */
 #define SP  1			/* space */

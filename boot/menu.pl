@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module($win_menu,
+:- module('$win_menu',
 	  [ win_insert_menu_item/4,	% +PopupName, +Item, +Before, :Goal
 	    win_has_menu/0		% Test whether we have menus
 	  ]).
@@ -53,7 +53,7 @@ prolog:on_menu(Label) :-
 %	Test whether the system provides the menu interface
 
 win_has_menu :-
-	current_predicate(_, $win_insert_menu_item(_, _, _)).
+	current_predicate(_, '$win_insert_menu_item'(_, _, _)).
 
 %	win_insert_menu_item(+Popup, +Item, +Before, :Goal)
 %
@@ -61,7 +61,7 @@ win_has_menu :-
 %	for details.
 
 win_insert_menu_item(Popup, --, Before, _Goal) :- !,
-	call($win_insert_menu_item(Popup, --, Before)). % fool check/0
+	call('$win_insert_menu_item'(Popup, --, Before)). % fool check/0
 win_insert_menu_item(Popup, Item, Before, Goal) :-
 	strip_module(Goal, Module, PlainGoal),
 	insert_menu_item(Popup, Item, Before, Module:PlainGoal).
@@ -73,5 +73,5 @@ insert_menu_item(Popup, Item, Before, Goal) :-
 			win_insert_menu_item/4))
 	;   true
 	),
-	call($win_insert_menu_item(Popup, Item, Before)),
+	call('$win_insert_menu_item'(Popup, Item, Before)),
 	assert(menu_action(Item, Goal)).

@@ -133,7 +133,7 @@ dde_current_connection(Service, Topic) :-
 		 *	    CALL-BACKS		*
 		 *******************************/
 
-%	$dde_connect(+Service, +Topic, +IsSelf)
+%	'$dde_connect'(+Service, +Topic, +IsSelf)
 %
 %	Called by the DDEML XTYP_CONNECT request.  IsSelf is 0 if the
 %	connection is requested by another Prolog, 1 otherwise.
@@ -141,7 +141,7 @@ dde_current_connection(Service, Topic) :-
 '$dde_connect'(Service, Topic, _Self) :-
 	dde_service(Service, Topic, _, _, _, _).
 
-%	$dde_connect_confirm(+Service, +Topic, +Handle)
+%	'$dde_connect_confirm'(+Service, +Topic, +Handle)
 %
 %	Called by the DDEML XTYP_CONNECT_CONFIRM request.  Used to update
 %	our list of current conversations.
@@ -149,7 +149,7 @@ dde_current_connection(Service, Topic) :-
 '$dde_connect_confirm'(Service, Topic, Handle) :-
 	asserta(dde_current_connection(Handle, Service, Topic)).
 
-%	$dde_disconnect(+Handle)
+%	'$dde_disconnect'(+Handle)
 %
 %	Called by the DDEML XTYP_DISCONNECT request.  Used to update our
 %	list of current conversations.
@@ -157,7 +157,7 @@ dde_current_connection(Service, Topic) :-
 '$dde_disconnect'(Handle) :-
 	retractall(dde_current_connection(Handle, _, _)).
 
-%	$dde_request(+Handle, +Topic, +Item, -Answer)
+%	'$dde_request'(+Handle, +Topic, +Item, -Answer)
 %
 %	Called by the DDEML XTYP_REQUEST request.  Answer should be unified
 %	with a Prolog object that can be translated into a textual value
@@ -171,7 +171,7 @@ dde_current_connection(Service, Topic) :-
 '$dde_request'(_Handle, Topic, _Item, _Answer) :-
 	throw(error(existence_error(dde_topic, Topic), _)).
 
-%	$dde_execute(+Handle, +Topic, +Command)
+%	'$dde_execute'(+Handle, +Topic, +Command)
 %
 %	Called by the DDEML XTYP_EXECUTE request.  Command is a SWI-Prolog
 %	string object.  Use string_to_atom or string_to_list to convert it

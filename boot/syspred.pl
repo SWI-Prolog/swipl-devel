@@ -372,15 +372,25 @@ prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
 		 *	      STREAMS		*
 		 *******************************/
 
-%	stream_position_data(?Field, +Pos, ?Date)
+%%	stream_position_data(?Field, +Pos, ?Date)
 %	
 %	Extract values from stream position objects. '$stream_position' is
 %	of the format '$stream_position'(Byte, Char, Line, LinePos)
 
-stream_position_data(char_count,    '$stream_position'(Char,_,_,_), Char).
-stream_position_data(line_count,    '$stream_position'(_,Line,_,_), Line).
-stream_position_data(line_position, '$stream_position'(_,_,LPos,_), LPos).
-stream_position_data(byte_count,    '$stream_position'(_,_,_,Byte), Byte).
+stream_position_data(Prop, Term, Value) :-
+	nonvar(Prop), !,
+	(   stream_position_field(Prop, Pos)
+	->  arg(Pos, Term, Value)
+	;   throw(error(domain_error(stream_position_data, Prop)))
+	).
+stream_position_data(Prop, Term, Value) :-
+	stream_position_field(Prop, Pos),
+	arg(Pos, Term, Value).
+
+stream_position_field(char_count,    1).
+stream_position_field(line_count,    2).
+stream_position_field(line_position, 3).
+stream_position_field(byte_count,    4).
 
 
 		 /*******************************

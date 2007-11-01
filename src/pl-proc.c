@@ -268,13 +268,10 @@ lookupProcedureToDefine(functor_t def, Module m)
 get_functor() translates term  of  the   format  +Name/+Arity  into  the
 internal functor represenation. It fails and  raises an exception on the
 various possible format or represenation errors.  ISO compliant.
-
-The return value is 1 normally, -1  if no functor exists and GF_EXISTING
-is defined, and 0 if an error was raised.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-get_arity(term_t t, int maxarity, int *arity)
+get_arity(term_t t, int extra, int maxarity, int *arity)
 { int a;
 
   if ( !PL_get_integer_ex(t, &a) )
@@ -282,6 +279,7 @@ get_arity(term_t t, int maxarity, int *arity)
   if ( a < 0 )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		    ATOM_not_less_than_zero, t);
+  a += extra;
   if ( maxarity >= 0 && a > maxarity )
   { char buf[100];
 
@@ -301,10 +299,12 @@ int
 get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 { GET_LD
   term_t head = PL_new_term_ref();
+  int dcgpi=FALSE;
 
   PL_strip_module(descr, m, head);
 
-  if ( PL_is_functor(head, FUNCTOR_divide2) )
+  if ( PL_is_functor(head, FUNCTOR_divide2) ||
+       (dcgpi=PL_is_functor(head, FUNCTOR_div2)) )
   { term_t a = PL_new_term_ref();
     atom_t name;
     int arity = 0;
@@ -313,7 +313,10 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
     if ( !PL_get_atom_ex(a, &name) )
       fail;
     _PL_get_arg(2, head, a);
-    if ( !get_arity(a, (how&GF_PROCEDURE) ? MAXARITY : -1, &arity ) )
+    if ( !get_arity(a, 
+		    (dcgpi ? 2 : 0),
+		    (how&GF_PROCEDURE) ? MAXARITY : -1,
+		    &arity ) )
       fail;
     *fdef = PL_new_functor(name, arity);
     if ( h )
@@ -1809,7 +1812,7 @@ do_abolish(Module m, term_t atom, term_t arity)
   int a = 0;
 
   if ( !PL_get_atom_ex(atom, &name) ||
-       !get_arity(arity, MAXARITY, &a) )
+       !get_arity(arity, 0, MAXARITY, &a) )
     fail;
 
   if ( !(f = isCurrentFunctor(name, a)) )

@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module($toplevel,
+:- module('$toplevel',
 	[ '$initialise'/0		% start Prolog (does not return)
 	, '$toplevel'/0			% Prolog top-level (re-entrant)
 	, '$abort'/0 			% restart after an abort

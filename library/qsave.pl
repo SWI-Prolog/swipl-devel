@@ -169,7 +169,7 @@ convert_option(Stack, Val, NewVal) :-	% stack-sizes are in K-bytes
 convert_option(_, Val, Val).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Save the options in the $options resource.   The home directory is saved
+Save the options in the '$options' resource.   The home directory is saved
 for development saves, so it keeps refering to the development home.
 
 The script-file (-s script) is not saved at all. I think this is fine to
