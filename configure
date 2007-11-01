@@ -36,7 +36,7 @@ while [ "$1" != "" ]; do
     --with-world)	TARGET=world
 			shift
 			;;
-    --disable-mt)	mtoptions=""
+    --disable-mt)	mtoptions="--disable-mt"
 			shift
 			;;
     --help)		usage
