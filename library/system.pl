@@ -53,7 +53,7 @@ predicates cannot be traced or redefined.
 %	system predicates loose most of their special properties, so it
 %	becomes possible to trace and even redefine them.  Use the latter
 %	with care as the system predicates call one another.  This should
-%	once be fixed by defining all of them in a module ($system), so
+%	once be fixed by defining all of them in a module ('$system'), so
 %	the user can savely remove them from module user.
 
 system_mode(X) :-
@@ -87,7 +87,7 @@ system_module :-
 lock_predicate(Spec, Arity) :-
 	strip_module(Spec, Module, Name),
 	functor(Head, Name, Arity ),
-	$set_predicate_attribute(Module:Head, system, 1).
+	'$set_predicate_attribute'(Module:Head, system, 1).
 
 %%	unlock_predicate(+Name, Arity)
 %
@@ -96,4 +96,4 @@ lock_predicate(Spec, Arity) :-
 unlock_predicate(Spec, Arity) :-
 	strip_module(Spec, Module, Name),
 	functor(Head, Name, Arity ),
-	$set_predicate_attribute(Module:Head, system, 0).
+	'$set_predicate_attribute'(Module:Head, system, 0).

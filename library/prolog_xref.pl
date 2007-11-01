@@ -336,9 +336,9 @@ collect(Src, In) :-
 	    xref_expand(Term, T),
 	    (   T == end_of_file
 	    ->  !
-	    ;   arg(2, TermPos, Line),
+	    ;   stream_position_data(line_count, TermPos, Line),
 		flag(xref_src_line, _, Line),
-	        process(T, Src),
+		catch(process(T, Src), E, print_message(error, E)),
 		fail
 	    ).
 
@@ -1131,26 +1131,18 @@ assert_op(Src, op(P,T,_:N)) :-
 %	Assert we are loading code into Module.  This is also used to
 %	exploit local term-expansion and other rules.
 
-assert_module(Src, $(Module)) :-	% deal with system modules
-	atom(Module), !,
-	atom_concat($, Module, Name),
-	assert_module(Src, Name).
 assert_module(Src, Module) :-
 	xmodule(Module, Src), !.
 assert_module(Src, Module) :-
 	'$set_source_module'(_, Module),
-	assert(xmodule(Module, Src)),
-	(   sub_atom(Module, 0, _, _, $)
-	->  style_check(+dollar)
-	;   true
-	).
+	assert(xmodule(Module, Src)).
 
 assert_export(_, []) :- !.
-assert_export(Src, [H|T]) :-
+assert_export(Src, [H|T]) :- !,
 	assert_export(Src, H),
 	assert_export(Src, T).
 assert_export(Src, PI) :-
-	pi_to_head(PI, Term),
+	pi_to_head(PI, Term), !,
 	assert(exported(Term, Src)).
 assert_export(Src, op(P, A, N)) :-
 	xref_push_op(Src, P, A, N).
@@ -1191,10 +1183,6 @@ assert_multifile(Src, PI) :-
 
 pi_to_head(Var, _) :-
 	var(Var), !, fail.
-pi_to_head($(Name0)/Arity, Term) :- !,	% old style system headers
-	atom(Name0),
-	concat_atom($, Name0, Name),
-	functor(Term, Name, Arity).
 pi_to_head(Name/Arity, Term) :-
 	functor(Term, Name, Arity).
 pi_to_head(Name//DCGArity, Term) :-

@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module($rc,
+:- module('$rc',
 	  [ open_resource/3,		% +Name, ?Class, -Stream
 	    open_resource/4,		% +Name, ?Class, +RW, -Stream
 	    current_resource/3		% :Name, ?Class, ?File
@@ -56,9 +56,9 @@ open_resource(Name, Class, RW, Handle) :-
 		  user:resource(RcName, Class, FileSpec))
 	->  absolute_file_name(FileSpec, File),
 	    open(File, RW, Handle, [type(binary)])
-	;   $rc_handle(RC),
+	;   '$rc_handle'(RC),
 	    tag_rc_name(Module, RcName, TaggedName),
-	    $rc_open(RC, TaggedName, Class, RW, Handle)
+	    '$rc_open'(RC, TaggedName, Class, RW, Handle)
 	).
 
 tag_rc_name(user, RcName, RcName) :- !.

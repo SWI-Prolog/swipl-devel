@@ -29,13 +29,14 @@
     the GNU General Public License.
 */
 
-:- module($history,
-	[ read_history/6
-	, $clean_history/0
-	, $save_history/1
-	]).
+:- module('$history',
+	  [ read_history/6,
+	    '$clean_history'/0,
+	    '$save_history'/1
+	  ]).
 
-%   read_history(+History, +Help, +DontStore, +Prompt, -Term, -Bindings)
+%%  read_history(+History, +Help, +DontStore, +Prompt, -Term, -Bindings)
+%   
 %   Give a prompt using Prompt. The sequence '%w' is substituted with the
 %   current event number. Then read a term from the input stream and perform
 %   the history expansion. Return the expanded term and the bindings of the
@@ -52,7 +53,7 @@
 read_history(History, Help, DontStore, Prompt, Term, Bindings) :-
 	repeat, 
 	    prompt_history(Prompt), 
-	    catch($raw_read(user_input, Raw), E,
+	    catch('$raw_read'(user_input, Raw), E,
 		  (print_message(error, E),
 		   (   E = error(syntax_error(_), _)
 		   ->  fail
@@ -77,7 +78,7 @@ read_history_(History, Help, DontStore, Raw, Term, Bindings) :-
 	(   var(Term0)
 	->  Term = Term0,
 	    Bindings = Bindings0
-	;   Term0 = $silent(Goal)
+	;   Term0 = '$silent'(Goal)
 	->  user:ignore(Goal),
 	    read_history(History, Help, DontStore, '', Term, Bindings)
 	;   save_event(DontStore, Expanded), 
@@ -94,7 +95,7 @@ read_history_(History, Help, DontStore, Raw, Term, Bindings) :-
 %   Write history events to the current output stream.
 
 list_history :-
-	(   $history(Last, _)
+	(   '$history'(Last, _)
 	->  true
 	;   Last = 0
 	),
@@ -102,13 +103,13 @@ list_history :-
 	plus(First, Depth, Last), 
 	findall(Nr/Event,
 		(   between(First, Last, Nr), 
-		    $history(Nr, Event)
+		    '$history'(Nr, Event)
 		),
 		Events),
 	print_message(query, history(history(Events))).
 
-$clean_history :-
-	retractall($history(_,_)).
+'$clean_history' :-
+	retractall('$history'(_,_)).
 
 %   prompt_history(+Prompt)
 %   Give prompt, substituting '%!' by the event number.
@@ -116,7 +117,7 @@ $clean_history :-
 prompt_history('') :- !,
 	ttyflush.
 prompt_history(Prompt) :-
-	(   $history(Last, _)
+	(   '$history'(Last, _)
 	->  This is Last + 1
 	;   This = 1
 	),
@@ -132,10 +133,10 @@ prompt_history(Prompt) :-
 %   substitute first occurence of Old in String by New
 
 substitute(Old, New, String, Substituted) :-
-	$append(Head, OldAndTail, String), 
-	$append(Old, Tail, OldAndTail), !, 
-	$append(Head, New, HeadAndNew), 
-	$append(HeadAndNew, Tail, Substituted), !.
+	'$append'(Head, OldAndTail, String), 
+	'$append'(Old, Tail, OldAndTail), !, 
+	'$append'(Head, New, HeadAndNew), 
+	'$append'(HeadAndNew, Tail, Substituted), !.
 
 %   save_event(+Event)
 %   Save Event in the history system. Remove possibly outdated events.
@@ -150,17 +151,17 @@ save_history_line(_).
 save_event(Dont, Event) :-
 	memberchk(Event, Dont), !.
 save_event(_, Event) :-
-	$save_history(Event).
+	'$save_history'(Event).
 
 :- thread_local
-	$history/2.
+	'$history'/2.
 
-$save_history(Event) :-
-	(   $history(Old, _)
+'$save_history'(Event) :-
+	(   '$history'(Old, _)
 	->  New is Old + 1
 	;   New is 1
 	),
-	asserta($history(New, Event)), 
+	asserta('$history'(New, Event)), 
 	history_depth_(Depth), 
 	remove_history(New, Depth).
 
@@ -168,7 +169,7 @@ remove_history(New, Depth) :-
 	New - Depth =< 0, !.
 remove_history(New, Depth) :-
 	Remove is New - Depth,
-	retract($history(Remove, _)), !.
+	retract('$history'(Remove, _)), !.
 remove_history(_, _).	
 
 %    history_depth_(-Depth)
@@ -202,7 +203,7 @@ expand_history2([!, C|Rest], [!|Expanded], Changed) :-
 	expand_history2([C|Rest], Expanded, Changed).
 expand_history2([!|Rest], Expanded, true) :- !, 
 	match_event(Rest, Event, NewRest), 
-	$append(Event, RestExpanded, Expanded), !, 
+	'$append'(Event, RestExpanded, Expanded), !, 
 	expand_history2(NewRest, RestExpanded, _).
 expand_history2(['\''|In], ['\''|Out], Changed) :- !,
 	skip_quoted(In, '\'', Out, Tin, Tout),
@@ -227,7 +228,7 @@ skip_quoted([], _, [], [], []).
 %   return last event typed as a string
 
 get_last_event(Event) :-
-	$history(_, Atom), 
+	'$history'(_, Atom), 
 	atom_chars(Atom, Event), !.
 get_last_event(_) :-
 	print_message(query, history(no_event)),
@@ -253,7 +254,7 @@ find_event([N|Rest], Event, Left) :-
 	code_type(N, digit), !, 
 	take_number([N|Rest], String, Left), 
 	number_codes(Number, String), 
-	$history(Number, Atom), 
+	'$history'(Number, Atom), 
 	atom_chars(Atom, Event).
 find_event(Spec, Event, Left) :-
         take_string(Spec, String, Left),
@@ -276,6 +277,6 @@ take_number([], [], []).
 %   Return first event with prefix String as a Prolog string.
 
 matching_event(String, Event) :-
-        $history(_, AtomEvent),
+        '$history'(_, AtomEvent),
         atom_chars(AtomEvent, Event),
-        $append(String, _, Event), !.
+        '$append'(String, _, Event), !.

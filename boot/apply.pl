@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module($apply,
+:- module('$apply',
 	  [ maplist/2,			% :Goal, +List
 	    maplist/3,			% :Goal, ?List, ?List
 	    maplist/4,			% :Goal, ?List, ?List, ?List

@@ -45,7 +45,7 @@ gensym(_Base, Atom) :-
 	nonvar(Atom), !,
 	throw(error(type_error(variable, Atom), context(gensym/2, _))).
 gensym(Base, Atom) :-
-	atom_concat($gs_, Base, Key), 
+	atom_concat('$gs_', Base, Key), 
 	with_mutex('$gensym', increment_key(Key, N)),
 	atom_concat(Base, N, Atom).
 
@@ -56,7 +56,7 @@ increment_key(Key, New) :-
 	flag(Key, _, New). 
 
 record_gensym(Key, 0) :- !,
-	recordz($gensym, Key).
+	recordz('$gensym', Key).
 record_gensym(_, _).
 
 %%	reset_gensym
@@ -69,7 +69,7 @@ reset_gensym :-
 	with_mutex('$gensym', do_reset_gensym).
 
 do_reset_gensym :-
-	(   recorded($gensym, Key, Ref),
+	(   recorded('$gensym', Key, Ref),
 	    erase(Ref),
 	    flag(Key, _, 0),
 	    fail
@@ -82,5 +82,5 @@ do_reset_gensym :-
 %	dangerous as other code may use gensym with the same atom!
 
 reset_gensym(Base) :-
-	atom_concat($gs_, Base, Key), 
+	atom_concat('$gs_', Base, Key), 
 	with_mutex('$gensym', flag(Key, _, 0)).

@@ -8,6 +8,11 @@
 					--------------------------------------
 
 
+  * CLEANUP: Delete accepting $name without quotes, even in system mode.
+
+  * ADDED: Allow Name//Arity throughout to refer to DCG rules, following
+    the current ISO draft on DCG.
+
   * MODIFIED: export/1 no longer takes a callable term, but a predicate
     indicator.  It now also allows for a ,-nested term of predicate
     indicators.  For compatibility reasons, other callable terms are

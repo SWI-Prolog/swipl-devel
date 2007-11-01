@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module($attvar,
+:- module('$attvar',
 	  [ '$wakeup'/1,		% +Wakeup list
 	    freeze/2,			% +Var, :Goal
 	    frozen/2			% @Var, -Goal
