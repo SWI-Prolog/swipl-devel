@@ -1,3 +1,34 @@
+/*  $Id$
+
+    Part of XPCE --- The SWI-Prolog GUI toolkit
+
+    Author:        Jan Wielemaker and Anjo Anjewierden
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org/packages/xpce/
+    Copyright (C): 2007, University of Amsterdam
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    As a special exception, if you link this library with other files,
+    compiled with a Free Software compiler, to produce an executable, this
+    library does not by itself cause the resulting executable to be covered
+    by the GNU General Public License. This exception does not however
+    invalidate any other reasons why the executable file might be covered by
+    the GNU General Public License.
+*/
+
 :- module(pce_xref_gui,
 	  [ gxref/0,
 	    xref_file_imports/2,	% +File, -Imports
@@ -21,7 +52,7 @@
 :- use_module(library(autowin)).
 :- use_module(library(broadcast)).
 
-version('0.1.0').
+version('0.1.1').
 
 :- dynamic
 	setting/2.
@@ -74,7 +105,8 @@ gxref :-
 
 initialise(F) :->
 	send_super(F, initialise, 'Prolog XREF'),
-	new(BrowserTabs, tabbed_window),
+	new(FilterDialog, xref_filter_dialog),
+	send(new(BrowserTabs, tabbed_window), below, FilterDialog),
 	send(BrowserTabs, left, new(WSTabs, tabbed_window)),
 	send(BrowserTabs, name, browsers),
 	send(BrowserTabs, hor_shrink, 10),
@@ -614,6 +646,59 @@ export_link_1(ExportFile, ImportFile, Callable) :-	% Non-module import
 
 
 		 /*******************************
+		 *	       FILTER		*
+		 *******************************/
+
+:- pce_begin_class(xref_filter_dialog, dialog,
+		   "Show filter options").
+
+class_variable(border, size, size(0,0)).
+
+initialise(D) :->
+	send_super(D, initialise),
+	send(D, hor_stretch, 100),
+	send(D, hor_shrink, 100),
+	send(D, name, filter_dialog),
+	send(D, append, xref_file_filter_item(filter_on_filename)).
+
+resize(D) :->
+	send(D, layout, D?visible?size).
+
+:- pce_end_class(xref_filter_dialog).
+
+
+:- pce_begin_class(xref_file_filter_item, text_item,
+		   "Filter files as you type").
+
+typed(FFI, Id) :->
+	"Activate filter"::
+	send_super(FFI, typed, Id),
+	get(FFI, displayed_value, Current),
+	get(FFI?frame, browser, files, Tree),
+	(   send(Current, equal, '')
+	->  send(Tree, filter_file_name, @nil)
+	;   (   text_to_regex(Current, Filter)
+	    ->	send(Tree, filter_file_name, Filter)
+	    ;	send(FFI, report, status, 'Incomplete expression')
+	    )
+	).
+
+%%	text_to_regex(+Pattern, -Regex) is semidet.
+%
+%	Convert text to a regular expression.  Fail if the text
+%	does not represent a valid regular expression.
+
+text_to_regex(Pattern, Regex) :-
+	send(@pce, last_error, @nil),
+	new(Regex, regex(Pattern)),
+	ignore(pce_catch_error(_, send(Regex, search, ''))),
+	get(@pce, last_error, @nil).
+
+:- pce_end_class(xref_file_filter_item).
+
+
+
+		 /*******************************
 		 *	     FILE TREE		*
 		 *******************************/
 
@@ -715,12 +800,12 @@ top_node('/',		prolog_directory_node).
 
 :- pce_group(filter).
 
-filter_file_name(Tree, String:char_array*) :->
-	"Only show files having String as substring"::
-	(   String == @nil
+filter_file_name(Tree, Regex:regex*) :->
+	"Only show files that match Regex"::
+	(   Regex == @nil
 	->  send(Tree, filter_files, @nil)
 	;   send(Tree, filter_files,
-		 message(@arg1?base_name, sub, String))
+		 message(Regex, search, @arg1?base_name))
 	).
 
 filter_files(Tree, Filter:code*) :->
@@ -730,12 +815,16 @@ filter_files(Tree, Filter:code*) :->
 	(   Filter == @nil
 	->  send(Tree, expand_id, '.'),
 	    send(Tree, expand_id, project)
-	;   get(Tree?tree, root, Root),
+	;   new(Count, number(0)),
+	    get(Tree?tree, root, Root),
 	    send(Root, for_all,
 		 if(and(message(@arg1, instance_of, prolog_file_node),
 			message(Filter, forward, @arg1)),
-		    message(Tree, show_node_path, @arg1)))
-	).
+		    and(message(Tree, show_node_path, @arg1),
+			message(Count, plus, 1)))),
+	    send(Tree, report, status, 'Filter on file name: %d hits', Count)
+	),
+	send(Tree, scroll_to, point(0,0)).
 	
 show_node_path(Tree, Node:node) :->
 	"Select Node and make sure all parents are expanded"::
