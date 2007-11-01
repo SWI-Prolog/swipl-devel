@@ -193,6 +193,12 @@ If a \g{goal} is proved, the system looks for a \g{predicate} with the
 same functor, then used \g{indexing} to select candidate \g{clauses}
 and then tries these \g{clauses} one-by-one.  See also \g{backtracking}.
 
+    \glossitem{predicate indicator}\index{predicate indicator}%
+Term of the form Name/Arity (traditional) or Name//Arity (ISO
+DCG proposal) where Name is an atom an Arity a non-negative integer.
+It acts as an \emph{indicator} (or reference) to a predicate or
+\g{DCG} rule.
+
     \glossitem{priority}\index{priority}%
 In the context of \g{operators} a synonym for \g{precedence}.
 

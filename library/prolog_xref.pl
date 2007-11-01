@@ -1149,12 +1149,8 @@ assert_export(_, []) :- !.
 assert_export(Src, [H|T]) :-
 	assert_export(Src, H),
 	assert_export(Src, T).
-assert_export(Src, Name0/Arity) :-
-	(   Name0 = $(Hidden)		% deal with system modules
-	->  atom_concat($, Hidden, Name)
-	;   Name = Name0
-	),
-	functor(Term, Name, Arity),
+assert_export(Src, PI) :-
+	pi_to_head(PI, Term),
 	assert(exported(Term, Src)).
 assert_export(Src, op(P, A, N)) :-
 	xref_push_op(Src, P, A, N).
@@ -1163,8 +1159,8 @@ assert_dynamic(Src, (A, B)) :- !,
 	assert_dynamic(Src, A),
 	assert_dynamic(Src, B).
 assert_dynamic(_, _M:_Name/_Arity) :- !. % not local
-assert_dynamic(Src, Name/Arity) :-
-	functor(Term, Name, Arity),
+assert_dynamic(Src, PI) :-
+	pi_to_head(PI, Term),
 	(   thread_local(Term, Src, _)	% dynamic after thread_local has
 	->  true			% no effect
 	;   flag(xref_src_line, Line, Line),
@@ -1175,8 +1171,8 @@ assert_thread_local(Src, (A, B)) :- !,
 	assert_thread_local(Src, A),
 	assert_thread_local(Src, B).
 assert_thread_local(_, _M:_Name/_Arity) :- !. % not local
-assert_thread_local(Src, Name/Arity) :-
-	functor(Term, Name, Arity),
+assert_thread_local(Src, PI) :-
+	pi_to_head(PI, Term),
 	flag(xref_src_line, Line, Line),
 	assert(thread_local(Term, Src, Line)).
 
@@ -1184,10 +1180,27 @@ assert_multifile(Src, (A, B)) :- !,
 	assert_multifile(Src, A),
 	assert_multifile(Src, B).
 assert_multifile(_, _M:_Name/_Arity) :- !. % not local
-assert_multifile(Src, Name/Arity) :-
-	functor(Term, Name, Arity),
+assert_multifile(Src, PI) :-
+	pi_to_head(PI, Term),
 	flag(xref_src_line, Line, Line),
 	assert(multifile(Term, Src, Line)).
+
+%%	pi_to_head(+PI, -Head)
+%
+%	Translate Name/Arity or Name//Arity to a callable term.
+
+pi_to_head(Var, _) :-
+	var(Var), !, fail.
+pi_to_head($(Name0)/Arity, Term) :- !,	% old style system headers
+	atom(Name0),
+	concat_atom($, Name0, Name),
+	functor(Term, Name, Arity).
+pi_to_head(Name/Arity, Term) :-
+	functor(Term, Name, Arity).
+pi_to_head(Name//DCGArity, Term) :-
+	Arity is DCGArity+2,
+	functor(Term, Name, Arity).
+
 
 assert_used_class(Src, Name) :-
 	used_class(Name, Src), !.

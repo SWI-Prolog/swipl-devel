@@ -782,6 +782,12 @@ colourise_declaration(Name/Arity, TB, Pos) :-
 	functor(Goal, Name, Arity),
 	goal_classification(TB, Goal, [], Class),
 	colour_item(goal(Class, Goal), TB, Pos).
+colourise_declaration(Name//DCGArity, TB, Pos) :-
+	atom(Name), integer(DCGArity), !,
+	Arity is DCGArity+2,
+	functor(Goal, Name, Arity),
+	goal_classification(TB, Goal, [], Class),
+	colour_item(goal(Class, Goal), TB, Pos).
 colourise_declaration(Module:Name/Arity, TB,
 		      term_position(_,_,_,_,[PM,PG])) :-
 	atom(Module), atom(Name), integer(Arity), !,
