@@ -8,6 +8,11 @@
 					--------------------------------------
 
 
+  * MODIFIED: export/1 no longer takes a callable term, but a predicate
+    indicator.  It now also allows for a ,-nested term of predicate
+    indicators.  For compatibility reasons, other callable terms are
+    still accepted.
+
   * ADDED: library(dialect/iso/iso_predicates), describing properties
     of ISO predicates.  Modified version of a file contributed by Paulo
     Moura.

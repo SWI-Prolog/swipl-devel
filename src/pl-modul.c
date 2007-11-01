@@ -715,36 +715,52 @@ pl_export_list(term_t modulename, term_t public)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-pl_export() exports a procedure specified by its name and arity from the
-context module.
+export/1 exports a procedure specified by its name and arity or
+head from the context module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_export(term_t pred)
-{ GET_LD
+static int
+export_pi(term_t pi)
+{ functor_t fd;
+  Procedure proc;
   Module module = NULL;
-  term_t head = PL_new_term_ref();
-  functor_t fd;
 
-  PL_strip_module(pred, &module, head);
-  if ( PL_get_functor(head, &fd) )
-  { Procedure proc;
+  if ( !get_functor(pi, &fd, &module, 0, GF_PROCEDURE) )
+    fail;
 
-    if ( (proc = isStaticSystemProcedure(fd)) )
-      return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		      ATOM_export, ATOM_built_in_procedure, proc->definition);
-    proc = lookupProcedure(fd, module);
+  if ( (proc = isStaticSystemProcedure(fd)) )
+    return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		    ATOM_export, ATOM_built_in_procedure, proc->definition);
+  proc = lookupProcedure(fd, module);
 
-    LOCKMODULE(module);
-    addHTable(module->public,
-	      (void *)proc->definition->functor->functor,
-	      proc);
-    UNLOCKMODULE(module);
-    succeed;
-  }
+  LOCKMODULE(module);
+  addHTable(module->public,
+	    (void *)proc->definition->functor->functor,
+	    proc);
+  UNLOCKMODULE(module);
 
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, pred);
+  succeed;
 }
+
+
+
+static
+PRED_IMPL("export", 1, export, PL_FA_TRANSPARENT)
+{ PRED_LD
+  term_t decl = PL_copy_term_ref(A1);
+  term_t pi = PL_new_term_ref();
+
+  while ( PL_is_functor(decl, FUNCTOR_comma2) )
+  { _PL_get_arg(1, decl, pi);
+    _PL_get_arg(2, decl, decl);
+    
+    if ( !export_pi(decl) )
+      fail;
+  }
+  
+  return export_pi(decl);
+}
+
 
 word
 pl_check_export()
@@ -904,4 +920,5 @@ BeginPredDefs(module)
   PRED_DEF("delete_import_module", 2, delete_import_module, 0)
   PRED_DEF("$module_property", 2, module_property, 0)
   PRED_DEF("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
+  PRED_DEF("export", 1, export, PL_FA_TRANSPARENT)
 EndPredDefs

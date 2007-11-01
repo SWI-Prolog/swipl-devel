@@ -273,9 +273,6 @@ The return value is 1 normally, -1  if no functor exists and GF_EXISTING
 is defined, and 0 if an error was raised.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define GF_EXISTING	1
-#define GF_PROCEDURE	2		/* check for max arity */
-
 static int
 get_arity(term_t t, int maxarity, int *arity)
 { int a;
@@ -300,7 +297,7 @@ get_arity(term_t t, int maxarity, int *arity)
 }
 
 
-static int
+int
 get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 { GET_LD
   term_t head = PL_new_term_ref();

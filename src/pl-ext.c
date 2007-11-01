@@ -275,7 +275,6 @@ static const PL_extension foreigns[] = {
   FRG("$declare_module",	3, pl_declare_module,		0),
   FRG("context_module",		1, pl_context_module,	     META),
   FRG("import",			1, pl_import,		     META),
-  FRG("export",			1, pl_export,		     META),
   FRG("$check_export",		0, pl_check_export,	     META),
   FRG("export_list",		2, pl_export_list,		0),
   FRG("index",			1, pl_index,		     META),

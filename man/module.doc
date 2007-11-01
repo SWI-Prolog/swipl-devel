@@ -431,7 +431,7 @@ of the format \arg{Module}:\arg{Plain}, \arg{Module} and \arg{Plain}
 are unified to these values.  Otherwise \arg{Plain} is unified to
 \arg{Term} and \arg{Module} to the context module.
 
-    \predicate{export}{1}{+Head}
+    \predicate{export}{1}{+PredicateIndicator, \ldots}
 Add a predicate to the public list of the context module.  This implies
 the predicate will be imported into another module if this module is
 imported with use_module/[1,2].  Note that predicates are normally

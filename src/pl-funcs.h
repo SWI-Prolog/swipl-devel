@@ -473,7 +473,6 @@ COMMON(word) 		pl_module(term_t old, term_t new);
 COMMON(word) 		pl_set_source_module(term_t old, term_t new);
 COMMON(word) 		pl_declare_module(term_t name, term_t file, term_t line);
 COMMON(word) 		pl_export_list(term_t modulename, term_t list);
-COMMON(word) 		pl_export(term_t head);
 COMMON(word) 		pl_check_export(void);
 COMMON(word) 		pl_context_module(term_t module);
 COMMON(word) 		pl_import(term_t pred);
@@ -614,7 +613,10 @@ COMMON(ClauseRef) 	hasClausesDefinition(Definition def);
 COMMON(bool) 		isDefinedProcedure(Procedure proc);
 COMMON(int) 		get_head_functor(term_t head, functor_t *fdef,
 				 int flags ARG_LD);
-COMMON(int) 		get_procedure(term_t descr, Procedure *proc, term_t he, int f);
+COMMON(int)		get_functor(term_t descr, functor_t *fdef,
+				    Module *m, term_t h, int how);
+COMMON(int) 		get_procedure(term_t descr, Procedure *proc,
+				      term_t he, int f);
 COMMON(word) 		pl_current_predicate(term_t name, term_t functor, control_t h);
 COMMON(foreign_t) 	pl_current_predicate1(term_t spec, control_t ctx);
 COMMON(ClauseRef) 	assertProcedure(Procedure proc, Clause clause,

@@ -1221,7 +1221,7 @@ load_files(Files, Options) :-
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
 	'$declare_module'(Module, File, Line),
-	'$export_list'(Public, Module, File, Ops),
+	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),
 	'$consult_stream'(In, File),
@@ -1249,7 +1249,7 @@ load_files(Files, Options) :-
 	'$import_all'(Rest, Context, Source).
 
 
-%	'$import_ops'(+Target, +Source)
+%%	'$import_ops'(+Target, +Source)
 %	
 %	Import the operators export from Source into the module table of
 %	Target.
@@ -1263,46 +1263,41 @@ load_files(Files, Options) :-
 	).
 
 
-%	'$export_list'(+Declarations, +Module, +File, -Ops)
+%%	'$export_list'(+Declarations, +Module, -Ops)
 %	
 %	Handle the export list of the module declaration for Module
 %	associated to File.
 
-'$export_list'(Var, _, _, []) :-
+'$export_list'(Decls, Module, Ops) :-
+	is_list(Decls), !,
+	'$do_export_list'(Decls, Module, Ops).
+'$export_list'(Decls, _, _) :-
+	var(Decls),
+	throw(error(instantiation_error, _)).
+'$export_list'(Decls, _, _) :-
+	throw(error(type_error(list, Decls), _)).
+
+'$do_export_list'([], _, []) :- !.
+'$do_export_list'([H|T], Module, Ops) :- !,
+	'$export1'(H, Module, Ops, Ops1),
+	'$do_export_list'(T, Module, Ops1).
+
+'$export1'(Var, _, _, _) :-
 	var(Var), !,
-	print_message(error, error(type_error(list, Var), _)).
-'$export_list'([H|T], Module, File, Ops) :- !,
-	(   H = op(_,_,_)
-	->  Ops = [H|RestOps]
-	;   catch('$export1'(H, Module, File), E, print_message(error, E))
-	->  RestOps = Ops
-	;   print_message(error, error(type_error(export_declaration, H), _)),
-	    RestOps = Ops
-	),
-	'$export_list'(T, Module, File, RestOps).
-'$export_list'([], _, _, []) :- !.
-'$export_list'(Term, _, _, []) :-
-	print_message(error, error(type_error(list, Term), _)).
+	throw(error(instantiation_error, _)).
+'$export1'(Op, _, [Op|T], T) :-
+	Op = op(_,_,_), !.
+'$export1'(PI, Module, Ops, Ops) :-
+	export(Module:PI).
 
-
-'$export_ops'([H|T], Module, File) :-
-	(   catch('$export1'(H, Module, File), E, print_message(error, E))
-	->  true
-	;   print_message(error, error(type_error(export_declaration, H), _))
-	),
+'$export_ops'([op(Pri, Assoc, Name)|T], Module, File) :-
+	op(Pri, Assoc, Module:Name),
+	'$store_clause'('$exported_op'(Pri, Assoc, Name), File),
 	'$export_ops'(T, Module, File).
 '$export_ops'([], _, _).
 
 
-'$export1'(Name/Arity, Module, _File) :-
-	functor(Term, Name, Arity), !,
-	export(Module:Term).
-'$export1'(op(Pri, Assoc, Name), Module, File) :-
-	op(Pri, Assoc, Module:Name),
-	'$store_clause'('$exported_op'(Pri, Assoc, Name), File).
-
-
-%	'$consult_stream'(+Stream, +File)
+%%	'$consult_stream'(+Stream, +File)
 %
 %	Read and record all clauses until the rest of the file.
 
