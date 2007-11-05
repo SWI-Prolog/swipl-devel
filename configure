@@ -24,6 +24,8 @@ Options:
 
   --with-world:		Build all (default packages)
   --disable-mt:		Do not build for multi-threading
+  --without-<package>	Exclude package.  Notably --without-jpl excludes
+			often troublesome building of the JPL interface.
 
 This toplevel configure  and  Makefile  ony   deal  with  very  standard
 installations. More complicated cases should check INSTALL.notes and use
