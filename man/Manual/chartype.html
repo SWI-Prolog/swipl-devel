@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.45 Reference Manual: Section 4.22</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section 4.22</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="manipatom.html">
@@ -140,7 +140,7 @@ fast, logical and deterministic if applicable.
 
 <P>In addition, there is the library <CODE>library(ctype)</CODE> 
 providing compatibility to some other Prolog systems. The predicates of 
-this library are defined in terms of <A NAME="idx:codetype2:893"></A><A class="pred" href="chartype.html#code_type/2">code_type/2</A>.
+this library are defined in terms of <A NAME="idx:codetype2:896"></A><A class="pred" href="chartype.html#code_type/2">code_type/2</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="char_type/2"><STRONG>char_type</STRONG>(<VAR>?Char, 
@@ -217,8 +217,8 @@ if
 <DD class="defbody">
 <VAR>Char</VAR> is a lower-case version of <VAR>Upper</VAR>. For 
 non-letters, or letter without case, <VAR>Char</VAR> and <VAR>Lower</VAR> 
-are the same. See also <A NAME="idx:upcaseatom2:894"></A><A class="pred" href="chartype.html#upcase_atom/2">upcase_atom/2</A> 
-and <A NAME="idx:downcaseatom2:895"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>.
+are the same. See also <A NAME="idx:upcaseatom2:897"></A><A class="pred" href="chartype.html#upcase_atom/2">upcase_atom/2</A> 
+and <A NAME="idx:downcaseatom2:898"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>.
 </DD>
 <DT><STRONG>upper</STRONG></DT>
 <DD class="defbody">
@@ -234,8 +234,8 @@ if
 <DD class="defbody">
 <VAR>Char</VAR> is an upper-case version of <VAR>Lower</VAR>. For 
 non-letters, or letter without case, <VAR>Char</VAR> and <VAR>Lower</VAR> 
-are the same. See also <A NAME="idx:upcaseatom2:896"></A><A class="pred" href="chartype.html#upcase_atom/2">upcase_atom/2</A> 
-and <A NAME="idx:downcaseatom2:897"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>.
+are the same. See also <A NAME="idx:upcaseatom2:899"></A><A class="pred" href="chartype.html#upcase_atom/2">upcase_atom/2</A> 
+and <A NAME="idx:downcaseatom2:900"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>.
 </DD>
 <DT><STRONG>punct</STRONG></DT>
 <DD class="defbody">
@@ -278,14 +278,14 @@ corresponding close-parenthesis.
 <DT class="pubdef"><A NAME="code_type/2"><STRONG>code_type</STRONG>(<VAR>?Code, 
 ?Type</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:chartype2:898"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A>, 
+As <A NAME="idx:chartype2:901"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A>, 
 but uses character-codes rather than one-character atoms. Please note 
 that both predicates are as flexible as possible. They handle either 
 representation if the argument is instantiated and only will instantiate 
 with an integer code or one-character atom depending of the version 
 used. See also the Prolog flag
-<A class="flag" href="flags.html#flag:double_quotes">double_quotes</A>, <A NAME="idx:atomchars2:899"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
-and <A NAME="idx:atomcodes2:900"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>.
+<A class="flag" href="flags.html#flag:double_quotes">double_quotes</A>, <A NAME="idx:atomchars2:902"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
+and <A NAME="idx:atomcodes2:903"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>.
 </DD>
 </DL>
 
@@ -293,8 +293,8 @@ and <A NAME="idx:atomcodes2:900"></A><A class="pred" href="manipatom.html#atom_c
 conversion</SPAN></A></H3>
 
 <P>There is nothing in the Prolog standard for converting case in 
-textual data. The SWI-Prolog predicates <A NAME="idx:codetype2:901"></A><A class="pred" href="chartype.html#code_type/2">code_type/2</A> 
-and <A NAME="idx:chartype2:902"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A> 
+textual data. The SWI-Prolog predicates <A NAME="idx:codetype2:904"></A><A class="pred" href="chartype.html#code_type/2">code_type/2</A> 
+and <A NAME="idx:chartype2:905"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A> 
 can be used to test and convert individual characters. We have started 
 some additional support:
 
@@ -302,14 +302,14 @@ some additional support:
 <DT class="pubdef"><A NAME="downcase_atom/2"><STRONG>downcase_atom</STRONG>(<VAR>+AnyCase, 
 -LowerCase</VAR>)</A></DT>
 <DD class="defbody">
-Converts the characters of <VAR>AnyCase</VAR> into lowercase as <A NAME="idx:chartype2:903"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A> 
+Converts the characters of <VAR>AnyCase</VAR> into lowercase as <A NAME="idx:chartype2:906"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A> 
 does (i.e. based on the defined <EM>locale</EM> if Prolog provides 
 locale support on the hosting platform) and unifies the lowercase atom 
 with <VAR>LowerCase</VAR>.</DD>
 <DT class="pubdef"><A NAME="upcase_atom/2"><STRONG>upcase_atom</STRONG>(<VAR>+AnyCase, 
 -UpperCase</VAR>)</A></DT>
 <DD class="defbody">
-Converts, similar to <A NAME="idx:downcaseatom2:904"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>, 
+Converts, similar to <A NAME="idx:downcaseatom2:907"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>, 
 an atom to upper-case.
 </DD>
 </DL>
@@ -319,7 +319,7 @@ specific comparison</SPAN></A></H3>
 
 <A NAME="sec:collate"></A>
 
-<P><A NAME="idx:locale:905"></A><A NAME="idx:collate:906"></A><A NAME="idx:comparelanguagespecific:907"></A>This 
+<P><A NAME="idx:locale:908"></A><A NAME="idx:collate:909"></A><A NAME="idx:comparelanguagespecific:910"></A>This 
 section deals with predicates for language specific string comparison 
 operations.
 
@@ -333,9 +333,9 @@ preceeds the key of atom <VAR>B</VAR> in the standard order of terms, <VAR>A</VA
 is alphabetically smaller than <VAR>B</VAR> using the sort order of the 
 current locale.
 
-<P>The predicate <A NAME="idx:collationkey2:908"></A><A class="pred" href="chartype.html#collation_key/2">collation_key/2</A> 
-is used by <A NAME="idx:localesort2:909"></A><A class="pred" href="chartype.html#locale_sort/2">locale_sort/2</A> 
-from library(sort). Please examine the implementation of <A NAME="idx:localesort2:910"></A><A class="pred" href="chartype.html#locale_sort/2">locale_sort/2</A> 
+<P>The predicate <A NAME="idx:collationkey2:911"></A><A class="pred" href="chartype.html#collation_key/2">collation_key/2</A> 
+is used by <A NAME="idx:localesort2:912"></A><A class="pred" href="chartype.html#locale_sort/2">locale_sort/2</A> 
+from library(sort). Please examine the implementation of <A NAME="idx:localesort2:913"></A><A class="pred" href="chartype.html#locale_sort/2">locale_sort/2</A> 
 as an example of using this call.
 
 <P>The <VAR>Key</VAR> is an implementation defined and generally 
@@ -347,9 +347,9 @@ is simply unified with <VAR>Atom</VAR>.</DD>
 Sort a list of atoms using the current locale. <VAR>List</VAR> is a list 
 of atoms or string objects (see <A class="sec" href="strings.html">section 
 4.23</A>). <VAR>Sorted</VAR> is unified with a list containing all atoms 
-of <VAR>List</VAR>, sorted to the rules of the current locale. See also <A NAME="idx:collationkey2:911"></A><A class="pred" href="chartype.html#collation_key/2">collation_key/2</A> 
+of <VAR>List</VAR>, sorted to the rules of the current locale. See also <A NAME="idx:collationkey2:914"></A><A class="pred" href="chartype.html#collation_key/2">collation_key/2</A> 
 and
-<A NAME="idx:setlocale3:912"></A><A class="pred" href="system.html#setlocale/3">setlocale/3</A>.
+<A NAME="idx:setlocale3:915"></A><A class="pred" href="system.html#setlocale/3">setlocale/3</A>.
 </DD>
 </DL>
 

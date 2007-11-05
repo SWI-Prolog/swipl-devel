@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.45 Reference Manual: Section 4.33</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section 4.33</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="format.html">
@@ -156,15 +156,15 @@ fast.
 <DD class="defbody">
 Goto position (<VAR>X</VAR>, <VAR>Y</VAR>) on the screen. Note that the 
 predicates
-<A NAME="idx:linecount2:1002"></A><A class="pred" href="streamstat.html#line_count/2">line_count/2</A> 
-and <A NAME="idx:lineposition2:1003"></A><A class="pred" href="streamstat.html#line_position/2">line_position/2</A> 
+<A NAME="idx:linecount2:1005"></A><A class="pred" href="streamstat.html#line_count/2">line_count/2</A> 
+and <A NAME="idx:lineposition2:1006"></A><A class="pred" href="streamstat.html#line_position/2">line_position/2</A> 
 will not have a well defined behaviour while using this predicate.
 </DD>
 <DT class="pubdef"><A NAME="tty_put/2"><STRONG>tty_put</STRONG>(<VAR>+Atom, 
 +Lines</VAR>)</A></DT>
 <DD class="defbody">
 Put an atom via the termcap library function tputs(). This function 
-decodes padding information in the strings returned by <A NAME="idx:ttygetcapability3:1004"></A><A class="pred" href="tty.html#tty_get_capability/3">tty_get_capability/3</A> 
+decodes padding information in the strings returned by <A NAME="idx:ttygetcapability3:1007"></A><A class="pred" href="tty.html#tty_get_capability/3">tty_get_capability/3</A> 
 and should be used to output these strings. <VAR>Lines</VAR> is the 
 number of lines affected by the operation, or 1 if not applicable (as in 
 almost all cases).
@@ -172,8 +172,8 @@ almost all cases).
 <DT class="pubdef"><A NAME="set_tty/2"><STRONG>set_tty</STRONG>(<VAR>-OldStream, 
 +NewStream</VAR>)</A></DT>
 <DD class="defbody">
-Set the output stream, used by <A NAME="idx:ttyput2:1005"></A><A class="pred" href="tty.html#tty_put/2">tty_put/2</A> 
-and <A NAME="idx:ttygoto2:1006"></A><A class="pred" href="tty.html#tty_goto/2">tty_goto/2</A> 
+Set the output stream, used by <A NAME="idx:ttyput2:1008"></A><A class="pred" href="tty.html#tty_put/2">tty_put/2</A> 
+and <A NAME="idx:ttygoto2:1009"></A><A class="pred" href="tty.html#tty_goto/2">tty_goto/2</A> 
 to a specific stream. Default is user_output.
 </DD>
 <DT class="pubdef"><A NAME="tty_size/2"><STRONG>tty_size</STRONG>(<VAR>-Rows, 
@@ -184,10 +184,10 @@ Determine the size of the terminal. Platforms:
 <DL>
 <DT><B>Unix</B></DT>
 <DD>
-If the system provides <EM>ioctl</EM> calls for this, these are used and <A NAME="idx:ttysize2:1007"></A><A class="pred" href="tty.html#tty_size/2">tty_size/2</A> 
+If the system provides <EM>ioctl</EM> calls for this, these are used and <A NAME="idx:ttysize2:1010"></A><A class="pred" href="tty.html#tty_size/2">tty_size/2</A> 
 properly reflects the actual size after a user resize of the window. As 
 a fallback, the system uses
-<A NAME="idx:ttygetcapability3:1008"></A><A class="pred" href="tty.html#tty_get_capability/3">tty_get_capability/3</A> 
+<A NAME="idx:ttygetcapability3:1011"></A><A class="pred" href="tty.html#tty_get_capability/3">tty_get_capability/3</A> 
 using <CODE>li</CODE> and <CODE>co</CODE> capabilities. In this case the 
 reported size reflects the size at the first call and is not updated 
 after a user-initiated resize of the terminal.</DD>

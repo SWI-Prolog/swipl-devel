@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.45 Reference Manual: Section B.6</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section B.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="intlibs.html">
@@ -132,9 +132,9 @@ for loading files</SPAN></A></H2>
 
 <A NAME="sec:loadfilehook"></A>
 
-<P>All loading of source-files is achieved by <A NAME="idx:loadfiles2:1536"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>. 
+<P>All loading of source-files is achieved by <A NAME="idx:loadfiles2:1539"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>. 
 The hook
-<A NAME="idx:prologloadfile2:1537"></A><A class="pred" href="loadfilehook.html#prolog_load_file/2">prolog_load_file/2</A> 
+<A NAME="idx:prologloadfile2:1540"></A><A class="pred" href="loadfilehook.html#prolog_load_file/2">prolog_load_file/2</A> 
 can be used to load Prolog code from non-files or even load entirely 
 different information, such as foreign files.
 
@@ -142,7 +142,7 @@ different information, such as foreign files.
 <DT class="pubdef"><A NAME="prolog_load_file/2"><STRONG>prolog_load_file</STRONG>(<VAR>+Spec, 
 +Options</VAR>)</A></DT>
 <DD class="defbody">
-Load a single object. If this call succeeds, <A NAME="idx:loadfiles2:1538"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A> 
+Load a single object. If this call succeeds, <A NAME="idx:loadfiles2:1541"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A> 
 assumes the action has been taken care of. This hook is only called if <VAR>Options</VAR> 
 does not contain the <CODE>stream(Input)</CODE> option. The hook must be 
 defined in the module <CODE>user</CODE>.
@@ -159,8 +159,8 @@ list of <VAR>Position</VAR>-<VAR>Comment</VAR> in <VAR>Comments</VAR>,
 the start-position of the next term in <VAR>Pos</VAR> and the next term 
 itself in <VAR>Term</VAR>. All positions are stream-position terms. This 
 hook is exploited by the documentation system. See
-<A NAME="idx:streampositiondata3:1539"></A><A class="pred" href="IO.html#stream_position_data/3">stream_position_data/3</A>. 
-See also <A NAME="idx:readterm3:1540"></A><A class="pred" href="termrw.html#read_term/3">read_term/3</A>.
+<A NAME="idx:streampositiondata3:1542"></A><A class="pred" href="IO.html#stream_position_data/3">stream_position_data/3</A>. 
+See also <A NAME="idx:readterm3:1543"></A><A class="pred" href="termrw.html#read_term/3">read_term/3</A>.
 </DD>
 </DL>
 

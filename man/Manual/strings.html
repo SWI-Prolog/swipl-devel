@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.45 Reference Manual: Section 4.23</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section 4.23</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="chartype.html">
@@ -168,13 +168,13 @@ generally faster.
 only be created using the predicates below or through the foreign 
 language interface (See <A class="sec" href="foreign.html">chapter 9</A>. 
 There are two ways to make
-<A NAME="idx:read1:913"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
+<A NAME="idx:read1:916"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
 read text into strings, both controlled through Prolog flags. One is by 
 setting the <A class="flag" href="flags.html#flag:double_quotes">double_quotes</A> 
 flag to <CODE>string</CODE> and the other is by setting the <A class="flag" href="flags.html#flag:backquoted_string">backquoted_string</A> 
 flag to <CODE>true</CODE>. In latter case, <CODE>`Hello world`</CODE> is 
 read into a string and
-<A NAME="idx:writeterm2:914"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
+<A NAME="idx:writeterm2:917"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
 prints strings between back-quotes if <CODE>quoted</CODE> is
 <CODE>true</CODE>. This flag provides compatibility to LPA Prolog string 
 handling.
@@ -195,13 +195,13 @@ characters. At least one of the two arguments must be instantiated.</DD>
 -Length</VAR>)</A></DT>
 <DD class="defbody">
 Unify <VAR>Length</VAR> with the number of characters in <VAR>String</VAR>. 
-This predicate is functionally equivalent to <A NAME="idx:atomlength2:915"></A><A class="pred" href="manipatom.html#atom_length/2">atom_length/2</A> 
+This predicate is functionally equivalent to <A NAME="idx:atomlength2:918"></A><A class="pred" href="manipatom.html#atom_length/2">atom_length/2</A> 
 and also accepts atoms, integers and floats as its first argument.
 </DD>
 <DT class="pubdef"><A NAME="string_concat/3"><STRONG>string_concat</STRONG>(<VAR>?String1, 
 ?String2, ?String3</VAR>)</A></DT>
 <DD class="defbody">
-Similar to <A NAME="idx:atomconcat3:916"></A><A class="pred" href="manipatom.html#atom_concat/3">atom_concat/3</A>, 
+Similar to <A NAME="idx:atomconcat3:919"></A><A class="pred" href="manipatom.html#atom_concat/3">atom_concat/3</A>, 
 but the unbound argument will be unified with a string object rather 
 than an atom. Also, if both <VAR>String1</VAR> and
 <VAR>String2</VAR> are unbound and <VAR>String3</VAR> is bound to text, 
@@ -218,7 +218,7 @@ a single new list-cell and moves some pointers around.
 <DD class="defbody">
 <VAR>Sub</VAR> is a substring of <VAR>String</VAR> starting at <VAR>Start</VAR>, 
 with length <VAR>Length</VAR> and <VAR>String</VAR> has <VAR>After</VAR> 
-characters left after the match. See also <A NAME="idx:subatom5:917"></A><A class="pred" href="manipatom.html#sub_atom/5">sub_atom/5</A>.
+characters left after the match. See also <A NAME="idx:subatom5:920"></A><A class="pred" href="manipatom.html#sub_atom/5">sub_atom/5</A>.
 </DD>
 </DL>
 

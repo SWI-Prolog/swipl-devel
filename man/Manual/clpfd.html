@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.45 Reference Manual: Section A.13</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section A.13</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="url.html">
@@ -175,25 +175,25 @@ is one of:
 <TR VALIGN=top><TD>-Expr</TD><TD>Unary minus </TD></TR>
 <TR VALIGN=top><TD>Expr + Expr</TD><TD>Addition </TD></TR>
 <TR VALIGN=top><TD>Expr * Expr</TD><TD>Multiplication </TD></TR>
-<TR VALIGN=top><TD>Expr - Expr.</TD><TD>Substraction </TD></TR>
-<TR VALIGN=top><TD>min(Expr,Expr)</TD><TD>Minimum of two values </TD></TR>
-<TR VALIGN=top><TD>max(Expr,Expr)</TD><TD>Maximum of two values </TD></TR>
+<TR VALIGN=top><TD>Expr - Expr.</TD><TD>Subtraction </TD></TR>
+<TR VALIGN=top><TD>min(Expr,Expr)</TD><TD>Minimum of two expressions </TD></TR>
+<TR VALIGN=top><TD>max(Expr,Expr)</TD><TD>Maximum of two expressions </TD></TR>
 <TR VALIGN=top><TD>Expr mod Expr</TD><TD>Remainder of integer division </TD></TR>
 <TR VALIGN=top><TD>abs(Expr)</TD><TD>Absolute value </TD></TR>
-<TR VALIGN=top><TD>Expr / Expr</TD><TD>integer division </TD></TR>
+<TR VALIGN=top><TD>Expr / Expr</TD><TD>Integer division </TD></TR>
 </TABLE>
 
 </BLOCKQUOTE>
 
 <P>The most important finite domain <I>constraints</I> are given in the 
-tabe below.
+table below.
 <BLOCKQUOTE>
 <TABLE BORDER=2 FRAME=box RULES=groups>
 <TR VALIGN=top><TD>Expr1 <CODE>#&gt;=</CODE> Expr2</TD><TD>Expr1 is 
-larger or equal to Expr2 </TD></TR>
+larger than or equal to Expr2 </TD></TR>
 <TR VALIGN=top><TD>Expr1 <CODE>#=&lt;</CODE> Expr2</TD><TD>Expr1 is 
-smaller or equal to Expr2 </TD></TR>
-<TR VALIGN=top><TD>Expr1 <CODE>#=</CODE> Expr2</TD><TD>Expr1 is equal to 
+smaller than or equal to Expr2 </TD></TR>
+<TR VALIGN=top><TD>Expr1 <CODE>#=</CODE> Expr2</TD><TD>Expr1 equals 
 Expr2 </TD></TR>
 <TR VALIGN=top><TD>Expr1 <CODE>#\=</CODE> Expr2</TD><TD>Expr1 is not 
 equal to Expr2 </TD></TR>
@@ -208,7 +208,7 @@ strictly smaller than Expr2 </TD></TR>
 <P>The constraints <A class="pred" href="clpbounds.html##=/2">#=/2</A>, <A class="pred" href="clpbounds.html##\=/2">#\=/2</A>, <A class="pred" href="clpfd.html##</2">#&lt;/2</A>, <A class="pred" href="clpbounds.html##>/2">#&gt;/2</A>, <A class="pred" href="clpbounds.html##=</2">#=&lt;/2</A>, <A class="pred" href="clpbounds.html##>=/2">#&gt;=/2</A> 
 and <A class="pred" href="clpfd.html##\/1">#\/1</A> can be
 <I>reified</I>, which means reflecting their truth values into Boolean 
-0/1 variables. Let P and Q denote conjunctions (<SPAN class="pred-ext">#/\/2</SPAN>) 
+0/1 variables. Let P and Q denote conjunctions (<A class="pred" href="clpfd.html##/\/2">#/\/2</A>) 
 or disjunctions (<A class="pred" href="clpfd.html##\//2">#\//2</A>) of 
 reifiable constraints or Boolean variables, then:
 <BLOCKQUOTE>
@@ -315,7 +315,7 @@ Constrain <VAR>Vars</VAR> to be pairwise distinct.</DD>
 <DD class="defbody">
 Constrain the sum of a list. The <A class="pred" href="clpfd.html#sum/3">sum/3</A> 
 constraint demands that "sumlist(<VAR>Vars</VAR>) <VAR>Op</VAR> <VAR>Expr</VAR>" 
-holds. I.e.
+hold, e.g.:
 
 <PRE class="code">
         sum(List, #=&lt; 100)
@@ -337,6 +337,9 @@ The reifiable constraint <VAR>Q</VAR> does <I>not</I> hold.</DD>
 <DT class="pubdef"><A NAME="#<==/2"><VAR>?P</VAR> <STRONG>#&lt;==</STRONG> <VAR>?Q</VAR></A></DT>
 <DD class="defbody">
 ?<VAR>Q</VAR> implies ?<VAR>P</VAR>.</DD>
+<DT class="pubdef"><A NAME="#/\/2"><VAR>?P</VAR> <STRONG>#/\</STRONG> <VAR>?Q</VAR></A></DT>
+<DD class="defbody">
+<VAR>P</VAR> and <VAR>Q</VAR> hold.</DD>
 <DT class="pubdef"><A NAME="#\//2"><VAR>?P</VAR> <STRONG>#\/</STRONG> <VAR>?Q</VAR></A></DT>
 <DD class="defbody">
 <VAR>P</VAR> or <VAR>Q</VAR> holds.</DD>
@@ -356,7 +359,7 @@ with stronger propagation.</DD>
 <DT class="pubdef"><A NAME="serialized/2"><STRONG>serialized</STRONG>(<VAR>+Starts, 
 +Durations</VAR>)</A></DT>
 <DD class="defbody">
-Constraint a set of intervals to a non-overlapping sequence.
+Constrain a set of intervals to a non-overlapping sequence.
 <VAR>Starts</VAR> = [S_1,...,S_n], is a list of variables or integers,
 <VAR>Durations</VAR> = [D_1,...,D_n] is a list of non-negative integers. 
 Constrains <VAR>Starts</VAR> and <VAR>Durations</VAR> to denote a set of 

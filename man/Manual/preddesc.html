@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.45 Reference Manual: Section 4.1</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section 4.1</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="builtin.html">
@@ -169,5 +169,22 @@ or <A NAME="idx:nbsetarg3:313"></A><A class="pred" href="manipterm.html#nb_setar
 </TABLE>
 
 </CENTER>
+
+<P><A NAME="idx:predicateindicator:314"></A>Refering to a predicate in 
+running text is done using a
+<EM>predicate indicator</EM>. The canonical and most generic form of a 
+predicate indicator is a term &lt;<VAR>module</VAR>&gt;:&lt;<VAR>name</VAR>&gt;/&lt;<VAR>arity</VAR>&gt;. 
+If the module is irrelavant (built-in predicate) or can be inferred from 
+the context it is often omitted. Compliant to the ISO standard draft on 
+DCG (see
+<A class="sec" href="DCG.html">section 4.12</A>), SWI-Prolog also allows 
+for [&lt;<VAR>module</VAR>&gt;]:&lt;<VAR>name</VAR>&gt;//&lt;<VAR>arity</VAR>&gt; 
+to refer to a grammar rule. For all non-negative arity, &lt;<VAR>name</VAR>&gt;//&lt;<VAR>arity</VAR>&gt; 
+is the same as &lt;<VAR>name</VAR>&gt;/&lt;arity+2&gt;, regardless on 
+whether or not the referenced predicate is defined or can be used as a 
+grammar rule. The //-notation can be used in all places that 
+traditionally allow for a predicate indicator, e.g. the module 
+declaration, <A NAME="idx:spy1:315"></A><A class="pred" href="debugger.html#spy/1">spy/1</A>, 
+and <A NAME="idx:dynamic1:316"></A><A class="pred" href="dynamic.html#dynamic/1">dynamic/1</A>.
 
 <P></BODY></HTML>
