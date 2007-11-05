@@ -30,7 +30,7 @@
 */
 
 :- module(utf8,
-	  [ utf8_codes/3		% ?String
+	  [ utf8_codes//1		% ?String
 	  ]).
 
 %%	utf8_codes(?Codes)// is det.

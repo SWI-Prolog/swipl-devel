@@ -400,7 +400,7 @@ uri(URI, Options) ::=
 	->  canonical_uri(A, Base, URI)
 	;   sub_atom(A, 0, _, _, #)
 	->  sub_atom(A, 1, _, 0, URI)
-	;   decode_uri(A, URI)
+	;   url_iri(A, URI)
 	}.
 
 globalid(Id, Options) ::=
@@ -424,13 +424,13 @@ make_globalid(In, Options, Id) :-
 	(   memberchk(base_uri(Base), Options),
 	    Base \== []
 	->  (   is_absolute_url(In)
-	    ->	decode_uri(In, Id)
+	    ->	url_iri(In, Id)
 	    ;	concat_atom([Base, In], #, Id0),
-		decode_uri(Id0, Id)
+		url_iri(Id0, Id)
 	    )
 	;   sub_atom(In, 0, _, _, #)
 	->  sub_atom(In, 1, _, 0, Id)
-	;   decode_uri(In, Id)
+	;   url_iri(In, Id)
 	).
 
 
@@ -441,36 +441,10 @@ make_globalid(In, Options, Id) :-
 
 canonical_uri('', Base, Base) :- !.	% '' expands to xml:base
 canonical_uri(URI0, [], URI) :- !,	% do not use one
-	decode_uri(URI0, URI).
+	url_iri(URI0, URI).
 canonical_uri(URI, Base, Global) :-	% use our generic library
 	global_url(URI, Base, Global0),
-	decode_uri(Global0, Global).
-
-
-%%	decode_uri(+Encoded, -Decoded)
-%	
-%	RDF URIs are encoded  Unicode  strings.   First  the  unicode is
-%	translated using UTF-8 and then  the   result  is represented as
-%	US-ASCII using %XX sequences. Here we have to do the reverse.
-%	
-%	NOTE: this encoding is known under the name IRI.
-
-decode_uri(Encoded, Decoded) :-
-	sub_atom(Encoded, _, _, _, '%'), !,
-	atom_codes(Encoded, Codes),
-	unescape_precent(Codes, UTF8),
-	phrase(utf8_codes(Unicodes), UTF8),
-	atom_codes(Decoded, Unicodes).
-decode_uri(Encoded, Encoded).
-
-unescape_precent([], []).
-unescape_precent([0'%,C1,C2|T0], [H|T]) :- !,
-	code_type(C1, xdigit(D1)),
-	code_type(C2, xdigit(D2)),
-	H is D1*16 + D2,
-	unescape_precent(T0, T).
-unescape_precent([H|T0], [H|T]) :-
-	unescape_precent(T0, T).
+	url_iri(Global0, Global).
 
 
 		 /*******************************

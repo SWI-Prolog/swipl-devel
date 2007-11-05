@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -38,6 +38,8 @@
 	    http_location/2,		% ?Parts, ?Location
 	    www_form_encode/2,		% Value <-> Encoded
 	    parse_url_search/2,		% Form-data <-> Form fields
+	    
+	    url_iri/2,			% ?URL, ?IRI
 
 	    file_name_to_url/2		% ?FileName, ?URL
 	  ]).
@@ -871,6 +873,42 @@ utf8_cont([H|T]) -->
 utf8_cont([]) -->
 	[].
 
+
+
+		 /*******************************
+		 *	 IRI PROCESSING		*
+		 *******************************/
+
+%%	url_iri(+Encoded, -Decoded) is det.
+%%	url_iri(-Encoded, +Decoded) is det.
+%	
+%	Convert between a URL, encoding in US-ASCII  to an IRI, which is
+%	a fully expanded  Unicode  string.   Unicode  strings  are first
+%	encoded into UTF-8, after which %-encoding takes place.
+
+url_iri(Encoded, Decoded) :-
+	nonvar(Encoded), !,
+	(   sub_atom(Encoded, _, _, _, '%')
+	->  atom_codes(Encoded, Codes),
+	    unescape_precent(Codes, UTF8),
+	    phrase(utf8_codes(Unicodes), UTF8),
+	    atom_codes(Decoded, Unicodes)
+	;   Decoded = Encoded
+	).
+url_iri(URL, IRI) :-
+	atom_codes(IRI, IRICodes),
+	phrase(percent_encode(IRICodes, "/:?#&="), UrlCodes),
+	atom_codes(URL, UrlCodes).
+
+
+unescape_precent([], []).
+unescape_precent([0'%,C1,C2|T0], [H|T]) :- !,	%'
+	code_type(C1, xdigit(D1)),
+	code_type(C2, xdigit(D2)),
+	H is D1*16 + D2,
+	unescape_precent(T0, T).
+unescape_precent([H|T0], [H|T]) :-
+	unescape_precent(T0, T).
 
 
 		 /*******************************
