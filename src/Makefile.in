@@ -64,6 +64,7 @@ INSTALL_SCRIPT=@INSTALL_SCRIPT@
 INSTALL_DATA=@INSTALL_DATA@
 MKDIR=@MKDIR@
 REL_LN=$(srcdir)/rel-ln
+RLPREFIX=@RLPREFIX@
 
 COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
@@ -279,6 +280,11 @@ parms.h:	Makefile
 $(OBJ):		parms.h $(srcdir)/pl-funct.ih
 pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c
 pl-read.o:	pl-umap.c
+
+ifdef RLPREFIX
+pl-rl.o:	pl-rl.c
+		$(CC) -c -I$(RLPREFIX)/include -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
+endif
 
 $(srcdir)/pl-funct.ih:	$(srcdir)/ATOMS
 		cd $(srcdir) ; $(AWK) -f defatom.awk < ATOMS
