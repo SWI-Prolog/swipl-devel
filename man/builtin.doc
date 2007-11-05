@@ -34,6 +34,20 @@ community.  We use the following definitions:%
 \end{tabular}
 \end{center}
 
+\index{predicate indicator}%
+Refering to a predicate in running text is done using a
+\jargon{predicate indicator}. The canonical and most generic form of a
+predicate indicator is a term <module>:<name>/<arity>. If the module is
+irrelavant (built-in predicate) or can be inferred from the context it
+is often omitted. Compliant to the ISO standard draft on DCG (see
+\secref{DCG}), SWI-Prolog also allows for [<module>]:<name>//<arity> to
+refer to a grammar rule. For all non-negative arity, <name>//<arity> is
+the same as <name>/<arity+2>, regardless on whether or not the
+referenced predicate is defined or can be used as a grammar rule.
+The //-notation can be used in all places that traditionally allow
+for a predicate indicator, e.g.\ the module declaration, spy/1, 
+and dynamic/1.
+
 
 \section{Character representation}		\label{sec:chars}
 
@@ -1818,8 +1832,8 @@ It is advised to use retractall/1 for erasing all clauses of a dynamic
 predicate.
 
     \predicate{abolish}{2}{+Name, +Arity}
-Same as \exam{abolish(Name/Arity)}.  The predicate abolish/2 conforms to
-the Edinburgh standard, while abolish/1 is ISO compliant.
+Same as \term{abolish}{Name/Arity}. The predicate abolish/2 conforms
+to the Edinburgh standard, while abolish/1 is ISO compliant.
 
     \predicate{redefine_system_predicate}{1}{+Head}
 This directive may be used both in module \const{user} and in normal
@@ -1986,7 +2000,7 @@ they can also be called by a program.  Do not rely on this feature if
 you want to maintain portability to other Prolog implementations.
 
 \begin{description}
-    \prefixop{dynamic}{+Name/+Arity, \ldots}
+    \prefixop{dynamic}{+PredicateIndicator, \ldots}
 Informs the interpreter that the definition of the predicate(s) may change
 during execution (using assert/1 and/or retract/1). In the
 multi-threaded version, the clauses of dynamic predicates are shared
@@ -2010,12 +2024,12 @@ of the program execution.%
 		  faster as it does not require synchronisation.  This
 		  is particularly true on SMP hardware.}
 
-    \prefixop{multifile}{+Name/+Arity, \ldots}
+    \prefixop{multifile}{+PredicateIndicator, \ldots}
 Informs the system that the specified predicate(s) may be defined over
 more than one file. This stops consult/1 from redefining a predicate
 when a new definition is found.
 
-    \prefixop{discontiguous}{+Name/+Arity, \ldots}
+    \prefixop{discontiguous}{+PredicateIndicator, \ldots}
 Informs the system that the clauses of the specified predicate(s) might
 not be together in the source file.  See also style_check/1.
 
@@ -2109,7 +2123,7 @@ and the arity of the predicate. This predicate succeeds for all
 predicates defined in the specified module, imported to it, or in one of
 the modules from which the predicate will be imported if it is called.
 
-    \predicate[ISO]{current_predicate}{1}{:Name/Arity}
+    \predicate[ISO]{current_predicate}{1}{:PredicateIndicator}
 ISO compliant implementation of current_predicate/2.  Unlike
 current_predicate/2, the current implementation of current_predicate/1
 does not consider predicates that can be autoloaded `current'.
@@ -4560,9 +4574,10 @@ well.
     \predicate{arithmetic_function}{1}{+Head}
 Register a Prolog predicate as an arithmetic function (see is/2,
 \predref{>}{2}, etc.). The Prolog predicate should have one more
-argument than specified by \arg{Head}, which it either a term \arg{Name/Arity}, an atom or a complex term. This last argument is an unbound
-variable at call time and should be instantiated to an integer or
-floating point number. The other arguments are the parameters. This
+argument than specified by \arg{Head}, which it either a term
+\arg{Name/Arity}, an atom or a complex term. This last argument is an
+unbound variable at call time and should be instantiated to an integer
+or floating point number. The other arguments are the parameters. This
 predicate is module sensitive and will declare the arithmetic function
 only for the context module, unless declared from module \const{user}.
 Example: 
