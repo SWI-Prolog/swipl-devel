@@ -106,17 +106,9 @@ This library is only available on Windows systems.
 \end{summarylist}
 
 \subsection{\pllib{url}}
-
-\begin{summarylist}{ll}
-\predicatesummary{parse_url}{2}{Analyse or construct a URL}
-\predicatesummary{parse_url}{3}{Analyse or construct a relative URL}
-\predicatesummary{global_url}{3}{Make relative URL global}
-\predicatesummary{http_location}{2}{Analyse or construct location}
-\predicatesummary{www_form_encode}{2}{Encode or decode form-data}
-\end{summarylist}
+\input{summaries.d/url.tex}
 
 \subsection{\pllib{clp/clpfd}}
-
 \input{summaries.d/clpfd.tex}
 
 \subsection{\pllib{clp/bounds}}

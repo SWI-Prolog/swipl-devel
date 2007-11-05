@@ -185,6 +185,8 @@ LIBTOTEX=$(PUBLICPL) -q -s libtotex.pl -g libtotex --
 
 lib/clpfd.tex:	../library/clp/clpfd.pl
 		$(LIBTOTEX) 'library(clpfd)'
+lib/url.tex:	../library/url.pl
+		$(LIBTOTEX) 'library(url)'
 
 
 ################################################################

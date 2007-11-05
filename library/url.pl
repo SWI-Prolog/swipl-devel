@@ -46,75 +46,22 @@
 :- use_module(library(lists)).
 :- use_module(library(utf8)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Utility library to break down URL   specifications. Originally this file
-was based on RFC-1738. In SWI-Prolog 5.6.13 it was upgraded to RFC 3986,
-notably covering UTF-8 encoding of Unicode characters in form-encoding.
+/** <module> Analysing and constructing URL
 
-Public interface:
+This library deals with the analysis and construction of a URL,
+Universal Resource Locator. URL is the basis for communicating locations
+of resources (data) on the web. A URL consists of a protocol identifier
+(e.g. HTTP, FTP, and a protocol-specific syntax further defining the
+location. URLs are standardized in RFC-1738.
 
-parse_url(+URL, -Parts)
-    Parse a URL into its parts.  Parts is a list of Name(Value).  Attributes
-    depend on the protocol.  Currently the implementation is not defined
-    for all protocols.  Defined:
+The implementation in this library covers only a small portion of the
+defined protocols.  Though the initial implementation followed RFC-1738
+strictly, the current is more relaxed to deal with frequent violations
+of the standard encountered in practical use.
 
-        protocol	All protocols
-	user		Network based protocols
-	host		Network based protocols
-	port		Network based protocols
-	path		file,http,ftp
-	search		http (?name=value&...)
-        fragment	http (#fragment)
-
-    For example:
-
-    ?- parse_url('http://www.swi-prolog.org/message.cgi?msg=Hello+World%21', P).
-
-    P = [ protocol(http), 
-	  search([msg='Hello World!']), 
-	  path('/message.cgi'), 
-	  host('www.swi-prolog.org')
-        ] 
-
-parse_url(-URL, +Parts)
-    Create a URL from its parts (see above). 	
-
-parse_url(+URL, +BaseURL, -Parts)
-    As above, but `URL' may be relative to some base url.  If URL is
-    absolute, BaseURL is ignored.
-
-parse_url(-URL, +BaseURL, +Parts)
-    Construct absolute URL from its parts and a base url, with default
-    parts taken from BaseURL. 
-
-global_url(+URL, +BaseURL, -AbsoluteUrl)
-    Transform a possible local URL into a global one.
-
-http_location(?Parts, ?Location)
-    If `Parts' is the part-list of an http URL, construct a string for
-    the location.  So, to access a page with an HTTP url, do:
-
-    	parse_url(URL, Parts),
-	memberchk(host(Host), Parts),
-	(   memberchk(port(Port), Parts)
-	->  true
-	;   Port = 80
-	),
-	<connect to host and port>
-	http_location(Parts, Location),
-	format(Stream, 'GET ~w HTTP/1.0\r\nHost: ~w\r\n\r\n',
-	       [ Location, Host ]),
-	...
-
-ISSUES:
-
-	* Lacks support for IP6 in parsing URIs
-	* Constructing could avoid percent encoding for some more
-	  characters
-	* Using + for spaces as used in forms may be active in too
-	  many places.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
+@author	Jan Wielemaker
+@author Lukas Faulstich
+*/
 
 		 /*******************************
 		 *	      GLOBALISE		*
@@ -122,8 +69,7 @@ ISSUES:
 
 %%	global_url(+URL, +Base, -Global)
 %	
-%	Translate a relative URL into an absolute one.  The first three
-%	cases deal with commonly seen and quickly to resolve cases.
+%	Translate a possibly relative URL  into   an  absolute  one.
 
 global_url(URL, BaseURL, Global) :-
 	(   is_absolute_url(URL),
@@ -146,8 +92,8 @@ global_url(URL, BaseURL, Global) :-
 
 %%	is_absolute_url(+URL)
 %	
-%	Test whether a URL is absolute or relative.  We assume it is
-%	absolute if it starts with a protocol.
+%	True if URL is an absolute URL. That  is, a URL that starts with
+%	a protocol identifier.
 
 is_absolute_url(URL) :-
 	sub_atom(URL, 0, _, _, 'http://'), !.
@@ -168,8 +114,16 @@ is_absolute_url(URL) :-
 
 %%	http_location(?Parts, ?Location)
 %
-%	Translate the relevant parts of an URL into an HTTP location
-%	on a server.
+%	Construct or analyze an  HTTP  location.   This  is  similar  to
+%	parse_url/2, but only deals with the   location  part of an HTTP
+%	URL. That is, the path, search   and fragment specifiers. In the
+%	HTTP protocol, the first line of a message is
+%	
+%	    ==
+%	    <Action> <Location> HTTP/<version>
+%	    ==
+%	    
+%	@param Location	Atom or list of character codes.    
 
 http_location(Parts, Location) :-	% Parts --> Location
 	nonvar(Parts), !,
@@ -313,18 +267,61 @@ cfragment(_) -->
 %%	parse_url(+URL, -Attributes) is det.
 %%	parse_url(+URL, +BaseURL, -Attributes) is det.
 %
-%	Parse a URL to a sequence  of   attributes.  In the version with
-%	three  arguments,  URL  may  be  an  URL  relative  to  BaseURL.
-%	Attributes:
-%
-%		| protocol(Protocol)	| Protocol identifier |
-%		| host(Host)		| Name of host |
-%		| port(Port)		| Number of port to contact |
-%		| path(Path)		| The path |
-%		| search(Search)	| Search specification |
-%		
-%	The parse_url/3	predicate deals with relative URLs.  BaseURL can
-%	be specified as an atom or parsed URL.
+%	Construct or analyse a URL. URL is an   atom  holding a URL or a
+%	variable. Parts is a list of   components.  Each component is of
+%	the format Name(Value). Defined components are:
+%	
+%	    * protocol(Protocol)
+%	    The used protocol. This is, after  the optional =|url:|=, an
+%	    identifier separated from the remainder of  the URL using :.
+%	    parse_url/2 assumes the =http= protocol   if  no protocol is
+%	    specified and the URL can be parsed  as a valid HTTP url. In
+%	    addition to the RFC-1738  specified   protocols,  the =file=
+%	    protocol is supported as well.
+%	    
+%	    * host(Host)
+%	    Host-name or IP-address on which   the  resource is located.
+%	    Supported by all network-based protocols.
+%	    
+%	    * port(Port)
+%	    Integer port-number to access on   the \arg{Host}. This only
+%	    appears if the port is  explicitly   specified  in  the URL.
+%	    Implicit default ports (e.g.  80   for  HTTP)  do \emph{not}
+%	    appear in the part-list.
+%	    
+%	    * path(Path)
+%	    (File-) path addressed by the URL. This is supported for the
+%	    =ftp=, =http= and =file= protocols. If  no path appears, the
+%	    library generates the path =|/|=.
+%	    
+%	    * search(ListOfNameValue)
+%	    Search-specification of HTTP URL. This is the part after the
+%	    =|?|=, normally used to transfer data   from HTML forms that
+%	    use the =GET=  protocol.  In  the   URL  it  consists  of  a
+%	    www-form-encoded list of Name=Value pairs. This is mapped to
+%	    a list of Prolog Name=Value  terms   with  decoded names and
+%	    values.
+%	    
+%	    * fragment(Fragment)
+%	    Fragment specification of HTTP URL. This   is the part after
+%	    the =|#|= character.
+%	    
+%	The example below illustrates the all this for an HTTP URL.
+%	
+%	    ==
+%	    ?- parse_url('http://swi.psy.uva.nl/message.cgi?msg=Hello+World%21#x', P).
+%	    
+%	    P = [ protocol(http),
+%		  host('swi.psy.uva.nl'),
+%		  fragment(x),
+%		  search([ msg = 'Hello World!'
+%			 ]),
+%		  path('/message.cgi')
+%	        ]
+%	    ==
+%	    
+%	By instantiating the parts-list this predicate   can  be used to
+%	create a URL.
 
 parse_url(URL, Attributes) :-
 	nonvar(URL), !,
@@ -776,8 +773,8 @@ encoding used with the HTTP GET.
 %%	www_form_encode(-Value, +XWWWFormEncoded) is det.
 %
 %	En/Decode        between        native          value        and
-%	=application/x-www-form-encoded=. Maps space to  +, keeps alnum,
-%	maps anything else to  =%XX=  and   newlines  to  =%OD%OA.= When
+%	application/x-www-form-encoded. Maps space to   +,  keeps alnum,
+%	maps anything else to =|%XX|= and   newlines to =|%OD%OA|=. When
 %	decoding, newlines appear as a single newline (10) character.
 
 www_form_encode(Value, Encoded) :-
@@ -882,8 +879,8 @@ utf8_cont([]) -->
 %%	url_iri(+Encoded, -Decoded) is det.
 %%	url_iri(-Encoded, +Decoded) is det.
 %	
-%	Convert between a URL, encoding in US-ASCII  to an IRI, which is
-%	a fully expanded  Unicode  string.   Unicode  strings  are first
+%	Convert between a URL, encoding in US-ASCII   and an IRI. An IRI
+%	is a fully expanded Unicode string.   Unicode  strings are first
 %	encoded into UTF-8, after which %-encoding takes place.
 
 url_iri(Encoded, Decoded) :-
@@ -915,11 +912,12 @@ unescape_precent([H|T0], [H|T]) :-
 		 *	     FORM DATA		*
 		 *******************************/
 
-%%	parse_url_search(?Spec, ?Fields) is det.
+%%	parse_url_search(?Spec, ?Fields:list(Name=Value)) is det.
 %
-%	Parse  between  a  list   of    Name=Value   and  the  MIME-type
-%	=application/x-www-form-urlencoded=  as  used  to    post   HTTP
-%	requests
+%	Construct or analyze an HTTP   search  specification. This deals
+%	with       form       data       using       the       MIME-type
+%	=application/x-www-form-urlencoded=  as  used   in    HTTP   GET
+%	requests.
 
 parse_url_search(Spec, Fields) :-
 	atomic(Spec), !,
@@ -939,9 +937,10 @@ parse_url_search(Codes, Fields) :-
 %%	file_name_to_url(+File, -URL) is det.
 %%	file_name_to_url(-File, +URL) is semidet.
 %
-%	Translate between a filename and a URL.
+%	Translate between a filename and a file:// URL.
 %	
-%	@tbd	Deal with encoding?
+%	@tbd	Current implementation does not deal with paths that
+%		need special encoding.
 
 file_name_to_url(File, FileURL) :-
 	nonvar(File), !,
