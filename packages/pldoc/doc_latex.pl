@@ -289,7 +289,7 @@ latex(Atomic) -->			% can this actually happen?
 latex(List) -->
 	latex_special(List, Rest), !,
 	latex(Rest).
-latex([H|T]) -->
+latex([H|T]) --> !,
 	(   latex(H)
 	->  latex(T)
 	;   { print_message(error, latex(failed(H))) },
@@ -850,8 +850,7 @@ anon_vars(_).
 anchored_pred_head(Head, Done0, Done, Options) -->
 	{ pred_anchor_name(Head, PI, _Name) },
 	(   { memberchk(PI, Done0) }
-	->  { Done = Done0 },
-	    pred_head(Head, Options)
+	->  { Done = Done0 }
 	;   { Done = [PI|Done0] }
 	),
 	pred_head(Head, Options).
@@ -1221,6 +1220,7 @@ print_char('{', Out) :- !, write(Out, '\\{').
 print_char('}', Out) :- !, write(Out, '\\}').
 print_char('$', Out) :- !, write(Out, '\\$').
 print_char('#', Out) :- !, write(Out, '\\#').
+print_char('%', Out) :- !, write(Out, '\\%').
 print_char('\\',Out) :- !, write(Out, '\\bsl{}').
 print_char(C,   Out) :- put_char(Out, C).
 
