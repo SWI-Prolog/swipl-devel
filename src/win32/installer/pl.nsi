@@ -441,6 +441,7 @@ Section "Documentation package"
   SetOutPath $INSTDIR\library
   File pl\library\pldoc.pl
   File pl\library\doc_http.pl
+  File pl\library\doc_latex.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\pldoc.html
   SetOutPath $INSTDIR\doc
