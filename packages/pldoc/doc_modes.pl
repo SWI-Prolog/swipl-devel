@@ -53,12 +53,12 @@ operator declarations in this module.
 */
 
 :- op(750, xf, ...).			% Repeated argument: Arg...
-:- op(700, fx, +).			% allow +Arg
-:- op(700, fx, -).			% allow -Arg
-:- op(700, fx, ?).			% allow ?Arg
-:- op(700, fx, :).			% allow ?Arg
-:- op(700, fx, @).			% allow @Arg
-:- op(700, fx, !).			% allow !Arg
+:- op(650, fx, +).			% allow +Arg
+:- op(650, fx, -).			% allow -Arg
+:- op(650, fx, ?).			% allow ?Arg
+:- op(650, fx, :).			% allow :Arg
+:- op(650, fx, @).			% allow @Arg
+:- op(650, fx, !).			% allow !Arg
 :- op(200, xf, //).			% allow for Head// is det.
 
 		 /*******************************

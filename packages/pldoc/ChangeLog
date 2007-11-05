@@ -1,3 +1,8 @@
+Nov 5, 2007
+
+* MODIFIED: Changed mode-operators (?, +, -, @, :) from 700 fx to 650 fx 
+  to allow for ?A = ?B, etc.
+
 Oct 29, 2007
 
 * ADDED: Support for local operators in comment parser.
