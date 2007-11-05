@@ -28,7 +28,7 @@ EXAMPLEEXE=	man_server.pl
 all:		pldoc.sty
 
 pldoc.sty:	..\..\man\pl.sty
-		copy $< $@
+		copy ..\..\man\pl.sty $@
 
 !IF "$(CFG)" == "rt"
 install::
