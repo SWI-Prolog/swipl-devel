@@ -944,7 +944,7 @@ load_files(Files, Options) :-
 	time_file(Derived, Modified),
         Modified @=< LoadTime, !.
 '$noload'(changed, FullFile) :-
-	'$time_source_file'(FullFile, LoadTime),
+	'$time_source_file'(FullFile, LoadTime, user),
         time_file(FullFile, Modified),
         Modified @=< LoadTime, !.
 
