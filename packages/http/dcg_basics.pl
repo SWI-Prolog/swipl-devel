@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -30,31 +30,31 @@
 */
 
 :- module(dcg_basics,
-	  [ white/2,			% <white inside line>
-	    whites/2,			% <white inside line>*
-	    blank/2,			% <blank>
-	    blanks/2,			% <blank>*
-	    nonblank/3,			% <nonblank>
-	    nonblanks/3,		% <nonblank>* --> chars		(long)
-	    blanks_to_nl/2,		% [space,tab,ret]*nl
-	    string/3,			% <any>* -->chars 		(short)
-	    string_without/4,		% Exclude, -->chars 		(long)
+	  [ white//0,			% <white inside line>
+	    whites//0,			% <white inside line>*
+	    blank//0,			% <blank>
+	    blanks//0,			% <blank>*
+	    nonblank//1,		% <nonblank>
+	    nonblanks//1,		% <nonblank>* --> chars		(long)
+	    blanks_to_nl//0,		% [space,tab,ret]*nl
+	    string//1,			% <any>* -->chars 		(short)
+	    string_without//2,		% Exclude, -->chars 		(long)
 					% Characters
-	    alpha_to_lower/3,		% Get lower|upper, return lower
+	    alpha_to_lower//1,		% Get lower|upper, return lower
 					% Decimal numbers
-	    digits/3,			% [0-9]* -->chars
-	    digit/3,			% [0-9] --> char
-	    integer/3,			% [+-][0-9]+ --> integer
-	    float/3,	% [+-]?[0-9]+(.[0-9]*)?(e[+-]?[0-9]+)? --> float
-	    number/3,			% integer | float
+	    digits//1,			% [0-9]* -->chars
+	    digit//1,			% [0-9] --> char
+	    integer//1,			% [+-][0-9]+ --> integer
+	    float//1,			% [+-]?[0-9]+(.[0-9]*)?(e[+-]?[0-9]+)? --> float
+	    number//1,			% integer | float
 					% Hexadecimal numbers
-	    xdigits/3,			% [0-9a-f]* --> 0-15*
-	    xdigit/3,			% [0-9a-f] --> 0-15
-	    xinteger/3,			% [0-9a-f]+ --> integer
+	    xdigits//1,			% [0-9a-f]* --> 0-15*
+	    xdigit//1,			% [0-9a-f] --> 0-15
+	    xinteger//1,		% [0-9a-f]+ --> integer
 					% Misc
-	    eos/2,			% demand end-of-string
+	    eos//0,			% demand end-of-string
 					% generation (TBD)
-	    atom/3			% generate atom
+	    atom//1			% generate atom
 	  ]).
 
 
@@ -74,6 +74,8 @@ code_type/2.
 %	in End. End itself is left on the  input. Typical use is to read
 %	upto a defined delimiter such  as   a  newline or other reserved
 %	character.
+%	
+%	@see string//1.
 
 string_without(Not, [C|T]) -->
 	[C],
@@ -87,7 +89,13 @@ string_without(_, []) -->
 %	
 %	Take as few as possible tokens from the input, taking one more
 %	each time on backtracking. This code is normally followed by a
-%	test for a delimiter.
+%	test for a delimiter.  E.g.
+%	
+%	==
+%	upto_colon(Atom) -->
+%		string(Codes), ":", !,
+%		{ atom_codes(Atom, Codes) }.
+%	==
 
 string([]) -->
 	[].
@@ -107,7 +115,10 @@ blanks -->
 
 %%	blank// is semidet.
 %
-%	Take next =space= character from input.
+%	Take next =space= character from input. Space characters include
+%	newline.
+%	
+%	@see white//0
 
 blank -->
 	[C],
@@ -152,6 +163,8 @@ blanks_to_nl -->
 %%	whites// is det.
 %	
 %	Skip white space _inside_ a line.
+%	
+%	@see blanks//0 also skips newlines.
 
 whites -->
 	white, !,
@@ -161,7 +174,8 @@ whites -->
 
 %%	white// is semidet.
 %
-%	Take next =white= character from input.
+%	Take next =white= character from input. White characters do
+%	_not_ include newline.
 
 white -->
 	[C],
@@ -346,4 +360,4 @@ eos([], []).
 %	dealing with any Prolog term.
 
 atom(Atom, Head, Tail) :-
-	with_output_to(codes(Head, Tail), write(Atom)).
+	format(codes(Head, Tail), '~w', [Atom]).
