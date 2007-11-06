@@ -239,7 +239,7 @@ latex_tokens_for_predicates([H|T], Options) --> !,
 	latex_tokens_for_predicates(H, Options),
 	latex_tokens_for_predicates(T, Options).
 latex_tokens_for_predicates(PI, Options) -->
-	{ PI = _:_/_, !,
+	{ generic_pi(PI), !,
 	  (   doc_comment(PI, Pos, _Summary, Comment)
 	  ->  true
 	  ;   Comment = ''
@@ -258,6 +258,11 @@ latex_tokens_for_predicates(Spec, Options) -->
 documented_pi(Spec, PI) :-
 	generalise_spec(Spec, PI),
 	doc_comment(PI, _Pos, _Summary, _Comment).
+
+generic_pi(Module:Name/Arity) :-
+	atom(Module), atom(Name), integer(Arity), !.
+generic_pi(Module:Name//Arity) :-
+	atom(Module), atom(Name), integer(Arity).
 
 generalise_spec(Name/Arity, _M:Name/Arity).
 generalise_spec(Name//Arity, _M:Name//Arity).
