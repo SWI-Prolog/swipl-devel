@@ -373,10 +373,15 @@ normalise_path(Path0, Path) :-
 
 reply(/, _) :-
 	working_directory(Dir0, Dir0),
+	allowed_directory(Dir0), !,
 	ensure_slash_end(Dir0, Dir1),
 	doc_file_href(Dir1, Ref0),
 	atom_concat(Ref0, 'index.html', Index),
 	throw(http_reply(see_other(Index))).
+reply(/, _) :-
+	reply_page('PlDoc directory index',
+		   \doc_links('', [])).
+
 
 %	/file?file=REF
 %	
@@ -446,7 +451,8 @@ reply('/directory', Request) :-
 allowed_directory(Dir) :-
 	source_directory(Dir), !.
 allowed_directory(Dir) :-
-	working_directory(Dir, Dir).
+	working_directory(CWD, CWD),
+	same_file(CWD, Dir).
 
 
 %%	allowed_file(+File) is semidet.
