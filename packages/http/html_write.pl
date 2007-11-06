@@ -32,12 +32,18 @@
 :- module(html_write,
 	  [ reply_html_page/2,		% :Head, :Body
 
-	    page//1,			% generate an HTML page
-	    page//2,			% page from head and body
-	    html//1,
+					% Basic output routines
+	    page//1,			% :Content
+	    page//2,			% :Head, :Body
+	    html//1,			% :Content
 
+					% Option processing
 	    html_set_options/1,		% +OptionList
 	    html_current_option/1,	% ?Option
+
+					% repositioning HTML elements
+	    html_post//2,		% +Id, :Content
+	    html_receive//1,		% +Id
 
 					% Useful primitives for expanding
 	    html_begin//1,		% +EnvName[(Attribute...)]
@@ -52,6 +58,7 @@
 	  ]).
 :- use_module(library(error)).
 :- use_module(library(option)).
+:- use_module(library(pairs)).
 :- use_module(library(sgml)).		% Quote output
 :- use_module(library(quintus)).	% for meta_predicate/1
 :- set_prolog_flag(generate_debug_info, false).
@@ -62,7 +69,8 @@
 	page(:, -, +),
 	page(:, :, -, +),
 	pagehead(:, -, +),
-	pagebody(:, -, +).
+	pagebody(:, -, +),
+	html_post(+, :).
 
 /** <module> Write HTML text
 
@@ -511,6 +519,93 @@ html_quoted_attribute(Text) -->
 
 
 		 /*******************************
+		 *	REPOSITIONING HTML	*
+		 *******************************/
+
+%%	html_post(+Id, :Content)// is det.
+%
+%	Reposition HTML to  the  receiving   Id.  The  http_post//2 call
+%	processes Content as html//1 but instead  of emitting the tokens
+%	it associates them with  Id.  All   _distinct_  token  lists are
+%	inserted  into  the  HTML  output  at    the   location  of  the
+%	corresponding html_receive//1 call.
+%	
+%	A typical usage scenario is to  get   required  CSS links in the
+%	document head in a reusable fashion. First, we define css//1 as:
+%	
+%	==
+%	css(URL) -->
+%		html_post(css,
+%			  link([ type('text/css'),
+%				 rel('stylesheet'),
+%				 href(URL)
+%			       ])).
+%	==
+%	
+%	Next we insert the _unique_ CSS links, in the pagehead using the
+%	following call to reply_html_page/2:
+%	
+%	==
+%		reply_html_page([ title(...),
+%				  \html_receive(css)
+%				],
+%				...)
+%	==
+
+html_post(Id, Content) -->
+	{ phrase(html(Content), Tokens) },
+	[ mailbox(Id, post(Tokens)) ].
+
+%%	html_receive(+Id)// is det.
+%
+%	Receive posted HTML tokens. Unique   sequences  of tokens posted
+%	with  html_post//2  are  inserted   at    the   location   where
+%	html_receive//1 appears.
+
+html_receive(Id) -->
+	[ mailbox(Id, accept(_)) ].
+
+%%	mailman(+Tokens) is det.
+%
+%	Collect  posted  tokens  and  copy    them  into  the  receiving
+%	mailboxes.
+
+mailman(Tokens) :-
+	memberchk(mailbox(_, accept(Accepted)), Tokens),
+	var(Accepted), !,		% not yet executed
+	mailboxes(Tokens, Boxes),
+	keysort(Boxes, Keyed),
+	group_pairs_by_key(Keyed, PerKey),
+	maplist(mail_id, PerKey).
+mailman(_).
+
+mailboxes([], []).
+mailboxes([mailbox(Id, Value)|T0], [Id-Value|T]) :- !,
+	mailboxes(T0, T).
+mailboxes([_|T0], T) :-
+	mailboxes(T0, T).
+
+mail_id(Id-List) :-
+	sort(List, Sorted),
+	(   Sorted = [accept(In)|Posted]
+	->  (   Posted = [accept(_)|_]
+	    ->	print_message(error, html(multiple_receivers(Id)))
+	    ;	true
+	    ),
+	    phrase(posted(Posted), In)
+	;   print_message(error, html(no_receiver(Id)))
+	).
+
+posted([]) -->
+	[].
+posted([post(Tokens)|T]) --> !,
+	Tokens,
+	posted(T).
+posted([_|T]) -->
+	posted(T).
+
+
+		 /*******************************
 		 *	       LAYOUT		*
 		 *******************************/
 
@@ -620,9 +715,14 @@ layout(div,	   1-0,	0-1).
 %
 %		* nl(N)
 %		Use at minimum N newlines here.
+%		
+%		* mailbox(Id, Box)
+%		Repositioned tokens (see html_post//2 and
+%		html_receive//2)
 
 print_html(List) :-
 	current_output(Out),
+	mailman(List),
 	write_html(List, Out).
 print_html(Out, List) :-
 	(   html_current_option(dialect(xhtml))
@@ -635,6 +735,7 @@ print_html(Out, List) :-
 	    write(Out, Hdr), nl(Out)
 	;   true
 	),
+	mailman(List),
 	write_html(List, Out).
 
 write_html([], _).
@@ -642,6 +743,12 @@ write_html([nl(N)|T], Out) :- !,
 	join_nl(T, N, Lines, T2),
 	write_nl(Lines, Out),
 	write_html(T2, Out).
+write_html([mailbox(_, Box)|T], Out) :- !,
+	(   Box = accept(Accepted)
+	->  write_html(Accepted, Out)
+	;   true
+	),
+	write_html(T, Out).
 write_html([H|T], Out) :-
 	write(Out, H),
 	write_html(T, Out).
@@ -672,6 +779,7 @@ write_nl(N, Out) :-
 %	==
 
 html_print_length(List, Len) :-
+	mailman(List),
 	(   html_current_option(dialect(xhtml))
 	->  xml_header(Hdr),
 	    atom_length(Hdr, L0),
@@ -685,6 +793,12 @@ html_print_length([nl(N)|T], L0, L) :- !,
 	join_nl(T, N, Lines, T1),
 	L1 is L0 + Lines,		% assume only \n!
 	html_print_length(T1, L1, L).
+html_print_length([mailbox(_, Box)|T], L0, L) :- !,
+	(   Box = accept(Accepted)
+	->  html_print_length(Accepted, L0, L1)
+	;   L1 = L0
+	),
+	html_print_length(T, L1, L).
 html_print_length([H|T], L0, L) :-
 	atom_length(H, Hlen),
 	L1 is L0+Hlen,
@@ -734,6 +848,9 @@ emacs_prolog_colours:goal_colours(reply_html_page(Head, Body),
 				  built_in-[HC, BC]) :-
 	html_colours(Head, HC),
 	html_colours(Body, BC).
+emacs_prolog_colours:goal_colours(html_post(_Id, HTML, _, _),
+				  built_in-[classify, Colours]) :-
+	html_colours(HTML, Colours).
 
 
 					% TBD: Check with do_expand!
@@ -832,6 +949,8 @@ prolog:called_by(pagehead(HTML,_,_), Called) :-
 	phrase(called_by(HTML), Called).
 prolog:called_by(pagebody(HTML,_,_), Called) :-
 	phrase(called_by(HTML), Called).
+prolog:called_by(html_post(_,HTML,_,_), Called) :-
+	phrase(called_by(HTML), Called).
 prolog:called_by(reply_html_page(Head,Body), Called) :-
 	phrase(called_by([Head,Body]), Called).
 
@@ -868,3 +987,7 @@ prolog:message(html(expand_failed(What))) -->
 	[ 'Failed to translate to HTML: ~p'-[What] ].
 prolog:message(html(wrong_encoding(Stream, Enc))) -->
 	[ 'XHTML demands UTF-8 encoding; encoding of ~p is ~w'-[Stream, Enc] ].
+prolog:message(html(multiple_receivers(Id))) -->
+	[ 'html_post//2: multiple receivers for: ~p'-[Id] ].
+prolog:message(html(no_receiver(Id))) -->
+	[ 'html_post//2: no receivers for: ~p'-[Id] ].

@@ -4,7 +4,7 @@
 # Copyright: GPL (see COPYING or www.gnu.org
 ################################################################
 
-.SUFFIXES: .tex .dvi .doc .pl
+.SUFFIXES: .txt .tex .dvi .doc .pl
 
 SHELL=@SHELL@
 PLBASE=@PLBASE@
@@ -100,16 +100,21 @@ doc:		$(PDF) $(HTML)
 pdf:		$(PDF)
 html:		$(HTML)
 
-$(HTML):	$(TEX)
+SUBTEX=		post.tex
+
+$(HTML):	$(TEX) $(SUBTEX)
 		latex2html $(DOC)
 		mv html/index.html $@
 		mv html/httpserver.gif .
 		rmdir html
 
-$(PDF):		$(TEX)
+$(PDF):		$(TEX) $(SUBTEX)
 		$(RUNTEX) --pdf $(DOC)
 
 $(TEX):		$(DOCTOTEX)
+
+.txt.tex:
+		pl -q -s txttotex.pl -g txttotex,halt -t 'halt(1)' -- $*.txt
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex

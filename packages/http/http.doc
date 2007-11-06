@@ -1,6 +1,7 @@
 \documentclass[11pt]{article}
 \usepackage{times}
 \usepackage{pl}
+\usepackage{plpage}
 \usepackage{html}
 \makeindex
 
@@ -1647,7 +1648,9 @@ provide the \const{Content-length} field of an HTTP reply-header.
 \end{description}
 
 
-\subsubsection{Adding rules for html/1}
+\input{post.tex}
+
+\subsubsection{Adding rules for html//1}
 
 In some cases it is practical to extend the translations imposed by
 html/1. When using XPCE for example, it is comfortable to be able
