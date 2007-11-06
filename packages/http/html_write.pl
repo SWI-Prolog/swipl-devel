@@ -32,18 +32,18 @@
 :- module(html_write,
 	  [ reply_html_page/2,		% :Head, :Body
 
-	    page/3,			% generate an HTML page
-	    page/4,			% page from head and body
-	    html/3,
+	    page//1,			% generate an HTML page
+	    page//2,			% page from head and body
+	    html//1,
 
 	    html_set_options/1,		% +OptionList
 	    html_current_option/1,	% ?Option
 
 					% Useful primitives for expanding
-	    html_begin/3,		% +EnvName[(Attribute...)]
-	    html_end/3,			% +EnvName
-	    html_quoted/3,		% +Text
-	    html_quoted_attribute/3,	% +Attribute
+	    html_begin//1,		% +EnvName[(Attribute...)]
+	    html_end//1,			% +EnvName
+	    html_quoted//1,		% +Text
+	    html_quoted_attribute//1,	% +Attribute
 
 					% Emitting the HTML code
 	    print_html/1,		% +List
