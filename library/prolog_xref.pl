@@ -889,10 +889,9 @@ process_pce_import(op(P,T,N), Src, _) :-
 
 %%	xref_public_list(+File, -Path, -Public, +Src)
 %	
-%	Find File as referenced from Src. Unify Path with the an
-%	absolute path to the referenced source and Public with a
-%	Name/Arity list holding all the public predicates exported from
-%	that (module) file.
+%	Find File as  referenced  from  Src.   Unify  Path  with  the an
+%	absolute path to the  referenced  source   and  Public  with the
+%	export list of that (module) file.
 
 xref_public_list(File, Path, Public, Src) :-
 	xref_source_file(File, Path, Src),
@@ -1111,6 +1110,11 @@ assert_foreign(Src, Goal) :-
 
 %%	assert_import(+Src, +ImportList, +From) is det.
 %%	assert_import(+Src, +ImportList, +PublicList, +From) is det.
+%
+%	The first form is called for   use_module/1, while the second is
+%	called  for  use_module/2,  where  ImportList  is  the  list  of
+%	requested predicates and PublicList  is   the  list  of exported
+%	predicates.
 
 assert_import(Src, Import, From) :-
 	assert_import(Src, Import, _, From).
@@ -1119,10 +1123,13 @@ assert_import(_, [], _, _) :- !.
 assert_import(Src, [H|T], Public, From) :- !,
 	assert_import(Src, H, Public, From),
 	assert_import(Src, T, Public, From).
-assert_import(Src, Name/Arity, Public, From) :-
-	atom(Name), integer(Arity), !,
-	functor(Term, Name, Arity),
-	(   member(Name/Arity, Public)
+assert_import(Src, Import, Public, From) :-
+	pi_to_head(Import, Term), !,
+	(   (	var(Public)
+	    ->	true
+	    ;	member(Export, Public),
+		pi_to_head(Export, Term)
+	    )
 	->  assert(imported(Term, Src, From))
 	;   flag(xref_src_line, Line, Line),
 	    assert_called(Src, '<directive>'(Line), Term)
@@ -1191,9 +1198,10 @@ assert_multifile(Src, PI) :-
 	flag(xref_src_line, Line, Line),
 	assert(multifile(Term, Src, Line)).
 
-%%	pi_to_head(+PI, -Head)
+%%	pi_to_head(+PI, -Head) is semidet.
 %
-%	Translate Name/Arity or Name//Arity to a callable term.
+%	Translate Name/Arity or Name//Arity to a callable term. Fails if
+%	PI is not a predicate indicator.
 
 pi_to_head(Var, _) :-
 	var(Var), !, fail.
