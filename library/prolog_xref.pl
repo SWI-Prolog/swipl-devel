@@ -394,6 +394,10 @@ syntax_error(E) :-
 %	are processed using process_chr/2  directly   from  the  source,
 %	which is why we inhibit expansion here.
 
+xref_expand((:- if(Cond)), (:- if(Cond))).
+xref_expand((:- elif(Cond)), (:- elif(Cond))).
+xref_expand((:- else), (:- else)).
+xref_expand((:- endif), (:- endif)).
 xref_expand((:- require(X)),
 	    (:- require(X))) :- !.
 xref_expand(Term, _) :-
@@ -511,6 +515,14 @@ process_directive(arithmetic_function(FSpec), Src) :-
 process_directive(format_predicate(_, Goal), Src) :- !,
 	flag(xref_src_line, Line, Line),
 	assert_called(Src, '<directive>'(Line), Goal).
+process_directive(if(Cond), Src) :- !,
+	flag(xref_src_line, Line, Line),
+	assert_called(Src, '<directive>'(Line), Cond).
+process_directive(elif(Cond), Src) :- !,
+	flag(xref_src_line, Line, Line),
+	assert_called(Src, '<directive>'(Line), Cond).
+process_directive(else, _) :- !.
+process_directive(endif, _) :- !.
 process_directive(Goal, Src) :-
 	flag(xref_src_line, Line, Line),
 	process_body(Goal, '<directive>'(Line), Src).
@@ -611,6 +623,8 @@ xref_meta(call_with_time_limit(_, G), [G]).
 xref_meta(call_with_depth_limit(G, _, _), [G]).
 xref_meta('$add_directive_wic'(G), [G]).
 xref_meta(with_output_to(_, G),	[G]).
+xref_meta(if(G),		[G]).
+xref_meta(elif(G),		[G]).
 
 					% XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.

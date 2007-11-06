@@ -906,6 +906,10 @@ classify_head(_TB, _Goal, undefined).
 built_in_predicate(Goal) :-
 	predicate_property(system:Goal, built_in), !.
 built_in_predicate(module(_, _)).
+built_in_predicate(if(_)).
+built_in_predicate(elif(_)).
+built_in_predicate(else).
+built_in_predicate(endif).
 
 %	Specify colours for individual goals.  Currently used only to
 %	highlight file references, so we can jump to them and are indicated
