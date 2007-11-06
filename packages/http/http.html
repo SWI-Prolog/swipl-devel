@@ -92,6 +92,13 @@ span.pred-ext
 { font-weight: bold;
 }
 
+span.pred-tag
+{ float: right;
+font-size: 80%;
+font-style: italic;
+color: #202020;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -182,12 +189,14 @@ HTTP headers</SPAN></A></DIV>
 library</SPAN></A></DIV>
 <DIV class="toc-h4"><A class="sec" href="#sec:3.11.1"><SPAN class="sec-nr">3.11.1</SPAN> <SPAN class="sec-title">Emitting 
 HTML documents</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:3.11.2"><SPAN class="sec-nr">3.11.2</SPAN> <SPAN class="sec-title">Adding 
-rules for html/1</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:3.11.3"><SPAN class="sec-nr">3.11.3</SPAN> <SPAN class="sec-title">Generating 
+<DIV class="toc-h4"><A class="sec" href="#sec:3.11.2"><SPAN class="sec-nr">3.11.2</SPAN> <SPAN class="sec-title">Repositioning 
+HTML for CSS and javascript links</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:3.11.3"><SPAN class="sec-nr">3.11.3</SPAN> <SPAN class="sec-title">Adding 
+rules for html//1</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:3.11.4"><SPAN class="sec-nr">3.11.4</SPAN> <SPAN class="sec-title">Generating 
 layout</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:3.11.4"><SPAN class="sec-nr">3.11.4</SPAN> <SPAN class="sec-title">Examples</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:3.11.5"><SPAN class="sec-nr">3.11.5</SPAN> <SPAN class="sec-title">Remarks 
+<DIV class="toc-h4"><A class="sec" href="#sec:3.11.5"><SPAN class="sec-nr">3.11.5</SPAN> <SPAN class="sec-title">Examples</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:3.11.6"><SPAN class="sec-nr">3.11.6</SPAN> <SPAN class="sec-title">Remarks 
 on the <CODE>library(http/html_write)</CODE> library</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:3.12"><SPAN class="sec-nr">3.12</SPAN> <SPAN class="sec-title">Security</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:3.13"><SPAN class="sec-nr">3.13</SPAN> <SPAN class="sec-title">Tips 
@@ -1865,7 +1874,7 @@ term with embedded calls to additional translation rules to a list of
 atoms that can then be printed using <A NAME="idx:printhtml12:69"></A><A class="pred" href="#print_html/1">print_html/[1,2]</A>.
 
 <DL>
-<DT class="pubdef"><A NAME="html/1"><STRONG>html</STRONG>(<VAR>:Spec</VAR>)</A><CODE>--&gt;</CODE></DT>
+<DT class="pubdef"><A NAME="html/1"><STRONG>html</STRONG>(<VAR>:Spec</VAR>)</A><CODE>//</CODE></DT>
 <DD class="defbody">
 The DCG rule <A NAME="idx:html1:70"></A><A class="pred" href="#html/1">html/1</A> 
 is the main predicate of this library. It translates the specification 
@@ -1917,7 +1926,7 @@ is normally not needed.
 Emit HTML element <VAR>Tag</VAR> using <VAR>Content</VAR> and no 
 attributes.
 <VAR>Content</VAR> is handed to <A NAME="idx:html1:74"></A><A class="pred" href="#html/1">html/1</A>. 
-See <A class="sec" href="#sec:3.11.3">section 3.11.3</A> for details on 
+See <A class="sec" href="#sec:3.11.4">section 3.11.4</A> for details on 
 the automatically generated layout.
 
 <P>
@@ -1932,7 +1941,7 @@ concatenation.
 </UL>
 </DD>
 <DT class="pubdef"><A NAME="page/2"><STRONG>page</STRONG>(<VAR>:HeadContent, 
-:BodyContent</VAR>)</A><CODE>--&gt;</CODE></DT>
+:BodyContent</VAR>)</A><CODE>//</CODE></DT>
 <DD class="defbody">
 The DCG rule <A NAME="idx:page2:75"></A><A class="pred" href="#page/2">page/2</A> 
 generated a complete page, including the SGML
@@ -1965,13 +1974,13 @@ page(Head, Body) --&gt;
 </PRE>
 
 </DD>
-<DT class="pubdef"><A NAME="page/1"><STRONG>page</STRONG>(<VAR>:Contents</VAR>)</A><CODE>--&gt;</CODE></DT>
+<DT class="pubdef"><A NAME="page/1"><STRONG>page</STRONG>(<VAR>:Contents</VAR>)</A><CODE>//</CODE></DT>
 <DD class="defbody">
 This version of the <A NAME="idx:page12:81"></A><A class="pred" href="#page/1">page/[1,2]</A> 
 only gives you the SGML <CODE>DOCTYPE</CODE> and the <CODE>HTML</CODE> 
 element. <VAR>Contents</VAR> is used to generate both the head and body 
 of the page.</DD>
-<DT class="pubdef"><A NAME="html_begin/1"><STRONG>html_begin</STRONG>(<VAR>+Begin</VAR>)</A><CODE>--&gt;</CODE></DT>
+<DT class="pubdef"><A NAME="html_begin/1"><STRONG>html_begin</STRONG>(<VAR>+Begin</VAR>)</A><CODE>//</CODE></DT>
 <DD class="defbody">
 Just open the given element. <VAR>Begin</VAR> is either an atom or a 
 compound term, In the latter case the arguments are used as arguments to 
@@ -2005,7 +2014,7 @@ table(Rows) --&gt;
 </PRE>
 
 </DD>
-<DT class="pubdef"><A NAME="html_end/1"><STRONG>html_end</STRONG>(<VAR>+End</VAR>)</A><CODE>--&gt;</CODE></DT>
+<DT class="pubdef"><A NAME="html_end/1"><STRONG>html_end</STRONG>(<VAR>+End</VAR>)</A><CODE>//</CODE></DT>
 <DD class="defbody">
 End an element. See <A NAME="idx:htmlbegin1:83"></A><A class="pred" href="#html_begin/1">html_begin/1</A> 
 for details.
@@ -2058,35 +2067,90 @@ field of an HTTP reply-header.
 </DD>
 </DL>
 
-<H4><A NAME="sec:3.11.2"><SPAN class="sec-nr">3.11.2</SPAN> <SPAN class="sec-title">Adding 
-rules for html/1</SPAN></A></H4>
+<H4><A NAME="sec:3.11.2"><SPAN class="sec-nr">3.11.2</SPAN> <SPAN class="sec-title">Repositioning 
+HTML for CSS and javascript links</SPAN></A></H4>
+
+<P>Modern HTML commonly uses CSS and Javascript. This requires <VAR>&lt;</VAR>link<VAR>&gt;</VAR> 
+elements in the HTML <VAR>&lt;</VAR>head<VAR>&gt;</VAR> element or <VAR>&lt;</VAR>script<VAR>&gt;</VAR> 
+elements in the <VAR>&lt;</VAR>body<VAR>&gt;</VAR>. Unfortunately this 
+seriously harms re-using HTML DCG rules as components as each of these 
+components may rely on their own style sheets or JavaScript code. We 
+added a `mailing' system to reposition and collect fragments of HTML. 
+This is implemented by <SPAN class="pred-ext">html_post/4</SPAN> and
+<SPAN class="pred-ext">html_receive/3</SPAN>.
+
+<DL>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="html_post/2"><STRONG>html_post</STRONG>(<VAR>+Id, 
+:Content</VAR>)</A><CODE>//</CODE></DT>
+<DD class="defbody">
+Reposition HTML to the receiving <VAR>Id</VAR>. The <A class="pred" href="#http_post/4">http_post/4</A> 
+call processes <VAR>Content</VAR> as <SPAN class="pred-ext">html/3</SPAN> 
+but instead of emitting the tokens it associates them with <VAR>Id</VAR>. 
+All <I>distinct</I> token lists are inserted into the HTML output at the 
+location of the corresponding <SPAN class="pred-ext">html_receive/3</SPAN> 
+call.
+
+<P>A typical usage scenario is to get required CSS links in the document 
+head in a reusable fashion. First, we define <SPAN class="pred-ext">css/3</SPAN> 
+as:
+
+<PRE class="code">
+css(URL) --&gt;
+        html_post(css,
+                  link([ type('text/css'),
+                         rel('stylesheet'),
+                         href(URL)
+                       ])).
+</PRE>
+
+<P>Next we insert the <I>unique</I> CSS links, in the pagehead using the 
+following call to <A class="pred" href="#reply_html_page/2">reply_html_page/2</A>:
+
+<PRE class="code">
+        reply_html_page([ title(...),
+                          \html_receive(css)
+                        ],
+                        ...)
+</PRE>
+
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="html_receive/1"><STRONG>html_receive</STRONG>(<VAR>+Id</VAR>)</A><CODE>//</CODE></DT>
+<DD class="defbody">
+Receive posted HTML tokens. Unique sequences of tokens posted with <SPAN class="pred-ext">html_post/4</SPAN> 
+are inserted at the location where
+<SPAN class="pred-ext">html_receive/3</SPAN> appears.
+</DD>
+</DL>
+
+<H4><A NAME="sec:3.11.3"><SPAN class="sec-nr">3.11.3</SPAN> <SPAN class="sec-title">Adding 
+rules for html//1</SPAN></A></H4>
 
 <P>In some cases it is practical to extend the translations imposed by
-<A NAME="idx:html1:87"></A><A class="pred" href="#html/1">html/1</A>. 
+<A NAME="idx:html1:86"></A><A class="pred" href="#html/1">html/1</A>. 
 When using XPCE for example, it is comfortable to be able defining 
 default translation to HTML for objects. We also used this technique to 
 define translation rules for the output of the SWI-Prolog
 <CODE>library(sgml)</CODE> package.
 
-<P>The <A NAME="idx:html1:88"></A><A class="pred" href="#html/1">html/1</A> 
+<P>The <A NAME="idx:html1:87"></A><A class="pred" href="#html/1">html/1</A> 
 rule first calls the multifile ruleset html_write:expand/1.
 
 <DL>
-<DT class="pubdef"><A NAME="html_write:expand/1"><STRONG>html_write:expand</STRONG>(<VAR>+Spec</VAR>)</A><CODE>--&gt;</CODE></DT>
+<DT class="pubdef"><A NAME="html_write:expand/1"><STRONG>html_write:expand</STRONG>(<VAR>+Spec</VAR>)</A><CODE>//</CODE></DT>
 <DD class="defbody">
-Hook to add additional translationrules for <A NAME="idx:html1:89"></A><A class="pred" href="#html/1">html/1</A>.</DD>
-<DT class="pubdef"><A NAME="html_quoted/1"><STRONG>html_quoted</STRONG>(<VAR>+Atom</VAR>)</A><CODE>--&gt;</CODE></DT>
+Hook to add additional translationrules for <A NAME="idx:html1:88"></A><A class="pred" href="#html/1">html/1</A>.</DD>
+<DT class="pubdef"><A NAME="html_quoted/1"><STRONG>html_quoted</STRONG>(<VAR>+Atom</VAR>)</A><CODE>//</CODE></DT>
 <DD class="defbody">
 Emit the text in <VAR>Atom</VAR>, inserting entity-references for the 
 SGML special characters <CODE>&lt;&amp;&gt;</CODE>.</DD>
-<DT class="pubdef"><A NAME="html_quoted_attribute/1"><STRONG>html_quoted_attribute</STRONG>(<VAR>+Atom</VAR>)</A><CODE>--&gt;</CODE></DT>
+<DT class="pubdef"><A NAME="html_quoted_attribute/1"><STRONG>html_quoted_attribute</STRONG>(<VAR>+Atom</VAR>)</A><CODE>//</CODE></DT>
 <DD class="defbody">
 Emit the text in <VAR>Atom</VAR> suitable for use as an SGML attribute, 
 inserting entity-references for the SGML special characters <CODE>&lt;&amp;&gt;"</CODE>.
 </DD>
 </DL>
 
-<H4><A NAME="sec:3.11.3"><SPAN class="sec-nr">3.11.3</SPAN> <SPAN class="sec-title">Generating 
+<H4><A NAME="sec:3.11.4"><SPAN class="sec-nr">3.11.4</SPAN> <SPAN class="sec-title">Generating 
 layout</SPAN></A></H4>
 
 <A NAME="sec:htmllayout"></A>
@@ -2107,21 +2171,21 @@ characters before and <VAR>Post</VAR> after the tag. The <VAR>Close</VAR>
 specification is similar, but in addition allows for the atom <CODE>-</CODE>, 
 requesting the output generator to omit the close-tag altogether or <CODE>empty</CODE>, 
 telling the library that the element has declared empty content. In this 
-case the close-tag is not emitted either, but in addition <A NAME="idx:html1:90"></A><A class="pred" href="#html/1">html/1</A> 
+case the close-tag is not emitted either, but in addition <A NAME="idx:html1:89"></A><A class="pred" href="#html/1">html/1</A> 
 interprets <VAR>Arg</VAR> in <CODE>Tag(Arg)</CODE> as a list of 
 attributes rather than the content.
 
 <P>A tag that does not appear in this table is emitted without 
-additional layout. See also <A NAME="idx:printhtml12:91"></A><A class="pred" href="#print_html/1">print_html/[1,2]</A>. 
+additional layout. See also <A NAME="idx:printhtml12:90"></A><A class="pred" href="#print_html/1">print_html/[1,2]</A>. 
 Please consult the library source for examples.
 </DD>
 </DL>
 
-<H4><A NAME="sec:3.11.4"><SPAN class="sec-nr">3.11.4</SPAN> <SPAN class="sec-title">Examples</SPAN></A></H4>
+<H4><A NAME="sec:3.11.5"><SPAN class="sec-nr">3.11.5</SPAN> <SPAN class="sec-title">Examples</SPAN></A></H4>
 
 <P>In the following example we will generate a table of Prolog 
 predicates we find from the SWI-Prolog help system based on a keyword. 
-The primary database is defined by the predicate <A NAME="idx:predicate5:92"></A><SPAN class="pred-ext">predicate/5</SPAN> 
+The primary database is defined by the predicate <A NAME="idx:predicate5:91"></A><SPAN class="pred-ext">predicate/5</SPAN> 
 We will make hyperlinks for the predicates pointing to their 
 documentation.
 
@@ -2187,15 +2251,15 @@ apropos_predicate(Pattern, pred(Name, Arity, Summary)) :-
         ).
 </PRE>
 
-<H4><A NAME="sec:3.11.5"><SPAN class="sec-nr">3.11.5</SPAN> <SPAN class="sec-title">Remarks 
+<H4><A NAME="sec:3.11.6"><SPAN class="sec-nr">3.11.6</SPAN> <SPAN class="sec-title">Remarks 
 on the <CODE>library(http/html_write)</CODE> library</SPAN></A></H4>
 
 <P>This library is the result of various attempts to reach at a more 
 satisfactory and Prolog-minded way to produce HTML text from a program. 
 We have been using Prolog for the generation of web pages in a number of 
-projects. Just using <A NAME="idx:format2:93"></A><SPAN class="pred-ext">format/2</SPAN> 
+projects. Just using <A NAME="idx:format2:92"></A><SPAN class="pred-ext">format/2</SPAN> 
 never was a real option, generating error-prone HTML from clumsy syntax. 
-We started with a layour on top of <A NAME="idx:format2:94"></A><SPAN class="pred-ext">format/2</SPAN>, 
+We started with a layour on top of <A NAME="idx:format2:93"></A><SPAN class="pred-ext">format/2</SPAN>, 
 keeping track of the current nesting and thus always capable of properly 
 closing the environment.
 
@@ -2211,7 +2275,7 @@ browser, selecting fragments from an analysed document and presenting
 parts of the XPCE documentation using a browser. It has proven to be 
 able to deal with generating pages quickly and comfortably.
 
-<P>In a future version we will probably define a <A NAME="idx:goalexpansion2:95"></A><SPAN class="pred-ext">goal_expansion/2</SPAN> 
+<P>In a future version we will probably define a <A NAME="idx:goalexpansion2:94"></A><SPAN class="pred-ext">goal_expansion/2</SPAN> 
 to do compile-time optimisation of the library. Quotation of known text 
 and invocation of sub-rules using the <CODE>\</CODE><VAR>RuleSet</VAR> 
 and
@@ -2246,7 +2310,7 @@ If part of the query consists of filenames or directories, check them.
 This also applies to files you only read. Passing names as
 <CODE>/etc/passwd</CODE>, but also <CODE>../../../../../etc/passwd</CODE> 
 are tried by experienced hackers to learn about the system they want to 
-attack. So, expand provided names using <A NAME="idx:absolutefilename23:96"></A><SPAN class="pred-ext">absolute_file_name/[2,3]</SPAN> 
+attack. So, expand provided names using <A NAME="idx:absolutefilename23:95"></A><SPAN class="pred-ext">absolute_file_name/[2,3]</SPAN> 
 and verify they are inside a folder reserved for the server. Avoid 
 symbolic links from this subtree to the outside world. The example below 
 checks validity of filenames. The first call ensures proper canonisation 
@@ -2262,7 +2326,7 @@ check_file(File) :-
 
 <P>
 <LI><I>Check scripts</I><BR>
-Should input in any way activate external scripts using <A NAME="idx:shell1:97"></A><SPAN class="pred-ext">shell/1</SPAN> 
+Should input in any way activate external scripts using <A NAME="idx:shell1:96"></A><SPAN class="pred-ext">shell/1</SPAN> 
 or <CODE>open(pipe(Command), ...)</CODE>, verify the argument once more.
 
 <P>
@@ -2315,7 +2379,7 @@ encodings</SPAN></A></H2>
 
 <A NAME="sec:transfer"></A>
 
-<P><A NAME="idx:chunkedencoding:98"></A><A NAME="idx:deflateencoding:99"></A>The 
+<P><A NAME="idx:chunkedencoding:97"></A><A NAME="idx:deflateencoding:98"></A>The 
 HTTP protocol provides for <EM>transfer encodings</EM>. These define 
 filters applied to the data described by the <CODE>Content-type</CODE>. 
 The two most popular transfer encodings are <CODE>chunked</CODE> and
@@ -2332,9 +2396,9 @@ and <CODE>library(zlib.pl)</CODE>.
 <P>There is an emerging hook interface dealing with transfer encodings. 
 The
 <CODE>library(http/http_chunked.pl)</CODE> provides a hook used by
-<CODE>library(http/http_open.pl)</CODE> to support chunked encoding in <A NAME="idx:httpopen3:100"></A><A class="pred" href="#http_open/3">http_open/3</A>. 
+<CODE>library(http/http_open.pl)</CODE> to support chunked encoding in <A NAME="idx:httpopen3:99"></A><A class="pred" href="#http_open/3">http_open/3</A>. 
 Note that both <CODE>http_open.pl</CODE> <EM>and</EM> <CODE>http_chunked.pl</CODE> 
-must be loaded for <A NAME="idx:httpopen3:101"></A><A class="pred" href="#http_open/3">http_open/3</A> 
+must be loaded for <A NAME="idx:httpopen3:100"></A><A class="pred" href="#http_open/3">http_open/3</A> 
 to support chunked encoding.
 
 <H3><A NAME="sec:4.1"><SPAN class="sec-nr">4.1</SPAN> <SPAN class="sec-title">The <CODE>library(http/http_chunked)</CODE> 
@@ -2373,7 +2437,7 @@ servers are not widely used.
 <A class="idx" href="#idx:absolutefilename3:38">3.2</A></DD>
 <DT>absolute_file_name/[2,3]</DT>
 <DD>
-<A class="idx" href="#idx:absolutefilename23:96">3.12</A></DD>
+<A class="idx" href="#idx:absolutefilename23:95">3.12</A></DD>
 <DT><STRONG>B</STRONG></DT>
 <DD>
 </DD>
@@ -2385,7 +2449,7 @@ servers are not widely used.
 </DD>
 <DT>chunked,encoding</DT>
 <DD>
-<A class="idx" href="#idx:chunkedencoding:98">4</A></DD>
+<A class="idx" href="#idx:chunkedencoding:97">4</A></DD>
 <DT>close/1</DT>
 <DD>
 <A class="idx" href="#idx:close1:2">2.1</A></DD>
@@ -2397,7 +2461,7 @@ servers are not widely used.
 </DD>
 <DT>deflate,encoding</DT>
 <DD>
-<A class="idx" href="#idx:deflateencoding:99">4</A></DD>
+<A class="idx" href="#idx:deflateencoding:98">4</A></DD>
 <DT><STRONG>E</STRONG></DT>
 <DD>
 </DD>
@@ -2415,13 +2479,13 @@ servers are not widely used.
 <A class="idx" href="#idx:filesearchpath2:39">3.2</A></DD>
 <DT>format/2</DT>
 <DD>
-<A class="idx" href="#idx:format2:67">3.11</A> <A class="idx" href="#idx:format2:93">3.11.5</A> <A class="idx" href="#idx:format2:94">3.11.5</A></DD>
+<A class="idx" href="#idx:format2:67">3.11</A> <A class="idx" href="#idx:format2:92">3.11.6</A> <A class="idx" href="#idx:format2:93">3.11.6</A></DD>
 <DT><STRONG>G</STRONG></DT>
 <DD>
 </DD>
 <DT>goal_expansion/2</DT>
 <DD>
-<A class="idx" href="#idx:goalexpansion2:95">3.11.5</A></DD>
+<A class="idx" href="#idx:goalexpansion2:94">3.11.6</A></DD>
 <DT><STRONG>H</STRONG></DT>
 <DD>
 </DD>
@@ -2430,11 +2494,14 @@ servers are not widely used.
 <A class="idx" href="#idx:head1:76">3.11</A></DD>
 <DT><A class="idx" href="#html/1">html/1</A></DT>
 <DD>
-<A class="idx" href="#idx:html1:68">3.11</A> <A class="idx" href="#idx:html1:70">3.11</A> <A class="idx" href="#idx:html1:74">3.11</A> <A class="idx" href="#idx:html1:79">3.11</A> <A class="idx" href="#idx:html1:82">3.11</A> <A class="idx" href="#idx:html1:84">3.11.1</A> <B>3.11.1</B> <A class="idx" href="#idx:html1:87">3.11.2</A> <A class="idx" href="#idx:html1:88">3.11.2</A> <A class="idx" href="#idx:html1:89">3.11.2</A> <A class="idx" href="#idx:html1:90">3.11.3</A></DD>
+<A class="idx" href="#idx:html1:68">3.11</A> <A class="idx" href="#idx:html1:70">3.11</A> <A class="idx" href="#idx:html1:74">3.11</A> <A class="idx" href="#idx:html1:79">3.11</A> <A class="idx" href="#idx:html1:82">3.11</A> <A class="idx" href="#idx:html1:84">3.11.1</A> <A class="idx" href="#idx:html1:86">3.11.3</A> <A class="idx" href="#idx:html1:87">3.11.3</A> <A class="idx" href="#idx:html1:88">3.11.3</A> <A class="idx" href="#idx:html1:89">3.11.4</A></DD>
 <DT><A class="idx" href="#html_begin/1">html_begin/1</A></DT>
 <DD>
 <A class="idx" href="#idx:htmlbegin1:83">3.11</A></DD>
 <DT><A class="idx" href="#html_end/1">html_end/1</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#html_post/2">html_post/2</A></DT>
 <DD>
 </DD>
 <DT>html_print/[1,2]</DT>
@@ -2447,6 +2514,9 @@ servers are not widely used.
 <DD>
 <A class="idx" href="#idx:htmlquoted1:72">3.11</A></DD>
 <DT><A class="idx" href="#html_quoted_attribute/1">html_quoted_attribute/1</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#html_receive/1">html_receive/1</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#html_write:expand/1">html_write:expand/1</A></DT>
@@ -2494,7 +2564,7 @@ servers are not widely used.
 <A class="idx" href="#idx:httphandler3:30">3.2</A> <A class="idx" href="#idx:httphandler3:35">3.2</A> <A class="idx" href="#idx:httphandler3:37">3.2</A> <A class="idx" href="#idx:httphandler3:43">3.4</A></DD>
 <DT><A class="idx" href="#http_open/3">http_open/3</A></DT>
 <DD>
-<A class="idx" href="#idx:httpopen3:6">2.1</A> <A class="idx" href="#idx:httpopen3:9">2.1</A> <A class="idx" href="#idx:httpopen3:10">2.1</A> <A class="idx" href="#idx:httpopen3:100">4</A> <A class="idx" href="#idx:httpopen3:101">4</A></DD>
+<A class="idx" href="#idx:httpopen3:6">2.1</A> <A class="idx" href="#idx:httpopen3:9">2.1</A> <A class="idx" href="#idx:httpopen3:10">2.1</A> <A class="idx" href="#idx:httpopen3:99">4</A> <A class="idx" href="#idx:httpopen3:100">4</A></DD>
 <DT><A class="idx" href="#http_parameters/2">http_parameters/2</A></DT>
 <DD>
 <A class="idx" href="#idx:httpparameters2:45">3.5</A></DD>
@@ -2611,7 +2681,7 @@ servers are not widely used.
 <A class="idx" href="#idx:pp1:50">3.6.1</A></DD>
 <DT>predicate/5</DT>
 <DD>
-<A class="idx" href="#idx:predicate5:92">3.11.4</A></DD>
+<A class="idx" href="#idx:predicate5:91">3.11.5</A></DD>
 <DT><A class="idx" href="#print_html/1">print_html/1</A></DT>
 <DD>
 <A class="idx" href="#idx:printhtml1:65">3.10</A></DD>
@@ -2620,7 +2690,7 @@ servers are not widely used.
 </DD>
 <DT>print_html/[1,2]</DT>
 <DD>
-<A class="idx" href="#idx:printhtml12:69">3.11</A> <A class="idx" href="#idx:printhtml12:71">3.11</A> <A class="idx" href="#idx:printhtml12:91">3.11.3</A></DD>
+<A class="idx" href="#idx:printhtml12:69">3.11</A> <A class="idx" href="#idx:printhtml12:71">3.11</A> <A class="idx" href="#idx:printhtml12:90">3.11.4</A></DD>
 <DT>print_message/2</DT>
 <DD>
 <A class="idx" href="#idx:printmessage2:66">3.10</A></DD>
@@ -2647,7 +2717,7 @@ servers are not widely used.
 <A class="idx" href="#idx:sformat3:73">3.11</A></DD>
 <DT>shell/1</DT>
 <DD>
-<A class="idx" href="#idx:shell1:97">3.12</A></DD>
+<A class="idx" href="#idx:shell1:96">3.12</A></DD>
 <DT>socket</DT>
 <DD>
 <A class="sec" href="#sec:3.7.2">3.7.2</A></DD>
