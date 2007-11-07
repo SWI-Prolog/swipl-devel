@@ -96,6 +96,8 @@ take_par(Lines, List, Rest) :-
 	List0 =.. [Type, LI],
 	(   ul_to_dl(List0, List)
 	->  true
+	;   List0 = dl(Items)
+	->  List = dl(class=wiki, Items)
 	;   List = List0
 	).
 take_par([N-['|'|RL1]|LT], table(class=wiki, [tr(R0)|RL]), Rest) :-

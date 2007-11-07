@@ -79,7 +79,18 @@ dl.undoc
 { margin-top: 0.7em;
 }
 
-ul, ol
+dl.wiki
+{ margin-top: 0.7em;
+  margin-bottom: 1em;
+  margin-left: 1.5em;
+}
+
+dl.wiki dt
+{ font-weight: bold;
+  font-size: 90%;
+}
+
+ul, ol, dl
 { margin-top: 0.7em;
 }
 
