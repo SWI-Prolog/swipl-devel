@@ -446,6 +446,12 @@ wiki_faces_list([H0|T0], Args, [H|T]) :-
 	wiki_faces(H0, Args, H),
 	wiki_faces_list(T0, Args, T).
 
+%%	structure_term(+Term, -Functor, -Content) is semidet.
+%%	structure_term(-Term, +Functor, +Content) is det.
+%
+%	(Un)pack a term describing structure, so  we can process Content
+%	and re-pack the structure.
+
 structure_term(\tags(Tags), tags, [Tags]) :- !.
 structure_term(\params(Params), params, [Params]) :- !.
 structure_term(param(Name,Descr), param(Name), [Descr]) :- !.
@@ -482,28 +488,16 @@ verbatim_term(pre(_,_)).
 verbatim_term(\term(_,_)).
 
 %%	wiki_faces(-WithFaces, +ArgNames)// is nondet.
+%
+%	Apply font-changes and automatic  links   to  running  text. The
+%	faces are applied after discovering   the structure (paragraphs,
+%	lists, tables, keywords).
 
 wiki_faces([], _) -->
 	[].
 wiki_faces([H|T], ArgNames) -->
 	wiki_face(H, ArgNames),
 	wiki_faces(T, ArgNames).
-
-word_token(Word) -->
-	[Word],
-	{ string(Word) }.
-
-functor_name(Name) -->
-	[ Word ],
-	{ functor_name(Word), !,
-	  string_to_atom(Word, Name)
-	}.
-
-arity(Arity) -->
-	[ Word ],
-	{ catch(atom_number(Word, Arity), _, fail),
-	  Arity >= 0, Arity < 20
-	}.
 
 wiki_face(var(Word), ArgNames) -->
 	[Word],
@@ -571,6 +565,28 @@ wiki_face(FT, ArgNames) -->
 	{   atomic(T)
 	->  FT = T
 	;   wiki_faces(T, ArgNames, FT)
+	}.
+
+%%	word_token(-Word:string)// is semidet.
+%
+%	True if the next token  is  a   string,  which  implies  it is a
+%	sequence of alpha-numerical characters.
+
+word_token(Word) -->
+	[Word],
+	{ string(Word) }.
+
+%%	arity(-Arity:int)// is semidet.
+%
+%	True if the next token can be  interpreted as an arity. That is,
+%	refers to a non-negative integers of at most 20. Although Prolog
+%	allows for higher arities, we assume 20   is  a fair maximum for
+%	user-created predicates that are documented.
+
+arity(Arity) -->
+	[ Word ],
+	{ catch(atom_number(Word, Arity), _, fail),
+	  Arity >= 0, Arity < 20
 	}.
 
 %%	symbol_string(-String)// is nondet
