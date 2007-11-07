@@ -658,7 +658,7 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
 	{ atom_t name   = loadXR(fd);
 	  word   time   = getLong(fd);
 	  const char *s = stringAtom(name);
-	  SourceFile sf = lookupSourceFile(qlfFixSourcePath(s));
+	  SourceFile sf = lookupSourceFile(qlfFixSourcePath(s), TRUE);
 
 	  if ( !sf->time )
 	  { sf->time   = time;
@@ -1180,7 +1180,7 @@ qlfLoadSource(IOSTREAM *fd)
   DEBUG(1, if ( !streq(stringAtom(fname), str) )
 	     Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));
 
-  currentSource = lookupSourceFile(fname);
+  currentSource = lookupSourceFile(fname, TRUE);
   currentSource->time = time;
   currentSource->system = issys;
   if ( GD->bootsession )		/* (**) */
@@ -2408,7 +2408,7 @@ pl_qlf_start_file(term_t name)
     if ( !PL_get_atom_ex(name, &a) )
       fail;
   
-    return qlfStartFile(lookupSourceFile(a), wicFd PASS_LD);
+    return qlfStartFile(lookupSourceFile(a, TRUE), wicFd PASS_LD);
   }
 
   succeed;
@@ -2629,7 +2629,7 @@ compileFile(char *file)
     fail;
   DEBUG(2, Sdprintf("pl_start_consult()\n"));
   pl_start_consult(f);
-  qlfStartFile(lookupSourceFile(nf), wicFd PASS_LD);
+  qlfStartFile(lookupSourceFile(nf, TRUE), wicFd PASS_LD);
   
   for(;;)
   { fid_t	 cid = PL_open_foreign_frame();

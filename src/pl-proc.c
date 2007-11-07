@@ -2152,7 +2152,7 @@ pl_set_predicate_attribute(term_t pred,
   { DEBUG(2, Sdprintf("Associating %s to %s (%p)\n",
 		      predicateName(def), PL_atom_chars(source_file_name),
 		      def));
-    addProcedureSourceFile(lookupSourceFile(source_file_name), proc);
+    addProcedureSourceFile(lookupSourceFile(source_file_name, TRUE), proc);
 
     if ( SYSTEM_MODE )
     { set(def, SYSTEM|HIDE_CHILDS);
@@ -2384,7 +2384,7 @@ cleanupSourceFiles(void)
 
 
 SourceFile
-lookupSourceFile(atom_t name)
+lookupSourceFile(atom_t name, int create)
 { SourceFile file;
   Symbol s;
 
@@ -2394,7 +2394,7 @@ lookupSourceFile(atom_t name)
 
   if ( (s=lookupHTable(sourceTable, (void*)name)) )
   { file = s->value;
-  } else
+  } else if ( create )
   { GET_LD
 
     file = (SourceFile) allocHeap(sizeof(struct sourceFile));
@@ -2410,6 +2410,8 @@ lookupSourceFile(atom_t name)
     registerSourceFile(file);
 
     addHTable(sourceTable, (void*)name, file);
+  } else
+  { file = NULL;
   }
   UNLOCK();
 
@@ -2554,7 +2556,7 @@ pl_source_file(term_t descr, term_t file, control_t h)
     succeed;
 
   if ( !PL_get_atom_ex(file, &name) ||
-       !(sf = lookupSourceFile(name)) )
+       !(sf = lookupSourceFile(name, FALSE)) )
     fail;
 
   switch( ForeignControl(h) )
@@ -2732,7 +2734,7 @@ pl_start_consult(term_t file)
   atom_t name;
 
   if ( PL_get_atom(file, &name) )
-  { SourceFile f = lookupSourceFile(name);
+  { SourceFile f = lookupSourceFile(name, TRUE);
 
     f->time = LastModifiedFile(stringAtom(name));
     startConsult(f);
@@ -2746,20 +2748,23 @@ pl_start_consult(term_t file)
 		 *       DEBUGGER SUPPORT	*
 		 *******************************/
 
-word
-pl_clause_from_source(term_t file, term_t line, term_t clause)
-{ GET_LD
+static
+PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
+{ PRED_LD
   atom_t name;
   SourceFile f;
   int ln;
   ListCell cell;
   Clause c = NULL;
 
-  if ( !PL_get_atom(file, &name) ||
-       !(f = lookupSourceFile(name)) ||
-       !PL_get_integer(line, &ln) )
-    return warning("clause_from_source/3: instantiation fault");
-  
+  term_t file = A1;
+  term_t line = A2;
+  term_t clause = A3;
+
+  if ( !PL_get_atom_ex(file, &name) ||
+       !(f = lookupSourceFile(name, FALSE)) ||
+       !PL_get_integer_ex(line, &ln) )
+    fail;
 
   for(cell = f->procedures; cell; cell = cell->next)
   { Procedure proc = cell->value;
@@ -2933,4 +2938,5 @@ pl_list_generations(term_t desc)
 
 BeginPredDefs(proc)
   PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
 EndPredDefs

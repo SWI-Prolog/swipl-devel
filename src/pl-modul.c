@@ -645,7 +645,7 @@ pl_declare_module(term_t name, term_t file, term_t line)
        !PL_get_integer_ex(line, &line_no) )
     fail;
 
-  sf = lookupSourceFile(fname);
+  sf = lookupSourceFile(fname, TRUE);
   return declareModule(mname, sf, line_no);
 }
 

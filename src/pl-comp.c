@@ -2005,7 +2005,7 @@ care of reconsult, redefinition, etc.
   if ( loc )
   { SourceFile sf;
 
-    sf = lookupSourceFile(loc->file);
+    sf = lookupSourceFile(loc->file, TRUE);
     clause->line_no   = loc->line;
     clause->source_no = sf->index;
 
