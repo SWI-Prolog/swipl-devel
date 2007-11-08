@@ -494,7 +494,7 @@ static void
 print_triple(triple *t, int flags)
 { Sdprintf("<%s %s ",
 	   PL_atom_chars(t->subject),
-	   PL_atom_chars(t->predicate->name));
+	   PL_atom_chars(t->predicate.r->name));
   print_object(t);
   if ( (flags & PRT_SRC) )
     print_src(t);
@@ -512,12 +512,6 @@ Our one and only database (for the time being).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static rdf_db *DB;
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SWI-Prolog note: Atoms are integers shifted by LMASK_BITS (7)
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define atom_hash(a) (((unsigned long)a)>>7)
 
 
 		 /*******************************
@@ -1176,7 +1170,7 @@ update_predicate_counts(rdf_db *db, predicate *p, int which)
     triple *byp;
 
     memset(&t, 0, sizeof(t));
-    t.predicate = p;
+    t.predicate.r = p;
     t.indexed |= BY_P;
 
     init_atomset(&subject_set);
@@ -1185,8 +1179,8 @@ update_predicate_counts(rdf_db *db, predicate *p, int which)
 	byp;
 	byp = byp->next[t.indexed])
     { if ( !byp->erased && !byp->is_duplicate )
-      { if ( (which == DISTINCT_DIRECT && byp->predicate == p) ||
-	     (which != DISTINCT_DIRECT && isSubPropertyOf(byp->predicate, p)) )
+      { if ( (which == DISTINCT_DIRECT && byp->predicate.r == p) ||
+	     (which != DISTINCT_DIRECT && isSubPropertyOf(byp->predicate.r, p)) )
 	{ total++;
 	  add_atomset(&subject_set, byp->subject);
 	  add_atomset(&object_set, object_hash(byp)); /* NOTE: not exact! */
@@ -1970,16 +1964,16 @@ triple_hash(rdf_db *db, triple *t, int which)
       v = atom_hash(t->subject);
       break;
     case BY_P:
-      v = predicate_hash(t->predicate);
+      v = predicate_hash(t->predicate.r);
       break;
     case BY_O:
       v = object_hash(t);
       break;
     case BY_SP:
-      v = atom_hash(t->subject) ^ predicate_hash(t->predicate);
+      v = atom_hash(t->subject) ^ predicate_hash(t->predicate.r);
       break;
     case BY_OP:
-      v = predicate_hash(t->predicate) ^ object_hash(t);
+      v = predicate_hash(t->predicate.r) ^ object_hash(t);
       break;
     default:
       v = 0;				/* make compiler silent */
@@ -2056,6 +2050,11 @@ static void
 link_triple_silent(rdf_db *db, triple *t)
 { triple *one;
 
+  if ( t->resolve_pred )
+  { t->predicate.r = lookup_predicate(db, t->predicate.u);
+    t->resolve_pred = FALSE;
+  }
+
   if ( db->by_none_tail )
     db->by_none_tail->next[BY_NONE] = t;
   else
@@ -2077,7 +2076,7 @@ link_triple_silent(rdf_db *db, triple *t)
   }
 
 					/* keep track of subPropertyOf */
-  if ( t->predicate->name == ATOM_subPropertyOf &&
+  if ( t->predicate.r->name == ATOM_subPropertyOf &&
        t->object_is_literal == FALSE )
   { predicate *me    = lookup_predicate(db, t->subject);
     predicate *super = lookup_predicate(db, t->object.resource);
@@ -2087,7 +2086,7 @@ link_triple_silent(rdf_db *db, triple *t)
 
 ok:
   db->created++;
-  t->predicate->triple_count++;
+  t->predicate.r->triple_count++;
   register_graph(db, t);
 }
 
@@ -2259,7 +2258,7 @@ erase_triple_silent(rdf_db *db, triple *t)
 
     update_duplicates_del(db, t);
 
-    if ( t->predicate->name == ATOM_subPropertyOf &&
+    if ( t->predicate.r->name == ATOM_subPropertyOf &&
 	 t->object_is_literal == FALSE )
     { predicate *me    = lookup_predicate(db, t->subject);
       predicate *super = lookup_predicate(db, t->object.resource);
@@ -2276,7 +2275,7 @@ erase_triple_silent(rdf_db *db, triple *t)
 	db->subjects--;
     }
     db->erased++;
-    t->predicate->triple_count--;
+    t->predicate.r->triple_count--;
     unregister_graph(db, t);
 
     if ( t->object_is_literal )
@@ -2384,9 +2383,9 @@ match_triples(triple *t, triple *p, unsigned flags)
       return FALSE;
   }
 					/* last; may be expensive */
-  if ( p->predicate && t->predicate != p->predicate )
+  if ( p->predicate.r && t->predicate.r != p->predicate.r )
   { if ( (flags & MATCH_SUBPROPERTY) )
-      return isSubPropertyOf(t->predicate, p->predicate);
+      return isSubPropertyOf(t->predicate.r, p->predicate.r);
     else
       return FALSE;
   }
@@ -2603,7 +2602,7 @@ write_triple(rdf_db *db, IOSTREAM *out, triple *t, save_context *ctx)
 { Sputc('T', out);
 
   save_atom(db, out, t->subject, ctx);
-  save_atom(db, out, t->predicate->name, ctx);
+  save_atom(db, out, t->predicate.r->name, ctx);
 
   if ( t->object_is_literal )
   { literal *lit = t->object.literal;
@@ -2783,12 +2782,14 @@ load_int(IOSTREAM *fd)
 }
 
 typedef struct ld_context
-{ long		loaded_id;
+{ long		loaded_id;		/* keep track of atoms */
   atom_t       *loaded_atoms;
   long		atoms_size;
-  graph       *graph;
+  atom_t	graph;			/* for single-graph files */
+  atom_t	graph_source;
+  int		has_digest;
   md5_byte_t    digest[16];
-  int		md5;
+  atom_hash    *graph_table;		/* multi-graph file */
 } ld_context;
 
 
@@ -2890,13 +2891,14 @@ load_double(IOSTREAM *fd)
 }
 
 
-static int
+static triple *
 load_triple(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 { triple *t = new_triple(db);
   int c;
 
   t->subject   = load_atom(db, in, ctx);
-  t->predicate = lookup_predicate(db, load_atom(db, in, ctx));
+  t->predicate.u = load_atom(db, in, ctx);
+  t->resolve_pred = TRUE;
   if ( (c=Sgetc(in)) == 'R' )
   { t->object.resource = load_atom(db, in, ctx);
   } else
@@ -2946,19 +2948,18 @@ load_triple(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 	goto value;
       default:
 	assert(0);
+        return NULL;
     }
   }
   t->graph = load_atom(db, in, ctx);
-  t->line   = (unsigned long)load_int(in);
-
-  if ( db->tr_first )
-  { record_transaction(db, TR_ASSERT, t);     
-  } else
-  { link_triple_silent(db, t);
-    broadcast(EV_ASSERT_LOAD, t, NULL);
+  t->line  = (unsigned long)load_int(in);
+  if ( !ctx->graph )
+  { if ( !ctx->graph_table )
+      ctx->graph_table = new_atom_hash(64);
+    add_atom_hash(ctx->graph_table, t->graph);
   }
 
-  return TRUE;
+  return t;
 }
 
 
@@ -2975,121 +2976,192 @@ load_magic(IOSTREAM *in)
 }
 
 
-static int
-append_graph_to_list(ptr_hash_node *node, void *closure)
-{ graph *gr   = node->value;
-  term_t tail = (term_t)closure;
-  term_t head = PL_new_term_ref();
-  int rc;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that we have two types  of   saved  states.  One holding many named
+graphs and one holding the content of exactly one named graph.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  rc = (PL_unify_list(tail, head, tail) &&
-	PL_unify_atom(head, gr->name));
-  PL_reset_term_refs(head);
+#define LOAD_ERROR ((triple*)(intptr_t)-1)
 
-  return rc;
-}
-
-
-static int
-load_db(rdf_db *db, IOSTREAM *in, term_t graphs)
-{ ld_context ctx;
-  int version;
+static triple *
+load_db(rdf_db *db, IOSTREAM *in, ld_context *ctx)
+{ int version;
   int c;
-  long created0 = db->created;
-  ptr_hash *graphs_hash;
+  triple *list = NULL, *tail = NULL;
 
   if ( !load_magic(in) )
-    return FALSE;
+    return LOAD_ERROR;
   version = (int)load_int(in);
-  memset(&ctx, 0, sizeof(ctx));
-
-  if ( graphs )
-    graphs_hash = new_ptr_hash(64);
-  else
-    graphs_hash = NULL;
 
   while((c=Sgetc(in)) != EOF)
   { switch(c)
     { case 'T':
-	if ( !load_triple(db, in, &ctx) )
+      { triple *t;
+
+	if ( !(t=load_triple(db, in, ctx)) )
 	  return FALSE;
+
+	if ( tail )
+	{ tail->next[BY_NONE] = t;
+	  tail = t;
+	} else
+	{ list = tail = t;
+	}
+
         break;
-      case 'S':
-	ctx.graph = lookup_graph(db, load_atom(db, in, &ctx), TRUE);
-        add_ptr_hash(graphs_hash, ctx.graph);
+      }
+					/* file holding exactly one graph */
+      case 'S':				/* name of the graph */
+      { ctx->graph = load_atom(db, in, ctx);
         break;
-      case 'M':
+      }
+      case 'M':				/* MD5 of the graph */
       { int i;
 
 	for(i=0; i<16; i++)
-	  ctx.digest[i] = Sgetc(in);
-
-	if ( ctx.graph && ctx.graph->md5 )
-	{ ctx.md5 = ctx.graph->md5;
-	  if ( db->tr_first )
-	  { record_md5_transaction(db, ctx.graph, NULL);
-	  } else
-	  { ctx.graph->md5 = FALSE;
-	  }
-	}
+	  ctx->digest[i] = Sgetc(in);
+	ctx->has_digest = TRUE;
 
 	break;
       }
-      case 'F':
-	ctx.graph->source = load_atom(db, in, &ctx);
+      case 'F':				/* file of the graph */
+	ctx->graph_source = load_atom(db, in, ctx);
 	break;
+					/* end of one-graph handling */
       case 'E':				/* end of file */
       { int rc = TRUE;
 
-	if ( ctx.loaded_atoms )
-	  rdf_free(db, ctx.loaded_atoms, sizeof(atom_t)*ctx.atoms_size);
-
-        if ( ctx.md5 )
-	{ if ( db->tr_first )
-	  { md5_byte_t *d = rdf_malloc(db, sizeof(ctx.digest));
-	    memcpy(d, ctx.digest, sizeof(ctx.digest));
-	    record_md5_transaction(db, ctx.graph, d);
-	  } else
-	  { sum_digest(ctx.graph->digest, ctx.digest);
-	    ctx.graph->md5 = ctx.md5;
-	  }
+	if ( ctx->loaded_atoms )
+	{ rdf_free(db, ctx->loaded_atoms, sizeof(atom_t)*ctx->atoms_size);
+	  ctx->loaded_atoms = NULL;
 	}
 
-	db->generation += (db->created-created0);
-
-	if ( graphs )
-	{ term_t tail = PL_copy_term_ref(graphs);
-
-	  rc = ( for_ptr_hash(graphs_hash, append_graph_to_list, (void*)tail) &&
-		 PL_unify_nil(tail) );
-
-	  destroy_ptr_hash(graphs_hash);
-	}
-
-	return rc;
+	return list;
       }
       default:
 	break;
     }
   }
   
-  return PL_warning("Illegal RDF triple file");
+  PL_warning("Illegal RDF triple file");
+
+  return LOAD_ERROR;
+}
+
+
+static int
+link_loaded_triples(rdf_db *db, triple *t, ld_context *ctx)
+{ long created0 = db->created;
+  int graph_md5 = FALSE;
+  graph *graph;
+
+  if ( ctx->graph )			/* lookup named graph */
+  { graph = lookup_graph(db, ctx->graph, TRUE);
+    if ( ctx->graph_source )
+      graph->source = ctx->graph_source;
+
+    if ( ctx->has_digest )
+    { if ( graph->md5 )
+      { if ( db->tr_first )
+	{ record_md5_transaction(db, graph, NULL);
+	} else
+	{ graph->md5 = FALSE;		/* kill repetitive MD5 update */
+	}
+      } else
+      { ctx->has_digest = FALSE;
+      }
+    }
+  } else
+  { graph = NULL;
+  }
+
+
+  if ( db->tr_first )			/* loading in a transaction */
+  { triple *next;
+
+    for( ; t; t = next )
+    { next = t->next[BY_NONE];
+      
+      t->next[BY_NONE] = NULL;
+      record_transaction(db, TR_ASSERT, t);
+    }
+  } else
+  { triple *next;
+
+    for( ; t; t = next )
+    { next = t->next[BY_NONE];
+      
+      t->next[BY_NONE] = NULL;
+      link_triple_silent(db, t);
+      broadcast(EV_ASSERT_LOAD, t, NULL);
+    }
+  }
+
+					/* update the graph info */
+  if ( ctx->has_digest )
+  { if ( db->tr_first )
+    { md5_byte_t *d = rdf_malloc(db, sizeof(ctx->digest));
+      memcpy(d, ctx->digest, sizeof(ctx->digest));
+      record_md5_transaction(db, graph, d);
+    } else
+    { sum_digest(graph->digest, ctx->digest);
+    }
+    graph->md5 = TRUE;
+  }
+
+  db->generation += (db->created-created0);
+
+  return TRUE;
+}
+
+
+static int
+append_graph_to_list(ptr_hash_node *node, void *closure)
+{ atom_t graph = (atom_t)node->value;
+  term_t tail  = (term_t)closure;
+  term_t head  = PL_new_term_ref();
+  int rc;
+
+  rc = (PL_unify_list(tail, head, tail) &&
+	PL_unify_atom(head, graph));
+  PL_reset_term_refs(head);
+
+  return rc;
 }
 
 
 static foreign_t
 rdf_load_db(term_t stream, term_t id, term_t graphs)
-{ rdf_db *db = DB;
+{ ld_context ctx;
+  rdf_db *db = DB;
   IOSTREAM *in;
+  triple *list;
   int rc;
 
   if ( !PL_get_stream_handle(stream, &in) )
     return type_error(stream, "stream");
 
+  memset(&ctx, 0, sizeof(ctx));
+  if ( (list=load_db(db, in, &ctx)) == LOAD_ERROR )
+    return FALSE;
+
   if ( !WRLOCK(db, FALSE) )
     return FALSE;
   broadcast(EV_LOAD, (void*)id, (void*)ATOM_begin);
-  rc = load_db(db, in, graphs);
+
+  if ( (rc=link_loaded_triples(db, list, &ctx)) )
+  { if ( ctx.graph_table )
+    { term_t tail = PL_copy_term_ref(graphs);
+
+      rc = ( for_atom_hash(ctx.graph_table, append_graph_to_list, (void*)tail) &&
+	     PL_unify_nil(tail) );
+
+      destroy_atom_hash(ctx.graph_table);
+    } else
+    { rc = PL_unify_atom(graphs, ctx.graph);
+    }
+  }
+
   broadcast(EV_LOAD, (void*)id, (void*)ATOM_end);
   WRUNLOCK(db);
 
@@ -3127,7 +3199,7 @@ md5_triple(triple *t, md5_byte_t *digest)
   s = PL_blob_data(t->subject, &len, NULL);
   md5_append(&state, (const md5_byte_t *)s, (int)len);
   md5_append(&state, (const md5_byte_t *)"P", 1);
-  s = PL_blob_data(t->predicate->name, &len, NULL);
+  s = PL_blob_data(t->predicate.r->name, &len, NULL);
   md5_append(&state, (const md5_byte_t *)s, (int)len);
   tmp[0] = 'O';
   if ( t->object_is_literal )
@@ -3487,7 +3559,7 @@ get_triple(rdf_db *db,
 	   term_t subject, term_t predicate, term_t object,
 	   triple *t)
 { if ( !get_atom_ex(subject, &t->subject) ||
-       !get_predicate(db, predicate, &t->predicate) ||
+       !get_predicate(db, predicate, &t->predicate.r) ||
        !get_object(db, object, t) )
     return FALSE;
 
@@ -3517,7 +3589,7 @@ get_partial_triple(rdf_db *db,
   if ( subject && !get_resource_or_var_ex(subject, &t->subject) )
     return FALSE;
   if ( !PL_is_variable(predicate) &&
-       (rc=get_existing_predicate(db, predicate, &t->predicate)) != 1 )
+       (rc=get_existing_predicate(db, predicate, &t->predicate.r)) != 1 )
     return rc;
 					/* the object */
   if ( object && !PL_is_variable(object) )
@@ -3562,7 +3634,7 @@ get_partial_triple(rdf_db *db,
 
   if ( t->subject )
     t->indexed |= BY_S;
-  if ( t->predicate )
+  if ( t->predicate.r )
     t->indexed |= BY_P;
   if ( t->object_is_literal )
   { literal *lit = t->object.literal;
@@ -3594,15 +3666,15 @@ inverse_partial_triple(triple *t)
 { predicate *i = 0;
 
   if ( !t->inversed &&
-       (!t->predicate || (i=t->predicate->inverse_of)) &&
+       (!t->predicate.r || (i=t->predicate.r->inverse_of)) &&
        !t->object_is_literal )
   { atom_t o = t->object.resource;
 
     t->object.resource = t->subject;
     t->subject = o;
 
-    if ( t->predicate )
-      t->predicate = i;
+    if ( t->predicate.r )
+      t->predicate.r = i;
 
     t->indexed  = by_inverse[t->indexed];
     t->inversed = TRUE;
@@ -3751,7 +3823,7 @@ unify_object(term_t object, triple *t)
 static int
 unify_triple(term_t subject, term_t pred, term_t object,
 	     term_t src, triple *t, int inversed)
-{ predicate *p = t->predicate;
+{ predicate *p = t->predicate.r;
   fid_t fid;
 
   if ( inversed )
@@ -4355,7 +4427,7 @@ init_cursor_from_literal(search_state *state, literal *cursor)
       iv = literal_hash(cursor);
       break;
     case BY_OP:
-      iv = predicate_hash(p->predicate) ^ literal_hash(cursor);
+      iv = predicate_hash(p->predicate.r) ^ literal_hash(cursor);
       break;
     default:
       iv = 0;				/* make compiler silent */
@@ -4390,7 +4462,7 @@ init_search_state(search_state *state)
     return FALSE;
   }
   state->locked = TRUE;
-  if ( p->predicate && (state->flags & MATCH_SUBPROPERTY) ) /* See (*) */
+  if ( p->predicate.r && (state->flags & MATCH_SUBPROPERTY) ) /* See (*) */
   { if ( !update_hash(state->db) )
     { free_search_state(state);
       return FALSE;
@@ -4720,10 +4792,10 @@ update_triple(rdf_db *db, term_t action, triple *t)
 
     if ( !get_predicate(db, a, &p) )
       return FALSE;
-    if ( tmp.predicate == p )
+    if ( tmp.predicate.r == p )
       return TRUE;			/* no change */
 
-    tmp.predicate = p;
+    tmp.predicate.r = p;
   } else if ( PL_is_functor(action, FUNCTOR_object1) )
   { triple t2;
 
@@ -4772,7 +4844,7 @@ update_triple(rdf_db *db, term_t action, triple *t)
 
   new = new_triple(db);
   new->subject		 = tmp.subject;
-  new->predicate	 = tmp.predicate;
+  new->predicate.r	 = tmp.predicate.r;
   if ( (new->object_is_literal = tmp.object_is_literal) )
   { new->object.literal = copy_literal(db, tmp.object.literal);
   } else
@@ -4985,7 +5057,7 @@ broadcast(broadcast_id id, void *a1, void *a2)
 	term_t tmp = PL_new_term_refs(4);
 	
 	PL_put_atom(tmp+0, t->subject);
-	PL_put_atom(tmp+1, t->predicate->name);
+	PL_put_atom(tmp+1, t->predicate.r->name);
 	unify_object(tmp+2, t);
 	unify_graph(tmp+3, t);
 
@@ -5000,16 +5072,16 @@ broadcast(broadcast_id id, void *a1, void *a2)
 	functor_t action;
 
 	PL_put_atom(tmp+0, t->subject);
-	PL_put_atom(tmp+1, t->predicate->name);
+	PL_put_atom(tmp+1, t->predicate.r->name);
 	unify_object(tmp+2, t);
 	unify_graph(tmp+3, t);
 
 	if ( t->subject != new->subject )
 	{ action = FUNCTOR_subject1;
 	  PL_put_atom(a, new->subject);
-	} else if ( t->predicate != new->predicate )
+	} else if ( t->predicate.r != new->predicate.r )
 	{ action = FUNCTOR_predicate1;
-	  PL_put_atom(a, new->predicate->name);
+	  PL_put_atom(a, new->predicate.r->name);
 	} else if ( !match_object(t, new, MATCH_QUAL) )
 	{ action = FUNCTOR_object1;
 	  unify_object(a, new);

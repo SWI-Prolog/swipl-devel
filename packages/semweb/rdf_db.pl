@@ -690,9 +690,17 @@ rdf_save_db(File, DB) :-
 	call_cleanup(rdf_save_db_(Out, DB), close(Out)).
 
 
+%%	rdf_load_db_no_admin(+File, +Id, -Graphs) is det.
+%
+%	Load triples from a  .trp  file   without  updating  the  source
+%	administration. Id is  handled  to   monitor  action.  Graphs is
+%	either an atom, indicating a single loaded   graph  or a list of
+%	graph-names encountered in File.
+
 rdf_load_db_no_admin(File, Id, Graphs) :-
 	open(File, read, Out, [type(binary)]),
 	call_cleanup(rdf_load_db_(Out, Id, Graphs), close(Out)).
+
 
 %%	rdf_load_db(+File) is det.
 %
@@ -702,7 +710,10 @@ rdf_load_db_no_admin(File, Id, Graphs) :-
 rdf_load_db(File) :-
 	file_name_to_url(File, URL),
 	rdf_load_db_no_admin(File, URL, Graphs),
-	(   member(DB, Graphs),
+	(   (   is_list(Graphs)
+	    ->	member(DB, Graphs)
+	    ;	DB = Graphs
+	    ),
 	    rdf_md5(DB, MD5),
 	    rdf_statistics_(triples(DB, Triples)),
 	    retractall(rdf_source(DB, _, _, _, _)),
