@@ -244,6 +244,7 @@ static predicate_t PRED_call1;
 static int update_duplicates_add(rdf_db *db, triple *t);
 static void update_duplicates_del(rdf_db *db, triple *t);
 static void unlock_atoms(triple *t);
+static void lock_atoms(triple *t);
 static void unlock_atoms_literal(literal *lit);
 static int  update_hash(rdf_db *db);
 static int  triple_hash(rdf_db *db, triple *t, int which);
@@ -3026,18 +3027,9 @@ load_db(rdf_db *db, IOSTREAM *in, ld_context *ctx)
       }
       case 'F':				/* file of the graph */
 	ctx->graph_source = load_atom(db, in, ctx);
-	break;
-					/* end of one-graph handling */
+	break;				/* end of one-graph handling */
       case 'E':				/* end of file */
-      { int rc = TRUE;
-
-	if ( ctx->loaded_atoms )
-	{ rdf_free(db, ctx->loaded_atoms, sizeof(atom_t)*ctx->atoms_size);
-	  ctx->loaded_atoms = NULL;
-	}
-
 	return list;
-      }
       default:
 	break;
     }
@@ -3083,6 +3075,7 @@ link_loaded_triples(rdf_db *db, triple *t, ld_context *ctx)
     { next = t->next[BY_NONE];
       
       t->next[BY_NONE] = NULL;
+      lock_atoms(t);
       record_transaction(db, TR_ASSERT, t);
     }
   } else
@@ -3092,6 +3085,7 @@ link_loaded_triples(rdf_db *db, triple *t, ld_context *ctx)
     { next = t->next[BY_NONE];
       
       t->next[BY_NONE] = NULL;
+      lock_atoms(t);
       link_triple_silent(db, t);
       broadcast(EV_ASSERT_LOAD, t, NULL);
     }
@@ -3161,11 +3155,18 @@ rdf_load_db(term_t stream, term_t id, term_t graphs)
     { rc = PL_unify_atom(graphs, ctx.graph);
     }
   }
-
   broadcast(EV_LOAD, (void*)id, (void*)ATOM_end);
   WRUNLOCK(db);
 
   PL_release_stream(in);
+  if ( ctx.loaded_atoms )
+  { atom_t *ap, *ep;
+
+    for(ap=ctx.loaded_atoms, ep=ap+ctx.loaded_id; ap<ep; ap++)
+      PL_unregister_atom(*ap);
+
+    rdf_free(db, ctx.loaded_atoms, sizeof(atom_t)*ctx.atoms_size);
+  }
 
   return rc;
 }
