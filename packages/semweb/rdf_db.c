@@ -3049,8 +3049,12 @@ link_loaded_triples(rdf_db *db, triple *t, ld_context *ctx)
 
   if ( ctx->graph )			/* lookup named graph */
   { graph = lookup_graph(db, ctx->graph, TRUE);
-    if ( ctx->graph_source )
+    if ( ctx->graph_source && graph->source != ctx->graph_source )
+    { if ( graph->source )
+	PL_unregister_atom(graph->source);
       graph->source = ctx->graph_source;
+      PL_register_atom(graph->source);
+    }
 
     if ( ctx->has_digest )
     { if ( graph->md5 )
