@@ -108,7 +108,7 @@ move the .new to the plain snapshot name as a means of recovery.
 %		Maximum number of journals kept open.  If not provided,
 %		the default is 10.  See limit_fd_pool/0.
 %		
-%		* silent(+Boolean)
+%		* silent(+BoolOrBrief)
 %		If =true= (default =false=), do not print informational
 %		messages.  Finally, if =brief= it will show minimal 
 %		feedback.
@@ -160,7 +160,7 @@ assert_options([H|T]) :-
 	
 option_type(concurrency(X),		must_be(positive_integer, X)).
 option_type(max_open_journals(X),	must_be(positive_integer, X)).
-option_type(silent(X),	      must_be(one_of([true,false,brief]), X)).
+option_type(silent(X),	       must_be(oneof([true,false,brief]), X)).
 option_type(log_nested_transactions(X),	must_be(boolean, X)).
 
 

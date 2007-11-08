@@ -33,15 +33,16 @@
 #include <SWI-Prolog.h>
 #include <string.h>
 
-#define PTR_HASH(ptr, size)	((((intptr_t)ptr)>>3) % (size))
+#define HASHKEY(hash, ptr)	((((intptr_t)ptr)>>(hash->shift)) % (hash)->entries)
 
 ptr_hash *
-new_ptr_hash(int entries)
+new_ptr_hash(int entries, int shift)
 { ptr_hash *hash = PL_malloc(sizeof(*hash));
   size_t size = sizeof(*hash->chains)*entries;
 
   memset(hash, 0, sizeof(*hash));
   hash->entries = entries;
+  hash->shift   = shift;
   hash->chains  = PL_malloc(size);
   memset(hash->chains, 0, size);
 
@@ -68,7 +69,7 @@ destroy_ptr_hash(ptr_hash *hash)
 
 int
 add_ptr_hash(ptr_hash *hash, void *value)
-{ int key = PTR_HASH(value, hash->entries);
+{ int key = HASHKEY(hash, value);
   ptr_hash_node *node;
 
   for(node = hash->chains[key]; node; node = node->next)
