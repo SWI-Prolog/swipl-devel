@@ -952,7 +952,7 @@ rdf_journal_file(DB, Journal) :-
 
 rdf_db_to_file(DB, File) :-
 	nonvar(File),
-	file_base_db(File, DB).
+	file_base_db(File, DB), !.
 rdf_db_to_file(DB, File) :-
 	nonvar(DB),
 	db_file_base(DB, File), !.
