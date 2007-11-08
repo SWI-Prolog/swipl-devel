@@ -230,12 +230,21 @@ rdf_flush_journal(DB, Options) :-
 load_db :-
 	rdf_directory(Dir),
 	working_directory(Old, Dir),
+	get_time(Wall0),
+	statistics(cputime, T0),
 	call_cleanup(find_dbs(DBs), working_directory(_, Old)),
 	length(DBs, DBCount),
 	verbosity(DBCount, Silent),
 	make_goals(DBs, Silent, 1, DBCount, Goals),
 	concurrency(Jobs),
-	concurrent(Jobs, Goals, []).
+	concurrent(Jobs, Goals, []),
+	statistics(cputime, T1),
+	get_time(Wall1),
+	T is T1 - T0,
+	Wall is Wall1 - Wall0,
+	message_level(Silent, Level),
+	print_message(Level, rdf(restore(attached(DBCount, T/Wall)))).
+
 
 make_goals([], _, _, _, []).
 make_goals([DB|T0], Silent, I,  Total,
@@ -1037,20 +1046,27 @@ time_stamp(Int) :-
 	prolog:message/3,
 	prolog:message_context/3.
 
-prolog:message(rdf(restore(true, Action))) --> !,
+prolog:message(rdf(Term)) -->
+	message(Term).
+
+message(restore(attached(Graphs, Time/Wall))) -->
+	{ Percent is round(100*Time/Wall) },
+	[ 'Attached ~D graphs in ~2f seconds (~d% CPU = ~2f sec.)'-
+	  [Graphs, Wall, Percent, Time] ].
+message(restore(true, Action)) --> !,
 	silent_message(Action).
-prolog:message(rdf(restore(brief, Action))) --> !,
+message(restore(brief, Action)) --> !,
 	brief_message(Action).
-prolog:message(rdf(restore(_, source(DB)))) -->
+message(restore(_, source(DB))) -->
 	{ file_base_name(DB, Base) },
 	[ 'Restoring ~w ... '-[Base], flush ].
-prolog:message(rdf(restore(_, snapshot(_)))) -->
+message(restore(_, snapshot(_))) -->
 	[ at_same_line, '(snapshot) '-[], flush ].
-prolog:message(rdf(restore(_, journal(_)))) -->
+message(restore(_, journal(_))) -->
 	[ at_same_line, '(journal) '-[], flush ].
-prolog:message(rdf(restore(_, done(_, Time, Count, _Nth, _Total)))) -->
+message(restore(_, done(_, Time, Count, _Nth, _Total))) -->
 	[ at_same_line, '~D triples in ~2f sec.'-[Count, Time] ].
-prolog:message(rdf(update_failed(S,P,O,Action))) -->
+message(update_failed(S,P,O,Action)) -->
 	[ 'Failed to update <~p ~p ~p> with ~p'-[S,P,O,Action] ].
 
 silent_message(_Action) --> [].
