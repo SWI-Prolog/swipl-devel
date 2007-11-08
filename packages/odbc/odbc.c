@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -68,6 +68,14 @@ static int odbc_debuglevel = 0;
 #endif
 #ifndef HAVE_SQLULEN
 #define SQLULEN SQLUINTEGER
+#endif
+
+#ifndef SQL_COPT_SS_MARS_ENABLED
+#define SQL_COPT_SS_MARS_ENABLED 1224
+#endif
+
+#ifndef SQL_MARS_ENABLED_YES
+#define SQL_MARS_ENABLED_YES (SQLPOINTER)1
 #endif
 
 #include <SWI-Stream.h>
@@ -164,6 +172,7 @@ static functor_t FUNCTOR_odbc_connection1;
 static functor_t FUNCTOR_user1;
 static functor_t FUNCTOR_password1;
 static functor_t FUNCTOR_alias1;
+static functor_t FUNCTOR_mars1;
 static functor_t FUNCTOR_open1;
 static functor_t FUNCTOR_auto_commit1;
 static functor_t FUNCTOR_types1;
@@ -1180,6 +1189,7 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
    char *uid = NULL;			/* user id */
    char *pwd = NULL;			/* password */
    atom_t alias = 0;			/* alias-name */
+   int mars = 0;			/* mars-value */
    atom_t open = 0;			/* open next connection */
    RETCODE rc;				/* result code for ODBC functions */
    HDBC hdbc;
@@ -1202,8 +1212,11 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
      { if ( !get_text_arg_ex(1, head, &pwd) )
 	 return FALSE;
      } else if ( PL_is_functor(head, FUNCTOR_alias1) )
-     { if ( !get_atom_arg_ex(1, head, &alias) )
+     { if ( !get_atom_arg_ex(1, head, &alias) )        
 	 return FALSE;
+     } else if ( PL_is_functor(head, FUNCTOR_mars1) )
+     { if ( !get_bool_arg_ex(1, head, &mars) )
+	 return FALSE;          
      } else if ( PL_is_functor(head, FUNCTOR_open1) )
      { if ( !get_atom_arg_ex(1, head, &open) )
 	 return FALSE;
@@ -1253,6 +1266,15 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
 
    if ( (rc=SQLAllocConnect(henv, &hdbc)) != SQL_SUCCESS )
      return odbc_report(henv, NULL, NULL, rc);
+   
+   if ( mars )
+   { if ( (rc=SQLSetConnectAttr(hdbc,
+				SQL_COPT_SS_MARS_ENABLED,
+				SQL_MARS_ENABLED_YES,
+				SQL_IS_UINTEGER)) != SQL_SUCCESS )
+     return odbc_report(henv, NULL, NULL, rc);
+   }   
+
    /* Connect to a data source. */
    rc = SQLConnect(hdbc, (SQLCHAR *)dsource, SQL_NTS,
                          (SQLCHAR *)uid,     SQL_NTS,
@@ -3230,6 +3252,7 @@ install_odbc4pl()
    FUNCTOR_user1		 = MKFUNCTOR("user", 1);
    FUNCTOR_password1		 = MKFUNCTOR("password", 1);
    FUNCTOR_alias1		 = MKFUNCTOR("alias", 1);
+   FUNCTOR_mars1		 = MKFUNCTOR("mars", 1);
    FUNCTOR_open1		 = MKFUNCTOR("open", 1);
    FUNCTOR_auto_commit1		 = MKFUNCTOR("auto_commit", 1);
    FUNCTOR_types1		 = MKFUNCTOR("types", 1);

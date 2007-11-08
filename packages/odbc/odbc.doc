@@ -1,6 +1,7 @@
 \documentclass[11pt]{article}
 \usepackage{times}
 \usepackage{pl}
+\usepackage{plpage}
 \usepackage{html}
 \sloppy
 \makeindex
@@ -99,6 +100,14 @@ provided), a second call to open the same \arg{DSN} simply returns
 the existing connection.  If \const{multiple} (default if there is
 no alias name), a second connection to the same data-source is
 opened.
+
+    \termitem{mars}{+Bool}
+If \const{true}, use Microsoft SQL server 2005 \jargon{mars} mode.
+This is support for multiple concurrent statements on a connection without 
+requiring the dynamic cursor (which incurs an astounding 20-50x slowdown 
+of query execution!!). MARS is a new feature in SQL2k5 apparently, and 
+only works if you use the native driver. For the non-native driver, 
+specifying that it is enabled will have absolutely no effect.
 \end{description}
 
 The following example connects to the WordNet%

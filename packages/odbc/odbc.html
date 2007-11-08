@@ -85,11 +85,18 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
 }
 
 span.pred-ext
 { font-weight: bold;
+}
+
+span.pred-tag
+{ float: right;
+font-size: 80%;
+font-style: italic;
+color: #202020;
 }
 
 /* Footnotes */
@@ -99,7 +106,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -135,49 +142,49 @@ interface only covers the first layer.
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
 <DIV class="toc">
-<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">The 
 ODBC layer</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:2.1"><SPAN class="sec-nr">2.1</SPAN><SPAN class="sec-title">Connection 
+<DIV class="toc-h3"><A class="sec" href="#sec:2.1"><SPAN class="sec-nr">2.1</SPAN> <SPAN class="sec-title">Connection 
 management</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:2.2"><SPAN class="sec-nr">2.2</SPAN><SPAN class="sec-title">Running 
+<DIV class="toc-h3"><A class="sec" href="#sec:2.2"><SPAN class="sec-nr">2.2</SPAN> <SPAN class="sec-title">Running 
 SQL queries</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:2.2.1"><SPAN class="sec-nr">2.2.1</SPAN><SPAN class="sec-title">One-time 
+<DIV class="toc-h4"><A class="sec" href="#sec:2.2.1"><SPAN class="sec-nr">2.2.1</SPAN> <SPAN class="sec-title">One-time 
 invocation</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:2.2.2"><SPAN class="sec-nr">2.2.2</SPAN><SPAN class="sec-title">Parameterised 
+<DIV class="toc-h4"><A class="sec" href="#sec:2.2.2"><SPAN class="sec-nr">2.2.2</SPAN> <SPAN class="sec-title">Parameterised 
 queries</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:2.2.3"><SPAN class="sec-nr">2.2.3</SPAN><SPAN class="sec-title">Fetching 
+<DIV class="toc-h4"><A class="sec" href="#sec:2.2.3"><SPAN class="sec-nr">2.2.3</SPAN> <SPAN class="sec-title">Fetching 
 rows explicitely</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:2.3"><SPAN class="sec-nr">2.3</SPAN><SPAN class="sec-title">Transaction 
+<DIV class="toc-h3"><A class="sec" href="#sec:2.3"><SPAN class="sec-nr">2.3</SPAN> <SPAN class="sec-title">Transaction 
 management</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:2.4"><SPAN class="sec-nr">2.4</SPAN><SPAN class="sec-title">Accessing 
+<DIV class="toc-h3"><A class="sec" href="#sec:2.4"><SPAN class="sec-nr">2.4</SPAN> <SPAN class="sec-title">Accessing 
 the database dictionary</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:2.5"><SPAN class="sec-nr">2.5</SPAN><SPAN class="sec-title">Getting 
+<DIV class="toc-h3"><A class="sec" href="#sec:2.5"><SPAN class="sec-nr">2.5</SPAN> <SPAN class="sec-title">Getting 
 more information</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:2.6"><SPAN class="sec-nr">2.6</SPAN><SPAN class="sec-title">Representing 
+<DIV class="toc-h3"><A class="sec" href="#sec:2.6"><SPAN class="sec-nr">2.6</SPAN> <SPAN class="sec-title">Representing 
 SQL data in Prolog</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:2.7"><SPAN class="sec-nr">2.7</SPAN><SPAN class="sec-title">Errors 
+<DIV class="toc-h3"><A class="sec" href="#sec:2.7"><SPAN class="sec-nr">2.7</SPAN> <SPAN class="sec-title">Errors 
 and warnings</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:2.7.1"><SPAN class="sec-nr">2.7.1</SPAN><SPAN class="sec-title">ODBC 
+<DIV class="toc-h4"><A class="sec" href="#sec:2.7.1"><SPAN class="sec-nr">2.7.1</SPAN> <SPAN class="sec-title">ODBC 
 messages: `Success with info'</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:2.7.2"><SPAN class="sec-nr">2.7.2</SPAN><SPAN class="sec-title">ODBC 
+<DIV class="toc-h4"><A class="sec" href="#sec:2.7.2"><SPAN class="sec-nr">2.7.2</SPAN> <SPAN class="sec-title">ODBC 
 errors</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:2.8"><SPAN class="sec-nr">2.8</SPAN><SPAN class="sec-title">ODBC 
+<DIV class="toc-h3"><A class="sec" href="#sec:2.8"><SPAN class="sec-nr">2.8</SPAN> <SPAN class="sec-title">ODBC 
 implementations</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:2.8.1"><SPAN class="sec-nr">2.8.1</SPAN><SPAN class="sec-title">Using 
+<DIV class="toc-h4"><A class="sec" href="#sec:2.8.1"><SPAN class="sec-nr">2.8.1</SPAN> <SPAN class="sec-title">Using 
 unixODBC</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:2.8.2"><SPAN class="sec-nr">2.8.2</SPAN><SPAN class="sec-title">Using 
+<DIV class="toc-h4"><A class="sec" href="#sec:2.8.2"><SPAN class="sec-nr">2.8.2</SPAN> <SPAN class="sec-title">Using 
 Microsoft ODBC</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:2.9"><SPAN class="sec-nr">2.9</SPAN><SPAN class="sec-title">Remaining 
+<DIV class="toc-h3"><A class="sec" href="#sec:2.9"><SPAN class="sec-nr">2.9</SPAN> <SPAN class="sec-title">Remaining 
 issues</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Installation</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">Unix 
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Installation</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.1"><SPAN class="sec-nr">3.1</SPAN> <SPAN class="sec-title">Unix 
 systems</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Acknowledgments</SPAN></A></DIV>
-<DIV class="toc-h1"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Bibliography</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">Acknowledgments</SPAN></A></DIV>
+<DIV class="toc-h1"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Bibliography</SPAN></A></DIV>
 </DIV>
 
-<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <P>The value of RDMS for Prolog is often over-estimated, as Prolog 
 itself can manage substantial amounts of data. Nevertheless a 
@@ -197,10 +204,10 @@ performance given the RDMS independency constraint.
 between RDMS and Prolog. We envision these layered on top of the ODBC 
 connection described here.
 
-<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">The 
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">The 
 ODBC layer</SPAN></A></H2>
 
-<H3><A NAME="sec:2.1"><SPAN class="sec-nr">2.1</SPAN><SPAN class="sec-title">Connection 
+<H3><A NAME="sec:2.1"><SPAN class="sec-nr">2.1</SPAN> <SPAN class="sec-title">Connection 
 management</SPAN></A></H3>
 
 <P>The ODBC interface deals with a single ODBC environment with multiple 
@@ -237,7 +244,16 @@ If <VAR>OpenMode</VAR> is <CODE>once</CODE> (default if an <CODE>alias</CODE>
 is provided), a second call to open the same <VAR>DSN</VAR> simply 
 returns the existing connection. If <CODE>multiple</CODE> (default if 
 there is no alias name), a second connection to the same data-source is 
-opened.
+opened.</DD>
+<DT><STRONG>mars</STRONG>(<VAR>+Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>true</CODE>, use Microsoft SQL server 2005 <EM>mars</EM> mode. 
+This is support for multiple concurrent statements on a connection 
+without requiring the dynamic cursor (which incurs an astounding 20-50x 
+slowdown of query execution!!). MARS is a new feature in SQL2k5 
+apparently, and only works if you use the native driver. For the 
+non-native driver, specifying that it is enabled will have absolutely no 
+effect.
 </DD>
 </DL>
 
@@ -380,7 +396,7 @@ local installing details and is therefore not universally useful.
 </DD>
 </DL>
 
-<H3><A NAME="sec:2.2"><SPAN class="sec-nr">2.2</SPAN><SPAN class="sec-title">Running 
+<H3><A NAME="sec:2.2"><SPAN class="sec-nr">2.2</SPAN> <SPAN class="sec-title">Running 
 SQL queries</SPAN></A></H3>
 
 <P>ODBC distinguishes between direct execution of literal SQL strings 
@@ -392,7 +408,7 @@ for time-critical operations. In addition, it allows for passing
 parameters without going through SQL-syntax and thus avoiding the need 
 for quoting.
 
-<H4><A NAME="sec:2.2.1"><SPAN class="sec-nr">2.2.1</SPAN><SPAN class="sec-title">One-time 
+<H4><A NAME="sec:2.2.1"><SPAN class="sec-nr">2.2.1</SPAN> <SPAN class="sec-title">One-time 
 invocation</SPAN></A></H4>
 
 <DL>
@@ -550,7 +566,7 @@ diagnostic message if the query returns a result.
 </DD>
 </DL>
 
-<H4><A NAME="sec:2.2.2"><SPAN class="sec-nr">2.2.2</SPAN><SPAN class="sec-title">Parameterised 
+<H4><A NAME="sec:2.2.2"><SPAN class="sec-nr">2.2.2</SPAN> <SPAN class="sec-title">Parameterised 
 queries</SPAN></A></H4>
 
 <P>ODBC provides for `parameterized queries'. These are SQL queries with 
@@ -673,7 +689,7 @@ terminates.
 </DD>
 </DL>
 
-<H4><A NAME="sec:2.2.3"><SPAN class="sec-nr">2.2.3</SPAN><SPAN class="sec-title">Fetching 
+<H4><A NAME="sec:2.2.3"><SPAN class="sec-nr">2.2.3</SPAN> <SPAN class="sec-title">Fetching 
 rows explicitely</SPAN></A></H4>
 
 <A NAME="sec:sqlfetch"></A>
@@ -774,7 +790,7 @@ the whole result-set is retrieved using <A NAME="idx:odbcfetch3:35"></A><A class
 </DD>
 </DL>
 
-<H3><A NAME="sec:2.3"><SPAN class="sec-nr">2.3</SPAN><SPAN class="sec-title">Transaction 
+<H3><A NAME="sec:2.3"><SPAN class="sec-nr">2.3</SPAN> <SPAN class="sec-title">Transaction 
 management</SPAN></A></H3>
 
 <A NAME="sec:sqltrans"></A>
@@ -798,7 +814,7 @@ End the currently open transaction if there is one. Using <VAR>Action</VAR>
 <P>The ODBC documentation has many comments on transaction management 
 and its interaction with database cursors.
 
-<H3><A NAME="sec:2.4"><SPAN class="sec-nr">2.4</SPAN><SPAN class="sec-title">Accessing 
+<H3><A NAME="sec:2.4"><SPAN class="sec-nr">2.4</SPAN> <SPAN class="sec-title">Accessing 
 the database dictionary</SPAN></A></H3>
 
 <P>With this interface we do not envision the use of Prolog as a 
@@ -966,7 +982,7 @@ Maximum scale of the type.
 </DD>
 </DL>
 
-<H3><A NAME="sec:2.5"><SPAN class="sec-nr">2.5</SPAN><SPAN class="sec-title">Getting 
+<H3><A NAME="sec:2.5"><SPAN class="sec-nr">2.5</SPAN> <SPAN class="sec-title">Getting 
 more information</SPAN></A></H3>
 
 <A NAME="sec:odbcinfo"></A>
@@ -997,7 +1013,7 @@ make the system print debugging messages.
 </DD>
 </DL>
 
-<H3><A NAME="sec:2.6"><SPAN class="sec-nr">2.6</SPAN><SPAN class="sec-title">Representing 
+<H3><A NAME="sec:2.6"><SPAN class="sec-nr">2.6</SPAN> <SPAN class="sec-title">Representing 
 SQL data in Prolog</SPAN></A></H3>
 
 <A NAME="sec:sqltypes"></A>
@@ -1067,13 +1083,13 @@ as default for the SQL type <CODE>timestamp</CODE>.
 </DD>
 </DL>
 
-<H3><A NAME="sec:2.7"><SPAN class="sec-nr">2.7</SPAN><SPAN class="sec-title">Errors 
+<H3><A NAME="sec:2.7"><SPAN class="sec-nr">2.7</SPAN> <SPAN class="sec-title">Errors 
 and warnings</SPAN></A></H3>
 
 <P>ODBC operations return success, error or `success with info'. This 
 section explains how results from the ODBC layer are reported to Prolog.
 
-<H4><A NAME="sec:2.7.1"><SPAN class="sec-nr">2.7.1</SPAN><SPAN class="sec-title">ODBC 
+<H4><A NAME="sec:2.7.1"><SPAN class="sec-nr">2.7.1</SPAN> <SPAN class="sec-title">ODBC 
 messages: `Success with info'</SPAN></A></H4>
 
 <A NAME="sec:successwithinfo"></A>
@@ -1093,7 +1109,7 @@ message.
 </DD>
 </DL>
 
-<H4><A NAME="sec:2.7.2"><SPAN class="sec-nr">2.7.2</SPAN><SPAN class="sec-title">ODBC 
+<H4><A NAME="sec:2.7.2"><SPAN class="sec-nr">2.7.2</SPAN> <SPAN class="sec-title">ODBC 
 errors</SPAN></A></H4>
 
 <A NAME="sec:sqlerror"></A>
@@ -1107,7 +1123,7 @@ arguments of the odbc/3 term are explained in <A class="sec" href="#sec:2.7.1">s
 arguments and state, signaling the conventional instantiation, type, 
 domain and resource exceptions.
 
-<H3><A NAME="sec:2.8"><SPAN class="sec-nr">2.8</SPAN><SPAN class="sec-title">ODBC 
+<H3><A NAME="sec:2.8"><SPAN class="sec-nr">2.8</SPAN> <SPAN class="sec-title">ODBC 
 implementations</SPAN></A></H3>
 
 <P>There is a wealth on ODBC implementations that are completely or 
@@ -1118,7 +1134,7 @@ performance price. Currently this interface is, according to the
 <A class="url" href="http://www.php.net">PHP</A> documentation on this 
 subject, provided by Adabas D, IBM DB2, Solid, and Sybase SQL Anywhere.
 
-<H4><A NAME="sec:2.8.1"><SPAN class="sec-nr">2.8.1</SPAN><SPAN class="sec-title">Using 
+<H4><A NAME="sec:2.8.1"><SPAN class="sec-nr">2.8.1</SPAN> <SPAN class="sec-title">Using 
 unixODBC</SPAN></A></H4>
 
 <P>The SWI-Prolog ODBC interface was developed using
@@ -1126,14 +1142,14 @@ unixODBC</SPAN></A></H4>
 on
 <A class="url" href="http://www.suse.com">SuSE Linux</A>.
 
-<H4><A NAME="sec:2.8.2"><SPAN class="sec-nr">2.8.2</SPAN><SPAN class="sec-title">Using 
+<H4><A NAME="sec:2.8.2"><SPAN class="sec-nr">2.8.2</SPAN> <SPAN class="sec-title">Using 
 Microsoft ODBC</SPAN></A></H4>
 
 <P>On MS-Windows, the ODBC interface is a standard package, linked 
 against
 <CODE>odbc32.lib</CODE>.
 
-<H3><A NAME="sec:2.9"><SPAN class="sec-nr">2.9</SPAN><SPAN class="sec-title">Remaining 
+<H3><A NAME="sec:2.9"><SPAN class="sec-nr">2.9</SPAN> <SPAN class="sec-title">Remaining 
 issues</SPAN></A></H3>
 
 <P>The following issues are identified and waiting for concrete problems 
@@ -1153,9 +1169,9 @@ etc.
 </DD>
 </DL>
 
-<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Installation</SPAN></A></H2>
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Installation</SPAN></A></H2>
 
-<H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">Unix 
+<H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN> <SPAN class="sec-title">Unix 
 systems</SPAN></A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
@@ -1175,7 +1191,7 @@ using:
 and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <CODE>$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
 
-<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Acknowledgments</SPAN></A></H2>
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">Acknowledgments</SPAN></A></H2>
 
 <P>The SWI-Prolog ODBC interface started from a partial interface by 
 Stefano De Giorgi. Mike Elston suggested programmable 
@@ -1184,7 +1200,7 @@ field-tests with this package.
 
 <P>
 
-<H1><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Bibliography</SPAN></A></H1>
+<H1><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Bibliography</SPAN></A></H1>
 
 <DL>
 <DT><A NAME="miller1990"><STRONG>[1]</STRONG></A></DT>
