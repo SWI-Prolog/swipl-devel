@@ -44,6 +44,8 @@
 :- use_module(library(debug)).
 :- use_module(library(error)).
 :- use_module(library(thread)).
+:- use_module(library(pairs)).
+
 
 /** <module> RDF persistency plugin
 
@@ -75,12 +77,14 @@ move the .new to the plain snapshot name as a means of recovery.
 	rdf_directory/1,
 	rdf_option/1,
 	source_journal_fd/2,
-	db_file_base/2.
+	db_file_base/2,
+	file_base_db/2.
 :- dynamic
 	rdf_directory/1,		% Absolute path
 	rdf_option/1,			% Defined options
 	source_journal_fd/2,		% DB, JournalFD
-	db_file_base/2.			% DB, FileBase
+	db_file_base/2,			% DB, FileBase
+	file_base_db/2.			% FileBase, DB
 
 %%	rdf_attach_db(+Directory, +Options)
 %	
@@ -106,7 +110,8 @@ move the .new to the plain snapshot name as a means of recovery.
 %		
 %		* silent(+Boolean)
 %		If =true= (default =false=), do not print informational
-%		messages.
+%		messages.  Finally, if =brief= it will show minimal 
+%		feedback.
 %		
 %		* log_nested_transactions(+Boolean)
 %		If =true=, nested _log_ transactions are added to the
@@ -155,7 +160,7 @@ assert_options([H|T]) :-
 	
 option_type(concurrency(X),		must_be(positive_integer, X)).
 option_type(max_open_journals(X),	must_be(positive_integer, X)).
-option_type(silent(X),			must_be(boolean, X)).
+option_type(silent(X),	      must_be(one_of([true,false,brief]), X)).
 option_type(log_nested_transactions(X),	must_be(boolean, X)).
 
 
@@ -226,13 +231,25 @@ load_db :-
 	rdf_directory(Dir),
 	working_directory(Old, Dir),
 	call_cleanup(find_dbs(DBs), working_directory(_, Old)),
-	make_goals(DBs, Goals),
+	length(DBs, DBCount),
+	verbosity(DBCount, Silent),
+	make_goals(DBs, Silent, 1, DBCount, Goals),
 	concurrency(Jobs),
 	concurrent(Jobs, Goals, []).
 
-make_goals([], []).
-make_goals([DB|T0], [load_source(DB)|T]) :-
-	make_goals(T0, T).
+make_goals([], _, _, _, []).
+make_goals([DB|T0], Silent, I,  Total,
+	   [load_source(DB, Silent, I, Total)|T]) :-
+	I2 is I + 1,
+	make_goals(T0, Silent, I2, Total, T).
+
+verbosity(_DBCount, Silent) :-
+	rdf_option(silent(Silent)), !.
+verbosity(DBCount, Silent) :-
+	DBCount > 25, !,
+	Silent = brief.
+verbosity(_DBCount, false).
+
 
 %%	concurrency(-Jobs)
 %
@@ -255,64 +272,67 @@ concurrency(1).
 
 find_dbs(DBs) :-
 	expand_file_name(*, Files),
-	dbs(Files, DBs0),
-	sort(DBs0, DBs1),		% remove duplicates
-	maplist(key_by_size, DBs1, DBK),
-	keysort(DBK, DBK1),
-	unkey(DBK1, DBs).
+	phrase(scan_db_files(Files), Scanned),
+	sort(Scanned, ByDB),
+	join_snapshot_and_journals(ByDB, BySize),
+	keysort(BySize, SortedBySize),
+	pairs_values(SortedBySize, DBs).
+
 	
-dbs([], []).
-dbs([H0|T0], [H|T]) :-
-	file_name_extension(Base, Ext, H0),
-	db_extension(Ext), !,
-	rdf_db_to_file(H, Base),
-	dbs(T0, T).
-dbs([_|T0], T) :-
-	dbs(T0, T).
+%%	scan_db_files(+Files)// is det.
+%
+%	Produces a list of db(DB,  Size,   File)  for all recognised RDF
+%	database files.
+
+scan_db_files([]) -->
+	[].
+scan_db_files([File|T]) -->
+	{ file_name_extension(Base, Ext, File),
+	  db_extension(Ext), !,
+	  rdf_db_to_file(DB, Base),
+	  size_file(File, Size)
+	},
+	[ db(DB, Size, File) ],
+	scan_db_files(T).
+scan_db_files([_|T]) -->
+	scan_db_files(T).
+
 
 db_extension(trp).
 db_extension(jrn).
 
-key_by_size(DB, Size-DB) :-
-	rdf_db_to_file(DB, Base),
-	ext_size(Base, trp, S1),
-	ext_size(Base, jrn, S2),
-	Size is S1 + S2.
+join_snapshot_and_journals([], []).
+join_snapshot_and_journals([db(DB,S0,_)|T0], [S-DB|T]) :- !,
+	same_db(DB, T0, T1, S0, S),
+	join_snapshot_and_journals(T1, T).
 
-ext_size(Base, Ext, Size) :-
-	file_name_extension(Base, Ext, File),
-	(   exists_file(File)
-	->  size_file(File, Size)
-	;   Size = 0
-	).
-
-unkey([], []).
-unkey([_-H|T0], [H|T]) :-
-	unkey(T0, T).
+same_db(DB, [db(DB,S1,_)|T0], T, S0, S) :- !,
+	S2 is S0+S1,
+	same_db(DB, T0, T, S2, S).
+same_db(_, L, L, S, S).
 
 
-%%	load_source(+DB) is det.
+%%	load_source(+DB, +Silent, +Nth, +Total) is det.
 %	
 %	Load triples and reload  journal   from  the  indicated snapshot
 %	file.
+%	
+%	@param Silent One of =false=, =true= or =brief=
 
-load_source(DB) :-
-	(   rdf_option(silent(true))
-	->  Level = silent
-	;   Level = informational
-	),
+load_source(DB, Silent, Nth, Total) :-
+	message_level(Silent, Level),
 	db_files(DB, SnapshotFile, JournalFile),
 	rdf_retractall(_,_,_,DB),
 	statistics(cputime, T0),
-	print_message(Level, rdf(restore(source(DB)))),
-	(   exists_db(SnapshotFile)
-	->  print_message(Level, rdf(restore(snapshot(SnapshotFile)))),
-	    db_file(SnapshotFile, AbsFile),
-	    rdf_load_db(AbsFile)
+	print_message(Level, rdf(restore(Silent, source(DB)))),
+	db_file(SnapshotFile, AbsSnapShot),
+	(   exists_file(AbsSnapShot)
+	->  print_message(Level, rdf(restore(Silent, snapshot(SnapshotFile)))),
+	    rdf_load_db(AbsSnapShot)
 	;   true
 	),
 	(   exists_db(JournalFile)
-	->  print_message(Level, rdf(restore(journal(JournalFile)))),
+	->  print_message(Level, rdf(restore(Silent, journal(JournalFile)))),
 	    load_journal(JournalFile, DB)
 	;   true
 	),
@@ -322,8 +342,12 @@ load_source(DB) :-
 	->  true
 	;   Count = 0
 	),
-	print_message(Level, rdf(restore(done(DB, T, Count)))).
+	print_message(Level, rdf(restore(Silent,
+					 done(DB, T, Count, Nth, Total)))).
 	
+message_level(true, silent) :- !.
+message_level(_, informational).
+
 	
 		 /*******************************
 		 *	   LOAD JOURNAL		*
@@ -912,12 +936,21 @@ rdf_journal_file(DB, Journal) :-
 %	reasons. Speed, but much more important   is that the mapping of
 %	raw --> encoded provided by  www_form_encode/2 is not guaranteed
 %	to be unique by the W3C standards.
+%	
+%	@tbd	We keep two predicates for exploiting Prolog indexing.
+%		Once multi-argument indexed is hashed we should clean
+%		this up.
 
 rdf_db_to_file(DB, File) :-
+	nonvar(File),
+	file_base_db(File, DB).
+rdf_db_to_file(DB, File) :-
+	nonvar(DB),
 	db_file_base(DB, File), !.
 rdf_db_to_file(DB, File) :-
 	url_to_filename(DB, File),
-	assert(db_file_base(DB, File)).
+	assert(db_file_base(DB, File)),
+	assert(file_base_db(File, DB)).
 
 %%	url_to_filename(+URL, -FileName) is det.
 %%	url_to_filename(-URL, +FileName) is det.
@@ -1004,17 +1037,32 @@ time_stamp(Int) :-
 	prolog:message/3,
 	prolog:message_context/3.
 
-prolog:message(rdf(restore(source(DB)))) -->
+prolog:message(rdf(restore(true, Action))) --> !,
+	silent_message(Action).
+prolog:message(rdf(restore(brief, Action))) --> !,
+	brief_message(Action).
+prolog:message(rdf(restore(_, source(DB)))) -->
 	{ file_base_name(DB, Base) },
 	[ 'Restoring ~w ... '-[Base], flush ].
-prolog:message(rdf(restore(snapshot(_)))) -->
+prolog:message(rdf(restore(_, snapshot(_)))) -->
 	[ at_same_line, '(snapshot) '-[], flush ].
-prolog:message(rdf(restore(journal(_)))) -->
+prolog:message(rdf(restore(_, journal(_)))) -->
 	[ at_same_line, '(journal) '-[], flush ].
-prolog:message(rdf(restore(done(_, Time, Count)))) -->
+prolog:message(rdf(restore(_, done(_, Time, Count, _Nth, _Total)))) -->
 	[ at_same_line, '~D triples in ~2f sec.'-[Count, Time] ].
 prolog:message(rdf(update_failed(S,P,O,Action))) -->
 	[ 'Failed to update <~p ~p ~p> with ~p'-[S,P,O,Action] ].
+
+silent_message(_Action) --> [].
+
+brief_message(source(_DB))     --> [].
+brief_message(snapshot(_File)) --> [].
+brief_message(journal(_File))  --> [].
+brief_message(done(_DB, _Time, _Count, Nth, Total)) -->
+	[ at_same_line, 
+	  '\rloaded ~|~t~D~5+ of ~|~t~D~5+ graphs'-[Nth, Total],
+	  flush
+	].
 
 prolog:message_context(rdf_locked(Args)) -->
 	{ memberchk(time(Time), Args),
