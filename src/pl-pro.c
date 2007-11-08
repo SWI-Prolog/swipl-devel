@@ -522,7 +522,7 @@ last_arg:
 
   if ( isAtom(*p) )
   { uintptr_t idx;
-    uintptr_t mx = entriesBuffer(&atom_array, Atom);
+    uintptr_t mx = GD->atoms.count;
 
     assert(!is_marked(p));
     if ( storage(*p) != STG_STATIC )
