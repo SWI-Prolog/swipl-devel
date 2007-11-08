@@ -4858,6 +4858,13 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
       return FALSE;
   }
 
+  if ( t.graph	)		/* speedup for rdf_retractall(_,_,_,DB) */
+  { graph *gr = lookup_graph(db, t.graph, FALSE);
+
+    if ( !gr || gr->triple_count == 0 )
+      return TRUE;
+  }
+
   if ( !WRLOCK(db, FALSE) )
     return FALSE;
 /*			No need, as we do not search with subPropertyOf
