@@ -230,6 +230,7 @@ PL_unregister_blob_type(PL_blob_t *type)
 { unsigned int i;
   PL_blob_t **t;
   int discarded = 0;
+  Atom *ap;
 
   PL_LOCK(L_MISC);
   for(t = &GD->atoms.types; *t; t = &(*t)->next)
@@ -243,10 +244,12 @@ PL_unregister_blob_type(PL_blob_t *type)
   PL_register_blob_type(&unregistered_blob_atom);
 
   LOCK();
-  for(i=0; i < entriesBuffer(&atom_array, Atom); i++ )
+
+  ap = GD->atoms.array;
+  for(i=0; i < GD->atoms.count; i++, ap++ )
   { Atom atom;
 
-    if ( (atom = baseBuffer(&atom_array, Atom)[i]) )
+    if ( (atom = *ap) )
     { if ( atom->type == type )
       { atom->type = &unregistered_blob_atom;
 	
@@ -284,9 +287,9 @@ another atom.
 
 static void
 registerAtom(Atom a)
-{ size_t n = entriesBuffer(&atom_array, Atom);
+{ size_t n = GD->atoms.count;
 #ifdef O_ATOMGC				/* try to find a hole! */
-  Atom *ap = baseBuffer(&atom_array, Atom);
+  Atom *ap = GD->atoms.array;
   Atom *ep = ap+n;
   Atom *p;
 
@@ -308,8 +311,19 @@ registerAtom(Atom a)
 #endif /*O_ATOMGC*/
 
   a->atom = (n<<LMASK_BITS)|TAG_ATOM;
+  if ( n >= GD->atoms.array_allocated )
+  { size_t newcount = GD->atoms.array_allocated * 2;
+    size_t newsize  = newcount*sizeof(Atom);
+    Atom *np = PL_malloc(newsize);
 
-  addBuffer(&atom_array, a, Atom);
+    memcpy(np, ap, newsize/2);
+    GD->atoms.array = np;
+    GD->atoms.array_allocated = newcount;
+    PL_free(ap);
+    ap = np;
+  }
+  ap[n++] = a;
+  GD->atoms.count = n;
 }
 
 
@@ -541,7 +555,7 @@ atoms each pass.
 
 void
 lockAtoms()
-{ GD->atoms.builtin     = entriesBuffer(&atom_array, Atom);
+{ GD->atoms.builtin     = GD->atoms.count;
   GD->atoms.non_garbage = GD->atoms.builtin;
 }
 
@@ -554,12 +568,12 @@ markAtom(atom_t a)
 { size_t i = indexAtom(a);
   Atom ap;
 
-  if ( i >= entriesBuffer(&atom_array, Atom) )
+  if ( i >= GD->atoms.count )
     return;				/* not an atom */
   if ( i < GD->atoms.builtin )
     return;				/* locked range */
 
-  ap = fetchBuffer(&atom_array, i, Atom);
+  ap = GD->atoms.array[i];
 
   if ( ap )
   {
@@ -626,9 +640,9 @@ destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
 static void
 collectAtoms(void)
 { GET_LD
-  Atom *ap0 = baseBuffer(&atom_array, Atom);
+  Atom *ap0 = GD->atoms.array;
   Atom *ap  = ap0 + GD->atoms.builtin;
-  Atom *ep  = ap0 + entriesBuffer(&atom_array, Atom);
+  Atom *ep  = ap0 + GD->atoms.count;
   int hole_seen = FALSE;
   uintptr_t mask = atom_buckets-1;
 
@@ -770,7 +784,7 @@ PL_register_atom(atom_t a)
   { Atom p;
 
     LOCK();
-    p = fetchBuffer(&atom_array, index, Atom);
+    p = GD->atoms.array[index];
     p->references++;
     UNLOCK();
   }
@@ -787,7 +801,7 @@ PL_unregister_atom(atom_t a)
   { Atom p;
 
     LOCK();
-    p = fetchBuffer(&atom_array, index, Atom);
+    p = GD->atoms.array[index];
     p->references--;
     if ( p->references == (unsigned)-1 )
     { Sdprintf("OOPS: -1 references to '%s'\n", p->name);
@@ -810,7 +824,7 @@ rehashAtoms()
 { GET_LD
   Atom *oldtab   = atomTable;
   int   oldbucks = atom_buckets;
-  intptr_t mx = entriesBuffer(&atom_array, Atom);
+  size_t mx = GD->atoms.count;
   uintptr_t mask;
   Atom *ap, *ep;
 
@@ -822,7 +836,7 @@ rehashAtoms()
   
   DEBUG(0, Sdprintf("rehashing atoms (%d --> %d)\n", oldbucks, atom_buckets));
 
-  for(ap = baseBuffer(&atom_array, Atom), ep = ap+mx;
+  for(ap = GD->atoms.array, ep = ap+mx;
       ap < ep;
       ap++)
   { Atom a = *ap;
@@ -900,10 +914,11 @@ initAtoms(void)
     atomTable = allocHeap(atom_buckets * sizeof(Atom));
 
     memset(atomTable, 0, atom_buckets * sizeof(Atom));
-    initBuffer(&atom_array);
+    GD->atoms.array_allocated = 4096;
+    GD->atoms.array = PL_malloc(GD->atoms.array_allocated*sizeof(Atom));
     registerBuiltinAtoms();
 #ifdef O_ATOMGC
-    GD->atoms.margin     = 10000;
+    GD->atoms.margin = 10000;
     lockAtoms();
 #endif
     PL_register_blob_type(&text_atom);
@@ -916,7 +931,7 @@ initAtoms(void)
 
 void
 cleanupAtoms(void)
-{ discardBuffer(&atom_array);
+{ PL_free(GD->atoms.array);
 }
 
 
@@ -955,10 +970,10 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t i ARG_LD)
       fail;
   }
 
-  for( ; i < (int)entriesBuffer(&atom_array, Atom); i++ )
+  for( ; i < (int)GD->atoms.count; i++ )
   { Atom atom;
 
-    if ( (atom = baseBuffer(&atom_array, Atom)[i]) )
+    if ( (atom = GD->atoms.array[i]) )
     { if ( type )
       { if ( type_name && type_name != atom->type->atom_name )
 	  continue;
@@ -1031,17 +1046,16 @@ allAlpha(const char *s)
 
 static int
 extendAtom(char *prefix, bool *unique, char *common)
-{ intptr_t i, mx = entriesBuffer(&atom_array, Atom);
+{ intptr_t i, mx = GD->atoms.count;
   Atom a;
   bool first = TRUE;
   int lp = (int) strlen(prefix);
+  Atom *ap = GD->atoms.array;
   
   *unique = TRUE;
 
-  for(i=0; i<mx; i++)
-  { a = baseBuffer(&atom_array, Atom)[i];
-
-    if ( a && strprefix(a->name, prefix) )
+  for(i=0; i<mx; i++, ap++)
+  { if ( (a=*ap) && strprefix(a->name, prefix) )
     { if ( strlen(a->name) >= LINESIZ )
 	continue;
       if ( first == TRUE )
@@ -1095,14 +1109,15 @@ compareMatch(const void *m1, const void *m2)
 
 static bool
 extend_alternatives(char *prefix, struct match *altv, int *altn)
-{ intptr_t i, mx = entriesBuffer(&atom_array, Atom);
-  Atom a;
+{ intptr_t i, mx = GD->atoms.count;
+  Atom a, *ap;
   char *as;
   int l;
 
   *altn = 0;
-  for(i=0; i<mx; i++)
-  { if ( !(a = baseBuffer(&atom_array, Atom)[i]) )
+  ap = GD->atoms.array;
+  for(i=0; i<mx; i++, ap++)
+  { if ( !(a=*ap) )
       continue;
     
     as = a->name;
@@ -1200,7 +1215,8 @@ alnum_text(PL_chars_t *txt)
 static int
 atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 { GET_LD
-  intptr_t i, mx = entriesBuffer(&atom_array, Atom);
+  intptr_t i, mx = GD->atoms.count;
+  Atom *ap;
 
 #ifdef O_PLMT
   if ( !key )
@@ -1218,10 +1234,10 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 #endif
   }
 
-  for(; i<mx; i++)
+  for(ap=GD->atoms.array; i<mx; i++, ap++)
   { Atom a;
 
-    if ( !(a = baseBuffer(&atom_array, Atom)[i]) )
+    if ( !(a = *ap) )
       continue;
     
     if ( is_signalled() )		/* Notably allow windows version */

@@ -294,7 +294,7 @@ and while loading .wic files.  It comes at no price.
 		 *******************************/
 
 #define indexAtom(w)	((w)>>LMASK_BITS)
-#define atomValue(w)	fetchBuffer(&atom_array, indexAtom(w), Atom)
+#define atomValue(w)	(GD->atoms.array[indexAtom(w)])
 #define stringAtom(w)	(atomValue(w)->name)
 #define valInteger(w)	(storage(w) == STG_INLINE ? valInt(w) : valBignum(w))
 

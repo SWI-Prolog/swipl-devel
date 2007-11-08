@@ -134,7 +134,9 @@ typedef struct
   } arith;
 
   struct
-  { buffer	array;			/* index --> atom */
+  { Atom *	array;			/* index --> atom */
+    size_t	count;			/* elements in array */
+    size_t	array_allocated;	/* allocated size of array */
     unsigned int buckets;		/* # buckets in char * --> atom */
     Atom *	table;			/* hash-table */
     int		lookups;		/* # atom lookups */
@@ -538,7 +540,6 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define hBase			(GD->base_of_heap)
 #define heap_base		(GD->rounded_heap_base)
 #define functor_array		(GD->functors.array)
-#define atom_array		(GD->atoms.array)
 #define systemDefaults		(GD->defaults)
 #define features		(LD->feature.mask)
 
