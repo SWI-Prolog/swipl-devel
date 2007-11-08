@@ -58,6 +58,7 @@
 #include "md5.h"
 #include "atom.h"
 #include "debug.h"
+#include "hash.h"
 
 #undef UNLOCK
 
@@ -2975,17 +2976,37 @@ load_magic(IOSTREAM *in)
 
 
 static int
-load_db(rdf_db *db, IOSTREAM *in)
+append_graph_to_list(ptr_hash_node *node, void *closure)
+{ graph *gr   = node->value;
+  term_t tail = (term_t)closure;
+  term_t head = PL_new_term_ref();
+  int rc;
+
+  rc = (PL_unify_list(tail, head, tail) &&
+	PL_unify_atom(head, gr->name));
+  PL_reset_term_refs(head);
+
+  return rc;
+}
+
+
+static int
+load_db(rdf_db *db, IOSTREAM *in, term_t graphs)
 { ld_context ctx;
   int version;
   int c;
   long created0 = db->created;
+  ptr_hash *graphs_hash;
 
   if ( !load_magic(in) )
     return FALSE;
   version = (int)load_int(in);
-  
   memset(&ctx, 0, sizeof(ctx));
+
+  if ( graphs )
+    graphs_hash = new_ptr_hash(64);
+  else
+    graphs_hash = NULL;
 
   while((c=Sgetc(in)) != EOF)
   { switch(c)
@@ -2995,6 +3016,7 @@ load_db(rdf_db *db, IOSTREAM *in)
         break;
       case 'S':
 	ctx.graph = lookup_graph(db, load_atom(db, in, &ctx), TRUE);
+        add_ptr_hash(graphs_hash, ctx.graph);
         break;
       case 'M':
       { int i;
@@ -3016,7 +3038,9 @@ load_db(rdf_db *db, IOSTREAM *in)
       case 'F':
 	ctx.graph->source = load_atom(db, in, &ctx);
 	break;
-      case 'E':
+      case 'E':				/* end of file */
+      { int rc = TRUE;
+
 	if ( ctx.loaded_atoms )
 	  rdf_free(db, ctx.loaded_atoms, sizeof(atom_t)*ctx.atoms_size);
 
@@ -3032,7 +3056,18 @@ load_db(rdf_db *db, IOSTREAM *in)
 	}
 
 	db->generation += (db->created-created0);
-	return TRUE;
+
+	if ( graphs )
+	{ term_t tail = PL_copy_term_ref(graphs);
+
+	  rc = ( for_ptr_hash(graphs_hash, append_graph_to_list, (void*)tail) &&
+		 PL_unify_nil(tail) );
+
+	  destroy_ptr_hash(graphs_hash);
+	}
+
+	return rc;
+      }
       default:
 	break;
     }
@@ -3043,7 +3078,7 @@ load_db(rdf_db *db, IOSTREAM *in)
 
 
 static foreign_t
-rdf_load_db(term_t stream, term_t id)
+rdf_load_db(term_t stream, term_t id, term_t graphs)
 { rdf_db *db = DB;
   IOSTREAM *in;
   int rc;
@@ -3054,7 +3089,7 @@ rdf_load_db(term_t stream, term_t id)
   if ( !WRLOCK(db, FALSE) )
     return FALSE;
   broadcast(EV_LOAD, (void*)id, (void*)ATOM_begin);
-  rc = load_db(db, in);
+  rc = load_db(db, in, graphs);
   broadcast(EV_LOAD, (void*)id, (void*)ATOM_end);
   WRUNLOCK(db);
 
@@ -6157,7 +6192,7 @@ install_rdf_db()
   PL_register_foreign("rdf_split_url",  3, split_url,       0);
   PL_register_foreign("rdf_url_namespace", 2, url_namespace,0);
   PL_register_foreign("rdf_save_db_",   2, rdf_save_db,     0);
-  PL_register_foreign("rdf_load_db_",   2, rdf_load_db,     0);
+  PL_register_foreign("rdf_load_db_",   3, rdf_load_db,     0);
   PL_register_foreign("rdf_reachable",  3, rdf_reachable,   NDET);
   PL_register_foreign("rdf_reset_db_",  0, rdf_reset_db,    0);
   PL_register_foreign("rdf_set_predicate",

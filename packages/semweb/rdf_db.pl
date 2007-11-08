@@ -690,9 +690,9 @@ rdf_save_db(File, DB) :-
 	call_cleanup(rdf_save_db_(Out, DB), close(Out)).
 
 
-rdf_load_db_no_admin(File, Id) :-
+rdf_load_db_no_admin(File, Id, Graphs) :-
 	open(File, read, Out, [type(binary)]),
-	call_cleanup(rdf_load_db_(Out, Id), close(Out)).
+	call_cleanup(rdf_load_db_(Out, Id, Graphs), close(Out)).
 
 %%	rdf_load_db(+File) is det.
 %
@@ -701,9 +701,8 @@ rdf_load_db_no_admin(File, Id) :-
 
 rdf_load_db(File) :-
 	file_name_to_url(File, URL),
-	rdf_load_db_no_admin(File, URL),
-	rdf_graphs_(DBList),
-	(   member(DB, DBList),
+	rdf_load_db_no_admin(File, URL, Graphs),
+	(   member(DB, Graphs),
 	    rdf_md5(DB, MD5),
 	    rdf_statistics_(triples(DB, Triples)),
 	    retractall(rdf_source(DB, _, _, _, _)),
@@ -801,7 +800,7 @@ rdf_load(Spec, Options0) :-
 	->  do_unload(DB),		% unload old
 	    (   Cache == true,
 		read_cache(SourceURL, Modified, CacheFile),
-	        catch(rdf_load_db_no_admin(CacheFile, cache(DB)), _, fail)
+	        catch(rdf_load_db_no_admin(CacheFile, cache(DB), _Graphs), _, fail)
 	    ->	Action = load
 	    ;   rdf_input_open(Input, Stream, Format),
 		must_be(ground, Format),
@@ -1006,7 +1005,7 @@ rdf_load_stream(xhtml, Stream, Options) :- !,
 			parse(Id)).
 rdf_load_stream(triples, Stream, Options) :- !,
 	option(db(Id), Options),
-	rdf_load_db_(Stream, Id).
+	rdf_load_db_(Stream, Id, _Graphs).
 
 %%	read_cache(+BaseURI, +SourceModified, -CacheFile) is semidet.
 %
