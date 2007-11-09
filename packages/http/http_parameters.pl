@@ -39,6 +39,7 @@
 :- use_module(library(debug)).
 :- use_module(library(option)).
 :- use_module(library(lists)).
+:- use_module(library(error)).
 
 :- module_transparent
 	http_parameters/3.
@@ -129,6 +130,16 @@ fill_param_list([_|Form], Name, VT, Options) :-
 	fill_param_list(Form, Name, VT, Options).
 
 
+%%	check_type(+Options, +FieldName, +ValueIn, -ValueOut) is det.
+%
+%	Validate an HTTP form value.
+%	
+%	@param Option		list as provided with the parameter
+%	@param FieldName	Name of the HTTP field (for better message)
+%	@param ValueIn		Atom value as received from HTTP layer
+%	@param ValueOut		Possibly converted final value
+%	@error type_error(Type, Value)
+
 check_type([], _, Value, Value).
 check_type([H|T], Field, Value0, Value) :-
 	(   check_type3(H, Value0, Value1)
@@ -140,6 +151,12 @@ check_type([H|T], Field, Value0, Value) :-
 			context(_, Msg)))
 	).
 
+%%	check_type3(+Type, +ValueIn, -ValueOut) is semidet.
+%
+%	HTTP parameter type-check for types that need converting.
+%	
+%	@error	syntax_error
+
 check_type3(number, Atom, Number) :-
 	atom_number(Atom, Number).
 check_type3(integer, Atom, Integer) :-
@@ -148,6 +165,17 @@ check_type3(integer, Atom, Integer) :-
 check_type3(float, Atom, Float) :-
 	atom_number(Atom, Number),
 	Float is float(Number).
+check_type3(between(Low, High), Atom, Value) :-
+	atom_number(Atom, Number),
+	(   (float(Low) ; float(High))
+	->  Value is float(Number)
+	;   Value = Number
+	),
+	must_be(between(Low, High), Value).
+
+%%	check_type2(+Type, +ValueIn) is semidet.
+%
+%	HTTP parameter type-check for types that need no conversion.
 
 check_type2(oneof(Set), Value) :- !,
 	memberchk(Value, Set).

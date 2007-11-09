@@ -1039,33 +1039,33 @@ processed on each value.</DD>
 Succeeds if the value is member of the given list.</DD>
 <DT><B>length <VAR>&gt; N</VAR></B></DT>
 <DD class="defbody">
-Succeeds if value is an atom of more than <VAR>N</VAR> characters.
-</DD>
+Succeeds if value is an atom of more than <VAR>N</VAR> characters.</DD>
 <DT><B>length <VAR>&gt;= N</VAR></B></DT>
 <DD class="defbody">
 Succeeds if value is an atom of more or than equal to <VAR>N</VAR> 
-characters.
-</DD>
+characters.</DD>
 <DT><B>length <VAR>&lt; N</VAR></B></DT>
 <DD class="defbody">
-Succeeds if value is an atom of less than <VAR>N</VAR> characters.
-</DD>
+Succeeds if value is an atom of less than <VAR>N</VAR> characters.</DD>
 <DT><B>length <VAR>=&lt; N</VAR></B></DT>
 <DD class="defbody">
 Succeeds if value is an atom of length than or equal to <VAR>N</VAR> 
 characters.</DD>
 <DT><STRONG>number</STRONG></DT>
 <DD class="defbody">
-Convert value to a number. Throws a type-error otherwise.
-</DD>
+Convert value to a number. Throws a type-error otherwise.</DD>
 <DT><STRONG>integer</STRONG></DT>
 <DD class="defbody">
-Convert value to an integer. Throws a type-error otherwise.
-</DD>
+Convert value to an integer. Throws a type-error otherwise.</DD>
 <DT><STRONG>float</STRONG></DT>
 <DD class="defbody">
 Convert value to a float. Integers are tranformed into fload. Throws a 
-type-error otherwise.
+type-error otherwise.</DD>
+<DT><STRONG>between</STRONG>(<VAR>+Low, +High</VAR>)</DT>
+<DD class="defbody">
+Convert value to a number and if either <VAR>Low</VAR> or <VAR>High</VAR> 
+is a float, force value to be a float. Then check that the value is in 
+the given range, which includes the boundaries.
 </DD>
 </DL>
 

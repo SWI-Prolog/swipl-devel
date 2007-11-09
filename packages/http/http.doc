@@ -752,20 +752,30 @@ Succeeds if the value is member of the given list.
 
     \definition{length $> N$}
 Succeeds if value is an atom of more than $N$ characters.
+
     \definition{length $>= N$}
 Succeeds if value is an atom of more or than equal to $N$ characters.
+
     \definition{length $< N$}
 Succeeds if value is an atom of less than $N$ characters.
+
     \definition{length $=< N$}
 Succeeds if value is an atom of length than or equal to $N$ characters.
 
     \termitem{number}{}
 Convert value to a number.  Throws a type-error otherwise.
+
     \termitem{integer}{}
 Convert value to an integer.  Throws a type-error otherwise.
+
     \termitem{float}{}
 Convert value to a float. Integers are tranformed into fload.  Throws a
 type-error otherwise.
+
+    \termitem{between}{+Low, +High}
+Convert value to a number and if either \arg{Low} or \arg{High} is a 
+float, force value to be a float.  Then check that the value is in the
+given range, which includes the boundaries.
 \end{description}
 
 Below is an example
