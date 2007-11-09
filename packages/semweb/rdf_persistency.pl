@@ -1050,7 +1050,7 @@ prolog:message(rdf(Term)) -->
 	message(Term).
 
 message(restore(attached(Graphs, Time/Wall))) -->
-	{ Percent is round(100*Time/Wall) },
+	{ catch(Percent is round(100*Time/Wall), _, Percent = 0) },
 	[ 'Attached ~D graphs in ~2f seconds (~d% CPU = ~2f sec.)'-
 	  [Graphs, Wall, Percent, Time] ].
 message(restore(true, Action)) --> !,
