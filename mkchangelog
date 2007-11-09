@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Generate old-style ChangeLog files from the GIT log. Ultimately we may
+# wish to insert this into ChangeLog
+
+since="$1"
+
+if [ -z "$since" ]; then
+   echo "Usage: `basename $0` version [path ...]"
+   exit 1
+fi
+
+shift;
+
+# Ensure case-sensitive matching
+LANG=C
+
+git log V${since}.. --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
+BEGIN		{ doprint="false";
+		  dateprinted="";
+		}
+/^PATCH[[]/	{ date="["  $2 " " $3 " " $5 "]";
+		  doprint="false";
+		  next;
+	        }
+/^[A-Z][A-Z]+:/	{ if ( dateprinted != date )
+		  { printf("%s\n\n", date);
+		    dateprinted = date;
+		  }
+		  printf(" * %s\n", $0);
+		  doprint="true";
+		  next;
+		}
+/.*/ 		{ if ( doprint == "true" )
+		  { if ( $0 != "<unknown>" )
+		    { printf("   %s\n", $0);
+		    } else
+		    { printf("\n");
+		    }
+		  }
+		  next;
+		}
+END		{ printf("==============\n");
+		  printf("VERSION '$since'\n");
+		  printf("==============\n");
+		}
+'
