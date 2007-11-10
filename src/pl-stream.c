@@ -1145,13 +1145,24 @@ Sfread(void *data, size_t size, size_t elms, IOSTREAM *s)
 { size_t chars = size * elms;
   char *buf = data;
 
-  for( ; chars > 0; chars-- )
-  { int c;
+  if ( s->position )
+  { for( ; chars > 0; chars-- )
+    { int c;
 
-    if ( (c = Sgetc(s)) == EOF )
-      break;
+      if ( (c = Sgetc(s)) == EOF )
+	break;
+      
+      *buf++ = c & 0xff;
+    }
+  } else
+  { for( ; chars > 0; chars-- )
+    { int c;
 
-    *buf++ = c & 0xff;
+      if ( (c = Snpgetc(s)) == EOF )
+	break;
+      
+      *buf++ = c & 0xff;
+    }
   }
   
   return (size*elms - chars)/size;
