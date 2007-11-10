@@ -1154,14 +1154,30 @@ Sfread(void *data, size_t size, size_t elms, IOSTREAM *s)
       
       *buf++ = c & 0xff;
     }
-  } else
-  { for( ; chars > 0; chars-- )
+  } else 
+  { while(chars > 0)
     { int c;
 
-      if ( (c = Snpgetc(s)) == EOF )
-	break;
+      if ( s->bufp < s->limitp )
+      { size_t avail = s->limitp - s->bufp;
+	
+	if ( chars <= avail )
+	{ memcpy(buf, s->bufp, chars);
+	  s->bufp += chars;
+	  return elms;
+	} else
+	{ memcpy(buf, s->bufp, avail);
+	  chars -= avail;
+	  buf += avail;
+	  s->bufp += avail;
+	}
+      }
       
+      if ( (c = S__fillbuf(s)) == EOF )
+	break;
+
       *buf++ = c & 0xff;
+      chars--;
     }
   }
   
