@@ -682,11 +682,13 @@ monitor_mask(all,	   0xffff).
 
 rdf_save_db(File) :-
 	open(File, write, Out, [type(binary)]),
+	set_stream(Out, record_position(false)),
 	call_cleanup(rdf_save_db_(Out, _), close(Out)).
 
 
 rdf_save_db(File, DB) :-
 	open(File, write, Out, [type(binary)]),
+	set_stream(Out, record_position(false)),
 	call_cleanup(rdf_save_db_(Out, DB), close(Out)).
 
 
@@ -698,8 +700,9 @@ rdf_save_db(File, DB) :-
 %	graph-names encountered in File.
 
 rdf_load_db_no_admin(File, Id, Graphs) :-
-	open(File, read, Out, [type(binary)]),
-	call_cleanup(rdf_load_db_(Out, Id, Graphs), close(Out)).
+	open(File, read, In, [type(binary)]),
+	set_stream(In, record_position(false)),
+	call_cleanup(rdf_load_db_(In, Id, Graphs), close(In)).
 
 
 %%	rdf_load_db(+File) is det.
