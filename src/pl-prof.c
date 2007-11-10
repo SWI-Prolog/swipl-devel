@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2007, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -200,6 +200,13 @@ stopItimer(void)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 POSIX version
+
+(*) Originally this code used 1,  which   appeared  to  mean anytime the
+system starts a new time slice for  the task. Hiroo Koshimoto discovered
+this caused very  fast  interrupts   on  MacOSX  `Leopart',  effectively
+causing the monitored program to stop  working.   We  now use 1000 us (1
+millisecond). That should be safe on   most modern hardware. If hardware
+becomes a lot faster we may wish to reduce this value.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef TIME_WITH_SYS_TIME
@@ -222,9 +229,9 @@ startProfiler(void)
   set_sighandler(SIGPROF, profile);
 
   value.it_interval.tv_sec  = 0;
-  value.it_interval.tv_usec = 1;
+  value.it_interval.tv_usec = 1000;	/* see (*) above */
   value.it_value.tv_sec  = 0;
-  value.it_value.tv_usec = 1;
+  value.it_value.tv_usec = 1000;
   
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
