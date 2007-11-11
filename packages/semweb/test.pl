@@ -80,3 +80,18 @@ test(gzip_http, [true(N == 1), cleanup(rdf_reset_db)]) :-
 	rdf_statistics(triples(N)).
 
 :- end_tests(load).
+
+:- begin_tests(inverse).
+
+test(set,  [cleanup(rdf_reset_db)]) :-
+	rdf_assert(r1, p1, r2),
+	rdf_set_predicate(p2, inverse_of(p1)),
+	rdf_has(r2, p2, r1).
+test(clear,  [cleanup(rdf_reset_db)]) :-
+	rdf_assert(r1, p1, r2),
+	rdf_set_predicate(p2, inverse_of(p1)),
+	rdf_has(r2, p2, r1),
+	rdf_set_predicate(p2, inverse_of([])),
+	\+ rdf_has(r2, p2, r1).
+
+:- end_tests(inverse).

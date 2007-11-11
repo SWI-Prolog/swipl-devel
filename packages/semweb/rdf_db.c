@@ -5278,11 +5278,18 @@ rdf_set_predicate(term_t pred, term_t option)
     predicate *i;
 
     PL_get_arg(1, option, a);
-    if ( !get_predicate(db, a, &i) )
-      return FALSE;
+    if ( PL_get_nil(a) )
+    { if ( p->inverse_of )
+      { p->inverse_of->inverse_of = NULL;
+	p->inverse_of = NULL;
+      }
+    } else
+    { if ( !get_predicate(db, a, &i) )
+	return FALSE;
 
-    p->inverse_of = i;
-    i->inverse_of = p;
+      p->inverse_of = i;
+      i->inverse_of = p;
+    }
     return TRUE;
   } else if ( PL_is_functor(option, FUNCTOR_transitive1) )
   { int val;
