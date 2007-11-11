@@ -1,6 +1,7 @@
 \documentclass[11pt]{article}
 \usepackage{times}
 \usepackage{pl}
+\usepackage{plpage}
 \usepackage{alltt}
 \usepackage{html}
 \usepackage{verbatim}
@@ -321,9 +322,12 @@ rdf_current_predicate(Predicate) :-
 \end{code}
 
     \predicate{rdf_set_predicate}{2}{+Predicate, +Property}
-Define a property of the predicate.  Defined properties are listed
-with rdf_predicate_property/2.
-
+Define a property of the predicate. This predicate currently supports
+the properties \const{symmetric}, \const{inverse_of} and
+\const{transitive} as defined with rdf_predicate_property/2.  Adding
+an $A$ inverse_of $B$ also adds $B$ inverse_of $A$.  An inverse relation
+is deleted using \term{inverse_of}{[]}.
+`
     \predicate{rdf_predicate_property}{2}{?Predicate, -Property}
 Query properties of a defined predicate.  Currently defined properties
 are given below.
