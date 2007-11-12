@@ -32,6 +32,7 @@
 :- module(emacs_language_mode, []).
 :- use_module(library(pce)).
 :- use_module(library(hyper)).
+:- use_module(library(socket), [gethostname/1]).
 :- require([ auto_call/1
 	   , chain_list/2
 	   , default/3
@@ -298,6 +299,13 @@ file_header_parameter('%U', _, UserName) :-
 	(   get(@pce, user_info, gecos, User, UserName)
 	->  true
 	;   UserName = User
+	).
+file_header_parameter('%E', _, Email) :-
+	(   getenv('EMAIL', Email)
+	->  true
+	;   get(@pce, user, User),
+	    gethostname(Host),
+	    concat_atom([User, Host], @, Email)
 	).
 file_header_parameter('%D', _, Date) :-
 	new(D, date),
