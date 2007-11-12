@@ -1456,16 +1456,12 @@ find_notation(dtd *dtd, dtd_symbol *name)
 
 static void
 add_notation(dtd *dtd, dtd_notation *not)
-{ dtd_notation *n;
+{ dtd_notation **n = &dtd->notations;
 
-  for(n=dtd->notations; n; n = n->next)
-  { if ( !n->next )
-    { n->next = not;
-      break;
-    }
-  }
+  for( ; *n; n = &(*n)->next)
+    ;
+  *n = not;
 }
-
 
 static int
 process_notation_declaration(dtd_parser *p, const ichar *decl)
