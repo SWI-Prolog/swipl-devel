@@ -188,24 +188,24 @@ dirs::
 		  if [ ! -d $$d ]; then mkdir $$d; fi; \
 		done
 
-$(RUNTIME):	$(OBJ) $(LIBOBJ) $(XOBJ)
+$(RUNTIME):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 		rm -f $@
 		$(AR) r $@ $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(RANLIB) $@
 
 ifeq ($(SOEXT),dylib)
-$(RUNTIMEDIR)/$(SHARED):	dirs $(RUNTIMEDIR) $(OBJ) $(LIBOBJ) $(XOBJ)
+$(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(CC) -dynamiclib -current_version $(PLVERSION) \
 			-install_name $(LIBPL_INSTALL_NAME) \
 			$(COFLAGS) -o $@ \
 			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 else
 ifeq ($(SOEXT),dll)
-$(RUNTIMEDIR)/$(SHARED):	dirs $(RUNTIMEDIR) $(OBJ) $(LIBOBJ) $(XOBJ)
+$(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
 			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 else
-$(RUNTIMEDIR)/$(SHAREDV):	dirs $(RUNTIMEDIR) $(OBJ) $(LIBOBJ) $(XOBJ)
+$(RUNTIMEDIR)/$(SHAREDV):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
 			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 
@@ -347,7 +347,7 @@ installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
 		library/clp library/unicode include dotfiles \
 		library/dialect library/dialect/yap library/dialect/iso
 
-iruntime::
+iruntime:	idirs
 		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(ARCH)
 		$(RANLIB) $(DESTDIR)$(PLBASE)/lib/$(ARCH)/$(PLLIB)
 ifeq ($(SOEXT),dylib)
@@ -368,7 +368,7 @@ else
 endif
 endif
 
-install-implib::
+install-implib:	idirs
 		$(INSTALL_DATA) libplimp.a $(DESTDIR)$(PLBASE)/lib/$(ARCH)
 
 idirs::
@@ -381,46 +381,46 @@ idirs::
 		done
 
 
-iboot::		
+iboot:		idirs
 		for f in $(PLINIT) $(PLSRC); do $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/boot; done
 
-ilib:		iclp idialect iunicode
+ilib:		idirs iclp idialect iunicode
 		for f in $(PLLIBS); do \
 			$(INSTALL_DATA) ../library/$$f $(DESTDIR)$(PLBASE)/library; \
 		done
 
-iclp::
+iclp:		idirs
 		for f in $(CLP); do \
 			$(INSTALL_DATA) ../library/clp/$$f $(DESTDIR)$(PLBASE)/library/clp; \
 		done
 
-idialect:	iyap iiso
+idialect:	idirs iyap iiso
 		for f in $(DIALECT); do \
 			$(INSTALL_DATA) ../library/dialect/$$f $(DESTDIR)$(PLBASE)/library/dialect; \
 		done
 
-iyap::
+iyap:		idirs
 		for f in $(YAP); do \
 			$(INSTALL_DATA) ../library/dialect/yap/$$f $(DESTDIR)$(PLBASE)/library/dialect/yap; \
 		done
 
-iiso::
+iiso:		idirs
 		for f in $(ISO); do \
 			$(INSTALL_DATA) ../library/dialect/iso/$$f $(DESTDIR)$(PLBASE)/library/dialect/iso; \
 		done
 
-iunicode::
+iunicode:	idirs
 		for f in $(UNICODE); do \
 			$(INSTALL_DATA) ../library/unicode/$$f $(DESTDIR)$(PLBASE)/library/unicode; \
 		done
 
-idot::
+idot:		idirs
 		$(INSTALL_DATA) ../dotfiles/dotplrc $(DESTDIR)$(PLBASE)/dotfiles
 		$(INSTALL_DATA) ../dotfiles/dotxpcerc $(DESTDIR)$(PLBASE)/dotfiles
 		$(INSTALL_DATA) ../dotfiles/README $(DESTDIR)$(PLBASE)/dotfiles
 		$(INSTALL_SCRIPT) ../dotfiles/edit $(DESTDIR)$(PLBASE)/dotfiles
 
-iinclude::
+iinclude:	idirs
 		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h stub.c; do \
 		    if [ -f ../include/$$f ]; then \
 			$(INSTALL_DATA) ../include/$$f $(DESTDIR)$(PLBASE)/include; \
@@ -434,7 +434,7 @@ iman::
 		-$(INSTALL_DATA) $(srcdir)/plrc.1 $(DESTDIR)$(smandir)/plrc.$(mansec)
 		-$(INSTALL_DATA) $(srcdir)/plld.1 $(DESTDIR)$(smandir)/plld.$(mansec)
 
-install-lman::
+install-lman:	idirs
 		$(INSTALL_DATA) pl.1 $(DESTDIR)$(plmandir)/$(PL).$(mansec)
 		$(INSTALL_DATA) $(srcdir)/plrc.1 $(DESTDIR)$(plmandir)/plrc.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/plld.1 $(DESTDIR)$(plmandir)/plld.$(mansec)

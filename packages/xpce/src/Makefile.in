@@ -730,14 +730,14 @@ RTLIBS=		pl2xpce.$(SO) $(LIBXPCESOMM) $(LIBXPCEMAIN)
 rt-home:
 		if [ ! -d $(DESTDIR)$(RTHOME) ]; then mkdir $(DESTDIR)$(RTHOME); fi
 
-rt-bitmaps:
+rt-bitmaps:	rt-home
 		BMFS=`find ../bitmaps/ \( -name '*.bm' -o -name '*.xpm' -o -name '*.xbm' \) -print` && \
 		$(INSTALL_DATA) -p1 ../bitmaps/README $$BMFS $(DESTDIR)$(RTHOME)
 
-rt-misc:
+rt-misc:	rt-home
 		$(INSTALL_DATA) -C .. $(RTMISC) $(DESTDIR)$(RTHOME)
 
-rt-bins:
+rt-bins:	rt-home
 		$(INSTALL_DATA) -dC $(DESTDIR)$(RTHOME) bin/$(PLARCH) lib/$(PLARCH)
 		@if [ -f xpce ]; then \
 		    echo "xpce --> $(PLBINDIR)"; \
@@ -769,7 +769,7 @@ rt-bins:
 dv-home:
 		if [ ! -d $(DESTDIR)$(DVHOME) ]; then mkdir $(DESTDIR)$(DVHOME); fi
 
-dv-lib:
+dv-lib:		dv-home
 		@if [ ! -d $(DESTDIR)$(DVHOME)/prolog ]; then mkdir $(DESTDIR)$(DVHOME)/prolog; fi
 		@for d in $(DVLIBDIRS); do \
 		    if [ ! -d $(DESTDIR)$(DVHOME)/prolog/$$d ]; then \
@@ -801,11 +801,11 @@ dv-lib:
 				$(DESTDIR)$(DVHOME)/prolog/lib/man
 		$(INSTALL_DATA) ../prolog/lib/Makefile $(DESTDIR)$(DVHOME)/prolog/lib
 
-dv-classindex::
+dv-classindex:	dv-lib
 		./xpce.sh -t "halt(1)" \
 			-g "[library(pce_class_index)],pce_make_library_index('$(DESTDIR)$(DVHOME)/prolog/lib'),halt"
 
-dv-boot:	
+dv-boot:	dv-lib
 		@for d in $(DVBOOTDIRS); do \
 		    if [ ! -d $(DESTDIR)$(DVHOME)/prolog/$$d ]; then \
 		        mkdir $(DESTDIR)$(DVHOME)/prolog/$$d; \
@@ -816,23 +816,23 @@ dv-boot:
 		    done; \
 		done
 
-dv-help:
+dv-help:	dv-home
 		$(INSTALL_DATA) -vp1 ../appl-help/*.hlp $(DESTDIR)$(DVHOME)
 
-dv-misc:
+dv-misc:	dv-home
 		$(INSTALL_DATA) -C .. $(DVMISCFILES) $(DESTDIR)$(DVHOME)
 
-dv-manual:	
+dv-manual:	dv-home
 		$(INSTALL_DATA) -p1 ../man/reference/*.doc $(DESTDIR)$(DVHOME)
 		$(INSTALL_DATA) -p1 ../man/reference/class/*.doc $(DESTDIR)$(DVHOME)
 		$(INSTALL_DATA) -p1 ../man/faq/*.html $(DESTDIR)$(DVHOME)
 
-dv-online:	manindex
+dv-online:	manindex dv-home
 		if [ -r $(MANINDEX) ]; then \
 		    $(INSTALL_DATA) -p1 $(MANINDEX) $(DESTDIR)$(DVHOME); \
 		fi
 
-dv-man:
+dv-man:		dv-home
 		for f in xpce-client xpce; do \
 		    $(INSTALL_DATA) ../man/$$f.1 $(DESTDIR)$(DVHOME)/man; \
 		    if test -w $(smandir); then \
@@ -848,7 +848,7 @@ dv-link:	rt-link
 		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(PLBASE)/xpce.rc
 		$(INSTALL_DATA) ../pl/src/Makefile.bin $(DESTDIR)$(PLBASE)/Makefile
 
-dv-pl-files:
+dv-pl-files:	rt-home
 		if [ ! -d $(DESTDIR)$(RTHOME)/pl ]; then mkdir $(DESTDIR)$(RTHOME)/pl; fi
 		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(RTHOME)/pl/pl.rc
 		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(RTHOME)/pl/xpce.rc
@@ -882,13 +882,13 @@ CXXDEMO=	DEMOS Makefile Makefile.in README bnode.cxx dir.cxx \
 
 cxx-install:	cxx-headers cxx-demos cxx-misc
 
-cxx-headers:
+cxx-headers:	dv-home
 		$(INSTALL_DATA) -p1 ../include/pce/*.h $(DESTDIR)$(DVHOME)
 
-cxx-demos:
+cxx-demos:	dv-home
 		$(INSTALL_DATA) -pC ../CXX/demo $(CXXDEMO) $(DESTDIR)$(DVHOME)/CXX/demo
 
-cxx-misc:
+cxx-misc:	dv-home
 		$(INSTALL_DATA) -C .. README.CXX $(DESTDIR)$(DVHOME)
 		$(INSTALL_DATA) -p1 ../src/itf/main.cxx $(DESTDIR)$(DVHOME)
 
