@@ -20,10 +20,6 @@ argument order of some of the predicates.
 Richard O'Keefe has told me he  is  working   on  a  new version of this
 library. This new version, as it becomes available, is likely to replace
 this one.
-
-If you wish to use this library  in   an  application, be aware that its
-interface may change. If the new version   becomes  available it will be
-documented in the SWI-Prolog Reference Manual.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -60,6 +56,16 @@ TODO: exploit order in ord_list_to_assoc/2
 	    put_assoc/4			% +Key, +Assoc, +Value, ?NewAssoc
 	  ]).
 
+/** <module> Binary associations
+
+Assocs are Key-Value associations implemented as  a balanced binary tree
+(AVL tree).
+
+@see		library(pairs), library(rbtrees)
+@author		R.A.O'Keefe, L.Damas, V.S.Costa and Jan Wielemaker
+@license	Public domain
+*/
+
 %:- meta_predicate map_assoc(:, ?).
 %:- meta_predicate map_assoc(:, ?, ?).
 
@@ -69,8 +75,17 @@ TODO: exploit order in ord_list_to_assoc/2
 	map_assoc_/2,
 	map_assoc_/3.
 
+%%	empty_assoc(-Assoc) is det.
+%%	empty_assoc(+Assoc) is semidet.
+%
+%	Is true if Assoc is the empty assoc.
+
 empty_assoc(t).
 
+%%	assoc_to_list(+Assoc, -Pairs:list(Key-Value)) is semidet.
+%
+%	Translate Assoc to a list of pairs.  The keys in Pairs are
+%	sorted in ascending order.
 
 assoc_to_list(Assoc, List) :-
 	assoc_to_list(Assoc, List, []).
@@ -81,12 +96,23 @@ assoc_to_list(t(Key,Val,_,L,R), List, Rest) :-
 assoc_to_list(t, List, List).
 
 
+%%	gen_assoc(?Key, +Assoc, ?Value) is nondet.
+%
+%	True if Key-Value is an association in Assoc. Enumerates keys in
+%	ascending order.
+%	
+%	@see get_assoc/3.
+
 gen_assoc(Key, t(_,_,_,L,_), Val) :-
 	gen_assoc(Key, L, Val).
 gen_assoc(Key, t(Key,Val,_,_,_), Val).
 gen_assoc(Key, t(_,_,_,_,R), Val) :-
 	gen_assoc(Key, R, Val).
 
+
+%%	get_assoc(+Key, +Assoc, -Value) is semidet.
+%
+%	True if Key-Value is an association in Assoc.
 
 get_assoc(Key, t(K,V,_,L,R), Val) :-
 	compare(Rel, Key, K),
@@ -99,6 +125,10 @@ get_assoc(>, Key, _, _, Tree, Val) :-
 	get_assoc(Key, Tree, Val).
 
 
+%%	get_assoc(+Key, +AssocIn, +Val, -AssocOut, +NewVal) is semidet.
+%
+%	True if Key-Val is in AssocIn and Key-NewVal is in AssocOut.
+
 get_assoc(Key, t(K,V,B,L,R), Val, t(K,NV,B,NL,NR), NVal) :-
 	compare(Rel, Key, K),
 	get_assoc(Rel, Key, V, L, R, Val, NV, NL, NR, NVal).
@@ -110,6 +140,10 @@ get_assoc(>, Key, V, L, R, Val, V, L, NR, NVal) :-
 	get_assoc(Key, R, Val, NR, NVal).
 
 
+%%	list_to_assoc(+List:list(Key-Value), -Assoc) is det.
+%
+%	Create an assoc from a pair-list.
+
 list_to_assoc(List, Assoc) :-
 	list_to_assoc(List, t, Assoc).
 
@@ -119,9 +153,16 @@ list_to_assoc([Key-Val|List], Assoc0, Assoc) :-
 	list_to_assoc(List, AssocI, Assoc).
 
 
+%%	ord_list_to_assoc(+List:list(Key-Value), -Assoc) is det.
+%
+%	Create an assoc from an ordered pair-list.
+
 ord_list_to_assoc(Keys, Assoc) :-
 	list_to_assoc(Keys, Assoc).
 
+%%	map_assoc(:Pred, +Assoc) is semidet.
+%
+%	True if Pred(Value) is true for all values in Assoc.
 
 map_assoc(Pred, T) :-
 	map_assoc_(T, Pred).
@@ -132,6 +173,9 @@ map_assoc_(t(_,Val,_,L,R), Pred) :-
 	call(Pred, Val),
 	map_assoc_(R, Pred).
 
+%%	map_assoc(:Pred, ?AssocIn, ?AssocOut) is semidet.
+%
+%	True if for every Key, Pred(ValIn, ValOut) is true.
 
 map_assoc(Pred, T0, T) :-
 	map_assoc_(T0, Pred, T).
@@ -143,6 +187,10 @@ map_assoc_(t(Key,Val,B,L0,R0), Pred, t(Key,Ans,B,L1,R1)) :-
 	map_assoc_(R0, Pred, R1).
 
 
+%%	max_assoc(+Assoc, -Key, -Value is semidet.
+%
+%	True if Key-Value is in assoc and Key is the largest.
+
 max_assoc(t(K,V,_,_,R), Key, Val) :-
 	max_assoc(R, K, V, Key, Val).
 
@@ -151,6 +199,10 @@ max_assoc(t(K,V,_,_,R), _, _, Key, Val) :-
 	max_assoc(R, K, V, Key, Val).
 
 
+%%	min_assoc(+Assoc, -Key, -Value is semidet.
+%
+%	True if Key-Value is in assoc and Key is the smallest.
+
 min_assoc(t(K,V,_,L,_), Key, Val) :-
 	min_assoc(L, K, V, Key, Val).
 
@@ -158,6 +210,11 @@ min_assoc(t, K, V, K, V).
 min_assoc(t(K,V,_,L,_), _, _, Key, Val) :-
 	min_assoc(L, K, V, Key, Val).
 
+
+%%	put_assoc(+Key, +AssocIn, +Value, -AssocOut) is det.
+%
+%	Add Key-Value to AssocIn. If  Key   is  already  in AssocIn, the
+%	associated value is replaced.
 
 put_assoc(Key, A0, Value, A) :-
 	insert(A0, Key, Value, A, _).
