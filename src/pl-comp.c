@@ -2103,15 +2103,10 @@ PRED_IMPL("asserta", 2, asserta2, PL_FA_TRANSPARENT)
 }
 
 
-static
-PRED_IMPL("$record_clause", 3, record_clause, 0)
-{ PRED_LD
-  Clause clause;
+static int
+record_clause(term_t term, term_t file, term_t ref, int aux ARG_LD)
+{ Clause clause;
   sourceloc loc;
-
-  term_t term = A1;
-  term_t file = A2;
-  term_t ref  = A3;
 
   if ( PL_get_atom(file, &loc.file) )	/* just the name of the file */
   { loc.line = source_line_no;
@@ -2126,11 +2121,38 @@ PRED_IMPL("$record_clause", 3, record_clause, 0)
       fail;
   }
 
-  if ( (clause = assert_term(term, CL_END, &loc PASS_LD)) )
+  if ( aux )
+  { SourceFile sf = lookupSourceFile(loc.file, TRUE);
+    Procedure current = sf->current_procedure;
+
+    sf->current_procedure = NULL;
+    clause = assert_term(term, CL_END, &loc PASS_LD);
+    sf->current_procedure = current;
+  } else
+  { clause = assert_term(term, CL_END, &loc PASS_LD);
+  }
+
+  if ( clause )
     return PL_unify_pointer(ref, clause);
   
   fail;
 }  
+
+
+static
+PRED_IMPL("$record_clause", 3, record_clause, 0)
+{ PRED_LD
+
+  return record_clause(A1, A2, A3, FALSE PASS_LD);
+}
+
+
+static
+PRED_IMPL("$compile_aux_clause", 3, compile_aux_clause, 0)
+{ PRED_LD
+
+  return record_clause(A1, A2, A3, TRUE PASS_LD);
+}
 
 
 word
@@ -4322,6 +4344,7 @@ pl_current_break(term_t ref, term_t pc, control_t h)
 
 BeginPredDefs(comp)
   PRED_DEF("$record_clause", 3, record_clause, 0)
+  PRED_DEF("$compile_aux_clause", 3, compile_aux_clause, 0)
   PRED_DEF("assert",  1, assertz1, PL_FA_TRANSPARENT)
   PRED_DEF("assertz", 1, assertz1, PL_FA_TRANSPARENT)
   PRED_DEF("asserta", 1, asserta1, PL_FA_TRANSPARENT)

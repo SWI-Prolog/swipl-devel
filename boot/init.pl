@@ -1478,6 +1478,26 @@ expand_term(Term, Term).
 	'$qlf_assert_clause'(Ref, development).
 
 
+%%	compile_aux_clauses(+Clauses) is det.
+%
+%	Compile clauses given the current  source   location  but do not
+%	change  the  notion  of   the    current   procedure  such  that
+%	discontiguous  warnings  are  not  issued.    The   clauses  are
+%	associated with the current file and  therefore wiped out if the
+%	file is reloaded.
+
+compile_aux_clauses(Clauses) :-
+	source_location(File, Line),
+	compile_aux_clauses(Clauses, File:Line).
+
+compile_aux_clauses([], _).
+compile_aux_clauses([H|T], Location) :-
+	'$compile_aux_clause'(H, Location, Ref),
+	'$qlf_assert_clause'(Ref),
+	compile_aux_clauses(T, Location).
+
+
+
 		 /*******************************
 		 *	     INCLUDE		*
 		 *******************************/
