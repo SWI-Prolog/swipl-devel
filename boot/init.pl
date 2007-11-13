@@ -1036,11 +1036,11 @@ load_files(Files, Options) :-
 	    ),
 
 	    '$print_message'(silent /*MessageLevel*/,
-			   load_file(start(Level,
-					   file(File, Absolute)))),
+			     load_file(start(Level,
+					     file(File, Absolute)))),
 	    (   nonvar(FromStream),
 	        '$consult_file'(stream(Absolute, FromStream), Encoding,
-			      Module, Import, IsModule, Action, LM)
+				Module, Import, IsModule, Action, LM)
 	    ->	true
 	    ;   var(FromStream),
 		'$consult_goal'(Absolute, Goal),
@@ -1487,15 +1487,10 @@ expand_term(Term, Term).
 %	file is reloaded.
 
 compile_aux_clauses(Clauses) :-
-	source_location(File, Line),
-	compile_aux_clauses(Clauses, File:Line).
-
-compile_aux_clauses([], _).
-compile_aux_clauses([H|T], Location) :-
-	'$compile_aux_clause'(H, Location, Ref),
-	'$qlf_assert_clause'(Ref),
-	compile_aux_clauses(T, Location).
-
+	source_location(File, _Line),
+	'$start_aux'(File, Context),
+	call_cleanup('$store_clause'(Clauses, File),
+		     '$end_aux'(File, Context)).
 
 
 		 /*******************************

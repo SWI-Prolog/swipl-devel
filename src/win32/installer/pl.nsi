@@ -118,6 +118,7 @@ Section "Base system (required)"
   File pl\library\record.pl
   File pl\library\settings.pl
   File pl\library\dialect.pl
+  File pl\library\apply_macros.pl
 
 ; WINDOWS
   File pl\library\dde.pl

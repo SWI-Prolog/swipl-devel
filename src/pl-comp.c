@@ -2104,7 +2104,7 @@ PRED_IMPL("asserta", 2, asserta2, PL_FA_TRANSPARENT)
 
 
 static int
-record_clause(term_t term, term_t file, term_t ref, int aux ARG_LD)
+record_clause(term_t term, term_t file, term_t ref ARG_LD)
 { Clause clause;
   sourceloc loc;
 
@@ -2121,18 +2121,7 @@ record_clause(term_t term, term_t file, term_t ref, int aux ARG_LD)
       fail;
   }
 
-  if ( aux )
-  { SourceFile sf = lookupSourceFile(loc.file, TRUE);
-    Procedure current = sf->current_procedure;
-
-    sf->current_procedure = NULL;
-    clause = assert_term(term, CL_END, &loc PASS_LD);
-    sf->current_procedure = current;
-  } else
-  { clause = assert_term(term, CL_END, &loc PASS_LD);
-  }
-
-  if ( clause )
+  if ( (clause = assert_term(term, CL_END, &loc PASS_LD)) )
     return PL_unify_pointer(ref, clause);
   
   fail;
@@ -2143,15 +2132,56 @@ static
 PRED_IMPL("$record_clause", 3, record_clause, 0)
 { PRED_LD
 
-  return record_clause(A1, A2, A3, FALSE PASS_LD);
+  return record_clause(A1, A2, A3 PASS_LD);
 }
 
 
 static
-PRED_IMPL("$compile_aux_clause", 3, compile_aux_clause, 0)
+PRED_IMPL("$start_aux", 2, start_aux, 0)
 { PRED_LD
+  atom_t filename;
+  SourceFile sf;
 
-  return record_clause(A1, A2, A3, TRUE PASS_LD);
+  if ( !PL_get_atom_ex(A1, &filename) )
+    fail;
+
+  sf = lookupSourceFile(filename, TRUE);
+  if ( sf->current_procedure )
+  { if ( unify_definition(A2, sf->current_procedure->definition, 0, 
+			  GP_QUALIFY|GP_NAMEARITY) )
+    { sf->current_procedure = NULL;
+      succeed;
+    }
+    fail;
+  }
+
+  return PL_unify_nil(A2);
+}
+
+
+static
+PRED_IMPL("$end_aux", 2, end_aux, 0)
+{ PRED_LD
+  atom_t filename;
+  SourceFile sf;
+  Procedure proc;
+
+  if ( !PL_get_atom_ex(A1, &filename) )
+    fail;
+
+  sf = lookupSourceFile(filename, TRUE);
+  if ( PL_get_nil(A2) )
+  { sf->current_procedure = NULL;
+  } else
+  { if ( get_procedure(A2, &proc, 0, GP_NAMEARITY|GP_EXISTENCE_ERROR) )
+    { sf->current_procedure = proc;
+      succeed;
+    }
+
+    fail;
+  }
+    
+  succeed;
 }
 
 
@@ -3056,8 +3086,9 @@ unify_definition(term_t head, Definition def, term_t thehead, int how)
 { GET_LD
 
   if ( PL_is_variable(head) )
-  { if ( def->module == MODULE_user ||
-	 ((how&GP_HIDESYSTEM) && true(def->module, SYSTEM)) )
+  { if ( !(how&GP_QUALIFY) &&
+	 (def->module == MODULE_user ||
+	  ((how&GP_HIDESYSTEM) && true(def->module, SYSTEM))) )
     { unify_functor(head, def->functor->functor, how);
       if ( thehead )
 	PL_put_term(thehead, head);
@@ -4344,7 +4375,8 @@ pl_current_break(term_t ref, term_t pc, control_t h)
 
 BeginPredDefs(comp)
   PRED_DEF("$record_clause", 3, record_clause, 0)
-  PRED_DEF("$compile_aux_clause", 3, compile_aux_clause, 0)
+  PRED_DEF("$start_aux", 2, start_aux, 0)
+  PRED_DEF("$end_aux", 2, end_aux, 0)
   PRED_DEF("assert",  1, assertz1, PL_FA_TRANSPARENT)
   PRED_DEF("assertz", 1, assertz1, PL_FA_TRANSPARENT)
   PRED_DEF("asserta", 1, asserta1, PL_FA_TRANSPARENT)
