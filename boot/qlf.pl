@@ -58,7 +58,7 @@ qcompile(File) :-
 			context(qcompile/1, 'Conflicting extension')))
 	;   true
 	),
-	user:prolog_file_type(QlfExt, qlf),
+	once(user:prolog_file_type(QlfExt, qlf)),
 	file_name_extension(ABase, QlfExt, Qlf),
 	'$qlf_open'(Qlf),
 	flag('$compiling', Old, qlf),
