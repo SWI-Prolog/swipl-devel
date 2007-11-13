@@ -92,7 +92,13 @@ expand_maplist(Callable0, Lists, Goal) :-
 	    NextIterate =.. [AuxName|IttArgs],
 	    NextClause = (NextHead :- NextGoal, NextIterate),
 	    
-	    compile_aux_clauses([BaseClause, NextClause])
+	    (	predicate_property(NextGoal, transparent)
+	    ->	compile_aux_clauses([ (:- module_transparent(Module:AuxName/AuxArity)),
+				      BaseClause,
+				      NextClause
+				    ])
+	    ;   compile_aux_clauses([BaseClause, NextClause])
+	    )
 	).
 
 
