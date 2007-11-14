@@ -1,6 +1,38 @@
 \pagebreak
 \section{Library predicates}		\label{sec:library}
 
+\subsection{\pllib{assoc}}
+
+\begin{summarylist}{ll}
+\predicatesummary{assoc_to_list}{2}{Translate assoc into a pairs list}
+\predicatesummary{assoc_to_keys}{2}{Translate assoc into a key list}
+\predicatesummary{empty_assoc}{1}{Test/create an empty assoc}
+\predicatesummary{gen_assoc}{3}{Non-deterministic enumeration of assoc}
+\predicatesummary{get_assoc}{3}{Get associated value}
+\predicatesummary{get_assoc}{5}{Get and replace associated value}
+\predicatesummary{list_to_assoc}{2}{Translate pair list to assoc}
+\predicatesummary{map_assoc}{2}{Test assoc values}
+\predicatesummary{map_assoc}{3}{Map assoc values}
+\predicatesummary{max_assoc}{3}{Max key-value of an assoc}
+\predicatesummary{min_assoc}{3}{Min key-value of an assoc}
+\predicatesummary{ord_list_to_assoc}{3}{Translate ordered list into an assoc}
+\predicatesummary{put_assoc}{4}{Add association to an assoc}
+\end{summarylist}
+
+
+\subsection{\pllib{broadcast}}
+
+\begin{summarylist}{ll}
+\predicatesummary{broadcast}{1}{Send event notification}
+\predicatesummary{broadcast_request}{1}{Request all agents}
+\predicatesummary{listen}{2}{Listen to event notifications}
+\predicatesummary{listen}{3}{Listen to event notifications}
+\predicatesummary{unlisten}{1}{Stop listening to event notifications}
+\predicatesummary{unlisten}{2}{Stop listening to event notifications}
+\predicatesummary{unlisten}{3}{Stop listening to event notifications}
+\predicatesummary{listening}{3}{Who is listening to event notifications?}
+\end{summarylist}
+
 \subsection{\pllib{check}}
 
 \begin{summarylist}{ll}
@@ -50,6 +82,55 @@
 \predicatesummary{ord_memberchk}{2}{Deterministically test membership}
 \end{summarylist}
 
+\subsection{\pllib{prologxref}}
+
+\begin{summarylist}{ll}
+\predicatesummary{prolog:called_by}{2}{\hook{prolog} Extend cross-referencer}
+\predicatesummary{xref_built_in}{1}{Examine defined built-ins}
+\predicatesummary{xref_called}{3}{Examine called predicates}
+\predicatesummary{xref_clean}{1}{Remove analysis of source}
+\predicatesummary{xref_current_source}{1}{Examine cross-referenced sources}
+\predicatesummary{xref_defined}{3}{Examine defined predicates}
+\predicatesummary{xref_exported}{2}{Examine exported predicates}
+\predicatesummary{xref_module}{2}{Module defined by source}
+\predicatesummary{xref_source}{1}{Cross-reference analysis of source}
+\end{summarylist}
+
+\subsection{\pllib{pairs}}
+\input{summaries.d/pairs.tex}
+
+\subsection{\pllib{readutil}}
+
+\begin{summarylist}{ll}
+\predicatesummary{read_line_to_codes}{2}{Read line from a stream}
+\predicatesummary{read_line_to_codes}{3}{Read line from a stream}
+\predicatesummary{read_stream_to_codes}{2}{Read contents of stream}
+\predicatesummary{read_stream_to_codes}{3}{Read contents of stream}
+\predicatesummary{read_file_to_codes}{3}{Read contents of file}
+\predicatesummary{read_file_to_terms}{3}{Read contents of file to Prolog terms}
+\end{summarylist}
+
+\subsection{\pllib{record}}
+
+\begin{summarylist}{ll}
+\predicatesummary{record}{1}{Define named fields in a term}
+\end{summarylist}
+
+\subsection{\pllib{registry}}
+
+This library is only available on Windows systems.
+
+\begin{summarylist}{ll}
+\predicatesummary{registry_get_key}{2}{Get principal value of key}
+\predicatesummary{registry_get_key}{3}{Get associated value of key}
+\predicatesummary{registry_set_key}{2}{Set principal value of key}
+\predicatesummary{registry_set_key}{3}{Set associated value of key}
+\predicatesummary{registry_delete_key}{1}{Remove a key}
+\predicatesummary{shell_register_file_type}{4}{Register a file-type}
+\predicatesummary{shell_register_dde}{6}{Register DDE action}
+\predicatesummary{shell_register_prolog}{1}{Register Prolog}
+\end{summarylist}
+
 \subsection{\pllib{ugraphs}}
 
 \begin{summarylist}{ll}
@@ -72,44 +153,14 @@
 \predicatesummary{ugraph_union}{3}{Union of two graphs}
 \end{summarylist}
 
+\subsection{\pllib{url}}
+\input{summaries.d/url.tex}
 
 \subsection{\pllib{www_browser}}
 
 \begin{summarylist}{ll}
 \predicatesummary{www_open_url}{1}{Open a web-page in a browser}
 \end{summarylist}
-
-\subsection{\pllib{readutil}}
-
-\begin{summarylist}{ll}
-\predicatesummary{read_line_to_codes}{2}{Read line from a stream}
-\predicatesummary{read_line_to_codes}{3}{Read line from a stream}
-\predicatesummary{read_stream_to_codes}{2}{Read contents of stream}
-\predicatesummary{read_stream_to_codes}{3}{Read contents of stream}
-\predicatesummary{read_file_to_codes}{3}{Read contents of file}
-\predicatesummary{read_file_to_terms}{3}{Read contents of file to Prolog terms}
-\end{summarylist}
-
-\subsection{\pllib{registry}}
-
-This library is only available on Windows systems.
-
-\begin{summarylist}{ll}
-\predicatesummary{registry_get_key}{2}{Get principal value of key}
-\predicatesummary{registry_get_key}{3}{Get associated value of key}
-\predicatesummary{registry_set_key}{2}{Set principal value of key}
-\predicatesummary{registry_set_key}{3}{Set associated value of key}
-\predicatesummary{registry_delete_key}{1}{Remove a key}
-\predicatesummary{shell_register_file_type}{4}{Register a file-type}
-\predicatesummary{shell_register_dde}{6}{Register DDE action}
-\predicatesummary{shell_register_prolog}{1}{Register Prolog}
-\end{summarylist}
-
-\subsection{\pllib{url}}
-\input{summaries.d/url.tex}
-
-\subsection{\pllib{clp/clpfd}}
-\input{summaries.d/clpfd.tex}
 
 \subsection{\pllib{clp/bounds}}
 
@@ -142,6 +193,23 @@ This library is only available on Windows systems.
 \predicatesummary{vars_in}{3}{Declare domain of variable as interval}
 \end{summarylist}
 
+\subsection{\pllib{clp/clpfd}}
+\input{summaries.d/clpfd.tex}
+
+\subsection{\pllib{clpqr}}
+
+\begin{summarylist}{ll}
+\predicatesummary{entailed}{1}{Check if constraint is entailed}
+\predicatesummary{inf}{2}{Find the infimum of an expression}
+\predicatesummary{sup}{2}{Find the supremum of an expression}
+\predicatesummary{minimize}{1}{Minimizes an expression}
+\predicatesummary{maximize}{1}{Maximizes an expression}
+\predicatesummary{bb_inf}{3}{Infimum of expression for mixed-integer problems}
+\predicatesummary{bb_inf}{4}{Infimum of expression for mixed-integer problems}    
+\predicatesummary{bb_inf}{5}{Infimum of expression for mixed-integer problems}
+\predicatesummary{dump}{3}{Dump constraints on variables}
+\end{summarylist}
+
 \subsection{\pllib{clp/simplex}}
 
 \begin{summarylist}{ll}
@@ -158,49 +226,3 @@ This library is only available on Windows systems.
 \predicatesummary{variable_value}{3}{Fetch value of variable in solved state}
 \end{summarylist}
 
-\subsection{\pllib{clpqr}}
-
-\begin{summarylist}{ll}
-\predicatesummary{entailed}{1}{Check if constraint is entailed}
-\predicatesummary{inf}{2}{Find the infimum of an expression}
-\predicatesummary{sup}{2}{Find the supremum of an expression}
-\predicatesummary{minimize}{1}{Minimizes an expression}
-\predicatesummary{maximize}{1}{Maximizes an expression}
-\predicatesummary{bb_inf}{3}{Infimum of expression for mixed-integer problems}
-\predicatesummary{bb_inf}{4}{Infimum of expression for mixed-integer problems}    
-\predicatesummary{bb_inf}{5}{Infimum of expression for mixed-integer problems}
-\predicatesummary{dump}{3}{Dump constraints on variables}
-\end{summarylist}
-
-\subsection{\pllib{prologxref}}
-
-\begin{summarylist}{ll}
-\predicatesummary{prolog:called_by}{2}{\hook{prolog} Extend cross-referencer}
-\predicatesummary{xref_built_in}{1}{Examine defined built-ins}
-\predicatesummary{xref_called}{3}{Examine called predicates}
-\predicatesummary{xref_clean}{1}{Remove analysis of source}
-\predicatesummary{xref_current_source}{1}{Examine cross-referenced sources}
-\predicatesummary{xref_defined}{3}{Examine defined predicates}
-\predicatesummary{xref_exported}{2}{Examine exported predicates}
-\predicatesummary{xref_module}{2}{Module defined by source}
-\predicatesummary{xref_source}{1}{Cross-reference analysis of source}
-\end{summarylist}
-
-\subsection{\pllib{broadcast}}
-
-\begin{summarylist}{ll}
-\predicatesummary{broadcast}{1}{Send event notification}
-\predicatesummary{broadcast_request}{1}{Request all agents}
-\predicatesummary{listen}{2}{Listen to event notifications}
-\predicatesummary{listen}{3}{Listen to event notifications}
-\predicatesummary{unlisten}{1}{Stop listening to event notifications}
-\predicatesummary{unlisten}{2}{Stop listening to event notifications}
-\predicatesummary{unlisten}{3}{Stop listening to event notifications}
-\predicatesummary{listening}{3}{Who is listening to event notifications?}
-\end{summarylist}
-
-\subsection{\pllib{record}}
-
-\begin{summarylist}{ll}
-\predicatesummary{record}{1}{Define named fields in a term}
-\end{summarylist}

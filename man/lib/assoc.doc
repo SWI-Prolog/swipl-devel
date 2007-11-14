@@ -19,6 +19,10 @@ expected time (and worst-case time) operation.
 		\arg{List} is a list of Key-Value pairs corresponding to
 		the associations in \arg{Assoc} in ascending order of keys.
 
+	\predicate{assoc_to_keys}{2}{+Assoc, -List}
+		\arg{List} is a list of Keys corresponding to
+		the associations in \arg{Assoc} in ascending order.
+
 	\predicate{empty_assoc}{1}{-Assoc}
 		\arg{Assoc} is unified with an empty association list.
 

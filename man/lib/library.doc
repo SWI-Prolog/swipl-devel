@@ -29,6 +29,7 @@ documented at all.
 \input{lists}
 \input{ordsets}
 \input{assoc}
+\input{pairs}
 \input{ugraphs}
 \input{nbset}
 \input{gensym}
