@@ -42,8 +42,9 @@ TODO: exploit order in ord_list_to_assoc/2
 
 
 :- module(assoc,
-	  [ assoc_to_list/2,		% +Assoc, ?List
-	    empty_assoc/1,		% -Assoc
+	  [ empty_assoc/1,		% -Assoc
+	    assoc_to_list/2,		% +Assoc, ?List
+	    assoc_to_keys/2,		% +Assoc, ?List
 	    gen_assoc/3,		% ?Key, +Assoc, ?Value
 	    get_assoc/3,		% +Key, +Assoc, ?Value
 	    get_assoc/5,		% +Key, +Assoc, ?Old, ?NewAssoc, +New
@@ -94,6 +95,20 @@ assoc_to_list(t(Key,Val,_,L,R), List, Rest) :-
 	assoc_to_list(L, List, [Key-Val|More]),
 	assoc_to_list(R, More, Rest).
 assoc_to_list(t, List, List).
+
+
+%%	assoc_to_keys(+Assoc, -Keys:list(Key)) is semidet.
+%
+%	Translate Assoc to a list  of  keys.   The  keys  are  sorted in
+%	ascending order.
+
+assoc_to_keys(Assoc, List) :-
+	assoc_to_keys(Assoc, List, []).
+
+assoc_to_keys(t(Key,_,_,L,R), List, Rest) :-
+	assoc_to_keys(L, List, [Key|More]),
+	assoc_to_keys(R, More, Rest).
+assoc_to_keys(t, List, List).
 
 
 %%	gen_assoc(?Key, +Assoc, ?Value) is nondet.
