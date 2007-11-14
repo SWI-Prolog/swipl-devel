@@ -4759,9 +4759,9 @@ list of alternatives without duplicates.
 \section{Invoking Predicates on all Members of a List} \label{sec:applylist}
 
 All the predicates in this section call a predicate on all members of a
-list or until the predicate called fails.  The predicate is called via
-call/[2..], which implies common arguments can be put in
-front of the arguments obtained from the list(s). For example:
+list or until the predicate called fails. The predicate is called via
+call/[2..], which implies common arguments can be put in front of the
+arguments obtained from the list(s). For example:
 
 \begin{code}
 ?- maplist(plus(1), [0, 1, 2], X).
@@ -4791,7 +4791,7 @@ triple. See the example above.
 
     \predicate{sublist}{3}{:Pred, +List1, ?List2}
 Unify \arg{List2} with a list of all elements of \arg{List1} to which
-\arg{Pred} applies.
+\arg{Pred} applies.  Under discussion.  Compatible to SICStus include/3.
 \end{description}
 
 
