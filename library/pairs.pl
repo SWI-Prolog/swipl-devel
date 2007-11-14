@@ -32,6 +32,7 @@
 :- module(pairs,
 	  [ pairs_keys_values/3,
 	    pairs_values/2,
+	    pairs_keys/2,
 	    group_pairs_by_key/2,
 	    transpose_pairs/2
 	  ]).
@@ -85,6 +86,16 @@ values_keys_pairs([V|Vs], [K|Ks], [K-V|Pairs]) :-
 pairs_values([], []).
 pairs_values([_-V|T0], [V|T]) :-
 	pairs_values(T0, T).
+
+
+%%	pairs_keys(+Pairs, -Keys) is det.
+%
+%	Remove the values  from  a  list   of  Key-Value  pairs.  Same  as
+%	pairs_keys_values(Pairs, Keys, _)
+
+pairs_keys([], []).
+pairs_keys([K-_|T0], [K|T]) :-
+	pairs_keys(T0, T).
 
 
 %%	group_pairs_by_key(+Pairs, -Joined:list(Key-Values)) is det.
