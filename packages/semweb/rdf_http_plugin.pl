@@ -49,7 +49,8 @@ from an HTTP server.
 rdf_db:rdf_open_hook(url(http, URL), Stream, Format) :-
 	atom(Format), !,
 	http_open(URL, Stream,
-		  [ header(content_type, Type)
+		  [ header(content_type, Type),
+		    request_header('Accept' = 'application/rdf+xml')
 		  ]),
 	(   ground(Format)
 	->  true
