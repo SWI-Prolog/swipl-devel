@@ -47,7 +47,7 @@
 
 option(Opt, Options, Default) :-	% make option processing stead-fast
 	arg(1, Opt, OptVal),
-	nonvar(OptVal), !,
+	ground(OptVal), !,
 	functor(Opt, OptName, 1),
 	functor(Gen, OptName, 1),
 	option(Gen, Options, Default),
