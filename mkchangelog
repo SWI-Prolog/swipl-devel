@@ -15,7 +15,13 @@ shift;
 # Ensure case-sensitive matching
 LANG=C
 
-git log V${since}.. --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
+case "$since" in
+   [0-9].[0-9].[09]*)
+	since=V${since}
+	;;
+esac
+
+git log ${since}.. --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
 BEGIN		{ doprint="false";
 		  dateprinted="";
 		}
