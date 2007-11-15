@@ -50,6 +50,7 @@
 	    proper_list/1,
 	    free_variables/2,		% +Term, -Variables
 	    checklist/2,		% :Goal, +List
+	    sublist/3,			% :Goal, +List, -Sublist
 	    convert_time/2,		% +Stamp, -String
 	    convert_time/8,		% +String, -YMDmhs.ms
 	    'C'/3,			% +List, -Head, -Tail
@@ -185,10 +186,28 @@ free_variables(Term, Variables) :-
 %	@deprecated Use maplist/2
 
 :- module_transparent
-	checklist/2.
+	checklist/2,
+	sublist/3.
 
 checklist(Goal, List) :-
 	maplist(Goal, List).
+
+%%	sublist(:Goal, +List1, ?List2)
+%	
+%	Succeeds if List2 unifies with a list holding those terms for wich
+%	call(Goal, Elem) succeeds.
+%	
+%	@deprecated Use include/3 from library(apply)
+%	@compat	DEC10 library
+
+sublist(_, [], []) :- !.
+sublist(Goal, [H|T], Sub) :-
+	call(Goal, H), !, 
+	Sub = [H|R], 
+	sublist(Goal, T, R).
+sublist(Goal, [_|T], R) :-
+	sublist(Goal, T, R).
+
 
 %%	strip_module(+Term, -Module, -Plain)
 %	

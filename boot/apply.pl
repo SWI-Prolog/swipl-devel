@@ -33,7 +33,6 @@
 	  [ maplist/2,			% :Goal, +List
 	    maplist/3,			% :Goal, ?List, ?List
 	    maplist/4,			% :Goal, ?List, ?List, ?List
-	    sublist/3,			% :Goal, +List, -List
 	    forall/2			% :Goal, :Goal
 	  ]).
 
@@ -44,7 +43,6 @@
 	maplist2/3, 
 	maplist/4, 
 	maplist2/4, 
-	sublist/3, 
 	forall/2.
 
 %	maplist(:Goal, +List)
@@ -86,19 +84,6 @@ maplist2([], [], [], _).
 maplist2([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], Goal) :-
 	call(Goal, Elem1, Elem2, Elem3), 
 	maplist2(Tail1, Tail2, Tail3, Goal).
-
-%	sublist(:Goal, +List1, ?List2)
-%	
-%	Succeeds if List2 unifies with a list holding those terms for wich
-%	apply(Goal, Elem) succeeds.
-
-sublist(_, [], []) :- !.
-sublist(Goal, [H|T], Sub) :-
-	call(Goal, H), !, 
-	Sub = [H|R], 
-	sublist(Goal, T, R).
-sublist(Goal, [_|T], R) :-
-	sublist(Goal, T, R).
 
 %	forall(+Condition, +Action)
 %	

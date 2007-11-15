@@ -40,7 +40,7 @@
 	   , ignore/1
 	   , maplist/3
 	   , member/2
-	   , sublist/3
+	   , include/3
 	   , subset/2
 	   , subtract/3
 	   ]).
@@ -81,7 +81,7 @@ layout_dialog(D) :-
 
 make_rows([], []).
 make_rows([Gr1|Rest], [[Gr1|RestRow]|RestRows]) :-
-	sublist(same_row(Gr1), Rest, RestRow),
+	include(same_row(Gr1), Rest, RestRow),
 	subtract(Rest, RestRow, Grs),
 	make_rows(Grs, RestRows).
 

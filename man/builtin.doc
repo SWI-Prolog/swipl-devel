@@ -4771,6 +4771,11 @@ X = [1, 2, 3]
 
 we phrase this as ``\arg{Predicate} is applied on \ldots''
 
+Currently, the predicates below are defined as built-in predicates.  It
+is planned to move these to library(apply).  See \secref{apply} for more
+predicates.  The library(apply_macros) defines macros that compile some
+of these meta-calling constructs away.
+
 \begin{description}
     \predicate{maplist}{2}{:Pred, +List}
 \arg{Pred} is applied successively on each element of \arg{List} until
@@ -4788,10 +4793,6 @@ the example above.
 Apply \arg{Pred} on all successive triples of elements from \arg{List1},
 \arg{List2} and \arg{List3}. Fails if \arg{Pred} can not be applied to a
 triple. See the example above.
-
-    \predicate{sublist}{3}{:Pred, +List1, ?List2}
-Unify \arg{List2} with a list of all elements of \arg{List1} to which
-\arg{Pred} applies.  Under discussion.  Compatible to SICStus include/3.
 \end{description}
 
 

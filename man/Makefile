@@ -45,7 +45,8 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
 		lib/nbset.tex lib/clpdistinct.tex lib/summary.tex \
 		lib/simplex.tex lib/assoc.tex lib/prologxref.tex \
 		lib/ugraphs.tex lib/ordsets.tex lib/broadcast.tex \
-		lib/record.tex lib/clpfd.tex lib/pairs.tex lib/option.tex
+		lib/record.tex lib/clpfd.tex lib/pairs.tex lib/option.tex \
+		lib/apply.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
@@ -183,6 +184,8 @@ beta-install::
 
 LIBTOTEX=$(PUBLICPL) -q -s libtotex.pl -g libtotex --
 
+lib/apply.tex:	../library/apply.pl
+		$(LIBTOTEX) 'library(apply)'
 lib/clpfd.tex:	../library/clp/clpfd.pl
 		$(LIBTOTEX) 'library(clpfd)'
 lib/url.tex:	../library/url.pl

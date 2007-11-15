@@ -1,6 +1,9 @@
 \pagebreak
 \section{Library predicates}		\label{sec:library}
 
+\subsection{\pllib{apply}}
+\input{summaries.d/apply.tex}
+
 \subsection{\pllib{assoc}}
 
 \begin{summarylist}{ll}
