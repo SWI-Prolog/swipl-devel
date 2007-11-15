@@ -173,7 +173,7 @@ merge_options(New, Old, Merged) :-
 	sort(OCanonical, OSorted),
 	ord_merge(NSorted, OSorted, Merged).
 
-ord_merge([], L, L).
+ord_merge([], L, L) :- !.
 ord_merge(L, [], L) :- !.
 ord_merge([NO|TN], [OO|TO], Merged) :-
 	functor(NO, NName, 1),
