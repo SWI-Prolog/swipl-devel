@@ -33,10 +33,50 @@
 	  [ option/2,			% +Term, +List
 	    option/3,			% +Term, +List, +Default
 	    select_option/3,		% +Term, +Options, -RestOpts
-	    select_option/4		% +Term, +Options, -RestOpts, +Default
+	    select_option/4,		% +Term, +Options, -RestOpts, +Default
+	    merge_options/3		% +New, +Old, -Merged
 	  ]).
 :- use_module(library(lists)).
 
+/** <module> Option list processing
+
+The library(option) provides some utilities for processing option lists.
+Option lists are commonly used  as   an  alternative for many arguments.
+Examples built-in predicates are  open/4   and  write_term/3. Naming the
+arguments results in more readable code  and   the  list nature makes it
+easy to extend the list of options accepted by a predicate. Option lists
+come in two styles, both of which are handled by this library.
+
+	$ Name(Value) :
+	This is the preferred style.
+
+	$ Name = Value :
+	This is often used, but deprecated.
+
+Processing options inside time critical code   (loops) can cause serious
+overhead. One possibility is to define   a  record using library(record)
+and initialise this using make_<record>/2. In addition to providing good
+performance, this also provides type-checking and central declaration of
+defaults.
+
+==
+:- record atts(width:integer=100, shape:oneof([box,circle])=box).
+
+process(Data, Options) :-
+	make_atts(Options, Attributes),
+	action(Data, Attributes).
+
+action(Data, Attributes) :-
+	atts_shape(Attributes, Shape),
+	...
+==
+
+@tbd	We should consider putting many options in an assoc or record
+	with appropriate preprocessing to achieve better performance.
+@tbd	We should provide some standard to to automatic type-checking
+	on option lists.
+@see	library(record)
+*/
 
 %%	option(?Option, +OptionList, +Default)
 %
@@ -86,8 +126,9 @@ get_option(Opt, Options) :-
 
 %%	select_option(?Option, +Options, -RestOptions) is semidet.
 %
-%	As option/2, removing  the  matching   option  from  Options and
-%	unifying the remaining options with RestOptions.
+%	Get and remove option from an option list. As option/2, removing
+%	the matching option from  Options   and  unifying  the remaining
+%	options with RestOptions.
 
 select_option(Opt, Options0, Options) :-	% stead-fast
 	arg(1, Opt, OptVal),
@@ -109,10 +150,62 @@ get_option(Opt, Options0, Options) :-
 
 %%	select_option(?Option, +Options, -RestOptions, +Default) is det.
 %
-%	As select_option/3, but if Option is   not in Options, its value
-%	is unified with Default and RestOptions with Options.
+%	Get and remove option with   default  value. As select_option/3,
+%	but if Option is not  in  Options,   its  value  is unified with
+%	Default and RestOptions with Options.
 
 select_option(Option, Options, RestOptions, _Default) :-
 	select_option(Option, Options, RestOptions), !.
 select_option(Option, Options, Options, Default) :-
 	arg(1, Option, Default).
+
+
+%%	merge_options(+New, +Old, -Merged) is det.
+%
+%	Merge two option lists. Merged is a sorted list of options using
+%	the canonical format Name(Value) holding   all  options from New
+%	and Old, after removing conflicting options from Old.
+
+merge_options(New, Old, Merged) :-
+	canonise_options(New, NCanonical),
+	canonise_options(Old, OCanonical),
+	sort(NCanonical, NSorted),
+	sort(OCanonical, OSorted),
+	ord_merge(NSorted, OSorted, Merged).
+
+ord_merge([], L, L).
+ord_merge(L, [], L) :- !.
+ord_merge([NO|TN], [OO|TO], Merged) :-
+	functor(NO, NName, 1),
+	functor(OO, OName, 1),
+	compare(Diff, NName, OName),
+	ord_merge(Diff, NO, NName, OO, OName, TN, TO, Merged).
+
+ord_merge(=, NO, _, _, _, TN, TO, [NO|T]) :-
+	ord_merge(TN, TO, T).
+ord_merge(<, NO, _, OO, OName, TN, TO, [NO|T]) :-
+	(   TN = [H|TN2]
+	->  functor(H, NName, 1),
+	    compare(Diff, NName, OName),
+	    ord_merge(Diff, H, NName, OO, OName, TN2, TO, T)
+	;   T = [OO|TO]
+	).
+ord_merge(>, NO, NName, OO, _, TN, TO, [OO|T]) :-
+	(   TO = [H|TO2]
+	->  functor(H, OName, 1),
+	    compare(Diff, NName, OName),
+	    ord_merge(Diff, NO, NName, H, OName, TN, TO2, T)
+	;   T = [NO|TN]
+	).
+
+
+%%	canonise_options(+OptionsIn, -OptionsOut) is det.
+%
+%	Rewrite option list from possible Name=Value to Name(Value)
+
+canonise_options([], []).
+canonise_options([Name=Value|T0], [H|T]) :- !,
+	H =.. [Name,Value],
+	canonise_options(T0, T).
+canonise_options([H|T0], [H|T]) :- !,
+	canonise_options(T0, T).
