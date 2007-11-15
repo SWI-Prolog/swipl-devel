@@ -444,31 +444,6 @@ add_path_tree(Path, Action, Options, DefOptions, [H|T0], [H|T]) :-
 
 
 		 /*******************************
-		 *	       UTIL		*
-		 *******************************/
-
-%%	merge_options(+New, +Old, -Options) is det.
-%
-%	Merge two option lists, where options  from New overrule options
-%	from Old.
-%	
-%	@tbd	Move to library(option)
-
-merge_options([], Options, Options).
-merge_options([H|T], Old, [H|RestOld]) :-
-	gen_option(H, G),
-	select_option(G, Old, Rest), !,
-	merge_options(T, Rest, RestOld).
-merge_options([H|T], Old, [H|RestOld]) :-
-	merge_options(T, Old, RestOld).
-
-gen_option(Name=_, Name=_) :- !.
-gen_option(Opt, GenOpt) :-
-	functor(Opt, Name, Arity),
-	functor(GenOpt, Name, Arity).
-
-
-		 /*******************************
 		 *	      XREF		*
 		 *******************************/
 
