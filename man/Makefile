@@ -45,7 +45,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
 		lib/nbset.tex lib/clpdistinct.tex lib/summary.tex \
 		lib/simplex.tex lib/assoc.tex lib/prologxref.tex \
 		lib/ugraphs.tex lib/ordsets.tex lib/broadcast.tex \
-		lib/record.tex lib/clpfd.tex lib/pairs.tex
+		lib/record.tex lib/clpfd.tex lib/pairs.tex lib/option.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
@@ -189,6 +189,8 @@ lib/url.tex:	../library/url.pl
 		$(LIBTOTEX) 'library(url)'
 lib/pairs.tex:	../library/pairs.pl
 		$(LIBTOTEX) 'library(pairs)'
+lib/option.tex:	../library/option.pl
+		$(LIBTOTEX) 'library(option)'
 
 
 ################################################################

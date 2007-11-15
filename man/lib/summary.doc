@@ -65,6 +65,9 @@
 \predicatesummary{union}{3}{Union of two sets}
 \end{summarylist}
 
+\subsection{\pllib{option}}
+\input{summaries.d/option.tex}
+
 \subsection{\pllib{ordsets}}
 
 \begin{summarylist}{ll}

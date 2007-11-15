@@ -359,6 +359,8 @@ latex(dd(Content)) -->
 	latex(Content).
 latex(dt(class=term, \term(Term, Bindings))) --> 
 	termitem(Term, Bindings).
+latex(dt(Content)) --> 
+	latex(cmd(item(opt(Content)))).
 latex(table(Attrs, Content)) -->
 	latex_table(Attrs, Content).
 latex(\Cmd, List, Tail) :-
