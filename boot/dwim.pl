@@ -107,7 +107,7 @@ correct_goal(Goal, Bindings, [Dwim], DwimGoal) :-
 correct_goal(Goal, Bindings, Dwims, NewGoal) :-
 	strip_module(Goal, _, G1), 
 	functor(G1, _, Arity), 
-	sublist('$dwim':has_arity(Arity), Dwims, [Dwim]), !,
+	include_arity(Dwims, Arity, [Dwim]), !,
 	correct_goal(Goal, Bindings, [Dwim], NewGoal).
 correct_goal(Goal, _, Dwims, _) :-
 	tag_module(Goal, MGoal),
@@ -127,9 +127,14 @@ tag_modules([H0|T0], [H|T]) :-
 	tag_module(H0, H),
 	tag_modules(T0, T).
 
-has_arity(A, G) :-
-	strip_module(G, _, G1), 
-	functor(G1, _, A).
+include_arity([], _, []).
+include_arity([H|T0], Arity, [H|T]) :-
+	strip_module(H, _, G), 
+	functor(G, _, Arity), !,
+	include_arity(T0, Arity, T).
+include_arity([_|T0], Arity, T)	:-
+	include_arity(T0, Arity, T).
+
 
 %	goal_name(+Goal, +Bindings, -Name)
 %	Transform Goal into a readable format.
