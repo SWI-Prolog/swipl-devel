@@ -2011,13 +2011,12 @@ care of reconsult, redefinition, etc.
 
     if ( def->module != mhead )
     { if ( true(def->module, SYSTEM) )
-	PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+      { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		 ATOM_redefine, ATOM_built_in_procedure, def);
-      else
-	warning("%s/%d already imported from module %s", 
-		stringAtom(def->functor->name), 
-		def->functor->arity, 
-		stringAtom(proc->definition->module->name) );
+      } else
+      { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		 ATOM_redefine, ATOM_imported_procedure, def);
+      }
       freeClause(clause PASS_LD);
       return NULL;
     }

@@ -244,6 +244,8 @@ swi_context(stream(Stream, Line, LinePos, _CharNo)) -->
 swi_context(_) -->
 	[].
 
+caller(system:'$record_clause'/3) --> !,
+	[].
 caller(Module:Name/Arity) --> !,
 	(   { \+ hidden_module(Module) }
 	->  [ '~q:~q/~w: '-[Module, Name, Arity] ]
