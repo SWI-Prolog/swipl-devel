@@ -1046,24 +1046,39 @@ relocation chains. A small problem is  the   top-goal  of  a query, This
 frame may not be a  choicepoint,  but   its  mark  is  needed anyhow for
 PL_close_query(), so it has to be relocated.  `te' in the function below
 has to be updated as none of these variables should be reset
+
+We must first mark all environments,   including  those in outer queries
+(Prolog -> C -> Prolog calls) as mark_choicepoints() can otherwise reset
+variables in outer queries.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 mark_stacks(LocalFrame fr, Choice ch)
 { GET_LD
-  QueryFrame query;
+  QueryFrame qf, pqf=NULL, top = NULL;
   GCTrailEntry te = (GCTrailEntry)tTop - 1;
   FliFrame flictx = fli_context;
 
   trailcells_deleted = 0;
 
-  for( ; fr; fr = query->saved_environment, ch = query->saved_bfr )
-  { query = mark_environments(fr, NULL);
-    te    = mark_choicepoints(ch, te, &flictx);
+  for( ; fr; fr = qf->saved_environment )
+  { qf = mark_environments(fr, NULL);
 
-    assert(query->magic == QID_MAGIC);
+    assert(qf->magic == QID_MAGIC);
+
+    if ( pqf )
+    { pqf->parent = qf;
+    } else if ( !top )
+    { top = qf;
+    } 
+    pqf = qf;
   }
+  qf->parent = NULL;			/* topmost query */
   
+  te = mark_choicepoints(ch, te, &flictx);
+  for(qf=top; qf; qf=qf->parent)
+    te = mark_choicepoints(qf->saved_bfr, te, &flictx);
+
   for( ; flictx; flictx = flictx->parent)
     te = mark_foreign_frame(flictx, te);
 
