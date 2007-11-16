@@ -31,6 +31,7 @@
 
 :- module(lists,
 	[ member/2,
+	  append/2,			% +ListOfLists, -List
 	  append/3,
 	  select/3,
 	  nextto/3,			% ?X, ?Y, ?List
@@ -51,6 +52,8 @@
 	  subset/2,
 	  subtract/3
 	]).
+:- use_module(library(error)).
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -73,6 +76,26 @@ member(X, [_|T]) :-
 append([], L, L).
 append([H|T], L, [H|R]) :-
 	append(T, L, R).
+
+%%	append(+ListOfLists, ?List)
+%
+%	Concatenate a list of lists.  Is  true   if  Lists  is a list of
+%	lists, and List is the concatenation of these lists.
+%	
+%	@param	ListOfLists must be a list of -possibly- partial lists
+
+append(ListOfLists, List) :-
+	must_be(list, ListOfLists),
+	append_(ListOfLists, List).
+
+append_([], []).
+append_([H|T], L) :-
+        open_list(H, L, Li),
+        append_(T, Li).
+
+open_list([], L, L).
+open_list([H|T], [H|Lf], Li) :-
+        open_list(T, Lf, Li).
 
 %%	select(?Elem, ?List1, ?List2)
 %
@@ -205,6 +228,7 @@ permutation([X|Xs], Ys1, [_|Bound]) :-
 %			from generated small lists must use difference
 %			lists, often possible through grammar rules for
 %			optimal readability.
+%	@see append/2		
 
 flatten(List, FlatList) :-
 	flatten(List, [], FlatList0), !,

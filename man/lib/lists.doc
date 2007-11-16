@@ -12,6 +12,11 @@ Succeeds when \arg{List3} unifies with the concatenation of \arg{List1}
 and \arg{List2}. The predicate can be used with any instantiation
 pattern (even three variables).
 
+    \predicate{append}{2}{?ListOfLists, ?List}
+Concatenate a list of lists. Is true if \arg{Lists} is a list of lists,
+and \arg{List} is the concatenation of these lists. \arg{ListOfLists}
+must be a list of -possibly- partial lists.
+
     \predicate{member}{2}{?Elem, ?List}
 Succeeds when \arg{Elem} can be unified with one of the members of \arg{List}. The predicate can be used with any instantiation
 pattern.

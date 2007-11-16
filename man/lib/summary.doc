@@ -48,6 +48,7 @@
 \subsection{\pllib{lists}}
 
 \begin{summarylist}{ll}
+\predicatesummary{append}{2}{Concatenate a list of lists}
 \predicatesummary{append}{3}{Concatenate lists}
 \predicatesummary{delete}{3}{Delete all matching members from a list}
 \predicatesummary{flatten}{2}{Transform nested list into flat list}
