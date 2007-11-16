@@ -257,7 +257,7 @@ pagebody(Body) -->
 	}, !,
 	M:body(Body).
 pagebody(Body) -->
-	html(body([bgcolor(white)], Body)).
+	html(body(Body)).
 
 
 hook_module(M, P) :-
