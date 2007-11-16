@@ -12,6 +12,8 @@
 VERSION 5.6.47 November 16, 2007
 ================================
 
+ * ADDED: partition/4 and some fixed to the manual generation
+
  * FIXED: Allow for Name//Arity in current_predicate/1.
 
  * ADDED: append/2 to concatenate a list of lists.  Suggested my Markus Triska.
