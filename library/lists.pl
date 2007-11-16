@@ -89,13 +89,10 @@ append(ListOfLists, List) :-
 	append_(ListOfLists, List).
 
 append_([], []).
-append_([H|T], L) :-
-        open_list(H, L, Li),
-        append_(T, Li).
+append_([L|Ls], As) :-
+	append(L, Ws, As),
+	append_(Ls, Ws).
 
-open_list([], L, L).
-open_list([H|T], [H|Lf], Li) :-
-        open_list(T, Lf, Li).
 
 %%	select(?Elem, ?List1, ?List2)
 %
