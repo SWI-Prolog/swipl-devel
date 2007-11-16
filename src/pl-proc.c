@@ -564,6 +564,7 @@ pl_current_predicate1(term_t spec, control_t ctx)
   term_t mt = 0;			/* module-term */
   term_t nt = 0;			/* name-term */
   term_t at = 0;			/* arity-term */
+  unsigned int aextra = 0;
 
   if ( ForeignControl(ctx) != FRG_CUTTED )
   { term_t pi = PL_copy_term_ref(spec);
@@ -581,7 +582,10 @@ pl_current_predicate1(term_t spec, control_t ctx)
     if ( PL_is_functor(pi, FUNCTOR_divide2) )
     { _PL_get_arg(1, pi, nt);
       _PL_get_arg(2, pi, at);
-
+    } else if ( PL_is_functor(pi, FUNCTOR_div2) )
+    { _PL_get_arg(1, pi, nt);
+      _PL_get_arg(2, pi, at);
+      aextra = 2;
     } else if ( PL_is_variable(pi) )
     { term_t a = PL_new_term_ref();
 
@@ -600,7 +604,13 @@ pl_current_predicate1(term_t spec, control_t ctx)
       { if ( !PL_is_variable(nt) )
 	  goto typeerror;
       }
-      if ( !PL_get_integer(at, &e->arity) )
+      if ( PL_get_integer(at, &e->arity) )
+      { if ( e->arity < 0 )
+	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_not_less_than_zero, at);
+
+	e->arity += aextra;
+      } else
       { if ( !PL_is_variable(at) )
 	  goto typeerror;
 	e->arity = -1;
@@ -689,13 +699,14 @@ pl_current_predicate1(term_t spec, control_t ctx)
     
 	if ( (!e->name     || e->name == fd->name) &&
 	     (e->arity < 0 || (unsigned int)e->arity == fd->arity) &&
+	     fd->arity >= aextra &&
 	     isDefinedProcedure(proc) )
 	{ if ( mt )
 	    PL_unify_atom(mt, e->module->name);
 	  if ( !e->name )
 	    PL_unify_atom(nt, fd->name);
 	  if ( e->arity < 0 )
-	    PL_unify_integer(at, fd->arity);
+	    PL_unify_integer(at, fd->arity-aextra);
 
 	  ForeignRedoPtr(e);
 	}
