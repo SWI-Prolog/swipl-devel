@@ -4,12 +4,17 @@
 # wish to insert this into ChangeLog
 
 footer=false
+printdate=true
 
 done=false
 while [ $done = false ]; do
     case "$1" in
 	--footer)
 		footer=true
+		shift
+		;;
+	--nodate)
+		printdate=false
 		shift
 		;;
 	*)	done=true
@@ -20,7 +25,7 @@ done
 since="$1"
 
 if [ -z "$since" ]; then
-   echo "Usage: `basename $0` [--footer] version [path ...]"
+   echo "Usage: `basename $0` [--footer] [--nodate] version [path ...]"
    exit 1
 fi
 
@@ -43,7 +48,7 @@ BEGIN		{ doprint="false";
 		  doprint="false";
 		  next;
 	        }
-/^[A-Z][A-Z]+:/	{ if ( dateprinted != date )
+/^[A-Z][A-Z]+:/	{ if ( dateprinted != date && "'$printdate'" == "true" )
 		  { printf("%s\n\n", date);
 		    dateprinted = date;
 		  }
