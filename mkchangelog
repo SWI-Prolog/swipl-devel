@@ -3,10 +3,24 @@
 # Generate old-style ChangeLog files from the GIT log. Ultimately we may
 # wish to insert this into ChangeLog
 
+footer=false
+
+done=false
+while [ $done = false ]; do
+    case "$1" in
+	--footer)
+		footer=true
+		shift
+		;;
+	*)	done=true
+		;;
+    esac
+done
+
 since="$1"
 
 if [ -z "$since" ]; then
-   echo "Usage: `basename $0` version [path ...]"
+   echo "Usage: `basename $0` [--footer] version [path ...]"
    exit 1
 fi
 
@@ -46,8 +60,10 @@ BEGIN		{ doprint="false";
 		  }
 		  next;
 		}
-END		{ printf("==============\n");
-		  printf("VERSION '$since'\n");
-		  printf("==============\n");
-		}
 '
+
+if [ "$footer" = true ]; then
+   echo ==============
+   echo VERSION $since
+   echo ==============
+fi
