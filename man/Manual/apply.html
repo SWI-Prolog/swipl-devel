@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section A.1</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.47 Reference Manual: Section A.1</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="libpl.html">
@@ -166,6 +166,12 @@ with the same arguments and semantics.
 Filter elements for which <VAR>Goal</VAR> fails. True if <VAR>List2</VAR> 
 contains those elements Xi of <VAR>List1</VAR> for which call(<VAR>Goal</VAR>, 
 Xi) fails.</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="partition/4"><STRONG>partition</STRONG>(<VAR>:Pred, 
++List, ?Included, ?Excluded</VAR>)</A></DT>
+<DD class="defbody">
+Filter elements of <VAR>List</VAR> according to <VAR>Pred</VAR>. True if <VAR>Included</VAR> 
+contains all elements for which call(<VAR>Pred</VAR>, X) succeeds and
+<VAR>Excluded</VAR> contains the remaining elements.</DD>
 <DT class="pubdef"><span class="pred-tag">[semidet]</span><A NAME="partition/5"><STRONG>partition</STRONG>(<VAR>:Pred, 
 +List, ?Less, ?Equal, ?Greater</VAR>)</A></DT>
 <DD class="defbody">

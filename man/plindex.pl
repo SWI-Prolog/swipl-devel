@@ -355,9 +355,11 @@ arguments(Args) -->
 args(Args) -->
 	skip_blanks,
 	predarg(A),
-	optional(0',),
-	args(Args0),
-	{sum_args(Args0, A, Args)}.
+	(   ","
+	->  args(Args0),
+	    { sum_args(Args0, A, Args) }
+	;   { Args = A }
+	).
 args(0) -->
 	[].
 
@@ -378,24 +380,39 @@ predarg -->
 	predarg(_).
 
 predarg(1) -->
-	input_output,
+	mode,
 	alphas(_),
-	optional(0'/),
-	optional_input_output,
-	alphas(_), !.
+	(   "/"				% Name/Arity, etc.
+	->  optional_mode,
+	    alphas(_)
+	;   ":"
+	->  term
+	;   []
+	), !.
 predarg(_) -->
 	"...", !.
 predarg(1) -->
 	starts("[]").
 
-input_output -->
+mode -->
+	"?:", !.
+mode -->
 	char(C),
-	{ memberchk(C, "+-?:@!") }.
+	{ memberchk(C, "+-?:@!") }, !.
 
-optional_input_output -->
-	input_output, !.
-optional_input_output -->
-	{ true }.
+optional_mode -->
+	mode, !.
+optional_mode -->
+	[].
+
+term -->
+	alphas(_),
+	(   "("
+	->  string(_),
+	    ")"
+	;   []
+	).
+
 
 %	Identify line as describing a function
 
@@ -749,6 +766,7 @@ tex_expand(predref(Name, Arity), Out) :- !,
 	flatten([Name, "/", Arity], Out).
 tex_expand(hook(Module), Out) :- !,
 	flatten(["Hook (", Module, ")"], Out).
+tex_expand('', "") :- !.
 tex_expand(In, "") :-
 	format('ERROR: could not expand TeX command ~q~n', [In]).
 

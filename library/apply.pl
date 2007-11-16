@@ -32,6 +32,7 @@
 :- module(apply,
 	  [ include/3,			% :Pred, +List, -Ok
 	    exclude/3,			% :Pred. +List, -NotOk
+	    partition/4,		% :Pred, +List, -Included, -Excluded
 	    partition/5			% :Pred, +List, ?Less, ?Equal, ?Greater
 	  ]).
 :- use_module(library(error)).
@@ -53,6 +54,8 @@ members of a list.
 	include_/3,
 	exclude/3,
 	exclude_/3,
+	partition/4,
+	partition_/4,
 	partition/5,
 	partition_/5,
 	partition_7.
@@ -93,6 +96,25 @@ exclude_([X1|Xs1], P, Included) :-
 	;   Included = [X1|Included1]
 	),
 	exclude_(Xs1, P, Included1).
+
+
+%%	partition(:Pred, +List, ?Included, ?Excluded) is det.
+%
+%	Filter elements of List according  to   Pred.  True  if Included
+%	contains all elements  for  which   call(Pred,  X)  succeeds and
+%	Excluded contains the remaining elements.
+
+partition(Pred, List, Included, Excluded) :-
+	partition_(List, Pred, Included, Excluded).
+
+partition_([], _, [], []).
+partition_([H|T], Pred, Incl, Excl) :-
+	(   call(Pred, H)
+	->  Incl = [H|I],
+	    partition_(T, Pred, I, Excl)
+	;   Excl = [H|E],
+	    partition_(T, Pred, Incl, E)
+	).
 
 
 %%	partition(:Pred, +List, ?Less, ?Equal, ?Greater) is semidet.
