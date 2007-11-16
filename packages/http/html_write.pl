@@ -240,7 +240,7 @@ pagehead(Head) -->
 	html(Head).
 pagehead(Head) -->
 	{ strip_module(Head, M, _),
-	  hook_module(M, head(_,_,_))
+	  hook_module(M, head//1)
 	}, !,
 	M:head(Head).
 pagehead(Head) -->
@@ -253,17 +253,17 @@ pagebody(Body) -->
 	html(Body).
 pagebody(Body) -->
 	{ strip_module(Body, M, _),
-	  hook_module(M, body(_,_,_))
+	  hook_module(M, body//1)
 	}, !,
 	M:body(Body).
 pagebody(Body) -->
 	html(body(Body)).
 
 
-hook_module(M, P) :-
-	current_predicate(_, M:P), !.
-hook_module(user, P) :-
-	current_predicate(_, user:P).
+hook_module(M, PI) :-
+	current_predicate(M:PI), !.
+hook_module(user, PI) :-
+	current_predicate(user:PI).
 
 %%	html(+Content:dom)// is det
 %
