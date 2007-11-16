@@ -1,3 +1,26 @@
+[Nov 14 2007]
+
+ * FIXED: RDF HTTP plugin to request application/rdf+xml.  Yves Raimond.
+
+[Nov 11 2007]
+
+ * ADDED: Allow deleting an inverse_of predicate property
+
+[Nov 8 2007]
+
+ * ENHANCED: Minimise the time we keep a lock in rdf_load_db/1 to exploit
+   concurrency.
+   
+ * ADDED: silent(brief) option value to rdf_attach_db/2.  Avoid some file-system
+   tests to speedup loading many named graphs.
+   
+ * ENHANCED: Speedup for rdf_retractall(_,_,_,DB) for empty or non-extenting
+   databases.
+   
+ * ENHANCED: Avoid quadratic effect when loading many graphs from many
+   snapshot files as used in rdf_persistency.pl.  Spotted by Yves Raimond
+   loading 17,000 graphs.
+   
 Oct 15, 2007
 
   * FIXED: rdf_load/2 for loading .gz files.  Michiel Hildebrand.

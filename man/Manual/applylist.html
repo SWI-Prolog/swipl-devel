@@ -145,6 +145,11 @@ X = [1, 2, 3]
 
 <P>we phrase this as ``<VAR>Predicate</VAR> is applied on ... ''
 
+<P>Currently, the predicates below are defined as built-in predicates. 
+It is planned to move these to library(apply). See <A class="sec" href="apply.html">section 
+A.1</A> for more predicates. The library(apply_macros) defines macros 
+that compile some of these meta-calling constructs away.
+
 <DL>
 <DT class="pubdef"><A NAME="maplist/2"><STRONG>maplist</STRONG>(<VAR>:Pred, 
 +List</VAR>)</A></DT>
@@ -152,8 +157,8 @@ X = [1, 2, 3]
 <VAR>Pred</VAR> is applied successively on each element of <VAR>List</VAR> 
 until the end of the list or <VAR>Pred</VAR> fails. In the latter case 
 the
-<A NAME="idx:maplist2:982"></A><A class="pred" href="applylist.html#maplist/2">maplist/2</A> 
-fails.<SUP class="fn">55<SPAN class="fn-text">The <A NAME="idx:maplist2:983"></A><A class="pred" href="applylist.html#maplist/2">maplist/2</A> 
+<A NAME="idx:maplist2:983"></A><A class="pred" href="applylist.html#maplist/2">maplist/2</A> 
+fails.<SUP class="fn">55<SPAN class="fn-text">The <A NAME="idx:maplist2:984"></A><A class="pred" href="applylist.html#maplist/2">maplist/2</A> 
 predicate replaces the obsolete checklist/2 predicate.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="maplist/3"><STRONG>maplist</STRONG>(<VAR>:Pred, 
 ?List1, ?List2</VAR>)</A></DT>
@@ -166,13 +171,7 @@ pair. See the example above.</DD>
 <DD class="defbody">
 Apply <VAR>Pred</VAR> on all successive triples of elements from <VAR>List1</VAR>,
 <VAR>List2</VAR> and <VAR>List3</VAR>. Fails if <VAR>Pred</VAR> can not 
-be applied to a triple. See the example above.</DD>
-<DT class="pubdef"><A NAME="sublist/3"><STRONG>sublist</STRONG>(<VAR>:Pred, 
-+List1, ?List2</VAR>)</A></DT>
-<DD class="defbody">
-Unify <VAR>List2</VAR> with a list of all elements of <VAR>List1</VAR> 
-to which
-<VAR>Pred</VAR> applies.
+be applied to a triple. See the example above.
 </DD>
 </DL>
 

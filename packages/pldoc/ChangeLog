@@ -1,3 +1,15 @@
+[Nov 15 2007]
+
+ * DOC: Included documentation for library(option) in the manual
+
+[Nov 7 2007]
+
+ * ENHANCED: PlDoc $ ... : style description list to use CSS styling.
+
+[Nov 6 2007]
+
+ * FIXED: PlDoc LaTeX backend for [[name//arity]]
+
 Nov 5, 2007
 
 * MODIFIED: Changed mode-operators (?, +, -, @, :) from 700 fx to 650 fx 

@@ -142,7 +142,7 @@ leaving one. The break environment is terminated by typing the system's
 end-of-file character (control-D). If the
 <STRONG>-t</STRONG> <VAR>toplevel</VAR> command line option is given 
 this goal is started instead of entering the default interactive top 
-level (<A NAME="idx:prolog0:1066"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A>).
+level (<A NAME="idx:prolog0:1067"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A>).
 </DD>
 <DT class="pubdef"><A NAME="abort/0"><STRONG>abort</STRONG></A></DT>
 <DD class="defbody">
@@ -151,8 +151,8 @@ Abort the Prolog execution and restart the top level. If the
 this goal is started instead of entering the default interactive top 
 level.
 
-<P>There are two implementations of <A NAME="idx:abort0:1067"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>. 
-The default one uses the exception mechanism (see <A NAME="idx:throw1:1068"></A><A class="pred" href="exception.html#throw/1">throw/1</A>), 
+<P>There are two implementations of <A NAME="idx:abort0:1068"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>. 
+The default one uses the exception mechanism (see <A NAME="idx:throw1:1069"></A><A class="pred" href="exception.html#throw/1">throw/1</A>), 
 throwing the exception
 <CODE>$aborted</CODE>. The other one uses the C-construct longjmp() to 
 discard the entire environment and rebuild a new one. Using exceptions 
@@ -168,22 +168,22 @@ to <CODE>false</CODE>.</DD>
 Terminate Prolog execution. Open files are closed and if the command 
 line option <STRONG>-tty</STRONG> is not active the terminal status (see 
 Unix stty(1)) is restored. Hooks may be registered both in Prolog and in 
-foreign code. Prolog hooks are registered using <A NAME="idx:athalt1:1069"></A><A class="pred" href="consulting.html#at_halt/1">at_halt/1</A>. <A NAME="idx:halt0:1070"></A><A class="pred" href="toplevel.html#halt/0">halt/0</A> 
+foreign code. Prolog hooks are registered using <A NAME="idx:athalt1:1070"></A><A class="pred" href="consulting.html#at_halt/1">at_halt/1</A>. <A NAME="idx:halt0:1071"></A><A class="pred" href="toplevel.html#halt/0">halt/0</A> 
 is equivalent to <CODE>halt(0)</CODE>.<SUP class="fn">bug<SPAN class="fn-text">In 
-the multi-threaded version, <A NAME="idx:halt0:1071"></A><A class="pred" href="toplevel.html#halt/0">halt/0</A> 
+the multi-threaded version, <A NAME="idx:halt0:1072"></A><A class="pred" href="toplevel.html#halt/0">halt/0</A> 
 does not work when not called from the <EM>main</EM> thread. In the 
 current system a <CODE>permission_error</CODE> exception is raised. 
-Future versions may enable <A NAME="idx:halt0:1072"></A><A class="pred" href="toplevel.html#halt/0">halt/0</A> 
+Future versions may enable <A NAME="idx:halt0:1073"></A><A class="pred" href="toplevel.html#halt/0">halt/0</A> 
 from any thread.</SPAN></SUP></DD>
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="halt/1"><STRONG>halt</STRONG>(<VAR>+Status</VAR>)</A></DT>
 <DD class="defbody">
 Terminate Prolog execution with given status. Status is an integer. See 
-also <A NAME="idx:halt0:1073"></A><A class="pred" href="toplevel.html#halt/0">halt/0</A>.</DD>
+also <A NAME="idx:halt0:1074"></A><A class="pred" href="toplevel.html#halt/0">halt/0</A>.</DD>
 <DT class="pubdef"><A NAME="prolog/0"><STRONG>prolog</STRONG></A></DT>
 <DD class="defbody">
 This goal starts the default interactive top level. Queries are read 
 from the stream <CODE>user_input</CODE>. See also the Prolog flag
-<A class="flag" href="flags.html#flag:history">history</A>. The <A NAME="idx:prolog0:1074"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A> 
+<A class="flag" href="flags.html#flag:history">history</A>. The <A NAME="idx:prolog0:1075"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A> 
 predicate is terminated (succeeds) by typing the end-of-file character 
 (typically control-D).
 </DD>
@@ -201,13 +201,13 @@ expansion mechanism described in <A class="sec" href="topvars.html">section
 Hook in module <CODE>user</CODE>, normally not defined. <VAR>Query</VAR> 
 and
 <VAR>Bindings</VAR> represents the query read from the user and the 
-names of the free variables as obtained using <A NAME="idx:readterm3:1075"></A><A class="pred" href="termrw.html#read_term/3">read_term/3</A>. 
+names of the free variables as obtained using <A NAME="idx:readterm3:1076"></A><A class="pred" href="termrw.html#read_term/3">read_term/3</A>. 
 If this predicate succeeds, it should bind <VAR>Expanded</VAR> and <VAR>ExpandedBindings</VAR> 
 to the query and bindings to be executed by the top-level. This 
-predicate is used by the top-level (<A NAME="idx:prolog0:1076"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A>). 
-See also <A NAME="idx:expandanswer2:1077"></A><A class="pred" href="toplevel.html#expand_answer/2">expand_answer/2</A> 
+predicate is used by the top-level (<A NAME="idx:prolog0:1077"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A>). 
+See also <A NAME="idx:expandanswer2:1078"></A><A class="pred" href="toplevel.html#expand_answer/2">expand_answer/2</A> 
 and
-<A NAME="idx:termexpansion2:1078"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>.</DD>
+<A NAME="idx:termexpansion2:1079"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>.</DD>
 <DT class="pubdef"><A NAME="expand_answer/2"><STRONG>expand_answer</STRONG>(<VAR>+Bindings, 
 -ExpandedBindings</VAR>)</A></DT>
 <DD class="defbody">

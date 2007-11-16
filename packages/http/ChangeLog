@@ -1,3 +1,16 @@
+[Nov 16 2007]
+
+ * ENHANCED: Bug#323: no longer force bgcolor=white in pagebody//1. Chris Sutton.
+
+[Nov 9 2007]
+
+ * ADDED: type between(Low, High) for numerical values
+
+[Nov 6 2007]
+
+ * ADDED: post/receive mechanism to modularize CSS and Javascript support in
+   library(html_write).  Documented using PlDoc LaTeX backend
+   
 Oct 1, 2007
 
  * ADDED: http_stop_server/2 to stop a running HTTP server.

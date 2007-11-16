@@ -132,7 +132,70 @@ predicates</SPAN></A></H2>
 
 <A NAME="sec:library"></A>
 
-<H3><A NAME="sec:E.4.1"><SPAN class="sec-nr">E.4.1</SPAN> <SPAN class="sec-title"><CODE>library(check)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.1"><SPAN class="sec-nr">E.4.1</SPAN> <SPAN class="sec-title"><CODE>library(apply)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="apply.html#exclude/3">exclude/3</A></TD><TD>Filter 
+elements for which Goal fails.</TD></TR>
+<TR><TD><A class="pred" href="apply.html#include/3">include/3</A></TD><TD>Filter 
+elements for which Goal succeed.</TD></TR>
+<TR><TD><A class="pred" href="apply.html#partition/5">partition/5</A></TD><TD>Filter 
+list according to Pred in three sets.</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.2"><SPAN class="sec-nr">E.4.2</SPAN> <SPAN class="sec-title"><CODE>library(assoc)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="assoc.html#assoc_to_list/2">assoc_to_list/2</A></TD><TD>Translate 
+assoc into a pairs list</TD></TR>
+<TR><TD><A class="pred" href="assoc.html#assoc_to_keys/2">assoc_to_keys/2</A></TD><TD>Translate 
+assoc into a key list</TD></TR>
+<TR><TD><A class="pred" href="assoc.html#empty_assoc/1">empty_assoc/1</A></TD><TD>Test/create 
+an empty assoc</TD></TR>
+<TR><TD><A class="pred" href="assoc.html#gen_assoc/3">gen_assoc/3</A></TD><TD>Non-deterministic 
+enumeration of assoc</TD></TR>
+<TR><TD><A class="pred" href="assoc.html#get_assoc/3">get_assoc/3</A></TD><TD>Get 
+associated value</TD></TR>
+<TR><TD><A class="pred" href="assoc.html#get_assoc/5">get_assoc/5</A></TD><TD>Get 
+and replace associated value</TD></TR>
+<TR><TD><A class="pred" href="assoc.html#list_to_assoc/2">list_to_assoc/2</A></TD><TD>Translate 
+pair list to assoc</TD></TR>
+<TR><TD><A class="pred" href="assoc.html#map_assoc/2">map_assoc/2</A></TD><TD>Test 
+assoc values</TD></TR>
+<TR><TD><A class="pred" href="assoc.html#map_assoc/3">map_assoc/3</A></TD><TD>Map 
+assoc values</TD></TR>
+<TR><TD><A class="pred" href="assoc.html#max_assoc/3">max_assoc/3</A></TD><TD>Max 
+key-value of an assoc</TD></TR>
+<TR><TD><A class="pred" href="assoc.html#min_assoc/3">min_assoc/3</A></TD><TD>Min 
+key-value of an assoc</TD></TR>
+<TR><TD><SPAN class="pred-ext">ord_list_to_assoc/3</SPAN></TD><TD>Translate 
+ordered list into an assoc</TD></TR>
+<TR><TD><A class="pred" href="assoc.html#put_assoc/4">put_assoc/4</A></TD><TD>Add 
+association to an assoc</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.3"><SPAN class="sec-nr">E.4.3</SPAN> <SPAN class="sec-title"><CODE>library(broadcast)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="broadcast.html#broadcast/1">broadcast/1</A></TD><TD>Send 
+event notification</TD></TR>
+<TR><TD><A class="pred" href="broadcast.html#broadcast_request/1">broadcast_request/1</A></TD><TD>Request 
+all agents</TD></TR>
+<TR><TD><A class="pred" href="broadcast.html#listen/2">listen/2</A></TD><TD>Listen 
+to event notifications</TD></TR>
+<TR><TD><A class="pred" href="broadcast.html#listen/3">listen/3</A></TD><TD>Listen 
+to event notifications</TD></TR>
+<TR><TD><A class="pred" href="broadcast.html#unlisten/1">unlisten/1</A></TD><TD>Stop 
+listening to event notifications</TD></TR>
+<TR><TD><A class="pred" href="broadcast.html#unlisten/2">unlisten/2</A></TD><TD>Stop 
+listening to event notifications</TD></TR>
+<TR><TD><A class="pred" href="broadcast.html#unlisten/3">unlisten/3</A></TD><TD>Stop 
+listening to event notifications</TD></TR>
+<TR><TD><A class="pred" href="broadcast.html#listening/3">listening/3</A></TD><TD>Who 
+is listening to event notifications?</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.4"><SPAN class="sec-nr">E.4.4</SPAN> <SPAN class="sec-title"><CODE>library(check)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="check.html#check/0">check/0</A></TD><TD>Program 
@@ -145,9 +208,11 @@ predicates that require autoload</TD></TR>
 locally redefined predicates</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.2"><SPAN class="sec-nr">E.4.2</SPAN> <SPAN class="sec-title"><CODE>library(lists)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.5"><SPAN class="sec-nr">E.4.5</SPAN> <SPAN class="sec-title"><CODE>library(lists)</CODE></SPAN></A></H3>
 
 <TABLE>
+<TR><TD><A class="pred" href="lists.html#append/2">append/2</A></TD><TD>Concatenate 
+a list of lists</TD></TR>
 <TR><TD><A class="pred" href="lists.html#append/3">append/3</A></TD><TD>Concatenate 
 lists</TD></TR>
 <TR><TD><A class="pred" href="lists.html#delete/3">delete/3</A></TD><TD>Delete 
@@ -186,7 +251,22 @@ all numbers in a list</TD></TR>
 of two sets</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.3"><SPAN class="sec-nr">E.4.3</SPAN> <SPAN class="sec-title"><CODE>library(ordsets)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.6"><SPAN class="sec-nr">E.4.6</SPAN> <SPAN class="sec-title"><CODE>library(option)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="option.html#merge_options/3">merge_options/3</A></TD><TD>Merge 
+two option lists.</TD></TR>
+<TR><TD><A class="pred" href="option.html#option/2">option/2</A></TD><TD>Get 
+an option from a OptionList.</TD></TR>
+<TR><TD><A class="pred" href="option.html#option/3">option/3</A></TD><TD>Get 
+an option from a OptionList.</TD></TR>
+<TR><TD><A class="pred" href="option.html#select_option/3">select_option/3</A></TD><TD>Get 
+and remove option from an option list.</TD></TR>
+<TR><TD><A class="pred" href="option.html#select_option/4">select_option/4</A></TD><TD>Get 
+and remove option with default value.</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.7"><SPAN class="sec-nr">E.4.7</SPAN> <SPAN class="sec-title"><CODE>library(ordsets)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="ordsets.html#ord_empty/1">ord_empty/1</A></TD><TD>Test 
@@ -215,7 +295,92 @@ subset</TD></TR>
 test membership</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.4"><SPAN class="sec-nr">E.4.4</SPAN> <SPAN class="sec-title"><CODE>library(ugraphs)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.8"><SPAN class="sec-nr">E.4.8</SPAN> <SPAN class="sec-title"><CODE>library(prologxref)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="prologxref.html#prolog:called_by/2">prolog:called_by/2</A></TD><TD><I>(hook)</I> 
+Extend cross-referencer</TD></TR>
+<TR><TD><A class="pred" href="prologxref.html#xref_built_in/1">xref_built_in/1</A></TD><TD>Examine 
+defined built-ins</TD></TR>
+<TR><TD><A class="pred" href="prologxref.html#xref_called/3">xref_called/3</A></TD><TD>Examine 
+called predicates</TD></TR>
+<TR><TD><A class="pred" href="prologxref.html#xref_clean/1">xref_clean/1</A></TD><TD>Remove 
+analysis of source</TD></TR>
+<TR><TD><A class="pred" href="prologxref.html#xref_current_source/1">xref_current_source/1</A></TD><TD>Examine 
+cross-referenced sources</TD></TR>
+<TR><TD><A class="pred" href="prologxref.html#xref_defined/3">xref_defined/3</A></TD><TD>Examine 
+defined predicates</TD></TR>
+<TR><TD><A class="pred" href="prologxref.html#xref_exported/2">xref_exported/2</A></TD><TD>Examine 
+exported predicates</TD></TR>
+<TR><TD><A class="pred" href="prologxref.html#xref_module/2">xref_module/2</A></TD><TD>Module 
+defined by source</TD></TR>
+<TR><TD><A class="pred" href="prologxref.html#xref_source/1">xref_source/1</A></TD><TD>Cross-reference 
+analysis of source</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.9"><SPAN class="sec-nr">E.4.9</SPAN> <SPAN class="sec-title"><CODE>library(pairs)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="pairs.html#group_pairs_by_key/2">group_pairs_by_key/2</A></TD><TD>Group 
+values with the same key.</TD></TR>
+<TR><TD><A class="pred" href="pairs.html#pairs_keys/2">pairs_keys/2</A></TD><TD>Remove 
+the values from a list of Key-Value pairs.</TD></TR>
+<TR><TD><A class="pred" href="pairs.html#pairs_keys_values/3">pairs_keys_values/3</A></TD><TD>True 
+if Keys holds the keys of Pairs and Values the values.</TD></TR>
+<TR><TD><A class="pred" href="pairs.html#pairs_values/2">pairs_values/2</A></TD><TD>Remove 
+the keys from a list of Key-Value pairs.</TD></TR>
+<TR><TD><A class="pred" href="pairs.html#transpose_pairs/2">transpose_pairs/2</A></TD><TD>Swap 
+Key-Value to Value-Key and sort the result on Value (the new key) using 
+keysort/2.</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.10"><SPAN class="sec-nr">E.4.10</SPAN> <SPAN class="sec-title"><CODE>library(readutil)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="readutil.html#read_line_to_codes/2">read_line_to_codes/2</A></TD><TD>Read 
+line from a stream</TD></TR>
+<TR><TD><A class="pred" href="readutil.html#read_line_to_codes/3">read_line_to_codes/3</A></TD><TD>Read 
+line from a stream</TD></TR>
+<TR><TD><A class="pred" href="readutil.html#read_stream_to_codes/2">read_stream_to_codes/2</A></TD><TD>Read 
+contents of stream</TD></TR>
+<TR><TD><A class="pred" href="readutil.html#read_stream_to_codes/3">read_stream_to_codes/3</A></TD><TD>Read 
+contents of stream</TD></TR>
+<TR><TD><A class="pred" href="readutil.html#read_file_to_codes/3">read_file_to_codes/3</A></TD><TD>Read 
+contents of file</TD></TR>
+<TR><TD><A class="pred" href="readutil.html#read_file_to_terms/3">read_file_to_terms/3</A></TD><TD>Read 
+contents of file to Prolog terms</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.11"><SPAN class="sec-nr">E.4.11</SPAN> <SPAN class="sec-title"><CODE>library(record)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="record.html#record/1">record/1</A></TD><TD>Define 
+named fields in a term</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.12"><SPAN class="sec-nr">E.4.12</SPAN> <SPAN class="sec-title"><CODE>library(registry)</CODE></SPAN></A></H3>
+
+<P>This library is only available on Windows systems.
+<TABLE>
+<TR><TD><A class="pred" href="registry.html#registry_get_key/2">registry_get_key/2</A></TD><TD>Get 
+principal value of key</TD></TR>
+<TR><TD><A class="pred" href="registry.html#registry_get_key/3">registry_get_key/3</A></TD><TD>Get 
+associated value of key</TD></TR>
+<TR><TD><A class="pred" href="registry.html#registry_set_key/2">registry_set_key/2</A></TD><TD>Set 
+principal value of key</TD></TR>
+<TR><TD><A class="pred" href="registry.html#registry_set_key/3">registry_set_key/3</A></TD><TD>Set 
+associated value of key</TD></TR>
+<TR><TD><A class="pred" href="registry.html#registry_delete_key/1">registry_delete_key/1</A></TD><TD>Remove 
+a key</TD></TR>
+<TR><TD><A class="pred" href="registry.html#shell_register_file_type/4">shell_register_file_type/4</A></TD><TD>Register 
+a file-type</TD></TR>
+<TR><TD><A class="pred" href="registry.html#shell_register_dde/6">shell_register_dde/6</A></TD><TD>Register 
+DDE action</TD></TR>
+<TR><TD><A class="pred" href="registry.html#shell_register_prolog/1">shell_register_prolog/1</A></TD><TD>Register 
+Prolog</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.13"><SPAN class="sec-nr">E.4.13</SPAN> <SPAN class="sec-title"><CODE>library(ugraphs)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="ugraphs.html#vertices_edges_to_ugraph/3">vertices_edges_to_ugraph/3</A></TD><TD>Create 
@@ -253,117 +418,42 @@ all reachable vertices</TD></TR>
 of two graphs</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.5"><SPAN class="sec-nr">E.4.5</SPAN> <SPAN class="sec-title"><CODE>library(www_browser)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.14"><SPAN class="sec-nr">E.4.14</SPAN> <SPAN class="sec-title"><CODE>library(url)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="url.html#file_name_to_url/2">file_name_to_url/2</A></TD><TD>Translate 
+between a filename and a file:<CODE>//</CODE> URL.</TD></TR>
+<TR><TD><A class="pred" href="url.html#global_url/3">global_url/3</A></TD><TD>Translate 
+a possibly relative URL into an absolute one.</TD></TR>
+<TR><TD><A class="pred" href="url.html#http_location/2">http_location/2</A></TD><TD>Construct 
+or analyze an HTTP location.</TD></TR>
+<TR><TD><A class="pred" href="url.html#is_absolute_url/1">is_absolute_url/1</A></TD><TD>True 
+if URL is an absolute URL.</TD></TR>
+<TR><TD><A class="pred" href="url.html#parse_url/2">parse_url/2</A></TD><TD>Construct 
+or analyse a URL.</TD></TR>
+<TR><TD><A class="pred" href="url.html#parse_url_search/2">parse_url_search/2</A></TD><TD>Construct 
+or analyze an HTTP search specification.</TD></TR>
+<TR><TD><A class="pred" href="url.html#url_iri/2">url_iri/2</A></TD><TD>Convert 
+between a URL, encoding in US-ASCII and an IRI.</TD></TR>
+<TR><TD><A class="pred" href="url.html#www_form_encode/2">www_form_encode/2</A></TD><TD>En/Decode 
+between native value and application/x-www-form-encoded.</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.15"><SPAN class="sec-nr">E.4.15</SPAN> <SPAN class="sec-title"><CODE>library(www_browser)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="netscape.html#www_open_url/1">www_open_url/1</A></TD><TD>Open 
 a web-page in a browser</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.6"><SPAN class="sec-nr">E.4.6</SPAN> <SPAN class="sec-title"><CODE>library(readutil)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.16"><SPAN class="sec-nr">E.4.16</SPAN> <SPAN class="sec-title"><CODE>library(clp/bounds)</CODE></SPAN></A></H3>
 
 <TABLE>
-<TR><TD><A class="pred" href="readutil.html#read_line_to_codes/2">read_line_to_codes/2</A></TD><TD>Read 
-line from a stream</TD></TR>
-<TR><TD><A class="pred" href="readutil.html#read_line_to_codes/3">read_line_to_codes/3</A></TD><TD>Read 
-line from a stream</TD></TR>
-<TR><TD><A class="pred" href="readutil.html#read_stream_to_codes/2">read_stream_to_codes/2</A></TD><TD>Read 
-contents of stream</TD></TR>
-<TR><TD><A class="pred" href="readutil.html#read_stream_to_codes/3">read_stream_to_codes/3</A></TD><TD>Read 
-contents of stream</TD></TR>
-<TR><TD><A class="pred" href="readutil.html#read_file_to_codes/3">read_file_to_codes/3</A></TD><TD>Read 
-contents of file</TD></TR>
-<TR><TD><A class="pred" href="readutil.html#read_file_to_terms/3">read_file_to_terms/3</A></TD><TD>Read 
-contents of file to Prolog terms</TD></TR>
-</TABLE>
-
-<H3><A NAME="sec:E.4.7"><SPAN class="sec-nr">E.4.7</SPAN> <SPAN class="sec-title"><CODE>library(registry)</CODE></SPAN></A></H3>
-
-<P>This library is only available on Windows systems.
-<TABLE>
-<TR><TD><A class="pred" href="registry.html#registry_get_key/2">registry_get_key/2</A></TD><TD>Get 
-principal value of key</TD></TR>
-<TR><TD><A class="pred" href="registry.html#registry_get_key/3">registry_get_key/3</A></TD><TD>Get 
-associated value of key</TD></TR>
-<TR><TD><A class="pred" href="registry.html#registry_set_key/2">registry_set_key/2</A></TD><TD>Set 
-principal value of key</TD></TR>
-<TR><TD><A class="pred" href="registry.html#registry_set_key/3">registry_set_key/3</A></TD><TD>Set 
-associated value of key</TD></TR>
-<TR><TD><A class="pred" href="registry.html#registry_delete_key/1">registry_delete_key/1</A></TD><TD>Remove 
-a key</TD></TR>
-<TR><TD><A class="pred" href="registry.html#shell_register_file_type/4">shell_register_file_type/4</A></TD><TD>Register 
-a file-type</TD></TR>
-<TR><TD><A class="pred" href="registry.html#shell_register_dde/6">shell_register_dde/6</A></TD><TD>Register 
-DDE action</TD></TR>
-<TR><TD><A class="pred" href="registry.html#shell_register_prolog/1">shell_register_prolog/1</A></TD><TD>Register 
-Prolog</TD></TR>
-</TABLE>
-
-<H3><A NAME="sec:E.4.8"><SPAN class="sec-nr">E.4.8</SPAN> <SPAN class="sec-title"><CODE>library(url)</CODE></SPAN></A></H3>
-
-<TABLE>
-<TR><TD><A class="pred" href="url.html#parse_url/2">parse_url/2</A></TD><TD>Analyse 
-or construct a URL</TD></TR>
-<TR><TD><A class="pred" href="url.html#parse_url/3">parse_url/3</A></TD><TD>Analyse 
-or construct a relative URL</TD></TR>
-<TR><TD><A class="pred" href="url.html#global_url/3">global_url/3</A></TD><TD>Make 
-relative URL global</TD></TR>
-<TR><TD><A class="pred" href="url.html#http_location/2">http_location/2</A></TD><TD>Analyse 
-or construct location</TD></TR>
-<TR><TD><A class="pred" href="url.html#www_form_encode/2">www_form_encode/2</A></TD><TD>Encode 
-or decode form-data</TD></TR>
-</TABLE>
-
-<H3><A NAME="sec:E.4.9"><SPAN class="sec-nr">E.4.9</SPAN> <SPAN class="sec-title"><CODE>library(clp/clpfd)</CODE></SPAN></A></H3>
-
-<TABLE>
-<TR><TD><A class="pred" href="clpfd.html##/\/2">#/\/2</A></TD><TD>P and 
-Q hold.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html##</2">#&lt;/2</A></TD><TD>X is 
-less than Y.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html##<==/2">#&lt;==/2</A></TD><TD>?Q 
-implies ?P.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html##<==>/2">#&lt;==&gt;/2</A></TD><TD>P 
-and Q are equivalent.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html##==>/2">#==&gt;/2</A></TD><TD>P 
-implies Q.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html##\/1">#\/1</A></TD><TD>The 
-reifiable constraint Q does _not_ hold.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html##\//2">#\//2</A></TD><TD>P or Q 
-holds.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#all_different/1">all_different/1</A></TD><TD>Constrain 
-Vars to be pairwise distinct.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#all_distinct/1">all_distinct/1</A></TD><TD>Like 
-all_different/1, with stronger propagation.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#in/2">in/2</A></TD><TD>Constrain 
-Var to elements of Domain.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#indomain/1">indomain/1</A></TD><TD>Bind 
-Var to all feasible values of its domain on backtracking.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#ins/2">ins/2</A></TD><TD>Constrain 
-the variables or integers in Vars to Domain.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#label/1">label/1</A></TD><TD>Equivalent 
-to labeling([], Vars).</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#labeling/2">labeling/2</A></TD><TD>Labeling 
-means systematically trying out values for the finite domain variables 
-Vars until all of them are ground.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#lex_chain/1">lex_chain/1</A></TD><TD>Constrains 
-Lists to be lexicographically non-decreasing.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#serialized/2">serialized/2</A></TD><TD>Constrain 
-a set of intervals to a non-overlapping sequence.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#sum/3">sum/3</A></TD><TD>Constrain 
-the sum of a list.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#tuples_in/2">tuples_in/2</A></TD><TD>Relation 
-is a list of ground lists of integers.</TD></TR>
-</TABLE>
-
-<H3><A NAME="sec:E.4.10"><SPAN class="sec-nr">E.4.10</SPAN> <SPAN class="sec-title"><CODE>library(clp/bounds)</CODE></SPAN></A></H3>
-
-<TABLE>
-<TR><TD><A class="pred" href="clpfd.html#in/2">in/2</A></TD><TD>Define 
+<TR><TD><A class="pred" href="clpbounds.html#in/2">in/2</A></TD><TD>Define 
 interval for variable</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html##>/2">#&gt;/2</A></TD><TD>Greater 
 than constraint</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html##</2">#&lt;/2</A></TD><TD>Less 
+<TR><TD><A class="pred" href="clpbounds.html##</2">#&lt;/2</A></TD><TD>Less 
 than constraint</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html##>=/2">#&gt;=/2</A></TD><TD>Greater 
 or equal constraint</TD></TR>
@@ -379,28 +469,28 @@ equivalence</TD></TR>
 implication to the left</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html##=>/2">#=&gt;/2</A></TD><TD>Constraint 
 implication to the right</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#all_different/1">all_different/1</A></TD><TD>Constraint 
+<TR><TD><A class="pred" href="clpbounds.html#all_different/1">all_different/1</A></TD><TD>Constraint 
 all values to be unique</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#indomain/1">indomain/1</A></TD><TD>Enumerate 
+<TR><TD><A class="pred" href="clpbounds.html#indomain/1">indomain/1</A></TD><TD>Enumerate 
 values from domain</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#label/1">label/1</A></TD><TD>Solve 
+<TR><TD><A class="pred" href="clpbounds.html#label/1">label/1</A></TD><TD>Solve 
 constraints for variables</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#labeling/2">labeling/2</A></TD><TD>Solve 
+<TR><TD><A class="pred" href="clpbounds.html#labeling/2">labeling/2</A></TD><TD>Solve 
 constraints for variables</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#lex_chain/1">lex_chain/1</A></TD><TD>Constraint 
+<TR><TD><A class="pred" href="clpbounds.html#lex_chain/1">lex_chain/1</A></TD><TD>Constraint 
 on lexicographic ordering</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#sum/3">sum/3</A></TD><TD>Constraint 
+<TR><TD><A class="pred" href="clpbounds.html#sum/3">sum/3</A></TD><TD>Constraint 
 sum of variables</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#tuples_in/2">tuples_in/2</A></TD><TD>Symbolic 
+<TR><TD><A class="pred" href="clpbounds.html#tuples_in/2">tuples_in/2</A></TD><TD>Symbolic 
 constraints on tuples</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html#serialized/2">serialized/2</A></TD><TD>Constraint 
+<TR><TD><A class="pred" href="clpbounds.html#serialized/2">serialized/2</A></TD><TD>Constraint 
 intervals to be serialized</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.11"><SPAN class="sec-nr">E.4.11</SPAN> <SPAN class="sec-title"><CODE>library(clp/clp_distinct)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.17"><SPAN class="sec-nr">E.4.17</SPAN> <SPAN class="sec-title"><CODE>library(clp/clp_distinct)</CODE></SPAN></A></H3>
 
 <TABLE>
-<TR><TD><A class="pred" href="clpfd.html#all_distinct/1">all_distinct/1</A></TD><TD>Demand 
+<TR><TD><A class="pred" href="clpclp_distinct.html#all_distinct/1">all_distinct/1</A></TD><TD>Demand 
 distinct values</TD></TR>
 <TR><TD><A class="pred" href="clpclp_distinct.html#vars_in/2">vars_in/2</A></TD><TD>Declare 
 domain of variable as set</TD></TR>
@@ -408,7 +498,82 @@ domain of variable as set</TD></TR>
 domain of variable as interval</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.12"><SPAN class="sec-nr">E.4.12</SPAN> <SPAN class="sec-title"><CODE>library(clp/simplex)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.18"><SPAN class="sec-nr">E.4.18</SPAN> <SPAN class="sec-title"><CODE>library(clp/clpfd)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="clpfd.html##/\/2">#/\/2</A></TD><TD>P and 
+Q hold.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html##</2">#&lt;/2</A></TD><TD>X 
+is less than Y.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##<==/2">#&lt;==/2</A></TD><TD>?Q 
+implies ?P.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##<==>/2">#&lt;==&gt;/2</A></TD><TD>P 
+and Q are equivalent.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html##=/2">#=/2</A></TD><TD>X 
+equals Y.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html##=</2">#=&lt;/2</A></TD><TD>X 
+is less than or equal to Y.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##==>/2">#==&gt;/2</A></TD><TD>P 
+implies Q.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html##>/2">#&gt;/2</A></TD><TD>X 
+is greater than Y.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html##>=/2">#&gt;=/2</A></TD><TD>X 
+is greater than or equal to Y.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##\/1">#\/1</A></TD><TD>The 
+reifiable constraint Q does _not_ hold.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##\//2">#\//2</A></TD><TD>P or Q 
+holds.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html##\=/2">#\=/2</A></TD><TD>X 
+is not Y.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html#all_different/1">all_different/1</A></TD><TD>Constrain 
+Vars to be pairwise distinct.</TD></TR>
+<TR><TD><A class="pred" href="clpclp_distinct.html#all_distinct/1">all_distinct/1</A></TD><TD>Like 
+all_different/1, with stronger propagation.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html#in/2">in/2</A></TD><TD>Constrain 
+Var to elements of Domain.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html#indomain/1">indomain/1</A></TD><TD>Bind 
+Var to all feasible values of its domain on backtracking.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#ins/2">ins/2</A></TD><TD>Constrain 
+the variables or integers in Vars to Domain.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html#label/1">label/1</A></TD><TD>Equivalent 
+to labeling([], Vars).</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html#labeling/2">labeling/2</A></TD><TD>Labeling 
+means systematically trying out values for the finite domain variables 
+Vars until all of them are ground.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html#lex_chain/1">lex_chain/1</A></TD><TD>Constrains 
+Lists to be lexicographically non-decreasing.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html#serialized/2">serialized/2</A></TD><TD>Constrain 
+a set of intervals to a non-overlapping sequence.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html#sum/3">sum/3</A></TD><TD>Constrain 
+the sum of a list.</TD></TR>
+<TR><TD><A class="pred" href="clpbounds.html#tuples_in/2">tuples_in/2</A></TD><TD>Relation 
+is a list of ground lists of integers.</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.19"><SPAN class="sec-nr">E.4.19</SPAN> <SPAN class="sec-title"><CODE>library(clpqr)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="clpqr.html#entailed/1">entailed/1</A></TD><TD>Check 
+if constraint is entailed</TD></TR>
+<TR><TD><A class="pred" href="clpqr.html#inf/2">inf/2</A></TD><TD>Find 
+the infimum of an expression</TD></TR>
+<TR><TD><A class="pred" href="clpqr.html#sup/2">sup/2</A></TD><TD>Find 
+the supremum of an expression</TD></TR>
+<TR><TD><A class="pred" href="clpqr.html#minimize/1">minimize/1</A></TD><TD>Minimizes 
+an expression</TD></TR>
+<TR><TD><A class="pred" href="clpqr.html#maximize/1">maximize/1</A></TD><TD>Maximizes 
+an expression</TD></TR>
+<TR><TD><A class="pred" href="clpqr.html#bb_inf/3">bb_inf/3</A></TD><TD>Infimum 
+of expression for mixed-integer problems</TD></TR>
+<TR><TD><A class="pred" href="clpqr.html#bb_inf/4">bb_inf/4</A></TD><TD>Infimum 
+of expression for mixed-integer problems</TD></TR>
+<TR><TD><A class="pred" href="clpqr.html#bb_inf/5">bb_inf/5</A></TD><TD>Infimum 
+of expression for mixed-integer problems</TD></TR>
+<TR><TD><A class="pred" href="clpqr.html#dump/3">dump/3</A></TD><TD>Dump 
+constraints on variables</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.20"><SPAN class="sec-nr">E.4.20</SPAN> <SPAN class="sec-title"><CODE>library(clp/simplex)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="simplex.html#assignment/2">assignment/2</A></TD><TD>Solve 
@@ -433,80 +598,6 @@ shadow price in solved state</TD></TR>
 transportation problem</TD></TR>
 <TR><TD><A class="pred" href="simplex.html#variable_value/3">variable_value/3</A></TD><TD>Fetch 
 value of variable in solved state</TD></TR>
-</TABLE>
-
-<H3><A NAME="sec:E.4.13"><SPAN class="sec-nr">E.4.13</SPAN> <SPAN class="sec-title"><CODE>library(clpqr)</CODE></SPAN></A></H3>
-
-<TABLE>
-<TR><TD><A class="pred" href="clpqr.html#entailed/1">entailed/1</A></TD><TD>Check 
-if constraint is entailed</TD></TR>
-<TR><TD><A class="pred" href="clpqr.html#inf/2">inf/2</A></TD><TD>Find 
-the infimum of an expression</TD></TR>
-<TR><TD><A class="pred" href="clpqr.html#sup/2">sup/2</A></TD><TD>Find 
-the supremum of an expression</TD></TR>
-<TR><TD><A class="pred" href="clpqr.html#minimize/1">minimize/1</A></TD><TD>Minimizes 
-an expression</TD></TR>
-<TR><TD><A class="pred" href="clpqr.html#maximize/1">maximize/1</A></TD><TD>Maximizes 
-an expression</TD></TR>
-<TR><TD><A class="pred" href="clpqr.html#bb_inf/3">bb_inf/3</A></TD><TD>Infimum 
-of expression for mixed-integer problems</TD></TR>
-<TR><TD><A class="pred" href="clpqr.html#bb_inf/4">bb_inf/4</A></TD><TD>Infimum 
-of expression for mixed-integer problems</TD></TR>
-<TR><TD><A class="pred" href="clpqr.html#bb_inf/5">bb_inf/5</A></TD><TD>Infimum 
-of expression for mixed-integer problems</TD></TR>
-<TR><TD><A class="pred" href="clpqr.html#dump/3">dump/3</A></TD><TD>Dump 
-constraints on variables</TD></TR>
-</TABLE>
-
-<H3><A NAME="sec:E.4.14"><SPAN class="sec-nr">E.4.14</SPAN> <SPAN class="sec-title"><CODE>library(prologxref)</CODE></SPAN></A></H3>
-
-<TABLE>
-<TR><TD><A class="pred" href="prologxref.html#prolog:called_by/2">prolog:called_by/2</A></TD><TD><I>(hook)</I> 
-Extend cross-referencer</TD></TR>
-<TR><TD><A class="pred" href="prologxref.html#xref_built_in/1">xref_built_in/1</A></TD><TD>Examine 
-defined built-ins</TD></TR>
-<TR><TD><A class="pred" href="prologxref.html#xref_called/3">xref_called/3</A></TD><TD>Examine 
-called predicates</TD></TR>
-<TR><TD><A class="pred" href="prologxref.html#xref_clean/1">xref_clean/1</A></TD><TD>Remove 
-analysis of source</TD></TR>
-<TR><TD><A class="pred" href="prologxref.html#xref_current_source/1">xref_current_source/1</A></TD><TD>Examine 
-cross-referenced sources</TD></TR>
-<TR><TD><A class="pred" href="prologxref.html#xref_defined/3">xref_defined/3</A></TD><TD>Examine 
-defined predicates</TD></TR>
-<TR><TD><A class="pred" href="prologxref.html#xref_exported/2">xref_exported/2</A></TD><TD>Examine 
-exported predicates</TD></TR>
-<TR><TD><A class="pred" href="prologxref.html#xref_module/2">xref_module/2</A></TD><TD>Module 
-defined by source</TD></TR>
-<TR><TD><A class="pred" href="prologxref.html#xref_source/1">xref_source/1</A></TD><TD>Cross-reference 
-analysis of source</TD></TR>
-</TABLE>
-
-<H3><A NAME="sec:E.4.15"><SPAN class="sec-nr">E.4.15</SPAN> <SPAN class="sec-title"><CODE>library(broadcast)</CODE></SPAN></A></H3>
-
-<TABLE>
-<TR><TD><A class="pred" href="broadcast.html#broadcast/1">broadcast/1</A></TD><TD>Send 
-event notification</TD></TR>
-<TR><TD><A class="pred" href="broadcast.html#broadcast_request/1">broadcast_request/1</A></TD><TD>Request 
-all agents</TD></TR>
-<TR><TD><A class="pred" href="broadcast.html#listen/2">listen/2</A></TD><TD>Listen 
-to event notifications</TD></TR>
-<TR><TD><A class="pred" href="broadcast.html#listen/3">listen/3</A></TD><TD>Listen 
-to event notifications</TD></TR>
-<TR><TD><A class="pred" href="broadcast.html#unlisten/1">unlisten/1</A></TD><TD>Stop 
-listening to event notifications</TD></TR>
-<TR><TD><A class="pred" href="broadcast.html#unlisten/2">unlisten/2</A></TD><TD>Stop 
-listening to event notifications</TD></TR>
-<TR><TD><A class="pred" href="broadcast.html#unlisten/3">unlisten/3</A></TD><TD>Stop 
-listening to event notifications</TD></TR>
-<TR><TD><A class="pred" href="broadcast.html#listening/3">listening/3</A></TD><TD>Who 
-is listening to event notifications?</TD></TR>
-</TABLE>
-
-<H3><A NAME="sec:E.4.16"><SPAN class="sec-nr">E.4.16</SPAN> <SPAN class="sec-title"><CODE>library(record)</CODE></SPAN></A></H3>
-
-<TABLE>
-<TR><TD><A class="pred" href="record.html#record/1">record/1</A></TD><TD>Define 
-named fields in a term</TD></TR>
 </TABLE>
 
 <P></BODY></HTML>

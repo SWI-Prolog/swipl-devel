@@ -2,11 +2,11 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section A.3</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section A.2</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
-<LINK REL=previous HREF="ordsets.html">
-<LINK REL=next HREF="ugraphs.html">
+<LINK REL=previous HREF="apply.html">
+<LINK REL=next HREF="clpbounds.html">
 <STYLE type="text/css">
 /* Style sheet for SWI-Prolog latex2html
 */
@@ -123,11 +123,11 @@ font-size: smaller;
 <DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
 <A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
 <A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A class="nav" href="ordsets.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A class="nav" href="ugraphs.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<A class="nav" href="apply.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="clpbounds.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.3"><SPAN class="sec-nr">A.3</SPAN> <SPAN class="sec-title">library( 
+<H2><A NAME="sec:A.2"><SPAN class="sec-nr">A.2</SPAN> <SPAN class="sec-title">library( 
 assoc ): Association lists</SPAN></A></H2>
 
 <A NAME="assoc"></A>
@@ -150,6 +150,11 @@ list) expected time (and worst-case time) operation.
 <DD class="defbody">
 <VAR>List</VAR> is a list of Key-Value pairs corresponding to the 
 associations in <VAR>Assoc</VAR> in ascending order of keys.</DD>
+<DT class="pubdef"><A NAME="assoc_to_keys/2"><STRONG>assoc_to_keys</STRONG>(<VAR>+Assoc, 
+-List</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>List</VAR> is a list of Keys corresponding to the associations in <VAR>Assoc</VAR> 
+in ascending order.</DD>
 <DT class="pubdef"><A NAME="empty_assoc/1"><STRONG>empty_assoc</STRONG>(<VAR>-Assoc</VAR>)</A></DT>
 <DD class="defbody">
 <VAR>Assoc</VAR> is unified with an empty association list.</DD>

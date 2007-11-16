@@ -699,6 +699,11 @@ env(summarylist(_, Summary),
       +Summary,
       html('</TABLE>')
     ]).
+env(parameters(_, Paramlist),
+    [ html('<TABLE class="paramlist">'),
+      +Paramlist,
+      html('</TABLE>')
+    ]).
 env(comment(_, _), []).
 env(htmlonly(_, Tokens), HTML) :-
 	translate(Tokens, normal, HTML).

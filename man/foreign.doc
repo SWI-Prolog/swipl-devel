@@ -1463,8 +1463,8 @@ call_chars(const char *goal)
 
     In the current implementation, the string is surrounded by
     \arg{chr} and any occurrence of \arg{chr} is doubled.  In the
-    future the behaviour will depend on the \prologflag{character_escape}
-    Prolog flag.
+    future the behaviour will depend on the
+    \prologflag{character_escapes} Prolog flag.
 \end{description}
 
 

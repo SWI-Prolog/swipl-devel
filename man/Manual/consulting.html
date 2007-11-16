@@ -633,6 +633,12 @@ constructed calls.</DD>
 This predicate is normally called by the compiler to perform 
 preprocessing. First it calls <A NAME="idx:goalexpansion2:436"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>. 
 If this fails it returns the first argument.</DD>
+<DT class="pubdef"><A NAME="compile_aux_clauses/1"><STRONG>compile_aux_clauses</STRONG>(<VAR>+Clauses</VAR>)</A></DT>
+<DD class="defbody">
+Compile clauses on behalve of <A NAME="idx:goalexpansion2:437"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>. 
+This predicate compiled the argument clauses into static predicates, 
+associating the predicates with the current file but avoid changing the 
+notion of current predicate and therefore discontiguous warnings.</DD>
 <DT class="pubdef"><A NAME="preprocessor/2"><STRONG>preprocessor</STRONG>(<VAR>-Old, 
 +New</VAR>)</A></DT>
 <DD class="defbody">
@@ -660,9 +666,9 @@ compilation</SPAN></A></H4>
 
 <A NAME="sec:conditionalcompilation"></A>
 
-<P><A NAME="idx:ifdirective:437"></A>Conditional compilation builds on 
+<P><A NAME="idx:ifdirective:438"></A>Conditional compilation builds on 
 the same principle as
-<A NAME="idx:termexpansion2:438"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>, <A NAME="idx:goalexpansion2:439"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+<A NAME="idx:termexpansion2:439"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>, <A NAME="idx:goalexpansion2:440"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
 and the expansion of grammar rules to compile sections of the 
 source-code conditionally. One of the reasons for introducing 
 conditional compilation is to simplify writing portable code. See <A class="sec" href="dialect.html">section 
@@ -693,7 +699,7 @@ the code due to different capabilities.
 <DT class="pubdef"><A NAME="if/1">:- <STRONG>if</STRONG>(<VAR>:Goal</VAR>)</A></DT>
 <DD class="defbody">
 Compile subsequent code only if <VAR>Goal</VAR> succeeds. For enhanced 
-portability, <VAR>Goal</VAR> is processed by <A NAME="idx:expandgoal2:440"></A><A class="pred" href="consulting.html#expand_goal/2">expand_goal/2</A> 
+portability, <VAR>Goal</VAR> is processed by <A NAME="idx:expandgoal2:441"></A><A class="pred" href="consulting.html#expand_goal/2">expand_goal/2</A> 
 before execution. If an error occurs, the error is printed and 
 processing proceeds as if
 <VAR>Goal</VAR> has failed.</DD>
@@ -737,7 +743,7 @@ use of the development environment:
 <LI>Trace a goal
 <LI>Find unexpected behaviour of a predicate
 <LI>Enter a <EM>break</EM> using the <B>b</B> command
-<LI>Fix the sources and reload them using <A NAME="idx:make0:441"></A><A class="pred" href="consulting.html#make/0">make/0</A>
+<LI>Fix the sources and reload them using <A NAME="idx:make0:442"></A><A class="pred" href="consulting.html#make/0">make/0</A>
 <LI>Exit the break, <EM>retry</EM> using the <B>r</B> command
 </UL>
 
@@ -747,7 +753,7 @@ while new goals use the reloaded definition, which is why the
 clauses of predicates that are active during the reload cannot be 
 reclaimed. Normally a small amount of dead clauses should not be an 
 issue during development. Such clauses can be reclaimed with
-<A NAME="idx:garbagecollectclauses0:442"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A>.
+<A NAME="idx:garbagecollectclauses0:443"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="garbage_collect_clauses/0"><STRONG>garbage_collect_clauses</STRONG></A></DT>
@@ -755,7 +761,7 @@ issue during development. Such clauses can be reclaimed with
 Cleanup all <EM>dirty</EM> predicates, where dirty predicates are 
 defined to be predicates that have both old and new definitions due to 
 reloading a source file while the predicate was active. Of course, 
-predicates that are active using <A NAME="idx:garbagecollectclauses0:443"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A> 
+predicates that are active using <A NAME="idx:garbagecollectclauses0:444"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A> 
 cannot be reclaimed and remain <EM>dirty</EM>. Predicate are -like 
 atoms- shared resources and therefore all threads are suspended during 
 the execution of this predicate.
@@ -771,7 +777,7 @@ source files. Reloading a file freezes all threads after marking the
 active predicates originating from the file being reloaded. The threads 
 are resumed after the file has been loaded. In addition, after 
 completing loading the outermost file the system runs
-<A NAME="idx:garbagecollectclauses0:444"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A>.
+<A NAME="idx:garbagecollectclauses0:445"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A>.
 
 <P>What does that mean? Unfortunately it does <EM>not</EM> mean we can 
 `hot-swap' modules. Consider the case where thread <VAR>A</VAR> is 
@@ -805,9 +811,9 @@ loaded on any implementation of SWI-Prolog. Note however that clauses
 are stored as virtual machine instructions. Changes to the compiler will 
 generally make old compiled files unusable.
 
-<P>Quick Load Files are created using <A NAME="idx:qcompile1:445"></A><A class="pred" href="consulting.html#qcompile/1">qcompile/1</A>. 
+<P>Quick Load Files are created using <A NAME="idx:qcompile1:446"></A><A class="pred" href="consulting.html#qcompile/1">qcompile/1</A>. 
 They are loaded using
-<A NAME="idx:consult1:446"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
+<A NAME="idx:consult1:447"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
 or one of the other file-loading predicates described in
 <A class="sec" href="consulting.html">section 4.3</A>. If consult is 
 given the explicit <CODE>.pl</CODE> file, it will load the Prolog 
@@ -819,7 +825,7 @@ otherwise.
 <DL>
 <DT class="pubdef"><A NAME="qcompile/1"><STRONG>qcompile</STRONG>(<VAR>+File</VAR>)</A></DT>
 <DD class="defbody">
-Takes a single file specification like <A NAME="idx:consult1:447"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
+Takes a single file specification like <A NAME="idx:consult1:448"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
 (i.e., accepts constructs like <CODE>library(LibFile)</CODE> and, in 
 addition to the normal compilation, creates a <EM>Quick Load File</EM> 
 from <VAR>File</VAR>. The file-extension of this file is <CODE>.qlf</CODE>. 
@@ -834,14 +840,14 @@ stored in the
 the
 <CODE>.pl</CODE> file.
 
-<P>For <A NAME="idx:termexpansion2:448"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>, 
+<P>For <A NAME="idx:termexpansion2:449"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A>, 
 the same rules as described in
 <A class="sec" href="compilation.html">section 2.10</A> apply.
 
 <P>Conditional execution or optimisation may test the predicate
-<A NAME="idx:compiling0:449"></A><A class="pred" href="consulting.html#compiling/0">compiling/0</A>.
+<A NAME="idx:compiling0:450"></A><A class="pred" href="consulting.html#compiling/0">compiling/0</A>.
 
-<P>Source references (<A NAME="idx:sourcefile2:450"></A><A class="pred" href="consulting.html#source_file/2">source_file/2</A>) 
+<P>Source references (<A NAME="idx:sourcefile2:451"></A><A class="pred" href="consulting.html#source_file/2">source_file/2</A>) 
 in the Quick Load File refer to the Prolog source file from which the 
 compiled code originates.
 </DD>

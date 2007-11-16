@@ -1,0 +1,226 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section A.14</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="netscape.html">
+<LINK REL=next HREF="ordsets.html">
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
+}
+
+dt.pubdef
+{ background-color: #c5e1ff;
+}
+
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
+}
+
+div.navigate
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+}
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ 
+}
+
+span.pred-ext
+{ font-weight: bold;
+}
+
+span.pred-tag
+{ float: right;
+font-size: 80%;
+font-style: italic;
+color: #202020;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 80%;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="netscape.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="ordsets.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:A.14"><SPAN class="sec-nr">A.14</SPAN> <SPAN class="sec-title">option.pl 
+-- Option list processing</SPAN></A></H2>
+
+<P><A NAME="sec:option"></A>
+
+<DL>
+<DT><B>See also</B><DD> library(record)
+<DT><B>To be done</B><DD> We should consider putting many options in an 
+assoc or record with appropriate preprocessing to achieve better 
+performance.
+<DT><B>To be done</B><DD> We should provide some standard to to 
+automatic type-checking on option lists.
+</DL>
+
+<P>The library(option) provides some utilities for processing option 
+lists. Option lists are commonly used as an alternative for many 
+arguments. Examples built-in predicates are <A class="pred" href="IO.html#open/4">open/4</A> 
+and <A class="pred" href="termrw.html#write_term/3">write_term/3</A>. 
+Naming the arguments results in more readable code and the list nature 
+makes it easy to extend the list of options accepted by a predicate. 
+Option lists come in two styles, both of which are handled by this 
+library.
+
+<DL>
+<DT><B>Name(Value)</B></DT>
+<DD>
+This is the preferred style.
+</DD>
+<DT><B>Name = Value</B></DT>
+<DD>
+This is often used, but deprecated.
+</DD>
+</DL>
+
+<P>Processing options inside time critical code (loops) can cause 
+serious overhead. One possibility is to define a record using 
+library(record) and initialise this using make_<VAR>&lt;</VAR>record<A class="pred" href="arith.html#>/2">&gt;/2</A>. 
+In addition to providing good performance, this also provides 
+type-checking and central declaration of defaults.
+
+<PRE class="code">
+:- record atts(width:integer=100, shape:oneof([box,circle])=box).
+
+process(Data, Options) :-
+        make_atts(Options, Attributes),
+        action(Data, Attributes).
+
+action(Data, Attributes) :-
+        atts_shape(Attributes, Shape),
+        ...
+</PRE>
+
+<DL>
+<DT class="pubdef"><A NAME="option/3"><STRONG>option</STRONG>(<VAR>?Option, 
++OptionList, +Default</VAR>)</A></DT>
+<DD class="defbody">
+Get an option from a <VAR>OptionList</VAR>. <VAR>OptionList</VAR> can 
+use the Name=Value as well as the Name(Value) convention.
+<TABLE class="paramlist">
+<VAR>Option</VAR> &amp; Term of the form Name(?Value). <BR>
+</TABLE>
+
+</DD>
+<DT class="pubdef"><A NAME="option/2"><STRONG>option</STRONG>(<VAR>?Option, 
++OptionList</VAR>)</A></DT>
+<DD class="defbody">
+Get an option from a <VAR>OptionList</VAR>. <VAR>OptionList</VAR> can 
+use the Name=Value as well as the Name(Value) convention. Fails silently 
+if the option does not appear in <VAR>OptionList</VAR>.
+<TABLE class="paramlist">
+<VAR>Option</VAR> &amp; Term of the form Name(?Value). <BR>
+</TABLE>
+
+</DD>
+<DT class="pubdef"><span class="pred-tag">[semidet]</span><A NAME="select_option/3"><STRONG>select_option</STRONG>(<VAR>?Option, 
++Options, -RestOptions</VAR>)</A></DT>
+<DD class="defbody">
+Get and remove option from an option list. As <A class="pred" href="option.html#option/2">option/2</A>, 
+removing the matching option from <VAR>Options</VAR> and unifying the 
+remaining options with <VAR>RestOptions</VAR>.</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="select_option/4"><STRONG>select_option</STRONG>(<VAR>?Option, 
++Options, -RestOptions, +Default</VAR>)</A></DT>
+<DD class="defbody">
+Get and remove option with default value. As <A class="pred" href="option.html#select_option/3">select_option/3</A>, 
+but if <VAR>Option</VAR> is not in <VAR>Options</VAR>, its value is 
+unified with
+<VAR>Default</VAR> and <VAR>RestOptions</VAR> with <VAR>Options</VAR>.</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="merge_options/3"><STRONG>merge_options</STRONG>(<VAR>+New, 
++Old, -Merged</VAR>)</A></DT>
+<DD class="defbody">
+Merge two option lists. <VAR>Merged</VAR> is a sorted list of options 
+using the canonical format Name(Value) holding all options from <VAR>New</VAR> 
+and <VAR>Old</VAR>, after removing conflicting options from <VAR>Old</VAR>.
+</DD>
+</DL>
+
+<P></BODY></HTML>

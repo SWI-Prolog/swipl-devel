@@ -1,5 +1,15 @@
-			   XPCE ChangeLog
-			   ==============
+[Nov 15 2007]
+
+ * ADDED: library(apply) with include/3, exclude/3, partition/5.
+   Moved sublist/3 from built-in to library(backcomp).  Added library apply
+   to the manual.
+   
+[Nov 12 2007]
+
+ * ADDED: PceEmacs: ->insert_file_header expands %E to E-mail address
+
+ * INSTALL: Bug#319: Allow for parallel make install.  Keri Harris
+
 
 VERSION 6.6.44, distributed with SWI-Prolog 5.6.44
 ==================================================

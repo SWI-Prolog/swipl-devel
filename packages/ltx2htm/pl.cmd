@@ -107,6 +107,11 @@
 {tags}=list
 \tag{+}=item		1 0
 
+% PlDoc parameter lists
+
+{parameters}
+\param{+}{+}
+
 % C++
 
 \classitem{-}=item

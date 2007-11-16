@@ -1,0 +1,199 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section A.16</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="ordsets.html">
+<LINK REL=next HREF="prologxref.html">
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
+}
+
+dt.pubdef
+{ background-color: #c5e1ff;
+}
+
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
+}
+
+div.navigate
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+}
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ 
+}
+
+span.pred-ext
+{ font-weight: bold;
+}
+
+span.pred-tag
+{ float: right;
+font-size: 80%;
+font-style: italic;
+color: #202020;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 80%;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="ordsets.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="prologxref.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:A.16"><SPAN class="sec-nr">A.16</SPAN> <SPAN class="sec-title">pairs.pl 
+-- Operations on key-value lists</SPAN></A></H2>
+
+<P><A NAME="sec:pairs"></A>
+
+<DL>
+<DT><B>author</B><DD> Jan Wielemaker
+<DT><B>See also</B><DD>
+<A class="pred" href="builtinlist.html#keysort/2">keysort/2</A>, 
+library(assoc)
+</DL>
+
+<P>This module implements common operations on Key-Value lists, also 
+known as <I>Pairs</I>. Pairs have great practical value, especially due 
+to
+<A class="pred" href="builtinlist.html#keysort/2">keysort/2</A> and the 
+library <CODE>assoc.pl</CODE>.
+
+<P>This library is based on disussion in the SWI-Prolog mailinglist, 
+including specifications from Quintus and a library proposal by Richard 
+O'Keefe.
+
+<DL>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="pairs_keys_values/3"><STRONG>pairs_keys_values</STRONG>(<VAR>?Pairs, 
+?Keys, ?Values</VAR>)</A></DT>
+<DD class="defbody">
+True if <VAR>Keys</VAR> holds the keys of <VAR>Pairs</VAR> and <VAR>Values</VAR> 
+the values.
+
+<P>Deterministic if any argument is instantiated to a finite list and 
+the others are either free or finite lists.</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="pairs_values/2"><STRONG>pairs_values</STRONG>(<VAR>+Pairs, 
+-Values</VAR>)</A></DT>
+<DD class="defbody">
+Remove the keys from a list of Key-Value pairs. Same as 
+pairs_keys_values(<VAR>Pairs</VAR>, _, <VAR>Values</VAR>)</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="pairs_keys/2"><STRONG>pairs_keys</STRONG>(<VAR>+Pairs, 
+-Keys</VAR>)</A></DT>
+<DD class="defbody">
+Remove the values from a list of Key-Value pairs. Same as 
+pairs_keys_values(<VAR>Pairs</VAR>, <VAR>Keys</VAR>, _)</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="group_pairs_by_key/2"><STRONG>group_pairs_by_key</STRONG>(<VAR>+Pairs, 
+-Joined:list(Key-Values)</VAR>)</A></DT>
+<DD class="defbody">
+Group values with the same key. For example:
+
+<PRE class="code">
+?- group_pairs_by_key([a-2, a-1, b-4], X).
+
+X = [a-[2,1], b-[4]]
+</PRE>
+
+<TABLE class="paramlist">
+<VAR>Pairs</VAR> &amp; <VAR>Key</VAR>-Value list, sorted to the standard 
+order of terms (as <A class="pred" href="builtinlist.html#keysort/2">keysort/2</A> 
+does) <BR>
+<VAR>Joined</VAR> &amp; List of <VAR>Key</VAR>-Group, where Group is the 
+list of <VAR>Values</VAR> associated with <VAR>Key</VAR>. <BR>
+</TABLE>
+
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="transpose_pairs/2"><STRONG>transpose_pairs</STRONG>(<VAR>+Pairs, 
+-Transposed</VAR>)</A></DT>
+<DD class="defbody">
+Swap Key-Value to Value-Key and sort the result on Value (the new key) 
+using <A class="pred" href="builtinlist.html#keysort/2">keysort/2</A>.
+</DD>
+</DL>
+
+<P></BODY></HTML>

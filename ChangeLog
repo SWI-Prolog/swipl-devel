@@ -8,6 +8,49 @@
 					--------------------------------------
 
 
+================================
+VERSION 5.6.47 November 16, 2007
+================================
+
+ * FIXED: Allow for Name//Arity in current_predicate/1.
+
+ * ADDED: append/2 to concatenate a list of lists.  Suggested my Markus Triska.
+
+ * FIXED: Possibly incorrect `early reset' in GC for variables involved in calls
+   from Prolog -> C -> Prolog.  Roberto Bagnara.
+   
+ * ENHANCED: Throw proper error when redefining an imported procedure
+
+ * ADDED: library(apply) with include/3, exclude/3, partition/5.
+   Moved sublist/3 from built-in to library(backcomp).  Added library apply
+   to the manual.
+   
+ * ADDED: merge_options/3.
+
+ * FIXED: Bug#322: typo in messages.pl.  Holger Kanwischer.
+
+ * ADDED: assoc_to_keys/2 to get a list of keys from an assoc
+
+ * ADDED: support for once/1 and ignore/1 to apply_macros.pl
+
+ * FIXED: Unwanted non-deterministic behaviour in qcompile/1
+
+ * ADDED: library apply_macros.pl, doing compile-time unfolding of maplist/2 and
+   higher arity.
+   
+ * ADDED: compile_aux_clauses/2 to deal with auxilerary clauses for goal_expansion/2.
+
+ * DOC: Added PlDoc documentation to library(assoc).
+
+ * INSTALL: Bug#319: Allow for parallel make install.  Keri Harris
+
+ * PORT: Fixed configuration of profile timer for MacOX Leopart.  After
+   discussion with Hiroo Koshimoto.
+   
+ * FIXED: Avoid source_file(?PI, +File) creating a source-file entry for
+   File This bug caused the appearence of spurious index.html files in
+   PlDoc directory listings.
+   
 ==================================
 VERSION 5.6.46 (November 05, 2007)
 ==================================

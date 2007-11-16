@@ -134,16 +134,16 @@ and Editor Interface</SPAN></A></H2>
 
 <P>SWI-Prolog offers an extensible interface which allows the user to 
 edit objects of the program: predicates, modules, files, etc. The editor 
-interface is implemented by <A NAME="idx:edit1:451"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
+interface is implemented by <A NAME="idx:edit1:452"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 and consists of three parts:
 <EM>locating</EM>, <EM>selecting</EM> and <EM>starting the editor</EM>.
 
 <P>Any of these parts may be extended or redefined by adding clauses to 
-various multi-file (see <A NAME="idx:multifile1:452"></A><A class="pred" href="dynamic.html#multifile/1">multifile/1</A>) 
+various multi-file (see <A NAME="idx:multifile1:453"></A><A class="pred" href="dynamic.html#multifile/1">multifile/1</A>) 
 predicates defined in the module
 <CODE>prolog_edit</CODE>.
 
-<P>The built-in edit specifications for <A NAME="idx:edit1:453"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
+<P>The built-in edit specifications for <A NAME="idx:edit1:454"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 (see prolog_edit:locate/3) are described below.
 
 <P>
@@ -178,19 +178,19 @@ First exploits prolog_edit:locate/3 to translate <VAR>Specification</VAR>
 into a list of <EM>Locations</EM>. If there is more than one `hit', the 
 user is asked to select from the locations found. Finally, 
 prolog_edit:edit_source/1 is used to invoke the user's preferred editor. 
-Typically, <A NAME="idx:edit1:454"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
+Typically, <A NAME="idx:edit1:455"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 can be handed the name of a predicate, module, basename of a file, XPCE 
 class, XPCE method, etc.</DD>
 <DT class="pubdef"><A NAME="edit/0"><STRONG>edit</STRONG></A></DT>
 <DD class="defbody">
-Edit the `default' file using <A NAME="idx:edit1:455"></A><A class="pred" href="listing.html#edit/1">edit/1</A>. 
+Edit the `default' file using <A NAME="idx:edit1:456"></A><A class="pred" href="listing.html#edit/1">edit/1</A>. 
 The default file is the file loaded with the command-line option <STRONG>-s</STRONG> 
 or, in windows, the file loaded by double-clicking from the Windows 
 shell.</DD>
 <DT class="pubdef"><A NAME="prolog_edit:locate/3"><STRONG>prolog_edit:locate</STRONG>(<VAR>+Spec, 
 -FullSpec, -Location</VAR>)</A></DT>
 <DD class="defbody">
-Where <VAR>Spec</VAR> is the specification provided through <A NAME="idx:edit1:456"></A><A class="pred" href="listing.html#edit/1">edit/1</A>. 
+Where <VAR>Spec</VAR> is the specification provided through <A NAME="idx:edit1:457"></A><A class="pred" href="listing.html#edit/1">edit/1</A>. 
 This multifile predicate is used to enumerate locations at with an 
 object satisfying the given <VAR>Spec</VAR> can be found. <VAR>FullSpec</VAR> 
 is unified with the complete specification for the object. This 
@@ -211,10 +211,10 @@ objects.</DD>
 <DD class="defbody">
 Start editor on <VAR>Location</VAR>. See prolog_edit:locate/3 for the 
 format of a location term. This multi-file predicate is normally not 
-defined. If it succeeds, <A NAME="idx:edit1:457"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
+defined. If it succeeds, <A NAME="idx:edit1:458"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 assumes the editor is started.
 
-<P>If it fails, <A NAME="idx:edit1:458"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
+<P>If it fails, <A NAME="idx:edit1:459"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 uses its internal defaults, which are defined by the Prolog flag <A class="flag" href="flags.html#flag:editor">editor</A> 
 and/or the environment variable
 <CODE>EDITOR</CODE>. The following rules apply. If the Prolog flag <A class="flag" href="flags.html#flag:editor">editor</A> 
@@ -232,8 +232,8 @@ for examples.</DD>
 <DT class="pubdef"><A NAME="prolog_edit:edit_command/2"><STRONG>prolog_edit:edit_command</STRONG>(<VAR>+Editor, 
 -Command</VAR>)</A></DT>
 <DD class="defbody">
-Determines how <VAR>Editor</VAR> is to be invoked using <A NAME="idx:shell1:459"></A><A class="pred" href="system.html#shell/1">shell/1</A>.
-<VAR>Editor</VAR> is the determined editor (see <A NAME="idx:editsource1:460"></A><SPAN class="pred-ext">edit_source/1</SPAN>), 
+Determines how <VAR>Editor</VAR> is to be invoked using <A NAME="idx:shell1:460"></A><A class="pred" href="system.html#shell/1">shell/1</A>.
+<VAR>Editor</VAR> is the determined editor (see <A NAME="idx:editsource1:461"></A><SPAN class="pred-ext">edit_source/1</SPAN>), 
 without the full path specification, and without possible (exe) 
 extension.
 <VAR>Command</VAR> is an atom describing the command. The pattern
@@ -268,22 +268,22 @@ prolog_edit:load :-
 List specified predicates (when an atom is given all predicates with 
 this name will be listed). The listing is produced on the basis of the 
 internal representation, thus losing user's layout and variable name 
-information. See also <A NAME="idx:portrayclause1:461"></A><A class="pred" href="listing.html#portray_clause/1">portray_clause/1</A>.
+information. See also <A NAME="idx:portrayclause1:462"></A><A class="pred" href="listing.html#portray_clause/1">portray_clause/1</A>.
 </DD>
 <DT class="pubdef"><A NAME="listing/0"><STRONG>listing</STRONG></A></DT>
 <DD class="defbody">
-List all predicates of the database using <A NAME="idx:listing1:462"></A><A class="pred" href="listing.html#listing/1">listing/1</A>.</DD>
+List all predicates of the database using <A NAME="idx:listing1:463"></A><A class="pred" href="listing.html#listing/1">listing/1</A>.</DD>
 <DT class="pubdef"><A NAME="portray_clause/1"><STRONG>portray_clause</STRONG>(<VAR>+Clause</VAR>)</A></DT>
 <DD class="defbody">
 Pretty print a clause. A clause should be specified as a term `<CODE>&lt;<VAR>Head</VAR>&gt; 
 :- &lt;<VAR>Body</VAR>&gt;</CODE>'. Facts are represented as `<CODE>&lt;<VAR>Head</VAR>&gt; 
 :- true</CODE>' or simply <CODE>&lt;<VAR>Head</VAR>&gt;</CODE>. 
 Variables in the clause are written as <VAR>A</VAR>, <VAR>B</VAR>, ... . 
-Singleton variables are written as <CODE>_</CODE>. See also <A NAME="idx:portrayclause2:463"></A><A class="pred" href="listing.html#portray_clause/2">portray_clause/2</A>.</DD>
+Singleton variables are written as <CODE>_</CODE>. See also <A NAME="idx:portrayclause2:464"></A><A class="pred" href="listing.html#portray_clause/2">portray_clause/2</A>.</DD>
 <DT class="pubdef"><A NAME="portray_clause/2"><STRONG>portray_clause</STRONG>(<VAR>+Stream, 
 +Clause</VAR>)</A></DT>
 <DD class="defbody">
-Pretty print a clause to <VAR>Stream</VAR>. See <A NAME="idx:portrayclause1:464"></A><A class="pred" href="listing.html#portray_clause/1">portray_clause/1</A> 
+Pretty print a clause to <VAR>Stream</VAR>. See <A NAME="idx:portrayclause1:465"></A><A class="pred" href="listing.html#portray_clause/1">portray_clause/1</A> 
 for details.
 </DD>
 </DL>

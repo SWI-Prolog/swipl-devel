@@ -1,3 +1,7 @@
+[Nov 8 2007]
+
+ * ADDED: Support for `MARS' connections in library(odbc).  Matt Lilley.
+
 Jun 6, 2007
 
 * Fix possible overflow of diagnostic message, returning rubbish.  Matt

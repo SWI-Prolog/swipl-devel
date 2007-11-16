@@ -2,11 +2,11 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section A.13</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.46 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
-<LINK REL=previous HREF="url.html">
-<LINK REL=next HREF="clpbounds.html">
+<LINK REL=previous HREF="clpclp_distinct.html">
+<LINK REL=next HREF="clpqr.html">
 <STYLE type="text/css">
 /* Style sheet for SWI-Prolog latex2html
 */
@@ -123,11 +123,11 @@ font-size: smaller;
 <DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
 <A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
 <A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A class="nav" href="url.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A class="nav" href="clpbounds.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<A class="nav" href="clpclp_distinct.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="clpqr.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.13"><SPAN class="sec-nr">A.13</SPAN> <SPAN class="sec-title">clpfd.pl 
+<H2><A NAME="sec:A.7"><SPAN class="sec-nr">A.7</SPAN> <SPAN class="sec-title">clpfd.pl 
 -- Constraint Logic Programming over Finite Domains</SPAN></A></H2>
 
 <P><A NAME="sec:clpfd"></A>
@@ -205,7 +205,7 @@ strictly smaller than Expr2 </TD></TR>
 
 </BLOCKQUOTE>
 
-<P>The constraints <A class="pred" href="clpbounds.html##=/2">#=/2</A>, <A class="pred" href="clpbounds.html##\=/2">#\=/2</A>, <A class="pred" href="clpfd.html##</2">#&lt;/2</A>, <A class="pred" href="clpbounds.html##>/2">#&gt;/2</A>, <A class="pred" href="clpbounds.html##=</2">#=&lt;/2</A>, <A class="pred" href="clpbounds.html##>=/2">#&gt;=/2</A> 
+<P>The constraints <A class="pred" href="clpbounds.html##=/2">#=/2</A>, <A class="pred" href="clpbounds.html##\=/2">#\=/2</A>, <A class="pred" href="clpbounds.html##</2">#&lt;/2</A>, <A class="pred" href="clpbounds.html##>/2">#&gt;/2</A>, <A class="pred" href="clpbounds.html##=</2">#=&lt;/2</A>, <A class="pred" href="clpbounds.html##>=/2">#&gt;=/2</A> 
 and <A class="pred" href="clpfd.html##\/1">#\/1</A> can be
 <I>reified</I>, which means reflecting their truth values into Boolean 
 0/1 variables. Let P and Q denote conjunctions (<A class="pred" href="clpfd.html##/\/2">#/\/2</A>) 
@@ -313,7 +313,7 @@ Constrain <VAR>Vars</VAR> to be pairwise distinct.</DD>
 <DT class="pubdef"><A NAME="sum/3"><STRONG>sum</STRONG>(<VAR>+Vars, +Op, 
 +Expr</VAR>)</A></DT>
 <DD class="defbody">
-Constrain the sum of a list. The <A class="pred" href="clpfd.html#sum/3">sum/3</A> 
+Constrain the sum of a list. The <A class="pred" href="clpbounds.html#sum/3">sum/3</A> 
 constraint demands that "sumlist(<VAR>Vars</VAR>) <VAR>Op</VAR> <VAR>Expr</VAR>" 
 hold, e.g.:
 
@@ -322,6 +322,21 @@ hold, e.g.:
 </PRE>
 
 </DD>
+<DT class="pubdef"><A NAME="#>=/2"><VAR>?X</VAR> <STRONG>#&gt;=</STRONG> <VAR>?Y</VAR></A></DT>
+<DD class="defbody">
+<VAR>X</VAR> is greater than or equal to <VAR>Y</VAR>.</DD>
+<DT class="pubdef"><A NAME="#=</2"><VAR>?X</VAR> <STRONG>#=&lt;</STRONG> <VAR>?Y</VAR></A></DT>
+<DD class="defbody">
+<VAR>X</VAR> is less than or equal to <VAR>Y</VAR>.</DD>
+<DT class="pubdef"><A NAME="#=/2"><VAR>?X</VAR> <STRONG>#=</STRONG> <VAR>?Y</VAR></A></DT>
+<DD class="defbody">
+<VAR>X</VAR> equals <VAR>Y</VAR>.</DD>
+<DT class="pubdef"><A NAME="#\=/2"><VAR>?X</VAR> <STRONG>#\=</STRONG> <VAR>?Y</VAR></A></DT>
+<DD class="defbody">
+<VAR>X</VAR> is not <VAR>Y</VAR>.</DD>
+<DT class="pubdef"><A NAME="#>/2"><VAR>?X</VAR> <STRONG>#&gt;</STRONG> <VAR>?Y</VAR></A></DT>
+<DD class="defbody">
+<VAR>X</VAR> is greater than <VAR>Y</VAR>.</DD>
 <DT class="pubdef"><A NAME="#</2"><VAR>?X</VAR> <STRONG>#&lt;</STRONG> <VAR>?Y</VAR></A></DT>
 <DD class="defbody">
 <VAR>X</VAR> is less than <VAR>Y</VAR>.</DD>
@@ -354,7 +369,7 @@ is a list of lists containing integers and finite domain variables. <VAR>Tuples<
 are constrained to be elements of <VAR>Relation</VAR>.</DD>
 <DT class="pubdef"><A NAME="all_distinct/1"><STRONG>all_distinct</STRONG>(<VAR>+Ls</VAR>)</A></DT>
 <DD class="defbody">
-Like <A class="pred" href="clpfd.html#all_different/1">all_different/1</A>, 
+Like <A class="pred" href="clpbounds.html#all_different/1">all_different/1</A>, 
 with stronger propagation.</DD>
 <DT class="pubdef"><A NAME="serialized/2"><STRONG>serialized</STRONG>(<VAR>+Starts, 
 +Durations</VAR>)</A></DT>

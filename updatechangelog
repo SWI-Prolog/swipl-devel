@@ -1,0 +1,72 @@
+#!/bin/bash -f
+
+tmp=.chlog$$
+
+updatechangelog ()
+{ chlog="$1"
+  dir=`dirname "$1"`
+  
+  since=`git log $chlog | head -1 | awk '{print $2}'`
+  
+  ./mkchangelog $since $dir > $tmp
+  
+  if [ -s $tmp ]; then
+     cat $tmp $chlog > $tmp-2
+     cp $tmp-2 $chlog
+     rm $tmp-2
+  fi
+  
+  rm $tmp
+}
+
+insert_at ()
+{ insert=$1
+  pattern=$2
+  infile=$3
+
+  awk < $infile '
+BEGIN		{ seen="false";
+		}
+/'$pattern'/	{ if ( seen == "false" )
+		  { system("cat '$insert'");
+		    seen = true;
+		  }
+		}
+		{ print $0;
+		}
+'
+}
+
+
+mainchangelog ()
+{ chlog="$1"
+  since=`git log $chlog | head -1 | awk '{print $2}'`
+
+  ./mkchangelog --nodate $since src library boot > $tmp
+  if [ -s $tmp ]; then
+    v="VERSION `cat VERSION` `date +'%B %d, %Y'`"
+    sep=`echo $v | sed 's/./=/g'`
+    echo $sep	>> $tmp-2
+    echo $v	>> $tmp-2
+    echo $sep	>> $tmp-2
+    echo ""	>> $tmp-2
+    cat	$tmp >> $tmp-2;
+    mv $tmp-2 $tmp
+  fi
+
+  insert_at $tmp '^===========' $chlog > $tmp-2
+  cp $tmp-2 $chlog
+
+  rm $tmp $tmp-2
+}
+
+
+for f in `find . -name ChangeLog`; do
+  echo -n "Updating $f ... "
+  if [ "$f" = ./ChangeLog ]; then
+    mainchangelog ChangeLog
+  else
+    updatechangelog $f
+  fi
+  echo done
+done
