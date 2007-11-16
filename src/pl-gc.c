@@ -1055,7 +1055,7 @@ variables in outer queries.
 static void
 mark_stacks(LocalFrame fr, Choice ch)
 { GET_LD
-  QueryFrame qf, pqf=NULL, top = NULL;
+  QueryFrame qf=NULL, pqf=NULL, top = NULL;
   GCTrailEntry te = (GCTrailEntry)tTop - 1;
   FliFrame flictx = fli_context;
 
@@ -1073,7 +1073,8 @@ mark_stacks(LocalFrame fr, Choice ch)
     } 
     pqf = qf;
   }
-  qf->parent = NULL;			/* topmost query */
+  if ( qf )
+    qf->parent = NULL;			/* topmost query */
   
   te = mark_choicepoints(ch, te, &flictx);
   for(qf=top; qf; qf=qf->parent)
