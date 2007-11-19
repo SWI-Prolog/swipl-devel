@@ -69,7 +69,7 @@ contributions.
 #include <dlfcn.h>
 #endif
 
-#endif /*HAVE_DLOPEN*/
+#else /*HAVE_DLOPEN*/
 
 #ifdef HAVE_SHL_LOAD			/* HPUX */
 
@@ -79,10 +79,11 @@ contributions.
 #define dlerror()	    OsError()
 
 void *
-dlsym(shl_t handle, const char *name)
+dlsym(void *handle, const char *name)
 { void *value;
+  shl_t h = handle;
 
-  if ( shl_findsym(&handle, name, TYPE_PROCEDURE, &value) < 0 )
+  if ( shl_findsym(&h, name, TYPE_PROCEDURE, &value) < 0 )
     return NULL;
 
   return value;
@@ -93,7 +94,8 @@ dlsym(shl_t handle, const char *name)
 #define RTLD_NOW	BIND_IMMEDIATE
 #endif
 
-#endif
+#endif /*HAVE_SHL_LOAD*/
+#endif /*HAVE_DLOPEN*/
 
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
 
