@@ -359,7 +359,7 @@ unmark_environments(PL_local_data_t *ld, LocalFrame fr, uintptr_t mask)
     if ( fr->parent )
       fr = fr->parent;
     else				/* Prolog --> C --> Prolog calls */
-      return (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+      return QueryOfTopFrame(fr);
   }
 }
 
@@ -814,7 +814,7 @@ mark_environments(LocalFrame fr, Code PC)
     if ( fr->parent != NULL )
       fr = fr->parent;
     else
-      return (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+      return QueryOfTopFrame(fr);
   }
 }
 
@@ -1437,7 +1437,7 @@ unsweep_environments(LocalFrame fr)
 { while(fr->parent)
     fr = fr->parent;
 
-  return (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+  return QueryOfTopFrame(fr);
 }
 
 
@@ -1513,7 +1513,7 @@ sweep_environments(LocalFrame fr, Code PC)
     if ( fr->parent != NULL )
       fr = fr->parent;
     else
-      return (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+      return QueryOfTopFrame(fr);
   }
 }
 
@@ -2362,7 +2362,7 @@ update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t t
     if ( fr->parent )
       fr = fr->parent;
     else				/* Prolog --> C --> Prolog calls */
-    { QueryFrame query = (QueryFrame)addPointer(fr, -offset(queryFrame,frame));
+    { QueryFrame query = QueryOfTopFrame(fr);
 
       if ( ls )
       { update_pointer(&query->saved_bfr, ls);
@@ -2915,9 +2915,7 @@ mark_atoms_in_environments(PL_local_data_t *ld, LocalFrame fr)
     if ( fr->parent )
       fr = fr->parent;
     else
-    { QueryFrame qf = (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
-      return qf;
-    }
+     return QueryOfTopFrame(fr);
   }
 }
 
@@ -3098,9 +3096,7 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
     if ( fr->parent )
       fr = fr->parent;
     else
-    { QueryFrame qf = (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
-      return qf;
-    }
+      return QueryOfTopFrame(fr);
   }
 }
 

@@ -1520,6 +1520,9 @@ struct queryFrame
   struct localFrame frame;		/* The local frame */
 };
 
+#define QueryOfTopFrame(fr) \
+	(QueryFrame)((char *)(fr) - offset(queryFrame, frame))
+
 
 #define FLI_MAGIC 		82649821
 #define FLI_MAGIC_CLOSED	42424242
