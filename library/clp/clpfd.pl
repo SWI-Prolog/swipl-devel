@@ -1895,8 +1895,8 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             ),
             (   get(X, XD, XL, XU, XPs) ->
                 get(Y, YD, YL, YU, _),
-                min_divide(Z,Z,YL,YU,TNXL),
-                max_divide(Z,Z,YL,YU,TNXU),
+                min_divide(n(Z),n(Z),YL,YU,TNXL),
+                max_divide(n(Z),n(Z),YL,YU,TNXU),
                 NXL cis max(XL,ceiling(TNXL)),
                 NXU cis min(XU,floor(TNXU)),
                 (   NXL == XL, NXU == XU -> true
@@ -1904,8 +1904,8 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                     put(X, XD1, XPs)
                 ),
                 (   get(Y, YD2, YL2,YU2,YExp2) ->
-                    min_divide(Z,Z,NXL,NXU,NYLT),
-                    max_divide(Z,Z,NXL,NXU,NYUT),
+                    min_divide(n(Z),n(Z),NXL,NXU,NYLT),
+                    max_divide(n(Z),n(Z),NXL,NXU,NYUT),
                     NYL cis max(YL2,ceiling(NYLT)),
                     NYU cis min(YU2,floor(NYUT)),
                     (   NYL == YL2, NYU == YU2 -> true
