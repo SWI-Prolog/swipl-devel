@@ -587,6 +587,7 @@ xref_meta(sublist(G, _, _),	[G+1]).
 xref_meta(include(G, _, _),	[G+1]).
 xref_meta(exclude(G, _, _),	[G+1]).
 xref_meta(partition(G, _, _, _, _),	[G+2]).
+xref_meta(partition(G, _, _, _),[G+1]).
 xref_meta(call(G),		[G]).
 xref_meta(call(G, _),		[G+1]).
 xref_meta(call(G, _, _),	[G+2]).
