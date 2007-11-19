@@ -203,9 +203,14 @@ ord_merge(>, NO, NName, OO, _, TN, TO, [OO|T]) :-
 %
 %	Rewrite option list from possible Name=Value to Name(Value)
 
-canonise_options([], []).
-canonise_options([Name=Value|T0], [H|T]) :- !,
+canonise_options(In, Out) :-
+	memberchk(_=_, In), !,		% speedup a bit if already ok.
+	canonise_options2(In, Out).
+canonise_options(Options, Options).
+
+canonise_options2([], []).
+canonise_options2([Name=Value|T0], [H|T]) :- !,
 	H =.. [Name,Value],
-	canonise_options(T0, T).
-canonise_options([H|T0], [H|T]) :- !,
-	canonise_options(T0, T).
+	canonise_options2(T0, T).
+canonise_options2([H|T0], [H|T]) :- !,
+	canonise_options2(T0, T).
