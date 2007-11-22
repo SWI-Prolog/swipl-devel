@@ -333,7 +333,7 @@ load_source(DB, Silent, Nth, Total) :-
 	db_files(DB, SnapshotFile, JournalFile),
 	rdf_retractall(_,_,_,DB),
 	statistics(cputime, T0),
-	print_message(Level, rdf(restore(Silent, source(DB)))),
+	print_message(Level, rdf(restore(Silent, source(DB, Nth, Total)))),
 	db_file(SnapshotFile, AbsSnapShot),
 	(   exists_file(AbsSnapShot)
 	->  print_message(Level, rdf(restore(Silent, snapshot(SnapshotFile)))),
@@ -1071,14 +1071,15 @@ message(update_failed(S,P,O,Action)) -->
 
 silent_message(_Action) --> [].
 
-brief_message(source(_DB))     --> [].
-brief_message(snapshot(_File)) --> [].
-brief_message(journal(_File))  --> [].
-brief_message(done(_DB, _Time, _Count, Nth, Total)) -->
+brief_message(source(DB, Nth, Total)) -->
+	{ file_base_name(DB, Base) },
 	[ at_same_line, 
-	  '\rloaded ~|~t~D~5+ of ~|~t~D~5+ graphs'-[Nth, Total],
+	  '\r~w~`.t ~D of ~D graphs~72|'-[Base, Nth, Total],
 	  flush
 	].
+brief_message(snapshot(_File)) --> [].
+brief_message(journal(_File))  --> [].
+brief_message(done(_DB, _Time, _Count, _Nth, _Total)) --> [].
 
 prolog:message_context(rdf_locked(Args)) -->
 	{ memberchk(time(Time), Args),
