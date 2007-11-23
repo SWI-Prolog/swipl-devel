@@ -80,6 +80,10 @@ test_b('http://gollem/?name=w1%20w2',
        [protocol(http), host(gollem), path(/), search([name='w1 w2'])]).
 test_b('http://gollem/?name=w1%20w2&a=b', 
        [protocol(http), host(gollem), path(/), search([name='w1 w2',a=b])]).
+test_b('file:///dir/file.xml', 
+       [protocol(file), path('/dir/file.xml')]).
+test_b('file://u:/dir/file.xml', 
+       [protocol(file), path('u:/dir/file.xml')]).
 
 
 abs('file.html', 

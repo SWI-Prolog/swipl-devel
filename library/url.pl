@@ -430,7 +430,7 @@ digit(C, [C|T], T) :- code_type(C, digit).
 url([protocol(Schema)|Parts]) -->
 	schema(Schema),
 	":", !,
-	hier_part(Parts, P2),
+	hier_part(Schema, Parts, P2),
 	query(P2, P3),
 	fragment(P3, []).
 url([protocol(http)|Parts]) -->		% implicit HTTP
@@ -495,14 +495,19 @@ schema_extra(0'.).	% 0'
 
 
 %%	hier_part(+Schema, -Parts, ?Tail)//
-%	
-%	Extract the hierarchy part.
 
-hier_part(Parts, Tail) -->
+hier_part(file, [path(Path)|Tail], Tail) --> !,
+	"//",
+	(   win_drive_path(Path)
+	;   path_absolute(Path)
+	;   path_rootless(Path)
+	;   path_empty(Path)
+	), !.
+hier_part(_, Parts, Tail) -->
 	"//", !,
 	authority(Parts, [path(Path)|Tail]),
 	path_abempty(Path).
-hier_part([path(Path)|T], T) -->
+hier_part(_, [path(Path)|T], T) -->
 	(   path_absolute(Path)
 	;   path_rootless(Path)
 	;   path_empty(Path)
@@ -578,6 +583,18 @@ path_abempty(Path) -->
 	->  Path = '/'
 	;   atom_codes(Path, Chars)
 	}.
+
+
+win_drive_path(Path) -->
+	drive_letter(C0),
+	":",
+	(   "/"
+	->  {Codes = [C0, 0':, 0'/|Chars]}
+	;   {Codes = [C0, 0':|Chars]}
+	),
+	segment_nz_chars(Chars, T0),
+	segments_chars(T0, []),
+	{ atom_codes(Path, Codes) }.
 
 
 path_absolute(Path) -->
@@ -726,6 +743,13 @@ lwalpha(H) -->
 	  code_type(C, alpha),
 	  code_type(H, to_lower(C))
 	}.
+
+drive_letter(C) -->
+	[C],
+	{ C < 128,
+	  code_type(C, alpha)
+	}.
+
 
 		 /*******************************
 		 *	RESERVED CHARACTERS	*
