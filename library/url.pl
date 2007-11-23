@@ -392,9 +392,16 @@ make_path(Dir, Local, Path) :-
 	concat_atom([Dir, /, Local], Path).
 
 
+%%	absolute_url//
+%
+%	True if the input  describes  an   absolute  URL.  This means it
+%	starts with a URL schema. We demand a   schema  of length > 1 to
+%	avoid confusion with Windows drive letters.
+
 absolute_url -->
-	lwalpha(_),
-	schema_chars(_),
+	lwalpha(_First),
+	schema_chars(Rest),
+	{ Rest \== [] },
 	":", !.
 
 
