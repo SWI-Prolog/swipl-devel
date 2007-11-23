@@ -701,9 +701,10 @@ env(summarylist(_, Summary),
     ]).
 env(parameters(_, Paramlist),
     [ html('<TABLE class="paramlist">'),
-      +Paramlist,
+      Body,
       html('</TABLE>')
-    ]).
+    ]) :-
+	table_body(Paramlist, [[], []], Body).
 env(comment(_, _), []).
 env(htmlonly(_, Tokens), HTML) :-
 	translate(Tokens, normal, HTML).
