@@ -896,7 +896,7 @@ Vs ins D :-
             maplist(fd_variable, Vs)
         ),
         (   is_drep(D) -> true
-        ;   must_be(integer, D)
+        ;   domain_error(clpfd_domain, D)
         ),
         drep_to_domain(D, Dom),
         domains(Vs, Dom).
