@@ -374,10 +374,10 @@ cis_slash_(n(B), A, n(S)) :- S is A // B.
    Type definition and inspection of domains.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-check_domain(D, Line) :-
-        (   ground(D), is_domain(D) -> true
-        ;   format("~w: invalid domain ~w\n", [Line,D]),
-            fail
+check_domain(D) :-
+        (   var(D) -> instantiation_error(D)
+        ;   is_domain(D) -> true
+        ;   domain_error(clpfd_domain, D)
         ).
 
 is_domain(empty).
@@ -408,11 +408,9 @@ all_greater_than(split(S0,Left,Right), S) :-
 
 default_domain(from_to(inf,sup)).
 
-domain_infimum(empty, _) :- format("infimum of empty domain"), fail.
 domain_infimum(from_to(I, _), I).
 domain_infimum(split(_, Left, _), I) :- domain_infimum(Left, I).
 
-domain_supremum(empty, _) :- format("supremum of empty domain"), fail.
 domain_supremum(from_to(_, S), S).
 domain_supremum(split(_, _, Right), S) :- domain_supremum(Right, S).
 
@@ -2002,8 +2000,8 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             get(X, XD, XL, XU, XPs),
             get(Y, YD, YL, YU, YPs),
             (   YL cis_geq n(0), XL cis_geq n(0) ->
-                NXL cis max(YL*Z, XL),
-                NXU cis min(YU*(Z+n(1))-n(1), XU)
+                NXL cis max(YL*n(Z), XL),
+                NXU cis min(YU*(n(Z)+n(1))-n(1), XU)
             ;   %TODO: cover more cases
                 NXL = XL, NXU = XU
             ),
