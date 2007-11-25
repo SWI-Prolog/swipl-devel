@@ -1292,11 +1292,13 @@ geq(A, B) :-
                     trigger_twice(Prop)
                 )
             ;   domain_remove_smaller_than(AD, B, AD1),
-                put(A, AD1, APs)
+                put(A, AD1, APs),
+                do_queue
             )
         ;   get(B, BD, BPs) ->
             domain_remove_greater_than(BD, A, BD1),
-            put(B, BD1, BPs)
+            put(B, BD1, BPs),
+            do_queue
         ;   A > B
         ).
 
