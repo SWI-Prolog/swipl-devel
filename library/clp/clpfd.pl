@@ -1179,7 +1179,7 @@ all_different([X|Right], Left) :-
 %
 %       Constrain the sum of a list.  The sum/3 constraint demands that
 %       "sumlist(Vars) Op Expr" hold, e.g.:
-%       
+%
 %       ==
 %               sum(List, #=< 100)
 %       ==
@@ -1932,6 +1932,9 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                     )
                 )
             ;   true
+            ),
+            (   Z =\= 0 -> X #\= 0, Y #\= 0
+            ;   true
             )
         ;   get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,_), get(Z,ZD,ZL,ZU,_),
             min_divide(ZL,ZU,YL,YU,TXL),
@@ -2439,7 +2442,7 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 %       Constrains Starts and Durations to denote a set of
 %       non-overlapping tasks, i.e.: S_i + D_i =< S_j or S_j + D_j =<
 %       S_i for all 1 =< i < j =< n.
-%  
+%
 %  @see Dorndorf et al. 2000, "Constraint Propagation Techniques for the
 %       Disjunctive Scheduling Problem"
 
