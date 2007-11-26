@@ -1947,14 +1947,13 @@ prepare_result(context *ctxt)
     switch (ptr_result->sqlTypeID)
     { case SQL_LONGVARCHAR:
       case SQL_LONGVARBINARY:
-      { if ( (int)columnSize > ctxt->max_nogetdata )
+      { if ( (int)columnSize > ctxt->max_nogetdata || columnSize == 0 )
 	{ DEBUG(2,
-		Sdprintf("Wide SQL_LONGVAR* column %d: using SQLGetData()\n",
-			 i));
+		Sdprintf("Wide SQL_LONGVAR* column %d: using SQLGetData()\n", i));
 	  ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
 	  continue;
 	}
-	ptr_result->len_value = sizeof(char)*columnSize+1;
+	ptr_result->len_value = sizeof(char)*(columnSize+1);
 	goto bind;
       }
     }
