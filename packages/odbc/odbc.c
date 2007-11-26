@@ -1948,7 +1948,8 @@ prepare_result(context *ctxt)
     { case SQL_LONGVARCHAR:
       case SQL_LONGVARBINARY:
       { if ( (int)columnSize > ctxt->max_nogetdata || columnSize == 0 )
-	{ DEBUG(2,
+	{ use_sql_get_data:
+	  DEBUG(2,
 		Sdprintf("Wide SQL_LONGVAR* column %d: using SQLGetData()\n", i));
 	  ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
 	  continue;
@@ -1960,16 +1961,13 @@ prepare_result(context *ctxt)
     
     switch (ptr_result->cTypeID)
     { case SQL_C_CHAR:
+	if ( columnSize == 0 )
+	  goto use_sql_get_data;
 	columnSize++;			/* one for decimal dot */
         /*FALLTHROUGH*/
       case SQL_C_BINARY:
-	if ( (int)columnSize > ctxt->max_nogetdata )
-	{ DEBUG(2,
-		Sdprintf("Wide SQL_C_BINARY column %d: using SQLGetData()\n",
-			 i));
-	  ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
-	  continue;
-	}
+	if ( (int)columnSize > ctxt->max_nogetdata || columnSize == 0 )
+	  goto use_sql_get_data;
         ptr_result->len_value = sizeof(char)*columnSize+1;
 	break;
       case SQL_C_SLONG:
