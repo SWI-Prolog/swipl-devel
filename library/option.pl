@@ -34,7 +34,8 @@
 	    option/3,			% +Term, +List, +Default
 	    select_option/3,		% +Term, +Options, -RestOpts
 	    select_option/4,		% +Term, +Options, -RestOpts, +Default
-	    merge_options/3		% +New, +Old, -Merged
+	    merge_options/3,		% +New, +Old, -Merged
+	    meta_options/3		% :IsMeta, :OptionsIn, -OptionsOut
 	  ]).
 :- use_module(library(lists)).
 
@@ -214,3 +215,42 @@ canonise_options2([Name=Value|T0], [H|T]) :- !,
 	canonise_options2(T0, T).
 canonise_options2([H|T0], [H|T]) :- !,
 	canonise_options2(T0, T).
+
+
+%%	meta_options(+IsMeta, :Options0, -Options) is det.
+%
+%	Perform meta-expansion on options that are module-sensitive.
+%	Whether an option name is module sensitive is determined by
+%	calling call(IsMeta, Name).  Here is an example:
+%	
+%	==
+%		meta_options(is_meta, OptionsIn, Options),
+%		...
+%	
+%	is_meta(callback).
+%	==
+
+:- module_transparent
+	meta_options/3.
+
+meta_options(IsMeta, Options0, Options) :-
+	strip_module(IsMeta, IMC, IM),
+	strip_module(Options0, Context, Options1),
+	meta_options(Options1, IMC:IM, Context, Options).
+
+meta_options([], _, _, []).
+meta_options([H0|T0], IM, Context, [H|T]) :-
+	meta_option(H0, IM, Context, H),
+	meta_options(T0, IM, Context, T).
+
+meta_option(Name=V0, IM, Context, Name=M:V) :-
+	call(IM, Name), !,
+	strip_module(Context:V0, M, V).
+meta_option(O0, IM, Context, O) :-
+	compound(O0),
+	O0 =.. [Name,V0],
+	call(IM, Name), !,
+	strip_module(Context:V0, M, V),
+	O =.. [Name,M:V].
+meta_option(O, _, _, O).
+

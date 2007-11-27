@@ -629,6 +629,7 @@ xref_meta('$add_directive_wic'(G), [G]).
 xref_meta(with_output_to(_, G),	[G]).
 xref_meta(if(G),		[G]).
 xref_meta(elif(G),		[G]).
+xref_meta(meta_options(G,_,_),	[G+1]).
 
 					% XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
