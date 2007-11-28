@@ -819,6 +819,7 @@ rdf_load(Spec, Options0) :-
 	    ;   rdf_input_open(Input, Stream, Format),
 		must_be(ground, Format),
 		rdf_format(Format, RDFFormat),
+		rdf_set_graph_source(DB, SourceURL),
 		call_cleanup(rdf_load_stream(RDFFormat, Stream,
 					     [ base_uri(BaseURI),
 					       blank_nodes(ShareMode),
@@ -827,7 +828,6 @@ rdf_load(Spec, Options0) :-
 					     ]),
 			     close_input(Input, Stream)), !,
 		register_file_ns(NSList),
-		rdf_set_graph_source(DB, SourceURL),
 		(   Cache == true,
 		    rdf_cache_file(SourceURL, write, CacheFile)
 		->  catch(save_cache(DB, CacheFile), E,
