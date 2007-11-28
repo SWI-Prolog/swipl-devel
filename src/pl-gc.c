@@ -613,7 +613,6 @@ static fid_t
 gvars_to_term_refs(Word **saved_bar_at)
 { GET_LD
   fid_t fid;
-  Word *sb;
 
   *saved_bar_at = NULL;
 
@@ -643,7 +642,10 @@ gvars_to_term_refs(Word **saved_bar_at)
     fid = 0;
 
   if ( LD->frozen_bar )
-  { sb = (Word*)lTop;
+  { Word *sb;
+
+    requireStack(local, sizeof(Word));
+    sb = (Word*)lTop;
     lTop = (LocalFrame)(sb+1);
     *sb = LD->frozen_bar;
     *saved_bar_at = sb;
