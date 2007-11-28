@@ -1330,11 +1330,13 @@ mymod(X, M, K) :-
         init_propagator(K, Prop), trigger_twice(Prop).
 
 mymax(X, Y, Z) :-
+        X #=< Z, Y #=< Z,
         Prop = propagator(pmax(X,Y,Z), mutable(passive)),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
 mymin(X, Y, Z) :-
+        X #>= Z, Y #>= Z,
         Prop = propagator(pmin(X,Y,Z), mutable(passive)),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
