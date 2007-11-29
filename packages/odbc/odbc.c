@@ -117,9 +117,11 @@ static time_t timegm(struct tm *tm);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Work around bug in MS SQL Server that reports NumCols of SQLColumns()
 as 19, while there are only 12.  Grrr!
+
+This bug appears fixed now, so we'll remove the work-around
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define SQL_SERVER_BUG	1
+/*#define SQL_SERVER_BUG	1*/
 
 static atom_t    ATOM_row;		/* "row" */
 static atom_t    ATOM_informational;	/* "informational" */
