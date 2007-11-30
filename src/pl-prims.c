@@ -1419,6 +1419,33 @@ PRED_IMPL("?=", 2, can_compare, 0)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+same_term(@T1, @T2) is semidet.
+
+True if T1 and T2 is really  the   same  term,  so setarg/3 affects both
+terms.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static
+PRED_IMPL("same_term", 2, same_term, 0)
+{ PRED_LD
+  Word t1 = valTermRef(A1);
+  Word t2 = valTermRef(A2);
+
+  deRef(t1);
+  deRef(t2);
+
+  if ( isVar(*t1) )
+    return t1 == t2;
+  if ( *t1 == *t2 )
+    succeed;
+  if ( isIndirect(*t1) && isIndirect(*t2) )
+    return equalIndirect(*t1, *t2);
+
+  fail;
+}
+
+
 		/********************************
 		*         TERM HACKING          *
 		*********************************/
@@ -4245,6 +4272,7 @@ BeginPredDefs(prims)
   PRED_DEF("=@=", 2, structural_eq, 0)
   PRED_DEF("\\=@=", 2, structural_neq, 0)
   PRED_DEF("?=", 2, can_compare, 0)
+  PRED_DEF("same_term", 2, same_term, 0)
   PRED_DEF("functor", 3, functor, 0)
   PRED_DEF("numbervars", 4, numbervars, 0)
   PRED_DEF("term_variables", 2, term_variables2, 0)

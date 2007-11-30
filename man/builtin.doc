@@ -3600,6 +3600,12 @@ of nb_linkval/2 before use.
 Version of copy_term/2 that also copies ground terms and therefore
 ensures destructive modification using setarg/3 does not affect the
 copy.  See also nb_setval/2, nb_linkval/2, nb_setarg/3 and nb_linkarg/3.
+
+    \predicate[semidet]{same_term}{2}{@T1, @T2}
+True if \arg{T1} and \arg{T2} are the equivalent and will remain the
+equivalent, even if setarg/3 is used on either of them.   This means
+\arg{T1} and \arg{T2} are the same variable, equivalent atomic data
+or a compound term allocated at the same address.
 \end{description}
 
 
