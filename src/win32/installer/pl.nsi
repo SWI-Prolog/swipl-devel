@@ -109,6 +109,7 @@ Section "Base system (required)"
   File pl\library\oset.pl
   File pl\library\assoc.pl
   File pl\library\rbtrees.pl
+  File pl\library\nb_rbtrees.pl
   File pl\library\nb_set.pl
   File pl\library\operators.pl
   File pl\library\heaps.pl

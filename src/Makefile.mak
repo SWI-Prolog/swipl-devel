@@ -85,6 +85,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	prolog_xref.pl checklast.pl checkselect.pl operators.pl \
 	prolog_source.pl broadcast.pl pairs.pl base64.pl record.pl \
 	rbtrees.pl settings.pl dialect.pl apply_macros.pl apply.pl \
+	nb_rbtrees.pl \
 	$(PLWINLIBS)
 !IF "$(MT)" == "true"
 PLLIBS=$(PLLIBS) threadutil.pl thread.pl

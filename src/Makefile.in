@@ -146,7 +146,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	checklast.pl checkselect.pl operators.pl date.pl \
 	prolog_stack.pl prolog_clause.pl prolog_xref.pl prolog_source.pl \
 	broadcast.pl pairs.pl base64.pl record.pl rbtrees.pl settings.pl \
-	thread.pl dialect.pl apply_macros.pl apply.pl
+	thread.pl dialect.pl apply_macros.pl apply.pl nb_rbtrees.pl
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 DIALECT=yap.pl
 YAP=	README.TXT
