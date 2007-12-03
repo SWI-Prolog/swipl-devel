@@ -1879,6 +1879,7 @@ run_propagator(pplus(X,Y,Z), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run_propagator(ptimes(X,Y,Z), MState) :-
+        (   X == Y -> Z #>= 0 ; true ),
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Z is X * Y
             ;   X =:= 0 -> kill(MState), Z = 0
