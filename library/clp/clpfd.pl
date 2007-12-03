@@ -1983,8 +1983,8 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                         NZL cis max(-abs(n(X)), ZL),
                         NZU cis min(abs(n(X)), ZU)
                     ;   X >= 0, YL cis_gt n(0) ->
-                        NZL cis max(X//YU, ZL),
-                        NZU cis min(X//YL, ZU)
+                        NZL cis max(n(X)//YU, ZL),
+                        NZU cis min(n(X)//YL, ZU)
                     ;   % TODO: cover more cases
                         NZL = ZL, NZU = ZU
                     ),
