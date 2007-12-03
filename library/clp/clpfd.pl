@@ -1899,7 +1899,6 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ;   nonvar(Y) -> mytimes(Y,X,Z)
         ;   nonvar(Z) ->
             (   X == Y ->
-                Z >= 0,
                 PRoot is floor(sqrt(Z)),
                 PRoot**2 =:= Z, NRoot is -PRoot,
                 get(X, TXD, TXPs), % temporary variables for this section
