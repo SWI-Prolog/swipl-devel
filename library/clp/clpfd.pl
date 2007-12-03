@@ -1281,13 +1281,13 @@ neq(A, B) :-
 
 
 geq(A, B) :-
-        Prop = propagator(pgeq(A,B), mutable(passive)),
         (   get(A, AD, APs) ->
             domain_infimum(AD, AI),
             (   get(B, BD, _) ->
                 domain_supremum(BD, BS),
                 (   AI cis_geq BS -> true
-                ;   init_propagator(A, Prop),
+                ;   Prop = propagator(pgeq(A,B), mutable(passive)),
+                    init_propagator(A, Prop),
                     init_propagator(B, Prop),
                     trigger_twice(Prop)
                 )
@@ -1299,7 +1299,7 @@ geq(A, B) :-
             domain_remove_greater_than(BD, A, BD1),
             put(B, BD1, BPs),
             do_queue
-        ;   A > B
+        ;   A >= B
         ).
 
 leq(A, B) :- geq(B, A).
