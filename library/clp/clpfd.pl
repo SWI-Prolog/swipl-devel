@@ -770,12 +770,12 @@ domain_contract_less(D0, M, D) :-
         (   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
         ;   D1 = D0, M1 = M
         ),
-        (   domain_infimum(D0, n(_)), domain_supremum(D0, n(_)) ->
+        (   domain_infimum(D1, n(_)), domain_supremum(D1, n(_)) ->
             % bounded domain
-            domain_intervals(D0, Is),
-            intervals_contract_less(Is, M, Cs, []),
+            domain_intervals(D1, Is),
+            intervals_contract_less(Is, M1, Cs, []),
             list_to_domain(Cs, D)
-        ;   domain_contract_less_(D0, M, D)
+        ;   domain_contract_less_(D1, M1, D)
         ).
 
 intervals_contract_less([], _)               --> [].
@@ -2430,14 +2430,6 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% serialized/2; see Dorndorf et al. 2000, "Constraint Propagation
-% Techniques for the Disjunctive Scheduling Problem"
-
-% attribute: serialized(Var, Duration, Left, Right)
-%   Left and Right are lists of Start-Duration pairs representing
-%   other tasks occupying the same resource
-
-% Currently implements 2-b-consistency
 
 %%      serialized(+Starts, +Durations)
 %
@@ -2459,6 +2451,10 @@ serialized(Starts, Durations) :-
 pair_up([], [], []).
 pair_up([A|As], [B|Bs], [A-n(B)|ABs]) :- pair_up(As, Bs, ABs).
 
+% attribute: pserialized(Var, Duration, Left, Right)
+%   Left and Right are lists of Start-Duration pairs representing
+%   other tasks occupying the same resource
+
 serialize([], _).
 serialize([Start-D|SDs], Left) :-
         (   var(Start) ->
@@ -2471,6 +2467,7 @@ serialize([Start-D|SDs], Left) :-
         serialize(SDs, [Start-D|Left]).
 
 % consistency check / propagation
+% Currently implements 2-b-consistency
 
 myserialized(Duration, Left, Right, Start) :-
         myserialized(Left, Start, Duration),
@@ -2488,7 +2485,6 @@ latest_start_time(Start, LST) :-
             domain_supremum(D, LST)
         ;   LST = n(Start)
         ).
-
 
 myserialized([], _, _).
 myserialized([S_I-D_I|SDs], S_J, D_J) :-
