@@ -2033,7 +2033,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                 domain_contract_less(XD, Y, Contracted),
                 domains_intersection(Contracted, ZD, NZD),
                 put(Z, NZD, ZPs),
-                (   get(X, XD2, XPs2) ->
+                (   Z \== 0, get(X, XD2, XPs2) ->
                     domain_expand_more(NZD, Y, Expanded),
                     domains_intersection(Expanded, XD2, NXD2),
                     put(X, NXD2, XPs2)
