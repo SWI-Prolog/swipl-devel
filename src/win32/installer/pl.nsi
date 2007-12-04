@@ -382,6 +382,7 @@ Section "HTTP Client/Server package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File pl\bin\http_chunked.dll
+  File pl\bin\json.dll
   SetOutPath $INSTDIR\library
   File /r pl\library\http
   SetOutPath $INSTDIR\doc\packages
@@ -472,6 +473,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\zlib4pl.pdb
   File pl\bin\sha4pl.pdb
   File pl\bin\http_chunked.pdb
+  File pl\bin\json.pdb
 SectionEnd
 
 Section "Sources for system predicates"

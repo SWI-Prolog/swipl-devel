@@ -42,28 +42,32 @@ INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
 CHUNKOBJ=	http_chunked.o
+JSONOBJ=	json.o
 LIBPL=		html_write.pl http_client.pl http_header.pl \
 		http_mime_plugin.pl http_sgml_plugin.pl \
 		mimepack.pl mimetype.pl dcg_basics.pl \
 		thread_httpd.pl xpce_httpd.pl inetd_httpd.pl \
 		http_wrapper.pl http_open.pl http_session.pl \
 		http_error.pl http_parameters.pl http_dispatch.pl \
-		http_authenticate.pl http_chunked.pl
+		http_authenticate.pl http_chunked.pl json.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
 EXAMPLEEXE=	demo_inetd		
 XPCEPL=		http_image.pl
+SOLIBS=		http_chunked.@SO@ json.@SO@
 
-all:		http_chunked.@SO@
+all:		$(SOLIBS)
 
 
 http_chunked.@SO@:	$(CHUNKOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(CHUNKOBJ) $(LIBS)
+json.@SO@:	$(JSONOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(JSONOBJ) $(LIBS)
 
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
 		rm -f $(DESTDIR)$(PLBASE)/lib/$(PLARCH)/http_chunked.@SO@
-		$(INSTALL_PROGRAM) http_chunked.@SO@ $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
+		$(INSTALL_PROGRAM) $(SOLIBS) $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
 		mkdir -p $(DESTDIR)$(LIBDIR)
 		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(LIBDIR)
 		$(INSTALL_DATA) README $(DESTDIR)$(LIBDIR)
@@ -91,6 +95,7 @@ uninstall::
 
 check::
 		$(PL) -q -f http_test.pl -g true -t run_tests
+		$(PL) -q -f json_test.pl -g true -t json_test
 
 ################################################################
 # Documentation
