@@ -36,7 +36,8 @@
 	    permission_error/3,		% +Action, +Type, +Term
 	    instantiation_error/1,	% +Term
 
-	    must_be/2			% +Type, +Term
+	    must_be/2,			% +Type, +Term
+	    is_of_type/2		% +Type, +Term
 	  ]).
 
 /** <module> Error generating support
@@ -134,6 +135,14 @@ not_a_list(Type, X) :-
 	->  instantiation_error(X)
 	;   type_error(Type, X)
 	).
+
+%%	is_of_type(+Type, @Term) is semidet.
+%
+%	True if Term satisfies Type.
+
+is_of_type(Type, Term) :-
+	has_type(Type, Term).
+
 
 %%	has_type(+Type, @Term) is semidet.
 %
