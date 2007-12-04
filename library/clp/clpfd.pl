@@ -1437,26 +1437,32 @@ reify(Expr, B) :-
         (   var(Expr) -> B = Expr
         ;   integer(Expr) -> B = Expr
         ;   Expr = (L #>= R) ->
-            parse_clpfd(L, LR), parse_clpfd(R, RR),
-            Prop = propagator(reified_geq(LR,RR,B), mutable(passive)),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop),
-            trigger_prop(Prop)
+            (   parse_clpfd(L, LR), parse_clpfd(R, RR) ->
+                Prop = propagator(reified_geq(LR,RR,B), mutable(passive)),
+                init_propagator(LR, Prop), init_propagator(RR, Prop),
+                init_propagator(B, Prop),
+                trigger_prop(Prop)
+            ;   B = 0
+            )
         ;   Expr = (L #> R)  -> reify(L #>= (R+1), B)
         ;   Expr = (L #=< R) -> reify(R #>= L, B)
         ;   Expr = (L #< R)  -> reify(R #>= (L+1), B)
         ;   Expr = (L #= R)  ->
-            parse_clpfd(L, LR), parse_clpfd(R, RR),
-            Prop = propagator(reified_eq(LR,RR,B), mutable(passive)),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop),
-            trigger_prop(Prop)
+            (   parse_clpfd(L, LR), parse_clpfd(R, RR) ->
+                Prop = propagator(reified_eq(LR,RR,B), mutable(passive)),
+                init_propagator(LR, Prop), init_propagator(RR, Prop),
+                init_propagator(B, Prop),
+                trigger_prop(Prop)
+            ;   B = 0
+            )
         ;   Expr = (L #\= R) ->
-            parse_clpfd(L, LR), parse_clpfd(R, RR),
-            Prop = propagator(reified_neq(LR,RR,B), mutable(passive)),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop),
-            trigger_prop(Prop)
+            (   parse_clpfd(L, LR), parse_clpfd(R, RR) ->
+                Prop = propagator(reified_neq(LR,RR,B), mutable(passive)),
+                init_propagator(LR, Prop), init_propagator(RR, Prop),
+                init_propagator(B, Prop),
+                trigger_prop(Prop)
+            ;   B = 0
+            )
         ;   Expr = (L #/\ R) ->
             reify(L, LR), reify(R, RR),
             Prop = propagator(reified_and(LR,RR,B), mutable(passive)),
