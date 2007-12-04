@@ -1431,12 +1431,23 @@ myimpl(X, Y) :-
         init_propagator(X, Prop), init_propagator(Y, Prop),
         trigger_prop(Prop).
 
+clpfd_expression(E) :-
+        (   var(E) ->
+            get(E, ED, EPs),
+            put(E, ED, EPs) % constrain to integers
+        ;   integer(E) -> true
+        ;   E =.. [Op,A], memberchk(Op, [abs,-]) ->
+            clpfd_expression(A)
+        ;   E =.. [Op,L,R], memberchk(Op, [+,*,-,max,min,mod,/]) ->
+            clpfd_expression(L), clpfd_expression(R)
+        ).
 
 reify(Expr, B) :-
         B in 0..1,
         (   var(Expr) -> B = Expr
         ;   integer(Expr) -> B = Expr
         ;   Expr = (L #>= R) ->
+            clpfd_expression(L), clpfd_expression(R),
             (   parse_clpfd(L, LR), parse_clpfd(R, RR) ->
                 Prop = propagator(reified_geq(LR,RR,B), mutable(passive)),
                 init_propagator(LR, Prop), init_propagator(RR, Prop),
@@ -1448,6 +1459,7 @@ reify(Expr, B) :-
         ;   Expr = (L #=< R) -> reify(R #>= L, B)
         ;   Expr = (L #< R)  -> reify(R #>= (L+1), B)
         ;   Expr = (L #= R)  ->
+            clpfd_expression(L), clpfd_expression(R),
             (   parse_clpfd(L, LR), parse_clpfd(R, RR) ->
                 Prop = propagator(reified_eq(LR,RR,B), mutable(passive)),
                 init_propagator(LR, Prop), init_propagator(RR, Prop),
@@ -1456,6 +1468,7 @@ reify(Expr, B) :-
             ;   B = 0
             )
         ;   Expr = (L #\= R) ->
+            clpfd_expression(L), clpfd_expression(R),
             (   parse_clpfd(L, LR), parse_clpfd(R, RR) ->
                 Prop = propagator(reified_neq(LR,RR,B), mutable(passive)),
                 init_propagator(LR, Prop), init_propagator(RR, Prop),
