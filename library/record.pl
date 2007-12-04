@@ -70,6 +70,7 @@ _directive_.  Here is a simple example declaration and some calls.
 %	
 %	  * <constructor>_<name>(Record, Value)
 %	  * default_<constructor>(-Record)
+%	  * is_<constructor>(@Term)
 %	  * make_<constructor>(+Fields, -Record)
 %	  * make_<constructor>(+Fields, -Record, -RestFields)
 %	  * set_<name>_of_<constructor>(+Value, +OldRecord, -New)
@@ -118,7 +119,8 @@ compile_record(RecordDef) -->
 	access_predicates(Names, 1, Arity, Constructor),
 	set_predicates(Names, 1, Arity, Types, Constructor),
 	set_field_predicates(Names, 1, Arity, Types, Constructor),
-	make_predicate(Constructor).
+	make_predicate(Constructor),
+	is_predicate(Constructor, Types).
 	
 
 %%	make_predicate(+Constructor)// is det.
@@ -172,6 +174,50 @@ make_predicate(Constructor) -->
 	  SetClause2 = (SetHead2 :- (SetGoal2a -> SetGoal2b ; RF=[H|RF1], SetGoal2c))
 	},
 	[ MakeClause3, MakeClause, SetClause0, SetClause1, SetClause2 ].
+
+%%	is_predicate(+Constructor, +Types)// is det.
+%
+%	Create a clause that tests for a given record type.
+
+is_predicate(Constructor, Types) -->
+	{ type_checks(Types, Vars, Body0),
+	  clean_body(Body0, Body),
+	  Term =.. [Constructor|Vars],
+	  atom_concat(is_, Constructor, Name),
+	  Head1 =.. [Name,Var],
+	  Head2 =.. [Name,Term]
+	},
+	[   (Head1 :- var(Var), !, fail) ],
+	(   { Body == true }
+	->  [ Head2 ]
+	;   [ (Head2 :- Body) ]
+	).
+	      
+type_checks([], [], true).
+type_checks([any|T], [_|Vars], Body) :-
+	type_checks(T, Vars, Body).
+type_checks([Type|T], [V|Vars], (Goal, Body)) :-
+	type_goal(Type, V, Goal),
+	type_checks(T, Vars, Body).
+
+%%	type_goal(+Type, +Var, -BodyTerm) is det.
+%
+%	Inline type checking calls.
+
+type_goal(Type, Var, Body) :-
+	clause(error:has_type(Type, Var), Body), !.
+type_goal(Type, Var, is_of_type(Type, Var)).
+
+
+clean_body((A0,true), A) :- !,
+	clean_body(A0, A).
+clean_body((true,A0), A) :- !,
+	clean_body(A0, A).
+clean_body((A0,B0), (A,B)) :-
+	clean_body(A0, A),
+	clean_body(B0, B).
+clean_body(A, A).
+
 
 %%	access_predicates(+Names, +Idx0, +Arity, +Constructor)// is det.
 %
