@@ -2095,7 +2095,7 @@ run_propagator(pmod(X,M,K), MState) :-
             ;   true
             )
         ;   nonvar(M) ->
-            (   M =:= 1 -> X = 0
+            (   M =:= 1 -> K = 0
             ;   get(K, KD, KPs) ->
                 MP is abs(M) - 1,
                 MN is -MP,
