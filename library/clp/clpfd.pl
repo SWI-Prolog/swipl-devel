@@ -2098,7 +2098,7 @@ run_propagator(pmod(X,M,K), MState) :-
             (   M =:= 1 -> X = 0
             ;   get(K, KD, KPs) ->
                 MP is abs(M) - 1,
-                MN is -MP + 1,
+                MN is -MP,
                 get(K, KD, KPs),
                 domains_intersection(from_to(n(MN), n(MP)), KD, KD1),
                 put(K, KD1, KPs)
