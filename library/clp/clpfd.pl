@@ -1879,7 +1879,6 @@ run_propagator(pplus(X,Y,Z), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run_propagator(ptimes(X,Y,Z), MState) :-
-        (   X == Y -> Z #>= 0 ; true ),
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Z is X * Y
             ;   X =:= 0 -> kill(MState), Z = 0
@@ -1938,7 +1937,8 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             (   Z =\= 0 -> X #\= 0, Y #\= 0
             ;   true
             )
-        ;   get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,_), get(Z,ZD,ZL,ZU,_),
+        ;   (   X == Y -> Z #>= 0 ; true ),
+            get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,_), get(Z,ZD,ZL,ZU,_),
             min_divide(ZL,ZU,YL,YU,TXL),
             NXL cis max(XL,ceiling(TXL)),
             max_divide(ZL,ZU,YL,YU,TXU),
@@ -1997,9 +1997,12 @@ run_propagator(pdiv(X,Y,Z), MState) :-
         ;   nonvar(Y) ->
             get(X, XD, XL, XU, XPs),
             (   nonvar(Z) ->
-                (   Z >= 0, Y >= 0 ->
+                (   Z > 0, Y > 0 ->
                     NXL cis max(n(Z)*n(Y), XL),
                     NXU cis min((n(Z)+n(1))*n(Y)-n(1), XU)
+                ;   Z =:= 0 ->
+                    NXL cis max(-abs(n(Y)) + n(1), XL),
+                    NXU cis min(abs(n(Y)) - n(1), XU)
                 ;   % TODO: cover more cases
                     NXL = XL, NXU = XU
                 ),
