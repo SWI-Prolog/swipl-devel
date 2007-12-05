@@ -91,7 +91,7 @@ Prolog representation for JSON terms is defined as:
 %	is one of =atom=, =string= or =codes=.
 
 atom_json_term(Atom, Term, Options) :-
-	ground(Atom),
+	ground(Atom), !,
 	atom_to_memory_file(Atom, MF),
 	open_memory_file(MF, read, In),
 	call_cleanup(json_read(In, Term, Options),

@@ -55,8 +55,8 @@ test(string, X == hello) :-
 	atom_json_term('"hello"', X, []).
 test(string, X == '\\\b\f\n\r\t') :-
 	atom_json_term('"\\\\\\b\\f\\n\\r\\t"', X, []).
-test(string, X == [0x1234]) :-
-	atom_json_term('"\\u1234"', X, [value_string_as(codes)]).
+test(string, X == '\u1234') :-
+	atom_json_term('"\\u1234"', X, []).
 
 test(int, X == 42) :-
 	atom_json_term('42', X, []).
