@@ -31,7 +31,7 @@
 
 :- module(json_convert,
 	  [ prolog_to_json/2,		% +Term, -JSON object
-	    %json_to_prolog/2,		% :JSON, -Term
+	    json_to_prolog/2,		% :JSON, -Term
 	    (json_object)/1,		% +Definition
 	    op(1150, fx, (json_object))
 	  ]).
@@ -98,7 +98,8 @@ X = object([x=25, y=50, type=point])
 */
 
 :- multifile
-	json_object_to_pairs/3.		% Term, Module, Pairs
+	json_object_to_pairs/3,		% Term, Module, Pairs
+	current_json_object/3.		% Term, Module, Fields
 
 %%	json_object(+Declaration)
 %
@@ -146,7 +147,8 @@ compile_object(ObjectDef) -->
 	  defaults(Args, _Defs, TypedArgs),
 	  types(TypedArgs, Names, Types)
 	},
-	record_to_json_clause(Constructor, M, Types, Names, ExtraFields).
+	record_to_json_clause(Constructor, M, Types, Names, ExtraFields),
+	current_clause(Constructor, M, Types, Names, ExtraFields).
 
 extra_defs(Term+Extra, Term, Extra) :- !.
 extra_defs(Term,       Term, []).
@@ -195,6 +197,28 @@ clean_body(A, A).
 make_pairs([], [], L, L).
 make_pairs([N|TN], [V|TV], [N=V|T], Tail) :-
 	make_pairs(TN, TV, T, Tail).
+
+%%	current_clause(+Constructor, +Module, +Type, +Names)
+%
+%	Create the clause current_json_object/3.
+
+current_clause(Constructor, Module, Types, Names, Extra) -->
+	{ length(Types, Arity),
+	  functor(Term, Constructor, Arity),
+	  extra_fields(Extra, EF),
+	  mk_fields(Names, Types, Fields0, EF),
+	  sort(Fields0, Fields),
+	  Head =.. [current_json_object, Term, Module, Fields]
+	},
+	[ json_convert:Head ].
+	
+extra_fields([], []).
+extra_fields([Name=Value|T0], [Name=oneof([Value])|T]) :-
+	extra_fields(T0, T).
+
+mk_fields([], [], Fields, Fields).
+mk_fields([Name|TN], [Type|TT], [Name:Type|T], Tail) :-
+	mk_fields(TN, TT, T, Tail).
 
 
 /* The code below is copied from library(record) */
@@ -251,6 +275,69 @@ object_module(_, user).
 		 *       JSON --> PROLOG	*
 		 *******************************/
 
+%%	json_to_prolog(+JSON, -Term) is semidet.
+%
+%	Translate  a  JSON  term   into    an   application  term.  This
+%	transformation is based on  :-   json_object/1  declarations. An
+%	efficient transformation is non-trivial,  but   we  rely  on the
+%	assumption that, although the order of   fields in JSON terms is
+%	irrelevant and can therefore vary  a lot, practical applications
+%	will normally generate the JSON objects in a consistent order.
+
+:- dynamic
+	json_to_prolog_rule/3,		% Module, Pairs, Term
+	no_rule_for_pairs/2.		% Module, Pairs
+
+json_to_prolog(object(Pairs), Term) :-
+	strip_module(Term, M, T),
+	pairs_to_term(Pairs, M, T).
+
+pairs_to_term(Pairs, Module, Term) :-
+	object_module(Module, M),
+	json_to_prolog_rule(M, Pairs, Term), !.
+pairs_to_term(Pairs, Module, _) :-
+	object_module(Module, M),
+	no_rule_for_pairs(M, Pairs), !, fail.
+pairs_to_term(Pairs, Module, Term) :-
+	pairs_args(Pairs, PairArgs, Vars),
+	(   create_rule(PairArgs, Vars, Module, M, Term0, Body)
+	->  asserta((json_to_prolog_rule(M, PairArgs, Term0) :- Body)),
+	    Pairs = PairArgs,
+	    Term = Term0,
+	    Body
+	;   asserta(no_rule_for_pairs(M, PairArgs)), % TBD: types?
+	    fail
+	).
+	
+pairs_args([], [], []).
+pairs_args([Name=_Value|T0], [Name=Var|T], [Var|TV]) :-
+	pairs_args(T0, T, TV).
+
+%%	create_rule(+PairArgs, +Vars, -Term, -Body) is det.
+%
+%	Create a new rule for dealing with Pairs, a Name=Value list of a
+%	particular order.  Here is an example rule:
+%	
+%	==
+%	json_to_prolog_rule([x=X, y=Y], point(X,Y), true) :-
+%		integer(X),
+%		integer(Y).
+%	==
+
+create_rule(PairArgs, Vars, Module, M, Term, Body) :-
+	object_module(Module, M),
+	current_json_object(Term, M, Fields),
+	sort(PairArgs, SPA),
+	match_fields(SPA, Fields, Body0),
+	clean_body(Body0, Body),
+	Term =.. [_|Vars].
+
+match_fields([], [], true).
+match_fields([Name=_|TP], [Name:any|TF], Body) :- !,
+	match_fields(TP, TF, Body).
+match_fields([Name=Var|TP], [Name:Type|TF], (Goal,Body)) :- !,
+	type_goal(Type, Var, Goal),
+	match_fields(TP, TF, Body).
 
 
 
