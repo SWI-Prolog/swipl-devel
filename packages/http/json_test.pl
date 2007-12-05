@@ -39,9 +39,11 @@
 
 :- use_module(library(plunit)).
 :- use_module(json).
+:- use_module(json_convert).
 
 json_test :-
-	run_tests([ json_read
+	run_tests([ json_read,
+		    json_convert
 		  ]).
 
 :- begin_tests(json_read).
@@ -81,3 +83,33 @@ test(empty, X == object([])) :-
 
 
 :- end_tests(json_read).
+
+
+		 /*******************************
+		 *	      CONVERT		*
+		 *******************************/
+
+:- begin_tests(json_convert).
+
+:- json_object
+	point(x:integer, y:integer),
+	tpoint(x:integer, y:integer)+[type=point],
+	fpoint(x:float, y:float).
+
+test(pt2json, JSON == object([x=25,y=50])) :-
+	prolog_to_json(point(25,50), JSON).
+test(pt2json, JSON == object([x=25,y=50,type=point])) :-
+	prolog_to_json(tpoint(25,50), JSON).
+
+test(json2pt, X == point(25,50)) :-
+	json_to_prolog(object([x=25,y=50]), X).
+test(json2pt, X == point(25,50)) :-
+	json_to_prolog(object([y=50,x=25]), X).
+test(json2pt, X == fpoint(25.1,50.0)) :-
+	json_to_prolog(object([y=50.0,x=25.1]), X).
+test(json2pt, fail) :-
+	json_to_prolog(object([y=50,x=25.1]), _).
+test(json2pt, X == tpoint(25,50)) :-
+	json_to_prolog(object([x=25,y=50,type=point]), X).
+
+:- end_tests(json_convert).

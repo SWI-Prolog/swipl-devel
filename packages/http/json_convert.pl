@@ -97,6 +97,14 @@ X = object([x=25, y=50, type=point])
 
 */
 
+%%	current_json_object(Term, Module, Fields)
+%
+%	Multifile   predicate   computed   from     the    json_object/1
+%	declarations.  Term is the most general Prolog term representing
+%	the object.  Module is the module in which the object is defined
+%	and Fields is a list of f(Name, Type, Var), sorted by Name.  Var
+%	is the corresponding variable in Term.
+
 :- multifile
 	json_object_to_pairs/3,		% Term, Module, Pairs
 	current_json_object/3.		% Term, Module, Fields
@@ -148,10 +156,26 @@ compile_object(ObjectDef) -->
 	  types(TypedArgs, Names, Types)
 	},
 	record_to_json_clause(Constructor, M, Types, Names, ExtraFields),
-	current_clause(Constructor, M, Types, Names, ExtraFields).
+	current_clause(Constructor, M, Types, Names, ExtraFields),
+	[ (:- json_convert:clear_cache) ].
 
-extra_defs(Term+Extra, Term, Extra) :- !.
+extra_defs(Term+Extra0, Term, Extra) :- !,
+	must_be(list, Extra0),
+	maplist(canonical_pair, Extra0, Extra).
 extra_defs(Term,       Term, []).
+
+
+canonical_pair(Var, _) :-
+	var(Var), !,
+	instantiation_error(Var).
+canonical_pair(Name=Value, Name=Value) :- !,
+	must_be(atom, Name).
+canonical_pair(Name-Value, Name=Value) :- !,
+	must_be(atom, Name).
+canonical_pair(NameValue, Name=Value) :-
+	NameValue =.. [Name,Value], !.
+canonical_pair(Pair, _) :-
+	type_error(pair, Pair).
 
 
 %%	record_to_json_clause(+Constructor, +Module, +Type, +Names)
@@ -185,14 +209,28 @@ type_goal(Type, Var, Body) :-
 type_goal(Type, Var, is_of_type(Type, Var)).
 
 
-clean_body((A0,true), A) :- !,
-	clean_body(A0, A).
-clean_body((true,A0), A) :- !,
-	clean_body(A0, A).
-clean_body((A0,B0), (A,B)) :-
+%%	clean_body(+BodyIn, -BodyOut) is det.
+%
+%	Cleanup a body goal. Eliminates  redundant =true= statements and
+%	performs  partial  evaluation   on    some   commonly  generated
+%	constructs.
+
+clean_body(Var, Var) :-
+	var(Var), !.
+clean_body((A0,B0), G) :- !,
 	clean_body(A0, A),
-	clean_body(B0, B).
+	clean_body(B0, B),
+	conj(A, B, G).
+clean_body(ground(X), true) :-		% Generated from checking extra fields.
+	ground(X), !.
+clean_body(memberchk(V, Values), true) :-
+	ground(V), ground(Values),
+	memberchk(V, Values), !.
 clean_body(A, A).
+
+conj(T, A, A) :- T == true, !.
+conj(A, T, A) :- T == true, !.
+conj(A, B, (A,B)).
 
 make_pairs([], [], L, L).
 make_pairs([N|TN], [V|TV], [N=V|T], Tail) :-
@@ -206,19 +244,20 @@ current_clause(Constructor, Module, Types, Names, Extra) -->
 	{ length(Types, Arity),
 	  functor(Term, Constructor, Arity),
 	  extra_fields(Extra, EF),
-	  mk_fields(Names, Types, Fields0, EF),
+	  Term =.. [_|Vars],
+	  mk_fields(Names, Types, Vars, Fields0, EF),
 	  sort(Fields0, Fields),
 	  Head =.. [current_json_object, Term, Module, Fields]
 	},
 	[ json_convert:Head ].
 	
 extra_fields([], []).
-extra_fields([Name=Value|T0], [Name=oneof([Value])|T]) :-
+extra_fields([Name=Value|T0], [f(Name, oneof([Value]), Value)|T]) :-
 	extra_fields(T0, T).
 
-mk_fields([], [], Fields, Fields).
-mk_fields([Name|TN], [Type|TT], [Name:Type|T], Tail) :-
-	mk_fields(TN, TT, T, Tail).
+mk_fields([], [], [], Fields, Fields).
+mk_fields([Name|TN], [Type|TT], [Var|VT], [f(Name, Type, Var)|T], Tail) :-
+	mk_fields(TN, TT, VT, T, Tail).
 
 
 /* The code below is copied from library(record) */
@@ -267,13 +306,24 @@ record_to_pairs(T, M, JSON) :-
 	object_module(M, Module),
 	json_object_to_pairs(T, Module, JSON), !.
 
+object_module(user, user) :- !.
 object_module(M, M).
-object_module(_, user).
+object_module(_, user) 
 
 
 		 /*******************************
 		 *       JSON --> PROLOG	*
 		 *******************************/
+
+:- dynamic
+	json_to_prolog_rule/3,		% Module, Pairs, Term
+	no_rule_for_pairs/2.		% Module, Pairs
+
+clear_cache :-
+	retractall(json_to_prolog_rule(_,_,_)),
+	retractall(no_rule_for_pairs(_,_)).
+
+:- clear_cache.
 
 %%	json_to_prolog(+JSON, -Term) is semidet.
 %
@@ -283,10 +333,6 @@ object_module(_, user).
 %	assumption that, although the order of   fields in JSON terms is
 %	irrelevant and can therefore vary  a lot, practical applications
 %	will normally generate the JSON objects in a consistent order.
-
-:- dynamic
-	json_to_prolog_rule/3,		% Module, Pairs, Term
-	no_rule_for_pairs/2.		% Module, Pairs
 
 json_to_prolog(object(Pairs), Term) :-
 	strip_module(Term, M, T),
@@ -299,12 +345,13 @@ pairs_to_term(Pairs, Module, _) :-
 	object_module(Module, M),
 	no_rule_for_pairs(M, Pairs), !, fail.
 pairs_to_term(Pairs, Module, Term) :-
-	pairs_args(Pairs, PairArgs, Vars),
-	(   create_rule(PairArgs, Vars, Module, M, Term0, Body)
-	->  asserta((json_to_prolog_rule(M, PairArgs, Term0) :- Body)),
-	    Pairs = PairArgs,
+	sort(Pairs, Pairs1),
+	pairs_args(Pairs1, PairArgs, _Vars),
+	(   create_rule(PairArgs, Module, M, Term0, Body)
+	*-> asserta((json_to_prolog_rule(M, PairArgs, Term0) :- Body)),
+	    Pairs1 = PairArgs,
 	    Term = Term0,
-	    Body
+	    Body, !
 	;   asserta(no_rule_for_pairs(M, PairArgs)), % TBD: types?
 	    fail
 	).
@@ -324,18 +371,16 @@ pairs_args([Name=_Value|T0], [Name=Var|T], [Var|TV]) :-
 %		integer(Y).
 %	==
 
-create_rule(PairArgs, Vars, Module, M, Term, Body) :-
+create_rule(PairArgs, Module, M, Term, Body) :-
 	object_module(Module, M),
 	current_json_object(Term, M, Fields),
-	sort(PairArgs, SPA),
-	match_fields(SPA, Fields, Body0),
-	clean_body(Body0, Body),
-	Term =.. [_|Vars].
+	match_fields(PairArgs, Fields, Body0),
+	clean_body(Body0, Body).
 
 match_fields([], [], true).
-match_fields([Name=_|TP], [Name:any|TF], Body) :- !,
+match_fields([Name=Var|TP], [f(Name, any, Var)|TF], Body) :- !,
 	match_fields(TP, TF, Body).
-match_fields([Name=Var|TP], [Name:Type|TF], (Goal,Body)) :- !,
+match_fields([Name=Var|TP], [f(Name, Type,Var)|TF], (Goal,Body)) :- !,
 	type_goal(Type, Var, Goal),
 	match_fields(TP, TF, Body).
 
