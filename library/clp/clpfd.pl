@@ -770,12 +770,12 @@ domain_contract_less(D0, M, D) :-
         (   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
         ;   D1 = D0, M1 = M
         ),
-        (   domain_infimum(D0, n(_)), domain_supremum(D0, n(_)) ->
+        (   domain_infimum(D1, n(_)), domain_supremum(D1, n(_)) ->
             % bounded domain
-            domain_intervals(D0, Is),
-            intervals_contract_less(Is, M, Cs, []),
+            domain_intervals(D1, Is),
+            intervals_contract_less(Is, M1, Cs, []),
             list_to_domain(Cs, D)
-        ;   domain_contract_less_(D0, M, D)
+        ;   domain_contract_less_(D1, M1, D)
         ).
 
 intervals_contract_less([], _)               --> [].
@@ -1281,13 +1281,13 @@ neq(A, B) :-
 
 
 geq(A, B) :-
-        Prop = propagator(pgeq(A,B), mutable(passive)),
         (   get(A, AD, APs) ->
             domain_infimum(AD, AI),
             (   get(B, BD, _) ->
                 domain_supremum(BD, BS),
                 (   AI cis_geq BS -> true
-                ;   init_propagator(A, Prop),
+                ;   Prop = propagator(pgeq(A,B), mutable(passive)),
+                    init_propagator(A, Prop),
                     init_propagator(B, Prop),
                     trigger_twice(Prop)
                 )
@@ -1299,7 +1299,7 @@ geq(A, B) :-
             domain_remove_greater_than(BD, A, BD1),
             put(B, BD1, BPs),
             do_queue
-        ;   A > B
+        ;   A >= B
         ).
 
 leq(A, B) :- geq(B, A).
@@ -1431,32 +1431,51 @@ myimpl(X, Y) :-
         init_propagator(X, Prop), init_propagator(Y, Prop),
         trigger_prop(Prop).
 
+clpfd_expression(E) :-
+        (   var(E) ->
+            get(E, ED, EPs),
+            put(E, ED, EPs) % constrain to integers
+        ;   integer(E) -> true
+        ;   E =.. [Op,A], memberchk(Op, [abs,-]) ->
+            clpfd_expression(A)
+        ;   E =.. [Op,L,R], memberchk(Op, [+,*,-,max,min,mod,/]) ->
+            clpfd_expression(L), clpfd_expression(R)
+        ).
 
 reify(Expr, B) :-
         B in 0..1,
         (   var(Expr) -> B = Expr
         ;   integer(Expr) -> B = Expr
         ;   Expr = (L #>= R) ->
-            parse_clpfd(L, LR), parse_clpfd(R, RR),
-            Prop = propagator(reified_geq(LR,RR,B), mutable(passive)),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop),
-            trigger_prop(Prop)
+            clpfd_expression(L), clpfd_expression(R),
+            (   parse_clpfd(L, LR), parse_clpfd(R, RR) ->
+                Prop = propagator(reified_geq(LR,RR,B), mutable(passive)),
+                init_propagator(LR, Prop), init_propagator(RR, Prop),
+                init_propagator(B, Prop),
+                trigger_prop(Prop)
+            ;   B = 0
+            )
         ;   Expr = (L #> R)  -> reify(L #>= (R+1), B)
         ;   Expr = (L #=< R) -> reify(R #>= L, B)
         ;   Expr = (L #< R)  -> reify(R #>= (L+1), B)
         ;   Expr = (L #= R)  ->
-            parse_clpfd(L, LR), parse_clpfd(R, RR),
-            Prop = propagator(reified_eq(LR,RR,B), mutable(passive)),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop),
-            trigger_prop(Prop)
+            clpfd_expression(L), clpfd_expression(R),
+            (   parse_clpfd(L, LR), parse_clpfd(R, RR) ->
+                Prop = propagator(reified_eq(LR,RR,B), mutable(passive)),
+                init_propagator(LR, Prop), init_propagator(RR, Prop),
+                init_propagator(B, Prop),
+                trigger_prop(Prop)
+            ;   B = 0
+            )
         ;   Expr = (L #\= R) ->
-            parse_clpfd(L, LR), parse_clpfd(R, RR),
-            Prop = propagator(reified_neq(LR,RR,B), mutable(passive)),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop),
-            trigger_prop(Prop)
+            clpfd_expression(L), clpfd_expression(R),
+            (   parse_clpfd(L, LR), parse_clpfd(R, RR) ->
+                Prop = propagator(reified_neq(LR,RR,B), mutable(passive)),
+                init_propagator(LR, Prop), init_propagator(RR, Prop),
+                init_propagator(B, Prop),
+                trigger_prop(Prop)
+            ;   B = 0
+            )
         ;   Expr = (L #/\ R) ->
             reify(L, LR), reify(R, RR),
             Prop = propagator(reified_and(LR,RR,B), mutable(passive)),
@@ -1898,7 +1917,6 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ;   nonvar(Y) -> mytimes(Y,X,Z)
         ;   nonvar(Z) ->
             (   X == Y ->
-                Z >= 0,
                 PRoot is floor(sqrt(Z)),
                 PRoot**2 =:= Z, NRoot is -PRoot,
                 get(X, TXD, TXPs), % temporary variables for this section
@@ -1938,7 +1956,8 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             (   Z =\= 0 -> X #\= 0, Y #\= 0
             ;   true
             )
-        ;   get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,_), get(Z,ZD,ZL,ZU,_),
+        ;   (   X == Y -> Z #>= 0 ; true ),
+            get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,_), get(Z,ZD,ZL,ZU,_),
             min_divide(ZL,ZU,YL,YU,TXL),
             NXL cis max(XL,ceiling(TXL)),
             max_divide(ZL,ZU,YL,YU,TXU),
@@ -1983,8 +2002,8 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                         NZL cis max(-abs(n(X)), ZL),
                         NZU cis min(abs(n(X)), ZU)
                     ;   X >= 0, YL cis_gt n(0) ->
-                        NZL cis max(X//YU, ZL),
-                        NZU cis min(X//YL, ZU)
+                        NZL cis max(n(X)//YU, ZL),
+                        NZU cis min(n(X)//YL, ZU)
                     ;   % TODO: cover more cases
                         NZL = ZL, NZU = ZU
                     ),
@@ -1997,9 +2016,12 @@ run_propagator(pdiv(X,Y,Z), MState) :-
         ;   nonvar(Y) ->
             get(X, XD, XL, XU, XPs),
             (   nonvar(Z) ->
-                (   Z >= 0, Y >= 0 ->
+                (   Z > 0, Y > 0 ->
                     NXL cis max(n(Z)*n(Y), XL),
                     NXU cis min((n(Z)+n(1))*n(Y)-n(1), XU)
+                ;   Z =:= 0 ->
+                    NXL cis max(-abs(n(Y)) + n(1), XL),
+                    NXU cis min(abs(n(Y)) - n(1), XU)
                 ;   % TODO: cover more cases
                     NXL = XL, NXU = XU
                 ),
@@ -2011,7 +2033,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                 domain_contract_less(XD, Y, Contracted),
                 domains_intersection(Contracted, ZD, NZD),
                 put(Z, NZD, ZPs),
-                (   get(X, XD2, XPs2) ->
+                (   Z \== 0, get(X, XD2, XPs2) ->
                     domain_expand_more(NZD, Y, Expanded),
                     domains_intersection(Expanded, XD2, NXD2),
                     put(X, NXD2, XPs2)
@@ -2073,10 +2095,10 @@ run_propagator(pmod(X,M,K), MState) :-
             ;   true
             )
         ;   nonvar(M) ->
-            (   M =:= 1 -> X = 0
+            (   M =:= 1 -> K = 0
             ;   get(K, KD, KPs) ->
                 MP is abs(M) - 1,
-                MN is -MP + 1,
+                MN is -MP,
                 get(K, KD, KPs),
                 domains_intersection(from_to(n(MN), n(MP)), KD, KD1),
                 put(K, KD1, KPs)
@@ -2427,14 +2449,6 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% serialized/2; see Dorndorf et al. 2000, "Constraint Propagation
-% Techniques for the Disjunctive Scheduling Problem"
-
-% attribute: serialized(Var, Duration, Left, Right)
-%   Left and Right are lists of Start-Duration pairs representing
-%   other tasks occupying the same resource
-
-% Currently implements 2-b-consistency
 
 %%      serialized(+Starts, +Durations)
 %
@@ -2456,6 +2470,10 @@ serialized(Starts, Durations) :-
 pair_up([], [], []).
 pair_up([A|As], [B|Bs], [A-n(B)|ABs]) :- pair_up(As, Bs, ABs).
 
+% attribute: pserialized(Var, Duration, Left, Right)
+%   Left and Right are lists of Start-Duration pairs representing
+%   other tasks occupying the same resource
+
 serialize([], _).
 serialize([Start-D|SDs], Left) :-
         (   var(Start) ->
@@ -2468,6 +2486,7 @@ serialize([Start-D|SDs], Left) :-
         serialize(SDs, [Start-D|Left]).
 
 % consistency check / propagation
+% Currently implements 2-b-consistency
 
 myserialized(Duration, Left, Right, Start) :-
         myserialized(Left, Start, Duration),
@@ -2485,7 +2504,6 @@ latest_start_time(Start, LST) :-
             domain_supremum(D, LST)
         ;   LST = n(Start)
         ).
-
 
 myserialized([], _, _).
 myserialized([S_I-D_I|SDs], S_J, D_J) :-
