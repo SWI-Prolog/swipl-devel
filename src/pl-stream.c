@@ -960,8 +960,7 @@ retry:
   }
 
 out:
-  if ( c == '\r' && (s->flags&SIO_TEXT) &&
-       !(s->flags&SIO_ISATTY) )
+  if ( c == '\r' && (s->flags&SIO_TEXT) )
   { switch(s->newline)
     { case SIO_NL_DETECT:
 	s->newline = SIO_NL_DOS;
