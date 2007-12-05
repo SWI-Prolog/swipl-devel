@@ -516,10 +516,6 @@ update_linepos(IOSTREAM *s, int c)
       p->lineno++;
       p->linepos = 0;
       s->flags &= ~SIO_NOLINEPOS;
-#ifdef __WINDOWS__
-      if ( s->flags & O_TEXT )
-	p->charno++;			/* writes one extra! */
-#endif
       break;
     case '\r':
       p->linepos = 0;
@@ -3223,13 +3219,15 @@ SinitStreams()
       S__iob[i].mutex = malloc(sizeof(recursiveMutex));
       recursiveMutexInit(S__iob[i].mutex);
 #endif
-#ifdef __WINDOWS__
-      pt_init();
-#endif
 #if CRLF_MAPPING
+      _setmode(i, O_BINARY);
       S__iob[i].newline = SIO_NL_DOS;
 #endif
     }
+
+#ifdef __WINDOWS__
+    pt_init();				/* init popen() issues */
+#endif
   }
 }
 
