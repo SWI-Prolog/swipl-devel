@@ -34,7 +34,9 @@
 	    json_read/3,		% +Stream, -JSONTerm, +Options
 	    atom_json_term/3,		% ?Atom, ?JSONTerm, +Options
 	    json_write/2,		% +Stream, +Term
-	    json_write/3		% +Stream, +Term
+	    json_write/3,		% +Stream, +Term
+	    is_json_term/1,		% @Term
+	    is_json_term/2		% @Term, +Options
 	  ]).
 :- use_module(library(record)).
 :- use_module(library(memfile)).
@@ -543,6 +545,48 @@ string_len(String, Len0, Len) :-
 	atom_length(String, AL),
 	Len is Len0 + AL + 2.
 
+
+		 /*******************************
+		 *	       TEST		*
+		 *******************************/
+
+%%	is_json_term(@Term) is semidet.
+%%	is_json_term(@Term, +Options) is semidet.
+%
+%	True if Term is  a  json  term.   Options  are  the  same as for
+%	json_read/2, defining the Prolog  representation   for  the JSON
+%	=true=, =false= and =null= constants.
+
+is_json_term(Term) :-
+	default_json_options(Options),
+	is_json_term2(Options, Term).
+
+is_json_term(Term, Options) :-
+	make_json_options(Options, OptionTerm),
+	is_json_term2(OptionTerm, Term).
+
+is_json_term2(_, Var) :-
+	var(Var), !, fail.
+is_json_term2(Options, object(Pairs)) :- !,
+	is_list(Pairs),
+	maplist(is_json_pair(Options), Pairs).
+is_json_term2(Options, List) :-
+	is_list(List), !,
+	maplist(is_json_term2(Options), List).
+is_json_term2(_, Primitive) :-
+	atomic(Primitive), !.		% atom, string or number
+is_json_term2(Options, True) :-
+	json_options_true(Options, True).
+is_json_term2(Options, False) :-
+	json_options_false(Options, False).
+is_json_term2(Options, Null) :-
+	json_options_null(Options, Null).
+
+is_json_pair(_, Var) :-
+	var(Var), !, fail.
+is_json_pair(Options, Name=Value) :-
+	atom(Name),
+	is_json_term2(Value, Options).
 
 
 		 /*******************************
