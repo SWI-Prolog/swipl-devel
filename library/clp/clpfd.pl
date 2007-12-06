@@ -1993,7 +1993,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
 
 run_propagator(pdiv(X,Y,Z), MState) :-
         (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), Z is X // Y
+            (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X // Y
             ;   get(Y, YD, YL, YU, YPs),
                 (   nonvar(Z) -> true
                     % TODO: cover this
@@ -2091,7 +2091,7 @@ run_propagator(pabs(X,Y), MState) :-
 
 run_propagator(pmod(X,M,K), MState) :-
         (   nonvar(X) ->
-            (   nonvar(M) -> kill(MState), K is X mod M
+            (   nonvar(M) -> kill(MState), M =\= 0, K is X mod M
             ;   true
             )
         ;   nonvar(M) ->
