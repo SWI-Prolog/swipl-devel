@@ -126,7 +126,7 @@ http_reply(html(HTML), Out, HrdExtra) :- !,
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
 http_reply(file(Type, File), Out, HrdExtra) :- !,
-	phrase(reply_header(file(Type, File), HrdExtra), Header),
+phrase(reply_header(file(Type, File), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	open(File, read, In, [type(binary)]),
 	call_cleanup(copy_stream_data(In, Out),
@@ -382,7 +382,11 @@ content_length_in_encoding(Enc, Stream, Bytes) :-
 %	  multipart/mixed and packed using mime_pack/3. See mime_pack/3
 %	  for details on the argument format.
 
+:- multifile
+	http_client:post_data_hook/3.
 
+http_post_data(Data, Out, HdrExtra) :-
+	http_client:post_data_hook(Data, Out, HdrExtra), !.
 http_post_data(html(HTML), Out, HdrExtra) :-
 	phrase(post_header(html(HTML), HdrExtra), Header),
 	format(Out, '~s', [Header]),
@@ -462,7 +466,10 @@ http_post_data(List, Out, HdrExtra) :-		% multipart-mixed
 	close(In),
 	free_memory_file(MemFile).
 
-%	post_header//2: DCG for generating the POST request
+%%	post_header(+Data, +HeaderExtra)//
+%
+%	Generate the POST header, emitting HeaderExtra, followed by the
+%	HTTP Content-length and Content-type fields.
 
 post_header(html(Tokens), HdrExtra) -->
 	header_fields(HdrExtra),

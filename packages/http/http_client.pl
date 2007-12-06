@@ -46,7 +46,8 @@
 :- use_module(dcg_basics).
 
 :- multifile
-	http_convert_data/4.		% http_read_data plugin-hook
+	http_convert_data/4,		% http_read_data plugin-hook
+	post_data_hook/3.		% http_post_data/3 hook
 
 :- dynamic
 	connection/4.			% Host:Port, ThreadId, In, Out

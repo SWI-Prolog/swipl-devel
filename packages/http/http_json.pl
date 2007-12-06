@@ -36,13 +36,16 @@
 	    http_read_json/3		% +Request, -JSON, +Options
 	  ]).
 :- use_module(http_client).
+:- use_module(http_header).
 :- use_module(json).
 :- use_module(library(option)).
 :- use_module(library(error)).
 :- use_module(library(lists)).
+:- use_module(library(memfile)).
 
 :- multifile
-	http_client:http_convert_data/4.
+	http_client:http_convert_data/4,
+	http_client:post_data_hook/3.
 
 
 /** <module> HTTP JSON Plugin module
@@ -67,12 +70,36 @@ http_client:http_convert_data(In, Fields, Data, Options) :-
 	json_type(Type), !,
 	json_read(In, Data, Options).
 
+
 %%	json_type(?MIMEType:atom) is semidet.
 %
 %	True if MIMEType is a JSON mimetype.
 
 json_type('application/jsonrequest').
 json_type('application/json').
+
+
+%%	http_client:post_data_hook(+Data, +Out:stream, +HdrExtra) is semidet.
+%
+%	Hook into http_post_data/3 that allows for
+%	
+%	==
+%	http_post(URL, json(Term), Reply, Options)
+%	==
+
+http_client:post_data_hook(json(Term), Out, HdrExtra) :-
+	http_client:post_data_hook(json(Term, []), Out, HdrExtra).
+http_client:post_data_hook(json(Term, Options), Out, HdrExtra) :-
+	option(content_type(Type), HdrExtra, 'application/json'),
+	new_memory_file(MemFile),
+	open_memory_file(MemFile, write, Handle),
+	format(Handle, 'Content-type: ~w~n~n', [Type]),
+	json_write(Handle, Term, Options),
+	close(Handle),
+	open_memory_file(MemFile, read, RdHandle),
+	call_cleanup(http_post_data(cgi_stream(RdHandle), Out, HdrExtra),
+		     (	 close(RdHandle),
+			 free_memory_file(MemFile))).
 
 
 %%	http_read_json(+Request, -JSON) is det.
