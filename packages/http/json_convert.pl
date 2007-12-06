@@ -94,7 +94,9 @@ Using this declaration, the conversion becomes:
 X = object([x=25, y=50, type=point])
 ==
 
-
+@tbd	Ignore extra fields.  Using incomplete list of _extra_?
+@tbd	Allow arguments to be defined as JSON objects for recursive
+	translation.
 */
 
 %%	current_json_object(Term, Module, Fields)
@@ -308,7 +310,7 @@ record_to_pairs(T, M, JSON) :-
 
 object_module(user, user) :- !.
 object_module(M, M).
-object_module(_, user) 
+object_module(_, user).
 
 
 		 /*******************************
@@ -317,11 +319,11 @@ object_module(_, user)
 
 :- dynamic
 	json_to_prolog_rule/3,		% Module, Pairs, Term
-	no_rule_for_pairs/2.		% Module, Pairs
+	created_rules_for_pairs/2.	% Module, Pairs
 
 clear_cache :-
 	retractall(json_to_prolog_rule(_,_,_)),
-	retractall(no_rule_for_pairs(_,_)).
+	retractall(created_rules_for_pairs(_,_)).
 
 :- clear_cache.
 
@@ -340,25 +342,21 @@ json_to_prolog(object(Pairs), Term) :-
 
 pairs_to_term(Pairs, Module, Term) :-
 	object_module(Module, M),
-	json_to_prolog_rule(M, Pairs, Term), !.
-pairs_to_term(Pairs, Module, _) :-
-	object_module(Module, M),
-	no_rule_for_pairs(M, Pairs), !, fail.
-pairs_to_term(Pairs, Module, Term) :-
-	sort(Pairs, Pairs1),
-	pairs_args(Pairs1, PairArgs, _Vars),
-	(   create_rule(PairArgs, Module, M, Term0, Body)
-	*-> asserta((json_to_prolog_rule(M, PairArgs, Term0) :- Body)),
-	    Pairs1 = PairArgs,
-	    Term = Term0,
-	    Body, !
-	;   asserta(no_rule_for_pairs(M, PairArgs)), % TBD: types?
-	    fail
+	(   json_to_prolog_rule(M, Pairs, Term)
+	->  !
+	;   created_rules_for_pairs(M, Pairs)
+	->  !, fail
+	;   pairs_args(Pairs, PairArgs),
+	    sort(PairArgs, SortedPairArgs),
+	    forall(create_rule(SortedPairArgs, Module, M, Term0, Body),
+		   asserta((json_to_prolog_rule(M, PairArgs, Term0) :- Body))),
+	    asserta(created_rules_for_pairs(M, PairArgs)),
+	    json_to_prolog_rule(M, Pairs, Term), !
 	).
 	
-pairs_args([], [], []).
-pairs_args([Name=_Value|T0], [Name=Var|T], [Var|TV]) :-
-	pairs_args(T0, T, TV).
+pairs_args([], []).
+pairs_args([Name=_Value|T0], [Name=_|T]) :-
+	pairs_args(T0, T).
 
 %%	create_rule(+PairArgs, +Vars, -Term, -Body) is det.
 %
