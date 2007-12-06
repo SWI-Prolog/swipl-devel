@@ -221,7 +221,10 @@ step1c(vars *vs)
    m() > 0. */
 
 static void step2(vars *vs)
-{ switch (vs->b[vs->k-1])
+{ if ( vs->k <= 0 )
+    return;
+
+  switch (vs->b[vs->k-1])
   {
     case 'a': if (ends("\07" "ational", vs)) { r("\03" "ate", vs); break; }
               if (ends("\06" "tional", vs)) { r("\04" "tion", vs); break; }
@@ -283,7 +286,9 @@ step3(vars *vs)
 /* step4() takes off -ant, -ence etc., in context <c>vcvc<v>. */
 
 static void step4(vars *vs)
-{  switch (vs->b[vs->k-1])
+{ if ( vs->k <= 0 )
+    return;
+  switch (vs->b[vs->k-1])
     {  case 'a': if (ends("\02" "al", vs)) break; return;
        case 'c': if (ends("\04" "ance", vs)) break;
                  if (ends("\04" "ence", vs)) break; return;
