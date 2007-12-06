@@ -94,8 +94,8 @@ uninstall::
 		$(PL) -f none -g make -t halt
 
 check::
-		$(PL) -q -f http_test.pl -g true -t run_tests
-		$(PL) -q -f json_test.pl -g true -t json_test
+		$(PL) -q -f test_http.pl -g true -t run_tests
+		$(PL) -q -f test_json.pl -g true -t test_json
 
 ################################################################
 # Documentation

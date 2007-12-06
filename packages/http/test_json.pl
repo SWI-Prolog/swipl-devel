@@ -29,8 +29,8 @@
     the GNU General Public License.
 */
 
-:- module(json_test,
-	  [ json_test/0
+:- module(test_json,
+	  [ test_json/0
 	  ]).
 :- asserta(user:file_search_path(foreign, '.')).
 :- asserta(user:file_search_path(foreign, '../clib')).
@@ -39,9 +39,9 @@
 
 :- use_module(library(plunit)).
 :- use_module(json).
-:- use_module(json_convert).
+:- use_module(user:json_convert).
 
-json_test :-
+test_json :-
 	run_tests([ json_read,
 		    json_convert
 		  ]).
