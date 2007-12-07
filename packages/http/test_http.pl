@@ -11,7 +11,7 @@
 
 :- use_module(user:library(http_open)).
 :- use_module(user:library(http_client)).
-:- use_module(user:library(http_chunked)).
+:- use_module(user:library(http_stream)).
 :- use_module(user:library(plunit)).
 :- use_module(user:library(readutil)).
 :- use_module(user:library(socket)).
