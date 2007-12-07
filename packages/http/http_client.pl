@@ -39,7 +39,7 @@
 :- use_module(library(socket)).
 :- use_module(library(url)).
 :- use_module(http_header).
-:- use_module(http_chunked).
+:- use_module(http_stream).
 :- use_module(library(debug)).
 :- use_module(library(memfile)).
 :- use_module(library(lists)).

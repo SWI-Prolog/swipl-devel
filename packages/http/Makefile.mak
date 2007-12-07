@@ -19,20 +19,22 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		thread_httpd.pl xpce_httpd.pl inetd_httpd.pl \
 		http_wrapper.pl http_open.pl http_session.pl \
 		http_error.pl http_parameters.pl http_dispatch.pl \
-		http_authenticate.pl http_chunked.pl json.pl
+		http_authenticate.pl http_stream.pl json.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
 EXAMPLEEXE=	demo_inetd		
 XPCEPL=		http_image.pl
 
-OBJ=		http_chunked.obj
+OBJ=		http_stream.obj
 
-all:		http_chunked.dll
+all:		http_stream.dll
 
-http_chunked.dll:	$(OBJ)
+http_stream.dll:	$(OBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS)
 json.dll:	json.obj
 		$(LD) /dll /out:$@ $(LDFLAGS) json.obj $(PLLIB) $(LIBS)
+
+http_stream.obj:	http_error.c http_chunked.c stream_range.c
 
 all:		
 
@@ -44,10 +46,10 @@ install::
 		@echo Copying $(LIBPL)
 		@for %f in ($(LIBPL)) do @copy %f "$(LIBDIR)"
 		copy README "$(LIBDIR)\README.TXT"
-		copy http_chunked.dll "$(BINDIR)"
+		copy http_stream.dll "$(BINDIR)"
 		copy json.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
-		copy http_chunked.pdb "$(BINDIR)"
+		copy http_stream.pdb "$(BINDIR)"
 		copy json.pdb "$(BINDIR)"
 !ENDIF
 		$(MAKEINDEX)
@@ -69,7 +71,7 @@ xpce-install::
 
 uninstall::
 		cd $(LIBDIR) & del $(LIBPL) README.TXT
-		del "$(BINDIR)\http_chunked.dll"
+		del "$(BINDIR)\http_stream.dll"
 		$(MAKEINDEX)
 
 clean::
