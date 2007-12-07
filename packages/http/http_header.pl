@@ -306,12 +306,22 @@ http_update_encoding(Header0, utf8, [content_type(Type)|Header]) :-
 	;   B = Type0
 	),
 	atom_concat(B, '; charset=UTF-8', Type).
-http_update_encoding(Header, utf8, Header) :-
+http_update_encoding(Header, Encoding, Header) :-
 	memberchk(content_type(Type), Header),
-	(   sub_atom(Type, _, _, _, 'UTF-8')
-	;   sub_atom(Type, _, _, _, 'utf-8')
-	), !.
+	(   (   sub_atom(Type, _, _, _, 'UTF-8')
+	    ;   sub_atom(Type, _, _, _, 'utf-8')
+	    )
+	->  Encoding = utf8
+	;   mime_type_encoding(Type, Encoding)
+	).
 http_update_encoding(Header, octet, Header).
+
+%%	mime_type_encoding(+MimeType, -Encoding) is semidet.
+%
+%	Encoding is the (default) character encoding for MimeType.
+
+mime_type_encoding('application/json', utf8).
+mime_type_encoding('application/jsonrequest', utf8).
 
 
 %%	content_length_in_encoding(+Encoding, +In, -Bytes)

@@ -165,6 +165,10 @@ test(echo, X == [1,2,3]) :-
 test(echo, X == object([name=json, arity=2])) :-
 	echo(object([name=json, arity=2]), X).
 
+test(unicode, X == Atom) :-
+	Atom = '\u0411\u0435\u0437\u0443\u043f\u0440\u0435\u0447\u043d\u043e\u0435',
+	echo(Atom, X).
+
 :- end_tests(json_http).
 
 :- multifile

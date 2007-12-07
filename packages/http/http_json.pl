@@ -71,6 +71,7 @@ http_client:http_convert_data(In, Fields, Data, Options) :-
 	json_type(Type), !,
 	(   memberchk(content_length(Bytes), Fields)
 	->  stream_range_open(In, Range, [size(Bytes)]),
+	    set_stream(Range, encoding(utf8)),
 	    call_cleanup(json_read(Range, Data, Options), close(Range))
 	;   json_read(In, Data, Options)
 	).
