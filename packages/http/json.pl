@@ -46,7 +46,7 @@
 :- initialization
    load_foreign_library(foreign(json)).
 
-/** <module> JSON support
+/** <module> Reading and writing JSON serialization
 
 This module supports reading and writing JSON objects. The canonical
 Prolog representation for JSON terms is defined as:
@@ -55,11 +55,6 @@ Prolog representation for JSON terms is defined as:
     NameValueList is a list of Name=Value. Name is an atom created from
     the JSON string. I.e.
 
-    ==
-    { "name":"SWI-Prolog", "url":"http://www.swi-prolog.org" } -->
-    object([name='SWI-Prolog', url='http://www.swi-prolog.org'])
-    ==
-    
     * A JSON array is mapped to a Prolog list of JSON values.
 
     * A JSON string is mapped to a Prolog atom
@@ -71,8 +66,32 @@ Prolog representation for JSON terms is defined as:
 
     * The JSON constant =null= is mapped to the Prolog term @(null)
 
+Here is a complete example in JSON and its corresponding Prolog term.
+
+==
+{ "name":"Demo term",
+  "created": {
+    "day":null,
+    "month":"December",
+    "year":2007
+  },
+  "confirmed":true,
+  "members":[1,2,3]
+}
+==
+
+==
+object([ name='Demo term',
+         created=object([day= @null, month='December', year=2007]),
+         confirmed= @true,
+         members=[1, 2, 3]
+       ])
+==
 
 @author Jan Wielemaker
+@see	http_json.pl links JSON to the HTTP client and server modules.
+@see	json_convert.pl converts JSON Prolog terms to more comfortable
+terms.
 */
 
 :- record json_options(null:ground = @(null),
@@ -117,8 +136,8 @@ type_term(codes,  Result, codes(Result)).
 		 *	     READING		*
 		 *******************************/
 
-%%	json_parse(+Stream, -Term) is det.
-%%	json_parse(+Stream, -Term, +Options) is det.
+%%	json_read(+Stream, -Term) is det.
+%%	json_read(+Stream, -Term, +Options) is det.
 %
 %	Read next JSON value from Stream into a Prolog term. Options
 %	are:
@@ -356,8 +375,7 @@ stream_error_context(Stream, stream(Stream, Line, LinePos, CharNo)) :-
 %	    Distance between tab-stops.  If equal to Step, layout
 %	    is generated with one tab per level.
 %	
-%	@tbd	Allow for inline expansion or some other mechanism
-%		to make it easy to send arbitrary Prolog data.
+%	@tbd	Allow for inline expansion by integrating json_convert.pl
 
 :- record json_write_state(indent:nonneg = 0,
 			   step:positive_integer = 2,

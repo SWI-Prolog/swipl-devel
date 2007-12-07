@@ -55,8 +55,8 @@ This  module  inserts  the  JSON  parser  for  documents  of  MIME  type
 =|application/jsonrequest|= and =|application/json|=   requested through
 the http_client.pl library.
 
-Typically JSON is used by Prolog HTTP   servers. Below is a skeleton for
-JSON handlers:
+Typically JSON is used by Prolog HTTP servers.  Below is a skeleton for
+handling a JSON request, answering in JSON. 
 
 ==
 handle(Request) :-
@@ -64,6 +64,22 @@ handle(Request) :-
 	<compute>(JSONIn, JSONOut),
 	reply_json(JSONOut).
 ==
+
+This module also integrates JSON support into the http client provided
+by http_client.pl. Posting a JSON query and processing the JSON reply
+(or any other reply understood by http_read_data/3) is as simple as
+below, where Term is a JSON term as described in json.pl and reply is
+of the same format if the server replies with JSON.
+
+==
+	...,
+	http_post(URL, json(Term), Reply, [])
+==
+
+@see	JSON Requests are discussed in http://json.org/JSONRequest.html
+@see	json.pl describes how JSON objects are represented in Prolog terms.
+@see	json_convert.pl converts between more natural Prolog terms and json
+terms.
 */
 
 http_client:http_convert_data(In, Fields, Data, Options) :-
@@ -85,7 +101,7 @@ json_type('application/jsonrequest').
 json_type('application/json').
 
 
-%%	http_client:post_data_hook(+Data, +Out:stream, +HdrExtra) is semidet.
+%	http_client:post_data_hook(+Data, +Out:stream, +HdrExtra) is semidet.
 %
 %	Hook into http_post_data/3 that allows for
 %	
