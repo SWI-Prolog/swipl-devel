@@ -37,6 +37,7 @@
 	  ]).
 :- use_module(http_client).
 :- use_module(http_header).
+:- use_module(http_stream).
 :- use_module(json).
 :- use_module(library(option)).
 :- use_module(library(error)).
@@ -68,7 +69,11 @@ handle(Request) :-
 http_client:http_convert_data(In, Fields, Data, Options) :-
 	memberchk(content_type(Type), Fields),
 	json_type(Type), !,
-	json_read(In, Data, Options).
+	(   memberchk(content_length(Bytes), Fields)
+	->  stream_range_open(In, Range, [size(Bytes)]),
+	    call_cleanup(json_read(Range, Data, Options), close(Range))
+	;   json_read(In, Data, Options)
+	).
 
 
 %%	json_type(?MIMEType:atom) is semidet.
@@ -86,6 +91,8 @@ json_type('application/json').
 %	==
 %	http_post(URL, json(Term), Reply, Options)
 %	==
+%	
+%	@tbd avoid creation of intermediate data using chunked output.
 
 http_client:post_data_hook(json(Term), Out, HdrExtra) :-
 	http_client:post_data_hook(json(Term, []), Out, HdrExtra).

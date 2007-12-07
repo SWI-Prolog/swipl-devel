@@ -39,11 +39,11 @@
 
 :- use_module(library(plunit)).
 :- use_module(json).
-:- use_module(user:json_convert).
 
 test_json :-
 	run_tests([ json_read,
-		    json_convert
+		    json_convert,
+		    json_http
 		  ]).
 
 :- begin_tests(json_read).
@@ -91,6 +91,8 @@ test(empty, X == object([])) :-
 
 :- begin_tests(json_convert).
 
+:- use_module(json_convert).
+
 :- json_object
 	point(x:integer, y:integer),
 	tpoint(x:integer, y:integer)+[type=point],
@@ -113,3 +115,59 @@ test(json2pt, X == tpoint(25,50)) :-
 	json_to_prolog(object([x=25,y=50,type=point]), X).
 
 :- end_tests(json_convert).
+
+
+		 /*******************************
+		 *	       HTTP		*
+		 *******************************/
+
+:- use_module(http_json).
+:- use_module(http_client).
+:- use_module(thread_httpd).
+
+:- dynamic
+	port/1.
+
+make_server :-
+	retractall(port(_)),
+	http_server(reply,
+		    [ port(Port),
+		      workers(1)
+		    ]),
+	assert(port(Port)).
+
+kill_server :-
+	retract(port(Port)),
+	http_stop_server(Port, []).
+
+reply(Request) :-
+	memberchk(path('/json/echo'), Request), !,
+	http_read_json(Request, JSON),
+	reply_json(JSON).
+
+echo(Term, Reply) :-
+	port(Port),
+	format(string(URL), 'http://localhost:~w/json/echo', [Port]),
+	http_post(URL, json(Term), Reply, []).
+
+:- begin_tests(json_http, [ setup(make_server),
+			    cleanup(kill_server)
+			  ]).
+
+test(echo, X == 42) :-
+	echo(42, X).
+test(echo, X == -3.14) :-
+	echo(-3.14, X).
+test(echo, X == name) :-
+	echo(name, X).
+test(echo, X == [1,2,3]) :-
+	echo([1,2,3], X).
+test(echo, X == object([name=json, arity=2])) :-
+	echo(object([name=json, arity=2]), X).
+
+:- end_tests(json_http).
+
+:- multifile
+	user:message_hook/3.
+
+user:message_hook(httpd_stopped_worker(_, true), _Kind, _Lines).
