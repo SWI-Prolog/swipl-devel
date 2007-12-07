@@ -174,7 +174,13 @@ json_pairs(0'}, _, [], _) :- !.
 json_pairs(C0, Stream, [Pair|Tail], Options) :- 
 	json_pair(C0, Stream, Pair, C, Options),
 	ws(C, Stream, Next),
-	json_pairs(Next, Stream, Tail, Options).
+	(   Next == 0',
+	->  ws(Stream, C2),
+	    json_pairs(C2, Stream, Tail, Options)
+	;   Next == 0'}
+	->  Tail = []
+	;   syntax_error(illegal_object, Stream)
+	).
 
 json_pair(C0, Stream, Name=Value, Next, Options) :-
 	json_string_as_atom(C0, Stream, Name),
