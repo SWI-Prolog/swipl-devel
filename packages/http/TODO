@@ -52,14 +52,12 @@ We should provide centralized logging based on a hook similar to what is
 needed to store debugging information.
 
 
----++ Dispatching and authorization
+---++ JSON integration
 
-Already available in the  SeRQL  package   are  libraries  to centralise
-dispatching dispatching and challenging the   browser  for user/password
-(HTTP 401 reply). Will be moved to core libraries soon.
+JavaScript Simple Object Notation is a simple and lightweight exchange
+protocol for structured data.  Support for it is progressing, with the
+following items on our todo list.
 
-
----++ Unbundle SSL
-
-Remove the dependency to SSL from the server library, so library(ssl) is
-not autoloaded when creating an executable.
+	* Hook json_convert.pl into json.pl
+	* Deal with nested objects in conversion
+	* Documentation.
