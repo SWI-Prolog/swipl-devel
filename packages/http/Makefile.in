@@ -41,7 +41,7 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-CHUNKOBJ=	http_chunked.o
+STREAMOBJ=	http_stream.o
 JSONOBJ=	json.o
 LIBPL=		html_write.pl http_client.pl http_header.pl \
 		http_mime_plugin.pl http_sgml_plugin.pl \
@@ -49,20 +49,22 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		thread_httpd.pl xpce_httpd.pl inetd_httpd.pl \
 		http_wrapper.pl http_open.pl http_session.pl \
 		http_error.pl http_parameters.pl http_dispatch.pl \
-		http_authenticate.pl http_chunked.pl json.pl
+		http_authenticate.pl http_stream.pl json.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
 EXAMPLEEXE=	demo_inetd		
 XPCEPL=		http_image.pl
-SOLIBS=		http_chunked.@SO@ json.@SO@
+SOLIBS=		http_stream.@SO@ json.@SO@
 
 all:		$(SOLIBS)
 
 
-http_chunked.@SO@:	$(CHUNKOBJ)
-		$(LD) $(LDFLAGS) -o $@ $(CHUNKOBJ) $(LIBS)
+http_stream.@SO@:	$(STREAMOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(STREAMOBJ) $(LIBS)
 json.@SO@:	$(JSONOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(JSONOBJ) $(LIBS)
+
+http_stream.o:	http_error.c http_chunked.c stream_range.c
 
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
@@ -131,7 +133,7 @@ $(TEX):		$(DOCTOTEX)
 ################################################################
 
 clean:
-		rm -f $(CHUNKOBJ)
+		rm -f $(STREAMOBJ)
 		rm -f *~ *% config.log
 		rm -f $(TEX)
 		$(RUNTEX) --clean $(DOC)

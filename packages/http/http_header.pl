@@ -126,7 +126,7 @@ http_reply(html(HTML), Out, HrdExtra) :- !,
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
 http_reply(file(Type, File), Out, HrdExtra) :- !,
-	phrase(reply_header(file(Type, File), HrdExtra), Header),
+phrase(reply_header(file(Type, File), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	open(File, read, In, [type(binary)]),
 	call_cleanup(copy_stream_data(In, Out),
@@ -306,12 +306,22 @@ http_update_encoding(Header0, utf8, [content_type(Type)|Header]) :-
 	;   B = Type0
 	),
 	atom_concat(B, '; charset=UTF-8', Type).
-http_update_encoding(Header, utf8, Header) :-
+http_update_encoding(Header, Encoding, Header) :-
 	memberchk(content_type(Type), Header),
-	(   sub_atom(Type, _, _, _, 'UTF-8')
-	;   sub_atom(Type, _, _, _, 'utf-8')
-	), !.
+	(   (   sub_atom(Type, _, _, _, 'UTF-8')
+	    ;   sub_atom(Type, _, _, _, 'utf-8')
+	    )
+	->  Encoding = utf8
+	;   mime_type_encoding(Type, Encoding)
+	).
 http_update_encoding(Header, octet, Header).
+
+%%	mime_type_encoding(+MimeType, -Encoding) is semidet.
+%
+%	Encoding is the (default) character encoding for MimeType.
+
+mime_type_encoding('application/json', utf8).
+mime_type_encoding('application/jsonrequest', utf8).
 
 
 %%	content_length_in_encoding(+Encoding, +In, -Bytes)
@@ -382,7 +392,11 @@ content_length_in_encoding(Enc, Stream, Bytes) :-
 %	  multipart/mixed and packed using mime_pack/3. See mime_pack/3
 %	  for details on the argument format.
 
+:- multifile
+	http_client:post_data_hook/3.
 
+http_post_data(Data, Out, HdrExtra) :-
+	http_client:post_data_hook(Data, Out, HdrExtra), !.
 http_post_data(html(HTML), Out, HdrExtra) :-
 	phrase(post_header(html(HTML), HdrExtra), Header),
 	format(Out, '~s', [Header]),
@@ -462,7 +476,10 @@ http_post_data(List, Out, HdrExtra) :-		% multipart-mixed
 	close(In),
 	free_memory_file(MemFile).
 
-%	post_header//2: DCG for generating the POST request
+%%	post_header(+Data, +HeaderExtra)//
+%
+%	Generate the POST header, emitting HeaderExtra, followed by the
+%	HTTP Content-length and Content-type fields.
 
 post_header(html(Tokens), HdrExtra) -->
 	header_fields(HdrExtra),

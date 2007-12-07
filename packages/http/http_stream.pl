@@ -29,18 +29,23 @@
     the GNU General Public License.
 */
 
-:- module(http_chunked,
-	  [ http_chunked_open/3		% +Stream, -DataStream, +Options
+:- module(http_stream,
+	  [ http_chunked_open/3,	% +Stream, -DataStream, +Options
+	    stream_range_open/3		% +Stream, -DataStream, +Options
 	  ]).
 
 :- initialization
-   load_foreign_library(foreign(http_chunked)).
+   load_foreign_library(foreign(http_stream)).
 
-/** <module> Chunked data streams
+/** <module> HTTP Streams
 
-This module realises a filtering stream,  encoding and decoding the HTTP
-_Chunked_ encoding. This encoding is an obligatory  part of the HTTP 1.1
-specification. Messages are split into  chunks,   each  preceeded by the
+This module realises  encoding  and   decoding  filters,  implemented as
+Prolog streams that read/write to an  underlying stream. This allows for
+sequences of streams acting as an in-process pipeline.
+
+The predicate http_chunked_open/3 realises encoding  and decoding of the
+HTTP _Chunked_ encoding. This encoding is an obligatory part of the HTTP
+1.1 specification. Messages are split into chunks, each preceeded by the
 length of the chunk. Chunked  encoding   allows  sending messages over a
 serial link (typically a TCP/IP stream) for  which the reader knows when
 the message is ended. Unlike standard HTTP   though, the sender does not
@@ -48,9 +53,10 @@ need to know the message length  in   advance.  The  protocol allows for
 sending short chunks. This is  supported   totally  transparent  using a
 flush on the output stream.
 
-This module only implements the chunk mechanism   and  no other parts of
-the  HTTP  protocol   to   facilitate    lightweight   reuse   in  other
-connection-based protocols.
+The predicate stream_range_open/3 handles the Content-length on an input
+stream for handlers that are designed  to   process  an entire file. The
+filtering stream claims end-of-file after reading  a specified number of
+bytes, dispite the fact that the underlying stream may be longer.
 
 @see	The HTTP 1.1 protocol http://www.w3.org/Protocols/rfc2616/rfc2616.html
 @author Jan Wielemaker
@@ -108,6 +114,12 @@ connection-based protocols.
 %	@error	io_error(read, Stream) where the message context provides
 %		an indication of the problem.  This error is raised if
 %		the input is not valid HTTP chunked data.
+
+%%	stream_range_open(+RawStream, -DataStream, +Options) is det.
+%
+%	DataStream is a stream  whose  size   is  defined  by the option
+%	size(ContentLength).   Closing   DataStream   does   not   close
+%	RawStream.
 
 :- multifile
 	http:encoding_filter/3.		% +Encoding, +In0,  -In

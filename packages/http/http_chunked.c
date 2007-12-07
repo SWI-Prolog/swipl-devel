@@ -33,80 +33,8 @@
 
 #define MAXHDR 1024			/* max size of chink header line */
 
-static functor_t FUNCTOR_error2;	/* error(Formal, Context) */
-static functor_t FUNCTOR_type_error2;	/* type_error(Term, Expected) */
-static functor_t FUNCTOR_domain_error2;	/* domain_error(Term, Expected) */
-
 static atom_t ATOM_close_parent;	/* close_parent(Bool) */
 static atom_t ATOM_max_chunk_size;	/* max_chunk_size(Int) */
-static int debuglevel = 0;
-
-#ifdef O_DEBUG
-#define DEBUG(n, g) if ( debuglevel >= n ) g
-#else
-#define DEBUG(n, g) (void)0
-#endif
-
-		 /*******************************
-		 *	       ERRORS		*
-		 *******************************/
-
-static int
-type_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
-
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_type_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
-
-  return PL_raise_exception(ex);
-}
-
-
-static int
-domain_error(term_t actual, const char *domain)
-{ term_t ex = PL_new_term_ref();
-
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_domain_error2,
-		        PL_CHARS, domain,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
-
-  return PL_raise_exception(ex);
-}
-
-
-static int
-instantiation_error()
-{ term_t ex = PL_new_term_ref();
-
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_CHARS, "inistantiation_error",
-		      PL_VARIABLE);
-
-  return PL_raise_exception(ex);
-}
-
-
-static int
-get_int_ex(term_t t, int *i)
-{ if ( PL_get_integer(t, i) )
-    return TRUE;
-
-  return type_error(t, "integer");
-}
-
-
-static int
-get_bool_ex(term_t t, int *i)
-{ if ( PL_get_bool(t, i) )
-    return TRUE;
-
-  return type_error(t, "boolean");
-}
 
 
 		 /*******************************
@@ -350,30 +278,16 @@ pl_http_chunked_open(term_t org, term_t new, term_t options)
 }
 
 
-#ifdef O_DEBUG
-static foreign_t
-http_chunked_debug(term_t level)
-{ return PL_get_integer(level, &debuglevel);
-}
-#endif
-
 		 /*******************************
 		 *	       INSTALL		*
 		 *******************************/
 
 #define MKFUNCTOR(name, arity) PL_new_functor(PL_new_atom(name), arity)
 
-install_t
+static void
 install_http_chunked()
-{ FUNCTOR_error2        = MKFUNCTOR("error", 2);
-  FUNCTOR_type_error2   = MKFUNCTOR("type_error", 2);
-  FUNCTOR_domain_error2 = MKFUNCTOR("domain_error", 2);
-
-  ATOM_close_parent   = PL_new_atom("close_parent");
+{ ATOM_close_parent   = PL_new_atom("close_parent");
   ATOM_max_chunk_size = PL_new_atom("max_chunk_size");
 
   PL_register_foreign("http_chunked_open",  3, pl_http_chunked_open,  0);
-#ifdef O_DEBUG
-  PL_register_foreign("http_chunked_debug", 1, http_chunked_debug, 0);
-#endif
 }
