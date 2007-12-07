@@ -1493,7 +1493,7 @@ reify(Expr, B) :-
             Prop = propagator(reified_not(QR,B), mutable(passive)),
             init_propagator(QR, Prop), init_propagator(B, Prop),
             trigger_prop(Prop)
-        ;   type_error(integer, Expr)
+        ;   domain_error(clpfd_reifiable_expression, Expr)
         ).
 
 
