@@ -1168,7 +1168,8 @@ print_latex_token(verb(Verb), Out) :-
 print_latex_token(verb(Verb), Out) :- !,
 	(   member(C, [$,'|',@,=,'"',^,!]),
 	    \+ sub_atom(Verb, _, _, _, C)
-	->  format(Out, '\\verb~w~w~w', [C,Verb,C])
+	->  atom_replace_char(Verb, '\n', ' ', Verb2),
+	    format(Out, '\\verb~w~w~w', [C,Verb2,C])
 	;   assertion(fail)
 	).
 print_latex_token(code(Code), Out) :- !,
@@ -1183,6 +1184,20 @@ print_latex_token(Rest, Out) :-
 	;   %type_error(latex_token, Rest)
 	    write(Out, Rest)
 	).
+
+atom_replace_char(In, From, To, Out) :-
+	sub_atom(In, _, _, _, From), !,
+	atom_chars(In, CharsIn),
+	replace(CharsIn, From, To, CharsOut),
+	atom_chars(Out, CharsOut).
+atom_replace_char(In, _, _, In).
+
+replace([], _, _, []).
+replace([H|T0], H, N, [N|T]) :- !,
+	replace(T0, H, N, T).
+replace([H|T0], F, N, [H|T]) :-
+	replace(T0, F, N, T).
+
 
 %%	print_latex(+Out, +Text:atomic) is det.
 %
