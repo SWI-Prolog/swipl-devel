@@ -1397,7 +1397,7 @@ Note that in releases up to 2.7.10 this Prolog flag yielded an atom holding
 the three numbers separated by dots. The current representation is much
 easier for implementing version-conditional statements.
 
-    \prologflagitem{version_data}{swi(Major, Minor, Patch, Extra)}
+    \prologflagitem{version_data}{swi(Major, Minor, Patch, Extra)}{r}
 Part of the dialect compatibility layer, See also the Prolog flag
 \prologflag{dialect} and \secref{dialect}. \arg{Extra} provides
 platform specific version information.  Currently it is simply unified
