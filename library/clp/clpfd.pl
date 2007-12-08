@@ -1230,6 +1230,13 @@ fetch_constraint_(C) :-
 
 :- make_queue.
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Parsing a CLP(FD) expression has two important side-effects: First,
+   it constrains the variables occurring in the expression to
+   integers. Second, it constrains some of them even more: For
+   example, in X/Y and X mod Y, Y is constrained to be #\= 0.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 parse_clpfd(Expr, Result) :-
         (   var(Expr) ->
             get(Expr, ED, EPs),
@@ -1309,12 +1316,12 @@ myplus(X, Y, Z) :-
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
-mytimes(X,Y,Z) :-
+mytimes(X, Y, Z) :-
         Prop = propagator(ptimes(X,Y,Z),mutable(passive)),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
-mydiv(X,Y,Z) :-
+mydiv(X, Y, Z) :-
         Prop = propagator(pdiv(X,Y,Z), mutable(passive)),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
@@ -1431,51 +1438,105 @@ myimpl(X, Y) :-
         init_propagator(X, Prop), init_propagator(Y, Prop),
         trigger_prop(Prop).
 
-clpfd_expression(E) :-
-        (   var(E) ->
-            get(E, ED, EPs),
-            put(E, ED, EPs) % constrain to integers
-        ;   integer(E) -> true
-        ;   E =.. [Op,A], memberchk(Op, [abs,-]) ->
-            clpfd_expression(A)
-        ;   E =.. [Op,L,R], memberchk(Op, [+,*,-,max,min,mod,/]) ->
-            clpfd_expression(L), clpfd_expression(R)
+mydefined(X, Y, Z) :-
+        Prop = propagator(defined(X,Y,Z), mutable(passive)),
+        init_propagator(X, Prop), init_propagator(Y, Prop),
+        init_propagator(Z, Prop),
+        trigger_prop(Prop).
+
+my_reified_div(X, Y, D, Z) :-
+        Prop = propagator(reified_div(X,Y,D,Z), mutable(passive)),
+        init_propagator(X, Prop), init_propagator(Y, Prop),
+        init_propagator(Z, Prop), init_propagator(D, Prop),
+        trigger_twice(Prop).
+
+my_reified_mod(X, Y, D, Z) :-
+        Prop = propagator(reified_mod(X,Y,D,Z), mutable(passive)),
+        init_propagator(X, Prop), init_propagator(Y, Prop),
+        init_propagator(Z, Prop), init_propagator(D, Prop),
+        trigger_twice(Prop).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   A constraint that is being reified need not hold. Therefore, in
+   X/Y, Y can as well be 0, for example. Note that is OK to constrain
+   the result of an expression (which does not appear explicitly in
+   the expression and is not visible to the outside), but not the
+   operands, except for requiring that they be integers. In contrast
+   to parse_clpfd/2, the result of an expression can now also be
+   undefined, in which case the constraint cannot hold.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+parse_reified_clpfd(Expr, Result, Defined) :-
+        (   var(Expr) ->
+            get(Expr, ED, EPs),
+            put(Expr, ED, EPs), % constrain to integers
+            Result = Expr, Defined = 1
+        ;   integer(Expr) -> Result = Expr, Defined = 1
+        ;   Expr = (L + R) ->
+            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
+            myplus(RL, RR, Result), mydefined(DL, DR, Defined)
+        ;   Expr = (L * R) ->
+            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
+            mytimes(RL, RR, Result), mydefined(DL, DR, Defined)
+        ;   Expr = (L - R) ->
+            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
+            mytimes(-1, RR, RRR),
+            myplus(RL, RRR, Result), mydefined(DL, DR, Defined)
+        ;   Expr = (- E) ->
+            parse_reified_clpfd(E, RE, Defined),
+            mytimes(-1, RE, Result)
+        ;   Expr = max(L, R) ->
+            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
+            mymax(RL, RR, Result), mydefined(DL, DR, Defined)
+        ;   Expr = min(L,R) ->
+            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
+            mymin(RL, RR, Result), mydefined(DL, DR, Defined)
+        ;   Expr = L mod R ->
+            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
+            mydefined(DL, DR, Defined1),
+            my_reified_mod(RL, RR, Defined2, Result),
+            mydefined(Defined1, Defined2, Defined)
+        ;   Expr = abs(E) ->
+            parse_reified_clpfd(E, RE, Defined),
+            myabs(RE, Result),
+            Result #>= 0
+        ;   Expr = (L / R) ->
+            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
+            mydefined(DL, DR, Defined1),
+            my_reified_div(RL, RR, Defined2, Result),
+            mydefined(Defined1, Defined2, Defined)
+        ;   domain_error(clpfd_expression, Expr)
         ).
+
 
 reify(Expr, B) :-
         B in 0..1,
         (   var(Expr) -> B = Expr
         ;   integer(Expr) -> B = Expr
         ;   Expr = (L #>= R) ->
-            clpfd_expression(L), clpfd_expression(R),
-            (   parse_clpfd(L, LR), parse_clpfd(R, RR) ->
-                Prop = propagator(reified_geq(LR,RR,B), mutable(passive)),
-                init_propagator(LR, Prop), init_propagator(RR, Prop),
-                init_propagator(B, Prop),
-                trigger_prop(Prop)
-            ;   B = 0
-            )
+            parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
+            Prop = propagator(reified_geq(LD,LR,RD,RR,B), mutable(passive)),
+            init_propagator(LR, Prop), init_propagator(RR, Prop),
+            init_propagator(B, Prop), init_propagator(LD, Prop),
+            init_propagator(RD, Prop), trigger_prop(Prop)
         ;   Expr = (L #> R)  -> reify(L #>= (R+1), B)
         ;   Expr = (L #=< R) -> reify(R #>= L, B)
         ;   Expr = (L #< R)  -> reify(R #>= (L+1), B)
         ;   Expr = (L #= R)  ->
-            clpfd_expression(L), clpfd_expression(R),
-            (   parse_clpfd(L, LR), parse_clpfd(R, RR) ->
-                Prop = propagator(reified_eq(LR,RR,B), mutable(passive)),
-                init_propagator(LR, Prop), init_propagator(RR, Prop),
-                init_propagator(B, Prop),
-                trigger_prop(Prop)
-            ;   B = 0
-            )
+            parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
+            Prop = propagator(reified_eq(LD,LR,RD,RR,B), mutable(passive)),
+            init_propagator(LR, Prop), init_propagator(RR, Prop),
+            init_propagator(B, Prop), init_propagator(LD, Prop),
+            init_propagator(RD, Prop), trigger_prop(Prop)
         ;   Expr = (L #\= R) ->
-            clpfd_expression(L), clpfd_expression(R),
-            (   parse_clpfd(L, LR), parse_clpfd(R, RR) ->
-                Prop = propagator(reified_neq(LR,RR,B), mutable(passive)),
-                init_propagator(LR, Prop), init_propagator(RR, Prop),
-                init_propagator(B, Prop),
-                trigger_prop(Prop)
-            ;   B = 0
-            )
+            parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
+            Prop = propagator(reified_neq(LD,LR,RD,RR,B), mutable(passive)),
+            init_propagator(LR, Prop), init_propagator(RR, Prop),
+            init_propagator(B, Prop), init_propagator(LD, Prop),
+            init_propagator(RD, Prop), trigger_prop(Prop)
+        ;   Expr = (L #==> R) -> reify((#\ L) #\/ R, B)
+        ;   Expr = (L #<== R) -> reify(R #==> L, B)
+        ;   Expr = (L #<==> R) -> reify((L #==> R) #/\ (R #==> L), B)
         ;   Expr = (L #/\ R) ->
             reify(L, LR), reify(R, RR),
             Prop = propagator(reified_and(LR,RR,B), mutable(passive)),
@@ -1993,7 +2054,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
 
 run_propagator(pdiv(X,Y,Z), MState) :-
         (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X // Y
+            (   nonvar(Y) -> kill(MState), Z is X // Y
             ;   get(Y, YD, YL, YU, YPs),
                 (   nonvar(Z) -> true
                     % TODO: cover this
@@ -2091,7 +2152,7 @@ run_propagator(pabs(X,Y), MState) :-
 
 run_propagator(pmod(X,M,K), MState) :-
         (   nonvar(X) ->
-            (   nonvar(M) -> kill(MState), M =\= 0, K is X mod M
+            (   nonvar(M) -> kill(MState), K is X mod M
             ;   true
             )
         ;   nonvar(M) ->
@@ -2178,7 +2239,45 @@ run_propagator(pmin(X,Y,Z), MState) :-
 % reified constraints
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(reified_geq(X,Y,B), MState) :-
+
+% propagate definedness of expressions - 0 means undefined, 1 defined.
+% An expression is defined iff all of its subexpressions are defined.
+
+run_propagator(defined(X,Y,Z), MState) :-
+        (   X == 1, Y == 1 -> kill(MState), Z = 1
+        ;   Z == 1 -> kill(MState), X = 1, Y = 1
+        ;   X == 0 -> kill(MState), Z = 0
+        ;   Y == 0 -> kill(MState), Z = 0
+        ;   true
+        ).
+
+% The result of X/Y and X mod Y is undefined iff Y is 0.
+
+run_propagator(reified_div(X,Y,D,Z), MState) :-
+        (   Y == 0 -> kill(MState), D = 0
+        ;   D == 1 -> kill(MState), Z #= X / Y
+        ;   integer(Y), Y =\= 0 -> D = 1, Z #= X / Y
+        ;   get(Y, YD, _), \+ domain_contains(YD, 0) ->
+            D = 1, Z #= X / Y
+        ;   true
+        ).
+
+run_propagator(reified_mod(X,Y,D,Z), MState) :-
+        (   Y == 0 -> kill(MState), D = 0
+        ;   D == 1 -> kill(MState), Z #= X mod Y
+        ;   integer(Y), Y =\= 0 -> D = 1, Z #= X mod Y
+        ;   get(Y, YD, _), \+ domain_contains(YD, 0) ->
+            D = 1, Z #= X mod Y
+        ;   true
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
+        (   DX == 0 -> B = 0
+        ;   DY == 0 -> B = 0
+        ;   true
+        ),
         (   var(B) ->
             (   nonvar(X) ->
                 (   nonvar(Y) ->
@@ -2203,12 +2302,18 @@ run_propagator(reified_geq(X,Y,B), MState) :-
                 ;   true
                 )
             )
-        ;   B =:= 1 -> kill(MState), X #>= Y
+        ;   B =:= 1 ->
+            kill(MState),
+            DX = 1, DY = 1, X #>= Y
         ;   B =:= 0 -> kill(MState), X #< Y
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(reified_eq(X,Y,B), MState) :-
+run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
+        (   DX == 0 -> kill(MState), B = 0
+        ;   DX == 0 -> kill(MState), B = 0
+        ;   true
+        ),
         (   var(B) ->
             (   nonvar(X) ->
                 (   nonvar(Y) ->
@@ -2220,7 +2325,7 @@ run_propagator(reified_eq(X,Y,B), MState) :-
                     ;   true
                     )
                 )
-            ;   nonvar(Y) -> run_propagator(reified_eq(Y,X,B), MState)
+            ;   nonvar(Y) -> run_propagator(reified_eq(DY,Y,DX,X,B), MState)
             ;   X == Y -> B = 1
             ;   get(X, _, XL, XU, _),
                 get(Y, _, YL, YU, _),
@@ -2229,11 +2334,15 @@ run_propagator(reified_eq(X,Y,B), MState) :-
                 ;   true
                 )
             )
-        ;   B =:= 1 -> X = Y
-        ;   B =:= 0 -> X #\= Y
+        ;   B =:= 1 -> kill(MState), DX = 1, DY = 1, X = Y
+        ;   B =:= 0 -> kill(MState), X #\= Y
         ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(reified_neq(X,Y,B), MState) :-
+run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
+        (   DX == 0 -> kill(MState), B = 0
+        ;   DY == 0 -> kill(MState), B = 0
+        ;   true
+        ),
         (   var(B) ->
             (   nonvar(X) ->
                 (   nonvar(Y) ->
@@ -2245,7 +2354,7 @@ run_propagator(reified_neq(X,Y,B), MState) :-
                     ;   true
                     )
                 )
-            ;   nonvar(Y) -> run_propagator(reified_neq(Y,X,B), MState)
+            ;   nonvar(Y) -> run_propagator(reified_neq(DY,Y,DX,X,B), MState)
             ;   X == Y -> B = 0
             ;   get(X, _, XL, XU, _),
                 get(Y, _, YL, YU, _),
@@ -2254,8 +2363,8 @@ run_propagator(reified_neq(X,Y,B), MState) :-
                 ;   true
                 )
             )
-        ;   B =:= 1 -> X #\= Y
-        ;   B =:= 0 -> X = Y
+        ;   B =:= 1 -> kill(MState), DX = 1, DY = 1, X #\= Y
+        ;   B =:= 0 -> kill(MState), X = Y
         ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(reified_and(X,Y,B), MState) :-
