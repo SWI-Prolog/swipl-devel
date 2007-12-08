@@ -2240,7 +2240,7 @@ run_propagator(pmin(X,Y,Z), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % propagate definedness of expressions - 0 means undefined, 1 defined.
-% An expression is defined iff all of its subexpressions are defined.
+% An expression is defined iff all its subexpressions are defined.
 
 run_propagator(defined(X,Y,Z), MState) :-
         (   X == 1, Y == 1 -> kill(MState), Z = 1
@@ -2310,7 +2310,7 @@ run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
-        ;   DX == 0 -> kill(MState), B = 0
+        ;   DY == 0 -> kill(MState), B = 0
         ;   true
         ),
         (   var(B) ->
