@@ -348,8 +348,8 @@ cis_slash(sup, _, sup).
 cis_slash(inf, _, inf).
 cis_slash(n(N), B, S) :- cis_slash_(B, N, S).
 
-cis_slash_(sup, _, 0).
-cis_slash_(inf, _, 0).
+cis_slash_(sup, _, n(0)).
+cis_slash_(inf, _, n(0)).
 cis_slash_(n(B), A, n(S)) :- S is A // B.
 
 
