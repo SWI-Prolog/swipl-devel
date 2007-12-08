@@ -560,7 +560,8 @@ latex_section(Level, Attrs, Content) -->
 
 section_label(Attrs) -->
 	{ memberchk(name(Name), Attrs), !,
-	  atom_concat('sec:', Name, Label)
+	  delete_unsafe_label_chars(Name, SafeName),
+	  atom_concat('sec:', SafeName, Label)
 	},
 	latex(cmd(label(Label))).
 section_label(_) -->
@@ -576,6 +577,17 @@ deepen_section_level(Level0, Level1) :-
 	latex_section_level(Level0, N),
 	N1 is N + 1,
 	latex_section_level(Level1, N1).
+
+%%	delete_unsafe_label_chars(+LabelIn, -LabelOut)
+%
+%	delete unsafe characters from LabelIn. Currently only deletes _,
+%	as this appears  commonly  through   filenames,  but  cannot  be
+%	handled through the LaTeX processing chain.
+
+delete_unsafe_label_chars(LabelIn, LabelOut) :-
+	atom_chars(LabelIn, Chars),
+	delete(Chars, '_', CharsOut),
+	atom_chars(LabelOut, CharsOut).
 
 
 		 /*******************************
@@ -720,7 +732,8 @@ file_title(Title, File, Options) -->
 	  Section =.. [Level,Title],
 	  file_base_name(File, BaseExt),
 	  file_name_extension(Base, _, BaseExt),
-	  atom_concat('sec:', Base, Label)
+	  delete_unsafe_label_chars(Base, SafeBase),
+	  atom_concat('sec:', SafeBase, Label)
 	},
 	latex(cmd(Section)),
 	latex(cmd(label(Label))).
