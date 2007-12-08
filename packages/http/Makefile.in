@@ -108,7 +108,7 @@ doc:		$(PDF) $(HTML)
 pdf:		$(PDF)
 html:		$(HTML)
 
-SUBTEX=		post.tex
+SUBTEX=		post.tex json.tex
 
 $(HTML):	$(TEX) $(SUBTEX)
 		latex2html $(DOC)

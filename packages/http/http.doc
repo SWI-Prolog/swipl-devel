@@ -1929,6 +1929,7 @@ on another stream.  See online documentation at
 \url{http://gollem.science.uva.nl/SWI-Prolog/pldoc/} for details.
 \end{description}
 
+\input{json.tex}
 
 \section{Status}
 

@@ -49,11 +49,11 @@
 /** <module> Reading and writing JSON serialization
 
 This module supports reading and writing JSON objects. The canonical
-Prolog representation for JSON terms is defined as:
+Prolog representation for a JSON value is defined as:
 
     * A JSON object is mapped to a term object(NameValueList), where
     NameValueList is a list of Name=Value. Name is an atom created from
-    the JSON string. I.e.
+    the JSON string.
 
     * A JSON array is mapped to a Prolog list of JSON values.
 
@@ -143,10 +143,17 @@ type_term(codes,  Result, codes(Result)).
 %	are:
 %	
 %		* null(NullTerm)
-%		Term used to represent JSON =null=.
+%		Term used to represent JSON =null=.  Default @(null)
 %		* true(TrueTerm)
+%		Term used to represent JSON =true=.  Default @(true)
 %		* false(FalsTerm)
+%		Term used to represent JSON =false=.  Default @(false)
 %		* value_string_as(Type)
+%		Prolog type used for strings used as value.  Default
+%		is =atom=.  The alternative is =string=, producing a
+%		packed string object.  Please note that =codes= or
+%		=chars= would produce ambiguous output and is therefore
+%		not supported.
 
 json_read(Stream, Term) :-
 	default_json_options(Options),

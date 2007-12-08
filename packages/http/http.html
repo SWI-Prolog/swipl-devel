@@ -205,7 +205,15 @@ and tricks</SPAN></A></DIV>
 encodings</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:4.1"><SPAN class="sec-nr">4.1</SPAN> <SPAN class="sec-title">The <CODE>library(http/http_chunked)</CODE> 
 library</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Status</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Supporting 
+JSON</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:5.1"><SPAN class="sec-nr">5.1</SPAN> <SPAN class="sec-title">json.pl 
+-- Reading and writing JSON serialization</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:5.2"><SPAN class="sec-nr">5.2</SPAN> <SPAN class="sec-title">json_convert.pl 
+-- Convert between JSON terms and Prolog application terms</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:5.3"><SPAN class="sec-nr">5.3</SPAN> <SPAN class="sec-title">http_json.pl 
+-- HTTP JSON Plugin module</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">Status</SPAN></A></DIV>
 </DIV>
 
 <P>
@@ -2416,7 +2424,356 @@ for details.
 </DD>
 </DL>
 
-<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Status</SPAN></A></H2>
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Supporting 
+JSON</SPAN></A></H2>
+
+<P>From <A class="url" href="http://json.org,">http://json.org,</A> " 
+JSON (JavaScript Object Notation) is a lightweight data-interchange 
+format. It is easy for humans to read and write. It is easy for machines 
+to parse and generate. It is based on a subset of the JavaScript 
+Programming Language, Standard ECMA-262 3rd Edition - December 1999. 
+JSON is a text format that is completely language independent but uses 
+conventions that are familiar to programmers of the C-family of 
+languages, including C, C++, C#, Java, JavaScript, Perl, Python, and 
+many others. These properties make JSON an ideal data-interchange 
+language."
+
+<P>JSON is interesting to Prolog because using AJAX web technology we 
+can easily created web-enabled user interfaces where we implement the 
+server side using the SWI-Prolog HTTP services provided by this package. 
+The interface consists of three libraries:
+
+<P>
+<UL>
+<LI>library(http/json) provides support for the core JSON object 
+serialization.
+<LI>library(http/json_convert) converts between the primary 
+representation of JSON terms in Prolog and more application oriented 
+Prolog terms. E.g. point(X,Y) vs. object([x=X,y=Y]).
+<LI>library(http/http_json) hooks the conversion libraries into the HTTP 
+client and server libraries.
+</UL>
+
+<H3><A NAME="sec:5.1"><SPAN class="sec-nr">5.1</SPAN> <SPAN class="sec-title">json.pl 
+-- Reading and writing JSON serialization</SPAN></A></H3>
+
+<P><A NAME="sec:json"></A>
+
+<DL>
+<DT><B>author</B><DD> Jan Wielemaker
+<DT><B>See also</B><DD>
+<CODE>http_json.pl</CODE> links JSON to the HTTP client and server 
+modules.
+<DT><B>See also</B><DD>
+<CODE>json_convert.pl</CODE> converts JSON Prolog terms to more 
+comfortable terms.
+</DL>
+
+<P>This module supports reading and writing JSON objects. The canonical 
+Prolog representation for a JSON value is defined as:
+
+<P>
+<UL>
+<LI>A JSON object is mapped to a term object(NameValueList), where 
+NameValueList is a list of Name=Value. Name is an atom created from the 
+JSON string.
+<LI>A JSON array is mapped to a Prolog list of JSON values.
+<LI>A JSON string is mapped to a Prolog atom
+<LI>A JSON number is mapped to a Prolog number
+<LI>The JSON constants <CODE>true</CODE> and <CODE>false</CODE> are 
+mapped -like JPL- to @(true) and @(false).
+<LI>The JSON constant <CODE>null</CODE> is mapped to the Prolog term 
+@(null)
+</UL>
+
+<P>Here is a complete example in JSON and its corresponding Prolog term.
+
+<PRE class="code">
+{ "name":"Demo term",
+  "created": {
+    "day":null,
+    "month":"December",
+    "year":2007
+  },
+  "confirmed":true,
+  "members":[1,2,3]
+}
+</PRE>
+
+<PRE class="code">
+object([ name='Demo term',
+         created=object([day= @null, month='December', year=2007]),
+         confirmed= @true,
+         members=[1, 2, 3]
+       ])
+</PRE>
+
+<DL>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="atom_json_term/3"><STRONG>atom_json_term</STRONG>(<VAR>+Atom, 
+-JSONTerm, +Options</VAR>)</A></DT>
+<DD class="defbody">
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="atom_json_term/3"><STRONG>atom_json_term</STRONG>(<VAR>-Text, 
++JSONTerm, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Convert between textual representation and a JSON term. In
+<I>write</I> mode, the option as(Type) defines the output type, which is 
+one of <CODE>atom</CODE>, <CODE>string</CODE> or <CODE>codes</CODE>.</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="json_read/2"><STRONG>json_read</STRONG>(<VAR>+Stream, 
+-Term</VAR>)</A></DT>
+<DD class="defbody">
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="json_read/3"><STRONG>json_read</STRONG>(<VAR>+Stream, 
+-Term, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Read next JSON value from <VAR>Stream</VAR> into a Prolog term. <VAR>Options</VAR> 
+are:
+
+<DL>
+<DT><STRONG>null</STRONG>(<VAR>NullTerm</VAR>)</DT>
+<DD class="defbody">
+<VAR>Term</VAR> used to represent JSON <CODE>null</CODE>. Default 
+@(null)
+</DD>
+<DT><STRONG>true</STRONG>(<VAR>TrueTerm</VAR>)</DT>
+<DD class="defbody">
+<VAR>Term</VAR> used to represent JSON <CODE>true</CODE>. Default 
+@(true)
+</DD>
+<DT><STRONG>false</STRONG>(<VAR>FalsTerm</VAR>)</DT>
+<DD class="defbody">
+<VAR>Term</VAR> used to represent JSON <CODE>false</CODE>. Default 
+@(false)
+</DD>
+<DT><STRONG>value_string_as</STRONG>(<VAR>Type</VAR>)</DT>
+<DD class="defbody">
+Prolog type used for strings used as value. Default is <CODE>atom</CODE>. 
+The alternative is <CODE>string</CODE>, producing a packed string 
+object. Please note that <CODE>codes</CODE> or
+<CODE>chars</CODE> would produce ambiguous output and is therefore not 
+supported.
+</DD>
+</DL>
+
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="json_write/2"><STRONG>json_write</STRONG>(<VAR>+Stream, 
++Term</VAR>)</A></DT>
+<DD class="defbody">
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="json_write/3"><STRONG>json_write</STRONG>(<VAR>+Stream, 
++Term, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Write a JSON term to <VAR>Stream</VAR>. The JSON object is of the same 
+format as produced by <A class="pred" href="#json_read/2">json_read/2</A>, 
+though we allow for some more flexibility with regard to pairs in 
+objects. All of Name=Value, Name-Value and Name(Value) produce the same 
+output. In addition to the options recognised by <A class="pred" href="#json_read/3">json_read/3</A>, 
+we process the following options are recognised:
+
+<DL>
+<DT><STRONG>width</STRONG>(<VAR>+Width</VAR>)</DT>
+<DD class="defbody">
+Width in which we try to format the result. Too long lines switch from <I>horizontal</I> 
+to <I>vertical</I> layout for better readability. If performance is 
+critical and human readability is not an issue use Width = 0, which 
+causes a single-line output.
+</DD>
+<DT><STRONG>step</STRONG>(<VAR>+Step</VAR>)</DT>
+<DD class="defbody">
+Indentation increnment for next level. Default is 2.
+</DD>
+<DT><STRONG>tab</STRONG>(<VAR>+TabDistance</VAR>)</DT>
+<DD class="defbody">
+Distance between tab-stops. If equal to Step, layout is generated with 
+one tab per level.
+</DD>
+</DL>
+
+<DL>
+<DT><B>To be done</B><DD> Allow for inline expansion by integrating <CODE>json_convert.pl</CODE>
+</DL>
+
+</DD>
+<DT class="pubdef"><span class="pred-tag">[semidet]</span><A NAME="is_json_term/1"><STRONG>is_json_term</STRONG>(<VAR>@Term</VAR>)</A></DT>
+<DD class="defbody">
+</DD>
+<DT class="pubdef"><span class="pred-tag">[semidet]</span><A NAME="is_json_term/2"><STRONG>is_json_term</STRONG>(<VAR>@Term, 
++Options</VAR>)</A></DT>
+<DD class="defbody">
+True if <VAR>Term</VAR> is a json term. <VAR>Options</VAR> are the same 
+as for
+<A class="pred" href="#json_read/2">json_read/2</A>, defining the Prolog 
+representation for the JSON
+<CODE>true</CODE>, <CODE>false</CODE> and <CODE>null</CODE> constants.
+</DD>
+</DL>
+
+<H3><A NAME="sec:5.2"><SPAN class="sec-nr">5.2</SPAN> <SPAN class="sec-title">json_convert.pl 
+-- Convert between JSON terms and Prolog application terms</SPAN></A></H3>
+
+<P><A NAME="sec:jsonconvert"></A>
+
+<DL>
+<DT><B>To be done</B><DD> Ignore extra fields. Using incomplete list of <I>extra</I>?
+<DT><B>To be done</B><DD> Allow arguments to be defined as JSON objects 
+for recursive translation.
+</DL>
+
+<P>The idea behind this module is to provide a flexible high-level 
+mapping between Prolog terms as you would like to see them in your 
+application and the standard representation of a JSON object as a Prolog 
+term. For example, an X-Y point may be represented in JSON as <CODE>{"x":25, "y":50}</CODE>. 
+Represented in Prolog this becomes object([x=25,y=50]), but this is a 
+pretty non-natural representation from the Prolog point of view.
+
+<P>This module allows for defining records (just like library(record)) 
+that provide transparent two-way transformation between the two 
+representations.
+
+<PRE class="code">
+:- json_object
+        point(x:integer, y:integer).
+</PRE>
+
+<P>This declaration causes <A class="pred" href="#prolog_to_json/2">prolog_to_json/2</A> 
+to translate the native Prolog representation into a JSON Term:
+
+<PRE class="code">
+?- prolog_to_json(point(25,50), X).
+
+X = object([x=25, y=50])
+</PRE>
+
+<P>A <A class="pred" href="#json_object/1">json_object/1</A> declaration 
+can define multiple objects separated by a comma (,), similar to the <SPAN class="pred-ext">dynamic/1</SPAN> 
+directive. Optionally, a declaration can be qualified using a module. 
+The converstion predicates
+<A class="pred" href="#prolog_to_json/2">prolog_to_json/2</A> and <A class="pred" href="#json_to_prolog/2">json_to_prolog/2</A> 
+first try a conversion associated with the calling module. If not 
+successful, they try conversions associated with the module <CODE>user</CODE>.
+
+<P>JSON objects have no <I>type</I>. This can be solved by adding an 
+extra field to the JSON object, e.g. <CODE>{"type":"point", "x":25, "y":50}</CODE>. 
+As Prolog records are typed by their functor we need some notation to 
+handle this gracefully. This is achieved by adding +Fields to the 
+declaration. I.e.
+
+<PRE class="code">
+:- json_object
+        point(x:integer, y:integer) + [type=point].
+</PRE>
+
+<P>Using this declaration, the conversion becomes:
+
+<PRE class="code">
+?- prolog_to_json(point(25,50), X).
+
+X = object([x=25, y=50, type=point])
+</PRE>
+
+<DL>
+<DT class="pubdef"><A NAME="json_object/1"><STRONG>json_object</STRONG> <VAR>+Declaration</VAR></A></DT>
+<DD class="defbody">
+Declare a JSON object. The declaration takes the same format as using in <SPAN class="pred-ext">record/1</SPAN> 
+from library(record). E.g.
+
+<PRE class="code">
+?- json_object
+        point(x:int, y:int, z:int=0).
+</PRE>
+
+</DD>
+<DT class="pubdef"><span class="pred-tag">[semidet]</span><A NAME="prolog_to_json/2"><STRONG>prolog_to_json</STRONG>(<VAR>:Term, 
+-JSONObject</VAR>)</A></DT>
+<DD class="defbody">
+Translate a Prolog application <VAR>Term</VAR> into a JSON object term. 
+This transformation is based on <CODE>:-</CODE> <A class="pred" href="#json_object/1">json_object/1</A> 
+declarations.</DD>
+<DT class="pubdef"><span class="pred-tag">[semidet]</span><A NAME="json_to_prolog/2"><STRONG>json_to_prolog</STRONG>(<VAR>+JSON, 
+-Term</VAR>)</A></DT>
+<DD class="defbody">
+Translate a <VAR>JSON</VAR> term into an application term. This 
+transformation is based on <CODE>:-</CODE> <A class="pred" href="#json_object/1">json_object/1</A> 
+declarations. An efficient transformation is non-trivial, but we rely on 
+the assumption that, although the order of fields in <VAR>JSON</VAR> 
+terms is irrelevant and can therefore vary a lot, practical applications 
+will normally generate the <VAR>JSON</VAR> objects in a consistent 
+order.
+</DD>
+</DL>
+
+<H3><A NAME="sec:5.3"><SPAN class="sec-nr">5.3</SPAN> <SPAN class="sec-title">http_json.pl 
+-- HTTP JSON Plugin module</SPAN></A></H3>
+
+<P><A NAME="sec:httpjson"></A>
+
+<DL>
+<DT><B>See also</B><DD> JSON Requests are discussed in <A class="url" href="http://json.org/JSONRequest.html">http://json.org/JSONRequest.html</A>
+<DT><B>See also</B><DD>
+<CODE>json.pl</CODE> describes how JSON objects are represented in 
+Prolog terms.
+<DT><B>See also</B><DD>
+<CODE>json_convert.pl</CODE> converts between more natural Prolog terms 
+and json terms.
+</DL>
+
+<P>This module inserts the JSON parser for documents of MIME type
+<CODE>application/jsonrequest</CODE> and <CODE>application/json</CODE> 
+requested through the <CODE>http_client.pl</CODE> library.
+
+<P>Typically JSON is used by Prolog HTTP servers. Below is a skeleton 
+for handling a JSON request, answering in JSON.
+
+<PRE class="code">
+handle(Request) :-
+        http_read_json(Request, JSON),
+        &lt;compute&gt;(JSONIn, JSONOut),
+        reply_json(JSONOut).
+</PRE>
+
+<P>This module also integrates JSON support into the http client 
+provided by <CODE>http_client.pl</CODE>. Posting a JSON query and 
+processing the JSON reply (or any other reply understood by <A class="pred" href="#http_read_data/3">http_read_data/3</A>) 
+is as simple as below, where Term is a JSON term as described in <CODE>json.pl</CODE> 
+and reply is of the same format if the server replies with JSON.
+
+<PRE class="code">
+        ...,
+        http_post(URL, json(Term), Reply, [])
+</PRE>
+
+<DL>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="http_read_json/2"><STRONG>http_read_json</STRONG>(<VAR>+Request, 
+-JSON</VAR>)</A></DT>
+<DD class="defbody">
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="http_read_json/3"><STRONG>http_read_json</STRONG>(<VAR>+Request, 
+-JSON, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Extract <VAR>JSON</VAR> data posted to this HTTP request.
+
+<DL>
+<DT><B>error</B><DD> domain_error(mimetype, Found) if the mimetype is 
+not known (see <SPAN class="pred-ext">json_type/1</SPAN>).
+<DT><B>error</B><DD> domain_error(method, Method) if the request is not 
+a POST request.
+</DL>
+
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="reply_json/1"><STRONG>reply_json</STRONG>(<VAR>+JSONTerm</VAR>)</A></DT>
+<DD class="defbody">
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="reply_json/2"><STRONG>reply_json</STRONG>(<VAR>+JSONTerm, 
++Options</VAR>)</A></DT>
+<DD class="defbody">
+Formulate a JSON HTTP reply. See <A class="pred" href="#json_write/2">json_write/2</A> 
+for details.
+<VAR>Options</VAR> accepts content_type(+Type) and options accepted by
+<A class="pred" href="#json_write/3">json_write/3</A>.
+</DD>
+</DL>
+
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">Status</SPAN></A></H2>
 
 <P>The SWI-Prolog HTTP library is in active use in a large number of 
 projects. It is considered one of the SWI-Prolog core libraries that is 
@@ -2438,6 +2795,9 @@ servers are not widely used.
 <DT>absolute_file_name/[2,3]</DT>
 <DD>
 <A class="idx" href="#idx:absolutefilename23:95">3.12</A></DD>
+<DT><A class="idx" href="#atom_json_term/3">atom_json_term/3</A></DT>
+<DD>
+</DD>
 <DT><STRONG>B</STRONG></DT>
 <DD>
 </DD>
@@ -2580,6 +2940,12 @@ servers are not widely used.
 <DT><A class="idx" href="#http_read_data/3">http_read_data/3</A></DT>
 <DD>
 <A class="idx" href="#idx:httpreaddata3:11">2.2</A> <A class="idx" href="#idx:httpreaddata3:13">2.2</A> <A class="idx" href="#idx:httpreaddata3:49">3.6.1</A></DD>
+<DT><A class="idx" href="#http_read_json/2">http_read_json/2</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#http_read_json/3">http_read_json/3</A></DT>
+<DD>
+</DD>
 <DT><A class="idx" href="#http_read_request/2">http_read_request/2</A></DT>
 <DD>
 <A class="idx" href="#idx:httpreadrequest2:12">2.2</A> <A class="idx" href="#idx:httpreadrequest2:47">3.6</A> <A class="idx" href="#idx:httpreadrequest2:48">3.6</A></DD>
@@ -2643,6 +3009,33 @@ servers are not widely used.
 <DT>interactive_httpd</DT>
 <DD>
 <A class="sec" href="#sec:3.7.2">3.7.2</A></DD>
+<DT><A class="idx" href="#is_json_term/1">is_json_term/1</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#is_json_term/2">is_json_term/2</A></DT>
+<DD>
+</DD>
+<DT><STRONG>J</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#json_object/1">json_object/1</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#json_read/2">json_read/2</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#json_read/3">json_read/3</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#json_to_prolog/2">json_to_prolog/2</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#json_write/2">json_write/2</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#json_write/3">json_write/3</A></DT>
+<DD>
+</DD>
 <DT><STRONG>L</STRONG></DT>
 <DD>
 </DD>
@@ -2694,6 +3087,9 @@ servers are not widely used.
 <DT>print_message/2</DT>
 <DD>
 <A class="idx" href="#idx:printmessage2:66">3.10</A></DD>
+<DT><A class="idx" href="#prolog_to_json/2">prolog_to_json/2</A></DT>
+<DD>
+</DD>
 <DT><STRONG>R</STRONG></DT>
 <DD>
 </DD>
@@ -2701,6 +3097,12 @@ servers are not widely used.
 <DD>
 <A class="idx" href="#idx:reply1:52">3.7.2</A></DD>
 <DT><A class="idx" href="#reply_html_page/2">reply_html_page/2</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#reply_json/1">reply_json/1</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#reply_json/2">reply_json/2</A></DT>
 <DD>
 </DD>
 <DT><STRONG>S</STRONG></DT>

@@ -1,5 +1,13 @@
-:- use_module(library(doc_latex)).
-:- use_module(library('http/html_write')).
+:- asserta(user:file_search_path(library, ..)).
+
+:- load_files([ library(doc_latex),
+		library('http/html_write'),
+		library('http/json'),
+		library('http/json_convert'),
+		library('http/http_json')
+	      ],
+	      [ silent(true)
+	      ]).
 
 txttotex :-
 	current_prolog_flag(argv, Argv),
