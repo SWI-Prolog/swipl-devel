@@ -1458,12 +1458,12 @@ my_reified_mod(X, Y, D, Z) :-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A constraint that is being reified need not hold. Therefore, in
-   X/Y, Y can as well be 0, for example. Note that is OK to constrain
-   the result of an expression (which does not appear explicitly in
-   the expression and is not visible to the outside), but not the
-   operands, except for requiring that they be integers. In contrast
-   to parse_clpfd/2, the result of an expression can now also be
-   undefined, in which case the constraint cannot hold.
+   X/Y, Y can as well be 0, for example. Note that it is OK to
+   constrain the *result* of an expression (which does not appear
+   explicitly in the expression and is not visible to the outside),
+   but not the operands, except for requiring that they be integers.
+   In contrast to parse_clpfd/2, the result of an expression can now
+   also be undefined, in which case the constraint cannot hold.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 parse_reified_clpfd(Expr, Result, Defined) :-
@@ -1507,7 +1507,6 @@ parse_reified_clpfd(Expr, Result, Defined) :-
             mydefined(Defined1, Defined2, Defined)
         ;   domain_error(clpfd_expression, Expr)
         ).
-
 
 reify(Expr, B) :-
         B in 0..1,
