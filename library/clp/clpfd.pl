@@ -341,7 +341,7 @@ cis_div_(sup, _, n(0)).
 cis_div_(inf, _, n(0)).
 cis_div_(n(Y), X, Z) :-
         (   Y =:= 0 -> (  X >= 0 -> Z = sup ; Z = inf )
-        ;   Z0 is X / Y, Z = n(Z0)
+        ;   Z0 is X // Y, Z = n(Z0)
         ).
 
 cis_slash(sup, _, sup).
@@ -852,7 +852,7 @@ intervals_to_domain([], empty) :- !.
 intervals_to_domain([M-N], from_to(M,N)) :- !.
 intervals_to_domain(Is, D) :-
         length(Is, L),
-        FL is floor(L / 2),
+        FL is floor(L // 2),
         length(Front, FL),
         append(Front, Tail, Is),
         Tail = [n(Start)-_|_],
