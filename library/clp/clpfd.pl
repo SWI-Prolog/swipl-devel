@@ -1382,10 +1382,7 @@ X #\= Y :-
             domain_remove(XD, Y, XD1),
             put(X, XD1, XPs),
             do_queue,
-            (   XD \== XD1 ->
-                reinforce(X)
-            ;   true
-            )
+            reinforce(X)
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
         ).
 
@@ -1683,25 +1680,30 @@ reinforce(X) :-
         (   current_prolog_flag(clpfd_propagation, full) ->
             % full propagation handles everything itself
             true
-        ;   reinforce([], X),
-            (   get(X, Dom, Ps) ->
-                put_full(X, Dom, Ps),
-                trigger_props(Ps),
-                term_variables(Ps, Vs),
-                maplist(reinforce([X]), Vs)
-            ;   true
-            ),
+        ;   %reinforce([], X), do_queue
+            collect_variables(X, [], Vs),
+            maplist(reinforce_, Vs),
             do_queue
         ).
 
-reinforce(Seen, X) :-
-        (   member(S, Seen), S == X -> true
-        ;   (   get(X, Dom, Ps) ->
-                put_full(X, Dom, Ps),
-                term_variables(Ps, Vs),
-                maplist(reinforce([X|Seen]), Vs)
-            ;   true
-            )
+collect_variables(X, Vs0, Vs) :-
+        (   get(X, _, Ps) ->
+            term_variables(Ps, Vs1),
+            all_collect(Vs1, [X|Vs0], Vs)
+        ;   Vs = Vs0
+        ).
+
+all_collect([], Vs, Vs).
+all_collect([X|Xs], Vs0, Vs) :-
+        (   member(V, Vs0), X == V -> all_collect(Xs, Vs0, Vs)
+        ;   collect_variables(X, Vs0, Vs1),
+            all_collect(Xs, Vs1, Vs)
+        ).
+
+reinforce_(X) :-
+        (   get(X, Dom, Ps) ->
+            put_full(X, Dom, Ps)
+        ;   true
         ).
 
 put_full(X, Dom, Ps) :-
