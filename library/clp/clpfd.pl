@@ -857,7 +857,7 @@ intervals_to_domain([], empty) :- !.
 intervals_to_domain([M-N], from_to(M,N)) :- !.
 intervals_to_domain(Is, D) :-
         length(Is, L),
-        FL is floor(L // 2),
+        FL is L // 2,
         length(Front, FL),
         append(Front, Tail, Is),
         Tail = [n(Start)-_|_],
@@ -1382,7 +1382,10 @@ X #\= Y :-
             domain_remove(XD, Y, XD1),
             put(X, XD1, XPs),
             do_queue,
-            reinforce(X)
+            (   XD \== XD1 ->
+                reinforce(X)
+            ;   true
+            )
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
         ).
 
@@ -1680,7 +1683,15 @@ reinforce(X) :-
         (   current_prolog_flag(clpfd_propagation, full) ->
             % full propagation handles everything itself
             true
-        ;   reinforce([], X), do_queue
+        ;   reinforce([], X),
+            (   get(X, Dom, Ps) ->
+                put_full(X, Dom, Ps),
+                trigger_props(Ps),
+                term_variables(Ps, Vs),
+                maplist(reinforce([X]), Vs)
+            ;   true
+            ),
+            do_queue
         ).
 
 reinforce(Seen, X) :-
@@ -2118,7 +2129,6 @@ run_propagator(ptimes(X,Y,Z), MState) :-
 % X / Y = Z
 
 run_propagator(pdiv(X,Y,Z), MState) :-
-        (   X == Y -> geq(Z, 0) ; true ),
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Z is X // Y
             ;   get(Y, YD, YL, YU, YPs),
@@ -2180,7 +2190,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             ;   domains_intersection(from_to(NXL,NXU), XD, NXD),
                 put(X, NXD, XPs)
             )
-        ;   true
+        ;   (   X == Y -> Z = 1 ; true )
         ).
 
 
