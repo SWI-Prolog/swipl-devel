@@ -194,6 +194,11 @@ integers (using GMP), there is no limit on the size of domains.
 @author Markus Triska
 */
 
+% This flag controls propagation; the value "cautious" should keep
+% propagation terminating. Internal flag, subject to change.
+
+:- set_prolog_flag(clpfd_propagation, full).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A bound is either:
 
@@ -1312,8 +1317,6 @@ geq(A, B) :-
         ;   A >= B
         ).
 
-leq(A, B) :- geq(B, A).
-
 myplus(X, Y, Z) :-
         Prop = propagator(pplus(X,Y,Z),mutable(passive)),
         init_propagator(X, Prop), init_propagator(Y, Prop),
@@ -1355,19 +1358,19 @@ mymin(X, Y, Z) :-
 %
 % X is greater than or equal to Y.
 
-X #>= Y :- parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY).
+X #>= Y :- parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY), reinforce(RX).
 
 %% ?X #=< ?Y
 %
 % X is less than or equal to Y.
 
-X #=< Y :- parse_clpfd(X,RX), parse_clpfd(Y,RY), leq(RX,RY).
+X #=< Y :- Y #>= X.
 
 %% ?X #= ?Y
 %
 % X equals Y.
 
-X #= Y  :- parse_clpfd(X,RX), parse_clpfd(Y,RX).
+X #= Y  :- parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX).
 
 %% ?X #\= ?Y
 %
@@ -1378,7 +1381,8 @@ X #\= Y :-
             get(X, XD, XPs),
             domain_remove(XD, Y, XD1),
             put(X, XD1, XPs),
-            do_queue
+            do_queue,
+            reinforce(X)
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
         ).
 
@@ -1386,7 +1390,7 @@ X #\= Y :-
 %
 % X is greater than Y.
 
-X #> Y  :- Z #= Y + 1, X #>= Z.
+X #> Y  :- X #>= Y + 1.
 
 %% #<(?X, ?Y)
 %
@@ -1612,7 +1616,8 @@ domain(V, Dom) :-
             domains_intersection(Dom, Dom0, Dom1),
             %format("intersected\n: ~w\n ~w\n==> ~w\n\n", [Dom,Dom0,Dom1]),
             put(V, Dom1, VPs),
-            do_queue
+            do_queue,
+            reinforce(V)
         ;   domain_contains(Dom, V)
         ).
 
@@ -1621,7 +1626,7 @@ domains([V|Vs], D) :- domain(V, D), domains(Vs, D).
 
 
 get(X, Dom, Ps) :-
-        (   get_attr(X, clpfd, Attr) -> Attr = clpfd(Dom, Ps)
+        (   get_attr(X, clpfd, Attr) -> Attr = clpfd(_,_,Dom,Ps)
         ;   var(X) -> default_domain(Dom), Ps = []
         ).
 
@@ -1630,12 +1635,70 @@ get(X, Dom, Inf, Sup, Ps) :-
         domain_infimum(Dom, Inf),
         domain_supremum(Dom, Sup).
 
-put(X, Dom, Ps) :-
+put(X, Dom, Pos) :-
+        (   current_prolog_flag(clpfd_propagation, full) ->
+            put_full(X, Dom, Pos)
+        ;   put_cautious(X, Dom, Pos)
+        ).
+
+put_cautious(X, Dom, Ps) :-
         Dom \== empty,
         (   Dom = from_to(F, F) -> F = n(X)
         ;   (   get_attr(X, clpfd, Attr) ->
-                put_attr(X, clpfd, clpfd(Dom, Ps)),
-                Attr = clpfd(OldDom, _OldPs),
+                Attr = clpfd(Left,Right,OldDom, _OldPs),
+                put_attr(X, clpfd, clpfd(Left,Right,Dom,Ps)),
+                (   OldDom == Dom -> true
+                ;   domain_intervals(Dom, Is),
+                    domain_intervals(OldDom, Is) -> true
+                ;   domain_infimum(Dom, Inf), domain_supremum(Dom, Sup),
+                    (   Inf = n(_), Sup = n(_) ->
+                        put_attr(X, clpfd, clpfd(.,.,Dom,Ps)),
+                        trigger_props(Ps)
+                    ;   % infinite domain; check which side changed
+                        domain_infimum(OldDom, OldInf),
+                        (   Inf == OldInf -> LeftProp = no
+                        ;   LeftProp = yes
+                        ),
+                        domain_supremum(OldDom, OldSup),
+                        (   Sup == OldSup -> RightProp = no
+                        ;   RightProp = yes
+                        ),
+                        put_attr(X, clpfd, clpfd(LeftProp,RightProp,Dom,Ps)),
+                        (   RightProp == yes, Right = yes -> true
+                        ;   LeftProp == yes, Left = yes -> true
+                        ;   trigger_props(Ps)
+                        )
+                    )
+                )
+            ;   var(X) ->
+                put_attr(X, clpfd, clpfd(no,no,Dom, Ps))
+            ;   true
+            )
+        ).
+
+reinforce(X) :-
+        (   current_prolog_flag(clpfd_propagation, full) ->
+            % full propagation handles everything itself
+            true
+        ;   reinforce([], X), do_queue
+        ).
+
+reinforce(Seen, X) :-
+        (   member(S, Seen), S == X -> true
+        ;   (   get(X, Dom, Ps) ->
+                put_full(X, Dom, Ps),
+                term_variables(Ps, Vs),
+                maplist(reinforce([X|Seen]), Vs)
+            ;   true
+            )
+        ).
+
+put_full(X, Dom, Ps) :-
+        Dom \== empty,
+        (   Dom = from_to(F, F) -> F = n(X)
+        ;   (   get_attr(X, clpfd, Attr) ->
+                Attr = clpfd(_,_,OldDom, _OldPs),
+                put_attr(X, clpfd, clpfd(no,no,Dom, Ps)),
                 %format("putting dom: ~w\n", [Dom]),
                 (   OldDom == Dom -> true
                 ;   domain_intervals(Dom, Is),
@@ -1643,7 +1706,7 @@ put(X, Dom, Ps) :-
                 ;   trigger_props(Ps)
                 )
             ;   var(X) -> %format('\t~w in ~w .. ~w\n',[X,L,U]),
-                put_attr(X, clpfd, clpfd(Dom, Ps))
+                put_attr(X, clpfd, clpfd(no,no,Dom, Ps))
             ;   true
             )
         ).
@@ -2019,7 +2082,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             (   Z =\= 0 -> X #\= 0, Y #\= 0
             ;   true
             )
-        ;   (   X == Y -> Z #>= 0 ; true ),
+        ;   (   X == Y -> geq(Z, 0) ; true ),
             get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,_), get(Z,ZD,ZL,ZU,_),
             min_divide(ZL,ZU,YL,YU,TXL),
             NXL cis max(XL,ceiling(TXL)),
@@ -2055,7 +2118,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
 % X / Y = Z
 
 run_propagator(pdiv(X,Y,Z), MState) :-
-        (   X == Y -> Z #>= 0 ; true ),
+        (   X == Y -> geq(Z, 0) ; true ),
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Z is X // Y
             ;   get(Y, YD, YL, YU, YPs),
@@ -2188,7 +2251,7 @@ run_propagator(pmax(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Z is max(X,Y)
             ;   nonvar(Z) ->
-                (   Z == X -> X #>= Y
+                (   Z == X -> kill(MState), X #>= Y
                 ;   Z > X -> Z = Y
                 ;   fail % Z < X
                 )
@@ -2259,7 +2322,7 @@ run_propagator(defined(X,Y,Z), MState) :-
 run_propagator(reified_div(X,Y,D,Z), MState) :-
         (   Y == 0 -> kill(MState), D = 0
         ;   D == 1 -> kill(MState), Z #= X / Y
-        ;   integer(Y), Y =\= 0 -> D = 1, Z #= X / Y
+        ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, Z #= X / Y
         ;   get(Y, YD, _), \+ domain_contains(YD, 0) ->
             D = 1, Z #= X / Y
         ;   true
@@ -2268,8 +2331,9 @@ run_propagator(reified_div(X,Y,D,Z), MState) :-
 run_propagator(reified_mod(X,Y,D,Z), MState) :-
         (   Y == 0 -> kill(MState), D = 0
         ;   D == 1 -> kill(MState), Z #= X mod Y
-        ;   integer(Y), Y =\= 0 -> D = 1, Z #= X mod Y
+        ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, Z #= X mod Y
         ;   get(Y, YD, _), \+ domain_contains(YD, 0) ->
+            kill(MState),
             D = 1, Z #= X mod Y
         ;   true
         ).
@@ -2665,7 +2729,7 @@ serialize_upper_bound(I, D_I, J, D_J) :-
    Hooks
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-attr_unify_hook(clpfd(Dom,Ps), Other) :-
+attr_unify_hook(clpfd(_,_,Dom,Ps), Other) :-
         (   nonvar(Other) ->
             (   integer(Other) -> true
             ;   type_error(integer, Other)
@@ -2686,7 +2750,7 @@ bound_portray(inf, inf).
 bound_portray(sup, sup).
 bound_portray(n(N), N).
 
-attr_portray_hook(clpfd(Dom,_Ps), _) :-
+attr_portray_hook(clpfd(_,_,Dom,_Ps), _) :-
         domain_intervals(Dom, Is),
         print_intervals(Is),
         %write(Ps),
