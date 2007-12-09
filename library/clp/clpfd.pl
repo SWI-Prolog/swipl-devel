@@ -2055,6 +2055,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
 % X / Y = Z
 
 run_propagator(pdiv(X,Y,Z), MState) :-
+        (   X == Y -> Z #>= 0 ; true ),
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Z is X // Y
             ;   get(Y, YD, YL, YU, YPs),
@@ -2321,10 +2322,9 @@ run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
                 (   nonvar(Y) ->
                     kill(MState),
                     (   X =:= Y -> B = 1 ; B = 0)
-                ;   get(Y, _, YL, YU, _),
-                    (   YL cis_gt n(X) -> B = 0
-                    ;   YU cis_lt n(X) -> B = 0
-                    ;   true
+                ;   get(Y, YD, _),
+                    (   domain_contains(YD, X) -> true
+                    ;   B = 0
                     )
                 )
             ;   nonvar(Y) -> run_propagator(reified_eq(DY,Y,DX,X,B), MState)
@@ -2350,10 +2350,9 @@ run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
                 (   nonvar(Y) ->
                     kill(MState),
                     (   X =\= Y -> B = 1 ; B = 0)
-                ;   get(Y, _, YL, YU, _),
-                    (   YL cis_gt n(X) -> B = 1
-                    ;   YU cis_lt n(X) -> B = 1
-                    ;   true
+                ;   get(Y, YD, _),
+                    (   domain_contains(YD, X) -> true
+                    ;   B = 1
                     )
                 )
             ;   nonvar(Y) -> run_propagator(reified_neq(DY,Y,DX,X,B), MState)
