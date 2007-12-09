@@ -195,7 +195,7 @@ integers (using GMP), there is no limit on the size of domains.
 */
 
 % This flag controls propagation; the value "cautious" should keep
-% propagation terminating. Internal flag, subject to change.
+% propagation terminating. Experimental flag, subject to change.
 
 :- set_prolog_flag(clpfd_propagation, full).
 
@@ -1998,29 +1998,35 @@ run_propagator(pplus(X,Y,Z), MState) :-
             domains_intersection(XD, XD1, XD2),
             put(X, XD2, XPs),
             put(Y, YD2, YPs)
-        ;   get(X, XD, XL, XU, XPs), get(Y, YD, YL, YU, YPs),
-            get(Z, _, ZL, ZU, _),
-            NXL cis max(XL, ZL-YU),
-            NXU cis min(XU, ZU-YL),
-            (   NXL == XL, NXU == XU -> true
-            ;   domains_intersection(XD, from_to(NXL, NXU), NXD),
-                put(X, NXD, XPs)
+        ;   (   X == Y, get(Z, ZD, _), \+ domain_contains(ZD, 0) ->
+                X #\= 0
+            ;   true
             ),
-            (   get(Y, YD2, YL2, YU2, YPs2) ->
-                NYL cis max(YL2, ZL-NXU),
-                NYU cis min(YU2, ZU-NXL),
-                (   NYL == YL2, NYU == YU2 -> true
-                ;   domains_intersection(YD2, from_to(NYL, NYU), NYD),
-                    put(Y, NYD, YPs2)
-                )
-            ;   NYL = Y, NYU = Y
-            ),
-            (   get(Z, ZD2, ZL2, ZU2, ZPs2) ->
-                NZL cis max(ZL2,NXL+NYL),
-                NZU cis min(ZU2,NXU+NYU),
-                (   NZL == ZL2, NZU == ZU2 -> true
-                ;   domains_intersection(ZD2, from_to(NZL,NZU), NZD),
-                    put(Z, NZD, ZPs2)
+            (   get(X, XD, XL, XU, XPs), get(Y, YD, YL, YU, YPs),
+                get(Z, ZD, ZL, ZU, _) ->
+                NXL cis max(XL, ZL-YU),
+                NXU cis min(XU, ZU-YL),
+                (   NXL == XL, NXU == XU -> true
+                ;   domains_intersection(XD, from_to(NXL, NXU), NXD),
+                    put(X, NXD, XPs)
+                ),
+                (   get(Y, YD2, YL2, YU2, YPs2) ->
+                    NYL cis max(YL2, ZL-NXU),
+                    NYU cis min(YU2, ZU-NXL),
+                    (   NYL == YL2, NYU == YU2 -> true
+                    ;   domains_intersection(YD2, from_to(NYL, NYU), NYD),
+                        put(Y, NYD, YPs2)
+                    )
+                ;   NYL = Y, NYU = Y
+                ),
+                (   get(Z, ZD2, ZL2, ZU2, ZPs2) ->
+                    NZL cis max(ZL2,NXL+NYL),
+                    NZU cis min(ZU2,NXU+NYU),
+                    (   NZL == ZL2, NZU == ZU2 -> true
+                    ;   domains_intersection(ZD2, from_to(NZL,NZU), NZD),
+                        put(Z, NZD, ZPs2)
+                    )
+                ;   true
                 )
             ;   true
             )
@@ -2096,32 +2102,34 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             ;   true
             )
         ;   (   X == Y -> geq(Z, 0) ; true ),
-            get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,_), get(Z,ZD,ZL,ZU,_),
-            min_divide(ZL,ZU,YL,YU,TXL),
-            NXL cis max(XL,ceiling(TXL)),
-            max_divide(ZL,ZU,YL,YU,TXU),
-            NXU cis min(XU,floor(TXU)),
-            domains_intersection(from_to(NXL,NXU), XD, XD1),
-            put(X, XD1, XExp),
-            (   get(Y,YD2,YL2,YU2,YExp2) ->
-                min_divide(ZL,ZU,XL,XU,TYL),
-                NYL cis max(YL2,ceiling(TYL)),
-                max_divide(ZL,ZU,XL,XU,TYU),
-                NYU cis min(YU2,floor(TYU)),
-                (   NYL == YL2, NYU == YU2 -> true
-                ;   domains_intersection(from_to(NYL,NYU), YD2, YD3),
-                    put(Y, YD3, YExp2)
-                )
-            ;   NYL = Y, NYU = Y
-            ),
-            (   get(Z, ZD2, ZL2, ZU2, ZExp2) ->
-                min_times(NXL,NXU,NYL,NYU,TZL),
-                NZL cis1 max(ZL2,TZL),
-                max_times(NXL,NXU,NYL,NYU,TZU),
-                NZU cis1 min(ZU2,TZU),
-                (   NZL == ZL2, NZU == ZU2 -> true
-                ;   domains_intersection(from_to(NZL,NZU), ZD2, ZD3),
-                    put(Z, ZD3, ZExp2)
+            (   get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,_), get(Z,ZD,ZL,ZU,_) ->
+                min_divide(ZL,ZU,YL,YU,TXL),
+                NXL cis max(XL,ceiling(TXL)),
+                max_divide(ZL,ZU,YL,YU,TXU),
+                NXU cis min(XU,floor(TXU)),
+                domains_intersection(from_to(NXL,NXU), XD, XD1),
+                put(X, XD1, XExp),
+                (   get(Y,YD2,YL2,YU2,YExp2) ->
+                    min_divide(ZL,ZU,XL,XU,TYL),
+                    NYL cis max(YL2,ceiling(TYL)),
+                    max_divide(ZL,ZU,XL,XU,TYU),
+                    NYU cis min(YU2,floor(TYU)),
+                    (   NYL == YL2, NYU == YU2 -> true
+                    ;   domains_intersection(from_to(NYL,NYU), YD2, YD3),
+                        put(Y, YD3, YExp2)
+                    )
+                ;   NYL = Y, NYU = Y
+                ),
+                (   get(Z, ZD2, ZL2, ZU2, ZExp2) ->
+                    min_times(NXL,NXU,NYL,NYU,TZL),
+                    NZL cis1 max(ZL2,TZL),
+                    max_times(NXL,NXU,NYL,NYU,TZU),
+                    NZU cis1 min(ZU2,TZU),
+                    (   NZL == ZL2, NZU == ZU2 -> true
+                    ;   domains_intersection(from_to(NZL,NZU), ZD2, ZD3),
+                        put(Z, ZD3, ZExp2)
+                    )
+                ;   true
                 )
             ;   true
             )
@@ -2249,7 +2257,19 @@ run_propagator(pmod(X,M,K), MState) :-
                     list_to_domain(Es, XD1),
                     domains_intersection(XD, XD1, XD2),
                     put(X, XD2, XPs)
-                ;   true
+                ;   % if possible, propagate at the boundaries
+                    (   nonvar(K), domain_infimum(XD, n(Min)) ->
+                        (   Min mod M =:= K -> true
+                        ;   X #\= Min
+                        )
+                    ;   true
+                    ),
+                    (   nonvar(K), domain_supremum(XD, n(Max)) ->
+                        (   Max mod M =:= K -> true
+                        ;   X #\= Max
+                        )
+                    ;   true
+                    )
                 )
             )
         ;   true % TODO: propagate more
