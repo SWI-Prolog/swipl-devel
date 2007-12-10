@@ -226,9 +226,9 @@ type_goal(Type, Var, is_of_type(Type, Var)).
 
 %%	clean_body(+BodyIn, -BodyOut) is det.
 %
-%	Cleanup a body goal. Eliminates  redundant =true= statements and
-%	performs  partial  evaluation   on    some   commonly  generated
-%	constructs.
+%	Cleanup a body goal. Eliminate   redundant =true= statements and
+%	perform partial evaluation on some  commonly constructs that are
+%	generated from the has_type/2 clauses in library(error).
 
 clean_body(Var, Var) :-
 	var(Var), !.
@@ -238,9 +238,15 @@ clean_body((A0,B0), G) :- !,
 	conj(A, B, G).
 clean_body(ground(X), true) :-		% Generated from checking extra fields.
 	ground(X), !.
-clean_body(memberchk(V, Values), true) :-
+clean_body(memberchk(V, Values), true) :- % generated from oneof(List)
 	ground(V), ground(Values),
 	memberchk(V, Values), !.
+clean_body((integer(Low) -> If ; Then), Goal) :- % generated from between(Low,High)
+	number(Low), !,
+	(   integer(Low)
+	->  Goal = If
+	;   Goal = Then
+	).
 clean_body(A, A).
 
 conj(T, A, A) :- T == true, !.
@@ -340,7 +346,7 @@ clear_cache :-
 
 :- clear_cache.
 
-%%	json_to_prolog(+JSON, -Term) is semidet.
+%%	json_to_prolog(+JSON, -Term) is det.
 %
 %	Translate  a  JSON  term   into    an   application  term.  This
 %	transformation is based on  :-   json_object/1  declarations. An
@@ -349,11 +355,48 @@ clear_cache :-
 %	irrelevant and can therefore vary  a lot, practical applications
 %	will normally generate the JSON objects in a consistent order.
 
-json_to_prolog(object(Pairs), Term) :-
+json_to_prolog(JSON, Term) :-
 	strip_module(Term, M, T),
-	pairs_to_term(Pairs, M, T).
+	json_to_prolog(JSON, T, M).
 
-pairs_to_term(Pairs, Module, Term) :-
+json_to_prolog(object(Pairs), Term, Module) :-
+	(   pairs_to_term(Pairs, Term, Module)
+	->  true
+	;   json_pairs_to_prolog(Pairs, Prolog, Module),
+	    Term = object(Prolog)
+	).
+json_to_prolog(List, Prolog, Module) :-
+	is_list(List), !,
+	json_list_to_prolog(List, Prolog, Module).
+json_to_prolog(Atomic, Atomic, _).
+
+json_pairs_to_prolog([], [], _).
+json_pairs_to_prolog([Name=JSONValue|T0], [Name=PrologValue|T], Module) :-
+	json_to_prolog(JSONValue, PrologValue, Module),
+	json_pairs_to_prolog(T0, T, Module).
+
+json_list_to_prolog([], [], _).
+json_list_to_prolog([JSONValue|T0], [PrologValue|T], Module) :-
+	json_to_prolog(JSONValue, PrologValue, Module),
+	json_list_to_prolog(T0, T, Module).
+
+
+%%	json_object_to_prolog(+JSONObject, ?Term, +Module) is semidet.
+%
+%	Translate a JSON object(Pairs) term into a Prolog application term.
+
+json_object_to_prolog(object(Pairs), Term, Module) :-
+	pairs_to_term(Pairs, Term, Module).
+
+
+%%	pairs_to_term(+Pairs, ?Term, +Module) is semidet.
+%
+%	Convert a Name=Value set into a Prolog application term based on
+%	json_object/1 declarations.
+%	
+%	@tbd	Ignore extra pairs if term is partially given?
+
+pairs_to_term(Pairs, Term, Module) :-
 	object_module(Module, M),
 	(   json_to_prolog_rule(M, Pairs, Term)
 	->  !
@@ -383,17 +426,21 @@ pairs_args([Name=_Value|T0], [Name=_|T]) :-
 %	==
 
 create_rule(PairArgs, Module, M, Term, Body) :-
-	object_module(Module, M),
 	current_json_object(Term, M, Fields),
-	match_fields(PairArgs, Fields, Body0),
+	match_fields(PairArgs, Fields, Body0, Module),
 	clean_body(Body0, Body).
 
-match_fields([], [], true).
-match_fields([Name=Var|TP], [f(Name, any, Var)|TF], Body) :- !,
-	match_fields(TP, TF, Body).
-match_fields([Name=Var|TP], [f(Name, Type,Var)|TF], (Goal,Body)) :- !,
+match_fields([], [], true, _).
+match_fields([Name=JSON|TP], [f(Name, any, Prolog)|TF],
+	     (json_to_prolog(JSON,Prolog,M),Body), M) :- !,
+	match_fields(TP, TF, Body, M).
+match_fields([Name=JSON|TP], [f(Name, F/A, Prolog)|TF],
+	     (json_object_to_prolog(JSON, Prolog, M),Body), M) :- !,
+	functor(Prolog, F, A),
+	match_fields(TP, TF, Body, M).
+match_fields([Name=Var|TP], [f(Name, Type, Var)|TF], (Goal,Body), M) :- !,
 	type_goal(Type, Var, Goal),
-	match_fields(TP, TF, Body).
+	match_fields(TP, TF, Body, M).
 
 
 
