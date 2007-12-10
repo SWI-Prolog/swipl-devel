@@ -1240,7 +1240,8 @@ fetch_constraint_(C) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 parse_clpfd(Expr, Result) :-
-        (   var(Expr) ->
+        (   cyclic_term(Expr) -> domain_error(clpfd_expression, Expr)
+        ;   var(Expr) ->
             get(Expr, ED, EPs),
             put(Expr, ED, EPs), % constrain to integers
             Result = Expr
@@ -1275,6 +1276,9 @@ parse_clpfd(Expr, Result) :-
         ;   Expr = (L / R) ->
             parse_clpfd(L, RL), parse_clpfd(R, RR), RR #\= 0,
             mydiv(RL, RR, Result)
+        ;   Expr = (L ^ R) ->
+            parse_clpfd(L, RL), parse_clpfd(R, RR),
+            myexp(RL, RR, Result)
         ;   domain_error(clpfd_expression, Expr)
         ).
 
@@ -1322,6 +1326,11 @@ mytimes(X, Y, Z) :-
 
 mydiv(X, Y, Z) :-
         Prop = propagator(pdiv(X,Y,Z), mutable(passive)),
+        init_propagator(X, Prop), init_propagator(Y, Prop),
+        init_propagator(Z, Prop), trigger_twice(Prop).
+
+myexp(X, Y, Z) :-
+        Prop = propagator(pexp(X,Y,Z), mutable(passive)),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
@@ -1475,7 +1484,8 @@ my_reified_mod(X, Y, D, Z) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 parse_reified_clpfd(Expr, Result, Defined) :-
-        (   var(Expr) ->
+        (   cyclic_term(Expr) -> domain_error(clpfd_expression, Expr)
+        ;   var(Expr) ->
             get(Expr, ED, EPs),
             put(Expr, ED, EPs), % constrain to integers
             Result = Expr, Defined = 1
@@ -1513,12 +1523,17 @@ parse_reified_clpfd(Expr, Result, Defined) :-
             mydefined(DL, DR, Defined1),
             my_reified_div(RL, RR, Defined2, Result),
             mydefined(Defined1, Defined2, Defined)
+        ;   Expr = (L ^ R) ->
+            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
+            mydefined(DL, DR, Defined),
+            myexp(RL, RR, Result)
         ;   domain_error(clpfd_expression, Expr)
         ).
 
 reify(Expr, B) :-
         B in 0..1,
-        (   var(Expr) -> B = Expr
+        (   cyclic_term(Expr) -> domain_error(clpfd_reifiable_expression, Expr)
+        ;   var(Expr) -> B = Expr
         ;   integer(Expr) -> B = Expr
         ;   Expr = (L #>= R) ->
             parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
@@ -2340,6 +2355,17 @@ run_propagator(pmin(X,Y,Z), MState) :-
             ;   true % TODO
             )
         ).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Z = X ^ Y
+
+run_propagator(pexp(X,Y,Z), MState) :-
+        (   nonvar(X) ->
+            (   nonvar(Y) -> kill(MState), Z is X**Y
+            ;   true
+            )
+        ;   true
+        ).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % reified constraints
