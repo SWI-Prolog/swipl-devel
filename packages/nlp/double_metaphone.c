@@ -264,7 +264,11 @@ DoubleMetaphone(char *str, char **codes)
       }
 
     /* main loop */
-    while ((primary->length < 4) || (secondary->length < 4))  
+#ifdef LONG_METAPHONE
+    while(TRUE)
+#else
+    while ((primary->length < 4) || (secondary->length < 4))
+#endif
       {
 	  if (current >= length)
 	      break;
@@ -1213,11 +1217,13 @@ DoubleMetaphone(char *str, char **codes)
       }
 
 
+#ifndef LONG_METAPHONE
     if (primary->length > 4)
 	SetAt(primary, 4, '\0');
 
     if (secondary->length > 4)
 	SetAt(secondary, 4, '\0');
+#endif
 
     *codes = primary->str;
     *++codes = secondary->str;
