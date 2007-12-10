@@ -2474,7 +2474,7 @@ Prolog representation for a JSON value is defined as:
 
 <P>
 <UL>
-<LI>A JSON object is mapped to a term object(NameValueList), where 
+<LI>A JSON object is mapped to a term json(NameValueList), where 
 NameValueList is a list of Name=Value. Name is an atom created from the 
 JSON string.
 <LI>A JSON array is mapped to a Prolog list of JSON values.
@@ -2501,11 +2501,11 @@ mapped -like JPL- to @(true) and @(false).
 </PRE>
 
 <PRE class="code">
-object([ name='Demo term',
-         created=object([day= @null, month='December', year=2007]),
-         confirmed= @true,
-         members=[1, 2, 3]
-       ])
+json([ name='Demo term',
+       created=json([day= @null, month='December', year=2007]),
+       confirmed= @true,
+       members=[1, 2, 3]
+     ])
 </PRE>
 
 <DL>
@@ -2614,16 +2614,26 @@ representation for the JSON
 <P><A NAME="sec:jsonconvert"></A>
 
 <DL>
-<DT><B>To be done</B><DD> Ignore extra fields. Using incomplete list of <I>extra</I>?
-<DT><B>To be done</B><DD> Allow arguments to be defined as JSON objects 
-for recursive translation.
+<DT><B>To be done</B><DD> Ignore extra fields. Using a partial list of <I>extra</I>?
+<DT><B>To be done</B><DD> Consider a sensible default for handling JSON <CODE>null</CODE>. 
+Conversion to Prolog could translate @null into a variable if the 
+desired type is not <CODE>any</CODE>. Conversion to JSON could map 
+variables to <CODE>null</CODE>, though this may be unsafe. If the Prolog 
+term is known to be non-ground and JSON @null is a sensible mapping, we 
+can also use this simple snipit to deal with that fact.
+
+<PRE class="code">
+        term_variables(Term, Vars),
+        maplist(=(@null), Vars).
+</PRE>
+
 </DL>
 
 <P>The idea behind this module is to provide a flexible high-level 
 mapping between Prolog terms as you would like to see them in your 
 application and the standard representation of a JSON object as a Prolog 
 term. For example, an X-Y point may be represented in JSON as <CODE>{"x":25, "y":50}</CODE>. 
-Represented in Prolog this becomes object([x=25,y=50]), but this is a 
+Represented in Prolog this becomes json([x=25,y=50]), but this is a 
 pretty non-natural representation from the Prolog point of view.
 
 <P>This module allows for defining records (just like library(record)) 
@@ -2641,7 +2651,7 @@ to translate the native Prolog representation into a JSON Term:
 <PRE class="code">
 ?- prolog_to_json(point(25,50), X).
 
-X = object([x=25, y=50])
+X = json([x=25, y=50])
 </PRE>
 
 <P>A <A class="pred" href="#json_object/1">json_object/1</A> declaration 
@@ -2668,8 +2678,17 @@ declaration. I.e.
 <PRE class="code">
 ?- prolog_to_json(point(25,50), X).
 
-X = object([x=25, y=50, type=point])
+X = json([x=25, y=50, type=point])
 </PRE>
+
+<P>The predicate <A class="pred" href="#json_to_prolog/2">json_to_prolog/2</A> 
+is often used after <A class="pred" href="#http_read_json/2">http_read_json/2</A> 
+and
+<A class="pred" href="#prolog_to_json/2">prolog_to_json/2</A> before <A class="pred" href="#reply_json/1">reply_json/1</A>. 
+For now we consider them seperate predicates because the transformation 
+may be too general, too slow or not needed for dedicated applications. 
+Using a seperate step also simplifies debugging this rather complicated 
+process.
 
 <DL>
 <DT class="pubdef"><A NAME="json_object/1"><STRONG>json_object</STRONG> <VAR>+Declaration</VAR></A></DT>
@@ -2683,13 +2702,25 @@ from library(record). E.g.
 </PRE>
 
 </DD>
-<DT class="pubdef"><span class="pred-tag">[semidet]</span><A NAME="prolog_to_json/2"><STRONG>prolog_to_json</STRONG>(<VAR>:Term, 
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="prolog_to_json/2"><STRONG>prolog_to_json</STRONG>(<VAR>:Term, 
 -JSONObject</VAR>)</A></DT>
 <DD class="defbody">
 Translate a Prolog application <VAR>Term</VAR> into a JSON object term. 
 This transformation is based on <CODE>:-</CODE> <A class="pred" href="#json_object/1">json_object/1</A> 
-declarations.</DD>
-<DT class="pubdef"><span class="pred-tag">[semidet]</span><A NAME="json_to_prolog/2"><STRONG>json_to_prolog</STRONG>(<VAR>+JSON, 
+declarations. If a <A class="pred" href="#json_object/1">json_object/1</A> 
+declaration declares a field of type
+<CODE>boolean</CODE>, commonly used thruth-values in Prolog are 
+converted to JSON booleans. Boolean translation accepts one of <CODE>true</CODE>,
+<CODE>on</CODE>, <CODE>1</CODE>, @true, <CODE>false</CODE>, <CODE>fail</CODE>, <CODE>off</CODE> 
+or <CODE>0</CODE>, @false.
+
+<DL>
+<DT><B>error</B><DD> type_error(json_term, X)
+<DT><B>error</B><DD> instantiation_error
+</DL>
+
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="json_to_prolog/2"><STRONG>json_to_prolog</STRONG>(<VAR>+JSON, 
 -Term</VAR>)</A></DT>
 <DD class="defbody">
 Translate a <VAR>JSON</VAR> term into an application term. This 
@@ -2699,6 +2730,10 @@ the assumption that, although the order of fields in <VAR>JSON</VAR>
 terms is irrelevant and can therefore vary a lot, practical applications 
 will normally generate the <VAR>JSON</VAR> objects in a consistent 
 order.
+
+<P>If a field in a json_object is declared of type <CODE>boolean</CODE>, 
+@true and @false are translated to <CODE>true</CODE> or <CODE>false</CODE>, 
+the most commonly used Prolog representation for truth-values.
 </DD>
 </DL>
 
@@ -2726,8 +2761,10 @@ for handling a JSON request, answering in JSON.
 
 <PRE class="code">
 handle(Request) :-
-        http_read_json(Request, JSON),
-        &lt;compute&gt;(JSONIn, JSONOut),
+        http_read_json(Request, JSONIn),
+        json_to_prolog(JSONIn, PrologIn),
+        &lt;compute&gt;(PrologIn, PrologOut),		% application body
+        prolog_to_json(PrologOut, JSONOut),
         reply_json(JSONOut).
 </PRE>
 

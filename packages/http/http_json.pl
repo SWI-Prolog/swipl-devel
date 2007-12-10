@@ -60,8 +60,10 @@ handling a JSON request, answering in JSON.
 
 ==
 handle(Request) :-
-	http_read_json(Request, JSON),
-	<compute>(JSONIn, JSONOut),
+	http_read_json(Request, JSONIn),
+	json_to_prolog(JSONIn, PrologIn), 
+	<compute>(PrologIn, PrologOut),		% application body
+	prolog_to_json(PrologOut, JSONOut),
 	reply_json(JSONOut).
 ==
 

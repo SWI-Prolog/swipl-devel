@@ -121,6 +121,8 @@ $(PDF):		$(TEX) $(SUBTEX)
 
 $(TEX):		$(DOCTOTEX)
 
+json.tex:	json.pl json_convert.pl http_json.pl
+
 .txt.tex:
 		pl -q -s txttotex.pl -g txttotex,halt -t 'halt(1)' -- $*.txt
 
