@@ -75,7 +75,6 @@
                   op(730, yfx, (#\)),
                   op(720, yfx, (#/\)),
                   op(710,  fy, (#\)),
-                  op(710,  fy, (#\)),
                   op(700, xfx, (#>)),
                   op(700, xfx, (#<)),
                   op(700, xfx, (#>=)),
@@ -193,11 +192,6 @@ integers (using GMP), there is no limit on the size of domains.
 
 @author Markus Triska
 */
-
-% This flag controls propagation; the value "cautious" should keep
-% propagation terminating. Experimental flag, subject to change.
-
-:- set_prolog_flag(clpfd_propagation, full).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A bound is either:
@@ -1294,7 +1288,6 @@ neq(A, B) :-
         init_propagator(A, Prop), init_propagator(B, Prop),
         trigger_twice(Prop).
 
-
 geq(A, B) :-
         (   get(A, AD, APs) ->
             domain_infimum(AD, AI),
@@ -1378,12 +1371,20 @@ X #= Y  :- parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX).
 
 X #\= Y :-
         (   var(X), integer(Y) ->
-            get(X, XD, XPs),
-            domain_remove(XD, Y, XD1),
-            put(X, XD1, XPs),
+            neq_num(X, Y),
             do_queue,
             reinforce(X)
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
+        ).
+
+% X is distinct from the number N. This is used internally in some
+% propagators, and does not reinforce other constraints.
+
+neq_num(X, N) :-
+        (   get(X, XD, XPs) ->
+            domain_remove(XD, N, XD1),
+            put(X, XD1, XPs)
+        ;   true
         ).
 
 %% ?X #> ?Y
@@ -1635,10 +1636,17 @@ get(X, Dom, Inf, Sup, Ps) :-
         domain_infimum(Dom, Inf),
         domain_supremum(Dom, Sup).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Set the experimental flag 'clpfd_propagation' to 'cautious' to make
+   propagation terminating. Currently, this is achieved by allowing
+   the left and right boundaries of each domain to be changed at most
+   once after a constraint is posted, unless the domain is bounded.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 put(X, Dom, Pos) :-
-        (   current_prolog_flag(clpfd_propagation, full) ->
-            put_full(X, Dom, Pos)
-        ;   put_cautious(X, Dom, Pos)
+        (   current_prolog_flag(clpfd_propagation, cautious) ->
+            put_cautious(X, Dom, Pos)
+        ;   put_full(X, Dom, Pos)
         ).
 
 put_cautious(X, Dom, Ps) :-
@@ -1677,13 +1685,12 @@ put_cautious(X, Dom, Ps) :-
         ).
 
 reinforce(X) :-
-        (   current_prolog_flag(clpfd_propagation, full) ->
-            % full propagation handles everything itself
-            true
-        ;   %reinforce([], X), do_queue
+        (   current_prolog_flag(clpfd_propagation, cautious) ->
+            % reinforce([], X), do_queue
             collect_variables(X, [], Vs),
             maplist(reinforce_, Vs),
             do_queue
+        ;   true
         ).
 
 collect_variables(X, Vs0, Vs) :-
@@ -1908,7 +1915,8 @@ run_propagator(pneq(A, B), MState) :-
                 put(B, BD1, BExp0)
             )
         ;   nonvar(B) -> run_propagator(pneq(B, A), MState)
-        ;   get(A, _, AI, AS, _), get(B, _, BI, BS, _),
+        ;   A \== B,
+            get(A, _, AI, AS, _), get(B, _, BI, BS, _),
             (   AS cis_lt BI -> kill(MState)
             ;   AI cis_gt BS -> kill(MState)
             ;   true
@@ -1999,7 +2007,7 @@ run_propagator(pplus(X,Y,Z), MState) :-
             put(X, XD2, XPs),
             put(Y, YD2, YPs)
         ;   (   X == Y, get(Z, ZD, _), \+ domain_contains(ZD, 0) ->
-                X #\= 0
+                neq_num(X, 0)
             ;   true
             ),
             (   get(X, XD, XL, XU, XPs), get(Y, YD, YL, YU, YPs),
@@ -2098,7 +2106,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 )
             ;   true
             ),
-            (   Z =\= 0 -> X #\= 0, Y #\= 0
+            (   Z =\= 0 -> neq_num(X, 0), neq_num(Y, 0)
             ;   true
             )
         ;   (   X == Y -> geq(Z, 0) ; true ),
@@ -2260,13 +2268,13 @@ run_propagator(pmod(X,M,K), MState) :-
                 ;   % if possible, propagate at the boundaries
                     (   nonvar(K), domain_infimum(XD, n(Min)) ->
                         (   Min mod M =:= K -> true
-                        ;   X #\= Min
+                        ;   neq_num(X, Min)
                         )
                     ;   true
                     ),
                     (   nonvar(K), domain_supremum(XD, n(Max)) ->
                         (   Max mod M =:= K -> true
-                        ;   X #\= Max
+                        ;   neq_num(X, Max)
                         )
                     ;   true
                     )
