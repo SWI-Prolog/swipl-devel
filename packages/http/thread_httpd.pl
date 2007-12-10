@@ -279,8 +279,15 @@ resize_pool(Queue, Size) :-
 
 %%	http_worker(+Options)
 %	
-%	A worker.  Workers simply wait until they are passes an accepted
-%	socket to process a client.
+%	Run HTTP worker main loop. Workers   simply  wait until they are
+%	passed an accepted socket to process  a client. After processing
+%	a request they keep processing requests from the same connection
+%	as long as =|Connection:  keep-alive|=   remains  requested from
+%	both parties. Otherwise they close the  connection and return to
+%	the worker pool.  See server_loop/6.
+%	
+%	If the message quit(Sender) is read   from the queue, the worker
+%	stops.
 
 http_worker(Options) :-
 	option(timeout(Timeout), Options, infinite),
