@@ -51,7 +51,7 @@
 This module supports reading and writing JSON objects. The canonical
 Prolog representation for a JSON value is defined as:
 
-    * A JSON object is mapped to a term object(NameValueList), where
+    * A JSON object is mapped to a term json(NameValueList), where
     NameValueList is a list of Name=Value. Name is an atom created from
     the JSON string.
 
@@ -81,11 +81,11 @@ Here is a complete example in JSON and its corresponding Prolog term.
 ==
 
 ==
-object([ name='Demo term',
-         created=object([day= @null, month='December', year=2007]),
-         confirmed= @true,
-         members=[1, 2, 3]
-       ])
+json([ name='Demo term',
+       created=json([day= @null, month='December', year=2007]),
+       confirmed= @true,
+       members=[1, 2, 3]
+     ])
 ==
 
 @author Jan Wielemaker
@@ -169,7 +169,7 @@ json_value(Stream, Term, Next, Options) :-
 	ws(C0, Stream, C1),
 	json_term(C1, Stream, Term, Next, Options).
 
-json_term(0'{, Stream, object(Pairs), Next, Options) :- !,
+json_term(0'{, Stream, json(Pairs), Next, Options) :- !,
 	ws(Stream, C),
 	json_pairs(C, Stream, Pairs, Options),
 	get_code(Stream, Next).
@@ -399,14 +399,14 @@ json_write(Stream, Term, Options) :-
 json_write_term(Var, _, _, _) :-
 	var(Var), !,
 	instantiation_error(Var).
-json_write_term(object(Pairs), Stream, State, Options) :- !,
+json_write_term(json(Pairs), Stream, State, Options) :- !,
 	space_if_not_at_left_margin(Stream),
 	write(Stream, '{'),
 	(   json_write_state_width(State, Width),
 	    (   Width == 0
 	    ->  true
 	    ;   json_write_state_indent(State, Indent),
-		json_print_length(object(Pairs), Width, Indent, _)
+		json_print_length(json(Pairs), Width, Indent, _)
 	    )
 	->  set_width_of_json_write_state(0, State, State2),
 	    write_pairs_hor(Pairs, Stream, State2, Options),
@@ -528,7 +528,7 @@ space_if_not_at_left_margin(Stream) :-
 %	
 %	@tbd	Escape sequences in strings are not considered.
 
-json_print_length(object(Pairs), Max, Len0, Len) :- !,
+json_print_length(json(Pairs), Max, Len0, Len) :- !,
 	Len1 is Len0 + 2,
 	Len1 =< Max,
 	pairs_print_length(Pairs, Max, Len1, Len).
@@ -598,7 +598,7 @@ is_json_term(Term, Options) :-
 
 is_json_term2(_, Var) :-
 	var(Var), !, fail.
-is_json_term2(Options, object(Pairs)) :- !,
+is_json_term2(Options, json(Pairs)) :- !,
 	is_list(Pairs),
 	maplist(is_json_pair(Options), Pairs).
 is_json_term2(Options, List) :-

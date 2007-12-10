@@ -76,11 +76,11 @@ test(float, X == 1000.0) :-
 test(float, X == 0.001) :-
 	atom_json_term('1e-3', X, []).
 
-test(empty, X == object([])) :-
+test(empty, X == json([])) :-
 	atom_json_term({}, X, []).
-test(empty, X == object([])) :-
+test(empty, X == json([])) :-
 	atom_json_term('  {  } ', X, []).
-test(empty, X == object([])) :-
+test(empty, X == json([])) :-
 	atom_json_term('  {\n//comment\n} ', X, []).
 
 
@@ -100,21 +100,22 @@ test(empty, X == object([])) :-
 	tpoint(x:integer, y:integer)+[type=point],
 	fpoint(x:float, y:float).
 
-test(pt2json, JSON == object([x=25,y=50])) :-
+test(pt2json, JSON == json([x=25,y=50])) :-
 	prolog_to_json(point(25,50), JSON).
-test(pt2json, JSON == object([x=25,y=50,type=point])) :-
+test(pt2json, JSON == json([x=25,y=50,type=point])) :-
 	prolog_to_json(tpoint(25,50), JSON).
 
 test(json2pt, X == point(25,50)) :-
-	json_to_prolog(object([x=25,y=50]), X).
+	json_to_prolog(json([x=25,y=50]), X).
 test(json2pt, X == point(25,50)) :-
-	json_to_prolog(object([y=50,x=25]), X).
+	json_to_prolog(json([y=50,x=25]), X).
 test(json2pt, X == fpoint(25.1,50.0)) :-
-	json_to_prolog(object([y=50.0,x=25.1]), X).
-test(json2pt, fail) :-
-	json_to_prolog(object([y=50,x=25.1]), _).
+	json_to_prolog(json([y=50.0,x=25.1]), X).
+test(json2pt, T == T2) :-
+	T = json([y=50,x=25.1]),
+	json_to_prolog(json([y=50,x=25.1]), T2).
 test(json2pt, X == tpoint(25,50)) :-
-	json_to_prolog(object([x=25,y=50,type=point]), X).
+	json_to_prolog(json([x=25,y=50,type=point]), X).
 
 :- end_tests(json_convert).
 
@@ -164,8 +165,8 @@ test(echo, X == name) :-
 	echo(name, X).
 test(echo, X == [1,2,3]) :-
 	echo([1,2,3], X).
-test(echo, X == object([name=json, arity=2])) :-
-	echo(object([name=json, arity=2]), X).
+test(echo, X == json([name=json, arity=2])) :-
+	echo(json([name=json, arity=2]), X).
 
 test(unicode, X == Atom) :-
 	Atom = '\u0411\u0435\u0437\u0443\u043f\u0440\u0435\u0447\u043d\u043e\u0435',

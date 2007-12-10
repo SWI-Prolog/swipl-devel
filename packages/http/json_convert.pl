@@ -47,7 +47,7 @@ The idea behind this module is to  provide a flexible high-level mapping
 between Prolog terms as you would like   to see them in your application
 and the standard representation of a JSON   object as a Prolog term. For
 example,  an  X-Y  point  may  be  represented  in  JSON  as  =|{"x":25,
-"y":50}|=. Represented in Prolog this   becomes object([x=25,y=50]), but
+"y":50}|=. Represented in Prolog this   becomes json([x=25,y=50]), but
 this is a pretty non-natural  representation   from  the Prolog point of
 view.
 
@@ -66,7 +66,7 @@ representation into a JSON Term:
 ==
 ?- prolog_to_json(point(25,50), X).
 
-X = object([x=25, y=50])
+X = json([x=25, y=50])
 ==
 
 A json_object/1 declaration can define multiple   objects separated by a
@@ -91,7 +91,7 @@ Using this declaration, the conversion becomes:
 ==
 ?- prolog_to_json(point(25,50), X).
 
-X = object([x=25, y=50, type=point])
+X = json([x=25, y=50, type=point])
 ==
 
 @tbd	Ignore extra fields.  Using incomplete list of _extra_?
@@ -190,7 +190,7 @@ record_to_json_clause(Constructor, Module, Types, Names, Extra) -->
 	  clean_body(Body0, Body),
 	  Term =.. [Constructor|Vars],
 	  make_pairs(Names, Vars, Pairs, Extra),
-	  Head =.. [json_object_to_pairs,Term,Module,object(Pairs)]
+	  Head =.. [json_object_to_pairs,Term,Module,json(Pairs)]
 	},
 	[ (json_convert:Head :- Body) ].
 
@@ -359,11 +359,11 @@ json_to_prolog(JSON, Term) :-
 	strip_module(Term, M, T),
 	json_to_prolog(JSON, T, M).
 
-json_to_prolog(object(Pairs), Term, Module) :-
+json_to_prolog(json(Pairs), Term, Module) :- !,
 	(   pairs_to_term(Pairs, Term, Module)
 	->  true
 	;   json_pairs_to_prolog(Pairs, Prolog, Module),
-	    Term = object(Prolog)
+	    Term = json(Prolog)
 	).
 json_to_prolog(List, Prolog, Module) :-
 	is_list(List), !,
@@ -383,9 +383,9 @@ json_list_to_prolog([JSONValue|T0], [PrologValue|T], Module) :-
 
 %%	json_object_to_prolog(+JSONObject, ?Term, +Module) is semidet.
 %
-%	Translate a JSON object(Pairs) term into a Prolog application term.
+%	Translate a JSON json(Pairs) term into a Prolog application term.
 
-json_object_to_prolog(object(Pairs), Term, Module) :-
+json_object_to_prolog(json(Pairs), Term, Module) :-
 	pairs_to_term(Pairs, Term, Module).
 
 
