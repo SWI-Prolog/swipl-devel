@@ -2422,87 +2422,96 @@ run_propagator(reified_mod(X,Y,D,Z), MState) :-
 run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
         ;   DY == 0 -> kill(MState), B = 0
-        ;   var(B) ->
-            (   nonvar(X) ->
-                (   nonvar(Y) ->
-                    kill(MState),
-                    (   X >= Y -> B = 1 ; B = 0 )
-                ;   get(Y, _, YL, YU, _),
-                    (   n(X) cis_geq YU -> B = 1
-                    ;   n(X) cis_lt YL -> B = 0
+        ;   DX == 1, DY == 1 ->
+            (   var(B) ->
+                (   nonvar(X) ->
+                    (   nonvar(Y) ->
+                        kill(MState),
+                        (   X >= Y -> B = 1 ; B = 0 )
+                    ;   get(Y, _, YL, YU, _),
+                        (   n(X) cis_geq YU -> B = 1
+                        ;   n(X) cis_lt YL -> B = 0
+                        ;   true
+                        )
+                    )
+                ;   nonvar(Y) ->
+                    get(X, _, XL, XU, _),
+                    (   XL cis_geq n(Y) -> B = 1
+                    ;   XU cis_lt n(Y) -> B = 0
+                    ;   B in 0..1
+                    )
+                ;   get(X, _, XL, XU, _),
+                    get(Y, _, YL, YU, _),
+                    (   XL cis_geq YU -> B = 1
+                    ;   XU cis_lt YL -> B = 0
                     ;   true
                     )
                 )
-            ;   nonvar(Y) ->
-                get(X, _, XL, XU, _),
-                (   XL cis_geq n(Y) -> B = 1
-                ;   XU cis_lt n(Y) -> B = 0
-                ;   B in 0..1
-                )
-            ;   get(X, _, XL, XU, _),
-                get(Y, _, YL, YU, _),
-                (   XL cis_geq YU -> B = 1
-                ;   XU cis_lt YL -> B = 0
-                ;   true
-                )
+            ;   B =:= 1 ->
+                kill(MState),
+                DX = 1, DY = 1, X #>= Y
+            ;   B =:= 0 -> kill(MState), X #< Y
             )
-        ;   B =:= 1 ->
-            kill(MState),
-            DX = 1, DY = 1, X #>= Y
-        ;   B =:= 0 -> kill(MState), X #< Y
+        ;   true
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
         ;   DY == 0 -> kill(MState), B = 0
-        ;   var(B) ->
-            (   nonvar(X) ->
-                (   nonvar(Y) ->
-                    kill(MState),
-                    (   X =:= Y -> B = 1 ; B = 0)
-                ;   get(Y, YD, _),
-                    (   domain_contains(YD, X) -> true
-                    ;   B = 0
+        ;   DX == 1, DY == 1 ->
+            (   var(B) ->
+                (   nonvar(X) ->
+                    (   nonvar(Y) ->
+                        kill(MState),
+                        (   X =:= Y -> B = 1 ; B = 0)
+                    ;   get(Y, YD, _),
+                        (   domain_contains(YD, X) -> true
+                        ;   B = 0
+                        )
+                    )
+                ;   nonvar(Y) -> run_propagator(reified_eq(DY,Y,DX,X,B), MState)
+                ;   X == Y -> B = 1
+                ;   get(X, _, XL, XU, _),
+                    get(Y, _, YL, YU, _),
+                    (   XL cis_gt YU -> B = 0
+                    ;   YL cis_gt XU -> B = 0
+                    ;   true
                     )
                 )
-            ;   nonvar(Y) -> run_propagator(reified_eq(DY,Y,DX,X,B), MState)
-            ;   X == Y -> B = 1
-            ;   get(X, _, XL, XU, _),
-                get(Y, _, YL, YU, _),
-                (   XL cis_gt YU -> B = 0
-                ;   YL cis_gt XU -> B = 0
-                ;   true
-                )
+            ;   B =:= 1 -> kill(MState), X = Y
+            ;   B =:= 0 -> kill(MState), X #\= Y
             )
-        ;   B =:= 1 -> kill(MState), DX = 1, DY = 1, X = Y
-        ;   B =:= 0 -> kill(MState), X #\= Y
+        ;   true
         ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
         ;   DY == 0 -> kill(MState), B = 0
-        ;   var(B) ->
-            (   nonvar(X) ->
-                (   nonvar(Y) ->
-                    kill(MState),
-                    (   X =\= Y -> B = 1 ; B = 0)
-                ;   get(Y, YD, _),
-                    (   domain_contains(YD, X) -> true
-                    ;   B = 1
+        ;   DX == 1, DY == 1 ->
+            (   var(B) ->
+                (   nonvar(X) ->
+                    (   nonvar(Y) ->
+                        kill(MState),
+                        (   X =\= Y -> B = 1 ; B = 0)
+                    ;   get(Y, YD, _),
+                        (   domain_contains(YD, X) -> true
+                        ;   B = 1
+                        )
+                    )
+                ;   nonvar(Y) -> run_propagator(reified_neq(DY,Y,DX,X,B), MState)
+                ;   X == Y -> B = 0
+                ;   get(X, _, XL, XU, _),
+                    get(Y, _, YL, YU, _),
+                    (   XL cis_gt YU -> B = 1
+                    ;   YL cis_gt XU -> B = 1
+                    ;   true
                     )
                 )
-            ;   nonvar(Y) -> run_propagator(reified_neq(DY,Y,DX,X,B), MState)
-            ;   X == Y -> B = 0
-            ;   get(X, _, XL, XU, _),
-                get(Y, _, YL, YU, _),
-                (   XL cis_gt YU -> B = 1
-                ;   YL cis_gt XU -> B = 1
-                ;   true
-                )
+            ;   B =:= 1 -> kill(MState), DX = 1, DY = 1, X #\= Y
+            ;   B =:= 0 -> kill(MState), X = Y
             )
-        ;   B =:= 1 -> kill(MState), DX = 1, DY = 1, X #\= Y
-        ;   B =:= 0 -> kill(MState), X = Y
+        ;   true
         ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(reified_and(X,Y,B), MState) :-
