@@ -381,8 +381,6 @@ stream_error_context(Stream, stream(Stream, Line, LinePos, CharNo)) :-
 %	    * tab(+TabDistance)
 %	    Distance between tab-stops.  If equal to Step, layout
 %	    is generated with one tab per level.
-%	
-%	@tbd	Allow for inline expansion by integrating json_convert.pl
 
 :- record json_write_state(indent:nonneg = 0,
 			   step:positive_integer = 2,

@@ -595,18 +595,24 @@ print_html_head(Out) :-
 tags(Tags) -->
 	html(dl(class=tags, Tags)).
 
-%%	tag(+Tag, +Value)// is det.
+%%	tag(+Tag, +Values:list)// is det.
 %
-%	Called from \tag(Name, Value) terms produced by doc_wiki.pl.
+%	Called from \tag(Name, Values) terms produced by doc_wiki.pl.
 
-tag(Tag, Value) -->
-	{   doc_tag_title(Tag, Title)
+tag(Tag, Values) -->
+	{   doc_tag_title(Tag, Title),
+	    atom_concat('keyword-', Tag, Class)
 	},
-	{   tag_class(Tag, Class)
-	->  true
-	;   Class = tag
-	},
-	html([dt(class=Class, Title), dd(Value)]).
+	html([ dt(class=Class, Title),
+	       \tag_values(Values, Class)
+	     ]).
+
+tag_values([], _) -->
+	[].
+tag_values([H|T], Class) -->
+	html(dd(class=Class, ['- '|H])),
+	tag_values(T, Class).
+
 
 %%	doc_tag_title(+Tag, -Title) is det.
 %
@@ -619,10 +625,7 @@ doc_tag_title(Tag, Tag).
 tag_title(compat, 'Compatibility').
 tag_title(tbd,    'To be done').
 tag_title(see,    'See also').
-
-tag_class(tbd, 		warn).
-tag_class(bug, 		error).
-tag_class(deprecated,	warn).
+tag_title(error,  'Errors').
 
 %%	params(+Params:list) is det.
 %

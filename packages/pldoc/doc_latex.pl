@@ -665,14 +665,28 @@ tags_list(List) -->
 	latex(cmd(end(tags))),
 	[ nl(2) ].
 
-%%	tag(+Tag, +Value)// is det.
+%%	tag(+Tag, +Values:list)// is det.
 %
-%	Called from \tag(Name, Value) terms produced by doc_wiki.pl.
+%	Called from \tag(Name, Values) terms produced by doc_wiki.pl.
 
-tag(Tag, Value) -->
+tag(Tag, [One]) --> !,
 	{ doc_tag_title(Tag, Title) },
-	latex([cmd(tag(Title)), Value]).
+	latex([ cmd(tag(Title))
+	      | One
+	      ]).
+tag(Tag, More) -->
+	{ doc_tag_title(Tag, Title) },
+	latex([ cmd(mtag(Title)),
+		\tag_value_list(More)
+	      ]).
 
+tag_value_list([H|T]) -->
+	latex(['- '|H]),
+	(   { T \== [] }
+	->  [latex(' \\\\')],
+	    tag_value_list(T)
+	;   []
+	).
 
 %%	params(+Params:list) is det.
 %

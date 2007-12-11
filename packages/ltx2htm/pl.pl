@@ -410,6 +410,8 @@ remove_trailing_spaces([H|T0], [H|T]) :-
 
 cmd(tag({Tag}),
     [ html('<DT><B>'), +Tag, html('</B><DD>') ]).
+cmd(mtag({Tag}),
+    [ html('<DT><B>'), +Tag, html('</B><DD>') ]).
 
 cmd(param({Param}, {Description}),
     [ html('<TR><TD><VAR>'), +Param, html('</VAR></TD>'),

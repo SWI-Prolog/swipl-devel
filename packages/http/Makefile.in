@@ -28,7 +28,6 @@ LD=@LD@
 LDFLAGS=@LDSOFLAGS@
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
-PLTOTEX=$(PCEHOME)/bin/pl2tex
 RUNTEX=../../man/runtex
 LATEX=latex
 DOC=http
@@ -128,8 +127,6 @@ json.tex:	json.pl json_convert.pl http_json.pl
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
-.pl.tex:
-		$(PLTOTEX) $*.pl > $*.tex
 
 ################################################################
 # Clean
@@ -138,7 +135,7 @@ json.tex:	json.pl json_convert.pl http_json.pl
 clean:
 		rm -f $(STREAMOBJ)
 		rm -f *~ *% config.log
-		rm -f $(TEX)
+		rm -f $(TEX) $(SUBTEX)
 		$(RUNTEX) --clean $(DOC)
 		rm -rf html
 

@@ -257,10 +257,12 @@
 
 %	\tag{Keyword}
 %	
-%	PlDoc @keyword expansion
+%	PlDoc @keyword expansion.  \mtag{Keyword} is a multi-valued tag
 
 \newcommand{\tag}[1]{%
 	\item[#1]}
+\newcommand{\mtag}[1]{%
+	\item[#1]\mbox{}\\}
 
 \newcommand{\bnfmeta}[1]{\ifmmode{\langle\mbox{\it #1}\rangle}\else$\langle\mbox{\it #1}\rangle$\fi}
 \newcommand{\bnfor}{\ifmmode\mid\else$\mid$\fi}
@@ -483,8 +485,10 @@
 %	\begin{tags} ... \end{tags}
 
 \newenvironment{tags}%
-	{\begin{description}\setlength{\itemsep}{0pt}}%
-	{\end{description}}
+	{\begin{quote}\begin{description}%
+		\setlength{\itemsep}{0pt}%
+		\footnotesize}%
+	{\end{description}\end{quote}}
 
 
 %	\begin{parameters} ... \end{parameters}

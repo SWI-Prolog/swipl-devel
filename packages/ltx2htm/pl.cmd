@@ -106,6 +106,7 @@
 
 {tags}=list
 \tag{+}=item		1 0
+\mtag{+}=item		1 0
 
 % PlDoc parameter lists
 

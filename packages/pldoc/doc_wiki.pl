@@ -42,6 +42,7 @@
 :- use_module(library(lists)).
 :- use_module(library(debug)).
 :- use_module(library(memfile)).
+:- use_module(library(pairs)).
 
 
 		 /*******************************
@@ -327,7 +328,8 @@ strip_leading_ws(T, T).
 tags(Lines, Tags) :-
 	collect_tags(Lines, Tags0),
 	keysort(Tags0, Tags1),
-	combine_tags(Tags1, Tags).
+	pairs_values(Tags1, Tags2),
+	combine_tags(Tags2, Tags).
 
 %%	collect_tags(+IndentedLines, -Tags) is det
 %
@@ -383,43 +385,48 @@ renamed_tag(exception, throws).
 %	versions may issue a warning if the order is inconsistent.
 
 tag_order(param,       1).
-tag_order(throws,      2).
 tag_order(error,       2).		% same as throw
-tag_order(author,      3).
-tag_order(version,     4).
-tag_order(see,	       5).
-tag_order(deprecated,  6).
-tag_order(compat,      7).		% PlDoc extension
-tag_order(copyright,   8).
-tag_order(license,     9).
-tag_order(bug,	      10).
-tag_order(tbd,	      11).
+tag_order(throws,      3).
+tag_order(author,      4).
+tag_order(version,     5).
+tag_order(see,	       6).
+tag_order(deprecated,  7).
+tag_order(compat,      8).		% PlDoc extension
+tag_order(copyright,   9).
+tag_order(license,    10).
+tag_order(bug,	      11).
+tag_order(tbd,	      12).
 
 
-%%	combine_tags(+TaggedTags:list, -Tags:list) is det.
+%%	combine_tags(+Tags:list(tag(Key, Value)), -Tags:list) is det.
 %
 %	Creates the final tag-list.  Tags is a list of
 %	
 %		* \params(list(param(Name, Descr)))
-%		* \tag(Name, Descr)
+%		* \tag(Name, list(Descr))
 %	
 %	Descr is a list of tokens.
 
 combine_tags([], []).
-combine_tags([_-tag(param, V1)|T0], [\params([P1|PL])|Tags]) :- !,
+combine_tags([tag(param, V1)|T0], [\params([P1|PL])|Tags]) :- !,
 	param_tag(V1, P1),
 	param_tags(T0, PL, T1),
 	combine_tags(T1, Tags).
-combine_tags([_-tag(Tag,Value)|T0], [\tag(Tag, Value)|T]) :-
-	combine_tags(T0, T).
+combine_tags([tag(Tag,V0)|T0], [\tag(Tag, [V0|Vs])|T]) :-
+	same_tag(Tag, T0, T1, Vs),
+	combine_tags(T1, T).
 
 param_tag([PN|Descr0], param(PN, Descr)) :-
 	strip_leading_ws(Descr0, Descr).
 
-param_tags([_-tag(param, V1)|T0], [P1|PL], T) :- !,
+param_tags([tag(param, V1)|T0], [P1|PL], T) :- !,
 	param_tag(V1, P1),
 	param_tags(T0, PL, T).
 param_tags(T, [], T).
+
+same_tag(Tag, [tag(Tag, V)|T0], T, [V|Vs]) :- !,
+	same_tag(Tag, T0, T, Vs).
+same_tag(_, L, L, []).
 
 
 		 /*******************************

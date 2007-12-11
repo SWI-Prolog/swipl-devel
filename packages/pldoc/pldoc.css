@@ -43,11 +43,11 @@ span.pred-tag
   color: #202020;
 }
 
-dt.tag
+dl.tags dt
 { font-weight: bold;
 }
 
-dt.error, dt.warn
+dt.keyword-bug, dt.keyword-deprecated, dt.keyword-tbd
 { font-weight: bold;
   color: red;
 }

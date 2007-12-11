@@ -102,7 +102,7 @@ color: #202020;
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -2460,12 +2460,9 @@ client and server libraries.
 <P><A NAME="sec:json"></A>
 
 <DL>
-<DT><B>author</B><DD> Jan Wielemaker
-<DT><B>See also</B><DD>
-<CODE>http_json.pl</CODE> links JSON to the HTTP client and server 
-modules.
-<DT><B>See also</B><DD>
-<CODE>json_convert.pl</CODE> converts JSON Prolog terms to more 
+<DT><B>author</B><DD> Jan Wielemaker<DT><B>See also</B><DD>- <CODE>http_json.pl</CODE> 
+links JSON to the HTTP client and server modules. <BR>
+- <CODE>json_convert.pl</CODE> converts JSON Prolog terms to more 
 comfortable terms.
 </DL>
 
@@ -2589,10 +2586,6 @@ one tab per level.
 </DD>
 </DL>
 
-<DL>
-<DT><B>To be done</B><DD> Allow for inline expansion by integrating <CODE>json_convert.pl</CODE>
-</DL>
-
 </DD>
 <DT class="pubdef"><span class="pred-tag">[semidet]</span><A NAME="is_json_term/1"><STRONG>is_json_term</STRONG>(<VAR>@Term</VAR>)</A></DT>
 <DD class="defbody">
@@ -2614,8 +2607,8 @@ representation for the JSON
 <P><A NAME="sec:jsonconvert"></A>
 
 <DL>
-<DT><B>To be done</B><DD> Ignore extra fields. Using a partial list of <I>extra</I>?
-<DT><B>To be done</B><DD> Consider a sensible default for handling JSON <CODE>null</CODE>. 
+<DT><B>To be done</B><DD>- Ignore extra fields. Using a partial list of <I>extra</I>? <BR>
+- Consider a sensible default for handling JSON <CODE>null</CODE>. 
 Conversion to Prolog could translate @null into a variable if the 
 desired type is not <CODE>any</CODE>. Conversion to JSON could map 
 variables to <CODE>null</CODE>, though this may be unsafe. If the Prolog 
@@ -2715,8 +2708,8 @@ converted to JSON booleans. Boolean translation accepts one of <CODE>true</CODE>
 or <CODE>0</CODE>, @false.
 
 <DL>
-<DT><B>error</B><DD> type_error(json_term, X)
-<DT><B>error</B><DD> instantiation_error
+<DT><B>Errors</B><DD>- type_error(json_term, X) <BR>
+- instantiation_error
 </DL>
 
 </DD>
@@ -2743,13 +2736,11 @@ the most commonly used Prolog representation for truth-values.
 <P><A NAME="sec:httpjson"></A>
 
 <DL>
-<DT><B>See also</B><DD> JSON Requests are discussed in <A class="url" href="http://json.org/JSONRequest.html">http://json.org/JSONRequest.html</A>
-<DT><B>See also</B><DD>
-<CODE>json.pl</CODE> describes how JSON objects are represented in 
-Prolog terms.
-<DT><B>See also</B><DD>
-<CODE>json_convert.pl</CODE> converts between more natural Prolog terms 
-and json terms.
+<DT><B>See also</B><DD>- JSON Requests are discussed in <A class="url" href="http://json.org/JSONRequest.html">http://json.org/JSONRequest.html</A> <BR>
+- <CODE>json.pl</CODE> describes how JSON objects are represented in 
+Prolog terms. <BR>
+- <CODE>json_convert.pl</CODE> converts between more natural Prolog 
+terms and json terms.
 </DL>
 
 <P>This module inserts the JSON parser for documents of MIME type
@@ -2790,10 +2781,9 @@ and reply is of the same format if the server replies with JSON.
 Extract <VAR>JSON</VAR> data posted to this HTTP request.
 
 <DL>
-<DT><B>error</B><DD> domain_error(mimetype, Found) if the mimetype is 
-not known (see <SPAN class="pred-ext">json_type/1</SPAN>).
-<DT><B>error</B><DD> domain_error(method, Method) if the request is not 
-a POST request.
+<DT><B>Errors</B><DD>- domain_error(mimetype, Found) if the mimetype is 
+not known (see <SPAN class="pred-ext">json_type/1</SPAN>). <BR>
+- domain_error(method, Method) if the request is not a POST request.
 </DL>
 
 </DD>
