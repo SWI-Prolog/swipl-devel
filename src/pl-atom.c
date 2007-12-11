@@ -1234,7 +1234,7 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 #endif
   }
 
-  for(ap=GD->atoms.array; i<mx; i++, ap++)
+  for(ap=&GD->atoms.array[i]; i<mx; i++, ap++)
   { Atom a;
 
     if ( !(a = *ap) )
