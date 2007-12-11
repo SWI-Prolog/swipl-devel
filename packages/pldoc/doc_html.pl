@@ -129,7 +129,7 @@ prolog_file(FileSpec, Options) -->
 	     ]),
 	undocumented(Objects, FileOptions).
 	  
-%%	file_objects(+FileSpec, -File, -Objects, -FileOptions, +Options) is det.
+%%	doc_file_objects(+FileSpec, -File, -Objects, -FileOptions, +Options) is det.
 %
 %	Extracts  relevant  information  for  FileSpec  from  the  PlDoc
 %	database.  FileOptions contains:

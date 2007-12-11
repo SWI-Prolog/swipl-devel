@@ -1504,10 +1504,11 @@ identify(F) :->
 identify_pred(Term, _, Summary) :-
 	identify(Term, String),
 	new(Summary, string(String)).
-identify_pred(built_in, F, Summary) :-	% SWI-Prolog documented built-in
-	get(F, predicate, Pred),
+identify_pred(Class, F, Summary) :-		% SWI-Prolog documented built-in
+	get(F, predicate, Pred),	% & PlDoc summaries
 	get(Pred, summary, Summary0), !,
-	new(Summary, string('%N: %s', Pred, Summary0)).
+	functor(Class, ClassName, _),
+	new(Summary, string('%N: [%s] %s', Pred, ClassName, Summary0)).
 identify_pred(built_in, F, Summary) :-
 	get(F, head, Head),
 	predicate_property(system:Head, foreign), !,

@@ -63,6 +63,10 @@ well formatted HTML documents.
 @license GPL
 */
 
+:- multifile
+	prolog:predicate_summary/2.	% ?PI, -Summary
+
+
 		 /*******************************
 		 *	    READING MODE	*
 		 *******************************/
@@ -213,6 +217,12 @@ qualify(M, H, M:H).
 
 system_module(user).
 system_module(system).
+
+
+%	Make the summary available to external tools on plugin basis.
+
+prolog:predicate_summary(PI, Summary) :-
+	doc_comment(PI, _, Summary, _).
 
 
 		 /*******************************

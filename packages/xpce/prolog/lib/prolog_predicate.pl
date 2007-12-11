@@ -181,10 +181,25 @@ has_help(P) :->
 	"See if there is help around"::
 	get(P, summary, _).
 
-summary(P, Summary:name) :<-
+summary(P, Summary:string) :<-
 	get(P, name, Name),
 	get(P, arity, Arity),
-	predicate(Name, Arity, Summary, _, _).
+	(   predicate(Name, Arity, Summary0, _, _),
+	    new(Summary, string('%s', Summary0))
+	->  true
+	;   (   get(P, module, M),
+	        M \== @nil
+	    ->	true
+	    ;	true
+	    ),
+	    summary(M:Name/Arity, Summary)
+	).
+	        
+:- multifile
+	prolog:predicate_summary/2.
+
+summary(PI, Summary) :-
+	prolog:predicate_summary(PI, Summary).
 
 :- pce_end_class(prolog_predicate).
 	  
