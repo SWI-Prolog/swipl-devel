@@ -2085,8 +2085,10 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ;   nonvar(Y) -> mytimes(Y,X,Z)
         ;   nonvar(Z) ->
             (   X == Y ->
+                Z >= 0,
                 catch(PRoot is floor(sqrt(Z)),error(evaluation_error(float_overflow), _), true),
                 (   nonvar(PRoot), PRoot**2 =:= Z ->
+                    kill(MState),
                     NRoot is -PRoot,
                     get(X, TXD, TXPs), % temporary variables for this section
                     (   PRoot =:= 0 -> TXD1 = from_to(n(0),n(0))
@@ -2095,7 +2097,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                     ),
                     domains_intersection(TXD, TXD1, TXD2),
                     put(X, TXD2, TXPs)
-                ;   % be more tolerant until integer square root available
+                ;   % be more tolerant until integer square root is available
                     true
                 )
             ;   true
@@ -2816,30 +2818,62 @@ attr_unify_hook(clpfd(_,_,Dom,Ps), Other) :-
             do_queue
         ).
 
-
 bound_portray(inf, inf).
 bound_portray(sup, sup).
 bound_portray(n(N), N).
 
-attr_portray_hook(clpfd(_,_,Dom,_Ps), _) :-
-        domain_intervals(Dom, Is),
-        print_intervals(Is),
-        %write(Ps),
-        true.
+attr_portray_hook(_, Var) :-
+        attribute_goal(Var, Goal),
+        write(Goal).
 
-print_intervals([]).
-print_intervals([A0-B0|Is]) :-
+domain_to_drep(Dom, Drep) :-
+        domain_intervals(Dom, [A0-B0|Rest]),
         bound_portray(A0, A),
         bound_portray(B0, B),
-        (   A == B -> write(A)
-        ;   write(A..B)
-        ;   true
+        (   A == B -> Drep0 = A
+        ;   Drep0 = A..B
         ),
-        (   Is == [] -> true
-        ;   format(" \\/ "),
-            print_intervals(Is)
+        intervals_to_drep(Rest, Drep0, Drep).
+
+intervals_to_drep([], Drep, Drep).
+intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
+        bound_portray(A0, A),
+        bound_portray(B0, B),
+        (   A == B -> D1 = A
+        ;   D1 = A..B
+        ),
+        intervals_to_drep(Rest, Drep0 \/ D1, Drep).
+
+attribute_goal(X, Goal) :-
+        get_attr(X, clpfd, clpfd(_,_,Dom,Ps)),
+        domain_to_drep(Dom, Drep),
+        (   current_prolog_flag(clpfd_attribute_goal, true) ->
+            attributes_goals(Ps, X in Drep, Goal)
+        ;   Goal = Drep
         ).
 
+attributes_goals([], Goal, Goal).
+attributes_goals([propagator(P, State)|As], Goal0, Goal) :-
+        (   State = mutable(dead) -> Goal1 = Goal0
+        ;   State = mutable(processed) -> Goal1 = Goal0
+        ;   attribute_goal_(P, G) ->
+            setarg(1, State, processed),
+            Goal1 = (Goal0,G)
+        ;   Goal1 = Goal0 % currently no conversion defined
+            %format("no conversion for ~w\n", [P])
+        ),
+        attributes_goals(As, Goal1, Goal).
+
+attribute_goal_(pgeq(A,B), A #>= B).
+attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
+attribute_goal_(pneq(A,B), A #\= B).
+attribute_goal_(ptimes(X,Y,Z), X*Y #= Z).
+attribute_goal_(pdiv(X,Y,Z), X/Y #= Z).
+attribute_goal_(pabs(X,Y), Y #= abs(X)).
+attribute_goal_(pmod(X,M,K), X mod M #= K).
+attribute_goal_(pmax(X,Y,Z), Z #= max(X,Y)).
+attribute_goal_(pmin(X,Y,Z), Z #= min(X,Y)).
+attribute_goal_(por(X,Y,Z), X #\/ Y #<==> Z).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 domain_to_list(Domain, List) :- domain_to_list(Domain, List, []).
