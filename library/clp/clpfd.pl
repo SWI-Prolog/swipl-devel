@@ -669,26 +669,32 @@ domain_expand_(from_to(From0, To0), M, D) :-
         ;   From0 == inf -> To cis1 To0*n(M), D = from_to(inf, To)
         ;   To0 == sup -> From cis1 From0*n(M), D = from_to(From, sup)
         ;   % domain is bounded
-            To1 cis1 To0 + n(1),
-            First cis1 From0*n(M),
-            D0 = from_to(First,First),
-            From1 cis1 From0 + n(1),
-            From1 = n(NFrom1), To1 = n(NTo1),
-            all_multiples(NFrom1, NTo1, M, D0, D)
+            all_multiples(From0, To0, M, D)
         ).
 domain_expand_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
         S is M*S0,
         domain_expand_(Left0, M, Left),
         domain_expand_(Right0, M, Right).
 
-all_multiples(N, N, _, D, D) :- !.
-all_multiples(N0, N, M, D0, D) :-
-        Mult is N0*M,
-        S is Mult -  1,
-        NMult = n(Mult),
-        D1 = split(S, D0, from_to(NMult,NMult)),
-        N1 is N0 + 1,
-        all_multiples(N1, N, M, D1, D).
+all_multiples(From, To, M, D) :-
+        Mid cis (From + To) // n(2),
+        Mult cis1 Mid * n(M),
+        (   From == To -> D = from_to(Mult,Mult)
+        ;   Left cis1 Mid - n(1),
+            Right cis1 Mid + n(1),
+            n(S1) cis1 Mult +  n(1),
+            n(S2) cis1 Mult - n(1),
+            (   Mid == From ->
+                D = split(S1, from_to(Mult,Mult), RightD),
+                all_multiples(Right, To, M, RightD)
+            ;   Mid == To ->
+                D = split(S2, LeftD, from_to(Mult,Mult)),
+                all_multiples(From, Left, M, LeftD)
+            ;   D = split(S2, LeftD, split(S1, from_to(Mult,Mult), RightD)),
+                all_multiples(From, Left, M, LeftD),
+                all_multiples(Right, To, M, RightD)
+            )
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    similar to domain_expand/3, tailored for division: an interval
@@ -2279,8 +2285,8 @@ run_propagator(pmod(X,M,K), MState) :-
                 domains_intersection(from_to(n(MN), n(MP)), KD, KD1),
                 put(K, KD1, KPs)
             ;   get(X, XD, XPs),
-                (   domain_supremum(XD, n(_)), domain_infimum(XD, n(_)) ->
-                    % bounded domain
+                (   fail, domain_supremum(XD, n(_)), domain_infimum(XD, n(_)) ->
+                    % bounded domain (propagation currently disabled)
                     kill(MState),
                     findall(E, (domain_to_list(XD, XLs),
                                    member(E, XLs), E mod M =:= K), Es),
