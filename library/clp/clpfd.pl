@@ -2822,9 +2822,15 @@ bound_portray(inf, inf).
 bound_portray(sup, sup).
 bound_portray(n(N), N).
 
-attr_portray_hook(_, Var) :-
-        attribute_goal(Var, Goal),
-        write(Goal).
+attr_portray_hook(clpfd(_,_,Dom,_), Var) :-
+        (   current_prolog_flag(clpfd_attribute_goal, true) ->
+            % the default mechanism in SWI should eventually work like this,
+            % with the toplevel using attribute_goal/2 for all attributes
+            attribute_goal(Var, Goal),
+            write(Goal)
+        ;   domain_to_drep(Dom, Drep),
+            write(Drep)
+        ).
 
 domain_to_drep(Dom, Drep) :-
         domain_intervals(Dom, [A0-B0|Rest]),
@@ -2847,16 +2853,14 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
 attribute_goal(X, Goal) :-
         get_attr(X, clpfd, clpfd(_,_,Dom,Ps)),
         domain_to_drep(Dom, Drep),
-        (   current_prolog_flag(clpfd_attribute_goal, true) ->
-            attributes_goals(Ps, X in Drep, Goal)
-        ;   Goal = Drep
-        ).
+        attributes_goals(Ps, X in Drep, Goal).
 
 attributes_goals([], Goal, Goal).
 attributes_goals([propagator(P, State)|As], Goal0, Goal) :-
         (   State = mutable(dead) -> Goal1 = Goal0
         ;   State = mutable(processed) -> Goal1 = Goal0
         ;   attribute_goal_(P, G) ->
+            % TODO: why doesn't the following setarg/3 actually set the arg?
             setarg(1, State, processed),
             Goal1 = (Goal0,G)
         ;   Goal1 = Goal0 % currently no conversion defined
