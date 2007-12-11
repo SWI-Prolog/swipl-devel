@@ -2422,6 +2422,7 @@ run_propagator(reified_mod(X,Y,D,Z), MState) :-
 run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
         ;   DY == 0 -> kill(MState), B = 0
+        ;   B == 1 -> kill(MState), DX = 1, DY = 1, X #>= Y
         ;   DX == 1, DY == 1 ->
             (   var(B) ->
                 (   nonvar(X) ->
@@ -2447,10 +2448,8 @@ run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
                     ;   true
                     )
                 )
-            ;   B =:= 1 ->
-                kill(MState),
-                DX = 1, DY = 1, X #>= Y
             ;   B =:= 0 -> kill(MState), X #< Y
+            ;   true
             )
         ;   true
         ).
@@ -2459,6 +2458,7 @@ run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
 run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
         ;   DY == 0 -> kill(MState), B = 0
+        ;   B == 1 -> kill(MState), DX = 1, DY = 1, X = Y
         ;   DX == 1, DY == 1 ->
             (   var(B) ->
                 (   nonvar(X) ->
@@ -2479,8 +2479,8 @@ run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
                     ;   true
                     )
                 )
-            ;   B =:= 1 -> kill(MState), X = Y
             ;   B =:= 0 -> kill(MState), X #\= Y
+            ;   true
             )
         ;   true
         ).
@@ -2488,6 +2488,7 @@ run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
 run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
         ;   DY == 0 -> kill(MState), B = 0
+        ;   B == 1 -> kill(MState), DX = 1, DY = 1, X #\= Y
         ;   DX == 1, DY == 1 ->
             (   var(B) ->
                 (   nonvar(X) ->
@@ -2508,8 +2509,8 @@ run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
                     ;   true
                     )
                 )
-            ;   B =:= 1 -> kill(MState), DX = 1, DY = 1, X #\= Y
             ;   B =:= 0 -> kill(MState), X = Y
+            ;   true
             )
         ;   true
         ).
