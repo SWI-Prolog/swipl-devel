@@ -175,7 +175,10 @@ help(P) :->
 	"Activate the help-system"::
 	get(P, head, @off, Head),
 	functor(Head, Name, Arity),
-	help(Name/Arity).
+	(   help(Name/Arity)
+	->  true
+	;   send(P, report, warning, 'Cannot find help for %s/%d', Name, Arity)
+	).
 
 has_help(P) :->
 	"See if there is help around"::

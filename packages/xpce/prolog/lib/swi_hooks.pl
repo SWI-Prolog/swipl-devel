@@ -64,6 +64,8 @@ prolog:help_hook(help(What)) :- !,
 	call((   pce_to_method(What, Method)
 	     ->  manpce(Method)
 	     ;   prolog_help(What)
+	     ->	 true
+	     ;	 catch(doc_browser(What), _, fail)
 	     )).
 
 

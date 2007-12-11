@@ -47,6 +47,7 @@
 :- use_module(library(url)).
 :- use_module(library(socket)).
 :- use_module(library(option)).
+:- use_module(library(error)).
 :- use_module(pldoc(doc_process)).
 :- use_module(pldoc(doc_htmlsrc)).
 :- use_module(pldoc(doc_html)).
@@ -154,11 +155,33 @@ doc_browser(Spec) :-
 
 browser_url([], Root) :- !,
 	doc_server_root(Root).
+browser_url(Name, URL) :-
+	atom(Name), !,
+	browser_url(Name/_, URL).
+browser_url(Name//Arity, URL) :-
+	must_be(atom, Name),
+	integer(Arity), !,
+	PredArity is Arity+2,
+	browser_url(Name/PredArity, URL).
 browser_url(Name/Arity, URL) :- !,
+	must_be(atom, Name),
+	(   predicate(Name, Arity, _, _, _)
+	->  doc_server_root(Root),
+	    format(string(S), '~q/~w', [Name, Arity]),
+	    www_form_encode(S, Enc),
+	    format(string(URL), '~wman?predicate=~w', [Root, Enc])
+	;   browser_url(_:Name/Arity, URL)
+	).
+browser_url(Spec, URL) :- !,
+	Spec = M:Name/Arity,
+	doc_comment(Spec, _Pos, _Summary, _Comment), !,
 	doc_server_root(Root),
-	format(string(S), '~q/~w', [Name, Arity]),
+	(   var(M)
+	->  format(string(S), '~q/~w', [Name, Arity])
+	;   format(string(S), '~q:~q/~w', [M, Name, Arity])
+	),
 	www_form_encode(S, Enc),
-	format(string(URL), '~wman?predicate=~w', [Root, Enc]).
+	format(string(URL), '~wdoc_for?object=~w', [Root, Enc]).
 
 %%	prepare_editor
 %
