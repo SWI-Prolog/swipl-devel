@@ -2420,11 +2420,9 @@ run_propagator(reified_mod(X,Y,D,Z), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
-        (   DX == 0 -> B = 0
-        ;   DY == 0 -> B = 0
-        ;   true
-        ),
-        (   var(B) ->
+        (   DX == 0 -> kill(MState), B = 0
+        ;   DY == 0 -> kill(MState), B = 0
+        ;   var(B) ->
             (   nonvar(X) ->
                 (   nonvar(Y) ->
                     kill(MState),
@@ -2458,9 +2456,7 @@ run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
 run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
         ;   DY == 0 -> kill(MState), B = 0
-        ;   true
-        ),
-        (   var(B) ->
+        ;   var(B) ->
             (   nonvar(X) ->
                 (   nonvar(Y) ->
                     kill(MState),
@@ -2486,9 +2482,7 @@ run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
 run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
         ;   DY == 0 -> kill(MState), B = 0
-        ;   true
-        ),
-        (   var(B) ->
+        ;   var(B) ->
             (   nonvar(X) ->
                 (   nonvar(Y) ->
                     kill(MState),
