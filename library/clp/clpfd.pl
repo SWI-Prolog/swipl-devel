@@ -2085,15 +2085,19 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ;   nonvar(Y) -> mytimes(Y,X,Z)
         ;   nonvar(Z) ->
             (   X == Y ->
-                PRoot is floor(sqrt(Z)),
-                PRoot**2 =:= Z, NRoot is -PRoot,
-                get(X, TXD, TXPs), % temporary variables for this section
-                (   PRoot =:= 0 -> TXD1 = from_to(n(0),n(0))
-                ;   TXD1 = split(0, from_to(n(NRoot),n(NRoot)),
-                                 from_to(n(PRoot),n(PRoot)))
-                ),
-                domains_intersection(TXD, TXD1, TXD2),
-                put(X, TXD2, TXPs)
+                catch(PRoot is floor(sqrt(Z)),error(evaluation_error(float_overflow), _), true),
+                (   nonvar(PRoot), PRoot**2 =:= Z ->
+                    NRoot is -PRoot,
+                    get(X, TXD, TXPs), % temporary variables for this section
+                    (   PRoot =:= 0 -> TXD1 = from_to(n(0),n(0))
+                    ;   TXD1 = split(0, from_to(n(NRoot),n(NRoot)),
+                                     from_to(n(PRoot),n(PRoot)))
+                    ),
+                    domains_intersection(TXD, TXD1, TXD2),
+                    put(X, TXD2, TXPs)
+                ;   % be more tolerant until integer square root available
+                    true
+                )
             ;   true
             ),
             (   get(X, XD, XL, XU, XPs) ->
@@ -2275,6 +2279,7 @@ run_propagator(pmod(X,M,K), MState) :-
             ;   get(X, XD, XPs),
                 (   domain_supremum(XD, n(_)), domain_infimum(XD, n(_)) ->
                     % bounded domain
+                    kill(MState),
                     findall(E, (domain_to_list(XD, XLs),
                                    member(E, XLs), E mod M =:= K), Es),
                     list_to_domain(Es, XD1),
@@ -2827,7 +2832,7 @@ print_intervals([A0-B0|Is]) :-
         bound_portray(A0, A),
         bound_portray(B0, B),
         (   A == B -> write(A)
-        ;   format("~w..~w", [A,B])
+        ;   write(A..B)
         ;   true
         ),
         (   Is == [] -> true
