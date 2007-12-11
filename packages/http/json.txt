@@ -1,0 +1,30 @@
+---+ Supporting JSON
+
+From  http://json.org, "
+JSON (JavaScript Object Notation) is a lightweight data-interchange
+format. It is easy for humans to read and write. It is easy for machines
+to parse and generate. It is based on a subset of the JavaScript
+Programming Language, Standard ECMA-262 3rd Edition - December 1999.
+JSON is a text format that is completely language independent but uses
+conventions that are familiar to programmers of the C-family of
+languages, including C, C++, C#, Java, JavaScript, Perl, Python, and
+many others. These properties make JSON an ideal data-interchange
+language."
+
+JSON is interesting to Prolog because using AJAX web technology we can
+easily created web-enabled user interfaces where we implement the server
+side using the SWI-Prolog HTTP services provided by this package.
+The interface consists of three libraries:
+
+    * library(http/json) provides support for the core JSON object
+      serialization.
+    * library(http/json_convert) converts between the primary
+      representation of JSON terms in Prolog and more application
+      oriented Prolog terms.  E.g. point(X,Y) vs. object([x=X,y=Y]).
+    * library(http/http_json) hooks the conversion libraries into
+      the HTTP client and server libraries.
+	
+    [[json.pl]]
+    [[json_convert.pl]]
+    [[http_json.pl]]
+
