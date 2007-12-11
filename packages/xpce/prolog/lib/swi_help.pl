@@ -37,6 +37,11 @@
 	    prolog_explain/1
 	  ]).
 
+/** <module> XPCE-based graphical frontend for online help
+
+This module is normally hooked into help/1 by the module swi_hooks.pl.
+*/
+
 :- use_module(library(pce)).
 :- use_module(library(pce_edit)).
 :- use_module(library(persistent_frame)).
@@ -72,16 +77,27 @@ resource(predicate,	image,  image('16x16/preddoc.xpm')).
 		 *	      TOPLEVEL		*
 		 *******************************/
 
+%%	prolog_help is det.
+%
+%	Open SWI-Prolog graphical reference manual.
+
 prolog_help :-
 	section(S, 'Getting started quickly', _, _),
 	concat_atom(S, -, Id),
 	term_to_atom(Spec, Id),
 	prolog_help(Spec).
 
+
+%%	prolog_help(+Topic) is semidet.
+%
+%	Open SWI-Prolog graphical reference manual   on  Topic. Fails if
+%	Topic is not in the manual.
+
 prolog_help(Topic) :-
 	help_atom(Topic, Atom),
 	(   atomic(Atom)
-	->  send(@pui_help_window, give_help, Atom)
+	->  once(manual_range(Atom, _)),
+	    send(@pui_help_window, give_help, Atom)
 	;   get(@pui_help_window, member, pui_editor, Editor),
 	    send(Editor, clear),
 	    forall(member(A, Atom),
@@ -89,6 +105,11 @@ prolog_help(Topic) :-
 	    send(Editor, home)
 	),
 	send(@pui_help_window?frame, expose).
+
+
+%%	prolog_apropos(+Keyword) is det.
+%
+%	Do a keyword search on the manual through the object summaries.
 
 prolog_apropos(Keywd) :-
 	send(@pui_help_window, apropos, Keywd),
@@ -568,6 +589,7 @@ drop(V, Id:name) :->
 		 *******************************/
 
 %%	manual_file(-File)
+%
 %	Find the database file of the manual.  If the manual cannot be
 %	found, display an error message.
 
@@ -583,12 +605,14 @@ manual_file(_File) :-
 		 *     ATOMIC SPECIFICATIONS	*
 		 *******************************/
 
-%%	manual_range(+What, -From, -To)
+%%	manual_range(+What, -Range:From-To) is nondet.
+%
 %	Find the character range for the given help topic, which is of
 %	the form
-%			name/arity
-%%			function()
-%			n.m..
+%	
+%		* name/arity
+%		* function()
+%		* n.m..
 
 manual_range(What, Ranges) :-
 	atom_codes(What, S),

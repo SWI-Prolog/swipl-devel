@@ -31,6 +31,12 @@
 
 :- module(pce_swi_hooks, []).
 
+/** <module> Hook XPCE based graphics tools into IDE
+
+Loading this file enables the graphical  frontends for the online manual
+and profiler.
+*/
+
 :- multifile
 	prolog:debug_control_hook/1,
 	prolog:help_hook/1,
