@@ -2103,7 +2103,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                     ),
                     domains_intersection(TXD, TXD1, TXD2),
                     put(X, TXD2, TXPs)
-                ;   % be more tolerant until integer square root is available
+                ;   % be more tolerant until GMP integer sqrt is available
                     true
                 )
             ;   true
@@ -2313,7 +2313,6 @@ run_propagator(pmod(X,M,K), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Z = max(X,Y)
-% Currently rather preliminary.
 
 run_propagator(pmax(X,Y,Z), MState) :-
         (   nonvar(X) ->
@@ -2326,23 +2325,29 @@ run_propagator(pmax(X,Y,Z), MState) :-
             ;   get(Y, YD, YInf, YSup, _),
                 (   YInf cis_gt n(X) -> Z = Y
                 ;   YSup cis_lt n(X) -> Z = X
-                ;   true % TODO
+                ;   YSup = n(M) ->
+                    get(Z, ZD, ZPs),
+                    domain_remove_greater_than(ZD, M, ZD1),
+                    put(Z, ZD1, ZPs)
+                ;   true
                 )
             )
         ;   nonvar(Y) -> run_propagator(pmax(Y,X,Z), MState)
-        ;   nonvar(Z) -> true % TODO
-        ;   get(X, _, XInf, _, _),
+        ;   get(Z, ZD, ZPs) ->
+            get(X, _, XInf, XSup, _),
             get(Y, YD, YInf, YSup, _),
-            %get(Z, ZD, _),
             (   YInf cis_gt YSup -> Z = Y
             ;   YSup cis_lt XInf -> Z = X
-            ;   true % TODO
+            ;   n(M) cis1 max(XSup, YSup) ->
+                domain_remove_greater_than(ZD, M, ZD1),
+                put(Z, ZD1, ZPs)
+            ;   true
             )
+        ;   true
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Z = min(X,Y)
-% Currently rather preliminary.
 
 run_propagator(pmin(X,Y,Z), MState) :-
         (   nonvar(X) ->
@@ -2355,18 +2360,25 @@ run_propagator(pmin(X,Y,Z), MState) :-
             ;   get(Y, YD, YInf, YSup, _),
                 (   YSup cis_lt n(X) -> Z = Y
                 ;   YInf cis_gt n(X) -> Z = X
-                ;   true % TODO
+                ;   YInf = n(M) ->
+                    get(Z, ZD, ZPs),
+                    domain_remove_smaller_than(ZD, M, ZD1),
+                    put(Z, ZD1, ZPs)
+                ;   true
                 )
             )
         ;   nonvar(Y) -> run_propagator(pmin(Y,X,Z), MState)
-        ;   nonvar(Z) -> true % TODO
-        ;   get(X, _, _, XSup, _),
+        ;   get(Z, ZD, ZPs) ->
+            get(X, _, XInf, XSup, _),
             get(Y, YD, YInf, YSup, _),
-            %get(Z, ZD, _),
             (   YSup cis_lt YInf -> Z = Y
             ;   YInf cis_gt XSup -> Z = X
-            ;   true % TODO
+            ;   n(M) cis1 min(XInf, YInf) ->
+                domain_remove_smaller_than(ZD, M, ZD1),
+                put(Z, ZD1, ZPs)
+            ;   true
             )
+        ;   true
         ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Z = X ^ Y
