@@ -233,7 +233,7 @@ overlapArea(Area a, Area b)
   NormaliseArea(ax, ay, aw, ah);
   NormaliseArea(bx, by, bw, bh);
 
-  if (by > ay+ah || by+bh < ay || bx > ax+aw || bx+bw < ax)
+  if (by >= ay+ah || by+bh =< ay || bx >= ax+aw || bx+bw =< ax)
     fail;
   succeed;
 }
