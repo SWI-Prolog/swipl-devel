@@ -991,8 +991,7 @@ labeling(Options, Vars) :-
 finite_domain(Var) :-
         (   var(Var) ->
             get(Var, Dom, _),
-            (   domain_infimum(Dom, n(_)),
-                domain_supremum(Dom, n(_)) -> true
+            (   domain_infimum(Dom, n(_)), domain_supremum(Dom, n(_)) -> true
             ;   instantiation_error(Var)
             )
         ;   integer(Var) -> true
@@ -2384,7 +2383,10 @@ run_propagator(pmin(X,Y,Z), MState) :-
 % Z = X ^ Y
 
 run_propagator(pexp(X,Y,Z), MState) :-
-        (   nonvar(X) ->
+        (   X == 1 -> kill(MState), Z = 1
+        ;   nonvar(Y), Y < 0 ->
+            throw(error(representation_error(expminus), _))
+        ;   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Z is X**Y
             ;   true
             )
