@@ -2384,12 +2384,13 @@ run_propagator(pmin(X,Y,Z), MState) :-
 
 run_propagator(pexp(X,Y,Z), MState) :-
         (   X == 1 -> kill(MState), Z = 1
-        ;   nonvar(Y), Y < 0 ->
-            throw(error(representation_error(expminus), _))
-        ;   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), Z is X**Y
-            ;   true
-            )
+        ;   X == 0 -> kill(MState), Z #<==> Y #= 0
+        ;   Y == 1 -> kill(MState), Z = X
+        ;   Y == 0 -> kill(MState), Z = 1
+        ;   nonvar(X), nonvar(Y) ->
+            ( Y >= 0 -> true ; X =:= -1 ),
+            kill(MState),
+            Z is X**Y
         ;   true
         ).
 
