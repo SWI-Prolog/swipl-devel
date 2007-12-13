@@ -249,9 +249,9 @@ set_associated_file :-
 	file_directory_name(File, Dir),
 	working_directory(_, Dir),
 	set_prolog_flag(associated_file, File),
-	atom_concat('SWI-Prolog -- ', File, Title),
-	(   '$c_current_predicate'(_, system:window_title(_, _))
-	->  system:window_title(_, Title)
+	(   current_predicate(system:window_title(_, _))
+	->  atom_concat('SWI-Prolog -- ', File, Title),
+	    system:window_title(_, Title)
 	;   true
 	).
 set_associated_file.
@@ -283,8 +283,8 @@ start_pldoc.
 
 %%	load_associated_file
 %	
-%	Load the file-name set by set_associated_file/0 from the
-%	commandline arguments. Not the expand(false) to avoid expanding
+%	Load  the  file-name  set  by   set_associated_file/0  from  the
+%	commandline arguments. Note the expand(false) to avoid expanding
 %	special characters in the filename.
 
 load_associated_file :-
