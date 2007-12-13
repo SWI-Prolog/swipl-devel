@@ -256,7 +256,8 @@ rdf_write_subject(Triples, Out, Subject, DefNS, Indent, Anon) :-
 	select(rdf(_, RdfType,Type), Triples, Triples1),
 	rdf_id(Type, DefNS, TypeId),
 	xml_is_name(TypeId), !,
-	format(Out, '~*|<~w', [Indent, TypeId]),
+	format(Out, '~*|<', [Indent]),
+	rdf_write_id(Out, TypeId),
 	save_about(Out, Subject),
 	save_attributes(Triples1, DefNS, Out, TypeId, Indent, Anon).
 rdf_write_subject(Triples, Out, Subject, _DefNS, Indent, Anon) :-
@@ -359,53 +360,57 @@ save_attribute(tag, rdf(_, Name, literal(Value)), DefNS, Out, Indent, _Anon) :-
 	rdf_att_id(Name, DefNS, NameText),
 	stream_property(Out, encoding(Encoding)),
 	xml_quote_attribute(Value, QVal, Encoding),
-	format(Out, '~N~*|~w="~w"', [AttIndent, NameText, QVal]).
+	format(Out, '~N~*|', [AttIndent]),
+	rdf_write_id(Out, NameText),
+	format(Out, '="~w"', [QVal]).
 save_attribute(body, rdf(_,Name,literal(Literal)), DefNS, Out, Indent, _) :- !,
 	rdf_id(Name, DefNS, NameText),
+	format(Out, '~N~*|<', [Indent]),
+	rdf_write_id(Out, NameText),
 	(   Literal = lang(Lang, Value)
 	->  rdf_id(Lang, DefNS, LangText),
-	    format(Out, '~N~*|<~w xml:lang="~w">',
-		   [Indent, NameText, LangText])
+	    format(Out, ' xml:lang="~w">', [LangText])
 	;   Literal = type(Type, Value)
 	->  (   rdf_equal(Type, rdf:'XMLLiteral')
-	    ->	format(Out, '~N~*|<~w rdf:parseType="Literal">',
-		       [Indent, NameText]),
+	    ->	write(Out, ' rdf:parseType="Literal">'),
 		Value = Literal
 	    ;	stream_property(Out, encoding(Encoding)),
 		rdf_value(Type, QVal, Encoding),
-		format(Out, '~N~*|<~w rdf:datatype="~w">',
-		       [Indent, NameText, QVal])
+		format(Out, ' rdf:datatype="~w">', [QVal])
 	    )
 	;   atomic(Literal)
-	->  format(Out, '~N~*|<~w>', [Indent, NameText]),
+	->  write(Out, '>'),
 	    Value = Literal
-	;   format(Out, '~N~*|<~w rdf:parseType="Literal">',
-		   [Indent, NameText]),
+	;   write(Out, ' rdf:parseType="Literal">'),
 	    Value = Literal
 	),
 	save_attribute_value(Value, Out, Indent),
-	format(Out, '</~w>', [NameText]).
+	write(Out, '</'), rdf_write_id(Out, NameText), write(Out, '>').
 save_attribute(body, rdf(_, Name, Value), DefNS, Out, Indent, Anon) :-
 	anonymous_subject(Value),
 	memberchk(anon(Value, true, ValueTriples), Anon), !,
 	rdf_id(Name, DefNS, NameText),
+	format(Out, '~N~*|<', [Indent]),
+	rdf_write_id(Out, NameText),
 	SubIndent is Indent + 2,
 	(   rdf_equal(RdfType, rdf:type),
 	    rdf_equal(ListClass, rdf:'List'),
 	    memberchk(rdf(_, RdfType, ListClass), ValueTriples)
-	->  format(Out, '~N~*|<~w rdf:parseType="Collection">~n',
-		   [Indent, NameText]),
+	->  format(Out, ' rdf:parseType="Collection">~n', []),
 	    rdf_save_list(ValueTriples, Out, Value, DefNS, SubIndent, Anon)
-	;   format(Out, '~N~*|<~w>~n',
-		   [Indent, NameText]),
+	;   format(Out, '>~n', []),
 	    rdf_write_subject(ValueTriples, Out, Value, DefNS, SubIndent, Anon)
 	),
-	format(Out, '~N~*|</~w>~n', [Indent, NameText]).
+	format(Out, '~N~*|</', [Indent]),
+	rdf_write_id(Out, NameText),
+	format(Out, '>~n', []).
 save_attribute(body, rdf(_, Name, Value), DefNS, Out, Indent, _Anon) :-
 	stream_property(Out, encoding(Encoding)),
 	rdf_value(Value, QVal, Encoding),
 	rdf_id(Name, DefNS, NameText),
-	format(Out, '~N~*|<~w rdf:resource="~w"/>', [Indent, NameText, QVal]).
+	format(Out, '~N~*|<', [Indent]),
+	rdf_write_id(Out, NameText),
+	format(Out, ' rdf:resource="~w"/>', [QVal]).
 
 save_attribute_value(Value, Out, _) :-	% strings
 	atom(Value), !,
@@ -458,7 +463,7 @@ anonymous_subject(S) :-
 	atom(S),
 	sub_atom(S, 0, _, _, '__'), !.
 
-%	rdf_id(+Resource, +DefNS, -NSLocal)
+%%	rdf_id(+Resource, +DefNS, -NSLocal)
 %	
 %	Generate a NS:Local name for Resource given the indicated
 %	default namespace.  This call is used for elements.
@@ -472,6 +477,17 @@ rdf_id(Id, _, NS:Local) :-
 	Full \== '',
 	atom_concat(Full, Local, Id), !.
 rdf_id(Id, _, Id).
+
+
+%%	rdf_write_id(+Out, +NSLocal) is det.
+%
+%	Write an identifier. We cannot use native write on it as both NS
+%	and Local can be operators.
+
+rdf_write_id(Out, NS:Local) :- !,
+	format(Out, '~w:~w', [NS, Local]).
+rdf_write_id(Out, Atom) :-
+	write(Out, Atom).
 
 
 rdf_att_id(Id, _, NS:Local) :-
