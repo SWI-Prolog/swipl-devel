@@ -28,7 +28,7 @@ XPCEPL=		http_image.pl
 
 OBJ=		http_stream.obj
 
-all:		http_stream.dll
+all:		http_stream.dll json.dll
 
 http_stream.dll:	$(OBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS)
