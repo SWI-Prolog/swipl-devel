@@ -1,12 +1,29 @@
 ---+++ Repositioning HTML for CSS and javascript links
 
-Modern HTML commonly uses CSS and Javascript. This requires <link>
-elements in the HTML <head> element or <script> elements in the <body>.
+Modern HTML commonly uses  CSS  and   Javascript.  This  requires <link>
+elements in the HTML <head> element or  <script> elements in the <body>.
 Unfortunately this seriously harms re-using HTML DCG rules as components
-as each of these components may rely on their own style sheets or
-JavaScript code. We added a `mailing' system to reposition and collect
-fragments of HTML. This is implemented by html_post//2 and
+as each of these components  may  rely   on  their  own  style sheets or
+JavaScript code. We added a `mailing'   system to reposition and collect
+fragments  of  HTML.   This   is    implemented   by   html_post//2  and
 html_receive//1.
 
 	* [[html_post//2]]
 	* [[html_receive//1]]
+
+The library predefines the receiver channel  =head=   at  the end of the
+=head= element for all pages that  write   the  html =head= through this
+library. The following  code  can  be   used  anywhere  inside  an  HTML
+generating rule to demand a javascript in the header:
+
+==
+js_script(URL) -->
+	html_post(head, script([ src(URL),
+				 type('text/javascript')
+			       ], [])).
+==
+
+This  mechanism  is  also  exploited  to  add  XML  namespace  (=xmlns=)
+declarations to the (outer) =html= element using xhml_ns//2:
+
+	* [[xhtml_ns//2]]

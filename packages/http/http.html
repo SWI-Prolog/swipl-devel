@@ -2130,6 +2130,50 @@ are inserted at the location where
 </DD>
 </DL>
 
+<P>The library predefines the receiver channel <CODE>head</CODE> at the 
+end of the
+<CODE>head</CODE> element for all pages that write the html <CODE>head</CODE> 
+through this library. The following code can be used anywhere inside an 
+HTML generating rule to demand a javascript in the header:
+
+<PRE class="code">
+js_script(URL) --&gt;
+        html_post(head, script([ src(URL),
+                                 type('text/javascript')
+                               ], [])).
+</PRE>
+
+<P>This mechanism is also exploited to add XML namespace (<CODE>xmlns</CODE>) 
+declarations to the (outer) <CODE>html</CODE> element using <SPAN class="pred-ext">xhml_ns/4</SPAN>:
+
+<DL>
+<DT class="pubdef"><A NAME="xhtml_ns/2"><STRONG>xhtml_ns</STRONG>(<VAR>Id, 
+Value</VAR>)</A><CODE>//</CODE></DT>
+<DD class="defbody">
+Demand an xmlns:id=<VAR>Value</VAR> in the outer html tag. This uses the
+<A class="pred" href="#html_post/2">html_post/2</A> mechanism to post to 
+the <CODE>xmlns</CODE> channel. Rdfa (<A class="url" href="http://www.w3.org/2006/07/SWD/RDFa/syntax/),">http://www.w3.org/2006/07/SWD/RDFa/syntax/),</A> 
+embedding RDF in (x)html provides a typical usage scenario where we want 
+to publish the required namespaces in the header. We can define:
+
+<PRE class="code">
+rdf_ns(Id) --&gt;
+        { rdf_global_id(Id:'', Value) },
+        xhtml_ns(Id, Value).
+</PRE>
+
+<P>After which we can use <SPAN class="pred-ext">rdf_ns/3</SPAN> as a 
+normal rule in <SPAN class="pred-ext">html/3</SPAN> to publish 
+namespaces from library(semweb/rdf_db). Note that this macro only has 
+effect if the dialect is set to <CODE>xhtml</CODE>. In
+<CODE>html</CODE> mode it is silently ignored.
+
+<P>The required <CODE>xmlns</CODE> receiver is installed by <SPAN class="pred-ext">html_begin/3</SPAN> 
+using the <CODE>html</CODE> tag and thus is present in any document that 
+opens the outer <CODE>html</CODE> environment through this library.
+</DD>
+</DL>
+
 <H4><A NAME="sec:3.11.3"><SPAN class="sec-nr">3.11.3</SPAN> <SPAN class="sec-title">Adding 
 rules for html//1</SPAN></A></H4>
 
@@ -3162,6 +3206,12 @@ servers are not widely used.
 <DT>throw/1</DT>
 <DD>
 <A class="idx" href="#idx:throw1:25">3.1.1</A></DD>
+<DT><STRONG>X</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#xhtml_ns/2">xhtml_ns/2</A></DT>
+<DD>
+</DD>
 </DL>
 
 </BODY></HTML>

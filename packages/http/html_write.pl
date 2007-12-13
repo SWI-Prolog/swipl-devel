@@ -44,6 +44,7 @@
 					% repositioning HTML elements
 	    html_post//2,		% +Id, :Content
 	    html_receive//1,		% +Id
+	    xhtml_ns//2,		% +Id, +Value
 
 					% Useful primitives for expanding
 	    html_begin//1,		% +EnvName[(Attribute...)]
@@ -127,10 +128,14 @@ encoding.
 %	=html_doctype= for the html dialect  and =xhtml_doctype= for the
 %	xhtml dialect. Dialect muct be switched before doctype.
 
-html_set_options([]).
-html_set_options([H|T]) :-
+html_set_options(Options) :-
+	must_be(list, Options),
+	set_options(Options).
+
+set_options([]).
+set_options([H|T]) :-
 	html_set_option(H),
-	html_set_options(T).
+	set_options(T).
 
 html_set_option(dialect(Dialect)) :- !,
 	must_be(oneof([html,xhtml]), Dialect),
@@ -421,6 +426,35 @@ xhtml_empty(Env, Attributes) -->
 	attributes(Attributes),
 	['/>'].
 
+%%	xhtml_ns(Id, Value)//
+%
+%	Demand an xmlns:id=Value in the outer   html  tag. This uses the
+%	html_post/2 mechanism to  post  to   the  =xmlns=  channel. Rdfa
+%	(http://www.w3.org/2006/07/SWD/RDFa/syntax/), embedding RDF   in
+%	(x)html provides a typical  usage  scenario   where  we  want to
+%	publish the required namespaces in the header. We can define:
+%	
+%	==
+%	rdf_ns(Id) -->
+%		{ rdf_global_id(Id:'', Value) },
+%		xhtml_ns(Id, Value).
+%	==
+%	
+%	After which we can use rdf_ns//1 as  a normal rule in html//1 to
+%	publish namespaces from library(semweb/rdf_db).   Note that this
+%	macro only has effect if  the  dialect   is  set  to =xhtml=. In
+%	=html= mode it is silently ignored.
+%	
+%	The required =xmlns= receiver  is   installed  by  html_begin//1
+%	using the =html= tag and thus is   present  in any document that
+%	opens the outer =html= environment through this library.
+
+xhtml_ns(Id, Value) -->
+	{ html_current_option(dialect(xhtml)) }, !,
+	html_post(xmlns, \attribute(xmlns:Id=Value)).
+xhtml_ns(_, _) -->
+	[].
+
 
 %%	attributes(+Env, +Attributes)// is det.
 %
@@ -433,9 +467,11 @@ attributes(html, L) -->
 	->  attributes(L)
 	;   { ns(xhtml, NS) },
 	    attributes([xmlns(NS)|L])
-	).
+	),
+	html_receive(xmlns).
 attributes(_, L) -->
-	attributes(L).
+	attributes(L),
+	html_noreceive(xmlns).
 
 attributes([]) --> !,
 	[].
@@ -565,6 +601,13 @@ html_post(Id, Content) -->
 html_receive(Id) -->
 	[ mailbox(Id, accept(_)) ].
 
+%%	html_noreceive(+Id)// is det.
+%
+%	As html_receive//1, but discard posted messages.
+
+html_noreceive(Id) -->
+	[ mailbox(Id, ignore(_)) ].
+
 %%	mailman(+Tokens) is det.
 %
 %	Collect  posted  tokens  and  copy    them  into  the  receiving
@@ -593,6 +636,8 @@ mail_id(Id-List) :-
 	    ;	true
 	    ),
 	    phrase(posted(Posted), In)
+	;   Sorted = [ignore(_)|_]
+	->  true
 	;   print_message(error, html(no_receiver(Id)))
 	).
 
@@ -622,6 +667,10 @@ post_open(Env) -->
 post_open(_) -->
 	[].
 
+pre_close(head) --> !,
+	html_receive(head),
+	{ layout(head, _, N-_) },
+	[ nl(N) ].
 pre_close(Env) -->
 	{ layout(Env, _, N-_)
 	}, !,
