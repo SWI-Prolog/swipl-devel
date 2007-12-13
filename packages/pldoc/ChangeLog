@@ -1,3 +1,16 @@
+[Dec 11 2007]
+
+ * ADDED: Make PceEmacs use PlDoc for the Documentation link if the old manual
+   has no information.  Integration must be improved!
+   
+ * DOC: various enhancement to the presentation of pldoc @keywords
+
+[Dec 8 2007]
+
+ * FIXED: PlDoc LaTeX backend: Avoid underscores in generated \label commands.
+
+ * FIXED: PlDoc LaTeX backend: avoid breaking \verb$...$ over multiple lines
+
 [Nov 15 2007]
 
  * DOC: Included documentation for library(option) in the manual

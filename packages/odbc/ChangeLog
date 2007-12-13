@@ -1,3 +1,14 @@
+[Nov 29 2007]
+
+ * MODIFIED: Uptill now the SWI-Prolog interface had a work-around for an MS
+   SQL Server bug reporting the number of columns of meta-data wrong and providing
+   the wrong length for column names.  The work-around however could cause problems
+   with 0-bytes in real data and has now been disabled.  Matt Lilley.
+   
+[Nov 26 2007]
+
+ * FIXED: Bug#327: Use SQLGetData() for columns claiming to be zero-with.  Holger
+   Kanwischer
 [Nov 8 2007]
 
  * ADDED: Support for `MARS' connections in library(odbc).  Matt Lilley.

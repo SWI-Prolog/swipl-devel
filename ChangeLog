@@ -9,6 +9,43 @@
 
 
 ================================
+VERSION 5.6.48 December 13, 2007
+================================
+
+ * FIXED: Bug#330: Windows: profiler reports total CPU time instead of profiled code.
+   Gary Levin.
+   
+ * FIXED: Bug#331: Windows.  Saved state switches to directory of first argument.
+   Holger Kanwisher
+   
+ * FIXED: Atom-completion to properly display alternatives again.
+
+ * MODIFIED: renamed library(http/http_chunked) to library(http/http_stream).
+   Added range-limited streams
+   
+ * ENHANCED: Use const char* for the predicate name in PL_extension.
+   Roberto Bagnara.
+   
+ * FIXED: Windows CRLF issues writing to console
+
+ * ADDED: library(record) now also generates an is_<constructor>/1 clause.
+
+ * ADDED: library(http/json), providing (still incomplete) JSON support
+
+ * ADDED: same_term/2 to test terms to be really the same term at the same address.
+   Intended to be used together with setarg/3 and friends, but it can also be
+   useful for showing the actual factorization of a term.
+   
+ * FIXED: Bug#328: Possible crash in GC if there is a `frozen bar'.  Now results
+   in graceful stack overflow.  Keri Harris.
+   
+ * ADDED: meta_options/3 to perform meta-argument qualification on options lists.
+
+ * FIXED: Cause is_absolute_url/1 to fail on <driveletter>:...
+
+ * PORT: Bug#324: dlsym() issues on HP/UX.  Oleh Lozynskyy.
+
+================================
 VERSION 5.6.47 November 16, 2007
 ================================
 

@@ -1,3 +1,7 @@
+[Dec 13 2007]
+
+ * FIXED: library(rdf_write) to deal with operators.  Related to Bug#332
+
 Oct 29, 2007
 
   * FIXED: extract namespaces used in typed literals.   Yves Raimond.

@@ -1,3 +1,12 @@
+[Dec 12 2007]
+
+ * FIXED: area->overlap now fails on adjacent areas.  Maurizio Ferreira
+
+[Dec 11 2007]
+
+ * ADDED: Make PceEmacs use PlDoc for the Documentation link if the old manual
+   has no information.  Integration must be improved!
+   
 [Nov 15 2007]
 
  * ADDED: library(apply) with include/3, exclude/3, partition/5.

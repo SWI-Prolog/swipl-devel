@@ -1,3 +1,11 @@
+[Dec 11 2007]
+
+ * DOC: various enhancement to the presentation of pldoc @keywords
+
+[Nov 22 2007]
+
+ * DOC: Translate parameter tables into correct HTML
+
 Dec 20, 2006
 
 * ENHANCED: layout for non-css browsers.

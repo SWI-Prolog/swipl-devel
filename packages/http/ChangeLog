@@ -1,3 +1,28 @@
+[Dec 13 2007]
+
+ * ADDED: A predefined `head' receiver for http_post//2 and a predefined `xmlns'
+   receiver used by xhtml_ns//2 to define XML namespaces in xhml mode.  Clarified
+   documentation of the html_write library with examples on how to deal with HTML
+   head material.
+   
+[Dec 11 2007]
+
+ * DOC: various enhancement to the presentation of pldoc @keywords
+
+[Dec 7 2007]
+
+ * MODIFIED: renamed library(http/http_chunked) to library(http/http_stream).
+   Added range-limited streams
+   
+[Dec 5 2007]
+
+ * ADDED: library(http/http_json.pl), integrating JSON support into the
+   HTTP libraries.
+   
+[Dec 4 2007]
+
+ * ADDED: library(http/json), providing (still incomplete) JSON support
+
 [Nov 16 2007]
 
  * ENHANCED: Bug#323: no longer force bgcolor=white in pagebody//1. Chris Sutton.
