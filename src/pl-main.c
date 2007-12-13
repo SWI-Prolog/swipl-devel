@@ -632,7 +632,7 @@ the script file. This  mode  is   selected  if  SCRIPT_BREAKDOWN_ARGS is
 defined by configure.
 
 On Windows this is simply passed as below.   We have to analyse the file
-ourselves. Unfortunately this needs to be done  on C as it might contain
+ourselves. Unfortunately this needs to be done  in C as it might contain
 stack-parameters.
 
 	{plwin.exe <file>}
@@ -709,17 +709,6 @@ script_argv(int argc, char **argv)
     char *s;
     char *av[MAXARGV];
     int  an = 0;
-
-#ifdef __WINDOWS__
-    if ( argc == 2 )
-    { char tmp[MAXPATHLEN];
-      char dir[MAXPATHLEN];
-
-      _xos_canonical_filename(argv[1], tmp, MAXPATHLEN, 0);
-      if ( IsAbsolutePath(tmp) )
-	chdir(DirName(tmp, dir));
-    }
-#endif
 
     fgets(buf, sizeof(buf), fd);
     if ( !strprefix(buf, "#!") )
