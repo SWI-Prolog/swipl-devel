@@ -126,6 +126,7 @@
 :- use_module(library(nb_set)).
 :- use_module(library(error)).
 :- use_module(library(url)).
+:- use_module(library(debug)).
 :- use_module(rdf_cache).
 
 :- initialization
