@@ -991,8 +991,7 @@ labeling(Options, Vars) :-
 finite_domain(Var) :-
         (   var(Var) ->
             get(Var, Dom, _),
-            (   domain_infimum(Dom, n(_)),
-                domain_supremum(Dom, n(_)) -> true
+            (   domain_infimum(Dom, n(_)), domain_supremum(Dom, n(_)) -> true
             ;   instantiation_error(Var)
             )
         ;   integer(Var) -> true
@@ -2175,7 +2174,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
 
 run_propagator(pdiv(X,Y,Z), MState) :-
         (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), Z is X // Y
+            (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X // Y
             ;   get(Y, YD, YL, YU, YPs),
                 (   nonvar(Z) -> true
                     % TODO: cover this
@@ -2273,7 +2272,7 @@ run_propagator(pabs(X,Y), MState) :-
 
 run_propagator(pmod(X,M,K), MState) :-
         (   nonvar(X) ->
-            (   nonvar(M) -> kill(MState), K is X mod M
+            (   nonvar(M) -> kill(MState), M =\= 0, K is X mod M
             ;   true
             )
         ;   nonvar(M) ->
@@ -2384,10 +2383,14 @@ run_propagator(pmin(X,Y,Z), MState) :-
 % Z = X ^ Y
 
 run_propagator(pexp(X,Y,Z), MState) :-
-        (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), Z is X**Y
-            ;   true
-            )
+        (   X == 1 -> kill(MState), Z = 1
+        ;   X == 0 -> kill(MState), Z #<==> Y #= 0
+        ;   Y == 1 -> kill(MState), Z = X
+        ;   Y == 0 -> kill(MState), Z = 1
+        ;   nonvar(X), nonvar(Y) ->
+            ( Y >= 0 -> true ; X =:= -1 ),
+            kill(MState),
+            Z is X**Y
         ;   true
         ).
 
