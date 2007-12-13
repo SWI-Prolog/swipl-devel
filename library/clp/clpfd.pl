@@ -2195,6 +2195,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                 )
             )
         ;   nonvar(Y) ->
+            Y =\= 0,
             get(X, XD, XL, XU, XPs),
             (   nonvar(Z) ->
                 (   Z > 0, Y > 0 ->
@@ -2276,6 +2277,7 @@ run_propagator(pmod(X,M,K), MState) :-
             ;   true
             )
         ;   nonvar(M) ->
+            M =\= 0,
             (   M =:= 1 -> K = 0
             ;   get(K, KD, KPs) ->
                 MP is abs(M) - 1,
