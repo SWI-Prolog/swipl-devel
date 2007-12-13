@@ -80,6 +80,11 @@ activateProfiler(int active ARG_LD)
       (*types[i]->activate)(active);
   }
 
+  if ( active )
+  { /* consider using thread-time? */
+    LD->profile.time_at_start = CpuTime(CPU_USER); 
+  }
+
   sum_ok = FALSE;
 }
 
@@ -236,7 +241,6 @@ startProfiler(void)
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
   activateProfiler(TRUE PASS_LD);
-  LD->profile.time_at_start = CpuTime(CPU_USER); /* consider using thread-time? */
 
   succeed;
 }
