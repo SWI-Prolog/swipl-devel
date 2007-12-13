@@ -268,6 +268,38 @@ lang(save) :-
 
 
 		 /*******************************
+		 *	    NAMESPACES		*
+		 *******************************/
+
+term_expansion(ns_data(S0,P0,O0),
+	       ns_data(S,P,O)) :-
+	rdf_global_id(S0, S),
+	rdf_global_id(P0, P),
+	rdf_global_id(O0, O).
+
+:- rdf_register_ns(dynamic, 'http://www.dynamic.org/').
+
+ns_data(x, rdf:type, rdf:is).
+ns_data(y, rdf:type, rdf:(dynamic)).
+ns_data(z, rdf:type, (dynamic):rdf).
+ns_data(z, (dynamic):attr1, literal(dynamic)).
+ns_data(z, (dynamic):attr2, (dynamic):rdf).
+
+namespace(save) :-
+	findall(rdf(S,P,O), ns_data(S,P,O), Triples),
+	forall(member(rdf(S,P,O), Triples), rdf_assert(S,P,O)),
+	save_reload,
+	findall(rdf(S,P,O), rdf(S,P,O), NewTriples),
+	(   same_set(Triples, NewTriples)
+	->  true
+	;   format(user_error, 'NewTriples = ~q~n', [NewTriples]),
+	    fail
+	).
+
+
+
+
+		 /*******************************
 		 *	 LITERAL SHARING	*
 		 *******************************/
 
@@ -794,6 +826,7 @@ testset(same).
 testset(typed).
 testset(lang).
 testset(wide).
+testset(namespace).
 testset(update).
 testset(transaction).
 testset(label).
