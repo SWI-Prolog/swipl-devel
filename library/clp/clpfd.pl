@@ -1647,7 +1647,7 @@ domains([V|Vs], D) :- domain(V, D), domains(Vs, D).
 
 
 get(X, Dom, Ps) :-
-        (   get_attr(X, clpfd, Attr) -> Attr = clpfd(_,_,Dom,Ps)
+        (   get_attr(X, clpfd, Attr) -> Attr = clpfd(_,_,_,Dom,Ps)
         ;   var(X) -> default_domain(Dom), Ps = []
         ).
 
@@ -1657,60 +1657,91 @@ get(X, Dom, Inf, Sup, Ps) :-
         domain_supremum(Dom, Sup).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Set the experimental flag 'clpfd_propagation' to 'cautious' to make
-   propagation terminating. Currently, this is achieved by allowing
-   the left and right boundaries of each domain to be changed at most
-   once after a constraint is posted, unless the domain is bounded.
+   Set the experimental flag 'clpfd_propagation' to 'terminating' to
+   make propagation terminating. Currently, this is done by allowing
+   the left and right boundaries, as well as the distance between the
+   smallest and largest number occurring in the domain representation
+   to be changed at most once after a constraint is posted, unless the
+   domain is bounded.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 put(X, Dom, Pos) :-
-        (   current_prolog_flag(clpfd_propagation, cautious) ->
-            put_cautious(X, Dom, Pos)
+        (   current_prolog_flag(clpfd_propagation, terminating) ->
+            put_terminating(X, Dom, Pos)
         ;   put_full(X, Dom, Pos)
         ).
 
-put_cautious(X, Dom, Ps) :-
+put_terminating(X, Dom, Ps) :-
         Dom \== empty,
         (   Dom = from_to(F, F) -> F = n(X)
         ;   (   get_attr(X, clpfd, Attr) ->
-                Attr = clpfd(Left,Right,OldDom, _OldPs),
-                put_attr(X, clpfd, clpfd(Left,Right,Dom,Ps)),
+                Attr = clpfd(Left,Right,Spread,OldDom, _OldPs),
+                put_attr(X, clpfd, clpfd(Left,Right,Spread,Dom,Ps)),
                 (   OldDom == Dom -> true
                 ;   domain_intervals(Dom, Is),
                     domain_intervals(OldDom, Is) -> true
                 ;   domain_infimum(Dom, Inf), domain_supremum(Dom, Sup),
                     (   Inf = n(_), Sup = n(_) ->
-                        put_attr(X, clpfd, clpfd(.,.,Dom,Ps)),
+                        put_attr(X, clpfd, clpfd(.,.,.,Dom,Ps)),
                         trigger_props(Ps)
-                    ;   % infinite domain; check which side changed
+                    ;   % infinite domain; consider border and spread changes
                         domain_infimum(OldDom, OldInf),
-                        (   Inf == OldInf -> LeftProp = no
-                        ;   LeftProp = yes
+                        (   Inf == OldInf -> LeftP = Left
+                        ;   LeftP = yes
                         ),
                         domain_supremum(OldDom, OldSup),
-                        (   Sup == OldSup -> RightProp = no
-                        ;   RightProp = yes
+                        (   Sup == OldSup -> RightP = Right
+                        ;   RightP = yes
                         ),
-                        put_attr(X, clpfd, clpfd(LeftProp,RightProp,Dom,Ps)),
-                        (   RightProp == yes, Right = yes -> true
-                        ;   LeftProp == yes, Left = yes -> true
+                        domain_spread(OldDom, OldSpread),
+                        domain_spread(Dom, NewSpread),
+                        (   NewSpread == OldSpread -> SpreadP = Spread
+                        ;   SpreadP = yes
+                        ),
+                        put_attr(X, clpfd, clpfd(LeftP,RightP,SpreadP,Dom,Ps)),
+                        (   RightP == yes, Right = yes -> true
+                        ;   LeftP == yes, Left = yes -> true
+                        ;   SpreadP == yes, Spread = yes -> true
                         ;   trigger_props(Ps)
                         )
                     )
                 )
             ;   var(X) ->
-                put_attr(X, clpfd, clpfd(no,no,Dom, Ps))
+                put_attr(X, clpfd, clpfd(no,no,no,Dom, Ps))
             ;   true
             )
         ).
 
+domain_spread(Dom, Spread) :-
+        domain_smallest_finite(Dom, S),
+        domain_largest_finite(Dom, L),
+        Spread cis1 L - S.
+
+smallest_finite(inf, Y, Y).
+smallest_finite(n(N), _, n(N)).
+
+domain_smallest_finite(from_to(F,T), S) :- smallest_finite(F, T, S).
+domain_smallest_finite(split(_, L, _), S) :- domain_smallest_finite(L, S).
+
+largest_finite(sup, Y, Y).
+largest_finite(n(N), _, n(N)).
+
+domain_largest_finite(from_to(F,T), L) :- largest_finite(T, F, L).
+domain_largest_finite(split(_, _, R), L) :- domain_largest_finite(R, L).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   With terminating propagation, all relevant constraints get a
+   propagation opportunity whenever a new constraint is posted.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 reinforce(X) :-
-        (   current_prolog_flag(clpfd_propagation, cautious) ->
+        (   current_prolog_flag(clpfd_propagation, terminating) ->
             % reinforce([], X), do_queue
             collect_variables(X, [], Vs),
             maplist(reinforce_, Vs),
             do_queue
-        ;   true
+        ;   % full propagation reduces to fixpoint anyway
+            true
         ).
 
 collect_variables(X, Vs0, Vs) :-
@@ -1737,8 +1768,8 @@ put_full(X, Dom, Ps) :-
         Dom \== empty,
         (   Dom = from_to(F, F) -> F = n(X)
         ;   (   get_attr(X, clpfd, Attr) ->
-                Attr = clpfd(_,_,OldDom, _OldPs),
-                put_attr(X, clpfd, clpfd(no,no,Dom, Ps)),
+                Attr = clpfd(_,_,_,OldDom, _OldPs),
+                put_attr(X, clpfd, clpfd(no,no,no,Dom, Ps)),
                 %format("putting dom: ~w\n", [Dom]),
                 (   OldDom == Dom -> true
                 ;   domain_intervals(Dom, Is),
@@ -1746,7 +1777,7 @@ put_full(X, Dom, Ps) :-
                 ;   trigger_props(Ps)
                 )
             ;   var(X) -> %format('\t~w in ~w .. ~w\n',[X,L,U]),
-                put_attr(X, clpfd, clpfd(no,no,Dom, Ps))
+                put_attr(X, clpfd, clpfd(no,no,no,Dom, Ps))
             ;   true
             )
         ).
@@ -2829,7 +2860,7 @@ serialize_upper_bound(I, D_I, J, D_J) :-
    Hooks
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-attr_unify_hook(clpfd(_,_,Dom,Ps), Other) :-
+attr_unify_hook(clpfd(_,_,_,Dom,Ps), Other) :-
         (   nonvar(Other) ->
             (   integer(Other) -> true
             ;   type_error(integer, Other)
@@ -2849,7 +2880,7 @@ bound_portray(inf, inf).
 bound_portray(sup, sup).
 bound_portray(n(N), N).
 
-attr_portray_hook(clpfd(_,_,Dom,_), Var) :-
+attr_portray_hook(clpfd(_,_,_,Dom,_), Var) :-
         (   current_prolog_flag(clpfd_attribute_goal, true) ->
             % the default mechanism in SWI should eventually work like this,
             % with the toplevel using attribute_goal/2 for all attributes
@@ -2878,7 +2909,7 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
         intervals_to_drep(Rest, Drep0 \/ D1, Drep).
 
 attribute_goal(X, Goal) :-
-        get_attr(X, clpfd, clpfd(_,_,Dom,Ps)),
+        get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)),
         domain_to_drep(Dom, Drep),
         attributes_goals(Ps, X in Drep, Goal).
 
