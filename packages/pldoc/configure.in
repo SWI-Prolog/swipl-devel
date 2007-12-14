@@ -27,4 +27,4 @@ fi
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_PROG_INSTALL
 
-AC_OUTPUT(Makefile)
+AC_OUTPUT(Makefile server/man_server.pl)

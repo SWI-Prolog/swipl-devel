@@ -1,4 +1,4 @@
-#!/opt/local/bin/swipl -f none -g main -s
+#!@prefix@/bin/@PL@ -f none -g main -s
 
 :- doc_collect(true).
 :- use_module(library('pldoc/doc_library')).

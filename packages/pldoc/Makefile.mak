@@ -51,7 +51,7 @@ pdf-install:	install-examples
 install-examples::
 		if not exist "$(EXDIR)/$(NULL)" $(MKDIR) "$(EXDIR)"
 		cd server & @for %f in ($(EXAMPLES)) do @copy %f "$(EXDIR)"
-		cd server & copy $(EXAMPLEEXE) "$(EXDIR)"
+		cd server & copy $(EXAMPLEEXE).in "$(EXDIR)\$(EXAMPLEEXE)"
 
 xpce-install::
 
