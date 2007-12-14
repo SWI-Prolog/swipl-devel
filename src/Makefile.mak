@@ -199,7 +199,8 @@ check:
 install:	$(BINDIR) iprog install_packages
 !ELSE
 install:	install-arch install-libs install-readme install_packages \
-		xpce_packages install-dotfiles install-demo html-install
+		xpce_packages install-dotfiles install-demo html-install \
+		install-demo
 !ENDIF
 
 install-arch:	idirs iprog
@@ -240,12 +241,17 @@ install-libs:	idirs iinclude iboot ilib
 			-g make_library_index('.') \
 			-t halt
 
+install-demo:	idirs
+		$(INSTALL_DATA) ..\demo\likes.pl "$(PLBASE)\demo"
+		$(INSTALL_DATA) ..\demo\README "$(PLBASE)\demo\README.TXT"
+
 IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
 		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
 		"$(PLBASE)\library\dialect" "$(PLBASE)\library\dialect\yap" \
 		"$(PLBASE)\library\dialect\iso" \
-		"$(PLBASE)\library\unicode" $(MANDIR)
+		"$(PLBASE)\library\unicode" $(MANDIR) \
+		"$(PLBASE)\demo"
 
 $(IDIRS):
 		if not exist $@/$(NULL) $(MKDIR) $@

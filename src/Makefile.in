@@ -335,7 +335,7 @@ install-arch:	idirs iruntime
 		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(ARCH); \
 		done
 
-install-libs:	idirs iboot ilib iruntime iinclude iman idot
+install-libs:	idirs iboot ilib iruntime iinclude iman idot install-demo
 		$(INSTALL_DATA) $(STARTUPPATH) $(DESTDIR)$(PLBASE)/$(BOOTFILE)
 		echo . > $(DESTDIR)$(PLBASE)/swipl
 		echo .. > $(DESTDIR)$(PLBASE)/bin/swipl
@@ -343,7 +343,11 @@ install-libs:	idirs iboot ilib iruntime iinclude iman idot
 			-g make_library_index\(\'$(DESTDIR)$(PLBASE)/library\'\) \
 			-t halt
 
-installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
+install-demo:	idirs
+		$(INSTALL_DATA) ../demo/likes.pl $(DESTDIR)$(PLBASE)/demo
+		$(INSTALL_DATA) ../demo/README $(DESTDIR)$(PLBASE)/demo
+
+installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man demo boot library \
 		library/clp library/unicode include dotfiles \
 		library/dialect library/dialect/yap library/dialect/iso
 
