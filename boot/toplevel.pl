@@ -249,7 +249,7 @@ set_associated_file :-
 	file_directory_name(File, Dir),
 	working_directory(_, Dir),
 	set_prolog_flag(associated_file, File),
-	(   current_predicate(system:window_title(_, _))
+	(   current_predicate(system:window_title/2)
 	->  atom_concat('SWI-Prolog -- ', File, Title),
 	    system:window_title(_, Title)
 	;   true
