@@ -29,6 +29,10 @@
 #define __SWI_PROLOG__			/* normally defined by the plld compiler driver */
 #endif
 
+#if defined(_MSC_VER) && !defined(__WINDOWS__)
+#define __WINDOWS__ 1
+#endif
+
 #include <stdarg.h>
 #include <stdlib.h>			/* get size_t */
 #include <stddef.h>

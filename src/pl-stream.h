@@ -32,6 +32,10 @@
 #include <sys/_mbstate_t.h>
 #endif
 
+#if defined(_MSC_VER) && !defined(__WINDOWS__)
+#define __WINDOWS__ 1
+#endif
+
 #include <stdarg.h>
 #include <wchar.h>
 #include <stddef.h>
