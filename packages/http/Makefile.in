@@ -133,12 +133,12 @@ json.tex:	json.pl json_convert.pl http_json.pl
 ################################################################
 
 clean:
-		rm -f $(STREAMOBJ)
+		rm -f $(STREAMOBJ) $(JSONOBJ)
 		rm -f *~ *% config.log
 		rm -f $(TEX) $(SUBTEX)
 		$(RUNTEX) --clean $(DOC)
 		rm -rf html
 
 distclean:	clean
-		rm -f $(TARGETS) config.cache config.status Makefile
+		rm -f $(SOLIBS) config.cache config.status Makefile
 		
