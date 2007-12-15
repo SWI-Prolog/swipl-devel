@@ -615,7 +615,7 @@ is_json_pair(_, Var) :-
 	var(Var), !, fail.
 is_json_pair(Options, Name=Value) :-
 	atom(Name),
-	is_json_term2(Value, Options).
+	is_json_term2(Options, Value).
 
 
 		 /*******************************
