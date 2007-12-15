@@ -120,7 +120,7 @@ $(TEX):		$(DOCTOTEX)
 ################################################################
 
 clean:
-		rm -f $(OBJ) *~ *.o *% a.out core config.log
+		rm -f $(ZOBJ) *~ *.o *% a.out core config.log
 
 distclean:	clean
 		rm -f $(TARGETS) config.cache config.h config.status Makefile
