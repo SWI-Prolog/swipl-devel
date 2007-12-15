@@ -25,6 +25,8 @@
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 
+#define O_DEBUG 1
+
 static functor_t FUNCTOR_error2;	/* error(Formal, Context) */
 static functor_t FUNCTOR_type_error2;	/* type_error(Term, Expected) */
 static functor_t FUNCTOR_domain_error2;	/* domain_error(Term, Expected) */

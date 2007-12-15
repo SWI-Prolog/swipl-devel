@@ -160,7 +160,6 @@ pl_stream_range_open(term_t org, term_t new, term_t options)
   term_t head = PL_new_term_ref();
   range_context *ctx;
   IOSTREAM *s, *s2;
-  int close_parent = FALSE;
   int size = 0;
 
   while(PL_get_list(tail, head, tail))
