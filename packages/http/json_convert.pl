@@ -217,6 +217,9 @@ record_to_json_clause(Constructor, Module, Types, Names, Extra) -->
 %	addition to the types accepted by   must_be/2,  it accepts =any=
 %	and Name/Arity. The latter demands  a   json_object  term of the
 %	given Name and Arity.
+%	
+%	@tbd	Compile list(Type) specification.  Currently Type is
+%		handled like =any=
 
 type_checks([], [], [], true, _).
 type_checks([Type|T], [IV|IVars], [OV|OVars], (Goal, Body), M) :- !,
@@ -227,6 +230,9 @@ type_check(any, IV, OV, M, prolog_to_json(IV, OV, M)) :- !.
 type_check(Name/Arity, IV, OV, M, prolog_to_json(IV, OV, M)) :- !,
 	functor(IV, Name, Arity).
 type_check(boolean, IV, OV, _, prolog_bool_to_json(IV, OV)) :- !.
+type_check(list, IV, OV, M, prolog_list_to_json(IV, OV, M)) :- !.
+type_check(list(any), IV, OV, M, prolog_list_to_json(IV, OV, M)) :- !.
+type_check(list(_Type), IV, OV, M, prolog_list_to_json(IV, OV, M)) :- !.
 type_check(Type, V, V, _, Goal) :-
 	type_goal(Type, V, Goal).
 
