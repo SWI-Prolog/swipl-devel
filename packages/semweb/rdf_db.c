@@ -1095,21 +1095,22 @@ isSubPropertyOf(predicate *sub, predicate *p)
 
 static void
 print_reachability_cloud(predicate *p)
-{ int y;
+{ int x, y;
   predicate_cloud *cloud = p->cloud;
 
   Sdprintf("Reachability matrix:\n");
+  for(x=1; x<cloud->reachable->width; x++)
+    Sdprintf("%d", x%10);
+  Sdprintf("\n");
   for(y=1; y<cloud->reachable->heigth; y++)
-  { int x;
-
-    for(x=1; x<cloud->reachable->width; x++)
+  { for(x=1; x<cloud->reachable->width; x++)
     { if ( testbit(cloud->reachable, x, y) )
 	Sdprintf("X");
       else
 	Sdprintf(".");
     }
 
-    Sdprintf("\n");
+    Sdprintf(" %2d %s\n", y, PL_atom_chars(cloud->members[y-1]->name));
   }
 }
 
