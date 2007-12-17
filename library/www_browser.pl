@@ -38,8 +38,8 @@
 
 %%	www_open_url(+Url)
 %
-%	Open URL in running version of netscape or start a new netscape.
-%	Based on a windows-only version by Bob Wielinga.
+%	Open URL in running version of the users' browser or start a new
+%	browser. Based on a windows-only version by Bob Wielinga.
 %
 %	On Unix life is a bit harder as there is no established standard
 %	to figure out which browser to open.  We try:
@@ -63,7 +63,7 @@ www_open_url(Spec) :-			% Windows shell
 www_open_url(Spec) :-			% Unix `open document'
 	has_command(open), !,
 	expand_url_path(Spec, URL),
-	sformat(Cmd, 'open "~w"', [URL]),
+	format(string(Cmd), 'open "~w"', [URL]),
 	shell(Cmd).
 www_open_url(Spec) :-			% something we know
 	known_browser(Browser, _),
@@ -122,7 +122,7 @@ compatible(Browser, With) :-
 known_browser(firefox,   netscape).
 known_browser(mozilla,   netscape).
 known_browser(netscape,  netscape).
-known_browser(konquerer, -).
+known_browser(konqueror, -).
 known_browser(opera,     -).
 
 
@@ -160,6 +160,11 @@ has_command(Command) :-
 		 *	      NET PATHS		*
 		 *******************************/
 
+%%	url_path(+Alias, -Expansion) is nondet.
+%
+%	Define URL path aliases. This multifile  predicate is defined in
+%	module =user=. Expansion is either a URL, or a term Alias(Sub).
+
 :- multifile
 	user:url_path/2.
 
@@ -182,7 +187,7 @@ user:url_path(xpce_man,	   swi('projects/xpce/UserGuide')).
 %%	expand_url_path(+Spec, -URL)
 %
 %	Expand URL specifications similar   to absolute_file_name/3. The
-%	predicate url_path/2 plays the role of file_name_expansion/2.
+%	predicate url_path/2 plays the role of file_search_path/2.
 
 expand_url_path(URL, URL) :-
 	atomic(URL), !.			% Allow atom and string

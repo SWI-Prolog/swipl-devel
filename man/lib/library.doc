@@ -38,7 +38,7 @@ documented at all.
 \input{gensym}
 \input{lists}
 \input{nbset}
-\input{netscape}
+\input{wwwbrowser}
 \input{option}
 \input{ordsets}
 \input{pairs}

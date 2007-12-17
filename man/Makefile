@@ -39,7 +39,7 @@ WWWMAN=		~www/SWI-Prolog/Manual
 FTPDIR=		~ftp/SWI-Prolog
 BETAMAN=	~www/SWI-Prolog/BETA/Manual
 
-LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
+LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/registry.tex lib/check.tex lib/url.tex lib/debug.tex \
 		lib/lists.tex lib/bounds.tex lib/clpqr.tex lib/gensym.tex \
 		lib/nbset.tex lib/clpdistinct.tex lib/summary.tex \

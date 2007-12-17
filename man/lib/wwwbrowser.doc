@@ -1,4 +1,4 @@
-\libdoc{netscape}{Activating your Web-browser}
+\libdoc{www_browser}{Activating your Web-browser}
 
 This library deals with the very system dependent task of opening a
 web page in a browser.  See also \pllib{url} and the HTTP package.
