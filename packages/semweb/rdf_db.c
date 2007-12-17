@@ -864,15 +864,19 @@ append_clouds(rdf_db *db, predicate_cloud *c1, predicate_cloud *c2)
 
 
 /* merge two predicate clouds.  If either of them has no triples we
-   can do the merge without rehashing the database.
+   can do the merge without rehashing the database.  Note that this
+   code is only called from addSubPropertyOf().  If c1==c2, we added
+   an rdfs:subPropertyOf between two predicates in the same cloud.
+   we must still update the matrix, though we could do it a bit more
+   efficient.  I doubt this is worth the trouble though.
 */
 
 static predicate_cloud *
 merge_clouds(rdf_db *db, predicate_cloud *c1, predicate_cloud *c2)
-{ if ( c1 != c2 )
-  { predicate_cloud *cloud;
+{ predicate_cloud *cloud;
 
-    if ( triples_in_predicate_cloud(c1) == 0 )
+  if ( c1 != c2 )
+  { if ( triples_in_predicate_cloud(c1) == 0 )
     { cloud = append_clouds(db, c1, c2);
     } else if ( triples_in_predicate_cloud(c2) == 0 )
     { cloud = append_clouds(db, c2, c1);
@@ -880,13 +884,13 @@ merge_clouds(rdf_db *db, predicate_cloud *c1, predicate_cloud *c2)
     { cloud = append_clouds(db, c1, c2);
       db->need_update++;
     }
-
-    create_reachability_matrix(db, cloud);
-
-    return cloud;
+  } else
+  { cloud = c1;
   }
 
-  return c1;
+  create_reachability_matrix(db, cloud);
+  
+  return cloud;
 }
 
 
@@ -953,7 +957,9 @@ predicate_hash(predicate *p)
 
 static void
 addSubPropertyOf(rdf_db *db, predicate *sub, predicate *super)
-{ if ( add_list(db, &sub->subPropertyOf, super) )
+{ /*DEBUG(2, Sdprintf("addSubPropertyOf(%s, %s)\n", pname(sub), pname(super)));*/
+
+  if ( add_list(db, &sub->subPropertyOf, super) )
   { add_list(db, &super->siblings, sub);
     merge_clouds(db, sub->cloud, super->cloud);
   }
@@ -1056,7 +1062,7 @@ fill_reachable(bitmatrix *bm, predicate *p0, predicate *p)
 { if ( !testbit(bm, p0->label, p->label) )
   { cell *c;
 
-    DEBUG(1, Sdprintf(" [%s (%d)]", pname(p), p->label));
+    DEBUG(1, Sdprintf("    Reachable [%s (%d)]\n", pname(p), p->label));
     setbit(bm, p0->label, p->label);
     for(c = p->subPropertyOf.head; c; c=c->next)
       fill_reachable(bm, p0, c->value);
@@ -1072,7 +1078,10 @@ create_reachability_matrix(rdf_db *db, predicate_cloud *cloud)
 
   label_predicate_cloud(cloud);
   for(i=0, p=cloud->members; i<cloud->size; i++, p++)
+  { DEBUG(1, Sdprintf("Reachability for %s (%d)\n", pname(*p), (*p)->label));
+
     fill_reachable(m, *p, *p);
+  }
 
   if ( cloud->reachable )
     free_bitmatrix(db, cloud->reachable);
@@ -1099,18 +1108,19 @@ print_reachability_cloud(predicate *p)
   predicate_cloud *cloud = p->cloud;
 
   Sdprintf("Reachability matrix:\n");
-  for(x=1; x<cloud->reachable->width; x++)
+  for(x=0; x<cloud->reachable->width; x++)
     Sdprintf("%d", x%10);
   Sdprintf("\n");
-  for(y=1; y<cloud->reachable->heigth; y++)
-  { for(x=1; x<cloud->reachable->width; x++)
+  for(y=0; y<cloud->reachable->heigth; y++)
+  { for(x=0; x<cloud->reachable->width; x++)
     { if ( testbit(cloud->reachable, x, y) )
 	Sdprintf("X");
       else
 	Sdprintf(".");
     }
 
-    Sdprintf(" %2d %s\n", y, PL_atom_chars(cloud->members[y-1]->name));
+    Sdprintf(" %2d %s\n", y, PL_atom_chars(cloud->members[y]->name));
+    assert(cloud->members[y]->label == y);
   }
 }
 
