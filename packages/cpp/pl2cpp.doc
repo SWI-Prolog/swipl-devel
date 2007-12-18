@@ -710,7 +710,8 @@ way of defining foreign predicates as well as constructors to deal with
 more conventional foreign predicate definitions.
 
 \begin{description}
-    \constructor{PlRegister}{const char *name,
+    \constructor{PlRegister}{const char *module,
+			     const char *name,
 			     int arity,
 			     foreign_t (f)(term_t t0, int a, control_t ctx)}
 Register \arg{f} as a the implementation of the foreign predicate
@@ -719,7 +720,8 @@ convention, where the argument list of the predicate is passed using an
 array of \type{term_t} objects as returned by PL_new_term_refs().  This
 interface poses no limits on the arity of the predicate and is faster,
 especially for a large number of arguments.
-    \constructor{PlRegister}{const char *name,
+    \constructor{PlRegister}{const char *module,
+			     const char *name,
 			     foreign_t (*f)(PlTerm a0, \ldots)}
 Registers functions for use with the traditional calling conventional,
 where each positional argument to the predicate is passed as an argument
@@ -732,7 +734,7 @@ pl_hello(PlTerm a1)
 { ...
 }
 
-PlRegister x_hello_1("hello", 1, pl_hello);
+PlRegister x_hello_1(NULL, "hello", 1, pl_hello);
 \end{code}
 
 This construct is currently supported upto 3 arguments.

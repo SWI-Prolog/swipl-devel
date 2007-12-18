@@ -225,19 +225,31 @@ ns(xhtml, 'http://www.w3.org/1999/xhtml').
 %	html_set_options/1.
 
 page(Content) -->
-	{ html_current_option(doctype(DocType)) },
-	[ '<!DOCTYPE ', DocType, '>'
-	],
+	doctype,
 	html(html(Content)).
 
 page(Head, Body) -->
-	{ html_current_option(doctype(DocType)) },
-	[ '<!DOCTYPE ', DocType, '>'
-	],
+	doctype,
 	html_begin(html),
 	pagehead(Head),
 	pagebody(Body),
 	html_end(html).
+
+%%	doctype//
+%
+%	Emit the =|<DOCTYPE ...|= header.  The   doctype  comes from the
+%	option doctype(DOCTYPE) (see html_set_options/1).   Setting  the
+%	doctype to '' (empty  atom)   suppresses  the header completely.
+%	This is to avoid a IE bug in processing AJAX output ...
+
+doctype -->
+	{ html_current_option(doctype(DocType)),
+	  DocType \== ''
+	}, !,
+	[ '<!DOCTYPE ', DocType, '>' ].
+doctype -->
+	[].
+
 
 pagehead(Head) -->
 	{ functor(Head, head, _)

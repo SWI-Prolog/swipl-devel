@@ -85,21 +85,28 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
 }
 
 span.pred-ext
 { font-weight: bold;
 }
 
+span.pred-tag
+{ float: right;
+font-size: 80%;
+font-style: italic;
+color: #202020;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -130,69 +137,69 @@ to Prolog and registering foreign predicates.
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
 <DIV class="toc">
-<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Examples</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">Hello(World)</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:3.2"><SPAN class="sec-nr">3.2</SPAN><SPAN class="sec-title">Adding 
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Overview</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Examples</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.1"><SPAN class="sec-nr">3.1</SPAN> <SPAN class="sec-title">Hello(World)</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.2"><SPAN class="sec-nr">3.2</SPAN> <SPAN class="sec-title">Adding 
 numbers</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:3.3"><SPAN class="sec-nr">3.3</SPAN><SPAN class="sec-title">Average 
+<DIV class="toc-h3"><A class="sec" href="#sec:3.3"><SPAN class="sec-nr">3.3</SPAN> <SPAN class="sec-title">Average 
 of solutions</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">The 
 class PlTerm</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:4.1"><SPAN class="sec-nr">4.1</SPAN><SPAN class="sec-title">Constructors</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:4.2"><SPAN class="sec-nr">4.2</SPAN><SPAN class="sec-title">Casting 
+<DIV class="toc-h3"><A class="sec" href="#sec:4.1"><SPAN class="sec-nr">4.1</SPAN> <SPAN class="sec-title">Constructors</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.2"><SPAN class="sec-nr">4.2</SPAN> <SPAN class="sec-title">Casting 
 PlTerm to native C-types</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:4.3"><SPAN class="sec-nr">4.3</SPAN><SPAN class="sec-title">Unification</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:4.4"><SPAN class="sec-nr">4.4</SPAN><SPAN class="sec-title">Comparison</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:4.5"><SPAN class="sec-nr">4.5</SPAN><SPAN class="sec-title">Analysing 
+<DIV class="toc-h3"><A class="sec" href="#sec:4.3"><SPAN class="sec-nr">4.3</SPAN> <SPAN class="sec-title">Unification</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.4"><SPAN class="sec-nr">4.4</SPAN> <SPAN class="sec-title">Comparison</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.5"><SPAN class="sec-nr">4.5</SPAN> <SPAN class="sec-title">Analysing 
 compound terms</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:4.6"><SPAN class="sec-nr">4.6</SPAN><SPAN class="sec-title">Miscellaneous</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:4.7"><SPAN class="sec-nr">4.7</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h3"><A class="sec" href="#sec:4.6"><SPAN class="sec-nr">4.6</SPAN> <SPAN class="sec-title">Miscellaneous</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.7"><SPAN class="sec-nr">4.7</SPAN> <SPAN class="sec-title">The 
 class PlString</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:4.8"><SPAN class="sec-nr">4.8</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h3"><A class="sec" href="#sec:4.8"><SPAN class="sec-nr">4.8</SPAN> <SPAN class="sec-title">The 
 class PlCodeList</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:4.9"><SPAN class="sec-nr">4.9</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h3"><A class="sec" href="#sec:4.9"><SPAN class="sec-nr">4.9</SPAN> <SPAN class="sec-title">The 
 class PlCharList</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:4.10"><SPAN class="sec-nr">4.10</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h3"><A class="sec" href="#sec:4.10"><SPAN class="sec-nr">4.10</SPAN> <SPAN class="sec-title">The 
 class PlCompound</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:4.11"><SPAN class="sec-nr">4.11</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h3"><A class="sec" href="#sec:4.11"><SPAN class="sec-nr">4.11</SPAN> <SPAN class="sec-title">The 
 class PlTail</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">The 
 class PlTermv</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Supporting 
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">Supporting 
 Prolog constants</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">The 
 class PlRegister</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN> <SPAN class="sec-title">The 
 class PlQuery</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:8.1"><SPAN class="sec-nr">8.1</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h3"><A class="sec" href="#sec:8.1"><SPAN class="sec-nr">8.1</SPAN> <SPAN class="sec-title">The 
 class PlFrame</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN> <SPAN class="sec-title">The 
 PREDICATE macro</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">Controlling 
+<DIV class="toc-h3"><A class="sec" href="#sec:9.1"><SPAN class="sec-nr">9.1</SPAN> <SPAN class="sec-title">Controlling 
 the Prolog destination module</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Exceptions</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:10.1"><SPAN class="sec-nr">10.1</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN> <SPAN class="sec-title">Exceptions</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:10.1"><SPAN class="sec-nr">10.1</SPAN> <SPAN class="sec-title">The 
 class PlException</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:10.2"><SPAN class="sec-nr">10.2</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h3"><A class="sec" href="#sec:10.2"><SPAN class="sec-nr">10.2</SPAN> <SPAN class="sec-title">The 
 class PlTypeError</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:10.3"><SPAN class="sec-nr">10.3</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h3"><A class="sec" href="#sec:10.3"><SPAN class="sec-nr">10.3</SPAN> <SPAN class="sec-title">The 
 class PlDomainError</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:11"><SPAN class="sec-nr">11</SPAN><SPAN class="sec-title">Embedded 
+<DIV class="toc-h2"><A class="sec" href="#sec:11"><SPAN class="sec-nr">11</SPAN> <SPAN class="sec-title">Embedded 
 applications</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:12"><SPAN class="sec-nr">12</SPAN><SPAN class="sec-title">Considerations</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:12.1"><SPAN class="sec-nr">12.1</SPAN><SPAN class="sec-title">The 
+<DIV class="toc-h2"><A class="sec" href="#sec:12"><SPAN class="sec-nr">12</SPAN> <SPAN class="sec-title">Considerations</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:12.1"><SPAN class="sec-nr">12.1</SPAN> <SPAN class="sec-title">The 
 C++ versus the C interface</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:12.2"><SPAN class="sec-nr">12.2</SPAN><SPAN class="sec-title">Static 
+<DIV class="toc-h3"><A class="sec" href="#sec:12.2"><SPAN class="sec-nr">12.2</SPAN> <SPAN class="sec-title">Static 
 linking and embedding</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:12.3"><SPAN class="sec-nr">12.3</SPAN><SPAN class="sec-title">Status 
+<DIV class="toc-h3"><A class="sec" href="#sec:12.3"><SPAN class="sec-nr">12.3</SPAN> <SPAN class="sec-title">Status 
 and compiler versions</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:12.4"><SPAN class="sec-nr">12.4</SPAN><SPAN class="sec-title">Limitations</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:13"><SPAN class="sec-nr">13</SPAN><SPAN class="sec-title">Conclusions</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:12.4"><SPAN class="sec-nr">12.4</SPAN> <SPAN class="sec-title">Limitations</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:13"><SPAN class="sec-nr">13</SPAN> <SPAN class="sec-title">Conclusions</SPAN></A></DIV>
 </DIV>
 
-<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <P>C++ provides a number of features that make it possible to define a 
 much more natural and concise interface to dynamically typed languages 
@@ -215,7 +222,7 @@ and compatible to the STL framework. See
 <P>I would like to thank Anjo Anjewierden for comments on the 
 definition, implementation and documentation of this package.
 
-<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></H2>
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Overview</SPAN></A></H2>
 
 <P>The most useful area for exploiting C++ features is type-conversion. 
 Prolog variables are dynamically typed and all information is passed 
@@ -314,12 +321,12 @@ C++ global constructors for registering foreign predicates.
 <P>The required C(++) function header and registration of a predicate is 
 arranged through a macro called <B>PREDICATE()</B>.
 
-<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Examples</SPAN></A></H2>
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Examples</SPAN></A></H2>
 
 <P>Before going into a detailed description of the C++ classes we 
 present a few examples illustrating the `feel' of the interface.
 
-<H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">Hello(World)</SPAN></A></H3>
+<H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN> <SPAN class="sec-title">Hello(World)</SPAN></A></H3>
 
 <P>This very simple example shows the basic definition of the predicate
 <A NAME="idx:hello1:2"></A><SPAN class="pred-ext">hello/1</SPAN> and how 
@@ -352,7 +359,7 @@ Hello _G170
 X = _G170
 </PRE>
 
-<H3><A NAME="sec:3.2"><SPAN class="sec-nr">3.2</SPAN><SPAN class="sec-title">Adding 
+<H3><A NAME="sec:3.2"><SPAN class="sec-nr">3.2</SPAN> <SPAN class="sec-title">Adding 
 numbers</SPAN></A></H3>
 
 <P>This example shows arithmetic using the C++ interface, including 
@@ -382,7 +389,7 @@ X = 3.
    Exception: (  7) add(a, 2, _G197) ?
 </PRE>
 
-<H3><A NAME="sec:3.3"><SPAN class="sec-nr">3.3</SPAN><SPAN class="sec-title">Average 
+<H3><A NAME="sec:3.3"><SPAN class="sec-nr">3.3</SPAN> <SPAN class="sec-title">Average 
 of solutions</SPAN></A></H3>
 
 <P>This example is a bit harder. The predicate <A NAME="idx:average3:5"></A><SPAN class="pred-ext">average/3</SPAN> 
@@ -412,14 +419,14 @@ PREDICATE(average, 3)
 }
 </PRE>
 
-<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">The 
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">The 
 class PlTerm</SPAN></A></H2>
 
 <P>As we have seen from the examples, the <A class="" href="#class:PlTerm">PlTerm</A> 
 class plays a central role in conversion and operating on Prolog data. 
 This section provides complete documentation of this class.
 
-<H3><A NAME="sec:4.1"><SPAN class="sec-nr">4.1</SPAN><SPAN class="sec-title">Constructors</SPAN></A></H3>
+<H3><A NAME="sec:4.1"><SPAN class="sec-nr">4.1</SPAN> <SPAN class="sec-title">Constructors</SPAN></A></H3>
 
 <DL>
 <DT><STRONG>PlTerm :: PlTerm</STRONG>(<VAR></VAR>)</DT>
@@ -476,7 +483,7 @@ PREDICATE(free_my_object, 1)
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:4.2"><SPAN class="sec-nr">4.2</SPAN><SPAN class="sec-title">Casting 
+<H3><A NAME="sec:4.2"><SPAN class="sec-nr">4.2</SPAN> <SPAN class="sec-title">Casting 
 PlTerm to native C-types</SPAN></A></H3>
 
 <P><A class="" href="#class:PlTerm">PlTerm</A> can be casted to the 
@@ -520,7 +527,7 @@ PlTerm::PlTerm(void*).
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.3"><SPAN class="sec-nr">4.3</SPAN><SPAN class="sec-title">Unification</SPAN></A></H3>
+<H3><A NAME="sec:4.3"><SPAN class="sec-nr">4.3</SPAN> <SPAN class="sec-title">Unification</SPAN></A></H3>
 
 <DL>
 <DT class="pubdef"><A NAME="PlTerm::operator=()"><VAR>int</VAR> <STRONG>PlTerm::operator 
@@ -551,7 +558,7 @@ PREDICATE(hostname, 1)
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:4.4"><SPAN class="sec-nr">4.4</SPAN><SPAN class="sec-title">Comparison</SPAN></A></H3>
+<H3><A NAME="sec:4.4"><SPAN class="sec-nr">4.4</SPAN> <SPAN class="sec-title">Comparison</SPAN></A></H3>
 
 <DL>
 <DT class="pubdef"><A NAME="PlTerm::operator==()"><VAR>int</VAR> <STRONG>PlTerm::operator 
@@ -637,7 +644,7 @@ an atom or string holding the text ``now''. </TD></TR>
 
 </CENTER>
 
-<H3><A NAME="sec:4.5"><SPAN class="sec-nr">4.5</SPAN><SPAN class="sec-title">Analysing 
+<H3><A NAME="sec:4.5"><SPAN class="sec-nr">4.5</SPAN> <SPAN class="sec-title">Analysing 
 compound terms</SPAN></A></H3>
 
 <P>Compound terms can be viewed as an array of terms with a name and 
@@ -686,7 +693,7 @@ if the argument is not compound.
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.6"><SPAN class="sec-nr">4.6</SPAN><SPAN class="sec-title">Miscellaneous</SPAN></A></H3>
+<H3><A NAME="sec:4.6"><SPAN class="sec-nr">4.6</SPAN> <SPAN class="sec-title">Miscellaneous</SPAN></A></H3>
 
 <DL>
 <DT class="pubdef"><A NAME="PlTerm::type()"><VAR>int</VAR> <STRONG>PlTerm::type</STRONG>(<VAR></VAR>)</A></DT>
@@ -702,7 +709,7 @@ possible undesirable effects a number of subclasses of <A class="" href="#class:
 have been defined that provide constructors for creating special Prolog 
 terms. These subclasses are defined below.
 
-<H3><A NAME="sec:4.7"><SPAN class="sec-nr">4.7</SPAN><SPAN class="sec-title">The 
+<H3><A NAME="sec:4.7"><SPAN class="sec-nr">4.7</SPAN> <SPAN class="sec-title">The 
 class PlString</SPAN></A></H3>
 
 <P>A SWI-Prolog string represents a byte-string on the global stack. 
@@ -724,7 +731,7 @@ The <VAR>text</VAR> may contain 0-characters and is copied.
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.8"><SPAN class="sec-nr">4.8</SPAN><SPAN class="sec-title">The 
+<H3><A NAME="sec:4.8"><SPAN class="sec-nr">4.8</SPAN> <SPAN class="sec-title">The 
 class PlCodeList</SPAN></A></H3>
 
 <DL>
@@ -734,7 +741,7 @@ Create a Prolog list of ASCII codes from a 0-terminated C-string.
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.9"><SPAN class="sec-nr">4.9</SPAN><SPAN class="sec-title">The 
+<H3><A NAME="sec:4.9"><SPAN class="sec-nr">4.9</SPAN> <SPAN class="sec-title">The 
 class PlCharList</SPAN></A></H3>
 
 <P>Character lists are compliant to Prolog's <A NAME="idx:atomchars2:8"></A><SPAN class="pred-ext">atom_chars/2</SPAN> 
@@ -748,7 +755,7 @@ C-string.
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.10"><SPAN class="sec-nr">4.10</SPAN><SPAN class="sec-title">The 
+<H3><A NAME="sec:4.10"><SPAN class="sec-nr">4.10</SPAN> <SPAN class="sec-title">The 
 class PlCompound</SPAN></A></H3>
 
 <DL>
@@ -773,7 +780,7 @@ PlCompound("hello", PlTermv("world"))
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:4.11"><SPAN class="sec-nr">4.11</SPAN><SPAN class="sec-title">The 
+<H3><A NAME="sec:4.11"><SPAN class="sec-nr">4.11</SPAN> <SPAN class="sec-title">The 
 class PlTail</SPAN></A></H3>
 
 <A NAME="sec:pltail"></A>
@@ -856,7 +863,7 @@ PREDICATE(write_list, 1)
 <P></DD>
 </DL>
 
-<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">The 
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">The 
 class PlTermv</SPAN></A></H2>
 
 <P>The class <A class="" href="#class:PlTermv">PlTermv</A> represents an 
@@ -902,7 +909,7 @@ construction should be used:
 <P></DD>
 </DL>
 
-<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Supporting 
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">Supporting 
 Prolog constants</SPAN></A></H2>
 
 <P>Both for quick comparison as for quick building of lists of atoms, it 
@@ -1012,7 +1019,7 @@ Compares the two atom-handles, returning <CODE>TRUE</CODE> or
 </DD>
 </DL>
 
-<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">The 
+<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">The 
 class PlRegister</SPAN></A></H2>
 
 <P>This class encapsulates PL_register_foreign(). It is defined as a 
@@ -1022,8 +1029,9 @@ way of defining foreign predicates as well as constructors to deal with
 more conventional foreign predicate definitions.
 
 <DL>
-<DT><STRONG>PlRegister :: PlRegister</STRONG>(<VAR>const char *name, int 
-arity, foreign_t (f)(term_t t0, int a, control_t ctx)</VAR>)</DT>
+<DT><STRONG>PlRegister :: PlRegister</STRONG>(<VAR>const char *module, 
+const char *name, int arity, foreign_t (f)(term_t t0, int a, control_t 
+ctx)</VAR>)</DT>
 <DD class="defbody">
 Register <VAR>f</VAR> as a the implementation of the foreign predicate
 &lt;<VAR>name</VAR>&gt;/&lt;<VAR>arity</VAR>&gt;. This interface uses 
@@ -1033,8 +1041,8 @@ objects as returned by PL_new_term_refs(). This interface poses no
 limits on the arity of the predicate and is faster, especially for a 
 large number of arguments.
 </DD>
-<DT><STRONG>PlRegister :: PlRegister</STRONG>(<VAR>const char *name, 
-foreign_t (*f)(PlTerm a0, ... )</VAR>)</DT>
+<DT><STRONG>PlRegister :: PlRegister</STRONG>(<VAR>const char *module, 
+const char *name, foreign_t (*f)(PlTerm a0, ... )</VAR>)</DT>
 <DD class="defbody">
 Registers functions for use with the traditional calling conventional, 
 where each positional argument to the predicate is passed as an argument 
@@ -1047,14 +1055,14 @@ pl_hello(PlTerm a1)
 { ...
 }
 
-PlRegister x_hello_1("hello", 1, pl_hello);
+PlRegister x_hello_1(NULL, "hello", 1, pl_hello);
 </PRE>
 
 <P>This construct is currently supported upto 3 arguments.
 </DD>
 </DL>
 
-<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">The 
+<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN> <SPAN class="sec-title">The 
 class PlQuery</SPAN></A></H2>
 
 <P>This class encapsulates the call-backs onto Prolog.
@@ -1120,7 +1128,7 @@ Prolog load a file.
 </DD>
 </DL>
 
-<H3><A NAME="sec:8.1"><SPAN class="sec-nr">8.1</SPAN><SPAN class="sec-title">The 
+<H3><A NAME="sec:8.1"><SPAN class="sec-nr">8.1</SPAN> <SPAN class="sec-title">The 
 class PlFrame</SPAN></A></H3>
 
 <P>The class <A class="" href="#class:PlFrame">PlFrame</A> provides an 
@@ -1182,7 +1190,7 @@ PREDICATE(can_unify, 2)
 }
 </PRE>
 
-<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">The 
+<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN> <SPAN class="sec-title">The 
 PREDICATE macro</SPAN></A></H2>
 
 <P>The PREDICATE macro is there to make your code look nice, taking care 
@@ -1219,7 +1227,7 @@ maps exceptions raised in the body to Prolog exceptions. The <A class="" href="#
 global constructor registers the predicate. Finally, the function header 
 for the implementation is created.
 
-<H3><A NAME="sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">Controlling 
+<H3><A NAME="sec:9.1"><SPAN class="sec-nr">9.1</SPAN> <SPAN class="sec-title">Controlling 
 the Prolog destination module</SPAN></A></H3>
 
 <P>With no special precautions, the predicates are defined into the 
@@ -1250,7 +1258,7 @@ PREDICATE(pi, 1)
 X = 3.14159
 </PRE>
 
-<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Exceptions</SPAN></A></H2>
+<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN> <SPAN class="sec-title">Exceptions</SPAN></A></H2>
 
 <P>Prolog exceptions are mapped to C++ exceptions using the subclass
 <A class="" href="#class:PlException">PlException</A> of <A class="" href="#class:PlTerm">PlTerm</A> 
@@ -1274,7 +1282,7 @@ calling throw().
   throw PlException(PlCompound("no_database", PlTerm(data)));
 </PRE>
 
-<H3><A NAME="sec:10.1"><SPAN class="sec-nr">10.1</SPAN><SPAN class="sec-title">The 
+<H3><A NAME="sec:10.1"><SPAN class="sec-nr">10.1</SPAN> <SPAN class="sec-title">The 
 class PlException</SPAN></A></H3>
 
 <P>This subclass of <A class="" href="#class:PlTerm">PlTerm</A> is used 
@@ -1339,7 +1347,7 @@ PREDICATE(call_atom, 1)
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:10.2"><SPAN class="sec-nr">10.2</SPAN><SPAN class="sec-title">The 
+<H3><A NAME="sec:10.2"><SPAN class="sec-nr">10.2</SPAN> <SPAN class="sec-title">The 
 class PlTypeError</SPAN></A></H3>
 
 <P>A <EM>type error</EM> expresses that a term does not satisfy the 
@@ -1355,7 +1363,7 @@ satisfy this type.
 </DD>
 </DL>
 
-<H3><A NAME="sec:10.3"><SPAN class="sec-nr">10.3</SPAN><SPAN class="sec-title">The 
+<H3><A NAME="sec:10.3"><SPAN class="sec-nr">10.3</SPAN> <SPAN class="sec-title">The 
 class PlDomainError</SPAN></A></H3>
 
 <P>A <EM>domain error</EM> expresses that a term satisfies the basic 
@@ -1374,7 +1382,7 @@ Creates an ISO standard Prolog error term expressing a the
 </DD>
 </DL>
 
-<H2><A NAME="sec:11"><SPAN class="sec-nr">11</SPAN><SPAN class="sec-title">Embedded 
+<H2><A NAME="sec:11"><SPAN class="sec-nr">11</SPAN> <SPAN class="sec-title">Embedded 
 applications</SPAN></A></H2>
 
 <P>Most of the above assumes Prolog is `in charge' of the application 
@@ -1414,9 +1422,9 @@ Calls PL_cleanup() to destroy all data created by the Prolog engine.
 <P><A class="sec" href="#sec:4.11">Section 4.11</A> has a simple example 
 using this class.
 
-<H2><A NAME="sec:12"><SPAN class="sec-nr">12</SPAN><SPAN class="sec-title">Considerations</SPAN></A></H2>
+<H2><A NAME="sec:12"><SPAN class="sec-nr">12</SPAN> <SPAN class="sec-title">Considerations</SPAN></A></H2>
 
-<H3><A NAME="sec:12.1"><SPAN class="sec-nr">12.1</SPAN><SPAN class="sec-title">The 
+<H3><A NAME="sec:12.1"><SPAN class="sec-nr">12.1</SPAN> <SPAN class="sec-title">The 
 C++ versus the C interface</SPAN></A></H3>
 
 <P>Not all functionality of the C-interface is provided, but as
@@ -1432,7 +1440,7 @@ Use of some intermediate types (<B><CODE>functor_t</CODE></B> etc.) is
 not supported in the current interface, causing more hash-table lookups. 
 This could be fixed, at the price of slighly complicating the interface.
 
-<H3><A NAME="sec:12.2"><SPAN class="sec-nr">12.2</SPAN><SPAN class="sec-title">Static 
+<H3><A NAME="sec:12.2"><SPAN class="sec-nr">12.2</SPAN> <SPAN class="sec-title">Static 
 linking and embedding</SPAN></A></H3>
 
 <P>The mechanisms outlined in this document can be used for static 
@@ -1443,7 +1451,7 @@ PL_register_foreign() can be called <EM>before</EM> PL_initialise(),
 which is required to handle the calls from the global <A class="" href="#class:PlRegister">PlRegister</A> 
 calls.
 
-<H3><A NAME="sec:12.3"><SPAN class="sec-nr">12.3</SPAN><SPAN class="sec-title">Status 
+<H3><A NAME="sec:12.3"><SPAN class="sec-nr">12.3</SPAN> <SPAN class="sec-title">Status 
 and compiler versions</SPAN></A></H3>
 
 <P>The current interface is entirely defined in the <CODE>.h</CODE> file 
@@ -1457,7 +1465,7 @@ different versions of the header file with few compatibility
 consequences. If the interface stabilises we will consider options to 
 share more code.
 
-<H3><A NAME="sec:12.4"><SPAN class="sec-nr">12.4</SPAN><SPAN class="sec-title">Limitations</SPAN></A></H3>
+<H3><A NAME="sec:12.4"><SPAN class="sec-nr">12.4</SPAN> <SPAN class="sec-title">Limitations</SPAN></A></H3>
 
 <P>Currently, the following limitations are recognised:
 
@@ -1473,7 +1481,7 @@ The current interface does not provide for foreign-defined
 non-deterministic predicates. It would not be hard to add this.
 </UL>
 
-<H2><A NAME="sec:13"><SPAN class="sec-nr">13</SPAN><SPAN class="sec-title">Conclusions</SPAN></A></H2>
+<H2><A NAME="sec:13"><SPAN class="sec-nr">13</SPAN> <SPAN class="sec-title">Conclusions</SPAN></A></H2>
 
 <A NAME="sec:conclusions"></A>
 
