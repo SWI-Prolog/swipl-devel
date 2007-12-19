@@ -2924,7 +2924,20 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
 attribute_goal(X, Goal) :-
         get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)),
         domain_to_drep(Dom, Drep),
-        attributes_goals(Ps, X in Drep, Goal).
+        attributes_goals(Ps, X in Drep, Goal0),
+        dotreverse(Goal0, Goal1),
+        dot_list(Goal1, Ls, []),
+        reverse(Ls, Ls1),
+        list_dot(Ls1, Goal).
+
+dot_list((A,B)) --> !, [A], dot_list(B).
+dot_list(A)     --> [A].
+
+list_dot([A], A)        :- !.
+list_dot([A|As], (A,G)) :- list_dot(As, G).
+
+dotreverse((A,B), (B,R)) :- !, dotreverse(A, R).
+dotreverse(G, G).
 
 attributes_goals([], Goal, Goal).
 attributes_goals([propagator(P, State)|As], Goal0, Goal) :-
