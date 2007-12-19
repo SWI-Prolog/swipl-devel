@@ -3474,7 +3474,7 @@ atom is referenced by the goal-term anyway.
 
 	  lTop = (LocalFrame)argFrameP(next, 1);
 	  fid = PL_open_foreign_frame();
-	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(a));
+	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(argFrameP(next, 0)));
 	  PL_close_foreign_frame(fid);
 	  goto b_throw;
 	}
@@ -3501,7 +3501,7 @@ atom is referenced by the goal-term anyway.
 	  args    = argTermP(goal, 0);
 	} else
 	{ lTop = (LocalFrame)argFrameP(next, 1);
-	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(a));
+	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(argFrameP(next, 0)));
 	  goto b_throw;
 	}
 
@@ -3916,8 +3916,9 @@ Scan the list and add the elements to the argument vector of the frame.
 	  deRef(lp);
 	}
 	if ( !isNil(*lp) )
-	{ PL_error("apply", 2, NULL, ERR_TYPE,
-		   ATOM_list, wordToTermRef(lp));
+	{ lTop = (LocalFrame)argFrameP(next, 2);
+	  PL_error("apply", 2, NULL, ERR_TYPE,
+		   ATOM_list, wordToTermRef(argFrameP(next, 1)));
 	  goto b_throw;
 	}
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
