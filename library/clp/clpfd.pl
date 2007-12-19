@@ -1870,7 +1870,10 @@ lex_le([V1|V1s], [V2|V2s]) :-
 % list Tuples are constrained to be elements of Relation.
 
 tuples_in(Tuples, Relation) :-
+        must_be(list, Relation),
         must_be(ground, Relation),
+        maplist(must_be(list), Relation),
+        maplist(maplist(must_be(integer)), Relation),
         tuples_domain(Tuples, Relation),
         do_queue.
 
@@ -1930,7 +1933,8 @@ all_in_domain([A|As], [T|Ts]) :-
         ( var(T) ->
             get(T, Dom, _),
             domain_contains(Dom, A)
-        ;   T =:= A
+        ;   must_be(integer, T),
+            T =:= A
         ),
         all_in_domain(As, Ts).
 
@@ -2940,6 +2944,7 @@ attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
 attribute_goal_(pneq(A,B), A #\= B).
 attribute_goal_(ptimes(X,Y,Z), X*Y #= Z).
 attribute_goal_(pdiv(X,Y,Z), X/Y #= Z).
+attribute_goal_(pexp(X,Y,Z), X^Y #= Z).
 attribute_goal_(pabs(X,Y), Y #= abs(X)).
 attribute_goal_(pmod(X,M,K), X mod M #= K).
 attribute_goal_(pmax(X,Y,Z), Z #= max(X,Y)).
