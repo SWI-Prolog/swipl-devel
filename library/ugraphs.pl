@@ -11,7 +11,7 @@
 	    complement/2,		% +Graph, -NewGraph
 	    compose/3,			% +LeftGraph, +RightGraph, -NewGraph
 	    del_edges/3,		% +Graph, +Edges, -NewGraph
-	    del_vertices/3,		% +Vertices, +Graph, -NewGraph
+	    del_vertices/3,		% +Graph, +Vertices, -NewGraph
 	    edges/2,			% +Graph, -Edges
 	    neighbors/3,		% +Vertex, +Graph, -Vertices
 	    neighbours/3,		% +Vertex, +Graph, -Vertices
@@ -150,10 +150,25 @@ add_empty_vertices([], []).
 add_empty_vertices([V|G], [V-[]|NG]) :-
 	add_empty_vertices(G, NG).
 
+%%	del_vertices(+Graph, +Vertices, -NewGraph) is det.
 %
-% unmark a set of vertices plus all edges leading to them.
-%
-del_vertices(Vertices, Graph, NewGraph) :-
+%	Unify NewGraph with a new graph obtained by deleting the list of
+%	Vertices and all the edges that start from  or go to a vertex in
+%	Vertices to the Graph. Example: 
+%	
+%	==
+%	?- del_vertices([2,1],
+%			[1-[3,5],2-[4],3-[],4-[5],5-[],6-[],7-[2,6],8-[]],
+%			NL).
+%	NL = [3-[],4-[5],5-[],6-[],7-[6],8-[]]
+%	==
+%	
+%	@compat Upto 5.6.48 the argument order was (+Vertices, +Graph,
+%	-NewGraph). Both YAP and SWI-Prolog have changed the argument
+%	order for compatibility with recent SICStus as well as
+%	consistency with del_edges/3.
+
+del_vertices(Graph, Vertices, NewGraph) :-
 	sort(Vertices, V1),		% JW: was msort
 	(   V1 = []
 	->  Graph = NewGraph
