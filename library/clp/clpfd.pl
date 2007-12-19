@@ -1191,7 +1191,7 @@ all_different([X|Right], Left) :-
 %               sum(List, #=< 100)
 %       ==
 
-sum(Ls, Op, Value) :- sum(Ls, 0, Op, Value).
+sum(Ls, Op, Value) :- must_be(callable, Op), sum(Ls, 0, Op, Value).
 
 sum([], Sum, Op, Value) :- call(Op, Sum, Value).
 sum([X|Xs], Acc, Op, Value) :-
@@ -1720,13 +1720,13 @@ domain_spread(Dom, Spread) :-
 smallest_finite(inf, Y, Y).
 smallest_finite(n(N), _, n(N)).
 
-domain_smallest_finite(from_to(F,T), S) :- smallest_finite(F, T, S).
+domain_smallest_finite(from_to(F,T), S)   :- smallest_finite(F, T, S).
 domain_smallest_finite(split(_, L, _), S) :- domain_smallest_finite(L, S).
 
 largest_finite(sup, Y, Y).
 largest_finite(n(N), _, n(N)).
 
-domain_largest_finite(from_to(F,T), L) :- largest_finite(T, F, L).
+domain_largest_finite(from_to(F,T), L)   :- largest_finite(T, F, L).
 domain_largest_finite(split(_, _, R), L) :- domain_largest_finite(R, L).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1835,10 +1835,15 @@ init_propagator(Var, Prop) :-
 %
 % Constrains Lists to be lexicographically non-decreasing.
 
-lex_chain([]).
-lex_chain([Ls|Lss]) :-
+lex_chain(Lss) :-
+        must_be(list, Lss),
+        maplist(must_be(list), Lss),
+        lex_chain_(Lss).
+
+lex_chain_([]).
+lex_chain_([Ls|Lss]) :-
         lex_chain_lag(Lss, Ls),
-        lex_chain(Lss).
+        lex_chain_(Lss).
 
 lex_chain_lag([], _).
 lex_chain_lag([Ls|Lss], Ls0) :-
@@ -1861,12 +1866,11 @@ lex_le([V1|V1s], [V2|V2s]) :-
 
 %% tuples_in(+Tuples, +Relation).
 %
-% Relation is a list of ground lists of integers. Tuples is a list of
-% lists containing integers and finite domain variables. Tuples are
-% constrained to be elements of Relation.
+% Relation is a ground list of lists of integers. The elements of the
+% list Tuples are constrained to be elements of Relation.
 
 tuples_in(Tuples, Relation) :-
-        ground(Relation),
+        must_be(ground, Relation),
         tuples_domain(Tuples, Relation),
         do_queue.
 
@@ -2227,30 +2231,33 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             )
         ;   nonvar(Y) ->
             Y =\= 0,
-            get(X, XD, XL, XU, XPs),
-            (   nonvar(Z) ->
-                (   Z > 0, Y > 0 ->
-                    NXL cis max(n(Z)*n(Y), XL),
-                    NXU cis min((n(Z)+n(1))*n(Y)-n(1), XU)
-                ;   Z =:= 0 ->
-                    NXL cis max(-abs(n(Y)) + n(1), XL),
-                    NXU cis min(abs(n(Y)) - n(1), XU)
-                ;   % TODO: cover more cases
-                    NXL = XL, NXU = XU
-                ),
-                (   NXL == XL, NXU == XU -> true
-                ;   domains_intersection(from_to(NXL,NXU), XD, NXD),
-                    put(X, NXD, XPs)
-                )
-            ;   get(Z, ZD, ZPs),
-                domain_contract_less(XD, Y, Contracted),
-                domains_intersection(Contracted, ZD, NZD),
-                put(Z, NZD, ZPs),
-                (   \+ domain_contains(NZD, 0), get(X, XD2, XPs2) ->
-                    domain_expand_more(NZD, Y, Expanded),
-                    domains_intersection(Expanded, XD2, NXD2),
-                    put(X, NXD2, XPs2)
-                ;   true
+            (   Y =:= 1 -> kill(MState), X = Z
+            ;   Y =:= -1 -> kill(MState), Z #= -X
+            ;   get(X, XD, XL, XU, XPs),
+                (   nonvar(Z) ->
+                    (   Z > 0, Y > 0 ->
+                        NXL cis max(n(Z)*n(Y), XL),
+                        NXU cis min((n(Z)+n(1))*n(Y)-n(1), XU)
+                    ;   Z =:= 0 ->
+                        NXL cis max(-abs(n(Y)) + n(1), XL),
+                        NXU cis min(abs(n(Y)) - n(1), XU)
+                    ;   % TODO: cover more cases
+                        NXL = XL, NXU = XU
+                    ),
+                    (   NXL == XL, NXU == XU -> true
+                    ;   domains_intersection(from_to(NXL,NXU), XD, NXD),
+                        put(X, NXD, XPs)
+                    )
+                ;   get(Z, ZD, ZPs),
+                    domain_contract_less(XD, Y, Contracted),
+                    domains_intersection(Contracted, ZD, NZD),
+                    put(Z, NZD, ZPs),
+                    (   \+ domain_contains(NZD, 0), get(X, XD2, XPs2) ->
+                        domain_expand_more(NZD, Y, Expanded),
+                        domains_intersection(Expanded, XD2, NXD2),
+                        put(X, NXD2, XPs2)
+                    ;   true
+                    )
                 )
             )
         ;   nonvar(Z) ->
@@ -2350,7 +2357,7 @@ run_propagator(pmax(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Z is max(X,Y)
             ;   nonvar(Z) ->
-                (   Z == X -> kill(MState), X #>= Y
+                (   Z =:= X -> kill(MState), X #>= Y
                 ;   Z > X -> Z = Y
                 ;   fail % Z < X
                 )
@@ -2385,7 +2392,7 @@ run_propagator(pmin(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Z is min(X,Y)
             ;   nonvar(Z) ->
-                (   Z == X -> X #=< Y
+                (   Z =:= X -> kill(MState), X #=< Y
                 ;   Z < X -> Z = Y
                 ;   fail % Z > X
                 )
@@ -2451,6 +2458,7 @@ run_propagator(reified_div(X,Y,D,Z), MState) :-
         ;   D == 1 -> kill(MState), Z #= X / Y
         ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, Z #= X / Y
         ;   get(Y, YD, _), \+ domain_contains(YD, 0) ->
+            kill(MState),
             D = 1, Z #= X / Y
         ;   true
         ).
@@ -2768,6 +2776,8 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 %       Disjunctive Scheduling Problem"
 
 serialized(Starts, Durations) :-
+        must_be(list, Durations),
+        maplist(must_be(integer), Durations),
         pair_up(Starts, Durations, SDs),
         serialize(SDs, []),
         do_queue.
@@ -2796,7 +2806,6 @@ serialize([Start-D|SDs], Left) :-
 myserialized(Duration, Left, Right, Start) :-
         myserialized(Left, Start, Duration),
         myserialized(Right, Start, Duration).
-
 
 earliest_start_time(Start, EST) :-
         (   get(Start, D, _) ->
@@ -2921,8 +2930,8 @@ attributes_goals([propagator(P, State)|As], Goal0, Goal) :-
             % TODO: why doesn't the following setarg/3 actually set the arg?
             setarg(1, State, processed),
             Goal1 = (Goal0,G)
-        ;   Goal1 = Goal0 % currently no conversion defined
-            %format("no conversion for ~w\n", [P])
+        ;   Goal1 = Goal0,
+            true %format("currently no conversion for ~w\n", [P])
         ),
         attributes_goals(As, Goal1, Goal).
 
@@ -2935,7 +2944,27 @@ attribute_goal_(pabs(X,Y), Y #= abs(X)).
 attribute_goal_(pmod(X,M,K), X mod M #= K).
 attribute_goal_(pmax(X,Y,Z), Z #= max(X,Y)).
 attribute_goal_(pmin(X,Y,Z), Z #= min(X,Y)).
+attribute_goal_(pdifferent(Left, Right, X), all_different(Vs)) :-
+        append(Left, [X|Right], Vs).
+attribute_goal_(pdistinct(Left, Right, X), all_distinct(Vs)) :-
+        append(Left, [X|Right], Vs).
+attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
+        append(Left, [Var-D|Right], VDs),
+        pair_up(Vs, Ds, VDs).
+attribute_goal_(rel_tuple(RID, Tuple), tuples_in([Tuple], Relation)) :-
+        b_getval(RID, Relation).
+% reified constraints
+attribute_goal_(reified_neq(_, X, _, Y, B), X #\= Y #<==> B).
+attribute_goal_(reified_eq(_, X, _, Y, B), X #= Y #<==> B).
+attribute_goal_(reified_geq(_, X, _, Y, B), X #>= Y #<==> B).
+% TODO: fix sub-expressions of reified constraints containing mod and /
+attribute_goal_(reified_div(X, Y, _, Z), X / Y #= Z).
+attribute_goal_(reified_mod(X, Y, _, Z), X mod Y #= Z).
 attribute_goal_(por(X,Y,Z), X #\/ Y #<==> Z).
+attribute_goal_(reified_and(X, Y, B), X #/\ Y #<==> B).
+attribute_goal_(reified_or(X, Y, B), X #\/ Y #<==> B).
+attribute_goal_(reified_not(X, Y), #\ X #<==> Y).
+attribute_goal_(pimpl(X, Y), X #==> Y).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 domain_to_list(Domain, List) :- domain_to_list(Domain, List, []).
