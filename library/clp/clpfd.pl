@@ -1870,7 +1870,10 @@ lex_le([V1|V1s], [V2|V2s]) :-
 % list Tuples are constrained to be elements of Relation.
 
 tuples_in(Tuples, Relation) :-
+        must_be(list, Relation),
         must_be(ground, Relation),
+        maplist(must_be(list), Relation),
+        maplist(maplist(must_be(integer)), Relation),
         tuples_domain(Tuples, Relation),
         do_queue.
 
@@ -1930,7 +1933,8 @@ all_in_domain([A|As], [T|Ts]) :-
         ( var(T) ->
             get(T, Dom, _),
             domain_contains(Dom, A)
-        ;   T =:= A
+        ;   must_be(integer, T),
+            T =:= A
         ),
         all_in_domain(As, Ts).
 
@@ -2920,7 +2924,20 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
 attribute_goal(X, Goal) :-
         get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)),
         domain_to_drep(Dom, Drep),
-        attributes_goals(Ps, X in Drep, Goal).
+        attributes_goals(Ps, X in Drep, Goal0),
+        dotreverse(Goal0, Goal1),
+        dot_list(Goal1, Ls, []),
+        reverse(Ls, Ls1),
+        list_dot(Ls1, Goal).
+
+dot_list((A,B)) --> !, [A], dot_list(B).
+dot_list(A)     --> [A].
+
+list_dot([A], A)        :- !.
+list_dot([A|As], (A,G)) :- list_dot(As, G).
+
+dotreverse((A,B), (B,R)) :- !, dotreverse(A, R).
+dotreverse(G, G).
 
 attributes_goals([], Goal, Goal).
 attributes_goals([propagator(P, State)|As], Goal0, Goal) :-
@@ -2940,6 +2957,7 @@ attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
 attribute_goal_(pneq(A,B), A #\= B).
 attribute_goal_(ptimes(X,Y,Z), X*Y #= Z).
 attribute_goal_(pdiv(X,Y,Z), X/Y #= Z).
+attribute_goal_(pexp(X,Y,Z), X^Y #= Z).
 attribute_goal_(pabs(X,Y), Y #= abs(X)).
 attribute_goal_(pmod(X,M,K), X mod M #= K).
 attribute_goal_(pmax(X,Y,Z), Z #= max(X,Y)).
