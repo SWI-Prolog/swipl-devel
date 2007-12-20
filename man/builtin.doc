@@ -1697,7 +1697,7 @@ While handling a signal, the garbage-collector is disabled.
     \item[Time of delivery]
 Normally delivery is immediate (or as defined by the operating system
 used).  Signals are blocked when the garbage collector is active, and
-internally delayed if they occur within in a `critical section'.  The
+internally delayed if they occur within a `critical section'.  The
 critical sections are generally very short.
 \end{itemlist}
 
