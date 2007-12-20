@@ -669,7 +669,10 @@ domain_expand_(from_to(From0, To0), M, D) :-
         ;   From0 == inf -> To cis1 To0*n(M), D = from_to(inf, To)
         ;   To0 == sup -> From cis1 From0*n(M), D = from_to(From, sup)
         ;   % domain is bounded
-            all_multiples(From0, To0, M, D)
+            From1 cis1 From0*n(M),
+            To1 cis1 To0*n(M),
+            D = from_to(From1,To1)
+            %all_multiples(From0, To0, M, D)
         ).
 domain_expand_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
         S is M*S0,
