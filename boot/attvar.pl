@@ -32,7 +32,8 @@
 :- module('$attvar',
 	  [ '$wakeup'/1,		% +Wakeup list
 	    freeze/2,			% +Var, :Goal
-	    frozen/2			% @Var, -Goal
+	    frozen/2,			% @Var, -Goal
+	    call_residue_vars/2		% :Goal, -Vars
 	  ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -158,3 +159,42 @@ portray_attr(Name, Value, Var) :-
 	->  true
 	;   format('~w = ...', [Name])
 	).
+
+
+		 /*******************************
+		 *	    CALL RESIDUE	*
+		 *******************************/
+
+%%	call_residue_vars(:Goal, -Vars)
+%
+%	If Goal is  true,  Vars  is   the  set  of  residual  attributed
+%	variables created by Goal. Goal  is   called  as in call/1. This
+%	predicate  is  for  debugging  constraint   programs.  Assume  a
+%	constraint program that creates  conflicting   constraints  on a
+%	variable that is not part of the   result  variables of Goal. If
+%	the solver is powerful enough it   will  detect the conflict and
+%	fail. If the solver is too  weak   however  it  will succeed and
+%	residual attributed variables holding the conflicting constraint
+%	form a witness of this problem.
+%	
+%	@bug	In the current implementation attributed variables may
+%		be garbage collected and will not appear in Vars.
+
+:- module_transparent
+	call_residue_vars/2,
+	call_det/2.
+
+call_residue_vars(Goal, Vars) :-
+	'$get_choice_point'(Chp),
+	call_det(Goal, Det),
+        '$attvars_after_choicepoint'(Chp, Vars),
+	(   Det == true
+	->  !
+	;   true
+	).
+call_residue_vars(_,_) :-
+	fail.
+
+call_det(Goal, Det) :-
+	Goal,
+	deterministic(Det).

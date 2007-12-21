@@ -132,12 +132,27 @@ assignAttVar(Word av, Word value ARG_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note: caller must require 2 words on global stack
+
+If we want to collect the residual variables  we must ensure they are on
+the global stack after the call  residue   mark.  For now we will always
+allocate them. In the future we must enhance this.  Some thoughts:
+
+	* Have a linked list of call-residue pointers. Where do we store
+	these? Maybe on the local stack with a global pointer to the
+	topmost one?  We must have some call-cleanup like mechanism for
+	this to work :-(
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 make_new_attvar(Word p ARG_LD)
 { Word gp;
 
+#ifdef O_CALL_RESIDUE
+  gp = allocGlobal(2);
+  gp[1] = ATOM_nil;
+  gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
+  *p = makeRef(&gp[0]);
+#else
   if ( onStackArea(local, p) )
   { gp = allocGlobal(2);
     gp[1] = ATOM_nil;
@@ -148,6 +163,7 @@ make_new_attvar(Word p ARG_LD)
     gp[0] = ATOM_nil;
     *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
   }
+#endif
 
   Trail(p);
 }
@@ -580,6 +596,123 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
   fail;
 }
 
+#ifdef O_CALL_RESIDUE
+
+		 /*******************************
+		 *	   CALL RESIDUE		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Ideally, we need two pointers:
+
+	* Outermost call_residue_vars global mark
+	GC needs this to mark all attvars after this mark
+
+	* Innermost call_residue_vars global mark
+	make_new_attvar() needs this to decide it must make the
+	attvar with an indirection.
+
+Note that these values need not be correct, but the outer mark must be
+smaller or equal to the correct value and the inner mark must be at
+least the correct value.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+$new_choice_point(-Chp) is det.
+
+Unify Chp with a reference to a new choicepoint. 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static
+PRED_IMPL("$get_choice_point", 1, get_choice_point, 0)
+{ PRED_LD
+  Choice ch;
+
+  for(ch=LD->choicepoints; ch; ch=ch->parent)
+  { if ( ch->type == CHP_CLAUSE )
+    { intptr_t off = (Word)ch - (Word)lBase;
+
+      if ( PL_unify_integer(A1, off) )
+	succeed;
+    }
+  }
+
+  fail;
+}
+
+
+static inline size_t
+offset_cell(Word p)
+{ word m = *p;				/* was get_value(p) */
+  size_t offset;
+
+  if ( storage(m) == STG_LOCAL )
+    offset = wsizeofInd(m) + 1;
+  else
+    offset = 0;
+
+  return offset;
+}
+
+
+static
+PRED_IMPL("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
+{ PRED_LD
+  intptr_t off;
+  Choice ch;
+  Word gp, gend, list, tailp;
+  size_t minfree = 0;
+
+retry:
+  if ( !PL_get_intptr_ex(A1, &off) )
+    fail;
+  
+  ch = (Choice)((Word)lBase+off);
+  gp = ch->mark.globaltop;
+  gend = gTop;
+  list = tailp = allocGlobalNoShift(1);
+  if ( !list )
+    goto grow;
+  setVar(*list);
+
+  for(; gp<gend; gp += offset_cell(gp)+1)
+  { if ( isAttVar(*gp) )
+    { Word p = allocGlobalNoShift(3);
+
+      if ( p )
+      { p[0] = FUNCTOR_dot2;
+	p[1] = makeRefG(gp);
+	setVar(p[2]);
+	*tailp = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	tailp = &p[2];
+      } else
+      { gTop = gend;
+	goto grow;
+      }
+    }
+  }
+  
+  if ( list == tailp )
+  { gTop = gend;
+    return PL_unify_nil(A2);
+  } else
+  { *tailp = ATOM_nil;
+    return PL_unify(A2, wordToTermRef(list));
+  }
+
+grow:
+  if ( minfree == 0 )
+  { garbageCollect(NULL, NULL);
+    minfree = 1024;
+  } else
+  { minfree *= 2;
+  }
+  requireStack(global, minfree);
+  goto retry;
+}
+
+#endif /*O_CALL_RESIDUE*/
+
 		 /*******************************
 		 *	    REGISTRATION	*
 		 *******************************/
@@ -592,6 +725,10 @@ BeginPredDefs(attvar)
   PRED_DEF("get_attrs", 2, get_attrs, 0)
   PRED_DEF("put_attrs", 2, put_attrs, 0)
   PRED_DEF("$freeze",   2, freeze,    PL_FA_TRANSPARENT)
+#ifdef O_CALL_RESIDUE
+  PRED_DEF("$get_choice_point", 1, get_choice_point, 0)
+  PRED_DEF("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
+#endif
 EndPredDefs
 
 #endif /*O_ATTVAR*/
