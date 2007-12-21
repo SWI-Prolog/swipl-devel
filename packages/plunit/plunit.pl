@@ -957,7 +957,7 @@ failure(succeeded(Time)) --> !,
 	[ 'must fail but succeeded in ~2f seconds~n'-[Time] ].
 failure(wrong_error(Expected, Error)) --> !,
 	{ copy_term(Expected-Error, Ex-E),
-	  numbervars(Ex-E, 0, _, [singletons(true)]),
+	  numbervars(Ex-E, 0, _, [singletons(true), attvar(skip)]),
 	  write_options(OPS)
 	},
 	[ 'wrong error', nl, 
@@ -967,7 +967,7 @@ failure(wrong_error(Expected, Error)) --> !,
 failure(wrong_answer(Cmp)) -->
 	{ Cmp =.. [Op,Answer,Expected], !,
 	  copy_term(Expected-Answer, Ex-A),
-	  numbervars(Ex-A, 0, _, [singletons(true)]),
+	  numbervars(Ex-A, 0, _, [singletons(true), attvar(skip)]),
 	  write_options(OPS)
 	},
 	[ 'wrong answer (compared using ~w)'-[Op], nl, 
@@ -980,7 +980,8 @@ failure(Why) -->
 write_options([ numbervars(true),
 		quoted(true),
 		portray(true),
-		max_depth(10)
+		max_depth(10),
+		attributes(portray)
 	      ]).
 
 :- if(swi).
