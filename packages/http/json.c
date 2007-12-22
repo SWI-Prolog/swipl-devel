@@ -26,16 +26,11 @@
 #include <SWI-Prolog.h>
 #include <string.h>
 
-#define TRYPUTC(c, s) if ( Sputcode(c, s) < 0 ) { rc = FALSE; goto out; }
+#define TRYPUTC(c, s) if ( Sputcode(c, s) < 0 ) { return -1; }
 
-static foreign_t
-json_write_string(term_t stream, term_t text)
-{ IOSTREAM *out;
-  char *a;
-  pl_wchar_t *w;
-  size_t len;
-  int rc = TRUE;
-  static char escape[128];
+static int
+json_put_code(IOSTREAM *out, int c)
+{ static char escape[128];
   static int escape_initialized = FALSE;
 
   if ( !escape_initialized )
@@ -52,6 +47,35 @@ json_write_string(term_t stream, term_t text)
     escape_initialized = TRUE;
   }
 
+  if ( c < 128 )
+  { if ( escape[c] )
+    { TRYPUTC('\\', out);
+      TRYPUTC(escape[c], out);
+    } else if ( c < ' ' )	/* control characters *must* be escaped */
+    { TRYPUTC('\\', out);
+      if ( Sfprintf(out, "u%04x", c) < 0 )
+	return -1;
+    } else
+    { TRYPUTC(c, out);
+    }
+  } else
+  { TRYPUTC(c, out);
+  }
+
+  return 0;
+}
+
+#undef TRYPUTC
+#define TRYPUTC(c, s) if ( Sputcode(c, s) < 0 ) { rc = FALSE; goto out; }
+
+static foreign_t
+json_write_string(term_t stream, term_t text)
+{ IOSTREAM *out;
+  char *a;
+  pl_wchar_t *w;
+  size_t len;
+  int rc = TRUE;
+
   if ( !PL_get_stream_handle(stream, &out) )
     return FALSE;
 
@@ -63,11 +87,8 @@ json_write_string(term_t stream, term_t text)
     for(todo=len, ap=a; todo-- > 0; ap++)
     { int c = *ap&0xff;
 
-      if ( c < 128 && escape[c] && !(c=='\n' && todo >= 40) )
-      { TRYPUTC('\\', out);
-	TRYPUTC(escape[c], out);
-      } else
-      { TRYPUTC(c, out);
+      if ( json_put_code(out, c) < 0 )
+      { rc = FALSE; goto out;
       }
     }
     TRYPUTC('"', out);
@@ -79,11 +100,8 @@ json_write_string(term_t stream, term_t text)
     for(todo=len, wp=w; todo-- > 0; wp++)
     { int c = *wp;
 
-      if ( c < 128 && escape[c] && !(c=='\n' && todo >= 40) )
-      { TRYPUTC('\\', out);
-	TRYPUTC(escape[c], out);
-      } else
-      { TRYPUTC(c, out);
+      if ( json_put_code(out, c) < 0 )
+      { rc = FALSE; goto out;
       }
     }
     TRYPUTC('"', out);

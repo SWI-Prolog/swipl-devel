@@ -174,6 +174,9 @@ test(unicode, X == Atom) :-
 test(quote, X == Atom) :-
 	Atom = 'hello, "world"',
 	echo(Atom, X).
+test(control, X == Atom) :-
+	Atom = 'hello\n\t\r\b\003\',
+	echo(Atom, X).
 
 :- end_tests(json_http).
 
