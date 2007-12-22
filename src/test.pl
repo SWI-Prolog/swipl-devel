@@ -2308,6 +2308,8 @@ ctype(code_type-4) :-
 ctype(code_type-5) :-
 	code_type(48, digit(W)),
 	W == 0.
+ctype(code_type-6) :-
+	\+ code_type(0, quote).
 
 		 /*******************************
 		 *	       WCTYPE		*

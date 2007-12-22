@@ -95,12 +95,12 @@ isnl(wint_t chr)
 
 static int
 isperiod(wint_t chr)
-{ return strchr(".?!", chr) != NULL;
+{ return chr && strchr(".?!", chr) != NULL;
 }
 
 static int
 isquote(wint_t chr)
-{ return strchr("'`\"", chr) != NULL;
+{ return chr && strchr("'`\"", chr) != NULL;
 }
 
 static int
