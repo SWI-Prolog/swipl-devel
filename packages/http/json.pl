@@ -250,6 +250,7 @@ json_string_codes(C, Stream, [C|T]) :-
 	get_code(Stream, C1),
 	json_string_codes(C1, Stream, T).
 
+escape(0'", _, 0'") :- !.
 escape(0'\\, _, 0'\\) :- !.
 escape(0'/, _, 0'/) :- !.
 escape(0'b, _, 0'\b) :- !.
