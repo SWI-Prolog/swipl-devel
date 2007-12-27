@@ -1,3 +1,9 @@
+Dec 27, 2007
+
+  * TS: Inline constraint lookup.
+ 
+  * TS: Precompile term hashing.
+ 
 Sep 26, 2007
 
   * TS: Code cleaning was hampered by line numbers.

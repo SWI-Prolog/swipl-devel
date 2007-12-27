@@ -3318,7 +3318,7 @@ generate_attach_code(Constraints,[Enumerate|L]) :-
 	generate_attach_code(Constraints,L,T),
 	module_initializers(Initializers),
 	prolog_global_variables_code(PrologGlobalVariables),
-	T = [('$chr_initialization' :- Initializers),(:- '$chr_initialization')|PrologGlobalVariables].
+	T = [('$chr_initialization' :- Initializers),(:- initialization '$chr_initialization')|PrologGlobalVariables].
 
 generate_attach_code([],L,L).
 generate_attach_code([C|Cs],L,T) :-
@@ -3496,7 +3496,7 @@ identifier_store_initialization(IndexType,L,T) :-
 
 multi_inthash_via_lookups([],_,L,L).
 multi_inthash_via_lookups([Index|Indexes],C,L,T) :-
-	multi_hash_via_lookup_goal(C,Index,Key,SuspsList,Head),
+	multi_hash_via_lookup_head(C,Index,Key,SuspsList,Head),
 	multi_hash_store_name(C,Index,StoreName),
 	Body = 
 	(
@@ -3507,23 +3507,47 @@ multi_inthash_via_lookups([Index|Indexes],C,L,T) :-
 	multi_inthash_via_lookups(Indexes,C,L1,T).
 multi_hash_via_lookups([],_,L,L).
 multi_hash_via_lookups([Index|Indexes],C,L,T) :-
-	multi_hash_via_lookup_goal(C,Index,Key,SuspsList,Head),
-	multi_hash_store_name(C,Index,StoreName),
-	make_get_store_goal(StoreName,HT,GetStoreGoal),
-	Body = 
-	(
-		GetStoreGoal, % nb_getval(StoreName,HT),
-		lookup_ht(HT,Key,SuspsList)
-	),
+	multi_hash_via_lookup_head(C,Index,Key,SuspsList,Head),
+	multi_hash_via_lookup_goal(C,Index,Key,SuspsList,Body),
 	L = [(Head :- Body)|L1],
 	multi_hash_via_lookups(Indexes,C,L1,T).
+
+multi_hash_via_lookup_head(ConstraintSymbol,Index,Key,SuspsList,Head) :-
+	multi_hash_via_lookup_name(ConstraintSymbol,Index,Name),
+	Head =.. [Name,Key,SuspsList].
 
 %%	multi_hash_via_lookup_goal(+ConstraintSymbol,+Index,+Key,+SuspsList,-Goal) is det.
 %
 %	Returns goal that performs hash table lookup.
 multi_hash_via_lookup_goal(ConstraintSymbol,Index,Key,SuspsList,Goal) :-
-	multi_hash_via_lookup_name(ConstraintSymbol,Index,Name),
-	Goal =.. [Name,Key,SuspsList].
+	% INLINED:
+	multi_hash_store_name(ConstraintSymbol,Index,StoreName),
+	make_get_store_goal(StoreName,HT,GetStoreGoal),
+	( specialized_hash_term_call(Key,Hash,HashCall) ->
+		Goal = 
+		(
+			GetStoreGoal, % nb_getval(StoreName,HT),
+			HashCall,     % hash_term(Key,Hash),
+			lookup_ht1(HT,Hash,Key,SuspsList)
+		)
+	;
+		Goal = 
+		(
+			GetStoreGoal, % nb_getval(StoreName,HT),
+			hash_term(Key,Hash),
+			lookup_ht(HT,Key,SuspsList)
+		)
+	).
+
+specialized_hash_term_call(Key,Hash,Call) :-
+	( ground(Key) ->
+		% This is based on a property of SWI-Prolog's 
+		% hash_term/2 predicate:
+		%	the hash value is stable over repeated invocations
+		%	of SWI-Prolog
+		hash_term(Key,Hash),
+		Call = true
+	).
 
 %%	multi_hash_via_lookup_name(+ConstraintSymbol,+Index,-Name)
 %
