@@ -230,8 +230,8 @@ delete_ht(HT,Key,Value) :-
 	arg(Index,Table,Bucket),
 	( /* var(Bucket) ->
 		true
-	; */ Bucket = K-Vs ->
-		( /* K == Key, */
+	; */ Bucket = _K-Vs ->
+		( /* _K == Key, */
 		  delete_first_fail(Vs,Value,NVs) ->
 			setarg(2,HT,NLoad),
 			( NVs == [] ->

@@ -765,6 +765,7 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	partial_wake_analysis,
 	time('assume constraint stores',chr_translate:assume_constraint_stores(Constraints)),
 	time('default constraint indices',chr_translate:set_constraint_indices(Constraints)),
+	time('check storedness assertions',chr_translate:check_storedness_assertions(Constraints)),
 	% end analysis
 	time('constraint code generation',chr_translate:constraints_code(Constraints,ConstraintClauses)),
 	time('validate store assumptions',chr_translate:validate_store_type_assumptions(Constraints)),
@@ -911,8 +912,14 @@ is_declaration(D, Constraints) :-		%% constraint declaration
 
 extract_type_mode([],[]).
 extract_type_mode([F/A|R],[F/A|R2]) :- !,extract_type_mode(R,R2).
-extract_type_mode([C|R],[ConstraintSymbol|R2]) :- 
-	functor(C,F,A),
+extract_type_mode([C0|R],[ConstraintSymbol|R2]) :- 
+	( C0 = C # stored ->
+		functor(C,F,A),
+		stored_assertion(F/A)	
+	;
+		C0 = C,
+		functor(C,F,A)
+	),
 	ConstraintSymbol = F/A,
 	C =.. [_|Args],
 	extract_types_and_modes(Args,ArgTypes,ArgModes),
@@ -9119,3 +9126,37 @@ used_states_known, uses_state(Constraint,State) \ if_used_state(Constraint,State
         <=> ResultGoal = Used.
 used_states_known \ if_used_state(Constraint,State,Used,NotUsed,ResultGoal) 
         <=> ResultGoal = NotUsed.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Check storedness annotations.
+%
+% Feature for SSS.
+
+check_storedness_assertions(Constraints) :-
+	( chr_pp_flag(declare_stored_constraints,on) ->
+		forall(Constraint,Constraints,check_storedness_assertion(Constraint))
+	;
+		true
+	).
+
+
+:- chr_constraint stored_assertion/1.
+:- chr_option(mode,stored_assertion(+)).
+:- chr_option(type_declaration,stored_assertion(constraint)).
+
+:- chr_constraint check_storedness_assertion/1.
+:- chr_option(mode,check_storedness_assertion(+)).
+:- chr_option(type_declaration,check_storedness_assertion(constraint)).
+
+check_storedness_assertion(Constraint), stored_assertion(Constraint)
+	<=> ( is_stored(Constraint) ->
+		true
+	    ;
+		chr_warning(assertion_failed,'Constraint ~w is not stored. However, it was asserted to be stored.\n',[Constraint])
+	    ).
+check_storedness_assertion(Constraint)
+	<=> ( is_stored(Constraint) ->
+		chr_warning(assertion_failed,'Constraint ~w is stored. However, it was asserted not to be stored.\n',[Constraint])
+	    ;
+		true
+	    ).
