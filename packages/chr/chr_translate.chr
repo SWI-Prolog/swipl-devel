@@ -747,9 +747,12 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	partition_clauses(Declarations,Constraints0,Rules0,OtherClauses),
 	chr_compiler_options:sanity_check,
 	check_declared_constraints(Constraints0),
-	generate_show_constraint(Constraints0,Constraints,Rules0,Rules),
+	generate_show_constraint(Constraints0,Constraints,Rules0,Rules1),
 	add_constraints(Constraints),
-	add_rules(Rules),
+	add_rules(Rules1),
+	generate_never_stored_rules(Constraints,NewRules),	
+	add_rules(NewRules),
+	append(Rules1,NewRules,Rules),
 	% start analysis
 	check_rules(Rules,Constraints),
 	time('type checking',chr_translate:static_type_check),
@@ -913,9 +916,9 @@ is_declaration(D, Constraints) :-		%% constraint declaration
 extract_type_mode([],[]).
 extract_type_mode([F/A|R],[F/A|R2]) :- !,extract_type_mode(R,R2).
 extract_type_mode([C0|R],[ConstraintSymbol|R2]) :- 
-	( C0 = C # stored ->
+	( C0 = C # Annotation ->
 		functor(C,F,A),
-		stored_assertion(F/A)	
+		extract_annotation(Annotation,F/A)
 	;
 		C0 = C,
 		functor(C,F,A)
@@ -926,6 +929,11 @@ extract_type_mode([C0|R],[ConstraintSymbol|R2]) :-
 	constraint_type(ConstraintSymbol,ArgTypes),
 	constraint_mode(ConstraintSymbol,ArgModes),
 	extract_type_mode(R,R2).
+
+extract_annotation(stored,Symbol) :-
+	stored_assertion(Symbol).
+extract_annotation(default(Goal),Symbol) :-
+	never_stored_default(Symbol,Goal).
 
 extract_types_and_modes([],[],[]).
 extract_types_and_modes([X|R],[T|R2],[M|R3]) :-
@@ -3554,7 +3562,23 @@ specialized_hash_term_call(Key,Hash,Call) :-
 		%	of SWI-Prolog
 		hash_term(Key,Hash),
 		Call = true
+	; 
+		nonvar(Key),
+		specialize_hash_term(Key,NewKey),
+		NewKey \== Key,
+		Call = hash_term(NewKey,Hash)
 	).
+
+specialize_hash_term(Term,NewTerm) :-
+	( ground(Term) ->
+		hash_term(Term,NewTerm)	
+	; var(Term) ->
+		NewTerm = Term
+	;
+		Term =.. [F|Args],
+		maplist(specialize_hash_term,Args,NewArgs),
+		NewTerm =.. [F|NewArgs]
+	).	
 
 %%	multi_hash_via_lookup_name(+ConstraintSymbol,+Index,-Name)
 %
@@ -9132,6 +9156,42 @@ used_states_known \ if_used_state(Constraint,State,Used,NotUsed,ResultGoal)
 %
 % Feature for SSS.
 
+:- chr_constraint stored_assertion/1.
+:- chr_option(mode,stored_assertion(+)).
+:- chr_option(type_declaration,stored_assertion(constraint)).
+
+:- chr_constraint never_stored_default/2.
+:- chr_option(mode,never_stored_default(+,?)).
+:- chr_option(type_declaration,never_stored_default(constraint,any)).
+
+generate_never_stored_rules(Constraints,Rules) :-
+	( chr_pp_flag(declare_stored_constraints,on) ->
+		never_stored_rules(Constraints,Rules)
+	;
+		Rules = []
+	).
+
+:- chr_constraint never_stored_rules/2.
+:- chr_option(mode,never_stored_rules(+,?)).
+:- chr_option(type_declaration,never_stored_rules(list(constraint),any)).
+
+never_stored_rules([],Rules) <=> Rules = [].
+never_stored_default(Constraint,Goal) \ never_stored_rules([Constraint|Constraints],Rules) <=>
+	Constraint = F/A,
+	functor(Head,F,A),	
+	inc_rule_count(RuleNb),
+	Rule = pragma(
+			rule([Head],[],true,Goal),
+			ids([0],[]),
+			[],
+			no,	
+			RuleNb
+		),
+	Rules = [Rule|Tail],
+	never_stored_rules(Constraints,Tail).
+never_stored_rules([_|Constraints],Rules) <=>
+	never_stored_rules(Constraints,Rules).
+
 check_storedness_assertions(Constraints) :-
 	( chr_pp_flag(declare_stored_constraints,on) ->
 		forall(Constraint,Constraints,check_storedness_assertion(Constraint))
@@ -9139,10 +9199,6 @@ check_storedness_assertions(Constraints) :-
 		true
 	).
 
-
-:- chr_constraint stored_assertion/1.
-:- chr_option(mode,stored_assertion(+)).
-:- chr_option(type_declaration,stored_assertion(constraint)).
 
 :- chr_constraint check_storedness_assertion/1.
 :- chr_option(mode,check_storedness_assertion(+)).
@@ -9154,6 +9210,13 @@ check_storedness_assertion(Constraint), stored_assertion(Constraint)
 	    ;
 		chr_warning(assertion_failed,'Constraint ~w is not stored. However, it was asserted to be stored.\n',[Constraint])
 	    ).
+never_stored_default(Constraint,_) \ check_storedness_assertion(Constraint)
+	<=> ( is_stored(Constraint) ->
+		chr_warning(assertion_failed,'Constraint ~w is stored. However, it was asserted not to be stored.\n',[Constraint])
+	    ;
+		true
+	    ).
+	% never-stored, no default goal
 check_storedness_assertion(Constraint)
 	<=> ( is_stored(Constraint) ->
 		chr_warning(assertion_failed,'Constraint ~w is stored. However, it was asserted not to be stored.\n',[Constraint])

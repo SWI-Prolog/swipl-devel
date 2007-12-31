@@ -1,3 +1,12 @@
+Dec 31, 2007
+
+  * TS: Additional assertion # default(Goal) for the
+	declare_stored_constraints, which specifies that
+	an unconditional simplification rule for the constraint
+	must be added to the end of the program. The Goal
+	parameter specifies the goal of that rule, e.g.
+	true or fail or throw(...). Experimental.
+
 Dec 29, 2007
 
   * TS: Experimental option declare_stored_constraints for
