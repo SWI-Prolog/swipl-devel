@@ -3512,18 +3512,13 @@ identifier_store_initialization(IndexType,L,T) :-
 multi_inthash_via_lookups([],_,L,L).
 multi_inthash_via_lookups([Index|Indexes],C,L,T) :-
 	multi_hash_via_lookup_head(C,Index,Key,SuspsList,Head),
-	multi_hash_store_name(C,Index,StoreName),
-	Body = 
-	(
-		nb_getval(StoreName,HT),
-		lookup_iht(HT,Key,SuspsList)
-	),
+	multi_hash_via_lookup_goal(C,inthash,Index,Key,SuspsList,Body),
 	L = [(Head :- Body)|L1],
 	multi_inthash_via_lookups(Indexes,C,L1,T).
 multi_hash_via_lookups([],_,L,L).
 multi_hash_via_lookups([Index|Indexes],C,L,T) :-
 	multi_hash_via_lookup_head(C,Index,Key,SuspsList,Head),
-	multi_hash_via_lookup_goal(C,Index,Key,SuspsList,Body),
+	multi_hash_via_lookup_goal(C,hash,Index,Key,SuspsList,Body),
 	L = [(Head :- Body)|L1],
 	multi_hash_via_lookups(Indexes,C,L1,T).
 
@@ -3531,14 +3526,14 @@ multi_hash_via_lookup_head(ConstraintSymbol,Index,Key,SuspsList,Head) :-
 	multi_hash_via_lookup_name(ConstraintSymbol,Index,Name),
 	Head =.. [Name,Key,SuspsList].
 
-%%	multi_hash_via_lookup_goal(+ConstraintSymbol,+Index,+Key,+SuspsList,-Goal) is det.
+%%	multi_hash_via_lookup_goal(+ConstraintSymbol,+HashType,+Index,+Key,+SuspsList,-Goal) is det.
 %
 %	Returns goal that performs hash table lookup.
-multi_hash_via_lookup_goal(ConstraintSymbol,Index,Key,SuspsList,Goal) :-
+multi_hash_via_lookup_goal(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 	% INLINED:
 	multi_hash_store_name(ConstraintSymbol,Index,StoreName),
 	make_get_store_goal(StoreName,HT,GetStoreGoal),
-	( specialized_hash_term_call(Key,Hash,HashCall) ->
+	( HashType == hash, specialized_hash_term_call(Key,Hash,HashCall) ->
 		Goal = 
 		(
 			GetStoreGoal, % nb_getval(StoreName,HT),
@@ -3546,13 +3541,17 @@ multi_hash_via_lookup_goal(ConstraintSymbol,Index,Key,SuspsList,Goal) :-
 			lookup_ht1(HT,Hash,Key,SuspsList)
 		)
 	;
+		lookup_hash_call(HashType,HT,Key,SuspsList,Lookup),
 		Goal = 
 		(
 			GetStoreGoal, % nb_getval(StoreName,HT),
 			hash_term(Key,Hash),
-			lookup_ht(HT,Key,SuspsList)
+			Lookup
 		)
 	).
+
+lookup_hash_call(hash,HT,Key,SuspsList,lookup_ht(HT,Key,SuspsList)).
+lookup_hash_call(inthash,HT,Key,SuspsList,lookup_iht(HT,Key,SuspsList)).
 
 specialized_hash_term_call(Key,Hash,Call) :-
 	( ground(Key) ->
@@ -7911,7 +7910,7 @@ hash_lookup_passive_head(HashType,Indexes,Head,VarDict,GroundVars,Goal,AllSusps,
 		KeyCopy =.. [k|KeyArgCopies]
 	),
 	functor(Head,F,A),
-	multi_hash_via_lookup_goal(F/A,Index,KeyCopy,AllSusps,LookupGoal),
+	multi_hash_via_lookup_goal(F/A,HashType,Index,KeyCopy,AllSusps,LookupGoal),
 	
 	check_ground(GroundVars,KeyArgs,OriginalGroundCheck),
 	my_term_copy(OriginalGroundCheck,VarDict,GroundCheck),

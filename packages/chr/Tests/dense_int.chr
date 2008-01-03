@@ -1,0 +1,26 @@
+:- module(dense_int,[dense_int/0]).
+
+:-use_module(library(chr)).
+
+:-chr_type 'Arity' == dense_int.
+
+:-chr_constraint c1(+'Arity').
+  
+:-chr_option(line_numbers, on).
+:-chr_option(check_guard_bindings, on).
+:-chr_option(debug, off).
+:-chr_option(optimize, full).
+
+dense_int :-
+  c1(1),
+  c1(1).
+
+
+no_duplicates @
+  c1(X)
+  \
+  c1(X)
+  <=>
+  true.
+
+

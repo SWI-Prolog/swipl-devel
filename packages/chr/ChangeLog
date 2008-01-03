@@ -5,6 +5,7 @@ Jan 3, 2008
 	and never stored.
   * TS: write/1, writeln/1 and format/2 are now treated as non-binding
 	builtins.
+  * TS: Properly inline inthash constraint lookup.
 
 Dec 31, 2007
 
