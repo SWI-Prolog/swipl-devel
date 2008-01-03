@@ -9211,15 +9211,19 @@ check_storedness_assertion(Constraint), stored_assertion(Constraint)
 		chr_warning(assertion_failed,'Constraint ~w is not stored. However, it was asserted to be stored.\n',[Constraint])
 	    ).
 never_stored_default(Constraint,_) \ check_storedness_assertion(Constraint)
-	<=> ( is_stored(Constraint) ->
+	<=> ( is_finally_stored(Constraint) ->
 		chr_warning(assertion_failed,'Constraint ~w is stored. However, it was asserted not to be stored.\n',[Constraint])
+	    ; is_stored(Constraint) ->
+		chr_warning(assertion_failed,'Constraint ~w is temporarily stored. However, it was asserted not to be stored.\n',[Constraint])
 	    ;
 		true
 	    ).
 	% never-stored, no default goal
 check_storedness_assertion(Constraint)
-	<=> ( is_stored(Constraint) ->
+	<=> ( is_finally_stored(Constraint) ->
 		chr_warning(assertion_failed,'Constraint ~w is stored. However, it was asserted not to be stored.\n',[Constraint])
+	    ; is_stored(Constraint) ->
+		chr_warning(assertion_failed,'Constraint ~w is temporarily stored. However, it was asserted not to be stored.\n',[Constraint])
 	    ;
 		true
 	    ).

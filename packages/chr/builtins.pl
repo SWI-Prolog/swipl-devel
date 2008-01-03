@@ -103,6 +103,10 @@ builtin_binds_(_ == _,L,L).
 builtin_binds_(_ \== _,L,L).
 builtin_binds_(true,L,L).
 
+builtin_binds_(write(_),L,L).
+builtin_binds_(writeln(_),L,L).
+builtin_binds_(format(_,_),L,L).
+
 builtin_binds_(X is _,[X|L],L).
 builtin_binds_((G1,G2),L,T) :-
 	builtin_binds_(G1,L,R),
@@ -140,6 +144,10 @@ binds_(_ =\= _,L,L).
 binds_(_ == _,L,L).
 binds_(_ \== _,L,L).
 binds_(true,L,L).
+
+binds_(write(_),L,L).
+binds_(writeln(_),L,L).
+binds_(format(_,_),L,L).
 
 binds_(X is _,[X|L],L).
 binds_((G1,G2),L,T) :-

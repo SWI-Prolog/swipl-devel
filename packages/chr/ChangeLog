@@ -1,3 +1,11 @@
+Jan 3, 2008
+
+  * TS: Modified error messages of declare_stored_constraints
+	option, to distinguish between stored, temporarily stored
+	and never stored.
+  * TS: write/1, writeln/1 and format/2 are now treated as non-binding
+	builtins.
+
 Dec 31, 2007
 
   * TS: Additional assertion # default(Goal) for the
