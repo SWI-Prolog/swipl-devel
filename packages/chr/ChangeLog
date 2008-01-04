@@ -1,3 +1,12 @@
+Jan 4, 2008
+
+  * TS: Performance improvement: use new store
+	implementation for single-argument lookups
+	on manifest atomics. Should be faster than
+	hashtable. Will be generalized to arbitrary
+	manifest ground lookups and non-manifest
+	atomically typed lookups .
+	
 Jan 3, 2008
 
   * TS: Modified error messages of declare_stored_constraints

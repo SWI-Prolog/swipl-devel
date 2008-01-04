@@ -202,6 +202,7 @@
 			;	global_singleton
 			; 	global_ground
 			%	EXPERIMENTAL STORES
+			;	atomic_constants(list(int),list(any))
 			;	var_assoc_store(int,list(int))
 			;	identifier_store(int)
 			;	type_indexed_identifier_store(int,any).
@@ -428,6 +429,11 @@ update_store_type(C,ST)
 		actual_store_types(C,[ST]).
 
 % refine store type assumption
+validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_atomic_multi_hash_keys(C,Index,Keys)
+	<=>
+		delete(STs,multi_hash([Index]),STs0),
+		/* writeln(actual_store_types(C,[atomic_constants(Index,Keys)|STs0])), */	
+		actual_store_types(C,[atomic_constants(Index,Keys)|STs0]).	
 validate_store_type_assumption(C), actual_store_types(C,STs), assumed_store_type(C,_) 	% automatic assumption
 	<=> 
 		store_type(C,multi_store(STs)).
@@ -2928,6 +2934,17 @@ insert_constraint_body(multi_inthash(Indexes),C,Susp,[],Body) :-
 insert_constraint_body(multi_hash(Indexes),C,Susp,MixedUsedVars,Body) :-
 	generate_multi_hash_insert_constraint_bodies(Indexes,C,Susp,Body,MixedUsedVars),
 	sort_out_used_vars(MixedUsedVars,UsedVars).
+insert_constraint_body(atomic_constants([Index],_),C,Susp,UsedVars,Body) :-
+	atomic_constant_store_index_name(C,[Index],IndexName),
+	UsedVars = [Index - Key],
+	IndexLookup =.. [IndexName,Key,StoreName],
+	Body =
+	( IndexLookup ->
+		nb_getval(StoreName,Store),	
+		b_setval(StoreName,[Susp|Store])
+	;
+		true
+	).
 insert_constraint_body(global_ground,C,Susp,[],Body) :-
 	global_ground_store_name(C,StoreName),
 	make_get_store_goal(StoreName,Store,GetStoreGoal),
@@ -3162,6 +3179,20 @@ delete_constraint_body(multi_inthash(Indexes),C,_,Susp,_,Body) :-
 	generate_multi_inthash_delete_constraint_bodies(Indexes,C,Susp,Body).
 delete_constraint_body(multi_hash(Indexes),C,Head,Susp,VarDict,Body) :-
 	generate_multi_hash_delete_constraint_bodies(Indexes,C,Head,Susp,VarDict,Body).
+delete_constraint_body(atomic_constants([Index],_),C,Head,Susp,VarDict,Body) :-
+	atomic_constant_store_index_name(C,[Index],IndexName),
+	get_suspension_argument_possibly_in_scope(Head,Index,VarDict,Susp,Key,Goal),
+	IndexLookup =.. [IndexName,Key,StoreName],
+	Body = 
+	(Goal,
+	 ( IndexLookup ->
+		nb_getval(StoreName,Store),
+		'chr sbag_del_element'(Store,Susp,NStore),
+		b_setval(StoreName,NStore)
+	;
+		true		
+	)).
+
 delete_constraint_body(global_ground,C,_,Susp,_,Body) :-
 	( chr_pp_flag(debugable,on) ->
 		global_ground_store_name(C,StoreName),
@@ -3348,7 +3379,16 @@ generate_attach_code(multi_inthash(Indexes),C,L,T) :-
 	multi_inthash_via_lookups(Indexes,C,L1,T).
 generate_attach_code(multi_hash(Indexes),C,L,T) :-
 	multi_hash_store_initialisations(Indexes,C,L,L1),
-	multi_hash_via_lookups(Indexes,C,L1,T).
+	multi_hash_lookups(Indexes,C,L1,T).
+generate_attach_code(atomic_constants(Index,Constants),C,L,T) :-
+	maplist(atomic_constant_store_name(C,Index),Constants,StoreNames),
+	findall(Initializer,
+			( member(StoreName,StoreNames),
+			  Initializer = nb_setval(StoreName,[])
+			),
+		  Initializers),
+	maplist(module_initializer,Initializers),
+	atomic_constants_code(C,Index,Constants,L,T).
 generate_attach_code(global_ground,C,L,T) :-
 	global_ground_store_initialisation(C,L,T).
 generate_attach_code(var_assoc_store(_,_),_,L,L) :-
@@ -3511,44 +3551,51 @@ identifier_store_initialization(IndexType,L,T) :-
 
 multi_inthash_via_lookups([],_,L,L).
 multi_inthash_via_lookups([Index|Indexes],C,L,T) :-
-	multi_hash_via_lookup_head(C,Index,Key,SuspsList,Head),
-	multi_hash_via_lookup_goal(C,inthash,Index,Key,SuspsList,Body),
+	multi_hash_lookup_head(C,Index,Key,SuspsList,Head),
+	multi_hash_lookup_body(C,inthash,Index,Key,SuspsList,Body),
 	L = [(Head :- Body)|L1],
 	multi_inthash_via_lookups(Indexes,C,L1,T).
-multi_hash_via_lookups([],_,L,L).
-multi_hash_via_lookups([Index|Indexes],C,L,T) :-
-	multi_hash_via_lookup_head(C,Index,Key,SuspsList,Head),
-	multi_hash_via_lookup_goal(C,hash,Index,Key,SuspsList,Body),
+multi_hash_lookups([],_,L,L).
+multi_hash_lookups([Index|Indexes],C,L,T) :-
+	multi_hash_lookup_head(C,Index,Key,SuspsList,Head),
+	multi_hash_lookup_body(C,hash,Index,Key,SuspsList,Body),
 	L = [(Head :- Body)|L1],
-	multi_hash_via_lookups(Indexes,C,L1,T).
+	multi_hash_lookups(Indexes,C,L1,T).
 
-multi_hash_via_lookup_head(ConstraintSymbol,Index,Key,SuspsList,Head) :-
-	multi_hash_via_lookup_name(ConstraintSymbol,Index,Name),
+multi_hash_lookup_head(ConstraintSymbol,Index,Key,SuspsList,Head) :-
+	multi_hash_lookup_name(ConstraintSymbol,Index,Name),
 	Head =.. [Name,Key,SuspsList].
 
-%%	multi_hash_via_lookup_goal(+ConstraintSymbol,+HashType,+Index,+Key,+SuspsList,-Goal) is det.
+%%	multi_hash_lookup_body(+ConstraintSymbol,+HashType,+Index,+Key,+SuspsList,-Goal) is det.
 %
 %	Returns goal that performs hash table lookup.
-multi_hash_via_lookup_goal(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
+multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 	% INLINED:
-	multi_hash_store_name(ConstraintSymbol,Index,StoreName),
-	make_get_store_goal(StoreName,HT,GetStoreGoal),
-	( HashType == hash, specialized_hash_term_call(Key,Hash,HashCall) ->
-		Goal = 
-		(
-			GetStoreGoal, % nb_getval(StoreName,HT),
-			HashCall,     % hash_term(Key,Hash),
-			lookup_ht1(HT,Hash,Key,SuspsList)
-		)
+	( get_store_type(ConstraintSymbol,multi_store(Stores)),
+	  memberchk(atomic_constants(Index,Constants),Stores) ->
+		atomic_constant_store_name(ConstraintSymbol,Index,Key,StoreName),
+		Goal = nb_getval(StoreName,SuspsList)
 	;
-		lookup_hash_call(HashType,HT,Key,SuspsList,Lookup),
-		Goal = 
-		(
-			GetStoreGoal, % nb_getval(StoreName,HT),
-			hash_term(Key,Hash),
-			Lookup
+		multi_hash_store_name(ConstraintSymbol,Index,StoreName),
+		make_get_store_goal(StoreName,HT,GetStoreGoal),
+		( HashType == hash, specialized_hash_term_call(Key,Hash,HashCall) ->
+			Goal = 
+			(
+				GetStoreGoal, % nb_getval(StoreName,HT),
+				HashCall,     % hash_term(Key,Hash),
+				lookup_ht1(HT,Hash,Key,SuspsList)
+			)
+		;
+			lookup_hash_call(HashType,HT,Key,SuspsList,Lookup),
+			Goal = 
+			(
+				GetStoreGoal, % nb_getval(StoreName,HT),
+				hash_term(Key,Hash),
+				Lookup
+			)
 		)
 	).
+
 
 lookup_hash_call(hash,HT,Key,SuspsList,lookup_ht(HT,Key,SuspsList)).
 lookup_hash_call(inthash,HT,Key,SuspsList,lookup_iht(HT,Key,SuspsList)).
@@ -3579,10 +3626,46 @@ specialize_hash_term(Term,NewTerm) :-
 		NewTerm =.. [F|NewArgs]
 	).	
 
-%%	multi_hash_via_lookup_name(+ConstraintSymbol,+Index,-Name)
+multi_hash_lookup_goal(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
+	( /* chr_pp_flag(experiment,off) ->
+		true	
+	; */ atomic(Key) ->
+		actual_atomic_multi_hash_keys(ConstraintSymbol,Index,[Key])
+	;
+		actual_non_atomic_multi_hash_key(ConstraintSymbol,Index)
+	),
+	delay_phase_end(validate_store_type_assumptions,
+		multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal)).
+
+:- chr_constraint actual_atomic_multi_hash_keys/3.
+:- chr_option(mode,actual_atomic_multi_hash_keys(+,+,?)).
+
+:- chr_constraint actual_non_atomic_multi_hash_key/2.
+:- chr_option(mode,actual_non_atomic_multi_hash_key(+,+)).
+
+/*
+actual_atomic_multi_hash_keys(C,Index,Keys)
+	==> format('Keys: ~w - ~w : ~w\n', [C,Index,Keys]).
+
+actual_non_atomic_multi_hash_key(C,Index)
+	==> format('Keys: ~w - ~w : N/A\n', [C,Index]).
+*/
+
+actual_atomic_multi_hash_keys(C,Index,Keys1), actual_atomic_multi_hash_keys(C,Index,Keys2)
+	<=> append(Keys1,Keys2,Keys0),
+	    sort(Keys0,Keys),
+	    actual_atomic_multi_hash_keys(C,Index,Keys).
+
+actual_non_atomic_multi_hash_key(C,Index) \ actual_non_atomic_multi_hash_key(C,Index) 
+	<=> true.
+
+actual_non_atomic_multi_hash_key(C,Index) \ actual_atomic_multi_hash_keys(C,Index,_) 
+	<=> true.
+
+%%	multi_hash_lookup_name(+ConstraintSymbol,+Index,-Name)
 %
 %	Returns predicate name of hash table lookup predicate.
-multi_hash_via_lookup_name(F/A,Index,Name) :-
+multi_hash_lookup_name(F/A,Index,Name) :-
 	( integer(Index) ->
 		IndexName = Index
 	; is_list(Index) ->
@@ -3669,7 +3752,27 @@ multi_hash_key_args(Index,Head,KeyArgs) :-
 		term_variables(Head,Vars),
 		find_with_var_identity(Arg,Vars,(member(I,Indexes), arg(I,Head,Arg)),KeyArgs)
 	).
-		
+	
+
+%-------------------------------------------------------------------------------	
+atomic_constants_code(C,Index,Constants,L,T) :-
+	atomic_constant_store_index_name(C,Index,IndexName),
+	findall(Clause, 
+			( member(Constant,Constants),
+			  atomic_constant_store_name(C,Index,Constant,StoreName),
+			  Clause =.. [IndexName,Constant,StoreName] 
+			),
+		Clauses),
+	append(Clauses,T,L).
+
+atomic_constant_store_name(F/A,[Index],Constant,Name) :-
+	get_target_module(Mod),		
+	atom_concat_list(['$chr_store_atomic_constant_',Mod,'____',F,'___',A,'___',Index,'___',Constant],Name).
+
+atomic_constant_store_index_name(F/A,[Index],Name) :-
+	get_target_module(Mod),		
+	atom_concat_list(['$chr_store_atomic_constant_',Mod,'____',F,'___',A,'___',Index],Name).
+%-------------------------------------------------------------------------------	
 global_list_store_name(F/A,Name) :-
 	get_target_module(Mod),		
 	atom_concat_list(['$chr_store_global_list_',Mod,'____',F,'___',A],Name).
@@ -3832,6 +3935,7 @@ enumerate_store_body(multi_inthash([Index|_]),C,Susp,Body) :-
 	multi_inthash_enumerate_store_body(Index,C,Susp,Body).
 enumerate_store_body(multi_hash([Index|_]),C,Susp,Body) :-
 	multi_hash_enumerate_store_body(Index,C,Susp,Body).
+enumerate_store_body(atomic_constants(_,_),_,_,true).
 enumerate_store_body(global_ground,C,Susp,Body) :-
 	global_ground_store_name(C,StoreName),
 	sbag_member_call(Susp,List,Sbag),
@@ -7910,7 +8014,7 @@ hash_lookup_passive_head(HashType,Indexes,Head,VarDict,GroundVars,Goal,AllSusps,
 		KeyCopy =.. [k|KeyArgCopies]
 	),
 	functor(Head,F,A),
-	multi_hash_via_lookup_goal(F/A,HashType,Index,KeyCopy,AllSusps,LookupGoal),
+	multi_hash_lookup_goal(F/A,HashType,Index,KeyCopy,AllSusps,LookupGoal),
 	
 	check_ground(GroundVars,KeyArgs,OriginalGroundCheck),
 	my_term_copy(OriginalGroundCheck,VarDict,GroundCheck),

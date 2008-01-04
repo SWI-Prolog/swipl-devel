@@ -207,7 +207,9 @@ option_definition(declare_stored_constraints,on ,[declare_stored_constraints-on]
 option_definition(stored,F/A,[]) :-
 	chr_translate:stored_assertion(F/A).
 %------------------------------------------------------------------------------%
-
+option_definition(experiment,off,[experiment-off]).
+option_definition(experiment,on,[experiment-on]).
+%------------------------------------------------------------------------------%
 option_definition(debug,off,Flags) :-
         option_definition(optimize,full,Flags2),
         Flags = [ debugable - off | Flags2].
@@ -331,6 +333,7 @@ chr_pp_flag_definition(ht_removal,[off,on]).
 chr_pp_flag_definition(mixed_stores,[off,on]).
 chr_pp_flag_definition(line_numbers,[off,on]).
 chr_pp_flag_definition(dynattr,[off,on]).
+chr_pp_flag_definition(experiment,[off,on]).
 
 chr_pp_flag_definition(declare_stored_constraints,[off,on]).
 
