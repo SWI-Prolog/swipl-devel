@@ -1,3 +1,10 @@
+Jan 8, 2008
+
+  * TS: Performance improvement: use new store
+	implementation for multi-argument lookups
+	on manifest ground terms. Should be faster than	
+	hashtable.
+
 Jan 4, 2008
 
   * TS: Performance improvement: use new store
