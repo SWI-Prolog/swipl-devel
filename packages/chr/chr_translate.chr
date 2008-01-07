@@ -4891,7 +4891,7 @@ type_alias(T1,A1), type_alias(T2,A2) <=>
 type_alias(T,B) \ type_alias(X,T2) <=> 
 	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
 	copy_term_nat((X,T2,T,B),(X2,T3,T1,D1)),oneway_unification(T3,T1) |
-   	chr_info(type_information,'Inferring `~w\' from `~w\' and `~w\'.\n',[X2==D1,X==T2,T==B]),
+   	% chr_info(type_information,'Inferring `~w\' from `~w\' and `~w\'.\n',[X2==D1,X==T2,T==B]),
 	type_alias(X2,D1).
 
 oneway_unification(X,Y) :-
@@ -9500,7 +9500,7 @@ never_stored_rules([_|Constraints],Rules) <=>
 	never_stored_rules(Constraints,Rules).
 
 check_storedness_assertions(Constraints) :-
-	( chr_pp_flag(declare_stored_constraints,on) ->
+	( chr_pp_flag(debugable,off), chr_pp_flag(declare_stored_constraints,on) ->
 		forall(Constraint,Constraints,check_storedness_assertion(Constraint))
 	;
 		true
