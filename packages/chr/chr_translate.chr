@@ -2965,9 +2965,9 @@ insert_constraint_body(multi_inthash(Indexes),C,Susp,[],Body) :-
 insert_constraint_body(multi_hash(Indexes),C,Susp,MixedUsedVars,Body) :-
 	generate_multi_hash_insert_constraint_bodies(Indexes,C,Susp,Body,MixedUsedVars),
 	sort_out_used_vars(MixedUsedVars,UsedVars).
-insert_constraint_body(atomic_constants([Index],_,_),C,Susp,UsedVars,Body) :-
-	atomic_constant_store_index_name(C,[Index],IndexName),
-	UsedVars = [Index - Key],
+insert_constraint_body(atomic_constants(Index,_,_),C,Susp,UsedVars,Body) :-
+	multi_hash_key_direct(C,Index,Susp,Key,UsedVars),
+	constants_store_index_name(C,Index,IndexName),
 	IndexLookup =.. [IndexName,Key,StoreName],
 	Body =
 	( IndexLookup ->
@@ -2976,9 +2976,9 @@ insert_constraint_body(atomic_constants([Index],_,_),C,Susp,UsedVars,Body) :-
 	;
 		true
 	).
-insert_constraint_body(ground_constants([Index],_),C,Susp,UsedVars,Body) :-
-	ground_constant_store_index_name(C,[Index],IndexName),
-	UsedVars = [Index - Key],
+insert_constraint_body(ground_constants(Index,_),C,Susp,UsedVars,Body) :-
+	multi_hash_key_direct(C,Index,Susp,Key,UsedVars),
+	constants_store_index_name(C,Index,IndexName),
 	IndexLookup =.. [IndexName,Key,StoreName],
 	Body =
 	( IndexLookup ->
@@ -3221,12 +3221,12 @@ delete_constraint_body(multi_inthash(Indexes),C,_,Susp,_,Body) :-
 	generate_multi_inthash_delete_constraint_bodies(Indexes,C,Susp,Body).
 delete_constraint_body(multi_hash(Indexes),C,Head,Susp,VarDict,Body) :-
 	generate_multi_hash_delete_constraint_bodies(Indexes,C,Head,Susp,VarDict,Body).
-delete_constraint_body(atomic_constants([Index],_,_),C,Head,Susp,VarDict,Body) :-
-	atomic_constant_store_index_name(C,[Index],IndexName),
-	get_suspension_argument_possibly_in_scope(Head,Index,VarDict,Susp,Key,Goal),
+delete_constraint_body(atomic_constants(Index,_,_),C,Head,Susp,VarDict,Body) :-
+	multi_hash_key(C,Head,Index,Susp,VarDict,KeyBody,Key),
+	constants_store_index_name(C,Index,IndexName),
 	IndexLookup =.. [IndexName,Key,StoreName],
 	Body = 
-	(Goal,
+	( KeyBody,
 	 ( IndexLookup ->
 		nb_getval(StoreName,Store),
 		'chr sbag_del_element'(Store,Susp,NStore),
@@ -3234,12 +3234,12 @@ delete_constraint_body(atomic_constants([Index],_,_),C,Head,Susp,VarDict,Body) :
 	;
 		true		
 	)).
-delete_constraint_body(ground_constants([Index],_),C,Head,Susp,VarDict,Body) :-
-	ground_constant_store_index_name(C,[Index],IndexName),
-	get_suspension_argument_possibly_in_scope(Head,Index,VarDict,Susp,Key,Goal),
+delete_constraint_body(ground_constants(Index,_),C,Head,Susp,VarDict,Body) :-
+	multi_hash_key(C,Head,Index,Susp,VarDict,KeyBody,Key),
+	constants_store_index_name(C,Index,IndexName),
 	IndexLookup =.. [IndexName,Key,StoreName],
 	Body = 
-	(Goal,
+	( KeyBody,
 	 ( IndexLookup ->
 		nb_getval(StoreName,Store),
 		'chr sbag_del_element'(Store,Susp,NStore),
@@ -3435,22 +3435,10 @@ generate_attach_code(multi_hash(Indexes),C,L,T) :-
 	multi_hash_store_initialisations(Indexes,C,L,L1),
 	multi_hash_lookups(Indexes,C,L1,T).
 generate_attach_code(atomic_constants(Index,Constants,_),C,L,T) :-
-	maplist(atomic_constant_store_name(C,Index),Constants,StoreNames),
-	findall(Initializer,
-			( member(StoreName,StoreNames),
-			  Initializer = nb_setval(StoreName,[])
-			),
-		  Initializers),
-	maplist(module_initializer,Initializers),
+	constants_initializers(C,Index,Constants),
 	atomic_constants_code(C,Index,Constants,L,T).
 generate_attach_code(ground_constants(Index,Constants),C,L,T) :-
-	maplist(ground_constant_store_name(C,Index),Constants,StoreNames),
-	findall(Initializer,
-			( member(StoreName,StoreNames),
-			  Initializer = nb_setval(StoreName,[])
-			),
-		  Initializers),
-	maplist(module_initializer,Initializers),
+	constants_initializers(C,Index,Constants),
 	ground_constants_code(C,Index,Constants,L,T).
 generate_attach_code(global_ground,C,L,T) :-
 	global_ground_store_initialisation(C,L,T).
@@ -3550,6 +3538,15 @@ generate_attach_code(type_indexed_identifier_store(Index,IndexType),C,L,T) :-
 		L = T
 	).
 
+constants_initializers(C,Index,Constants) :-
+	maplist(constants_store_name(C,Index),Constants,StoreNames),
+	findall(Initializer,
+			( member(StoreName,StoreNames),
+			  Initializer = nb_setval(StoreName,[])
+			),
+		  Initializers),
+	maplist(module_initializer,Initializers).
+
 lookup_identifier_atom(Key,X,IX,Atom) :-
 	atom_concat('lookup_identifier_',Key,LookupFunctor),
 	Atom =.. [LookupFunctor,X,IX].
@@ -3637,20 +3634,20 @@ multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 	( get_store_type(ConstraintSymbol,multi_store(Stores)),
 	  memberchk(atomic_constants(Index,Constants,_),Stores) ->
 		( ground(Key) ->
-			atomic_constant_store_name(ConstraintSymbol,Index,Key,StoreName),
+			constants_store_name(ConstraintSymbol,Index,Key,StoreName),
 			Goal = nb_getval(StoreName,SuspsList)
 		;
-			atomic_constant_store_index_name(ConstraintSymbol,Index,IndexName),
+			constants_store_index_name(ConstraintSymbol,Index,IndexName),
 			Lookup =.. [IndexName,Key,StoreName],
 			Goal = (Lookup, nb_getval(StoreName,SuspsList))
 		)
 	; get_store_type(ConstraintSymbol,multi_store(Stores)),
 	  memberchk(ground_constants(Index,Constants),Stores) ->
 		( ground(Key) ->
-			ground_constant_store_name(ConstraintSymbol,Index,Key,StoreName),
+			constants_store_name(ConstraintSymbol,Index,Key,StoreName),
 			Goal = nb_getval(StoreName,SuspsList)
 		;
-			ground_constant_store_index_name(ConstraintSymbol,Index,IndexName),
+			constants_store_index_name(ConstraintSymbol,Index,IndexName),
 			Lookup =.. [IndexName,Key,StoreName],
 			Goal = (Lookup, nb_getval(StoreName,SuspsList))
 		)
@@ -3855,61 +3852,44 @@ multi_hash_key_args(Index,Head,KeyArgs) :-
 
 %-------------------------------------------------------------------------------	
 atomic_constants_code(C,Index,Constants,L,T) :-
-	atomic_constant_store_index_name(C,Index,IndexName),
+	constants_store_index_name(C,Index,IndexName),
 	findall(Clause, 
 	      	( member(Constant,Constants),
-	      	  atomic_constant_store_name(C,Index,Constant,StoreName),
+	      	  constants_store_name(C,Index,Constant,StoreName),
 	      	  Clause =.. [IndexName,Constant,StoreName] 
 	      	),
 	      Clauses),
 	append(Clauses,T,L).
 
-atomic_constant_store_name(F/A,[Index],Constant,Name) :-
-	get_target_module(Mod),		
-	atom_concat_list(['$chr_store_atomic_constant_',Mod,'____',F,'___',A,'___',Index,'___',Constant],Name).
-
-atomic_constant_store_index_name(F/A,[Index],Name) :-
-	get_target_module(Mod),		
-	atom_concat_list(['$chr_store_atomic_constant_',Mod,'____',F,'___',A,'___',Index],Name).
 %-------------------------------------------------------------------------------	
 ground_constants_code(C,Index,Terms,L,T) :-
-	ground_constant_store_index_name(C,Index,IndexName),
+	constants_store_index_name(C,Index,IndexName),
 	findall(StoreName,
 			( member(Constant,Terms),
-			  ground_constant_store_name(C,Index,Constant,StoreName)
+			  constants_store_name(C,Index,Constant,StoreName)
 			),
 		StoreNames),
 	length(Terms,N),
 	replicate(N,[],More),
-	% writeln(StoreNames),
 	trie_index([Terms|More],StoreNames,IndexName,L,T).
-	% findall(Clause, 
-	%		( member(Term,Terms),
-	%		  ground_constant_store_name(C,Index,Term,StoreName),
-	%		  Clause =.. [IndexName,Term,StoreName] % TODO: replace with trie
-	%		),
-	%	Clauses),
-	% append(Clauses,T,L).
 
-ground_constant_store_name(F/A,Index,Term,Name) :-
+constants_store_name(F/A,Index,Term,Name) :-
 	get_target_module(Mod),		
 	term_to_atom(Term,Constant),
 	term_to_atom(Index,IndexAtom),
-	atom_concat_list(['$chr_store_ground_constant_',Mod,'____',F,'___',A,'___',IndexAtom,'___',Constant],Name).
+	atom_concat_list(['$chr_store_constants_',Mod,'____',F,'___',A,'___',IndexAtom,'___',Constant],Name).
 
-ground_constant_store_index_name(F/A,Index,Name) :-
+constants_store_index_name(F/A,Index,Name) :-
 	get_target_module(Mod),		
 	term_to_atom(Index,IndexAtom),
-	atom_concat_list(['$chr_store_ground_constant_',Mod,'____',F,'___',A,'___',IndexAtom],Name).
+	atom_concat_list(['$chr_store_constants_',Mod,'____',F,'___',A,'___',IndexAtom],Name).
 
 trie_index([Patterns|MorePatterns],Results,Prefix,Clauses,Tail) :-
-	% writeln(trie_index([Patterns|MorePatterns],Results,Prefix,Clauses,Tail)),
 	trie_step(Patterns,Prefix,Prefix,MorePatterns,Results,Clauses,Tail).
 
 trie_step([],_,_,[],[],L,L) :- !.
 	% length MorePatterns == length Patterns == length Results
 trie_step(Patterns,Symbol,Prefix,MorePatterns,Results,Clauses,T) :-
-	% writeln(trie_step(Patterns,Symbol,Prefix,MorePatterns,Results,Clauses,T)),
 	MorePatterns = [List|_],
 	length(List,N),	
 	findall(F/A,
@@ -3927,7 +3907,6 @@ trie_step_cases([FA|FAs],N,Pattern,MorePatterns,Results,Symbol,Prefix,Clauses,Ta
 	trie_step_cases(FAs,N,Pattern,MorePatterns,Results,Symbol,Prefix,Clauses1,Tail).
 
 trie_step_case(F/A,N,Patterns,MorePatterns,Results,Symbol,Prefix,[Clause|List],Tail) :-
-	% format('% ~w\n',[F/A]),
 	Clause = (Head :- Body),
 	N1 is N  + 1,
 	functor(Head,Symbol,N1),
@@ -3940,9 +3919,7 @@ trie_step_case(F/A,N,Patterns,MorePatterns,Results,Symbol,Prefix,[Clause|List],T
 	( RecArgs == [Result] ->
 		List = Tail,
 		Body = true,
-	        % writeln(Results),
 		rec_cases(Patterns,_,Results,F/A,_,_,MoreResults),
-		% writeln(MoreResults),
 		MoreResults = [Result]
 	;
 		gensym(Prefix,RSymbol),
@@ -4129,7 +4106,7 @@ enumerate_store_body(atomic_constants(Index,Constants,Completeness),C,Susp,Body)
 	Completeness == complete, % fail if incomplete
 	find_with_var_identity(nb_getval(StoreName,Susps),[Susps],
 		( member(Constant,Constants), 
-		  atomic_constant_store_name(C,Index,Constant,StoreName) ) 
+		  constants_store_name(C,Index,Constant,StoreName) ) 
 		, Disjuncts),
 	list2disj(Disjuncts, Disjunction),
 	Body = ( Disjunction, member(Susp,Susps) ).
