@@ -9454,9 +9454,55 @@ used_states_known \ if_used_state(Constraint,State,Used,NotUsed,ResultGoal)
         <=> ResultGoal = NotUsed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Check storedness annotations.
+% CHECK STOREDNESS ANNOTATIONS AND GENERATE DEFAULT SIMPLIFICATION RULES
+% (Feature for SSS)
 %
-% Feature for SSS.
+% 1. Checking
+% ~~~~~~~~~~~
+%
+% When the programmer enables the `declare_stored_constraints' option, i.e. writes
+%	
+%	:- chr_option(declare_stored_constraints,on).
+%
+% the compiler will check for the storedness of constraints.
+%
+% By default, the compiler assumes that the programmer wants his constraints to 
+% be never-stored. Hence, a warning will be issues when a constraint is actually 
+% stored.
+%
+% Such warnings are suppressed, if the programmer adds the `# stored' modifier
+% to a constraint declaration, i.e. writes
+%
+%	:- chr_constraint c(...) # stored.
+%
+% In that case a warning is issued when the constraint is never-stored. 
+%
+% NOTE: Checking is only performed if `debug' mode is off. Otherwise, all
+%       constraints are stored anyway.
+%
+%
+% 2. Rule Generation
+% ~~~~~~~~~~~~~~~~~~
+% 
+% When the programmer enables the `declare_stored_constraints' option, i.e. writes
+%	
+%	:- chr_option(declare_stored_constraints,on).
+%
+% the compiler will generate default simplification rules for constraints.
+%
+% By default, no default rule is generated for a constraint. However, if the
+% programmer writes a default/1 annotation in the constraint declaration, i.e. writes
+%
+%	:- chr_constraint c(...) # default(Goal).
+%
+% where `Goal' is a ground and callable goal (e.g. `true', `fail' or `throw(error)'),
+% the compiler generates a rule:
+%
+%		c(_,...,_) <=> Goal.
+% 
+% at the end of the program. If multiple default rules are generated, for several constraints,
+% then the order of the default rules is not specified.
+
 
 :- chr_constraint stored_assertion/1.
 :- chr_option(mode,stored_assertion(+)).
@@ -9465,6 +9511,9 @@ used_states_known \ if_used_state(Constraint,State,Used,NotUsed,ResultGoal)
 :- chr_constraint never_stored_default/2.
 :- chr_option(mode,never_stored_default(+,?)).
 :- chr_option(type_declaration,never_stored_default(constraint,any)).
+
+% Rule Generation
+% ~~~~~~~~~~~~~~~
 
 generate_never_stored_rules(Constraints,Rules) :-
 	( chr_pp_flag(declare_stored_constraints,on) ->
@@ -9493,6 +9542,9 @@ never_stored_default(Constraint,Goal) \ never_stored_rules([Constraint|Constrain
 	never_stored_rules(Constraints,Tail).
 never_stored_rules([_|Constraints],Rules) <=>
 	never_stored_rules(Constraints,Rules).
+
+% Checking
+% ~~~~~~~~
 
 check_storedness_assertions(Constraints) :-
 	( chr_pp_flag(debugable,off), chr_pp_flag(declare_stored_constraints,on) ->
