@@ -2218,8 +2218,16 @@ run_propagator(pdiv(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X // Y
             ;   get(Y, YD, YL, YU, YPs),
-                (   nonvar(Z) -> true
-                    % TODO: cover this
+                (   nonvar(Z) ->
+                    (   Z =:= 0 ->
+                        NYL is -abs(X) - 1,
+                        NYU is abs(X) + 1,
+                        domains_intersection(split(0, from_to(inf,n(NYL)),
+                                                   from_to(n(NYU), sup)),
+                                             YD, NYD),
+                        put(Y, NYD, YPs)
+                    ;   true % TODO: cover this
+                    )
                 ;   get(Z, ZD, ZL, ZU, ZPs),
                     (   YL cis_leq n(0), YU cis_geq n(0) ->
                         NZL cis max(-abs(n(X)), ZL),
@@ -2280,7 +2288,15 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             ;   domains_intersection(from_to(NXL,NXU), XD, NXD),
                 put(X, NXD, XPs)
             )
-        ;   (   X == Y -> Z = 1 ; true )
+        ;   (   X == Y -> Z = 1
+            ;   get(X, _, XL, XU, _),
+                get(Z, ZD, ZPs),
+                NZU cis max(abs(XL), XU),
+                NZL cis1 -NZU,
+                domains_intersection(from_to(NZL,NZU), ZD, NZD),
+                % TODO: incorporate sign of Y
+                put(Z, NZD, ZPs)
+            )
         ).
 
 
