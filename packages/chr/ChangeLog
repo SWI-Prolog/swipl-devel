@@ -1,3 +1,8 @@
+Jan 9, 2008
+
+  * TS: Bug fix: atomic_constants store was causing compiler
+	to loop.
+
 Jan 8, 2008
 
   * TS: Performance improvement: use new store

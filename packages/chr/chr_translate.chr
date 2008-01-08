@@ -448,11 +448,11 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs)
 		enumerated_atomic_type(Type,Atoms)	
 	|
 		delete(STs,multi_hash([[Index]]),STs0),
-		writeln(actual_store_types(C,[atomic_constants([Index],Atoms)|STs0])),	
+		/* writeln(actual_store_types(C,[atomic_constants([Index],Atoms)|STs0])), */	
 		actual_store_types(C,[atomic_constants([Index],Atoms)|STs0]).	
 validate_store_type_assumption(C), actual_store_types(C,STs), assumed_store_type(C,_) 	% automatic assumption
 	<=> 
-		( STs = [ground_constants(_,_)] ->
+		( STs = [ground_constants(_,_)] ; STs = [atomic_constants(_,_)] ->
 			store_type(C,multi_store([global_ground|STs]))
 		;
 			store_type(C,multi_store(STs))
