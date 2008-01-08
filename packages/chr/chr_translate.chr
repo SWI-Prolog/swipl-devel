@@ -202,11 +202,12 @@
 			;	global_singleton
 			; 	global_ground
 			%	EXPERIMENTAL STORES
-			;	atomic_constants(list(int),list(any))
+			;	atomic_constants(list(int),list(any),atomic_coverage)
 			;	ground_constants(list(int),list(any))
 			;	var_assoc_store(int,list(int))
 			;	identifier_store(int)
 			;	type_indexed_identifier_store(int,any).
+:- chr_type atomic_coverage	--->	complete ; incomplete.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -412,6 +413,10 @@ none_suspended_on_variables \ are_none_suspended_on_variables <=> true.
 are_none_suspended_on_variables <=> fail.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+store_type(FA,StoreType) 
+	==> chr_pp_flag(verbose,on)
+	|   chr_info(verbose,'Storetype of ~w is ~w.\n',[FA,StoreType]).
+
 store_type(FA,Store) \ get_store_type(FA,Query)
 	<=> Query = Store.
 
@@ -433,12 +438,19 @@ update_store_type(C,ST)
 validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_atomic_multi_hash_keys(C,Index,Keys)
 	<=>
 		delete(STs,multi_hash([Index]),STs0),
-		/* writeln(actual_store_types(C,[atomic_constants(Index,Keys)|STs0])), */	
-		actual_store_types(C,[atomic_constants(Index,Keys)|STs0]).	
+		Index = [IndexPos],
+		( get_constraint_type(C,Types),
+		  nth1(IndexPos,Types,Type),
+		  enumerated_atomic_type(Type,Atoms),
+		  sort(Atoms,Keys) ->	 
+			Completeness = complete
+		;
+			Completeness = incomplete
+		),
+		actual_store_types(C,[atomic_constants(Index,Keys,Completeness)|STs0]).	
 validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_ground_multi_hash_keys(C,Index,Keys)
 	<=>
 		delete(STs,multi_hash([Index]),STs0),
-		/* writeln(actual_store_types(C,[ground_constants(Index,Keys)|STs0])), */	
 		actual_store_types(C,[ground_constants(Index,Keys)|STs0]).	
 validate_store_type_assumption(C) \ actual_store_types(C,STs)
 	<=>	
@@ -448,11 +460,10 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs)
 		enumerated_atomic_type(Type,Atoms)	
 	|
 		delete(STs,multi_hash([[Index]]),STs0),
-		/* writeln(actual_store_types(C,[atomic_constants([Index],Atoms)|STs0])), */	
-		actual_store_types(C,[atomic_constants([Index],Atoms)|STs0]).	
+		actual_store_types(C,[atomic_constants([Index],Atoms,complete)|STs0]).	
 validate_store_type_assumption(C), actual_store_types(C,STs), assumed_store_type(C,_) 	% automatic assumption
 	<=> 
-		( STs = [ground_constants(_,_)] ; STs = [atomic_constants(_,_)] ->
+		( ( STs = [ground_constants(_,_)] ; STs = [atomic_constants(_,_,incomplete)]) ->
 			store_type(C,multi_store([global_ground|STs]))
 		;
 			store_type(C,multi_store(STs))
@@ -2954,7 +2965,7 @@ insert_constraint_body(multi_inthash(Indexes),C,Susp,[],Body) :-
 insert_constraint_body(multi_hash(Indexes),C,Susp,MixedUsedVars,Body) :-
 	generate_multi_hash_insert_constraint_bodies(Indexes,C,Susp,Body,MixedUsedVars),
 	sort_out_used_vars(MixedUsedVars,UsedVars).
-insert_constraint_body(atomic_constants([Index],_),C,Susp,UsedVars,Body) :-
+insert_constraint_body(atomic_constants([Index],_,_),C,Susp,UsedVars,Body) :-
 	atomic_constant_store_index_name(C,[Index],IndexName),
 	UsedVars = [Index - Key],
 	IndexLookup =.. [IndexName,Key,StoreName],
@@ -3210,7 +3221,7 @@ delete_constraint_body(multi_inthash(Indexes),C,_,Susp,_,Body) :-
 	generate_multi_inthash_delete_constraint_bodies(Indexes,C,Susp,Body).
 delete_constraint_body(multi_hash(Indexes),C,Head,Susp,VarDict,Body) :-
 	generate_multi_hash_delete_constraint_bodies(Indexes,C,Head,Susp,VarDict,Body).
-delete_constraint_body(atomic_constants([Index],_),C,Head,Susp,VarDict,Body) :-
+delete_constraint_body(atomic_constants([Index],_,_),C,Head,Susp,VarDict,Body) :-
 	atomic_constant_store_index_name(C,[Index],IndexName),
 	get_suspension_argument_possibly_in_scope(Head,Index,VarDict,Susp,Key,Goal),
 	IndexLookup =.. [IndexName,Key,StoreName],
@@ -3223,7 +3234,7 @@ delete_constraint_body(atomic_constants([Index],_),C,Head,Susp,VarDict,Body) :-
 	;
 		true		
 	)).
-delete_constraint_body(atomic_constants([Index],_),C,Head,Susp,VarDict,Body) :-
+delete_constraint_body(ground_constants([Index],_),C,Head,Susp,VarDict,Body) :-
 	ground_constant_store_index_name(C,[Index],IndexName),
 	get_suspension_argument_possibly_in_scope(Head,Index,VarDict,Susp,Key,Goal),
 	IndexLookup =.. [IndexName,Key,StoreName],
@@ -3423,7 +3434,7 @@ generate_attach_code(multi_inthash(Indexes),C,L,T) :-
 generate_attach_code(multi_hash(Indexes),C,L,T) :-
 	multi_hash_store_initialisations(Indexes,C,L,L1),
 	multi_hash_lookups(Indexes,C,L1,T).
-generate_attach_code(atomic_constants(Index,Constants),C,L,T) :-
+generate_attach_code(atomic_constants(Index,Constants,_),C,L,T) :-
 	maplist(atomic_constant_store_name(C,Index),Constants,StoreNames),
 	findall(Initializer,
 			( member(StoreName,StoreNames),
@@ -3624,7 +3635,7 @@ multi_hash_lookup_head(ConstraintSymbol,Index,Key,SuspsList,Head) :-
 multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 	% INLINED:
 	( get_store_type(ConstraintSymbol,multi_store(Stores)),
-	  memberchk(atomic_constants(Index,Constants),Stores) ->
+	  memberchk(atomic_constants(Index,Constants,_),Stores) ->
 		( ground(Key) ->
 			atomic_constant_store_name(ConstraintSymbol,Index,Key,StoreName),
 			Goal = nb_getval(StoreName,SuspsList)
@@ -4114,7 +4125,14 @@ enumerate_store_body(multi_inthash([Index|_]),C,Susp,Body) :-
 	multi_inthash_enumerate_store_body(Index,C,Susp,Body).
 enumerate_store_body(multi_hash([Index|_]),C,Susp,Body) :-
 	multi_hash_enumerate_store_body(Index,C,Susp,Body).
-enumerate_store_body(atomic_constants(_,_),_,_,_) :- fail.
+enumerate_store_body(atomic_constants(Index,Constants,Completeness),C,Susp,Body) :- 
+	Completeness == complete, % fail if incomplete
+	find_with_var_identity(nb_getval(StoreName,Susps),[Susps],
+		( member(Constant,Constants), 
+		  atomic_constant_store_name(C,Index,Constant,StoreName) ) 
+		, Disjuncts),
+	list2disj(Disjuncts, Disjunction),
+	Body = ( Disjunction, member(Susp,Susps) ).
 enumerate_store_body(ground_constants(_,_),_,_,_) :- fail.
 enumerate_store_body(global_ground,C,Susp,Body) :-
 	global_ground_store_name(C,StoreName),

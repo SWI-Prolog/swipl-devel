@@ -290,6 +290,9 @@ option_definition(dynattr,on,Flags) :-
 option_definition(dynattr,off,Flags) :-
 	Flags = [dynattr - off].
 
+option_definition(verbose,off,[verbose-off]).
+option_definition(verbose,on,[verbose-on]).
+
 init_chr_pp_flags :-
 	chr_pp_flag_definition(Name,[DefaultValue|_]),
 	set_chr_pp_flag(Name,DefaultValue),
@@ -334,6 +337,7 @@ chr_pp_flag_definition(mixed_stores,[off,on]).
 chr_pp_flag_definition(line_numbers,[off,on]).
 chr_pp_flag_definition(dynattr,[off,on]).
 chr_pp_flag_definition(experiment,[off,on]).
+chr_pp_flag_definition(verbose,[off,on]).
 
 chr_pp_flag_definition(declare_stored_constraints,[off,on]).
 
