@@ -9477,7 +9477,7 @@ used_states_known \ if_used_state(Constraint,State,Used,NotUsed,ResultGoal)
 %
 % In that case a warning is issued when the constraint is never-stored. 
 %
-% NOTE: Checking is only performed if `debug' mode is off. Otherwise, all
+% NOTE: Checking is only performed if `storage_analysis' is on. Otherwise, all
 %       constraints are stored anyway.
 %
 %
@@ -9547,7 +9547,7 @@ never_stored_rules([_|Constraints],Rules) <=>
 % ~~~~~~~~
 
 check_storedness_assertions(Constraints) :-
-	( chr_pp_flag(debugable,off), chr_pp_flag(declare_stored_constraints,on) ->
+	( chr_pp_flag(storage_analysis,on), chr_pp_flag(declare_stored_constraints,on) ->
 		forall(Constraint,Constraints,check_storedness_assertion(Constraint))
 	;
 		true
