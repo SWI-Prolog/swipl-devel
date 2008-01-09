@@ -1,6 +1,7 @@
 Jan 10, 2008
 
   * TS: Avoid trivial warning for declare_stored_constraints.
+  * TS: Bug fix: missing full store was causing compiler to loop.
 
 Jan 9, 2008
 

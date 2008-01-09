@@ -412,18 +412,34 @@ none_suspended_on_variables \ none_suspended_on_variables <=> true.
 none_suspended_on_variables \ are_none_suspended_on_variables <=> true.
 are_none_suspended_on_variables <=> fail.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% STORE TYPES
+%
+% The functionality for inspecting and deciding on the different types of constraint
+% store / indexes for constraints.
 
 store_type(FA,StoreType) 
 	==> chr_pp_flag(verbose,on)
 	|   chr_info(verbose,'Storetype of ~w is ~w.\n',[FA,StoreType]).
 
+% 1. Inspection
+% ~~~~~~~~~~~~~
+%
+% 
+
+get_store_type_normal @
 store_type(FA,Store) \ get_store_type(FA,Query)
 	<=> Query = Store.
 
+get_store_type_assumed @
 assumed_store_type(FA,Store) \ get_store_type(FA,Query)
 	<=> Query = Store.
+
+get_store_type_default @ 
 get_store_type(_,Query) 
 	<=> Query = default.
+
+% 2. Store type registration
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 actual_store_types(C,STs) \ update_store_type(C,ST)
 	<=> member(ST,STs) | true.
@@ -434,7 +450,9 @@ update_store_type(C,ST)
 	<=> 
 		actual_store_types(C,[ST]).
 
-% refine store type assumption
+% 3. Final decision on store types
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_atomic_multi_hash_keys(C,Index,Keys)
 	<=>
 		delete(STs,multi_hash([Index]),STs0),
@@ -463,7 +481,7 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs)
 		actual_store_types(C,[atomic_constants([Index],Atoms,complete)|STs0]).	
 validate_store_type_assumption(C), actual_store_types(C,STs), assumed_store_type(C,_) 	% automatic assumption
 	<=> 
-		( ( STs = [ground_constants(_,_)] ; STs = [atomic_constants(_,_,incomplete)]) ->
+		( forall(member(ST,STs), partial_store(ST)) ->
 			store_type(C,multi_store([global_ground|STs]))
 		;
 			store_type(C,multi_store(STs))
@@ -480,6 +498,9 @@ validate_store_type_assumption(C), assumed_store_type(C,_)				% no lookups on co
 	<=> store_type(C,global_ground).
 validate_store_type_assumption(C) 
 	<=> true.
+
+partial_store(ground_constants(_,_)).
+partial_store(atomic_constants(_,_,incomplete)).
 
 %%% P A S S I V E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 passive(R,ID) \ passive(R,ID) <=> true.
@@ -4057,7 +4078,11 @@ enumerate_store_bodies([],_,[]).
 enumerate_store_bodies([C|Cs],Constraint,L) :-
 	( is_stored(C) ->
 		get_store_type(C,StoreType),
-		enumerate_store_body(StoreType,C,Suspension,SuspensionBody),
+		( enumerate_store_body(StoreType,C,Suspension,SuspensionBody) ->
+			true
+		;
+			chr_error(internal,'Could not generate enumeration code for constraint ~w.\n',[C])
+		),
 		get_dynamic_suspension_term_field(arguments,C,Suspension,Arguments,DynamicGoal),
 		C = F/_,
 		Constraint0 =.. [F|Arguments],
