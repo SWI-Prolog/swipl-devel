@@ -1029,7 +1029,10 @@ choice_order_variable(enum, Order, Var, Vars, Selection) :-
             label(Vars, Selection, Order, enum)
         ;   domain_remove(Dom0, Next, Dom),
             put(Var, Dom, Ps),
-            choice_order_variable(enum, Order, Var, Vars, Selection)
+            (   var(Var) ->
+                choice_order_variable(enum, Order, Var, Vars, Selection)
+            ;   label(Vars, Selection, Order, enum)
+            )
         ).
 choice_order_variable(bisect, Order, Var, Vars, Selection) :-
         get(Var, Dom, _),
