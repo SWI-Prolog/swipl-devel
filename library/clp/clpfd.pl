@@ -917,23 +917,7 @@ Vs ins D :-
 % Bind Var to all feasible values of its domain on backtracking. The
 % domain of Var must be finite.
 
-indomain(Var) :-
-        (   var(Var) ->
-            finite_domain(Var),
-            indomain_(up, Var)
-        ;   must_be(integer, Var)
-        ).
-
-indomain_(Order, Var) :-
-        (   var(Var) ->
-            get(Var, Dom, _),
-            order_dom_next(Order, Dom, Next),
-            (   Var = Next
-            ;   Var #\= Next,
-                indomain_(Order, Var)
-            )
-        ;   must_be(integer, Var)
-        ).
+indomain(Var) :- label([Var]).
 
 order_dom_next(up, Dom, Next)   :- domain_infimum(Dom, n(Next)).
 order_dom_next(down, Dom, Next) :- domain_supremum(Dom, n(Next)).
@@ -989,7 +973,7 @@ labeling(Options, Vars) :-
         must_be(list, Options),
         must_be(list, Vars),
         maplist(finite_domain, Vars),
-        label(Options, leftmost, up, none, Vars).
+        label(Options, leftmost, up, step, none, Vars).
 
 finite_domain(Var) :-
         (   var(Var) ->
@@ -1002,34 +986,60 @@ finite_domain(Var) :-
         ).
 
 
-label([Option|Options], Selection, Order, Optimisation, Vars) :-
+label([Option|Options], Selection, Order, Choice, Optimisation, Vars) :-
         (   var(Option)-> instantiation_error(Option)
         ;   selection(Option) ->
-            label(Options, Option, Order, Optimisation, Vars)
+            label(Options, Option, Order, Choice, Optimisation, Vars)
         ;   order(Option) ->
-            label(Options, Selection, Option, Optimisation, Vars)
+            label(Options, Selection, Option, Choice, Optimisation, Vars)
+        ;   choice(Option) ->
+            label(Options, Selection, Order, Option, Optimisation, Vars)
         ;   optimization(Option) ->
-            label(Options, Selection, Order, Option, Vars)
+            label(Options, Selection, Order, Choice, Option, Vars)
         ;   domain_error(labeling_option, Option)
         ).
-label([], Selection, Order, Optimisation, Vars) :-
+label([], Selection, Order, Choice, Optimisation, Vars) :-
         ( Optimisation == none ->
-            label(Vars, Selection, Order)
-        ;   optimize(Vars, Selection, Order, Optimisation)
+            label(Vars, Selection, Order, Choice)
+        ;   optimize(Vars, Selection, Order, Choice, Optimisation)
         ).
 
 
-label([], _, _) :- !.
-label(Vars, Selection, Order) :-
+label([], _, _, _) :- !.
+label(Vars, Selection, Order, Choice) :-
         select_var(Selection, Vars, Var, RVars),
         (   var(Var) ->
-            get(Var, Dom, _),
-            order_dom_next(Order, Dom, Next),
-            (   Var = Next, label(RVars, Selection, Order)
-            ;   Var #\= Next, label(Vars, Selection, Order)
-            )
+            choice_order_variable(Choice, Order, Var, RVars, Selection)
         ;   must_be(integer, Var),
-            label(RVars, Selection, Order)
+            label(RVars, Selection, Order, Choice)
+        ).
+
+choice_order_variable(step, Order, Var, Vars, Selection) :-
+        get(Var, Dom, _),
+        order_dom_next(Order, Dom, Next),
+        (   Var = Next,
+            label(Vars, Selection, Order, step)
+        ;   Var #\= Next,
+            label([Var|Vars], Selection, Order, step)
+        ).
+choice_order_variable(enum, Order, Var, Vars, Selection) :-
+        get(Var, Dom0, Ps),
+        order_dom_next(Order, Dom0, Next),
+        (   Var = Next,
+            label(Vars, Selection, Order, enum)
+        ;   domain_remove(Dom0, Next, Dom),
+            put(Var, Dom, Ps),
+            choice_order_variable(enum, Order, Var, Vars, Selection)
+        ).
+choice_order_variable(bisect, Order, Var, Vars, Selection) :-
+        get(Var, Dom, _),
+        domain_infimum(Dom, n(I)),
+        domain_supremum(Dom, n(S)),
+        Mid is (I + S) // 2,
+        (   Var #=< Mid,
+            label([Var|Vars], Selection, Order, bisect)
+        ;   Var #> Mid,
+            label([Var|Vars], Selection, Order, bisect)
         ).
 
 selection(ff).
@@ -1037,6 +1047,10 @@ selection(ffc).
 selection(min).
 selection(max).
 selection(leftmost).
+
+choice(step).
+choice(enum).
+choice(bisect).
 
 order(up).
 order(down).
@@ -1141,26 +1155,26 @@ delete_eq([X|Xs],Y,List) :-
             delete_eq(Xs,Y,Tail)
         ).
 
-optimize(Vars, Selection, Order, Opt) :-
+optimize(Vars, Selection, Order, Choice, Opt) :-
         copy_term(Vars-Opt, Vars1-Opt1),
-        once(label(Vars1, Selection, Order)),
+        once(label(Vars1, Selection, Order, Choice)),
         functor(Opt1, Direction, _),
         maplist(arg(1), [Opt,Opt1], [Expr,Expr1]),
-        optimize(Direction, Selection, Order, Vars, Expr1, Expr).
+        optimize(Direction, Selection, Order, Choice, Vars, Expr1, Expr).
 
-optimize(Direction, Selection, Order, Vars, Expr0, Expr) :-
+optimize(Direction, Selection, Order, Choice, Vars, Expr0, Expr) :-
         Val0 is Expr0,
         copy_term(Vars-Expr, Vars1-Expr1),
         (   Direction == min -> Tighten = (Expr1 #< Val0)
         ;   Tighten = (Expr1 #> Val0) % max
         ),
-        (   Tighten, label(Vars1, Selection, Order) ->
-            optimize(Direction, Selection, Order, Vars, Expr1, Expr)
+        (   Tighten, label(Vars1, Selection, Order, Choice) ->
+            optimize(Direction, Selection, Order, Choice, Vars, Expr1, Expr)
         ;
-              (   Expr #= Val0, label(Vars, Selection, Order)
+              (   Expr #= Val0, label(Vars, Selection, Order, Choice)
               ;   Expr #\= Val0,
                   Opt =.. [Direction,Expr],
-                  optimize(Vars, Selection, Order, Opt)
+                  optimize(Vars, Selection, Order, Choice, Opt)
               )
         ).
 
