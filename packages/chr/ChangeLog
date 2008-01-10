@@ -1,4 +1,9 @@
+
 Jan 10, 2008
+
+  * TS: Type check constraint declarations.
+
+Jan 9, 2008
 
   * TS: Avoid trivial warning for declare_stored_constraints.
   * TS: Bug fix: missing full store was causing compiler to loop.
@@ -11,7 +16,7 @@ Jan 9, 2008
 	if atomic_constants store covers all cases.
   * TS: Clean-up and bug fix.
 
-Jan 8, 2008
+Jan 7, 2008
 
   * TS: Performance improvement: use new store
 	implementation for multi-argument lookups

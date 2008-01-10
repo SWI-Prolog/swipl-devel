@@ -984,7 +984,7 @@ extract_type_mode([C0|R],[ConstraintSymbol|R2]) :-
 	ConstraintSymbol = F/A,
 	C =.. [_|Args],
 	extract_types_and_modes(Args,ArgTypes,ArgModes),
-	constraint_type(ConstraintSymbol,ArgTypes),
+	assert_constraint_type(ConstraintSymbol,ArgTypes),
 	constraint_mode(ConstraintSymbol,ArgModes),
 	extract_type_mode(R,R2).
 
@@ -3439,6 +3439,8 @@ generate_attach_code(Constraints,[Enumerate|L]) :-
 	generate_attach_code(Constraints,L,T),
 	module_initializers(Initializers),
 	prolog_global_variables_code(PrologGlobalVariables),
+	% Do not rename or the 'chr_initialization' predicate 
+	% without warning SSS
 	T = [('$chr_initialization' :- Initializers),(:- initialization '$chr_initialization')|PrologGlobalVariables].
 
 generate_attach_code([],L,L).
@@ -4891,6 +4893,13 @@ safely_unifiable(H,I) :-
 :- chr_option(mode,constraint_type(+,+)).
 :- chr_option(mode,get_constraint_type(+,-)).
 
+assert_constraint_type(Constraint,ArgTypes) :-
+	( ground(ArgTypes) ->
+		constraint_type(Constraint,ArgTypes)
+	;
+		chr_error(type_error,'Declared argument types "~w" for constraint "~w" must be ground!\n',[ArgTypes,Constraint])
+	).
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Consistency checks of type aliases
 
@@ -5182,7 +5191,7 @@ type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition) :-
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% Static type checking
+% STATIC TYPE CHECKING
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Checks head constraints and CHR constraint calls in bodies. 
 %
@@ -5194,8 +5203,35 @@ type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition) :-
 :- chr_constraint
 	static_type_check/0.
 
-:- chr_type type_error_src ---> head(any) ; body(any).
+
+% 1. Check the declared types
+
+constraint_type(Constraint,ArgTypes), static_type_check 
+	==>
+		forall(
+			( member(ArgType,ArgTypes), forsubterm(ArgType,Type) ),
+			( get_type_definition(Type,_) ->
+				true
+			;
+				chr_error(type_error,'Undefined type "~w" used in type declaration of "~w".\n',[Type,Constraint])
+			)
+		).
+			
+			
+forsubterm(Term,SubTerm) :-
+	( 
+		SubTerm = Term
+	;
+		Term =.. [_|Args],
+		member(Arg,Args),
+		forsubterm(Arg,SubTerm)
+	).
+		
+
+% 2. Check the rules
  
+:- chr_type type_error_src ---> head(any) ; body(any).
+
 rule(_,Rule), static_type_check 
 	==>
 	    	copy_term_nat(Rule,RuleCopy),
