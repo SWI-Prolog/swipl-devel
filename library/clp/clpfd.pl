@@ -1038,7 +1038,8 @@ choice_order_variable(bisect, Order, Var, Vars, Selection) :-
         get(Var, Dom, _),
         domain_infimum(Dom, n(I)),
         domain_supremum(Dom, n(S)),
-        Mid is (I + S) // 2,
+        Mid0 is (I + S) // 2,
+        (   Mid0 =:= S -> Mid is Mid0 - 1 ; Mid = Mid0 ),
         (   Var #=< Mid,
             label([Var|Vars], Selection, Order, bisect)
         ;   Var #> Mid,
