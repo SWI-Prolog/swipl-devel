@@ -2,6 +2,8 @@
 Jan 10, 2008
 
   * TS: Type check constraint declarations.
+  * TS: Trie stores hidden behind `experimental' option.
+  * TS: New option `verbose' prints constraint indices.
 
 Jan 9, 2008
 

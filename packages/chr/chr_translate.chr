@@ -419,7 +419,20 @@ are_none_suspended_on_variables <=> fail.
 
 store_type(FA,StoreType) 
 	==> chr_pp_flag(verbose,on)
-	|   chr_info(verbose,'Storetype of ~w is ~w.\n',[FA,StoreType]).
+	| 
+	format('The indexes for ~w are:\n',[FA]),   
+	format_storetype(StoreType).
+	% chr_info(verbose,'Storetype of ~w is ~w.\n',[FA,StoreType]).
+
+format_storetype(multi_store(StoreTypes)) :- !,
+	forall(member(StoreType,StoreTypes), format_storetype(StoreType)).
+format_storetype(atomic_constants(Index,Constants,_)) :-
+	format('\t* a trie index on the argument(s) ~w for the ground terms ~w\n',[Index,Constants]).
+format_storetype(ground_constants(Index,Constants)) :-
+	format('\t* a trie index on the argument(s) ~w for the ground terms ~w\n',[Index,Constants]).
+format_storetype(StoreType) :-
+	format('\t* ~w\n',[StoreType]).
+
 
 % 1. Inspection
 % ~~~~~~~~~~~~~
@@ -455,6 +468,8 @@ update_store_type(C,ST)
 
 validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_atomic_multi_hash_keys(C,Index,Keys)
 	<=>
+		chr_pp_flag(experiment,on)
+	|
 		delete(STs,multi_hash([Index]),STs0),
 		Index = [IndexPos],
 		( get_constraint_type(C,Types),
@@ -468,10 +483,13 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_atomic_mul
 		actual_store_types(C,[atomic_constants(Index,Keys,Completeness)|STs0]).	
 validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_ground_multi_hash_keys(C,Index,Keys)
 	<=>
+		chr_pp_flag(experiment,on)
+	|
 		delete(STs,multi_hash([Index]),STs0),
 		actual_store_types(C,[ground_constants(Index,Keys)|STs0]).	
 validate_store_type_assumption(C) \ actual_store_types(C,STs)
 	<=>	
+		chr_pp_flag(experiment,on),
 		memberchk(multi_hash([[Index]]),STs),
 		get_constraint_type(C,Types),
 		nth1(Index,Types,Type),
@@ -481,7 +499,7 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs)
 		actual_store_types(C,[atomic_constants([Index],Atoms,complete)|STs0]).	
 validate_store_type_assumption(C), actual_store_types(C,STs), assumed_store_type(C,_) 	% automatic assumption
 	<=> 
-		( forall(member(ST,STs), partial_store(ST)) ->
+		( chr_pp_flag(experiment,on), forall(member(ST,STs), partial_store(ST)) ->
 			store_type(C,multi_store([global_ground|STs]))
 		;
 			store_type(C,multi_store(STs))
