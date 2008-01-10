@@ -4,6 +4,7 @@ Jan 10, 2008
   * TS: Type check constraint declarations.
   * TS: Trie stores hidden behind `experimental' option.
   * TS: New option `verbose' prints constraint indices.
+  * TS: Don't compute term_hash for int and natural types.
 
 Jan 9, 2008
 

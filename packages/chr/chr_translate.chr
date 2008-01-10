@@ -169,7 +169,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 :- chr_type list(T) 	---> [] ; [T|list(T)].
+
 :- chr_type list    	==   list(any).
+
+:- chr_type mode	---> (+) ; (-) ; (?).
 
 :- chr_type maybe(T)	---> yes(T) ; no.
 
@@ -192,6 +195,7 @@
 :- chr_type rule_name	==   	any.
 :- chr_type rule_nb	==   	natural.
 :- chr_type id		==   	natural.
+:- chr_type occurrence  ==	int.
 
 :- chr_type goal	==   	any.
 
@@ -249,12 +253,14 @@ get_target_module(Query)
 %------------------------------------------------------------------------------%
 :- chr_constraint line_number/2.
 :- chr_option(mode,line_number(+,+)).
+:- chr_option(type_declaration,line_number(rule_nb,int)).
 %------------------------------------------------------------------------------%
 line_number(RuleNb,LineNb) \ line_number(RuleNb,LineNumber) <=> true.
 
 %------------------------------------------------------------------------------%
 :- chr_constraint get_line_number/2.
 :- chr_option(mode,get_line_number(+,-)).
+:- chr_option(type_declaration,get_line_number(rule_nb,int)).
 %------------------------------------------------------------------------------%
 line_number(RuleNb,LineNb) \ get_line_number(RuleNb,Q) <=> Q = LineNb.
 get_line_number(RuleNb,Q) <=> Q = 0.			% no line number available
@@ -269,11 +275,11 @@ get_line_number(RuleNb,Q) <=> Q = 0.			% no line number available
 
 :- chr_constraint constraint_mode/2.
 :- chr_option(mode,constraint_mode(+,+)).
-:- chr_option(type_declaration,constraint_mode(constraint,list)).
+:- chr_option(type_declaration,constraint_mode(constraint,list(mode))).
 
 :- chr_constraint get_constraint_mode/2.
 :- chr_option(mode,get_constraint_mode(+,-)).
-:- chr_option(type_declaration,get_constraint_mode(constraint,list)).
+:- chr_option(type_declaration,get_constraint_mode(constraint,list(mode))).
 
 :- chr_constraint may_trigger/1.
 :- chr_option(mode,may_trigger(+)).
@@ -341,7 +347,7 @@ inc_rule_count(NC)
 :- chr_constraint occurrence/5.
 :- chr_option(mode,occurrence(+,+,+,+,+)).
 :- chr_type occurrence_type ---> simplification ; propagation.
-:- chr_option(type_declaration,occurrence(any,any,any,any,occurrence_type)).
+:- chr_option(type_declaration,occurrence(constraint,occurrence,rule_nb,id,occurrence_type)).
 
 :- chr_constraint get_occurrence/4.
 :- chr_option(mode,get_occurrence(+,+,-,-)).
@@ -3695,7 +3701,7 @@ multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 	;
 		multi_hash_store_name(ConstraintSymbol,Index,StoreName),
 		make_get_store_goal(StoreName,HT,GetStoreGoal),
-		( HashType == hash, specialized_hash_term_call(Key,Hash,HashCall) ->
+		( HashType == hash, specialized_hash_term_call(ConstraintSymbol,Index,Key,Hash,HashCall) ->
 			Goal = 
 			(
 				GetStoreGoal, % nb_getval(StoreName,HT),
@@ -3717,7 +3723,7 @@ multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 lookup_hash_call(hash,HT,Key,SuspsList,lookup_ht(HT,Key,SuspsList)).
 lookup_hash_call(inthash,HT,Key,SuspsList,lookup_iht(HT,Key,SuspsList)).
 
-specialized_hash_term_call(Key,Hash,Call) :-
+specialized_hash_term_call(Constraint,Index,Key,Hash,Call) :-
 	( ground(Key) ->
 		% This is based on a property of SWI-Prolog's 
 		% hash_term/2 predicate:
@@ -3725,7 +3731,19 @@ specialized_hash_term_call(Key,Hash,Call) :-
 		%	of SWI-Prolog
 		hash_term(Key,Hash),
 		Call = true
-	; 
+	; Index = [IndexPos], 
+	  get_constraint_type(Constraint,ArgTypes),
+	  nth1(IndexPos,ArgTypes,Type),
+	  unalias_type(Type,NormalType),
+	  memberchk_eq(NormalType,[int,natural]) ->
+		( NormalType == int ->	
+			Hash = abs(Key),
+			Call = true
+		;
+			Hash = Key,
+			Call = true 
+		)
+	;
 		nonvar(Key),
 		specialize_hash_term(Key,NewKey),
 		NewKey \== Key,

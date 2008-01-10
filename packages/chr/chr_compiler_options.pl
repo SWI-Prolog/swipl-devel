@@ -209,6 +209,8 @@ option_definition(stored,F/A,[]) :-
 %------------------------------------------------------------------------------%
 option_definition(experiment,off,[experiment-off]).
 option_definition(experiment,on,[experiment-on]).
+option_definition(experimental,off,[experiment-off]).
+option_definition(experimental,on,[experiment-on]).
 %------------------------------------------------------------------------------%
 option_definition(debug,off,Flags) :-
         option_definition(optimize,full,Flags2),
