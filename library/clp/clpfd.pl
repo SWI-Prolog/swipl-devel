@@ -3018,6 +3018,7 @@ attribute_goal_(pgeq(A,B), A #>= B).
 attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
 attribute_goal_(pneq(A,B), A #\= B).
 attribute_goal_(ptimes(X,Y,Z), X*Y #= Z).
+attribute_goal_(x_neq_y_plus_c(X,Y,C), X #\= Y + C).
 attribute_goal_(pdiv(X,Y,Z), X/Y #= Z).
 attribute_goal_(pexp(X,Y,Z), X^Y #= Z).
 attribute_goal_(pabs(X,Y), Y #= abs(X)).
