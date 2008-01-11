@@ -1409,8 +1409,23 @@ X #\= Y :-
             neq_num(X, Y),
             do_queue,
             reinforce(X)
+        ;   var(X), nonvar(Y), Y = V - C, var(V), integer(C) ->
+            var_neq_var_plus_const(V, X, C)
+        ;   var(X), nonvar(Y), Y = V + C, var(V), integer(C) ->
+            var_neq_var_plus_const(X, V, C)
+        ;   nonvar(X), var(Y), X = V + C, var(V), integer(C) ->
+            var_neq_var_plus_const(Y, V, C)
+        ;   nonvar(X), var(Y), X = V - C, var(V), integer(C) ->
+            var_neq_var_plus_const(V, Y, C)
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
         ).
+
+% X #\= Y + C
+
+var_neq_var_plus_const(X, Y, C) :-
+        Prop = propagator(x_neq_y_plus_c(X,Y,C), mutable(passive)),
+        init_propagator(X, Prop), init_propagator(Y, Prop),
+        trigger_twice(Prop).
 
 % X is distinct from the number N. This is used internally in some
 % propagators, and does not reinforce other constraints.
@@ -2057,6 +2072,16 @@ run_propagator(pserialized(Var,Duration,Left,SDs), _MState) :-
         myserialized(Duration, Left, SDs, Var).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% X #\= Y + C
+run_propagator(x_neq_y_plus_c(X,Y,C), MState) :-
+        (   nonvar(X) ->
+            (   nonvar(Y) -> kill(MState), X =\= Y + C
+            ;   kill(MState), R is X - C, neq_num(Y, R)
+            )
+        ;   nonvar(Y) -> kill(MState), R is Y + C, neq_num(X, R)
+        ;   true
+        ).
+
 % X + Y = Z
 run_propagator(pplus(X,Y,Z), MState) :-
         (   nonvar(X) ->
