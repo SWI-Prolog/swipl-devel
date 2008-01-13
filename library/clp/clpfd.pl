@@ -1942,7 +1942,7 @@ take_firsts([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
 
 tuple_freeze(Tuple, Relation) :-
         gensym('$clpfd_rel_', RID),
-        nb_setval(RID, Relation),
+        b_setval(RID, Relation),
         Prop = propagator(rel_tuple(RID,Tuple), mutable(passive)),
         tuple_freeze(Tuple, Tuple, Prop).
 
