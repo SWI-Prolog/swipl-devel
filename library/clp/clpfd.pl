@@ -1212,12 +1212,64 @@ all_different([X|Right], Left) :-
 %               sum(List, #=< 100)
 %       ==
 
-sum(Ls, Op, Value) :- must_be(callable, Op), sum(Ls, 0, Op, Value).
+sum(Ls, Op, Value) :-
+        must_be(list, Ls),
+        (   Op == (#=), integer(Value) ->
+            Prop = propagator(sum_eq(Ls,Value), mutable(passive)),
+            sum_eq(Ls, Prop),
+            trigger_prop(Prop),
+            do_queue
+        ;   must_be(callable, Op),
+            sum(Ls, 0, Op, Value)
+        ).
+
+sum_eq([], _).
+sum_eq([V|Vs], Prop) :- init_propagator(V, Prop), sum_eq(Vs, Prop).
 
 sum([], Sum, Op, Value) :- call(Op, Sum, Value).
 sum([X|Xs], Acc, Op, Value) :-
         NAcc #= Acc + X,
         sum(Xs, NAcc, Op, Value).
+
+list_variables_integers([], [], []).
+list_variables_integers([L|Ls], Vs0, Is0) :-
+        (   var(L) -> Vs0 = [L|Vs1], Is1 = Is0
+        ;   Is0 = [L|Is1], Vs1 = Vs0
+        ),
+        list_variables_integers(Ls, Vs1, Is1).
+
+sum_domains([], Inf, Sup, Inf, Sup).
+sum_domains([V|Vs], Inf0, Sup0, Inf, Sup) :-
+        get(V, _, Inf1, Sup1, _),
+        Inf2 cis1 Inf0 + Inf1,
+        Sup2 cis1 Sup0 + Sup1,
+        sum_domains(Vs, Inf2, Sup2, Inf, Sup).
+
+remove_dist_upper([], _).
+remove_dist_upper([V|Vs], D) :-
+        (   get(V, VD, VPs) ->
+            (   domain_infimum(VD, n(Inf)) ->
+                G is Inf + D,
+                domain_remove_greater_than(VD, G, VD1),
+                put(V, VD1, VPs)
+            ;   true
+            )
+        ;   true
+        ),
+        remove_dist_upper(Vs, D).
+
+remove_dist_lower([], _).
+remove_dist_lower([V|Vs], D) :-
+        (   get(V, VD, VPs) ->
+            (   domain_supremum(VD, n(Sup)) ->
+                L is Sup - D,
+                domain_remove_smaller_than(VD, L, VD1),
+                put(V, VD1, VPs)
+            ;   true
+            )
+        ;   true
+        ),
+        remove_dist_lower(Vs, D).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1399,6 +1451,19 @@ X #=< Y :- Y #>= X.
 % X equals Y.
 
 X #= Y  :- parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Naive propagation for inequalities and disequalities can perform a
+   lot of unnecessary work if expressions of non-trivial depth are
+   involved: Auxiliary variables are introduced for sub-expressions,
+   and propagation proceeds on them as if they were involved in a
+   tigther constraint (like equality), while eventually only very
+   little of the propagated information is actually made use of. For
+   example, only extremal values are of interest in inequalities.
+   Introducing auxiliary variables should be avoided when possible,
+   and specialised propagators should be used instead. An example for
+   constraints of the form X #\= Y + C and some variants is below.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %% ?X #\= ?Y
 %
@@ -2080,6 +2145,29 @@ run_propagator(x_neq_y_plus_c(X,Y,C), MState) :-
             )
         ;   nonvar(Y) -> kill(MState), R is Y + C, neq_num(X, R)
         ;   true
+        ).
+
+run_propagator(sum_eq(Ls,C), MState) :-
+        list_variables_integers(Ls, Vs, Is),
+        sumlist(Is, SumC),
+        SumC =< C,
+        (   Vs = [] -> kill(MState), SumC =:= C
+        ;   Vs = [Single] -> kill(MState), Single is C - SumC
+        ;   sum_domains(Vs, n(0), n(0), Inf, Sup),
+            MinSum cis1 Inf + n(SumC),
+            MaxSum cis1 Sup + n(SumC),
+            n(C) cis_geq MinSum,
+            MaxSum cis_geq n(C),
+            (   Inf = n(I) ->
+                Dist1 is C - (I + SumC),
+                disable_queue, remove_dist_upper(Vs, Dist1), enable_queue
+            ;   true
+            ),
+            (   Sup = n(S) ->
+                Dist2 is S + SumC - C,
+                disable_queue, remove_dist_lower(Vs, Dist2), enable_queue
+            ;   true
+            )
         ).
 
 % X + Y = Z
@@ -3025,6 +3113,7 @@ attribute_goal_(pabs(X,Y), Y #= abs(X)).
 attribute_goal_(pmod(X,M,K), X mod M #= K).
 attribute_goal_(pmax(X,Y,Z), Z #= max(X,Y)).
 attribute_goal_(pmin(X,Y,Z), Z #= min(X,Y)).
+attribute_goal_(sum_eq(Vs, C), sum(Vs, #=, C)).
 attribute_goal_(pdifferent(Left, Right, X), all_different(Vs)) :-
         append(Left, [X|Right], Vs).
 attribute_goal_(pdistinct(Left, Right, X), all_distinct(Vs)) :-
