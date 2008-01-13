@@ -1457,7 +1457,7 @@ X #= Y  :- parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX).
    lot of unnecessary work if expressions of non-trivial depth are
    involved: Auxiliary variables are introduced for sub-expressions,
    and propagation proceeds on them as if they were involved in a
-   tigther constraint (like equality), while eventually only very
+   tighter constraint (like equality), while eventually only very
    little of the propagated information is actually made use of. For
    example, only extremal values are of interest in inequalities.
    Introducing auxiliary variables should be avoided when possible,
@@ -2421,12 +2421,17 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             )
         ;   (   X == Y -> Z = 1
             ;   get(X, _, XL, XU, _),
+                get(Y, _, YL, YU, _),
                 get(Z, ZD, ZPs),
                 NZU cis max(abs(XL), XU),
                 NZL cis1 -NZU,
-                domains_intersection(from_to(NZL,NZU), ZD, NZD),
-                % TODO: incorporate sign of Y
-                put(Z, NZD, ZPs)
+                domains_intersection(from_to(NZL,NZU), ZD, NZD0),
+                (   cis_geq_zero(XL), cis_geq_zero(YL) ->
+                    domain_remove_smaller_than(NZD0, 0, NZD1)
+                ;   % TODO: cover more cases
+                    NZD1 = NZD0
+                ),
+                put(Z, NZD1, ZPs)
             )
         ).
 
