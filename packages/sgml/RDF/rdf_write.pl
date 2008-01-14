@@ -38,6 +38,7 @@
 :- use_module(library(sgml_write)).
 :- use_module(library(assoc)).
 :- use_module(library(pairs)).
+:- use_module(library(debug)).
 
 
 /** <module> Write RDF/XML from a list of triples
@@ -64,7 +65,8 @@ RDF/XML.
 rdf_write_xml(Out, Triples) :-
 	sort(Triples, Unique),
 	rdf_write_header(Out, Unique),
-	rdf_write_triples(Unique, Out),
+	node_id_map(Unique, AnonIDs),
+	rdf_write_triples(Unique, AnonIDs, Out),
 	rdf_write_footer(Out).
 
 
@@ -214,21 +216,60 @@ rdf_write_footer(Out) :-
 
 
 		 /*******************************
+		 *	    ANONYMOUS IDS	*
+		 *******************************/
+
+%%	node_id_map(+Triples, -IdMap) is det.
+%
+%	Create an assoc Resource -> NodeID for those anonymous resources
+%	in Triples that need  a  NodeID.   This  implies  all  anonymous
+%	resources that are used multiple times as object value.
+
+node_id_map(Triples, IdMap) :-
+	anonymous_objects(Triples, Objs),
+	msort(Objs, Sorted),
+	empty_assoc(IdMap0),
+	nodeid_map(Sorted, 0, IdMap0, IdMap).
+
+anonymous_objects([], []).
+anonymous_objects([rdf(_,_,O)|T0], Anon) :-
+	rdf_is_bnode(O), !,
+	Anon = [O|T],
+	anonymous_objects(T0, T).
+anonymous_objects([_|T0], T) :-
+	anonymous_objects(T0, T).
+
+nodeid_map([], _, Map, Map).
+nodeid_map([H,H|T0], Id, Map0, Map) :- !,
+	remove_leading(H, T0, T),
+	atom_concat(bn, Id, NodeId),
+	put_assoc(H, Map0, NodeId, Map1),
+	Id2 is Id + 1,
+	nodeid_map(T, Id2, Map1, Map).
+nodeid_map([_|T], Id, Map0, Map) :-
+	nodeid_map(T, Id, Map0, Map).
+
+remove_leading(H, [H|T0], T) :- !,
+	remove_leading(H, T0, T).
+remove_leading(_, T, T).
+
+
+		 /*******************************
 		 *	      TRIPLES		*
 		 *******************************/
 
-rdf_write_triples(Triples, Out) :-
-	rdf_write_triples(Triples, Out, [], Anon),
-	rdf_write_anon(Anon, Out, Anon).
+rdf_write_triples(Triples, NodeIDs, Out) :-
+	rdf_write_triples(Triples, NodeIDs, Out, [], Anon),
+	rdf_write_anon(Anon, NodeIDs, Out, Anon).
 
-rdf_write_triples([], _, Anon, Anon).
-rdf_write_triples([H|T0], Out, Anon0, Anon) :-
+rdf_write_triples([], _, _, Anon, Anon).
+rdf_write_triples([H|T0], NodeIDs, Out, Anon0, Anon) :-
 	arg(1, H, S),
 	subject_triples(S, [H|T0], T, OnSubject),
-	(   anonymous_subject(S)
-	->  rdf_write_triples(T, Out, [anon(S,_,OnSubject)|Anon0], Anon)
-	;   rdf_write_subject(OnSubject, S, Out, Anon0),
-	    rdf_write_triples(T, Out, Anon0, Anon)
+	(   rdf_is_bnode(S)
+	->  rdf_write_triples(T, NodeIDs, Out, [anon(S,_,OnSubject)|Anon0], Anon)
+	;   rdf_write_subject(OnSubject, S, NodeIDs, Out, Anon0),
+	    rdf_write_triples(T, NodeIDs, Out, Anon0, Anon)
 	).
 
 subject_triples(S, [H|T0], T, [H|M]) :-
@@ -237,60 +278,64 @@ subject_triples(S, [H|T0], T, [H|M]) :-
 subject_triples(_, T, T, []).
 
 
-rdf_write_anon([], _, _).
-rdf_write_anon([anon(Subject, Done, Triples)|T], Out, Anon) :-
+rdf_write_anon([], _, _, _).
+rdf_write_anon([anon(Subject, Done, Triples)|T], NodeIDs, Out, Anon) :-
 	Done \== true, !,
-	rdf_write_subject(Triples, Subject, Out, Anon),
-	rdf_write_anon(T, Out, Anon).
-rdf_write_anon([_|T], Out, Anon) :-
-	rdf_write_anon(T, Out, Anon).
+	rdf_write_subject(Triples, Subject, NodeIDs, Out, Anon),
+	rdf_write_anon(T, NodeIDs, Out, Anon).
+rdf_write_anon([_|T], NodeIDs, Out, Anon) :-
+	rdf_write_anon(T, NodeIDs, Out, Anon).
 
-rdf_write_subject(Triples, Subject, Out, Anon) :-
-	rdf_write_subject(Triples, Out, Subject, -, 0, Anon), !,
+rdf_write_subject(Triples, Subject, NodeIDs, Out, Anon) :-
+	rdf_write_subject(Triples, Out, Subject, NodeIDs, -, 0, Anon), !,
 	format(Out, '~n', []).
-rdf_write_subject(_, Subject, _, _) :-
+rdf_write_subject(_, Subject, _, _, _) :-
 	throw(error(rdf_save_failed(Subject), 'Internal error')).
 
-rdf_write_subject(Triples, Out, Subject, DefNS, Indent, Anon) :-
+rdf_write_subject(Triples, Out, Subject, NodeIDs, DefNS, Indent, Anon) :-
 	rdf_equal(rdf:type, RdfType),
 	select(rdf(_, RdfType,Type), Triples, Triples1),
 	rdf_id(Type, DefNS, TypeId),
 	xml_is_name(TypeId), !,
 	format(Out, '~*|<', [Indent]),
 	rdf_write_id(Out, TypeId),
-	save_about(Out, Subject),
-	save_attributes(Triples1, DefNS, Out, TypeId, Indent, Anon).
-rdf_write_subject(Triples, Out, Subject, _DefNS, Indent, Anon) :-
+	save_about(Out, Subject, NodeIDs),
+	save_attributes(Triples1, DefNS, Out, NodeIDs, TypeId, Indent, Anon).
+rdf_write_subject(Triples, Out, Subject, NodeIDs, _DefNS, Indent, Anon) :-
 	format(Out, '~*|<rdf:Description', [Indent]),
-	save_about(Out, Subject),
-	save_attributes(Triples, rdf, Out, rdf:'Description', Indent, Anon).
+	save_about(Out, Subject, NodeIDs),
+	save_attributes(Triples, rdf, Out, NodeIDs, rdf:'Description', Indent, Anon).
 
 xml_is_name(_NS:Atom) :- !,
 	xml_name(Atom).
 xml_is_name(Atom) :-
 	xml_name(Atom).
 
-save_about(_Out, Subject) :-
-	anonymous_subject(Subject), !.
-save_about(Out, Subject) :-
+save_about(Out, Subject, NodeIDs) :-
+	rdf_is_bnode(Subject), !,
+	(   get_assoc(Subject, NodeIDs, NodeID)
+	->  format(Out,' rdf:nodeID="~w"', [NodeID])
+	;   true
+	).
+save_about(Out, Subject, _) :-
 	stream_property(Out, encoding(Encoding)),
 	rdf_value(Subject, QSubject, Encoding),
 	format(Out, ' rdf:about="~w"', [QSubject]).
 
-%	save_attributes(+List, +DefNS, +Out, Element, +Indent, +Anon)
+%%	save_attributes(+List, +DefNS, +Out, +NodeIDs, Element, +Indent, +Anon)
 %
 %	Save the attributes.  Short literal attributes are saved in the
 %	tag.  Others as the content of the description element.  The
 %	begin tag has already been filled.
 
-save_attributes(Triples, DefNS, Out, Element, Indent, Anon) :-
+save_attributes(Triples, DefNS, Out, NodeIDs, Element, Indent, Anon) :-
 	split_attributes(Triples, InTag, InBody),
 	SubIndent is Indent + 2,
-	save_attributes2(InTag, DefNS, tag, Out, SubIndent, Anon),
+	save_attributes2(InTag, DefNS, tag, Out, NodeIDs, SubIndent, Anon),
 	(   InBody == []
 	->  format(Out, '/>~n', [])
 	;   format(Out, '>~n', []),
-	    save_attributes2(InBody, _, body, Out, SubIndent, Anon),
+	    save_attributes2(InBody, _, body, Out, NodeIDs, SubIndent, Anon),
 	    format(Out, '~N~*|</~w>~n', [Indent, Element])
 	).
 
@@ -346,16 +391,18 @@ in_tag_attribute(rdf(_,_,literal(Text))) :-
 	atom_length(Text, Len),
 	Len < 60.
 
-%	save_attributes(+List, +DefNS, +TagOrBody, +Out, +Indent, +Anon)
+%	save_attributes(+List, +DefNS, +TagOrBody, +Out, +NodeIDs, +Indent, +Anon)
 %
 %	Save a list of attributes.
 
-save_attributes2([], _, _, _, _, _).
-save_attributes2([H|T], DefNS, Where, Out, Indent, Anon) :-
-	save_attribute(Where, H, DefNS, Out, Indent, Anon),
-	save_attributes2(T, DefNS, Where, Out, Indent, Anon).
+save_attributes2([], _, _, _, _, _, _).
+save_attributes2([H|T], DefNS, Where, Out, NodeIDs, Indent, Anon) :-
+	save_attribute(Where, H, DefNS, Out, NodeIDs, Indent, Anon),
+	save_attributes2(T, DefNS, Where, Out, NodeIDs, Indent, Anon).
 
-save_attribute(tag, rdf(_, Name, literal(Value)), DefNS, Out, Indent, _Anon) :-
+% %	save_attribute(+Where, +Triple, +DefNS, +Out, +NodeIDs, +Indent, +Anon)
+
+save_attribute(tag, rdf(_, Name, literal(Value)), DefNS, Out, _, Indent, _Anon) :-
 	AttIndent is Indent + 2,
 	rdf_att_id(Name, DefNS, NameText),
 	stream_property(Out, encoding(Encoding)),
@@ -363,7 +410,7 @@ save_attribute(tag, rdf(_, Name, literal(Value)), DefNS, Out, Indent, _Anon) :-
 	format(Out, '~N~*|', [AttIndent]),
 	rdf_write_id(Out, NameText),
 	format(Out, '="~w"', [QVal]).
-save_attribute(body, rdf(_,Name,literal(Literal)), DefNS, Out, Indent, _) :- !,
+save_attribute(body, rdf(_,Name,literal(Literal)), DefNS, Out, _, Indent, _) :- !,
 	rdf_id(Name, DefNS, NameText),
 	format(Out, '~N~*|<', [Indent]),
 	rdf_write_id(Out, NameText),
@@ -386,25 +433,31 @@ save_attribute(body, rdf(_,Name,literal(Literal)), DefNS, Out, Indent, _) :- !,
 	),
 	save_attribute_value(Value, Out, Indent),
 	write(Out, '</'), rdf_write_id(Out, NameText), write(Out, '>').
-save_attribute(body, rdf(_, Name, Value), DefNS, Out, Indent, Anon) :-
-	anonymous_subject(Value),
-	memberchk(anon(Value, true, ValueTriples), Anon), !,
+save_attribute(body, rdf(_, Name, Value), DefNS, Out, NodeIDs, Indent, Anon) :-
+	rdf_is_bnode(Value), !,
+	memberchk(anon(Value, Done, ValueTriples), Anon),
 	rdf_id(Name, DefNS, NameText),
 	format(Out, '~N~*|<', [Indent]),
 	rdf_write_id(Out, NameText),
-	SubIndent is Indent + 2,
-	(   rdf_equal(RdfType, rdf:type),
-	    rdf_equal(ListClass, rdf:'List'),
-	    memberchk(rdf(_, RdfType, ListClass), ValueTriples)
-	->  format(Out, ' rdf:parseType="Collection">~n', []),
-	    rdf_save_list(ValueTriples, Out, Value, DefNS, SubIndent, Anon)
-	;   format(Out, '>~n', []),
-	    rdf_write_subject(ValueTriples, Out, Value, DefNS, SubIndent, Anon)
-	),
-	format(Out, '~N~*|</', [Indent]),
-	rdf_write_id(Out, NameText),
-	format(Out, '>~n', []).
-save_attribute(body, rdf(_, Name, Value), DefNS, Out, Indent, _Anon) :-
+	(   var(Done)
+	->  Done = true,
+	    SubIndent is Indent + 2,
+	    (   rdf_equal(RdfType, rdf:type),
+		rdf_equal(ListClass, rdf:'List'),
+		memberchk(rdf(_, RdfType, ListClass), ValueTriples)
+	    ->  format(Out, ' rdf:parseType="Collection">~n', []),
+		rdf_save_list(ValueTriples, Out, Value, NodeIDs, DefNS, SubIndent, Anon)
+	    ;   format(Out, '>~n', []),
+		rdf_write_subject(ValueTriples, Out, Value, NodeIDs, DefNS, SubIndent, Anon)
+	    ),
+	    format(Out, '~N~*|</', [Indent]),
+	    rdf_write_id(Out, NameText),
+	    format(Out, '>~n', [])
+	;   get_assoc(Value, NodeIDs, NodeID)
+	->  format(Out, ' rdf:nodeID="~w"/>', [NodeID])
+	;   assertion(fail)
+	).
+save_attribute(body, rdf(_, Name, Value), DefNS, Out, _, Indent, _Anon) :-
 	stream_property(Out, encoding(Encoding)),
 	rdf_value(Value, QVal, Encoding),
 	rdf_id(Name, DefNS, NameText),
@@ -430,15 +483,15 @@ save_attribute_value(Value, Out, Indent) :-
 save_attribute_value(Value, _Out, _) :-
 	throw(error(save_attribute_value(Value), _)).
 
-rdf_save_list(_, _, List, _, _, _) :-
+rdf_save_list(_, _, List, _, _, _, _) :-
 	rdf_equal(List, rdf:nil), !.
-rdf_save_list(ListTriples, Out, List, DefNS, Indent, Anon) :-
+rdf_save_list(ListTriples, Out, List, NodeIDs, DefNS, Indent, Anon) :-
 	rdf_equal(RdfFirst, rdf:first),
 	memberchk(rdf(List, RdfFirst, First), ListTriples),
-	(   anonymous_subject(First),
+	(   rdf_is_bnode(First),
 	    memberchk(anon(First, true, FirstTriples), Anon)
 	->  nl(Out),
-	    rdf_write_subject(FirstTriples, Out, First, DefNS, Indent, Anon)
+	    rdf_write_subject(FirstTriples, Out, First, NodeIDs, DefNS, Indent, Anon)
 	;   stream_property(Out, encoding(Encoding)),
 	    rdf_value(First, QVal, Encoding),
 	    format(Out, '~N~*|<rdf:Description about="~w"/>',
@@ -448,20 +501,9 @@ rdf_save_list(ListTriples, Out, List, DefNS, Indent, Anon) :-
 	    memberchk(rdf(List, RdfRest, List2), ListTriples),
 	    \+ rdf_equal(List2, rdf:nil),
 	    memberchk(anon(List2, true, List2Triples), Anon)
-	->  rdf_save_list(List2Triples, Out, List2, DefNS, Indent, Anon)
+	->  rdf_save_list(List2Triples, Out, List2, NodeIDs, DefNS, Indent, Anon)
 	;   true
 	).
-
-%%	anonymous_subject(+Subject)
-%	
-%	Test if a resource is anonymous. This is highly dubious.
-%	Probably we need to store this in the database.  The current
-%	release of the RDF parser guarantees that all anonymous ids
-%	start with __.
-
-anonymous_subject(S) :-
-	atom(S),
-	sub_atom(S, 0, _, _, '__'), !.
 
 %%	rdf_id(+Resource, +DefNS, -NSLocal)
 %	
