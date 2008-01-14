@@ -2194,7 +2194,6 @@ run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
 run_propagator(sum_eq(Ls,C), MState) :-
         list_variables_integers(Ls, Vs, Is),
         sumlist(Is, SumC),
-        SumC =< C,
         (   Vs = [] -> kill(MState), SumC =:= C
         ;   Vs = [Single] -> kill(MState), Single is C - SumC
         ;   sum_domains(Vs, n(0), n(0), Inf, Sup),
