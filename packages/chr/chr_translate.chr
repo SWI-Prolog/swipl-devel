@@ -3713,7 +3713,6 @@ multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 			Goal = 
 			(
 				GetStoreGoal, % nb_getval(StoreName,HT),
-				hash_term(Key,Hash),
 				Lookup
 			)
 		)
@@ -6941,7 +6940,7 @@ guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy) :-
 	list2conj(GuardCopyList,GuardCopy).
 
 guard_body_copies2(Rule,VarDict,GuardCopyList,BodyCopy) :-
-	Rule = rule(H,_,Guard,Body),
+	Rule = rule(_,H,Guard,Body),
 	conj2list(Guard,GuardList),
 	split_off_simple_guard(GuardList,VarDict,GuardPrefix,RestGuardList),
 	my_term_copy(GuardPrefix-RestGuardList,VarDict,VarDict2,GuardPrefixCopy-RestGuardListCopyCore),
@@ -6951,10 +6950,10 @@ guard_body_copies2(Rule,VarDict,GuardCopyList,BodyCopy) :-
 	term_variables(RestGuardListCopyCore,GuardCopyVars),
 	% variables that are declared to be ground don't need to be locked
 	ground_vars(H,GroundVars),
-	list_difference_eq(GuardVars,GroundVars,GuardVars_),
+	list_difference_eq(GuardVars,GroundVars,LockedGuardVars),
 	( chr_pp_flag(guard_locks,on),
           bagof(('chr lock'(Y)) - ('chr unlock'(Y)),
-                X ^ (lists:member(X,GuardVars),		% X is a variable appearing in the original guard
+                X ^ (lists:member(X,LockedGuardVars),		% X is a variable appearing in the original guard
                      pairlist:lookup_eq(VarDict,X,Y),            % translate X into new variable
                      memberchk_eq(Y,GuardCopyVars)      % redundant check? or multiple entries for X possible?
                     ),
@@ -9168,6 +9167,7 @@ ground_vars([],[]).
 ground_vars([H|Hs],GroundVars) :-
 	functor(H,F,A),
 	get_constraint_mode(F/A,Mode),
+	% TOM: fix this code!
 	head_info(H,A,_Vars,_Susp,_HeadVars,HeadPairs),
 	head_arg_matches(HeadPairs,Mode,[],_FirstMatching,_VarDict1,[],GroundVars1),
 	ground_vars(Hs,GroundVars2),

@@ -1,3 +1,7 @@
+Jan 14, 2008
+
+  * TS: Fix performance bug in locking of guard variables.
+  * TS: Fix performance bug in spurious hash_term call.
 
 Jan 10, 2008
 
