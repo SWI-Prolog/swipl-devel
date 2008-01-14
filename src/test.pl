@@ -1196,6 +1196,9 @@ proc(erase-static) :-
 	clause(cpxx(_,_), true, Ref),
 	catch(erase(Ref), E, true),
 	nonvar(E).
+proc(current_predicate-2) :-
+	catch(current_predicate(foo(bar) : baz/0), E, true),
+	E = error(type_error(atom, foo(bar)), _).
 
 cp_one :-
 	assert(cp_foo(a)),

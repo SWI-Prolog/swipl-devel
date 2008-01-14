@@ -622,17 +622,19 @@ pl_current_predicate1(term_t spec, control_t ctx)
       if ( mt )
       { atom_t mname;
 
-	if ( PL_get_atom(mt, &mname) )
-	{ e->module = isCurrentModule(mname);
-	  if ( !e->module )
-	    fail;
-	} else if ( PL_is_variable(mt) )
+	if ( PL_is_variable(mt) )
 	{ e->emod = newTableEnum(GD->tables.modules);
 
 	  if ( (sm = advanceTableEnum(e->emod)) )
 	    e->module = sm->value;
 	  else
 	    fail;			/* no modules!? */
+	} else if ( PL_get_atom_ex(mt, &mname) )
+	{ e->module = isCurrentModule(mname);
+	  if ( !e->module )
+	    fail;
+	} else
+	{ fail;
 	}
       } else
       { if ( environment_frame )
