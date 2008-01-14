@@ -169,7 +169,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 :- chr_type list(T) 	---> [] ; [T|list(T)].
+
 :- chr_type list    	==   list(any).
+
+:- chr_type mode	---> (+) ; (-) ; (?).
 
 :- chr_type maybe(T)	---> yes(T) ; no.
 
@@ -192,6 +195,7 @@
 :- chr_type rule_name	==   	any.
 :- chr_type rule_nb	==   	natural.
 :- chr_type id		==   	natural.
+:- chr_type occurrence  ==	int.
 
 :- chr_type goal	==   	any.
 
@@ -202,9 +206,12 @@
 			;	global_singleton
 			; 	global_ground
 			%	EXPERIMENTAL STORES
+			;	atomic_constants(list(int),list(any),atomic_coverage)
+			;	ground_constants(list(int),list(any))
 			;	var_assoc_store(int,list(int))
 			;	identifier_store(int)
 			;	type_indexed_identifier_store(int,any).
+:- chr_type atomic_coverage	--->	complete ; incomplete.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -246,12 +253,14 @@ get_target_module(Query)
 %------------------------------------------------------------------------------%
 :- chr_constraint line_number/2.
 :- chr_option(mode,line_number(+,+)).
+:- chr_option(type_declaration,line_number(rule_nb,int)).
 %------------------------------------------------------------------------------%
 line_number(RuleNb,LineNb) \ line_number(RuleNb,LineNumber) <=> true.
 
 %------------------------------------------------------------------------------%
 :- chr_constraint get_line_number/2.
 :- chr_option(mode,get_line_number(+,-)).
+:- chr_option(type_declaration,get_line_number(rule_nb,int)).
 %------------------------------------------------------------------------------%
 line_number(RuleNb,LineNb) \ get_line_number(RuleNb,Q) <=> Q = LineNb.
 get_line_number(RuleNb,Q) <=> Q = 0.			% no line number available
@@ -266,11 +275,11 @@ get_line_number(RuleNb,Q) <=> Q = 0.			% no line number available
 
 :- chr_constraint constraint_mode/2.
 :- chr_option(mode,constraint_mode(+,+)).
-:- chr_option(type_declaration,constraint_mode(constraint,list)).
+:- chr_option(type_declaration,constraint_mode(constraint,list(mode))).
 
 :- chr_constraint get_constraint_mode/2.
 :- chr_option(mode,get_constraint_mode(+,-)).
-:- chr_option(type_declaration,get_constraint_mode(constraint,list)).
+:- chr_option(type_declaration,get_constraint_mode(constraint,list(mode))).
 
 :- chr_constraint may_trigger/1.
 :- chr_option(mode,may_trigger(+)).
@@ -338,7 +347,7 @@ inc_rule_count(NC)
 :- chr_constraint occurrence/5.
 :- chr_option(mode,occurrence(+,+,+,+,+)).
 :- chr_type occurrence_type ---> simplification ; propagation.
-:- chr_option(type_declaration,occurrence(any,any,any,any,occurrence_type)).
+:- chr_option(type_declaration,occurrence(constraint,occurrence,rule_nb,id,occurrence_type)).
 
 :- chr_constraint get_occurrence/4.
 :- chr_option(mode,get_occurrence(+,+,-,-)).
@@ -409,14 +418,47 @@ none_suspended_on_variables \ none_suspended_on_variables <=> true.
 none_suspended_on_variables \ are_none_suspended_on_variables <=> true.
 are_none_suspended_on_variables <=> fail.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% STORE TYPES
+%
+% The functionality for inspecting and deciding on the different types of constraint
+% store / indexes for constraints.
 
+store_type(FA,StoreType) 
+	==> chr_pp_flag(verbose,on)
+	| 
+	format('The indexes for ~w are:\n',[FA]),   
+	format_storetype(StoreType).
+	% chr_info(verbose,'Storetype of ~w is ~w.\n',[FA,StoreType]).
+
+format_storetype(multi_store(StoreTypes)) :- !,
+	forall(member(StoreType,StoreTypes), format_storetype(StoreType)).
+format_storetype(atomic_constants(Index,Constants,_)) :-
+	format('\t* a trie index on the argument(s) ~w for the ground terms ~w\n',[Index,Constants]).
+format_storetype(ground_constants(Index,Constants)) :-
+	format('\t* a trie index on the argument(s) ~w for the ground terms ~w\n',[Index,Constants]).
+format_storetype(StoreType) :-
+	format('\t* ~w\n',[StoreType]).
+
+
+% 1. Inspection
+% ~~~~~~~~~~~~~
+%
+% 
+
+get_store_type_normal @
 store_type(FA,Store) \ get_store_type(FA,Query)
 	<=> Query = Store.
 
+get_store_type_assumed @
 assumed_store_type(FA,Store) \ get_store_type(FA,Query)
 	<=> Query = Store.
+
+get_store_type_default @ 
 get_store_type(_,Query) 
 	<=> Query = default.
+
+% 2. Store type registration
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 actual_store_types(C,STs) \ update_store_type(C,ST)
 	<=> member(ST,STs) | true.
@@ -427,10 +469,47 @@ update_store_type(C,ST)
 	<=> 
 		actual_store_types(C,[ST]).
 
-% refine store type assumption
+% 3. Final decision on store types
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_atomic_multi_hash_keys(C,Index,Keys)
+	<=>
+		chr_pp_flag(experiment,on)
+	|
+		delete(STs,multi_hash([Index]),STs0),
+		Index = [IndexPos],
+		( get_constraint_type(C,Types),
+		  nth1(IndexPos,Types,Type),
+		  enumerated_atomic_type(Type,Atoms),
+		  sort(Atoms,Keys) ->	 
+			Completeness = complete
+		;
+			Completeness = incomplete
+		),
+		actual_store_types(C,[atomic_constants(Index,Keys,Completeness)|STs0]).	
+validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_ground_multi_hash_keys(C,Index,Keys)
+	<=>
+		chr_pp_flag(experiment,on)
+	|
+		delete(STs,multi_hash([Index]),STs0),
+		actual_store_types(C,[ground_constants(Index,Keys)|STs0]).	
+validate_store_type_assumption(C) \ actual_store_types(C,STs)
+	<=>	
+		chr_pp_flag(experiment,on),
+		memberchk(multi_hash([[Index]]),STs),
+		get_constraint_type(C,Types),
+		nth1(Index,Types,Type),
+		enumerated_atomic_type(Type,Atoms)	
+	|
+		delete(STs,multi_hash([[Index]]),STs0),
+		actual_store_types(C,[atomic_constants([Index],Atoms,complete)|STs0]).	
 validate_store_type_assumption(C), actual_store_types(C,STs), assumed_store_type(C,_) 	% automatic assumption
 	<=> 
-		store_type(C,multi_store(STs)).
+		( chr_pp_flag(experiment,on), forall(member(ST,STs), partial_store(ST)) ->
+			store_type(C,multi_store([global_ground|STs]))
+		;
+			store_type(C,multi_store(STs))
+		).
 validate_store_type_assumption(C), actual_store_types(C,STs), store_type(C,_) 		% user assumption
 	<=> 
 		store_type(C,multi_store(STs)).
@@ -443,6 +522,9 @@ validate_store_type_assumption(C), assumed_store_type(C,_)				% no lookups on co
 	<=> store_type(C,global_ground).
 validate_store_type_assumption(C) 
 	<=> true.
+
+partial_store(ground_constants(_,_)).
+partial_store(atomic_constants(_,_,incomplete)).
 
 %%% P A S S I V E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 passive(R,ID) \ passive(R,ID) <=> true.
@@ -747,9 +829,12 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	partition_clauses(Declarations,Constraints0,Rules0,OtherClauses),
 	chr_compiler_options:sanity_check,
 	check_declared_constraints(Constraints0),
-	generate_show_constraint(Constraints0,Constraints,Rules0,Rules),
+	generate_show_constraint(Constraints0,Constraints,Rules0,Rules1),
 	add_constraints(Constraints),
-	add_rules(Rules),
+	add_rules(Rules1),
+	generate_never_stored_rules(Constraints,NewRules),	
+	add_rules(NewRules),
+	append(Rules1,NewRules,Rules),
 	% start analysis
 	check_rules(Rules,Constraints),
 	time('type checking',chr_translate:static_type_check),
@@ -765,6 +850,7 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	partial_wake_analysis,
 	time('assume constraint stores',chr_translate:assume_constraint_stores(Constraints)),
 	time('default constraint indices',chr_translate:set_constraint_indices(Constraints)),
+	time('check storedness assertions',chr_translate:check_storedness_assertions(Constraints)),
 	% end analysis
 	time('constraint code generation',chr_translate:constraints_code(Constraints,ConstraintClauses)),
 	time('validate store assumptions',chr_translate:validate_store_type_assumptions(Constraints)),
@@ -911,14 +997,25 @@ is_declaration(D, Constraints) :-		%% constraint declaration
 
 extract_type_mode([],[]).
 extract_type_mode([F/A|R],[F/A|R2]) :- !,extract_type_mode(R,R2).
-extract_type_mode([C|R],[ConstraintSymbol|R2]) :- 
-	functor(C,F,A),
+extract_type_mode([C0|R],[ConstraintSymbol|R2]) :- 
+	( C0 = C # Annotation ->
+		functor(C,F,A),
+		extract_annotation(Annotation,F/A)
+	;
+		C0 = C,
+		functor(C,F,A)
+	),
 	ConstraintSymbol = F/A,
 	C =.. [_|Args],
 	extract_types_and_modes(Args,ArgTypes,ArgModes),
-	constraint_type(ConstraintSymbol,ArgTypes),
+	assert_constraint_type(ConstraintSymbol,ArgTypes),
 	constraint_mode(ConstraintSymbol,ArgModes),
 	extract_type_mode(R,R2).
+
+extract_annotation(stored,Symbol) :-
+	stored_assertion(Symbol).
+extract_annotation(default(Goal),Symbol) :-
+	never_stored_default(Symbol,Goal).
 
 extract_types_and_modes([],[],[]).
 extract_types_and_modes([X|R],[T|R2],[M|R3]) :-
@@ -2913,6 +3010,28 @@ insert_constraint_body(multi_inthash(Indexes),C,Susp,[],Body) :-
 insert_constraint_body(multi_hash(Indexes),C,Susp,MixedUsedVars,Body) :-
 	generate_multi_hash_insert_constraint_bodies(Indexes,C,Susp,Body,MixedUsedVars),
 	sort_out_used_vars(MixedUsedVars,UsedVars).
+insert_constraint_body(atomic_constants(Index,_,_),C,Susp,UsedVars,Body) :-
+	multi_hash_key_direct(C,Index,Susp,Key,UsedVars),
+	constants_store_index_name(C,Index,IndexName),
+	IndexLookup =.. [IndexName,Key,StoreName],
+	Body =
+	( IndexLookup ->
+		nb_getval(StoreName,Store),	
+		b_setval(StoreName,[Susp|Store])
+	;
+		true
+	).
+insert_constraint_body(ground_constants(Index,_),C,Susp,UsedVars,Body) :-
+	multi_hash_key_direct(C,Index,Susp,Key,UsedVars),
+	constants_store_index_name(C,Index,IndexName),
+	IndexLookup =.. [IndexName,Key,StoreName],
+	Body =
+	( IndexLookup ->
+		nb_getval(StoreName,Store),	
+		b_setval(StoreName,[Susp|Store])
+	;
+		true
+	).
 insert_constraint_body(global_ground,C,Susp,[],Body) :-
 	global_ground_store_name(C,StoreName),
 	make_get_store_goal(StoreName,Store,GetStoreGoal),
@@ -3147,6 +3266,32 @@ delete_constraint_body(multi_inthash(Indexes),C,_,Susp,_,Body) :-
 	generate_multi_inthash_delete_constraint_bodies(Indexes,C,Susp,Body).
 delete_constraint_body(multi_hash(Indexes),C,Head,Susp,VarDict,Body) :-
 	generate_multi_hash_delete_constraint_bodies(Indexes,C,Head,Susp,VarDict,Body).
+delete_constraint_body(atomic_constants(Index,_,_),C,Head,Susp,VarDict,Body) :-
+	multi_hash_key(C,Head,Index,Susp,VarDict,KeyBody,Key),
+	constants_store_index_name(C,Index,IndexName),
+	IndexLookup =.. [IndexName,Key,StoreName],
+	Body = 
+	( KeyBody,
+	 ( IndexLookup ->
+		nb_getval(StoreName,Store),
+		'chr sbag_del_element'(Store,Susp,NStore),
+		b_setval(StoreName,NStore)
+	;
+		true		
+	)).
+delete_constraint_body(ground_constants(Index,_),C,Head,Susp,VarDict,Body) :-
+	multi_hash_key(C,Head,Index,Susp,VarDict,KeyBody,Key),
+	constants_store_index_name(C,Index,IndexName),
+	IndexLookup =.. [IndexName,Key,StoreName],
+	Body = 
+	( KeyBody,
+	 ( IndexLookup ->
+		nb_getval(StoreName,Store),
+		'chr sbag_del_element'(Store,Susp,NStore),
+		b_setval(StoreName,NStore)
+	;
+		true		
+	)).
 delete_constraint_body(global_ground,C,_,Susp,_,Body) :-
 	( chr_pp_flag(debugable,on) ->
 		global_ground_store_name(C,StoreName),
@@ -3318,7 +3463,9 @@ generate_attach_code(Constraints,[Enumerate|L]) :-
 	generate_attach_code(Constraints,L,T),
 	module_initializers(Initializers),
 	prolog_global_variables_code(PrologGlobalVariables),
-	T = [('$chr_initialization' :- Initializers),(:- '$chr_initialization')|PrologGlobalVariables].
+	% Do not rename or the 'chr_initialization' predicate 
+	% without warning SSS
+	T = [('$chr_initialization' :- Initializers),(:- initialization '$chr_initialization')|PrologGlobalVariables].
 
 generate_attach_code([],L,L).
 generate_attach_code([C|Cs],L,T) :-
@@ -3333,7 +3480,13 @@ generate_attach_code(multi_inthash(Indexes),C,L,T) :-
 	multi_inthash_via_lookups(Indexes,C,L1,T).
 generate_attach_code(multi_hash(Indexes),C,L,T) :-
 	multi_hash_store_initialisations(Indexes,C,L,L1),
-	multi_hash_via_lookups(Indexes,C,L1,T).
+	multi_hash_lookups(Indexes,C,L1,T).
+generate_attach_code(atomic_constants(Index,Constants,_),C,L,T) :-
+	constants_initializers(C,Index,Constants),
+	atomic_constants_code(C,Index,Constants,L,T).
+generate_attach_code(ground_constants(Index,Constants),C,L,T) :-
+	constants_initializers(C,Index,Constants),
+	ground_constants_code(C,Index,Constants,L,T).
 generate_attach_code(global_ground,C,L,T) :-
 	global_ground_store_initialisation(C,L,T).
 generate_attach_code(var_assoc_store(_,_),_,L,L) :-
@@ -3432,6 +3585,15 @@ generate_attach_code(type_indexed_identifier_store(Index,IndexType),C,L,T) :-
 		L = T
 	).
 
+constants_initializers(C,Index,Constants) :-
+	maplist(constants_store_name(C,Index),Constants,StoreNames),
+	findall(Initializer,
+			( member(StoreName,StoreNames),
+			  Initializer = nb_setval(StoreName,[])
+			),
+		  Initializers),
+	maplist(module_initializer,Initializers).
+
 lookup_identifier_atom(Key,X,IX,Atom) :-
 	atom_concat('lookup_identifier_',Key,LookupFunctor),
 	Atom =.. [LookupFunctor,X,IX].
@@ -3496,39 +3658,169 @@ identifier_store_initialization(IndexType,L,T) :-
 
 multi_inthash_via_lookups([],_,L,L).
 multi_inthash_via_lookups([Index|Indexes],C,L,T) :-
-	multi_hash_via_lookup_goal(C,Index,Key,SuspsList,Head),
-	multi_hash_store_name(C,Index,StoreName),
-	Body = 
-	(
-		nb_getval(StoreName,HT),
-		lookup_iht(HT,Key,SuspsList)
-	),
+	multi_hash_lookup_head(C,Index,Key,SuspsList,Head),
+	multi_hash_lookup_body(C,inthash,Index,Key,SuspsList,Body),
 	L = [(Head :- Body)|L1],
 	multi_inthash_via_lookups(Indexes,C,L1,T).
-multi_hash_via_lookups([],_,L,L).
-multi_hash_via_lookups([Index|Indexes],C,L,T) :-
-	multi_hash_via_lookup_goal(C,Index,Key,SuspsList,Head),
-	multi_hash_store_name(C,Index,StoreName),
-	make_get_store_goal(StoreName,HT,GetStoreGoal),
-	Body = 
-	(
-		GetStoreGoal, % nb_getval(StoreName,HT),
-		lookup_ht(HT,Key,SuspsList)
-	),
+multi_hash_lookups([],_,L,L).
+multi_hash_lookups([Index|Indexes],C,L,T) :-
+	multi_hash_lookup_head(C,Index,Key,SuspsList,Head),
+	multi_hash_lookup_body(C,hash,Index,Key,SuspsList,Body),
 	L = [(Head :- Body)|L1],
-	multi_hash_via_lookups(Indexes,C,L1,T).
+	multi_hash_lookups(Indexes,C,L1,T).
 
-%%	multi_hash_via_lookup_goal(+ConstraintSymbol,+Index,+Key,+SuspsList,-Goal) is det.
+multi_hash_lookup_head(ConstraintSymbol,Index,Key,SuspsList,Head) :-
+	multi_hash_lookup_name(ConstraintSymbol,Index,Name),
+	Head =.. [Name,Key,SuspsList].
+
+%%	multi_hash_lookup_body(+ConstraintSymbol,+HashType,+Index,+Key,+SuspsList,-Goal) is det.
 %
 %	Returns goal that performs hash table lookup.
-multi_hash_via_lookup_goal(ConstraintSymbol,Index,Key,SuspsList,Goal) :-
-	multi_hash_via_lookup_name(ConstraintSymbol,Index,Name),
-	Goal =.. [Name,Key,SuspsList].
+multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
+	% INLINED:
+	( get_store_type(ConstraintSymbol,multi_store(Stores)),
+	  memberchk(atomic_constants(Index,Constants,_),Stores) ->
+		( ground(Key) ->
+			constants_store_name(ConstraintSymbol,Index,Key,StoreName),
+			Goal = nb_getval(StoreName,SuspsList)
+		;
+			constants_store_index_name(ConstraintSymbol,Index,IndexName),
+			Lookup =.. [IndexName,Key,StoreName],
+			Goal = (Lookup, nb_getval(StoreName,SuspsList))
+		)
+	; get_store_type(ConstraintSymbol,multi_store(Stores)),
+	  memberchk(ground_constants(Index,Constants),Stores) ->
+		( ground(Key) ->
+			constants_store_name(ConstraintSymbol,Index,Key,StoreName),
+			Goal = nb_getval(StoreName,SuspsList)
+		;
+			constants_store_index_name(ConstraintSymbol,Index,IndexName),
+			Lookup =.. [IndexName,Key,StoreName],
+			Goal = (Lookup, nb_getval(StoreName,SuspsList))
+		)
+	;
+		multi_hash_store_name(ConstraintSymbol,Index,StoreName),
+		make_get_store_goal(StoreName,HT,GetStoreGoal),
+		( HashType == hash, specialized_hash_term_call(ConstraintSymbol,Index,Key,Hash,HashCall) ->
+			Goal = 
+			(
+				GetStoreGoal, % nb_getval(StoreName,HT),
+				HashCall,     % hash_term(Key,Hash),
+				lookup_ht1(HT,Hash,Key,SuspsList)
+			)
+		;
+			lookup_hash_call(HashType,HT,Key,SuspsList,Lookup),
+			Goal = 
+			(
+				GetStoreGoal, % nb_getval(StoreName,HT),
+				hash_term(Key,Hash),
+				Lookup
+			)
+		)
+	).
 
-%%	multi_hash_via_lookup_name(+ConstraintSymbol,+Index,-Name)
+
+lookup_hash_call(hash,HT,Key,SuspsList,lookup_ht(HT,Key,SuspsList)).
+lookup_hash_call(inthash,HT,Key,SuspsList,lookup_iht(HT,Key,SuspsList)).
+
+specialized_hash_term_call(Constraint,Index,Key,Hash,Call) :-
+	( ground(Key) ->
+		% This is based on a property of SWI-Prolog's 
+		% hash_term/2 predicate:
+		%	the hash value is stable over repeated invocations
+		%	of SWI-Prolog
+		hash_term(Key,Hash),
+		Call = true
+	; Index = [IndexPos], 
+	  get_constraint_type(Constraint,ArgTypes),
+	  nth1(IndexPos,ArgTypes,Type),
+	  unalias_type(Type,NormalType),
+	  memberchk_eq(NormalType,[int,natural]) ->
+		( NormalType == int ->	
+			Hash = abs(Key),
+			Call = true
+		;
+			Hash = Key,
+			Call = true 
+		)
+	;
+		nonvar(Key),
+		specialize_hash_term(Key,NewKey),
+		NewKey \== Key,
+		Call = hash_term(NewKey,Hash)
+	).
+
+specialize_hash_term(Term,NewTerm) :-
+	( ground(Term) ->
+		hash_term(Term,NewTerm)	
+	; var(Term) ->
+		NewTerm = Term
+	;
+		Term =.. [F|Args],
+		maplist(specialize_hash_term,Args,NewArgs),
+		NewTerm =.. [F|NewArgs]
+	).	
+
+multi_hash_lookup_goal(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
+	( /* chr_pp_flag(experiment,off) ->
+		true	
+	; */ atomic(Key) ->
+		actual_atomic_multi_hash_keys(ConstraintSymbol,Index,[Key])
+	; ground(Key) ->
+		actual_ground_multi_hash_keys(ConstraintSymbol,Index,[Key])
+	;
+		actual_non_atomic_multi_hash_key(ConstraintSymbol,Index)
+	),
+	delay_phase_end(validate_store_type_assumptions,
+		multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal)).
+
+:- chr_constraint actual_atomic_multi_hash_keys/3.
+:- chr_option(mode,actual_atomic_multi_hash_keys(+,+,?)).
+
+:- chr_constraint actual_ground_multi_hash_keys/3.
+:- chr_option(mode,actual_ground_multi_hash_keys(+,+,?)).
+
+:- chr_constraint actual_non_atomic_multi_hash_key/2.
+:- chr_option(mode,actual_non_atomic_multi_hash_key(+,+)).
+
+/*
+actual_atomic_multi_hash_keys(C,Index,Keys)
+	==> format('Keys: ~w - ~w : ~w\n', [C,Index,Keys]).
+
+actual_ground_multi_hash_keys(C,Index,Keys)
+	==> format('Keys: ~w - ~w : ~w\n', [C,Index,Keys]).
+
+actual_non_atomic_multi_hash_key(C,Index)
+	==> format('Keys: ~w - ~w : N/A\n', [C,Index]).
+*/
+actual_atomic_multi_hash_keys(C,Index,Keys1), actual_atomic_multi_hash_keys(C,Index,Keys2)
+	<=> append(Keys1,Keys2,Keys0),
+	    sort(Keys0,Keys),
+	    actual_atomic_multi_hash_keys(C,Index,Keys).
+
+actual_ground_multi_hash_keys(C,Index,Keys1), actual_atomic_multi_hash_keys(C,Index,Keys2)
+	<=> append(Keys1,Keys2,Keys0),
+	    sort(Keys0,Keys),
+	    actual_ground_multi_hash_keys(C,Index,Keys).
+
+actual_ground_multi_hash_keys(C,Index,Keys1), actual_ground_multi_hash_keys(C,Index,Keys2)
+	<=> append(Keys1,Keys2,Keys0),
+	    sort(Keys0,Keys),
+	    actual_ground_multi_hash_keys(C,Index,Keys).
+
+actual_non_atomic_multi_hash_key(C,Index) \ actual_non_atomic_multi_hash_key(C,Index) 
+	<=> true.
+
+actual_non_atomic_multi_hash_key(C,Index) \ actual_atomic_multi_hash_keys(C,Index,_) 
+	<=> true.
+
+actual_non_atomic_multi_hash_key(C,Index) \ actual_ground_multi_hash_keys(C,Index,_) 
+	<=> true.
+
+%%	multi_hash_lookup_name(+ConstraintSymbol,+Index,-Name)
 %
 %	Returns predicate name of hash table lookup predicate.
-multi_hash_via_lookup_name(F/A,Index,Name) :-
+multi_hash_lookup_name(F/A,Index,Name) :-
 	( integer(Index) ->
 		IndexName = Index
 	; is_list(Index) ->
@@ -3615,7 +3907,98 @@ multi_hash_key_args(Index,Head,KeyArgs) :-
 		term_variables(Head,Vars),
 		find_with_var_identity(Arg,Vars,(member(I,Indexes), arg(I,Head,Arg)),KeyArgs)
 	).
-		
+	
+
+%-------------------------------------------------------------------------------	
+atomic_constants_code(C,Index,Constants,L,T) :-
+	constants_store_index_name(C,Index,IndexName),
+	findall(Clause, 
+	      	( member(Constant,Constants),
+	      	  constants_store_name(C,Index,Constant,StoreName),
+	      	  Clause =.. [IndexName,Constant,StoreName] 
+	      	),
+	      Clauses),
+	append(Clauses,T,L).
+
+%-------------------------------------------------------------------------------	
+ground_constants_code(C,Index,Terms,L,T) :-
+	constants_store_index_name(C,Index,IndexName),
+	findall(StoreName,
+			( member(Constant,Terms),
+			  constants_store_name(C,Index,Constant,StoreName)
+			),
+		StoreNames),
+	length(Terms,N),
+	replicate(N,[],More),
+	trie_index([Terms|More],StoreNames,IndexName,L,T).
+
+constants_store_name(F/A,Index,Term,Name) :-
+	get_target_module(Mod),		
+	term_to_atom(Term,Constant),
+	term_to_atom(Index,IndexAtom),
+	atom_concat_list(['$chr_store_constants_',Mod,'____',F,'___',A,'___',IndexAtom,'___',Constant],Name).
+
+constants_store_index_name(F/A,Index,Name) :-
+	get_target_module(Mod),		
+	term_to_atom(Index,IndexAtom),
+	atom_concat_list(['$chr_store_constants_',Mod,'____',F,'___',A,'___',IndexAtom],Name).
+
+trie_index([Patterns|MorePatterns],Results,Prefix,Clauses,Tail) :-
+	trie_step(Patterns,Prefix,Prefix,MorePatterns,Results,Clauses,Tail).
+
+trie_step([],_,_,[],[],L,L) :- !.
+	% length MorePatterns == length Patterns == length Results
+trie_step(Patterns,Symbol,Prefix,MorePatterns,Results,Clauses,T) :-
+	MorePatterns = [List|_],
+	length(List,N),	
+	findall(F/A,
+		( member(Pattern,Patterns),
+		  functor(Pattern,F,A)
+		),
+		FAs0),
+	sort(FAs0,FAs),
+	N1 is N + 1,
+	trie_step_cases(FAs,N1,Patterns,MorePatterns,Results,Symbol,Prefix,Clauses,T).
+
+trie_step_cases([],_,_,_,_,_,_,Clauses,Clauses).
+trie_step_cases([FA|FAs],N,Pattern,MorePatterns,Results,Symbol,Prefix,Clauses,Tail) :-
+	trie_step_case(FA,N,Pattern,MorePatterns,Results,Symbol,Prefix,Clauses,Clauses1),
+	trie_step_cases(FAs,N,Pattern,MorePatterns,Results,Symbol,Prefix,Clauses1,Tail).
+
+trie_step_case(F/A,N,Patterns,MorePatterns,Results,Symbol,Prefix,[Clause|List],Tail) :-
+	Clause = (Head :- Body),
+	N1 is N  + 1,
+	functor(Head,Symbol,N1),
+	arg(N1,Head,Result),
+	functor(IndexPattern,F,A),
+	arg(1,Head,IndexPattern),
+	Head =.. [_,_|RestArgs],
+	IndexPattern =.. [_|Args],
+	append(Args,RestArgs,RecArgs),
+	( RecArgs == [Result] ->
+		List = Tail,
+		Body = true,
+		rec_cases(Patterns,_,Results,F/A,_,_,MoreResults),
+		MoreResults = [Result]
+	;
+		gensym(Prefix,RSymbol),
+		Body =.. [RSymbol|RecArgs],
+		rec_cases(Patterns,MorePatterns,Results,F/A,Cases,MoreCases,MoreResults),
+		trie_step(Cases,RSymbol,Prefix,MoreCases,MoreResults,List,Tail)
+	).
+	
+rec_cases([],[],[],_,[],[],[]).
+rec_cases([Pattern|Patterns],[MorePattern|MorePatterns],[Result|Results],F/A,Cases,MoreCases,MoreResults) :-
+	( functor(Pattern,F,A), Pattern =.. [_|ArgPatterns], append(ArgPatterns,MorePattern,[Case|MoreCase]) ->
+		Cases = [Case|NCases],
+		MoreCases = [MoreCase|NMoreCases],
+		MoreResults = [Result|NMoreResults],
+		rec_cases(Patterns,MorePatterns,Results,F/A,NCases,NMoreCases,NMoreResults)
+	;
+		rec_cases(Patterns,MorePatterns,Results,F/A,Cases,MoreCases,MoreResults)
+	).
+
+%-------------------------------------------------------------------------------	
 global_list_store_name(F/A,Name) :-
 	get_target_module(Mod),		
 	atom_concat_list(['$chr_store_global_list_',Mod,'____',F,'___',A],Name).
@@ -3733,7 +4116,11 @@ enumerate_store_bodies([],_,[]).
 enumerate_store_bodies([C|Cs],Constraint,L) :-
 	( is_stored(C) ->
 		get_store_type(C,StoreType),
-		enumerate_store_body(StoreType,C,Suspension,SuspensionBody),
+		( enumerate_store_body(StoreType,C,Suspension,SuspensionBody) ->
+			true
+		;
+			chr_error(internal,'Could not generate enumeration code for constraint ~w.\n',[C])
+		),
 		get_dynamic_suspension_term_field(arguments,C,Suspension,Arguments,DynamicGoal),
 		C = F/_,
 		Constraint0 =.. [F|Arguments],
@@ -3778,6 +4165,15 @@ enumerate_store_body(multi_inthash([Index|_]),C,Susp,Body) :-
 	multi_inthash_enumerate_store_body(Index,C,Susp,Body).
 enumerate_store_body(multi_hash([Index|_]),C,Susp,Body) :-
 	multi_hash_enumerate_store_body(Index,C,Susp,Body).
+enumerate_store_body(atomic_constants(Index,Constants,Completeness),C,Susp,Body) :- 
+	Completeness == complete, % fail if incomplete
+	find_with_var_identity(nb_getval(StoreName,Susps),[Susps],
+		( member(Constant,Constants), 
+		  constants_store_name(C,Index,Constant,StoreName) ) 
+		, Disjuncts),
+	list2disj(Disjuncts, Disjunction),
+	Body = ( Disjunction, member(Susp,Susps) ).
+enumerate_store_body(ground_constants(_,_),_,_,_) :- fail.
 enumerate_store_body(global_ground,C,Susp,Body) :-
 	global_ground_store_name(C,StoreName),
 	sbag_member_call(Susp,List,Sbag),
@@ -4533,6 +4929,13 @@ safely_unifiable(H,I) :-
 :- chr_option(mode,constraint_type(+,+)).
 :- chr_option(mode,get_constraint_type(+,-)).
 
+assert_constraint_type(Constraint,ArgTypes) :-
+	( ground(ArgTypes) ->
+		constraint_type(Constraint,ArgTypes)
+	;
+		chr_error(type_error,'Declared argument types "~w" for constraint "~w" must be ground!\n',[ArgTypes,Constraint])
+	).
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Consistency checks of type aliases
 
@@ -4553,7 +4956,7 @@ type_alias(T1,A1), type_alias(T2,A2) <=>
 type_alias(T,B) \ type_alias(X,T2) <=> 
 	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
 	copy_term_nat((X,T2,T,B),(X2,T3,T1,D1)),oneway_unification(T3,T1) |
-   	chr_info(type_information,'Inferring `~w\' from `~w\' and `~w\'.\n',[X2==D1,X==T2,T==B]),
+   	% chr_info(type_information,'Inferring `~w\' from `~w\' and `~w\'.\n',[X2==D1,X==T2,T==B]),
 	type_alias(X2,D1).
 
 oneway_unification(X,Y) :-
@@ -4824,7 +5227,7 @@ type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition) :-
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% Static type checking
+% STATIC TYPE CHECKING
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Checks head constraints and CHR constraint calls in bodies. 
 %
@@ -4836,8 +5239,35 @@ type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition) :-
 :- chr_constraint
 	static_type_check/0.
 
-:- chr_type type_error_src ---> head(any) ; body(any).
+
+% 1. Check the declared types
+
+constraint_type(Constraint,ArgTypes), static_type_check 
+	==>
+		forall(
+			( member(ArgType,ArgTypes), forsubterm(ArgType,Type) ),
+			( get_type_definition(Type,_) ->
+				true
+			;
+				chr_error(type_error,'Undefined type "~w" used in type declaration of "~w".\n',[Type,Constraint])
+			)
+		).
+			
+			
+forsubterm(Term,SubTerm) :-
+	( 
+		SubTerm = Term
+	;
+		Term =.. [_|Args],
+		member(Arg,Args),
+		forsubterm(Arg,SubTerm)
+	).
+		
+
+% 2. Check the rules
  
+:- chr_type type_error_src ---> head(any) ; body(any).
+
 rule(_,Rule), static_type_check 
 	==>
 	    	copy_term_nat(Rule,RuleCopy),
@@ -5145,6 +5575,30 @@ type_alias(TypePat,Alias) \ atomic_type(Type)
 		copy_term_nat(TypePat-Alias,Type-NType),
 		atomic_type(NType).
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%%	enumerated_atomic_type(+Type,-Atoms) is semidet.
+%
+%	Succeeds when all values of =Type= are atomic
+%	and the atom values are finitely enumerable.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+:- chr_constraint enumerated_atomic_type/2.
+
+enumerated_atomic_type(Type,_) <=> atomic_builtin_type(Type,_,_) | fail.
+
+type_definition(TypePat,Def) \ enumerated_atomic_type(Type,Atoms) 
+	<=> 
+		functor(Type,F,A), functor(TypePat,F,A) 
+	|
+		forall(member(Term,Def),atomic(Term)),
+		Atoms = Def.
+
+type_alias(TypePat,Alias) \ enumerated_atomic_type(Type,Atoms)
+	<=>
+		functor(Type,F,A), functor(TypePat,F,A) 
+	|
+		atomic(Alias),
+		copy_term_nat(TypePat-Alias,Type-NType),
+		enumerated_atomic_type(NType,Atoms).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 :- chr_constraint
@@ -7856,7 +8310,7 @@ hash_lookup_passive_head(HashType,Indexes,Head,VarDict,GroundVars,Goal,AllSusps,
 		KeyCopy =.. [k|KeyArgCopies]
 	),
 	functor(Head,F,A),
-	multi_hash_via_lookup_goal(F/A,Index,KeyCopy,AllSusps,LookupGoal),
+	multi_hash_lookup_goal(F/A,HashType,Index,KeyCopy,AllSusps,LookupGoal),
 	
 	check_ground(GroundVars,KeyArgs,OriginalGroundCheck),
 	my_term_copy(OriginalGroundCheck,VarDict,GroundCheck),
@@ -9095,3 +9549,132 @@ used_states_known, uses_state(Constraint,State) \ if_used_state(Constraint,State
         <=> ResultGoal = Used.
 used_states_known \ if_used_state(Constraint,State,Used,NotUsed,ResultGoal) 
         <=> ResultGoal = NotUsed.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CHECK STOREDNESS ANNOTATIONS AND GENERATE DEFAULT SIMPLIFICATION RULES
+% (Feature for SSS)
+%
+% 1. Checking
+% ~~~~~~~~~~~
+%
+% When the programmer enables the `declare_stored_constraints' option, i.e. writes
+%	
+%	:- chr_option(declare_stored_constraints,on).
+%
+% the compiler will check for the storedness of constraints.
+%
+% By default, the compiler assumes that the programmer wants his constraints to 
+% be never-stored. Hence, a warning will be issues when a constraint is actually 
+% stored.
+%
+% Such warnings are suppressed, if the programmer adds the `# stored' modifier
+% to a constraint declaration, i.e. writes
+%
+%	:- chr_constraint c(...) # stored.
+%
+% In that case a warning is issued when the constraint is never-stored. 
+%
+% NOTE: Checking is only performed if `storage_analysis' is on. Otherwise, all
+%       constraints are stored anyway.
+%
+%
+% 2. Rule Generation
+% ~~~~~~~~~~~~~~~~~~
+% 
+% When the programmer enables the `declare_stored_constraints' option, i.e. writes
+%	
+%	:- chr_option(declare_stored_constraints,on).
+%
+% the compiler will generate default simplification rules for constraints.
+%
+% By default, no default rule is generated for a constraint. However, if the
+% programmer writes a default/1 annotation in the constraint declaration, i.e. writes
+%
+%	:- chr_constraint c(...) # default(Goal).
+%
+% where `Goal' is a ground and callable goal (e.g. `true', `fail' or `throw(error)'),
+% the compiler generates a rule:
+%
+%		c(_,...,_) <=> Goal.
+% 
+% at the end of the program. If multiple default rules are generated, for several constraints,
+% then the order of the default rules is not specified.
+
+
+:- chr_constraint stored_assertion/1.
+:- chr_option(mode,stored_assertion(+)).
+:- chr_option(type_declaration,stored_assertion(constraint)).
+
+:- chr_constraint never_stored_default/2.
+:- chr_option(mode,never_stored_default(+,?)).
+:- chr_option(type_declaration,never_stored_default(constraint,any)).
+
+% Rule Generation
+% ~~~~~~~~~~~~~~~
+
+generate_never_stored_rules(Constraints,Rules) :-
+	( chr_pp_flag(declare_stored_constraints,on) ->
+		never_stored_rules(Constraints,Rules)
+	;
+		Rules = []
+	).
+
+:- chr_constraint never_stored_rules/2.
+:- chr_option(mode,never_stored_rules(+,?)).
+:- chr_option(type_declaration,never_stored_rules(list(constraint),any)).
+
+never_stored_rules([],Rules) <=> Rules = [].
+never_stored_default(Constraint,Goal) \ never_stored_rules([Constraint|Constraints],Rules) <=>
+	Constraint = F/A,
+	functor(Head,F,A),	
+	inc_rule_count(RuleNb),
+	Rule = pragma(
+			rule([Head],[],true,Goal),
+			ids([0],[]),
+			[],
+			no,	
+			RuleNb
+		),
+	Rules = [Rule|Tail],
+	never_stored_rules(Constraints,Tail).
+never_stored_rules([_|Constraints],Rules) <=>
+	never_stored_rules(Constraints,Rules).
+
+% Checking
+% ~~~~~~~~
+
+check_storedness_assertions(Constraints) :-
+	( chr_pp_flag(storage_analysis,on), chr_pp_flag(declare_stored_constraints,on) ->
+		forall(Constraint,Constraints,check_storedness_assertion(Constraint))
+	;
+		true
+	).
+
+
+:- chr_constraint check_storedness_assertion/1.
+:- chr_option(mode,check_storedness_assertion(+)).
+:- chr_option(type_declaration,check_storedness_assertion(constraint)).
+
+check_storedness_assertion(Constraint), stored_assertion(Constraint)
+	<=> ( is_stored(Constraint) ->
+		true
+	    ;
+		chr_warning(assertion_failed,'Constraint ~w is not stored. However, it was asserted to be stored.\n',[Constraint])
+	    ).
+never_stored_default(Constraint,_) \ check_storedness_assertion(Constraint)
+	<=> ( is_finally_stored(Constraint) ->
+		chr_warning(assertion_failed,'Constraint ~w is stored. However, it was asserted not to be stored.\n',[Constraint])
+	    ; is_stored(Constraint) ->
+		chr_warning(assertion_failed,'Constraint ~w is temporarily stored. However, it was asserted not to be stored.\n',[Constraint])
+	    ;
+		true
+	    ).
+	% never-stored, no default goal
+check_storedness_assertion(Constraint)
+	<=> ( is_finally_stored(Constraint) ->
+		chr_warning(assertion_failed,'Constraint ~w is stored. However, it was asserted not to be stored.\n',[Constraint])
+	    ; is_stored(Constraint) ->
+		chr_warning(assertion_failed,'Constraint ~w is temporarily stored. However, it was asserted not to be stored.\n',[Constraint])
+	    ;
+		true
+	    ).

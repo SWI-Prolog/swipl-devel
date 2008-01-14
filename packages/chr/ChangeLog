@@ -1,3 +1,73 @@
+
+Jan 10, 2008
+
+  * TS: Type check constraint declarations.
+  * TS: Trie stores hidden behind `experimental' option.
+  * TS: New option `verbose' prints constraint indices.
+  * TS: Don't compute term_hash for int and natural types.
+
+Jan 9, 2008
+
+  * TS: Avoid trivial warning for declare_stored_constraints.
+  * TS: Bug fix: missing full store was causing compiler to loop.
+
+Jan 9, 2008
+
+  * TS: Bug fix: atomic_constants store was causing compiler
+	to loop.
+  * TS: Clean-up and avoid adding additional global_ground store
+	if atomic_constants store covers all cases.
+  * TS: Clean-up and bug fix.
+
+Jan 7, 2008
+
+  * TS: Performance improvement: use new store
+	implementation for multi-argument lookups
+	on manifest ground terms. Should be faster than	
+	hashtable.
+
+Jan 4, 2008
+
+  * TS: Performance improvement: use new store
+	implementation for single-argument lookups
+	on manifest atomics. Should be faster than
+	hashtable. Will be generalized to arbitrary
+	manifest ground lookups and non-manifest
+	atomically typed lookups .
+	
+Jan 3, 2008
+
+  * TS: Modified error messages of declare_stored_constraints
+	option, to distinguish between stored, temporarily stored
+	and never stored.
+  * TS: write/1, writeln/1 and format/2 are now treated as non-binding
+	builtins.
+  * TS: Properly inline inthash constraint lookup.
+
+Dec 31, 2007
+
+  * TS: Additional assertion # default(Goal) for the
+	declare_stored_constraints, which specifies that
+	an unconditional simplification rule for the constraint
+	must be added to the end of the program. The Goal
+	parameter specifies the goal of that rule, e.g.
+	true or fail or throw(...). Experimental.
+
+Dec 29, 2007
+
+  * TS: Experimental option declare_stored_constraints for
+	telling the compiler to warn for stored constraints
+	that are not asserted to be stored. Use the
+		:- chr_constraint f(...) # stored.
+	notation for asserting that a constraint is expected to
+	be stored.
+
+Dec 27, 2007
+
+  * TS: Inline constraint lookup.
+ 
+  * TS: Precompile term hashing.
+ 
 Sep 26, 2007
 
   * TS: Code cleaning was hampered by line numbers.
