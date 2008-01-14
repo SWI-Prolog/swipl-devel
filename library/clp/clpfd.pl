@@ -1438,7 +1438,24 @@ mymin(X, Y, Z) :-
 %
 % X is greater than or equal to Y.
 
-X #>= Y :- parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY), reinforce(RX).
+X #>= Y :-
+        (   var(X), nonvar(Y), Y = Y1 - C, var(Y1), integer(C) ->
+            var_leq_var_plus_const(Y1, X, C)
+        ;   var(X), nonvar(Y), Y = Y1 + C, var(Y1), integer(C) ->
+            C1 is -C,
+            var_leq_var_plus_const(Y1, X, C1)
+        ;   nonvar(X), var(Y), X = X1 + C, var(X1), integer(C) ->
+            var_leq_var_plus_const(Y, X1, C)
+        ;   nonvar(X), var(Y), X = X1 - C, var(X1), integer(C) ->
+            C1 is - C,
+            var_leq_var_plus_const(Y, X1, C1)
+        ;   parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY), reinforce(RX)
+        ).
+
+var_leq_var_plus_const(X, Y, C) :-
+        Prop = propagator(x_leq_y_plus_c(X,Y,C), mutable(passive)),
+        init_propagator(X, Prop), init_propagator(Y, Prop),
+        trigger_twice(Prop).
 
 %% ?X #=< ?Y
 %
@@ -2147,9 +2164,36 @@ run_propagator(x_neq_y_plus_c(X,Y,C), MState) :-
         ;   true
         ).
 
+% X #=< Y + C
+run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
+        (   nonvar(X) ->
+            (   nonvar(Y) -> kill(MState), X =< Y + C
+            ;   kill(MState), R is X - C, R #=< Y
+            )
+        ;   nonvar(Y) -> kill(MState), R is Y + C, X #=< R
+        ;   get(Y, YD, _),
+            (   domain_supremum(YD, n(YSup)) ->
+                YS1 is YSup + C,
+                get(X, XD, XPs),
+                domain_remove_greater_than(XD, YS1, XD1),
+                put(X, XD1, XPs)
+            ;   true
+            ),
+            (   get(X, XD2, _), domain_infimum(XD2, n(XInf)) ->
+                XI1 is XInf - C,
+                (   get(Y, YD1, YPs1) ->
+                    domain_remove_smaller_than(YD1, XI1, YD2),
+                    put(Y, YD2, YPs1)
+                ;   true
+                )
+            ;   true
+            )
+        ).
+
 run_propagator(sum_eq(Ls,C), MState) :-
         list_variables_integers(Ls, Vs, Is),
         sumlist(Is, SumC),
+        SumC =< C,
         (   Vs = [] -> kill(MState), SumC =:= C
         ;   Vs = [Single] -> kill(MState), Single is C - SumC
         ;   sum_domains(Vs, n(0), n(0), Inf, Sup),
@@ -3111,6 +3155,7 @@ attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
 attribute_goal_(pneq(A,B), A #\= B).
 attribute_goal_(ptimes(X,Y,Z), X*Y #= Z).
 attribute_goal_(x_neq_y_plus_c(X,Y,C), X #\= Y + C).
+attribute_goal_(x_leq_y_plus_c(X,Y,C), X #=< Y + C).
 attribute_goal_(pdiv(X,Y,Z), X/Y #= Z).
 attribute_goal_(pexp(X,Y,Z), X^Y #= Z).
 attribute_goal_(pabs(X,Y), Y #= abs(X)).
