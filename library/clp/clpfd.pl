@@ -106,7 +106,8 @@
                   label/1,
                   indomain/1,
                   lex_chain/1,
-                  serialized/2
+                  serialized/2,
+                  copy_term/3
                  ]).
 
 
@@ -3214,3 +3215,33 @@ test_subdomain(L1, L2) :-
         list_to_domain(L1, D1),
         list_to_domain(L2, D2),
         domain_subdomain(D1, D2).
+
+%%    copy_term(+Term, -Copy, -Gs) is det.
+%
+%    Creates a regular term Copy as a copy of Term (without any
+%    attributes), and a list Gs of goals that when executed reinstate
+%    all attributes onto Copy.
+
+copy_term(Term, Copy, Gs) :-
+        duplicate_term(Term, Copy),
+        term_variables(Copy, Vs),
+        collect_attributes(Vs, [], Gs, []).
+
+collect_attributes([], _)         --> [].
+collect_attributes([V|Vs], Tabu0) -->
+        (   { member(T, Tabu0), T == V } -> []
+        ;   (   { attvar(V) }  ->
+                { get_attrs(V, As) },
+                collect_(As, V, [V|Tabu0])
+            ;   []
+            )
+        ),
+        collect_attributes(Vs, [V|Tabu0]).
+
+collect_([], _, _)                      --> [].
+collect_(att(Module,Value,As), V, Tabu) -->
+        { term_variables(Value, Vs) },
+        collect_attributes(Vs, Tabu),
+        [put_attr(V, Module, Value)],
+        { del_attr(V, Module) },
+        collect_(As, V, Tabu).
