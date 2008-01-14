@@ -53,11 +53,10 @@
    Often stronger propagation
    ---------------------------------
 
-   ?- Y #= abs(X), Y #\= 3, Z * Z #= 4, A in 0..10, A mod 2 #= 0.
-   %@ Y = _G1448{0..2 \/ 4..sup},
-   %@ X = _G1446{inf..-4 \/ -2..2 \/ 4..sup},
-   %@ Z = _G1454{-2 \/ 2},
-   %@ A = _G1463{0 \/ 2 \/ 4 \/ 6 \/ 8 \/ 10}
+   ?- Y #= abs(X), Y #\= 3, Z * Z #= 4.
+   %@ Y = _G1012{0..2\/4..sup},
+   %@ X = _G1010{inf.. -4\/ -2..2\/4..sup},
+   %@ Z = _G1018{-2\/2}
 
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1435,6 +1434,19 @@ mymin(X, Y, Z) :-
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Naive parsing of inequalities and disequalities can result in a lot
+   of unnecessary work if expressions of non-trivial depth are
+   involved: Auxiliary variables are introduced for sub-expressions,
+   and propagation proceeds on them as if they were involved in a
+   tighter constraint (like equality), whereas eventually only very
+   little of the propagated information is actually used. For example,
+   only extremal values are of interest in inequalities. Introducing
+   auxiliary variables should be avoided when possible, and
+   specialised propagators should be used instead. See below for a few
+   examples, such as constraints of the form X #\= Y + C.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 %% ?X #>= ?Y
 %
 % X is greater than or equal to Y.
@@ -1470,19 +1482,6 @@ X #=< Y :- Y #>= X.
 
 X #= Y  :- parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Naive propagation for inequalities and disequalities can perform a
-   lot of unnecessary work if expressions of non-trivial depth are
-   involved: Auxiliary variables are introduced for sub-expressions,
-   and propagation proceeds on them as if they were involved in a
-   tighter constraint (like equality), while eventually only very
-   little of the propagated information is actually made use of. For
-   example, only extremal values are of interest in inequalities.
-   Introducing auxiliary variables should be avoided when possible,
-   and specialised propagators should be used instead. An example for
-   constraints of the form X #\= Y + C and some variants is below.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 %% ?X #\= ?Y
 %
 % X is not Y.
@@ -1500,8 +1499,19 @@ X #\= Y :-
             var_neq_var_plus_const(Y, V, C)
         ;   nonvar(X), var(Y), X = V - C, var(V), integer(C) ->
             var_neq_var_plus_const(V, Y, C)
+        ;   nonvar(X), X = abs(X1-Y1), var(X1), var(Y1), integer(Y) ->
+            absdiff_neq_const(X1, Y1, Y)
+        ;   integer(X), nonvar(Y), Y = abs(X1-Y1), var(X1), var(Y1) ->
+            absdiff_neq_const(X1, Y1, X)
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
         ).
+
+% abs(X-Y) #\= C
+
+absdiff_neq_const(X, Y, C) :-
+        Prop = propagator(absdiff_neq(X,Y,C), mutable(passive)),
+        init_propagator(X, Prop), init_propagator(Y, Prop),
+        trigger_twice(Prop).
 
 % X #\= Y + C
 
@@ -2155,6 +2165,21 @@ run_propagator(pserialized(Var,Duration,Left,SDs), _MState) :-
         myserialized(Duration, Left, SDs, Var).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% abs(X-Y) #\= C
+run_propagator(absdiff_neq(X,Y,C), MState) :-
+        (   nonvar(X) ->
+            (   nonvar(Y) -> kill(MState), abs(X - Y) =\= C
+            ;   kill(MState),
+                V1 is X - C, Y #\= V1,
+                V2 is C + X, Y #\= V2
+           )
+        ;   nonvar(Y) -> kill(MState),
+            V1 is C + Y, X #\= V1,
+            V2 is Y - C, X #\= V2
+        ;   true
+        ).
+
 % X #\= Y + C
 run_propagator(x_neq_y_plus_c(X,Y,C), MState) :-
         (   nonvar(X) ->
@@ -3154,6 +3179,7 @@ attribute_goal_(pgeq(A,B), A #>= B).
 attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
 attribute_goal_(pneq(A,B), A #\= B).
 attribute_goal_(ptimes(X,Y,Z), X*Y #= Z).
+attribute_goal_(absdiff_neq(X,Y,C), abs(X-Y) #\= C).
 attribute_goal_(x_neq_y_plus_c(X,Y,C), X #\= Y + C).
 attribute_goal_(x_leq_y_plus_c(X,Y,C), X #=< Y + C).
 attribute_goal_(pdiv(X,Y,Z), X/Y #= Z).
