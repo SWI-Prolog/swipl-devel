@@ -819,7 +819,7 @@ report :-
 
 report_blocked :-
 	predicate_property(blocked(_,_,_,_), number_of_clauses(N)),
-	N > 0,
+	N > 0, !,
 	info(plunit(blocked(N))),
 	(   blocked(Unit, Name, Line, Reason),
 	    unit_file(Unit, File),
@@ -937,8 +937,10 @@ message(plunit(blocked(unit(Unit, Reason)))) -->
 	[ 'PL-Unit: ~w blocked: ~w'-[Unit, Reason] ].
 
 					% Blocked tests
+message(plunit(blocked(1))) --> !,
+	[ 'one test is blocked:'-[] ].
 message(plunit(blocked(N))) -->
-	[ '~D tests where blocked'-[N] ].
+	[ '~D tests are blocked:'-[N] ].
 message(plunit(blocked(Pos, Name, Reason))) -->
 	[ '  ~w: test ~w: ~w'-[Pos, Name, Reason] ].
 
