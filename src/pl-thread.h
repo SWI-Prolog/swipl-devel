@@ -143,7 +143,7 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_OS	       18
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The IFMT(id, g) macro  is  used  to   bypass  mutexes  if  threading  is
+The IF_MT(id, g) macro  is  used  to   bypass  mutexes  if  threading  is
 disabled. We cannot do this for the L_THREAD mutex however as we need to
 control when threads can be created.
 
@@ -151,7 +151,7 @@ We  assume  id  ==  L_THREAD  is  optimized  away  if  id  is  known  at
 compile-time
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define IFMT(id, g) if ( id == L_THREAD || GD->thread.enabled ) g
+#define IF_MT(id, g) if ( id == L_THREAD || GD->thread.enabled ) g
 
 #ifdef O_CONTENTION_STATISTICS
 #define countingMutexLock(cm) \
@@ -182,17 +182,17 @@ compile-time
 	do { Sdprintf("[%s] %s:%d: LOCK(%s)\n", \
 		      threadName(0), \
 		      __BASE_FILE__, __LINE__, #id); \
-             IFMT(id, countingMutexLock(&_PL_mutexes[id])); \
+             IF_MT(id, countingMutexLock(&_PL_mutexes[id])); \
 	   } while(0)
 #define PL_UNLOCK(id) \
 	do { Sdprintf("[%s] %s:%d: UNLOCK(%s)\n", \
 		      threadName(0), \
 		      __BASE_FILE__, __LINE__, #id); \
-	     IFMT(id, countingMutexUnlock(&_PL_mutexes[id])); \
+	     IF_MT(id, countingMutexUnlock(&_PL_mutexes[id])); \
 	   } while(0)
 #else
-#define PL_LOCK(id)   IFMT(id, countingMutexLock(&_PL_mutexes[id]))
-#define PL_UNLOCK(id) IFMT(id, countingMutexUnlock(&_PL_mutexes[id]))
+#define PL_LOCK(id)   IF_MT(id, countingMutexLock(&_PL_mutexes[id]))
+#define PL_UNLOCK(id) IF_MT(id, countingMutexUnlock(&_PL_mutexes[id]))
 #endif
 
 #define LOCKDEF(def) \
