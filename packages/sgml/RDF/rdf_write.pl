@@ -277,7 +277,7 @@ save_about(Out, Subject) :-
 	rdf_value(Subject, QSubject, Encoding),
 	format(Out, ' rdf:about="~w"', [QSubject]).
 
-%	save_attributes(+List, +DefNS, +Out, Element)
+%	save_attributes(+List, +DefNS, +Out, Element, +Indent, +Anon)
 %
 %	Save the attributes.  Short literal attributes are saved in the
 %	tag.  Others as the content of the description element.  The
@@ -346,14 +346,14 @@ in_tag_attribute(rdf(_,_,literal(Text))) :-
 	atom_length(Text, Len),
 	Len < 60.
 
-%	save_attributes(+List, +DefNS, +TagOrBody, +Out)
+%	save_attributes(+List, +DefNS, +TagOrBody, +Out, +Indent, +Anon)
 %
 %	Save a list of attributes.
 
 save_attributes2([], _, _, _, _, _).
-save_attributes2([H|T], DefNS, Where, Out, Indent, DB) :-
-	save_attribute(Where, H, DefNS, Out, Indent, DB),
-	save_attributes2(T, DefNS, Where, Out, Indent, DB).
+save_attributes2([H|T], DefNS, Where, Out, Indent, Anon) :-
+	save_attribute(Where, H, DefNS, Out, Indent, Anon),
+	save_attributes2(T, DefNS, Where, Out, Indent, Anon).
 
 save_attribute(tag, rdf(_, Name, literal(Value)), DefNS, Out, Indent, _Anon) :-
 	AttIndent is Indent + 2,
