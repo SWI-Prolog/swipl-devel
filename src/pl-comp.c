@@ -3286,7 +3286,7 @@ pl_clause2(term_t p, term_t term, control_t h)
 typedef struct
 { ClauseRef clause;			/* pointer to the clause */
   int       index;			/* nth-1 index */
-} crref, *Cref;
+} *Cref;
 
 
 word
@@ -3308,7 +3308,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     if ( cr )
     { def = getProcDefinition(cr->clause->clause->procedure);
       leaveDefinition(def);
-      freeHeap(cr, sizeof(crref));
+      freeHeap(cr, sizeof(*cr));
     }
     succeed;
   }
@@ -3371,7 +3371,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       fail;
     }
 
-    cr = allocHeap(sizeof(crref));
+    cr = allocHeap(sizeof(*cr));
     cr->clause = cref;
     cr->index  = 1;
     enterDefinition(def);
@@ -3393,7 +3393,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     ForeignRedoPtr(cr);
   }
 
-  freeHeap(cr, sizeof(crref));
+  freeHeap(cr, sizeof(*cr));
   leaveDefinition(def);
 
   succeed;
