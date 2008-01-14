@@ -2398,10 +2398,23 @@ connected to a file may be repositioned.
 Equivalent to open/4 with an empty option-list.
 
     \predicate{open_null_stream}{1}{?Stream}
-Open a stream that produces no output.  All counting functions are
-enabled on such a stream.  An attempt to read from a null-stream will
-immediately signal end-of-file.  Similar to Unix \file{/dev/null}.
-\arg{Stream} can be an atom, giving the null-stream an alias name.
+Open an output stream that produces no output. All counting functions
+are enabled on such a stream. It can be used to discard output (like
+Unix \file{/dev/null}) or exploit the counting properties. The initial
+encoding of \arg{Stream} is \const{utf8}, enabling arbitrary Unicode
+output. The encoding can be changed to determine byte-counts of the
+output in a particular encoding or validate output is possible in a
+particular encoding. For example, the code below determines the number
+of characters emitted when writing \arg{Term}.
+
+\begin{code}
+write_length(Term, Len) :-
+	open_null_stream(Out),
+	write(Out, Term),
+	character_count(Out, Len0),
+	close(Out),
+	Len = Len0.
+\end{code}
 
     \predicate[ISO]{close}{1}{+Stream}
 Close the specified stream.  If \arg{Stream} is not open an error

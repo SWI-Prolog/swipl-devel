@@ -2698,7 +2698,12 @@ pl_open_null_stream(term_t stream)
 { int sflags = SIO_NBUF|SIO_RECORDPOS|SIO_OUTPUT;
   IOSTREAM *s = Snew((void *)NULL, sflags, (IOFUNCTIONS *)&nullFunctions);
 
-  return PL_unify_stream_or_alias(stream, s);
+  if ( s )
+  { s->encoding = ENC_UTF8;
+    return PL_unify_stream_or_alias(stream, s);
+  }
+
+  fail;
 }
 
 
