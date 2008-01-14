@@ -105,7 +105,9 @@ pceMTinit()
 
 #if defined(_REENTRANT) && !defined(HAS_LOCK)
 #define HAS_LOCK 1
+#define var pthread_sys_var		/* avoid AIX name conflict */
 #include <pthread.h>
+#undef var
 
 #ifdef PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
 
