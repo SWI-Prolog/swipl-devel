@@ -93,37 +93,44 @@ cdataParBox(ParBox pb, StringObj cdata,
 	    Style style,
 	    HBox space,
 	    Name ignore_blanks)
-{ const char *text = strName(cdata);
-  const char *end  = text+cdata->data.size;
+{ string *text = &cdata->data;
+  int here = 0;
+  int end = text->size;
   Any refbox = NIL;
 
   if ( ignore_blanks == NAME_leading || ignore_blanks == NAME_both )
-  { while( text<end && isspace(*text) )
-      text++;
+  { while( here<end && iswspace(str_fetch(text, here)) )
+      here++;
   }
   if ( ignore_blanks == NAME_trailing || ignore_blanks == NAME_both )
-  { while( end > text && isspace(end[-1]) )
+  { while( end > here && iswspace(str_fetch(text, end-1)) )
       end--;
   }
   
-  while( text < end )
-  { if ( isspace(*text) )
-    { while( text<end && isspace(*text) )
-	text++;
+  while( here < end )
+  { if ( iswspace(str_fetch(text, here)) )
+    { while( here<end && iswspace(str_fetch(text, here)) )
+	here++;
 
       if ( isDefault(space) )
 	space = makeDefaultSpace(refbox, style);
 
       appendParBox(pb, space);		/* send? */
     } else
-    { const char *start = text;
+    { int start = here;
       string s;
       Name n;
 
-      while( text<end && !isspace(*text) )
-	text++;
+      while( here<end && !iswspace(str_fetch(text, here)) )
+	here++;
 
-      str_set_n_ascii(&s, text - start, (char *)start);
+      str_cphdr(&s, text);
+      s.size = here-start;
+      if ( isstrA(text) )
+	s.s_textA = &text->s_textA[start];
+      else
+	s.s_textW = &text->s_textW[start];
+
       n = StringToName(&s);
 
       appendParBox(pb, (refbox=newObject(ClassTBox, n, style, EAV)));
