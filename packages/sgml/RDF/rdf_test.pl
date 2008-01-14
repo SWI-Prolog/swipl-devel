@@ -225,7 +225,7 @@ is_subject(prefix(Pattern)) :-
 
 is_predicate(0) :- !, fail.
 is_predicate(rdf:RdfPred) :- !,
-is_rdf_predicate(RdfPred).
+	is_rdf_predicate(RdfPred).
 is_predicate(NS:Pred) :- !,
 	atom(NS),
 	atom(Pred).

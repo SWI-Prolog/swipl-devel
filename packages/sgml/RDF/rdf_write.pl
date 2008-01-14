@@ -158,7 +158,7 @@ resources([rdf(S,P,O)|T]) -->
 object_resources(Atom) -->
 	{ atom(Atom) }, !,
 	[ Atom ].
-object_resources(literal(type(Type, _))) -->
+object_resources(literal(type(Type, _))) --> !,
 	[ Type ].
 object_resources(_) -->
 	[].
@@ -281,6 +281,7 @@ subject_triples(_, T, T, []).
 rdf_write_anon([], _, _, _).
 rdf_write_anon([anon(Subject, Done, Triples)|T], NodeIDs, Out, Anon) :-
 	Done \== true, !,
+	Done = true,
 	rdf_write_subject(Triples, Subject, NodeIDs, Out, Anon),
 	rdf_write_anon(T, NodeIDs, Out, Anon).
 rdf_write_anon([_|T], NodeIDs, Out, Anon) :-
@@ -434,8 +435,8 @@ save_attribute(body, rdf(_,Name,literal(Literal)), DefNS, Out, _, Indent, _) :- 
 	save_attribute_value(Value, Out, Indent),
 	write(Out, '</'), rdf_write_id(Out, NameText), write(Out, '>').
 save_attribute(body, rdf(_, Name, Value), DefNS, Out, NodeIDs, Indent, Anon) :-
-	rdf_is_bnode(Value), !,
-	memberchk(anon(Value, Done, ValueTriples), Anon),
+	rdf_is_bnode(Value),
+	memberchk(anon(Value, Done, ValueTriples), Anon), !,
 	rdf_id(Name, DefNS, NameText),
 	format(Out, '~N~*|<', [Indent]),
 	rdf_write_id(Out, NameText),

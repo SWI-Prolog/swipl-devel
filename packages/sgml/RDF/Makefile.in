@@ -68,6 +68,7 @@ uninstall:
 
 check::
 		$(PL) -f rdf_test.pl -g test,halt -t 'halt(1)'
+		$(PL) -q -f write_test.pl -g run_tests,halt -t 'halt(1)'
 
 ################################################################
 # CGI INSTALL
