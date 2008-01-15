@@ -111,7 +111,12 @@ case "$LD" in
 	    ;;
 	*)  ALD="$LD"
 esac
-( CC=$ACC; LD=$ALD; CFLAGS=$CFLAGS; LDFLAGS=$LDFLAGS;
+case "$CPP" in
+	.*) ACPP="../../$CPP"
+	;;
+	*) ACPP="$CPP"
+esac
+( CC=$ACC; LD=$ALD; CPP=$ACPP; CFLAGS=$CFLAGS; LDFLAGS=$LDFLAGS;
   export CC LD CFLAGS LDFLAGS
 
   (cd maildrop/rfc822 && $SHELL configure)
