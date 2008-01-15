@@ -1499,9 +1499,9 @@ X #\= Y :-
             var_neq_var_plus_const(Y, V, C)
         ;   nonvar(X), var(Y), X = V - C, var(V), integer(C) ->
             var_neq_var_plus_const(V, Y, C)
-        ;   nonvar(X), X = abs(X1-Y1), var(X1), var(Y1), integer(Y) ->
+        ;   nonvar(X), X = abs(A), nonvar(A), A = X1 - Y1, var(X1), var(Y1), integer(Y) ->
             absdiff_neq_const(X1, Y1, Y)
-        ;   integer(X), nonvar(Y), Y = abs(X1-Y1), var(X1), var(Y1) ->
+        ;   integer(X), nonvar(Y), Y = abs(A), nonvar(A), A = X1 - Y1, var(X1), var(Y1) ->
             absdiff_neq_const(X1, Y1, X)
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
         ).
