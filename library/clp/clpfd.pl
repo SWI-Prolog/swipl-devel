@@ -125,8 +125,8 @@
 Constraint programming is a declarative formalism that lets you
 describe conditions a solution should satisfy. This library provides
 CLP(FD), Constraint Logic Programming over Finite Domains. It can be
-used to model and solve various combinatorial problems from diverse
-areas such as planning, scheduling, and graph colouring.
+used to model and solve various combinatorial problems such as
+planning, scheduling and allocation tasks.
 
 As an example, consider the cryptoarithmetic puzzle SEND + MORE =
 MONEY, where different letters denote distinct integers between 0 and
@@ -177,12 +177,14 @@ below.
     | Expr1 #> Expr2   | Expr1 is strictly larger than Expr2 |
     | Expr1 #< Expr2   | Expr1 is strictly smaller than Expr2 |
 
-The constraints #=/2, #\=/2, #</2, #>/2, #=</2, #>=/2 and #\/1 can be
-_reified_, which means reflecting their truth values into Boolean 0/1
-variables. Let P and Q denote conjunctions (#/\/2) or disjunctions
-(#\//2) of reifiable constraints or Boolean variables, then:
+The constraints #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
+_reified_, which means reflecting their truth values into Boolean
+values represented by the integers 0 and 1. Let P and Q denote
+reifiable constraints or Boolean variables, then:
 
     | #\ Q      | True iff Q is false             |
+    | P #\/ Q   | True iff either P or Q          |
+    | P #/\ Q   | True iff both P and Q           |
     | P #<==> Q | True iff P and Q are equivalent |
     | P #==> Q  | True iff P implies Q            |
     | P #<== Q  | True iff Q implies P            |
