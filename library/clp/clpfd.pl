@@ -1250,7 +1250,7 @@ all_different([X|Right], Left) :-
 %       "sumlist(Vars) Op Expr" hold, e.g.:
 %
 %       ==
-%               sum(List, #=< 100)
+%               sum(List, #=<, 100)
 %       ==
 
 sum(Ls, Op, Value) :-
