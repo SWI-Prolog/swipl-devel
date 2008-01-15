@@ -3267,6 +3267,10 @@ collect_([], _, _)                      --> [].
 collect_(att(Module,Value,As), V, Tabu) -->
         { term_variables(Value, Vs) },
         collect_attributes(Vs, Tabu),
-        [put_attr(V, Module, Value)],
+        (   { predicate_property(Module:attribute_goal(_, _), interpreted) } ->
+            { Module:attribute_goal(V, Goal) },
+            [Goal]
+        ;   [put_attr(V, Module, Value)]
+        ),
         { del_attr(V, Module) },
         collect_(As, V, Tabu).
