@@ -3248,9 +3248,7 @@ test_subdomain(L1, L2) :-
 %    all attributes onto Copy.
 
 copy_term(Term, Copy, Gs) :-
-        duplicate_term(Term, Copy),
-        term_variables(Copy, Vs),
-        collect_attributes(Vs, [], Gs, []).
+	findall(Term-GsC,phrase(collect_attributes(Vs,[]),GsC),[Copy-GsC]).
 
 collect_attributes([], _)         --> [].
 collect_attributes([V|Vs], Tabu0) -->
