@@ -1999,12 +1999,19 @@ lex_le([V1|V1s], [V2|V2s]) :-
 % list Tuples are constrained to be elements of Relation.
 
 tuples_in(Tuples, Relation) :-
+        (   cyclic_list(Tuples) -> type_error(list, Tuples) ; true ),
         must_be(list, Relation),
         must_be(ground, Relation),
         maplist(must_be(list), Relation),
         maplist(maplist(must_be(integer)), Relation),
         tuples_domain(Tuples, Relation),
         do_queue.
+
+cyclic_list(L0) :- cyclic_term(L0), cyclic_list(L0, []).
+
+cyclic_list([_|Tail], Seen) :-
+        \+ var(Tail),
+        (   memberchk(Tail, Seen) -> true ; cyclic_list(Tail, [Tail|Seen]) ).
 
 tuples_domain([], _).
 tuples_domain([Tuple|Tuples], Relation) :-
