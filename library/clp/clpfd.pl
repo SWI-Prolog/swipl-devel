@@ -1603,7 +1603,7 @@ L #==> R   :- reify(L, BL), reify(R, BR), myimpl(BL, BR), do_queue.
 
 %% ?P #<== ?Q
 %
-% ?Q implies ?P.
+% Q implies P.
 
 L #<== R   :- reify(L, BL), reify(R, BR), myimpl(BR, BL), do_queue.
 
