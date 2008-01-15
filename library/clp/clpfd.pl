@@ -128,32 +128,12 @@ CLP(FD), Constraint Logic Programming over Finite Domains. It can be
 used to model and solve various combinatorial problems such as
 planning, scheduling and allocation tasks.
 
-As an example, consider the cryptoarithmetic puzzle SEND + MORE =
-MONEY, where different letters denote distinct integers between 0 and
-9. It can be modeled in CLP(FD) as follows:
-
-==
-:- use_module(library(clpfd)).
-
-puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
-        Vars = [S,E,N,D,M,O,R,Y], Vars ins 0..9,
-        all_different(Vars),
-                  S*1000 + E*100 + N*10 + D +
-                  M*1000 + O*100 + R*10 + E #=
-        M*10000 + O*1000 + N*100 + E*10 + Y,
-        M #> 0, S #> 0,
-        label(Vars).
-
-?- puzzle(P).
-P = ([9, 5, 6, 7]+[1, 0, 8, 5]=[1, 0, 6, 5, 2])
-==
-
-Most predicates of this library are _constraints_: They generalise
-arithmetic evaluation of integer expressions in that propagation can
-proceed in all directions. This library also provides _enumeration_
-_predicates_, which let you systematically search for solutions on
-variables whose domains have become finite. A finite domain _expression_
-is one of:
+Most predicates of this library are finite domain _constraints_, which
+are relations over integers. They generalise arithmetic evaluation of
+integer expressions in that propagation can proceed in all directions.
+This library also provides _enumeration_ _predicates_, which let you
+systematically search for solutions on variables whose domains have
+become finite. A finite domain _expression_ is one of:
 
     | an integer         | Given value                   |
     | a variable         | Unknown value                 |
@@ -167,8 +147,7 @@ is one of:
     | abs(Expr)          | Absolute value                |
     | Expr / Expr        | Integer division              |
 
-The most important finite domain _constraints_ are given in the table
-below.
+The most important finite domain constraints are:
 
     | Expr1 #>= Expr2  | Expr1 is larger than or equal to Expr2  |
     | Expr1 #=< Expr2  | Expr1 is smaller than or equal to Expr2 |
@@ -189,8 +168,42 @@ reifiable constraints or Boolean variables, then:
     | P #==> Q  | True iff P implies Q            |
     | P #<== Q  | True iff Q implies P            |
 
-If SWI Prolog is compiled with support for arbitrary precision
-integers (using GMP), there is no limit on the size of domains.
+As an example, consider the cryptoarithmetic puzzle SEND + MORE =
+MONEY, where different letters denote distinct integers between 0 and
+9. It can be modeled in CLP(FD) as follows:
+
+==
+:- use_module(library(clpfd)).
+
+puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
+        Vars = [S,E,N,D,M,O,R,Y],
+        Vars ins 0..9,
+        all_different(Vars),
+                  S*1000 + E*100 + N*10 + D +
+                  M*1000 + O*100 + R*10 + E #=
+        M*10000 + O*1000 + N*100 + E*10 + Y,
+        M #> 0, S #> 0.
+==
+
+Sample query and its result:
+
+==
+?- puzzle(As+Bs=Cs).
+As = [_G58{8..9}, _G61{2..9}, _G64{2..9}, _G67{2..9}],
+Bs = [1, 0, _G76{2..9}, _G61{2..9}],
+Cs = [1, 0, _G64{2..9}, _G61{2..9}, _G94{2..9}]
+==
+
+Here, the constraint solver could deduce more stringent bounds for
+many variables. Labeling can be used to search for solutions:
+
+==
+?- puzzle(As+Bs=Cs), append([As,Bs,Cs], Vs), label(Vs).
+As = [9, 5, 6, 7],
+Bs = [1, 0, 8, 5],
+Cs = [1, 0, 6, 5, 2],
+Vs = [9, 5, 6, 7, 1, 0, 8, 5, 1|...]
+==
 
 @author Markus Triska
 */
