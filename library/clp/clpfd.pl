@@ -160,7 +160,7 @@ is one of:
     | -Expr              | Unary minus                   |
     | Expr + Expr        | Addition                      |
     | Expr * Expr        | Multiplication                |
-    | Expr - Expr.       | Subtraction                   |
+    | Expr - Expr        | Subtraction                   |
     | min(Expr,Expr)     | Minimum of two expressions    |
     | max(Expr,Expr)     | Maximum of two expressions    |
     | Expr mod Expr      | Remainder of integer division |
@@ -936,10 +936,11 @@ label(Vs) :- labeling([], Vs).
 % Labeling means systematically trying out values for the finite
 % domain variables Vars until all of them are ground. The domain of
 % each variable in Vars must be finite. Options is a list of options
-% that let you exhibit some control over the search process. Two sets
-% of options exist: One for variable selection strategy, and one for
-% optimisation. The variable selection strategy lets you specify which
-% variable should be labeled next and is one of:
+% that let you exhibit some control over the search process. Several
+% categories of options exist:
+%
+% The variable selection strategy lets you specify which variable of
+% Vars should be labeled next and is one of:
 %
 %   * leftmost
 %   Label the variables in the order they occur in Vars. This is the
@@ -956,7 +957,32 @@ label(Vs) :- labeling([], Vs).
 %   * max
 %   Label the leftmost variable whose upper bound is the highest next.
 %
-% The second set of options lets you influence the order of solutions:
+% The value order is one of:
+%
+%   * up
+%   Try the elements of the chosen variable's domain in ascending order.
+%   This is the default.
+%
+%   * down
+%   Try the domain elements in descending order.
+%
+% The branching strategy is one of:
+%
+%   * step
+%   For each variable X, a choice is made between X = V and X #\= V,
+%   where V is determined by the value ordering options. This is the
+%   default.
+%
+%   * enum
+%   For each variable X, a choice is made between X = V_1, X = V_2
+%   etc., for all values V_i of the domain of X. The order is
+%   determined by the value ordering options.
+%
+%   * bisect
+%   For each variable X, a choice is made between X #=< M and X #> M,
+%   where M is the midpoint of the domain of X.
+%
+% The order of solutions can be influenced with:
 %
 %   * min(Expr)
 %   * max(Expr)
