@@ -1254,7 +1254,7 @@ all_different([X|Right], Left) :-
 %       ==
 
 sum(Ls, Op, Value) :-
-        must_be(list, Ls),
+        (   cyclic_list(Ls) -> type_error(list, Ls) ; true ),
         (   Op == (#=), integer(Value) ->
             Prop = propagator(sum_eq(Ls,Value), mutable(passive)),
             sum_eq(Ls, Prop),
