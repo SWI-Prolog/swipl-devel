@@ -2347,14 +2347,6 @@ run_propagator(pplus(X,Y,Z), MState) :-
                 )
             ;   true
             )
-
-%             (   XI \== inf, XS \== sup,
-%                 YI \== inf, YS \== sup ->
-%                 To1 is To + 1,
-%                 Low is min(XI,YI), Up is max(XS,YS),
-%                 pplus_remove_impossibles(From, To1, Low, Up, XD, YD, ZD1, ZD2)
-%             ;   ZD2 = ZD1
-%             ),
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3196,19 +3188,14 @@ attribute_goal(X, Goal) :-
         get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)),
         domain_to_drep(Dom, Drep),
         attributes_goals(Ps, X in Drep, Goal0),
-        dotreverse(Goal0, Goal1),
-        dot_list(Goal1, Ls, []),
-        reverse(Ls, Ls1),
-        list_dot(Ls1, Goal).
+        dot_list(Goal0, Ls, []),
+        list_dot(Ls, Goal).
 
-dot_list((A,B)) --> !, [A], dot_list(B).
+dot_list((A,B)) --> !, dot_list(A), dot_list(B).
 dot_list(A)     --> [A].
 
 list_dot([A], A)        :- !.
 list_dot([A|As], (A,G)) :- list_dot(As, G).
-
-dotreverse((A,B), (B,R)) :- !, dotreverse(A, R).
-dotreverse(G, G).
 
 attributes_goals([], Goal, Goal).
 attributes_goals([propagator(P, State)|As], Goal0, Goal) :-
@@ -3315,8 +3302,8 @@ collect_(att(Module,Value,As), V, Tabu) -->
         { term_variables(Value, Vs) },
         collect_attributes(Vs, Tabu),
         (   { predicate_property(Module:attribute_goal(_, _), interpreted) } ->
-            { Module:attribute_goal(V, Goal) },
-            [Goal]
+            { Module:attribute_goal(V, Goal), dot_list(Goal, Gs, []) },
+            dlist(Gs)
         ;   [put_attr(V, Module, Value)]
         ),
         { del_attr(V, Module) },
