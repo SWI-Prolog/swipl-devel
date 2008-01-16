@@ -1,3 +1,23 @@
+[Dec 22 2007]
+
+ * FIXED: Write JSON newlines always as \n.  Also write all control characters
+   that have no defined escape (< ' ') as \uXXXX.  Michiel Hildebrand.
+   
+ * FIXED: json_read/2 for strings holding double-quotes.
+
+[Dec 18 2007]
+
+ * WORKAROUND: Emit no DOCTYPE header of the doctype is set to ''.  This avoids
+   a bug in Microsoft IE AJAX processing.
+   
+[Dec 16 2007]
+
+ * FIXED: recursive handling of lists in prolog_to_json/2.  Michiel Hildebrand
+
+[Dec 15 2007]
+
+ * FIXED: is_json_term/2 for pairs.  Michiel Hildebrand.
+
 [Dec 13 2007]
 
  * ADDED: A predefined `head' receiver for http_post//2 and a predefined `xmlns'

@@ -1,3 +1,7 @@
+[Jan 15 2008]
+
+ * PORT: Fix cpp handling in clib package configure.  This is assumed to
+   fix the Darwinports on MacOS Leopard.  Nico, Ryoko et Anna.
 Oct 6, 2007
 
   * FIXED: call_with_time_limit non-determinism.  Norbert Fuchs.

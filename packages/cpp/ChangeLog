@@ -1,3 +1,8 @@
+[Dec 18 2007]
+
+ * FIXED: Handling of #define PROLOG_MODULE in the C++ interface.
+ * MODIFIED: Note that the PlRegister() class has an extra argument for
+   all initializers.
 Sep 25, 2007
 
  * FIXED: Allow multiple inclusions.  Mary Ellen Foster.

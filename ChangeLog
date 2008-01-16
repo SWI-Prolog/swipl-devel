@@ -8,6 +8,35 @@
 					--------------------------------------
 
 
+===============================
+VERSION 5.6.49 January 16, 2008
+===============================
+
+ * PORT: Bug#341: name conflict for AIX on IFMT fixed by renaming to IF_MT.
+   Oleh Lozynskyy.
+   
+ * PORT: Bug#338: No longer use LDFLAGS as provided by configure for dynamic linking
+   for linking the plrc utility.  Oleh Lozynskyy
+   
+ * PORT: Bug#337: Avoid name conflict on crref when compiling on AIX.  Oleh Lozynskyy
+
+ * FIXED: current_predicate(foo(bar):PI) crashed.  Matt Lilley.
+
+ * FIXED: code_type(0, quote) and code_type(0, period) succeeded.  Mike Elston.
+
+ * FIXED: Type/instantiation errors in the arguments to call/1, call/N and apply/2
+   could corrupt the stacks.  Ulrich Neumerkel.
+   
+ * MODIFIED: Changed argument order of del_vertices/3 from library(ugraphs) after
+   discussion with Vitor Santos Costa (YAP).  Latest versions of at least YAP,
+   SWI-Prolog and SICStus are now compatible.
+   
+ * DOC: Fixed some documentation issues, notably around library(www_browser)
+
+ * ADDED: SWI-Prolog.h: Define __WINDOWS__ if _MSC_VER is defined
+
+ * ADDED: install the demo directory
+
 ================================
 VERSION 5.6.48 December 13, 2007
 ================================

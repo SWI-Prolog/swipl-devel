@@ -1,3 +1,9 @@
+[Jan 14 2008]
+
+ * PORT: Bug#339: name conflict in AIX
+
+ * FIXED: Bug#336: parbox->cdata to handle Unicode data.  Dmitry.
+
 [Dec 12 2007]
 
  * FIXED: area->overlap now fails on adjacent areas.  Maurizio Ferreira

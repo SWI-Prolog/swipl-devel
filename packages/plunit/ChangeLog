@@ -1,3 +1,11 @@
+[Jan 14 2008]
+
+ * FIXED: Non-determinism in run_tests/0 if there are blocked tests.
+
+[Dec 21 2007]
+
+ * FIXED: PlUnit printing of wrong answers if there are attributes.  Ulrich
+   Neumerkel, item#242
 Oct 30, 2007
 
 * ENHANCED: Report error or failure in cleanup handler (Mark van Assem)

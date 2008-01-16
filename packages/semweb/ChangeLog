@@ -1,3 +1,7 @@
+[Dec 17 2007]
+
+ * FIXED: Possible missing match on subproperties in rdf_has. Jacco van Ossenbruggen and Michiel Hildebrand
+
 [Dec 13 2007]
 
  * FIXED: Bug#332: operator declarations could mess up RDF/XML output.  Chris Sutton

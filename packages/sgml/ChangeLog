@@ -1,3 +1,9 @@
+[Jan 14 2008]
+
+ * FIXED: Bug#343: Handling bnodes in rdf_write_xml.  Yver Raimond.
+
+ * FIXED: Added support for rdf:NodeID to rdf_write_xml/2.  Yves Raimond.
+
 [Dec 13 2007]
 
  * FIXED: library(rdf_write) to deal with operators.  Related to Bug#332
