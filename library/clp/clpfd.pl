@@ -1630,12 +1630,6 @@ myimpl(X, Y) :-
         init_propagator(X, Prop), init_propagator(Y, Prop),
         trigger_prop(Prop).
 
-mydefined(X, Y, Z) :-
-        Prop = propagator(defined(X,Y,Z), mutable(passive)),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop),
-        trigger_prop(Prop).
-
 my_reified_div(X, Y, D, Z) :-
         Prop = propagator(reified_div(X,Y,D,Z), mutable(passive)),
         init_propagator(X, Prop), init_propagator(Y, Prop),
@@ -1667,40 +1661,40 @@ parse_reified_clpfd(Expr, Result, Defined) :-
         ;   integer(Expr) -> Result = Expr, Defined = 1
         ;   Expr = (L + R) ->
             parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            myplus(RL, RR, Result), mydefined(DL, DR, Defined)
+            myplus(RL, RR, Result), DL #/\ DR #<==> Defined
         ;   Expr = (L * R) ->
             parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mytimes(RL, RR, Result), mydefined(DL, DR, Defined)
+            mytimes(RL, RR, Result), DL #/\ DR #<==> Defined
         ;   Expr = (L - R) ->
             parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
             mytimes(-1, RR, RRR),
-            myplus(RL, RRR, Result), mydefined(DL, DR, Defined)
+            myplus(RL, RRR, Result), DL #/\ DR #<==> Defined
         ;   Expr = (- E) ->
             parse_reified_clpfd(E, RE, Defined),
             mytimes(-1, RE, Result)
         ;   Expr = max(L, R) ->
             parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mymax(RL, RR, Result), mydefined(DL, DR, Defined)
+            mymax(RL, RR, Result), DL #/\ DR #<==> Defined
         ;   Expr = min(L,R) ->
             parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mymin(RL, RR, Result), mydefined(DL, DR, Defined)
+            mymin(RL, RR, Result), DL #/\ DR #<==> Defined
         ;   Expr = L mod R ->
             parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mydefined(DL, DR, Defined1),
+            DL #/\ DR #<==> Defined1,
             my_reified_mod(RL, RR, Defined2, Result),
-            mydefined(Defined1, Defined2, Defined)
+            Defined1 #/\ Defined2 #<==> Defined
         ;   Expr = abs(E) ->
             parse_reified_clpfd(E, RE, Defined),
             myabs(RE, Result),
             Result #>= 0
         ;   Expr = (L / R) ->
             parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mydefined(DL, DR, Defined1),
+            DL #/\ DR #<==> Defined1,
             my_reified_div(RL, RR, Defined2, Result),
-            mydefined(Defined1, Defined2, Defined)
+            Defined1 #/\ Defined2 #<==> Defined
         ;   Expr = (L ^ R) ->
             parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mydefined(DL, DR, Defined),
+            DL #/\ DR #<==> Defined,
             myexp(RL, RR, Result)
         ;   domain_error(clpfd_expression, Expr)
         ).
@@ -2707,17 +2701,6 @@ run_propagator(pexp(X,Y,Z), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% propagate definedness of expressions - 0 means undefined, 1 defined.
-% An expression is defined iff all its subexpressions are defined.
-
-run_propagator(defined(X,Y,Z), MState) :-
-        (   X == 1, Y == 1 -> kill(MState), Z = 1
-        ;   Z == 1 -> kill(MState), X = 1, Y = 1
-        ;   X == 0 -> kill(MState), Z = 0
-        ;   Y == 0 -> kill(MState), Z = 0
-        ;   true
-        ).
-
 % The result of X/Y and X mod Y is undefined iff Y is 0.
 
 run_propagator(reified_div(X,Y,D,Z), MState) :-
@@ -3232,7 +3215,6 @@ attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
 attribute_goal_(rel_tuple(RID, Tuple), tuples_in([Tuple], Relation)) :-
         b_getval(RID, Relation).
 % reified constraints
-attribute_goal_(defined(X,Y,Z), (X #/\ Y #<==> Z)).
 attribute_goal_(reified_neq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #\= Y) #<==> B).
 attribute_goal_(reified_eq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #= Y) #<==> B).
 attribute_goal_(reified_geq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #>= Y) #<==> B).
