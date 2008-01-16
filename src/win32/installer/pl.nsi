@@ -183,13 +183,6 @@ Section "Documentation and Help-system"
   File pl\library\help.pl
 SectionEnd
 
-Section "Demo files"
-  SectionIn 1 3
-  SetOutPath $INSTDIR\demo
-  File pl\demo\likes.pl
-  File pl\demo\README.TXT
-SectionEnd
-
 Section "Constraint Handling Rules"
   SectionIn 1 3
   SetOutPath $INSTDIR\library

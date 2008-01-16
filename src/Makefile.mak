@@ -199,8 +199,7 @@ check:
 install:	$(BINDIR) iprog install_packages
 !ELSE
 install:	install-arch install-libs install-readme install_packages \
-		xpce_packages install-dotfiles install-demo html-install \
-		install-demo
+		xpce_packages install-dotfiles install-demo html-install 
 !ENDIF
 
 install-arch:	idirs iprog
@@ -308,12 +307,6 @@ install-dotfiles::
 		$(INSTALL_DATA) ..\dotfiles\dotplrc "$(PLCUSTOM)\pl.ini"
 		$(INSTALL_DATA) ..\dotfiles\dotxpcerc "$(PLCUSTOM)\xpce.ini"
 		$(INSTALL_DATA) ..\dotfiles\README "$(PLCUSTOM)\README.TXT"
-
-install-demo::
-		if exist ..\demo \
-		    $(INSTALL_DATA) ..\demo\likes.pl "$(PLBASE)\demo\likes.pl"
-		if exist ..\demo \
-		$(INSTALL_DATA) ..\demo\README "$(PLBASE)\demo\README.TXT"
 
 html-install::
 		copy ..\man\Manual\*.html $(MANDIR) > nul
