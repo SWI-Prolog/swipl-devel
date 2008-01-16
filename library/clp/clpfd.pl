@@ -3187,9 +3187,8 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
 attribute_goal(X, Goal) :-
         get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)),
         domain_to_drep(Dom, Drep),
-        attributes_goals(Ps, X in Drep, Goal0),
-        dot_list(Goal0, Ls, []),
-        list_dot(Ls, Goal).
+        attributes_goals(Ps, Gs, [X in Drep]),
+        list_dot(Gs, Goal).
 
 dot_list((A,B)) --> !, dot_list(A), dot_list(B).
 dot_list(A)     --> [A].
@@ -3197,18 +3196,17 @@ dot_list(A)     --> [A].
 list_dot([A], A)        :- !.
 list_dot([A|As], (A,G)) :- list_dot(As, G).
 
-attributes_goals([], Goal, Goal).
-attributes_goals([propagator(P, State)|As], Goal0, Goal) :-
-        (   State = mutable(dead) -> Goal1 = Goal0
-        ;   State = mutable(processed) -> Goal1 = Goal0
-        ;   attribute_goal_(P, G) ->
+attributes_goals([]) --> [].
+attributes_goals([propagator(P, State)|As]) -->
+        (   { State = mutable(dead) } -> []
+        ;   { State = mutable(processed) } -> []
+        ;   { attribute_goal_(P, G) } ->
             % TODO: why doesn't the following setarg/3 actually set the arg?
-            setarg(1, State, processed),
-            Goal1 = (Goal0,G)
-        ;   Goal1 = Goal0,
-            true %format("currently no conversion for ~w\n", [P])
+            { setarg(1, State, processed) },
+            [G]
+        ;   [] % { format("currently no conversion for ~w\n", [P]) }
         ),
-        attributes_goals(As, Goal1, Goal).
+        attributes_goals(As).
 
 attribute_goal_(pgeq(A,B), A #>= B).
 attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
@@ -3234,12 +3232,12 @@ attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
 attribute_goal_(rel_tuple(RID, Tuple), tuples_in([Tuple], Relation)) :-
         b_getval(RID, Relation).
 % reified constraints
-attribute_goal_(reified_neq(_, X, _, Y, B), X #\= Y #<==> B).
-attribute_goal_(reified_eq(_, X, _, Y, B), X #= Y #<==> B).
-attribute_goal_(reified_geq(_, X, _, Y, B), X #>= Y #<==> B).
-% TODO: fix sub-expressions of reified constraints containing mod and /
-attribute_goal_(reified_div(X, Y, _, Z), X / Y #= Z).
-attribute_goal_(reified_mod(X, Y, _, Z), X mod Y #= Z).
+attribute_goal_(defined(X,Y,Z), (X #/\ Y #<==> Z)).
+attribute_goal_(reified_neq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #\= Y) #<==> B).
+attribute_goal_(reified_eq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #= Y) #<==> B).
+attribute_goal_(reified_geq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #>= Y) #<==> B).
+attribute_goal_(reified_div(X, Y, D, Z), (D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1)).
+attribute_goal_(reified_mod(X, Y, D, Z), (D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1)).
 attribute_goal_(por(X,Y,Z), X #\/ Y #<==> Z).
 attribute_goal_(reified_and(X, Y, B), X #/\ Y #<==> B).
 attribute_goal_(reified_or(X, Y, B), X #\/ Y #<==> B).
@@ -3302,8 +3300,8 @@ collect_(att(Module,Value,As), V, Tabu) -->
         { term_variables(Value, Vs) },
         collect_attributes(Vs, Tabu),
         (   { predicate_property(Module:attribute_goal(_, _), interpreted) } ->
-            { Module:attribute_goal(V, Goal), dot_list(Goal, Gs, []) },
-            dlist(Gs)
+            { Module:attribute_goal(V, Goal) },
+            dot_list(Goal)
         ;   [put_attr(V, Module, Value)]
         ),
         { del_attr(V, Module) },
