@@ -496,27 +496,27 @@ domain_remove(split(S, Left0, Right0), X, D) :-
 %?- domain_remove(from_to(n(0),n(5)), 3, D).
 
 domain_remove_(inf, U0, X, D) :-
-        (   U0 == n(X) -> U1 cis1 U0 - n(1), D = from_to(inf, U1)
+        (   U0 == n(X) -> U1 is X - 1, D = from_to(inf, n(U1))
         ;   U0 cis_lt n(X) -> D = from_to(inf,U0)
-        ;   L1 cis1 n(X) + n(1), U1 cis1 n(X) - n(1),
-            D = split(X, from_to(inf, U1), from_to(L1,U0))
+        ;   L1 is X + 1, U1 is X - 1,
+            D = split(X, from_to(inf, n(U1)), from_to(n(L1),U0))
         ).
 domain_remove_(n(N), U0, X, D) :- domain_remove_upper(U0, n(N), X, D).
 
 domain_remove_upper(sup, L0, X, D) :-
-        (   L0 == n(X) -> L1 cis1 n(X) + n(1), D = from_to(L1,sup)
+        (   L0 == n(X) -> L1 is X + 1, D = from_to(n(L1),sup)
         ;   L0 cis_gt n(X) -> D = from_to(L0,sup)
-        ;   L1 cis1 n(X) + n(1), U1 cis1 n(X) - n(1),
-            D = split(X, from_to(L0,U1), from_to(L1,sup))
+        ;   L1 is X + 1, U1 is X - 1,
+            D = split(X, from_to(L0,n(U1)), from_to(n(L1),sup))
         ).
 domain_remove_upper(n(U00), L0, X, D) :-
         U0 = n(U00),
         (   L0 == U0, n(X) == L0 -> D = empty
-        ;   L0 == n(X) -> L1 cis1 n(X) + n(1), D = from_to(L1, U0)
+        ;   L0 == n(X) -> L1 is X + 1, D = from_to(n(L1), U0)
         ;   U0 == n(X) -> U1 cis1 U0 - n(1), D = from_to(L0, U1)
         ;   L0 cis_leq n(X), n(X) cis_leq U0 ->
-            U1 cis1 n(X) - n(1), L1 cis1 n(X) + n(1),
-            D = split(X, from_to(L0, U1), from_to(L1, U0))
+            U1 is X - 1, L1 is X + 1,
+            D = split(X, from_to(L0, n(U1)), from_to(n(L1), U0))
         ;   D = from_to(L0,U0)
         ).
 
