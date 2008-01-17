@@ -1075,6 +1075,10 @@ static int
 Sgetcode_intr(IOSTREAM *s, int signals)
 { int c;
 
+#ifdef __WINDOWS__
+  int newline = s->newline;
+  s->newline = SIO_NL_POSIX;		/* avoid blocking \r */
+#endif
   do
   { Sclearerr(s);
     c = Sgetcode(s);
@@ -1082,6 +1086,9 @@ Sgetcode_intr(IOSTREAM *s, int signals)
 	    errno == EINTR &&
 	    (!signals || PL_handle_signals() >= 0)
 	  );
+#ifdef __WINDOWS__
+  s->newline = newline;
+#endif
 
   return c;
 }
