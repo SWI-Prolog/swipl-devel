@@ -39,7 +39,7 @@ test(freeze_out, Vars == []) :-
 	x(X),
 	freeze(X, true),
 	call_residue_vars(true, Vars).
-test(freeze_oi, [true(Vars == [X]), blocked('How to fix this?')]) :-
+test(freeze_oi, [true(Vars == [X])]) :-
 	x(X),
 	freeze(X, true),
 	call_residue_vars(freeze(X, fail), Vars).

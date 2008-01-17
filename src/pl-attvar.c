@@ -132,27 +132,12 @@ assignAttVar(Word av, Word value ARG_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note: caller must require 2 words on global stack
-
-If we want to collect the residual variables  we must ensure they are on
-the global stack after the call  residue   mark.  For now we will always
-allocate them. In the future we must enhance this.  Some thoughts:
-
-	* Have a linked list of call-residue pointers. Where do we store
-	these? Maybe on the local stack with a global pointer to the
-	topmost one?  We must have some call-cleanup like mechanism for
-	this to work :-(
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 make_new_attvar(Word p ARG_LD)
 { Word gp;
 
-#ifdef O_CALL_RESIDUE
-  gp = allocGlobal(2);
-  gp[1] = ATOM_nil;
-  gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
-  *p = makeRef(&gp[0]);
-#else
   if ( onStackArea(local, p) )
   { gp = allocGlobal(2);
     gp[1] = ATOM_nil;
@@ -163,7 +148,6 @@ make_new_attvar(Word p ARG_LD)
     gp[0] = ATOM_nil;
     *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
   }
-#endif
 
   Trail(p);
 }
@@ -655,6 +639,41 @@ offset_cell(Word p)
 }
 
 
+static int
+has_attributes_after(Word av, Choice ch ARG_LD)
+{ Word l;
+
+  deRef(av);
+  assert(isAttVar(*av));
+  l = valPAttVar(*av);
+
+  for(;;)
+  { deRef(l);
+    
+    if ( isNil(*l) )
+    { fail;
+    } else if ( isTerm(*l) )
+    { Functor f = valueTerm(*l);
+
+      if ( (Word)f >= ch->mark.globaltop )
+	succeed;
+
+      if ( f->definition == FUNCTOR_att3 )
+      { if ( isTerm(f->arguments[1]) &&
+	     (Word)valueTerm(f->arguments[1]) >= ch->mark.globaltop )
+	  succeed;
+
+	l = &f->arguments[2];
+      } else
+      { fail;
+      }
+    } else
+    { fail;
+    }
+  }
+}
+
+
 static
 PRED_IMPL("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
 { PRED_LD
@@ -668,15 +687,13 @@ retry:
     fail;
   
   ch = (Choice)((Word)lBase+off);
-  gp = ch->mark.globaltop;
-  gend = gTop;
   list = tailp = allocGlobalNoShift(1);
   if ( !list )
     goto grow;
   setVar(*list);
 
-  for(; gp<gend; gp += offset_cell(gp)+1)
-  { if ( isAttVar(*gp) )
+  for(gp=gBase, gend = gTop; gp<gend; gp += offset_cell(gp)+1)
+  { if ( isAttVar(*gp) && has_attributes_after(gp, ch PASS_LD) )
     { Word p = allocGlobalNoShift(3);
 
       if ( p )
@@ -712,6 +729,7 @@ grow:
 }
 
 #endif /*O_CALL_RESIDUE*/
+
 
 		 /*******************************
 		 *	    REGISTRATION	*
