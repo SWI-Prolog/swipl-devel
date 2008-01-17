@@ -11,6 +11,7 @@ AC_SUBST(AR)
 AC_SUBST(MKDIR)
 AC_SUBST(ETAGS)
 AC_SUBST(LDFLAGS)
+AC_SUBST(PROGLDFLAGS)
 AC_SUBST(ARCH)
 AC_SUBST(PLSHARED)
 AC_SUBST(PL)
@@ -224,6 +225,8 @@ if test "x$custom_flags" = "xyes" ; then
 else
 	COFLAGS=$CFLAGS
 fi
+
+PROGLDFLAGS="$LDFLAGS"
 
 dnl ****************************************************************
 dnl Other special flags
