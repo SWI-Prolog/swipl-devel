@@ -300,6 +300,7 @@ rl_sighandler(int sig)
     rl_free_line_state ();
   rl_cleanup_after_signal ();
   restore_signals();
+  Sreset();
 
   for(s=signals; s->signo != -1; s++)
   { if ( s->signo == sig )
@@ -320,7 +321,6 @@ rl_sighandler(int sig)
   DEBUG(3, Sdprintf("Resetting after signal\n"));
   prepare_signals();
   rl_reset_after_signal ();
-  Sreset();
 }
 
 

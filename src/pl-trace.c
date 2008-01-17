@@ -1258,6 +1258,7 @@ again:
   }
 #endif
 
+  Sreset();
   Sfputs("\nAction (h for help) ? ", Sdout);
   Sflush(Sdout);
   ResetTty();                           /* clear pending input -- atoenne -- */

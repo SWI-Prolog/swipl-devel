@@ -3284,10 +3284,16 @@ Sclosehook(void (*hook)(IOSTREAM *s))
 
 void
 Sreset(void)
-{ IOSTREAM *s = Sinput;
+{ IOSTREAM *s;
 
-  if ( s && s->magic == SIO_MAGIC )
+  if ( (s=Sinput) && s->magic == SIO_MAGIC )
   { s->bufp = s->limitp = s->buffer;
+  }
+  if ( (s=Soutput) && s->magic == SIO_MAGIC )
+  { s->bufp = s->buffer;
+  }
+  if ( (s=Serror) && s->magic == SIO_MAGIC )
+  { s->bufp = s->buffer;
   }
 } 
 
