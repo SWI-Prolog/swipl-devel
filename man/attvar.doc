@@ -88,8 +88,8 @@ If \arg{Var} is a variable or attributed variable, set the value for the
 attribute named \arg{Module} to \arg{Value}. If an attribute with this
 name is already associated with \var{Var}, the old value is replaced.
 Backtracking will restore the old value (i.e.\ an attribute is a mutable
-term. See also setarg/3). This predicate raises a type error if
-\arg{Var} is not a variable or \arg{Module} is not an atom.
+term. See also setarg/3). This predicate raises a representation error if
+\arg{Var} is not a variable and a type error if \arg{Module} is not an atom.
 
     \predicate{get_attr}{3}{+Var, +Module, -Value}
 Request the current \arg{value} for the attribute named \arg{Module}.  If
