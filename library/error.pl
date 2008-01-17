@@ -35,6 +35,7 @@
 	    existence_error/2,		% +Type, +Term
 	    permission_error/3,		% +Action, +Type, +Term
 	    instantiation_error/1,	% +Term
+		 representation_error/1, % +Reason
 
 	    must_be/2,			% +Type, +Term
 	    is_of_type/2		% +Type, +Term
@@ -62,6 +63,7 @@ most common ISO error terms.
 %%	existence_error(+Type, +Term).
 %%	permission_error(+Action, +Type, +Term).
 %%	instantiation_error(+Term).
+%%	representation_error(+Reason).
 %
 %	Throw ISO compliant error messages.
 
@@ -75,6 +77,8 @@ permission_error(Action, Type, Term) :-
 	throw(error(permission_error(Action, Type, Term), _)).
 instantiation_error(_Term) :-
 	throw(error(instantiation_error, _)).
+representation_error(Reason) :-
+	throw(error(representation_error(Reason), _)).
 
 %%	must_be(+Type, @Term) is det.
 %
