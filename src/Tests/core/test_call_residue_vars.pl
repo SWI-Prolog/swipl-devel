@@ -43,7 +43,18 @@ test(freeze_oi, [true(Vars == [X])]) :-
 	x(X),
 	freeze(X, true),
 	call_residue_vars(freeze(X, fail), Vars).
+test(nogc, [true(Vars = [_])]) :-
+	call_residue_vars(gc_able, Vars).
+test(gc, [true(Vars = [_])]) :-
+	call_residue_vars((gc_able, garbage_collect), Vars).
 
 x(_).					% avoid singleton warnings
+
+gc_able :-
+	gc_able2.
+
+gc_able2 :-
+	x(X),
+	freeze(X, fail).
 
 :- end_tests(call_residue_vars).

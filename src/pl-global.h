@@ -241,6 +241,9 @@ typedef struct
     Procedure	dwakeup1;		/* system:$wakeup/1 */
     Procedure	portray_attvar1;	/* $attvar:portray_attvar/1 */
 #endif
+#ifdef O_CALL_RESIDUE
+    Procedure	call_residue_vars2;	/* $attvar:call_residue_vars/2 */
+#endif
 
     SourceFile  reloading;		/* source file we are re-loading */
     int		active_marked;		/* #prodedures marked active */
@@ -491,6 +494,9 @@ typedef struct PL_local_data
 #endif
 
     pl_gc_status_t	status;		/* Garbage collection status */
+#ifdef O_CALL_RESIDUE
+    int			marked_attvars;	/* do not GC attvars */
+#endif
   } gc;
 
 #ifdef O_SHIFT_STACKS

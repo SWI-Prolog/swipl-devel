@@ -601,6 +601,10 @@ initBuildIns(void)
 #ifdef O_ATTVAR
   PROCEDURE_dwakeup1	     = lookupProcedure(FUNCTOR_dwakeup1,	  m);
 #endif
+#ifdef O_CALL_RESIDUE
+  PROCEDURE_call_residue_vars2  = 
+	PL_predicate("call_residue_vars", 2, "$attvar");
+#endif
   PROCEDURE_exception_hook4  = 
 	PL_predicate("prolog_exception_hook", 4, "user");
 					/* allow debugging in call/1 */
