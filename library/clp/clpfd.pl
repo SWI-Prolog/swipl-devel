@@ -111,7 +111,6 @@
 
 
 :- use_module(library(error)).
-:- use_module(library(gensym)).
 
 :- op(700, xfx, cis).
 :- op(700, xfx, cis1).
@@ -2076,9 +2075,7 @@ take_firsts([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
         take_firsts(Rest, Fs, Oss).
 
 tuple_freeze(Tuple, Relation) :-
-        gensym('$clpfd_rel_', RID),
-        b_setval(RID, Relation),
-        Prop = propagator(rel_tuple(RID,Tuple), mutable(passive)),
+        Prop = propagator(rel_tuple(mutable(Relation),Tuple), mutable(passive)),
         tuple_freeze(Tuple, Tuple, Prop).
 
 tuple_freeze([],  _, _).
@@ -2187,14 +2184,14 @@ run_propagator(pgeq(A,B), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(rel_tuple(RID, Tuple), MState) :-
-        b_getval(RID, Relation),
+run_propagator(rel_tuple(Rel, Tuple), MState) :-
+        Rel = mutable(Relation),
         (   ground(Tuple) -> kill(MState), memberchk(Tuple, Relation)
         ;   relation_unifiable(Relation, Tuple, Us, 0, Changed),
             Us = [_|_],
             (   Us = [Single] -> kill(MState), Single = Tuple
             ;   Changed =:= 0 -> true
-            ;   b_setval(RID, Us),
+            ;   setarg(1, Rel, Us),
                 disable_queue,
                 tuple_domain(Tuple, Us),
                 enable_queue
@@ -3212,8 +3209,7 @@ attribute_goal_(pdistinct(Left, Right, X), all_distinct(Vs)) :-
 attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
         append(Left, [Var-D|Right], VDs),
         pair_up(Vs, Ds, VDs).
-attribute_goal_(rel_tuple(RID, Tuple), tuples_in([Tuple], Relation)) :-
-        b_getval(RID, Relation).
+attribute_goal_(rel_tuple(mutable(Rel), Tuple), tuples_in([Tuple], Rel)).
 % reified constraints
 attribute_goal_(reified_neq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #\= Y) #<==> B).
 attribute_goal_(reified_eq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #= Y) #<==> B).
