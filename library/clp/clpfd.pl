@@ -1348,7 +1348,8 @@ fetch_constraint_(C) :-
         ;   C = C0
         ).
 
-:- make_queue.
+:- thread_initialization((make_queue,
+                          nb_setval('$clpfd_queue_status', enabled))).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Parsing a CLP(FD) expression has two important side-effects: First,
@@ -1980,8 +1981,6 @@ activate_propagator(propagator(P,MState)) :-
             setarg(1, MState, passive),
             run_propagator(P, MState)
         ).
-
-:- nb_setval('$clpfd_queue_status', enabled).
 
 disable_queue :- b_setval('$clpfd_queue_status', disabled).
 enable_queue  :- b_setval('$clpfd_queue_status', enabled), do_queue.
