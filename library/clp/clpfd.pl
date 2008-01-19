@@ -1236,7 +1236,7 @@ all_different(Ls) :-
 all_different([], _).
 all_different([X|Right], Left) :-
         (   var(X) ->
-            Prop = propagator(pdifferent(Left,Right,X), mutable(passive)),
+            make_propagator(pdifferent(Left,Right,X), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
         ;   exclude_fire(Left, Right, X)
@@ -1255,7 +1255,7 @@ all_different([X|Right], Left) :-
 sum(Ls, Op, Value) :-
         (   cyclic_list(Ls) -> type_error(list, Ls) ; true ),
         (   Op == (#=), integer(Value) ->
-            Prop = propagator(sum_eq(Ls,Value), mutable(passive)),
+            make_propagator(sum_eq(Ls,Value), Prop),
             sum_eq(Ls, Prop),
             trigger_prop(Prop),
             do_queue
@@ -1406,7 +1406,7 @@ trigger_twice(Prop) :-
         trigger_prop(Prop), do_queue.
 
 neq(A, B) :-
-        Prop = propagator(pneq(A, B), mutable(passive)),
+        make_propagator(pneq(A, B), Prop),
         init_propagator(A, Prop), init_propagator(B, Prop),
         trigger_twice(Prop).
 
@@ -1416,7 +1416,7 @@ geq(A, B) :-
             (   get(B, BD, _) ->
                 domain_supremum(BD, BS),
                 (   AI cis_geq BS -> true
-                ;   Prop = propagator(pgeq(A,B), mutable(passive)),
+                ;   make_propagator(pgeq(A,B), Prop),
                     init_propagator(A, Prop),
                     init_propagator(B, Prop),
                     trigger_twice(Prop)
@@ -1433,44 +1433,44 @@ geq(A, B) :-
         ).
 
 myplus(X, Y, Z) :-
-        Prop = propagator(pplus(X,Y,Z),mutable(passive)),
+        make_propagator(pplus(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
 mytimes(X, Y, Z) :-
-        Prop = propagator(ptimes(X,Y,Z),mutable(passive)),
+        make_propagator(ptimes(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
 mydiv(X, Y, Z) :-
-        Prop = propagator(pdiv(X,Y,Z), mutable(passive)),
+        make_propagator(pdiv(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
 myexp(X, Y, Z) :-
-        Prop = propagator(pexp(X,Y,Z), mutable(passive)),
+        make_propagator(pexp(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
 myabs(X, Y) :-
-        Prop = propagator(pabs(X,Y), mutable(passive)),
+        make_propagator(pabs(X,Y), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         trigger_prop(Prop), trigger_twice(Prop).
 
 mymod(X, M, K) :-
-        Prop = propagator(pmod(X,M,K), mutable(passive)),
+        make_propagator(pmod(X,M,K), Prop),
         init_propagator(X, Prop), init_propagator(M, Prop),
         init_propagator(K, Prop), trigger_twice(Prop).
 
 mymax(X, Y, Z) :-
         X #=< Z, Y #=< Z,
-        Prop = propagator(pmax(X,Y,Z), mutable(passive)),
+        make_propagator(pmax(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
 mymin(X, Y, Z) :-
         X #>= Z, Y #>= Z,
-        Prop = propagator(pmin(X,Y,Z), mutable(passive)),
+        make_propagator(pmin(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), trigger_twice(Prop).
 
@@ -1506,7 +1506,7 @@ X #>= Y :-
         ).
 
 var_leq_var_plus_const(X, Y, C) :-
-        Prop = propagator(x_leq_y_plus_c(X,Y,C), mutable(passive)),
+        make_propagator(x_leq_y_plus_c(X,Y,C), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         trigger_twice(Prop).
 
@@ -1549,14 +1549,14 @@ X #\= Y :-
 % abs(X-Y) #\= C
 
 absdiff_neq_const(X, Y, C) :-
-        Prop = propagator(absdiff_neq(X,Y,C), mutable(passive)),
+        make_propagator(absdiff_neq(X,Y,C), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         trigger_twice(Prop).
 
 % X #\= Y + C
 
 var_neq_var_plus_const(X, Y, C) :-
-        Prop = propagator(x_neq_y_plus_c(X,Y,C), mutable(passive)),
+        make_propagator(x_neq_y_plus_c(X,Y,C), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         trigger_twice(Prop).
 
@@ -1619,24 +1619,24 @@ L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 L #\/ R    :- reify(L, BL), reify(R, BR), myor(BL, BR, 1), do_queue.
 
 myor(X, Y, Z) :-
-        Prop = propagator(por(X,Y,Z), mutable(passive)),
+        make_propagator(por(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop),
         trigger_prop(Prop).
 
 myimpl(X, Y) :-
-        Prop = propagator(pimpl(X,Y), mutable(passive)),
+        make_propagator(pimpl(X,Y), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         trigger_prop(Prop).
 
 my_reified_div(X, Y, D, Z) :-
-        Prop = propagator(reified_div(X,Y,D,Z), mutable(passive)),
+        make_propagator(reified_div(X,Y,D,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), init_propagator(D, Prop),
         trigger_twice(Prop).
 
 my_reified_mod(X, Y, D, Z) :-
-        Prop = propagator(reified_mod(X,Y,D,Z), mutable(passive)),
+        make_propagator(reified_mod(X,Y,D,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), init_propagator(D, Prop),
         trigger_twice(Prop).
@@ -1705,7 +1705,7 @@ reify(Expr, B) :-
         ;   integer(Expr) -> B = Expr
         ;   Expr = (L #>= R) ->
             parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
-            Prop = propagator(reified_geq(LD,LR,RD,RR,B), mutable(passive)),
+            make_propagator(reified_geq(LD,LR,RD,RR,B), Prop),
             init_propagator(LR, Prop), init_propagator(RR, Prop),
             init_propagator(B, Prop), init_propagator(LD, Prop),
             init_propagator(RD, Prop), trigger_prop(Prop)
@@ -1714,13 +1714,13 @@ reify(Expr, B) :-
         ;   Expr = (L #< R)  -> reify(R #>= (L+1), B)
         ;   Expr = (L #= R)  ->
             parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
-            Prop = propagator(reified_eq(LD,LR,RD,RR,B), mutable(passive)),
+            make_propagator(reified_eq(LD,LR,RD,RR,B), Prop),
             init_propagator(LR, Prop), init_propagator(RR, Prop),
             init_propagator(B, Prop), init_propagator(LD, Prop),
             init_propagator(RD, Prop), trigger_prop(Prop)
         ;   Expr = (L #\= R) ->
             parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
-            Prop = propagator(reified_neq(LD,LR,RD,RR,B), mutable(passive)),
+            make_propagator(reified_neq(LD,LR,RD,RR,B), Prop),
             init_propagator(LR, Prop), init_propagator(RR, Prop),
             init_propagator(B, Prop), init_propagator(LD, Prop),
             init_propagator(RD, Prop), trigger_prop(Prop)
@@ -1729,19 +1729,19 @@ reify(Expr, B) :-
         ;   Expr = (L #<==> R) -> reify((L #==> R) #/\ (R #==> L), B)
         ;   Expr = (L #/\ R) ->
             reify(L, LR), reify(R, RR),
-            Prop = propagator(reified_and(LR,RR,B), mutable(passive)),
+            make_propagator(reified_and(LR,RR,B), Prop),
             init_propagator(LR, Prop), init_propagator(RR, Prop),
             init_propagator(B, Prop),
             trigger_prop(Prop)
         ;   Expr = (L #\/ R) ->
             reify(L, LR), reify(R, RR),
-            Prop = propagator(reified_or(LR,RR,B), mutable(passive)),
+            make_propagator(reified_or(LR,RR,B), Prop),
             init_propagator(LR, Prop), init_propagator(RR, Prop),
             init_propagator(B, Prop),
             trigger_prop(Prop)
         ;   Expr = (#\ Q) ->
             reify(Q, QR),
-            Prop = propagator(reified_not(QR,B), mutable(passive)),
+            make_propagator(reified_not(QR,B), Prop),
             init_propagator(QR, Prop), init_propagator(B, Prop),
             trigger_prop(Prop)
         ;   domain_error(clpfd_reifiable_expression, Expr)
@@ -1945,12 +1945,24 @@ put_full(X, Dom, Ps) :-
             )
         ).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   A propagator is a term of the form propagator(C, State), where C
+   represents a constraint, and State is a term of the form
+   mutable(S,X). S can be used to destructively change the state of
+   the propagator. This can be used to avoid redundant invocation of
+   the same propagator, or to disable the propagator. X is a free
+   variable that prevents a compacting garbage collector from folding
+   unrelated states.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+make_propagator(C, propagator(C, mutable(passive, _))).
+
 trigger_props([]).
 trigger_props([P|Ps]) :- trigger_prop(P), trigger_props(Ps).
 
 trigger_prop(Propagator) :-
         arg(2, Propagator, MState),
-        MState = mutable(State),
+        arg(1, MState, State),
         (   State == dead -> true
         ;   State == queued -> true
         ;   % passive
@@ -1962,7 +1974,7 @@ trigger_prop(Propagator) :-
 kill(MState) :- setarg(1, MState, dead).
 
 activate_propagator(propagator(P,MState)) :-
-        MState = mutable(State),
+        arg(1, MState, State),
         (   State == dead -> true
         ;   %format("running: ~w\n", [P]),
             setarg(1, MState, passive),
@@ -2075,13 +2087,12 @@ take_firsts([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
         take_firsts(Rest, Fs, Oss).
 
 tuple_freeze(Tuple, Relation) :-
-        Prop = propagator(rel_tuple(mutable(Relation),Tuple), mutable(passive)),
+        make_propagator(rel_tuple(mutable(Relation,_),Tuple), Prop),
         tuple_freeze(Tuple, Tuple, Prop).
 
 tuple_freeze([],  _, _).
 tuple_freeze([T|Ts], Tuple, Prop) :-
         ( var(T) ->
-            %Prop = propagator(rel_tuple(RID,Tuple), mutable(passive)),
             init_propagator(T, Prop),
             trigger_prop(Prop)
         ;   true
@@ -2185,7 +2196,7 @@ run_propagator(pgeq(A,B), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run_propagator(rel_tuple(Rel, Tuple), MState) :-
-        Rel = mutable(Relation),
+        arg(1, Rel, Relation),
         (   ground(Tuple) -> kill(MState), memberchk(Tuple, Relation)
         ;   relation_unifiable(Relation, Tuple, Us, 0, Changed),
             Us = [_|_],
@@ -2915,7 +2926,7 @@ min_divide(L1,U1,L2,U2,Min) :-
 %all_distinct(Ls) :- all_different(Ls).
 all_distinct(Ls) :-
         length(Ls, _),
-        MState = mutable(passive),
+        MState = mutable(passive,_),
         all_distinct(Ls, [], MState),
         do_queue.
 
@@ -2923,10 +2934,10 @@ all_distinct([], _, _).
 all_distinct([X|Right], Left, MState) :-
         %\+ list_contains(Right, X),
         (   var(X) ->
-            Prop = propagator(pdistinct(Left,Right,X), mutable(passive)),
+            make_propagator(pdistinct(Left,Right,X), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
-%             Prop2 = propagator(check_distinct(Left,Right,X), mutable(passive)),
+%             make_propagator(check_distinct(Left,Right,X), Prop2),
 %             init_propagator(X, Prop2),
 %             trigger_prop(Prop2)
         ;   exclude_fire(Left, Right, X)
@@ -3039,7 +3050,7 @@ pair_up([A|As], [B|Bs], [A-n(B)|ABs]) :- pair_up(As, Bs, ABs).
 serialize([], _).
 serialize([Start-D|SDs], Left) :-
         (   var(Start) ->
-            Prop = propagator(pserialized(Start,D,Left,SDs), mutable(passive)),
+            make_propagator(pserialized(Start,D,Left,SDs), Prop),
             init_propagator(Start, Prop),
             trigger_prop(Prop)
         ;   true
@@ -3178,8 +3189,8 @@ list_dot([A|As], (A,G)) :- list_dot(As, G).
 
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
-        (   { State = mutable(dead) } -> []
-        ;   { State = mutable(processed) } -> []
+        (   { arg(1, State, dead) } -> []
+        ;   { arg(1, State, processed) } -> []
         ;   { attribute_goal_(P, G) } ->
             % TODO: why doesn't the following setarg/3 actually set the arg?
             { setarg(1, State, processed) },
@@ -3209,7 +3220,7 @@ attribute_goal_(pdistinct(Left, Right, X), all_distinct(Vs)) :-
 attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
         append(Left, [Var-D|Right], VDs),
         pair_up(Vs, Ds, VDs).
-attribute_goal_(rel_tuple(mutable(Rel), Tuple), tuples_in([Tuple], Rel)).
+attribute_goal_(rel_tuple(mutable(Rel,_), Tuple), tuples_in([Tuple], Rel)).
 % reified constraints
 attribute_goal_(reified_neq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #\= Y) #<==> B).
 attribute_goal_(reified_eq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #= Y) #<==> B).
