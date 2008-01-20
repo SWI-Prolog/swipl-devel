@@ -5,7 +5,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007, Markus Triska
+    Copyright (C): 2007, 2008 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -1911,7 +1911,8 @@ reinforce(X) :-
 collect_variables(X, Vs0, Vs) :-
         (   get(X, _, Ps) ->
             term_variables(Ps, Vs1),
-            all_collect(Vs1, [X|Vs0], Vs)
+            %all_collect(Vs1, [X|Vs0], Vs)
+            Vs = [X|Vs1]
         ;   Vs = Vs0
         ).
 
@@ -2220,12 +2221,12 @@ run_propagator(absdiff_neq(X,Y,C), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), abs(X - Y) =\= C
             ;   kill(MState),
-                V1 is X - C, Y #\= V1,
-                V2 is C + X, Y #\= V2
+                V1 is X - C, neq_num(Y, V1),
+                V2 is C + X, neq_num(Y, V2)
            )
         ;   nonvar(Y) -> kill(MState),
-            V1 is C + Y, X #\= V1,
-            V2 is Y - C, X #\= V2
+            V1 is C + Y, neq_num(X, V1),
+            V2 is Y - C, neq_num(X, V2)
         ;   true
         ).
 
@@ -2743,21 +2744,21 @@ run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
                         kill(MState),
                         (   X >= Y -> B = 1 ; B = 0 )
                     ;   get(Y, _, YL, YU, _),
-                        (   n(X) cis_geq YU -> B = 1
-                        ;   n(X) cis_lt YL -> B = 0
+                        (   n(X) cis_geq YU -> kill(MState), B = 1
+                        ;   n(X) cis_lt YL -> kill(MState), B = 0
                         ;   true
                         )
                     )
                 ;   nonvar(Y) ->
                     get(X, _, XL, XU, _),
-                    (   XL cis_geq n(Y) -> B = 1
-                    ;   XU cis_lt n(Y) -> B = 0
-                    ;   B in 0..1
+                    (   XL cis_geq n(Y) -> kill(MState), B = 1
+                    ;   XU cis_lt n(Y) -> kill(MState), B = 0
+                    ;   true
                     )
                 ;   get(X, _, XL, XU, _),
                     get(Y, _, YL, YU, _),
-                    (   XL cis_geq YU -> B = 1
-                    ;   XU cis_lt YL -> B = 0
+                    (   XL cis_geq YU -> kill(MState), B = 1
+                    ;   XU cis_lt YL -> kill(MState), B = 0
                     ;   true
                     )
                 )
@@ -2780,15 +2781,15 @@ run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
                         (   X =:= Y -> B = 1 ; B = 0)
                     ;   get(Y, YD, _),
                         (   domain_contains(YD, X) -> true
-                        ;   B = 0
+                        ;   kill(MState), B = 0
                         )
                     )
                 ;   nonvar(Y) -> run_propagator(reified_eq(DY,Y,DX,X,B), MState)
-                ;   X == Y -> B = 1
+                ;   X == Y -> kill(MState), B = 1
                 ;   get(X, _, XL, XU, _),
                     get(Y, _, YL, YU, _),
-                    (   XL cis_gt YU -> B = 0
-                    ;   YL cis_gt XU -> B = 0
+                    (   XL cis_gt YU -> kill(MState), B = 0
+                    ;   YL cis_gt XU -> kill(MState), B = 0
                     ;   true
                     )
                 )
@@ -2817,8 +2818,8 @@ run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
                 ;   X == Y -> B = 0
                 ;   get(X, _, XL, XU, _),
                     get(Y, _, YL, YU, _),
-                    (   XL cis_gt YU -> B = 1
-                    ;   YL cis_gt XU -> B = 1
+                    (   XL cis_gt YU -> kill(MState), B = 1
+                    ;   YL cis_gt XU -> kill(MState), B = 1
                     ;   true
                     )
                 )
