@@ -3192,7 +3192,7 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
 attribute_goal(X, Goal) :-
         get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)),
         domain_to_drep(Dom, Drep),
-        attributes_goals(Ps, Gs, [X in Drep]),
+        attributes_goals(Ps, Gs, [clpfd:(X in Drep)]),
         list_dot(Gs, Goal).
 
 dot_list((A,B)) --> !, dot_list(A), dot_list(B).
@@ -3208,7 +3208,7 @@ attributes_goals([propagator(P, State)|As]) -->
         ;   { attribute_goal_(P, G) } ->
             % TODO: why doesn't the following setarg/3 actually set the arg?
             { setarg(1, State, processed) },
-            [G]
+            [clpfd:G]
         ;   [] % { format("currently no conversion for ~w\n", [P]) }
         ),
         attributes_goals(As).
