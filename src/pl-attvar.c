@@ -643,8 +643,8 @@ static int
 has_attributes_after(Word av, Choice ch ARG_LD)
 { Word l;
 
-  DEBUG(3, Sdprintf("has_attributes_after(%p, %p)\n",
-		    av, ch->mark.globaltop));
+  DEBUG(1, Sdprintf("has_attributes_after(%s, %p)\n",
+		    vName(av), ch->mark.globaltop));
 
   deRef(av);
   assert(isAttVar(*av));
@@ -658,7 +658,7 @@ has_attributes_after(Word av, Choice ch ARG_LD)
     } else if ( isTerm(*l) )
     { Functor f = valueTerm(*l);
 
-      DEBUG(3, Sdprintf("\tterm at %p\n", f));
+      DEBUG(1, Sdprintf("\tterm at %p\n", f));
       
       if ( (Word)f >= ch->mark.globaltop )
 	succeed;
