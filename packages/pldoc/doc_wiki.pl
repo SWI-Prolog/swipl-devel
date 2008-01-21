@@ -643,11 +643,14 @@ url_protocol(String) :-	sub_atom(String, 0, _, 0, mailto).
 
 
 peek_end_url -->
-	peek_nl, !.
-peek_end_url -->
-	peek(' '), !.
+	peek(End),
+	{ space_atom(End) }, !.
 peek_end_url -->
 	eos, !.
+
+space_atom(' ').
+space_atom('\r').
+space_atom('\n').
 
 %%	autolink_extension(?Ext, ?Type) is nondet.
 %
@@ -1028,14 +1031,6 @@ non_ws([H|T0], T) -->
 non_ws(T, T) -->
 	[].
 
-
-%%	peek_nl//
-%
-%	True if we are at the end of a line
-
-peek_nl -->
-	peek(H),
-	{ H == 0'\n ; H == 0'\r }, !.
 
 %%	nl//
 %
