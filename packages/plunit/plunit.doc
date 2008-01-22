@@ -2,6 +2,7 @@
 \usepackage{times}
 \usepackage{pl}
 \usepackage{html}
+\usepackage{plpage}
 \sloppy
 \makeindex
 
@@ -46,8 +47,8 @@ There is really no excuse not to write tests!
 
 Automatic testing of software during development is probably the most
 important Quality Assurance measure. Tests can validate the final
-system, which is nice for your users.  Most (Prolog) developers
-however forget it is not just a burden during development.
+system, which is nice for your users.  However, most (Prolog) developers
+forget that it is not just a burden during development.
 
 \begin{itemize}
     \item Tests document how the code is supposed to be used.
@@ -95,7 +96,7 @@ are known not to work, but this is accepted as something that must be fixed
 in the future.
 
     \termitem{condition}{:Goal}
-Test pre-condition for running the test.  If the condition fails
+Pre-condition for running the test.  If the condition fails
 the test is skipped.  The condition can be used as an alternative
 to the \const{setup} option.  The only difference is that failure
 of a condition skips the test and is considered an error when using
