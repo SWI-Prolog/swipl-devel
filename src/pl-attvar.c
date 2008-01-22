@@ -684,12 +684,16 @@ scan_trail(int set)
   TrailEntry te;
 
   for(te=tTop-1; te>=tBase; te--)
-  { if ( isTrailVal(te) )
-    { te--;
-      if ( set )
-      { *te->address |= MARK_MASK;
-      } else
-      { *te->address &= ~MARK_MASK;
+  { if ( isTrailVal(te->address) )
+    { Word p = trailValP(te->address);
+
+      te--;
+      if ( isAttVar(*p) )
+      {	DEBUG(1, Sdprintf("Trailed attvar assignment at %p\n", p));
+	if ( set )
+	  *p |= MARK_MASK;
+	else
+	  *p &= ~MARK_MASK;
       }
     }
   }
@@ -722,6 +726,7 @@ retry:
     goto grow;
   setVar(*list);
 
+  startCritical;
   scan_trail(TRUE);
 
   for(gp=gBase, gend = gTop; gp<gend; gp += offset_cell(gp)+1)
@@ -739,18 +744,20 @@ retry:
       } else
       { gTop = gend;
 	scan_trail(FALSE);
+	endCritical;
 	goto grow;
       }
     }
   }
   
+  scan_trail(FALSE);
+  endCritical;
+
   if ( list == tailp )
   { gTop = gend;
-    scan_trail(FALSE);
     return PL_unify_nil(A2);
   } else
   { *tailp = ATOM_nil;
-    scan_trail(FALSE);
     return PL_unify(A2, wordToTermRef(list));
   }
 

@@ -35,6 +35,8 @@ test_call_residue_vars :-
 
 test(freeze_in, Vars == [X]) :-
 	call_residue_vars(freeze(X, true), Vars).
+test(freeze_bind, Vars == []) :-
+	call_residue_vars((freeze(X, true), X = 1), Vars).
 test(freeze_out, Vars == []) :-
 	x(X),
 	freeze(X, true),
