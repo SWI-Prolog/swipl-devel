@@ -474,7 +474,7 @@ update_store_type(C,ST)
 
 validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_atomic_multi_hash_keys(C,Index,Keys)
 	<=>
-		chr_pp_flag(experiment,on)
+		true % chr_pp_flag(experiment,on)
 	|
 		delete(STs,multi_hash([Index]),STs0),
 		Index = [IndexPos],
@@ -489,13 +489,13 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_atomic_mul
 		actual_store_types(C,[atomic_constants(Index,Keys,Completeness)|STs0]).	
 validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_ground_multi_hash_keys(C,Index,Keys)
 	<=>
-		chr_pp_flag(experiment,on)
+		true % chr_pp_flag(experiment,on)
 	|
 		delete(STs,multi_hash([Index]),STs0),
 		actual_store_types(C,[ground_constants(Index,Keys)|STs0]).	
 validate_store_type_assumption(C) \ actual_store_types(C,STs)
 	<=>	
-		chr_pp_flag(experiment,on),
+		% chr_pp_flag(experiment,on),
 		memberchk(multi_hash([[Index]]),STs),
 		get_constraint_type(C,Types),
 		nth1(Index,Types,Type),
@@ -505,11 +505,13 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs)
 		actual_store_types(C,[atomic_constants([Index],Atoms,complete)|STs0]).	
 validate_store_type_assumption(C), actual_store_types(C,STs), assumed_store_type(C,_) 	% automatic assumption
 	<=> 
-		( chr_pp_flag(experiment,on), forall(member(ST,STs), partial_store(ST)) ->
-			store_type(C,multi_store([global_ground|STs]))
+		( /* chr_pp_flag(experiment,on), */ forall(member(ST,STs), partial_store(ST)) ->
+			Stores0 = [global_ground|STs]
 		;
-			store_type(C,multi_store(STs))
-		).
+			Stores0 = STs
+		),
+		prune_stores(Stores0,Stores),
+		store_type(C,multi_store(Stores)).
 validate_store_type_assumption(C), actual_store_types(C,STs), store_type(C,_) 		% user assumption
 	<=> 
 		store_type(C,multi_store(STs)).
@@ -525,6 +527,18 @@ validate_store_type_assumption(C)
 
 partial_store(ground_constants(_,_)).
 partial_store(atomic_constants(_,_,incomplete)).
+
+	% heuristic to reduce the number of indexes
+% prune_stores(Stores0,Stores) :-
+% 	select(multi_hash([Indexes1]),Stores0,Stores1),
+% 	Indexes1 = [_,_,_|_],
+% 	member(multi_hash([Indexes2]),Stores1),
+% 	Indexes2 = [_,_|_],
+% 	subset(Indexes2,Indexes1),
+% 	!,
+% 	Stores = Stores1.
+	% default case
+prune_stores(Stores,Stores).
 
 %%% P A S S I V E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 passive(R,ID) \ passive(R,ID) <=> true.
@@ -851,6 +865,7 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	time('assume constraint stores',chr_translate:assume_constraint_stores(Constraints)),
 	time('default constraint indices',chr_translate:set_constraint_indices(Constraints)),
 	time('check storedness assertions',chr_translate:check_storedness_assertions(Constraints)),
+	success_continuation_analysis(Constraints),
 	% end analysis
 	time('constraint code generation',chr_translate:constraints_code(Constraints,ConstraintClauses)),
 	time('validate store assumptions',chr_translate:validate_store_type_assumptions(Constraints)),
@@ -2304,7 +2319,7 @@ allocate_constraint_body(Constraint,Susp,Args,Body) :-
 	create_static_suspension_field(Constraint,Suspension,state,not_stored_yet,CreateState),
 	( has_suspension_field(Constraint,id) ->
 		get_static_suspension_term_field(id,Constraint,Suspension,Id),
-		GenID =	'chr gen_id'(Id)
+		gen_id(Id,GenID)
 	;
 		GenID = true
 	),
@@ -2318,6 +2333,7 @@ allocate_constraint_body(Constraint,Susp,Args,Body) :-
 		GenID
 	).
 
+gen_id(Id,'chr gen_id'(Id)).
 %~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
 % insert_constraint_internal
 
@@ -2391,7 +2407,7 @@ generate_insert_constraint_internal_body(Constraint,Susp,Continuation,Args,Vars,
 		suspension_term_base_fields(Constraint,BaseFields),
 		( has_suspension_field(Constraint,id) ->
 			get_static_suspension_term_field(id,Constraint,Suspension,Id),
-			GenID = 'chr gen_id'(Id)
+			gen_id(Id,GenID)
 		;
 			GenID = true
 		),
@@ -2406,7 +2422,7 @@ generate_insert_constraint_internal_body(Constraint,Susp,Continuation,Args,Vars,
 	;
 		( has_suspension_field(Constraint,id) ->
 			get_static_suspension_term_field(id,Constraint,Suspension,Id),
-			GenID =	'chr gen_id'(Id)
+			gen_id(Id,GenID)
 		;
 			GenID = true
 		),
@@ -3678,8 +3694,8 @@ multi_hash_lookup_head(ConstraintSymbol,Index,Key,SuspsList,Head) :-
 %	Returns goal that performs hash table lookup.
 multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 	% INLINED:
-	( get_store_type(ConstraintSymbol,multi_store(Stores)),
-	  memberchk(atomic_constants(Index,Constants,_),Stores) ->
+	get_store_type(ConstraintSymbol,multi_store(Stores)),
+	( memberchk(atomic_constants(Index,Constants,_),Stores) ->
 		( ground(Key) ->
 			constants_store_name(ConstraintSymbol,Index,Key,StoreName),
 			Goal = nb_getval(StoreName,SuspsList)
@@ -3688,8 +3704,7 @@ multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 			Lookup =.. [IndexName,Key,StoreName],
 			Goal = (Lookup, nb_getval(StoreName,SuspsList))
 		)
-	; get_store_type(ConstraintSymbol,multi_store(Stores)),
-	  memberchk(ground_constants(Index,Constants),Stores) ->
+	; memberchk(ground_constants(Index,Constants),Stores) ->
 		( ground(Key) ->
 			constants_store_name(ConstraintSymbol,Index,Key,StoreName),
 			Goal = nb_getval(StoreName,SuspsList)
@@ -3698,7 +3713,7 @@ multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 			Lookup =.. [IndexName,Key,StoreName],
 			Goal = (Lookup, nb_getval(StoreName,SuspsList))
 		)
-	;
+	; memberchk(multi_hash([Index]),Stores) ->
 		multi_hash_store_name(ConstraintSymbol,Index,StoreName),
 		make_get_store_goal(StoreName,HT,GetStoreGoal),
 		( HashType == hash, specialized_hash_term_call(ConstraintSymbol,Index,Key,Hash,HashCall) ->
@@ -3716,6 +3731,22 @@ multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 				Lookup
 			)
 		)
+	; HashType == inthash ->
+			multi_hash_store_name(ConstraintSymbol,Index,StoreName),
+			make_get_store_goal(StoreName,HT,GetStoreGoal),
+			lookup_hash_call(HashType,HT,Key,SuspsList,Lookup),
+			Goal = 
+			(
+				GetStoreGoal, % nb_getval(StoreName,HT),
+				Lookup
+			)
+	% ; % chr_error(internal,'Index ~w for constraint ~w does not exist!\n',[Index,ConstraintSymbol])
+		% find alternative index
+		% 	-> SubIndex + RestIndex
+		% 	-> SubKey   + RestKeys 
+		% multi_hash_lookup_goal(ConstraintSymbol,HashType,SubIndex,SubKey,SuspsList,SubGoal),	
+		% instantiate rest goal?
+		% Goal = (SubGoal,RestGoal)
 	).
 
 
@@ -6057,11 +6088,16 @@ occurrence(C,O,RuleNb,ID,_), rule(RuleNb,PragmaRule) \ occurrence_code(C,O,Id,NI
 			head1_code(Head1,ID,RHeads1,RIDs1,PragmaRule,C,O,Id,L,T)
 		; select2(ID,Head2,IDs2,Heads2,RIDs2,RHeads2) ->
 			head2_code(Head2,ID,RHeads2,RIDs2,PragmaRule,C,O,Id,L,L1),
-			inc_id(Id,NId),
-			( unconditional_occurrence(C,O) ->
-				L1 = T
+			( should_skip_to_next_id(C,O) -> 
+				inc_id(Id,NId),
+				( unconditional_occurrence(C,O) ->
+					L1 = T
+				;
+					gen_alloc_inc_clause(C,O,Id,L1,T)
+				)
 			;
-				gen_alloc_inc_clause(C,O,Id,L1,T)
+				NId = Id,
+				L1 = T
 			)
 		).
 
@@ -7163,21 +7199,21 @@ simpagation_head2_code(Head2,ID,RestHeads2,RestIDs,PragmaRule,FA,O,Id,L,T) :-
    simpagation_head2_prelude(Head2,NHead,[NHeads,Guard,Body],FA,O,Id,L,L1),
    extend_id(Id,Id1),
    ( memberchk_eq(NID,IDs2) ->
-        simpagation_universal_searches(NHeads,NIDs,IDs2,[NHead,Head2],Rule,FA,NextHeads,PreHeads,NextIDs,Id1,Id2,L1,L2)
+        simpagation_universal_searches(NHeads,NIDs,IDs2,[NHead,Head2],Rule,FA,O,NextHeads,PreHeads,NextIDs,Id1,Id2,L1,L2)
    ;
 	L1 = L2, Id1 = Id2,NextHeads = NHeads, PreHeads = [NHead,Head2], NextIDs = NIDs
    ),
-   universal_search_iterator_end(PreHeads,NextHeads,Rule,FA,Id2,L2,L3),
+   universal_search_iterator_end(PreHeads,NextHeads,Rule,FA,O,Id2,L2,L3),
    simpagation_head2_worker(PreHeads,NextHeads,NextIDs,ID,PragmaRule,FA,O,Id2,L3,T).
 
-simpagation_universal_searches([],[],_,PreHeads,_,_,[],PreHeads,[],Id,Id,L,L).
-simpagation_universal_searches(Heads,[ID|IDs],IDs2,PreHeads,Rule,C,OutHeads,OutPreHeads,OutIDs,Id,NId,L,T) :-
+simpagation_universal_searches([],[],_,PreHeads,_,_,_,[],PreHeads,[],Id,Id,L,L).
+simpagation_universal_searches(Heads,[ID|IDs],IDs2,PreHeads,Rule,C,O,OutHeads,OutPreHeads,OutIDs,Id,NId,L,T) :-
 	Heads = [Head|RHeads],
 	inc_id(Id,Id1),
-	universal_search_iterator_end(PreHeads,Heads,Rule,C,Id,L,L0),
-	universal_search_iterator(Heads,PreHeads,Rule,C,Id,L0,L1),
+	universal_search_iterator_end(PreHeads,Heads,Rule,C,O,Id,L,L0),
+	universal_search_iterator(Heads,PreHeads,Rule,C,O,Id,L0,L1),
 	( memberchk_eq(ID,IDs2) ->
-		simpagation_universal_searches(RHeads,IDs,IDs2,[Head|PreHeads],Rule,C,OutHeads,OutPreHeads,OutIDs,Id1,NId,L1,T)
+		simpagation_universal_searches(RHeads,IDs,IDs2,[Head|PreHeads],Rule,C,O,OutHeads,OutPreHeads,OutIDs,Id1,NId,L1,T)
 	;
 		NId = Id1, L1 = T, OutHeads = RHeads, OutPreHeads = [Head|PreHeads], IDs = OutIDs
 	).
@@ -7196,7 +7232,7 @@ simpagation_head2_prelude(Head,Head1,Rest,F/A,O,Id1,L,T) :-
 	extend_id(Id1,DelegateId),
 	extra_active_delegate_variables(Head,[Head1|Rest],VarDict,ExtraVars),
 	append([AllSusps|VarsSusp],ExtraVars,DelegateCallVars),
-	build_head(F,A,DelegateId,DelegateCallVars,Delegate),
+	build_head(F,A,[O|DelegateId],DelegateCallVars,Delegate),
 
 	PreludeClause = 
 	   ( ClauseHead :-
@@ -7256,7 +7292,7 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,ID,PragmaRule,
 	),
 	
 	ClauseVars = [[OtherSusp|OtherSusps]|PreVarsAndSusps],
-	build_head(F,A,Id,ClauseVars,ClauseHead),
+	build_head(F,A,[O|Id],ClauseVars,ClauseHead),
 	
 	guard_splitting(Rule,GuardList0),
 	( is_stored_in_guard(F/A, RuleNb) ->
@@ -7273,9 +7309,9 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,ID,PragmaRule,
 	partner_constraint_detachments([OtherSusp | Susps1],[CurrentHead|RestHeads1],VarDict2,Susps1Detachments),
 	
 	RecursiveVars = [OtherSusps|PreVarsAndSusps],
-	build_head(F,A,Id,RecursiveVars,RecursiveCall),
+	build_head(F,A,[O|Id],RecursiveVars,RecursiveCall),
 	RecursiveVars2 = [[]|PreVarsAndSusps],
-	build_head(F,A,Id,RecursiveVars2,RecursiveCall2),
+	build_head(F,A,[O|Id],RecursiveVars2,RecursiveCall2),
 	
 	guard_body_copies3(Rule,GuardList,VarDict2,GuardCopyList,BodyCopy),
 	( is_stored_in_guard(F/A, RuleNb) ->
@@ -7529,7 +7565,7 @@ propagation_prelude(Head,[First|Rest],Rule,F/A,O,Id,L,T) :-
 	
 	extend_id(Id,NestedId),
 	append([Susps|VarsSusp],ExtraVars,NestedVars), 
-	build_head(F,A,NestedId,NestedVars,NestedHead),
+	build_head(F,A,[O|NestedId],NestedVars,NestedHead),
 	NestedCall = NestedHead,
 	
 	Prelude = (
@@ -7545,12 +7581,12 @@ propagation_prelude(Head,[First|Rest],Rule,F/A,O,Id,L,T) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 propagation_nested_code([],[CurrentHead|PreHeads],RestIDs,Rule,RuleNb,FA,O,Id,L,T) :-
-   universal_search_iterator_end([CurrentHead|PreHeads],[],Rule,FA,Id,L,L1),
+   universal_search_iterator_end([CurrentHead|PreHeads],[],Rule,FA,O,Id,L,L1),
    propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,FA,O,Id,L1,T).
 
 propagation_nested_code([Head|RestHeads],PreHeads,RestIDs,Rule,RuleNb,FA,O,Id,L,T) :-
-   universal_search_iterator_end(PreHeads,[Head|RestHeads],Rule,FA,Id,L,L1),
-   universal_search_iterator([Head|RestHeads],PreHeads,Rule,FA,Id,L1,L2),
+   universal_search_iterator_end(PreHeads,[Head|RestHeads],Rule,FA,O,Id,L,L1),
+   universal_search_iterator([Head|RestHeads],PreHeads,Rule,FA,O,Id,L1,L2),
    inc_id(Id,IncId),
    propagation_nested_code(RestHeads,[Head|PreHeads],RestIDs,Rule,RuleNb,FA,O,IncId,L2,T).
 
@@ -7586,13 +7622,18 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 	   GetState
 	),
 	ClauseVars = [[OtherSusp|OtherSusps]|PreVarsAndSusps],
-	build_head(F,A,Id,ClauseVars,ClauseHead),
+	build_head(F,A,[O|Id],ClauseVars,ClauseHead),
 	( check_fd_lookup_condition(OtherF,OtherA,CurrentHead,PreHeads) ->	% iterator (OtherSusps) is empty at runtime
-		universal_search_iterator_failure_vars(PreHeads,Id,PreVarsAndSuspsList,FirstVarsSusp,PrevIterators,PreVarsAndSusps1,PrevId),
+		universal_search_iterator_failure_vars(PreHeads,Id,PreVarsAndSuspsList,FirstVarsSusp,PrevIterators,PreVarsAndSusps1,PrevId0),
 		RecursiveVars = PreVarsAndSusps1
 	;
 		RecursiveVars = [OtherSusps|PreVarsAndSusps],
-		PrevId = Id
+		PrevId0 = Id
+	),
+	( PrevId0 = [_] ->
+		PrevId = PrevId0
+	;
+		PrevId = [O|PrevId0]
 	),
 	build_head(F,A,PrevId,RecursiveVars,RecursiveHead),
 	RecursiveCall = RecursiveHead,
@@ -8503,6 +8544,14 @@ assume_constraint_stores([C|Cs]) :-
 			findall(Index,(sublist(Index,IndexedArgs), Index \== []),UnsortedIndexes),
 			predsort(longer_list,UnsortedIndexes,Indexes)
 		),
+		% EXPERIMENTAL HEURISTIC		
+		% findall(Index, (
+		%			member(Arg1,IndexedArgs), 	
+		%			member(Arg2,IndexedArgs),
+		%			Arg1 =< Arg2,
+		%			sort([Arg1,Arg2], Index)
+		%		), UnsortedIndexes),
+		% predsort(longer_list,UnsortedIndexes,Indexes),
 		% Choose Index Type
 		( get_functional_dependency(C,1,Pattern,Key), 
 		  all_distinct_var_args(Pattern), Key == [] ->
@@ -8633,13 +8682,18 @@ validate_store_type_assumptions([C|Cs]) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % new code generation
-universal_search_iterator_end([CurrentHead|PrevHeads],NextHeads,Rule,F/A,Id,L,T) :-
+universal_search_iterator_end([CurrentHead|PrevHeads],NextHeads,Rule,F/A,O,Id,L,T) :-
 	Rule = rule(H1,_,Guard,Body),
 	gen_var_susp_list_for_b(PrevHeads,[CurrentHead,NextHeads,Guard,Body],_,VarsAndSuspsList,FirstVarsSusp,_,PrevIterators),
-	universal_search_iterator_failure_vars(PrevHeads,Id,VarsAndSuspsList,FirstVarsSusp,PrevIterators,PrevVarsAndSusps,PrevId),
+	universal_search_iterator_failure_vars(PrevHeads,Id,VarsAndSuspsList,FirstVarsSusp,PrevIterators,PrevVarsAndSusps,PrevId0),
 	flatten(VarsAndSuspsList,VarsAndSusps),
 	Vars = [ [] | VarsAndSusps],
-	build_head(F,A,Id,Vars,Head),
+	build_head(F,A,[O|Id],Vars,Head),
+	( PrevId0 = [_] ->
+		PrevId = PrevId0
+	;
+		PrevId = [O|PrevId0]
+	),
 	build_head(F,A,PrevId,PrevVarsAndSusps,PredecessorCall),
 	Clause = ( Head :- PredecessorCall),
 	add_dummy_location(Clause,LocatedClause),
@@ -8662,6 +8716,7 @@ universal_search_iterator_end([CurrentHead|PrevHeads],NextHeads,Rule,F/A,Id,L,T)
 	% skips back intelligently over global_singleton lookups
 universal_search_iterator_failure_vars(PrevHeads,Id,VarsAndSuspsList,BaseCallArgs,PrevIterators,PrevVarsAndSusps,PrevId) :-
 	( Id = [0|_] ->
+		% TOM: add partial success continuation optimization here!
 		next_id(Id,PrevId),
 		PrevVarsAndSusps = BaseCallArgs
 	;
@@ -8680,7 +8735,7 @@ universal_search_iterator_failure_vars(PrevHeads,Id,VarsAndSuspsList,BaseCallArg
 		)
 	).
 
-universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,Id,L,T) :-
+universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,O,Id,L,T) :-
 	Rule = rule(_,_,Guard,Body),
 	gen_var_susp_list_for_b(PreHeads,[CurrentHead,NextHead,RestHeads,Guard,Body],VarDict,PreVarsAndSuspsList,FirstVarsSusp,AllSusps,PrevIterators),
 	init(AllSusps,PreSusps),
@@ -8711,17 +8766,22 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
         lookup_passive_head(NextHead,[CurrentHead|PreHeads],VarDict1,GroundVars,NextSuspGoal,NextSusps),
 	inc_id(Id,NestedId),
 	ClauseVars = [[OtherSusp|OtherSusps]|PreVarsAndSusps],
-	build_head(F,A,Id,ClauseVars,ClauseHead),
+	build_head(F,A,[O|Id],ClauseVars,ClauseHead),
 	passive_delegate_variables(CurrentHead,PreHeads,[NextHead,RestHeads,Guard,Body],VarDict1,CurrentHeadVars),
 	append([NextSusps|CurrentHeadVars],[OtherSusp,OtherSusps|PreVarsAndSusps],NestedVars),
-	build_head(F,A,NestedId,NestedVars,NestedHead),
+	build_head(F,A,[O|NestedId],NestedVars,NestedHead),
 	
 	( check_fd_lookup_condition(OtherF,OtherA,CurrentHead,PreHeads) ->	% iterator (OtherSusps) is empty at runtime
-		universal_search_iterator_failure_vars(PreHeads,Id,PreVarsAndSuspsList,FirstVarsSusp,PrevIterators,PreVarsAndSusps1,PrevId),
+		universal_search_iterator_failure_vars(PreHeads,Id,PreVarsAndSuspsList,FirstVarsSusp,PrevIterators,PreVarsAndSusps1,PrevId0),
 		RecursiveVars = PreVarsAndSusps1
 	;
 		RecursiveVars = [OtherSusps|PreVarsAndSusps],
-		PrevId = Id
+		PrevId0 = Id
+	),
+	( PrevId0 = [_] ->
+		PrevId = PrevId0
+	;
+		PrevId = [O|PrevId0]
 	),
 	build_head(F,A,PrevId,RecursiveVars,RecursiveHead),
 
@@ -9678,3 +9738,127 @@ check_storedness_assertion(Constraint)
 	    ;
 		true
 	    ).
+
+%^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+% success continuation analysis
+
+% TODO
+%	take passive occurrences into account for correctness!
+%	also use for forward jumping improvement!
+
+success_continuation_analysis([]).
+success_continuation_analysis([C|Cs]) :-
+	success_continuation_analysis(C,1),
+	get_max_occurrence(C,MO),
+	LO is MO + 1,
+	bulk_propagation(C,1,LO),
+	success_continuation_analysis(Cs).
+
+success_continuation_analysis(C,O) :-
+	get_max_occurrence(C,MO),
+	( O >= MO ->
+		true
+	;
+		constraint_success_continuation(C,O,MO,NextO),
+		success_continuation_occurrence(C,O,NextO),
+		NO is O + 1,
+		success_continuation_analysis(C,NO)
+	).
+
+constraint_success_continuation(C,O,MO,NextO) :-
+	get_occurrence_head(C,O,Head),
+	NO is O + 1,
+	( between(NO,MO,NextO),
+	  get_occurrence_head(C,NextO,NextHead),
+	  unifiable(Head,NextHead,_) ->
+		true
+	;
+		NextO is MO + 1
+	).
+	
+get_occurrence_head(C,O,Head) :-
+	get_occurrence(C,O,RuleNb,Id),
+	get_rule(RuleNb,Rule),
+	Rule = pragma(rule(H1,H2,_,_),ids(Ids1,Ids2),_,_,_),
+	( select2(Id,Head,Ids1,H1,_,_) -> true
+	; select2(Id,Head,Ids2,H2,_,_)
+	).
+
+:- chr_constraint success_continuation_occurrence/3.
+:- chr_option(mode,success_continuation_occurrence(+,+,+)).
+
+:- chr_constraint bulk_propagation/3.
+:- chr_option(mode,bulk_propagation(+,+,+)).
+
+:- chr_constraint skip_to_next_id/2.
+:- chr_option(mode,skip_to_next_id(+,+)).
+
+:- chr_constraint should_skip_to_next_id/2.
+:- chr_option(mode,should_skip_to_next_id(+,+)).
+
+skip_to_next_id(C,O) \ should_skip_to_next_id(C,O)
+	<=>
+		true.
+
+should_skip_to_next_id(_,_)
+	<=>
+		fail.
+	
+	% don't go beyond the last occurrence
+	% we have to go to next id for storage here
+max_occurrence(C,MO) \ bulk_propagation(C,O,_) 
+	<=> 
+		O >= MO	
+	|
+		skip_to_next_id(C,O).
+	% we have to go to the next id here because
+	% a predecessor needs it
+bulk_propagation(C,O,LO)
+	<=>
+		LO =:= O + 1
+	|
+		skip_to_next_id(C,O),
+		get_max_occurrence(C,MO),
+		NLO is MO + 1,
+		bulk_propagation(C,LO,NLO).
+	% we have to go to the next id here because
+	% we're running into a simplification rule
+	% IMPROVE: propagate back to propagation predecessor (IF ANY)
+occurrence(C,NO,_,_,simplification) \ bulk_propagation(C,O,LO)
+	<=>
+		NO is O + 1
+	|
+		skip_to_next_id(C,O),
+		get_max_occurrence(C,MO),
+		NLO is MO + 1,
+		bulk_propagation(C,NO,NLO).
+	% we skip the next id here
+	% and go to the next occurrence
+success_continuation_occurrence(C,O,NextO) \ bulk_propagation(C,O,LO)
+	<=>
+		NextO > O + 1 
+	|
+		NLO is min(LO,NextO),
+		NO is O + 1,	
+		bulk_propagation(C,NO,NLO).
+	% default case
+	% err on the safe side
+bulk_propagation(C,O,LO)
+	<=>
+		skip_to_next_id(C,O),
+		get_max_occurrence(C,MO),
+		NLO is MO + 1,
+		NO is O + 1,
+		bulk_propagation(C,NO,NLO).
+
+skip_to_next_id(C,O) \ skip_to_next_id(C,O) <=> true.
+
+	% if this occurrence is passive, but has to skip,
+	% then the previous one must skip instead...
+	% IMPROVE reasoning is conservative
+occurrence(C,O,RuleNb,Id,_), passive(RuleNb,Id), skip_to_next_id(C,O) 
+	==> 
+		O > 1
+	|
+		PO is O - 1,
+		skip_to_next_id(C,PO).

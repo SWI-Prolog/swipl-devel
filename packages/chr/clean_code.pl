@@ -22,10 +22,15 @@
 
 :- use_module(hprolog).
 
-clean_clauses([],[]).
-clean_clauses([C|Cs],[NC|NCs]) :-
+clean_clauses(Clauses,NClauses) :-
+	clean_clauses1(Clauses,Clauses1),
+	merge_clauses(Clauses1,NClauses).
+	
+
+clean_clauses1([],[]).
+clean_clauses1([C|Cs],[NC|NCs]) :-
 	clean_clause(C,NC),
-	clean_clauses(Cs,NCs).
+	clean_clauses1(Cs,NCs).
 
 clean_clause(Clause,NClause) :-
 	( Clause = (Head :- Body) ->
@@ -164,4 +169,50 @@ list2conj([G|Gs],C) :-
 	;
 		C = (G,R),
 		list2conj(Gs,R)
+	).
+
+
+merge_clauses([],[]).
+merge_clauses([C],[C]).
+merge_clauses([X,Y|Clauses],NClauses) :-
+	( merge_two_clauses(X,Y,Clause) ->
+		merge_clauses([Clause|Clauses],NClauses)
+	;
+		NClauses = [X|RClauses],
+		merge_clauses([Y|Clauses],RClauses)
+	).
+		
+
+merge_two_clauses(H1 :- B1, H2 :- B2, H :- B) :-
+	H1 =@= H2,
+	H1 = H,
+	conj2list(B1,List1),
+	conj2list(B2,List2),
+	merge_lists(List1,List2,H1,H2,Unifier,List,NList1,NList2),
+	List \= [],
+	H1 = H2,
+	call(Unifier),
+	list2conj(List,Prefix),
+	list2conj(NList1,NB1),
+	( NList2 == (!) ->
+		B = Prefix
+	;
+		list2conj(NList2,NB2),
+		B = (Prefix,(NB1 ; NB2))
+	).
+
+merge_lists([],[],_,_,true,[],[],[]).
+merge_lists([],L2,_,_,true,[],[],L2).
+merge_lists([!|Xs],_,_,_,true,[!|Xs],[],!) :- !.
+merge_lists([X|Xs],[],_,_,true,[],[X|Xs],[]).
+merge_lists([X|Xs],[Y|Ys],H1,H2,Unifier,Common,N1,N2) :-
+	( H1-X =@= H2-Y ->
+		Unifier = (X = Y, RUnifier),
+		Common = [X|NCommon],
+		merge_lists(Xs,Ys,H1/X,H2/Y,RUnifier,NCommon,N1,N2)
+	;
+		Unifier = true,
+		Common = [],
+		N1 = [X|Xs],
+		N2 = [Y|Ys]
 	).

@@ -1,3 +1,11 @@
+Jan 22, 2008
+
+  * TS: Rewrite Prolog code: common prefix elimination in
+	successive clauses of the same predicate. 
+  * TS: Tries stores enabled by default again.
+  * TS: Success and failure continuation optimization for
+	propagation occurrences.
+
 Jan 14, 2008
 
   * TS: Fix performance bug in locking of guard variables.
