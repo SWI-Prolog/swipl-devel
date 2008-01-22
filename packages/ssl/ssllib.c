@@ -139,7 +139,7 @@ static SSL_SOCK_STATUS
 ssl_inspect_status(SSL *ssl, int sock, int ssl_ret)
 {   int code;
 
-    if (ssl_ret > 0) {
+    if (ssl_ret >= 0) {
         return SSL_SOCK_OK;
     }
 
