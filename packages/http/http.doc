@@ -292,7 +292,7 @@ for parsing it using grammar rules.
     \end{description}
     \termitem{content_type}{Type}
 Overrule the \const{Content-Type} as provided by the HTTP reply header.
-Intented as a work-around for badly configured servers.
+Intended as a work-around for badly configured servers.
 \end{description}
 
 If no \term{to}{Target} option is provided the library tries the
@@ -608,7 +608,7 @@ defined using file_search_path/2.
 \subsection{Session management}			\label{sec:session}
 
 The library \pllib{http/http_session.pl} provides cookie-based session
-management.  The library installes a session-id cookie using the hook
+management.  The library installs a session-id cookie using the hook
 http:request_expansion/2.  It allows querying the session and provides
 a simple assert/retract based store to store information related to a
 session.  Note that session management only works with the threaded
@@ -679,7 +679,7 @@ to Type. Type identifies the required authentication technique:
 
     \begin{description}
 	\termitem{basic}{+PasswordFile}
-	Use HTTP \const{Basic} authetication and verify the password
+	Use HTTP \const{Basic} authentication and verify the password
 	from PasswordFile. PasswordFile is a file holding
 	usernames and passwords in a format compatible to
 	Unix and Apache. Each line is record with \verb$:$
@@ -769,7 +769,7 @@ Convert value to a number.  Throws a type-error otherwise.
 Convert value to an integer.  Throws a type-error otherwise.
 
     \termitem{float}{}
-Convert value to a float. Integers are tranformed into fload.  Throws a
+Convert value to a float. Integers are transformed into float.  Throws a
 type-error otherwise.
 
     \termitem{between}{+Low, +High}
@@ -956,7 +956,7 @@ course this file is allowed to load other files). Depending on the
 wanted server setup this `body' is wrapped into a small Prolog file
 combining the body with the appropriate server interface. There are
 three supported server-setups. For most applications we advice the
-multi-threaded server. Examples of this server archirecture are the
+multi-threaded server. Examples of this server architecture are the
 \url[PlDoc]{http://www.swi-prolog.org/packages/pldoc.html} documentation
 system and the \url[SeRQL]{http://www.swi-prolog.org/packages/SeRQL/}
 Semantic Web server infrastructure.
@@ -1135,7 +1135,7 @@ timeout, a worker may wait forever on an a client that doesn't complete
 its request.
 
     \termitem{keep_alive_timeout}{+SecondsOrInfinite}
-Maximum time to wait for new actity on \emph{Keep-Alive} connections.
+Maximum time to wait for new activity on \emph{Keep-Alive} connections.
 Choosing the correct value for this parameter is hard. Disabling
 Keep-Alive is bad for performance if the clients request multiple
 documents for a single page. This may ---for example-- be caused by HTML
@@ -1282,7 +1282,7 @@ using a standard port. The server can also be hosted on a non-standard
 port such as 8000, or 8080. Using non-standard ports however may cause
 problems with intermediate proxy- and/or firewall policies.  Isolation
 can be achieved using a Unix \jargon{chroot} environment.  Another
-option, also recommented for \jargon{Tomcat} servers, is the use of
+option, also recommended for \jargon{Tomcat} servers, is the use of
 Apache \jargon{reverse proxies}.  This causes the main web-server to
 relay requests below a given URL location to our Prolog based server.
 This approach has several advantages:
@@ -1290,10 +1290,10 @@ This approach has several advantages:
 \begin{itemize}
     \item We can access the server on port 80, just as for a dedicated
           machine.  We do not need a machine though and we only need
-	  access to the apache configuration.
+	  access to the Apache configuration.
     \item As Apache is doing the front-line service, the Prolog server
     	  is normally protected from malformed HTTP requests that could
-	  result in denial of service or otherwise comprimise the
+	  result in denial of service or otherwise compromise the
 	  server.  In addition, Apache can provide encodings such as
 	  compression to the outside world.
 \end{itemize}
@@ -1305,7 +1305,7 @@ proxy can also provide load balancing.
 \paragraph{Setting up a reverse proxy}
 
 The Apache reverse proxy setup is really simple. Ensure the modules
-\const{proxy} and \const{proxy_http} are loaded. The add two simple
+\const{proxy} and \const{proxy_http} are loaded. Then add two simple
 rules to the server configuration. Below is an example that makes a
 PlDoc server on port 4000 available from the main Apache server at port
 80.
@@ -1498,24 +1498,24 @@ for generating legal HTML under (Prolog) program control. It is
 especially useful for the generation of structured pages (e.g.\ tables)
 from Prolog data structures.
 
-The normal way to use this library is through the DCG html/1. This
-grammar-rule provides the central translation from a structured term
+The normal way to use this library is through the DCG html//1. This
+non-terminal provides the central translation from a structured term
 with embedded calls to additional translation rules to a list of atoms
 that can then be printed using print_html/[1,2].
 
 \begin{description}
     \dcg{html}{1}{:Spec}
-The DCG rule html/1 is the main predicate of this library. It translates
+The DCG non-terminal html//1 is the main predicate of this library. It translates
 the specification for an HTML page into a list of atoms that can be
 written to a stream using print_html/[1,2]. The expansion rules of this
 predicate may be extended by defining the multifile DCG
-html_write:expand/1. \arg{Spec} is either a single specification or a
+html_write:expand//1. \arg{Spec} is either a single specification or a
 list of single specifications. Using nested lists is not allowed to
 avoid ambiguity caused by the atom \const{[]}
 
 \begin{itemlist}
     \item [Atomic data]
-Atomic data is quoted using the html_quoted/1 DCG.
+Atomic data is quoted using html_quoted//1.
 
     \item [\arg{Fmt} - \arg{Args}]
 \arg{Fmt} and \arg{Args} are used as format-specification and argument
@@ -1526,12 +1526,12 @@ Escape sequence to add atoms directly to the output list.  This can be
 used to embed external HTML code.
 
     \item [\bsl\arg{Term}]
-Invoke the grammar rule \arg{Term} in the calling module.  This is the
+Invoke the non-terminal \arg{Term} in the calling module.  This is the
 common mechanism to realise abstraction and modularisation in generating
 HTML.
 
     \item [\arg{Module}:\arg{Term}]
-Invoke the grammar rule <Module>:<Term>. This is similar to
+Invoke the non-terminal <Module>:<Term>. This is similar to
 \bsl\arg{Term} but allows for invoking grammar rules in external
 packages.
 
@@ -1541,7 +1541,7 @@ inserts appropriate entity declarations, this is normally not needed.
 
     \item [\term{Tag}{Content}]
 Emit HTML element \arg{Tag} using \arg{Content} and no attributes.
-\arg{Content} is handed to html/1. See \secref{htmllayout} for details
+\arg{Content} is handed to html//1. See \secref{htmllayout} for details
 on the automatically generated layout.
 
     \item [\term{Tag}{Attributes, Content}]
@@ -1553,21 +1553,21 @@ Each attributes is of the format \term{Name}{Value} or
 \end{itemlist}
 
     \dcg{page}{2}{:HeadContent, :BodyContent}
-The DCG rule page/2 generated a complete page, including the SGML
+The DCG non-terminal page//2 generated a complete page, including the SGML
 \const{DOCTYPE} declaration. \arg{HeadContent} are elements to be placed
 in the \elem{head} element and \arg{BodyContent} are elements to be
 placed in the \elem{body} element.
 
 To achieve common style (background, page header and footer), it is
-possible to define DCG rules head/1 and/or body/1. The page/1 rule
-checks for the definition of these DCG rules in the module it is called
+possible to define DCG non-terminals head//1 and/or body//1. Non-terminal page//1
+checks for the definition of these non-terminals in the module it is called
 from as well as in the \const{user} module. If no definition is found, it
 creates a head with only the \arg{HeadContent} (note that the
 \elem{title} is obligatory) and a \elem{body} with \const{bgcolor} set
 to \const{white} and the provided \arg{BodyContent}.
 
-Note that further customisation is easily achieved using html/1 directly
-as page/2 is (besides handling the hooks) defined as:
+Note that further customisation is easily achieved using html//1 directly
+as page//2 is (besides handling the hooks) defined as:
 
 \begin{code}
 page(Head, Body) -->
@@ -1594,7 +1594,7 @@ to the begin-tag.  Some examples:
 \end{code}
 
 This predicate provides an alternative to using the
-\bsl\arg{Command} syntax in the html/1 specification. The
+\bsl\arg{Command} syntax in the html//1 specification. The
 following two fragments are the same. The preferred solution depends on
 your preferences as well as whether the specification is generated or
 entered by the programmer.
@@ -1622,18 +1622,19 @@ End an element.  See html_begin/1 for details.
 
 \subsubsection{Emitting HTML documents}
 
-The html/1 grammar rules translates a specification into a list of atoms
-and layout instructions. Currently the layout instructions are terms of
-the format \term{nl}{N}, requesting at least \arg{N} newlines. Multiple
-consecutive \term{nl}{1} terms are combined to an atom containing the
-maximum of the requested number of newline characters.
+The non-terminal html//1 translates a specification into a list of
+atoms and layout instructions. Currently the layout instructions are
+terms of the format \term{nl}{N}, requesting at least \arg{N}
+newlines. Multiple consecutive \term{nl}{1} terms are combined to an
+atom containing the maximum of the requested number of newline
+characters.
 
 To simplify handing the data to a client or storing it into a file,
 the following predicates are available from this library:
 
 \begin{description}
     \predicate{reply_html_page}{2}{:Head, :Body}
-Writes an HTML page preceeded by an HTTP header as required
+Writes an HTML page preceded by an HTTP header as required
 by \pllib{http_wrapper} (CGI-style).  Here is a simple typical
 example:
 
@@ -1663,16 +1664,16 @@ provide the \const{Content-length} field of an HTTP reply-header.
 \subsubsection{Adding rules for html//1}
 
 In some cases it is practical to extend the translations imposed by
-html/1. When using XPCE for example, it is comfortable to be able
+html//1. When using XPCE for example, it is comfortable to be able
 defining default translation to HTML for objects. We also used this
 technique to define translation rules for the output of the SWI-Prolog
 \pllib{sgml} package.
 
-The html/1 rule first calls the multifile ruleset html_write:expand/1.
+The html//1 non-terminal first calls the multifile ruleset html_write:expand//1.
 
 \begin{description}
     \dcg{html_write:expand}{1}{+Spec} Hook to add additional
-translationrules for html/1.
+translation rules for html//1.
 
     \dcg{html_quoted}{1}{+Atom} Emit the text
 in \arg{Atom}, inserting entity-references for the SGML special
@@ -1700,7 +1701,7 @@ before and \arg{Post} after the tag. The \arg{Close} specification is
 similar, but in addition allows for the atom \const{-}, requesting the
 output generator to omit the close-tag altogether or \const{empty},
 telling the library that the element has declared empty content. In this
-case the close-tag is not emitted either, but in addition html/1
+case the close-tag is not emitted either, but in addition html//1
 interprets \arg{Arg} in \term{Tag}{Arg} as a list of attributes rather
 than the content.
 
@@ -1788,7 +1789,7 @@ satisfactory and Prolog-minded way to produce HTML text from a program.
 We have been using Prolog for the generation of web pages in a number of
 projects. Just using format/2 never was a real
 option, generating error-prone HTML from clumsy syntax.  We started
-with a layour on top of format/2, keeping track of the current nesting
+with a layer on top of format/2, keeping track of the current nesting
 and thus always capable of properly closing the environment.
 
 DCG based translation however naturally exploits Prolog's term-rewriting
@@ -1880,7 +1881,7 @@ location something that can be changed using a global setting.
 
     \begin{itemize}
 	\item Page generating code can easily be reused.  Using locations
-	      directly below the root however increases the likelyhood
+	      directly below the root however increases the likelihood
 	      of conflicts.
 	\item Multiple servers can be placed behind the same public
 	      server as explained in \secref{proxy}.  Using a common
@@ -1905,10 +1906,10 @@ filters applied to the data described by the \const{Content-type}. The
 two most popular transfer encodings are \const{chunked} and
 \const{deflate}. The \const{chunked} encoding avoids the need for
 a \const{Content-length} header, sending the data in chunks, each of
-which is preceeded by a length.  The \const{deflate} encoding provides
+which is preceded by a length.  The \const{deflate} encoding provides
 compression.
 
-Tranfer-encodings are supported by filters defined as foreign libraries
+Transfer-encodings are supported by filters defined as foreign libraries
 that realise an encoding/decoding stream on top of another stream.
 Currently there are two such libraries: \pllib{http/http_chunked.pl}
 and \pllib{zlib.pl}.
@@ -1935,8 +1936,8 @@ on another stream.  See online documentation at
 
 The SWI-Prolog HTTP library is in active use in a large number of
 projects. It is considered one of the SWI-Prolog core libraries that is
-actively maintained and regulary extended with new features. This is
-particulary true for the multi-threaded server. The XPCE and inetd based
+actively maintained and regularly extended with new features. This is
+particularly true for the multi-threaded server. The XPCE and inetd based
 servers are not widely used.
 
 This library is by no means complete and you are free to extend it.
