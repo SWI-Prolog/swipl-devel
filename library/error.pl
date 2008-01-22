@@ -127,6 +127,8 @@ is_not(chars, X) :- !,
 	not_a_list(chars, X).
 is_not(codes, X) :- !,
 	not_a_list(codes, X).
+is_not(var,_X) :- !,
+	representation_error(variable).
 is_not(Type, X) :-
 	(   ground(X)
 	->  type_error(Type, X)
@@ -152,6 +154,7 @@ is_of_type(Type, Term) :-
 %
 %	True if Term satisfies Type.
 
+has_type(impossible, _) :-	instantiation_error(_).
 has_type(any, _).
 has_type(atom, X)	  :- atom(X).
 has_type(atomic, X)	  :- atomic(X).
