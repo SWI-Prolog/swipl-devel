@@ -587,21 +587,6 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Ideally, we need two pointers:
-
-	* Outermost call_residue_vars global mark
-	GC needs this to mark all attvars after this mark
-
-	* Innermost call_residue_vars global mark
-	make_new_attvar() needs this to decide it must make the
-	attvar with an indirection.
-
-Note that these values need not be correct, but the outer mark must be
-smaller or equal to the correct value and the inner mark must be at
-least the correct value.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $new_choice_point(-Chp) is det.
 
 Unify Chp with a reference to a new choicepoint. 
@@ -638,6 +623,18 @@ offset_cell(Word p)
   return offset;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+has_attributes_after(Word av, Choice  ch)  is   true  if  the attributed
+variable av has attributes created after   the choicepoint ch. Note that
+the current implementation only deals with  attributes created after the
+ch or an attribute value  set  to   a  compound  term  created after the
+choicepoint ch.  Notably atomic value-changes are *not* tracked.
+
+1 ?- put_attr(X, a, 1), call_residue_vars(put_attr(X, a, 2), V).
+
+V = []
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 has_attributes_after(Word av, Choice ch ARG_LD)
@@ -681,6 +678,32 @@ has_attributes_after(Word av, Choice ch ARG_LD)
 }
 
 
+static void
+scan_trail(int set)
+{ GET_LD
+  TrailEntry te;
+
+  for(te=tTop-1; te>=tBase; te--)
+  { if ( isTrailVal(te) )
+    { te--;
+      if ( set )
+      { *te->address |= MARK_MASK;
+      } else
+      { *te->address &= ~MARK_MASK;
+      }
+    }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+'$attvars_after_choicepoint'(+Chp, -Vars) is det.
+
+Find all attributed variables that got   new  attributes after Chp. Note
+that the trailed assignment of  an   attributed  variable  creates a new
+attributed variable, which is why we must scan the trail stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static
 PRED_IMPL("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
 { PRED_LD
@@ -699,8 +722,12 @@ retry:
     goto grow;
   setVar(*list);
 
+  scan_trail(TRUE);
+
   for(gp=gBase, gend = gTop; gp<gend; gp += offset_cell(gp)+1)
-  { if ( isAttVar(*gp) && has_attributes_after(gp, ch PASS_LD) )
+  { if ( isAttVar(*gp) &&
+	 !is_marked(gp) &&
+	 has_attributes_after(gp, ch PASS_LD) )
     { Word p = allocGlobalNoShift(3);
 
       if ( p )
@@ -711,6 +738,7 @@ retry:
 	tailp = &p[2];
       } else
       { gTop = gend;
+	scan_trail(FALSE);
 	goto grow;
       }
     }
@@ -718,9 +746,11 @@ retry:
   
   if ( list == tailp )
   { gTop = gend;
+    scan_trail(FALSE);
     return PL_unify_nil(A2);
   } else
   { *tailp = ATOM_nil;
+    scan_trail(FALSE);
     return PL_unify(A2, wordToTermRef(list));
   }
 
