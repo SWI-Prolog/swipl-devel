@@ -916,15 +916,32 @@ fd_variable(V) :-
 %  Constrain the variables or integers in Vars to Domain.
 
 Vs ins D :-
-        (   var(Vs) -> true
-        ;   must_be(list, Vs),
-            maplist(fd_variable, Vs)
-        ),
+        acyclic_list(Vs),
+        maplist(fd_variable, Vs),
         (   is_drep(D) -> true
         ;   domain_error(clpfd_domain, D)
         ),
         drep_to_domain(D, Dom),
         domains(Vs, Dom).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Set the experimental flag "clpfd_closed_lists" to "true" to make
+   predicates like ins/2 and sum/3 only accept closed lists.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+acyclic_list(Ls) :-
+        (   current_prolog_flag(clpfd_closed_lists, true) ->
+            must_be(list, Ls)
+        ;   cyclic_list(Ls) -> type_error(list, Ls)
+        ;   true
+        ).
+
+cyclic_list(L0) :- cyclic_term(L0), cyclic_list(L0, []).
+
+cyclic_list([_|Tail], Seen) :-
+        \+ var(Tail),
+        (   memberchk(Tail, Seen) -> true ; cyclic_list(Tail, [Tail|Seen]) ).
+
 
 %% indomain(?Var)
 %
@@ -1229,6 +1246,7 @@ optimize(Direction, Selection, Order, Choice, Vars, Expr0, Expr) :-
 % Constrain Vars to be pairwise distinct.
 
 all_different(Ls) :-
+        acyclic_list(Ls),
         length(Ls, _),
         all_different(Ls, []),
         do_queue.
@@ -1253,7 +1271,8 @@ all_different([X|Right], Left) :-
 %       ==
 
 sum(Ls, Op, Value) :-
-        (   cyclic_list(Ls) -> type_error(list, Ls) ; true ),
+        acyclic_list(Ls),
+        maplist(fd_variable, Ls),
         (   Op == (#=), integer(Value) ->
             make_propagator(sum_eq(Ls,Value), Prop),
             sum_eq(Ls, Prop),
@@ -2045,19 +2064,13 @@ lex_le([V1|V1s], [V2|V2s]) :-
 % list Tuples are constrained to be elements of Relation.
 
 tuples_in(Tuples, Relation) :-
-        (   cyclic_list(Tuples) -> type_error(list, Tuples) ; true ),
+        acyclic_list(Tuples),
         must_be(list, Relation),
         must_be(ground, Relation),
         maplist(must_be(list), Relation),
         maplist(maplist(must_be(integer)), Relation),
         tuples_domain(Tuples, Relation),
         do_queue.
-
-cyclic_list(L0) :- cyclic_term(L0), cyclic_list(L0, []).
-
-cyclic_list([_|Tail], Seen) :-
-        \+ var(Tail),
-        (   memberchk(Tail, Seen) -> true ; cyclic_list(Tail, [Tail|Seen]) ).
 
 tuples_domain([], _).
 tuples_domain([Tuple|Tuples], Relation) :-
@@ -2925,6 +2938,7 @@ min_divide(L1,U1,L2,U2,Min) :-
 
 %all_distinct(Ls) :- all_different(Ls).
 all_distinct(Ls) :-
+        acyclic_list(Ls),
         length(Ls, _),
         MState = mutable(passive,_),
         all_distinct(Ls, [], MState),
@@ -3178,7 +3192,7 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
 attribute_goal(X, Goal) :-
         get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)),
         domain_to_drep(Dom, Drep),
-        attributes_goals(Ps, Gs, [X in Drep]),
+        attributes_goals(Ps, Gs, [clpfd:(X in Drep)]),
         list_dot(Gs, Goal).
 
 dot_list((A,B)) --> !, dot_list(A), dot_list(B).
@@ -3194,7 +3208,7 @@ attributes_goals([propagator(P, State)|As]) -->
         ;   { attribute_goal_(P, G) } ->
             % TODO: why doesn't the following setarg/3 actually set the arg?
             { setarg(1, State, processed) },
-            [G]
+            [clpfd:G]
         ;   [] % { format("currently no conversion for ~w\n", [P]) }
         ),
         attributes_goals(As).
