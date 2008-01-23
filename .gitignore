@@ -80,3 +80,4 @@ packages/xpce/sicstus/src/Makefile
 packages/xpce/src/names
 packages/xpce/xpce.spec
 packages/zlib/Makefile
+autom4te.cache

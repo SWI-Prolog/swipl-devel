@@ -76,11 +76,11 @@ CFLAGS="$CMFLAGS"
 dnl Note that we are using plld frontend.  Hence the -cc-options
 
 if test ! -z "$GCC"; then
-    COFLAGS="-O2 -cc-options,-fno-strict-aliasing"
-    CWFLAGS="-Wall"
+    COFLAGS="${COFLAGS--O2 -cc-options,-fno-strict-aliasing}"
+    CWFLAGS="${CWFLAGS--Wall}"
 else
-    COFLAGS=-O
-    CWFLAGS=
+    COFLAGS="${COFLAGS--O}"
+    CWFLAGS="${CWFLAGS-}"
 fi
 
 if test "x$JAVALIBS" = "x"; then

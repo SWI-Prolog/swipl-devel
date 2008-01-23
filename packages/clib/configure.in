@@ -78,7 +78,7 @@ AC_C_BIGENDIAN
 
 if test ! -z "$GCC"; then
     COFLAGS="${COFLAGS--O2 -fno-strict-aliasing}"
-    CWFLAGS=${CWFLAGS--Wall}
+    CWFLAGS="${CWFLAGS--Wall}"
 else
     COFLAGS="${COFLAGS--O}"
 fi
