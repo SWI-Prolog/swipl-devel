@@ -6097,6 +6097,7 @@ occurrence(C,O,RuleNb,ID,_), rule(RuleNb,PragmaRule) \ occurrence_code(C,O,Id,NI
 			NId = Id,
 			head1_code(Head1,ID,RHeads1,RIDs1,PragmaRule,C,O,Id,L,T)
 		; select2(ID,Head2,IDs2,Heads2,RIDs2,RHeads2) ->
+
 			head2_code(Head2,ID,RHeads2,RIDs2,PragmaRule,C,O,Id,L,L1),
 			( should_skip_to_next_id(C,O) -> 
 				inc_id(Id,NId),
@@ -9933,5 +9934,11 @@ occurrence_code_id(C,O,IdNb) \ get_occurrence_code_id(C,O,X)
 	<=>
 		X = IdNb.
 
-get_occurrence_code_id(C,O,X) <=> format('no occurrence code for ~w!\n',[C:O]).
+get_occurrence_code_id(C,O,X) 
+	<=> 
+		( O == 0 ->
+			true % X = 0 
+		;
+			format('no occurrence code for ~w!\n',[C:O])
+		).
 
