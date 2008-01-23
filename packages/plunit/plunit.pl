@@ -330,6 +330,10 @@ expand((test(Name) :- Body), Clauses) :- !,
 	expand_test(Name, [], Body, Clauses).
 expand((test(Name, Options) :- Body), Clauses) :- !,
 	expand_test(Name, Options, Body, Clauses).
+expand(test(Name), _) :- !,
+	throw(error(existence_error(body, test(Name)), _)).
+expand(test(Name, _Options), _) :- !,
+	throw(error(existence_error(body, test(Name)), _)).
 
 :- if(swi).
 :- multifile
