@@ -286,10 +286,10 @@ delete_first_fail([X | Xs], Y, Zs) :-
 	).
 
 delete_ht1(HT,Key,Value,Index) :-
-	HT = ht(Capacity,Load,Table),
+	HT = ht(_Capacity,Load,Table),
 	NLoad is Load - 1,
 	% term_hash(Key,Hash),
-	% Index is (Hash mod Capacity) + 1,
+	% Index is (Hash mod _Capacity) + 1,
 	arg(Index,Table,Bucket),
 	( /* var(Bucket) ->
 		true

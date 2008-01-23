@@ -842,6 +842,16 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	chr_source_file(File),
 	partition_clauses(Declarations,Constraints0,Rules0,OtherClauses),
 	chr_compiler_options:sanity_check,
+
+	( chr_pp_flag(verbose,on),
+		member(D,Declarations),
+		copy_term_nat(D,Dprime),
+		portray_clause(Dprime),
+		fail
+	;
+		true
+	),	
+
 	check_declared_constraints(Constraints0),
 	generate_show_constraint(Constraints0,Constraints,Rules0,Rules1),
 	add_constraints(Constraints),
@@ -865,7 +875,7 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	time('assume constraint stores',chr_translate:assume_constraint_stores(Constraints)),
 	time('default constraint indices',chr_translate:set_constraint_indices(Constraints)),
 	time('check storedness assertions',chr_translate:check_storedness_assertions(Constraints)),
-	success_continuation_analysis(Constraints),
+	time('continuation analysis',chr_translate:success_continuation_analysis(Constraints)),
 	% end analysis
 	time('constraint code generation',chr_translate:constraints_code(Constraints,ConstraintClauses)),
 	time('validate store assumptions',chr_translate:validate_store_type_assumptions(Constraints)),
@@ -6145,7 +6155,9 @@ gen_alloc_inc_clause(F/A,O,Id,L,T) :-
 
 gen_occ_allocation(FA,O,Vars,Susp,Goal) :-
 	get_allocation_occurrence(FA,AO),
-	( chr_pp_flag(debugable,off), O == AO ->
+	get_occurrence_code_id(FA,AO,AId),
+	get_occurrence_code_id(FA,O,Id),
+	( chr_pp_flag(debugable,off), Id == AId ->
 		allocate_constraint_goal(FA,Susp,Vars,Goal0),
 		( may_trigger(FA) ->
 			Goal = (var(Susp) -> Goal0 ; true)	
@@ -9745,13 +9757,18 @@ check_storedness_assertion(Constraint)
 % TODO
 %	take passive occurrences into account for correctness!
 %	also use for forward jumping improvement!
+%vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 success_continuation_analysis([]).
 success_continuation_analysis([C|Cs]) :-
+	% 1.
 	success_continuation_analysis(C,1),
+	% 2.
 	get_max_occurrence(C,MO),
 	LO is MO + 1,
 	bulk_propagation(C,1,LO),
+	% 3.
+	set_occurrence_code_id(C,1,0),
 	success_continuation_analysis(Cs).
 
 success_continuation_analysis(C,O) :-
@@ -9766,18 +9783,22 @@ success_continuation_analysis(C,O) :-
 	).
 
 constraint_success_continuation(C,O,MO,NextO) :-
-	get_occurrence_head(C,O,Head),
-	NO is O + 1,
-	( between(NO,MO,NextO),
-	  get_occurrence_head(C,NextO,NextHead),
-	  unifiable(Head,NextHead,_) ->
-		true
-	;
-		NextO is MO + 1
+	( get_occurrence_head(C,O,Head) ->
+		NO is O + 1,
+		( between(NO,MO,NextO),
+		  get_occurrence_head(C,NextO,NextHead),
+		  unifiable(Head,NextHead,_) ->
+			true
+		;
+			NextO is MO + 1
+		)
+	; % current occurrence is passive
+		NextO = MO
 	).
 	
 get_occurrence_head(C,O,Head) :-
 	get_occurrence(C,O,RuleNb,Id),
+	\+ is_passive(RuleNb,Id),
 	get_rule(RuleNb,Rule),
 	Rule = pragma(rule(H1,H2,_,_),ids(Ids1,Ids2),_,_,_),
 	( select2(Id,Head,Ids1,H1,_,_) -> true
@@ -9862,3 +9883,55 @@ occurrence(C,O,RuleNb,Id,_), passive(RuleNb,Id), skip_to_next_id(C,O)
 	|
 		PO is O - 1,
 		skip_to_next_id(C,PO).
+
+:- chr_constraint set_occurrence_code_id/3.
+:- chr_option(mode,set_occurrence_code_id(+,+,+)).
+
+:- chr_constraint occurrence_code_id/3.
+:- chr_option(mode,occurrence_code_id(+,+,+)).
+
+	% stop at the end
+set_occurrence_code_id(C,O,IdNb)
+	<=>
+		get_max_occurrence(C,MO),
+		O > MO
+	|
+		occurrence_code_id(C,O,IdNb).
+
+	% passive occurrences don't change the code id
+occurrence(C,O,RuleNb,Id,_), passive(RuleNb,Id) \ set_occurrence_code_id(C,O,IdNb)
+	<=>
+		occurrence_code_id(C,O,IdNb),
+		NO is O + 1,
+		set_occurrence_code_id(C,NO,IdNb).	
+
+occurrence(C,O,RuleNb,Id,simplification) \ set_occurrence_code_id(C,O,IdNb)
+	<=>
+		occurrence_code_id(C,O,IdNb),
+		NO is O + 1,
+		set_occurrence_code_id(C,NO,IdNb).
+
+occurrence(C,O,RuleNb,Id,propagation), skip_to_next_id(C,O) \ set_occurrence_code_id(C,O,IdNb)
+	<=>
+		occurrence_code_id(C,O,IdNb),
+		NO    is O    + 1,
+		NIdNb is IdNb + 1,
+		set_occurrence_code_id(C,NO,NIdNb).
+
+occurrence(C,O,RuleNb,Id,propagation) \ set_occurrence_code_id(C,O,IdNb)
+	<=>
+		occurrence_code_id(C,O,IdNb),
+		NO is O + 1,
+		set_occurrence_code_id(C,NO,IdNb).
+
+% occurrence_code_id(C,O,IdNb) ==> writeln(occurrence_code_id(C,O,IdNb)).
+
+:- chr_constraint get_occurrence_code_id/3.
+:- chr_option(mode,get_occurrence_code_id(+,+,-)).
+
+occurrence_code_id(C,O,IdNb) \ get_occurrence_code_id(C,O,X)
+	<=>
+		X = IdNb.
+
+get_occurrence_code_id(C,O,X) <=> format('no occurrence code for ~w!\n',[C:O]).
+
