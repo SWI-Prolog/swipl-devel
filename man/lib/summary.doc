@@ -55,7 +55,9 @@
 \predicatesummary{intersection}{3}{Set intersection}
 \predicatesummary{is_set}{1}{Type check for a set}
 \predicatesummary{list_to_set}{2}{Remove duplicates}
+\predicatesummary{max_list}{2}{Largest number in a list}
 \predicatesummary{member}{2}{Element is member of a list}
+\predicatesummary{min_list}{2}{Smallest number in a list}
 \predicatesummary{nextto}{3}{Y follows X in List} 
 \predicatesummary{nth0}{3}{N-th element of a list (0-based)}
 \predicatesummary{nth1}{3}{N-th element of a list (1-based)}

@@ -43,6 +43,8 @@
 	  permutation/2,		% ?List, ?Permutation
 	  flatten/2,			% +Nested, -Flat
 	  sumlist/2,			% +List, -Sum
+	  max_list/2,			% +List, -Max
+	  min_list/2,			% +List, -Min
 	  numlist/3,			% +Low, +High, -List
 
 	  is_set/1,			% set manipulation
@@ -250,6 +252,32 @@ sumlist([], Sum, Sum).
 sumlist([X|Xs], Sum0, Sum) :-
 	Sum1 is Sum0 + X,
 	sumlist(Xs, Sum1, Sum).
+
+
+%%	max_list(+List:list(number), -Max:number) is det.
+%
+%	True if Max is the largest number in List.
+
+max_list([H|T], Max) :-
+	max_list(T, H, Max).
+
+max_list([], Max, Max).
+max_list([H|T], Max0, Max) :-
+	Max1 is max(H, Max0),
+	max_list(T, Max1, Max).
+
+
+%%	min_list(+List:list(number), -Min:number) is det.
+%
+%	True if Min is the largest number in List.
+
+min_list([H|T], Min) :-
+	min_list(T, H, Min).
+
+min_list([], Min, Min).
+min_list([H|T], Min0, Min) :-
+	Min1 is min(H, Min0),
+	min_list(T, Min1, Min).
 
 
 %%	numlist(+Low, +High, -List) is det.

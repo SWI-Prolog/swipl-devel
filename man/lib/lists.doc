@@ -77,6 +77,14 @@ Unify \arg{Sum} to the result of adding all elements in \arg{List}.
 \arg{List} must be a proper list holding numbers.  See number/1 and
 is/2. for details on arithmetic.
 
+    \predicate{max_list}{2}{+List, -Max}
+True if \arg{Max} is the largest number in \arg{List}.  See also the
+function max/2.
+
+    \predicate{min_list}{2}{+List, -Min}
+True if \arg{Min} is the smallest number in \arg{List}. See also
+the function min/2.
+
     \predicate{numlist}{3}{+Low, +High, -List}
 If \arg{Low} and \arg{High} are integers with $Low \leq High$, unify
 \arg{List} to a list [$Low$, $Low+1$, \ldots $High$].  See also
