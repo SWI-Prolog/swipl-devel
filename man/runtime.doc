@@ -256,18 +256,8 @@ resource(help, text, 'help.txt').
 
 help :-
 	open_resource(help, text, In),
-	copy_stream(In, user_output),
-	close(In).
-
-copy_stream(In, Out) :-
-	get0(In, C),
-	copy_stream(C, In, Out).
-
-copy_stream(-1, _, _) :- !.
-copy_stream(C, In, Out) :-
-	put(Out, C),
-	get0(In, C2),
-	copy_stream(C2, In, Out).
+	call_cleanup(copy_stream_data(In, user_output),
+		     close(In)).
 \end{code}
 
 The predicate help/0 opens the resource as a Prolog stream.  If we are
