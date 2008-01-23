@@ -1913,6 +1913,8 @@ pasteEditor(Editor e)
   CharArray str;
   Any selection;
 
+  MustBeEditable(e);
+
   if ( d &&
        (selection=get(d, NAME_paste, EAV)) &&
        (str=checkType(selection, TypeCharArray, NIL)) )
