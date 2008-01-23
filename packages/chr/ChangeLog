@@ -2,6 +2,7 @@ Jan 23, 2008
 
   * TS: Bug fix in continuation optimization.
   * TS: Fixed singleton variable.
+  * TS: Suppress debug message.
 
 Jan 22, 2008
 
