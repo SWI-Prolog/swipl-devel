@@ -49,6 +49,10 @@ test(nogc, [true(Vars = [_])]) :-
 	call_residue_vars(gc_able, Vars).
 test(gc, [true(Vars = [_])]) :-
 	call_residue_vars((gc_able, garbage_collect), Vars).
+test(trail, [all(Vars == [[]])]) :-
+	G=(freeze(X,X=1),X=1),
+	call_residue_vars(G,Vars),
+	(true;Vars=[2]).
 
 x(_).					% avoid singleton warnings
 
