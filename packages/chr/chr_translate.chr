@@ -875,7 +875,7 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	time('assume constraint stores',chr_translate:assume_constraint_stores(Constraints)),
 	time('default constraint indices',chr_translate:set_constraint_indices(Constraints)),
 	time('check storedness assertions',chr_translate:check_storedness_assertions(Constraints)),
-	time('continuation analysis',chr_translate:success_continuation_analysis(Constraints)),
+	time('continuation analysis',chr_translate:continuation_analysis(Constraints)),
 	% end analysis
 	time('constraint code generation',chr_translate:constraints_code(Constraints,ConstraintClauses)),
 	time('validate store assumptions',chr_translate:validate_store_type_assumptions(Constraints)),
@@ -8703,7 +8703,9 @@ universal_search_iterator_end([CurrentHead|PrevHeads],NextHeads,Rule,F/A,O,Id,L,
 	Vars = [ [] | VarsAndSusps],
 	build_head(F,A,[O|Id],Vars,Head),
 	( PrevId0 = [_] ->
-		PrevId = PrevId0
+		get_success_continuation_code_id(F/A,O,PredictedPrevId),
+		% format('~w == ~w ?\n',[PrevId0,PredictedPrevId]),
+		PrevId = [PredictedPrevId] % PrevId = PrevId0
 	;
 		PrevId = [O|PrevId0]
 	),
@@ -9756,34 +9758,50 @@ check_storedness_assertion(Constraint)
 % success continuation analysis
 
 % TODO
-%	take passive occurrences into account for correctness!
 %	also use for forward jumping improvement!
+%	use Prolog indexing for generated code
+%
+% EXPORTED
+%
+%	should_skip_to_next_id(C,O)
+%
+%	get_occurrence_code_id(C,O,Id)
+%
 %vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
-success_continuation_analysis([]).
-success_continuation_analysis([C|Cs]) :-
-	% 1.
-	success_continuation_analysis(C,1),
-	% 2.
+continuation_analysis(ConstraintSymbols) :-
+	maplist(analyse_continuations,ConstraintSymbols).
+
+analyse_continuations(C) :-
+	% 1. compute success continuations of the
+	%    occurrences of constraint C
+	continuation_analysis(C,1),
+	% 2. determine for which occurrences
+	%    to skip to next code id
 	get_max_occurrence(C,MO),
 	LO is MO + 1,
 	bulk_propagation(C,1,LO),
-	% 3.
-	set_occurrence_code_id(C,1,0),
-	success_continuation_analysis(Cs).
+	% 3. determine code id for each occurrence
+	set_occurrence_code_id(C,1,0).
 
-success_continuation_analysis(C,O) :-
+% 1. Compute the success continuations of constrait C
+%-------------------------------------------------------------------------------
+
+continuation_analysis(C,O) :-
 	get_max_occurrence(C,MO),
-	( O >= MO ->
+	( O > MO ->
 		true
+	; O == MO ->
+		NextO is O + 1,
+		continuation_occurrence(C,O,NextO)
 	;
-		constraint_success_continuation(C,O,MO,NextO),
-		success_continuation_occurrence(C,O,NextO),
+		constraint_continuation(C,O,MO,NextO),
+		continuation_occurrence(C,O,NextO),
 		NO is O + 1,
-		success_continuation_analysis(C,NO)
+		continuation_analysis(C,NO)
 	).
 
-constraint_success_continuation(C,O,MO,NextO) :-
+constraint_continuation(C,O,MO,NextO) :-
 	( get_occurrence_head(C,O,Head) ->
 		NO is O + 1,
 		( between(NO,MO,NextO),
@@ -9806,11 +9824,24 @@ get_occurrence_head(C,O,Head) :-
 	; select2(Id,Head,Ids2,H2,_,_)
 	).
 
-:- chr_constraint success_continuation_occurrence/3.
-:- chr_option(mode,success_continuation_occurrence(+,+,+)).
+:- chr_constraint continuation_occurrence/3.
+:- chr_option(mode,continuation_occurrence(+,+,+)).
 
-:- chr_constraint bulk_propagation/3.
-:- chr_option(mode,bulk_propagation(+,+,+)).
+:- chr_constraint get_success_continuation_occurrence/3.
+:- chr_option(mode,get_success_continuation_occurrence(+,+,-)).
+
+continuation_occurrence(C,O,NO) \ get_success_continuation_occurrence(C,O,X)
+	<=>
+		X = NO.
+
+get_success_continuation_occurrence(C,O,X)
+	<=>
+		chr_error(internal,'Success continuation not found for ~w.\n',[C:O]).
+
+% 2. figure out when to skip to next code id
+%-------------------------------------------------------------------------------
+	% don't go beyond the last occurrence
+	% we have to go to next id for storage here
 
 :- chr_constraint skip_to_next_id/2.
 :- chr_option(mode,skip_to_next_id(+,+)).
@@ -9826,8 +9857,9 @@ should_skip_to_next_id(_,_)
 	<=>
 		fail.
 	
-	% don't go beyond the last occurrence
-	% we have to go to next id for storage here
+:- chr_constraint bulk_propagation/3.
+:- chr_option(mode,bulk_propagation(+,+,+)).
+
 max_occurrence(C,MO) \ bulk_propagation(C,O,_) 
 	<=> 
 		O >= MO	
@@ -9848,7 +9880,7 @@ bulk_propagation(C,O,LO)
 	% IMPROVE: propagate back to propagation predecessor (IF ANY)
 occurrence(C,NO,_,_,simplification) \ bulk_propagation(C,O,LO)
 	<=>
-		NO is O + 1
+		NO =:= O + 1
 	|
 		skip_to_next_id(C,O),
 		get_max_occurrence(C,MO),
@@ -9856,7 +9888,7 @@ occurrence(C,NO,_,_,simplification) \ bulk_propagation(C,O,LO)
 		bulk_propagation(C,NO,NLO).
 	% we skip the next id here
 	% and go to the next occurrence
-success_continuation_occurrence(C,O,NextO) \ bulk_propagation(C,O,LO)
+continuation_occurrence(C,O,NextO) \ bulk_propagation(C,O,LO)
 	<=>
 		NextO > O + 1 
 	|
@@ -9884,6 +9916,9 @@ occurrence(C,O,RuleNb,Id,_), passive(RuleNb,Id), skip_to_next_id(C,O)
 	|
 		PO is O - 1,
 		skip_to_next_id(C,PO).
+
+% 3. determine code id of each occurrence
+%-------------------------------------------------------------------------------
 
 :- chr_constraint set_occurrence_code_id/3.
 :- chr_option(mode,set_occurrence_code_id(+,+,+)).
@@ -9942,3 +9977,6 @@ get_occurrence_code_id(C,O,X)
 			format('no occurrence code for ~w!\n',[C:O])
 		).
 
+get_success_continuation_code_id(C,O,NextId) :-
+	get_success_continuation_occurrence(C,O,NextO),
+	get_occurrence_code_id(C,NextO,NextId).
