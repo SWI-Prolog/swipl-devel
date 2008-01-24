@@ -34,7 +34,8 @@
 	    pairs_values/2,
 	    pairs_keys/2,
 	    group_pairs_by_key/2,
-	    transpose_pairs/2
+	    transpose_pairs/2,
+	    map_list_to_pairs/3
 	  ]).
 
 /** <module> Operations on key-value lists
@@ -135,3 +136,27 @@ transpose_pairs(Pairs, Transposed) :-
 flip_pairs([], []).
 flip_pairs([Key-Val|Pairs], [Val-Key|Flipped]) :-
 	flip_pairs(Pairs, Flipped).
+
+
+%%	map_list_to_pairs(:Function, +List, -Keyed)
+%
+%	Create a key-value list by mapping each element of List.
+%	For example, if we have a list of lists we can create a
+%	list of Length-List using
+%	
+%	==
+%		map_list_to_pairs(length, ListOfLists, Pairs),
+%	==
+
+:- module_transparent
+	map_list_to_pairs/3,
+	map_list_to_pairs2/3.
+
+map_list_to_pairs(Function, List, Pairs) :-
+	map_list_to_pairs2(List, Function, Pairs).
+
+map_list_to_pairs2([], _, []).
+map_list_to_pairs2([H|T0], Pred, [K-H|T]) :-
+	call(Pred, H, K),
+	map_list_to_pairs2(T0, Pred, T).
+
