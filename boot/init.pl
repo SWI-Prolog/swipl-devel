@@ -1755,30 +1755,28 @@ The original version contained  '$t_tidy'/2  to   convert  ((a,b),  c)  to
 resulting code is simply the same), I've removed that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-'$translate_rule'((LP-->List), H) :-
-	is_list(List), !,
-	(   List = []
-	->  '$t_head'(LP, S, S, H)
-        ;   List = [X]
-        ->  '$t_head'(LP, [X|S], S, H)
-        ;   '$append'(List, SR, S),
-            '$extend'(LP, S, SR, H)
-        ).
+'$translate_rule'(((LP,MNT)-->RP),(H:-B)) :- !,
+	( var(LP) -> throw(error(instantiation_error,_)) ; true ),
+	'$extend'(LP, S0, SR, H),
+	'$t_body'(RP, S0, S1, B0),
+	'$t_body'(MNT, SR, S1,M),
+	'$body_optimized'((B0,M),B1,S0),
+	'$body_optimized'(B1,B,SR).
 '$translate_rule'((LP-->RP), (H:-B)):-
-	'$t_head'(LP, S0, SR, H),
-	'$t_body'(RP, S0, SR, B0),
+	'$extend'(LP, S0, S, H),
+	'$t_body'(RP, S0, S, B0),
+	'$body_optimized'(B0,B,S0).
+
+'$body_optimized'(B0,B,S0) :-
 	(   B0 = (S00=X, B),		% map a(H,T) :- H = [a,b|T], b(T)
 	    S00 == S0
-	->  S0 = X			% into a([a,b|T]) :- b(T).
+	->  S0 = X			% into a([a,b|T0]) :- b(T0, T).
+	;   B0 = (S00=X),		% map a(H,T) :- H = [a,b|T]
+	    S00 == S0
+	->  S0 = X,			% into a([a,b|T], T)
+	    B = true
 	;   B0 = B
 	).
-
-'$t_head'((LP, List), S, SR, H) :-
-	'$append'(List, SR, List2), !,
-	'$extend'(LP, S, List2, H).
-'$t_head'(LP, S, SR, H) :-
-	'$extend'(LP, S, SR, H).
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 On the DCG Translation of {}
@@ -1886,11 +1884,27 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 :- dynamic  '$extend_cache'/4.
 :- volatile '$extend_cache'/4.
 
+'$dcg_reserved'([]).
+'$dcg_reserved'([_|_]).
+'$dcg_reserved'({_}).
+'$dcg_reserved'({}).
+'$dcg_reserved'(!).
+'$dcg_reserved'((_,_)).
+'$dcg_reserved'((_;_)).
+'$dcg_reserved'((_->_)).
+'$dcg_reserved'((_*->_)).
+'$dcg_reserved'((_-->_)).
+
+'$extend'(V, _, _, _) :-
+	var(V), !,
+	throw(error(instantiation_error,_)).
 '$extend'(M:OldT, A1, A2, M:NewT) :- !,
 	'$extend'(OldT, A1, A2, NewT).
 '$extend'(OldT, A1, A2, NewT) :-
 	'$extend_cache'(OldT, A1, A2, NewT), !.
 '$extend'(OldT, A1, A2, NewT) :-
+	( callable(OldT) -> true ; throw(error(type_error(callable,OldT),_)) ),
+	( '$dcg_reserved'(OldT) -> throw(error(permission_error(define,dcg_nonterminal,OldT),_)) ; true ),
 	functor(OldT, Name, Arity),
 	functor(CopT, Name, Arity),
 	NewArity is Arity+2,
@@ -1921,6 +1935,7 @@ phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
 phrase(RuleSet, Input, Rest) :-
 	strip_module(RuleSet, M, Plain),
+	( var(Plain) -> throw(error(instantiation_error,_)) ; true ),
 	'$t_body'(Plain, S0, S, Body),
 	Input = S0, Rest = S,
 	M:Body.
