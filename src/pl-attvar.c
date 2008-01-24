@@ -580,6 +580,201 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
   fail;
 }
 
+#ifdef O_CALL_RESIDUE
+
+		 /*******************************
+		 *	   CALL RESIDUE		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+$new_choice_point(-Chp) is det.
+
+Unify Chp with a reference to a new choicepoint. 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static
+PRED_IMPL("$get_choice_point", 1, get_choice_point, 0)
+{ PRED_LD
+  Choice ch;
+
+  for(ch=LD->choicepoints; ch; ch=ch->parent)
+  { if ( ch->type == CHP_CLAUSE )
+    { intptr_t off = (Word)ch - (Word)lBase;
+
+      if ( PL_unify_integer(A1, off) )
+	succeed;
+    }
+  }
+
+  fail;
+}
+
+
+static inline size_t
+offset_cell(Word p)
+{ word m = *p;				/* was get_value(p) */
+  size_t offset;
+
+  if ( storage(m) == STG_LOCAL )
+    offset = wsizeofInd(m) + 1;
+  else
+    offset = 0;
+
+  return offset;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+has_attributes_after(Word av, Choice  ch)  is   true  if  the attributed
+variable av has attributes created after   the choicepoint ch. Note that
+the current implementation only deals with  attributes created after the
+ch or an attribute value  set  to   a  compound  term  created after the
+choicepoint ch.  Notably atomic value-changes are *not* tracked.
+
+1 ?- put_attr(X, a, 1), call_residue_vars(put_attr(X, a, 2), V).
+
+V = []
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+has_attributes_after(Word av, Choice ch ARG_LD)
+{ Word l;
+
+  DEBUG(1, Sdprintf("has_attributes_after(%s, %p)\n",
+		    vName(av), ch->mark.globaltop));
+
+  deRef(av);
+  assert(isAttVar(*av));
+  l = valPAttVar(*av);
+
+  for(;;)
+  { deRef(l);
+    
+    if ( isNil(*l) )
+    { fail;
+    } else if ( isTerm(*l) )
+    { Functor f = valueTerm(*l);
+
+      DEBUG(1, Sdprintf("\tterm at %p\n", f));
+      
+      if ( (Word)f >= ch->mark.globaltop )
+	succeed;
+
+      if ( f->definition == FUNCTOR_att3 )
+      { if ( isTerm(f->arguments[1]) &&
+	     (Word)valueTerm(f->arguments[1]) >= ch->mark.globaltop )
+	  succeed;
+
+	l = &f->arguments[2];
+      } else
+      { DEBUG(0, Sdprintf("Illegal attvar\n"));
+	fail;
+      }
+    } else
+    { DEBUG(0, Sdprintf("Illegal attvar\n"));
+      fail;
+    }
+  }
+}
+
+
+static void
+scan_trail(int set)
+{ GET_LD
+  TrailEntry te;
+
+  for(te=tTop-1; te>=tBase; te--)
+  { if ( isTrailVal(te->address) )
+    { Word p = trailValP(te->address);
+
+      te--;
+      if ( isAttVar(*p) )
+      {	DEBUG(1, Sdprintf("Trailed attvar assignment at %p\n", p));
+	if ( set )
+	  *p |= MARK_MASK;
+	else
+	  *p &= ~MARK_MASK;
+      }
+    }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+'$attvars_after_choicepoint'(+Chp, -Vars) is det.
+
+Find all attributed variables that got   new  attributes after Chp. Note
+that the trailed assignment of  an   attributed  variable  creates a new
+attributed variable, which is why we must scan the trail stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static
+PRED_IMPL("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
+{ PRED_LD
+  intptr_t off;
+  Choice ch;
+  Word gp, gend, list, tailp;
+  size_t minfree = 0;
+
+retry:
+  if ( !PL_get_intptr_ex(A1, &off) )
+    fail;
+  
+  ch = (Choice)((Word)lBase+off);
+  list = tailp = allocGlobalNoShift(1);
+  if ( !list )
+    goto grow;
+  setVar(*list);
+
+  startCritical;
+  scan_trail(TRUE);
+
+  for(gp=gBase, gend = gTop; gp<gend; gp += offset_cell(gp)+1)
+  { if ( isAttVar(*gp) &&
+	 !is_marked(gp) &&
+	 has_attributes_after(gp, ch PASS_LD) )
+    { Word p = allocGlobalNoShift(3);
+
+      if ( p )
+      { p[0] = FUNCTOR_dot2;
+	p[1] = makeRefG(gp);
+	setVar(p[2]);
+	*tailp = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	tailp = &p[2];
+      } else
+      { gTop = gend;
+	scan_trail(FALSE);
+	endCritical;
+	goto grow;
+      }
+    }
+  }
+  
+  scan_trail(FALSE);
+  endCritical;
+
+  if ( list == tailp )
+  { gTop = gend;
+    return PL_unify_nil(A2);
+  } else
+  { *tailp = ATOM_nil;
+    return PL_unify(A2, wordToTermRef(list));
+  }
+
+grow:
+  if ( minfree == 0 )
+  { garbageCollect(NULL, NULL);
+    minfree = 1024;
+  } else
+  { minfree *= 2;
+  }
+  requireStack(global, minfree);
+  goto retry;
+}
+
+#endif /*O_CALL_RESIDUE*/
+
+
 		 /*******************************
 		 *	    REGISTRATION	*
 		 *******************************/
@@ -592,6 +787,10 @@ BeginPredDefs(attvar)
   PRED_DEF("get_attrs", 2, get_attrs, 0)
   PRED_DEF("put_attrs", 2, put_attrs, 0)
   PRED_DEF("$freeze",   2, freeze,    PL_FA_TRANSPARENT)
+#ifdef O_CALL_RESIDUE
+  PRED_DEF("$get_choice_point", 1, get_choice_point, 0)
+  PRED_DEF("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
+#endif
 EndPredDefs
 
 #endif /*O_ATTVAR*/

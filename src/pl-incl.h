@@ -148,6 +148,7 @@ handy for it someone wants to add a data type to the system.
 #define O_ATOMGC		1
 #define O_CLAUSEGC		1
 #define O_ATTVAR		1
+#define O_CALL_RESIDUE		1
 #define O_GVAR			1
 #define O_CYCLIC		1
 #ifdef HAVE_GMP_H
@@ -2071,6 +2072,7 @@ typedef struct
 #define PROCEDURE_setup_and_call_cleanup4 \
 				(GD->procedures.setup_and_call_cleanup4)
 #define PROCEDURE_dwakeup1		(GD->procedures.dwakeup1)
+#define PROCEDURE_call_residue_vars2	(GD->procedures.call_residue_vars2)
 #define PROCEDURE_dthread_init0		(GD->procedures.dthread_init0)
 #define PROCEDURE_exception_hook4	(GD->procedures.exception_hook4)
 

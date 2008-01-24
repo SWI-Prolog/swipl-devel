@@ -697,6 +697,24 @@ term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
 #endif /*O_GVAR*/
 
 
+#ifdef O_CALL_RESIDUE
+static void
+mark_attvars()
+{ GET_LD
+  Word gp;
+
+  for( gp = gBase; gp < gTop; gp += (offset_cell(gp)+1) )
+  { if ( isAttVar(*gp) && !is_marked(gp) )
+    { local_marked--;			/* see mark_variable() */
+      total_marked++;
+      DEBUG(3, Sdprintf("mark_attvars(): marking %p\n", gp));
+      mark_variable(gp PASS_LD);
+    }
+  }
+}
+#endif /*O_CALL_RESIDUE*/
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 clearUninitialisedVarsFrame(LocalFrame fr, Code PC);
 
@@ -797,6 +815,14 @@ mark_environments(LocalFrame fr, Code PC)
 		      levelFrame(fr), predicateName(fr->predicate)));
 
     clearUninitialisedVarsFrame(fr, PC);
+#ifdef O_CALL_RESIDUE
+    if ( fr->predicate == PROCEDURE_call_residue_vars2->definition )
+    { if ( !LD->gc.marked_attvars )
+      { mark_attvars();
+	LD->gc.marked_attvars = TRUE;
+      }
+    }
+#endif    
 
     slots  = slotsInFrame(fr, PC);
 #if O_SECURE
@@ -2154,6 +2180,7 @@ garbageCollect(LocalFrame fr, Choice ch)
   relocation_cells  = 0;
   relocated_cells   = 0;
   local_marked	    = 0;
+  LD->gc.marked_attvars = FALSE;
 
   requireStack(global, sizeof(word));
   requireStack(trail, sizeof(struct trail_entry));
@@ -2220,7 +2247,6 @@ word
 pl_garbage_collect(term_t d)
 { 
 #if O_DEBUG
-  GET_LD
   int ol = GD->debug_level;
   int nl;
 
