@@ -3,3 +3,4 @@ test.*
 latex.tex
 pldoc.tex
 pldoc.sty
+server/man_server.pl
