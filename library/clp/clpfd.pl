@@ -597,7 +597,7 @@ domain_subtract(split(S, Left0, Right0), _, Sub, D) :-
    Convert domain to a list of disjoint intervals From-To.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-domain_intervals(D, Is) :- domain_intervals(D, Is, []).
+domain_intervals(D, Is) :- phrase(domain_intervals(D), Is).
 
 domain_intervals(split(_, Left, Right)) -->
         domain_intervals(Left), domain_intervals(Right).
@@ -798,7 +798,7 @@ domain_contract_less(D0, M, D) :-
         (   domain_infimum(D1, n(_)), domain_supremum(D1, n(_)) ->
             % bounded domain
             domain_intervals(D1, Is),
-            intervals_contract_less(Is, M1, Cs, []),
+            phrase(intervals_contract_less(Is, M1), Cs),
             list_to_domain(Cs, D)
         ;   domain_contract_less_(D1, M1, D)
         ).
@@ -886,7 +886,7 @@ intervals_to_domain(Is, D) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-%% in(+Var, +Domain)
+%% ?Var in +Domain
 %
 %  Constrain Var to elements of Domain. Domain is one of:
 %
@@ -911,37 +911,18 @@ fd_variable(V) :-
         ;   type_error(integer, V)
         ).
 
-%% ins(?Vars, +Domain)
+%% +Vars ins +Domain
 %
-%  Constrain the variables or integers in Vars to Domain.
+%  Constrain the variables in the list Vars to elements of Domain.
 
 Vs ins D :-
-        acyclic_list(Vs),
+        must_be(list, Vs),
         maplist(fd_variable, Vs),
         (   is_drep(D) -> true
         ;   domain_error(clpfd_domain, D)
         ),
         drep_to_domain(D, Dom),
         domains(Vs, Dom).
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Set the experimental flag "clpfd_closed_lists" to "true" to make
-   predicates like ins/2 and sum/3 only accept closed lists.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-acyclic_list(Ls) :-
-        (   current_prolog_flag(clpfd_closed_lists, true) ->
-            must_be(list, Ls)
-        ;   cyclic_list(Ls) -> type_error(list, Ls)
-        ;   true
-        ).
-
-cyclic_list(L0) :- cyclic_term(L0), cyclic_list(L0, []).
-
-cyclic_list([_|Tail], Seen) :-
-        \+ var(Tail),
-        (   memberchk(Tail, Seen) -> true ; cyclic_list(Tail, [Tail|Seen]) ).
-
 
 %% indomain(?Var)
 %
@@ -1246,8 +1227,7 @@ optimize(Direction, Selection, Order, Choice, Vars, Expr0, Expr) :-
 % Constrain Vars to be pairwise distinct.
 
 all_different(Ls) :-
-        acyclic_list(Ls),
-        length(Ls, _),
+        must_be(list, Ls),
         all_different(Ls, []),
         do_queue.
 
@@ -1271,7 +1251,7 @@ all_different([X|Right], Left) :-
 %       ==
 
 sum(Ls, Op, Value) :-
-        acyclic_list(Ls),
+        must_be(list, Ls),
         maplist(fd_variable, Ls),
         (   Op == (#=), integer(Value) ->
             make_propagator(sum_eq(Ls,Value), Prop),
@@ -1793,7 +1773,7 @@ drep_to_intervals(D1 \/ D2) -->
         drep_to_intervals(D1), drep_to_intervals(D2).
 
 drep_to_domain(DR, D) :-
-        drep_to_intervals(DR, Is0, []),
+        phrase(drep_to_intervals(DR), Is0),
         merge_intervals(Is0, Is1),
         intervals_to_domain(Is1, D).
 
@@ -1840,18 +1820,20 @@ get(X, Dom, Inf, Sup, Ps) :-
         domain_supremum(Dom, Sup).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Set the experimental flag 'clpfd_propagation' to 'terminating' to
-   make propagation terminating. Currently, this is done by allowing
-   the left and right boundaries, as well as the distance between the
-   smallest and largest number occurring in the domain representation
-   to be changed at most once after a constraint is posted, unless the
-   domain is bounded.
+   By default, propagation always terminates. Currently, this is
+   ensured by allowing the left and right boundaries, as well as the
+   distance between the smallest and largest number occurring in a
+   domain to be changed at most once after a constraint is posted,
+   unless the domain is bounded. Set the experimental Prolog flag
+   'clpfd_propagation' to 'full' to make the solver propagate as much
+   as possible. This can make some queries non-terminating, for
+   example: X #> abs(X), or: X #> Y, Y #> X, X #> 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 put(X, Dom, Pos) :-
-        (   current_prolog_flag(clpfd_propagation, terminating) ->
-            put_terminating(X, Dom, Pos)
-        ;   put_full(X, Dom, Pos)
+        (   current_prolog_flag(clpfd_propagation, full) ->
+            put_full(X, Dom, Pos)
+        ;   put_terminating(X, Dom, Pos)
         ).
 
 put_terminating(X, Dom, Ps) :-
@@ -1918,13 +1900,12 @@ domain_largest_finite(split(_, _, R), L) :- domain_largest_finite(R, L).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 reinforce(X) :-
-        (   current_prolog_flag(clpfd_propagation, terminating) ->
-            % reinforce([], X), do_queue
-            collect_variables(X, [], Vs),
+        (   current_prolog_flag(clpfd_propagation, full) ->
+            % full propagation propagates everything in any case             
+            true
+        ;   collect_variables(X, [], Vs),
             maplist(reinforce_, Vs),
             do_queue
-        ;   % full propagation reduces to fixpoint anyway
-            true
         ).
 
 collect_variables(X, Vs0, Vs) :-
@@ -2064,7 +2045,7 @@ lex_le([V1|V1s], [V2|V2s]) :-
 % list Tuples are constrained to be elements of Relation.
 
 tuples_in(Tuples, Relation) :-
-        acyclic_list(Tuples),
+        must_be(list, Tuples),
         must_be(list, Relation),
         must_be(ground, Relation),
         maplist(must_be(list), Relation),
@@ -2938,7 +2919,7 @@ min_divide(L1,U1,L2,U2,Min) :-
 
 %all_distinct(Ls) :- all_different(Ls).
 all_distinct(Ls) :-
-        acyclic_list(Ls),
+        must_be(list, Ls),
         length(Ls, _),
         MState = mutable(passive,_),
         all_distinct(Ls, [], MState),
