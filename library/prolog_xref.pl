@@ -579,9 +579,10 @@ xref_meta(findall(_V,G,_L,_T),	[G]).
 xref_meta(setof(_V, G, _L),	[G]).
 xref_meta(bagof(_V, G, _L),	[G]).
 xref_meta(forall(A, B),		[A, B]).
-xref_meta(maplist(G, _),	[G+1]).
-xref_meta(maplist(G, _, _),	[G+2]).
-xref_meta(maplist(G, _, _, _),	[G+3]).
+xref_meta(maplist(G,_),		[G+1]).
+xref_meta(maplist(G,_,_),	[G+2]).
+xref_meta(maplist(G,_,_,_),	[G+3]).
+xref_meta(maplist(G,_,_,_,_),	[G+4]).
 xref_meta(checklist(G, _L),	[G+1]).
 xref_meta(sublist(G, _, _),	[G+1]).
 xref_meta(include(G, _, _),	[G+1]).

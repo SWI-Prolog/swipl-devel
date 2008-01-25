@@ -31,8 +31,9 @@
 
 :- module('$apply',
 	  [ maplist/2,			% :Goal, +List
-	    maplist/3,			% :Goal, ?List, ?List
-	    maplist/4,			% :Goal, ?List, ?List, ?List
+	    maplist/3,			% :Goal, ?List1, ?List2
+	    maplist/4,			% :Goal, ?List1, ?List2, ?List3
+	    maplist/5,			% :Goal, ?List1, ?List2, ?List3, List4
 	    forall/2			% :Goal, :Goal
 	  ]).
 
@@ -43,6 +44,8 @@
 	maplist2/3, 
 	maplist/4, 
 	maplist2/4, 
+	maplist/5, 
+	maplist2/5, 
 	forall/2.
 
 %	maplist(:Goal, +List)
@@ -72,10 +75,10 @@ maplist2([Elem1|Tail1], [Elem2|Tail2], Goal) :-
 	call(Goal, Elem1, Elem2), 
 	maplist2(Tail1, Tail2, Goal).
 
-%	maplist(:Goal, ?List1, ?List2, ?List)
+%	maplist(:Goal, ?List1, ?List2, ?List3)
 %
 %	True if Goal can succesfully be applied to all succesive triples
-%	of elements of List1 and List2.
+%	of elements of List1..List3.
 
 maplist(Goal, List1, List2, List3) :-
 	maplist2(List1, List2, List3, Goal).
@@ -84,6 +87,19 @@ maplist2([], [], [], _).
 maplist2([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], Goal) :-
 	call(Goal, Elem1, Elem2, Elem3), 
 	maplist2(Tail1, Tail2, Tail3, Goal).
+
+%	maplist(:Goal, ?List1, ?List2, ?List3, List4)
+%
+%	True if Goal  can  succesfully  be   applied  to  all  succesive
+%	quadruples of elements of List1..List4
+
+maplist(Goal, List1, List2, List3, List4) :-
+	maplist2(List1, List2, List3, List4, Goal).
+
+maplist2([], [], [], [], _).
+maplist2([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
+	call(Goal, Elem1, Elem2, Elem3, Elem4), 
+	maplist2(Tail1, Tail2, Tail3, Tail4, Goal).
 
 %	forall(+Condition, +Action)
 %	
