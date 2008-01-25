@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.47 Reference Manual: Section 4.16</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section 4.16</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="examineprog.html">
@@ -107,7 +107,7 @@ color: #202020;
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -273,10 +273,25 @@ Equivalent to <A NAME="idx:open4:669"></A><A class="pred" href="IO.html#open/4">
 with an empty option-list.</DD>
 <DT class="pubdef"><A NAME="open_null_stream/1"><STRONG>open_null_stream</STRONG>(<VAR>?Stream</VAR>)</A></DT>
 <DD class="defbody">
-Open a stream that produces no output. All counting functions are 
-enabled on such a stream. An attempt to read from a null-stream will 
-immediately signal end-of-file. Similar to Unix <CODE>/dev/null</CODE>.
-<VAR>Stream</VAR> can be an atom, giving the null-stream an alias name.</DD>
+Open an output stream that produces no output. All counting functions 
+are enabled on such a stream. It can be used to discard output (like 
+Unix <CODE>/dev/null</CODE>) or exploit the counting properties. The 
+initial encoding of <VAR>Stream</VAR> is <CODE>utf8</CODE>, enabling 
+arbitrary Unicode output. The encoding can be changed to determine 
+byte-counts of the output in a particular encoding or validate output is 
+possible in a particular encoding. For example, the code below 
+determines the number of characters emitted when writing <VAR>Term</VAR>.
+
+<PRE class="code">
+write_length(Term, Len) :-
+        open_null_stream(Out),
+        write(Out, Term),
+        character_count(Out, Len0),
+        close(Out),
+        Len = Len0.
+</PRE>
+
+</DD>
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="close/1"><STRONG>close</STRONG>(<VAR>+Stream</VAR>)</A></DT>
 <DD class="defbody">
 Close the specified stream. If <VAR>Stream</VAR> is not open an error 

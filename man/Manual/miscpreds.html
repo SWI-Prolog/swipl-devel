@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.47 Reference Manual: Section 4.43</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section 4.43</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="DDE.html">
@@ -107,7 +107,7 @@ color: #202020;
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -152,7 +152,7 @@ fileExists)
 <DT class="pubdef"><A NAME="dwim_match/3"><STRONG>dwim_match</STRONG>(<VAR>+Atom1, 
 +Atom2, -Difference</VAR>)</A></DT>
 <DD class="defbody">
-Equivalent to <A NAME="idx:dwimmatch2:1125"></A><A class="pred" href="miscpreds.html#dwim_match/2">dwim_match/2</A>, 
+Equivalent to <A NAME="idx:dwimmatch2:1126"></A><A class="pred" href="miscpreds.html#dwim_match/2">dwim_match/2</A>, 
 but unifies <VAR>Difference</VAR> with an atom identifying the 
 difference between <VAR>Atom1</VAR> and <VAR>Atom2</VAR>. The return 
 values are (in the same order as above): <CODE>equal</CODE>,
@@ -200,7 +200,7 @@ system's timer granularity. A negative time causes the timer to return
 immediately. On most non-realtime operating systems we can only ensure 
 execution is suspended for <B>at least</B> <VAR>Time</VAR> seconds.
 
-<P>On Unix systems the <A NAME="idx:sleep1:1126"></A><A class="pred" href="miscpreds.html#sleep/1">sleep/1</A> 
+<P>On Unix systems the <A NAME="idx:sleep1:1127"></A><A class="pred" href="miscpreds.html#sleep/1">sleep/1</A> 
 predicate is realised ---in order of preference--- by nanosleep(), 
 usleep(), select() if the time is below 1 minute or sleep(). On Windows 
 systems Sleep() is used.

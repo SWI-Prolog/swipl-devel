@@ -1271,6 +1271,7 @@ print_char('$', Out) :- !, write(Out, '\\$').
 print_char('#', Out) :- !, write(Out, '\\#').
 print_char('%', Out) :- !, write(Out, '\\%').
 print_char('\\',Out) :- !, write(Out, '\\bsl{}').
+print_char('^', Out) :- !, write(Out, '$\\wedge$').
 print_char(C,   Out) :- put_char(Out, C).
 
 

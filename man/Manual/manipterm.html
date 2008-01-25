@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.47 Reference Manual: Section 4.20</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section 4.20</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="termrw.html">
@@ -107,7 +107,7 @@ color: #202020;
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -353,7 +353,15 @@ Version of <A NAME="idx:copyterm2:864"></A><A class="pred" href="manipterm.html#
 that also copies ground terms and therefore ensures destructive 
 modification using <A NAME="idx:setarg3:865"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A> 
 does not affect the copy. See also <A NAME="idx:nbsetval2:866"></A><A class="pred" href="gvar.html#nb_setval/2">nb_setval/2</A>, <A NAME="idx:nblinkval2:867"></A><A class="pred" href="gvar.html#nb_linkval/2">nb_linkval/2</A>, <A NAME="idx:nbsetarg3:868"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A> 
-and <A NAME="idx:nblinkarg3:869"></A><A class="pred" href="manipterm.html#nb_linkarg/3">nb_linkarg/3</A>.
+and <A NAME="idx:nblinkarg3:869"></A><A class="pred" href="manipterm.html#nb_linkarg/3">nb_linkarg/3</A>.</DD>
+<DT class="pubdef"><span class="pred-tag">[semidet]</span><A NAME="same_term/2"><STRONG>same_term</STRONG>(<VAR>@T1, 
+@T2</VAR>)</A></DT>
+<DD class="defbody">
+True if <VAR>T1</VAR> and <VAR>T2</VAR> are the equivalent and will 
+remain the equivalent, even if <A NAME="idx:setarg3:870"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A> 
+is used on either of them. This means
+<VAR>T1</VAR> and <VAR>T2</VAR> are the same variable, equivalent atomic 
+data or a compound term allocated at the same address.
 </DD>
 </DL>
 

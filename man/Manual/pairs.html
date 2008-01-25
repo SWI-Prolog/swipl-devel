@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.47 Reference Manual: Section A.16</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section A.17</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="ordsets.html">
@@ -107,7 +107,7 @@ color: #202020;
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -127,7 +127,7 @@ font-size: smaller;
 <A class="nav" href="prologxref.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.16"><SPAN class="sec-nr">A.16</SPAN> <SPAN class="sec-title">pairs.pl 
+<H2><A NAME="sec:A.17"><SPAN class="sec-nr">A.17</SPAN> <SPAN class="sec-title">pairs.pl 
 -- Operations on key-value lists</SPAN></A></H2>
 
 <P><A NAME="sec:pairs"></A>
@@ -192,8 +192,19 @@ where Group is the list of <VAR>Values</VAR> associated with <VAR>Key</VAR>. </T
 -Transposed</VAR>)</A></DT>
 <DD class="defbody">
 Swap Key-Value to Value-Key and sort the result on Value (the new key) 
-using <A class="pred" href="builtinlist.html#keysort/2">keysort/2</A>.
-</DD>
+using <A class="pred" href="builtinlist.html#keysort/2">keysort/2</A>.</DD>
+<DT class="pubdef"><A NAME="map_list_to_pairs/3"><STRONG>map_list_to_pairs</STRONG>(<VAR>:Function, 
++List, -Keyed</VAR>)</A></DT>
+<DD class="defbody">
+Create a key-value list by mapping each element of <VAR>List</VAR>. For 
+example, if we have a list of lists we can create a list of Length-<VAR>List</VAR> 
+using
+
+<PRE class="code">
+        map_list_to_pairs(length, ListOfLists, Pairs),
+</PRE>
+
+<P></DD>
 </DL>
 
 <P></BODY></HTML>

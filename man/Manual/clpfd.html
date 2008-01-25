@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.47 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section A.8</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="clpclp_distinct.html">
@@ -107,7 +107,7 @@ color: #202020;
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -127,7 +127,7 @@ font-size: smaller;
 <A class="nav" href="clpqr.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.7"><SPAN class="sec-nr">A.7</SPAN> <SPAN class="sec-title">clpfd.pl 
+<H2><A NAME="sec:A.8"><SPAN class="sec-nr">A.8</SPAN> <SPAN class="sec-title">clpfd.pl 
 -- Constraint Logic Programming over Finite Domains</SPAN></A></H2>
 
 <P><A NAME="sec:clpfd"></A>
@@ -139,35 +139,15 @@ font-size: smaller;
 <P>Constraint programming is a declarative formalism that lets you 
 describe conditions a solution should satisfy. This library provides 
 CLP(FD), Constraint Logic Programming over Finite Domains. It can be 
-used to model and solve various combinatorial problems from diverse 
-areas such as planning, scheduling, and graph colouring.
+used to model and solve various combinatorial problems such as planning, 
+scheduling and allocation tasks.
 
-<P>As an example, consider the cryptoarithmetic puzzle SEND + MORE = 
-MONEY, where different letters denote distinct integers between 0 and 9. 
-It can be modeled in CLP(FD) as follows:
-
-<PRE class="code">
-:- use_module(library(clpfd)).
-
-puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
-        Vars = [S,E,N,D,M,O,R,Y], Vars ins 0..9,
-        all_different(Vars),
-                  S*1000 + E*100 + N*10 + D +
-                  M*1000 + O*100 + R*10 + E #=
-        M*10000 + O*1000 + N*100 + E*10 + Y,
-        M #&gt; 0, S #&gt; 0,
-        label(Vars).
-
-?- puzzle(P).
-P = ([9, 5, 6, 7]+[1, 0, 8, 5]=[1, 0, 6, 5, 2])
-</PRE>
-
-<P>Most predicates of this library are <I>constraints</I>: They 
-generalise arithmetic evaluation of integer expressions in that 
-propagation can proceed in all directions. This library also provides <I>enumeration</I>
-<I>predicates</I>, which let you systematically search for solutions on 
-variables whose domains have become finite. A finite domain <I>expression</I> 
-is one of:
+<P>Most predicates of this library are finite domain <I>constraints</I>, 
+which are relations over integers. They generalise arithmetic evaluation 
+of integer expressions in that propagation can proceed in all 
+directions. This library also provides <I>enumeration</I> <I>predicates</I>, 
+which let you systematically search for solutions on variables whose 
+domains have become finite. A finite domain <I>expression</I> is one of:
 <BLOCKQUOTE>
 <TABLE BORDER=2 FRAME=box RULES=groups>
 <TR VALIGN=top><TD>an integer</TD><TD>Given value </TD></TR>
@@ -175,7 +155,7 @@ is one of:
 <TR VALIGN=top><TD>-Expr</TD><TD>Unary minus </TD></TR>
 <TR VALIGN=top><TD>Expr + Expr</TD><TD>Addition </TD></TR>
 <TR VALIGN=top><TD>Expr * Expr</TD><TD>Multiplication </TD></TR>
-<TR VALIGN=top><TD>Expr - Expr.</TD><TD>Subtraction </TD></TR>
+<TR VALIGN=top><TD>Expr - Expr</TD><TD>Subtraction </TD></TR>
 <TR VALIGN=top><TD>min(Expr,Expr)</TD><TD>Minimum of two expressions </TD></TR>
 <TR VALIGN=top><TD>max(Expr,Expr)</TD><TD>Maximum of two expressions </TD></TR>
 <TR VALIGN=top><TD>Expr mod Expr</TD><TD>Remainder of integer division </TD></TR>
@@ -185,8 +165,7 @@ is one of:
 
 </BLOCKQUOTE>
 
-<P>The most important finite domain <I>constraints</I> are given in the 
-table below.
+<P>The most important finite domain constraints are:
 <BLOCKQUOTE>
 <TABLE BORDER=2 FRAME=box RULES=groups>
 <TR VALIGN=top><TD>Expr1 <CODE>#&gt;=</CODE> Expr2</TD><TD>Expr1 is 
@@ -205,15 +184,16 @@ strictly smaller than Expr2 </TD></TR>
 
 </BLOCKQUOTE>
 
-<P>The constraints <A class="pred" href="clpbounds.html##=/2">#=/2</A>, <A class="pred" href="clpbounds.html##\=/2">#\=/2</A>, <A class="pred" href="clpbounds.html##</2">#&lt;/2</A>, <A class="pred" href="clpbounds.html##>/2">#&gt;/2</A>, <A class="pred" href="clpbounds.html##=</2">#=&lt;/2</A>, <A class="pred" href="clpbounds.html##>=/2">#&gt;=/2</A> 
-and <A class="pred" href="clpfd.html##\/1">#\/1</A> can be
+<P>The constraints <A class="pred" href="clpbounds.html##=/2">#=/2</A>, <A class="pred" href="clpbounds.html##\=/2">#\=/2</A>, <A class="pred" href="clpbounds.html##</2">#&lt;/2</A>, <A class="pred" href="clpbounds.html##>/2">#&gt;/2</A>, <A class="pred" href="clpbounds.html##=</2">#=&lt;/2</A>, 
+and <A class="pred" href="clpbounds.html##>=/2">#&gt;=/2</A> can be
 <I>reified</I>, which means reflecting their truth values into Boolean 
-0/1 variables. Let P and Q denote conjunctions (<A class="pred" href="clpfd.html##/\/2">#/\/2</A>) 
-or disjunctions (<A class="pred" href="clpfd.html##\//2">#\//2</A>) of 
-reifiable constraints or Boolean variables, then:
+values represented by the integers 0 and 1. Let P and Q denote reifiable 
+constraints or Boolean variables, then:
 <BLOCKQUOTE>
 <TABLE BORDER=2 FRAME=box RULES=groups>
 <TR VALIGN=top><TD><CODE>#\</CODE> Q</TD><TD>True iff Q is false </TD></TR>
+<TR VALIGN=top><TD>P <CODE>#\/</CODE> Q</TD><TD>True iff either P or Q </TD></TR>
+<TR VALIGN=top><TD>P <CODE>#/\</CODE> Q</TD><TD>True iff both P and Q </TD></TR>
 <TR VALIGN=top><TD>P <CODE>#&lt;==&gt;</CODE> Q</TD><TD>True iff P and Q 
 are equivalent </TD></TR>
 <TR VALIGN=top><TD>P <CODE>#==&gt;</CODE> Q</TD><TD>True iff P implies Q </TD></TR>
@@ -222,11 +202,45 @@ are equivalent </TD></TR>
 
 </BLOCKQUOTE>
 
-<P>If SWI Prolog is compiled with support for arbitrary precision 
-integers (using GMP), there is no limit on the size of domains.
+<P>As an example, consider the cryptoarithmetic puzzle SEND + MORE = 
+MONEY, where different letters denote distinct integers between 0 and 9. 
+It can be modeled in CLP(FD) as follows:
+
+<PRE class="code">
+:- use_module(library(clpfd)).
+
+puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
+        Vars = [S,E,N,D,M,O,R,Y],
+        Vars ins 0..9,
+        all_different(Vars),
+                  S*1000 + E*100 + N*10 + D +
+                  M*1000 + O*100 + R*10 + E #=
+        M*10000 + O*1000 + N*100 + E*10 + Y,
+        M #&gt; 0, S #&gt; 0.
+</PRE>
+
+<P>Sample query and its result:
+
+<PRE class="code">
+?- puzzle(As+Bs=Cs).
+As = [_G58{8..9}, _G61{2..9}, _G64{2..9}, _G67{2..9}],
+Bs = [1, 0, _G76{2..9}, _G61{2..9}],
+Cs = [1, 0, _G64{2..9}, _G61{2..9}, _G94{2..9}]
+</PRE>
+
+<P>Here, the constraint solver could deduce more stringent bounds for 
+many variables. Labeling can be used to search for solutions:
+
+<PRE class="code">
+?- puzzle(As+Bs=Cs), append([As,Bs,Cs], Vs), label(Vs).
+As = [9, 5, 6, 7],
+Bs = [1, 0, 8, 5],
+Cs = [1, 0, 6, 5, 2],
+Vs = [9, 5, 6, 7, 1, 0, 8, 5, 1|...]
+</PRE>
 
 <DL>
-<DT class="pubdef"><A NAME="in/2"><VAR>+Var</VAR> <STRONG>in</STRONG> <VAR>+Domain</VAR></A></DT>
+<DT class="pubdef"><A NAME="in/2"><VAR>?Var</VAR> <STRONG>in</STRONG> <VAR>+Domain</VAR></A></DT>
 <DD class="defbody">
 Constrain <VAR>Var</VAR> to elements of <VAR>Domain</VAR>. <VAR>Domain</VAR> 
 is one of:
@@ -246,9 +260,9 @@ The union of Domain1 and Domain2.
 </DL>
 
 </DD>
-<DT class="pubdef"><A NAME="ins/2"><VAR>?Vars</VAR> <STRONG>ins</STRONG> <VAR>+Domain</VAR></A></DT>
+<DT class="pubdef"><A NAME="ins/2"><VAR>+Vars</VAR> <STRONG>ins</STRONG> <VAR>+Domain</VAR></A></DT>
 <DD class="defbody">
-Constrain the variables or integers in <VAR>Vars</VAR> to <VAR>Domain</VAR>.</DD>
+Constrain the variables in the list <VAR>Vars</VAR> to elements of <VAR>Domain</VAR>.</DD>
 <DT class="pubdef"><A NAME="indomain/1"><STRONG>indomain</STRONG>(<VAR>?Var</VAR>)</A></DT>
 <DD class="defbody">
 Bind <VAR>Var</VAR> to all feasible values of its domain on 
@@ -263,9 +277,10 @@ Labeling means systematically trying out values for the finite domain
 variables <VAR>Vars</VAR> until all of them are ground. The domain of 
 each variable in <VAR>Vars</VAR> must be finite. <VAR>Options</VAR> is a 
 list of options that let you exhibit some control over the search 
-process. Two sets of options exist: One for variable selection strategy, 
-and one for optimisation. The variable selection strategy lets you 
-specify which variable should be labeled next and is one of:
+process. Several categories of options exist:
+
+<P>The variable selection strategy lets you specify which variable of
+<VAR>Vars</VAR> should be labeled next and is one of:
 
 <DL>
 <DT><STRONG>leftmost</STRONG></DT>
@@ -289,7 +304,43 @@ Label the leftmost variable whose upper bound is the highest next.
 </DD>
 </DL>
 
-<P>The second set of options lets you influence the order of solutions:
+<P>The value order is one of:
+
+<DL>
+<DT><STRONG>up</STRONG></DT>
+<DD class="defbody">
+Try the elements of the chosen variable's domain in ascending order. 
+This is the default.
+</DD>
+<DT><STRONG>down</STRONG></DT>
+<DD class="defbody">
+Try the domain elements in descending order.
+</DD>
+</DL>
+
+<P>The branching strategy is one of:
+
+<DL>
+<DT><STRONG>step</STRONG></DT>
+<DD class="defbody">
+For each variable X, a choice is made between X = V and X <CODE>#\=</CODE> 
+V, where V is determined by the value ordering options. This is the 
+default.
+</DD>
+<DT><STRONG>enum</STRONG></DT>
+<DD class="defbody">
+For each variable X, a choice is made between X = V_1, X = V_2 etc., for 
+all values V_i of the domain of X. The order is determined by the value 
+ordering options.
+</DD>
+<DT><STRONG>bisect</STRONG></DT>
+<DD class="defbody">
+For each variable X, a choice is made between X <CODE>#=&lt;</CODE> M 
+and X <CODE>#&gt;</CODE> M, where M is the midpoint of the domain of X.
+</DD>
+</DL>
+
+<P>The order of solutions can be influenced with:
 
 <DL>
 <DT><STRONG>min</STRONG>(<VAR>Expr</VAR>)</DT>
@@ -318,7 +369,7 @@ constraint demands that "sumlist(<VAR>Vars</VAR>) <VAR>Op</VAR> <VAR>Expr</VAR>"
 hold, e.g.:
 
 <PRE class="code">
-        sum(List, #=&lt; 100)
+        sum(List, #=&lt;, 100)
 </PRE>
 
 </DD>
@@ -351,7 +402,7 @@ The reifiable constraint <VAR>Q</VAR> does <I>not</I> hold.</DD>
 <VAR>P</VAR> implies <VAR>Q</VAR>.</DD>
 <DT class="pubdef"><A NAME="#<==/2"><VAR>?P</VAR> <STRONG>#&lt;==</STRONG> <VAR>?Q</VAR></A></DT>
 <DD class="defbody">
-?<VAR>Q</VAR> implies ?<VAR>P</VAR>.</DD>
+<VAR>Q</VAR> implies <VAR>P</VAR>.</DD>
 <DT class="pubdef"><A NAME="#/\/2"><VAR>?P</VAR> <STRONG>#/\</STRONG> <VAR>?Q</VAR></A></DT>
 <DD class="defbody">
 <VAR>P</VAR> and <VAR>Q</VAR> hold.</DD>
@@ -364,9 +415,8 @@ Constrains <VAR>Lists</VAR> to be lexicographically non-decreasing.</DD>
 <DT class="pubdef"><A NAME="tuples_in/2"><STRONG>tuples_in</STRONG>(<VAR>+Tuples, 
 +Relation</VAR>)</A></DT>
 <DD class="defbody">
-<VAR>Relation</VAR> is a list of ground lists of integers. <VAR>Tuples</VAR> 
-is a list of lists containing integers and finite domain variables. <VAR>Tuples</VAR> 
-are constrained to be elements of <VAR>Relation</VAR>.</DD>
+<VAR>Relation</VAR> is a ground list of lists of integers. The elements 
+of the list <VAR>Tuples</VAR> are constrained to be elements of <VAR>Relation</VAR>.</DD>
 <DT class="pubdef"><A NAME="all_distinct/1"><STRONG>all_distinct</STRONG>(<VAR>+Ls</VAR>)</A></DT>
 <DD class="defbody">
 Like <A class="pred" href="clpbounds.html#all_different/1">all_different/1</A>, 
@@ -387,6 +437,13 @@ j <CODE>=&lt;</CODE> n.
 Techniques for the Disjunctive Scheduling Problem"
 </DL>
 
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="copy_term/3"><STRONG>copy_term</STRONG>(<VAR>+Term, 
+-Copy, -Gs</VAR>)</A></DT>
+<DD class="defbody">
+Creates a regular term <VAR>Copy</VAR> as a copy of <VAR>Term</VAR> 
+(without any attributes), and a list <VAR>Gs</VAR> of goals that when 
+executed reinstate all attributes onto <VAR>Copy</VAR>.
 </DD>
 </DL>
 

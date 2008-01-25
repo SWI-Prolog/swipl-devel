@@ -1,0 +1,327 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section A.1</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="libpl.html">
+<LINK REL=next HREF="apply.html">
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
+}
+
+dt.pubdef
+{ background-color: #c5e1ff;
+}
+
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
+}
+
+div.navigate
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+}
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ 
+}
+
+span.pred-ext
+{ font-weight: bold;
+}
+
+span.pred-tag
+{ float: right;
+font-size: 80%;
+font-style: italic;
+color: #202020;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 80%;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="libpl.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="apply.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:A.1"><SPAN class="sec-nr">A.1</SPAN> <SPAN class="sec-title">aggregate.pl 
+-- Aggregation operators on backtrackable predicates</SPAN></A></H2>
+
+<P><A NAME="sec:aggregate"></A>
+
+<DL>
+<DT><B>Compatibility</B><DD> Quintus, SICStus 4. The <A class="pred" href="forall2.html#forall/2">forall/2</A> 
+is a SWI-Prolog built-in and
+<A class="pred" href="manipterm.html#term_variables/3">term_variables/3</A> 
+is a SWI-Prolog with a <B>different definition</B>.<DT><B>To be done</B><DD>- 
+Analysing the aggregation template and compiling a predicate for the 
+list aggregation can be done at compile time. <BR>
+- <A class="pred" href="aggregate.html#aggregate_all/3">aggregate_all/3</A> 
+can be rewritten to run in constant space using non-backtrackable 
+assignment on a term.
+</DL>
+
+<P>This library provides aggregating operators over the solutions of a 
+predicate. The operations are a generalisation of the <A class="pred" href="allsolutions.html#bagof/3">bagof/3</A>, <A class="pred" href="allsolutions.html#setof/3">setof/3</A> 
+and <A class="pred" href="allsolutions.html#findall/3">findall/3</A> 
+built-in predicates. The defined aggregation operations are counting, 
+computing the sum, minimum, maximum, a bag of solutions and a set of 
+solutions. We first give a simple example, computing the country with 
+the smallest area:
+
+<PRE class="code">
+average_country_area(Name, Area) :-
+        aggregate(min(A, N), country(N, A), min(Area, Name)).
+</PRE>
+
+<P>There are four aggregation predicates, distinguished on two 
+properties.
+
+<DL>
+<DT><B>aggregate vs. aggregate_all</B></DT>
+<DD>
+The aggregate predicates use <A class="pred" href="allsolutions.html#setof/3">setof/3</A> 
+(<A class="pred" href="aggregate.html#aggregate/4">aggregate/4</A>) or <A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
+(<A class="pred" href="aggregate.html#aggregate/3">aggregate/3</A>), 
+dealing with existential qualified variables (Var<VAR>/\</VAR>Goal) and 
+providing multiple solutions for the remaining free variables in Goal. 
+The <A class="pred" href="aggregate.html#aggregate_all/3">aggregate_all/3</A> 
+predicate uses <A class="pred" href="allsolutions.html#findall/3">findall/3</A>, 
+implicitely qualifying all free variables and providing exactly one 
+solution, while <A class="pred" href="aggregate.html#aggregate_all/4">aggregate_all/4</A> 
+uses <A class="pred" href="builtinlist.html#sort/2">sort/2</A> over 
+solutions and Distinguish (see below) generated using <A class="pred" href="allsolutions.html#findall/3">findall/3</A>.
+</DD>
+<DT><B>The Distinguish argument</B></DT>
+<DD>
+The versions with 4 arguments provide a Distinguish argument that allow 
+for keeping duplicate bindings of a variable in the result. For example, 
+if we wish to compute the total population of all countries we do not 
+want to loose results because two countries have the same population. 
+Therefore we use:
+</DD>
+</DL>
+
+<PRE class="code">
+    aggregate(sum(P), Name, country(Name, P), Total)
+</PRE>
+
+<P>All aggregation predicates support the following operator below in 
+Template. In addition, they allow for an arbitrary named compound term 
+where each of the arguments is a term from the list below. I.e. the term 
+r(min(X), max(X)) computes both the minimum and maximum binding for X.
+
+<DL>
+<DT><STRONG>count</STRONG></DT>
+<DD class="defbody">
+Count number of solutions. Same as sum(1).
+</DD>
+<DT><STRONG>sum</STRONG>(<VAR>Expr</VAR>)</DT>
+<DD class="defbody">
+Sum of Expr for all solutions.
+</DD>
+<DT><STRONG>min</STRONG>(<VAR>Expr</VAR>)</DT>
+<DD class="defbody">
+Minimum of Expr for all solutions.
+</DD>
+<DT><STRONG>min</STRONG>(<VAR>Expr, Witness</VAR>)</DT>
+<DD class="defbody">
+A term min(Min, Witness), where Min is the minimal version of Expr over 
+all Solution and Witness is any other template the applied to the 
+solution that produced Min. If multiple solutions provide the same 
+minimum, Witness corresponds to the first solution.
+</DD>
+<DT><STRONG>max</STRONG>(<VAR>Expr</VAR>)</DT>
+<DD class="defbody">
+Maximum of Expr for all solutions.
+</DD>
+<DT><STRONG>max</STRONG>(<VAR>Expr, Witness</VAR>)</DT>
+<DD class="defbody">
+As min(Expr, Witness), but producing the maximum result.
+</DD>
+<DT><STRONG>set</STRONG>(<VAR>X</VAR>)</DT>
+<DD class="defbody">
+An ordered set with all solutions for X.
+</DD>
+<DT><STRONG>bag</STRONG>(<VAR>X</VAR>)</DT>
+<DD class="defbody">
+A list of all solutions for X.
+</DD>
+</DL>
+
+<H4><A NAME="sec:A.1.1"><SPAN class="sec-nr">A.1.1</SPAN> <SPAN class="sec-title">Acknowledgements</SPAN></A></H4>
+
+<P><I>The development of this library was sponsored by SecuritEase, <A class="url" href="http://www.securitease.com">http://www.securitease.com</A></I>
+
+<DL>
+<DT class="pubdef"><span class="pred-tag">[nondet]</span><A NAME="aggregate/3"><STRONG>aggregate</STRONG>(<VAR>+Template, 
+:Goal, -Result</VAR>)</A></DT>
+<DD class="defbody">
+Aggregate bindings in <VAR>Goal</VAR> according to <VAR>Template</VAR>. 
+The <A class="pred" href="aggregate.html#aggregate/3">aggregate/3</A> 
+version performs <A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
+on <VAR>Goal</VAR>.</DD>
+<DT class="pubdef"><span class="pred-tag">[nondet]</span><A NAME="aggregate/4"><STRONG>aggregate</STRONG>(<VAR>+Template, 
++Discriminator, :Goal, -Result</VAR>)</A></DT>
+<DD class="defbody">
+Aggregate bindings in <VAR>Goal</VAR> according to <VAR>Template</VAR>. 
+The <A class="pred" href="aggregate.html#aggregate/3">aggregate/3</A> 
+version performs <A class="pred" href="allsolutions.html#setof/3">setof/3</A> 
+on <VAR>Goal</VAR>.</DD>
+<DT class="pubdef"><span class="pred-tag">[semidet]</span><A NAME="aggregate_all/3"><STRONG>aggregate_all</STRONG>(<VAR>+Template, 
+:Goal, -Result</VAR>)</A></DT>
+<DD class="defbody">
+Aggregate bindings in <VAR>Goal</VAR> according to <VAR>Template</VAR>. 
+The <A class="pred" href="aggregate.html#aggregate_all/3">aggregate_all/3</A> 
+version performs <A class="pred" href="allsolutions.html#findall/3">findall/3</A> 
+on <VAR>Goal</VAR>.</DD>
+<DT class="pubdef"><span class="pred-tag">[semidet]</span><A NAME="aggregate_all/4"><STRONG>aggregate_all</STRONG>(<VAR>+Template, 
++Discriminator, :Goal, -Result</VAR>)</A></DT>
+<DD class="defbody">
+Aggregate bindings in <VAR>Goal</VAR> according to <VAR>Template</VAR>. 
+The <A class="pred" href="aggregate.html#aggregate_all/3">aggregate_all/3</A> 
+version performs <A class="pred" href="allsolutions.html#findall/3">findall/3</A> 
+followed by <A class="pred" href="builtinlist.html#sort/2">sort/2</A> on <VAR>Goal</VAR>.</DD>
+<DT class="pubdef"><A NAME="foreach/2"><STRONG>foreach</STRONG>(<VAR>:Generator, 
+:Goal</VAR>)</A></DT>
+<DD class="defbody">
+True if the conjunction of instances of <VAR>Goal</VAR> using the 
+bindings from <VAR>Generator</VAR> is true. Unlike <A class="pred" href="forall2.html#forall/2">forall/2</A>, 
+which runs a failure-driven loop that proves <VAR>Goal</VAR> for each 
+solution of
+<VAR>Generator</VAR>, foreach creates a conjunction. Each member of the 
+conjunction is a copy of <VAR>Goal</VAR>, where the variables it shares 
+with <VAR>Generator</VAR> are filled with the values from the 
+corresponding solution.
+
+<P>The implementation executes <A class="pred" href="forall2.html#forall/2">forall/2</A> 
+if <VAR>Goal</VAR> does not contain any variables that are not shared 
+with <VAR>Generator</VAR>.
+
+<P>Here is an example:
+
+<PRE class="code">
+?- foreach(between(1,4,X), dif(X,Y)), Y = 5.
+Y = 5
+?- foreach(between(1,4,X), dif(X,Y)), Y = 3.
+No
+</PRE>
+
+<DL>
+<DT><B>bug</B><DD>
+<VAR>Goal</VAR> is copied repeatetly, which may cause problems if 
+attributed variables are involved.
+</DL>
+
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="free_variables/4"><STRONG>free_variables</STRONG>(<VAR>:Generator, 
++Template, +VarList0, -VarList</VAR>)</A></DT>
+<DD class="defbody">
+In order to handle variables properly, we have to find all the 
+universally quantified variables in the <VAR>Generator</VAR>. All 
+variables as yet unbound are universally quantified, unless
+
+<P><OL>
+<LI>they occur in the template
+<LI>they are bound by X<VAR>/\</VAR>P, setof, or bagof
+</OL>
+
+<P>free_variables(<VAR>Generator</VAR>, <VAR>Template</VAR>, OldList, 
+NewList) finds this set, using OldList as an accumulator.
+
+<DL>
+<DT><B>author</B><DD>- Richard O'Keefe <BR>
+- Jan Wielemaker (made some SWI-Prolog enhancements)
+<DT><B>license</B><DD> Public domain (from DEC10 library).<DT><B>To be 
+done</B><DD>- Distinguish between control-structures and data terms. <BR>
+- Exploit our built-in <A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A> 
+at some places?
+</DL>
+
+</DD>
+</DL>
+
+<P></BODY></HTML>

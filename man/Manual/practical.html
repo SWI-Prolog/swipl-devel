@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.47 Reference Manual: Section 7.3</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section 7.3</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="SyntaxAndSemantics.html">
@@ -107,7 +107,7 @@ color: #202020;
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -146,7 +146,7 @@ declaration</SPAN></A></H3>
 <DT class="pubdef"><A NAME="chr_constraint/1">:- <STRONG>chr_constraint</STRONG>(<VAR>+Specifier</VAR>)</A></DT>
 <DD class="defbody">
 Every constraint used in CHR rules has to be declared with a
-<A NAME="idx:chrconstraint1:1210"></A><A class="pred" href="practical.html#chr_constraint/1">chr_constraint/1</A> 
+<A NAME="idx:chrconstraint1:1211"></A><A class="pred" href="practical.html#chr_constraint/1">chr_constraint/1</A> 
 declaration by the <EM>constraint specifier</EM>. For convenience 
 multiple constraints may be declared at once with the same
 <A class="pred" href="practical.html#chr_constraint/1">chr_constraint/1</A> 
@@ -248,7 +248,7 @@ have any type. This is the default value.
 <DD class="defbody">
 User-defined types are algebraic data types, similar to those in Haskell 
 or the discriminated unions in Mercury. An algebraic data type is 
-defined using <A NAME="idx:chrtype1:1211"></A><A class="pred" href="practical.html#chr_type/1">chr_type/1</A>:
+defined using <A NAME="idx:chrtype1:1212"></A><A class="pred" href="practical.html#chr_type/1">chr_type/1</A>:
 
 <PRE class="code">
 :- chr_type type ---&gt; body. 
@@ -383,7 +383,7 @@ runtime overhead.
 
 <H3><A NAME="sec:7.3.3"><SPAN class="sec-nr">7.3.3</SPAN> <SPAN class="sec-title">Compilation</SPAN></A></H3>
 
-The SWI-Prolog CHR compiler exploits <A NAME="idx:termexpansion2:1212"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
+The SWI-Prolog CHR compiler exploits <A NAME="idx:termexpansion2:1213"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
 rules to translate the constraint handling rules to plain Prolog. These 
 rules are loaded from the library <CODE>library(chr)</CODE>. They are 
 activated if the compiled file has the <CODE>.chr</CODE> extension or 

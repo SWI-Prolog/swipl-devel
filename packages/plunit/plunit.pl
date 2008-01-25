@@ -636,7 +636,8 @@ nondet_test(Expected, Unit, Name, Line, Options, Body) :-
 		Time is (T1 - T0)/1000.0,
 	        (   nondet_compare(Expected, Bindings, Unit, Name, Line)
 		->  success(Unit, Name, Line, true, Time, Options)
-		;   failure(Unit, Name, Line, wrong_answer, Options)
+		;   arg(1, Expected, Cmp),
+		    failure(Unit, Name, Line, wrong_answer(Cmp), Options)
 		),
 		cleanup(Module, Options)
 	    ;	failure(Unit, Name, Line, E, Options),

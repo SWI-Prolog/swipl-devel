@@ -40,16 +40,16 @@
 
 \newcommand{\vmajor}{5}
 \newcommand{\vminor}{6}
-\newcommand{\vpatch}{47}
-\newcommand{\vmonth}{November}
-\newcommand{\vyear}{2007}
+\newcommand{\vpatch}{50}
+\newcommand{\vmonth}{January}
+\newcommand{\vyear}{2008}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
 \newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog \versionshort{} Reference Manual}
-\author{\email[Jan Wielemaker]{wielemaker@science.uva.nl} \ Human-Computer Studies (HCS, formerly SWI) \ Kruislaan 419, 1098 VA~~Amsterdam \ The Netherlands \ Tel. (+31) 20 8884671}
+\author{\email[Jan Wielemaker]{wielemak@science.uva.nl} \ Human-Computer Studies (HCS, formerly SWI) \ Kruislaan 419, 1098 VA~~Amsterdam \ The Netherlands \ Tel. (+31) 20 5256121}
 
 \begin{htmlonly}
 \maketitle
@@ -110,7 +110,7 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
  Human-Computer Studies (HCS, formerly SWI) \\%
     Kruislaan 419, 1098 VA~~Amsterdam \\%
       The Netherlands \\%
-  Tel. (+31) 20 8884671
+  Tel. (+31) 20 5256121
     \end{center}}}
 
 \raisebox{4cm}{

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.47 Reference Manual: Section 2.11</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section 2.11</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="compilation.html">
@@ -107,7 +107,7 @@ color: #202020;
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -677,9 +677,9 @@ The version identifier is an integer with value:
 Note that in releases up to 2.7.10 this Prolog flag yielded an atom 
 holding the three numbers separated by dots. The current representation 
 is much easier for implementing version-conditional statements.</DD>
-<DT class="pubdef"><A NAME="flag:version_data"><STRONG>version_data</STRONG>(<VAR>swi(Major, Minor, Patch, Extra)</VAR>, changeable)</A></DT>
+<DT class="pubdef"><A NAME="flag:version_data"><STRONG>version_data</STRONG>(<VAR>swi(Major, Minor, Patch, Extra)</VAR>)</A></DT>
 <DD class="defbody">
-art of the dialect compatibility layer, See also the Prolog flag
+Part of the dialect compatibility layer, See also the Prolog flag
 <A class="flag" href="flags.html#flag:dialect">dialect</A> and <A class="sec" href="dialect.html">section 
 C</A>. <VAR>Extra</VAR> provides platform specific version information. 
 Currently it is simply unified to <CODE>[]</CODE>.</DD>

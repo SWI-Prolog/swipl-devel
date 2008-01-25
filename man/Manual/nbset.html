@@ -2,11 +2,11 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.47 Reference Manual: Section A.12</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section A.13</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="lists.html">
-<LINK REL=next HREF="netscape.html">
+<LINK REL=next HREF="www_browser.html">
 <STYLE type="text/css">
 /* Style sheet for SWI-Prolog latex2html
 */
@@ -107,7 +107,7 @@ color: #202020;
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -124,17 +124,17 @@ font-size: smaller;
 <A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
 <A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
 <A class="nav" href="lists.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A class="nav" href="netscape.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<A class="nav" href="www_browser.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.12"><SPAN class="sec-nr">A.12</SPAN> <SPAN class="sec-title">library( 
+<H2><A NAME="sec:A.13"><SPAN class="sec-nr">A.13</SPAN> <SPAN class="sec-title">library( 
 nbset ): Non-backtrackable set</SPAN></A></H2>
 
 <A NAME="nbset"></A>
 
 <P>The library <CODE>library(nb_set)</CODE> defines <EM>non-backtrackable 
 sets</EM>, implemented as binary trees. The sets are represented as 
-compound terms and manipulated using <A NAME="idx:nbsetarg3:1455"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>. 
+compound terms and manipulated using <A NAME="idx:nbsetarg3:1458"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>. 
 Non-backtrackable manipulation of datastructures is not supported by a 
 large number of Prolog implementation, but it it has several advantages 
 over using the database. It produces less garbage, is thread-safe, 
@@ -165,7 +165,7 @@ True if <VAR>Set</VAR> is a non-backtrackable emoty set.</DD>
 <DD class="defbody">
 Add <VAR>Key</VAR> to <VAR>Set</VAR>. If <VAR>Key</VAR> is already a 
 member of
-<VAR>Set</VAR>, <A NAME="idx:addnbset3:1456"></A><A class="pred" href="nbset.html#add_nb_set/3">add_nb_set/3</A> 
+<VAR>Set</VAR>, <A NAME="idx:addnbset3:1459"></A><A class="pred" href="nbset.html#add_nb_set/3">add_nb_set/3</A> 
 succeeds without modifying <VAR>Set</VAR>.</DD>
 <DT class="pubdef"><A NAME="add_nb_set/3"><STRONG>add_nb_set</STRONG>(<VAR>+Key, 
 !Set, ?New</VAR>)</A></DT>
@@ -193,7 +193,7 @@ bindin <VAR>Var</VAR> </TD></TR>
 -Key</VAR>)</A></DT>
 <DD class="defbody">
 Generate all members of <VAR>Set</VAR> on backtracking in the standard 
-order of terms. To test membership, use <A NAME="idx:addnbset3:1457"></A><A class="pred" href="nbset.html#add_nb_set/3">add_nb_set/3</A>.</DD>
+order of terms. To test membership, use <A NAME="idx:addnbset3:1460"></A><A class="pred" href="nbset.html#add_nb_set/3">add_nb_set/3</A>.</DD>
 <DT class="pubdef"><A NAME="size_nb_set/2"><STRONG>size_nb_set</STRONG>(<VAR>+Set, 
 -Size</VAR>)</A></DT>
 <DD class="defbody">

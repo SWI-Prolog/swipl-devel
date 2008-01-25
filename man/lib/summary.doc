@@ -1,6 +1,9 @@
 \pagebreak
 \section{Library predicates}		\label{sec:library}
 
+\subsection{\pllib{aggregate}}
+\input{summaries.d/aggregate.tex}
+
 \subsection{\pllib{apply}}
 \input{summaries.d/apply.tex}
 

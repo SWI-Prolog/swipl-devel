@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.47 Reference Manual: Section E.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section E.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="softlicense.html">
@@ -107,7 +107,7 @@ color: #202020;
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -132,7 +132,26 @@ predicates</SPAN></A></H2>
 
 <A NAME="sec:library"></A>
 
-<H3><A NAME="sec:E.4.1"><SPAN class="sec-nr">E.4.1</SPAN> <SPAN class="sec-title"><CODE>library(apply)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.1"><SPAN class="sec-nr">E.4.1</SPAN> <SPAN class="sec-title"><CODE>library(aggregate)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="aggregate.html#aggregate/3">aggregate/3</A></TD><TD>Aggregate 
+bindings in Goal according to Template.</TD></TR>
+<TR><TD><A class="pred" href="aggregate.html#aggregate/4">aggregate/4</A></TD><TD>Aggregate 
+bindings in Goal according to Template.</TD></TR>
+<TR><TD><A class="pred" href="aggregate.html#aggregate_all/3">aggregate_all/3</A></TD><TD>Aggregate 
+bindings in Goal according to Template.</TD></TR>
+<TR><TD><A class="pred" href="aggregate.html#aggregate_all/4">aggregate_all/4</A></TD><TD>Aggregate 
+bindings in Goal according to Template.</TD></TR>
+<TR><TD><A class="pred" href="aggregate.html#foreach/2">foreach/2</A></TD><TD>True 
+if the conjunction of instances of Goal using the bindings from 
+Generator is true.</TD></TR>
+<TR><TD><A class="pred" href="aggregate.html#free_variables/4">free_variables/4</A></TD><TD>In 
+order to handle variables properly, we have to find all the universally 
+quantified variables in the Generator.</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.2"><SPAN class="sec-nr">E.4.2</SPAN> <SPAN class="sec-title"><CODE>library(apply)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="apply.html#exclude/3">exclude/3</A></TD><TD>Filter 
@@ -145,7 +164,7 @@ elements of List according to Pred.</TD></TR>
 list according to Pred in three sets.</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.2"><SPAN class="sec-nr">E.4.2</SPAN> <SPAN class="sec-title"><CODE>library(assoc)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.3"><SPAN class="sec-nr">E.4.3</SPAN> <SPAN class="sec-title"><CODE>library(assoc)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="assoc.html#assoc_to_list/2">assoc_to_list/2</A></TD><TD>Translate 
@@ -176,7 +195,7 @@ ordered list into an assoc</TD></TR>
 association to an assoc</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.3"><SPAN class="sec-nr">E.4.3</SPAN> <SPAN class="sec-title"><CODE>library(broadcast)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.4"><SPAN class="sec-nr">E.4.4</SPAN> <SPAN class="sec-title"><CODE>library(broadcast)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="broadcast.html#broadcast/1">broadcast/1</A></TD><TD>Send 
@@ -197,7 +216,7 @@ listening to event notifications</TD></TR>
 is listening to event notifications?</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.4"><SPAN class="sec-nr">E.4.4</SPAN> <SPAN class="sec-title"><CODE>library(check)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.5"><SPAN class="sec-nr">E.4.5</SPAN> <SPAN class="sec-title"><CODE>library(check)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="check.html#check/0">check/0</A></TD><TD>Program 
@@ -210,7 +229,7 @@ predicates that require autoload</TD></TR>
 locally redefined predicates</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.5"><SPAN class="sec-nr">E.4.5</SPAN> <SPAN class="sec-title"><CODE>library(lists)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.6"><SPAN class="sec-nr">E.4.6</SPAN> <SPAN class="sec-title"><CODE>library(lists)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="lists.html#append/2">append/2</A></TD><TD>Concatenate 
@@ -227,8 +246,12 @@ intersection</TD></TR>
 check for a set</TD></TR>
 <TR><TD><A class="pred" href="lists.html#list_to_set/2">list_to_set/2</A></TD><TD>Remove 
 duplicates</TD></TR>
+<TR><TD><A class="pred" href="lists.html#max_list/2">max_list/2</A></TD><TD>Largest 
+number in a list</TD></TR>
 <TR><TD><A class="pred" href="lists.html#member/2">member/2</A></TD><TD>Element 
 is member of a list</TD></TR>
+<TR><TD><A class="pred" href="lists.html#min_list/2">min_list/2</A></TD><TD>Smallest 
+number in a list</TD></TR>
 <TR><TD><A class="pred" href="lists.html#nextto/3">nextto/3</A></TD><TD>Y 
 follows X in List</TD></TR>
 <TR><TD><A class="pred" href="lists.html#nth0/3">nth0/3</A></TD><TD>N-th 
@@ -253,11 +276,13 @@ all numbers in a list</TD></TR>
 of two sets</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.6"><SPAN class="sec-nr">E.4.6</SPAN> <SPAN class="sec-title"><CODE>library(option)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.7"><SPAN class="sec-nr">E.4.7</SPAN> <SPAN class="sec-title"><CODE>library(option)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="option.html#merge_options/3">merge_options/3</A></TD><TD>Merge 
 two option lists.</TD></TR>
+<TR><TD><A class="pred" href="option.html#meta_options/3">meta_options/3</A></TD><TD>Perform 
+meta-expansion on options that are module-sensitive.</TD></TR>
 <TR><TD><A class="pred" href="option.html#option/2">option/2</A></TD><TD>Get 
 an option from a OptionList.</TD></TR>
 <TR><TD><A class="pred" href="option.html#option/3">option/3</A></TD><TD>Get 
@@ -268,7 +293,7 @@ and remove option from an option list.</TD></TR>
 and remove option with default value.</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.7"><SPAN class="sec-nr">E.4.7</SPAN> <SPAN class="sec-title"><CODE>library(ordsets)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.8"><SPAN class="sec-nr">E.4.8</SPAN> <SPAN class="sec-title"><CODE>library(ordsets)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="ordsets.html#ord_empty/1">ord_empty/1</A></TD><TD>Test 
@@ -297,7 +322,7 @@ subset</TD></TR>
 test membership</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.8"><SPAN class="sec-nr">E.4.8</SPAN> <SPAN class="sec-title"><CODE>library(prologxref)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.9"><SPAN class="sec-nr">E.4.9</SPAN> <SPAN class="sec-title"><CODE>library(prologxref)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="prologxref.html#prolog:called_by/2">prolog:called_by/2</A></TD><TD><I>(hook)</I> 
@@ -320,11 +345,13 @@ defined by source</TD></TR>
 analysis of source</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.9"><SPAN class="sec-nr">E.4.9</SPAN> <SPAN class="sec-title"><CODE>library(pairs)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.10"><SPAN class="sec-nr">E.4.10</SPAN> <SPAN class="sec-title"><CODE>library(pairs)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="pairs.html#group_pairs_by_key/2">group_pairs_by_key/2</A></TD><TD>Group 
 values with the same key.</TD></TR>
+<TR><TD><A class="pred" href="pairs.html#map_list_to_pairs/3">map_list_to_pairs/3</A></TD><TD>Create 
+a key-value list by mapping each element of List.</TD></TR>
 <TR><TD><A class="pred" href="pairs.html#pairs_keys/2">pairs_keys/2</A></TD><TD>Remove 
 the values from a list of Key-Value pairs.</TD></TR>
 <TR><TD><A class="pred" href="pairs.html#pairs_keys_values/3">pairs_keys_values/3</A></TD><TD>True 
@@ -336,7 +363,7 @@ Key-Value to Value-Key and sort the result on Value (the new key) using
 keysort/2.</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.10"><SPAN class="sec-nr">E.4.10</SPAN> <SPAN class="sec-title"><CODE>library(readutil)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.11"><SPAN class="sec-nr">E.4.11</SPAN> <SPAN class="sec-title"><CODE>library(readutil)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="readutil.html#read_line_to_codes/2">read_line_to_codes/2</A></TD><TD>Read 
@@ -353,14 +380,14 @@ contents of file</TD></TR>
 contents of file to Prolog terms</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.11"><SPAN class="sec-nr">E.4.11</SPAN> <SPAN class="sec-title"><CODE>library(record)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.12"><SPAN class="sec-nr">E.4.12</SPAN> <SPAN class="sec-title"><CODE>library(record)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="record.html#record/1">record/1</A></TD><TD>Define 
 named fields in a term</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.12"><SPAN class="sec-nr">E.4.12</SPAN> <SPAN class="sec-title"><CODE>library(registry)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.13"><SPAN class="sec-nr">E.4.13</SPAN> <SPAN class="sec-title"><CODE>library(registry)</CODE></SPAN></A></H3>
 
 <P>This library is only available on Windows systems.
 <TABLE>
@@ -382,7 +409,7 @@ DDE action</TD></TR>
 Prolog</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.13"><SPAN class="sec-nr">E.4.13</SPAN> <SPAN class="sec-title"><CODE>library(ugraphs)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.14"><SPAN class="sec-nr">E.4.14</SPAN> <SPAN class="sec-title"><CODE>library(ugraphs)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="ugraphs.html#vertices_edges_to_ugraph/3">vertices_edges_to_ugraph/3</A></TD><TD>Create 
@@ -420,7 +447,7 @@ all reachable vertices</TD></TR>
 of two graphs</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.14"><SPAN class="sec-nr">E.4.14</SPAN> <SPAN class="sec-title"><CODE>library(url)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.15"><SPAN class="sec-nr">E.4.15</SPAN> <SPAN class="sec-title"><CODE>library(url)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="url.html#file_name_to_url/2">file_name_to_url/2</A></TD><TD>Translate 
@@ -441,14 +468,14 @@ between a URL, encoding in US-ASCII and an IRI.</TD></TR>
 between native value and application/x-www-form-encoded.</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.15"><SPAN class="sec-nr">E.4.15</SPAN> <SPAN class="sec-title"><CODE>library(www_browser)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.16"><SPAN class="sec-nr">E.4.16</SPAN> <SPAN class="sec-title"><CODE>library(www_browser)</CODE></SPAN></A></H3>
 
 <TABLE>
-<TR><TD><A class="pred" href="netscape.html#www_open_url/1">www_open_url/1</A></TD><TD>Open 
+<TR><TD><A class="pred" href="www_browser.html#www_open_url/1">www_open_url/1</A></TD><TD>Open 
 a web-page in a browser</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.16"><SPAN class="sec-nr">E.4.16</SPAN> <SPAN class="sec-title"><CODE>library(clp/bounds)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.17"><SPAN class="sec-nr">E.4.17</SPAN> <SPAN class="sec-title"><CODE>library(clp/bounds)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="clpbounds.html#in/2">in/2</A></TD><TD>Define 
@@ -489,7 +516,7 @@ constraints on tuples</TD></TR>
 intervals to be serialized</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.17"><SPAN class="sec-nr">E.4.17</SPAN> <SPAN class="sec-title"><CODE>library(clp/clp_distinct)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.18"><SPAN class="sec-nr">E.4.18</SPAN> <SPAN class="sec-title"><CODE>library(clp/clp_distinct)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="clpclp_distinct.html#all_distinct/1">all_distinct/1</A></TD><TD>Demand 
@@ -500,15 +527,15 @@ domain of variable as set</TD></TR>
 domain of variable as interval</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.18"><SPAN class="sec-nr">E.4.18</SPAN> <SPAN class="sec-title"><CODE>library(clp/clpfd)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.19"><SPAN class="sec-nr">E.4.19</SPAN> <SPAN class="sec-title"><CODE>library(clp/clpfd)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="clpfd.html##/\/2">#/\/2</A></TD><TD>P and 
 Q hold.</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html##</2">#&lt;/2</A></TD><TD>X 
 is less than Y.</TD></TR>
-<TR><TD><A class="pred" href="clpfd.html##<==/2">#&lt;==/2</A></TD><TD>?Q 
-implies ?P.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html##<==/2">#&lt;==/2</A></TD><TD>Q 
+implies P.</TD></TR>
 <TR><TD><A class="pred" href="clpfd.html##<==>/2">#&lt;==&gt;/2</A></TD><TD>P 
 and Q are equivalent.</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html##=/2">#=/2</A></TD><TD>X 
@@ -531,12 +558,15 @@ is not Y.</TD></TR>
 Vars to be pairwise distinct.</TD></TR>
 <TR><TD><A class="pred" href="clpclp_distinct.html#all_distinct/1">all_distinct/1</A></TD><TD>Like 
 all_different/1, with stronger propagation.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#copy_term/3">copy_term/3</A></TD><TD>Creates 
+a regular term Copy as a copy of Term (without any attributes), and a 
+list Gs of goals that when executed reinstate all attributes onto Copy.</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html#in/2">in/2</A></TD><TD>Constrain 
 Var to elements of Domain.</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html#indomain/1">indomain/1</A></TD><TD>Bind 
 Var to all feasible values of its domain on backtracking.</TD></TR>
 <TR><TD><A class="pred" href="clpfd.html#ins/2">ins/2</A></TD><TD>Constrain 
-the variables or integers in Vars to Domain.</TD></TR>
+the variables in the list Vars to elements of Domain.</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html#label/1">label/1</A></TD><TD>Equivalent 
 to labeling([], Vars).</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html#labeling/2">labeling/2</A></TD><TD>Labeling 
@@ -549,10 +579,10 @@ a set of intervals to a non-overlapping sequence.</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html#sum/3">sum/3</A></TD><TD>Constrain 
 the sum of a list.</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html#tuples_in/2">tuples_in/2</A></TD><TD>Relation 
-is a list of ground lists of integers.</TD></TR>
+is a ground list of lists of integers.</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.19"><SPAN class="sec-nr">E.4.19</SPAN> <SPAN class="sec-title"><CODE>library(clpqr)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.20"><SPAN class="sec-nr">E.4.20</SPAN> <SPAN class="sec-title"><CODE>library(clpqr)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="clpqr.html#entailed/1">entailed/1</A></TD><TD>Check 
@@ -575,7 +605,7 @@ of expression for mixed-integer problems</TD></TR>
 constraints on variables</TD></TR>
 </TABLE>
 
-<H3><A NAME="sec:E.4.20"><SPAN class="sec-nr">E.4.20</SPAN> <SPAN class="sec-title"><CODE>library(clp/simplex)</CODE></SPAN></A></H3>
+<H3><A NAME="sec:E.4.21"><SPAN class="sec-nr">E.4.21</SPAN> <SPAN class="sec-title"><CODE>library(clp/simplex)</CODE></SPAN></A></H3>
 
 <TABLE>
 <TR><TD><A class="pred" href="simplex.html#assignment/2">assignment/2</A></TD><TD>Solve 

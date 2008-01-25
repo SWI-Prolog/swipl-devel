@@ -121,6 +121,7 @@ Section "Base system (required)"
   File pl\library\dialect.pl
   File pl\library\apply_macros.pl
   File pl\library\apply.pl
+  File pl\library\aggregate.pl
 
 ; WINDOWS
   File pl\library\dde.pl

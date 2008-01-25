@@ -2,10 +2,10 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.47 Reference Manual: Section A.14</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section A.15</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
-<LINK REL=previous HREF="netscape.html">
+<LINK REL=previous HREF="www_browser.html">
 <LINK REL=next HREF="ordsets.html">
 <STYLE type="text/css">
 /* Style sheet for SWI-Prolog latex2html
@@ -107,7 +107,7 @@ color: #202020;
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -123,22 +123,21 @@ font-size: smaller;
 <DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
 <A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
 <A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A class="nav" href="netscape.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="www_browser.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
 <A class="nav" href="ordsets.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.14"><SPAN class="sec-nr">A.14</SPAN> <SPAN class="sec-title">option.pl 
+<H2><A NAME="sec:A.15"><SPAN class="sec-nr">A.15</SPAN> <SPAN class="sec-title">option.pl 
 -- Option list processing</SPAN></A></H2>
 
 <P><A NAME="sec:option"></A>
 
 <DL>
-<DT><B>See also</B><DD> library(record)
-<DT><B>To be done</B><DD> We should consider putting many options in an 
-assoc or record with appropriate preprocessing to achieve better 
-performance.
-<DT><B>To be done</B><DD> We should provide some standard to to 
-automatic type-checking on option lists.
+<DT><B>See also</B><DD> library(record)<DT><B>To be done</B><DD>- We 
+should consider putting many options in an assoc or record with 
+appropriate preprocessing to achieve better performance. <BR>
+- We should provide some standard to to automatic type-checking on 
+option lists.
 </DL>
 
 <P>The library(option) provides some utilities for processing option 
@@ -221,8 +220,22 @@ unified with
 <DD class="defbody">
 Merge two option lists. <VAR>Merged</VAR> is a sorted list of options 
 using the canonical format Name(Value) holding all options from <VAR>New</VAR> 
-and <VAR>Old</VAR>, after removing conflicting options from <VAR>Old</VAR>.
-</DD>
+and <VAR>Old</VAR>, after removing conflicting options from <VAR>Old</VAR>.</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="meta_options/3"><STRONG>meta_options</STRONG>(<VAR>+IsMeta, 
+:Options0, -Options</VAR>)</A></DT>
+<DD class="defbody">
+Perform meta-expansion on options that are module-sensitive. Whether an 
+option name is module sensitive is determined by calling call(<VAR>IsMeta</VAR>, 
+Name). Here is an example:
+
+<PRE class="code">
+        meta_options(is_meta, OptionsIn, Options),
+        ...
+
+is_meta(callback).
+</PRE>
+
+<P></DD>
 </DL>
 
 <P></BODY></HTML>
