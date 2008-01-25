@@ -2570,7 +2570,7 @@ run_propagator(pabs(X,Y), MState) :-
             )
         ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% K =_ X   (mod M)
+% K = X mod M
 
 run_propagator(pmod(X,M,K), MState) :-
         (   nonvar(X) ->
@@ -2585,7 +2585,14 @@ run_propagator(pmod(X,M,K), MState) :-
                 MN is -MP,
                 get(K, KD, KPs),
                 domains_intersection(from_to(n(MN), n(MP)), KD, KD1),
-                put(K, KD1, KPs)
+                put(K, KD1, KPs),
+                (   get(X, XD, _), domain_infimum(XD, n(Min)) ->
+                    K1 is Min mod M,
+                    (   domain_contains(KD1, K1) -> true
+                    ;   neq_num(X, Min)
+                    )
+                ;   true
+                )
             ;   get(X, XD, XPs),
                 (   fail, domain_supremum(XD, n(_)), domain_infimum(XD, n(_)) ->
                     % bounded domain (propagation currently disabled)
@@ -3173,7 +3180,8 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
 attribute_goal(X, Goal) :-
         get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)),
         domain_to_drep(Dom, Drep),
-        attributes_goals(Ps, Gs, [clpfd:(X in Drep)]),
+        Gs = [clpfd:(X in Drep)|Rest],
+        phrase(attributes_goals(Ps), Rest),
         list_dot(Gs, Goal).
 
 dot_list((A,B)) --> !, dot_list(A), dot_list(B).
@@ -3229,7 +3237,7 @@ attribute_goal_(reified_not(X, Y), #\ X #<==> Y).
 attribute_goal_(pimpl(X, Y), X #==> Y).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-domain_to_list(Domain, List) :- domain_to_list(Domain, List, []).
+domain_to_list(Domain, List) :- phrase(domain_to_list(Domain), List).
 
 domain_to_list(split(_, Left, Right)) -->
         domain_to_list(Left), domain_to_list(Right).
