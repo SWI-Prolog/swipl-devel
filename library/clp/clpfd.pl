@@ -3178,13 +3178,13 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
         intervals_to_drep(Rest, Drep0 \/ D1, Drep).
 
 attribute_goal(X, Goal) :-
-        attribute_goals(X, Goals),
+        phrase(attribute_goals(X), Goals),
         list_dot(Goals, Goal).
 
-attribute_goals(X, Goals) :-
-        get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)),
-        domain_to_drep(Dom, Drep),
-        phrase(([clpfd:(X in Drep)],attributes_goals(Ps)), Goals).
+attribute_goals(X) -->
+        { get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)), domain_to_drep(Dom, Drep) },
+        [clpfd:(X in Drep)],
+        attributes_goals(Ps).
 
 dot_list((A,B)) --> !, dot_list(A), dot_list(B).
 dot_list(A)     --> [A].
@@ -3272,9 +3272,9 @@ test_subdomain(L1, L2) :-
 %
 %    Creates a regular term Copy as a copy of Term (without any
 %    attributes), and a list Gs of goals that when executed reinstate
-%    all attributes onto Copy. The predicates attribute_goals/2 or
-%    attribute_goal/2, if available in the modules the attributes stem
-%    from, are used to convert attributes to goals.
+%    all attributes onto Copy. The nonterminal attribute_goals//1, as
+%    defined in the modules the attributes stem from, is used to
+%    convert attributes to lists of goals.
 
 copy_term(Term, Copy, Gs) :-
         term_variables(Term, Vs),
@@ -3295,8 +3295,8 @@ collect_([], _, _)                      --> [].
 collect_(att(Module,Value,As), V, Tabu) -->
         { term_variables(Value, Vs) },
         collect_attributes(Vs, Tabu),
-        (   { predicate_property(Module:attribute_goals(_, _), interpreted) } ->
-            { Module:attribute_goals(V, Goals) },
+        (   { predicate_property(Module:attribute_goals(_,_,_),interpreted) } ->
+            { phrase(Module:attribute_goals(V), Goals) },
             dlist(Goals)
         ;   { predicate_property(Module:attribute_goal(_, _), interpreted) } ->
             { Module:attribute_goal(V, Goal) },
