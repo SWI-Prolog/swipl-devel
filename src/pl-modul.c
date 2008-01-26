@@ -700,7 +700,7 @@ pl_export_list(term_t modulename, term_t public)
     LOCKMODULE(module);
     for_table(module->public, s,
 	      { if ( !PL_unify_list(list, head, list) ||
-		     !PL_unify_functor(head, (functor_t)s->name) )
+		     !unify_functor(head, (functor_t)s->name, GP_NAMEARITY) )
 		{ rval = FALSE;
 		  break;
 		}
@@ -720,10 +720,23 @@ head from the context module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-export_pi(term_t pi)
+export_pi(term_t pi, Module module ARG_LD)
 { functor_t fd;
   Procedure proc;
-  Module module = NULL;
+
+  PL_strip_module(pi, &module, pi);
+
+  if ( PL_is_functor(pi, FUNCTOR_comma2) )
+  { term_t a1 = PL_new_term_ref();
+    term_t a2 = PL_new_term_ref();
+
+    _PL_get_arg(1, pi, a1);
+    _PL_get_arg(2, pi, a2);
+
+    TRY(export_pi(a1, module PASS_LD));
+    return export_pi(a2, module PASS_LD);
+  }
+
 
   if ( !get_functor(pi, &fd, &module, 0, GF_PROCEDURE) )
     fail;
@@ -747,18 +760,9 @@ export_pi(term_t pi)
 static
 PRED_IMPL("export", 1, export, PL_FA_TRANSPARENT)
 { PRED_LD
-  term_t decl = PL_copy_term_ref(A1);
-  term_t pi = PL_new_term_ref();
+  Module module = NULL;
 
-  while ( PL_is_functor(decl, FUNCTOR_comma2) )
-  { _PL_get_arg(1, decl, pi);
-    _PL_get_arg(2, decl, decl);
-    
-    if ( !export_pi(decl) )
-      fail;
-  }
-  
-  return export_pi(decl);
+  return export_pi(A1, module PASS_LD);
 }
 
 
@@ -838,13 +842,12 @@ pl_import(term_t pred)
 { GET_LD
   Module source = NULL;
   Module destination = contextModule(environment_frame);
-  term_t head = PL_new_term_ref();
   functor_t fd;
   Procedure proc, old;
 
-  PL_strip_module(pred, &source, head);
-  if ( !PL_get_functor(head, &fd) )
-    return warning("import/1: instantiation fault");
+  if ( !get_functor(pred, &fd, &source, 0, GF_PROCEDURE) )
+    fail;
+
   proc = lookupProcedure(fd, source);
 
   if ( !isDefinedProcedure(proc) )

@@ -31,7 +31,7 @@
 
 :- module('$qlf',
 	  [ qcompile/1,		% +File
-	    '$qload_file'/7	% +Path, +Enc, +Module, +Import, +IsModule, -Ac, -LM
+	    '$qload_file'/6	% +Path, +Enc, +Module, +IsModule, -Ac, -LM
 	  ]).
 
 
@@ -73,19 +73,13 @@ qcompile(File) :-
 	Ok == true.
 
 
-%	qload(+File, _Enc, +Module, +Import, -IsModule, -Action,
-%	-LoadedModule)
+%%	'$qload_file'(+File, _Enc, +Module, -IsModule, -Action, -LoadedModule)
 %
 %	Load predicate for .qlf files.  See init.pl
 
-'$qload_file'(File, _Enc, Module, Import, IsModule, loaded, LoadedModule) :-
+'$qload_file'(File, _Enc, Module, IsModule, loaded, LoadedModule) :-
 	'$qlf_load'(Module:File, LoadedModule),
-	check_is_module(IsModule, LoadedModule, File),
-	(   atom(LoadedModule)
-	->  '$import_list'(Module, LoadedModule, Import)
-	;   true
-	).
-	
+	check_is_module(IsModule, LoadedModule, File).
 
 check_is_module(true, 0, File) :- !,
 	throw(error(domain_error(module_file, File), _)).

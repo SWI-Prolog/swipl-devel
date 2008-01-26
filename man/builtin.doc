@@ -211,6 +211,10 @@ the returned files.  Default is \const{false}, except for consult/1
 which is intended for interactive use.  Flexible location of files
 is defined by file_search_path/2.
 
+    \termitem{reexport}{Bool}
+If \const{true} re-export the imported predicate.  Used by reexport/1
+and reexport/2.
+
     \termitem{if}{Condition}
 Load the file only if the specified condition is satisfied. The value
 \const{true} loads the file unconditionally, \const{changed} loads the
@@ -218,11 +222,16 @@ file if it was not loaded before, or has been modified since it was
 loaded the last time, \const{not_loaded} loads the file if it was not
 loaded before.
 
-    \termitem{imports}{ListOrAll}
-If \const{all} and the file is a module file, import all public
-predicates. Otherwise import only the named predicates. Each predicate
-is referred to as <name>/<arity>. This option has no effect if the file
-is not a module file.
+    \termitem{imports}{Import}
+Specify what to import from the loaded module. The default for
+use_module/1 is \const{all}. \arg{Import} is passed from the second
+argument of use_module/2. Traditionally it is a list of predicate
+indicators to import. As part of the SWI-Prolog/YAP integration, we also
+support \arg{Pred} as \arg{Name} to import a predicate under another
+name. Finally, \arg{Import} can be a term \term{except}{Exceptions},
+where \arg{Exceptions} is a list of predicate indicators that specify
+predicates that are \emph{not} imported or \arg{Pred} as \arg{Name}
+terms to denote renamed predicates.  See also reexport/2.
 
     \termitem{must_be_module}{Bool}
 If \const{true}, raise an error if the file is not a module file.  Used by

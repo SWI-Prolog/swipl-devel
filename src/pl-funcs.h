@@ -173,6 +173,7 @@ COMMON(code) 		replacedBreak(Code PC);
 COMMON(void) 		clearBreakPointsClause(Clause clause);
 COMMON(word) 		pl_current_break(term_t ref, term_t pc, control_t h);
 COMMON(int) 		get_clause_ptr_ex(term_t ref, Clause *cl);
+COMMON(int)		unify_functor(term_t t, functor_t fd, int how);
 
 /* pl-dump.c */
 COMMON(word) 		saveProgram(term_t new);

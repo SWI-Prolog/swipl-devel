@@ -119,25 +119,28 @@ imports any predicate from any module.
 \begin{description}
     \predicate{use_module}{1}{+File}
 Load the file(s) specified with \arg{File} just like ensure_loaded/1.
-The files should all be module files.  All exported predicates from the
+The files must all be module files.  All exported predicates from the
 loaded files are imported into the context module.  This predicate is
 equivalent to ensure_loaded/1, except that it raises an error if 
 \arg{File} is not a module file.  
 
     \predicate{use_module}{2}{+File, +ImportList}
 Load the file specified with \arg{File} (only one file is accepted).
-\arg{File} should be a module file. \arg{ImportList} is a list of
+\arg{File} must be a module file. \arg{ImportList} is a list of
 predicate indicators specifying the predicates that will be imported
 from the loaded module. If a predicate is specified that is not exported
 from the loaded module a warning will be printed. The predicate will
-nevertheless be imported to simplify debugging.
+nevertheless be imported to simplify debugging.  \arg{ImportList} also
+allows for renaming or import-everything-except. See the \const{import}
+option of load_files/2 for details.
 
-    \predicate{import}{1}{+Head}
-Import predicate \arg{Head} into the current context module. \arg{Head}
-should specify the source module using the \mbox{<module>:<term>}
-construct. Note that predicates are normally imported using one of the
-directives use_module/[1,2]. import/1 is meant for handling imports
-into dynamically created modules.
+    \predicate{import}{1}{+PredicateIndicator}
+Import predicate \arg{PredicateIndicator} into the current context
+module. \arg{PredicateIndicator} must specify the source module using
+the \mbox{<module>:<pi>} construct. Note that predicates are
+normally imported using one of the directives use_module/[1,2].
+The import/1 alternative is meant for handling imports into dynamically
+created modules.  See also export/1 and export_list/2.
 \end{description}
 
 
@@ -168,6 +171,42 @@ before they are used.
 All other modules import from the module \const{user}. This implies they
 can use all predicates imported into \const{user} without explicitly
 importing them.
+
+
+\section{Composing modules from other modules}
+\label{sec:reexport}
+
+The predicates in this section are intended to create new modules from
+the content of other modules. Below is an example is to define a
+\emph{composite} module.  The example exports all public predicates
+of \const{module_1}, \const{module_2} and \const{module_3}, pred/1
+from \const{module_4}, all predicates from \const{module_5} except
+do_not_use/1 and all predicates from \const{module_6} while renaming
+pred/1 into mypred/1.
+
+\begin{code}
+:- module(my_composite, []).
+:- reexport([ module_1,
+	      module_2,
+	      module_3
+	    ]).
+:- reexport(module_4, [ pred/1 ]).
+:- reexport(module_5, except([do_not_use/1])).
+:- reexport(module_6, except([pred/1 as mypred])).
+\end{code}
+
+
+\begin{description}
+    \predicate{reexport}{1}{+Files}
+Load and import predicates as use_modules/1 and re-export all imported
+predicates. The reexport declarations must immediately follow the module
+declaration.
+
+    \predicate{reexport}{2}{+File, Import}
+Import from \arg{File} as use_module/2 and re-export the imported
+predicates. The reexport declarations must immediately follow the module
+declaration.
+\end{description}
 
 
 \section{Using the Module System}	\label{sec:usemodules}
@@ -440,9 +479,12 @@ exported using the directive module/2. export/1 is meant to handle
 export from dynamically created modules.
 
     \predicate{export_list}{2}{+Module, ?Exports}
-Unifies \arg{Exports} with a list of terms.  Each term has the name and
-arity of a public predicate of \arg{Module}.  The order of the terms in
-\arg{Exports} is not defined.  See also predicate_property/2.
+Unifies \arg{Exports} with a list of predicate indicators, one for each
+public predicate of \arg{Module}.  The order of the terms in
+\arg{Exports} is not defined.   Predicate indicators are in canonical
+form (i.e.\ always using Name/Arity and never the DCG form Name//Arity).
+Future versions may also use the DCG form and include public operators.
+See also predicate_property/2.
  
     \predicate{import_module}{2}{+Module, -Import}
 True if \arg{Import} is defined as an import module for \arg{Module}.

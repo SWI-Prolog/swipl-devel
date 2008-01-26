@@ -461,15 +461,20 @@ process_directive(List, Src) :-
 	process_directive(consult(List), Src).
 process_directive(use_module(Spec, Import), Src) :-
 	xref_public_list(Spec, Path, Public, Src),
-	assert_import(Src, Import, Public, Path).
+	assert_import(Src, Import, Public, Path, false).
+process_directive(reexport(Spec, Import), Src) :-
+	xref_public_list(Spec, Path, Public, Src),
+	assert_import(Src, Import, Public, Path, true).
+process_directive(reexport(Modules), Src) :-
+	process_use_module(Modules, Src, true).
 process_directive(use_module(Modules), Src) :-
-	process_use_module(Modules, Src).
+	process_use_module(Modules, Src, false).
 process_directive(consult(Modules), Src) :-
-	process_use_module(Modules, Src).
+	process_use_module(Modules, Src, false).
 process_directive(ensure_loaded(Modules), Src) :-
-	process_use_module(Modules, Src).
+	process_use_module(Modules, Src, false).
 process_directive(load_files(Files, _Options), Src) :-
-	process_use_module(Files, Src).
+	process_use_module(Files, Src, false).
 process_directive(include(Files), Src) :-
 	process_include(Files, Src).
 process_directive(dynamic(Dynamic), Src) :-
@@ -862,18 +867,20 @@ assert_new(Src, _, Term) :-
 		*       INCLUDED MODULES	*
 		********************************/
 
-process_use_module(_Module:_Files, _) :- !.	% loaded in another module
-process_use_module([], _) :- !.
-process_use_module([H|T], Src) :- !,
-	process_use_module(H, Src),
-	process_use_module(T, Src).
-process_use_module(library(pce), Src) :- !,	% bit special
+%%	process_use_module(+Modules, +Src, +Rexport) is det.
+
+process_use_module(_Module:_Files, _, _) :- !.	% loaded in another module
+process_use_module([], _, _) :- !.
+process_use_module([H|T], Src, Reexport) :- !,
+	process_use_module(H, Src, Reexport),
+	process_use_module(T, Src, Reexport).
+process_use_module(library(pce), Src, Reexport) :- !,	% bit special
 	xref_public_list(library(pce), Path, Public, Src),
 	forall(member(Import, Public),
-	       process_pce_import(Import, Src, Path)).
-process_use_module(File, Src) :-
+	       process_pce_import(Import, Src, Path, Reexport)).
+process_use_module(File, Src, Reexport) :-
 	(   catch(xref_public_list(File, Path, Public, Src), _, fail)
-	->  assert_import(Src, Public, Path),
+	->  assert_import(Src, Public, _, Path, Reexport),
 	    (	File = library(chr)	% hacky
 	    ->	assert(mode(chr, Src))
 	    ;	true
@@ -881,29 +888,103 @@ process_use_module(File, Src) :-
 	;   true
 	).
 
-process_pce_import(Name/Arity, Src, Path) :-
+process_pce_import(Name/Arity, Src, Path, Reexport) :-
 	atom(Name),
 	integer(Arity), !,
 	functor(Term, Name, Arity),
 	(   \+ system_predicate(Term),
 	    \+ Term = pce_error(_) 	% hack!?
-	->  assert_import(Src, Name/Arity, Path)
+	->  assert_import(Src, [Name/Arity], _, Path, Reexport)
 	;   true
 	).
-process_pce_import(op(P,T,N), Src, _) :-
+process_pce_import(op(P,T,N), Src, _, _) :-
 	xref_push_op(Src, P, T, N).
 
 %%	xref_public_list(+File, -Path, -Public, +Src)
 %	
 %	Find File as  referenced  from  Src.   Unify  Path  with  the an
 %	absolute path to the  referenced  source   and  Public  with the
-%	export list of that (module) file.
+%	export list of that (module) file.   Exports are produced by the
+%	:- module/2 directive and all subsequent :- reexport directives.
 
 xref_public_list(File, Path, Public, Src) :-
+	xref_public_list(File, Path, Src, Public, []).
+
+xref_public_list(File, Path, Src, Public, Rest) :-
 	xref_source_file(File, Path, Src),
 	prolog_open_source(Path, Fd),		% skips possible #! line
-	call_cleanup(read(Fd, ModuleDecl), prolog_close_source(Fd)),
-	ModuleDecl = (:- module(_, Public)).
+	call_cleanup(read_public(Fd, Src, Public, Rest),
+		     prolog_close_source(Fd)).
+
+read_public(In, File, Public, Rest) :-
+	read(In, (:- module(_, Export))),
+	append(Export, Reexport, Public),
+	read(In, ReexportDecl),
+	read_reexport(ReexportDecl, In, File, Reexport, Rest).
+
+read_reexport((:- reexport(Spec)), In, File, Reexport, Rest) :- !,
+	reexport_files(Spec, File, Reexport, Rest0),
+	read(In, ReexportDecl),
+	read_reexport(ReexportDecl, In, File, Rest0, Rest).
+read_reexport((:- reexport(Spec, Import)), In, File, Reexport, Rest) :- !,
+	public_from_import(Import, Spec, File, Reexport, Rest0),
+	read(In, ReexportDecl),
+	read_reexport(ReexportDecl, In, File, Rest0, Rest).
+read_reexport(_, _, _, Rest, Rest).
+
+
+reexport_files([], _, Public, Public) :- !.
+reexport_files([H|T], Src, Public, Rest) :- !,
+	xref_public_list(H, _, Src, Public, Rest0),
+	reexport_files(T, Src, Rest0, Rest).
+reexport_files(Spec, Src, Public, Rest) :-
+	xref_public_list(Spec, Src, Public, Rest).
+
+public_from_import(except(Map), File, Src, Export, Rest) :- !,
+	xref_public_list(File, _, Public, Src),
+	except(Map, Public, Export, Rest).
+public_from_import(Import, _, _, Export, Rest) :-
+	import_name_map(Import, Export, Rest).
+
+
+except([], Public, Export, Rest) :-
+	append(Public, Rest, Export).
+except([PI0 as NewName|Map], Public, Export, Rest) :- !,
+	canonical_pi(PI0, PI),
+	map_as(Public, PI, NewName, Public2),
+	except(Map, Public2, Export, Rest).
+except([PI0|Map], Public, Export, Rest) :-
+	canonical_pi(PI0, PI),
+	select(PI2, Public, Public2),
+	same_pi(PI, PI2), !,
+	except(Map, Public2, Export, Rest).
+
+
+map_as([PI|T], Repl, As, [PI2|T])  :-
+	same_pi(Repl, PI), !,
+	pi_as(PI, As, PI2).
+map_as([H|T0], Repl, As, [H|T])  :-
+	map_as(T0, Repl, As, T).
+
+pi_as(_/Arity, Name, Name/Arity).
+pi_as(_//Arity, Name, Name//Arity).
+
+import_name_map([], L, L).
+import_name_map([_/Arity as NewName|T0], [NewName/Arity|T], Tail) :- !,
+	import_name_map(T0, T, Tail).
+import_name_map([_//Arity as NewName|T0], [NewName//Arity|T], Tail) :- !,
+	import_name_map(T0, T, Tail).
+import_name_map([H|T0], [H|T], Tail) :-
+	import_name_map(T0, T, Tail).
+
+canonical_pi(Name//Arity0, PI) :-
+	integer(Arity0), !,
+	PI = Name/Arity,
+	Arity is Arity0 + 2.
+canonical_pi(PI, PI).
+
+same_pi(Canonical, PI2) :-
+	canonical_pi(PI2, Canonical).
 
 
 		 /*******************************
@@ -1114,34 +1195,55 @@ assert_foreign(Src, Goal) :-
 	flag(xref_src_line, Line, Line),
 	assert(foreign(Term, Src, Line)).
 
-%%	assert_import(+Src, +ImportList, +From) is det.
-%%	assert_import(+Src, +ImportList, +PublicList, +From) is det.
+%%	assert_import(+Src, +Import, +PublicList, +From, +Reexport) is det.
 %
-%	The first form is called for   use_module/1, while the second is
-%	called  for  use_module/2,  where  ImportList  is  the  list  of
-%	requested predicates and PublicList  is   the  list  of exported
-%	predicates.
+%	Asserts imports into Src. Import   is  the import specification,
+%	PublicList is the list of known  public predicates or unbound if
+%	this need not be checked and  From   is  the file from which the
+%	public predicates come. If  Reexport   is  =true=, re-export the
+%	imported predicates.
+%	
+%	@tbd	Tighter type-checking on Import.
 
-assert_import(Src, Import, From) :-
-	assert_import(Src, Import, _, From).
-
-assert_import(_, [], _, _) :- !.
-assert_import(Src, [H|T], Public, From) :- !,
-	assert_import(Src, H, Public, From),
-	assert_import(Src, T, Public, From).
-assert_import(Src, Import, Public, From) :-
+assert_import(_, [], _, _, _) :- !.
+assert_import(Src, [H|T], Public, From, Reexport) :- !,
+	assert_import(Src, H, Public, From, Reexport),
+	assert_import(Src, T, Public, From, Reexport).
+assert_import(Src, except(Except), Public, From, Reexport) :- !,
+	is_list(Public), !,
+	except(Except, Public, Import, []),
+	assert_import(Src, Import, _All, From, Reexport).
+assert_import(Src, Import as Name, Public, From, Reexport) :- !,
+	pi_to_head(Import, Term0),
+	functor(Term0, _OldName, Arity),
+	functor(Term, Name, Arity),
+	(   in_public_list(Term0, Public)
+	->  assert(imported(Term, Src, From)),
+	    assert_reexport(Reexport, Src, Term)
+	;   flag(xref_src_line, Line, Line),
+	    assert_called(Src, '<directive>'(Line), Term0)
+	).
+assert_import(Src, Import, Public, From, Reexport) :-
 	pi_to_head(Import, Term), !,
-	(   (	var(Public)
-	    ->	true
-	    ;	member(Export, Public),
-		pi_to_head(Export, Term)
-	    )
-	->  assert(imported(Term, Src, From))
+	(   in_public_list(Term, Public)
+	->  assert(imported(Term, Src, From)),
+	    assert_reexport(Reexport, Src, Term)
 	;   flag(xref_src_line, Line, Line),
 	    assert_called(Src, '<directive>'(Line), Term)
 	).
-assert_import(Src, op(P,T,N), _, _) :-
+assert_import(Src, op(P,T,N), _, _, _) :-
 	xref_push_op(Src, P,T,N).
+
+in_public_list(_Head, Public) :-
+	var(Public), !.
+in_public_list(Head, Public) :-
+	member(Export, Public),
+	pi_to_head(Export, Head).
+
+assert_reexport(false, _, _) :- !.
+assert_reexport(true, Src, Term) :-
+	assert(exported(Term, Src)).
+
 
 %%	assert_op(+Src, +Op) is det.
 %

@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -825,6 +825,8 @@ preprocessor(Old, New) :-
 	consult/1,
 	use_module/1,
 	use_module/2,
+	reexport/1,
+	reexport/2,
 	'$load_file'/3,
 	load_files/1,
 	load_files/2.
@@ -855,11 +857,33 @@ use_module(Files) :-
 %	As use_module/1, but takes only one file argument and imports only
 %	the specified predicates rather than all public predicates.
 
-use_module(Files, Import) :-
+use_module(File, Import) :-
+	load_files(File, [ if(not_loaded),
+			   must_be_module(true),
+			   imports(Import)
+			 ]).
+
+%%	reexport(+Files)
+%
+%	As use_module/1, exporting all imported predicates.
+
+reexport(Files) :-
 	load_files(Files, [ if(not_loaded),
 			    must_be_module(true),
-			    imports(Import)
+			    reexport(true)
 			  ]).
+
+%%	reexport(+File, +ImportList)
+%
+%	As use_module/1, re-exporting all imported predicates.
+
+reexport(File, Import) :-
+	load_files(File, [ if(not_loaded),
+			   must_be_module(true),
+			   imports(Import),
+			   reexport(true)
+			 ]).
+
 
 [X] :- !,
 	consult(X).
@@ -995,6 +1019,7 @@ load_files(Files, Options) :-
 	),
 	    
 	'$get_option'(imports(Import), Options, all),
+	'$get_option'(reexport(Reexport), Options, false),
 	'$get_option'(must_be_module(IsModule), Options, false),
 	current_prolog_flag(verbose_load, DefVerbose),
 	'$negate'(DefVerbose, DefSilent),
@@ -1015,7 +1040,7 @@ load_files(Files, Options) :-
 	(   var(FromStream),
 	    '$noload'(If, FullFile)
 	->  (   '$current_module'(LoadModule, FullFile)
-	    ->  '$import_list'(Module, LoadModule, Import)
+	    ->  '$import_list'(Module, LoadModule, Import, Reexport)
 	    ;   (   Module == user
 		->  true
 		;   '$load_file'(File, Module, [if(true)|Options])
@@ -1040,16 +1065,21 @@ load_files(Files, Options) :-
 					     file(File, Absolute)))),
 	    (   nonvar(FromStream),
 	        '$consult_file'(stream(Absolute, FromStream), Encoding,
-				Module, Import, IsModule, Action, LM)
+				Module, IsModule, Action, LM)
 	    ->	true
 	    ;   var(FromStream),
 		'$consult_goal'(Absolute, Goal),
 		call(Goal,
 		     Absolute, Encoding,
-		     Module, Import, IsModule, Action, LM)
+		     Module, IsModule, Action, LM)
 	    ->  true
 	    ;   print_message(error, load_file(failed(File))),
 		fail
+	    ),
+
+	    (	atom(LM)
+	    ->  '$import_list'(Module, LM, Import, Reexport)
+	    ;	true
 	    ),
 
 	    (	Level == 0
@@ -1092,20 +1122,19 @@ load_files(Files, Options) :-
 	print_message(error, E),
 	fail.
 
-%	'$consult_file'(+Path, +Encoding,
-%		      +Module, +Import, +IsModule, -Action, -LoadedIn)
+%%	'$consult_file'(+Path, +Encoding, +Module, +IsModule, -Action, -LoadedIn)
 
-'$consult_file'(Absolute, Enc, Module, Import, IsModule, What, LM) :-
+'$consult_file'(Absolute, Enc, Module, IsModule, What, LM) :-
 	'$set_source_module'(Module, Module), !, % same module
-	'$consult_file_2'(Absolute, Enc, Module, Import, IsModule, What, LM).
-'$consult_file'(Absolute, Enc, Module, Import, IsModule, What, LM) :-
+	'$consult_file_2'(Absolute, Enc, Module, IsModule, What, LM).
+'$consult_file'(Absolute, Enc, Module, IsModule, What, LM) :-
 	'$set_source_module'(OldModule, Module),
 	'$ifcompiling'('$qlf_start_sub_module'(Module)),
-        '$consult_file_2'(Absolute, Enc, Module, Import, IsModule, What, LM),
+        '$consult_file_2'(Absolute, Enc, Module, IsModule, What, LM),
 	'$ifcompiling'('$qlf_end_part'),
 	'$set_source_module'(_, OldModule).
 
-'$consult_file_2'(Absolute, Enc, Module, Import, IsModule, What, LM) :-
+'$consult_file_2'(Absolute, Enc, Module, IsModule, What, LM) :-
 	'$set_source_module'(OldModule, Module),	% Inform C we start loading
 	'$load_id'(Absolute, Id),
 	'$start_consult'(Id),
@@ -1119,7 +1148,7 @@ load_files(Files, Options) :-
 	
 	'$save_lex_state'(LexState),
 	'$open_source'(Absolute, Enc, In,
-		     '$load_file'(In, Id, Import, IsModule, LM)),
+		     '$load_file'(In, Id, IsModule, LM)),
 	'$restore_lex_state'(LexState),
 	'$set_source_module'(_, OldModule).	% Restore old module
 
@@ -1179,32 +1208,34 @@ load_files(Files, Options) :-
 	).
 
 
-%   '$load_file'(+FirstTerm, +In, +Path, +Import, +IsModule, -Module)
+%   '$load_file'(+In, +Path, +IsModule, -Module)
 %
-%   '$load_file'/6 does the actual loading. The first term has already been
-%   read as this may be the module declaraction.
+%   '$load_file'/4 does the actual loading.
 
-'$load_file'(In, File, Import, IsModule, Module) :-
+'$load_file'(In, File, IsModule, Module) :-
 	(   peek_char(In, #)
 	->  skip(In, 10)
 	;   true
 	),
 	'$read_clause'(In, First),
-	'$load_file'(First, In, File, Import, IsModule, Module).
+	'$load_file'(First, In, File, IsModule, Module).
 
-'$load_file'((?- module(Module, Public)), In, File, all, _, Module) :- !,
-	'$load_module'(Module, Public, all, In, File).
-'$load_file'((:- module(Module, Public)), In, File, all, _, Module) :- !,
-	'$load_module'(Module, Public, all, In, File).
-'$load_file'((?- module(Module, Public)), In, File, Import, _, Module) :- !,
-	'$load_module'(Module, Public, Import, In, File).
-'$load_file'((:- module(Module, Public)), In, File, Import, _, Module) :- !,
-	'$load_module'(Module, Public, Import, In, File).
-'$load_file'(_, _, File, _, true, _) :- !,
+
+'$load_file'((?- module(Module, Public)), In, File, _, Module) :- !,
+	'$load_module'(Module, Public, In, File).
+'$load_file'((:- module(Module, Public)), In, File, _, Module) :- !,
+	'$load_module'(Module, Public, In, File).
+'$load_file'((?- module(Module, Public)),
+	     In, File, _, Module) :- !,
+	'$load_module'(Module, Public, In, File).
+'$load_file'((:- module(Module, Public)),
+	     In, File, _, Module) :- !,
+	'$load_module'(Module, Public, In, File).
+'$load_file'(_, _, File, true, _) :- !,
 	throw(error(domain_error(module_file, File), _)).
-'$load_file'(end_of_file, _, _, _, _, Module) :- !, 	% empty file
+'$load_file'(end_of_file, _, _, _, Module) :- !, 	% empty file
 	'$set_source_module'(Module, Module).
-'$load_file'(FirstClause, In, File, _, false, Module) :- !,
+'$load_file'(FirstClause, In, File, false, Module) :- !,
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(File)),
 	ignore('$consult_clause'(FirstClause, File)),
@@ -1214,10 +1245,10 @@ load_files(Files, Options) :-
 '$reserved_module'(system).
 '$reserved_module'(user).
 
-'$load_module'(Reserved, _, _, _, _) :-
+'$load_module'(Reserved, _, _, _) :-
 	'$reserved_module'(Reserved), !,
 	throw(error(permission_error(load, module, Reserved), _)).
-'$load_module'(Module, Public, Import, In, File) :-
+'$load_module'(Module, Public, In, File) :-
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
 	'$declare_module'(Module, File, Line),
@@ -1226,28 +1257,99 @@ load_files(Files, Options) :-
 	'$export_ops'(Ops, Module, File),
 	'$consult_stream'(In, File),
 	Module:'$check_export',
-	'$ifcompiling'('$qlf_end_part'),
-	'$import_list'(OldModule, Module, Import).
+	'$ifcompiling'('$qlf_end_part').
 
 
-'$import_list'(_, _, []) :- !.
-'$import_list'(Module, Source, [Name/Arity|Rest]) :- !,
-	functor(Term, Name, Arity),
-	'$import_wic'(Source, Term),
-	ignore(Module:import(Source:Term)),
-	'$import_list'(Module, Source, Rest).
-'$import_list'(Context, Module, all) :- !,
-	export_list(Module, Exports),
-	'$import_all'(Exports, Context, Module),
-	'$import_ops'(Context, Module).
+%%	'$import_list'(+TargetModule, +FromModule, +Import, +Reexport) is det.
+%
+%	Import from FromModule to TargetModule. Import  is one of =all=,
+%	a list of optionally  mapped  predicate   indicators  or  a term
+%	except(Import).
+
+'$import_list'(_, _, Var, _) :-
+	var(Var), !,
+	throw(error(instantitation_error, _)).
+'$import_list'(Target, Source, all, Reexport) :- !,
+	export_list(Source, Import),
+	'$import_ops'(Target, Source),
+	'$import_list'(Target, Source, Import, Reexport).
+'$import_list'(Target, Source, except(Spec), Reexport) :- !,
+	export_list(Source, Export),
+	(   is_list(Spec)
+	->  true
+	;   throw(error(type_error(list, Spec), _))
+	),
+	'$import_except'(Spec, Export, Import),
+	'$import_list'(Target, Source, Import, Reexport).
+'$import_list'(Target, Source, Import, Reexport) :- !,
+	is_list(Import), !,
+	'$import_all'(Import, Target, Source, Reexport).
+'$import_list'(_, _, Import, _) :-
+	throw(error(type_error(import_specifier, Import))).
 
 
-'$import_all'([], _, _).
-'$import_all'([Head|Rest], Context, Source) :-
-	ignore(Context:import(Source:Head)),
-	'$import_wic'(Source, Head),
-	'$import_all'(Rest, Context, Source).
+:- op(700, xfx, user:as).		% TBD: kernel table
 
+'$import_except'([], List, List).
+'$import_except'([H as N|T], List0, List) :- !,
+	'$import_as'(H, N, List0, List1),
+	'$import_except'(T, List1, List).
+'$import_except'([H|T], List0, List) :-
+	'$select'(P, List0, List1),
+	'$same_pi'(H, P), !,
+	'$import_except'(T, List1, List).
+
+'$import_as'(PI, N, [PI2|T], [PI as N|T]) :-
+	'$same_pi'(PI, PI2), !.
+'$import_as'(PI, N, [H|T0], [H|T]) :- !,
+	'$import_as'(PI, N, T0, T).
+'$import_as'(PI, _, _, _) :-
+	throw(error(existence_error(export, PI), _)).
+
+'$same_pi'(PI1, PI2) :-
+	'$canonical_pi'(PI1, PI),
+	'$canonical_pi'(PI2, PI).
+
+'$canonical_pi'(N//A0, N/A) :- !,
+	A is A0 + 2.
+'$canonical_pi'(PI, PI).
+
+
+'$import_all'(Import, Context, Source, Reexport) :-
+	'$import_all2'(Import, Context, Source, Imported),
+	(   Reexport == true,
+	    '$list_to_conj'(Imported, Conj)
+	->  export(Context:Conj),
+	    (	flag('$compiling', wic, wic)
+	    ->	'$add_directive_wic'(export(Context:Conj))
+	    ;	true
+	    )
+	;   true
+	).
+
+'$import_all2'([], _, _, []).
+'$import_all2'([PI as NewName|Rest], Context, Source,
+	       [NewName/Arity|Imported]) :- !,
+	'$canonical_pi'(PI, Name/Arity),
+	length(Args, Arity),
+	Head =.. [Name|Args],
+	NewHead =.. [NewName|Args],
+	source_location(File, _Line),
+	(   '$get_predicate_attribute'(Source:Head, transparent, 1)
+	->  '$set_predicate_attribute'(Context:NewHead, transparent, 1)
+	;   true
+	),
+	'$store_clause'((NewHead :- Source:Head), File),
+	'$import_all2'(Rest, Context, Source, Imported).
+'$import_all2'([Pred|Rest], Context, Source, [Pred|Imported]) :-
+	Context:import(Source:Pred),
+	'$import_wic'(Source, Pred),
+	'$import_all2'(Rest, Context, Source, Imported).
+
+
+'$list_to_conj'([One], One) :- !.
+'$list_to_conj'([H|T], (H,Rest)) :-
+	'$list_to_conj'(T, Rest).
 
 %%	'$import_ops'(+Target, +Source)
 %	

@@ -2137,8 +2137,7 @@ PRED_IMPL("$record_clause", 3, record_clause, 0)
 
 static
 PRED_IMPL("$start_aux", 2, start_aux, 0)
-{ PRED_LD
-  atom_t filename;
+{ atom_t filename;
   SourceFile sf;
 
   if ( !PL_get_atom_ex(A1, &filename) )
@@ -2160,8 +2159,7 @@ PRED_IMPL("$start_aux", 2, start_aux, 0)
 
 static
 PRED_IMPL("$end_aux", 2, end_aux, 0)
-{ PRED_LD
-  atom_t filename;
+{ atom_t filename;
   SourceFile sf;
   Procedure proc;
 
@@ -3065,7 +3063,7 @@ unify_definition(?Head, +Def, -TheHead, flags)
     This function properly deals with module-inheritance, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+int
 unify_functor(term_t t, functor_t fd, int how)
 { if ( how&GP_NAMEARITY )
   { FunctorDef fdef = valueFunctor(fd);

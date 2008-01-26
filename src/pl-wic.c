@@ -2520,17 +2520,17 @@ pl_add_directive_wic(term_t term)
 
 
 word
-pl_import_wic(term_t module, term_t head)
+pl_import_wic(term_t module, term_t pi)
 { if ( wicFd )
   { GET_LD
-    Module m;
-    functor_t f;
+    Module m = NULL;
+    functor_t fd;
 
     if ( !PL_get_module(module, &m) ||
-	 !PL_get_functor(head, &f) )
-      return warning("$import_wic/3: instantiation fault");
+	 !get_functor(pi, &fd, &m, 0, GF_PROCEDURE) )
+      fail;
 
-    return importWic(lookupProcedure(f, m), wicFd PASS_LD);
+    return importWic(lookupProcedure(fd, m), wicFd PASS_LD);
   }
 
   succeed;
