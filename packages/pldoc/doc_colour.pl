@@ -605,11 +605,11 @@ colourise_exports2(_, _, _).
 %	Colourise import list from use_module/2, importing from File.
 
 colourise_imports(List, File, TB, Pos) :-
-	(   xref_public_list(File, _, Public, TB)
+	(   xref_public_list(File, Path, Public, TB)
 	->  true
 	;   Public = []
 	),
-	colourise_imports(List, File, Public, TB, Pos).
+	colourise_imports(List, Path, Public, TB, Pos).
 
 colourise_imports([], _, _, _, _).
 colourise_imports(List, File, Public, TB, list_position(_,_,ElmPos,Tail)) :- !,
@@ -622,9 +622,21 @@ colourise_imports(_, _, _, TB, Pos) :-
 	colour_item(type_error(list), TB, Pos).	
 
 colourise_imports2([G0|GT], File, Public, TB, [P0|PT]) :- !,
-	colourise_declaration(G0, TB, P0),
+	colourise_import(G0, File, TB, P0),
 	colourise_imports2(GT, File, Public, TB, PT).
 colourise_imports2(_, _, _, _, _).
+
+colourise_import(PI as Name, File, TB, term_position(_,_,FF,FT,[PP,NP])) :-
+	pi_to_term(PI, Goal), !,
+	colour_item(goal(imported(File), Goal), TB, PP),
+	functor(Goal, _, Arity),
+	functor(NewGoal, Name, Arity),
+	goal_classification(TB, NewGoal, [], Class),
+	colour_item(goal(Class, NewGoal), TB, NP),
+	colour_item(keyword(as), TB, FF-FT).
+colourise_import(PI, _, TB, Pos) :-
+	colourise_declaration(PI, TB, Pos).
+
 
 %%	colourise_declarations(+Term, +TB, +Pos)
 %	
@@ -638,26 +650,27 @@ colourise_declarations((Head,Tail), TB,
 colourise_declarations(Last, TB, Pos) :-
 	colourise_declaration(Last, TB, Pos).
 
-colourise_declaration($(Name)/Arity, TB, Pos) :-
-	atom(Name),
-	style_check(?(dollar)), !,	% deal with system boot-files
-	atom_concat($, Name, TheName),
-	colourise_declaration(TheName/Arity, TB, Pos).
-colourise_declaration(Name/Arity, TB, Pos) :-
-	atom(Name), integer(Arity), !,
-	functor(Goal, Name, Arity),
+colourise_declaration(PI, TB, Pos) :-
+	pi_to_term(PI, Goal), !,
 	goal_classification(TB, Goal, [], Class),
 	colour_item(goal(Class, Goal), TB, Pos).
-colourise_declaration(Module:Name/Arity, TB,
+colourise_declaration(Module:PI, TB,
 		      term_position(_,_,_,_,[PM,PG])) :-
-	atom(Module), atom(Name), integer(Arity), !,
+	atom(Module), pi_to_term(PI, Goal), !,
 	colour_item(module(M), TB, PM),
-	functor(Goal, Name, Arity),
 	colour_item(goal(extern(M), Goal), TB, PG).
 colourise_declaration(op(_,_,_), TB, Pos) :-
 	colour_item(exported_operator, TB, Pos).
 colourise_declaration(_, TB, Pos) :-
 	colour_item(type_error(export_declaration), TB, Pos).
+
+pi_to_term(Name/Arity, Term) :-
+	atom(Name), integer(Arity), !,
+	functor(Term, Name, Arity).
+pi_to_term(Name//Arity0, Term) :-
+	atom(Name), integer(Arity0), !,
+	Arity is Arity0 + 2,
+	functor(Term, Name, Arity).
 
 
 %%	colour_item(+Class, +Source, +Pos)
@@ -872,6 +885,7 @@ def_style(class(undefined,_),	style(colour := red,
 def_style(prolog_data,		style(colour := blue,
 				      underline  := @on)).
 
+def_style(keyword(_), 		style(colour := blue)).
 def_style(identifier, 		style(bold := @on)).
 def_style(delimiter,		style(bold := @on)).
 def_style(expanded,		style(colour := blue,
