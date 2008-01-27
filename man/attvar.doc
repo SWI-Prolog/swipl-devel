@@ -200,6 +200,28 @@ The implementation can deal with cyclic terms.
 The dif/2 predicate is realised using attributed variable associated
 with the module \const{dif}.  It is defined in the autoload library
 \pllib{dif}.
+
+    \predicate{call_residue_vars}{2}{:Goal, -Vars}
+Find residual attributed variables left by \arg{Goal}. This predicate is
+intended for debugging programs using coroutining or constraints.
+Consider a program that poses contracting constraints on a variable.
+Such programs should fail, but sometimes succeed because the constraint
+solver is too weak to detect the contradiction. Ideally, delayed goals
+and constraints are all executed at the end of the computation. The meta
+predicate call_residue_vars/2 finds variables that are given attributes
+variables or whose attributes are modified%
+	\footnote{Tracking modifications is currently not complete and
+		  this feature may be dropped completely in future
+		  versions.}
+by \arg{Goal}, regardless or not whether these variables are reachable
+from the arguments of \arg{Goal}.
+
+The predicate has considerable implications. During the execution of
+\arg{Goal}, the garbage collector does not reclaim attributed variables.
+This causes some degradation of GC performance. In a well-behaved
+program there are no such variables, so the space impact is generally
+minimal. The actual collection of \arg{Vars} is implemented using a scan
+of the trail- and global stacks.
 \end{description}
 
 
