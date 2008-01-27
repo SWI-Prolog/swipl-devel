@@ -180,6 +180,37 @@ compared using \arg{Cmp}.
     \termitem{nondet}{}
 If this keyword appears in the option list, non-deterministic success
 of the body is not considered an error.
+
+    \termitem{sto}{Termtype}
+Declares that executing body is subject to occurs-check (STO).  The
+test is executed with \arg{Terms}.  \arg{Terms} is either
+\term{rational_trees} or \term{finite_trees}.  STO programs are not
+portable between different kinds of terms.  Only programs \emph{not}
+subject to occurs-check (NSTO) are portable\footnote{See 7.3.3 of
+ISO/IEC 13211-1 PROLOG: Part 1 - General Core, for a detailed
+discussion of STO and NSTO}.  Fortunately, most practical programs are
+NSTO.  Writing tests that are STO is still useful to ensure the
+robustness of a predicate.  In case sto4 and sto5 below, an infinite
+list (a rational tree) is created prior to calling the actual
+predicate.  Ideally, such cases produce a type error or fail silently.
+
+\begin{code}
+test(sto1, [sto(rational_trees)]) :-
+	X=s(X).
+test(sto2, [sto(finite_trees),fail]) :-
+	X=s(X).
+test(sto3, [sto(rational_trees), fail]) :-
+	X=s(X), fail.
+test(sto4, [sto(rational_trees),error(type_error(list,L))]) :-
+	L = [_|L], length(L,_).
+test(sto5, [sto(rational_trees),fail]) :-
+	L = [_|L], length(L,3).
+\end{code}
+
+Programs that depend on STO cases tend to be inefficient, even
+incorrect, are hard to understand and debug, and terminate poorly.  It
+is therefore advisable to avoid STO programs whenever possible.
+
 \end{description}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -296,7 +327,7 @@ test(member) :-
 	findall(X, member(X, [a,b,c]), Xs),
 	Xs == [a,b,c].
 
-test(member, all(X == [a,b,c]) :-
+test(member, all(X == [a,b,c])) :-
 	member(X, [a,b,c]).
 \end{code}
 
@@ -540,13 +571,22 @@ tested.
 \subsection{PlUnit on SICStus}
 \label{sec:sicstus}
 
-The core library, \file{plunit.pl} can be loaded on SICStus.  It depends
-on a small compatibility file called \file{swi.pl}.  To deploy PlUnit
-with SICStus, copy \file{plunit.pl} and \file{swi.pl} to a directory
-that is searched by the \const{library} search-path.
-Issues with the SICStus port.
+The directory of \file{plunit.pl} and \file{swi.pl} must be in the
+\const{library} search-path.  With PLUNITDIR replaced accordingly,
+add the following into your \file{.sicstusrc} or \file{sicstus.ini}.
+
+==
+:- set_prolog_flag(language, iso). % for maximal compatibility
+library_directory('PLUNITDIR').
+==
+
+The current version runs under SICStus 3.  Open issues:
 
 \begin{itemize}
+
+    \item Some messages are unformatted because SICStus 3 reports
+          all ISO errors as instantiation errors.
+
     \item Only \file{plunit.pl}.  Both coverage analysis and the test
     	  generation wizard currently require SWI-Prolog.
 
@@ -557,7 +597,7 @@ Issues with the SICStus port.
     \item The \const{run} option is not supported.
 
     \item Tests are loaded into the enclosing module instead of a separate
-          test module. This means that predicates in the test module may
+          test module. This means that predicates in the test module must
 	  not conflict with the enclosing module, nor with other test
 	  modules loaded into the same module.
 \end{itemize}
@@ -571,7 +611,7 @@ Issues with the SICStus port.
 
 There are two approaches for testing. In one extreme the tests are
 written using declarations dealing with setup, cleanup, running and
-testing the result. In the other extreme a test it simply a Prolog goal
+testing the result. In the other extreme a test is simply a Prolog goal
 that is supposed to succeed. We have chosen to allow for any mixture of
 these approaches. Written down as test/1 we opt for the simple
 succeeding goal approach. Using options to the test the user can choose

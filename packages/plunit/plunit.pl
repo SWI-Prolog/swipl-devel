@@ -62,7 +62,7 @@ if_expansion((:- else), []) :-
 	    ;	X2 = X
 	    ),
 	    asserta(include_code(X2))
-	;   throw(error(context_error(no_if), _))
+	;   throw_error(context_error(no_if),_)
 	).
 if_expansion((:- endif), []) :-
 	retract(include_code(_)), !.
@@ -79,9 +79,13 @@ sicstus :- catch(current_prolog_flag(system_type, _), _, fail).
 
 
 :- if(swi).
+throw_error(Error_term,Impldef) :-
+	throw(error(Error_term,Impldef)).
+
 :- set_prolog_flag(generate_debug_info, false).
 :- use_module(library(option)).
 :- use_module(library(quintus), [subsumes_chk/2]).
+:- use_module(library(clpfd), [copy_term/3]). % remove it, Jan!
 
 current_test_flag(Name, Value) :-
 	current_prolog_flag(Name, Value).
@@ -91,6 +95,8 @@ set_test_flag(Name, Value) :-
 :- endif.
 
 :- if(sicstus).
+throw_error(Error_term,Impldef) :-
+	throw(error(Error_term,i(Impldef))). % SICStus 3 work around
 :- use_module(swi).			% SWI-Compatibility
 :- use_module(library(terms)).
 :- op(700, xfx, =@=).
@@ -118,7 +124,7 @@ current_test_flag(Name, Val) :-
 
 set_test_flag(Name, Val) :-
 	var(Name), !,
-	throw(error(instantiation_error, set_test_flag(Name,Val))).
+	throw_error(instantiation_error, set_test_flag(Name,Val)).
 set_test_flag( Name, Val ) :-
 	retractall(test_flag(Name,_)),
 	asserta(test_flag(Name, Val)).
@@ -221,6 +227,7 @@ set_import_modules(Module, Imports) :-
 
 user:term_expansion((:- begin_tests(Set)),
 		    [ (:- begin_tests(Set)),
+		      (:- discontiguous(test/2)),
 		      (:- discontiguous('unit body'/2)),
 		      (:- discontiguous('unit test'/4))
 		    ]).
@@ -247,10 +254,10 @@ end_tests(Unit) :-
 	(   Unit == StartUnit
 	->  once(retract(loading_unit(StartUnit, _, _, Old))),
 	    '$set_source_module'(_, Old)
-	;   throw(error(context_error(plunit_close(Unit, StartUnit)), _))
+	;   throw_error(context_error(plunit_close(Unit, StartUnit)), _)
 	).
 end_tests(Unit) :-
-	throw(error(context_error(plunit_close(Unit, -)), _)).
+	throw_error(context_error(plunit_close(Unit, -)), _).
 
 %%	make_unit_module(+Name, -ModuleName) is det.
 %%	unit_module(+Name, -ModuleName) is det.
@@ -264,8 +271,8 @@ make_unit_module(Unit, Module) :-
 	unit_module(Unit, Module),
 	(   current_module(Module),
 	    \+ current_unit(_, Module, _, _)
-	->  throw(error(permission_error(create, plunit, Unit),
-			'Existing module'))
+	->  throw_error(permission_error(create, plunit, Unit),
+			'Existing module')
 	;  true
 	).
 
@@ -310,7 +317,7 @@ expand_test(Name, Options0, Body,
 
 expand_option(Var, _) :-
 	var(Var), !,
-	throw(error(instantiation_error)).
+	throw_error(instantiation_error,_).
 expand_option(A == B, true(A==B)) :- !.
 expand_option(A = B, true(A=B)) :- !.
 expand_option(A =@= B, true(A=@=B)) :- !.
@@ -331,9 +338,9 @@ expand((test(Name) :- Body), Clauses) :- !,
 expand((test(Name, Options) :- Body), Clauses) :- !,
 	expand_test(Name, Options, Body, Clauses).
 expand(test(Name), _) :- !,
-	throw(error(existence_error(body, test(Name)), _)).
+	throw_error(existence_error(body, test(Name)), _).
 expand(test(Name, _Options), _) :- !,
-	throw(error(existence_error(body, test(Name)), _)).
+	throw_error(existence_error(body, test(Name)), _).
 
 :- if(swi).
 :- multifile
@@ -367,8 +374,8 @@ must_be(Type, X) :-
 
 is_not(Type, X) :-
 	(   ground(X)
-	->  throw(error(type_error(Type, X), _))
-	;   throw(error(instantiation_error, _))
+	->  throw_error(type_error(Type, X), _)
+	;   throw_error(instantiation_error, _)
 	).
 :- endif.
 
@@ -387,7 +394,7 @@ verify_options([], _).
 verify_options([H|T], Pred) :-
 	(   call(Pred, H)
 	->  verify_options(T, Pred)
-	;   throw(error(domain_error(Pred, H), _))
+	;   throw_error(domain_error(Pred, H), _)
 	).
 
 
@@ -405,6 +412,7 @@ test_option(error(_)).
 test_option(all(_)).
 test_option(set(_)).
 test_option(nondet).
+test_option(sto(V)) :- nonvar(V), member(V, [finite_trees, rational_trees]).
 
 %%	test_option(+Option) is semidet.
 %
@@ -564,7 +572,7 @@ run_test(Unit, Name, Line, Options, Body) :-
 	unit_module(Unit, Module),
 	setup(Module, Options), !,			% true(Binding)
 	statistics(runtime, [T0,_]),
-	(   catch(call_test(Module:Body, Det), E, true)
+	(   catch(call_det(Module:Body, Det), E, true)
 	->  (   var(E)
 	    ->	statistics(runtime, [T1,_]),
 		Time is (T1 - T0)/1000.0,
@@ -607,7 +615,7 @@ run_test(Unit, Name, Line, Options, Body) :-
 	unit_module(Unit, Module),
 	setup(Module, Options), !,			% true
 	statistics(runtime, [T0,_]),
-	(   catch(call_test(Module:Body, Det), E, true)
+	(   catch(call_det(Module:Body, Det), E, true)
 	->  (   var(E)
 	    ->	statistics(runtime, [T1,_]),
 		Time is (T1 - T0)/1000.0,
@@ -636,8 +644,7 @@ nondet_test(Expected, Unit, Name, Line, Options, Body) :-
 		Time is (T1 - T0)/1000.0,
 	        (   nondet_compare(Expected, Bindings, Unit, Name, Line)
 		->  success(Unit, Name, Line, true, Time, Options)
-		;   arg(1, Expected, Cmp),
-		    failure(Unit, Name, Line, wrong_answer(Cmp), Options)
+		;   failure(Unit, Name, Line, wrong_answer, Options)
 		),
 		cleanup(Module, Options)
 	    ;	failure(Unit, Name, Line, E, Options),
@@ -690,29 +697,18 @@ cmp(Var =@= Value, Var, variant, Value). % variant/2 is the same =@=
 :- endif.
 
 
-%%	call_test(:Goal, -Det) is nondet.
+%%	call_det(:Goal, -Det) is nondet.
 %
 %	True if Goal succeeded.  Det is unified to =true= if Goal left
 %	no choicepoints and =false= otherwise.
 
-:- if(swi).
-call_test(Goal, Det) :-
-	Goal,
-	deterministic(Det).
+:- if((swi|sicstus)).
+call_det(Goal, Det) :-
+	call_cleanup(Goal,Det0=true),
+	( var(Det0) -> Det = false ; Det = true ).
 :- else.
-:- if(sicstus).
-call_test(Goal, Det) :-
-	statistics(choice, [Used0|_]),
-	Goal,
-	statistics(choice, [Used1|_]),
-	(   Used1 =:= Used0
-	->  Det = true
-	;   Det = false
-	).
-:- else.
-call_test(Goal, true) :-
+call_det(Goal, true) :-
 	call(Goal).
-:- endif.
 :- endif.
 
 %%	match_error(+Expected, +Received) is semidet.
@@ -729,6 +725,9 @@ match_error(Expect, Rec) :-
 %	reason. The condition handler is  similar,   but  failing is not
 %	considered an error.
 
+setup(_Module, Options) :-
+	option(sto(finite_trees), Options), !, % a first start...
+	fail.
 setup(Module, Options) :-
 	option(setup(Setup), Options), !,
 	(   catch(Module:Setup, E, true)
@@ -822,8 +821,16 @@ report :-
 	report_blocked,
 	report_failed.
 
+number_of_clauses(F/A,N) :-
+	(	current_predicate(F/A)
+	->	functor(G,F,A),
+		findall(t, G, Ts),
+		length(Ts, N)
+	;	N = 0
+	).
+
 report_blocked :-
-	predicate_property(blocked(_,_,_,_), number_of_clauses(N)),
+	number_of_clauses(blocked/4,N),
 	N > 0, !,
 	info(plunit(blocked(N))),
 	(   blocked(Unit, Name, Line, Reason),
@@ -835,7 +842,7 @@ report_blocked :-
 report_blocked.
 
 report_failed :-
-	predicate_property(failed(_,_,_,_), number_of_clauses(N)),
+	number_of_clauses(failed/4,N),
 	N > 0, !,
 	info(plunit(failed(N))),
 	fail.
@@ -918,14 +925,26 @@ message_level(Level) :-
 	;   Level = silent
 	).
 
+:- if(swi).
+locationprefix(File:Line) -->
+	!,
+	[ '~w:~d:\n\t'-[File,Line]].
+:- else.
+locationprefix(File:Line) -->
+	!,
+	[ '~w:~d:\n\t'-[File,Line]].
+:- endif.
+
+locationprefix(FileLine) -->
+	{throw_error(type_error(locationprefix,FileLine))}.
 
 message(error(context_error(plunit_close(Name, -)), _)) -->
 	[ 'PL-Unit: cannot close unit ~w: no open unit'-[Name] ].
 message(error(context_error(plunit_close(Name, Start)), _)) -->
 	[ 'PL-Unit: cannot close unit ~w: current unit is ~w'-[Name, Start] ].
 message(plunit(nondet(File, Line, Name))) -->
-	[ '~w:~d: PL-Unit: Test ~w: Test succeeded with choicepoint'-
-	  [File, Line, Name] ].
+	locationprefix(File:Line),
+	[ 'PL-Unit: Test ~w: Test succeeded with choicepoint'- [Name] ].
 					% Unit start/end
 :- if(swi).
 message(plunit(begin(Unit))) -->
@@ -947,40 +966,56 @@ message(plunit(blocked(1))) --> !,
 message(plunit(blocked(N))) -->
 	[ '~D tests are blocked:'-[N] ].
 message(plunit(blocked(Pos, Name, Reason))) -->
-	[ '  ~w: test ~w: ~w'-[Pos, Name, Reason] ].
+	locationprefix(Pos),
+	[ 'test ~w: ~w'-[Name, Reason] ].
 
 					% fail/success
 message(plunit(failed(0))) --> !,
 	[ 'All tests passed'-[] ].
+message(plunit(failed(1))) --> !,
+	[ '1 test failed'-[] ].
 message(plunit(failed(N))) -->
 	[ '~D tests failed'-[N] ].
 message(plunit(failed(Unit, Name, Line, Failure))) -->
        { unit_file(Unit, File) },
-       [ '~w:~w: test ~w: '- [File, Line, Name] ],
+       locationprefix(File:Line),
+		 ['test ~w: '- [Name] ],
        failure(Failure).
+
+:- if(swi).
+write_term(T, OPS) -->
+	['~@'-[write_term(T,OPS)]].
+:- else.
+write_term(T, _OPS) -->
+	['~q'-[T]].
+:- endif.
+
+expected_got_ops_(Ex, E, OPS, Goals) -->
+	['    Expected: '-[]], write_term(Ex, OPS), [nl],
+	['    Got:      '-[]], write_term(E,  OPS), [nl],
+	( { Goals = [] } -> []
+	; ['       with: '-[]], write_term(Goals, OPS), [nl]
+	).
 
 
 failure(succeeded(Time)) --> !,
 	[ 'must fail but succeeded in ~2f seconds~n'-[Time] ].
 failure(wrong_error(Expected, Error)) --> !,
-	{ copy_term(Expected-Error, Ex-E),
-	  numbervars(Ex-E, 0, _, [singletons(true), attvar(skip)]),
+	{ copy_term(Expected-Error, Ex-E, Goals),
+	  numbervars(Ex-E-Goals, 0, _),
 	  write_options(OPS)
 	},
-	[ 'wrong error', nl, 
-	  '    Expected: ~W'-[Ex, OPS], nl,
-	  '    Got:      ~W'-[E, OPS], nl
-	].
+	[ 'wrong error'-[], nl ],
+	expected_got_ops_(Ex, E, OPS, Goals).
 failure(wrong_answer(Cmp)) -->
 	{ Cmp =.. [Op,Answer,Expected], !,
-	  copy_term(Expected-Answer, Ex-A),
-	  numbervars(Ex-A, 0, _, [singletons(true), attvar(skip)]),
+	  copy_term(Expected-Answer, Ex-A, Goals),
+	  numbervars(Ex-A-Goals, 0, _),
 	  write_options(OPS)
 	},
-	[ 'wrong answer (compared using ~w)'-[Op], nl, 
-	  '    Expected: ~W'-[Ex, OPS], nl,
-	  '    Got:      ~W'-[A, OPS], nl
-	].
+	[ 'wrong answer (compared using ~w)'-[Op], nl ],
+	expected_got_ops_(Ex, A, OPS, Goals).
+
 failure(Why) -->
 	[ '~p~n'-[Why] ].
 
@@ -1014,7 +1049,7 @@ user:generate_message_hook(Message) -->
 	message(Message),
 	[nl].				% SICStus requires nl at the end
 
-%	user:message_hook(+Sevirity, +Message, +Lines) is semidet.
+%	user:message_hook(+Severity, +Message, +Lines) is semidet.
 %
 %	Redefine printing some messages. It appears   SICStus has no way
 %	to get multiple messages at the same   line, so we roll our own.

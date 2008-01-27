@@ -13,17 +13,24 @@
 
 :- module(swi,
 	  [ (=@=)/2,			% @Term1, @Term2
-	    forall/2,			% :Cond, :Action, 
+	    forall/2,			% :Cond, :Action
+	    maplist/2,			% :Goal, ?List
+	    maplist/3,			% :Goal, ?List, ?List
 	    ignore/1,			% :Goal
+	    call/2,			% :Goal, +A1
 	    call/3,			% :Goal, +A1, +A2
 	    source_location/2,		% -File, -Line
+	    copy_term/3,		% +Term, ?Copy
 	    option/2,			% +Term, +List
 	    option/3,			% +Term, +List, +Default
 	    concat_atom/2		% +List, -Atom
 	  ]).
 :- meta_predicate
 	forall(:,:),
+	maplist(:,?),
+	maplist(:,?,?),
 	ignore(:),
+	call(:,+),
 	call(:,+,+).
 
 :- use_module(library(lists)).
@@ -40,6 +47,18 @@ PlUnit environment in SICStus. Tested and  developed with SICStus Prolog
 @license	artistic
 */
 
+%% copy_term(+Term,?Copy, Goals)
+
+copy_term(Term, Copy, Goals) :-
+	call_residue(copy_term(Term,Copy0),Residuum),
+	Copy0 = Copy,
+	pairs_rights(Residuum, Goals).
+
+pairs_rights([],[]).
+pairs_rights([_-R|Ps],[R|Rs]) :-
+	pairs_rights(Ps, Rs).
+
+
 %%	=@=(A, B)
 %
 %	True if A is structural equivalent to  B. This means either A ==
@@ -55,6 +74,32 @@ A =@= B :-
 forall(Cond, Action) :-
 	\+ (Cond, \+ Action).
 
+
+%%	maplist(:Goal, +List)
+%
+%	True if Goal can succesfully be applied on all elements of List.
+
+maplist(Goal, List) :-
+	maplist2(List, Goal).
+
+maplist2([], _).
+maplist2([Elem|Tail], Goal) :-
+	call(Goal, Elem), 
+	maplist2(Tail, Goal).
+
+%	maplist(:Goal, ?List1, ?List2)
+%
+%	True if Goal can succesfully be applied to all succesive pairs
+%	of elements of List1 and List2.
+
+maplist(Goal, List1, List2) :-
+	maplist2(List1, List2, Goal).
+
+maplist2([], [], _).
+maplist2([Elem1|Tail1], [Elem2|Tail2], Goal) :-
+	call(Goal, Elem1, Elem2),
+	maplist2(Tail1, Tail2, Goal).
+
 %%	ignore(:Goal)
 %
 %	Ignore failure of Goal.
@@ -65,13 +110,38 @@ ignore(Goal) :-
 	;   true
 	).
 
+mgoal_to_module_goal(Module0:Goal0, Module, Goal) :-
+	nonvar(Goal0),
+	!,
+	mgoal_(Goal0, Module0,Module, Goal).
+mgoal_to_module_goal(MGoal, _, _) :-
+	throw(error(existence_error(module_prefix,MGoal),!)).
+
+mgoal_(Module0:Goal0, _, Module, Goal) :-
+	nonvar(Goal0),
+	!,
+	mgoal_(Goal0, Module0, Module, Goal).
+mgoal_(Goal, Module,Module, Goal).
+
 %%	call(:Goal, +A1, +A2)
 %
 %	Call with extended arguments
 
-call(M:Goal, A1, A2) :-
+call(MGoal, A1, A2) :-
+	mgoal_to_module_goal(MGoal, M, Goal),
 	Goal =.. List,
 	append(List, [A1,A2], List2),
+	Goal2 =.. List2,
+	call(M:Goal2).
+
+%%	call(:Goal, +A1)
+%
+%	Call with extended arguments
+
+call(MGoal, A1) :-
+	mgoal_to_module_goal(MGoal, M, Goal),
+	Goal =.. List,
+	append(List, [A1], List2),
 	Goal2 =.. List2,
 	call(M:Goal2).
 
@@ -97,6 +167,7 @@ source_location(File, Line) :-
 %	@param Option	Term of the form Name(?Value).
 
 option(Opt, Options, Default) :-	% make option processing stead-fast
+	compound(Opt),
 	arg(1, Opt, OptVal),
 	nonvar(OptVal), !,
 	functor(Opt, OptName, 1),
@@ -117,6 +188,7 @@ option(Opt, _, Default) :-
 %	@param Option	Term of the form Name(?Value).
 
 option(Opt, Options) :-	% make option processing stead-fast
+	compound(Opt),
 	arg(1, Opt, OptVal),
 	nonvar(OptVal), !,
 	functor(Opt, OptName, 1),
