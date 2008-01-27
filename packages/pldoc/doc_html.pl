@@ -166,15 +166,9 @@ doc_file_objects(FileSpec, File, Objects, FileOptions, Options) :-
 
 module_info(File, [module(Module), public(Exports)|Options], Options) :-
 	current_module(Module, File), !,
-	export_list(Module, Public),
-	maplist(head_to_pi, Public, Exports).
+	export_list(Module, Exports).
 module_info(_, Options, Options).
 
-head_to_pi(M:Head, M:PI) :- !,
-	head_to_pi(Head, PI).
-head_to_pi(Head, Name/Arity) :-
-	functor(Head, Name, Arity).
-	
 
 %%	doc_hide_private(+Objs, +Public, +Options)
 %
@@ -221,9 +215,8 @@ private(Module:PI, Options) :-
 	     eq_pi(PI, PI2)
 	   ).
 private(Module:PI, _Options) :-
-	export_list(Module, Public),
-	\+ ( member(Head, Public),
-	     head_to_pi(Head, PI2),
+	export_list(Module, Exports),
+	\+ ( member(PI2, Exports),
 	     eq_pi(PI, PI2)
 	   ).
 
