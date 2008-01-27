@@ -33,6 +33,7 @@
 	  [
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(occurs)).
 
 /** <module> Goal expansion rules to avoid meta-calling
 
@@ -41,7 +42,14 @@ but fundamentally slow meta-predicates. Notable   maplist/2... defines a
 useful set of predicates, but its exection is considerable slower than a
 traditional Prolog loop. Using this library   calls  to maplist/2... are
 translated into an call  to  a   generated  auxilary  predicate  that is
-compiled using compile_aux_clauses/1.
+compiled using compile_aux_clauses/1.  Currently this module supports:
+
+	* maplist/2..
+	* forall/2
+	* once/1
+	* ignore/1
+	* phrase/2
+	* phrase/3
 
 @tbd	Support more predicates
 @author	Jan Wielemaker
@@ -126,7 +134,17 @@ expand_apply(Maplist, Goal) :-
 expand_apply(forall(Cond, Action), \+((Cond, \+(Action)))).
 expand_apply(once(Goal), (Goal->true)).
 expand_apply(ignore(Goal), (Goal->true;true)).
-
+expand_apply(phrase(NT,Xs), NTXsNil) :- !,
+	expand_apply(phrase(NT,Xs,[]), NTXsNil).
+expand_apply(phrase(NT,Xs0,Xs), NewGoal) :-
+	Goal = phrase(NT,Xs0,Xs),
+	nonvar(NT),
+	acyclic_term(NT),
+	\+ ( sub_term(Cut, NT), Cut == ! ),
+	catch('$translate_rule'((pseudo_nt --> NT), Rule),
+	      error(type_error(callable,_),_), fail),
+	Rule = (pseudo_nt(Xs0,Xs) :- NewGoal),
+	Goal \== NewGoal, !.
 user:goal_expansion(GoalIn, GoalOut) :-
 	\+ current_prolog_flag(xref, true),
 	expand_apply(GoalIn, GoalOut).
