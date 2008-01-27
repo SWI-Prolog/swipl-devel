@@ -35,10 +35,10 @@ community.  We use the following definitions:%
 \end{center}
 
 \index{predicate indicator}%
-Refering to a predicate in running text is done using a
+Referring to a predicate in running text is done using a
 \jargon{predicate indicator}. The canonical and most generic form of a
 predicate indicator is a term <module>:<name>/<arity>. If the module is
-irrelavant (built-in predicate) or can be inferred from the context it
+irrelevant (built-in predicate) or can be inferred from the context it
 is often omitted. Compliant to the ISO standard draft on DCG (see
 \secref{DCG}), SWI-Prolog also allows for [<module>]:<name>//<arity> to
 refer to a grammar rule. For all non-negative arity, <name>//<arity> is
@@ -114,7 +114,7 @@ file is a plain text file containing a Prolog program or part thereof.
 Prolog source files come in three flavours:
 
 \begin{description}
-    \item [ A traditional ] Prolog source file contains a Prolog
+    \item [ A traditional ] Prolog source file contains Prolog
 clauses and directives, but no \jargon{module-declaration}.  They
 are normally loaded using consult/1 or ensure_loaded/1.
 
@@ -339,7 +339,7 @@ Consult all source files that have been changed since they were
 consulted.  It checks \arg{all} loaded source files: files loaded into a
 compiled state using \exam{pl -c \ldots} and files loaded using consult
 or one of its derivatives. The predicate make/0 is called after
-edit/1, automatically reloading all modified files.  It the user uses
+edit/1, automatically reloading all modified files.  If the user uses
 an external editor (in a separate window), make/0 is normally used to
 update the program after editing.  In addition, make/0 updates the
 autoload indices (see \secref{autoload}) and runs list_undefined/0
@@ -489,10 +489,10 @@ compilation.
 \label{sec:progtransform}
 
 \index{transformation,of program}%
-ISO Prolog defines no way for program transformation such as macro
+ISO Prolog defines no way for program transformations such as macro
 expansion or conditional compilation. Expansion through term_expansion/2
 and expand_term/2 can be seen as part of the de-facto standard.  This
-machanism can do arbitrary translation between valid Prolog terms read
+mechanism can do arbitrary translation between valid Prolog terms read
 from the source file to Prolog terms handed to the compiler.  As
 term_expansion/2 can return a list, the transformation does not need
 to be term-to-term.
@@ -507,7 +507,7 @@ Dynamic and multifile predicate, normally not defined. When defined by
 the user all terms read during consulting are given to this
 predicate. If the predicate succeeds Prolog will assert \arg{Term2} in
 the database rather then the read term (\arg{Term1}). \arg{Term2} may be
-a term of a the form `?- \arg{Goal}' or `:- \arg{Goal}'. \arg{Goal} is
+a term of the form `?- \arg{Goal}' or `:- \arg{Goal}'. \arg{Goal} is
 then treated as a directive. If \arg{Term2} is a list all terms of the
 list are stored in the database or called (for directives). If
 \arg{Term2} is of the form below, the system will assert \arg{Clause}
@@ -544,7 +544,7 @@ goal_expansion/2 is called on \arg{Goal} using rules from module
 \arg{Module} followed by \const{user}.
 
 Only goals appearing in the body of clauses when reading a source-file
-are expanded using mechanism, and only if they appear literally in the
+are expanded using this mechanism, and only if they appear literally in the
 clause, or as an argument to the meta-predicates not/1, call/1, once/1,
 ignore/1, findall/3, bagof/3, setof/3 or forall/2. A real predicate
 definition is required to deal with dynamically constructed calls.
@@ -555,7 +555,7 @@ preprocessing. First it calls goal_expansion/2. If this fails it returns
 the first argument.
 
     \predicate{compile_aux_clauses}{1}{+Clauses}
-Compile clauses on behalve of goal_expansion/2.  This predicate compiled
+Compile clauses on behalf of goal_expansion/2.  This predicate compiled
 the argument clauses into static predicates, associating the predicates
 with the current file but avoid changing the notion of current predicate
 and therefore discontiguous warnings.
@@ -599,7 +599,7 @@ suffix(Suffix, List) :-
 :- endif.
 \end{code}
 
-Note that these directives can only be appear as separate terms in the
+Note that these directives can only appear as separate terms in the
 input.  Typical usage scenarios include:
 
 \begin{itemize}
@@ -684,7 +684,7 @@ source files while other threads are executing code defined in these
 source files.  Reloading a file freezes all threads after marking the
 active predicates originating from the file being reloaded.  The
 threads are resumed after the file has been loaded.  In addition,
-after completing loading the outermost file the system runs
+after completing loading the outermost file, the system runs
 garbage_collect_clauses/0.
 
 What does that mean? Unfortunately it does \emph{not} mean we can
@@ -700,7 +700,7 @@ does not crash uncontrolled, but behaves like any broken program:
 it may return the wrong bindings, wrong truth value or raise an
 exception.
 
-Future versions may have an `update now' facility.  Such as facility
+Future versions may have an `update now' facility.  Such a facility
 can be implemented on top of the \emph{logical update view}.  It would
 allow threads to do a controlled update between processing independent
 jobs.
@@ -969,7 +969,7 @@ so called ``standard order''. This order is defined as follows:
 
 \begin{enumerate}
     \item $\arg{Variables} < \arg{Numbers} < \arg{Atoms} < \arg{Strings}
-          < \arg{Comound Terms}$%
+          < \arg{Compound Terms}$%
 	\footnote{Strings might be considered atoms in future versions. See
 		  also \secref{strings}}
     \item Variables are sorted by address.  Attaching attributes 
@@ -1694,7 +1694,7 @@ Signal handling is not completely safe in the current implementation,
 especially if \const{throw} is used in combination with external foreign
 code. The system will use the C longjmp() construct to direct control to
 the innermost PL_next_solution(), thus forcing an external procedure to
-be abandoned at an arbitrary moment. Most likely not all SWI-Prologs own
+be abandoned at an arbitrary moment. Most likely not all SWI-Prolog's own
 foreign code is (yet) safe too.  For the multi-threaded versions this
 is even worse: signals can easily violate thread synchronisation
 consistency.
@@ -1757,7 +1757,7 @@ standard.  Most Prolog engines implement DCG, but the details differ
 slightly.
 
 Grammar rules look like ordinary clauses using \functor{-->}{2} for
-separating the head and body rather then \functor{:-}{2}. Expanding
+separating the head and body rather than \functor{:-}{2}. Expanding
 grammar rules is done by expand_term/2, which adds two additional
 argument to each term for representing the difference list. We will
 illustrate the behaviour by defining a rule-set for parsing an integer.
@@ -3228,7 +3228,7 @@ printed.  See also print/1.  The default is \const{false}.  This option
 is an extension to the ISO write_term options.
 
     \termitem{priority}{Integer}
-An integer between 0 and 1200 represeting the `context priority'.
+An integer between 0 and 1200 representing the `context priority'.
 Default is 1200.  Can be used to write partial terms appearing as
 the argument to an operator.  For example:
 
@@ -3266,7 +3266,7 @@ Write \arg{Term} in canonical form on \arg{Stream}.
 
     \predicate[ISO]{write}{1}{+Term}
 Write \arg{Term} to the current output, using brackets and operators
-where appropriate. The Prolog flag \prologflag{float_format} controlls
+where appropriate. The Prolog flag \prologflag{float_format} controls
 floating point output format.
 
     \predicate[ISO]{write}{2}{+Stream, +Term}
@@ -3537,7 +3537,7 @@ of \arg{Term}.%
 	\nopredref{free_variables}{2}. The name term_variables/2 is more
 	widely used. The old predicate is still available from the
 	library \pllib{backcomp}.}
-The variables in \arg{List} are ordered in order of appearence
+The variables in \arg{List} are ordered in order of appearance
 traversing \arg{Term} depth-first and left-to-right. See also
 term_variables/3. For example:
 
@@ -3914,7 +3914,7 @@ comparison operations.
 \begin{description}
     \predicate{collation_key}{2}{+Atom, -Key}
 Create a \arg{Key} from \arg{Atom} for locale specific comparison.
-The key is defined such that if the key of atom $A$ preceeds the key
+The key is defined such that if the key of atom $A$ precedes the key
 of atom $B$ in the standard order of terms, $A$ is alphabetically
 smaller than $B$ using the sort order of the current locale.
 
@@ -5260,7 +5260,7 @@ Is true if \arg{Name} is the Windows `CSIDL' of \arg{Directory}.  If
 \arg{Name} is the CSIDL after deleting the leading \const{CSIDL_} and
 mapping the constant to lowercase.  Check the Windows documentation
 for the function SHGetSpecialFolderPath() for a description of the
-defined constants.  This example extracts the `My Documents' foldder:
+defined constants.  This example extracts the `My Documents' folder:
 
 \begin{code}
 ?- win_folder(personal, MyDocuments).
