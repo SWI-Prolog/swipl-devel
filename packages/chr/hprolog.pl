@@ -11,7 +11,6 @@
 	    or_list/2,			% +ListOfInts, -BitwiseOr
 	    sublist/2,			% ?Sublist, +List
 	    bounded_sublist/3,		% ?Sublist, +List, +Bound
-	    min_list/2,
 	    chr_delete/3,
 	    init_store/2,
 	    get_store/2,
@@ -190,15 +189,6 @@ bounded_sublist(Sublist,[H|List],Bound) :-
 	
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-min_list([H|T], Min) :-
-	'$min_list1'(T, H, Min).
-
-'$min_list1'([], Min, Min).
-'$min_list1'([H|T], X, Min) :-
-        (   H>=X ->
-            '$min_list1'(T, X, Min)
-        ;   '$min_list1'(T, H, Min)
-        ).
 
 chr_delete([], _, []).
 chr_delete([H|T], X, L) :-
