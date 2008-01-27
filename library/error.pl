@@ -82,12 +82,12 @@ representation_error(Reason) :-
 
 %%	must_be(+Type, @Term) is det.
 %
-%	True if Term satisfies the type   constraints  for Type. Defined
-%	types are =atom=, =atomic=,   =between=,  =boolean=, =callable=,
-%	=chars=,  =codes=,  =text=,  =compound=,   =constant=,  =float=,
-%	=integer=,  =nonneg=,  =positive_integer=,   =negative_integer=,
-%	=nonvar=, =number=, =oneof=,  =list=,   =symbol=,  =var=,
-%	=rational= and =string=.
+%	True if Term satisfies the type constraints for Type. Defined
+%	types are =atom=, =atomic=, =between=, =boolean=, =callable=,
+%	=chars=, =codes=, =text=, =compound=, =constant=, =float=,
+%	=integer=, =nonneg=, =positive_integer=, =negative_integer=,
+%	=nonvar=, =number=, =oneof=, =list=, =list_or_partial_list=,
+%	=symbol=, =var=, =rational= and =string=.
 %	
 %	Most of these types are defined by an arity-1 built-in predicate
 %	of the same name. Below  is  a   brief  definition  of the other
@@ -103,6 +103,7 @@ representation_error(Reason) :-
 %	| negative_integer | Integer < 0 |
 %	| oneof(L) | Ground term that is member of L |
 %	| list(Type) | Proper list with elements of Type |
+%	| list_or_partial_list | A list or an open list (ending in a variable |
 %
 %	@throws instantiation_error if Term is insufficiently
 %	instantiated and type_error(Type, Term) if Term is not of Type.
@@ -123,6 +124,8 @@ must_be(Type, X) :-
 
 is_not(list, X) :- !,
 	not_a_list(list, X).
+is_not(list_or_partial_list, X) :- !,
+	type_error(list, X).
 is_not(chars, X) :- !,
 	not_a_list(chars, X).
 is_not(codes, X) :- !,
@@ -180,6 +183,7 @@ has_type(number, X)	  :- number(X).
 has_type(oneof(L), X)	  :- ground(X), memberchk(X, L).
 has_type(proper_list, X)  :- is_list(X).
 has_type(list, X)  	  :- is_list(X).
+has_type(list_or_partial_list, X)  :- is_list_or_partial_list(X).
 has_type(symbol, X)	  :- atom(X).
 has_type(var, X)	  :- var(X).
 has_type(rational, X)	  :- rational(X).
@@ -213,3 +217,7 @@ element_types([], _).
 element_types([H|T], Type) :-
 	must_be(Type, H),
 	element_types(T, Type).
+
+is_list_or_partial_list(L0) :-
+	'$skip_list'(_, L0,L),
+	( var(L) -> true ; L == [] ).
