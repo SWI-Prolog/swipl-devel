@@ -130,9 +130,22 @@ Load the file specified with \arg{File} (only one file is accepted).
 predicate indicators specifying the predicates that will be imported
 from the loaded module. If a predicate is specified that is not exported
 from the loaded module a warning will be printed. The predicate will
-nevertheless be imported to simplify debugging.  \arg{ImportList} also
-allows for renaming or import-everything-except. See the \const{import}
-option of load_files/2 for details.
+nevertheless be imported to simplify debugging. \arg{ImportList} also
+allows for renaming or import-everything-except. See also \const{import}
+option of load_files/2. The first example below loads member/2 from the
+lists library and append/2 under the name \const{list_concat}, which how
+this predicate is named in YAP. The second example loads a all exports
+from library option, except for meta_options/3. These renaming
+facilities are generally used to deal with portability issues with as
+few as possible changes to the actual code.  See also \secref{dialect}
+and \secref{reexport}.
+
+\begin{code}
+:- use_module(library(lists), [ member/2,
+				append/2 as list_concat
+			      ]).
+:- use_module(library(option), except([meta_options/3])).
+\end{code}
 
     \predicate{import}{1}{+PredicateIndicator}
 Import predicate \arg{PredicateIndicator} into the current context

@@ -231,7 +231,12 @@ support \arg{Pred} as \arg{Name} to import a predicate under another
 name. Finally, \arg{Import} can be a term \term{except}{Exceptions},
 where \arg{Exceptions} is a list of predicate indicators that specify
 predicates that are \emph{not} imported or \arg{Pred} as \arg{Name}
-terms to denote renamed predicates.  See also reexport/2.
+terms to denote renamed predicates. See also reexport/2 and
+use_module/2.%
+	\bug{\arg{Name}/\arg{Arity} as \arg{NewName} is currently
+	     implemented using a \jargon{link clause}.  This harms
+	     efficiency and does not allow for querying the relation
+	     through predicate_property/2.}
 
     \termitem{must_be_module}{Bool}
 If \const{true}, raise an error if the file is not a module file.  Used by

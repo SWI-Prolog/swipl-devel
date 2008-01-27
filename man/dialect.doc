@@ -1,11 +1,6 @@
 \chapter{Compatibility with other Prolog dialects}
 \label{sec:dialect}
 
-\begin{quote}\it
-The facilities here have not yet fully agreed upon and are subject
-to change.
-\end{quote}
-
 \index{YAP,prolog}\index{portable,prolog code}%
 This chapter explains issues for writing portable Prolog programs. It
 was started after discussion with Vitor Santos Costa, the leading
@@ -17,8 +12,8 @@ involving foreign code.
 Although it is our aim to enhance compatibility, we are still faced
 with many incompatibilities between the dialects. As a first step both
 YAP and SWI will provide some instruments that help developing portable
-code. A first release of these tools appears in SWI-Prolog 5.6.43.  Some
-of the facilities are implemented in the base system.  Others in the
+code. A first release of these tools appeared in SWI-Prolog 5.6.43.
+Some of the facilities are implemented in the base system. Others in the
 library \pllib{dialect.pl}.
 
 \begin{itemize}
@@ -38,6 +33,11 @@ library \pllib{dialect.pl}.
     \item The predicates exists_source/1 and source_exports/2 can be
     used to query the library content.  The require/1 directive can
     be used to get access to predicates without knowing their location.
+
+    \item The module predicates use_module/1, use_module/2 have been
+    extended with a notion for `import-except' and `import-as'.  This
+    is particulary useful together with reexport/1 and reexport/2 to
+    compose modules from other modules and mapping names.
 
     \item Foreign code can expect \const{__SWI_PROLOG__} when compiled
     for SWI-Prolog and \const{__YAP_PROLOG__} when compiled on YAP.
