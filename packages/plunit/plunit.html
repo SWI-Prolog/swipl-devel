@@ -320,8 +320,40 @@ element is compared using <VAR>Cmp</VAR>.</DD>
 <DT><STRONG>nondet</STRONG></DT>
 <DD class="defbody">
 If this keyword appears in the option list, non-deterministic success of 
-the body is not considered an error.
-</DD>
+the body is not considered an error.</DD>
+<DT><STRONG>sto</STRONG>(<VAR>Terms</VAR>)</DT>
+<DD class="defbody">
+Declares that executing body is subject to occurs-check (STO). The test 
+is executed with <VAR>Terms</VAR>. <VAR>Terms</VAR> is either
+<CODE>rational_trees</CODE> or <CODE>finite_trees</CODE>. STO programs 
+are not portable between different kinds of terms. Only programs <EM>not</EM> 
+subject to occurs-check (NSTO) are portable<SUP class="fn">2<SPAN class="fn-text">See 
+7.3.3 of ISO/IEC 13211-1 PROLOG: Part 1 - General Core, for a detailed 
+discussion of STO and NSTO</SPAN></SUP>. Fortunately, most practical 
+programs are NSTO. Writing tests that are STO is still useful to ensure 
+the robustness of a predicate. In case sto4 and sto5 below, an infinite 
+list (a rational tree) is created prior to calling the actual predicate. 
+Ideally, such cases produce a type error or fail silently. See also the 
+Prolog flag <B>occurs_check</B>.
+
+<PRE class="code">
+test(sto1, [sto(rational_trees)]) :-
+        X=s(X).
+test(sto2, [sto(finite_trees),fail]) :-
+        X=s(X).
+test(sto3, [sto(rational_trees), fail]) :-
+        X=s(X), fail.
+test(sto4, [sto(rational_trees),error(type_error(list,L))]) :-
+        L = [_|L], length(L,_).
+test(sto5, [sto(rational_trees),fail]) :-
+        L = [_|L], length(L,3).
+</PRE>
+
+<P>Programs that depend on STO cases tend to be inefficient, even 
+incorrect, are hard to understand and debug, and terminate poorly. It is 
+therefore advisable to avoid STO programs whenever possible.
+
+<P></DD>
 </DL>
 
 <H3><A NAME="sec:2.1"><SPAN class="sec-nr">2.1</SPAN> <SPAN class="sec-title">Test 
@@ -453,7 +485,7 @@ test(member) :-
         findall(X, member(X, [a,b,c]), Xs),
         Xs == [a,b,c].
 
-test(member, all(X == [a,b,c]) :-
+test(member, all(X == [a,b,c])) :-
         member(X, [a,b,c]).
 </PRE>
 
@@ -508,7 +540,7 @@ multiple tests. A single specification is either the name of a test unit
 or a term &lt;<VAR>Unit</VAR>&gt;:&lt;<VAR>Tests</VAR>&gt;, running only 
 the specified test. &lt;<VAR>Tests</VAR>&gt; is either the name of a 
 test or a list of names. Running particular tests is particularly useful 
-for tracing a test:<SUP class="fn">2<SPAN class="fn-text">Unfortunately 
+for tracing a test:<SUP class="fn">3<SPAN class="fn-text">Unfortunately 
 the body of the test is called through meta-calling, so it cannot be 
 traced. The called user-code can be traced normally though.</SPAN></SUP>
 
@@ -720,14 +752,22 @@ on SICStus</SPAN></A></H3>
 
 <A NAME="sec:sicstus"></A>
 
-<P>The core library, <CODE>plunit.pl</CODE> can be loaded on SICStus. It 
-depends on a small compatibility file called <CODE>swi.pl</CODE>. To 
-deploy PlUnit with SICStus, copy <CODE>plunit.pl</CODE> and <CODE>swi.pl</CODE> 
-to a directory that is searched by the <CODE>library</CODE> search-path. 
-Issues with the SICStus port.
+<P>The directory of <CODE>plunit.pl</CODE> and <CODE>swi.pl</CODE> must 
+be in the
+<CODE>library</CODE> search-path. With PLUNITDIR replaced accordingly, 
+add the following into your <CODE>.sicstusrc</CODE> or <CODE>sicstus.ini</CODE>.
+
+<P>== :- set_prolog_flag(language, iso). library_directory('PLUNITDIR'). 
+==
+
+<P>The current version runs under SICStus 3. Open issues:
 
 <P>
 <UL>
+<LI>Some messages are unformatted because SICStus 3 reports all ISO 
+errors as instantiation errors.
+
+<P>
 <LI>Only <CODE>plunit.pl</CODE>. Both coverage analysis and the test 
 generation wizard currently require SWI-Prolog.
 
@@ -741,7 +781,7 @@ suites.
 
 <P>
 <LI>Tests are loaded into the enclosing module instead of a separate 
-test module. This means that predicates in the test module may not 
+test module. This means that predicates in the test module must not 
 conflict with the enclosing module, nor with other test modules loaded 
 into the same module.
 </UL>
@@ -755,7 +795,7 @@ of choices</SPAN></A></H2>
 
 <P>There are two approaches for testing. In one extreme the tests are 
 written using declarations dealing with setup, cleanup, running and 
-testing the result. In the other extreme a test it simply a Prolog goal 
+testing the result. In the other extreme a test is simply a Prolog goal 
 that is supposed to succeed. We have chosen to allow for any mixture of 
 these approaches. Written down as <A NAME="idx:test1:20"></A><SPAN class="pred-ext">test/1</SPAN> 
 we opt for the simple succeeding goal approach. Using options to the 

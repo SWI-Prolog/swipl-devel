@@ -181,10 +181,10 @@ compared using \arg{Cmp}.
 If this keyword appears in the option list, non-deterministic success
 of the body is not considered an error.
 
-    \termitem{sto}{Termtype}
+    \termitem{sto}{Terms}
 Declares that executing body is subject to occurs-check (STO).  The
 test is executed with \arg{Terms}.  \arg{Terms} is either
-\term{rational_trees} or \term{finite_trees}.  STO programs are not
+\const{rational_trees} or \const{finite_trees}.  STO programs are not
 portable between different kinds of terms.  Only programs \emph{not}
 subject to occurs-check (NSTO) are portable\footnote{See 7.3.3 of
 ISO/IEC 13211-1 PROLOG: Part 1 - General Core, for a detailed
@@ -193,6 +193,7 @@ NSTO.  Writing tests that are STO is still useful to ensure the
 robustness of a predicate.  In case sto4 and sto5 below, an infinite
 list (a rational tree) is created prior to calling the actual
 predicate.  Ideally, such cases produce a type error or fail silently.
+See also the Prolog flag \prologflag{occurs_check}.
 
 \begin{code}
 test(sto1, [sto(rational_trees)]) :-
