@@ -45,7 +45,7 @@ test(empty, R == []) :-
 	sort([], R).
 test(unique, R == [a,b]) :-
 	sort([a,b,a], R).
-test(cyclic, R == [a,b,c]) :-
+test(cyclic, [sto(rational_trees),R == [a,b,c]]) :-
 	L = [a,b,c|L],
 	sort(L, R).
 
@@ -57,7 +57,7 @@ test(empty, R == []) :-
 	msort([], R).
 test(unique, R == [a,a,b]) :-
 	msort([a,b,a], R).
-test(cyclic, [ setup(L=[a,b,c|L]),
+test(cyclic, [ sto(rational_trees),setup(L=[a,b,c|L]),
 	       error(type_error(list, L))
 	     ]) :-
 	msort(L, _).
@@ -68,7 +68,7 @@ test(cyclic, [ setup(L=[a,b,c|L]),
 
 test(empty, R == []) :-
 	keysort([], R).
-test(cyclic, [ setup(L=[a-1,b-2,c-3|L]),
+test(cyclic, [ sto(rational_trees),setup(L=[a-1,b-2,c-3|L]),
 	       error(type_error(list, L))
 	     ]) :-
 	msort(L, _).

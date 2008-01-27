@@ -50,7 +50,7 @@ test(unbound, [ setup(Ball = hello(_)),
 	      ]) :-
 	throw(Ball).
 
-test(cyclic, [ setup(Ball = hello(Ball)),
+test(cyclic, [ sto(rational_trees), setup(Ball = hello(Ball)),
 	       throws(Ball)
 	     ]) :-
 	throw(Ball).
