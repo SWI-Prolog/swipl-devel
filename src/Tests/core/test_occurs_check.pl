@@ -37,11 +37,6 @@ test_occurs_check :-
 has_occurs_check_flag :-
 	catch(current_prolog_flag(occurs_check, _), _, fail).
 
-set_occurs_check(Old, New) :-
-	current_prolog_flag(occurs_check, Old),
-	set_prolog_flag(occurs_check, New).
-
-
 		 /*******************************
 		 *	   UTILITY PREDS	*
 		 *******************************/
@@ -52,33 +47,28 @@ unify(X, X).
 		 *	OCCURS-CHECK TESTS	*
 		 *******************************/
 
-:- begin_tests(occurs_check_fail,
-	       [ condition(has_occurs_check_flag),
-		 setup(set_occurs_check(Old, true)),
-		 cleanup(set_occurs_check(_, Old))
-	       ]).
+:- begin_tests(occurs_check_fail,[]).
 
-test(unify, fail) :-
+test(unify, [sto(finite_trees),fail]) :-
 	X = f(X).
-test(unify, fail) :-
+test(unify, [sto(finite_trees),fail]) :-
 	unify(X, f(X)).
-test(unifiable, fail) :-
+test(unifiable, [sto(finite_trees),fail]) :-
 	unifiable(X, f(X), _).
 
 :- end_tests(occurs_check_fail).
 
 
-:- begin_tests(occurs_check_error,
-	       [ condition(has_occurs_check_flag),
-		 setup(set_occurs_check(Old, error)),
-		 cleanup(set_occurs_check(_, Old))
-	       ]).
+:- begin_tests(occurs_check_error,[condition(has_occurs_check_flag)]).
 
-test(unify, error(occurs_check(X, f(X)))) :-
+error_unification :-
+	current_prolog_flag(occurs_check,error).
+
+test(unify, [condition(error_unification),error(occurs_check(X, f(X)))]) :-
 	X = f(X).
-test(unify, error(occurs_check(X, f(X)))) :-
+test(unify, [condition(error_unification),error(occurs_check(X, f(X)))]) :-
 	unify(X, f(X)).
-test(unifiable, error(occurs_check(X, f(X)))) :-
+test(unifiable, [condition(error_unification),error(occurs_check(X, f(X)))]) :-
 	unifiable(X, f(X), _).
 
 :- end_tests(occurs_check_error).
