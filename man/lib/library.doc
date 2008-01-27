@@ -27,7 +27,7 @@ documented at all.
 \end{quote}
 
 \input{aggregate}
-\input{apply} \label{sec:apply}
+\input{apply}
 \input{assoc}
 \input{bounds}
 \input{broadcast}
