@@ -193,7 +193,6 @@ NSTO.  Writing tests that are STO is still useful to ensure the
 robustness of a predicate.  In case sto4 and sto5 below, an infinite
 list (a rational tree) is created prior to calling the actual
 predicate.  Ideally, such cases produce a type error or fail silently.
-See also the Prolog flag \prologflag{occurs_check}.
 
 \begin{code}
 test(sto1, [sto(rational_trees)]) :-
@@ -211,6 +210,9 @@ test(sto5, [sto(rational_trees),fail]) :-
 Programs that depend on STO cases tend to be inefficient, even
 incorrect, are hard to understand and debug, and terminate poorly.  It
 is therefore advisable to avoid STO programs whenever possible.
+
+SWI's Prolog flag \prologflag{occurs_check} must not be modified
+within plunit tests.
 
 \end{description}
 
