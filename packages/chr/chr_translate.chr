@@ -131,6 +131,14 @@
 %%	* identify cases where prefixes of partner lookups for subsequent occurrences can be
 %%	  merged
 %%
+%%	OBSERVATIONS
+%%		* inefficient matching
+%%        		nonvar(A),
+%%		        A={B},
+%%        		B==unknown,
+%%		  rather than
+%%			A == {unknown}
+%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- module(chr_translate,
 	  [ chr_translate/2		% +Decls, -TranslatedDecls
@@ -139,6 +147,7 @@
 %% SWI begin
 :- use_module(library(lists),[member/2, append/3,reverse/2,permutation/2,last/2]).
 :- use_module(library(ordsets)).
+:- use_module(library(aggregate)).
 %% SWI end
 
 :- use_module(hprolog).
@@ -843,14 +852,7 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	partition_clauses(Declarations,Constraints0,Rules0,OtherClauses),
 	chr_compiler_options:sanity_check,
 
-	( chr_pp_flag(verbose,on),
-		member(D,Declarations),
-		copy_term_nat(D,Dprime),
-		portray_clause(Dprime),
-		fail
-	;
-		true
-	),	
+	dump_code(Declarations),
 
 	check_declared_constraints(Constraints0),
 	generate_show_constraint(Constraints0,Constraints,Rules0,Rules1),
@@ -886,7 +888,8 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	chr_module_declaration(CHRModuleDeclaration),
 	append([StoreClauses,ConstraintClauses,CHRModuleDeclaration,[end_of_file]],StuffyGeneratedClauses),
 	clean_clauses(StuffyGeneratedClauses,GeneratedClauses),
-	append([Clauses0,GeneratedClauses], NewDeclarations).
+	append([Clauses0,GeneratedClauses], NewDeclarations),
+	dump_code(NewDeclarations).
 
 store_management_preds(Constraints,Clauses) :-
 	generate_attach_detach_a_constraint_all(Constraints,AttachAConstraintClauses),
@@ -3991,12 +3994,17 @@ trie_step([],_,_,[],[],L,L) :- !.
 trie_step(Patterns,Symbol,Prefix,MorePatterns,Results,Clauses,T) :-
 	MorePatterns = [List|_],
 	length(List,N),	
-	findall(F/A,
+	% 	findall(F/A,
+	% 		( member(Pattern,Patterns),
+	% 		  functor(Pattern,F,A)
+	% 		),
+	% 		FAs0),
+	% 	sort(FAs0,FAs),
+	aggregate_all(set(F/A),
 		( member(Pattern,Patterns),
 		  functor(Pattern,F,A)
 		),
-		FAs0),
-	sort(FAs0,FAs),
+		FAs),
 	N1 is N + 1,
 	trie_step_cases(FAs,N1,Patterns,MorePatterns,Results,Symbol,Prefix,Clauses,T).
 
@@ -6671,6 +6679,13 @@ head_arg_matches_([Arg-Var| Rest],[Mode|Modes],VarDict,GroundVars,GoalList,NVarD
 	    GroundVars1 = GroundVars,
 	    Pairs = Rest,
 	    RestModes = Modes
+	; Mode == (?), is_ground(GroundVars,Arg)  -> 
+	    copy_with_variable_replacement(Arg,ArgCopy,VarDict),
+	    GoalList = [ Var == ArgCopy | RestGoalList],	
+	    VarDict = VarDict1,
+	    GroundVars1 = GroundVars,
+	    Pairs = Rest,
+	    RestModes = Modes
 	;   Arg =.. [_|Args],
 	    functor(Arg,Fct,N),
 	    functor(Term,Fct,N),
@@ -8547,9 +8562,12 @@ assume_constraint_stores([C|Cs]) :-
 	  get_store_type(C,default) ->
 		get_indexed_arguments(C,AllIndexedArgs),
 		get_constraint_mode(C,Modes),
-		findall(Index,(member(Index,AllIndexedArgs),
-		    nth(Index,Modes,+)),IndexedArgs),
-		length(IndexedArgs,NbIndexedArgs),
+		%	findall(Index,(member(Index,AllIndexedArgs),
+		%		    nth(Index,Modes,+)),IndexedArgs),
+		%	length(IndexedArgs,NbIndexedArgs),
+		aggregate_all(bag(Index)-count,
+					(member(Index,AllIndexedArgs),nth(Index,Modes,+)),
+			      IndexedArgs-NbIndexedArgs),
 		% Construct Index Combinations
 		( NbIndexedArgs > 10 ->
 			findall([Index],member(Index,IndexedArgs),Indexes)
@@ -9980,3 +9998,16 @@ get_occurrence_code_id(C,O,X)
 get_success_continuation_code_id(C,O,NextId) :-
 	get_success_continuation_occurrence(C,O,NextO),
 	get_occurrence_code_id(C,NextO,NextId).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+dump_code(Clauses) :-
+	( chr_pp_flag(dump,on),
+		member(D,Clauses),
+		copy_term_nat(D,Dprime),
+		portray_clause(Dprime),
+		fail
+	;
+		true
+	).	
+
