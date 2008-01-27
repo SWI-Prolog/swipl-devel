@@ -800,7 +800,7 @@ colourise_declaration(_, TB, Pos) :-
 pi_to_term(Name/Arity, Term) :-
 	atom(Name), integer(Arity), !,
 	functor(Term, Name, Arity).
-pi_to_term(Name//Arity, Term) :-
+pi_to_term(Name//Arity0, Term) :-
 	atom(Name), integer(Arity0), !,
 	Arity is Arity0 + 2,
 	functor(Term, Name, Arity).
