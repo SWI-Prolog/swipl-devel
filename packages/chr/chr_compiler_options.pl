@@ -295,6 +295,9 @@ option_definition(dynattr,off,Flags) :-
 option_definition(verbose,off,[verbose-off]).
 option_definition(verbose,on,[verbose-on]).
 
+option_definition(dump,off,[dump-off]).
+option_definition(dump,on,[dump-on]).
+
 init_chr_pp_flags :-
 	chr_pp_flag_definition(Name,[DefaultValue|_]),
 	set_chr_pp_flag(Name,DefaultValue),
@@ -339,7 +342,10 @@ chr_pp_flag_definition(mixed_stores,[off,on]).
 chr_pp_flag_definition(line_numbers,[off,on]).
 chr_pp_flag_definition(dynattr,[off,on]).
 chr_pp_flag_definition(experiment,[off,on]).
+	% emit compiler inferred code
 chr_pp_flag_definition(verbose,[off,on]).
+	% emit input code and output code
+chr_pp_flag_definition(dump,[off,on]).
 
 chr_pp_flag_definition(declare_stored_constraints,[off,on]).
 
