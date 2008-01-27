@@ -443,7 +443,9 @@ Techniques for the Disjunctive Scheduling Problem"
 <DD class="defbody">
 Creates a regular term <VAR>Copy</VAR> as a copy of <VAR>Term</VAR> 
 (without any attributes), and a list <VAR>Gs</VAR> of goals that when 
-executed reinstate all attributes onto <VAR>Copy</VAR>.
+executed reinstate all attributes onto <VAR>Copy</VAR>. The nonterminal <SPAN class="pred-ext">attribute_goals/3</SPAN>, 
+as defined in the modules the attributes stem from, is used to convert 
+attributes to lists of goals.
 </DD>
 </DL>
 

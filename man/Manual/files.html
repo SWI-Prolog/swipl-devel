@@ -193,8 +193,8 @@ Unify <VAR>Size</VAR> with the size of <VAR>File</VAR> in characters.</DD>
 <DD class="defbody">
 Unify the last modification time of <VAR>File</VAR> with <VAR>Time</VAR>.
 <VAR>Time</VAR> is a floating point number expressing the seconds 
-elapsed since Jan&nbsp;1, 1970. See also <A NAME="idx:converttime28:1047"></A><SPAN class="pred-ext">convert_time/[2,8]</SPAN> 
-and <A NAME="idx:gettime1:1048"></A><A class="pred" href="system.html#get_time/1">get_time/1</A>.</DD>
+elapsed since Jan&nbsp;1, 1970. See also <A NAME="idx:converttime28:1054"></A><SPAN class="pred-ext">convert_time/[2,8]</SPAN> 
+and <A NAME="idx:gettime1:1055"></A><A class="pred" href="system.html#get_time/1">get_time/1</A>.</DD>
 <DT class="pubdef"><A NAME="absolute_file_name/2"><STRONG>absolute_file_name</STRONG>(<VAR>+File, 
 -Absolute</VAR>)</A></DT>
 <DD class="defbody">
@@ -203,10 +203,10 @@ canonised: references to <CODE>.</CODE> and <CODE>..</CODE> are deleted.
 This predicate ensures that expanding a file-name it returns the same 
 absolute path regardless of how the file is addressed. SWI-Prolog uses 
 absolute file names to register source files independent of the current 
-working directory. See also <A NAME="idx:absolutefilename3:1049"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>. 
+working directory. See also <A NAME="idx:absolutefilename3:1056"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>. 
 See also
-<A NAME="idx:absolutefilename3:1050"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
-and <A NAME="idx:expandfilename2:1051"></A><A class="pred" href="files.html#expand_file_name/2">expand_file_name/2</A>.</DD>
+<A NAME="idx:absolutefilename3:1057"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+and <A NAME="idx:expandfilename2:1058"></A><A class="pred" href="files.html#expand_file_name/2">expand_file_name/2</A>.</DD>
 <DT class="pubdef"><A NAME="absolute_file_name/3"><STRONG>absolute_file_name</STRONG>(<VAR>+Spec, 
 +Options, -Absolute</VAR>)</A></DT>
 <DD class="defbody">
@@ -217,7 +217,7 @@ Converts the given file specification into an absolute path.
 <DT><STRONG>extensions</STRONG>(<VAR>ListOfExtensions</VAR>)</DT>
 <DD class="defbody">
 List of file-extensions to try. Default is <CODE>''</CODE>. For each 
-extension, <A NAME="idx:absolutefilename3:1052"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+extension, <A NAME="idx:absolutefilename3:1059"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
 will first add the extension and then verify the conditions imposed by 
 the other options. If the condition fails, the next extension of the 
 list is tried. Extensions may be specified both as <CODE>..ext</CODE> or 
@@ -226,15 +226,15 @@ plain <CODE>ext</CODE>.</DD>
 <DD class="defbody">
 Resolve the path relative to the given directory or directory the 
 holding the given file. Without this option, paths are resolved relative 
-to the working directory (see <A NAME="idx:workingdirectory2:1053"></A><A class="pred" href="files.html#working_directory/2">working_directory/2</A>) 
-or, if <VAR>Spec</VAR> is atomic and <A NAME="idx:absolutefilename23:1054"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/[2,3]</A> 
+to the working directory (see <A NAME="idx:workingdirectory2:1060"></A><A class="pred" href="files.html#working_directory/2">working_directory/2</A>) 
+or, if <VAR>Spec</VAR> is atomic and <A NAME="idx:absolutefilename23:1061"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/[2,3]</A> 
 is executed in a directive, it uses the current source-file as 
 reference.</DD>
 <DT><STRONG>access</STRONG>(<VAR>Mode</VAR>)</DT>
 <DD class="defbody">
 Imposes the condition access_file(<VAR>File</VAR>, <VAR>Mode</VAR>). <VAR>Mode</VAR> 
 is on of <CODE>read</CODE>, <CODE>write</CODE>, <CODE>append</CODE>, <CODE>exist</CODE> 
-or <CODE>none</CODE>. See also <A NAME="idx:accessfile2:1055"></A><A class="pred" href="files.html#access_file/2">access_file/2</A>.</DD>
+or <CODE>none</CODE>. See also <A NAME="idx:accessfile2:1062"></A><A class="pred" href="files.html#access_file/2">access_file/2</A>.</DD>
 <DT><STRONG>file_type</STRONG>(<VAR>Type</VAR>)</DT>
 <DD class="defbody">
 Defines extensions. Current mapping: <CODE>txt</CODE> implies <CODE>['']</CODE>,
@@ -244,7 +244,7 @@ implies
 and
 <CODE>directory</CODE> implies <CODE>['']</CODE>. The file-type <CODE>source</CODE> 
 is an alias for <CODE>prolog</CODE> for compatibility to SICStus Prolog. 
-See also <A NAME="idx:prologfiletype2:1056"></A><A class="pred" href="consulting.html#prolog_file_type/2">prolog_file_type/2</A>.</DD>
+See also <A NAME="idx:prologfiletype2:1063"></A><A class="pred" href="consulting.html#prolog_file_type/2">prolog_file_type/2</A>.</DD>
 <DT><STRONG>file_errors</STRONG>(<VAR>fail/error</VAR>)</DT>
 <DD class="defbody">
 If <CODE>error</CODE> (default), throw and <CODE>existence_error</CODE> 
@@ -259,8 +259,8 @@ solutions.</DD>
 <DT><STRONG>expand</STRONG>(<VAR>true/false</VAR>)</DT>
 <DD class="defbody">
 If <CODE>true</CODE> (default is <CODE>false</CODE>) and <VAR>Spec</VAR> 
-is atomic, call <A NAME="idx:expandfilename2:1057"></A><A class="pred" href="files.html#expand_file_name/2">expand_file_name/2</A> 
-followed by <A NAME="idx:member2:1058"></A><A class="pred" href="lists.html#member/2">member/2</A> 
+is atomic, call <A NAME="idx:expandfilename2:1064"></A><A class="pred" href="files.html#expand_file_name/2">expand_file_name/2</A> 
+followed by <A NAME="idx:member2:1065"></A><A class="pred" href="lists.html#member/2">member/2</A> 
 on <VAR>Spec</VAR> before proceeding. This is a SWI-Prolog extension.
 </DD>
 </DL>
@@ -270,7 +270,7 @@ can be set to <CODE>true</CODE> to help debugging Prolog's search for
 files.
 
 <P>Compatibility considerations to common argument-order in ISO as well 
-as SICStus <A NAME="idx:absolutefilename3:1059"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+as SICStus <A NAME="idx:absolutefilename3:1066"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
 forced us to be flexible here. If the last argument is a list and the 
 2nd not, the arguments are swapped, making the call <CODE>absolute_file_name(+Spec, 
 -Path, +Options)</CODE> valid as well.</DD>
@@ -280,8 +280,8 @@ True if <VAR>File</VAR> specifies and absolute path-name. On Unix
 systems, this implies the path starts with a `/'. For Microsoft based 
 systems this implies the path starts with <CODE>&lt;<VAR>letter</VAR>&gt;:</CODE>. 
 This predicate is intended to provide platform-independent checking for 
-absolute paths. See also <A NAME="idx:absolutefilename2:1060"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/2</A> 
-and <A NAME="idx:prologtoosfilename2:1061"></A><A class="pred" href="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A>.</DD>
+absolute paths. See also <A NAME="idx:absolutefilename2:1067"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/2</A> 
+and <A NAME="idx:prologtoosfilename2:1068"></A><A class="pred" href="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A>.</DD>
 <DT class="pubdef"><A NAME="file_name_extension/3"><STRONG>file_name_extension</STRONG>(<VAR>?Base, 
 ?Extension, ?Name</VAR>)</A></DT>
 <DD class="defbody">
@@ -359,15 +359,15 @@ Unify <VAR>Old</VAR> with an absolute path to the current working
 directory and change working directory to <VAR>New</VAR>. Use the 
 pattern
 <CODE>working_directory(CWD, CWD)</CODE> to get the current directory. 
-See also <A NAME="idx:absolutefilename2:1062"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/2</A> 
-and <A NAME="idx:chdir1:1063"></A><A class="pred" href="files.html#chdir/1">chdir/1</A>.<SUP class="fn">bug<SPAN class="fn-text">Some 
+See also <A NAME="idx:absolutefilename2:1069"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/2</A> 
+and <A NAME="idx:chdir1:1070"></A><A class="pred" href="files.html#chdir/1">chdir/1</A>.<SUP class="fn">bug<SPAN class="fn-text">Some 
 of the file-I/O predicates use local filenames. Changing directory while 
-file-bound streams are open causes wrong results on <A NAME="idx:telling1:1064"></A><A class="pred" href="IO.html#telling/1">telling/1</A>, <A NAME="idx:seeing1:1065"></A><A class="pred" href="IO.html#seeing/1">seeing/1</A> 
-and <A NAME="idx:currentstream3:1066"></A><A class="pred" href="IO.html#current_stream/3">current_stream/3</A></SPAN></SUP> 
+file-bound streams are open causes wrong results on <A NAME="idx:telling1:1071"></A><A class="pred" href="IO.html#telling/1">telling/1</A>, <A NAME="idx:seeing1:1072"></A><A class="pred" href="IO.html#seeing/1">seeing/1</A> 
+and <A NAME="idx:currentstream3:1073"></A><A class="pred" href="IO.html#current_stream/3">current_stream/3</A></SPAN></SUP> 
 Note that the working directory is shared between all threads.</DD>
 <DT class="pubdef"><A NAME="chdir/1"><STRONG>chdir</STRONG>(<VAR>+Path</VAR>)</A></DT>
 <DD class="defbody">
-Compatibility predicate. New code should use <A NAME="idx:workingdirectory2:1067"></A><A class="pred" href="files.html#working_directory/2">working_directory/2</A>.
+Compatibility predicate. New code should use <A NAME="idx:workingdirectory2:1074"></A><A class="pred" href="files.html#working_directory/2">working_directory/2</A>.
 </DD>
 </DL>
 

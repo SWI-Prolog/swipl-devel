@@ -2,10 +2,10 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section 5.5</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section 5.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
-<LINK REL=previous HREF="import.html">
+<LINK REL=previous HREF="reexport.html">
 <LINK REL=next HREF="metainmodule.html">
 <STYLE type="text/css">
 /* Style sheet for SWI-Prolog latex2html
@@ -123,11 +123,11 @@ font-size: smaller;
 <DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
 <A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
 <A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A class="nav" href="import.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="reexport.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
 <A class="nav" href="metainmodule.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:5.5"><SPAN class="sec-nr">5.5</SPAN> <SPAN class="sec-title">Using 
+<H2><A NAME="sec:5.6"><SPAN class="sec-nr">5.6</SPAN> <SPAN class="sec-title">Using 
 the Module System</SPAN></A></H2>
 
 <A NAME="sec:usemodules"></A>
@@ -164,7 +164,7 @@ the generic modules into the <CODE>user</CODE> module. The
 `ensure_loaded' directive loads the modules that constitute the actual 
 application. It is assumed these modules import predicates from each 
 other using
-<A NAME="idx:usemodule12:1137"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
+<A NAME="idx:usemodule12:1156"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
 as far as necessary.
 
 <P>In combination with the object-oriented schema described below it is 
@@ -173,14 +173,14 @@ general utilities and the message passing predicates (invoke/3 in the
 example below). The application modules define classes that communicate 
 using the message passing predicates.
 
-<H3><A NAME="sec:5.5.1"><SPAN class="sec-nr">5.5.1</SPAN> <SPAN class="sec-title">Object 
+<H3><A NAME="sec:5.6.1"><SPAN class="sec-nr">5.6.1</SPAN> <SPAN class="sec-title">Object 
 Oriented Programming</SPAN></A></H3>
 
 <P>Another typical way to use the module system is for defining classes 
 within an object oriented paradigm. The class structure and the methods 
 of a class can be defined in a module and the explicit module-boundary 
 overruling describes in <A class="sec" href="metainmodule.html">section 
-5.6.2</A> can by used by the message passing code to invoke the 
+5.7.2</A> can by used by the message passing code to invoke the 
 behaviour. An outline of this mechanism is given below.
 
 <PRE class="code">
@@ -225,6 +225,6 @@ invoke(I, S, Args) :-
 <P>The construct &lt;<VAR>Module</VAR>&gt;:&lt;<VAR>Goal</VAR>&gt; 
 explicitly calls <VAR>Goal</VAR> in module <VAR>Module</VAR>. It is 
 discussed in more detail in
-<A class="sec" href="metainmodule.html">section 5.6</A>.
+<A class="sec" href="metainmodule.html">section 5.7</A>.
 
 <P></BODY></HTML>

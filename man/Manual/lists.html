@@ -170,7 +170,7 @@ Delete all members of <VAR>List1</VAR> that simultaneously unify with
 <DD class="defbody">
 Select <VAR>Elem</VAR> from <VAR>List</VAR> leaving <VAR>Rest</VAR>. It 
 behaves as
-<A NAME="idx:member2:1449"></A><A class="pred" href="lists.html#member/2">member/2</A>, 
+<A NAME="idx:member2:1468"></A><A class="pred" href="lists.html#member/2">member/2</A>, 
 returning the remaining elements in <VAR>Rest</VAR>. Note that besides 
 selecting elements from a list, it can also be used to insert elements.<SUP class="fn">bug<SPAN class="fn-text">Upto 
 SWI-Prolog 3.3.10, the definition of this predicate was not according to 
@@ -192,7 +192,7 @@ with
 <DD class="defbody">
 Succeeds if <VAR>Elem</VAR> unifies with the last element of <VAR>List</VAR>. 
 If
-<VAR>List</VAR> is a proper list <A NAME="idx:last2:1450"></A><A class="pred" href="lists.html#last/2">last/2</A> 
+<VAR>List</VAR> is a proper list <A NAME="idx:last2:1469"></A><A class="pred" href="lists.html#last/2">last/2</A> 
 is deterministic. If <VAR>List</VAR> has an unbound tail, backtracking 
 will cause <VAR>List</VAR> to grow.<SUP class="fn">81<SPAN class="fn-text">The 
 argument order of this predicate was changed in 5.1.12 for compatibility 
@@ -229,20 +229,20 @@ X = [a, b, c, d, e]
 -Sum</VAR>)</A></DT>
 <DD class="defbody">
 Unify <VAR>Sum</VAR> to the result of adding all elements in <VAR>List</VAR>.
-<VAR>List</VAR> must be a proper list holding numbers. See <A NAME="idx:number1:1451"></A><A class="pred" href="typetest.html#number/1">number/1</A> 
+<VAR>List</VAR> must be a proper list holding numbers. See <A NAME="idx:number1:1470"></A><A class="pred" href="typetest.html#number/1">number/1</A> 
 and
-<A NAME="idx:is2:1452"></A><A class="pred" href="arith.html#is/2">is/2</A>. 
+<A NAME="idx:is2:1471"></A><A class="pred" href="arith.html#is/2">is/2</A>. 
 for details on arithmetic.</DD>
 <DT class="pubdef"><A NAME="max_list/2"><STRONG>max_list</STRONG>(<VAR>+List, 
 -Max</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Max</VAR> is the largest number in <VAR>List</VAR>. See 
-also the function <A NAME="idx:max2:1453"></A><A class="pred" href="arith.html#max/2">max/2</A>.</DD>
+also the function <A NAME="idx:max2:1472"></A><A class="pred" href="arith.html#max/2">max/2</A>.</DD>
 <DT class="pubdef"><A NAME="min_list/2"><STRONG>min_list</STRONG>(<VAR>+List, 
 -Min</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Min</VAR> is the smallest number in <VAR>List</VAR>. See 
-also the function <A NAME="idx:min2:1454"></A><A class="pred" href="arith.html#min/2">min/2</A>.</DD>
+also the function <A NAME="idx:min2:1473"></A><A class="pred" href="arith.html#min/2">min/2</A>.</DD>
 <DT class="pubdef"><A NAME="numlist/3"><STRONG>numlist</STRONG>(<VAR>+Low, 
 +High, -List</VAR>)</A></DT>
 <DD class="defbody">
@@ -250,7 +250,7 @@ If <VAR>Low</VAR> and <VAR>High</VAR> are integers with <VAR>Low =&lt;
 High</VAR>, unify
 <VAR>List</VAR> to a list [<VAR>Low</VAR>, <VAR>Low+1</VAR>, ...<VAR>High</VAR>]. 
 See also
-<A NAME="idx:between3:1455"></A><A class="pred" href="arith.html#between/3">between/3</A>.
+<A NAME="idx:between3:1474"></A><A class="pred" href="arith.html#between/3">between/3</A>.
 </DD>
 </DL>
 
@@ -268,14 +268,14 @@ See <A class="sec" href="ordsets.html">section A.16</A>.
 <DL>
 <DT class="pubdef"><A NAME="is_set/1"><STRONG>is_set</STRONG>(<VAR>+Set</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Set</VAR> is a list (see <A NAME="idx:islist1:1456"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A>) 
+Succeeds if <VAR>Set</VAR> is a list (see <A NAME="idx:islist1:1475"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A>) 
 without duplicates.</DD>
 <DT class="pubdef"><A NAME="list_to_set/2"><STRONG>list_to_set</STRONG>(<VAR>+List, 
 -Set</VAR>)</A></DT>
 <DD class="defbody">
 Unifies <VAR>Set</VAR> with a list holding the same elements as <VAR>List</VAR> 
 in the same order. If <VAR>list</VAR> contains duplicates, only the 
-first is retained. See also <A NAME="idx:sort2:1457"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>. 
+first is retained. See also <A NAME="idx:sort2:1476"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>. 
 Example:
 
 <PRE class="code">

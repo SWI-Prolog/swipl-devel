@@ -186,9 +186,9 @@ A = f(f(f(f(f(f(f(f(f(f(...))))))))))
 No
 </PRE>
 
-<P><A NAME="idx:occurscheck:477"></A>I.e. the first creates a <EM>cyclic-term</EM>, 
+<P><A NAME="idx:occurscheck:484"></A>I.e. the first creates a <EM>cyclic-term</EM>, 
 which is printed as an infinitely nested f/1 term (see the <CODE>max_depth</CODE> 
-option of <A NAME="idx:writeterm2:478"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>). 
+option of <A NAME="idx:writeterm2:485"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>). 
 The second executes logically sound unification and thus fails. Note 
 that the behaviour of unification through
 <A class="pred" href="compare.html#=/2">=/2</A> as well as implicit 
@@ -251,7 +251,7 @@ Decide whether the equality of <VAR>Term1</VAR> and <VAR>Term2</VAR> can
 be compared safely, i.e. whether the result of <CODE>Term1 == Term2</CODE> 
 can change due to further instantiation of either term. It is defined as 
 by <CODE>?=(A,B) :- (A==B ; A \= B), !.</CODE> See also
-<A NAME="idx:dif2:479"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A>.</DD>
+<A NAME="idx:dif2:486"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A>.</DD>
 <DT class="pubdef"><A NAME="unifiable/3"><STRONG>unifiable</STRONG>(<VAR>@X, @Y, 
 -Unifier</VAR>)</A></DT>
 <DD class="defbody">
@@ -259,8 +259,8 @@ If <VAR>X</VAR> and <VAR>Y</VAR> can unify, unify <VAR>Unifier</VAR>
 with a list of
 <VAR>Var</VAR> = <VAR>Value</VAR>, representing the bindings required to 
 make <VAR>X</VAR> and <VAR>Y</VAR> equivalent.<SUP class="fn">27<SPAN class="fn-text">This 
-predicate was introduced for the implementation of <A NAME="idx:dif2:480"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
-and <A NAME="idx:when2:481"></A><A class="pred" href="coroutining.html#when/2">when/2</A> 
+predicate was introduced for the implementation of <A NAME="idx:dif2:487"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
+and <A NAME="idx:when2:488"></A><A class="pred" href="coroutining.html#when/2">when/2</A> 
 after discussion with Tom Schrijvers and Bart Demoen. None of us is 
 really happy with the name and therefore suggestions for a new name are 
 welcome.</SPAN></SUP> This predicate can handle cyclic terms. Attributed 

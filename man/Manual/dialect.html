@@ -131,11 +131,8 @@ font-size: smaller;
 with other Prolog dialects</SPAN></A></H1>
 
 <A NAME="sec:dialect"></A>
-<BLOCKQUOTE><I>The facilities here have not yet fully agreed upon and 
-are subject to change.
-</I></BLOCKQUOTE>
 
-<P><A NAME="idx:YAPprolog:1543"></A><A NAME="idx:portableprologcode:1544"></A>This 
+<P><A NAME="idx:YAPprolog:1562"></A><A NAME="idx:portableprologcode:1563"></A>This 
 chapter explains issues for writing portable Prolog programs. It was 
 started after discussion with Vitor Santos Costa, the leading developer 
 of YAP Prolog<SUP class="fn">85<SPAN class="fn-text"><A class="url" href="http://yap.sourceforge.net/">http://yap.sourceforge.net/</A></SPAN></SUP> 
@@ -146,7 +143,7 @@ libraries involving foreign code.
 <P>Although it is our aim to enhance compatibility, we are still faced 
 with many incompatibilities between the dialects. As a first step both 
 YAP and SWI will provide some instruments that help developing portable 
-code. A first release of these tools appears in SWI-Prolog 5.6.43. Some 
+code. A first release of these tools appeared in SWI-Prolog 5.6.43. Some 
 of the facilities are implemented in the base system. Others in the 
 library <CODE>library(dialect.pl)</CODE>.
 
@@ -168,15 +165,22 @@ endif</CODE> is supported. See <A class="sec" href="consulting.html">section
 4.3.1.1</A>.
 
 <P>
-<LI>The predicate <A NAME="idx:expectsdialect1:1545"></A><A class="pred" href="dialect.html#expects_dialect/1">expects_dialect/1</A> 
+<LI>The predicate <A NAME="idx:expectsdialect1:1564"></A><A class="pred" href="dialect.html#expects_dialect/1">expects_dialect/1</A> 
 allows for specifying for which Prolog system the code was written.
 
 <P>
-<LI>The predicates <A NAME="idx:existssource1:1546"></A><A class="pred" href="dialect.html#exists_source/1">exists_source/1</A> 
-and <A NAME="idx:sourceexports2:1547"></A><A class="pred" href="dialect.html#source_exports/2">source_exports/2</A> 
-can be used to query the library content. The <A NAME="idx:require1:1548"></A><A class="pred" href="consulting.html#require/1">require/1</A> 
+<LI>The predicates <A NAME="idx:existssource1:1565"></A><A class="pred" href="dialect.html#exists_source/1">exists_source/1</A> 
+and <A NAME="idx:sourceexports2:1566"></A><A class="pred" href="dialect.html#source_exports/2">source_exports/2</A> 
+can be used to query the library content. The <A NAME="idx:require1:1567"></A><A class="pred" href="consulting.html#require/1">require/1</A> 
 directive can be used to get access to predicates without knowing their 
 location.
+
+<P>
+<LI>The module predicates <A NAME="idx:usemodule1:1568"></A><A class="pred" href="import.html#use_module/1">use_module/1</A>, <A NAME="idx:usemodule2:1569"></A><A class="pred" href="import.html#use_module/2">use_module/2</A> 
+have been extended with a notion for `import-except' and `import-as'. 
+This is particulary useful together with <A NAME="idx:reexport1:1570"></A><A class="pred" href="reexport.html#reexport/1">reexport/1</A> 
+and <A NAME="idx:reexport2:1571"></A><A class="pred" href="reexport.html#reexport/2">reexport/2</A> 
+to compose modules from other modules and mapping names.
 
 <P>
 <LI>Foreign code can expect <CODE>__SWI_PROLOG__</CODE> when compiled 
@@ -189,7 +193,7 @@ for SWI-Prolog and <CODE>__YAP_PROLOG__</CODE> when compiled on YAP.
 This directive states that the code following the directive is written 
 for the given Prolog <VAR>Dialect</VAR>. See also <A class="flag" href="flags.html#flag:dialect">dialect</A>. 
 The declaration holds until the end of the file in which it appears. The 
-current dialect is available using <A NAME="idx:prologloadcontext2:1549"></A><A class="pred" href="consulting.html#prolog_load_context/2">prolog_load_context/2</A>.
+current dialect is available using <A NAME="idx:prologloadcontext2:1572"></A><A class="pred" href="consulting.html#prolog_load_context/2">prolog_load_context/2</A>.
 
 <P>The exact behaviour of this predicate is still subject to discussion. 
 Of course, if <VAR>Dialect</VAR> matches the running dialect the 
@@ -202,7 +206,7 @@ Currently, this file has this functionality:
 <LI>Define system predicates of the requested dialect we do not have.
 
 <P>
-<LI>Apply <A NAME="idx:goalexpansion2:1550"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+<LI>Apply <A NAME="idx:goalexpansion2:1573"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
 rules that map conflicting predicates to versions emulating the 
 requested dialect. These expansion rules reside in the dialect 
 compatibility module, but are applied if prolog_load_context(dialect, 
@@ -219,7 +223,7 @@ compatible to the target dialect before the native libraries.
 <DT class="pubdef"><A NAME="exists_source/1"><STRONG>exists_source</STRONG>(<VAR>+Spec</VAR>)</A></DT>
 <DD class="defbody">
 Is true if <VAR>Spec</VAR> exists as a Prolog source. <VAR>Spec</VAR> 
-uses the same conventions as <A NAME="idx:loadfiles2:1551"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>. 
+uses the same conventions as <A NAME="idx:loadfiles2:1574"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>. 
 Fails without error if <VAR>Spec</VAR> cannot be found.</DD>
 <DT class="pubdef"><A NAME="source_exports/2"><STRONG>source_exports</STRONG>(<VAR>+Spec, 
 +Export</VAR>)</A></DT>

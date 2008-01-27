@@ -137,24 +137,24 @@ print-statements into your source-code to trace what is going on. Debug
 messages are organised in <EM>topics</EM> that can be activated and 
 de-activated without changing the source. In addition, if the 
 application is compiled with the <STRONG>-O</STRONG> flag these 
-predicates are removed using <A NAME="idx:goalexpansion2:1436"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>.
+predicates are removed using <A NAME="idx:goalexpansion2:1455"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>.
 
 <P>Although this library can be used through the normal demand-loading 
 mechanism it is adviced to load it explicitely before code using it to 
 profit from goal-expansion, which removes these calls if compiled with 
-optimisation on and records the topics from <A NAME="idx:debug3:1437"></A><A class="pred" href="debug.html#debug/3">debug/3</A> 
-and <A NAME="idx:debugging1:1438"></A><A class="pred" href="debug.html#debugging/1">debugging/1</A> 
+optimisation on and records the topics from <A NAME="idx:debug3:1456"></A><A class="pred" href="debug.html#debug/3">debug/3</A> 
+and <A NAME="idx:debugging1:1457"></A><A class="pred" href="debug.html#debugging/1">debugging/1</A> 
 for
-<A NAME="idx:listdebugtopics0:1439"></A><A class="pred" href="debug.html#list_debug_topics/0">list_debug_topics/0</A>.
+<A NAME="idx:listdebugtopics0:1458"></A><A class="pred" href="debug.html#list_debug_topics/0">list_debug_topics/0</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="debug/3"><STRONG>debug</STRONG>(<VAR>+Topic, 
 +Format, +Args</VAR>)</A></DT>
 <DD class="defbody">
-If <VAR>Topic</VAR> is a selected debugging topic (see <A NAME="idx:debug1:1440"></A><A class="pred" href="debug.html#debug/1">debug/1</A>) 
-a message is printed using <A NAME="idx:printmessage2:1441"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A> 
+If <VAR>Topic</VAR> is a selected debugging topic (see <A NAME="idx:debug1:1459"></A><A class="pred" href="debug.html#debug/1">debug/1</A>) 
+a message is printed using <A NAME="idx:printmessage2:1460"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A> 
 with level <CODE>informational</CODE>.
-<VAR>Format</VAR> and <VAR>Args</VAR> are interpreted by <A NAME="idx:format2:1442"></A><A class="pred" href="format.html#format/2">format/2</A>. 
+<VAR>Format</VAR> and <VAR>Args</VAR> are interpreted by <A NAME="idx:format2:1461"></A><A class="pred" href="format.html#format/2">format/2</A>. 
 Here is a typical example:
 
 <PRE class="code">
@@ -164,7 +164,7 @@ Here is a typical example:
 </PRE>
 
 <P><VAR>Topic</VAR> can be any Prolog term. Compound terms can be used 
-to make categories of topics that can be activated using <A NAME="idx:debug1:1443"></A><A class="pred" href="debug.html#debug/1">debug/1</A>.</DD>
+to make categories of topics that can be activated using <A NAME="idx:debug1:1462"></A><A class="pred" href="debug.html#debug/1">debug/1</A>.</DD>
 <DT class="pubdef"><A NAME="debugging/1"><STRONG>debugging</STRONG>(<VAR>+Topic</VAR>)</A></DT>
 <DD class="defbody">
 Succeeds if <VAR>Topic</VAR> is a selected debugging topic. It is 
@@ -177,20 +177,20 @@ Select all registered topics that unify with <VAR>Topic</VAR> for
 debugging. This call is normally used from the toplevel to activate a 
 topic for debugging. If no matching <VAR>Topic</VAR> is registered a 
 warning is printed and the topic is registered for debugging as matching 
-debug statements may be loaded later. Topics are de-activated using <A NAME="idx:nodebug1:1444"></A><A class="pred" href="debug.html#nodebug/1">nodebug/1</A>.</DD>
+debug statements may be loaded later. Topics are de-activated using <A NAME="idx:nodebug1:1463"></A><A class="pred" href="debug.html#nodebug/1">nodebug/1</A>.</DD>
 <DT class="pubdef"><A NAME="nodebug/1"><STRONG>nodebug</STRONG>(<VAR>+Topic</VAR>)</A></DT>
 <DD class="defbody">
-Deactivates topics for debugging. See <A NAME="idx:debug1:1445"></A><A class="pred" href="debug.html#debug/1">debug/1</A> 
+Deactivates topics for debugging. See <A NAME="idx:debug1:1464"></A><A class="pred" href="debug.html#debug/1">debug/1</A> 
 for the arguments.</DD>
 <DT class="pubdef"><A NAME="list_debug_topics/0"><STRONG>list_debug_topics</STRONG></A></DT>
 <DD class="defbody">
-List the current status of registered topics. See also <A NAME="idx:debugging0:1446"></A><A class="pred" href="debugger.html#debugging/0">debugging/0</A>.</DD>
+List the current status of registered topics. See also <A NAME="idx:debugging0:1465"></A><A class="pred" href="debugger.html#debugging/0">debugging/0</A>.</DD>
 <DT class="pubdef"><A NAME="assertion/1"><STRONG>assertion</STRONG>(<VAR>:Goal</VAR>)</A></DT>
 <DD class="defbody">
-<A NAME="idx:assertions:1447"></A>This predicate is to be compared to 
+<A NAME="idx:assertions:1466"></A>This predicate is to be compared to 
 the C-library assert() function. By inserting this goal you explicitely 
 state you expect
-<VAR>Goal</VAR> to succeed at this place. As <A NAME="idx:assertion1:1448"></A><A class="pred" href="debug.html#assertion/1">assertion/1</A> 
+<VAR>Goal</VAR> to succeed at this place. As <A NAME="idx:assertion1:1467"></A><A class="pred" href="debug.html#assertion/1">assertion/1</A> 
 calls are removed when compiling in optimized mode <VAR>Goal</VAR> 
 should not have side-effects. Typical examples are type-tests and 
 validating invariants defined by your application.
