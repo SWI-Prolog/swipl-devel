@@ -201,6 +201,7 @@ begin_tests(Unit, Options) :-
 
 :- if(swi).
 begin_tests(Unit, Name, File:Line, Options) :-
+	loading_tests, !,
 	'$set_source_module'(Context, Context),
 	Supers = [Context],
 	(   current_unit(Unit, Name, Supers, Options)
@@ -214,6 +215,9 @@ begin_tests(Unit, Name, File:Line, Options) :-
 	discontiguous(Name:'unit test'/4),
 	'$set_predicate_attribute'(Name:'unit test'/4, trace, 0),
 	discontiguous(Name:'unit body'/2),
+	asserta(loading_unit(Unit, Name, File, Old)).
+begin_tests(Unit, Name, File:_Line, _Options) :-
+	'$set_source_module'(Old, Old),
 	asserta(loading_unit(Unit, Name, File, Old)).
 
 set_import_modules(Module, Imports) :-
@@ -233,11 +237,14 @@ user:term_expansion((:- begin_tests(Set)),
 		    ]).
 
 begin_tests(Unit, Name, File:_Line, Options) :-
+	loading_tests, !,
 	(   current_unit(Unit, Name, Supers, Options)
 	->  true
 	;   retractall(current_unit(Unit, Name, _, _)),
 	    assert(current_unit(Unit, Name, Supers, Options))
 	),
+	asserta(loading_unit(Unit, Name, File, -)).
+begin_tests(Unit, Name, File:_Line, _Options) :-
 	asserta(loading_unit(Unit, Name, File, -)).
 
 :- endif.
@@ -875,8 +882,16 @@ assert_cyclic(Term) :-
 %	them to current output and fail.
 
 report :-
-	report_blocked,
-	report_failed.
+	number_of_clauses(passed/5, Passed),
+	number_of_clauses(failed/4, Failed),
+	number_of_clauses(blocked/4, Blocked),
+	(   Passed+Failed+Blocked =:= 0
+	->  info(plunit(no_tests))
+	;   Failed+Blocked =:= 0
+	->  info(plunit(all_passed(Passed)))
+	;   report_blocked,
+	    report_failed
+	).
 
 number_of_clauses(F/A,N) :-
 	(	current_predicate(F/A)
@@ -1027,8 +1042,10 @@ message(plunit(blocked(Pos, Name, Reason))) -->
 	[ 'test ~w: ~w'-[Name, Reason] ].
 
 					% fail/success
-message(plunit(failed(0))) --> !,
-	[ 'All tests passed'-[] ].
+message(plunit(no_tests)) --> !,
+	[ 'No tests to run' ].
+message(plunit(all_passed(Count))) --> !,
+	[ 'All ~D tests passed'-[Count] ].
 message(plunit(failed(1))) --> !,
 	[ '1 test failed'-[] ].
 message(plunit(failed(N))) -->
