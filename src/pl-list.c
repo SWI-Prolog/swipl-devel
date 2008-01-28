@@ -66,7 +66,16 @@ pl_length(term_t list, term_t l)
   
 				/* large integer; we cannot represent anyway */
   if ( PL_is_integer(l) )
+  { number i;
+    Word p =  valTermRef(l);
+
+    deRef(p);
+    get_integer(*p, &i);
+    if ( ar_sign_i(&i) < 0 )
+      fail;
+
     return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+  }
 
   return PL_error("length", 2, NULL, ERR_TYPE, ATOM_integer, l);
 }  

@@ -129,6 +129,7 @@ COMMON(void)		pushArithStack(Number n ARG_LD);
 COMMON(void)		resetArithStack(ARG1_LD);
 COMMON(Number)		argvArithStack(int n ARG_LD);
 COMMON(void)		popArgvArithStack(int n ARG_LD);
+COMMON(int)		ar_sign_i(Number n1);
 
 /* pl-bag.c */
 COMMON(void) 		resetBags(void);
