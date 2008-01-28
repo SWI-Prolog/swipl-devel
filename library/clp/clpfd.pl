@@ -1953,7 +1953,7 @@ put_full(X, Dom, Ps) :-
    mutable(S,X). S can be used to destructively change the state of
    the propagator. This can be used to avoid redundant invocation of
    the same propagator, or to disable the propagator. X is a free
-   variable that prevents a compacting garbage collector from folding
+   variable that prevents a factorizing garbage collector from folding
    unrelated states.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -3051,6 +3051,7 @@ pair_up([A|As], [B|Bs], [A-n(B)|ABs]) :- pair_up(As, Bs, ABs).
 
 serialize([], _).
 serialize([Start-D|SDs], Left) :-
+        cis_geq_zero(D),
         (   var(Start) ->
             make_propagator(pserialized(Start,D,Left,SDs), Prop),
             init_propagator(Start, Prop),
