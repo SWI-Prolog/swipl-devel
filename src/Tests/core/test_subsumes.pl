@@ -46,6 +46,8 @@ test(simple, fail) :-
 	subsumes(a, _A).
 test(simple, true(X-Y == Z-Z)) :-
 	subsumes(a(X,Y), a(Z,Z)).
+test(simple, fail) :-
+	subsumes(a(Z,Z), a(_X,_Y)).
 
 :- end_tests(subsumes).
 
