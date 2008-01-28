@@ -185,7 +185,7 @@
 
 :- chr_type maybe(T)	---> yes(T) ; no.
 
-:- chr_type constraint ---> any / any.
+:- chr_type constraint 	---> any / any.
 
 :- chr_type module_name == any.
 
@@ -5064,7 +5064,7 @@ get_type_definition(Type,Def)
 
 get_type_definition(Type,Def) 
 	<=> 
-		compound_builtin_type(Type,_,_) 
+		compound_builtin_type(Type,_,_,_) 
 	| 
 		Def = [Type].
 
@@ -5148,7 +5148,7 @@ unalias_type(Alias,BaseType)
 unalias_compound_builtin @ 
 unalias_type(Alias,BaseType) 
 	<=> 
-		compound_builtin_type(Alias,_,_) 
+		compound_builtin_type(Alias,_,_,_) 
 	| 
 		BaseType = Alias.
 
@@ -5223,7 +5223,7 @@ type_condition([DefCase|DefCases],Arg,UnrollArg,Mode,[Condition|Conditions]) :-
 		chr_error(type,'Unexpected variable type in type definition!\n',[]) % Condition = true
 	; atomic_builtin_type(DefCase,Arg,Condition) ->
 		true
-	; compound_builtin_type(DefCase,Arg,Condition) ->
+	; compound_builtin_type(DefCase,Arg,Condition,_) ->
 		true
 	;
 		type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition)
@@ -5238,7 +5238,8 @@ type_condition([DefCase|DefCases],Arg,UnrollArg,Mode,[Condition|Conditions]) :-
 				;	natural
 			 	;	dense_int
 				;	chr_identifier
-				;	chr_identifier(any).
+				;	chr_identifier(any)
+				;       chr_constants(list(any)).
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 atomic_builtin_type(any,_Arg,true).
@@ -5249,7 +5250,13 @@ atomic_builtin_type(float,Arg,float(Arg)).
 atomic_builtin_type(natural,Arg,(integer(Arg),Arg>=0)).
 atomic_builtin_type(chr_identifier,_Arg,true).
 
-compound_builtin_type(chr_identifier(_),_Arg,true).
+compound_builtin_type(chr_identifier(_),_Arg,true,true).
+compound_builtin_type(chr_constants(Constants),Arg,(ground(Arg), memberchk(Arg,Constants)),
+		     once(( member(Constant,Constants),
+			    unifiable(Arg,Constant,_)
+			  )
+			 ) 
+	).
 
 type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition) :-
 	( nonvar(DefCase) ->
@@ -5383,7 +5390,7 @@ static_type_check_term(Src,Term,Type)
 		).	
 static_type_check_term(Src,Term,Type) 
 	<=> 
-		compound_builtin_type(Type,Term,Goal)
+		compound_builtin_type(Type,Term,_,Goal)
 	|
 		( call(Goal) ->
 			true
@@ -5437,7 +5444,7 @@ static_type_check_var(Src,Var,Type)
 
 static_type_check_var(Src,Var,Type)
 	<=>
-		compound_builtin_type(Type,_,_)
+		compound_builtin_type(Type,_,_,_)
 	|
 		true.
 		
@@ -5526,7 +5533,7 @@ type_alias(A,B), dynamic_type_check
 dynamic_type_check <=> 
 	findall(
 			('$dynamic_type_check'(Type,Term) :- Goal),
-			( atomic_builtin_type(Type,Term,Goal) ; compound_builtin_type(Type,Term,Goal) ), 
+			( atomic_builtin_type(Type,Term,Goal) ; compound_builtin_type(Type,Term,Goal,_) ), 
 			BuiltinChecks
 	),
 	dynamic_type_check_clauses(BuiltinChecks).
