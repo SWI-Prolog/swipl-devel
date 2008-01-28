@@ -129,22 +129,57 @@ expand_apply(Maplist, Goal) :-
 	functor(Maplist, maplist, N),
 	N >= 2,
 	Maplist =.. [maplist, Callable|Lists],
-	callable(Callable),
+	callable(Callable), !,
 	expand_maplist(Callable, Lists, Goal).
 expand_apply(forall(Cond, Action), \+((Cond, \+(Action)))).
 expand_apply(once(Goal), (Goal->true)).
 expand_apply(ignore(Goal), (Goal->true;true)).
-expand_apply(phrase(NT,Xs), NTXsNil) :- !,
+expand_apply(phrase(NT,Xs), NTXsNil) :-
 	expand_apply(phrase(NT,Xs,[]), NTXsNil).
 expand_apply(phrase(NT,Xs0,Xs), NewGoal) :-
 	Goal = phrase(NT,Xs0,Xs),
 	nonvar(NT),
-	acyclic_term(NT),
-	\+ ( sub_term(Cut, NT), Cut == ! ),
 	catch('$translate_rule'((pseudo_nt --> NT), Rule),
-	      error(type_error(callable,_),_), fail),
-	Rule = (pseudo_nt(Xs0,Xs) :- NewGoal),
-	Goal \== NewGoal, !.
+	      error(Pat,ImplDep),
+	      ( \+ harmless_dcgexception(Pat), 
+		throw(error(Pat,ImplDep))
+	      )),
+	Rule = (pseudo_nt(Xs0c,Xsc) :- NewGoal0),
+	Goal \== NewGoal0,
+	\+ contains_illegal_dcgnt(NT), !,	% apply translation only if we are safe
+	(   var(Xsc), Xsc \== Xs0c
+	->  Xs = Xsc, NewGoal1 = NewGoal0
+	;   NewGoal1 = (NewGoal0, Xsc = Xs)
+	),
+	(   var(Xs0c)
+	-> Xs0 = Xs0c,
+	   NewGoal = NewGoal1
+	;  ( Xs0 = Xs0c, NewGoal1 ) = NewGoal
+	).
+
+harmless_dcgexception(instantiation_error).	% ex: phrase(([1],x:X,[3]),L)
+harmless_dcgexception(type_error(callable,_)).	% ex: phrase(27,L)
+
+
+%%	contains_illegal_dcgnt(+Term) is semidet.
+%
+%	True if Term contains a non-terminal   we cannot deal with using
+%	goal-expansion. The test is too general approximation, but safe.
+
+contains_illegal_dcgnt(NT) :-
+	sub_term(I, NT),
+	nonvar(I),
+	( I = ! ; I = phrase(_,_,_) ), !.
+%	write(contains_illegal_nt(NT)),		% JW: we do not want to write
+%	nl.
+
+		 /*******************************
+		 *	     ACTIVATE		*
+		 *******************************/
+
+%	@tbd	Should we only apply if optimization is enabled (-O)?
+
 user:goal_expansion(GoalIn, GoalOut) :-
 	\+ current_prolog_flag(xref, true),
 	expand_apply(GoalIn, GoalOut).
+	

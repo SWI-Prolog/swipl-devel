@@ -532,102 +532,159 @@ make_run_tests(Files) :-
 	;   true
 	).
 
+:- if(swi).
+
+unification_capability(sto_error_incomplete).
+% can detect some (almost all) STO runs
+unification_capability(rational_trees).
+unification_capability(finite_trees).
+
+set_unification_capability(sto_error_incomplete) :-
+	set_prolog_flag(occurs_check, error).
+set_unification_capability(rational_trees) :-
+	set_prolog_flag(occurs_check, false).
+set_unification_capability(finite_trees) :-
+	set_prolog_flag(occurs_check, true).
+
+:- else.
+:- if(sicstus).
+
+unification_capability(rational_trees).
+
+set_unification_capability(rational_trees).
+	% Nothing
+
+:- else.
+
+unification_capability(_) :-
+	fail.
+
+:- endif.
+:- endif.
+
 
 		 /*******************************
 		 *	   RUNNING A TEST	*
 		 *******************************/
 
 %%	run_test(+Unit, +Name, +Line, +Options, +Body) is det.
+%
+%	Run a single test.  
 
-run_test(Unit, Name, Line, Options, _Body) :-
+run_test(Unit, Name, Line, Options, Body) :-
+	option(sto(Type), Options),
+	unification_capability(Type),
+	set_unification_capability(Type),
+	irun_test(Unit, Name, Line, Options, Body),
+	fail.
+run_test(Unit, Name, Line, Options, Body) :-
+% Try to show, that this case is sto
+	\+ option(sto(Type), Options),
+	unification_capability(Type),
+	set_unification_capability(Type),
+	irun_test(Unit, Name, Line, Options, Body),
+	fail.
+run_test(_Unit, _Name, _Line, _Options, _Body) :-
+	set_unification_capability(rational_trees).
+
+
+irun_test(Unit, Name, Line, Options, _Body) :-
 	option(blocked(Reason), Options), !,
 	assert(blocked(Unit, Name, Line, Reason)).
-run_test(Unit, Name, Line, Options, Body) :-
+irun_test(Unit, Name, Line, Options, Body) :-
 	option(all(Answer), Options), !,		% all(Bindings)
 	nondet_test(all(Answer), Unit, Name, Line, Options, Body).
-run_test(Unit, Name, Line, Options, Body) :-
+irun_test(Unit, Name, Line, Options, Body) :-
 	option(set(Answer), Options), !,		% set(Bindings)
 	nondet_test(set(Answer), Unit, Name, Line, Options, Body).
-run_test(Unit, Name, Line, Options, Body) :-
+irun_test(Unit, Name, Line, Options, Body) :-
 	option(fail, Options), !,			% fail
 	unit_module(Unit, Module),
-	setup(Module, Options), !,
-	statistics(runtime, [T0,_]),
-	(   catch(Module:Body, E, true)
-	->  (   var(E)
-	    ->	statistics(runtime, [T1,_]),
+	(   setup(Module, Options)
+	->  statistics(runtime, [T0,_]),
+	    (   catch(Module:Body, E, true)
+	    ->  (   var(E)
+		->  statistics(runtime, [T1,_]),
+		    Time is (T1 - T0)/1000.0,
+		    failure(Unit, Name, Line, succeeded(Time), Options),
+		    cleanup(Module, Options)
+		;	failure(Unit, Name, Line, E, Options),
+		    cleanup(Module, Options)
+		)
+	    ;   statistics(runtime, [T1,_]),
 		Time is (T1 - T0)/1000.0,
-		failure(Unit, Name, Line, succeeded(Time), Options),
-		cleanup(Module, Options)
-	    ;	failure(Unit, Name, Line, E, Options),
+		success(Unit, Name, Line, true, Time, Options),
 		cleanup(Module, Options)
 	    )
-	;   statistics(runtime, [T1,_]),
-	    Time is (T1 - T0)/1000.0,
-	    success(Unit, Name, Line, true, Time, Options),
-	    cleanup(Module, Options)
+	;   true
 	).
-run_test(Unit, Name, Line, Options, Body) :-
-	option(true(Cmp), Options),
+irun_test(Unit, Name, Line, Options, Body) :-
+	option(true(Cmp), Options), !,
 	unit_module(Unit, Module),
-	setup(Module, Options), !,			% true(Binding)
-	statistics(runtime, [T0,_]),
-	(   catch(call_det(Module:Body, Det), E, true)
-	->  (   var(E)
-	    ->	statistics(runtime, [T1,_]),
-		Time is (T1 - T0)/1000.0,
-		(   catch(Cmp, _, fail)			% tbd: error
-		->  success(Unit, Name, Line, Det, Time, Options)
-		;   failure(Unit, Name, Line, wrong_answer(Cmp), Options)
-		),
-		cleanup(Module, Options)
-	    ;	failure(Unit, Name, Line, E, Options),
+	(   setup(Module, Options)			% true(Binding)
+	->  statistics(runtime, [T0,_]),
+	    (   catch(call_det(Module:Body, Det), E, true)
+	    ->  (   var(E)
+		->  statistics(runtime, [T1,_]),
+		    Time is (T1 - T0)/1000.0,
+		    (   catch(Cmp, _, fail)			% tbd: error
+		    ->  success(Unit, Name, Line, Det, Time, Options)
+		    ;   failure(Unit, Name, Line, wrong_answer(Cmp), Options)
+		    ),
+		    cleanup(Module, Options)
+		;   failure(Unit, Name, Line, E, Options),
+		    cleanup(Module, Options)
+		)
+	    ;   failure(Unit, Name, Line, failed, Options),
 		cleanup(Module, Options)
 	    )
-	;   failure(Unit, Name, Line, failed, Options),
-	    cleanup(Module, Options)
+	;   true
 	).
-run_test(Unit, Name, Line, Options, Body) :-
+irun_test(Unit, Name, Line, Options, Body) :-
 	(   option(throws(Expect), Options)
 	->  true
 	;   option(error(ErrorExpect), Options)
 	->  Expect = error(ErrorExpect, _)
-	),
+	), !,
 	unit_module(Unit, Module),
-	setup(Module, Options), !,			% true
-	statistics(runtime, [T0,_]),
-	(   catch(Module:Body, E, true)
-	->  (   var(E)
-	    ->	failure(Unit, Name, Line, no_exception, Options),
-		cleanup(Module, Options)
-	    ;	statistics(runtime, [T1,_]),
-		Time is (T1 - T0)/1000.0,
-		(   match_error(Expect, E)
-		->  success(Unit, Name, Line, true, Time, Options)
-		;   failure(Unit, Name, Line, wrong_error(Expect, E), Options)
-		),
+	(   setup(Module, Options)
+	->  statistics(runtime, [T0,_]),
+	    (   catch(Module:Body, E, true)
+	    ->  (   var(E)
+		->  failure(Unit, Name, Line, no_exception, Options),
+		    cleanup(Module, Options)
+		;   statistics(runtime, [T1,_]),
+		    Time is (T1 - T0)/1000.0,
+		    (   match_error(Expect, E)
+		    ->  success(Unit, Name, Line, true, Time, Options)
+		    ;   failure(Unit, Name, Line, wrong_error(Expect, E), Options)
+		    ),
+		    cleanup(Module, Options)
+		)
+	    ;   failure(Unit, Name, Line, failed, Options),
 		cleanup(Module, Options)
 	    )
-	;   failure(Unit, Name, Line, failed, Options),
-	    cleanup(Module, Options)
+	;   true
 	).
-run_test(Unit, Name, Line, Options, Body) :-
+irun_test(Unit, Name, Line, Options, Body) :-
 	unit_module(Unit, Module),
-	setup(Module, Options), !,			% true
-	statistics(runtime, [T0,_]),
-	(   catch(call_det(Module:Body, Det), E, true)
-	->  (   var(E)
-	    ->	statistics(runtime, [T1,_]),
-		Time is (T1 - T0)/1000.0,
-		success(Unit, Name, Line, Det, Time, Options),
-		cleanup(Module, Options)
-	    ;	failure(Unit, Name, Line, E, Options),
+	(   setup(Module, Options)
+	->  statistics(runtime, [T0,_]),
+	    (   catch(call_det(Module:Body, Det), E, true)
+	    ->  (   var(E)
+		->	statistics(runtime, [T1,_]),
+		    Time is (T1 - T0)/1000.0,
+		    success(Unit, Name, Line, Det, Time, Options),
+		    cleanup(Module, Options)
+		;	failure(Unit, Name, Line, E, Options),
+		    cleanup(Module, Options)
+		)
+	    ;   failure(Unit, Name, Line, failed, Options),
 		cleanup(Module, Options)
 	    )
-	;   failure(Unit, Name, Line, failed, Options),
-	    cleanup(Module, Options)
+	;   true
 	).
-run_test(_Unit, _Name, _Line, _Options, _Body).
+
 	
 %%	non_det_test(+Expected, +Unit, +Name, +Line, +Options, +Body)
 %
