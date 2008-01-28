@@ -531,6 +531,8 @@ suggest predicates from a keyword.
 \predicatesummary{style_check}{1}{Change level of warnings}
 \predicatesummary{sub_atom}{5}{Take a substring from an atom}
 \predicatesummary{sub_string}{5}{Take a substring from a string}
+\predicatesummary{subsumes}{2}{One-sided unification}
+\predicatesummary{subsumes_chk}{2}{One-sided unification check}
 \predicatesummary{succ}{2}{Logical integer successor relation}
 \predicatesummary{swritef}{2}{Formatted write on a string}
 \predicatesummary{swritef}{3}{Formatted write on a string}

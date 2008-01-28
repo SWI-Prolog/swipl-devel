@@ -84,7 +84,6 @@ throw_error(Error_term,Impldef) :-
 
 :- set_prolog_flag(generate_debug_info, false).
 :- use_module(library(option)).
-:- use_module(library(quintus), [subsumes_chk/2]).
 :- use_module(library(clpfd), [copy_term/3]). % remove it, Jan!
 
 current_test_flag(Name, Value) :-
@@ -1008,7 +1007,7 @@ locationprefix(File:Line) -->
 :- endif.
 
 locationprefix(FileLine) -->
-	{throw_error(type_error(locationprefix,FileLine))}.
+	{throw_error(type_error(locationprefix,FileLine), _)}.
 
 message(error(context_error(plunit_close(Name, -)), _)) -->
 	[ 'PL-Unit: cannot close unit ~w: no open unit'-[Name] ].

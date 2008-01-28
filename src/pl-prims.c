@@ -551,6 +551,147 @@ PRED_IMPL("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
 }
 
 
+		 /*******************************
+		 *	      SUBSUMES		*
+		 *******************************/
+
+static bool
+do_subsumes(Word t1, Word t2 ARG_LD)
+{ 
+  word w1;
+  word w2;
+
+right_recursion:
+  w1 = *t1;
+  w2 = *t2;
+
+  while(isRef(w1))			/* this is deRef() */
+  { t1 = unRef(w1);
+    w1 = *t1;
+  }
+  while(isRef(w2))
+  { t2 = unRef(w2);
+    w2 = *t2;
+  }
+
+  if ( isVar(w1) )
+  { if ( isVar(w2) )
+    { if ( t1 < t2 )			/* always point downwards */
+      { *t2 = makeRef(t1);
+	Trail(t2);
+	succeed;
+      }
+      if ( t1 == t2 )
+	succeed;
+      *t1 = makeRef(t2);
+      Trail(t1);
+      succeed;
+    }
+#ifdef O_ATTVAR
+    *t1 = isAttVar(w2) ? makeRef(t2) : w2;
+#else
+    *t1 = w2;
+#endif
+    Trail(t1);
+    succeed;
+  }
+  if ( isVar(w2) )
+    fail;
+
+#ifdef O_ATTVAR
+  if ( isAttVar(w1) )
+    return assignAttVar(t1, t2 PASS_LD);
+  if ( isAttVar(w2) )
+    fail;
+#endif
+
+  if ( w1 == w2 )
+    succeed;
+  if ( tag(w1) != tag(w2) )
+    fail;
+
+  switch(tag(w1))
+  { case TAG_ATOM:
+      fail;
+    case TAG_INTEGER:
+      if ( storage(w1) == STG_INLINE ||
+	   storage(w2) == STG_INLINE )
+	fail;
+    case TAG_STRING:
+    case TAG_FLOAT:
+      return equalIndirect(w1, w2);
+    case TAG_COMPOUND:
+    { Functor f1 = valueTerm(w1);
+      Functor f2 = valueTerm(w2);
+      Word e;
+
+#if O_CYCLIC
+      while ( isRef(f1->definition) )
+	f1 = (Functor)unRef(f1->definition);
+      while ( isRef(f2->definition) )
+	f2 = (Functor)unRef(f2->definition);
+      if ( f1 == f2 )
+	succeed;
+#endif
+
+      if ( f1->definition != f2->definition )
+	fail;
+
+      t1 = f1->arguments;
+      t2 = f2->arguments;
+      e  = t1+arityFunctor(f1->definition)-1; /* right-recurse on last */
+      linkTermsCyclic(f1, f2 PASS_LD);
+
+      for(; t1 < e; t1++, t2++)
+      { if ( !do_subsumes(t1, t2 PASS_LD) )
+	  fail;
+      }
+      goto right_recursion;
+    }
+  }
+
+  succeed;
+}
+
+
+static
+PRED_IMPL("subsumes", 2, subsumes, 0)
+{ PRED_LD
+  Word p0 = valTermRef(A1);
+  tmp_mark m;
+  int rc;
+
+  TmpMark(m);
+  initCyclic(PASS_LD1);
+  rc = do_subsumes(p0, p0+1 PASS_LD);
+  exitCyclic(PASS_LD1);
+  if ( !rc )
+    TmpUndo(m);
+  EndTmpMark(m);
+
+  return rc;  
+}
+
+
+static
+PRED_IMPL("subsumes_chk", 2, subsumes_chk, 0)
+{ PRED_LD
+  Word p0 = valTermRef(A1);
+  tmp_mark m;
+  int rc;
+
+  TmpMark(m);
+  initCyclic(PASS_LD1);
+  rc = do_subsumes(p0, p0+1 PASS_LD);
+  exitCyclic(PASS_LD1);
+  TmpUndo(m);
+  EndTmpMark(m);
+
+  return rc;  
+}
+
+
+
 		/********************************
 		*         TYPE CHECKING         *
 		*********************************/
@@ -4247,6 +4388,8 @@ BeginPredDefs(prims)
   PRED_DEF("=", 2, unify, 0)
   PRED_DEF("\\=", 2, not_unify, 0)
   PRED_DEF("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
+  PRED_DEF("subsumes", 2, subsumes, 0)
+  PRED_DEF("subsumes_chk", 2, subsumes_chk, 0)
   PRED_DEF("nonvar", 1, nonvar, 0)
   PRED_DEF("var", 1, var, 0)
   PRED_DEF("integer", 1, integer, 0)

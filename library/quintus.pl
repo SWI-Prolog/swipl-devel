@@ -57,8 +57,8 @@
 	  (meta_predicate)/1,
 	  no_style_check/1,
 	  otherwise/0,
-	  subsumes_chk/2,		% ?General, ?Specific
 	  simple/1,
+	  variant/2,
 %	  statistics/2,			% Please access as quintus:statistics/2
 	  prolog_flag/2,
 
@@ -266,20 +266,12 @@ public(_).
 		 *	TERM MANIPULATION	*
 		 *******************************/
 
-%%	subsumes_chk(@General, @Specific) is semidet.
+%%	variant(@Term1, @Term2) is semidet.
 %
-%	True if only by binding variables in Specific General can be
-%	made equal (==) to Specific.  Does not bind any variables.
-%	
-%	@tbd	More efficient implementation
+%	Same as SWI-Prolog =|Term1 =@= Term2|=.
 
-subsumes_chk(X,Y) :-
-  \+ \+ (copy_term(Y,Y2),
-         term_variables(Y,YFVs),
-         term_variables(Y2,Y2FVs),
-         X = Y2,
-         numbervars(YFVs,0,_),   % don't use '$VAR' in a_ atoms!
-         YFVs = Y2FVs).
+variant(X, Y) :-
+	X =@= Y.
 
 
 		 /*******************************
