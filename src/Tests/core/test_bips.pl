@@ -63,7 +63,7 @@ test(noniso, [sto(rational_trees),error(type_error(list,List))]) :-
 	List = [List,List,List|List],
 	length(List, _).
 
-%!%test(swi, [fail, condition(current_prolog_flag(bounded, false))]) :- % Item#285
-%!%	length(_,-300000000000000000).
+test(swi, [fail, condition(current_prolog_flag(bounded, false))]) :- % Item#285
+	length(_,-300000000000000000).
 
 :- end_tests(bips).
