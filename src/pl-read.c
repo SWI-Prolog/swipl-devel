@@ -694,6 +694,17 @@ add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
 }
 
 
+static void
+setErrorLocation(IOPOS *pos, ReadData _PL_rd)
+{ GET_LD
+
+  source_char_no = pos->charno;
+  source_line_pos = pos->linepos;
+  source_line_no = pos->lineno;
+  rb.here = rb.base+1;			/* see rawSyntaxError() */
+}
+
+
 static unsigned char *
 raw_read2(ReadData _PL_rd ARG_LD)
 { int c;
@@ -740,7 +751,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		strcpy((char *)rb.base, "end_of_file. ");
 		rb.here = rb.base + 14;
 		return rb.base;
-      case '/': if ( _PL_rd->comments && rb.stream->position )
+      case '/': if ( rb.stream->position )
 		{ pbuf = *rb.stream->position;
 		  pbuf.charno--;
 		  pbuf.linepos--;
@@ -767,6 +778,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  if ((last = getchr()) == EOF)
 		  { if ( cbuf )
 		      discardBuffer(cbuf);
+		    setErrorLocation(pos, _PL_rd);
 		    rawSyntaxError("end_of_file_in_block_comment");
 		  }
 		  if ( cbuf )
@@ -788,6 +800,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		    { case EOF:
 			if ( cbuf )
 			  discardBuffer(cbuf);
+		        setErrorLocation(pos, _PL_rd);
 			rawSyntaxError("end_of_file_in_block_comment");
 		      case '*':
 			if ( last == '/' )
