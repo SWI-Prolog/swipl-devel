@@ -620,13 +620,13 @@ right_recursion:
   if ( isVar(w1) )
   { word mark;
 
-    if ( isVar(w2) )
-    { if ( t1 == t2 )
-	succeed;
-      if ( marked )
-	fail;
+    if ( t1 == t2 )
+      succeed;
+    if ( marked )
+      fail;
 
-      visitedWord(t1 PASS_LD);
+    if ( isVar(w2) )
+    { visitedWord(t1 PASS_LD);
       if ( t1 < t2 )			/* always point downwards */
       { *t2 = makeRef(t1);
         DEBUG(5, Sdprintf("Unifying VAR at %p\n", t1));
