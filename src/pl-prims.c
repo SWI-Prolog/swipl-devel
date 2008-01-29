@@ -732,7 +732,7 @@ PRED_IMPL("subsumes_chk", 2, subsumes_chk, 0)
   TmpMark(m);
   initCyclic(PASS_LD1);
   rc = do_subsumes(p0, p0+1 PASS_LD);
-  exitCyclic(PASS_LD1);
+  exitCyclicSubsumes(PASS_LD1);
   TmpUndo(m);
   EndTmpMark(m);
   endCritical;
