@@ -617,17 +617,18 @@ right_recursion:
     w2 &= ~MARK_MASK;
   }
 
+  if ( t1 == t2 )
+    succeed;
+  if ( marked )
+    fail;
+
   if ( isVar(w1) )
   { word mark;
 
-    if ( t1 == t2 )
-      succeed;
-    if ( marked )
-      fail;
-
+    visitedWord(t1 PASS_LD);
+      
     if ( isVar(w2) )
-    { visitedWord(t1 PASS_LD);
-      if ( t1 < t2 )			/* always point downwards */
+    { if ( t1 < t2 )			/* always point downwards */
       { *t2 = makeRef(t1);
         DEBUG(5, Sdprintf("Unifying VAR at %p\n", t1));
 	Trail(t2);
@@ -639,6 +640,7 @@ right_recursion:
       succeed;
     }
 
+    DEBUG(5, Sdprintf("Unifying non-var at %p\n", t1));
     mark = (*t1) & MARK_MASK;		/* we need to keep the mark for exitCyclicSubsumes */
 #ifdef O_ATTVAR
     *t1 = (isAttVar(w2) ? makeRef(t2) : w2)|mark;
