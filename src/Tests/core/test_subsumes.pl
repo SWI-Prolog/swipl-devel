@@ -27,8 +27,8 @@
 
 /** <module> Test Prolog core meta-subsumesing primitives
 
-This module is  a  Unit  test  for   Prolog  built-ins  that  deal  with
-meta-subsumesing. Please define a test-set for each predicate.
+This module is a Unit test for Prolog built-ins that deal with term
+subsumption. Please define a test-set for each predicate.
 
 @author	Jan Wielemaker
 */
@@ -40,14 +40,30 @@ test_subsumes :-
 
 :- begin_tests(subsumes).
 
-test(simple, A == a) :-
+test(simple_true, A == a) :-
 	subsumes(A, a).
-test(simple, fail) :-
+test(simple_false, fail) :-
 	subsumes(a, _A).
-test(simple, true(X-Y == Z-Z)) :-
+test(shared_true, true(X-Y == Z-Z)) :-
 	subsumes(a(X,Y), a(Z,Z)).
-test(simple, fail) :-
+test(shared_false, fail) :-
 	subsumes(a(Z,Z), a(_X,_Y)).
+test(shared_false_2, fail) :-
+	A = a(_X, _Y),
+	B = a(Z, Z),
+	subsumes(B, A).
+test(cyclic1, [sto(rational_trees),A==B]) :-
+	A = a(A),
+	B = a(B),
+	subsumes(B, A).
+test(cyclic2, [sto(rational_trees),A==B]) :-
+	A = a(A),
+	B = a(_),
+	subsumes(B, A).
+test(cyclic_fail, [sto(rational_trees),fail]) :-
+	A = a(A),
+	B = a(_),
+	subsumes(A, B).
 
 :- end_tests(subsumes).
 

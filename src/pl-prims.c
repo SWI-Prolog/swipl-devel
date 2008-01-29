@@ -555,35 +555,81 @@ PRED_IMPL("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
 		 *	      SUBSUMES		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+subsumes(Generic, @Specific) is semidet.
+subsumes_chk(@Generic, @Specific) is semidet.
+
+Subsumes is implemented as one-sided unification.  In addition to simply
+disallowing unification by  binding  the   right-hand  however  we  also
+disallow binding the left-hand twice. This is only an issue if the first
+binding is to a variable. This is  achieved   by  putting  a mark on the
+variable or reference.  This is needed to make this fail:
+
+	subsumes(a(Z,Z), a(X,Y)) 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+exitCyclicSubsumes(ARG1_LD)
+{ Word p;
+
+  while( popSegStack(&LD->cycle.stack, &p) )
+  { if ( is_marked(p) )
+      clear_marked(p);			/* marked variable */
+    else
+      *p = *unRef(*p);			/* linked cycle */
+  }
+}
+
+
 static bool
 do_subsumes(Word t1, Word t2 ARG_LD)
-{ 
+{ int marked;
   word w1;
   word w2;
 
 right_recursion:
+  marked = FALSE;
   w1 = *t1;
   w2 = *t2;
+
+  if ( w1 & MARK_MASK )
+  { marked = TRUE;
+    w1 &= ~MARK_MASK;
+    DEBUG(5, Sdprintf("Mark at %p\n", t1));
+  }
+  w2 &= ~MARK_MASK;
 
   while(isRef(w1))			/* this is deRef() */
   { t1 = unRef(w1);
     w1 = *t1;
+    if ( w1 & MARK_MASK )
+    { marked = TRUE;
+      w1 &= ~MARK_MASK;
+      DEBUG(5, Sdprintf("Mark at %p\n", t1));
+    }
   }
   while(isRef(w2))
   { t2 = unRef(w2);
     w2 = *t2;
+    w2 &= ~MARK_MASK;
   }
 
   if ( isVar(w1) )
   { if ( isVar(w2) )
-    { if ( t1 < t2 )			/* always point downwards */
+    { if ( marked )
+	fail;
+      visitedWord(t1 PASS_LD);
+
+      if ( t1 < t2 )			/* always point downwards */
       { *t2 = makeRef(t1);
+        DEBUG(5, Sdprintf("Unifying VAR at %p\n", t1));
 	Trail(t2);
 	succeed;
       }
       if ( t1 == t2 )
 	succeed;
-      *t1 = makeRef(t2);
+      *t1 = makeRef(t2) | MARK_MASK;
+      DEBUG(5, Sdprintf("Unifying REF at %p\n", t1));
       Trail(t1);
       succeed;
     }
@@ -661,13 +707,15 @@ PRED_IMPL("subsumes", 2, subsumes, 0)
   tmp_mark m;
   int rc;
 
+  startCritical;
   TmpMark(m);
   initCyclic(PASS_LD1);
   rc = do_subsumes(p0, p0+1 PASS_LD);
-  exitCyclic(PASS_LD1);
+  exitCyclicSubsumes(PASS_LD1);
   if ( !rc )
     TmpUndo(m);
   EndTmpMark(m);
+  endCritical;
 
   return rc;  
 }
@@ -680,12 +728,14 @@ PRED_IMPL("subsumes_chk", 2, subsumes_chk, 0)
   tmp_mark m;
   int rc;
 
+  startCritical;
   TmpMark(m);
   initCyclic(PASS_LD1);
   rc = do_subsumes(p0, p0+1 PASS_LD);
   exitCyclic(PASS_LD1);
   TmpUndo(m);
   EndTmpMark(m);
+  endCritical;
 
   return rc;  
 }
