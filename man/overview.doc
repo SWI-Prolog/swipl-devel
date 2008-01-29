@@ -937,6 +937,11 @@ such flags should be written as below.
 Determines how abort/0 is realised.  See the description of abort/0
 for details.
 
+    \prologflagitem{address_bits}{integer}{r}
+Address-size of the hosting machine.  Typically 32 or 64.  Except for
+the maximum stack limit, this has few implications to the user.  See
+also the Prolog flag \prologflag{arch}.
+
     \prologflagitem{agc_margin}{integer}{rw}
 If this amount of atoms has been created since the last atom-garbage
 collection, perform atom garbage collection at the first opportunity.

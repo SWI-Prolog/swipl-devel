@@ -484,6 +484,10 @@ prolog_message(version) -->
 	  Patch is Version mod 100
 	},
 	[ '~w.~w.~w'-[Major, Minor, Patch] ].
+prolog_message(address_bits) -->
+	{ current_prolog_flag(address_bits, Bits)
+	}, !,
+	[ '~d bits, '-[Bits] ].
 prolog_message(threads) -->
 	{ current_prolog_flag(threads, true)
 	}, !,
@@ -491,7 +495,7 @@ prolog_message(threads) -->
 prolog_message(threads) -->
 	[].
 prolog_message(copyright) -->
-	[ 'Copyright (c) 1990-2007 University of Amsterdam.', nl,
+	[ 'Copyright (c) 1990-2008 University of Amsterdam.', nl,
 	  'SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,', nl,
 	  'and you are welcome to redistribute it under certain conditions.', nl,
 	  'Please visit http://www.swi-prolog.org for details.'
@@ -501,6 +505,7 @@ prolog_message(author) -->
 prolog_message(welcome) -->
 	[ 'Welcome to SWI-Prolog (' ],
 	prolog_message(threads),
+	prolog_message(address_bits),
 	['Version ' ],
 	prolog_message(version),
 	[ ')', nl ],

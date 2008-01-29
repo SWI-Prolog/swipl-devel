@@ -813,6 +813,7 @@ initFeatures()
 #if O_DYNAMIC_STACKS
   defFeature("dynamic_stacks",	FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
+  defFeature("address_bits", FT_INTEGER|FF_READONLY, sizeof(void*)*8);
 #ifdef HAVE_POPEN
   defFeature("pipe", FT_BOOL, TRUE, 0);
 #endif
