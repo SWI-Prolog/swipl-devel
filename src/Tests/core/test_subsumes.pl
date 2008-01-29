@@ -44,6 +44,8 @@ test(simple_true, A == a) :-
 	subsumes(A, a).
 test(simple_false, fail) :-
 	subsumes(a, _A).
+test(double, X==Y) :-
+	subsumes(a(X,f(X)), a(Y, f(Y))).
 test(shared_true, true(X-Y == Z-Z)) :-
 	subsumes(a(X,Y), a(Z,Z)).
 test(shared_false, fail) :-
