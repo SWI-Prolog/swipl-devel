@@ -25,7 +25,7 @@
 :- module(test_subsumes, [test_subsumes/0]).
 :- use_module(library(plunit)).
 
-/** <module> Test Prolog core meta-subsumesing primitives
+/** <module> Test Prolog core meta-subsumption primitives
 
 This module is a Unit test for Prolog built-ins that deal with term
 subsumption. Please define a test-set for each predicate.
@@ -46,8 +46,6 @@ test(simple_false, fail) :-
 	subsumes(a, _A).
 test(double, X==Y) :-
 	subsumes(a(X,f(X)), a(Y, f(Y))).
-test(structure, A==f(C,D)) :-
-	subsumes(f(A, A), f(_B, f(C, D))).
 test(shared_true, true(X-Y == Z-Z)) :-
 	subsumes(a(X,Y), a(Z,Z)).
 test(shared_false, fail) :-
@@ -56,6 +54,8 @@ test(shared_false_2, fail) :-
 	A = a(_X, _Y),
 	B = a(Z, Z),
 	subsumes(B, A).
+test(shared_false_3, fail) :-
+	subsumes(f(A, A), f(_, f(_, _))).
 test(cyclic1, [sto(rational_trees),A==B]) :-
 	A = a(A),
 	B = a(B),
@@ -82,6 +82,8 @@ test(min, [fail]) :-
        copy_term(Goal,_),
        Goal,
        fail.
+test(sharing,[fail]) :-
+	subsumes_chk(f(A, A), f(_, f(_, _))).
 
 :- end_tests(subsumes_chk).
 
