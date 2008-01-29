@@ -56,6 +56,8 @@ test(shared_false_2, fail) :-
 	subsumes(B, A).
 test(shared_false_3, fail) :-
 	subsumes(f(A, A), f(_, f(_, _))).
+test(shared_false_4, fail) :-
+	subsumes(f(A, A), f(f(_, _), f(_, _))).
 test(cyclic1, [sto(rational_trees),A==B]) :-
 	A = a(A),
 	B = a(B),
