@@ -635,7 +635,7 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	    ->  (   var(E)
 		->  statistics(runtime, [T1,_]),
 		    Time is (T1 - T0)/1000.0,
-		    Result = failure(Unit, Name, Line, succeeded(Time), Options),
+		    Result = failure(Unit, Name, Line, succeeded(Time)),
 		    cleanup(Module, Options)
 		;   Result = failure(Unit, Name, Line, E),
 		    cleanup(Module, Options)
