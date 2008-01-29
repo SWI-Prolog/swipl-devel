@@ -2248,6 +2248,8 @@ probably worth more than the 0.001% performance to gain.
 
 	if ( raw_unify_ptrs(p1, p2 PASS_LD) )
 	  NEXT_INSTRUCTION;
+	if ( exception_term )
+	  goto b_throw;
 	CLAUSE_FAILED;
       }
 
