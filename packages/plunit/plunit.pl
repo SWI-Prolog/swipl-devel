@@ -686,7 +686,7 @@ irun_test(Unit, Name, Line, Options, Body) :-
 		    Time is (T1 - T0)/1000.0,
 		    success(Unit, Name, Line, Det, Time, Options),
 		    cleanup(Module, Options)
-		;	failure(Unit, Name, Line, E, Options),
+		;   failure(Unit, Name, Line, E, Options),
 		    cleanup(Module, Options)
 		)
 	    ;   failure(Unit, Name, Line, failed, Options),
@@ -792,9 +792,6 @@ match_error(Expect, Rec) :-
 %	reason. The condition handler is  similar,   but  failing is not
 %	considered an error.
 
-setup(_Module, Options) :-
-	option(sto(finite_trees), Options), !, % a first start...
-	fail.
 setup(Module, Options) :-
 	option(setup(Setup), Options), !,
 	(   catch(Module:Setup, E, true)
