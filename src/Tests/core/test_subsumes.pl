@@ -77,6 +77,11 @@ test(cyclic_fail, [sto(rational_trees),fail]) :-
 test(simple, true) :-
 	subsumes_chk(A, a),
 	var(A).
+test(min, [fail]) :-
+       Goal = subsumes_chk(_, _),
+       copy_term(Goal,_),
+       Goal,
+       fail.
 
 :- end_tests(subsumes_chk).
 
