@@ -545,20 +545,24 @@ unification_capability(sto_error_incomplete).
 unification_capability(rational_trees).
 unification_capability(finite_trees).
 
-set_unification_capability(sto_error_incomplete) :-
-	set_prolog_flag(occurs_check, error).
-set_unification_capability(rational_trees) :-
-	set_prolog_flag(occurs_check, false).
-set_unification_capability(finite_trees) :-
-	set_prolog_flag(occurs_check, true).
+set_unification_capability(Cap) :-
+	cap_to_flag(Cap, Flag),
+	set_prolog_flag(occurs_check, Flag).
+
+current_unification_capability(Cap) :-
+	current_prolog_flag(occurs_check, Flag),
+	cap_to_flag(Cap, Flag), !.
+
+cap_to_flag(sto_error_incomplete, error).
+cap_to_flag(rational_trees, false).
+cap_to_flag(finite_trees, true).
 
 :- else.
 :- if(sicstus).
 
 unification_capability(rational_trees).
-
 set_unification_capability(rational_trees).
-	% Nothing
+current_unification_capability(rational_trees).
 
 :- else.
 
@@ -578,20 +582,20 @@ unification_capability(_) :-
 %	Run a single test.  
 
 run_test(Unit, Name, Line, Options, Body) :-
-	option(sto(Type), Options),
-	unification_capability(Type),
-	set_unification_capability(Type),
-	irun_test(Unit, Name, Line, Options, Body),
-	fail.
-run_test(Unit, Name, Line, Options, Body) :-
-% Try to show, that this case is sto
-	\+ option(sto(Type), Options),
-	unification_capability(Type),
-	set_unification_capability(Type),
-	irun_test(Unit, Name, Line, Options, Body),
-	fail.
-run_test(_Unit, _Name, _Line, _Options, _Body) :-
-	set_unification_capability(rational_trees).
+	current_unification_capability(Cap0),
+	call_cleanup(run_test_cap(Unit, Name, Line, Options, Body),
+		     set_unification_capability(Cap0)).
+
+run_test_cap(Unit, Name, Line, Options, Body) :-
+	(   option(sto(Type), Options)
+	->  unification_capability(Type),
+	    set_unification_capability(Type),
+	    irun_test(Unit, Name, Line, Options, Body)
+	;   forall(unification_capability(Type),
+		  (   set_unification_capability(Type),
+		      irun_test(Unit, Name, Line, Options, Body)
+		  ))
+	).
 
 
 irun_test(Unit, Name, Line, Options, _Body) :-
@@ -614,7 +618,7 @@ irun_test(Unit, Name, Line, Options, Body) :-
 		    Time is (T1 - T0)/1000.0,
 		    failure(Unit, Name, Line, succeeded(Time), Options),
 		    cleanup(Module, Options)
-		;	failure(Unit, Name, Line, E, Options),
+		;   failure(Unit, Name, Line, E, Options),
 		    cleanup(Module, Options)
 		)
 	    ;   statistics(runtime, [T1,_]),
