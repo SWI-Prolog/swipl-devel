@@ -590,24 +590,43 @@ run_test_cap(Unit, Name, Line, Options, Body) :-
 	(   option(sto(Type), Options)
 	->  unification_capability(Type),
 	    set_unification_capability(Type),
-	    irun_test(Unit, Name, Line, Options, Body)
+	    run_test_6(Unit, Name, Line, Options, Body, Result),
+	    report_result(Result, Options)
 	;   forall(unification_capability(Type),
 		  (   set_unification_capability(Type),
-		      irun_test(Unit, Name, Line, Options, Body)
+		      run_test_6(Unit, Name, Line, Options, Body, Result),
+		      report_result(Result, Options)
 		  ))
 	).
 
-
-irun_test(Unit, Name, Line, Options, _Body) :-
-	option(blocked(Reason), Options), !,
+report_result(blocked(Unit, Name, Line, Reason), _) :- !,
 	assert(blocked(Unit, Name, Line, Reason)).
-irun_test(Unit, Name, Line, Options, Body) :-
+report_result(failure(Unit, Name, Line, How), Options) :- !,
+	failure(Unit, Name, Line, How, Options).
+report_result(success(Unit, Name, Line, Determinism, Time), Options) :- !,
+	success(Unit, Name, Line, Determinism, Time, Options).
+report_result(setup_failed(_Unit, _Name, _Line), _Options).
+
+
+%%	run_test_6(+Unit, +Name, +Line, +Options, :Body, -Result) is det.
+%
+%	Result is one of:
+%	
+%		* blocked(Unit, Name, Line, Reason)
+%		* failure(Unit, Name, Line, How)
+%		* success(Unit, Name, Line, Determinism, Time)
+%		* setup_failed(Unit, Name, Line)
+
+run_test_6(Unit, Name, Line, Options, _Body,
+	   blocked(Unit, Name, Line, Reason)) :-
+	option(blocked(Reason), Options), !.
+run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	option(all(Answer), Options), !,		% all(Bindings)
-	nondet_test(all(Answer), Unit, Name, Line, Options, Body).
-irun_test(Unit, Name, Line, Options, Body) :-
+	nondet_test(all(Answer), Unit, Name, Line, Options, Body, Result).
+run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	option(set(Answer), Options), !,		% set(Bindings)
-	nondet_test(set(Answer), Unit, Name, Line, Options, Body).
-irun_test(Unit, Name, Line, Options, Body) :-
+	nondet_test(set(Answer), Unit, Name, Line, Options, Body, Result).
+run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	option(fail, Options), !,			% fail
 	unit_module(Unit, Module),
 	(   setup(Module, Options)
@@ -616,19 +635,19 @@ irun_test(Unit, Name, Line, Options, Body) :-
 	    ->  (   var(E)
 		->  statistics(runtime, [T1,_]),
 		    Time is (T1 - T0)/1000.0,
-		    failure(Unit, Name, Line, succeeded(Time), Options),
+		    Result = failure(Unit, Name, Line, succeeded(Time), Options),
 		    cleanup(Module, Options)
-		;   failure(Unit, Name, Line, E, Options),
+		;   Result = failure(Unit, Name, Line, E),
 		    cleanup(Module, Options)
 		)
 	    ;   statistics(runtime, [T1,_]),
 		Time is (T1 - T0)/1000.0,
-		success(Unit, Name, Line, true, Time, Options),
+		Result = success(Unit, Name, Line, true, Time),
 		cleanup(Module, Options)
 	    )
-	;   true
+	;   Result = setup_failed(Unit, Name, Line)
 	).
-irun_test(Unit, Name, Line, Options, Body) :-
+run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	option(true(Cmp), Options), !,
 	unit_module(Unit, Module),
 	(   setup(Module, Options)			% true(Binding)
@@ -638,19 +657,19 @@ irun_test(Unit, Name, Line, Options, Body) :-
 		->  statistics(runtime, [T1,_]),
 		    Time is (T1 - T0)/1000.0,
 		    (   catch(Cmp, _, fail)			% tbd: error
-		    ->  success(Unit, Name, Line, Det, Time, Options)
-		    ;   failure(Unit, Name, Line, wrong_answer(Cmp), Options)
+		    ->  Result = success(Unit, Name, Line, Det, Time)
+		    ;   Result = failure(Unit, Name, Line, wrong_answer(Cmp))
 		    ),
 		    cleanup(Module, Options)
-		;   failure(Unit, Name, Line, E, Options),
+		;   Result = failure(Unit, Name, Line, E),
 		    cleanup(Module, Options)
 		)
-	    ;   failure(Unit, Name, Line, failed, Options),
+	    ;   Result = failure(Unit, Name, Line, failed),
 		cleanup(Module, Options)
 	    )
-	;   true
+	;   Result = setup_failed(Unit, Name, Line)
 	).
-irun_test(Unit, Name, Line, Options, Body) :-
+run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	(   option(throws(Expect), Options)
 	->  true
 	;   option(error(ErrorExpect), Options)
@@ -661,63 +680,67 @@ irun_test(Unit, Name, Line, Options, Body) :-
 	->  statistics(runtime, [T0,_]),
 	    (   catch(Module:Body, E, true)
 	    ->  (   var(E)
-		->  failure(Unit, Name, Line, no_exception, Options),
+		->  Result = failure(Unit, Name, Line, no_exception),
 		    cleanup(Module, Options)
 		;   statistics(runtime, [T1,_]),
 		    Time is (T1 - T0)/1000.0,
 		    (   match_error(Expect, E)
-		    ->  success(Unit, Name, Line, true, Time, Options)
-		    ;   failure(Unit, Name, Line, wrong_error(Expect, E), Options)
+		    ->  Result = success(Unit, Name, Line, true, Time)
+		    ;   Result = failure(Unit, Name, Line, wrong_error(Expect, E))
 		    ),
 		    cleanup(Module, Options)
 		)
-	    ;   failure(Unit, Name, Line, failed, Options),
+	    ;   Result = failure(Unit, Name, Line, failed),
 		cleanup(Module, Options)
 	    )
-	;   true
+	;   Result = setup_failed(Unit, Name, Line)
 	).
-irun_test(Unit, Name, Line, Options, Body) :-
+run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	unit_module(Unit, Module),
 	(   setup(Module, Options)
 	->  statistics(runtime, [T0,_]),
 	    (   catch(call_det(Module:Body, Det), E, true)
 	    ->  (   var(E)
-		->	statistics(runtime, [T1,_]),
+		->  statistics(runtime, [T1,_]),
 		    Time is (T1 - T0)/1000.0,
-		    success(Unit, Name, Line, Det, Time, Options),
+		    Result = success(Unit, Name, Line, Det, Time),
 		    cleanup(Module, Options)
 		;   failure(Unit, Name, Line, E, Options),
 		    cleanup(Module, Options)
 		)
-	    ;   failure(Unit, Name, Line, failed, Options),
+	    ;   Result = failure(Unit, Name, Line, failed),
 		cleanup(Module, Options)
 	    )
-	;   true
+	;   Result = setup_failed(Unit, Name, Line)
 	).
 
 	
-%%	non_det_test(+Expected, +Unit, +Name, +Line, +Options, +Body)
+%%	non_det_test(+Expected, +Unit, +Name, +Line, +Options, +Body, -Result)
 %
 %	Run tests on non-deterministic predicates.
 
-nondet_test(Expected, Unit, Name, Line, Options, Body) :-
+nondet_test(Expected, Unit, Name, Line, Options, Body, Result) :-
 	unit_module(Unit, Module),
 	setup(Module, Options), !,
 	result_vars(Expected, Vars),
 	statistics(runtime, [T0,_]),
-	(   catch(findall(Vars, Module:Body, Bindings), E, true)
-	->  (   var(E)
-	    ->	statistics(runtime, [T1,_]),
-		Time is (T1 - T0)/1000.0,
-	        (   nondet_compare(Expected, Bindings, Unit, Name, Line)
-		->  success(Unit, Name, Line, true, Time, Options)
-		;   failure(Unit, Name, Line, wrong_answer, Options)
-		),
-		cleanup(Module, Options)
-	    ;	failure(Unit, Name, Line, E, Options),
-		cleanup(Module, Options)
+	(   setup(Module, Options)
+	->  (   catch(findall(Vars, Module:Body, Bindings), E, true)
+	    ->  (   var(E)
+		->  statistics(runtime, [T1,_]),
+		    Time is (T1 - T0)/1000.0,
+		    (   nondet_compare(Expected, Bindings, Unit, Name, Line)
+		    ->  Result = success(Unit, Name, Line, true, Time)
+		    ;   Result = failure(Unit, Name, Line, wrong_answer)
+		    ),
+		    cleanup(Module, Options)
+		;   Result = failure(Unit, Name, Line, E),
+		    cleanup(Module, Options)
+		)
 	    )
+	;   Result = setup_failed(Unit, Name, Line)
 	).
+
 
 %%	result_vars(+Expected, -Vars) is det.
 %	
