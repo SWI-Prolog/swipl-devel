@@ -574,9 +574,12 @@ exitCyclicSubsumes(ARG1_LD)
 
   while( popSegStack(&LD->cycle.stack, &p) )
   { if ( is_marked(p) )
+    { DEBUG(5, Sdprintf("Undoing mark at %p\n", p));
       clear_marked(p);			/* marked variable */
-    else
+    } else
+    { DEBUG(5, Sdprintf("Undoing cycle-ref at %p\n", p));
       *p = *unRef(*p);			/* linked cycle */
+    }
   }
 }
 
@@ -615,7 +618,9 @@ right_recursion:
   }
 
   if ( isVar(w1) )
-  { if ( isVar(w2) )
+  { word mark;
+
+    if ( isVar(w2) )
     { if ( t1 == t2 )
 	succeed;
       if ( marked )
@@ -633,10 +638,12 @@ right_recursion:
       Trail(t1);
       succeed;
     }
+
+    mark = (*t1) & MARK_MASK;		/* we need to keep the mark for exitCyclicSubsumes */
 #ifdef O_ATTVAR
-    *t1 = isAttVar(w2) ? makeRef(t2) : w2;
+    *t1 = (isAttVar(w2) ? makeRef(t2) : w2)|mark;
 #else
-    *t1 = w2;
+    *t1 = (w2|mark);
 #endif
     Trail(t1);
     succeed;
@@ -686,6 +693,7 @@ right_recursion:
       t1 = f1->arguments;
       t2 = f2->arguments;
       e  = t1+arityFunctor(f1->definition)-1; /* right-recurse on last */
+      DEBUG(5, Sdprintf("Created cycle-ref at %p\n", &f1->definition));
       linkTermsCyclic(f1, f2 PASS_LD);
 
       for(; t1 < e; t1++, t2++)
