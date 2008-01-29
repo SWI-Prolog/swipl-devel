@@ -131,14 +131,6 @@
 %%	* identify cases where prefixes of partner lookups for subsequent occurrences can be
 %%	  merged
 %%
-%%	OBSERVATIONS
-%%		* inefficient matching
-%%        		nonvar(A),
-%%		        A={B},
-%%        		B==unknown,
-%%		  rather than
-%%			A == {unknown}
-%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- module(chr_translate,
 	  [ chr_translate/2		% +Decls, -TranslatedDecls
@@ -148,6 +140,7 @@
 :- use_module(library(lists),[member/2, append/3,reverse/2,permutation/2,last/2]).
 :- use_module(library(ordsets)).
 :- use_module(library(aggregate)).
+:- use_module(library(apply_macros)).
 %% SWI end
 
 :- use_module(hprolog).
@@ -215,12 +208,12 @@
 			;	global_singleton
 			; 	global_ground
 			%	EXPERIMENTAL STORES
-			;	atomic_constants(list(int),list(any),atomic_coverage)
-			;	ground_constants(list(int),list(any))
+			;	atomic_constants(list(int),list(any),coverage)
+			;	ground_constants(list(int),list(any),coverage)
 			;	var_assoc_store(int,list(int))
 			;	identifier_store(int)
 			;	type_indexed_identifier_store(int,any).
-:- chr_type atomic_coverage	--->	complete ; incomplete.
+:- chr_type coverage	--->	complete ; incomplete.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -443,7 +436,7 @@ format_storetype(multi_store(StoreTypes)) :- !,
 	forall(member(StoreType,StoreTypes), format_storetype(StoreType)).
 format_storetype(atomic_constants(Index,Constants,_)) :-
 	format('\t* a trie index on the argument(s) ~w for the ground terms ~w\n',[Index,Constants]).
-format_storetype(ground_constants(Index,Constants)) :-
+format_storetype(ground_constants(Index,Constants,_)) :-
 	format('\t* a trie index on the argument(s) ~w for the ground terms ~w\n',[Index,Constants]).
 format_storetype(StoreType) :-
 	format('\t* ~w\n',[StoreType]).
@@ -501,7 +494,7 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_ground_mul
 		true % chr_pp_flag(experiment,on)
 	|
 		delete(STs,multi_hash([Index]),STs0),
-		actual_store_types(C,[ground_constants(Index,Keys)|STs0]).	
+		actual_store_types(C,[ground_constants(Index,Keys,incomplete)|STs0]).	
 validate_store_type_assumption(C) \ actual_store_types(C,STs)
 	<=>	
 		% chr_pp_flag(experiment,on),
@@ -512,6 +505,16 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs)
 	|
 		delete(STs,multi_hash([[Index]]),STs0),
 		actual_store_types(C,[atomic_constants([Index],Atoms,complete)|STs0]).	
+validate_store_type_assumption(C) \ actual_store_types(C,STs)
+	<=>	
+		memberchk(multi_hash([[Index]]),STs),
+		get_constraint_type(C,Types),
+		nth1(Index,Types,Type),
+		unalias_type(Type,ActualType),
+		ActualType = chr_constants(Constants)
+	|
+		delete(STs,multi_hash([[Index]]),STs0),
+		actual_store_types(C,[ground_constants([Index],Constants,complete)|STs0]).	
 validate_store_type_assumption(C), actual_store_types(C,STs), assumed_store_type(C,_) 	% automatic assumption
 	<=> 
 		( /* chr_pp_flag(experiment,on), */ forall(member(ST,STs), partial_store(ST)) ->
@@ -534,7 +537,7 @@ validate_store_type_assumption(C), assumed_store_type(C,_)				% no lookups on co
 validate_store_type_assumption(C) 
 	<=> true.
 
-partial_store(ground_constants(_,_)).
+partial_store(ground_constants(_,_,incomplete)).
 partial_store(atomic_constants(_,_,incomplete)).
 
 	% heuristic to reduce the number of indexes
@@ -3050,7 +3053,7 @@ insert_constraint_body(atomic_constants(Index,_,_),C,Susp,UsedVars,Body) :-
 	;
 		true
 	).
-insert_constraint_body(ground_constants(Index,_),C,Susp,UsedVars,Body) :-
+insert_constraint_body(ground_constants(Index,_,_),C,Susp,UsedVars,Body) :-
 	multi_hash_key_direct(C,Index,Susp,Key,UsedVars),
 	constants_store_index_name(C,Index,IndexName),
 	IndexLookup =.. [IndexName,Key,StoreName],
@@ -3308,7 +3311,7 @@ delete_constraint_body(atomic_constants(Index,_,_),C,Head,Susp,VarDict,Body) :-
 	;
 		true		
 	)).
-delete_constraint_body(ground_constants(Index,_),C,Head,Susp,VarDict,Body) :-
+delete_constraint_body(ground_constants(Index,_,_),C,Head,Susp,VarDict,Body) :-
 	multi_hash_key(C,Head,Index,Susp,VarDict,KeyBody,Key),
 	constants_store_index_name(C,Index,IndexName),
 	IndexLookup =.. [IndexName,Key,StoreName],
@@ -3513,7 +3516,7 @@ generate_attach_code(multi_hash(Indexes),C,L,T) :-
 generate_attach_code(atomic_constants(Index,Constants,_),C,L,T) :-
 	constants_initializers(C,Index,Constants),
 	atomic_constants_code(C,Index,Constants,L,T).
-generate_attach_code(ground_constants(Index,Constants),C,L,T) :-
+generate_attach_code(ground_constants(Index,Constants,_),C,L,T) :-
 	constants_initializers(C,Index,Constants),
 	ground_constants_code(C,Index,Constants,L,T).
 generate_attach_code(global_ground,C,L,T) :-
@@ -3717,7 +3720,7 @@ multi_hash_lookup_body(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 			Lookup =.. [IndexName,Key,StoreName],
 			Goal = (Lookup, nb_getval(StoreName,SuspsList))
 		)
-	; memberchk(ground_constants(Index,Constants),Stores) ->
+	; memberchk(ground_constants(Index,Constants,_),Stores) ->
 		( ground(Key) ->
 			constants_store_name(ConstraintSymbol,Index,Key,StoreName),
 			Goal = nb_getval(StoreName,SuspsList)
@@ -3994,12 +3997,6 @@ trie_step([],_,_,[],[],L,L) :- !.
 trie_step(Patterns,Symbol,Prefix,MorePatterns,Results,Clauses,T) :-
 	MorePatterns = [List|_],
 	length(List,N),	
-	% 	findall(F/A,
-	% 		( member(Pattern,Patterns),
-	% 		  functor(Pattern,F,A)
-	% 		),
-	% 		FAs0),
-	% 	sort(FAs0,FAs),
 	aggregate_all(set(F/A),
 		( member(Pattern,Patterns),
 		  functor(Pattern,F,A)
@@ -4015,24 +4012,46 @@ trie_step_cases([FA|FAs],N,Pattern,MorePatterns,Results,Symbol,Prefix,Clauses,Ta
 
 trie_step_case(F/A,N,Patterns,MorePatterns,Results,Symbol,Prefix,[Clause|List],Tail) :-
 	Clause = (Head :- Body),
+	/* Head = Symbol(IndexPattern,V2,...,Vn,Result) */
 	N1 is N  + 1,
 	functor(Head,Symbol,N1),
-	arg(N1,Head,Result),
-	functor(IndexPattern,F,A),
 	arg(1,Head,IndexPattern),
 	Head =.. [_,_|RestArgs],
+	once(append(Vs,[Result],RestArgs)),
+	/* IndexPattern = F() */
+	functor(IndexPattern,F,A),
 	IndexPattern =.. [_|Args],
 	append(Args,RestArgs,RecArgs),
 	( RecArgs == [Result] ->
+		/* nothing more to match on */
 		List = Tail,
 		Body = true,
 		rec_cases(Patterns,_,Results,F/A,_,_,MoreResults),
 		MoreResults = [Result]
-	;
-		gensym(Prefix,RSymbol),
-		Body =.. [RSymbol|RecArgs],
+	; 	/* more things to match on */
 		rec_cases(Patterns,MorePatterns,Results,F/A,Cases,MoreCases,MoreResults),
-		trie_step(Cases,RSymbol,Prefix,MoreCases,MoreResults,List,Tail)
+		( MoreCases = [OneMoreCase] ->
+			/* only one more thing to match on */
+			List = Tail,
+			Body = true,
+			append([Cases,OneMoreCase,MoreResults],RecArgs)
+		;
+			/* more than one thing to match on */
+			/*	[ x1,..., xn] 
+				[xs1,...,xsn]
+			*/
+			pairup(Cases,MoreCases,CasePairs),
+			common_pattern(CasePairs,CommonPatternPair,DiffVars,Differences),
+			append(Args,Vs,[First|Rest]),
+			First-Rest = CommonPatternPair,	
+			% Body = RSymbol(DiffVars,Result)
+			gensym(Prefix,RSymbol),
+			append(DiffVars,[Result],RecCallVars),
+			Body =.. [RSymbol|RecCallVars],
+			findall(CH-CT,member([CH|CT],Differences),CPairs),
+			once(pairup(CHs,CTs,CPairs)),
+			trie_step(CHs,RSymbol,Prefix,CTs,MoreResults,List,Tail)
+		)
 	).
 	
 rec_cases([],[],[],_,[],[],[]).
@@ -4046,6 +4065,35 @@ rec_cases([Pattern|Patterns],[MorePattern|MorePatterns],[Result|Results],F/A,Cas
 		rec_cases(Patterns,MorePatterns,Results,F/A,Cases,MoreCases,MoreResults)
 	).
 
+% common_pattern(+terms,-term,-vars,-differences)
+common_pattern(Ts,T,Vars,Differences) :-
+	fold1(gct,Ts,T),
+	term_variables(T,Vars),
+	findall(Vars,member(T,Ts),Differences).
+
+gct(T1,T2,T) :-
+	( nonvar(T1), nonvar(T2),
+	functor(T1,F1,A1),	
+	functor(T2,F2,A2),
+	F1 == F2, A1 == A2 ->
+		functor(T,F1,A1),
+		T1 =.. [_|Args1],
+		T2 =.. [_|Args2],
+		T  =.. [_|Args],
+		maplist(gct,Args1,Args2,Args)
+	;
+		/* T is a variable */
+		true
+	).
+
+
+fold1(P,[Head|Tail],Result) :-
+	fold(Tail,P,Head,Result).
+
+fold([],_,Acc,Acc).
+fold([X|Xs],P,Acc,Res) :-
+	call(P,X,Acc,NAcc),
+	fold(Xs,P,NAcc,Res).
 %-------------------------------------------------------------------------------	
 global_list_store_name(F/A,Name) :-
 	get_target_module(Mod),		
@@ -4221,7 +4269,14 @@ enumerate_store_body(atomic_constants(Index,Constants,Completeness),C,Susp,Body)
 		, Disjuncts),
 	list2disj(Disjuncts, Disjunction),
 	Body = ( Disjunction, member(Susp,Susps) ).
-enumerate_store_body(ground_constants(_,_),_,_,_) :- fail.
+enumerate_store_body(ground_constants(Index,Constants,Completeness),C,Susp,Body) :-
+	Completeness == complete, % fail if incomplete
+	find_with_var_identity(nb_getval(StoreName,Susps),[Susps],
+		( member(Constant,Constants), 
+		  constants_store_name(C,Index,Constant,StoreName) ) 
+		, Disjuncts),
+	list2disj(Disjuncts, Disjunction),
+	Body = ( Disjunction, member(Susp,Susps) ).
 enumerate_store_body(global_ground,C,Susp,Body) :-
 	global_ground_store_name(C,StoreName),
 	sbag_member_call(Susp,List,Sbag),
@@ -4911,7 +4966,7 @@ add_failing_occ(Rule,Heads,NH,ID_o1,FailCond,FH,M,C,Repl) :-
 	extract_explicit_matchings(FG,FG2),
 	negate_b(FG2,NotFG),
 	copy_with_variable_replacement(MPCond,FMPCond,Repl),
-	( safely_unifiable(FH,FH2), FH=FH2 ->
+	( subsumes(FH,FH2) ->
 	    FailCond = [(NotFG;FMPCond)]
 	;
 	    % in this case, not much can be done
@@ -4944,20 +4999,6 @@ extract_explicit_matchings(A=B) :-
     var(A), var(B), !, A=B.
 extract_explicit_matchings(A==B) :-
     var(A), var(B), !, A=B.
-
-safely_unifiable(H,I) :- var(H), !.
-safely_unifiable([],[]) :- !.
-safely_unifiable([H|Hs],[I|Is]) :- !,
-	safely_unifiable(H,I),
-	safely_unifiable(Hs,Is).
-safely_unifiable(H,I) :-
-	nonvar(H),
-	nonvar(I),
-	H =.. [F|HA],
-	I =.. [F|IA],
-	safely_unifiable(HA,IA).
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    TYPE INFORMATION
@@ -8687,15 +8728,10 @@ longer_list(R,L1,L2) :-
 	).
 
 all_distinct_var_args(Term) :-
-	Term =.. [_|Args],
-	copy_term_nat(Args,NArgs),
-	all_distinct_var_args_(NArgs).
-
-all_distinct_var_args_([]).
-all_distinct_var_args_([X|Xs]) :-
-	var(X),
-	X = t,	
-	all_distinct_var_args_(Xs).
+	copy_term_nat(Term,TermCopy),
+	functor(Term,F,A),
+	functor(Pattern,F,A),
+	Pattern =@= Term.
 
 get_indexed_arguments(C,IndexedArgs) :-
 	C = F/A,
