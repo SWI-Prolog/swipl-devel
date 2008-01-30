@@ -83,6 +83,8 @@ refactoring (trivial):
 #include    <pthread.h>
 #include    <semaphore.h>
 
+#include    <limits.h>
+
 
 /*=== JNI constants ================================================================================ */
 
@@ -707,7 +709,7 @@ jni_tag_to_iref(
 		&& isdigit(s[19])
 		&& isdigit(s[20])
 		&& isdigit(s[21])			 /* s is like 'J#01234567890123456789' */
-	 && (r=atol(&s[2])) != 0 )
+	 && (r=(long)strtoul(&s[2], (char**)NULL, 10)) != ULONG_MAX)
 		{
 		*iref = r;
       return 1;
