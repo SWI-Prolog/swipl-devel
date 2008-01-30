@@ -70,6 +70,25 @@ test(cyclic_fail, [sto(rational_trees),fail]) :-
 	A = a(A),
 	B = a(_),
 	subsumes(A, B).
+test(cyclic_fail_1, [sto(rational_trees),fail]) :-
+	general_specific_1(General, Specific),
+	Goal = subsumes(General, Specific),
+	term_variables(Specific, SVars),
+	Goal,
+	\+ term_variables(SVars,SVars). % untouched
+test(cyclic_fail_2, [sto(rational_trees),fail]) :-
+	general_specific_2(General, Specific),
+	Goal = subsumes(General, Specific),
+	term_variables(Specific, SVars),
+	Goal,
+	\+ term_variables(SVars,SVars). % untouched
+
+general_specific_1(General, Specific) :-
+	Specific = f(_,S1), S1 = f(S1,S1),
+	General = f(_,General).
+general_specific_2(General, Specific) :-
+	General = f(_,General),
+	Specific = f(_,S1), S1 = f(S1,S1).
 
 :- end_tests(subsumes).
 
