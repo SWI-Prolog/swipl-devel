@@ -26,7 +26,7 @@
 %:- set_prolog_flag(trace_gc, true).
 :- asserta(user:file_search_path(library, '../packages/plunit')).
 :- [library(plunit)].
-:- set_test_options([load(always), silent(true)]).
+:- set_test_options([load(always), silent(true), sto(true)]).
 
 :- use_module(library(lists)).
 

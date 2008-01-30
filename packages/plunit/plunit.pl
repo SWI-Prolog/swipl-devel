@@ -84,6 +84,7 @@ throw_error(Error_term,Impldef) :-
 
 :- set_prolog_flag(generate_debug_info, false).
 :- use_module(library(option)).
+:- use_module(library(pairs)).
 :- use_module(library(clpfd), [copy_term/3]). % remove it, Jan!
 
 current_test_flag(Name, Value) :-
@@ -140,7 +141,8 @@ set_test_flag( Name, Val ) :-
    (   current_test_flag(test_options, _)
    ->  true
    ;   set_test_flag(test_options,
-		     [ run(make)	% run tests on make/0
+		     [ run(make),	% run tests on make/0
+		       sto(false)
 		     ])
    ).
 
@@ -155,6 +157,13 @@ set_test_flag( Name, Val ) :-
 %		* run(+When)
 %		When the tests are run.  Values are =manual=, =make=
 %		or make(all).
+%		
+%		* sto(+Bool)
+%		How to test whether code is subject to occurs check
+%		(STO).  If =false= (default), STO is not considered.
+%		If =true= and supported by the hosting Prolog, code
+%		is run in all supported unification mode and reported
+%		if the results are inconsistent.
 %		
 %	@tbd	Verify types	
 
@@ -442,7 +451,8 @@ test_set_option(cleanup(X)) :-
 :- dynamic
 	passed/5,			% Unit, Test, Line, Det, Time
 	failed/4,			% Unit, Test, Line, Reason
-	blocked/4.			% Unit, Test, Line, Reason
+	blocked/4,			% Unit, Test, Line, Reason
+	sto/5.				% Unit, Test, Line, Results
 
 %%	run_tests is semidet.
 %%	run_tests(+TestSet) is semidet.
@@ -495,7 +505,8 @@ matching_test(Name, Set) :-
 cleanup :-
 	retractall(passed(_, _, _, _, _)),
 	retractall(failed(_, _, _, _)),
-	retractall(blocked(_, _, _, _)).
+	retractall(blocked(_, _, _, _)),
+	retractall(sto(_, _, _, _)).
 
 
 %%	run_tests_in_files(+Files:list)	is det.
@@ -582,6 +593,11 @@ unification_capability(_) :-
 %	Run a single test.  
 
 run_test(Unit, Name, Line, Options, Body) :-
+	current_test_flag(test_options, Options),
+	option(sto(false), Options, false), !,
+	run_test_6(Unit, Name, Line, Options, Body, Result),
+	report_result(Result, Options).
+run_test(Unit, Name, Line, Options, Body) :-
 	current_unification_capability(Cap0),
 	call_cleanup(run_test_cap(Unit, Name, Line, Options, Body),
 		     set_unification_capability(Cap0)).
@@ -592,12 +608,31 @@ run_test_cap(Unit, Name, Line, Options, Body) :-
 	    set_unification_capability(Type),
 	    run_test_6(Unit, Name, Line, Options, Body, Result),
 	    report_result(Result, Options)
-	;   forall(unification_capability(Type),
-		  (   set_unification_capability(Type),
-		      run_test_6(Unit, Name, Line, Options, Body, Result),
-		      report_result(Result, Options)
-		  ))
+	;   findall(Key-(Type+Result),
+		    test_caps(Type, Unit, Name, Line, Options, Body, Result, Key),
+		    Pairs),
+	    group_pairs_by_key(Pairs, Keyed),
+	    (	Keyed = [_-Results]
+	    ->	Results = [_Type+Result|_],
+		report_result(Result, Options)		% consistent results
+	    ;	pairs_values(Pairs, ResultByType),
+		report_result(sto(Unit, Name, Line, ResultByType), Options)
+	    )
 	).
+
+%%	test_caps(-Type, +Unit, +Name, +Line, +Options, +Body, -Result, -Key) is nondet.
+
+test_caps(Type, Unit, Name, Line, Options, Body, Result, Key) :-
+	unification_capability(Type),
+	set_unification_capability(Type),
+	run_test_6(Unit, Name, Line, Options, Body, Result),
+	result_to_key(Result, Key),
+	Key \== setup_failed.
+
+result_to_key(blocked(_, _, _, _), blocked).
+result_to_key(failure(_, _, _, How), failure(How)).
+result_to_key(success(_, _, _, Determinism, _), success(Determinism)).
+result_to_key(setup_failed(_,_,_), setup_failed).
 
 report_result(blocked(Unit, Name, Line, Reason), _) :- !,
 	assert(blocked(Unit, Name, Line, Reason)).
@@ -606,6 +641,15 @@ report_result(failure(Unit, Name, Line, How), Options) :- !,
 report_result(success(Unit, Name, Line, Determinism, Time), Options) :- !,
 	success(Unit, Name, Line, Determinism, Time, Options).
 report_result(setup_failed(_Unit, _Name, _Line), _Options).
+report_result(sto(Unit, Name, Line, ResultByType), Options) :-
+	assert(sto(Unit, Name, Line, ResultByType)),
+	print_message(error, plunit(sto(Unit, Name, Line))),
+	report_sto_results(ResultByType, Options).
+
+report_sto_results([], _).
+report_sto_results([Type+Result|T], Options) :-
+	print_message(error, plunit(sto(Type, Result))),
+	report_sto_results(T, Options).
 
 
 %%	run_test_6(+Unit, +Name, +Line, +Options, :Body, -Result) is det.
@@ -705,7 +749,7 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 		    Time is (T1 - T0)/1000.0,
 		    Result = success(Unit, Name, Line, Det, Time),
 		    cleanup(Module, Options)
-		;   failure(Unit, Name, Line, E, Options),
+		;   Result = failure(Unit, Name, Line, E),
 		    cleanup(Module, Options)
 		)
 	    ;   Result = failure(Unit, Name, Line, failed),
@@ -908,12 +952,14 @@ report :-
 	number_of_clauses(passed/5, Passed),
 	number_of_clauses(failed/4, Failed),
 	number_of_clauses(blocked/4, Blocked),
-	(   Passed+Failed+Blocked =:= 0
+	number_of_clauses(sto/4, STO),
+	(   Passed+Failed+Blocked+STO =:= 0
 	->  info(plunit(no_tests))
-	;   Failed+Blocked =:= 0
+	;   Failed+Blocked+STO =:= 0
 	->  info(plunit(all_passed(Passed)))
 	;   report_blocked,
-	    report_failed
+	    report_failed,
+	    report_sto
 	).
 
 number_of_clauses(F/A,N) :-
@@ -943,6 +989,14 @@ report_failed :-
 	fail.
 report_failed :-
 	info(plunit(failed(0))).
+
+report_sto :-
+	number_of_clauses(sto/4,N),
+	N > 0, !,
+	info(plunit(sto(N))),
+	fail.
+report_sto :-
+	info(plunit(sto(0))).
 
 report_failure(Unit, Name, Line, Error) :-
 	print_message(error, plunit(failed(Unit, Name, Line, Error))).
@@ -1020,18 +1074,11 @@ message_level(Level) :-
 	;   Level = silent
 	).
 
-:- if(swi).
 locationprefix(File:Line) -->
 	!,
 	[ '~w:~d:\n\t'-[File,Line]].
-:- else.
-locationprefix(File:Line) -->
-	!,
-	[ '~w:~d:\n\t'-[File,Line]].
-:- endif.
-
 locationprefix(FileLine) -->
-	{throw_error(type_error(locationprefix,FileLine), _)}.
+	{ throw_error(type_error(locationprefix,FileLine), _) }.
 
 message(error(context_error(plunit_close(Name, -)), _)) -->
 	[ 'PL-Unit: cannot close unit ~w: no open unit'-[Name] ].
@@ -1069,15 +1116,47 @@ message(plunit(no_tests)) --> !,
 	[ 'No tests to run' ].
 message(plunit(all_passed(Count))) --> !,
 	[ 'All ~D tests passed'-[Count] ].
+message(plunit(failed(0))) --> !,
+	[].
 message(plunit(failed(1))) --> !,
 	[ '1 test failed'-[] ].
 message(plunit(failed(N))) -->
 	[ '~D tests failed'-[N] ].
+message(plunit(sto(0))) --> !,
+	[].
+message(plunit(sto(N))) -->
+	[ '~D test results depend on unification mode'-[N] ].
 message(plunit(failed(Unit, Name, Line, Failure))) -->
        { unit_file(Unit, File) },
        locationprefix(File:Line),
-		 ['test ~w: '- [Name] ],
+       ['test ~w: '- [Name] ],
        failure(Failure).
+					% STO messages
+message(plunit(sto(Unit, Name, Line))) -->
+	{ unit_file(Unit, File) },
+       locationprefix(File:Line),
+       ['test ~w is subject to occurs check (STO): '- [Name] ].
+message(plunit(sto(Type, Result))) -->
+	sto_type(Type),
+	sto_result(Result).
+
+sto_type(sto_error_incomplete) -->
+	[ 'Finite trees (error checking): ' ].
+sto_type(rational_trees) -->
+	[ 'Rational trees: ' ].
+sto_type(finite_trees) -->
+	[ 'Finite trees: ' ].
+
+sto_result(success(_Unit, _Name, _Line, Det, Time)) -->
+	det(Det),
+	[ ' success in ~2f seconds'-[Time] ].
+sto_result(failure(_Unit, _Name, _Line, How)) -->
+	failure(How).
+
+det(true) -->
+	[ 'deterministic' ].
+det(false) -->
+	[ 'non-deterministic' ].
 
 :- if(swi).
 write_term(T, OPS) -->
@@ -1095,6 +1174,9 @@ expected_got_ops_(Ex, E, OPS, Goals) -->
 	).
 
 
+failure(Var) -->
+	{ var(Var) }, !,
+	[ 'Unknown failure?' ].
 failure(succeeded(Time)) --> !,
 	[ 'must fail but succeeded in ~2f seconds~n'-[Time] ].
 failure(wrong_error(Expected, Error)) --> !,
@@ -1112,7 +1194,11 @@ failure(wrong_answer(Cmp)) -->
 	},
 	[ 'wrong answer (compared using ~w)'-[Op], nl ],
 	expected_got_ops_(Ex, A, OPS, Goals).
-
+failure(Error) -->
+	{ Error = error(_,_), !,
+	  message_to_string(Error, Message)
+	},
+	[ 'received error: ~w'-[Message] ].
 failure(Why) -->
 	[ '~p~n'-[Why] ].
 

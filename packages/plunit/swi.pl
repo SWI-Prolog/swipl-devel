@@ -23,7 +23,9 @@
 	    copy_term/3,		% +Term, ?Copy
 	    option/2,			% +Term, +List
 	    option/3,			% +Term, +List, +Default
-	    concat_atom/2		% +List, -Atom
+	    concat_atom/2,		% +List, -Atom
+	    pairs_values/2,		% +Pairs, -Values
+	    group_pairs_by_key/2	% +Pairs, -Groups
 	  ]).
 :- meta_predicate
 	forall(:,:),
@@ -222,3 +224,36 @@ to_codes([H|T], List, Tail) :-
 	),
 	append(CL, Tail0, List),
 	to_codes(T, Tail0, Tail).
+
+%%	pairs_values(+Pairs, -Values) is det.
+%
+%	Remove the keys  from  a  list   of  Key-Value  pairs.  Same  as
+%	pairs_keys_values(Pairs, _, Values)
+
+pairs_values([], []).
+pairs_values([_-V|T0], [V|T]) :-
+	pairs_values(T0, T).
+
+%%	group_pairs_by_key(+Pairs, -Joined:list(Key-Values)) is det.
+%
+%	Group values with the same key.  For example:
+%	
+%	==
+%	?- group_pairs_by_key([a-2, a-1, b-4], X).
+%	
+%	X = [a-[2,1], b-[4]]
+%	==
+%	
+%	@param	Pairs	Key-Value list, sorted to the standard order
+%			of terms (as keysort/2 does)
+%	@param  Joined	List of Key-Group, where Group is the
+%			list of Values associated with Key. 
+
+group_pairs_by_key([], []).
+group_pairs_by_key([M-N|T0], [M-[N|TN]|T]) :-
+	same_key(M, T0, TN, T1),
+	group_pairs_by_key(T1, T).
+
+same_key(M, [M-N|T0], [N|TN], T) :- !,
+	same_key(M, T0, TN, T).
+same_key(_, L, [], L).
