@@ -612,7 +612,9 @@ run_test_cap(Unit, Name, Line, Options, Body) :-
 		    test_caps(Type, Unit, Name, Line, Options, Body, Result, Key),
 		    Pairs),
 	    group_pairs_by_key(Pairs, Keyed),
-	    (	Keyed = [_-Results]
+	    (	Keyed == []
+	    ->	true
+	    ;	Keyed = [_-Results]
 	    ->	Results = [_Type+Result|_],
 		report_result(Result, Options)		% consistent results
 	    ;	pairs_values(Pairs, ResultByType),
@@ -1194,11 +1196,13 @@ failure(wrong_answer(Cmp)) -->
 	},
 	[ 'wrong answer (compared using ~w)'-[Op], nl ],
 	expected_got_ops_(Ex, A, OPS, Goals).
+:- if(swi).
 failure(Error) -->
 	{ Error = error(_,_), !,
 	  message_to_string(Error, Message)
 	},
 	[ 'received error: ~w'-[Message] ].
+:- endif.
 failure(Why) -->
 	[ '~p~n'-[Why] ].
 
