@@ -492,10 +492,17 @@ run_unit(Spec) :-
 
 unit_from_spec(Unit, Unit, _, Module, Options) :-
 	atom(Unit), !,
-	current_unit(Unit, Module, _Supers, Options).
+	(   current_unit(Unit, Module, _Supers, Options)
+	->  true
+	;   throw_error(existence_error(unit_test, Unit), _)
+	).
 unit_from_spec(Unit:Tests, Unit, Tests, Module, Options) :-
 	atom(Unit), !,
-	current_unit(Unit, Module, _Supers, Options).
+	(   current_unit(Unit, Module, _Supers, Options)
+	->  true
+	;   throw_error(existence_error(unit_test, Unit), _)
+	).
+
 
 matching_test(X, X) :- !.
 matching_test(Name, Set) :-
