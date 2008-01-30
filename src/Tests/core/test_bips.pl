@@ -31,7 +31,11 @@ This module is a test-frame for testing built-in predicates.
 :- use_module(library(plunit)).
 
 test_bips :-
-	run_tests(bips).
+	run_tests([bips,bips_occurs_check_error]).
+
+has_occurs_check_flag :-
+	catch(current_prolog_flag(occurs_check, _), _, fail).
+
 
 :- begin_tests(bips).
 
@@ -67,3 +71,31 @@ test(swi, [fail, condition(current_prolog_flag(bounded, false))]) :- % Item#285
 	length(_,-300000000000000000).
 
 :- end_tests(bips).
+
+:- begin_tests(bips_occurs_check_error,[condition(has_occurs_check_flag)]).
+
+error_unification :-
+	current_prolog_flag(occurs_check,error).
+
+/* Item#310  PL_unify and occurs check error */
+test(term_variable, [condition(error_unification),error(occurs_check(_, _))]) :-
+	term_variables(GVars,GVars).
+test(term_variable, [condition(error_unification),error(occurs_check(_, _))]) :-
+	X = s(_),
+	arg(1,X,X).
+test(term_variable, [condition(error_unification),error(occurs_check(_, _))]) :-
+	X =.. [s,X].
+test(term_variable, [condition(error_unification),error(occurs_check(_, _))]) :-
+ 	copy_term(X-X,Y-{Y}).
+test(findall, [condition(error_unification),error(occurs_check(_,_))]) :-
+	findall(X-X,true,[{X}-X]).
+%test(clause, [condition(error_unification),error(occurs_check(_,_))]) :-
+%	clause(equal(A,+A), _).
+test(atom_to_term, [condition(error_unification),error(occurs_check(_,_))]) :-
+	atom_to_term('X-X',X-{X},_).
+test(sort,[condition(error_unification),error(occurs_check(_,_))]) :-
+	sort([X,+X],[Y,Y]).
+
+:- end_tests(bips_occurs_check_error).
+
+
