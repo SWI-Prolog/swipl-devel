@@ -353,7 +353,8 @@ unify_ptrs(Word t1, Word t2 ARG_LD)
   bool rval;
 
   TmpMark(m);
-  if ( !(rval = raw_unify_ptrs(t1, t2 PASS_LD)) )
+  if ( !(rval = raw_unify_ptrs(t1, t2 PASS_LD)) &&
+       !exception_term )
     TmpUndo(m);
   EndTmpMark(m);
 
@@ -2230,6 +2231,7 @@ right_recursion:
 static int
 term_variables(term_t t, term_t vars, term_t tail ARG_LD)
 { term_t head = PL_new_term_ref();
+  term_t list = PL_copy_term_ref(vars);
   term_t v0   = PL_new_term_refs(0);
   int i, n;
 
@@ -2240,15 +2242,15 @@ term_variables(term_t t, term_t vars, term_t tail ARG_LD)
   endCritical;
 
   for(i=0; i<n; i++)
-  { if ( !PL_unify_list(vars, head, vars) ||
+  { if ( !PL_unify_list(list, head, list) ||
 	 !PL_unify(head, v0+i) )
       fail;
   }
       
   if ( tail )
-    return PL_unify(vars, tail);
+    return PL_unify(list, tail);
   else
-    return PL_unify_nil(vars);
+    return PL_unify_nil(list);
 }
 
 
