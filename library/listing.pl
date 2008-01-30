@@ -193,7 +193,8 @@ notify_changed(_).
 %	Portray `Clause' on the current  output   stream.  Layout of the
 %	clause is to our best standards.   As  the actual variable names
 %	are not available we use A, B, ... Deals with ';', '|', '->' and
-%	various calls via meta-call predicates.
+%	various calls via  meta-call  predicates.   If  Clause  contains
+%	attributed variables, these are treated as normal variables.
 
 %	The prolog_list_goal/1 hook is  a  dubious   as  it  may lead to
 %	confusion if the heads relates to other   bodies.  For now it is
@@ -208,10 +209,16 @@ portray_clause(Term) :-
 	portray_clause(Out, Term).
 
 portray_clause(Stream, Term) :-
-	\+ \+ ( numbervars(Term, 0, _, [singletons(true)]), 
-		do_portray_clause(Stream, Term)
+	\+ \+ ( copy_term_nat(Term, Copy),
+		numbervars(Copy, 0, _,
+			   [ singletons(true)
+			   ]), 
+		do_portray_clause(Stream, Copy)
 	      ).
 
+do_portray_clause(Out, Var) :-
+	var(Var), !,
+	pprint(Out, Var).
 do_portray_clause(Out, (Head :- true)) :- !, 
 	portray_head(Out, Head), 
 	put(Out, 0'.), nl(Out).
