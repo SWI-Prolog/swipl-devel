@@ -355,7 +355,6 @@ unify_ptrs(Word t1, Word t2 ARG_LD)
   bool rval;
 
   TmpMark(m);
-<<<<<<< HEAD:src/pl-prims.c
   if ( !(rval = raw_unify_ptrs(t1, t2 PASS_LD)) )
   { if ( exception_term )
     { Word ex = valTermRef(exception_term);
@@ -364,11 +363,6 @@ unify_ptrs(Word t1, Word t2 ARG_LD)
     { TmpUndo(m);
     }
   }
-=======
-  if ( !(rval = raw_unify_ptrs(t1, t2 PASS_LD)) &&
-       !exception_term )
-    TmpUndo(m);
->>>>>>> 56475ca989911101a9adb369ec8b520547203552:src/pl-prims.c
   EndTmpMark(m);
 
   return rval;  
