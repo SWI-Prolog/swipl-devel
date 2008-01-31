@@ -1924,7 +1924,7 @@ all_collect([X|Xs], Vs0, Vs) :-
         ).
 
 reinforce_(X) :-
-        (   get(X, Dom, Ps) ->
+        (   get_attr(X, clpfd, _), get(X, Dom, Ps) ->
             put_full(X, Dom, Ps)
         ;   true
         ).
