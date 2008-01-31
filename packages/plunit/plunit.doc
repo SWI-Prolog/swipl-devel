@@ -578,10 +578,10 @@ The directory of \file{plunit.pl} and \file{swi.pl} must be in the
 \const{library} search-path.  With PLUNITDIR replaced accordingly,
 add the following into your \file{.sicstusrc} or \file{sicstus.ini}.
 
-==
+\begin{code}
 :- set_prolog_flag(language, iso). % for maximal compatibility
 library_directory('PLUNITDIR').
-==
+\end{code}
 
 The current version runs under SICStus 3.  Open issues:
 
