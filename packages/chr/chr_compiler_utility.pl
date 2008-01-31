@@ -29,8 +29,7 @@
     the GNU General Public License.
 */
 :- module(chr_compiler_utility,
-	[ is_variant/2
-	, time/2
+	[ time/2
 	, replicate/3
 	, pair_all_with/3
 	, conj2list/2
@@ -61,27 +60,6 @@
 %% use_module(library(terms),[term_variables/2]).
 %% SICStus end
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-is_variant(A,B) :-
-	copy_term_nat(A,AC),
-	copy_term_nat(B,BC),
-	term_variables(AC,AVars), 
-	term_variables(BC,BVars),
-	AC = BC,
-	is_variant1(AVars),
-	is_variant2(BVars).
-
-is_variant1([]).
-is_variant1([X|Xs]) :-
-	var(X),
-	X = '$test',
-	is_variant1(Xs).
-	
-is_variant2([]).
-is_variant2([X|Xs]) :-
-	X == '$test',
-	is_variant2(Xs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % time(Phase,Goal) :-
