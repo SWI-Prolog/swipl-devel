@@ -1991,8 +1991,10 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 '$dcg_reserved'({_}).
 '$dcg_reserved'({}).
 '$dcg_reserved'(!).
+'$dcg_reserved'((\+_)).
 '$dcg_reserved'((_,_)).
 '$dcg_reserved'((_;_)).
+'$dcg_reserved'((_|_)).
 '$dcg_reserved'((_->_)).
 '$dcg_reserved'((_*->_)).
 '$dcg_reserved'((_-->_)).
