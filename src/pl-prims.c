@@ -573,7 +573,12 @@ disallow binding the left-hand twice. This is only an issue if the first
 binding is to a variable. This is  achieved   by  putting  a mark on the
 variable or reference.  This is needed to make this fail:
 
-	subsumes(a(Z,Z), a(X,Y)) 
+	subsumes(a(Z,Z), a(X,Y))
+
+Cycle links are created from specific to   generic, so t1 remains at the
+generic side. Nevertheless,  if  we  crossed  a   mark  in  t1  we  have
+previously unified and therefore our t1 is now also on the specific side
+and we can no longer make unifications.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline void
@@ -593,18 +598,16 @@ exitCyclicSubsumes(ARG1_LD)
 
 
 static bool
-do_subsumes(Word t1, Word t2 ARG_LD)
-{ int marked;
-  word w1;
+do_subsumes(Word t1, Word t2, int allow_unify ARG_LD)
+{ word w1;
   word w2;
 
 right_recursion:
-  marked = FALSE;
   w1 = *t1;
   w2 = *t2;
 
   if ( w1 & MARK_MASK )
-  { marked = TRUE;
+  { allow_unify = FALSE;
     w1 &= ~MARK_MASK;
     DEBUG(5, Sdprintf("Mark at %p\n", t1));
   }
@@ -614,7 +617,7 @@ right_recursion:
   { t1 = unRef(w1);
     w1 = *t1;
     if ( w1 & MARK_MASK )
-    { marked = TRUE;
+    { allow_unify = FALSE;
       w1 &= ~MARK_MASK;
       DEBUG(5, Sdprintf("Mark at %p\n", t1));
     }
@@ -627,11 +630,10 @@ right_recursion:
 
   if ( t1 == t2 )
     succeed;
-  if ( marked )
-    fail;
 
   if ( isVar(w1) )
-  { word mark;
+  { if ( !allow_unify )
+      fail;
 
     visitedWord(t1 PASS_LD);
       
@@ -649,11 +651,10 @@ right_recursion:
     }
 
     DEBUG(5, Sdprintf("Unifying non-var at %p\n", t1));
-    mark = (*t1) & MARK_MASK;		/* we need to keep the mark for exitCyclicSubsumes */
 #ifdef O_ATTVAR
-    *t1 = (isAttVar(w2) ? makeRef(t2) : w2)|mark;
+    *t1 = (isAttVar(w2) ? makeRef(t2) : w2)|MARK_MASK;
 #else
-    *t1 = (w2|mark);
+    *t1 = (w2|MARK_MASK);
 #endif
     Trail(t1);
     succeed;
@@ -690,9 +691,14 @@ right_recursion:
 
 #if O_CYCLIC
       while ( isRef(f1->definition) )
+      { //allow_unify = FALSE;
+	DEBUG(5, Sdprintf("following cycle on generic\n"));
 	f1 = (Functor)unRef(f1->definition);
+      }
       while ( isRef(f2->definition) )
+      { DEBUG(5, Sdprintf("following cycle on specific\n"));
 	f2 = (Functor)unRef(f2->definition);
+      }
       if ( f1 == f2 )
 	succeed;
 #endif
@@ -703,11 +709,10 @@ right_recursion:
       t1 = f1->arguments;
       t2 = f2->arguments;
       e  = t1+arityFunctor(f1->definition)-1; /* right-recurse on last */
-      DEBUG(5, Sdprintf("Created cycle-ref at %p\n", &f1->definition));
-      linkTermsCyclic(f1, f2 PASS_LD);
-
+      linkTermsCyclic(f2, f1 PASS_LD);	/* link from specific to generic */
+					/* so left/t1 remains generic */
       for(; t1 < e; t1++, t2++)
-      { if ( !do_subsumes(t1, t2 PASS_LD) )
+      { if ( !do_subsumes(t1, t2, allow_unify PASS_LD) )
 	  fail;
       }
       goto right_recursion;
@@ -728,7 +733,7 @@ PRED_IMPL("subsumes", 2, subsumes, 0)
   startCritical;
   TmpMark(m);
   initCyclic(PASS_LD1);
-  rc = do_subsumes(p0, p0+1 PASS_LD);
+  rc = do_subsumes(p0, p0+1, TRUE PASS_LD);
   exitCyclicSubsumes(PASS_LD1);
   if ( !rc )
     TmpUndo(m);
@@ -749,7 +754,7 @@ PRED_IMPL("subsumes_chk", 2, subsumes_chk, 0)
   startCritical;
   TmpMark(m);
   initCyclic(PASS_LD1);
-  rc = do_subsumes(p0, p0+1 PASS_LD);
+  rc = do_subsumes(p0, p0+1, TRUE PASS_LD);
   exitCyclicSubsumes(PASS_LD1);
   TmpUndo(m);
   EndTmpMark(m);
