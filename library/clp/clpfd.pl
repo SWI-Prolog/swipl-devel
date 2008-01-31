@@ -998,8 +998,8 @@ label(Vs) :- labeling([], Vs).
 %   * max(Expr)
 %
 % This generates solutions in ascending/descending order with respect
-% to the evaluation of the arithmetic expression Expr. All variables
-% of Expr must also be contained in Vars.
+% to the evaluation of the arithmetic expression Expr. Labeling Vars
+% must make Expr ground.
 %
 % If more than one option of a category is specified, the one
 % occurring rightmost in the option list takes precedence over all
