@@ -1503,15 +1503,19 @@ mymin(X, Y, Z) :-
 
 X #>= Y :-
         (   var(X), nonvar(Y), Y = Y1 - C, var(Y1), integer(C) ->
-            var_leq_var_plus_const(Y1, X, C)
+            var_leq_var_plus_const(Y1, X, C),
+            reinforce(X)
         ;   var(X), nonvar(Y), Y = Y1 + C, var(Y1), integer(C) ->
             C1 is -C,
-            var_leq_var_plus_const(Y1, X, C1)
+            var_leq_var_plus_const(Y1, X, C1),
+            reinforce(X)
         ;   nonvar(X), var(Y), X = X1 + C, var(X1), integer(C) ->
-            var_leq_var_plus_const(Y, X1, C)
+            var_leq_var_plus_const(Y, X1, C),
+            reinforce(Y)
         ;   nonvar(X), var(Y), X = X1 - C, var(X1), integer(C) ->
             C1 is - C,
-            var_leq_var_plus_const(Y, X1, C1)
+            var_leq_var_plus_const(Y, X1, C1),
+            reinforce(Y)
         ;   parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY), reinforce(RX)
         ).
 
