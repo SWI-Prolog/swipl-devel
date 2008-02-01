@@ -84,6 +84,10 @@ test(cyclic_fail_2, [sto(rational_trees),fail]) :-
 	term_variables(Specific, SVars),
 	Goal,
 	\+ term_variables(SVars,SVars). % untouched
+test(shared_g_s_1, fail) :-
+	B = a(Y,_Z),
+	A = a(_X,Y),
+	subsumes(A, B).
 
 general_specific_1(General, Specific) :-
 	Specific = f(_,S1), S1 = f(S1,S1),

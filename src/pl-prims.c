@@ -691,8 +691,7 @@ right_recursion:
 
 #if O_CYCLIC
       while ( isRef(f1->definition) )
-      { //allow_unify = FALSE;
-	DEBUG(5, Sdprintf("following cycle on generic\n"));
+      { DEBUG(5, Sdprintf("following cycle on generic\n"));
 	f1 = (Functor)unRef(f1->definition);
       }
       while ( isRef(f2->definition) )
