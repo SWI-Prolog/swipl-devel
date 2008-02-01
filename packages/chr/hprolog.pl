@@ -1,6 +1,5 @@
 :- module(hprolog,
-	  [ nth/3,			% ?Index, ?List, ?Element
-	    substitute_eq/4,		% +OldVal, +OldList, +NewVal, -NewList
+	  [ substitute_eq/4,		% +OldVal, +OldList, +NewVal, -NewList
 	    memberchk_eq/2,		% +Val, +List
 	    intersect_eq/3,		% +List1, +List2, -Intersection
 	    list_difference_eq/3,	% +List, -Subtract, -Rest
@@ -50,14 +49,6 @@ make_update_store_goal(Name,Value,Goal) :- Goal = b_setval(Name,Value).
 		 /*******************************
 		 *      MORE LIST OPERATIONS	*
 		 *******************************/
-
-%	nth(?Index, ?List, ?Element)
-%	
-%	Same as nth1/3
-
-nth(Index, List, Element) :-
-	nth1(Index, List, Element).
-
 
 %	substitute_eq(+OldVal, +OldList, +NewVal, -NewList)
 %	
