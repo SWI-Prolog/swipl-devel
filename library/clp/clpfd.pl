@@ -307,6 +307,7 @@ A cis B :- cis_(B, A).
 cis_(n(N), n(N)).
 cis_(inf, inf).
 cis_(sup, sup).
+cis_(sign(A0), S)    :- cis_(A0, A), cis_sign(A, S).
 cis_(A0+B0, E)       :- cis_(A0, A), cis_(B0, B), cis_plus(A, B, E).
 cis_(abs(A0), E)     :- cis_(A0, A), cis_abs(A, E).
 cis_(min(A0,B0), E)  :- cis_(A0, A), cis_(B0, B), cis_min(A, B, E).
@@ -326,6 +327,7 @@ A cis1 B :- cis1_(B, A).
 cis1_(n(N), n(N)).
 cis1_(inf, inf).
 cis1_(sup, sup).
+cis1_(sign(A), S)    :- cis_sign(A, S).
 cis1_(A+B, E)        :- cis_plus(A, B, E).
 cis1_(abs(A), E)     :- cis_abs(A, E).
 cis1_(min(A,B), E)   :- cis_min(A, B, E).
@@ -337,6 +339,14 @@ cis1_(floor(A), E)   :- cis_floor(A, E).
 cis1_(ceiling(A), E) :- cis_ceiling(A, E).
 cis1_(div(A,B), E)   :- cis_div(A, B, E).
 cis1_(A//B, E)       :- cis_slash(A, B, E).
+
+cis_sign(sup, n(1)).
+cis_sign(inf, n(0)).
+cis_sign(n(N), n(S)) :-
+        (   N < 0 -> S = -1
+        ;   N > 0 -> S = 1
+        ;   S = 0
+        ).
 
 cis_floor(sup, sup).
 cis_floor(inf, inf).
@@ -1493,15 +1503,19 @@ mymin(X, Y, Z) :-
 
 X #>= Y :-
         (   var(X), nonvar(Y), Y = Y1 - C, var(Y1), integer(C) ->
-            var_leq_var_plus_const(Y1, X, C)
+            var_leq_var_plus_const(Y1, X, C),
+            reinforce(X)
         ;   var(X), nonvar(Y), Y = Y1 + C, var(Y1), integer(C) ->
             C1 is -C,
-            var_leq_var_plus_const(Y1, X, C1)
+            var_leq_var_plus_const(Y1, X, C1),
+            reinforce(X)
         ;   nonvar(X), var(Y), X = X1 + C, var(X1), integer(C) ->
-            var_leq_var_plus_const(Y, X1, C)
+            var_leq_var_plus_const(Y, X1, C),
+            reinforce(Y)
         ;   nonvar(X), var(Y), X = X1 - C, var(X1), integer(C) ->
             C1 is - C,
-            var_leq_var_plus_const(Y, X1, C1)
+            var_leq_var_plus_const(Y, X1, C1),
+            reinforce(Y)
         ;   parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY), reinforce(RX)
         ).
 
@@ -2461,7 +2475,16 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                                                    from_to(n(NYU), sup)),
                                              YD, NYD),
                         put(Y, NYD, YPs)
-                    ;   true % TODO: cover this
+                    ;   (   sign(X) =:= sign(Z) ->
+                            NYL cis max(n(X) // (n(Z)+sign(n(Z))) + n(1), YL),
+                            NYU cis min(n(X) // n(Z), YU)
+                        ;   NYL cis max(n(X) // n(Z), YL),
+                            NYU cis min(n(X) // (n(Z)+sign(n(Z))) - n(1), YU)
+                        ),
+                        (   NYL = YL, NYU = YU -> true
+                        ;   domains_intersection(from_to(NYL,NYU), YD, NYD),
+                            put(Y, NYD, YPs)
+                        )
                     )
                 ;   get(Z, ZD, ZL, ZU, ZPs),
                     (   YL cis_leq n(0), YU cis_geq n(0) ->
@@ -2485,14 +2508,14 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             ;   Y =:= -1 -> kill(MState), Z #= -X
             ;   get(X, XD, XL, XU, XPs),
                 (   nonvar(Z) ->
-                    (   Z > 0, Y > 0 ->
-                        NXL cis max(n(Z)*n(Y), XL),
-                        NXU cis min((n(Z)+n(1))*n(Y)-n(1), XU)
+                    (   sign(Z) =:= sign(Y) ->
+                        NXL cis max(abs(n(Z)*n(Y)), XL),
+                        NXU cis min((abs(n(Z))+n(1))*abs(n(Y))-n(1), XU)
                     ;   Z =:= 0 ->
                         NXL cis max(-abs(n(Y)) + n(1), XL),
                         NXU cis min(abs(n(Y)) - n(1), XU)
-                    ;   % TODO: cover more cases
-                        NXL = XL, NXU = XU
+                    ;   NXL cis max((n(Z)+sign(n(Z))*n(1))*n(Y)+n(1), XL),
+                        NXU cis min(n(Z)*n(Y), XU)
                     ),
                     (   NXL == XL, NXU == XU -> true
                     ;   domains_intersection(from_to(NXL,NXU), XD, NXD),
