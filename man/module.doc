@@ -215,7 +215,7 @@ Load and import predicates as use_modules/1 and re-export all imported
 predicates. The reexport declarations must immediately follow the module
 declaration.
 
-    \predicate{reexport}{2}{+File, Import}
+    \predicate{reexport}{2}{+File, +Import}
 Import from \arg{File} as use_module/2 and re-export the imported
 predicates. The reexport declarations must immediately follow the module
 declaration.
