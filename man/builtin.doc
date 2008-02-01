@@ -960,7 +960,25 @@ True if \arg{Term} does not contain cycles,  i.e.\ can be processed
 recursively in finite time.  See also cyclic_term/1 and \secref{cyclic}.
 \end{description}
 
-\section{Comparison and Unification or Terms}	\label{sec:compare}
+\section{Comparison and Unification of Terms}	\label{sec:compare}
+
+Although unification is mostly done implicitely while matching the
+head of a predicate, it is also provided by the predicate =/2.
+
+\begin{description}
+    \infixop[ISO]{=}{+Term1}{+Term2}
+Unify \arg{Term1} with \arg{Term2}. True if the unification succeeds.
+For behaviour on cyclic terms see the Prolog flag
+\prologflag{occurs_check}. It acts as if defined by the following rule.
+
+\begin{code}
+=(Term, Term).
+\end{code}
+
+    \infixop[ISO]{\=}{+Term1}{+Term2}
+Equivalent to \exam{\Snot Term1 = Term2}.  See also dif/2.
+\end{description}
+
 
 \subsection{Standard Order of Terms}		\label{sec:standardorder}
 
@@ -993,11 +1011,40 @@ identical to a sharing variable.
     \infixop[ISO]{\==}{+Term1}{+Term2}
 Equivalent to \exam{\Snot Term1 == Term2}.
 
-    \infixop[ISO]{=}{+Term1}{+Term2}
-Unify \arg{Term1} with \arg{Term2}. True if the unification succeeds.
-For behaviour on cyclic terms see the Prolog flag
-\prologflag{occurs_check}.
+    \infixop[ISO]{@<}{+Term1}{+Term2}
+True if \arg{Term1} is before \arg{Term2} in the standard order of terms.
 
+    \infixop[ISO]{@=<}{+Term1}{+Term2}
+True if both terms are equal (\predref{==}{2}) or \arg{Term1} is
+before \arg{Term2} in the standard order of terms.
+
+    \infixop[ISO]{@>}{+Term1}{+Term2}
+True if \arg{Term1} is after \arg{Term2} in the standard order of terms.
+
+    \infixop[ISO]{@>=}{+Term1}{+Term2}
+True if both terms are equal (\predref{==}{2}) or \arg{Term1} is
+after \arg{Term2} in the standard order of terms.
+
+    \predicate{compare}{3}{?Order, +Term1, +Term2}
+Determine or test the \arg{Order} between two terms in the standard
+order of terms. \arg{Order} is one of \const{<}, \const{>} or \const{=},
+with the obvious meaning.
+\end{description}
+
+
+\subsection{Special unification and comparison predicates}
+\label{sec:unifyspecial}
+
+This section describes special purpose variations on Prolog unification.
+The predicate unify_with_occurs_check/2 provides sound unification and
+is part of the ISO standard. The predicates subsumes/2 and
+subsumes_chk/2 define `one-sided-unification' and are found in many
+Prolog systems.  Finally, unifiable/3 is a `what-if' version of 
+unification that is often qused a building block in constraint
+reasoners.
+
+
+\begin{description}
     \predicate[ISO]{unify_with_occurs_check}{2}{+Term1, +Term2}
 As \predref{=}{2}, but using \jargon{sound-unification}. That is, a
 variable only unifies to a term if this term does not contain the
@@ -1020,9 +1067,6 @@ thus fails. Note that the behaviour of unification through
 \predref{=}{2} as well as implicit unification in the head can be
 changed using the Prolog flag \prologflag{occurs_check}.
 
-    \infixop[ISO]{\=}{+Term1}{+Term2}
-Equivalent to \exam{\Snot Term1 = Term2}.
-
     \infixop{=@=}{+Term1}{+Term2}
 True if \arg{Term1} is `structurally equal' to \arg{Term2}.
 Structural equivalence is weaker than equivalence (\predref{==}{2}), but
@@ -1040,14 +1084,16 @@ equal if their tree representation is identical and they have the same
 \end{tabular}
 \end{quote}
 
+\index{variant, term comparison}%
 The predicates \predref{=@=}{2} and \predref{\=@=}{2} are cycle-safe.
 Attributed variables are considered structurally equal iff their
-attributes are structurally equal.
+attributes are structurally equal.  This predicate is known by the
+name \predref{variant}{2} in some other Prolog systems.
 
     \infixop{\=@=}{+Term1}{+Term2}
 Equivalent to \exam{`\Snot Term1 =@= Term2'}.
 
-    \predicate{subsumes}{2}{Generic, Specific}
+    \predicate{subsumes}{2}{+Generic, {@}Specific}
 A term is told to \jargon{subsume} another term if instantiation in the
 generic term produces the specific term. The subsumption relation is
 also called \jargon{one sided unification}. Subsumes is implemented as a
@@ -1064,34 +1110,8 @@ subsumes(General, Specific) :-
 	term_variables(SVars, SVars).
 \end{code}
 
-    \predicate{subsumes_chk}{2}{Generic, Specific}
+    \predicate{subsumes_chk}{2}{+Generic, {@}Specific}
 Equivalent to \verb$\+ \+ subsumes(Generic, Specific)$.
-
-    \infixop[ISO]{@<}{+Term1}{+Term2}
-True if \arg{Term1} is before \arg{Term2} in the standard order of terms.
-
-    \infixop[ISO]{@=<}{+Term1}{+Term2}
-True if both terms are equal (\predref{==}{2}) or \arg{Term1} is
-before \arg{Term2} in the standard order of terms.
-
-    \infixop[ISO]{@>}{+Term1}{+Term2}
-True if \arg{Term1} is after \arg{Term2} in the standard order of terms.
-
-    \infixop[ISO]{@>=}{+Term1}{+Term2}
-True if both terms are equal (\predref{==}{2}) or \arg{Term1} is
-after \arg{Term2} in the standard order of terms.
-
-    \predicate{compare}{3}{?Order, +Term1, +Term2}
-Determine or test the \arg{Order} between two terms in the standard
-order of terms. \arg{Order} is one of \const{<}, \const{>} or \const{=},
-with the obvious meaning.
-
-    \predicate{?=}{2}{{@}Term1, {@}Term2}
-Decide whether the equality of \arg{Term1} and \arg{Term2} can be
-compared safely, i.e.\ whether the result of \exam{Term1 == Term2}
-can change due to further instantiation of either term.  It is
-defined as by \verb$?=(A,B) :- (A==B ; A \= B), !.$  See also
-dif/2.
 
     \predicate{unifiable}{3}{{@}X, {@}Y, -Unifier}
 If \arg{X} and \arg{Y} can unify, unify \arg{Unifier} with a list of
@@ -1105,7 +1125,15 @@ make \arg{X} and \arg{Y} equivalent.%
 This predicate can handle cyclic terms.  Attributed variables are
 handles as normal variables.  Associated hooks are \emph{not}
 executed.
+
+    \predicate{?=}{2}{{@}Term1, {@}Term2}
+Decide whether the equality of \arg{Term1} and \arg{Term2} can be
+compared safely, i.e.\ whether the result of \exam{Term1 == Term2}
+can change due to further instantiation of either term.  It is
+defined as by \verb$?=(A,B) :- (A==B ; A \= B), !.$  See also
+dif/2.
 \end{description}
+
 
 \section{Control Predicates}		\label{sec:control}
 
