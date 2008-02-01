@@ -62,7 +62,7 @@
 :- use_module(library(pairs)).
 :- use_module(library(sgml)).		% Quote output
 :- use_module(library(quintus)).	% for meta_predicate/1
-:- set_prolog_flag(generate_debug_info, false).
+%:- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
 	reply_html_page(:, :),
@@ -473,17 +473,19 @@ xhtml_ns(_, _) -->
 %	Emit attributes for Env. Adds XHTML namespace declaration to the
 %	html tag if not provided by the caller.
 
-attributes(html, L) --> 
-	{ html_current_option(dialect(xhtml)) }, !,
-	(   { option(xmlns(_), L) }
-	->  attributes(L)
-	;   { ns(xhtml, NS) },
-	    attributes([xmlns(NS)|L])
-	),
-	html_receive(xmlns).
+attributes(html, L) --> !,
+	(   { html_current_option(dialect(xhtml)) }
+	->  (   { option(xmlns(_), L) }
+	    ->  attributes(L)
+	    ;   { ns(xhtml, NS) },
+		attributes([xmlns(NS)|L])
+	    ),
+	    html_receive(xmlns)
+	;   attributes(L),
+	    html_noreceive(xmlns)
+	).
 attributes(_, L) -->
-	attributes(L),
-	html_noreceive(xmlns).
+	attributes(L).
 
 attributes([]) --> !,
 	[].
