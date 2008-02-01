@@ -484,9 +484,14 @@ dom_list([H|T], Path) -->
 	dom(H, Path),
 	dom_list(T, Path).
 
-dom(element(a, _, []), _) -->		% Useless back-references
+dom(element(E, Atts, Content), Path) --> !,
+	dom_element(E, Atts, Content, Path).
+dom(CDATA, _) -->
+	html(CDATA).
+
+dom_element(a, _, [], _) -->			% Useless back-references
 	[].
-dom(element(a, Att, Content), Path) -->
+dom_element(a, Att, Content, Path) -->
 	{ memberchk(href=HREF, Att),
 	  (   memberchk(class=Class, Att)
 	  ->  true
@@ -495,15 +500,21 @@ dom(element(a, Att, Content), Path) -->
 	  rewrite_ref(Class, HREF, Path, Myref)
 	}, !,
 	html(a(href(Myref), \dom_list(Content, Path))).
-dom(element(div, Att, _), _) -->
+dom_element(div, Att, _, _) -->
 	{ memberchk(class=navigate, Att) }, !.
-dom(element(Name, Attrs, Content), Path) --> !,
+dom_element(html, _, Content, Path) --> !,	% do not emit a html for the second time
+	dom_list(Content, Path).
+dom_element(head, _, Content, Path) --> !,	% do not emit a head for the second time
+	dom_list(Content, Path).
+dom_element(title, _, _, _) --> !.
+dom_element(link, _, _, _) --> !.
+dom_element(body, _, Content, Path) --> !,	% do not emit a body for the second time
+	dom_list(Content, Path).
+dom_element(Name, Attrs, Content, Path) -->
 	{ Begin =.. [Name|Attrs] },
 	html_begin(Begin),
 	dom_list(Content, Path),
 	html_end(Name).
-dom(CDATA, _) -->
-	html(CDATA).
 
 
 %%	rewrite_ref(+Class, +Ref0, +Path, -ManRef) is semidet.
