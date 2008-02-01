@@ -559,211 +559,6 @@ PRED_IMPL("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
 }
 
 
-		 /*******************************
-		 *	      SUBSUMES		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-subsumes(Generic, @Specific) is semidet.
-subsumes_chk(@Generic, @Specific) is semidet.
-
-Subsumes is implemented as one-sided unification.  In addition to simply
-disallowing unification by  binding  the   right-hand  however  we  also
-disallow binding the left-hand twice. This is only an issue if the first
-binding is to a variable. This is  achieved   by  putting  a mark on the
-variable or reference.  This is needed to make this fail:
-
-	subsumes(a(Z,Z), a(X,Y))
-
-Cycle links are created from specific to   generic, so t1 remains at the
-generic side. Nevertheless,  if  we  crossed  a   mark  in  t1  we  have
-previously unified and therefore our t1 is now also on the specific side
-and we can no longer make unifications.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static inline void
-exitCyclicSubsumes(ARG1_LD)
-{ Word p;
-
-  while( popSegStack(&LD->cycle.stack, &p) )
-  { if ( is_marked(p) )
-    { DEBUG(5, Sdprintf("Undoing mark at %p\n", p));
-      clear_marked(p);			/* marked variable */
-    } else
-    { DEBUG(5, Sdprintf("Undoing cycle-ref at %p\n", p));
-      *p = *unRef(*p);			/* linked cycle */
-    }
-  }
-}
-
-
-static bool
-do_subsumes(Word t1, Word t2, int allow_unify ARG_LD)
-{ word w1;
-  word w2;
-
-right_recursion:
-  w1 = *t1;
-  w2 = *t2;
-
-  if ( w1 & MARK_MASK )
-  { allow_unify = FALSE;
-    w1 &= ~MARK_MASK;
-    DEBUG(5, Sdprintf("Mark at %p\n", t1));
-  }
-  w2 &= ~MARK_MASK;
-
-  while(isRef(w1))			/* this is deRef() */
-  { t1 = unRef(w1);
-    w1 = *t1;
-    if ( w1 & MARK_MASK )
-    { allow_unify = FALSE;
-      w1 &= ~MARK_MASK;
-      DEBUG(5, Sdprintf("Mark at %p\n", t1));
-    }
-  }
-  while(isRef(w2))
-  { t2 = unRef(w2);
-    w2 = *t2;
-    w2 &= ~MARK_MASK;
-  }
-
-  if ( t1 == t2 )
-    succeed;
-
-  if ( isVar(w1) )
-  { if ( !allow_unify )
-      fail;
-
-    visitedWord(t1 PASS_LD);
-      
-    if ( isVar(w2) )
-    { if ( t1 < t2 )			/* always point downwards */
-      { *t2 = makeRef(t1);
-        DEBUG(5, Sdprintf("Unifying VAR at %p\n", t1));
-	Trail(t2);
-	succeed;
-      }
-      *t1 = makeRef(t2) | MARK_MASK;
-      DEBUG(5, Sdprintf("Unifying REF at %p\n", t1));
-      Trail(t1);
-      succeed;
-    }
-
-    DEBUG(5, Sdprintf("Unifying non-var at %p\n", t1));
-#ifdef O_ATTVAR
-    *t1 = (isAttVar(w2) ? makeRef(t2) : w2)|MARK_MASK;
-#else
-    *t1 = (w2|MARK_MASK);
-#endif
-    Trail(t1);
-    succeed;
-  }
-  if ( isVar(w2) )
-    fail;
-
-#ifdef O_ATTVAR
-  if ( isAttVar(w1) )
-    return assignAttVar(t1, t2 PASS_LD);
-  if ( isAttVar(w2) )
-    fail;
-#endif
-
-  if ( w1 == w2 )
-    succeed;
-  if ( tag(w1) != tag(w2) )
-    fail;
-
-  switch(tag(w1))
-  { case TAG_ATOM:
-      fail;
-    case TAG_INTEGER:
-      if ( storage(w1) == STG_INLINE ||
-	   storage(w2) == STG_INLINE )
-	fail;
-    case TAG_STRING:
-    case TAG_FLOAT:
-      return equalIndirect(w1, w2);
-    case TAG_COMPOUND:
-    { Functor f1 = valueTerm(w1);
-      Functor f2 = valueTerm(w2);
-      Word e;
-
-#if O_CYCLIC
-      while ( isRef(f1->definition) )
-      { DEBUG(5, Sdprintf("following cycle on generic\n"));
-	f1 = (Functor)unRef(f1->definition);
-      }
-      while ( isRef(f2->definition) )
-      { DEBUG(5, Sdprintf("following cycle on specific\n"));
-	f2 = (Functor)unRef(f2->definition);
-      }
-      if ( f1 == f2 )
-	succeed;
-#endif
-
-      if ( f1->definition != f2->definition )
-	fail;
-
-      t1 = f1->arguments;
-      t2 = f2->arguments;
-      e  = t1+arityFunctor(f1->definition)-1; /* right-recurse on last */
-      linkTermsCyclic(f2, f1 PASS_LD);	/* link from specific to generic */
-					/* so left/t1 remains generic */
-      for(; t1 < e; t1++, t2++)
-      { if ( !do_subsumes(t1, t2, allow_unify PASS_LD) )
-	  fail;
-      }
-      goto right_recursion;
-    }
-  }
-
-  succeed;
-}
-
-
-static
-PRED_IMPL("subsumes", 2, subsumes, 0)
-{ PRED_LD
-  Word p0 = valTermRef(A1);
-  tmp_mark m;
-  int rc;
-
-  startCritical;
-  TmpMark(m);
-  initCyclic(PASS_LD1);
-  rc = do_subsumes(p0, p0+1, TRUE PASS_LD);
-  exitCyclicSubsumes(PASS_LD1);
-  if ( !rc )
-    TmpUndo(m);
-  EndTmpMark(m);
-  endCritical;
-
-  return rc;  
-}
-
-
-static
-PRED_IMPL("subsumes_chk", 2, subsumes_chk, 0)
-{ PRED_LD
-  Word p0 = valTermRef(A1);
-  tmp_mark m;
-  int rc;
-
-  startCritical;
-  TmpMark(m);
-  initCyclic(PASS_LD1);
-  rc = do_subsumes(p0, p0+1, TRUE PASS_LD);
-  exitCyclicSubsumes(PASS_LD1);
-  TmpUndo(m);
-  EndTmpMark(m);
-  endCritical;
-
-  return rc;  
-}
-
-
-
 		/********************************
 		*         TYPE CHECKING         *
 		*********************************/
@@ -2240,11 +2035,9 @@ right_recursion:
 
 
 static int
-term_variables(term_t t, term_t vars, term_t tail ARG_LD)
-{ term_t head = PL_new_term_ref();
-  term_t list = PL_copy_term_ref(vars);
-  term_t v0   = PL_new_term_refs(0);
-  int i, n;
+term_variables_to_termv(term_t t, term_t *vp ARG_LD)
+{ term_t v0   = PL_new_term_refs(0);
+  int n;
 
   startCritical;
   initvisited(PASS_LD1);
@@ -2252,6 +2045,20 @@ term_variables(term_t t, term_t vars, term_t tail ARG_LD)
   unvisit(PASS_LD1);
   endCritical;
 
+  *vp = v0;
+  return n;
+}
+
+
+
+static int
+term_variables(term_t t, term_t vars, term_t tail ARG_LD)
+{ term_t head = PL_new_term_ref();
+  term_t list = PL_copy_term_ref(vars);
+  term_t v0;
+  int i, n;
+
+  n = term_variables_to_termv(t, &v0 PASS_LD);
   for(i=0; i<n; i++)
   { if ( !PL_unify_list(list, head, list) ||
 	 !PL_unify(head, v0+i) )
@@ -2279,6 +2086,98 @@ PRED_IMPL("term_variables", 3, term_variables3, 0)
 { PRED_LD
 
   return term_variables(A1, PL_copy_term_ref(A2), A3 PASS_LD);
+}
+
+
+		 /*******************************
+		 *	      SUBSUMES		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+subsumes is defined as 
+
+subsumes(General, Specific) :-
+	term_variables(Specific, SVars),
+	General = Specific,
+	term_variables(SVars, SVars).
+
+Below is the implementation, but we keep  the array of variables instead
+of creating an array and we check whether these are all unique variables
+by scanning the array.  This saves both time and space.
+
+We tried to do this using   a one-sided unification implementation. Most
+of this is fairly trivial, but  we  must   make  sure  we know when left
+argument (general) becomes a pointer  in   the  specific term. There are
+three cases for this to happen. One  is following a cycle-reference, two
+is following a previously bound term and  three is following a reference
+pointer from a variable that  was   shared  between general and specific
+before the entry of subsumes/2. The first  two are easily fixed. I don't
+know how to fix the latter without a   complete  scan on specific. If we
+need to do that anyway,  we  can  just   as  well  use  the below simple
+algorithm.
+
+We can enhance on this by combining this with the one-sided unification.
+We could delay scanning specific until we  bind the first variable. This
+will not have any significant  inpact   on  performance for a succeeding
+subsumes check, but can result in early failure and avoiding the scan of
+specific. This works because  the   one-sided  unification algorithm can
+only succeed in places where it should fail.
+
+The latest version of the old algorithm is in the GIT commit
+
+	f68eb71a9d5d0b9b6055483842d9654c30e29550
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+subsumes(term_t general, term_t specific ARG_LD)
+{ term_t v0;
+  int i, n;
+
+  n = term_variables_to_termv(specific, &v0 PASS_LD);
+  if ( PL_unify(general, specific) &&
+       foreignWakeup(PASS_LD1) )
+  { int rc = TRUE;
+
+    startCritical;
+    initvisited(PASS_LD1);
+    for(i=0; i<n; i++)
+    { Word p = valTermRef(v0+i);
+      deRef(p);
+
+      if ( !isVar(*p) || visitedWord(p PASS_LD) )
+      { rc = FALSE;
+	break;
+      }
+    }
+    unvisit(PASS_LD1);
+    endCritical;
+    return rc;
+  }
+
+  fail;
+}
+
+
+static
+PRED_IMPL("subsumes", 2, subsumes, 0)
+{ PRED_LD
+
+  return subsumes(A1, A2 PASS_LD);
+}
+
+
+static
+PRED_IMPL("subsumes_chk", 2, subsumes_chk, 0)
+{ PRED_LD
+  tmp_mark m;
+  int rc;
+
+  TmpMark(m);
+  rc = subsumes(A1, A2 PASS_LD);
+  TmpUndo(m);
+  EndTmpMark(m);
+
+  return rc;  
 }
 
 
