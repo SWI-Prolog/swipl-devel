@@ -676,31 +676,32 @@ case "$ARCH" in
 	;;
 esac
 
-if test ! -z "$RLPREFIX"; then
-  AC_MSG_CHECKING(Whether setting for RLPREFIX is ok)
-  if test -f $RLPREFIX/include/readline/readline.h -a \
-	  -f $RLPREFIX/lib/libreadline.$SO_EXT; then
-    LIBS="$LIBS $RLPREFIX/lib/libreadline.$SO_EXT"
-    AC_MSG_RESULT(Using $RLPREFIX)
-    AC_DEFINE(HAVE_LIBREADLINE, 1, 
-	      [Define to 1 if you have libreadline])
-    AC_DEFINE(HAVE_READLINE_READLINE_H, 1,
-	      [Define to 1 if you have <readline/readline.h>])
-    ocflags="$CFLAGS"
-    CFLAGS="-I$RLPREFIX/include $CFLAGS"
-    AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
-    AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input rl_done)
-    AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
-    AC_CHECK_FUNCS(rl_filename_completion_function)
-    FreeBSD="$ocflags"
-    readline_ok=yes
-  else
-    AC_MSG_RESULT(no)
-    RLPREFIX=
-  fi
-fi
-
 if test ! "$runtime" = "yes" -a "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
+
+  if test ! -z "$RLPREFIX"; then
+    AC_MSG_CHECKING(Whether setting for RLPREFIX is ok)
+    if test -f $RLPREFIX/include/readline/readline.h -a \
+	    -f $RLPREFIX/lib/libreadline.$SO_EXT; then
+      LIBS="$LIBS $RLPREFIX/lib/libreadline.$SO_EXT"
+      AC_MSG_RESULT(Using $RLPREFIX)
+      AC_DEFINE(HAVE_LIBREADLINE, 1, 
+		[Define to 1 if you have libreadline])
+      AC_DEFINE(HAVE_READLINE_READLINE_H, 1,
+		[Define to 1 if you have <readline/readline.h>])
+      ocflags="$CFLAGS"
+      CFLAGS="-I$RLPREFIX/include $CFLAGS"
+      AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
+      AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input rl_done)
+      AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
+      AC_CHECK_FUNCS(rl_filename_completion_function)
+      FreeBSD="$ocflags"
+      readline_ok=yes
+    else
+      AC_MSG_RESULT(no)
+      RLPREFIX=
+    fi
+  fi
+
   oldlibs="$LIBS"
   AC_CHECK_LIB(readline, main)
 
