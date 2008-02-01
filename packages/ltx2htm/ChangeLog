@@ -1,3 +1,7 @@
+[Jan 23 2008]
+
+ * PORT: Bug#346: Allow overriding COFLAGS and CWFLAGS in package
+   configuration.   Keri Harris.
 [Dec 11 2007]
 
  * DOC: various enhancement to the presentation of pldoc @keywords

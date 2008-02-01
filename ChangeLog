@@ -8,6 +8,85 @@
 					--------------------------------------
 
 
+================================
+VERSION 5.6.50 February 01, 2008
+================================
+
+ * ENHANCED: DCG: more reserved NTs. ISO draft 7.14.6
+
+ * ADDED: test case subsumes/2 Item#313
+
+ * FIXED: Cleanup portray_clause/2 with attributed variables.
+   Item#296, Ulrich Neumerkel.
+   
+ * ENHANCED: PlUnit: reporting STO and setting STO checking options
+
+ * FIXED: occurs-check - error mode for many built-ins (term_variables(X,X), etc).
+   Ulrich Neumerkel.
+   
+ * ADDED: BIPs STO tests; ad Item#310
+
+ * ADDED: further test case
+
+ * ADDED: test case
+
+ * ADDED: Banner message indicating 32/64 bit version.  Paulo Moura.
+
+ * FIXED: Head unification of a cyclic term in occurs_check=error mode.
+   Item#306, Ulrich Neumerkel.
+   
+ * ADDED: subsumes/2 and subsumes_chk/2 as built-in predicates.
+
+ * ENHANCED: Fixed syntax error location for unterminated /*..*/ comment.  Item#297,
+   Ulrich Neumerkel.
+   
+ * FIXED: DCG: cut transparency, output unification, preserve erroneous non-terminals
+ * ENHANCED: DCG: more tests
+ * FIXED: PlUnit version confusion
+   
+ * ENHANCED: test for FIXED length/2
+
+ * FIXED: length(-,+), where the integer is a large (MPZ) negative integer.
+   Ulrich Neumerkel.
+   
+ * TEST: Added tests for length/2
+
+ * ENHANCED: Various patches to DCG handling by Ulrich Neumerkel.
+   	* Extended handling of complex heads
+   	* Move some unifications into the head
+   	* More error checking during compilation
+   	* Added goal_expansion/2 for phrase/2,3 library(apply_macros)
+   
+ * ADDED: library(error): type list_or_partial_list.  Ulrich Neumerkel.
+
+ * ADDED: Import-except, import under a new name and reexport
+
+ * ADDED: library(aggregate).  Aggregation of multiple bindings produced by a goal.
+
+ * ADDED: maplist/5 as a true predicate
+
+ * ADDED: map_list_to_pairs/3 to library(pairs)
+
+ * ADDED: max_list/2 and min_list/2 to library(lists)
+
+ * MODIFIED: Error/warning locations are no longer between parenthesis.
+   Item#267, Ulrich Neumerkel.
+   
+ * MODIFIED: Throw representation_error(variable) on must_be(var, 2).  Item#276,
+   Ulrich Neumerkel.
+   
+ * FIXED: Handling RET in Windows interactive session.
+   via git-CVS emulator
+   
+ * FIXED: Spurious output when interrupting write to the terminal.  Ulrich Neumerkel.
+
+ * ADDED: representation_error/1 to library(error).  Ulrich Neumerkel.
+
+ * MODIFIED: gensym/2 now throws a representation_error if the 2nd argument is bound.
+   Ulrich Neumerkel
+   
+ * ADDED: labeling options enum, step and bisect in library(clpfd)
+
 ===============================
 VERSION 5.6.49 January 16, 2008
 ===============================

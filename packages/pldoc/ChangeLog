@@ -1,3 +1,15 @@
+[Feb 1 2008]
+
+ * FIXED: PlDoc: fix html generation for included manual material
+
+[Jan 25 2008]
+
+ * ADDED: library(aggregate).  Aggregation of multiple bindings produced by a goal.
+
+[Jan 21 2008]
+
+ * FIXED: PlDoc: properly handle URL if it is ended by a newline.
+
 [Dec 11 2007]
 
  * ADDED: Make PceEmacs use PlDoc for the Documentation link if the old manual

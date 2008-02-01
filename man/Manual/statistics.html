@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section 4.39</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.50 Reference Manual: Section 4.39</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="debugger.html">
@@ -141,7 +141,7 @@ The possible keys are given in the <A class="tab" href="statistics.html#tab:stat
 5</A>. The last part of the table contains keys for compatibility to 
 other Prolog implementations (Quintus) for improved portability. Note 
 that the ISO standard does not define methods to collect system 
-statistics. Space unit is bytes<SUP class="fn">63<SPAN class="fn-text">This 
+statistics. Space unit is bytes<SUP class="fn">64<SPAN class="fn-text">This 
 may change to `cells' to enhance compatibility between the 32- and 
 64-bit versions.</SPAN></SUP>. Times are in seconds, represented as a 
 floating point number. The Quintus compatibility keys express times in 
@@ -205,7 +205,7 @@ milliseconds)</TR>
 <TR VALIGN=top><TD>system_time</TD><TD>[ System CPU time, System CPU 
 time since last ] (milliseconds)</TD></TR>
 <TR VALIGN=top><TD>real_time</TD><TD>[ Wall time, Wall time since last ] 
-(see <A NAME="idx:gettime1:1112"></A><A class="pred" href="system.html#get_time/1">get_time/1</A>) </TD></TR>
+(see <A NAME="idx:gettime1:1113"></A><A class="pred" href="system.html#get_time/1">get_time/1</A>) </TD></TR>
 <TR VALIGN=top><TD>memory</TD><TD>[ Total unshared data, free memory ] 
 (Uses getrusage() if available, otherwise incomplete own statistics.) </TD></TR>
 <TR VALIGN=top><TD>stacks</TD><TD>[ global use, local use ] </TD></TR>
@@ -225,7 +225,7 @@ bytes gained, time spent ] </TD></TR>
 
 </CENTER>
 <TABLE ALIGN=center WIDTH="75%"><TR><TD>
-<B>Table 5 : </B>Keys for <A NAME="idx:statistics2:1113"></A><A class="pred" href="statistics.html#statistics/2">statistics/2</A></TABLE>
+<B>Table 5 : </B>Keys for <A NAME="idx:statistics2:1114"></A><A class="pred" href="statistics.html#statistics/2">statistics/2</A></TABLE>
 
 <A NAME="tab:statistics"></A>
 </DD>
@@ -235,7 +235,7 @@ Display a table of system statistics on the current output stream.
 </DD>
 <DT class="pubdef"><A NAME="time/1"><STRONG>time</STRONG>(<VAR>+Goal</VAR>)</A></DT>
 <DD class="defbody">
-Execute <VAR>Goal</VAR> just like <A NAME="idx:once1:1114"></A><A class="pred" href="metacall.html#once/1">once/1</A> 
+Execute <VAR>Goal</VAR> just like <A NAME="idx:once1:1115"></A><A class="pred" href="metacall.html#once/1">once/1</A> 
 (i.e., leaving no choice points), but print used time, number of logical 
 inferences and the average number of <VAR>lips</VAR> (logical inferences 
 per second). Note that SWI-Prolog counts the actual executed number of 

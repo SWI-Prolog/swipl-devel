@@ -1,3 +1,12 @@
+[Jan 23 2008]
+
+ * PORT: Bug#346: Allow overriding COFLAGS and CWFLAGS in package
+   configuration.   Keri Harris.
+   
+[Jan 22 2008]
+
+ * FIXED: SSL end-of-file detection.  Matt Lilley
+
 Feb 28, 2007
 
   * ADDED: http_ssl_plugin.pl, providing the SSL features of the HTTP server

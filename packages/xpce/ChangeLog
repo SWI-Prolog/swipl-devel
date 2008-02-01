@@ -1,3 +1,11 @@
+[Jan 26 2008]
+
+ * ADDED: Import-except, import under a new name and reexport
+
+[Jan 23 2008]
+
+ * FIXED: `editor->paste' to check whether the editor is `editable'.  Matt Lilley.
+
 [Jan 14 2008]
 
  * PORT: Bug#339: name conflict in AIX

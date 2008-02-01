@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section 4.6</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.50 Reference Manual: Section 4.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="typetest.html">
@@ -142,7 +142,7 @@ the so called ``standard order''. This order is defined as follows:
 
 <P><OL>
 <LI><VAR><VAR>Variables</VAR> &lt; <VAR>Numbers</VAR> &lt; <VAR>Atoms</VAR> 
-&lt; <VAR>Strings</VAR> &lt; <VAR>Comound Terms</VAR></VAR><SUP class="fn">26<SPAN class="fn-text">Strings 
+&lt; <VAR>Strings</VAR> &lt; <VAR>Compound Terms</VAR></VAR><SUP class="fn">26<SPAN class="fn-text">Strings 
 might be considered atoms in future versions. See also <A class="sec" href="strings.html">section 
 4.23</A></SPAN></SUP>
 <LI>Variables are sorted by address. Attaching attributes (see <A class="sec" href="attvar.html">section 
@@ -221,6 +221,31 @@ their attributes are structurally equal.</DD>
 <DT class="pubdef"><A NAME="\=@=/2"><VAR>+Term1</VAR> <STRONG>\=@=</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 Equivalent to <CODE>`<CODE>\+</CODE>Term1 =@= Term2'</CODE>.</DD>
+<DT class="pubdef"><A NAME="subsumes/2"><STRONG>subsumes</STRONG>(<VAR>Generic, 
+Specific</VAR>)</A></DT>
+<DD class="defbody">
+A term is told to <EM>subsume</EM> another term if instantiation in the 
+generic term produces the specific term. The subsumption relation is 
+also called <EM>one sided unification</EM>. Subsumes is implemented as a 
+variation of unify that allows for bindings in <VAR>Generic</VAR> only 
+and fails if binding in <VAR>Specific</VAR> is required. The behaves as 
+if defined by<SUP class="fn">27<SPAN class="fn-text">This implementation 
+relies on the fact that <A NAME="idx:termvariables2:486"></A><A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A> 
+orders its variables based on depth-first left-to-right traversal of the 
+term.</SPAN></SUP>
+
+<PRE class="code">
+subsumes(General, Specific) :-
+        term_variables(Specific, SVars),
+        General = Specific,
+        term_variables(SVars, SVars).
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="subsumes_chk/2"><STRONG>subsumes_chk</STRONG>(<VAR>Generic, 
+Specific</VAR>)</A></DT>
+<DD class="defbody">
+Equivalent to <CODE>\+ \+ subsumes(Generic, Specific)</CODE>.</DD>
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="@</2"><VAR>+Term1</VAR> <STRONG>@&lt;</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 True if <VAR>Term1</VAR> is before <VAR>Term2</VAR> in the standard 
@@ -251,16 +276,16 @@ Decide whether the equality of <VAR>Term1</VAR> and <VAR>Term2</VAR> can
 be compared safely, i.e. whether the result of <CODE>Term1 == Term2</CODE> 
 can change due to further instantiation of either term. It is defined as 
 by <CODE>?=(A,B) :- (A==B ; A \= B), !.</CODE> See also
-<A NAME="idx:dif2:486"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A>.</DD>
+<A NAME="idx:dif2:487"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A>.</DD>
 <DT class="pubdef"><A NAME="unifiable/3"><STRONG>unifiable</STRONG>(<VAR>@X, @Y, 
 -Unifier</VAR>)</A></DT>
 <DD class="defbody">
 If <VAR>X</VAR> and <VAR>Y</VAR> can unify, unify <VAR>Unifier</VAR> 
 with a list of
 <VAR>Var</VAR> = <VAR>Value</VAR>, representing the bindings required to 
-make <VAR>X</VAR> and <VAR>Y</VAR> equivalent.<SUP class="fn">27<SPAN class="fn-text">This 
-predicate was introduced for the implementation of <A NAME="idx:dif2:487"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
-and <A NAME="idx:when2:488"></A><A class="pred" href="coroutining.html#when/2">when/2</A> 
+make <VAR>X</VAR> and <VAR>Y</VAR> equivalent.<SUP class="fn">28<SPAN class="fn-text">This 
+predicate was introduced for the implementation of <A NAME="idx:dif2:488"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
+and <A NAME="idx:when2:489"></A><A class="pred" href="coroutining.html#when/2">when/2</A> 
 after discussion with Tom Schrijvers and Bart Demoen. None of us is 
 really happy with the name and therefore suggestions for a new name are 
 welcome.</SPAN></SUP> This predicate can handle cyclic terms. Attributed 

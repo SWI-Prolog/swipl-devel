@@ -333,8 +333,7 @@ discussion of STO and NSTO</SPAN></SUP>. Fortunately, most practical
 programs are NSTO. Writing tests that are STO is still useful to ensure 
 the robustness of a predicate. In case sto4 and sto5 below, an infinite 
 list (a rational tree) is created prior to calling the actual predicate. 
-Ideally, such cases produce a type error or fail silently. See also the 
-Prolog flag <B>occurs_check</B>.
+Ideally, such cases produce a type error or fail silently.
 
 <PRE class="code">
 test(sto1, [sto(rational_trees)]) :-
@@ -352,6 +351,9 @@ test(sto5, [sto(rational_trees),fail]) :-
 <P>Programs that depend on STO cases tend to be inefficient, even 
 incorrect, are hard to understand and debug, and terminate poorly. It is 
 therefore advisable to avoid STO programs whenever possible.
+
+<P>SWI's Prolog flag <B>occurs_check</B> must not be modified within 
+plunit tests.
 
 <P></DD>
 </DL>
@@ -757,8 +759,10 @@ be in the
 <CODE>library</CODE> search-path. With PLUNITDIR replaced accordingly, 
 add the following into your <CODE>.sicstusrc</CODE> or <CODE>sicstus.ini</CODE>.
 
-<P>== :- set_prolog_flag(language, iso). library_directory('PLUNITDIR'). 
-==
+<PRE class="code">
+:- set_prolog_flag(language, iso). % for maximal compatibility
+library_directory('PLUNITDIR').
+</PRE>
 
 <P>The current version runs under SICStus 3. Open issues:
 

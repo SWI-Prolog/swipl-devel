@@ -1,3 +1,30 @@
+[Jan 31 2008]
+
+ * DOC: formatting
+
+[Jan 30 2008]
+
+ * ENHANCED: PlUnit: run_tests(Unit) raise error on non-existing unit.
+   Item#305, Ulrich Neumerkel.
+   
+ * ENHANCED: PlUnit: reporting STO and setting STO checking options
+
+[Jan 29 2008]
+
+ * CLEANUP: PlUnit: some reorganisation of the test loop, preparing for further
+   enhancements.
+   
+[Jan 28 2008]
+
+ * ADDED: subsumes/2 and subsumes_chk/2 as built-in predicates.
+
+ * ENHANCED: Really load no tests if not asked to do and provide better feedback
+   if no tests where loaded or all tests passed.
+   
+ * FIXED: DCG: cut transparency, output unification, preserve erroneous non-terminals
+ * ENHANCED: DCG: more tests
+ * FIXED: PlUnit version confusion
+   
 [2008-01-26]
 
  * FIXED: portability for SICStus 3.12

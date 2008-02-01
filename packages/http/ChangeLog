@@ -1,3 +1,16 @@
+[Feb 1 2008]
+
+ * FIXED: html_write.pl: avoid multiple receivers for xmlns.
+
+[Jan 23 2008]
+
+ * PORT: Bug#346: Allow overriding COFLAGS and CWFLAGS in package
+   configuration.   Keri Harris.
+   
+[Jan 22 2008]
+
+ * DOC: Applied various patches.  Item#272, Ulrich Neumerkel.
+
 [Dec 22 2007]
 
  * FIXED: Write JSON newlines always as \n.  Also write all control characters

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section 4.3</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.50 Reference Manual: Section 4.3</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="chars.html">
@@ -139,7 +139,7 @@ Prolog source files come in three flavours:
 <DL>
 <DT><B> A traditional</B></DT>
 <DD>
-Prolog source file contains a Prolog clauses and directives, but no <EM>module-declaration</EM>. 
+Prolog source file contains Prolog clauses and directives, but no <EM>module-declaration</EM>. 
 They are normally loaded using <A NAME="idx:consult1:333"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
 or <A NAME="idx:ensureloaded1:334"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A>.</DD>
 <DT><B> A module</B></DT>
@@ -397,7 +397,7 @@ into a compiled state using <CODE>pl -c ...</CODE> and files loaded
 using consult or one of its derivatives. The predicate <A NAME="idx:make0:382"></A><A class="pred" href="consulting.html#make/0">make/0</A> 
 is called after
 <A NAME="idx:edit1:383"></A><A class="pred" href="listing.html#edit/1">edit/1</A>, 
-automatically reloading all modified files. It the user uses an external 
+automatically reloading all modified files. If the user uses an external 
 editor (in a separate window), <A NAME="idx:make0:384"></A><A class="pred" href="consulting.html#make/0">make/0</A> 
 is normally used to update the program after editing. In addition, <A NAME="idx:make0:385"></A><A class="pred" href="consulting.html#make/0">make/0</A> 
 updates the autoload indices (see <A class="sec" href="autoload.html">section 
@@ -566,10 +566,10 @@ compilation and program transformation</SPAN></A></H3>
 <A NAME="sec:progtransform"></A>
 
 <P><A NAME="idx:transformationofprogram:413"></A>ISO Prolog defines no 
-way for program transformation such as macro expansion or conditional 
+way for program transformations such as macro expansion or conditional 
 compilation. Expansion through <A NAME="idx:termexpansion2:414"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
 and <A NAME="idx:expandterm2:415"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A> 
-can be seen as part of the de-facto standard. This machanism can do 
+can be seen as part of the de-facto standard. This mechanism can do 
 arbitrary translation between valid Prolog terms read from the source 
 file to Prolog terms handed to the compiler. As
 <A NAME="idx:termexpansion2:416"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
@@ -589,7 +589,7 @@ Dynamic and multifile predicate, normally not defined. When defined by
 the user all terms read during consulting are given to this predicate. 
 If the predicate succeeds Prolog will assert <VAR>Term2</VAR> in the 
 database rather then the read term (<VAR>Term1</VAR>). <VAR>Term2</VAR> 
-may be a term of a the form `?- <VAR>Goal</VAR>' or `:- <VAR>Goal</VAR>'. <VAR>Goal</VAR> 
+may be a term of the form `?- <VAR>Goal</VAR>' or `:- <VAR>Goal</VAR>'. <VAR>Goal</VAR> 
 is then treated as a directive. If <VAR>Term2</VAR> is a list all terms 
 of the list are stored in the database or called (for directives). If
 <VAR>Term2</VAR> is of the form below, the system will assert <VAR>Clause</VAR> 
@@ -637,7 +637,7 @@ is called on <VAR>Goal</VAR> using rules from module
 <VAR>Module</VAR> followed by <CODE>user</CODE>.
 
 <P>Only goals appearing in the body of clauses when reading a 
-source-file are expanded using mechanism, and only if they appear 
+source-file are expanded using this mechanism, and only if they appear 
 literally in the clause, or as an argument to the meta-predicates <A NAME="idx:not1:435"></A><A class="pred" href="metacall.html#not/1">not/1</A>, <A NAME="idx:call1:436"></A><A class="pred" href="metacall.html#call/1">call/1</A>, <A NAME="idx:once1:437"></A><A class="pred" href="metacall.html#once/1">once/1</A>,
 <A NAME="idx:ignore1:438"></A><A class="pred" href="metacall.html#ignore/1">ignore/1</A>, <A NAME="idx:findall3:439"></A><A class="pred" href="allsolutions.html#findall/3">findall/3</A>, <A NAME="idx:bagof3:440"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A>, <A NAME="idx:setof3:441"></A><A class="pred" href="allsolutions.html#setof/3">setof/3</A> 
 or <A NAME="idx:forall2:442"></A><A class="pred" href="forall2.html#forall/2">forall/2</A>. 
@@ -651,7 +651,7 @@ preprocessing. First it calls <A NAME="idx:goalexpansion2:443"></A><A class="pre
 If this fails it returns the first argument.</DD>
 <DT class="pubdef"><A NAME="compile_aux_clauses/1"><STRONG>compile_aux_clauses</STRONG>(<VAR>+Clauses</VAR>)</A></DT>
 <DD class="defbody">
-Compile clauses on behalve of <A NAME="idx:goalexpansion2:444"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>. 
+Compile clauses on behalf of <A NAME="idx:goalexpansion2:444"></A><A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A>. 
 This predicate compiled the argument clauses into static predicates, 
 associating the predicates with the current file but avoid changing the 
 notion of current predicate and therefore discontiguous warnings.</DD>
@@ -699,8 +699,8 @@ suffix(Suffix, List) :-
 :- endif.
 </PRE>
 
-<P>Note that these directives can only be appear as separate terms in 
-the input. Typical usage scenarios include:
+<P>Note that these directives can only appear as separate terms in the 
+input. Typical usage scenarios include:
 
 <P>
 <UL>
@@ -792,7 +792,7 @@ source files while other threads are executing code defined in these
 source files. Reloading a file freezes all threads after marking the 
 active predicates originating from the file being reloaded. The threads 
 are resumed after the file has been loaded. In addition, after 
-completing loading the outermost file the system runs
+completing loading the outermost file, the system runs
 <A NAME="idx:garbagecollectclauses0:452"></A><A class="pred" href="consulting.html#garbage_collect_clauses/0">garbage_collect_clauses/0</A>.
 
 <P>What does that mean? Unfortunately it does <EM>not</EM> mean we can 
@@ -807,7 +807,7 @@ applications during development. In the above scenarios the system does
 not crash uncontrolled, but behaves like any broken program: it may 
 return the wrong bindings, wrong truth value or raise an exception.
 
-<P>Future versions may have an `update now' facility. Such as facility 
+<P>Future versions may have an `update now' facility. Such a facility 
 can be implemented on top of the <EM>logical update view</EM>. It would 
 allow threads to do a controlled update between processing independent 
 jobs.

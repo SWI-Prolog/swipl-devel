@@ -1,3 +1,17 @@
+[Jan 29 2008]
+
+ * EHANCED: CHR performance: compacted indexing code
+
+[Jan 28 2008]
+
+ * ADDED: CHR: chr_constants/1 built-in type for enumerated constants
+
+[Jan 27 2008]
+
+ * ENHANCED: CHR: performance improvements (success continuation, Prolog code optimization)
+
+ * COMPAT: Removed min_list/2 from library(hprolog) as this is now in library lists.
+
 Jan 24, 2008
 
   * TS: Exploit success continuation information.

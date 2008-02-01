@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.49 Reference Manual: Section 2.11</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.50 Reference Manual: Section 2.11</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="compilation.html">
@@ -170,6 +170,11 @@ Tests for such flags should be written as below.
 Determines how <A NAME="idx:abort0:113"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A> 
 is realised. See the description of <A NAME="idx:abort0:114"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A> 
 for details.</DD>
+<DT class="pubdef"><A NAME="flag:address_bits"><STRONG>address_bits</STRONG>(<VAR>integer</VAR>)</A></DT>
+<DD class="defbody">
+Address-size of the hosting machine. Typically 32 or 64. Except for the 
+maximum stack limit, this has few implications to the user. See also the 
+Prolog flag <A class="flag" href="flags.html#flag:arch">arch</A>.</DD>
 <DT class="pubdef"><A NAME="flag:agc_margin"><STRONG>agc_margin</STRONG>(<VAR>integer</VAR>, changeable)</A></DT>
 <DD class="defbody">
 If this amount of atoms has been created since the last atom-garbage 

@@ -1,3 +1,8 @@
+[Jan 23 2008]
+
+ * PORT: Bug#346: Allow overriding COFLAGS and CWFLAGS in package
+   configuration.   Keri Harris.
+   
 Jan 25, 2006
 
   * Replaced FILE based basic I/O with <iostream>

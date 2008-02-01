@@ -1,3 +1,7 @@
+[Jan 23 2008]
+
+ * PORT: Bug#346: Allow overriding COFLAGS and CWFLAGS in package
+   configuration.   Keri Harris.
 [Dec 17 2007]
 
  * FIXED: Possible missing match on subproperties in rdf_has. Jacco van Ossenbruggen and Michiel Hildebrand
