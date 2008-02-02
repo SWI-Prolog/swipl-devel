@@ -805,8 +805,8 @@ domain_contract_less(D0, M, D) :-
         (   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
         ;   D1 = D0, M1 = M
         ),
-        (   domain_infimum(D1, n(_)), domain_supremum(D1, n(_)) ->
-            % bounded domain
+        (   fail, domain_infimum(D1, n(_)), domain_supremum(D1, n(_)) ->
+            % bounded domain - currently disabled
             domain_intervals(D1, Is),
             phrase(intervals_contract_less(Is, M1), Cs),
             list_to_domain(Cs, D)
