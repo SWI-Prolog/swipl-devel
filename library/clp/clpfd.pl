@@ -2487,14 +2487,12 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                         )
                     )
                 ;   get(Z, ZD, ZL, ZU, ZPs),
-                    (   YL cis_leq n(0), YU cis_geq n(0) ->
-                        NZL cis max(-abs(n(X)), ZL),
-                        NZU cis min(abs(n(X)), ZU)
-                    ;   X >= 0, YL cis_gt n(0) ->
+                    (   X >= 0, YL cis_gt n(0) ->
                         NZL cis max(n(X)//YU, ZL),
                         NZU cis min(n(X)//YL, ZU)
-                    ;   % TODO: cover more cases
-                        NZL = ZL, NZU = ZU
+                    ;   % TODO: more stringent bounds, cover Y
+                        NZL cis max(-abs(n(X)), ZL),
+                        NZU cis min(abs(n(X)), ZU)
                     ),
                     (   NZL = ZL, NZU = ZU -> true
                     ;   domains_intersection(from_to(NZL,NZU), ZD, NZD),
@@ -2509,7 +2507,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             ;   get(X, XD, XL, XU, XPs),
                 (   nonvar(Z) ->
                     (   sign(Z) =:= sign(Y) ->
-                        NXL cis max(abs(n(Z)*n(Y)), XL),
+                        NXL cis max(n(Z)*n(Y), XL),
                         NXU cis min((abs(n(Z))+n(1))*abs(n(Y))-n(1), XU)
                     ;   Z =:= 0 ->
                         NXL cis max(-abs(n(Y)) + n(1), XL),
