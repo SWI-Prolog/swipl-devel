@@ -1599,6 +1599,9 @@ compile_aux_clauses(Clauses) :-
 		 *	     INCLUDE		*
 		 *******************************/
 
+:- dynamic
+	'$included'/2.
+
 '$expand_include'(File, FileInto) :-
 	absolute_file_name(File,
 			   [ file_type(prolog),
@@ -1610,6 +1613,7 @@ compile_aux_clauses(Clauses) :-
 	'$read_include_file'(Term0, In, Terms),
 	close(In),
 	'$pop_input_context',
+	'$store_clause'(system:'$included'(FileInto, Path), FileInto),
 	'$consult_clauses'(Terms, FileInto).
 
 '$read_include_file'(end_of_file, _, []) :- !.

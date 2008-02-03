@@ -60,8 +60,15 @@ modified_file(File) :-
 	;   File = Source,
 	    LoadTime = Time
 	),
-	catch(time_file(File, Modified), _, fail),
-	Modified > LoadTime.
+	(   catch(time_file(File, Modified), _, fail),
+	    Modified > LoadTime
+	->  true
+	;   '$included'(File, Included),
+	    catch(time_file(Included, Modified), _, fail),
+	    Modified > LoadTime
+	->  true
+	).
+
 
 reload([]).
 reload([H|T]) :-
