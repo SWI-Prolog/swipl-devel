@@ -197,11 +197,10 @@ Here, the constraint solver could deduce more stringent bounds for
 many variables. Labeling can be used to search for solutions:
 
 ==
-?- puzzle(As+Bs=Cs), append([As,Bs,Cs], Vs), label(Vs).
+?- puzzle(As+Bs=Cs), label(As), label(Bs).
 As = [9, 5, 6, 7],
 Bs = [1, 0, 8, 5],
-Cs = [1, 0, 6, 5, 2],
-Vs = [9, 5, 6, 7, 1, 0, 8, 5, 1|...]
+Cs = [1, 0, 6, 5, 2]
 ==
 
 @author Markus Triska
