@@ -1206,8 +1206,25 @@ delete_eq([X|Xs],Y,List) :-
             delete_eq(Xs,Y,Tail)
         ).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Optimization uses a global variable to save the computed extremum
+   over backtracking. Failure is used to get rid of copies of
+   attributed variables that are created in intermediate steps.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 optimize(Vars, Selection, Order, Choice, Opt) :-
-        copy_term(Vars-Opt, Vars1-Opt1),
+        nb_setval('$clpfd_extremum', none),
+        (   store_extremum(Vars, Selection, Order, Choice, Opt)
+        ;   nb_getval('$clpfd_extremum', n(Val)),
+            arg(1, Opt, Expr),
+            (   Expr #= Val, label(Vars, Selection, Order, Choice)
+            ;   Expr #\= Val,
+                optimize(Vars, Selection, Order, Choice, Opt)
+            )
+        ).
+
+store_extremum(Vars, Selection, Order, Choice, Opt) :-
+        duplicate_term(Vars-Opt, Vars1-Opt1),
         once(label(Vars1, Selection, Order, Choice)),
         functor(Opt1, Direction, _),
         maplist(arg(1), [Opt,Opt1], [Expr,Expr1]),
@@ -1215,19 +1232,14 @@ optimize(Vars, Selection, Order, Choice, Opt) :-
 
 optimize(Direction, Selection, Order, Choice, Vars, Expr0, Expr) :-
         Val0 is Expr0,
-        copy_term(Vars-Expr, Vars1-Expr1),
-        (   Direction == min -> Tighten = (Expr1 #< Val0)
-        ;   Tighten = (Expr1 #> Val0) % max
+        nb_setval('$clpfd_extremum', n(Val0)),
+        duplicate_term(Vars-Expr, Vars1-Expr1),
+        (   Direction == min ->
+            Expr1 #< Val0
+        ;   Expr1 #> Val0
         ),
-        (   Tighten, label(Vars1, Selection, Order, Choice) ->
-            optimize(Direction, Selection, Order, Choice, Vars, Expr1, Expr)
-        ;
-              (   Expr #= Val0, label(Vars, Selection, Order, Choice)
-              ;   Expr #\= Val0,
-                  Opt =.. [Direction,Expr],
-                  optimize(Vars, Selection, Order, Choice, Opt)
-              )
-        ).
+        once(label(Vars1, Selection, Order, Choice)),
+        optimize(Direction, Selection, Order, Choice, Vars, Expr1, Expr).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
