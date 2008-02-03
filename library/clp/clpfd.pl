@@ -1410,15 +1410,12 @@ parse_clpfd(Expr, Result) :-
         ;   domain_error(clpfd_expression, Expr)
         ).
 
-trigger_twice(Prop) :-
-        % two invocations necessary for fixpoint when posting initially
-        trigger_prop(Prop), do_queue,
-        trigger_prop(Prop), do_queue.
+trigger_once(Prop) :- trigger_prop(Prop), do_queue.
 
 neq(A, B) :-
         make_propagator(pneq(A, B), Prop),
         init_propagator(A, Prop), init_propagator(B, Prop),
-        trigger_twice(Prop).
+        trigger_once(Prop).
 
 geq(A, B) :-
         (   get(A, AD, APs) ->
@@ -1429,7 +1426,7 @@ geq(A, B) :-
                 ;   make_propagator(pgeq(A,B), Prop),
                     init_propagator(A, Prop),
                     init_propagator(B, Prop),
-                    trigger_twice(Prop)
+                    trigger_once(Prop)
                 )
             ;   domain_remove_smaller_than(AD, B, AD1),
                 put(A, AD1, APs),
@@ -1445,44 +1442,44 @@ geq(A, B) :-
 myplus(X, Y, Z) :-
         make_propagator(pplus(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_twice(Prop).
+        init_propagator(Z, Prop), trigger_once(Prop).
 
 mytimes(X, Y, Z) :-
         make_propagator(ptimes(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_twice(Prop).
+        init_propagator(Z, Prop), trigger_once(Prop).
 
 mydiv(X, Y, Z) :-
         make_propagator(pdiv(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_twice(Prop).
+        init_propagator(Z, Prop), trigger_once(Prop).
 
 myexp(X, Y, Z) :-
         make_propagator(pexp(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_twice(Prop).
+        init_propagator(Z, Prop), trigger_once(Prop).
 
 myabs(X, Y) :-
         make_propagator(pabs(X,Y), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_prop(Prop), trigger_twice(Prop).
+        trigger_prop(Prop), trigger_once(Prop).
 
 mymod(X, M, K) :-
         make_propagator(pmod(X,M,K), Prop),
         init_propagator(X, Prop), init_propagator(M, Prop),
-        init_propagator(K, Prop), trigger_twice(Prop).
+        init_propagator(K, Prop), trigger_once(Prop).
 
 mymax(X, Y, Z) :-
         X #=< Z, Y #=< Z,
         make_propagator(pmax(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_twice(Prop).
+        init_propagator(Z, Prop), trigger_once(Prop).
 
 mymin(X, Y, Z) :-
         X #>= Z, Y #>= Z,
         make_propagator(pmin(X,Y,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_twice(Prop).
+        init_propagator(Z, Prop), trigger_once(Prop).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Naive parsing of inequalities and disequalities can result in a lot
@@ -1522,7 +1519,7 @@ X #>= Y :-
 var_leq_var_plus_const(X, Y, C) :-
         make_propagator(x_leq_y_plus_c(X,Y,C), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_twice(Prop).
+        trigger_once(Prop).
 
 %% ?X #=< ?Y
 %
@@ -1565,14 +1562,14 @@ X #\= Y :-
 absdiff_neq_const(X, Y, C) :-
         make_propagator(absdiff_neq(X,Y,C), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_twice(Prop).
+        trigger_once(Prop).
 
 % X #\= Y + C
 
 var_neq_var_plus_const(X, Y, C) :-
         make_propagator(x_neq_y_plus_c(X,Y,C), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_twice(Prop).
+        trigger_once(Prop).
 
 % X is distinct from the number N. This is used internally in some
 % propagators, and does not reinforce other constraints.
@@ -1647,13 +1644,13 @@ my_reified_div(X, Y, D, Z) :-
         make_propagator(reified_div(X,Y,D,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), init_propagator(D, Prop),
-        trigger_twice(Prop).
+        trigger_once(Prop).
 
 my_reified_mod(X, Y, D, Z) :-
         make_propagator(reified_mod(X,Y,D,Z), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         init_propagator(Z, Prop), init_propagator(D, Prop),
-        trigger_twice(Prop).
+        trigger_once(Prop).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A constraint that is being reified need not hold. Therefore, in
