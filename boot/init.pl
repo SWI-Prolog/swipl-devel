@@ -1599,6 +1599,8 @@ compile_aux_clauses(Clauses) :-
 		 *	     INCLUDE		*
 		 *******************************/
 
+:- multifile
+	'$included'/2.
 :- dynamic
 	'$included'/2.
 
