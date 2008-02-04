@@ -751,3 +751,12 @@ PL_get_arg_ex(int n, term_t term, term_t arg)
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_natural, a);
   }
 }
+
+
+int
+PL_get_module_ex(term_t name, Module *m)
+{ if ( !PL_get_module(name, m) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, name);
+
+  succeed;
+}

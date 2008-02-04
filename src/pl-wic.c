@@ -2373,8 +2373,8 @@ pl_qlf_start_module(term_t name)
   { GET_LD
     Module m;
 
-    if ( !PL_get_module(name, &m) )
-      return warning("qlf_start_module/1: argument must be an atom");
+    if ( !PL_get_module_ex(name, &m) )
+      fail;
   
     return qlfStartModule(m, wicFd PASS_LD);
   }
@@ -2389,8 +2389,8 @@ pl_qlf_start_sub_module(term_t name)
   { GET_LD
     Module m;
 
-    if ( !PL_get_module(name, &m) )
-      return warning("qlf_start_sub_module/1: argument must be an atom");
+    if ( !PL_get_module_ex(name, &m) )
+      fail;
   
     return qlfStartSubModule(m, wicFd PASS_LD);
   }

@@ -240,6 +240,7 @@ COMMON(int) 		PL_get_list_ex(term_t l, term_t h, term_t t);
 COMMON(int) 		PL_get_nil_ex(term_t l);
 COMMON(int) 		PL_unify_bool_ex(term_t t, bool val);
 COMMON(int) 		PL_get_arg_ex(int n, term_t term, term_t arg);
+COMMON(int) 		PL_module_ex(term_t name, Module *m);
 
 
 /* pl-file.c */
