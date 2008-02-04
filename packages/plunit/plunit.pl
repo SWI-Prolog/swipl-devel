@@ -639,7 +639,8 @@ test_caps(Type, Unit, Name, Line, Options, Body, Result, Key) :-
 	Key \== setup_failed.
 
 result_to_key(blocked(_, _, _, _), blocked).
-result_to_key(failure(_, _, _, How), failure(How)).
+result_to_key(failure(_, _, _, How0), failure(How1)) :-
+	( How0 = succeeded(_T) -> How1 = succeeded ; How0 = How1 ).
 result_to_key(success(_, _, _, Determinism, _), success(Determinism)).
 result_to_key(setup_failed(_,_,_), setup_failed).
 
