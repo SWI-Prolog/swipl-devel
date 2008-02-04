@@ -443,6 +443,21 @@ domain_num_elements(split(_, Left, Right), Num) :-
         domain_num_elements(Right, NR),
         Num cis1 NL + NR.
 
+domain_direction_element(from_to(n(From), n(To)), Dir, E) :-
+        (   Dir == up -> between(From, To, E)
+        ;   between(From, To, E0),
+            E is To - (E0 - From)
+        ).
+domain_direction_element(split(_, D1, D2), Dir, E) :-
+        (   Dir == up ->
+            (   domain_direction_element(D1, Dir, E)
+            ;   domain_direction_element(D2, Dir, E)
+            )
+        ;   (   domain_direction_element(D2, Dir, E)
+            ;   domain_direction_element(D1, Dir, E)
+            )
+        ).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Test whether domain contains a given integer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1070,17 +1085,9 @@ choice_order_variable(step, Order, Var, Vars, Selection) :-
             label([Var|Vars], Selection, Order, step)
         ).
 choice_order_variable(enum, Order, Var, Vars, Selection) :-
-        get(Var, Dom0, Ps),
-        order_dom_next(Order, Dom0, Next),
-        (   Var = Next,
-            label(Vars, Selection, Order, enum)
-        ;   domain_remove(Dom0, Next, Dom),
-            put(Var, Dom, Ps),
-            (   var(Var) ->
-                choice_order_variable(enum, Order, Var, Vars, Selection)
-            ;   label(Vars, Selection, Order, enum)
-            )
-        ).
+        get(Var, Dom0, _),
+        domain_direction_element(Dom0, Order, Var),
+        label(Vars, Selection, Order, enum).
 choice_order_variable(bisect, Order, Var, Vars, Selection) :-
         get(Var, Dom, _),
         domain_infimum(Dom, n(I)),
@@ -1923,7 +1930,7 @@ domain_largest_finite(split(_, _, R), L) :- domain_largest_finite(R, L).
 
 reinforce(X) :-
         (   current_prolog_flag(clpfd_propagation, full) ->
-            % full propagation propagates everything in any case             
+            % full propagation propagates everything in any case
             true
         ;   collect_variables(X, [], Vs),
             maplist(reinforce_, Vs),
