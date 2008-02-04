@@ -1637,21 +1637,23 @@ ar_rem(Number n1, Number n2, Number r)
   same_type_numbers(n1, n2);
   switch(n1->type)
   { case V_INTEGER:
-      f = (real)n1->value.i / (real)n2->value.i;
-      r->value.f = f - (real)((int64_t) f);
-      r->type = V_REAL;
+      if ( n2->value.i == 0 )
+	return PL_error("rem", 2, NULL, ERR_DIV_BY_ZERO);
+
+      r->value.i = n1->value.i % n2->value.i;
+      r->type = V_INTEGER;
+
       break;
 #ifdef O_GMP
     case V_MPZ:
     { mpq_t q;
       
-      mpq_init(q);
-      mpz_mod(mpq_numref(q), n1->value.mpz, n2->value.mpz);
-      mpz_set(mpq_denref(q), n2->value.mpz);
+      if ( mpz_sgn(n2->value.mpz) == 0 )
+	return PL_error("rem", 2, NULL, ERR_DIV_BY_ZERO);
 
-      r->value.f = mpq_get_d(q);
-      r->type = V_REAL;
-      mpq_clear(q);
+      r->type = V_MPZ;
+      mpz_init(r->value.mpz);
+      mpz_tdiv_r(r->value.mpz, n1->value.mpz, n2->value.mpz);
       break;
     }
 #endif
