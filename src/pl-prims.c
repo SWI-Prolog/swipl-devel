@@ -1704,7 +1704,7 @@ list Xs0:
  
 	Xs        | list type of Xs0   | Length
 	[]    ... | well formed        | length
-	Var   ... | open               | elements skipped
+	Var   ... | partial            | elements skipped
 	[_|_] ... | infinite           | upper bound for cycle
 	Term  ... | malformed          | elements skipped
 */
