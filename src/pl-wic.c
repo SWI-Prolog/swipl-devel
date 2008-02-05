@@ -1337,8 +1337,9 @@ Note that we keep track of the `current procedure' to keep  all  clauses
 of a predicate together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Table savedXRTable;		/* saved XR entries */
-static intptr_t  savedXRTableId;		/* next id */
+static Table	savedXRTable;		/* saved XR entries */
+static intptr_t	savedXRTableId;		/* next id */
+static intptr_t registered_atoms;	/* safety check */
 
 #define STR_NOLEN ((size_t)-1)
 
@@ -1473,6 +1474,40 @@ putLong(long v, IOSTREAM *fd)		/* always 4 bytes */
 }
 
 
+static void
+freeXRSymbol(Symbol s)
+{ word w = (word)s->name;
+
+  if ( w&0x1 )
+  { w &= ~0x1;
+    if ( isAtom(w) )
+    { registered_atoms--;
+      PL_unregister_atom(w);
+      DEBUG(5, Sdprintf("UNREG: %s\n", stringAtom(w)));
+    }
+  }
+}
+
+
+void
+initXR()
+{ currentProc		    = NULL;
+  currentSource		    = NULL;
+  savedXRTable		    = newHTable(256);
+  savedXRTable->free_symbol = freeXRSymbol;
+  savedXRTableId	    = 0;
+  registered_atoms	    = 0;
+}
+
+
+void
+destroyXR()
+{ destroyHTable(savedXRTable);
+  savedXRTable = NULL;
+  assert(registered_atoms==0);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 XR (External Reference)  table  handling.   The  table  contains  atoms,
 functors  and  various  types  of    pointers   (Module,  Procedure  and
@@ -1481,7 +1516,8 @@ conflict with pointers. We assume -as in  many other places in the code-
 that pointers are 4-byte aligned.
 
 savedXRConstant()  must  be  used  for    atom_t  and  functor_t,  while
-savedXRPointer must be used for the pointers.
+savedXRPointer  must  be  used  for   the    pointers.   The  value  for
+savedXRConstant() is or-ed with 0x1 to avoid conflict with pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1506,10 +1542,17 @@ savedXR(void *xr, IOSTREAM *fd)
 
 static inline int
 savedXRConstant(word w, IOSTREAM *fd)
-{ assert(tag(w) == TAG_ATOM);		/* Only functor_t and atom_t */
-  w |= 0x1;				/* Avoid conflict with pointer */
-  
-  return savedXR((void *)w, fd);
+{ int rc;
+
+  assert(tag(w) == TAG_ATOM);		/* Only functor_t and atom_t */
+
+  if ( !(rc=savedXR((void *)(w|0x1), fd)) && isAtom(w) )
+  { registered_atoms++;
+    DEBUG(5, Sdprintf("REG: %s\n", stringAtom(w)));
+    PL_register_atom(w);
+  }
+
+  return rc;
 }
 
 
@@ -1889,10 +1932,7 @@ writeWicHeader(IOSTREAM *fd)
   else
     putString("<no home>",  STR_NOLEN, fd);
 
-  currentProc    = (Procedure) NULL;
-  currentSource  = (SourceFile) NULL;
-  savedXRTable   = newHTable(256);
-  savedXRTableId = 0;
+  initXR();
 
   DEBUG(2, Sdprintf("Header complete ...\n"));
   succeed;
@@ -1906,8 +1946,7 @@ writeWicTrailer(IOSTREAM *fd)
 
   closeProcedureWic(fd);
   Sputc('X', fd);
-  destroyHTable(savedXRTable);
-  savedXRTable = NULL;
+  destroyXR();
   Sputc('T', fd);
 
   wicFd = NULL;
@@ -2140,11 +2179,7 @@ qlfOpen(atom_t name)
   putNum(sizeof(word)*8, wicFd);
 
   putString(absname, STR_NOLEN, wicFd);
-
-  currentProc    = (Procedure) NULL;
-  currentSource  = (SourceFile) NULL;
-  savedXRTable   = newHTable(256);
-  savedXRTableId = 0;
+  initXR();
   initSourceMarks();
 
   succeed;
@@ -2160,9 +2195,7 @@ qlfClose(ARG1_LD)
   Sclose(fd);
   wicFd = NULL;
   mkWicFile = NULL;
-
-  destroyHTable(savedXRTable);
-  savedXRTable = NULL;
+  destroyXR();
   
   succeed;
 }
