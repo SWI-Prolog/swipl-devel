@@ -845,7 +845,7 @@ process_new(Term, Origin, Src) :-
 assert_new(Src, Origin, Term) :-
 	compound(Term),
 	arg(1, Term, Prolog),
-	Prolog == @prolog,
+	Prolog == @(prolog),
 	(   Term =.. [message, _, Selector | T],
 	    atom(Selector)
 	->  Called =.. [Selector|T],
@@ -857,7 +857,7 @@ assert_new(Src, Origin, Term) :-
 	    process_body(Called, Origin, Src)
 	),
 	fail.
-assert_new(_, _, @_) :- !.
+assert_new(_, _, @(_)) :- !.
 assert_new(Src, _, Term) :-
 	callable(Term),
 	functor(Term, Name, _),
@@ -1331,7 +1331,7 @@ assert_defined_class(Src, Name, _Meta, _Super, _) :-
 assert_defined_class(_, _, _, -, _) :- !. 		% :- pce_extend_class
 assert_defined_class(Src, Name, Meta, Super, Summary) :-
 	flag(xref_src_line, Line, Line),
-	(   Summary == @default
+	(   Summary == @(default)
 	->  Atom = ''
 	;   is_list(Summary)
 	->  atom_codes(Atom, Summary)
@@ -1339,7 +1339,7 @@ assert_defined_class(Src, Name, Meta, Super, Summary) :-
 	->  atom_concat(Summary, '', Atom)
 	),
 	assert(defined_class(Name, Super, Atom, Src, Line)),
-	(   Meta = @_
+	(   Meta = @(_)
 	->  true
 	;   assert_used_class(Src, Meta)
 	),

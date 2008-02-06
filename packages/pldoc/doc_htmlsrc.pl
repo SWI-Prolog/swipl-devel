@@ -381,6 +381,8 @@ element/3.
 %	doc_colour.pl    and    the    element     declaration    above.
 %	write_source_css/0 writes the style-sheet to =|pllisting.css|=.
 
+:- op(990, xfx, :=).
+
 write_source_css :-
 	open('pllisting.css', write, Out),
 	call_cleanup(write_source_css(Out),
@@ -421,14 +423,14 @@ pce_to_css_value(color, Name, RGB) :-
 	x11_colour_name_to_rgb(Name, RGB).
 pce_to_css_value('background-color', Name, RGB) :-
 	x11_colour_name_to_rgb(Name, RGB).
-pce_to_css_value('text-decoration', @on, underline).
-pce_to_css_value('font-weight', @on, bold).
+pce_to_css_value('text-decoration', @(on), underline).
+pce_to_css_value('font-weight', @(on), bold).
 pce_to_css_value('font-style', Style, Style).
 
 x11_colour_name_to_rgb(red, red) :- !.
 x11_colour_name_to_rgb(blue, blue) :- !.
 x11_colour_name_to_rgb(Name, RGB) :-
-	get(@pce, convert, Name, colour, Obj),
+	get(@(pce), convert, Name, colour, Obj),
 	get(Obj, red, R),
 	get(Obj, green, G),
 	get(Obj, blue, B),
