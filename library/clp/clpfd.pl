@@ -2040,8 +2040,7 @@ init_propagator(Var, Prop) :-
 % Constrains Lists to be lexicographically non-decreasing.
 
 lex_chain(Lss) :-
-        must_be(list, Lss),
-        maplist(must_be(list), Lss),
+        must_be(list(list), Lss),
         lex_chain_(Lss).
 
 lex_chain_([]).
@@ -2077,8 +2076,8 @@ tuples_in(Tuples, Relation) :-
         must_be(list, Tuples),
         must_be(list, Relation),
         must_be(ground, Relation),
-        maplist(must_be(list), Relation),
-        maplist(maplist(must_be(integer)), Relation),
+        must_be(list(list), Relation),
+        must_be(list(list(integer)), Relation),
         tuples_domain(Tuples, Relation),
         do_queue.
 
@@ -3073,7 +3072,7 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 
 serialized(Starts, Durations) :-
         must_be(list, Durations),
-        maplist(must_be(integer), Durations),
+        must_be(list(integer), Durations),
         pair_up(Starts, Durations, SDs),
         serialize(SDs, []),
         do_queue.
