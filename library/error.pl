@@ -35,7 +35,7 @@
 	    existence_error/2,		% +Type, +Term
 	    permission_error/3,		% +Action, +Type, +Term
 	    instantiation_error/1,	% +Term
-		 representation_error/1, % +Reason
+	    representation_error/1, 	% +Reason
 
 	    must_be/2,			% +Type, +Term
 	    is_of_type/2		% +Type, +Term
@@ -124,6 +124,8 @@ must_be(Type, X) :-
 
 is_not(list, X) :- !,
 	not_a_list(list, X).
+is_not(list(_), X) :- !,
+	not_a_list(list, X).
 is_not(list_or_partial_list, X) :- !,
 	type_error(list, X).
 is_not(chars, X) :- !,
@@ -132,17 +134,36 @@ is_not(codes, X) :- !,
 	not_a_list(codes, X).
 is_not(var,_X) :- !,
 	representation_error(variable).
+is_not(rational, X) :- !,
+	not_a_rational(X).
 is_not(Type, X) :-
-	(   ground(X)
-	->  type_error(Type, X)
-	;   instantiation_error(X)
+	(   var(X)
+	->  instantiation_error(X)
+	;   ground_type(Type), \+ ground(X)
+	->  instantiation_error(X)
+	;   type_error(Type, X)
 	).
+
+ground_type(ground).
+ground_type(oneof(_)).
+ground_type(stream).
+ground_type(text).
+ground_type(string).
 
 not_a_list(Type, X) :-
 	'$skip_list'(_, X, Rest),
 	(   var(Rest)
 	->  instantiation_error(X)
 	;   type_error(Type, X)
+	).
+
+not_a_rational(X) :-
+	(   var(X)
+	->  instantiation_error(X)
+	;   X = rdiv(N,D)
+	->  must_be(integer, N), must_be(integer, D),
+	    type_error(rational,X)
+	;   type_error(rational,X)
 	).
 
 %%	is_of_type(+Type, @Term) is semidet.
@@ -189,7 +210,7 @@ has_type(var, X)	  :- var(X).
 has_type(rational, X)	  :- rational(X).
 has_type(string, X)	  :- string(X).
 has_type(stream, X)	  :- is_stream(X).
-has_type(list(Type), X)	  :- element_types(X, Type).
+has_type(list(Type), X)	  :- is_list(X), element_types(X, Type).
 
 chars(0) :- !, fail.
 chars([]).
@@ -210,9 +231,6 @@ text(X) :-
 	;   codes(X)
 	), !.
 
-element_types(X, _) :-
-	var(X),
-	instantiation_error(X).
 element_types([], _).
 element_types([H|T], Type) :-
 	must_be(Type, H),

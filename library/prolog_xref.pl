@@ -588,6 +588,7 @@ xref_meta(maplist(G,_),		[G+1]).
 xref_meta(maplist(G,_,_),	[G+2]).
 xref_meta(maplist(G,_,_,_),	[G+3]).
 xref_meta(maplist(G,_,_,_,_),	[G+4]).
+xref_meta(map_list_to_pairs(G,_,_), [G+2]).
 xref_meta(checklist(G, _L),	[G+1]).
 xref_meta(sublist(G, _, _),	[G+1]).
 xref_meta(include(G, _, _),	[G+1]).
