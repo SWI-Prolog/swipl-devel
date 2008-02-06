@@ -2074,9 +2074,6 @@ lex_le([V1|V1s], [V2|V2s]) :-
 
 tuples_in(Tuples, Relation) :-
         must_be(list, Tuples),
-        must_be(list, Relation),
-        must_be(ground, Relation),
-        must_be(list(list), Relation),
         must_be(list(list(integer)), Relation),
         tuples_domain(Tuples, Relation),
         do_queue.
@@ -3071,7 +3068,6 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 %       Disjunctive Scheduling Problem"
 
 serialized(Starts, Durations) :-
-        must_be(list, Durations),
         must_be(list(integer), Durations),
         pair_up(Starts, Durations, SDs),
         serialize(SDs, []),
