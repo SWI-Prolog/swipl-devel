@@ -28,9 +28,9 @@ echo "================================================================"
 echo ""
 
 for f in $changed; do
-  if git diff $tag -- $f | grep '^+' | grep -q '^+' ; then
+  if git diff "$tag" -- "$f" | grep '^+' | grep -q '^+' ; then
     echo "================================================================"
-    git diff $tag -- $f | grep '^+' | grep -v "=============="
+    git diff "$tag" -- "$f" | grep '^+' | grep -v "=============="
     echo ""
   fi
 done
