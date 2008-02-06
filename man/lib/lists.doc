@@ -32,10 +32,7 @@ Delete all members of \arg{List1} that simultaneously unify with
 Select \arg{Elem} from \arg{List} leaving \arg{Rest}.  It behaves as
 member/2, returning the remaining elements in \arg{Rest}.  Note that
 besides selecting elements from a list, it can also be used to insert
-elements.%
-    \bug{Upto SWI-Prolog 3.3.10, the definition of this predicate was
-	 not according to the de-facto standard. The first two arguments
-	 were in the wrong order.}
+elements.
 
     \predicate{nth0}{3}{?Index, ?List, ?Elem}
 Succeeds when the \arg{Index}-th element of \arg{List} unifies with
