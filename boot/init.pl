@@ -936,7 +936,7 @@ load_files(Files, Options) :-
 	).
 '$load_files'(X, _, _) :-
 	var(X), !,
-	throw(error(instantiation_error, _)).
+	throw(error(instantiation_error, context(load_files/2,_))).
 '$load_files'([], _, _) :- !.
 '$load_files'([H|T], Module, Options) :- !,
 	'$load_files'(H, Module, Options),
