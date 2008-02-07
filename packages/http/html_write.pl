@@ -44,6 +44,7 @@
 					% repositioning HTML elements
 	    html_post//2,		% +Id, :Content
 	    html_receive//1,		% +Id
+	    html_receive//2,		% +Id, :Handler
 	    xhtml_ns//2,		% +Id, +Value
 
 					% Useful primitives for expanding
@@ -58,11 +59,12 @@
 	    html_print_length/2		% +List, -Length
 	  ]).
 :- use_module(library(error)).
+:- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(pairs)).
 :- use_module(library(sgml)).		% Quote output
 :- use_module(library(quintus)).	% for meta_predicate/1
-%:- set_prolog_flag(generate_debug_info, false).
+:- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
 	reply_html_page(:, :),
@@ -71,6 +73,7 @@
 	page(:, :, -, +),
 	pagehead(:, -, +),
 	pagebody(:, -, +),
+	html_receive(+, 3, -, +),
 	html_post(+, :, -, +).
 
 /** <module> Write HTML text
@@ -299,10 +302,12 @@ html([H|T], M) --> !,
 html(X, M) -->
 	html_expand(X, M).
 
+html_expand(M:Term, _) --> !,
+	html(Term, M).
 html_expand(Term, Module) -->
 	do_expand(Term, Module), !.
 html_expand(Term, _Module) -->
-	 { print_message(error, html(expand_failed(Term))) }.
+	{ print_message(error, html(expand_failed(Term))) }.
 
 
 :- multifile
@@ -605,23 +610,31 @@ html_quoted_attribute(Text) -->
 
 html_post(Id, Content) -->
 	{ strip_module(Content, M, C) },
-	[ mailbox(Id, post(M:C)) ].
+	[ mailbox(Id, post(M, C)) ].
 
 %%	html_receive(+Id)// is det.
+%%	html_receive(+Id, :Handler)// is det.
 %
 %	Receive posted HTML tokens. Unique   sequences  of tokens posted
 %	with  html_post//2  are  inserted   at    the   location   where
 %	html_receive//1 appears.
+%	
+%	@see	The local predicate sorted_html//1 handles the output of
+%		html_receive//1.
 
 html_receive(Id) -->
-	[ mailbox(Id, accept(_)) ].
+	html_receive(Id, sorted_html).
+
+html_receive(Id, Handler) -->
+	{ strip_module(Handler, M, P) },
+	[ mailbox(Id, accept(M:P, _)) ].
 
 %%	html_noreceive(+Id)// is det.
 %
 %	As html_receive//1, but discard posted messages.
 
 html_noreceive(Id) -->
-	[ mailbox(Id, ignore(_)) ].
+	[ mailbox(Id, ignore(_,_)) ].
 
 %%	mailman(+Tokens) is det.
 %
@@ -629,7 +642,7 @@ html_noreceive(Id) -->
 %	mailboxes.
 
 mailman(Tokens) :-
-	memberchk(mailbox(_, accept(Accepted)), Tokens),
+	memberchk(mailbox(_, accept(_, Accepted)), Tokens),
 	var(Accepted), !,		% not yet executed
 	mailboxes(Tokens, Boxes),
 	keysort(Boxes, Keyed),
@@ -644,25 +657,40 @@ mailboxes([_|T0], T) :-
 	mailboxes(T0, T).
 
 mail_id(Id-List) :-
-	sort(List, Sorted),		% looses order
-	(   Sorted = [accept(In)|Posted]
-	->  (   Posted = [accept(_)|_]
-	    ->	print_message(error, html(multiple_receivers(Id)))
-	    ;	true
-	    ),
-	    phrase(posted(Posted), In)
-	;   Sorted = [ignore(_)|_]
+	mail_handlers(List, Boxes, Content),
+	(   Boxes = [accept(MH:Handler, In)]
+	->  extend_args(Handler, Content, Goal),
+	    phrase(MH:Goal, In)
+	;   Boxes = [ignore(_, _)|_]
 	->  true
+	;   Boxes = [accept(_,_),accept(_,_)|_]
+	->  print_message(error, html(multiple_receivers(Id)))
 	;   print_message(error, html(no_receiver(Id)))
 	).
 
-posted([]) -->
-	[].
-posted([post(HTML)|T]) --> !,
-	html(HTML),
-	posted(T).
-posted([_|T]) -->
-	posted(T).
+mail_handlers([], [], []).
+mail_handlers([post(Module,HTML)|T0], H, [Module:HTML|T]) :- !,
+	mail_handlers(T0, H, T).
+mail_handlers([H|T0], [H|T], C) :-
+	mail_handlers(T0, T, C).
+	
+extend_args(Term, Extra, NewTerm) :-
+	Term =.. [Name|Args],
+	append(Args, [Extra], NewArgs),
+	NewTerm =.. [Name|NewArgs].
+
+%%	sorted_html(+Content:list)// is det.
+%
+%	Default  handlers  for  html_receive//1.  It  sorts  the  posted
+%	objects to create a unique list.
+%	
+%	@bug	Elements can differ just on the module.  Ideally we
+%		should phrase all members, sort the list of list of
+%		tokens and emit the result.  Can we do better?
+
+sorted_html(List) -->
+	{ sort(List, Unique) },
+	html(Unique).
 
 
 		 /*******************************
@@ -808,7 +836,7 @@ write_html([nl(N)|T], Out) :- !,
 	write_nl(Lines, Out),
 	write_html(T2, Out).
 write_html([mailbox(_, Box)|T], Out) :- !,
-	(   Box = accept(Accepted)
+	(   Box = accept(_, Accepted)
 	->  write_html(Accepted, Out)
 	;   true
 	),
@@ -858,7 +886,7 @@ html_print_length([nl(N)|T], L0, L) :- !,
 	L1 is L0 + Lines,		% assume only \n!
 	html_print_length(T1, L1, L).
 html_print_length([mailbox(_, Box)|T], L0, L) :- !,
-	(   Box = accept(Accepted)
+	(   Box = accept(_, Accepted)
 	->  html_print_length(Accepted, L0, L1)
 	;   L1 = L0
 	),
