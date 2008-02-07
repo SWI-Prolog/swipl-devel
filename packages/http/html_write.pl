@@ -71,7 +71,7 @@
 	page(:, :, -, +),
 	pagehead(:, -, +),
 	pagebody(:, -, +),
-	html_post(+, :).
+	html_post(+, :, -, +).
 
 /** <module> Write HTML text
 
@@ -572,13 +572,13 @@ html_quoted_attribute(Text) -->
 		 *	REPOSITIONING HTML	*
 		 *******************************/
 
-%%	html_post(+Id, :Content)// is det.
+%%	html_post(+Id, :HTML)// is det.
 %
 %	Reposition HTML to  the  receiving   Id.  The  http_post//2 call
-%	processes Content as html//1 but instead  of emitting the tokens
-%	it associates them with  Id.  All   _distinct_  token  lists are
-%	inserted  into  the  HTML  output  at    the   location  of  the
-%	corresponding html_receive//1 call.
+%	processes HTML using html//1. Embedded   \-commands are executed
+%	by mainman/1 from  print_html/1   or  html_print_length/2. These
+%	commands are called in the calling   context of the html_post//2
+%	call.
 %	
 %	A typical usage scenario is to  get   required  CSS links in the
 %	document head in a reusable fashion. First, we define css//1 as:
@@ -603,8 +603,8 @@ html_quoted_attribute(Text) -->
 %	==
 
 html_post(Id, Content) -->
-	{ phrase(html(Content), Tokens) },
-	[ mailbox(Id, post(Tokens)) ].
+	{ strip_module(Content, M, C) },
+	[ mailbox(Id, post(M:C)) ].
 
 %%	html_receive(+Id)// is det.
 %
@@ -657,8 +657,8 @@ mail_id(Id-List) :-
 
 posted([]) -->
 	[].
-posted([post(Tokens)|T]) --> !,
-	Tokens,
+posted([post(HTML)|T]) --> !,
+	html(HTML),
 	posted(T).
 posted([_|T]) -->
 	posted(T).
