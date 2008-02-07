@@ -288,21 +288,22 @@ hook_module(user, PI) :-
 %	print_html/2.
 
 html(Spec) -->
-	{ strip_module(Spec, M, T)
-	},
+	{ strip_module(Spec, M, T) },
 	html(T, M).
 
 html([], _) --> !,
 	[].
 html([H|T], M) --> !,
-	(   do_expand(H, M)
-	->  []
-	;   { print_message(error, html(expand_failed(H)))
-	    }
-	),
+	html_expand(H, M),
 	html(T, M).
 html(X, M) -->
-	do_expand(X, M).
+	html_expand(X, M).
+
+html_expand(Term, Module) -->
+	do_expand(Term, Module), !.
+html_expand(Term, _Module) -->
+	 { print_message(error, html(expand_failed(Term))) }.
+
 
 :- multifile
 	expand/3.
@@ -643,7 +644,7 @@ mailboxes([_|T0], T) :-
 	mailboxes(T0, T).
 
 mail_id(Id-List) :-
-	sort(List, Sorted),
+	sort(List, Sorted),		% looses order
 	(   Sorted = [accept(In)|Posted]
 	->  (   Posted = [accept(_)|_]
 	    ->	print_message(error, html(multiple_receivers(Id)))
