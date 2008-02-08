@@ -27,19 +27,22 @@
 
 /** <module> Graph manipulation library
 
-The S-representation of a graph is a list of (vertex-neighbours) pairs,
-where the pairs are in standard order (as produced by keysort) and the
-neighbours of each vertex are also in standard order (as produced by
+The S-representation of a graph is  a list of (vertex-neighbours) pairs,
+where the pairs are in standard order   (as produced by keysort) and the
+neighbours of each vertex are also  in   standard  order (as produced by
 sort). This form is convenient for many calculations.
 
-adapted to support some of the functionality of the SICStus ugraphs library
-by Vitor Santos Costa.
+A   new   UGraph   from    raw    data     can    be    created    using
+vertices_edges_to_ugraph/3.
+
+Adapted to support some of  the   functionality  of  the SICStus ugraphs
+library by Vitor Santos Costa.
 
 Ported from YAP 5.0.1 to SWI-Prolog by Jan Wielemaker. 
 
-As the original code was distributed in the public domain and YAP
-under the Perl artistic license the code can be used with SWI-Prolog
-applications without consequences to the overall system or proprietary
+As the original code was distributed in  the public domain and YAP under
+the  Perl  artistic  license  the  code  can  be  used  with  SWI-Prolog
+applications without consequences to the   overall system or proprietary
 code linked to SWI-Prolog
 
 @author R.A.O'Keefe
@@ -109,17 +112,40 @@ code linked to SWI-Prolog
 */
  
  
-%%	vertices(+S_Graph, -Vertices)
+%%	vertices(+S_Graph, -Vertices) is det.
 %   
 %	Strips off the  neighbours  lists   of  an  S-representation  to
 %	produce  a  list  of  the  vertices  of  the  graph.  (It  is  a
 %	characteristic of S-representations that *every* vertex appears,
-%	even if it has no neighbours.)
+%	even if it has no  neighbours.).   Vertices  is  in the standard
+%	order of terms.
  
 vertices([], []) :- !.
 vertices([Vertex-_|Graph], [Vertex|Vertices]) :-
 	vertices(Graph, Vertices).
+
  
+%%	vertices_edges_to_ugraph(+Vertices, +Edges, -UGraph) is det.
+%
+%	Create a UGraph from Vertices and edges.   Given  a graph with a
+%	set of Vertices and a set of   Edges,  Graph must unify with the
+%	corresponding S-representation. Note that   the vertices without
+%	edges will appear in Vertices but not  in Edges. Moreover, it is
+%	sufficient for a vertice to appear in Edges.
+%	
+%	==
+%	?- vertices_edges_to_ugraph([],[1-3,2-4,4-5,1-5], L).
+%	L = [1-[3,5], 2-[4], 3-[], 4-[5], 5-[]]
+%	==
+%	
+%	In this case all  vertices  are   defined  implicitly.  The next
+%	example shows three unconnected vertices:
+%	
+%	==
+%	?- vertices_edges_to_ugraph([6,7,8],[1-3,2-4,4-5,1-5], L).
+%	L = [1-[3,5], 2-[4], 3-[], 4-[5], 5-[], 6-[], 7-[], 8-[]]
+%	==
+
 vertices_edges_to_ugraph(Vertices, Edges, Graph) :-
 	sort(Edges, EdgeSet),
 	p_to_s_vertices(EdgeSet, IVertexBag),
@@ -351,7 +377,22 @@ compose1(=, V1, Vs1, V1, N2, G2, SoFar, Comp) :-
 	ord_union(N2, SoFar, Next),
 	compose1(Vs1, G2, Next, Comp).
  
- 
+%%	top_sort(+Graph, -Sorted) is semidet.
+%%	top_sort(+Graph, -Sorted, ?Tail) is semidet.
+%
+%	Sorted is a  topological  sorted  list   of  nodes  in  Graph. A
+%	toplogical sort is possible  if  the   graph  is  connected  and
+%	acyclic. In the example we show   how  topological sorting works
+%	for a linear graph: 
+%	
+%	==
+%	?- top_sort([1-[2], 2-[3], 3-[]], L).
+%	L = [1, 2, 3]
+%	==
+%	
+%	The  predicate  top_sort/3  is  a  difference  list  version  of
+%	top_sort/2.
+
 top_sort(Graph, Sorted) :-
 	vertices_and_zeros(Graph, Vertices, Counts0),
 	count_edges(Graph, Vertices, Counts0, Counts1),
@@ -377,7 +418,8 @@ count_edges([_-Neibs|Graph], Vertices, Counts0, Counts2) :-
  
  
 incr_list([], _, Counts, Counts) :- !.
-incr_list([V1|Neibs], [V2|Vertices], [M|Counts0], [N|Counts1]) :- V1 == V2, !,
+incr_list([V1|Neibs], [V2|Vertices], [M|Counts0], [N|Counts1]) :-
+	V1 == V2, !,
 	N is M+1,
 	incr_list(Neibs, Vertices, Counts0, Counts1).
 incr_list(Neibs, [_|Vertices], [N|Counts0], [N|Counts1]) :-
@@ -406,7 +448,8 @@ top_sort([Zero|Zeros], [Zero|Sorted], Sorted0, Graph, Vertices, Counts1) :-
 	decr_list(Neibs, Vertices, Counts1, Counts2, Zeros, NewZeros),
 	top_sort(NewZeros, Sorted, Sorted0, Graph, Vertices, Counts2).
  
-graph_memberchk(Element1-Edges, [Element2-Edges2|_]) :- Element1 == Element2, !,
+graph_memberchk(Element1-Edges, [Element2-Edges2|_]) :-
+	Element1 == Element2, !,
 	Edges = Edges2.
 graph_memberchk(Element, [_|Rest]) :-
         graph_memberchk(Element, Rest).
