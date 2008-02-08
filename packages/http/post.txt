@@ -5,11 +5,12 @@ elements in the HTML <head> element or  <script> elements in the <body>.
 Unfortunately this seriously harms re-using HTML DCG rules as components
 as each of these components  may  rely   on  their  own  style sheets or
 JavaScript code. We added a `mailing'   system to reposition and collect
-fragments  of  HTML.   This   is    implemented   by   html_post//2  and
-html_receive//1.
+fragments of HTML. This is  implemented by html_post//2, html_receive//1
+and html_receive//2.
 
 	* [[html_post//2]]
 	* [[html_receive//1]]
+	* [[html_receive//2]]
 
 The library predefines the receiver channel  =head=   at  the end of the
 =head= element for all pages that  write   the  html =head= through this

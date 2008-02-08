@@ -613,7 +613,6 @@ html_post(Id, Content) -->
 	[ mailbox(Id, post(M, C)) ].
 
 %%	html_receive(+Id)// is det.
-%%	html_receive(+Id, :Handler)// is det.
 %
 %	Receive posted HTML tokens. Unique   sequences  of tokens posted
 %	with  html_post//2  are  inserted   at    the   location   where
@@ -621,10 +620,30 @@ html_post(Id, Content) -->
 %	
 %	@see	The local predicate sorted_html//1 handles the output of
 %		html_receive//1.
+%	@see	html_receive//2 allows for post-processing the posted
+%		material.
 
 html_receive(Id) -->
 	html_receive(Id, sorted_html).
 
+%%	html_receive(+Id, :Handler)// is det.
+%
+%	This extended version of html_receive//1   causes  Handler to be
+%	called to process all messages posted to the channal at the time
+%	output is generated. Handler is a   grammar  rule that is called
+%	with three extra arguments.
+%	
+%	    1. A list of Module:Term, of posted terms.  Module is the
+%	       contest module of html_post and Term is the unmodified
+%	       term.  Members are in the order posted and may contain
+%	       duplicates.
+%	    2. DCG input list.  The final output must be produced by a
+%	       call to html//1.
+%	    3. DCG output list.
+%	    
+%	Typically, Handler collects the posted   terms,  creating a term
+%	suitable for html//1 and finally calls html//1.
+    
 html_receive(Id, Handler) -->
 	{ strip_module(Handler, M, P) },
 	[ mailbox(Id, accept(M:P, _)) ].

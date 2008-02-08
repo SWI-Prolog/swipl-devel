@@ -2079,18 +2079,18 @@ elements in the <VAR>&lt;</VAR>body<VAR>&gt;</VAR>. Unfortunately this
 seriously harms re-using HTML DCG rules as components as each of these 
 components may rely on their own style sheets or JavaScript code. We 
 added a `mailing' system to reposition and collect fragments of HTML. 
-This is implemented by <SPAN class="pred-ext">html_post/4</SPAN> and
-<SPAN class="pred-ext">html_receive/3</SPAN>.
+This is implemented by <SPAN class="pred-ext">html_post/4</SPAN>, <SPAN class="pred-ext">html_receive/3</SPAN> 
+and <SPAN class="pred-ext">html_receive/4</SPAN>.
 
 <DL>
 <DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="html_post/2"><STRONG>html_post</STRONG>(<VAR>+Id, 
-:Content</VAR>)</A><CODE>//</CODE></DT>
+:HTML</VAR>)</A><CODE>//</CODE></DT>
 <DD class="defbody">
-Reposition HTML to the receiving <VAR>Id</VAR>. The <A class="pred" href="#http_post/4">http_post/4</A> 
-call processes <VAR>Content</VAR> as <SPAN class="pred-ext">html/3</SPAN> 
-but instead of emitting the tokens it associates them with <VAR>Id</VAR>. 
-All <I>distinct</I> token lists are inserted into the HTML output at the 
-location of the corresponding <SPAN class="pred-ext">html_receive/3</SPAN> 
+Reposition <VAR>HTML</VAR> to the receiving <VAR>Id</VAR>. The <A class="pred" href="#http_post/4">http_post/4</A> 
+call processes <VAR>HTML</VAR> using <SPAN class="pred-ext">html/3</SPAN>. 
+Embedded <CODE>\</CODE>-commands are executed by <SPAN class="pred-ext">mainman/1</SPAN> 
+from <A class="pred" href="#print_html/1">print_html/1</A> or <A class="pred" href="#html_print_length/2">html_print_length/2</A>. 
+These commands are called in the calling context of the <SPAN class="pred-ext">html_post/4</SPAN> 
 call.
 
 <P>A typical usage scenario is to get required CSS links in the document 
@@ -2122,6 +2122,34 @@ following call to <A class="pred" href="#reply_html_page/2">reply_html_page/2</A
 Receive posted HTML tokens. Unique sequences of tokens posted with <SPAN class="pred-ext">html_post/4</SPAN> 
 are inserted at the location where
 <SPAN class="pred-ext">html_receive/3</SPAN> appears.
+
+<DL>
+<DT><B>See also</B><DD>- The local predicate <SPAN class="pred-ext">sorted_html/3</SPAN> 
+handles the output of
+<SPAN class="pred-ext">html_receive/3</SPAN>. <BR>
+- <SPAN class="pred-ext">html_receive/4</SPAN> allows for 
+post-processing the posted material.
+</DL>
+
+</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="html_receive/2"><STRONG>html_receive</STRONG>(<VAR>+Id, 
+:Handler</VAR>)</A><CODE>//</CODE></DT>
+<DD class="defbody">
+This extended version of <SPAN class="pred-ext">html_receive/3</SPAN> 
+causes <VAR>Handler</VAR> to be called to process all messages posted to 
+the channal at the time output is generated. <VAR>Handler</VAR> is a 
+grammar rule that is called with three extra arguments.
+
+<P><OL>
+<LI>A list of Module:Term, of posted terms. Module is the contest module 
+of html_post and Term is the unmodified term. Members are in the order 
+posted and may contain duplicates.
+<LI>DCG input list. The final output must be produced by a call to <SPAN class="pred-ext">html/3</SPAN>.
+<LI>DCG output list.
+</OL>
+
+<P>Typically, <VAR>Handler</VAR> collects the posted terms, creating a 
+term suitable for <SPAN class="pred-ext">html/3</SPAN> and finally calls <SPAN class="pred-ext">html/3</SPAN>.
 </DD>
 </DL>
 
@@ -2933,6 +2961,9 @@ based servers are not widely used.
 <DD>
 </DD>
 <DT><A class="idx" href="#html_receive/1">html_receive/1</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#html_receive/2">html_receive/2</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#html_write:expand/1">html_write:expand/1</A></DT>
