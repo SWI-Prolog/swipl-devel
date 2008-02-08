@@ -64,7 +64,7 @@
 :- use_module(library(pairs)).
 :- use_module(library(sgml)).		% Quote output
 :- use_module(library(quintus)).	% for meta_predicate/1
-:- set_prolog_flag(generate_debug_info, false).
+%:- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
 	reply_html_page(:, :),
@@ -692,6 +692,30 @@ sorted_html(List) -->
 	{ sort(List, Unique) },
 	html(Unique).
 
+%%	head_html(+Content:list)// is det.
+%
+%	Handler for html_receive(head). Unlike  sorted_html//1, it calls
+%	a user hook  html_write:html_head_expansion/2   to  process  the
+%	collected head material into a term suitable for html//1.
+%	
+%	@tbd  This  has  been  added    to   facilate  html_head.pl,  an
+%	experimental  library  for  dealing  with   css  and  javascript
+%	resources. It feels a bit like a hack, but for now I do not know
+%	a better solution.
+
+head_html(List) -->
+	{ html_expand_head(List, NewList) },
+	html(NewList).
+
+:- multifile
+	html_head_expansion/2.
+
+html_expand_head(List0, List) :-
+	html_head_expansion(List0, List1),
+	List0 \== List1, !,
+	html_expand_head(List1, List).
+html_expand_head(List, List).
+
 
 		 /*******************************
 		 *	       LAYOUT		*
@@ -711,7 +735,7 @@ post_open(_) -->
 	[].
 
 pre_close(head) --> !,
-	html_receive(head),
+	html_receive(head, head_html),
 	{ layout(head, _, N-_) },
 	[ nl(N) ].
 pre_close(Env) -->
