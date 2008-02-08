@@ -1953,7 +1953,7 @@ all_collect([X|Xs], Vs0, Vs) :-
         ).
 
 reinforce_(X) :-
-        (   get_attr(X, clpfd, _), get(X, Dom, Ps) ->
+        (   fd_var(X), get(X, Dom, Ps) ->
             put_full(X, Dom, Ps)
         ;   true
         ).
@@ -3156,6 +3156,29 @@ serialize_upper_bound(I, D_I, J, D_J) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Reflection predicates
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+fd_var(X) :- get_attr(X, clpfd, _).
+
+fd_min(X, Min) :-
+        get(X, XD, _),
+        domain_infimum(XD, Min0),
+        bound_portray(Min0, Min).
+
+fd_max(X, Max) :-
+        get(X, XD, _),
+        domain_supremum(XD, Max0),
+        bound_portray(Max0, Max).
+
+fd_size(X, S) :-
+        get(X, XD, _),
+        domain_num_elements(XD, S0),
+        bound_portray(S0, S).
+
+fd_dom(X, Drep) :- get(X, XD, _), domain_to_drep(XD, Drep).
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Hooks
