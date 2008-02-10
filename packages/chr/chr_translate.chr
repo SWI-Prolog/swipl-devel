@@ -1227,17 +1227,17 @@ add_rules([Rule|Rules]) :-
 %% Some input verification:
 
 check_declared_constraints(Constraints) :-
-	empty_assoc(Acc),
+	tree_set_empty(Acc),
 	check_declared_constraints(Constraints,Acc).
 
 check_declared_constraints([],_).
 check_declared_constraints([C|Cs],Acc) :-
-	( get_assoc(Acc,C,_) ->
+	( tree_set_memberchk(C,Acc) ->
 		chr_error(syntax(C),'Constraint multiply defined: ~w.\n\tRemove redundant declaration!\n',[C])
 	;
 		true
 	),
-	put_assoc(C,Acc,x,NAcc),
+	tree_set_add(Acc,C,NAcc),
 	check_declared_constraints(Cs,NAcc).
 
 %%  - all constraints in heads are declared constraints
@@ -1271,7 +1271,7 @@ check_trivial_propagation_rule(PragmaRule) :-
 check_head_constraints([],_,_).
 check_head_constraints([Constr|Rest],Decls,PragmaRule) :-
 	functor(Constr,F,A),
-	( member(F/A,Decls) ->
+	( memberchk(F/A,Decls) ->
 		check_head_constraints(Rest,Decls,PragmaRule)
 	;
 		chr_error(syntax(Constr),'Undeclared constraint ~w in head of ~@.\n\tConstraint should be one of ~w.\n', [F/A,format_rule(PragmaRule),Decls])
@@ -1596,7 +1596,7 @@ observation_analysis(RuleNb, Term, GB, Cs) :-
 		observation_analysis(RuleNb,T2,GB,Cs)
 	; Term = (\+ T) ->
 		observation_analysis(RuleNb,T,GB,Cs)
-	; functor(Term,F,A), member(F/A,Cs) ->
+	; functor(Term,F,A), memberchk(F/A,Cs) ->
 		spawns(RuleNb,GB,F/A)
 	; Term = (_ = _) ->
 		spawns_all_triggers(RuleNb,GB)
@@ -2755,7 +2755,7 @@ generate_attr_unify_hook_one([Clause]) :-
 	get_target_module(Mod),
 	get_indexed_constraint(1,C),
 	( get_store_type(C,ST),
-	  ( ST = default ; ST = multi_store(STs), member(default,STs) ) -> 
+	  ( ST = default ; ST = multi_store(STs), memberchk(default,STs) ) -> 
 		make_run_suspensions(NewSusps,SortedSusps,WakeNewSusps),
 		make_run_suspensions(SortedSusps,SortedSusps,WakeSusps),
 		( atomic_types_suspended_constraint(C) ->
@@ -3962,13 +3962,12 @@ multi_hash_key_args(Index,Head,KeyArgs) :-
 %-------------------------------------------------------------------------------	
 atomic_constants_code(C,Index,Constants,L,T) :-
 	constants_store_index_name(C,Index,IndexName),
-	findall(Clause, 
-	      	( member(Constant,Constants),
-	      	  constants_store_name(C,Index,Constant,StoreName),
-	      	  Clause =.. [IndexName,Constant,StoreName] 
-	      	),
-	      Clauses),
+	maplist(atomic_constant_code(C,Index,IndexName),Constants,Clauses),
 	append(Clauses,T,L).
+
+atomic_constant_code(C,Index,IndexName,Constant,Clause) :-
+      	  constants_store_name(C,Index,Constant,StoreName),
+      	  Clause =.. [IndexName,Constant,StoreName].
 
 %-------------------------------------------------------------------------------	
 ground_constants_code(C,Index,Terms,L,T) :-
@@ -4149,7 +4148,7 @@ prolog_global_variables_code(Code) :-
 	( Names == [] ->
 		Code = []
 	;
-		findall('$chr_prolog_global_variable'(Name),member(Name,Names),NameDeclarations),
+		maplist(wrap_in_functor('$chr_prolog_global_variable'),Names,NameDeclarations),
 		Code = [(:- dynamic user:exception/3),
 			(:- multifile user:exception/3),
 			(user:exception(undefined_global_variable,Name,retry) :-
@@ -4389,7 +4388,8 @@ rule(RuleNb,Rule) \ simplify_guards(RuleNb)
 		Rule = pragma(rule(Head1,Head2,Guard,_B),ids(IDs1,IDs2),_Pragmas,_Name,RuleNb),
 		append(Head1,Head2,Heads),
 		make_head_matchings_explicit_not_negated(Heads,MatchingFreeHeads,Matchings),
-		multiple_occ_constraints_checked([]),
+		tree_set_empty(Done),
+		multiple_occ_constraints_checked(Done),
 		apply_guard_wrt_term(Heads,Guard,SubstitutedHeads),
 
 		append(IDs1,IDs2,IDs),
@@ -4900,10 +4900,11 @@ prev_guard_list(RuleNb,H,G,GuardList,M,[]),
 	 	chr_pp_flag(occurrence_subsumption,on),
     		Rule = pragma(rule(H1,H2,_G,_B),_Ids,_Pragmas,_Name,_RuleNb), % RuleNb == _RuleNb
     		H1 \== [],
-    		\+ memberchk_eq(C,Done) 
+    		\+ tree_set_memberchk(C,Done) 
 	|
     		first_occ_in_rule(RuleNb,C,O,ID),
-    		multiple_occ_constraints_checked([C|Done]).
+		tree_set_add(Done,C,NDone),
+    		multiple_occ_constraints_checked(NDone).
 
 %	Find first occurrence of  constraint =C= in rule =RuleNb=
 occurrence(C,O,RuleNb,ID,_) \ first_occ_in_rule(RuleNb,C,O2,_) 
@@ -8624,9 +8625,6 @@ assume_constraint_stores([C|Cs]) :-
 	  get_store_type(C,default) ->
 		get_indexed_arguments(C,AllIndexedArgs),
 		get_constraint_mode(C,Modes),
-		%	findall(Index,(member(Index,AllIndexedArgs),
-		%		    nth1(Index,Modes,+)),IndexedArgs),
-		%	length(IndexedArgs,NbIndexedArgs),
 		aggregate_all(bag(Index)-count,
 					(member(Index,AllIndexedArgs),nth1(Index,Modes,+)),
 			      IndexedArgs-NbIndexedArgs),
@@ -10244,7 +10242,7 @@ declaration(ModeDecls,TypeDecls,ConstraintSymbol,
 	( memberchk(ModeDeclPattern,ModeDecls) ->
 		true
 	;
-		findall((?),between(1,Arity,_),Modes),
+		replicate(Arity,(?),Modes),
 		ModeDeclPattern =.. [_|Modes]
 	),
 	% print optional type declaration
@@ -10252,7 +10250,7 @@ declaration(ModeDecls,TypeDecls,ConstraintSymbol,
 	( memberchk(TypeDeclPattern,TypeDecls) ->
 		true
 	;
-		findall(any,between(1,Arity,_),Types),
+		replicate(Arity,any,Types),
 		TypeDeclPattern =.. [_|Types]
 	).
 % }}}
@@ -10419,7 +10417,7 @@ dispatching_rule_term_cases(SFs,NC/N,Rules,RestRules) :-
 	length(Terms,K),
 	replicate(K,[],MorePatterns),
 	Payload is N - 1,
-	findall(dispatching_action(Functor),member(Functor,Functors),Actions),
+	maplist(dispatching_action,Functors,Actions),
 	dispatch_trie_index([Terms|MorePatterns],Payload,Actions,NC,Rules,RestRules).
 
 dispatching_action(Functor,PayloadArgs,Goal) :-
@@ -10556,7 +10554,7 @@ flatten_heads((H # Annotation),Dict,(NH # Annotation)) :- !,
 	flatten_heads(H,Dict,NH).
 flatten_heads(H,Dict,NH) :-
 	( functor(H,C,N),
-	  once(member(C/N-I-SFs,Dict)) ->
+	  memberchk(C/N-I-SFs,Dict) ->
 		H =.. [_|AllArgs],
 		split(AllArgs,I,PreArgs,Arg,PostArgs),
 		member(Term-Name,SFs),
@@ -10608,11 +10606,12 @@ specialize_goal(Goal,ArgPos,NGoal) :-
 % }}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dump_code(Clauses) :-
-	( chr_pp_flag(dump,on),
-		member(Clause,Clauses),
-		copy_term_nat(Clause,NClause),
-		portray_clause(NClause),
-		fail
+	( chr_pp_flag(dump,on) ->
+		maplist(portray_clause,Clauses)
+		% member(Clause,Clauses),
+		% copy_term_nat(Clause,NClause),
+		% portray_clause(NClause),
+		% fail
 	;
 		true
 	).	
