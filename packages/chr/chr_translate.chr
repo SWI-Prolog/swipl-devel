@@ -48,7 +48,7 @@
 %% 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
-%% OPEN BUGS
+%% TODO {{{
 %%
 %% URGENTLY TODO
 %%
@@ -126,20 +126,22 @@
 %%                                      false -> smart backtracking
 %%          only works for rules with at least 3 constraints in the head
 %%	* (set semantics + functional dependency) declaration + resolution
-%%
+%% }}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- module(chr_translate,
 	  [ chr_translate/2		% +Decls, -TranslatedDecls
 	  , chr_translate_line_info/3	% +DeclsWithLines, -TranslatedDecls
 	  ]).
-%% SWI begin
+%% SWI begin {{{
 :- use_module(library(lists),[member/2, append/3,reverse/2,permutation/2,last/2]).
 :- use_module(library(ordsets)).
 :- use_module(library(aggregate)).
 :- use_module(library(apply_macros)).
 :- use_module(library(occurs)).
-%% SWI end
+:- use_module(library(assoc)).
+%% SWI end }}}
 
+% imports and operators {{{
 :- use_module(hprolog).
 :- use_module(pairlist).
 :- use_module(a_star).
@@ -160,13 +162,14 @@
 :- op(980, fx, (?)).
 :- op(1150, fx, constraints).
 :- op(1150, fx, chr_constraint).
+% }}}
 
 :- chr_option(debug,off).
 :- chr_option(optimize,full).
 :- chr_option(check_guard_bindings,off).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+% Type Declarations {{{
 :- chr_type list(T) 	---> [] ; [T|list(T)].
 
 :- chr_type list    	==   list(any).
@@ -211,7 +214,7 @@
 			;	identifier_store(int)
 			;	type_indexed_identifier_store(int,any).
 :- chr_type coverage	--->	complete ; incomplete.
-
+% }}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %------------------------------------------------------------------------------%
@@ -430,7 +433,7 @@ store_type(FA,StoreType)
 	% chr_info(verbose,'Storetype of ~w is ~w.\n',[FA,StoreType]).
 
 format_storetype(multi_store(StoreTypes)) :- !,
-	forall(member(StoreType,StoreTypes), format_storetype(StoreType)).
+	maplist(format_storetype,StoreTypes).
 format_storetype(atomic_constants(Index,Constants,_)) :-
 	format('\t* a trie index on the argument(s) ~w for the ground terms ~w\n',[Index,Constants]).
 format_storetype(ground_constants(Index,Constants,_)) :-
@@ -460,7 +463,7 @@ get_store_type(_,Query)
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 actual_store_types(C,STs) \ update_store_type(C,ST)
-	<=> member(ST,STs) | true.
+	<=> memberchk(ST,STs) | true.
 update_store_type(C,ST), actual_store_types(C,STs)
 	<=> 
 		actual_store_types(C,[ST|STs]).
@@ -477,32 +480,37 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_atomic_mul
 	|
 		delete(STs,multi_hash([Index]),STs0),
 		Index = [IndexPos],
-		( get_constraint_type(C,Types),
-		  nth1(IndexPos,Types,Type),
-		  enumerated_atomic_type(Type,Atoms),
-		  sort(Atoms,Keys) ->	 
+		( get_constraint_arg_type(C,IndexPos,Type),
+		  enumerated_atomic_type(Type,Atoms) ->	 
+			/* use the type constants rather than the collected keys */
+			Constants    = Atoms,	
 			Completeness = complete
 		;
+			Constants    = Keys,
 			Completeness = incomplete
 		),
-		actual_store_types(C,[atomic_constants(Index,Keys,Completeness)|STs0]).	
-validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_ground_multi_hash_keys(C,Index,Keys)
+		actual_store_types(C,[atomic_constants(Index,Constants,Completeness)|STs0]).	
+validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_ground_multi_hash_keys(C,Index,Constants0)
 	<=>
 		true % chr_pp_flag(experiment,on)
 	|
 		( Index = [IndexPos],
-                  get_constraint_arg_type(C,IndexPos,chr_constants)
+                  get_constraint_arg_type(C,IndexPos,Type),
+		  ( Type = chr_constants(Key)  -> get_chr_constants(Key,Constants)
+		  ; Type = chr_enum(Constants) -> true
+		  )
 		->	 
 			Completeness = complete
 		;
+			Constants    = Constants0,
 			Completeness = incomplete
 		),
 		delete(STs,multi_hash([Index]),STs0),
-		actual_store_types(C,[ground_constants(Index,Keys,Completeness)|STs0]).	
+		actual_store_types(C,[ground_constants(Index,Constants,Completeness)|STs0]).	
 
 get_constraint_arg_type(C,Pos,Type) :-
                   get_constraint_type(C,Types),
-		  nth1(IndexPos,Types,Type0),
+		  nth1(Pos,Types,Type0),
 		  unalias_type(Type0,Type).
 
 validate_store_type_assumption(C) \ actual_store_types(C,STs)
@@ -518,13 +526,16 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs)
 validate_store_type_assumption(C) \ actual_store_types(C,STs)
 	<=>	
 		memberchk(multi_hash([[Index]]),STs),
-		get_constraint_arg_type(C,Index,chr_constants(Constants))
+		get_constraint_arg_type(C,Index,Type),
+		( Type = chr_enum(Constants)  -> true
+		; Type = chr_constants(Key)   -> get_chr_constants(Key,Constants)
+		)
 	|
 		delete(STs,multi_hash([[Index]]),STs0),
 		actual_store_types(C,[ground_constants([Index],Constants,complete)|STs0]).	
 validate_store_type_assumption(C), actual_store_types(C,STs), assumed_store_type(C,_) 	% automatic assumption
 	<=> 
-		( /* chr_pp_flag(experiment,on), */ forall(member(ST,STs), partial_store(ST)) ->
+		( /* chr_pp_flag(experiment,on), */ maplist(partial_store,STs) ->
 			Stores = [global_ground|STs]
 		;
 			Stores = STs
@@ -842,10 +853,12 @@ type_indexed_identifier_name(IndexType,Prefix,Name) :-
 chr_translate(Declarations,NewDeclarations) :-
 	chr_translate_line_info(Declarations,'bootstrap',NewDeclarations).
 
-chr_translate_line_info(Declarations,File,NewDeclarations) :-
-	chr_info(banner,'\tThe K.U.Leuven CHR System\t\n\t\tContributors:\tTom Schrijvers, Jon Sneyers, Bart Demoen,\n\t\t\t\tJan Wielemaker\n\t\tCopyright:\tK.U.Leuven, Belgium\n\t\tURL:\t\thttp://www.cs.kuleuven.be/~~toms/CHR/\n',[]),
+chr_translate_line_info(Declarations0,File,NewDeclarations) :-
+	chr_banner,
+	restart_after_flattening(Declarations0,Declarations),
 	init_chr_pp_flags,
 	chr_source_file(File),
+	/* sort out the interesting stuff from the input */
 	partition_clauses(Declarations,Constraints0,Rules0,OtherClauses),
 	chr_compiler_options:sanity_check,
 
@@ -858,9 +871,25 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	generate_never_stored_rules(Constraints,NewRules),	
 	add_rules(NewRules),
 	append(Rules1,NewRules,Rules),
-	% start analysis
+	chr_analysis(Rules,Constraints,Declarations),
+	time('constraint code generation',chr_translate:constraints_code(Constraints,ConstraintClauses)),
+	time('validate store assumptions',chr_translate:validate_store_type_assumptions(Constraints)),
+	phase_end(validate_store_type_assumptions),
+	used_states_known,	
+	time('store code generation',chr_translate:store_management_preds(Constraints,StoreClauses)),	% depends on actual code used
+	insert_declarations(OtherClauses, Clauses0),
+	chr_module_declaration(CHRModuleDeclaration),
+	append([StoreClauses,ConstraintClauses,CHRModuleDeclaration,[end_of_file]],StuffyGeneratedClauses),
+	clean_clauses(StuffyGeneratedClauses,GeneratedClauses),
+	append([Clauses0,GeneratedClauses], NewDeclarations),
+	dump_code(NewDeclarations),
+	!. /* cut choicepoint of restart_after_flattening */
+
+chr_analysis(Rules,Constraints,Declarations) :-
 	check_rules(Rules,Constraints),
 	time('type checking',chr_translate:static_type_check),
+	/* constants */	
+	collect_constants(Rules,Constraints,Declarations),
 	add_occurrences(Rules),
 	time('functional dependency',chr_translate:functional_dependency_analysis(Rules)),
 	time('set semantics',chr_translate:set_semantics_rules(Rules)),
@@ -874,19 +903,7 @@ chr_translate_line_info(Declarations,File,NewDeclarations) :-
 	time('assume constraint stores',chr_translate:assume_constraint_stores(Constraints)),
 	time('default constraint indices',chr_translate:set_constraint_indices(Constraints)),
 	time('check storedness assertions',chr_translate:check_storedness_assertions(Constraints)),
-	time('continuation analysis',chr_translate:continuation_analysis(Constraints)),
-	% end analysis
-	time('constraint code generation',chr_translate:constraints_code(Constraints,ConstraintClauses)),
-	time('validate store assumptions',chr_translate:validate_store_type_assumptions(Constraints)),
-	phase_end(validate_store_type_assumptions),
-	used_states_known,	
-	time('store code generation',chr_translate:store_management_preds(Constraints,StoreClauses)),	% depends on actual code used
-	insert_declarations(OtherClauses, Clauses0),
-	chr_module_declaration(CHRModuleDeclaration),
-	append([StoreClauses,ConstraintClauses,CHRModuleDeclaration,[end_of_file]],StuffyGeneratedClauses),
-	clean_clauses(StuffyGeneratedClauses,GeneratedClauses),
-	append([Clauses0,GeneratedClauses], NewDeclarations),
-	dump_code(NewDeclarations).
+	time('continuation analysis',chr_translate:continuation_analysis(Constraints)).
 
 store_management_preds(Constraints,Clauses) :-
 	generate_attach_detach_a_constraint_all(Constraints,AttachAConstraintClauses),
@@ -1057,6 +1074,13 @@ extract_type_and_mode(Illegal,_,_) :-
     chr_error(syntax(Illegal),'Illegal mode/type declaration.\n\tCorrect syntax is +type, -type or ?type\n\tor +, - or ?.\n',[]).
 
 is_type_definition(Declaration) :-
+	is_type_definition(Declaration,Result),
+	assert_type_definition(Result).
+
+assert_type_definition(typedef(Name,DefList)) :- type_definition(Name,DefList).
+assert_type_definition(alias(Alias,Name))     :- type_alias(Alias,Name).
+
+is_type_definition(Declaration,Result) :-
 	( Declaration = (:- TDef) ->
 	      true
 	;
@@ -1064,12 +1088,12 @@ is_type_definition(Declaration) :-
 	),
 	TDef =.. [chr_type,TypeDef],
 	( TypeDef = (Name ---> Def) ->
-	      tdisj2list(Def,DefList),
-		type_definition(Name,DefList)
+	        tdisj2list(Def,DefList),
+		Result = typedef(Name,DefList)
 	; TypeDef = (Alias == Name) ->
-		type_alias(Alias,Name)
+		Result = alias(Alias,Name)
 	; 
-	      	type_definition(TypeDef,[]),
+		Result = typedef(TypeDef,[]),
 	      	chr_warning(syntax,'Empty type definition `~w\'.\nAre you sure you want to declare a phantom type?\n',[Declaration])
 	).
 
@@ -1203,16 +1227,18 @@ add_rules([Rule|Rules]) :-
 %% Some input verification:
 
 check_declared_constraints(Constraints) :-
-	check_declared_constraints(Constraints,[]).
+	empty_assoc(Acc),
+	check_declared_constraints(Constraints,Acc).
 
 check_declared_constraints([],_).
 check_declared_constraints([C|Cs],Acc) :-
-	( memberchk_eq(C,Acc) ->
+	( get_assoc(Acc,C,_) ->
 		chr_error(syntax(C),'Constraint multiply defined: ~w.\n\tRemove redundant declaration!\n',[C])
 	;
 		true
 	),
-	check_declared_constraints(Cs,[C|Acc]).
+	put_assoc(C,Acc,x,NAcc),
+	check_declared_constraints(Cs,NAcc).
 
 %%  - all constraints in heads are declared constraints
 %%  - all passive pragmas refer to actual head constraints
@@ -3110,18 +3136,11 @@ insert_constraint_body(global_singleton,C,Susp,[],Body) :-
 		UpdateStoreGoal 
 	).
 insert_constraint_body(multi_store(StoreTypes),C,Susp,UsedVars,Body) :-
-	find_with_var_identity(
-		B-UV,
-		[Susp],
-		( 
-			member(ST,StoreTypes),
-			chr_translate:insert_constraint_body(ST,C,Susp,UV,B)
-		),
-		BodiesUsedVars
-		),
-	once(pairup(Bodies,NestedUsedVars,BodiesUsedVars)),
+	maplist(insert_constraint_body1(C,Susp),StoreTypes,NestedUsedVars,Bodies),
 	list2conj(Bodies,Body),
 	sort_out_used_vars(NestedUsedVars,UsedVars).
+insert_constraint_body1(C,Susp,StoreType,UsedVars,Body) :-
+	insert_constraint_body(StoreType,C,Susp,UsedVars,Body).
 insert_constraint_body(identifier_store(Index),C,Susp,UsedVars,Body) :-
 	UsedVars = [Index-Var],
 	get_identifier_size(ISize),
@@ -3386,18 +3405,12 @@ delete_constraint_body(global_singleton,C,_,_Susp,_,Body) :-
 		UpdateStoreGoal  % b_setval(StoreName,[])
 	).
 delete_constraint_body(multi_store(StoreTypes),C,Head,Susp,VarDict,Body) :-
-	find_with_var_identity(
-		B,
-		[Susp/VarDict/Head],
-		(
-			member(ST,StoreTypes),
-			chr_translate:delete_constraint_body(ST,C,Head,Susp,VarDict,B)
-		),
-		Bodies
-	),
+	maplist(delete_constraint_body1(C,Head,Susp,VarDict),StoreTypes,Bodies),
 	list2conj(Bodies,Body).
+delete_constraint_body1(C,Head,Susp,VarDict,StoreType,Body) :-
+	delete_constraint_body(StoreType,C,Head,Susp,VarDict,Body).
 delete_constraint_body(identifier_store(Index),C,Head,Susp,VarDict,Body) :-
-	get_suspension_argument_possibly_in_scope(Head,Index,VarDict,Susp,Variable,VariableGoal),
+	get_suspension_argument_possibly_in_scope(Head,VarDict,Susp,Index,Variable,VariableGoal),
 	get_identifier_size(ISize),
 	functor(Struct,struct,ISize),
 	get_identifier_index(C,Index,IIndex),
@@ -3409,7 +3422,7 @@ delete_constraint_body(identifier_store(Index),C,Head,Susp,VarDict,Body) :-
 		setarg(IIndex,Variable,NSusps) 
 	). 
 delete_constraint_body(type_indexed_identifier_store(Index,IndexType),C,Head,Susp,VarDict,Body) :-
-	get_suspension_argument_possibly_in_scope(Head,Index,VarDict,Susp,Variable,VariableGoal),
+	get_suspension_argument_possibly_in_scope(Head,VarDict,Susp,Index,Variable,VariableGoal),
 	type_indexed_identifier_structure(IndexType,Struct),
 	get_type_indexed_identifier_index(IndexType,C,Index,IIndex),
 	arg(IIndex,Struct,Susps),
@@ -3612,13 +3625,11 @@ generate_attach_code(type_indexed_identifier_store(Index,IndexType),C,L,T) :-
 	).
 
 constants_initializers(C,Index,Constants) :-
-	maplist(constants_store_name(C,Index),Constants,StoreNames),
-	findall(Initializer,
-			( member(StoreName,StoreNames),
-			  Initializer = nb_setval(StoreName,[])
-			),
-		  Initializers),
-	maplist(module_initializer,Initializers).
+	maplist(constant_initializer(C,Index),Constants).
+
+constant_initializer(C,Index,Constant) :-
+	constants_store_name(C,Index,Constant,StoreName),
+	module_initializer(nb_setval(StoreName,[])).
 
 lookup_identifier_atom(Key,X,IX,Atom) :-
 	atom_concat('lookup_identifier_',Key,LookupFunctor),
@@ -3802,6 +3813,7 @@ specialize_hash_term(Term,NewTerm) :-
 	).	
 
 multi_hash_lookup_goal(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
+	% format(' * lookup of ~w on ~w with ~w.\n',[ConstraintSymbol,Index,Key]),
 	( /* chr_pp_flag(experiment,off) ->
 		true	
 	; */ atomic(Key) ->
@@ -3810,7 +3822,7 @@ multi_hash_lookup_goal(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 		actual_ground_multi_hash_keys(ConstraintSymbol,Index,[Key])
 	;
 		( Index = [Pos], 
-		  get_constraint_arg_type(ConstraintSymbol,Pos,chr_constants)
+		  get_constraint_arg_type(ConstraintSymbol,Pos,chr_constants(_))
 		->
 			true
 		;
@@ -3892,11 +3904,13 @@ multi_hash_key(FA,Index,Susp,KeyBody,Key) :-
 		get_dynamic_suspension_term_field(argument(I),FA,Susp,Key,KeyBody)
 	; is_list(Index) ->
 		sort(Index,Indexes),
-		find_with_var_identity(Goal-KeyI,[Susp],(member(I,Indexes),get_dynamic_suspension_term_field(argument(I),FA,Susp,KeyI,Goal)),ArgKeyPairs), 
-		once(pairup(Bodies,Keys,ArgKeyPairs)),
+		maplist(get_dynamic_suspension_term_field1(FA,Susp),Indexes,Keys,Bodies),
 		Key =.. [k|Keys],
 		list2conj(Bodies,KeyBody)
 	).
+
+get_dynamic_suspension_term_field1(FA,Susp,I,KeyI,Goal) :-
+	get_dynamic_suspension_term_field(argument(I),FA,Susp,KeyI,Goal).
 
 multi_hash_key(C,Head,Index,Susp,VarDict,KeyBody,Key) :-
 	( ( integer(Index) ->
@@ -3904,24 +3918,15 @@ multi_hash_key(C,Head,Index,Susp,VarDict,KeyBody,Key) :-
 	  ; 
 		Index = [I]
 	  ) ->
-		get_suspension_argument_possibly_in_scope(Head,I,VarDict,Susp,Key,KeyBody)
+		get_suspension_argument_possibly_in_scope(Head,VarDict,Susp,I,Key,KeyBody)
 	; is_list(Index) ->
 		sort(Index,Indexes),
-		find_with_var_identity(
-			Goal-KeyI,
-			[Susp/Head/VarDict],
-			(
-				member(I,Indexes),
-				get_suspension_argument_possibly_in_scope(Head,I,VarDict,Susp,KeyI,Goal)
-			),
-			ArgKeyPairs
-		), 
-		once(pairup(Bodies,Keys,ArgKeyPairs)),
+		maplist(get_suspension_argument_possibly_in_scope(Head,VarDict,Susp),Indexes,Keys,Bodies),
 		Key =.. [k|Keys],
 		list2conj(Bodies,KeyBody)
 	).
 
-get_suspension_argument_possibly_in_scope(Head,Index,VarDict,Susp,Arg,Goal) :-
+get_suspension_argument_possibly_in_scope(Head,VarDict,Susp,Index,Arg,Goal) :-
 		arg(Index,Head,OriginalArg),
 		( lookup_eq(VarDict,OriginalArg,Arg) ->
 			Goal = true
@@ -3951,9 +3956,8 @@ multi_hash_key_args(Index,Head,KeyArgs) :-
 	; is_list(Index) ->
 		sort(Index,Indexes),
 		term_variables(Head,Vars),
-		find_with_var_identity(Arg,Vars,(member(I,Indexes), arg(I,Head,Arg)),KeyArgs)
+		maplist(arg1(Head),Indexes,KeyArgs)
 	).
-	
 
 %-------------------------------------------------------------------------------	
 atomic_constants_code(C,Index,Constants,L,T) :-
@@ -3969,11 +3973,7 @@ atomic_constants_code(C,Index,Constants,L,T) :-
 %-------------------------------------------------------------------------------	
 ground_constants_code(C,Index,Terms,L,T) :-
 	constants_store_index_name(C,Index,IndexName),
-	findall(StoreName,
-			( member(Constant,Terms),
-			  constants_store_name(C,Index,Constant,StoreName)
-			),
-		StoreNames),
+	maplist(constants_store_name(C,Index),Terms,StoreNames),
 	length(Terms,N),
 	replicate(N,[],More),
 	trie_index([Terms|More],StoreNames,IndexName,L,T).
@@ -3989,6 +3989,7 @@ constants_store_index_name(F/A,Index,Name) :-
 	term_to_atom(Index,IndexAtom),
 	atom_concat_list(['$chr_store_constants_',Mod,'____',F,'___',A,'___',IndexAtom],Name).
 
+% trie index code {{{
 trie_index([Patterns|MorePatterns],Results,Prefix,Clauses,Tail) :-
 	trie_step(Patterns,Prefix,Prefix,MorePatterns,Results,Clauses,Tail).
 
@@ -4064,6 +4065,7 @@ rec_cases([Pattern|Patterns],[MorePattern|MorePatterns],[Result|Results],F/A,Cas
 	;
 		rec_cases(Patterns,MorePatterns,Results,F/A,Cases,MoreCases,MoreResults)
 	).
+% }}}
 
 %% common_pattern(+terms,-term,-vars,-differences) is det.
 common_pattern(Ts,T,Vars,Differences) :-
@@ -4282,20 +4284,14 @@ enumerate_store_body(multi_hash([Index|_]),C,Susp,Body) :-
 	multi_hash_enumerate_store_body(Index,C,Susp,Body).
 enumerate_store_body(atomic_constants(Index,Constants,Completeness),C,Susp,Body) :- 
 	Completeness == complete, % fail if incomplete
-	find_with_var_identity(nb_getval(StoreName,Susps),[Susps],
-		( member(Constant,Constants), 
-		  constants_store_name(C,Index,Constant,StoreName) ) 
-		, Disjuncts),
+	maplist(enumerate_constant_store_body(C,Index,Susps),Constants,Disjuncts),
 	list2disj(Disjuncts, Disjunction),
 	Body = ( Disjunction, member(Susp,Susps) ).
+enumerate_constant_store_body(C,Index,Susps,Constant,nb_getval(StoreName,Susps)) :-
+	constants_store_name(C,Index,Constant,StoreName).
+	
 enumerate_store_body(ground_constants(Index,Constants,Completeness),C,Susp,Body) :-
-	Completeness == complete, % fail if incomplete
-	find_with_var_identity(nb_getval(StoreName,Susps),[Susps],
-		( member(Constant,Constants), 
-		  constants_store_name(C,Index,Constant,StoreName) ) 
-		, Disjuncts),
-	list2disj(Disjuncts, Disjunction),
-	Body = ( Disjunction, member(Susp,Susps) ).
+	enumerate_store_body(atomic_constants(Index,Constants,Completeness),C,Susp,Body).
 enumerate_store_body(global_ground,C,Susp,Body) :-
 	global_ground_store_name(C,StoreName),
 	sbag_member_call(Susp,List,Sbag),
@@ -5300,9 +5296,11 @@ type_condition([DefCase|DefCases],Arg,UnrollArg,Mode,[Condition|Conditions]) :-
 				;	chr_identifier
 				;	chr_identifier(any)
 				;       /* all possible values are given */
-					chr_constants(list(any))
-				;	/* all possible values appear in rule heads */
-					chr_constants.
+					chr_enum(list(any))
+				;	/* all possible values appear in rule heads; 
+					   to distinguish between multiple chr_constants
+					   we have a key*/
+					chr_constants(any).
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 atomic_builtin_type(any,_Arg,true).
@@ -5312,10 +5310,10 @@ atomic_builtin_type(number,Arg,number(Arg)).
 atomic_builtin_type(float,Arg,float(Arg)).
 atomic_builtin_type(natural,Arg,(integer(Arg),Arg>=0)).
 atomic_builtin_type(chr_identifier,_Arg,true).
-atomic_builtin_type(chr_constants,_Arg,true).
 
+compound_builtin_type(chr_constants(_),_Arg,true,true).
 compound_builtin_type(chr_identifier(_),_Arg,true,true).
-compound_builtin_type(chr_constants(Constants),Arg,(ground(Arg), memberchk(Arg,Constants)),
+compound_builtin_type(chr_enum(Constants),Arg,(ground(Arg), memberchk(Arg,Constants)),
 		     once(( member(Constant,Constants),
 			    unifiable(Arg,Constant,_)
 			  )
@@ -5673,7 +5671,7 @@ type_definition(TypePat,Def) \ atomic_type(Type)
 	<=> 
 		functor(Type,F,A), functor(TypePat,F,A) 
 	|
-		forall(member(Term,Def),atomic(Term)).
+		maplist(atomic,Def).
 
 type_alias(TypePat,Alias) \ atomic_type(Type)
 	<=>
@@ -5697,7 +5695,7 @@ type_definition(TypePat,Def) \ enumerated_atomic_type(Type,Atoms)
 	<=> 
 		functor(Type,F,A), functor(TypePat,F,A) 
 	|
-		forall(member(Term,Def),atomic(Term)),
+		maplist(atomic,Def),
 		Atoms = Def.
 
 type_alias(TypePat,Alias) \ enumerated_atomic_type(Type,Atoms)
@@ -5873,7 +5871,7 @@ check_storage_head2(Head,O,H1,B) :-
 
 constraints_code(Constraints,Clauses) :-
 	(chr_pp_flag(reduced_indexing,on), 
-		    \+ forsome(C,Constraints,\+ chr_translate:only_ground_indexed_arguments(C)) ->
+		forall(C,Constraints,chr_translate:only_ground_indexed_arguments(C)) ->
 	    none_suspended_on_variables
 	;
 	    true
@@ -6278,9 +6276,6 @@ guard_via_reschedule_main_new(PartnerLookups,GuardList,ActiveHead,
 	sort(IndexedGuardListSkeleton,SortedIndexedGuardListSkeleton),
 	snd_of_pairs(SortedIndexedGuardListSkeleton,GuardListSkeleton).
 
-wrap_in_functor(Functor,X,Term) :-
-	Term =.. [Functor,X].
-
 wrappedunits2lists([],[],[],[]).
 wrappedunits2lists([unit(N,WrappedGoal,_,_)|Units],Gs,Ls,Ss) :-
 	Ss = [GoalCopy|TSs],
@@ -6599,6 +6594,7 @@ symmetry_analysis_heads_propagation([H|Hs],[ID|IDs],PreHs,PreIDs,Rule,RuleNb) :-
 %%  ___) | | | | | | | |_) | | |  _| | (_| (_| | |_| | (_) | | | |
 %% |____/|_|_| |_| |_| .__/|_|_|_| |_|\___\__,_|\__|_|\___/|_| |_|
 %%                   |_| 
+%% {{{
 
 simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	PragmaRule = pragma(Rule,_,Pragmas,_,RuleNb),
@@ -6654,6 +6650,8 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 		),
 	add_location(Clause,RuleNb,LocatedClause),
 	L = [LocatedClause | T].
+
+% }}}
 
 add_location(Clause,RuleNb,NClause) :-
 	( chr_pp_flag(line_numbers,on) ->
@@ -7177,6 +7175,7 @@ gen_uncond_susp_detachment(Head,Susp,Role,VarDict,SuspDetachment) :-
 %%  ___) | | | | | | | |_) | (_| | (_| | (_| | |_| | (_) | | | | | |
 %% |____/|_|_| |_| |_| .__/ \__,_|\__, |\__,_|\__|_|\___/|_| |_| |_|
 %%                   |_|          |___/
+%% {{{ 
 
 simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,O,Id,L,T) :-
    	PragmaRule = pragma(Rule,ids(_,Heads2IDs),Pragmas,_Name,RuleNb),
@@ -7238,6 +7237,8 @@ simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,O,Id,L,T) :-
             ),
 	add_location(Clause,RuleNb,LocatedClause),
 	L = [LocatedClause | T].
+
+% }}}
 
 split_by_ids([],[],_,[],[]).
 split_by_ids([I|Is],[S|Ss],I1s,S1s,S2s) :-
@@ -7745,7 +7746,7 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 	( (is_least_occurrence(RuleNb) ; has_no_history(RuleNb)) ->
 		NovelProduction = true,
 		ExtendHistory   = true
-	; \+ may_trigger(F/A), forall(member(SomeID,RestIDs),(chr_translate:is_passive(RuleNb,SomeID))) -> 
+	; \+ may_trigger(F/A), maplist(is_passive(RuleNb),RestIDs) -> 
 		NovelProduction = true,
 		ExtendHistory   = true
 	;
@@ -7979,13 +7980,14 @@ order_score(global_singleton,_Head,ID,_KnownVars,_RestHeads,_RuleNb,Score) :-
 	Score = 1.		% guaranteed O(1)
 			
 order_score(multi_store(StoreTypes),Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
-	find_with_var_identity(
-		S,
-		t(Head,KnownVars,RestHeads),
-		( lists:member(ST,StoreTypes), chr_translate:order_score(ST,Head,ID,KnownVars,RestHeads,RuleNb,S) ),
-		Scores
-	),
+	maplist(order_score1(Head,ID,KnownVars,RestHeads,RuleNb),StoreTypes,Scores),
 	min_list(Scores,Score).
+order_score1(Head,ID,KnownVars,RestHeads,RuleNb,StoreType,Score) :-
+	( order_score(StoreType,Head,ID,KnownVars,RestHeads,RuleNb,Score) ->
+		true
+	;
+		Score = 10000
+	).
 order_score(identifier_store(Index),Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
 	Score = 10.
 order_score(type_indexed_identifier_store(_,_),Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
@@ -8353,7 +8355,7 @@ lookup_passive_head(multi_inthash(Indexes),Head,_PreJoin,VarDict,GroundVars,Goal
 	hash_lookup_passive_head(inthash,Indexes,Head,VarDict,GroundVars,Goal,AllSusps,_).
 lookup_passive_head(multi_hash(Indexes),Head,_PreJoin,VarDict,GroundVars,Goal,AllSusps) :-
 	hash_lookup_passive_head(hash,Indexes,Head,VarDict,GroundVars,Goal,AllSusps,_).
-lookup_passive_head(global_ground,Head,_PreJoin,_VarDict,_,Goal,AllSusps) :-
+lookup_passive_head(global_ground,Head,_PreJoin,_VarDict,_,(Goal,AllSusps \== []),AllSusps) :-
 	functor(Head,F,A),
 	global_ground_store_name(F/A,StoreName),
 	make_get_store_goal(StoreName,AllSusps,Goal), % Goal = nb_getval(StoreName,AllSusps),
@@ -10055,13 +10057,565 @@ get_success_continuation_code_id(C,O,NextId) :-
 	get_occurrence_code_id(C,NextO,NextId).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% COLLECT CONSTANTS FOR INLINING
+%
+% for SSS
 
+% collect_constants(+rules,+constraint_symbols,+clauses) {{{
+collect_constants(Rules,Constraints,Clauses0) :- 
+	( not_restarted ->
+		maplist(collect_rule_constants(Constraints),Rules),
+		( chr_pp_flag(verbose,on) ->
+			print_chr_constants
+		;
+			true
+		),
+		( chr_pp_flag(experiment,on) ->
+			flattening_dictionary(Constraints,Dictionary),
+			copy_term_nat([dict(Dictionary)|Clauses0],Clauses),
+			flatten_clauses(Clauses,FlatClauses),
+			install_new_declarations_and_restart(FlatClauses)
+		;
+			true
+		)
+	;
+		true
+	).
+
+:- chr_constraint chr_constants/2.
+:- chr_option(mode,chr_constants(+,+)).
+
+:- chr_constraint get_chr_constants/2.
+
+chr_constants(Key,Constants) \ get_chr_constants(Key,Q) <=> Q = Constants.
+
+get_chr_constants(Key,Q) <=> chr_warning(internal,'No constants found for key ~w.\n',[Key]), Q = [].
+
+% collect_rule_constants(+constraint_symbols,+rule) {{{
+collect_rule_constants(Constraints,Rule) :-
+	Rule = pragma(rule(H1,H2,_,B),_,_,_,_),
+	maplist(collect_head_constants,H1),
+	maplist(collect_head_constants,H2),
+	collect_body_constants(B,Constraints).
+
+collect_body_constants(Body,Constraints) :-
+	conj2list(Body,Goals),
+	maplist(collect_goal_constants(Constraints),Goals).
+
+collect_goal_constants(Constraints,Goal) :-
+	( nonvar(Goal),
+          functor(Goal,C,N),
+	  memberchk(C/N,Constraints) ->
+		collect_head_constants(Goal)
+	; nonvar(Goal),
+	  Goal = Mod : TheGoal,
+	  get_target_module(Module),
+	  Mod == Module,
+	  nonvar(TheGoal),
+	  functor(TheGoal,C,N),
+	  memberchk(C/N,Constraints) ->
+		collect_head_constants(TheGoal)
+	;
+		true
+	).
+
+collect_head_constants(Head) :-
+	functor(Head,C,N),
+	get_constraint_type_det(C/N,Types),
+	Head =.. [_|Args],
+	maplist(collect_arg_constants,Args,Types).
+
+collect_arg_constants(Arg,Type) :-
+	( ground(Arg),
+	  unalias_type(Type,chr_constants(Key)) ->
+		add_chr_constant(Key,Arg)
+	;
+		true	
+	).
+:- chr_constraint add_chr_constant/2.
+:- chr_option(mode,add_chr_constant(+,+)).
+
+add_chr_constant(Key,Constant) , chr_constants(Key,Constants) <=>
+	sort([Constant|Constants],NConstants),
+	chr_constants(Key,NConstants).
+
+add_chr_constant(Key,Constant) <=>
+	chr_constants(Key,[Constant]).
+
+% }}}
+
+:- chr_constraint print_chr_constants/0. % {{{
+
+print_chr_constants, chr_constants(Key,Constants) # Id ==>
+	format('\t* chr_constants ~w : ~w.\n',[Key,Constants])
+	pragma passive(Id).
+
+print_chr_constants <=>
+	true.
+
+% }}}
+
+% flattening_dictionary(+constraint_symbols,-dictionary) {{{
+flattening_dictionary([],[]).
+flattening_dictionary([CS|CSs],Dictionary) :-
+	( flattening_dictionary_entry(CS,Entry) ->
+		Dictionary = [Entry|Rest]
+	;
+		Dictionary = Rest
+	),
+	flattening_dictionary(CSs,Rest).
+
+flattening_dictionary_entry(CS,Entry) :-
+	get_constraint_arg_type(CS,Pos,Type),
+	Type = chr_constants(Key), !,
+	get_chr_constants(Key,Constants),
+	Entry = CS-Pos-Specs,
+	maplist(flat_spec(CS,Pos),Constants,Specs).
+
+flat_spec(C/N,Pos,Term,Spec) :-
+	Spec = Term - Functor,
+	term_to_atom(Term,TermAtom),
+	atom_concat_list(['$flat_',C,'/',N,'___',Pos,'___',TermAtom],Functor).
+% }}}
+
+% }}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% RESTART AFTER FLATTENING {{{
+
+restart_after_flattening(Declarations,Declarations) :-
+	nb_setval('$chr_restart_after_flattening',started).
+restart_after_flattening(_,Declarations) :-
+	nb_getval('$chr_restart_after_flattening',restart(Declarations)),
+	nb_setval('$chr_restart_after_flattening',restarted).
+
+not_restarted :-
+	nb_getval('$chr_restart_after_flattening',started).
+
+install_new_declarations_and_restart(Declarations) :-
+	nb_setval('$chr_restart_after_flattening',restart(Declarations)),
+	fail. /* fails to choicepoint of restart_after_flattening */
+% }}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FLATTENING {{{
+
+% DONE
+%	-) generate dictionary from collected chr_constants
+%	   enable with :- chr_option(experiment,on).
+%	-) issue constraint declarations for constraints not present in
+%	   dictionary
+% 
+% TODO:
+%	-) integrate with CHR compiler
+%       RELEASE-----------------------------------------------------------------
+%	-) pass Mike's test code (full syntactic support for current CHR code)
+%	-) rewrite the body using the inliner
+%	-) refined semantics correctness issue
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+flatten_clauses(Clauses0,NClauses) :-
+	select(dict(Dict),Clauses0,Clauses),
+	flatten_readcontent(Clauses,Rules,Symbols,ModeDecls,_TypeDefs,TypeDecls,RestClauses),
+	flatten_clauses_(Dict,Rules,RestClauses,Symbols,ModeDecls,TypeDecls,NClauses).
+
+flatten_clauses_(Dict,Clauses,RestClauses,Symbols,ModeDecls,TypeDecls,NClauses) :-
+	auxiliary_constraints_declarations(Dict,ModeDecls,TypeDecls,NClauses0),
+	dispatching_rules(Dict,NClauses1),
+	declarations(Symbols,Dict,ModeDecls,TypeDecls,NClauses2),
+	flatten_rules(Clauses,Dict,NClauses3),
+	append([RestClauses,NClauses0,NClauses1,NClauses2,NClauses3],NClauses).
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+% Declarations for non-flattened constraints
+
+% declarations(+constraint_symbols,+dict,+mode_decls,+type_decls,-clauses) {{{
+declarations(ConstraintSymbols,Dict,ModeDecls,TypeDecls,Declarations) :-
+	findall(Symbol,(member(Symbol,ConstraintSymbols), \+ memberchk(Symbol-_-_,Dict)),Symbols), 
+	maplist(declaration(ModeDecls,TypeDecls),Symbols,DeclarationsList),
+	flatten(DeclarationsList,Declarations).
+
+declaration(ModeDecls,TypeDecls,ConstraintSymbol,
+	[(:- chr_constraint ConstraintSymbol),
+	 (:- chr_option(mode,ModeDeclPattern)),
+         (:- chr_option(type_declaration,TypeDeclPattern))
+	]) :-
+	ConstraintSymbol = Functor / Arity,
+	% print optional mode declaration
+	functor(ModeDeclPattern,Functor,Arity),
+	( memberchk(ModeDeclPattern,ModeDecls) ->
+		true
+	;
+		findall((?),between(1,Arity,_),Modes),
+		ModeDeclPattern =.. [_|Modes]
+	),
+	% print optional type declaration
+	functor(TypeDeclPattern,Functor,Arity),
+	( memberchk(TypeDeclPattern,TypeDecls) ->
+		true
+	;
+		findall(any,between(1,Arity,_),Types),
+		TypeDeclPattern =.. [_|Types]
+	).
+% }}}
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+% read clauses from file
+% 	CHR 			are 	returned
+%	declared constaints	are	returned
+%	type definitions	are 	returned and printed
+%	mode declarations	are 	returned
+%	other clauses 		are 	returned
+
+% flatten_readcontent(+clauses,-rules,-symbols,-mode_decls,-type_defs,-type_decls,-rest_clauses) {{{
+flatten_readcontent([],[],[],[],[],[],[]).
+flatten_readcontent([Clause|RClauses],Rules,ConstraintSymbols,ModeDecls,TypeDefs,TypeDecls,RestClauses) :-
+       	% read(Clause),
+        ( Clause == end_of_file ->
+                Rules 			= [],
+		ConstraintSymbols 	= [],
+		ModeDecls 		= [],
+		TypeDecls 		= [],
+		TypeDefs 		= [],
+		RestClauses		= []
+        ; crude_is_rule(Clause) ->
+		Rules = [Clause|RestRules],
+		flatten_readcontent(RClauses,RestRules,ConstraintSymbols,ModeDecls,TypeDefs,TypeDecls,RestClauses)
+	; pure_is_declaration(Clause,SomeConstraintSymbols,SomeModeDecls,SomeTypeDecls) ->
+		append(SomeConstraintSymbols,RestConstraintSymbols,ConstraintSymbols),
+		append(SomeModeDecls,RestModeDecls,ModeDecls),
+		append(SomeTypeDecls,RestTypeDecls,TypeDecls),
+		flatten_readcontent(RClauses,Rules,RestConstraintSymbols,RestModeDecls,TypeDefs,RestTypeDecls,RestClauses)
+	; is_mode_declaration(Clause,ModeDecl) ->
+		ModeDecls = [ModeDecl|RestModeDecls],
+		flatten_readcontent(RClauses,Rules,ConstraintSymbols,RestModeDecls,TypeDefs,TypeDecls,RestClauses)
+	; is_type_declaration(Clause,TypeDecl) ->
+		TypeDecls = [TypeDecl|RestTypeDecls],
+		flatten_readcontent(RClauses,Rules,ConstraintSymbols,ModeDecls,TypeDefs,RestTypeDecls,RestClauses)
+	; is_type_definition(Clause,TypeDef) ->
+		RestClauses = [Clause|NRestClauses], 
+		TypeDefs = [TypeDef|RestTypeDefs],
+		flatten_readcontent(RClauses,Rules,ConstraintSymbols,ModeDecls,RestTypeDefs,TypeDecls,NRestClauses)
+	;	( Clause = (:- op(A,B,C)) ->
+			% assert operators in order to read and print them out properly
+			op(A,B,C)
+		;
+			true
+		),
+		RestClauses = [Clause|NRestClauses],
+                flatten_readcontent(RClauses,Rules,ConstraintSymbols,ModeDecls,TypeDefs,TypeDecls,NRestClauses)
+        ).
+
+crude_is_rule(_ @ _).
+crude_is_rule(_ pragma _).
+crude_is_rule(_ ==> _).
+crude_is_rule(_ <=> _).	
+
+pure_is_declaration(D, Constraints,Modes,Types) :-		%% constraint declaration
+	D = (:- Decl), Decl =.. [F,Cs], F == (chr_constraint),
+  	conj2list(Cs,Constraints0),
+	pure_extract_type_mode(Constraints0,Constraints,Modes,Types).
+
+pure_extract_type_mode([],[],[],[]).
+pure_extract_type_mode([F/A|R],[F/A|R2],Modes,Types) :- !,
+	pure_extract_type_mode(R,R2,Modes,Types).
+pure_extract_type_mode([C|R],[ConstraintSymbol|R2],[Mode|Modes],Types) :- 
+	functor(C,F,A),
+	ConstraintSymbol = F/A,
+	C =.. [_|Args],
+	extract_types_and_modes(Args,ArgTypes,ArgModes),
+	Mode =.. [F|ArgModes],
+	( forall(member(ArgType,ArgTypes),ArgType == any) ->
+		Types = RTypes
+	;
+		Types = [Type|RTypes],
+		Type =.. [F|ArgTypes]
+	),
+	pure_extract_type_mode(R,R2,Modes,RTypes).
+
+is_mode_declaration((:- chr_option(mode,ModeDecl)),ModeDecl).
+
+is_type_declaration((:- chr_option(type_declaration,TypeDecl)),TypeDecl).
+% }}}
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+%  DECLARATIONS FOR FLATTENED CONSTRAINTS
+%	including mode and type declarations
+
+% auxiliary_constraints_declarations(+dict,+mode_decls,+type_decls,-constraint_specs) {{{
+auxiliary_constraints_declarations(Dict,ModeDecls,TypeDecls,ConstraintSpecs) :-
+	findall(ConstraintSpec,auxiliary_constraints_declaration(Dict,ModeDecls,TypeDecls,ConstraintSpec),ConstraintSpecs0),
+	flatten(ConstraintSpecs0,ConstraintSpecs).
+
+auxiliary_constraints_declaration(Dict,ModeDecls,TypeDecls,
+		[(:- chr_constraint ConstraintSpec),
+		 (:- chr_option(mode,NewModeDecl)),
+		 (:- chr_option(type_declaration,NewTypeDecl))]) :-
+	member(C/N-I-SFs,Dict),
+	arg_modes(C,N,ModeDecls,Modes),
+	specialize_modes(Modes,I,SpecializedModes),
+	arg_types(C,N,TypeDecls,Types),
+	specialize_types(Types,I,SpecializedTypes),
+	AN is N - 1,
+	member(_Term-F,SFs),
+	ConstraintSpec = F/AN,
+	NewModeDecl     =.. [F|SpecializedModes],
+	NewTypeDecl	=.. [F|SpecializedTypes].
+
+arg_modes(C,N,ModeDecls,ArgModes) :-
+	functor(ConstraintPattern,C,N),
+	( memberchk(ConstraintPattern,ModeDecls) ->
+		ConstraintPattern =.. [_|ArgModes]
+	;
+		replicate(N,?,ArgModes)
+	).
+	
+specialize_modes(Modes,I,SpecializedModes) :-
+	split(Modes,I,Before,_At,After),
+	append(Before,After,SpecializedModes).
+
+arg_types(C,N,TypeDecls,ArgTypes) :-
+	functor(ConstraintPattern,C,N),
+	( memberchk(ConstraintPattern,TypeDecls) ->
+		ConstraintPattern =.. [_|ArgTypes]
+	;
+		replicate(N,any,ArgTypes)
+	).
+
+specialize_types(Types,I,SpecializedTypes) :-
+	split(Types,I,Before,_At,After),
+	append(Before,After,SpecializedTypes).
+% }}}
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+% DISPATCHING RULES
+%
+% dispatching_rules(+dict,-newrules)
+
+% {{{
+dispatching_rules([],[]).
+dispatching_rules([CN-I-SFs|Dict], DispatchingRules) :-
+	constraint_dispatching_rule(SFs,CN,I,DispatchingRules,RestDispatchingRules),
+	dispatching_rules(Dict,RestDispatchingRules).
+      
+constraint_dispatching_rule(SFs,CN,I,Rules,RestRules) :-
+ 	( I == 1 ->
+		/* index on first argument */
+		Rules0 = Rules,
+ 		NCN = CN
+ 	;
+		CN = C/N,
+		/* reorder arguments for 1st argument indexing */
+		functor(Head,C,N),
+		Head =.. [_|Args],
+		split(Args,I,BeforeArgs,IndexArg,AfterArgs),
+		append([IndexArg|BeforeArgs],AfterArgs,ShuffledArgs),
+		atom_concat(C,'_$shuffled',NC),
+		Body =.. [NC|ShuffledArgs],
+		[(Head :- Body)|Rules0] = Rules,
+ 		NCN = NC / N
+ 	),
+	dispatching_rule_term_cases(SFs,NCN,Rules0,RestRules).	
+	% dispatching_rule_cases(SFs,NCN,Rules0,RestRules).
+
+dispatching_rule_term_cases(SFs,NC/N,Rules,RestRules) :-
+	once(pairup(Terms,Functors,SFs)),
+	length(Terms,K),
+	replicate(K,[],MorePatterns),
+	Payload is N - 1,
+	findall(dispatching_action(Functor),member(Functor,Functors),Actions),
+	dispatch_trie_index([Terms|MorePatterns],Payload,Actions,NC,Rules,RestRules).
+
+dispatching_action(Functor,PayloadArgs,Goal) :-
+	Goal =.. [Functor|PayloadArgs].
+
+% dispatching_rule_cases([],C/N,Rules,RestRules) :-
+% 	functor(Head,C,N),
+% 	arg(1,Head,IndexArg),
+% 	Body = throw(wrong_argument(C/N,IndexArg)),
+% 	Rules = [(Head :- Body)|RestRules].
+% dispatching_rule_cases([Term-Name|SFs],C/N,[Rule|Rules],RestRules) :-
+% 	functor(Head,C,N),
+% 	Head =.. [_,IndexArg|RestArgs],
+% 	IndexArg = Term,
+% 	Body =.. [Name|RestArgs],
+% 	Rule = (Head :- !, Body),
+% 	dispatching_rule_special(SFs,C/N,Rules,RestRules).
+
+dispatch_trie_index([Patterns|MorePatterns],Payload,Actions,Prefix,Clauses,Tail) :-
+	dispatch_trie_step(Patterns,Prefix,Prefix,MorePatterns,Payload,Actions,Clauses,Tail).
+
+dispatch_trie_step([],_,_,_,[],[],L,L) :- !.
+	% length MorePatterns == length Patterns == length Results
+dispatch_trie_step(Patterns,Symbol,Prefix,MorePatterns,Payload,Actions,Clauses,T) :-
+	writeln(dispatch_trie_step(Patterns,Symbol,Prefix,MorePatterns,Payload,Actions,Clauses,T)),
+	MorePatterns = [List|_],
+	length(List,N),	
+	aggregate_all(set(F/A),
+		( member(Pattern,Patterns),
+		  functor(Pattern,F,A)
+		),
+		FAs),
+	N1 is N + 1,
+	dispatch_trie_step_cases(FAs,N1,Patterns,MorePatterns,Payload,Actions,Symbol,Prefix,Clauses,T).
+
+dispatch_trie_step_cases([],_,_,_,_,_,_,_,Clauses,Clauses).
+dispatch_trie_step_cases([FA|FAs],N,Pattern,MorePatterns,Payload,Actions,Symbol,Prefix,Clauses,Tail) :-
+	dispatch_trie_step_case(FA,N,Pattern,MorePatterns,Payload,Actions,Symbol,Prefix,Clauses,Clauses1),
+	dispatch_trie_step_cases(FAs,N,Pattern,MorePatterns,Payload,Actions,Symbol,Prefix,Clauses1,Tail).
+
+dispatch_trie_step_case(F/A,N,Patterns,MorePatterns,Payload,Actions,Symbol,Prefix,[Clause|List],Tail) :-
+	Clause = (Head :- Body),
+	/* Head = Symbol(IndexPattern,V2,...,Vn,Payload) */
+	N1 is N  + Payload,
+	functor(Head,Symbol,N1),
+	arg(1,Head,IndexPattern),
+	Head =.. [_,_|RestArgs],
+	length(PayloadArgs,Payload),
+	once(append(Vs,PayloadArgs,RestArgs)),
+	/* IndexPattern = F(...) */
+	functor(IndexPattern,F,A),
+	IndexPattern =.. [_|Args],
+	append(Args,RestArgs,RecArgs),
+	( RecArgs == PayloadArgs ->
+		/* nothing more to match on */
+		List = Tail,
+		rec_cases(Patterns,_,Actions,F/A,_,_,MoreActions),
+		MoreActions = [Action],
+		call(Action,PayloadArgs,Body)
+	; 	/* more things to match on */
+		rec_cases(Patterns,MorePatterns,Actions,F/A,Cases,MoreCases,MoreActions),
+		( MoreActions = [OneMoreAction] ->
+			/* only one more thing to match on */
+			List = Tail,
+			call(OneMoreAction,PayloadArgs,Body)
+		;
+			/* more than one thing to match on */
+			/*	[ x1,..., xn] 
+				[xs1,...,xsn]
+			*/
+			pairup(Cases,MoreCases,CasePairs),
+			common_pattern(CasePairs,CommonPatternPair,DiffVars,Differences),
+			append(Args,Vs,[First|Rest]),
+			First-Rest = CommonPatternPair,	
+			gensym(Prefix,RSymbol),
+			append(DiffVars,PayloadArgs,RecCallVars),
+			Body =.. [RSymbol|RecCallVars],
+			findall(CH-CT,member([CH|CT],Differences),CPairs),
+			once(pairup(CHs,CTs,CPairs)),
+			dispatch_trie_step(CHs,RSymbol,Prefix,CTs,Payload,MoreActions,List,Tail)
+		)
+	).
+	
+
+% split(list,int,before,at,after).
+
+split([X|Xs],I,Before,At,After) :-
+	( I == 1 ->
+		Before 	= [],
+		At	= X,
+		After 	= Xs
+	;
+		J is I - 1,
+		Before = [X|RBefore],
+		split(Xs,J,RBefore,At,After)
+	).
+
+% }}}
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+% SUBSTITUTE CONSTRAINT SYMBOL FUNCTORS
+%
+% flatten_rules(+rule_clauses,+dict,-rule_clauses).
+%
+% dict :== list(functor/arity-int-list(term-functor))
+
+% {{{
+flatten_rules(Rules,Dict,FlatRules) :-
+	flatten_rules1(Rules,Dict,FlatRulesList),
+	flatten(FlatRulesList,FlatRules).
+
+flatten_rules1([],_,[]).
+flatten_rules1([Rule|Rules],Dict,[FlatRules|FlatRulesList]) :-
+	findall(FlatRule,flatten_rule(Rule,Dict,FlatRule),FlatRules),
+	flatten_rules1(Rules,Dict,FlatRulesList).
+
+flatten_rule((Name @ Rule),Dict,(Name @ NRule)) :- !,
+ 	flatten_rule(Rule,Dict,NRule). 
+flatten_rule((Rule pragma Pragmas),Dict,(NRule pragma Pragmas)) :- !,
+ 	flatten_rule(Rule,Dict,NRule).
+flatten_rule((H ==> B),Dict,(NH ==> NB)) :- !,
+	flatten_heads(H,Dict,NH),
+	flatten_body(B,Dict,NB).
+flatten_rule((H1 \ H2 <=> B),Dict,(NH1 \ NH2 <=> NB)) :- !,
+	flatten_heads((H1,H2),Dict,(NH1,NH2)),
+	flatten_body(B,Dict,NB).
+flatten_rule((H <=> B),Dict,(NH <=> NB)) :-
+	flatten_heads(H,Dict,NH),
+	flatten_body(B,Dict,NB).
+
+flatten_heads((H1,H2),Dict,(NH1,NH2)) :- !,
+	flatten_heads(H1,Dict,NH1),
+	flatten_heads(H2,Dict,NH2).
+flatten_heads((H # Annotation),Dict,(NH # Annotation)) :- !,
+	flatten_heads(H,Dict,NH).
+flatten_heads(H,Dict,NH) :-
+	( functor(H,C,N),
+	  once(member(C/N-I-SFs,Dict)) ->
+		H =.. [_|AllArgs],
+		split(AllArgs,I,PreArgs,Arg,PostArgs),
+		member(Term-Name,SFs),
+		Arg = Term,
+		append(PreArgs,PostArgs,FlatArgs),
+		NH =.. [Name|FlatArgs]
+	;
+		NH = H
+	).
+	
+flatten_body(Body,Dict,NBody) :-
+	conj2list(Body,Goals),
+	maplist(flatten_goal(Dict),Goals,NGoals),
+	list2conj(NGoals,NBody).
+
+flatten_goal(Dict,Goal,NGoal) :-
+	( is_specializable_goal(Goal,Dict,ArgPos)
+	->
+	  specialize_goal(Goal,ArgPos,NGoal)
+	; nonvar(Goal),
+	  Goal = Mod : TheGoal,
+	  get_target_module(Module),
+	  Mod == Module,
+	  is_specializable_goal(TheGoal,Dict,ArgPos)
+  	->
+	  specialize_goal(TheGoal,ArgPos,NTheGoal),
+	  NGoal = Mod : NTheGoal	
+	;
+		NGoal = Goal	
+	).	
+
+is_specializable_goal(Goal,Dict,ArgPos) :-
+	nonvar(Goal),
+	functor(Goal,C,N),
+     	memberchk(C/N-ArgPos-_,Dict),
+	arg(ArgPos,Goal,Arg),
+	ground(Arg).
+
+
+specialize_goal(Goal,ArgPos,NGoal) :-
+	  functor(Goal,C,N),
+	  Goal =.. [_|Args],
+	  split(Args,ArgPos,Before,Arg,After),
+	  append(Before,After,NArgs),
+	  flat_spec(C/N,ArgPos,Arg,_-Functor),
+	  NGoal =.. [Functor|NArgs].	
+% }}}	
+
+% }}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dump_code(Clauses) :-
 	( chr_pp_flag(dump,on),
 		member(Clause,Clauses),
-		portray_clause(Clause),
+		copy_term_nat(Clause,NClause),
+		portray_clause(NClause),
 		fail
 	;
 		true
 	).	
 
+chr_banner :-
+	chr_info(banner,'\tThe K.U.Leuven CHR System\t\n\t\tContributors:\tTom Schrijvers, Jon Sneyers, Bart Demoen,\n\t\t\t\tJan Wielemaker\n\t\tCopyright:\tK.U.Leuven, Belgium\n\t\tURL:\t\thttp://www.cs.kuleuven.be/~~toms/CHR/\n',[]).

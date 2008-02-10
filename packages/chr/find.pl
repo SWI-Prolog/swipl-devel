@@ -61,3 +61,15 @@ forall(X,L,G) :-
 forsome(X,L,G) :-
 	member(X,L),
 	call(G), !.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+:- dynamic
+	user:goal_expansion/2.
+:- multifile
+	user:goal_expansion/2.
+
+user:goal_expansion(forall(Element,List,Test), GoalOut) :-
+	nonvar(Test),
+	Test =.. [Functor,Arg],
+	Arg == Element,
+	GoalOut = once(maplist(Functor,List)).

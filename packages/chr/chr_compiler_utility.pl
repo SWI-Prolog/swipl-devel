@@ -51,6 +51,8 @@
 	, set_elems/2
 	, instrument_goal/4
 	, sort_by_key/3
+	, arg1/3
+	, wrap_in_functor/3
 	]).
 
 :- use_module(pairlist).
@@ -278,3 +280,24 @@ sort_by_key(List,Keys,SortedList) :-
 	pairup(Keys,List,Pairs),
 	sort(Pairs,SortedPairs),
 	once(pairup(_,SortedList,SortedPairs)).	
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+arg1(Term,Index,Arg) :- arg(Index,Term,Arg).	
+
+wrap_in_functor(Functor,X,Term) :-
+	Term =.. [Functor,X].
+
+:- dynamic
+	user:goal_expansion/2.
+:- multifile
+	user:goal_expansion/2.
+
+user:goal_expansion(arg1(Term,Index,Arg), arg(Index,Term,Arg)).
+user:goal_expansion(wrap_in_functor(Functor,In,Out), Goal) :-
+	( atom(Functor), var(Out) ->
+		Out =.. [Functor,In],
+		Goal = true
+	;
+		Goal = (Out =.. [Functor,In])
+	).
+
