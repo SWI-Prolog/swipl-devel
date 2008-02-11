@@ -303,7 +303,6 @@ prolog_list_to_sort_list(term_t t, int remove_dups, int key, list *lp, Word *end
   intptr_t len, minfree;
 
   l = valTermRef(t);
-  deRef(l);
   len = skip_list(l, &tail PASS_LD);
   if ( !(isNil(*tail) ||			/* proper list */
 	 (isList(*tail) && remove_dups)) )	/* sort/2 on cyclic list */
