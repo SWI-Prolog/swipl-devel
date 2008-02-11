@@ -53,10 +53,14 @@
 	, sort_by_key/3
 	, arg1/3
 	, wrap_in_functor/3
+	, tree_set_empty/1
+	, tree_set_memberchk/2
+	, tree_set_add/3
 	]).
 
 :- use_module(pairlist).
 :- use_module(library(lists), [permutation/2]).
+:- use_module(library(assoc)).
 
 %% SICStus begin
 %% use_module(library(terms),[term_variables/2]).
@@ -287,6 +291,13 @@ arg1(Term,Index,Arg) :- arg(Index,Term,Arg).
 wrap_in_functor(Functor,X,Term) :-
 	Term =.. [Functor,X].
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+tree_set_empty(TreeSet) :- empty_assoc(TreeSet).
+tree_set_memberchk(Element,TreeSet) :- get_assoc(Element,TreeSet,_).
+tree_set_add(TreeSet,Element,NTreeSet) :- put_assoc(Element,TreeSet,x,NTreeSet).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- dynamic
 	user:goal_expansion/2.
 :- multifile
