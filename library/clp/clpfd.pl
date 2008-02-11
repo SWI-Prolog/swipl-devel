@@ -1549,7 +1549,13 @@ X #=< Y :- Y #>= X.
 %
 % X equals Y.
 
-X #= Y  :- parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX).
+fdsum(X)   --> { ( var(X) ; integer(X) ) }, !, [X].
+fdsum(A+B) --> fdsum(A), fdsum(B).
+
+X #= Y  :-
+        (   integer(Y), phrase(fdsum(X), Xs) -> sum(Xs, #=, Y)
+        ;   parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX)
+        ).
 
 %% ?X #\= ?Y
 %
