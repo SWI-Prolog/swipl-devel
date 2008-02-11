@@ -156,6 +156,7 @@
 :- use_module(chr_compiler_errors).
 :- include(chr_op).
 :- op(1150, fx, chr_type).
+:- op(1150, fx, chr_declaration).
 :- op(1130, xfx, --->).
 :- op(980, fx, (+)).
 :- op(980, fx, (-)).
@@ -990,6 +991,10 @@ partition_clauses([Clause|Clauses],ConstraintDeclarations,Rules,OtherClauses) :-
 		ConstraintDeclarations = RestConstraintDeclarations,
 		Rules = RestRules,
 		OtherClauses = RestOtherClauses
+	; is_chr_declaration(Clause) ->
+		ConstraintDeclarations = RestConstraintDeclarations,
+		Rules = RestRules,
+		OtherClauses = RestOtherClauses
 	; Clause = (handler _) ->
 		chr_warning(deprecated(Clause),'Backward compatibility: ignoring handler/1 declaration.\n',[]),
 		ConstraintDeclarations = RestConstraintDeclarations,
@@ -1073,6 +1078,13 @@ extract_type_and_mode((-),any,(-)) :- !.
 extract_type_and_mode(Illegal,_,_) :- 
     chr_error(syntax(Illegal),'Illegal mode/type declaration.\n\tCorrect syntax is +type, -type or ?type\n\tor +, - or ?.\n',[]).
 
+is_chr_declaration(Declaration) :-
+	Declaration = (:- chr_declaration Decl),
+	( Decl = (Pattern ---> Information) ->
+	        background_info(Pattern,Information)
+	; Decl = Information ->
+	        background_info([Information])
+	).
 is_type_definition(Declaration) :-
 	is_type_definition(Declaration,Result),
 	assert_type_definition(Result).
@@ -1743,7 +1755,7 @@ is_observed(_,_,_) <=> fail.	% this will not happen in practice
 
 
 :- chr_constraint do_is_observed/3.
-:- chr_option(mode, do_is_observed(+,+,+)).
+:- chr_option(mode, do_is_observed(+,+,?)).
 :- chr_constraint do_is_observed/2.
 :- chr_option(mode, do_is_observed(+,+)).
 
@@ -4337,6 +4349,33 @@ multi_hash_enumerate_store_body(I,C,Susp,B) :-
 	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    BACKGROUND INFORMATION     (declared using :- chr_declaration)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- chr_constraint
+        background_info/1,
+        background_info/2,
+        get_bg_info/1,
+        get_bg_info/2,
+        get_bg_info_answer/1.
+
+background_info(X), background_info(Y) <=> 
+	append(X,Y,XY), background_info(XY).
+background_info(X) \ get_bg_info(Q) <=> Q=X.
+get_bg_info(Q) <=> Q = [].
+
+background_info(T,I), get_bg_info(A,Q) ==> 
+        copy_term_nat(T,A) 
+	|
+        copy_term_nat(T-I,A-X), 
+	get_bg_info_answer([X]).
+get_bg_info_answer(X), get_bg_info_answer(Y) <=> 
+	append(X,Y,XY), get_bg_info_answer(XY).
+
+get_bg_info_answer(X), get_bg_info(A,Q) <=> Q=X.
+get_bg_info(_,Q) <=> Q=[].      % no info found on this term
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 :- chr_constraint
@@ -4473,15 +4512,41 @@ prev_guard_list(RuleNb,H,G,GuardList,M,GH)
     		term_variables(H,HeadVars),    
     		append([chr_pp_headvariables(HeadVars)|TI],GuardList,Info),
     		normalize_conj_list(Info,InfoL),
-    		prev_guard_list(RuleNb,H,G,InfoL,M,[]).
+                append(H,InfoL,RelevantTerms),
+                add_background_info([G|RelevantTerms],BGInfo),
+                append(InfoL,BGInfo,AllInfo_),
+    		normalize_conj_list(AllInfo_,AllInfo),
+    		prev_guard_list(RuleNb,H,G,AllInfo,M,[]).
 
 head_types_modes_condition([],H,true).
 head_types_modes_condition([GH|GHs],H,(TI1, TI2)) :-
     	types_modes_condition(H,GH,TI1),
     	head_types_modes_condition(GHs,H,TI2).
 
+add_background_info(Term,Info) :-
+        get_bg_info(GeneralInfo),
+        add_background_info2(Term,TermInfo),
+        append(GeneralInfo,TermInfo,Info).
+
+add_background_info2(X,[]) :- var(X), !.
+add_background_info2([],[]) :- !.
+add_background_info2([X|Xs],Info) :- !,
+        add_background_info2(X,Info1),
+        add_background_info2(Xs,Infos),
+        append(Info1,Infos,Info).
+
+add_background_info2(X,Info) :-
+        (functor(X,_,A), A>0 ->
+                X =.. [_|XArgs],
+                add_background_info2(XArgs,XArgInfo)
+        ;
+                XArgInfo = []
+        ),
+        get_bg_info(X,XInfo),
+        append(XInfo,XArgInfo,Info).
+
+
 %%
-%
 % 	when all earlier guards are added or skipped, we simplify the guard.
 % 	if it's different from the original one, we change the rule
 
@@ -4490,8 +4555,15 @@ prev_guard_list(RuleNb,H,G,GuardList,M,[]), rule(RuleNb,Rule)
     		Rule = pragma(rule(Head1,Head2,G,B),Ids,Pragmas,Name,RuleNb),
    	 	G \== true,		% let's not try to simplify this ;)
     		append(M,GuardList,Info),
-    		simplify_guard(G,B,Info,SimpleGuard,NB),
-    		G \== SimpleGuard     
+                (% if guard + context is a contradiction, it should be simplified to "fail"
+    		  conj2list(G,GL), append(Info,GL,GuardWithContext),
+    		  guard_entailment:entails_guard(GuardWithContext,fail) ->
+                        SimpleGuard = fail
+                ;
+                % otherwise we try to remove redundant conjuncts
+            		simplify_guard(G,B,Info,SimpleGuard,NB)
+                ),
+    		G \== SimpleGuard     % only do this if we can change the guard
 	|
     		rule(RuleNb,pragma(rule(Head1,Head2,SimpleGuard,NB),Ids,Pragmas,Name,RuleNb)),
     		prev_guard_list(RuleNb,H,SimpleGuard,GuardList,M,[]).
@@ -4712,6 +4784,24 @@ apply_guard_wrt_variable(Guard,Variable,NVariable) :-
 		NVariable = Variable
 	).
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    ALWAYS FAILING GUARDS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+prev_guard_list(RuleNb,H,G,GuardList,M,[]),rule(RuleNb,Rule) 
+	==> 
+    		chr_pp_flag(check_impossible_rules,on),
+    		Rule = pragma(rule(_,_,G,_),_Ids,_Pragmas,_Name,RuleNb),
+    		conj2list(G,GL),
+    		append(M,GuardList,Info),
+                append(Info,GL,GuardWithContext),
+    		guard_entailment:entails_guard(GuardWithContext,fail)
+	|
+    		chr_warning(weird_program,'Heads will never match or guard will always fail in ~@.\n\tThis rule will never fire!\n',[format_rule(Rule)]),
+    		set_all_passive(RuleNb).
+
+/*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    ALWAYS FAILING HEADS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4721,10 +4811,11 @@ rule(RuleNb,Rule) \ prev_guard_list(RuleNb,H,G,GuardList,M,[])
     		chr_pp_flag(check_impossible_rules,on),
     		Rule = pragma(rule(Head1,Head2,G,B),Ids,Pragmas,Name,RuleNb),
     		append(M,GuardList,Info),
-    		guard_entailment:entails_guard(Info,fail) 
+    		guard_entailment:entails_guard(Info,fail)
 	|
     		chr_warning(weird_program,'Heads will never match in ~@.\n\tThis rule will never fire!\n',[format_rule(Rule)]),
     		set_all_passive(RuleNb).
+*/
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    HEAD SIMPLIFICATION
@@ -4855,23 +4946,8 @@ common_variables(B,G) :-
 	L \== [].
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%    ALWAYS FAILING GUARDS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 set_all_passive(RuleNb), occurrence(_,_,RuleNb,ID,_) ==> passive(RuleNb,ID).
 set_all_passive(_) <=> true.
-
-prev_guard_list(RuleNb,H,G,GuardList,M,[]),rule(RuleNb,Rule) 
-	==> 
-    		chr_pp_flag(check_impossible_rules,on),
-    		Rule = pragma(rule(_,_,G,_),_Ids,_Pragmas,_Name,RuleNb),
-    		conj2list(G,GL),
-		% writeq(guard_entailment:entails_guard(GL,fail)),nl,
-    		guard_entailment:entails_guard(GL,fail) 
-	|
-    		chr_warning(weird_program,'Guard will always fail in ~@.\n\tThis rule will never fire!\n',[format_rule(Rule)]),
-    		set_all_passive(RuleNb).
 
 
 
@@ -10608,10 +10684,6 @@ specialize_goal(Goal,ArgPos,NGoal) :-
 dump_code(Clauses) :-
 	( chr_pp_flag(dump,on) ->
 		maplist(portray_clause,Clauses)
-		% member(Clause,Clauses),
-		% copy_term_nat(Clause,NClause),
-		% portray_clause(NClause),
-		% fail
 	;
 		true
 	).	
