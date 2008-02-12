@@ -9,6 +9,7 @@
 SHELL=@SHELL@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
+PLINCL=@PLINCL@
 PL=@PL@
 XPCEBASE=$(PLBASE)/xpce
 PKGDOC=$(PLBASE)/doc/packages
@@ -17,6 +18,17 @@ LIBDIR=$(PLBASE)/library
 CHRDIR=$(LIBDIR)/chr
 EXDIR=$(PKGDOC)/examples/chr
 DESTDIR=
+
+CC=@CC@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
+LIBS=@LIBS@
+
+LD=@LD@
+LDFLAGS=@LDSOFLAGS@
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
@@ -36,15 +48,23 @@ LIBPL=		chr_runtime.pl chr_op.pl chr_translate.pl chr_debug.pl \
 		find.pl a_star.pl binomialheap.pl builtins.pl \
 		chr_hashtable_store.pl listmap.pl guard_entailment.pl \
 		chr_compiler_options.pl chr_compiler_utility.pl chr_compiler_errors.pl \
-		chr_integertable_store.pl
+		chr_integertable_store.pl memberchk_eq.so lookup_ht.so
+TARGETS=	@TARGETS@
 CHRPL=		chr_swi.pl
 EXAMPLES=	chrfreeze.chr fib.chr gcd.chr primes.chr \
 		bool.chr family.chr fibonacci.chr leq.chr listdom.chr \
 		chrdif.chr
 
-all:		chr_translate.pl
+all:		chr_translate.pl $(TARGETS)
 
-chr_translate_bootstrap1.pl: chr_translate_bootstrap1.chr 
+memberchk_eq.@SO@:	memberchk_eq.o
+		$(LD) $(LDFLAGS) -o $@ memberchk_eq.o
+lookup_ht.@SO@:	lookup_ht.o
+		$(LD) $(LDFLAGS) -o $@ lookup_ht.o
+
+chr_translate_bootstrap.pl: $(TARGETS)
+
+chr_translate_bootstrap1.pl: chr_translate_bootstrap1.chr chr_translate_bootstrap.pl
 		$(PL) -q -f chr_swi_bootstrap.pl \
 		      -g "chr_compile_step1('$<','$@'),halt" \
 		      -t 'halt(1)'
@@ -137,7 +157,7 @@ $(TEX):		$(DOCTOTEX)
 ################################################################
 
 clean:
-		rm -f *~ *% config.log
+		rm -f *~ *.o *.so *% config.log
 		rm -f chr.pl chr_translate.pl
 		rm -f chr_translate_bootstrap1.pl chr_translate_bootstrap2.pl
 		rm -f guard_entailment.pl

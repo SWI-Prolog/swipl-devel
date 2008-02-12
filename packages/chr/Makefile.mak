@@ -1,5 +1,5 @@
 ################################################################
-# Install CHR stuff for the MS-Windows built
+# Install CHR stuff for the MS-Windows build
 # Author: Jan Wielemaker
 # 
 # Use:
@@ -9,6 +9,7 @@
 
 PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
+CFLAGS=$(CFLAGS) /D__SWI_PROLOG__
 LIBDIR=$(PLBASE)\library
 EXDIR=$(PKGDOC)\examples\chr
 CHR=$(LIBDIR)\chr
@@ -20,13 +21,20 @@ LIBPL=		chr_runtime.pl chr_op.pl chr_translate.pl chr_debug.pl \
 		chr_hashtable_store.pl listmap.pl guard_entailment.pl \
 		chr_compiler_options.pl chr_compiler_utility.pl \
 		chr_compiler_errors.pl \
-		chr_integertable_store.pl
+		chr_integertable_store.pl \
+		memberchk_eq.dll lookup_ht.dll
 CHRPL=		chr_swi.pl
 EXAMPLES=	chrfreeze.chr fib.chr gcd.chr primes.chr \
 		bool.chr family.chr fibonacci.chr leq.chr listdom.chr \
 		chrdif.chr
 
-all:		chr_translate.pl
+
+memberchk_eq.dll:	memberchk_eq.obj
+		$(LD) /dll /out:$@ $(LDFLAGS) memberchk_eq.obj $(PLLIB)
+lookup_ht.dll:	lookup_ht.obj
+		$(LD) /dll /out:$@ $(LDFLAGS) lookup_ht.obj $(PLLIB) $(LIBS)
+
+all:		chr_translate.pl lookup_ht.dll memberchk_eq.dll
 
 chr_translate_bootstrap1.pl: chr_translate_bootstrap1.chr 
 		$(PL) -q -f chr_swi_bootstrap.pl \

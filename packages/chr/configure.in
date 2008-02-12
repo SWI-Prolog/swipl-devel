@@ -4,8 +4,18 @@ AC_INIT(install-sh)
 AC_CONFIG_HEADER(config.h)
 
 AC_SUBST(PL)
+AC_SUBST(CC)
+AC_SUBST(PLLIBS)
 AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
+AC_SUBST(PLINCL)
+AC_SUBST(COFLAGS)
+AC_SUBST(CWFLAGS)
+AC_SUBST(CMFLAGS)
+AC_SUBST(LD)
+AC_SUBST(SO)
+AC_SUBST(LDSOFLAGS)
+AC_SUBST(TARGETS)
 
 # Do not cache this, it changes too often in many configurations
 unset ac_cv_prog_PL
@@ -13,19 +23,43 @@ unset ac_cv_prog_PL
 if test -z "$PLINCL"; then
 plcandidates="pl swipl swi-prolog"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
+AC_CHECK_PROGS(PLLD, plld, "none")
+if test $PLLD = "none"; then
+   AC_ERROR("Cannot find SWI-Prolog plld utility. SWI-Prolog must be installed first")
+fi
 if test $PL = "none"; then
    AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")
 else
    AC_CHECKING("Running $PL -dump-runtime-variables")
    eval `$PL -dump-runtime-variables`
 fi
+PLINCL=$PLBASE/include
 AC_MSG_RESULT("		PLBASE=$PLBASE")
 AC_MSG_RESULT("		PLARCH=$PLARCH")
-else
-PL=../pl.sh
+AC_MSG_RESULT("		PLLIBS=$PLLIBS")
+AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
+AC_MSG_RESULT("		PLSHARED=$PLSHARED")
+AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
 fi
 
+PLLD=../plld.sh
+PL=../pl.sh
+
+CC=$PLLD
+LD=$PLLD
+LDSOFLAGS=-shared
+CMFLAGS=-fpic
+
+SO="$PLSOEXT"
+
+TARGETS="memberchk_eq.$SO lookup_ht.$SO"
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_PROG_INSTALL
+if test ! -z "$GCC"; then
+    COFLAGS="${COFLAGS--O2 -fno-strict-aliasing}"
+    CWFLAGS="${CWFLAGS--Wall}"
+else
+    COFLAGS="${COFLAGS--O}"
+fi
 
 AC_OUTPUT(Makefile)
