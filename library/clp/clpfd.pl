@@ -1602,7 +1602,7 @@ neq_num(X, N) :-
         (   get(X, XD, XPs) ->
             domain_remove(XD, N, XD1),
             put(X, XD1, XPs)
-        ;   true
+        ;   X =\= N
         ).
 
 %% ?X #> ?Y
@@ -2248,7 +2248,7 @@ run_propagator(absdiff_neq(X,Y,C), MState) :-
             ;   kill(MState),
                 V1 is X - C, neq_num(Y, V1),
                 V2 is C + X, neq_num(Y, V2)
-           )
+            )
         ;   nonvar(Y) -> kill(MState),
             V1 is C + Y, neq_num(X, V1),
             V2 is Y - C, neq_num(X, V2)
