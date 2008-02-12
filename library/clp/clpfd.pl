@@ -1553,7 +1553,7 @@ fdsum(X)   --> { ( var(X) ; integer(X) ) }, !, [X].
 fdsum(A+B) --> fdsum(A), fdsum(B).
 
 X #= Y  :-
-        (   integer(Y), phrase(fdsum(X), Xs) -> sum(Xs, #=, Y)
+        (   integer(Y), phrase(fdsum(X), Xs), Xs = [_,_,_|_] -> sum(Xs, #=, Y)
         ;   parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX)
         ).
 
@@ -2296,6 +2296,7 @@ run_propagator(sum_eq(Ls,C), MState) :-
         sumlist(Is, SumC),
         (   Vs = [] -> kill(MState), SumC =:= C
         ;   Vs = [Single] -> kill(MState), Single is C - SumC
+        ;   Vs = [A,B] -> kill(MState), S1 is C - SumC, A + B #= S1
         ;   sum_domains(Vs, n(0), n(0), Inf, Sup),
             MinSum cis1 Inf + n(SumC),
             MaxSum cis1 Sup + n(SumC),
