@@ -1081,7 +1081,7 @@ choice_order_variable(step, Order, Var, Vars, Selection) :-
         order_dom_next(Order, Dom, Next),
         (   Var = Next,
             label(Vars, Selection, Order, step)
-        ;   Var #\= Next,
+        ;   neq_num(Var, Next),
             label([Var|Vars], Selection, Order, step)
         ).
 choice_order_variable(enum, Order, Var, Vars, Selection) :-
