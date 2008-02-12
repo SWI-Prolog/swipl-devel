@@ -1312,31 +1312,23 @@ sum_domains([V|Vs], Inf0, Sup0, Inf, Sup) :-
         Sup2 cis1 Sup0 + Sup1,
         sum_domains(Vs, Inf2, Sup2, Inf, Sup).
 
-remove_dist_upper([], _).
-remove_dist_upper([V|Vs], D) :-
+remove_dist_upper_lower([], _, _).
+remove_dist_upper_lower([V|Vs], D1, D2) :-
         (   get(V, VD, VPs) ->
             (   domain_infimum(VD, n(Inf)) ->
-                G is Inf + D,
-                domain_remove_greater_than(VD, G, VD1),
-                put(V, VD1, VPs)
-            ;   true
-            )
+                G is Inf + D1,
+                domain_remove_greater_than(VD, G, VD1)
+            ;   VD1 = VD
+            ),
+            (   domain_supremum(VD1, n(Sup)) ->
+                L is Sup - D2,
+                domain_remove_smaller_than(VD1, L, VD2)
+            ;   VD2 = VD1
+            ),
+            put(V, VD2, VPs)
         ;   true
         ),
-        remove_dist_upper(Vs, D).
-
-remove_dist_lower([], _).
-remove_dist_lower([V|Vs], D) :-
-        (   get(V, VD, VPs) ->
-            (   domain_supremum(VD, n(Sup)) ->
-                L is Sup - D,
-                domain_remove_smaller_than(VD, L, VD1),
-                put(V, VD1, VPs)
-            ;   true
-            )
-        ;   true
-        ),
-        remove_dist_lower(Vs, D).
+        remove_dist_upper_lower(Vs, D1, D2).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -2302,14 +2294,10 @@ run_propagator(sum_eq(Ls,C), MState) :-
             MaxSum cis1 Sup + n(SumC),
             n(C) cis_geq MinSum,
             MaxSum cis_geq n(C),
-            (   Inf = n(I) ->
+            (   Inf = n(I), Sup = n(S) ->
                 Dist1 is C - (I + SumC),
-                remove_dist_upper(Vs, Dist1)
-            ;   true
-            ),
-            (   Sup = n(S) ->
-                Dist2 is S + SumC - C,
-                remove_dist_lower(Vs, Dist2)
+                Dist2 is S + SumC - C,                
+                remove_dist_upper_lower(Vs, Dist1, Dist2)
             ;   true
             )
         ).
