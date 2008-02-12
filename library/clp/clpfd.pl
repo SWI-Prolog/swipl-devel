@@ -1315,13 +1315,13 @@ sum_domains([V|Vs], Inf0, Sup0, Inf, Sup) :-
 remove_dist_upper_lower([], _, _).
 remove_dist_upper_lower([V|Vs], D1, D2) :-
         (   get(V, VD, VPs) ->
-            (   domain_infimum(VD, n(Inf)) ->
-                G is Inf + D1,
+            (   D1 = n(ND1), domain_infimum(VD, n(Inf)) ->
+                G is Inf + ND1,
                 domain_remove_greater_than(VD, G, VD1)
             ;   VD1 = VD
             ),
-            (   domain_supremum(VD1, n(Sup)) ->
-                L is Sup - D2,
+            (   D2 = n(ND2), domain_supremum(VD, n(Sup)) ->
+                L is Sup - ND2,
                 domain_remove_smaller_than(VD1, L, VD2)
             ;   VD2 = VD1
             ),
@@ -2294,12 +2294,9 @@ run_propagator(sum_eq(Ls,C), MState) :-
             MaxSum cis1 Sup + n(SumC),
             n(C) cis_geq MinSum,
             MaxSum cis_geq n(C),
-            (   Inf = n(I), Sup = n(S) ->
-                Dist1 is C - (I + SumC),
-                Dist2 is S + SumC - C,                
-                remove_dist_upper_lower(Vs, Dist1, Dist2)
-            ;   true
-            )
+            D1 cis1 n(C) - MinSum,
+            D2 cis1 MaxSum - n(C),
+            remove_dist_upper_lower(Vs, D1, D2)
         ).
 
 % X + Y = Z
