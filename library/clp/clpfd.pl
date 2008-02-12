@@ -2304,12 +2304,12 @@ run_propagator(sum_eq(Ls,C), MState) :-
             MaxSum cis_geq n(C),
             (   Inf = n(I) ->
                 Dist1 is C - (I + SumC),
-                disable_queue, remove_dist_upper(Vs, Dist1), enable_queue
+                remove_dist_upper(Vs, Dist1)
             ;   true
             ),
             (   Sup = n(S) ->
                 Dist2 is S + SumC - C,
-                disable_queue, remove_dist_lower(Vs, Dist2), enable_queue
+                remove_dist_lower(Vs, Dist2)
             ;   true
             )
         ).
