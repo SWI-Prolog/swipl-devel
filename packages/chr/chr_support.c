@@ -36,16 +36,16 @@ pl_lookup_ht1(term_t ht, term_t pl_hash, term_t key, term_t values)
   term_t bucket      = PL_new_term_ref();
 
   /* HT = ht(Capacity,_,Table) */
-  _PL_get_arg(1, ht, pl_capacity);
+  PL_get_arg(1, ht, pl_capacity);
   PL_get_integer(pl_capacity, &capacity);
-  _PL_get_arg(3, ht, table);
+  PL_get_arg(3, ht, table);
 
   /* Index is (Hash mod Capacity) + 1 */
   PL_get_integer(pl_hash, &hash);
   index = (hash % capacity) + 1;  
 
   /* arg(Index,Table,Bucket) */
-  _PL_get_arg(index, table, bucket);
+  PL_get_arg(index, table, bucket);
 
   /* nonvar(Bucket) */ 
   if (PL_is_variable(bucket)) PL_fail;  
@@ -55,10 +55,10 @@ pl_lookup_ht1(term_t ht, term_t pl_hash, term_t key, term_t values)
   	term_t k	     = PL_new_term_ref();
 	term_t vs	     = PL_new_term_ref();
 	while (PL_get_list(bucket, pair,bucket)) {
-  		_PL_get_arg(1, pair, k);
+  		PL_get_arg(1, pair, k);
 		if ( PL_compare(k,key) == 0 ) {
       			/* Values = Vs */
-			_PL_get_arg(2, pair, vs);
+			PL_get_arg(2, pair, vs);
 			return PL_unify(values,vs);
 		}
 	}
@@ -66,11 +66,11 @@ pl_lookup_ht1(term_t ht, term_t pl_hash, term_t key, term_t values)
   } else {
   	term_t k	     = PL_new_term_ref();
 	term_t vs	     = PL_new_term_ref();
-  	_PL_get_arg(1, bucket, k);
+  	PL_get_arg(1, bucket, k);
         /* K == Key */	
 	if ( PL_compare(k,key) == 0 ) {
       		/* Values = Vs */
-		_PL_get_arg(2, bucket, vs);
+		PL_get_arg(2, bucket, vs);
 		return PL_unify(values,vs);
 	} else {
 		PL_fail;
