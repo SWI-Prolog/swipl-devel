@@ -634,9 +634,9 @@ domain_intervals(empty)                 --> [].
 domain_intervals(from_to(From,To))      --> [From-To].
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   To compute the intersection of two domains D1 and D2, we
-   (arbitrarily) choose D1 as the reference domain. For each interval
-   of D1, we compute how far and to which values D2 lets us extend it.
+   To compute the intersection of two domains D1 and D2, we choose D1
+   as the reference domain. For each interval of D1, we compute how
+   far and to which values D2 lets us extend it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 domains_intersection(D1, D2, Intersection) :-
@@ -649,8 +649,7 @@ domains_intersection_(from_to(L0,U0), D2, Dom) :-
 domains_intersection_(split(S,Left0,Right0), D2, Dom) :-
         domains_intersection_(Left0, D2, Left1),
         domains_intersection_(Right0, D2, Right1),
-        (   Left1 == empty, Right1 == empty -> Dom = empty
-        ;   Left1 == empty -> Dom = Right1
+        (   Left1 == empty -> Dom = Right1
         ;   Right1 == empty -> Dom = Left1
         ;   Dom = split(S, Left1, Right1)
         ).
@@ -2099,7 +2098,7 @@ tuple_domain([T|Ts], Relation0) :-
             (   Firsts = [Unique] -> T = Unique
             ;   list_to_domain(Firsts, FDom),
                 get(T, TDom, TPs),
-                domains_intersection(FDom, TDom, TDom1),
+                domains_intersection(TDom, FDom, TDom1),
                 put(T, TDom1, TPs)
             )
         ;   true
@@ -2314,7 +2313,7 @@ run_propagator(pplus(X,Y,Z), MState) :-
             ;   get(Z, ZD, ZPs),
                 get(Y, YD, YPs),
                 domain_shift(YD, X, Shifted_YD),
-                domains_intersection(Shifted_YD, ZD, ZD1),
+                domains_intersection(ZD, Shifted_YD, ZD1),
                 put(Z, ZD1, ZPs),
                 (   var(Y) ->
                     O is -X,
@@ -2383,7 +2382,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 put(Z, ZD1, ZPs),
                 (   get(Y, YDom2, YPs2) ->
                     domain_contract(ZD1, X, Contract),
-                    domains_intersection(Contract, YDom2, NYDom),
+                    domains_intersection(YDom2, Contract, NYDom),
                     put(Y, NYDom, YPs2)
                 ;   kill(MState), Z is X * Y
                 )
@@ -2531,11 +2530,11 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                     )
                 ;   get(Z, ZD, ZPs),
                     domain_contract_less(XD, Y, Contracted),
-                    domains_intersection(Contracted, ZD, NZD),
+                    domains_intersection(ZD, Contracted, NZD),
                     put(Z, NZD, ZPs),
                     (   \+ domain_contains(NZD, 0), get(X, XD2, XPs2) ->
                         domain_expand_more(NZD, Y, Expanded),
-                        domains_intersection(Expanded, XD2, NXD2),
+                        domains_intersection(XD2, Expanded, NXD2),
                         put(X, NXD2, XPs2)
                     ;   true
                     )
@@ -3213,7 +3212,7 @@ attr_unify_hook(clpfd(_,_,_,Dom,Ps), Other) :-
             trigger_props(Ps),
             do_queue
         ;   get(Other, OD, OPs),
-            domains_intersection(Dom, OD, Dom1),
+            domains_intersection(OD, Dom, Dom1),
             append(Ps, OPs, Ps1),
             put(Other, Dom1, Ps1),
             trigger_props(Ps1),
