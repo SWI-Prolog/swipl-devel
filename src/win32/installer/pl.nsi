@@ -208,6 +208,7 @@ Section "Constraint Handling Rules"
   File pl\library\chr\chr_compiler_utility.pl
   File pl\library\chr\chr_compiler_errors.pl
   File pl\library\chr\chr_integertable_store.pl
+  File pl\library\chr\chr_support.dll
   File pl\library\chr\README.TXT
   SetOutPath $INSTDIR\doc\packages\examples
   File /r pl\doc\packages\examples\chr
