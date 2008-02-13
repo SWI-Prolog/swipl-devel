@@ -549,7 +549,7 @@ domain_remove_upper(n(U00), L0, X, D) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Remove all elements greater than / less than some constant.
+   Remove all elements greater than / less than a constant.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 domain_remove_greater_than(empty, _, empty).
@@ -684,7 +684,7 @@ domains_union(D1, D2, Union) :-
         intervals_to_domain(IsU1, Union).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Shift a domain by some offset.
+   Shift the domain by an offset.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 domain_shift(empty, _, empty).
@@ -1592,8 +1592,8 @@ var_neq_var_plus_const(X, Y, C) :-
         init_propagator(X, Prop), init_propagator(Y, Prop),
         trigger_once(Prop).
 
-% X is distinct from the number N. This is used internally in some
-% propagators, and does not reinforce other constraints.
+% X is distinct from the number N. This is used internally, and does
+% not reinforce other constraints.
 
 neq_num(X, N) :-
         (   get(X, XD, XPs) ->
@@ -1875,10 +1875,14 @@ put_terminating(X, Dom, Ps) :-
                 Attr = clpfd(Left,Right,Spread,OldDom, _OldPs),
                 put_attr(X, clpfd, clpfd(Left,Right,Spread,Dom,Ps)),
                 (   OldDom == Dom -> true
-                ;   domain_intervals(Dom, Is),
-                    domain_intervals(OldDom, Is) -> true
-                ;   domain_infimum(Dom, Inf), domain_supremum(Dom, Sup),
-                    (   Inf = n(_), Sup = n(_) ->
+                ;   (   Left == (.) -> Bounded = yes
+                    ;   domain_infimum(Dom, Inf), domain_supremum(Dom, Sup),
+                        (   Inf = n(_), Sup = n(_) ->
+                            Bounded = yes
+                        ;   Bounded = no
+                        )
+                    ),
+                    (   Bounded == yes ->
                         put_attr(X, clpfd, clpfd(.,.,.,Dom,Ps)),
                         trigger_props(Ps)
                     ;   % infinite domain; consider border and spread changes
@@ -1969,8 +1973,6 @@ put_full(X, Dom, Ps) :-
                 put_attr(X, clpfd, clpfd(no,no,no,Dom, Ps)),
                 %format("putting dom: ~w\n", [Dom]),
                 (   OldDom == Dom -> true
-                ;   domain_intervals(Dom, Is),
-                    domain_intervals(OldDom, Is) -> true
                 ;   trigger_props(Ps)
                 )
             ;   var(X) -> %format('\t~w in ~w .. ~w\n',[X,L,U]),
