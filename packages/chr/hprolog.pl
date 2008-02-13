@@ -22,6 +22,7 @@
 	    ds_to_list/2,
 	    get_ds/3,
 	    put_ds/4
+%	    lookup_ht1/4
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(assoc)).
