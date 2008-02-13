@@ -48,7 +48,7 @@ LIBPL=		chr_runtime.pl chr_op.pl chr_translate.pl chr_debug.pl \
 		find.pl a_star.pl binomialheap.pl builtins.pl \
 		chr_hashtable_store.pl listmap.pl guard_entailment.pl \
 		chr_compiler_options.pl chr_compiler_utility.pl chr_compiler_errors.pl \
-		chr_integertable_store.pl memberchk_eq.so lookup_ht.so
+		chr_integertable_store.pl @TARGETS@
 TARGETS=	@TARGETS@
 CHRPL=		chr_swi.pl
 EXAMPLES=	chrfreeze.chr fib.chr gcd.chr primes.chr \
@@ -57,10 +57,8 @@ EXAMPLES=	chrfreeze.chr fib.chr gcd.chr primes.chr \
 
 all:		chr_translate.pl $(TARGETS)
 
-memberchk_eq.@SO@:	memberchk_eq.o
-		$(LD) $(LDFLAGS) -o $@ memberchk_eq.o
-lookup_ht.@SO@:	lookup_ht.o
-		$(LD) $(LDFLAGS) -o $@ lookup_ht.o
+chr_support.@SO@:	chr_support.o
+		$(LD) $(LDFLAGS) -o $@ chr_support.o
 
 chr_translate_bootstrap.pl: $(TARGETS)
 
