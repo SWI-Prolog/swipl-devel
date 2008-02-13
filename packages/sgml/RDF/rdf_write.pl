@@ -321,7 +321,9 @@ save_about(Out, Subject, NodeIDs) :-
 save_about(Out, Subject, _) :-
 	stream_property(Out, encoding(Encoding)),
 	rdf_value(Subject, QSubject, Encoding),
-	format(Out, ' rdf:about="~w"', [QSubject]).
+	format(Out, ' rdf:about="~w"', [QSubject]), !.
+save_about(_, _, _) :-
+	assertion(fail).
 
 %%	save_attributes(+List, +DefNS, +Out, +NodeIDs, Element, +Indent, +Anon)
 %
@@ -554,7 +556,7 @@ rdf_att_id(Id, _, Id).
 
 rdf_value(V, Text, Encoding) :-
 	to_be_described(Prefix),
-	atom_concat(Prefix, V1, V), !,
+	atom_concat(Prefix, V1, V),
 	ns(NS, Full),
 	atom_concat(Full, Local, V1), !,
 	rdf_quote_uri(Local, QLocal0),
