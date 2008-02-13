@@ -43,6 +43,7 @@
 	    op(1190, xfx, pragma),
 	    op( 500, yfx, #),
 	    op(1150, fx, chr_type),
+	    op(1150, fx, chr_declaration),
 	    op(1130, xfx, --->),
 	    op(1150, fx, (?)),
 	    chr_show_store/1,		% +Module
@@ -130,6 +131,7 @@ chr_expandable((constraints _)).
 chr_expandable((:- chr_constraint _)).
 chr_expandable((:- chr_type _)).
 chr_expandable((chr_type _)).
+chr_expandable((:- chr_declaration _)).
 chr_expandable(option(_, _)).
 chr_expandable((:- chr_option(_, _))).
 chr_expandable((handler _)).

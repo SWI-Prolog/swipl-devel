@@ -725,73 +725,172 @@ PRED_IMPL("callable", 1, callable, 0)
 }
 
 
-static void
-popnVisited(int popn ARG_LD)
-{ while(--popn >= 0)
-  { popVisited(PASS_LD1);
+		 /*******************************
+		 *	     CYCLIC		*
+		 *******************************/
+
+static inline int
+ph1_markedWord(Word p ARG_LD)
+{ if ( is_marked(p) )
+    succeed;
+  fail;
+}
+
+static inline int
+ph1_marked(Functor f ARG_LD)
+{ Word p = &f->definition;
+
+  return ph1_markedWord(p PASS_LD);
+}
+
+static inline int
+ph1_visitedWord(Word p ARG_LD)
+{ if ( is_marked(p) )
+    succeed;
+  set_marked(p);
+  fail;
+}
+
+static inline int
+ph1_visited(Functor f ARG_LD)
+{ Word p = &f->definition;
+
+  return ph1_visitedWord(p PASS_LD);
+}
+
+static inline int
+ph1_firstvisitedWord(Word p ARG_LD)
+{ if ( is_first(p) )
+    succeed;
+  set_first(p);
+  fail;
+}
+
+static inline int
+ph1_firstvisited(Functor f ARG_LD)
+{ Word p = &f->definition;
+
+  return ph1_firstvisitedWord(p PASS_LD);
+}
+
+static int
+ph1_is_acyclic(Word firstp ARG_LD)
+{ Functor f;
+  int l = 0 ; /* number of last arguments to process */
+  Word p;
+
+  deRef(firstp);
+  p = firstp;
+
+  for(;;)
+  { int arity, i;
+    if ( !isTerm(*p) )
+      break;
+    f = valueTerm(*p);
+    arity = arityFunctor(f->definition);
+    p = f->arguments;
+    if ( ph1_marked(f PASS_LD) ) /* already acyclic */
+      break;
+    if ( ph1_firstvisited(f PASS_LD) )	/* Got a cycle! */
+      fail;
+
+    for(i = 0; i < arity-1; i++)
+    { if ( !ph1_is_acyclic((p+i) PASS_LD) )
+	fail;
+    }
+    l++; /* remember to mark later */
+    p = p + arity-1;
+    deRef(p);
   }
+  /* mark all last arguments as ph1_visited */
+
+  if (l > 0) /* there are l structures to mark */
+  { Word p = firstp;
+    int arity;
+
+    for(;;)
+    { SECURE(assert(isTerm(*p)));
+      f = valueTerm(*p);
+      if (ph1_visited(f PASS_LD) )
+	{assert(0);} /* Impossible: someone else did it */
+      if (--l==0)
+	break;
+      arity = arityFunctor(f->definition);
+      p = f-> arguments + arity -1; /* next last argument */
+      deRef(p);
+    }
+  }
+  succeed;
+}
+
+
+static inline int
+ph2_avisitedWord(Word p ARG_LD)
+{ if ( !is_first(p) )
+    succeed;
+  clear_both(p);
+  fail;
+}
+
+
+static inline int
+ph2_avisited(Functor f ARG_LD)
+{ Word p = &f->definition;
+
+  return ph2_avisitedWord(p PASS_LD);
+}
+
+
+static void
+ph2_is_acyclic(Word p ARG_LD)
+{ int arity, i;
+  Functor f;
+
+ top:
+  deRef(p);
+  if ( !isTerm(*p) )
+    return;
+
+  f = valueTerm(*p);
+  arity = arityFunctor(f->definition);
+  p = f->arguments;
+  if ( ph2_avisited(f PASS_LD) )	/* Got a cycle! */
+    return;
+
+  for(i = 0; i < arity-1; i++)
+    ph2_is_acyclic((p+i) PASS_LD);
+
+  p = p+i;
+  goto top;
 }
 
 
 static int
 is_acyclic(Word p ARG_LD)
-{ int arity;
-  Functor f;
-  int popn = 0;
+{ int rc1;
 
-last:
-  deRef(p);
-  if ( !isTerm(*p) )
-  { popnVisited(popn PASS_LD);
-    succeed;
-  }
+  startCritical;
+  rc1 = ph1_is_acyclic(p PASS_LD);
+  ph2_is_acyclic(p PASS_LD);
+  endCritical;
 
-  f = valueTerm(*p);
-  arity = arityFunctor(f->definition);
-  p = f->arguments;
-  if ( visited(f PASS_LD) )	/* Got a cycle! */
-  { popnVisited(popn PASS_LD);
-    fail;
-  }
-  popn++;
-
-  for(; --arity > 0; p++)
-  { if ( !is_acyclic(p PASS_LD) )
-    { popnVisited(popn PASS_LD);
-      fail;
-    }
-  }
-  goto last;
+  return rc1;
 }
 
 
 static
 PRED_IMPL("acyclic_term", 1, acyclic_term, 0)
 { PRED_LD
-  int rc;
 
-  startCritical;
-  initvisited(PASS_LD1);
-  rc = is_acyclic(valTermRef(A1) PASS_LD);
-  assert(empty_visited(PASS_LD1));
-  endCritical;
-
-  return rc;
+  return is_acyclic(valTermRef(A1) PASS_LD);
 }
 
 
 static
 PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
 { PRED_LD
-  int rc;
 
-  startCritical;
-  initvisited(PASS_LD1);
-  rc = is_acyclic(valTermRef(A1) PASS_LD);
-  assert(empty_visited(PASS_LD1));
-  endCritical;
-
-  return rc ? FALSE : TRUE;
+  return is_acyclic(valTermRef(A1) PASS_LD) ? FALSE : TRUE;
 }
 
 

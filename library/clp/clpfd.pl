@@ -106,6 +106,11 @@
                   indomain/1,
                   lex_chain/1,
                   serialized/2,
+                  fd_var/1,
+                  fd_inf/2,
+                  fd_sup/2,
+                  fd_size/2,
+                  fd_dom/2,
                   copy_term/3
                  ]).
 
@@ -544,7 +549,7 @@ domain_remove_upper(n(U00), L0, X, D) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Remove all elements greater than / less than some constant.
+   Remove all elements greater than / less than a constant.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 domain_remove_greater_than(empty, _, empty).
@@ -629,9 +634,9 @@ domain_intervals(empty)                 --> [].
 domain_intervals(from_to(From,To))      --> [From-To].
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   To compute the intersection of two domains D1 and D2, we
-   (arbitrarily) choose D1 as the reference domain. For each interval
-   of D1, we compute how far and to which values D2 lets us extend it.
+   To compute the intersection of two domains D1 and D2, we choose D1
+   as the reference domain. For each interval of D1, we compute how
+   far and to which values D2 lets us extend it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 domains_intersection(D1, D2, Intersection) :-
@@ -644,8 +649,7 @@ domains_intersection_(from_to(L0,U0), D2, Dom) :-
 domains_intersection_(split(S,Left0,Right0), D2, Dom) :-
         domains_intersection_(Left0, D2, Left1),
         domains_intersection_(Right0, D2, Right1),
-        (   Left1 == empty, Right1 == empty -> Dom = empty
-        ;   Left1 == empty -> Dom = Right1
+        (   Left1 == empty -> Dom = Right1
         ;   Right1 == empty -> Dom = Left1
         ;   Dom = split(S, Left1, Right1)
         ).
@@ -679,7 +683,7 @@ domains_union(D1, D2, Union) :-
         intervals_to_domain(IsU1, Union).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Shift a domain by some offset.
+   Shift the domain by an offset.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 domain_shift(empty, _, empty).
@@ -1081,7 +1085,7 @@ choice_order_variable(step, Order, Var, Vars, Selection) :-
         order_dom_next(Order, Dom, Next),
         (   Var = Next,
             label(Vars, Selection, Order, step)
-        ;   Var #\= Next,
+        ;   neq_num(Var, Next),
             label([Var|Vars], Selection, Order, step)
         ).
 choice_order_variable(enum, Order, Var, Vars, Selection) :-
@@ -1312,31 +1316,23 @@ sum_domains([V|Vs], Inf0, Sup0, Inf, Sup) :-
         Sup2 cis1 Sup0 + Sup1,
         sum_domains(Vs, Inf2, Sup2, Inf, Sup).
 
-remove_dist_upper([], _).
-remove_dist_upper([V|Vs], D) :-
+remove_dist_upper_lower([], _, _).
+remove_dist_upper_lower([V|Vs], D1, D2) :-
         (   get(V, VD, VPs) ->
-            (   domain_infimum(VD, n(Inf)) ->
-                G is Inf + D,
-                domain_remove_greater_than(VD, G, VD1),
-                put(V, VD1, VPs)
-            ;   true
-            )
+            (   D1 = n(ND1), domain_infimum(VD, n(Inf)) ->
+                G is Inf + ND1,
+                domain_remove_greater_than(VD, G, VD1)
+            ;   VD1 = VD
+            ),
+            (   D2 = n(ND2), domain_supremum(VD, n(Sup)) ->
+                L is Sup - ND2,
+                domain_remove_smaller_than(VD1, L, VD2)
+            ;   VD2 = VD1
+            ),
+            put(V, VD2, VPs)
         ;   true
         ),
-        remove_dist_upper(Vs, D).
-
-remove_dist_lower([], _).
-remove_dist_lower([V|Vs], D) :-
-        (   get(V, VD, VPs) ->
-            (   domain_supremum(VD, n(Sup)) ->
-                L is Sup - D,
-                domain_remove_smaller_than(VD, L, VD1),
-                put(V, VD1, VPs)
-            ;   true
-            )
-        ;   true
-        ),
-        remove_dist_lower(Vs, D).
+        remove_dist_upper_lower(Vs, D1, D2).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1549,7 +1545,13 @@ X #=< Y :- Y #>= X.
 %
 % X equals Y.
 
-X #= Y  :- parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX).
+fdsum(X)   --> { ( var(X) ; integer(X) ) }, !, [X].
+fdsum(A+B) --> fdsum(A), fdsum(B).
+
+X #= Y  :-
+        (   integer(Y), phrase(fdsum(X), Xs), Xs = [_,_,_|_] -> sum(Xs, #=, Y)
+        ;   parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX)
+        ).
 
 %% ?X #\= ?Y
 %
@@ -1589,14 +1591,14 @@ var_neq_var_plus_const(X, Y, C) :-
         init_propagator(X, Prop), init_propagator(Y, Prop),
         trigger_once(Prop).
 
-% X is distinct from the number N. This is used internally in some
-% propagators, and does not reinforce other constraints.
+% X is distinct from the number N. This is used internally, and does
+% not reinforce other constraints.
 
 neq_num(X, N) :-
         (   get(X, XD, XPs) ->
             domain_remove(XD, N, XD1),
             put(X, XD1, XPs)
-        ;   true
+        ;   X =\= N
         ).
 
 %% ?X #> ?Y
@@ -1872,10 +1874,14 @@ put_terminating(X, Dom, Ps) :-
                 Attr = clpfd(Left,Right,Spread,OldDom, _OldPs),
                 put_attr(X, clpfd, clpfd(Left,Right,Spread,Dom,Ps)),
                 (   OldDom == Dom -> true
-                ;   domain_intervals(Dom, Is),
-                    domain_intervals(OldDom, Is) -> true
-                ;   domain_infimum(Dom, Inf), domain_supremum(Dom, Sup),
-                    (   Inf = n(_), Sup = n(_) ->
+                ;   (   Left == (.) -> Bounded = yes
+                    ;   domain_infimum(Dom, Inf), domain_supremum(Dom, Sup),
+                        (   Inf = n(_), Sup = n(_) ->
+                            Bounded = yes
+                        ;   Bounded = no
+                        )
+                    ),
+                    (   Bounded == yes ->
                         put_attr(X, clpfd, clpfd(.,.,.,Dom,Ps)),
                         trigger_props(Ps)
                     ;   % infinite domain; consider border and spread changes
@@ -1966,8 +1972,6 @@ put_full(X, Dom, Ps) :-
                 put_attr(X, clpfd, clpfd(no,no,no,Dom, Ps)),
                 %format("putting dom: ~w\n", [Dom]),
                 (   OldDom == Dom -> true
-                ;   domain_intervals(Dom, Is),
-                    domain_intervals(OldDom, Is) -> true
                 ;   trigger_props(Ps)
                 )
             ;   var(X) -> %format('\t~w in ~w .. ~w\n',[X,L,U]),
@@ -2094,7 +2098,7 @@ tuple_domain([T|Ts], Relation0) :-
             (   Firsts = [Unique] -> T = Unique
             ;   list_to_domain(Firsts, FDom),
                 get(T, TDom, TPs),
-                domains_intersection(FDom, TDom, TDom1),
+                domains_intersection(TDom, FDom, TDom1),
                 put(T, TDom1, TPs)
             )
         ;   true
@@ -2242,7 +2246,7 @@ run_propagator(absdiff_neq(X,Y,C), MState) :-
             ;   kill(MState),
                 V1 is X - C, neq_num(Y, V1),
                 V2 is C + X, neq_num(Y, V2)
-           )
+            )
         ;   nonvar(Y) -> kill(MState),
             V1 is C + Y, neq_num(X, V1),
             V2 is Y - C, neq_num(X, V2)
@@ -2290,21 +2294,15 @@ run_propagator(sum_eq(Ls,C), MState) :-
         sumlist(Is, SumC),
         (   Vs = [] -> kill(MState), SumC =:= C
         ;   Vs = [Single] -> kill(MState), Single is C - SumC
+        ;   Vs = [A,B] -> kill(MState), S1 is C - SumC, A + B #= S1
         ;   sum_domains(Vs, n(0), n(0), Inf, Sup),
             MinSum cis1 Inf + n(SumC),
             MaxSum cis1 Sup + n(SumC),
             n(C) cis_geq MinSum,
             MaxSum cis_geq n(C),
-            (   Inf = n(I) ->
-                Dist1 is C - (I + SumC),
-                disable_queue, remove_dist_upper(Vs, Dist1), enable_queue
-            ;   true
-            ),
-            (   Sup = n(S) ->
-                Dist2 is S + SumC - C,
-                disable_queue, remove_dist_lower(Vs, Dist2), enable_queue
-            ;   true
-            )
+            D1 cis1 n(C) - MinSum,
+            D2 cis1 MaxSum - n(C),
+            remove_dist_upper_lower(Vs, D1, D2)
         ).
 
 % X + Y = Z
@@ -2315,7 +2313,7 @@ run_propagator(pplus(X,Y,Z), MState) :-
             ;   get(Z, ZD, ZPs),
                 get(Y, YD, YPs),
                 domain_shift(YD, X, Shifted_YD),
-                domains_intersection(Shifted_YD, ZD, ZD1),
+                domains_intersection(ZD, Shifted_YD, ZD1),
                 put(Z, ZD1, ZPs),
                 (   var(Y) ->
                     O is -X,
@@ -2384,7 +2382,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 put(Z, ZD1, ZPs),
                 (   get(Y, YDom2, YPs2) ->
                     domain_contract(ZD1, X, Contract),
-                    domains_intersection(Contract, YDom2, NYDom),
+                    domains_intersection(YDom2, Contract, NYDom),
                     put(Y, NYDom, YPs2)
                 ;   kill(MState), Z is X * Y
                 )
@@ -2532,11 +2530,11 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                     )
                 ;   get(Z, ZD, ZPs),
                     domain_contract_less(XD, Y, Contracted),
-                    domains_intersection(Contracted, ZD, NZD),
+                    domains_intersection(ZD, Contracted, NZD),
                     put(Z, NZD, ZPs),
                     (   \+ domain_contains(NZD, 0), get(X, XD2, XPs2) ->
                         domain_expand_more(NZD, Y, Expanded),
-                        domains_intersection(Expanded, XD2, NXD2),
+                        domains_intersection(XD2, Expanded, NXD2),
                         put(X, NXD2, XPs2)
                     ;   true
                     )
@@ -3160,22 +3158,43 @@ serialize_upper_bound(I, D_I, J, D_J) :-
    Reflection predicates
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+%% fd_var(+Var)
+%
+%  True iff Var is a CLP(FD) variable.
+
 fd_var(X) :- get_attr(X, clpfd, _).
 
-fd_min(X, Min) :-
-        get(X, XD, _),
-        domain_infimum(XD, Min0),
-        bound_portray(Min0, Min).
+%% fd_inf(+Var, -Inf)
+%
+%  Inf is the infimum of the current domain of Var.
 
-fd_max(X, Max) :-
+fd_inf(X, Inf) :-
         get(X, XD, _),
-        domain_supremum(XD, Max0),
-        bound_portray(Max0, Max).
+        domain_infimum(XD, Inf0),
+        bound_portray(Inf0, Inf).
+
+%% fd_sup(+Var, -Sup)
+%
+%  Sup is the supremum of the current domain of Var.
+
+fd_sup(X, Sup) :-
+        get(X, XD, _),
+        domain_supremum(XD, Sup0),
+        bound_portray(Sup0, Sup).
+
+%% fd_size(+Var, -Size)
+%
+%  Size is the number of elements of the current domain of Var, or the
+%  atom *sup* if the domain is unbounded.
 
 fd_size(X, S) :-
         get(X, XD, _),
         domain_num_elements(XD, S0),
         bound_portray(S0, S).
+
+%% fd_dom(+Var, -Dom)
+%
+%  Dom is the current domain (see in/2) of Var.
 
 fd_dom(X, Drep) :- get(X, XD, _), domain_to_drep(XD, Drep).
 
@@ -3193,7 +3212,7 @@ attr_unify_hook(clpfd(_,_,_,Dom,Ps), Other) :-
             trigger_props(Ps),
             do_queue
         ;   get(Other, OD, OPs),
-            domains_intersection(Dom, OD, Dom1),
+            domains_intersection(OD, Dom, Dom1),
             append(Ps, OPs, Ps1),
             put(Other, Dom1, Ps1),
             trigger_props(Ps1),

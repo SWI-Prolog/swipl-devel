@@ -47,3 +47,4 @@
 :- op(1150, fx, chr_type).
 :- op(1130, xfx, --->).
 :- op(1150, fx, (?)).
+:- op(1150, fx, chr_declaration).

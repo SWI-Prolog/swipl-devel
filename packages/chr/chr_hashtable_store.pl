@@ -71,6 +71,8 @@ new_ht(Capacity,HT) :-
 
 lookup_ht(HT,Key,Values) :-
 	term_hash(Key,Hash),
+	lookup_ht1(HT,Hash,Key,Values).
+/*
 	HT = ht(Capacity,_,Table),
 	Index is (Hash mod Capacity) + 1,
 	arg(Index,Table,Bucket),
@@ -80,9 +82,25 @@ lookup_ht(HT,Key,Values) :-
 	    Values = Vs
 	;
 	    lookup(Bucket,Key,Values)
+	).
+*/
+
+:- load_foreign_library(lookup_ht).
+
+/*
+lookup_ht1(HT,Hash,Key,Values) :-
+	( lookup_ht1_(HT,Hash,Key,Values) ->
+		true
+	;
+		( lookup_ht1__(HT,Hash,Key,Values) ->
+			writeln(lookup_ht1(HT,Hash,Key,Values)),
+			throw(error)
+		;
+			fail
+		)
 	).
 
-lookup_ht1(HT,Hash,Key,Values) :-
+lookup_ht1__(HT,Hash,Key,Values) :-
 	HT = ht(Capacity,_,Table),
 	Index is (Hash mod Capacity) + 1,
 	arg(Index,Table,Bucket),
@@ -93,6 +111,7 @@ lookup_ht1(HT,Hash,Key,Values) :-
 	;
 	    lookup(Bucket,Key,Values)
 	).
+*/
 
 lookup_ht2(HT,Key,Values,Index) :-
 	term_hash(Key,Hash),
