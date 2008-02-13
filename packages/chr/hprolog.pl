@@ -69,13 +69,13 @@ substitute_eq(X, [U|Us], Y, [V|Vs]) :-
 %	Deterministic check of membership using == rather than
 %	unification.
 
-% memberchk_eq(X, [Y|Ys]) :-
-%    (   X == Y
-%    ->  true
-%    ;   memberchk_eq(X, Ys)
-%    ).
+memberchk_eq(X, [Y|Ys]) :-
+   (   X == Y
+   ->  true
+   ;   memberchk_eq(X, Ys)
+   ).
 
-:- load_foreign_library(chr_support).
+% :- load_foreign_library(chr_support).
 
 %	list_difference_eq(+List, -Subtract, -Rest)
 %	

@@ -99,8 +99,9 @@ lookup_ht1(HT,Hash,Key,Values) :-
 			fail
 		)
 	).
+*/
 
-lookup_ht1__(HT,Hash,Key,Values) :-
+lookup_ht1(HT,Hash,Key,Values) :-
 	HT = ht(Capacity,_,Table),
 	Index is (Hash mod Capacity) + 1,
 	arg(Index,Table,Bucket),
@@ -111,7 +112,6 @@ lookup_ht1__(HT,Hash,Key,Values) :-
 	;
 	    lookup(Bucket,Key,Values)
 	).
-*/
 
 lookup_ht2(HT,Key,Values,Index) :-
 	term_hash(Key,Hash),
