@@ -634,9 +634,9 @@ domain_intervals(empty)                 --> [].
 domain_intervals(from_to(From,To))      --> [From-To].
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   To compute the intersection of two domains D1 and D2, we
-   (arbitrarily) choose D1 as the reference domain. For each interval
-   of D1, we compute how far and to which values D2 lets us extend it.
+   To compute the intersection of two domains D1 and D2, we choose D1
+   as the reference domain. For each interval of D1, we compute how
+   far and to which values D2 lets us extend it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 domains_intersection(D1, D2, Intersection) :-
@@ -649,8 +649,7 @@ domains_intersection_(from_to(L0,U0), D2, Dom) :-
 domains_intersection_(split(S,Left0,Right0), D2, Dom) :-
         domains_intersection_(Left0, D2, Left1),
         domains_intersection_(Right0, D2, Right1),
-        (   Left1 == empty, Right1 == empty -> Dom = empty
-        ;   Left1 == empty -> Dom = Right1
+        (   Left1 == empty -> Dom = Right1
         ;   Right1 == empty -> Dom = Left1
         ;   Dom = split(S, Left1, Right1)
         ).
@@ -2099,7 +2098,7 @@ tuple_domain([T|Ts], Relation0) :-
             (   Firsts = [Unique] -> T = Unique
             ;   list_to_domain(Firsts, FDom),
                 get(T, TDom, TPs),
-                domains_intersection(FDom, TDom, TDom1),
+                domains_intersection(TDom, FDom, TDom1),
                 put(T, TDom1, TPs)
             )
         ;   true
@@ -2206,11 +2205,11 @@ run_propagator(pgeq(A,B), MState) :-
             (   AL cis_gt BU -> kill(MState)
             ;   AU == BL -> A = B
             ;   NAL cis1 max(AL,BL),
-                domains_intersection(from_to(NAL,AU), AD, NAD),
+                domains_intersection(AD, from_to(NAL,AU), NAD),
                 put(A, NAD, APs),
                 (   get(B, BD2, BL2, BU2, BPs2) ->
                     NBU cis1 min(BU2, AU),
-                    domains_intersection(from_to(BL2,NBU), BD2, NBD),
+                    domains_intersection(BD2, from_to(BL2,NBU), NBD),
                     put(B, NBD, BPs2)
                 ;   true
                 )
@@ -2314,7 +2313,7 @@ run_propagator(pplus(X,Y,Z), MState) :-
             ;   get(Z, ZD, ZPs),
                 get(Y, YD, YPs),
                 domain_shift(YD, X, Shifted_YD),
-                domains_intersection(Shifted_YD, ZD, ZD1),
+                domains_intersection(ZD, Shifted_YD, ZD1),
                 put(Z, ZD1, ZPs),
                 (   var(Y) ->
                     O is -X,
@@ -2383,7 +2382,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 put(Z, ZD1, ZPs),
                 (   get(Y, YDom2, YPs2) ->
                     domain_contract(ZD1, X, Contract),
-                    domains_intersection(Contract, YDom2, NYDom),
+                    domains_intersection(YDom2, Contract, NYDom),
                     put(Y, NYDom, YPs2)
                 ;   kill(MState), Z is X * Y
                 )
@@ -2415,7 +2414,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 NXL cis max(XL,ceiling(TNXL)),
                 NXU cis min(XU,floor(TNXU)),
                 (   NXL == XL, NXU == XU -> true
-                ;   domains_intersection(from_to(NXL,NXU), XD, XD1),
+                ;   domains_intersection(XD, from_to(NXL,NXU), XD1),
                     put(X, XD1, XPs)
                 ),
                 (   get(Y, YD2, YL2,YU2,YExp2) ->
@@ -2424,7 +2423,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                     NYL cis max(YL2,ceiling(NYLT)),
                     NYU cis min(YU2,floor(NYUT)),
                     (   NYL == YL2, NYU == YU2 -> true
-                    ;   domains_intersection(from_to(NYL,NYU), YD2, YD3),
+                    ;   domains_intersection(YD2, from_to(NYL,NYU), YD3),
                         put(Y, YD3, YExp2)
                     )
                 ;   (   Y \== 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
@@ -2442,7 +2441,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 NXL cis max(XL,ceiling(TXL)),
                 max_divide(ZL,ZU,YL,YU,TXU),
                 NXU cis min(XU,floor(TXU)),
-                domains_intersection(from_to(NXL,NXU), XD, XD1),
+                domains_intersection(XD, from_to(NXL,NXU), XD1),
                 put(X, XD1, XExp),
                 (   get(Y,YD2,YL2,YU2,YExp2) ->
                     min_divide(ZL,ZU,XL,XU,TYL),
@@ -2450,7 +2449,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                     max_divide(ZL,ZU,XL,XU,TYU),
                     NYU cis min(YU2,floor(TYU)),
                     (   NYL == YL2, NYU == YU2 -> true
-                    ;   domains_intersection(from_to(NYL,NYU), YD2, YD3),
+                    ;   domains_intersection(YD2, from_to(NYL,NYU), YD3),
                         put(Y, YD3, YExp2)
                     )
                 ;   NYL = Y, NYU = Y
@@ -2461,7 +2460,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                     max_times(NXL,NXU,NYL,NYU,TZU),
                     NZU cis1 min(ZU2,TZU),
                     (   NZL == ZL2, NZU == ZU2 -> true
-                    ;   domains_intersection(from_to(NZL,NZU), ZD2, ZD3),
+                    ;   domains_intersection(ZD2, from_to(NZL,NZU), ZD3),
                         put(Z, ZD3, ZExp2)
                     )
                 ;   true
@@ -2492,7 +2491,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                             NYU cis min(n(X) // (n(Z)+sign(n(Z))) - n(1), YU)
                         ),
                         (   NYL = YL, NYU = YU -> true
-                        ;   domains_intersection(from_to(NYL,NYU), YD, NYD),
+                        ;   domains_intersection(YD, from_to(NYL,NYU), NYD),
                             put(Y, NYD, YPs)
                         )
                     )
@@ -2505,7 +2504,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                         NZU cis min(abs(n(X)), ZU)
                     ),
                     (   NZL = ZL, NZU = ZU -> true
-                    ;   domains_intersection(from_to(NZL,NZU), ZD, NZD),
+                    ;   domains_intersection(ZD, from_to(NZL,NZU), NZD),
                         put(Z, NZD, ZPs)
                     )
                 )
@@ -2526,16 +2525,16 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                         NXU cis min(n(Z)*n(Y), XU)
                     ),
                     (   NXL == XL, NXU == XU -> true
-                    ;   domains_intersection(from_to(NXL,NXU), XD, NXD),
+                    ;   domains_intersection(XD, from_to(NXL,NXU), NXD),
                         put(X, NXD, XPs)
                     )
                 ;   get(Z, ZD, ZPs),
                     domain_contract_less(XD, Y, Contracted),
-                    domains_intersection(Contracted, ZD, NZD),
+                    domains_intersection(ZD, Contracted, NZD),
                     put(Z, NZD, ZPs),
                     (   \+ domain_contains(NZD, 0), get(X, XD2, XPs2) ->
                         domain_expand_more(NZD, Y, Expanded),
-                        domains_intersection(Expanded, XD2, NXD2),
+                        domains_intersection(XD2, Expanded, NXD2),
                         put(X, NXD2, XPs2)
                     ;   true
                     )
@@ -2551,7 +2550,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                 NXL = XL, NXU = XU
             ),
             (   NXL == XL, NXU == XU -> true
-            ;   domains_intersection(from_to(NXL,NXU), XD, NXD),
+            ;   domains_intersection(XD, from_to(NXL,NXU), NXD),
                 put(X, NXD, XPs)
             )
         ;   (   X == Y -> Z = 1
@@ -2560,7 +2559,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                 get(Z, ZD, ZPs),
                 NZU cis max(abs(XL), XU),
                 NZL cis1 -NZU,
-                domains_intersection(from_to(NZL,NZU), ZD, NZD0),
+                domains_intersection(ZD, from_to(NZL,NZU), NZD0),
                 (   cis_geq_zero(XL), cis_geq_zero(YL) ->
                     domain_remove_smaller_than(NZD0, 0, NZD1)
                 ;   % TODO: cover more cases
@@ -3213,7 +3212,7 @@ attr_unify_hook(clpfd(_,_,_,Dom,Ps), Other) :-
             trigger_props(Ps),
             do_queue
         ;   get(Other, OD, OPs),
-            domains_intersection(Dom, OD, Dom1),
+            domains_intersection(OD, Dom, Dom1),
             append(Ps, OPs, Ps1),
             put(Other, Dom1, Ps1),
             trigger_props(Ps1),
