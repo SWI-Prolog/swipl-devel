@@ -2311,29 +2311,33 @@ run_propagator(pplus(X,Y,Z), MState) :-
             (   nonvar(Y) -> kill(MState), Z is X + Y
             ;   nonvar(Z) -> kill(MState), Y is Z - X
             ;   get(Z, ZD, ZPs),
-                get(Y, YD, YPs),
+                get(Y, YD, _),
                 domain_shift(YD, X, Shifted_YD),
                 domains_intersection(ZD, Shifted_YD, ZD1),
                 put(Z, ZD1, ZPs),
-                (   var(Y) ->
+                (   get(Y, YD1, YPs) ->
                     O is -X,
-                    domain_shift(ZD1, O, YD1),
-                    put(Y, YD1, YPs)
+                    domain_shift(ZD1, O, YD2),
+                    domains_intersection(YD1, YD2, YD3),
+                    put(Y, YD3, YPs)
                 ;   true
                 )
             )
         ;   nonvar(Y) -> run_propagator(pplus(Y,X,Z), MState)
         ;   nonvar(Z) ->
-            get(X, XD, XPs),
+            get(X, XD, _),
             get(Y, YD, YPs),
             domain_negate(XD, XDN),
             domain_shift(XDN, Z, YD1),
             domains_intersection(YD, YD1, YD2),
-            domain_negate(YD2, YD2N),
-            domain_shift(YD2N, Z, XD1),
-            domains_intersection(XD, XD1, XD2),
-            put(X, XD2, XPs),
-            put(Y, YD2, YPs)
+            put(Y, YD2, YPs),
+            (   get(X, XD1, XPs) ->
+                domain_negate(YD2, YD2N),
+                domain_shift(YD2N, Z, XD2),
+                domains_intersection(XD1, XD2, XD3),
+                put(X, XD3, XPs)
+            ;   true
+            )
         ;   (   X == Y, get(Z, ZD, _), \+ domain_contains(ZD, 0) ->
                 neq_num(X, 0)
             ;   true
