@@ -106,6 +106,11 @@
                   indomain/1,
                   lex_chain/1,
                   serialized/2,
+                  fd_var/1,
+                  fd_inf/2,
+                  fd_sup/2,
+                  fd_size/2,
+                  fd_dom/2,
                   copy_term/3
                  ]).
 
@@ -3152,22 +3157,43 @@ serialize_upper_bound(I, D_I, J, D_J) :-
    Reflection predicates
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+%% fd_var(+Var)
+%
+%  True iff Var is a CLP(FD) variable.
+
 fd_var(X) :- get_attr(X, clpfd, _).
 
-fd_min(X, Min) :-
-        get(X, XD, _),
-        domain_infimum(XD, Min0),
-        bound_portray(Min0, Min).
+%% fd_inf(+Var, -Inf)
+%
+%  Inf is the infimum of the current domain of Var.
 
-fd_max(X, Max) :-
+fd_inf(X, Inf) :-
         get(X, XD, _),
-        domain_supremum(XD, Max0),
-        bound_portray(Max0, Max).
+        domain_infimum(XD, Inf0),
+        bound_portray(Inf0, Inf).
+
+%% fd_sup(+Var, -Sup)
+%
+%  Sup is the supremum of the current domain of Var.
+
+fd_sup(X, Sup) :-
+        get(X, XD, _),
+        domain_supremum(XD, Sup0),
+        bound_portray(Sup0, Sup).
+
+%% fd_size(+Var, -Size)
+%
+%  Size is the number of elements of the current domain of Var, or the
+%  atom *sup* if the domain is unbounded.
 
 fd_size(X, S) :-
         get(X, XD, _),
         domain_num_elements(XD, S0),
         bound_portray(S0, S).
+
+%% fd_dom(+Var, -Dom)
+%
+%  Dom is the current domain (see in/2) of Var.
 
 fd_dom(X, Drep) :- get(X, XD, _), domain_to_drep(XD, Drep).
 
