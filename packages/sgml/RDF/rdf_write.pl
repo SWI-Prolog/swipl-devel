@@ -321,7 +321,9 @@ save_about(Out, Subject, NodeIDs) :-
 save_about(Out, Subject, _) :-
 	stream_property(Out, encoding(Encoding)),
 	rdf_value(Subject, QSubject, Encoding),
-	format(Out, ' rdf:about="~w"', [QSubject]).
+	format(Out, ' rdf:about="~w"', [QSubject]), !.
+save_about(_, _, _) :-
+	assertion(fail).
 
 %%	save_attributes(+List, +DefNS, +Out, +NodeIDs, Element, +Indent, +Anon)
 %
@@ -412,7 +414,7 @@ save_attribute(tag, rdf(_, Name, literal(Value)), DefNS, Out, _, Indent, _Anon) 
 	rdf_write_id(Out, NameText),
 	format(Out, '="~w"', [QVal]).
 save_attribute(body, rdf(_,Name,literal(Literal)), DefNS, Out, _, Indent, _) :- !,
-	rdf_id(Name, DefNS, NameText),
+	rdf_p_id(Name, DefNS, NameText),
 	format(Out, '~N~*|<', [Indent]),
 	rdf_write_id(Out, NameText),
 	(   Literal = lang(Lang, Value)
@@ -437,7 +439,7 @@ save_attribute(body, rdf(_,Name,literal(Literal)), DefNS, Out, _, Indent, _) :- 
 save_attribute(body, rdf(_, Name, Value), DefNS, Out, NodeIDs, Indent, Anon) :-
 	rdf_is_bnode(Value),
 	memberchk(anon(Value, Done, ValueTriples), Anon), !,
-	rdf_id(Name, DefNS, NameText),
+	rdf_p_id(Name, DefNS, NameText),
 	format(Out, '~N~*|<', [Indent]),
 	rdf_write_id(Out, NameText),
 	(   var(Done)
@@ -461,7 +463,7 @@ save_attribute(body, rdf(_, Name, Value), DefNS, Out, NodeIDs, Indent, Anon) :-
 save_attribute(body, rdf(_, Name, Value), DefNS, Out, _, Indent, _Anon) :-
 	stream_property(Out, encoding(Encoding)),
 	rdf_value(Value, QVal, Encoding),
-	rdf_id(Name, DefNS, NameText),
+	rdf_p_id(Name, DefNS, NameText),
 	format(Out, '~N~*|<', [Indent]),
 	rdf_write_id(Out, NameText),
 	format(Out, ' rdf:resource="~w"/>', [QVal]).
@@ -505,6 +507,18 @@ rdf_save_list(ListTriples, Out, List, NodeIDs, DefNS, Indent, Anon) :-
 	->  rdf_save_list(List2Triples, Out, List2, NodeIDs, DefNS, Indent, Anon)
 	;   true
 	).
+
+%%	rdf_p_id(+Resource, +DefNS, -NSLocal)
+%
+%	As rdf_id/3 for predicate names.  Maps _:<N> to rdf:li.
+%	
+%	@tbd	Ensure we are talking about an rdf:Bag
+
+rdf_p_id(LI, _, 'rdf:li') :-
+	atom_concat('_:', AN, LI),
+	catch(atom_number(AN, N), _, true), integer(N), !.
+rdf_p_id(Resource, DefNS, NSLocal) :-
+	rdf_id(Resource, DefNS, NSLocal).
 
 %%	rdf_id(+Resource, +DefNS, -NSLocal)
 %	
@@ -554,7 +568,7 @@ rdf_att_id(Id, _, Id).
 
 rdf_value(V, Text, Encoding) :-
 	to_be_described(Prefix),
-	atom_concat(Prefix, V1, V), !,
+	atom_concat(Prefix, V1, V),
 	ns(NS, Full),
 	atom_concat(Full, Local, V1), !,
 	rdf_quote_uri(Local, QLocal0),
