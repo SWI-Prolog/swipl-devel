@@ -22,17 +22,15 @@ LIBPL=		chr_runtime.pl chr_op.pl chr_translate.pl chr_debug.pl \
 		chr_compiler_options.pl chr_compiler_utility.pl \
 		chr_compiler_errors.pl \
 		chr_integertable_store.pl \
-		memberchk_eq.dll lookup_ht.dll
+		chr_support.dll
 CHRPL=		chr_swi.pl
 EXAMPLES=	chrfreeze.chr fib.chr gcd.chr primes.chr \
 		bool.chr family.chr fibonacci.chr leq.chr listdom.chr \
 		chrdif.chr
 
 
-memberchk_eq.dll:	memberchk_eq.obj
-		$(LD) /dll /out:$@ $(LDFLAGS) memberchk_eq.obj $(PLLIB)
-lookup_ht.dll:	lookup_ht.obj
-		$(LD) /dll /out:$@ $(LDFLAGS) lookup_ht.obj $(PLLIB) $(LIBS)
+chr_support.dll:	chr_support.obj
+		$(LD) /dll /out:$@ $(LDFLAGS) chr_support.obj $(PLLIB)
 
 all:		chr_translate.pl lookup_ht.dll memberchk_eq.dll
 

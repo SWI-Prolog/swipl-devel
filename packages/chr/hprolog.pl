@@ -21,8 +21,8 @@
 	    empty_ds/1,
 	    ds_to_list/2,
 	    get_ds/3,
-	    put_ds/4
-	    
+	    put_ds/4,
+	    lookup_ht1/4
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(assoc)).
@@ -75,7 +75,7 @@ substitute_eq(X, [U|Us], Y, [V|Vs]) :-
 %    ;   memberchk_eq(X, Ys)
 %    ).
 
-:- load_foreign_library(memberchk_eq).
+:- load_foreign_library(chr_support).
 
 %	list_difference_eq(+List, -Subtract, -Rest)
 %	

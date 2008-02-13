@@ -85,7 +85,7 @@ lookup_ht(HT,Key,Values) :-
 	).
 */
 
-:- load_foreign_library(lookup_ht).
+% :- load_foreign_library(chr_support).
 
 /*
 lookup_ht1(HT,Hash,Key,Values) :-

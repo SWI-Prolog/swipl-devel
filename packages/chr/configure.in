@@ -52,7 +52,7 @@ CMFLAGS=-fpic
 
 SO="$PLSOEXT"
 
-TARGETS="memberchk_eq.$SO lookup_ht.$SO"
+TARGETS="chr_support.$SO"
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_PROG_INSTALL
 if test ! -z "$GCC"; then
