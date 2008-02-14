@@ -1567,6 +1567,7 @@ X #=< Y :- Y #>= X.
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
 linsum(I, S0, S)   --> { integer(I) }, !, { S is S0 + I }, [].
 linsum(N*X, S, S)  --> { integer(N), N > 0, var(X) }, !, [vn(X,N)].
+linsum(X*N, S, S)  --> { integer(N), N > 0, var(X) }, !, [vn(X,N)].
 linsum(A+B, S0, S) --> linsum(A, S0, S1), linsum(B, S1, S).
 
 X #= Y  :-
