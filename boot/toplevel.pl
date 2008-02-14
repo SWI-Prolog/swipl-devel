@@ -605,7 +605,7 @@ write_bindings2(Bindings, _Det) :-
 	;   Action == show_again
 	->  fail
 	;   !,
-	    print_message(query, query(yes))
+	    print_message(query, query(done))
 	).
 
 %%	bind_vars(+Bindings)
@@ -661,7 +661,8 @@ answer_respons(Char, redo) :-
 	trace,
 	print_message(query, if_tty('; [trace]')).
 answer_respons(Char, continue) :-
-	memberchk(Char, "ca \n\ryY"), !.
+	memberchk(Char, "ca \n\ryY."), !,
+	print_message(query, if_tty('.')).
 answer_respons(0'b, show_again) :- !,
 	break.
 answer_respons(Char, show_again) :-

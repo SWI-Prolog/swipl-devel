@@ -534,10 +534,12 @@ prolog_message(var_query(_)) -->
 prolog_message(close_on_abort(Stream)) -->
 	[ 'Abort: closed stream ~p'-[Stream] ].
 
-prolog_message(query(no)) -->
-	[ nl, 'No' ].
-prolog_message(query(yes)) -->
-	[ nl, 'Yes' ].
+prolog_message(query(no)) -->		% failure
+	[ 'fail.' ].
+prolog_message(query(yes)) -->		% prompt_alternatives_on: groundness
+	[ 'true.' ].
+prolog_message(query(done)) -->		% user typed <CR>
+	[ flush ].
 prolog_message(query(Yes, Bindings)) -->
 	bindings(Bindings),
 	prompt(Yes, Bindings).
@@ -545,10 +547,11 @@ prolog_message(query(eof)) -->
 	[ nl ].
 
 prompt(yes, []) --> !,
-	[ nl, 'Yes' ].
-prompt(yes, _) --> !.
+	[ 'true.' ].
+prompt(yes, _) --> !,
+	[ '.' ].
 prompt(more, []) --> !,
-	[ 'More? ', flush ].
+	[ 'true ', flush ].
 prompt(more, _) --> !,
 	[ ' ', flush ].
 
@@ -561,7 +564,11 @@ bindings([Name = Value|T]) -->
 	  ;   Cont = (,)
 	  )
 	},
-	[ nl, '~w = ~W~w'-[Name, Value, Options, Cont] ],
+	[ '~w = ~W~w'-[Name, Value, Options, Cont] ],
+	(   {T == []}
+	->  []
+	;   [nl]
+	),
 	bindings(T).
 
 prolog_message(query(help)) -->
