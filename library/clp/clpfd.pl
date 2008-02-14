@@ -792,7 +792,14 @@ domain_contract(D0, M, D) :-
 
 domain_contract_(empty, _, empty).
 domain_contract_(from_to(From0, To0), M, from_to(From,To)) :-
-        From cis1 From0 // n(M), To cis1 To0 // n(M).
+        (   cis_geq_zero(From0) ->
+            From cis (From0 + n(M) - n(1)) // n(M)
+        ;   From cis1 From0 // n(M)
+        ),
+        (   cis_geq_zero(To0) ->
+            To cis1 To0 // n(M)
+        ;   To cis (To0 - n(M) + n(1)) // n(M)
+        ).
 domain_contract_(split(S0,Left0,Right0), M, D) :-
         S is S0 // M,
         %  Scaled down domains do not necessarily retain any holes of
@@ -1365,10 +1372,12 @@ pop_queue(E) :-
         b_getval('$clpfd_queue', H-T),
         nonvar(H), H = [E|NH], b_setval('$clpfd_queue', NH-T).
 
-fetch_constraint_(C) :-
-        pop_queue(ps(C0,State)),
-        (   State == dead -> fetch_constraint_(C)
-        ;   C = C0
+fetch_propagator(C) :-
+        pop_queue(Propagator),
+        arg(2, Propagator, MState),
+        arg(1, MState, State),
+        (   State == dead -> fetch_propagator(C)
+        ;   C = Propagator
         ).
 
 :- thread_initialization((make_queue,
@@ -2003,7 +2012,7 @@ trigger_prop(Propagator) :-
         ;   % passive
             % format("triggering: ~w\n", [Propagator]),
             setarg(1, MState, queued),
-            push_queue(ps(Propagator,MState))
+            push_queue(Propagator)
         ).
 
 kill(MState) :- setarg(1, MState, dead).
@@ -2019,13 +2028,20 @@ activate_propagator(propagator(P,MState)) :-
 disable_queue :- b_setval('$clpfd_queue_status', disabled).
 enable_queue  :- b_setval('$clpfd_queue_status', enabled), do_queue.
 
+portray_propagator(propagator(P,_), F) :- functor(P, F, _).
+
+portray_queue(V, []) :- var(V), !.
+portray_queue([P|Ps], [F|Fs]) :-
+        portray_propagator(P, F),
+        portray_queue(Ps, Fs).
+
 do_queue :-
+        % b_getval('$clpfd_queue', H-_),
+        % portray_queue(H, Port),
+        % format("queue: ~w\n", [Port]),
         (   b_getval('$clpfd_queue_status', enabled) ->
-            (   fetch_constraint_(C) ->
-                activate_propagator(C),
-                %C = propagator(Prop,_),
-                %functor(Prop, FP, _),
-                %format("\n\ngot: ~w\n\n", [FP]),
+            (   fetch_propagator(Propagator) ->
+                activate_propagator(Propagator),
                 do_queue
             ;   true
             )
