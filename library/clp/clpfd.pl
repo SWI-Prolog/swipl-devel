@@ -1566,7 +1566,7 @@ X #=< Y :- Y #>= X.
 
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
 linsum(I, S0, S)   --> { integer(I) }, !, { S is S0 + I }, [].
-linsum(N*X, S, S)  --> { integer(N), N >= 0, var(X) }, !, [vn(X,N)].
+linsum(N*X, S, S)  --> { integer(N), N > 0, var(X) }, !, [vn(X,N)].
 linsum(A+B, S0, S) --> linsum(A, S0, S1), linsum(B, S1, S).
 
 X #= Y  :-
@@ -1578,10 +1578,15 @@ X #= Y  :-
                 Xs1 = [vn(First,N)|XsRest] ->
                 vns_coeffs_variables(XsRest, N, First, Cs, Vs),
                 P is Y - S,
+                (   maplist(even, Cs) -> P mod 2 =:= 0
+                ;   true
+                ),
                 scalar_product(Cs, Vs, P)
             )
         ;   parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX)
         ).
+
+even(E) :- E mod 2 =:= 0.
 
 vns_coeffs_variables([], N, V, [N], [V]).
 vns_coeffs_variables([vn(V,N)|VNs], N0, V0, Ns, Vs) :-
