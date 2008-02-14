@@ -7029,7 +7029,11 @@ different_from_other_susps_([PreHead|Heads],[PreSusp|Susps],Head,Susp,List) :-
 passive_head_via(Head,PrevHeads,VarDict,Goal,AllSusps) :-
 	functor(Head,F,A),
 	get_constraint_index(F/A,Pos),
-	common_variables(Head,PrevHeads,CommonVars),
+	/* which static variables may contain runtime variables */
+	common_variables(Head,PrevHeads,CommonVars0),
+	ground_vars([Head],GroundVars),
+	list_difference_eq(CommonVars0,GroundVars,CommonVars),		
+	/********************************************************/
 	global_list_store_name(F/A,Name),
        	GlobalGoal = nb_getval(Name,AllSusps),
 	get_constraint_mode(F/A,ArgModes),
@@ -7058,22 +7062,10 @@ common_variables(T,Ts,Vs) :-
 	intersect_eq(V1,V2,Vs).
 
 gen_get_mod_constraints(FA,Vars,TypeDict,ViaGoal,AttrGoal,AllSusps) :-
+	via_goal(Vars,TypeDict,ViaGoal,Var),
 	get_target_module(Mod),
-        ( Vars = [A] ->
-		lookup_eq(TypeDict,A,Type),
-		( atomic_type(Type) ->
-			ViaGoal = var(A),
-			A = V
-		;
-	        	ViaGoal =  'chr newvia_1'(A,V)
-		)
-       	; Vars = [A,B] ->
-               	ViaGoal = 'chr newvia_2'(A,B,V)
-        ;   
-		ViaGoal = 'chr newvia'(Vars,V)
-       	),
        	AttrGoal =
-       	(   get_attr(V,Mod,TSusps),
+       	(   get_attr(Var,Mod,TSusps),
 	    TSuspsEqSusps % TSusps = Susps
        	),
 	get_max_constraint_index(N),
@@ -7084,6 +7076,22 @@ gen_get_mod_constraints(FA,Vars,TypeDict,ViaGoal,AttrGoal,AllSusps) :-
 		get_constraint_index(FA,Pos),
 		get_suspensions(N,Pos,TSusps,TSuspsEqSusps,AllSusps)
 	).
+via_goal(Vars,TypeDict,ViaGoal,Var) :-
+        ( Vars = [] ->
+		ViaGoal = fail	
+	; Vars = [A] ->
+		lookup_eq(TypeDict,A,Type),
+		( atomic_type(Type) ->
+			ViaGoal = var(A),
+			A = Var
+		;
+	        	ViaGoal =  'chr newvia_1'(A,Var)
+		)
+       	; Vars = [A,B] ->
+               	ViaGoal = 'chr newvia_2'(A,B,Var)
+        ;   
+		ViaGoal = 'chr newvia'(Vars,Var)
+       	).
 gen_get_mod_constraints(FA,Var,AttrGoal,AllSusps) :-
 	get_target_module(Mod),
        	AttrGoal =
@@ -8473,15 +8481,7 @@ type_indexed_identifier_lookup(C,Index,IndexType,AllSusps,KeyVar,Goal) :-
 %	Create a universal hash lookup goal for given head.
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 hash_lookup_passive_head(HashType,Indexes,Head,VarDict,GroundVars,Goal,AllSusps,Index) :-
-	once((
-		member(Index,Indexes),
-		multi_hash_key_args(Index,Head,KeyArgs),	
-		(
-			translate(KeyArgs,VarDict,KeyArgCopies) 
-		;
-		 	ground(KeyArgs), KeyArgCopies = KeyArgs 
-		)
-	)),
+	pick_hash_index(Indexes,Head,VarDict,Index,KeyArgs,KeyArgCopies),
 	( KeyArgCopies = [KeyCopy] ->
 		true
 	;
@@ -8500,6 +8500,21 @@ hash_lookup_passive_head(HashType,Indexes,Head,VarDict,GroundVars,Goal,AllSusps,
 	;
 		update_store_type(F/A,multi_hash([Index]))
 	).
+
+pick_hash_index(Indexes,Head,VarDict,Index,KeyArgs,KeyArgCopies) :-
+	member(Index,Indexes),
+	multi_hash_key_args(Index,Head,KeyArgs),	
+	key_in_scope(KeyArgs,VarDict,KeyArgCopies),
+	!.
+
+% check whether we can copy the given terms
+% with the given dictionary, and, if so, do so
+key_in_scope([],VarDict,[]).
+key_in_scope([Arg|Args],VarDict,[ArgCopy|ArgCopies]) :-
+	term_variables(Arg,Vars),
+	translate(Vars,VarDict,VarCopies),
+	copy_term(Arg/Vars,ArgCopy/VarCopies),
+	key_in_scope(Args,VarDict,ArgCopies).
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %%	existential_lookup(+StoreType,+Head,+PrevVariablesHead,+RenamingVarDict,
@@ -10471,7 +10486,6 @@ dispatch_trie_index([Patterns|MorePatterns],Payload,Actions,Prefix,Clauses,Tail)
 dispatch_trie_step([],_,_,_,[],[],L,L) :- !.
 	% length MorePatterns == length Patterns == length Results
 dispatch_trie_step(Patterns,Symbol,Prefix,MorePatterns,Payload,Actions,Clauses,T) :-
-	writeln(dispatch_trie_step(Patterns,Symbol,Prefix,MorePatterns,Payload,Actions,Clauses,T)),
 	MorePatterns = [List|_],
 	length(List,N),	
 	aggregate_all(set(F/A),
@@ -10594,6 +10608,10 @@ flatten_heads(H,Dict,NH) :-
 		NH = H
 	).
 	
+flatten_body((Guard | Body),Dict,(Guard | NBody)) :- !,
+	conj2list(Body,Goals),
+	maplist(flatten_goal(Dict),Goals,NGoals),
+	list2conj(NGoals,NBody).
 flatten_body(Body,Dict,NBody) :-
 	conj2list(Body,Goals),
 	maplist(flatten_goal(Dict),Goals,NGoals),
@@ -10629,7 +10647,8 @@ specialize_goal(Goal,ArgPos,NGoal) :-
 	  split(Args,ArgPos,Before,Arg,After),
 	  append(Before,After,NArgs),
 	  flat_spec(C/N,ArgPos,Arg,_-Functor),
-	  NGoal =.. [Functor|NArgs].	
+	  NGoal =.. [Functor|NArgs],	
+	  writeln(NGoal).
 % }}}	
 
 % }}}
