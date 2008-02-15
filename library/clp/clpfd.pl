@@ -824,8 +824,8 @@ domain_contract_less_(split(S0,Left0,Right0), M, D) :-
         ;   domain_infimum(Left0, Inf),
             % TODO: this is not necessarily an interval
             domain_supremum(Right0, Sup),
-            min_divide(Inf, Sup, n(M), n(M), From0),
-            max_divide(Inf, Sup, n(M), n(M), To0),
+            min_divide_less(Inf, Sup, n(M), n(M), From0),
+            max_divide_less(Inf, Sup, n(M), n(M), To0),
             domain_infimum(Left, LeftInf),
             domain_supremum(Right, RightSup),
             From cis1 max(LeftInf, From0),
@@ -2958,18 +2958,30 @@ min_times(L1,U1,L2,U2,Min) :-
 max_times(L1,U1,L2,U2,Max) :-
         Max cis max(max(L1*L2,L1*U2),max(U1*L2,U1*U2)).
 
+
+min_divide_less(L1,U1,L2,U2,Min) :-
+        (   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
+        ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
+        ).
+max_divide_less(L1,U1,L2,U2,Max) :-
+        (   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
+        ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
+        ).
+
+
 min_divide(L1,U1,L2,U2,Min) :-
-        (   fail, U2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
+        (   U2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
             Min cis div(L1+U2-n(1),U2)
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
         ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
         ).
 max_divide(L1,U1,L2,U2,Max) :-
-        (   fail, L2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
+        (   L2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
             Max cis1 div(U1,L2)
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
         ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
         ).
+
 
 min_divide(Z, L, U, Min) :-
         (   Z >= 0, U = n(_), cis_geq_zero(L) -> Min cis div(n(Z)+U-n(1),U)
