@@ -2409,7 +2409,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 ;   kill(MState), Z is X * Y
                 )
             )
-        ;   nonvar(Y) -> mytimes(Y,X,Z)
+        ;   nonvar(Y) -> run_propagator(ptimes(Y,X,Z), MState)
         ;   nonvar(Z) ->
             (   X == Y ->
                 Z >= 0,
@@ -2463,8 +2463,10 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 NXL cis1 max(XL,TXL),
                 max_divide(ZL,ZU,YL,YU,TXU),
                 NXU cis1 min(XU,TXU),
-                domains_intersection(from_to(NXL,NXU), XD, XD1),
-                put(X, XD1, XExp),
+                (   NXL == XL, NXU == XU -> true
+                ;   domains_intersection(from_to(NXL,NXU), XD, XD1),
+                    put(X, XD1, XExp)
+                ),
                 (   get(Y,YD2,YL2,YU2,YExp2) ->
                     min_divide(ZL,ZU,XL,XU,TYL),
                     NYL cis1 max(YL2,TYL),
