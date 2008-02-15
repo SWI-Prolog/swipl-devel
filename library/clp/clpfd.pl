@@ -2409,7 +2409,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 ;   kill(MState), Z is X * Y
                 )
             )
-        ;   nonvar(Y) -> mytimes(Y,X,Z)
+        ;   nonvar(Y) -> run_propagator(ptimes(Y,X,Z), MState)
         ;   nonvar(Z) ->
             (   X == Y ->
                 Z >= 0,
@@ -2439,12 +2439,10 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 ;   domains_intersection(from_to(NXL,NXU), XD, XD1),
                     put(X, XD1, XPs)
                 ),
-                (   get(Y, YD2, YL2,YU2,YExp2) ->
-                    min_divide(Z, NXL, NXU, NYLT),
-                    max_divide(Z, NXL, NXU, NYUT),
-                    NYL cis1 max(YL2,NYLT),
-                    NYU cis1 min(YU2,NYUT),
-                    (   NYL == YL2, NYU == YU2 -> true
+                (   get(Y, YD2, YL2, YU2,YExp2) ->
+                    min_divide(Z, NXL, NXU, NYL),
+                    max_divide(Z, NXL, NXU, NYU),
+                    (   NYL cis_leq YL2, NYU cis_geq YU2 -> true
                     ;   domains_intersection(from_to(NYL,NYU), YD2, YD3),
                         put(Y, YD3, YExp2)
                     )
@@ -2463,8 +2461,10 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 NXL cis1 max(XL,TXL),
                 max_divide(ZL,ZU,YL,YU,TXU),
                 NXU cis1 min(XU,TXU),
-                domains_intersection(from_to(NXL,NXU), XD, XD1),
-                put(X, XD1, XExp),
+                (   NXL == XL, NXU == XU -> true
+                ;   domains_intersection(from_to(NXL,NXU), XD, XD1),
+                    put(X, XD1, XExp)
+                ),
                 (   get(Y,YD2,YL2,YU2,YExp2) ->
                     min_divide(ZL,ZU,XL,XU,TYL),
                     NYL cis1 max(YL2,TYL),
@@ -2477,11 +2477,9 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 ;   NYL = Y, NYU = Y
                 ),
                 (   get(Z, ZD2, ZL2, ZU2, ZExp2) ->
-                    min_times(NXL,NXU,NYL,NYU,TZL),
-                    NZL cis1 max(ZL2,TZL),
-                    max_times(NXL,NXU,NYL,NYU,TZU),
-                    NZU cis1 min(ZU2,TZU),
-                    (   NZL == ZL2, NZU == ZU2 -> true
+                    min_times(NXL,NXU,NYL,NYU,NZL),
+                    max_times(NXL,NXU,NYL,NYU,NZU),
+                    (   NZL cis_leq ZL2, NZU cis_geq ZU2 -> true
                     ;   domains_intersection(from_to(NZL,NZU), ZD2, ZD3),
                         put(Z, ZD3, ZExp2)
                     )
