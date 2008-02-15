@@ -319,8 +319,6 @@ cis_(max(A0,B0), E)  :- cis_(A0, A), cis_(B0, B), cis_max(A, B, E).
 cis_(A0-B0, E)       :- cis_(A0, A), cis_(B0, B), cis_minus(A, B, E).
 cis_(-A0, E)         :- cis_(A0, A), cis_uminus(A, E).
 cis_(A0*B0, E)       :- cis_(A0, A), cis_(B0, B), cis_times(A, B, E).
-cis_(floor(A0), E)   :- cis_(A0, A), cis_floor(A, E).
-cis_(ceiling(A0), E) :- cis_(A0, A), cis_ceiling(A, E).
 cis_(div(A0,B0), E)  :- cis_(A0, A), cis_(B0, B), cis_div(A, B, E).
 cis_(A0//B0, E)      :- cis_(A0, A), cis_(B0, B), cis_slash(A, B, E).
 
@@ -339,8 +337,6 @@ cis1_(max(A,B), E)   :- cis_max(A, B, E).
 cis1_(A-B, E)        :- cis_minus(A, B, E).
 cis1_(-A, E)         :- cis_uminus(A, E).
 cis1_(A*B, E)        :- cis_times(A, B, E).
-cis1_(floor(A), E)   :- cis_floor(A, E).
-cis1_(ceiling(A), E) :- cis_ceiling(A, E).
 cis1_(div(A,B), E)   :- cis_div(A, B, E).
 cis1_(A//B, E)       :- cis_slash(A, B, E).
 
@@ -351,14 +347,6 @@ cis_sign(n(N), n(S)) :-
         ;   N > 0 -> S = 1
         ;   S = 0
         ).
-
-cis_floor(sup, sup).
-cis_floor(inf, inf).
-cis_floor(n(A), n(B)) :- B is floor(A).
-
-cis_ceiling(sup, sup).
-cis_ceiling(inf, inf).
-cis_ceiling(n(A), n(B)) :- B is ceiling(A).
 
 cis_div(sup, Y, Z) :- ( cis_geq_zero(Y) -> Z = sup ; Z = inf ).
 cis_div(inf, Y, Z) :- ( cis_geq_zero(Y) -> Z = inf ; Z = sup ).
@@ -817,8 +805,8 @@ domain_contract_(split(S0,Left0,Right0), M, D) :-
             max_divide(Inf, Sup, n(M), n(M), To0),
             domain_infimum(Left, LeftInf),
             domain_supremum(Right, RightSup),
-            From cis max(LeftInf, ceiling(From0)),
-            To cis min(RightSup, floor(To0)),
+            From cis1 max(LeftInf, From0),
+            To cis1 min(RightSup, To0),
             D = from_to(From, To)
         ).
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -864,8 +852,8 @@ domain_contract_less_(split(S0,Left0,Right0), M, D) :-
             max_divide(Inf, Sup, n(M), n(M), To0),
             domain_infimum(Left, LeftInf),
             domain_supremum(Right, RightSup),
-            From cis max(LeftInf, floor(From0)),
-            To cis min(RightSup, ceiling(To0)),
+            From cis1 max(LeftInf, From0),
+            To cis1 min(RightSup, To0),
             D = from_to(From, To)
             %format("got: ~w\n", [D])
         ).
