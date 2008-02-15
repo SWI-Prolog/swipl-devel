@@ -1543,7 +1543,7 @@ X #= Y  :-
                 Xs1 = [vn(First,N)|XsRest] ->
                 vns_coeffs_variables(XsRest, N, First, Cs, Vs),
                 P is Y - S,
-                (   maplist(even, Cs) -> P mod 2 =:= 0
+                (   maplist(even, Cs) -> even(P)
                 ;   true
                 ),
                 scalar_product(Cs, Vs, P)
