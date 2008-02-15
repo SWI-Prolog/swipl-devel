@@ -193,9 +193,9 @@ Sample query and its result:
 
 ==
 ?- puzzle(As+Bs=Cs).
-As = [_G58{8..9}, _G61{2..9}, _G64{2..9}, _G67{2..9}],
-Bs = [1, 0, _G76{2..9}, _G61{2..9}],
-Cs = [1, 0, _G64{2..9}, _G61{2..9}, _G94{2..9}]
+As = [9, _G5879{2..8}, _G5882{2..8}, _G5885{2..8}],
+Bs = [1, 0, _G5894{2..8}, _G5879{2..8}],
+Cs = [1, 0, _G5882{2..8}, _G5879{2..8}, _G5912{2..8}]
 ==
 
 Here, the constraint solver could deduce more stringent bounds for
