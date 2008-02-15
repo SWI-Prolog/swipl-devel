@@ -348,8 +348,8 @@ cis_sign(n(N), n(S)) :-
         ;   S = 0
         ).
 
-cis_div(sup, Y, Z) :- ( cis_geq_zero(Y) -> Z = sup ; Z = inf ).
-cis_div(inf, Y, Z) :- ( cis_geq_zero(Y) -> Z = inf ; Z = sup ).
+cis_div(sup, Y, Z)  :- ( cis_geq_zero(Y) -> Z = sup ; Z = inf ).
+cis_div(inf, Y, Z)  :- ( cis_geq_zero(Y) -> Z = inf ; Z = sup ).
 cis_div(n(X), Y, Z) :- cis_div_(Y, X, Z).
 
 cis_div_(sup, _, n(0)).
@@ -688,46 +688,22 @@ domain_shift(split(S0, Left0, Right0), O, split(S, Left, Right)) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 domain_expand(D0, M, D) :-
-        (   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
-        ;   D1 = D0, M1 = M
-        ),
-        domain_expand_(D1, M1, D).
+        (   M < 0 ->
+            domain_negate(D0, D1),
+            M1 is abs(M),
+            domain_expand_(D1, M1, D)
+        ;   M =:= 1 -> D = D0
+        ;   domain_expand_(D0, M, D)
+        ).
 
 domain_expand_(empty, _, empty).
-domain_expand_(from_to(From0, To0), M, D) :-
-        (   M =:= 1 -> D = from_to(From0, To0)
-        ;   From0 == inf -> To cis1 To0*n(M), D = from_to(inf, To)
-        ;   To0 == sup -> From cis1 From0*n(M), D = from_to(From, sup)
-        ;   % domain is bounded
-            From1 cis1 From0*n(M),
-            To1 cis1 To0*n(M),
-            D = from_to(From1,To1)
-            %all_multiples(From0, To0, M, D)
-        ).
+domain_expand_(from_to(From0, To0), M, from_to(From,To)) :-
+        From cis1 From0*n(M),
+        To cis1 To0*n(M).
 domain_expand_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
         S is M*S0,
         domain_expand_(Left0, M, Left),
         domain_expand_(Right0, M, Right).
-
-all_multiples(From, To, M, D) :-
-        Mid cis (From + To) // n(2),
-        Mult cis1 Mid * n(M),
-        (   From == To -> D = from_to(Mult,Mult)
-        ;   Left cis1 Mid - n(1),
-            Right cis1 Mid + n(1),
-            n(S1) cis1 Mult +  n(1),
-            n(S2) cis1 Mult - n(1),
-            (   Mid == From ->
-                D = split(S1, from_to(Mult,Mult), RightD),
-                all_multiples(Right, To, M, RightD)
-            ;   Mid == To ->
-                D = split(S2, LeftD, from_to(Mult,Mult)),
-                all_multiples(From, Left, M, LeftD)
-            ;   D = split(S2, LeftD, split(S1, from_to(Mult,Mult), RightD)),
-                all_multiples(From, Left, M, LeftD),
-                all_multiples(Right, To, M, RightD)
-            )
-        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    similar to domain_expand/3, tailored for division: an interval
@@ -765,7 +741,6 @@ domain_expand_more_(split(S0, Left0, Right0), M, D) :-
             domain_supremum(Right, Sup),
             D = from_to(Inf, Sup)
         ).
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Scale a domain down by a constant multiplier. Assuming (//)/2.
@@ -809,6 +784,7 @@ domain_contract_(split(S0,Left0,Right0), M, D) :-
             To cis1 min(RightSup, To0),
             D = from_to(From, To)
         ).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Similar to domain_contract, tailored for division, i.e.,
    {21,23} contracted by 4 is 5. It contracts "less".
@@ -2983,24 +2959,24 @@ max_times(L1,U1,L2,U2,Max) :-
         Max cis max(max(L1*L2,L1*U2),max(U1*L2,U1*U2)).
 
 min_divide(L1,U1,L2,U2,Min) :-
-        (   cis_geq_zero(L1), cis_geq_zero(L2) ->
+        (   U2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
             Min cis div(L1+U2-n(1),U2)
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
         ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
         ).
 max_divide(L1,U1,L2,U2,Max) :-
-        (   cis_geq_zero(L1), cis_geq_zero(L2) -> Max cis1 div(U1,L2)
+        (   L2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) -> Max cis1 div(U1,L2)
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
         ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
         ).
 
 min_divide(Z, L, U, Min) :-
-        (   Z >= 0, cis_geq_zero(L) -> Min cis div(n(Z)+U-n(1),U)
+        (   Z >= 0, U = n(_), cis_geq_zero(L) -> Min cis div(n(Z)+U-n(1),U)
         ;   min_divide(n(Z), n(Z), L, U, Min)
         ).
 
 max_divide(Z, L, U, Max) :-
-        (   Z >= 0, cis_geq_zero(L) -> Max cis1 div(n(Z),L)
+        (   Z >= 0, L = n(_), cis_geq_zero(L) -> Max cis1 div(n(Z),L)
         ;   max_divide(n(Z), n(Z), L, U, Max)
         ).
 
