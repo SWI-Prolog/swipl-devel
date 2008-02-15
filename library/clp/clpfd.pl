@@ -193,9 +193,9 @@ Sample query and its result:
 
 ==
 ?- puzzle(As+Bs=Cs).
-As = [_G58{8..9}, _G61{2..9}, _G64{2..9}, _G67{2..9}],
-Bs = [1, 0, _G76{2..9}, _G61{2..9}],
-Cs = [1, 0, _G64{2..9}, _G61{2..9}, _G94{2..9}]
+As = [9, _G5879{2..8}, _G5882{2..8}, _G5885{2..8}],
+Bs = [1, 0, _G5894{2..8}, _G5879{2..8}],
+Cs = [1, 0, _G5882{2..8}, _G5879{2..8}, _G5912{2..8}]
 ==
 
 Here, the constraint solver could deduce more stringent bounds for
@@ -759,10 +759,10 @@ domain_expand_more_(empty, _, empty).
 domain_expand_more_(from_to(From0, To0), M, from_to(From,To)) :-
         (   From0 cis_lt n(0) ->
             From cis (From0-n(1))*n(M) + n(1)
-        ;   From cis From0*n(M)
+        ;   From cis1 From0*n(M)
         ),
         (   To0 cis_lt n(0) ->
-            To cis To0*n(M)
+            To cis1 To0*n(M)
         ;   To cis (To0+n(1))*n(M) - n(1)
         ).
 domain_expand_more_(split(S0, Left0, Right0), M, D) :-
@@ -792,7 +792,14 @@ domain_contract(D0, M, D) :-
 
 domain_contract_(empty, _, empty).
 domain_contract_(from_to(From0, To0), M, from_to(From,To)) :-
-        From cis1 From0 // n(M), To cis1 To0 // n(M).
+        (   cis_geq_zero(From0) ->
+            From cis (From0 + n(M) - n(1)) // n(M)
+        ;   From cis1 From0 // n(M)
+        ),
+        (   cis_geq_zero(To0) ->
+            To cis1 To0 // n(M)
+        ;   To cis (To0 - n(M) + n(1)) // n(M)
+        ).
 domain_contract_(split(S0,Left0,Right0), M, D) :-
         S is S0 // M,
         %  Scaled down domains do not necessarily retain any holes of
@@ -1286,53 +1293,63 @@ sum(Ls, Op, Value) :-
         must_be(list, Ls),
         maplist(fd_variable, Ls),
         (   Op == (#=), integer(Value) ->
-            make_propagator(sum_eq(Ls,Value), Prop),
-            sum_eq(Ls, Prop),
-            trigger_prop(Prop),
-            do_queue
+            length(Ls, L),
+            length(Cs, L),
+            maplist(=(1), Cs),
+            scalar_product(Cs, Ls, Value)
         ;   must_be(callable, Op),
             sum(Ls, 0, Op, Value)
         ).
 
-sum_eq([], _).
-sum_eq([V|Vs], Prop) :- init_propagator(V, Prop), sum_eq(Vs, Prop).
+scalar_product(Cs, Vs, C) :-
+        make_propagator(scalar_product(Cs,Vs,C), Prop),
+        vs_propagator(Vs, Prop),
+        trigger_prop(Prop),
+        do_queue.
+
+vs_propagator([], _).
+vs_propagator([V|Vs], Prop) :-
+        init_propagator(V, Prop),
+        vs_propagator(Vs, Prop).
 
 sum([], Sum, Op, Value) :- call(Op, Sum, Value).
 sum([X|Xs], Acc, Op, Value) :-
         NAcc #= Acc + X,
         sum(Xs, NAcc, Op, Value).
 
-list_variables_integers([], [], []).
-list_variables_integers([L|Ls], Vs0, Is0) :-
-        (   var(L) -> Vs0 = [L|Vs1], Is1 = Is0
-        ;   Is0 = [L|Is1], Vs1 = Vs0
+coeffs_variables_const([], [], [], [], I, I).
+coeffs_variables_const([C|Cs], [V|Vs], Cs1, Vs1, I0, I) :-
+        (   var(V) ->
+            Cs1 = [C|CRest], Vs1 = [V|VRest], I1 = I0
+        ;   I1 is I0 + C*V,
+            Cs1 = CRest, Vs1 = VRest
         ),
-        list_variables_integers(Ls, Vs1, Is1).
+        coeffs_variables_const(Cs, Vs, CRest, VRest, I1, I).
 
-sum_domains([], Inf, Sup, Inf, Sup).
-sum_domains([V|Vs], Inf0, Sup0, Inf, Sup) :-
+sum_domains([], [], Inf, Sup, Inf, Sup).
+sum_domains([C|Cs], [V|Vs], Inf0, Sup0, Inf, Sup) :-
         get(V, _, Inf1, Sup1, _),
-        Inf2 cis1 Inf0 + Inf1,
-        Sup2 cis1 Sup0 + Sup1,
-        sum_domains(Vs, Inf2, Sup2, Inf, Sup).
+        Inf2 cis Inf0 + n(C)*Inf1,
+        Sup2 cis Sup0 + n(C)*Sup1,
+        sum_domains(Cs, Vs, Inf2, Sup2, Inf, Sup).
 
-remove_dist_upper_lower([], _, _).
-remove_dist_upper_lower([V|Vs], D1, D2) :-
+remove_dist_upper_lower([], _, _, _).
+remove_dist_upper_lower([C|Cs], [V|Vs], D1, D2) :-
         (   get(V, VD, VPs) ->
             (   D1 = n(ND1), domain_infimum(VD, n(Inf)) ->
-                G is Inf + ND1,
+                G is Inf + ND1//C,
                 domain_remove_greater_than(VD, G, VD1)
             ;   VD1 = VD
             ),
             (   D2 = n(ND2), domain_supremum(VD, n(Sup)) ->
-                L is Sup - ND2,
+                L is Sup - ND2//C,
                 domain_remove_smaller_than(VD1, L, VD2)
             ;   VD2 = VD1
             ),
             put(V, VD2, VPs)
         ;   true
         ),
-        remove_dist_upper_lower(Vs, D1, D2).
+        remove_dist_upper_lower(Cs, Vs, D1, D2).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1365,10 +1382,12 @@ pop_queue(E) :-
         b_getval('$clpfd_queue', H-T),
         nonvar(H), H = [E|NH], b_setval('$clpfd_queue', NH-T).
 
-fetch_constraint_(C) :-
-        pop_queue(ps(C0,State)),
-        (   State == dead -> fetch_constraint_(C)
-        ;   C = C0
+fetch_propagator(Propagator) :-
+        pop_queue(Prop),
+        arg(2, Prop, MState),
+        arg(1, MState, State),
+        (   State == dead -> fetch_propagator(Propagator)
+        ;   Propagator = Prop
         ).
 
 :- thread_initialization((make_queue,
@@ -1545,12 +1564,39 @@ X #=< Y :- Y #>= X.
 %
 % X equals Y.
 
-fdsum(X)   --> { ( var(X) ; integer(X) ) }, !, [X].
-fdsum(A+B) --> fdsum(A), fdsum(B).
+linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
+linsum(I, S0, S)   --> { integer(I) }, !, { S is S0 + I }, [].
+linsum(N*X, S, S)  --> { integer(N), N > 0, var(X) }, !, [vn(X,N)].
+linsum(X*N, S, S)  --> { integer(N), N > 0, var(X) }, !, [vn(X,N)].
+linsum(A+B, S0, S) --> linsum(A, S0, S1), linsum(B, S1, S).
 
 X #= Y  :-
-        (   integer(Y), phrase(fdsum(X), Xs), Xs = [_,_,_|_] -> sum(Xs, #=, Y)
+        (   integer(Y), nonvar(X),
+            \+ ( X =.. [+,A,B], var(A), var(B) ),
+            phrase(linsum(X,0,S), Xs) ->
+            (   Xs = [] -> Y =:= S
+            ;   msort(Xs, Xs1),
+                Xs1 = [vn(First,N)|XsRest] ->
+                vns_coeffs_variables(XsRest, N, First, Cs, Vs),
+                P is Y - S,
+                (   maplist(even, Cs) -> P mod 2 =:= 0
+                ;   true
+                ),
+                scalar_product(Cs, Vs, P)
+            )
         ;   parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX)
+        ).
+
+even(E) :- E mod 2 =:= 0.
+
+vns_coeffs_variables([], N, V, [N], [V]).
+vns_coeffs_variables([vn(V,N)|VNs], N0, V0, Ns, Vs) :-
+        (   V == V0 ->
+            N1 is N0 + N,
+            vns_coeffs_variables(VNs, N1, V0, Ns, Vs)
+        ;   Ns = [N0|NRest],
+            Vs = [V0|VRest],
+            vns_coeffs_variables(VNs, N, V, NRest, VRest)
         ).
 
 %% ?X #\= ?Y
@@ -2003,7 +2049,7 @@ trigger_prop(Propagator) :-
         ;   % passive
             % format("triggering: ~w\n", [Propagator]),
             setarg(1, MState, queued),
-            push_queue(ps(Propagator,MState))
+            push_queue(Propagator)
         ).
 
 kill(MState) :- setarg(1, MState, dead).
@@ -2019,13 +2065,20 @@ activate_propagator(propagator(P,MState)) :-
 disable_queue :- b_setval('$clpfd_queue_status', disabled).
 enable_queue  :- b_setval('$clpfd_queue_status', enabled), do_queue.
 
+portray_propagator(propagator(P,_), F) :- functor(P, F, _).
+
+portray_queue(V, []) :- var(V), !.
+portray_queue([P|Ps], [F|Fs]) :-
+        portray_propagator(P, F),
+        portray_queue(Ps, Fs).
+
 do_queue :-
+        % b_getval('$clpfd_queue', H-_),
+        % portray_queue(H, Port),
+        % format("queue: ~w\n", [Port]),
         (   b_getval('$clpfd_queue_status', enabled) ->
-            (   fetch_constraint_(C) ->
-                activate_propagator(C),
-                %C = propagator(Prop,_),
-                %functor(Prop, FP, _),
-                %format("\n\ngot: ~w\n\n", [FP]),
+            (   fetch_propagator(Propagator) ->
+                activate_propagator(Propagator),
                 do_queue
             ;   true
             )
@@ -2289,20 +2342,21 @@ run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
             )
         ).
 
-run_propagator(sum_eq(Ls,C), MState) :-
-        list_variables_integers(Ls, Vs, Is),
-        sumlist(Is, SumC),
-        (   Vs = [] -> kill(MState), SumC =:= C
-        ;   Vs = [Single] -> kill(MState), Single is C - SumC
-        ;   Vs = [A,B] -> kill(MState), S1 is C - SumC, A + B #= S1
-        ;   sum_domains(Vs, n(0), n(0), Inf, Sup),
-            MinSum cis1 Inf + n(SumC),
-            MaxSum cis1 Sup + n(SumC),
-            n(C) cis_geq MinSum,
-            MaxSum cis_geq n(C),
-            D1 cis1 n(C) - MinSum,
-            D2 cis1 MaxSum - n(C),
-            remove_dist_upper_lower(Vs, D1, D2)
+run_propagator(scalar_product(Cs0,Ls0,P0), MState) :-
+        coeffs_variables_const(Cs0, Ls0, Cs, Vs, 0, I),
+        P is P0 - I,
+        (   Vs = [] -> kill(MState), P =:= 0
+        ;   Vs = [V], Cs = [C] ->
+            kill(MState),
+            P mod C =:= 0,
+            V is P // C
+        ;   Vs = [A,B], Cs == [1,1] -> kill(MState), A + B #= P
+        ;   sum_domains(Cs, Vs, n(0), n(0), Inf, Sup),
+            n(P) cis_geq Inf,
+            Sup cis_geq n(P),
+            D1 cis1 n(P) - Inf,
+            D2 cis1 Sup - n(P),
+            remove_dist_upper_lower(Cs, Vs, D1, D2)
         ).
 
 % X + Y = Z
@@ -3295,7 +3349,10 @@ attribute_goal_(pabs(X,Y), Y #= abs(X)).
 attribute_goal_(pmod(X,M,K), X mod M #= K).
 attribute_goal_(pmax(X,Y,Z), Z #= max(X,Y)).
 attribute_goal_(pmin(X,Y,Z), Z #= min(X,Y)).
-attribute_goal_(sum_eq(Vs, C), sum(Vs, #=, C)).
+attribute_goal_(scalar_product(Cs,Vs,C), Left #= C) :-
+        Cs = [FC|Cs1], Vs = [FV|Vs1],
+        coeff_var_term(FC, FV, T0),
+        unfold_product(Cs1, Vs1, T0, Left).
 attribute_goal_(pdifferent(Left, Right, X), all_different(Vs)) :-
         append(Left, [X|Right], Vs).
 attribute_goal_(pdistinct(Left, Right, X), all_distinct(Vs)) :-
@@ -3315,6 +3372,13 @@ attribute_goal_(reified_and(X, Y, B), X #/\ Y #<==> B).
 attribute_goal_(reified_or(X, Y, B), X #\/ Y #<==> B).
 attribute_goal_(reified_not(X, Y), #\ X #<==> Y).
 attribute_goal_(pimpl(X, Y), X #==> Y).
+
+coeff_var_term(C, V, T) :- ( C =:= 1 -> T = V ; T = C*V ).
+
+unfold_product([], [], P, P).
+unfold_product([C|Cs], [V|Vs], P0, P) :-
+        coeff_var_term(C, V, T),
+        unfold_product(Cs, Vs, P0 + T, P).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 domain_to_list(Domain, List) :- phrase(domain_to_list(Domain), List).
