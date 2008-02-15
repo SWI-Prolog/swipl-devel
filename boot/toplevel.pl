@@ -330,6 +330,7 @@ initialise_prolog :-
 	once(print_predicate(_, [print], PrintOptions)),
 	set_prolog_flag(toplevel_print_options, PrintOptions),
 	set_prolog_flag(prompt_alternatives_on, determinism),
+	set_prolog_flag(toplevel_extra_white_line, true),
 	'$set_debugger_print_options'(print),
 	'$run_at_initialization',
 	'$load_system_init_file',
@@ -595,10 +596,10 @@ write_bindings2([], _) :-
 	print_message(query, query(yes)).
 write_bindings2(Bindings, true) :-
 	current_prolog_flag(prompt_alternatives_on, determinism), !,
-	print_message(query, query(yes, Bindings)).
+	print_message(query, query(yes(Bindings))).
 write_bindings2(Bindings, _Det) :-
 	repeat,
-	    print_message(query, query(more, Bindings)),
+	    print_message(query, query(more(Bindings))),
 	    get_respons(Action),
 	(   Action == redo
 	->  !, fail
