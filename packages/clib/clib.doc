@@ -1,6 +1,7 @@
 \documentclass[11pt]{article}
 \usepackage{times}
 \usepackage{pl}
+\usepackage{plpage}
 \usepackage{html}
 \sloppy
 \makeindex
@@ -528,8 +529,9 @@ make the query \verb$http://myhost.mydomain/cgi-bin/cgidemo?hello=world$
 :- use_module(library(cgi)).
 
 main :-
+	set_stream(current_output, encoding(utf8)),
 	cgi_get_form(Arguments),
-	format('Content-type: text/html~n~n', []),
+	format('Content-type: text/html; charset=UTF-8~n~n', []),
 	format('<HTML>~n', []),
 	format('<HEAD>~n', []),
 	format('<TITLE>Simple SWI-Prolog CGI script</TITLE>~n', []),
@@ -550,7 +552,14 @@ print_args([A0|T]) :-
 
 Printing an HTML document using format/2 is not really a neat way
 of producing HTML.  A high-level alternative is provided by
-\pllib{http/html_write} from the XPCE package.
+\pllib{http/html_write} from the HTTP library.
+
+The CGI standard is very unclear about handling Unicode data. The above
+two declarations ensure the CGI script will send all data in UTF-8 and
+thus provide full support of Unicode. It is assumed that browsers
+generally send form-data using the same encoding as the page in which
+the form appears, UTF-8 or ISO Latin-1.  The current version of 
+cgi_get_form/2 assumes the CGI data is in UTF-8.
 
 
 \section{MIME decoding library}
