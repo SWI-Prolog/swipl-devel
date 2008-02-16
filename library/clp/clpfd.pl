@@ -1437,9 +1437,11 @@ geq(A, B) :-
         ).
 
 myplus(X, Y, Z) :-
-        make_propagator(pplus(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
+        (   X == Y -> 2*X #= Z
+        ;   make_propagator(pplus(X,Y,Z), Prop),
+            init_propagator(X, Prop), init_propagator(Y, Prop),
+            init_propagator(Z, Prop), trigger_once(Prop)
+        ).
 
 mytimes(X, Y, Z) :-
         make_propagator(ptimes(X,Y,Z), Prop),
