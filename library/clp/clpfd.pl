@@ -1536,7 +1536,7 @@ linsum(A+B, S0, S) --> linsum(A, S0, S1), linsum(B, S1, S).
 
 X #= Y  :-
         (   integer(Y), nonvar(X),
-            \+ ( X =.. [+,A,B], var(A), var(B) ),
+            \+ ( X = A+B, var(A), var(B) ),
             phrase(linsum(X,0,S), Xs) ->
             (   Xs = [] -> Y =:= S
             ;   msort(Xs, Xs1),
