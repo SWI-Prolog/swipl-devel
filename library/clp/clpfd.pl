@@ -2286,9 +2286,17 @@ run_propagator(x_neq_y_plus_c(X,Y,C), MState) :-
 run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), X =< Y + C
-            ;   kill(MState), R is X - C, R #=< Y
+            ;   kill(MState),
+                R is X - C,
+                get(Y, YD, YPs),
+                domain_remove_smaller_than(YD, R, YD1),
+                put(Y, YD1, YPs)
             )
-        ;   nonvar(Y) -> kill(MState), R is Y + C, X #=< R
+        ;   nonvar(Y) -> kill(MState),
+            R is Y + C,
+            get(X, XD, XPs),
+            domain_remove_greater_than(XD, R, XD1),
+            put(X, XD1, XPs)
         ;   get(Y, YD, _),
             (   domain_supremum(YD, n(YSup)) ->
                 YS1 is YSup + C,
@@ -2301,6 +2309,12 @@ run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
                 XI1 is XInf - C,
                 (   get(Y, YD1, YPs1) ->
                     domain_remove_smaller_than(YD1, XI1, YD2),
+                    (   domain_infimum(YD2, n(YInf)),
+                        domain_supremum(XD2, n(XSup)),
+                        XSup =< YInf + C ->
+                        kill(MState)
+                    ;   true
+                    ),
                     put(Y, YD2, YPs1)
                 ;   true
                 )
