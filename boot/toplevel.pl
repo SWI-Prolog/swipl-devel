@@ -655,14 +655,14 @@ answer_respons(Char, again) :-
 	memberchk(Char, "?h"), !,
 	print_message(help, query(help)).
 answer_respons(Char, redo) :-
-	memberchk(Char, ";nrNR"), !,
+	memberchk(Char, ";nrNR \t"), !,
 	print_message(query, if_tty(';')).
 answer_respons(Char, redo) :-
 	memberchk(Char, "tT"), !,
 	trace,
 	print_message(query, if_tty('; [trace]')).
 answer_respons(Char, continue) :-
-	memberchk(Char, "ca \n\ryY."), !,
+	memberchk(Char, "ca\n\ryY."), !,
 	print_message(query, if_tty('.')).
 answer_respons(0'b, show_again) :- !,
 	break.
