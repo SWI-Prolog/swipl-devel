@@ -1545,15 +1545,24 @@ X #= Y  :-
                 Xs1 = [vn(First,N)|XsRest] ->
                 vns_coeffs_variables(XsRest, N, First, Cs, Vs),
                 P is Y - S,
-                (   maplist(even, Cs) -> even(P)
-                ;   true
-                ),
+                Cs = [C|CsRest],
+                gcd(CsRest, C, GCD),
+                P mod GCD =:= 0,
                 scalar_product(Cs, Vs, P)
             )
         ;   parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX)
         ).
 
-even(E) :- E mod 2 =:= 0.
+gcd([], G, G).
+gcd([N|Ns], G0, G) :-
+        gcd_(N, G0, G1),
+        gcd(Ns, G1, G).
+
+gcd_(A, B, G) :-
+        (   B =:= 0 -> G = A
+        ;   R is A mod B,
+            gcd_(B, R, G)
+        ).
 
 vns_coeffs_variables([], N, V, [N], [V]).
 vns_coeffs_variables([vn(V,N)|VNs], N0, V0, Ns, Vs) :-
@@ -2292,7 +2301,8 @@ run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
                 domain_remove_smaller_than(YD, R, YD1),
                 put(Y, YD1, YPs)
             )
-        ;   nonvar(Y) -> kill(MState),
+        ;   nonvar(Y) ->
+            kill(MState),
             R is Y + C,
             get(X, XD, XPs),
             domain_remove_greater_than(XD, R, XD1),
