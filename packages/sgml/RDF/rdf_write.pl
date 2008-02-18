@@ -48,6 +48,14 @@ format rdf(Subject, Predicate, Object).  It   is  primarily intended for
 communicating computed RDF model fragments   to  external programs using
 RDF/XML.
 
+When used from the HTTP library, use the following code:
+
+==
+reply_graph(RDF) :-
+	format('Content-type: application/rdf+xml; charset=UTF-8~n~n'),
+	rdf_write_xml(current_output, RDF).
+==
+
 @author	Jan Wielemaker
 @see	library(semweb/rdf_db) offers saving a named graph directly from
 	the RDF database.
