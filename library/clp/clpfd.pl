@@ -232,7 +232,7 @@ defaulty_to_bound(D, P) :- ( integer(D) -> P = n(D) ; P = D ).
 
 % cis_gt only works for terms of depth 0 on both sides
 cis_gt(n(N), B) :- cis_gt_numeric(B, N).
-cis_gt(sup, B0) :-B0 \== sup.
+cis_gt(sup, B0) :- B0 \== sup.
 
 cis_gt_numeric(n(B), A) :- A > B.
 cis_gt_numeric(inf, _).
@@ -3299,9 +3299,9 @@ bound_portray(n(N), N).
 
 attr_portray_hook(clpfd(_,_,_,Dom,_), Var) :-
         (   current_prolog_flag(clpfd_attribute_goal, true) ->
-            % the default mechanism in SWI should eventually work like this,
-            % with the toplevel using attribute_goal/2 for all attributes
-            attribute_goal(Var, Goal),
+            % eventually, the toplevel should work like this by default
+            copy_term(Var, Var, Gs),
+            list_dot(Gs, Goal),
             write(Goal)
         ;   domain_to_drep(Dom, Drep),
             write(Drep)
