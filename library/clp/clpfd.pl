@@ -960,6 +960,10 @@ label(Vs) :- labeling([], Vs).
 %   in order to detect infeasibility early. This is often a good
 %   strategy.
 %
+%   * ffc
+%   Of the variables with smallest domains, the leftmost one
+%   participating in most constraints is labeled next.
+%
 %   * min
 %   Label the leftmost variable whose lower bound is the lowest next.
 %
@@ -1489,8 +1493,7 @@ mymin(X, Y, Z) :-
    little of the propagated information is actually used. For example,
    only extremal values are of interest in inequalities. Introducing
    auxiliary variables should be avoided when possible, and
-   specialised propagators should be used instead. See below for a few
-   examples, such as constraints of the form X #\= Y + C.
+   specialised propagators should be used for common constraints.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %% ?X #>= ?Y
@@ -1874,12 +1877,15 @@ get(X, Dom, Inf, Sup, Ps) :-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    By default, propagation always terminates. Currently, this is
    ensured by allowing the left and right boundaries, as well as the
-   distance between the smallest and largest number occurring in a
-   domain to be changed at most once after a constraint is posted,
-   unless the domain is bounded. Set the experimental Prolog flag
-   'clpfd_propagation' to 'full' to make the solver propagate as much
-   as possible. This can make some queries non-terminating, for
-   example: X #> abs(X), or: X #> Y, Y #> X, X #> 0.
+   distance between the smallest and largest number occurring in the
+   domain representation to be changed at most once after a constraint
+   is posted, unless the domain is bounded. Set the experimental
+   Prolog flag 'clpfd_propagation' to 'full' to make the solver
+   propagate as much as possible. This can make queries
+   non-terminating, like: X #> abs(X), or: X #> Y, Y #> X, X #> 0.
+   Importantly, it can also make labeling non-terminating, as in:
+
+   ?- #\ B #==> X #> abs(X), indomain(B).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 put(X, Dom, Pos) :-
