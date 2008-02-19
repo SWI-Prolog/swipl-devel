@@ -70,7 +70,7 @@ There are four aggregation predicates, distinguished on two properties.
     (aggregate/3), dealing with existential qualified variables
     (Var^Goal) and providing multiple solutions for the remaining free
     variables in Goal. The aggregate_all/3 predicate uses findall/3,
-    implicitely qualifying all free variables and providing exactly one
+    implicitly qualifying all free variables and providing exactly one
     solution, while aggregate_all/4 uses sort/2 over solutions and
     Distinguish (see below) generated using findall/3.
 
@@ -78,7 +78,7 @@ There are four aggregation predicates, distinguished on two properties.
     The versions with 4 arguments provide a Distinguish argument that
     allow for keeping duplicate bindings of a variable in the result.
     For example, if we wish to compute the total population of all
-    countries we do not want to loose results because two countries
+    countries we do not want to lose results because two countries
     have the same population.  Therefore we use:
     
     ==
@@ -99,7 +99,7 @@ r(min(X), max(X)) computes both the minimum and maximum binding for X.
 	* min(Expr, Witness)
 	A term min(Min, Witness), where Min is the minimal version
 	of Expr over all Solution and Witness is any other template
-	the applied to the solution that produced Min.  If multiple
+	applied to Solution that produced Min.  If multiple
 	solutions provide the same minimum, Witness corresponds to
 	the first solution.
 	* max(Expr)
@@ -317,7 +317,7 @@ min_pair([M0-W0|T], M, W) :-
 
 min_pair([], M, W, M, W).
 min_pair([M0-W0|T], M1, W1, M, W) :-
-	(   M0 > M1
+	(   M0 < M1
 	->  min_pair(T, M0, W0, M, W)
 	;   min_pair(T, M1, W1, M, W)
 	).
