@@ -4433,8 +4433,9 @@ behaviour with negative values is illustrated in the table below.
 \end{center}
 
     \infixop[ISO]{rem}{+IntExpr1}{+IntExpr2}
-Remainder of division:
-\mbox{\arg{Result} is float_fractional_part(\arg{IntExpr1}/\arg{IntExpr2})}
+Remainder of integer division.  Behaves as if defined by
+\mbox{\arg{Result} is \arg{IntExpr1} -
+(\arg{IntExpr1}//\arg{IntExpr2})*\arg{IntExpr2}}
 
     \infixop[ISO]{//}{+IntExpr1}{+IntExpr2}
 Integer division:
