@@ -59,7 +59,7 @@ and a set of solutions. We first   give  a simple example, computing the
 country with the smallest area:
 
 ==
-average_country_area(Name, Area) :-
+smallest_country(Name, Area) :-
 	aggregate(min(A, N), country(N, A), min(Area, Name)).
 ==
 
