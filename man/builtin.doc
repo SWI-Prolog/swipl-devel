@@ -4590,9 +4590,9 @@ $\arg{Result} = \arctan{\frac{\arg{YExpr}}{\arg{XExpr}}}$. \arg{Result} is the
 angle in radians.  The return value is in the range $[-\pi\ldots\pi]$.
 Used to convert between rectangular and polar coordinate system.
     \predicate[ISO]{log}{1}{+Expr}
-$\arg{Result} = \ln{\arg{Expr}}$
+Natural logarithm.  $\arg{Result} = \ln{\arg{Expr}}$
     \predicate{log10}{1}{+Expr}
-$\arg{Result} = \lg{\arg{Expr}}$
+Base-10 logarithm.  $\arg{Result} = \lg{\arg{Expr}}$
     \predicate[ISO]{exp}{1}{+Expr}
 $\arg{Result} = \pow{e}{\arg{Expr}}$
     \infixop[ISO]{**}{+Expr1}{+Expr2}
@@ -4611,9 +4611,9 @@ two parties can establish a secret key over a public network.
     \infixop{^}{+Expr1}{+Expr2}
 Same as **/2.  (backward compatibility).
     \predicate{pi}{0}{}
-Evaluates to the mathematical constant $\pi$ (3.141593).
+Evaluates to the mathematical constant $\pi$ (3.141593\ldots).
     \predicate{e}{0}{}
-Evaluates to the mathematical constant $e$ (2.718282).
+Evaluates to the mathematical constant $e$ (2.718282\ldots).
     \predicate{cputime}{0}{}
 Evaluates to a floating point number expressing the {\sc cpu} time (in seconds)
 used by Prolog up till now. See also statistics/2 and time/1.
