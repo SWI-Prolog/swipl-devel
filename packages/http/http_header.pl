@@ -808,13 +808,13 @@ rfc_date(Time, String, Tail) :-
 		    '%a, %d %b %Y %H:%M:%S GMT',
 		    Date, posix).
 	
-%%	http_timestamp(+Time, -Atom)
+%%	http_timestamp(+Time:timestamp, -Text:atom) is det.
 %	
 %	Generate a description of a Time in HTTP format (RFC1123)
 
 http_timestamp(Time, Atom) :-
 	stamp_date_time(Time, Date, 'UTC'),
-	format_time(codes(Atom),
+	format_time(atom(Atom),
 		    '%a, %d %b %Y %H:%M:%S GMT',
 		    Date, posix).
 
