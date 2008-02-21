@@ -1326,7 +1326,7 @@ sum_finite_domains([C|Cs], [V|Vs], Infs, Sups, Inf0, Sup0, Inf, Sup) :-
                 Sup2 = Sup0
             ;   Inf2 = Inf0
             ),
-            Infs = [C*V|Infs1]        
+            Infs = [C*V|Infs1]
         ),
         (   Sup1 = n(NSup) ->
             (   C < 0 ->
@@ -1365,7 +1365,7 @@ remove_dist_upper_lower([C|Cs], [V|Vs], D1, D2) :-
         remove_dist_upper_lower(Cs, Vs, D1, D2).
 
 remove_upper([], _).
-remove_upper([C*X|AXs], Max) :-
+remove_upper([C*X|CXs], Max) :-
         (   get(X, XD, XPs) ->
             (   C < 0 ->
                 L is Max//C,
@@ -1376,7 +1376,21 @@ remove_upper([C*X|AXs], Max) :-
             put(X, XD1, XPs)
         ;   true
         ),
-        remove_upper(AXs, Max).
+        remove_upper(CXs, Max).
+
+remove_lower([], _).
+remove_lower([C*X|CXs], Min) :-
+        (   get(X, XD, XPs) ->
+            (   C < 0 ->
+                U is -Min//C,
+                domain_remove_greater_than(XD, U, XD1)
+            ;   L is -Min//C,
+                domain_remove_smaller_than(XD, L, XD1)
+            ),
+            put(X, XD1, XPs)
+        ;   true
+        ),
+        remove_lower(CXs, Min).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -2455,7 +2469,7 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                     P =< Sup,
                     remove_dist_upper_lower(Cs, Vs, D1, D2)
                 ;   Infs = [A*X], Sups = [A*X] ->
-                    get(X, XD, XPs),                    
+                    get(X, XD, XPs),
                     (   A < 0 ->
                         L is (P-Inf)//A,
                         U is (P-Sup)//A
@@ -2466,7 +2480,8 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                     domain_remove_greater_than(XD1, U, XD2),
                     put(X, XD2, XPs)
                 ;   Sups = [] ->
-                    true
+                    D is Sup - P,
+                    remove_lower(Infs, D)
                 ;   Infs = [] ->
                     D is P - Inf,
                     remove_upper(Sups, D)
