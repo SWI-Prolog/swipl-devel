@@ -1267,20 +1267,23 @@ all_different([X|Right], Left) :-
 %               sum(List, #=<, 100)
 %       ==
 
+scalar_supported(#=).
+scalar_supported(#\=).
+
 sum(Ls, Op, Value) :-
         must_be(list, Ls),
         maplist(fd_variable, Ls),
-        (   Op == (#=), integer(Value) ->
+        (   scalar_supported(Op), integer(Value) ->
             length(Ls, L),
             length(Cs, L),
             maplist(=(1), Cs),
-            scalar_product(Cs, Ls, Value)
+            scalar_product(Cs, Ls, Op, Value)
         ;   must_be(callable, Op),
             sum(Ls, 0, Op, Value)
         ).
 
-scalar_product(Cs, Vs, C) :-
-        make_propagator(scalar_product(Cs,Vs,C), Prop),
+scalar_product(Cs, Vs, Op, C) :-
+        make_propagator(scalar_product(Cs,Vs,Op,C), Prop),
         vs_propagator(Vs, Prop),
         trigger_prop(Prop),
         do_queue.
@@ -1378,11 +1381,14 @@ fetch_propagator(Propagator) :-
    example, in X/Y and X mod Y, Y is constrained to be #\= 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+constrain_to_integer(Var) :-
+        get(Var, D, Ps),
+        put(Var, D, Ps).
+
 parse_clpfd(Expr, Result) :-
         (   cyclic_term(Expr) -> domain_error(clpfd_expression, Expr)
         ;   var(Expr) ->
-            get(Expr, ED, EPs),
-            put(Expr, ED, EPs), % constrain to integers
+            constrain_to_integer(Expr),
             Result = Expr
         ;   integer(Expr) -> Result = Expr
         ;   Expr = (L + R) ->
@@ -1544,24 +1550,65 @@ X #=< Y :- Y #>= X.
 % X equals Y.
 
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
+linsum(-X, S, S)   --> { var(X) }, !, [vn(X,-1)].
 linsum(I, S0, S)   --> { integer(I) }, !, { S is S0 + I }, [].
-linsum(N*X, S, S)  --> { integer(N), N > 0, var(X) }, !, [vn(X,N)].
-linsum(X*N, S, S)  --> { integer(N), N > 0, var(X) }, !, [vn(X,N)].
+linsum(N*X, S, S)  --> { integer(N), var(X) }, !, [vn(X,N)].
+linsum(X*N, S, S)  --> { integer(N), var(X) }, !, [vn(X,N)].
 linsum(A+B, S0, S) --> linsum(A, S0, S1), linsum(B, S1, S).
 
+left_right_linsum_const(Left, Right, Cs, Vs, Const) :-
+        \+ ( var(Left), var(Right) ),
+        \+ ( nonvar(Left), Left = A+B, var(A), var(B), integer(Right) ),
+        phrase(linsum(Left, 0, CL), Lefts0, Rights),
+        phrase(linsum(Right, 0, CR), Rights0),
+        maplist(linterm_negate, Rights0, Rights),
+        msort(Lefts0, Lefts),
+        Lefts = [vn(First,N)|LeftsRest],
+        vns_coeffs_variables(LeftsRest, N, First, Cs0, Vs0),
+        filter_linsum(Cs0, Vs0, Cs1, Vs),
+        Const1 is CR - CL,
+        (   maplist(less_than_zero, Cs1) ->
+            maplist(num_negative, Cs1, Cs),
+            Const is -Const1
+        ;   Cs1 = Cs,
+            Const = Const1
+        ).
+
+linterm_negate(vn(V,N0), vn(V,N)) :- N is -N0.
+
+vns_coeffs_variables([], N, V, [N], [V]).
+vns_coeffs_variables([vn(V,N)|VNs], N0, V0, Ns, Vs) :-
+        (   V == V0 ->
+            N1 is N0 + N,
+            vns_coeffs_variables(VNs, N1, V0, Ns, Vs)
+        ;   Ns = [N0|NRest],
+            Vs = [V0|VRest],
+            vns_coeffs_variables(VNs, N, V, NRest, VRest)
+        ).
+
+filter_linsum([], [], [], []).
+filter_linsum([C0|Cs0], [V0|Vs0], Cs, Vs) :-
+        (   C0 =:= 0 ->
+            constrain_to_integer(V0),
+            filter_linsum(Cs0, Vs0, Cs, Vs)
+        ;   Cs = [C0|Cs1], Vs = [V0|Vs1],
+            filter_linsum(Cs0, Vs0, Cs1, Vs1)
+        ).
+
+greater_than_zero(N) :- N > 0.
+
+less_than_zero(N) :- N < 0.
+
+num_negative(N0, N) :- N is -N0.
+
 X #= Y  :-
-        (   integer(Y), nonvar(X),
-            \+ ( X = A+B, var(A), var(B) ),
-            phrase(linsum(X,0,S), Xs) ->
-            (   Xs = [] -> Y =:= S
-            ;   msort(Xs, Xs1),
-                Xs1 = [vn(First,N)|XsRest] ->
-                vns_coeffs_variables(XsRest, N, First, Cs, Vs),
-                P is Y - S,
-                Cs = [C|CsRest],
+        (   left_right_linsum_const(X, Y, Cs, Vs, S),
+            maplist(greater_than_zero, Cs) ->
+            (   Cs = [] -> S =:= 0
+            ;   Cs = [C|CsRest],
                 gcd(CsRest, C, GCD),
-                P mod GCD =:= 0,
-                scalar_product(Cs, Vs, P)
+                S mod GCD =:= 0,
+                scalar_product(Cs, Vs, #=, S)
             )
         ;   parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX)
         ).
@@ -1575,16 +1622,6 @@ gcd_(A, B, G) :-
         (   B =:= 0 -> G = A
         ;   R is A mod B,
             gcd_(B, R, G)
-        ).
-
-vns_coeffs_variables([], N, V, [N], [V]).
-vns_coeffs_variables([vn(V,N)|VNs], N0, V0, Ns, Vs) :-
-        (   V == V0 ->
-            N1 is N0 + N,
-            vns_coeffs_variables(VNs, N1, V0, Ns, Vs)
-        ;   Ns = [N0|NRest],
-            Vs = [V0|VRest],
-            vns_coeffs_variables(VNs, N, V, NRest, VRest)
         ).
 
 %% ?X #\= ?Y
@@ -1608,6 +1645,8 @@ X #\= Y :-
             absdiff_neq_const(X1, Y1, Y)
         ;   integer(X), nonvar(Y), Y = abs(A), nonvar(A), A = X1 - Y1, var(X1), var(Y1) ->
             absdiff_neq_const(X1, Y1, X)
+        ;   left_right_linsum_const(X, Y, Cs, Vs, S) ->
+            scalar_product(Cs, Vs, #\=, S)
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
         ).
 
@@ -2348,21 +2387,32 @@ run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
             )
         ).
 
-run_propagator(scalar_product(Cs0,Ls0,P0), MState) :-
-        coeffs_variables_const(Cs0, Ls0, Cs, Vs, 0, I),
+run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
+        coeffs_variables_const(Cs0, Vs0, Cs, Vs, 0, I),
         P is P0 - I,
-        (   Vs = [] -> kill(MState), P =:= 0
-        ;   Vs = [V], Cs = [C] ->
-            kill(MState),
-            P mod C =:= 0,
-            V is P // C
-        ;   Vs = [A,B], Cs == [1,1] -> kill(MState), A + B #= P
-        ;   sum_domains(Cs, Vs, n(0), n(0), Inf, Sup),
-            n(P) cis_geq Inf,
-            Sup cis_geq n(P),
-            D1 cis1 n(P) - Inf,
-            D2 cis1 Sup - n(P),
-            remove_dist_upper_lower(Cs, Vs, D1, D2)
+        (   Op == (#\=) ->
+            (   Vs = [] -> kill(MState), P =\= 0
+            ;   Vs = [V], Cs = [C] ->
+                kill(MState),
+                (   C =:= 1 -> V #\= P
+                ;   C*V #\= P
+                )
+            ;   true
+            )
+        ;   Op == (#=) ->
+            (   Vs = [] -> kill(MState), P =:= 0
+            ;   Vs = [V], Cs = [C] ->
+                kill(MState),
+                P mod C =:= 0,
+                V is P // C
+            ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
+            ;   sum_domains(Cs, Vs, n(0), n(0), Inf, Sup),
+                n(P) cis_geq Inf,
+                Sup cis_geq n(P),
+                D1 cis1 n(P) - Inf,
+                D2 cis1 Sup - n(P),
+                remove_dist_upper_lower(Cs, Vs, D1, D2)
+            )
         ).
 
 % X + Y = Z
@@ -3383,10 +3433,11 @@ attribute_goal_(pabs(X,Y), Y #= abs(X)).
 attribute_goal_(pmod(X,M,K), X mod M #= K).
 attribute_goal_(pmax(X,Y,Z), Z #= max(X,Y)).
 attribute_goal_(pmin(X,Y,Z), Z #= min(X,Y)).
-attribute_goal_(scalar_product(Cs,Vs,C), Left #= C) :-
+attribute_goal_(scalar_product(Cs,Vs,Op,C), Goal) :-
         Cs = [FC|Cs1], Vs = [FV|Vs1],
         coeff_var_term(FC, FV, T0),
-        unfold_product(Cs1, Vs1, T0, Left).
+        unfold_product(Cs1, Vs1, T0, Left),
+        Goal =.. [Op,Left,C].
 attribute_goal_(pdifferent(Left, Right, X), all_different(Vs)) :-
         append(Left, [X|Right], Vs).
 attribute_goal_(pdistinct(Left, Right, X), all_distinct(Vs)) :-
