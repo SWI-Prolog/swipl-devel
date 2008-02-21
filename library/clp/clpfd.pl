@@ -1014,7 +1014,7 @@ labeling(Options, Vars) :-
         must_be(list, Options),
         must_be(list, Vars),
         maplist(finite_domain, Vars),
-        label(Options, leftmost, up, step, none, Vars).
+        label(Options, leftmost, up, step, none, upto_ground, Vars).
 
 finite_domain(Var) :-
         (   var(Var) ->
@@ -1027,56 +1027,63 @@ finite_domain(Var) :-
         ).
 
 
-label([Option|Options], Selection, Order, Choice, Optimisation, Vars) :-
-        (   var(Option)-> instantiation_error(Option)
-        ;   selection(Option) ->
-            label(Options, Option, Order, Choice, Optimisation, Vars)
-        ;   order(Option) ->
-            label(Options, Selection, Option, Choice, Optimisation, Vars)
-        ;   choice(Option) ->
-            label(Options, Selection, Order, Option, Optimisation, Vars)
-        ;   optimization(Option) ->
-            label(Options, Selection, Order, Choice, Option, Vars)
-        ;   domain_error(labeling_option, Option)
+label([O|Os], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
+        (   var(O)-> instantiation_error(O)
+        ;   selection(O) ->
+            label(Os, O, Order, Choice, Optimisation, Consistency, Vars)
+        ;   order(O) ->
+            label(Os, Selection, O, Choice, Optimisation, Consistency, Vars)
+        ;   choice(O) ->
+            label(Os, Selection, Order, O, Optimisation, Consistency, Vars)
+        ;   optimization(O) ->
+            label(Os, Selection, Order, Choice, O, Consistency, Vars)
+        ;   consistency(O) ->
+            label(Os, Selection, Order, Choice, Optimisation, O, Vars)
+        ;   domain_error(labeling_option, O)
         ).
-label([], Selection, Order, Choice, Optimisation, Vars) :-
+label([], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
         ( Optimisation == none ->
-            label(Vars, Selection, Order, Choice)
+            label(Vars, Selection, Order, Choice, Consistency)
         ;   optimize(Vars, Selection, Order, Choice, Optimisation)
         ).
 
+all_dead([]).
+all_dead([propagator(_, mutable(dead, _))|Ps]) :- all_dead(Ps).
 
-label([], _, _, _) :- !.
-label(Vars, Selection, Order, Choice) :-
+label([], _, _, _, _) :- !.
+label(Vars, Selection, Order, Choice, Consistency) :-
         select_var(Selection, Vars, Var, RVars),
         (   var(Var) ->
-            choice_order_variable(Choice, Order, Var, RVars, Selection)
+            (   Consistency == upto_in, get(Var, _, Ps), all_dead(Ps) ->
+                label(RVars, Selection, Order, Choice, Consistency)
+            ;   choice_order_variable(Choice, Order, Var, RVars, Selection, Consistency)
+            )
         ;   must_be(integer, Var),
-            label(RVars, Selection, Order, Choice)
+            label(RVars, Selection, Order, Choice, Consistency)
         ).
 
-choice_order_variable(step, Order, Var, Vars, Selection) :-
+choice_order_variable(step, Order, Var, Vars, Selection, Consistency) :-
         get(Var, Dom, _),
         order_dom_next(Order, Dom, Next),
         (   Var = Next,
-            label(Vars, Selection, Order, step)
+            label(Vars, Selection, Order, step, Consistency)
         ;   neq_num(Var, Next),
-            label([Var|Vars], Selection, Order, step)
+            label([Var|Vars], Selection, Order, step, Consistency)
         ).
-choice_order_variable(enum, Order, Var, Vars, Selection) :-
+choice_order_variable(enum, Order, Var, Vars, Selection, Consistency) :-
         get(Var, Dom0, _),
         domain_direction_element(Dom0, Order, Var),
-        label(Vars, Selection, Order, enum).
-choice_order_variable(bisect, Order, Var, Vars, Selection) :-
+        label(Vars, Selection, Order, enum, Consistency).
+choice_order_variable(bisect, Order, Var, Vars, Selection, Consistency) :-
         get(Var, Dom, _),
         domain_infimum(Dom, n(I)),
         domain_supremum(Dom, n(S)),
         Mid0 is (I + S) // 2,
         (   Mid0 =:= S -> Mid is Mid0 - 1 ; Mid = Mid0 ),
         (   Var #=< Mid,
-            label([Var|Vars], Selection, Order, bisect)
+            label([Var|Vars], Selection, Order, bisect, Consistency)
         ;   Var #> Mid,
-            label([Var|Vars], Selection, Order, bisect)
+            label([Var|Vars], Selection, Order, bisect, Consistency)
         ).
 
 selection(ff).
@@ -1091,6 +1098,9 @@ choice(bisect).
 
 order(up).
 order(down).
+
+consistency(upto_in).
+consistency(upto_ground).
 
 optimization(min(_)).
 optimization(max(_)).
