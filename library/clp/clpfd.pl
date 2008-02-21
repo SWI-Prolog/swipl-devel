@@ -1002,12 +1002,18 @@ label(Vs) :- labeling([], Vs).
 %
 % This generates solutions in ascending/descending order with respect
 % to the evaluation of the arithmetic expression Expr. Labeling Vars
-% must make Expr ground.
+% must make Expr ground. To obtain the incomplete behaviour that other
+% systems exhibit with "maximize(Expr)" and "minimize(Expr)", use
+% once/1, e.g.:
+%
+% ==
+% once(labeling([max(Expr)], Vars))
+% ==
 %
 % If more than one option of a category is specified, the one
 % occurring rightmost in the option list takes precedence over all
-% others of that category. Labeling is always complete and always
-% terminates.
+% others of that category. Labeling is always complete, always
+% terminates, and yields no redundant solutions.
 %
 
 labeling(Options, Vars) :-
