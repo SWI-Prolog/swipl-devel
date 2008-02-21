@@ -1213,7 +1213,7 @@ optimize(Vars, Selection, Order, Choice, Opt) :-
         (   store_extremum(Vars, Selection, Order, Choice, Opt)
         ;   nb_getval('$clpfd_extremum', n(Val)),
             arg(1, Opt, Expr),
-            (   Expr #= Val, label(Vars, Selection, Order, Choice)
+            (   Expr #= Val, label(Vars, Selection, Order, Choice, upto_ground)
             ;   Expr #\= Val,
                 optimize(Vars, Selection, Order, Choice, Opt)
             )
@@ -1221,7 +1221,7 @@ optimize(Vars, Selection, Order, Choice, Opt) :-
 
 store_extremum(Vars, Selection, Order, Choice, Opt) :-
         duplicate_term(Vars-Opt, Vars1-Opt1),
-        once(label(Vars1, Selection, Order, Choice)),
+        once(label(Vars1, Selection, Order, Choice, upto_ground)),
         functor(Opt1, Direction, _),
         maplist(arg(1), [Opt,Opt1], [Expr,Expr1]),
         optimize(Direction, Selection, Order, Choice, Vars, Expr1, Expr).
@@ -1234,7 +1234,7 @@ optimize(Direction, Selection, Order, Choice, Vars, Expr0, Expr) :-
             Expr1 #< Val0
         ;   Expr1 #> Val0
         ),
-        once(label(Vars1, Selection, Order, Choice)),
+        once(label(Vars1, Selection, Order, Choice, upto_ground)),
         optimize(Direction, Selection, Order, Choice, Vars, Expr1, Expr).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
