@@ -2368,7 +2368,8 @@ run_propagator(scalar_product(Cs0,Ls0,P0), MState) :-
 % X + Y = Z
 run_propagator(pplus(X,Y,Z), MState) :-
         (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), Z is X + Y
+            (   X =:= 0 -> kill(MState), Y = Z
+            ;   nonvar(Y) -> kill(MState), Z is X + Y
             ;   nonvar(Z) -> kill(MState), Y is Z - X
             ;   get(Z, ZD, ZPs),
                 get(Y, YD, _),
@@ -2438,6 +2439,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Z is X * Y
             ;   X =:= 0 -> kill(MState), Z = 0
+            ;   X =:= 1 -> kill(MState), Z = Y
             ;   nonvar(Z) -> kill(MState), 0 =:= Z mod X, Y is Z // X
             ;   get(Y, YD, _),
                 get(Z, ZD, ZPs),
