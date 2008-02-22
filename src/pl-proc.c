@@ -2484,7 +2484,7 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
 
 
 void
-redefineProcedure(Procedure proc, SourceFile sf)
+redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
 { GET_LD
   Definition def = proc->definition;
 
@@ -2501,7 +2501,7 @@ redefineProcedure(Procedure proc, SourceFile sf)
   { ClauseRef first = hasClausesDefinition(def);
 
     if ( first && first->clause->source_no == sf->index )
-    { if ( (debugstatus.styleCheck & DISCONTIGUOUS_STYLE) &&
+    { if ( ((debugstatus.styleCheck & ~suppress) & DISCONTIGUOUS_STYLE) &&
 	   false(def, DISCONTIGUOUS) )
 	printMessage(ATOM_warning,
 		     PL_FUNCTOR_CHARS, "discontiguous", 1,

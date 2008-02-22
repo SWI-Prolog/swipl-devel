@@ -2025,7 +2025,7 @@ care of reconsult, redefinition, etc.
       return assertProcedure(proc, clause, where PASS_LD) ? clause : NULL;
 
     if ( def->definition.clauses )	/* i.e. is (might be) defined */
-      redefineProcedure(proc, sf);
+      redefineProcedure(proc, sf, 0);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This `if' locks predicates as system predicates  if  we  are  in  system
