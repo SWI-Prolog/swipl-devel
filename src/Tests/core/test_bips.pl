@@ -38,6 +38,18 @@ has_occurs_check_flag :-
 
 
 :- begin_tests(bips).
+test(iso_8_4_2_4,[Order == (<)]) :-
+	compare(Order, 3, 5).
+test(iso_8_4_2_4,[Order == (=)]) :-
+	compare(Order, d, d).
+test(iso_8_4_2_4,[Order == (=)]) :-
+	compare(Order, d, d).
+%test(iso_8_4_2_4,[Order == (>)]) :- % current disagreement
+%	compare(Order, 3, 3.0).
+test(iso_8_4_2_3_a,[error(type_error(atom, 1+1))]) :-
+	compare(1+1, b, c).
+test(iso_8_4_2_3_b,[error(domain_error(order, a))]) :-
+	compare(a, b, c).
 
 /* draft examples: */
 test(iso_8_18_2_4,[Length==3]) :-

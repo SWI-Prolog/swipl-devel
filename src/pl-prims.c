@@ -1250,8 +1250,29 @@ PRED_IMPL("compare", 3, compare, 0)
 { PRED_LD
   Word p1 = valTermRef(A2);
   Word p2 = p1+1;
+  int val;
+  atom_t a;
 
-  int val = compareStandard(p1, p2, FALSE PASS_LD);
+  if ( !PL_is_variable(A1) )
+  { if ( !PL_get_atom_ex(A1, &a) )
+      fail;
+
+    if ( a == ATOM_equals )
+      return compareStandard(p1, p2, TRUE PASS_LD) == EQUAL ? TRUE : FALSE;
+
+    if ( a != ATOM_smaller && a != ATOM_larger )
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_order, A1);
+  } else
+  { a = 0;
+  }
+
+  val = compareStandard(p1, p2, FALSE PASS_LD);
+  if ( a )
+  { if ( a == ATOM_smaller )
+      return val < 0;
+    else
+      return val > 0;
+  } 
 
   return PL_unify_atom(A1, val < 0 ? ATOM_smaller :
 		           val > 0 ? ATOM_larger :
