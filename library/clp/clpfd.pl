@@ -1375,10 +1375,13 @@ remove_dist_upper_lower([C|Cs], [V|Vs], D1, D2) :-
 remove_upper([], _).
 remove_upper([C*X|CXs], Max) :-
         (   get(X, XD, XPs) ->
-            D is Max//C,
-            (   C < 0 ->
-                domain_remove_smaller_than(XD, D, XD1)
-            ;   domain_remove_greater_than(XD, D, XD1)
+            (   Max < 0 ->
+                XD = XD1 % TODO
+            ;   D is Max//C,
+                (   C < 0 ->
+                    domain_remove_smaller_than(XD, D, XD1)
+                ;   domain_remove_greater_than(XD, D, XD1)
+                )
             ),
             put(X, XD1, XPs)
         ;   true
@@ -1388,10 +1391,13 @@ remove_upper([C*X|CXs], Max) :-
 remove_lower([], _).
 remove_lower([C*X|CXs], Min) :-
         (   get(X, XD, XPs) ->
-            D is -Min//C,
-            (   C < 0 ->
-                domain_remove_greater_than(XD, D, XD1)
-            ;   domain_remove_smaller_than(XD, D, XD1)
+            (   Min < 0 ->
+                XD = XD1 % TODO
+            ;   D is -Min//C,
+                (   C < 0 ->
+                    domain_remove_greater_than(XD, D, XD1)
+                ;   domain_remove_smaller_than(XD, D, XD1)
+                )
             ),
             put(X, XD1, XPs)
         ;   true
@@ -2484,16 +2490,10 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                     remove_upper(Sups, D)
                 ;   Sups = [_] ->
                     U is Sup - P,
-                    (   U > 0 ->
-                        remove_lower(Sups, U)
-                    ;   true % TODO
-                    )
+                    remove_lower(Sups, U)
                 ;   Infs = [_] ->
                     U is P - Inf,
-                    (   U > 0 ->
-                        remove_upper(Infs, U)
-                    ;   true % TODO
-                    )
+                    remove_upper(Infs, U)
                 ;   true
                 )
             )
