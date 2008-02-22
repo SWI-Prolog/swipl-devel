@@ -233,6 +233,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
   int fmt, encoding;
   int width, height, bytes_per_line, scale=0;
   char *data;
+  int allocdepth;
   int pad = XBitmapPad(disp);
   Visual *v = DefaultVisual(disp, DefaultScreen(disp));
 
@@ -268,7 +269,8 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
   if ( width < 0 || height < 0 || scale < 0 )
     goto errout;
 
-  bytes_per_line = roundup((width*depth+7)/8, pad/8);
+  allocdepth = (depth >= 24 ? 32 : depth);
+  bytes_per_line = roundup((width*allocdepth+7)/8, pad/8);
   data = (char *)pceMalloc(height * bytes_per_line);
 
   img = XCreateImage(disp,
@@ -279,6 +281,11 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
 		     data,
 		     width, height,
 		     pad, bytes_per_line);
+  if ( !img )
+  { perror("XCreateImage");
+    pceFree(data);
+    goto errout;
+  }
   img->bits_per_pixel = depth;
 
   switch(encoding)
