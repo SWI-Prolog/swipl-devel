@@ -1321,26 +1321,34 @@ sum_finite_domains([C|Cs], [V|Vs], Infs, Sups, Inf0, Sup0, Inf, Sup) :-
                 Sup2 is Sup0 + C*NInf
             ;   Inf2 is Inf0 + C*NInf
             ),
+            Sups = Sups1,
             Infs = Infs1
         ;   (   C < 0 ->
-                Sup2 = Sup0
-            ;   Inf2 = Inf0
-            ),
-            Infs = [C*V|Infs1]
+                Sup2 = Sup0,
+                Sups = [C*V|Sups1],
+                Infs = Infs1
+            ;   Inf2 = Inf0,
+                Infs = [C*V|Infs1],
+                Sups = Sups1
+            )
         ),
         (   Sup1 = n(NSup) ->
             (   C < 0 ->
                 Inf2 is Inf0 + C*NSup
             ;   Sup2 is Sup0 + C*NSup
             ),
-            Sups = Sups1
+            Sups1 = Sups2,
+            Infs1 = Infs2
         ;   (   C < 0 ->
-                Inf2 = Inf0
-            ;   Sup2 = Sup0
-            ),
-            Sups = [C*V|Sups1]
+                Inf2 = Inf0,
+                Infs1 = [C*V|Infs2],
+                Sups1 = Sups2
+            ;   Sup2 = Sup0,
+                Sups1 = [C*V|Sups2],
+                Infs1 = Infs2
+            )
         ),
-        sum_finite_domains(Cs, Vs, Infs1, Sups1, Inf2, Sup2, Inf, Sup).
+        sum_finite_domains(Cs, Vs, Infs2, Sups2, Inf2, Sup2, Inf, Sup).
 
 remove_dist_upper_lower([], _, _, _).
 remove_dist_upper_lower([C|Cs], [V|Vs], D1, D2) :-
@@ -1367,11 +1375,10 @@ remove_dist_upper_lower([C|Cs], [V|Vs], D1, D2) :-
 remove_upper([], _).
 remove_upper([C*X|CXs], Max) :-
         (   get(X, XD, XPs) ->
+            D is Max//C,
             (   C < 0 ->
-                L is Max//C,
-                domain_remove_smaller_than(XD, L, XD1)
-            ;   U is Max//C,
-                domain_remove_greater_than(XD, U, XD1)
+                domain_remove_smaller_than(XD, D, XD1)
+            ;   domain_remove_greater_than(XD, D, XD1)
             ),
             put(X, XD1, XPs)
         ;   true
@@ -1381,11 +1388,10 @@ remove_upper([C*X|CXs], Max) :-
 remove_lower([], _).
 remove_lower([C*X|CXs], Min) :-
         (   get(X, XD, XPs) ->
+            D is -Min//C,
             (   C < 0 ->
-                U is -Min//C,
-                domain_remove_greater_than(XD, U, XD1)
-            ;   L is -Min//C,
-                domain_remove_smaller_than(XD, L, XD1)
+                domain_remove_greater_than(XD, D, XD1)
+            ;   domain_remove_smaller_than(XD, D, XD1)
             ),
             put(X, XD1, XPs)
         ;   true
@@ -2463,30 +2469,31 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
             ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B - P #= A
             ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A - B #= P
             ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
-                %write(Infs-Sups),
+                % nl, write(Infs-Sups), nl,
                 (   Infs == [], Sups == [] ->
                     D1 is P - Inf,
                     D2 is Sup - P,
                     Inf =< P,
                     P =< Sup,
                     remove_dist_upper_lower(Cs, Vs, D1, D2)
-                ;   Infs = [A*X], Sups = [A*X] ->
-                    get(X, XD, XPs),
-                    (   A < 0 ->
-                        L is (P-Inf)//A,
-                        U is (P-Sup)//A
-                    ;   L is (P-Sup)//A,
-                        U is (P-Inf)//A
-                    ),
-                    domain_remove_smaller_than(XD, L, XD1),
-                    domain_remove_greater_than(XD1, U, XD2),
-                    put(X, XD2, XPs)
                 ;   Sups = [] ->
                     D is Sup - P,
                     remove_lower(Infs, D)
                 ;   Infs = [] ->
                     D is P - Inf,
                     remove_upper(Sups, D)
+                ;   Sups = [_] ->
+                    U is Sup - P,
+                    (   U > 0 ->
+                        remove_lower(Sups, U)
+                    ;   true % TODO
+                    )
+                ;   Infs = [_] ->
+                    U is P - Inf,
+                    (   U > 0 ->
+                        remove_upper(Infs, U)
+                    ;   true % TODO
+                    )
                 ;   true
                 )
             )
@@ -3445,8 +3452,7 @@ bound_portray(n(N), N).
 attr_portray_hook(clpfd(_,_,_,Dom,_), Var) :-
         (   current_prolog_flag(clpfd_attribute_goal, true) ->
             % eventually, the toplevel should work like this by default
-            copy_term(Var, Var, Gs),
-            list_dot(Gs, Goal),
+            attribute_goal(Var, Goal),
             write(Goal)
         ;   domain_to_drep(Dom, Drep),
             write(Drep)
