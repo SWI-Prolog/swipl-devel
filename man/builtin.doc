@@ -4612,9 +4612,9 @@ two parties can establish a secret key over a public network.
     \infixop{^}{+Expr1}{+Expr2}
 Same as **/2.  (backward compatibility).
     \predicate{pi}{0}{}
-Evaluates to the mathematical constant $\pi$ (3.141593\ldots).
+Evaluates to the mathematical constant $\pi$ (3.14159\ldots).
     \predicate{e}{0}{}
-Evaluates to the mathematical constant $e$ (2.718282\ldots).
+Evaluates to the mathematical constant $e$ (2.71828\ldots).
     \predicate{cputime}{0}{}
 Evaluates to a floating point number expressing the {\sc cpu} time (in seconds)
 used by Prolog up till now. See also statistics/2 and time/1.
