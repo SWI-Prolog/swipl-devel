@@ -2483,9 +2483,11 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                     P =< Sup,
                     remove_dist_upper_lower(Cs, Vs, D1, D2)
                 ;   Sups = [] ->
+                    P =< Sup,
                     D is Sup - P,
                     remove_lower(Infs, D)
                 ;   Infs = [] ->
+                    Inf =< P,
                     D is P - Inf,
                     remove_upper(Sups, D)
                 ;   Sups = [_] ->
