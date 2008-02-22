@@ -674,14 +674,11 @@ thread_finished(F, Status:prolog) :->
 	format(string(String), '~q', Status),
 	send(F, report, status, 'Thread finished: %s', String).
 
-query_finished(F, YesNo) :->
+query_finished(F, Message:char_array) :->
 	"Toplevel query finished"::
 	send(F, clear),
 	send(F, mode, query_finished),
-	(   YesNo == yes
-	->  send(F, report, status, 'Query succeeded')
-	;   send(F, report, status, 'Query failed')
-	).
+	send(F, report, status, Message).
 
 :- pce_end_class(prolog_debugger).
 
@@ -977,9 +974,6 @@ user:message_hook('$aborted', _, _Lines) :-
 user:message_hook(query(YesNo), _, _Lines) :-
 	query_finished(YesNo),
 	fail.
-user:message_hook(query(YesNo, _Bindings), _, _Lines) :-
-	query_finished(YesNo),
-	fail.
 
 aborted :-
 	thread_self(Thread),
@@ -990,7 +984,14 @@ aborted :-
 	).
 
 query_finished(YesNo) :-
+	finished(YesNo, Message),
 	thread_self(Thread),
 	break_level(Level),
 	gui(Thread, Level, Gui),
-	send(Gui, query_finished, YesNo).
+	send(Gui, query_finished, Message).
+
+finished(no, 'Query failed').
+finished(yes, 'Query succeeded').
+finished(done, 'User ended query').
+finished(yes(_), 'Query succeeded with result').
+finished(more(_), 'Query succeeded non-deterministically with result').
