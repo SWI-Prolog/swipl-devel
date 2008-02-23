@@ -40,9 +40,9 @@
    ---------------------------------
 
    ?- X in 0..5 \/ 10..sup, Y #= -X, Z #= X + Y.
-   %@ X = _G109{0..5 \/ 10..sup},
-   %@ Y = _G114{inf..-10 \/ -5..0},
-   %@ Z = _G120{inf..sup}
+   %@ X = _G1083{0..5\/10..sup},
+   %@ Y = _G1088{inf.. -10\/ -5..0},
+   %@ Z = _G1094{inf..sup}
 
    No artificial limits (using GMP)
    ---------------------------------
@@ -2482,14 +2482,14 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                     Inf =< P,
                     P =< Sup,
                     remove_dist_upper_lower(Cs, Vs, D1, D2)
-                ;   Sups = [] ->
-                    P =< Sup,
-                    D is Sup - P,
-                    remove_lower(Infs, D)
-                ;   Infs = [] ->
-                    Inf =< P,
-                    D is P - Inf,
-                    remove_upper(Sups, D)
+%                 ;   Sups = [] ->
+%                     P =< Sup,
+%                     D is Sup - P,
+%                     remove_lower(Infs, D)
+%                 ;   Infs = [] ->
+%                     Inf =< P,
+%                     D is P - Inf,
+%                     remove_upper(Sups, D)
                 ;   Sups = [_] ->
                     U is Sup - P,
                     remove_lower(Sups, U)
