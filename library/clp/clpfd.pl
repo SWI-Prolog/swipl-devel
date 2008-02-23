@@ -1372,16 +1372,53 @@ remove_dist_upper_lower([C|Cs], [V|Vs], D1, D2) :-
         ),
         remove_dist_upper_lower(Cs, Vs, D1, D2).
 
+remove_dist_upper([], _).
+remove_dist_upper([C*V|CVs], D) :-
+        (   get(V, VD, VPs) ->
+            (   C < 0 ->
+                (   domain_supremum(VD, n(Sup)) ->
+                    L is Sup + D//C,
+                    domain_remove_smaller_than(VD, L, VD1)
+                ;   VD1 = VD
+                )
+            ;   (   domain_infimum(VD, n(Inf)) ->
+                    G is Inf + D//C,
+                    domain_remove_greater_than(VD, G, VD1)
+                ;   VD1 = VD
+                )
+            ),
+            put(V, VD1, VPs)
+        ;   true
+        ),
+        remove_dist_upper(CVs, D).
+
+remove_dist_lower([], _).
+remove_dist_lower([C*V|CVs], D) :-
+        (   get(V, VD, VPs) ->
+            (   C < 0 ->
+                (   domain_infimum(VD, n(Inf)) ->
+                    G is Inf - D//C,
+                    domain_remove_greater_than(VD, G, VD1)
+                ;   VD1 = VD
+                )
+            ;   (   domain_supremum(VD, n(Sup)) ->
+                    L is Sup - D//C,
+                    domain_remove_smaller_than(VD, L, VD1)
+                ;   VD1 = VD
+                )
+            ),
+            put(V, VD1, VPs)
+        ;   true
+        ),
+        remove_dist_lower(CVs, D).
+
 remove_upper([], _).
 remove_upper([C*X|CXs], Max) :-
         (   get(X, XD, XPs) ->
-            (   Max < 0 ->
-                XD = XD1 % TODO
-            ;   D is Max//C,
-                (   C < 0 ->
-                    domain_remove_smaller_than(XD, D, XD1)
-                ;   domain_remove_greater_than(XD, D, XD1)
-                )
+            D is Max//C,
+            (   C < 0 ->
+                domain_remove_smaller_than(XD, D, XD1)
+            ;   domain_remove_greater_than(XD, D, XD1)
             ),
             put(X, XD1, XPs)
         ;   true
@@ -1391,13 +1428,10 @@ remove_upper([C*X|CXs], Max) :-
 remove_lower([], _).
 remove_lower([C*X|CXs], Min) :-
         (   get(X, XD, XPs) ->
-            (   Min < 0 ->
-                XD = XD1 % TODO
-            ;   D is -Min//C,
-                (   C < 0 ->
-                    domain_remove_greater_than(XD, D, XD1)
-                ;   domain_remove_smaller_than(XD, D, XD1)
-                )
+            D is -Min//C,
+            (   C < 0 ->
+                domain_remove_greater_than(XD, D, XD1)
+            ;   domain_remove_smaller_than(XD, D, XD1)
             ),
             put(X, XD1, XPs)
         ;   true
@@ -2475,21 +2509,21 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
             ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B - P #= A
             ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A - B #= P
             ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
-                % nl, write(Infs-Sups), nl,
+                % nl, write(Infs-Sups-Inf-Sup), nl,
                 (   Infs == [], Sups == [] ->
                     D1 is P - Inf,
                     D2 is Sup - P,
                     Inf =< P,
                     P =< Sup,
                     remove_dist_upper_lower(Cs, Vs, D1, D2)
-%                 ;   Sups = [] ->
-%                     P =< Sup,
-%                     D is Sup - P,
-%                     remove_lower(Infs, D)
-%                 ;   Infs = [] ->
-%                     Inf =< P,
-%                     D is P - Inf,
-%                     remove_upper(Sups, D)
+                ;   Sups = [] ->
+                    P =< Sup,
+                    D is Sup - P,
+                    remove_dist_lower(Infs, D)
+                ;   Infs = [] ->
+                    Inf =< P,
+                    D is P - Inf,
+                    remove_dist_upper(Sups, D)
                 ;   Sups = [_] ->
                     U is Sup - P,
                     remove_lower(Sups, U)
