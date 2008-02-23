@@ -1043,8 +1043,8 @@ label([O|Os], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
             label(Os, Selection, Order, O, Optimisation, Consistency, Vars)
         ;   optimization(O) ->
             label(Os, Selection, Order, Choice, O, Consistency, Vars)
-        ;   consistency(O) ->
-            label(Os, Selection, Order, Choice, Optimisation, O, Vars)
+        ;   consistency(O, O1) ->
+            label(Os, Selection, Order, Choice, Optimisation, O1, Vars)
         ;   domain_error(labeling_option, O)
         ).
 label([], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
@@ -1056,12 +1056,19 @@ label([], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
 all_dead([]).
 all_dead([propagator(_, mutable(dead, _))|Ps]) :- all_dead(Ps).
 
-label([], _, _, _, _) :- !.
+label([], _, _, _, Consistency) :- !,
+        (   Consistency = upto_in(I0,I) -> I0 = I
+        ;   true
+        ).
 label(Vars, Selection, Order, Choice, Consistency) :-
         select_var(Selection, Vars, Var, RVars),
         (   var(Var) ->
-            (   Consistency == upto_in, get(Var, _, Ps), all_dead(Ps) ->
-                label(RVars, Selection, Order, Choice, Consistency)
+            (   Consistency = upto_in(I0,I),
+                get(Var, _, Ps),
+                all_dead(Ps) ->
+                fd_size(Var, Size),
+                I1 is I0*Size,
+                label(RVars, Selection, Order, Choice, upto_in(I1,I))
             ;   choice_order_variable(Choice, Order, Var, RVars, Selection, Consistency)
             )
         ;   must_be(integer, Var),
@@ -1105,8 +1112,8 @@ choice(bisect).
 order(up).
 order(down).
 
-consistency(upto_in).
-consistency(upto_ground).
+consistency(upto_in(I), upto_in(1, I)).
+consistency(upto_ground, upto_ground).
 
 optimization(min(_)).
 optimization(max(_)).
