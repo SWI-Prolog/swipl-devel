@@ -40,9 +40,9 @@
    ---------------------------------
 
    ?- X in 0..5 \/ 10..sup, Y #= -X, Z #= X + Y.
-   %@ X = _G109{0..5 \/ 10..sup},
-   %@ Y = _G114{inf..-10 \/ -5..0},
-   %@ Z = _G120{inf..sup}
+   %@ X = _G1083{0..5\/10..sup},
+   %@ Y = _G1088{inf.. -10\/ -5..0},
+   %@ Z = _G1094{inf..sup}
 
    No artificial limits (using GMP)
    ---------------------------------
@@ -193,9 +193,9 @@ Sample query and its result:
 
 ==
 ?- puzzle(As+Bs=Cs).
-As = [_G58{8..9}, _G61{2..9}, _G64{2..9}, _G67{2..9}],
-Bs = [1, 0, _G76{2..9}, _G61{2..9}],
-Cs = [1, 0, _G64{2..9}, _G61{2..9}, _G94{2..9}]
+As = [9, _G5402{4..7}, _G5405{5..8}, _G5408{2..8}],
+Bs = [1, 0, _G5417{2..8}, _G5402{4..7}],
+Cs = [1, 0, _G5405{5..8}, _G5402{4..7}, _G5435{2..8}].
 ==
 
 Here, the constraint solver could deduce more stringent bounds for
@@ -232,7 +232,7 @@ defaulty_to_bound(D, P) :- ( integer(D) -> P = n(D) ; P = D ).
 
 % cis_gt only works for terms of depth 0 on both sides
 cis_gt(n(N), B) :- cis_gt_numeric(B, N).
-cis_gt(sup, B0) :-B0 \== sup.
+cis_gt(sup, B0) :- B0 \== sup.
 
 cis_gt_numeric(n(B), A) :- A > B.
 cis_gt_numeric(inf, _).
@@ -319,8 +319,6 @@ cis_(max(A0,B0), E)  :- cis_(A0, A), cis_(B0, B), cis_max(A, B, E).
 cis_(A0-B0, E)       :- cis_(A0, A), cis_(B0, B), cis_minus(A, B, E).
 cis_(-A0, E)         :- cis_(A0, A), cis_uminus(A, E).
 cis_(A0*B0, E)       :- cis_(A0, A), cis_(B0, B), cis_times(A, B, E).
-cis_(floor(A0), E)   :- cis_(A0, A), cis_floor(A, E).
-cis_(ceiling(A0), E) :- cis_(A0, A), cis_ceiling(A, E).
 cis_(div(A0,B0), E)  :- cis_(A0, A), cis_(B0, B), cis_div(A, B, E).
 cis_(A0//B0, E)      :- cis_(A0, A), cis_(B0, B), cis_slash(A, B, E).
 
@@ -339,8 +337,6 @@ cis1_(max(A,B), E)   :- cis_max(A, B, E).
 cis1_(A-B, E)        :- cis_minus(A, B, E).
 cis1_(-A, E)         :- cis_uminus(A, E).
 cis1_(A*B, E)        :- cis_times(A, B, E).
-cis1_(floor(A), E)   :- cis_floor(A, E).
-cis1_(ceiling(A), E) :- cis_ceiling(A, E).
 cis1_(div(A,B), E)   :- cis_div(A, B, E).
 cis1_(A//B, E)       :- cis_slash(A, B, E).
 
@@ -352,16 +348,8 @@ cis_sign(n(N), n(S)) :-
         ;   S = 0
         ).
 
-cis_floor(sup, sup).
-cis_floor(inf, inf).
-cis_floor(n(A), n(B)) :- B is floor(A).
-
-cis_ceiling(sup, sup).
-cis_ceiling(inf, inf).
-cis_ceiling(n(A), n(B)) :- B is ceiling(A).
-
-cis_div(sup, Y, Z) :- ( cis_geq_zero(Y) -> Z = sup ; Z = inf ).
-cis_div(inf, Y, Z) :- ( cis_geq_zero(Y) -> Z = inf ; Z = sup ).
+cis_div(sup, Y, Z)  :- ( cis_geq_zero(Y) -> Z = sup ; Z = inf ).
+cis_div(inf, Y, Z)  :- ( cis_geq_zero(Y) -> Z = inf ; Z = sup ).
 cis_div(n(X), Y, Z) :- cis_div_(Y, X, Z).
 
 cis_div_(sup, _, n(0)).
@@ -700,46 +688,22 @@ domain_shift(split(S0, Left0, Right0), O, split(S, Left, Right)) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 domain_expand(D0, M, D) :-
-        (   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
-        ;   D1 = D0, M1 = M
-        ),
-        domain_expand_(D1, M1, D).
+        (   M < 0 ->
+            domain_negate(D0, D1),
+            M1 is abs(M),
+            domain_expand_(D1, M1, D)
+        ;   M =:= 1 -> D = D0
+        ;   domain_expand_(D0, M, D)
+        ).
 
 domain_expand_(empty, _, empty).
-domain_expand_(from_to(From0, To0), M, D) :-
-        (   M =:= 1 -> D = from_to(From0, To0)
-        ;   From0 == inf -> To cis1 To0*n(M), D = from_to(inf, To)
-        ;   To0 == sup -> From cis1 From0*n(M), D = from_to(From, sup)
-        ;   % domain is bounded
-            From1 cis1 From0*n(M),
-            To1 cis1 To0*n(M),
-            D = from_to(From1,To1)
-            %all_multiples(From0, To0, M, D)
-        ).
+domain_expand_(from_to(From0, To0), M, from_to(From,To)) :-
+        From cis1 From0*n(M),
+        To cis1 To0*n(M).
 domain_expand_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
         S is M*S0,
         domain_expand_(Left0, M, Left),
         domain_expand_(Right0, M, Right).
-
-all_multiples(From, To, M, D) :-
-        Mid cis (From + To) // n(2),
-        Mult cis1 Mid * n(M),
-        (   From == To -> D = from_to(Mult,Mult)
-        ;   Left cis1 Mid - n(1),
-            Right cis1 Mid + n(1),
-            n(S1) cis1 Mult +  n(1),
-            n(S2) cis1 Mult - n(1),
-            (   Mid == From ->
-                D = split(S1, from_to(Mult,Mult), RightD),
-                all_multiples(Right, To, M, RightD)
-            ;   Mid == To ->
-                D = split(S2, LeftD, from_to(Mult,Mult)),
-                all_multiples(From, Left, M, LeftD)
-            ;   D = split(S2, LeftD, split(S1, from_to(Mult,Mult), RightD)),
-                all_multiples(From, Left, M, LeftD),
-                all_multiples(Right, To, M, RightD)
-            )
-        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    similar to domain_expand/3, tailored for division: an interval
@@ -759,10 +723,10 @@ domain_expand_more_(empty, _, empty).
 domain_expand_more_(from_to(From0, To0), M, from_to(From,To)) :-
         (   From0 cis_lt n(0) ->
             From cis (From0-n(1))*n(M) + n(1)
-        ;   From cis From0*n(M)
+        ;   From cis1 From0*n(M)
         ),
         (   To0 cis_lt n(0) ->
-            To cis To0*n(M)
+            To cis1 To0*n(M)
         ;   To cis (To0+n(1))*n(M) - n(1)
         ).
 domain_expand_more_(split(S0, Left0, Right0), M, D) :-
@@ -778,7 +742,6 @@ domain_expand_more_(split(S0, Left0, Right0), M, D) :-
             D = from_to(Inf, Sup)
         ).
 
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Scale a domain down by a constant multiplier. Assuming (//)/2.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -792,7 +755,14 @@ domain_contract(D0, M, D) :-
 
 domain_contract_(empty, _, empty).
 domain_contract_(from_to(From0, To0), M, from_to(From,To)) :-
-        From cis1 From0 // n(M), To cis1 To0 // n(M).
+        (   cis_geq_zero(From0) ->
+            From cis (From0 + n(M) - n(1)) // n(M)
+        ;   From cis1 From0 // n(M)
+        ),
+        (   cis_geq_zero(To0) ->
+            To cis1 To0 // n(M)
+        ;   To cis (To0 - n(M) + n(1)) // n(M)
+        ).
 domain_contract_(split(S0,Left0,Right0), M, D) :-
         S is S0 // M,
         %  Scaled down domains do not necessarily retain any holes of
@@ -810,10 +780,11 @@ domain_contract_(split(S0,Left0,Right0), M, D) :-
             max_divide(Inf, Sup, n(M), n(M), To0),
             domain_infimum(Left, LeftInf),
             domain_supremum(Right, RightSup),
-            From cis max(LeftInf, ceiling(From0)),
-            To cis min(RightSup, floor(To0)),
+            From cis1 max(LeftInf, From0),
+            To cis1 min(RightSup, To0),
             D = from_to(From, To)
         ).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Similar to domain_contract, tailored for division, i.e.,
    {21,23} contracted by 4 is 5. It contracts "less".
@@ -853,12 +824,12 @@ domain_contract_less_(split(S0,Left0,Right0), M, D) :-
         ;   domain_infimum(Left0, Inf),
             % TODO: this is not necessarily an interval
             domain_supremum(Right0, Sup),
-            min_divide(Inf, Sup, n(M), n(M), From0),
-            max_divide(Inf, Sup, n(M), n(M), To0),
+            min_divide_less(Inf, Sup, n(M), n(M), From0),
+            max_divide_less(Inf, Sup, n(M), n(M), To0),
             domain_infimum(Left, LeftInf),
             domain_supremum(Right, RightSup),
-            From cis max(LeftInf, floor(From0)),
-            To cis min(RightSup, ceiling(To0)),
+            From cis1 max(LeftInf, From0),
+            To cis1 min(RightSup, To0),
             D = from_to(From, To)
             %format("got: ~w\n", [D])
         ).
@@ -989,6 +960,10 @@ label(Vs) :- labeling([], Vs).
 %   in order to detect infeasibility early. This is often a good
 %   strategy.
 %
+%   * ffc
+%   Of the variables with smallest domains, the leftmost one
+%   participating in most constraints is labeled next.
+%
 %   * min
 %   Label the leftmost variable whose lower bound is the lowest next.
 %
@@ -1027,19 +1002,25 @@ label(Vs) :- labeling([], Vs).
 %
 % This generates solutions in ascending/descending order with respect
 % to the evaluation of the arithmetic expression Expr. Labeling Vars
-% must make Expr ground.
+% must make Expr ground. To obtain the incomplete behaviour that other
+% systems exhibit with "maximize(Expr)" and "minimize(Expr)", use
+% once/1, e.g.:
+%
+% ==
+% once(labeling([max(Expr)], Vars))
+% ==
 %
 % If more than one option of a category is specified, the one
 % occurring rightmost in the option list takes precedence over all
-% others of that category. Labeling is always complete and always
-% terminates.
+% others of that category. Labeling is always complete, always
+% terminates, and yields no redundant solutions.
 %
 
 labeling(Options, Vars) :-
         must_be(list, Options),
         must_be(list, Vars),
         maplist(finite_domain, Vars),
-        label(Options, leftmost, up, step, none, Vars).
+        label(Options, leftmost, up, step, none, upto_ground, Vars).
 
 finite_domain(Var) :-
         (   var(Var) ->
@@ -1052,56 +1033,70 @@ finite_domain(Var) :-
         ).
 
 
-label([Option|Options], Selection, Order, Choice, Optimisation, Vars) :-
-        (   var(Option)-> instantiation_error(Option)
-        ;   selection(Option) ->
-            label(Options, Option, Order, Choice, Optimisation, Vars)
-        ;   order(Option) ->
-            label(Options, Selection, Option, Choice, Optimisation, Vars)
-        ;   choice(Option) ->
-            label(Options, Selection, Order, Option, Optimisation, Vars)
-        ;   optimization(Option) ->
-            label(Options, Selection, Order, Choice, Option, Vars)
-        ;   domain_error(labeling_option, Option)
+label([O|Os], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
+        (   var(O)-> instantiation_error(O)
+        ;   selection(O) ->
+            label(Os, O, Order, Choice, Optimisation, Consistency, Vars)
+        ;   order(O) ->
+            label(Os, Selection, O, Choice, Optimisation, Consistency, Vars)
+        ;   choice(O) ->
+            label(Os, Selection, Order, O, Optimisation, Consistency, Vars)
+        ;   optimization(O) ->
+            label(Os, Selection, Order, Choice, O, Consistency, Vars)
+        ;   consistency(O, O1) ->
+            label(Os, Selection, Order, Choice, Optimisation, O1, Vars)
+        ;   domain_error(labeling_option, O)
         ).
-label([], Selection, Order, Choice, Optimisation, Vars) :-
+label([], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
         ( Optimisation == none ->
-            label(Vars, Selection, Order, Choice)
+            label(Vars, Selection, Order, Choice, Consistency)
         ;   optimize(Vars, Selection, Order, Choice, Optimisation)
         ).
 
+all_dead([]).
+all_dead([propagator(_, mutable(dead, _))|Ps]) :- all_dead(Ps).
 
-label([], _, _, _) :- !.
-label(Vars, Selection, Order, Choice) :-
+label([], _, _, _, Consistency) :- !,
+        (   Consistency = upto_in(I0,I) -> I0 = I
+        ;   true
+        ).
+label(Vars, Selection, Order, Choice, Consistency) :-
         select_var(Selection, Vars, Var, RVars),
         (   var(Var) ->
-            choice_order_variable(Choice, Order, Var, RVars, Selection)
+            (   Consistency = upto_in(I0,I),
+                get(Var, _, Ps),
+                all_dead(Ps) ->
+                fd_size(Var, Size),
+                I1 is I0*Size,
+                label(RVars, Selection, Order, Choice, upto_in(I1,I))
+            ;   choice_order_variable(Choice, Order, Var, RVars, Selection, Consistency)
+            )
         ;   must_be(integer, Var),
-            label(RVars, Selection, Order, Choice)
+            label(RVars, Selection, Order, Choice, Consistency)
         ).
 
-choice_order_variable(step, Order, Var, Vars, Selection) :-
+choice_order_variable(step, Order, Var, Vars, Selection, Consistency) :-
         get(Var, Dom, _),
         order_dom_next(Order, Dom, Next),
         (   Var = Next,
-            label(Vars, Selection, Order, step)
+            label(Vars, Selection, Order, step, Consistency)
         ;   neq_num(Var, Next),
-            label([Var|Vars], Selection, Order, step)
+            label([Var|Vars], Selection, Order, step, Consistency)
         ).
-choice_order_variable(enum, Order, Var, Vars, Selection) :-
+choice_order_variable(enum, Order, Var, Vars, Selection, Consistency) :-
         get(Var, Dom0, _),
         domain_direction_element(Dom0, Order, Var),
-        label(Vars, Selection, Order, enum).
-choice_order_variable(bisect, Order, Var, Vars, Selection) :-
+        label(Vars, Selection, Order, enum, Consistency).
+choice_order_variable(bisect, Order, Var, Vars, Selection, Consistency) :-
         get(Var, Dom, _),
         domain_infimum(Dom, n(I)),
         domain_supremum(Dom, n(S)),
         Mid0 is (I + S) // 2,
         (   Mid0 =:= S -> Mid is Mid0 - 1 ; Mid = Mid0 ),
         (   Var #=< Mid,
-            label([Var|Vars], Selection, Order, bisect)
+            label([Var|Vars], Selection, Order, bisect, Consistency)
         ;   Var #> Mid,
-            label([Var|Vars], Selection, Order, bisect)
+            label([Var|Vars], Selection, Order, bisect, Consistency)
         ).
 
 selection(ff).
@@ -1116,6 +1111,9 @@ choice(bisect).
 
 order(up).
 order(down).
+
+consistency(upto_in(I), upto_in(1, I)).
+consistency(upto_ground, upto_ground).
 
 optimization(min(_)).
 optimization(max(_)).
@@ -1228,7 +1226,7 @@ optimize(Vars, Selection, Order, Choice, Opt) :-
         (   store_extremum(Vars, Selection, Order, Choice, Opt)
         ;   nb_getval('$clpfd_extremum', n(Val)),
             arg(1, Opt, Expr),
-            (   Expr #= Val, label(Vars, Selection, Order, Choice)
+            (   Expr #= Val, label(Vars, Selection, Order, Choice, upto_ground)
             ;   Expr #\= Val,
                 optimize(Vars, Selection, Order, Choice, Opt)
             )
@@ -1236,7 +1234,7 @@ optimize(Vars, Selection, Order, Choice, Opt) :-
 
 store_extremum(Vars, Selection, Order, Choice, Opt) :-
         duplicate_term(Vars-Opt, Vars1-Opt1),
-        once(label(Vars1, Selection, Order, Choice)),
+        once(label(Vars1, Selection, Order, Choice, upto_ground)),
         functor(Opt1, Direction, _),
         maplist(arg(1), [Opt,Opt1], [Expr,Expr1]),
         optimize(Direction, Selection, Order, Choice, Vars, Expr1, Expr).
@@ -1249,7 +1247,7 @@ optimize(Direction, Selection, Order, Choice, Vars, Expr0, Expr) :-
             Expr1 #< Val0
         ;   Expr1 #> Val0
         ),
-        once(label(Vars1, Selection, Order, Choice)),
+        once(label(Vars1, Selection, Order, Choice, upto_ground)),
         optimize(Direction, Selection, Order, Choice, Vars, Expr1, Expr).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1282,57 +1280,170 @@ all_different([X|Right], Left) :-
 %               sum(List, #=<, 100)
 %       ==
 
+scalar_supported(#=).
+scalar_supported(#\=).
+
 sum(Ls, Op, Value) :-
         must_be(list, Ls),
         maplist(fd_variable, Ls),
-        (   Op == (#=), integer(Value) ->
-            make_propagator(sum_eq(Ls,Value), Prop),
-            sum_eq(Ls, Prop),
-            trigger_prop(Prop),
-            do_queue
+        (   scalar_supported(Op), integer(Value) ->
+            length(Ls, L),
+            length(Cs, L),
+            maplist(=(1), Cs),
+            scalar_product(Cs, Ls, Op, Value)
         ;   must_be(callable, Op),
             sum(Ls, 0, Op, Value)
         ).
 
-sum_eq([], _).
-sum_eq([V|Vs], Prop) :- init_propagator(V, Prop), sum_eq(Vs, Prop).
+scalar_product(Cs, Vs, Op, C) :-
+        make_propagator(scalar_product(Cs,Vs,Op,C), Prop),
+        vs_propagator(Vs, Prop),
+        trigger_prop(Prop),
+        do_queue.
+
+vs_propagator([], _).
+vs_propagator([V|Vs], Prop) :-
+        init_propagator(V, Prop),
+        vs_propagator(Vs, Prop).
 
 sum([], Sum, Op, Value) :- call(Op, Sum, Value).
 sum([X|Xs], Acc, Op, Value) :-
         NAcc #= Acc + X,
         sum(Xs, NAcc, Op, Value).
 
-list_variables_integers([], [], []).
-list_variables_integers([L|Ls], Vs0, Is0) :-
-        (   var(L) -> Vs0 = [L|Vs1], Is1 = Is0
-        ;   Is0 = [L|Is1], Vs1 = Vs0
+coeffs_variables_const([], [], [], [], I, I).
+coeffs_variables_const([C|Cs], [V|Vs], Cs1, Vs1, I0, I) :-
+        (   var(V) ->
+            Cs1 = [C|CRest], Vs1 = [V|VRest], I1 = I0
+        ;   I1 is I0 + C*V,
+            Cs1 = CRest, Vs1 = VRest
         ),
-        list_variables_integers(Ls, Vs1, Is1).
+        coeffs_variables_const(Cs, Vs, CRest, VRest, I1, I).
 
-sum_domains([], Inf, Sup, Inf, Sup).
-sum_domains([V|Vs], Inf0, Sup0, Inf, Sup) :-
+sum_finite_domains([], [], [], [], Inf, Sup, Inf, Sup).
+sum_finite_domains([C|Cs], [V|Vs], Infs, Sups, Inf0, Sup0, Inf, Sup) :-
         get(V, _, Inf1, Sup1, _),
-        Inf2 cis1 Inf0 + Inf1,
-        Sup2 cis1 Sup0 + Sup1,
-        sum_domains(Vs, Inf2, Sup2, Inf, Sup).
-
-remove_dist_upper_lower([], _, _).
-remove_dist_upper_lower([V|Vs], D1, D2) :-
-        (   get(V, VD, VPs) ->
-            (   D1 = n(ND1), domain_infimum(VD, n(Inf)) ->
-                G is Inf + ND1,
-                domain_remove_greater_than(VD, G, VD1)
-            ;   VD1 = VD
+        (   Inf1 = n(NInf) ->
+            (   C < 0 ->
+                Sup2 is Sup0 + C*NInf
+            ;   Inf2 is Inf0 + C*NInf
             ),
-            (   D2 = n(ND2), domain_supremum(VD, n(Sup)) ->
-                L is Sup - ND2,
+            Sups = Sups1,
+            Infs = Infs1
+        ;   (   C < 0 ->
+                Sup2 = Sup0,
+                Sups = [C*V|Sups1],
+                Infs = Infs1
+            ;   Inf2 = Inf0,
+                Infs = [C*V|Infs1],
+                Sups = Sups1
+            )
+        ),
+        (   Sup1 = n(NSup) ->
+            (   C < 0 ->
+                Inf2 is Inf0 + C*NSup
+            ;   Sup2 is Sup0 + C*NSup
+            ),
+            Sups1 = Sups2,
+            Infs1 = Infs2
+        ;   (   C < 0 ->
+                Inf2 = Inf0,
+                Infs1 = [C*V|Infs2],
+                Sups1 = Sups2
+            ;   Sup2 = Sup0,
+                Sups1 = [C*V|Sups2],
+                Infs1 = Infs2
+            )
+        ),
+        sum_finite_domains(Cs, Vs, Infs2, Sups2, Inf2, Sup2, Inf, Sup).
+
+remove_dist_upper_lower([], _, _, _).
+remove_dist_upper_lower([C|Cs], [V|Vs], D1, D2) :-
+        (   get(V, VD, VPs) ->
+            (   C < 0 ->
+                domain_supremum(VD, n(Sup)),
+                L is Sup + D1//C,
+                domain_remove_smaller_than(VD, L, VD1),
+                domain_infimum(VD1, n(Inf)),
+                G is Inf - D2//C,
+                domain_remove_greater_than(VD1, G, VD2)
+            ;   domain_infimum(VD, n(Inf)),
+                G is Inf + D1//C,
+                domain_remove_greater_than(VD, G, VD1),
+                domain_supremum(VD1, n(Sup)),
+                L is Sup - D2//C,
                 domain_remove_smaller_than(VD1, L, VD2)
-            ;   VD2 = VD1
             ),
             put(V, VD2, VPs)
         ;   true
         ),
-        remove_dist_upper_lower(Vs, D1, D2).
+        remove_dist_upper_lower(Cs, Vs, D1, D2).
+
+remove_dist_upper([], _).
+remove_dist_upper([C*V|CVs], D) :-
+        (   get(V, VD, VPs) ->
+            (   C < 0 ->
+                (   domain_supremum(VD, n(Sup)) ->
+                    L is Sup + D//C,
+                    domain_remove_smaller_than(VD, L, VD1)
+                ;   VD1 = VD
+                )
+            ;   (   domain_infimum(VD, n(Inf)) ->
+                    G is Inf + D//C,
+                    domain_remove_greater_than(VD, G, VD1)
+                ;   VD1 = VD
+                )
+            ),
+            put(V, VD1, VPs)
+        ;   true
+        ),
+        remove_dist_upper(CVs, D).
+
+remove_dist_lower([], _).
+remove_dist_lower([C*V|CVs], D) :-
+        (   get(V, VD, VPs) ->
+            (   C < 0 ->
+                (   domain_infimum(VD, n(Inf)) ->
+                    G is Inf - D//C,
+                    domain_remove_greater_than(VD, G, VD1)
+                ;   VD1 = VD
+                )
+            ;   (   domain_supremum(VD, n(Sup)) ->
+                    L is Sup - D//C,
+                    domain_remove_smaller_than(VD, L, VD1)
+                ;   VD1 = VD
+                )
+            ),
+            put(V, VD1, VPs)
+        ;   true
+        ),
+        remove_dist_lower(CVs, D).
+
+remove_upper([], _).
+remove_upper([C*X|CXs], Max) :-
+        (   get(X, XD, XPs) ->
+            D is Max//C,
+            (   C < 0 ->
+                domain_remove_smaller_than(XD, D, XD1)
+            ;   domain_remove_greater_than(XD, D, XD1)
+            ),
+            put(X, XD1, XPs)
+        ;   true
+        ),
+        remove_upper(CXs, Max).
+
+remove_lower([], _).
+remove_lower([C*X|CXs], Min) :-
+        (   get(X, XD, XPs) ->
+            D is -Min//C,
+            (   C < 0 ->
+                domain_remove_greater_than(XD, D, XD1)
+            ;   domain_remove_smaller_than(XD, D, XD1)
+            ),
+            put(X, XD1, XPs)
+        ;   true
+        ),
+        remove_lower(CXs, Min).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1365,10 +1476,12 @@ pop_queue(E) :-
         b_getval('$clpfd_queue', H-T),
         nonvar(H), H = [E|NH], b_setval('$clpfd_queue', NH-T).
 
-fetch_constraint_(C) :-
-        pop_queue(ps(C0,State)),
-        (   State == dead -> fetch_constraint_(C)
-        ;   C = C0
+fetch_propagator(Propagator) :-
+        pop_queue(Prop),
+        arg(2, Prop, MState),
+        arg(1, MState, State),
+        (   State == dead -> fetch_propagator(Propagator)
+        ;   Propagator = Prop
         ).
 
 :- thread_initialization((make_queue,
@@ -1381,11 +1494,14 @@ fetch_constraint_(C) :-
    example, in X/Y and X mod Y, Y is constrained to be #\= 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+constrain_to_integer(Var) :-
+        get(Var, D, Ps),
+        put(Var, D, Ps).
+
 parse_clpfd(Expr, Result) :-
         (   cyclic_term(Expr) -> domain_error(clpfd_expression, Expr)
         ;   var(Expr) ->
-            get(Expr, ED, EPs),
-            put(Expr, ED, EPs), % constrain to integers
+            constrain_to_integer(Expr),
             Result = Expr
         ;   integer(Expr) -> Result = Expr
         ;   Expr = (L + R) ->
@@ -1454,9 +1570,11 @@ geq(A, B) :-
         ).
 
 myplus(X, Y, Z) :-
-        make_propagator(pplus(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
+        (   X == Y -> 2*X #= Z
+        ;   make_propagator(pplus(X,Y,Z), Prop),
+            init_propagator(X, Prop), init_propagator(Y, Prop),
+            init_propagator(Z, Prop), trigger_once(Prop)
+        ).
 
 mytimes(X, Y, Z) :-
         make_propagator(ptimes(X,Y,Z), Prop),
@@ -1504,8 +1622,7 @@ mymin(X, Y, Z) :-
    little of the propagated information is actually used. For example,
    only extremal values are of interest in inequalities. Introducing
    auxiliary variables should be avoided when possible, and
-   specialised propagators should be used instead. See below for a few
-   examples, such as constraints of the form X #\= Y + C.
+   specialised propagators should be used for common constraints.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %% ?X #>= ?Y
@@ -1545,12 +1662,73 @@ X #=< Y :- Y #>= X.
 %
 % X equals Y.
 
-fdsum(X)   --> { ( var(X) ; integer(X) ) }, !, [X].
-fdsum(A+B) --> fdsum(A), fdsum(B).
+linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
+linsum(-X, S, S)   --> { var(X) }, !, [vn(X,-1)].
+linsum(I, S0, S)   --> { integer(I) }, !, { S is S0 + I }, [].
+linsum(N*X, S, S)  --> { integer(N), var(X) }, !, [vn(X,N)].
+linsum(X*N, S, S)  --> { integer(N), var(X) }, !, [vn(X,N)].
+linsum(A+B, S0, S) --> linsum(A, S0, S1), linsum(B, S1, S).
+
+i_or_v(I) :- integer(I), !.
+i_or_v(V) :- var(V).
+
+left_right_linsum_const(Left, Right, Cs, Vs, Const) :-
+        \+ ( i_or_v(Left), i_or_v(Right) ),
+        \+ ( nonvar(Left), Left = A+B, maplist(i_or_v, [A,B,Right]) ),
+        \+ ( nonvar(Right), Right = A+B, maplist(i_or_v, [A,B,Left]) ),
+        \+ ( nonvar(Left), Left = A*B, maplist(i_or_v, [A,B,Right]) ),
+        \+ ( nonvar(Right), Right = A*B, maplist(i_or_v, [A,B,Left]) ),
+        phrase(linsum(Left, 0, CL), Lefts0, Rights),
+        phrase(linsum(Right, 0, CR), Rights0),
+        maplist(linterm_negate, Rights0, Rights),
+        msort(Lefts0, Lefts),
+        Lefts = [vn(First,N)|LeftsRest],
+        vns_coeffs_variables(LeftsRest, N, First, Cs0, Vs0),
+        filter_linsum(Cs0, Vs0, Cs, Vs),
+        Const is CR - CL.
+        %format("linear sum: ~w ~w ~w\n", [Cs,Vs,Const]).
+
+linterm_negate(vn(V,N0), vn(V,N)) :- N is -N0.
+
+vns_coeffs_variables([], N, V, [N], [V]).
+vns_coeffs_variables([vn(V,N)|VNs], N0, V0, Ns, Vs) :-
+        (   V == V0 ->
+            N1 is N0 + N,
+            vns_coeffs_variables(VNs, N1, V0, Ns, Vs)
+        ;   Ns = [N0|NRest],
+            Vs = [V0|VRest],
+            vns_coeffs_variables(VNs, N, V, NRest, VRest)
+        ).
+
+filter_linsum([], [], [], []).
+filter_linsum([C0|Cs0], [V0|Vs0], Cs, Vs) :-
+        (   C0 =:= 0 ->
+            constrain_to_integer(V0),
+            filter_linsum(Cs0, Vs0, Cs, Vs)
+        ;   Cs = [C0|Cs1], Vs = [V0|Vs1],
+            filter_linsum(Cs0, Vs0, Cs1, Vs1)
+        ).
 
 X #= Y  :-
-        (   integer(Y), phrase(fdsum(X), Xs), Xs = [_,_,_|_] -> sum(Xs, #=, Y)
+        (   left_right_linsum_const(X, Y, Cs, Vs, S) ->
+            (   Cs = [] -> S =:= 0
+            ;   Cs = [C|CsRest],
+                gcd(CsRest, C, GCD),
+                S mod GCD =:= 0,
+                scalar_product(Cs, Vs, #=, S)
+            )
         ;   parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX)
+        ).
+
+gcd([], G, G).
+gcd([N|Ns], G0, G) :-
+        gcd_(N, G0, G1),
+        gcd(Ns, G1, G).
+
+gcd_(A, B, G) :-
+        (   B =:= 0 -> G = A
+        ;   R is A mod B,
+            gcd_(B, R, G)
         ).
 
 %% ?X #\= ?Y
@@ -1574,6 +1752,8 @@ X #\= Y :-
             absdiff_neq_const(X1, Y1, Y)
         ;   integer(X), nonvar(Y), Y = abs(A), nonvar(A), A = X1 - Y1, var(X1), var(Y1) ->
             absdiff_neq_const(X1, Y1, X)
+        ;   left_right_linsum_const(X, Y, Cs, Vs, S) ->
+            scalar_product(Cs, Vs, #\=, S)
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
         ).
 
@@ -1853,12 +2033,15 @@ get(X, Dom, Inf, Sup, Ps) :-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    By default, propagation always terminates. Currently, this is
    ensured by allowing the left and right boundaries, as well as the
-   distance between the smallest and largest number occurring in a
-   domain to be changed at most once after a constraint is posted,
-   unless the domain is bounded. Set the experimental Prolog flag
-   'clpfd_propagation' to 'full' to make the solver propagate as much
-   as possible. This can make some queries non-terminating, for
-   example: X #> abs(X), or: X #> Y, Y #> X, X #> 0.
+   distance between the smallest and largest number occurring in the
+   domain representation to be changed at most once after a constraint
+   is posted, unless the domain is bounded. Set the experimental
+   Prolog flag 'clpfd_propagation' to 'full' to make the solver
+   propagate as much as possible. This can make queries
+   non-terminating, like: X #> abs(X), or: X #> Y, Y #> X, X #> 0.
+   Importantly, it can also make labeling non-terminating, as in:
+
+   ?- #\ B #==> X #> abs(X), indomain(B).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 put(X, Dom, Pos) :-
@@ -2003,7 +2186,7 @@ trigger_prop(Propagator) :-
         ;   % passive
             % format("triggering: ~w\n", [Propagator]),
             setarg(1, MState, queued),
-            push_queue(ps(Propagator,MState))
+            push_queue(Propagator)
         ).
 
 kill(MState) :- setarg(1, MState, dead).
@@ -2019,13 +2202,20 @@ activate_propagator(propagator(P,MState)) :-
 disable_queue :- b_setval('$clpfd_queue_status', disabled).
 enable_queue  :- b_setval('$clpfd_queue_status', enabled), do_queue.
 
+portray_propagator(propagator(P,_), F) :- functor(P, F, _).
+
+portray_queue(V, []) :- var(V), !.
+portray_queue([P|Ps], [F|Fs]) :-
+        portray_propagator(P, F),
+        portray_queue(Ps, Fs).
+
 do_queue :-
+        % b_getval('$clpfd_queue', H-_),
+        % portray_queue(H, Port),
+        % format("queue: ~w\n", [Port]),
         (   b_getval('$clpfd_queue_status', enabled) ->
-            (   fetch_constraint_(C) ->
-                activate_propagator(C),
-                %C = propagator(Prop,_),
-                %functor(Prop, FP, _),
-                %format("\n\ngot: ~w\n\n", [FP]),
+            (   fetch_propagator(Propagator) ->
+                activate_propagator(Propagator),
                 do_queue
             ;   true
             )
@@ -2267,9 +2457,18 @@ run_propagator(x_neq_y_plus_c(X,Y,C), MState) :-
 run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), X =< Y + C
-            ;   kill(MState), R is X - C, R #=< Y
+            ;   kill(MState),
+                R is X - C,
+                get(Y, YD, YPs),
+                domain_remove_smaller_than(YD, R, YD1),
+                put(Y, YD1, YPs)
             )
-        ;   nonvar(Y) -> kill(MState), R is Y + C, X #=< R
+        ;   nonvar(Y) ->
+            kill(MState),
+            R is Y + C,
+            get(X, XD, XPs),
+            domain_remove_greater_than(XD, R, XD1),
+            put(X, XD1, XPs)
         ;   get(Y, YD, _),
             (   domain_supremum(YD, n(YSup)) ->
                 YS1 is YSup + C,
@@ -2282,6 +2481,12 @@ run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
                 XI1 is XInf - C,
                 (   get(Y, YD1, YPs1) ->
                     domain_remove_smaller_than(YD1, XI1, YD2),
+                    (   domain_infimum(YD2, n(YInf)),
+                        domain_supremum(XD2, n(XSup)),
+                        XSup =< YInf + C ->
+                        kill(MState)
+                    ;   true
+                    ),
                     put(Y, YD2, YPs1)
                 ;   true
                 )
@@ -2289,26 +2494,58 @@ run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
             )
         ).
 
-run_propagator(sum_eq(Ls,C), MState) :-
-        list_variables_integers(Ls, Vs, Is),
-        sumlist(Is, SumC),
-        (   Vs = [] -> kill(MState), SumC =:= C
-        ;   Vs = [Single] -> kill(MState), Single is C - SumC
-        ;   Vs = [A,B] -> kill(MState), S1 is C - SumC, A + B #= S1
-        ;   sum_domains(Vs, n(0), n(0), Inf, Sup),
-            MinSum cis1 Inf + n(SumC),
-            MaxSum cis1 Sup + n(SumC),
-            n(C) cis_geq MinSum,
-            MaxSum cis_geq n(C),
-            D1 cis1 n(C) - MinSum,
-            D2 cis1 MaxSum - n(C),
-            remove_dist_upper_lower(Vs, D1, D2)
+run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
+        coeffs_variables_const(Cs0, Vs0, Cs, Vs, 0, I),
+        P is P0 - I,
+        (   Op == (#\=) ->
+            (   Vs = [] -> kill(MState), P =\= 0
+            ;   Vs = [V], Cs = [C] ->
+                kill(MState),
+                (   C =:= 1 -> neq_num(V, P)
+                ;   C*V #\= P
+                )
+            ;   true
+            )
+        ;   Op == (#=) ->
+            (   Vs = [] -> kill(MState), P =:= 0
+            ;   Vs = [V], Cs = [C] ->
+                kill(MState),
+                P mod C =:= 0,
+                V is P // C
+            ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
+            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B - P #= A
+            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A - B #= P
+            ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
+                % nl, write(Infs-Sups-Inf-Sup), nl,
+                D1 is P - Inf,
+                D2 is Sup - P,
+                (   Infs == [], Sups == [] ->
+                    Inf =< P,
+                    P =< Sup,
+                    remove_dist_upper_lower(Cs, Vs, D1, D2)
+                ;   Sups = [] ->
+                    P =< Sup,
+                    remove_dist_lower(Infs, D2)
+                ;   Infs = [] ->
+                    Inf =< P,
+                    remove_dist_upper(Sups, D1)
+                ;   Sups = [_], Infs = [_] ->
+                    remove_lower(Sups, D2),
+                    remove_upper(Infs, D1)
+                ;   Infs = [_] ->
+                    remove_upper(Infs, D1)
+                ;   Sups = [_] ->
+                    remove_lower(Sups, D2)
+                ;   true
+                )
+            )
         ).
 
 % X + Y = Z
 run_propagator(pplus(X,Y,Z), MState) :-
         (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), Z is X + Y
+            (   X =:= 0 -> kill(MState), Y = Z
+            ;   nonvar(Y) -> kill(MState), Z is X + Y
             ;   nonvar(Z) -> kill(MState), Y is Z - X
             ;   get(Z, ZD, ZPs),
                 get(Y, YD, _),
@@ -2378,6 +2615,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Z is X * Y
             ;   X =:= 0 -> kill(MState), Z = 0
+            ;   X =:= 1 -> kill(MState), Z = Y
             ;   nonvar(Z) -> kill(MState), 0 =:= Z mod X, Y is Z // X
             ;   get(Y, YD, _),
                 get(Z, ZD, ZPs),
@@ -2391,7 +2629,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 ;   kill(MState), Z is X * Y
                 )
             )
-        ;   nonvar(Y) -> mytimes(Y,X,Z)
+        ;   nonvar(Y) -> run_propagator(ptimes(Y,X,Z), MState)
         ;   nonvar(Z) ->
             (   X == Y ->
                 Z >= 0,
@@ -2413,20 +2651,18 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             ),
             (   get(X, XD, XL, XU, XPs) ->
                 get(Y, YD, YL, YU, _),
-                min_divide(n(Z),n(Z),YL,YU,TNXL),
-                max_divide(n(Z),n(Z),YL,YU,TNXU),
-                NXL cis max(XL,ceiling(TNXL)),
-                NXU cis min(XU,floor(TNXU)),
+                min_divide(n(Z), n(Z), YL, YU, TNXL),
+                max_divide(n(Z), n(Z), YL, YU, TNXU),
+                NXL cis1 max(XL,TNXL),
+                NXU cis1 min(XU,TNXU),
                 (   NXL == XL, NXU == XU -> true
                 ;   domains_intersection(from_to(NXL,NXU), XD, XD1),
                     put(X, XD1, XPs)
                 ),
-                (   get(Y, YD2, YL2,YU2,YExp2) ->
-                    min_divide(n(Z),n(Z),NXL,NXU,NYLT),
-                    max_divide(n(Z),n(Z),NXL,NXU,NYUT),
-                    NYL cis max(YL2,ceiling(NYLT)),
-                    NYU cis min(YU2,floor(NYUT)),
-                    (   NYL == YL2, NYU == YU2 -> true
+                (   get(Y, YD2, YL2, YU2,YExp2) ->
+                    min_divide(n(Z), n(Z), NXL, NXU, NYL),
+                    max_divide(n(Z), n(Z), NXL, NXU, NYU),
+                    (   NYL cis_leq YL2, NYU cis_geq YU2 -> true
                     ;   domains_intersection(from_to(NYL,NYU), YD2, YD3),
                         put(Y, YD3, YExp2)
                     )
@@ -2442,16 +2678,18 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ;   (   X == Y -> geq(Z, 0) ; true ),
             (   get(X,XD,XL,XU,XExp), get(Y,YD,YL,YU,_), get(Z,ZD,ZL,ZU,_) ->
                 min_divide(ZL,ZU,YL,YU,TXL),
-                NXL cis max(XL,ceiling(TXL)),
+                NXL cis1 max(XL,TXL),
                 max_divide(ZL,ZU,YL,YU,TXU),
-                NXU cis min(XU,floor(TXU)),
-                domains_intersection(from_to(NXL,NXU), XD, XD1),
-                put(X, XD1, XExp),
+                NXU cis1 min(XU,TXU),
+                (   NXL == XL, NXU == XU -> true
+                ;   domains_intersection(from_to(NXL,NXU), XD, XD1),
+                    put(X, XD1, XExp)
+                ),
                 (   get(Y,YD2,YL2,YU2,YExp2) ->
                     min_divide(ZL,ZU,XL,XU,TYL),
-                    NYL cis max(YL2,ceiling(TYL)),
+                    NYL cis1 max(YL2,TYL),
                     max_divide(ZL,ZU,XL,XU,TYU),
-                    NYU cis min(YU2,floor(TYU)),
+                    NYU cis1 min(YU2,TYU),
                     (   NYL == YL2, NYU == YU2 -> true
                     ;   domains_intersection(from_to(NYL,NYU), YD2, YD3),
                         put(Y, YD3, YExp2)
@@ -2459,11 +2697,9 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 ;   NYL = Y, NYU = Y
                 ),
                 (   get(Z, ZD2, ZL2, ZU2, ZExp2) ->
-                    min_times(NXL,NXU,NYL,NYU,TZL),
-                    NZL cis1 max(ZL2,TZL),
-                    max_times(NXL,NXU,NYL,NYU,TZU),
-                    NZU cis1 min(ZU2,TZU),
-                    (   NZL == ZL2, NZU == ZU2 -> true
+                    min_times(NXL,NXU,NYL,NYU,NZL),
+                    max_times(NXL,NXU,NYL,NYU,NZU),
+                    (   NZL cis_leq ZL2, NZU cis_geq ZU2 -> true
                     ;   domains_intersection(from_to(NZL,NZU), ZD2, ZD3),
                         put(Z, ZD3, ZExp2)
                     )
@@ -2935,18 +3171,33 @@ run_propagator(por(X, Y, Z), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-max_times(L1,U1,L2,U2,Max) :-
-        Max cis max(max(L1*L2,L1*U2),max(U1*L2,U1*U2)).
 min_times(L1,U1,L2,U2,Min) :-
         Min cis min(min(L1*L2,L1*U2),min(U1*L2,U1*U2)).
+max_times(L1,U1,L2,U2,Max) :-
+        Max cis max(max(L1*L2,L1*U2),max(U1*L2,U1*U2)).
 
-max_divide(L1,U1,L2,U2,Max) :-
-        (   L2 cis_leq n(0) , U2 cis_geq n(0) -> Max = sup
+
+min_divide_less(L1,U1,L2,U2,Min) :-
+        (   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
+        ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
+        ).
+max_divide_less(L1,U1,L2,U2,Max) :-
+        (   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
         ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
         ).
+
+
 min_divide(L1,U1,L2,U2,Min) :-
-        (   L2 cis_leq n(0) , U2 cis_geq n(0) -> Min = inf
+        (   U2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
+            Min cis div(L1+U2-n(1),U2)
+        ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
         ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
+        ).
+max_divide(L1,U1,L2,U2,Max) :-
+        (   L2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
+            Max cis1 div(U1,L2)
+        ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
+        ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3173,18 +3424,24 @@ fd_var(X) :- get_attr(X, clpfd, _).
 %  Inf is the infimum of the current domain of Var.
 
 fd_inf(X, Inf) :-
-        get(X, XD, _),
-        domain_infimum(XD, Inf0),
-        bound_portray(Inf0, Inf).
+        (   get(X, XD, _) ->
+            domain_infimum(XD, Inf0),
+            bound_portray(Inf0, Inf)
+        ;   must_be(integer, X),
+            Inf = X
+        ).
 
 %% fd_sup(+Var, -Sup)
 %
 %  Sup is the supremum of the current domain of Var.
 
 fd_sup(X, Sup) :-
-        get(X, XD, _),
-        domain_supremum(XD, Sup0),
-        bound_portray(Sup0, Sup).
+        (   get(X, XD, _) ->
+            domain_supremum(XD, Sup0),
+            bound_portray(Sup0, Sup)
+        ;   must_be(integer, X),
+            Sup = X
+        ).
 
 %% fd_size(+Var, -Size)
 %
@@ -3192,16 +3449,23 @@ fd_sup(X, Sup) :-
 %  atom *sup* if the domain is unbounded.
 
 fd_size(X, S) :-
-        get(X, XD, _),
-        domain_num_elements(XD, S0),
-        bound_portray(S0, S).
+        (   get(X, XD, _) ->
+            domain_num_elements(XD, S0),
+            bound_portray(S0, S)
+        ;   must_be(integer, X),
+            S = 1
+        ).
 
 %% fd_dom(+Var, -Dom)
 %
 %  Dom is the current domain (see in/2) of Var.
 
-fd_dom(X, Drep) :- get(X, XD, _), domain_to_drep(XD, Drep).
-
+fd_dom(X, Drep) :-
+        (   get(X, XD, _) ->
+            domain_to_drep(XD, Drep)
+        ;   must_be(integer, X),
+            Drep = X..X
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Hooks
@@ -3229,8 +3493,7 @@ bound_portray(n(N), N).
 
 attr_portray_hook(clpfd(_,_,_,Dom,_), Var) :-
         (   current_prolog_flag(clpfd_attribute_goal, true) ->
-            % the default mechanism in SWI should eventually work like this,
-            % with the toplevel using attribute_goal/2 for all attributes
+            % eventually, the toplevel should work like this by default
             attribute_goal(Var, Goal),
             write(Goal)
         ;   domain_to_drep(Dom, Drep),
@@ -3295,7 +3558,11 @@ attribute_goal_(pabs(X,Y), Y #= abs(X)).
 attribute_goal_(pmod(X,M,K), X mod M #= K).
 attribute_goal_(pmax(X,Y,Z), Z #= max(X,Y)).
 attribute_goal_(pmin(X,Y,Z), Z #= min(X,Y)).
-attribute_goal_(sum_eq(Vs, C), sum(Vs, #=, C)).
+attribute_goal_(scalar_product(Cs,Vs,Op,C), Goal) :-
+        Cs = [FC|Cs1], Vs = [FV|Vs1],
+        coeff_var_term(FC, FV, T0),
+        unfold_product(Cs1, Vs1, T0, Left),
+        Goal =.. [Op,Left,C].
 attribute_goal_(pdifferent(Left, Right, X), all_different(Vs)) :-
         append(Left, [X|Right], Vs).
 attribute_goal_(pdistinct(Left, Right, X), all_distinct(Vs)) :-
@@ -3315,6 +3582,13 @@ attribute_goal_(reified_and(X, Y, B), X #/\ Y #<==> B).
 attribute_goal_(reified_or(X, Y, B), X #\/ Y #<==> B).
 attribute_goal_(reified_not(X, Y), #\ X #<==> Y).
 attribute_goal_(pimpl(X, Y), X #==> Y).
+
+coeff_var_term(C, V, T) :- ( C =:= 1 -> T = V ; T = C*V ).
+
+unfold_product([], [], P, P).
+unfold_product([C|Cs], [V|Vs], P0, P) :-
+        coeff_var_term(C, V, T),
+        unfold_product(Cs, Vs, P0 + T, P).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 domain_to_list(Domain, List) :- phrase(domain_to_list(Domain), List).

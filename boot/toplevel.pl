@@ -330,6 +330,7 @@ initialise_prolog :-
 	once(print_predicate(_, [print], PrintOptions)),
 	set_prolog_flag(toplevel_print_options, PrintOptions),
 	set_prolog_flag(prompt_alternatives_on, determinism),
+	set_prolog_flag(toplevel_extra_white_line, true),
 	'$set_debugger_print_options'(print),
 	'$run_at_initialization',
 	'$load_system_init_file',
@@ -595,17 +596,17 @@ write_bindings2([], _) :-
 	print_message(query, query(yes)).
 write_bindings2(Bindings, true) :-
 	current_prolog_flag(prompt_alternatives_on, determinism), !,
-	print_message(query, query(yes, Bindings)).
+	print_message(query, query(yes(Bindings))).
 write_bindings2(Bindings, _Det) :-
 	repeat,
-	    print_message(query, query(more, Bindings)),
+	    print_message(query, query(more(Bindings))),
 	    get_respons(Action),
 	(   Action == redo
 	->  !, fail
 	;   Action == show_again
 	->  fail
 	;   !,
-	    print_message(query, query(yes))
+	    print_message(query, query(done))
 	).
 
 %%	bind_vars(+Bindings)
@@ -654,14 +655,15 @@ answer_respons(Char, again) :-
 	memberchk(Char, "?h"), !,
 	print_message(help, query(help)).
 answer_respons(Char, redo) :-
-	memberchk(Char, ";nrNR"), !,
+	memberchk(Char, ";nrNR \t"), !,
 	print_message(query, if_tty(';')).
 answer_respons(Char, redo) :-
 	memberchk(Char, "tT"), !,
 	trace,
 	print_message(query, if_tty('; [trace]')).
 answer_respons(Char, continue) :-
-	memberchk(Char, "ca \n\ryY"), !.
+	memberchk(Char, "ca\n\ryY."), !,
+	print_message(query, if_tty('.')).
 answer_respons(0'b, show_again) :- !,
 	break.
 answer_respons(Char, show_again) :-

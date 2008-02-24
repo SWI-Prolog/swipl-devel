@@ -48,6 +48,14 @@ format rdf(Subject, Predicate, Object).  It   is  primarily intended for
 communicating computed RDF model fragments   to  external programs using
 RDF/XML.
 
+When used from the HTTP library, use the following code:
+
+==
+reply_graph(RDF) :-
+	format('Content-type: application/rdf+xml; charset=UTF-8~n~n'),
+	rdf_write_xml(current_output, RDF).
+==
+
 @author	Jan Wielemaker
 @see	library(semweb/rdf_db) offers saving a named graph directly from
 	the RDF database.
@@ -123,12 +131,8 @@ used_namespaces(Triples, NSList) :-
 	empty_assoc(A0),
 	put_assoc(rdf, A0, *, A1),	% needed for rdf:RDF
 	res_used_namespaces(Resources, _NoNS, A1, A),
-	assoc_to_list(A, List),
-	keys(List, NSList).
+	assoc_to_keys(A, NSList).
 
-keys([], []).
-keys([K-_|T0], [K|T]) :-
-	keys(T0, T).
 
 res_used_namespaces([], [], A, A).
 res_used_namespaces([Resource|T], NoNS, A0, A) :-
@@ -192,7 +196,8 @@ decl_predicate_ns(Pred) :-
 	->  atom_codes(NS, NSCodes),
 	    (   between(1, infinite, N),
 		atom_concat(ns, N, Id),
-		\+ ns(Id, _)
+		\+ ns(Id, _),
+		\+ is_bag_li_predicate(Pred)
 	    ->  rdf_register_ns(Id, NS),
 		print_message(informational,
 			      rdf(using_namespace(Id, NS)))
@@ -389,11 +394,13 @@ simple_literal_attributes([H|TA], [H|TI], B) :-
 simple_literal_attributes([H|TA], I, [H|TB]) :-
 	simple_literal_attributes(TA, I, TB).
 
-in_tag_attribute(rdf(_,_,literal(Text))) :-
+in_tag_attribute(rdf(_,P,literal(Text))) :-
 	atom(Text),			% may not have lang qualifier
 	atom_length(Text, Len),
-	Len < 60.
+	Len < 60,
+	\+ is_bag_li_predicate(P).
 
+       
 %	save_attributes(+List, +DefNS, +TagOrBody, +Out, +NodeIDs, +Indent, +Anon)
 %
 %	Save a list of attributes.
@@ -403,7 +410,7 @@ save_attributes2([H|T], DefNS, Where, Out, NodeIDs, Indent, Anon) :-
 	save_attribute(Where, H, DefNS, Out, NodeIDs, Indent, Anon),
 	save_attributes2(T, DefNS, Where, Out, NodeIDs, Indent, Anon).
 
-% %	save_attribute(+Where, +Triple, +DefNS, +Out, +NodeIDs, +Indent, +Anon)
+%%	save_attribute(+Where, +Triple, +DefNS, +Out, +NodeIDs, +Indent, +Anon)
 
 save_attribute(tag, rdf(_, Name, literal(Value)), DefNS, Out, _, Indent, _Anon) :-
 	AttIndent is Indent + 2,
@@ -515,10 +522,19 @@ rdf_save_list(ListTriples, Out, List, NodeIDs, DefNS, Indent, Anon) :-
 %	@tbd	Ensure we are talking about an rdf:Bag
 
 rdf_p_id(LI, _, 'rdf:li') :-
-	atom_concat('_:', AN, LI),
-	catch(atom_number(AN, N), _, true), integer(N), !.
+	is_bag_li_predicate(LI), !.
 rdf_p_id(Resource, DefNS, NSLocal) :-
 	rdf_id(Resource, DefNS, NSLocal).
+
+%%	is_bag_li_predicate(+Pred) is semidet.
+%
+%	True if Pred is _:N, as used  for members of an rdf:Bag, rdf:Seq
+%	or rdf:Alt.
+
+is_bag_li_predicate(Pred) :-
+	atom_concat('_:', AN, Pred),
+	catch(atom_number(AN, N), _, true), integer(N), N >= 0, !.
+
 
 %%	rdf_id(+Resource, +DefNS, -NSLocal)
 %	

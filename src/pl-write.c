@@ -889,11 +889,10 @@ writeList2(term_t list, write_options *options, int cyclic)
 static bool
 writeList(term_t list, write_options *options)
 { visited *v = options->visited;
-  Word l = valTermRef(list);
   Word tail;
-  intptr_t len = skip_list(l, &tail PASS_LD);
   int rc;
 
+  skip_list(valTermRef(list), &tail PASS_LD);
   rc = writeList2(list, options, isList(*tail));
   options->visited = v;
 

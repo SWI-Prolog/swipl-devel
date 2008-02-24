@@ -234,11 +234,14 @@ rdf_global_id(NS:Local, Global) :-
 rdf_global_id(Global, Global).
 
 
-%%	rdf_global_object(?Object, ?GlobalObject) is det.
+%%	rdf_global_object(+Object, -GlobalObject) is semidet.
+%%	rdf_global_object(-Object, +GlobalObject) is semidet.
 %	
 %	Same as rdf_global_id/2,  but  intended   for  dealing  with the
 %	object part of a  triple,  in   particular  the  type  for typed
 %	literals.
+%	
+%	@error	existence_error(rdf_namespace, NS)
 
 rdf_global_object(NS:Local, Global) :-
 	global(NS, Local, Global), !.
@@ -253,11 +256,10 @@ global(NS, Local, Global) :-
 	    atom_concat(Full, Local, Global)
 	;   atom(NS), atom(Local)
 	->  (   ns(NS, Full)
-	    *-> atom_concat(Full, Local, Global)
-	    ;   atom_concat(NS, Local, Global)
+	    *->	atom_concat(Full, Local, Global)
+	    ;	existence_error(rdf_namespace, NS)
 	    )
 	).
-
 
 
 %%	rdf_global_term(+TermIn, -GlobalTerm) is det.
@@ -268,8 +270,8 @@ global(NS, Local, Global) :-
 rdf_global_term(Var, Var) :-
 	var(Var), !.
 rdf_global_term(NS:Local, Global) :-
-	rdf_global_id(NS:Local, Global0), !,
-	Global = Global0.
+	atom(NS), atom(Local), ns(NS, Full), !,
+	atom_concat(Full, Local, Global).
 rdf_global_term([H0|T0], [H|T]) :- !,
 	rdf_global_term(H0, H),
 	rdf_global_term(T0, T).

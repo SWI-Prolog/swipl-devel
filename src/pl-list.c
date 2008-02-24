@@ -306,7 +306,12 @@ prolog_list_to_sort_list(term_t t, int remove_dups, int key, list *lp, Word *end
   len = skip_list(l, &tail PASS_LD);
   if ( !(isNil(*tail) ||			/* proper list */
 	 (isList(*tail) && remove_dups)) )	/* sort/2 on cyclic list */
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, t);
+  {
+    if ( isVar(*tail) )
+      return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+    else
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, t);
+  }
   minfree = sizeof(word)*len*3;
 
 #ifdef O_SHIFT_STACKS

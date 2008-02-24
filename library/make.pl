@@ -63,7 +63,7 @@ modified_file(File) :-
 	(   catch(time_file(File, Modified), _, fail),
 	    Modified > LoadTime
 	->  true
-	;   '$included'(File, Included),
+	;   system:'$included'(File, Included),
 	    catch(time_file(Included, Modified), _, fail),
 	    Modified > LoadTime
 	->  true

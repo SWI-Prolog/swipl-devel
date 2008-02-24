@@ -69,13 +69,14 @@ add_to_form(const char *name, const char *value, void *closure)
   term_t val  = PL_new_term_ref();
   long vl;
   double vf;
+  size_t len = strlen(value);		/* TBD: pass this in */
 
-  if ( isinteger(value, &vl, strlen(value)) )
+  if ( isinteger(value, &vl, len) )
     PL_put_integer(val, vl);
-  else if ( isfloat(value, &vf, strlen(value)) )
+  else if ( isfloat(value, &vf, len) )
     PL_put_float(val, vf);
   else
-    PL_put_atom_chars(val, value);
+    PL_unify_chars(val, PL_ATOM|REP_UTF8, len, value);
 
   if ( !PL_unify_list(tail, head, tail) ||
        !PL_unify_term(head,
@@ -101,7 +102,7 @@ mp_add_to_form(const char *name, const char *value, size_t len,
   else if ( isfloat(value, &vf, len) )
     PL_put_float(val, vf);
   else
-    PL_put_atom_nchars(val, len, value);
+    PL_unify_chars(val, PL_ATOM|REP_UTF8, len, value);
 
   if ( !PL_unify_list(tail, head, tail) ||
        !PL_unify_term(head,

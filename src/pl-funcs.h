@@ -643,7 +643,8 @@ COMMON(word) 		pl_get_clause_attribute(term_t ref, term_t att, term_t value);
 COMMON(word) 		pl_get_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(word) 		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(void) 		reindexDefinition(Definition def);
-COMMON(void) 		redefineProcedure(Procedure proc, SourceFile sf);
+COMMON(void) 		redefineProcedure(Procedure proc, SourceFile sf,
+					  unsigned int suppress);
 COMMON(void) 		startConsult(SourceFile f);
 COMMON(void) 		indexDefinition(Definition def, long pattern);
 COMMON(word) 		pl_index(term_t pred);

@@ -92,10 +92,17 @@ span.pred-ext
 { font-weight: bold;
 }
 
+span.pred-tag
+{ float: right;
+font-size: 80%;
+font-style: italic;
+color: #202020;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
-span.fn-text: { display: none; }
+span.fn-text { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
@@ -718,8 +725,9 @@ make the query <CODE>http://myhost.mydomain/cgi-bin/cgidemo?hello=world</CODE>
 :- use_module(library(cgi)).
 
 main :-
+        set_stream(current_output, encoding(utf8)),
         cgi_get_form(Arguments),
-        format('Content-type: text/html~n~n', []),
+        format('Content-type: text/html; charset=UTF-8~n~n', []),
         format('&lt;HTML&gt;~n', []),
         format('&lt;HEAD&gt;~n', []),
         format('&lt;TITLE&gt;Simple SWI-Prolog CGI script&lt;/TITLE&gt;~n', []),
@@ -742,7 +750,15 @@ considerations</SPAN></A></H3>
 <P>Printing an HTML document using <A NAME="idx:format2:45"></A><SPAN class="pred-ext">format/2</SPAN> 
 is not really a neat way of producing HTML. A high-level alternative is 
 provided by
-<CODE>library(http/html_write)</CODE> from the XPCE package.
+<CODE>library(http/html_write)</CODE> from the HTTP library.
+
+<P>The CGI standard is very unclear about handling Unicode data. The 
+above two declarations ensure the CGI script will send all data in UTF-8 
+and thus provide full support of Unicode. It is assumed that browsers 
+generally send form-data using the same encoding as the page in which 
+the form appears, UTF-8 or ISO Latin-1. The current version of
+<A NAME="idx:cgigetform2:46"></A><SPAN class="pred-ext">cgi_get_form/2</SPAN> 
+assumes the CGI data is in UTF-8.
 
 <H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">MIME 
 decoding library</SPAN></A></H2>
@@ -848,7 +864,7 @@ encryption library</SPAN></A></H2>
 
 <A NAME="sec:crypt"></A>
 
-<P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:46"></A><A class="pred" href="#crypt/2">crypt/2</A> 
+<P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:47"></A><A class="pred" href="#crypt/2">crypt/2</A> 
 for encrypting and testing passwords. The clib package also provides 
 crytographic hashes as described in <A class="sec" href="#sec:8">section 
 8</A>
@@ -964,7 +980,7 @@ key and the size of the hash output length in bits.''</I>
 or list of character codes. <VAR>HMAC</VAR> is unified with a list of 
 integers representing the authentication code. <VAR>Options</VAR> is the 
 same as for
-<A NAME="idx:shahash3:47"></A><A class="pred" href="#sha_hash/3">sha_hash/3</A>, 
+<A NAME="idx:shahash3:48"></A><A class="pred" href="#sha_hash/3">sha_hash/3</A>, 
 but currently only <CODE>sha1</CODE> and <CODE>sha256</CODE> are 
 supported.
 </DD>
@@ -1014,8 +1030,8 @@ them. However, memory-streams cannot have multiple streams at the same
 time (i.e. cannot be opened for reading and writing at the same time).
 
 <P>These predicates are first of all intended for building higher-level 
-primitives. See also <A NAME="idx:sformat3:48"></A><SPAN class="pred-ext">sformat/3</SPAN>, <A NAME="idx:atomtoterm3:49"></A><SPAN class="pred-ext">atom_to_term/3</SPAN>, <A NAME="idx:termtoatom2:50"></A><SPAN class="pred-ext">term_to_atom/2</SPAN> 
-and the XPCE primitive <A NAME="idx:pceopen3:51"></A><SPAN class="pred-ext">pce_open/3</SPAN>.
+primitives. See also <A NAME="idx:sformat3:49"></A><SPAN class="pred-ext">sformat/3</SPAN>, <A NAME="idx:atomtoterm3:50"></A><SPAN class="pred-ext">atom_to_term/3</SPAN>, <A NAME="idx:termtoatom2:51"></A><SPAN class="pred-ext">term_to_atom/2</SPAN> 
+and the XPCE primitive <A NAME="idx:pceopen3:52"></A><SPAN class="pred-ext">pce_open/3</SPAN>.
 
 <DL>
 <DT class="pubdef"><A NAME="new_memory_file/1"><STRONG>new_memory_file</STRONG>(<VAR>-Handle</VAR>)</A></DT>
@@ -1030,18 +1046,18 @@ first closed.</DD>
 <DD class="defbody">
 Open the memory-file. <VAR>Mode</VAR> is currently one of <CODE>read</CODE> 
 or <CODE>write</CODE>. The resulting <VAR>Stream</VAR> must be closed 
-using <A NAME="idx:close1:52"></A><SPAN class="pred-ext">close/1</SPAN>.</DD>
+using <A NAME="idx:close1:53"></A><SPAN class="pred-ext">close/1</SPAN>.</DD>
 <DT class="pubdef"><A NAME="open_memory_file/4"><STRONG>open_memory_file</STRONG>(<VAR>+Handle, 
 +Mode, -Stream, +Options</VAR>)</A></DT>
 <DD class="defbody">
-Open a memory-file as <A NAME="idx:openmemoryfile3:53"></A><A class="pred" href="#open_memory_file/3">open_memory_file/3</A>. 
+Open a memory-file as <A NAME="idx:openmemoryfile3:54"></A><A class="pred" href="#open_memory_file/3">open_memory_file/3</A>. 
 Options:
 
 <DL>
 <DT><STRONG>encoding</STRONG>(<VAR>+Encoding</VAR>)</DT>
 <DD class="defbody">
 Set the encoding for a memory file and the created stream. Encoding 
-names are the same as used with <A NAME="idx:open4:54"></A><SPAN class="pred-ext">open/4</SPAN>. 
+names are the same as used with <A NAME="idx:open4:55"></A><SPAN class="pred-ext">open/4</SPAN>. 
 By default, memoryfiles represent UTF-8 streams, making them capable of 
 storing arbitrary Unicode text. In practice the only alternative is <CODE>octet</CODE>, 
 turning the memoryfile into binary mode. Please study SWI-Prolog Unicode 
@@ -1104,13 +1120,13 @@ terms. Defined options are:
 <DD class="defbody">
 If <CODE>true</CODE> (default <CODE>false</CODE>), the timer is removed 
 automatically after fireing. Otherwise it must be destroyed explicitly 
-using <A NAME="idx:removealarm1:55"></A><A class="pred" href="#remove_alarm/1">remove_alarm/1</A>.
+using <A NAME="idx:removealarm1:56"></A><A class="pred" href="#remove_alarm/1">remove_alarm/1</A>.
 </DD>
 <DT><STRONG>install</STRONG>(<VAR>Bool</VAR>)</DT>
 <DD class="defbody">
 If <CODE>false</CODE> (default <CODE>true</CODE>), the timer is 
 allocated but not scheduled for execution. It must be started later 
-using <A NAME="idx:installalarm1:56"></A><A class="pred" href="#install_alarm/1">install_alarm/1</A>.
+using <A NAME="idx:installalarm1:57"></A><A class="pred" href="#install_alarm/1">install_alarm/1</A>.
 </DD>
 </DL>
 
@@ -1121,11 +1137,11 @@ using <A NAME="idx:installalarm1:56"></A><A class="pred" href="#install_alarm/1"
 Same as <CODE>alarm(Time, Callable, Id,[])</CODE>.</DD>
 <DT class="pubdef"><A NAME="install_alarm/1"><STRONG>install_alarm</STRONG>(<VAR>+Id</VAR>)</A></DT>
 <DD class="defbody">
-Activate an alarm allocated usign <A NAME="idx:alarm4:57"></A><A class="pred" href="#alarm/4">alarm/4</A> 
+Activate an alarm allocated usign <A NAME="idx:alarm4:58"></A><A class="pred" href="#alarm/4">alarm/4</A> 
 with the option
 <CODE>install(false)</CODE>. This is intended to reclaim alarms reliably 
-using <A NAME="idx:callcleanup2:58"></A><SPAN class="pred-ext">call_cleanup/2</SPAN>. 
-See the implementation of <A NAME="idx:callwithtimelimit2:59"></A><A class="pred" href="#call_with_time_limit/2">call_with_time_limit/2</A>.</DD>
+using <A NAME="idx:callcleanup2:59"></A><SPAN class="pred-ext">call_cleanup/2</SPAN>. 
+See the implementation of <A NAME="idx:callwithtimelimit2:60"></A><A class="pred" href="#call_with_time_limit/2">call_with_time_limit/2</A>.</DD>
 <DT class="pubdef"><A NAME="remove_alarm/1"><STRONG>remove_alarm</STRONG>(<VAR>+Id</VAR>)</A></DT>
 <DD class="defbody">
 Remove an alarm. If it is not yet fired, it will not be fired any more.</DD>
@@ -1139,16 +1155,16 @@ is the next to be fired and <VAR>scheduled</VAR> otherwise.</DD>
 :Goal</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Goal</VAR> completes within <VAR>Time</VAR> seconds. <VAR>Goal</VAR> 
-is executed as in <A NAME="idx:once1:60"></A><SPAN class="pred-ext">once/1</SPAN>. 
+is executed as in <A NAME="idx:once1:61"></A><SPAN class="pred-ext">once/1</SPAN>. 
 If <VAR>Goal</VAR> doesn't complete within <VAR>Time</VAR> seconds (wall 
 time), exit using the exception
-<CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:61"></A><SPAN class="pred-ext">catch/3</SPAN>.
+<CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:62"></A><SPAN class="pred-ext">catch/3</SPAN>.
 
-<P>Please note that this predicate uses <A NAME="idx:alarm4:62"></A><A class="pred" href="#alarm/4">alarm/4</A> 
+<P>Please note that this predicate uses <A NAME="idx:alarm4:63"></A><A class="pred" href="#alarm/4">alarm/4</A> 
 and therefore is <EM>not</EM> capable to break out of long running goals 
-such as <A NAME="idx:sleep1:63"></A><SPAN class="pred-ext">sleep/1</SPAN>, 
+such as <A NAME="idx:sleep1:64"></A><SPAN class="pred-ext">sleep/1</SPAN>, 
 blocking I/O or other long-running (foreign) predicates. Blocking I/O 
-can be handled using the timeout option of <A NAME="idx:readterm3:64"></A><SPAN class="pred-ext">read_term/3</SPAN>.
+can be handled using the timeout option of <A NAME="idx:readterm3:65"></A><SPAN class="pred-ext">read_term/3</SPAN>.
 </DD>
 </DL>
 
@@ -1169,7 +1185,7 @@ Query and/or set the limit for <VAR>Resource</VAR>. Time-values are in
 seconds and size-values are counted in bytes. The following values are 
 supported by this library. Please note that not all resources may be 
 available and accessible on all platforms. This predicate can throw a 
-variety of exceptions. In portable code this should be guarded with <A NAME="idx:catch3:65"></A><SPAN class="pred-ext">catch/3</SPAN>. 
+variety of exceptions. In portable code this should be guarded with <A NAME="idx:catch3:66"></A><SPAN class="pred-ext">catch/3</SPAN>. 
 The defined resources are:
 <BLOCKQUOTE>
 <TABLE BORDER=0 FRAME=void RULES=groups>
@@ -1189,7 +1205,7 @@ address </TD></TR>
 
 <P>When the process hits a limit POSIX systems normally send the process 
 a signal that terminates it. These signals may be catched using 
-SWI-Prolog's <A NAME="idx:onsignal3:66"></A><SPAN class="pred-ext">on_signal/3</SPAN> 
+SWI-Prolog's <A NAME="idx:onsignal3:67"></A><SPAN class="pred-ext">on_signal/3</SPAN> 
 primitive. The code below illustrates this behaviour. Please note that 
 asynchronous signal handling is dangerous, especially when using 
 threads. 100% fail-safe operation cannot be guaranteed, but this 
@@ -1245,7 +1261,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT><A class="idx" href="#alarm/4">alarm/4</A></DT>
 <DD>
-<A class="idx" href="#idx:alarm4:57">10</A> <A class="idx" href="#idx:alarm4:62">10</A></DD>
+<A class="idx" href="#idx:alarm4:58">10</A> <A class="idx" href="#idx:alarm4:63">10</A></DD>
 <DT>at_end_of_stream/1</DT>
 <DD>
 <A class="idx" href="#idx:atendofstream1:27">4</A> <A class="idx" href="#idx:atendofstream1:28">4</A></DD>
@@ -1254,31 +1270,34 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT>atom_to_term/3</DT>
 <DD>
-<A class="idx" href="#idx:atomtoterm3:49">9</A></DD>
+<A class="idx" href="#idx:atomtoterm3:50">9</A></DD>
 <DT><STRONG>C</STRONG></DT>
 <DD>
 </DD>
 <DT>call_cleanup/2</DT>
 <DD>
-<A class="idx" href="#idx:callcleanup2:58">10</A></DD>
+<A class="idx" href="#idx:callcleanup2:59">10</A></DD>
 <DT><A class="idx" href="#call_with_time_limit/2">call_with_time_limit/2</A></DT>
 <DD>
-<A class="idx" href="#idx:callwithtimelimit2:59">10</A></DD>
+<A class="idx" href="#idx:callwithtimelimit2:60">10</A></DD>
 <DT>catch/3</DT>
 <DD>
-<A class="idx" href="#idx:catch3:61">10</A> <A class="idx" href="#idx:catch3:65">11</A></DD>
+<A class="idx" href="#idx:catch3:62">10</A> <A class="idx" href="#idx:catch3:66">11</A></DD>
 <DT><A class="idx" href="#cgi_get_form/1">cgi_get_form/1</A></DT>
 <DD>
 </DD>
+<DT>cgi_get_form/2</DT>
+<DD>
+<A class="idx" href="#idx:cgigetform2:46">5.1</A></DD>
 <DT>close/1</DT>
 <DD>
-<A class="idx" href="#idx:close1:52">9</A></DD>
+<A class="idx" href="#idx:close1:53">9</A></DD>
 <DT><A class="idx" href="#close_stream_pool/0">close_stream_pool/0</A></DT>
 <DD>
 <A class="idx" href="#idx:closestreampool0:36">4.3</A></DD>
 <DT><A class="idx" href="#crypt/2">crypt/2</A></DT>
 <DD>
-<A class="idx" href="#idx:crypt2:46">7</A></DD>
+<A class="idx" href="#idx:crypt2:47">7</A></DD>
 <DT><A class="idx" href="#current_alarm/4">current_alarm/4</A></DT>
 <DD>
 </DD>
@@ -1338,7 +1357,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT><A class="idx" href="#install_alarm/1">install_alarm/1</A></DT>
 <DD>
-<A class="idx" href="#idx:installalarm1:56">10</A></DD>
+<A class="idx" href="#idx:installalarm1:57">10</A></DD>
 <DT>ip/4</DT>
 <DD>
 <A class="idx" href="#idx:ip4:43">4.4</A> <A class="idx" href="#idx:ip4:44">4.4</A></DD>
@@ -1371,19 +1390,19 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT>once/1</DT>
 <DD>
-<A class="idx" href="#idx:once1:60">10</A></DD>
+<A class="idx" href="#idx:once1:61">10</A></DD>
 <DT>on_signal/2</DT>
 <DD>
 <A class="idx" href="#idx:onsignal2:7">2</A></DD>
 <DT>on_signal/3</DT>
 <DD>
-<A class="idx" href="#idx:onsignal3:66">11</A></DD>
+<A class="idx" href="#idx:onsignal3:67">11</A></DD>
 <DT>open/4</DT>
 <DD>
-<A class="idx" href="#idx:open4:54">9</A></DD>
+<A class="idx" href="#idx:open4:55">9</A></DD>
 <DT><A class="idx" href="#open_memory_file/3">open_memory_file/3</A></DT>
 <DD>
-<A class="idx" href="#idx:openmemoryfile3:53">9</A></DD>
+<A class="idx" href="#idx:openmemoryfile3:54">9</A></DD>
 <DT><A class="idx" href="#open_memory_file/4">open_memory_file/4</A></DT>
 <DD>
 </DD>
@@ -1395,7 +1414,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT>pce_open/3</DT>
 <DD>
-<A class="idx" href="#idx:pceopen3:51">9</A></DD>
+<A class="idx" href="#idx:pceopen3:52">9</A></DD>
 <DT><A class="idx" href="#pipe/2">pipe/2</A></DT>
 <DD>
 <A class="idx" href="#idx:pipe2:8">2</A> <A class="idx" href="#idx:pipe2:10">2</A></DD>
@@ -1407,10 +1426,10 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <A class="idx" href="#idx:read1:26">4</A></DD>
 <DT>read_term/3</DT>
 <DD>
-<A class="idx" href="#idx:readterm3:64">10</A></DD>
+<A class="idx" href="#idx:readterm3:65">10</A></DD>
 <DT><A class="idx" href="#remove_alarm/1">remove_alarm/1</A></DT>
 <DD>
-<A class="idx" href="#idx:removealarm1:55">10</A></DD>
+<A class="idx" href="#idx:removealarm1:56">10</A></DD>
 <DT><A class="idx" href="#rlimit/3">rlimit/3</A></DT>
 <DD>
 </DD>
@@ -1422,16 +1441,16 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 </DD>
 <DT>sformat/3</DT>
 <DD>
-<A class="idx" href="#idx:sformat3:48">9</A></DD>
+<A class="idx" href="#idx:sformat3:49">9</A></DD>
 <DT><A class="idx" href="#sha_hash/3">sha_hash/3</A></DT>
 <DD>
-<A class="idx" href="#idx:shahash3:47">8</A></DD>
+<A class="idx" href="#idx:shahash3:48">8</A></DD>
 <DT><A class="idx" href="#size_memory_file/2">size_memory_file/2</A></DT>
 <DD>
 </DD>
 <DT>sleep/1</DT>
 <DD>
-<A class="idx" href="#idx:sleep1:63">10</A></DD>
+<A class="idx" href="#idx:sleep1:64">10</A></DD>
 <DT>socket</DT>
 <DD>
 <A class="sec" href="#sec:4">4</A></DD>
@@ -1476,7 +1495,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <A class="idx" href="#idx:tcpsocket1:40">4.4</A></DD>
 <DT>term_to_atom/2</DT>
 <DD>
-<A class="idx" href="#idx:termtoatom2:50">9</A></DD>
+<A class="idx" href="#idx:termtoatom2:51">9</A></DD>
 <DT><STRONG>U</STRONG></DT>
 <DD>
 </DD>

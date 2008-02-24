@@ -534,21 +534,47 @@ prolog_message(var_query(_)) -->
 prolog_message(close_on_abort(Stream)) -->
 	[ 'Abort: closed stream ~p'-[Stream] ].
 
-prolog_message(query(no)) -->
-	[ nl, 'No' ].
-prolog_message(query(yes)) -->
-	[ nl, 'Yes' ].
-prolog_message(query(Yes, Bindings)) -->
+prolog_message(query(QueryResult)) -->
+	query_result(QueryResult).
+
+query_result(no) -->		% failure
+	[ 'fail.' ],
+	extra_line.
+query_result(yes) -->		% prompt_alternatives_on: groundness
+	[ 'true.' ],
+	extra_line.
+query_result(done) -->		% user typed <CR>
+	extra_line.
+query_result(yes(Bindings)) -->
 	bindings(Bindings),
-	prompt(Yes, Bindings).
-prolog_message(query(eof)) -->
+	prompt(yes, Bindings).
+query_result(more(Bindings)) -->
+	bindings(Bindings),
+	prompt(more, Bindings).
+query_result(help) -->
+	[ nl, 'Actions:', nl, nl,
+	  '; (n, r):     redo    t:                 trace & redo', nl,
+	  'b:            break   c (a, RET, space): continue', nl,
+	  'w:            write   p                  print', nl,
+	  'h (?):        help', nl, nl
+	].
+query_result(action) -->
+	[ 'Action? ', flush ].
+query_result(query(confirm)) -->
+	[ 'Please answer \'y\' or \'n\'? ', flush ].
+query_result(eof) -->
 	[ nl ].
+query_result(toplevel_open_line) -->
+	[].
 
 prompt(yes, []) --> !,
-	[ nl, 'Yes' ].
-prompt(yes, _) --> !.
+	[ 'true.' ],
+	extra_line.
+prompt(yes, _) --> !,
+	[ '.' ],
+	extra_line.
 prompt(more, []) --> !,
-	[ 'More? ', flush ].
+	[ 'true ', flush ].
 prompt(more, _) --> !,
 	[ ' ', flush ].
 
@@ -561,18 +587,19 @@ bindings([Name = Value|T]) -->
 	  ;   Cont = (,)
 	  )
 	},
-	[ nl, '~w = ~W~w'-[Name, Value, Options, Cont] ],
+	[ '~w = ~W~w'-[Name, Value, Options, Cont] ],
+	(   {T == []}
+	->  []
+	;   [nl]
+	),
 	bindings(T).
 
-prolog_message(query(help)) -->
-	[ nl, 'Actions:', nl, nl,
-	  '; (n, r):     redo    t:                 trace & redo', nl,
-	  'b:            break   c (a, RET, space): continue', nl,
-	  'w:            write   p                  print', nl,
-	  'h (?):        help', nl, nl
-	].
-prolog_message(query(action)) -->
-	[ 'Action? ', flush ].
+extra_line -->
+	{ current_prolog_flag(toplevel_extra_white_line, true) }, !,
+	['~N'-[]].
+extra_line -->
+	[].
+
 prolog_message(if_tty(Text)) -->
 	(   {current_prolog_flag(tty_control, true)}
 	->  [ at_same_line, '~w'-[Text] ]
@@ -582,8 +609,6 @@ prolog_message(halt(Reason)) -->
 	[ '~w: halt'-[Reason] ].
 prolog_message(no_action(Char)) -->
 	[ 'Unknown action: ~c (h for help)'-[Char], nl ].
-prolog_message(query(confirm)) -->
-	[ 'Please answer \'y\' or \'n\'? ', flush ].
 
 prolog_message(history(help(Show, Help))) -->
 	[ 'History Commands:', nl, 

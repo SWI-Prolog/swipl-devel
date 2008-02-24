@@ -1361,8 +1361,7 @@ advance_state(tprop_enum *state)
 
 static
 PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
-{ PRED_LD
-  term_t thread = A1;
+{ term_t thread = A1;
   term_t property = A2;
   tprop_enum statebuf;
   tprop_enum *state;
@@ -2496,8 +2495,7 @@ free_qstate(qprop_enum *state)
 
 static 
 PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
-{ PRED_LD
-  term_t queue = A1;
+{ term_t queue = A1;
   term_t property = A2;
   qprop_enum statebuf;
   qprop_enum *state;
@@ -3204,8 +3202,7 @@ free_mstate(mprop_enum *state)
 
 static
 PRED_IMPL("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC)
-{ PRED_LD
-  term_t mutex = A1;
+{ term_t mutex = A1;
   term_t property = A2;
   mprop_enum statebuf;
   mprop_enum *state;
@@ -3277,9 +3274,7 @@ enumerate:
       PL_get_arg(1, property, arg);
 
     for(;;)
-    { int rval;
-
-      if ( (*state->p->function)(state->m, arg PASS_LD) )
+    { if ( (*state->p->function)(state->m, arg PASS_LD) )
       { if ( state->enum_properties )
 	{ PL_unify_term(property,
 			    PL_FUNCTOR, state->p->functor,

@@ -483,7 +483,7 @@ cleanupExtensions(void)
     { PL_extension *e = c->extensions;
 
       for(;e->predicate_name; e++)
-	PL_free(e->predicate_name);
+	PL_free((void *)e->predicate_name);
 
       PL_free(c->extensions);
     }

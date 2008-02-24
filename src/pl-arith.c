@@ -1627,9 +1627,7 @@ ar_sign(Number n1, Number r)
 
 static int
 ar_rem(Number n1, Number n2, Number r)
-{ real f;
-
-  if ( !toIntegerNumber(n1, 0) )
+{ if ( !toIntegerNumber(n1, 0) )
     return PL_error("rem", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
   if ( !toIntegerNumber(n2, 0) )
     return PL_error("rem", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
@@ -1646,9 +1644,7 @@ ar_rem(Number n1, Number n2, Number r)
       break;
 #ifdef O_GMP
     case V_MPZ:
-    { mpq_t q;
-      
-      if ( mpz_sgn(n2->value.mpz) == 0 )
+    { if ( mpz_sgn(n2->value.mpz) == 0 )
 	return PL_error("rem", 2, NULL, ERR_DIV_BY_ZERO);
 
       r->type = V_MPZ;
