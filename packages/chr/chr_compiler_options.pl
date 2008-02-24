@@ -338,7 +338,7 @@ chr_pp_flag_definition(toplevel_show_store,[on,off]).
 chr_pp_flag_definition(term_indexing,[off,on]).
 chr_pp_flag_definition(verbosity,[on,off]).
 chr_pp_flag_definition(ht_removal,[off,on]).
-chr_pp_flag_definition(mixed_stores,[off,on]).
+chr_pp_flag_definition(mixed_stores,[on,off]).
 chr_pp_flag_definition(line_numbers,[off,on]).
 chr_pp_flag_definition(dynattr,[off,on]).
 chr_pp_flag_definition(experiment,[off,on]).
