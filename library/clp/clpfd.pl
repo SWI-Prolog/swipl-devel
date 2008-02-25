@@ -1286,14 +1286,16 @@ scalar_supported(#\=).
 sum(Ls, Op, Value) :-
         must_be(list, Ls),
         maplist(fd_variable, Ls),
-        (   scalar_supported(Op), integer(Value) ->
-            length(Ls, L),
-            length(Cs, L),
-            maplist(=(1), Cs),
-            scalar_product(Cs, Ls, Op, Value)
+        (   scalar_supported(Op),
+            vars_plusterm(Ls, 0, Left),
+            left_right_linsum_const(Left, Value, Cs, Vs, Const) ->
+            scalar_product(Cs, Vs, Op, Const)
         ;   must_be(callable, Op),
             sum(Ls, 0, Op, Value)
         ).
+
+vars_plusterm([], T, T).
+vars_plusterm([V|Vs], T0, T) :- vars_plusterm(Vs, T0+V, T).
 
 scalar_product(Cs, Vs, Op, C) :-
         make_propagator(scalar_product(Cs,Vs,Op,C), Prop),
