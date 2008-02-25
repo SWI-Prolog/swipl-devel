@@ -553,10 +553,11 @@ query_result(more(Bindings)) -->
 	prompt(more, Bindings).
 query_result(help) -->
 	[ nl, 'Actions:', nl, nl,
-	  '; (n, r):     redo    t:                 trace & redo', nl,
-	  'b:            break   c (a, RET, space): continue', nl,
-	  'w:            write   p                  print', nl,
-	  'h (?):        help', nl, nl
+	  '; (n, r, space, TAB): redo    t:          trace & redo', nl,
+	  'b:                    break   c (a, RET): exit', nl,
+	  'w:                    write   p           print', nl,
+	  'h (?):                help',
+	  nl, nl
 	].
 query_result(action) -->
 	[ 'Action? ', flush ].
