@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.50 Reference Manual: Section A.8</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section A.8</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="clpclp_distinct.html">
@@ -223,20 +223,19 @@ puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
 
 <PRE class="code">
 ?- puzzle(As+Bs=Cs).
-As = [_G58{8..9}, _G61{2..9}, _G64{2..9}, _G67{2..9}],
-Bs = [1, 0, _G76{2..9}, _G61{2..9}],
-Cs = [1, 0, _G64{2..9}, _G61{2..9}, _G94{2..9}]
+As = [9, _G5402{4..7}, _G5405{5..8}, _G5408{2..8}],
+Bs = [1, 0, _G5417{2..8}, _G5402{4..7}],
+Cs = [1, 0, _G5405{5..8}, _G5402{4..7}, _G5435{2..8}].
 </PRE>
 
 <P>Here, the constraint solver could deduce more stringent bounds for 
 many variables. Labeling can be used to search for solutions:
 
 <PRE class="code">
-?- puzzle(As+Bs=Cs), append([As,Bs,Cs], Vs), label(Vs).
+?- puzzle(As+Bs=Cs), label(As), label(Bs).
 As = [9, 5, 6, 7],
 Bs = [1, 0, 8, 5],
-Cs = [1, 0, 6, 5, 2],
-Vs = [9, 5, 6, 7, 1, 0, 8, 5, 1|...]
+Cs = [1, 0, 6, 5, 2]
 </PRE>
 
 <DL>
@@ -293,6 +292,11 @@ the default.
 <I>First fail</I>. Label the leftmost variable with smallest domain 
 next, in order to detect infeasibility early. This is often a good 
 strategy.
+</DD>
+<DT><STRONG>ffc</STRONG></DT>
+<DD class="defbody">
+Of the variables with smallest domains, the leftmost one participating 
+in most constraints is labeled next.
 </DD>
 <DT><STRONG>min</STRONG></DT>
 <DD class="defbody">
@@ -353,11 +357,18 @@ and X <CODE>#&gt;</CODE> M, where M is the midpoint of the domain of X.
 
 <P>This generates solutions in ascending/descending order with respect 
 to the evaluation of the arithmetic expression Expr. Labeling <VAR>Vars</VAR> 
-must make Expr ground.
+must make Expr ground. To obtain the incomplete behaviour that other 
+systems exhibit with "maximize(Expr)" and "minimize(Expr)", use
+<A class="pred" href="metacall.html#once/1">once/1</A>, e.g.:
+
+<PRE class="code">
+once(labeling([max(Expr)], Vars))
+</PRE>
 
 <P>If more than one option of a category is specified, the one occurring 
 rightmost in the option list takes precedence over all others of that 
-category. Labeling is always complete and always terminates.</DD>
+category. Labeling is always complete, always terminates, and yields no 
+redundant solutions.</DD>
 <DT class="pubdef"><A NAME="all_different/1"><STRONG>all_different</STRONG>(<VAR>+Vars</VAR>)</A></DT>
 <DD class="defbody">
 Constrain <VAR>Vars</VAR> to be pairwise distinct.</DD>
@@ -438,6 +449,27 @@ Techniques for the Disjunctive Scheduling Problem"
 </DL>
 
 </DD>
+<DT class="pubdef"><A NAME="fd_var/1"><STRONG>fd_var</STRONG>(<VAR>+Var</VAR>)</A></DT>
+<DD class="defbody">
+True iff <VAR>Var</VAR> is a CLP(FD) variable.</DD>
+<DT class="pubdef"><A NAME="fd_inf/2"><STRONG>fd_inf</STRONG>(<VAR>+Var, 
+-Inf</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Inf</VAR> is the infimum of the current domain of <VAR>Var</VAR>.</DD>
+<DT class="pubdef"><A NAME="fd_sup/2"><STRONG>fd_sup</STRONG>(<VAR>+Var, 
+-Sup</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Sup</VAR> is the supremum of the current domain of <VAR>Var</VAR>.</DD>
+<DT class="pubdef"><A NAME="fd_size/2"><STRONG>fd_size</STRONG>(<VAR>+Var, 
+-Size</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Size</VAR> is the number of elements of the current domain of <VAR>Var</VAR>, 
+or the atom <B>sup</B> if the domain is unbounded.</DD>
+<DT class="pubdef"><A NAME="fd_dom/2"><STRONG>fd_dom</STRONG>(<VAR>+Var, 
+-Dom</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Dom</VAR> is the current domain (see <A class="pred" href="clpbounds.html#in/2">in/2</A>) 
+of <VAR>Var</VAR>.</DD>
 <DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="copy_term/3"><STRONG>copy_term</STRONG>(<VAR>+Term, 
 -Copy, -Gs</VAR>)</A></DT>
 <DD class="defbody">

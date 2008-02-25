@@ -1,3 +1,7 @@
+[Feb 6 2008]
+
+ * FIXED: Remove some XPCE operator dependencies from prolog_xref.pl and
+   doc_htmlsrc.pl.  John Ohno.
 [Feb 1 2008]
 
  * FIXED: PlDoc: fix html generation for included manual material

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.50 Reference Manual: Section A.1</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section A.1</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="libpl.html">
@@ -153,7 +153,7 @@ solutions. We first give a simple example, computing the country with
 the smallest area:
 
 <PRE class="code">
-average_country_area(Name, Area) :-
+smallest_country(Name, Area) :-
         aggregate(min(A, N), country(N, A), min(Area, Name)).
 </PRE>
 
@@ -170,7 +170,7 @@ dealing with existential qualified variables (Var<VAR>/\</VAR>Goal) and
 providing multiple solutions for the remaining free variables in Goal. 
 The <A class="pred" href="aggregate.html#aggregate_all/3">aggregate_all/3</A> 
 predicate uses <A class="pred" href="allsolutions.html#findall/3">findall/3</A>, 
-implicitely qualifying all free variables and providing exactly one 
+implicitly qualifying all free variables and providing exactly one 
 solution, while <A class="pred" href="aggregate.html#aggregate_all/4">aggregate_all/4</A> 
 uses <A class="pred" href="builtinlist.html#sort/2">sort/2</A> over 
 solutions and Distinguish (see below) generated using <A class="pred" href="allsolutions.html#findall/3">findall/3</A>.
@@ -180,7 +180,7 @@ solutions and Distinguish (see below) generated using <A class="pred" href="alls
 The versions with 4 arguments provide a Distinguish argument that allow 
 for keeping duplicate bindings of a variable in the result. For example, 
 if we wish to compute the total population of all countries we do not 
-want to loose results because two countries have the same population. 
+want to lose results because two countries have the same population. 
 Therefore we use:
 </DD>
 </DL>
@@ -210,9 +210,9 @@ Minimum of Expr for all solutions.
 <DT><STRONG>min</STRONG>(<VAR>Expr, Witness</VAR>)</DT>
 <DD class="defbody">
 A term min(Min, Witness), where Min is the minimal version of Expr over 
-all Solution and Witness is any other template the applied to the 
-solution that produced Min. If multiple solutions provide the same 
-minimum, Witness corresponds to the first solution.
+all Solution and Witness is any other template applied to Solution that 
+produced Min. If multiple solutions provide the same minimum, Witness 
+corresponds to the first solution.
 </DD>
 <DT><STRONG>max</STRONG>(<VAR>Expr</VAR>)</DT>
 <DD class="defbody">

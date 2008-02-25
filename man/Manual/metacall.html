@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.50 Reference Manual: Section 4.8</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section 4.8</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="control.html">
@@ -143,17 +143,17 @@ normal calls this search is done at compile time.
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="call/1"><STRONG>call</STRONG>(<VAR>+Goal</VAR>)</A></DT>
 <DD class="defbody">
 Invoke <VAR>Goal</VAR> as a goal. Note that clauses may have variables 
-as subclauses, which is identical to <A NAME="idx:call1:495"></A><A class="pred" href="metacall.html#call/1">call/1</A>.</DD>
+as subclauses, which is identical to <A NAME="idx:call1:501"></A><A class="pred" href="metacall.html#call/1">call/1</A>.</DD>
 <DT class="pubdef"><A NAME="call/2"><STRONG>call</STRONG>(<VAR>+Goal, 
 +ExtraArg1, ...</VAR>)</A></DT>
 <DD class="defbody">
 Append <VAR>ExtraArg1, ExtraArg2, ...</VAR> to the argument list of
 <VAR>Goal</VAR> and call the result. For example, <CODE>call(plus(1), 2, 
-X)</CODE> will call <A NAME="idx:plus3:496"></A><A class="pred" href="arith.html#plus/3">plus/3</A>, 
+X)</CODE> will call <A NAME="idx:plus3:502"></A><A class="pred" href="arith.html#plus/3">plus/3</A>, 
 binding <VAR>X</VAR> to 3.
 
 <P>The call/[2..] construct is handled by the compiler, which implies 
-that redefinition as a predicate has no effect. The predicates <A NAME="idx:call26:497"></A><A class="pred" href="metacall.html#call/2">call/[2-6]</A> 
+that redefinition as a predicate has no effect. The predicates <A NAME="idx:call26:503"></A><A class="pred" href="metacall.html#call/2">call/[2-6]</A> 
 are defined as true predicates, so they can be handled by interpreted 
 code.</DD>
 <DT class="pubdef"><A NAME="apply/2"><STRONG>apply</STRONG>(<VAR>+Term, 
@@ -161,9 +161,9 @@ code.</DD>
 <DD class="defbody">
 Append the members of <VAR>List</VAR> to the arguments of <VAR>Term</VAR> 
 and call the resulting term. For example: <CODE>apply(plus(1), [2, X])</CODE> 
-will call <CODE>plus(1, 2, X)</CODE>. <A NAME="idx:apply2:498"></A><A class="pred" href="metacall.html#apply/2">apply/2</A> 
+will call <CODE>plus(1, 2, X)</CODE>. <A NAME="idx:apply2:504"></A><A class="pred" href="metacall.html#apply/2">apply/2</A> 
 is incorporated in the virtual machine of SWI-Prolog. This implies that 
-the overhead can be compared to the overhead of <A NAME="idx:call1:499"></A><A class="pred" href="metacall.html#call/1">call/1</A>. 
+the overhead can be compared to the overhead of <A NAME="idx:call1:505"></A><A class="pred" href="metacall.html#call/1">call/1</A>. 
 New code should use call/[2..] if the length of
 <VAR>List</VAR> is fixed, which is more widely supported and faster 
 because there is no need to build and examine the argument list.</DD>
@@ -180,7 +180,7 @@ once(Goal) :-
         Goal, !.
 </PRE>
 
-<P><A NAME="idx:once1:500"></A><A class="pred" href="metacall.html#once/1">once/1</A> 
+<P><A NAME="idx:once1:506"></A><A class="pred" href="metacall.html#once/1">once/1</A> 
 can in many cases be replaced with <A class="pred" href="control.html#send_arrow/2">-&gt;/2</A>. 
 The only difference is how the cut behaves (see !/0). The following two 
 clauses are identical:
@@ -193,7 +193,7 @@ clauses are identical:
 </DD>
 <DT class="pubdef"><A NAME="ignore/1"><STRONG>ignore</STRONG>(<VAR>+Goal</VAR>)</A></DT>
 <DD class="defbody">
-Calls <VAR>Goal</VAR> as <A NAME="idx:once1:501"></A><A class="pred" href="metacall.html#once/1">once/1</A>, 
+Calls <VAR>Goal</VAR> as <A NAME="idx:once1:507"></A><A class="pred" href="metacall.html#once/1">once/1</A>, 
 but succeeds, regardless of whether
 <VAR>Goal</VAR> succeeded or not. Defined as:
 
@@ -208,7 +208,7 @@ ignore(_).
 +Limit, -Result</VAR>)</A></DT>
 <DD class="defbody">
 If <VAR>Goal</VAR> can be proven without recursion deeper than <VAR>Limit</VAR> 
-levels, <A NAME="idx:callwithdepthlimit3:502"></A><A class="pred" href="metacall.html#call_with_depth_limit/3">call_with_depth_limit/3</A> 
+levels, <A NAME="idx:callwithdepthlimit3:508"></A><A class="pred" href="metacall.html#call_with_depth_limit/3">call_with_depth_limit/3</A> 
 succeeds, binding <VAR>Result</VAR> to the deepest recursion level used 
 during the proof. Otherwise, <VAR>Result</VAR> is unified with <CODE>depth_limit_exceeded</CODE> 
 if the limit was exceeded during the proof, or the entire predicate 
@@ -216,9 +216,9 @@ fails if <VAR>Goal</VAR> fails without exceeding <VAR>Limit</VAR>.
 
 <P>The depth-limit is guarded by the internal machinery. This may differ 
 from the depth computed based on a theoretical model. For example,
-<A NAME="idx:true0:503"></A><A class="pred" href="control.html#true/0">true/0</A> 
+<A NAME="idx:true0:509"></A><A class="pred" href="control.html#true/0">true/0</A> 
 is translated into an inlined virtual machine instruction. Also,
-<A NAME="idx:repeat0:504"></A><A class="pred" href="control.html#repeat/0">repeat/0</A> 
+<A NAME="idx:repeat0:510"></A><A class="pred" href="control.html#repeat/0">repeat/0</A> 
 is not implemented as below, but as a non-deterministic foreign 
 predicate.
 
@@ -228,7 +228,7 @@ repeat :-
         repeat.
 </PRE>
 
-<P>As a result, <A NAME="idx:callwithdepthlimit3:505"></A><A class="pred" href="metacall.html#call_with_depth_limit/3">call_with_depth_limit/3</A> 
+<P>As a result, <A NAME="idx:callwithdepthlimit3:511"></A><A class="pred" href="metacall.html#call_with_depth_limit/3">call_with_depth_limit/3</A> 
 may still loop infinitely on programs that should theoretically finish 
 in finite time. This problem can be cured by using Prolog equivalents to 
 such built-in predicates.
@@ -244,7 +244,7 @@ by deterministic success, failure, its choice-point being cut or raising
 an exception and <VAR>Catcher</VAR> unifies to the termination code (see 
 below), <VAR>Cleanup</VAR> is called. Success or failure of
 <VAR>Cleanup</VAR> is ignored and possible choice-points it created are 
-destroyed (as <A NAME="idx:once1:506"></A><A class="pred" href="metacall.html#once/1">once/1</A>). 
+destroyed (as <A NAME="idx:once1:512"></A><A class="pred" href="metacall.html#once/1">once/1</A>). 
 If cleanup throws an exception this is executed as normal.<SUP class="fn">bug<SPAN class="fn-text">During 
 the execution of <VAR>Cleanup</VAR>, garbage collection and stack-shifts 
 are disabled.</SPAN></SUP>
@@ -291,14 +291,14 @@ term_in_stream(Term, In) :-
 </PRE>
 
 <P>Note that this predicate is impossible to implement in Prolog other 
-then reading all terms into a list, close the file and call <A NAME="idx:member2:507"></A><A class="pred" href="lists.html#member/2">member/2</A> 
-because without <A NAME="idx:callcleanup3:508"></A><A class="pred" href="metacall.html#call_cleanup/3">call_cleanup/3</A> 
+then reading all terms into a list, close the file and call <A NAME="idx:member2:513"></A><A class="pred" href="lists.html#member/2">member/2</A> 
+because without <A NAME="idx:callcleanup3:514"></A><A class="pred" href="metacall.html#call_cleanup/3">call_cleanup/3</A> 
 there is no way to gain control if the choice-point left by repeat is 
 killed by a cut.
 
-<P>The <A NAME="idx:callcleanup2:509"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/2</A> 
+<P>The <A NAME="idx:callcleanup2:515"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/2</A> 
 can also be used to test determinism of a goal, providing a portable 
-alternative to <A NAME="idx:deterministic1:510"></A><A class="pred" href="manipstack.html#deterministic/1">deterministic/1</A>:
+alternative to <A NAME="idx:deterministic1:516"></A><A class="pred" href="manipstack.html#deterministic/1">deterministic/1</A>:
 
 <PRE class="code">
 ?- call_cleanup((X=1;X=2), Det=yes).
@@ -309,7 +309,7 @@ X = 2,
 Det = yes ;
 </PRE>
 
-<P>This predicate is a SWI-Prolog extension. See also <A NAME="idx:callcleanup2:511"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/2</A> 
+<P>This predicate is a SWI-Prolog extension. See also <A NAME="idx:callcleanup2:517"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/2</A> 
 for compatibility to other Prolog implementations.</DD>
 <DT class="pubdef"><A NAME="call_cleanup/2"><STRONG>call_cleanup</STRONG>(<VAR>:Goal, 
 :Cleanup</VAR>)</A></DT>
@@ -323,11 +323,11 @@ a number of other Prolog implementations.</DD>
 <DD class="defbody">
 This predicate is introduced to allow for the proper definition of 
 predicates with temporary side-effects under asynchronous interrupts 
-from <A NAME="idx:callwithtimelimit2:512"></A><SPAN class="pred-ext">call_with_time_limit/2</SPAN> 
-(package clib) or <A NAME="idx:threadsignal2:513"></A><A class="pred" href="threadcom.html#thread_signal/2">thread_signal/2</A>. 
+from <A NAME="idx:callwithtimelimit2:518"></A><SPAN class="pred-ext">call_with_time_limit/2</SPAN> 
+(package clib) or <A NAME="idx:threadsignal2:519"></A><A class="pred" href="threadcom.html#thread_signal/2">thread_signal/2</A>. 
 It behaves as if defined below, but the <VAR>Cleanup</VAR> handler is 
 also called if the interrupt occurs between <VAR>Setup</VAR> and the
-<A NAME="idx:callcleanup2:514"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/2</A> 
+<A NAME="idx:callcleanup2:520"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/2</A> 
 call.
 
 <PRE class="code">

@@ -1,3 +1,13 @@
+[Feb 8 2008]
+
+ * ADDED: Hook to expand HTML head material.
+
+[Feb 7 2008]
+
+ * ADDED: html_receive//2 to allow for post-processing of posted messages
+
+ * MODIFIED: http_post//2 now executes embedded commands delayed.
+
 [Feb 1 2008]
 
  * FIXED: html_write.pl: avoid multiple receivers for xmlns.

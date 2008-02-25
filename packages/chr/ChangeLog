@@ -1,3 +1,27 @@
+[Feb 14 2008]
+
+ * ENHANCED: CHR performance (minor issues)
+
+[Feb 13 2008]
+
+ * FIX: CHR new C file for Windows
+
+ * FIX: CHR: single chr_support.c C file
+
+[Feb 12 2008]
+
+ * ENHANCED: CHR: moved performance critical predicates to C
+
+[Feb 11 2008]
+
+ * ENHANCED: CHR user-provided background knowledge (Jon Sneyers)
+
+[Feb 10 2008]
+
+ * ENHANCED: CHR compiler performance
+
+ * ENHANCED: CHR compiler performance
+
 [Jan 29 2008]
 
  * EHANCED: CHR performance: compacted indexing code

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.50 Reference Manual: Section E.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section E.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="softlicense.html">
@@ -561,6 +561,17 @@ all_different/1, with stronger propagation.</TD></TR>
 <TR><TD><A class="pred" href="clpfd.html#copy_term/3">copy_term/3</A></TD><TD>Creates 
 a regular term Copy as a copy of Term (without any attributes), and a 
 list Gs of goals that when executed reinstate all attributes onto Copy.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#fd_dom/2">fd_dom/2</A></TD><TD>Dom 
+is the current domain (see in/2) of Var.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#fd_inf/2">fd_inf/2</A></TD><TD>Inf 
+is the infimum of the current domain of Var.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#fd_size/2">fd_size/2</A></TD><TD>Size 
+is the number of elements of the current domain of Var, or the atom 
+*sup* if the domain is unbounded.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#fd_sup/2">fd_sup/2</A></TD><TD>Sup 
+is the supremum of the current domain of Var.</TD></TR>
+<TR><TD><A class="pred" href="clpfd.html#fd_var/1">fd_var/1</A></TD><TD>True 
+iff Var is a CLP(FD) variable.</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html#in/2">in/2</A></TD><TD>Constrain 
 Var to elements of Domain.</TD></TR>
 <TR><TD><A class="pred" href="clpbounds.html#indomain/1">indomain/1</A></TD><TD>Bind 

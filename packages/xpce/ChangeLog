@@ -1,3 +1,9 @@
+[Feb 22 2008]
+
+ * FIXED: Avoid unknown class: yes messages if graphical tracer is active.
+
+ * FIXED: Bug#351: Loading XPCE objects containing 24bpp images.  Tom Conlon.
+
 [Jan 26 2008]
 
  * ADDED: Import-except, import under a new name and reexport

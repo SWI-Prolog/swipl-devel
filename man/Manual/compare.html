@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.50 Reference Manual: Section 4.6</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section 4.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="typetest.html">
@@ -128,9 +128,31 @@ font-size: smaller;
 </DIV>
 
 <H2><A NAME="sec:4.6"><SPAN class="sec-nr">4.6</SPAN> <SPAN class="sec-title">Comparison 
-and Unification or Terms</SPAN></A></H2>
+and Unification of Terms</SPAN></A></H2>
 
 <A NAME="sec:compare"></A>
+
+<P>Although unification is mostly done implicitely while matching the 
+head of a predicate, it is also provided by the predicate =/2.
+
+<DL>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="=/2"><VAR>+Term1</VAR> <STRONG>=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Unify <VAR>Term1</VAR> with <VAR>Term2</VAR>. True if the unification 
+succeeds. For behaviour on cyclic terms see the Prolog flag
+<A class="flag" href="flags.html#flag:occurs_check">occurs_check</A>. It 
+acts as if defined by the following rule.
+
+<PRE class="code">
+=(Term, Term).
+</PRE>
+
+</DD>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="\=/2"><VAR>+Term1</VAR> <STRONG>\=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Equivalent to <CODE><CODE>\+</CODE>Term1 = Term2</CODE>. See also <A NAME="idx:dif2:484"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A>.
+</DD>
+</DL>
 
 <H3><A NAME="sec:4.6.1"><SPAN class="sec-nr">4.6.1</SPAN> <SPAN class="sec-title">Standard 
 Order of Terms</SPAN></A></H3>
@@ -165,87 +187,6 @@ is only identical to a sharing variable.</DD>
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="\==/2"><VAR>+Term1</VAR> <STRONG>\==</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 Equivalent to <CODE><CODE>\+</CODE>Term1 == Term2</CODE>.</DD>
-<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="=/2"><VAR>+Term1</VAR> <STRONG>=</STRONG> <VAR>+Term2</VAR></A></DT>
-<DD class="defbody">
-Unify <VAR>Term1</VAR> with <VAR>Term2</VAR>. True if the unification 
-succeeds. For behaviour on cyclic terms see the Prolog flag
-<A class="flag" href="flags.html#flag:occurs_check">occurs_check</A>.</DD>
-<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="unify_with_occurs_check/2"><STRONG>unify_with_occurs_check</STRONG>(<VAR>+Term1, 
-+Term2</VAR>)</A></DT>
-<DD class="defbody">
-As <A class="pred" href="compare.html#=/2">=/2</A>, but using <EM>sound-unification</EM>. 
-That is, a variable only unifies to a term if this term does not contain 
-the variable itself. To illustrate this, consider the two goals below:
-
-<PRE class="code">
-1 ?- A = f(A).
-
-A = f(f(f(f(f(f(f(f(f(f(...))))))))))
-2 ?- unify_with_occurs_check(A, f(A)).
-
-No
-</PRE>
-
-<P><A NAME="idx:occurscheck:484"></A>I.e. the first creates a <EM>cyclic-term</EM>, 
-which is printed as an infinitely nested f/1 term (see the <CODE>max_depth</CODE> 
-option of <A NAME="idx:writeterm2:485"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>). 
-The second executes logically sound unification and thus fails. Note 
-that the behaviour of unification through
-<A class="pred" href="compare.html#=/2">=/2</A> as well as implicit 
-unification in the head can be changed using the Prolog flag <A class="flag" href="flags.html#flag:occurs_check">occurs_check</A>.</DD>
-<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="\=/2"><VAR>+Term1</VAR> <STRONG>\=</STRONG> <VAR>+Term2</VAR></A></DT>
-<DD class="defbody">
-Equivalent to <CODE><CODE>\+</CODE>Term1 = Term2</CODE>.</DD>
-<DT class="pubdef"><A NAME="=@=/2"><VAR>+Term1</VAR> <STRONG>=@=</STRONG> <VAR>+Term2</VAR></A></DT>
-<DD class="defbody">
-True if <VAR>Term1</VAR> is `structurally equal' to <VAR>Term2</VAR>. 
-Structural equivalence is weaker than equivalence (<A class="pred" href="compare.html#==/2">==/2</A>), 
-but stronger than unification (<A class="pred" href="compare.html#=/2">=/2</A>). 
-Two terms are structurally equal if their tree representation is 
-identical and they have the same `pattern' of variables. Examples:
-<BLOCKQUOTE>
-<TABLE BORDER=0 FRAME=void RULES=groups>
-<TR VALIGN=top><TD ALIGN=right><TT>a</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>A</TT></TD><TD ALIGN=center>false </TD></TR>
-<TR VALIGN=top><TD ALIGN=right><TT>A</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>B</TT></TD><TD ALIGN=center>true </TD></TR>
-<TR VALIGN=top><TD ALIGN=right><TT>x(A,A)</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>x(B,C)</TT></TD><TD ALIGN=center>false </TD></TR>
-<TR VALIGN=top><TD ALIGN=right><TT>x(A,A)</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>x(B,B)</TT></TD><TD ALIGN=center>true </TD></TR>
-<TR VALIGN=top><TD ALIGN=right><TT>x(A,B)</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>x(C,D)</TT></TD><TD ALIGN=center>true </TD></TR>
-</TABLE>
-
-</BLOCKQUOTE>
-
-<P>The predicates <A class="pred" href="compare.html#=@=/2">=@=/2</A> 
-and <A class="pred" href="compare.html#\=@=/2">\=@=/2</A> are 
-cycle-safe. Attributed variables are considered structurally equal iff 
-their attributes are structurally equal.</DD>
-<DT class="pubdef"><A NAME="\=@=/2"><VAR>+Term1</VAR> <STRONG>\=@=</STRONG> <VAR>+Term2</VAR></A></DT>
-<DD class="defbody">
-Equivalent to <CODE>`<CODE>\+</CODE>Term1 =@= Term2'</CODE>.</DD>
-<DT class="pubdef"><A NAME="subsumes/2"><STRONG>subsumes</STRONG>(<VAR>Generic, 
-Specific</VAR>)</A></DT>
-<DD class="defbody">
-A term is told to <EM>subsume</EM> another term if instantiation in the 
-generic term produces the specific term. The subsumption relation is 
-also called <EM>one sided unification</EM>. Subsumes is implemented as a 
-variation of unify that allows for bindings in <VAR>Generic</VAR> only 
-and fails if binding in <VAR>Specific</VAR> is required. The behaves as 
-if defined by<SUP class="fn">27<SPAN class="fn-text">This implementation 
-relies on the fact that <A NAME="idx:termvariables2:486"></A><A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A> 
-orders its variables based on depth-first left-to-right traversal of the 
-term.</SPAN></SUP>
-
-<PRE class="code">
-subsumes(General, Specific) :-
-        term_variables(Specific, SVars),
-        General = Specific,
-        term_variables(SVars, SVars).
-</PRE>
-
-</DD>
-<DT class="pubdef"><A NAME="subsumes_chk/2"><STRONG>subsumes_chk</STRONG>(<VAR>Generic, 
-Specific</VAR>)</A></DT>
-<DD class="defbody">
-Equivalent to <CODE>\+ \+ subsumes(Generic, Specific)</CODE>.</DD>
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="@</2"><VAR>+Term1</VAR> <STRONG>@&lt;</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
 True if <VAR>Term1</VAR> is before <VAR>Term2</VAR> in the standard 
@@ -269,14 +210,101 @@ terms.</DD>
 <DD class="defbody">
 Determine or test the <VAR>Order</VAR> between two terms in the standard 
 order of terms. <VAR>Order</VAR> is one of <CODE><CODE>&lt;</CODE></CODE>, <CODE><CODE>&gt;</CODE></CODE> 
-or <CODE><CODE>=</CODE></CODE>, with the obvious meaning.</DD>
-<DT class="pubdef"><A NAME="?=/2"><STRONG>?=</STRONG>(<VAR>@Term1, @Term2</VAR>)</A></DT>
+or <CODE><CODE>=</CODE></CODE>, with the obvious meaning.
+</DD>
+</DL>
+
+<H3><A NAME="sec:4.6.2"><SPAN class="sec-nr">4.6.2</SPAN> <SPAN class="sec-title">Special 
+unification and comparison predicates</SPAN></A></H3>
+
+<A NAME="sec:unifyspecial"></A>
+
+<P>This section describes special purpose variations on Prolog 
+unification. The predicate <A NAME="idx:unifywithoccurscheck2:485"></A><A class="pred" href="compare.html#unify_with_occurs_check/2">unify_with_occurs_check/2</A> 
+provides sound unification and is part of the ISO standard. The 
+predicates <A NAME="idx:subsumes2:486"></A><A class="pred" href="compare.html#subsumes/2">subsumes/2</A> 
+and
+<A NAME="idx:subsumeschk2:487"></A><A class="pred" href="compare.html#subsumes_chk/2">subsumes_chk/2</A> 
+define `one-sided-unification' and are found in many Prolog systems. 
+Finally, <A NAME="idx:unifiable3:488"></A><A class="pred" href="compare.html#unifiable/3">unifiable/3</A> 
+is a `what-if' version of unification that is often qused a building 
+block in constraint reasoners.
+
+<DL>
+<DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="unify_with_occurs_check/2"><STRONG>unify_with_occurs_check</STRONG>(<VAR>+Term1, 
++Term2</VAR>)</A></DT>
 <DD class="defbody">
-Decide whether the equality of <VAR>Term1</VAR> and <VAR>Term2</VAR> can 
-be compared safely, i.e. whether the result of <CODE>Term1 == Term2</CODE> 
-can change due to further instantiation of either term. It is defined as 
-by <CODE>?=(A,B) :- (A==B ; A \= B), !.</CODE> See also
-<A NAME="idx:dif2:487"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A>.</DD>
+As <A class="pred" href="compare.html#=/2">=/2</A>, but using <EM>sound-unification</EM>. 
+That is, a variable only unifies to a term if this term does not contain 
+the variable itself. To illustrate this, consider the two goals below:
+
+<PRE class="code">
+1 ?- A = f(A).
+
+A = f(f(f(f(f(f(f(f(f(f(...))))))))))
+2 ?- unify_with_occurs_check(A, f(A)).
+
+No
+</PRE>
+
+<P><A NAME="idx:occurscheck:489"></A>I.e. the first creates a <EM>cyclic-term</EM>, 
+which is printed as an infinitely nested f/1 term (see the <CODE>max_depth</CODE> 
+option of <A NAME="idx:writeterm2:490"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>). 
+The second executes logically sound unification and thus fails. Note 
+that the behaviour of unification through
+<A class="pred" href="compare.html#=/2">=/2</A> as well as implicit 
+unification in the head can be changed using the Prolog flag <A class="flag" href="flags.html#flag:occurs_check">occurs_check</A>.</DD>
+<DT class="pubdef"><A NAME="=@=/2"><VAR>+Term1</VAR> <STRONG>=@=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+True if <VAR>Term1</VAR> is `structurally equal' to <VAR>Term2</VAR>. 
+Structural equivalence is weaker than equivalence (<A class="pred" href="compare.html#==/2">==/2</A>), 
+but stronger than unification (<A class="pred" href="compare.html#=/2">=/2</A>). 
+Two terms are structurally equal if their tree representation is 
+identical and they have the same `pattern' of variables. Examples:
+<BLOCKQUOTE>
+<TABLE BORDER=0 FRAME=void RULES=groups>
+<TR VALIGN=top><TD ALIGN=right><TT>a</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>A</TT></TD><TD ALIGN=center>false </TD></TR>
+<TR VALIGN=top><TD ALIGN=right><TT>A</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>B</TT></TD><TD ALIGN=center>true </TD></TR>
+<TR VALIGN=top><TD ALIGN=right><TT>x(A,A)</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>x(B,C)</TT></TD><TD ALIGN=center>false </TD></TR>
+<TR VALIGN=top><TD ALIGN=right><TT>x(A,A)</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>x(B,B)</TT></TD><TD ALIGN=center>true </TD></TR>
+<TR VALIGN=top><TD ALIGN=right><TT>x(A,B)</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>x(C,D)</TT></TD><TD ALIGN=center>true </TD></TR>
+</TABLE>
+
+</BLOCKQUOTE>
+
+<P><A NAME="idx:varianttermcomparison:491"></A>The predicates <A class="pred" href="compare.html#=@=/2">=@=/2</A> 
+and <A class="pred" href="compare.html#\=@=/2">\=@=/2</A> are 
+cycle-safe. Attributed variables are considered structurally equal iff 
+their attributes are structurally equal. This predicate is known by the 
+name <SPAN class="pred-ext">variant/2</SPAN> in some other Prolog 
+systems.</DD>
+<DT class="pubdef"><A NAME="\=@=/2"><VAR>+Term1</VAR> <STRONG>\=@=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Equivalent to <CODE>`<CODE>\+</CODE>Term1 =@= Term2'</CODE>.</DD>
+<DT class="pubdef"><A NAME="subsumes/2"><STRONG>subsumes</STRONG>(<VAR>+Generic, @Specific</VAR>)</A></DT>
+<DD class="defbody">
+A term is told to <EM>subsume</EM> another term if instantiation in the 
+generic term produces the specific term. The subsumption relation is 
+also called <EM>one sided unification</EM> or <EM>semi-unification</EM>. 
+Subsumes is implemented as a variation of unify that allows for bindings 
+in <VAR>Generic</VAR> only and fails if binding in <VAR>Specific</VAR> 
+is required. It behaves as if defined by<SUP class="fn">27<SPAN class="fn-text">This 
+implementation relies on the fact that <A NAME="idx:termvariables2:492"></A><A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A> 
+orders its variables based on depth-first left-to-right traversal of the 
+term.</SPAN></SUP>
+
+<PRE class="code">
+subsumes(General, Specific) :-
+        term_variables(Specific, SVars),
+        General = Specific,
+        term_variables(SVars, SVars2),
+        SVars == SVars2.
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="subsumes_chk/2"><STRONG>subsumes_chk</STRONG>(<VAR>+Generic, @Specific</VAR>)</A></DT>
+<DD class="defbody">
+Equivalent to <CODE>\+ \+ subsumes(Generic, Specific)</CODE>.</DD>
 <DT class="pubdef"><A NAME="unifiable/3"><STRONG>unifiable</STRONG>(<VAR>@X, @Y, 
 -Unifier</VAR>)</A></DT>
 <DD class="defbody">
@@ -284,13 +312,20 @@ If <VAR>X</VAR> and <VAR>Y</VAR> can unify, unify <VAR>Unifier</VAR>
 with a list of
 <VAR>Var</VAR> = <VAR>Value</VAR>, representing the bindings required to 
 make <VAR>X</VAR> and <VAR>Y</VAR> equivalent.<SUP class="fn">28<SPAN class="fn-text">This 
-predicate was introduced for the implementation of <A NAME="idx:dif2:488"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
-and <A NAME="idx:when2:489"></A><A class="pred" href="coroutining.html#when/2">when/2</A> 
+predicate was introduced for the implementation of <A NAME="idx:dif2:493"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A> 
+and <A NAME="idx:when2:494"></A><A class="pred" href="coroutining.html#when/2">when/2</A> 
 after discussion with Tom Schrijvers and Bart Demoen. None of us is 
 really happy with the name and therefore suggestions for a new name are 
 welcome.</SPAN></SUP> This predicate can handle cyclic terms. Attributed 
 variables are handles as normal variables. Associated hooks are <EM>not</EM> 
-executed.
+executed.</DD>
+<DT class="pubdef"><A NAME="?=/2"><STRONG>?=</STRONG>(<VAR>@Term1, @Term2</VAR>)</A></DT>
+<DD class="defbody">
+Decide whether the equality of <VAR>Term1</VAR> and <VAR>Term2</VAR> can 
+be compared safely, i.e. whether the result of <CODE>Term1 == Term2</CODE> 
+can change due to further instantiation of either term. It is defined as 
+by <CODE>?=(A,B) :- (A==B ; A \= B), !.</CODE> See also
+<A NAME="idx:dif2:495"></A><A class="pred" href="coroutining.html#dif/2">dif/2</A>.
 </DD>
 </DL>
 

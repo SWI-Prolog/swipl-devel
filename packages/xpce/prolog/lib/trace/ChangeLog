@@ -1,3 +1,7 @@
+[Feb 22 2008]
+
+ * FIXED: Avoid unknown class: yes messages if graphical tracer is active.
+
 		      SWI-Prolog GUI tracer ChangeLog
 
 This ChangeLog logs changes to the debugger   as  well as changes to the

@@ -1,3 +1,13 @@
+[Feb 18 2008]
+
+ * FIXED: More fixes for proper handling of rdf:Bag
+
+[Feb 13 2008]
+
+ * FIXED: Emit rdf:Bag attributes (etc.) as rdf:li
+
+ * FIXED: possible failure in rdf_write_xml with http://t-d-b.org?
+
 [Jan 14 2008]
 
  * FIXED: Bug#343: Handling bnodes in rdf_write_xml.  Yver Raimond.

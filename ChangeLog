@@ -9,6 +9,68 @@
 
 
 ================================
+VERSION 5.6.51 February 25, 2008
+================================
+
+ * FIXED: Recent handling of modification time of included files if the included
+   file was modified more recently then the main file.  Matt Lilley
+   
+ * ENHANCED: compare/3 errors ISO draft 8.4.2.3
+
+ * FIXED: Errornous discontiguous warning when loading QLF file that uses
+   library(apply_macros).  Matt Lilley
+   
+ * ENHANCED: CLP(FD): recognise more linear equalities
+
+ * FIXED: Saved state complains about $included if library(make) is loaded.
+   Matt Lilley.
+   
+ * FIXED: aggregate(min(V,Witness), Goal, X) produced maximum rather then
+   minimum.  Minor fixes to the documentation.  Mike Elston.
+   
+ * MODIFIED: <SPACE> in the toplevel is now retry rather than stop.  Also added
+   <TAB> to do retry.  Ulrich Neumerkel.
+   
+ * ENHANCED: errors in sorting Item#319
+
+ * ENHANCED: CLP(FD): faster linear equalities with constant right-hand side
+
+ * MODIFIED: First proposal to end the "[SWIPL] More? Yes!" debate
+
+ * FIX: CHR new C file for Windows
+
+ * ADDED: several reflection predicates in library(clpfd)
+
+ * ENHANCED: New, more time and space efficient version of (a)cyclic_term/1,
+   contributed by Ulrich Neumerkel.
+   
+ * FIXED: Remove some XPCE operator dependencies from prolog_xref.pl and
+   doc_htmlsrc.pl.  John Ohno.
+   
+ * FIXED: must_be/2: type errors instead of instantiation errors Item#233
+
+ * ENHANCED: error for [_] Item#253
+
+ * FIXED: Possible atom identity problem with qcompile/1.  Holger Kanwischer.
+   It was possible that atom-gc during qcompile causes atoms in the Qlf file
+   to re-appear as atoms that have been garbage collected earlier in the
+   process.  This risc could only happen if the qcompiled source contains
+   directives with atoms that can be subject to atom-gc, which is the likely
+   explanation that this old bug shows up so late.
+   
+   To solve this, use "?- set_prolog_flag(agc_margin, 0)" or upgrade to the
+   latest development source.
+   
+ * CLEANUP: Replaced some warnings by exceptions
+
+ * FIXED: Remainder to provide integer result in accordance with the ISO standard.
+   Yoshihiko Fukui.
+   
+ * ENHANCED: Make/0 tracks files loaded through :- include(File).  Alan Baljeu.
+
+ * PORT: Make --diable-readline work on MacOS
+
+================================
 VERSION 5.6.50 February 01, 2008
 ================================
 
