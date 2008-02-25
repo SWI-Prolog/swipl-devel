@@ -10253,8 +10253,11 @@ flattening_dictionary([CS|CSs],Dictionary) :-
 
 flattening_dictionary_entry(CS,Entry) :-
 	get_constraint_arg_type(CS,Pos,Type),
-	Type = chr_constants(Key), !,
-	get_chr_constants(Key,Constants),
+	( Type = chr_constants(Key) ->
+		get_chr_constants(Key,Constants)
+	; Type = chr_enum(Constants) ->
+		true
+	),
 	Entry = CS-Pos-Specs,
 	maplist(flat_spec(CS,Pos),Constants,Specs).
 
