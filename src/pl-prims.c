@@ -2013,7 +2013,7 @@ start:
       }
     }
 
-    if ( visited(f PASS_LD) )
+    if ( !options->singletons && visited(f PASS_LD) )
       return n;
 
     arity = arityFunctor(f->definition);
@@ -2108,6 +2108,11 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
     opts.on_attvar = AV_BIND;
   else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_numbervar_option, options);
+
+  if ( opts.singletons )		/* Hack */
+  { if ( !is_acyclic(valTermRef(A1) PASS_LD) )
+      opts.singletons = FALSE;
+  }
 
   opts.functor = PL_new_functor(name, 1);
   n = numberVars(t, &opts, n PASS_LD);

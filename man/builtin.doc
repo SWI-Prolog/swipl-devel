@@ -3576,7 +3576,8 @@ If \const{true} (default \const{false}), numbervars/4 does singleton
 detection.  Singleton variables are unified with \verb|'$VAR'('_')|,
 causing them to be printed as \verb|_| by write_term/2 using the
 numbervars option.  This option is exploited by portray_clause/2
-and write_canonical/2.
+and write_canonical/2.%
+	\bug{Currently this option is ignored for cyclic terms.}
     \end{description}
 
     \predicate{term_variables}{2}{+Term, -List}

@@ -54,6 +54,7 @@ test(shared_s, End == 1) :-
 test(cyclic, [sto(rational_trees), End == 1]) :-
 	X = d(X, _),
 	numbervars(X, 0, End, []).
+% currently singletons(true) is ignored for cyclic terms
 test(cyclic_s, [sto(rational_trees), End == 1]) :-
 	X = d(X, _),
 	numbervars(X, 0, End, [singletons(true)]).
