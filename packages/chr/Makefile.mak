@@ -29,10 +29,10 @@ EXAMPLES=	chrfreeze.chr fib.chr gcd.chr primes.chr \
 		chrdif.chr
 
 
+all:		chr_translate.pl chr_support.dll
+
 chr_support.dll:	chr_support.obj
 		$(LD) /dll /out:$@ $(LDFLAGS) chr_support.obj $(PLLIB)
-
-all:		chr_translate.pl chr_support.dll
 
 chr_translate_bootstrap1.pl: chr_translate_bootstrap1.chr 
 		$(PL) -q -f chr_swi_bootstrap.pl \
