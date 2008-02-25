@@ -1600,9 +1600,9 @@ compile_aux_clauses(Clauses) :-
 		 *******************************/
 
 :- multifile
-	'$included'/2.
+	'$included'/3.			% Into, File, LastModified
 :- dynamic
-	'$included'/2.
+	'$included'/3.
 
 '$expand_include'(File, FileInto) :-
 	absolute_file_name(File,
@@ -1611,11 +1611,12 @@ compile_aux_clauses(Clauses) :-
 			   ], Path),
 	'$push_input_context',
 	open(Path, read, In),
+	time_file(Path, Time),
 	'$read_clause'(In, Term0),
 	'$read_include_file'(Term0, In, Terms),
 	close(In),
 	'$pop_input_context',
-	'$store_clause'(system:'$included'(FileInto, Path), FileInto),
+	'$store_clause'(system:'$included'(FileInto, Path, Time), FileInto),
 	'$consult_clauses'(Terms, FileInto).
 
 '$read_include_file'(end_of_file, _, []) :- !.
