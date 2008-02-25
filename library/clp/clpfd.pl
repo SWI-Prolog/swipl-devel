@@ -1286,12 +1286,12 @@ scalar_supported(#\=).
 sum(Ls, Op, Value) :-
         must_be(list, Ls),
         maplist(fd_variable, Ls),
+        must_be(callable, Op),
         (   scalar_supported(Op),
             vars_plusterm(Ls, 0, Left),
             left_right_linsum_const(Left, Value, Cs, Vs, Const) ->
             scalar_product(Cs, Vs, Op, Const)
-        ;   must_be(callable, Op),
-            sum(Ls, 0, Op, Value)
+        ;   sum(Ls, 0, Op, Value)
         ).
 
 vars_plusterm([], T, T).
