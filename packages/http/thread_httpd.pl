@@ -128,8 +128,7 @@ create_server(Goal, Port, Options) :-
 	memberchk(queue(Queue), Options),
 	atom_concat('http@', Port, Alias),
 	thread_create(accept_server(Goal, Options), _,
-		      [ detached(true),
-			local(128),
+		      [ local(128),
 			global(128),
 			trail(128),
 			alias(Alias)
@@ -213,10 +212,11 @@ http_stop_server(Port, _Options) :-
 	must_be(integer, Port),
 	http_workers(Port, 0),
 	current_server(Port, _, Thread, Queue),
-	message_queue_destroy(Queue),
 	retractall(queue_options(Queue, _)),
 	thread_signal(Thread, throw(http_stop)),
-	catch(connect(localhost:Port), _, true).
+	catch(connect(localhost:Port), _, true),
+	thread_join(Thread, _),
+	message_queue_destroy(Queue).
 
 connect(Address) :-
         tcp_socket(Socket),
