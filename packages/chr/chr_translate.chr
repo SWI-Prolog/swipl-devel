@@ -4296,10 +4296,14 @@ enumerate_store_body(global_singleton,C,Susp,Body) :-
 		Susp \== []
 	).
 enumerate_store_body(multi_store(STs),C,Susp,Body) :-
-	once((
-		member(ST,STs),
-		enumerate_store_body(ST,C,Susp,Body)
-	)).
+	( memberchk(global_ground,STs) ->
+		enumerate_store_body(global_ground,C,Susp,Body)
+	;
+		once((
+			member(ST,STs),
+			enumerate_store_body(ST,C,Susp,Body)
+		))
+	).
 enumerate_store_body(identifier_store(Index),C,Susp,Body) :-
 	Body = fail.
 enumerate_store_body(type_indexed_identifier_store(Index,IndexType),C,Susp,Body) :-
