@@ -163,8 +163,8 @@ open_object(_Emacs, Object:prolog, _NewWindow:new_window=[bool]) :->
 	edit(Object).
 
 show_bookmarks(_) :->
-	"Show PceEmacs bookmarks"::
-	send(@emacs_mark_list, open).
+	"Show PceEmacs bookmarks window"::
+	send(@emacs_mark_list, expose).
 
 
 		 /*******************************
