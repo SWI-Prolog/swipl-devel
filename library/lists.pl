@@ -280,20 +280,23 @@ min_list([H|T], Min0, Min) :-
 	min_list(T, Min1, Min).
 
 
-%%	numlist(+Low, +High, -List) is det.
+%%	numlist(+Low, +High, -List) is semidet.
 %	
-%	List is a list [Low, Low+1, ... High]
+%	List is a list [Low, Low+1, ... High].  Fails if High < Low.
+%	
+%	@error type_error(integer, Low)
+%	@error type_error(integer, High)
 
 numlist(L, U, Ns) :-
-    integer(L), integer(U), L =< U,
-    numlist_(L, U, Ns).
+	must_be(integer, L),
+	must_be(integer, U),
+	L =< U,
+	numlist_(L, U, Ns).
 
+numlist_(U, U, [U]) :- !.
 numlist_(L, U, [L|Ns]) :-
-    (   L =:= U
-    ->  Ns = []
-    ;   M is L + 1,
-	numlist_(M, U, Ns)
-    ).
+	succ(L, L2),
+	numlist_(L2, U, Ns).
 
 
 		/********************************
