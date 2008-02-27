@@ -3509,8 +3509,9 @@ module_initializers(G), module_initializer(Initializer) <=>
 module_initializers(G) <=>
 	G = true.
 
-generate_attach_code(Constraints,[Enumerate|L]) :-
+generate_attach_code(Constraints,Clauses) :-
 	enumerate_stores_code(Constraints,Enumerate),
+	append(Enumerate,L,Clauses),
 	generate_attach_code(Constraints,L,T),
 	module_initializers(Initializers),
 	prolog_global_variables_code(PrologGlobalVariables),
@@ -4207,11 +4208,20 @@ get_update_static_suspension_field(Constraint,Susp,SuspTerm,FieldName,Value,NewV
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-enumerate_stores_code(Constraints,Clause) :-
+enumerate_stores_code(Constraints,[Clause|List]) :-
 	Head = '$enumerate_constraints'(Constraint),
-	enumerate_store_bodies(Constraints,Constraint,Bodies),
-	list2disj(Bodies,Body),
-	Clause = (Head :- Body).	
+	Clause = ( Head :- Body),
+	enumerate_store_bodies(Constraints,Constraint,List),
+	( List = [] ->
+		Body = fail
+	;
+		Body = ( nonvar(Constraint) ->
+				functor(Constraint,Functor,_),
+				'$enumerate_constraints'(Functor,Constraint)
+		       ; 
+				'$enumerate_constraints'(_,Constraint)
+		       )
+	).
 
 enumerate_store_bodies([],_,[]).
 enumerate_store_bodies([C|Cs],Constraint,L) :-
@@ -4225,8 +4235,9 @@ enumerate_store_bodies([C|Cs],Constraint,L) :-
 		get_dynamic_suspension_term_field(arguments,C,Suspension,Arguments,DynamicGoal),
 		C = F/_,
 		Constraint0 =.. [F|Arguments],
+		Head = '$enumerate_constraints'(F,Constraint),
 		Body = (SuspensionBody, DynamicGoal, Constraint = Constraint0),
-		L = [Body|T]
+		L = [(Head :- Body)|T]
 	;
 		L = T
 	),
