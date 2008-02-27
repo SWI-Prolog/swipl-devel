@@ -842,6 +842,13 @@ process_new(Term, Origin, Src) :-
 	;   true
 	).
 
+assert_new(_, _, Term) :-
+	\+ callable(Term), !.
+assert_new(Src, Origin, Control) :-
+	functor(Control, Class, _),
+	pce_control_class(Class), !,
+	forall(arg(_, Control, Arg),
+	       assert_new(Src, Origin, Arg)).
 assert_new(Src, Origin, Term) :-
 	compound(Term),
 	arg(1, Term, Prolog),
@@ -859,9 +866,14 @@ assert_new(Src, Origin, Term) :-
 	fail.
 assert_new(_, _, @(_)) :- !.
 assert_new(Src, _, Term) :-
-	callable(Term),
 	functor(Term, Name, _),
 	assert_used_class(Src, Name).
+
+
+pce_control_class(and).
+pce_control_class(or).
+pce_control_class(if).
+pce_control_class(not).
 
 
 		/********************************
