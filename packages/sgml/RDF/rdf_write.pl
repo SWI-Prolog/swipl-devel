@@ -189,6 +189,8 @@ decl_predicate_ns(Pred) :-
 	rdf_global_id(NS:_Local, Pred),
 	assert(predicate_ns(Pred, NS)), !.
 decl_predicate_ns(Pred) :-
+	is_bag_li_predicate(Pred), !.
+decl_predicate_ns(Pred) :-
 	atom_codes(Pred, Codes),
 	append(NSCodes, LocalCodes, Codes),
 	xml_codes(LocalCodes), !,
@@ -196,8 +198,7 @@ decl_predicate_ns(Pred) :-
 	->  atom_codes(NS, NSCodes),
 	    (   between(1, infinite, N),
 		atom_concat(ns, N, Id),
-		\+ ns(Id, _),
-		\+ is_bag_li_predicate(Pred)
+		\+ ns(Id, _)
 	    ->  rdf_register_ns(Id, NS),
 		print_message(informational,
 			      rdf(using_namespace(Id, NS)))
