@@ -1515,6 +1515,10 @@ if test -s conftest; then
 	    fi
 	    AC_DEFINE(MMAP_STACK, 1,
 		      [Define if mmap() can be used to allocate stacks])
+	    if test "$MMAP_OVERRIDES" = "1"; then
+		 AC_DEFINE(MMAP_OVERRIDES, 1,
+			  [Define if mmap() can override an existing map])
+	    fi
 	    if test "$mmap_tried" = "sgi"; then
 	      AC_DEFINE(SGIMMAP, 1,
 			[Define if SGI-style mmap() is provided: MAP_AUTOGROW|MAP_AUTORESRV])

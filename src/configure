@@ -16198,6 +16198,13 @@ cat >>confdefs.h <<\_ACEOF
 #define MMAP_STACK 1
 _ACEOF
 
+	    if test "$MMAP_OVERRIDES" = "1"; then
+
+cat >>confdefs.h <<\_ACEOF
+#define MMAP_OVERRIDES 1
+_ACEOF
+
+	    fi
 	    if test "$mmap_tried" = "sgi"; then
 
 cat >>confdefs.h <<\_ACEOF

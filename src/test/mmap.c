@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -78,6 +78,7 @@ void *  wraddr;				/* current address */
 int	provides_address = 1;		/* assume */
 char *  top;				/* currently assigned top */
 int	faults;				/* # faults detected */
+int	mmap_overrides = TRUE;		/* we can map over an existing map */
 
 #define ulong unsigned long		/* avoid redefinition */
 
@@ -318,6 +319,8 @@ ok()
 #endif
   if ( mapfd == -1 )
     printf("HAVE_MAP_ANON=1;\n");
+  if ( mmap_overrides )
+    printf("MMAP_OVERRIDES=1;\n");
 
   exit(0);
 }
@@ -374,14 +377,20 @@ main(int argc, char **argv)
 #ifdef VERBOSE
   printf("Truncating area to %ld ...\n", truncto);
 #endif
-  if ( munmap(base+truncto, size-truncto) < 0 )
-  { perror("munmap()");
-    exit(1);
-  }
   if ( mmap(base+truncto, size-truncto,
 	    PROT_NONE, MAP_FLAGS|MAP_FIXED, mapfd, 0L) != base+truncto )
-  { perror("remap()");
-    exit(1);
+  { mmap_overrides = FALSE;
+
+    if ( munmap(base+truncto, size-truncto) < 0 )
+    { perror("munmap()");
+      exit(1);
+    }
+
+    if ( mmap(base+truncto, size-truncto,
+	      PROT_NONE, MAP_FLAGS|MAP_FIXED, mapfd, 0L) != base+truncto )
+    { perror("remap()");
+      exit(1);
+    }
   }
 #ifdef VERBOSE
   printf("Testing again ...\n");

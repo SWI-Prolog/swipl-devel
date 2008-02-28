@@ -1186,7 +1186,9 @@ unmap(Stack s)
   { intptr_t len = (char *)s->max - (char *)addr;
 
 #ifdef MAP_FIXED
+#ifndef MMAP_OVERRIDES
     munmap(addr, len);
+#endif
     if ( mmap(addr, len, MAPPROTECT, MAP_FIXED|MAP_FLAGS, mapfd, 0L) != addr )
       fatalError("Failed to remap 0x%x bytes at %p: %s",
 		 len, addr, OsError());
