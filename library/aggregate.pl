@@ -542,3 +542,30 @@ list_is_free_of([], _).
 
 %term_variables(Term, Vars0, Vars) :-
 %	term_variables(Term+Vars0, Vars).
+
+		 /*******************************
+		 *	     EXPANSION		*
+		 *******************************/
+
+:- multifile
+	user:goal_expansion/2.
+:- dynamic
+	user:goal_expansion/2.
+
+user:goal_expansion(aggregate(Templ, Goal0, Result),
+		    aggregate(Templ, Goal, Result)) :-
+	expand_goal(Goal0, Goal).
+user:goal_expansion(aggregate(Templ, Discrim, Goal0, Result),
+		    aggregate(Templ, Discrim, Goal, Result)) :-
+	expand_goal(Goal0, Goal).
+user:goal_expansion(aggregate_all(Templ, Goal0, Result),
+		    aggregate_all(Templ, Goal, Result)) :-
+	expand_goal(Goal0, Goal).
+user:goal_expansion(aggregate_all(Templ, Discrim, Goal0, Result),
+		    aggregate_all(Templ, Discrim, Goal, Result)) :-
+	expand_goal(Goal0, Goal).
+user:goal_expansion(foreach(Generator0, Goal0),
+		    foreach(Generator,  Goal)) :-
+	expand_goal(Generator0, Generator),
+	expand_goal(Goal0, Goal).
+
