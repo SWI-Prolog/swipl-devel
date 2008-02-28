@@ -2214,7 +2214,9 @@ pl_tab2(term_t out, term_t spaces)
   if ( rval )
     return streamStatus(s);
 
+#ifdef O_GMP
 error:
+#endif
   (void)streamStatus(s);
   fail;
 }
