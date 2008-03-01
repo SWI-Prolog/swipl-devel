@@ -782,6 +782,12 @@ PL_handle_signals()
 
   if ( exception_term )
     return -1;
+
+  if ( gc_status.requested )
+  { DEBUG(1, Sprintf("GC from PL_handle_signals()\n"));
+    garbageCollect(NULL, NULL);
+  }
+
   return done;
 }
 

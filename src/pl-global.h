@@ -492,6 +492,7 @@ typedef struct PL_local_data
     Word *_mark_top;			/* Top of this array */
     Table _check_table;			/* relocation address table */
 #endif
+    int64_t inferences;			/* #inferences at last GC */
 
     pl_gc_status_t	status;		/* Garbage collection status */
 #ifdef O_CALL_RESIDUE

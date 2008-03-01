@@ -1807,13 +1807,29 @@ collect_phase(LocalFrame fr, Choice ch, Word *saved_bar_at)
 		*********************************/
 
 #if O_DYNAMIC_STACKS
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) Do not  consider  GC  if  there   are  no  inferences.  This  avoids
+repetetive GC calls while building large   structures  from foreign code
+that calls PL_handle_signals() from time to   time  to enable interrupts
+and call GC.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 considerGarbageCollect(Stack s)
 { GET_LD
-  if ( s->gc && trueFeature(GC_FEATURE) && !gc_status.requested )
+
+  if ( s->gc &&
+       trueFeature(GC_FEATURE) &&
+       !gc_status.requested )
   { intptr_t used  = (char *)s->top   - (char *)s->base;
     intptr_t free  = (char *)s->limit - (char *)s->top;
     intptr_t limit = (char *)s->limit - (char *)s->base;
+
+    if ( LD->gc.inferences == LD->statistics.inferences )
+    { s->gced_size = used;		/* (*) */
+      return;
+    }
 
     if ( used > s->factor*s->gced_size + s->small )
     { DEBUG(2, Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
@@ -2240,6 +2256,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 
   unblockGC(PASS_LD1);
   unblockSignals(&mask);
+  LD->gc.inferences = LD->statistics.inferences;
   leaveGC();
 }
 

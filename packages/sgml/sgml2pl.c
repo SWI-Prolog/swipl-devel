@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -1557,6 +1557,8 @@ pl_sgml_parse(term_t parser, term_t options)
   int recursive;
   int has_content_length = FALSE;
   long content_length = 0;		/* content_length(Len) */
+  int count = 0;
+  int rc = TRUE;
 
   if ( !get_parser(parser, &p) )
     return FALSE;
@@ -1678,10 +1680,13 @@ pl_sgml_parse(term_t parser, term_t options)
 					/* Parsing input from a stream */
 #define CHECKERROR \
     { if ( pd->exception ) \
-      { return FALSE; \
+      { rc = FALSE; \
+	goto out; \
       } \
       if ( pd->errors > pd->max_errors && pd->max_errors >= 0 ) \
-	return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors); \
+      { rc = sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors); \
+	goto out; \
+      } \
     }
 
   if ( pd->stopat == SA_CONTENT && p->empty_element )
@@ -1702,6 +1707,11 @@ pl_sgml_parse(term_t parser, term_t options)
 
     while(!eof)
     { int c, ateof;
+
+      if ( (++count % 8192) == 0 && PL_handle_signals() < 0 )
+      { rc = FALSE;
+	goto out;
+      }
 
       if ( has_content_length )
       { if ( content_length <= 0 )
@@ -1756,7 +1766,7 @@ pl_sgml_parse(term_t parser, term_t options)
     pd->magic = 0;			/* invalidate */
     sgml_free(pd);
 
-    return TRUE;
+    return rc;
   }
 
   reset_url_cache();
