@@ -4295,6 +4295,7 @@ pl_copy_stream_data3(term_t in, term_t out, term_t len)
 { GET_LD
   IOSTREAM *i, *o;
   int c;
+  int count = 0;
 
   if ( !getInputStream(in, &i) )
     return FALSE;
@@ -4305,7 +4306,12 @@ pl_copy_stream_data3(term_t in, term_t out, term_t len)
 
   if ( !len )
   { while ( (c = Sgetcode(i)) != EOF )
-    { if ( Sputcode(c, o) < 0 )
+    { if ( (++count % 4096) == 0 && PL_handle_signals() < 0 )
+      { releaseStream(i);
+	releaseStream(o);
+	fail;
+      }
+      if ( Sputcode(c, o) < 0 )
       { releaseStream(i);
 	return streamStatus(o);
       }
@@ -4317,7 +4323,12 @@ pl_copy_stream_data3(term_t in, term_t out, term_t len)
       fail;
     
     while ( n-- > 0 && (c = Sgetcode(i)) != EOF )
-    { if ( Sputcode(c, o) < 0 )
+    { if ( (++count % 4096) == 0 && PL_handle_signals() < 0 )
+      { releaseStream(i);
+	releaseStream(o);
+	fail;
+      }
+      if ( Sputcode(c, o) < 0 )
       { releaseStream(i);
 	return streamStatus(o);
       }
