@@ -1817,7 +1817,7 @@ typedef struct
 } sig_handler, *SigHandler;
 #endif /* HAVE_SIGNAL */
 
-#define SIG_EXCEPTION	   9		/* cannot be catched anyway */
+#define SIG_EXCEPTION	   9		/* cannot be caught anyway */
 #define SIG_ATOM_GC	  30		/* `safe' and reserved signals */
 #define SIG_THREAD_SIGNAL 31
 
