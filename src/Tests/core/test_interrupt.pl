@@ -65,7 +65,8 @@ test_interrupt(Goal) :-
 		fail
 	    ;	true
 	    )
-	->  (   Status == exception(stop)
+	->  thread_join(Id, _),
+	    (   Status == exception(stop)
 	    ->	true
 	    ;	throw(error(unexpected_status(Status), _))
 	    )
