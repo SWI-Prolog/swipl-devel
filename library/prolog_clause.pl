@@ -105,7 +105,10 @@ unify_term(_:X, Y) :-
 unify_term(X, _:Y) :-
 	unify_term(X, Y), !.
 unify_term(X, Y) :-
-	format('[INTERNAL ERROR: Diff: ~q <-> ~q]~n', [X, Y]),
+	format('[INTERNAL ERROR: Diff:~n'),
+	portray_clause(X),
+	format('~N*** <->~n'),
+	portray_clause(Y),
 	break.
 
 unify_args(N, N, _, _) :- !.
