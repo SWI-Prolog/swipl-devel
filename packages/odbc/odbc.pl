@@ -121,25 +121,30 @@ table_facet(arity(Arity), Connection, Tuple) :-
 	findall(C, odbc_table_column(Connection, Table, C), Cs),
 	length(Cs, Arity).
 
-%	odbc_table_column(+Connection, +Table, -Column)
+%%	odbc_table_column(+Connection, +Table, +Column) is semidet.
+%%	odbc_table_column(+Connection, +Table, -Column) is nondet.
+%
+%	True if Column appears in Table on Connection.
 
 odbc_table_column(Connection, Table, Column) :-
+	table_column(Connection, Table, Column, _Tuple).
+
+table_column(Connection, Table, Column, Tuple) :-
 	(   var(Table)
 	->  odbc_current_table(Connection, Table)
 	;   true
 	),
-	odbc_column(Connection, Table, Tuple),
-	arg(4, Tuple, Column).
+	(   ground(Column)		% force determinism
+	->  odbc_column(Connection, Table, Tuple),
+	    arg(4, Tuple, Column), !
+	;   odbc_column(Connection, Table, Tuple),
+	    arg(4, Tuple, Column)
+	).
 
-%	odbc_table_column(+Connection, +Table, -Column, -Facet)
+%	odbc_table_column(+Connection, +Table, ?Column, -Facet)
 
 odbc_table_column(Connection, Table, Column, Facet) :-
-	(   var(Table)
-	->  odbc_current_table(Connection, Table)
-	;   true
-	),
-	odbc_column(Connection, Table, Tuple),
-	arg(4, Tuple, Column),
+	table_column(Connection, Table, Column, Tuple),
 	column_facet(Facet, Tuple).
 
 column_facet(table_qualifier(Q), T) :- arg(1, T, Q).
