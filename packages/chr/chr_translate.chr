@@ -10500,19 +10500,27 @@ specialize_types(Types,I,SpecializedTypes) :-
 %
 % dispatching_rules(+dict,-newrules)
 
+
 % {{{
+
+% This code generates a decision tree for calling the appropriate specialized
+% constraint based on the particular value of the argument the constraint
+% is being specialized on.
+%
+% In case an error handler is provided, the handler is called with the 
+% unexpected constraint.
+
 dispatching_rules([],[]).
 dispatching_rules([CN-I-SFs-MaybeErrorHandler|Dict], DispatchingRules) :-
 	constraint_dispatching_rule(SFs,CN,I,MaybeErrorHandler,DispatchingRules,RestDispatchingRules),
 	dispatching_rules(Dict,RestDispatchingRules).
       
-constraint_dispatching_rule(SFs,CN,I,MaybeErrorHandler,Rules,RestRules) :-
+constraint_dispatching_rule(SFs,C/N,I,MaybeErrorHandler,Rules,RestRules) :-
  	( I == 1 ->
 		/* index on first argument */
 		Rules0 = Rules,
- 		NCN = CN
+ 		NCN = C/N
  	;
-		CN = C/N,
 		/* reorder arguments for 1st argument indexing */
 		functor(Head,C,N),
 		Head =.. [_|Args],
@@ -10523,25 +10531,26 @@ constraint_dispatching_rule(SFs,CN,I,MaybeErrorHandler,Rules,RestRules) :-
 		[(Head :- Body)|Rules0] = Rules,
  		NCN = NC / N
  	),
-	dispatching_rule_term_cases(SFs,NCN,MaybeErrorHandler,Rules0,RestRules).	
+	Context = swap(C,I),
+	dispatching_rule_term_cases(SFs,NCN,MaybeErrorHandler,Context,Rules0,RestRules).	
 
-dispatching_rule_term_cases(SFs,NC/N,MaybeErrorHandler,Rules,RestRules) :-
+dispatching_rule_term_cases(SFs,NC/N,MaybeErrorHandler,Context,Rules,RestRules) :-
 	once(pairup(Terms,Functors,SFs)),
 	length(Terms,K),
 	replicate(K,[],MorePatterns),
 	Payload is N - 1,
 	maplist(wrap_in_functor(dispatching_action),Functors,Actions),
-	dispatch_trie_index([Terms|MorePatterns],Payload,MaybeErrorHandler,Actions,NC,Rules,RestRules).
+	dispatch_trie_index([Terms|MorePatterns],Payload,MaybeErrorHandler,Context,Actions,NC,Rules,RestRules).
 
 dispatching_action(Functor,PayloadArgs,Goal) :-
 	Goal =.. [Functor|PayloadArgs].
 
-dispatch_trie_index([Patterns|MorePatterns],Payload,MaybeErrorHandler,Actions,Prefix,Clauses,Tail) :-
-	dispatch_trie_step(Patterns,Prefix,Prefix,MorePatterns,Payload,MaybeErrorHandler,Actions,Clauses,Tail).
+dispatch_trie_index([Patterns|MorePatterns],Payload,MaybeErrorHandler,Context,Actions,Prefix,Clauses,Tail) :-
+	dispatch_trie_step(Patterns,Prefix,Prefix,MorePatterns,Payload,MaybeErrorHandler,Context,Actions,Clauses,Tail).
 
-dispatch_trie_step([],_,_,_,[],_,[],L,L) :- !.
+dispatch_trie_step([],_,_,_,[],_,_,[],L,L) :- !.
 	% length MorePatterns == length Patterns == length Results
-dispatch_trie_step(Patterns,Symbol,Prefix,MorePatterns,Payload,MaybeErrorHandler,Actions,Clauses,T) :-
+dispatch_trie_step(Patterns,Symbol,Prefix,MorePatterns,Payload,MaybeErrorHandler,Context,Actions,Clauses,T) :-
 	MorePatterns = [List|_],
 	length(List,N),	
 	aggregate_all(set(F/A),
@@ -10550,23 +10559,24 @@ dispatch_trie_step(Patterns,Symbol,Prefix,MorePatterns,Payload,MaybeErrorHandler
 		),
 		FAs),
 	N1 is N + 1,
-	dispatch_trie_step_cases(FAs,N1,Patterns,MorePatterns,Payload,MaybeErrorHandler,Actions,Symbol,Prefix,Clauses,T).
+	dispatch_trie_step_cases(FAs,N1,Patterns,MorePatterns,Payload,MaybeErrorHandler,Context,Actions,Symbol,Prefix,Clauses,T).
 
-dispatch_trie_step_cases([],N,_,_,Payload,MaybeErrorHandler,_,Symbol,_,Clauses0,Clauses) :-
+dispatch_trie_step_cases([],N,_,_,Payload,MaybeErrorHandler,Context,_,Symbol,_,Clauses0,Clauses) :-
 	( MaybeErrorHandler = yes(ErrorHandler) ->
 		Clauses0 = [ErrorClause|Clauses],
 		ErrorClause = (Head :- Body),
 		Arity is N + Payload,
 		functor(Head,Symbol,Arity),
-		Body =.. [ErrorHandler,dummy]
+		reconstruct_original_term(Context,Head,Term),
+		Body =.. [ErrorHandler,Term]
 	;
 		Clauses0 = Clauses
 	).
-dispatch_trie_step_cases([FA|FAs],N,Pattern,MorePatterns,Payload,MaybeErrorHandler,Actions,Symbol,Prefix,Clauses,Tail) :-
-	dispatch_trie_step_case(FA,N,Pattern,MorePatterns,Payload,MaybeErrorHandler,Actions,Symbol,Prefix,Clauses,Clauses1),
-	dispatch_trie_step_cases(FAs,N,Pattern,MorePatterns,Payload,MaybeErrorHandler,Actions,Symbol,Prefix,Clauses1,Tail).
+dispatch_trie_step_cases([FA|FAs],N,Pattern,MorePatterns,Payload,MaybeErrorHandler,Context,Actions,Symbol,Prefix,Clauses,Tail) :-
+	dispatch_trie_step_case(FA,N,Pattern,MorePatterns,Payload,MaybeErrorHandler,Context,Actions,Symbol,Prefix,Clauses,Clauses1),
+	dispatch_trie_step_cases(FAs,N,Pattern,MorePatterns,Payload,MaybeErrorHandler,Context,Actions,Symbol,Prefix,Clauses1,Tail).
 
-dispatch_trie_step_case(F/A,N,Patterns,MorePatterns,Payload,MaybeErrorHandler,Actions,Symbol,Prefix,[Clause|List],Tail) :-
+dispatch_trie_step_case(F/A,N,Patterns,MorePatterns,Payload,MaybeErrorHandler,Context0,Actions,Symbol,Prefix,[Clause|List],Tail) :-
 	Clause = (Head :- Cut, Body),
 	( MaybeErrorHandler = yes(_) ->
 		Cut = (!)
@@ -10582,6 +10592,7 @@ dispatch_trie_step_case(F/A,N,Patterns,MorePatterns,Payload,MaybeErrorHandler,Ac
 	once(append(Vs,PayloadArgs,RestArgs)),
 	/* IndexPattern = F(...) */
 	functor(IndexPattern,F,A),
+	Context1 = index_functor(F,A,Context0),
 	IndexPattern =.. [_|Args],
 	append(Args,RestArgs,RecArgs),
 	( RecArgs == PayloadArgs ->
@@ -10605,12 +10616,13 @@ dispatch_trie_step_case(F/A,N,Patterns,MorePatterns,Payload,MaybeErrorHandler,Ac
 			common_pattern(CasePairs,CommonPatternPair,DiffVars,Differences),
 			append(Args,Vs,[First|Rest]),
 			First-Rest = CommonPatternPair,	
+			Context2 = gct(Vs,Context1),
 			gensym(Prefix,RSymbol),
 			append(DiffVars,PayloadArgs,RecCallVars),
 			Body =.. [RSymbol|RecCallVars],
 			findall(CH-CT,member([CH|CT],Differences),CPairs),
 			once(pairup(CHs,CTs,CPairs)),
-			dispatch_trie_step(CHs,RSymbol,Prefix,CTs,Payload,MaybeErrorHandler,MoreActions,List,Tail)
+			dispatch_trie_step(CHs,RSymbol,Prefix,CTs,Payload,MaybeErrorHandler,Context2,MoreActions,List,Tail)
 		)
 	).
 	
@@ -10628,6 +10640,32 @@ split([X|Xs],I,Before,At,After) :-
 		split(Xs,J,RBefore,At,After)
 	).
 
+% reconstruct_original_term(Context,CurrentTerm,OriginalTerm)
+%
+% context	::= 	swap(functor,position)
+%		|	index_functor(functor,arity,context)
+%		|	gct(Pattern,Context)
+
+reconstruct_original_term(swap(Functor,Position),Term,OriginalTerm) :-
+	Term =.. [_,IndexArg|Args],
+	PrefixSize is Position - 1,
+	split_at(PrefixSize,Args,Prefix,Suffix),
+	append(Prefix,[IndexArg|Suffix],OriginalArgs),
+	OriginalTerm =.. [Functor|OriginalArgs].
+reconstruct_original_term(index_functor(Functor,Arity,Context),Term0,OriginalTerm) :-
+	Term0 =.. [Predicate|Args],
+	split_at(Arity,Args,IndexArgs,RestArgs),
+	Index =.. [Functor|IndexArgs],
+	Term1 =.. [Predicate,Index|RestArgs],
+	reconstruct_original_term(Context,Term1,OriginalTerm).
+reconstruct_original_term(gct(PatternList,Context),Term0,OriginalTerm) :-
+	copy_term_nat(PatternList,IndexTerms),
+	term_variables(IndexTerms,Variables),
+	Term0 =.. [Predicate|Args0],
+	append(Variables,RestArgs,Args0),
+	append(IndexTerms,RestArgs,Args1),
+	Term1 =.. [Predicate|Args1],
+	reconstruct_original_term(Context,Term1,OriginalTerm).
 % }}}
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 % SUBSTITUTE CONSTRAINT SYMBOL FUNCTORS
