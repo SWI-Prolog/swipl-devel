@@ -288,6 +288,7 @@ format_impl(IOSTREAM *out, term_t format, term_t Args)
     PL_put_term(argv, args);
   }
   
+  startCritical;
   switch(fmt.storage)			/* format can to call-back! */
   { case PL_CHARS_RING:
     case PL_CHARS_STACK:
@@ -299,6 +300,7 @@ format_impl(IOSTREAM *out, term_t format, term_t Args)
 
   rval = do_format(out, &fmt, argc, argv);
   PL_free_text(&fmt);
+  endCritical;
 
   return rval;
 }
