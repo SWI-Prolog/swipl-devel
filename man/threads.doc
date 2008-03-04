@@ -339,9 +339,8 @@ queue, is faster than the drain, consuming the messages.
 
     \predicate{message_queue_destroy}{1}{+Queue}
 Destroy a message queue created with message_queue_create/1.  It is
-\emph{not} allows to destroy the queue of a thread.  Neither is it
-allowed to destroy a queue other threads are waiting for or, for
-anonymous message queues, may try to wait for later.%
+\emph{not} allowed to destroy the queue of a thread.  Neither is it
+allowed to destroy a queue other threads are waiting for.%
 	\bug{None of these constraints are properly enforced by the
 	     system in the current implementation.  It is therefore
 	     advised not to delete queues unless you are absolutely
