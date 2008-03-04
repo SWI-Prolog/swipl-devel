@@ -64,7 +64,7 @@
 :- use_module(library(pairs)).
 :- use_module(library(sgml)).		% Quote output
 :- use_module(library(quintus)).	% for meta_predicate/1
-%:- set_prolog_flag(generate_debug_info, false).
+:- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
 	reply_html_page(:, :),
