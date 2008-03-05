@@ -425,7 +425,11 @@ but the database only maintains the source file for each predicate.
 See also clause_property/2.
 
     \predicate{prolog_load_context}{2}{?Key, ?Value}
-Determine loading context.  The following keys are defined:
+Obtain context information during compilation.  This predicate can be
+used from directives appearing in a source file to get information about
+the file being loaded.  See also source_location/2. The following keys
+are defined:
+
 \begin{center}
 \begin{tabular}{|l|p{4in}|}
 \hline
@@ -435,11 +439,11 @@ Determine loading context.  The following keys are defined:
 \const{source}        & File loaded.  Returns the original Prolog file
 			when loading a \fileext{qlf} file. Compatible
 			to SICStus Prolog. \\
-\const{file}          & Currently equivalent to \const{file}.  In future
+\const{file}          & Currently equivalent to \const{source}.  In future
 			versions it may report a different values for
 			files being loaded using include/1. \\
 \const{stream}        & Stream identifier (see current_input/1) \\
-\const{directory}     & Directory in which \arg{File} lives. \\
+\const{directory}     & Directory in which \const{source} lives. \\
 \const{dialect}	      & Compatibility mode.  See expects_dialect/1. \\
 \const{term_position} & Position of last term read.  Term of the form
 			\mbox{\tt '\$stream_position'(0,<Line>,0,0,0)}.
@@ -447,7 +451,6 @@ Determine loading context.  The following keys are defined:
 \hline
 \end{tabular}
 \end{center}
-Quintus compatibility predicate.  See also source_location/2.
 
     \predicate{source_location}{2}{-File, -Line}
 If the last term has been read from a physical file (i.e., not from the
