@@ -552,6 +552,7 @@ DECL_PLIST(ctype);
 DECL_PLIST(tai);
 DECL_PLIST(gc);
 DECL_PLIST(proc);
+DECL_PLIST(write);
 
 void
 initBuildIns(void)
@@ -578,6 +579,7 @@ initBuildIns(void)
   REG_PLIST(tai);
   REG_PLIST(gc);
   REG_PLIST(proc);
+  REG_PLIST(write);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
 #endif

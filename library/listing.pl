@@ -36,7 +36,7 @@
 	  portray_clause/2		% +Stream, +Clause
 	]).
 :- use_module(library(lists), [member/2]).
-:- set_prolog_flag(generate_debug_info, false).
+%:- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
 	listing/0, 
@@ -220,25 +220,27 @@ do_portray_clause(Out, Var) :-
 	var(Var), !,
 	pprint(Out, Var, 1200).
 do_portray_clause(Out, (Head :- true)) :- !, 
-	portray_head(Out, Head), 
-	put(Out, 0'.), nl(Out).
+	pprint(Out, Head, 1200),
+	full_stop(Out).
 do_portray_clause(Out, (Head :- Body)) :- !, 
 	inc_indent(0, 1, Indent),
-	portray_head(Out, Head), 
+	infix_op((:-), LeftPri, RightPri),
+	pprint(Out, Head, LeftPri),
 	write(Out, ' :-'), 
 	(   nonvar(Body),
 	    Body = Module:LocalBody
 	->  nlindent(Out, Indent),
-	    format(Out, '~q:', [Module]),
+	    format(Out, '~q', [Module]),
+	    '$put_token'(Out, :),
 	    nlindent(Out, Indent),
 	    write(Out, '(   '),
 	    portray_body(LocalBody, 2, noindent, 1200, Out),
 	    nlindent(Out, Indent),
 	    write(Out, ')')
 	;   inc_indent(0, 2, BodyIndent),
-	    portray_body(Body, BodyIndent, indent, 1199, Out)
+	    portray_body(Body, BodyIndent, indent, RightPri, Out)
 	),
-	put(Out, 0'.), nl(Out).
+	full_stop(Out).
 do_portray_clause(Out, (:-use_module(File, Imports))) :-
 	length(Imports, Len),
 	Len > 3, !,
@@ -252,50 +254,70 @@ do_portray_clause(Out, (:-module(Module, Exports))) :- !,
 do_portray_clause(Out, (:-Directive)) :- !,
 	write(Out, ':- '), 
 	portray_body(Directive, 3, noindent, 1199, Out),
-	write(Out, '.\n').
+	full_stop(Out).
 do_portray_clause(Out, Fact) :-
-	do_portray_clause(Out, (Fact :- true)).
+	portray_body(Fact, 0, noindent, 1200, Out),
+	full_stop(Out).
 
-portray_head(Out, Head) :-
-	pprint(Out, Head, 1199).
+full_stop(Out) :-
+	'$put_token'(Out, '.'),
+	nl(Out).
+
 
 %%	portray_body(+Term, +Indent, +DoIndent, +Priority, +Out)
 %	
 %	Write Term at current indentation. If   DoIndent  is 'indent' we
 %	must first call nlindent/2 before emitting anything.
 
+portray_body(Var, _, _, Pri, Out) :-
+	var(Var), !,
+	pprint(Out, Var, Pri).
 portray_body(!, _, _, _, Out) :- !, 
 	write(Out, ' !').
-portray_body((!, Clause), Indent, _, _Pri, Out) :- !, 
-	write(Out, ' !,'), 
-	portray_body(Clause, Indent, indent, 1000, Out).
 portray_body(Term, Indent, indent, Pri, Out) :- !, 
 	nlindent(Out, Indent), 
 	portray_body(Term, Indent, noindent, Pri, Out).
-portray_body((A,B), Indent, _, _Pri, Out) :- !, 
-	infix_op((,), LeftPri, RightPri),
-	portray_body(A, Indent, noindent, LeftPri, Out), 
-	write(Out, ','), 
-	portray_body(B, Indent, indent, RightPri, Out).
 portray_body(Or, Indent, _, _, Out) :-
 	or_layout(Or), !,
 	write(Out, '(   '), 
 	portray_or(Or, Indent, 1200, Out), 
 	nlindent(Out, Indent), 
 	write(Out, ')').
+portray_body(Term, Indent, _, Pri, Out) :-
+	term_needs_braces(Term, Pri), !,
+	write(Out, '(   '), 
+	portray_body(Term, Indent, noindent, 1200, Out), 
+	nlindent(Out, Indent), 
+	write(Out, ')').
+portray_body((!, Clause), Indent, _, _Pri, Out) :- !, 
+	write(Out, ' !,'), 
+	portray_body(Clause, Indent, indent, 1000, Out).
+portray_body((A,B), Indent, _, _Pri, Out) :- !, 
+	infix_op((,), LeftPri, RightPri),
+	portray_body(A, Indent, noindent, LeftPri, Out), 
+	write(Out, ','), 
+	portray_body(B, Indent, indent, RightPri, Out).
+portray_body(\+(Goal), Indent, _, _Pri, Out) :- !,
+	write(Out, (\+)), write(' '),
+	prefix_op((\+), ArgPri),
+	ArgIndent is Indent+3,
+	portray_body(Goal, ArgIndent, noindent, ArgPri, Out).
 portray_body(Meta, Indent, _, Pri, Out) :-
 	meta_call(Meta, N), !, 
 	portray_meta(Out, Meta, N, Indent, Pri).
 portray_body(Clause, _, _, Pri, Out) :-
 	pprint(Out, Clause, Pri).
 
-%%	portray_or(+Term, +Indent, +Priority, +Out) is det.
-
-portray_or(Term, Indent, Pri, Out) :-
+term_needs_braces(Term, Pri) :-
 	callable(Term),
 	functor(Term, Name, _Arity),
 	current_op(OpPri, _Type, Name),
-	OpPri >= Pri,
+	OpPri > Pri, !.
+
+%%	portray_or(+Term, +Indent, +Priority, +Out) is det.
+
+portray_or(Term, Indent, Pri, Out) :-
+	term_needs_braces(Term, Pri), !,
 	inc_indent(Indent, 1, NewIndent),
 	write(Out, '(   '),
 	portray_or(Term, NewIndent, Out),
@@ -311,7 +333,7 @@ portray_or(Term, Indent, Pri, Out) :-
 
 portray_or((If -> Then ; Else), Indent, Out) :- !, 
 	inc_indent(Indent, 1, NestIndent),
-	infix_op(->, LeftPri, RightPri),
+	infix_op((->), LeftPri, RightPri),
 	portray_body(If, NestIndent, noindent, LeftPri, Out), 	
 	nlindent(Out, Indent),
 	write(Out, '->  '), 
@@ -322,7 +344,7 @@ portray_or((If -> Then ; Else), Indent, Out) :- !,
 	portray_or(Else, Indent, RightPri2, Out).
 portray_or((If *-> Then ; Else), Indent, Out) :- !, 
 	inc_indent(Indent, 1, NestIndent),
-	infix_op(*->, LeftPri, RightPri),
+	infix_op((*->), LeftPri, RightPri),
 	portray_body(If, NestIndent, noindent, LeftPri, Out), 	
 	nlindent(Out, Indent),
 	write(Out, '*-> '), 
@@ -333,21 +355,21 @@ portray_or((If *-> Then ; Else), Indent, Out) :- !,
 	portray_or(Else, Indent, RightPri2, Out).
 portray_or((If -> Then), Indent, Out) :- !, 
 	inc_indent(Indent, 1, NestIndent),
-	infix_op(->, LeftPri, RightPri),
+	infix_op((->), LeftPri, RightPri),
 	portray_body(If, NestIndent, noindent, LeftPri, Out), 	
 	nlindent(Out, Indent), 
 	write(Out, '->  '), 
 	portray_or(Then, Indent, RightPri, Out).
 portray_or((If *-> Then), Indent, Out) :- !, 
 	inc_indent(Indent, 1, NestIndent),
-	infix_op(->, LeftPri, RightPri),
+	infix_op((->), LeftPri, RightPri),
 	portray_body(If, NestIndent, noindent, LeftPri, Out), 	
 	nlindent(Out, Indent), 
 	write(Out, '*-> '), 
 	portray_or(Then, Indent, RightPri, Out).
 portray_or((A;B), Indent, Out) :- !, 
 	inc_indent(Indent, 1, NestIndent),
-	infix_op(;, LeftPri, RightPri),
+	infix_op((;), LeftPri, RightPri),
 	portray_body(A, NestIndent, noindent, LeftPri, Out), 
 	nlindent(Out, Indent), 
 	write(Out, ';   '), 
@@ -368,7 +390,7 @@ portray_or((A|B), Indent, Out) :- !,
 
 infix_op(Op, Left, Right) :-
 	current_op(Pri, Assoc, Op),
-	infix_assoc(Assoc, LeftMin, RightMin),
+	infix_assoc(Assoc, LeftMin, RightMin), !,
 	Left is Pri - LeftMin,
 	Right is Pri - RightMin.
 
@@ -376,6 +398,14 @@ infix_assoc(xfx, 1, 1).
 infix_assoc(xfy, 1, 0).
 infix_assoc(yfx, 0, 1).
 infix_assoc(yfy, 0, 0).
+
+prefix_op(Op, ArgPri) :-
+	current_op(Pri, Assoc, Op),
+	pre_assoc(Assoc, ArgMin), !,
+	ArgPri is Pri - ArgMin.
+
+pre_assoc(fx, 1).
+pre_assoc(fy, 0).
 
 %%	or_layout(@Term) is semidet.
 %
@@ -386,25 +416,32 @@ infix_assoc(yfy, 0, 0).
 
 or_layout(Var) :-
 	var(Var), !, fail.
-or_layout((_,_)).
 or_layout((_;_)).
 or_layout((_->_)).
 or_layout((_*->_)).
 
+%%	meta_call(+Goal, -Arg) is semidet.
+%
+%	True if Goal is a meta-predicate for which we wish to format the
+%	arguments.
+%	
+%	@tbd	This really must be  synchronised with meta_predicate
+%		to fix this.
+
 meta_call(call(_), 1).
 meta_call(once(_), 1).
 meta_call(not(_), 1).
-meta_call(\+(_), 1).
 meta_call(ignore(_), 1).
 
 portray_meta(Out, Term, N, Indent, _Pri) :-
 	arg(N, Term, Arg), 
 	or_layout(Arg), !,
 	functor(Term, Name, _), 
-	write(Out, Name), write(Out, '(('), 
-	inc_indent(Indent, 1, NestIndent),
-	portray_body(Arg, NestIndent, indent, 1200, Out), 
-	nlindent(Out, NestIndent), 
+	format(Out, '~q((   ', [Name]),
+	atom_length(Name, Alen),
+	BraceIndent is Indent+Alen+1,
+	portray_or(Arg, BraceIndent, Out), 
+	nlindent(Out, BraceIndent), 
 	write(Out, '))').	
 portray_meta(Out, Term, _, _, Pri) :-
 	pprint(Out, Term, Pri).	

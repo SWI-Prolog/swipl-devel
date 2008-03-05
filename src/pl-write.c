@@ -1289,4 +1289,30 @@ pl_writeln(term_t term)
 }
 
 
+static
+PRED_IMPL("$put_token", 2, put_token, 0)
+{ char *s;
+  size_t len;
+  IOSTREAM *out;
+
+  if ( !PL_get_stream_handle(A1, &out) )
+    fail;
+  if ( !PL_get_nchars(A2, &len, &s, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
+    fail;
+
+  if ( PutTokenN(s, len, out) )
+    return PL_release_stream(out);
+
+  PL_release_stream(out);
+  fail;
+}
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(write)
+  PRED_DEF("$put_token", 2, put_token, 0)
+EndPredDefs
 
