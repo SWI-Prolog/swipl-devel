@@ -5749,6 +5749,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
     { agenda a;
       atom_t r;
       term_t target_term;
+      int is_det = FALSE;
 
       if ( PL_is_variable(pred) )
 	return instantiation_error(pred);
@@ -5763,7 +5764,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 	  case -1:
 	    return FALSE;
 	}
-	a.target = a.pattern.object.resource;
+	is_det = PL_is_ground(obj);
 	target_term = obj;
       } else if ( PL_is_atom(obj) )		/* obj .... subj */
       {	switch(get_partial_triple(db, 0, pred, obj, 0, &a.pattern))
@@ -5772,7 +5773,6 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 	  case -1:
 	    return FALSE;
 	}
-	a.target = a.pattern.subject;
 	target_term = subj;
       } else
 	return instantiation_error(subj);
@@ -5790,7 +5790,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 
       while(next_agenda(db, &a, &r))
       { if ( PL_unify_atom(target_term, r) )
-	{ if ( a.target )		/* mode(+, +, +) */
+	{ if ( is_det )		/* mode(+, +, +) */
 	  { unlock_and_empty_agenda(db, &a);
 	    return TRUE;
 	  } else			/* mode(+, +, -) or mode(-, +, +) */
