@@ -561,7 +561,7 @@ query_result(help) -->
 	].
 query_result(action) -->
 	[ 'Action? ', flush ].
-query_result(query(confirm)) -->
+query_result(confirm) -->
 	[ 'Please answer \'y\' or \'n\'? ', flush ].
 query_result(eof) -->
 	[ nl ].
