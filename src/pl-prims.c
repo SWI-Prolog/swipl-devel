@@ -1152,6 +1152,8 @@ tail_recursion:
 	clearNumber(&left);
 	clearNumber(&right);
 
+	if ( rc == EQUAL )
+	  return (t1 == TAG_FLOAT) ? LESS : GREATER;
 	return rc;
       }
     }

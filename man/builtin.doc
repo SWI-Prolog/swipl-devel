@@ -997,9 +997,10 @@ so called ``standard order''. This order is defined as follows:
           (see \secref{attvar}) does not affect the ordering.
     \item \arg{Atoms} are compared alphabetically.
     \item \arg{Strings} are compared alphabetically.
-    \item \arg{Numbers} are compared by value. Integers and floats are
-          treated identically. If the Prolog flag \prologflag{iso} is defined,
-	  all floating point numbers precede all integers.
+    \item \arg{Numbers} are compared by value.  Mixed integer/float are compared
+    	  as floats. If the comparison is equal, the float is considered
+	  the smaller value. If the Prolog flag \prologflag{iso} is defined,
+	  all floating point numbers precede all integers. 
     \item \arg{Compound} terms are first checked on their arity, then 
           on their functor-name (alphabetically) and finally recursively
 	  on their arguments, leftmost argument first. 
