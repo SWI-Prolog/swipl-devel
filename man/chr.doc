@@ -590,7 +590,9 @@ the end of each query for every CHR module currently loaded.  The Prolog flag
 constraint stores. The value \const{true} enables it.  Any other value
 disables it.
 
-
+    \predicate{find_chr_constraint}{1}{-Constraint}
+Returns a constraint in the constraint store. Via backtracking, all constraints
+in the store can be enumerated.
 \end{description}
 
 
@@ -777,6 +779,11 @@ qcompile/1 to generate a \fileext{qlf} file once from your
 \fileext{pl} file. This \fileext{qlf} contains the generated code of the
 CHR compiler (be it in a binary format). When you consult the \fileext{qlf}
 file, the CHR compiler is not invoked and consultation is much faster.
+
+    \item [Finding Constraints]
+The \predref{find_chr_constraint}{1} predicate is fairly expensive. Avoid it,
+if possible. If you must use it, try to use it with an instantiated toplevel
+constraint symbol.
 \end{itemlist}
 
 \section{Compiler Errors and Warnings} 			\label{sec:errors}
