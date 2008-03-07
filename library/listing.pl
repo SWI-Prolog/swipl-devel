@@ -298,7 +298,7 @@ portray_body((A,B), Indent, _, _Pri, Out) :- !,
 	write(Out, ','), 
 	portray_body(B, Indent, indent, RightPri, Out).
 portray_body(\+(Goal), Indent, _, _Pri, Out) :- !,
-	write(Out, (\+)), write(' '),
+	write(Out, (\+)), write(Out, ' '),
 	prefix_op((\+), ArgPri),
 	ArgIndent is Indent+3,
 	portray_body(Goal, ArgIndent, noindent, ArgPri, Out).
