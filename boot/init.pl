@@ -1947,11 +1947,18 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 	var(Var), !.
 '$t_body'([], S, SR, S=SR) :- !.		% inline lists
 '$t_body'(List, S, SR, C) :-
-	List = [_|_], !,
-	(   is_list(List)
-	->  '$append'(List, SR, OL),
+	(   List = [_|_]
+	->  !,
+	    (   is_list(List)
+	    ->  '$append'(List, SR, OL),
+		C = (S = OL)
+	    ;   C = '$append'(List, SR, S)	% Deals with [H|T] in body
+	    )
+	;   string(List)
+	->  !,
+	    string_to_list(List, Codes),
+	    '$append'(Codes, SR, OL),
 	    C = (S = OL)
-	;   C = '$append'(List, SR, S)	% Deals with [H|T] in body
 	).
 '$t_body'(!, S, S, !) :- !.
 '$t_body'({}, S, S, true) :- !.
