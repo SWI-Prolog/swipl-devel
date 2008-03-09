@@ -731,6 +731,8 @@ the atom \const{[]}.
 Returns non-zero if \arg{term} is atomic (not variable or compound).
 \cfunction{int}{PL_is_number}{term_t}
 Returns non-zero if \arg{term} is an integer or float.
+\cfunction{int}{PL_is_acyclic}{term_t}
+Returns non-zero if \arg{term} is acyclic (i.e.\ a finite tree).
 \end{description}
 
 

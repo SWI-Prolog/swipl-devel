@@ -685,7 +685,7 @@ check_float(double f)
 
 
 int
-valueExpression(term_t t, Number r ARG_LD)
+eval_expression(term_t t, Number r, int recursion ARG_LD)
 { ArithFunction f;
   functor_t functor;
   Word p = valTermRef(t);
@@ -722,6 +722,9 @@ valueExpression(term_t t, Number r ARG_LD)
       return PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
   }
 
+  if ( recursion > 100 && !PL_is_acyclic(t) )
+    return PL_error(NULL, 0, "cyclic term", ERR_TYPE, ATOM_expression, t);
+
 #if O_PROLOG_FUNCTIONS
   if ( f->proc )
   { int rval, n, arity = arityFunctor(functor);
@@ -732,7 +735,7 @@ valueExpression(term_t t, Number r ARG_LD)
     { number n1;
 
       _PL_get_arg(n+1, t, h0+n);
-      if ( valueExpression(h0+n, &n1 PASS_LD) )
+      if ( eval_expression(h0+n, &n1, recursion+1 PASS_LD) )
       { _PL_put_number(h0+n, &n1);
 	clearNumber(&n1);
       } else
@@ -770,7 +773,7 @@ valueExpression(term_t t, Number r ARG_LD)
 	number n1;
 
 	_PL_get_arg(1, t, a);
-	if ( valueExpression(a, &n1 PASS_LD) )
+	if ( eval_expression(a, &n1, recursion+1 PASS_LD) )
 	{ rval = (*f->function)(&n1, r);
 	  clearNumber(&n1);
 	} else
@@ -784,9 +787,9 @@ valueExpression(term_t t, Number r ARG_LD)
 	number n1, n2;
 
 	_PL_get_arg(1, t, a);
-	if ( valueExpression(a, &n1 PASS_LD) )
+	if ( eval_expression(a, &n1, recursion+1 PASS_LD) )
 	{ _PL_get_arg(2, t, a);
-	  if ( valueExpression(a, &n2 PASS_LD) )
+	  if ( eval_expression(a, &n2, recursion+1 PASS_LD) )
 	  { rval = (*f->function)(&n1, &n2, r);
 	    clearNumber(&n2);
 	  } else
@@ -804,11 +807,11 @@ valueExpression(term_t t, Number r ARG_LD)
 	number n1, n2, n3;
 
 	_PL_get_arg(1, t, a);
-	if ( valueExpression(a, &n1 PASS_LD) )
+	if ( eval_expression(a, &n1, recursion+1 PASS_LD) )
 	{ _PL_get_arg(2, t, a);
-	  if ( valueExpression(a, &n2 PASS_LD) )
+	  if ( eval_expression(a, &n2, recursion+1 PASS_LD) )
 	  { _PL_get_arg(3, t, a);
-	    if ( valueExpression(a, &n3 PASS_LD) )
+	    if ( eval_expression(a, &n3, recursion+1 PASS_LD) )
 	    { rval = (*f->function)(&n1, &n2, &n3, r);
 	      clearNumber(&n3);
 	    } else
@@ -848,6 +851,12 @@ valueExpression(term_t t, Number r ARG_LD)
 
     return rval;
   }
+}
+
+
+int
+valueExpression(term_t t, Number r ARG_LD)
+{ return eval_expression(t, r, 0 PASS_LD);
 }
 
 

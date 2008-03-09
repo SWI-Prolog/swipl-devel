@@ -31,7 +31,8 @@
 */
 
 test_arith :-
-	run_tests([ rem
+	run_tests([ rem,
+		    errors
 		  ]).
 
 :- begin_tests(rem).
@@ -46,3 +47,12 @@ test(big_neg, [condition(current_prolog_flag(bounded, false)), R == -6]) :-
 	R is -(1<<100) rem 10.
 
 :- end_tests(rem).
+
+:- begin_tests(errors).
+
+test(cyclic, [sto(rational_trees), error(type_error(expression, T))]) :-
+	T = T+1,
+	A is T,
+	number(A).			% avoid singleton
+
+:- end_tests(errors).

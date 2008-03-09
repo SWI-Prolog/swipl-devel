@@ -878,6 +878,14 @@ is_acyclic(Word p ARG_LD)
 }
 
 
+int
+PL_is_acyclic(term_t t)
+{ GET_LD
+
+  return is_acyclic(valTermRef(t) PASS_LD);
+}
+
+
 static
 PRED_IMPL("acyclic_term", 1, acyclic_term, 0)
 { PRED_LD
