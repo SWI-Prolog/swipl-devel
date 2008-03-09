@@ -440,10 +440,10 @@ json_write_term(True, Stream, _State, Options) :-
 	json_options_true(Options, True), !,
 	write(Stream, true).
 json_write_term(False, Stream, _State, Options) :-
-	json_options_true(Options, False), !,
+	json_options_false(Options, False), !,
 	write(Stream, false).
 json_write_term(Null, Stream, _State, Options) :-
-	json_options_true(Options, Null), !,
+	json_options_null(Options, Null), !,
 	write(Stream, null).
 json_write_term(String, Stream, _State, _Options) :-
 	json_write_string(Stream, String).
@@ -540,6 +540,10 @@ json_print_length(Number, Max, Len0, Len) :-
 	number(Number), !,
 	atom_length(Number, AL),
 	Len is Len0 + AL,
+	Len =< Max.
+json_print_length(@Id, Max, Len0, Len) :- !,
+	atom_length(Id, IdLen),
+	Len is Len0+IdLen,
 	Len =< Max.
 json_print_length(String, Max, Len0, Len) :-
 	string_len(String, Len0, Len),
