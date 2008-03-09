@@ -1023,8 +1023,7 @@ labeling(Options, Vars) :-
         label(Options, leftmost, up, step, none, upto_ground, Vars).
 
 finite_domain(Var) :-
-        (   var(Var) ->
-            fd_get(Var, Dom, _),
+        (   fd_get(Var, Dom, _) ->
             (   domain_infimum(Dom, n(_)), domain_supremum(Dom, n(_)) -> true
             ;   instantiation_error(Var)
             )
@@ -1168,27 +1167,23 @@ find_ffc([V|Vs], Prev, FF) :-
         ).
 
 ff_lt(X, Y) :-
-        (   var(X) ->
-            fd_get(X, DX, _),
+        (   fd_get(X, DX, _) ->
             domain_num_elements(DX, NX)
         ;   NX = n(1)
         ),
-        (   var(Y) ->
-            fd_get(Y, DY, _),
+        (   fd_get(Y, DY, _) ->
             domain_num_elements(DY, NY)
         ;   NY = n(1)
         ),
         NX cis_lt NY.
 
 ffc_lt(X, Y) :-
-        (   var(X) ->
-            fd_get(X, XD, XPs),
+        (   fd_get(X, XD, XPs) ->
             domain_num_elements(XD, NXD),
             length(XPs, NXPs)
         ;   NXD = n(0), NXPs = n(0)
         ),
-        (   var(Y) ->
-            fd_get(Y, YD, YPs),
+        (   fd_get(Y, YD, YPs) ->
             domain_num_elements(YD, NYD),
             length(YPs, NYPs)
         ;   NYD = n(0), NYPs = n(0)
@@ -1201,8 +1196,7 @@ min_lt(X,Y) :- bounds(X,LX,_), bounds(Y,LY,_), LX cis_lt LY.
 max_gt(X,Y) :- bounds(X,_,UX), bounds(Y,_,UY), UX cis_gt UY.
 
 bounds(X, L, U) :-
-        (   var(X) ->
-            fd_get(X, Dom, _),
+        (   fd_get(X, Dom, _) ->
             domain_infimum(Dom, L),
             domain_supremum(Dom, U)
         ;   L = n(X), U = L
@@ -1867,8 +1861,7 @@ my_reified_mod(X, Y, D, Z) :-
 parse_reified_clpfd(Expr, Result, Defined) :-
         (   cyclic_term(Expr) -> domain_error(clpfd_expression, Expr)
         ;   var(Expr) ->
-            fd_get(Expr, ED, EPs),
-            fd_put(Expr, ED, EPs), % constrain to integers
+            constrain_to_integer(Expr),
             Result = Expr, Defined = 1
         ;   integer(Expr) -> Result = Expr, Defined = 1
         ;   Expr = (L + R) ->
@@ -2008,8 +2001,7 @@ merge_remaining([N-M|NMs], B0, B, Rest) :-
         ).
 
 domain(V, Dom) :-
-        (   var(V) ->
-            fd_get(V, Dom0, VPs),
+        (   fd_get(V, Dom0, VPs) ->
             domains_intersection(Dom, Dom0, Dom1),
             %format("intersected\n: ~w\n ~w\n==> ~w\n\n", [Dom,Dom0,Dom1]),
             fd_put(V, Dom1, VPs),
@@ -2225,7 +2217,7 @@ do_queue :-
         ).
 
 init_propagator(Var, Prop) :-
-        (   var(Var) -> fd_get(Var, Dom, Ps), fd_put(Var, Dom, [Prop|Ps])
+        (   fd_get(Var, Dom, Ps) -> fd_put(Var, Dom, [Prop|Ps])
         ;   true
         ).
 
@@ -2324,8 +2316,7 @@ relation_unifiable([R|Rs], Tuple, Us, Changed0, Changed) :-
 
 all_in_domain([], []).
 all_in_domain([A|As], [T|Ts]) :-
-        ( var(T) ->
-            fd_get(T, Dom, _),
+        (   fd_get(T, Dom, _) ->
             domain_contains(Dom, A)
         ;   must_be(integer, T),
             T =:= A
@@ -3191,14 +3182,16 @@ max_divide_less(L1,U1,L2,U2,Max) :-
 
 
 min_divide(L1,U1,L2,U2,Min) :-
-        (   U2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
+        (   L2 = n(NL2), NL2 > 0, U2 = n(_), cis_geq_zero(L1) ->
             Min cis div(L1+U2-n(1),U2)
+                                % TODO: cover more cases
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
         ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
         ).
 max_divide(L1,U1,L2,U2,Max) :-
         (   L2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
             Max cis1 div(U1,L2)
+                                % TODO: cover more cases
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
         ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
         ).
@@ -3241,8 +3234,7 @@ exclude_fire(Left, Right, E) :-
 
 exclude_list([], _).
 exclude_list([V|Vs], Val) :-
-        (   var(V) ->
-            fd_get(V, VD, VPs),
+        (   fd_get(V, VD, VPs) ->
             domain_remove(VD, Val, VD1),
             fd_put(V, VD1, VPs)
         ;   V =\= Val
@@ -3263,17 +3255,15 @@ kill_if_isolated(Left, Right, X, MState) :-
 
 all_empty_intersection([], _).
 all_empty_intersection([V|Vs], XDom) :-
-        (   var(V) ->
-            fd_get(V, VDom, _),
+        (   fd_get(V, VDom, _) ->
             domains_intersection_(VDom, XDom, empty),
             all_empty_intersection(Vs, XDom)
         ;   all_empty_intersection(Vs, XDom)
         ).
 
 outof_reducer(Left, Right, Var) :-
-        (   var(Var) ->
+        (   fd_get(Var, Dom, _) ->
             append(Left, Right, Others),
-            fd_get(Var, Dom, _),
             domain_num_elements(Dom, N),
             num_subsets(Others, Dom, 0, Num, NonSubs),
             (   n(Num) cis_geq N -> fail
@@ -3288,8 +3278,7 @@ outof_reducer(Left, Right, Var) :-
 
 reduce_from_others([], _).
 reduce_from_others([X|Xs], Dom) :-
-        (   var(X) ->
-            fd_get(X, XDom, XPs),
+        (   fd_get(X, XDom, XPs) ->
             domain_subtract(XDom, Dom, NXDom),
             fd_put(X, NXDom, XPs)
         ;   true
@@ -3298,8 +3287,7 @@ reduce_from_others([X|Xs], Dom) :-
 
 num_subsets([], _Dom, Num, Num, []).
 num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
-        (   var(S) ->
-            fd_get(S, SDom, _),
+        (   fd_get(S, SDom, _) ->
             (   domain_subdomain(Dom, SDom) ->
                 Num1 is Num0 + 1,
                 num_subsets(Ss, Dom, Num1, Num, NonSubs)
