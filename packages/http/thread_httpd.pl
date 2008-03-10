@@ -86,7 +86,7 @@ for details.
 
 http_server(Goal, Options) :-
 	strip_module(Goal, Module, G),
-	select(port(Port), Options, Options1), !,
+	select_option(port(Port), Options, Options1), !,
 	after_option(Options1, Module, Options2),
 	make_socket(Port, Options2, Options3),
 	create_workers(Options3),
@@ -156,15 +156,18 @@ http_current_server(Goal, Port) :-
 %	(one) can be used to profile the worker using tprofile/1.
 
 http_workers(Port, Workers) :-
-	current_server(Port, _, _, Queue),
+	must_be(integer, Port),
+	current_server(Port, _, _, Queue), !,
 	(   integer(Workers)
 	->  resize_pool(Queue, Workers)
 	;   findall(W, queue_worker(Queue, W), WorkerIDs),
 	    length(WorkerIDs, Workers)
 	).
+http_workers(Port, _) :-
+	existence_error(http_server, Port).
 
 
-%%	http_current_worker(?Port, ?ThreadID)
+%%	http_current_worker(?Port, ?ThreadID) is nondet.
 %	
 %	True if ThreadID is the identifier   of  a Prolog thread serving
 %	Port. This predicate is  motivated  to   allow  for  the  use of
@@ -209,7 +212,6 @@ accept_server2(Goal, Options) :-
 %	@tbd	Realise non-graceful stop
 
 http_stop_server(Port, _Options) :-
-	must_be(integer, Port),
 	http_workers(Port, 0),
 	current_server(Port, _, Thread, Queue),
 	retractall(queue_options(Queue, _)),
