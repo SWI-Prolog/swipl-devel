@@ -1854,7 +1854,7 @@ nbio_accept(nbio_sock_t master, struct sockaddr *addr, socklen_t *addrlen)
     { m->rdata.accept.addrlen = sizeof(m->rdata.accept.addr);
       placeRequest(m, REQ_ACCEPT);
       if ( !waitRequest(m) )
-	return FALSE;
+	return -1;
       if ( m->error )
 	return nbio_error(m->error, TCP_ERRNO);
       *addrlen = m->rdata.accept.addrlen;
