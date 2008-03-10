@@ -1744,21 +1744,10 @@ X #\= Y :-
             var_neq_var_plus_const(Y, V, C)
         ;   nonvar(X), var(Y), X = V - C, var(V), integer(C) ->
             var_neq_var_plus_const(V, Y, C)
-        ;   nonvar(X), X = abs(A), nonvar(A), A = X1 - Y1, var(X1), var(Y1), integer(Y) ->
-            absdiff_neq_const(X1, Y1, Y)
-        ;   integer(X), nonvar(Y), Y = abs(A), nonvar(A), A = X1 - Y1, var(X1), var(Y1) ->
-            absdiff_neq_const(X1, Y1, X)
         ;   left_right_linsum_const(X, Y, Cs, Vs, S) ->
             scalar_product(Cs, Vs, #\=, S)
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
         ).
-
-% abs(X-Y) #\= C
-
-absdiff_neq_const(X, Y, C) :-
-        make_propagator(absdiff_neq(X,Y,C), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_once(Prop).
 
 % X #\= Y + C
 
@@ -2421,20 +2410,6 @@ run_propagator(pserialized(Var,Duration,Left,SDs), _MState) :-
         myserialized(Duration, Left, SDs, Var).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% abs(X-Y) #\= C
-run_propagator(absdiff_neq(X,Y,C), MState) :-
-        (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), abs(X - Y) =\= C
-            ;   kill(MState),
-                V1 is X - C, neq_num(Y, V1),
-                V2 is C + X, neq_num(Y, V2)
-            )
-        ;   nonvar(Y) -> kill(MState),
-            V1 is C + Y, neq_num(X, V1),
-            V2 is Y - C, neq_num(X, V2)
-        ;   true
-        ).
 
 % X #\= Y + C
 run_propagator(x_neq_y_plus_c(X,Y,C), MState) :-
@@ -3540,7 +3515,6 @@ attribute_goal_(pgeq(A,B), A #>= B).
 attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
 attribute_goal_(pneq(A,B), A #\= B).
 attribute_goal_(ptimes(X,Y,Z), X*Y #= Z).
-attribute_goal_(absdiff_neq(X,Y,C), abs(X-Y) #\= C).
 attribute_goal_(x_neq_y_plus_c(X,Y,C), X #\= Y + C).
 attribute_goal_(x_leq_y_plus_c(X,Y,C), X #=< Y + C).
 attribute_goal_(pdiv(X,Y,Z), X/Y #= Z).
