@@ -591,8 +591,8 @@ predicate_name(Predicate, PName) :-
 	->  true
 	;   functor(Head, Name, Arity),
 	    (   hidden_module(Module)
-	    ->  sformat(PName, '~q/~d', [Name, Arity])
-	    ;   sformat(PName, '~q:~q/~d', [Module, Name, Arity])
+	    ->  format(string(PName), '~q/~d', [Name, Arity])
+	    ;   format(string(PName), '~q:~q/~d', [Module, Name, Arity])
 	    )
 	).
 
@@ -606,7 +606,7 @@ clause_name(Ref, Name) :-
 	nth_clause(Head, N, Ref), !,
 	predicate_name(Head, PredName),
 	thaffix(N, Th),
-	sformat(Name, '~d-~w clause of ~w', [N, Th, PredName]).
+	format(string(Name), '~d-~w clause of ~w', [N, Th, PredName]).
 clause_name(_, '<meta-call>').
 
 
