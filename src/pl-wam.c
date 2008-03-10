@@ -1112,9 +1112,9 @@ isCatchedInOuterQuery(QueryFrame qf, Word catcher)
 	succeed;
 
       if ( fr->parent )
-	fr = fr->parent;
-      else
-      { qf = (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+      { fr = fr->parent;
+      } else
+      { qf = QueryOfTopFrame(fr);
 	break;
       }
     }

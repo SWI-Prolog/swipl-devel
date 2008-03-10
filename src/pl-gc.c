@@ -1954,7 +1954,7 @@ check_environments(LocalFrame fr, Code PC, Word key)
     if ( fr->parent )
       fr = fr->parent;
     else
-    { QueryFrame qf = (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+    { QueryFrame qf = QueryOfTopFrame(fr);
       DEBUG(3, Sdprintf("*** Query %s\n", predicateName(qf->frame.predicate)));
       return qf;
     }
