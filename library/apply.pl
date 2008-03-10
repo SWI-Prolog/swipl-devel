@@ -58,7 +58,7 @@ members of a list.
 	partition_/4,
 	partition/5,
 	partition_/5,
-	partition_7.
+	partition_/7.
 
 
 %%	include(:Goal, +List1, ?List2) is det.
