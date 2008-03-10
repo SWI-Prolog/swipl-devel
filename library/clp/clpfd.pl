@@ -2427,12 +2427,18 @@ run_propagator(absdiff_neq(X,Y,C), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), abs(X - Y) =\= C
             ;   kill(MState),
-                V1 is X - C, neq_num(Y, V1),
-                V2 is C + X, neq_num(Y, V2)
+                (   C >= 0 ->
+                    V1 is X - C, neq_num(Y, V1),
+                    V2 is C + X, neq_num(Y, V2)
+                ;   true
+                )
             )
         ;   nonvar(Y) -> kill(MState),
-            V1 is C + Y, neq_num(X, V1),
-            V2 is Y - C, neq_num(X, V2)
+            (   C >= 0 ->
+                V1 is C + Y, neq_num(X, V1),
+                V2 is Y - C, neq_num(X, V2)
+            ;   true
+            )
         ;   true
         ).
 
