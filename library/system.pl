@@ -30,10 +30,10 @@
 */
 
 :- module(swi_system_utilities,
-	[ lock_predicate/2
-	, unlock_predicate/2
-	, system_mode/1
-	, system_module/0
+	[ lock_predicate/1,
+	  unlock_predicate/1,
+	  system_mode/1,
+	  system_module/0
 	]).
 
 :- style_check(+dollar).
@@ -77,23 +77,19 @@ system_module :-
 	system_mode(on).
 
 :- module_transparent
-	lock_predicate/2,
-	unlock_predicate/2.
+	lock_predicate/1,
+	unlock_predicate/1.
 
-%%	lock_predicate(+Name, Arity)
+%%	lock_predicate(+PredInd)
 %
 %	Transform a predicate into a system predicate. 
 
-lock_predicate(Spec, Arity) :-
-	strip_module(Spec, Module, Name),
-	functor(Head, Name, Arity ),
-	'$set_predicate_attribute'(Module:Head, system, 1).
+lock_predicate(PredInd) :-
+	'$set_predicate_attribute'(PredInd, system, 1).
 
-%%	unlock_predicate(+Name, Arity)
+%%	unlock_predicate(+PredInd)
 %
 %	Transform a system predicate into a normal system predicate.
 
-unlock_predicate(Spec, Arity) :-
-	strip_module(Spec, Module, Name),
-	functor(Head, Name, Arity ),
-	'$set_predicate_attribute'(Module:Head, system, 0).
+unlock_predicate(PredInd) :-
+	'$set_predicate_attribute'(PredInd, system, 0).

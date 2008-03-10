@@ -56,7 +56,9 @@
 	    'C'/3,			% +List, -Head, -Tail
 	    current_thread/2,		% ?Thread, ?Status
 	    current_mutex/3,		% ?Mutex, ?Owner, ?Count
-	    message_queue_size/2	% +Queue, -TermsWaiting
+	    message_queue_size/2,	% +Queue, -TermsWaiting
+	    lock_predicate/2,		% +Name, +Arity
+	    unlock_predicate/2		% +Name, +Arity
 	  ]).
 
 /** <module> Backward compatibility
@@ -307,3 +309,19 @@ map_mutex_status(locked(Owner, Count), Owner, Count).
 
 message_queue_size(Queue, Size) :-
 	message_queue_property(Queue, size(Size)).
+
+%%	lock_predicate(+Name, +Arity) is det.
+%%	unlock_predicate(+Name, +Arity) is det.
+%
+%	@deprecated see lock_predicate/1 and unlock_predicate/1.
+
+:- module_transparent
+	lock_predicate/2,
+	unlock_predicate/2.
+
+lock_predicate(Name, Arity) :-
+	lock_predicate(Name/Arity).
+
+unlock_predicate(Name, Arity) :-
+	unlock_predicate(Name/Arity).
+
