@@ -195,13 +195,18 @@ accept_server2(Goal, Options) :-
 	memberchk(tcp_socket(Socket), Options), !,
 	memberchk(queue(Queue), Options),
 	repeat,
-	  catch(tcp_accept(Socket, Client, Peer), E,
-		(   print_message(error, E),
-		    fail
-		)),
-	  debug(http(connection), 'New HTTP connection from ~p', [Peer]),
-	  thread_send_message(Queue, tcp_client(Client, Goal, Peer)),
-	fail.
+	  (   catch(tcp_accept(Socket, Client, Peer), E, true)
+	  ->  (   var(E)
+	      ->  debug(http(connection), 'New HTTP connection from ~p', [Peer]),
+		  thread_send_message(Queue, tcp_client(Client, Goal, Peer)),
+		  fail
+	      ;   E == http_stop
+	      ->  throw(http_stop)
+	      ;   print_message(error, E),
+		  fail
+	      )
+	  ;   print_message(error, goal_failed(tcp_accept(Socket, Client, Peer)))
+	  ).
 
 
 %%	http_stop_server(+Port, +Options)
