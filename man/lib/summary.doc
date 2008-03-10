@@ -12,6 +12,7 @@
 \begin{summarylist}{ll}
 \predicatesummary{assoc_to_list}{2}{Translate assoc into a pairs list}
 \predicatesummary{assoc_to_keys}{2}{Translate assoc into a key list}
+\predicatesummary{assoc_to_values}{2}{Translate assoc into a value list}
 \predicatesummary{empty_assoc}{1}{Test/create an empty assoc}
 \predicatesummary{gen_assoc}{3}{Non-deterministic enumeration of assoc}
 \predicatesummary{get_assoc}{3}{Get associated value}

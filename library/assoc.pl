@@ -43,8 +43,9 @@ TODO: exploit order in ord_list_to_assoc/2
 
 :- module(assoc,
 	  [ empty_assoc/1,		% -Assoc
-	    assoc_to_list/2,		% +Assoc, ?List
-	    assoc_to_keys/2,		% +Assoc, ?List
+	    assoc_to_list/2,		% +Assoc, -Pairs
+	    assoc_to_keys/2,		% +Assoc, -List
+	    assoc_to_values/2,		% +Assoc, -List
 	    gen_assoc/3,		% ?Key, +Assoc, ?Value
 	    get_assoc/3,		% +Key, +Assoc, ?Value
 	    get_assoc/5,		% +Key, +Assoc, ?Old, ?NewAssoc, +New
@@ -97,10 +98,10 @@ assoc_to_list(t(Key,Val,_,L,R), List, Rest) :-
 assoc_to_list(t, List, List).
 
 
-%%	assoc_to_keys(+Assoc, -Keys:list(Key)) is semidet.
+%%	assoc_to_keys(+Assoc, -Keys:ord_set) is det.
 %
-%	Translate Assoc to a list  of  keys.   The  keys  are  sorted in
-%	ascending order.
+%	True if Keys is the list of keys   in Assoc. The keys are sorted
+%	in ascending order.
 
 assoc_to_keys(Assoc, List) :-
 	assoc_to_keys(Assoc, List, []).
@@ -109,6 +110,21 @@ assoc_to_keys(t(Key,_,_,L,R), List, Rest) :-
 	assoc_to_keys(L, List, [Key|More]),
 	assoc_to_keys(R, More, Rest).
 assoc_to_keys(t, List, List).
+
+
+%%	assoc_to_values(+Assoc, -Values:list) is det.
+%
+%	True if Values is the  list  of   values  in  Assoc.  Values are
+%	ordered in ascending  order  of  the   key  to  which  they were
+%	associated.  Values may contain duplicates.
+
+assoc_to_values(Assoc, List) :-
+	assoc_to_values(Assoc, List, []).
+
+assoc_to_values(t(Key,_,_,L,R), List, Rest) :-
+	assoc_to_values(L, List, [Key|More]),
+	assoc_to_values(R, More, Rest).
+assoc_to_values(t, List, List).
 
 
 %%	gen_assoc(?Key, +Assoc, ?Value) is nondet.
