@@ -137,7 +137,7 @@ make_header(RC, _, Options) :-
 	current_prolog_flag(executable, Executable),
 	'$rc_append_file'(RC, '$header', '$rc', none, Executable).
 make_header(RC, SaveClass, _Options) :-
-	current_prolog_flag(unix, true),
+	current_prolog_flag(unix, true), !,
 	current_prolog_flag(executable, Executable),
 	'$rc_open'(RC, '$header', '$rc', write, Fd),
 	format(Fd, '#!/bin/sh~n', []),
@@ -324,20 +324,22 @@ save_module(M, SaveClass) :-
 	    feedback('~n', [])
 	).
 	
-pred_attrib(dynamic,       P, '$set_predicate_attribute'(P, dynamic,       1)).
-pred_attrib(volatile,      P, '$set_predicate_attribute'(P, volatile,      1)).
-pred_attrib(thread_local,  P, '$set_predicate_attribute'(P, thread_local,  1)).
-pred_attrib(multifile,     P, '$set_predicate_attribute'(P, multifile,     1)).
-pred_attrib(transparent,   P, '$set_predicate_attribute'(P, transparent,   1)).
-pred_attrib(discontiguous, P, '$set_predicate_attribute'(P, discontiguous, 1)).
-pred_attrib(notrace,       P, '$set_predicate_attribute'(P, trace,         0)).
-pred_attrib(show_childs,   P, '$set_predicate_attribute'(P, hide_childs,   0)).
-pred_attrib(indexed(Term), P, M:index(Term)) :-
-	strip_module(P, M, _).
+pred_attrib(indexed(Term), Head, index(M:Term)) :- !,
+	    strip_module(Head, M, _).
+pred_attrib(Attrib, Head, '$set_predicate_attribute'(M:Name/Arity, AttName, Val)) :-
+	attrib_name(Attrib, AttName, Val),
+	strip_module(Head, M, Term),
+	functor(Term, Name, Arity).
+	
+attrib_name(dynamic,	   dynamic,	  1).
+attrib_name(volatile,	   volatile,	  1).
+attrib_name(thread_local,  thread_local,  1).
+attrib_name(multifile,	   multifile,	  1).
+attrib_name(transparent,   transparent,	  1).
+attrib_name(discontiguous, discontiguous, 1).
+attrib_name(notrace,	   trace,	  0).
+attrib_name(show_childs,   hide_childs,	  0).
 
-predicate_attribute(P, Attribute) :-
-	pred_attrib(Attribute, P, _),
-	predicate_property(P, Attribute).
 
 save_attribute(P, Attribute) :-
 	pred_attrib(Attribute, P, D),
@@ -351,7 +353,7 @@ save_attribute(P, Attribute) :-
 	feedback('(~w) ', [Attribute]).
 
 save_attributes(P) :-
-	(   predicate_attribute(P, Attribute),
+	(   predicate_property(P, Attribute),
 	    save_attribute(P, Attribute),
 	    fail
 	;   true
