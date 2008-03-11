@@ -476,7 +476,7 @@ run_unit(Spec) :-
 	unit_from_spec(Spec, Unit, Tests, Module, UnitOptions),
 	(   option(blocked(Reason), UnitOptions)
 	->  info(plunit(blocked(unit(Unit, Reason))))
-	;   setup(Module, UnitOptions)
+	;   setup(Module, unit(Unit), UnitOptions)
 	->  info(plunit(begin(Spec))),
 	    forall((Module:'unit test'(Name, Line, Options, Body),
 		    matching_test(Name, Tests)),
@@ -683,7 +683,7 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	option(fail, Options), !,			% fail
 	unit_module(Unit, Module),
-	(   setup(Module, Options)
+	(   setup(Module, test(Unit,Name,Line), Options)
 	->  statistics(runtime, [T0,_]),
 	    (   catch(Module:Body, E, true)
 	    ->  (   var(E)
@@ -704,7 +704,7 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	option(true(Cmp), Options), !,
 	unit_module(Unit, Module),
-	(   setup(Module, Options)			% true(Binding)
+	(   setup(Module, test(Unit,Name,Line), Options) % true(Binding)
 	->  statistics(runtime, [T0,_]),
 	    (   catch(call_det(Module:Body, Det), E, true)
 	    ->  (   var(E)
@@ -730,7 +730,7 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	->  Expect = error(ErrorExpect, _)
 	), !,
 	unit_module(Unit, Module),
-	(   setup(Module, Options)
+	(   setup(Module, test(Unit,Name,Line), Options)
 	->  statistics(runtime, [T0,_]),
 	    (   catch(Module:Body, E, true)
 	    ->  (   var(E)
@@ -751,7 +751,7 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	).
 run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	unit_module(Unit, Module),
-	(   setup(Module, Options)
+	(   setup(Module, test(Unit,Name,Line), Options)
 	->  statistics(runtime, [T0,_]),
 	    (   catch(call_det(Module:Body, Det), E, true)
 	    ->  (   var(E)
@@ -775,10 +775,9 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 
 nondet_test(Expected, Unit, Name, Line, Options, Body, Result) :-
 	unit_module(Unit, Module),
-	setup(Module, Options), !,
 	result_vars(Expected, Vars),
 	statistics(runtime, [T0,_]),
-	(   setup(Module, Options)
+	(   setup(Module, test(Unit,Name,Line), Options)
 	->  (   catch(findall(Vars, Module:Body, Bindings), E, true)
 	    ->  (   var(E)
 		->  statistics(runtime, [T1,_]),
@@ -863,34 +862,39 @@ call_det(Goal, true) :-
 match_error(Expect, Rec) :-
 	subsumes_chk(Expect, Rec).
 
-%%	setup(+Module, +Options) is semidet.
+%%	setup(+Module, +Context, +Options) is semidet.
 %
 %	Call the setup handler and  fail  if   it  cannot  run  for some
 %	reason. The condition handler is  similar,   but  failing is not
-%	considered an error.
+%	considered an error.  Context is one of
+%	
+%	    * unit(Unit)
+%	    If it is the setup handler for a unit
+%	    * test(Unit,Name,Line)
+%	    If it is the setup handler for a test
 
-setup(Module, Options) :-
+setup(Module, Context, Options) :-
 	option(setup(Setup), Options), !,
 	(   catch(Module:Setup, E, true)
 	->  (   var(E)
 	    ->	true
-	    ;	print_message(error, E), 	% TBD
+	    ;	print_message(error, plunit(error(setup, Context, E))),
 		fail
 	    )
 	;   print_message(error, error(goal_failed(Setup), _)),
 	    fail
 	).
-setup(Module, Options) :-
+setup(Module, Context, Options) :-
 	option(condition(Setup), Options), !,
 	(   catch(Module:Setup, E, true)
 	->  (   var(E)
 	    ->	true
-	    ;	print_message(error, E), 	% TBD
+	    ;	print_message(error, plunit(error(condition, Context, E))),
 		fail
 	    )
 	;   fail
 	).
-setup(_,_).
+setup(_,_,_).
 
 %%	cleanup(+Module, +Options) is det.
 %
@@ -1084,9 +1088,13 @@ message_level(Level) :-
 	;   Level = silent
 	).
 
-locationprefix(File:Line) -->
-	!,
+locationprefix(File:Line) --> !,
 	[ '~w:~d:\n\t'-[File,Line]].
+locationprefix(test(Unit,_Test,Line)) --> !,
+	{ unit_file(Unit, File) },
+	locationprefix(File:Line).
+locationprefix(unit(Unit)) --> !,
+	[ 'PL-Unit: unit ~w: '-[Unit] ].
 locationprefix(FileLine) -->
 	{ throw_error(type_error(locationprefix,FileLine), _) }.
 
@@ -1141,6 +1149,12 @@ message(plunit(failed(Unit, Name, Line, Failure))) -->
        locationprefix(File:Line),
        ['test ~w: '- [Name] ],
        failure(Failure).
+					% Setup/condition errors
+message(plunit(error(Where, Context, Exception))) -->
+	locationprefix(Context),
+	{ message_to_string(Exception, String) },
+	[ 'error in ~w: ~w'-[Where, String] ].
+
 					% STO messages
 message(plunit(sto(Unit, Name, Line))) -->
 	{ unit_file(Unit, File) },
