@@ -29,7 +29,6 @@ documented at all.
 \input{aggregate}
 \input{apply}
 \input{assoc}
-\input{bounds}
 \input{broadcast}
 \input{check}
 \input{clpdistinct}

@@ -91,6 +91,12 @@
 
 :- use_module(library('clp/clp_events')).
 
+/** <module> Simple integer solver that keeps track of upper and lower bounds
+
+@deprecated	No longer maintained.  Please use clpfd.pl
+@author		Tom Schrijvers
+*/
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % exported predicates
 X #>= Y :-
