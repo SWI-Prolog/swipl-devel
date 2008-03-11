@@ -10,7 +10,7 @@
 # libXPM and libjpeg to compile.  This   variable  is normally overruled
 # from the configure script.  MUST be on one line
 
-PKG=	clib cpp odbc table xpce sgml sgml/RDF semweb http chr clpqr nlp ssl pldoc plunit jpl
+PKG=	clib cpp odbc table xpce sgml sgml/RDF semweb http chr clpqr nlp ssl pldoc plunit jpl zlib
 
 # Define additional config options.  If you wish to build the multi-threaded
 # version of SWI-Prolog and pl-mt to the same install-base, you must provide
