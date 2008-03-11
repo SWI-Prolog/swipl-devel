@@ -1100,12 +1100,10 @@ Equivalent to \exam{`\Snot Term1 =@= Term2'}.
     \predicate{subsumes}{2}{+Generic, {@}Specific}
 A term is told to \jargon{subsume} another term if instantiation in the
 generic term produces the specific term. The subsumption relation is
-also called \jargon{one sided unification} or \jargon{semi-unification}. Subsumes is implemented as a
-variation of unify that allows for bindings in \arg{Generic} only and
-fails if binding in \arg{Specific} is required. It behaves as if
-defined by\footnote{This implementation relies on the fact that
-term_variables/2 orders its variables based on depth-first left-to-right
-traversal of the term.}
+also called \jargon{one sided unification} or \jargon{semi-unification}.
+It behaves as if defined by\footnote{This implementation relies on the
+fact that term_variables/2 orders its variables based on depth-first
+left-to-right traversal of the term.}
 
 \begin{code}
 subsumes(General, Specific) :-
