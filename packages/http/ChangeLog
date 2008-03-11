@@ -1,3 +1,15 @@
+[Mar 10 2008]
+
+ * FIXED: HTTP accept loop to deal properly with termination
+
+[Mar 9 2008]
+
+ * FIXED: Various issues around JSON booleans and null.   Michiel Hildebrand.
+
+[Feb 26 2008]
+
+ * FIXED: Avoid error on destroyed message queue in http_stop_server/3.
+   Ferreira Maurizio.
 [Feb 8 2008]
 
  * ADDED: Hook to expand HTML head material.

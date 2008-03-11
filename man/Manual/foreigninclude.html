@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section 9.6</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 9.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="foreigntypes.html">
@@ -486,6 +486,10 @@ compound).
 <DT class="pubdef"><A NAME="PL_is_number()"><VAR>int</VAR> <STRONG>PL_is_number</STRONG>(<VAR>term_t</VAR>)</A></DT>
 <DD class="defbody">
 Returns non-zero if <VAR>term</VAR> is an integer or float.
+</DD>
+<DT class="pubdef"><A NAME="PL_is_acyclic()"><VAR>int</VAR> <STRONG>PL_is_acyclic</STRONG>(<VAR>term_t</VAR>)</A></DT>
+<DD class="defbody">
+Returns non-zero if <VAR>term</VAR> is acyclic (i.e. a finite tree).
 </DD>
 </DL>
 

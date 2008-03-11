@@ -8,6 +8,58 @@
 					--------------------------------------
 
 
+=============================
+VERSION 5.6.52 March 11, 2008
+=============================
+
+ * TEST: Fixed locale sensitivity of test.
+
+ * FIXED: Make thread test case less sensitive to timing.  Ulrich Neumerkel
+
+ * FIXED: Reading "0' ." from the terminal.  Markus Triska.
+
+ * FIXED: Meta argument handling of partition/5.  Alan Baljeu.
+
+ * ADDED: assoc_to_values/2, getting the list of values from an assoc
+
+ * ADDED: Meta declarations for map_assoc/[2,3]
+
+ * FIXED: Generate error evaluating cyclic terms in arithmetic.  Item#8, Ulrich
+   Neumerkel.  This patch also adds PL_is_acyclic() to the foreign interface.
+   
+ * ADDED: Translate string objects in DCG as if they are code lists.
+
+ * MODIFIED: compare/3 regarding mixed float/integer comparison.  If mixed
+   float/integer compares equal as floats we return the float as the smaller.
+   
+ * FIXED: toplevel message on illegal reply to DWIM correction.
+
+ * FIXED: Protect format/3 against abort.  Item#338, Ulrich Neumerkel.
+
+ * ENHANCED: Allow for GC from PL_handle_signals(), providing GC for foreign
+   code building large structures.  This is now used by the SGML/XML parser
+   to avoid running unnecessarily out of stack.
+   
+ * ENHANCED: make copy_stream_data/2,3 interruptable.  Started a test framework
+   for interruptable system predicates.  Ulrich will love that :-)
+   
+ * FIXED: Multi-threading memory management issue (Unix only).  Paulo Moura.
+   SWI-Prolog releases unused stacks to the OS after GC. On Unix systems
+   this is achieved using munmap()/mmap(). On a 4 CPU MacOS machine we
+   discovered that malloc/realloc on big areas can steel memory from the
+   Prolog stack.  MacOS can mmap over an old area, providing a safe atomic
+   alternative.  The new configure tests for this, which also appears to
+   work on (modern) linux.  See configure option MMAP_OVERRIDES.
+   
+ * ADDED: Make goal expansion work for the aggregate library arguments.
+
+ * ENHANCED: More tracking of XPCE control structures in cross-referencer.
+
+ * FIXED: numbervars using the option singletons(true).  The option now works
+   ok for acyclic terms and is disabled for cyclic terms.  Tom Schrijvers.
+   
+ * FIXED: help message after completing a query.  Markus Triska
+
 ================================
 VERSION 5.6.51 February 25, 2008
 ================================

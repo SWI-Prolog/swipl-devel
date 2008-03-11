@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section 4.20</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 4.20</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="termrw.html">
@@ -226,7 +226,8 @@ If <CODE>true</CODE> (default <CODE>false</CODE>), <A NAME="idx:numbervars4:856"
 does singleton detection. Singleton variables are unified with <CODE>'$VAR'('_')</CODE>, 
 causing them to be printed as <CODE>_</CODE> by <A NAME="idx:writeterm2:857"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A> 
 using the numbervars option. This option is exploited by <A NAME="idx:portrayclause2:858"></A><A class="pred" href="listing.html#portray_clause/2">portray_clause/2</A> 
-and <A NAME="idx:writecanonical2:859"></A><A class="pred" href="termrw.html#write_canonical/2">write_canonical/2</A>.
+and <A NAME="idx:writecanonical2:859"></A><A class="pred" href="termrw.html#write_canonical/2">write_canonical/2</A>.<SUP class="fn">bug<SPAN class="fn-text">Currently 
+this option is ignored for cyclic terms.</SPAN></SUP>
 </DD>
 </DL>
 

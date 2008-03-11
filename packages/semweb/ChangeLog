@@ -1,3 +1,7 @@
+[Mar 5 2008]
+
+ * FIXED: determinism detection in rdf_reachable/3
+
 [Feb 18 2008]
 
  * MODIFIED: Stricter checking in rdf_global_id/2 and rdf_global_term/2

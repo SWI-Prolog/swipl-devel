@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section 7.7</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 7.7</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="sicstus-chr.html">
@@ -173,6 +173,12 @@ to generate a <CODE>.qlf</CODE> file once from your
 code of the CHR compiler (be it in a binary format). When you consult 
 the <CODE>.qlf</CODE> file, the CHR compiler is not invoked and 
 consultation is much faster.
+
+<P>
+<LI><I>Finding Constraints</I><BR>
+The <A class="pred" href="debugging.html#find_chr_constraint/1">find_chr_constraint/1</A> 
+predicate is fairly expensive. Avoid it, if possible. If you must use 
+it, try to use it with an instantiated toplevel constraint symbol.
 </UL>
 
 <P></BODY></HTML>

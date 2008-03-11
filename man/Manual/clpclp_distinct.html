@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section A.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="check.html">
@@ -127,7 +127,7 @@ font-size: smaller;
 <A class="nav" href="clpfd.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.7"><SPAN class="sec-nr">A.7</SPAN> <SPAN class="sec-title">library( 
+<H2><A NAME="sec:A.6"><SPAN class="sec-nr">A.6</SPAN> <SPAN class="sec-title">library( 
 clp/clp_distinct ): Weak arc consistent `all_distinct' constraint</SPAN></A></H2>
 
 <A NAME="clp/clp_distinct"></A>
@@ -142,8 +142,8 @@ following constraints:
 <DT class="pubdef"><A NAME="all_distinct/1"><STRONG>all_distinct</STRONG>(<VAR>+Vars</VAR>)</A></DT>
 <DD class="defbody">
 The variables in <VAR>Vars</VAR> are constrained to be pairwise 
-distinct. All variables must already be assigned domains (via <A NAME="idx:varsin2:1459"></A><A class="pred" href="clpclp_distinct.html#vars_in/2">vars_in/2</A> 
-or <A NAME="idx:varsin3:1460"></A><A class="pred" href="clpclp_distinct.html#vars_in/3">vars_in/3</A>) 
+distinct. All variables must already be assigned domains (via <A NAME="idx:varsin2:1458"></A><A class="pred" href="clpclp_distinct.html#vars_in/2">vars_in/2</A> 
+or <A NAME="idx:varsin3:1459"></A><A class="pred" href="clpclp_distinct.html#vars_in/3">vars_in/3</A>) 
 when this constraint is posted.</DD>
 <DT class="pubdef"><A NAME="vars_in/2"><STRONG>vars_in</STRONG>(<VAR>+Vars, 
 +Domain</VAR>)</A></DT>
@@ -161,10 +161,10 @@ discrete interval [From,To].
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:A.7.1"><SPAN class="sec-nr">A.7.1</SPAN> <SPAN class="sec-title">Example 
+<H3><A NAME="sec:A.6.1"><SPAN class="sec-nr">A.6.1</SPAN> <SPAN class="sec-title">Example 
 1</SPAN></A></H3>
 
-The <A NAME="idx:alldistinct1:1461"></A><A class="pred" href="clpclp_distinct.html#all_distinct/1">all_distinct/1</A> 
+The <A NAME="idx:alldistinct1:1460"></A><A class="pred" href="clpclp_distinct.html#all_distinct/1">all_distinct/1</A> 
 constraint can detect various inconsistencies:
 
 <PRE class="code">
@@ -173,7 +173,7 @@ constraint can detect various inconsistencies:
 No
 </PRE>
 
-<H3><A NAME="sec:A.7.2"><SPAN class="sec-nr">A.7.2</SPAN> <SPAN class="sec-title">Example 
+<H3><A NAME="sec:A.6.2"><SPAN class="sec-nr">A.6.2</SPAN> <SPAN class="sec-title">Example 
 2</SPAN></A></H3>
 
 In this example, 3 is assigned to&nbsp;<VAR>Z</VAR> without labeling any 
@@ -187,12 +187,12 @@ Y = _G183{1-2}
 Z = 3 ;
 </PRE>
 
-<H3><A NAME="sec:A.7.3"><SPAN class="sec-nr">A.7.3</SPAN> <SPAN class="sec-title">Example 
+<H3><A NAME="sec:A.6.3"><SPAN class="sec-nr">A.6.3</SPAN> <SPAN class="sec-title">Example 
 3</SPAN></A></H3>
 
 The clp_distinct module can be used in conjunction with clp/bounds. All 
 relevant variables must still be assigned domains via one of the
-<EM>vars_in</EM> predicates before <A NAME="idx:alldistinct1:1462"></A><A class="pred" href="clpclp_distinct.html#all_distinct/1">all_distinct/1</A> 
+<EM>vars_in</EM> predicates before <A NAME="idx:alldistinct1:1461"></A><A class="pred" href="clpclp_distinct.html#all_distinct/1">all_distinct/1</A> 
 can be posted:
 
 <PRE class="code">

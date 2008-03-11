@@ -1,3 +1,13 @@
+[Mar 1 2008]
+
+ * ENHANCED: Allow for GC from PL_handle_signals(), providing GC for foreign
+   code building large structures.  This is now used by the SGML/XML parser
+   to avoid running unnecessarily out of stack.
+   
+[Feb 28 2008]
+
+ * FIXED: rdf_write_xml/2 loops if it encounters an rdf:Bag.
+
 [Feb 18 2008]
 
  * FIXED: More fixes for proper handling of rdf:Bag

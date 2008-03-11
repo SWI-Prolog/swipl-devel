@@ -1,3 +1,7 @@
+[Mar 4 2008]
+
+ * ENHANCED: Determinism of odbc_table_column/3,4.  Nicos Angelopoulos.
+
 [Jan 23 2008]
 
  * PORT: Bug#346: Allow overriding COFLAGS and CWFLAGS in package

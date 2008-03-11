@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section 4.6</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 4.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="typetest.html">
@@ -171,8 +171,9 @@ might be considered atoms in future versions. See also <A class="sec" href="stri
 6.1</A>) does not affect the ordering.
 <LI><VAR>Atoms</VAR> are compared alphabetically.
 <LI><VAR>Strings</VAR> are compared alphabetically.
-<LI><VAR>Numbers</VAR> are compared by value. Integers and floats are 
-treated identically. If the Prolog flag <A class="flag" href="flags.html#flag:iso">iso</A> 
+<LI><VAR>Numbers</VAR> are compared by value. Mixed integer/float are 
+compared as floats. If the comparison is equal, the float is considered 
+the smaller value. If the Prolog flag <A class="flag" href="flags.html#flag:iso">iso</A> 
 is defined, all floating point numbers precede all integers.
 <LI><VAR>Compound</VAR> terms are first checked on their arity, then on 
 their functor-name (alphabetically) and finally recursively on their 
@@ -286,9 +287,7 @@ Equivalent to <CODE>`<CODE>\+</CODE>Term1 =@= Term2'</CODE>.</DD>
 A term is told to <EM>subsume</EM> another term if instantiation in the 
 generic term produces the specific term. The subsumption relation is 
 also called <EM>one sided unification</EM> or <EM>semi-unification</EM>. 
-Subsumes is implemented as a variation of unify that allows for bindings 
-in <VAR>Generic</VAR> only and fails if binding in <VAR>Specific</VAR> 
-is required. It behaves as if defined by<SUP class="fn">27<SPAN class="fn-text">This 
+It behaves as if defined by<SUP class="fn">27<SPAN class="fn-text">This 
 implementation relies on the fact that <A NAME="idx:termvariables2:492"></A><A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A> 
 orders its variables based on depth-first left-to-right traversal of the 
 term.</SPAN></SUP>

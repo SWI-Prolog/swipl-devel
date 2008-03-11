@@ -1,3 +1,7 @@
+[Feb 26 2008]
+
+ * ENHANCED: Raise PceEmacs bookmark window on `Show bookmarks'
+
 [Feb 22 2008]
 
  * FIXED: Avoid unknown class: yes messages if graphical tracer is active.

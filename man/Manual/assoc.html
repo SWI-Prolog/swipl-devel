@@ -2,11 +2,11 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section A.3</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section A.3</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="apply.html">
-<LINK REL=next HREF="clpbounds.html">
+<LINK REL=next HREF="broadcast.html">
 <STYLE type="text/css">
 /* Style sheet for SWI-Prolog latex2html
 */
@@ -124,7 +124,7 @@ font-size: smaller;
 <A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
 <A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
 <A class="nav" href="apply.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A class="nav" href="clpbounds.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<A class="nav" href="broadcast.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
 <H2><A NAME="sec:A.3"><SPAN class="sec-nr">A.3</SPAN> <SPAN class="sec-title">library( 
@@ -155,6 +155,11 @@ associations in <VAR>Assoc</VAR> in ascending order of keys.</DD>
 <DD class="defbody">
 <VAR>List</VAR> is a list of Keys corresponding to the associations in <VAR>Assoc</VAR> 
 in ascending order.</DD>
+<DT class="pubdef"><A NAME="assoc_to_values/2"><STRONG>assoc_to_values</STRONG>(<VAR>+Assoc, 
+-List</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>List</VAR> is a list of Values corresponding to the associations in <VAR>Assoc</VAR> 
+in ascending order of the keys they are associated to.</DD>
 <DT class="pubdef"><A NAME="empty_assoc/1"><STRONG>empty_assoc</STRONG>(<VAR>-Assoc</VAR>)</A></DT>
 <DD class="defbody">
 <VAR>Assoc</VAR> is unified with an empty association list.</DD>

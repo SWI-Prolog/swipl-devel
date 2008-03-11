@@ -1,3 +1,7 @@
+[Feb 28 2008]
+
+ * FIXED: rdf_write_xml/2 loops if it encounters an rdf:Bag.
+
 [Feb 18 2008]
 
  * FIXED: More fixes for proper handling of rdf:Bag

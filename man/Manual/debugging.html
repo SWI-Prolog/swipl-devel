@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section 7.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 7.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="practical.html">
@@ -292,9 +292,12 @@ SWI-Prolog top-level at the end of each query for every CHR module
 currently loaded. The Prolog flag
 <CODE>chr_toplevel_show_store</CODE> controls whether the top-level 
 shows the constraint stores. The value <CODE>true</CODE> enables it. Any 
-other value disables it.
-
-<P></DD>
+other value disables it.</DD>
+<DT class="pubdef"><A NAME="find_chr_constraint/1"><STRONG>find_chr_constraint</STRONG>(<VAR>-Constraint</VAR>)</A></DT>
+<DD class="defbody">
+Returns a constraint in the constraint store. Via backtracking, all 
+constraints in the store can be enumerated.
+</DD>
 </DL>
 
 <P></BODY></HTML>

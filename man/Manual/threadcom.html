@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section 8.3</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 8.3</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="thmonitor.html">
@@ -229,9 +229,8 @@ consuming the messages.
 <DD class="defbody">
 Destroy a message queue created with <A NAME="idx:messagequeuecreate1:1290"></A><A class="pred" href="threadcom.html#message_queue_create/1">message_queue_create/1</A>. 
 It is
-<EM>not</EM> allows to destroy the queue of a thread. Neither is it 
-allowed to destroy a queue other threads are waiting for or, for 
-anonymous message queues, may try to wait for later.<SUP class="fn">bug<SPAN class="fn-text">None 
+<EM>not</EM> allowed to destroy the queue of a thread. Neither is it 
+allowed to destroy a queue other threads are waiting for.<SUP class="fn">bug<SPAN class="fn-text">None 
 of these constraints are properly enforced by the system in the current 
 implementation. It is therefore advised not to delete queues unless you 
 are absolutely sure it is safe.</SPAN></SUP></DD>

@@ -1,3 +1,7 @@
+[Feb 27 2008]
+
+ * ENHANCED: CHR performance of find_chr_constraint when called with nonvar argument
+
 [Feb 14 2008]
 
  * ENHANCED: CHR performance (minor issues)

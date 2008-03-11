@@ -1,3 +1,11 @@
+[Mar 10 2008]
+
+ * FIXED: Pass error while waiting for accept() in Windows
+
+[Feb 26 2008]
+
+ * PORT: Fix compilation of SHA1 routines for SUN/SPARC.  Robert Andersson.
+
 [Feb 15 2008]
 
  * FIXED: cgi_get_form/1 now assumes input data is in UTF-8.

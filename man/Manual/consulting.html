@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section 4.3</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 4.3</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="chars.html">
@@ -495,7 +495,12 @@ maintains the source file for each predicate. See also <A NAME="idx:clauseproper
 <DT class="pubdef"><A NAME="prolog_load_context/2"><STRONG>prolog_load_context</STRONG>(<VAR>?Key, 
 ?Value</VAR>)</A></DT>
 <DD class="defbody">
-Determine loading context. The following keys are defined:
+Obtain context information during compilation. This predicate can be 
+used from directives appearing in a source file to get information about 
+the file being loaded. See also <A NAME="idx:sourcelocation2:400"></A><A class="pred" href="consulting.html#source_location/2">source_location/2</A>. 
+The following keys are defined:
+
+<P>
 <CENTER>
 <TABLE BORDER=2 FRAME=box RULES=groups>
 <TR VALIGN=top><TD><B>Key</B></TD><TD><B>Description </B></TD></TR>
@@ -505,20 +510,20 @@ is loaded </TD></TR>
 <TR VALIGN=top><TD><CODE>source</CODE> </TD><TD>File loaded. Returns the 
 original Prolog file when loading a <CODE>.qlf</CODE> file. Compatible 
 to SICStus Prolog. </TD></TR>
-<TR VALIGN=top><TD><CODE>file</CODE> </TD><TD>Currently equivalent to <CODE>file</CODE>. 
+<TR VALIGN=top><TD><CODE>file</CODE> </TD><TD>Currently equivalent to <CODE>source</CODE>. 
 In future versions it may report a different values for files being 
-loaded using <A NAME="idx:include1:400"></A><A class="pred" href="consulting.html#include/1">include/1</A>. </TD></TR>
-<TR VALIGN=top><TD><CODE>stream</CODE> </TD><TD>Stream identifier (see <A NAME="idx:currentinput1:401"></A><A class="pred" href="IO.html#current_input/1">current_input/1</A>) </TD></TR>
-<TR VALIGN=top><TD><CODE>directory</CODE> </TD><TD>Directory in which <VAR>File</VAR> 
+loaded using <A NAME="idx:include1:401"></A><A class="pred" href="consulting.html#include/1">include/1</A>. </TD></TR>
+<TR VALIGN=top><TD><CODE>stream</CODE> </TD><TD>Stream identifier (see <A NAME="idx:currentinput1:402"></A><A class="pred" href="IO.html#current_input/1">current_input/1</A>) </TD></TR>
+<TR VALIGN=top><TD><CODE>directory</CODE> </TD><TD>Directory in which <CODE>source</CODE> 
 lives. </TD></TR>
-<TR VALIGN=top><TD><CODE>dialect</CODE> </TD><TD>Compatibility mode. See <A NAME="idx:expectsdialect1:402"></A><A class="pred" href="dialect.html#expects_dialect/1">expects_dialect/1</A>. </TD></TR>
+<TR VALIGN=top><TD><CODE>dialect</CODE> </TD><TD>Compatibility mode. See <A NAME="idx:expectsdialect1:403"></A><A class="pred" href="dialect.html#expects_dialect/1">expects_dialect/1</A>. </TD></TR>
 <TR VALIGN=top><TD><CODE>term_position</CODE> </TD><TD>Position of last 
 term read. Term of the form
-<TT>'$stream_position'(0,&lt;<VAR>Line</VAR>&gt;,0,0,0)</TT>. See also <A NAME="idx:streampositiondata3:403"></A><A class="pred" href="IO.html#stream_position_data/3">stream_position_data/3</A>. </TD></TR>
+<TT>'$stream_position'(0,&lt;<VAR>Line</VAR>&gt;,0,0,0)</TT>. See also <A NAME="idx:streampositiondata3:404"></A><A class="pred" href="IO.html#stream_position_data/3">stream_position_data/3</A>. </TD></TR>
 </TABLE>
 
 </CENTER>
-Quintus compatibility predicate. See also <A NAME="idx:sourcelocation2:404"></A><A class="pred" href="consulting.html#source_location/2">source_location/2</A>.</DD>
+</DD>
 <DT class="pubdef"><A NAME="source_location/2"><STRONG>source_location</STRONG>(<VAR>-File, 
 -Line</VAR>)</A></DT>
 <DD class="defbody">

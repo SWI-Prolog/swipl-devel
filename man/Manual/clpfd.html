@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.51 Reference Manual: Section A.8</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="clpclp_distinct.html">
@@ -127,7 +127,7 @@ font-size: smaller;
 <A class="nav" href="clpqr.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.8"><SPAN class="sec-nr">A.8</SPAN> <SPAN class="sec-title">clpfd.pl 
+<H2><A NAME="sec:A.7"><SPAN class="sec-nr">A.7</SPAN> <SPAN class="sec-title">clpfd.pl 
 -- Constraint Logic Programming over Finite Domains</SPAN></A></H2>
 
 <P><A NAME="sec:clpfd"></A>
@@ -184,8 +184,8 @@ strictly smaller than Expr2 </TD></TR>
 
 </BLOCKQUOTE>
 
-<P>The constraints <A class="pred" href="clpbounds.html##=/2">#=/2</A>, <A class="pred" href="clpbounds.html##\=/2">#\=/2</A>, <A class="pred" href="clpbounds.html##</2">#&lt;/2</A>, <A class="pred" href="clpbounds.html##>/2">#&gt;/2</A>, <A class="pred" href="clpbounds.html##=</2">#=&lt;/2</A>, 
-and <A class="pred" href="clpbounds.html##>=/2">#&gt;=/2</A> can be
+<P>The constraints <A class="pred" href="clpfd.html##=/2">#=/2</A>, <A class="pred" href="clpfd.html##\=/2">#\=/2</A>, <A class="pred" href="clpfd.html##</2">#&lt;/2</A>, <A class="pred" href="clpfd.html##>/2">#&gt;/2</A>, <A class="pred" href="clpfd.html##=</2">#=&lt;/2</A>, 
+and <A class="pred" href="clpfd.html##>=/2">#&gt;=/2</A> can be
 <I>reified</I>, which means reflecting their truth values into Boolean 
 values represented by the integers 0 and 1. Let P and Q denote reifiable 
 constraints or Boolean variables, then:
@@ -375,12 +375,12 @@ Constrain <VAR>Vars</VAR> to be pairwise distinct.</DD>
 <DT class="pubdef"><A NAME="sum/3"><STRONG>sum</STRONG>(<VAR>+Vars, +Op, 
 +Expr</VAR>)</A></DT>
 <DD class="defbody">
-Constrain the sum of a list. The <A class="pred" href="clpbounds.html#sum/3">sum/3</A> 
+Constrain the sum of a list. The <A class="pred" href="clpfd.html#sum/3">sum/3</A> 
 constraint demands that "sumlist(<VAR>Vars</VAR>) <VAR>Op</VAR> <VAR>Expr</VAR>" 
 hold, e.g.:
 
 <PRE class="code">
-        sum(List, #=&lt;, 100)
+sum(List, #=&lt;, 100)
 </PRE>
 
 </DD>
@@ -430,7 +430,7 @@ Constrains <VAR>Lists</VAR> to be lexicographically non-decreasing.</DD>
 of the list <VAR>Tuples</VAR> are constrained to be elements of <VAR>Relation</VAR>.</DD>
 <DT class="pubdef"><A NAME="all_distinct/1"><STRONG>all_distinct</STRONG>(<VAR>+Ls</VAR>)</A></DT>
 <DD class="defbody">
-Like <A class="pred" href="clpbounds.html#all_different/1">all_different/1</A>, 
+Like <A class="pred" href="clpfd.html#all_different/1">all_different/1</A>, 
 with stronger propagation.</DD>
 <DT class="pubdef"><A NAME="serialized/2"><STRONG>serialized</STRONG>(<VAR>+Starts, 
 +Durations</VAR>)</A></DT>
@@ -468,7 +468,7 @@ or the atom <B>sup</B> if the domain is unbounded.</DD>
 <DT class="pubdef"><A NAME="fd_dom/2"><STRONG>fd_dom</STRONG>(<VAR>+Var, 
 -Dom</VAR>)</A></DT>
 <DD class="defbody">
-<VAR>Dom</VAR> is the current domain (see <A class="pred" href="clpbounds.html#in/2">in/2</A>) 
+<VAR>Dom</VAR> is the current domain (see <A class="pred" href="clpfd.html#in/2">in/2</A>) 
 of <VAR>Var</VAR>.</DD>
 <DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="copy_term/3"><STRONG>copy_term</STRONG>(<VAR>+Term, 
 -Copy, -Gs</VAR>)</A></DT>
