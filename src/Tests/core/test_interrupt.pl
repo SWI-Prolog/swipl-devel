@@ -77,8 +77,8 @@ run(Parent, Goal) :-
 	Goal.
 
 cp_zero_null :-
-	open('/dev/zero', read, In),
-	open('/dev/null', write, Out),
+	open('/dev/zero', read, In, [type(binary)]),
+	open('/dev/null', write, Out, [type(binary)]),
 	call_cleanup(copy_stream_data(In, Out),
 		     (	 close(In),
 			 close(Out)
