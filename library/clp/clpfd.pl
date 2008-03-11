@@ -1756,9 +1756,12 @@ X #\= Y :-
 % abs(X-Y) #\= C
 
 absdiff_neq_const(X, Y, C) :-
-        make_propagator(absdiff_neq(X,Y,C), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_once(Prop).
+        (   C >= 0 ->
+            make_propagator(absdiff_neq(X,Y,C), Prop),
+            init_propagator(X, Prop), init_propagator(Y, Prop),
+            trigger_once(Prop)
+        ;   constrain_to_integer(X), constrain_to_integer(Y)
+        ).
 
 % X #\= Y + C
 
