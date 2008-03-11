@@ -26,9 +26,9 @@ test(concur, true) :-
 test(first, true(X==1)) :-
 	first_solution(X, [X=1,X=1], []).
 test(first, fail) :-
-	first_solution(X, [fail,X=1], []).
+	first_solution(X, [fail,(sleep(1),X=1)], []).
 test(first, true(X==1)) :-
-	first_solution(X, [fail,X=1], [on_fail(continue)]).
+	first_solution(X, [fail,(sleep(0.01),X=1)], [on_fail(continue)]).
 test(first, true(X==1)) :-
 	first_solution(X, [(repeat,fail), X=1], []).
 
