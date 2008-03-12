@@ -574,16 +574,17 @@ modify_case_atom(term_t in, term_t out, int down)
 }
 
 
-foreign_t
-pl_downcase_atom(term_t in, term_t out)
-{ return modify_case_atom(in, out, TRUE);
+static
+PRED_IMPL("downcase_atom", 2, downcase_atom, 0)
+{ return modify_case_atom(A1, A2, TRUE);
 }
 
 
-foreign_t
-pl_upcase_atom(term_t in, term_t out)
-{ return modify_case_atom(in, out, FALSE);
+static
+PRED_IMPL("upcase_atom", 2, upcase_atom, 0)
+{ return modify_case_atom(A1, A2, FALSE);
 }
+
 
 		 /*******************************
 		 *	       LOCALE		*
@@ -685,6 +686,8 @@ BeginPredDefs(ctype)
   PRED_DEF("char_type", 2, char_type, PL_FA_NONDETERMINISTIC)
   PRED_DEF("code_type", 2, code_type, PL_FA_NONDETERMINISTIC)
   PRED_DEF("setlocale", 3, setlocale, 0)
+  PRED_DEF("downcase_atom", 2, downcase_atom, 0)
+  PRED_DEF("upcase_atom", 2, upcase_atom, 0)
 EndPredDefs
 
 

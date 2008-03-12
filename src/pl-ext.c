@@ -160,8 +160,6 @@ static const PL_extension foreigns[] = {
   FRG("number_chars",		2, pl_number_chars,		0),
   FRG("number_codes",		2, pl_number_codes,		0),
   FRG("char_code",		2, pl_char_code,		0),
-  FRG("downcase_atom",		2, pl_downcase_atom,		0),
-  FRG("upcase_atom",		2, pl_upcase_atom,		0),
   FRG("atom_concat",		3, pl_atom_concat,	     NDET),
   FRG("$concat_atom",		2, pl_concat_atom,		0),
   FRG("concat_atom",		3, pl_concat_atom3,		0),
