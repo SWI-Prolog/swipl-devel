@@ -456,6 +456,34 @@ PRED_IMPL("iswctype", 2, iswctype, 0)
 #endif
 
 
+static int
+init_tout(PL_chars_t *t, size_t len)
+{ switch(t->encoding)
+  { case ENC_ISO_LATIN_1:
+      if ( len < sizeof(t->buf) )
+      { t->text.t = t->buf;
+	t->storage = PL_CHARS_LOCAL;
+      } else
+      { t->text.t = PL_malloc(len);
+	t->storage = PL_CHARS_MALLOC;
+      }
+      succeed;
+    case ENC_WCHAR:
+      if ( len*sizeof(pl_wchar_t) < sizeof(t->buf) )
+      { t->text.w = (pl_wchar_t*)t->buf;
+	t->storage = PL_CHARS_LOCAL;
+      } else
+      { t->text.w = PL_malloc(len*sizeof(pl_wchar_t));
+	t->storage = PL_CHARS_MALLOC;
+      }
+      succeed;
+    default:
+      assert(0);
+      fail;
+  }
+}
+
+
 static inline wint_t
 get_chr_from_text(const PL_chars_t *t, int index)
 { switch(t->encoding)
@@ -504,16 +532,10 @@ modify_case_atom(term_t in, term_t out, int down)
     tout.length    = tin.length;
     tout.canonical = FALSE;		/* or TRUE? Can WCHAR map to ISO? */
 
+    init_tout(&tout, tin.length);
+
     if ( tin.encoding == ENC_ISO_LATIN_1 )
     { const unsigned char *in = (const unsigned char*)tin.text.t;
-
-      if ( tin.length < sizeof(tout.buf) )
-      { tout.text.t = tout.buf;
-	tout.storage = PL_CHARS_LOCAL;
-      } else
-      { tout.text.t = PL_malloc(tin.length);
-	tout.storage = PL_CHARS_MALLOC;
-      }
 
       if ( down )
       { for(i=0; i<tin.length; i++)
@@ -545,15 +567,7 @@ modify_case_atom(term_t in, term_t out, int down)
 	}
       } 
     } else
-    { if ( tin.length*sizeof(pl_wchar_t) < sizeof(tout.buf) )
-      { tout.text.w = (pl_wchar_t*)tout.buf;
-	tout.storage = PL_CHARS_LOCAL;
-      } else
-      { tout.text.w = PL_malloc(tin.length*sizeof(pl_wchar_t));
-	tout.storage = PL_CHARS_MALLOC;
-      }
-
-      if ( down )
+    { if ( down )
       { for(i=0; i<tin.length; i++)
 	{ tout.text.w[i] = towlower(tin.text.w[i]);
 	}
@@ -584,6 +598,67 @@ static
 PRED_IMPL("upcase_atom", 2, upcase_atom, 0)
 { return modify_case_atom(A1, A2, FALSE);
 }
+
+
+		 /*******************************
+		 *	    WHITE SPACE		*
+		 *******************************/
+
+static int
+write_normalize_space(IOSTREAM *out, term_t in)
+{ PL_chars_t tin;
+  int rc;
+  int i, end;
+
+  if ( !PL_get_text(in, &tin, CVT_ATOMIC|CVT_EXCEPTION) )
+    return FALSE;
+
+  end = tin.length;
+  i = 0;
+
+  while(i<end && unicode_separator(get_chr_from_text(&tin, i)))
+    i++;
+  while( i<end )
+  { wint_t c;
+
+    while(i<end && !unicode_separator((c=get_chr_from_text(&tin, i))))
+    { if ( Sputcode(c, out) < 0 )
+	fail;
+      i++;
+    }
+    while(i<end && unicode_separator(get_chr_from_text(&tin, i)))
+      i++;
+    if ( i < end )
+    { if (  Sputcode(' ', out) < 0 )
+	fail;
+    }
+  }
+
+  succeed;
+}
+
+
+static
+PRED_IMPL("normalize_space", 2, normalize_space, 0)
+{ redir_context ctx;
+  word rc;
+
+  EXCEPTION_GUARDED(/*code*/
+		    if ( setupOutputRedirect(A1, &ctx, FALSE) )
+		    { if ( (rc = write_normalize_space(ctx.stream, A2)) )
+			rc = closeOutputRedirect(&ctx);
+		      else
+			discardOutputRedirect(&ctx);
+		    } else
+		      rc = FALSE;
+		    /*cleanup*/,
+		    DEBUG(1, Sdprintf("Cleanup after throw()\n"));
+		    discardOutputRedirect(&ctx);
+		    rc = PL_rethrow(););
+
+  return rc;
+}
+
 
 
 		 /*******************************
@@ -688,6 +763,7 @@ BeginPredDefs(ctype)
   PRED_DEF("setlocale", 3, setlocale, 0)
   PRED_DEF("downcase_atom", 2, downcase_atom, 0)
   PRED_DEF("upcase_atom", 2, upcase_atom, 0)
+  PRED_DEF("normalize_space", 2, normalize_space, 0)
 EndPredDefs
 
 

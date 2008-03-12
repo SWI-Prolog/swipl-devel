@@ -676,6 +676,7 @@ COMMON(void) 		profRedo(struct call_node *node ARG_LD);
 
 /* pl-read.c */
 COMMON(void) 		resetRead(void);
+COMMON(int)		unicode_separator(pl_wchar_t c);
 COMMON(int) 		str_number(const unsigned char *string,
 				   unsigned char **end,
 				   Number value, bool escape);

@@ -3938,6 +3938,7 @@ depending of the version used. See also the Prolog flag
 
 
 \subsection{Case conversion}
+\label{sec:case}
 
 There is nothing in the Prolog standard for converting case in textual
 data.  The SWI-Prolog predicates code_type/2 and char_type/2 can be used
@@ -3953,6 +3954,18 @@ with \arg{LowerCase}.
 
     \predicate{upcase_atom}{2}{+AnyCase, -UpperCase}
 Converts, similar to downcase_atom/2, an atom to upper-case.
+\end{description}
+
+
+\subsection{White space normalization}
+\label{sec:whitespace}
+
+\begin{description}
+    \predicate{normalize_space}{2}{-Out, +In}
+Normalize white space in \arg{In}. All leading and trailing white space
+is removed. All non-empty sequences for Unicode white space characters
+are replaces by a single space (\verb$\u0020$) character.  \arg{Out}
+uses the same conventions as with_output_to/2 and format/3.
 \end{description}
 
 

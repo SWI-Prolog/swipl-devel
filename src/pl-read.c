@@ -56,6 +56,11 @@ static void	addUTF8Buffer(Buffer b, int c);
 #define PlPunctW(c)	CharTypeW(c, == PU, 0)
 #define PlSoloW(c)	CharTypeW(c, == SO, 0)
 
+int
+unicode_separator(pl_wchar_t c)
+{ return PlBlankW(c);
+}
+
 
 		 /*******************************
 		 *	   CHAR-CONVERSION	*
