@@ -274,6 +274,10 @@ portray_body(Var, _, _, Pri, Out) :-
 	pprint(Out, Var, Pri).
 portray_body(!, _, _, _, Out) :- !, 
 	write(Out, ' !').
+portray_body((!, Clause), Indent, _, Pri, Out) :-
+	\+ term_needs_braces((_,_), Pri), !,
+	write(Out, ' !,'), 
+	portray_body(Clause, Indent, indent, 1000, Out).
 portray_body(Term, Indent, indent, Pri, Out) :- !, 
 	nlindent(Out, Indent), 
 	portray_body(Term, Indent, noindent, Pri, Out).
@@ -289,9 +293,6 @@ portray_body(Term, Indent, _, Pri, Out) :-
 	portray_body(Term, Indent, noindent, 1200, Out), 
 	nlindent(Out, Indent), 
 	write(Out, ')').
-portray_body((!, Clause), Indent, _, _Pri, Out) :- !, 
-	write(Out, ' !,'), 
-	portray_body(Clause, Indent, indent, 1000, Out).
 portray_body((A,B), Indent, _, _Pri, Out) :- !, 
 	infix_op((,), LeftPri, RightPri),
 	portray_body(A, Indent, noindent, LeftPri, Out), 
