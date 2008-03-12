@@ -9,8 +9,15 @@
 
 
 =============================
-VERSION 5.6.52 March 11, 2008
+VERSION 5.6.52 March 12, 2008
 =============================
+
+ * MODIFIED: If locale initialisation fails, revert to iso_latin_1 encoding.
+   Ulrich Neumerkel.
+   
+ * FIXED: Handling of list(Type) and user-defined types in library(record).
+
+ * ADDED: New built-in normalize_space/2 to deal with this common task
 
  * TEST: Fixed locale sensitivity of test.
 
