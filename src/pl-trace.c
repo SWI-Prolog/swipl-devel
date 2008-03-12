@@ -1237,13 +1237,13 @@ helpInterrupt(void)
 static void
 interruptHandler(int sig)
 { int c; 
+  int safe;
 
   if ( !GD->initialised )
   { Sfprintf(Serror, "Interrupt during startup. Cannot continue\n");
     PL_halt(1);
   }  
 
-again:
 #ifdef O_PLMT
   if ( !LD )				/* we can't handle this; main thread */
   { PL_thread_raise(1, sig);		/* should try to do this */
@@ -1258,8 +1258,26 @@ again:
   }
 #endif
 
+#if __unix__				/* actually, asynchronous signal handling */
+  if ( !LD->sync_signal )
+  { long mask = (1L<<(sig-1));
+
+    if ( (LD->pending_signals & mask) )
+    { LD->pending_signals &= ~mask;
+      safe = FALSE;
+    } else
+    { DEBUG(1, Sdprintf("Reposting as synchronous\n"));
+      PL_raise(sig);
+      return;
+    }
+  } else
+  { safe = TRUE;
+  }
+#endif
+
   Sreset();
-  Sfputs("\nAction (h for help) ? ", Sdout);
+again:
+  Sfprintf(Sdout, "\n%sAction (h for help) ? ", safe ? "" : "[forced] ");
   Sflush(Sdout);
   ResetTty();                           /* clear pending input -- atoenne -- */
   c = getSingleChar(Sdin, FALSE);

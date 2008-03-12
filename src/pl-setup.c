@@ -347,6 +347,7 @@ dispatch_signal(int sig, int sync)
   fid_t fid;
   uintptr_t lTopSave;
   int saved_current_signal;
+  int saved_sync;
 
 #ifdef O_PLMT
   if ( !LD )
@@ -367,6 +368,7 @@ dispatch_signal(int sig, int sync)
 
   lTopSave = (char*)lTop - (char*)lBase;
   saved_current_signal = LD->current_signal;
+  saved_sync = LD->sync_signal;
 
   switch(sig)
   { case SIGFPE:
@@ -390,6 +392,7 @@ dispatch_signal(int sig, int sync)
 
   blockGC(PASS_LD1);
   LD->current_signal = sig;
+  LD->sync_signal = sync;
   fid = PL_open_signal_foreign_frame();
 
   DEBUG(1, Sdprintf("Handling signal %d, pred = %p, handler = %p\n",
@@ -440,6 +443,7 @@ dispatch_signal(int sig, int sync)
   }
 
   LD->current_signal = saved_current_signal;
+  LD->sync_signal = saved_sync;
   PL_discard_foreign_frame(fid);
   lTop = addPointer(lBase, lTopSave);
 
