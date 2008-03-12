@@ -205,6 +205,7 @@ type_checks([Type|T], [V|Vars], (Goal, Body)) :-
 %	Inline type checking calls.
 
 type_goal(Type, Var, Body) :-
+	Type \= list(_),
 	clause(error:has_type(Type, Var), Body), !.
 type_goal(Type, Var, is_of_type(Type, Var)).
 
@@ -216,6 +217,8 @@ clean_body((true,A0), A) :- !,
 clean_body((A0,B0), (A,B)) :-
 	clean_body(A0, A),
 	clean_body(B0, B).
+clean_body(_:A, A) :-
+	predicate_property(A, built_in), !.
 clean_body(A, A).
 
 
