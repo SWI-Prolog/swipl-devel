@@ -673,12 +673,19 @@ Note: on some installations, locale doesn't   work correctly. Printing a
 message isn't really cute. It would be better to use printMessage(), but
 the system isn't yet initialised far enough.   Maybe we should store the
 failure and print a message at the end of the initialisation?
+
+We only return FALSE if LC_CTYPE  fails.   This  is a serious indication
+that locale support is broken. We don't   depend too much on the others,
+so we ignore possible problems.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 initLocale()
-{ if ( !setlocale(LC_CTYPE, "") )
-  { DEBUG(0, Sdprintf("Failed to set LC_CTYPE locale\n"));
+{ int rc = TRUE;
+
+  if ( !setlocale(LC_CTYPE, "") )
+  { rc = FALSE;
+    DEBUG(0, Sdprintf("Failed to set LC_CTYPE locale\n"));
   }
   if ( !setlocale(LC_TIME, "") )
   { DEBUG(0, Sdprintf("Failed to set LC_TIME locale\n"));
@@ -686,6 +693,8 @@ initLocale()
   if ( !setlocale(LC_COLLATE, "") )
   { DEBUG(0, Sdprintf("Failed to set LC_COLLATE locale\n"));
   }
+
+  return rc;
 }
 
 typedef struct
@@ -743,7 +752,7 @@ PRED_IMPL("setlocale", 3, setlocale, 0)
 
 #else
 
-#define initLocale()
+#define initLocale() 1
 
 static
 PRED_IMPL("setlocale", 3, setlocale, 0)
@@ -823,21 +832,24 @@ initEncoding()
   { if ( !LD->encoding )
     { char *enc;
 
-      initLocale();
-      enc = setlocale(LC_CTYPE, NULL);
+      if ( !initLocale() )
+      { LD->encoding = ENC_ISO_LATIN_1;
+      } else if ( (enc = setlocale(LC_CTYPE, NULL)) )
+      { LD->encoding = ENC_ANSI;		/* text encoding */
 
-      LD->encoding = ENC_ANSI;		/* text encoding */
+	if ( (enc = strchr(enc, '.')) )
+	{ const enc_map *m;
+	  enc++;				/* skip '.' */
 
-      if ( enc && (enc = strchr(enc, '.')) )
-      { const enc_map *m;
-	enc++;				/* skip '.' */
-
-	for ( m=map; m->name; m++ )
-	{ if ( strcmp(enc, m->name) == 0 )
-	  { LD->encoding = m->encoding;
-	    break;
+	  for ( m=map; m->name; m++ )
+	  { if ( strcmp(enc, m->name) == 0 )
+	    { LD->encoding = m->encoding;
+	      break;
+	    }
 	  }
 	}
+      } else
+      { LD->encoding = ENC_ISO_LATIN_1;
       }
     }
 
