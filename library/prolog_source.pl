@@ -45,7 +45,7 @@ terms from Prolog source-files. This may  seem   easy,  but  there are a
 couple of problems that must be taken care of.
 
 	* Source files may start with #!, supporting PrologScript
-	* Embeded operators declarations must be taken into account
+	* Embedded operators declarations must be taken into account
 	* Style-check options must be taken into account
 	* Operators and style-check options may be implied by directives
 	* On behalf of the development environment we also wish to
