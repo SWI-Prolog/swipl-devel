@@ -362,7 +362,7 @@ suggest predicates from a keyword.
 \predicatesummary{nonvar}{1}{Type check for bound term}
 \predicatesummary{noprofile}{1}{Hide (meta-) predicate for the profiler}
 \predicatesummary{noprotocol}{0}{Disable logging of user interaction}
-\predicatesummary{normalise_space}{2}{Normalize white space}
+\predicatesummary{normalize_space}{2}{Normalize white space}
 \predicatesummary{nospy}{1}{Remove spy point}
 \predicatesummary{nospyall}{0}{Remove all spy points}
 \oppredsummary{not}{1}{fy}{900}{Negation by failure (argument not provable). Same as \predref{\+}{1}}

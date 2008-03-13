@@ -137,29 +137,29 @@ more use-oriented overview of the debugger is in <A class="sec" href="debugoverv
 2.9</A>.
 
 <P>If you have installed XPCE, you can use the graphical front-end of 
-the tracer. This front-end is installed using the predicate <A NAME="idx:guitracer0:1098"></A><A class="pred" href="guitracer.html#guitracer/0">guitracer/0</A>.
+the tracer. This front-end is installed using the predicate <A NAME="idx:guitracer0:1100"></A><A class="pred" href="guitracer.html#guitracer/0">guitracer/0</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="trace/0"><STRONG>trace</STRONG></A></DT>
 <DD class="defbody">
-Start the tracer. <A NAME="idx:trace0:1099"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
+Start the tracer. <A NAME="idx:trace0:1101"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 itself cannot be seen in the tracer. Note that the Prolog top-level 
-treats <A NAME="idx:trace0:1100"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
+treats <A NAME="idx:trace0:1102"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 special; it means `trace the next goal'.
 </DD>
 <DT class="pubdef"><A NAME="tracing/0"><STRONG>tracing</STRONG></A></DT>
 <DD class="defbody">
-True if the tracer is currently switched on. <A NAME="idx:tracing0:1101"></A><A class="pred" href="debugger.html#tracing/0">tracing/0</A> 
+True if the tracer is currently switched on. <A NAME="idx:tracing0:1103"></A><A class="pred" href="debugger.html#tracing/0">tracing/0</A> 
 itself can not be seen in the tracer.
 </DD>
 <DT class="pubdef"><A NAME="notrace/0"><STRONG>notrace</STRONG></A></DT>
 <DD class="defbody">
-Stop the tracer. <A NAME="idx:notrace0:1102"></A><A class="pred" href="debugger.html#notrace/0">notrace/0</A> 
+Stop the tracer. <A NAME="idx:notrace0:1104"></A><A class="pred" href="debugger.html#notrace/0">notrace/0</A> 
 itself cannot be seen in the tracer.
 </DD>
 <DT class="pubdef"><A NAME="guitracer/0"><STRONG>guitracer</STRONG></A></DT>
 <DD class="defbody">
-Installs hooks (see <A NAME="idx:prologtraceinterception4:1103"></A><A class="pred" href="tracehook.html#prolog_trace_interception/4">prolog_trace_interception/4</A>) 
+Installs hooks (see <A NAME="idx:prologtraceinterception4:1105"></A><A class="pred" href="tracehook.html#prolog_trace_interception/4">prolog_trace_interception/4</A>) 
 into the system that redirects tracing information to a GUI front-end 
 providing structured access to variable-bindings, graphical overview of 
 the stack and highlighting of relevant source-code.
@@ -183,11 +183,11 @@ refers to all ports. If the port is preceded by a <CODE><CODE>-</CODE></CODE>
 sign the trace-point is cleared for the port. If it is preceded by a <CODE><CODE>+</CODE></CODE> 
 the trace-point is set.
 
-<P>The predicate <A NAME="idx:trace2:1104"></A><A class="pred" href="debugger.html#trace/2">trace/2</A> 
-activates debug mode (see <A NAME="idx:debug0:1105"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>). 
+<P>The predicate <A NAME="idx:trace2:1106"></A><A class="pred" href="debugger.html#trace/2">trace/2</A> 
+activates debug mode (see <A NAME="idx:debug0:1107"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>). 
 Each time a port (of the 4-port model) is passed that has a trace-point 
-set the goal is printed as with <A NAME="idx:trace0:1106"></A><A class="pred" href="debugger.html#trace/0">trace/0</A>. 
-Unlike <A NAME="idx:trace0:1107"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
+set the goal is printed as with <A NAME="idx:trace0:1108"></A><A class="pred" href="debugger.html#trace/0">trace/0</A>. 
+Unlike <A NAME="idx:trace0:1109"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 however, the execution is continued without asking for further 
 information. Examples:
 
@@ -204,15 +204,15 @@ tracing bar/1.</TD></TR>
 
 </CENTER>
 
-<P>The predicate <A NAME="idx:debugging0:1108"></A><A class="pred" href="debugger.html#debugging/0">debugging/0</A> 
+<P>The predicate <A NAME="idx:debugging0:1110"></A><A class="pred" href="debugger.html#debugging/0">debugging/0</A> 
 shows all currently defined trace-points.
 </DD>
 <DT class="pubdef"><A NAME="notrace/1"><STRONG>notrace</STRONG>(<VAR>+Goal</VAR>)</A></DT>
 <DD class="defbody">
 Call <VAR>Goal</VAR>, but suspend the debugger while <VAR>Goal</VAR> is 
 executing. The current implementation cuts the choice-points of <VAR>Goal</VAR> 
-after successful completion. See <A NAME="idx:once1:1109"></A><A class="pred" href="metacall.html#once/1">once/1</A>. 
-Later implementations may have the same semantics as <A NAME="idx:call1:1110"></A><A class="pred" href="metacall.html#call/1">call/1</A>.
+after successful completion. See <A NAME="idx:once1:1111"></A><A class="pred" href="metacall.html#once/1">once/1</A>. 
+Later implementations may have the same semantics as <A NAME="idx:call1:1112"></A><A class="pred" href="metacall.html#call/1">call/1</A>.
 </DD>
 <DT class="pubdef"><A NAME="debug/0"><STRONG>debug</STRONG></A></DT>
 <DD class="defbody">
@@ -224,7 +224,7 @@ Prolog flag <A class="flag" href="flags.html#flag:debug">debug</A>.
 <DT class="pubdef"><A NAME="nodebug/0"><STRONG>nodebug</STRONG></A></DT>
 <DD class="defbody">
 Stop debugger. Implemented by the Prolog flag <A class="flag" href="flags.html#flag:debug">debug</A>. 
-See also <A NAME="idx:debug0:1111"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>.
+See also <A NAME="idx:debug0:1113"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>.
 </DD>
 <DT class="pubdef"><A NAME="debugging/0"><STRONG>debugging</STRONG></A></DT>
 <DD class="defbody">
@@ -263,7 +263,7 @@ ports,
 port.</DD>
 <DT class="pubdef"><A NAME="visible/1"><STRONG>visible</STRONG>(<VAR>+Ports</VAR>)</A></DT>
 <DD class="defbody">
-Set the ports shown by the debugger. See <A NAME="idx:leash1:1112"></A><A class="pred" href="debugger.html#leash/1">leash/1</A> 
+Set the ports shown by the debugger. See <A NAME="idx:leash1:1114"></A><A class="pred" href="debugger.html#leash/1">leash/1</A> 
 for a description of the port specification. Default is <CODE>full</CODE>.</DD>
 <DT class="pubdef"><A NAME="unknown/2"><STRONG>unknown</STRONG>(<VAR>-Old, 
 +New</VAR>)</A></DT>
@@ -273,7 +273,7 @@ flag <A class="flag" href="flags.html#flag:unknown">unknown</A>. Values
 are <CODE>trace</CODE> (meaning <CODE>error</CODE>) and <CODE>fail</CODE>. 
 If the <A class="flag" href="flags.html#flag:unknown">unknown</A> flag 
 is set to
-<CODE>warning</CODE>, <A NAME="idx:unknown2:1113"></A><A class="pred" href="debugger.html#unknown/2">unknown/2</A> 
+<CODE>warning</CODE>, <A NAME="idx:unknown2:1115"></A><A class="pred" href="debugger.html#unknown/2">unknown/2</A> 
 reports the value as <CODE>trace</CODE>.</DD>
 <DT class="pubdef"><A NAME="style_check/1"><STRONG>style_check</STRONG>(<VAR>+Spec</VAR>)</A></DT>
 <DD class="defbody">
@@ -283,7 +283,7 @@ older versions `<CODE><CODE>?</CODE></CODE>' was a prefix operator.
 Inversions after 5.5.13, explicit brackets are needed.</SPAN></SUP> or a 
 list of such options. <TT>+&lt;<VAR>option</VAR>&gt;</TT> sets a style 
 checking option, <TT>-&lt;<VAR>option</VAR>&gt;</TT> clears it and <TT>?(&lt;<VAR>option</VAR>&gt;)</TT> 
-succeeds or fails according to the current setting. <A NAME="idx:consult1:1114"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
+succeeds or fails according to the current setting. <A NAME="idx:consult1:1116"></A><A class="pred" href="consulting.html#consult/1">consult/1</A> 
 and derivatives resets the style checking options to their value before 
 loading the file. If---for example---a file containing long atoms should 
 be loaded the user can start the file with:
@@ -299,12 +299,12 @@ be loaded the user can start the file with:
 <TABLE BORDER=2 FRAME=box RULES=groups>
 <TR VALIGN=top><TD>Name</TD><TD ALIGN=center>Default</TD><TD>Description </TD></TR>
 <TBODY>
-<TR VALIGN=top><TD><CODE>singleton</CODE> </TD><TD ALIGN=center>on</TD><TD><A NAME="idx:readclause1:1115"></A><A class="pred" href="termrw.html#read_clause/1">read_clause/1</A> 
-(used by <A NAME="idx:consult1:1116"></A><A class="pred" href="consulting.html#consult/1">consult/1</A>) 
+<TR VALIGN=top><TD><CODE>singleton</CODE> </TD><TD ALIGN=center>on</TD><TD><A NAME="idx:readclause1:1117"></A><A class="pred" href="termrw.html#read_clause/1">read_clause/1</A> 
+(used by <A NAME="idx:consult1:1118"></A><A class="pred" href="consulting.html#consult/1">consult/1</A>) 
 warns on variables only appearing once in a term (clause) which have a 
 name not starting with an underscore. See <A class="sec" href="syntax.html">section 
 2.15.1.5</A> for details on variable handling and warnings. </TD></TR>
-<TR VALIGN=top><TD><CODE>atom</CODE> </TD><TD ALIGN=center>on</TD><TD><A NAME="idx:read1:1117"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
+<TR VALIGN=top><TD><CODE>atom</CODE> </TD><TD ALIGN=center>on</TD><TD><A NAME="idx:read1:1119"></A><A class="pred" href="termrw.html#read/1">read/1</A> 
 and derivatives will produce an error message on quoted atoms or strings 
 longer than 5 lines. </TD></TR>
 <TR VALIGN=top><TD><CODE>dollar</CODE> </TD><TD ALIGN=center>off</TD><TD>Accept 
@@ -314,7 +314,7 @@ atoms with dollar signs. System maintenance use only. </TD></TR>
 if the clauses for a predicate are not together in the same source file. </TD></TR>
 <TR VALIGN=top><TD><CODE>string</CODE> </TD><TD ALIGN=center>off</TD><TD>Backward 
 compatibility. See the Prolog flag
-<A class="flag" href="flags.html#flag:double_quotes">double_quotes</A> (<A NAME="idx:currentprologflag2:1118"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). </TD></TR>
+<A class="flag" href="flags.html#flag:double_quotes">double_quotes</A> (<A NAME="idx:currentprologflag2:1120"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). </TD></TR>
 <TR VALIGN=top><TD><CODE>charset</CODE> </TD><TD ALIGN=center>off</TD><TD>Warn 
 on atoms and variables holding non-ASCII characters that are not quoted. 
 See also

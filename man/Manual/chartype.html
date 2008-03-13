@@ -292,6 +292,8 @@ and <A NAME="idx:atomcodes2:919"></A><A class="pred" href="manipatom.html#atom_c
 <H3><A NAME="sec:4.22.1"><SPAN class="sec-nr">4.22.1</SPAN> <SPAN class="sec-title">Case 
 conversion</SPAN></A></H3>
 
+<A NAME="sec:case"></A>
+
 <P>There is nothing in the Prolog standard for converting case in 
 textual data. The SWI-Prolog predicates <A NAME="idx:codetype2:920"></A><A class="pred" href="chartype.html#code_type/2">code_type/2</A> 
 and <A NAME="idx:chartype2:921"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A> 
@@ -314,12 +316,29 @@ an atom to upper-case.
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.22.2"><SPAN class="sec-nr">4.22.2</SPAN> <SPAN class="sec-title">Language 
+<H3><A NAME="sec:4.22.2"><SPAN class="sec-nr">4.22.2</SPAN> <SPAN class="sec-title">White 
+space normalization</SPAN></A></H3>
+
+<A NAME="sec:whitespace"></A>
+
+<DL>
+<DT class="pubdef"><A NAME="normalize_space/2"><STRONG>normalize_space</STRONG>(<VAR>-Out, 
++In</VAR>)</A></DT>
+<DD class="defbody">
+Normalize white space in <VAR>In</VAR>. All leading and trailing white 
+space is removed. All non-empty sequences for Unicode white space 
+characters are replaces by a single space (<CODE>\u0020</CODE>) 
+character. <VAR>Out</VAR> uses the same conventions as <A NAME="idx:withoutputto2:924"></A><A class="pred" href="IO.html#with_output_to/2">with_output_to/2</A> 
+and <A NAME="idx:format3:925"></A><A class="pred" href="format.html#format/3">format/3</A>.
+</DD>
+</DL>
+
+<H3><A NAME="sec:4.22.3"><SPAN class="sec-nr">4.22.3</SPAN> <SPAN class="sec-title">Language 
 specific comparison</SPAN></A></H3>
 
 <A NAME="sec:collate"></A>
 
-<P><A NAME="idx:locale:924"></A><A NAME="idx:collate:925"></A><A NAME="idx:comparelanguagespecific:926"></A>This 
+<P><A NAME="idx:locale:926"></A><A NAME="idx:collate:927"></A><A NAME="idx:comparelanguagespecific:928"></A>This 
 section deals with predicates for language specific string comparison 
 operations.
 
@@ -333,9 +352,9 @@ precedes the key of atom <VAR>B</VAR> in the standard order of terms, <VAR>A</VA
 is alphabetically smaller than <VAR>B</VAR> using the sort order of the 
 current locale.
 
-<P>The predicate <A NAME="idx:collationkey2:927"></A><A class="pred" href="chartype.html#collation_key/2">collation_key/2</A> 
-is used by <A NAME="idx:localesort2:928"></A><A class="pred" href="chartype.html#locale_sort/2">locale_sort/2</A> 
-from library(sort). Please examine the implementation of <A NAME="idx:localesort2:929"></A><A class="pred" href="chartype.html#locale_sort/2">locale_sort/2</A> 
+<P>The predicate <A NAME="idx:collationkey2:929"></A><A class="pred" href="chartype.html#collation_key/2">collation_key/2</A> 
+is used by <A NAME="idx:localesort2:930"></A><A class="pred" href="chartype.html#locale_sort/2">locale_sort/2</A> 
+from library(sort). Please examine the implementation of <A NAME="idx:localesort2:931"></A><A class="pred" href="chartype.html#locale_sort/2">locale_sort/2</A> 
 as an example of using this call.
 
 <P>The <VAR>Key</VAR> is an implementation defined and generally 
@@ -347,9 +366,9 @@ is simply unified with <VAR>Atom</VAR>.</DD>
 Sort a list of atoms using the current locale. <VAR>List</VAR> is a list 
 of atoms or string objects (see <A class="sec" href="strings.html">section 
 4.23</A>). <VAR>Sorted</VAR> is unified with a list containing all atoms 
-of <VAR>List</VAR>, sorted to the rules of the current locale. See also <A NAME="idx:collationkey2:930"></A><A class="pred" href="chartype.html#collation_key/2">collation_key/2</A> 
+of <VAR>List</VAR>, sorted to the rules of the current locale. See also <A NAME="idx:collationkey2:932"></A><A class="pred" href="chartype.html#collation_key/2">collation_key/2</A> 
 and
-<A NAME="idx:setlocale3:931"></A><A class="pred" href="system.html#setlocale/3">setlocale/3</A>.
+<A NAME="idx:setlocale3:933"></A><A class="pred" href="system.html#setlocale/3">setlocale/3</A>.
 </DD>
 </DL>
 

@@ -145,7 +145,7 @@ some operating systems, notably Unix systems using the BSD <CODE>a.out</CODE>
 executable format. As the number of Unix platforms supporting this gets 
 quickly smaller and this interface is difficult to port and slow, it is 
 no longer described in this manual. The best alternatively would be to 
-use the <A NAME="idx:dld:1339">dld</A> package on machines do not have 
+use the <A NAME="idx:dld:1341">dld</A> package on machines do not have 
 shared libraries</SPAN></SUP>.
 
 <H3><A NAME="sec:9.2.1"><SPAN class="sec-nr">9.2.1</SPAN> <SPAN class="sec-title">What 
@@ -155,9 +155,9 @@ linking is provided?</SPAN></A></H3>
 SWI-Prolog. Whether or not dynamic linking is supported can be deduced 
 from the Prolog flag <A class="flag" href="flags.html#flag:open_shared_object">open_shared_object</A> 
 (see
-<A NAME="idx:currentprologflag2:1340"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). 
+<A NAME="idx:currentprologflag2:1342"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). 
 If this Prolog flag yields true,
-<A NAME="idx:opensharedobject2:1341"></A><A class="pred" href="dynstatic.html#open_shared_object/2">open_shared_object/2</A> 
+<A NAME="idx:opensharedobject2:1343"></A><A class="pred" href="dynstatic.html#open_shared_object/2">open_shared_object/2</A> 
 and related predicates are defined. See
 <A class="sec" href="DLL.html">section 9.4</A> for a suitable high-level 
 interface to these predicates.
@@ -174,8 +174,8 @@ often hides these problems from the user.
 
 <P>Loading shared objects (DLL files on Windows) provides sharing and 
 protection and is generally the best choice. If a saved-state is created 
-using <A NAME="idx:qsaveprogram12:1342"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>, 
-an <A NAME="idx:initialization1:1343"></A><A class="pred" href="consulting.html#initialization/1">initialization/1</A> 
+using <A NAME="idx:qsaveprogram12:1344"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>, 
+an <A NAME="idx:initialization1:1345"></A><A class="pred" href="consulting.html#initialization/1">initialization/1</A> 
 directive may be used to load the appropriate library at startup.
 
 <P>Note that the definition of the foreign predicates is the same, 
