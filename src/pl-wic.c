@@ -2753,7 +2753,7 @@ qlfCleanup()
   if ( getstr_buffer )
   { free(getstr_buffer);
     getstr_buffer = NULL;
-    getstr_buffer_size = 512;
+    getstr_buffer_size = 0;
   }
 }
 

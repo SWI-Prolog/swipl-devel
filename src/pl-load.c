@@ -151,12 +151,13 @@ pl_open_shared_object(term_t file, term_t plhandle,
 		    ATOM_open, dlerror());
 
   e = allocHeap(sizeof(struct dl_entry));
+
+  LOCK();
   e->id       = ++dl_plid;
   e->dlhandle = dlhandle;
   e->file     = afile;
   e->next     = NULL;
 
-  LOCK();
   if ( !dl_tail )
   { dl_tail = e;
     dl_head = e;
@@ -244,6 +245,30 @@ pl_call_shared_object_function(term_t plhandle, term_t name)
   } else
     fail;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Unload all foreign libraries.  As we are doing this at the very end of
+the cleanup, it should be safe now.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+cleanupForeign(void)
+{ DlEntry e, next;
+
+  for(e = dl_head; e; e = next)
+  { next = e->next;
+
+    if ( e->dlhandle )
+      dlclose(e->dlhandle);
+
+    freeHeap(e, sizeof(*e));
+  }
+
+  dl_plid = 0;
+  dl_head = dl_tail = NULL;
+}
+
 
 #else /*HAVE_DLOPEN*/
 

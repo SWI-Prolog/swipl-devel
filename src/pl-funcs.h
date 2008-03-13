@@ -462,6 +462,7 @@ COMMON(word) 		pl_open_shared_object(term_t file, term_t h, term_t flags);
 COMMON(word) 		pl_close_shared_object(term_t plhandle);
 COMMON(word) 		pl_call_shared_object_function(term_t plhandle, term_t name);
 COMMON(word) 		pl_load_shared_object(term_t file, term_t entry);
+COMMON(void)		cleanupForeign(void);
 
 /* pl-modul.c */
 COMMON(Module) 		lookupModule(atom_t name);

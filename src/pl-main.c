@@ -1226,7 +1226,6 @@ PL_cleanup(int rval)
   cleanupAtoms();
   cleanupFunctors();
   cleanupArith();
-  cleanupMemAlloc();
   cleanupInitialiseHooks();
   cleanupExtensions();
   cleanupOs();
@@ -1234,6 +1233,8 @@ PL_cleanup(int rval)
 #ifdef O_PLMT
   cleanupThreads();
 #endif
+  cleanupForeign();
+  cleanupMemAlloc();
 
   UNLOCK();				/* requires GD->thread.enabled */
 
