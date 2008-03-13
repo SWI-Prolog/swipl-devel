@@ -111,8 +111,10 @@ apply_hotfix(_HotfixDir, File) :-
 	current_module(Module, Loaded),
 	'$time_source_file'(Loaded, Time, _Type), !,
 	time_file(File, HotfixTime),
-	HotfixTime =\= Time, !,
-	load_hotfix(File, Loaded).
+	(   HotfixTime =\= Time
+	->  load_hotfix(File, Loaded)
+	;   true
+	).
 apply_hotfix(HotfixDir, File) :-
 	atom_concat(HotfixDir, Local, File),
 	findall(Loaded-Time,
