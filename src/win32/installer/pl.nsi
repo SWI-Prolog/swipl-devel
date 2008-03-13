@@ -133,6 +133,7 @@ Section "Base system (required)"
 ; DEVELOPMENT
   File pl\library\edit.pl
   File pl\library\make.pl
+  File pl\library\hotfix.pl
   File pl\library\emacs_interface.pl
   File pl\library\explain.pl
   File pl\library\debug.pl
