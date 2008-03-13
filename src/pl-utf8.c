@@ -29,7 +29,7 @@
 UTF-8 Decoding, based on http://www.cl.cam.ac.uk/~mgk25/unicode.html
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define CONT(i)   ISUTF8_CB(in[1])
+#define CONT(i)   ISUTF8_CB(in[i])
 #define VAL(i, s) ((in[i]&0x3f) << s)
 
 char *
