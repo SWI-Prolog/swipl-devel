@@ -50,6 +50,10 @@
 	fa_local/4,
 	fa_loop/5)).
 
+:- '$iso'((findall/3,
+	   bagof/3,
+	   setof/3)).
+
 %%      findall(-Var, +Goal, -Bag) is det.
 %%      findall(-Var, +Goal, -Bag, +Tail) is det.
 %

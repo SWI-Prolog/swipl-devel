@@ -2239,6 +2239,10 @@ Is true if the predicate is defined in Prolog. We return true on this
 because, although the code is actually compiled, it is completely
 transparent, just like interpreted code.
 
+    \termitem{iso}{}
+Is true if the predicate is covered by the ISO standard (ISO/IEC
+1321l-l).
+
     \termitem{line_count}{LineNumber}
 Unify \arg{LineNumber} with the line number of the first clause of the
 predicate.  Fails if the predicate is not associated with a file.  See

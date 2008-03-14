@@ -547,7 +547,6 @@ COMMON(bool) 		can_unify(Word t1, Word t2);
 COMMON(int) 		compareStandard(Word t1, Word t2, int eq ARG_LD);
 COMMON(intptr_t)	skip_list(Word l, Word *tailp ARG_LD);
 COMMON(intptr_t) 	lengthList(term_t list, int errors);
-COMMON(word) 		pl_univ(term_t t, term_t l);
 COMMON(int) 		numberVars(term_t t, nv_options *opts, int n ARG_LD);
 COMMON(word) 		pl_e_free_variables(term_t t, term_t l);
 COMMON(word) 		stringToList(char *s);

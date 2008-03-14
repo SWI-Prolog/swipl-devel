@@ -61,6 +61,7 @@ Flags almost always is TRACE_ME.  Additional common flags:
 #define NDET	PL_FA_NONDETERMINISTIC
 #define VA	PL_FA_VARARGS
 #define CREF	PL_FA_CREF
+#define ISO	PL_FA_ISO
 
 #define FRG(n, a, f, flags) { n, a, f, flags }
 
@@ -68,7 +69,7 @@ static const PL_extension foreigns[] = {
 #if O_DEBUG
   FRG("crash",			0, pl_crash,			0),
 #endif
-  FRG("nl",			0, pl_nl,			0),
+  FRG("nl",			0, pl_nl,			ISO),
   FRG("get_single_char",	1, pl_get_single_char,		0),
   FRG("$push_input_context",	0, pl_push_input_context,	0),
   FRG("$pop_input_context",	0, pl_pop_input_context,	0),
@@ -92,7 +93,7 @@ static const PL_extension foreigns[] = {
   FRG("tell",			1, pl_tell,			0),
   FRG("append",			1, pl_append,			0),
   FRG("ttyflush",		0, pl_ttyflush,			0),
-  FRG("flush_output",		0, pl_flush_output,		0),
+  FRG("flush_output",		0, pl_flush_output,		ISO),
   FRG("prompt",			2, pl_prompt,			0),
   FRG("prompt1",		1, pl_prompt1,			0),
   FRG("expand_file_name",	2, pl_expand_file_name,		0),
@@ -113,14 +114,14 @@ static const PL_extension foreigns[] = {
   FRG("fileerrors",		2, pl_fileerrors,		0),
   FRG("working_directory",	2, pl_working_directory,	0),
 
-  FRG("halt",			1, pl_halt,			0),
+  FRG("halt",			1, pl_halt,		      ISO),
   FRG("$shell",			2, pl_shell,			0),
   FRG("getenv",			2, pl_getenv,			0),
   FRG("setenv",			2, pl_setenv,			0),
   FRG("unsetenv",		1, pl_unsetenv,			0),
   FRG("wildcard_match",		2, pl_wildcard_match,		0),
   FRG("$apropos_match",		2, pl_apropos_match,		0),
-  FRG("sub_atom",		5, pl_sub_atom,		     NDET),
+  FRG("sub_atom",		5, pl_sub_atom,		 NDET|ISO),
   FRG("sleep",			1, pl_sleep,			0),
   FRG("break",			0, pl_break,			0),
   FRG("$break",			1, pl_break1,			0),
@@ -130,40 +131,39 @@ static const PL_extension foreigns[] = {
   FRG("$depth_limit_true",	5, pl_depth_limit_true,	     NDET),
 #endif
 
-  FRG("write_canonical",	1, pl_write_canonical,		0),
-  FRG("write_term",		2, pl_write_term,		0),
-  FRG("write_term",		3, pl_write_term3,		0),
-  FRG("write",			1, pl_write,			0),
-  FRG("writeq",			1, pl_writeq,			0),
+  FRG("write_canonical",	1, pl_write_canonical,	      ISO),
+  FRG("write_term",		2, pl_write_term,	      ISO),
+  FRG("write_term",		3, pl_write_term3,	      ISO),
+  FRG("write",			1, pl_write,		      ISO),
+  FRG("writeq",			1, pl_writeq,		      ISO),
   FRG("print",			1, pl_print,			0),
 
-  FRG("read_term",		2, pl_read_term,		0),
-  FRG("read_term",		3, pl_read_term3,		0),
-  FRG("read",			1, pl_read,			0),
+  FRG("read_term",		2, pl_read_term,	      ISO),
+  FRG("read_term",		3, pl_read_term3,	      ISO),
+  FRG("read",			1, pl_read,		      ISO),
   FRG("$raw_read",		1, pl_raw_read,			0),
   FRG("$raw_read",		2, pl_raw_read2,		0),
-  FRG("current_op",		3, pl_current_op,	NDET|META),
+  FRG("current_op",		3, pl_current_op,	NDET|META|ISO),
   FRG("$local_op",		3, pl_local_op,	        NDET|META),
   FRG("$builtin_op",		3, pl_builtin_op,	     NDET),
   FRG("current_functor",	2, pl_current_functor,	     NDET),
   FRG("$complete_atom",		3, pl_complete_atom,		0),
   FRG("$atom_completions",	2, pl_atom_completions,		0),
-  FRG("op",			3, pl_op,		     META),
-  FRG("char_conversion",	2, pl_char_conversion,		0),
-  FRG("current_char_conversion",2, pl_current_char_conversion, NDET),
+  FRG("op",			3, pl_op,		     META|ISO),
+  FRG("char_conversion",	2, pl_char_conversion,	      ISO),
+  FRG("current_char_conversion",2, pl_current_char_conversion, NDET|ISO),
 
-  FRG("!",			0, pl_metacut,			0),
-  FRG("=..",			2, pl_univ,			0),
+  FRG("!",			0, pl_metacut,		      ISO),
   FRG("name",			2, pl_name,			0),
-  FRG("atom_chars",		2, pl_atom_chars,		0),
-  FRG("atom_codes",		2, pl_atom_codes,		0),
-  FRG("number_chars",		2, pl_number_chars,		0),
-  FRG("number_codes",		2, pl_number_codes,		0),
-  FRG("char_code",		2, pl_char_code,		0),
-  FRG("atom_concat",		3, pl_atom_concat,	     NDET),
+  FRG("atom_chars",		2, pl_atom_chars,	      ISO),
+  FRG("atom_codes",		2, pl_atom_codes,	      ISO),
+  FRG("number_chars",		2, pl_number_chars,	      ISO),
+  FRG("number_codes",		2, pl_number_codes,	      ISO),
+  FRG("char_code",		2, pl_char_code,	      ISO),
+  FRG("atom_concat",		3, pl_atom_concat,	 NDET|ISO),
   FRG("$concat_atom",		2, pl_concat_atom,		0),
   FRG("concat_atom",		3, pl_concat_atom3,		0),
-  FRG("atom_length",		2, pl_atom_length,		0),
+  FRG("atom_length",		2, pl_atom_length,	      ISO),
   FRG("$e_free_variables",	2, pl_e_free_variables,		0),
 
   FRG("$open_wic",		1, pl_open_wic,			0),
@@ -190,13 +190,13 @@ static const PL_extension foreigns[] = {
   FRG("$qlf_load",		2, pl_qlf_load,		     META),
   FRG("$qlf_assert_clause",	2, pl_qlf_assert_clause,	0),
 
-  FRG("abolish",    		1, pl_abolish1,		     META),
+  FRG("abolish",    		1, pl_abolish1,		     META|ISO),
   FRG("abolish",    		2, pl_abolish,		     META),
-  FRG("clause",    		2, pl_clause2,	        NDET|META|CREF),
+  FRG("clause",    		2, pl_clause2,	        NDET|META|CREF|ISO),
   FRG("clause",    		3, pl_clause3,	        NDET|META|CREF),
   FRG("$clause",	        4, pl_clause4,	        NDET|META|CREF),
   FRG("nth_clause", 		3, pl_nth_clause,       NDET|META|CREF),
-  FRG("retract",    		1, pl_retract,          NDET|META|CREF),
+  FRG("retract",    		1, pl_retract,          NDET|META|CREF|ISO),
   FRG("retractall",		1, pl_retractall,	     META),
 #if O_DEBUGGER
   FRG("$xr_member",		2, pl_xr_member,        NDET|META),
@@ -221,7 +221,7 @@ static const PL_extension foreigns[] = {
 							     META),
 
   FRG("$c_current_predicate",	2, pl_current_predicate,  NDET|META),
-  FRG("current_predicate",	1, pl_current_predicate1, NDET|META),
+  FRG("current_predicate",	1, pl_current_predicate1, NDET|META|ISO),
   FRG("$set_predicate_attribute", 3, pl_set_predicate_attribute,META),
   FRG("$get_predicate_attribute", 3, pl_get_predicate_attribute,META),
   FRG("$get_clause_attribute",  3, pl_get_clause_attribute,	0),
@@ -231,9 +231,9 @@ static const PL_extension foreigns[] = {
   FRG("$make_system_source_files",0,pl_make_system_source_files,0),
   FRG("$default_predicate",	2, pl_default_predicate,     META),
 
-  FRG("repeat",			0, pl_repeat,		     NDET),
-  FRG("fail",			0, pl_fail,			0),
-  FRG("true",			0, pl_true,			0),
+  FRG("repeat",			0, pl_repeat,		 NDET|ISO),
+  FRG("fail",			0, pl_fail,		      ISO),
+  FRG("true",			0, pl_true,		      ISO),
   FRG("$fail",			0, pl_fail,		  NOTRACE),
   FRG("abort",			0, pl_abort,			0),
 
@@ -310,8 +310,8 @@ static const PL_extension foreigns[] = {
 
   FRG("$atom_hashstat",		2, pl_atom_hashstat,		0),
   FRG("$current_prolog_flag",	5, pl_feature5,		     NDET),
-  FRG("current_prolog_flag",	2, pl_feature,		     NDET),
-  FRG("set_prolog_flag",	2, pl_set_feature,		0),
+  FRG("current_prolog_flag",	2, pl_feature,		 NDET|ISO),
+  FRG("set_prolog_flag",	2, pl_set_feature,	      ISO),
   FRG("trim_stacks",		0, pl_trim_stacks,		0),
 #if O_SHIFT_STACKS
   FRG("stack_parameter",	4, pl_stack_parameter,		0),
@@ -327,31 +327,31 @@ static const PL_extension foreigns[] = {
   FRG("current_key",		1, pl_current_key,	     NDET),
   FRG("current_flag",		1, pl_current_flag,	     NDET),
 
-  FRG("open",			3, pl_open,			0),
-  FRG("open",			4, pl_open4,			0),
+  FRG("open",			3, pl_open,		      ISO),
+  FRG("open",			4, pl_open4,		      ISO),
   FRG("open_null_stream",	1, pl_open_null_stream,		0),
-  FRG("close",			1, pl_close,			0),
-  FRG("close",			2, pl_close2,			0),
-  FRG("stream_property",	2, pl_stream_property,	     NDET),
-  FRG("flush_output",		1, pl_flush_output1,		0),
-  FRG("set_stream_position",	2, pl_set_stream_position,	0),
+  FRG("close",			1, pl_close,		      ISO),
+  FRG("close",			2, pl_close2,		      ISO),
+  FRG("stream_property",	2, pl_stream_property,	 NDET|ISO),
+  FRG("flush_output",		1, pl_flush_output1,	      ISO),
+  FRG("set_stream_position",	2, pl_set_stream_position,    ISO),
   FRG("seek",			4, pl_seek,			0),
-  FRG("set_input",		1, pl_set_input,		0),
-  FRG("set_output",		1, pl_set_output,		0),
+  FRG("set_input",		1, pl_set_input,	      ISO),
+  FRG("set_output",		1, pl_set_output,	      ISO),
   FRG("set_stream",		2, pl_set_stream,		0),
-  FRG("current_input",		1, pl_current_input,		0),
-  FRG("current_output",		1, pl_current_output,		0),
+  FRG("current_input",		1, pl_current_input,	      ISO),
+  FRG("current_output",		1, pl_current_output,	      ISO),
   FRG("source_location",	2, pl_source_location,		0),
-  FRG("at_end_of_stream",	1, pl_at_end_of_stream1,	0),
-  FRG("at_end_of_stream",	0, pl_at_end_of_stream0,	0),
+  FRG("at_end_of_stream",	1, pl_at_end_of_stream1,      ISO),
+  FRG("at_end_of_stream",	0, pl_at_end_of_stream0,      ISO),
 
-  FRG("nl",			1, pl_nl1,			0),
+  FRG("nl",			1, pl_nl1,		      ISO),
   FRG("tab",			2, pl_tab2,			0),
-  FRG("read",			2, pl_read2,			0),
-  FRG("write",			2, pl_write2,			0),
-  FRG("writeq",			2, pl_writeq2,			0),
+  FRG("read",			2, pl_read2,		      ISO),
+  FRG("write",			2, pl_write2,		      ISO),
+  FRG("writeq",			2, pl_writeq2,		      ISO),
   FRG("print",			2, pl_print2,			0),
-  FRG("write_canonical",	2, pl_write_canonical2,		0),
+  FRG("write_canonical",	2, pl_write_canonical2,	      ISO),
   FRG("format",			3, pl_format3,		     META),
 
   FRG("tty_get_capability",	3, pl_tty_get_capability,	0),
@@ -512,6 +512,7 @@ registerBuiltins(const PL_extension *f)
     if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, NONDETERMINISTIC);
     if ( f->flags & PL_FA_VARARGS )	     set(def, P_VARARG);
     if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);
+    if ( f->flags & PL_FA_ISO )		     set(def, P_ISO);
 
     def->definition.function = f->function;
     def->indexPattern = 0;

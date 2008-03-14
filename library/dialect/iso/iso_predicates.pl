@@ -23,6 +23,7 @@ preserve the original license.
 @author  Paulo Moura
 @author  Jan Wielemaker
 @licence Perl Artistic License
+@see	 predicate_property/2, property =iso=.
 */
 
 %%	iso_builtin_predicate(?Head:callable) is nondet.

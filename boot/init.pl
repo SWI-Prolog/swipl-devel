@@ -76,6 +76,7 @@ discontiguous(Spec)	 :- '$set_pattr'(Spec, (discontiguous)).
 volatile(Spec)		 :- '$set_pattr'(Spec, (volatile)).
 thread_local(Spec)	 :- '$set_pattr'(Spec, (thread_local)).
 noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
+'$iso'(Spec)		 :- '$set_pattr'(Spec, (iso)).
 
 :- module_transparent
 	'$set_pattr'/2,
@@ -86,7 +87,8 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	(volatile)/1,
 	(thread_local)/1,
 	(noprofile)/1,
-	'$hide'/2.
+	'$hide'/2,
+	'$iso'/1.
 
 
 		/********************************
@@ -143,6 +145,8 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	call_cleanup/2,
 	call_cleanup/3,
 	apply/2.
+
+:- '$iso'((call/1, (\+)/1, once/1, (;)/2, (,)/2, (->)/2, catch/3)).
 
 %   ->/2, ;/2, |/2 and \+/1 are normally compiled. These predicate catch them
 %   in case they are called via the meta-call predicates.
@@ -2150,6 +2154,8 @@ saved state.
 		 /*******************************
 		 *	       HALT		*
 		 *******************************/
+
+:- '$iso'((halt/0)).
 
 halt :-
 	halt(0).

@@ -259,6 +259,7 @@ typedef struct PL_extension
 #define PL_FA_NONDETERMINISTIC	(0x04)	/* foreign is non-deterministic */
 #define PL_FA_VARARGS		(0x08)	/* call using t0, ac, ctx */
 #define PL_FA_CREF		(0x10)	/* Internal: has clause-reference */
+#define PL_FA_ISO		(0x20)	/* Internal: ISO core predicate */
 
 extern			PL_extension PL_extensions[]; /* not Win32! */
 PL_EXPORT(void)		PL_register_extensions(const PL_extension *e);

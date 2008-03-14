@@ -1877,9 +1877,11 @@ lengthList(term_t list, int errors)
 }
 
 
-word
-pl_univ(term_t t, term_t list)
+static
+PRED_IMPL("=..", 2, univ, PL_FA_ISO)
 { GET_LD
+  term_t t = A1;
+  term_t list = A2;
   int arity;
   atom_t name;
   int n;
@@ -4492,38 +4494,39 @@ PRED_IMPL("throw", 1, throw, 0)
 		 *******************************/
 
 BeginPredDefs(prims)
-  PRED_DEF("=", 2, unify, 0)
-  PRED_DEF("\\=", 2, not_unify, 0)
-  PRED_DEF("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
+  PRED_DEF("=", 2, unify, PL_FA_ISO)
+  PRED_DEF("\\=", 2, not_unify, PL_FA_ISO)
+  PRED_DEF("unify_with_occurs_check", 2, unify_with_occurs_check, PL_FA_ISO)
   PRED_DEF("subsumes", 2, subsumes, 0)
   PRED_DEF("subsumes_chk", 2, subsumes_chk, 0)
-  PRED_DEF("nonvar", 1, nonvar, 0)
-  PRED_DEF("var", 1, var, 0)
-  PRED_DEF("integer", 1, integer, 0)
-  PRED_DEF("float", 1, float, 0)
+  PRED_DEF("nonvar", 1, nonvar, PL_FA_ISO)
+  PRED_DEF("var", 1, var, PL_FA_ISO)
+  PRED_DEF("integer", 1, integer, PL_FA_ISO)
+  PRED_DEF("float", 1, float, PL_FA_ISO)
   PRED_DEF("rational", 1, rational, 0)
-  PRED_DEF("number", 1, number, 0)
-  PRED_DEF("arg", 3, arg, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("atomic", 1, atomic, 0)
-  PRED_DEF("atom", 1, atom, 0)
+  PRED_DEF("number", 1, number, PL_FA_ISO)
+  PRED_DEF("arg", 3, arg, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
+  PRED_DEF("atomic", 1, atomic, PL_FA_ISO)
+  PRED_DEF("atom", 1, atom, PL_FA_ISO)
   PRED_DEF("string", 1, string, 0)
   PRED_DEF("ground", 1, ground, 0)
   PRED_DEF("acyclic_term", 1, acyclic_term, 0)
   PRED_DEF("cyclic_term", 1, cyclic_term, 0)
-  PRED_DEF("compound", 1, compound, 0)
+  PRED_DEF("compound", 1, compound, PL_FA_ISO)
   PRED_DEF("callable", 1, callable, 0)
-  PRED_DEF("==", 2, equal, 0)
-  PRED_DEF("\\==", 2, nonequal, 0)
+  PRED_DEF("==", 2, equal, PL_FA_ISO)
+  PRED_DEF("\\==", 2, nonequal, PL_FA_ISO)
   PRED_DEF("compare", 3, compare, 0)
-  PRED_DEF("@<", 2, std_lt, 0)
-  PRED_DEF("@=<", 2, std_leq, 0)
-  PRED_DEF("@>", 2, std_gt, 0)
-  PRED_DEF("@>=", 2, std_geq, 0)
+  PRED_DEF("@<", 2, std_lt, PL_FA_ISO)
+  PRED_DEF("@=<", 2, std_leq, PL_FA_ISO)
+  PRED_DEF("@>", 2, std_gt, PL_FA_ISO)
+  PRED_DEF("@>=", 2, std_geq, PL_FA_ISO)
   PRED_DEF("=@=", 2, structural_eq, 0)
   PRED_DEF("\\=@=", 2, structural_neq, 0)
   PRED_DEF("?=", 2, can_compare, 0)
   PRED_DEF("same_term", 2, same_term, 0)
-  PRED_DEF("functor", 3, functor, 0)
+  PRED_DEF("functor", 3, functor, PL_FA_ISO)
+  PRED_DEF("=..", 2, univ, PL_FA_ISO)
   PRED_DEF("numbervars", 4, numbervars, 0)
   PRED_DEF("term_variables", 2, term_variables2, 0)
   PRED_DEF("term_variables", 3, term_variables3, 0)
@@ -4531,7 +4534,7 @@ BeginPredDefs(prims)
 #ifdef O_HASHTERM
   PRED_DEF("hash_term", 2, hash_term, 0)
 #endif
-  PRED_DEF("copy_term", 2, copy_term, 0)
+  PRED_DEF("copy_term", 2, copy_term, PL_FA_ISO)
   PRED_DEF("duplicate_term", 2, duplicate_term, 0)
   PRED_DEF("copy_term_nat", 2, copy_term_nat, 0)
 #ifdef O_LIMIT_DEPTH
@@ -4548,5 +4551,5 @@ BeginPredDefs(prims)
   PRED_DEF("nb_setarg", 3, nb_setarg, 0)
   PRED_DEF("nb_linkarg", 3, nb_linkarg, 0)
   PRED_DEF("$skip_list", 3, skip_list, 0)
-  PRED_DEF("throw", 1, throw, 0)
+  PRED_DEF("throw", 1, throw, PL_FA_ISO)
 EndPredDefs

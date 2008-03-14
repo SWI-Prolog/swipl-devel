@@ -526,6 +526,8 @@ predicate_property(Pred, Property) :-
 	'$get_predicate_attribute'(Pred, number_of_clauses, N).
 '$predicate_property'(noprofile, Pred) :-
 	'$get_predicate_attribute'(Pred, noprofile, 1).
+'$predicate_property'(iso, Pred) :-
+	'$get_predicate_attribute'(Pred, iso, 1).
 
 :- index(clause_property(0, 1)).
 
