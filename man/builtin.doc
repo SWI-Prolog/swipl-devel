@@ -4631,9 +4631,18 @@ Same as **/2.  (backward compatibility).
 Evaluates to the mathematical constant $\pi$ (3.14159\ldots).
     \predicate{e}{0}{}
 Evaluates to the mathematical constant $e$ (2.71828\ldots).
+
     \predicate{cputime}{0}{}
 Evaluates to a floating point number expressing the {\sc cpu} time (in seconds)
 used by Prolog up till now. See also statistics/2 and time/1.
+
+    \predicate{eval}{1}{+Expr}
+Evaluate \arg{Expr}. Although ISO standard dictates that $A$=1+2, $B$ is
+$A$ works and unifies $B$ to 3, it is widely felt that source-level
+variables in arithmetic expressions should have been limited to numbers.
+In this view the eval function can be used to evaluate arbitrary
+expressions.\footnote{The eval/1 function was first introduced by
+ECLiPSe and is under consideration for YAP.}
 \end{description}
 
 

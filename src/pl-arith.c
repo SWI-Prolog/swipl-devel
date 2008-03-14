@@ -2216,6 +2216,14 @@ ar_u_plus(Number n1, Number r)
 
 
 static int
+ar_eval(Number n1, Number r)
+{ cpNumber(r, n1);
+
+  succeed;
+}
+
+
+static int
 ar_abs(Number n1, Number r)
 { switch(n1->type)
   { case V_INTEGER:
@@ -2855,7 +2863,9 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_msb1,		ar_msb),
   ADD(FUNCTOR_lsb1,		ar_lsb),
   ADD(FUNCTOR_popcount1,	ar_popcount),
-  ADD(FUNCTOR_powm3,		ar_powm)
+  ADD(FUNCTOR_powm3,		ar_powm),
+
+  ADD(FUNCTOR_eval1,		ar_eval)
 };
 
 #undef ADD

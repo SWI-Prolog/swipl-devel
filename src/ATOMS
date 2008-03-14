@@ -180,6 +180,7 @@ A equals		"="
 A erase			"erase"
 A erased		"erased"
 A error			"error"
+A eval			"eval"
 A evaluable		"evaluable"
 A evaluation_error	"evaluation_error"
 A exception		"exception"
@@ -667,6 +668,7 @@ F eof_action		1
 F equals		2
 F erased		1
 F error			2
+F eval			1
 F evaluation_error	1
 F exception		1
 F exception		3
