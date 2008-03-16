@@ -440,7 +440,7 @@ PRED_IMPL("keysort", 2, keysort, 0)
 
 BeginPredDefs(list)
   PRED_DEF("is_list", 1, is_list, 0)
-  PRED_DEF("sort", 2, sort, 0)
+  PRED_DEF("sort", 2, sort, PL_FA_ISO)
   PRED_DEF("msort", 2, msort, 0)
-  PRED_DEF("keysort", 2, keysort, 0)
+  PRED_DEF("keysort", 2, keysort, PL_FA_ISO)
 EndPredDefs

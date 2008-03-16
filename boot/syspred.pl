@@ -469,6 +469,8 @@ generate_current_predicate(Name, Module, Head) :-
 	predicate_property/2,
 	'$predicate_property'/2.
 
+:- '$iso'(predicate_property/2).
+
 predicate_property(Pred, Property) :-
 	Property == undefined, !,
 	(   Pred = Module:Head,
@@ -808,6 +810,8 @@ default_module(Me, Super) :-
 %
 %	Is true when N is the length of List.
 
+:- '$iso'((length/2)).
+
 length(List, Length) :-
 	(   nonvar(Length)
 	->  '$length'(List, Length)
@@ -830,6 +834,8 @@ length3([_|List], N, N0) :-
 		 /*******************************
 		 *	       TERM		*
 		 *******************************/
+
+:- '$iso'((numbervars/3)).
 
 %	numbervars(+Term, +StartIndex, -EndIndex)
 %	

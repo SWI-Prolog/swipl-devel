@@ -186,6 +186,26 @@ iso_builtin_predicate(thread_get_message(_,_)).
 iso_builtin_predicate(thread_peek_message(_)).
 iso_builtin_predicate(thread_peek_message(_,_)).
 
+%	Predicates from ISO/IEC DTR 13211-1:2006
+%	Note that predicates not supported yet by YAP are not in here.
+
+%iso_builtin_predicate(subsumes(_,_)).
+iso_builtin_predicate(callable(_)).
+iso_builtin_predicate(ground(_)).
+iso_builtin_predicate(compare(_, _, _)).
+iso_builtin_predicate(numbervars(_,_,_)).
+iso_builtin_predicate(predicate_property(_,_)).
+iso_builtin_predicate(retractall(_)).
+%iso_builtin_predicate(forall(_,_)).
+iso_builtin_predicate(call(_,_)).
+iso_builtin_predicate(call(_,_,_)).
+iso_builtin_predicate(call(_,_,_,_)).
+%iso_builtin_predicate(call_cleanup(_,_)).
+%iso_builtin_predicate(append(_,_,_)).
+iso_builtin_predicate(length(_,_)).
+%iso_builtin_predicate(member(_,_)).
+iso_builtin_predicate(sort(_,_)).
+iso_builtin_predicate(keysort(_,_)).
 
 %%	iso_builtin_function(?Head:callable) is nondet.
 %

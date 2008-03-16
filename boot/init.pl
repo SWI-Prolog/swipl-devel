@@ -166,6 +166,10 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	Goal1,
 	Goal2.
 
+:- '$iso'((call/2,
+	   call/3,
+	   call/4)).
+
 call(Goal) :-				% make these available as predicates
 	Goal.
 call(G, A) :-
