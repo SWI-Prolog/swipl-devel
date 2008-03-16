@@ -160,6 +160,32 @@ iso_builtin_predicate(current_prolog_flag(_, _)).
 iso_builtin_predicate(halt).
 iso_builtin_predicate(halt(_)).
 
+%	ISO wg17 proposal on threads
+%	Note that the list below only contains the predicates that are
+%	-in my opinion- beyond discussion.
+
+iso_builtin_predicate(thread_create(_,_,_)).
+iso_builtin_predicate(thread_self(_)).
+iso_builtin_predicate(thread_join(_,_)).
+iso_builtin_predicate(thread_detach(_)).
+iso_builtin_predicate(thread_signal(_,_)).
+iso_builtin_predicate(thread_property(_,_)).
+iso_builtin_predicate(mutex_create(_,_)).
+iso_builtin_predicate(mutex_destroy(_)).
+iso_builtin_predicate(with_mutex(_,_)).
+iso_builtin_predicate(mutex_lock(_)).
+iso_builtin_predicate(mutex_unlock(_)).
+iso_builtin_predicate(mutex_trylock(_)).
+iso_builtin_predicate(mutex_property(_,_)).
+iso_builtin_predicate(message_queue_create(_,_)).
+iso_builtin_predicate(message_queue_destroy(_)).
+iso_builtin_predicate(message_queue_property(_,_)).
+iso_builtin_predicate(thread_send_message(_,_)).
+iso_builtin_predicate(thread_get_message(_)).
+iso_builtin_predicate(thread_get_message(_,_)).
+iso_builtin_predicate(thread_peek_message(_)).
+iso_builtin_predicate(thread_peek_message(_,_)).
+
 
 %%	iso_builtin_function(?Head:callable) is nondet.
 %

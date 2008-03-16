@@ -371,25 +371,25 @@ static const PL_extension foreigns[] = {
 #endif
 
 #ifdef O_PLMT
-  FRG("thread_create",		3, pl_thread_create,	     META),
-  FRG("thread_join",		2, pl_thread_join,	        0),
+  FRG("thread_create",		3, pl_thread_create,	 META|ISO),
+  FRG("thread_join",		2, pl_thread_join,	      ISO),
   FRG("thread_exit",		1, pl_thread_exit,		0),
   FRG("thread_kill",		2, pl_thread_kill,              0),
-  FRG("thread_send_message",	2, pl_thread_send_message,	0),
-  FRG("thread_get_message",	1, pl_thread_get_message,	0),
-  FRG("thread_peek_message",	1, pl_thread_peek_message,	0),
-  FRG("thread_signal",		2, pl_thread_signal,	     META),
+  FRG("thread_send_message",	2, pl_thread_send_message,    ISO),
+  FRG("thread_get_message",	1, pl_thread_get_message,     ISO),
+  FRG("thread_peek_message",	1, pl_thread_peek_message,    ISO),
+  FRG("thread_signal",		2, pl_thread_signal,	 META|ISO),
   FRG("thread_at_exit",		1, pl_thread_at_exit,	     META),
-  FRG("mutex_destroy",		1, pl_mutex_destroy,		0),
-  FRG("mutex_lock",		1, pl_mutex_lock,		0),
-  FRG("mutex_trylock",		1, pl_mutex_trylock,		0),
-  FRG("mutex_unlock",		1, pl_mutex_unlock,		0),
+  FRG("mutex_destroy",		1, pl_mutex_destroy,	      ISO),
+  FRG("mutex_lock",		1, pl_mutex_lock,	      ISO),
+  FRG("mutex_trylock",		1, pl_mutex_trylock,	      ISO),
+  FRG("mutex_unlock",		1, pl_mutex_unlock,	      ISO),
   FRG("mutex_unlock_all",	0, pl_mutex_unlock_all,		0),
   FRG("open_xterm",		4, pl_open_xterm,		0),
 #endif
 
-  FRG("thread_self",		1, pl_thread_self,	        0),
-  FRG("with_mutex",		2, pl_with_mutex,	     META),
+  FRG("thread_self",		1, pl_thread_self,	      ISO),
+  FRG("with_mutex",		2, pl_with_mutex,	 META|ISO),
   FRG("$get_pid",		1, pl_get_pid,			0),
 
   /* DO NOT ADD ENTRIES BELOW THIS ONE */
