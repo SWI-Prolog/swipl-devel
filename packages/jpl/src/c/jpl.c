@@ -255,7 +255,7 @@ refactoring (trivial):
       && PL_get_atom(a1,&a) \
       && ( a==JNI_atom_null \
 	 ? ( (J)=0, TRUE) \
-	 : jni_tag_to_iref(a,(long*)&(J)) \
+	 : jni_tag_to_iref(a,(pointer*)&(J)) \
 	 ) \
     )
 
@@ -466,7 +466,7 @@ struct Hr_Table {
 	HrEntry	    **slots;	/* pointer to slot array */
 	};
 
-typedef	    long    pointer;	/* for JPL (I reckon 'int' is enough on 32-bit systems) */
+typedef	    uintptr_t    pointer;	/* for JPL */
 typedef	    int	    bool;	/* for JNI/JPL functions returning only TRUE or FALSE */
 
 
@@ -670,8 +670,8 @@ jpl_c_lib_version_4_plc(
 
 /*=== JNI function prototypes (to resolve unavoidable forward references) ========================== */
 
-static int	    jni_hr_add(JNIEnv*, jobject, long*);
-static int	    jni_hr_del(JNIEnv*, long);
+static int	    jni_hr_add(JNIEnv*, jobject, pointer*);
+static int	    jni_hr_del(JNIEnv*, pointer);
 
 
 /*=== JNI functions (NB first 6 are cited in macros used subsequently) ============================= */
@@ -680,11 +680,11 @@ static int	    jni_hr_del(JNIEnv*, long);
 static bool
 jni_tag_to_iref(
     atom_t	a,
-    long	*iref
+    pointer	*iref
     )
     {
     const char  *s = PL_atom_chars(a);
-    long r;
+    pointer r;
 
 	if ( strlen(s) == 22
 	 && s[0] == 'J'
@@ -709,7 +709,7 @@ jni_tag_to_iref(
 		&& isdigit(s[19])
 		&& isdigit(s[20])
 		&& isdigit(s[21])			 /* s is like 'J#01234567890123456789' */
-	 && (r=(long)strtoul(&s[2], (char**)NULL, 10)) != ULONG_MAX)
+	 && (r=(pointer)strtoul(&s[2], (char**)NULL, 10)) != ULONG_MAX)
 		{
 		*iref = r;
       return 1;
@@ -723,7 +723,7 @@ jni_tag_to_iref(
 
 static bool
 jni_iref_to_tag(
-    long	iref,
+    pointer	iref,
     atom_t	*a
     )
     {
@@ -740,7 +740,7 @@ static bool
 jni_object_to_iref(
     JNIEnv	*env,
     jobject	obj,	    /* a newly returned JNI local ref */
-    long	*iref	    /* gets an integerised, canonical, global equivalent */
+    pointer	*iref	    /* gets an integerised, canonical, global equivalent */
     )
     {
     int		r;	    /* temp for result code */
@@ -766,7 +766,7 @@ jni_object_to_iref(
 /* retract all jpl_iref_type_cache(Iref,_) facts */
 static bool
 jni_tidy_iref_type_cache(
-	long 		iref
+	pointer 		iref
     )
     {
 	term_t		goal;
@@ -794,7 +794,7 @@ jni_tidy_iref_type_cache(
 static bool
 jni_free_iref(		    /* called indirectly from agc hook when a possible iref is unreachable */
     JNIEnv	*env,
-    long	iref
+    pointer	iref
     )
     {
 
@@ -968,7 +968,7 @@ jni_tag_to_iref_plc(
     )
     {
     atom_t	a;
-    long	iref;
+    pointer	iref;
 
     return  PL_get_atom(tt,&a)
 	&&  jni_tag_to_iref(a,&iref)
@@ -985,7 +985,7 @@ jni_atom_freed(
     )
     {
     const char	*cp = PL_atom_chars(a);
-    long	iref;
+    pointer	iref;
     char	cs[23]; /* was 11 until 24/Apr/2007 */
 	JNIEnv	*env;
 
@@ -1230,7 +1230,7 @@ static int
 jni_hr_add(
     JNIEnv	*env,
     jobject	lref,	/* new JNI local ref from a regular JNI call  */
-    long	*iref	/* for integerised canonical global ref */
+    pointer	*iref	/* for integerised canonical global ref */
     )
     {
     int		hash;	/* System.identityHashCode of lref */
@@ -1254,7 +1254,7 @@ jni_hr_add(
 	    if ( (*env)->IsSameObject(env,ep->obj,lref) )
 		{ /* newly referenced object is already interned */
 		(*env)->DeleteLocalRef(env,lref);   /* free redundant new ref */
-		*iref = (long)ep->obj; /* old, equivalent (global) ref */
+		*iref = (pointer)ep->obj; /* old, equivalent (global) ref */
 		return JNI_HR_ADD_OLD;
 		}
 	    }
@@ -1276,7 +1276,7 @@ jni_hr_add(
     ep->next = hr_table->slots[index];	/* insert at front of chain */
     hr_table->slots[index] = ep;
     hr_table->count++;
-    *iref = (long)gref;	/* pass back the (new) global ref */
+    *iref = (pointer)gref;	/* pass back the (new) global ref */
     return JNI_HR_ADD_NEW;  /* obj was newly interned, under iref as supplied */
     }
 
@@ -1287,7 +1287,7 @@ jni_hr_add(
 static bool
 jni_hr_del(
     JNIEnv	*env,
-    long	iref	/* a possibly spurious canonical global iref */
+    pointer	iref	/* a possibly spurious canonical global iref */
     )
     {
     int		index;	/* index to a HashedRef table slot */
@@ -1299,7 +1299,7 @@ jni_hr_del(
 	{
 	for ( epp=&(hr_table->slots[index]), ep=*epp ; ep!=NULL ; epp=&(ep->next), ep=*epp )
 	    {
-	    if ( (long)(ep->obj) == iref )			/* found the sought entry? */
+	    if ( (pointer)(ep->obj) == iref )			/* found the sought entry? */
 		{
 		(*env)->DeleteGlobalRef( env, ep->obj);		/* free the global object reference */
 		*epp = ep->next;				/* bypass the entry */
@@ -1438,7 +1438,7 @@ jni_check_exception(
     jobject	c;	/* its class */
     jobject	s;	/* its class name as a JVM String, for the report */
     term_t	ep;	/* a newly created Prolog exception */
-    long	i;	/* temp for an iref denoting a Java exception */
+    pointer	i;	/* temp for an iref denoting a Java exception */
 	atom_t		tag;	/* temp for a tag denoting a Java exception */
 	atom_t		msg;	/* temp for impl-def comment (classname) within error/2 */
 
@@ -2489,7 +2489,7 @@ jni_func_0_plc(
  /* term_t	a2;	//  " */
  /*	atom_t		a;		//	" */
  /* char	*cp;	//  " */
- /*	long 		i;		//	" */
+ /*	pointer 		i;		//	" */
  /* int		xhi;	//  " */
  /* int		xlo;	//  " */
  /*	jobject 	j;		//	" */
@@ -2534,7 +2534,7 @@ jni_func_1_plc(
  /* term_t	a2;	//  " */
     atom_t	a;	/*  " */
  /*	char		*cp;	//	" */
-    long	i;	/*  " */
+    pointer	i;	/*  " */
  /* int		xhi;	//  " */
  /* int		xlo;	//  " */
     jobject	j;	/*  " */
@@ -2655,7 +2655,7 @@ jni_func_2_plc(
  /* term_t	a2;	//  " */
     atom_t	a;	/*  " */
  /*	char		*cp;	//	" */
-    long	i;	/*  " */
+    pointer	i;	/*  " */
  /*	int 		xhi;	//	" */
  /*	int 		xlo;	//	" */
     jobject	j;	/*  " */
@@ -2881,7 +2881,7 @@ jni_func_3_plc(
  /* term_t	a2;	//  " */
     atom_t	a;	/*  " */
  /*	char		*cp;	//	" */
-    long	i;	/*  " */
+    pointer	i;	/*  " */
  /*	int 		xhi;	//	" */
  /*	int 		xlo;	//	" */
     jobject	j;	/*  " */
@@ -3088,7 +3088,7 @@ jni_func_4_plc(
  /*	term_t		a2; 	//	" */
  /*	atom_t		a;		//	" */
  /*	char		*cp;	//	" */
- /*	long 		i;		//	" */
+ /*	pointer 		i;		//	" */
  /*	int 		xhi;	//	" */
  /*	int 		xlo;	//	" */
  /*	jobject 	j;		//	" */
@@ -5392,40 +5392,45 @@ static foreign_t
 	term_t		list;
 	char		*s;
 
-	if ( jvm_dia == NULL )
-		{
-		return FALSE; /* presumably, JVM is already started, so default options cannot now be set */
-		}
-	if ( !PL_get_integer(tn,&n) )
+	if ( jvm_dia == NULL )  /* presumably, JVM is already started, so default options cannot now be set */
 		{
 		return FALSE;
 		}
-	for ( i=0 ; i<100 ; i++ )
+	if ( !PL_get_integer(tn,&n) )  /* arg is not an integer (shouldn't happen: our code passes length of list */
 		{
-		if ( jvm_dia[i] == NULL )
+		return FALSE;
+		}
+	if ( jvm_dia == jvm_ia ) /* jvm_dia still points to the built-in (non-malloc-ed) default default opts */
+		{
+		DEBUG(1, Sdprintf("JPL not freeing original (static) JVM opts; replacing with malloc-ed [%d+1]\n", n));
+		jvm_dia = (char**)malloc((n+1)*sizeof(char**));
+		}
+	else
+		{
+		DEBUG(1, Sdprintf("JPL has malloc-ed JVM opt[?] (of malloc-ed strings)\n"));
+		for ( i = 0; jvm_dia[i] != NULL && i < 100; i++ )  /* a malloc-ed array always has NULL in its last element */
 			{
-			break;
+			DEBUG(1, Sdprintf("JPL freeing malloc-ed JVM opt '%s'\n", jvm_dia[i]));
+			free(jvm_dia[i]);  /* a malloc-ed array's elements always point to malloc-ed strings, which we should free */
+			}
+		if ( n != i )  /* we need an array of a different length */
+			{
+			DEBUG(1, Sdprintf("JPL needs different qty JVM opts so freeing old [%d] and malloc-ing new [%d]\n", i, n));
+			free(jvm_dia);
+			jvm_dia = (char**)malloc((n+1)*sizeof(char**));
 			}
 		else
 			{
-			free(jvm_dia[i]);
+			DEBUG(1, Sdprintf("JPL needs [%d] JVM opts as before\n"));
 			}
 		}
-	if ( n != i )
-		{
-		if ( jvm_dia != jvm_ia ) /* BUGFIX 10/Oct/2007 Bernhard (was jvm_dia[0] != NULL); definitely not first time? */
-			{
-			free(jvm_dia);
-			}
-		jvm_dia = (char**)malloc((n+1)*sizeof(char**));
-		}
-	head = PL_new_term_ref();      /* variable for the elements */
-	list = PL_copy_term_ref(args);    /* copy as we need to write */
-	i = 0;
-	while ( PL_get_list(list,head,list) )
+	head = PL_new_term_ref();  /* variable for the elements */
+	list = PL_copy_term_ref(args);  /* copy as we need to write */
+	for ( i = 0; PL_get_list(list,head,list); i++ )
 		{
 		if ( PL_get_atom_chars(head,&s) )
 			{
+			DEBUG(1, Sdprintf("JPL malloc-ing space for '%s'\n", s));
 			jvm_dia[i] = (char*)malloc(strlen(s)+1);
 			strcpy(jvm_dia[i],s);
 			}
@@ -5433,10 +5438,9 @@ static foreign_t
 			{
 			return FALSE;
 			}
-		i++;
 		}
-	jvm_dia[i] = NULL;
-	return PL_get_nil(list);              /* test end for [] */
+	jvm_dia[i] = NULL;  /* stash a sentinel */
+	return PL_get_nil(list);  /* succeed iff list is proper */
     }
 
 
