@@ -742,8 +742,7 @@ export_pi(term_t pi, Module module ARG_LD)
     fail;
 
   if ( (proc = isStaticSystemProcedure(fd)) && true(proc->definition, P_ISO) )
-    return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		    ATOM_export, ATOM_built_in_procedure, proc->definition);
+    succeed;
   proc = lookupProcedure(fd, module);
 
   LOCKMODULE(module);
