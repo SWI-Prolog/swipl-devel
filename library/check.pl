@@ -178,18 +178,22 @@ list_redefined_ :-
 	Module \== system,
 	current_predicate(_, Module:Head),
 	\+ predicate_property(Module:Head, imported_from(_)),
-	(   import_module(Module, Super),
+	(   global_module(Super),
+	    Super \== Module,
 	    '$c_current_predicate'(_, Super:Head),
 	    '$syspreds':'$defined_predicate'(Super:Head),
 	    \+ predicate_property(Super:Head, (dynamic)),
 	    \+ predicate_property(Super:Head, imported_from(Module)),
-	    functor(Head, Name, Arity),
-	    (Super == user ; Super == system)
+	    functor(Head, Name, Arity)
 	->  print_message(informational,
 			  check(redefined(Module, Super, Name/Arity)))
 	),
 	fail.
 list_redefined_.
+
+
+global_module(user).
+global_module(system).
 
 
 		 /*******************************
@@ -224,15 +228,15 @@ prolog:message(check(autoload(Module, Pairs))) -->
 	[ 'Into module ~w'-[Module], nl ],
 	autoload(Pairs).
 prolog:message(check(redefined(In, From, Pred))) -->
-	predicate(Pred),
+	predicate(In:Pred),
 	redefined(In, From).
 
 redefined(user, system) -->
 	[ '~t~30| System predicate redefined globally' ].
-redefined(M, system) -->
-	[ '~t~30| System predicate redefined in ~w'-[M] ].
-redefined(M, user) -->
-	[ '~t~30| Global predicate redefined in ~w'-[M] ].
+redefined(_, system) -->
+	[ '~t~30| Redefined system predicate' ].
+redefined(_, user) -->
+	[ '~t~30| Redefined global predicate' ].
 
 predicate(user:Name/Arity) -->
 	{ atom(Name),
