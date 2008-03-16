@@ -741,7 +741,7 @@ export_pi(term_t pi, Module module ARG_LD)
   if ( !get_functor(pi, &fd, &module, 0, GF_PROCEDURE) )
     fail;
 
-  if ( (proc = isStaticSystemProcedure(fd)) )
+  if ( (proc = isStaticSystemProcedure(fd)) && true(proc->definition, P_ISO) )
     return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		    ATOM_export, ATOM_built_in_procedure, proc->definition);
   proc = lookupProcedure(fd, module);
@@ -774,15 +774,17 @@ pl_check_export()
   for_table(module->public, s,
 	    { Procedure proc = (Procedure) s->value;
 	      Definition def = proc->definition;
+	      FunctorDef fd = def->functor;
 
-	      if ( !isDefinedProcedure(proc) && /* not defined */
-		   proc->definition->module == module ) /* not imported */
+	      if ( !isDefinedProcedure(proc) &&			/* not defined */
+		   def->module == module &&			/* not imported */
+		   !autoImport(fd->functor, module) )
 	      { printMessage(ATOM_error,
 			     PL_FUNCTOR_CHARS, "undefined_export", 2,
 			       PL_ATOM, module->name,
 			       PL_FUNCTOR, FUNCTOR_divide2,
-			         PL_ATOM, def->functor->name,
-			         PL_INT, (int)def->functor->arity);
+			         PL_ATOM, fd->name,
+			         PL_INT, fd->arity);
 	      }
 	    })
 

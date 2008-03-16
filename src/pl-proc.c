@@ -243,7 +243,8 @@ static int
 checkModifySystemProc(functor_t fd)
 { Procedure proc;
 
-  if ( (proc = isStaticSystemProcedure(fd)) )
+  if ( (proc = isStaticSystemProcedure(fd)) &&
+       true(proc->definition, P_ISO) )
     return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
 
   succeed;
@@ -1421,7 +1422,7 @@ Definition
 autoImport(functor_t f, Module m)
 { GET_LD
   Procedure proc;
-  Definition def;
+  Definition def, odef;
   ListCell c;
 					/* Defined: no problem */
   if ( (proc = isCurrentProcedure(f, m)) && isDefinedProcedure(proc) )
@@ -1438,18 +1439,20 @@ found:
     proc = lookupProcedure(f, m);
 					/* Safe? See above */
 					/* TBD: find something better! */
+  odef = proc->definition;
+  proc->definition = def;
+
 #ifdef O_PLMT
   PL_LOCK(L_THREAD);
   if ( (GD->statistics.threads_created -
 	GD->statistics.threads_finished) == 1 )
   { assert(false(proc->definition, P_DIRTYREG));
-    freeHeap(proc->definition, sizeof(struct definition));
+    freeHeap(odef, sizeof(struct definition));
   }
   PL_UNLOCK(L_THREAD);
 #else
-  freeHeap(proc->definition, sizeof(struct definition));
+  freeHeap(odef, sizeof(struct definition));
 #endif
-  proc->definition = def;
 
   return def;
 }
