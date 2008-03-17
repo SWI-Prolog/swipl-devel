@@ -355,6 +355,7 @@ static int	get_message_queue(term_t t, message_queue **queue);
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static pl_mutex *mutexCreate(atom_t name);
 static double   ThreadCPUTime(PL_thread_info_t *info, int which);
+static int	thread_at_exit(term_t goal, PL_local_data_t *ld);
 
 
 		 /*******************************
@@ -435,10 +436,12 @@ initialise_thread(PL_thread_info_t *info, int emergency)
 #define K *1024
     memset(&ld->stacks, 0, sizeof(ld->stacks));
     if ( emergency &&
-	 !initPrologStacks(8 K,		/* local */
-			   8 K,		/* global */
-			   8 K,		/* trail */
-			   8 K) )	/* argument */
+	 initPrologStacks(8 K,		/* local */
+			  8 K,		/* global */
+			  8 K,		/* trail */
+			  8 K) )	/* argument */
+    { DEBUG(0, Sdprintf("Using small emergency stacks\n"));
+    } else
     { memset(&ld->stacks, 0, sizeof(ld->stacks));
       fail;
     }
@@ -884,6 +887,7 @@ static const opt_spec make_thread_options[] =
   { ATOM_alias,		OPT_ATOM },
   { ATOM_detached,	OPT_BOOL },
   { ATOM_stack,		OPT_LONG },
+  { ATOM_at_exit,	OPT_TERM },
   { NULL_ATOM,		0 }
 };
 
@@ -903,6 +907,11 @@ start_thread(void *closure)
     
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
   pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+
+  if ( info->status == PL_THREAD_NOMEM )
+  { free_prolog_thread(info->thread_data);
+    return (void *)FALSE;
+  }
 
   pthread_cleanup_push(free_prolog_thread, info->thread_data);
 
@@ -961,6 +970,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   atom_t alias = NULL_ATOM;
   pthread_attr_t attr;
   intptr_t stack = 0;
+  term_t at_exit = 0;
   int rc;
 
   if ( !PL_is_callable(goal) )
@@ -990,7 +1000,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &info->argument_size,
 		     &alias,
 		     &info->detached,
-		     &stack) )
+		     &stack,
+		     &at_exit) )
   { free_thread_info(info);
     fail;
   }
@@ -1034,6 +1045,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     PL_UNLOCK(L_FEATURE);
   }
   init_message_queue(&info->thread_data->thread.messages, -1);
+  if ( at_exit )
+    thread_at_exit(at_exit, ldnew);
 
   pthread_attr_init(&attr);
   if ( info->detached )
@@ -1536,8 +1549,8 @@ typedef struct _at_exit_goal
 } at_exit_goal;
 
 
-foreign_t
-pl_thread_at_exit(term_t goal)
+static int
+thread_at_exit(term_t goal, PL_local_data_t *ld)
 { Module m = NULL;
   at_exit_goal *eg = allocHeap(sizeof(*eg));
 
@@ -1547,10 +1560,16 @@ pl_thread_at_exit(term_t goal)
   eg->goal.prolog.module = m;
   eg->goal.prolog.goal   = PL_record(goal);
 
-  eg->next = LD->thread.exit_goals;
-  LD->thread.exit_goals = eg;
+  eg->next = ld->thread.exit_goals;
+  ld->thread.exit_goals = eg;
 
   succeed;
+}
+
+
+foreign_t
+pl_thread_at_exit(term_t goal)
+{ return thread_at_exit(goal, LD);
 }
 
 
