@@ -921,6 +921,8 @@ pl-thread.c to create stacks for Prolog threads.
 
 allocStacks() does the  real  work   and  has  several  implementations,
 depending on the OS features.
+
+Requested stack sizes are in bytes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
