@@ -53,34 +53,22 @@ below.  Stack size options can also take the value \const{inf} or
 by the platform.
 
 \begin{description}
-    \termitem{local}{K-Bytes}
-Set the limit to which the local stack of this thread may grow.  If
-omitted, the limit of the calling thread is used.  See also the
-\cmdlineoption{-L} command-line option.
-
-    \termitem{global}{K-Bytes}
-Set the limit to which the global stack of this thread may grow.  If
-omitted, the limit of the calling thread is used. See also the
-\cmdlineoption{-G} command-line option.
-
-    \termitem{trail}{K-Bytes}
-Set the limit to which the trail stack of this thread may grow.  If
-omitted, the limit of the calling thread is used. See also the
-\cmdlineoption{-T} command-line option.
+    \termitem{alias}{AliasName}
+Associate an `alias-name' with the thread.  This named may be used to
+refer to the thread and remains valid until the thread is joined
+(see thread_join/2).
 
     \termitem{argument}{K-Bytes}
 Set the limit to which the argument stack of this thread may grow.  If
 omitted, the limit of the calling thread is used. See also the
 \cmdlineoption{-A} command-line option.
 
-    \termitem{stack}{K-Bytes}
-Set the limit to which the system stack of this thread may grow.  The
-default, minimum and maximum values are system-dependant.
-
-    \termitem{alias}{AliasName}
-Associate an `alias-name' with the thread.  This named may be used to
-refer to the thread and remains valid until the thread is joined
-(see thread_join/2).
+    \termitem{at_exit}{:AtExit}
+Register \arg{AtExit} as using thread_at_exit/1 before entering the
+thread goal. Unlike calling thread_at_exit/1 as part of the normal
+\arg{Goal}, this \emph{ensures} the \arg{Goal} is called. Using
+thread_at_exit/1, the thread may be signalled or run out of resources
+before thread_at_exit/1 is reached.
 
     \termitem{detached}{Bool}
 If \const{false} (default), the thread can be waited for using
@@ -95,6 +83,25 @@ If a detached thread dies due to failure or exception of the initial
 goal the thread prints a message using print_message/2.  If such
 termination is considered normal the code must be wrapped using
 ignore/1 and/or catch/3 to ensure successful completion.
+
+    \termitem{global}{K-Bytes}
+Set the limit to which the global stack of this thread may grow.  If
+omitted, the limit of the calling thread is used. See also the
+\cmdlineoption{-G} command-line option.
+
+    \termitem{local}{K-Bytes}
+Set the limit to which the local stack of this thread may grow.  If
+omitted, the limit of the calling thread is used.  See also the
+\cmdlineoption{-L} command-line option.
+
+    \termitem{stack}{K-Bytes}
+Set the limit to which the system stack of this thread may grow.  The
+default, minimum and maximum values are system-dependant.
+
+    \termitem{trail}{K-Bytes}
+Set the limit to which the trail stack of this thread may grow.  If
+omitted, the limit of the calling thread is used. See also the
+\cmdlineoption{-T} command-line option.
 \end{description}
 
 The \arg{Goal} argument is \emph{copied} to the new Prolog engine.
@@ -134,7 +141,6 @@ system exceptions into readable messages.
 The thread is terminated on thread_exit/1 using the argument \arg{Term}.
 \end{description}
 
-
     \predicate{thread_detach}{1}{+Id}
 Switch thread into detached-state (see \term{detached}{Bool} option at
 thread_create/3) at runtime.  \arg{Id} is the identifier of the thread
@@ -148,12 +154,17 @@ and detach themselves just before completion. This way they leave no
 traces on normal completion and their reason for failure can be
 inspected.
 
-    \predicate{thread_exit}{1}{+Term}
+    \predicate[deprecated]{thread_exit}{1}{+Term}
 Terminates the thread immediately, leaving \term{exited}{Term} as
 result-state for thread_join/2.  If the thread has the attribute
 \term{detached}{true} it terminates, but its exit status cannot be
 retrieved using thread_join/2 making the value of \arg{Term} irrelevant.
 The Prolog stacks and C-thread are reclaimed.
+
+The current implementation does not guarantee proper releasing of all
+mutexes and proper cleanup in call_cleanup/2, etc. Please use the
+exception mechanism (throw/1) to abort execution using non-standard
+control.
 
     \predicate{thread_initialization}{1}{:Goal}
 Run \arg{Goal} when thread is started.  This predicate must be compared
@@ -171,7 +182,8 @@ compared to at_halt/1, but only for the current thread. These hooks are
 ran regardless of why the execution of the thread has been completed. As
 these hooks are run, the return-code is already available through
 thread_property/2 using the result of thread_self/1 as
-thread-identifier.
+thread-identifier.  See also the \term{at_exit}{Goal} argmument of
+thread_create/3.
 
     \predicate{thread_setconcurrency}{2}{-Old, +New}
 \index{Solaris}%
@@ -705,6 +717,33 @@ Start collecting profile data in \arg{ThreadId} and ask the user to hit
 <return> to stop the profiler.  See \secref{profile} for details on the
 execution profiler.
 \end{description}
+
+
+\section{Unbounded thread creation}
+\label{sec:mtunbound}
+
+(SWI-)Prolog threads are rather heavyweight objects, notably on 32-bit
+systems because each thread uses a considerable amount of \emph{virtual}
+address space. SWI-Prolog threads claim the stack \emph{limit} in
+virtual address space for each of the runtime stacks, while on 32-bit
+systems this resource is generally limited somewhere between 1GB and 3.5
+GB, depending on the operating system and operating configuration.
+
+If SWI-Prolog starts a thread it copies the initial goal and starts a
+POSIX thread which allocates a new Prolog engine that starts proving
+the given goal.  If allocation of the engine fails, typically due to
+lack of virtual memory space, the thread is still created with minimal
+(8 Kbyte) stacks and immediately calls its exit handlers. See the option
+\term{at_exit}{Goal}. Although this mechnanism allows for handling this
+type of error gracefully it is not safe to rely on it.  Allocating an
+engine that nearly exhausts virtual address space may cause failures
+in normal memory allocation that can appear anywhere in Prolog or the
+foreign libraries used by it.  Such errors typically kill the process
+with a fatal error.
+
+Especially on 32-bit hardware, the design of the application must
+consider this issue and avoid ungracefull termination being conservative
+with the dynamic creation of new threads.
 
 
 \section{Multi-threaded mixed C and Prolog applications}
