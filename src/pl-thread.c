@@ -410,7 +410,7 @@ enableThreads(int enable)
 		 *******************************/
 
 static int
-initialise_thread(PL_thread_info_t *info)
+initialise_thread(PL_thread_info_t *info, int emergency)
 { assert(info->thread_data);
 
   LOCK();
@@ -430,9 +430,19 @@ initialise_thread(PL_thread_info_t *info)
 			 info->argument_size) )
   { PL_local_data_t *ld = info->thread_data;
 
-    memset(&ld->stacks, 0, sizeof(ld->stacks));
+    info->status = PL_THREAD_NOMEM;
 
-    fail;
+#define K *1024
+    memset(&ld->stacks, 0, sizeof(ld->stacks));
+    if ( emergency &&
+	 !initPrologStacks(8 K,		/* local */
+			   8 K,		/* global */
+			   8 K,		/* trail */
+			   8 K) )	/* argument */
+    { memset(&ld->stacks, 0, sizeof(ld->stacks));
+      fail;
+    }
+#undef K
   }
 
   initPrologLocalData();
@@ -888,10 +898,8 @@ start_thread(void *closure)
 					/* Control-C */
   set_system_thread_id(info);		/* early to get exit code ok */
 
-  if ( !initialise_thread(info) )
-  { info->status = PL_THREAD_NOMEM;
-    return (void *)TRUE;
-  }
+  if ( !initialise_thread(info, TRUE) )
+    return (void *)FALSE;
     
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
   pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
@@ -3374,7 +3382,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     PL_UNLOCK(L_FEATURE);
   }
 
-  if ( !initialise_thread(info) )
+  if ( !initialise_thread(info, FALSE) )
   { free_thread_info(info);
     errno = ENOMEM;
     return -1;
