@@ -23,7 +23,7 @@ create_threads([H|T]) :-
 
 kiss_threads([]).
 kiss_threads([H|T]) :-
-	thread_send_message(H, done),
+	catch(thread_send_message(H, done), _, true),
 	kiss_threads(T).
 
 join_threads([]).

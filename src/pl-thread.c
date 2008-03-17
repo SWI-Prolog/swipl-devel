@@ -440,7 +440,7 @@ initialise_thread(PL_thread_info_t *info, int emergency)
 			  8 K,		/* global */
 			  8 K,		/* trail */
 			  8 K) )	/* argument */
-    { DEBUG(0, Sdprintf("Using small emergency stacks\n"));
+    { DEBUG(1, Sdprintf("Using small emergency stacks\n"));
     } else
     { memset(&ld->stacks, 0, sizeof(ld->stacks));
       fail;
