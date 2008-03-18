@@ -967,7 +967,7 @@ word
 pl_thread_create(term_t goal, term_t id, term_t options)
 { PL_thread_info_t *info;
   PL_local_data_t *ldnew;
-  atom_t alias = NULL_ATOM;
+  atom_t alias = NULL_ATOM, idname;
   pthread_attr_t attr;
   intptr_t stack = 0;
   term_t at_exit = 0;
@@ -1005,6 +1005,15 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   { free_thread_info(info);
     fail;
   }
+  if ( at_exit && !PL_is_callable(at_exit) )
+  { free_thread_info(info);
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, at_exit);
+  }
+  if ( !PL_is_variable(id) && 
+       !(PL_get_atom(id, &idname) && idname == alias) )
+  { free_thread_info(info);
+    return PL_error("thread_create", 3, NULL, ERR_MUST_BE_VAR, 2, id);
+  }
 
 #define MK_KBYTES(v) if ( v < (LONG_MAX/1024) ) v *= 1024
 
@@ -1023,6 +1032,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
       fail;
     }
   }
+  unify_thread_id(id, info);
+
 					/* copy settings */
 
   PL_register_atom(LD->prompt.current);
@@ -1063,7 +1074,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		    ERR_SYSCALL, "pthread_create");
   }
 
-  return unify_thread_id(id, info);
+  succeed;
 }
 
 
