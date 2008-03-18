@@ -1744,6 +1744,9 @@ executeThreadSignals(int sig)
   fid_t fid = PL_open_foreign_frame();
   term_t goal = PL_new_term_ref();
 
+  if ( !is_alive(LD->thread.info->status) )
+    return;
+
   LOCK();
   sg = LD->thread.sig_head;
   LD->thread.sig_head = LD->thread.sig_tail = NULL;
