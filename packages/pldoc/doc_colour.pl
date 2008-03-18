@@ -725,7 +725,7 @@ goal_classification(Goal, built_in) :-
 	built_in_predicate(Goal), !.
 goal_classification(Goal, autoload) :-	% SWI-Prolog
 	functor(Goal, Name, Arity),
-	'$in_library'(Name, Arity), !.
+	'$in_library'(Name, Arity, _Path), !.
 goal_classification(Goal, global) :-	% SWI-Prolog
 	current_predicate(_, user:Goal), !.
 goal_classification(SS, expanded) :-	% XPCE (TBD)

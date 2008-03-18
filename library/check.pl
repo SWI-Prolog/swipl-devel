@@ -54,7 +54,7 @@ loaded Prolog program.
 check :-
 	print_message(informational,
 		      check(pass(1, 'Undefined predicates'))),
-	list_undefined,
+	list_undefined(silent),
 	print_message(informational,
 		      check(pass(2, 'Redefined system and global predicates'))),
 	list_redefined,
@@ -71,15 +71,18 @@ check :-
 %	@see gxref/0 provides a graphical cross-referencer.
 
 list_undefined :-
+	list_undefined(informational).
+
+list_undefined(Level) :-
 	'$style_check'(Old, Old), 
 	style_check(+dollar), 
-	call_cleanup(list_undefined_, '$style_check'(_, Old)).
+	call_cleanup(list_undefined_(Level), '$style_check'(_, Old)).
 
-list_undefined_ :-
+list_undefined_(Level) :-
 	findall(Pred, undefined_predicate(Pred), Preds),
 	(   Preds == []
 	->  true
-	;   print_message(informational, check(find_references(Preds))),
+	;   print_message(Level, check(find_references(Preds))),
 	    find_references(Preds, Pairs),
 	    (	Pairs == []
 	    ->	true
@@ -97,7 +100,7 @@ undefined_predicate(Module:Head) :-
 	predicate_property(Module:Head, undefined), 
 	\+ predicate_property(Module:Head, imported_from(_)),
 	functor(Head, Functor, Arity), 
-	\+ '$in_library'(Functor, Arity),
+	\+ '$in_library'(Functor, Arity, _),
 	\+ system_undefined(Module:Functor/Arity).
 
 system_undefined(user:prolog_trace_interception/4).
@@ -157,7 +160,6 @@ autoload_predicate(Module, Library, Name/Arity) :-
 	predicate_property(Module:Head, undefined), 
 	(   \+ predicate_property(Module:Head, imported_from(_)), 
 	    functor(Head, Name, Arity), 
-	    '$in_library'(Name, Arity),
 	    '$find_library'(Module, Name, Arity, _LoadModule, Library),
 	    referenced(Module:Head, Module, _)
 	->  true

@@ -186,7 +186,7 @@ goal_name_(Goal, String) :-
 '$find_predicate'(Spec, List) :-
 	strip_module(Spec, _M, S),
 	name_arity(S, Name, Arity),
-	findall(Head, ('$in_library'(Name, Arity),
+	findall(Head, ('$in_library'(Name, Arity, _Path),
 		       functor(Head, Name, Arity)), List),
 	List \== [], !.
 '$find_predicate'(Spec, _) :-

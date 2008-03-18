@@ -134,9 +134,7 @@ locate(Name//DCGArity, FullSpec, Location) :-
 	).
 locate(Name/Arity, library(File), [file(PlPath)]) :-
 	atom(Name),
-	'$autoload':load_library_index,
-	'$autoload':library_index(Head, _, Path),
-	functor(Head, Name, Arity),
+	'$in_library'(Name, Arity, Path),
 	(   absolute_file_name(library(.),
 			       [ file_type(directory),
 				 solutions(all)

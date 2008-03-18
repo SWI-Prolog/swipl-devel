@@ -31,7 +31,7 @@
 
 :- module('$autoload',
 	  [ '$find_library'/5,
-	    '$in_library'/2,
+	    '$in_library'/3,
 	    '$define_predicate'/1,
 	    '$update_library_index'/0,
 	    make_library_index/1,
@@ -66,18 +66,19 @@
 	;   library_index(Head, LoadModule, Library)
 	), !.
 
-%%	'$in_library'(?Name, ?Arity) is det.
+%%	'$in_library'(+Name, +Arity, -Path) is semidet.
+%%	'$in_library'(-Name, -Arity, -Path) is nondet.
 %
 %	Is true if Name/Arity is in the autoload libraries.
 
-'$in_library'(Name, Arity) :-
+'$in_library'(Name, Arity, Path) :-
 	atom(Name), integer(Arity), !,
 	load_library_index(Name, Arity),
 	functor(Head, Name, Arity),
-	library_index(Head, _, _).
-'$in_library'(Name, Arity) :-
+	library_index(Head, _, Path).
+'$in_library'(Name, Arity, Path) :-
 	load_library_index(Name, Arity),
-	library_index(Head, _, _),
+	library_index(Head, _, Path),
 	functor(Head, Name, Arity).
 
 %	'$define_predicate'(+Head)
@@ -153,19 +154,20 @@ reload_library_index :-
 	retractall(index_checked_at(_)).
 
 
-%	load_library_index(+Name, +Arity)
+%	load_library_index(?Name, ?Arity) is det.
 %	
 %	Try to find Name/Arity  in  the   library.  If  the predicate is
 %	there, we are happy. If not, we  check whether the set of loaded
 %	libraries has changed and if so we reload the index.
 
 load_library_index(Name, Arity) :-
+	atom(Name), integer(Arity),
 	functor(Head, Name, Arity),
 	library_index(Head, _, _), !.
 load_library_index(_, _) :-
 	index_checked_at(Time),
 	get_time(Now),
-	Now-Time < 60, !, fail.
+	Now-Time < 60, !.
 load_library_index(_, _) :-
 	findall(Index, index_file_name(Index, [access(read)]), List),
 	retractall(index_checked_at(_)),
@@ -345,7 +347,7 @@ needs_autoloading(Module:Head) :-
 	predicate_property(Module:Head, undefined), 
 	\+ predicate_property(Module:Head, imported_from(_)), 
 	functor(Head, Functor, Arity), 
-	'$in_library'(Functor, Arity).
+	'$in_library'(Functor, Arity, _).
 
 option(Options, Name/Default, Value) :-
 	(   memberchk(Name = Value, Options)

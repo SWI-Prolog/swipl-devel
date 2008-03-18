@@ -57,12 +57,9 @@ auto_call(G) :-
 
 callable_predicate(Spec) :-
 	strip_module(Spec, M, Head),
-	default_module(M, Def),
-	current_predicate(_, Def:Head), !.
-callable_predicate(Spec) :-
-	strip_module(Spec, _, Head),
+	callable(Head),
 	functor(Head, Name, Arity),
-	'$in_library'(Name, Arity).
+	current_predicate(M:Name/Arity).
 
 %%	modified_since_last_loaded(Path)
 %	True is file has been modified since the last time it was loaded.
