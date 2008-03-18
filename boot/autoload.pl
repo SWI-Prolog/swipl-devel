@@ -43,10 +43,13 @@
 
 :- dynamic
 	library_index/3,		% Head x Module x Path
-	autoload_directories/1.		% List
+	autoload_directories/1,		% List
+	index_checked_at/1.		% Time
 :- volatile
 	library_index/3,
-	autoload_directories/1.
+	autoload_directories/1,
+	index_checked_at/1.
+
 
 %	'$find_library'(+Module, +Name, +Arity, -LoadModule, -Library)
 %
@@ -73,7 +76,7 @@
 	functor(Head, Name, Arity),
 	library_index(Head, _, _).
 '$in_library'(Name, Arity) :-
-	load_library_index,
+	load_library_index(Name, Arity),
 	library_index(Head, _, _),
 	functor(Head, Name, Arity).
 
@@ -146,7 +149,8 @@ indexed_directory(Dir) :-
 
 reload_library_index :-
 	retractall(library_index(_, _, _)),
-	retractall(autoload_directories(_)).
+	retractall(autoload_directories(_)),
+	retractall(index_checked_at(_)).
 
 
 %	load_library_index(+Name, +Arity)
@@ -159,7 +163,14 @@ load_library_index(Name, Arity) :-
 	functor(Head, Name, Arity),
 	library_index(Head, _, _), !.
 load_library_index(_, _) :-
+	index_checked_at(Time),
+	get_time(Now),
+	Now-Time < 60, !, fail.
+load_library_index(_, _) :-
 	findall(Index, index_file_name(Index, [access(read)]), List),
+	retractall(index_checked_at(_)),
+	get_time(Now),
+	assert(index_checked_at(Now)),
 	(   autoload_directories(List)
 	->  true
 	;   retractall(library_index(_, _, _)),
@@ -167,17 +178,6 @@ load_library_index(_, _) :-
 	    read_index(List),
 	    assert(autoload_directories(List))
 	).
-
-%	load_library_index
-%	
-%	Load the library index if it was not loaded.
-
-load_library_index :-
-	library_index(_, _, _), !.		% loaded
-load_library_index :-
-	findall(Index, index_file_name(Index, [access(read)]), List),
-	read_index(List),
-	assert(autoload_directories(List)).
 
 index_file_name(IndexFile, Options) :-
 	absolute_file_name(library('INDEX'),
