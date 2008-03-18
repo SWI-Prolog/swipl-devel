@@ -210,7 +210,7 @@ tprofile(Thread) :-
 		      (	  reset_profiler,
 			  profiler(_, true)
 		      )),
-	format('Running profiler in thread ~w (press return to store) ...',
+	format('Running profiler in thread ~w (press RET to show results) ...',
 	       [Thread]),
 	flush_output,
 	get0(_),
