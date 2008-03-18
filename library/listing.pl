@@ -100,10 +100,10 @@ list_predicates(Preds, X) :-
 	context_module(Context),
 	member(Pred, Preds),
 	unify_args(Pred, X),
-	nl, 
 	'$define_predicate'(Pred),
 	strip_module(Pred, Module, Head), 
-        list_predicate(Module:Head, Context), 
+        list_predicate(Module:Head, Context),
+	nl,
         fail.
 list_predicates(_, _).
 
@@ -124,7 +124,7 @@ list_predicate(Pred, Context) :-
 	decl_term(Pred, Context, Decl),
 	format('%   Foreign: ~q~n', [Decl]).
 list_predicate(Pred, Context) :-
-	notify_changed(Pred),
+	notify_changed(Pred, Context),
 	list_declarations(Pred, Context), 
 	list_clauses(Pred, Context).
 
@@ -151,7 +151,7 @@ declaration(Pred, Source, Decl) :-
 	    
 list_declarations(Pred, Source) :-
 	findall(Decl, declaration(Pred, Source, Decl), Decls),
-	(   Decl == []
+	(   Decls == []
 	->  true
 	;   write_declarations(Decls, Source),
 	    format('~n', [])
@@ -165,27 +165,26 @@ write_declarations([H|T], Module) :-
 
 list_clauses(Pred, Source) :-
 	strip_module(Pred, Module, Head), 
-	clause(Pred, Body), 
+	(   clause(Pred, Body), 
 	    write_module(Module, Source), 
-	    portray_clause((Head:-Body)), 
-	fail.
+	    portray_clause((Head:-Body)),
+	    fail
+	;   true
+	).
 
 write_module(system, _) :- !.
 write_module(Module, Module) :- !.
 write_module(Module, _) :-
 	format('~q:', [Module]).
 
-notify_changed(Pred) :-
+notify_changed(Pred, Context) :-
 	strip_module(Pred, user, Head),
-	'$c_current_predicate'(_, system:Head),
-	\+ ( predicate_property(user:Head, imported_from(System)),
-	     (System == system ; import_module(System, system))
-	   ),
-	\+ predicate_property(system:Head, (dynamic)), !,
-	functor(Head, Name, Arity),
-	format('%   NOTE: system definition has been overruled for ~w/~w~n~n',
-	       [Name, Arity]).
-notify_changed(_).
+	predicate_property(Head, built_in),
+	\+ predicate_property(Head, (dynamic)), !,
+	decl_term(Pred, Context, Decl),
+	format('%   NOTE: system definition has been overruled for ~q~n',
+	       [Decl]).
+notify_changed(_, _).
 
 %%	portray_clause(+Clause) is det.
 %%	portray_clause(+Out:stream, +Clause) is det.
