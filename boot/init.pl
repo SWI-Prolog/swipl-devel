@@ -2056,6 +2056,8 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 :- module_transparent
 	phrase/2,
 	phrase/3.
+:- noprofile((phrase/2,
+	      phrase/3)).
 
 phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
