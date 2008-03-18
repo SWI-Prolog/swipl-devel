@@ -53,7 +53,7 @@ static PL_prof_type_t *types[MAX_PROF_TYPES] = { &prof_default_type };
 #define PROFNODE_MAGIC 0x7ae38f24
 
 typedef struct call_node
-{ intptr_t 		    magic;		/* PROFNODE_MAGIC */
+{ intptr_t 	    magic;		/* PROFNODE_MAGIC */
   struct call_node *parent;
   void *            handle;		/* handle to procedure-id */
   PL_prof_type_t   *type;
@@ -933,16 +933,23 @@ profCall(Definition def ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Exit, resuming execution in node
+
+Exit, resuming execution in node. Note that   we  ignore the node if the
+magic doesn't fit. That can  happen   using  tprofile/1 because the stop
+doesn't need to match the  start.   Actually,  we should clear prof_node
+references when clearing the data, but  this is rather complicated (must
+be synchornised with atom-gc) and  it   still  doesn't cope with foreign
+code.  Considering this is development only, we'll leave this for now.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 profExit(struct call_node *node ARG_LD)
 { call_node *n;
 
-  accounting = TRUE;
-  assert(!node || node->magic == PROFNODE_MAGIC);
+  if ( node && node->magic != PROFNODE_MAGIC )
+    return;
 
+  accounting = TRUE;
   for(n=current; n && n != node; n=n->parent)
   { n->exits++;
   }
@@ -954,7 +961,8 @@ profExit(struct call_node *node ARG_LD)
 
 void
 profRedo(struct call_node *node ARG_LD)
-{ assert(!node || node->magic == PROFNODE_MAGIC);
+{ if ( node && node->magic != PROFNODE_MAGIC )
+    return;
 
   if ( node )
   { node->redos++;
