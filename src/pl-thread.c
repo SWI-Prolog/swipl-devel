@@ -1151,7 +1151,7 @@ unify_thread_status(term_t status, PL_thread_info_t *info)
 			   PL_FUNCTOR, FUNCTOR_exception1,
 			     PL_FUNCTOR, FUNCTOR_error2,
 			       PL_FUNCTOR, FUNCTOR_resource_error1,
-			         PL_CHARS, "virtual_memory",
+			         PL_ATOM, ATOM_memory,
 			       PL_VARIABLE);
     }
     case PL_THREAD_CANCELED:
