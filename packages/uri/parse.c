@@ -140,7 +140,7 @@ parse_uri_options(UriParserStateW *state, UriUriW *uri, term_t options)
 	return FALSE;			/* TBD: Exception */
       }
 
-      if (uriAddBaseUriW(&absuri, uri, &buri) != URI_SUCCESS)
+      if ( uriAddBaseUriW(&absuri, uri, &buri) != URI_SUCCESS)
       { uriFreeUriMembersW(&buri);
 	uriFreeUriMembersW(&absuri);
 	return FALSE;			/* TBD: Exception */
