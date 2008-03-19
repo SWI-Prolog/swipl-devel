@@ -20,6 +20,7 @@ PCEHOME=../xpce
 DESTDIR=
 
 CC=@CC@
+CXX=@CXX@
 COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
 CMFLAGS=@CMFLAGS@
@@ -36,7 +37,7 @@ PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
 
 LD=@LD@
-LDFLAGS=@LDSOFLAGS@
+LDFLAGS=@LDSOFLAGS@ @LDFLAGS@
 
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
@@ -50,7 +51,7 @@ URIOBJ=		uri.o
 all:		$(TARGETS)
 
 uri.@SO@:	$(URIOBJ)
-		$(LD) $(LDFLAGS) -o $@ $(URIOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(URIOBJ) $(LIBS)
 
 uri.o:		uri.c escape.c
 

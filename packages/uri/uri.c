@@ -32,8 +32,10 @@
 #include <SWI-Prolog.h>
 
 #include "escape.c"
+#include "parse.c"
 
 install_t
 install_uri()
 { install_escape();
+  install_parse();
 }
