@@ -29,28 +29,11 @@
     the GNU General Public License.
 */
 
-:- module(urlencode,
-	  [ escape/2,
-	    encode_uri/2,
-	    encode_uri_component/2,
-	    unescape/2,
-	    decode_uri/2,
-	    decode_uri_component/2
-	  ]).
+#include <SWI-Prolog.h>
 
-:- initialization
-   load_foreign_library(foreign(urlencode)).
+#include "escape.c"
 
-/** <module> URI/URL encoding/decoding library
-
-
-*/
-
-%%	escape(+In, -Out) is det.
-%%	escape_uri(+In, -Out) is det.
-%%	escape_uri_component(+In, -Out) is det.
-
-%%	unescape(+In, -Out) is det.
-%%	decode_uri(+In, -Out) is det.
-%%	decode_uri_component(+In, -Out) is det.
-
+install_t
+install_uri()
+{ install_escape();
+}

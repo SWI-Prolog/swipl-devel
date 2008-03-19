@@ -223,14 +223,14 @@ decode_uri_component(term_t in, term_t out)
 }
 
 
-install_t
-install_urlencode()
+static void
+install_escape()
 { init_maps();
 
-  PL_register_foreign("escape", 2, js_escape, 0);
+/*  PL_register_foreign("escape", 2, js_escape, 0); */
   PL_register_foreign("encode_uri", 2, encode_uri, 0);
   PL_register_foreign("encode_uri_component", 2, encode_uri_component, 0);
-  PL_register_foreign("unescape", 2, unescape, 0);
+/*  PL_register_foreign("unescape", 2, unescape, 0); */
   PL_register_foreign("decode_uri", 2, unescape, 0);
   PL_register_foreign("decode_uri_component", 2, decode_uri_component, 0);
 }
