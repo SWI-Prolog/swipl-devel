@@ -53,7 +53,7 @@ all:		$(TARGETS)
 uri.@SO@:	$(URIOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(URIOBJ) $(LIBS)
 
-uri.o:		uri.c escape.c
+uri.o:		uri.c escape.c parse.c
 
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
