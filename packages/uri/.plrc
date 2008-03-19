@@ -1,0 +1,13 @@
+:- asserta(user:file_search_path(foreign, '.')).
+:- asserta(user:file_search_path(library, '.')).
+
+:- use_module(library(test_wizard)).
+:- use_module(library(uri)).
+:- set_prolog_flag(log_query_file, 'Queries.pl').
+
+tests :-
+	make_tests(uri, 'Queries.pl', current_output).
+
+clean :-
+	current_prolog_flag(log_query_file, File),
+	catch(delete_file(File), _, true).

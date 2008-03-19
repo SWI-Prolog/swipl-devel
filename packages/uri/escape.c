@@ -244,7 +244,7 @@ unescape(term_t in, term_t out)
 
 
 static foreign_t
-decode_uri_component(term_t in, term_t out)
+decode_uri(term_t in, term_t out)
 { return decode(in, out, FALSE);
 }
 
@@ -259,6 +259,6 @@ install_escape()
   PL_register_foreign("encode_uri", 3, encode_uri3, 0);
   PL_register_foreign("encode_uri_component", 3, encode_uri_component3, 0);
 /*  PL_register_foreign("unescape", 2, unescape, 0); */
-  PL_register_foreign("decode_uri", 2, unescape, 0);
-  PL_register_foreign("decode_uri_component", 2, decode_uri_component, 0);
+  PL_register_foreign("decode_uri", 2, decode_uri, 0);
+  PL_register_foreign("decode_uri_component", 2, decode_uri, 0);
 }

@@ -88,7 +88,7 @@ uninstall::
 ################################################################
 
 check::
-		$(PL) -q -f test.pl -g true -t run_tests
+		$(PL) -q -f test_uri.pl -g true -t run_tests
 
 ################################################################
 # Documentation
