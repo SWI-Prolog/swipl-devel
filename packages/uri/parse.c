@@ -29,6 +29,8 @@
 
 static functor_t FUNCTOR_uri7;
 static atom_t    ATOM_;
+static atom_t	 ATOM_normalize;
+static atom_t	 ATOM_base;
 
 static void
 put_text_range(term_t t, UriTextRangeW *text)
@@ -87,8 +89,80 @@ put_path_segments(term_t t, UriPathSegmentW *segment)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+parse_uri(+Text, -URI:term, +Options) is det.
+
+Options include:
+
+	* normalize(+Bool)
+	* base(+BaseURI)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+static int
+parse_uri_options(UriParserStateW *state, UriUriW *uri, term_t options)
+{ if ( !PL_get_nil(options) )
+  { int normalize = FALSE;
+    wchar_t *base = NULL;
+    size_t baselen;
+    term_t tail = PL_copy_term_ref(options);
+    term_t head = PL_new_term_ref();
+    term_t ov   = PL_new_term_ref();
+
+    while( PL_get_list(tail, head, tail) )
+    { atom_t oname;
+      int oarity;
+
+      if ( !PL_get_name_arity(head, &oname, &oarity) || oarity != 1 )
+	return type_error(head, "option");
+      PL_get_arg(1, head, ov);
+
+      if ( oname == ATOM_normalize )
+      { if ( !PL_get_bool(ov, &normalize) )
+	  return type_error(ov, "bool");
+      } else if ( oname == ATOM_base )
+      { if ( !PL_get_wchars(ov, &baselen, &base, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
+	  return FALSE;
+      } else
+      { return domain_error(head, "parse_uri_option");
+      }
+    }
+    if ( !PL_get_nil(tail) )
+      return type_error(tail, "list");
+
+    if ( base )
+    { UriUriW buri = { {0} };
+      UriUriW absuri = { {0} };
+      
+      state->uri = &buri;
+      if ( uriParseUriW(state, base) != URI_SUCCESS)
+      { uriFreeUriMembersW(&buri);
+	return FALSE;			/* TBD: Exception */
+      }
+
+      if (uriAddBaseUriW(&absuri, uri, &buri) != URI_SUCCESS)
+      { uriFreeUriMembersW(&buri);
+	uriFreeUriMembersW(&absuri);
+	return FALSE;			/* TBD: Exception */
+      }
+
+      uriFreeUriMembersW(&buri);
+      uriFreeUriMembersW(uri);
+      *uri = absuri;
+    }
+    if ( normalize )
+    { if ( uriNormalizeSyntaxW(uri) != URI_SUCCESS )
+	return FALSE;			/* TBD: error */
+    }
+  }
+
+  return TRUE;
+}
+
+
+
 static foreign_t
-parse_uri(term_t text, term_t parts)
+parse_uri(term_t text, term_t parts, term_t options)
 { UriParserStateW state = { 0 };
   UriUriW uri = { {0} };
   wchar_t *in;
@@ -103,6 +177,9 @@ parse_uri(term_t text, term_t parts)
     return FALSE;			/* TBD: Exception */
   }
   
+  if ( !parse_uri_options(&state, &uri, options) )
+    return FALSE;
+
   term_t av = PL_new_term_refs(7);
   put_text_range(av+0, &uri.scheme);
   put_text_range(av+1, &uri.userInfo);
@@ -125,6 +202,8 @@ static void
 install_parse()
 { FUNCTOR_uri7 = PL_new_functor(PL_new_atom("uri"), 7);
   ATOM_ = PL_new_atom("");
+  ATOM_normalize = PL_new_atom("normalize");
+  ATOM_base = PL_new_atom("base");
 
-  PL_register_foreign("parse_uri", 2, parse_uri, 0);
+  PL_register_foreign("parse_uri", 3, parse_uri, 0);
 }
