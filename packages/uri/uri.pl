@@ -30,10 +30,12 @@
 */
 
 :- module(uri,
-	  [ encode_uri/2,
-	    encode_uri_component/2,
-	    decode_uri/2,
-	    decode_uri_component/2
+	  [ encode_uri/2,		% +Text, -Atom
+	    encode_uri_component/2,	% +Text, -Atom
+	    encode_uri/3,		% +Text, -Codes, ?Tail
+	    encode_uri_component/3,	% +Text, -Codes, ?Tail
+	    decode_uri/2,		% +Text, -Atom
+	    decode_uri_component/2	% +Text, -Atom
 	  ]).
 :- use_module(library(shlib)).
 
@@ -48,6 +50,9 @@
 
 %%	escape_uri(+In, -Out) is det.
 %%	escape_uri_component(+In, -Out) is det.
+
+%%	escape_uri(+In, -Out:codes, ?Tail:codes) is det.
+%%	escape_uri_component(+In, -Out:codes, ?Tail:codes) is det.
 
 %%	decode_uri(+In, -Out) is det.
 %%	decode_uri_component(+In, -Out) is det.

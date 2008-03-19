@@ -674,6 +674,9 @@ UNICODE file functions.
 #define REP_FN		REP_MB
 #endif
 
+#define PL_DIFF_LIST	0x20000		/* PL_unify_chars() */
+
+
 #ifdef SIO_MAGIC			/* defined from <SWI-Stream.h> */
 		 /*******************************
 		 *	  STREAM SUPPORT	*

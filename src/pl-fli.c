@@ -2332,11 +2332,13 @@ flags: bitwise or of type and representation
 
 	Types:		PL_ATOM, PL_STRING, PL_CODE_LIST, PL_CHAR_LIST
 	Representation: REP_ISO_LATIN_1, REP_UTF8, REP_MB
+	Extra:		PL_DIFF_LIST
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 PL_unify_chars(term_t t, int flags, size_t len, const char *s)
 { PL_chars_t text;
+  term_t tail;
   int rc;
 
   if ( len == (size_t)-1 )
@@ -2351,7 +2353,14 @@ PL_unify_chars(term_t t, int flags, size_t len, const char *s)
 
   flags &= ~(REP_UTF8|REP_MB|REP_ISO_LATIN_1);
 
-  rc = PL_unify_text(t, 0, &text, flags);
+  if ( (flags & PL_DIFF_LIST) )
+  { tail = t+1;
+    flags &= (~PL_DIFF_LIST);
+  } else
+  { tail = 0;
+  }
+
+  rc = PL_unify_text(t, tail, &text, flags);
   PL_free_text(&text);
 
   return rc;

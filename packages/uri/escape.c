@@ -64,13 +64,13 @@ init_maps()
 
 
 static int
-escape(term_t in, term_t out, const char *map)
+escape(term_t in, term_t out, term_t tail, const char *map)
 { char *s, *q;
   size_t len;
   size_t needs_escape;
   char tmp[256];
   char *buf, *o;
-  int rc;
+  int rc, flags;
 
   if ( !PL_get_nchars(in, &len, &s,
 		      CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_UTF8) )
@@ -107,7 +107,18 @@ escape(term_t in, term_t out, const char *map)
     }
   }
 
-  rc = PL_unify_atom_nchars(out, o-buf, buf);
+  flags = REP_ISO_LATIN_1;
+  if ( tail )
+  { term_t av = PL_new_term_refs(2);
+
+    PL_put_term(av+0, out);
+    rc = PL_unify_chars(av, REP_ISO_LATIN_1|PL_CODE_LIST|PL_DIFF_LIST, o-buf, buf);
+    if ( rc )
+      rc = PL_unify(tail, av+1);
+  } else
+  { rc = PL_unify_chars(out, REP_ISO_LATIN_1|PL_ATOM, o-buf, buf);
+  }
+
   if ( buf != tmp )
     PL_free(buf);
 
@@ -117,19 +128,31 @@ escape(term_t in, term_t out, const char *map)
 
 static foreign_t
 js_escape(term_t uri, term_t url)
-{ return escape(uri, url, escape_map);
+{ return escape(uri, url, 0, escape_map);
 }
 
 
 static foreign_t
 encode_uri(term_t uri, term_t url)
-{ return escape(uri, url, escape_uri_map);
+{ return escape(uri, url, 0, escape_uri_map);
 }
 
 
 static foreign_t
 encode_uri_component(term_t uri, term_t url)
-{ return escape(uri, url, escape_uri_component_map);
+{ return escape(uri, url, 0, escape_uri_component_map);
+}
+
+
+static foreign_t
+encode_uri3(term_t uri, term_t url, term_t tail)
+{ return escape(uri, url, tail, escape_uri_map);
+}
+
+
+static foreign_t
+encode_uri_component3(term_t uri, term_t url, term_t tail)
+{ return escape(uri, url, tail, escape_uri_component_map);
 }
 
 
@@ -154,10 +177,11 @@ static int
 non_ascii(term_t t)
 { term_t ex = PL_new_term_ref();
 
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", "2",
+  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
 		      PL_FUNCTOR_CHARS, "domain_error", 2,
 		        PL_CHARS, "url",
-			PL_TERM, t);
+			PL_TERM, t,
+		      PL_VARIABLE);
 
   return PL_raise_exception(ex);
 }
@@ -171,9 +195,11 @@ decode(term_t in, term_t out, int plustoo)
   char *buf, *o;
   int rc;
 
-  if ( !PL_get_nchars(in, &len, &s,
-		      CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_ISO_LATIN_1) )
-    return FALSE;
+  if ( !PL_get_nchars(in, &len, &s, CVT_LIST) )
+  { if ( !PL_get_nchars(in, &len, &s,
+			CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_ISO_LATIN_1) )
+      return FALSE;
+  }
 
   if ( len < sizeof(tmp) )
   { buf = tmp;
@@ -189,7 +215,7 @@ decode(term_t in, term_t out, int plustoo)
     if ( c == '%' )
     { int v1, v2;
       
-      if ( (v1=dehex(*q++)) >= 0 && (v2=dehex(*q++)) >= 0 )
+      if ( (v1=dehex(*++q)) >= 0 && (v2=dehex(*++q)) >= 0 )
       { *o++ = (v1<<4)|v2;
       } else
       { return non_ascii(in);
@@ -202,7 +228,7 @@ decode(term_t in, term_t out, int plustoo)
   }
   *o = '\0';
 
-  rc = PL_unify_term(out, PL_UTF8_CHARS, buf);
+  rc = PL_unify_chars(out, REP_UTF8|PL_ATOM, (size_t)-1, buf);
 
   if ( buf != tmp )
     PL_free(buf);
@@ -230,6 +256,8 @@ install_escape()
 /*  PL_register_foreign("escape", 2, js_escape, 0); */
   PL_register_foreign("encode_uri", 2, encode_uri, 0);
   PL_register_foreign("encode_uri_component", 2, encode_uri_component, 0);
+  PL_register_foreign("encode_uri", 3, encode_uri3, 0);
+  PL_register_foreign("encode_uri_component", 3, encode_uri_component3, 0);
 /*  PL_register_foreign("unescape", 2, unescape, 0); */
   PL_register_foreign("decode_uri", 2, unescape, 0);
   PL_register_foreign("decode_uri_component", 2, decode_uri_component, 0);
