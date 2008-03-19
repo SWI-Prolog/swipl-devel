@@ -14,16 +14,23 @@ th_resource :-
 
 create_threads([]).
 create_threads([H|T]) :-
-	thread_create(thread_get_message(_), H,
-		      [ local(infinite),
-			global(infinite),
-			trail(infinite)
-		      ]),
+	(   catch(thread_create(thread_get_message(_), H,
+				[ local(infinite),
+				  global(infinite),
+				  trail(infinite)
+				]),
+		  error(resource_error(_), _), fail)
+	->  true
+	;   H = (-)
+	),
 	create_threads(T).
 
 kiss_threads([]).
 kiss_threads([H|T]) :-
-	catch(thread_send_message(H, done), _, true),
+	(   H == (-)
+	->  true
+	;   catch(thread_send_message(H, done), _, true)
+	),
 	kiss_threads(T).
 
 join_threads([]).
@@ -32,5 +39,5 @@ join_threads([H|T]) :-
 	check_status(Status),
 	join_threads(T).
 
-check_status(true).
-check_status(exception(error(resource_error(virtual_memory), _))).
+check_status(true) :- !.
+check_status(exception(error(resource_error(memory), _))).
