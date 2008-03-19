@@ -1,0 +1,4 @@
+---+ URI handling package
+
+This package will provide efficient and standard compliant handling of
+URIs and will replace library(url).
