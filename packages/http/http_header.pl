@@ -126,7 +126,7 @@ http_reply(html(HTML), Out, HrdExtra) :- !,
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
 http_reply(file(Type, File), Out, HrdExtra) :- !,
-phrase(reply_header(file(Type, File), HrdExtra), Header),
+	phrase(reply_header(file(Type, File), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	open(File, read, In, [type(binary)]),
 	call_cleanup(copy_stream_data(In, Out),
@@ -149,7 +149,16 @@ http_reply(cgi_stream(In, Len), Out, HrdExtra) :- !,
 	phrase(reply_header(cgi_data(Size), Hdr2), Header),
 	format(Out, '~s', [Header]),
 	copy_stream_data(In, Out).
-http_reply(moved(To), Out, HrdExtra) :- !,
+http_reply(Status, Out, HdrExtra) :-
+	set_stream(Out, encoding(utf8)),
+	call_cleanup(http_status_reply(Status, Out, HdrExtra),
+		     set_stream(Out, encoding(octet))).
+
+%%	http_status_reply(+Status, +Out, +HdrExtra) is det.
+%
+%	Emit HTML non-200 status reports.
+
+http_status_reply(moved(To), Out, HrdExtra) :- !,
 	phrase(page([ title('301 Moved Permanently')
 		    ],
 		    [ h1('Moved Permanently'),
@@ -162,7 +171,7 @@ http_reply(moved(To), Out, HrdExtra) :- !,
 	phrase(reply_header(moved(To, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_reply(moved_temporary(To), Out, HrdExtra) :- !,
+http_status_reply(moved_temporary(To), Out, HrdExtra) :- !,
 	phrase(page([ title('302 Moved Temporary')
 		    ],
 		    [ h1('Moved Temporary'),
@@ -175,7 +184,7 @@ http_reply(moved_temporary(To), Out, HrdExtra) :- !,
 	phrase(reply_header(moved_temporary(To, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_reply(see_other(To),Out,HdrExtra) :- !,
+http_status_reply(see_other(To),Out,HdrExtra) :- !,
        phrase(page([ title('303 See Other')
                     ],
                     [ h1('See Other'),
@@ -188,7 +197,7 @@ http_reply(see_other(To),Out,HdrExtra) :- !,
         phrase(reply_header(see_other(To, HTML), HdrExtra), Header),
         format(Out, '~s', [Header]),
         print_html(Out, HTML).
-http_reply(not_found(URL), Out, HrdExtra) :- !,
+http_status_reply(not_found(URL), Out, HrdExtra) :- !,
 	phrase(page([ title('404 Not Found')
 		    ],
 		    [ h1('Not Found'),
@@ -201,7 +210,7 @@ http_reply(not_found(URL), Out, HrdExtra) :- !,
 	phrase(reply_header(status(not_found, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_reply(forbidden(URL), Out, HrdExtra) :- !,
+http_status_reply(forbidden(URL), Out, HrdExtra) :- !,
 	phrase(page([ title('403 Forbidden')
 		    ],
 		    [ h1('Forbidden'),
@@ -214,7 +223,7 @@ http_reply(forbidden(URL), Out, HrdExtra) :- !,
 	phrase(reply_header(status(forbidden, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
+http_status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
 	phrase(page([ title('401 Authorization Required')
 		    ],
 		    [ h1('Authorization Required'),
@@ -231,7 +240,7 @@ http_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
 	phrase(reply_header(authorise(Method, Realm, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_reply(not_modified, Out, HrdExtra) :- !,
+http_status_reply(not_modified, Out, HrdExtra) :- !,
 	phrase(page([ title('304 Not Modified')
 		    ],
 		    [ h1('Not Modified'),
@@ -242,7 +251,7 @@ http_reply(not_modified, Out, HrdExtra) :- !,
 	phrase(reply_header(status(not_modified, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_reply(server_error(ErrorTerm), Out, HrdExtra) :-
+http_status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 	'$messages':translate_message(ErrorTerm, Lines, []),
 	phrase(page([ title('500 Internal server error')
 		    ],
@@ -549,7 +558,7 @@ reply_header(moved(To, Tokens), HdrExtra) -->
 	header_field('Location', To),
 	header_fields(HdrExtra),
 	content_length(html(Tokens)),
-	content_type(text/html),
+	content_type(text/html, utf8),
 	"\r\n".
 reply_header(moved_temporary(To, Tokens), HdrExtra) -->
 	vstatus(moved_temporary),
@@ -557,22 +566,22 @@ reply_header(moved_temporary(To, Tokens), HdrExtra) -->
 	header_field('Location', To),
 	header_fields(HdrExtra),
 	content_length(html(Tokens)),
-	content_type(text/html),
+	content_type(text/html, utf8),
 	"\r\n".
 reply_header(see_other(To,Tokens),HdrExtra) -->
-      vstatus(see_other),
-      date(now),
-      header_field('Location',To),
-      header_fields(HdrExtra),
-      content_length(html(Tokens)),
-      content_type(text/html),
-      "\r\n".
+	vstatus(see_other),
+	date(now),
+	header_field('Location',To),
+	header_fields(HdrExtra),
+	content_length(html(Tokens)),
+	content_type(text/html, utf8),
+	"\r\n".
 reply_header(status(Status, Tokens), HdrExtra) -->
 	vstatus(Status),
 	date(now),
 	header_fields(HdrExtra),
 	content_length(html(Tokens)),
-	content_type(text/html),
+	content_type(text/html, utf8),
 	"\r\n".
 reply_header(authorise(Method, Realm, Tokens), HdrExtra) -->
 	vstatus(authorise),
@@ -580,7 +589,7 @@ reply_header(authorise(Method, Realm, Tokens), HdrExtra) -->
 	authenticate(Method, Realm),
 	header_fields(HdrExtra),
 	content_length(html(Tokens)),
-	content_type(text/html),
+	content_type(text/html, utf8),
 	"\r\n".
 
 vstatus(Status) -->
@@ -610,7 +619,7 @@ status_comment(moved) -->
 status_comment(moved_temporary) -->
 	"Moved Temporary".
 status_comment(see_other) -->
-      "See Other".
+	"See Other".
 status_comment(not_modified) --> 
 	"Not Modified".
 status_comment(not_found) -->
@@ -667,16 +676,30 @@ content_length(Len) -->
 	"Content-Length: ", string(LenChars),
 	"\r\n".
 
-content_type(Main/Sub) --> !,
+content_type(Type) -->
+	content_type(Type, _).
+
+content_type(Type, Charset) -->
+	ctype(Type),
+	charset(Charset),
+	"\r\n".
+
+ctype(Main/Sub) --> !,
 	"Content-Type: ",
 	atom(Main),
 	"/",
-	atom(Sub),
-	"\r\n".
-content_type(Type) --> !,
+	atom(Sub).
+ctype(Type) --> !,
 	"Content-Type: ",
-	atom(Type),
-	"\r\n".
+	atom(Type).
+
+charset(Var) --> 
+	{ var(Var) }, !.
+charset(utf8) --> !,
+	"; charset=UTF-8".
+charset(CharSet) -->
+	"; charset=",
+	atom(CharSet).
 
 header_field(Name, Value) -->
 	{ var(Name)
