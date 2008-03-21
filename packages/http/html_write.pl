@@ -178,7 +178,9 @@ html_current_option(content_type(ContentType)) :-
 
 
 option_default(html_dialect, html).
-option_default(html_doctype, 'HTML PUBLIC "-//IETF//DTD HTML 4.0//EN"').
+option_default(html_doctype,
+	       'HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" \
+	       "http://www.w3.org/TR/html4/loose.dtd"').
 option_default(xhtml_doctype,
 	       'html PUBLIC "-//W3C//DTD XHTML 1.0 \
 	       Transitional//EN" \
