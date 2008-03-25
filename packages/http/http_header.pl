@@ -152,7 +152,7 @@ http_reply(cgi_stream(In, Len), Out, HrdExtra) :- !,
 http_reply(Status, Out, HdrExtra) :-
 	set_stream(Out, encoding(utf8)),
 	call_cleanup(http_status_reply(Status, Out, HdrExtra),
-		     set_stream(Out, encoding(octet))).
+		     set_stream(Out, encoding(octet))), !.
 
 %%	http_status_reply(+Status, +Out, +HdrExtra) is det.
 %
