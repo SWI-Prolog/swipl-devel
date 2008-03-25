@@ -42,31 +42,49 @@
 :- discontiguous
 	prolog_message/3.
 
+%%	translate_message(+Term)// is det.
+%
+%	Translate a message Term into message lines. The produced lines
+%	is a list of
+%	
+%	    * nl
+%	    Emit a newline
+%	    * Fmt-Args
+%	    Emit the result of format(Fmt, Args)
+%	    * Fmt
+%	    Emit the result of format(Fmt)
+%	    * flush
+%	    Used only as last element of the list.   Simply flush the
+%	    output instead of producing a final newline.
+
 translate_message(Term) -->
+	translate_message2(Term), !.
+
+translate_message2(Term) -->
 	{var(Term)}, !,
 	[ 'Unknown message: ~p'-[Term] ].
-translate_message(Term) -->
+translate_message2(Term) -->
 	prolog:message(Term).
-translate_message(Term) -->
+translate_message2(Term) -->
 	prolog_message(Term).
-translate_message(error(resource_error(stack), Name)) -->
+translate_message2(error(resource_error(stack), Name)) -->
 	[ 'Out of ~w stack'-[Name] ].
-translate_message(error(resource_error(Missing), _)) -->
+translate_message2(error(resource_error(Missing), _)) -->
 	[ 'Not enough resources: ~w'-[Missing] ].
-translate_message(error(ISO, SWI)) -->
+translate_message2(error(ISO, SWI)) -->
 	swi_context(SWI),
 	term_message(ISO),
 	swi_extra(SWI).
-translate_message('$aborted') -->
+translate_message2('$aborted') -->
 	[ 'Execution Aborted' ].
-translate_message(message_lines(Lines), L, T) :- % deal with old C-warning()
+translate_message2(message_lines(Lines), L, T) :- % deal with old C-warning()
 	make_message_lines(Lines, L, T).
-translate_message(format(Fmt, Args)) -->
+translate_message2(format(Fmt, Args)) -->
 	[ Fmt-Args ].
-translate_message(Term) -->
+translate_message2(Term) -->
 	{ Term = error(_, _) },
 	[ 'Unknown exception: ~p'-[Term] ].
-translate_message(Term) -->
+translate_message2(Term) -->
 	[ 'Unknown message: ~p'-[Term] ].
 
 make_message_lines([], T, T) :- !.
