@@ -137,6 +137,7 @@ rdfs_subclass_of(Class, Super) :-	% production 2.4
 		 *	    INDIVIDUALS		*
 		 *******************************/
 
+%%	rdfs_individual_of(+Resource, +Class) is semidet.
 %%	rdfs_individual_of(+Resource, -Class) is nondet.
 %%	rdfs_individual_of(-Resource, +Class) is nondet.
 %	
@@ -155,11 +156,11 @@ rdfs_subclass_of(Class, Super) :-	% production 2.4
 
 rdfs_individual_of(Resource, Class) :-
 	nonvar(Resource), !,
-	(   Resource = literal(_)
-	->  rdfs_subclass_of(Class, rdfs:'Literal')
-	;   rdf_has(Resource, rdf:type, MyClass),
-	    rdfs_subclass_of(MyClass, Class)
-	;   rdf_equal(Class, rdfs:'Resource')
+	(   nonvar(Class)
+	->  (   rdfs_individual_of_r_c(Resource, Class)
+	    ->	true
+	    )
+	;   rdfs_individual_of_r_c(Resource, Class)
 	).
 rdfs_individual_of(Resource, Class) :-
 	nonvar(Class), !,
@@ -170,6 +171,15 @@ rdfs_individual_of(Resource, Class) :-
 	).
 rdfs_individual_of(_Resource, _Class) :-
 	throw(error(instantiation_error, _)).
+
+rdfs_individual_of_r_c(literal(_), Class) :- !,
+	rdfs_subclass_of(Class, rdfs:'Literal').
+rdfs_individual_of_r_c(Resource, Class) :-
+	rdf_has(Resource, rdf:type, MyClass),
+	rdfs_subclass_of(MyClass, Class).
+rdfs_individual_of_r_c(_, Class) :-
+	rdf_equal(Class, rdfs:'Resource').
+
 
 %%	rdfs_label(+Resource, -Label).
 %%	rdfs_label(-Resource, +Label).
