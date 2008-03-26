@@ -356,6 +356,7 @@ static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static pl_mutex *mutexCreate(atom_t name);
 static double   ThreadCPUTime(PL_thread_info_t *info, int which);
 static int	thread_at_exit(term_t goal, PL_local_data_t *ld);
+static int	is_alive(int status);
 
 
 		 /*******************************
@@ -1282,14 +1283,19 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
   }
 
   if ( !info->detached )
-  { int rc;
+  { if ( is_alive(info->status) )
+    { int rc;
 
-    if ( (rc=pthread_detach(info->tid)) )
-    { assert(rc == ESRCH);
+      if ( (rc=pthread_detach(info->tid)) )
+      { assert(rc == ESRCH);
 
-      free_thread_info(info);
+	free_thread_info(info);
+      } else
+	info->detached = TRUE;
     } else
-      info->detached = TRUE;
+    { pthread_detach(info->tid);
+      free_thread_info(info);
+    }
   }
 
   UNLOCK();
