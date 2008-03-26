@@ -2019,7 +2019,13 @@ PL_put_int64(term_t t, int64_t i)
 
 void
 _PL_put_number__LD(term_t t, Number n ARG_LD)
-{ setHandle(t, put_number(n));
+{ word w;
+
+  if ( (w=put_number(n)) )
+  { setHandle(t, w);
+  } else
+  { assert(0);
+  }
 }
 
 

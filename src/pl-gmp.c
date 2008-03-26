@@ -190,23 +190,24 @@ globalMPZ() pushes an mpz type GMP  integer   onto  the local stack. The
 saved version is the _mp_size field, followed by the limps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-wordSizeofMPZ(mpz_t mpz)
-{ int size = sizeof(mp_limb_t)*abs(mpz->_mp_size);
-  
-  return (size+sizeof(word)-1)/sizeof(word);
-}
-
-
 static word
 globalMPZ(mpz_t mpz)
 { GET_LD
+  Word p;
+  word r;
 
-  int size = sizeof(mp_limb_t)*abs(mpz->_mp_size);
-  int wsz  = (size+sizeof(word)-1)/sizeof(word);
-  Word p   = allocGlobal(wsz+3);
-  word r   = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  word m   = mkIndHdr(wsz+1, TAG_INTEGER);
+  size_t size = sizeof(mp_limb_t)*abs(mpz->_mp_size);
+  size_t wsz  = (size+sizeof(word)-1)/sizeof(word);
+  word m      = mkIndHdr(wsz+1, TAG_INTEGER);
+
+  if ( wsizeofInd(m) != wsz+1 )
+  { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_integer);
+    return 0;
+  }
+
+  p = allocGlobal(wsz+3);
+  r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+  
 
   *p++     = m;
   p[wsz]   = 0L;			/* pad out */
@@ -597,11 +598,18 @@ put_number(Number n)
     { if ( mpz_cmp_ui(mpq_denref(n->value.mpq), 1L) == 0 )
       { return put_mpz(mpq_numref(n->value.mpq));
       } else
-      { Word p = allocGlobal(3);
+      { word num, den;
+	Word p;
+
+	if ( !(num=put_mpz(mpq_numref(n->value.mpq))) ||
+	     !(den=put_mpz(mpq_denref(n->value.mpq))) )
+	  fail;
+
+	p = allocGlobal(3);
 	
 	p[0] = FUNCTOR_rdiv2;
-	p[1] = put_mpz(mpq_numref(n->value.mpq));
-	p[2] = put_mpz(mpq_denref(n->value.mpq));
+	p[1] = num;
+	p[2] = den;
 
 	return consPtr(p, TAG_COMPOUND|STG_GLOBAL);
       }
@@ -624,12 +632,13 @@ PL_unify_number(term_t t, Number n)
   deRef(p);
 
   if ( canBind(*p) )
-  { word w = put_number(n);
+  { word w;
 
-#ifdef O_SHIFT_STACKS
+    if ( !(w = put_number(n)) )
+      fail;
+
     p = valTermRef(t);			/* put_number can shift the stacks */
     deRef(p);
-#endif
 
     bindConst(p, w);
     succeed;
@@ -653,10 +662,12 @@ PL_unify_number(term_t t, Number n)
       break;
 #ifdef O_GMP
     case V_MPQ:
-    { term_t q = PL_new_term_ref();
+    { word w;
+
+      if ( !(w=put_number(n)) )
+	fail;
       
-      *valTermRef(q) = put_number(n);
-      return PL_unify(t, q);
+      return _PL_unify_atomic(t, w);
     }
 #endif
     case V_REAL:

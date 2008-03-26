@@ -3334,8 +3334,8 @@ Prolog.
 	  AR_END();
 #ifdef O_SHIFT_STACKS
 	  ARGP = argFrameP(lTop, 0);
-	  deRef2(ARGP, k);
 #endif
+	  deRef2(ARGP, k);
 	  bindConst(k, c);
 #ifdef O_ATTVAR
 	  if ( *valTermRef(LD->attvar.head) ) /* can be faster */
