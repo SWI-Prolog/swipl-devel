@@ -1909,6 +1909,7 @@ typedef struct
 #define gBase	(LD->stacks.global.base)
 #define gTop	(LD->stacks.global.top)
 #define gMax	(LD->stacks.global.max)
+#define gLimit	(LD->stacks.global.limit)
 
 #define aBase	(LD->stacks.argument.base)
 #define aTop	(LD->stacks.argument.top)

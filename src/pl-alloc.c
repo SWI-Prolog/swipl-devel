@@ -751,17 +751,44 @@ allocGlobalNoShift__LD(size_t n ARG_LD)
 
 static inline Word
 __allocGlobal(size_t n ARG_LD)
-{ Word result = gTop;
+{ Word result;
+  Stack s = (Stack)&LD->stacks.global;
 
+  if ( (Word)&s->limit >= &((Word)s->top)[n] )
+  { garbageCollect(NULL, NULL);
+    if ( (Word)&s->limit >= &((Word)s->top)[n] )
+    { outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_FATAL);
+      return NULL;
+    }
+  }
+
+  result = (Word)s->top;
   requireStack(global, n * sizeof(word));
   gTop += n;
 
   return result;
 }
 
+
 Word allocGlobal__LD(size_t n ARG_LD)
 { return __allocGlobal(n PASS_LD);
 }
+
+
+Word
+allocGlobalNoShift__LD(size_t n ARG_LD)
+{ if ( gLimit >= &gTop[n] )
+  { Word result = gTop;
+
+    requireStack(global, n * sizeof(word));
+    gTop += n;
+
+    return result;
+  }
+
+  return NULL;
+}
+
 
 #undef allocGlobal			/* use inline version here */
 #define allocGlobal(n) __allocGlobal(n PASS_LD)
