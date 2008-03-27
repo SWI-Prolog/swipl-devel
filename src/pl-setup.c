@@ -1751,9 +1751,6 @@ trimStacks(ARG1_LD)
 #endif /*O_DYNAMIC_STACKS*/
 #endif /*O_SHIFT_STACKS*/
 
-  LD->stacks.global.gced_size = usedStack(global);
-  LD->stacks.trail.gced_size  = usedStack(trail);
-
   for(te = tTop; --te >= tBase; )
   { Word p = te->address;
     

@@ -1809,6 +1809,8 @@ collect_phase(LocalFrame fr, Choice ch, Word *saved_bar_at)
 #if O_DYNAMIC_STACKS
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If s == NULL, consider all stacks
+
 (*) Do not  consider  GC  if  there   are  no  inferences.  This  avoids
 repetetive GC calls while building large   structures  from foreign code
 that calls PL_handle_signals() from time to   time  to enable interrupts
@@ -1819,31 +1821,37 @@ void
 considerGarbageCollect(Stack s)
 { GET_LD
 
-  if ( s->gc &&
-       trueFeature(GC_FEATURE) &&
+  if ( trueFeature(GC_FEATURE) &&
        !gc_status.requested )
-  { intptr_t used  = (char *)s->top   - (char *)s->base;
-    intptr_t free  = (char *)s->limit - (char *)s->top;
-    intptr_t limit = (char *)s->limit - (char *)s->base;
-
-    if ( LD->gc.inferences == LD->statistics.inferences )
-    { s->gced_size = used;		/* (*) */
-      return;
+  { if ( s == NULL )
+    { considerGarbageCollect((Stack)&LD->stacks.global);
+      considerGarbageCollect((Stack)&LD->stacks.trail);
+    } else
+    { if ( s->gc )
+      { intptr_t used  = (char *)s->top   - (char *)s->base;
+	intptr_t free  = (char *)s->limit - (char *)s->top;
+	intptr_t limit = (char *)s->limit - (char *)s->base;
+    
+	if ( LD->gc.inferences == LD->statistics.inferences )
+	{ s->gced_size = used;		/* (*) */
+	  return;
+	}
+    
+	if ( used > s->factor*s->gced_size + s->small )
+	{ DEBUG(2, Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
+			    s->name, s->factor, s->gced_size, s->small));
+	  gc_status.requested = TRUE;
+	} else if ( free < limit/8 && used > s->gced_size + limit/32 ) 
+	{ DEBUG(2, Sdprintf("GC: request on low free\n"));
+	  gc_status.requested = TRUE;
+	}
+    
+	DEBUG(1, if ( gc_status.requested)
+		 { Sdprintf("%s overflow: Posted garbage collect request\n",
+			    s->name);
+		 });
+      }
     }
-
-    if ( used > s->factor*s->gced_size + s->small )
-    { DEBUG(2, Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
-			s->name, s->factor, s->gced_size, s->small));
-      gc_status.requested = TRUE;
-    } else if ( free < limit/8 && used > s->gced_size + limit/32 ) 
-    { DEBUG(2, Sdprintf("GC: request on low free\n"));
-      gc_status.requested = TRUE;
-    }
-
-    DEBUG(1, if ( gc_status.requested)
-	     { Sdprintf("%s overflow: Posted garbage collect request\n",
-			s->name);
-	     });
   }
 }
 #endif /* O_DYNAMIC_STACKS */
