@@ -1429,7 +1429,7 @@ dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
 
   if ( exception_term )
   { Word p = valTermRef(exception_term);
-    DEBUG(1, Sdprintf("dbg_discardChoicesAfter(): saving exception: ");
+    DEBUG(3, Sdprintf("dbg_discardChoicesAfter(): saving exception: ");
 	     pl_writeln(exception_term));
     exception_term = 0;
     discardChoicesAfter(fr PASS_LD);
@@ -2653,13 +2653,20 @@ the moment the code marked (**) handles this not very elegant
         catcher = valTermRef(exception_term);
 
 	SECURE(checkData(catcher));
-	DEBUG(1, { Sdprintf("Throwing ");
+	DEBUG(1, { Sdprintf("[%d] Throwing ", PL_thread_self());
 		   PL_write_term(Serror, wordToTermRef(catcher), 1200, 0);
 		   Sdprintf("\n");
 		 });
 
 	except = *catcher;
         catchfr = findCatcher(FR, catcher PASS_LD);
+	DEBUG(1, { if ( catchfr )
+		   { Sdprintf("[%d]: found catcher at %d\n",
+			      PL_thread_self(), levelFrame(catchfr));
+		   } else
+		   { Sdprintf("[%d]: not caught\n", PL_thread_self());
+		   }
+		 });
 
 	SECURE(checkData(catcher));	/* verify all data on stacks stack */
 	SECURE(checkStacks(FR, LD->choicepoints));
