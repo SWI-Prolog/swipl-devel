@@ -139,9 +139,9 @@ concurrent(N, Goals, Options) :-
 	concur_cleanup(Result, RemainingWorkers, [Queue, Done]),
 	(   Result == true
 	->  true
-	;   Result = failed(_Worker1, _Job1)
+	;   Result = false
 	->  fail
-	;   Result = error(_Worker2, _Job2, Error)
+	;   Result = exception(Error)
 	->  throw(Error)
 	).
 
@@ -171,52 +171,48 @@ concur_wait(N, Done, VT, Status, Exitted) :-
 	debug(concurrent, 'Waiting: ...', []),
 	thread_get_message(Done, Exit),
 	debug(concurrent, 'Waiting: received ~p', [Exit]),
-	(   Exit = done(_Worker, Id, Vars)
+	(   Exit = done(Id, Vars)
 	->  arg(Id, VT, Vars),
 	    N2 is N - 1,
 	    concur_wait(N2, Done, VT, Status, Exitted)
-	;   Exit = exit(Thread)
-	->  thread_join(Thread, _),
-	    Exitted = [Thread|Exitted2],
-	    concur_wait(N, Done, VT, Status, Exitted2)
-	;   Status = Exit,
-	    Exitted = []
+	;   Exit = finished(Thread)
+	->  thread_join(Thread, JoinStatus),
+	    debug(concurrent, 'Joined ~w with ~p', [Thread, JoinStatus]),
+	    (	JoinStatus == true
+	    ->	Exitted = [Thread|Exitted2],
+	        concur_wait(N, Done, VT, Status, Exitted2)
+	    ;	Status = JoinStatus,
+		Exitted = [Thread]
+	    )
 	).
 
 
 create_workers(N, Queue, Done, [Id|Ids], Options) :-
 	N > 0, !,
-	thread_create(worker(Queue, Done), Id, Options),
+	thread_create(worker(Queue, Done), Id,
+		      [ at_exit(thread_send_message(Done, finished(Id)))
+		      | Options
+		      ]),
 	N2 is N - 1,
 	create_workers(N2, Queue, Done, Ids, Options).
 create_workers(_, _, _, [], _).
 	
 
-%%	worker(+WorkQueue, -DoneQueue) is det.
+%%	worker(+WorkQueue, +DoneQueue) is det.
 %
 %	Process jobs from WorkQueue and send the results to DoneQueue.
 
 worker(Queue, Done) :-
-	thread_self(Me),
-	catch(work(Me, Queue, Done), E, 
-	      (	  debug(concurrent, 'Got error ~p', [E]),
-		  thread_send_message(Done, exit(Me, E)))),
-	thread_send_message(Done, exit(Me)).
-	    
-work(Me, Queue, Done) :-
 	thread_get_message(Queue, Message),
 	debug(concurrent, 'Worker: received ~p', [Message]),
 	(   Message = goal(Id, Goal, Vars)
-	->  (   catch(Goal, E, true)
-	    ->	(   var(E)
-		->  thread_send_message(Done, done(Me, Id, Vars))
-		;   thread_send_message(Done, error(Me, Id, E))
-		)
-	    ;	thread_send_message(Done, failed(Me, Id))
-	    ),
-	    work(Me, Queue, Done)
+	->  (   Goal
+	    ->	thread_send_message(Done, done(Id, Vars)),
+		worker(Queue, Done)
+	    )
 	;   true
 	).
+
 
 %%	concur_cleanup(+Result, +Workers:list, +Queues:list) is det.
 %
