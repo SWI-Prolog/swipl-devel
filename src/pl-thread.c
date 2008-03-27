@@ -357,6 +357,11 @@ static pl_mutex *mutexCreate(atom_t name);
 static double   ThreadCPUTime(PL_thread_info_t *info, int which);
 static int	thread_at_exit(term_t goal, PL_local_data_t *ld);
 static int	is_alive(int status);
+#ifdef O_C_BACKTRACE
+static void	print_trace(int depth);
+#else
+#define		print_trace(depth) (void)0
+#endif
 
 
 		 /*******************************
@@ -1765,13 +1770,20 @@ executeThreadSignals(int sig)
     next = sg->next;
     PL_recorded(sg->goal, goal);
     PL_erase(sg->goal);
+    freeHeap(sg, sizeof(*sg));
     DEBUG(1, Sdprintf("[%d] Executing thread signal\n", PL_thread_self()));
     rval = callProlog(sg->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
-    freeHeap(sg, sizeof(*sg));
 
     if ( !rval && ex )
     { PL_close_foreign_frame(fid);
       PL_raise_exception(ex);
+
+      DEBUG(1,
+	    { print_trace(8);
+	      Sdprintf("[%d]: Prolog backtrace:\n", PL_thread_self());
+	      backTrace(0, 5);
+	      Sdprintf("[%d]: end Prolog backtrace:\n", PL_thread_self());
+	    });
 
       for(sg = next; sg; sg=next)
       { next = sg->next;
@@ -4062,35 +4074,32 @@ resumeThreads(void)
 }
 
 
-#if 0					/* don't need it right now */
+#ifdef O_C_BACKTRACE
 #ifdef HAVE_EXECINFO_H
-#define BACKTRACE 1
-
-#if BACKTRACE
 #include <execinfo.h>
 #include <string.h>
 
 static void
-print_trace (void)
-{ void *array[5];
+print_trace(int depth)
+{ void *array[depth];
   size_t size;
   char **strings;
   size_t i;
+  int self = PL_thread_self();
      
-  size = backtrace(array, sizeof(array)/sizeof(void *));
+  size = backtrace(array, depth);
   strings = backtrace_symbols(array, size);
      
-  Sdprintf("C-stack:\n");
+  Sdprintf("[%d] C-stack:\n", self);
   
   for(i = 0; i < size; i++)
-  { Sdprintf("\t[%d] %s\n", i, strings[i]);
+  { Sdprintf("\t[%d:%d] %s\n", self, i, strings[i]);
   }
        
   free(strings);
 }
-#endif /*BACKTRACE*/
 #endif /*HAVE_EXECINFO_H*/
-#endif /*O_DEBUG*/
+#endif /*O_C_BACKTRACE*/
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
