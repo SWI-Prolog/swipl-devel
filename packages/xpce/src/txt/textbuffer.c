@@ -705,12 +705,60 @@ parsep_line_textbuffer(TextBuffer tb, int here)
 }
 
 
+static int
+all_layout(TextBuffer tb, int from, int to)
+{ SyntaxTable syntax = tb->syntax;
+
+  while( from < to && tislayout(tb->syntax, fetch(from)) )
+    from++;
+
+  return from == to;
+}
+
+
+static int
+forward_skip_par_textbuffer(TextBuffer tb, int here)
+{ int size = tb->size;
+
+  while( here < size && parsep_line_textbuffer(tb, here) )
+  { int h = scan_textbuffer(tb, here, NAME_line, 1, 'a');
+    if ( !all_layout(tb, here, h) )
+      return h;
+    here = h;
+  }
+  while( here < size && !parsep_line_textbuffer(tb, here) )
+    here = scan_textbuffer(tb, here, NAME_line, 1, 'a');
+
+  return here;
+}
+
+
+static int
+backward_skip_par_textbuffer(TextBuffer tb, int here)
+{ here = scan_textbuffer(tb, here, NAME_line, -1, 'a');
+
+  while( here > 0 && parsep_line_textbuffer(tb, here) )
+  { int h = scan_textbuffer(tb, here, NAME_line, -1, 'a');
+    if ( !all_layout(tb, h, here) )
+      return h;
+    here = h;
+  }
+  while( here > 0 && !parsep_line_textbuffer(tb, here) )
+    here = scan_textbuffer(tb, here, NAME_line, -1, 'a');
+
+  return here;
+}
+
+
 int
 scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
 { int here;
   int size = tb->size;
   SyntaxTable syntax = tb->syntax;
   
+  DEBUG(NAME_scan, Cprintf("scan_textbuffer(%s, %d, %s, %d, %c)\n",
+			   pp(tb), from, pp(unit), amount, az));
+
   here = from;
   
   if ( unit == NAME_character )
@@ -822,38 +870,23 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
     { if ( amount >= 0 )
       { here = scan_textbuffer(tb, here, NAME_line, 0, 'a');
 	for( ; here < size && amount >= 0; amount-- )
-	{ while( here < size && parsep_line_textbuffer(tb, here) )
-	    here = scan_textbuffer(tb, here, NAME_line, 1, 'a');
-	  while( here < size && !parsep_line_textbuffer(tb, here) )
-	    here = scan_textbuffer(tb, here, NAME_line, 1, 'a');
-	}
+	  here = forward_skip_par_textbuffer(tb, here);
 	return here;
       } else
       { for( ; here > 0 && amount < 0; amount++ )
 	{ here--;
-	  while( here > 0 && !parsep_line_textbuffer(tb, here) )
-	    here = scan_textbuffer(tb, here, NAME_line, -1, 'a');
-	  while( here > 0 && parsep_line_textbuffer(tb, here) )
-	    here = scan_textbuffer(tb, here, NAME_line, -1, 'a');
+	  here = backward_skip_par_textbuffer(tb, here);
 	}
 	return here;
       }
     } else		/* the 'a' case */
     { if ( amount > 0 )
       { for( ; here < size && amount > 0; amount-- )
-	{ while( here < size && !parsep_line_textbuffer(tb, here) )
-	    here = scan_textbuffer(tb, here, NAME_line, 1, 'a');
-	  while( here < size && parsep_line_textbuffer(tb, here) )
-	    here = scan_textbuffer(tb, here, NAME_line, 1, 'a');
-	}
+	  here = forward_skip_par_textbuffer(tb, here);
 	return here;
       } else
       { for( ; here > 0 && amount <= 0; amount++ )
-	{ here--;
-	  while( here > 0 && parsep_line_textbuffer(tb, here) )
-	    here = scan_textbuffer(tb, here, NAME_line, -1, 'a');
-	  while( here > 0 && !parsep_line_textbuffer(tb, here) )
-	    here = scan_textbuffer(tb, here, NAME_line, -1, 'a');
+	{ here = backward_skip_par_textbuffer(tb, here);
 	}
 	if ( parsep_line_textbuffer(tb, here) )
 	  here = scan_textbuffer(tb, here, NAME_line, 1, 'a');
