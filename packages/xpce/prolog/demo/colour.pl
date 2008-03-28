@@ -45,6 +45,7 @@
 user:file_search_path(x11, OpenWin) :-
 	get(@pce, environment_variable, 'OPENWINHOME', OpenWin).
 user:file_search_path(x11, '/usr/lib/X11').
+user:file_search_path(x11, '/usr/share/X11').
 user:file_search_path(x11, PceLib) :-
 	get(@pce, window_system, windows),
 	get(@pce, home, PceHome),
