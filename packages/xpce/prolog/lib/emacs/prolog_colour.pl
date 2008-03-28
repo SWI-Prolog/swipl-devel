@@ -481,6 +481,10 @@ colourise_dcg_subgoals([Pos|T], N, Body, Origin, TB) :-
 	NN is N + 1,
 	colourise_dcg_subgoals(T, NN, Body, Origin, TB).
 
+dcg_extend(Term, _) :-
+	var(Term), !, fail.
+dcg_extend(M:Term, M:Goal) :-
+	dcg_extend(Term, Goal).
 dcg_extend(Term, Goal) :-
 	callable(Term),
 	Term =.. List,
@@ -591,6 +595,9 @@ instantiate_meta([H|T]) :-
 
 expand_meta(MetaSpec, Goal, Goal) :-
 	MetaSpec == 0.
+expand_meta(MetaSpec, M:Goal, M:Expanded) :-
+	atom(M), !,
+	expand_meta(MetaSpec, Goal, Expanded).
 expand_meta(MetaSpec, Goal, Expanded) :-
 	integer(MetaSpec),
 	callable(Goal), !,
@@ -1034,7 +1041,7 @@ def_style(head(hook),	  	style(underline  := @on, colour := blue)).
 def_style(head(meta),	  	@default).
 def_style(head(constraint(_)),	style(bold := @on, colour := darkcyan)).
 def_style(head(_),	  	style(bold := @on)).
-
+def_style(module(_),		style(colour := dark_slate_blue)).
 def_style(comment,		style(colour := dark_green)).
 
 def_style(directive,	  	style(background := grey90)).
