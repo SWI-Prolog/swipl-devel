@@ -327,8 +327,8 @@ do_expand(\List, _) -->
 	List.
 do_expand(\Term, Module, In, Rest) :- !,
 	call(Module:Term, In, Rest).
-do_expand(Module:Term, _, In, Rest) :- !,
-	call(Module:Term, In, Rest).
+do_expand(Module:Term, _) --> !,
+	html(Term, Module).
 do_expand(script(Content), _) --> !,	% general CDATA declared content elements?
 	html_begin(script),
 	[ Content
@@ -996,6 +996,8 @@ html_colours(Var, classify) :-
 html_colours(\List, classify) :-
 	is_list(List), !.
 html_colours(\_, built_in-[dcg]) :- !.
+html_colours(_:Term, built_in-[classify,Colours]) :- !,
+	html_colours(Term, Colours).
 html_colours(&(Entity), built_in-[entity(Entity)]) :- !.
 html_colours(List, built_in-ListColours) :-
 	List = [_|_], !,
@@ -1091,25 +1093,35 @@ prolog:called_by(html_post(_,HTML,_,_), Called) :-
 prolog:called_by(reply_html_page(Head,Body), Called) :-
 	phrase(called_by([Head,Body]), Called).
 
-called_by(Var) -->
+called_by(Term) -->
+	called_by(Term, _).
+
+called_by(Var, _) -->
 	{ var(Var) }, !,
 	[].
-called_by(\G) --> !,
+called_by(\G, M) --> !,
 	(   { is_list(G) }
 	->  []
+	;   {atom(M)}
+	->  [M:G+2]
 	;   [G+2]
 	).
-called_by([]) --> !,
+called_by([], _) --> !,
 	[].
-called_by([H|T]) --> !,
-	called_by(H),
-	called_by(T).
-called_by(Term) --> 
+called_by([H|T], M) --> !,
+	called_by(H, M),
+	called_by(T, M).
+called_by(M:Term, _) --> !,
+	(   {atom(M)}
+	->  called_by(Term, M)
+	;   []
+	).
+called_by(Term, M) --> 
 	{ compound(Term), !,
 	  Term =.. [_|Args]
 	},
-	called_by(Args).
-called_by(_) -->
+	called_by(Args, M).
+called_by(_, _) -->
 	[].
 
 
