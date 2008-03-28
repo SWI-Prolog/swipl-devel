@@ -595,6 +595,9 @@ instantiate_meta([H|T]) :-
 
 expand_meta(MetaSpec, Goal, Goal) :-
 	MetaSpec == 0.
+expand_meta(MetaSpec, M:Goal, M:Expanded) :-
+	atom(M), !,
+	expand_meta(MetaSpec, Goal, Expanded).
 expand_meta(MetaSpec, Goal, Expanded) :-
 	integer(MetaSpec),
 	callable(Goal), !,
