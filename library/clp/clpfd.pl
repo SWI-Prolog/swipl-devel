@@ -1040,7 +1040,7 @@ label([O|Os], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
             label(Os, Selection, O, Choice, Optimisation, Consistency, Vars)
         ;   choice(O) ->
             label(Os, Selection, Order, O, Optimisation, Consistency, Vars)
-        ;   optimization(O) ->
+        ;   optimisation(O) ->
             label(Os, Selection, Order, Choice, O, Consistency, Vars)
         ;   consistency(O, O1) ->
             label(Os, Selection, Order, Choice, Optimisation, O1, Vars)
@@ -1049,7 +1049,7 @@ label([O|Os], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
 label([], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
         ( Optimisation == none ->
             label(Vars, Selection, Order, Choice, Consistency)
-        ;   optimize(Vars, Selection, Order, Choice, Optimisation)
+        ;   optimise(Vars, [Selection,Order,Choice], Optimisation)
         ).
 
 all_dead([]).
@@ -1114,8 +1114,8 @@ order(down).
 consistency(upto_in(I), upto_in(1, I)).
 consistency(upto_ground, upto_ground).
 
-optimization(min(_)).
-optimization(max(_)).
+optimisation(min(_)).
+optimisation(max(_)).
 
 select_var(leftmost, [Var|Vars], Var, Vars).
 select_var(min, [V|Vs], Var, RVars) :-
@@ -1210,39 +1210,40 @@ delete_eq([X|Xs],Y,List) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Optimization uses a global variable to save the computed extremum
+   Optimisation uses a global variable to save the computed extremum
    over backtracking. Failure is used to get rid of copies of
    attributed variables that are created in intermediate steps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-optimize(Vars, Selection, Order, Choice, Opt) :-
-        nb_setval('$clpfd_extremum', none),
-        (   store_extremum(Vars, Selection, Order, Choice, Opt)
-        ;   nb_getval('$clpfd_extremum', n(Val)),
-            arg(1, Opt, Expr),
-            (   Expr #= Val, label(Vars, Selection, Order, Choice, upto_ground)
+optimise(Vars, Options, What) :-
+        Extremum = extremum(none),
+        (   store_extremum(Vars, Options, What, Extremum)
+        ;   Extremum = extremum(n(Val)),
+            arg(1, What, Expr),
+            (   Expr #= Val,
+                labeling(Options, Vars)
             ;   Expr #\= Val,
-                optimize(Vars, Selection, Order, Choice, Opt)
+                optimise(Vars, Options, What)
             )
         ).
 
-store_extremum(Vars, Selection, Order, Choice, Opt) :-
-        duplicate_term(Vars-Opt, Vars1-Opt1),
-        once(label(Vars1, Selection, Order, Choice, upto_ground)),
-        functor(Opt1, Direction, _),
-        maplist(arg(1), [Opt,Opt1], [Expr,Expr1]),
-        optimize(Direction, Selection, Order, Choice, Vars, Expr1, Expr).
+store_extremum(Vars, Options, What, Extremum) :-
+        duplicate_term(Vars-What, Vars1-What1),
+        once(labeling(Options, Vars1)),
+        functor(What, Direction, _),
+        maplist(arg(1), [What,What1], [Expr,Expr1]),
+        optimise(Direction, Options, Vars, Expr1, Expr, Extremum).
 
-optimize(Direction, Selection, Order, Choice, Vars, Expr0, Expr) :-
+optimise(Direction, Options, Vars, Expr0, Expr, Extremum) :-
         Val0 is Expr0,
-        nb_setval('$clpfd_extremum', n(Val0)),
+        nb_setarg(1, Extremum, n(Val0)),
         duplicate_term(Vars-Expr, Vars1-Expr1),
-        (   Direction == min ->
-            Expr1 #< Val0
-        ;   Expr1 #> Val0
-        ),
-        once(label(Vars1, Selection, Order, Choice, upto_ground)),
-        optimize(Direction, Selection, Order, Choice, Vars, Expr1, Expr).
+        tighten(Direction, Expr1, Val0),
+        once(labeling(Options, Vars1)),
+        optimise(Direction, Options, Vars, Expr1, Expr, Extremum).
+
+tighten(min, E, V) :- E #< V.
+tighten(max, E, V) :- E #> V.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
