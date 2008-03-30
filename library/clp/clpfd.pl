@@ -1210,9 +1210,15 @@ delete_eq([X|Xs],Y,List) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Optimisation uses a global variable to save the computed extremum
-   over backtracking. Failure is used to get rid of copies of
-   attributed variables that are created in intermediate steps.
+   Optimisation uses destructive assignment to save the computed
+   extremum over backtracking. Failure is used to get rid of copies of
+   attributed variables that are created in intermediate steps. At
+   least that's the intention - it currently doesn't work in SWI:
+
+   %?- X in 0..3, call_residue_vars(labeling([min(X)], [X]), Vs).
+   %@ X = 0,
+   %@ Vs = [_G2152{clpfd: (_G2152 in 0..3)} ...]
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 optimise(Vars, Options, What) :-
