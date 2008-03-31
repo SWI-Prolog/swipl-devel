@@ -1487,6 +1487,9 @@ fetch_propagator(Propagator) :-
         ;   Propagator = Prop
         ).
 
+:- thread_initialization((make_queue,
+                          nb_setval('$clpfd_queue_status', enabled))).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Parsing a CLP(FD) expression has two important side-effects: First,
    it constrains the variables occurring in the expression to
@@ -3655,6 +3658,3 @@ collect_(att(Module,Value,As), V, Tabu) -->
         ),
         { del_attr(V, Module) },
         collect_(As, V, Tabu).
-
-
-:- thread_initialization((make_queue, enable_queue)).
