@@ -278,7 +278,8 @@ server_start(Emacs, Force:[bool]) :->
 	    ;	get(@emacs_server, status, listen)
 	    )
 	->  (   current_prolog_flag(windows, true)
-	    ->	catch(start_emacs_dde_server(false), _, true)
+	    ->	Goal = start_emacs_dde_server(false), % fool xref
+	        catch(Goal, _, true)
 	    ;	true
 	    )
 	;   (	send(@emacs_server_address, exists, @off)

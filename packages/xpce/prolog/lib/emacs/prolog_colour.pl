@@ -275,7 +275,7 @@ process_use_module(File, Src) :-
 
 colourise(TB, Fd) :-
 	character_count(Fd, Pos),
-	emacs_prolog_mode:read_term_from_stream(Fd, Pos,
+	emacs_prolog_mode:read_term_from_stream(TB, Fd, Pos,
 						Term,
 						Error,
 						_Singletons,
