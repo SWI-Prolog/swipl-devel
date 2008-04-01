@@ -166,6 +166,11 @@ attr_unify_hook(List,Other) :-
 		call_list(List) 
 	).	
 
+attribute_goals(V) --> { get_attr(V, when, List) }, when_goals(List).
+
+when_goals([])     --> [].
+when_goals([G|Gs]) --> [when:G], when_goals(Gs).
+
 call_list([]).
 call_list([G|Gs]) :-
 	call(G),
