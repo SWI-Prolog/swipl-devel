@@ -593,13 +593,17 @@ write_bindings(Bindings0, Det) :-
 	write_bindings2(Bindings, Det),
 	copy_term(Bindings, Bindings, Residuals),
         (   Residuals = [_|_] ->
-            list_dot(Residuals, Goal),
-            write(Goal), nl, nl
+            write_goals(Residuals)
         ;   true
         ).
 
-list_dot([A], A)        :- !.
-list_dot([A|As], (A,G)) :- list_dot(As, G).
+write_goals([]).
+write_goals([G|Gs]) :-
+        write(G),
+        (   Gs == [] -> nl, nl
+        ;   format(",\n"),
+            write_goals(Gs)
+        ).
 
 write_bindings2([], _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
