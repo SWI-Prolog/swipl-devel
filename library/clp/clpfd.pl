@@ -212,6 +212,11 @@ Bs = [1, 0, 8, 5],
 Cs = [1, 0, 6, 5, 2]
 ==
 
+This library also provides _reflection_ predicates (like fd_dom/2,
+fd_size/2 etc.) with which you can inspect a variable's current
+domain. Use call_residue_vars/2 and copy_term/3 to inspect residual
+goals and the constraints in which a variable is involved.
+
 @author Markus Triska
 */
 
