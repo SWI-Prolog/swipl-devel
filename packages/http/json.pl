@@ -541,7 +541,7 @@ json_print_length(Number, Max, Len0, Len) :-
 	atom_length(Number, AL),
 	Len is Len0 + AL,
 	Len =< Max.
-json_print_length(@Id, Max, Len0, Len) :- !,
+json_print_length(@(Id), Max, Len0, Len) :- !,
 	atom_length(Id, IdLen),
 	Len is Len0+IdLen,
 	Len =< Max.
