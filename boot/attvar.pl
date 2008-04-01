@@ -227,7 +227,9 @@ collect_([], _, _)                      --> [].
 collect_(att(Module,Value,As), V, Tabu) -->
         { term_variables(Value, Vs) },
         collect_attributes(Vs, Tabu),
-        (   { predicate_property(Module:attribute_goals(_,_,_),interpreted) } ->
+        (   { Module == freeze } ->
+            [freeze(V, Value)]
+        ;   { predicate_property(Module:attribute_goals(_,_,_),interpreted) } ->
             { phrase(Module:attribute_goals(V), Goals) },
             dlist(Goals)
         ;   { predicate_property(Module:attribute_goal(_, _), interpreted) } ->
@@ -243,6 +245,3 @@ dlist([L|Ls]) --> [L], dlist(Ls).
 
 dot_list((A,B)) --> !, dot_list(A), dot_list(B).
 dot_list(A)     --> [A].
-
-list_dot([A], A)        :- !.
-list_dot([A|As], (A,G)) :- list_dot(As, G).
