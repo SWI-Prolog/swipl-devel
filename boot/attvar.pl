@@ -209,39 +209,40 @@ call_det(Goal, Det) :-
 %    convert attributes to lists of goals.
 
 copy_term(Term, Copy, Gs) :-
-        term_variables(Term, Vs),
-        findall(Term-GsC, phrase(collect_attributes(Vs,[]),GsC), [Copy-Gs]).
+	term_variables(Term, Vs),
+	findall(Term-GsC, phrase(collect_attributes(Vs,[]),GsC), [Copy-Gs]).
 
-collect_attributes([], _)         --> [].
+collect_attributes([], _)	  --> [].
 collect_attributes([V|Vs], Tabu0) -->
-        (   { member(T, Tabu0), T == V } -> []
-        ;   (   { attvar(V) }  ->
-                { get_attrs(V, As) },
-                collect_(As, V, [V|Tabu0])
-            ;   []
-            )
-        ),
-        collect_attributes(Vs, [V|Tabu0]).
+	(   { '$member'(T, Tabu0), T == V }
+	->  []
+	;   (	{ attvar(V) }
+	    ->	{ get_attrs(V, As) },
+		collect_(As, V, [V|Tabu0])
+	    ;	[]
+	    )
+	),
+	collect_attributes(Vs, [V|Tabu0]).
 
-collect_([], _, _)                      --> [].
+collect_([], _, _)			--> [].
 collect_(att(Module,Value,As), V, Tabu) -->
-        { term_variables(Value, Vs) },
-        collect_attributes(Vs, Tabu),
-        (   { Module == freeze } ->
-            [freeze(V, Value)]
-        ;   { predicate_property(Module:attribute_goals(_,_,_),interpreted) } ->
-            { phrase(Module:attribute_goals(V), Goals) },
-            dlist(Goals)
-        ;   { predicate_property(Module:attribute_goal(_, _), interpreted) } ->
-            { Module:attribute_goal(V, Goal) },
-            dot_list(Goal)
-        ;   [put_attr(V, Module, Value)]
-        ),
-        { del_attr(V, Module) },
-        collect_(As, V, Tabu).
+	{ term_variables(Value, Vs) },
+	collect_attributes(Vs, Tabu),
+	(   { Module == freeze }
+	->  [freeze(V, Value)]
+	;   { predicate_property(Module:attribute_goals(_,_,_),interpreted) }
+	->  { phrase(Module:attribute_goals(V), Goals) },
+	    dlist(Goals)
+	;   { predicate_property(Module:attribute_goal(_, _), interpreted) }
+	->  { Module:attribute_goal(V, Goal) },
+	    dot_list(Goal)
+	;   [put_attr(V, Module, Value)]
+	),
+	{ del_attr(V, Module) },
+	collect_(As, V, Tabu).
 
 dlist([])     --> [].
 dlist([L|Ls]) --> [L], dlist(Ls).
 
 dot_list((A,B)) --> !, dot_list(A), dot_list(B).
-dot_list(A)     --> [A].
+dot_list(A)	--> [A].
