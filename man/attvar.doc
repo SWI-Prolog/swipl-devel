@@ -140,6 +140,13 @@ Get all attributes of \arg{Var}. \arg{Attributes} is a term of the form
 Set all attributes of \arg{Var}.  See get_attrs/2 for a description of
 \arg{Attributes}.
 
+    \predicate{copy_term}{3}{+Term, -Copy, -Gs}
+Create a regular term \arg{Copy} as a copy of \arg{Term} (without
+any attributes), and a list \arg{Gs} of goals that when executed
+reinstate all attributes onto \arg{Copy}. The nonterminal
+attribute_goals//1, as defined in the modules the attributes stem
+from, is used to convert attributes to lists of goals.
+
     \predicate{copy_term_nat}{2}{+Term, -Copy}
 As copy_term/2.  Attributes however, are \emph{not} copied but replaced
 by fresh variables.
