@@ -230,10 +230,10 @@ collect_(att(Module,Value,As), V, Tabu) -->
 	collect_attributes(Vs, Tabu),
 	(   { Module == freeze }
 	->  [freeze(V, Value)]
-	;   { predicate_property(Module:attribute_goals(_,_,_),interpreted) }
+	;   { current_predicate(Module:attribute_goals(_,_,_)) }
 	->  { phrase(Module:attribute_goals(V), Goals) },
 	    dlist(Goals)
-	;   { predicate_property(Module:attribute_goal(_, _), interpreted) }
+	;   { current_predicate(Module:attribute_goal(_, _)) }
 	->  { Module:attribute_goal(V, Goal) },
 	    dot_list(Goal)
 	;   [put_attr(V, Module, Value)]
