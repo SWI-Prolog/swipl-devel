@@ -145,14 +145,14 @@ portray_attrs(att(Name, Value, Rest), Var) :-
 	;   write(', '),
 	    portray_attrs(Rest, Var)
 	).
-	
-portray_attr(freeze, Goal, _Var) :- !,
-	format('freeze = ~W', [ Goal,
-				[ portray(true),
-				  quoted(true),
-				  attributes(ignore)
-				]
-			      ]).
+
+portray_attr(freeze, Goal, Var) :- !,
+	format('freeze(~w, ~W)', [ Var, Goal,
+				   [ portray(true),
+				     quoted(true),
+				     attributes(ignore)
+				   ]
+				 ]).
 portray_attr(Name, Value, Var) :-
 	G = Name:attr_portray_hook(Value, Var),
 	(   '$c_current_predicate'(_, G),
