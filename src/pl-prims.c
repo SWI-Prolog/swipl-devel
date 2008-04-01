@@ -713,6 +713,55 @@ PRED_IMPL("ground", 1, ground, 0)
 }
 
 
+static int
+ph_non_attributed(Word p, phase ph ARG_LD) /* Phase 1 marking */
+{ int arity;
+  Functor f;
+
+last:
+  deRef(p);
+
+  if ( isAttVar(*p) )
+    fail;
+  if ( !isTerm(*p) )
+    succeed;
+
+  f = valueTerm(*p);
+  arity = arityFunctor(f->definition);
+  p = f->arguments;
+  if ( ph_visited(f, ph PASS_LD) )	/* already been here, so it must be non_attributed */
+    succeed;
+
+  for(; --arity > 0; p++)
+  { if ( !ph_non_attributed(p, ph PASS_LD) )
+      fail;
+  }
+
+  goto last;
+}
+
+
+static int
+non_attributed(Word p ARG_LD)
+{ int rc1, rc2;
+
+  startCritical;
+  rc1 = ph_non_attributed(p, ph_mark PASS_LD);  /* mark functors */
+  rc2 = ph_non_attributed(p, ph_unmark PASS_LD);  /* unmark the very same functors */
+  endCritical;
+  assert(rc1 == rc2);
+  return rc1;
+}
+
+
+static
+PRED_IMPL("attributed", 1, attributed, 0)
+{ PRED_LD
+
+  return non_attributed(valTermRef(A1) PASS_LD) ? FALSE : TRUE;
+}
+
+
 static
 PRED_IMPL("compound", 1, compound, 0)
 { return PL_is_compound(A1);
@@ -4510,6 +4559,7 @@ BeginPredDefs(prims)
   PRED_DEF("atom", 1, atom, PL_FA_ISO)
   PRED_DEF("string", 1, string, 0)
   PRED_DEF("ground", 1, ground, PL_FA_ISO)
+  PRED_DEF("$attributed", 1, attributed, 0)
   PRED_DEF("acyclic_term", 1, acyclic_term, 0)
   PRED_DEF("cyclic_term", 1, cyclic_term, 0)
   PRED_DEF("compound", 1, compound, PL_FA_ISO)

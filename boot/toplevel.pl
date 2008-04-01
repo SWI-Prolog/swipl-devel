@@ -588,10 +588,15 @@ subst_chars([H|T]) -->
 %	=determinism= is considered more adequate and informative.
 
 write_bindings(Bindings, Det) :-
+	'$attributed'(Bindings),
 	copy_term(Bindings, Bindings1, Residuals),
 	bind_vars(Bindings1),
 	filter_bindings(Bindings1, Bindings2),
 	write_bindings2(Bindings2, Residuals, Det).
+write_bindings(Bindings, Det) :-
+	bind_vars(Bindings),
+	filter_bindings(Bindings, Bindings1),
+	write_bindings2(Bindings1, [], Det).
 
 write_bindings2([], Residuals, _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
