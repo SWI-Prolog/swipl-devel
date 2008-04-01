@@ -240,7 +240,7 @@ attribute_goals(Var) -->
               append(VV1, VV2, VV) },
             % TODO: correct residual goals for ?- dif(f(A,B), f(X,Y)).
             all_difs(VV, Var)
-        ;   [put_attr(Var, dif, Attr)] % TODO: project others too
+        ;   [] % TODO: project others too
         ).
 
 all_difs([], _)     --> [].
