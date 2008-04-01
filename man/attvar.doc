@@ -121,6 +121,11 @@ Called by write_term/2 and friends for each attribute if the option
 \term{attributes}{portray} is in effect.  If the hook succeeds the
 attribute is considered printed.  Otherwise \exam{Module = ...} is
 printed to indicate the existence of a variable.
+
+    \predicate{attribute_goals}{3}{+Attribute, -Gs, +GsRest}
+This nonterminal, if it is defined in a module, is used by copy_term/3
+to project attributes of that module to residual goals. It is also
+used by the toplevel to obtain residual goals after executing a query.
 \end{description}
 
 \subsection{Special purpose predicates for attributes}
