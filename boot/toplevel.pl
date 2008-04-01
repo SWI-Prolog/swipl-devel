@@ -590,7 +590,16 @@ subst_chars([H|T]) -->
 write_bindings(Bindings0, Det) :-
 	bind_vars(Bindings0),
 	filter_bindings(Bindings0, Bindings),
-	write_bindings2(Bindings, Det).
+	write_bindings2(Bindings, Det),
+        copy_term(Bindings, _, Residuals),
+        (   Residuals = [_|_] ->
+            list_dot(Residuals, Goal),
+            write(Goal), nl, nl
+        ;   true
+        ).
+
+list_dot([A], A)        :- !.
+list_dot([A|As], (A,G)) :- list_dot(As, G).
 
 write_bindings2([], _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
