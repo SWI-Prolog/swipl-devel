@@ -232,11 +232,17 @@ filter_dead_ors([Or-Y|Rest],List) :-
 	),
 	filter_dead_ors(Rest,NRest).
 
-attr_portray_hook(vardif(V1,V2),_) :-
-	snd_of_pairs(V1,VV1),
-	snd_of_pairs(V2,VV2),
-	append(VV1,VV2,VV),
-	format('~w',[dif(VV)]).
+attribute_goals(Var) -->
+        (   { get_attr(Var, dif, vardif(V1,V2)) } ->
+            { snd_of_pairs(V1, VV1),
+              snd_of_pairs(V2, VV2),
+              append(VV1, VV2, VV) },
+            all_difs(VV, Var)
+        ;   [] % TODO: cover other nodes
+        ).
+
+all_difs([], _)     --> [].
+all_difs([A|As], V) --> [dif(V, A)], all_difs(As, V).
 
 % from hProlog's pairlist module
 snd_of_pairs([],[]).
