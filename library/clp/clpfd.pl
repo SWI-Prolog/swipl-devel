@@ -3532,9 +3532,6 @@ attribute_goals(X) -->
         [clpfd:(X in Drep)],
         attributes_goals(Ps).
 
-dot_list((A,B)) --> !, dot_list(A), dot_list(B).
-dot_list(A)     --> [A].
-
 list_dot([A], A)        :- !.
 list_dot([A|As], (A,G)) :- list_dot(As, G).
 

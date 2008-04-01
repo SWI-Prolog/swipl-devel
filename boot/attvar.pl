@@ -237,3 +237,12 @@ collect_(att(Module,Value,As), V, Tabu) -->
         ),
         { del_attr(V, Module) },
         collect_(As, V, Tabu).
+
+dlist([])     --> [].
+dlist([L|Ls]) --> [L], dlist(Ls).
+
+dot_list((A,B)) --> !, dot_list(A), dot_list(B).
+dot_list(A)     --> [A].
+
+list_dot([A], A)        :- !.
+list_dot([A|As], (A,G)) :- list_dot(As, G).
