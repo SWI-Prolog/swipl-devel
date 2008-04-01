@@ -591,7 +591,7 @@ write_bindings(Bindings0, Det) :-
 	bind_vars(Bindings0),
 	filter_bindings(Bindings0, Bindings),
 	write_bindings2(Bindings, Det),
-        copy_term(Bindings, _, Residuals),
+	copy_term(Bindings, Bindings, Residuals),
         (   Residuals = [_|_] ->
             list_dot(Residuals, Goal),
             write(Goal), nl, nl
