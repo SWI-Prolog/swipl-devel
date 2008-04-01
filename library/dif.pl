@@ -233,12 +233,14 @@ filter_dead_ors([Or-Y|Rest],List) :-
 	filter_dead_ors(Rest,NRest).
 
 attribute_goals(Var) -->
-        (   { get_attr(Var, dif, vardif(V1,V2)) } ->
+        { get_attr(Var, dif, Attr) },
+        (   { Attr = vardif(V1,V2) } ->
             { snd_of_pairs(V1, VV1),
               snd_of_pairs(V2, VV2),
               append(VV1, VV2, VV) },
+            % TODO: correct residual goals for ?- dif(f(A,B), f(X,Y)).
             all_difs(VV, Var)
-        ;   [] % TODO: cover other nodes
+        ;   [put_attr(Var, dif, Attr)] % TODO: project others too
         ).
 
 all_difs([], _)     --> [].
