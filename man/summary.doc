@@ -68,7 +68,6 @@ suggest predicates from a keyword.
 \predicatesummary{assertz}{1}{Add a clause to the database (last)}
 \predicatesummary{assertz}{2}{Add a clause to the database (last)}
 \predicatesummary{attach_console}{0}{Attach I/O console to thread}
-\predicatesummary{attribute_goals}{3}{Project attributes to goals}
 \predicatesummary{attr_unify_hook}{2}{Attributed variable unification hook}
 \predicatesummary{attr_portray_hook}{2}{Attributed variable print hook}
 \predicatesummary{attvar}{1}{Type test for attributed variable}
