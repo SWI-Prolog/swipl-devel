@@ -68,7 +68,7 @@ for details.
 :- multifile
 	make_socket_hook/3,
 	accept_hook/2,
-	close_hook/1.
+	close_hook/1,
 	open_client_hook/5.
 
 %%	http_server(:Goal, +Options) is det.
