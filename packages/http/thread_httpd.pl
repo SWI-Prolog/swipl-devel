@@ -68,6 +68,7 @@ for details.
 :- multifile
 	make_socket_hook/3,
 	accept_hook/2,
+	close_hook/1.
 	open_client_hook/5.
 
 %%	http_server(:Goal, +Options) is det.
@@ -187,7 +188,8 @@ http_current_worker(Port, ThreadID) :-
 accept_server(Goal, Options) :-
 	catch(accept_server2(Goal, Options), http_stop, true),
 	thread_self(Thread),
-	retract(current_server(_Port, _, Thread, _Queue)).
+	retract(current_server(_Port, _, Thread, _Queue)),
+	close_server_socket(Options).
 
 accept_server2(Goal, Options) :-
 	accept_hook(Goal, Options), !.
@@ -207,6 +209,17 @@ accept_server2(Goal, Options) :-
 	      )
 	  ;   print_message(error, goal_failed(tcp_accept(Socket, Client, Peer)))
 	  ).
+
+
+%%	close_server_socket(+Options)
+%
+%	Close the server socket.
+
+close_server_socket(Options) :-
+	close_hook(Options), !.
+close_server_socket(Options) :-
+	memberchk(tcp_socket(Socket), Options), !,
+	tcp_close_socket(Socket).
 
 
 %%	http_stop_server(+Port, +Options)
