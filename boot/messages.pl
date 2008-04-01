@@ -558,17 +558,24 @@ prolog_message(query(QueryResult)) -->
 query_result(no) -->		% failure
 	[ 'fail.' ],
 	extra_line.
-query_result(yes) -->		% prompt_alternatives_on: groundness
+query_result(yes([])) --> !,	% prompt_alternatives_on: groundness
 	[ 'true.' ],
+	extra_line.
+query_result(yes(Residuals)) -->
+	residuals(Residuals),
 	extra_line.
 query_result(done) -->		% user typed <CR>
 	extra_line.
-query_result(yes(Bindings)) -->
+query_result(yes(Bindings, Residuals)) -->
 	bindings(Bindings),
-	prompt(yes, Bindings).
-query_result(more(Bindings)) -->
+	bind_res_sep(Bindings, Residuals),
+	residuals(Residuals),
+	prompt(yes, Bindings, Residuals).
+query_result(more(Bindings, Residuals)) -->
 	bindings(Bindings),
-	prompt(more, Bindings).
+	bind_res_sep(Bindings, Residuals),
+	residuals(Residuals),
+	prompt(more, Bindings, Residuals).
 query_result(help) -->
 	[ nl, 'Actions:', nl, nl,
 	  '; (n, r, space, TAB): redo    t:          trace & redo', nl,
@@ -586,13 +593,18 @@ query_result(eof) -->
 query_result(toplevel_open_line) -->
 	[].
 
-prompt(yes, []) --> !,
+prompt(Answer, [], []) --> !,
+	prompt(Answer, empty).
+prompt(Answer, _, _) --> !,
+	prompt(Answer, non_empty).
+
+prompt(yes, empty) --> !,
 	[ 'true.' ],
 	extra_line.
 prompt(yes, _) --> !,
 	[ '.' ],
 	extra_line.
-prompt(more, []) --> !,
+prompt(more, empty) --> !,
 	[ 'true ', flush ].
 prompt(more, _) --> !,
 	[ ' ', flush ].
@@ -612,6 +624,21 @@ bindings([Name = Value|T]) -->
 	;   [nl]
 	),
 	bindings(T).
+
+residuals([]) --> !, [].
+residuals([G|Gs]) -->
+	(   { Gs \== [] }
+	->  [ '~q,'-[G], nl ],
+	    residuals(Gs)
+	;   [ '~q'-[G] ]
+	).
+	
+bind_res_sep(_, []) --> !,
+	[].
+bind_res_sep([], _) --> !,
+	[].
+bind_res_sep(_, _) -->
+	[','-[], nl].
 
 extra_line -->
 	{ current_prolog_flag(toplevel_extra_white_line, true) }, !,
