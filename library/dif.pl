@@ -232,21 +232,44 @@ filter_dead_ors([Or-Y|Rest],List) :-
 	),
 	filter_dead_ors(Rest,NRest).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   The attribute of a variable X is a vardif/2. The first argument is a
+   list of pairs.
+
+   The first component of each pair is an OrNode. The attribute of
+   each OrNode is node/2. The second argument of node/2 is a list of
+   equations A = B. If the LHS of the first equation is X, then return
+   a goal, otherwise don't because someone else will.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 attribute_goals(Var) -->
-        { get_attr(Var, dif, Attr) },
-        (   { Attr = vardif(V1,V2) } ->
-            { snd_of_pairs(V1, VV1),
-              snd_of_pairs(V2, VV2),
-              append(VV1, VV2, VV) },
-            % TODO: correct residual goals for ?- dif(f(A,B), f(X,Y)).
-            all_difs(VV, Var)
-        ;   [] % TODO: project others too
+	(   { get_attr(Var, dif, vardif(Ors,_)) } ->
+	    or_nodes(Ors, Var)
+	;   or_node(Var)
+	).
+
+or_node(O) -->
+        (   { get_attr(O, dif, node(_, Pairs)) } ->
+            { eqs_lefts_rights(Pairs, As, Bs) },
+            mydif(As, Bs)
+        ;   []
         ).
 
-all_difs([], _)     --> [].
-all_difs([A|As], V) --> [dif(V, A)], all_difs(As, V).
+or_nodes([], _)       --> [].
+or_nodes([O-_|Os], X) -->
+	(   { get_attr(O, dif, node(_, Eqs)) } ->
+            (   { Eqs = [LHS=_|_], LHS == X } ->
+                { eqs_lefts_rights(Eqs, As, Bs) },
+                mydif(As, Bs)
+            ;   []
+            )
+        ;   [] % or-node already removed by copy_term/3
+        ),
+	or_nodes(Os, X).
 
-% from hProlog's pairlist module
-snd_of_pairs([],[]).
-snd_of_pairs([_-Y|XYs],[Y|Ys]) :-
-	snd_of_pairs(XYs,Ys).
+mydif([X], [Y]) --> !, [dif(X, Y)].
+mydif(Xs, Ys)   --> { X =.. [f|Xs], Y =.. [f|Ys] }, [dif(X,Y)].
+
+eqs_lefts_rights([], [], []).
+eqs_lefts_rights([A=B|ABs], [A|As], [B|Bs]) :-
+        eqs_lefts_rights(ABs, As, Bs).
