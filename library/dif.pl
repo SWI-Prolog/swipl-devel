@@ -233,13 +233,11 @@ filter_dead_ors([Or-Y|Rest],List) :-
 	filter_dead_ors(Rest,NRest).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   The attribute of a variable X is a vardif/2. The first argument is a
-   list of pairs.
-
-   The first component of each pair is an OrNode. The attribute of
-   each OrNode is node/2. The second argument of node/2 is a list of
-   equations A = B. If the LHS of the first equation is X, then return
-   a goal, otherwise don't because someone else will.
+   The attribute of a variable X is vardif/2. The first argument is a
+   list of pairs. The first component of each pair is an OrNode. The
+   attribute of each OrNode is node/2. The second argument of node/2
+   is a list of equations A = B. If the LHS of the first equation is
+   X, then return a goal, otherwise don't because someone else will.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 attribute_goals(Var) -->
