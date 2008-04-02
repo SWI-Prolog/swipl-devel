@@ -327,9 +327,8 @@ initialise_prolog :-
 	'$clean_history',
 	set_associated_file,
 	'$set_file_search_paths',
-	once(print_predicate(_, [print], PrintOptions0)),
-        delete(PrintOptions0, attributes(portray), PrintOptions1),
-	set_prolog_flag(toplevel_print_options, PrintOptions1),
+	once(print_predicate(_, [print], PrintOptions)),
+	set_prolog_flag(toplevel_print_options, PrintOptions),
 	set_prolog_flag(prompt_alternatives_on, determinism),
 	set_prolog_flag(toplevel_extra_white_line, true),
 	'$set_debugger_print_options'(print),
@@ -684,12 +683,10 @@ answer_respons(Char, again) :-
 	print_message(query, no_action(Char)).
 
 print_predicate(0'w, [write], [ quoted(true),
-				attributes(write),
 				priority(699)
 			      ]).
 print_predicate(0'p, [print], [ quoted(true),
 				portray(true),
-				attributes(portray),
 				max_depth(10),
 				priority(699)
 			      ]).
