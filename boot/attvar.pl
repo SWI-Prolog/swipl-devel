@@ -210,7 +210,8 @@ call_det(Goal, Det) :-
 
 copy_term(Term, Copy, Gs) :-
 	term_variables(Term, Vs),
-	findall(Term-GsC, phrase(collect_attributes(Vs,[]),GsC), [Copy-Gs]).
+	findall(Term-GsC, phrase(collect_attributes(Vs,[]),GsC), [Copy-Gs0]),
+	sort(Gs0, Gs).
 
 collect_attributes([], _)	  --> [].
 collect_attributes([V|Vs], Tabu0) -->
