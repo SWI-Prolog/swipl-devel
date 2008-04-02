@@ -480,7 +480,10 @@ json_pair(Var, _, _) :-
 json_pair(Name=Value, Name, Value) :- !.
 json_pair(Name-Value, Name, Value) :- !.
 json_pair(NameValue, Name, Value) :-
-	NameValue =.. [Name, Value].
+	compound(NameValue),
+	NameValue =.. [Name, Value], !.
+json_pair(Pair, _, _) :-
+	type_error(json_pair, Pair).
 
 
 write_array_hor([], _, _, _).
