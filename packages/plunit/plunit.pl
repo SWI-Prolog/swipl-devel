@@ -85,7 +85,6 @@ throw_error(Error_term,Impldef) :-
 :- set_prolog_flag(generate_debug_info, false).
 :- use_module(library(option)).
 :- use_module(library(pairs)).
-:- use_module(library(clpfd), [copy_term/3]). % remove it, Jan!
 
 current_test_flag(Name, Value) :-
 	current_prolog_flag(Name, Value).
