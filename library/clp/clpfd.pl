@@ -320,8 +320,8 @@ cis_times(sup, B, P) :-
         ).
 cis_times(n(N), B, P) :- cis_times_(B, N, P).
 
-cis_times_(inf, A, P) :- cis_times(inf, n(A), P).
-cis_times_(sup, A, P) :- cis_times(sup, n(A), P).
+cis_times_(inf, A, P)     :- cis_times(inf, n(A), P).
+cis_times_(sup, A, P)     :- cis_times(sup, n(A), P).
 cis_times_(n(B), A, n(P)) :- P is A * B.
 
 % compactified is/2 for expressions of interest
@@ -1279,18 +1279,19 @@ tighten(max, E, V) :- E #> V.
 
 all_different(Ls) :-
         must_be(list, Ls),
-        all_different(Ls, []),
+        State = mutable(shared, _),
+        all_different(Ls, [], State),
         do_queue.
 
-all_different([], _).
-all_different([X|Right], Left) :-
+all_different([], _, _).
+all_different([X|Right], Left, State) :-
         (   var(X) ->
-            make_propagator(pdifferent(Left,Right,X), Prop),
+            make_propagator(pdifferent(Left,Right,X,State), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
         ;   exclude_fire(Left, Right, X)
         ),
-        all_different(Right, [X|Left]).
+        all_different(Right, [X|Left], State).
 
 %% sum(+Vars, +Op, +Expr)
 %
@@ -2065,7 +2066,7 @@ fd_get(X, Dom, Inf, Sup, Ps) :-
    non-terminating, like: X #> abs(X), or: X #> Y, Y #> X, X #> 0.
    Importantly, it can also make labeling non-terminating, as in:
 
-   ?- #\ B #==> X #> abs(X), indomain(B).
+   ?- B #==> X #> abs(X), indomain(B).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 fd_put(X, Dom, Pos) :-
@@ -2355,7 +2356,7 @@ all_in_domain([A|As], [T|Ts]) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pdifferent(Left,Right,X), _MState) :-
+run_propagator(pdifferent(Left,Right,X,_), _MState) :-
         (   ground(X) ->
             disable_queue,
             exclude_fire(Left, Right, X),
@@ -2363,7 +2364,7 @@ run_propagator(pdifferent(Left,Right,X), _MState) :-
         ;   true
         ).
 
-run_propagator(pdistinct(Left,Right,X), _MState) :-
+run_propagator(pdistinct(Left,Right,X,_), _MState) :-
         (   ground(X) ->
             disable_queue,
             exclude_fire(Left, Right, X),
@@ -3239,7 +3240,7 @@ max_divide(L1,U1,L2,U2,Max) :-
 all_distinct(Ls) :-
         must_be(list, Ls),
         length(Ls, _),
-        MState = mutable(passive,_),
+        MState = mutable(shared,_),
         all_distinct(Ls, [], MState),
         do_queue.
 
@@ -3247,7 +3248,7 @@ all_distinct([], _, _).
 all_distinct([X|Right], Left, MState) :-
         %\+ list_contains(Right, X),
         (   var(X) ->
-            make_propagator(pdistinct(Left,Right,X), Prop),
+            make_propagator(pdistinct(Left,Right,X,MState), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
 %             make_propagator(check_distinct(Left,Right,X), Prop2),
@@ -3546,6 +3547,8 @@ attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
         (   { arg(1, State, dead) } -> []
         ;   { arg(1, State, processed) } -> []
+        ;   { ( functor(P, pdifferent, _) ; functor(P, pdistinct, _) ),
+              arg(4, P, mutable(processed,_)) } -> []
         ;   { attribute_goal_(P, G) } ->
             { setarg(1, State, processed) },
             [clpfd:G]
@@ -3571,12 +3574,14 @@ attribute_goal_(scalar_product(Cs,Vs,Op,C), Goal) :-
         coeff_var_term(FC, FV, T0),
         unfold_product(Cs1, Vs1, T0, Left),
         Goal =.. [Op,Left,C].
-attribute_goal_(pdifferent(Left, Right, X), all_different(Vs)) :-
+attribute_goal_(pdifferent(Left, Right, X, Shared), all_different(Vs)) :-
         append(Left, [X|Right], Vs0),
         msort(Vs0, Vs),
-        other_alldifs_processed(Vs, Vs).
-attribute_goal_(pdistinct(Left, Right, X), all_distinct(Vs)) :-
-        append(Left, [X|Right], Vs).
+        setarg(1, Shared, processed).
+attribute_goal_(pdistinct(Left, Right, X, Shared), all_distinct(Vs)) :-
+        append(Left, [X|Right], Vs0),
+        msort(Vs0, Vs),
+        setarg(1, Shared, processed).
 attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
         append(Left, [Var-D|Right], VDs),
         pair_up(Vs, Ds, VDs).
@@ -3599,20 +3604,6 @@ unfold_product([], [], P, P).
 unfold_product([C|Cs], [V|Vs], P0, P) :-
         coeff_var_term(C, V, T),
         unfold_product(Cs, Vs, P0 + T, P).
-
-other_alldifs_processed([], _).
-other_alldifs_processed([V|Vs], Vars) :-
-        (   fd_get(V, _, Ps) ->
-            member(P, Ps),
-            P = propagator(pdifferent(Left,Right,V), State),
-            append(Left, [V|Right], Others0),
-            msort(Others0, Others),
-            Others == Vars,
-            !,
-            setarg(1, State, processed)
-        ;   true
-        ),
-        other_alldifs_processed(Vs, Vars).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 domain_to_list(Domain, List) :- phrase(domain_to_list(Domain), List).
