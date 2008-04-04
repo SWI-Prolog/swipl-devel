@@ -39,24 +39,27 @@
    Symbolic constants for infinities
    ---------------------------------
 
-   ?- X in 0..5 \/ 10..sup, Y #= -X, Z #= X + Y.
-   %@ X = _G1083{0..5\/10..sup},
-   %@ Y = _G1088{inf.. -10\/ -5..0},
-   %@ Z = _G1094{inf..sup}
+   ?- Z #= X + Y.
+   %@ clpfd: (Y in inf..sup),
+   %@ clpfd: (X+Y#=Z),
+   %@ clpfd: (X in inf..sup),
+   %@ clpfd: (Z in inf..sup).
 
    No artificial limits (using GMP)
    ---------------------------------
 
    ?- N is 2**66, X #\= N.
-   %@ X = _G1676{inf..73786976294838206463 \/ 73786976294838206465..sup}
+   %@ N = 73786976294838206464,
+   %@ clpfd: (X in inf..73786976294838206463\/73786976294838206465..sup).
 
    Often stronger propagation
    ---------------------------------
 
    ?- Y #= abs(X), Y #\= 3, Z * Z #= 4.
-   %@ Y = _G1012{0..2\/4..sup},
-   %@ X = _G1010{inf.. -4\/ -2..2\/4..sup},
-   %@ Z = _G1018{-2\/2}
+   %@ clpfd: (X in inf.. -4\/ -2..2\/4..sup),
+   %@ clpfd: (Y#=abs(X)),
+   %@ clpfd: (Y in 0..2\/4..sup),
+   %@ clpfd: (Z in -2\/2).
 
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1233,7 +1236,8 @@ delete_eq([X|Xs],Y,List) :-
 
    %?- X in 0..3, call_residue_vars(labeling([min(X)], [X]), Vs).
    %@ X = 0,
-   %@ Vs = [_G2152{clpfd: (_G2152 in 0..3)} ...]
+   %@ Vs = [_G2672, _G2675],
+   %@ clpfd: (_G2672 in 0..3)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
