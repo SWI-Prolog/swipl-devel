@@ -40,26 +40,26 @@
    ---------------------------------
 
    ?- Z #= X + Y.
-   %@ clpfd: (Y in inf..sup),
-   %@ clpfd: (X+Y#=Z),
-   %@ clpfd: (X in inf..sup),
-   %@ clpfd: (Z in inf..sup).
+   %@ Y in inf..sup,
+   %@ X+Y#=Z,
+   %@ X in inf..sup,
+   %@ Z in inf..sup.
 
    No artificial limits (using GMP)
    ---------------------------------
 
    ?- N is 2**66, X #\= N.
    %@ N = 73786976294838206464,
-   %@ clpfd: (X in inf..73786976294838206463\/73786976294838206465..sup).
+   %@ X in inf..73786976294838206463\/73786976294838206465..sup.
 
    Often stronger propagation
    ---------------------------------
 
    ?- Y #= abs(X), Y #\= 3, Z * Z #= 4.
-   %@ clpfd: (X in inf.. -4\/ -2..2\/4..sup),
-   %@ clpfd: (Y#=abs(X)),
-   %@ clpfd: (Y in 0..2\/4..sup),
-   %@ clpfd: (Z in -2\/2).
+   %@ X in inf.. -4\/ -2..2\/4..sup,
+   %@ Y#=abs(X),
+   %@ Y in 0..2\/4..sup,
+   %@ Z in -2\/2.
 
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -200,16 +200,16 @@ Sample query and its result:
 
 ==
 ?- puzzle(As+Bs=Cs).
-As = [9, _G10167, _G10170, _G10173],
-Bs = [1, 0, _G10188, _G10167],
-Cs = [1, 0, _G10170, _G10167, _G10212],
-clpfd: (_G10212 in 2..8),
-clpfd: (1000*9+91*_G10167+ -90*_G10170+_G10173+ -9000*1+ -900*0+10*_G10188+ -1*_G10212#=0),
-clpfd:all_different([_G10167, _G10170, _G10173, _G10188, _G10212, 0, 1, 9]),
-clpfd: (_G10188 in 2..8),
-clpfd: (_G10173 in 2..8),
-clpfd: (_G10170 in 5..8),
-clpfd: (_G10167 in 4..7).
+As = [9, _G10178, _G10181, _G10184],
+Bs = [1, 0, _G10199, _G10178],
+Cs = [1, 0, _G10181, _G10178, _G10223],
+_G10223 in 2..8,
+1000*9+91*_G10178+ -90*_G10181+_G10184+ -9000*1+ -900*0+10*_G10199+ -1*_G10223#=0,
+all_different([_G10178, _G10181, _G10184, _G10199, _G10223, 0, 1, 9]),
+_G10199 in 2..8,
+_G10184 in 2..8,
+_G10181 in 5..8,
+_G10178 in 4..7.
 ==
 
 Here, the constraint solver could deduce more stringent bounds for
@@ -1236,8 +1236,8 @@ delete_eq([X|Xs],Y,List) :-
 
    %?- X in 0..3, call_residue_vars(labeling([min(X)], [X]), Vs).
    %@ X = 0,
-   %@ Vs = [_G2672, _G2675],
-   %@ clpfd: (_G2672 in 0..3)
+   %@ Vs = [_G6174, _G6177],
+   %@ _G6174 in 0..3
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
