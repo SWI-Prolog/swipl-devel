@@ -68,6 +68,7 @@ suggest predicates from a keyword.
 \predicatesummary{assertz}{1}{Add a clause to the database (last)}
 \predicatesummary{assertz}{2}{Add a clause to the database (last)}
 \predicatesummary{attach_console}{0}{Attach I/O console to thread}
+\predicatesummary{attribute_goals}{3}{Project attributes to goals}
 \predicatesummary{attr_unify_hook}{2}{Attributed variable unification hook}
 \predicatesummary{attr_portray_hook}{2}{Attributed variable print hook}
 \predicatesummary{attvar}{1}{Type test for attributed variable}
@@ -137,6 +138,7 @@ suggest predicates from a keyword.
 \predicatesummary{copy_stream_data}{2}{Copy all data from stream to stream}
 \predicatesummary{copy_stream_data}{3}{Copy n bytes from stream to stream}
 \predicatesummary{copy_term}{2}{Make a copy of a term}
+\predicatesummary{copy_term}{3}{Copy a term and obtain attribute-goals}
 \predicatesummary{copy_term_nat}{2}{Make a copy of a term without attributes}
 \predicatesummary{current_arithmetic_function}{1}{Examine evaluable functions}
 \predicatesummary{current_atom}{1}{Examine existing atoms}

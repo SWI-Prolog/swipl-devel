@@ -586,20 +586,26 @@ subst_chars([H|T]) -->
 %	for alternatives. =groundness= gives   the  classical behaviour,
 %	=determinism= is considered more adequate and informative.
 
-write_bindings(Bindings0, Det) :-
-	bind_vars(Bindings0),
-	filter_bindings(Bindings0, Bindings),
-	write_bindings2(Bindings, Det).
+write_bindings(Bindings, Det) :-
+	'$attributed'(Bindings),
+	copy_term(Bindings, Bindings1, Residuals),
+	bind_vars(Bindings1),
+	filter_bindings(Bindings1, Bindings2),
+	write_bindings2(Bindings2, Residuals, Det).
+write_bindings(Bindings, Det) :-
+	bind_vars(Bindings),
+	filter_bindings(Bindings, Bindings1),
+	write_bindings2(Bindings1, [], Det).
 
-write_bindings2([], _) :-
+write_bindings2([], Residuals, _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
-	print_message(query, query(yes)).
-write_bindings2(Bindings, true) :-
+	print_message(query, query(yes, Residuals)).
+write_bindings2(Bindings, Residuals, true) :-
 	current_prolog_flag(prompt_alternatives_on, determinism), !,
-	print_message(query, query(yes(Bindings))).
-write_bindings2(Bindings, _Det) :-
+	print_message(query, query(yes(Bindings, Residuals))).
+write_bindings2(Bindings, Residuals, _Det) :-
 	repeat,
-	    print_message(query, query(more(Bindings))),
+	    print_message(query, query(more(Bindings, Residuals))),
 	    get_respons(Action),
 	(   Action == redo
 	->  !, fail
@@ -677,12 +683,10 @@ answer_respons(Char, again) :-
 	print_message(query, no_action(Char)).
 
 print_predicate(0'w, [write], [ quoted(true),
-				attributes(write),
 				priority(699)
 			      ]).
 print_predicate(0'p, [print], [ quoted(true),
 				portray(true),
-				attributes(portray),
 				max_depth(10),
 				priority(699)
 			      ]).

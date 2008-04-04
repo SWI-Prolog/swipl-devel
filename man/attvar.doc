@@ -121,6 +121,11 @@ Called by write_term/2 and friends for each attribute if the option
 \term{attributes}{portray} is in effect.  If the hook succeeds the
 attribute is considered printed.  Otherwise \exam{Module = ...} is
 printed to indicate the existence of a variable.
+
+    \predicate{attribute_goals}{3}{+Var, -Gs, +GsRest}
+This nonterminal, if it is defined in a module, is used by copy_term/3
+to project attributes of that module to residual goals. It is also
+used by the toplevel to obtain residual goals after executing a query.
 \end{description}
 
 \subsection{Special purpose predicates for attributes}
@@ -139,6 +144,13 @@ Get all attributes of \arg{Var}. \arg{Attributes} is a term of the form
     \predicate{put_attrs}{2}{+Var, -Attributes}
 Set all attributes of \arg{Var}.  See get_attrs/2 for a description of
 \arg{Attributes}.
+
+    \predicate{copy_term}{3}{+Term, -Copy, -Gs}
+Create a regular term \arg{Copy} as a copy of \arg{Term} (without
+any attributes), and a list \arg{Gs} of goals that when executed
+reinstate all attributes onto \arg{Copy}. The nonterminal
+attribute_goals//1, as defined in the modules the attributes stem
+from, is used to convert attributes to lists of goals.
 
     \predicate{copy_term_nat}{2}{+Term, -Copy}
 As copy_term/2.  Attributes however, are \emph{not} copied but replaced

@@ -106,7 +106,7 @@ dump(Target,NewVars,Constraints) :-
 
 projecting_assert(QClause) :-
 	strip_module(QClause, Module, Clause),  % JW: SWI-Prolog not always qualifies the term!
-	copy_term(Clause,Copy,Constraints),
+	copy_term_clpq(Clause,Copy,Constraints),
 	l2c(Constraints,Conj),			% fails for []
 	(   Sm = clpq
 	;   Sm = clpr
@@ -121,7 +121,7 @@ projecting_assert(QClause) :-
 projecting_assert(Clause) :-	% not our business
 	assert(Clause).
 
-copy_term(Term,Copy,Constraints) :-
+copy_term_clpq(Term,Copy,Constraints) :-
 	(   term_variables(Term,Target),	% get all variables in Term
 	    related_linear_vars(Target,All),	% get all variables of the classes of the variables in Term
 	    nonlin_crux(All,Nonlin),		% get a list of all the nonlinear goals of these variables

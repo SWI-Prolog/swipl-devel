@@ -39,24 +39,27 @@
    Symbolic constants for infinities
    ---------------------------------
 
-   ?- X in 0..5 \/ 10..sup, Y #= -X, Z #= X + Y.
-   %@ X = _G1083{0..5\/10..sup},
-   %@ Y = _G1088{inf.. -10\/ -5..0},
-   %@ Z = _G1094{inf..sup}
+   ?- Z #= X + Y.
+   %@ clpfd: (Y in inf..sup),
+   %@ clpfd: (X+Y#=Z),
+   %@ clpfd: (X in inf..sup),
+   %@ clpfd: (Z in inf..sup).
 
    No artificial limits (using GMP)
    ---------------------------------
 
    ?- N is 2**66, X #\= N.
-   %@ X = _G1676{inf..73786976294838206463 \/ 73786976294838206465..sup}
+   %@ N = 73786976294838206464,
+   %@ clpfd: (X in inf..73786976294838206463\/73786976294838206465..sup).
 
    Often stronger propagation
    ---------------------------------
 
    ?- Y #= abs(X), Y #\= 3, Z * Z #= 4.
-   %@ Y = _G1012{0..2\/4..sup},
-   %@ X = _G1010{inf.. -4\/ -2..2\/4..sup},
-   %@ Z = _G1018{-2\/2}
+   %@ clpfd: (X in inf.. -4\/ -2..2\/4..sup),
+   %@ clpfd: (Y#=abs(X)),
+   %@ clpfd: (Y in 0..2\/4..sup),
+   %@ clpfd: (Z in -2\/2).
 
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -110,8 +113,7 @@
                   fd_inf/2,
                   fd_sup/2,
                   fd_size/2,
-                  fd_dom/2,
-                  copy_term/3
+                  fd_dom/2
                  ]).
 
 
@@ -198,9 +200,16 @@ Sample query and its result:
 
 ==
 ?- puzzle(As+Bs=Cs).
-As = [9, _G5402{4..7}, _G5405{5..8}, _G5408{2..8}],
-Bs = [1, 0, _G5417{2..8}, _G5402{4..7}],
-Cs = [1, 0, _G5405{5..8}, _G5402{4..7}, _G5435{2..8}].
+As = [9, _G10167, _G10170, _G10173],
+Bs = [1, 0, _G10188, _G10167],
+Cs = [1, 0, _G10170, _G10167, _G10212],
+clpfd: (_G10212 in 2..8),
+clpfd: (1000*9+91*_G10167+ -90*_G10170+_G10173+ -9000*1+ -900*0+10*_G10188+ -1*_G10212#=0),
+clpfd:all_different([_G10167, _G10170, _G10173, _G10188, _G10212, 0, 1, 9]),
+clpfd: (_G10188 in 2..8),
+clpfd: (_G10173 in 2..8),
+clpfd: (_G10170 in 5..8),
+clpfd: (_G10167 in 4..7).
 ==
 
 Here, the constraint solver could deduce more stringent bounds for
@@ -212,6 +221,11 @@ As = [9, 5, 6, 7],
 Bs = [1, 0, 8, 5],
 Cs = [1, 0, 6, 5, 2]
 ==
+
+This library also provides _reflection_ predicates (like fd_dom/2,
+fd_size/2 etc.) with which you can inspect a variable's current
+domain. Use call_residue_vars/2 and copy_term/3 to inspect residual
+goals and the constraints in which a variable is involved.
 
 @author Markus Triska
 */
@@ -1222,7 +1236,8 @@ delete_eq([X|Xs],Y,List) :-
 
    %?- X in 0..3, call_residue_vars(labeling([min(X)], [X]), Vs).
    %@ X = 0,
-   %@ Vs = [_G2152{clpfd: (_G2152 in 0..3)} ...]
+   %@ Vs = [_G2672, _G2675],
+   %@ clpfd: (_G2672 in 0..3)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -3497,15 +3512,6 @@ bound_portray(inf, inf).
 bound_portray(sup, sup).
 bound_portray(n(N), N).
 
-attr_portray_hook(clpfd(_,_,_,Dom,_), Var) :-
-        (   current_prolog_flag(clpfd_attribute_goal, true) ->
-            % eventually, the toplevel should work like this by default
-            attribute_goal(Var, Goal),
-            write(Goal)
-        ;   domain_to_drep(Dom, Drep),
-            write(Drep)
-        ).
-
 domain_to_drep(Dom, Drep) :-
         domain_intervals(Dom, [A0-B0|Rest]),
         bound_portray(A0, A),
@@ -3533,9 +3539,6 @@ attribute_goals(X) -->
         [clpfd:(X in Drep)],
         attributes_goals(Ps).
 
-dot_list((A,B)) --> !, dot_list(A), dot_list(B).
-dot_list(A)     --> [A].
-
 list_dot([A], A)        :- !.
 list_dot([A|As], (A,G)) :- list_dot(As, G).
 
@@ -3544,7 +3547,6 @@ attributes_goals([propagator(P, State)|As]) -->
         (   { arg(1, State, dead) } -> []
         ;   { arg(1, State, processed) } -> []
         ;   { attribute_goal_(P, G) } ->
-            % TODO: why doesn't the following setarg/3 actually set the arg?
             { setarg(1, State, processed) },
             [clpfd:G]
         ;   [] % { format("currently no conversion for ~w\n", [P]) }
@@ -3570,7 +3572,9 @@ attribute_goal_(scalar_product(Cs,Vs,Op,C), Goal) :-
         unfold_product(Cs1, Vs1, T0, Left),
         Goal =.. [Op,Left,C].
 attribute_goal_(pdifferent(Left, Right, X), all_different(Vs)) :-
-        append(Left, [X|Right], Vs).
+        append(Left, [X|Right], Vs0),
+        msort(Vs0, Vs),
+        other_alldifs_processed(Vs, Vs).
 attribute_goal_(pdistinct(Left, Right, X), all_distinct(Vs)) :-
         append(Left, [X|Right], Vs).
 attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
@@ -3595,6 +3599,20 @@ unfold_product([], [], P, P).
 unfold_product([C|Cs], [V|Vs], P0, P) :-
         coeff_var_term(C, V, T),
         unfold_product(Cs, Vs, P0 + T, P).
+
+other_alldifs_processed([], _).
+other_alldifs_processed([V|Vs], Vars) :-
+        (   fd_get(V, _, Ps) ->
+            member(P, Ps),
+            P = propagator(pdifferent(Left,Right,V), State),
+            append(Left, [V|Right], Others0),
+            msort(Others0, Others),
+            Others == Vars,
+            !,
+            setarg(1, State, processed)
+        ;   true
+        ),
+        other_alldifs_processed(Vs, Vars).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 domain_to_list(Domain, List) :- phrase(domain_to_list(Domain), List).
@@ -3626,40 +3644,3 @@ test_subdomain(L1, L2) :-
         list_to_domain(L2, D2),
         domain_subdomain(D1, D2).
 
-%%    copy_term(+Term, -Copy, -Gs) is det.
-%
-%    Creates a regular term Copy as a copy of Term (without any
-%    attributes), and a list Gs of goals that when executed reinstate
-%    all attributes onto Copy. The nonterminal attribute_goals//1, as
-%    defined in the modules the attributes stem from, is used to
-%    convert attributes to lists of goals.
-
-copy_term(Term, Copy, Gs) :-
-        term_variables(Term, Vs),
-        findall(Term-GsC, phrase(collect_attributes(Vs,[]),GsC), [Copy-Gs]).
-
-collect_attributes([], _)         --> [].
-collect_attributes([V|Vs], Tabu0) -->
-        (   { member(T, Tabu0), T == V } -> []
-        ;   (   { attvar(V) }  ->
-                { get_attrs(V, As) },
-                collect_(As, V, [V|Tabu0])
-            ;   []
-            )
-        ),
-        collect_attributes(Vs, [V|Tabu0]).
-
-collect_([], _, _)                      --> [].
-collect_(att(Module,Value,As), V, Tabu) -->
-        { term_variables(Value, Vs) },
-        collect_attributes(Vs, Tabu),
-        (   { predicate_property(Module:attribute_goals(_,_,_),interpreted) } ->
-            { phrase(Module:attribute_goals(V), Goals) },
-            dlist(Goals)
-        ;   { predicate_property(Module:attribute_goal(_, _), interpreted) } ->
-            { Module:attribute_goal(V, Goal) },
-            dot_list(Goal)
-        ;   [put_attr(V, Module, Value)]
-        ),
-        { del_attr(V, Module) },
-        collect_(As, V, Tabu).

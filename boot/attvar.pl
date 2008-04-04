@@ -33,7 +33,8 @@
 	  [ '$wakeup'/1,		% +Wakeup list
 	    freeze/2,			% +Var, :Goal
 	    frozen/2,			% @Var, -Goal
-	    call_residue_vars/2		% :Goal, -Vars
+	    call_residue_vars/2,        % :Goal, -Vars
+	    copy_term/3                 % +Term, -Copy, -Residue
 	  ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -144,14 +145,14 @@ portray_attrs(att(Name, Value, Rest), Var) :-
 	;   write(', '),
 	    portray_attrs(Rest, Var)
 	).
-	
-portray_attr(freeze, Goal, _Var) :- !,
-	format('freeze = ~W', [ Goal,
-				[ portray(true),
-				  quoted(true),
-				  attributes(ignore)
-				]
-			      ]).
+
+portray_attr(freeze, Goal, Var) :- !,
+	format('freeze(~w, ~W)', [ Var, Goal,
+				   [ portray(true),
+				     quoted(true),
+				     attributes(ignore)
+				   ]
+				 ]).
 portray_attr(Name, Value, Var) :-
 	G = Name:attr_portray_hook(Value, Var),
 	(   '$c_current_predicate'(_, G),
@@ -198,3 +199,50 @@ call_residue_vars(_,_) :-
 call_det(Goal, Det) :-
 	Goal,
 	deterministic(Det).
+
+%%    copy_term(+Term, -Copy, -Gs) is det.
+%
+%    Creates a regular term Copy as a copy of Term (without any
+%    attributes), and a list Gs of goals that when executed reinstate
+%    all attributes onto Copy. The nonterminal attribute_goals//1, as
+%    defined in the modules the attributes stem from, is used to
+%    convert attributes to lists of goals.
+
+copy_term(Term, Copy, Gs) :-
+	term_variables(Term, Vs),
+	findall(Term-GsC, phrase(collect_attributes(Vs,[]),GsC), [Copy-Gs]).
+
+collect_attributes([], _)	  --> [].
+collect_attributes([V|Vs], Tabu0) -->
+	(   { '$member'(T, Tabu0), T == V }
+	->  []
+	;   (	{ attvar(V) }
+	    ->	{ get_attrs(V, As) },
+		collect_(As, V, [V|Tabu0])
+	    ;	[]
+	    )
+	),
+	collect_attributes(Vs, [V|Tabu0]).
+
+collect_([], _, _)			--> [].
+collect_(att(Module,Value,As), V, Tabu) -->
+	{ term_variables(Value, Vs) },
+	collect_attributes(Vs, Tabu),
+	(   { Module == freeze }
+	->  [freeze(V, Value)]
+	;   { current_predicate(Module:attribute_goals/3) }
+	->  { phrase(Module:attribute_goals(V), Goals) },
+	    dlist(Goals)
+	;   { current_predicate(Module:attribute_goal/2) }
+	->  { Module:attribute_goal(V, Goal) },
+	    dot_list(Goal)
+	;   [put_attr(V, Module, Value)]
+	),
+	{ del_attr(V, Module) },
+	collect_(As, V, Tabu).
+
+dlist([])     --> [].
+dlist([L|Ls]) --> [L], dlist(Ls).
+
+dot_list((A,B)) --> !, dot_list(A), dot_list(B).
+dot_list(A)	--> [A].
