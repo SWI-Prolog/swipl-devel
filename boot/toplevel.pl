@@ -589,7 +589,8 @@ subst_chars([H|T]) -->
 write_bindings(Bindings, Det) :-
 	'$attributed'(Bindings),
 	copy_term(Bindings, Bindings1, Residuals0),
-	omit_qualifiers(Residuals0, Residuals),
+	'$module'(TypeIn, TypeIn),
+	omit_qualifiers(Residuals0, TypeIn, Residuals),
 	bind_vars(Bindings1),
 	filter_bindings(Bindings1, Bindings2),
 	write_bindings2(Bindings2, Residuals, Det).
@@ -598,10 +599,10 @@ write_bindings(Bindings, Det) :-
 	filter_bindings(Bindings, Bindings1),
 	write_bindings2(Bindings1, [], Det).
 
-omit_qualifiers([], []).
-omit_qualifiers([Goal0|Goals0], [Goal|Goals]) :-
+omit_qualifiers([], _, []).
+omit_qualifiers([Goal0|Goals0], TypeIn, [Goal|Goals]) :-
 	(   Goal0 = M:G
-	->  (	predicate_property(T:G, imported_from(M))
+	->  (	predicate_property(TypeIn:G, imported_from(M))
 	    ->	Goal = G
 	    ;	predicate_property(G, built_in)
 	    ->	Goal = G
@@ -609,7 +610,7 @@ omit_qualifiers([Goal0|Goals0], [Goal|Goals]) :-
 	    )
 	;   Goal = Goal0
 	),
-	omit_qualifiers(Goals0, Goals).
+	omit_qualifiers(Goals0, TypeIn, Goals).
 
 write_bindings2([], Residuals, _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
