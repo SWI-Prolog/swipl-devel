@@ -603,8 +603,8 @@ omit_qualifiers([Goal0|Goals0], [Goal|Goals]) :-
 	(   Goal0 = M:G
 	->  (	predicate_property(T:G, imported_from(M))
 	    ->	Goal = G
-	    ;	predicate_property(G, built_in) ->
-		Goal = G
+	    ;	predicate_property(G, built_in)
+	    ->	Goal = G
 	    ;	Goal = Goal0
 	    )
 	;   Goal = Goal0
