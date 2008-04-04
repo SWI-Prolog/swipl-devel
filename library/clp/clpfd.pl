@@ -3173,11 +3173,11 @@ run_propagator(reified_not(X,Y), MState) :-
 run_propagator(pimpl(X, Y), MState) :-
         (   nonvar(X) ->
             (   X =:= 1 -> kill(MState), Y = 1
-            ;   true
+            ;   kill(MState)
             )
         ;   nonvar(Y) ->
             (   Y =:= 0 -> kill(MState), X = 0
-            ;   true
+            ;   kill(MState)
             )
         ;   true
         ).
