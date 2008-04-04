@@ -67,10 +67,15 @@
 :- module_transparent
 	when/2.
 
+:- use_module(library(error)).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 when(Condition, Goal) :-
-	strip_module(Goal, M, G),
-	trigger(Condition, M:G).
+        (   var(Condition) ->
+            instantiation_error(Condition)
+        ;   strip_module(Goal, M, G),
+            trigger(Condition, M:G)
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 trigger(nonvar(X),Goal) :-
