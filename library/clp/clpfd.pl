@@ -197,9 +197,16 @@ Sample query and its result:
 
 ==
 ?- puzzle(As+Bs=Cs).
-As = [9, _G5402{4..7}, _G5405{5..8}, _G5408{2..8}],
-Bs = [1, 0, _G5417{2..8}, _G5402{4..7}],
-Cs = [1, 0, _G5405{5..8}, _G5402{4..7}, _G5435{2..8}].
+As = [9, _G10167, _G10170, _G10173],
+Bs = [1, 0, _G10188, _G10167],
+Cs = [1, 0, _G10170, _G10167, _G10212],
+clpfd: (_G10212 in 2..8),
+clpfd: (1000*9+91*_G10167+ -90*_G10170+_G10173+ -9000*1+ -900*0+10*_G10188+ -1*_G10212#=0),
+clpfd:all_different([_G10167, _G10170, _G10173, _G10188, _G10212, 0, 1, 9]),
+clpfd: (_G10188 in 2..8),
+clpfd: (_G10173 in 2..8),
+clpfd: (_G10170 in 5..8),
+clpfd: (_G10167 in 4..7).
 ==
 
 Here, the constraint solver could deduce more stringent bounds for
