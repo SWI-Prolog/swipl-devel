@@ -599,19 +599,6 @@ write_bindings(Bindings, Det) :-
 	filter_bindings(Bindings, Bindings1),
 	write_bindings2(Bindings1, [], Det).
 
-omit_qualifiers([], _, []).
-omit_qualifiers([Goal0|Goals0], TypeIn, [Goal|Goals]) :-
-	(   Goal0 = M:G
-	->  (	predicate_property(TypeIn:G, imported_from(M))
-	    ->	Goal = G
-	    ;	predicate_property(G, built_in)
-	    ->	Goal = G
-	    ;	Goal = Goal0
-	    )
-	;   Goal = Goal0
-	),
-	omit_qualifiers(Goals0, TypeIn, Goals).
-
 write_bindings2([], Residuals, _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
 	print_message(query, query(yes, Residuals)).
@@ -629,6 +616,38 @@ write_bindings2(Bindings, Residuals, _Det) :-
 	;   !,
 	    print_message(query, query(done))
 	).
+
+
+%%	omit_qualifiers(+QGoals, +TypeIn, -Goals) is det.
+%
+%	Omit unneeded module qualifiers  from   QGoals  relative  to the
+%	given module TypeIn.
+
+omit_qualifiers([], _, []).
+omit_qualifiers([Goal0|Goals0], TypeIn, [Goal|Goals]) :-
+	omit_qualifier(Goal0, TypeIn, Goal),
+	omit_qualifiers(Goals0, TypeIn, Goals).
+
+omit_qualifier(M:G0, TypeIn, G) :-
+	predicate_property(TypeIn:G0, imported_from(M)), !,
+	omit_meta_qualifiers(G0, TypeIn, G).
+omit_qualifier(_:G0, TypeIn, G) :-
+	predicate_property(G0, built_in), !,
+	omit_meta_qualifiers(G0, TypeIn, G).
+omit_qualifier(M:G0, _, M:G) :-
+	atom(M), !,
+	omit_meta_qualifiers(G0, M, G).
+omit_qualifier(G0, TypeIn, G) :-
+	omit_meta_qualifiers(G0, TypeIn, G).
+
+omit_meta_qualifiers(freeze(V, QGoal), TypeIn, freeze(V, Goal)) :-
+	callable(QGoal), !,
+	omit_qualifier(QGoal, TypeIn, Goal).
+omit_meta_qualifiers(when(Cond, QGoal), TypeIn, when(Cond, Goal)) :-
+	callable(QGoal), !,
+	omit_qualifier(QGoal, TypeIn, Goal).
+omit_meta_qualifiers(G, _, G).
+
 
 %%	bind_vars(+Bindings)
 %	
