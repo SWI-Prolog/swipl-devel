@@ -71,11 +71,11 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 when(Condition, Goal) :-
-        (   var(Condition) ->
-            instantiation_error(Condition)
-        ;   strip_module(Goal, M, G),
-            trigger(Condition, M:G)
-        ).
+	must_be(nonvar, Condition),
+	strip_module(Goal, M, G),
+	(   trigger(Condition, M:G) -> true
+	;   domain_error(when_condition, Condition)
+	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 trigger(nonvar(X),Goal) :-
