@@ -308,9 +308,13 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
       if ( do_enum == ENUM_BOTH )
 	return PL_error("char_type", 2, NULL, ERR_INSTANTIATION);
 
-      if ( !(do_enum & ENUM_CHAR) &&
-	   !PL_get_char(chr, &c, FALSE) )
-	fail;
+      if ( !(do_enum & ENUM_CHAR) )
+      { if ( !PL_get_char(chr, &c, TRUE) )
+	  fail;
+	if ( c == -1 )
+	  return PL_unify_atom(class, ATOM_end_of_file);
+      }
+
       if ( !(do_enum & ENUM_CLASS) )
       { if ( !PL_get_name_arity(class, &cn, &arity) ||
 	     !(cc = char_type_by_name(cn, arity)) )
