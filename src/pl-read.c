@@ -3120,7 +3120,7 @@ atom_to_term(term_t atom, term_t term, term_t bindings)
     stream = Sopen_text(&txt, "r");
 
     init_read_data(&rd, stream PASS_LD);
-    if ( bindings && PL_is_variable(bindings) || PL_is_list(bindings) )
+    if ( bindings && (PL_is_variable(bindings) || PL_is_list(bindings)) )
       rd.varnames = bindings;
     else if ( bindings )
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, bindings);
