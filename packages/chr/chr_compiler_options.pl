@@ -211,6 +211,8 @@ option_definition(experiment,off,[experiment-off]).
 option_definition(experiment,on,[experiment-on]).
 option_definition(experimental,off,[experiment-off]).
 option_definition(experimental,on,[experiment-on]).
+option_definition(sss,off,[sss-off]).
+option_definition(sss,on,[sss-on]).
 %------------------------------------------------------------------------------%
 option_definition(debug,off,Flags) :-
         option_definition(optimize,full,Flags2),
@@ -342,6 +344,7 @@ chr_pp_flag_definition(mixed_stores,[on,off]).
 chr_pp_flag_definition(line_numbers,[off,on]).
 chr_pp_flag_definition(dynattr,[off,on]).
 chr_pp_flag_definition(experiment,[off,on]).
+chr_pp_flag_definition(sss,[off,on]).
 	% emit compiler inferred code
 chr_pp_flag_definition(verbose,[off,on]).
 	% emit input code and output code

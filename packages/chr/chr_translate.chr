@@ -497,7 +497,7 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_ground_mul
 	|
 		( Index = [IndexPos],
                   get_constraint_arg_type(C,IndexPos,Type),
-		  ( is_chr_constants_type(Type,Key,_) -> get_chr_constants(Key,Constants)
+		  ( fail, is_chr_constants_type(Type,Key,_) -> get_chr_constants(Key,Constants)
 		  ; Type = chr_enum(Constants)      -> true
 		  )
 		->	 
@@ -529,7 +529,7 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs)
 		memberchk(multi_hash([[Index]]),STs),
 		get_constraint_arg_type(C,Index,Type),
 		( Type = chr_enum(Constants)  -> true
-		; is_chr_constants_type(Type,Key,_) -> get_chr_constants(Key,Constants)
+		; fail, is_chr_constants_type(Type,Key,_) -> get_chr_constants(Key,Constants)
 		)
 	|
 		delete(STs,multi_hash([[Index]]),STs0),
@@ -3941,8 +3941,23 @@ multi_hash_key_direct(FA,Index,Susp,Key,UsedVars) :-
 		Key =.. [k|Keys]
 	).
 
-multi_hash_key_args(Index,Head,KeyArgs) :-
+args(Index,Head,KeyArgs) :-
 	maplist(arg1(Head),Index,KeyArgs).
+
+split_args(Indexes,Args,IArgs,NIArgs) :-
+	split_args(Indexes,Args,1,IArgs,NIArgs).
+
+split_args([],Args,_,[],Args).
+split_args([I|Is],[Arg|Args],J,IArgs,NIArgs) :-
+	NJ is J + 1,
+	( I == J ->
+		IArgs = [Arg|Rest],
+		split_args(Is,Args,NJ,Rest,NIArgs)
+	;
+		NIArgs = [Arg|Rest],
+		split_args([I|Is],Args,NJ,IArgs,Rest)
+	).
+
 
 %-------------------------------------------------------------------------------	
 atomic_constants_code(C,Index,Constants,L,T) :-
@@ -6403,7 +6418,7 @@ split_off_simple_guard_new([G|Gs],VarDict,S,C) :-
 % simple guard: cheap and benign (does not bind variables)
 simple_guard_new(G,Vars) :-
 	builtin_binds_b(G,BoundVars),
-	\+ (( member(V,BoundVars), 
+	not(( member(V,BoundVars), 
 	      memberchk_eq(V,Vars)
 	   )).
 
@@ -8115,7 +8130,7 @@ order_score_indexes(Indexes,Head,Vars,Score) :-
 	order_score_indexes(Indexes,HeadCopy,Score).
 
 order_score_indexes([I|Is],Head,Score) :-
-	multi_hash_key_args(I,Head,Args),
+	args(I,Head,Args),
 	( maplist(ground,Args) /* forall(Arg,Args,memberchk_eq(Arg,KnownVars)) */ ->
 		Score = 100
 	;
@@ -8568,7 +8583,7 @@ hash_lookup_passive_head(HashType,Indexes,Head,VarDict,GroundVars,Goal,AllSusps,
 
 pick_hash_index(Indexes,Head,VarDict,Index,KeyArgs,KeyArgCopies) :-
 	member(Index,Indexes),
-	multi_hash_key_args(Index,Head,KeyArgs),	
+	args(Index,Head,KeyArgs),	
 	key_in_scope(KeyArgs,VarDict,KeyArgCopies),
 	!.
 
@@ -10170,35 +10185,44 @@ get_success_continuation_code_id(C,O,NextId) :-
 %
 % for SSS
 
+%%% TODO: APPLY NEW DICT FORMAT DOWNWARDS
+
 % collect_constants(+rules,+constraint_symbols,+clauses) {{{
 collect_constants(Rules,Constraints,Clauses0) :- 
-	( not_restarted ->
-		maplist(collect_rule_constants(Constraints),Rules),
-		( chr_pp_flag(verbose,on) ->
-			print_chr_constants
+	( not_restarted, chr_pp_flag(experiment,on) ->
+		( chr_pp_flag(sss,on) ->
+				Dictionary = [fep/4-[2,3]-[[a,b]-fep1,[c,d]-fep2]-no],
+				copy_term_nat(Clauses0,Clauses),
+				flatten_clauses(Clauses,Dictionary,FlatClauses),
+				install_new_declarations_and_restart(FlatClauses)
 		;
-			true
-		),
-		( chr_pp_flag(experiment,on) ->
-			flattening_dictionary(Constraints,Dictionary),
-			copy_term_nat(Clauses0,Clauses),
-			flatten_clauses(Clauses,Dictionary,FlatClauses),
-			install_new_declarations_and_restart(FlatClauses)
-		;
-			true
+			maplist(collect_rule_constants(Constraints),Rules),
+			( chr_pp_flag(verbose,on) ->
+				print_chr_constants
+			;
+				true
+			),
+			( chr_pp_flag(experiment,on) ->
+				flattening_dictionary(Constraints,Dictionary),
+				copy_term_nat(Clauses0,Clauses),
+				flatten_clauses(Clauses,Dictionary,FlatClauses),
+				install_new_declarations_and_restart(FlatClauses)
+			;
+				true
+			)
 		)
 	;
 		true
 	).
 
-:- chr_constraint chr_constants/2.
-:- chr_option(mode,chr_constants(+,+)).
+:- chr_constraint chr_constants/1.
+:- chr_option(mode,chr_constants(+)).
 
-:- chr_constraint get_chr_constants/2.
+:- chr_constraint get_chr_constants/1.
 
-chr_constants(Key,Constants) \ get_chr_constants(Key,Q) <=> Q = Constants.
+chr_constants(Constants) \ get_chr_constants(Q) <=> Q = Constants.
 
-get_chr_constants(Key,Q) <=> chr_warning(internal,'No constants found for key ~w.\n',[Key]), Q = [].
+get_chr_constants(Q) <=> chr_warning(internal,'No constants found for key ~w.\n',[Key]), Q = [].
 
 % collect_rule_constants(+constraint_symbols,+rule) {{{
 collect_rule_constants(Constraints,Rule) :-
@@ -10232,32 +10256,46 @@ collect_head_constants(Head) :-
 	functor(Head,C,N),
 	get_constraint_type_det(C/N,Types),
 	Head =.. [_|Args],
-	maplist(collect_arg_constants,Args,Types).
+	collect_all_arg_constants(Args,Types,[]).
 
-collect_arg_constants(Arg,Type) :-
-	( ground(Arg),
-	  unalias_type(Type,NormalType),
-	  is_chr_constants_type(NormalType,Key,_) ->
-		add_chr_constant(Key,Arg)
+collect_all_arg_constants([],[],Constants) :-
+	( Constants \== [] ->
+		add_chr_constants(Constants)
 	;
-		true	
+		true
 	).
-:- chr_constraint add_chr_constant/2.
-:- chr_option(mode,add_chr_constant(+,+)).
+collect_all_arg_constants([Arg|Args],[Type|Types],Constants0) :-
+	unalias_type(Type,NormalizedType),
+	( is_chr_constants_type(NormalizedType,Key,_) ->
+		( ground(Arg) ->
+			collect_all_arg_constants(Args,Types,[Key-Arg|Constants0])
+		; % no useful information here
+			true
+		)
+	;
+		collect_all_arg_constants(Args,Types,Constants0)
+	).
 
-add_chr_constant(Key,Constant) , chr_constants(Key,Constants) <=>
-	sort([Constant|Constants],NConstants),
-	chr_constants(Key,NConstants).
+add_chr_constants(Pairs) :-
+	keysort(Pairs,SortedPairs),
+	add_chr_constants_(SortedPairs).
 
-add_chr_constant(Key,Constant) <=>
-	chr_constants(Key,[Constant]).
+:- chr_constraint add_chr_constants_/1.
+:- chr_option(mode,add_chr_constants_(+)).
+
+add_chr_constants_(Constants), chr_constants(MoreConstants) <=>
+	sort([Constants|MoreConstants],NConstants),
+	chr_constants(NConstants).
+
+add_chr_constants_(Constants) <=>
+	chr_constants([Constants]).
 
 % }}}
 
 :- chr_constraint print_chr_constants/0. % {{{
 
-print_chr_constants, chr_constants(Key,Constants) # Id ==>
-	format('\t* chr_constants ~w : ~w.\n',[Key,Constants])
+print_chr_constants, chr_constants(Constants) # Id ==>
+	format('\t* chr_constants : ~w.\n',[Constants])
 	pragma passive(Id).
 
 print_chr_constants <=>
@@ -10276,19 +10314,43 @@ flattening_dictionary([CS|CSs],Dictionary) :-
 	flattening_dictionary(CSs,Rest).
 
 flattening_dictionary_entry(CS,Entry) :-
-	get_constraint_arg_type(CS,Pos,Type),
-	( is_chr_constants_type(Type,Key,MaybeErrorHandler) ->
-		get_chr_constants(Key,Constants)
-	; Type = chr_enum(Constants) ->
-		MaybeErrorHandler = no
-	),
-	Entry = CS-Pos-Specs-MaybeErrorHandler,
-	maplist(flat_spec(CS,Pos),Constants,Specs).
+	get_constraint_type_det(CS,Types),
+	constant_positions(Types,1,Positions,Keys,Handler),
+	Positions \== [],					% there are chr_constant arguments
+	pairup(Keys,Constants,Pairs0),
+	keysort(Pairs0,Pairs),
+	Entry = CS-Positions-Specs-Handler,
+	get_chr_constants(ConstantsList),
+	findall(Spec,
+			( member(Pairs,ConstantsList)
+			, flat_spec(CS,Positions,Constants,Spec)
+			),
+		Specs).
 
-flat_spec(C/N,Pos,Term,Spec) :-
-	Spec = Term - Functor,
-	term_to_atom(Term,TermAtom),
-	atom_concat_list(['$flat_',C,'/',N,'___',Pos,'___',TermAtom],Functor).
+constant_positions([],_,[],[],no).
+constant_positions([Type|Types],I,Positions,Keys,Handler) :-
+	unalias_type(Type,NormalizedType),
+	( is_chr_constants_type(NormalizedType,Key,ErrorHandler) ->
+		compose_error_handlers(ErrorHandler,NHandler,Handler),
+		Positions = [I|NPositions],
+		Keys = [Key|NKeys]
+	;
+		NPositions = Positions,
+		NKeys = Keys,
+		NHandler = Handler
+	),
+	J is I + 1,
+	constant_positions(Types,J,NPositions,NKeys,NHandler).
+
+compose_error_handlers(no,Handler,Handler).
+compose_error_handlers(yes(Handler),_,yes(Handler)).
+
+flat_spec(C/N,Positions,Terms,Spec) :-
+	Spec = Terms - Functor,
+	term_to_atom(Terms,TermsAtom),
+	term_to_atom(Positions,PositionsAtom),
+	atom_concat_list(['$flat_',C,'/',N,'___',PositionsAtom,'___',TermsAtom],Functor).
+
 % }}}
 
 % }}}
@@ -10316,12 +10378,11 @@ install_new_declarations_and_restart(Declarations) :-
 %	   enable with :- chr_option(experiment,on).
 %	-) issue constraint declarations for constraints not present in
 %	   dictionary
-% 
-% TODO:
 %	-) integrate with CHR compiler
-%       RELEASE-----------------------------------------------------------------
 %	-) pass Mike's test code (full syntactic support for current CHR code)
 %	-) rewrite the body using the inliner
+% 
+% TODO:
 %	-) refined semantics correctness issue
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -10464,7 +10525,8 @@ auxiliary_constraints_declaration(Dict,ModeDecls,TypeDecls,
 	specialize_modes(Modes,I,SpecializedModes),
 	arg_types(C,N,TypeDecls,Types),
 	specialize_types(Types,I,SpecializedTypes),
-	AN is N - 1,
+	length(I,IndexSize),
+	AN is N - IndexSize,
 	member(_Term-F,SFs),
 	ConstraintSpec = F/AN,
 	NewModeDecl     =.. [F|SpecializedModes],
@@ -10479,8 +10541,7 @@ arg_modes(C,N,ModeDecls,ArgModes) :-
 	).
 	
 specialize_modes(Modes,I,SpecializedModes) :-
-	split(Modes,I,Before,_At,After),
-	append(Before,After,SpecializedModes).
+	split_args(I,Modes,_,SpecializedModes).
 
 arg_types(C,N,TypeDecls,ArgTypes) :-
 	functor(ConstraintPattern,C,N),
@@ -10491,10 +10552,8 @@ arg_types(C,N,TypeDecls,ArgTypes) :-
 	).
 
 specialize_types(Types,I,SpecializedTypes) :-
-	split(Types,I,Before,_At,After),
-	append(Before,After,SpecializedTypes).
+	split_args(I,Types,_,SpecializedTypes).
 % }}}
-
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 % DISPATCHING RULES
 %
@@ -10516,36 +10575,41 @@ dispatching_rules([CN-I-SFs-MaybeErrorHandler|Dict], DispatchingRules) :-
 	dispatching_rules(Dict,RestDispatchingRules).
       
 constraint_dispatching_rule(SFs,C/N,I,MaybeErrorHandler,Rules,RestRules) :-
- 	( I == 1 ->
-		/* index on first argument */
+ 	( increasing_numbers(I,1) ->
+		/* index on first arguments */
 		Rules0 = Rules,
  		NCN = C/N
  	;
 		/* reorder arguments for 1st argument indexing */
 		functor(Head,C,N),
 		Head =.. [_|Args],
-		split(Args,I,BeforeArgs,IndexArg,AfterArgs),
-		append([IndexArg|BeforeArgs],AfterArgs,ShuffledArgs),
+	  	split_args(I,Args,GroundArgs,OtherArgs),
+		append(GroundArgs,OtherArgs,ShuffledArgs),
 		atom_concat(C,'_$shuffled',NC),
 		Body =.. [NC|ShuffledArgs],
 		[(Head :- Body)|Rules0] = Rules,
  		NCN = NC / N
  	),
 	Context = swap(C,I),
-	dispatching_rule_term_cases(SFs,NCN,MaybeErrorHandler,Context,Rules0,RestRules).	
+	dispatching_rule_term_cases(SFs,I,NCN,MaybeErrorHandler,Context,Rules0,RestRules).	
 
-dispatching_rule_term_cases(SFs,NC/N,MaybeErrorHandler,Context,Rules,RestRules) :-
-	once(pairup(Terms,Functors,SFs)),
-	length(Terms,K),
-	replicate(K,[],MorePatterns),
-	Payload is N - 1,
+increasing_numbers([],_).
+increasing_numbers([X|Ys],X) :-
+	Y is X + 1,
+	increasing_numbers(Ys,Y).
+
+dispatching_rule_term_cases(SFs,I,NC/N,MaybeErrorHandler,Context,Rules,RestRules) :-
+	length(I,IndexLength),
+	once(pairup(TermLists,Functors,SFs)),
+	maplist(head_tail,TermLists,Heads,Tails),
+	Payload is N - IndexLength,
 	maplist(wrap_in_functor(dispatching_action),Functors,Actions),
-	dispatch_trie_index([Terms|MorePatterns],Payload,MaybeErrorHandler,Context,Actions,NC,Rules,RestRules).
+	dispatch_trie_index(Heads,Tails,Payload,MaybeErrorHandler,Context,Actions,NC,Rules,RestRules).
 
 dispatching_action(Functor,PayloadArgs,Goal) :-
 	Goal =.. [Functor|PayloadArgs].
 
-dispatch_trie_index([Patterns|MorePatterns],Payload,MaybeErrorHandler,Context,Actions,Prefix,Clauses,Tail) :-
+dispatch_trie_index(Patterns,MorePatterns,Payload,MaybeErrorHandler,Context,Actions,Prefix,Clauses,Tail) :-
 	dispatch_trie_step(Patterns,Prefix,Prefix,MorePatterns,Payload,MaybeErrorHandler,Context,Actions,Clauses,Tail).
 
 dispatch_trie_step([],_,_,_,[],_,_,[],L,L) :- !.
@@ -10605,6 +10669,8 @@ dispatch_trie_step_case(F/A,N,Patterns,MorePatterns,Payload,MaybeErrorHandler,Co
 		rec_cases(Patterns,MorePatterns,Actions,F/A,Cases,MoreCases,MoreActions),
 		( MoreActions = [OneMoreAction] ->
 			/* only one more thing to match on */
+			MoreCases = [OneMoreCase],
+			append([Cases,OneMoreCase,PayloadArgs],RecArgs),
 			List = Tail,
 			call(OneMoreAction,PayloadArgs,Body)
 		;
@@ -10616,7 +10682,7 @@ dispatch_trie_step_case(F/A,N,Patterns,MorePatterns,Payload,MaybeErrorHandler,Co
 			common_pattern(CasePairs,CommonPatternPair,DiffVars,Differences),
 			append(Args,Vs,[First|Rest]),
 			First-Rest = CommonPatternPair,	
-			Context2 = gct(Vs,Context1),
+			Context2 = gct([First|Rest],Context1),
 			gensym(Prefix,RSymbol),
 			append(DiffVars,PayloadArgs,RecCallVars),
 			Body =.. [RSymbol|RecCallVars],
@@ -10642,16 +10708,17 @@ split([X|Xs],I,Before,At,After) :-
 
 % reconstruct_original_term(Context,CurrentTerm,OriginalTerm)
 %
-% context	::= 	swap(functor,position)
+% context	::= 	swap(functor,positions)
 %		|	index_functor(functor,arity,context)
 %		|	gct(Pattern,Context)
 
-reconstruct_original_term(swap(Functor,Position),Term,OriginalTerm) :-
-	Term =.. [_,IndexArg|Args],
-	PrefixSize is Position - 1,
-	split_at(PrefixSize,Args,Prefix,Suffix),
-	append(Prefix,[IndexArg|Suffix],OriginalArgs),
-	OriginalTerm =.. [Functor|OriginalArgs].
+reconstruct_original_term(swap(Functor,Positions),Term,OriginalTerm) :-
+	functor(Term,_,Arity),
+	functor(OriginalTerm,Functor,Arity),
+	OriginalTerm =.. [_|OriginalArgs],
+	split_args(Positions,OriginalArgs,IndexArgs,OtherArgs),
+	Term =.. [_|Args],
+	append(IndexArgs,OtherArgs,Args).
 reconstruct_original_term(index_functor(Functor,Arity,Context),Term0,OriginalTerm) :-
 	Term0 =.. [Predicate|Args],
 	split_at(Arity,Args,IndexArgs,RestArgs),
@@ -10667,12 +10734,13 @@ reconstruct_original_term(gct(PatternList,Context),Term0,OriginalTerm) :-
 	Term1 =.. [Predicate|Args1],
 	reconstruct_original_term(Context,Term1,OriginalTerm).
 % }}}
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 % SUBSTITUTE CONSTRAINT SYMBOL FUNCTORS
 %
 % flatten_rules(+rule_clauses,+dict,-rule_clauses).
 %
-% dict :== list(functor/arity-int-list(term-functor)-maybe(error_handler))
+% dict :== list(functor/arity-list(int)-list(list(term)-functor)-maybe(error_handler))
 
 % {{{
 flatten_rules(Rules,Dict,FlatRules) :-
@@ -10705,13 +10773,11 @@ flatten_heads((H # Annotation),Dict,(NH # Annotation)) :- !,
 	flatten_heads(H,Dict,NH).
 flatten_heads(H,Dict,NH) :-
 	( functor(H,C,N),
-	  memberchk(C/N-I-SFs-_,Dict) ->
+	  memberchk(C/N-ArgPositions-SFs-_,Dict) ->
 		H =.. [_|AllArgs],
-		split(AllArgs,I,PreArgs,Arg,PostArgs),
-		member(Term-Name,SFs),
-		Arg = Term,
-		append(PreArgs,PostArgs,FlatArgs),
-		NH =.. [Name|FlatArgs]
+	  	split_args(ArgPositions,AllArgs,GroundArgs,OtherArgs),
+		member(GroundArgs-Name,SFs),
+		NH =.. [Name|OtherArgs]
 	;
 		NH = H
 	).
@@ -10730,16 +10796,16 @@ flatten_body(Body,Dict,NBody) :-
 
 flatten_goal(Dict,Goal,NGoal) :- var(Goal), !, NGoal = Goal.
 flatten_goal(Dict,Goal,NGoal) :-
-	( is_specializable_goal(Goal,Dict,ArgPos)
+	( is_specializable_goal(Goal,Dict,ArgPositions)
 	->
-	  specialize_goal(Goal,ArgPos,NGoal)
+	  specialize_goal(Goal,ArgPositions,NGoal)
 	; Goal = Mod : TheGoal,
 	  get_target_module(Module),
 	  Mod == Module,
 	  nonvar(TheGoal),
-	  is_specializable_goal(TheGoal,Dict,ArgPos)
+	  is_specializable_goal(TheGoal,Dict,ArgPositions)
   	->
-	  specialize_goal(TheGoal,ArgPos,NTheGoal),
+	  specialize_goal(TheGoal,ArgPositions,NTheGoal),
 	  NGoal = Mod : NTheGoal	
 	; partial_eval(Goal,NGoal) 
 	->
@@ -10748,27 +10814,37 @@ flatten_goal(Dict,Goal,NGoal) :-
 		NGoal = Goal	
 	).	
 
-is_specializable_goal(Goal,Dict,ArgPos) :-
+%-------------------------------------------------------------------------------%
+% Specialize body/guard goal 
+%-------------------------------------------------------------------------------%
+is_specializable_goal(Goal,Dict,ArgPositions) :-
 	functor(Goal,C,N),
-     	memberchk(C/N-ArgPos-_-_,Dict),
-	arg(ArgPos,Goal,Arg),
-	ground(Arg).
+     	memberchk(C/N-ArgPositions-_-_,Dict),
+	args(ArgPositions,Goal,Args),
+	ground(Args).
 
-
-specialize_goal(Goal,ArgPos,NGoal) :-
+specialize_goal(Goal,ArgPositions,NGoal) :-
 	  functor(Goal,C,N),
 	  Goal =.. [_|Args],
-	  split(Args,ArgPos,Before,Arg,After),
-	  append(Before,After,NArgs),
-	  flat_spec(C/N,ArgPos,Arg,_-Functor),
-	  NGoal =.. [Functor|NArgs].	
+	  split_args(ArgPositions,Args,GroundTerms,Others),
+	  flat_spec(C/N,ArgPositions,GroundTerms,_-Functor),
+	  NGoal =.. [Functor|Others].	
 
+%-------------------------------------------------------------------------------%
+% Partially evaluate predicates
+%-------------------------------------------------------------------------------%
+
+%	append([],Y,Z)	>--> 	Y = Z
+%	append(X,[],Z)  >-->	X = Z
 partial_eval(append(L1,L2,L3),NGoal) :-
 	( L1 == [] ->
 		NGoal = (L3 = L2)
 	; L2 == [] ->
 		NGoal = (L3 = L1)
+
 	).
+%	flatten_path(L1,L2) >--> flatten_path(L1',L2)
+%				 where flatten(L1,L1')	
 partial_eval(flatten_path(L1,L2),NGoal) :-
 	nonvar(L1),
 	flatten(L1,FlatterL1),

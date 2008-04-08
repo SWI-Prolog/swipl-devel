@@ -2710,7 +2710,7 @@ split_off_simple_guard([G|Gs],VarDict,S,C) :-
 % simple guard: cheap and benign (does not bind variables)
 simple_guard(G,VarDict) :-
 	binds_b(G,Vars),
-	\+ (( member(V,Vars), 
+	not(( member(V,Vars), 
 	     lookup_eq(VarDict,V,_)
 	   )).
 
