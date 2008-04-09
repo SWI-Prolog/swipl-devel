@@ -30,9 +30,10 @@
 */
 
 :- module(settings,
-	  [ setting/4,			% :Name, +Type, +Default, +Comment, +Src
+	  [ setting/4,			% :Name, +Type, +Default, +Comment
 	    setting/2,			% :Name, ?Value
 	    set_setting/2,		% :Name, +Value
+	    set_setting_default/2,	% :Name, +Value
 	    restore_setting/1,		% :Name
 	    load_settings/1,		% +File
 	    load_settings/2,		% +File, +Options
@@ -79,6 +80,7 @@ access, loading and saving of settings.
 
 :- dynamic
 	value/3,			% Name, Module, Value
+	default/3,			% Name, Module, Value
 	local_file/1.			% Path
 
 :- multifile
@@ -88,8 +90,16 @@ access, loading and saving of settings.
 	setting(:, +, +, +),
 	setting(:, ?),
 	set_setting(:, +),
+	set_setting_default(:, +),
 	current_setting(:),
 	restore_setting(:).
+
+curr_setting(Name, Module, Type, Default, Comment) :-
+	current_setting(Name, Module, Type, Default0, Comment, _Src),
+	(   default(Name, Module, Default1)
+	->  Default = Default1
+	;   Default = Default0
+	).
 
 %%	setting(Name, Type, Default, Comment) is det.
 %
@@ -122,7 +132,7 @@ user:term_expansion((:- setting(QName, Type, Default, Comment)),
 	(   current_setting(Name, Module, _, _, _, OldLoc)
 	->  format(string(Message),
 		   'Already defined at: ~w', [OldLoc]),
-	    throw(error(permission_error(redefine, setting, Name),
+	    throw(error(permission_error(redefine, setting, Module:Name),
 			context(Message, _)))
 	;   source_location(File, Line)
 	->  Expanded = settings:current_setting(Name, Module, Type, Default,
@@ -145,7 +155,7 @@ setting(QName, Value) :-
 	(   ground(Name)
 	->  (   value(Name, Module, Value0)
 	    ->  Value = Value0
-	    ;   current_setting(Name, Module, Type, Default, _, _)
+	    ;   curr_setting(Name, Module, Type, Default, _)
 	    ->	eval_default(Default, Module, Type, Value)
 	    ;	existence_error(setting, Module:Name)
 	    )
@@ -319,7 +329,7 @@ numeric_type(between(L,_), Type) :-
 set_setting(QName, Value) :-
 	strip_module(QName, Module, Name),
 	must_be(atom, Name),
-	(   current_setting(Name, Module, Type, Default0, _Comment, _Src),
+	(   curr_setting(Name, Module, Type, Default0, _Comment),
 	    eval_default(Default0, Module, Type, Default)
 	->  (   Value == Default
 	    ->	retract_setting(Module:Name)
@@ -357,6 +367,28 @@ restore_setting(QName) :-
 	    ;	true
 	    )
 	;   true
+	).
+
+%%	set_setting_default(:Name, +Default) is det.
+%
+%	Change the default for a setting.  The   effect  is  the same as
+%	set_setting/2, but the new value is  considered the default when
+%	saving and restoring  a  setting.  It   is  intended  to  change
+%	application defaults in a particular context.
+
+set_setting_default(QName, Default) :-
+	strip_module(QName, Module, Name),
+	must_be(atom, Name),
+	(   current_setting(Name, Module, Type, Default0, _Comment, _Src)
+	->  retractall(settings:default(Name, Module, _)),
+	    retract_setting(Module:Name),
+	    (   Default == Default0
+	    ->	true
+	    ;	assert(settings:default(Name, Module, Default))
+	    ),
+	    eval_default(Default, Module, Type, Value),
+	    set_setting(Module:Name, Value)
+	;   existence_error(setting, Module:Name)
 	).
 
 
@@ -426,7 +458,7 @@ read_setting(In, Term) :-
 %	Store setting loaded from file in the Prolog database.
 
 store_setting(setting(Module:Name, Value), _) :-
-	current_setting(Name, Module, Type, Default0, _Commentm, _Src), !,
+	curr_setting(Name, Module, Type, Default0, _Commentm), !,
 	eval_default(Default0, Module, Type, Default),
 	(   Value == Default
 	->  true
@@ -475,7 +507,7 @@ write_setting_header(Out) :-
 	format(Out, '*/~n~n', []).
 
 save_setting(Out, Module:Name) :-
-	current_setting(Name, Module, Type, Default, Comment, _Src),
+	curr_setting(Name, Module, Type, Default, Comment),
 	(   value(Name, Module, Value),
 	    \+ ( eval_default(Default, Module, Type, DefValue),
 		 debug(setting, '~w <-> ~w~n', [DefValue, Value]),
@@ -512,11 +544,11 @@ current_setting(Module:Name) :-
 setting_property(Setting, Property) :-
 	ground(Setting), !,
 	Setting = Module:Name,
-	current_setting(Name, Module, Type, Default, Comment, _Src), !,
+	curr_setting(Name, Module, Type, Default, Comment), !,
 	setting_property(Property, Module, Type, Default, Comment).
 setting_property(Setting, Property) :-
 	Setting = Module:Name,
-	current_setting(Name, Module, Type, Default, Comment, _Src),
+	curr_setting(Name, Module, Type, Default, Comment),
 	setting_property(Property, Module, Type, Default, Comment).
 
 setting_property(type(Type),       _, Type, _,        _).
@@ -536,7 +568,7 @@ list_settings :-
 	       list_setting(Setting)).
 
 list_setting(Module:Name) :-
-	current_setting(Name, Module, Type, Default0, Comment, _Src),
+	curr_setting(Name, Module, Type, Default0, Comment),
 	eval_default(Default0, Module, Type, Default),
 	setting(Module:Name, Value),
 	(   Value \== Default
