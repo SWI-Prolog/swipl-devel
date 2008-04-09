@@ -673,6 +673,9 @@ parseOptions(int argc, char **argv)
 #ifdef __WINDOWS__
       pllib = LIB_PL_DEBUG;
 #endif
+    } else if ( strprefix(opt, "-pg") )		/* -pg* */
+    { appendArgList(&coptions, opt);
+      appendArgList(&cppoptions, opt);
     } else if ( strprefix(opt, "-O") )		/* -O* */
     { appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
