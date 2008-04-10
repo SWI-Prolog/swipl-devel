@@ -1019,7 +1019,7 @@ sort_point(unsigned int code)
   return (code<<8);
 }
 
-static unsigned int
+static inline unsigned int
 sort_pointA(unsigned int code)
 { return ucp0x00[code];
 }

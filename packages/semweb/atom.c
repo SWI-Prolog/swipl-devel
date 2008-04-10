@@ -29,6 +29,7 @@
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include "atom.h"
+#include "murmur.h"
 #include "unicode_map.c"
 #include <wchar.h>
 #include <wctype.h>
@@ -196,19 +197,22 @@ cmphandles:
 static unsigned int
 string_hashA(const char *s, size_t len)
 { const unsigned char *t = (const unsigned char *)s;
-  unsigned int value = 0;
-  unsigned int shift = 5;
+  unsigned int hash = 0;
 
-  while(len-- != 0)
-  { unsigned int c = *t++;
-    
-    c = sort_pointA(c)>>8;		/* case insensitive */
-    c -= 'a';
-    value ^= c << (shift & 0xf);
-    shift ^= c;
+  while( len>0 )
+  { unsigned char buf[256];
+    unsigned char *o = buf;
+    int cp = len > 256 ? 256 : (int)len;
+    const unsigned char *e = t+cp;
+
+    while(t<e)
+      *o++ = sort_pointA(*t++)>>8;
+    hash ^= MurmurHashAligned2(buf, cp, MURMUR_SEED);
+
+    len -= cp;
   }
 
-  return value ^ (value >> 16);
+  return hash;
 }
 
 
