@@ -79,31 +79,39 @@ fetch(const text *txt, int i)
 
 static inline int
 cmpA(int c1, int c2, int *dl2)
-{ int k1 = sort_pointA(c1);
-  int k2 = sort_pointA(c2);
-  int d;
-
-  if ( (d=((k1>>8)-(k2>>8))) == 0 )
-  { if ( *dl2 == 0 )
-      *dl2 = (k1&0xff) - (k2&0xff);
+{ if ( c1 == c2 )
+  { return 0;
+  } else
+  { int k1 = sort_pointA(c1);
+    int k2 = sort_pointA(c2);
+    int d;
+    
+    if ( (d=((k1>>8)-(k2>>8))) == 0 )
+    { if ( *dl2 == 0 )
+	*dl2 = (k1&0xff) - (k2&0xff);
+    }
+    
+    return d;
   }
-
-  return d;
 }
 
 
 static inline int
 cmpW(int c1, int c2, int *dl2)
-{ int k1 = sort_point(c1);
-  int k2 = sort_point(c2);
-  int d;
+{ if ( c1 == c2 )
+  { return 0;
+  } else
+  { int k1 = sort_point(c1);
+    int k2 = sort_point(c2);
+    int d;
 
-  if ( (d=((k1>>8)-(k2>>8))) == 0 )
-  { if ( *dl2 == 0 )
-      *dl2 = (k1&0xff) - (k2&0xff);
+    if ( (d=((k1>>8)-(k2>>8))) == 0 )
+    { if ( *dl2 == 0 )
+	*dl2 = (k1&0xff) - (k2&0xff);
+    }
+    
+    return d;
   }
-
-  return d;
 }
 
 
