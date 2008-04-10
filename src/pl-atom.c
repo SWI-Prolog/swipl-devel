@@ -25,7 +25,6 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-ctype.h"
-#include "pl-hash.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Implementation issues
@@ -348,7 +347,7 @@ treat the signal as bogus if agc has already been performed.
 word
 lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 { GET_LD
-  int v0, v;
+  unsigned int v0, v;
   uintptr_t oldheap;
   Atom a;
 
@@ -878,8 +877,8 @@ registerBuiltinAtoms()
 
   for(s = atoms; *s; s++, a++)
   { size_t len = strlen(*s);
-    int v0 = MurmurHashAligned2(*s, len, MURMUR_SEED);
-    int v = v0 & (atom_buckets-1);
+    unsigned int v0 = MurmurHashAligned2(*s, len, MURMUR_SEED);
+    unsigned int v = v0 & (atom_buckets-1);
 
     a->name       = (char *)*s;
     a->length     = len;

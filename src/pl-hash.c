@@ -7,7 +7,7 @@
     See:	http://murmurhash.googlepages.com/
 */
 
-#include <assert.h>
+#include <pl-incl.h>
 
 #define MIX(h,k,m) { k *= m; k ^= k >> r; k *= m; h *= m; h ^= k; }
 
@@ -17,9 +17,9 @@ MurmurHashAligned2(const void *key, int len, unsigned int seed)
   const int r = 24;
   const unsigned char * data = (const unsigned char *)key;
   unsigned int h = seed ^ len;
-  int align = (int)data & 3;
+  int align = (int)(uintptr_t)data & 3;
 
-  assert(sizeof(int) == 4);
+  DEBUG(0, assert(sizeof(int) == 4));
 
   if ( align && (len >= 4) )
   { unsigned int t = 0, d = 0;

@@ -12,6 +12,7 @@
 
 #define MURMUR_SEED	(0x1a3be34a)
 
-unsigned int MurmurHashAligned2(const void *key, int len, unsigned int seed);
+COMMON(unsigned int)
+	MurmurHashAligned2(const void *key, int len, unsigned int seed);
 
 #endif /*PL_HASH_H_INCLUDED*/

@@ -2246,6 +2246,7 @@ decrease).
 #include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */
 #include "pl-text.h"			/* text manipulation */
+#include "pl-hash.h"			/* Murmurhash function */
 
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */
 #undef leave
