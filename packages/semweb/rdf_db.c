@@ -1924,33 +1924,47 @@ case_insensitive_atom_hash(atom_t a)
   }
 }
 
+#if SIZEOF_LONG == 4
+#define HASHED 0x80000000
+#else
+#define HASHED 0x8000000000000000
+#endif
 
 static unsigned long
 literal_hash(literal *lit)
-{ switch(lit->objtype)
-  { case OBJ_STRING:
-      return case_insensitive_atom_hash(lit->value.string);
+{ if ( lit->hash & HASHED )
+  { return lit->hash;
+  } else
+  { unsigned long hash;
+
+    switch(lit->objtype)
+    { case OBJ_STRING:
+	hash = case_insensitive_atom_hash(lit->value.string);
+        break;
 #if SIZEOF_LONG == 4
-    case OBJ_INTEGER:
-    { long *p = (long *)&lit->value.integer;
-      return p[0] ^ p[1];
-    }
-    case OBJ_DOUBLE:
-    { long *p = (long *)&lit->value.real;
-      return p[0] ^ p[1];
-    }
+      case OBJ_INTEGER:
+      case OBJ_DOUBLE:
+      { unsigned long *p = (unsigned long *)&lit->value.integer;
+	hash = p[0] ^ p[1];
+	break;
+      }
 #else
-    case OBJ_INTEGER:
-      return lit->value.integer;
-    case OBJ_DOUBLE:
-      return lit->value.integer;	/* assume union allocation */
+      case OBJ_INTEGER:
+      case OBJ_DOUBLE:
+	hash = (unsigned long)lit->value.integer;
+        break;
 #endif
-    case OBJ_TERM:
-      return string_hashA((const char*)lit->value.term.record,
-			  lit->value.term.len);
-    default:
-      assert(0);
-      return 0;
+      case OBJ_TERM:
+	hash = string_hashA((const char*)lit->value.term.record,
+			    lit->value.term.len);
+	break;
+      default:
+	assert(0);
+	return 0;
+    }
+
+    lit->hash = (hash | HASHED);
+    return lit->hash;
   }
 }
 
