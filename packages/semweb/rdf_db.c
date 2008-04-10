@@ -1704,7 +1704,7 @@ static literal *
 share_literal(rdf_db *db, literal *from)
 { literal **data;
 
-  if ( (data = avlfind(&db->literals, &from)) )
+  if ( (data = avlins(&db->literals, &from)) )
   { literal *l2 = *data;
 
     DEBUG(2,
@@ -1718,9 +1718,7 @@ share_literal(rdf_db *db, literal *from)
 
     return l2;
   } else
-  { avlins(&db->literals, &from);
-
-    DEBUG(2,
+  { DEBUG(2,
 	  Sdprintf("Insert %p into literal table: ", from);
 	  print_literal(from);
 	  Sdprintf("\n"));
