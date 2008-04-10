@@ -147,7 +147,7 @@ typedef struct literal
     } term;				/* external record */
   } value;
   atom_t	type_or_lang;		/* Type or language for literals */
-  unsigned long hash;			/* saved hash */
+  unsigned int  hash;			/* saved hash */
   unsigned	objtype : 3;
   unsigned	qualifier : 2;		/* Lang/Type qualifier */
   unsigned	shared : 1;		/* member of shared table */

@@ -1871,36 +1871,25 @@ free_triple(rdf_db *db, triple *t)
 }
 
 
-#if SIZEOF_LONG == 4
 #define HASHED 0x80000000
-#else
-#define HASHED 0x8000000000000000
-#endif
 
-static unsigned long
+static unsigned int
 literal_hash(literal *lit)
 { if ( lit->hash & HASHED )
   { return lit->hash;
   } else
-  { unsigned long hash;
+  { unsigned int hash;
 
     switch(lit->objtype)
     { case OBJ_STRING:
 	hash = atom_hash_case(lit->value.string);
         break;
-#if SIZEOF_LONG == 4
       case OBJ_INTEGER:
       case OBJ_DOUBLE:
-      { unsigned long *p = (unsigned long *)&lit->value.integer;
-	hash = p[0] ^ p[1];
-	break;
-      }
-#else
-      case OBJ_INTEGER:
-      case OBJ_DOUBLE:
-	hash = (unsigned long)lit->value.integer;
+	hash = MurmurHashAligned2(&lit->value.integer,
+				  sizeof(lit->value.integer),
+				  MURMUR_SEED);
         break;
-#endif
       case OBJ_TERM:
 	hash = MurmurHashAligned2(lit->value.term.record,
 				  lit->value.term.len,
