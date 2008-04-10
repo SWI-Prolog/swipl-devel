@@ -59,6 +59,7 @@
 #include "atom.h"
 #include "debug.h"
 #include "hash.h"
+#include "murmur.h"
 
 #undef UNLOCK
 
@@ -1870,58 +1871,6 @@ free_triple(rdf_db *db, triple *t)
 }
 
 
-static unsigned long
-string_hashA(const char *t, size_t len)
-{ unsigned int value = 0;
-  unsigned int shift = 5;
-
-  while(len-- != 0)
-  { unsigned int c = *t++;
-    
-    c = tolower(c);			/* case insensitive */
-    c -= 'a';
-    value ^= c << (shift & 0xf);
-    shift ^= c;
-  }
-
-  return value ^ (value >> 16);
-}
-
-
-static unsigned long
-string_hashW(const wchar_t *t, size_t len)
-{ unsigned int value = 0;
-  unsigned int shift = 5;
-
-  while(len-- != 0)
-  { wint_t c = *t++;
-    
-    c = towlower(c);			/* case insensitive */
-    c -= 'a';
-    value ^= c << (shift & 0xf);
-    shift ^= c;
-  }
-
-  return value ^ (value >> 16);
-}
-
-
-static unsigned long
-case_insensitive_atom_hash(atom_t a)
-{ const char *s;
-  const wchar_t *w;
-  size_t len;
-
-  if ( (s = PL_atom_nchars(a, &len)) )
-    return string_hashA(s, len);
-  else if ( (w = PL_atom_wchars(a, &len)) )
-    return string_hashW(w, len);
-  else
-  { assert(0);
-    return 0;
-  }
-}
-
 #if SIZEOF_LONG == 4
 #define HASHED 0x80000000
 #else
@@ -1937,7 +1886,7 @@ literal_hash(literal *lit)
 
     switch(lit->objtype)
     { case OBJ_STRING:
-	hash = case_insensitive_atom_hash(lit->value.string);
+	hash = atom_hash_case(lit->value.string);
         break;
 #if SIZEOF_LONG == 4
       case OBJ_INTEGER:
@@ -1953,8 +1902,9 @@ literal_hash(literal *lit)
         break;
 #endif
       case OBJ_TERM:
-	hash = string_hashA((const char*)lit->value.term.record,
-			    lit->value.term.len);
+	hash = MurmurHashAligned2(lit->value.term.record,
+				  lit->value.term.len,
+				  MURMUR_SEED);
 	break;
       default:
 	assert(0);

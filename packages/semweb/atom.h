@@ -37,5 +37,6 @@
 int	cmp_atoms(atom_t a1, atom_t a2);
 atom_t	first_atom(atom_t a, int match);
 int	match_atoms(int how, atom_t search, atom_t label);
+unsigned int atom_hash_case(atom_t a);
 
 #endif /*ATOM_H_INCLUDED*/

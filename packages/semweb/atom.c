@@ -189,6 +189,62 @@ cmphandles:
 }
 
 
+		 /*******************************
+		 *	       HASH		*
+		 *******************************/
+
+static unsigned int
+string_hashA(const char *s, size_t len)
+{ const unsigned char *t = (const unsigned char *)s;
+  unsigned int value = 0;
+  unsigned int shift = 5;
+
+  while(len-- != 0)
+  { unsigned int c = *t++;
+    
+    c = sort_pointA(c)>>8;		/* case insensitive */
+    c -= 'a';
+    value ^= c << (shift & 0xf);
+    shift ^= c;
+  }
+
+  return value ^ (value >> 16);
+}
+
+
+static unsigned int
+string_hashW(const wchar_t *t, size_t len)
+{ unsigned int value = 0;
+  unsigned int shift = 5;
+
+  while(len-- != 0)
+  { wint_t c = *t++;
+    
+    c = sort_point(c)>>8;		/* case insensitive */
+    c -= 'a';
+    value ^= c << (shift & 0xf);
+    shift ^= c;
+  }
+
+  return value ^ (value >> 16);
+}
+
+
+unsigned int
+atom_hash_case(atom_t a)
+{ const char *s;
+  const wchar_t *w;
+  size_t len;
+
+  if ( (s = PL_atom_nchars(a, &len)) )
+    return string_hashA(s, len);
+  else if ( (w = PL_atom_wchars(a, &len)) )
+    return string_hashW(w, len);
+  else
+  { assert(0);
+    return 0;
+  }
+}
 
 
 		 /*******************************

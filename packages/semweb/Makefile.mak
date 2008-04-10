@@ -19,7 +19,7 @@ LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl rdf_litindex.pl \
 		rdf_http_plugin.pl rdf_zlib_plugin.pl
 DATA=		rdfs.rdfs dc.rdfs eor.rdfs owl.owl
 OBJ=		rdf_db.obj md5.obj avl.obj atom_map.obj atom.obj \
-		lock.obj debug.obj hash.obj
+		lock.obj debug.obj hash.obj murmur.obj
 
 all:		$(PKGDLL).dll
 

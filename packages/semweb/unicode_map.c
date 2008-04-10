@@ -1009,9 +1009,9 @@ static const int32_t* const ucoll_map[UNICODE_MAP_SIZE] =
      NULL,    NULL,    NULL,    NULL,    NULL,    NULL,    NULL,    NULL
 };
 
-static int
-sort_point(int code)
-{ int cp = code / 256;
+static unsigned int
+sort_point(unsigned int code)
+{ unsigned int cp = code / 256;
 
   if ( cp < UNICODE_MAP_SIZE && ucoll_map[cp] )
     return ucoll_map[cp][code&0xff];
@@ -1019,8 +1019,8 @@ sort_point(int code)
   return (code<<8);
 }
 
-static int
-sort_pointA(int code)
-{ return ucp0x00[code&0xff];
+static unsigned int
+sort_pointA(unsigned int code)
+{ return ucp0x00[code];
 }
 
