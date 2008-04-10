@@ -126,6 +126,30 @@ DlEntry dl_tail;			/* end of this chain */
 #define DL_NOW	  0x1
 #define DL_GLOBAL 0x2
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+under_valgrind()
+
+True if "$VALGRIND" = "yes". It  ensures   dlclose  is  never called. It
+appears that calling dlclose looses source information for loaded shared
+objects.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+under_valgrind()
+{ const char *v;
+  static int vg = -1;
+
+  if ( vg == -1 )
+  { if ( (v=getenv("VALGRIND")) && streq(v, "yes") )
+      vg = TRUE;
+    else
+      vg = FALSE;
+  }
+
+  return vg;
+}
+
+
 word
 pl_open_shared_object(term_t file, term_t plhandle,
 		      term_t flags)
@@ -196,7 +220,8 @@ pl_close_shared_object(term_t plhandle)
 { DlEntry e = find_dl_entry(plhandle);
 
   if ( e && e->dlhandle) 
-  { dlclose(e->dlhandle);
+  { if ( !under_valgrind() )
+      dlclose(e->dlhandle);
     e->dlhandle = NULL;
 
     succeed;
@@ -260,7 +285,9 @@ cleanupForeign(void)
   { next = e->next;
 
     if ( e->dlhandle )
-      dlclose(e->dlhandle);
+    { if ( !under_valgrind() )
+	dlclose(e->dlhandle);
+    }
 
     freeHeap(e, sizeof(*e));
   }

@@ -3336,31 +3336,30 @@ use the macro \const{PLVERSION} to find the version of
 system. Both follow the same numbering schema explained with PL_query().
 
 
-\subsection{Debugging Foreign Code}
+\subsection{Debugging and profiling foreign code (valgrind)}
 
-Statically linked foreign code or embedded systems can be debugged
-normally. Most modern environments provide debugging tools for
-dynamically loaded shared objects or dynamic load libraries. The
-following example traces the code of lowercase using \manref{gdb}{1} in
-a Unix environment.
+\index{valgrind}\index{profiling,foreign code}%
+This section is only relevant for Unix users on platforms supported by
+\url[valgrind]{http://valgrind.org/}. Valgrind is an excellent binary
+intrumentation platform.  Unlike many other instrumentation platforms,
+valgrind can deal with code loaded through dlopen().
+
+The \program{callgrind} tool can be used to profile foreign code loaded
+under SWI-Prolog. Compile the foreign library adding \cmdlineoption{-g}
+option to \program{gcc} or \program{plld}. By setting the environment
+variable \env{VALGRIND} to \const{yes}, SWI-Prolog will \emph{not}
+release loaded shared objects using dlclose(). This trick is required to
+get source information on the loaded library. Without, valgrind claims
+that the shared object has no debugging information.\footnote{Tested
+using valgrind version 3.2.3 on x64.} Here is the complete sequence
+using \program{bash} as login shell:
 
 \begin{code}
-% gcc -I/usr/local/lib/pl-2.2.0/include -fpic -c -g lowercase.c
-% gcc -shared -o lowercase.so lowercase.o
-% gdb pl
-(gdb) r
-Welcome to SWI-Prolog (Version \plversion)
-Copyright (c) 1993-1996 University of Amsterdam.  All rights reserved.
-
-For help, use ?- help(Topic). or ?- apropos(Word).
-
-?- load_foreign_library(lowercase).
-<type Control-C>
-(gdb) shared                    % loads symbols for shared objects
-(gdb) break pl_lowercase
-(gdb) continue
-?- lowercase('HELLO', X).
+% VALGRIND=yes valgrind --tool=callgrind pl <args>
+<prolog interaction>
+% kcachegrind callgrind.out.<pid>
 \end{code}
+
 
 \subsection{Name Conflicts in C modules}
 
