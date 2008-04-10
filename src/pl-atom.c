@@ -25,6 +25,7 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-hash.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Implementation issues
@@ -356,7 +357,7 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 
   startCritical;
   LOCK();
-  v0 = unboundStringHashValue(s, length);
+  v0 = MurmurHashAligned2(s, length, MURMUR_SEED);
   v  = v0 & (atom_buckets-1);
   DEBUG(0, lookups++);
 
@@ -877,7 +878,7 @@ registerBuiltinAtoms()
 
   for(s = atoms; *s; s++, a++)
   { size_t len = strlen(*s);
-    int v0 = unboundStringHashValue(*s, len);
+    int v0 = MurmurHashAligned2(*s, len, MURMUR_SEED);
     int v = v0 & (atom_buckets-1);
 
     a->name       = (char *)*s;

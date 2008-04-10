@@ -62,7 +62,6 @@ COMMON(word) 		consPtr(void *p, word ts);
 #endif
 COMMON(char *) 		store_string(const char *s);
 COMMON(void) 		remove_string(char *s);
-COMMON(int) 		unboundStringHashValue(const char *t, size_t l);
 #ifndef xmalloc
 COMMON(void *) 		xmalloc(size_t size);
 COMMON(void *) 		xrealloc(void *mem, size_t size);

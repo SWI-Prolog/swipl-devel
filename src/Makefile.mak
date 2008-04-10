@@ -57,7 +57,7 @@ OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
 	pl-xterm.obj pl-feature.obj pl-ctype.obj pl-main.obj \
 	pl-dde.obj pl-nt.obj pl-attvar.obj pl-gvar.obj pl-btree.obj \
 	pl-utf8.obj pl-text.obj pl-mswchar.obj pl-gmp.obj pl-tai.obj \
-	pl-segstack.obj
+	pl-segstack.obj pl-hash.obj
 
 PLINIT=	$(PB)/init.pl
 

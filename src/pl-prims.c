@@ -25,6 +25,7 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-hash.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -1005,7 +1006,7 @@ termHashValue(word term, intptr_t *hval ARG_LD)
 	char *s;
 
 	s = getCharsString(term, &len);
-	*hval += unboundStringHashValue(s, len);
+	*hval += MurmurHashAligned2(s, len, MURMUR_SEED);
 
         succeed;
       }
