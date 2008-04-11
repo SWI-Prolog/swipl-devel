@@ -218,19 +218,22 @@ string_hashA(const char *s, size_t len)
 
 static unsigned int
 string_hashW(const wchar_t *t, size_t len)
-{ unsigned int value = 0;
-  unsigned int shift = 5;
+{ unsigned int hash = 0;
 
-  while(len-- != 0)
-  { wint_t c = *t++;
-    
-    c = sort_point(c)>>8;		/* case insensitive */
-    c -= 'a';
-    value ^= c << (shift & 0xf);
-    shift ^= c;
+  while( len>0 )
+  { unsigned short buf[256];
+    unsigned short *o = buf;
+    int cp = len > 256 ? 256 : (int)len;
+    const wchar_t *e = t+cp;
+
+    while(t<e)
+      *o++ = (short)(sort_point(*t++)>>8);
+    hash ^= MurmurHashAligned2(buf, cp*sizeof(short), MURMUR_SEED);
+
+    len -= cp;
   }
 
-  return value ^ (value >> 16);
+  return hash;
 }
 
 
