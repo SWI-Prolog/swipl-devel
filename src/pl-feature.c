@@ -797,7 +797,7 @@ initFeatures()
   defFeature("c_libs",	  FT_ATOM|FF_READONLY, C_LIBS);
   defFeature("c_cc",	  FT_ATOM|FF_READONLY, C_CC);
   defFeature("c_ldflags", FT_ATOM|FF_READONLY, C_LDFLAGS);
-#ifdef O_LARGEFILES
+#if defined(O_LARGEFILES) || SIZEOF_LONG == 8
   defFeature("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
   defFeature("gc",	  FT_BOOL,	       TRUE,  GC_FEATURE);
