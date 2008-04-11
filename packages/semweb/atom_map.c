@@ -618,7 +618,7 @@ destroy_atom_map(term_t handle)
 
 
 static foreign_t
-insert_atom_map(term_t handle, term_t from, term_t to)
+insert_atom_map4(term_t handle, term_t from, term_t to, term_t keys)
 { atom_map *map;
   datum a2;
   node_data search, *data;
@@ -644,7 +644,11 @@ insert_atom_map(term_t handle, term_t from, term_t to)
     if ( rc )
       map->value_count++;
   } else
-  { if ( !(search.values = new_atom_set(a2)) )
+  { if ( keys && !PL_unify_integer(keys, map->tree.count+1) )
+    { WRUNLOCK(map);
+      return FALSE;
+    }
+    if ( !(search.values = new_atom_set(a2)) )
       return resource_error("memory");
     lock_datum(search.key);
     SECURE(search.magic = ND_MAGIC);
@@ -657,6 +661,12 @@ insert_atom_map(term_t handle, term_t from, term_t to)
   WRUNLOCK(map);
 
   return TRUE;
+}
+
+
+static foreign_t
+insert_atom_map3(term_t handle, term_t from, term_t to)
+{ return insert_atom_map4(handle, from, to, 0);
 }
 
 
@@ -1095,7 +1105,8 @@ install_atom_map()
   PRED("rdf_new_literal_map",	     1,	new_atom_map,		    0);
   PRED("rdf_destroy_literal_map",    1,	destroy_atom_map,	    0);
   PRED("rdf_reset_literal_map",	     1, rdf_reset_literal_map,	    0);
-  PRED("rdf_insert_literal_map",     3,	insert_atom_map,	    0);
+  PRED("rdf_insert_literal_map",     3,	insert_atom_map3,	    0);
+  PRED("rdf_insert_literal_map",     4,	insert_atom_map4,	    0);
   PRED("rdf_delete_literal_map",     3,	delete_atom_map3,	    0);
   PRED("rdf_delete_literal_map",     2,	delete_atom_map2,	    0);
   PRED("rdf_find_literal_map",	     3,	find_atom_map,		    0);

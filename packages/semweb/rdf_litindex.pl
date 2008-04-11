@@ -377,12 +377,15 @@ register_literal(Literal) :-
 
 add_tokens([], _, _).
 add_tokens([H|T], Literal, Map) :-
-	(   rdf_keys_in_literal_map(Map, key(H), _)
+	rdf_insert_literal_map(Map, H, Literal, Keys),
+	(   var(Keys)
 	->  true
-	;   forall(new_token(H), true)
+	;   forall(new_token(H), true),
+	    (	Keys mod 1000 =:= 0
+	    ->	progress(Map, 'Tokens')
+	    ;	true
+	    )
 	),
-	rdf_insert_literal_map(Map, H, Literal),
-	progress(Map, 'Tokens'),
 	add_tokens(T, Literal, Map).
 
 
@@ -487,8 +490,12 @@ stem([], _).
 stem([Token|T], Map) :-
 	(   atom(Token)
 	->  porter_stem(Token, Stem),
-	    rdf_insert_literal_map(Map, Stem, Token),
-	    progress(Map, 'Porter')
+	    rdf_insert_literal_map(Map, Stem, Token, Keys),
+	    (	integer(Keys),
+		Keys mod 1000 =:= 0
+	    ->  progress(Map, 'Porter')
+	    ;	true
+	    )
 	;   true
 	),
 	stem(T, Map).
@@ -496,7 +503,7 @@ stem([Token|T], Map) :-
 
 add_stem(Token, Map) :-
 	porter_stem(Token, Stem),
-	rdf_insert_literal_map(Map, Stem, Token).
+	rdf_insert_literal_map(Map, Stem, Token, _).
 
 
 		 /*******************************
@@ -521,8 +528,12 @@ metaphone([], _).
 metaphone([Token|T], Map) :-
 	(   atom(Token)
 	->  double_metaphone(Token, SoundEx),
-	    rdf_insert_literal_map(Map, SoundEx, Token),
-	    progress(Map, 'Metaphone')
+	    rdf_insert_literal_map(Map, SoundEx, Token, Keys),
+	    (	integer(Keys),
+		Keys mod 1000 =:= 0
+	    ->	progress(Map, 'Metaphone')
+	    ;	true
+	    )
 	;   true
 	),
 	metaphone(T, Map).
@@ -545,10 +556,7 @@ verbose(_, _).
 progress(Map, Which) :-
 	setting(verbose(true)), !,
 	rdf_statistics_literal_map(Map, size(Keys, Values)),
-	(   Keys mod 1000 =:= 0
-	->  format(user_error,
-		   '\r~t~w: ~12|Keys: ~t~D~15+; Values: ~t~D~20+',
-		   [Which, Keys, Values])
-	;   true
-	).
+	format(user_error,
+	       '\r~t~w: ~12|Keys: ~t~D~15+; Values: ~t~D~20+',
+	       [Which, Keys, Values]).
 progress(_,_).
