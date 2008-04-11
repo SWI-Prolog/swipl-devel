@@ -425,10 +425,22 @@ rdf_tokenize_literal(Literal, Tokens) :-
 
 select_tokens([], []).
 select_tokens([H|T0], T) :-
-	no_index_token(H), !,
-	select_tokens(T0, T).
-select_tokens([H|T0], [H|T]) :-
-	select_tokens(T0, T).
+	(   exclude_from_index(token, H)
+	->  select_tokens(T0, T)
+	;   number(H)
+	->  (   integer(H),
+	        between(-1073741824, 1073741823, H)
+	    ->	T = [H|T1],
+		select_tokens(T0, T1)
+	    ;   select_tokens(T0, T)
+	    )
+	;   atom_length(H, 1)
+	->  select_tokens(T0, T)
+	;   no_index_token(H)
+	->  select_tokens(T0, T)
+	;   T = [H|T1],
+	    select_tokens(T0, T1)
+	).
 
 
 %	no_index_token/1
@@ -438,15 +450,6 @@ select_tokens([H|T0], [H|T]) :-
 %	describe this? Experience shows that simply  word count is not a
 %	good criterium as it often rules out popular domain terms.
 
-no_index_token(X) :-
-	exclude_from_index(token, X), !.
-no_index_token(X) :-			% TBD: only small integers can
-	integer(X),			% be indexed
-	\+ between(-1073741824, 1073741823, X), !.
-no_index_token(X) :-
-	atom_length(X, 1), !.
-no_index_token(X) :-
-	float(X), !.
 no_index_token(and).
 no_index_token(an).
 no_index_token(or).
