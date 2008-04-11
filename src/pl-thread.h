@@ -438,5 +438,7 @@ extern void		initPrologThreads(void);
 #define PL_is_atom(t)		PL_is_atom__LD(t PASS_LD)
 #define PL_unify_list(l, h, t)	PL_unify_list__LD(l, h, t PASS_LD)
 #define PL_cons_list(l, h, t)	PL_cons_list__LD(l, h, t PASS_LD)
+#define PL_get_text(l, t, f)	PL_get_text__LD(l, t, f PASS_LD)
+#define PL_unify_int64_ex(t, i)	PL_unify_int64_ex__LD(t, i PASS_LD)
 
 #endif /*PL_THREAD_H_DEFINED*/

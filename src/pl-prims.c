@@ -2941,16 +2941,14 @@ PRED_IMPL("copy_term_nat", 2, copy_term_nat, 0)
   fail;
 }
 
-#undef LD
-#define LD GLOBAL_LD
-
 		 /*******************************
 		 *	       ATOMS		*
 		 *******************************/
 
-word
-pl_atom_length(term_t w, term_t n)
-{ int flags;
+static
+PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
+{ PRED_LD
+  int flags;
   PL_chars_t txt;
 
   if ( trueFeature(ISO_FEATURE) )
@@ -2958,19 +2956,14 @@ pl_atom_length(term_t w, term_t n)
   else
     flags = CVT_ALL|CVT_EXCEPTION;
 
-  if ( PL_get_text(w, &txt, flags) )
-  { int nval;
-
-    if ( PL_is_variable(n) )
-      return PL_unify_integer(n, txt.length);
-    else if ( PL_get_integer(n, &nval) )
-      return nval == (int)txt.length ? TRUE	: FALSE;
-    else
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, n);
-  }
+  if ( PL_get_text(A1, &txt, flags) )
+    return PL_unify_int64_ex(A2, txt.length);
 
   fail;
 }
+
+#undef LD
+#define LD GLOBAL_LD
 
 
 #define X_AUTO   0x00
@@ -4591,6 +4584,7 @@ BeginPredDefs(prims)
   PRED_DEF("$depth_limit_except", 3, depth_limit_except, 0)
   PRED_DEF("$depth_limit_false",  3, depth_limit_false, 0)
 #endif
+  PRED_DEF("atom_length", 2, atom_length, PL_FA_ISO)
   PRED_DEF("atom_number", 2, atom_number, 0)
   PRED_DEF("collation_key", 2, collation_key, 0)
   PRED_DEF("statistics", 2, statistics, 0)

@@ -1123,7 +1123,8 @@ PL_get_list_chars(term_t l, char **s, unsigned flags)
 
 int
 PL_get_wchars(term_t l, size_t *length, pl_wchar_t **s, unsigned flags)
-{ PL_chars_t text;
+{ GET_LD
+  PL_chars_t text;
 
   if ( !PL_get_text(l, &text, flags) )
     return FALSE;
@@ -1141,7 +1142,8 @@ PL_get_wchars(term_t l, size_t *length, pl_wchar_t **s, unsigned flags)
 
 int
 PL_get_nchars(term_t l, size_t *length, char **s, unsigned flags)
-{ PL_chars_t text;
+{ GET_LD
+  PL_chars_t text;
 
   if ( !PL_get_text(l, &text, flags) )
     return FALSE;
@@ -2393,6 +2395,39 @@ PL_unify_int64(term_t t, int64_t i)
 { GET_LD
 
   return unifyAtomic(t, makeNum(i) PASS_LD);
+}
+
+
+int
+PL_unify_int64_ex__LD(term_t t, int64_t i ARG_LD)
+{ word w = consInt(i);
+
+  if ( valInt(w) == i )
+  { Word p = valHandleP(t);
+
+    deRef(p);
+    if ( *p == w )
+      succeed;
+    if ( canBind(*p) )
+    { bindConst(p, w);
+      succeed;
+    }
+    if ( isInteger(*p) )
+      fail;
+  } else
+  { Word p = valHandleP(t);
+
+    deRef(p);
+    if ( canBind(*p) )
+    { w = globalLong(i PASS_LD);
+      bindConst(p, w);
+      succeed;
+    }
+    if ( isInteger(*p) )
+      return valInt(*p) == i ? TRUE : FALSE;
+  }
+  
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
 

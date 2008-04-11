@@ -95,9 +95,8 @@ PL_save_text(PL_chars_t *text, int flags)
 
 
 int
-PL_get_text(term_t l, PL_chars_t *text, int flags)
-{ GET_LD
-  word w = valHandle(l);
+PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
+{ word w = valHandle(l);
 
   if ( (flags & CVT_ATOM) && isAtom(w) )
   { if ( !get_atom_text(w, text) )
