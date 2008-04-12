@@ -60,6 +60,7 @@ being flexible to ordering of tokens.
 
 
 setting(verbose(true)).			% print progress messages
+setting(index_threads(1)).		% # threads for creating the literal index
 
 %%	rdf_set_literal_index_option(+Options:list)
 %
@@ -73,10 +74,12 @@ setting(verbose(true)).			% print progress messages
 %		Number of threads to use for initial indexing of
 %		literals
 
-rdf_set_literal_index_option([]).
-rdf_set_literal_index_option([H|T]) :-
+rdf_set_literal_index_option([]) :- !.
+rdf_set_literal_index_option([H|T]) :- !,
 	set_option(H),
 	rdf_set_literal_index_option(T).
+rdf_set_literal_index_option(Option) :-
+	set_option(Option).
 
 set_option(Term) :-
 	check_option(Term),
@@ -84,7 +87,6 @@ set_option(Term) :-
 	functor(General, Name, Arity),
 	retractall(setting(General)),
 	assert(setting(Term)).
-
 
 check_option(X) :-
 	var(X), !,
@@ -95,6 +97,7 @@ check_option(index_threads(Count)) :- !,
 	must_be(nonneg, Count).
 check_option(Option) :-
 	domain_error(literal_option, Option).
+
 
 		 /*******************************
 		 *	      QUERY		*
