@@ -34,6 +34,24 @@
 #define	STR_MATCH_PREFIX	0x4	/* prefix */
 #define STR_MATCH_LIKE		0x5	/* SeRQL *like* match */
 
+typedef unsigned char charA;
+typedef wchar_t       charW;
+
+typedef struct text
+{ const charA *a;
+  const charW *w;
+  size_t length;
+} text;
+
+
+typedef struct atom_info
+{ atom_t	handle;
+  text		text;
+  int		resolved;
+  int		rc;			/* TRUE if text atom */
+} atom_info;
+
+
 int	cmp_atoms(atom_t a1, atom_t a2);
 atom_t	first_atom(atom_t a, int match);
 int	match_atoms(int how, atom_t search, atom_t label);

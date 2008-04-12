@@ -43,17 +43,7 @@
 		 *	   TEXT HANDLING	*
 		 *******************************/
 
-typedef unsigned char charA;
-typedef wchar_t       charW;
-
-typedef struct text
-{ const charA *a;
-  const charW *w;
-  size_t length;
-} text;
-
-
-static int
+inline int
 get_atom_text(atom_t atom, text *txt)
 { if ( (txt->a = (const charA*)PL_atom_nchars(atom, &txt->length)) )
   { txt->w = NULL;
@@ -71,6 +61,21 @@ get_atom_text(atom_t atom, text *txt)
 inline wint_t
 fetch(const text *txt, int i)
 { return txt->a ? (wint_t)txt->a[i] : (wint_t)txt->w[i];
+}
+
+
+static int
+fill_atom_info(atom_info *info)
+{ if ( !info->resolved )
+  { info->resolved = TRUE;
+
+    if ( !(info->rc=get_atom_text(info->handle, &info->text)) )
+    { info->text.a = NULL;
+      info->text.w = NULL;
+    }
+  }
+
+  return info->rc;
 }
 
 
@@ -117,22 +122,22 @@ cmpW(int c1, int c2, int *dl2)
 
 
 int
-cmp_atoms(atom_t a1, atom_t a2)
-{ text t1, t2;
+cmp_atom_info(atom_info *info, atom_t a2)
+{ text t2;
   int i;
   int dl2 = 0;
   size_t n;
   
-  if ( a1 == a2 )
+  if ( info->handle == a2 )
     return 0;
 
-  if ( !get_atom_text(a1, &t1) ||
+  if ( !fill_atom_info(info) ||
        !get_atom_text(a2, &t2) )
   { goto cmphandles;			/* non-text atoms? */
   }
 
-  if ( t1.a && t2.a )
-  { const charA *s1 = t1.a;
+  if ( info->text.a && t2.a )
+  { const charA *s1 = info->text.a;
     const charA *s2 = t2.a;
     int d;
 
@@ -144,18 +149,18 @@ cmp_atoms(atom_t a1, atom_t a2)
     return d;
   }
 
-  n = (t1.length < t2.length ? t1.length : t2.length);
+  n = (info->text.length < t2.length ? info->text.length : t2.length);
 
-  if ( t1.w && t2.w )
-  { const charW *s1 = t1.w;
+  if ( info->text.w && t2.w )
+  { const charW *s1 = info->text.w;
     const charW *s2 = t2.w;
 
     for(;;s1++, s2++)
     { if ( n-- == 0 )
-      { if ( t1.length == t2.length )
+      { if ( info->text.length == t2.length )
 	  goto eq;
 	
-	return t1.length < t2.length ? -1 : 1;
+	return info->text.length < t2.length ? -1 : 1;
       } else
       { int d;
 
@@ -167,12 +172,12 @@ cmp_atoms(atom_t a1, atom_t a2)
   
   for(i=0; ; i++)
   { if ( n-- == 0 )
-    { if ( t1.length == t2.length )
+    { if ( info->text.length == t2.length )
 	  goto eq;
 	
-      return t1.length < t2.length ? -1 : 1;
+      return info->text.length < t2.length ? -1 : 1;
     } else
-    { wint_t c1 = fetch(&t1, i);
+    { wint_t c1 = fetch(&info->text, i);
       wint_t c2 = fetch(&t2, i);
       int d;
 
@@ -186,7 +191,20 @@ eq:
     return dl2;
 
 cmphandles:
-  return a1 < a2 ? -1 : 1;		/* == already covered */
+  return info->handle < a2 ? -1 : 1;		/* == already covered */
+}
+
+
+int
+cmp_atoms(atom_t a1, atom_t a2)
+{ atom_info info = {0};
+
+  if ( a1 == a2 )
+    return 0;
+
+  info.handle = a1;
+
+  return cmp_atom_info(&info, a2);
 }
 
 
