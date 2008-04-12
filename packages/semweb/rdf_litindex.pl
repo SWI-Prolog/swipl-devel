@@ -372,13 +372,13 @@ threaded_literal_index(N) :-
 	N > 1, !,
 	message_queue_create(Q, [max_size(1000)]),
 	create_index_threads(N, Q, Ids),
-	forall(rdf(_,_,literal(Literal)),
+	forall(rdf_current_literal(Literal),
 	       thread_send_message(Q, Literal)),
 	forall(between(1, N, _),
 	       thread_send_message(Q, done(true))),
 	maplist(thread_join, Ids, _).
 threaded_literal_index(_) :-
-	forall(rdf(_,_,literal(Literal)),
+	forall(rdf_current_literal(Literal),
 	       register_literal(Literal)).
 
 create_index_threads(N, Q, [Id|T]) :-

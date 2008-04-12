@@ -696,7 +696,12 @@ avlfindfirst(AVL_TREE tree, void *data, avl_enum *e)
   e->current = 0;
   
   for(;;)
-  { int diff = (*tree->compar)(data, node->data, IS_NULL);
+  { int diff;
+
+    if ( data )
+      diff = (*tree->compar)(data, node->data, IS_NULL);
+    else
+      diff = -1;			/* search first node */
 
     if ( diff < 0 )
     { push_node(e, node);

@@ -259,6 +259,7 @@ static void	record_md5_transaction(rdf_db *db,
 static void	create_reachability_matrix(rdf_db *db, predicate_cloud *cloud);
 static int	get_predicate(rdf_db *db, term_t t, predicate **p);
 static predicate_cloud *new_predicate_cloud(rdf_db *db, predicate **p, size_t count);
+static int	unify_literal(term_t lit, literal *l);
 
 
 		 /*******************************
@@ -1843,6 +1844,7 @@ dump_literals()
   return TRUE;
 }
 #endif
+
 
 
 		 /*******************************
@@ -4765,6 +4767,61 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+current_literal(?Literals)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static foreign_t
+rdf_current_literal(term_t t, control_t h)
+{ rdf_db *db = DB;
+  literal **data;
+  avl_enum *state;
+  int rc;
+
+  switch(PL_foreign_control(h))
+  { case PL_FIRST_CALL:
+      if ( PL_is_variable(t) )
+      { state = rdf_malloc(db, sizeof(*state));
+
+	RDLOCK(db);
+	inc_active_queries(db);
+	data = avlfindfirst(&db->literals, NULL, state);
+	goto next;
+      } else
+      { return FALSE;			/* TBD */
+      }
+    case PL_REDO:
+      state = PL_foreign_context_address(h);
+      data = avlfindnext(state);
+    next:
+      for(; data; data=avlfindnext(state))
+      { literal *lit = *data;
+
+	if ( unify_literal(t, lit) )
+	{ PL_retry_address(state);
+	}
+      }
+
+      rc = FALSE;
+      goto cleanup;
+    case PL_CUTTED:
+      rc = TRUE;
+
+    cleanup:
+      state = PL_foreign_context_address(h);
+      avlfinddestroy(state);
+      rdf_free(db, state, sizeof(*state));
+      RDUNLOCK(db);
+      dec_active_queries(db);
+
+      return rc;
+    default:
+      assert(0);
+      return FALSE;
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 rdf_update(+Subject, +Predicate, +Object, +Action)
 
 Update a triple. Please note this is actually erase+assert as the triple
@@ -6297,6 +6354,8 @@ install_rdf_db()
 					2, rdf_predicate_property, NDET);
   PL_register_foreign("rdf_current_predicates",
 					1, rdf_current_predicates, 0);
+  PL_register_foreign("rdf_current_literal",
+					1, rdf_current_literal, NDET);
   PL_register_foreign("rdf_graphs_",    1, rdf_graphs,      0);
   PL_register_foreign("rdf_set_graph_source", 2, rdf_set_graph_source, 0);
   PL_register_foreign("rdf_graph_source_", 2, rdf_graph_source, 0);

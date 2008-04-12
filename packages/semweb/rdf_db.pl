@@ -50,6 +50,7 @@
 	    rdf_set_predicate/2,	% +Predicate, +Property
 	    rdf_predicate_property/2,	% +Predicate, ?Property
 	    rdf_current_predicate/1,	% -Predicate
+	    rdf_current_literal/1,	% -Literal
 	    rdf_transaction/1,		% :Goal
 	    rdf_transaction/2,		% :Goal, +Id
 	    rdf_active_transaction/1,	% ?Id

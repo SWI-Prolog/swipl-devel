@@ -247,6 +247,11 @@ X = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property' ;
 Enumerate resources appearing as a subject in a triple.  The main reason
 for this predicate is to generate the known subjects \emph{without
 duplicates} as one gets using \term{rdf}{Subject, _, _}.
+
+    \predicate{rdf_current_literal}{1}{-Literal}
+Enumerate all known literals.  Like rdf_subject/1, the motivation is
+to provide access to literals without generation duplicates.  Otherwise
+the call is the same as \term{rdf}{_,_,literal(Literal)}.
 \end{description}
 
 
