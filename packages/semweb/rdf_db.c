@@ -1501,6 +1501,28 @@ rdf_set_graph_source(term_t graph_name, term_t source)
 		 *	     LITERALS		*
 		 *******************************/
 
+#define LITERAL_EX_MAGIC 0x2b97e881
+
+typedef struct literal_ex
+{ literal  *literal;
+  atom_info atom;
+#ifdef O_SECURE
+  long	    magic;
+#endif
+} literal_ex;
+
+
+static inline void
+prepare_literal_ex(literal_ex *lex)
+{ SECURE(lex->magic = 0x2b97e881);
+
+  if ( lex->literal->objtype == OBJ_STRING )
+  { lex->atom.handle = lex->literal->value.string;
+    lex->atom.resolved = FALSE;
+  }
+}
+
+
 static literal *
 new_literal(rdf_db *db)
 { literal *lit = rdf_malloc(db, sizeof(*lit));
@@ -1517,13 +1539,19 @@ free_literal(rdf_db *db, literal *lit)
   { unlock_atoms_literal(lit);
 
     if ( lit->shared && !db->resetting )
-    { lit->shared = FALSE;
+    { literal_ex lex;
+
+      lit->shared = FALSE;
       broadcast(EV_OLD_LITERAL, lit, NULL);
       DEBUG(2,
 	    Sdprintf("Delete %p from literal table: ", lit);
 	    print_literal(lit);
 	    Sdprintf("\n"));
-      if ( !avldel(&db->literals, &lit) )
+
+      lex.literal = lit;
+      prepare_literal_ex(&lex);
+
+      if ( !avldel(&db->literals, &lex) )
       { Sdprintf("Failed to delete %p (size=%ld): ", lit, db->literals.count);
 	print_literal(lit);
 	Sdprintf("\n");
@@ -1609,8 +1637,11 @@ compare_literals() sorts literals.  Ordering is defined as:
 
 static int
 compare_literals(void *p1, void *p2, NODE type)
-{ literal *l1 = *(literal**)p1;
+{ literal_ex *lex = p1;
+  literal *l1 = lex->literal;
   literal *l2 = *(literal**)p2;
+
+  SECURE(assert(lex->magic == LITERAL_EX_MAGIC));
 
   if ( l1->objtype == l2->objtype )
   { switch(l1->objtype)
@@ -1625,7 +1656,7 @@ compare_literals(void *p1, void *p2, NODE type)
 	return v1 < v2 ? -1 : v1 > v2 ? 1 : 0;
       }
       case OBJ_STRING:
-      { int rc = cmp_atoms(l1->value.string, l2->value.string);
+      { int rc = cmp_atom_info(&lex->atom, l2->value.string);
 	
 	if ( rc == 0 )
 	{ if ( l1->qualifier == l2->qualifier )
@@ -1640,7 +1671,7 @@ compare_literals(void *p1, void *p2, NODE type)
 	term_t t2 = PL_new_term_ref();
 	int rc;
 
-	PL_recorded_external(l1->value.term.record, t1);
+	PL_recorded_external(l1->value.term.record, t1); /* can also be handled in literal_ex */
 	PL_recorded_external(l2->value.term.record, t2);
 	rc = PL_compare(t1, t2);
 
@@ -1704,8 +1735,12 @@ returns it.
 static literal *
 share_literal(rdf_db *db, literal *from)
 { literal **data;
+  literal_ex lex;
 
-  if ( (data = avlins(&db->literals, &from)) )
+  lex.literal = from;
+  prepare_literal_ex(&lex);
+
+  if ( (data = avlins(&db->literals, &lex)) )
   { literal *l2 = *data;
 
     DEBUG(2,
@@ -1766,7 +1801,12 @@ check_transitivity()
       end = db->literals.count;
 
     for(j=i+1; j<end; j++)
-    { if ( compare_literals(&array[i], &array[j], IS_NULL) >= 0 )
+    { literal_ex lex;
+
+      lex.literal = &array[i];
+      prepare_literal_ex(&lex);
+
+      if ( compare_literals(&lex, &array[j], IS_NULL) >= 0 )
       { Sdprintf("\nERROR: i,j=%d,%d: ", i, j);
 	print_literal(array[i]);
 	Sdprintf(" >= ");
@@ -4369,6 +4409,7 @@ typedef struct search_state
   atom_t	prefix;			/* prefix and like search */
   avl_enum     *literal_state;		/* Literal search state */
   literal      *literal_cursor;		/* pointer in current literal */
+  literal_ex    lit_ex;			/* extended literal for fast compare */
   triple       *cursor;			/* Pointer in triple DB */
   triple	pattern;		/* Pattern triple */
 } search_state;
@@ -4440,13 +4481,15 @@ init_search_state(search_state *state)
        p->indexed != BY_SP &&
        (state->prefix = first_atom(p->object.literal->value.string, p->match)))
   { literal lit;
-    literal **rlitp, *slitp = &lit;
+    literal **rlitp;
     
     lit = *p->object.literal;
     lit.value.string = state->prefix;
     state->literal_state = rdf_malloc(state->db,
 				      sizeof(*state->literal_state));
-    rlitp = avlfindfirst(&state->db->literals, &slitp, state->literal_state);
+    state->lit_ex.literal = &lit;
+    prepare_literal_ex(&state->lit_ex);
+    rlitp = avlfindfirst(&state->db->literals, &state->lit_ex, state->literal_state);
     if ( rlitp )
     { init_cursor_from_literal(state, *rlitp);
     } else
