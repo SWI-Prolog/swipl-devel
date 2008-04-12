@@ -307,9 +307,6 @@ extern word		pl_thread_create(term_t goal, term_t id,
 extern word		pl_thread_join(term_t thread, term_t retcode);
 extern word		pl_thread_exit(term_t retcode);
 extern word		pl_thread_kill(term_t thread, term_t sig);
-extern word		pl_thread_send_message(term_t thread, term_t msg);
-extern word		pl_thread_get_message(term_t msg);
-extern word		pl_thread_peek_message(term_t msg);
 extern foreign_t	pl_thread_signal(term_t thread, term_t goal);
 
 extern foreign_t	pl_thread_at_exit(term_t goal);
