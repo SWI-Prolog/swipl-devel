@@ -100,8 +100,10 @@ typedef struct node_data
 
 typedef struct node_data_ex
 { node_data	data;
-  atom_info	key_ex;
+  atom_info	atom;
+#ifdef O_SECURE
   long		magic;
+#endif
 } node_data_ex;
 
 
@@ -344,6 +346,30 @@ get_datum(term_t t, datum* d)
 
 
 static int
+get_search_datum(term_t t, node_data_ex *search)
+{ atom_t a;
+  long l;
+
+  SECURE(search->magic = ND_MAGIC_EX);
+
+  if ( PL_get_atom(t, &a) )
+  { search->data.key = atom_to_datum(a);
+    search->atom.handle   = a;
+    search->atom.resolved = FALSE;
+    return TRUE;
+  } else if ( PL_get_long(t, &l) )
+  { if ( l < MAP_MIN_INT || l > MAP_MAX_INT )
+      return representation_error("integer_range");
+
+    search->data.key = long_to_datum(l);
+    return TRUE;
+  }
+
+  return type_error(t, "atom or integer");
+}
+
+
+static int
 unify_datum(term_t t, datum d)
 { unsigned long v = (unsigned long)d;
 
@@ -369,29 +395,6 @@ unlock_datum(datum d)
 
   if ( isAtomDatum(v) )
     PL_unregister_atom(atom_from_datum(d));
-}
-
-
-static inline int
-cmp_datum(void *p1, void *p2)
-{ datum d1 = p1;
-  datum d2 = p2;
-  int d;
-
-  if ( (d=(tag(d1)-tag(d2))) == 0 )
-  { if ( isAtomDatum(d1) )
-    { return cmp_atoms(atom_from_datum(d1), atom_from_datum(d2));
-    } else
-    { long l1 = long_from_datum(d1);
-      long l2 = long_from_datum(d2);
-      
-      DEBUG(2, Sdprintf("cmp_datum(%ld, %ld)\n", l1, l2));
-
-      return l1 > l2 ? 1 : l1 < l2 ? -1 : 0;
-    }
-  }
-
-  return d;
 }
 
 
@@ -568,12 +571,25 @@ free_node_data(void *ptr)
 static int
 cmp_node_data(void *l, void *r, NODE type)
 { node_data_ex *e1 = l;
-  node_data *d1 = &e1->data;
-  node_data *d2 = r;
+  node_data *n2 = r;
+  datum *d1 = e1->data.key;
+  datum *d2 = n2->key;
+  int d;
 
-  assert(e1->magic == ND_MAGIC_EX);
+  SECURE(assert(e1->magic == ND_MAGIC_EX));
 
-  return cmp_datum(d1->key, d2->key);
+  if ( (d=(tag(d1)-tag(d2))) == 0 )
+  { if ( isAtomDatum(d1) )
+    { return cmp_atom_info(&e1->atom, atom_from_datum(d2));
+    } else
+    { long l1 = long_from_datum(d1);
+      long l2 = long_from_datum(d2);
+      
+      return l1 > l2 ? 1 : l1 < l2 ? -1 : 0;
+    }
+  }
+
+  return d;
 }
 
 
@@ -634,10 +650,8 @@ insert_atom_map4(term_t handle, term_t from, term_t to, term_t keys)
   node_data_ex search;
   node_data *data;
 
-  search.magic = ND_MAGIC_EX;
-
   if ( !get_atom_map(handle, &map) ||
-       !get_datum(from, &search.data.key) ||
+       !get_search_datum(from, &search) ||
        !get_datum(to, &a2) )
     return FALSE;
   
@@ -691,10 +705,8 @@ delete_atom_map2(term_t handle, term_t from)
   node_data_ex search;
   node_data *data;
 
-  search.magic = ND_MAGIC_EX;
-
   if ( !get_atom_map(handle, &map) ||
-       !get_datum(from, &search.data.key) )
+       !get_search_datum(from, &search) )
     return FALSE;
   
   if ( !WRLOCK(map, TRUE) )
@@ -722,10 +734,8 @@ delete_atom_map3(term_t handle, term_t from, term_t to)
   node_data *data;
   datum a2;
 
-  search.magic = ND_MAGIC_EX;
-
   if ( !get_atom_map(handle, &map) ||
-       !get_datum(from, &search.data.key) ||
+       !get_search_datum(from, &search) ||
        !get_datum(to, &a2) )
     return FALSE;
   
@@ -800,15 +810,13 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
     node_data_ex search;
     int neg = FALSE;
 
-    search.magic = ND_MAGIC_EX;
-
     if ( PL_is_functor(head, FUNCTOR_not1) )
     { PL_get_arg(1, head, tmp);
-      if ( !get_datum(tmp, &search.data.key) )
+      if ( !get_search_datum(tmp, &search) )
 	goto failure;
       neg = TRUE;
     } else
-    { if ( !get_datum(head, &search.data.key) )
+    { if ( !get_search_datum(head, &search) )
 	goto failure;
     }
     
@@ -921,9 +929,8 @@ between_keys(atom_map *map, long min, long max, term_t head, term_t tail)
 
   DEBUG(2, Sdprintf("between %ld .. %ld\n", min, max));
 
-  
   search.data.key = long_to_datum(min);
-  search.magic = ND_MAGIC_EX;
+  SECURE(search.magic = ND_MAGIC_EX);
 
   if ( (data = avlfindfirst(&map->tree, &search, &state)) &&
        isIntDatum(data->key) )
@@ -977,10 +984,9 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
     node_data_ex search;
 
     PL_get_arg(1, spec, a);
-    if ( !get_datum(a, &search.data.key) )
+    if ( !get_search_datum(a, &search) )
       goto failure;
 
-    search.magic = ND_MAGIC_EX;
     if ( (data = avlfind(&map->tree, &search)) )
     { long size = (long)data->values->size;
 
@@ -1004,7 +1010,9 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
     first_a = first_atom(prefix, STR_MATCH_PREFIX);
 
     search.data.key = atom_to_datum(first_a);
-    search.magic = ND_MAGIC_EX;
+    search.atom.handle = first_a;
+    search.atom.resolved = FALSE;
+    SECURE(search.magic = ND_MAGIC_EX);
 
     for(data = avlfindfirst(&map->tree, &search, &state);
 	data;
