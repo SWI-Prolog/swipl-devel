@@ -39,6 +39,7 @@
 :- use_module(rdf_db).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
+:- use_module(library(error)).
 :- use_module(library(porter_stem)).
 :- use_module(library(double_metaphone)).
 
@@ -67,6 +68,10 @@ setting(verbose(true)).			% print progress messages
 %		* verbose(Bool)
 %		If =true=, print progress messages while building the
 %		index tables.
+%		
+%		* index_threads(+Count)
+%		Number of threads to use for initial indexing of
+%		literals
 
 rdf_set_literal_index_option([]).
 rdf_set_literal_index_option([H|T]) :-
@@ -74,13 +79,22 @@ rdf_set_literal_index_option([H|T]) :-
 	rdf_set_literal_index_option(T).
 
 set_option(Term) :-
+	check_option(Term),
 	functor(Term, Name, Arity),
 	functor(General, Name, Arity),
-	(   retract(setting(General))
-	->  assert(setting(Term))
-	;   throw(error(domain_error(Term, rdf_index_option), _))
-	).
+	retractall(setting(General)),
+	assert(setting(Term)).
 
+
+check_option(X) :-
+	var(X), !,
+	instantiation_error(X).
+check_option(verbose(X)) :- !,
+	must_be(boolean, X).
+check_option(index_threads(Count)) :- !,
+	must_be(nonneg, Count).
+check_option(Option) :-
+	domain_error(literal_option, Option).
 
 		 /*******************************
 		 *	      QUERY		*
@@ -331,17 +345,59 @@ token_index(Map) :-
 token_index(Map) :-
 	rdf_new_literal_map(Map),
 	assert(literal_map(tokens, Map)),
-	(   rdf(_,_,literal(Literal)),
-	    register_literal(Literal),
-	    fail
-	;   true
-	),
+	make_literal_index,
 	verbose('~N', []),
 	rdf_monitor(monitor_literal,
 		    [ reset,
 		      new_literal,
 		      old_literal
 		    ]).
+
+
+%%	make_literal_index
+%
+%	Create the initial literal index.
+
+make_literal_index :-
+	setting(index_threads(N)), !,
+	threaded_literal_index(N).
+make_literal_index :-
+	current_prolog_flag(cpu_count, X),
+	threaded_literal_index(X).
+
+threaded_literal_index(N) :-
+	N > 1, !,
+	message_queue_create(Q, [max_size(1000)]),
+	create_index_threads(N, Q, Ids),
+	forall(rdf(_,_,literal(Literal)),
+	       thread_send_message(Q, Literal)),
+	forall(between(1, N, _),
+	       thread_send_message(Q, done(true))),
+	maplist(thread_join, Ids, _).
+threaded_literal_index(_) :-
+	forall(rdf(_,_,literal(Literal)),
+	       register_literal(Literal)).
+
+create_index_threads(N, Q, [Id|T]) :-
+	N > 0, !,
+	thread_create(index_worker(Q), Id,
+		      [ local(1000),
+			global(1000),
+			trail(1000)
+		      ]),
+	N2 is N - 1,
+	create_index_threads(N2, Q, T).
+create_index_threads(_, _, []) :- !.
+	       
+index_worker(Queue) :-
+	repeat,
+	    thread_get_message(Queue, Msg),
+	    work(Msg).
+
+work(done(true)) :- !.
+work(Literal) :-
+	register_literal(Literal),
+	fail.
 
 
 %	clean_token_index
