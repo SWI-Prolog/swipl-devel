@@ -60,7 +60,8 @@ being flexible to ordering of tokens.
 
 
 setting(verbose(true)).			% print progress messages
-setting(index_threads(1)).		% # threads for creating the literal index
+setting(index_threads(1)).		% # threads for creating the index
+setting(index(thread)).			% Use a thread for incremental updates
 
 %%	rdf_set_literal_index_option(+Options:list)
 %
@@ -95,6 +96,8 @@ check_option(verbose(X)) :- !,
 	must_be(boolean, X).
 check_option(index_threads(Count)) :- !,
 	must_be(nonneg, Count).
+check_option(index(How)) :- !,
+	must_be(oneof([thread,self]), How).
 check_option(Option) :-
 	domain_error(literal_option, Option).
 
@@ -350,11 +353,15 @@ token_index(Map) :-
 	assert(literal_map(tokens, Map)),
 	make_literal_index,
 	verbose('~N', []),
-	rdf_monitor(monitor_literal,
-		    [ reset,
-		      new_literal,
-		      old_literal
-		    ]).
+	Monitor = [ reset,
+		    new_literal,
+		    old_literal
+		  ],
+	(   setting(index(thread))
+	->  create_update_literal_thread,
+	    rdf_monitor(thread_monitor_literal, Monitor)
+	;   rdf_monitor(monitor_literal, Monitor)
+	).
 
 
 %%	make_literal_index
@@ -411,6 +418,36 @@ clean_token_index :-
 	forall(literal_map(_, Map),
 	       rdf_reset_literal_map(Map)).
 
+		 /*******************************
+		 *	  THREADED UPDATE	*
+		 *******************************/
+
+create_update_literal_thread :-
+	message_queue_create(_,
+			     [ alias(rdf_literal_monitor_queue),
+			       max_size(10000)
+			     ]),
+	thread_create(monitor_literals, _,
+		      [ alias(rdf_literal_monitor),
+			local(1000),
+			global(1000),
+			trail(1000)
+		      ]).
+
+monitor_literals :-
+	repeat,
+	    thread_get_message(rdf_literal_monitor_queue, Action),
+	    monitor_literal(Action),
+	fail.
+
+thread_monitor_literal(Action) :-
+	thread_send_message(rdf_literal_monitor_queue, Action).
+
+
+		 /*******************************
+		 *	 MONITORED UPDATE	*
+		 *******************************/
+
 monitor_literal(new_literal(Literal)) :-
 	register_literal(Literal).
 monitor_literal(old_literal(Literal)) :-
@@ -420,7 +457,6 @@ monitor_literal(transaction(begin, reset)) :-
 	clean_token_index.
 monitor_literal(transaction(end, reset)) :-
 	rdf_monitor(monitor_literal, [+old_literal]).
-
 
 %%	register_literal(+Literal)
 %	
