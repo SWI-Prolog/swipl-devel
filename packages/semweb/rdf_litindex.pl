@@ -435,6 +435,7 @@ create_update_literal_thread :-
 		      ]).
 
 monitor_literals :-
+	set_prolog_flag(agc_margin, 0),	% we don't create garbage
 	repeat,
 	    thread_get_message(rdf_literal_monitor_queue, Action),
 	    monitor_literal(Action),

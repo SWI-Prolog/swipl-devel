@@ -86,6 +86,9 @@ move the .new to the plain snapshot name as a means of recovery.
 	db_file_base/2,			% DB, FileBase
 	file_base_db/2.			% FileBase, DB
 
+:- meta_predicate
+	no_agc(0).
+
 %%	rdf_attach_db(+Directory, +Options)
 %	
 %	Start persistent operations using Directory   as  place to store
@@ -133,7 +136,7 @@ rdf_attach_db(DirSpec, Options) :-
 	    assert(rdf_directory(Directory)),
 	    assert_options(Options),
 	    stop_monitor,		% make sure not to register load
-	    load_db,
+	    no_agc(load_db),
 	    at_halt(rdf_detach_db),
 	    start_monitor
 	).
@@ -154,7 +157,7 @@ assert_options([H|T]) :-
 	(   option_type(H, Check)
 	->  Check,
 	    assert(rdf_option(H))
-	;   domain_error(rdf_option, H)
+	;   true			% ignore options we do not understand
 	),
 	assert_options(T).
 	
@@ -162,6 +165,18 @@ option_type(concurrency(X),		must_be(positive_integer, X)).
 option_type(max_open_journals(X),	must_be(positive_integer, X)).
 option_type(silent(X),	       must_be(oneof([true,false,brief]), X)).
 option_type(log_nested_transactions(X),	must_be(boolean, X)).
+
+
+%%	no_agc(:Goal)
+%
+%	Run Goal with atom garbage collection   disabled. Loading an RDF
+%	database creates large amounts  of  atoms   we  *know*  are  not
+%	garbage. 
+
+no_agc(Goal) :-
+	current_prolog_flag(agc_margin, Old),
+	set_prolog_flag(agc_margin, 0),
+	call_cleanup(Goal, set_prolog_flag(agc_margin, Old)).
 
 
 %%	rdf_detach_db is det.
