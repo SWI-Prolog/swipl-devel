@@ -61,7 +61,7 @@ being flexible to ordering of tokens.
 
 setting(verbose(true)).			% print progress messages
 setting(index_threads(1)).		% # threads for creating the index
-setting(index(thread)).			% Use a thread for incremental updates
+setting(index(self)).			% Use a thread for incremental updates
 
 %%	rdf_set_literal_index_option(+Options:list)
 %
