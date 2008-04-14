@@ -113,7 +113,8 @@ reexports the content of these files.
 set_version :-
 	current_prolog_flag(version_data, swi(Major, Minor, Patch, _)),
 	send(@pce, catch_error_signals, @on),
-	sformat(PlId, 'SWI-Prolog version ~w.~w.~w', [Major, Minor, Patch]),
+	format(string(PlId),
+	       'SWI-Prolog version ~w.~w.~w', [Major, Minor, Patch]),
 	send(@prolog, system, PlId).
 
 :- initialization set_version.

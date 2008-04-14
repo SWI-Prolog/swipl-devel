@@ -884,7 +884,7 @@ journal_open(Type, Time) :-
 
 journal_comment(start, Time) :-
 	journal(_, _, Stream),
-	convert_time(Time, String),
+	format_time(string(String), '%+', Time),
 	format(Stream,
 	       '/* Triple20 Journal File\n\n   \
 	       Created: ~w\n   \
@@ -893,7 +893,7 @@ journal_comment(start, Time) :-
 	       */~n~n', [String]).
 journal_comment(resume, Time) :-
 	journal(_, _, Stream),
-	convert_time(Time, String),
+	format_time(string(String), '%+', Time),
 	format(Stream,
 	       '\n\
 	       /* Resumed: ~w\n\

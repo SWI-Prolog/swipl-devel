@@ -60,7 +60,7 @@ pce_define_type(Alias, Type) :-
 	->  TheType = Type
 	;   atom(Type)
 	->  get(@pce, convert, Type, type, TheType)
-	;   sformat(Atom, '~w', Type),
+	;   format(string(Atom), '~w', Type),
 	    get(@pce, convert, Atom, type, TheType)
 	),
         new(_, type(Alias, alias, TheType)).

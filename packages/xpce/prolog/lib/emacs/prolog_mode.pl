@@ -514,8 +514,8 @@ pce_define_class(M, Name:name,
 	->  Super = SuperClass
 	;   get(SuperClass, name, Super)
 	),
-	sformat(QName, '~q', Name),
-	sformat(QSuper, '~q', Super),
+	format(string(QName), '~q', Name),
+	format(string(QSuper), '~q', Super),
 	send(Comment, strip),
 	get(Comment, value, C),
 	(   C == ''
@@ -525,7 +525,7 @@ pce_define_class(M, Name:name,
 		 QName, QSuper, QName)
 	;   atom_codes(C, Codes),
 	    string_to_list(S, Codes),
-	    sformat(QComment, '~q', S),
+	    format(string(QComment), '~q', S),
 	    send(M, format,
 		 ':- pce_begin_class(%s, %s, %s).\n\n\
 		  :- pce_end_class(%s).\n',

@@ -1091,7 +1091,7 @@ show_modified(W) :->
 	get(W, prolog_file, File),
 	get(W, tabular, T),
 	time_file(File, Stamp),
-	convert_time(Stamp, Modified),
+	format_time(string(Modified), '%+', Stamp),
 	send(T, append, 'Modified:', bold, right),
 	send(T, append, Modified),
 	send(T, next_row).

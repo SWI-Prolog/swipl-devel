@@ -489,7 +489,7 @@ newline_mode(M, Mode:mode={posix,dos}) :->
 		 *******************************/
 
 print(M, From:[int], To:[int]) :->
-	"Print contentx of the buffer"::
+	"Print contents of the buffer"::
 	get(M, text_buffer, TB),
 	get(M, editor, E),
 	(   get(M, file, File),
@@ -499,7 +499,7 @@ print(M, From:[int], To:[int]) :->
 	    (	From \== @default, To \== @default
 	    ->	get(M, line_number, From, FL),
 		get(M, line_number, To-1, TL),
-		sformat(Job, '~w (lines ~w..~w)', [FileName, FL, TL])
+		format(string(Job), '~w (lines ~w..~w)', [FileName, FL, TL])
 	    ;	Job = FileName
 	    )
 	;   Job = @default

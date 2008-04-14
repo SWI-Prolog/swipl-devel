@@ -127,7 +127,7 @@ dir_name(Path, Name) :-
 	;   Home = Home0
 	),
 	atom_concat(Home, FromHome, Path), !,
-	sformat(Name, '~~~w', [FromHome]).
+	format(atom(Name), '~~~w', [FromHome]).
 dir_name(Path, Path).
 
 %	ls
@@ -185,9 +185,9 @@ rm(File) :-
 %	Convert a typed name into an atom
 
 name_to_atom(Spec, File) :-
-	(   atomic(Spec)
+	(   atom(Spec)
 	->  S1 = Spec
-	;   sformat(S1, '~w', [Spec])
+	;   format(atom(S1), '~w', [Spec])
 	),
 	expand_file_name(Spec, Expanded),
 	(   Expanded = [File]

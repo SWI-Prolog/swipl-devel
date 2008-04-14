@@ -122,9 +122,9 @@ attach_console :-
 attach_console :-
 	thread_self(Id),
 	current_prolog_flag(system_thread_id, SysId),
-	sformat(Title,
-		'SWI-Prolog Thread ~w (~d) Interactor',
-		[Id, SysId]),
+	format(atom(Title),
+	       'SWI-Prolog Thread ~w (~d) Interactor',
+	       [Id, SysId]),
 	(   current_prolog_flag(windows, true)
 	->  regkey(Id, Key),
 					% Avoid undefined predicate listing
