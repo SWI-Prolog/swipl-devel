@@ -2016,7 +2016,7 @@ free_thread_message(thread_message *msg)
 { GET_LD
 
   if ( msg->message )
-    PL_erase(msg->message);
+    freeRecord(msg->message);
 
   freeHeap(msg, sizeof(*msg));
 }
@@ -2039,7 +2039,7 @@ queue_message(message_queue *queue, term_t msg)
 
   msgp = allocHeap(sizeof(*msgp));
   msgp->next    = NULL;
-  msgp->message = compileTermToHeap(msg, R_DUPLICATE|R_NOLOCK);
+  msgp->message = compileTermToHeap(msg, R_NOLOCK);
   msgp->key     = getIndexOfTerm(msg);
   
   simpleMutexLock(&queue->mutex);
@@ -2299,7 +2299,7 @@ destroy_message_queue(message_queue *queue)
   for( msgp = queue->head; msgp; msgp = next )
   { next = msgp->next;
 
-    PL_erase(msgp->message);
+    freeRecord(msgp->message);
     freeHeap(msgp, sizeof(*msgp));
   }
   
