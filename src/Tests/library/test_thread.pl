@@ -6,7 +6,7 @@ test_thread :-
 :- use_module(library(plunit)).
 :- use_module(library(thread)).
 
-:- begin_tests(thread).
+:- begin_tests(thread, [condition(current_prolog_flag(threads,true))]).
 
 test(true, true) :-
 	concurrent(2, [true], []).

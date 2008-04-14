@@ -3040,13 +3040,11 @@ else
 fi
 
 
-if test "x$MT" = "xyes"; then
 
 cat >>confdefs.h <<\_ACEOF
 #define NO_SEGV_HANDLING 1
 _ACEOF
 
-fi
 
 readline_ok=no
 # Check whether --enable-readline was given.
@@ -3063,7 +3061,6 @@ if test "${enable_mapped_stacks+set}" = set; then
 else
   configmmappedstacks=yes
 fi
-
 
 
 # Check whether --enable-gmp was given.
