@@ -3044,40 +3044,42 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
 }
 
 
-word
-pl_name(term_t atom, term_t string)
-{ return x_chars("name", atom, string, X_AUTO);
+static
+PRED_IMPL("name", 2, name, 0)
+{ return x_chars("name", A1, A2, X_AUTO);
 }
 
 
-word
-pl_atom_chars(term_t atom, term_t string)
-{ return x_chars("atom_chars", atom, string, X_ATOM|X_CHARS);
+static
+PRED_IMPL("atom_chars", 2, atom_chars, PL_FA_ISO)
+{ return x_chars("atom_chars", A1, A2, X_ATOM|X_CHARS);
 }
 
 
-word
-pl_atom_codes(term_t atom, term_t string)
-{ return x_chars("atom_codes", atom, string, X_ATOM);
+static
+PRED_IMPL("atom_codes", 2, atom_codes, PL_FA_ISO)
+{ return x_chars("atom_codes", A1, A2, X_ATOM);
 }
 
 
-word
-pl_number_chars(term_t atom, term_t string)
-{ return x_chars("number_chars", atom, string, X_NUMBER|X_CHARS);
+static
+PRED_IMPL("number_chars", 2, number_chars, PL_FA_ISO)
+{ return x_chars("number_chars", A1, A2, X_NUMBER|X_CHARS);
 }
 
 
-word
-pl_number_codes(term_t atom, term_t string)
-{ return x_chars("number_chars", atom, string, X_NUMBER);
+static
+PRED_IMPL("number_codes", 2, number_codes, PL_FA_ISO)
+{ return x_chars("number_chars", A1, A2, X_NUMBER);
 }
 
 
-word
-pl_char_code(term_t atom, term_t chr)
+static
+PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 { PL_chars_t txt;
   int n;
+  term_t atom = A1;
+  term_t chr  = A2;
   int vatom = PL_is_variable(atom);
   int vchr  = PL_is_variable(chr);
   int achr = -1;
@@ -4585,6 +4587,12 @@ BeginPredDefs(prims)
   PRED_DEF("$depth_limit_false",  3, depth_limit_false, 0)
 #endif
   PRED_DEF("atom_length", 2, atom_length, PL_FA_ISO)
+  PRED_DEF("name", 2, name, 0)
+  PRED_DEF("atom_chars", 2, atom_chars, PL_FA_ISO)
+  PRED_DEF("atom_codes", 2, atom_codes, PL_FA_ISO)
+  PRED_DEF("number_chars", 2, number_chars, PL_FA_ISO)
+  PRED_DEF("number_codes", 2, number_codes, PL_FA_ISO)
+  PRED_DEF("char_code", 2, char_code, PL_FA_ISO)
   PRED_DEF("atom_number", 2, atom_number, 0)
   PRED_DEF("collation_key", 2, collation_key, 0)
   PRED_DEF("statistics", 2, statistics, 0)
