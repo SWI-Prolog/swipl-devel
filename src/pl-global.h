@@ -407,10 +407,6 @@ typedef struct PL_local_data
   } atoms;
 
   struct
-  { struct assoc* bags;			/* findall/setof bags storage */
-  } bags;
-
-  struct
   { VarDef *	vardefs;		/* compiler variable analysis */
     int		nvardefs;
     int		filledVars;
