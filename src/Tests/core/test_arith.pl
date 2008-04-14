@@ -32,6 +32,7 @@
 
 test_arith :-
 	run_tests([ rem,
+		    mod,
 		    errors
 		  ]).
 
@@ -39,6 +40,8 @@ test_arith :-
 
 test(small, R == 2) :-
 	R is 5 rem 3.
+test(small_divneg, R == 2) :-
+	R is 5 rem -3.
 test(small_neg, R == -2) :-
 	R is -5 rem 3.
 test(big, [condition(current_prolog_flag(bounded, false)), R == 6]) :-
@@ -47,6 +50,21 @@ test(big_neg, [condition(current_prolog_flag(bounded, false)), R == -6]) :-
 	R is -(1<<100) rem 10.
 
 :- end_tests(rem).
+
+:- begin_tests(mod).
+
+test(small, R == 2) :-
+	R is 5 mod 3.
+test(small_divneg, R == -1) :-
+	R is 5 mod -3.
+test(small_neg, R == 1) :-
+	R is -5 mod 3.
+test(big, [condition(current_prolog_flag(bounded, false)), R == 6]) :-
+	R is (1<<100) mod 10.
+test(big_neg, [condition(current_prolog_flag(bounded, false)), R == 4]) :-
+	R is -(1<<100) mod 10.
+
+:- end_tests(mod).
 
 :- begin_tests(errors).
 
