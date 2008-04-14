@@ -3966,21 +3966,27 @@ is almost dead anyway.
 
 static void
 SyncUserCPU(int sig)
-{ LD->statistics.user_cputime = CpuTime(CPU_USER);
+{ GET_LD
+
+  LD->statistics.user_cputime = CpuTime(CPU_USER);
   sem_post(sem_mark_ptr);
 }
 
 
 static void
 SyncSystemCPU(int sig)
-{ LD->statistics.system_cputime = CpuTime(CPU_SYSTEM);
+{ GET_LD
+
+  LD->statistics.system_cputime = CpuTime(CPU_SYSTEM);
   sem_post(sem_mark_ptr);
 }
 
 
 static double
 ThreadCPUTime(PL_thread_info_t *info, int which)
-{ if ( info->thread_data == LD )
+{ GET_LD
+
+  if ( info->thread_data == LD )
   { return CpuTime(which);
   } else
   { struct sigaction old;
