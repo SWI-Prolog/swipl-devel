@@ -37,7 +37,8 @@
 #define FINDALL_MAGIC	0x37ac78fe
 
 typedef struct findall_bag
-{ long		magic;			/* FINDALL_MAGIC */
+{ struct findall_bag *parent;		/* parent bag */
+  long		magic;			/* FINDALL_MAGIC */
   segstack	answers;		/* list of ansers */
   size_t	solutions;		/* count # solutions */
   size_t	gsize;			/* required size on stack */
@@ -57,6 +58,7 @@ get_bag(term_t t, findall_bag **bag ARG_LD)
   }
 }
 
+
 static 
 PRED_IMPL("$new_findall_bag", 1, new_findall_bag, 0)
 { PRED_LD
@@ -65,6 +67,10 @@ PRED_IMPL("$new_findall_bag", 1, new_findall_bag, 0)
   memset(bag, 0, sizeof(*bag));
   bag->magic = FINDALL_MAGIC;
   bag->answers.unit_size = sizeof(Record);
+  PL_LOCK(L_AGC);
+  bag->parent = LD->bags.bags;
+  LD->bags.bags = bag;
+  PL_UNLOCK(L_AGC);
 
   return PL_unify_pointer(A1, bag);
 }
@@ -79,7 +85,7 @@ PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
   if ( !get_bag(A1, &bag PASS_LD) )
     return FALSE;
 
-  r = compileTermToHeap(A2, 0);
+  r = compileTermToHeap(A2, R_NOLOCK);
   pushSegStack(&bag->answers, &r);
   bag->gsize += r->gsize;
   bag->solutions++;
@@ -87,9 +93,26 @@ PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
   if ( bag->gsize + bag->solutions*3 > limitStack(global)/sizeof(word) )
     return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
 
+  PL_LOCK(L_AGC);			/* see queue_message() in */
+  PL_UNLOCK(L_AGC);			/* pl-thread.c for the motivation */
+
   return TRUE;
 }
 
+
+static inline void
+freeBag(findall_bag *bag ARG_LD)
+{ bag->magic = 0;
+  clearSegStack(&bag->answers);
+  freeHeap(bag, sizeof(*bag));
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that we much lock  L_AGC,  as   otherwise  AGC  may  get in between
+popSegStack and copyRecordToGlobal(). Alternatively  we   could  make an
+interface that gets the top of the stack, processed it and then pops it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static 
 PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
@@ -109,6 +132,7 @@ PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
       return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
   }
 
+  PL_LOCK(L_AGC);
   while(popSegStack(&bag->answers, &r))
   { copyRecordToGlobal(answer, r PASS_LD);
     PL_cons_list(list, answer, list);
@@ -116,9 +140,11 @@ PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
     freeRecord(r);
   }
 
-  clearSegStack(&bag->answers);
-  bag->magic = 0;
-  freeHeap(bag, sizeof(*bag));
+  assert(LD->bags.bags == bag);
+  LD->bags.bags = bag->parent;
+  PL_UNLOCK(L_AGC);
+
+  freeBag(bag PASS_LD);
 
   return PL_unify(A2, list);
 }
@@ -132,12 +158,15 @@ PRED_IMPL("$destroy_findall_bag", 1, destroy_findall_bag, 0)
   if ( PL_get_pointer(A1, (void**)&bag) && bag->magic == FINDALL_MAGIC )
   { Record r; 
 
-    bag->magic = 0;
     while(popSegStack(&bag->answers, &r))
       freeRecord(r);
 
-    clearSegStack(&bag->answers);
-    freeHeap(bag, sizeof(*bag));
+    PL_LOCK(L_AGC);
+    assert(LD->bags.bags == bag);
+    LD->bags.bags = bag->parent;
+    PL_UNLOCK(L_AGC);
+
+    freeBag(bag PASS_LD);
   }
 
   succeed;
@@ -178,6 +207,26 @@ PRED_IMPL("$bind_bagof_keys", 2, bind_bagof_keys, 0)
   }
 
   succeed;
+}
+
+		 /*******************************
+		 *	  ATOM-GC SUPPORT	*
+		 *******************************/
+
+static void
+markAtomsAnswers(void *data)
+{ Record r = *((Record*)data);
+
+  markAtomsRecord(r);
+}
+
+
+void
+markAtomsFindall(PL_local_data_t *ld)
+{ findall_bag *bag = ld->bags.bags;
+
+  for( ; bag; bag = bag->parent )
+    scanSegStack(&bag->answers, markAtomsAnswers);
 }
 
 

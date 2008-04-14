@@ -446,6 +446,12 @@ typedef struct PL_local_data
   { FindData	find;			/* /<ports> <goal> in tracer */
   } trace;
 
+#ifdef O_ATOMGC
+  struct
+  { struct findall_bag *bags;		/* Known bags */
+  } bags;
+#endif
+
   struct
   { AbortHandle	_abort_head;		/* PL_abort_hook() */
     AbortHandle _abort_tail;

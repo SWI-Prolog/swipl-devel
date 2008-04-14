@@ -2023,8 +2023,8 @@ free_thread_message(thread_message *msg)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-(*) See also markAtomsMessageQueues(). There is  a critical window where
-an atom is not reachable if some other  thread is executing AGC. The AGC
+(*) See also markAtomsThreads(). There  is   a  critical window where an
+atom is not reachable if some  other   thread  is executing AGC. The AGC
 thread  may  already  have  swept   this    queue.   If   we  now  leave
 queue_message(), the atom may no longer  be reachable. Therefore we lock
 and unlock L_AGC before leaving. Note that   locking  the whole call can
@@ -4311,7 +4311,7 @@ calls seriously hard concurrency  due  to   contention  on  L_ATOM.  So,
 instead we must sweep atoms in records  in the message queues. Note that
 atom-gc runs with the L_THREAD mutex  locked.   As  both he thread mutex
 queue   tables   are   guarded   by   this     mutex,   the   loops   in
-markAtomsMessageQueues() are safe.
+markAtomsThreads() are safe.
 
 We must lock the individual queues before   processing. This is safe, as
 these mutexes are never helt long  and   the  other  threads are not yet
@@ -4336,7 +4336,7 @@ markAtomsMessageQueue(message_queue *queue)
 
 
 void
-markAtomsMessageQueues(void)
+markAtomsThreads(void)
 { int i;
 
   for(i=1; i<MAX_THREADS; i++)
@@ -4344,7 +4344,9 @@ markAtomsMessageQueues(void)
 
     if ( (threads[i].status != PL_THREAD_UNUSED) &&
 	 (ld=threads[i].thread_data) )
-      markAtomsMessageQueue(&ld->thread.messages);
+    { markAtomsMessageQueue(&ld->thread.messages);
+      markAtomsFindall(ld);
+    }
   }
 
   if ( queueTable )

@@ -130,6 +130,33 @@ popSegStack(segstack *stack, void *data)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+scanSegStack(segstack *stack, void (*func)(void *cell))
+Walk along all living cells on the stack and call func on them.  The stack
+is traversed last-to-first.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+scan_chunk(segstack *stack, char *top, char *base, void (*func)(void *cell))
+{ while(top >= base+stack->unit_size)
+  { top -= stack->unit_size;
+    (*func)((void*)top);
+  }
+}
+
+
+void
+scanSegStack(segstack *stack, void (*func)(void *cell))
+{ segchunk *chunk;
+
+  if ( (chunk=stack->last) )		/* something there */
+  { chunk->top = stack->top;		/* close last chunk */
+    for(; chunk; chunk=chunk->previous)
+      scan_chunk(stack, chunk->top, chunk->data, func);
+  }
+}
+
+
 void
 clearSegStack(segstack *s)
 { segchunk *c, *n;

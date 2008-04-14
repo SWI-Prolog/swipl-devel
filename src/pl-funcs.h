@@ -131,8 +131,7 @@ COMMON(void)		popArgvArithStack(int n ARG_LD);
 COMMON(int)		ar_sign_i(Number n1);
 
 /* pl-bag.c */
-COMMON(void) 		resetBags(void);
-COMMON(int)  		checkBags(void);
+COMMON(void)		markAtomsFindall(PL_local_data_t *ld);
 
 /* pl-comp.c */
 COMMON(void) 		initWamTable(void);

@@ -338,7 +338,7 @@ intptr_t			system_thread_id(PL_thread_info_t *info);
 void		forThreadLocalData(void (*func)(struct PL_local_data *),
 				   unsigned flags);
 void		resumeThreads(void);
-void		markAtomsMessageQueues(void);
+void		markAtomsThreads(void);
 
 #define PL_THREAD_SUSPEND_AFTER_WORK	0x1 /* forThreadLocalData() */
 
