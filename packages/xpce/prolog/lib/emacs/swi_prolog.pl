@@ -98,13 +98,12 @@ make_message([nl|T]) -->
 	" ",
 	make_message(T).
 make_message([Fmt-Args|T]) --> !,
-	{ sformat(S, Fmt, Args),
-	  string_to_list(S, Chars)
+	{ format(codes(Codes, Tail), Fmt, Args)
 	},
-	Chars,
+	dlist(Codes, Tail),
 	make_message(T).
 make_message([Fmt|T]) -->
 	make_message([Fmt-[]|T]).
 
-
+dlist(Codes, Tail, Codes, Tail).
 
