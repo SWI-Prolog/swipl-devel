@@ -181,7 +181,7 @@ predicate_type(Head, builtin):-
 predicate_type(_, user). 
 
 vread(Term, Variables):-
-	read_variables(Term, Variables).
+	read_term(Term, [variable_names(Variables)]).
 
 
 bindVariables([X = X | Bindings]):-
