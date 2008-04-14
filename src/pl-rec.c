@@ -525,7 +525,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   info.size = 0;
   info.nvars = 0;
   info.external = (flags & R_EXTERNAL);
-  info.lock = !info.external;
+  info.lock = !(info.external || (flags&R_NOLOCK));
 
   compile_term_to_heap(valTermRef(t), &info PASS_LD);
   p = topBuffer(&info.vars, Word);
@@ -1023,7 +1023,7 @@ skipLong(CopyInfo b)
 
 
 static void
-unregisterAtomsRecord(CopyInfo b)
+scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
 { 
 right_recursion:
 
@@ -1044,7 +1044,7 @@ right_recursion:
     case PL_TYPE_ATOM:
     { atom_t a = fetchWord(b);
 
-      PL_unregister_atom(a);
+      (*func)(a);
       return;
     }
     case PL_TYPE_EXT_ATOM:
@@ -1079,7 +1079,7 @@ right_recursion:
 
       arity = arityFunctor(fdef);
       while(--arity > 0)
-	unregisterAtomsRecord(b);
+	scanAtomsRecord(b, func);
       goto right_recursion;
     }
     case PL_TYPE_EXT_COMPOUND:
@@ -1087,11 +1087,11 @@ right_recursion:
 
       skipAtom(b);
       while(--arity > 0)
-	unregisterAtomsRecord(b);
+	scanAtomsRecord(b, func);
       goto right_recursion;
     }
     case PL_TYPE_CONS:
-    { unregisterAtomsRecord(b);
+    { scanAtomsRecord(b, func);
       goto right_recursion;
     }
     default:
@@ -1333,19 +1333,37 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+markAtomsRecord(Record record ARG_LD) must be called on all records that
+use the R_NOLOCK option.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+markAtomsRecord(Record record)
+{
+#ifdef O_ATOMGC
+  copy_info ci;
+
+  ci.base = ci.data = dataRecord(record);
+  scanAtomsRecord(&ci, markAtom);
+  assert(ci.data == addPointer(record, record->size));
+#endif
+}
+
+
 bool
 freeRecord__LD(Record record ARG_LD)
 { if ( true(record, R_DUPLICATE) && --record->references > 0 )
     succeed;
 
 #ifdef O_ATOMGC
-  if ( false(record, R_EXTERNAL) )
+  if ( false(record, (R_EXTERNAL|R_NOLOCK)) )
   { copy_info ci;
 
     DEBUG(3, Sdprintf("freeRecord(%p)\n", record));
 
     ci.base = ci.data = dataRecord(record);
-    unregisterAtomsRecord(&ci);
+    scanAtomsRecord(&ci, PL_unregister_atom);
     assert(ci.data == addPointer(record, record->size));
   }
 #endif

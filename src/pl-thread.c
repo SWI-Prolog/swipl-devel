@@ -234,6 +234,7 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_INIT"),
   COUNT_MUTEX_INITIALIZER("L_TERM"),
   COUNT_MUTEX_INITIALIZER("L_GC"),
+  COUNT_MUTEX_INITIALIZER("L_AGC"),
   COUNT_MUTEX_INITIALIZER("L_FOREIGN"),
   COUNT_MUTEX_INITIALIZER("L_OS")
 };
@@ -2021,6 +2022,15 @@ free_thread_message(thread_message *msg)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) See also markAtomsMessageQueues(). There is  a critical window where
+an atom is not reachable if some other  thread is executing AGC. The AGC
+thread  may  already  have  swept   this    queue.   If   we  now  leave
+queue_message(), the atom may no longer  be reachable. Therefore we lock
+and unlock L_AGC before leaving. Note that   locking  the whole call can
+deadlock if we are waiting for the queue to drain.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 queue_message(message_queue *queue, term_t msg)
 { GET_LD
@@ -2029,7 +2039,7 @@ queue_message(message_queue *queue, term_t msg)
 
   msgp = allocHeap(sizeof(*msgp));
   msgp->next    = NULL;
-  msgp->message = PL_record(msg);
+  msgp->message = compileTermToHeap(msg, R_DUPLICATE|R_NOLOCK);
   msgp->key     = getIndexOfTerm(msg);
   
   simpleMutexLock(&queue->mutex);
@@ -2080,9 +2090,17 @@ queue_message(message_queue *queue, term_t msg)
 
 out:
   simpleMutexUnlock(&queue->mutex);
+
+  PL_LOCK(L_AGC);			/* See (*) above */
+  PL_UNLOCK(L_AGC);
+
   return rval;
 }
 
+
+		 /*******************************
+		 *     READING FROM A QUEUE	*
+		 *******************************/
 
 typedef struct
 { message_queue *queue;
@@ -4281,6 +4299,65 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 }
 
 #endif /*__WINDOWS__*/
+
+
+		 /*******************************
+		 *	 ATOM MARK SUPPORT	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We do not register atoms  in   message  queues as the PL_register_atom()
+calls seriously hard concurrency  due  to   contention  on  L_ATOM.  So,
+instead we must sweep atoms in records  in the message queues. Note that
+atom-gc runs with the L_THREAD mutex  locked.   As  both he thread mutex
+queue   tables   are   guarded   by   this     mutex,   the   loops   in
+markAtomsMessageQueues() are safe.
+
+We must lock the individual queues before   processing. This is safe, as
+these mutexes are never helt long  and   the  other  threads are not yet
+silenced.
+
+This means however that messages can still   be added to the queues that
+are subsequently not marked. Note that deletion  is not an issue. To fix
+this, we introduced L_AGC that protects   the atom garbage collector and
+the queue_message().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+markAtomsMessageQueue(message_queue *queue)
+{ thread_message *msg;
+
+  simpleMutexLock(&queue->mutex);
+  for(msg=queue->head; msg; msg=msg->next)
+  { markAtomsRecord(msg->message);
+  }
+  simpleMutexUnlock(&queue->mutex);
+}
+
+
+void
+markAtomsMessageQueues(void)
+{ int i;
+
+  for(i=1; i<MAX_THREADS; i++)
+  { PL_local_data_t *ld;
+
+    if ( (threads[i].status != PL_THREAD_UNUSED) &&
+	 (ld=threads[i].thread_data) )
+      markAtomsMessageQueue(&ld->thread.messages);
+  }
+
+  if ( queueTable )
+  { Symbol s;
+    TableEnum e = newTableEnum(queueTable);
+    
+    while((s=advanceTableEnum(e)))
+    { markAtomsMessageQueue(s->value);
+    }
+    freeTableEnum(e);
+  }
+}
+
 
 		 /*******************************
 		 *	    PREDICATES		*

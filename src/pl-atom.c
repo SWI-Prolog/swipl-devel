@@ -719,11 +719,13 @@ pl_garbage_collect_atoms()
   }
 
   PL_LOCK(L_THREAD);
+  PL_LOCK(L_AGC);
   LOCK();
   blockSignals(&set);
   t = CpuTime(CPU_USER);
   markAtomsOnStacks(LD);
 #ifdef O_PLMT
+  markAtomsMessageQueues();
   forThreadLocalData(markAtomsOnStacks, 0);
 #endif
   oldcollected = GD->atoms.collected;
@@ -738,6 +740,7 @@ pl_garbage_collect_atoms()
   GD->statistics.atomspace -= freed;
   unblockSignals(&set);
   UNLOCK();
+  PL_UNLOCK(L_AGC);
   PL_UNLOCK(L_THREAD);
   gc_status.blocked--;
   PL_UNLOCK(L_GC);

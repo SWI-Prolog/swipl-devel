@@ -139,8 +139,9 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_INIT	       14
 #define L_TERM	       15
 #define L_GC	       16
-#define L_FOREIGN      17
-#define L_OS	       18
+#define L_AGC	       17
+#define L_FOREIGN      18
+#define L_OS	       19
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The IF_MT(id, g) macro  is  used  to   bypass  mutexes  if  threading  is
@@ -337,6 +338,7 @@ intptr_t			system_thread_id(PL_thread_info_t *info);
 void		forThreadLocalData(void (*func)(struct PL_local_data *),
 				   unsigned flags);
 void		resumeThreads(void);
+void		markAtomsMessageQueues(void);
 
 #define PL_THREAD_SUSPEND_AFTER_WORK	0x1 /* forThreadLocalData() */
 

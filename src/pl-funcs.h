@@ -705,6 +705,7 @@ COMMON(word) 		pl_recorded(term_t key, term_t term, term_t ref, control_t h);
 COMMON(word) 		pl_erase(term_t ref);
 COMMON(word) 		pl_term_complexity(term_t t, term_t mx, term_t count);
 COMMON(void) 		undo_while_saving_term(mark *m, Word term);
+COMMON(void)		markAtomsRecord(Record record);
 
 /* pl-rl.c */
 COMMON(void) 		install_rl(void);

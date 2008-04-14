@@ -1042,6 +1042,7 @@ with one operation, it turns out to be faster as well.
 #define R_DIRTY			(0x0001) /* recordlist */
 #define R_EXTERNAL		(0x0002) /* record: inline atoms */
 #define R_DUPLICATE		(0x0004) /* record: include references */
+#define R_NOLOCK		(0x0008) /* record: do not lock atoms */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handling environment (or local stack) frames.
