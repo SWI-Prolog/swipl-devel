@@ -1180,7 +1180,11 @@ ar_mod(Number n1, Number n2, Number r)
       if ( n2->value.i == 0 )
 	return PL_error("mod", 2, NULL, ERR_DIV_BY_ZERO);
 
-      r->value.i = n1->value.i % n2->value.i;
+      { int64_t mod = n1->value.i % n2->value.i;
+	if ( mod != 0 && ( mod < 0 ) != ( n2->value.i < 0 ) )
+	  mod += n2->value.i;
+	r->value.i = mod;
+      }
       r->type = V_INTEGER;
       break;
 #ifdef O_GMP
@@ -1190,9 +1194,7 @@ ar_mod(Number n1, Number n2, Number r)
 
       r->type = V_MPZ;
       mpz_init(r->value.mpz);
-      mpz_mod(r->value.mpz, n1->value.mpz, n2->value.mpz);
-      if ( mpz_sgn(n1->value.mpz) < 0 )
-	mpz_neg(r->value.mpz, r->value.mpz);
+      mpz_fdiv_r(r->value.mpz, n1->value.mpz, n2->value.mpz);
       break;
 #endif
     default:
