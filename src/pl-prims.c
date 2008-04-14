@@ -3869,9 +3869,6 @@ pl_sub_string(term_t atom,
 
 #endif /* O_STRING */
 
-#undef LD
-#define LD GLOBAL_LD
-
 
 		/********************************
 		*            CONTROL            *
@@ -3905,7 +3902,8 @@ pl_halt(term_t code)
 
 #ifdef O_PLMT
   if ( PL_thread_self() != 1 )
-  { term_t t = PL_new_term_ref();
+  { GET_LD
+    term_t t = PL_new_term_ref();
 
     pl_thread_self(t);
     return PL_error("halt", 1, "Only from thread `main'",
@@ -3960,7 +3958,8 @@ query.
 
 word
 pl_depth_limit(term_t limit, term_t olimit, term_t oreached)
-{ long levels;
+{ GET_LD
+  long levels;
   long clevel = levelFrame(environment_frame) - 1;
 
   if ( PL_get_long_ex(limit, &levels) )
@@ -3982,7 +3981,8 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
 		    term_t res, term_t cut, control_t b)
 { switch(ForeignControl(b))
   { case FRG_FIRST_CALL:
-    { long l, ol, or;
+    { GET_LD
+      long l, ol, or;
 
       if ( PL_get_long_ex(limit, &l) &&
 	   PL_get_long_ex(olimit, &ol) &&
@@ -4023,7 +4023,8 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
       break;
     }
     case FRG_REDO:
-    { long levels;
+    { GET_LD
+      long levels;
       long clevel = levelFrame(environment_frame) - 1;
 
       PL_get_long_ex(limit, &levels);
@@ -4042,7 +4043,8 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
 
 static
 PRED_IMPL("$depth_limit_false", 3, depth_limit_false, 0)
-{ long ol, or;
+{ PRED_LD
+  long ol, or;
 
   if ( PL_get_long_ex(A1, &ol) &&
        PL_get_long_ex(A2, &or) )
@@ -4061,7 +4063,8 @@ PRED_IMPL("$depth_limit_false", 3, depth_limit_false, 0)
 
 static
 PRED_IMPL("$depth_limit_except", 3, depth_limit_except, 0)
-{ long ol, or;
+{ PRED_LD
+  long ol, or;
 
   if ( PL_get_long_ex(A1, &ol) &&
        PL_get_long_ex(A2, &or) )
@@ -4074,15 +4077,12 @@ PRED_IMPL("$depth_limit_except", 3, depth_limit_except, 0)
   fail;
 }
 
-
 #endif /*O_LIMIT_DEPTH*/
+
 
 		/********************************
 		*          STATISTICS           *
 		*********************************/
-
-#undef LD
-#define LD LOCAL_LD			/* must be an argument! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Fetch runtime statistics. There are two standards  here. One is based on
