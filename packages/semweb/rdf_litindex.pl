@@ -61,7 +61,7 @@ being flexible to ordering of tokens.
 
 setting(verbose(true)).			% print progress messages
 setting(index_threads(1)).		% # threads for creating the index
-setting(index(self)).			% Use a thread for incremental updates
+setting(index(default)).		% Use a thread for incremental updates
 
 %%	rdf_set_literal_index_option(+Options:list)
 %
@@ -74,6 +74,12 @@ setting(index(self)).			% Use a thread for incremental updates
 %		* index_threads(+Count)
 %		Number of threads to use for initial indexing of
 %		literals
+%		
+%		* index(+How)
+%		How to deal with indexing new literals.  How is one of
+%		=self= (execute in the same thread), thread(N) (execute
+%		in N concurrent threads) or =default= (depends on number
+%		of cores).
 
 rdf_set_literal_index_option([]) :- !.
 rdf_set_literal_index_option([H|T]) :- !,
@@ -97,7 +103,7 @@ check_option(verbose(X)) :- !,
 check_option(index_threads(Count)) :- !,
 	must_be(nonneg, Count).
 check_option(index(How)) :- !,
-	must_be(oneof([thread,self]), How).
+	must_be(oneof([default,thread(_),self]), How).
 check_option(Option) :-
 	domain_error(literal_option, Option).
 
@@ -357,8 +363,14 @@ token_index(Map) :-
 		    new_literal,
 		    old_literal
 		  ],
-	(   setting(index(thread))
-	->  create_update_literal_thread,
+	(   setting(index(default))
+	->  (   current_prolog_flag(cpu_count, N), N > 1
+	    ->	create_update_literal_thread(1),
+		rdf_monitor(thread_monitor_literal, Monitor)
+	    ;	rdf_monitor(monitor_literal, Monitor)
+	    )
+	;   setting(index(thread(N)))
+	->  create_update_literal_thread(N),
 	    rdf_monitor(thread_monitor_literal, Monitor)
 	;   rdf_monitor(monitor_literal, Monitor)
 	).
@@ -422,17 +434,30 @@ clean_token_index :-
 		 *	  THREADED UPDATE	*
 		 *******************************/
 
-create_update_literal_thread :-
+%	create_update_literal_thread(+Threads)
+%	
+%	Setup literal monitoring using threads.  While loading databases
+%	through rdf_attach_db/2 from  rdf_persistency.pl,   most  of the
+%	time is spent updating the literal token database. While loading
+%	the RDF triples, most of the time   is spend in updating the AVL
+%	tree holding the literals. Updating  the   token  index hangs on
+%	updating the AVL trees holding the   tokens.  Both tasks however
+%	can run concurrently.
+
+create_update_literal_thread(Threads) :-
 	message_queue_create(_,
 			     [ alias(rdf_literal_monitor_queue),
 			       max_size(10000)
 			     ]),
-	thread_create(monitor_literals, _,
-		      [ alias(rdf_literal_monitor),
-			local(1000),
-			global(1000),
-			trail(1000)
-		      ]).
+	forall(between(1, Threads, N),
+	       (   atom_concat(rdf_literal_monitor_, N, Alias),
+		   thread_create(monitor_literals, _,
+				 [ alias(Alias),
+				   local(1000),
+				   global(1000),
+				   trail(1000)
+				 ])
+	       )).
 
 monitor_literals :-
 	set_prolog_flag(agc_margin, 0),	% we don't create garbage
