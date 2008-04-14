@@ -551,16 +551,11 @@ COMMON(word) 		pl_e_free_variables(term_t t, term_t l);
 COMMON(word) 		stringToList(char *s);
 COMMON(word) 		pl_atom_concat(term_t a1, term_t a2, term_t a3,
 				       control_t ctx);
-COMMON(word) 		pl_concat_atom(term_t list, term_t atom);
-COMMON(word) 		pl_concat_atom3(term_t list, term_t sep, term_t atom);
 COMMON(word) 		pl_apropos_match(term_t a1, term_t a2);
 COMMON(foreign_t) 	pl_sub_atom(term_t atom,
 				    term_t before, term_t len, term_t after,
 				    term_t sub, control_t h);
-COMMON(word) 		pl_string_length(term_t str, term_t l);
 COMMON(word) 		pl_string_concat(term_t a1, term_t a2, term_t a3, control_t h);
-COMMON(word) 		pl_string_to_atom(term_t str, term_t a);
-COMMON(word) 		pl_string_to_list(term_t str, term_t list);
 COMMON(word) 		pl_sub_string(term_t str,
 			      term_t offset, term_t length, term_t after,
 			      term_t sub, control_t h);

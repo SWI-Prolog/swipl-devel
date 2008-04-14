@@ -155,8 +155,6 @@ static const PL_extension foreigns[] = {
 
   FRG("!",			0, pl_metacut,		      ISO),
   FRG("atom_concat",		3, pl_atom_concat,	 NDET|ISO),
-  FRG("$concat_atom",		2, pl_concat_atom,		0),
-  FRG("concat_atom",		3, pl_concat_atom3,		0),
   FRG("$e_free_variables",	2, pl_e_free_variables,		0),
 
   FRG("$open_wic",		1, pl_open_wic,			0),
@@ -288,9 +286,6 @@ static const PL_extension foreigns[] = {
 
 #if O_STRING
   FRG("string_concat",		3, pl_string_concat,	     NDET),
-  FRG("string_length",		2, pl_string_length,		0),
-  FRG("string_to_atom",		2, pl_string_to_atom,		0),
-  FRG("string_to_list",		2, pl_string_to_list,		0),
   FRG("sub_string",		5, pl_sub_string,	     NDET),
 #endif /* O_STRING */
 
