@@ -2785,9 +2785,9 @@ the moment the code marked (**) handles this not very elegant
 	  exception_term		 = 0;
 
 	  PC = findCatchExit();
-	  considerGarbageCollect(NULL);
-
 #if O_DYNAMIC_STACKS
+	  considerGarbageCollect((Stack)NULL);
+
 	  if ( LD->trim_stack_requested )
 	    trimStacks(PASS_LD1);
 #endif
@@ -2816,7 +2816,9 @@ the moment the code marked (**) handles this not very elegant
 	    exception_term		   = exception_bin;
 	  }
 
-	  considerGarbageCollect(NULL);
+#if O_DYNAMIC_STACKS
+	  considerGarbageCollect((Stack)NULL);
+#endif
 	  if ( LD->trim_stack_requested )
 	  { trimStacks(PASS_LD1);
 	    QF = QueryFromQid(qid);	/* may be shifted: recompute */

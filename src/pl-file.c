@@ -578,6 +578,8 @@ getOutputStream(term_t t, IOSTREAM **stream)
   } else if ( PL_get_atom(t, &a) && a == ATOM_user )
   { *stream = getStream(Suser_output);
     return TRUE;
+  } else
+  { *stream = NULL;			/* make compiler happy */
   }
 
   if ( !PL_get_stream_handle(t, &s) )
@@ -605,6 +607,8 @@ getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
   } else if ( PL_get_atom(t, &a) && a == ATOM_user )
   { *stream = getStream(Suser_input);
     return TRUE;
+  } else
+  { *stream = NULL;			/* make compiler happy */
   }
 
   if ( !get_stream_handle(t, &s, SH_ERRORS|SH_ALIAS) )

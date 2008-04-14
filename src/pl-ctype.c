@@ -611,7 +611,6 @@ PRED_IMPL("upcase_atom", 2, upcase_atom, 0)
 static int
 write_normalize_space(IOSTREAM *out, term_t in)
 { PL_chars_t tin;
-  int rc;
   int i, end;
 
   if ( !PL_get_text(in, &tin, CVT_ATOMIC|CVT_EXCEPTION) )
