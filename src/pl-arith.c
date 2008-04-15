@@ -1161,6 +1161,11 @@ ar_even(Number i)
 #endif
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+mod(X, Y) = X - (floor(X/Y) * Y)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 static int
 ar_mod(Number n1, Number n2, Number r)
 { if ( !toIntegerNumber(n1, 0) )
