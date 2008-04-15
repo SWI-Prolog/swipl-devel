@@ -53,6 +53,8 @@ test(big_neg, [condition(current_prolog_flag(bounded, false)), R == -6]) :-
 
 :- begin_tests(mod).
 
+% mod(X, Y) = X - (floor(X/Y) * Y)
+
 test(small, R == 2) :-
 	R is 5 mod 3.
 test(small_divneg, R == -1) :-
