@@ -986,10 +986,6 @@ PRED_IMPL("deterministic", 1, deterministic, 0)
 		 *	    HASH-TERM		*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Should this be int64_t for compatibility?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static bool
 termHashValue(word term, unsigned int *hval ARG_LD)
 { for(;;)
