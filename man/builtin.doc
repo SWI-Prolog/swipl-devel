@@ -4437,25 +4437,14 @@ other cases the return value is a float.  See also \predref{//}{2}
 and rdiv/2.
 
     \infixop[ISO]{mod}{+IntExpr1}{+IntExpr2}
-Modulo:
-\mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1} // \arg{IntExpr2})
-$\times$ \arg{IntExpr2}}
-The function mod/2 is implemented using the C \verb$%$ operator.  It's
-behaviour with negative values is illustrated in the table below.
-
-\begin{center}
-\begin{tabular}{rcrcr}
-2  &=& 17  &mod& 5 \\
-2  &=& 17  &mod& -5 \\
--2 &=& -17 &mod& 5 \\
--2 &=& -17 &mod& -5 \\
-\end{tabular}
-\end{center}
+Modulo: \mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1} div
+\arg{IntExpr2}) $\times$ \arg{IntExpr2}}, where \const{div} is
+\jargon{floored} division.
 
     \infixop[ISO]{rem}{+IntExpr1}{+IntExpr2}
 Remainder of integer division.  Behaves as if defined by
 \mbox{\arg{Result} is \arg{IntExpr1} -
-(\arg{IntExpr1}//\arg{IntExpr2})*\arg{IntExpr2}}
+(\arg{IntExpr1} // \arg{IntExpr2}) $\times$ \arg{IntExpr2}}
 
     \infixop[ISO]{//}{+IntExpr1}{+IntExpr2}
 Integer division:
