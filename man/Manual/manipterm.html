@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 4.20</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section 4.20</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="termrw.html">
@@ -140,7 +140,7 @@ True if <VAR>Term</VAR> is a term with functor <VAR>Functor</VAR> and
 arity
 <VAR>Arity</VAR>. If <VAR>Term</VAR> is a variable it is unified with a 
 new term holding only variables. <A NAME="idx:functor3:850"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
-silently fails on instantiation faults<SUP class="fn">44<SPAN class="fn-text">In 
+silently fails on instantiation faults<SUP class="fn">45<SPAN class="fn-text">In 
 version 1.2 instantiation faults led to error messages. The new version 
 can be used to do type testing without the need to catch illegal 
 instantiations first.</SPAN></SUP> If <VAR>Term</VAR> is an atom or 
@@ -157,7 +157,7 @@ unified with the
 be unbound. In this case <VAR>Value</VAR> will be unified with the 
 successive arguments of the term. On successful unification, <VAR>Arg</VAR> 
 is unified with the argument number. Backtracking yields alternative 
-solutions.<SUP class="fn">45<SPAN class="fn-text">The instantiation 
+solutions.<SUP class="fn">46<SPAN class="fn-text">The instantiation 
 pattern (-, +, ?) is an extension to `standard' Prolog. Some systems 
 provide genarg/3 that covers this pattern.</SPAN></SUP> The predicate <A NAME="idx:arg3:851"></A><A class="pred" href="manipterm.html#arg/3">arg/3</A> 
 fails silently if <VAR><VAR>Arg</VAR> = 0</VAR> or
@@ -217,7 +217,7 @@ What to do if an attributed variable is encountered. Options are
 to ignore the attributed variable, <CODE>bind</CODE> which causes it to 
 thread it as a normal variable and assign the next <CODE>'$VAR'</CODE>(N) 
 term to it or (default)
-<CODE>error</CODE> which raises the a <CODE>type_error</CODE> exception.<SUP class="fn">46<SPAN class="fn-text">This 
+<CODE>error</CODE> which raises the a <CODE>type_error</CODE> exception.<SUP class="fn">47<SPAN class="fn-text">This 
 behaviour was decided after a long discussion between David Reitter, 
 Richard O'Keefe, Bart Demoen and Tom Schrijvers.</SPAN></SUP></DD>
 <DT><STRONG>singletons</STRONG>(<VAR>+Bool</VAR>)</DT>
@@ -236,7 +236,7 @@ this option is ignored for cyclic terms.</SPAN></SUP>
 -List</VAR>)</A></DT>
 <DD class="defbody">
 Unify <VAR>List</VAR> with a list of variables, each sharing with a 
-unique variable of <VAR>Term</VAR>.<SUP class="fn">47<SPAN class="fn-text">This 
+unique variable of <VAR>Term</VAR>.<SUP class="fn">48<SPAN class="fn-text">This 
 predicate used to be called free_variables/2 . The name <A NAME="idx:termvariables2:860"></A><A class="pred" href="manipterm.html#term_variables/2">term_variables/2</A> 
 is more widely used. The old predicate is still available from the 
 library <CODE>library(backcomp)</CODE>.</SPAN></SUP> The variables in <VAR>List</VAR> 

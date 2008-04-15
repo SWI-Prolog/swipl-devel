@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="clpclp_distinct.html">
@@ -202,9 +202,15 @@ are equivalent </TD></TR>
 
 </BLOCKQUOTE>
 
-<P>As an example, consider the cryptoarithmetic puzzle SEND + MORE = 
-MONEY, where different letters denote distinct integers between 0 and 9. 
-It can be modeled in CLP(FD) as follows:
+<P>If a variable occurs at the place of a constraint that is being 
+reified, it is implicitly constrained to the Boolean values 0 and 1. 
+Therefore, the following queries all fail: <CODE>?-</CODE> <CODE>#\</CODE> 
+2. <CODE>?-</CODE> <CODE>#\</CODE> <CODE>#\</CODE> 2. etc.
+
+<P>As an example of a constraint satisfaction problem, consider the 
+cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters 
+denote distinct integers between 0 and 9. It can be modeled in CLP(FD) 
+as follows:
 
 <PRE class="code">
 :- use_module(library(clpfd)).
@@ -223,9 +229,16 @@ puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
 
 <PRE class="code">
 ?- puzzle(As+Bs=Cs).
-As = [9, _G5402{4..7}, _G5405{5..8}, _G5408{2..8}],
-Bs = [1, 0, _G5417{2..8}, _G5402{4..7}],
-Cs = [1, 0, _G5405{5..8}, _G5402{4..7}, _G5435{2..8}].
+As = [9, _G10178, _G10181, _G10184],
+Bs = [1, 0, _G10199, _G10178],
+Cs = [1, 0, _G10181, _G10178, _G10223],
+_G10223 in 2..8,
+1000*9+91*_G10178+ -90*_G10181+_G10184+ -9000*1+ -900*0+10*_G10199+ -1*_G10223#=0,
+all_different([_G10178, _G10181, _G10184, _G10199, _G10223, 0, 1, 9]),
+_G10199 in 2..8,
+_G10184 in 2..8,
+_G10181 in 5..8,
+_G10178 in 4..7.
 </PRE>
 
 <P>Here, the constraint solver could deduce more stringent bounds for 
@@ -237,6 +250,13 @@ As = [9, 5, 6, 7],
 Bs = [1, 0, 8, 5],
 Cs = [1, 0, 6, 5, 2]
 </PRE>
+
+<P>This library also provides <I>reflection</I> predicates (like <A class="pred" href="clpfd.html#fd_dom/2">fd_dom/2</A>,
+<A class="pred" href="clpfd.html#fd_size/2">fd_size/2</A> etc.) with 
+which you can inspect a variable's current domain. Use <A class="pred" href="coroutining.html#call_residue_vars/2">call_residue_vars/2</A> 
+and <A class="pred" href="attvar.html#copy_term/3">copy_term/3</A> to 
+inspect residual goals and the constraints in which a variable is 
+involved.
 
 <DL>
 <DT class="pubdef"><A NAME="in/2"><VAR>?Var</VAR> <STRONG>in</STRONG> <VAR>+Domain</VAR></A></DT>
@@ -469,15 +489,7 @@ or the atom <B>sup</B> if the domain is unbounded.</DD>
 -Dom</VAR>)</A></DT>
 <DD class="defbody">
 <VAR>Dom</VAR> is the current domain (see <A class="pred" href="clpfd.html#in/2">in/2</A>) 
-of <VAR>Var</VAR>.</DD>
-<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="copy_term/3"><STRONG>copy_term</STRONG>(<VAR>+Term, 
--Copy, -Gs</VAR>)</A></DT>
-<DD class="defbody">
-Creates a regular term <VAR>Copy</VAR> as a copy of <VAR>Term</VAR> 
-(without any attributes), and a list <VAR>Gs</VAR> of goals that when 
-executed reinstate all attributes onto <VAR>Copy</VAR>. The nonterminal <SPAN class="pred-ext">attribute_goals/3</SPAN>, 
-as defined in the modules the attributes stem from, is used to convert 
-attributes to lists of goals.
+of <VAR>Var</VAR>.
 </DD>
 </DL>
 

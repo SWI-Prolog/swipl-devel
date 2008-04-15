@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 4.28</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section 4.28</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="extendarith.html">
@@ -142,7 +142,7 @@ described here.
 <DD class="defbody">
 True if <VAR>Term</VAR> is bound to the empty list (<CODE>[]</CODE>) or 
 a term with functor `<CODE><CODE>.</CODE></CODE>' and arity&nbsp;2 and 
-the second argument is a list.<SUP class="fn">53<SPAN class="fn-text">In 
+the second argument is a list.<SUP class="fn">55<SPAN class="fn-text">In 
 versions before 5.0.1, <A NAME="idx:islist1:980"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A> 
 just checked for <CODE>[]</CODE> or <CODE>[_|_]</CODE> and proper_list/1 
 had the role of the current <A NAME="idx:islist1:981"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A>. 
@@ -180,7 +180,7 @@ Can be used to create a list holding only variables.</DD>
 True if <VAR>Sorted</VAR> can be unified with a list holding the 
 elements of <VAR>List</VAR>, sorted to the standard order of terms (see
 <A class="sec" href="compare.html">section 4.6</A>). Duplicates are 
-removed. The implementation is in C, using <EM>natural merge sort</EM>.<SUP class="fn">54<SPAN class="fn-text">Contributed 
+removed. The implementation is in C, using <EM>natural merge sort</EM>.<SUP class="fn">56<SPAN class="fn-text">Contributed 
 by Richard O'Keefe.</SPAN></SUP> The <A NAME="idx:sort2:984"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A> 
 predicate can sort a cyclic list, returning a non-cyclic version with 
 the same elements.</DD>
@@ -216,7 +216,7 @@ with one of <CODE><CODE>&lt;</CODE></CODE>, <CODE><CODE>&gt;</CODE></CODE>
 or
 <CODE><CODE>=</CODE></CODE>. If built-in predicate <A NAME="idx:compare3:989"></A><A class="pred" href="compare.html#compare/3">compare/3</A> 
 is used, the result is the same as <A NAME="idx:sort2:990"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>. 
-See also <A NAME="idx:keysort2:991"></A><A class="pred" href="builtinlist.html#keysort/2">keysort/2</A>.<SUP class="fn">55<SPAN class="fn-text">Please 
+See also <A NAME="idx:keysort2:991"></A><A class="pred" href="builtinlist.html#keysort/2">keysort/2</A>.<SUP class="fn">57<SPAN class="fn-text">Please 
 note that the semantics have changed between 3.1.1 and 3.1.2</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="merge/3"><STRONG>merge</STRONG>(<VAR>+List1, 
 +List2, -List3</VAR>)</A></DT>

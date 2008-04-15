@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 9.10</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section 9.10</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="foreignxmp.html">
@@ -146,7 +146,7 @@ PL_malloc() or PL_realloc() do not return.
 by PL_get_chars() using the <CODE>BUF_MALLOC</CODE> argument. Portable 
 applications may use both PL_malloc() and friends or malloc() and 
 friends but should not mix these two sets of functions on the same 
-memory.<SUP class="fn">81<SPAN class="fn-text">These functions were 
+memory.<SUP class="fn">83<SPAN class="fn-text">These functions were 
 introduced in SWI-Prolog 5.0.9 to realise guaranteed portability. 
 Foreign code that must be compatible with older versions can check the <CODE>PLVERSION</CODE> 
 macro.</SPAN></SUP>
@@ -180,7 +180,7 @@ between Prolog versions</SPAN></A></H3>
 extensions between different Prolog versions. Only much less frequently 
 used stream interface has been responsible for binary incompatibilities.
 
-<P><A NAME="idx:PLVERSION:1403"></A>Source-code that relies on new 
+<P><A NAME="idx:PLVERSION:1412"></A>Source-code that relies on new 
 features of the foreign interface can use the macro <CODE>PLVERSION</CODE> 
 to find the version of
 <CODE>SWI-Prolog.h</CODE> and PL_query() using the option
@@ -188,30 +188,29 @@ to find the version of
 system. Both follow the same numbering schema explained with PL_query().
 
 <H3><A NAME="sec:9.10.3"><SPAN class="sec-nr">9.10.3</SPAN> <SPAN class="sec-title">Debugging 
-Foreign Code</SPAN></A></H3>
+and profiling foreign code (valgrind)</SPAN></A></H3>
 
-<P>Statically linked foreign code or embedded systems can be debugged 
-normally. Most modern environments provide debugging tools for 
-dynamically loaded shared objects or dynamic load libraries. The 
-following example traces the code of lowercase using <STRONG>gdb</STRONG>(1) 
-in a Unix environment.
+<P><A NAME="idx:valgrind:1413"></A><A NAME="idx:profilingforeigncode:1414"></A>This 
+section is only relevant for Unix users on platforms supported by
+<A class="url" href="http://valgrind.org/">valgrind</A>. Valgrind is an 
+excellent binary intrumentation platform. Unlike many other 
+instrumentation platforms, valgrind can deal with code loaded through 
+dlopen().
+
+<P>The <B>callgrind</B> tool can be used to profile foreign code loaded 
+under SWI-Prolog. Compile the foreign library adding <STRONG>-g</STRONG> 
+option to <B>gcc</B> or <B>plld</B>. By setting the environment variable <CODE>VALGRIND</CODE> 
+to <CODE>yes</CODE>, SWI-Prolog will <EM>not</EM> release loaded shared 
+objects using dlclose(). This trick is required to get source 
+information on the loaded library. Without, valgrind claims that the 
+shared object has no debugging information.<SUP class="fn">84<SPAN class="fn-text">Tested 
+using valgrind version 3.2.3 on x64.</SPAN></SUP> Here is the complete 
+sequence using <B>bash</B> as login shell:
 
 <PRE class="code">
-% gcc -I/usr/local/lib/pl-2.2.0/include -fpic -c -g lowercase.c
-% gcc -shared -o lowercase.so lowercase.o
-% gdb pl
-(gdb) r
-Welcome to SWI-Prolog (Version \plversion)
-Copyright (c) 1993-1996 University of Amsterdam.  All rights reserved.
-
-For help, use ?- help(Topic). or ?- apropos(Word).
-
-?- load_foreign_library(lowercase).
-&lt;type Control-C&gt;
-(gdb) shared                    % loads symbols for shared objects
-(gdb) break pl_lowercase
-(gdb) continue
-?- lowercase('HELLO', X).
+% VALGRIND=yes valgrind --tool=callgrind pl &lt;args&gt;
+&lt;prolog interaction&gt;
+% kcachegrind callgrind.out.&lt;pid&gt;
 </PRE>
 
 <H3><A NAME="sec:9.10.4"><SPAN class="sec-nr">9.10.4</SPAN> <SPAN class="sec-title">Name 

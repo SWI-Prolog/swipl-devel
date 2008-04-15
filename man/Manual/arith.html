@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 4.26</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section 4.26</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="charconv.html">
@@ -157,7 +157,7 @@ If
 =&lt;<VAR>High</VAR></VAR>. When <VAR>Value</VAR> is a variable it is 
 successively bound to all integers between <VAR>Low</VAR> and <VAR>High</VAR>. 
 If <VAR>High</VAR> is <CODE>inf</CODE> or
-<CODE>infinite</CODE><SUP class="fn">50<SPAN class="fn-text">We prefer <CODE>infinite</CODE>, 
+<CODE>infinite</CODE><SUP class="fn">51<SPAN class="fn-text">We prefer <CODE>infinite</CODE>, 
 but some other Prolog systems already use <CODE>inf</CODE> for infinity 
 we accept both for the time being.</SPAN></SUP>
 <A NAME="idx:between3:945"></A><A class="pred" href="arith.html#between/3">between/3</A> 
@@ -171,7 +171,7 @@ True if <VAR><VAR>Int2</VAR> = <VAR>Int1</VAR> + 1</VAR> and <VAR><VAR>Int1</VAR
 &gt;= 0</VAR>. At least one of the arguments must be instantiated to a 
 natural number. This predicate raises the domain-error <CODE>not_less_than_zero</CODE> 
 if called with a negative integer. E.g. <CODE>succ(X, 0)</CODE> fails 
-silently and <CODE>succ(X, -1)</CODE> raises a domain-error.<SUP class="fn">51<SPAN class="fn-text">The 
+silently and <CODE>succ(X, -1)</CODE> raises a domain-error.<SUP class="fn">52<SPAN class="fn-text">The 
 behaviour to deal with natural numbers only was defined by Richard 
 O'Keefe to support the common count-down-to-zero in a natural way. Up-to 
 5.1.8 <A NAME="idx:succ2:946"></A><A class="pred" href="arith.html#succ/2">succ/2</A> 
@@ -422,27 +422,14 @@ returns a rational number. In all other cases the return value is a
 float. See also <A class="pred" href="arith.html#///2">///2</A> and <A NAME="idx:rdiv2:965"></A><A class="pred" href="arith.html#rdiv/2">rdiv/2</A>.</DD>
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="mod/2"><VAR>+IntExpr1</VAR> <STRONG>mod</STRONG> <VAR>+IntExpr2</VAR></A></DT>
 <DD class="defbody">
-Modulo:
-<VAR>Result</VAR> = <VAR>IntExpr1</VAR> - (<VAR>IntExpr1</VAR> // <VAR>IntExpr2</VAR>) <VAR> &times; </VAR> <VAR>IntExpr2</VAR> 
-The function <A NAME="idx:mod2:966"></A><A class="pred" href="arith.html#mod/2">mod/2</A> 
-is implemented using the C <CODE>%</CODE> operator. It's behaviour with 
-negative values is illustrated in the table below.
-
-<P>
-<CENTER>
-<TABLE BORDER=0 FRAME=void RULES=groups>
-<TR VALIGN=top><TD ALIGN=right>2</TD><TD ALIGN=center>=</TD><TD ALIGN=right>17</TD><TD ALIGN=center>mod</TD><TD ALIGN=right>5 </TD></TR>
-<TR VALIGN=top><TD ALIGN=right>2</TD><TD ALIGN=center>=</TD><TD ALIGN=right>17</TD><TD ALIGN=center>mod</TD><TD ALIGN=right>-5 </TD></TR>
-<TR VALIGN=top><TD ALIGN=right>-2</TD><TD ALIGN=center>=</TD><TD ALIGN=right>-17</TD><TD ALIGN=center>mod</TD><TD ALIGN=right>5 </TD></TR>
-<TR VALIGN=top><TD ALIGN=right>-2</TD><TD ALIGN=center>=</TD><TD ALIGN=right>-17</TD><TD ALIGN=center>mod</TD><TD ALIGN=right>-5 </TD></TR>
-</TABLE>
-
-</CENTER>
-</DD>
+Modulo: <VAR>Result</VAR> = <VAR>IntExpr1</VAR> - (<VAR>IntExpr1</VAR> 
+div <VAR>IntExpr2</VAR>) <VAR> &times; </VAR> <VAR>IntExpr2</VAR>, where <CODE>div</CODE> 
+is
+<EM>floored</EM> division.</DD>
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="rem/2"><VAR>+IntExpr1</VAR> <STRONG>rem</STRONG> <VAR>+IntExpr2</VAR></A></DT>
 <DD class="defbody">
 Remainder of integer division. Behaves as if defined by
-<VAR>Result</VAR> is <VAR>IntExpr1</VAR> - (<VAR>IntExpr1</VAR>//<VAR>IntExpr2</VAR>)*<VAR>IntExpr2</VAR></DD>
+<VAR>Result</VAR> is <VAR>IntExpr1</VAR> - (<VAR>IntExpr1</VAR> // <VAR>IntExpr2</VAR>) <VAR> &times; </VAR> <VAR>IntExpr2</VAR></DD>
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="///2"><VAR>+IntExpr1</VAR> <STRONG>//</STRONG> <VAR>+IntExpr2</VAR></A></DT>
 <DD class="defbody">
 Integer division:
@@ -472,7 +459,7 @@ the two values after converting to float, but returns the integer 3.</DD>
 <DD class="defbody">
 Evaluates to the smallest of both <VAR>Expr1</VAR> and <VAR>Expr2</VAR>. 
 See
-<A NAME="idx:max2:967"></A><A class="pred" href="arith.html#max/2">max/2</A> 
+<A NAME="idx:max2:966"></A><A class="pred" href="arith.html#max/2">max/2</A> 
 for a description of type-handling.</DD>
 <DT class="pubdef"><A NAME="./2"><STRONG>.</STRONG>(<VAR>+Int,[]</VAR>)</A></DT>
 <DD class="defbody">
@@ -492,13 +479,13 @@ SWI-Prolog was started.</DD>
 Evaluates <VAR>Expr</VAR> and rounds the result to the nearest integer.</DD>
 <DT class="pubdef"><A NAME="integer/1"><STRONG>integer</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
-Same as <A NAME="idx:round1:968"></A><A class="pred" href="arith.html#round/1">round/1</A> 
+Same as <A NAME="idx:round1:967"></A><A class="pred" href="arith.html#round/1">round/1</A> 
 (backward compatibility).</DD>
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="float/1"><STRONG>float</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Translate the result to a floating point number. Normally, Prolog will 
 use integers whenever possible. When used around the 2nd argument of
-<A NAME="idx:is2:969"></A><A class="pred" href="arith.html#is/2">is/2</A>, 
+<A NAME="idx:is2:968"></A><A class="pred" href="arith.html#is/2">is/2</A>, 
 the result will be returned as a floating point number. In other 
 contexts, the operation has no effect.</DD>
 <DT class="pubdef"><A NAME="rational/1"><STRONG>rational</STRONG>(<VAR>+Expr</VAR>)</A></DT>
@@ -509,7 +496,7 @@ floating point numbers, the returned rational number <EM>exactly</EM>
 represents the float. As floats cannot exactly represent all decimal 
 numbers the results may be surprising. In the examples below, doubles 
 can represent 0.25 and the result is as expected, in contrast to the 
-result of <CODE>rational(0.1)</CODE>. The function <A NAME="idx:rationalize1:970"></A><A class="pred" href="arith.html#rationalize/1">rationalize/1</A> 
+result of <CODE>rational(0.1)</CODE>. The function <A NAME="idx:rationalize1:969"></A><A class="pred" href="arith.html#rationalize/1">rationalize/1</A> 
 remedies this. See <A class="sec" href="arith.html">section 4.26.2.2</A> 
 for more information on rational number support.
 
@@ -525,11 +512,11 @@ A = 3602879701896397 rdiv 36028797018963968
 <DT class="pubdef"><A NAME="rationalize/1"><STRONG>rationalize</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Convert the <VAR>Expr</VAR> to a rational number or integer. The 
-function is similar to <A NAME="idx:rational1:971"></A><A class="pred" href="typetest.html#rational/1">rational/1</A>, 
+function is similar to <A NAME="idx:rational1:970"></A><A class="pred" href="typetest.html#rational/1">rational/1</A>, 
 but the result is only accurate within the rounding error of floating 
-point numbers, generally producing a much smaller denominator.<SUP class="fn">52<SPAN class="fn-text">The 
-names <A NAME="idx:rational1:972"></A><A class="pred" href="typetest.html#rational/1">rational/1</A> 
-and <A NAME="idx:rationalize1:973"></A><A class="pred" href="arith.html#rationalize/1">rationalize/1</A> 
+point numbers, generally producing a much smaller denominator.<SUP class="fn">53<SPAN class="fn-text">The 
+names <A NAME="idx:rational1:971"></A><A class="pred" href="typetest.html#rational/1">rational/1</A> 
+and <A NAME="idx:rationalize1:972"></A><A class="pred" href="arith.html#rationalize/1">rationalize/1</A> 
 as well as their semantics are inspired by Common Lisp.</SPAN></SUP>
 
 <PRE class="code">
@@ -568,7 +555,7 @@ Evaluates <VAR>Expr</VAR> and returns the smallest integer larger or
 equal to the result of the evaluation.</DD>
 <DT class="pubdef"><A NAME="ceil/1"><STRONG>ceil</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
-Same as <A NAME="idx:ceiling1:974"></A><A class="pred" href="arith.html#ceiling/1">ceiling/1</A> 
+Same as <A NAME="idx:ceiling1:973"></A><A class="pred" href="arith.html#ceiling/1">ceiling/1</A> 
 (backward compatibility).</DD>
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME=">>/2"><VAR>+IntExpr</VAR> <STRONG>&gt;&gt;</STRONG> <VAR>+IntExpr</VAR></A></DT>
 <DD class="defbody">
@@ -677,13 +664,22 @@ Evaluates to the mathematical constant <VAR>pi</VAR> (3.14159 ... ).
 </DD>
 <DT class="pubdef"><A NAME="e/0"><STRONG>e</STRONG></A></DT>
 <DD class="defbody">
-Evaluates to the mathematical constant <VAR>e</VAR> (2.71828 ... ).
-</DD>
+Evaluates to the mathematical constant <VAR>e</VAR> (2.71828 ... ).</DD>
 <DT class="pubdef"><A NAME="cputime/0"><STRONG>cputime</STRONG></A></DT>
 <DD class="defbody">
 Evaluates to a floating point number expressing the <font size=-1>CPU</font> 
-time (in seconds) used by Prolog up till now. See also <A NAME="idx:statistics2:975"></A><A class="pred" href="statistics.html#statistics/2">statistics/2</A> 
-and <A NAME="idx:time1:976"></A><A class="pred" href="statistics.html#time/1">time/1</A>.
+time (in seconds) used by Prolog up till now. See also <A NAME="idx:statistics2:974"></A><A class="pred" href="statistics.html#statistics/2">statistics/2</A> 
+and <A NAME="idx:time1:975"></A><A class="pred" href="statistics.html#time/1">time/1</A>.</DD>
+<DT class="pubdef"><A NAME="eval/1"><STRONG>eval</STRONG>(<VAR>+Expr</VAR>)</A></DT>
+<DD class="defbody">
+Evaluate <VAR>Expr</VAR>. Although ISO standard dictates that <VAR>A</VAR>=1+2, <VAR>B</VAR> 
+is
+<VAR>A</VAR> works and unifies <VAR>B</VAR> to 3, it is widely felt that 
+source-level variables in arithmetic expressions should have been 
+limited to numbers. In this view the eval function can be used to 
+evaluate arbitrary expressions.<SUP class="fn">54<SPAN class="fn-text">The <A NAME="idx:eval1:976"></A><A class="pred" href="arith.html#eval/1">eval/1</A> 
+function was first introduced by ECLiPSe and is under consideration for 
+YAP.</SPAN></SUP>
 </DD>
 </DL>
 

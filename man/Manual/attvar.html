@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 6.1</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section 6.1</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="extvar.html">
@@ -258,15 +258,21 @@ Called by <A NAME="idx:writeterm2:1201"></A><A class="pred" href="termrw.html#wr
 and friends for each attribute if the option
 <CODE>attributes(portray)</CODE> is in effect. If the hook succeeds the 
 attribute is considered printed. Otherwise <CODE>Module = ...</CODE> is 
-printed to indicate the existence of a variable.
+printed to indicate the existence of a variable.</DD>
+<DT class="pubdef"><A NAME="attribute_goals/3"><STRONG>attribute_goals</STRONG>(<VAR>+Var, 
+-Gs, +GsRest</VAR>)</A></DT>
+<DD class="defbody">
+This nonterminal, if it is defined in a module, is used by <A NAME="idx:copyterm3:1202"></A><A class="pred" href="attvar.html#copy_term/3">copy_term/3</A> 
+to project attributes of that module to residual goals. It is also used 
+by the toplevel to obtain residual goals after executing a query.
 </DD>
 </DL>
 
 <H3><A NAME="sec:6.1.1"><SPAN class="sec-nr">6.1.1</SPAN> <SPAN class="sec-title">Special 
 purpose predicates for attributes</SPAN></A></H3>
 
-<P>Normal user code should deal with <A NAME="idx:putattr3:1202"></A><A class="pred" href="attvar.html#put_attr/3">put_attr/3</A>, <A NAME="idx:getattr3:1203"></A><A class="pred" href="attvar.html#get_attr/3">get_attr/3</A> 
-and <A NAME="idx:delattr2:1204"></A><A class="pred" href="attvar.html#del_attr/2">del_attr/2</A>. 
+<P>Normal user code should deal with <A NAME="idx:putattr3:1203"></A><A class="pred" href="attvar.html#put_attr/3">put_attr/3</A>, <A NAME="idx:getattr3:1204"></A><A class="pred" href="attvar.html#get_attr/3">get_attr/3</A> 
+and <A NAME="idx:delattr2:1205"></A><A class="pred" href="attvar.html#del_attr/2">del_attr/2</A>. 
 The routines in this section fetch or set the entire attribute list of a 
 variables. Use of these predicates is anticipated to be restricted to 
 printing and other special purpose operations.
@@ -283,13 +289,22 @@ is
 <DT class="pubdef"><A NAME="put_attrs/2"><STRONG>put_attrs</STRONG>(<VAR>+Var, 
 -Attributes</VAR>)</A></DT>
 <DD class="defbody">
-Set all attributes of <VAR>Var</VAR>. See <A NAME="idx:getattrs2:1205"></A><A class="pred" href="attvar.html#get_attrs/2">get_attrs/2</A> 
+Set all attributes of <VAR>Var</VAR>. See <A NAME="idx:getattrs2:1206"></A><A class="pred" href="attvar.html#get_attrs/2">get_attrs/2</A> 
 for a description of
 <VAR>Attributes</VAR>.</DD>
+<DT class="pubdef"><A NAME="copy_term/3"><STRONG>copy_term</STRONG>(<VAR>+Term, 
+-Copy, -Gs</VAR>)</A></DT>
+<DD class="defbody">
+Create a regular term <VAR>Copy</VAR> as a copy of <VAR>Term</VAR> 
+(without any attributes), and a list <VAR>Gs</VAR> of goals that when 
+executed reinstate all attributes onto <VAR>Copy</VAR>. The nonterminal
+<A NAME="idx:attributegoals1:1207"></A><A class="pred" href="attvar.html#attribute_goals/3">attribute_goals/3</A>, 
+as defined in the modules the attributes stem from, is used to convert 
+attributes to lists of goals.</DD>
 <DT class="pubdef"><A NAME="copy_term_nat/2"><STRONG>copy_term_nat</STRONG>(<VAR>+Term, 
 -Copy</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:copyterm2:1206"></A><A class="pred" href="manipterm.html#copy_term/2">copy_term/2</A>. 
+As <A NAME="idx:copyterm2:1208"></A><A class="pred" href="manipterm.html#copy_term/2">copy_term/2</A>. 
 Attributes however, are <EM>not</EM> copied but replaced by fresh 
 variables.
 </DD>

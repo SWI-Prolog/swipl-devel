@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section A.19</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section A.19</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="readutil.html">
@@ -146,7 +146,7 @@ well as analysis by cross-referencers. Given the simple nature of the
 access predicates, an optimizing compiler can easily inline them for 
 optimal preformance.
 
-<P>A record is defined using the directive <A NAME="idx:record1:1510"></A><A class="pred" href="record.html#record/1">record/1</A>. 
+<P>A record is defined using the directive <A NAME="idx:record1:1521"></A><A class="pred" href="record.html#record/1">record/1</A>. 
 We introduce the library with a short example:
 
 <PRE class="code">
@@ -169,7 +169,7 @@ a term of the format below.
 
 <P>In this definition, &lt;<VAR>name</VAR>&gt; is an atom defining the 
 name of the argument.
-&lt;<VAR>type</VAR>&gt; is an optional type specification as defined by <A NAME="idx:mustbe2:1511"></A><SPAN class="pred-ext">must_be/2</SPAN> 
+&lt;<VAR>type</VAR>&gt; is an optional type specification as defined by <A NAME="idx:mustbe2:1522"></A><SPAN class="pred-ext">must_be/2</SPAN> 
 from library <CODE>library(error)</CODE> and &lt;<VAR>default</VAR>&gt; 
 is the default initial value. The
 &lt;<VAR>type</VAR>&gt; defaults to <CODE>any</CODE>. If no default 
@@ -205,7 +205,7 @@ is motivated by option-list processing. See library <CODE>library(option)</CODE>
 <P>
 <LI><I>&lt;<VAR>constructor</VAR>&gt;_&lt;<VAR>name</VAR>&gt;(Record, 
 Value)</I><BR>
-Unify <VAR>Value</VAR> with argument in <VAR>Record</VAR> named &lt;<VAR>name</VAR>&gt;.<SUP class="fn">84<SPAN class="fn-text">Note 
+Unify <VAR>Value</VAR> with argument in <VAR>Record</VAR> named &lt;<VAR>name</VAR>&gt;.<SUP class="fn">87<SPAN class="fn-text">Note 
 this is not called `get_' as it performs unification and can perfectly 
 well instantiate the argument.</SPAN></SUP>
 
@@ -220,13 +220,13 @@ and unify the result with <VAR>NewRecord</VAR>.
 !Record)</I><BR>
 Destructively replace the argument &lt;<VAR>name</VAR>&gt; in <VAR>Record</VAR> 
 by
-<VAR>Value</VAR> based on <A NAME="idx:setarg3:1512"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A>. 
+<VAR>Value</VAR> based on <A NAME="idx:setarg3:1523"></A><A class="pred" href="manipterm.html#setarg/3">setarg/3</A>. 
 Use with care.
 
 <P>
 <LI><I>nb_set_&lt;<VAR>name</VAR>&gt;_of_&lt;<VAR>constructor</VAR>&gt;(+Value, 
 !Record)</I><BR>
-As above, but using non-backtrackable assignment based on <A NAME="idx:nbsetarg3:1513"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>. 
+As above, but using non-backtrackable assignment based on <A NAME="idx:nbsetarg3:1524"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>. 
 Use with <EM>extreme</EM> care.
 
 <P>
@@ -253,7 +253,7 @@ Set a single field specified as a term &lt;<VAR>name</VAR>&gt;(&lt;<VAR>value</V
 <DD class="defbody">
 The construct <CODE>:- record Spec, ...</CODE> is used to define access 
 to named fields in a compound. It is subject to term-expansion (see
-<A NAME="idx:expandterm2:1514"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A>) 
+<A NAME="idx:expandterm2:1525"></A><A class="pred" href="consulting.html#expand_term/2">expand_term/2</A>) 
 and cannot be called as a predicate. See
 <A class="sec" href="record.html">section A.19</A> for details.
 </DD>

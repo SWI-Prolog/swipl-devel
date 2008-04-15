@@ -1,3 +1,21 @@
+[Apr 14 2008]
+
+ * CLEANUP: Remove calls to sformat from system libraries (backward compatibility)
+
+[Mar 31 2008]
+
+ * FIXED: Undefined predicate in PceEmacs
+
+[Mar 28 2008]
+
+ * FIXED: PceEmacs colouring of module qualified meta-arguments
+
+ * FIXED: xpce named colour demo search for name database in /usr/share/X11
+
+[Mar 27 2008]
+
+ * MODIFIED: XPCE class editor logic for forward/backward paragraphs
+
 [Feb 26 2008]
 
  * ENHANCED: Raise PceEmacs bookmark window on `Show bookmarks'

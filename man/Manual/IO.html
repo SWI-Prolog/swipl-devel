@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.52 Reference Manual: Section 4.16</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section 4.16</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="examineprog.html">
@@ -135,7 +135,7 @@ and output</SPAN></A></H2>
 <P>SWI-Prolog provides two different packages for input and output. The 
 native I/O system is based on the ISO standard predicates <A NAME="idx:open3:670"></A><A class="pred" href="IO.html#open/3">open/3</A>,
 <A NAME="idx:close1:671"></A><A class="pred" href="IO.html#close/1">close/1</A> 
-and friends.<SUP class="fn">36<SPAN class="fn-text">Actually based on 
+and friends.<SUP class="fn">37<SPAN class="fn-text">Actually based on 
 Quintus Prolog, providing this interface before the ISO standard 
 existed.</SPAN></SUP> Being more widely portable and equipped with a 
 clearer and more robust specification, new code is encouraged to use 
@@ -177,7 +177,7 @@ Mode <CODE>update</CODE> opens the file for writing, positioning the
 file-pointer at the beginning of the file without truncating the file. <VAR>Stream</VAR> 
 is either a variable, in which case it is bound to an integer 
 identifying the stream, or an atom, in which case this atom will be the 
-stream identifier.<SUP class="fn">37<SPAN class="fn-text">New code 
+stream identifier.<SUP class="fn">38<SPAN class="fn-text">New code 
 should use the <CODE>alias(Alias)</CODE> option for compatibility to the 
 ISO standard</SPAN></SUP> The <VAR>Options</VAR> list can contain the 
 following options:
@@ -435,7 +435,7 @@ requesting the <CODE>position(Position)</CODE> property.
 <VAR>Field</VAR> is one of <CODE>line_count</CODE>, <CODE>line_position</CODE>,
 <CODE>char_count</CODE> or <CODE>byte_count</CODE>. See also <A NAME="idx:linecount2:697"></A><A class="pred" href="streamstat.html#line_count/2">line_count/2</A>,
 <A NAME="idx:lineposition2:698"></A><A class="pred" href="streamstat.html#line_position/2">line_position/2</A>, <A NAME="idx:charactercount2:699"></A><A class="pred" href="streamstat.html#character_count/2">character_count/2</A> 
-and <A NAME="idx:bytecount2:700"></A><A class="pred" href="streamstat.html#byte_count/2">byte_count/2</A>.<SUP class="fn">38<SPAN class="fn-text">Introduced 
+and <A NAME="idx:bytecount2:700"></A><A class="pred" href="streamstat.html#byte_count/2">byte_count/2</A>.<SUP class="fn">39<SPAN class="fn-text">Introduced 
 in version 5.6.4 after extending the position term with a byte-count. 
 Compatible with SICStus Prolog.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="seek/4"><STRONG>seek</STRONG>(<VAR>+Stream, 
@@ -590,7 +590,7 @@ for input streams.
 
 <P>Source and destination are either a file, <CODE>user</CODE>, or a 
 term `pipe(<VAR>Command</VAR>)'. The reserved stream name <CODE>user</CODE> 
-refers to the terminal.<SUP class="fn">39<SPAN class="fn-text">The ISO 
+refers to the terminal.<SUP class="fn">40<SPAN class="fn-text">The ISO 
 I/O layer uses <CODE>user_input</CODE>, <CODE>user_output</CODE> and <CODE>user_error</CODE>.</SPAN></SUP> 
 In the predicate descriptions below we will call the source/destination 
 argument `<VAR>SrcDest</VAR>'. Below are some examples of 
@@ -609,7 +609,7 @@ writing to the printer.</TD></TR>
 
 </CENTER>
 
-<P>Another example of using the pipe/1 construct is shown below.<SUP class="fn">40<SPAN class="fn-text">As 
+<P>Another example of using the pipe/1 construct is shown below.<SUP class="fn">41<SPAN class="fn-text">As 
 of version 5.3.15, the pipe construct is supported in the MS-Windows 
 version, both for <B>plcon.exe</B> and <B>plwin.exe</B>. The 
 implementation uses code from the LUA programming language (<A class="url" href="http://www.lua.org">http://www.lua.org</A>).</SPAN></SUP> 
@@ -635,7 +635,7 @@ collect_wd([]).
 and <A NAME="idx:seeing1:731"></A><A class="pred" href="IO.html#seeing/1">seeing/1</A> 
 do not return the filename of the current input/output, but the 
 stream-identifier, to ensure the design pattern below works under all 
-circumstances.<SUP class="fn">41<SPAN class="fn-text">Filenames can be 
+circumstances.<SUP class="fn">42<SPAN class="fn-text">Filenames can be 
 ambiguous and SWI-Prolog streams can refer to much more than just files.</SPAN></SUP>
 
 <PRE class="code">

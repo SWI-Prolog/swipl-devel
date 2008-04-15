@@ -1,3 +1,19 @@
+[Apr 14 2008]
+
+ * CLEANUP: Remove calls to sformat from system libraries (backward compatibility)
+
+[Apr 11 2008]
+
+ * ENHANCED: rdf_litindex.pl: 40% faster building of the literal token database
+
+[Apr 10 2008]
+
+ * PERFORMANCE: RDF-DB: speedup literal hash handling
+
+[Mar 26 2008]
+
+ * ENHANCED: make rdfs_individual_of(+,+) semidet.
+
 [Mar 5 2008]
 
  * FIXED: determinism detection in rdf_reachable/3

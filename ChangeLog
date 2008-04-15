@@ -9,6 +9,109 @@
 
 
 =============================
+VERSION 5.6.53 April 15, 2008
+=============================
+
+ * MODIFIED: hash_term/2 generated keys.  Better distribution, portable over
+   32 and 64-bit versions, support for GMP numbers.
+   
+ * FIXED: Made mod/2 ISO compliant.  Ulrich Neumerkel
+
+ * CLEANUP: Remove calls to sformat from system libraries (backward compatibility)
+
+ * FIXED: Various issues compiling and running the tests single-threaded
+
+ * PERFORMANCE: Avoid register/unregister atoms in records for findall/3
+
+ * PERFORMANCE: Avoid locking and unlocking atoms when send over the thread message queues
+
+ * MODIFIED: Replaced atom hash function with murmurhash 2.0.
+   Murmurhash 2.0 provides both better distribution and better performance.
+   This modifies the result of term_hash/2 and applications that rely on
+   values that are stable over multiple runs.
+   
+ * ADDED: Support and documentation to use callgrind on loaded shared objects
+
+ * INSTALL: Respect overriding LDFLAGS
+
+ * ADDED: plld to pass -pg
+
+ * ADDED: set_setting_default/2 to library(settings).
+
+ * FIXED: singleton handling of _<lower> for Unicode characters. David Woodhouse.
+
+ * FIXED: Possible crash in term_to_atom(-,+).  Mary Ellen Foster.
+
+ * FIXED: Make cody_type(-1, ?Type) work.  Werner Wolff
+
+ * ENHANCED: show attributes in a "repostable" fashion on the toplevel
+
+ * ENHANCED: Consider GC after an exception. Notably needed to reclaim
+   large amounts of stacks reachable after nb_setarg/3, but no longer after
+   the structure that keeps it is reclaimed on backtracking.
+   
+ * FIXED: Possible deadlock in concurrent/3.  Now uses new at_exit option for
+   thread_create/3.
+   
+ * FIXED: Representation issues with very large GMP numbers on 64-bit systems
+   Very large GMP numbers (>8MB) write an illegal term to the Prolog stack
+   which will crash in GC.
+   
+ * GC:
+   
+   test :-
+   	S = mutandum(_,nil),
+   	repeat,
+   	garbage_collect,
+   	I is 1<<(60*8*1024^2),
+   	nb_setarg(2, S, I),
+   	statistics,
+   	fail.
+   
+   This reverts commit b12a5e3b24636016d12e6bff0a3440fd3cf6f9f0.
+   
+ * ENHANCED: Call garbageCollect from global stack allocation.
+   This avoids premature out-of-stack issues caused by very big allocations
+   without opportunity for GC after the last time GC was considered. Note
+   that this may cause stability problems if there is code not prepared to
+   handle a shifted addresses that does not call globalAllocNoShift().
+   Ulrich Neumerkel.
+   
+ * FIXED: thread_detach/1 reclaims thread if it was already finished.  Paulo
+   Moura.
+   
+ * TESTS: Fixed thread resource exception test.  Ulrich Neumerkel.
+
+ * ENHANCED: Make phrase/2,3 transparent to the profiler
+
+ * ENHANCED: Smarter caching in autoload index, reducing the time to conclude
+   something is not in the autoload index by approx. 100 times.
+   
+ * FIXED: ignore thread signals when running the thread at_exit handlers
+
+ * ADDED: Ensure the thread identifier is available to the at_exit hook.
+
+ * ADDED: at_exit hook for thread_create/3 and start dealing with this for
+   emergency handling.
+   
+ * ADDED: Create emergency stacks if the real stacks cannot be created
+
+ * MODIFIED: Allow redefining all non-ISO built-in predicates
+
+ * FIXED: list_redefined/1.
+
+ * ADDED: Property 'iso' to predicate_property, indicating predicates that
+   are covered by the ISO standard.
+   
+ * ADDED: Simple `hotfix' library to patch files in saved states.  With help
+   from SecuritEase, Mike Elston.
+   
+ * FIXED: >2 byte UTF-8 processing.  Takeshi Abe.
+
+ * FIXED: A few issues using PL_initialise() ... PL_cleanup() repeatedly.
+   Incomplete, but at least a step in the right direction.  Alexander Lysenko.
+   
+=============================
 VERSION 5.6.52 March 12, 2008
 =============================
 

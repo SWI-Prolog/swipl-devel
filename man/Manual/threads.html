@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.52 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.53 Reference Manual</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="errors.html">
@@ -146,7 +146,7 @@ Todays computing services often focus on (internet) server applications.
 Such applications often have need for communication between services 
 and/or fast non-blocking service to multiple concurrent clients. The 
 shared heap provides fast communication and thread creation is 
-relatively cheap.<SUP class="fn">72<SPAN class="fn-text">On an dual 
+relatively cheap.<SUP class="fn">74<SPAN class="fn-text">On an dual 
 AMD-Athlon 1600, SWI-Prolog 5.1.0 creates and joins 4,957 threads per 
 second elapsed time.</SPAN></SUP>
 
@@ -157,7 +157,7 @@ such computations are executed in a new thread, the main thread can
 process events and allow the user to cancel the ongoing computation. 
 User interfaces can also use multiple threads, each thread dealing with 
 input from a distinct group of windows. See also <A class="sec" href="mt-xpce.html">section 
-8.7</A>.
+8.8</A>.
 
 <P>
 <LI><I>Natural integration with foreign code</I><BR>
@@ -204,15 +204,17 @@ library(threadutil)</SPAN></A></DIV>
 threads</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="thutil.html#sec:8.5.2"><SPAN class="sec-nr">8.5.2</SPAN> <SPAN class="sec-title">Profiling 
 threads</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="foreignthread.html"><SPAN class="sec-nr">8.6</SPAN> <SPAN class="sec-title">Multi-threaded 
+<DIV class="toc-h2"><A class="sec" href="mtunbound.html"><SPAN class="sec-nr">8.6</SPAN> <SPAN class="sec-title">Unbounded 
+thread creation</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="foreignthread.html"><SPAN class="sec-nr">8.7</SPAN> <SPAN class="sec-title">Multi-threaded 
 mixed C and Prolog applications</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreignthread.html#sec:8.6.1"><SPAN class="sec-nr">8.6.1</SPAN> <SPAN class="sec-title">A 
+<DIV class="toc-h3"><A class="sec" href="foreignthread.html#sec:8.7.1"><SPAN class="sec-nr">8.7.1</SPAN> <SPAN class="sec-title">A 
 Prolog thread for each native thread (one-to-one)</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="foreignthread.html#sec:8.6.2"><SPAN class="sec-nr">8.6.2</SPAN> <SPAN class="sec-title">Pooling 
+<DIV class="toc-h3"><A class="sec" href="foreignthread.html#sec:8.7.2"><SPAN class="sec-nr">8.7.2</SPAN> <SPAN class="sec-title">Pooling 
 Prolog engines (many-to-many)</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="foreignthread.html#sec:8.6.2.1"><SPAN class="sec-nr">8.6.2.1</SPAN> <SPAN class="sec-title">Engines 
+<DIV class="toc-h4"><A class="sec" href="foreignthread.html#sec:8.7.2.1"><SPAN class="sec-nr">8.7.2.1</SPAN> <SPAN class="sec-title">Engines 
 in single-threaded SWI-Prolog</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="mt-xpce.html"><SPAN class="sec-nr">8.7</SPAN> <SPAN class="sec-title">Multithreading 
+<DIV class="toc-h2"><A class="sec" href="mt-xpce.html"><SPAN class="sec-nr">8.8</SPAN> <SPAN class="sec-title">Multithreading 
 and the XPCE graphics system</SPAN></A></DIV>
 </DIV>
 </BODY></HTML>

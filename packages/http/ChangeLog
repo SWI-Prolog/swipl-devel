@@ -1,3 +1,21 @@
+[Apr 2 2008]
+
+ * FIXED: Throw an exception in illegal input wo json_write/3.
+
+[Apr 1 2008]
+
+ * FIXED: Close the server socket in http_stop_server/2.  John Stewart.
+
+[Mar 28 2008]
+
+ * MODIFIED: html//1 interpretation of Module:Term.  Previously this acted as
+   \(Module:Term), now it acts as Module:html(Term), interpreting an entire
+   specification relative to a module.
+   
+[Mar 20 2008]
+
+ * FIXED: Make HTTP status messages work when using the xhtml dialect
+
 [Mar 10 2008]
 
  * FIXED: HTTP accept loop to deal properly with termination
