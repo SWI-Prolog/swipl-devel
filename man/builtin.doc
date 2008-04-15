@@ -2037,17 +2037,20 @@ For advanced database indexing, it defines hash_term/2:
 
 \begin{description}
     \predicate{hash_term}{2}{+Term, -HashKey}
-If \arg{Term} is a ground term (see ground/1), \arg{HashKey} is
-unified with a positive integer value that may be used as a hash-key
-to the value.  If \arg{Term} is not ground, the predicate succeeds
-immediately, leaving \arg{HashKey} an unbound variable.
+If \arg{Term} is a ground term (see ground/1), \arg{HashKey} is unified
+with a positive integer value that may be used as a hash-key to the
+value. If \arg{Term} is not ground, the predicate leaves \arg{HashKey}
+an unbound variable.  Hash keys are in the range $0 \ldots 16,777,215$,
+the maximal integer that can be stored efficiently on both 32 and 64
+bit platforms.
 
 This predicate may be used to build hash-tables as well as to exploit
 argument-indexing to find complex terms more quickly.
 
 The hash-key does not rely on temporary information like addresses of
 atoms and may be assumed constant over different invocations and
-versions of SWI-Prolog.  The hash_term/2 predicate is cycle-safe.
+versions of SWI-Prolog.\footnote{Last change: version 5.6.53} The
+hash_term/2 predicate is cycle-safe.
 \end{description}
 
 

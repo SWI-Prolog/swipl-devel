@@ -991,7 +991,7 @@ Should this be int64_t for compatibility?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-termHashValue(word term, intptr_t *hval ARG_LD)
+termHashValue(word term, unsigned int *hval ARG_LD)
 { for(;;)
   { switch(tag(term))
     { case TAG_VAR:
@@ -1011,27 +1011,19 @@ termHashValue(word term, intptr_t *hval ARG_LD)
       }
       case TAG_INTEGER:
 	if ( storage(term) == STG_INLINE )
-	{ *hval += valInt(term);
-	} else
-	{ Word p = valIndirectP(term);
-#if SIZEOF_VOIDP == 4
-	  *hval += p[0]^p[1];
-#else
-	  *hval += p[0];
-#endif
-	}
-        succeed;
+	{ int64_t v = valInt(term);
+	  
+	  *hval += MurmurHashAligned2(&v, sizeof(v), MURMUR_SEED);
+	  succeed;
+	} 
+      /*FALLTHROUGH*/
       case TAG_FLOAT:
-      { int i;
-	intptr_t *p = (intptr_t *)valIndirectP(term);
-	intptr_t h = *p;
-
-	for(p++, i=WORDS_PER_DOUBLE-1; --i >= 0; )
-	  h ^= *p++;
-	*hval += h;
-
-	succeed;
-      }
+	{ Word p = addressIndirect(term);
+	  size_t n = wsizeofInd(*p);
+	  
+	  *hval += MurmurHashAligned2(p+1, n*sizeof(word), MURMUR_SEED);
+	  succeed;
+	}
       case TAG_COMPOUND:
       { Functor t = valueTerm(term);
 	functor_t f = t->definition;
@@ -1041,7 +1033,7 @@ termHashValue(word term, intptr_t *hval ARG_LD)
 	int rc = TRUE;
 
 	if ( visited(t PASS_LD) )
-	{ *hval = -(*hval);
+	{ *hval = ~(*hval);
 	  succeed;
 	}
 
@@ -1064,7 +1056,7 @@ termHashValue(word term, intptr_t *hval ARG_LD)
         return rc;
       }
       case TAG_REFERENCE:
-	term += *unRef(term);
+	term = *unRef(term);
         continue;
       default:
 	assert(0);
@@ -1073,13 +1065,13 @@ termHashValue(word term, intptr_t *hval ARG_LD)
 }
 
 
-/* hash_term(+Term, -HashKey */
+/* hash_term(+Term, -HashKey) */
 
 static
 PRED_IMPL("hash_term", 2, hash_term, 0)
 { PRED_LD
   Word p = valTermRef(A1);
-  intptr_t hraw = 0L;
+  unsigned int hraw = 0L;
   int rc;
 
   deRef(p);
@@ -1088,7 +1080,7 @@ PRED_IMPL("hash_term", 2, hash_term, 0)
   assert(empty_visited(PASS_LD1));
 
   if ( rc )
-  { hraw = hraw & PLMAXTAGGEDINT;	/* ensure tagged */
+  { hraw = hraw & PLMAXTAGGEDINT32;	/* ensure tagged (portable) */
 
     return PL_unify_integer(A2, hraw);
   }

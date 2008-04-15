@@ -462,6 +462,8 @@ them.  Descriptions:
 				/* Prolog's integer range */
 #define PLMINTAGGEDINT		(-(intptr_t)((word)1<<(WORDBITSIZE-LMASK_BITS-1)))
 #define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
+#define PLMINTAGGEDINT32	(-(intptr_t)((word)1<<(32-LMASK_BITS-1)))
+#define PLMAXTAGGEDINT32	(-PLMINTAGGEDINT32 - 1)
 #define inTaggedNumRange(n)	(((n)&~PLMAXTAGGEDINT) == 0 || \
 				 ((n)&~PLMAXTAGGEDINT) == ~PLMAXTAGGEDINT)
 #define PLMININT		(((int64_t)-1<<(INT64BITSIZE-1)))
@@ -1201,7 +1203,7 @@ struct atom
 { Atom		next;		/* next in chain */
   word		atom;		/* as appearing on the global stack */
 #ifdef O_HASHTERM
-  int		hash_value;	/* hash-key value */
+  unsigned int  hash_value;	/* hash-key value */
 #endif
 #ifdef O_ATOMGC
   unsigned int	references;	/* reference-count */
