@@ -30,13 +30,15 @@
 #include <SWI-Prolog.h>
 #include "atom.h"
 #include "murmur.h"
-#include "unicode_map.c"
 #include <wchar.h>
 #include <wctype.h>
 #include <assert.h>
+
 #ifdef __WINDOWS__
 #define inline __inline
 #endif
+
+#include "unicode_map.c"
 
 
 		 /*******************************
