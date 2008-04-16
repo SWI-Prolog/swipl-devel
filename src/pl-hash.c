@@ -9,6 +9,14 @@
 
 #include <pl-incl.h>
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The first one is actually  MurmurHashNeutral2().   It  produces the same
+hash  as  MurmurHashAligned2()  on  little    endian  machines,  but  is
+significantly  slower.  MurmurHashAligned2()  however    is   broken  on
+big-endian machines, as it produces different   hashes, depending on the
+alignment. 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #if WORDS_BIGENDIAN
 
 unsigned int
