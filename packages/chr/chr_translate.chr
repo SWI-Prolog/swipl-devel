@@ -497,9 +497,10 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_ground_mul
 	|
 		( Index = [IndexPos],
                   get_constraint_arg_type(C,IndexPos,Type),
-		  ( fail, is_chr_constants_type(Type,Key,_) -> get_chr_constants(Key,Constants)
-		  ; Type = chr_enum(Constants)      -> true
-		  )
+		  % ( fail , is_chr_constants_type(Type,Key,_) -> get_chr_constants(Key,Constants)
+		  % ; 
+		  Type = chr_enum(Constants) % -> true
+		  % )
 		->	 
 			Completeness = complete
 		;
@@ -528,9 +529,10 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs)
 	<=>	
 		memberchk(multi_hash([[Index]]),STs),
 		get_constraint_arg_type(C,Index,Type),
-		( Type = chr_enum(Constants)  -> true
-		; fail, is_chr_constants_type(Type,Key,_) -> get_chr_constants(Key,Constants)
-		)
+		% ( 
+		Type = chr_enum(Constants) % -> true
+		% ; fail, is_chr_constants_type(Type,Key,_) -> get_chr_constants(Key,Constants)
+		% )
 	|
 		delete(STs,multi_hash([[Index]]),STs0),
 		actual_store_types(C,[ground_constants([Index],Constants,complete)|STs0]).	
@@ -3795,34 +3797,34 @@ specialized_hash_term_call(Constraint,Index,Key,Hash,Call) :-
 		%	of SWI-Prolog
 		hash_term(Key,Hash),
 		Call = true
-	; Index = [IndexPos], 
-	  get_constraint_type(Constraint,ArgTypes),
-	  nth1(IndexPos,ArgTypes,Type),
-	  unalias_type(Type,NormalType),
-	  memberchk_eq(NormalType,[int,natural]) ->
-		( NormalType == int ->	
-			Call = (Hash is abs(Key)) 
-		;
-			Hash = Key,
-			Call = true 
-		)
-	;
-		nonvar(Key),
-		specialize_hash_term(Key,NewKey),
-		NewKey \== Key,
-		Call = hash_term(NewKey,Hash)
+% 	; Index = [IndexPos], 
+% 	  get_constraint_type(Constraint,ArgTypes),
+% 	  nth1(IndexPos,ArgTypes,Type),
+% 	  unalias_type(Type,NormalType),
+% 	  memberchk_eq(NormalType,[int,natural]) ->
+% 		( NormalType == int ->	
+% 			Call = (Hash is abs(Key)) 
+% 		;
+% 			Hash = Key,
+% 			Call = true 
+% 		)
+% 	;
+% 		nonvar(Key),
+% 		specialize_hash_term(Key,NewKey),
+% 		NewKey \== Key,
+% 		Call = hash_term(NewKey,Hash)
 	).
 
-specialize_hash_term(Term,NewTerm) :-
-	( ground(Term) ->
-		hash_term(Term,NewTerm)	
-	; var(Term) ->
-		NewTerm = Term
-	;
-		Term =.. [F|Args],
-		maplist(specialize_hash_term,Args,NewArgs),
-		NewTerm =.. [F|NewArgs]
-	).	
+% specialize_hash_term(Term,NewTerm) :-
+% 	( ground(Term) ->
+% 		hash_term(Term,NewTerm)	
+% 	; var(Term) ->
+% 		NewTerm = Term
+% 	;
+% 		Term =.. [F|Args],
+% 		maplist(specialize_hash_term,Args,NewArgs),
+% 		NewTerm =.. [F|NewArgs]
+% 	).	
 
 multi_hash_lookup_goal(ConstraintSymbol,HashType,Index,Key,SuspsList,Goal) :-
 	% format(' * lookup of ~w on ~w with ~w.\n',[ConstraintSymbol,Index,Key]),
