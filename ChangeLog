@@ -9,6 +9,15 @@
 
 
 =============================
+VERSION 5.6.54 April 16, 2008
+=============================
+
+ * FIXED: Two issues from new hashing: the Mumurhash algorithm didn't
+   work properly on big-endian machines under different alignments. and
+   CHR relied on the fact that the hash of an integer used to be this
+   integer itself.
+
+=============================
 VERSION 5.6.53 April 15, 2008
 =============================
 
