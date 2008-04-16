@@ -1928,14 +1928,14 @@ literal_hash(literal *lit)
         break;
       case OBJ_INTEGER:
       case OBJ_DOUBLE:
-	hash = MurmurHashAligned2(&lit->value.integer,
-				  sizeof(lit->value.integer),
-				  MURMUR_SEED);
+	hash = rdf_murmer_hash(&lit->value.integer,
+			       sizeof(lit->value.integer),
+			       MURMUR_SEED);
         break;
       case OBJ_TERM:
-	hash = MurmurHashAligned2(lit->value.term.record,
-				  lit->value.term.len,
-				  MURMUR_SEED);
+	hash = rdf_murmer_hash(lit->value.term.record,
+			       lit->value.term.len,
+			       MURMUR_SEED);
 	break;
       default:
 	assert(0);
@@ -3048,7 +3048,6 @@ load_db(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 static int
 link_loaded_triples(rdf_db *db, triple *t, ld_context *ctx)
 { long created0 = db->created;
-  int graph_md5 = FALSE;
   graph *graph;
 
   if ( ctx->graph )			/* lookup named graph */

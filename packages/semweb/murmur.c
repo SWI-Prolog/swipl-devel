@@ -22,7 +22,7 @@ NOTE: This file is a copy of src/pl-hash.c from SWI-Prolog.
 #if WORDS_BIGENDIAN
 
 unsigned int
-MurmurHashAligned2(const void * key, int len, unsigned int seed)
+rdf_murmer_hash(const void * key, int len, unsigned int seed)
 { const unsigned int m = 0x5bd1e995;
   const int r = 24;
   unsigned int h = seed ^ len;
@@ -66,14 +66,12 @@ MurmurHashAligned2(const void * key, int len, unsigned int seed)
 #define MIX(h,k,m) { k *= m; k ^= k >> r; k *= m; h *= m; h ^= k; }
 
 unsigned int
-MurmurHashAligned2(const void *key, int len, unsigned int seed)
+rdf_murmer_hash(const void *key, int len, unsigned int seed)
 { const unsigned int m = 0x5bd1e995;
   const int r = 24;
   const unsigned char * data = (const unsigned char *)key;
   unsigned int h = seed ^ len;
   int align = (int)(uintptr_t)data & 3;
-
-  DEBUG(0, assert(sizeof(int) == 4));
 
   if ( align && (len >= 4) )
   { unsigned int t = 0, d = 0;
