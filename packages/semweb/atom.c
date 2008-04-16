@@ -45,7 +45,7 @@
 		 *	   TEXT HANDLING	*
 		 *******************************/
 
-inline int
+static inline int
 get_atom_text(atom_t atom, text *txt)
 { if ( (txt->a = (const charA*)PL_atom_nchars(atom, &txt->length)) )
   { txt->w = NULL;
@@ -228,7 +228,7 @@ string_hashA(const char *s, size_t len)
     t--;
     while(++t<e)
       *++o = sort_pointA(*t)>>8;
-    hash ^= MurmurHashAligned2(buf, cp, MURMUR_SEED);
+    hash ^= rdf_murmer_hash(buf, cp, MURMUR_SEED);
 
     len -= cp;
   }
@@ -249,7 +249,7 @@ string_hashW(const wchar_t *t, size_t len)
 
     while(t<e)
       *o++ = (short)(sort_point(*t++)>>8);
-    hash ^= MurmurHashAligned2(buf, cp*sizeof(short), MURMUR_SEED);
+    hash ^= rdf_murmer_hash(buf, cp*sizeof(short), MURMUR_SEED);
 
     len -= cp;
   }
