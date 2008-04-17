@@ -462,12 +462,14 @@ create_update_literal_thread(Threads) :-
 monitor_literals :-
 	set_prolog_flag(agc_margin, 0),	% we don't create garbage
 	repeat,
-	    thread_get_message(rdf_literal_monitor_queue, Action),
-	    monitor_literal(Action),
+	    thread_get_message(rdf_literal_monitor_queue, Literal),
+	    register_literal(Literal),
 	fail.
 
-thread_monitor_literal(Action) :-
-	thread_send_message(rdf_literal_monitor_queue, Action).
+thread_monitor_literal(new_literal(Literal)) :- !,
+	thread_send_message(rdf_literal_monitor_queue, Literal).
+thread_monitor_literal(Action) :- !,
+	monitor_literal(Action).
 
 
 		 /*******************************
