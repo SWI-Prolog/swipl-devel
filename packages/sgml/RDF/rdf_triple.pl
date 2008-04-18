@@ -349,7 +349,7 @@ reset_shared_descriptions :-
 	retractall(shared_nodes(_)).
 
 shared_description(Term, Subject) :-
-	hash_term(Term, Hash),
+	term_hash(Term, Hash),
 	shared_description(Hash, Term, Subject),
 	(   retract(shared_nodes(N))
 	->  N1 is N + 1
@@ -359,7 +359,7 @@ shared_description(Term, Subject) :-
 	    
 
 assert_shared_description(Term, Subject) :-
-	hash_term(Term, Hash),
+	term_hash(Term, Hash),
 	assert(shared_description(Hash, Term, Subject)).
 
 

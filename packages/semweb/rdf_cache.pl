@@ -148,7 +148,7 @@ local_cache_file(URL, File) :-
 %			fails if URL is not in the cache.
 
 url_cache_file(URL, Dir, Ext, RW, Path) :-
-	hash_term(URL, Hash0),
+	term_hash(URL, Hash0),
 	Hash is Hash0 + 100000,		% make sure > 4 characters
 	format(string(Hex), '~16r', [Hash]),
 	sub_atom(Hex, _, 2, 0, L1),

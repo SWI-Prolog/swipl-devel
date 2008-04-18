@@ -54,10 +54,6 @@
 :- multifile user:goal_expansion/2.
 :- dynamic user:goal_expansion/2.
 
-user:goal_expansion(term_hash(Term,Hash),hash_term(Term,Hash)).
-
-% term_hash(Term,Hash) :-
-% 	hash_term(Term,Hash).
 initial_capacity(89).
 
 new_ht(HT) :-

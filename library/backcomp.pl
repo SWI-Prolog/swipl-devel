@@ -49,6 +49,7 @@
 	    write_ln/1,
 	    proper_list/1,
 	    free_variables/2,		% +Term, -Variables
+	    hash_term/2,		% +Term, -Hash
 	    checklist/2,		% :Goal, +List
 	    sublist/3,			% :Goal, +List, -Sublist
 	    convert_time/2,		% +Stamp, -String
@@ -182,6 +183,16 @@ proper_list(List) :-
 
 free_variables(Term, Variables) :-
 	term_variables(Term, Variables).
+
+%%	hash_term(+Term, -Hash) is det.
+%
+%	If Term is ground, Hash is unified to an integer representing
+%	a hash for Term.  Otherwise Hash is left unbound.
+%	
+%	@deprecated Use term_hash/2.
+
+hash_term(Term, Hash) :-
+	term_hash(Term, Hash).
 
 %%	checklist(:Goal, +List)
 %	

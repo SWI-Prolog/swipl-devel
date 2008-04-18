@@ -303,7 +303,7 @@ builtin_binds_(true,L,L).
 % builtin_binds_(halt(_), L, L).
 % builtin_binds_(halt, L, L).
 % builtin_binds_(hash(_), L, L).
-% builtin_binds_(hash_term(_, _), L, L).
+% builtin_binds_(term_hash(_, _), L, L).
 % builtin_binds_(ignore(_), L, L).
 % builtin_binds_(import(_), L, L).
 % builtin_binds_(import_module(_, _), L, L).

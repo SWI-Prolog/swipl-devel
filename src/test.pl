@@ -250,8 +250,8 @@ occurs_check(attvar-4) :-
 		 *	       CYCLIC		*
 		 *******************************/
 
-cyclic(hash_term-1) :-
-	X = f(X), hash_term(X, T),
+cyclic(term_hash-1) :-
+	X = f(X), term_hash(X, T),
 	integer(T).
 cyclic(streq-1) :-
 	X = [X], Y = [Y], X =@= Y.
@@ -1769,9 +1769,9 @@ avar(type-4) :-
 avar(type-5) :-
 	put_attr(X, test, a),
 	\+ atomic(X).
-avar(hash_term-1) :-
+avar(term_hash-1) :-
 	freeze(X, write(a)),
-	hash_term(X, H),
+	term_hash(X, H),
 	var(H).
 avar(findall-1) :-
 	retractall(avar_findall(_)),
@@ -1950,25 +1950,25 @@ copy_term(nat-2) :-			% cyclic term
 %	64-bit platforms. What to do? Use the   32-bit  limit also on 64
 %	bit platforms?  For now the test is disabled on 64-bit machines.
 
-hash_term(simple-1) :-
-	hash_term(aap, 480).
-hash_term(simple-2) :-			% small int
-	hash_term(42, 42).
-hash_term(simple-3) :-			% not tagged int
-	hash_term(2000000000, 3511296).
-hash_term(simple-4) :-
+term_hash(simple-1) :-
+	term_hash(aap, 8246445).
+term_hash(simple-2) :-			% small int
+	term_hash(42, 12280004).
+term_hash(simple-3) :-			% not tagged int
+	term_hash(2000000000, 13691282).
+term_hash(simple-4) :-
 	A is pi,
-	hash_term(A, 5049571).
-hash_term(simple-5) :-
+	term_hash(A, 15717536).
+term_hash(simple-5) :-
 	string_to_list(S, "hello world"),
-	hash_term(S, 16017976).
-hash_term(compound-1) :-
-	hash_term(hello(world), 259300). 
-hash_term(compound-2) :-
+	term_hash(S, 13985775).
+term_hash(compound-1) :-
+	term_hash(hello(world), 2391568). 
+term_hash(compound-2) :-
 	X = x(a),
-	hash_term(hello(X, X), 92021). 
-hash_term(compound-3) :-
-	hash_term(hello(x(a), x(a)), 92021). 
+	term_hash(hello(X, X), 4126440). 
+term_hash(compound-3) :-
+	term_hash(hello(x(a), x(a)), 4126440). 
 
 
 		 /*******************************
@@ -2516,8 +2516,7 @@ testset(meta).
 testset(avar).
 testset(gvar).
 testset(copy_term).
-testset(hash_term) :-			% 32-bit platforms
-	current_prolog_flag(max_integer, 2147483647).
+testset(term_hash).
 testset(cyclic).
 testset(cleanup).
 testset(term).

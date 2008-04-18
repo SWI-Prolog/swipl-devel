@@ -1064,7 +1064,7 @@ termHashValue(word term, unsigned int *hval ARG_LD)
 /* hash_term(+Term, -HashKey) */
 
 static
-PRED_IMPL("hash_term", 2, hash_term, 0)
+PRED_IMPL("term_hash", 2, term_hash, 0)
 { PRED_LD
   Word p = valTermRef(A1);
   unsigned int hraw = 0L;
@@ -4591,7 +4591,7 @@ BeginPredDefs(prims)
   PRED_DEF("term_variables", 3, term_variables3, 0)
   PRED_DEF("unifiable", 3, unifiable, 0)
 #ifdef O_HASHTERM
-  PRED_DEF("hash_term", 2, hash_term, 0)
+  PRED_DEF("term_hash", 2, term_hash, 0)
 #endif
   PRED_DEF("copy_term", 2, copy_term, PL_FA_ISO)
   PRED_DEF("duplicate_term", 2, duplicate_term, 0)
