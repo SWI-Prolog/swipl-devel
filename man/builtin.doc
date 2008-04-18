@@ -2032,11 +2032,10 @@ that encloses the generation of the current goal are considered visible.
 By default, SWI-Prolog, as most other implementations, indexes
 predicates on their first argument.  SWI-Prolog allows indexing
 on other and multiple arguments using the declaration index/1.
-
-For advanced database indexing, it defines term_hash/2:
+Dedicated index schemas can be build using term_hash/2 or term_hash/4.
 
 \begin{description}
-    \predicate{term_hash}{2}{+Term, -HashKey}
+    \predicate[det]{term_hash}{2}{+Term, -HashKey}
 If \arg{Term} is a ground term (see ground/1), \arg{HashKey} is unified
 with a positive integer value that may be used as a hash-key to the
 value. If \arg{Term} is not ground, the predicate leaves \arg{HashKey}
@@ -2052,6 +2051,18 @@ atoms and may be assumed constant over different invocations and
 versions of SWI-Prolog.\footnote{Last change: version 5.6.53} The
 term_hash/2 predicate is cycle-safe.  Hashes for numbers differ
 between bit and little endian machines.
+
+    \predicate[det]{term_hash}{2}{+Term, +Depth, +Range, -HashKey}
+As term_hash/2, but only considers \arg{Term} to the specified
+\arg{Depth}.   The toplevel term has depth 1, its arguments have
+depth 2, etc.  I.e. $\arg{Depth} = 0$ hashes nothing; $\arg{Depth} = 1$
+hashes atomic values or the functor and arity of a compound term,
+not its arguments; $\arg{Depth} = 2$ also indexes the immediate
+arguments, etc.  Using $\arg{Depth} = -1$ makes term_hash/4 behave
+as term_hash/2, hashing ground terms to the full depth.
+
+\arg{HashKey} is in the range $[0 \ldots \arg{Range}-1]$.  \arg{Range}
+must be in the range $[1 \ldots 2147483647]$
 \end{description}
 
 

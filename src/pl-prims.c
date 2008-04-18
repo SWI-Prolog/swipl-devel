@@ -987,9 +987,12 @@ PRED_IMPL("deterministic", 1, deterministic, 0)
 		 *******************************/
 
 static bool
-termHashValue(word term, unsigned int *hval ARG_LD)
+termHashValue(word term, long depth, unsigned int *hval ARG_LD)
 { for(;;)
-  { switch(tag(term))
+  { if ( depth == 0 )
+      succeed;
+
+    switch(tag(term))
     { case TAG_VAR:
       case TAG_ATTVAR:
 	fail;
@@ -1042,7 +1045,7 @@ termHashValue(word term, unsigned int *hval ARG_LD)
 	{ Word a2;
 
 	  deRef2(a, a2);
-	  if ( !termHashValue(*a2, hval PASS_LD) )
+	  if ( !termHashValue(*a2, depth-1, hval PASS_LD) )
 	  { rc = FALSE;
 	    break;
 	  }
@@ -1072,13 +1075,48 @@ PRED_IMPL("term_hash", 2, term_hash, 0)
 
   deRef(p);
   initvisited(PASS_LD1);
-  rc = termHashValue(*p, &hraw PASS_LD);
+  rc = termHashValue(*p, -1, &hraw PASS_LD);
   assert(empty_visited(PASS_LD1));
 
   if ( rc )
   { hraw = hraw & PLMAXTAGGEDINT32;	/* ensure tagged (portable) */
 
     return PL_unify_integer(A2, hraw);
+  }
+
+  succeed;
+}
+
+/* hash_term(+Term, +Depth, +Range, -HashKey) */
+
+static
+PRED_IMPL("term_hash", 4, term_hash4, 0)
+{ PRED_LD
+  Word p = valTermRef(A1);
+  unsigned int hraw = 0L;
+  long depth;
+  int range;
+  int rc;
+
+  if ( !PL_get_long_ex(A2, &depth) )
+    fail;
+  if ( depth < -1 )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, A2);
+
+  if ( !PL_get_integer_ex(A3, &range) )
+    fail;
+  if ( range < 1 )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_one, A2);
+
+  deRef(p);
+  initvisited(PASS_LD1);
+  rc = termHashValue(*p, depth, &hraw PASS_LD);
+  assert(empty_visited(PASS_LD1));
+
+  if ( rc )
+  { hraw = hraw % range;
+
+    return PL_unify_integer(A4, hraw);
   }
 
   succeed;
@@ -4592,6 +4630,7 @@ BeginPredDefs(prims)
   PRED_DEF("unifiable", 3, unifiable, 0)
 #ifdef O_HASHTERM
   PRED_DEF("term_hash", 2, term_hash, 0)
+  PRED_DEF("term_hash", 4, term_hash4, 0)
 #endif
   PRED_DEF("copy_term", 2, copy_term, PL_FA_ISO)
   PRED_DEF("duplicate_term", 2, duplicate_term, 0)
