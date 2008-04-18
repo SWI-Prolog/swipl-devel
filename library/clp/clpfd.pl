@@ -176,7 +176,7 @@ reifiable constraints or Boolean variables, then:
 
 If a variable occurs at the place of a constraint that is being
 reified, it is implicitly constrained to the Boolean values 0 and 1.
-Therefore, the following queries all fail: ?- #\ 2. ?- #\ #\ 2. etc.
+Therefore, the following queries all fail: ?- #\ 2., ?- #\ #\ 2. etc.
 
 As an example of a constraint satisfaction problem, consider the
 cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters
@@ -2888,28 +2888,19 @@ run_propagator(pmod(X,M,K), MState) :-
                     )
                 ;   true
                 )
-            ;   fd_get(X, XD, XPs),
-                (   fail, domain_supremum(XD, n(_)), domain_infimum(XD, n(_)) ->
-                    % bounded domain (propagation currently disabled)
-                    kill(MState),
-                    findall(E, (domain_to_list(XD, XLs),
-                                   member(E, XLs), E mod M =:= K), Es),
-                    list_to_domain(Es, XD1),
-                    domains_intersection(XD, XD1, XD2),
-                    fd_put(X, XD2, XPs)
-                ;   % if possible, propagate at the boundaries
-                    (   nonvar(K), domain_infimum(XD, n(Min)) ->
-                        (   Min mod M =:= K -> true
-                        ;   neq_num(X, Min)
-                        )
-                    ;   true
-                    ),
-                    (   nonvar(K), domain_supremum(XD, n(Max)) ->
-                        (   Max mod M =:= K -> true
-                        ;   neq_num(X, Max)
-                        )
-                    ;   true
+            ;   fd_get(X, XD, _),
+                % if possible, propagate at the boundaries
+                (   nonvar(K), domain_infimum(XD, n(Min)) ->
+                    (   Min mod M =:= K -> true
+                    ;   neq_num(X, Min)
                     )
+                ;   true
+                ),
+                (   nonvar(K), domain_supremum(XD, n(Max)) ->
+                    (   Max mod M =:= K -> true
+                    ;   neq_num(X, Max)
+                    )
+                ;   true
                 )
             )
         ;   true % TODO: propagate more
@@ -3606,32 +3597,34 @@ unfold_product([C|Cs], [V|Vs], P0, P) :-
         unfold_product(Cs, Vs, P0 + T, P).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-domain_to_list(Domain, List) :- phrase(domain_to_list(Domain), List).
 
-domain_to_list(split(_, Left, Right)) -->
-        domain_to_list(Left), domain_to_list(Right).
-domain_to_list(empty)                 --> [].
-domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, dlist(Ns).
+% /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+%    Testing
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-dlist([])     --> [].
-dlist([L|Ls]) --> [L], dlist(Ls).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Testing
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+% domain_to_list(Domain, List) :- phrase(domain_to_list(Domain), List).
 
-%?- test_intersection([1,2,3,4,5], [1,5], I).
+% domain_to_list(split(_, Left, Right)) -->
+%         domain_to_list(Left), domain_to_list(Right).
+% domain_to_list(empty)                 --> [].
+% domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, dlist(Ns).
 
-%?- test_intersection([1,2,3,4,5], [], I).
+% dlist([])     --> [].
+% dlist([L|Ls]) --> [L], dlist(Ls).
 
-test_intersection(List1, List2, Is) :-
-        list_to_domain(List1, D1),
-        list_to_domain(List2, D2),
-        domains_intersection(D1, D2, I),
-        domain_to_list(I, Is).
+% %?- test_intersection([1,2,3,4,5], [1,5], I).
 
-test_subdomain(L1, L2) :-
-        list_to_domain(L1, D1),
-        list_to_domain(L2, D2),
-        domain_subdomain(D1, D2).
+% %?- test_intersection([1,2,3,4,5], [], I).
+
+% test_intersection(List1, List2, Is) :-
+%         list_to_domain(List1, D1),
+%         list_to_domain(List2, D2),
+%         domains_intersection(D1, D2, I),
+%         domain_to_list(I, Is).
+
+% test_subdomain(L1, L2) :-
+%         list_to_domain(L1, D1),
+%         list_to_domain(L2, D2),
+%         domain_subdomain(D1, D2).
 
