@@ -3644,6 +3644,7 @@ constants_initializers(C,Index,Constants) :-
 
 constant_initializer(C,Index,Constant) :-
 	constants_store_name(C,Index,Constant,StoreName),
+	prolog_global_variable(StoreName),
 	module_initializer(nb_setval(StoreName,[])).
 
 lookup_identifier_atom(Key,X,IX,Atom) :-
