@@ -22,8 +22,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-:- module(diftest,
-	  [ diftest/0
+:- module(test_dif,
+	  [ test_dif/0
 	  ]).
 
 dif(1) :-
@@ -62,7 +62,7 @@ dif(10) :-
 :- dynamic
 	failed/1.
 
-diftest :-
+test_dif :-
 	retractall(failed(_)),
 	forall(clause(dif(N), _, _),
 	       (   dif(N)
