@@ -54,6 +54,9 @@ test(exhaust,all((N rem D =:= M) == [-3 rem-3=:=0,-3 rem-2=:= -1,-3 rem-1=:=0,-3
 	M is N rem D.
 test(big, [condition(current_prolog_flag(bounded, false)), R =:= -3]) :-
 	R is -3 rem (10^50).
+test(allq,[fail]) :-
+	maplist(between(-50,50),[X,Y]),
+	Y =\= 0, X =\= (X rem Y) + (X // Y) * Y.
 :- end_tests(rem).
 
 :- begin_tests(mod).
