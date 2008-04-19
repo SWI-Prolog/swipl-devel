@@ -143,8 +143,8 @@ trigger_conj(G1,G2,Goal) :-
 	trigger(G1,when:trigger(G2,Goal)).
 
 trigger_disj(G1,G2,Goal) :-
-	trigger(G1,check_disj(Disj,Goal)),
-	trigger(G2,check_disj(Disj,Goal)).
+	trigger(G1,when:check_disj(Disj,Goal)),
+	trigger(G2,when:check_disj(Disj,Goal)).
 
 check_disj(Disj,Goal) :-
 	( var(Disj) ->
