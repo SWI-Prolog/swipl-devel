@@ -71,9 +71,17 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 when(Condition, Goal) :-
-	must_be(nonvar, Condition),
+	when_condition(Condition),
 	strip_module(Goal, M, G),
 	trigger(Condition, M:G).
+
+when_condition(C)	  :- var(C), !, instantiation_error(C).
+when_condition(?=(_,_))	  :- !.
+when_condition(nonvar(_)) :- !.
+when_condition(ground(_)) :- !.
+when_condition((C1,C2))	  :- !, when_condition(C1), when_condition(C2).
+when_condition((C1;C2))	  :- !, when_condition(C1), when_condition(C2).
+when_condition(C)	  :- domain_error(when_condition, C).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 trigger(nonvar(X),Goal) :-
