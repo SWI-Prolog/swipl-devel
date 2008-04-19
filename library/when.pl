@@ -73,9 +73,7 @@
 when(Condition, Goal) :-
 	must_be(nonvar, Condition),
 	strip_module(Goal, M, G),
-	(   trigger(Condition, M:G) -> true
-	;   domain_error(when_condition, Condition)
-	).
+	trigger(Condition, M:G).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 trigger(nonvar(X),Goal) :-
