@@ -140,7 +140,7 @@ wake_det(Det) :-
 	).
 
 trigger_conj(G1,G2,Goal) :-
-	trigger(G1,trigger(G2,Goal)).
+	trigger(G1,when:trigger(G2,Goal)).
 
 trigger_disj(G1,G2,Goal) :-
 	trigger(G1,check_disj(Disj,Goal)),
