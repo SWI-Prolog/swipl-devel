@@ -31,7 +31,7 @@ This module is a test-frame for testing built-in predicates.
 :- use_module(library(plunit)).
 
 test_bips :-
-	run_tests([bips,bips_occurs_check_error]).
+	run_tests([bips,bips_occurs_check_error,coroutining]).
 
 has_occurs_check_flag :-
 	catch(current_prolog_flag(occurs_check, _), _, fail).
@@ -110,4 +110,24 @@ test(sort,[condition(error_unification),error(occurs_check(_,_))]) :-
 
 :- end_tests(bips_occurs_check_error).
 
+:- begin_tests(coroutining).
 
+test(when1, [error(instantiation_error)]) :-
+	when(_,1=1).
+test(when2_desItem343,[error(instantiation_error)]) :-
+	when((_,_),1=2).
+test(when3_desItem343,[error(instantiation_error)]) :-
+	when((nonvar(_),_),1=2).
+%test(when4_inf,[sto(infinite_trees), blocked(trop)]) :-
+%	C=(C,C),
+%	when(C,1=2).
+test(when5_r,[true(X==2)]) :-
+	when(ground(g),X=2).
+test(when6_des,[error(domain_error(_,_))]) :-
+	when(true, 1=2).
+test(when7,[true((R,S)==(est,sunt))]) :-
+	when((nonvar(X);nonvar(Y)),R = est),
+	when((nonvar(Y),nonvar(X)),S = sunt),
+	(X,Y)=(a,a).
+
+:- end_tests(coroutining).
