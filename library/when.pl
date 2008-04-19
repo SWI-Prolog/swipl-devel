@@ -175,7 +175,23 @@ attr_unify_hook(List,Other) :-
 		call_list(List2)
 	;
 		call_list(List) 
-	).	
+	).
+
+attribute_goals(V) -->
+	{ get_attr(V, when, Attr) },
+	(   { is_list(Attr) } ->
+	    when_goals(Attr)
+	;   { Attr = det(trigger_determined(X, Y, G)) } ->
+	    [when(?=(X,Y), G)]
+	;   [put_attr(V, when, Attr)]
+	).
+
+when_goals([])	   --> [].
+when_goals([G|Gs]) --> when_goal(G), when_goals(Gs).
+
+when_goal(trigger_ground(X, G)) --> [when(ground(X), G)].
+when_goal(trigger_nonvar(X, G)) --> [when(nonvar(X), G)].
+when_goal(wake_det(_))		--> []. % ignore
 
 call_list([]).
 call_list([G|Gs]) :-
