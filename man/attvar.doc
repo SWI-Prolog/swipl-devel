@@ -161,8 +161,8 @@ by fresh variables.
 \section{Coroutining}				\label{sec:coroutining}
 
 Coroutining deals with having Prolog goals scheduled for execution as
-soon as some conditions is fulfilled.  In Prolog the most commonly
-used conditions is the instantiation (binding) of a variable. Scheduling
+soon as some conditions are fulfilled.  In Prolog the most commonly
+used condition is the instantiation (binding) of a variable. Scheduling
 a goal to execute immediately after a variable is bound can
 be used to avoid instantiation errors for some built-in predicates
 (e.g.\ arithmetic), do work \jargon{lazy}, prevent the binding of
@@ -180,8 +180,8 @@ No
 Delay the execution of \arg{Goal} until \arg{Var} is bound (i.e. is
 not a variable or attributed variable).	 If \arg{Var} is bound on entry
 freeze/2 is equivalent to call/1.  The freeze/2 predicate is realised
-using an attributed variable associated with the module \const{freeze},
-so \exam{get_attr(Var, freeze, AttVal)} can be used to find out whether
+using an attributed variable associated with the module \const{freeze}.
+Use \exam{frozen(Var, Goal)} to find out whether
 and which goals are delayed on \arg{Var}.
 
     \predicate{frozen}{2}{@{Var}, -Goal}
@@ -193,7 +193,7 @@ to \const{true}.
 Execute \arg{Goal} when \arg{Condition} becomes true.  \arg{Condition}
 is one of \term{?=}{X, Y}, \term{nonvar}{X}, \term{ground}{X},
 \term{,}{Cond1, Cond2} or \term{;}{Cond1, Cond2}.  See also freeze/2
-and dif/2.  The implementation can deal with cyclic terms.
+and dif/2.  The implementation can deal with cyclic terms in \arg{X} and \arg{Y}.
 
 The when/2 predicate is realised using attributed variable associated
 with the module \const{when}.  It is defined in the autoload library
