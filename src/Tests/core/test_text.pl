@@ -35,6 +35,7 @@ or character codes.  Please define a test-set for each predicate.
 
 test_text :-
 	run_tests([ char_code,
+		    atom_concat,
 		    term_to_atom,
 		    atom_to_term
 		  ]).
@@ -63,6 +64,18 @@ test(error, error(representation_error(character_code))) :-
 	char_code(_,0xfffffff).
 
 :- end_tests(char_code).
+
+:- begin_tests(atom_concat).
+
+test(shared, X == ab) :-		% deal with atom_concat(X,X,...)
+	atom_concat(X, X, abab).
+test(shared, X == '') :-
+	atom_concat(X, X, '').
+test(shared, fail) :-
+	atom_concat(X, X, abac).
+
+:- end_tests(atom_concat).
+
 
 :- begin_tests(term_to_atom).
 
