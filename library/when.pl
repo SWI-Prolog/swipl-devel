@@ -108,8 +108,11 @@ trigger_nonvar(X,Goal) :-
 
 trigger_ground(X,Goal) :-
 	term_variables(X,Vs),
-	( Vs = [H|_] ->
-		suspend(H,trigger_ground(Vs,Goal))
+	( Vs = [H] ->
+		suspend(H,trigger_ground(H,Goal))
+	; Vs = [H|_] ->
+		T =.. [f|Vs],
+		suspend(H,trigger_ground(T,Goal))
 	;
 		call(Goal)
 	).
@@ -140,11 +143,11 @@ wake_det(Det) :-
 	).
 
 trigger_conj(G1,G2,Goal) :-
-	trigger(G1,trigger(G2,Goal)).
+	trigger(G1,when:trigger(G2,Goal)).
 
 trigger_disj(G1,G2,Goal) :-
-	trigger(G1,check_disj(Disj,Goal)),
-	trigger(G2,check_disj(Disj,Goal)).
+	trigger(G1,when:check_disj(Disj,Goal)),
+	trigger(G2,when:check_disj(Disj,Goal)).
 
 check_disj(Disj,Goal) :-
 	( var(Disj) ->
@@ -175,9 +178,24 @@ attr_unify_hook(List,Other) :-
 		call_list(List2)
 	;
 		call_list(List) 
-	).	
+	).
 
 call_list([]).
 call_list([G|Gs]) :-
 	call(G),
 	call_list(Gs).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+attribute_goals(V) -->
+	{ get_attr(V, when, Attr) },
+	(   { Attr = det(trigger_determined(X, Y, G)) } ->
+	    [when(?=(X,Y), G)]
+	;   when_goals(Attr)
+	).
+
+when_goals([])	   --> [].
+when_goals([G|Gs]) --> when_goal(G), when_goals(Gs).
+
+when_goal(trigger_ground(X, G)) --> [when(ground(X), G)].
+when_goal(trigger_nonvar(X, G)) --> [when(nonvar(X), G)].
+when_goal(wake_det(_))		--> []. % ignore
