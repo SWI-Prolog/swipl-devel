@@ -108,7 +108,9 @@ trigger_nonvar(X,Goal) :-
 
 trigger_ground(X,Goal) :-
 	term_variables(X,Vs),
-	( Vs = [H|_] ->
+	( Vs = [H] ->
+		suspend(H,trigger_ground(H,Goal))
+	; Vs = [H|_] ->
 		suspend(H,trigger_ground(Vs,Goal))
 	;
 		call(Goal)
@@ -179,11 +181,9 @@ attr_unify_hook(List,Other) :-
 
 attribute_goals(V) -->
 	{ get_attr(V, when, Attr) },
-	(   { is_list(Attr) } ->
-	    when_goals(Attr)
-	;   { Attr = det(trigger_determined(X, Y, G)) } ->
+	(   { Attr = det(trigger_determined(X, Y, G)) } ->
 	    [when(?=(X,Y), G)]
-	;   [put_attr(V, when, Attr)]
+	;   when_goals(Attr)
 	).
 
 when_goals([])	   --> [].
