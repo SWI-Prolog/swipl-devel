@@ -111,7 +111,8 @@ trigger_ground(X,Goal) :-
 	( Vs = [H] ->
 		suspend(H,trigger_ground(H,Goal))
 	; Vs = [H|_] ->
-		suspend(H,trigger_ground(Vs,Goal))
+		T =.. [f|Vs],
+		suspend(H,trigger_ground(T,Goal))
 	;
 		call(Goal)
 	).
