@@ -51,6 +51,7 @@
 :- use_module(library(debug)).
 :- use_module(library(autowin)).
 :- use_module(library(broadcast)).
+:- use_module(library(prolog_source)).
 
 version('0.1.1').
 
@@ -857,7 +858,7 @@ initialise(DN, Dir:name, Label:[name]) :->
 	"Create a directory node"::
 	(   Label \== @default
 	->  Name = Label
-	;   alias_path(Name, Dir)
+	;   file_alias_path(Name, Dir)
 	->  true
 	;   file_base_name(Dir, Name)
 	),
@@ -866,7 +867,7 @@ initialise(DN, Dir:name, Label:[name]) :->
 parent_id(FN, ParentId:name) :<-
 	"Get id for the parent"::
 	get(FN, identifier, Path),
-	(   alias_path(_, Path)
+	(   file_alias_path(_, Path)
 	->  ParentId = alias
 	;   file_directory_name(Path, ParentId)
 	).
@@ -924,7 +925,7 @@ parent_id(FN, ParentId:name) :<-
 	"Get id for the parent"::
 	get(FN, identifier, Path),
 	file_directory_name(Path, Dir),
-	(   alias_path('.', Dir)
+	(   file_alias_path('.', Dir)
 	->  ParentId = '.'
 	;   ParentId = Dir
 	).
@@ -1367,7 +1368,7 @@ variable(default_action, name := edit, both, "Default on click").
 
 initialise(TF, File:name) :->
 	absolute_file_name(File, Path),
-	short_file_name(Path, ShortId),
+	file_name_on_path(Path, ShortId),
 	short_file_name_to_atom(ShortId, Label),
 	send_super(TF, initialise, Label),
 	send(TF, name, Path),
@@ -1717,25 +1718,9 @@ print_decls(Term, Out) :-
 
 
 		 /*******************************
-		 *	  LOGIC (MAY MOVE)	*
+		 *	  FILE-NAME LOGIC	*
 		 *******************************/
 
-%%	short_file_name(+File, -ShortId)
-%	
-%	Create a short name for a file
-
-short_file_name(Path, ShortId) :-
-	(   alias_path(Alias, Dir),
-	    atom_concat(Dir, Local, Path)
-	->  (   Alias == '.'
-	    ->  ShortId = Local
-	    ;   file_name_extension(Base, pl, Local)
-	    ->  ShortId =.. [Alias, Base]
-	    ;   ShortId =.. [Alias, Local]
-	    )
-	;   ShortId = Path
-	).
-	
 %%	short_file_name_to_atom(+ShortId, -Atom)
 %	
 %	Convert a short filename into an atom
@@ -1745,56 +1730,6 @@ short_file_name_to_atom(Atom, Atom) :-
 short_file_name_to_atom(Term, Atom) :-
 	term_to_atom(Term, Atom).
 
-
-%%	alias_path(-Alias, ?Dir)
-%	
-%	Enumerate the defined aliases, sorting   them  starting with the
-%	longest path-name, so the first hit is immediately the best one.
-
-:- dynamic
-	alias_cache/2.
-
-alias_path(Alias, Dir) :-
-	(   alias_cache(_, _)
-	->  true
-	;   build_alias_cache
-	),
-	(   nonvar(Dir)
-	->  ensure_slash(Dir, DirSlash),
-	    alias_cache(Alias, DirSlash)
-	;   alias_cache(Alias, Dir)
-	).
-
-build_alias_cache :-
-	findall(t(DirLen, AliasLen, Alias, Dir),
-		search_path(Alias, Dir, AliasLen, DirLen), Ts),
-	sort(Ts, List0),
-	reverse(List0, List),
-	forall(member(t(_, _, Alias, Dir), List),
-	       assert(alias_cache(Alias, Dir))).
-
-search_path('.', Here, 999, DirLen) :-
-	working_directory(Here0, Here0),
-	ensure_slash(Here0, Here),
-	atom_length(Here, DirLen).
-search_path(Alias, Dir, AliasLen, DirLen) :-
-	file_search_path(Alias, _),
-	Spec =.. [Alias,'.'],
-	atom_length(Alias, AliasLen0),
-	AliasLen is 1000 - AliasLen0,	% must do reverse sort
-	absolute_file_name(Spec, Dir0,
-			   [ file_type(directory),
-			     access(read),
-			     solutions(all),
-			     file_errors(fail)
-			   ]),
-	ensure_slash(Dir0, Dir),
-	atom_length(Dir, DirLen).
-
-ensure_slash(Dir, Dir) :-
-	sub_atom(Dir, _, _, 0, /), !.
-ensure_slash(Dir0, Dir) :-
-	atom_concat(Dir0, /, Dir).
 
 %%	library_file(+Path)
 %	
@@ -1810,7 +1745,7 @@ library_file(Path) :-
 %	True if path is a personalisation file.  This is a bit hairy.
 
 profile_file(Path) :-
-	short_file_name(Path, user_profile(File)),
+	file_name_on_path(Path, user_profile(File)),
 	known_profile_file(File).
 
 known_profile_file('.plrc').
@@ -1830,7 +1765,7 @@ sort_files(Files0, Sorted) :-
 	unkey(KSorted, Sorted).
 
 key_file(File, Key-File) :-
-	short_file_name(File, Key).
+	file_name_on_path(File, Key).
 
 
 		 /*******************************
@@ -2265,7 +2200,7 @@ local_filename(File, RefFile, ShortPath) :-
 	file_base_name(File, Base),
 	remove_extension(Base, ShortPath).
 local_filename(File, _RefFile, ShortPath) :-
-	short_file_name(File, ShortPath0),
+	file_name_on_path(File, ShortPath0),
 	remove_extension(ShortPath0, ShortPath).
 
 
@@ -2293,7 +2228,7 @@ append_row(D, File:name, Callable:prolog, Files:prolog) :->
 	send(D, append, new(FM, menu(file, cycle)), right),
 	send(FM, append, menu_item(@nil, @default, '-- Select --')),
 	forall(member(Path, Files),
-	       (   short_file_name(Path, ShortId),
+	       (   file_name_on_path(Path, ShortId),
 		   short_file_name_to_atom(ShortId, Label),
 		   send(FM, append, menu_item(Path, @default, Label))
 	       )).

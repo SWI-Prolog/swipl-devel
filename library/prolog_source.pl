@@ -33,7 +33,10 @@
 	  [ prolog_read_source_term/4,	% +Stream, -Term, -Expanded, +Options
 	    prolog_open_source/2,	% +Source, -Stream
 	    prolog_close_source/1,	% +Stream
-	    prolog_canonical_source/2	% +Spec, -Id
+	    prolog_canonical_source/2,	% +Spec, -Id
+	    
+	    file_name_on_path/2,	% +File, -PathSpec
+	    file_alias_path/2		% ?Alias, ?Dir
 	  ]).
 :- use_module(operators).
 :- use_module(debug).
@@ -209,3 +212,72 @@ prolog_canonical_source(Source, Src) :-
 prolog_canonical_source(Source, Src) :-
 	var(Source), !,
 	Src = Source.
+
+
+%%	file_name_on_path(+File:atom, -OnPath) is det.
+%	
+%	True if OnPath a description of File   based  on the file search
+%	path. This performs the inverse of absolute_file_name/3.
+
+file_name_on_path(Path, ShortId) :-
+	(   file_alias_path(Alias, Dir),
+	    atom_concat(Dir, Local, Path)
+	->  (   Alias == '.'
+	    ->  ShortId = Local
+	    ;   file_name_extension(Base, pl, Local)
+	    ->  ShortId =.. [Alias, Base]
+	    ;   ShortId =.. [Alias, Local]
+	    )
+	;   ShortId = Path
+	).
+
+	
+%%	file_alias_path(-Alias, ?Dir) is nondet.
+%	
+%	True if file Alias points to Dir.  Multiple solutions are
+%	generated with the longest directory first.
+
+:- dynamic
+	alias_cache/2.
+
+file_alias_path(Alias, Dir) :-
+	(   alias_cache(_, _)
+	->  true
+	;   build_alias_cache
+	),
+	(   nonvar(Dir)
+	->  ensure_slash(Dir, DirSlash),
+	    alias_cache(Alias, DirSlash)
+	;   alias_cache(Alias, Dir)
+	).
+
+build_alias_cache :-
+	findall(t(DirLen, AliasLen, Alias, Dir),
+		search_path(Alias, Dir, AliasLen, DirLen), Ts),
+	sort(Ts, List0),
+	reverse(List0, List),
+	forall(member(t(_, _, Alias, Dir), List),
+	       assert(alias_cache(Alias, Dir))).
+
+search_path('.', Here, 999, DirLen) :-
+	working_directory(Here0, Here0),
+	ensure_slash(Here0, Here),
+	atom_length(Here, DirLen).
+search_path(Alias, Dir, AliasLen, DirLen) :-
+	file_search_path(Alias, _),
+	Spec =.. [Alias,'.'],
+	atom_length(Alias, AliasLen0),
+	AliasLen is 1000 - AliasLen0,	% must do reverse sort
+	absolute_file_name(Spec, Dir0,
+			   [ file_type(directory),
+			     access(read),
+			     solutions(all),
+			     file_errors(fail)
+			   ]),
+	ensure_slash(Dir0, Dir),
+	atom_length(Dir, DirLen).
+
+ensure_slash(Dir, Dir) :-
+	sub_atom(Dir, _, _, 0, /), !.
+ensure_slash(Dir0, Dir) :-
+	atom_concat(Dir0, /, Dir).
