@@ -36,6 +36,7 @@
 	    ord_intersect/2,		% +Set1, +Set2 (test non-empty)
 	    ord_intersect/3,		% +Set1, +Set2, -Intersection
 	    ord_intersection/3,		% +Set1, +Set2, -Intersection
+	    ord_intersection/4,		% +Set1, +Set2, -Intersection, -Diff
 	    ord_disjoint/2,		% +Set1, +Set2
 	    ord_subtract/3,		% +Set, +Delete, -Remaining
 	    ord_union/3,		% +Set1, +Set2, -Union
@@ -120,6 +121,28 @@ ord_intersect(Set1, Set2, Intersection) :-
 
 ord_intersection(Set1, Set2, Intersection) :-
 	oset_int(Set1, Set2, Intersection).
+
+
+%%	ord_intersection(+Set1, +Set2, ?Intersection, ?Difference) is det.
+%
+%	Intersection  and  difference   between    two   ordered   sets.
+%	Intersection is the intersection between   Set1  and Set2, while
+%	Difference is Set2\Set1.
+%	
+%	@see ord_intersection/3 and ord_subtract/3.
+
+ord_intersection([], L, [], L) :- !.
+ord_intersection([_|_], [], [], []) :- !.
+ord_intersection([H1|T1], [H2|T2], Intersection, Difference) :-
+	compare(Diff, H1, H2),
+	ord_intersection2(Diff, H1, T1, H2, T2, Intersection, Difference).
+
+ord_intersection2(=, H1, T1, _H2, T2, [H1|T], Difference) :-
+	ord_intersection(T1, T2, T, Difference).
+ord_intersection2(<, _, T1, H2, T2, Intersection, Difference) :-
+	ord_intersection(T1, [H2|T2], Intersection, Difference).
+ord_intersection2(>, H1, T1, H2, T2, Intersection, [H2|HDiff]) :-
+	ord_intersection([H1|T1], T2, Intersection, HDiff).
 
 
 %%	ord_add_element(+Set1, +Element, ?Set2)
