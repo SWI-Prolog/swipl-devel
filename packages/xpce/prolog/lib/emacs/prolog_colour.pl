@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -34,6 +34,7 @@
 :- use_module(library(pce)).
 :- use_module(library(emacs_extend)).
 :- use_module(library(pce_prolog_xref)).
+:- use_module(library(prolog_source)).
 :- use_module(library(lists)).
 :- use_module(library(operators)).
 :- use_module(library(debug)).
@@ -1534,7 +1535,13 @@ identify_pred(Class, F, Summary) :-		% SWI-Prolog documented built-in
 	get(F, predicate, Pred),		% & PlDoc summaries
 	get(Pred, summary, Summary0), !,
 	functor(Class, ClassName, _),
-	new(Summary, string('%N: [%s] %s', Pred, ClassName, Summary0)).
+	(   Class == autoload,
+	    autoload_source(F, From),
+	    file_name_on_path(From, Alias)
+	->  term_to_atom(Alias, Atom),
+	    new(Summary, string('%N: [%s from %s] %s', Pred, ClassName, Atom, Summary0))
+	;   new(Summary, string('%N: [%s] %s', Pred, ClassName, Summary0))
+	).
 identify_pred(built_in, F, Summary) :-
 	get(F, head, Head),
 	predicate_property(system:Head, foreign), !,
@@ -1544,15 +1551,7 @@ identify_pred(built_in, F, Summary) :-
 	sub_atom(Name, 0, _, _, $), !,
 	new(Summary, string('%N: SWI-Prolog private built-in', F)).
 identify_pred(autoload, F, Summary) :-	% Autoloaded predicates
-	get(F, name, Name),
-	get(F, arity, Arity),
-	'$find_library'(_Module, Name, Arity, _LoadModule, Library), !,
-	absolute_file_name(Library,
-			   [ file_type(prolog),
-			     access(read),
-			     file_errors(fail)
-			   ],
-			   Source),
+	autoload_source(F, Source),
 	new(Summary, string('%N: autoload from %s', F, Source)).
 identify_pred(local(Line), F, Summary) :-	% Local predicates
 	new(Summary, string('%N: locally defined at line %d', F, Line)).
@@ -1574,6 +1573,17 @@ identify_pred(dynamic(_Line), F, Summary) :-
 identify_pred(global, _, 'Predicate defined in global module user') :- !.
 identify_pred(Class, _, ClassName) :-
 	term_to_atom(Class, ClassName).
+
+autoload_source(F, Source) :-
+	get(F, name, Name),
+	get(F, arity, Arity),
+	'$find_library'(_Module, Name, Arity, _LoadModule, Library), !,
+	absolute_file_name(Library,
+			   [ file_type(prolog),
+			     access(read),
+			     file_errors(fail)
+			   ],
+			   Source).
 
 :- pce_end_class(emacs_goal_fragment).
 
