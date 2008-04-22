@@ -30,7 +30,8 @@
 */
 
 :- module(ordsets,
-	  [ list_to_ord_set/2,		% +List, -OrdSet
+	  [ is_ordset/1,		% @Term
+	    list_to_ord_set/2,		% +List, -OrdSet
 	    ord_add_element/3,		% +Set, +Element, -NewSet
 	    ord_del_element/3,		% +Set, +Element, -NewSet
 	    ord_intersect/2,		% +Set1, +Set2 (test non-empty)
@@ -62,6 +63,18 @@ extended to satisfy requirements by CHR.
 @compat	De-facto standard.
 @bug	Incomplete
 */
+
+%%	is_ordset(@Term) is semidet.
+%
+%	True if Term is an ordered set.   All predicates in this library
+%	expect ordered sets as input arguments.  Failing to fullfil this
+%	assumption results in undefined   behaviour.  Typically, ordered
+%	sets are created by predicates  from   this  library,  sort/2 or
+%	setof/3.
+
+is_ordset(Term) :-
+	catch(sort(Term, Term), _, fail).
+
 
 %%	ord_empty(List)
 %	
