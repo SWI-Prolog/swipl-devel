@@ -129,5 +129,7 @@ test(when7,[true((R,S)==(est,sunt))]) :-
 	when((nonvar(X);nonvar(Y)),R = est),
 	when((nonvar(Y),nonvar(X)),S = sunt),
 	(X,Y)=(a,a).
+test(when8,[fail]) :-
+	when(ground(g),fail).
 
 :- end_tests(coroutining).
