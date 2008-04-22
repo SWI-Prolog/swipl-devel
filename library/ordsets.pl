@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -259,7 +259,7 @@ ord_union(Set1, Set2, Union) :-
 %%	ord_union(+Set1, +Set2, -Union,	-New)
 %	
 %	True if Union iff ord_union(Set1, Set2, Union) and
-%%	ord_subtract(Set2, Set1, New).
+%	ord_subtract(Set2, Set1, New).
 
 ord_union([], Set2, Set2, Set2).
 ord_union([H|T], Set2, Union, New) :-
