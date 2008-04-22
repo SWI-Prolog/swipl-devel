@@ -73,7 +73,7 @@ extended to satisfy requirements by CHR.
 %	setof/3.
 
 is_ordset(Term) :-
-	catch(sort(Term, Term), _, fail).
+	catch(sort(Term, Term), error(type_error(_,_), _), fail).
 
 
 %%	ord_empty(List)
