@@ -38,7 +38,8 @@
 :- use_module(library(ordsets)).
 
 test_ordsets :-
-	run_tests([ ord_intersection
+	run_tests([ ord_intersection,
+		    is_ordset
 		  ]).
 
 :- begin_tests(ord_intersection).
@@ -57,3 +58,15 @@ test(oint4, [X,Y] == [[c],[a,b]]) :-
 
 :- end_tests(ord_intersection).
 
+:- begin_tests(is_ordset).
+
+test(is_ordset, true) :-
+	is_ordset([a,b,c]).
+test(is_ordset, [sto(rational_trees), fail]) :-
+	L = [a|L],
+	is_ordset(L).
+test(is_ordset, fail) :-		% This is why we cannot use sort(X,X)
+	_T = a(X,Y),
+	is_ordset([Y,X]).
+
+:- end_tests(is_ordset).

@@ -40,6 +40,7 @@
 	    ord_intersection/4,		% +Set1, +Set2, -Intersection, -Diff
 	    ord_disjoint/2,		% +Set1, +Set2
 	    ord_subtract/3,		% +Set, +Delete, -Remaining
+	    ord_union/2,		% +SetOfOrdSets, -Set
 	    ord_union/3,		% +Set1, +Set2, -Union
 	    ord_union/4,		% +Set1, +Set2, -Union, -New
 	    ord_subset/2,		% +Sub, +Super (test Sub is in Super)
@@ -73,7 +74,17 @@ extended to satisfy requirements by CHR.
 %	setof/3.
 
 is_ordset(Term) :-
-	catch(sort(Term, Term), error(type_error(_,_), _), fail).
+	is_list(Term),
+	is_ordset2(Term).
+
+is_ordset2([]).
+is_ordset2([H|T]) :-
+	is_ordset3(T, H).
+
+is_ordset3([], _).
+is_ordset3([H2|T], H) :-
+	H2 @> H,
+	is_ordset3(T, H2).
 
 
 %%	ord_empty(List)
@@ -208,6 +219,33 @@ ord_subset_(=, _, T1, T2) :-
 
 ord_subtract(InOSet, NotInOSet, Diff) :-
 	oset_diff(InOSet, NotInOSet, Diff).
+
+
+%%	ord_union(+SetOfSets, -Union) is det.
+%
+%	True if Union is the  union  of   all  elements  in the superset
+%	SetOfSets. Each member of SetOfSets must  be an ordered set, the
+%	sets need not be ordered in any way.
+%	
+%	@author Copied from YAP, probably originally by Richard O'Keefe.
+
+ord_union([], []).
+ord_union([Set|Sets], Union) :-
+	length([Set|Sets], NumberOfSets),
+	ord_union_all(NumberOfSets, [Set|Sets], Union, []).
+
+ord_union_all(N, Sets0, Union, Sets) :-
+	(   N =:= 1
+	->  Sets0 = [Union|Sets]
+	;   N =:= 2  
+	->  Sets0 = [Set1,Set2|Sets], 
+	    ord_union(Set1,Set2,Union)
+	;   A is N>>1,
+	    Z is N-A,
+	    ord_union_all(A, Sets0, X, Sets1),
+	    ord_union_all(Z, Sets1, Y, Sets),
+	    ord_union(X, Y, Union)
+	).
 
 
 %%	ord_union(+Set1, +Set2, ?Union)
