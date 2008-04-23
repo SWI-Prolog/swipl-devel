@@ -863,7 +863,8 @@ details(B, Fragment:[prolog_frame_var_fragment]) :->
 		[ VarType, VarName, Level, PredName ]),
 	view_term(Value,
 		  [ comment(Label),
-		    source_object(Frag)
+		    source_object(Frag),
+		    expose(true)
 		  ]).
 
 on_click(B, Index:int) :->

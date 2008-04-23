@@ -52,6 +52,7 @@ view_term(Term, Attributes0) :-
 defaults([ view(@view_term),
 	   clear(true),
 	   open(true),
+	   expose(false),
 	   write_options([ quoted(true),
 			   portray(true),
 			   numbervars(true)
@@ -62,6 +63,7 @@ tv(Term, Attributes) :-
 	attribute(Attributes, view(V)),
 	if(Attributes, clear(true), send(V, clear)),
 	if(Attributes, open(true), send(V, open)),
+	if(Attributes, expose(true), send(V, expose)),
 	if(Attributes, comment(Comment), send(V, label, Comment)),
 	if(Attributes, source_object(Frag), send(V, source_object, Frag)),
 	get(V, text_buffer, TB),
