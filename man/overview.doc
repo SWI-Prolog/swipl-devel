@@ -266,7 +266,7 @@ determine output file for compilation.
 Optimised compilation. See current_prolog_flag/2 flag
 \prologflag{optimise} for details.
 
-    \cmdlineoptionitem{-nodebug}{}
+    \cmdlineoptionitem{--nodebug}{}
 Disable debugging.  See the current_prolog_flag/2 flag
 \prologflag{generate_debug_info} for details.
 
@@ -325,10 +325,13 @@ it is not connected to a terminal or it is running as a GNU-Emacs
 inferior process. This flag is sometimes required for smooth interaction
 with other applications.
 
-    \cmdlineoptionitem{-nosignals}{}
+    \cmdlineoptionitem{--nosignals}{}
 Inhibit any signal handling by Prolog, a property that is sometimes
 desirable for embedded applications. This option sets the flag
 \prologflag{signals} to \const{false}. See \secref{sigembedded} for details.
+
+    \cmdlineoptionitem{--home=DIR}{}
+Use DIR as home directory.  See \secref{findhome} for details.
 
     \cmdlineoptionitem{-x}{bootfile}
 Boot from \arg{bootfile} instead of the system's default boot file. A

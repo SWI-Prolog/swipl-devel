@@ -3188,6 +3188,7 @@ If Prolog starts up, it will try to locate the development environment.
 To do so, it will try the following steps until one succeeds.
 
 \begin{enumerate}
+    \item If the \cmdlineoption{--home=DIR} is provided, use this.
     \item If the environment variable \env{SWI_HOME_DIR} is defined and
           points to an existing directory, use this.
     \item If the environment variable \env{SWIPL} is defined and

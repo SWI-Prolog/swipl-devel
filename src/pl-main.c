@@ -86,13 +86,38 @@ exec_var(const char *name)
 }
 
 
+static const char *
+longopt(const char *opt, int argc, const char **argv)
+{ size_t optlen = strlen(opt);
+
+  for(; argc > 0; argc--, argv++)
+  { const char *a = argv[0];
+
+    if ( *a++ == '-' && *a++ == '-' )
+    { if ( *a == EOS )		/* --: end of args */
+	return NULL;
+      if ( strncmp(a, opt, optlen) == 0 && a[optlen] == '=' )
+	return &a[optlen+1];
+    }
+  }
+
+  return NULL;
+}
+
+
 static char *
-findHome(char *symbols)
-{ char *home = NULL;
+findHome(const char *symbols, int argc, const char **argv)
+{ const char *home = NULL;
   char envbuf[MAXPATHLEN];
   char plp[MAXPATHLEN];
   const char *val;
   
+  if ( (val=longopt("home", argc, argv)) )
+  { if ( (home=PrologPath(val, plp, sizeof(plp))) )
+      return store_string(home);
+    return NULL;
+  }
+
   if ( (val  = exec_var("homevar")) &&
        (home = Getenv(val, envbuf, sizeof(envbuf))) &&
        (home = PrologPath(home, plp, sizeof(plp))) )
@@ -170,7 +195,7 @@ basename of the running program, taking all the leading alnum characters.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static char *
-defaultSystemInitFile(char *a0)
+defaultSystemInitFile(const char *a0)
 { char plp[MAXPATHLEN];
   char *base = BaseName(PrologPath(a0, plp, sizeof(plp)));
   char buf[256];
@@ -240,20 +265,20 @@ setupGNUEmacsInferiorMode()
 
 
 static void
-initPaths()
+initPaths(int argc, const char **argv)
 { char plp[MAXPATHLEN];
 
-  if ( GD->cmdline.argc > 0 )
+  if ( argc > 0 )
   { char plp1[MAXPATHLEN];
-    char *symbols = NULL;		/* The executable */
+    const char *symbols = NULL;		/* The executable */
 
-    if ( !(symbols = findExecutable(GD->cmdline.argv[0], plp1)) ||
+    if ( !(symbols = findExecutable(argv[0], plp1)) ||
 	 !(symbols = DeRefLink(symbols, plp)) )
-      symbols = GD->cmdline.argv[0];
+      symbols = argv[0];
   
     DEBUG(2, Sdprintf("rc-module: %s\n", symbols));
   
-    systemDefaults.home	       = findHome(symbols);
+    systemDefaults.home	       = findHome(symbols, argc, argv);
   
 #ifdef __WINDOWS__			/* we want no module but the .EXE */
     GD->paths.module	       = store_string(symbols);
@@ -261,9 +286,9 @@ initPaths()
     DEBUG(2, Sdprintf("Executable: %s\n", symbols));
 #endif
     GD->paths.executable       = store_string(symbols);
-    GD->options.systemInitFile = defaultSystemInitFile(GD->cmdline.argv[0]);
+    GD->options.systemInitFile = defaultSystemInitFile(argv[0]);
   } else
-  { systemDefaults.home	       = findHome(NULL);
+  { systemDefaults.home	       = findHome(NULL, argc, argv);
     GD->options.systemInitFile = store_string("none");
 #ifdef __WINDOWS__			/* we want no module but the .EXE */
     GD->paths.module	       = store_string("libpl.dll");
@@ -835,7 +860,7 @@ properly on Linux. Don't bother with it.
 
   initOs();				/* Initialise OS bindings */
   initDefaults();			/* Initialise global defaults */
-  initPaths();				/* fetch some useful paths */
+  initPaths(argc, (const char**)argv);	/* fetch some useful paths */
 
   setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 #ifdef HAVE_SIGNAL
@@ -984,6 +1009,7 @@ usage()
     "    --nosignals      Do not modify any signal handling\n",
     "    --nodebug        Omit generation of debug info\n",
     "    --quiet          Quiet operation (also -q)\n",
+    "    --home=DIR       Use DIR as SWI-Prolog home\n",
     NULL
   };
   const cline *lp = lines;
