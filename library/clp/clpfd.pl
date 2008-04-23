@@ -1014,6 +1014,10 @@ label(Vs) :- labeling([], Vs).
 %   For each variable X, a choice is made between X #=< M and X #> M,
 %   where M is the midpoint of the domain of X.
 %
+% If more than one option of a category is specified, the one
+% occurring rightmost in the option list takes precedence over all
+% others of that category.
+%
 % The order of solutions can be influenced with:
 %
 %   * min(Expr)
@@ -1021,25 +1025,31 @@ label(Vs) :- labeling([], Vs).
 %
 % This generates solutions in ascending/descending order with respect
 % to the evaluation of the arithmetic expression Expr. Labeling Vars
-% must make Expr ground. To obtain the incomplete behaviour that other
-% systems exhibit with "maximize(Expr)" and "minimize(Expr)", use
-% once/1, e.g.:
+% must make Expr ground. If several such options are specified, they
+% are interpreted from left to right, e.g.:
+%
+% ==
+% ?- [X,Y] ins 10..20, labeling([max(X),min(Y)],[X,Y]).
+% ==
+%
+% This generates solutions in descending order of X, and for each
+% binding of X, solutions are generated in ascending order of Y. To
+% obtain the incomplete behaviour that other systems exhibit with
+% "maximize(Expr)" and "minimize(Expr)", use once/1, e.g.:
 %
 % ==
 % once(labeling([max(Expr)], Vars))
 % ==
 %
-% If more than one option of a category is specified, the one
-% occurring rightmost in the option list takes precedence over all
-% others of that category. Labeling is always complete, always
-% terminates, and yields no redundant solutions.
+% Labeling is always complete, always terminates, and yields no
+% redundant solutions.
 %
 
 labeling(Options, Vars) :-
         must_be(list, Options),
         must_be(list, Vars),
         maplist(finite_domain, Vars),
-        label(Options, leftmost, up, step, none, upto_ground, Vars).
+        label(Options, leftmost, up, step, [], upto_ground, Vars).
 
 finite_domain(Var) :-
         (   fd_get(Var, Dom, _) ->
@@ -1060,15 +1070,16 @@ label([O|Os], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
         ;   choice(O) ->
             label(Os, Selection, Order, O, Optimisation, Consistency, Vars)
         ;   optimisation(O) ->
-            label(Os, Selection, Order, Choice, O, Consistency, Vars)
+            label(Os, Selection, Order, Choice, [O|Optimisation], Consistency, Vars)
         ;   consistency(O, O1) ->
             label(Os, Selection, Order, Choice, Optimisation, O1, Vars)
         ;   domain_error(labeling_option, O)
         ).
-label([], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
-        ( Optimisation == none ->
+label([], Selection, Order, Choice, Optimisation0, Consistency, Vars) :-
+        ( Optimisation0 == [] ->
             label(Vars, Selection, Order, Choice, Consistency)
-        ;   optimise(Vars, [Selection,Order,Choice], Optimisation)
+        ;   reverse(Optimisation0, Optimisation),
+            optimise(Vars, [Selection,Order,Choice], Optimisation)
         ).
 
 all_dead([]).
@@ -1241,15 +1252,17 @@ delete_eq([X|Xs],Y,List) :-
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-optimise(Vars, Options, What) :-
+optimise(Vars, Options, Whats) :-
+        Whats = [What|WhatsRest],
         Extremum = extremum(none),
         (   store_extremum(Vars, Options, What, Extremum)
         ;   Extremum = extremum(n(Val)),
             arg(1, What, Expr),
+            append(WhatsRest, Options, Options1),
             (   Expr #= Val,
-                labeling(Options, Vars)
+                labeling(Options1, Vars)
             ;   Expr #\= Val,
-                optimise(Vars, Options, What)
+                optimise(Vars, Options, Whats)
             )
         ).
 
