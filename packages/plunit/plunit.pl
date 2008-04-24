@@ -18,7 +18,8 @@
 	    end_tests/1,		% +Name
 	    run_tests/0,		% Run all tests
 	    run_tests/1,		% Run named test-set
-	    load_test_files/1		% +Options
+	    load_test_files/1,		% +Options
+	    running_tests/0		% Prints currently running test
 	  ]).
 
 /** <module> Unit Testing
@@ -96,6 +97,7 @@ set_test_flag(Name, Value) :-
 :- if(sicstus).
 throw_error(Error_term,Impldef) :-
 	throw(error(Error_term,i(Impldef))). % SICStus 3 work around
+
 :- use_module(swi).			% SWI-Compatibility
 :- use_module(library(terms)).
 :- op(700, xfx, =@=).
@@ -127,6 +129,11 @@ set_test_flag(Name, Val) :-
 set_test_flag( Name, Val ) :-
 	retractall(test_flag(Name,_)),
 	asserta(test_flag(Name, Val)).
+
+:- op(1150, fx, thread_local).
+
+user:term_expansion((:- thread_local(PI)), (:- dynamic(PI))) :-
+	prolog_load_context(module, plunit).
 
 :- endif.
 
@@ -447,11 +454,14 @@ test_set_option(cleanup(X)) :-
 		 *	  RUNNING TOPLEVEL	*
 		 *******************************/
 
-:- dynamic
+:- thread_local
 	passed/5,			% Unit, Test, Line, Det, Time
 	failed/4,			% Unit, Test, Line, Reason
 	blocked/4,			% Unit, Test, Line, Reason
 	sto/4.				% Unit, Test, Line, Results
+
+:- dynamic
+	running/5.			% Unit, Test, Line, STO, Thread
 
 %%	run_tests is semidet.
 %%	run_tests(+TestSet) is semidet.
@@ -509,10 +519,12 @@ matching_test(Name, Set) :-
 	memberchk(Name, Set).
 
 cleanup :-
+	thread_self(Me),
 	retractall(passed(_, _, _, _, _)),
 	retractall(failed(_, _, _, _)),
 	retractall(blocked(_, _, _, _)),
-	retractall(sto(_, _, _, _)).
+	retractall(sto(_, _, _, _)),
+	retractall(running(_,_,_,_,Me)).
 
 
 %%	run_tests_in_files(+Files:list)	is det.
@@ -633,7 +645,9 @@ run_test_cap(Unit, Name, Line, Options, Body) :-
 test_caps(Type, Unit, Name, Line, Options, Body, Result, Key) :-
 	unification_capability(Type),
 	set_unification_capability(Type),
+	begin_test(Unit, Name, Line, Type),
 	run_test_6(Unit, Name, Line, Options, Body, Result),
+	end_test(Unit, Name, Line, Type),
 	result_to_key(Result, Key),
 	Key \== setup_failed.
 
@@ -956,6 +970,41 @@ assert_cyclic(Term) :-
 		 *	      REPORTING		*
 		 *******************************/
 
+%%	begin_test(Unit, Test, Line, STO) is det.
+%%	end_test(Unit, Test, Line, STO) is det.
+%
+%	Maintain running/5 and report a test has started/is ended using
+%	a =silent= message:
+%	
+%	    * plunit(begin(Unit:Test, File:Line, STO))
+%	    * plunit(end(Unit:Test, File:Line, STO))
+%	    
+%	@see message_hook/3 for intercepting these messages    
+
+begin_test(Unit, Test, Line, STO) :-
+	thread_self(Me),
+	assert(running(Unit, Test, Line, STO, Me)),
+	unit_file(Unit, File),
+	print_message(silent, plunit(begin(Unit:Test, File:Line, STO))).
+
+end_test(Unit, Test, Line, STO) :-
+	thread_self(Me),
+	retractall(running(_,_,_,_,Me)),
+	unit_file(Unit, File),
+	print_message(silent, plunit(end(Unit:Test, File:Line, STO))).
+
+%%	running_tests is det.
+%
+%	Print the currently running test.
+
+running_tests :-
+	findall(running(Unit:Test, File:Line, STO, Thread),
+		(   running(Unit, Test, Line, STO, Thread),
+		    unit_file(Unit, File)
+		), Running),
+	print_message(informational, plunit(running(Running))).
+
+
 %%	report is semidet.
 %
 %	True if there are no errors.  If errors were encountered, report
@@ -1118,6 +1167,14 @@ message(plunit(end(_Unit))) -->
 :- endif.
 message(plunit(blocked(unit(Unit, Reason)))) -->
 	[ 'PL-Unit: ~w blocked: ~w'-[Unit, Reason] ].
+message(plunit(running([]))) --> !,
+	[ 'PL-Unit: no tests running' ].
+message(plunit(running([One]))) --> !,
+	[ 'PL-Unit: running ' ],
+	running(One).
+message(plunit(running(More))) --> !,
+	[ 'PL-Unit: running tests:', nl ],
+	running(More).
 
 					% Blocked tests
 message(plunit(blocked(1))) --> !,
@@ -1180,6 +1237,28 @@ det(true) -->
 	[ 'deterministic' ].
 det(false) -->
 	[ 'non-deterministic' ].
+
+running(running(Unit:Test, File:Line, STO, Thread)) -->
+	thread(Thread),
+	[ '~q:~q at ~w:~d'-[Unit, Test, File, Line] ],
+	current_sto(STO).
+running([H|T]) -->
+	['\t'], running(H),
+	(   {T == []}
+	->  []
+	;   [nl], running(T)
+	).
+
+thread(main) --> !.
+thread(Other) -->
+	[' [~w] '-[Other] ].
+	
+current_sto(sto_error_incomplete) -->
+	[ ' (STO: error checking)' ].
+current_sto(rational_trees) -->
+	[].
+current_sto(finite_trees) -->
+	[ ' (STO: occurs check enabled)' ].
 
 :- if(swi).
 write_term(T, OPS) -->

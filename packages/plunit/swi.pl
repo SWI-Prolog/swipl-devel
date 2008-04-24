@@ -25,7 +25,8 @@
 	    option/3,			% +Term, +List, +Default
 	    concat_atom/2,		% +List, -Atom
 	    pairs_values/2,		% +Pairs, -Values
-	    group_pairs_by_key/2	% +Pairs, -Groups
+	    group_pairs_by_key/2,	% +Pairs, -Groups
+	    thread_self/1		% -Thread
 	  ]).
 :- meta_predicate
 	forall(:,:),
@@ -54,12 +55,7 @@ PlUnit environment in SICStus. Tested and  developed with SICStus Prolog
 copy_term(Term, Copy, Goals) :-
 	call_residue(copy_term(Term,Copy0),Residuum),
 	Copy0 = Copy,
-	pairs_rights(Residuum, Goals).
-
-pairs_rights([],[]).
-pairs_rights([_-R|Ps],[R|Rs]) :-
-	pairs_rights(Ps, Rs).
-
+	pairs_values(Residuum, Goals).
 
 %%	=@=(A, B)
 %
@@ -257,3 +253,10 @@ group_pairs_by_key([M-N|T0], [M-[N|TN]|T]) :-
 same_key(M, [M-N|T0], [N|TN], T) :- !,
 	same_key(M, T0, TN, T).
 same_key(_, L, [], L).
+
+
+%%	thread_self(-ThreadId) is det.
+%
+%	Unify ThreadId with the identifier of the calling thread.
+
+thread_self(main).

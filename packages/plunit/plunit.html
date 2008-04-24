@@ -609,7 +609,12 @@ there is no output except for errors.
 <DT class="pubdef"><A NAME="load_test_files/1"><STRONG>load_test_files</STRONG>(<VAR>+Options</VAR>)</A></DT>
 <DD class="defbody">
 Load <CODE>.plt</CODE> test-files that belong to the currently loaded 
-sources.
+sources.</DD>
+<DT class="pubdef"><A NAME="running_tests/0"><STRONG>running_tests</STRONG></A></DT>
+<DD class="defbody">
+Print all currrently running tests to the terminal. It can be used to 
+find running thread in multi-threaded test operation or find the 
+currently running test if a test appears to be blocking.
 </DD>
 </DL>
 
@@ -868,6 +873,9 @@ be marked as non-called in environments that perform cross-referencing.
 <DD>
 <A class="idx" href="#idx:member2:7">2.2.1</A></DD>
 <DT><STRONG>R</STRONG></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#running_tests/0">running_tests/0</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#run_tests/0">run_tests/0</A></DT>
