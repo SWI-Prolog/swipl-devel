@@ -10,6 +10,7 @@
 # awk you can propagate the changes by hand, but be careful!
 
 
+
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -57,6 +58,7 @@ A backquoted_string	"backquoted_string"
 A backslash		"\\"
 A backtrace		"backtrace"
 A bar			"|"
+A begin			"begin"
 A binary		"binary"
 A bind			"bind"
 A block			"block"
@@ -169,6 +171,7 @@ A dwakeup		"$wakeup"
 A dynamic		"dynamic"
 A e			"e"
 A encoding		"encoding"
+A end			"end"
 A end_of_file		"end_of_file"
 A end_of_line		"end_of_line"
 A end_of_stream		"end_of_stream"
@@ -276,6 +279,7 @@ A int			"int"
 A int64_t		"int64_t"
 A int_overflow		"int_overflow"
 A integer		"integer"
+A interrupt		"interrupt"
 A io_error		"io_error"
 A io_mode		"io_mode"
 A ioctl			"ioctl"
@@ -694,6 +698,7 @@ F hat			2
 F ifthen		2
 F input			0
 F integer		1
+F interrupt		1
 F io_error		2
 F is			2
 F isovar		1
@@ -702,6 +707,7 @@ F larger_equal		2
 F line_count		1
 F list_position		4
 F listing		1
+F locked		2
 F log			1
 F log10			1
 F lsb			1
@@ -790,4 +796,3 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
-F locked		2

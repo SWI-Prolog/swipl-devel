@@ -337,6 +337,12 @@ prolog_message(io_warning(Stream, Message)) -->
 	[ 'stream ~p: ~w'-[Stream, Message] ].
 prolog_message(option_usage(pldoc)) -->
 	[ 'Usage: --pldoc[=port]' ].
+prolog_message(interrupt(begin)) -->
+	[ 'Action (h for help) ? ', flush ].
+prolog_message(interrupt(end)) -->
+	[ 'continue' ].
+prolog_message(interrupt(trace)) -->
+	[ 'continue (trace mode)' ].
 
 
 		 /*******************************

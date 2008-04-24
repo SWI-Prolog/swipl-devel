@@ -1277,8 +1277,12 @@ interruptHandler(int sig)
 
   Sreset();
 again:
-  Sfprintf(Sdout, "\n%sAction (h for help) ? ", safe ? "" : "[forced] ");
-  Sflush(Sdout);
+  if ( safe )
+  { printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_begin);
+  } else
+  { Sfprintf(Sdout, "\n%sAction (h for help) ? ", safe ? "" : "[forced] ");
+    Sflush(Sdout);
+  }
   ResetTty();                           /* clear pending input -- atoenne -- */
   c = getSingleChar(Sdin, FALSE);
 
@@ -1291,7 +1295,11 @@ again:
 		unblockSignal(sig);	/* into pl_break() itself */
 		pl_break();
 		goto again;		
-    case 'c':	Sfputs("continue\n", Sdout);
+    case 'c':	if ( safe )
+		{ printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_end);
+		} else
+		{ Sfputs("continue\n", Sdout);
+		}
 		break;
     case 04:
     case EOF:	Sfputs("EOF: ", Sdout);
@@ -1308,6 +1316,8 @@ again:
 		goto again;
 #ifdef O_DEBUGGER
     case 't':	Sfputs("trace\n", Sdout);
+		if ( safe )
+		  printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_trace);
 		pl_trace();
 		break;
 #endif /*O_DEBUGGER*/
