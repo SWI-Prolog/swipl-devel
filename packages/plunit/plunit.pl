@@ -998,11 +998,14 @@ end_test(Unit, Test, Line, STO) :-
 %	Print the currently running test.
 
 running_tests :-
+	running_tests(Running),
+	print_message(informational, plunit(running(Running))).
+
+running_tests(Running) :-
 	findall(running(Unit:Test, File:Line, STO, Thread),
 		(   running(Unit, Test, Line, STO, Thread),
 		    unit_file(Unit, File)
-		), Running),
-	print_message(informational, plunit(running(Running))).
+		), Running).
 
 
 %%	report is semidet.
@@ -1219,6 +1222,21 @@ message(plunit(sto(Unit, Name, Line))) -->
 message(plunit(sto(Type, Result))) -->
 	sto_type(Type),
 	sto_result(Result).
+
+					% Interrupts (SWI)
+:- if(swi).
+message(interrupt(begin)) -->
+	{ thread_self(Me),
+	  running(Unit, Test, Line, STO, Me), !,
+	  unit_file(Unit, File)
+	},
+	[ 'Interrupted test '-[] ],
+	running(running(Unit:Test, File:Line, STO, Me)),
+	[nl],
+	'$messages':prolog_message(interrupt(begin)).
+message(interrupt(begin)) -->
+	'$messages':prolog_message(interrupt(begin)).
+:- endif.
 
 sto_type(sto_error_incomplete) -->
 	[ 'Finite trees (error checking): ' ].
