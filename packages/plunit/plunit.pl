@@ -451,7 +451,7 @@ test_set_option(cleanup(X)) :-
 	passed/5,			% Unit, Test, Line, Det, Time
 	failed/4,			% Unit, Test, Line, Reason
 	blocked/4,			% Unit, Test, Line, Reason
-	sto/5.				% Unit, Test, Line, Results
+	sto/4.				% Unit, Test, Line, Results
 
 %%	run_tests is semidet.
 %%	run_tests(+TestSet) is semidet.
