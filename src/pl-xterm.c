@@ -26,6 +26,7 @@
 #define _XOPEN_SOURCE
 #endif
 
+#define O_DEBUG 1
 #include "pl-incl.h"
 #if defined(HAVE_GRANTPT) && defined(O_PLMT)
 
@@ -101,7 +102,9 @@ Xterm_close(void *handle)
 
   DEBUG(1, Sdprintf("Closing xterm-handle (count = %d)\n", xt->count));
 
-  if ( GD->cleaning != CLN_NORMAL && xt->pid )
+  if ( xt->pid &&
+       ((GD->cleaning != CLN_NORMAL) ||
+	(LD && LD->thread.info->status != PL_THREAD_RUNNING)) )
   { kill(xt->pid, SIGKILL);
     xt->pid = 0;
   }
@@ -183,10 +186,13 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
   ioctl(slave, I_PUSH, "ldterm");
 #endif
  
-  tcgetattr(slave, &termio);
+  if ( tcgetattr(slave, &termio) )
+    perror("tcgetattr");
   termio.c_lflag &= ~ECHO;
   termio.c_lflag |= (ICANON|IEXTEN);
-  tcsetattr(slave, TCSANOW, &termio);
+  termio.c_cc[VERASE] = 8;
+  if ( tcsetattr(slave, TCSANOW, &termio) )
+    perror("tcsetattr");
  
   if ( (pid = fork()) == 0 )
   { char arg[64];
@@ -201,6 +207,7 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
     else
       sprintf(arg, "-S%c%c%d", cc[0], cc[1], master);
     execlp("xterm", "xterm", arg, "-T", titlechars,
+	   "-xrm", "*backarrowKeyIsErase: false",
 	   "-xrm", "*backarrowKey: false",
 	   NULL);
     perror("execlp");

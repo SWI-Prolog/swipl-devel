@@ -493,7 +493,8 @@ free_prolog_thread(void *data)
     info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
   acknowledge = (info->status == PL_THREAD_CANCELED);
   UNLOCK();
-  DEBUG(1, Sdprintf("Freeing prolog thread %d\n", info-threads));
+  DEBUG(1, Sdprintf("Freeing prolog thread %d (status = %d)\n", 
+		    info-threads, info->status));
 
 #if O_DEBUGGER
   callEventHook(PL_EV_THREADFINISHED, info);
