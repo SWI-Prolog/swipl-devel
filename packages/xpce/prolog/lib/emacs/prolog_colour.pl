@@ -1535,8 +1535,11 @@ identify_pred(Class, F, Summary) :-		% SWI-Prolog documented built-in
 	get(F, predicate, Pred),		% & PlDoc summaries
 	get(Pred, summary, Summary0), !,
 	functor(Class, ClassName, _),
-	(   Class == autoload,
-	    autoload_source(F, From),
+	(   (   Class == autoload,
+		autoload_source(F, From)
+	    ->	true
+	    ;	Class = imported(From)
+	    ),
 	    file_name_on_path(From, Alias)
 	->  term_to_atom(Alias, Atom),
 	    new(Summary, string('%N: [%s from %s] %s', Pred, ClassName, Atom, Summary0))
@@ -1552,7 +1555,9 @@ identify_pred(built_in, F, Summary) :-
 	new(Summary, string('%N: SWI-Prolog private built-in', F)).
 identify_pred(autoload, F, Summary) :-	% Autoloaded predicates
 	autoload_source(F, Source),
-	new(Summary, string('%N: autoload from %s', F, Source)).
+	file_name_on_path(Source, Alias),
+	term_to_atom(Alias, Atom),
+	new(Summary, string('%N: autoload from %s', F, Atom)).
 identify_pred(local(Line), F, Summary) :-	% Local predicates
 	new(Summary, string('%N: locally defined at line %d', F, Line)).
 identify_pred(foreign(Line), F, Summary) :-	% Foreign predicates
@@ -1560,7 +1565,9 @@ identify_pred(foreign(Line), F, Summary) :-	% Foreign predicates
 identify_pred(constraint(Line), F, Summary) :-	% Local constraint
 	new(Summary, string('%N: constraint defined at line %d', F, Line)).
 identify_pred(imported(From), F, Summary) :-
-	new(Summary, string('%N: imported from %s', F, From)).
+	file_name_on_path(From, Alias),
+	term_to_atom(Alias, Atom),
+	new(Summary, string('%N: imported from %s', F, Atom)).
 identify_pred(recursion, _, 'Recursive reference') :- !.
 identify_pred(dynamic(_Line), F, Summary) :-
 	get(F, loaded_specifier, Spec),
