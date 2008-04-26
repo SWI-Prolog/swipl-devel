@@ -657,6 +657,10 @@ a default, which implies that the \const{xml:lang} tag is only used
 for literals with a \emph{different} language identifier.  Please note
 that this option will cause all literals without language tag to be
 interpreted using \arg{XMLLang}.
+
+	\termitem{namespaces}{+List}
+Explicitely specify saved namespace declarations.  See rdf_save_header/2
+option namespaces for details.
     \end{description}
 
     \predicate{rdf_graph}{1}{?DB}
