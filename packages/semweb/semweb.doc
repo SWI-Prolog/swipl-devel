@@ -60,15 +60,15 @@ a library designed in its spirit promising.
 
 \section{Modules}
 
-Central to this library is the module \file{rdf_db.pl}, providing
-storage and basic querying for RDF triples. This triple store is filled
-using the RDF parser realised by \file{rdf.pl}. The storage module can
-quickly save and load (partial) databases. The modules \file{rdfs.pl}
-and \file{owl.pl} add querying in terms of the more powerful RDFS and
-OWL languages. Module \file{rdf_edit.pl} adds editing, undo, journaling
-and change-forwarding. Finally, a variety of XPCE modules visualise and
-edit the database. Figure \figref{modules} summarised the modular
-design.
+Central to this library is the module \pllib{semweb/rdf_db.pl},
+providing storage and basic querying for RDF triples. This triple store
+is filled using the RDF parser realised by \pllib{rdf.pl}. The storage
+module can quickly save and load (partial) databases. The modules
+\pllib{semweb/rdfs.pl} and \pllib{semweb/owl.pl} add querying in terms
+of the more powerful RDFS and OWL languages. Module
+\pllib{semweb/rdf_edit.pl} adds editing, undo, journaling and
+change-forwarding. Finally, a variety of XPCE modules visualise and edit
+the database. Figure \figref{modules} summarised the modular design.
 
 \postscriptfig[width=0.8\linewidth]{modules}
 	{Modules for the Semantic Web library}
@@ -1792,18 +1792,18 @@ base URI.
 \label{sec:rdfs}
 
 \index{RDF-Schema}%
-The \pllib{rdfs} library adds interpretation of the triple store in
-terms of concepts from RDF-Schema (RDFS). There are two ways to provide
-support for more high level languages in RDF.  One is to view such 
-languages as a set of \jargon{entailment rules}.  In this model the
-rdfs library would provide a predicate \predref{rdfs}{3} providing
-the same functionality as rdf/3 on union of the raw graph and triples
-that can be derived by applying the RDFS entailment rules.
+The \pllib{semweb/rdfs} library adds interpretation of the triple store
+in terms of concepts from RDF-Schema (RDFS). There are two ways to
+provide support for more high level languages in RDF. One is to view
+such languages as a set of \jargon{entailment rules}. In this model the
+rdfs library would provide a predicate \predref{rdfs}{3} providing the
+same functionality as rdf/3 on union of the raw graph and triples that
+can be derived by applying the RDFS entailment rules.
 
 Alternatively, RDFS provides a view on the RDF store in terms of
 individuals, classes, properties, etc., and we can provide predicates
 that query the database with this view in mind.  This is the approach
-taken in the \pllib{rdfs.pl} library, providing calls like
+taken in the \pllib{semweb/rdfs.p}l library, providing calls like
 \term{rdfs_individual_of}{?Resource, ?Class}.%
 	\footnote{The SeRQL language is based on querying the deductive
 		  closure of the triple set. The SWI-Prolog SeRQL
@@ -2177,7 +2177,7 @@ identifies the transaction as above.
 \index{Sesame}\index{SeRQL}%
 The SWI-Prolog SemWeb package is designed to provide access to the
 Semantic Web languages from Prolog.  It consists of the low level
-\file{rdf_db.pl} store with layers such as \file{rdfs.pl} to provide
+\file{rdf_db.pl} store with layers such as \pllib{semweb/rdfs.pl} to provide
 more high level querying of a triple set with relations such as
 rdfs_individual_of/2, rdfs_subclass_of/2, etc.
 \url[SeRQL]{http://www.openrdf.org} is a semantic web query language
