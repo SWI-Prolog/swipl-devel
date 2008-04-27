@@ -674,6 +674,32 @@ add_atomset(atomset *as, atom_t atom)
 		 *	    PREDICATES		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Predicates are represented as first class   citizens  for three reasons:
+quickly  answer  on  the  transitive   rdfs:subPropertyOf  relation  for
+rdf_hash/3,  keep  track  of  statistics  that   are  useful  for  query
+optimization  (#triples,  branching   factor)    and   keep   properties
+(inverse/transitive).
+
+To answer the rdfs:subPropertyOf quickly,   predicates  are organised in
+`clouds', where a cloud defines a   set  of predicates connected through
+rdfs:subPropertyOf triples. The cloud numbers  its members and maintains
+a bit-matrix that contains the closure  of the reachability. Initially a
+predicate has a simple cloud of size 1. merge_clouds() and split_cloud()
+deals with adding  and  deleting   rdfs:subPropertyOf  relations.  These
+operations try to modify the clouds that have   no triples, so it can be
+done without a rehash. If this fails, the predicates keep their own hash
+to make search without rdfs:subPropertyOf  still   possible  (so  we can
+avoid frequent updates while loading triples),   sets  the cloud `dirty'
+flag and the DB's need_update flag. Queries that need rdfs:subPropertyOf
+find the need_update flag,  which   calls  organise_predicates(),  which
+cause a rehash if some predicates  have   changed  hash-code  to the new
+cloud they have become part of.
+
+TBD: We can do a partial re-hash in that case!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 static void
 init_pred_table(rdf_db *db)
 { int bytes = sizeof(predicate*)*INITIAL_PREDICATE_TABLE_SIZE;
@@ -706,6 +732,7 @@ static predicate *
 lookup_predicate(rdf_db *db, atom_t name)
 { int hash = atom_hash(name) % db->pred_table_size;
   predicate *p;
+  predicate_cloud *cp;
 
   LOCK_MISC(db);
   for(p=db->pred_table[hash]; p; p = p->next)
@@ -717,7 +744,8 @@ lookup_predicate(rdf_db *db, atom_t name)
   p = rdf_malloc(db, sizeof(*p));
   memset(p, 0, sizeof(*p));
   p->name = name;
-  new_predicate_cloud(db, &p, 1);
+  cp = new_predicate_cloud(db, &p, 1);
+  p->hash = cp->hash;
   PL_register_atom(name);
   p->next = db->pred_table[hash];
   db->pred_table[hash] = p;
@@ -757,6 +785,8 @@ organise_predicates(rdf_db *db)		/* TBD: rename&move */
 { predicate **ht;
   int i;
   int changed = 0;
+
+  DEBUG(2, Sdprintf("rdf_db: fixing predicate clouds\n"));
 
   for(i=0,ht = db->pred_table; i<db->pred_table_size; i++, ht++)
   { predicate *p;
@@ -837,12 +867,15 @@ triples_in_predicate_cloud(predicate_cloud *cloud)
 /* Add the predicates of c2 to c1 and destroy c2.  Returns c1 */
 
 static predicate_cloud *
-append_clouds(rdf_db *db, predicate_cloud *c1, predicate_cloud *c2)
+append_clouds(rdf_db *db, predicate_cloud *c1, predicate_cloud *c2, int update_hash)
 { predicate **p;
   int i;
     
   for(i=0, p=c2->members; i<c2->size; i++, p++)
-    (*p)->cloud = c1;
+  { (*p)->cloud = c1;
+    if ( update_hash )
+      (*p)->hash = c1->hash;
+  }
 
   if ( c1->size > 0 && c2->size > 0 )
   { c1->members = rdf_realloc(db, c1->members,
@@ -864,7 +897,6 @@ append_clouds(rdf_db *db, predicate_cloud *c1, predicate_cloud *c2)
 }
 
 
-
 /* merge two predicate clouds.  If either of them has no triples we
    can do the merge without rehashing the database.  Note that this
    code is only called from addSubPropertyOf().  If c1==c2, we added
@@ -879,11 +911,11 @@ merge_clouds(rdf_db *db, predicate_cloud *c1, predicate_cloud *c2)
 
   if ( c1 != c2 )
   { if ( triples_in_predicate_cloud(c1) == 0 )
-    { cloud = append_clouds(db, c1, c2);
+    { cloud = append_clouds(db, c2, c1, TRUE);
     } else if ( triples_in_predicate_cloud(c2) == 0 )
-    { cloud = append_clouds(db, c2, c1);
+    { cloud = append_clouds(db, c1, c2, TRUE);
     } else
-    { cloud = append_clouds(db, c1, c2);
+    { cloud = append_clouds(db, c1, c2, FALSE);
       db->need_update++;
     }
   } else

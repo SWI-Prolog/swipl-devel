@@ -100,7 +100,7 @@ typedef struct predicate
   list	            siblings;		/* reverse of subPropertyOf */
   int		    label;		/* Numeric label in cloud */
   struct predicate_cloud *cloud;	/* cloud I belong to */
-  unsigned long	    hash;		/* key used for hashing
+  unsigned int	    hash;		/* key used for hashing
   					   (=hash if ->cloud is up-to-date) */
 					/* properties */
   struct predicate *inverse_of;		/* my inverse predicate */
@@ -116,7 +116,7 @@ typedef struct predicate
 
 typedef struct predicate_cloud
 { predicate   **members;		/* member predicates */
-  unsigned long hash;			/* hash-code */
+  unsigned int  hash;			/* hash-code */
   int		size;			/* size of the cloud */
   int		deleted;		/* See erase_predicates() */
   bitmatrix    *reachable;		/* cloud reachability matrix */
