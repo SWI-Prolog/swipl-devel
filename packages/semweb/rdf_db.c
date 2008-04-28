@@ -260,6 +260,7 @@ static void	create_reachability_matrix(rdf_db *db, predicate_cloud *cloud);
 static int	get_predicate(rdf_db *db, term_t t, predicate **p);
 static predicate_cloud *new_predicate_cloud(rdf_db *db, predicate **p, size_t count);
 static int	unify_literal(term_t lit, literal *l);
+static int	check_predicate_cloud(predicate_cloud *c);
 
 
 		 /*******************************
@@ -916,11 +917,16 @@ merge_clouds(rdf_db *db, predicate_cloud *c1, predicate_cloud *c2)
     { cloud = append_clouds(db, c1, c2, TRUE);
     } else
     { cloud = append_clouds(db, c1, c2, FALSE);
+      cloud->dirty = TRUE;
       db->need_update++;
     }
   } else
   { cloud = c1;
   }
+
+  DEBUG(1, if ( !db->need_update )
+	   { check_predicate_cloud(cloud);
+	   });
 
   create_reachability_matrix(db, cloud);
   
@@ -1136,10 +1142,37 @@ isSubPropertyOf(predicate *sub, predicate *p)
 		 *   PRINT PREDICATE HIERARCHY	*
 		 *******************************/
 
+static int
+check_predicate_cloud(predicate_cloud *c)
+{ predicate **p;
+  int errors = 0;
+  int i;
+
+  DEBUG(1, if ( c->dirty ) Sdprintf("Cloud is dirty\n"));
+
+  for(i=0, p=c->members; i<c->size; i++, p++)
+  { if ( !c->dirty )
+    { if ( (*p)->hash != c->hash )
+      { Sdprintf("Hash of %s doesn't match cloud hash\n", pname(*p));
+	errors++;
+      }
+    }
+    if ( (*p)->cloud != c )
+    { Sdprintf("Wrong cloud of %s\n", pname(*p));
+      errors++;
+    }
+  }
+
+  return errors;
+}
+
+
 static void
 print_reachability_cloud(predicate *p)
 { int x, y;
   predicate_cloud *cloud = p->cloud;
+
+  check_predicate_cloud(cloud);
 
   Sdprintf("Reachability matrix:\n");
   for(x=0; x<cloud->reachable->width; x++)
