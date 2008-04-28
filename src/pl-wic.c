@@ -2476,9 +2476,11 @@ pl_qlf_close()
 }
 
 
-word
-pl_qlf_load(term_t file, term_t module)
+static
+PRED_IMPL("$qload_file", 2, qload_file, PL_FA_TRANSPARENT)
 { GET_LD
+  term_t file = A1;
+  term_t module = A2;
   Module m, oldsrc = LD->modules.source;
   char *fn;
   bool rval;
@@ -2784,5 +2786,6 @@ wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 		 *******************************/
 
 BeginPredDefs(wic)
-  PRED_DEF("$qlf_info", 5, qlf_info, 0)
+  PRED_DEF("$qlf_info",   5, qlf_info, 0)
+  PRED_DEF("$qload_file", 2, qload_file, PL_FA_TRANSPARENT)
 EndPredDefs

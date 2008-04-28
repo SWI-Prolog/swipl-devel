@@ -817,7 +817,6 @@ COMMON(word) 		pl_qlf_start_file(term_t name);
 COMMON(word) 		pl_qlf_end_part(void);
 COMMON(word) 		pl_qlf_open(term_t file);
 COMMON(word) 		pl_qlf_close(void);
-COMMON(word) 		pl_qlf_load(term_t file, term_t module);
 COMMON(word) 		pl_qlf_assert_clause(term_t ref, term_t saveclass);
 
 COMMON(void)		wicPutNum(int64_t n, IOSTREAM *fd);

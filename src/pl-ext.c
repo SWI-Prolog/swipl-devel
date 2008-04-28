@@ -178,7 +178,6 @@ static const PL_extension foreigns[] = {
   FRG("$qlf_end_part",		0, pl_qlf_end_part,		0),
   FRG("$qlf_open",		1, pl_qlf_open,			0),
   FRG("$qlf_close",		0, pl_qlf_close,		0),
-  FRG("$qlf_load",		2, pl_qlf_load,		     META),
   FRG("$qlf_assert_clause",	2, pl_qlf_assert_clause,	0),
 
   FRG("abolish",    		1, pl_abolish1,		     META|ISO),
