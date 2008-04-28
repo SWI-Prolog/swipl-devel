@@ -211,9 +211,10 @@ the returned files.  Default is \const{false}, except for consult/1
 which is intended for interactive use.  Flexible location of files
 is defined by file_search_path/2.
 
-    \termitem{reexport}{Bool}
-If \const{true} re-export the imported predicate.  Used by reexport/1
-and reexport/2.
+    \termitem{format}{+Format}
+Used to specify the file format if data is loaded from a stream using
+the \term{stream}{Stream} option. Default is \const{source}, loading
+Prolog source text.  If \const{qlf}, load QLF data (see qcompile/1).
 
     \termitem{if}{Condition}
 Load the file only if the specified condition is satisfied. The value
@@ -248,6 +249,10 @@ Quick Load Format using qcompile/1 and this flag is \const{true}, the
 contents of the argument files are included in the \fileext{qlf} file
 instead of the loading directive.
 
+    \termitem{reexport}{Bool}
+If \const{true} re-export the imported predicate.  Used by reexport/1
+and reexport/2.
+
     \termitem{silent}{Bool}
 If \const{true}, load the file without printing a message. The
 specified value is the default for all files loaded as a result of
@@ -262,6 +267,8 @@ well as remove all clauses if the data is re-consulted.
 
 This option is added to allow compiling from non-file locations such as
 databases, the web, the \jargon{user} (see consult/1) or other servers.
+It can be combined with \term{format}{qlf} to load QLF data from a
+stream.
 \end{description}
 
 The load_files/2 predicate can be hooked to load other data or data from
