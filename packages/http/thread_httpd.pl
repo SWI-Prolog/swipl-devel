@@ -314,6 +314,7 @@ http_worker(Options) :-
 	option(queue(Queue), Options),
 	thread_at_exit(done_worker),
 	repeat,
+	  garbage_collect,
 	  thread_get_message(Queue, Message),
 	  (   Message = quit(Sender)
 	  ->  thread_self(Self),
