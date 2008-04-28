@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl -pi
+#!/usr/bin/env perl -pi
 
 s/\\penalty \\\@M \\ /\\verb\$~\$/g;
 s/\\unhbox.*\\leftarrow.*\\ninit /\\get{/g;
