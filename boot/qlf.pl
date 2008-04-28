@@ -78,7 +78,9 @@ qcompile(File) :-
 %	Load predicate for .qlf files.  See init.pl
 
 '$qload_file'(File, _Enc, Module, IsModule, loaded, LoadedModule) :-
-	'$qlf_load'(Module:File, LoadedModule),
+	open(File, read, In, [type(binary)]),
+	call_cleanup('$qlf_load'(Module:In, LoadedModule),
+		     close(In)),
 	check_is_module(IsModule, LoadedModule, File).
 
 check_is_module(true, 0, File) :- !,

@@ -2278,28 +2278,33 @@ popPathTranslation()
 }
 
 static bool
-qlfLoad(char *file, Module *module ARG_LD)
-{ IOSTREAM *fd;
-  bool rval;
+qlfLoad(IOSTREAM *fd, Module *module ARG_LD)
+{ bool rval;
   int lversion;
-  char *absloadname;
+  const char *absloadname;
   char tmp[MAXPATHLEN];
   int saved_wsize;
+  atom_t file;
 
-  wicFile = file;
-  if ( !(absloadname = AbsoluteFile(wicFile, tmp)) )
-    fail;
-  
-  if ( !(fd = Sopen_file(file, "rbr")) )
-  { term_t f = PL_new_term_ref();
+  if ( (file = fileNameStream(fd)) )
+  { PL_chars_t text;
 
-    PL_put_atom_chars(f, file);
-    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
-		    ATOM_open, ATOM_source_sink, f);
+    if ( !get_atom_text(file, &text) )
+      fail;
+    if ( !PL_mb_text(&text, REP_FN) )
+    { PL_free_text(&text);
+      fail;
+    }
+    wicFile = text.text.t;
+    if ( !(absloadname = AbsoluteFile(wicFile, tmp)) )
+      fail;
+    PL_free_text(&text);
+  } else
+  { absloadname = NULL;
   }
+  
   if ( !(lversion = qlfVersion(fd)) || lversion < LOADVERSION )
-  { Sclose(fd);
-    if ( lversion )
+  { if ( lversion )
       warning("$qlf_load/1: %s bad version (file version = %d, prolog = %d)",
 	      wicFile, lversion, VERSION);
     fail;
@@ -2320,8 +2325,6 @@ qlfLoad(char *file, Module *module ARG_LD)
   rval = loadPart(fd, module, FALSE PASS_LD);
   popXrIdTable(PASS_LD1);
   popPathTranslation();
-
-  Sclose(fd);
 
   return rval;
 }
@@ -2476,33 +2479,43 @@ pl_qlf_close()
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+$qlf_load(:Stream, -ModuleOut)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static
-PRED_IMPL("$qload_file", 2, qload_file, PL_FA_TRANSPARENT)
+PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
 { GET_LD
-  term_t file = A1;
+  term_t qstream = A1;
   term_t module = A2;
   Module m, oldsrc = LD->modules.source;
   char *fn;
   bool rval;
-  term_t name = PL_new_term_ref();
+  term_t stream = PL_new_term_ref();
+  IOSTREAM *fd;
+  IOENC saved_enc;
 
   m = oldsrc;
-  if ( !PL_strip_module(file, &m, name) )
+  if ( !PL_strip_module(qstream, &m, stream) )
     fail;
-  if ( !PL_get_file_name(name, &fn, 0) )
+  if ( !PL_get_stream_handle(stream, &fd) )
     fail;
 
+  saved_enc = fd->encoding;
+  fd->encoding = ENC_OCTET;
   LD->modules.source = m;
-  rval = qlfLoad(fn, &m PASS_LD);
+  rval = qlfLoad(fd, &m PASS_LD);
   LD->modules.source = oldsrc;
+  fd->encoding = saved_enc;
 
-  if ( !rval )
-    fail;
+  if ( rval )
+  { if ( m )
+      return PL_unify_atom(module, m->name);
 
-  if ( m )
-    return PL_unify_atom(module, m->name);
-  else
     return PL_unify_integer(module, 0);
+  }
+
+  fail;
 }
 
 
@@ -2786,6 +2799,6 @@ wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 		 *******************************/
 
 BeginPredDefs(wic)
-  PRED_DEF("$qlf_info",   5, qlf_info, 0)
-  PRED_DEF("$qload_file", 2, qload_file, PL_FA_TRANSPARENT)
+  PRED_DEF("$qlf_info", 5, qlf_info, 0)
+  PRED_DEF("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
 EndPredDefs
