@@ -92,8 +92,17 @@ options.  Defined options are:
 \begin{description}
     \termitem{blocked}{+Reason:atom}
 The test is currently disabled.   Tests are flagged as blocked if they
-are known not to work, but this is accepted as something that must be fixed
-in the future.
+cannot be run for some reason.  E.g.\ they crash Prolog, they rely on
+some service that is not available, they take too much resources, etc.
+Tests that fail but do not crash, etc.\ should be flagged using
+\term{fixme}{Fixme}.
+
+    \termitem{fixme}{+Reason:atom}
+Similar to \term{blocked}{Reason}, but the test it executed anyway.  It
+it fails, a \const{-} is printed instead of the detailt \const{.}.  If
+it passes a \const{+} and if it passes with a choicepoint, \const{!}.
+A summary is printed at the end of the test run and the goal
+\term{test_report}{fixme} can be used to get details.
 
     \termitem{condition}{:Goal}
 Pre-condition for running the test.  If the condition fails
@@ -101,11 +110,6 @@ the test is skipped.  The condition can be used as an alternative
 to the \const{setup} option.  The only difference is that failure
 of a condition skips the test and is considered an error when using
 the \const{setup} option.
-
-    \termitem{setup}{:Goal}
-\arg{Goal} is run before the test-body.  Typically used together with
-the \const{cleanup} option to create and destroy the required execution
-environment.
 
     \termitem{cleanup}{:Goal}
 \arg{Goal} is always called after completion of the test-body,
@@ -127,6 +131,11 @@ test(read, [ setup(create_file(Tmp)),
 	read_file_to_terms(Tmp, Terms, []),
 	Term = hello(_).
 \end{code}
+
+    \termitem{setup}{:Goal}
+\arg{Goal} is run before the test-body.  Typically used together with
+the \const{cleanup} option to create and destroy the required execution
+environment.
 
     \termitem{true}{AnswerTerm Cmp Value}
 Body must succeed deterministically. AnswerTerm is compared to Value
@@ -440,6 +449,11 @@ sources.
 Print all currrently running tests to the terminal.  It can be used
 to find running thread in multi-threaded test operation or find the
 currently running test if a test appears to be blocking.
+
+    \predicate{test_report}{1}{+What}
+Print report on the executed tests.  \arg{What} defines the type
+of report.  Currently this only supports \const{fixme}, providing
+details on how the fixme-flagged tests proceeded.
 \end{description}
 
 

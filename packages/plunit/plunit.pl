@@ -19,7 +19,8 @@
 	    run_tests/0,		% Run all tests
 	    run_tests/1,		% Run named test-set
 	    load_test_files/1,		% +Options
-	    running_tests/0		% Prints currently running test
+	    running_tests/0,		% Prints currently running test
+	    test_report/1		% +What
 	  ]).
 
 /** <module> Unit Testing
@@ -433,6 +434,7 @@ test_option(error(_)).
 test_option(all(_)).
 test_option(set(_)).
 test_option(nondet).
+test_option(fixme(_)).
 test_option(sto(V)) :- nonvar(V), member(V, [finite_trees, rational_trees]).
 
 %%	test_option(+Option) is semidet.
@@ -458,7 +460,8 @@ test_set_option(cleanup(X)) :-
 	passed/5,			% Unit, Test, Line, Det, Time
 	failed/4,			% Unit, Test, Line, Reason
 	blocked/4,			% Unit, Test, Line, Reason
-	sto/4.				% Unit, Test, Line, Results
+	sto/4,				% Unit, Test, Line, Results
+	fixme/5.			% Unit, Test, Line, Reason, Status
 
 :- dynamic
 	running/5.			% Unit, Test, Line, STO, Thread
@@ -524,6 +527,7 @@ cleanup :-
 	retractall(failed(_, _, _, _)),
 	retractall(blocked(_, _, _, _)),
 	retractall(sto(_, _, _, _)),
+	retractall(fixme(_, _, _, _, _)),
 	retractall(running(_,_,_,_,Me)).
 
 
@@ -924,6 +928,18 @@ cleanup(Module, Options) :-
 	;   print_message(warning, goal_failed(Cleanup, '(cleanup handler)'))
 	).
 
+success(Unit, Name, Line, Det, _Time, Options) :-
+	memberchk(fixme(Reason), Options), !,
+	(   (   Det == true
+	    ;	memberchk(nondet, Options)
+	    )
+	->  put_char(user_error, +),
+	    Ok = passed
+	;   put_char(user_error, !),
+	    Ok = nondet
+	),
+	flush_output(user_error),
+	assert(fixme(Unit, Name, Line, Reason, Ok)).
 success(Unit, Name, Line, Det, Time, Options) :-
 	assert(passed(Unit, Name, Line, Det, Time)),
 	(   (   Det == true
@@ -935,8 +951,13 @@ success(Unit, Name, Line, Det, Time, Options) :-
 	),
 	flush_output(user_error).
 
-failure(Unit, Name, Line, E, _Options) :-
-	report_failure(Unit, Name, Line, E),
+failure(Unit, Name, Line, _, Options) :-
+	memberchk(fixme(Reason), Options), !,
+	put_char(user_error, -),
+	flush_output(user_error),
+	assert(fixme(Unit, Name, Line, Reason, failed)).
+failure(Unit, Name, Line, E, Options) :-
+	report_failure(Unit, Name, Line, E, Options),
 	assert_cyclic(failed(Unit, Name, Line, E)).
 
 %%	assert_cyclic(+Term) is det.
@@ -1021,18 +1042,20 @@ report :-
 	(   Passed+Failed+Blocked+STO =:= 0
 	->  info(plunit(no_tests))
 	;   Failed+Blocked+STO =:= 0
-	->  info(plunit(all_passed(Passed)))
+	->  report_fixme,
+	    info(plunit(all_passed(Passed)))
 	;   report_blocked,
+	    report_fixme,
 	    report_failed,
 	    report_sto
 	).
 
 number_of_clauses(F/A,N) :-
-	(	current_predicate(F/A)
-	->	functor(G,F,A),
-		findall(t, G, Ts),
-		length(Ts, N)
-	;	N = 0
+	(   current_predicate(F/A)
+	->  functor(G,F,A),
+	    findall(t, G, Ts),
+	    length(Ts, N)
+	;   N = 0
 	).
 
 report_blocked :-
@@ -1048,7 +1071,7 @@ report_blocked :-
 report_blocked.
 
 report_failed :-
-	number_of_clauses(failed/4,N),
+	number_of_clauses(failed/4, N),
 	N > 0, !,
 	info(plunit(failed(N))),
 	fail.
@@ -1056,15 +1079,43 @@ report_failed :-
 	info(plunit(failed(0))).
 
 report_sto :-
-	number_of_clauses(sto/4,N),
+	number_of_clauses(sto/4, N),
 	N > 0, !,
 	info(plunit(sto(N))),
 	fail.
 report_sto :-
 	info(plunit(sto(0))).
 
-report_failure(Unit, Name, Line, Error) :-
+report_fixme :-
+	report_fixme(_,_,_).
+
+report_fixme(TuplesF, TuplesP, TuplesN) :-
+	fixme(failed, TuplesF, Failed),
+	fixme(passed, TuplesP, Passed),
+	fixme(nondet, TuplesN, Nondet),
+	print_message(informational, plunit(fixme(Failed, Passed, Nondet))).
+
+
+fixme(How, Tuples, Count) :-
+	findall(fixme(Unit, Name, Line, Reason, How),
+		fixme(Unit, Name, Line, Reason, How), Tuples),
+	length(Tuples, Count).
+	
+
+report_failure(Unit, Name, Line, Error, _Options) :-
 	print_message(error, plunit(failed(Unit, Name, Line, Error))).
+
+
+%%	test_report(What) is det.
+%
+%	Produce reports on test results after the run.
+
+test_report(fixme) :- !,
+	report_fixme(TuplesF, TuplesP, TuplesN),
+	append([TuplesF, TuplesP, TuplesN], Tuples),
+	print_message(informational, plunit(fixme(Tuples))).
+test_report(What) :-
+	throw_error(domain_error(report_class, What), _).
 
 
 		 /*******************************
@@ -1178,6 +1229,9 @@ message(plunit(running([One]))) --> !,
 message(plunit(running(More))) --> !,
 	[ 'PL-Unit: running tests:', nl ],
 	running(More).
+message(plunit(fixme([]))) --> !.
+message(plunit(fixme(Tuples))) --> !,
+	fixme_message(Tuples).
 
 					% Blocked tests
 message(plunit(blocked(1))) --> !,
@@ -1203,6 +1257,15 @@ message(plunit(sto(0))) --> !,
 	[].
 message(plunit(sto(N))) -->
 	[ '~D test results depend on unification mode'-[N] ].
+message(plunit(fixme(0,0,0))) -->
+	[].
+message(plunit(fixme(Failed,0,0))) --> !,
+	[ 'all ~D tests flagged FIXME failed'-[Failed] ].
+message(plunit(fixme(Failed,Passed,0))) -->
+	[ 'FIXME: ~D failed; ~D passed'-[Failed, Passed] ].
+message(plunit(fixme(Failed,Passed,Nondet))) -->
+	{ TotalPassed is Passed+Nondet },
+	[ 'FIXME: ~D failed; ~D passed; (~D nondet)'-[Failed, TotalPassed, Nondet] ].
 message(plunit(failed(Unit, Name, Line, Failure))) -->
        { unit_file(Unit, File) },
        locationprefix(File:Line),
@@ -1323,6 +1386,24 @@ failure(Error) -->
 :- endif.
 failure(Why) -->
 	[ '~p~n'-[Why] ].
+
+fixme_message([]) --> [].
+fixme_message([fixme(Unit, _Name, Line, Reason, How)|T]) -->
+	{ unit_file(Unit, File) },
+	fixme_message(File:Line, Reason, How),
+	(   {T == []}
+	->  []
+	;   [nl],
+	    fixme_message(T)
+	).
+
+fixme_message(Location, Reason, failed) -->
+	[ 'FIXME: ~w: ~w'-[Location, Reason] ].
+fixme_message(Location, Reason, passed) -->
+	[ 'FIXME: ~w: passed ~w'-[Location, Reason] ].
+fixme_message(Location, Reason, nondet) -->
+	[ 'FIXME: ~w: passed (nondet) ~w'-[Location, Reason] ].
+
 
 write_options([ numbervars(true),
 		quoted(true),

@@ -226,9 +226,18 @@ processing options. Defined options are:
 <DL>
 <DT><STRONG>blocked</STRONG>(<VAR>+Reason:atom</VAR>)</DT>
 <DD class="defbody">
-The test is currently disabled. Tests are flagged as blocked if they are 
-known not to work, but this is accepted as something that must be fixed 
-in the future.</DD>
+The test is currently disabled. Tests are flagged as blocked if they 
+cannot be run for some reason. E.g. they crash Prolog, they rely on some 
+service that is not available, they take too much resources, etc. Tests 
+that fail but do not crash, etc. should be flagged using
+<CODE>fixme(Fixme)</CODE>.</DD>
+<DT><STRONG>fixme</STRONG>(<VAR>+Reason:atom</VAR>)</DT>
+<DD class="defbody">
+Similar to <CODE>blocked(Reason)</CODE>, but the test it executed 
+anyway. It it fails, a <CODE>-</CODE> is printed instead of the detailt <CODE>.</CODE>. 
+If it passes a <CODE>+</CODE> and if it passes with a choicepoint, <CODE>!</CODE>. 
+A summary is printed at the end of the test run and the goal
+<CODE>test_report(fixme)</CODE> can be used to get details.</DD>
 <DT><STRONG>condition</STRONG>(<VAR>:Goal</VAR>)</DT>
 <DD class="defbody">
 Pre-condition for running the test. If the condition fails the test is 
@@ -236,11 +245,6 @@ skipped. The condition can be used as an alternative to the <CODE>setup</CODE>
 option. The only difference is that failure of a condition skips the 
 test and is considered an error when using the <CODE>setup</CODE> 
 option.</DD>
-<DT><STRONG>setup</STRONG>(<VAR>:Goal</VAR>)</DT>
-<DD class="defbody">
-<VAR>Goal</VAR> is run before the test-body. Typically used together 
-with the <CODE>cleanup</CODE> option to create and destroy the required 
-execution environment.</DD>
 <DT><STRONG>cleanup</STRONG>(<VAR>:Goal</VAR>)</DT>
 <DD class="defbody">
 <VAR>Goal</VAR> is always called after completion of the test-body, 
@@ -265,6 +269,11 @@ test(read, [ setup(create_file(Tmp)),
 </PRE>
 
 </DD>
+<DT><STRONG>setup</STRONG>(<VAR>:Goal</VAR>)</DT>
+<DD class="defbody">
+<VAR>Goal</VAR> is run before the test-body. Typically used together 
+with the <CODE>cleanup</CODE> option to create and destroy the required 
+execution environment.</DD>
 <DT><STRONG>true</STRONG>(<VAR>AnswerTerm Cmp Value</VAR>)</DT>
 <DD class="defbody">
 Body must succeed deterministically. AnswerTerm is compared to Value 
@@ -614,7 +623,12 @@ sources.</DD>
 <DD class="defbody">
 Print all currrently running tests to the terminal. It can be used to 
 find running thread in multi-threaded test operation or find the 
-currently running test if a test appears to be blocking.
+currently running test if a test appears to be blocking.</DD>
+<DT class="pubdef"><A NAME="test_report/1"><STRONG>test_report</STRONG>(<VAR>+What</VAR>)</A></DT>
+<DD class="defbody">
+Print report on the executed tests. <VAR>What</VAR> defines the type of 
+report. Currently this only supports <CODE>fixme</CODE>, providing 
+details on how the fixme-flagged tests proceeded.
 </DD>
 </DL>
 
@@ -908,6 +922,9 @@ be marked as non-called in environments that perform cross-referencing.
 <DT>test/2</DT>
 <DD>
 <A class="idx" href="#idx:test2:6">2.1</A> <A class="idx" href="#idx:test2:22">10</A></DD>
+<DT><A class="idx" href="#test_report/1">test_report/1</A></DT>
+<DD>
+</DD>
 <DT><STRONG>V</STRONG></DT>
 <DD>
 </DD>
