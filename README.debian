@@ -1,0 +1,47 @@
+Debian dependency list as compiled by Nicolas Pelletier
+-------------------------------------------------------
+
+List of packages needed to compile SWI Prolog on Debian 4.0 stable (Etch):
+
+binutils
+coreutils
+gcc
+grep
+libc6-dev
+libgmp3-dev
+libncursesw5-dev
+libreadline5-dev
+linux-kernel-headers
+make
+mawk
+sed
+
+List of packages needed to compile additional SWI Prolog packages on
+Debian 4.0 stable (Etch):
+
+For clib: no other package required
+For cpp: no other package required
+For odbc: unixodbc-dev
+For table: no other package required
+For xpce: bison libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev
+libxpm-dev libxt-dev pkg-config
+For sgml: no other package required
+For sgml/RDF: no other package required
+For semweb: no other package required
+For http: no other package required
+For chr: no other package required
+For clpqr: no other package required
+For nlp: no other package required
+For ssl: libssl-dev
+For pldoc: no other package required
+For plunit: no other package required
+For jpl: sun-java5-bin sun-java5-fonts sun-java5-jdk
+For zlib: zlib1g-dev
+
+Note 1: installing these packages triggers the automatic installation
+of other needed (dependent) packages.
+Note 2: Debian includes other Java implementations; however, the
+configure script found in jpl tests for a directory structure that can
+only match Sun's Java. I also do not know if the jpl package works
+with these other implementations. Now that Sun has open-sourced Java,
+this should be less of a concern.
