@@ -1014,9 +1014,8 @@ label(Vs) :- labeling([], Vs).
 %   For each variable X, a choice is made between X #=< M and X #> M,
 %   where M is the midpoint of the domain of X.
 %
-% If more than one option of a category is specified, the one
-% occurring rightmost in the option list takes precedence over all
-% others of that category.
+% At most one option of each category can be specified, and an option
+% must not occur repeatedly.
 %
 % The order of solutions can be influenced with:
 %
@@ -1049,7 +1048,7 @@ labeling(Options, Vars) :-
         must_be(list, Options),
         must_be(list, Vars),
         maplist(finite_domain, Vars),
-        label(Options, leftmost, up, step, [], upto_ground, Vars).
+        label(Options, Options, default(leftmost), default(up), default(step), [], upto_ground, Vars).
 
 finite_domain(Var) :-
         (   fd_get(Var, Dom, _) ->
@@ -1061,25 +1060,26 @@ finite_domain(Var) :-
         ).
 
 
-label([O|Os], Selection, Order, Choice, Optimisation, Consistency, Vars) :-
+label([O|Os], Options, Selection, Order, Choice, Optim, Consistency, Vars) :-
         (   var(O)-> instantiation_error(O)
-        ;   selection(O) ->
-            label(Os, O, Order, Choice, Optimisation, Consistency, Vars)
-        ;   order(O) ->
-            label(Os, Selection, O, Choice, Optimisation, Consistency, Vars)
-        ;   choice(O) ->
-            label(Os, Selection, Order, O, Optimisation, Consistency, Vars)
+        ;   override(selection, Selection, O, Options, S1) ->
+            label(Os, Options, S1, Order, Choice, Optim, Consistency, Vars)
+        ;   override(order, Order, O, Options, O1) ->
+            label(Os, Options, Selection, O1, Choice, Optim, Consistency, Vars)
+        ;   override(choice, Choice, O, Options, C1) ->
+            label(Os, Options, Selection, Order, C1, Optim, Consistency, Vars)
         ;   optimisation(O) ->
-            label(Os, Selection, Order, Choice, [O|Optimisation], Consistency, Vars)
+            label(Os, Options, Selection, Order, Choice, [O|Optim], Consistency, Vars)
         ;   consistency(O, O1) ->
-            label(Os, Selection, Order, Choice, Optimisation, O1, Vars)
+            label(Os, Options, Selection, Order, Choice, Optim, O1, Vars)
         ;   domain_error(labeling_option, O)
         ).
-label([], Selection, Order, Choice, Optimisation0, Consistency, Vars) :-
-        ( Optimisation0 == [] ->
-            label(Vars, Selection, Order, Choice, Consistency)
-        ;   reverse(Optimisation0, Optimisation),
-            optimise(Vars, [Selection,Order,Choice], Optimisation)
+label([], _, Selection, Order, Choice, Optim0, Consistency, Vars) :-
+        maplist(arg(1), [Selection,Order,Choice], [S,O,C]),
+        ( Optim0 == [] ->
+            label(Vars, S, O, C, Consistency)
+        ;   reverse(Optim0, Optim),
+            optimise(Vars, [S,O,C], Optim)
         ).
 
 all_dead([]).
@@ -1126,6 +1126,17 @@ choice_order_variable(bisect, Order, Var, Vars, Selection, Consistency) :-
             label([Var|Vars], Selection, Order, bisect, Consistency)
         ;   Var #> Mid,
             label([Var|Vars], Selection, Order, bisect, Consistency)
+        ).
+
+override(What, Prev, Value, Options, Result) :-
+        call(What, Value),
+        override_(Prev, Value, Options, Result).
+
+override_(default(_), Value, _, user(Value)).
+override_(user(Prev), Value, Options, _) :-
+        (   Value == Prev ->
+            domain_error(nonrepeating_labeling_options, Options)
+        ;   domain_error(consistent_labeling_options, Options)
         ).
 
 selection(ff).
