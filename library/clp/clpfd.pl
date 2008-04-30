@@ -2284,12 +2284,23 @@ init_propagator(Var, Prop) :-
 
 lex_chain(Lss) :-
         must_be(list(list), Lss),
-        lex_chain_(Lss).
+        make_propagator(presidual(lex_chain(Lss)), Prop),
+        lex_chain_(Lss, Prop).
 
-lex_chain_([]).
-lex_chain_([Ls|Lss]) :-
+lex_chain_([], _).
+lex_chain_([Ls|Lss], Prop) :-
+        lex_check_and_attach(Ls, Prop),
         lex_chain_lag(Lss, Ls),
-        lex_chain_(Lss).
+        lex_chain_(Lss, Prop).
+
+lex_check_and_attach([], _).
+lex_check_and_attach([L|Ls], Prop) :-
+        fd_variable(L),
+        (   var(L) ->
+            init_propagator(L, Prop)
+        ;   true
+        ),
+        lex_check_and_attach(Ls, Prop).
 
 lex_chain_lag([], _).
 lex_chain_lag([Ls|Lss], Ls0) :-
@@ -2380,6 +2391,10 @@ all_in_domain([A|As], [T|Ts]) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% trivial propagator, used only to remember pending constraints
+run_propagator(presidual(_), _).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(pdifferent(Left,Right,X,_), _MState) :-
         (   ground(X) ->
             disable_queue,
@@ -3571,6 +3586,7 @@ attributes_goals([propagator(P, State)|As]) -->
         ),
         attributes_goals(As).
 
+attribute_goal_(presidual(Goal), Goal).
 attribute_goal_(pgeq(A,B), A #>= B).
 attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
 attribute_goal_(pneq(A,B), A #\= B).
