@@ -98,8 +98,8 @@ Tests that fail but do not crash, etc.\ should be flagged using
 \term{fixme}{Fixme}.
 
     \termitem{fixme}{+Reason:atom}
-Similar to \term{blocked}{Reason}, but the test it executed anyway.  It
-it fails, a \const{-} is printed instead of the detailt \const{.}.  If
+Similar to \term{blocked}{Reason}, but the test it executed anyway.  If
+it fails, a \const{-} is printed instead of the \const{.} character.  If
 it passes a \const{+} and if it passes with a choicepoint, \const{!}.
 A summary is printed at the end of the test run and the goal
 \term{test_report}{fixme} can be used to get details.
@@ -396,6 +396,8 @@ normally though.}
 \end{code}
 \end{description}
 
+To identify nonterminating tests, interrupt the looping process with
+\emph{Control-C}. The test name and location will be displayed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Tests and production systems}
