@@ -707,11 +707,11 @@ on_signal(Signal, Old, New) :-
 	integer(Signal), !,
 	'$on_signal'(Signal, _Name, Old, New).
 on_signal(Signal, _Old, _New) :-
-	var(Signal),
-	!,
-	throw(error(instantiation_error, on_signal/3)).
-on_signal(Signal, _Old, _New) :-
-	throw(error(type_error(signal, Signal), on_signal/3)).
+	(   var(Signal)
+	->  Err = instantiation_error
+	;   Err = type_error(signal, Signal)
+	),
+	throw(error(Err, context(on_signal/3, _))).
 
 current_signal(Name, Id, Handler) :-
 	between(1, 32, Id),
