@@ -67,9 +67,11 @@ of the standard encountered in practical use.
 		 *	      GLOBALISE		*
 		 *******************************/
 
-%%	global_url(+URL, +Base, -Global)
+%%	global_url(+URL, +Base, -Global) is det.
 %	
 %	Translate a possibly relative URL  into   an  absolute  one.
+%	
+%	@error syntax_error(illegal_url) if URL is not legal.
 
 global_url(URL, BaseURL, Global) :-
 	(   is_absolute_url(URL),
@@ -85,9 +87,10 @@ global_url(URL, BaseURL, Global) :-
 		atom_concat(BaseURL, NoHash, Global)
 	    ;	atom_concat(BaseURL, URL, Global)
 	    )
-	;   parse_url(URL, BaseURL, Attributes),
-	    phrase(curl(Attributes), Chars),
+	;   parse_url(URL, BaseURL, Attributes)
+	->  phrase(curl(Attributes), Chars),
 	    atom_codes(Global, Chars)
+	;   throw(error(syntax_error(illegal_url), URL))
 	).
 
 %%	is_absolute_url(+URL)
