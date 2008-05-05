@@ -177,15 +177,11 @@ gather_args([H|T0], [H|T]) :-
 	gather_args(T0, T).
 
 gather_arg(file(Mode, Title), File) :-
-	(   current_prolog_flag(associate, Ext),
-	    Ext \== pl
-	->  atom_concat('*.', Ext, AltPattern),
-	    Filter = chain(tuple('Prolog Source',	   '*.pl'),
-			   tuple('Alternate Prolog Source', AltPattern),
-			   tuple('All files',   	   '*.*'))
-	;   Filter = chain(tuple('Prolog Source',	   '*.pl'),
-			   tuple('All files',   	   '*.*'))
-	),
+	findall(tuple('Prolog Source', Pattern),
+		prolog_file_pattern(Pattern),
+		Tuples),
+	'$append'(Tuples, tuple('All files', '*.*'), AllTuples),
+	Filter =.. [chain|AllTuples],
 	current_prolog_flag(hwnd, HWND),
 	working_directory(CWD, CWD),
 	call(get(@display, win_file_name, 	% avoid autoloading
@@ -193,6 +189,10 @@ gather_arg(file(Mode, Title), File) :-
 		 directory := CWD,
 		 owner := HWND,
 		 File)).
+
+prolog_file_pattern(Pattern) :-
+	prolog_file_type(Ext, prolog),
+	atom_concat('*.', Ext, Pattern).
 
 
 		 /*******************************
