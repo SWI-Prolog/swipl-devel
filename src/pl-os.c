@@ -2817,6 +2817,23 @@ char *command;
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+[candidate]
+
+exec(+Cmd, [+In, +Out, +Error], -Pid)
+
+The streams may be one of standard   stream,  std, null stream, null, or
+pipe(S), where S is a pipe stream
+
+Detach if none is std!
+
+TBD: Sort out status. The above is SICStus 3. YAP uses `Status' for last
+argument (strange). SICStus 4 appears to drop this altogether.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     char *Symbols(char *buf)
 
     Return the path name of the executable of SWI-Prolog.

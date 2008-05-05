@@ -50,7 +50,7 @@ uri_ok()
       ok[i] = TRUE;
     for(s="-_.!~*'()[]"; *s; s++)
       ok[(int)*s] = TRUE;
-    for(s=";/?:@=#"; *s; s++)
+    for(s=";/&?:@=#"; *s; s++)
       ok[(int)*s] = TRUE;
 
     done = TRUE;
