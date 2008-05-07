@@ -601,7 +601,7 @@ write_bindings(Bindings, Det) :-
 
 write_bindings2([], Residuals, _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
-	print_message(query, query(yes, Residuals)).
+	print_message(query, query(yes(Residuals))).
 write_bindings2(Bindings, Residuals, true) :-
 	current_prolog_flag(prompt_alternatives_on, determinism), !,
 	print_message(query, query(yes(Bindings, Residuals))).
