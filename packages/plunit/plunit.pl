@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2006-2007, University of Amsterdam
+    Copyright (C): 2006-2008, University of Amsterdam
 
     This file is covered by the `The Artistic License', also in use by
     Perl.  See http://www.perl.com/pub/a/language/misc/Artistic.html
@@ -435,7 +435,6 @@ test_option(all(_)).
 test_option(set(_)).
 test_option(nondet).
 test_option(fixme(_)).
-test_option(sto(V)) :- nonvar(V), member(V, [finite_trees, rational_trees]).
 
 %%	test_option(+Option) is semidet.
 %
@@ -450,6 +449,8 @@ test_set_option(setup(X)) :-
 	must_be(callable, X).
 test_set_option(cleanup(X)) :-
 	must_be(callable, X).
+test_set_option(sto(V)) :-
+	nonvar(V), member(V, [finite_trees, rational_trees]).
 
 
 		 /*******************************
@@ -619,6 +620,13 @@ run_test(Unit, Name, Line, Options, Body) :-
 	option(sto(false), Options, false), !,
 	run_test_6(Unit, Name, Line, Options, Body, Result),
 	report_result(Result, Options).
+run_test(Unit, Name, Line, Options, Body) :-
+	current_unit(Unit, _Module, _Supers, UnitOptions),
+	option(sto(Type), UnitOptions),
+	\+ option(sto(_), Options), !,
+	current_unification_capability(Cap0),
+	call_cleanup(run_test_cap(Unit, Name, Line, [sto(Type)|Options], Body),
+		     set_unification_capability(Cap0)).
 run_test(Unit, Name, Line, Options, Body) :-
 	current_unification_capability(Cap0),
 	call_cleanup(run_test_cap(Unit, Name, Line, Options, Body),

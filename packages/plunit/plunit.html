@@ -234,9 +234,10 @@ that fail but do not crash, etc. should be flagged using
 <DT><STRONG>fixme</STRONG>(<VAR>+Reason:atom</VAR>)</DT>
 <DD class="defbody">
 Similar to <CODE>blocked(Reason)</CODE>, but the test it executed 
-anyway. It it fails, a <CODE>-</CODE> is printed instead of the detailt <CODE>.</CODE>. 
-If it passes a <CODE>+</CODE> and if it passes with a choicepoint, <CODE>!</CODE>. 
-A summary is printed at the end of the test run and the goal
+anyway. If it fails, a <CODE>-</CODE> is printed instead of the <CODE>.</CODE> 
+character. If it passes a <CODE>+</CODE> and if it passes with a 
+choicepoint, <CODE>!</CODE>. A summary is printed at the end of the test 
+run and the goal
 <CODE>test_report(fixme)</CODE> can be used to get details.</DD>
 <DT><STRONG>condition</STRONG>(<VAR>:Goal</VAR>)</DT>
 <DD class="defbody">
@@ -399,7 +400,11 @@ the test of this unit is skipped.</DD>
 Executed before executing any of the tests.</DD>
 <DT><STRONG>cleanup</STRONG>(<VAR>:Goal</VAR>)</DT>
 <DD class="defbody">
-Executed after completion of all tests in the unit.
+Executed after completion of all tests in the unit.</DD>
+<DT><STRONG>sto</STRONG>(<VAR>+Terms</VAR>)</DT>
+<DD class="defbody">
+Specify default for subject-to-occurs-check mode. See <A class="sec" href="#sec:2">section 
+2</A> for details on the sto option.
 </DD>
 </DL>
 
@@ -561,6 +566,9 @@ traced. The called user-code can be traced normally though.</SPAN></SUP>
 
 <P></DD>
 </DL>
+
+<P>To identify nonterminating tests, interrupt the looping process with
+<EM>Control-C</EM>. The test name and location will be displayed.
 
 <H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Tests 
 and production systems</SPAN></A></H2>

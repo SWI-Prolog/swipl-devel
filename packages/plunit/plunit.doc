@@ -252,6 +252,10 @@ Executed before executing any of the tests.
 
         \termitem{cleanup}{:Goal}
 Executed after completion of all tests in the unit.
+
+	\termitem{sto}{+Terms}
+Specify default for subject-to-occurs-check mode. See \secref{unitbox}
+for details on the sto option.
     \end{description}
 \end{description}
 
