@@ -723,7 +723,6 @@ COMMON(void) 		emptyStacks(void);
 COMMON(void) 		freeStacks(ARG1_LD);
 COMMON(void) 		freeLocalData(PL_local_data_t *ld);
 COMMON(word) 		pl_trim_stacks(void);
-COMMON(word) 		pl_limit_stack(term_t s, term_t l);
 COMMON(word) 		pl_stack_parameter(term_t s, term_t k, term_t o, term_t n);
 COMMON(void) 		ensureRoomStack(Stack s, size_t n);
 COMMON(int) 		_PL_get_signum(term_t sig, int *n);

@@ -6325,10 +6325,6 @@ theoretical 4-port model.
 
 \section{Memory Management}		\label{sec:memory}
 
-Note: limit_stack/2 and trim_stacks/0 have no effect on machines that do
-not offer dynamic stack expansion.  On these machines these predicates
-simply succeed to improve portability.
-
 \begin{description}
     \predicate{garbage_collect}{0}{}
 Invoke the global- and trail stack garbage collector.  Normally the
@@ -6344,17 +6340,6 @@ actual collection is delayed until there there are no threads performing
 normal garbage collection. In this case garbage_collect_atoms/0 returns
 immediately. Note this implies there is no guarantee it will \emph{ever}
 happen as there may always be threads performing garbage collection.
-
-    \predicate{limit_stack}{2}{+Key, +Kbytes}
-Limit one of the stack areas to the specified value. \arg{Key} is one of
-\const{local}, \const{global} or \const{trail}. The limit is an integer,
-expressing the desired stack limit in K bytes. If the desired limit is
-smaller than the currently used value, the limit is set to the nearest
-legal value above the currently used value. If the desired value is
-larger than the maximum, the maximum is taken. Finally, if the desired
-value is either 0 or the atom \const{unlimited} the limit is set to its
-maximum. The maximum and initial limit is determined by the command line
-options \cmdlineoption{-L}, \cmdlineoption{-G} and \cmdlineoption{-T}.
 
     \predicate{trim_stacks}{0}{}
 Release stack memory resources that are not in use at this moment,

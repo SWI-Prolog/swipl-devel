@@ -301,7 +301,6 @@ suggest predicates from a keyword.
 \predicatesummary{library_directory}{1}{\hook{user} Directories holding Prolog libraries}
 \predicatesummary{license}{1}{Define license for current file}
 \predicatesummary{license}{2}{Define license for named module}
-\predicatesummary{limit_stack}{2}{Limit stack expansion}
 \predicatesummary{line_count}{2}{Line number on stream}
 \predicatesummary{line_position}{2}{Character position in line on stream}
 \predicatesummary{list_debug_topics}{0}{List registered topics for debugging}
