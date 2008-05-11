@@ -1,7 +1,13 @@
 *.o
+*.obj
 *.a
 *.so
 *.dylib
+*.dll
+*.exp
+*.ilk
+*.lib
+*.pdb
 *~
 *.old
 *.qlf
@@ -26,6 +32,7 @@ packages/Makefile
 Makefile
 include
 lib
+bin
 linux
 man/MANUAL.pdf
 man/dvi2tty
@@ -49,6 +56,7 @@ packages/http/Makefile
 packages/jpl/Makefile
 packages/jpl/docs/java_api/javadoc
 packages/jpl/jpl.jar
+packages/jpl/jpltest.jar
 packages/jpl/src/java/Makefile
 packages/ltx2htm/Makefile
 packages/ltx2htm/latex2html
@@ -78,7 +86,13 @@ packages/xpce/prolog/lib/Makefile
 packages/xpce/prolog/pwboot/Makefile
 packages/xpce/sicstus/src/Makefile
 packages/xpce/src/names
+packages/xpce/src/xpce-stub.exe
+packages/xpce/src/xpce-stub.res
 packages/xpce/xpce.spec
 packages/zlib/Makefile
 autom4te.cache
 src/pl.sh
+src/pl.res
+src/swipl
+boot32.prc
+boot64.prc
