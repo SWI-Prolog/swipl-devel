@@ -45,7 +45,7 @@
 
 :- load_foreign_library(foreign(process)).
 
-/** <module> Process -- Create processes and redirect I/O
+/** <module> Create processes and redirect I/O
 
 The module library(process) implements interaction  with child processes
 and unifies older interfaces such   as  shell/[1,2], open(pipe(command),
@@ -80,7 +80,8 @@ Incompatibilities and current limitations
     * The current implementation is limited to Unix systems.  A windows
     version will follow.
 
-@author Jan Wielemaker
+@tbd	Implement detached option in process_create/3
+@tbd	Implement Windows version
 @compat	SICStus 4
 */
 
@@ -153,7 +154,7 @@ user:file_search_path(path, Dir) :-
 %	If the process is not waited for, it must succeed with status 0.
 %	If not, an process_error is raised.
 %	
-%	---+++ examples
+%	*Examples*
 %	
 %	First,  a  very  simple  example  that    behaves  the  same  as
 %	=|shell('ls -l')|=, except for error handling:

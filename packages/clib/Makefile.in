@@ -30,10 +30,11 @@ NETLIBS=@NETLIBS@
 CRYPTLIBS=@CRYPTLIBS@
 MIMELIBS=maildrop/rfc2045/librfc2045.a maildrop/rfc822/librfc822.a 
 
+PUBLICPL=       pl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
-PLTOTEX=$(PCEHOME)/bin/pl2tex
+PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=clib
-TEX=$(DOC).tex
+TEX=$(DOC).tex process.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
@@ -177,7 +178,7 @@ $(TEX):		$(DOCTOTEX)
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
 .pl.tex:
-		$(PLTOTEX) $*.pl > $*.tex
+		$(PLTOTEX) $*.pl
 
 ################################################################
 # Clean

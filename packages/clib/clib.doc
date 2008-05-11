@@ -182,6 +182,9 @@ controlling terminal.
 \end{description}
 
 
+\input{process.tex}
+
+
 \section{File manipulation library}
 
 The \pllib{files} library provides additional operations on files from
