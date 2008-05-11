@@ -800,32 +800,23 @@ closeFiles(int all)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Get the open OS filedescriptors, so we can close them (see System())
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-int
-openFileDescriptors(unsigned char *buf, int size)
+void
+PL_cleanup_fork(void)
 { TableEnum e;
   Symbol symb;
   int n = 0;
 
-  LOCK();
   e = newTableEnum(streamContext);
   while( (symb=advanceTableEnum(e)) )
   { IOSTREAM *s = symb->name;
     int fd;
 
-    if ( (fd=Sfileno(s)) >= 0 )
-    { if ( n > size )
-	break;
-      buf[n++] = fd;
-    }
+    if ( (fd=Sfileno(s)) >= 3 )
+      close(fd);
   }
   freeTableEnum(e);
-  UNLOCK();
 
-  return n;
+  stopItimer();
 }
 
 

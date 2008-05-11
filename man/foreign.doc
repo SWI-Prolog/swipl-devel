@@ -2071,7 +2071,7 @@ Prolog call, or because an exception was raised using throw/1.  This
 function returns a handle to the exception term if an exception was
 raised, or 0 if the Prolog goal simply failed.%
     \footnote{This interface differs in two ways from Quintus.  The
-	      calling predicates simp,y signal failure if an exception
+	      calling predicates simply signal failure if an exception
 	      was raised, and a term referenced is returned, rather 
 	      passed and filled with the error term.   Exceptions
 	      can only be handled using the PL_next_solution() interface,
@@ -2143,6 +2143,13 @@ to handle scheduled interrupts.  This routine returns the number of
 signals handled.  If a handler raises an exception, the return value
 is -1 and the calling routine should return with \const{FALSE} as
 soon as possible.
+
+    \cfunction{int}PL_get_signum_ex}{term_t t, int *sig}
+Extract a signal specification from a Prolog term and store as integer
+signal number in \arg{sig}.  The specification is an integer, lowercase
+signal name without \const{SIG} or the full signal name.  These refer
+to the same: \verb$9$, \verb$kill$ and \verb$SIGKILL$. Leaves a typed,
+domain or instantiation error if the conversion fails.
 \end{description}
 
 
@@ -2901,6 +2908,21 @@ This function allows deleting and restarting the Prolog system in the
 same process. Use it with care, as PL_initialise() is a costly function.
 Unix users should consider using exec() (available as part of the
 clib package\index{clib,package},\index{package,clib}).
+
+    \cfunction{void}{PL_cleanup_fork}{}
+Close file descriptors associated to Prolog streams except for 0,1~and~2.
+Stop intervaltimer that may be running on behalf of profile/1.  The call
+is intended to be used in combination with fork():
+
+\begin{code}
+    if ( (pid=fork()) == 0 )
+    { PL_cleanup_fork();
+      <some exec variation>
+    }
+\end{code}
+
+The call behaves the same  on  Windows,   though  there  is  probably no
+meaningful application.
 
     \cfunction{int}{PL_halt}{int status}
 Cleanup the Prolog environment using PL_cleanup() and calls exit() with

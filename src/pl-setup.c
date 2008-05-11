@@ -280,6 +280,13 @@ signal_name(int sig)
 static int
 signal_index(const char *name)
 { struct signame *sn = signames;
+  char tmp[12];
+
+  if ( strncmp(name, "SIG", 3) == 0 && strlen(name) < 12 )
+  { strcpy(tmp, name+3);
+    strlwr(tmp);
+    name = tmp;
+  }
 
   for( ; sn->name; sn++ )
   { if ( streq(sn->name, name) )
@@ -291,20 +298,24 @@ signal_index(const char *name)
 
 
 int
-_PL_get_signum(term_t sig, int *n)
+PL_get_signum_ex(term_t sig, int *n)
 { char *s;
   int i = -1;
 
-  if ( !PL_get_integer(sig, &i) )
-  { if ( PL_get_atom_chars(sig, &s) )
-      i = signal_index(s);
+  if ( PL_get_integer(sig, &i) )
+  { 
+  } else if ( PL_get_chars(sig, &s, CVT_ATOM) )
+  { i = signal_index(s);
+  } else
+  { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_signal, sig);
   }
+
   if ( i > 0 && i < 32 )		/* where to get these? */
   { *n = i;
     return TRUE;
   }
 
-  return FALSE;
+  return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_signal, sig);
 }
 
 

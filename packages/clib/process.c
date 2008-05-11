@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -27,357 +27,686 @@
 #endif
 
 #include <SWI-Stream.h>
+#include <SWI-Prolog.h>
+#include "error.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>   
+#include <string.h>
+#include <assert.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <fcntl.h>
-#include <assert.h>
-#include "clib.h"
-#include <signal.h>
-#include <string.h>
-#include <errno.h>
-#ifdef HAVE_ALLOCA_H
-#include <alloca.h>
-#endif
+
+static atom_t ATOM_stdin;
+static atom_t ATOM_stdout;
+static atom_t ATOM_stderr;
+static atom_t ATOM_std;
+static atom_t ATOM_null;
+static atom_t ATOM_process;
+static atom_t ATOM_detached;
+static atom_t ATOM_cwd;
+static atom_t ATOM_window;
+static functor_t FUNCTOR_error2;
+static functor_t FUNCTOR_type_error2;
+static functor_t FUNCTOR_domain_error2;
+static functor_t FUNCTOR_resource_error1;
+static functor_t FUNCTOR_process_error2;
+static functor_t FUNCTOR_pipe1;
+static functor_t FUNCTOR_exit1;
+static functor_t FUNCTOR_killed1;
+
+#define DEBUG(g) (void)0
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Unix process management.
+ISSUES:
+	- Deal with child errors (no cwd, cannot execute, etc.)
+	- Windows version
+	- Complete test suite
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static IOSTREAM *
-name_to_stream(const char *name)
-{ IOSTREAM *s;
-  term_t t = PL_new_term_ref();
 
-  PL_put_atom_chars(t, name);
-  if ( PL_get_stream_handle(t, &s) )
-    return s;
+		 /*******************************
+		 *	      ERRORS		*
+		 *******************************/
 
-  return NULL;
+static int
+type_error(term_t actual, const char *expected)
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR, FUNCTOR_type_error2,
+		        PL_CHARS, expected,
+		        PL_TERM, actual,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
 }
 
 
-static void
-flush_stream(const char *name)
-{ IOSTREAM *s;
+static int
+domain_error(term_t actual, const char *expected)
+{ term_t ex = PL_new_term_ref();
 
-  if ( (s = name_to_stream(name)) )
-    Sflush(s);
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR, FUNCTOR_domain_error2,
+		        PL_CHARS, expected,
+		        PL_TERM, actual,
+		      PL_VARIABLE);
 
-  PL_release_stream(s);
+  return PL_raise_exception(ex);
 }
 
 
+static int
+resource_error(const char *resource)
+{ term_t ex = PL_new_term_ref();
 
-static foreign_t
-pl_fork(term_t a0)
-{ pid_t pid;
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR, FUNCTOR_resource_error1,
+		        PL_CHARS, resource,
+		      PL_VARIABLE);
 
-  flush_stream("user_output");		/* general call to flush all IO? */
-
-  if ( (pid = fork()) < 0 )
-    return PL_warning("fork/1: failed: %s", strerror(errno));
-
-  if ( pid > 0 )
-    return PL_unify_integer(a0, pid);
-  else
-    return PL_unify_atom_chars(a0, "child");
+  return PL_raise_exception(ex);
 }
 
 
-#define free_argv(n) \
-	{ int _k; \
-	  for( _k=1; _k <= n; _k++) \
-	    free(argv[_k]); \
-	  free(argv); \
-	}
+		 /*******************************
+		 *	       ADMIN		*
+		 *******************************/
 
-static foreign_t
-pl_exec(term_t cmd)
-{ int argc;
-  atom_t name;
+typedef enum std_type
+{ std_std,
+  std_null,
+  std_pipe
+} std_type;
 
-  if ( PL_get_name_arity(cmd, &name, &argc) )
-  { term_t a = PL_new_term_ref();
-    char **argv = malloc(sizeof(char*) * (argc + 2));
-    int i;
 
-    argv[0] = (char *)PL_atom_chars(name);
+typedef struct p_stream
+{ term_t term;				/* P in pipe(P) */
+  std_type type;			/* type of stream */
+  int    fd[2];				/* pipe handles */
+} p_stream;
 
-    for(i=1; i<=argc; i++)
-    { char *s;
 
-      if ( PL_get_arg(i, cmd, a) &&
-	   PL_get_chars(a, &s, CVT_ALL|REP_MB|BUF_MALLOC) )
-	argv[i] = s;
-      else
-      { free_argv(i-1);
-	return pl_error("exec", 1, NULL, ERR_ARGTYPE, i, a, "atomic");
-      }
+typedef struct p_options
+{ atom_t exe_name;			/* exe as atom */
+  char *exe;				/* Executable */
+  char **argv;				/* argument vector */
+  term_t pid;				/* process(PID) */
+  int pipes;				/* #pipes found */
+  p_stream streams[3];
+  char *cwd;				/* CWD of new process */
+  int   detached;			/* create as detached */
+} p_options;
+
+
+static int
+get_stream(term_t t, p_options *info, p_stream *stream)
+{ atom_t a;
+
+  if ( PL_get_atom(t, &a) )
+  { if ( a == ATOM_null )
+    { stream->type = std_null;
+      return TRUE;
+    } else if ( a == ATOM_std )
+    { stream->type = std_std;
+      return TRUE;
+    } else
+    { return domain_error(t, "process_stream");
     }
-    argv[argc+1] = NULL;
-
-    execvp(argv[0], argv);
-    free_argv(argc);
-    return pl_error("exec", 1, NULL, ERR_ERRNO, errno, argv[0], "execute");
-  }
-  
-  return pl_error("exec", 1, NULL, ERR_ARGTYPE, 1, cmd, "compound");
+  } else if ( PL_is_functor(t, FUNCTOR_pipe1) )
+  { stream->term = PL_new_term_ref();
+    PL_get_arg(1, t, stream->term);
+    stream->type = std_pipe;
+    info->pipes++;
+    return TRUE;
+  } else
+    return type_error(t, "process_stream");
 }
 
 
-static foreign_t
-pl_wait(term_t Pid, term_t Status)
-{ int status;
-  pid_t pid = wait(&status);
+static int
+parse_options(term_t options, p_options *info)
+{ term_t tail = PL_copy_term_ref(options);
+  term_t head = PL_new_term_ref();
+  term_t arg = PL_new_term_ref();
 
-  if ( pid == -1 )
-    return pl_error("wait", 2, NULL, ERR_ERRNO, errno);
+  while(PL_get_list(tail, head, tail))
+  { atom_t name;
+    int arity;
 
-  if ( PL_unify_integer(Pid, pid) )
-  { if ( WIFEXITED(status) )
-      return PL_unify_term(Status,
-			   CompoundArg("exited", 1),
-			   IntArg(WEXITSTATUS(status)));
-    if ( WIFSIGNALED(status) )
-      return PL_unify_term(Status,
-			   CompoundArg("signaled", 1),
-			   IntArg(WTERMSIG(status)));
-    if ( WIFSTOPPED(status) )
-      return PL_unify_term(Status,
-			   CompoundArg("stopped", 1),
-			   IntArg(WSTOPSIG(status)));
-    assert(0);
+    if ( !PL_get_name_arity(head, &name, &arity) || arity != 1 )
+      return type_error(head, "option");
+    PL_get_arg(1, head, arg);
+
+    if ( name == ATOM_stdin )
+    { if ( !get_stream(arg, info, &info->streams[0]) )
+	return FALSE;
+    } else if ( name == ATOM_stdout )
+    { if ( !get_stream(arg, info, &info->streams[1]) )
+	return FALSE;
+    } else if ( name == ATOM_stderr )
+    { if ( !get_stream(arg, info, &info->streams[2]) )
+	return FALSE;
+    } else if ( name == ATOM_process )
+    { info->pid = PL_copy_term_ref(arg);
+    } else if ( name == ATOM_detached )
+    { if ( !PL_get_bool(arg, &info->detached) )
+	return type_error(arg, "boolean");
+    } else if ( name == ATOM_cwd )
+    { if ( !PL_get_chars(arg, &info->cwd,
+			 CVT_ATOM|CVT_STRING|CVT_EXCEPTION|BUF_MALLOC|REP_FN) )
+	return FALSE;
+    } else if ( name == ATOM_window )
+    { Sdprintf("Window: TBD\n");
+    } else
+      return domain_error(head, "process_option");
   }
 
-  return FALSE;
-}
-
-
-static foreign_t
-pl_kill(term_t Pid, term_t Sig)
-{ int pid;
-  int sig;
-
-  if ( !PL_get_integer(Pid, &pid) )
-    return pl_error("kill", 2, NULL, ERR_ARGTYPE, 1, Pid, "pid");
-  if ( !PL_get_integer(Sig, &sig) )
-    return pl_error("kill", 2, NULL, ERR_ARGTYPE, 2, Sig, "signal");
-
-  if ( kill(pid, sig) < 0 )
-    return pl_error("kill", 1, NULL, ERR_ERRNO, Pid);
+  if ( !PL_get_nil(tail) )
+    return type_error(tail, "list");
 
   return TRUE;
 }
 
 
-		 /*******************************
-		 *	   STREAM STUFF		*
-		 *******************************/
-
-static foreign_t
-pl_pipe(term_t Read, term_t Write)
-{ int fd[2];
-  IOSTREAM *in, *out;
-
-  if ( pipe(fd) != 0 )
-    return pl_error("pipe", 2, NULL, ERR_ERRNO, errno, "");
-
-  in  = Sfdopen(fd[0], "r");
-  out = Sfdopen(fd[1], "w");
-
-  if ( PL_open_stream(Read, in) &&
-       PL_open_stream(Write, out) )
-    return TRUE;
-
-  return FALSE;
-}
-
-
 static int
-get_stream_no(term_t t, IOSTREAM **s, int *fn)
-{ if ( PL_get_integer(t, fn) )
-    return TRUE;
-  if ( PL_get_stream_handle(t, s) )
-  { *fn = Sfileno(*s);
-    return TRUE;
-  }
+get_exe(term_t exe, p_options *info)
+{ int i, arity;
+  term_t arg = PL_new_term_ref();
 
-  return FALSE;
+  if ( !PL_get_name_arity(exe, &info->exe_name, &arity) )
+    return type_error(exe, "callable");
+
+  PL_put_atom(arg, info->exe_name);
+  if ( !PL_get_chars(arg, &info->exe, CVT_ATOM|CVT_EXCEPTION|BUF_MALLOC|REP_FN) )
+    return FALSE;
+
+  info->argv = PL_malloc((arity+2)*sizeof(char*));
+  memset(info->argv, 0, (arity+2)*sizeof(char*));
+  info->argv[0] = strdup(info->exe);
+  for(i=1; i<=arity; i++)
+  { PL_get_arg(i, exe, arg);
+
+    if ( !PL_get_chars(arg, &info->argv[i],
+		       CVT_ATOMIC|CVT_EXCEPTION|BUF_MALLOC|REP_FN) )
+      return FALSE;
+  }
+  info->argv[i] = NULL;
+
+  return TRUE;
 }
 
 
-static foreign_t
-pl_dup(term_t from, term_t to)
-{ IOSTREAM *f = NULL, *t = NULL;
-  int rval = FALSE;
-  int fn, tn;
-
-  if ( !get_stream_no(from, &f, &fn) ||
-       !get_stream_no(to, &t, &tn) )
-    goto out;
-  
-  if ( dup2(fn, tn) < 0 )
-  { pl_error("dup", 2, NULL, ERR_ERRNO, errno, "");
-    goto out;
-  } else
-  { rval = TRUE;
+static void
+free_options(p_options *info)		/* TBD: close streams */
+{ if ( info->exe )
+  { PL_free(info->exe);
+    info->exe = NULL;
   }
 
-out:
-  if ( f )
-    PL_release_stream(f);
-  if ( t )
-    PL_release_stream(t);
-
-  return rval;
-}
-
-
-static foreign_t
-pl_environ(term_t l)
-{ extern char **environ;
-  char **e;
-  term_t t = PL_copy_term_ref(l);
-  term_t t2 = PL_new_term_ref();
-  term_t nt = PL_new_term_ref();
-  term_t vt = PL_new_term_ref();
-  functor_t FUNCTOR_equal2 = PL_new_functor(PL_new_atom("="), 2);
-
-  for(e = environ; *e; e++)
-  { char *s = strchr(*e, '=');
-    
-    if ( !s )
-      s = *e + strlen(*e);
-
-    { int len = s-*e;
-      char *name = alloca(len+1);
-
-      strncpy(name, *e, len);
-      name[len] = '\0';
-      PL_put_atom_chars(nt, name);
-      PL_put_atom_chars(vt, s+1);
-      PL_cons_functor(nt, FUNCTOR_equal2, nt, vt);
-      if ( !PL_unify_list(t, t2, t) ||
-	   !PL_unify(t2, nt) )
-	return FALSE;
+  if ( info->argv )
+  { char **a;
+    for(a=info->argv; *a; a++)
+    { if ( *a )
+	PL_free(*a);
     }
-  }  
-  
-  return PL_unify_nil(t);
-} 
+    PL_free(info->argv);
+
+    info->argv = NULL;
+  }
+}
 
 
 		 /*******************************
-		 *	    DEAMON IO		*
+		 *	   PROCESS READS	*
 		 *******************************/
 
-static atom_t error_file;		/* file for output */
-static int    error_fd;			/* and its fd */
+#define	PROCESS_MAGIC	0x29498001
 
-static ssize_t
-read_eof(void *handle, char *buf, size_t count)
-{ return 0;
+typedef struct process_context
+{ int	magic;				/* PROCESS_MAGIC */
+  pid_t	pid;				/* the process id */
+  int   open_mask;			/* Open streams */
+  int	pipes[3];			/* stdin/stdout/stderr */
+} process_context;
+
+
+static int
+process_fd(void *handle, process_context **PC)
+{ process_context *pc = (process_context*) ((uintptr_t)handle&~(uintptr_t)0x3);
+  int pipe = (int)(uintptr_t)handle & 0x3;
+
+  if ( pc->magic == PROCESS_MAGIC )
+  { if ( PC )
+      *PC = pc;
+    return pc->pipes[pipe];
+  }
+
+  return -1;
 }
 
 
 static ssize_t
-write_null(void *handle, char *buf, size_t count)
-{ if ( error_fd )
-  { if ( error_fd >= 0 )
-      write(error_fd, buf, count);
-  } else if ( error_file )
-  { error_fd = open(PL_atom_chars(error_file), O_WRONLY|O_CREAT|O_TRUNC, 0644);
-    return write_null(handle, buf, count);
-  } 
+Sread_process(void *handle, char *buf, size_t size)
+{ int fd = process_fd(handle, NULL);
 
-  return count;
+  return (*Sfilefunctions.read)((void*)(uintptr_t)fd, buf, size);
 }
 
 
-static long
-seek_error(void *handle, long pos, int whence)
-{ return -1;
+static ssize_t
+Swrite_process(void *handle, char *buf, size_t size)
+{ int fd = process_fd(handle, NULL);
+
+  return (*Sfilefunctions.write)((void*)(uintptr_t)fd, buf, size);
 }
 
 
 static int
-close_null(void *handle)
-{ return 0;
+Sclose_process(void *handle)
+{ process_context *pc;
+  int fd = process_fd(handle, &pc);
+
+  if ( fd >= 0 )
+  { int which = (int)(uintptr_t)handle & 0x3;
+    int rc;
+
+    rc = (*Sfilefunctions.close)((void*)(uintptr_t)fd);
+    pc->open_mask &= ~which;
+    
+    DEBUG(Sdprintf("Closing fd[%d]; mask = 0x%x\n", which, pc->open_mask));
+
+    if ( !pc->open_mask )
+    { pid_t p2;
+      
+      for(;;)
+      { int status;
+
+	if ( (p2=waitpid(pc->pid, &status, 0)) == pc->pid )
+	  break;
+	if (  p2 == -1 && errno == EINTR )
+	{ if ( PL_handle_signals() < 0 )
+	  { PL_free(pc);
+	    return -1;
+	  }
+	}
+      }
+      
+      PL_free(pc);
+    }    
+
+    return rc;
+  }
+
+  return -1;
 }
 
 
-static IOFUNCTIONS dummy =
-{ read_eof,
-  write_null,
-  seek_error,
-  close_null,
-  NULL
+static int
+Scontrol_process(void *handle, int action, void *arg)
+{ process_context *pc;
+  int fd = process_fd(handle, &pc);
+
+  switch(action)
+  { case SIO_GETFILENO:
+    { int *fdp = arg;
+      *fdp = fd;
+      return 0;
+    }
+    default:
+      return (*Sfilefunctions.control)((void*)(uintptr_t)fd, action, arg);
+  }
+}
+
+
+static IOFUNCTIONS Sprocessfunctions =
+{ Sread_process,
+  Swrite_process,
+  NULL,					/* seek */
+  Sclose_process,
+  Scontrol_process,
+  NULL					/* seek64 */
 };
 
 
-static void
-close_underlying_fd(IOSTREAM *s)
-{ if ( s )
-  { int fd;
+static IOSTREAM *
+open_process_pipe(process_context *pc, int which, int fd)
+{ void *handle;
+  int flags;
+
+  pc->open_mask |= which;
+  pc->pipes[which] = fd;
   
-    if ( (fd = Sfileno(s)) >= 0 )
-      close(fd);
+  if ( which == 0 )
+    flags = SIO_OUTPUT|SIO_RECORDPOS;
+  else
+    flags = SIO_INPUT|SIO_RECORDPOS;
 
-    s->functions = &dummy;
-    s->flags &= ~SIO_FILE;		/* no longer a file */
-    s->flags |= SIO_LBUF;		/* do line-buffering */
-  }
+  handle = (void *)((uintptr_t)pc | (uintptr_t)which);
+
+  return Snew(handle, flags, &Sprocessfunctions);
 }
 
 
-static foreign_t
-pl_detach_IO()
-{ char buf[100];
+		 /*******************************
+		 *	       OS STUFF		*
+		 *******************************/
 
-  sprintf(buf, "/tmp/pl-out.%d", (int)getpid());
-  error_file = PL_new_atom(buf);
 
-  close_underlying_fd(Serror);
-  close_underlying_fd(Soutput);
-  close_underlying_fd(Sinput);
-  close_underlying_fd(name_to_stream("user_input"));
-  close_underlying_fd(name_to_stream("user_output"));
-  close_underlying_fd(name_to_stream("user_error"));
+static int
+create_pipes(p_options *info)
+{ int i;
 
-#ifdef HAVE_SETSID
-  setsid();
-#else
-{ int fd;
+  for(i=0; i<3; i++)
+  { p_stream *s = &info->streams[i];
 
-  if ( (fd = open("/dev/tty", 2)) )
-  { ioctl(fd, TIOCNOTTY, NULL);		/* detach from controlling tty */
-    close(fd);
+    if ( s->term )
+    { if ( pipe(s->fd) )
+      { assert(errno = EMFILE);
+	return resource_error("open_files");
+      }
+    }
   }
-}
-#endif
 
   return TRUE;
 }
 
 
-install_t
-install_unix()
-{ PL_register_foreign("fork",      1, pl_fork, 0);
-  PL_register_foreign("exec",      1, pl_exec, 0);
-  PL_register_foreign("wait",      2, pl_wait, 0);
-  PL_register_foreign("kill",      2, pl_kill, 0);
-  PL_register_foreign("pipe",      2, pl_pipe, 0);
-  PL_register_foreign("dup",       2, pl_dup, 0);
-  PL_register_foreign("detach_IO", 0, pl_detach_IO, 0);
-  PL_register_foreign("environ",   1, pl_environ, 0);
+static int
+unify_exit_status(term_t code, int status)
+{ if ( WIFEXITED(status) )
+  { return PL_unify_term(code,
+			 PL_FUNCTOR, FUNCTOR_exit1,
+			   PL_INT, (int)WEXITSTATUS(status));
+  } else if ( WIFSIGNALED(status) )
+  { return PL_unify_term(code,
+			 PL_FUNCTOR, FUNCTOR_killed1,
+			   PL_INT, (int)WTERMSIG(status));
+  } else
+  { assert(0);
+    return FALSE;
+  }
+}
+
+
+static int
+wait_success(atom_t name, pid_t pid)
+{ pid_t p2;
+
+  for(;;)
+  { int status;
+
+    if ( (p2=waitpid(pid, &status, 0)) == pid )
+    { if ( WIFEXITED(status) && WEXITSTATUS(status) == 0 )
+      { return TRUE;
+      } else
+      { term_t code = PL_new_term_ref();
+	term_t ex = PL_new_term_ref();
+
+	unify_exit_status(code, status);
+	PL_unify_term(ex,
+		      PL_FUNCTOR, FUNCTOR_error2,
+		        PL_FUNCTOR, FUNCTOR_process_error2,
+		          PL_ATOM, name,
+		          PL_TERM, code,
+		        PL_VARIABLE);
+	return PL_raise_exception(ex);
+      }
+    } 
+
+    if ( p2 == -1 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+	return FALSE;
+    }
+  }
+}
+
+
+static int
+do_create_process(p_options *info)
+{ int pid;
+
+  if ( !(pid=fork()) )			/* child */
+  { int fd;
+
+    PL_cleanup_fork();
+
+    if ( info->cwd )
+    { if ( chdir(info->cwd) )
+      { perror(info->cwd);
+	exit(1);
+      }
+    }
+    
+					/* stdin */
+    switch( info->streams[0].type )
+    { case std_pipe:
+	dup2(info->streams[0].fd[0], 0);
+	close(info->streams[0].fd[1]);
+	break;
+      case std_null:
+	if ( (fd = open("/dev/null", O_RDONLY)) >= 0 )
+	  dup2(fd, 0);
+        break;
+      case std_std:
+	break;
+    }
+					/* stdout */
+    switch( info->streams[1].type )
+    { case std_pipe:
+	dup2(info->streams[1].fd[1], 1);
+        close(info->streams[1].fd[0]);
+	break;
+      case std_null:
+	if ( (fd = open("/dev/null", O_WRONLY)) >= 0 )
+	  dup2(fd, 1);
+        break;
+      case std_std:
+	break;
+    }
+					/* stderr */
+    switch( info->streams[2].type )
+    { case std_pipe:
+	dup2(info->streams[2].fd[1], 2);
+        close(info->streams[2].fd[0]);
+	break;
+      case std_null:
+	if ( (fd = open("/dev/null", O_WRONLY)) >= 0 )
+	  dup2(fd, 2);
+        break;
+      case std_std:
+	break;
+    }
+
+    if ( execv(info->exe, info->argv) )
+    { perror(info->exe);
+      exit(1);
+    }
+
+    return pl_error(NULL, 0, "execv", ERR_ERRNO, errno);
+  } else				/* parent */
+  { if ( info->pipes > 0 && info->pid == 0 )
+    { IOSTREAM *s;
+      process_context *pc = PL_malloc(sizeof(*pc));
+
+      DEBUG(Sdprintf("Wait on pipes\n"));
+
+      memset(pc, 0, sizeof(*pc));
+      pc->magic = PROCESS_MAGIC;
+      pc->pid = pid;
+
+      if ( info->streams[0].type == std_pipe )
+      { close(info->streams[0].fd[0]);
+	s = open_process_pipe(pc, 0, info->streams[0].fd[1]);
+	PL_unify_stream(info->streams[0].term, s);
+      }
+      if ( info->streams[1].type == std_pipe )
+      { close(info->streams[1].fd[1]);
+	s = open_process_pipe(pc, 1, info->streams[1].fd[0]);
+	PL_unify_stream(info->streams[1].term, s);
+      }
+      if ( info->streams[2].type == std_pipe )
+      { close(info->streams[2].fd[1]);
+	s = open_process_pipe(pc, 2, info->streams[2].fd[0]);
+	PL_unify_stream(info->streams[2].term, s);
+      }
+
+      return TRUE;
+    } else if ( info->pipes > 0 )
+    { IOSTREAM *s;
+
+      if ( info->streams[0].type == std_pipe )
+      { close(info->streams[0].fd[0]);
+	s = Sfdopen(info->streams[0].fd[1], "w");
+	PL_unify_stream(info->streams[0].term, s);
+      }
+      if ( info->streams[1].type == std_pipe )
+      { close(info->streams[1].fd[1]);
+	s = Sfdopen(info->streams[1].fd[0], "r");
+	PL_unify_stream(info->streams[1].term, s);
+      }
+      if ( info->streams[2].type == std_pipe )
+      { close(info->streams[2].fd[1]);
+	s = Sfdopen(info->streams[2].fd[0], "r");
+	PL_unify_stream(info->streams[2].term, s);
+      }
+    }
+
+    if ( info->pid )
+      return PL_unify_integer(info->pid, pid);
+    
+    return wait_success(info->exe_name, pid);
+  }
 }
 
 
 
+		 /*******************************
+		 *	      BINDING		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Basic process creation interface takes
+
+	* Exe file
+	* List of arguments
+	* standard streams		% std, null, pipe(S)
+	* Working directory
+	* detached			% Unix
+	* window			% Windows
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static foreign_t
+process_create(term_t exe, term_t options)
+{ p_options info;
+  int rc = FALSE;
+
+  memset(&info, 0, sizeof(info));
+
+  if ( !get_exe(exe, &info) )
+    goto out;
+  if ( !parse_options(options, &info) )
+    goto out;
+  if ( !create_pipes(&info) )
+    goto out;
+
+  rc = do_create_process(&info);
+
+out:
+  free_options(&info);
+
+  return rc;
+}
 
 
+static int
+get_pid(term_t pid, pid_t *p)
+{ int n;
+
+  if ( !PL_get_integer(pid, &n) )
+    return type_error(pid, "integer");
+  if ( n < 0 )
+    return domain_error(pid, "not_less_than_zero");
+  
+  *p = n;
+  return TRUE;
+}
 
 
+static foreign_t
+process_wait(term_t pid, term_t code, term_t options)
+{ int p, p2;
+  int status;
+
+  if ( !get_pid(pid, &p) )
+    return FALSE;
+
+  for(;;)
+  { if ( (p2=waitpid(p, &status, 0)) == p )
+      return unify_exit_status(code, status);
+
+    if ( p2 == -1 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+	return FALSE;
+    } else
+    { return pl_error(NULL, 0, "waitpid", ERR_ERRNO, errno);
+    }
+  }
+}
+
+
+static foreign_t
+process_kill(term_t pid, term_t signal)
+{ int p, sig;
+
+  if ( !get_pid(pid, &p) )
+    return FALSE;
+  if ( !PL_get_signum_ex(signal, &sig) )
+    return FALSE;
+
+  if ( kill(p, sig) == 0 )
+    return TRUE;
+  
+  switch(errno)
+  { case EPERM:
+      return pl_error("process_kill", 2, NULL, ERR_PERMISSION,
+		      pid, "kill", "process");
+    case ESRCH:
+      return pl_error("process_kill", 2, NULL, ERR_EXISTENCE,
+		      "process", pid);
+    default:
+      return pl_error("process_kill", 2, "kill", ERR_ERRNO, errno);
+  }
+}
+
+
+#define MKATOM(n) ATOM_ ## n = PL_new_atom(#n)
+#define MKFUNCTOR(n,a) FUNCTOR_ ## n ## a = PL_new_functor(PL_new_atom(#n), a)
+
+install_t
+install_process()
+{ MKATOM(stdin);
+  MKATOM(stdout);
+  MKATOM(stderr);
+  MKATOM(std);
+  MKATOM(null);
+  MKATOM(process);
+  MKATOM(detached);
+  MKATOM(cwd);
+  MKATOM(window);
+
+  MKFUNCTOR(pipe, 1);
+  MKFUNCTOR(error, 2);
+  MKFUNCTOR(type_error, 2);
+  MKFUNCTOR(domain_error, 2);
+  MKFUNCTOR(process_error, 2);
+  MKFUNCTOR(resource_error, 1);
+  MKFUNCTOR(exit, 1);
+  MKFUNCTOR(killed, 1);
+
+  PL_register_foreign("process_create", 2, process_create, 0);
+  PL_register_foreign("process_wait", 3, process_wait, 0);
+  PL_register_foreign("process_kill", 2, process_kill, 0);
+}

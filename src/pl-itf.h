@@ -747,6 +747,7 @@ install_t		PL_install_readline(void);
 #endif
 PL_EXPORT(int)		PL_toplevel(void);
 PL_EXPORT(int)		PL_cleanup(int status);
+PL_EXPORT(void)		PL_cleanup_fork();
 PL_EXPORT(void)		PL_halt(int status) NORETURN;
 
 		 /*******************************
@@ -817,6 +818,8 @@ PL_EXPORT(void) (*PL_signal(int sig, void (*func)(int)))(int);
 PL_EXPORT(void) PL_interrupt(int sig);
 PL_EXPORT(int)  PL_raise(int sig);
 PL_EXPORT(int)  PL_handle_signals(void);
+PL_EXPORT(int) 	PL_get_signum_ex(term_t sig, int *n);
+
 
 		/********************************
 		*      PROLOG ACTION/QUERY      *

@@ -1277,32 +1277,6 @@ pl_thread_exit(term_t retcode)
 }
 
 
-word
-pl_thread_kill(term_t t, term_t sig)
-{
-#ifdef HAVE_PTHREAD_KILL
-  PL_thread_info_t *info;
-  int s, rc;
-
-  
-  if ( !get_thread(t, &info, TRUE) )
-    fail;
-  if ( !_PL_get_signum(sig, &s) )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_signal, sig);
-
-  if ( (rc=pthread_kill(info->tid, s)) )
-  { assert(rc == ESRCH);
-
-    return PL_error("thread_kill", 2, NULL, ERR_EXISTENCE, ATOM_thread, t);
-  }
-
-  succeed;
-#else
-  return notImplemented("thread_kill", 2);
-#endif
-}
-
-
 static
 PRED_IMPL("thread_detach", 1, thread_detach, 0)
 { PL_thread_info_t *info;

@@ -2593,24 +2593,12 @@ System(char *cmd)
   int rval;
   void (*old_int)();
   void (*old_stop)();
-  unsigned char fds[256];
-  int nfds = openFileDescriptors(fds, sizeof(fds));
 
-  Setenv("PROLOGCHILD", "yes");
-
-  if ( (pid = vfork()) == -1 )
+  if ( (pid = fork()) == -1 )
   { return PL_error("shell", 2, OsError(), ERR_SYSCALL, "fork");
   } else if ( pid == 0 )		/* The child */
-  { int i;
-
-    for(i = 0; i < nfds; i++)
-    { int fd = fds[i];
-
-      if ( fd >= 3 )
-	close(fd);
-    }
-    stopItimer();
-
+  { Setenv("PROLOGCHILD", "yes");
+    PL_cleanup_fork();
     execl(shell, BaseName(shell), "-c", cmd, (char *)0);
     fatalError("Failed to execute %s: %s", shell, OsError());
     fail;

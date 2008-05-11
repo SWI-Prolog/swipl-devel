@@ -45,10 +45,10 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		@PLTARGETS@ prolog_server.pl sha.pl
-TARGETS=	@TARGETS@ readutil.@SO@ sha4pl.@SO@
+LIBPL=		@PLTARGETS@ process.pl prolog_server.pl sha.pl
+TARGETS=	@TARGETS@ readutil.@SO@ process.@SO@ sha4pl.@SO@
 
-UNXOBJ=		error.o process.o
+UNXOBJ=		error.o unix.o
 SOCKOBJ=	error.o socket.o nonblockio.o
 CGIOBJ=		error.o form.o cgi.o
 CRYPTOBJ=	error.o crypt.o md5.o md5passwd.o
@@ -59,6 +59,7 @@ FILESOBJ=	error.o files.o
 RLIMITOBJ=	error.o rlimit.o
 RANDOMOBJ=	random.o
 READUTILOBJ=	readutil.o
+PROCESSOBJ=	error.o process.o
 SHAOBJ=		error.o sha4pl.o sha1/sha1.o sha1/sha2.o \
 		sha1/hmac_sha1.o sha1/hmac_sha256.o
 
@@ -86,6 +87,8 @@ rlimit.@SO@:	$(RLIMITOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(RLIMITOBJ) $(LIBS)
 readutil.@SO@:	$(READUTILOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(READUTILOBJ)
+process.@SO@:	$(PROCESSOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(PROCESSOBJ)
 sha4pl.@SO@:	$(SHAOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(SHAOBJ)
 
@@ -133,7 +136,7 @@ uninstall::
 # Testing
 ################################################################
 
-check:		check-socket check-memfile check-unit
+check:		check-socket check-memfile check-unit check-process
 
 torture:	torture-socket
 
@@ -148,6 +151,9 @@ check-memfile::
 
 check-unit::
 		$(PL) -q -f test.pl -g true -t run_tests
+
+check-process::
+		$(PL) -q -f test_process.pl -g true -t test_process
 
 ################################################################
 # Documentation
