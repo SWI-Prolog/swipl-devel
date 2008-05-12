@@ -42,6 +42,7 @@
 	  ]).
 :- use_module(library(shlib)).
 :- use_module(library(lists)).
+:- use_module(library(option)).
 
 :- load_foreign_library(foreign(process)).
 
@@ -194,6 +195,7 @@ expand_cwd_option(Options0, Options) :-
 	->  Options = Options0
 	;   existence_error(directory, Spec)
 	).
+expand_cwd_option(Options, Options).
 
 
 %%	map_arg(+ArgIn, -Arg) is det.
