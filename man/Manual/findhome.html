@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section 9.8</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.55 Reference Manual: Section 9.8</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="plld.html">
@@ -134,7 +134,7 @@ Prolog `home' directory</SPAN></A></H2>
 
 <P>Executables embedding SWI-Prolog should be able to find the `home' 
 directory of the development environment unless a self-contained 
-saved-state has been added to the executable (see <A NAME="idx:qsaveprogram12:1410"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A> 
+saved-state has been added to the executable (see <A NAME="idx:qsaveprogram12:1414"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A> 
 and <A class="sec" href="plld.html">section 9.7</A>).
 
 <P>If Prolog starts up, it will try to locate the development 
@@ -142,6 +142,7 @@ environment. To do so, it will try the following steps until one
 succeeds.
 
 <P><OL>
+<LI>If the <STRONG>--home=DIR</STRONG> is provided, use this.
 <LI>If the environment variable <CODE>SWI_HOME_DIR</CODE> is defined and 
 points to an existing directory, use this.
 <LI>If the environment variable <CODE>SWIPL</CODE> is defined and points 
@@ -160,7 +161,7 @@ source installation.
 provided Windows module (see PL_initialise()), SWI-Prolog gives up. If a 
 state is attached, the current working directory is used.
 
-<P>The <A NAME="idx:filesearchpath2:1411"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
+<P>The <A NAME="idx:filesearchpath2:1415"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
 alias <CODE>swi</CODE> is set to point to the home directory located.
 
 <P></BODY></HTML>

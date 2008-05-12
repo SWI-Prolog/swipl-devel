@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section 4.41</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.55 Reference Manual: Section 4.41</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="profile.html">
@@ -132,11 +132,6 @@ Management</SPAN></A></H2>
 
 <A NAME="sec:memory"></A>
 
-<P>Note: <A NAME="idx:limitstack2:1137"></A><A class="pred" href="memory.html#limit_stack/2">limit_stack/2</A> 
-and <A NAME="idx:trimstacks0:1138"></A><A class="pred" href="memory.html#trim_stacks/0">trim_stacks/0</A> 
-have no effect on machines that do not offer dynamic stack expansion. On 
-these machines these predicates simply succeed to improve portability.
-
 <DL>
 <DT class="pubdef"><A NAME="garbage_collect/0"><STRONG>garbage_collect</STRONG></A></DT>
 <DD class="defbody">
@@ -144,29 +139,16 @@ Invoke the global- and trail stack garbage collector. Normally the
 garbage collector is invoked automatically if necessary. Explicit 
 invocation might be useful to reduce the need for garbage collections in 
 time critical segments of the code. After the garbage collection
-<A NAME="idx:trimstacks0:1139"></A><A class="pred" href="memory.html#trim_stacks/0">trim_stacks/0</A> 
+<A NAME="idx:trimstacks0:1142"></A><A class="pred" href="memory.html#trim_stacks/0">trim_stacks/0</A> 
 is invoked to release the collected memory resources.</DD>
 <DT class="pubdef"><A NAME="garbage_collect_atoms/0"><STRONG>garbage_collect_atoms</STRONG></A></DT>
 <DD class="defbody">
 Reclaim unused atoms. Normally invoked after <A class="flag" href="flags.html#flag:agc_margin">agc_margin</A> 
 (a Prolog flag) atoms have been created. On multi-threaded versions the 
 actual collection is delayed until there there are no threads performing 
-normal garbage collection. In this case <A NAME="idx:garbagecollectatoms0:1140"></A><A class="pred" href="memory.html#garbage_collect_atoms/0">garbage_collect_atoms/0</A> 
+normal garbage collection. In this case <A NAME="idx:garbagecollectatoms0:1143"></A><A class="pred" href="memory.html#garbage_collect_atoms/0">garbage_collect_atoms/0</A> 
 returns immediately. Note this implies there is no guarantee it will <EM>ever</EM> 
 happen as there may always be threads performing garbage collection.</DD>
-<DT class="pubdef"><A NAME="limit_stack/2"><STRONG>limit_stack</STRONG>(<VAR>+Key, 
-+Kbytes</VAR>)</A></DT>
-<DD class="defbody">
-Limit one of the stack areas to the specified value. <VAR>Key</VAR> is 
-one of
-<CODE>local</CODE>, <CODE>global</CODE> or <CODE>trail</CODE>. The limit 
-is an integer, expressing the desired stack limit in K bytes. If the 
-desired limit is smaller than the currently used value, the limit is set 
-to the nearest legal value above the currently used value. If the 
-desired value is larger than the maximum, the maximum is taken. Finally, 
-if the desired value is either 0 or the atom <CODE>unlimited</CODE> the 
-limit is set to its maximum. The maximum and initial limit is determined 
-by the command line options <STRONG>-L</STRONG>, <STRONG>-G</STRONG> and <STRONG>-T</STRONG>.</DD>
 <DT class="pubdef"><A NAME="trim_stacks/0"><STRONG>trim_stacks</STRONG></A></DT>
 <DD class="defbody">
 Release stack memory resources that are not in use at this moment, 

@@ -2144,7 +2144,7 @@ signals handled.  If a handler raises an exception, the return value
 is -1 and the calling routine should return with \const{FALSE} as
 soon as possible.
 
-    \cfunction{int}PL_get_signum_ex}{term_t t, int *sig}
+    \cfunction{int}{PL_get_signum_ex}{term_t t, int *sig}
 Extract a signal specification from a Prolog term and store as integer
 signal number in \arg{sig}.  The specification is an integer, lowercase
 signal name without \const{SIG} or the full signal name.  These refer
