@@ -56,6 +56,9 @@ static atom_t ATOM_process;
 static atom_t ATOM_detached;
 static atom_t ATOM_cwd;
 static atom_t ATOM_window;
+static atom_t ATOM_timeout;
+static atom_t ATOM_release;
+static atom_t ATOM_infinite;
 static functor_t FUNCTOR_error2;
 static functor_t FUNCTOR_type_error2;
 static functor_t FUNCTOR_domain_error2;
@@ -175,6 +178,13 @@ typedef struct p_options
   int   detached;			/* create as detached */
   int   window;				/* Show a window? */
 } p_options;
+
+
+typedef struct wait_options
+{ double timeout;
+  int	 has_timeout;
+  int	 release;
+} wait_options;
 
 
 #ifdef __WINDOWS__
@@ -711,11 +721,18 @@ find_process_from_pid(DWORD pid, const char *pred)
 }
 
 
- /* TBD: process messages; timeout */
+#define WP_TIMEOUT 2
 
 static int
-wait_process_handle(HANDLE process, ULONG *rc)
-{ DWORD wc = WaitForSingleObject(process, INFINITE);
+wait_process_handle(HANDLE process, ULONG *rc, DWORD timeout)
+{ DWORD wc;
+
+retry:
+  wc = MsgWaitForMultipleObjects(1,
+				 &process,
+				 FALSE,	/* return on any event */
+				 timeout,
+				 QS_ALLINPUT);
 
   switch(wc)
   { case WAIT_OBJECT_0:
@@ -726,7 +743,19 @@ wait_process_handle(HANDLE process, ULONG *rc)
       }
       CloseHandle(process);
       return TRUE;
-    case WAIT_TIMEOUT:			/* TBD */
+    case WAIT_OBJECT_0+1:
+    { MSG msg;
+
+      while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
+      { TranslateMessage(&msg);
+	DispatchMessage(&msg);
+	if ( PL_handle_signals() < 0 )
+	  return FALSE;
+      }
+      goto retry;
+    }
+    case WAIT_TIMEOUT:
+      return WP_TIMEOUT;
     default:
       win_error("WaitForSingleObject");
       CloseHandle(process);
@@ -736,14 +765,24 @@ wait_process_handle(HANDLE process, ULONG *rc)
 
 
 static int
-wait_for_pid(pid_t pid, term_t code)
+wait_for_pid(pid_t pid, term_t code, wait_options *opts)
 { HANDLE *h;
 
   if ( (h=find_process_from_pid(pid, "process_wait")) )
   { ULONG rc;
+    DWORD timeout;
+    int wc;
 
-    if ( !wait_process_handle(h, &rc) )
+    if ( opts->has_timeout )
+      timeout = (DWORD)(opts->timeout * 1000.0);
+    else
+      timeout = INFINITE;
+
+    if ( !(wc=wait_process_handle(h, &rc, timeout)) )
       return FALSE;
+    if ( wc == WP_TIMEOUT )
+      return PL_unify_atom(code, ATOM_timeout);
+
     unregister_process(pid);
 
     return PL_unify_term(code, 
@@ -760,7 +799,7 @@ wait_for_process(process_context *pc)
 { int rc;
   ULONG prc;
 
-  rc = wait_process_handle(pc->handle, &prc);
+  rc = wait_process_handle(pc->handle, &prc, INFINITE);
   CloseHandle(pc->handle);
   PL_free(pc);
   
@@ -772,7 +811,7 @@ static int
 win_wait_success(atom_t exe, HANDLE process)
 { ULONG rc;
 
-  if ( !wait_process_handle(process, &rc) )
+  if ( !wait_process_handle(process, &rc, INFINITE) )
     return FALSE;
 
   if ( rc != 0 )
@@ -1029,9 +1068,18 @@ unify_exit_status(term_t code, int status)
 
 
 static int
-wait_for_pid(pid_t pid, term_t code)
+wait_for_pid(pid_t pid, term_t code, wait_options *opts)
 { pid_t p2;
   int status;
+
+  if ( opts->has_timeout && opts->timeout == 0.0 )
+  { if ( (p2=waitpid(pid, &status, WNOHANG)) == pid )
+      return unify_exit_status(code, status);
+    else if ( p2 == 0 )
+      return PL_unify_atom(code, ATOM_timeout);
+    else
+      return pl_error(NULL, 0, "waitpid", ERR_ERRNO, errno);
+  }
 
   for(;;)
   { if ( (p2=waitpid(pid, &status, 0)) == pid )
@@ -1275,11 +1323,42 @@ get_pid(term_t pid, pid_t *p)
 static foreign_t
 process_wait(term_t pid, term_t code, term_t options)
 { pid_t p;
+  wait_options opts;
+  term_t tail = PL_copy_term_ref(options);
+  term_t head = PL_new_term_ref();
+  term_t arg  = PL_new_term_ref();
 
   if ( !get_pid(pid, &p) )
     return FALSE;
+  
+  memset(&opts, 0, sizeof(opts));
+  while(PL_get_list(tail, head, tail))
+  { atom_t name;
+    int arity;
 
-  return wait_for_pid(p, code);
+    if ( !PL_get_name_arity(head, &name, &arity) || arity != 1 )
+      return type_error(head, "option");
+    PL_get_arg(1, head, arg);
+    if ( name == ATOM_timeout )
+    { atom_t a;
+
+      if ( !(PL_get_atom(arg, &a) && a == ATOM_infinite) )
+      { if ( !PL_get_float(arg, &opts.timeout) )
+	  return type_error(arg, "timeout");
+	opts.has_timeout = TRUE;
+      }
+    } else if ( name == ATOM_release )
+    { if ( !PL_get_bool(arg, &opts.release) )
+	return type_error(arg, "boolean");
+      if ( opts.release == FALSE )
+	return domain_error(arg, "true");
+    } else
+      return domain_error(head, "process_wait_option");
+  }
+  if ( !PL_get_nil(tail) )
+    return type_error(tail, "list");
+
+  return wait_for_pid(p, code, &opts);
 }
 
 
@@ -1344,6 +1423,9 @@ install_process()
   MKATOM(detached);
   MKATOM(cwd);
   MKATOM(window);
+  MKATOM(timeout);
+  MKATOM(release);
+  MKATOM(infinite);
 
   MKFUNCTOR(pipe, 1);
   MKFUNCTOR(error, 2);

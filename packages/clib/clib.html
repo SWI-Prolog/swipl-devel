@@ -336,9 +336,8 @@ controlling terminal.
 <P><A NAME="sec:process"></A>
 
 <DL>
-<DT><B>Compatibility</B><DD> SICStus 4<DT><B>To be done</B><DD>- 
-Implement detached option in <A class="pred" href="#process_create/3">process_create/3</A> <BR>
-- Implement Windows version
+<DT><B>Compatibility</B><DD> SICStus 4
+<DT><B>To be done</B><DD> Implement detached option in <A class="pred" href="#process_create/3">process_create/3</A>
 </DL>
 
 <P>The module library(process) implements interaction with child 
@@ -358,7 +357,7 @@ for executables. E.g. the following finds the executable for <CODE>ls</CODE>:
 ?- absolute_file_name(path(ls), Path, [access(execute)]).
 </PRE>
 
-<P>Incompatibilities and current limitations
+<P><B>Incompatibilities and current limitations</B>
 
 <P>
 <UL>
@@ -418,7 +417,9 @@ Attach input and/or output to a Prolog stream.
 </DL>
 
 <P>
-<LI>cwd(+Directory) Run the new process in Directory.
+<LI>cwd(+Directory) Run the new process in Directory. Directory can be a 
+compound specification, which is converted using
+<SPAN class="pred-ext">absolute_file_name/3</SPAN>.
 <LI>process(-PID) Unify PID with the process id of the created process.
 <LI>detached(+Bool) If <CODE>true</CODE>, detach the process from the 
 terminal (Unix only)
@@ -433,6 +434,23 @@ process after the last pipe stream is closed.
 
 <P>If the process is not waited for, it must succeed with status 0. If 
 not, an process_error is raised.
+
+<P><B>Windows notes</B>
+
+<P>On Windows this call is an interface to the CreateProcess() API. The 
+commandline consists of the basename of <VAR>Exe</VAR> and the arguments 
+formed from <VAR>Args</VAR>. Arguments are separated by a single space. 
+If all characters satisfy iswalnum() it is unquoted. If the argument 
+contains a double-quote it is quoted using single quotes. If both single 
+and double quotes appear a domain_error is raised, otherwise 
+double-quote are used.
+
+<P>The CreateProcess() API has many options. Currently only the
+<CODE>CREATE_NO_WINDOW</CODE> options is supported through the 
+window(+Bool) option. If omitted, the default is to use this option if 
+the application has no console. Future versions are likely to support 
+more window specific options and replace
+<SPAN class="pred-ext">win_exec/2</SPAN>.
 
 <P><B>Examples</B>
 
@@ -481,7 +499,25 @@ process_wait(<VAR>PID</VAR>, _).</DD>
 -Status, +Options</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>PID</VAR> completed with <VAR>Status</VAR>. This call 
-blocks until the process is finished.</DD>
+normally blocks until the process is finished. <VAR>Options</VAR>:
+
+<DL>
+<DT><STRONG>timeout</STRONG>(<VAR>+Timeout</VAR>)</DT>
+<DD class="defbody">
+Default: <CODE>infinite</CODE>. If this option is a number, the waits 
+for a maximum of Timeout seconds and unifies <VAR>Status</VAR> with <CODE>timeout</CODE> 
+if the process does not terminate within Timeout. In this case <VAR>PID</VAR> 
+is <I>not</I> invalidated. On Unix systems only timeout 0 and <CODE>infinite</CODE> 
+are supported. A 0-value can be used to poll the status of the process.
+</DD>
+<DT><STRONG>release</STRONG>(<VAR>+Bool</VAR>)</DT>
+<DD class="defbody">
+Do/do not release the process. We do not support this flag and a 
+domain_error is raised if release(false) is provided.
+</DD>
+</DL>
+
+</DD>
 <DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="process_kill/1"><STRONG>process_kill</STRONG>(<VAR>+PID</VAR>)</A></DT>
 <DD class="defbody">
 </DD>
@@ -491,7 +527,10 @@ blocks until the process is finished.</DD>
 Send signal to process <VAR>PID</VAR>. Default is <CODE>term</CODE>. <VAR>Signal</VAR> 
 is an integer, Unix signal name (e.g. <CODE>SIGSTOP</CODE>) or the more 
 Prolog friendly variation one gets after removing <CODE>SIG</CODE> and 
-downcase the result: <CODE>stop</CODE>.
+downcase the result: <CODE>stop</CODE>. On Windows systems, <VAR>Signal</VAR> 
+is ignored and the process is terminated using the TerminateProcess() 
+API. On Windows systems <VAR>PID</VAR> must be optained from <A class="pred" href="#process_create/3">process_create/3</A>, 
+while any <VAR>PID</VAR> is allowed on Unix systems.
 
 <DL>
 <DT><B>Compatibility</B><DD> SICStus does not accept the prolog friendly 
