@@ -1,3 +1,24 @@
+[May 9 2008]
+
+ * ADDED: Allow specifying sto mode for an entire test set
+
+[May 1 2008]
+
+ * DOC: plunit and non termination
+
+[Apr 28 2008]
+
+ * ADDED: flag tests using `fixme'.  Suggested under the name `desired' by
+   Ulrich Neumerkel.  Let us see how this works out in practice!
+   
+[Apr 24 2008]
+
+ * ENHANCED: When interrupting a thread, indicate which one.
+
+ * ADDED: PlUnit: running_tests/0 to find what test is running.
+
+ * FIXED: wrong dynamic declaration in plunit.pl
+
 [Mar 11 2008]
 
  * ENHANCED: Provide file/line info for errors in setup and condition

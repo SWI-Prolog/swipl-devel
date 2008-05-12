@@ -8,6 +8,69 @@
 					--------------------------------------
 
 
+===========================
+VERSION 5.6.56 May 12, 2008
+===========================
+
+ * PORT: Ported library(process) to Windows
+
+ * ADDED: library(process), providing SICStus 4 compatible process interaction
+   to the clib packages.  Currently runs on Unix systems only (tested Linux and
+   MacOS X 10.4).
+   
+   This patch also extends the foreign interface with the PL_get_signum_ex()
+   and PL_cleanup_fork().
+   
+ * FIXED: toplevel for ground queries using set_prolog_flag(prompt_alternatives_on, groundness).  Bill Wilson.
+
+ * FIXED: Make plwin.exe menus asking for a file use prolog_file_type/2
+
+ * MODIFIED: global_url/3 now raises a syntax error instead of failing if the
+   URL is invalid.
+   
+ * FIXED: rdf_quote_uri/3 not to map & to %26.  Jacco van Ossenbruggen
+
+ * FIXED: on_signal/3 instantiation error
+
+ * MODIFIED: CLP(FD): At most one labeling option from each category can be
+                      specified, and an option must not occur repeatedly.
+                      After discussion on the mailing list; thanks to
+                      Fernando Sáenz Pérez for opinions and suggestions.
+   
+ * MODIFIED: CLP(FD): respect several optimisation options, which are
+                      interpreted from left to right. For example:
+                      ?- [X,Y] ins 10..20, labeling([max(X),max(Y)],[X,Y]).
+                      %@ X = 20, Y = 20  ;
+                      %@ etc.
+   
+ * ADDED: Bug#354L Support to compile .QLF file contents from a stream.
+
+ * FIXED: Destruction of xterm interactor window and backspace handling
+
+ * ENHANCED: Make interrupt handler use the message system for synchronous interrupts
+
+ * ADDED: Allow using --home=DIR to specify the home directory
+
+ * ADDED: ord_union/2; fixed is_ordset/1 (Ulrich Neumerkel)
+
+ * ADDED: is_ordset/1 to library(ordsets)
+
+ * ADDED: ord_intersection/4 to library ordsets.
+
+ * FIXED: Bug#352: atom_concat(X,X,...).  Carl Friedrich Bolz.
+
+ * ENHANCED: when/2: more readable residual goals
+
+ * TEST: working
+
+ * ENHANCED: when/2: error on invalid condition
+
+ * FIXED: no domain error on ?- when(ground(g), fail).
+
+ * ADDED: term_hash/4: depth-bounded term hashes
+
+ * MODIFIED: Renamed hash_term/2 to term_hash/2.  Added hash_term/2 to
+   library(backcomp), so most code should not notice this.
 =============================
 VERSION 5.6.54 April 16, 2008
 =============================

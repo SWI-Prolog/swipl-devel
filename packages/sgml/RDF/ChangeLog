@@ -1,3 +1,7 @@
+[Apr 18 2008]
+
+ * MODIFIED: Renamed hash_term/2 to term_hash/2.  Added hash_term/2 to
+   library(backcomp), so most code should not notice this.
 [Feb 28 2008]
 
  * FIXED: rdf_write_xml/2 loops if it encounters an rdf:Bag.

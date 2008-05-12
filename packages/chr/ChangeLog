@@ -1,3 +1,8 @@
+[Apr 18 2008]
+
+ * MODIFIED: Renamed hash_term/2 to term_hash/2.  Added hash_term/2 to
+   library(backcomp), so most code should not notice this.
+   
 [Feb 27 2008]
 
  * ENHANCED: CHR performance of find_chr_constraint when called with nonvar argument
