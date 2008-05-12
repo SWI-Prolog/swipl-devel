@@ -1,3 +1,27 @@
+[May 5 2008]
+
+ * FIXED: rdf_quote_uri/3 not to map & to %26.  Jacco van Ossenbruggen
+
+[Apr 27 2008]
+
+ * FIXED: RDF-DB: predicate hash error that caused most predicates to be
+   hashed on the same key. Fixes slow rdf_save/2 reported by Jacco van
+   Ossenbruggen. Should also positively effect determinism and reliability
+   of rdf_estimate_complexity/4.
+   
+[Apr 26 2008]
+
+ * DOC: Fixed some paths in semweb documentation.  Jacco van Ossenbruggen
+
+[Apr 18 2008]
+
+ * MODIFIED: Renamed hash_term/2 to term_hash/2.  Added hash_term/2 to
+   library(backcomp), so most code should not notice this.
+   
+[Apr 17 2008]
+
+ * FIXED: Avoid deadlock in RDF literal index when removing a literal
+
 [Apr 14 2008]
 
  * CLEANUP: Remove calls to sformat from system libraries (backward compatibility)

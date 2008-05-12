@@ -1,3 +1,8 @@
+[Apr 28 2008]
+
+ * ENHANCED: Perform a GC at the end of a communication with a client.  Note that
+   at that moment we have little active memory (=cheap GC), while otherwise we may
+   remain idle for a long time with large stacks.
 [Apr 2 2008]
 
  * FIXED: Throw an exception in illegal input wo json_write/3.

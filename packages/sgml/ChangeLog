@@ -1,3 +1,7 @@
+[Apr 18 2008]
+
+ * MODIFIED: Renamed hash_term/2 to term_hash/2.  Added hash_term/2 to
+   library(backcomp), so most code should not notice this.
 [Mar 1 2008]
 
  * ENHANCED: Allow for GC from PL_handle_signals(), providing GC for foreign

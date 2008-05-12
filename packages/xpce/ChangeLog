@@ -1,3 +1,24 @@
+[May 5 2008]
+
+ * FIXED: Make PceEmacs mode selection sensitive to prolog_file_type/2.
+
+[Apr 28 2008]
+
+ * PORT: Make some scripts for building the manuals not depend on the perl path.
+   Jacco van Ossenbruggen.
+   
+[Apr 25 2008]
+
+ * ENHANCED: PceEmacs: show location of import
+
+[Apr 23 2008]
+
+ * ENHANCED: GUI tracer: expose variable details window
+
+[Apr 21 2008]
+
+ * ENHANCED: PceEmacs: show location of autoload (as well as documentation)
+
 [Apr 14 2008]
 
  * CLEANUP: Remove calls to sformat from system libraries (backward compatibility)

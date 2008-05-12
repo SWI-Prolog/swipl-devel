@@ -1,3 +1,16 @@
+[May 12 2008]
+
+ * PORT: Ported library(process) to Windows
+
+[May 11 2008]
+
+ * ADDED: library(process), providing SICStus 4 compatible process interaction
+   to the clib packages.  Currently runs on Unix systems only (tested Linux and
+   MacOS X 10.4).
+   
+   This patch also extends the foreign interface with the PL_get_signum_ex()
+   and PL_cleanup_fork().
+   
 [Mar 10 2008]
 
  * FIXED: Pass error while waiting for accept() in Windows
