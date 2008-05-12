@@ -100,5 +100,14 @@ test(kill_ok, [ X = exit(_),
 	process_create(path(sleep), [2], [process(PID)]),
 	process_kill(PID, 9),
 	process_wait(PID, X).
+test(wait_timeout, [ X = timeout ]) :-
+	process_create(path(sleep), [2], [process(PID)]),
+	(   current_prolog_flag(windows, true)
+	->  TMO = 0.1
+	;   TMO = 0
+	),
+	process_wait(PID, X, [timeout(TMO)]),
+	process_kill(PID, 9),
+	process_wait(PID, _).
 
 :- end_tests(process_wait).

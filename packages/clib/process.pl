@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -156,6 +156,23 @@ user:file_search_path(path, Dir) :-
 %	If the process is not waited for, it must succeed with status 0.
 %	If not, an process_error is raised.
 %	
+%	*|Windows notes|*
+%	
+%	On Windows this call is an interface to the CreateProcess() API.
+%	The  commandline  consists  of  the  basename  of  Exe  and  the
+%	arguments formed from Args. Arguments are  separated by a single
+%	space. If all characters satisfy iswalnum()   it is unquoted. If
+%	the argument contains a double-quote it   is quoted using single
+%	quotes. If both single and double   quotes appear a domain_error
+%	is raised, otherwise double-quote are used.
+%	
+%	The CreateProcess() API has  many   options.  Currently only the
+%	=CREATE_NO_WINDOW=   options   is   supported     through    the
+%	window(+Bool) option. If omitted, the  default   is  to use this
+%	option if the application has no   console.  Future versions are
+%	likely to support  more  window   specific  options  and replace
+%	win_exec/2.
+%	
 %	*Examples*
 %	
 %	First,  a  very  simple  example  that    behaves  the  same  as
@@ -173,6 +190,7 @@ user:file_search_path(path, Dir) :-
 process_create(Exe, Args, Options) :-
 	exe_options(ExeOptions),
 	absolute_file_name(Exe, PlProg, ExeOptions),
+	must_be(list, Args),
 	maplist(map_arg, Args, Av),
 	prolog_to_os_filename(PlProg, Prog),
 	Term =.. [Prog|Av],
@@ -258,8 +276,20 @@ process_release(PID) :-
 %%	process_wait(+PID, -Status) is det.
 %%	process_wait(+PID, -Status, +Options) is det.
 %
-%	True if PID completed with Status. This call blocks until the
-%	process is finished.
+%	True if PID completed with  Status.   This  call normally blocks
+%	until the process is finished.  Options:
+%	
+%	    * timeout(+Timeout)
+%	    Default: =infinite=.  If this option is a number, the
+%	    waits for a maximum of Timeout seconds and unifies Status
+%	    with =timeout= if the process does not terminate within
+%	    Timeout.  In this case PID is _not_ invalidated.  On Unix
+%	    systems only timeout 0 and =infinite= are supported.  A
+%	    0-value can be used to poll the status of the process.
+%	    
+%	    * release(+Bool)
+%	    Do/do not release the process.  We do not support this flag
+%	    and a domain_error is raised if release(false) is provided.
 
 process_wait(PID, Status) :-
 	process_wait(PID, Status, []).
@@ -271,7 +301,9 @@ process_wait(PID, Status) :-
 %	integer, Unix signal name (e.g. =SIGSTOP=)   or  the more Prolog
 %	friendly variation one gets after   removing  =SIG= and downcase
 %	the result: =stop=. On Windows systems,   Signal  is ignored and
-%	the process is terminated using the TerminateProcess() API.
+%	the process is terminated using   the TerminateProcess() API. On
+%	Windows systems PID must  be   optained  from  process_create/3,
+%	while any PID is allowed on Unix systems.
 %	
 %	@compat	SICStus does not accept the prolog friendly version.  We
 %		choose to do so for compatibility with on_signal/3.
