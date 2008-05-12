@@ -64,7 +64,7 @@ following finds the executable for =ls=:
     ?- absolute_file_name(path(ls), Path, [access(execute)]).
     ==
 
-Incompatibilities and current limitations
+*|Incompatibilities and current limitations|*
 
     * Where SICStus distinguishes between an internal process id and
     the OS process id, we do not make this distinction.  This implies
@@ -81,7 +81,6 @@ Incompatibilities and current limitations
     version will follow.
 
 @tbd	Implement detached option in process_create/3
-@tbd	Implement Windows version
 @compat	SICStus 4
 */
 
@@ -138,7 +137,9 @@ user:file_search_path(path, Dir) :-
 %		Attach input and/or output to a Prolog stream.
 %		
 %	    * cwd(+Directory)
-%	    Run the new process in Directory.
+%	    Run the new process in Directory.  Directory can be a
+%	    compound specification, which is converted using
+%	    absolute_file_name/3.
 %	    * process(-PID)
 %	    Unify PID with the process id of the created process.
 %	    * detached(+Bool)
@@ -174,14 +175,33 @@ process_create(Exe, Args, Options) :-
 	maplist(map_arg, Args, Av),
 	prolog_to_os_filename(PlProg, Prog),
 	Term =.. [Prog|Av],
-	process_create(Term, Options).
+	expand_cwd_option(Options, Options1),
+	process_create(Term, Options1).
 
 exe_options(Options) :-
 	current_prolog_flag(windows, true), !,
-	Options = [ extensions(['',exe,bat,com]), access(read) ].
+	Options = [ extensions(['',exe,com]), access(read) ].
 exe_options(Options) :-
 	Options = [ access(execute) ].
 
+expand_cwd_option(Options0, Options) :-
+	select_option(cwd(Spec), Options0, Options1), !,
+	(   compound(Spec)
+	->  absolute_file_name(Spec, PlDir, [file_type(directory), access(read)]),
+	    prolog_to_os_filename(PlDir, Dir),
+	    Options = [cwd(Dir)|Options1]
+	;   exists_directory(Spec)
+	->  Options = Options0
+	;   existence_error(directory, Spec)
+	).
+
+
+%%	map_arg(+ArgIn, -Arg) is det.
+%
+%	Map an individual argument. Primitives  are either file(Spec) or
+%	an atomic value (atom, string, number).  If ArgIn is a non-empty
+%	list,  all  elements  are   converted    and   the  results  are
+%	concatenated.
 
 map_arg([], []) :- !.
 map_arg(List, Arg) :-
@@ -248,7 +268,8 @@ process_wait(PID, Status) :-
 %	Send signal to process PID.  Default   is  =term=.  Signal is an
 %	integer, Unix signal name (e.g. =SIGSTOP=)   or  the more Prolog
 %	friendly variation one gets after   removing  =SIG= and downcase
-%	the result: =stop=.
+%	the result: =stop=. On Windows systems,   Signal  is ignored and
+%	the process is terminated using the TerminateProcess() API.
 %	
 %	@compat	SICStus does not accept the prolog friendly version.  We
 %		choose to do so for compatibility with on_signal/3.
