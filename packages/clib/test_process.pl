@@ -29,18 +29,21 @@ test(null_input, Codes == []) :-
 	read_stream_to_codes(Out, Codes),
 	close(Out).
 test(null_output, true) :-
-	process_create(path(echo), ['THIS IS AN ERROR'], [stdout(null)]).
+	process_create(path(sh), 
+		       ['-c', 'echo THIS IS AN ERROR'],
+		       [stdout(null)]).
 test(null_error, true) :-
-	process_create('/bin/sh',
+	process_create(path(sh),
 		       ['-c', 'echo "THIS IS AN ERROR" 1>&2'],
 		       [stderr(null)]).
 test(read_error, X == 'error\n') :-
-	process_create('/bin/sh',
+	process_create(path(sh),
 		       ['-c', 'echo "error" 1>&2'],
 		       [stderr(pipe(Out))]),
 	read_process(Out, X).
 test(echo, X == 'hello\n') :-
-	process_create(path(echo), [hello],
+	process_create(path(sh),
+		       ['-c', 'echo hello'],
 		       [ stdout(pipe(Out))
 		       ]),
 	read_process(Out, X).
@@ -52,14 +55,29 @@ test(lwr, X == 'HELLO') :-
 	format(In, hello, []),
 	close(In),
 	read_process(Out, X).
-test(cwd, true) :-
+test(cwd, [true, condition(\+current_prolog_flag(windows, true))]) :-
+	tmp_dir(Tmp),
 	process_create(path(pwd), [],
 		       [ stdout(pipe(Out)),
-			 cwd('/tmp')
+			 cwd(Tmp)
 		       ]),
 	read_process(Out, CWD0),
 	normalize_space(atom(CWD), CWD0),
-	same_file(CWD, '/tmp').
+	same_file(CWD, Tmp).
+test(cwd, [true, condition(current_prolog_flag(windows, true))]) :-
+	tmp_dir(Tmp),
+	getenv('COMSPEC', Shell),
+	process_create(Shell, ['/c', cd],
+		       [ stdout(pipe(Out)),
+			 cwd(Tmp)
+		       ]),
+	read_process(Out, CWD0),
+	normalize_space(atom(CWD), CWD0),
+	same_file(CWD, Tmp).
+
+tmp_dir(Dir) :-
+	getenv('TEMP', Dir), !.
+tmp_dir('/tmp').
 
 :- end_tests(process_create).
 
@@ -67,12 +85,18 @@ test(cwd, true) :-
 :- begin_tests(process_wait, [sto(rational_trees)]).
 
 test(wait_ok, X == exit(0)) :-
-	process_create('/bin/sh', ['-c', 'exit 0'], [process(PID)]),
+	process_create(path(sh), ['-c', 'exit 0'], [process(PID)]),
 	process_wait(PID, X).
 test(wait_ok, X == exit(42)) :-
-	process_create('/bin/sh', ['-c', 'exit 42'], [process(PID)]),
+	process_create(path(sh), ['-c', 'exit 42'], [process(PID)]),
 	process_wait(PID, X).
-test(kill_ok, X == killed(9)) :-
+test(kill_ok, [ X == killed(9),
+		condition(\+current_prolog_flag(windows, true))]) :-
+	process_create(path(sleep), [2], [process(PID)]),
+	process_kill(PID, 9),
+	process_wait(PID, X).
+test(kill_ok, [ X = exit(_),
+		condition(current_prolog_flag(windows, true))]) :-
 	process_create(path(sleep), [2], [process(PID)]),
 	process_kill(PID, 9),
 	process_wait(PID, X).

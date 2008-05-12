@@ -26,6 +26,7 @@
 #include <config.h>
 #endif
 
+/*#define O_DEBUG 1*/
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include "error.h"
@@ -33,10 +34,18 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
+#ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
+#endif
+#ifdef HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
 
 static atom_t ATOM_stdin;
 static atom_t ATOM_stdout;
@@ -52,11 +61,18 @@ static functor_t FUNCTOR_type_error2;
 static functor_t FUNCTOR_domain_error2;
 static functor_t FUNCTOR_resource_error1;
 static functor_t FUNCTOR_process_error2;
+static functor_t FUNCTOR_system_error2;
 static functor_t FUNCTOR_pipe1;
 static functor_t FUNCTOR_exit1;
 static functor_t FUNCTOR_killed1;
 
+#define MAYBE 2
+
+#if O_DEBUG
+#define DEBUG(g) g
+#else
 #define DEBUG(g) (void)0
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ISSUES:
@@ -115,6 +131,15 @@ resource_error(const char *resource)
 		 *	       ADMIN		*
 		 *******************************/
 
+#ifdef __WINDOWS__
+#include <windows.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <io.h>
+typedef DWORD  pid_t;
+#else
+#endif
+
 typedef enum std_type
 { std_std,
   std_null,
@@ -123,23 +148,39 @@ typedef enum std_type
 
 
 typedef struct p_stream
-{ term_t term;				/* P in pipe(P) */
+{ term_t   term;			/* P in pipe(P) */
   std_type type;			/* type of stream */
-  int    fd[2];				/* pipe handles */
+#ifdef __WINDOWS__
+  HANDLE   fd[2];			/* pipe handles */
+#else
+  int      fd[2];			/* pipe handles */
+#endif
 } p_stream;
 
 
 typedef struct p_options
 { atom_t exe_name;			/* exe as atom */
+#ifdef __WINDOWS__
+  wchar_t *exe;				/* Executable */
+  wchar_t *cmdline;			/* Command line */
+  wchar_t *cwd;				/* CWD of new process */
+#else
   char *exe;				/* Executable */
   char **argv;				/* argument vector */
+  char *cwd;				/* CWD of new process */
+#endif
   term_t pid;				/* process(PID) */
   int pipes;				/* #pipes found */
   p_stream streams[3];
-  char *cwd;				/* CWD of new process */
   int   detached;			/* create as detached */
+  int   window;				/* Show a window? */
 } p_options;
 
+
+#ifdef __WINDOWS__
+static int win_command_line(term_t t, int arity,
+			    const wchar_t *exepath, wchar_t **cmdline);
+#endif
 
 static int
 get_stream(term_t t, p_options *info, p_stream *stream)
@@ -172,6 +213,8 @@ parse_options(term_t options, p_options *info)
   term_t head = PL_new_term_ref();
   term_t arg = PL_new_term_ref();
 
+  info->window = MAYBE;
+
   while(PL_get_list(tail, head, tail))
   { atom_t name;
     int arity;
@@ -195,11 +238,19 @@ parse_options(term_t options, p_options *info)
     { if ( !PL_get_bool(arg, &info->detached) )
 	return type_error(arg, "boolean");
     } else if ( name == ATOM_cwd )
-    { if ( !PL_get_chars(arg, &info->cwd,
+    {
+#ifdef __WINDOWS__
+      if ( !PL_get_wchars(arg, NULL, &info->cwd,
+			 CVT_ATOM|CVT_STRING|CVT_EXCEPTION|BUF_MALLOC) )
+	return FALSE;
+#else
+      if ( !PL_get_chars(arg, &info->cwd,
 			 CVT_ATOM|CVT_STRING|CVT_EXCEPTION|BUF_MALLOC|REP_FN) )
 	return FALSE;
+#endif
     } else if ( name == ATOM_window )
-    { Sdprintf("Window: TBD\n");
+    { if ( !PL_get_bool(arg, &info->window) )
+	return type_error(arg, "boolean");
     } else
       return domain_error(head, "process_option");
   }
@@ -213,27 +264,38 @@ parse_options(term_t options, p_options *info)
 
 static int
 get_exe(term_t exe, p_options *info)
-{ int i, arity;
+{ int arity;
   term_t arg = PL_new_term_ref();
 
   if ( !PL_get_name_arity(exe, &info->exe_name, &arity) )
     return type_error(exe, "callable");
 
   PL_put_atom(arg, info->exe_name);
+
+#ifdef __WINDOWS__
+  if ( !PL_get_wchars(arg, NULL, &info->exe, CVT_ATOM|CVT_EXCEPTION|BUF_MALLOC) )
+    return FALSE;
+  if ( !win_command_line(exe, arity, info->exe, &info->cmdline) )
+    return FALSE;
+#else /*__WINDOWS__*/
   if ( !PL_get_chars(arg, &info->exe, CVT_ATOM|CVT_EXCEPTION|BUF_MALLOC|REP_FN) )
     return FALSE;
 
   info->argv = PL_malloc((arity+2)*sizeof(char*));
   memset(info->argv, 0, (arity+2)*sizeof(char*));
   info->argv[0] = strdup(info->exe);
-  for(i=1; i<=arity; i++)
-  { PL_get_arg(i, exe, arg);
+  { int i;
 
-    if ( !PL_get_chars(arg, &info->argv[i],
-		       CVT_ATOMIC|CVT_EXCEPTION|BUF_MALLOC|REP_FN) )
-      return FALSE;
+    for(i=1; i<=arity; i++)
+    { PL_get_arg(i, exe, arg);
+  
+      if ( !PL_get_chars(arg, &info->argv[i],
+			 CVT_ATOMIC|CVT_EXCEPTION|BUF_MALLOC|REP_FN) )
+	return FALSE;
+    }
+    info->argv[i] = NULL;
   }
-  info->argv[i] = NULL;
+#endif /*__WINDOWS__*/
 
   return TRUE;
 }
@@ -245,6 +307,17 @@ free_options(p_options *info)		/* TBD: close streams */
   { PL_free(info->exe);
     info->exe = NULL;
   }
+  if ( info->cwd )
+  { PL_free(info->cwd);
+    info->cwd = NULL;
+  }
+#ifdef __WINDOWS__
+  if ( info->cmdline )
+  { PL_free(info->cmdline);
+    info->cmdline = NULL;
+  }
+
+#else /*__WINDOWS__*/
 
   if ( info->argv )
   { char **a;
@@ -256,6 +329,8 @@ free_options(p_options *info)		/* TBD: close streams */
 
     info->argv = NULL;
   }
+
+#endif /*__WINDOWS__*/
 }
 
 
@@ -267,11 +342,16 @@ free_options(p_options *info)		/* TBD: close streams */
 
 typedef struct process_context
 { int	magic;				/* PROCESS_MAGIC */
+#ifdef __WINDOWS__
+  HANDLE handle;			/* process handle */
+#else
   pid_t	pid;				/* the process id */
+#endif
   int   open_mask;			/* Open streams */
-  int	pipes[3];			/* stdin/stdout/stderr */
+  int   pipes[3];			/* stdin/stdout/stderr */
 } process_context;
 
+static int wait_for_process(process_context *pc);
 
 static int
 process_fd(void *handle, process_context **PC)
@@ -314,27 +394,14 @@ Sclose_process(void *handle)
     int rc;
 
     rc = (*Sfilefunctions.close)((void*)(uintptr_t)fd);
-    pc->open_mask &= ~which;
+    pc->open_mask &= ~(which+1);
     
     DEBUG(Sdprintf("Closing fd[%d]; mask = 0x%x\n", which, pc->open_mask));
 
     if ( !pc->open_mask )
-    { pid_t p2;
-      
-      for(;;)
-      { int status;
+    { int rcw = wait_for_process(pc);
 
-	if ( (p2=waitpid(pc->pid, &status, 0)) == pc->pid )
-	  break;
-	if (  p2 == -1 && errno == EINTR )
-	{ if ( PL_handle_signals() < 0 )
-	  { PL_free(pc);
-	    return -1;
-	  }
-	}
-      }
-      
-      PL_free(pc);
+      return rcw ? 0 : -1;
     }    
 
     return rc;
@@ -372,13 +439,21 @@ static IOFUNCTIONS Sprocessfunctions =
 
 
 static IOSTREAM *
+#ifdef __WINDOWS__
+open_process_pipe(process_context *pc, int which, HANDLE fd)
+#else
 open_process_pipe(process_context *pc, int which, int fd)
+#endif
 { void *handle;
   int flags;
 
-  pc->open_mask |= which;
+  pc->open_mask |= (which+1);
+#ifdef __WINDOWS__
+  pc->pipes[which] = _open_osfhandle((long)fd, _O_BINARY);
+#else
   pc->pipes[which] = fd;
-  
+#endif
+
   if ( which == 0 )
     flags = SIO_OUTPUT|SIO_RECORDPOS;
   else
@@ -394,6 +469,528 @@ open_process_pipe(process_context *pc, int which, int fd)
 		 *	       OS STUFF		*
 		 *******************************/
 
+
+#ifdef __WINDOWS__
+
+CRITICAL_SECTION process_lock;
+#define LOCK()   EnterCriticalSection(&process_lock);
+#define UNLOCK() LeaveCriticalSection(&process_lock);
+
+static void
+win_init()
+{ InitializeCriticalSection(&process_lock);
+}
+
+
+static atom_t
+WinError()
+{ int id = GetLastError();
+  char *msg;
+  static WORD lang;
+  static lang_initialised = 0;
+
+  if ( !lang_initialised )
+    lang = MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_UK);
+
+again:
+  if ( FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER|
+		     FORMAT_MESSAGE_IGNORE_INSERTS|
+		     FORMAT_MESSAGE_FROM_SYSTEM,
+		     NULL,			/* source */
+		     id,			/* identifier */
+		     lang,
+		     (LPTSTR) &msg,
+		     0,				/* size */
+		     NULL) )			/* arguments */
+  { atom_t a = PL_new_atom(msg);
+
+    LocalFree(msg);
+    lang_initialised = 1;
+
+    return a;
+  } else
+  { if ( lang_initialised == 0 )
+    { lang = MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT);
+      lang_initialised = 1;
+      goto again;
+    }
+
+    return PL_new_atom("Unknown Windows error");
+  }
+}
+
+
+static int
+win_error(const char *op)
+{ atom_t msg = WinError();
+  term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR, FUNCTOR_system_error2,
+		        PL_CHARS, op,
+		        PL_ATOM, msg,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+
+typedef struct arg_string
+{ size_t  len;
+  wchar_t *text;
+  wchar_t quote;
+} arg_string;
+
+#define QMISC	0x1
+#define QDBLQ	0x2
+#define QSBLQ	0x4
+
+static int
+set_quote(arg_string *as)
+{ int needq = 0;
+  const wchar_t *s = as->text;
+
+  for(; *s; s++)
+  { if ( !iswalnum(*s) )
+    { if ( *s == '"' )
+	needq |= QDBLQ;
+      else if ( *s == '\'' )
+	needq |= QSBLQ;
+      else
+	needq |= QMISC;
+    }
+  }
+
+  if ( !needq )
+  { as->quote = 0;
+    return TRUE;
+  }
+  needq &= ~QMISC;
+  switch( needq )
+  { case QDBLQ:
+      as->quote = '\'';
+      return TRUE;
+    case 0:
+    case QSBLQ:
+      as->quote = '"';
+      return TRUE;
+    default:
+      return FALSE;
+  }
+}
+
+
+static int
+win_command_line(term_t t, int arity, const wchar_t *exe, wchar_t **cline)
+{ if ( arity > 0 )
+  { arg_string *av = PL_malloc((arity+1)*sizeof(*av));
+    term_t arg = PL_new_term_ref();
+    size_t cmdlen;
+    wchar_t *cmdline, *o;
+    const wchar_t *b;
+    int i;
+
+    if ( (b=wcsrchr(exe, '\\')) )
+      b++;
+    else
+      b = exe;
+    av[0].text = (wchar_t*)b;
+    av[0].len = wcslen(av[0].text);
+    set_quote(&av[0]);
+    cmdlen = av[0].len+(av[0].quote?2:0)+1;
+
+    for( i=1; i<=arity; i++)
+    { PL_get_arg(i, t, arg);
+
+      if ( !PL_get_wchars(arg, &av[i].len, &av[i].text,
+			  CVT_ATOMIC|CVT_EXCEPTION|BUF_MALLOC) )
+	return FALSE;
+
+      if ( wcslen(av[i].text) != av[i].len )
+	return domain_error(arg, "no_zero_code_atom");
+
+      if ( !set_quote(&av[i]) )
+	return domain_error(arg, "dos_quotable_atom");
+
+      cmdlen += av[i].len+(av[i].quote?2:0)+1;
+    }
+    
+    cmdline = PL_malloc(cmdlen*sizeof(wchar_t));
+    for( o=cmdline,i=0; i<=arity; )
+    { wchar_t *s = av[i].text;
+	  
+      if ( av[i].quote )
+	*o++ = av[i].quote;
+      wcsncpy(o, s, av[i].len);
+      o += av[i].len;
+      if ( i > 0 )
+	PL_free(s);			/* do not free shared exename */
+      if ( av[i].quote )
+	*o++ = av[i].quote;
+
+      if (++i <= arity)
+	*o++ = ' ';
+    }
+    *o = 0;
+    PL_free(av);
+
+    *cline = cmdline;
+  } else
+  { *cline = NULL;
+  }
+
+  return TRUE;
+}
+
+
+typedef struct win_process
+{ DWORD pid;
+  HANDLE handle;
+  struct win_process *next;
+} win_process;
+
+
+static win_process *processes;
+
+static void
+register_process(DWORD pid, HANDLE h)
+{ win_process *wp = PL_malloc(sizeof(*wp));
+
+  wp->pid = pid;
+  wp->handle = h;
+  LOCK();
+  wp->next = processes;
+  processes = wp;
+  UNLOCK();
+}
+
+
+static int
+unregister_process(DWORD pid)
+{ win_process **wpp, *wp;
+
+  LOCK();
+  for(wpp=&processes, wp=*wpp; wp; wpp=&wp->next, wp=*wpp)
+  { if ( wp->pid == pid )
+    { *wpp = wp->next;
+      PL_free(wp);
+      UNLOCK();
+      return TRUE;
+    }
+  }
+
+  UNLOCK();
+  return FALSE;
+}
+
+
+static HANDLE
+find_process_from_pid(DWORD pid, const char *pred)
+{ win_process *wp;
+
+  LOCK();
+  for(wp=processes; wp; wp=wp->next)
+  { if ( wp->pid == pid )
+    { HANDLE h = wp->handle;
+      UNLOCK();
+      return h;
+    }
+  }
+
+  UNLOCK();
+  
+  if ( pred ) 
+  { term_t ex = PL_new_term_ref();
+
+    PL_put_integer(ex, pid);
+    pl_error(NULL, 2, NULL, ERR_EXISTENCE,
+	     "process", ex);
+  }
+
+  return (HANDLE)0;
+}
+
+
+ /* TBD: process messages; timeout */
+
+static int
+wait_process_handle(HANDLE process, ULONG *rc)
+{ DWORD wc = WaitForSingleObject(process, INFINITE);
+
+  switch(wc)
+  { case WAIT_OBJECT_0:
+      if ( !GetExitCodeProcess(process, rc) )
+      { win_error("GetExitCodeProcess");
+	CloseHandle(process);
+	return FALSE;
+      }
+      CloseHandle(process);
+      return TRUE;
+    case WAIT_TIMEOUT:			/* TBD */
+    default:
+      win_error("WaitForSingleObject");
+      CloseHandle(process);
+      return FALSE;
+  }
+}
+
+
+static int
+wait_for_pid(pid_t pid, term_t code)
+{ HANDLE *h;
+
+  if ( (h=find_process_from_pid(pid, "process_wait")) )
+  { ULONG rc;
+
+    if ( !wait_process_handle(h, &rc) )
+      return FALSE;
+    unregister_process(pid);
+
+    return PL_unify_term(code, 
+			 PL_FUNCTOR, FUNCTOR_exit1,
+			   PL_LONG, rc);
+  } else
+  { return FALSE;
+  }
+}
+
+
+static int
+wait_for_process(process_context *pc)
+{ int rc;
+  ULONG prc;
+
+  rc = wait_process_handle(pc->handle, &prc);
+  CloseHandle(pc->handle);
+  PL_free(pc);
+  
+  return rc;
+}
+
+
+static int
+win_wait_success(atom_t exe, HANDLE process)
+{ ULONG rc;
+
+  if ( !wait_process_handle(process, &rc) )
+    return FALSE;
+
+  if ( rc != 0 )
+  { term_t code = PL_new_term_ref();
+    term_t ex = PL_new_term_ref();
+
+    PL_unify_term(ex,
+		  PL_FUNCTOR, FUNCTOR_error2,
+		    PL_FUNCTOR, FUNCTOR_process_error2,
+		      PL_ATOM, exe,
+		      PL_FUNCTOR, FUNCTOR_exit1,
+		        PL_LONG, rc,
+		    PL_VARIABLE);
+    return PL_raise_exception(ex);
+  }
+
+  return TRUE;
+}
+
+
+static int
+create_pipes(p_options *info)
+{ int i;
+  SECURITY_ATTRIBUTES sa;
+
+  sa.nLength = sizeof(sa);          /* Length in bytes */
+  sa.bInheritHandle = 1;            /* the child must inherit these handles */
+  sa.lpSecurityDescriptor = NULL;
+
+  for(i=0; i<3; i++)
+  { p_stream *s = &info->streams[i];
+
+    if ( s->term )
+    { if ( !CreatePipe(&s->fd[0], &s->fd[1], &sa, 1<<13) )
+      { return win_error("CreatePipe");
+      }
+    }
+  }
+
+  return TRUE;
+}
+
+
+static IOSTREAM *
+Sopen_handle(HANDLE h, const char *mode)
+{ return Sfdopen(_open_osfhandle((long)h, _O_BINARY), mode);
+}
+
+
+static HANDLE
+open_null_stream(DWORD access)
+{ SECURITY_ATTRIBUTES sa;
+
+  sa.nLength = sizeof(sa);          /* Length in bytes */
+  sa.bInheritHandle = 1;            /* the child must inherit these handles */
+  sa.lpSecurityDescriptor = NULL;
+
+  return CreateFile("nul",
+		    access,
+		    FILE_SHARE_READ|FILE_SHARE_WRITE,
+		    &sa,		/* security */
+		    OPEN_EXISTING,
+		    0,
+		    NULL);
+}
+
+
+static int
+console_app(void)
+{ HANDLE h;
+
+  if ( (h = GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE )
+  { DWORD mode;
+
+    if ( GetConsoleMode(h, &mode) )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
+do_create_process(p_options *info)
+{ int flags = 0;
+  PROCESS_INFORMATION pi;
+  STARTUPINFOW si;
+
+  switch(info->window)
+  { case MAYBE:
+      if ( !console_app() )
+	flags |= CREATE_NO_WINDOW;
+      break;
+    case TRUE:
+      break;
+    case FALSE:
+      flags |= CREATE_NO_WINDOW;
+      break;
+  }
+
+  memset(&si, 0, sizeof(si));
+  si.cb = sizeof(si);
+  si.dwFlags = STARTF_USESTDHANDLES;
+
+				      /* stdin */
+  switch( info->streams[0].type )
+  { case std_pipe:
+      si.hStdInput = info->streams[0].fd[0];
+      SetHandleInformation(info->streams[0].fd[1],
+			   HANDLE_FLAG_INHERIT, FALSE);
+      break;
+    case std_null:
+      si.hStdInput = open_null_stream(GENERIC_READ);
+      break;
+    case std_std:
+      si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+      break;
+  }
+				      /* stdout */
+  switch( info->streams[1].type )
+  { case std_pipe:
+      si.hStdOutput = info->streams[1].fd[1];
+      SetHandleInformation(info->streams[1].fd[0],
+			   HANDLE_FLAG_INHERIT, FALSE);
+      break;
+    case std_null:
+      si.hStdOutput = open_null_stream(GENERIC_WRITE);
+      break;
+    case std_std:
+      si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+      break;
+  }
+				      /* stderr */
+  switch( info->streams[2].type )
+  { case std_pipe:
+      si.hStdError = info->streams[2].fd[1];
+      SetHandleInformation(info->streams[2].fd[0],
+			   HANDLE_FLAG_INHERIT, FALSE);
+      break;
+    case std_null:
+      si.hStdError = open_null_stream(GENERIC_WRITE);
+      break;
+    case std_std:
+      si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+      break;
+  }
+
+  if ( CreateProcessW(info->exe,
+		      info->cmdline,
+		      NULL,		/* Process security */
+		      NULL,		/* Thread security */
+		      TRUE,		/* Inherit handles */
+		      flags,		/* Creation flags */
+		      NULL,		/* Environment */
+		      info->cwd,	/* Directory */
+		      &si,		/* Startup info */
+		      &pi) )		/* Process information */
+  { CloseHandle(pi.hThread);
+
+    if ( info->pipes > 0 && info->pid == 0 )
+    { IOSTREAM *s;
+      process_context *pc = PL_malloc(sizeof(*pc));
+
+      DEBUG(Sdprintf("Wait on pipes\n"));
+
+      memset(pc, 0, sizeof(*pc));
+      pc->magic  = PROCESS_MAGIC;
+      pc->handle = pi.hProcess;
+
+      if ( info->streams[0].type == std_pipe )
+      { CloseHandle(info->streams[0].fd[0]);
+	s = open_process_pipe(pc, 0, info->streams[0].fd[1]);
+	PL_unify_stream(info->streams[0].term, s);
+      }
+      if ( info->streams[1].type == std_pipe )
+      { CloseHandle(info->streams[1].fd[1]);
+	s = open_process_pipe(pc, 1, info->streams[1].fd[0]);
+	PL_unify_stream(info->streams[1].term, s);
+      }
+      if ( info->streams[2].type == std_pipe )
+      { CloseHandle(info->streams[2].fd[1]);
+	s = open_process_pipe(pc, 2, info->streams[2].fd[0]);
+	PL_unify_stream(info->streams[2].term, s);
+      }
+      
+      return TRUE;
+    } else if ( info->pipes > 0 )
+    { IOSTREAM *s;
+
+      if ( info->streams[0].type == std_pipe )
+      { CloseHandle(info->streams[0].fd[0]);
+	s = Sopen_handle(info->streams[0].fd[1], "w");
+	PL_unify_stream(info->streams[0].term, s);
+      }
+      if ( info->streams[1].type == std_pipe )
+      { CloseHandle(info->streams[1].fd[1]);
+	s = Sopen_handle(info->streams[1].fd[0], "r");
+	PL_unify_stream(info->streams[1].term, s);
+      }
+      if ( info->streams[2].type == std_pipe )
+      { CloseHandle(info->streams[2].fd[1]);
+	s = Sopen_handle(info->streams[2].fd[0], "r");
+	PL_unify_stream(info->streams[2].term, s);
+      }
+    }
+
+    if ( info->pid )
+    { register_process(pi.dwProcessId, pi.hProcess);
+      return PL_unify_integer(info->pid, pi.dwProcessId);
+    }
+
+    return win_wait_success(info->exe_name, pi.hProcess);
+  } else
+  { return win_error("CreateProcess");
+  }
+}
+
+#else /*__WINDOWS__*/
 
 static int
 create_pipes(p_options *info)
@@ -426,6 +1023,45 @@ unify_exit_status(term_t code, int status)
 			   PL_INT, (int)WTERMSIG(status));
   } else
   { assert(0);
+    return FALSE;
+  }
+}
+
+
+static int
+wait_for_pid(pid_t pid, term_t code)
+{ pid_t p2;
+  int status;
+
+  for(;;)
+  { if ( (p2=waitpid(pid, &status, 0)) == pid )
+      return unify_exit_status(code, status);
+
+    if ( p2 == -1 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+	return FALSE;
+    } else
+    { return pl_error(NULL, 0, "waitpid", ERR_ERRNO, errno);
+    }
+  }
+}
+
+
+static int
+wait_for_process(process_context *pc)
+{ for(;;)
+  { int status;
+    pid_t p2;
+    
+    if ( (p2=waitpid(pc->pid, &status, 0)) == pc->pid )
+    { PL_free(pc);
+      return TRUE;
+    }
+
+    if ( errno == EINTR && PL_handle_signals() >= 0 )
+      continue;
+
+    PL_free(pc);
     return FALSE;
   }
 }
@@ -581,6 +1217,7 @@ do_create_process(p_options *info)
   }
 }
 
+#endif /*__WINDOWS__*/
 
 
 		 /*******************************
@@ -637,32 +1274,36 @@ get_pid(term_t pid, pid_t *p)
 
 static foreign_t
 process_wait(term_t pid, term_t code, term_t options)
-{ int p, p2;
-  int status;
+{ pid_t p;
 
   if ( !get_pid(pid, &p) )
     return FALSE;
 
-  for(;;)
-  { if ( (p2=waitpid(p, &status, 0)) == p )
-      return unify_exit_status(code, status);
-
-    if ( p2 == -1 && errno == EINTR )
-    { if ( PL_handle_signals() < 0 )
-	return FALSE;
-    } else
-    { return pl_error(NULL, 0, "waitpid", ERR_ERRNO, errno);
-    }
-  }
+  return wait_for_pid(p, code);
 }
 
 
 static foreign_t
 process_kill(term_t pid, term_t signal)
-{ int p, sig;
+{ int p;
 
   if ( !get_pid(pid, &p) )
     return FALSE;
+
+{
+#ifdef __WINDOWS__
+  HANDLE h;
+
+  if ( !(h=find_process_from_pid(p, "process_kill")) )
+    return FALSE;
+
+  if ( TerminateProcess(h, 255) )
+    return TRUE;
+
+  return win_error("TerminateProcess");
+#else /*__WINDOWS__*/
+  int sig;
+
   if ( !PL_get_signum_ex(signal, &sig) )
     return FALSE;
 
@@ -679,6 +1320,8 @@ process_kill(term_t pid, term_t signal)
     default:
       return pl_error("process_kill", 2, "kill", ERR_ERRNO, errno);
   }
+#endif /*__WINDOWS__*/
+}
 }
 
 
@@ -687,7 +1330,12 @@ process_kill(term_t pid, term_t signal)
 
 install_t
 install_process()
-{ MKATOM(stdin);
+{ 
+#ifdef __WINDOWS__
+  win_init();
+#endif
+
+  MKATOM(stdin);
   MKATOM(stdout);
   MKATOM(stderr);
   MKATOM(std);
@@ -702,6 +1350,7 @@ install_process()
   MKFUNCTOR(type_error, 2);
   MKFUNCTOR(domain_error, 2);
   MKFUNCTOR(process_error, 2);
+  MKFUNCTOR(system_error, 2);
   MKFUNCTOR(resource_error, 1);
   MKFUNCTOR(exit, 1);
   MKFUNCTOR(killed, 1);

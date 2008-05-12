@@ -20,16 +20,19 @@ MIMEOBJ=	error.obj mime.obj
 MIMELIBS=	rfc2045.lib rfc822.lib
 TIMEOBJ=	error.obj time.obj
 READOBJ=	readutil.obj
+PROCESSOBJ=	error.obj process.obj
 RANDOMOBJ=	random.obj
 SHAOBJ=		error.obj sha4pl.obj sha1/sha1.obj sha1/sha2.obj \
 		sha1/hmac_sha1.obj sha1/hmac_sha256.obj
 TIMELIBS=	winmm.lib
 
 all:		socket.dll cgi.dll memfile.dll mime.dll time.dll readutil.dll \
-		random.dll crypt.dll sha4pl.dll
+		random.dll crypt.dll sha4pl.dll process.dll
 
 readutil.dll:	$(READOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(READOBJ) $(PLLIB) $(LIBS)
+process.dll:	$(PROCESSOBJ)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(PROCESSOBJ) $(PLLIB) $(LIBS)
 socket.dll:	$(SOCKOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(SOCKOBJ) $(PLLIB) $(LIBS)
 cgi.dll:	$(CGIOBJ)
@@ -85,6 +88,7 @@ idll::
 		copy time.dll "$(BINDIR)"
 		copy random.dll "$(BINDIR)"
 		copy readutil.dll "$(BINDIR)"
+		copy process.dll "$(BINDIR)"
 		copy sha4pl.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
 		copy socket.pdb "$(BINDIR)"
@@ -93,6 +97,7 @@ idll::
 		copy mime.pdb "$(BINDIR)"
 		copy time.pdb "$(BINDIR)"
 		copy readutil.pdb "$(BINDIR)"
+		copy process.pdb "$(BINDIR)"
 		copy sha4pl.pdb "$(BINDIR)"
 !ENDIF
 
@@ -107,6 +112,7 @@ ilib::
 		copy random.pl "$(PLBASE)\library"
 		copy time.pl "$(PLBASE)\library"
 		copy sha.pl "$(PLBASE)\library"
+		copy process.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
 uninstall::
@@ -128,6 +134,7 @@ uninstall::
 		del "$(PLBASE)\library\random.pl"
 		del "$(PLBASE)\library\time.pl"
 		del "$(PLBASE)\library\sha.pl"
+		del "$(PLBASE)\library\process.pl"
 		$(MAKEINDEX)
 
 html-install::

@@ -309,6 +309,7 @@ Section "Package CLIB"
   File pl\bin\random.dll
   File pl\bin\time.dll
   File pl\bin\readutil.dll
+  File pl\bin\process.dll
   SetOutPath $INSTDIR\library
   File pl\library\cgi.pl
   File pl\library\crypt.pl
@@ -319,6 +320,7 @@ Section "Package CLIB"
   File pl\library\prolog_server.pl
   File pl\library\random.pl
   File pl\library\time.pl
+  File pl\library\process.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\clib.html
 SectionEnd
@@ -472,6 +474,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\socket.pdb
   File pl\bin\time.pdb
   File pl\bin\readutil.pdb
+  File pl\bin\process.pdb
   File pl\bin\ssl4pl.pdb
   File pl\bin\zlib4pl.pdb
   File pl\bin\sha4pl.pdb

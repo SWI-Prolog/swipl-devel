@@ -169,12 +169,19 @@ user:file_search_path(path, Dir) :-
 %		does not exit with status 0.
 
 process_create(Exe, Args, Options) :-
-	absolute_file_name(Exe, Prog,
-			   [ access(execute)
-			   ]),
+	exe_options(ExeOptions),
+	absolute_file_name(Exe, PlProg, ExeOptions),
 	maplist(map_arg, Args, Av),
+	prolog_to_os_filename(PlProg, Prog),
 	Term =.. [Prog|Av],
 	process_create(Term, Options).
+
+exe_options(Options) :-
+	current_prolog_flag(windows, true), !,
+	Options = [ extensions(['',exe,bat,com]), access(read) ].
+exe_options(Options) :-
+	Options = [ access(execute) ].
+
 
 map_arg([], []) :- !.
 map_arg(List, Arg) :-
