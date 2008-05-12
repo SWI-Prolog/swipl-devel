@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.55 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="clpclp_distinct.html">
@@ -205,7 +205,7 @@ are equivalent </TD></TR>
 <P>If a variable occurs at the place of a constraint that is being 
 reified, it is implicitly constrained to the Boolean values 0 and 1. 
 Therefore, the following queries all fail: <CODE>?-</CODE> <CODE>#\</CODE> 
-2. <CODE>?-</CODE> <CODE>#\</CODE> <CODE>#\</CODE> 2. etc.
+2., <CODE>?-</CODE> <CODE>#\</CODE> <CODE>#\</CODE> 2. etc.
 
 <P>As an example of a constraint satisfaction problem, consider the 
 cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters 
@@ -245,7 +245,7 @@ _G10178 in 4..7.
 many variables. Labeling can be used to search for solutions:
 
 <PRE class="code">
-?- puzzle(As+Bs=Cs), label(As), label(Bs).
+?- puzzle(As+Bs=Cs), label(As).
 As = [9, 5, 6, 7],
 Bs = [1, 0, 8, 5],
 Cs = [1, 0, 6, 5, 2]
@@ -364,6 +364,9 @@ and X <CODE>#&gt;</CODE> M, where M is the midpoint of the domain of X.
 </DD>
 </DL>
 
+<P>At most one option of each category can be specified, and an option 
+must not occur repeatedly.
+
 <P>The order of solutions can be influenced with:
 
 <DL>
@@ -377,17 +380,24 @@ and X <CODE>#&gt;</CODE> M, where M is the midpoint of the domain of X.
 
 <P>This generates solutions in ascending/descending order with respect 
 to the evaluation of the arithmetic expression Expr. Labeling <VAR>Vars</VAR> 
-must make Expr ground. To obtain the incomplete behaviour that other 
-systems exhibit with "maximize(Expr)" and "minimize(Expr)", use
-<A class="pred" href="metacall.html#once/1">once/1</A>, e.g.:
+must make Expr ground. If several such options are specified, they are 
+interpreted from left to right, e.g.:
+
+<PRE class="code">
+?- [X,Y] ins 10..20, labeling([max(X),min(Y)],[X,Y]).
+</PRE>
+
+<P>This generates solutions in descending order of X, and for each 
+binding of X, solutions are generated in ascending order of Y. To obtain 
+the incomplete behaviour that other systems exhibit with 
+"maximize(Expr)" and "minimize(Expr)", use <A class="pred" href="metacall.html#once/1">once/1</A>, 
+e.g.:
 
 <PRE class="code">
 once(labeling([max(Expr)], Vars))
 </PRE>
 
-<P>If more than one option of a category is specified, the one occurring 
-rightmost in the option list takes precedence over all others of that 
-category. Labeling is always complete, always terminates, and yields no 
+<P>Labeling is always complete, always terminates, and yields no 
 redundant solutions.</DD>
 <DT class="pubdef"><A NAME="all_different/1"><STRONG>all_different</STRONG>(<VAR>+Vars</VAR>)</A></DT>
 <DD class="defbody">

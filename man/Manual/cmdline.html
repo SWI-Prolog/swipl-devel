@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section 2.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.55 Reference Manual: Section 2.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="initgoal.html">
@@ -227,7 +227,7 @@ Optimised compilation. See <A NAME="idx:currentprologflag2:65"></A><A class="pre
 flag
 <A class="flag" href="flags.html#flag:optimise">optimise</A> for 
 details.</DD>
-<DT><STRONG>-nodebug</STRONG> <VAR></VAR></DT>
+<DT><STRONG>--nodebug</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
 Disable debugging. See the <A NAME="idx:currentprologflag2:66"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
 flag
@@ -294,13 +294,17 @@ By default manipulating the terminal is enabled unless the system
 detects it is not connected to a terminal or it is running as a 
 GNU-Emacs inferior process. This flag is sometimes required for smooth 
 interaction with other applications.</DD>
-<DT><STRONG>-nosignals</STRONG> <VAR></VAR></DT>
+<DT><STRONG>--nosignals</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
 Inhibit any signal handling by Prolog, a property that is sometimes 
 desirable for embedded applications. This option sets the flag
 <A class="flag" href="flags.html#flag:signals">signals</A> to <CODE>false</CODE>. 
 See <A class="sec" href="foreigninclude.html">section 9.6.20.1</A> for 
 details.</DD>
+<DT><STRONG>--home=DIR</STRONG> <VAR></VAR></DT>
+<DD class="defbody">
+Use DIR as home directory. See <A class="sec" href="findhome.html">section 
+9.8</A> for details.</DD>
 <DT><STRONG>-x</STRONG> <VAR>bootfile</VAR></DT>
 <DD class="defbody">
 Boot from <VAR>bootfile</VAR> instead of the system's default boot file. 

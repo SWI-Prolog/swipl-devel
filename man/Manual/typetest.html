@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section 4.5</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.55 Reference Manual: Section 4.5</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="listing.html">
@@ -168,8 +168,8 @@ and <VAR>Denominator</VAR>.
 <DD class="defbody">
 True if <VAR>Term</VAR> is bound to an integer or floating point number.<SUP class="fn">24<SPAN class="fn-text">As 
 rational numbers are not atomic in the current implementation and we do 
-not want to break the rule that <A NAME="idx:number1:473"></A><A class="pred" href="typetest.html#number/1">number/1</A> 
-implies <A NAME="idx:atomic1:474"></A><A class="pred" href="typetest.html#atomic/1">atomic/1</A>, <A NAME="idx:number1:475"></A><A class="pred" href="typetest.html#number/1">number/1</A> 
+not want to break the rule that <A NAME="idx:number1:474"></A><A class="pred" href="typetest.html#number/1">number/1</A> 
+implies <A NAME="idx:atomic1:475"></A><A class="pred" href="typetest.html#atomic/1">atomic/1</A>, <A NAME="idx:number1:476"></A><A class="pred" href="typetest.html#number/1">number/1</A> 
 fails on rational numbers. This will change if rational numbers become 
 atomic.</SPAN></SUP></DD>
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="atom/1"><STRONG>atom</STRONG>(<VAR>+Term</VAR>)</A></DT>
@@ -197,16 +197,16 @@ Yes
 <DD class="defbody">
 True if <VAR>Term</VAR> is bound to an atom, string, integer or floating 
 point number. Note that string refers to the built-in type. See
-<A NAME="idx:string1:476"></A><A class="pred" href="typetest.html#string/1">string/1</A>. 
+<A NAME="idx:string1:477"></A><A class="pred" href="typetest.html#string/1">string/1</A>. 
 Strings in the classical Prolog sense are lists and therefore compound.</DD>
 <DT class="pubdef"><span class="pred-tag">[ISO]</span><A NAME="compound/1"><STRONG>compound</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-True if <VAR>Term</VAR> is bound to a compound term. See also <A NAME="idx:functor3:477"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
+True if <VAR>Term</VAR> is bound to a compound term. See also <A NAME="idx:functor3:478"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
 and =../2.</DD>
 <DT class="pubdef"><A NAME="callable/1"><STRONG>callable</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Term</VAR> is bound to an atom or a compound term, so it 
-can be handed without type-error to <A NAME="idx:call1:478"></A><A class="pred" href="metacall.html#call/1">call/1</A>, <A NAME="idx:functor3:479"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
+can be handed without type-error to <A NAME="idx:call1:479"></A><A class="pred" href="metacall.html#call/1">call/1</A>, <A NAME="idx:functor3:480"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
 and =../2.</DD>
 <DT class="pubdef"><A NAME="ground/1"><STRONG>ground</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
@@ -214,16 +214,16 @@ True if <VAR>Term</VAR> holds no free variables.</DD>
 <DT class="pubdef"><A NAME="cyclic_term/1"><STRONG>cyclic_term</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Term</VAR> contains cycles, i.e. is an infinite term. See 
-also <A NAME="idx:acyclicterm1:480"></A><A class="pred" href="typetest.html#acyclic_term/1">acyclic_term/1</A> 
+also <A NAME="idx:acyclicterm1:481"></A><A class="pred" href="typetest.html#acyclic_term/1">acyclic_term/1</A> 
 and <A class="sec" href="cyclic.html">section 2.16</A>.<SUP class="fn">25<SPAN class="fn-text">The 
-predicates <A NAME="idx:cyclicterm1:481"></A><A class="pred" href="typetest.html#cyclic_term/1">cyclic_term/1</A> 
-and <A NAME="idx:acyclicterm1:482"></A><A class="pred" href="typetest.html#acyclic_term/1">acyclic_term/1</A> 
+predicates <A NAME="idx:cyclicterm1:482"></A><A class="pred" href="typetest.html#cyclic_term/1">cyclic_term/1</A> 
+and <A NAME="idx:acyclicterm1:483"></A><A class="pred" href="typetest.html#acyclic_term/1">acyclic_term/1</A> 
 are compatible to SICStus Prolog. Some Prolog systems supporting cyclic 
 terms use is_cyclic/1 .</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="acyclic_term/1"><STRONG>acyclic_term</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Term</VAR> does not contain cycles, i.e. can be processed 
-recursively in finite time. See also <A NAME="idx:cyclicterm1:483"></A><A class="pred" href="typetest.html#cyclic_term/1">cyclic_term/1</A> 
+recursively in finite time. See also <A NAME="idx:cyclicterm1:484"></A><A class="pred" href="typetest.html#cyclic_term/1">cyclic_term/1</A> 
 and <A class="sec" href="cyclic.html">section 2.16</A>.
 </DD>
 </DL>

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section 5.5</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.55 Reference Manual: Section 5.5</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="import.html">
@@ -135,12 +135,12 @@ modules from other modules</SPAN></A></H2>
 <P>The predicates in this section are intended to create new modules 
 from the content of other modules. Below is an example is to define a
 <EM>composite</EM> module. The example exports all public predicates of <CODE>module_1</CODE>, <CODE>module_2</CODE> 
-and <CODE>module_3</CODE>, <A NAME="idx:pred1:1159"></A><SPAN class="pred-ext">pred/1</SPAN> 
+and <CODE>module_3</CODE>, <A NAME="idx:pred1:1162"></A><SPAN class="pred-ext">pred/1</SPAN> 
 from <CODE>module_4</CODE>, all predicates from <CODE>module_5</CODE> 
 except
-<A NAME="idx:donotuse1:1160"></A><SPAN class="pred-ext">do_not_use/1</SPAN> 
+<A NAME="idx:donotuse1:1163"></A><SPAN class="pred-ext">do_not_use/1</SPAN> 
 and all predicates from <CODE>module_6</CODE> while renaming
-<A NAME="idx:pred1:1161"></A><SPAN class="pred-ext">pred/1</SPAN> into <A NAME="idx:mypred1:1162"></A><SPAN class="pred-ext">mypred/1</SPAN>.
+<A NAME="idx:pred1:1164"></A><SPAN class="pred-ext">pred/1</SPAN> into <A NAME="idx:mypred1:1165"></A><SPAN class="pred-ext">mypred/1</SPAN>.
 
 <PRE class="code">
 :- module(my_composite, []).
@@ -156,13 +156,13 @@ and all predicates from <CODE>module_6</CODE> while renaming
 <DL>
 <DT class="pubdef"><A NAME="reexport/1"><STRONG>reexport</STRONG>(<VAR>+Files</VAR>)</A></DT>
 <DD class="defbody">
-Load and import predicates as <A NAME="idx:usemodules1:1163"></A><SPAN class="pred-ext">use_modules/1</SPAN> 
+Load and import predicates as <A NAME="idx:usemodules1:1166"></A><SPAN class="pred-ext">use_modules/1</SPAN> 
 and re-export all imported predicates. The reexport declarations must 
 immediately follow the module declaration.</DD>
 <DT class="pubdef"><A NAME="reexport/2"><STRONG>reexport</STRONG>(<VAR>+File, 
 +Import</VAR>)</A></DT>
 <DD class="defbody">
-Import from <VAR>File</VAR> as <A NAME="idx:usemodule2:1164"></A><A class="pred" href="import.html#use_module/2">use_module/2</A> 
+Import from <VAR>File</VAR> as <A NAME="idx:usemodule2:1167"></A><A class="pred" href="import.html#use_module/2">use_module/2</A> 
 and re-export the imported predicates. The reexport declarations must 
 immediately follow the module declaration.
 </DD>

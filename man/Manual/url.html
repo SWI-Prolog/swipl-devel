@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section A.23</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.55 Reference Manual: Section A.23</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="ugraphs.html">
@@ -149,10 +149,17 @@ strictly, the current is more relaxed to deal with frequent violations
 of the standard encountered in practical use.
 
 <DL>
-<DT class="pubdef"><A NAME="global_url/3"><STRONG>global_url</STRONG>(<VAR>+URL, 
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="global_url/3"><STRONG>global_url</STRONG>(<VAR>+URL, 
 +Base, -Global</VAR>)</A></DT>
 <DD class="defbody">
-Translate a possibly relative <VAR>URL</VAR> into an absolute one.</DD>
+Translate a possibly relative <VAR>URL</VAR> into an absolute one.
+
+<DL>
+<DT><B>Errors</B><DD> syntax_error(illegal_url) if <VAR>URL</VAR> is not 
+legal.
+</DL>
+
+</DD>
 <DT class="pubdef"><A NAME="is_absolute_url/1"><STRONG>is_absolute_url</STRONG>(<VAR>+URL</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>URL</VAR> is an absolute <VAR>URL</VAR>. That is, a <VAR>URL</VAR> 

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.53 Reference Manual: Section 5.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.55 Reference Manual: Section 5.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="defmodule.html">
@@ -139,18 +139,18 @@ module by loading a module file as demonstrated in the previous section,
 using assert or by <EM>importing</EM> them from another module.
 
 <P>Two mechanisms for importing predicates explicitly from another 
-module exist. The <A NAME="idx:usemodule12:1147"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
+module exist. The <A NAME="idx:usemodule12:1150"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
 predicates load a module file and import (part of the) public predicates 
-of the file. The <A NAME="idx:import1:1148"></A><A class="pred" href="import.html#import/1">import/1</A> 
+of the file. The <A NAME="idx:import1:1151"></A><A class="pred" href="import.html#import/1">import/1</A> 
 predicate imports any predicate from any module.
 
 <DL>
 <DT class="pubdef"><A NAME="use_module/1"><STRONG>use_module</STRONG>(<VAR>+File</VAR>)</A></DT>
 <DD class="defbody">
-Load the file(s) specified with <VAR>File</VAR> just like <A NAME="idx:ensureloaded1:1149"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A>. 
+Load the file(s) specified with <VAR>File</VAR> just like <A NAME="idx:ensureloaded1:1152"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A>. 
 The files must all be module files. All exported predicates from the 
 loaded files are imported into the context module. This predicate is 
-equivalent to <A NAME="idx:ensureloaded1:1150"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A>, 
+equivalent to <A NAME="idx:ensureloaded1:1153"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A>, 
 except that it raises an error if
 <VAR>File</VAR> is not a module file.</DD>
 <DT class="pubdef"><A NAME="use_module/2"><STRONG>use_module</STRONG>(<VAR>+File, 
@@ -164,12 +164,12 @@ from the loaded module. If a predicate is specified that is not exported
 from the loaded module a warning will be printed. The predicate will 
 nevertheless be imported to simplify debugging. <VAR>ImportList</VAR> 
 also allows for renaming or import-everything-except. See also <CODE>import</CODE> 
-option of <A NAME="idx:loadfiles2:1151"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>. 
-The first example below loads <A NAME="idx:member2:1152"></A><A class="pred" href="lists.html#member/2">member/2</A> 
-from the lists library and <A NAME="idx:append2:1153"></A><A class="pred" href="lists.html#append/2">append/2</A> 
+option of <A NAME="idx:loadfiles2:1154"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>. 
+The first example below loads <A NAME="idx:member2:1155"></A><A class="pred" href="lists.html#member/2">member/2</A> 
+from the lists library and <A NAME="idx:append2:1156"></A><A class="pred" href="lists.html#append/2">append/2</A> 
 under the name <CODE>list_concat</CODE>, which how this predicate is 
 named in YAP. The second example loads a all exports from library 
-option, except for <A NAME="idx:metaoptions3:1154"></A><A class="pred" href="option.html#meta_options/3">meta_options/3</A>. 
+option, except for <A NAME="idx:metaoptions3:1157"></A><A class="pred" href="option.html#meta_options/3">meta_options/3</A>. 
 These renaming facilities are generally used to deal with portability 
 issues with as few as possible changes to the actual code. See also <A class="sec" href="dialect.html">section 
 C</A> and <A class="sec" href="reexport.html">section 5.5</A>.
@@ -187,11 +187,11 @@ C</A> and <A class="sec" href="reexport.html">section 5.5</A>.
 Import predicate <VAR>PredicateIndicator</VAR> into the current context 
 module. <VAR>PredicateIndicator</VAR> must specify the source module 
 using the &lt;<VAR>module</VAR>&gt;:&lt;<VAR>pi</VAR>&gt; construct. 
-Note that predicates are normally imported using one of the directives <A NAME="idx:usemodule12:1155"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>. 
-The <A NAME="idx:import1:1156"></A><A class="pred" href="import.html#import/1">import/1</A> 
+Note that predicates are normally imported using one of the directives <A NAME="idx:usemodule12:1158"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>. 
+The <A NAME="idx:import1:1159"></A><A class="pred" href="import.html#import/1">import/1</A> 
 alternative is meant for handling imports into dynamically created 
-modules. See also <A NAME="idx:export1:1157"></A><A class="pred" href="manipmodule.html#export/1">export/1</A> 
-and <A NAME="idx:exportlist2:1158"></A><A class="pred" href="manipmodule.html#export_list/2">export_list/2</A>.
+modules. See also <A NAME="idx:export1:1160"></A><A class="pred" href="manipmodule.html#export/1">export/1</A> 
+and <A NAME="idx:exportlist2:1161"></A><A class="pred" href="manipmodule.html#export_list/2">export_list/2</A>.
 </DD>
 </DL>
 
