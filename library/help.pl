@@ -139,6 +139,11 @@ show_ranges([FromLine-ToLine|Rest], Manual, Pager) :-
 	nl(Pager),
 	show_ranges(Rest, Manual, Pager).
 
+%%	copy_chars(+Count, +FromStream, +ToStream)
+%
+%	Note: stream is binary to deal with byte offsets. As the data is
+%	ISO Latin-1 anyway, this is fine.
+
 copy_chars(N, From, To) :-
 	get0(From, C0),
 	copy_chars(N, From, To, C0).
@@ -150,10 +155,10 @@ copy_chars(N, _, To, _) :-
 	flush_output(To),
 	fail.
 copy_chars(N, From, To, C) :-
-	get0(From, C1),
+	get_byte(From, C1),
 	(   C1 == 8,			% backspace
 	    \+ current_prolog_flag(write_help_with_overstrike, true)
-	->  get0(From, C2),
+	->  get_byte(From, C2),
 	    NN is N - 2,
 	    copy_chars(NN, From, To, C2)
 	;   put_printable(To, C),
@@ -162,13 +167,14 @@ copy_chars(N, From, To, C) :-
 	).
 
 put_printable(_, 12) :- !.
+put_printable(_, 13) :- !.
 put_printable(_, -1) :- !.
 put_printable(To, C) :-
-	put(To, C).
+	put_code(To, C).
 
 online_manual_stream(Stream) :-
 	find_manual(Manual),
-	open(Manual, read, Stream).
+	open(Manual, read, Stream, [type(binary)]).
 
 pager_stream(Stream) :-
 	find_pager(Pager),
