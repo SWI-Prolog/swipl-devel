@@ -410,7 +410,7 @@ give_help(V, What:name,
 	    ;	send(V, clear)
 	    ),
 	    manual_file(ManFile),
-	    new(F, file(ManFile)),
+	    new(F, file(ManFile, binary)),
 	    get(V, caret, Start),
 	    send(F, open, read),
 	    append_ranges(V, F, Ranges),
@@ -437,6 +437,13 @@ give_help(V, What:name,
 	),
 	send(V, editable, @off).
 
+%%	append_ranges(+View, +File, +Ranges) is det.
+%
+%	Note that the file is opened in binary mode to allow seeking. We
+%	must delete \r from the input   to  compensate for Windows cr/lf
+%	line ends. This is all ok as long  as the contents of the manual
+%	file is ISO Latin 1.
+
 append_ranges(V, F, [H|T]) :- !,
 	append_ranges(V, F, H),
 	append_ranges(V, F, T).
@@ -446,6 +453,7 @@ append_ranges(V, F, FromLine-ToLine) :-
 	line_start(ToLine, To),
 	send(F, seek, From),
 	get(F, read, To-From, Text),
+	send(Text, translate, 13, @nil),
 	send(V, insert, Text),
 	send(V, insert, @pui_ff),
 	send(V, newline).
