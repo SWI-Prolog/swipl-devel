@@ -131,14 +131,13 @@ read_index(In) :-
 	flag(last, _, false),
 	repeat,
 	    (   flag(last, true, true)
-	    ->	character_count(In, EndOffset),
+	    ->	line_count(In, EndOffset),
 		End is EndOffset - 1,
 		assert(end_offset(End)), !
-	    ;   character_count(In, Offset),
+	    ;   line_count(In, Offset),
 		read_page(In, Page),
-		character_count(In, EndOffset),
-		End is EndOffset - 1,
-	        identify_page(Offset, End, Page),
+		line_count(In, EndOffset),
+	        identify_page(Offset, EndOffset, Page),
 	        fail
 	    ),
 	update_offsets.

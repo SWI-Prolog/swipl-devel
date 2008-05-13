@@ -130,7 +130,9 @@ show_help(_, Ranges) :-
 	show_ranges(Ranges, Manual, user_output).
 
 show_ranges([], _, _) :- !.
-show_ranges([From-To|Rest], Manual, Pager) :-
+show_ranges([FromLine-ToLine|Rest], Manual, Pager) :-
+	line_start(FromLine, From),
+	line_start(ToLine, To),
 	seek(Manual, From, bof, _),
 	Range is To - From,
 	copy_chars(Range, Manual, Pager),
@@ -193,8 +195,45 @@ set_overstrike_feature :-
 	
 :- initialization set_overstrike_feature.
 
+%%	line_start(Line, Start) is det.
+%
+%	True if Start is the byte position at which Line starts.
 
-%	APROPOS
+:- dynamic
+	start_of_line/2.
+
+line_start(Line, Start) :-
+	start_of_line(Line, Start), !.
+line_start(Line, Start) :-
+	line_index,
+	start_of_line(Line, Start).
+
+
+%%	line_index
+%
+%	Create index holding the byte positions for the line starts
+
+line_index :-
+	start_of_line(_,_), !.
+line_index :-
+	online_manual_stream(Stream),
+	set_stream(Stream, encoding(octet)),
+	call_cleanup(line_index(Stream, 1), close(Stream)).
+
+line_index(Stream, LineNo) :-
+	byte_count(Stream, ByteNo),
+	assert(start_of_line(LineNo, ByteNo)),
+	(   at_end_of_stream(Stream)
+	->  true
+	;   LineNo2 is LineNo+1,
+	    skip(Stream, 10),
+	    line_index(Stream, LineNo2)
+	).
+
+
+		 /*******************************
+		 *	       APROPOS		*
+		 *******************************/
 
 give_apropos(Atom) :-
 	ignore(predicate_apropos(Atom)),
