@@ -68,18 +68,16 @@ following finds the executable for =ls=:
 *|Incompatibilities and current limitations|*
 
     * Where SICStus distinguishes between an internal process id and
-    the OS process id, we do not make this distinction.  This implies
-    that is_process/1 is incomplete and unreliable.
+    the OS process id, this implements does not make this distinction.
+    This implies that is_process/1 is incomplete and unreliable.
 
-    * SICStus only supports ISO 8859-1 (latin-1).  We support arbitrary
-    OS multibyte interaction using the default locale.
+    * SICStus only supports ISO 8859-1 (latin-1). This implementation
+    supports arbitrary OS multibyte interaction using the default
+    locale.
 
     * The detached(Bool) option is implemented, but not processed.  It
-    is inclear what it is supposed to do.  Disable signals in the child?
+    is unclear what it is supposed to do.  Disable signals in the child?
     Use setsid() to detach from the session?
-
-    * The current implementation is limited to Unix systems.  A windows
-    version will follow.
 
 @tbd	Implement detached option in process_create/3
 @compat	SICStus 4
@@ -182,7 +180,7 @@ user:file_search_path(path, Dir) :-
 %	?- process_create(path(ls), ['-l'], []).
 %	==
 %	
-%	@bug	The detach options is a no-op.
+%	@tbd	The detach options is a no-op.
 %	@error	process_error(Exe, Status) where Status is one of
 %		exit(Code) or killed(Signal).  Raised if the process
 %		does not exit with status 0.
@@ -302,7 +300,7 @@ process_wait(PID, Status) :-
 %	friendly variation one gets after   removing  =SIG= and downcase
 %	the result: =stop=. On Windows systems,   Signal  is ignored and
 %	the process is terminated using   the TerminateProcess() API. On
-%	Windows systems PID must  be   optained  from  process_create/3,
+%	Windows systems PID must  be   obtained  from  process_create/3,
 %	while any PID is allowed on Unix systems.
 %	
 %	@compat	SICStus does not accept the prolog friendly version.  We
