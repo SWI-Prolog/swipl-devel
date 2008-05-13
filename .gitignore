@@ -89,6 +89,7 @@ packages/xpce/src/names
 packages/xpce/src/xpce-stub.exe
 packages/xpce/src/xpce-stub.res
 packages/xpce/xpce.spec
+packages/xpce/src/xpce-install.exe
 packages/zlib/Makefile
 autom4te.cache
 src/pl.sh
