@@ -165,17 +165,31 @@ user:term_expansion((:- thread_local(PI)), (:- dynamic(PI))) :-
 %		When the tests are run.  Values are =manual=, =make=
 %		or make(all).
 %		
+%		* silent(+Bool)
+%		If =true= (default =false=), report successful tests
+%		using message level =silent=, only printing errors and
+%		warnings.
+%		
 %		* sto(+Bool)
 %		How to test whether code is subject to occurs check
 %		(STO).  If =false= (default), STO is not considered.
 %		If =true= and supported by the hosting Prolog, code
 %		is run in all supported unification mode and reported
 %		if the results are inconsistent.
-%		
-%	@tbd	Verify types	
 
 set_test_options(Options) :-
+	valid_options(Options, global_test_option),
 	set_test_flag(test_options, Options).
+
+global_test_option(load(Load)) :-
+	must_be(oneof([never,always,normal]), Load).
+global_test_option(run(When)) :-
+	must_be(oneof([manual,make,all]), When).
+global_test_option(silent(Bool)) :-
+	must_be(boolean, Bool).
+global_test_option(sto(Bool)) :-
+	must_be(boolean, Bool).
+
 
 %%	loading_tests
 %

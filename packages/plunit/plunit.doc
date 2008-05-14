@@ -445,6 +445,11 @@ belong to files that are reloaded.
 When \const{true} (default is \const{false}), send informational
 messages using the `silent' level.  In practice this means there
 is no output except for errors.
+
+    \termitem{sto}{+Bool}
+When \const{true} (default \const{false}), assume tests are not subject
+to occurs check (non-STO) and verify this if the Prolog implementation
+supports testing this.
 \end{description}
 
     \predicate{load_test_files}{1}{+Options}
