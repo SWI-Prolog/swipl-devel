@@ -42,6 +42,7 @@
 :- use_module(library(debug)).
 :- use_module(library(assoc)).
 :- use_module(library(option)).
+:- use_module(library(error)).
 
 /** <module> XML/SGML writer module
 
@@ -211,30 +212,21 @@ update_state(dtd(DTD), State) :- !,
 update_state(nsmap(Map), State) :- !,
 	set_state(State, nsmap, Map).
 update_state(indent(Indent), State) :- !,
-	must_be(Indent, integer),
+	must_be(integer, Indent),
 	set_state(State, indent, Indent).
 update_state(layout(Bool), State) :- !,
-	must_be(Bool, bool),
+	must_be(boolean, Bool),
 	set_state(State, layout, Bool).
 update_state(doctype(_), _) :- !.
 update_state(public(_),  _) :- !.
 update_state(system(_),  _) :- !.
 update_state(net(Bool), State) :- !,
-	must_be(Bool, bool),
+	must_be(boolean, Bool),
 	set_state(State, net, Bool).
 update_state(header(Bool), _) :- !,
-	must_be(Bool, bool).
+	must_be(boolean, Bool).
 update_state(Option, _) :-
-	throw(error(domain_error(xml_write_option, Option), _)).
-
-must_be(Arg, Type) :-
-	call(Type, Arg), !.
-must_be(Arg, Type) :-
-	throw(error(type_error(Type, Arg), _)).
-
-bool(true).
-bool(false).
-
+	domain_error(xml_write_option, Option).
 
 %	emit_xml_encoding(+Stream, +Options)
 %	
@@ -250,7 +242,7 @@ emit_xml_encoding(Out, Options) :-
 	->  format(Out, '<?xml version="1.0" encoding="UTF-8"?>~n~n', [])
 	;   Encoding == iso_latin_1
 	->  format(Out, '<?xml version="1.0" encoding="ISO-8859-1"?>~n~n', [])
-	;   throw(error(domain_error(xml_encoding, Encoding), _))
+	;   domain_error(xml_encoding, Encoding)
 	).
 emit_xml_encoding(_, _).
 
