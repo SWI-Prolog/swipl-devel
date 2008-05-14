@@ -2757,10 +2757,12 @@ generate_attr_unify_hook(Clauses) :-
 	( N == 0 ->
 		Clauses = []
 	; 
+		Clauses = [GoalsClause|HookClauses],
+		GoalsClause = attribute_goals(_,Goals,Goals),
 		( N == 1 ->
-			generate_attr_unify_hook_one(Clauses)
+			generate_attr_unify_hook_one(HookClauses)
 		;
-			generate_attr_unify_hook_many(N,Clauses)
+			generate_attr_unify_hook_many(N,HookClauses)
 		)
 	).
 
