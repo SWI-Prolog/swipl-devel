@@ -1894,10 +1894,10 @@ skip_list(Word l, Word *tailp ARG_LD)
   if ( isList(*l) )
   { for(;;)
     { length++; l = TailList(l); deRef(l);
-      if ( l == s ) break;
+      if ( *l == *s ) break;
       if ( !isList(*l) ) break;
       length++; l = TailList(l); deRef(l);
-      if ( l == s ) break;
+      if ( *l == *s ) break;
       if ( !isList(*l) ) break;
       s = TailList(s); deRef(s);
     }
