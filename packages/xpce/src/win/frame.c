@@ -1465,6 +1465,12 @@ blockedByModalFrame(FrameObj fr)
 }
 
 
+static status
+postEventFrame(FrameObj fr, EventObj ev)
+{ fail;
+}
+
+
 status
 eventFrame(FrameObj fr, EventObj ev)
 { FrameObj bfr;
@@ -1890,6 +1896,8 @@ static senddecl send_frame[] =
      NAME_windowManager, "Register window manager protocol"),
   SM(NAME_event, 1, "event", eventFrame,
      NAME_event, "Handle event on frame-background"),
+  SM(NAME_postEvent, 1, "event", postEventFrame,
+     NAME_event, "Handle keyboard event on frame-background (fail)"),
   SM(NAME_cursor, 1, "[cursor]", cursorFrame,
      NAME_event, "Define the cursor for the frame-background"),
   SM(NAME_grabPointer, 2, T_grab_pointer, grabPointerFrame,
