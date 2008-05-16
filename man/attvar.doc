@@ -63,7 +63,7 @@ attribute_goals(X) -->
 Before explaining the code we give some example queries:
 
 \begin{tabular}{ll}
-\tt ?- domain(X, [a,b]), X = c		     & no \\
+\tt ?- domain(X, [a,b]), X = c		     & fail \\
 \tt ?- domain(X, [a,b]), domain(X, [a,c]).   & X = a \\
 \tt ?- domain(X, [a,b,c]), domain(X, [a,c]). & domain(X, [a, c]) \\
 \end{tabular}
