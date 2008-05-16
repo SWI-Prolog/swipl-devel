@@ -31,7 +31,7 @@ domain(X, Dom) :-
 	var(Dom), !,
 	get_attr(X, domain, Dom).
 domain(X, List) :-
-	list_to_ordset(List, Domain),
+	list_to_ord_set(List, Domain),
 	put_attr(Y, domain, Domain),
 	X = Y.
 
@@ -40,7 +40,7 @@ domain(X, List) :-
 
 attr_unify_hook(Domain, Y) :-
 	(   get_attr(Y, domain, Dom2)
-	->  ordset_intersection(Domain, Dom2, NewDomain),
+	->  ord_intersection(Domain, Dom2, NewDomain),
 	    (   NewDomain == []
 	    ->	fail
 	    ;	NewDomain = [Value]
@@ -49,8 +49,14 @@ attr_unify_hook(Domain, Y) :-
 	    )
 	;   var(Y)
 	->  put_attr( Y, domain, Domain )
-	;   ordset_memberchk(Y, Domain)
+	;   ord_memberchk(Y, Domain)
 	).
+
+%	Translate attributes from this module to residual goals
+
+attribute_goals(X) -->
+	{ get_attr(X, domain, List) },
+	[domain(X, List)].
 \end{code}
 
 
@@ -59,7 +65,7 @@ Before explaining the code we give some example queries:
 \begin{tabular}{ll}
 \tt ?- domain(X, [a,b]), X = c		     & no \\
 \tt ?- domain(X, [a,b]), domain(X, [a,c]).   & X = a \\
-\tt ?- domain(X, [a,b,c]), domain(X, [a,c]). & X = _G492{att(domain, [a, c], [])} \\
+\tt ?- domain(X, [a,b,c]), domain(X, [a,c]). & domain(X, [a, c]) \\
 \end{tabular}
 
 The predicate \nopredref{domain}{2} fetches (first clause) or assigns
@@ -74,7 +80,9 @@ the domain. Otherwise we take the intersection of the domains and either
 fail if the intersection is empty (first example), simply assign the
 value if there is only one value in the intersection (second example) or
 assign the intersection as the new domain of the variable (third
-example).
+example). The nonterminal attribute_goals/3 is used to translate
+remaining attributes to user-readable goals that, when executed, reinstate
+these attributes.
 
 
 \begin{description}
