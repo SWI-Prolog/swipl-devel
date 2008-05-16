@@ -623,23 +623,33 @@ write_bindings2(Bindings, Residuals, _Det) :-
 %	Omit unneeded module qualifiers  from   QGoals  relative  to the
 %	given module TypeIn.
 
+
 omit_qualifiers([], _, []).
 omit_qualifiers([Goal0|Goals0], TypeIn, [Goal|Goals]) :-
 	omit_qualifier(Goal0, TypeIn, Goal),
 	omit_qualifiers(Goals0, TypeIn, Goals).
 
 omit_qualifier(M:G0, TypeIn, G) :-
-	predicate_property(TypeIn:G0, imported_from(M)), !,
+	M == TypeIn, !,
 	omit_meta_qualifiers(G0, TypeIn, G).
-omit_qualifier(_:G0, TypeIn, G) :-
-	predicate_property(G0, built_in), !,
+omit_qualifier(M:G0, TypeIn, G) :-
+	predicate_property(TypeIn:G0, imported_from(M)),
+	\+ predicate_property(G0, transparent), !,
 	omit_meta_qualifiers(G0, TypeIn, G).
+omit_qualifier(M:G0, TypeIn, G) :-
+	predicate_property(G0, built_in),
+	\+ predicate_property(G0, transparent), !,
+	omit_meta_qualifiers(G0, M, G).
 omit_qualifier(M:G0, _, M:G) :-
 	atom(M), !,
 	omit_meta_qualifiers(G0, M, G).
 omit_qualifier(G0, TypeIn, G) :-
 	omit_meta_qualifiers(G0, TypeIn, G).
 
+omit_meta_qualifiers((QA,QB), TypeIn, (A,B)) :-
+	!,
+	omit_qualifier(QA, TypeIn, A),
+	omit_qualifier(QB, TypeIn, B).
 omit_meta_qualifiers(freeze(V, QGoal), TypeIn, freeze(V, Goal)) :-
 	callable(QGoal), !,
 	omit_qualifier(QGoal, TypeIn, Goal).
