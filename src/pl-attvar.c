@@ -92,7 +92,7 @@ assignAttVar(Word av, Word value ARG_LD)
   }
 
   a = valPAttVar(*av);
-  wake    = allocGlobalNoShift(4);	/* may NOT shift the stacks!!! */
+  wake = allocGlobalNoShift(4);		/* may NOT shift the stacks!!! */
   if ( !wake )
     return outOfStack(&LD->stacks.global, STACK_OVERFLOW_THROW);
   wake[0] = FUNCTOR_wakeup3;
@@ -106,6 +106,8 @@ assignAttVar(Word av, Word value ARG_LD)
     deRef2(tail, t);
     TrailAssignment(t);
     *t = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
+    TrailAssignment(tail);		/* on local stack! */
+    *tail = makeRef(wake+3);
     DEBUG(1, Sdprintf("appended to wakeup\n"));
   } else				/* empty list */
   { Word head = valTermRef(LD->attvar.head);
@@ -113,15 +115,9 @@ assignAttVar(Word av, Word value ARG_LD)
     assert(isVar(*head));
     *head = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
     Trail(head);
-    DEBUG(1, Sdprintf("new wakeup\n"));
-  }
-
-  if ( *tail )
-  { TrailAssignment(tail);		/* on local stack! */
     *tail = makeRef(wake+3);
-  } else
-  { *tail = makeRef(wake+3);
     Trail(tail);
+    DEBUG(1, Sdprintf("new wakeup\n"));
   }
 
   TrailAssignment(av);
