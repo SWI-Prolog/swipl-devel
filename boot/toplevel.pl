@@ -635,11 +635,11 @@ omit_qualifier(M:G0, TypeIn, G) :-
 omit_qualifier(M:G0, TypeIn, G) :-
 	predicate_property(TypeIn:G0, imported_from(M)),
 	\+ predicate_property(G0, transparent), !,
-	omit_meta_qualifiers(G0, TypeIn, G).
+	G0 = G.
 omit_qualifier(M:G0, TypeIn, G) :-
 	predicate_property(G0, built_in),
 	\+ predicate_property(G0, transparent), !,
-	omit_meta_qualifiers(G0, M, G).
+	G0 = G.
 omit_qualifier(M:G0, _, M:G) :-
 	atom(M), !,
 	omit_meta_qualifiers(G0, M, G).
