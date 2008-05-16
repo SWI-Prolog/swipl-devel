@@ -1273,7 +1273,7 @@ into_relocation_chain(Word current, int stg ARG_LD)
   set_value(current, get_value(head));
   set_value(head, consPtr(current, stg|tag(val)));
 
-  DEBUG(2, Sdprintf("Into relocation chain: %p (head = %p)\n",
+  DEBUG(3, Sdprintf("Into relocation chain: %p (head = %p)\n",
 		    current, head));
 
   if ( is_first(head) )
