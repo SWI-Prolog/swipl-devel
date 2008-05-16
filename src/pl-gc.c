@@ -254,18 +254,31 @@ print_adr(Word adr, char *buf)
 
 static char *
 print_val(word val, char *buf)
-{ char *tag_name[] = { "var", "float", "int", "atom",
-		       "string", "list", "term", "ref" };
-  char *stg_name[] = { "static/inline/trail", "global", "local", "reserved" };
+{ GET_LD
+  char *tag_name[] = { "var", "attvar", "float", "int", "atom",
+		       "string", "term", "ref" };
+  char *stg_name[] = { "static", "global", "local", "reserved" };
+  char *o = buf;
 
-  Ssprintf(buf, "%s at %s(%ld)",
-	   tag_name[tag(val)],
-	   stg_name[storage(val) >> 3],
-	   (val >> LMASK_BITS)/sizeof(word));
-  if ( val & MARK_MASK )
-    strcat(buf, "M");
-  if ( val & FIRST_MASK )
-    strcat(buf, "F");
+  if ( val & (MARK_MASK|FIRST_MASK) )
+  { *o++ = '[';
+    if ( val & MARK_MASK )
+      *o++ = 'M';
+    if ( val & FIRST_MASK )
+      *o++ = 'F';
+    *o++ = ']';
+    val &= ~(word)(MARK_MASK|FIRST_MASK);
+  }
+
+  if ( isNil(val) )
+    strcpy(o, "[]");
+  else if ( isTaggedInt(val) )
+    Ssprintf(o, "int(%ld)", valInteger(val));
+  else
+    Ssprintf(o, "%s at %s(%ld)",
+	     tag_name[tag(val)],
+	     stg_name[storage(val) >> 3],
+	     (val >> LMASK_BITS)/sizeof(word));
 
   return buf;
 }
@@ -973,10 +986,15 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       } else if ( is_marked(tard) )
       { assignments++;
       } else
-      { Word gp;
-	DEBUG(3, Sdprintf("Early reset of assignment at %p (*=0x%lx)\n",
-		 tard, *tard));
-	gp = val_ptr(te->address);
+      { Word gp = val_ptr(te->address);
+
+	DEBUG(1,
+	      char b1[64]; char b2[64]; char b3[64];
+	      Sdprintf("Early reset of assignment at %s (%s --> %s)\n",
+		       print_adr(tard, b1),
+		       print_val(*tard, b2),
+		       print_val(*gp, b3)));
+
 	assert(onGlobal(gp));
 	*tard = *gp;
 	unmark(tard);
