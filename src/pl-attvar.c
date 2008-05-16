@@ -116,8 +116,13 @@ assignAttVar(Word av, Word value ARG_LD)
     DEBUG(1, Sdprintf("new wakeup\n"));
   }
 
-  TrailAssignment(tail);		/* on local stack! */
-  *tail = makeRef(wake+3);
+  if ( *tail )
+  { TrailAssignment(tail);		/* on local stack! */
+    *tail = makeRef(wake+3);
+  } else
+  { *tail = makeRef(wake+3);
+    Trail(tail);
+  }
 
   TrailAssignment(av);
   if ( isAttVar(*value) )

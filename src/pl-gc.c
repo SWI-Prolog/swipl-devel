@@ -988,7 +988,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       } else
       { Word gp = val_ptr(te->address);
 
-	DEBUG(1,
+	DEBUG(2,
 	      char b1[64]; char b2[64]; char b3[64];
 	      Sdprintf("Early reset of assignment at %s (%s --> %s)\n",
 		       print_adr(tard, b1),
@@ -1145,8 +1145,13 @@ mark_trail()
     if ( ttag(te->address) == TAG_TRAILVAL )
     { gp = val_ptr(te->address);
 
-      DEBUG(3, Sdprintf("mark_trail(): trailed value from %p at %p (*=%p)\n",
-			&te->address, gp, *gp));
+      DEBUG(2,
+	    char b1[64]; char b2[64]; char b3[64];
+	    Word tard = val_ptr(te[-1].address);
+	    Sdprintf("mark_trail(): trailed assignment at %s (%s --> %s)\n",
+		     print_adr(tard, b1),
+		     print_val(*gp, b3),
+		     print_val(*tard, b2)));
 
       assert(onGlobal(gp));
       if ( !is_marked(gp) )
