@@ -464,10 +464,12 @@ open_process_pipe(process_context *pc, int which, int fd)
   pc->pipes[which] = fd;
 #endif
 
+#define ISO_FLAGS (SIO_RECORDPOS|SIO_FBUF|SIO_TEXT)
+
   if ( which == 0 )
-    flags = SIO_OUTPUT|SIO_RECORDPOS;
+    flags = SIO_OUTPUT|ISO_FLAGS;
   else
-    flags = SIO_INPUT|SIO_RECORDPOS;
+    flags = SIO_INPUT|ISO_FLAGS;
 
   handle = (void *)((uintptr_t)pc | (uintptr_t)which);
 
