@@ -636,7 +636,7 @@ omit_qualifier(M:G0, TypeIn, G) :-
 	predicate_property(TypeIn:G0, imported_from(M)),
 	\+ predicate_property(G0, transparent), !,
 	G0 = G.
-omit_qualifier(M:G0, TypeIn, G) :-
+omit_qualifier(_:G0, _, G) :-
 	predicate_property(G0, built_in),
 	\+ predicate_property(G0, transparent), !,
 	G0 = G.
@@ -646,8 +646,7 @@ omit_qualifier(M:G0, _, M:G) :-
 omit_qualifier(G0, TypeIn, G) :-
 	omit_meta_qualifiers(G0, TypeIn, G).
 
-omit_meta_qualifiers((QA,QB), TypeIn, (A,B)) :-
-	!,
+omit_meta_qualifiers((QA,QB), TypeIn, (A,B)) :- !,
 	omit_qualifier(QA, TypeIn, A),
 	omit_qualifier(QB, TypeIn, B).
 omit_meta_qualifiers(freeze(V, QGoal), TypeIn, freeze(V, Goal)) :-
