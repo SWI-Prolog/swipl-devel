@@ -1012,7 +1012,8 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       { SECURE(assert(ttag(te[1].address) != TAG_TRAILVAL));
 	te->address = 0;
 	trailcells_deleted++;
-      } else if ( !is_marked(tard) )	/* garbage */
+      } else if ( !is_marked(tard) ||	   /* garbage */
+		  isVar(get_value(tard)) ) /* already var (wakeup list) */
       { setVar(*tard);
 	DEBUG(3, Sdprintf("Early reset at %p\n", tard));
 	te->address = 0;
