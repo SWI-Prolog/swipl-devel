@@ -270,11 +270,19 @@ print_val(word val, char *buf)
     val &= ~(word)(MARK_MASK|FIRST_MASK);
   }
 
-  if ( isNil(val) )
-    strcpy(o, "[]");
+  if ( isVar(val) )
+    strcpy(o, "VAR");
   else if ( isTaggedInt(val) )
     Ssprintf(o, "int(%ld)", valInteger(val));
-  else
+  else if ( isAtom(val) )
+  { const char *s = stringAtom(val);
+    if ( strlen(s) > 10 )
+    { strncpy(o, s, 10);
+      strcat(o, "...");
+    } else
+    { strcpy(o, s);
+    }
+  } else
     Ssprintf(o, "%s at %s(%ld)",
 	     tag_name[tag(val)],
 	     stg_name[storage(val) >> 3],
@@ -905,15 +913,6 @@ mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
 
   DEBUG(2, Sdprintf("Scanning %d trailed assignments\n", assignments));
 
-#if O_SECURE
-  for(te=mark; te <= top; te++)
-  { if ( ttag(te[1].address) == TAG_TRAILVAL )
-    { Word p = val_ptr(te->address);
-      assert(!is_first(p));
-    }
-  }
-#endif
-
   for(te=mark; te <= top; te++)
   { if ( ttag(te[1].address) == TAG_TRAILVAL )
     { Word p = val_ptr(te->address);
@@ -984,7 +983,26 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 	te->address = 0;
 	trailcells_deleted += 2;
       } else if ( is_marked(tard) )
-      { assignments++;
+      { Word gp = val_ptr(te->address);
+
+	assert(onGlobal(gp));
+	assert(!is_first(gp));
+	if ( !is_marked(gp) )
+	{ total_marked++;			/* fix counters */
+	  local_marked--;
+
+	  DEBUG(2,
+		char b1[64]; char b2[64]; char b3[64];
+		Sdprintf("Marking assignment at %s (%s --> %s)\n",
+			 print_adr(tard, b1),
+			 print_val(*gp, b2),
+			 print_val(*tard, b3)));
+
+	  mark_variable(gp PASS_LD);
+	  assert(is_marked(gp));
+	}
+
+	assignments++;
       } else
       { Word gp = val_ptr(te->address);
 
@@ -1012,13 +1030,16 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       { SECURE(assert(ttag(te[1].address) != TAG_TRAILVAL));
 	te->address = 0;
 	trailcells_deleted++;
-      } else if ( !is_marked(tard) ||	   /* garbage */
-		  isVar(get_value(tard)) ) /* already var (wakeup list) */
+      } else if ( !is_marked(tard) )
       { setVar(*tard);
 	DEBUG(3, Sdprintf("Early reset at %p\n", tard));
 	te->address = 0;
 	trailcells_deleted++;
-      }
+      } /*else if ( isVar(get_value(tard)) )
+      { DEBUG(3, Sdprintf("Trailed var already reset %p\n", tard));
+	te->address = 0;
+	trailcells_deleted++;
+      } */
     }
   }
   
@@ -1187,7 +1208,7 @@ mark_phase(LocalFrame fr, Choice ch)
   SECURE(check_marked("Before mark_term_refs()"));
   mark_term_refs();
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
-  mark_trail();
+//  mark_trail();
 #endif
   mark_stacks(fr, ch);
 #if O_SECURE
