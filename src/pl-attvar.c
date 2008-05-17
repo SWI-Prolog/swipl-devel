@@ -114,9 +114,9 @@ assignAttVar(Word av, Word value ARG_LD)
     
     assert(isVar(*head));
     *head = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
-    Trail(head);
+    Trail(head);			/* not gc-ed!? */
     *tail = makeRef(wake+3);
-    Trail(tail);
+    Trail(tail);			/* not gc-ed!? */
     DEBUG(1, Sdprintf("new wakeup\n"));
   }
 
