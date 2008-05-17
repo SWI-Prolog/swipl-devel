@@ -948,12 +948,8 @@ normal trail-pointer, while the  second   is  flagged  with TAG_TRAILVAL
 is encountered, this value is restored  at   the  location  of the first
 trail-cell.
 
-If the trail cell has become garbage,   we  can destroy both cells. Note
-that mark_trail() already has marked the   replaced  value, so that will
-not be garbage collected during this pass. We cannot reverse marking the
-stacks and the trail-stack as one trailed   value might make another one
-non-garbage. It isn't too bad however as the   next GC will take care of
-the term.
+If the trail cell  has  become  garbage,   we  can  destroy  both cells,
+otherwise we must mark the value.
 
 Early reset of trailed  assignments  is   another  issue.  If  a trailed
 location has not yet been  marked  it   can  only  be accessed by frames
@@ -1158,40 +1154,6 @@ mark_stacks(LocalFrame fr, Choice ch)
 }
 
 
-#ifdef O_DESTRUCTIVE_ASSIGNMENT
-static void
-mark_trail()
-{ GET_LD
-  GCTrailEntry te = (GCTrailEntry)tTop - 1;
-
-  for( ; te >= (GCTrailEntry)tBase; te-- )
-  { Word gp;
-
-    if ( ttag(te->address) == TAG_TRAILVAL )
-    { gp = val_ptr(te->address);
-
-      DEBUG(2,
-	    char b1[64]; char b2[64]; char b3[64];
-	    Word tard = val_ptr(te[-1].address);
-	    Sdprintf("mark_trail(): trailed assignment at %s (%s --> %s)\n",
-		     print_adr(tard, b1),
-		     print_val(*gp, b3),
-		     print_val(*tard, b2)));
-
-      assert(onGlobal(gp));
-      if ( !is_marked(gp) )
-      {	total_marked++;			/* fix counters */
-	local_marked--;
-
-	mark_variable(gp PASS_LD);
-	assert(is_marked(gp));
-      }
-    }
-  }
-}
-#endif /*O_DESTRUCTIVE_ASSIGNMENT*/
-
-
 #if O_SECURE
 static int
 cmp_address(const void *vp1, const void *vp2)
@@ -1210,9 +1172,6 @@ mark_phase(LocalFrame fr, Choice ch)
 
   SECURE(check_marked("Before mark_term_refs()"));
   mark_term_refs();
-#ifdef O_DESTRUCTIVE_ASSIGNMENT
-//  mark_trail();
-#endif
   mark_stacks(fr, ch);
 #if O_SECURE
   if ( !scan_global(TRUE) )
