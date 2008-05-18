@@ -497,10 +497,7 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs), actual_ground_mul
 	|
 		( Index = [IndexPos],
                   get_constraint_arg_type(C,IndexPos,Type),
-		  % ( fail , is_chr_constants_type(Type,Key,_) -> get_chr_constants(Key,Constants)
-		  % ; 
-		  Type = chr_enum(Constants) % -> true
-		  % )
+		  Type = chr_enum(Constants)
 		->	 
 			Completeness = complete
 		;
@@ -529,10 +526,7 @@ validate_store_type_assumption(C) \ actual_store_types(C,STs)
 	<=>	
 		memberchk(multi_hash([[Index]]),STs),
 		get_constraint_arg_type(C,Index,Type),
-		% ( 
-		Type = chr_enum(Constants) % -> true
-		% ; fail, is_chr_constants_type(Type,Key,_) -> get_chr_constants(Key,Constants)
-		% )
+		Type = chr_enum(Constants)
 	|
 		delete(STs,multi_hash([[Index]]),STs0),
 		actual_store_types(C,[ground_constants([Index],Constants,complete)|STs0]).	
@@ -5376,7 +5370,8 @@ type_condition([DefCase|DefCases],Arg,UnrollArg,Mode,[Condition|Conditions]) :-
 			 	;	dense_int
 				;	chr_identifier
 				;	chr_identifier(any)
-				;       /* all possible values are given */
+				;       /* all possible values are given 
+					*/
 					chr_enum(list(any))
 				;	/* all possible values appear in rule heads; 
 					   to distinguish between multiple chr_constants
@@ -5407,6 +5402,8 @@ compound_builtin_type(chr_enum(Constants),Arg,(ground(Arg), memberchk(Arg,Consta
 
 is_chr_constants_type(chr_constants(Key),Key,no).
 is_chr_constants_type(chr_constants(Key,ErrorHandler),Key,yes(ErrorHandler)).
+
+is_chr_enum_type(chr_enum(Constants),Constants,no).
 
 type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition) :-
 	( nonvar(DefCase) ->
@@ -10320,35 +10317,68 @@ flattening_dictionary([CS|CSs],Dictionary) :-
 
 flattening_dictionary_entry(CS,Entry) :-
 	get_constraint_type_det(CS,Types),
-	constant_positions(Types,1,Positions,Keys,Handler),
-	Positions \== [],					% there are chr_constant arguments
-	pairup(Keys,Constants,Pairs0),
-	keysort(Pairs0,Pairs),
-	Entry = CS-Positions-Specs-Handler,
-	get_chr_constants(ConstantsList),
-	findall(Spec,
-			( member(Pairs,ConstantsList)
-			, flat_spec(CS,Positions,Constants,Spec)
-			),
-		Specs).
+	constant_positions(Types,1,Positions,Keys,Handler,MaybeEnum),
+	( Positions \== [] ->					% there are chr_constant arguments
+		pairup(Keys,Constants,Pairs0),
+		keysort(Pairs0,Pairs),
+		Entry = CS-Positions-Specs-Handler,
+		get_chr_constants(ConstantsList),
+		findall(Spec,
+				( member(Pairs,ConstantsList)
+				, flat_spec(CS,Positions,Constants,Spec)
+				),
+			Specs)
+	; MaybeEnum == yes ->
+		enum_positions(Types,1,EnumPositions,ConstantsLists),
+		Entry = CS-EnumPositions-Specs-Handler,
+		Handler = no,
+		findall(Spec,
+				( cartesian_product(Terms,ConstantsLists)
+				, flat_spec(CS,Positions,Terms,Spec)
+				),
+			Specs)
+	).
 
-constant_positions([],_,[],[],no).
-constant_positions([Type|Types],I,Positions,Keys,Handler) :-
+constant_positions([],_,[],[],no,no).
+constant_positions([Type|Types],I,Positions,Keys,Handler,MaybeEnum) :-
 	unalias_type(Type,NormalizedType),
 	( is_chr_constants_type(NormalizedType,Key,ErrorHandler) ->
 		compose_error_handlers(ErrorHandler,NHandler,Handler),
 		Positions = [I|NPositions],
-		Keys = [Key|NKeys]
+		Keys = [Key|NKeys],
+		MaybeEnum = NMaybeEnum
 	;
+		( is_chr_enum_type(NormalizedType,_,_) ->
+			MaybeEnum = yes
+		;
+			MaybeEnum = NMaybeEnum
+		),
 		NPositions = Positions,
 		NKeys = Keys,
 		NHandler = Handler
 	),
 	J is I + 1,
-	constant_positions(Types,J,NPositions,NKeys,NHandler).
+	constant_positions(Types,J,NPositions,NKeys,NHandler,NMaybeEnum).
 
 compose_error_handlers(no,Handler,Handler).
 compose_error_handlers(yes(Handler),_,yes(Handler)).
+
+enum_positions([],_,[],[]).
+enum_positions([Type|Types],I,Positions,ConstantsLists) :-
+	unalias_type(Type,NormalizedType),
+	( is_chr_enum_type(NormalizedType,Constants,_) ->
+		Positions      = [I|NPositions],
+		ConstantsLists = [Constants|NConstantsLists]
+	;	Positions      = NPositions,
+		ConstantsLists = NConstantsLists
+	),
+	J is I + 1,
+	enum_positions(Types,J,NPositions,NConstantsLists).
+
+cartesian_product([],[]).
+cartesian_product([E|Es],[L|Ls]) :-
+	member(E,L),
+	cartesian_product(Es,Ls).
 
 flat_spec(C/N,Positions,Terms,Spec) :-
 	Spec = Terms - Functor,
@@ -10389,6 +10419,7 @@ install_new_declarations_and_restart(Declarations) :-
 % 
 % TODO:
 %	-) refined semantics correctness issue
+%	-) incorporate chr_enum into dictionary generation
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 flatten_clauses(Clauses,Dict,NClauses) :-
