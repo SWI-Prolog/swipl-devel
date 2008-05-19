@@ -142,7 +142,7 @@ check:		check-socket check-memfile check-unit check-process
 torture:	torture-socket
 
 check-socket::
-		$(PL) -q -f testsocket.pl -F none -g tcp_test,halt -t 'halt(1)'
+		$(PL) -q -f test_socket.pl -F none -g test_socket,halt -t 'halt(1)'
 
 torture-socket::
 		$(PL) -q -f stresssocket.pl -F none -g test,halt -t 'halt(1)'

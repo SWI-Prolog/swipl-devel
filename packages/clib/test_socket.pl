@@ -29,8 +29,8 @@
     the GNU General Public License.
 */
 
-:- module(tcp_test,
-	  [ tcp_test/0,
+:- module(test_socket,
+	  [ test_socket/0,
 	    server/1,			% +Port
 	    client/1			% +Address
 	  ]).
@@ -40,8 +40,13 @@
 :- use_module(socket).
 :- use_module(user:socket).		% debugging
 :- use_module(streampool).
+:- use_module(library(debug)).
 
-tcp_test :-
+test_socket :-
+	test_udp,
+	test_tcp.
+
+test_tcp :-
 	make_server(Port, Socket),
 	thread_create(run_server(Socket), Server, []),
 	client(localhost:Port),
@@ -172,6 +177,47 @@ reply(exception(E), _, _) :-
 reply(T, _, T).
 
 		 /*******************************
+		 *	       UDP		*
+		 *******************************/
+
+receive_loop(Socket, Queue) :-
+	repeat,
+	    udp_receive(Socket, Data, From, [as(atom)]),
+	    thread_send_message(Queue, got(Data, From)),
+	    Data == quit, !,
+	    tcp_close_socket(Socket).
+
+receiver(Port, ThreadId) :-
+	thread_self(Me),
+	udp_socket(S),
+	tcp_bind(S, Port),
+	thread_create(receive_loop(S, Me), ThreadId, []).
+
+test_udp :-
+	format(user_error, 'Running test set "udp"', []),
+	(   catch(run_udp, E, true)
+	->  (   var(E)
+	    ->	format(user_error, ' . done~n', [])
+	    ;	print_message(error, E)
+	    )
+	;   format(user_error, 'FAILED~n', [])
+	).
+
+run_udp :-
+	receiver(Port, ThreadId),
+	udp_socket(S),
+	udp_send(S, 'hello world', localhost:Port, []),
+	thread_get_message(got(X, _)),
+	udp_send(S, 'quit', localhost:Port, []),
+	thread_get_message(got(Q, _)),
+	thread_join(ThreadId, Exit),
+	tcp_close_socket(S),
+	assertion(X=='hello world'),
+	assertion(Q=='quit'),
+	assertion(Exit==true), !.
+
+
+		 /*******************************
 		 *        TEST MAIN-LOOP	*
 		 *******************************/
 
@@ -247,4 +293,5 @@ test_failed(R, Except) :-
 
 blocked(Reason) :-
 	throw(blocked(Reason)).
+
 
