@@ -124,10 +124,10 @@ char tmp[256];				/* for calling print_val(), etc. */
 #define ldomark(p)	{ *(p) |= MARK_MASK; }
 #define domark(p)	{ if ( is_marked(p) ) \
 			    sysError("marked twice: %p (*= 0x%lx), gTop = %p", p, *(p), gTop); \
+			  DEBUG(3, char b[64]; Sdprintf("\tdomarked(%p = %s)\n", p, print_val(*p, b))); \
 			  *(p) |= MARK_MASK; \
 			  total_marked++; \
 			  recordMark(p); \
-			  DEBUG(4, Sdprintf("is_marked(%p)\n", p)); \
 			}
 #define unmark(p)	(*(p) &= ~MARK_MASK)
 
@@ -448,7 +448,9 @@ mark_variable(Word start ARG_LD)
   word val;				/* old value of current cell */
   Word next;				/* cell to be examined */
 
-  DEBUG(3, Sdprintf("marking %p\n", start));
+  DEBUG(3,
+	char b[64];
+	Sdprintf("marking %p (=%s)\n", start, print_val(*start, b)));
 
   if ( is_marked(start) )
     sysError("Attempt to mark twice");
@@ -589,6 +591,12 @@ static void
 mark_term_refs()
 { GET_LD
   FliFrame fr = fli_context;
+#if O_DEBUG
+  long gmarked = 0;
+  long lmarked = 0;
+#endif
+
+  DEBUG(3, Sdprintf("Marking term references ...\n"));
 
   for( ; fr; fr = fr->parent )
   { Word sp = refFliP(fr, 0);
@@ -599,14 +607,19 @@ mark_term_refs()
     { SECURE(assert(!is_marked(sp)));
 
       if ( isGlobalRef(*sp) )
-      { mark_variable(sp PASS_LD);
+      { DEBUG(3, gmarked++);
+	mark_variable(sp PASS_LD);
       } else
-      { ldomark(sp);      
+      { DEBUG(3, lmarked++);
+	ldomark(sp);      
       }
     }
 
     SECURE(check_marked("After marking foreign frame"));
   }
+
+  DEBUG(3, Sdprintf("Marked %ld global and %ld local term references\n",
+		    gmarked, lmarked));
 }
 
 
@@ -1222,7 +1235,7 @@ update_relocation_chain(Word current, Word dest ARG_LD)
 { Word head = current;
   word val = get_value(current);
 
-  DEBUG(3, Sdprintf("unwinding relocation chain at %p to %p\n",
+  DEBUG(4, Sdprintf("unwinding relocation chain at %p to %p\n",
 		    current, dest));
 
   do
@@ -1257,7 +1270,7 @@ into_relocation_chain(Word current, int stg ARG_LD)
   set_value(current, get_value(head));
   set_value(head, consPtr(current, stg|tag(val)));
 
-  DEBUG(3, Sdprintf("Into relocation chain: %p (head = %p)\n",
+  DEBUG(4, Sdprintf("Into relocation chain: %p (head = %p)\n",
 		    current, head));
 
   if ( is_first(head) )
@@ -1698,7 +1711,7 @@ compact_global(void)
 		 current, *current, gTop, *v);
 #endif
       dest -= offset + 1;
-      DEBUG(3, Sdprintf("Marked cell at %p (size = %ld; dest = %p)\n",
+      DEBUG(4, Sdprintf("Marked cell at %p (size = %ld; dest = %p)\n",
 			current, offset+1, dest));
       if ( is_first(current) )
 	update_relocation_chain(current, dest PASS_LD);
