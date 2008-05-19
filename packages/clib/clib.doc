@@ -491,18 +491,50 @@ protocol, ready for UDP connections.
 Wait for and return the next datagram. The data is returned as a
 Prolog string object (see string_to_list/2). \arg{From} is a term of the
 format \mbox{ip(\arg{A},\arg{B},\arg{C},\arg{D}):\arg{Port}} indicating
-the sender of the message. \arg{Options} is currently unused.
-\arg{Socket} can be waited for using wait_for_input/3.
+the sender of the message. \arg{Socket} can be waited for using wait_for_input/3.
+Defined \arg{Options}:
+
+    \begin{description}
+	\termitem{as}{+Type}
+	Defines the returned term-type.  \arg{Type} is one of
+	\const{atom}, \const{codes} or \const{string} (default).
+    \end{description}
+
+The typical sequence to receive UDP data is:
+
+\begin{code}
+receive(Port) :-
+	udp_socket(S),
+	tcp_bind(S, Port),
+	repeat,
+	    udp_receive(Socket, Data, From, [as(atom)]),
+	    format('Got ~q from ~q~n', [Data, From]),
+	    fail.
+\end{code}
 
     \predicate{udp_send}{4}{+Socket, +Data, +To, +Options}
 Send a UDP message.  Data is a string, atom or code-list providing the
 data.  \arg{To} is an address of the form \arg{Host}:\arg{Port} where
 Host is either the hostname or a term ip/4.  \arg{Options} is currently unused.
 
+A simple example to send UDP data is:
+
+\begin{code}
+send(Host, Port, Message) :-
+	udp_socket(S),
+	udp_send(S, Message, Host:Port, []),
+	tcp_close_socket(S).
+\end{code}
+
 A broadcast is achieved by using \term{tcp_setopt}{Socket, broadcast}
 prior to sending the datagram and using the local network broadcast
 address as a ip/4 term.
 \end{description}
+
+The normal mechanism to discover a service on the local network is for
+the client to send a broadcast message to an agreed port. The server
+receives this message and replies to the client with a message
+indicating further details to establish the communication.
 
 
 \section{CGI Support library}

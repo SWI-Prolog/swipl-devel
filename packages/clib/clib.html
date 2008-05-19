@@ -362,15 +362,14 @@ for executables. E.g. the following finds the executable for <CODE>ls</CODE>:
 <P>
 <UL>
 <LI>Where SICStus distinguishes between an internal process id and the 
-OS process id, we do not make this distinction. This implies that <A class="pred" href="#is_process/1">is_process/1</A> 
-is incomplete and unreliable.
-<LI>SICStus only supports ISO 8859-1 (latin-1). We support arbitrary OS 
-multibyte interaction using the default locale.
+OS process id, this implements does not make this distinction. This 
+implies that <A class="pred" href="#is_process/1">is_process/1</A> is 
+incomplete and unreliable.
+<LI>SICStus only supports ISO 8859-1 (latin-1). This implementation 
+supports arbitrary OS multibyte interaction using the default locale.
 <LI>The detached(Bool) option is implemented, but not processed. It is 
-inclear what it is supposed to do. Disable signals in the child? Use 
+unclear what it is supposed to do. Disable signals in the child? Use 
 setsid() to detach from the session?
-<LI>The current implementation is limited to Unix systems. A windows 
-version will follow.
 </UL>
 
 <DL>
@@ -465,7 +464,7 @@ more window specific options and replace
 <DT><B>Errors</B><DD> process_error(<VAR>Exe</VAR>, Status) where Status 
 is one of exit(Code) or killed(Signal). Raised if the process does not 
 exit with status 0.
-<DT><B>bug</B><DD> The detach options is a no-op.
+<DT><B>To be done</B><DD> The detach options is a no-op.
 </DL>
 
 </DD>
@@ -529,7 +528,7 @@ is an integer, Unix signal name (e.g. <CODE>SIGSTOP</CODE>) or the more
 Prolog friendly variation one gets after removing <CODE>SIG</CODE> and 
 downcase the result: <CODE>stop</CODE>. On Windows systems, <VAR>Signal</VAR> 
 is ignored and the process is terminated using the TerminateProcess() 
-API. On Windows systems <VAR>PID</VAR> must be optained from <A class="pred" href="#process_create/3">process_create/3</A>, 
+API. On Windows systems <VAR>PID</VAR> must be obtained from <A class="pred" href="#process_create/3">process_create/3</A>, 
 while any <VAR>PID</VAR> is allowed on Unix systems.
 
 <DL>
@@ -890,9 +889,31 @@ for UDP connections.</DD>
 Wait for and return the next datagram. The data is returned as a Prolog 
 string object (see <A NAME="idx:stringtolist2:41"></A><SPAN class="pred-ext">string_to_list/2</SPAN>). <VAR>From</VAR> 
 is a term of the format ip(<VAR>A</VAR>,<VAR>B</VAR>,<VAR>C</VAR>,<VAR>D</VAR>):<VAR>Port</VAR> 
-indicating the sender of the message. <VAR>Options</VAR> is currently 
-unused.
-<VAR>Socket</VAR> can be waited for using <A NAME="idx:waitforinput3:42"></A><SPAN class="pred-ext">wait_for_input/3</SPAN>.</DD>
+indicating the sender of the message. <VAR>Socket</VAR> can be waited 
+for using <A NAME="idx:waitforinput3:42"></A><SPAN class="pred-ext">wait_for_input/3</SPAN>. 
+Defined <VAR>Options</VAR>:
+
+<DL>
+<DT><STRONG>as</STRONG>(<VAR>+Type</VAR>)</DT>
+<DD class="defbody">
+Defines the returned term-type. <VAR>Type</VAR> is one of
+<CODE>atom</CODE>, <CODE>codes</CODE> or <CODE>string</CODE> (default).
+</DD>
+</DL>
+
+<P>The typical sequence to receive UDP data is:
+
+<PRE class="code">
+receive(Port) :-
+        udp_socket(S),
+        tcp_bind(S, Port),
+        repeat,
+            udp_receive(Socket, Data, From, [as(atom)]),
+            format('Got ~q from ~q~n', [Data, From]),
+            fail.
+</PRE>
+
+</DD>
 <DT class="pubdef"><A NAME="udp_send/4"><STRONG>udp_send</STRONG>(<VAR>+Socket, 
 +Data, +To, +Options</VAR>)</A></DT>
 <DD class="defbody">
@@ -901,12 +922,26 @@ data. <VAR>To</VAR> is an address of the form <VAR>Host</VAR>:<VAR>Port</VAR>
 where Host is either the hostname or a term <A NAME="idx:ip4:43"></A><SPAN class="pred-ext">ip/4</SPAN>. <VAR>Options</VAR> 
 is currently unused.
 
+<P>A simple example to send UDP data is:
+
+<PRE class="code">
+send(Host, Port, Message) :-
+        udp_socket(S),
+        udp_send(S, Message, Host:Port, []),
+        tcp_close_socket(S).
+</PRE>
+
 <P>A broadcast is achieved by using <CODE>tcp_setopt(Socket, broadcast)</CODE> 
 prior to sending the datagram and using the local network broadcast 
 address as a <A NAME="idx:ip4:44"></A><SPAN class="pred-ext">ip/4</SPAN> 
 term.
 </DD>
 </DL>
+
+<P>The normal mechanism to discover a service on the local network is 
+for the client to send a broadcast message to an agreed port. The server 
+receives this message and replies to the client with a message 
+indicating further details to establish the communication.
 
 <H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">CGI 
 Support library</SPAN></A></H2>
