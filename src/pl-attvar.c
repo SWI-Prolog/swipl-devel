@@ -154,6 +154,34 @@ make_new_attvar(Word p ARG_LD)
 }
 
 
+static int
+put_new_attvar(Word p, atom_t name, Word value ARG_LD)
+{ Word gp, at;
+
+  if ( onStackArea(local, p) )
+  { gp = allocGlobal(6);
+    at = &gp[1];
+    setVar(*at);
+    gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
+    *p = makeRef(&gp[0]);
+  } else
+  { gp = allocGlobal(5);
+    at = &gp[0];
+    setVar(*at);
+    *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
+  }
+
+  at[1] = FUNCTOR_att3;
+  at[2] = name;
+  at[3] = linkVal(value);
+  at[4] = ATOM_nil;
+  at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
+
+  Trail(p);
+  succeed;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 int find_attr(Word av, atom_t name, Word *vp)
 
@@ -442,14 +470,13 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
     vp = p;
   }
 
-  requireStack(global, 4*sizeof(word));
+  requireStack(global, 6*sizeof(word));
 
   av = valTermRef(A1);
   deRef(av);
 
   if ( isVar(*av) )
-  { make_new_attvar(av PASS_LD);
-    return put_attr(av, name, vp PASS_LD);
+  { return put_new_attvar(av, name, vp PASS_LD);
   } else if ( isAttVar(*av) )
   { return put_attr(av, name, vp PASS_LD);
   } else
@@ -468,7 +495,7 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
   deRef(av);
 
   if ( isVar(*av) )
-  { make_new_attvar(av PASS_LD);
+  { make_new_attvar(av PASS_LD);	/* TBD: Merge */
     deRef(av);
   } else if ( !isAttVar(*av) )
   { return PL_error("put_attrs", 2, NULL, ERR_MUST_BE_VAR, 1, A1);
@@ -546,8 +573,7 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
     gt[2] = *valTermRef(g);
 
     if ( isVar(*v) )
-    { make_new_attvar(v PASS_LD);		/* <= 2 cells global */
-      put_attr(v, ATOM_freeze, &goal PASS_LD);	/* <= 4 cells global */
+    { put_new_attvar(v, ATOM_freeze, &goal PASS_LD); /* <= 6 cells global */
     } else
     { Word vp;
 
