@@ -174,9 +174,10 @@ reifiable constraints or Boolean variables, then:
     | P #==> Q  | True iff P implies Q            |
     | P #<== Q  | True iff Q implies P            |
 
-If a variable occurs at the place of a constraint that is being
-reified, it is implicitly constrained to the Boolean values 0 and 1.
-Therefore, the following queries all fail: ?- #\ 2., ?- #\ #\ 2. etc.
+The constraints of this table are reifiable as well. If a variable
+occurs at the place of a constraint that is being reified, it is
+implicitly constrained to the Boolean values 0 and 1. Therefore, the
+following queries all fail: ?- #\ 2., ?- #\ #\ 2. etc.
 
 As an example of a constraint satisfaction problem, consider the
 cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters
