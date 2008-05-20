@@ -853,19 +853,7 @@ domain_contract_less(D0, M, D) :-
         (   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
         ;   D1 = D0, M1 = M
         ),
-        (   fail, domain_infimum(D1, n(_)), domain_supremum(D1, n(_)) ->
-            % bounded domain - currently disabled
-            domain_intervals(D1, Is),
-            phrase(intervals_contract_less(Is, M1), Cs),
-            list_to_domain(Cs, D)
-        ;   domain_contract_less_(D1, M1, D)
-        ).
-
-intervals_contract_less([], _)               --> [].
-intervals_contract_less([n(A0)-n(B0)|Is], M) -->
-        { A is A0 // M, B is B0 // M, numlist(A, B, Ns) },
-        dlist(Ns),
-        intervals_contract_less(Is, M).
+        domain_contract_less_(D1, M1, D).
 
 domain_contract_less_(empty, _, empty).
 domain_contract_less_(from_to(From0, To0), M, from_to(From,To)) :-
