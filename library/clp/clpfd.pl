@@ -3080,10 +3080,10 @@ run_propagator(reified_in(V,Dom,B), MState) :-
         ;   B == 0 -> kill(MState), domain_complement(Dom, C), domain(V, C)
         ;   fd_get(V, VD, _),
             (   domains_intersection(VD, Dom, I) ->
-                (   I == VD -> B = 1
+                (   I == VD -> kill(MState), B = 1
                 ;   true
                 )
-            ;   B = 0
+            ;   kill(MState), B = 0
             )
         ).
 
