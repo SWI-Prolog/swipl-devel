@@ -1999,6 +1999,11 @@ reify(Expr, B) :-
             make_propagator(reified_in(V,Dom,B), Prop),
             init_propagator(V, Prop), init_propagator(B, Prop),
             trigger_prop(Prop)
+        ;   Expr = finite_domain(V) ->
+            fd_variable(V),
+            make_propagator(reified_fd(V,B), Prop),
+            init_propagator(V, Prop), init_propagator(B, Prop),
+            trigger_prop(Prop)
         ;   Expr = (L #>= R) ->
             parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
             make_propagator(reified_geq(LD,LR,RD,RR,B), Prop),
@@ -3087,6 +3092,13 @@ run_propagator(reified_in(V,Dom,B), MState) :-
             )
         ).
 
+run_propagator(reified_fd(V,B), MState) :-
+        (   fd_inf(V, I), I \== inf, fd_sup(V, S), S \== sup ->
+            kill(MState),
+            B = 1
+        ;   true
+        ).
+
 % The result of X/Y and X mod Y is undefined iff Y is 0.
 
 run_propagator(reified_div(X,Y,D,Z), MState) :-
@@ -3693,6 +3705,7 @@ attribute_goal_(rel_tuple(mutable(Rel,_), Tuple), tuples_in([Tuple], Rel)).
 % reified constraints
 attribute_goal_(reified_in(V, D, B), V in Drep #<==> B) :-
         domain_to_drep(D, Drep).
+attribute_goal_(reified_fd(V,B), finite_domain(V) #<==> B).
 attribute_goal_(reified_neq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #\= Y) #<==> B).
 attribute_goal_(reified_eq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #= Y) #<==> B).
 attribute_goal_(reified_geq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #>= Y) #<==> B).
