@@ -238,7 +238,7 @@ fac(0, 1).
 fac(N, F) :- N #> 0, N1 #= N - 1, F #= N * F1, fac(N1, F1).
 ==
 
-This program can be used in all directions. For example:
+This predicate can be used in all directions. For example:
 
 ==
 ?- fac(47, F).
