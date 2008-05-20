@@ -3641,17 +3641,10 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
         ),
         intervals_to_drep(Rest, Drep0 \/ D1, Drep).
 
-attribute_goal(X, Goal) :-
-        phrase(attribute_goals(X), Goals),
-        list_dot(Goals, Goal).
-
 attribute_goals(X) -->
         { get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)), domain_to_drep(Dom, Drep) },
         [clpfd:(X in Drep)],
         attributes_goals(Ps).
-
-list_dot([A], A)        :- !.
-list_dot([A|As], (A,G)) :- list_dot(As, G).
 
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
