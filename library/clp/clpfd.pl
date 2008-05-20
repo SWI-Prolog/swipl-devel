@@ -227,6 +227,33 @@ fd_size/2 etc.) with which you can inspect a variable's current
 domain. Use call_residue_vars/2 and copy_term/3 to inspect residual
 goals and the constraints in which a variable is involved.
 
+It is perfectly reasonable to use CLP(FD) constraints instead of
+ordinary integer arithmetic with is/2. This can make programs
+more general. For example:
+
+==
+:- use_module(library(clpfd)).
+
+fac(0, 1).
+fac(N, F) :- N #> 0, N1 #= N - 1, F #= N * F1, fac(N1, F1).
+==
+
+This program can be used in all directions. For example:
+
+==
+?- fac(47, F).
+F = 258623241511168180642964355153611979969197632389120000000000 ;
+fail.
+
+?- fac(N, 1).
+N = 0 ;
+N = 1 ;
+fail.
+
+?- fac(N, 3).
+fail.
+==
+
 @author Markus Triska
 */
 
