@@ -3709,6 +3709,8 @@ attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
         pair_up(Vs, Ds, VDs).
 attribute_goal_(rel_tuple(mutable(Rel,_), Tuple), tuples_in([Tuple], Rel)).
 % reified constraints
+attribute_goal_(reified_in(V, D, B), V in Drep #<==> B) :-
+        domain_to_drep(D, Drep).
 attribute_goal_(reified_neq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #\= Y) #<==> B).
 attribute_goal_(reified_eq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #= Y) #<==> B).
 attribute_goal_(reified_geq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #>= Y) #<==> B).
