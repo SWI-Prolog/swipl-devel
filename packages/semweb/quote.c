@@ -33,6 +33,11 @@
 #include <SWI-Prolog.h>
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Ideally we should have various of these tables and distinguish the host,
+path, query and fragment parts. See RFC3986 for details.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static char *
 uri_ok()
 { static char ok[128];
@@ -48,8 +53,8 @@ uri_ok()
       ok[i] = TRUE;
     for(i='0'; i<='9'; i++)
       ok[i] = TRUE;
-    for(s="-_.!~*'()[]"; *s; s++)
-      ok[(int)*s] = TRUE;
+    for(s="-_.!~*'()"; *s; s++)		/* used to have [], but these general delimiters */
+      ok[(int)*s] = TRUE;		/* cannot be in a fragment or path */
     for(s=";/&?:@=#"; *s; s++)
       ok[(int)*s] = TRUE;
 
