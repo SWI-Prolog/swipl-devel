@@ -5373,6 +5373,9 @@ type_condition([DefCase|DefCases],Arg,UnrollArg,Mode,[Condition|Conditions]) :-
 				;       /* all possible values are given 
 					*/
 					chr_enum(list(any))
+				;	/* all values of interest are given
+					   for the other values a handler is provided */
+					chr_enum(list(any),any)
 				;	/* all possible values appear in rule heads; 
 					   to distinguish between multiple chr_constants
 					   we have a key*/
@@ -5399,11 +5402,13 @@ compound_builtin_type(chr_enum(Constants),Arg,(ground(Arg), memberchk(Arg,Consta
 			  )
 			 ) 
 	).
+compound_builtin_type(chr_enum(_,_),Arg,true,true).
 
 is_chr_constants_type(chr_constants(Key),Key,no).
 is_chr_constants_type(chr_constants(Key,ErrorHandler),Key,yes(ErrorHandler)).
 
-is_chr_enum_type(chr_enum(Constants),Constants,no).
+is_chr_enum_type(chr_enum(Constants),		Constants,	no).
+is_chr_enum_type(chr_enum(Constants,Handler),	Constants,	yes(Handler)).
 
 type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition) :-
 	( nonvar(DefCase) ->
@@ -10329,12 +10334,11 @@ flattening_dictionary_entry(CS,Entry) :-
 				),
 			Specs)
 	; MaybeEnum == yes ->
-		enum_positions(Types,1,EnumPositions,ConstantsLists),
-		Entry = CS-EnumPositions-Specs-Handler,
-		Handler = no,
+		enum_positions(Types,1,EnumPositions,ConstantsLists,EnumHandler),
+		Entry = CS-EnumPositions-Specs-EnumHandler,
 		findall(Spec,
 				( cartesian_product(Terms,ConstantsLists)
-				, flat_spec(CS,Positions,Terms,Spec)
+				, flat_spec(CS,EnumPositions,Terms,Spec)
 				),
 			Specs)
 	).
@@ -10363,17 +10367,19 @@ constant_positions([Type|Types],I,Positions,Keys,Handler,MaybeEnum) :-
 compose_error_handlers(no,Handler,Handler).
 compose_error_handlers(yes(Handler),_,yes(Handler)).
 
-enum_positions([],_,[],[]).
-enum_positions([Type|Types],I,Positions,ConstantsLists) :-
+enum_positions([],_,[],[],no).
+enum_positions([Type|Types],I,Positions,ConstantsLists,Handler) :-
 	unalias_type(Type,NormalizedType),
-	( is_chr_enum_type(NormalizedType,Constants,_) ->
+	( is_chr_enum_type(NormalizedType,Constants,ErrorHandler) ->
+		compose_error_handlers(ErrorHandler,NHandler,Handler),
 		Positions      = [I|NPositions],
 		ConstantsLists = [Constants|NConstantsLists]
 	;	Positions      = NPositions,
-		ConstantsLists = NConstantsLists
+		ConstantsLists = NConstantsLists,
+		Handler	       = NHandler
 	),
 	J is I + 1,
-	enum_positions(Types,J,NPositions,NConstantsLists).
+	enum_positions(Types,J,NPositions,NConstantsLists,NHandler).
 
 cartesian_product([],[]).
 cartesian_product([E|Es],[L|Ls]) :-
@@ -10900,4 +10906,5 @@ dump_code(Clauses) :-
 	).	
 
 chr_banner :-
-	chr_info(banner,'\tThe K.U.Leuven CHR System\t\n\t\tContributors:\tTom Schrijvers, Jon Sneyers, Bart Demoen,\n\t\t\t\tJan Wielemaker\n\t\tCopyright:\tK.U.Leuven, Belgium\n\t\tURL:\t\thttp://www.cs.kuleuven.be/~~toms/CHR/\n',[]).
+	chr_info(banner,'\tThe K.U.Leuven CHR System\n\t\tMain Developer:\tTom Schrijvers\n\t\tContributors:\tJon Sneyers, Bart Demoen, Jan Wielmaker\n\t\tCopyright:\tK.U.Leuven, Belgium\n\t\tURL:\t\thttp://www.cs.kuleuven.be/~~toms/CHR/\n',[]).
+
