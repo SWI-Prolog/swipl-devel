@@ -713,6 +713,8 @@ fragment_chars([]) -->
 fragment_char(C)   --> pchar(C), !.
 fragment_char(0'/) --> "/", !.
 fragment_char(0'?) --> "?", !.
+fragment_char(0'[) --> "[", !.		% Not according RDF3986!
+fragment_char(0']) --> "]", !.
 
 
 		 /*******************************
