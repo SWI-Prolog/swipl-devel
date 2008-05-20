@@ -180,7 +180,7 @@ gather_arg(file(Mode, Title), File) :-
 	findall(tuple('Prolog Source', Pattern),
 		prolog_file_pattern(Pattern),
 		Tuples),
-	'$append'(Tuples, tuple('All files', '*.*'), AllTuples),
+	'$append'(Tuples, [tuple('All files', '*.*')], AllTuples),
 	Filter =.. [chain|AllTuples],
 	current_prolog_flag(hwnd, HWND),
 	working_directory(CWD, CWD),
