@@ -162,7 +162,7 @@ The most important finite domain constraints are:
     | Expr1 #> Expr2   | Expr1 is strictly larger than Expr2 |
     | Expr1 #< Expr2   | Expr1 is strictly smaller than Expr2 |
 
-The constraints #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
+The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
 _reified_, which means reflecting their truth values into Boolean
 values represented by the integers 0 and 1. Let P and Q denote
 reifiable constraints or Boolean variables, then:
@@ -174,9 +174,10 @@ reifiable constraints or Boolean variables, then:
     | P #==> Q  | True iff P implies Q            |
     | P #<== Q  | True iff Q implies P            |
 
-If a variable occurs at the place of a constraint that is being
-reified, it is implicitly constrained to the Boolean values 0 and 1.
-Therefore, the following queries all fail: ?- #\ 2., ?- #\ #\ 2. etc.
+The constraints of this table are reifiable as well. If a variable
+occurs at the place of a constraint that is being reified, it is
+implicitly constrained to the Boolean values 0 and 1. Therefore, the
+following queries all fail: ?- #\ 2., ?- #\ #\ 2. etc.
 
 As an example of a constraint satisfaction problem, consider the
 cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters
@@ -661,6 +662,14 @@ domain_subtract(split(S, Left0, Right0), _, Sub, D) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Complement of a domain
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+domain_complement(D, C) :-
+        default_domain(Default),
+        domain_subtract(Default, D, C).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Convert domain to a list of disjoint intervals From-To.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -844,19 +853,7 @@ domain_contract_less(D0, M, D) :-
         (   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
         ;   D1 = D0, M1 = M
         ),
-        (   fail, domain_infimum(D1, n(_)), domain_supremum(D1, n(_)) ->
-            % bounded domain - currently disabled
-            domain_intervals(D1, Is),
-            phrase(intervals_contract_less(Is, M1), Cs),
-            list_to_domain(Cs, D)
-        ;   domain_contract_less_(D1, M1, D)
-        ).
-
-intervals_contract_less([], _)               --> [].
-intervals_contract_less([n(A0)-n(B0)|Is], M) -->
-        { A is A0 // M, B is B0 // M, numlist(A, B, Ns) },
-        dlist(Ns),
-        intervals_contract_less(Is, M).
+        domain_contract_less_(D1, M1, D).
 
 domain_contract_less_(empty, _, empty).
 domain_contract_less_(from_to(From0, To0), M, from_to(From,To)) :-
@@ -1995,6 +1992,13 @@ reify(Expr, B) :-
         (   cyclic_term(Expr) -> domain_error(clpfd_reifiable_expression, Expr)
         ;   var(Expr) -> B = Expr
         ;   integer(Expr) -> B = Expr
+        ;   Expr = (V in Drep) ->
+            is_drep(Drep),
+            drep_to_domain(Drep, Dom),
+            fd_variable(V),
+            make_propagator(reified_in(V,Dom,B), Prop),
+            init_propagator(V, Prop), init_propagator(B, Prop),
+            trigger_prop(Prop)
         ;   Expr = (L #>= R) ->
             parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
             make_propagator(reified_geq(LD,LR,RD,RR,B), Prop),
@@ -3066,6 +3070,23 @@ run_propagator(pexp(X,Y,Z), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+run_propagator(reified_in(V,Dom,B), MState) :-
+        (   integer(V) ->
+            kill(MState),
+            (   domain_contains(Dom, V) -> B = 1
+            ;   B = 0
+            )
+        ;   B == 1 -> kill(MState), domain(V, Dom)
+        ;   B == 0 -> kill(MState), domain_complement(Dom, C), domain(V, C)
+        ;   fd_get(V, VD, _),
+            (   domains_intersection(VD, Dom, I) ->
+                (   I == VD -> kill(MState), B = 1
+                ;   true
+                )
+            ;   kill(MState), B = 0
+            )
+        ).
+
 % The result of X/Y and X mod Y is undefined iff Y is 0.
 
 run_propagator(reified_div(X,Y,D,Z), MState) :-
@@ -3620,17 +3641,10 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
         ),
         intervals_to_drep(Rest, Drep0 \/ D1, Drep).
 
-attribute_goal(X, Goal) :-
-        phrase(attribute_goals(X), Goals),
-        list_dot(Goals, Goal).
-
 attribute_goals(X) -->
         { get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)), domain_to_drep(Dom, Drep) },
         [clpfd:(X in Drep)],
         attributes_goals(Ps).
-
-list_dot([A], A)        :- !.
-list_dot([A|As], (A,G)) :- list_dot(As, G).
 
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
@@ -3677,6 +3691,8 @@ attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
         pair_up(Vs, Ds, VDs).
 attribute_goal_(rel_tuple(mutable(Rel,_), Tuple), tuples_in([Tuple], Rel)).
 % reified constraints
+attribute_goal_(reified_in(V, D, B), V in Drep #<==> B) :-
+        domain_to_drep(D, Drep).
 attribute_goal_(reified_neq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #\= Y) #<==> B).
 attribute_goal_(reified_eq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #= Y) #<==> B).
 attribute_goal_(reified_geq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #>= Y) #<==> B).
