@@ -162,7 +162,7 @@ The most important finite domain constraints are:
     | Expr1 #> Expr2   | Expr1 is strictly larger than Expr2 |
     | Expr1 #< Expr2   | Expr1 is strictly smaller than Expr2 |
 
-The constraints #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
+The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
 _reified_, which means reflecting their truth values into Boolean
 values represented by the integers 0 and 1. Let P and Q denote
 reifiable constraints or Boolean variables, then:
@@ -659,6 +659,14 @@ domain_subtract(split(S, Left0, Right0), _, Sub, D) :-
         ;   Right == empty -> D = Left
         ;   D = split(S, Left, Right)
         ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Complement of a domain
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+domain_complement(D, C) :-
+        default_domain(Default),
+        domain_subtract(Default, D, C).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Convert domain to a list of disjoint intervals From-To.
@@ -1995,6 +2003,13 @@ reify(Expr, B) :-
         (   cyclic_term(Expr) -> domain_error(clpfd_reifiable_expression, Expr)
         ;   var(Expr) -> B = Expr
         ;   integer(Expr) -> B = Expr
+        ;   Expr = (V in Drep) ->
+            is_drep(Drep),
+            drep_to_domain(Drep, Dom),
+            fd_variable(V),
+            make_propagator(reified_in(V,Dom,B), Prop),
+            init_propagator(V, Prop), init_propagator(B, Prop),
+            trigger_prop(Prop)
         ;   Expr = (L #>= R) ->
             parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
             make_propagator(reified_geq(LD,LR,RD,RR,B), Prop),
@@ -3065,6 +3080,23 @@ run_propagator(pexp(X,Y,Z), MState) :-
 % reified constraints
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+run_propagator(reified_in(V,Dom,B), MState) :-
+        (   integer(V) ->
+            kill(MState),
+            (   domain_contains(Dom, V) -> B = 1
+            ;   B = 0
+            )
+        ;   B == 1 -> kill(MState), domain(V, Dom)
+        ;   B == 0 -> kill(MState), domain_complement(Dom, C), domain(V, C)
+        ;   fd_get(V, VD, _),
+            (   domains_intersection(VD, Dom, I) ->
+                (   I == VD -> B = 1
+                ;   true
+                )
+            ;   B = 0
+            )
+        ).
 
 % The result of X/Y and X mod Y is undefined iff Y is 0.
 
