@@ -2600,9 +2600,12 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 
 	  tt--;				/* restore tail of wakeup list */
 	  p = tt->address;
-	  assert(isTrailVal(p));
-	  tt--;
-	  *tt->address = trailVal(p);
+	  if ( isTrailVal(p) )
+	  { tt--;
+	    *tt->address = trailVal(p);
+	  } else
+	  { setVar(*p);
+	  }
 
 	  tt--;				/* restore head of wakeup list */
 	  p = tt->address;

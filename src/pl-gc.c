@@ -124,10 +124,10 @@ char tmp[256];				/* for calling print_val(), etc. */
 #define ldomark(p)	{ *(p) |= MARK_MASK; }
 #define domark(p)	{ if ( is_marked(p) ) \
 			    sysError("marked twice: %p (*= 0x%lx), gTop = %p", p, *(p), gTop); \
+			  DEBUG(3, char b[64]; Sdprintf("\tdomarked(%p = %s)\n", p, print_val(*p, b))); \
 			  *(p) |= MARK_MASK; \
 			  total_marked++; \
 			  recordMark(p); \
-			  DEBUG(4, Sdprintf("is_marked(%p)\n", p)); \
 			}
 #define unmark(p)	(*(p) &= ~MARK_MASK)
 
@@ -254,18 +254,39 @@ print_adr(Word adr, char *buf)
 
 static char *
 print_val(word val, char *buf)
-{ char *tag_name[] = { "var", "float", "int", "atom",
-		       "string", "list", "term", "ref" };
-  char *stg_name[] = { "static/inline/trail", "global", "local", "reserved" };
+{ GET_LD
+  char *tag_name[] = { "var", "attvar", "float", "int", "atom",
+		       "string", "term", "ref" };
+  char *stg_name[] = { "static", "global", "local", "reserved" };
+  char *o = buf;
 
-  Ssprintf(buf, "%s at %s(%ld)",
-	   tag_name[tag(val)],
-	   stg_name[storage(val) >> 3],
-	   (val >> LMASK_BITS)/sizeof(word));
-  if ( val & MARK_MASK )
-    strcat(buf, "M");
-  if ( val & FIRST_MASK )
-    strcat(buf, "F");
+  if ( val & (MARK_MASK|FIRST_MASK) )
+  { *o++ = '[';
+    if ( val & MARK_MASK )
+      *o++ = 'M';
+    if ( val & FIRST_MASK )
+      *o++ = 'F';
+    *o++ = ']';
+    val &= ~(word)(MARK_MASK|FIRST_MASK);
+  }
+
+  if ( isVar(val) )
+    strcpy(o, "VAR");
+  else if ( isTaggedInt(val) )
+    Ssprintf(o, "int(%ld)", valInteger(val));
+  else if ( isAtom(val) )
+  { const char *s = stringAtom(val);
+    if ( strlen(s) > 10 )
+    { strncpy(o, s, 10);
+      strcat(o, "...");
+    } else
+    { strcpy(o, s);
+    }
+  } else
+    Ssprintf(o, "%s at %s(%ld)",
+	     tag_name[tag(val)],
+	     stg_name[storage(val) >> 3],
+	     (val >> LMASK_BITS)/sizeof(word));
 
   return buf;
 }
@@ -427,7 +448,9 @@ mark_variable(Word start ARG_LD)
   word val;				/* old value of current cell */
   Word next;				/* cell to be examined */
 
-  DEBUG(3, Sdprintf("marking %p\n", start));
+  DEBUG(3,
+	char b[64];
+	Sdprintf("marking %p (=%s)\n", start, print_val(*start, b)));
 
   if ( is_marked(start) )
     sysError("Attempt to mark twice");
@@ -568,6 +591,12 @@ static void
 mark_term_refs()
 { GET_LD
   FliFrame fr = fli_context;
+#if O_DEBUG
+  long gmarked = 0;
+  long lmarked = 0;
+#endif
+
+  DEBUG(3, Sdprintf("Marking term references ...\n"));
 
   for( ; fr; fr = fr->parent )
   { Word sp = refFliP(fr, 0);
@@ -578,14 +607,19 @@ mark_term_refs()
     { SECURE(assert(!is_marked(sp)));
 
       if ( isGlobalRef(*sp) )
-      { mark_variable(sp PASS_LD);
+      { DEBUG(3, gmarked++);
+	mark_variable(sp PASS_LD);
       } else
-      { ldomark(sp);      
+      { DEBUG(3, lmarked++);
+	ldomark(sp);      
       }
     }
 
     SECURE(check_marked("After marking foreign frame"));
   }
+
+  DEBUG(3, Sdprintf("Marked %ld global and %ld local term references\n",
+		    gmarked, lmarked));
 }
 
 
@@ -892,15 +926,6 @@ mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
 
   DEBUG(2, Sdprintf("Scanning %d trailed assignments\n", assignments));
 
-#if O_SECURE
-  for(te=mark; te <= top; te++)
-  { if ( ttag(te[1].address) == TAG_TRAILVAL )
-    { Word p = val_ptr(te->address);
-      assert(!is_first(p));
-    }
-  }
-#endif
-
   for(te=mark; te <= top; te++)
   { if ( ttag(te[1].address) == TAG_TRAILVAL )
     { Word p = val_ptr(te->address);
@@ -936,12 +961,8 @@ normal trail-pointer, while the  second   is  flagged  with TAG_TRAILVAL
 is encountered, this value is restored  at   the  location  of the first
 trail-cell.
 
-If the trail cell has become garbage,   we  can destroy both cells. Note
-that mark_trail() already has marked the   replaced  value, so that will
-not be garbage collected during this pass. We cannot reverse marking the
-stacks and the trail-stack as one trailed   value might make another one
-non-garbage. It isn't too bad however as the   next GC will take care of
-the term.
+If the trail cell  has  become  garbage,   we  can  destroy  both cells,
+otherwise we must mark the value.
 
 Early reset of trailed  assignments  is   another  issue.  If  a trailed
 location has not yet been  marked  it   can  only  be accessed by frames
@@ -971,12 +992,36 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 	te->address = 0;
 	trailcells_deleted += 2;
       } else if ( is_marked(tard) )
-      { assignments++;
+      { Word gp = val_ptr(te->address);
+
+	assert(onGlobal(gp));
+	assert(!is_first(gp));
+	if ( !is_marked(gp) )
+	{ total_marked++;			/* fix counters */
+	  local_marked--;
+
+	  DEBUG(2,
+		char b1[64]; char b2[64]; char b3[64];
+		Sdprintf("Marking assignment at %s (%s --> %s)\n",
+			 print_adr(tard, b1),
+			 print_val(*gp, b2),
+			 print_val(*tard, b3)));
+
+	  mark_variable(gp PASS_LD);
+	  assert(is_marked(gp));
+	}
+
+	assignments++;
       } else
-      { Word gp;
-	DEBUG(3, Sdprintf("Early reset of assignment at %p (*=0x%lx)\n",
-		 tard, *tard));
-	gp = val_ptr(te->address);
+      { Word gp = val_ptr(te->address);
+
+	DEBUG(2,
+	      char b1[64]; char b2[64]; char b3[64];
+	      Sdprintf("Early reset of assignment at %s (%s --> %s)\n",
+		       print_adr(tard, b1),
+		       print_val(*tard, b2),
+		       print_val(*gp, b3)));
+
 	assert(onGlobal(gp));
 	*tard = *gp;
 	unmark(tard);
@@ -994,11 +1039,18 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       { SECURE(assert(ttag(te[1].address) != TAG_TRAILVAL));
 	te->address = 0;
 	trailcells_deleted++;
-      } else if ( !is_marked(tard) )	/* garbage */
+      } else if ( !is_marked(tard) )
       { setVar(*tard);
 	DEBUG(3, Sdprintf("Early reset at %p\n", tard));
 	te->address = 0;
 	trailcells_deleted++;
+      } else if ( isVar(get_value(tard)) )
+      { if ( tard == valTermRef(LD->attvar.tail) ||
+	     tard == valTermRef(LD->attvar.head) )
+	{ DEBUG(3, Sdprintf("Trailed wakeup list already reset %p\n", tard));
+	  te->address = 0;
+	  trailcells_deleted++;
+	}
       }
     }
   }
@@ -1115,35 +1167,6 @@ mark_stacks(LocalFrame fr, Choice ch)
 }
 
 
-#ifdef O_DESTRUCTIVE_ASSIGNMENT
-static void
-mark_trail()
-{ GET_LD
-  GCTrailEntry te = (GCTrailEntry)tTop - 1;
-
-  for( ; te >= (GCTrailEntry)tBase; te-- )
-  { Word gp;
-
-    if ( ttag(te->address) == TAG_TRAILVAL )
-    { gp = val_ptr(te->address);
-
-      DEBUG(3, Sdprintf("mark_trail(): trailed value from %p at %p (*=%p)\n",
-			&te->address, gp, *gp));
-
-      assert(onGlobal(gp));
-      if ( !is_marked(gp) )
-      {	total_marked++;			/* fix counters */
-	local_marked--;
-
-	mark_variable(gp PASS_LD);
-	assert(is_marked(gp));
-      }
-    }
-  }
-}
-#endif /*O_DESTRUCTIVE_ASSIGNMENT*/
-
-
 #if O_SECURE
 static int
 cmp_address(const void *vp1, const void *vp2)
@@ -1162,9 +1185,6 @@ mark_phase(LocalFrame fr, Choice ch)
 
   SECURE(check_marked("Before mark_term_refs()"));
   mark_term_refs();
-#ifdef O_DESTRUCTIVE_ASSIGNMENT
-  mark_trail();
-#endif
   mark_stacks(fr, ch);
 #if O_SECURE
   if ( !scan_global(TRUE) )
@@ -1215,7 +1235,7 @@ update_relocation_chain(Word current, Word dest ARG_LD)
 { Word head = current;
   word val = get_value(current);
 
-  DEBUG(3, Sdprintf("unwinding relocation chain at %p to %p\n",
+  DEBUG(4, Sdprintf("unwinding relocation chain at %p to %p\n",
 		    current, dest));
 
   do
@@ -1250,7 +1270,7 @@ into_relocation_chain(Word current, int stg ARG_LD)
   set_value(current, get_value(head));
   set_value(head, consPtr(current, stg|tag(val)));
 
-  DEBUG(2, Sdprintf("Into relocation chain: %p (head = %p)\n",
+  DEBUG(4, Sdprintf("Into relocation chain: %p (head = %p)\n",
 		    current, head));
 
   if ( is_first(head) )
@@ -1691,7 +1711,7 @@ compact_global(void)
 		 current, *current, gTop, *v);
 #endif
       dest -= offset + 1;
-      DEBUG(3, Sdprintf("Marked cell at %p (size = %ld; dest = %p)\n",
+      DEBUG(4, Sdprintf("Marked cell at %p (size = %ld; dest = %p)\n",
 			current, offset+1, dest));
       if ( is_first(current) )
 	update_relocation_chain(current, dest PASS_LD);

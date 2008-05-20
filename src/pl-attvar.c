@@ -92,7 +92,7 @@ assignAttVar(Word av, Word value ARG_LD)
   }
 
   a = valPAttVar(*av);
-  wake    = allocGlobalNoShift(4);	/* may NOT shift the stacks!!! */
+  wake = allocGlobalNoShift(4);		/* may NOT shift the stacks!!! */
   if ( !wake )
     return outOfStack(&LD->stacks.global, STACK_OVERFLOW_THROW);
   wake[0] = FUNCTOR_wakeup3;
@@ -106,18 +106,19 @@ assignAttVar(Word av, Word value ARG_LD)
     deRef2(tail, t);
     TrailAssignment(t);
     *t = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
+    TrailAssignment(tail);		/* on local stack! */
+    *tail = makeRef(wake+3);
     DEBUG(1, Sdprintf("appended to wakeup\n"));
   } else				/* empty list */
   { Word head = valTermRef(LD->attvar.head);
     
     assert(isVar(*head));
     *head = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
-    Trail(head);
+    Trail(head);			/* not gc-ed!? */
+    *tail = makeRef(wake+3);
+    Trail(tail);			/* not gc-ed!? */
     DEBUG(1, Sdprintf("new wakeup\n"));
   }
-
-  TrailAssignment(tail);		/* on local stack! */
-  *tail = makeRef(wake+3);
 
   TrailAssignment(av);
   if ( isAttVar(*value) )
@@ -150,6 +151,34 @@ make_new_attvar(Word p ARG_LD)
   }
 
   Trail(p);
+}
+
+
+static int
+put_new_attvar(Word p, atom_t name, Word value ARG_LD)
+{ Word gp, at;
+
+  if ( onStackArea(local, p) )
+  { gp = allocGlobal(6);
+    at = &gp[1];
+    setVar(*at);
+    gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
+    *p = makeRef(&gp[0]);
+  } else
+  { gp = allocGlobal(5);
+    at = &gp[0];
+    setVar(*at);
+    *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
+  }
+
+  at[1] = FUNCTOR_att3;
+  at[2] = name;
+  at[3] = linkVal(value);
+  at[4] = ATOM_nil;
+  at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
+
+  Trail(p);
+  succeed;
 }
 
 
@@ -441,14 +470,13 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
     vp = p;
   }
 
-  requireStack(global, 4*sizeof(word));
+  requireStack(global, 6*sizeof(word));
 
   av = valTermRef(A1);
   deRef(av);
 
   if ( isVar(*av) )
-  { make_new_attvar(av PASS_LD);
-    return put_attr(av, name, vp PASS_LD);
+  { return put_new_attvar(av, name, vp PASS_LD);
   } else if ( isAttVar(*av) )
   { return put_attr(av, name, vp PASS_LD);
   } else
@@ -467,7 +495,7 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
   deRef(av);
 
   if ( isVar(*av) )
-  { make_new_attvar(av PASS_LD);
+  { make_new_attvar(av PASS_LD);	/* TBD: Merge */
     deRef(av);
   } else if ( !isAttVar(*av) )
   { return PL_error("put_attrs", 2, NULL, ERR_MUST_BE_VAR, 1, A1);
@@ -545,8 +573,7 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
     gt[2] = *valTermRef(g);
 
     if ( isVar(*v) )
-    { make_new_attvar(v PASS_LD);		/* <= 2 cells global */
-      put_attr(v, ATOM_freeze, &goal PASS_LD);	/* <= 4 cells global */
+    { put_new_attvar(v, ATOM_freeze, &goal PASS_LD); /* <= 6 cells global */
     } else
     { Word vp;
 
