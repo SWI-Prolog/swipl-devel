@@ -227,6 +227,22 @@ typedef struct _plsocket
       size_t written;
       size_t size;			/* buffer size */
     } write;
+    struct
+    { int bytes;			/* byte count */
+      void *buffer;			/* the buffer */
+      size_t size;			/* buffer size */
+      int flags;
+      struct sockaddr *from;
+      socklen_t *fromlen;
+    } recvfrom;
+    struct
+    { int bytes;			/* byte count */
+      void *buffer;			/* the buffer */
+      size_t size;			/* buffer size */
+      int flags;
+      const struct sockaddr *to;
+      socklen_t tolen;
+    } sendto;
   } rdata;
 #endif
 } plsocket;
@@ -295,6 +311,8 @@ request_name(nbio_request request)
     case REQ_CONNECT: return "req_connect";
     case REQ_READ:    return "req_read";
     case REQ_WRITE:   return "req_write";
+    case REQ_RECVFROM:return "req_recvfrom";
+    case REQ_SENDTO:  return "req_sendto";
     default:	      return "req_???";
   }
 }
@@ -699,6 +717,36 @@ doRequest(plsocket *s)
 	}
       }
       break;
+    case REQ_RECVFROM:
+      if ( s->w32_flags & (FD_READ|FD_CLOSE) )
+      { s->w32_flags &= ~FD_READ;
+
+	if ( true(s, SOCK_WAITING) )
+	{ doneRequest(s);
+	  break;
+	}
+
+	s->rdata.recvfrom.bytes =
+		recvfrom(s->socket,
+			 s->rdata.recvfrom.buffer,
+			 (int)s->rdata.recvfrom.size,
+			 s->rdata.recvfrom.flags,
+			 s->rdata.recvfrom.from,
+			 s->rdata.recvfrom.fromlen);
+
+	if ( s->rdata.recvfrom.bytes < 0 )
+	{ s->error = WSAGetLastError();
+
+	  if ( s->error != WSAEWOULDBLOCK )
+	  { DEBUG(1, Sdprintf("Error recvfrom from %d: %s\n",
+			      s->socket, WinSockError(s->error)));
+	    doneRequest(s);
+	  }
+	} else
+	{ doneRequest(s);
+	}
+      }
+      break;
     case REQ_WRITE:
       if ( s->w32_flags & FD_WRITE )
       { int n;
@@ -733,6 +781,39 @@ doRequest(plsocket *s)
 	{ s->rdata.write.bytes = (int)s->rdata.write.written;
 	  doneRequest(s);
 	}
+      }
+    case REQ_SENDTO:
+      if ( s->w32_flags & FD_WRITE )
+      { int n;
+
+	s->w32_flags &= ~FD_WRITE;
+
+	if ( true(s, SOCK_WAITING) )
+	{ doneRequest(s);
+	  break;
+	}
+
+	DEBUG(2, Sdprintf("sendto() %d bytes\n", s->rdata.write.size));
+	n = sendto(s->socket,
+		   s->rdata.sendto.buffer,
+		   s->rdata.sendto.size,
+		   s->rdata.sendto.flags,
+		   s->rdata.sendto.to,
+		   s->rdata.sendto.tolen);
+	DEBUG(2, Sdprintf("Wrote %d bytes\n", n));
+	if ( n < 0 )
+	{ s->error = WSAGetLastError();
+	  s->rdata.write.bytes = n;
+	  DEBUG(1, Sdprintf("[%d]: send(%d, %d bytes): %s\n",
+			    PL_thread_self(), s->socket,
+			    s->rdata.sendto.size,
+			    WinSockError(s->error)));
+	  doneRequest(s);
+	} else
+	  s->error = 0;
+	  
+	s->rdata.sendto.bytes = n;
+	doneRequest(s);
       }
   }
 
@@ -819,8 +900,14 @@ socket_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	  case REQ_READ:
 	    s->rdata.read.bytes = -1;
 	    break;
+	  case REQ_RECVFROM:
+	    s->rdata.recvfrom.bytes = -1;
+	    break;
 	  case REQ_WRITE:
 	    s->rdata.write.bytes = -1;
+	    break;
+	  case REQ_SENDTO:
+	    s->rdata.sendto.bytes = -1;
 	    break;
 	}
 	doneRequest(s);
@@ -2147,3 +2234,124 @@ nbio_close_output(nbio_sock_t socket)
   return rc;
 }
 
+
+		 /*******************************
+		 *	    UDP SUPPORT		*
+		 *******************************/
+
+ssize_t
+nbio_recvfrom(int socket, void *buf, size_t bufSize, int flags,
+	     struct sockaddr *from, socklen_t *fromlen)
+{ plsocket *s;
+  int n;
+
+  if ( !(s = nbio_to_plsocket(socket)) )
+    return -1;
+
+#ifdef __WINDOWS__
+
+  DEBUG(3, Sdprintf("[%d] recvfrom from socket %d\n",
+		    PL_thread_self(), socket));
+
+  n = recvfrom(s->socket, buf, (int)bufSize, flags, from, fromlen);
+  if ( n < 0 )
+  { int wsaerrno;
+
+    if ( (wsaerrno=WSAGetLastError()) == WSAEWOULDBLOCK )
+    { s->rdata.recvfrom.buffer  = buf;
+      s->rdata.recvfrom.size    = bufSize;
+      s->rdata.recvfrom.flags   = flags;
+      s->rdata.recvfrom.from    = from;
+      s->rdata.recvfrom.fromlen = fromlen;
+      placeRequest(s, REQ_RECVFROM);
+      if ( !waitRequest(s) )
+      { errno = EPLEXCEPTION;
+	return -1;
+      }
+      n = s->rdata.recvfrom.bytes;
+    }
+
+    if ( n < 0 )
+    { s->error = wsaerrno;
+      errno = EIO;
+    }
+  } else
+  { s->error = 0;
+  }
+
+#else /*__WINDOWS__*/
+
+  for(;;)
+  { if ( !wait_socket(s) )
+    { errno = EPLEXCEPTION;
+      return -1;
+    }
+
+    n = recvfrom(s->socket, buf, bufSize, flags, from, fromlen);
+
+    if ( n == -1 && need_retry(errno) )
+    { if ( PL_handle_signals() < 0 )
+      { errno = EPLEXCEPTION;
+	return -1;
+      }
+      continue;
+    }
+
+    break;
+  }
+
+#endif /*__WINDOWS__*/
+
+  return n;
+}
+
+
+ssize_t
+nbio_sendto(nbio_sock_t socket, void *buf, size_t bufSize, int flags,
+	    const struct sockaddr *to, socklen_t tolen)
+{ plsocket *s;
+  ssize_t n;
+
+  if ( !(s = nbio_to_plsocket(socket)) )
+    return -1;
+
+#ifdef __WINDOWS__
+  DEBUG(3, Sdprintf("[%d] sending %d bytes using socket %d\n",
+		    PL_thread_self(), (int)bufSize, socket));
+
+  n = sendto(s->socket, buf, (int)bufSize, flags, to, tolen);
+  if ( n < 0 )
+  { int error = WSAGetLastError();
+    
+    if ( error == WSAEWOULDBLOCK )
+      goto wouldblock;
+
+    DEBUG(1, Sdprintf("[%d]: sendto(%d, %d bytes): %s\n",
+		      PL_thread_self(), s->socket, (int)bufSize,
+		      WinSockError(error)));
+    
+    s->error = error;
+    return -1;
+  } else
+    return n;
+
+wouldblock:
+  s->rdata.sendto.buffer  = buf;
+  s->rdata.sendto.size    = bufSize;
+  s->rdata.sendto.bytes   = 0;
+  s->rdata.sendto.flags   = flags;
+  s->rdata.sendto.to      = to;
+  s->rdata.sendto.tolen   = tolen;
+  placeRequest(s, REQ_SENDTO);
+  if ( !waitRequest(s) )
+  { errno = EPLEXCEPTION;		/* handled Prolog signal */
+    return -1;
+  }
+
+  return s->rdata.sendto.bytes;
+
+#else /*__WINDOWS__*/
+
+  return sendto(s->socket, buf, bufSize, flags, to, tolen);
+#endif /*__WINDOWS__*/
+}
