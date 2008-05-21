@@ -1899,6 +1899,7 @@ generate_attach_body_1(FA,Var,Susp,Body) :-
 	).
 
 generate_attach_body_n(F/A,Var,Susp,Body) :-
+	chr_pp_flag(experiment,off), !,	
 	get_constraint_index(F/A,Position),
 	get_max_constraint_index(Total),
 	get_target_module(Mod),
@@ -1908,6 +1909,24 @@ generate_attach_body_n(F/A,Var,Susp,Body) :-
 	( get_attr(Var,Mod,TAttr) ->
 		AddGoal,
 		put_attr(Var,Mod,NTAttr)
+	;
+		put_attr(Var,Mod,NewAttr3)
+	), !.
+generate_attach_body_n(F/A,Var,Susp,Body) :-
+	chr_pp_flag(experiment,on), !,	
+	get_constraint_index(F/A,Position),
+	or_pattern(Position,Pattern),
+	Position1 is Position + 1,
+	get_max_constraint_index(Total),
+	get_target_module(Mod),
+	singleton_attr(Total,Susp,Position,NewAttr3),
+	Body =
+	( get_attr(Var,Mod,TAttr) ->
+		arg(1,TAttr,BitVector),
+		arg(Position1,TAttr,Susps),
+		NBitVector is BitVector \/ Pattern,
+		setarg(1,TAttr,NBitVector),
+		setarg(Position1,TAttr,[Susp|Susps])
 	;
 		put_attr(Var,Mod,NewAttr3)
 	), !.
@@ -8365,7 +8384,8 @@ add_attr(N,Suspension,Position,TAttr,Goal,NTAttr) :-
 		).
 
 rem_attr(N,Var,Suspension,Position,TAttr,Goal) :-
-	chr_pp_flag(dynattr,off), !,
+	chr_pp_flag(dynattr,off), 
+	chr_pp_flag(experiment,off), !,
 	or_pattern(Position,Pattern),
 	and_pattern(Position,DelPattern),
 	make_attr(N,Mask,SuspsList,Attr),
@@ -8388,6 +8408,33 @@ rem_attr(N,Var,Suspension,Position,TAttr,Goal) :-
 				)
 			;
 				put_attr(Var,Mod,Attr2)
+			)
+		;
+			true
+		)
+	), !.
+rem_attr(N,Var,Suspension,Position,TAttr,Goal) :-
+	chr_pp_flag(dynattr,off),
+	chr_pp_flag(experiment,on), !,
+	or_pattern(Position,Pattern),
+	and_pattern(Position,DelPattern),
+	Position1 is Position + 1,
+	get_target_module(Mod),
+	Goal = (
+		arg(1,TAttr,Mask),
+		( Mask /\ Pattern =:= Pattern ->
+			arg(Position1,TAttr,Susps),
+			'chr sbag_del_element'(Susps,Suspension,NewSusps),
+			( NewSusps == [] ->
+				NewMask is Mask /\ DelPattern,
+				( NewMask == 0 ->
+					del_attr(Var,Mod)
+				;
+					arg(1,TAttr,NewMask),
+					setarg(Position1,TAttr,NewSusps)
+				)
+			;
+				setarg(Position1,TAttr,NewSusps)
 			)
 		;
 			true
