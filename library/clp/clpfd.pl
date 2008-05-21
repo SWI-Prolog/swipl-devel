@@ -1738,6 +1738,30 @@ X #=< Y :- Y #>= X.
 %
 % X equals Y.
 
+X #= Y :- clpfd_equal(X, Y).
+
+
+expr_variables(E)   --> { var(E) }, !, [E].
+expr_variables(E)   --> { integer(E) }, !, [].
+expr_variables(A+B) --> expr_variables(A), expr_variables(B).
+expr_variables(A-B) --> expr_variables(A), expr_variables(B).
+expr_variables(A*B) --> expr_variables(A), expr_variables(B).
+expr_variables(A^B) --> expr_variables(A), expr_variables(B).
+
+integer_goal([], I, I).
+integer_goal([V|Vs], I0, I) :- integer_goal(Vs, (integer(V),I0), I).
+
+user:goal_expansion(X #= Y, Equal) :-
+        (   phrase(expr_variables(Y), Vs) ->
+            (   Vs = [] -> Integers = true
+            ;   Vs = [I|Is], integer_goal(Is, integer(I), Integers)
+            ),
+            Equal = (   var(X), Integers -> X is Y
+                    ;   clpfd:clpfd_equal(X, Y)
+                    )
+        ;   Equal = clpfd:clpfd_equal(X, Y)
+        ).
+
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
 linsum(-X, S, S)   --> { var(X) }, !, [vn(X,-1)].
 linsum(I, S0, S)   --> { integer(I) }, !, { S is S0 + I }, [].
@@ -1785,7 +1809,7 @@ filter_linsum([C0|Cs0], [V0|Vs0], Cs, Vs) :-
             filter_linsum(Cs0, Vs0, Cs1, Vs1)
         ).
 
-X #= Y  :-
+clpfd_equal(X, Y)  :-
         (   left_right_linsum_const(X, Y, Cs, Vs, S) ->
             (   Cs = [] -> S =:= 0
             ;   Cs = [C|CsRest],
