@@ -1807,6 +1807,31 @@ gcd_(A, B, G) :-
             gcd_(B, R, G)
         ).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Positive square root of an integer, if any.
+
+   TODO: Replace this when the GMP function becomes available.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+integer_psqrt(N, S) :-
+        N >= 0,
+        integer_psqrt(0, N, N, S).
+
+integer_psqrt(L, U, N, S) :-
+        (   L =:= U -> N =:= L*L, S = L
+        ;   succ(L, U) ->
+            (   L*L =:= N -> S = L
+            ;   U*U =:= N -> S = U
+            ;   fail
+            )
+        ;   Mid is (L + U)//2,
+            (   Mid*Mid > N ->
+                integer_psqrt(L, Mid, N, S)
+            ;   integer_psqrt(Mid, U, N, S)
+            )
+        ).
+
+
 %% ?X #\= ?Y
 %
 % X is not Y.
@@ -2736,20 +2761,16 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ;   nonvar(Z) ->
             (   X == Y ->
                 Z >= 0,
-                catch(PRoot is floor(sqrt(Z)),error(evaluation_error(float_overflow), _), true),
-                (   nonvar(PRoot), PRoot**2 =:= Z ->
-                    kill(MState),
-                    NRoot is -PRoot,
-                    fd_get(X, TXD, TXPs), % temporary variables for this section
-                    (   PRoot =:= 0 -> TXD1 = from_to(n(0),n(0))
-                    ;   TXD1 = split(0, from_to(n(NRoot),n(NRoot)),
-                                     from_to(n(PRoot),n(PRoot)))
-                    ),
-                    domains_intersection(TXD, TXD1, TXD2),
-                    fd_put(X, TXD2, TXPs)
-                ;   % be more tolerant until GMP integer sqrt is available
-                    true
-                )
+                integer_psqrt(Z, PRoot),
+                kill(MState),
+                NRoot is -PRoot,
+                fd_get(X, TXD, TXPs), % temporary variables for this section
+                (   PRoot =:= 0 -> TXD1 = from_to(n(0),n(0))
+                ;   TXD1 = split(0, from_to(n(NRoot),n(NRoot)),
+                                 from_to(n(PRoot),n(PRoot)))
+                ),
+                domains_intersection(TXD, TXD1, TXD2),
+                fd_put(X, TXD2, TXPs)
             ;   true
             ),
             (   fd_get(X, XD, XL, XU, XPs) ->
