@@ -1752,7 +1752,7 @@ integer_goal([], I, I).
 integer_goal([V|Vs], I0, I) :- integer_goal(Vs, (integer(V),I0), I).
 
 user:goal_expansion(X #= Y, Equal) :-
-        (   phrase(expr_variables(Y), Vs) ->
+        (   ( var(X) ; integer(X) ), phrase(expr_variables(Y), Vs) ->
             (   Vs = [] -> Integers = true
             ;   Vs = [I|Is], integer_goal(Is, integer(I), Integers)
             ),
@@ -2668,9 +2668,9 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                 kill(MState),
                 P mod C =:= 0,
                 V is P // C
-            ;   Cs == [1,1] -> kill(MState), Vs = [A,B], P #= A + B
-            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], A #=  B - P
-            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], P #= A - B
+            ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
+            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B - P #= A
+            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A - B #= P
             ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
                 % nl, write(Infs-Sups-Inf-Sup), nl,
                 D1 is P - Inf,
