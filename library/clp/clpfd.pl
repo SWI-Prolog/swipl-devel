@@ -3117,6 +3117,11 @@ run_propagator(reified_fd(V,B), MState) :-
         (   fd_inf(V, I), I \== inf, fd_sup(V, S), S \== sup ->
             kill(MState),
             B = 1
+        ;   B == 0 ->
+            (   fd_inf(V, inf) -> true
+            ;   fd_sup(V, sup) -> true
+            ;   fail
+            )
         ;   true
         ).
 
