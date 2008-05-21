@@ -125,7 +125,7 @@ atom_json_term(Result, Term, Options) :-
 	;   must_be(oneof([atom,string,codes]), Type)
 	),
 	with_output_to(Out,
-		       json_write(current_ouput, Term, Options1)).
+		       json_write(current_output, Term, Options1)).
 
 type_term(atom,   Result, atom(Result)).
 type_term(string, Result, string(Result)).
