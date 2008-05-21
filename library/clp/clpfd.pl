@@ -1756,7 +1756,11 @@ user:goal_expansion(X #= Y, Equal) :-
             (   Vs = [] -> Integers = true
             ;   Vs = [I|Is], integer_goal(Is, integer(I), Integers)
             ),
-            Equal = (   var(X), Integers -> X is Y
+            Equal = (   Integers ->
+                        (   var(X) -> X is Y
+                        ;   integer(X) -> X =:= Y
+                        ;   clpfd:clpfd_equal(X, Y)
+                        )
                     ;   clpfd:clpfd_equal(X, Y)
                     )
         ;   Equal = clpfd:clpfd_equal(X, Y)
@@ -2664,9 +2668,9 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                 kill(MState),
                 P mod C =:= 0,
                 V is P // C
-            ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
-            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B - P #= A
-            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A - B #= P
+            ;   Cs == [1,1] -> kill(MState), Vs = [A,B], P #= A + B
+            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], A #=  B - P
+            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], P #= A - B
             ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
                 % nl, write(Infs-Sups-Inf-Sup), nl,
                 D1 is P - Inf,
