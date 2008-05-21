@@ -1808,16 +1808,16 @@ gcd_(A, B, G) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Positive square root of an integer, if any.
+   Non-negative square root of an integer, if any.
 
    TODO: Replace this when the GMP function becomes available.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-integer_psqrt(N, S) :-
+integer_sqrt(N, S) :-
         N >= 0,
-        integer_psqrt(0, N, N, S).
+        integer_sqrt(0, N, N, S).
 
-integer_psqrt(L, U, N, S) :-
+integer_sqrt(L, U, N, S) :-
         (   L =:= U -> N =:= L*L, S = L
         ;   succ(L, U) ->
             (   L*L =:= N -> S = L
@@ -1826,8 +1826,8 @@ integer_psqrt(L, U, N, S) :-
             )
         ;   Mid is (L + U)//2,
             (   Mid*Mid > N ->
-                integer_psqrt(L, Mid, N, S)
-            ;   integer_psqrt(Mid, U, N, S)
+                integer_sqrt(L, Mid, N, S)
+            ;   integer_sqrt(Mid, U, N, S)
             )
         ).
 
@@ -2761,7 +2761,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ;   nonvar(Z) ->
             (   X == Y ->
                 Z >= 0,
-                integer_psqrt(Z, PRoot),
+                integer_sqrt(Z, PRoot),
                 kill(MState),
                 NRoot is -PRoot,
                 fd_get(X, TXD, TXPs), % temporary variables for this section
