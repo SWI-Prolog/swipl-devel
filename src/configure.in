@@ -85,7 +85,17 @@ AC_PROG_RANLIB
 AC_CANONICAL_HOST
 changequote(,)dnl
 if test "x$ARCH" = "x"; then
-  ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
+  case "$host" in
+    *linux*)
+      ARCH=`echo $host | sed 's/-.*/-linux/'`
+      ;;
+    *-gnu)
+      ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)-gnu/\1-\2/'`
+      ;;
+    *)
+      ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
+      ;;
+  esac
 fi
 changequote([,])dnl
 
