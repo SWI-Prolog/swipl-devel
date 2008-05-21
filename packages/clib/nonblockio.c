@@ -1743,9 +1743,10 @@ nbio_get_port(term_t Port, int *port)
   { struct servent *service;
     
     if ( !(service = getservbyname(name, "tcp")) )
-      return nbio_error(errno, TCP_ERRNO);
+      return pl_error(NULL, 0, NULL, ERR_EXISTENCE, "service", Port);
 
     *port = ntohs(service->s_port);
+    DEBUG(1, Sdprintf("Service %s at port %d\n", name, *port));
     return TRUE;
   }
 
