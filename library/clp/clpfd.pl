@@ -1738,6 +1738,34 @@ X #=< Y :- Y #>= X.
 %
 % X equals Y.
 
+X #= Y :- clpfd_equal(X, Y).
+
+
+expr_variables(E)   --> { var(E) }, !, [E].
+expr_variables(E)   --> { integer(E) }, !, [].
+expr_variables(A+B) --> expr_variables(A), expr_variables(B).
+expr_variables(A-B) --> expr_variables(A), expr_variables(B).
+expr_variables(A*B) --> expr_variables(A), expr_variables(B).
+expr_variables(A^B) --> expr_variables(A), expr_variables(B).
+
+integer_goal([], I, I).
+integer_goal([V|Vs], I0, I) :- integer_goal(Vs, (integer(V),I0), I).
+
+user:goal_expansion(X #= Y, Equal) :-
+        (   phrase(expr_variables(Y), Vs) ->
+            (   Vs = [] -> Integers = true
+            ;   Vs = [I|Is], integer_goal(Is, integer(I), Integers)
+            ),
+            Equal = (   Integers ->
+                        (   var(X) -> X is Y
+                        ;   integer(X) -> X =:= Y
+                        ;   clpfd:clpfd_equal(X, Y)
+                        )
+                    ;   clpfd:clpfd_equal(X, Y)
+                    )
+        ;   Equal = clpfd:clpfd_equal(X, Y)
+        ).
+
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
 linsum(-X, S, S)   --> { var(X) }, !, [vn(X,-1)].
 linsum(I, S0, S)   --> { integer(I) }, !, { S is S0 + I }, [].
@@ -1785,7 +1813,7 @@ filter_linsum([C0|Cs0], [V0|Vs0], Cs, Vs) :-
             filter_linsum(Cs0, Vs0, Cs1, Vs1)
         ).
 
-X #= Y  :-
+clpfd_equal(X, Y)  :-
         (   left_right_linsum_const(X, Y, Cs, Vs, S) ->
             (   Cs = [] -> S =:= 0
             ;   Cs = [C|CsRest],
@@ -1806,6 +1834,31 @@ gcd_(A, B, G) :-
         ;   R is A mod B,
             gcd_(B, R, G)
         ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Non-negative square root of an integer, if any.
+
+   TODO: Replace this when the GMP function becomes available.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+integer_sqrt(N, S) :-
+        N >= 0,
+        integer_sqrt(0, N, N, S).
+
+integer_sqrt(L, U, N, S) :-
+        (   L =:= U -> N =:= L*L, S = L
+        ;   succ(L, U) ->
+            (   L*L =:= N -> S = L
+            ;   U*U =:= N -> S = U
+            ;   fail
+            )
+        ;   Mid is (L + U)//2,
+            (   Mid*Mid > N ->
+                integer_sqrt(L, Mid, N, S)
+            ;   integer_sqrt(Mid, U, N, S)
+            )
+        ).
+
 
 %% ?X #\= ?Y
 %
@@ -1997,6 +2050,11 @@ reify(Expr, B) :-
             drep_to_domain(Drep, Dom),
             fd_variable(V),
             make_propagator(reified_in(V,Dom,B), Prop),
+            init_propagator(V, Prop), init_propagator(B, Prop),
+            trigger_prop(Prop)
+        ;   Expr = finite_domain(V) ->
+            fd_variable(V),
+            make_propagator(reified_fd(V,B), Prop),
             init_propagator(V, Prop), init_propagator(B, Prop),
             trigger_prop(Prop)
         ;   Expr = (L #>= R) ->
@@ -2610,9 +2668,9 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                 kill(MState),
                 P mod C =:= 0,
                 V is P // C
-            ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
-            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B - P #= A
-            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A - B #= P
+            ;   Cs == [1,1] -> kill(MState), Vs = [A,B], P #= A + B
+            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], A #=  B - P
+            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], P #= A - B
             ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
                 % nl, write(Infs-Sups-Inf-Sup), nl,
                 D1 is P - Inf,
@@ -2731,20 +2789,16 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ;   nonvar(Z) ->
             (   X == Y ->
                 Z >= 0,
-                catch(PRoot is floor(sqrt(Z)),error(evaluation_error(float_overflow), _), true),
-                (   nonvar(PRoot), PRoot**2 =:= Z ->
-                    kill(MState),
-                    NRoot is -PRoot,
-                    fd_get(X, TXD, TXPs), % temporary variables for this section
-                    (   PRoot =:= 0 -> TXD1 = from_to(n(0),n(0))
-                    ;   TXD1 = split(0, from_to(n(NRoot),n(NRoot)),
-                                     from_to(n(PRoot),n(PRoot)))
-                    ),
-                    domains_intersection(TXD, TXD1, TXD2),
-                    fd_put(X, TXD2, TXPs)
-                ;   % be more tolerant until GMP integer sqrt is available
-                    true
-                )
+                integer_sqrt(Z, PRoot),
+                kill(MState),
+                NRoot is -PRoot,
+                fd_get(X, TXD, TXPs), % temporary variables for this section
+                (   PRoot =:= 0 -> TXD1 = from_to(n(0),n(0))
+                ;   TXD1 = split(0, from_to(n(NRoot),n(NRoot)),
+                                 from_to(n(PRoot),n(PRoot)))
+                ),
+                domains_intersection(TXD, TXD1, TXD2),
+                fd_put(X, TXD2, TXPs)
             ;   true
             ),
             (   fd_get(X, XD, XL, XU, XPs) ->
@@ -3080,11 +3134,23 @@ run_propagator(reified_in(V,Dom,B), MState) :-
         ;   B == 0 -> kill(MState), domain_complement(Dom, C), domain(V, C)
         ;   fd_get(V, VD, _),
             (   domains_intersection(VD, Dom, I) ->
-                (   I == VD -> B = 1
+                (   I == VD -> kill(MState), B = 1
                 ;   true
                 )
-            ;   B = 0
+            ;   kill(MState), B = 0
             )
+        ).
+
+run_propagator(reified_fd(V,B), MState) :-
+        (   fd_inf(V, I), I \== inf, fd_sup(V, S), S \== sup ->
+            kill(MState),
+            B = 1
+        ;   B == 0 ->
+            (   fd_inf(V, inf) -> true
+            ;   fd_sup(V, sup) -> true
+            ;   fail
+            )
+        ;   true
         ).
 
 % The result of X/Y and X mod Y is undefined iff Y is 0.
@@ -3693,6 +3759,7 @@ attribute_goal_(rel_tuple(mutable(Rel,_), Tuple), tuples_in([Tuple], Rel)).
 % reified constraints
 attribute_goal_(reified_in(V, D, B), V in Drep #<==> B) :-
         domain_to_drep(D, Drep).
+attribute_goal_(reified_fd(V,B), finite_domain(V) #<==> B).
 attribute_goal_(reified_neq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #\= Y) #<==> B).
 attribute_goal_(reified_eq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #= Y) #<==> B).
 attribute_goal_(reified_geq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #>= Y) #<==> B).

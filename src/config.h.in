@@ -63,6 +63,14 @@
 /* Define to 1 if you have the `confstr' function. */
 #undef HAVE_CONFSTR
 
+/* Define to 1 if you have the declaration of `rl_done', and to 0 if you
+   don't. */
+#undef HAVE_DECL_RL_DONE
+
+/* Define to 1 if you have the declaration of `rl_readline_state', and to 0 if
+   you don't. */
+#undef HAVE_DECL_RL_READLINE_STATE
+
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
    */
 #undef HAVE_DIRENT_H

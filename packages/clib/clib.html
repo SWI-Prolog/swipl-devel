@@ -643,7 +643,8 @@ operation, together with <A NAME="idx:tcplisten2:20"></A><A class="pred" href="#
 and <A NAME="idx:tcpaccept3:21"></A><A class="pred" href="#tcp_accept/3">tcp_accept/3</A> 
 implement the <EM>server</EM>-side of the socket interface. If <VAR>Port</VAR> 
 is unbound, the system picks an arbitrary free port and unifies <VAR>Port</VAR> 
-with the selected port number.</DD>
+with the selected port number. <VAR>Port</VAR> is either an integer or 
+the name of a registered service.</DD>
 <DT class="pubdef"><A NAME="tcp_listen/2"><STRONG>tcp_listen</STRONG>(<VAR>+Socket, 
 +Backlog</VAR>)</A></DT>
 <DD class="defbody">
@@ -666,8 +667,18 @@ IP-address of the client.</DD>
 <DD class="defbody">
 Client-interface to connect a socket to a given <VAR>Port</VAR> on a 
 given
-<VAR>Host</VAR>. After successful completion, <A NAME="idx:tcpopensocket3:24"></A><A class="pred" href="#tcp_open_socket/3">tcp_open_socket/3</A> 
-can be used to create I/O-Streams to the remote socket.</DD>
+<VAR>Host</VAR>. <VAR>Port</VAR> is either an integer or the name of a 
+registered service. After successful completion, <A NAME="idx:tcpopensocket3:24"></A><A class="pred" href="#tcp_open_socket/3">tcp_open_socket/3</A> 
+can be used to create I/O-Streams to the remote socket. The fragment 
+below connects to the <A class="url" href="http://www.swi-prolog.org">http://www.swi-prolog.org</A> 
+using the service name instead of the hardcoded number `80'.
+
+<PRE class="code">
+        tcp_socket(Socket),
+        tcp_connect(Socket, 'www.swi-prolog.org':http),
+</PRE>
+
+</DD>
 <DT class="pubdef"><A NAME="tcp_setopt/2"><STRONG>tcp_setopt</STRONG>(<VAR>+Socket, 
 +Option</VAR>)</A></DT>
 <DD class="defbody">

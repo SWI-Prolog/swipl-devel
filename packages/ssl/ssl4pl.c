@@ -593,7 +593,7 @@ pl_ssl_open(term_t config, term_t socket, term_t in, term_t out)
   if ( !(instance = ssl_ssl(conf, si)) )
     return FALSE;			/* TBD: error */
 
-  if ( !(i=Snew(instance, SIO_INPUT, &ssl_funcs)) )
+  if ( !(i=Snew(instance, SIO_INPUT|SIO_RECORDPOS|SIO_FBUF, &ssl_funcs)) )
     return FALSE;
   instance->close_needed++;
 
@@ -602,7 +602,7 @@ pl_ssl_open(term_t config, term_t socket, term_t in, term_t out)
     return FALSE;
   }
   
-  if ( !(o=Snew(instance, SIO_OUTPUT, &ssl_funcs)) )
+  if ( !(o=Snew(instance, SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF, &ssl_funcs)) )
     return FALSE;
   instance->close_needed++;
 

@@ -97,7 +97,9 @@ typedef enum
   REQ_ACCEPT,
   REQ_CONNECT,
   REQ_READ,
-  REQ_WRITE
+  REQ_WRITE,
+  REQ_RECVFROM,
+  REQ_SENDTO
 } nbio_request;
 
 					/* nbio_get_flags() mask */
@@ -143,6 +145,10 @@ extern ssize_t 	nbio_write(nbio_sock_t socket, char *buf, size_t bufSize);
 extern int	nbio_closesocket(nbio_sock_t socket);
 extern int 	nbio_close_input(nbio_sock_t socket);
 extern int 	nbio_close_output(nbio_sock_t socket);
+extern ssize_t	nbio_recvfrom(int socket, void *buf, size_t bufSize, int flags,
+			      struct sockaddr *from, socklen_t *fromlen);
+extern ssize_t	nbio_sendto(nbio_sock_t socket, void *buf, size_t bufSize, int flags,
+			    const struct sockaddr *to, socklen_t tolen);
 
 extern int	nbio_wait(nbio_sock_t socket, nbio_request);
 extern SOCKET	nbio_fd(nbio_sock_t socket);

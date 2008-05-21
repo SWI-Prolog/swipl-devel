@@ -243,9 +243,9 @@ tcp_pipe(term_t in, term_t out)
 { pipe *p = create_pipe(4096, TRUE);
   IOSTREAM *sin, *sout;
 
-  sin  = Snew(p, SIO_FBUF|SIO_INPUT,  &pipe_read_functions);
+  sin  = Snew(p, SIO_FBUF|SIO_INPUT|SIO_RECORDPOS,  &pipe_read_functions);
   p->readers++;
-  sout = Snew(p, SIO_FBUF|SIO_OUTPUT, &pipe_write_functions);
+  sout = Snew(p, SIO_FBUF|SIO_OUTPUT|SIO_RECORDPOS, &pipe_write_functions);
   p->writers++;
 
   if ( !PL_unify_stream(in, sin) ||

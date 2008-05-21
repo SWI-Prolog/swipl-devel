@@ -85,7 +85,17 @@ AC_PROG_RANLIB
 AC_CANONICAL_HOST
 changequote(,)dnl
 if test "x$ARCH" = "x"; then
-  ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
+  case "$host" in
+    *linux*)
+      ARCH=`echo $host | sed 's/-.*/-linux/'`
+      ;;
+    *-gnu)
+      ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)-gnu/\1-\2/'`
+      ;;
+    *)
+      ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
+      ;;
+  esac
 fi
 changequote([,])dnl
 
@@ -683,10 +693,11 @@ if test ! "$runtime" = "yes" -a "$configreadline" = "yes" -a ! $readline_ok = "y
 		[Define to 1 if you have <readline/readline.h>])
       ocflags="$CFLAGS"
       CFLAGS="-I$RLPREFIX/include $CFLAGS"
-      AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
-      AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input rl_done)
+      AC_CHECK_FUNCS(rl_completion_matches rl_insert_close)
+      AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
       AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
       AC_CHECK_FUNCS(rl_filename_completion_function)
+      AC_CHECK_DECLS([rl_readline_state, rl_done])
       FreeBSD="$ocflags"
       readline_ok=yes
     else

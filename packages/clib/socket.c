@@ -288,14 +288,14 @@ pl_open_socket(term_t Socket, term_t Read, term_t Write)
     return FALSE;
   handle = (void *)(long)socket;
   
-  in  = Snew(handle, SIO_INPUT|SIO_RECORDPOS,  &readFunctions);
+  in  = Snew(handle, SIO_INPUT|SIO_RECORDPOS|SIO_FBUF,  &readFunctions);
   in->encoding = ENC_OCTET;
   if ( !PL_open_stream(Read, in) )
     return FALSE;
   nbio_setopt(socket, TCP_INSTREAM, in);
 
   if ( !(nbio_get_flags(socket) & SOCK_LISTEN) )
-  { out = Snew(handle, SIO_OUTPUT|SIO_RECORDPOS, &writeFunctions);
+  { out = Snew(handle, SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF, &writeFunctions);
     out->encoding = ENC_OCTET;
     if ( !PL_open_stream(Write, out) )
       return FALSE;
@@ -342,7 +342,6 @@ udp_receive(term_t Socket, term_t Data, term_t From, term_t options)
   socklen_t alen = sizeof(sockaddr);
 #endif
   int socket;
-  SOCKET fd;
   int flags = 0;
   char buf[UDP_MAXDATA];
   ssize_t n;
@@ -387,11 +386,8 @@ udp_receive(term_t Socket, term_t Data, term_t From, term_t options)
        !nbio_get_sockaddr(From, &sockaddr) )
     return FALSE;
   
-  if ( (fd=nbio_fd(socket)) < 0 )
-    return nbio_error(errno, TCP_ERRNO);
-
-  if ( (n=recvfrom(fd, buf, sizeof(buf), flags,
-		   (struct sockaddr*)&sockaddr, &alen)) == -1 )
+  if ( (n=nbio_recvfrom(socket, buf, sizeof(buf), flags,
+			(struct sockaddr*)&sockaddr, &alen)) == -1 )
     return nbio_error(errno, TCP_ERRNO);
 
   if ( !PL_unify_chars(Data, as, n, buf) )
@@ -410,7 +406,6 @@ udp_send(term_t Socket, term_t Data, term_t To, term_t Options)
   int alen = sizeof(sockaddr);
 #endif
   int socket;
-  SOCKET fd;
   int flags = 0L;
   char *data;
   size_t dlen;
@@ -423,17 +418,10 @@ udp_send(term_t Socket, term_t Data, term_t To, term_t Options)
        !nbio_get_sockaddr(To, &sockaddr) )
     return FALSE;
 
-  if ( (fd=nbio_fd(socket)) < 0 )
-    return nbio_error(errno, TCP_ERRNO);
-
-  if ( (n=sendto(fd, data,
-#ifdef __WINDOWS__
-		 (int)dlen,
-#else
-		 dlen,
-#endif
-		 flags,
-		 (struct sockaddr*)&sockaddr, alen)) == -1 )
+  if ( (n=nbio_sendto(socket, data,
+		      (int)dlen,
+		      flags,
+		      (struct sockaddr*)&sockaddr, alen)) == -1 )
     return nbio_error(errno, TCP_ERRNO);
 
   return TRUE;

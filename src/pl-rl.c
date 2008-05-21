@@ -98,8 +98,8 @@ extern char *filename_completion_function(const char *, int);
 #define rl_completion_matches completion_matches
 #endif
 
-#ifndef HAVE_RL_READLINE_STATE		/* before version 4.2 */
-static int rl_readline_state = 0;
+#if defined(HAVE_DECL_RL_READLINE_STATE) && !HAVE_DECL_RL_READLINE_STATE /* < 4.2 */
+int rl_readline_state = 0;
 #define RL_STATE_INITIALIZED 0
 #endif
 #ifndef HAVE_RL_SET_PROMPT
@@ -111,6 +111,15 @@ static int rl_readline_state = 0;
 #ifndef RL_CLEANUP_AFTER_SIGNAL
 #define rl_cleanup_after_signal() (void)0
 #endif
+
+#if defined(HAVE_DECL_RL_DONE) && !HAVE_DECL_RL_DONE
+/* surely not provided, so we provide a dummy.  We do this as
+   a global symbol, so if there is one in a dynamic library it
+   will work anyway.
+*/
+int rl_done;
+#endif
+
 
 static foreign_t
 pl_rl_read_init_file(term_t file)
@@ -355,9 +364,7 @@ event_hook()
 	  rl_set_prompt(my_prompt);
 	rl_forced_update_display();
 	c0 = Sinput->position->charno;
-#ifdef HAVE_RL_DONE
 	rl_done = FALSE;
-#endif
       }
     }
   } else
@@ -459,9 +466,7 @@ Sread_readline(void *handle, char *buf, size_t size)
 	  line = pl_readline(prompt);
 	  rl_prep_terminal(FALSE);
 	  rl_readline_state = state;
-#ifdef HAVE_RL_DONE
 	  rl_done = 0;
-#endif
 	} else
 	  line = pl_readline(prompt);
 	in_readline--;

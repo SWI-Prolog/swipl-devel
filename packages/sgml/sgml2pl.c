@@ -1485,7 +1485,7 @@ pl_open_dtd(term_t ref, term_t options, term_t stream)
   if ( !PL_get_nil(tail) )
     return sgml2pl_error(ERR_TYPE, "list", options);
 
-  s = Snew(pd, SIO_OUTPUT, &sgml_stream_functions);
+  s = Snew(pd, SIO_OUTPUT|SIO_FBUF, &sgml_stream_functions);
 
   if ( !PL_open_stream(stream, s) )
     return FALSE;
