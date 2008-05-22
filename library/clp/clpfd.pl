@@ -1741,20 +1741,25 @@ X #=< Y :- Y #>= X.
 X #= Y :- clpfd_equal(X, Y).
 
 
-expr_variables(E)   --> { var(E) }, !, [E].
-expr_variables(E)   --> { integer(E) }, !, [].
-expr_variables(A+B) --> expr_variables(A), expr_variables(B).
-expr_variables(A-B) --> expr_variables(A), expr_variables(B).
-expr_variables(A*B) --> expr_variables(A), expr_variables(B).
-expr_variables(A^B) --> expr_variables(A), expr_variables(B).
+expr_variables(E)        --> { var(E) }, !, [E].
+expr_variables(E)        --> { integer(E) }, !, [].
+expr_variables(-E)       --> expr_variables(E).
+expr_variables(A+B)      --> expr_variables(A), expr_variables(B).
+expr_variables(A*B)      --> expr_variables(A), expr_variables(B).
+expr_variables(A-B)      --> expr_variables(A), expr_variables(B).
+expr_variables(min(A,B)) --> expr_variables(A), expr_variables(B).
+expr_variables(max(A,B)) --> expr_variables(A), expr_variables(B).
+expr_variables(A mod B)  --> expr_variables(A), expr_variables(B).
+expr_variables(abs(E))   --> expr_variables(E).
+expr_variables(A^B)      --> expr_variables(A), expr_variables(B).
 
-integer_goal([], I, I).
-integer_goal([V|Vs], I0, I) :- integer_goal(Vs, (integer(V),I0), I).
+integers_goal([], I, I).
+integers_goal([V|Vs], I0, I) :- integers_goal(Vs, (integer(V),I0), I).
 
 user:goal_expansion(X #= Y, Equal) :-
-        (   phrase(expr_variables(Y), Vs) ->
+        (   ( var(X) ; integer(X) ), phrase(expr_variables(Y), Vs) ->
             (   Vs = [] -> Integers = true
-            ;   Vs = [I|Is], integer_goal(Is, integer(I), Integers)
+            ;   Vs = [I|Is], integers_goal(Is, integer(I), Integers)
             ),
             Equal = (   Integers ->
                         (   var(X) -> X is Y
@@ -2668,9 +2673,9 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                 kill(MState),
                 P mod C =:= 0,
                 V is P // C
-            ;   Cs == [1,1] -> kill(MState), Vs = [A,B], P #= A + B
-            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], A #=  B - P
-            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], P #= A - B
+            ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
+            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B - P #= A
+            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A - B #= P
             ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
                 % nl, write(Infs-Sups-Inf-Sup), nl,
                 D1 is P - Inf,
