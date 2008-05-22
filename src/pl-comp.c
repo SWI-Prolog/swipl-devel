@@ -4289,9 +4289,7 @@ replacedBreak(Code PC)
   code c;
 
   if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
-  { PL_UNLOCK(L_BREAK);
     return (code) sysError("No saved instruction for break");
-  }
   bp = (BreakPoint)s->value;
   c = bp->saved_instruction;
 
