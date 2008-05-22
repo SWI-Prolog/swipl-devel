@@ -8430,7 +8430,7 @@ rem_attr(N,Var,Suspension,Position,TAttr,Goal) :-
 				( NewMask == 0 ->
 					del_attr(Var,Mod)
 				;
-					arg(1,TAttr,NewMask),
+					setarg(1,TAttr,NewMask),
 					setarg(Position1,TAttr,NewSusps)
 				)
 			;
