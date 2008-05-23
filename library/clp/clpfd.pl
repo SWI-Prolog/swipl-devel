@@ -2821,17 +2821,10 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ;   nonvar(Y) -> run_propagator(ptimes(Y,X,Z), MState)
         ;   nonvar(Z) ->
             (   X == Y ->
-                Z >= 0,
-                integer_sqrt(Z, PRoot),
                 kill(MState),
+                integer_sqrt(Z, PRoot),
                 NRoot is -PRoot,
-                fd_get(X, TXD, TXPs), % temporary variables for this section
-                (   PRoot =:= 0 -> TXD1 = from_to(n(0),n(0))
-                ;   TXD1 = split(0, from_to(n(NRoot),n(NRoot)),
-                                 from_to(n(PRoot),n(PRoot)))
-                ),
-                domains_intersection(TXD, TXD1, TXD2),
-                fd_put(X, TXD2, TXPs)
+                X in NRoot \/ PRoot
             ;   true
             ),
             (   fd_get(X, XD, XL, XU, XPs) ->
