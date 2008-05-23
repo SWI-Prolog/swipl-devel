@@ -1841,7 +1841,7 @@ gcd_(A, B, G) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Non-negative square root of an integer, if any.
+   Non-negative square root of N, if N is a square number.
 
    TODO: Replace this when the GMP function becomes available.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
