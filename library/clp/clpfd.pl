@@ -1279,6 +1279,34 @@ delete_eq([X|Xs],Y,List) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   contracting/1 -- subject to change
+
+   This can remove additional domain elements from the boundaries.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+contracting(Vs) :-
+        must_be(list, Vs),
+        maplist(finite_domain, Vs),
+        contracting(Vs, fail, Vs).
+
+contracting([], Repeat, Vars) :-
+        (   Repeat -> contracting(Vars, fail, Vars)
+        ;   true
+        ).
+contracting([V|Vs], Repeat, Vars) :-
+        fd_inf(V, Min),
+        (   \+ \+ (V = Min) ->
+            fd_sup(V, Max),
+            (   \+ \+ (V = Max) ->
+                contracting(Vs, Repeat, Vars)
+            ;   V #\= Max,
+                contracting(Vs, true, Vars)
+            )
+        ;   V #\= Min,
+            contracting(Vs, true, Vars)
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Optimisation uses destructive assignment to save the computed
    extremum over backtracking. Failure is used to get rid of copies of
    attributed variables that are created in intermediate steps. At
