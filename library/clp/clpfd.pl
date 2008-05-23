@@ -2565,7 +2565,7 @@ run_propagator(pneq(A, B), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(pgeq(A,B), MState) :-
-        (   A == B -> true
+        (   A == B -> kill(MState)
         ;   nonvar(A) ->
             (   nonvar(B) -> kill(MState), A >= B
             ;   fd_get(B, BD, BPs),
