@@ -1793,6 +1793,8 @@ conds_goal([Cond|Conds], C0, C) :- conds_goal(Conds, (C0,Cond), C).
 
 :- multifile
 	user:goal_expansion/2.
+:- dynamic
+	user:goal_expansion/2.
 
 user:goal_expansion(X #= Y0, Equal) :-
         (   ( var(X) ; integer(X) ), phrase(expr_conds(Y0, Y), Cs) ->
