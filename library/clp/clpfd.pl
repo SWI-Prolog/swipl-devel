@@ -1769,34 +1769,44 @@ X #=< Y :- Y #>= X.
 X #= Y :- clpfd_equal(X, Y).
 
 
-expr_variables(E)        --> { var(E) }, !, [E].
-expr_variables(E)        --> { integer(E) }, !, [].
-expr_variables(-E)       --> expr_variables(E).
-expr_variables(A+B)      --> expr_variables(A), expr_variables(B).
-expr_variables(A*B)      --> expr_variables(A), expr_variables(B).
-expr_variables(A-B)      --> expr_variables(A), expr_variables(B).
-expr_variables(min(A,B)) --> expr_variables(A), expr_variables(B).
-expr_variables(max(A,B)) --> expr_variables(A), expr_variables(B).
-expr_variables(A mod B)  --> expr_variables(A), expr_variables(B).
-expr_variables(abs(E))   --> expr_variables(E).
-expr_variables(A^B)      --> expr_variables(A), expr_variables(B).
+expr_conds(E, E)                 --> { var(E) }, !, [integer(E)].
+expr_conds(E, E)                 --> { integer(E) }, !, [].
+expr_conds(-E0, -E)              --> expr_conds(E0, E).
+expr_conds(abs(E0), abs(E))      --> expr_conds(E0, E).
+expr_conds(A0+B0, A+B)           --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(A0*B0, A+B)           --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(A0-B0, A-B)           --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(A0/B0, A//B)          --> % "/" becomes "//"
+        expr_conds(A0, A), expr_conds(B0, B),
+        [B =\= 0].
+expr_conds(min(A0,B0), min(A,B)) --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(max(A0,B0), max(A,B)) --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(A0 mod B0, A mod B)   -->
+        expr_conds(A0, A), expr_conds(B0, B),
+        [B =\= 0].
+expr_conds(A0^B0, A^B)           -->
+        expr_conds(A0, A), expr_conds(B0, B),
+        [(B >= 0 ; A =:= -1)].
 
-integers_goal([], I, I).
-integers_goal([V|Vs], I0, I) :- integers_goal(Vs, (integer(V),I0), I).
+conds_goal([], C, C).
+conds_goal([Cond|Conds], C0, C) :- conds_goal(Conds, (C0,Cond), C).
 
-user:goal_expansion(X #= Y, Equal) :-
-        (   ( var(X) ; integer(X) ), phrase(expr_variables(Y), Vs) ->
-            (   Vs = [] -> Integers = true
-            ;   Vs = [I|Is], integers_goal(Is, integer(I), Integers)
+:- multifile
+	user:goal_expansion/2.
+
+user:goal_expansion(X #= Y0, Equal) :-
+        (   ( var(X) ; integer(X) ), phrase(expr_conds(Y0, Y), Cs) ->
+            (   Cs = [] -> Cond = true
+            ;   Cs = [C|Rest], conds_goal(Rest, C, Cond)
             ),
-            Equal = (   Integers ->
+            Equal = (   Cond ->
                         (   var(X) -> X is Y
                         ;   integer(X) -> X =:= Y
-                        ;   clpfd:clpfd_equal(X, Y)
+                        ;   clpfd:clpfd_equal(X, Y0)
                         )
-                    ;   clpfd:clpfd_equal(X, Y)
+                    ;   clpfd:clpfd_equal(X, Y0)
                     )
-        ;   Equal = clpfd:clpfd_equal(X, Y)
+        ;   Equal = clpfd:clpfd_equal(X, Y0)
         ).
 
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
