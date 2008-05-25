@@ -220,7 +220,8 @@ many variables. Labeling can be used to search for solutions:
 ?- puzzle(As+Bs=Cs), label(As).
 As = [9, 5, 6, 7],
 Bs = [1, 0, 8, 5],
-Cs = [1, 0, 6, 5, 2]
+Cs = [1, 0, 6, 5, 2] ;
+fail.
 ==
 
 This library also provides _reflection_ predicates (like fd_dom/2,
