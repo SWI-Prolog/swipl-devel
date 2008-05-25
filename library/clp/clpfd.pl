@@ -1768,6 +1768,10 @@ X #=< Y :- Y #>= X.
 
 X #= Y :- clpfd_equal(X, Y).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Conditions under which an equality can be compiled to built-in
+   arithmetic. Their order is significant.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 expr_conds(E, E)                 --> { var(E) }, !, [integer(E)].
 expr_conds(E, E)                 --> { integer(E) }, !, [].
@@ -1788,8 +1792,8 @@ expr_conds(A0^B0, A^B)           -->
         expr_conds(A0, A), expr_conds(B0, B),
         [(B >= 0 ; A =:= -1)].
 
-conds_goal([], C, C).
-conds_goal([Cond|Conds], C0, C) :- conds_goal(Conds, (C0,Cond), C).
+conds_goal([], G, G).
+conds_goal([C|Cs], G0, G) :- conds_goal(Cs, (G0,C), G).
 
 :- multifile
 	user:goal_expansion/2.
