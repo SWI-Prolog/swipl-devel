@@ -131,6 +131,7 @@ is_structured_comment(Comment, Prefixes) :-
 	sub_string(Comment, 0, _, _, '%%'), !,
 	sub_atom(Comment, 2, 1, _, Space),
 	char_type(Space, space),
+	\+ blanks_to_nl(Comment),
 	\+ sub_string(Comment, 2, _, _, ' SWI '),	% HACK
 	\+ sub_string(Comment, 2, _, _, ' SICStus '),	% HACK
 	\+ sub_string(Comment, 2, _, _, ' Mats '), 	% HACK
@@ -140,6 +141,18 @@ is_structured_comment(Comment, Prefixes) :-
 	sub_atom(Comment, 3, 1, _, Space),
 	char_type(Space, space),
 	Prefixes = ["/**", " *"].
+
+blanks_to_nl(Comment) :-
+	sub_atom(Comment, At, 1, _, Char),
+	At > 2,
+	(   char_type(Char, end_of_line)
+	->  !
+	;   char_type(Char, space)
+	->  fail
+	;   !, fail
+	).
+blanks_to_nl(_).
+
 
 %%	doc_file_name(+Source:atom, -Doc:atom, +Options:list) is det.
 %
