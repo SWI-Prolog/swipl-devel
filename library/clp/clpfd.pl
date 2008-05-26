@@ -3152,8 +3152,9 @@ run_propagator(pmin(X,Y,Z), MState) :-
 run_propagator(pexp(X,Y,Z), MState) :-
         (   X == 1 -> kill(MState), Z = 1
         ;   X == 0 -> kill(MState), Z #<==> Y #= 0
-        ;   Y == 1 -> kill(MState), Z = X
         ;   Y == 0 -> kill(MState), Z = 1
+        ;   Y == 1 -> kill(MState), Z = X
+        ;   Y == 2 -> kill(MState), Z #= X*X
         ;   nonvar(X), nonvar(Y) ->
             ( Y >= 0 -> true ; X =:= -1 ),
             kill(MState),
