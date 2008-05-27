@@ -147,7 +147,9 @@ blanks_to_nl(Comment) :-
 	At > 2,
 	(   char_type(Char, end_of_line)
 	->  !
-	;   char_type(Char, space)
+	;   (   char_type(Char, space)
+	    ;	Char == '%'
+	    )
 	->  fail
 	;   !, fail
 	).
