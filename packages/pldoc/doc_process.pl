@@ -144,7 +144,7 @@ is_structured_comment(Comment, Prefixes) :-
 
 blanks_to_nl(Comment) :-
 	sub_atom(Comment, At, 1, _, Char),
-	At > 2,
+	At >= 2,
 	(   char_type(Char, end_of_line)
 	->  !
 	;   (   char_type(Char, space)
