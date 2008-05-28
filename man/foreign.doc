@@ -922,9 +922,9 @@ Extract text and length of an atom.
 \subsubsection{Wide character versions}
 
 Support for exchange of wide character strings is still under
-considerations. The functions dealing with 8-bit character strings
+consideration. The functions dealing with 8-bit character strings
 return failure when operating on a wide character atom or Prolog string
-object. The functions below can extract and unify bith 8-bit and wide
+object. The functions below can extract and unify both 8-bit and wide
 atoms and string objects. Wide character strings are represented as C
 arrays of objects of the type \ctype{pl_wchar_t}, which is guaranteed to
 be the same as \ctype{wchar_t} on platforms supporting this type. For
@@ -934,7 +934,7 @@ using the GNU C library (glibc) this represents 32-bit UCS4 characters.
 \begin{description}
     \cfunction{atom_t}{PL_new_atom_wchars}{size_t len, const pl_wchar_t *s}
 Create atom from wide-character string as PL_new_atom_nchars() does for
-ISO-Latin-1 strings. It \arg{s} only contains ISO-Latin-1 characters a
+ISO-Latin-1 strings. If \arg{s} only contains ISO-Latin-1 characters a
 normal byte-array atom is created.
 
     \cfunction{pl_wchar_t*}{PL_atom_wchars}{atom_t atom, int *len}
@@ -943,7 +943,7 @@ Extract characters from a wide-character atom. Fails (returns
 the wide-character version of PL_atom_nchars().  Note that only one
 of these functions succeeds on a particular atom.  Especially, after
 creating an atom with PL_new_atom_wchars(), extracting the text using
-PL_atom_wchars() will fail of the atom only contains ISO-Latin-1
+PL_atom_wchars() will fail if the atom only contains ISO-Latin-1
 characters.
 
     \cfunction{int}{PL_get_wchars}{term_t t, size_t *len,
@@ -964,7 +964,7 @@ representation and is one of \const{PL_ATOM}, \const{PL_STRING},
 Difference list version of PL_unify_wchars(), only supporting the
 types \const{PL_CODE_LIST} and \const{PL_CHAR_LIST}.  It serves two
 purposes.  It allows for returning very long lists from data read from
-a stream without the need for a resizing buffer in C and the use of
+a stream without the need for a resizing buffer in C.  Also, the use of
 difference lists is often practical for further processing in Prolog.
 Examples can be found in \file{packages/clib/readutil.c} from the
 source distribution.
@@ -1087,7 +1087,7 @@ Put an atom in the term reference from a handle.  See also
 PL_new_atom() and PL_atom_chars().
 \cfunction{void}{PL_put_atom_chars}{term_t -t, const char *chars}
 Put an atom in the term-reference constructed from the 0-terminated
-string.  The string itself will never be references by Prolog after this
+string.  The string itself will never be referenced by Prolog after this
 function.
 \cfunction{void}{PL_put_string_chars}{term_t -t, const char *chars}
 Put a zero-terminated string in the term-reference. The data will be
@@ -1226,7 +1226,7 @@ Unify \arg{t} with the atom \arg{a} and return non-zero on success.
     \cfunction{int}{PL_unify_chars}{term_t ?t, int flags, 
 				    size_t len,
 				    const char *chars}
-New function do deal with unification of \ctype{char*} with various
+New function to deal with unification of \ctype{char*} with various
 encodings to a Prolog representation. The \arg{flags} argument is a
 bitwise \emph{or} specifying the Prolog target type and the encoding of
 \arg{chars}. Prolog types is one of \const{PL_ATOM}, \const{PL_STRING},
@@ -1273,12 +1273,12 @@ PL_put_pointer() and PL_get_pointer().
     \cfunction{int}{PL_unify_functor}{term_t ?t, functor_t f}
 If \arg{t} is a compound term with the given functor, just succeed.
 If it is unbound, create a term and bind the variable, else fails.
-Not that this function does not create a term if the argument is
+Note that this function does not create a term if the argument is
 already instantiated.
     \cfunction{int}{PL_unify_list}{term_t ?l, term_t -h, term_t -t}
 Unify \arg{l} with a list-cell ({\tt ./2}). If successful, write a
 reference to the head of the list to \arg{h} and a reference
-to the tail of the list in \arg{t}. This reference may be used for
+to the tail of the list into \arg{t}. This reference may be used for
 subsequent calls to this function. Suppose we want to return a list of
 atoms from a \ctype{char **}. We could use the example described by
 PL_put_list(), followed by a call to PL_unify(), or we can use the code
