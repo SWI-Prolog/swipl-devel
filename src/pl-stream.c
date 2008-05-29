@@ -537,6 +537,14 @@ update_linepos(IOSTREAM *s, int c)
 
 
 int
+S__fcheckpasteeof(IOSTREAM *s, int c)
+{ S__checkpasteeof(s, c);
+
+  return c;
+}
+
+
+int
 S__fupdatefilepos_getc(IOSTREAM *s, int c)
 { IOPOS *p = s->position;
 
@@ -556,6 +564,7 @@ S__updatefilepos(IOSTREAM *s, int c)
   { update_linepos(s, c);
     p->charno++;
   }
+  S__checkpasteeof(s,c);
 
   return c;
 }
@@ -1545,7 +1554,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
   }
 
 update:
-  s->flags &= ~SIO_FEOF;		/* not on eof of file anymore */
+  s->flags &= ~(SIO_FEOF|SIO_FEOF2);	/* not on eof of file anymore */
 
   if ( s->position )
   { s->flags |= (SIO_NOLINENO|SIO_NOLINEPOS); /* no update this */
