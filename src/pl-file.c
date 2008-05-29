@@ -1302,6 +1302,17 @@ pl_set_stream(term_t stream, term_t attr)
 	  goto error;
 	}
 	goto ok;
+      } else if ( aname == ATOM_buffer_size )
+      { int size;
+	
+	if ( !PL_get_integer_ex(a, &size) )
+	  goto error;
+	if ( size < 1 )
+	{ PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_one, a);
+	  goto error;
+	}
+	Ssetbuffer(s, NULL, size);
+	goto ok;
       } else if ( aname == ATOM_eof_action ) /* eof_action(Action) */
       { atom_t action;
 
@@ -3013,6 +3024,15 @@ stream_buffer_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+static int
+stream_buffer_size_prop(IOSTREAM *s, term_t prop ARG_LD)
+{ if ( (s->flags & SIO_NBUF) )
+    fail;
+    
+  return PL_unify_integer(prop, s->bufsize);
+}
+
+
 typedef struct
 { functor_t functor;			/* functor of property */
   int (*function)();			/* function to generate */
@@ -3032,6 +3052,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_type1,    	    stream_type_prop },
   { FUNCTOR_file_no1,	    stream_file_no_prop },
   { FUNCTOR_buffer1,	    stream_buffer_prop },
+  { FUNCTOR_buffer_size1,   stream_buffer_size_prop },
   { FUNCTOR_close_on_abort1,stream_close_on_abort_prop },
   { FUNCTOR_tty1,	    stream_tty_prop },
   { FUNCTOR_encoding1,	    stream_encoding_prop },

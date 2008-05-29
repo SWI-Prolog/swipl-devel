@@ -69,6 +69,7 @@ A brace_term_position	"brace_term_position"
 A break			"break"
 A btree			"btree"
 A buffer		"buffer"
+A buffer_size		"buffer_size"
 A built_in_procedure	"built_in_procedure"
 A busy			"busy"
 A byte			"byte"
@@ -625,6 +626,7 @@ F brace_term_position	3
 F break			1
 F break			3
 F buffer		1
+F buffer_size		1
 F busy			2
 F call			1
 F callpred		2
