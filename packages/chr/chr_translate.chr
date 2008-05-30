@@ -10953,5 +10953,5 @@ dump_code(Clauses) :-
 	).	
 
 chr_banner :-
-	chr_info(banner,'\tThe K.U.Leuven CHR System\n\t\tMain Developer:\tTom Schrijvers\n\t\tContributors:\tJon Sneyers, Bart Demoen, Jan Wielmaker\n\t\tCopyright:\tK.U.Leuven, Belgium\n\t\tURL:\t\thttp://www.cs.kuleuven.be/~~toms/CHR/\n',[]).
+	chr_info(banner,'\tThe K.U.Leuven CHR System\n\t\tMain Developer:\tTom Schrijvers\n\t\tContributors:\tJon Sneyers, Bart Demoen, Jan Wielemaker\n\t\tCopyright:\tK.U.Leuven, Belgium\n\t\tURL:\t\thttp://www.cs.kuleuven.be/~~toms/CHR/\n',[]).
 
