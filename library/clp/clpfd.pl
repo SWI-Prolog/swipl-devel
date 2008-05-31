@@ -1797,12 +1797,15 @@ conds_goal([], G, G).
 conds_goal([C|Cs], G0, G) :- conds_goal(Cs, (G0,C), G).
 
 :- multifile
-	user:goal_expansion/2.
+        user:goal_expansion/2.
 :- dynamic
-	user:goal_expansion/2.
+        user:goal_expansion/2.
+
+:- set_prolog_flag(clpfd_goal_expansion, true).
 
 user:goal_expansion(X #= Y0, Equal) :-
-        (   ( var(X) ; integer(X) ), phrase(expr_conds(Y0, Y), Cs) ->
+        (   current_prolog_flag(clpfd_goal_expansion, true),
+            (   var(X) ; integer(X) ), phrase(expr_conds(Y0, Y), Cs) ->
             (   Cs = [] -> Cond = true
             ;   Cs = [C|Rest], conds_goal(Rest, C, Cond)
             ),
