@@ -1801,7 +1801,9 @@ conds_goal([C|Cs], G0, G) :- conds_goal(Cs, (G0,C), G).
 :- dynamic
         user:goal_expansion/2.
 
-:- set_prolog_flag(clpfd_goal_expansion, true).
+:- (   current_prolog_flag(clpfd_goal_expansion, _) -> true
+   ;   set_prolog_flag(clpfd_goal_expansion, true)
+   ).
 
 user:goal_expansion(X #= Y0, Equal) :-
         (   current_prolog_flag(clpfd_goal_expansion, true),
