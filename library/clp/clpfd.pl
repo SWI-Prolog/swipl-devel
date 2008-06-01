@@ -260,6 +260,10 @@ To make the predicate terminate if any argument is instantiated, add
 the (implied) constraint F #\= 0 before the recursive call. Otherwise,
 the query fac(N, 0) is the only non-terminating case of this kind.
 
+This library uses goal_expansion/2 to rewrite constraints at
+compilation time. To disable this expansion, set the flag
+clpfd_goal_expansion to false.
+
 @author Markus Triska
 */
 
