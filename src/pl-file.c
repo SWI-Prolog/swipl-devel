@@ -1710,6 +1710,11 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
     *lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
     Trail(lp);
 
+    if (s->position)
+    { s->position->byteno+= n;
+      s->position->charno+= n;
+    }
+
     for(i=0; i<n; )
     { *gstore++ = FUNCTOR_dot2;
       *gstore++ = consInt(buf[i]&0xff);
