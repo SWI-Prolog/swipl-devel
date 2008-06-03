@@ -536,6 +536,9 @@
 /* String used to prefix all symbols requested through dlsym() */
 #undef LD_SYMBOL_PREFIX
 
+/* Define to enable life-data marking by scanning VM instructions */
+#undef LIFE_GC
+
 /* Define if you have Linux cpu clocks (2.6.12 and greater) */
 #undef LINUX_CPUCLOCKS
 

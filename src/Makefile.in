@@ -281,6 +281,7 @@ parms.h:	Makefile
 $(OBJ):		parms.h $(srcdir)/pl-funct.ih
 pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c
 pl-read.o:	pl-umap.c
+pl-gc.o:	pl-lifegc.c
 
 ifdef RLPREFIX
 pl-rl.o:	pl-rl.c

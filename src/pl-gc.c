@@ -164,7 +164,9 @@ char tmp[256];				/* for calling print_val(), etc. */
 forwards void		mark_variable(Word ARG_LD);
 forwards void		sweep_foreign(void);
 static void		sweep_global_mark(Word *m ARG_LD);
+#ifndef LIFE_GC
 forwards QueryFrame	mark_environments(LocalFrame, Code PC);
+#endif
 forwards void		update_relocation_chain(Word, Word ARG_LD);
 forwards void		into_relocation_chain(Word, int stg ARG_LD);
 forwards void		alien_into_relocation_chain(void *addr,
@@ -822,6 +824,8 @@ slotsInFrame(LocalFrame fr, Code PC)
 }
 
 
+#ifndef LIFE_GC
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Mark environments and all data that can   be  reached from them. Returns
 the QueryFrame that started this environment,  which provides use access
@@ -880,6 +884,7 @@ mark_environments(LocalFrame fr, Code PC)
   }
 }
 
+#endif /*not LIFE_GC*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If multiple TrailAssignment() calls happen on  the same address within a
@@ -1015,7 +1020,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       } else
       { Word gp = val_ptr(te->address);
 
-	DEBUG(2,
+	DEBUG(4,
 	      char b1[64]; char b2[64]; char b3[64];
 	      Sdprintf("Early reset of assignment at %s (%s --> %s)\n",
 		       print_adr(tard, b1),
@@ -1109,8 +1114,9 @@ mark_choicepoints(Choice ch, GCTrailEntry te, FliFrame *flictx)
     alien_into_relocation_chain(&ch->mark.trailtop,
 				STG_TRAIL, STG_LOCAL PASS_LD);
     SECURE(trailtops_marked--);
-
+#ifndef LIFE_GC
     mark_environments(fr, ch->type == CHP_JUMP ? ch->value.PC : NULL);
+#endif
   }
 
   return te;
@@ -1132,6 +1138,9 @@ We must first mark all environments,   including  those in outer queries
 variables in outer queries.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef LIFE_GC
+#include "pl-lifegc.c"
+#else
 static void
 mark_stacks(LocalFrame fr, Choice ch)
 { GET_LD
@@ -1165,6 +1174,7 @@ mark_stacks(LocalFrame fr, Choice ch)
 
   DEBUG(2, Sdprintf("Trail stack garbage: %ld cells\n", trailcells_deleted));
 }
+#endif
 
 
 #if O_SECURE
@@ -1967,9 +1977,12 @@ check_environments(LocalFrame fr, Code PC, Word key)
 
     assert(onStack(local, fr));
 
-    DEBUG(3, Sdprintf("Check [%ld] %s:",
+    DEBUG(3, Sdprintf("Check [%ld] %s (PC=%d):",
 		      levelFrame(fr),
-		      predicateName(fr->predicate)));
+		      predicateName(fr->predicate),
+		      (false(fr->predicate, FOREIGN) && PC)
+		        ? (PC-fr->clause->clause->codes)
+		      	: 0));
 
     slots = slotsInFrame(fr, PC);
     sp = argFrameP(fr, 0);
@@ -2190,7 +2203,9 @@ garbageCollect(LocalFrame fr, Choice ch)
     ch = LD->choicepoints;
 
   enterGC();
+#ifndef UNBLOCKED_GC
   blockSignals(&mask);
+#endif
   blockGC(PASS_LD1);			/* avoid recursion due to */
   gc_status.requested = FALSE;		/* printMessage() */
 
@@ -2236,8 +2251,10 @@ garbageCollect(LocalFrame fr, Choice ch)
   mark_phase(fr, ch);
   tgar = trailcells_deleted * sizeof(struct trail_entry);
   ggar = (gTop - gBase - total_marked) * sizeof(word);
-  gc_status.trail_gained  += tgar;
   gc_status.global_gained += ggar;
+  gc_status.trail_gained  += tgar;
+  gc_status.global_left   += usedStack(global);
+  gc_status.trail_left    += usedStack(trail);
   gc_status.collections++;
 
   DEBUG(2, Sdprintf("Compacting trail ... "));
@@ -2260,10 +2277,14 @@ garbageCollect(LocalFrame fr, Choice ch)
   LD->stacks.trail.gced_size  = usedStack(trail);
   gc_status.active = FALSE;
 
+#if LIFE_GC == 1
+  SECURE(checkStacks(fr, ch));
+#else
   SECURE(if ( checkStacks(fr, ch) != key )
 	 { sysError("ERROR: Stack checksum failure\n");
 	   trap_gdb();
 	 });
+#endif
 
   if ( verbose )
     printMessage(ATOM_informational,
@@ -2283,7 +2304,9 @@ garbageCollect(LocalFrame fr, Choice ch)
 #endif
 
   unblockGC(PASS_LD1);
+#ifndef UNBLOCKED_GC
   unblockSignals(&mask);
+#endif
   LD->gc.inferences = LD->statistics.inferences;
   leaveGC();
 }
@@ -3207,5 +3230,8 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
 BeginPredDefs(gc)
 #if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
   PRED_DEF("$check_stacks", 1, check_stacks, 0)
+#endif
+#ifdef GC_COUNTING
+  PRED_DEF("gc_statistics", 1, gc_statistics, 0)
 #endif
 EndPredDefs

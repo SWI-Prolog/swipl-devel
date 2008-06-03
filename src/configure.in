@@ -142,6 +142,10 @@ AC_ARG_ENABLE(gmp, [  --disable-gmp		  Disable Multi-precision arithmetic],
 	      configgmp="$enableval",
 	      configgmp=yes)
 
+AC_ARG_ENABLE(life-gc, [  --enable-life-gc	  Enable lifeliness checking of data],
+	      lifegc="$enableval",
+	      lifegc=no)
+
 
 dnl ****************************************************************
 dnl Setup PLBASE.  Need to expand prefix first as this isn't yet set. Yek
@@ -227,6 +231,11 @@ if test "x$custom_flags" = "xyes" ; then
 	fi
 else
 	COFLAGS=$CFLAGS
+fi
+
+if test "$lifegc" = yes; then
+	AC_DEFINE(LIFE_GC, 1,
+		  [Define to enable life-data marking by scanning VM instructions])
 fi
 
 PROGLDFLAGS="$LDFLAGS"
