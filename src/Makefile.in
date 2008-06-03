@@ -156,7 +156,7 @@ UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
 builddirs = ../lib ../lib/$(ARCH)
 
-all:	banner dirs \
+all:	banner gitversion dirs \
 	headers rc-lib tai-lib $(MKLIBS) system startup index plld
 
 .c.o:
@@ -279,8 +279,8 @@ parms.h:	Makefile
 		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
 
 gitversion::
-		$(srcdir)/mkversion.sh > version.h
-pl-version.o:	gitversion
+		@$(srcdir)/mkversion.sh
+pl-version.o:	version.h
 
 $(OBJ):		parms.h $(srcdir)/pl-funct.ih
 pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c
