@@ -706,7 +706,7 @@ if test ! "$runtime" = "yes" -a "$configreadline" = "yes" -a ! $readline_ok = "y
       AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
       AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
       AC_CHECK_FUNCS(rl_filename_completion_function)
-      AC_CHECK_DECLS([rl_readline_state, rl_done])
+      AC_CHECK_DECLS([rl_done])
       FreeBSD="$ocflags"
       readline_ok=yes
     else
