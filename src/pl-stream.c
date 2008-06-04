@@ -909,8 +909,8 @@ retry:
       for(;;)
       { if ( (c = get_byte(s)) == EOF )
 	{ if ( n == 0 )
-	    return EOF;
-	  else
+	  { goto out;
+	  } else
 	  { Sseterr(s, SIO_WARN, "EOF in multibyte Sequence");
 	    goto mberr;
 	  }
@@ -967,7 +967,9 @@ retry:
 
       c1 = get_byte(s);
       if ( c1 == EOF )
-	return EOF;
+      { c = -1;
+	goto out;
+      }
       c2 = get_byte(s);
 
       if ( c2 == EOF )
@@ -992,7 +994,8 @@ retry:
 
 	if ( c1 == EOF )
 	{ if ( n == 0 )
-	  { return EOF;
+	  { c = -1;
+	    goto out;
 	  } else
 	  { Sseterr(s, SIO_WARN, "EOF in UCS character");
 	    c = UTF8_MALFORMED_REPLACEMENT; 
