@@ -804,7 +804,6 @@ void
 PL_cleanup_fork(void)
 { TableEnum e;
   Symbol symb;
-  int n = 0;
 
   e = newTableEnum(streamContext);
   while( (symb=advanceTableEnum(e)) )
