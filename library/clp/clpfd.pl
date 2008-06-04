@@ -1738,7 +1738,9 @@ mymin(X, Y, Z) :-
 %
 % X is greater than or equal to Y.
 
-X #>= Y :-
+X #>= Y :- clpfd_geq(X, Y).
+
+clpfd_geq(X, Y) :-
         (   var(X), nonvar(Y), Y = Y1 - C, var(Y1), integer(C) ->
             var_leq_var_plus_const(Y1, X, C),
             reinforce(X)
@@ -1797,9 +1799,6 @@ expr_conds(A0^B0, A^B)           -->
         expr_conds(A0, A), expr_conds(B0, B),
         [(B >= 0 ; A =:= -1)].
 
-conds_goal([], G, G).
-conds_goal([C|Cs], G0, G) :- conds_goal(Cs, (G0,C), G).
-
 :- multifile
         user:goal_expansion/2.
 :- dynamic
@@ -1810,20 +1809,57 @@ conds_goal([C|Cs], G0, G) :- conds_goal(Cs, (G0,C), G).
    ).
 
 user:goal_expansion(X #= Y0, Equal) :-
-        (   current_prolog_flag(clpfd_goal_expansion, true),
-            (   var(X) ; integer(X) ), phrase(expr_conds(Y0, Y), Cs) ->
-            (   Cs = [] -> Cond = true
-            ;   Cs = [C|Rest], conds_goal(Rest, C, Cond)
-            ),
-            Equal = (   Cond ->
-                        (   var(X) -> X is Y
-                        ;   integer(X) -> X =:= Y
-                        ;   clpfd:clpfd_equal(X, Y0)
-                        )
+        expansion_condition(X, Y0, Y, Cond),
+        Equal = (   Cond ->
+                    (   var(X) -> X is Y
+                    ;   integer(X) -> X =:= Y
                     ;   clpfd:clpfd_equal(X, Y0)
                     )
-        ;   Equal = clpfd:clpfd_equal(X, Y0)
+                ;   clpfd:clpfd_equal(X, Y0)
+                ).
+user:goal_expansion(X #>= Y0, Geq) :-
+        expansion_condition(X, Y0, Y, Cond),
+        Geq = (   Cond ->
+                  (   integer(X) -> X >= Y
+                  ;   clpfd:clpfd_geq(X, Y0)
+                  )
+              ;   clpfd:clpfd_geq(X, Y0)
+              ).
+user:goal_expansion(X #=< Y0,  Leq) :-
+        expansion_condition(X, Y0, Y, Cond),
+        Leq = (   Cond ->
+                  (   integer(X) -> X =< Y
+                  ;   clpfd:clpfd_geq(Y0, X)
+                  )
+              ;   clpfd:clpfd_geq(Y0, X)
+              ).
+user:goal_expansion(X #> Y0, Gt) :-
+        expansion_condition(X, Y0, Y, Cond),
+        Gt = (   Cond ->
+                 (   integer(X) -> X > Y
+                 ;   clpfd:clpfd_geq(X, Y0 + 1)
+                 )
+             ;   clpfd:clpfd_geq(X, Y0 + 1)
+             ).
+user:goal_expansion(X #< Y0, Lt) :-
+        expansion_condition(X, Y0, Y, Cond),
+        Lt = (   Cond ->
+                 (   integer(X) -> X < Y
+                 ;   clpfd:clpfd_geq(Y0, X + 1)
+                 )
+             ;   clpfd:clpfd_geq(Y0, X + 1)
+             ).
+
+expansion_condition(X, Y0, Y, Cond) :-
+        current_prolog_flag(clpfd_goal_expansion, true),
+        once(var(X) ; integer(X)),
+        phrase(expr_conds(Y0, Y), Cs),
+        (   Cs = [] -> Cond = true
+        ;   Cs = [C|Rest], conds_goal(Rest, C, Cond)
         ).
+
+conds_goal([], G, G).
+conds_goal([C|Cs], G0, G) :- conds_goal(Cs, (G0,C), G).
 
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
 linsum(-X, S, S)   --> { var(X) }, !, [vn(X,-1)].
