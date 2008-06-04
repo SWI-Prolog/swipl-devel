@@ -98,7 +98,7 @@ extern char *filename_completion_function(const char *, int);
 #define rl_completion_matches completion_matches
 #endif
 
-#if defined(HAVE_DECL_RL_READLINE_STATE) && !HAVE_DECL_RL_READLINE_STATE /* < 4.2 */
+#ifndef RL_STATE_INITIALIZED
 int rl_readline_state = 0;
 #define RL_STATE_INITIALIZED 0
 #endif
