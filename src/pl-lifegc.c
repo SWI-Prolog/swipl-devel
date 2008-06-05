@@ -539,18 +539,8 @@ walk_and_mark(walk_state *state, Code PC, code end, Code until ARG_LD)
 	case A_VAR2:
 	case B_VAR2:	    index = VAROFFSET(2);	var_common:
 	{ LocalFrame fr = state->node->value.frame.ptr;
-	  Word sp = varFrameP(fr, index);
-#if O_SECURE
-	  int slots = fr->clause->clause->prolog_vars;
-	  assert(index >= VAROFFSET(0) && index-VAROFFSET(0) < slots);
-#endif
-  
-	  if ( !is_marked(sp) )
-	  { if ( isGlobalRef(*sp) )
-	      mark_variable(sp PASS_LD);
-	    else
-	      ldomark(sp);      
-	  }
+
+	  mark_frame_var(fr, index PASS_LD);
 	  break;
 	}
 	case I_EXITCLEANUP:
