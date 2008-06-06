@@ -2642,15 +2642,14 @@ run_propagator(rel_tuple(Rel, Tuple), MState) :-
         (   ground(Tuple) -> kill(MState), memberchk(Tuple, Relation)
         ;   relation_unifiable(Relation, Tuple, Us, 0, Changed),
             Us = [_|_],
+            (   Tuple = [First,Second], ( ground(First) ; ground(Second) ) ->
+                kill(MState)
+            ;   true
+            ),
             (   Us = [Single] -> kill(MState), Single = Tuple
             ;   Changed =:= 0 -> true
             ;   setarg(1, Rel, Us),
                 disable_queue,
-                (   Tuple = [First,Second],
-                    ( ground(First) ; ground(Second) ) ->
-                    kill(MState)
-                ;   true
-                ),
                 tuple_domain(Tuple, Us),
                 enable_queue
             )
