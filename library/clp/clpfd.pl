@@ -3035,14 +3035,10 @@ run_propagator(pdiv(X,Y,Z), MState) :-
 run_propagator(pabs(X,Y), MState) :-
         (   nonvar(X) -> kill(MState), Y is abs(X)
         ;   nonvar(Y) ->
+            kill(MState),
             Y >= 0,
-            (   Y =:= 0 -> X = 0
-            ;   fd_get(X, XD, XPs),
-                YN is -Y,
-                domains_intersection(split(0, from_to(n(YN),n(YN)),
-                                           from_to(n(Y),n(Y))), XD, XD1),
-                fd_put(X, XD1, XPs)
-            )
+            YN is -Y,
+            X in YN \/ Y
         ;   fd_get(X, XD, XPs),
             fd_get(Y, YD, _),
             domain_negate(YD, YDNegative),
