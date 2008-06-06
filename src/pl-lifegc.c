@@ -89,6 +89,7 @@ typedef struct life_count
 { int64_t	marked_envs;		/* environments marked */
   int64_t	multi_envs;		/* environments with continuations */
   int64_t	marked_cont;		/* continuations followed */
+  int64_t	c_scanned;		/* Scanned clauses */
   int64_t	vm_scanned;		/* #VM codes scanned */
   int64_t	vm_aborted;		/* scans stopped short */
   int64_t	a_searched;		/* #agenda searches */
@@ -103,10 +104,11 @@ PRED_IMPL("gc_statistics", 1, gc_statistics, 0)
 { double as = (double)counts.a_scanned/(double)counts.a_searched;
 
   int rc = PL_unify_term(A1,
-			 PL_FUNCTOR_CHARS, "gc", 6,
+			 PL_FUNCTOR_CHARS, "gc", 7,
 			   PL_INT64, counts.marked_envs,
 			   PL_INT64, counts.multi_envs,
 			   PL_INT64, counts.marked_cont,
+			   PL_INT64, counts.c_scanned,
 			   PL_INT64, counts.vm_scanned,
 			   PL_INT64, counts.vm_aborted,
 			   PL_FLOAT, as);
@@ -713,11 +715,12 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
   state.ARGP	     = argFrameP(fr, 0);
   state.envtop	     = state.ARGP + argc;
 
-  Sdprintf("Scanning clauses for %s\n", predicateName(fr->predicate));
+  DEBUG(2, Sdprintf("Scanning clauses for %s\n", predicateName(fr->predicate)));
   for(; cref && state.unmarked > 0; cref=cref->next)
   { if ( visibleClause(cref->clause, fr->generation) )
-    { state.c0 = cref->clause->codes;
-      Sdprintf("Scanning clause %p\n", cref->clause);
+    { COUNT(counts.c_scanned++);
+      state.c0 = cref->clause->codes;
+      DEBUG(3, Sdprintf("Scanning clause %p\n", cref->clause));
       walk_and_mark(&state, state.c0, I_EXIT PASS_LD);
     }
 
