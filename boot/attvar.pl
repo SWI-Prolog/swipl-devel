@@ -208,9 +208,19 @@ call_det(Goal, Det) :-
 %    defined in the modules the attributes stem from, is used to
 %    convert attributes to lists of goals.
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Intention: Reflect term variable order in residual goals.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 copy_term(Term, Copy, Gs) :-
 	term_variables(Term, Vs),
-	findall(Term-GsC, phrase(collect_attributes(Vs,[]),GsC), [Copy-Gs]).
+	findall(Term-GsC, phrase(collect_primaries(Vs,[]),GsC), [Copy-Gs]).
+
+collect_primaries([], _)        --> [].
+collect_primaries([V|Vs], Left) -->
+        { append(Vs, Left, Tabu) },
+        collect_attributes([V], Tabu),
+        collect_primaries(Vs, [V|Left]).
 
 collect_attributes([], _)	  --> [].
 collect_attributes([V|Vs], Tabu0) -->
@@ -226,8 +236,6 @@ collect_attributes([V|Vs], Tabu0) -->
 
 collect_([], _, _)			--> [].
 collect_(att(Module,Value,As), V, Tabu) -->
-	{ term_variables(Value, Vs) },
-	collect_attributes(Vs, Tabu),
 	(   { Module == freeze }
 	->  [freeze(V, Value)]
 	;   { current_predicate(Module:attribute_goals/3) }
@@ -239,6 +247,8 @@ collect_(att(Module,Value,As), V, Tabu) -->
 	;   [put_attr(V, Module, Value)]
 	),
 	{ del_attr(V, Module) },
+	{ term_variables(Value, Vs) },
+	collect_attributes(Vs, Tabu),
 	collect_(As, V, Tabu).
 
 dlist([])     --> [].
