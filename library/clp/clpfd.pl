@@ -2646,6 +2646,11 @@ run_propagator(rel_tuple(Rel, Tuple), MState) :-
             ;   Changed =:= 0 -> true
             ;   setarg(1, Rel, Us),
                 disable_queue,
+                (   Tuple = [First,Second],
+                    ( ground(First) ; ground(Second) ) ->
+                    kill(MState)
+                ;   true
+                ),
                 tuple_domain(Tuple, Us),
                 enable_queue
             )
