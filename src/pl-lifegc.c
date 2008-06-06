@@ -1,3 +1,29 @@
+/*  $Id$
+
+    Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@uva.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 2008, University of Amsterdam
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#define MARK_ALT_CLAUSES 1		/* also walk and mark alternate clauses */
+
 		 /*******************************
 		 *	     MARK STACKS	*
 		 *******************************/
@@ -390,17 +416,8 @@ mark_arguments(LocalFrame fr ARG_LD)
 }
 
 
-static inline void
-mark_frame_var(LocalFrame fr, code v ARG_LD)
-{ Word sp = varFrameP(fr, v);
-
-  if ( !is_marked(sp) )
-    mark_local_variable(sp PASS_LD);
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-walk_and_mark(LocalFrame fr, Code PC, code end, Code until)
+walk_and_mark(walk_state *state, Code PC, code end, Code until)
     Walk along the byte code starting at PC and continuing until either
     it finds instruction `end' or the `until' address in code.  Returns
     the next instruction to process,
@@ -409,25 +426,54 @@ See decompileBody for details on handling the branch instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct walk_state
-{ a_node *node;				/* processing node */
+{ LocalFrame frame;			/* processing node */
   int flags;				/* general flags */
   Code c0;				/* start of code list */
   visited  visited;			/* bitmap to check where we have been */
+  Word envtop;				/* just above environment */
+  int unmarked;				/* left when marking alt clauses */
+#ifdef MARK_ALT_CLAUSES
+  Word ARGP;				/* head unify instructions */
+  int  adepth;				/* ARGP nesting */
+#endif
 } walk_state;
 
-#define GCM_CLEAR	0x1		/* clear uninitialised data */
+#define GCM_CLEAR	0x1		/* Clear uninitialised data */
+#define GCM_ALTCLAUSE	0x2		/* Marking alternative clauses */
 
-#define WALK_TO_JUMP { int to_jump = (int)*PC++; \
-		       PC = walk_and_mark(state, PC, (code)-1, PC+to_jump PASS_LD); \
-		     }
+static inline void
+mark_frame_var(walk_state *state, code v ARG_LD)
+{ Word sp = varFrameP(state->frame, v);
+
+  if ( sp < state->envtop && !is_marked(sp) )
+  { mark_local_variable(sp PASS_LD);
+    state->unmarked--;
+  }
+}
+
+
+static inline void
+mark_argp(walk_state *state ARG_LD)
+{
+#ifdef MARK_ALT_CLAUSES
+  if ( state->adepth == 0 )
+  { if ( !is_marked(state->ARGP) )
+    { mark_local_variable(state->ARGP PASS_LD);
+      state->unmarked--;
+    }
+    state->ARGP++;
+  }
+#endif
+}
+
 
 static Code
-walk_and_mark(walk_state *state, Code PC, code end, Code until ARG_LD)
+walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 { code op;
 
   COUNT(counts.marked_cont++);
 
-  for( ; PC != until; PC += (codeTable[op].arguments))
+  for( ; ; PC += (codeTable[op].arguments))
   { op = decode(*PC++);
 
   again:
@@ -446,24 +492,33 @@ walk_and_mark(walk_state *state, Code PC, code end, Code until ARG_LD)
 #endif
 					/* dynamically sized objects */
       case H_STRING:			/* only skip the size of the */
-      case B_STRING:			/* string + header */
       case H_MPZ:
+	mark_argp(state PASS_LD);
+	/*FALLTHROUGH*/
+      case B_STRING:			/* string + header */
       case B_MPZ:
       { word m = *PC;
 	PC += wsizeofInd(m);
 	break;
       }
 
+      case I_EXITFACT:
+	return PC-1;
+
       case C_JMP:			/* unconditional jump */
+	if ( (state->flags & GCM_ALTCLAUSE) )
+	  break;
 	PC += (int)PC[0]+1;
         op = decode(*PC++);
         goto again;
 					/* Control-structures */
       case C_OR:
+	if ( (state->flags & GCM_ALTCLAUSE) )
+	  break;
       { Code alt = PC+PC[0]+1;
 	DEBUG(3, Sdprintf("C_OR at %d\n", PC-state->c0-1));
 	PC++;				/* skip <n> */
-	walk_and_mark(state, PC, C_JMP, NULL PASS_LD);
+	walk_and_mark(state, PC, C_JMP PASS_LD);
 	PC = alt;
 	if ( !try_visit(&state->visited, PC) )
 	  return PC;
@@ -471,10 +526,12 @@ walk_and_mark(walk_state *state, Code PC, code end, Code until ARG_LD)
         goto again;
       }
       case C_NOT:
+	if ( (state->flags & GCM_ALTCLAUSE) )
+	  break;
       { Code alt = PC+PC[1]+2;
 	DEBUG(3, Sdprintf("C_NOT at %d\n", PC-state->c0-1));
 	PC += 2;			/* skip the two arguments */
-	walk_and_mark(state, PC, C_CUT, NULL PASS_LD);
+	walk_and_mark(state, PC, C_CUT PASS_LD);
 	PC = alt;
 	if ( !try_visit(&state->visited, PC) )
 	  return PC;
@@ -483,10 +540,12 @@ walk_and_mark(walk_state *state, Code PC, code end, Code until ARG_LD)
       }
       case C_SOFTIF:
       case C_IFTHENELSE:
+	if ( (state->flags & GCM_ALTCLAUSE) )
+	  break;
       { Code alt = PC+PC[1]+2;
 	DEBUG(3, Sdprintf("C_IFTHENELSE at %d\n", PC-state->c0-1));
 	PC += 2;			/* skip the 'MARK' variable and jmp */
-	walk_and_mark(state, PC, C_JMP, NULL PASS_LD);
+	walk_and_mark(state, PC, C_JMP PASS_LD);
 	PC = alt;
 	if ( !try_visit(&state->visited, PC) )
 	  return PC;
@@ -512,7 +571,7 @@ walk_and_mark(walk_state *state, Code PC, code end, Code until ARG_LD)
       case B_ARGFIRSTVAR:
       case C_VAR:
 	if ( (state->flags & GCM_CLEAR) )
-	{ LocalFrame fr = state->node->value.frame.ptr;
+	{ LocalFrame fr = state->frame;
 	  DEBUG(3, Sdprintf("Clear var %d at %d\n", 
 			    PC[0]-VAROFFSET(0), (PC-state->c0)-1));
 #ifdef O_SECURE
@@ -538,35 +597,51 @@ walk_and_mark(walk_state *state, Code PC, code end, Code until ARG_LD)
 	case B_VAR1:	    index = VAROFFSET(1);	goto var_common;
 	case A_VAR2:
 	case B_VAR2:	    index = VAROFFSET(2);	var_common:
-	{ LocalFrame fr = state->node->value.frame.ptr;
-
-	  mark_frame_var(fr, index PASS_LD);
+	  mark_frame_var(state, index PASS_LD);
 	  break;
-	}
-	case I_EXITCLEANUP:
-	{ LocalFrame fr = state->node->value.frame.ptr;
-					/* TBD: we don't have to mark main goal! */
-	  mark_arguments(fr PASS_LD);
-	  break;
-	}
-	case I_EXITCATCH:
-	{ LocalFrame fr = state->node->value.frame.ptr;
-	  mark_frame_var(fr, VAROFFSET(1) PASS_LD); /* The ball */
-	  mark_frame_var(fr, VAROFFSET(2) PASS_LD); /* recovery goal */
-	  break;
-	}
-	case I_CALL_FV1:
-	{ LocalFrame fr = state->node->value.frame.ptr;
-	  mark_frame_var(fr, PC[1] PASS_LD);
-	  break;
-	}
-	case I_CALL_FV2:
-	{ LocalFrame fr = state->node->value.frame.ptr;
-	  mark_frame_var(fr, PC[1] PASS_LD);
-	  mark_frame_var(fr, PC[2] PASS_LD);
-	  break;
-	}
       }
+	case I_EXITCLEANUP:		/* TBD: we don't have to mark main goal! */
+	  mark_arguments(state->frame PASS_LD);
+	  state->unmarked = 0;
+	  break;
+	case I_EXITCATCH:
+	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* The ball */
+	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* recovery goal */
+	  break;
+	case I_CALL_FV2:
+	  mark_frame_var(state, PC[2] PASS_LD);
+	  /*FALLTHROUGH*/
+	case I_CALL_FV1:
+	  mark_frame_var(state, PC[1] PASS_LD);
+	  break;
+#ifdef MARK_ALT_CLAUSES
+	case H_VAR:
+	  mark_frame_var(state, PC[0] PASS_LD);
+	  /*FALLTHROUGH*/
+	case H_FIRSTVAR:
+	case H_CONST:
+	case H_NIL:
+	case H_INTEGER:
+	case H_INT64:
+	case H_FLOAT:
+	  mark_argp(state PASS_LD);
+	  break;
+	case H_FUNCTOR:
+	case H_LIST:
+	  mark_argp(state PASS_LD);
+	  state->adepth++;
+	  break;
+	case H_VOID:
+	  if ( state->adepth == 0 )
+	    state->ARGP++;
+	  break;
+	case I_POPF:
+	  state->adepth--;
+	  break;
+	case I_ENTER:
+	  assert(state->adepth==0);
+	  break;
+#endif /*MARK_ALT_CLAUSES*/
     }
   }
 
@@ -583,16 +658,18 @@ mark_life_data(mark_state *mstate, a_node *node ARG_LD)
   if ( (PC=node->value.frame.PC) )
   { walk_state state;
 
-    state.node  = node;
-    state.c0    = fr->clause->clause->codes;
-    state.flags = GCM_CLEAR;
+    state.frame    = fr;
+    state.c0       = fr->clause->clause->codes;
+    state.flags    = GCM_CLEAR;
+    state.unmarked = slotsInFrame(fr, PC);
+    state.envtop   = argFrameP(fr, state.unmarked);
     init_visited(mstate, &state.visited, node);
 
     DEBUG(1, Sdprintf("[%ld] %s: continuation walk from PC=%d\n",
 		      levelFrame(fr), predicateName(fr->predicate),
 		      PC-state.c0));
 
-    walk_and_mark(&state, node->value.frame.PC, I_EXIT, NULL PASS_LD);
+    walk_and_mark(&state, node->value.frame.PC, I_EXIT PASS_LD);
 
     while( (r=node->value.frame.restart_list) )
     { node->value.frame.restart_list = r->next;
@@ -601,7 +678,7 @@ mark_life_data(mark_state *mstate, a_node *node ARG_LD)
 			levelFrame(fr), predicateName(fr->predicate),
 			r->PC-state.c0));
       state.flags = 0;
-      walk_and_mark(&state, r->PC, I_EXIT, NULL PASS_LD);
+      walk_and_mark(&state, r->PC, I_EXIT PASS_LD);
       free_restart(mstate, r);
     }
 
@@ -610,6 +687,45 @@ mark_life_data(mark_state *mstate, a_node *node ARG_LD)
   { mark_arguments(fr PASS_LD);
   }
 }
+
+
+#ifdef MARK_ALT_CLAUSES
+static void
+mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
+{ Word sp = argFrameP(fr, 0);
+  int argc = fr->predicate->functor->arity;
+  int i;
+  walk_state state;
+  state.unmarked = 0;
+
+  for(i=0; i<argc; i++ )
+  { if ( !is_marked(&sp[i]) )
+      state.unmarked++;
+  }
+
+  if ( !state.unmarked )
+    return;
+
+  state.frame	     = fr;
+  state.flags        = GCM_ALTCLAUSE;
+  state.visited.bits = NULL;
+  state.adepth       = 0;
+  state.ARGP	     = argFrameP(fr, 0);
+  state.envtop	     = state.ARGP + argc;
+
+  Sdprintf("Scanning clauses for %s\n", predicateName(fr->predicate));
+  for(; cref && state.unmarked > 0; cref=cref->next)
+  { if ( visibleClause(cref->clause, fr->generation) )
+    { state.c0 = cref->clause->codes;
+      Sdprintf("Scanning clause %p\n", cref->clause);
+      walk_and_mark(&state, state.c0, I_EXIT PASS_LD);
+    }
+
+    state.adepth     = 0;
+    state.ARGP	     = argFrameP(fr, 0);
+  }
+}
+#endif /*MARK_ALT_CLAUSES*/
 
 
 #if 0					/* debugging */
@@ -704,9 +820,15 @@ mark_frame(mark_state *state, a_node *node ARG_LD)
   if ( true(fr->predicate, FOREIGN) )
   { mark_arguments(fr PASS_LD);
   } else
-  { if ( node->value.frame.alt_clause )
+  { mark_life_data(state, node PASS_LD);
+    if ( node->value.frame.alt_clause )
+    {
+#ifdef MARK_ALT_CLAUSES
+      mark_alt_clauses(fr, node->value.frame.alt_clause PASS_LD);
+#else
       mark_arguments(fr PASS_LD);
-    mark_life_data(state, node PASS_LD);
+#endif
+    }
     set_unmarked_to_gced(fr, node->value.frame.PC);
   }
 
