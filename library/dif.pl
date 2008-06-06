@@ -268,7 +268,9 @@ or_nodes([O-_|Os], X) -->
 	or_nodes(Os, X).
 
 mydif([X], [Y]) --> !, [dif(X, Y)].
-mydif(Xs, Ys)   --> { X =.. [f|Xs], Y =.. [f|Ys] }, [dif(X,Y)].
+mydif(Xs0, Ys0) --> [dif(X,Y)],
+        { reverse(Xs0, Xs), reverse(Ys0, Ys), % follow original order
+          X =.. [f|Xs], Y =.. [f|Ys] }.
 
 eqs_lefts_rights([], [], []).
 eqs_lefts_rights([A=B|ABs], [A|As], [B|Bs]) :-
