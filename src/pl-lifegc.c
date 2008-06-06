@@ -4,11 +4,6 @@
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Mark the stacks based on reachable data instead of all data.
-
-TODO:
-	* Add interesting statistics
-		- Real programs: CHR compiler, Back52, CHAT80
-		- #collections, #collected, #remaining
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef enum a_type
@@ -57,6 +52,11 @@ typedef struct mark_state
 		 /*******************************
 		 *	     STATISTICS		*
 		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: Compile with  -DGC_COUNTING  to   get  gc_statistics/1  as defined
+below. This predicate is NOT THREAD-SAFE!!!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef GC_COUNTING
 typedef struct life_count
