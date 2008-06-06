@@ -208,9 +208,28 @@ call_det(Goal, Det) :-
 %    defined in the modules the attributes stem from, is used to
 %    convert attributes to lists of goals.
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   First collect attributes of variables directly involved in Term, then
+   walk the variables in their attributes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 copy_term(Term, Copy, Gs) :-
 	term_variables(Term, Vs),
-	findall(Term-GsC, phrase(collect_attributes(Vs,[]),GsC), [Copy-Gs]).
+	collect_primaries(Vs, Gs0, Gs1),
+	findall(Term-Gs0, phrase(collect_attributes(Vs,[]),Gs1), [Copy-Gs]).
+
+collect_primaries([])	  --> [].
+collect_primaries([V|Vs]) -->
+	(   { get_attrs(V, As) }
+	->  collect_primaries_(As, V)
+	;   []
+	),
+	collect_primaries(Vs).
+
+collect_primaries_([], _)		    --> [].
+collect_primaries_(att(Module,Value,As), V) -->
+	collect_single(V, Module, Value),
+	collect_primaries_(As, V).
 
 collect_attributes([], _)	  --> [].
 collect_attributes([V|Vs], Tabu0) -->
@@ -228,6 +247,10 @@ collect_([], _, _)			--> [].
 collect_(att(Module,Value,As), V, Tabu) -->
 	{ term_variables(Value, Vs) },
 	collect_attributes(Vs, Tabu),
+	collect_single(V, Module, Value),
+	collect_(As, V, Tabu).
+
+collect_single(V, Module, Value) -->
 	(   { Module == freeze }
 	->  [freeze(V, Value)]
 	;   { current_predicate(Module:attribute_goals/3) }
@@ -238,8 +261,7 @@ collect_(att(Module,Value,As), V, Tabu) -->
 	    dot_list(Goal)
 	;   [put_attr(V, Module, Value)]
 	),
-	{ del_attr(V, Module) },
-	collect_(As, V, Tabu).
+	{ del_attr(V, Module) }.
 
 dlist([])     --> [].
 dlist([L|Ls]) --> [L], dlist(Ls).
