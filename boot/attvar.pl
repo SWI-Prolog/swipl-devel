@@ -214,6 +214,7 @@ call_det(Goal, Det) :-
 
 copy_term(Term, Copy, Gs) :-
 	term_variables(Term, Vs),
+        % encapsulated in findall/3 such that attributes can be removed etc.
 	findall(Term-GsC, phrase(collect_primaries(Vs,[]),GsC), [Copy-Gs]).
 
 collect_primaries([], _)        --> [].
@@ -224,13 +225,10 @@ collect_primaries([V|Vs], Left) -->
 
 collect_attributes([], _)	  --> [].
 collect_attributes([V|Vs], Tabu0) -->
-	(   { '$member'(T, Tabu0), T == V }
-	->  []
-	;   (	{ attvar(V) }
-	    ->	{ get_attrs(V, As) },
-		collect_(As, V, [V|Tabu0])
-	    ;	[]
-	    )
+	(   { attvar(V), \+ ( '$member'(T, Tabu0), T == V ) }
+	->  { get_attrs(V, As) },
+	    collect_(As, V, [V|Tabu0])
+	;   []
 	),
 	collect_attributes(Vs, [V|Tabu0]).
 
