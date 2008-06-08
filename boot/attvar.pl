@@ -214,26 +214,38 @@ call_det(Goal, Det) :-
 
 copy_term(Term, Copy, Gs) :-
 	term_variables(Term, Vs),
-        % encapsulated in findall/3 such that attributes can be removed etc.
-	findall(Term-GsC, phrase(collect_primaries(Vs,[]),GsC), [Copy-Gs]).
+	% encapsulated in findall/3 such that attributes can be removed etc.
+	findall(Term-GsC, phrase(collect_primaries(Vs),GsC), [Copy-Gs]).
 
-collect_primaries([], _)        --> [].
-collect_primaries([V|Vs], Left) -->
-        { append(Vs, Left, Tabu) },
-        collect_attributes([V], Tabu),
-        collect_primaries(Vs, [V|Left]).
+collect_primaries(Vs0) -->
+	{ collect_att_terms(Vs0, As, Vs) },
+	collect_primaries_(As, Vs).
 
-collect_attributes([], _)	  --> [].
-collect_attributes([V|Vs], Tabu0) -->
-	(   { attvar(V), \+ ( '$member'(T, Tabu0), T == V ) }
-	->  { get_attrs(V, As) },
-	    collect_(As, V, [V|Tabu0])
-	;   []
+collect_att_terms([], [], []).
+collect_att_terms([V0|Vs0], As, Vs) :-
+	(   attvar(V0), get_attrs(V0, A) ->
+	    As = [A|ARest],
+	    Vs = [V0|VRest],
+	    del_all_attrs(A, V0)
+	;   As = ARest,
+	    Vs = VRest
 	),
-	collect_attributes(Vs, [V|Tabu0]).
+	collect_att_terms(Vs0, ARest, VRest).
 
-collect_([], _, _)			--> [].
-collect_(att(Module,Value,As), V, Tabu) -->
+del_all_attrs([], _).
+del_all_attrs(att(Module,_,As), V) :-
+	del_attr(V, Module),
+	del_all_attrs(As, V).
+
+collect_primaries_([], _)	   --> [].
+collect_primaries_([A|As], [V|Vs]) -->
+	collect_(A, V),
+	collect_primaries_(As, Vs).
+
+collect_([], _)			  --> [].
+collect_(att(Module,Value,As), V) -->
+	% temporarily reinstate this attribute for attribute_goals/3
+	{ put_attr(V, Module, Value) },
 	(   { Module == freeze }
 	->  [freeze(V, Value)]
 	;   { current_predicate(Module:attribute_goals/3) }
@@ -246,8 +258,8 @@ collect_(att(Module,Value,As), V, Tabu) -->
 	),
 	{ del_attr(V, Module) },
 	{ term_variables(Value, Vs) },
-	collect_attributes(Vs, Tabu),
-	collect_(As, V, Tabu).
+	collect_primaries(Vs),
+	collect_(As, V).
 
 dlist([])     --> [].
 dlist([L|Ls]) --> [L], dlist(Ls).
