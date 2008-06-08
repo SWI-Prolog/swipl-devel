@@ -209,21 +209,26 @@ call_det(Goal, Det) :-
 %    convert attributes to lists of goals.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Intention: Reflect term variable order in residual goals.
+   Intention: Reflect term variable order in residual goals. First, all
+   attributes are stripped from Term, then they are processed in their
+   natural order. The same strategy is applied to attributes themselves.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 copy_term(Term, Copy, Gs) :-
-	term_variables(Term, Vs),
 	% encapsulated in findall/3 such that attributes can be removed etc.
-	findall(Term-GsC, phrase(collect_primaries(Vs),GsC), [Copy-Gs]).
+	findall(Term-GsC, phrase(term_residuals(Term),GsC), [Copy-Gs]).
 
-collect_primaries(Vs0) -->
-	{ collect_att_terms(Vs0, As, Vs) },
-	collect_primaries_(As, Vs).
+term_residuals(Term) -->
+	(   { '$attributed'(Term) }
+	->  { term_variables(Term, Vs0), collect_att_terms(Vs0, As, Vs) },
+	    att_terms_residuals(As, Vs)
+	;   []
+	).
 
 collect_att_terms([], [], []).
 collect_att_terms([V0|Vs0], As, Vs) :-
-	(   attvar(V0), get_attrs(V0, A) ->
+	(   attvar(V0)
+	->  get_attrs(V0, A),
 	    As = [A|ARest],
 	    Vs = [V0|VRest],
 	    del_all_attrs(A, V0)
@@ -237,14 +242,14 @@ del_all_attrs(att(Module,_,As), V) :-
 	del_attr(V, Module),
 	del_all_attrs(As, V).
 
-collect_primaries_([], _)	   --> [].
-collect_primaries_([A|As], [V|Vs]) -->
-	collect_(A, V),
-	collect_primaries_(As, Vs).
+att_terms_residuals([], _)	    --> [].
+att_terms_residuals([A|As], [V|Vs]) -->
+	att_term_residuals(A, V),
+	att_terms_residuals(As, Vs).
 
-collect_([], _)			  --> [].
-collect_(att(Module,Value,As), V) -->
-	% temporarily reinstate this attribute for attribute_goals/3
+att_term_residuals([], _)		    --> [].
+att_term_residuals(att(Module,Value,As), V) -->
+	% temporarily reinstate this attribute for attribute_goals//1
 	{ put_attr(V, Module, Value) },
 	(   { Module == freeze }
 	->  [freeze(V, Value)]
@@ -257,9 +262,8 @@ collect_(att(Module,Value,As), V) -->
 	;   [put_attr(V, Module, Value)]
 	),
 	{ del_attr(V, Module) },
-	{ term_variables(Value, Vs) },
-	collect_primaries(Vs),
-	collect_(As, V).
+	term_residuals(Value),
+	att_term_residuals(As, V).
 
 dlist([])     --> [].
 dlist([L|Ls]) --> [L], dlist(Ls).
