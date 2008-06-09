@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -1687,7 +1687,9 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
   if ( getInputStream(A1, &s) )
   { char buf[MAX_PENDING];
     ssize_t n, i;
-    Word gstore, lp, tp;
+    Word gstore, a, lp;
+    int64_t off0 = Stell64(s);
+    IOPOS pos0;
 
     if ( Sferror(s) )
       return streamStatus(s);
@@ -1695,28 +1697,27 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
     n = Sread_pending(s, buf, sizeof(buf), 0);
     if ( n < 0 )			/* should not happen */
       return streamStatus(s);
-    if ( n == 0 )
+    if ( n == 0 )			/* end-of-file */
+    { S__fcheckpasteeof(s, -1);
       return PL_unify(A2, A3);
-
-    gstore = allocGlobal(n*3);		/* TBD: shift */
-    lp = valTermRef(A2);
-    deRef(lp);
-    tp = valTermRef(A3);
-    deRef(tp);
-
-    if ( !isVar(*lp) )
-      return PL_error(NULL, 0, NULL, ERR_MUST_BE_VAR, 2, A2);
-    *lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
-    Trail(lp);
-
-    if (s->position)
-    { s->position->byteno+= n;
-      s->position->charno+= n;
     }
+    if ( s->position )
+      pos0 = *s->position;
+    else
+      pos0 = (IOPOS){0};
+
+    gstore = allocGlobal(1+n*3);	/* TBD: shift */
+    lp = gstore++;
+    *lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
 
     for(i=0; i<n; )
-    { *gstore++ = FUNCTOR_dot2;
-      *gstore++ = consInt(buf[i]&0xff);
+    { int c = buf[i]&0xff;
+
+      if ( s->position )
+	S__fupdatefilepos_getc(s, c);
+
+      *gstore++ = FUNCTOR_dot2;
+      *gstore++ = consInt(c);
       if ( ++i < n )
       { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
         gstore++;
@@ -1724,9 +1725,25 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
     }
 
     setVar(*gstore);
-    unify_ptrs(gstore, tp PASS_LD);
+
+    a = valTermRef(A2);
+    deRef(a);
+    if ( !unify_ptrs(a, lp PASS_LD) )
+      goto failure;
+    a = valTermRef(A3);
+    deRef(a);
+    if ( !unify_ptrs(a, gstore PASS_LD) )
+      goto failure;
     
-    return streamStatus(s);
+    releaseStream(s);
+    succeed;
+
+  failure:
+    Sseek64(s, off0, SIO_SEEK_SET);	/* TBD: error? */
+    if ( s->position )
+      *s->position = pos0;
+    releaseStream(s);
+    fail;
   }
 
   fail;
