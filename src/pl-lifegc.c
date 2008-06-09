@@ -602,9 +602,12 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  mark_frame_var(state, index PASS_LD);
 	  break;
       }
-	case I_EXITCLEANUP:		/* TBD: we don't have to mark main goal! */
-	  mark_arguments(state->frame PASS_LD);
-	  state->unmarked = 0;
+	case I_CALLCLEANUP:
+	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* main goal */
+	  break;
+	case I_EXITCLEANUP:
+	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* The ball */
+	  mark_frame_var(state, VAROFFSET(3) PASS_LD); /* cleanup goal */
 	  break;
 	case I_EXITCATCH:
 	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* The ball */
