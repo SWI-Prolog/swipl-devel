@@ -2253,8 +2253,6 @@ garbageCollect(LocalFrame fr, Choice ch)
   ggar = (gTop - gBase - total_marked) * sizeof(word);
   gc_status.global_gained += ggar;
   gc_status.trail_gained  += tgar;
-  gc_status.global_left   += usedStack(global);
-  gc_status.trail_left    += usedStack(trail);
   gc_status.collections++;
 
   DEBUG(2, Sdprintf("Compacting trail ... "));
@@ -2275,6 +2273,8 @@ garbageCollect(LocalFrame fr, Choice ch)
   trimStacks(PASS_LD1);
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
+  gc_status.global_left      += usedStack(global);
+  gc_status.trail_left       += usedStack(trail);
   gc_status.active = FALSE;
 
 #if LIFE_GC == 1
