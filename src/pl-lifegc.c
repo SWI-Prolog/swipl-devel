@@ -776,6 +776,7 @@ mark_life_data(mark_state *mstate, a_node *node ARG_LD)
 	case A_CHOICE:
 	{ Choice ch = r->value.choice;
 	  
+	  DEBUG(3, Sdprintf("Early reset from %s\n", chp_chars(ch)));
 	  early_reset_choicepoint(mstate, ch PASS_LD);
 
 	  switch(ch->type)
