@@ -527,11 +527,19 @@ domain_direction_element(split(_, D1, D2), Dir, E) :-
    Test whether domain contains a given integer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-domain_contains(from_to(From,To), I) :- From cis_leq n(I), n(I) cis_leq To.
+domain_contains(from_to(From,To), I) :-
+        domain_contains_from(From, I),
+        domain_contains_to(To, I).
 domain_contains(split(S, Left, Right), I) :-
         (   I < S -> domain_contains(Left, I)
         ;   I > S -> domain_contains(Right, I)
         ).
+
+domain_contains_from(inf, _).
+domain_contains_from(n(L), I) :- L =< I.
+
+domain_contains_to(sup, _).
+domain_contains_to(n(U), I) :- I =< U.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Test whether a domain contains another domain.
