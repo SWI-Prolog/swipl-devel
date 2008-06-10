@@ -1086,6 +1086,7 @@ mark_foreign_frame(FliFrame fr, GCTrailEntry te)
 }
 
 
+#ifndef LIFE_GC
 static GCTrailEntry
 mark_choicepoints(Choice ch, GCTrailEntry te, FliFrame *flictx)
 { GET_LD
@@ -1114,13 +1115,12 @@ mark_choicepoints(Choice ch, GCTrailEntry te, FliFrame *flictx)
     alien_into_relocation_chain(&ch->mark.trailtop,
 				STG_TRAIL, STG_LOCAL PASS_LD);
     SECURE(trailtops_marked--);
-#ifndef LIFE_GC
     mark_environments(fr, ch->type == CHP_JUMP ? ch->value.PC : NULL);
-#endif
   }
 
   return te;
 }
+#endif
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -79,6 +79,7 @@ typedef struct mark_state
   GCTrailEntry reset_entry;		/* Walk trail stack for early reset */
 } mark_state;
 
+static void	early_reset_choicepoint(mark_state *state, Choice ch ARG_LD);
 
 		 /*******************************
 		 *	     STATISTICS		*
@@ -390,7 +391,10 @@ mark_choice(mark_state *state, Choice ch)
     add_restart_choice(state, fr_node, ch);
     
     a_add_choice(state, ch->parent, NULL);
-  }					/* TBD: do mark_choicepoint stuff later */
+  } else
+  { GET_LD
+    early_reset_choicepoint(state, ch PASS_LD);
+  }
 }
 
 
@@ -714,23 +718,52 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
 
 #endif /*MARK_ALT_CLAUSES*/
 
+static void
+early_reset_choicepoint(mark_state *state, Choice ch ARG_LD)
+{ LocalFrame fr = ch->frame;
+  Word top;
+
+  while((char*)state->flictx > (char*)ch)
+  { FliFrame fli = state->flictx;
+
+    state->reset_entry = mark_foreign_frame(fli, state->reset_entry);
+    state->flictx = fli->parent;
+  }
+
+  if ( ch->type == CHP_CLAUSE )
+  { top = argFrameP(fr, fr->predicate->functor->arity);
+  } else
+  { assert(ch->type == CHP_TOP || (void *)ch > (void *)fr);
+    top = (Word)ch;
+  }
+
+  state->reset_entry = early_reset_vars(&ch->mark, top, state->reset_entry PASS_LD);
+  needsRelocation(&ch->mark.trailtop);
+  alien_into_relocation_chain(&ch->mark.trailtop,
+			      STG_TRAIL, STG_LOCAL PASS_LD);
+  SECURE(trailtops_marked--);
+}
+
 
 static void
 mark_life_data(mark_state *mstate, a_node *node ARG_LD)
 { restart *r;
   LocalFrame fr = node->value.frame.ptr;
-  Code PC;
 
   if ( (r=node->value.frame.restart_list) )
   { restart *rnext;
     walk_state state;
 
     state.frame    = fr;
-    state.c0       = fr->clause->clause->codes;
     state.flags    = GCM_CLEAR;
-    state.unmarked = slotsInFrame(fr, PC);
+    state.unmarked = slotsInFrame(fr, (Code)1); /* dummy PC */
     state.envtop   = argFrameP(fr, state.unmarked);
-    init_visited(mstate, &state.visited, node);
+    if ( false(fr->predicate, FOREIGN) )
+    { state.c0 = fr->clause->clause->codes;
+      init_visited(mstate, &state.visited, node);
+    } else
+    { state.visited.bits = NULL;
+    }
 
     for(; r; r=rnext)
     { rnext = r->next;
@@ -743,6 +776,8 @@ mark_life_data(mark_state *mstate, a_node *node ARG_LD)
 	case A_CHOICE:
 	{ Choice ch = r->value.choice;
 	  
+	  early_reset_choicepoint(mstate, ch PASS_LD);
+
 	  switch(ch->type)
 	  { case CHP_JUMP:
 	      walk_and_mark(&state, ch->value.PC, I_EXIT PASS_LD);
@@ -752,6 +787,8 @@ mark_life_data(mark_state *mstate, a_node *node ARG_LD)
 	      mark_alt_clauses(fr, ch->value.clause PASS_LD);
 	      break;
 	    case CHP_FOREIGN:
+	      mark_arguments(fr PASS_LD);
+	      break;
 	    case CHP_TOP:
 	    case CHP_CATCH:
 	    case CHP_DEBUG:
@@ -858,12 +895,8 @@ mark_frame(mark_state *state, a_node *node ARG_LD)
     }
   }
 
-  if ( true(fr->predicate, FOREIGN) )
-  { mark_arguments(fr PASS_LD);
-  } else
-  { mark_life_data(state, node PASS_LD);
-    set_unmarked_to_gced(fr);
-  }
+  mark_life_data(state, node PASS_LD);
+  set_unmarked_to_gced(fr);
 
 #ifdef O_CALL_RESIDUE
   if ( fr->predicate == PROCEDURE_call_residue_vars2->definition )
@@ -914,7 +947,6 @@ static void
 mark_stacks(LocalFrame fr, Choice ch)
 { GET_LD
   QueryFrame qf=NULL, pqf=NULL, top = NULL;
-  Choice ch0 = ch;
   mark_state state;
 
   memset(&state, 0, sizeof(state));
@@ -941,10 +973,6 @@ mark_stacks(LocalFrame fr, Choice ch)
 
   free_nodes(&state);
   free_restarts(&state);
-
-  state.reset_entry = mark_choicepoints(ch0, state.reset_entry, &state.flictx);
-  for(qf=top; qf; qf=qf->parent)
-    state.reset_entry = mark_choicepoints(qf->saved_bfr, state.reset_entry, &state.flictx);
 
   for( ; state.flictx; state.flictx = state.flictx->parent)
     state.reset_entry = mark_foreign_frame(state.flictx, state.reset_entry);
