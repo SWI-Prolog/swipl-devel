@@ -1517,7 +1517,9 @@ struct queryFrame
   Word	       *aSave;			/* saved argument-stack */
   int		solutions;		/* # of solutions produced */
   Choice	saved_bfr;		/* Saved choice-point */
+#ifndef LIFE_GC
   QueryFrame	parent;			/* Only valid inside GC */
+#endif
   struct choice	choice;			/* First (dummy) choice-point */
   LocalFrame	saved_environment;	/* Parent local-frame */
 					/* Do not put anything between */

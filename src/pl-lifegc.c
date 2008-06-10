@@ -910,6 +910,28 @@ mark_frame(mark_state *state, a_node *node ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) We need to mark  the  top   frame  to  deal  with foreign predicates
+calling  Prolog  back  that  can  leak    term-handles   of  the  parent
+environment. This came from Roberto Bagnara   and  was simplfied to this
+program, which must write foo(0).
+
+test :- c_bind(X), writeln(X).
+bind(X) :- X = foo(0), garbage_collect.
+
+static foreign_t
+bind(term_t arg)
+{ predicate_t pred = PL_predicate("bind", 1, "user");
+
+  return PL_call_predicate(NULL, PL_Q_NORMAL, pred, arg);
+}
+
+install_t
+install()
+{ PL_register_foreign("c_bind", 1, bind, 0);
+}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static QueryFrame
 mark_query_stacks(mark_state *state, LocalFrame fr, Choice ch ARG_LD)
 { a_node *node;
@@ -927,8 +949,13 @@ mark_query_stacks(mark_state *state, LocalFrame fr, Choice ch ARG_LD)
 
 	mark_frame(state, node PASS_LD);
 	if ( !fr->parent )
-	  qf = QueryOfTopFrame(fr);
-        
+	{ qf = QueryOfTopFrame(fr);
+	  assert(qf->magic == QID_MAGIC);
+
+	  if ( qf->saved_environment )
+	    mark_arguments(qf->saved_environment PASS_LD); /* (*) */
+	}
+
         break;
       }
       case A_CHOICE:
@@ -939,7 +966,6 @@ mark_query_stacks(mark_state *state, LocalFrame fr, Choice ch ARG_LD)
     free_node(state, node);
   }
 
-  assert(qf->magic == QID_MAGIC);
   return qf;
 }
 
@@ -947,7 +973,7 @@ mark_query_stacks(mark_state *state, LocalFrame fr, Choice ch ARG_LD)
 static void
 mark_stacks(LocalFrame fr, Choice ch)
 { GET_LD
-  QueryFrame qf=NULL, pqf=NULL, top = NULL;
+  QueryFrame qf=NULL;
   mark_state state;
 
   memset(&state, 0, sizeof(state));
@@ -958,19 +984,9 @@ mark_stacks(LocalFrame fr, Choice ch)
   while(fr)
   { DEBUG(1, Sdprintf("Marking query %p\n", qf));
     qf = mark_query_stacks(&state, fr, ch PASS_LD);
-
-    if ( pqf )
-    { pqf->parent = qf;
-    } else if ( !top )
-    { top = qf;
-    } 
-    pqf = qf;
-
     fr = qf->saved_environment;
     ch = qf->saved_bfr;
   }
-  if ( qf )
-    qf->parent = NULL;			/* topmost query */
 
   free_nodes(&state);
   free_restarts(&state);
