@@ -323,7 +323,7 @@ init_visited(mark_state *state, visited *v, a_node *n)
 
       first = (Code)~(uintptr_t)0;
       for( r=n->value.frame.restart_list; r; r = r->next)
-      { Code PC;
+      { Code PC = (Code)~(uintptr_t)0;
 
 	switch(r->type)
 	{ case A_FRAME:
