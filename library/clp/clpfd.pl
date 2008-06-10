@@ -957,6 +957,8 @@ intervals_to_domain(Is, D) :-
 %
 %  Var is an element of Domain. Domain is one of:
 %
+%         * Integer
+%           Singleton set consisting only of _Integer_.
 %         * Lower..Upper
 %           All integers _I_ such that _Lower_ =< _I_ =< _Upper_. The atoms
 %           *inf* and *sup* denote negative and positive infinity,
