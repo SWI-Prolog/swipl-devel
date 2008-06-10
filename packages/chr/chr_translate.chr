@@ -5814,6 +5814,10 @@ type_alias(TypePat,Alias) \ enumerated_atomic_type(Type,Atoms)
 		atomic(Alias),
 		copy_term_nat(TypePat-Alias,Type-NType),
 		enumerated_atomic_type(NType,Atoms).
+
+enumerated_atomic_type(_,_)
+	<=>
+	fail.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 :- chr_constraint
@@ -8315,9 +8319,16 @@ normalize_attr(Attr,NormalGoal,NormalAttr) :-
 	NormalGoal = 'chr normalize_attr'(Attr,NormalAttr).
 
 get_suspensions(N,Position,TAttr,(TAttr = Attr),Suspensions) :-
-	chr_pp_flag(dynattr,off), !,
+	chr_pp_flag(dynattr,off),
+	!, % chr_pp_flag(experiment,off), !,
 	make_attr(N,_,SuspsList,Attr),
 	nth1(Position,SuspsList,Suspensions).
+
+% get_suspensions(N,Position,TAttr,Goal,Suspensions) :-
+% 	chr_pp_flag(dynattr,off),
+% 	chr_pp_flag(experiment,on), !,
+% 	Position1 is Position + 1,
+% 	Goal = arg(Position1,TAttr,Suspensions).
 
 % NEW
 get_suspensions(N,Position,TAttr,Goal,Suspensions) :-
