@@ -72,6 +72,8 @@ typedef struct mark_state
   a_node  *free_nodes;			/* node pool */
   restart *free_restarts;		/* restart pool */
   intptr_t visit_buf[10];		/* Visited for small cases */
+  FliFrame flictx;			/* foreign context for early reset */
+  GCTrailEntry reset_entry;		/* Walk trail stack for early reset */
 } mark_state;
 
 
@@ -887,12 +889,12 @@ static void
 mark_stacks(LocalFrame fr, Choice ch)
 { GET_LD
   QueryFrame qf=NULL, pqf=NULL, top = NULL;
-  GCTrailEntry te = (GCTrailEntry)tTop - 1;
-  FliFrame flictx = fli_context;
   Choice ch0 = ch;
   mark_state state;
 
   memset(&state, 0, sizeof(state));
+  state.reset_entry = (GCTrailEntry)tTop - 1;
+  state.flictx = fli_context;
   trailcells_deleted = 0;
 
   while(fr)
@@ -915,12 +917,12 @@ mark_stacks(LocalFrame fr, Choice ch)
   free_nodes(&state);
   free_restarts(&state);
 
-  te = mark_choicepoints(ch0, te, &flictx);
+  state.reset_entry = mark_choicepoints(ch0, state.reset_entry, &state.flictx);
   for(qf=top; qf; qf=qf->parent)
-    te = mark_choicepoints(qf->saved_bfr, te, &flictx);
+    state.reset_entry = mark_choicepoints(qf->saved_bfr, state.reset_entry, &state.flictx);
 
-  for( ; flictx; flictx = flictx->parent)
-    te = mark_foreign_frame(flictx, te);
+  for( ; state.flictx; state.flictx = state.flictx->parent)
+    state.reset_entry = mark_foreign_frame(state.flictx, state.reset_entry);
 
   DEBUG(2, Sdprintf("Trail stack garbage: %ld cells\n", trailcells_deleted));
 }
