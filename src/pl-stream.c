@@ -160,26 +160,69 @@ not needed.
 
 static int
 S__setbuf(IOSTREAM *s, char *buffer, int size)
-{ if ( size == 0 )
+{ char *newbuf, *newunbuf;
+  int newflags = s->flags;
+
+  if ( size == 0 )
     size = SIO_BUFSIZE;
 
-  S__removebuf(s);
-  s->bufsize = size;
+  if ( (s->flags & SIO_OUTPUT) )
+  { if ( S__removebuf(s) < 0 )
+      return -1;
+  }
 
   if ( buffer )
-  { s->unbuffer = s->buffer = buffer;
-    s->flags |= SIO_USERBUF;
+  { newunbuf = newbuf = buffer;
+    newflags |= SIO_USERBUF;
   } else
-  { if ( !(s->unbuffer = malloc(s->bufsize+UNDO_SIZE)) )
+  { if ( !(newunbuf = malloc(size+UNDO_SIZE)) )
     { errno = ENOMEM;
       return -1;
     }
-    s->flags &= ~SIO_USERBUF;
-    s->buffer = s->unbuffer + UNDO_SIZE;
+    newflags &= ~SIO_USERBUF;
+    newbuf = newunbuf + UNDO_SIZE;
   }
 
-  s->limitp = &s->buffer[s->bufsize];
-  s->bufp   = s->buffer;
+  if ( (s->flags & SIO_INPUT) )
+  { int buffered = s->limitp - s->bufp;
+    int copy = (buffered < size ? buffered : size);
+
+    if ( size < buffered )
+    { int offset = size - buffered;
+      int64_t newpos;
+
+      if ( s->functions->seek64 )
+      { newpos = (*s->functions->seek64)(s->handle, offset, SIO_SEEK_CUR);
+      } else if ( s->functions->seek )
+      { newpos = (*s->functions->seek)(s->handle, offset, SIO_SEEK_CUR);
+      } else
+      { newpos = -1;
+	errno = ESPIPE;
+      }
+
+      if ( newpos == -1 )
+      { if ( !(newflags & SIO_USERBUF) )
+	{ int oldeno = errno;
+
+	  free(newunbuf);
+	  errno = oldeno;
+	  return -1;
+	}
+      }
+    }
+
+    memcpy(newbuf, s->bufp, copy);
+    S__removebuf(s);
+    s->unbuffer = newunbuf;
+    s->bufp = s->buffer = newbuf;
+    s->limitp = s->buffer+copy;
+  } else
+  { s->unbuffer = newunbuf;
+    s->bufp = s->buffer = newbuf;
+    s->limitp = &s->buffer[size];
+  }
+  s->bufsize = size;
+  s->flags = newflags;
 
   return size;
 }
@@ -537,6 +580,14 @@ update_linepos(IOSTREAM *s, int c)
 
 
 int
+S__fcheckpasteeof(IOSTREAM *s, int c)
+{ S__checkpasteeof(s, c);
+
+  return c;
+}
+
+
+int
 S__fupdatefilepos_getc(IOSTREAM *s, int c)
 { IOPOS *p = s->position;
 
@@ -556,6 +607,7 @@ S__updatefilepos(IOSTREAM *s, int c)
   { update_linepos(s, c);
     p->charno++;
   }
+  S__checkpasteeof(s,c);
 
   return c;
 }
@@ -857,8 +909,8 @@ retry:
       for(;;)
       { if ( (c = get_byte(s)) == EOF )
 	{ if ( n == 0 )
-	    return EOF;
-	  else
+	  { goto out;
+	  } else
 	  { Sseterr(s, SIO_WARN, "EOF in multibyte Sequence");
 	    goto mberr;
 	  }
@@ -915,7 +967,9 @@ retry:
 
       c1 = get_byte(s);
       if ( c1 == EOF )
-	return EOF;
+      { c = -1;
+	goto out;
+      }
       c2 = get_byte(s);
 
       if ( c2 == EOF )
@@ -940,7 +994,8 @@ retry:
 
 	if ( c1 == EOF )
 	{ if ( n == 0 )
-	  { return EOF;
+	  { c = -1;
+	    goto out;
 	  } else
 	  { Sseterr(s, SIO_WARN, "EOF in UCS character");
 	    c = UTF8_MALFORMED_REPLACEMENT; 
@@ -1545,7 +1600,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
   }
 
 update:
-  s->flags &= ~SIO_FEOF;		/* not on eof of file anymore */
+  s->flags &= ~(SIO_FEOF|SIO_FEOF2);	/* not on eof of file anymore */
 
   if ( s->position )
   { s->flags |= (SIO_NOLINENO|SIO_NOLINEPOS); /* no update this */

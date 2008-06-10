@@ -249,7 +249,8 @@ attribute_goals(Var) -->
 or_node(O) -->
         (   { get_attr(O, dif, node(_, Pairs)) } ->
             { eqs_lefts_rights(Pairs, As, Bs) },
-            mydif(As, Bs)
+            mydif(As, Bs),
+            { del_attr(O, dif) }
         ;   []
         ).
 
@@ -258,15 +259,18 @@ or_nodes([O-_|Os], X) -->
 	(   { get_attr(O, dif, node(_, Eqs)) } ->
             (   { Eqs = [LHS=_|_], LHS == X } ->
                 { eqs_lefts_rights(Eqs, As, Bs) },
-                mydif(As, Bs)
+                mydif(As, Bs),
+                { del_attr(O, dif) }
             ;   []
             )
-        ;   [] % or-node already removed by copy_term/3
+        ;   [] % or-node already removed
         ),
 	or_nodes(Os, X).
 
 mydif([X], [Y]) --> !, [dif(X, Y)].
-mydif(Xs, Ys)   --> { X =.. [f|Xs], Y =.. [f|Ys] }, [dif(X,Y)].
+mydif(Xs0, Ys0) --> [dif(X,Y)],
+        { reverse(Xs0, Xs), reverse(Ys0, Ys), % follow original order
+          X =.. [f|Xs], Y =.. [f|Ys] }.
 
 eqs_lefts_rights([], [], []).
 eqs_lefts_rights([A=B|ABs], [A|As], [B|Bs]) :-

@@ -1411,6 +1411,10 @@ Part of the dialect compatibility layer, See also the Prolog flag
 platform specific version information.  Currently it is simply unified
 to \const{[]}.
 
+    \prologflagitem{version_git}{atom}{r}
+Available if created from a git repository.  See \program{git-describe}
+for details.
+
     \prologflagitem{windows}{bool}{r}
 \index{windows}%
 If present and \const{true}, the operating system is an implementation

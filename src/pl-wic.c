@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -2489,7 +2489,6 @@ PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
   term_t qstream = A1;
   term_t module = A2;
   Module m, oldsrc = LD->modules.source;
-  char *fn;
   bool rval;
   term_t stream = PL_new_term_ref();
   IOSTREAM *fd;

@@ -913,6 +913,11 @@ match_error(Expect, Rec) :-
 %	    If it is the setup handler for a test
 
 setup(Module, Context, Options) :-
+	option(condition(Condition), Options),
+	option(setup(Setup), Options), !,
+	setup(Module, Context, [condition(Condition)]),
+	setup(Module, Context, [setup(Setup)]).
+setup(Module, Context, Options) :-
 	option(setup(Setup), Options), !,
 	(   catch(Module:Setup, E, true)
 	->  (   var(E)

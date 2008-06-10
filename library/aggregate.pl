@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module(aggretate,
+:- module(aggregate,
 	  [ foreach/2,			% :Generator, :Goal
 	    aggregate/3,		% +Templ, :Goal, -Result
 	    aggregate/4,		% +Templ, +Discrim, :Goal, -Result

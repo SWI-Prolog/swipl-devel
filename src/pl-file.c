@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -804,7 +804,6 @@ void
 PL_cleanup_fork(void)
 { TableEnum e;
   Symbol symb;
-  int n = 0;
 
   e = newTableEnum(streamContext);
   while( (symb=advanceTableEnum(e)) )
@@ -1302,6 +1301,17 @@ pl_set_stream(term_t stream, term_t attr)
 	  goto error;
 	}
 	goto ok;
+      } else if ( aname == ATOM_buffer_size )
+      { int size;
+	
+	if ( !PL_get_integer_ex(a, &size) )
+	  goto error;
+	if ( size < 1 )
+	{ PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_one, a);
+	  goto error;
+	}
+	Ssetbuffer(s, NULL, size);
+	goto ok;
       } else if ( aname == ATOM_eof_action ) /* eof_action(Action) */
       { atom_t action;
 
@@ -1677,7 +1687,9 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
   if ( getInputStream(A1, &s) )
   { char buf[MAX_PENDING];
     ssize_t n, i;
-    Word gstore, lp, tp;
+    Word gstore, a, lp;
+    int64_t off0 = Stell64(s);
+    IOPOS pos0;
 
     if ( Sferror(s) )
       return streamStatus(s);
@@ -1685,23 +1697,27 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
     n = Sread_pending(s, buf, sizeof(buf), 0);
     if ( n < 0 )			/* should not happen */
       return streamStatus(s);
-    if ( n == 0 )
+    if ( n == 0 )			/* end-of-file */
+    { S__fcheckpasteeof(s, -1);
       return PL_unify(A2, A3);
+    }
+    if ( s->position )
+      pos0 = *s->position;
+    else
+      pos0 = (IOPOS){0};
 
-    gstore = allocGlobal(n*3);		/* TBD: shift */
-    lp = valTermRef(A2);
-    deRef(lp);
-    tp = valTermRef(A3);
-    deRef(tp);
-
-    if ( !isVar(*lp) )
-      return PL_error(NULL, 0, NULL, ERR_MUST_BE_VAR, 2, A2);
+    gstore = allocGlobal(1+n*3);	/* TBD: shift */
+    lp = gstore++;
     *lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
-    Trail(lp);
 
     for(i=0; i<n; )
-    { *gstore++ = FUNCTOR_dot2;
-      *gstore++ = consInt(buf[i]&0xff);
+    { int c = buf[i]&0xff;
+
+      if ( s->position )
+	S__fupdatefilepos_getc(s, c);
+
+      *gstore++ = FUNCTOR_dot2;
+      *gstore++ = consInt(c);
       if ( ++i < n )
       { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
         gstore++;
@@ -1709,9 +1725,25 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
     }
 
     setVar(*gstore);
-    unify_ptrs(gstore, tp PASS_LD);
+
+    a = valTermRef(A2);
+    deRef(a);
+    if ( !unify_ptrs(a, lp PASS_LD) )
+      goto failure;
+    a = valTermRef(A3);
+    deRef(a);
+    if ( !unify_ptrs(a, gstore PASS_LD) )
+      goto failure;
     
-    return streamStatus(s);
+    releaseStream(s);
+    succeed;
+
+  failure:
+    Sseek64(s, off0, SIO_SEEK_SET);	/* TBD: error? */
+    if ( s->position )
+      *s->position = pos0;
+    releaseStream(s);
+    fail;
   }
 
   fail;
@@ -3013,6 +3045,15 @@ stream_buffer_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+static int
+stream_buffer_size_prop(IOSTREAM *s, term_t prop ARG_LD)
+{ if ( (s->flags & SIO_NBUF) )
+    fail;
+    
+  return PL_unify_integer(prop, s->bufsize);
+}
+
+
 typedef struct
 { functor_t functor;			/* functor of property */
   int (*function)();			/* function to generate */
@@ -3032,6 +3073,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_type1,    	    stream_type_prop },
   { FUNCTOR_file_no1,	    stream_file_no_prop },
   { FUNCTOR_buffer1,	    stream_buffer_prop },
+  { FUNCTOR_buffer_size1,   stream_buffer_size_prop },
   { FUNCTOR_close_on_abort1,stream_close_on_abort_prop },
   { FUNCTOR_tty1,	    stream_tty_prop },
   { FUNCTOR_encoding1,	    stream_encoding_prop },

@@ -502,6 +502,9 @@ prolog_message(autoload(read_index(Dir))) -->
 		 *******************************/
 
 prolog_message(version) -->
+	{ current_prolog_flag(version_git, Version) }, !,
+	[ '~w'-[Version] ].
+prolog_message(version) -->
 	{ current_prolog_flag(version, Version),
 	  Major is Version // 10000,
 	  Minor is (Version // 100) mod 100,

@@ -934,3 +934,5 @@ COMMON(void)    promoteNumber(Number n1, numtype type);
 COMMON(int)	cmpNumbers(Number n1, Number n2);
 COMMON(void)	cpNumber(Number to, Number from);
 
+/* pl-version.h */
+COMMON(void)	setGITVersion(void);

@@ -121,8 +121,8 @@ assoc_to_keys(t, List, List).
 assoc_to_values(Assoc, List) :-
 	assoc_to_values(Assoc, List, []).
 
-assoc_to_values(t(Key,_,_,L,R), List, Rest) :-
-	assoc_to_values(L, List, [Key|More]),
+assoc_to_values(t(_,Value,_,L,R), List, Rest) :-
+	assoc_to_values(L, List, [Value|More]),
 	assoc_to_values(R, More, Rest).
 assoc_to_values(t, List, List).
 

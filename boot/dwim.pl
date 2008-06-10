@@ -99,9 +99,12 @@ correct_goal(Goal, Bindings, [Dwim], DwimGoal) :-
 	G1 =.. [_|Arguments], 
 	G2 =.. [Name|Arguments], 
 	context_module(Context),
-	'$prefix_module'(DM, Context, G2, DwimGoal),
-	goal_name(DwimGoal, Bindings, String),
-	'$confirm'(dwim_correct(String)).
+	(   '$prefix_module'(DM, Context, G2, DwimGoal),
+	    goal_name(DwimGoal, Bindings, String),
+	    '$confirm'(dwim_correct(String))
+	->  true
+	;   DwimGoal = Goal
+	).
 correct_goal(Goal, Bindings, Dwims, NewGoal) :-
 	strip_module(Goal, _, G1), 
 	functor(G1, _, Arity), 

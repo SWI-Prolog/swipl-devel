@@ -246,6 +246,9 @@ store_modes([mode(Mode, _Bindings)|T], Pos) :-
 	store_mode(Mode, Pos),
 	store_modes(T, Pos).
 
+store_mode(Var, _) :-
+	var(Var), !,
+	throw(error(instantiation_error, context(_, 'PlDoc: Mode declaration expected'))).
 store_mode(Head0 is Det, Pos) :- !,
 	dcg_expand(Head0, Head),
 	compile_clause('$mode'(Head, Det), Pos).
