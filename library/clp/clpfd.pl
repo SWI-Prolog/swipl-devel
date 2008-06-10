@@ -128,7 +128,7 @@
 /** <module> Constraint Logic Programming over Finite Domains
 
 Constraint programming is a declarative formalism that lets you
-describe conditions a solution should satisfy. This library provides
+describe conditions a solution must satisfy. This library provides
 CLP(FD), Constraint Logic Programming over Finite Domains. It can be
 used to model and solve various combinatorial problems such as
 planning, scheduling and allocation tasks.
@@ -260,8 +260,11 @@ the (implied) constraint F #\= 0 before the recursive call. Otherwise,
 the query fac(N, 0) is the only non-terminating case of this kind.
 
 This library uses goal_expansion/2 to rewrite constraints at
-compilation time. To disable this expansion, set the flag
-clpfd_goal_expansion to false.
+compilation time. The expansion's aim is to transparently bring the
+performance of CLP(FD) constraints close to that of conventional
+arithmetic predicates (</2, =:=/2, is/2 etc.) when the constraints are
+used in modes that can also be handled by built-in arithmetic. To
+disable the expansion, set the flag clpfd_goal_expansion to false.
 
 @author Markus Triska
 */
@@ -952,7 +955,7 @@ intervals_to_domain(Is, D) :-
 
 %% ?Var in +Domain
 %
-%  Constrain Var to elements of Domain. Domain is one of:
+%  Var is an element of Domain. Domain is one of:
 %
 %         * Lower..Upper
 %           All integers _I_ such that _Lower_ =< _I_ =< _Upper_. The atoms
@@ -977,7 +980,7 @@ fd_variable(V) :-
 
 %% +Vars ins +Domain
 %
-%  Constrain the variables in the list Vars to elements of Domain.
+%  The variables in the list Vars are elements of Domain.
 
 Vs ins D :-
         must_be(list, Vs),
@@ -1373,7 +1376,7 @@ tighten(max, E, V) :- E #> V.
 
 %% all_different(+Vars)
 %
-% Constrain Vars to be pairwise distinct.
+% Vars are pairwise distinct.
 
 all_different(Ls) :-
         must_be(list, Ls),
@@ -1391,13 +1394,17 @@ all_different([X|Right], Left, State) :-
         ),
         all_different(Right, [X|Left], State).
 
-%% sum(+Vars, +Op, +Expr)
+%% sum(+Vars, +Rel, +Expr)
 %
-% Constrain the sum of a list.  The sum/3 constraint demands that
-% "sumlist(Vars) Op Expr" hold, e.g.:
+% The sum of elements of the list Vars is in relation Rel to Expr. For
+% example:
 %
 % ==
-% sum(List, #=<, 100)
+% ?- [A,B,C] ins 0..sup, sum([A,B,C], #=, 100).
+% A in 0..100,
+% A+B+C#=100,
+% B in 0..100,
+% C in 0..100.
 % ==
 
 scalar_supported(#=).
@@ -2453,7 +2460,7 @@ init_propagator(Var, Prop) :-
 
 %% lex_chain(+Lists)
 %
-% Constrains Lists to be lexicographically non-decreasing.
+% Lists are lexicographically non-decreasing.
 
 lex_chain(Lss) :-
         must_be(list(list), Lss),
@@ -2496,8 +2503,17 @@ lex_le([V1|V1s], [V2|V2s]) :-
 
 %% tuples_in(+Tuples, +Relation).
 %
-% Relation is a ground list of lists of integers. The elements of the
-% list Tuples are constrained to be elements of Relation.
+% Relation must be a ground list of lists of integers. The elements of
+% the list Tuples are constrained to be elements of Relation.
+% Arbitrary finite relations, such as compatibility tables, can be
+% modeled in this way. For example, if 1 is compatible with 2 and 5,
+% and 4 is compatible with 0 and 3:
+%
+% ==
+% ?- tuples_in([[X,Y]], [[1,2],[1,5],[4,0],[4,3]]), X = 4.
+% X = 4,
+% Y in 0\/3.
+% ==
 
 tuples_in(Tuples, Relation) :-
         must_be(list, Tuples),
