@@ -40,7 +40,11 @@ typedef enum a_type
 
 typedef struct restart
 { struct restart *next;
-  Code PC;				/* The restart address */
+  a_type type;
+  union
+  { LocalFrame frame;
+    Choice choice;
+  } value;
 } restart;
 
 
@@ -50,9 +54,8 @@ typedef struct a_node
   union
   { struct
     { LocalFrame ptr;
-      Code PC;				/* continuation PC from parent */
-      restart *restart_list;
-      ClauseRef alt_clause;		/* frame has alternate clause */
+      restart  *restart_list;
+      restart **restart_tail;
     } frame;
     struct
     { Choice ptr;
@@ -236,14 +239,19 @@ insert_node(mark_state *state, a_node *n, a_node **address)
 
 static int
 a_add_frame(mark_state *state, LocalFrame fr, a_node **node)
-{ a_node n;
+{ a_node n, *n2;
+  int rc;
 
   n.type = A_FRAME;
   n.value.frame.ptr = fr;
-  n.value.frame.restart_list = NULL;
-  n.value.frame.PC = NULL;
-  n.value.frame.alt_clause = NULL;
-  return insert_node(state, &n, node);
+  if ( (rc=insert_node(state, &n, &n2)) )
+  { n2->value.frame.restart_list = NULL;
+    n2->value.frame.restart_tail = &n2->value.frame.restart_list;
+  }
+  if ( node )
+    *node = n2;
+
+  return rc;
 }
 
 
@@ -263,17 +271,26 @@ reset uninitialised variables in the environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-add_restart(mark_state *state, a_node *n, Code PC)
-{ if ( n->value.frame.PC )
-  { restart *r;
+add_restart_frame(mark_state *state, a_node *n, LocalFrame fr)
+{ restart *r = new_restart(state);
 
-    r = new_restart(state);
-    r->PC = PC;
-    r->next = n->value.frame.restart_list;
-    n->value.frame.restart_list = r;
-  } else
-  { n->value.frame.PC = PC;
-  }
+  r->type = A_FRAME;
+  r->value.frame = fr;
+  r->next = NULL;
+  *n->value.frame.restart_tail = r;
+  n->value.frame.restart_tail = &r->next;
+}
+
+
+static void
+add_restart_choice(mark_state *state, a_node *n, Choice ch)
+{ restart *r = new_restart(state);
+
+  r->type = A_CHOICE;
+  r->value.choice = ch;
+  r->next = NULL;
+  *n->value.frame.restart_tail = r;
+  n->value.frame.restart_tail = &r->next;
 }
 
 
@@ -303,10 +320,24 @@ init_visited(mark_state *state, visited *v, a_node *n)
       size_t size, bsize;
       restart *r;
 
-      first = n->value.frame.PC;
+      first = (Code)~(uintptr_t)0;
       for( r=n->value.frame.restart_list; r; r = r->next)
-      { if ( r->PC < first )
-	  first = r->PC;
+      { Code PC;
+
+	switch(r->type)
+	{ case A_FRAME:
+	    PC = r->value.frame->programPointer;
+	    break;
+	  case A_CHOICE:
+	    if ( r->value.choice->type == CHP_JUMP )
+	    { PC = r->value.choice->value.PC;
+	      break;
+	    } else
+	      continue;
+	}
+	  
+	if ( PC < first )
+	  first = PC;
       }
       v->offset = first;
       
@@ -352,34 +383,14 @@ try_visit(visited *v, Code PC)
 
 static void
 mark_choice(mark_state *state, Choice ch)
-{ a_node *fr_node;
+{ if ( ch->type != CHP_TOP )
+  { a_node *fr_node;
 
-  if ( ch->type != CHP_TOP )
     a_add_frame(state, ch->frame, &fr_node);
-
-  switch(ch->type)
-  { case CHP_JUMP:
-      DEBUG(1,
-	    LocalFrame fr = fr_node->value.frame.ptr;
-	    Sdprintf("[%d] %s: Add restart %d\n",
-		     levelFrame(fr), predicateName(fr->predicate),
-		     ch->value.PC-fr->clause->clause->codes));
-
-      add_restart(state, fr_node, ch->value.PC);
-      break;
-    case CHP_CLAUSE:
-      fr_node->value.frame.alt_clause = ch->value.clause;
-      break;
-    case CHP_FOREIGN:
-    case CHP_TOP:
-    case CHP_CATCH:
-    case CHP_DEBUG:
-    case CHP_NONE:
-      break;
-  }
-
-  if ( ch->parent )
+    add_restart_choice(state, fr_node, ch);
+    
     a_add_choice(state, ch->parent, NULL);
+  }					/* TBD: do mark_choicepoint stuff later */
 }
 
 
@@ -656,46 +667,6 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 }
 
 
-static void
-mark_life_data(mark_state *mstate, a_node *node ARG_LD)
-{ restart *r;
-  LocalFrame fr = node->value.frame.ptr;
-  Code PC;
-
-  if ( (PC=node->value.frame.PC) )
-  { walk_state state;
-
-    state.frame    = fr;
-    state.c0       = fr->clause->clause->codes;
-    state.flags    = GCM_CLEAR;
-    state.unmarked = slotsInFrame(fr, PC);
-    state.envtop   = argFrameP(fr, state.unmarked);
-    init_visited(mstate, &state.visited, node);
-
-    DEBUG(1, Sdprintf("[%ld] %s: continuation walk from PC=%d\n",
-		      levelFrame(fr), predicateName(fr->predicate),
-		      PC-state.c0));
-
-    walk_and_mark(&state, node->value.frame.PC, I_EXIT PASS_LD);
-
-    while( (r=node->value.frame.restart_list) )
-    { node->value.frame.restart_list = r->next;
-      
-      DEBUG(1, Sdprintf("[%ld] %s: choice walk from PC=%d\n",
-			levelFrame(fr), predicateName(fr->predicate),
-			r->PC-state.c0));
-      state.flags = 0;
-      walk_and_mark(&state, r->PC, I_EXIT PASS_LD);
-      free_restart(mstate, r);
-    }
-
-    free_visited(mstate, &state.visited);
-  } else
-  { mark_arguments(fr PASS_LD);
-  }
-}
-
-
 #ifdef MARK_ALT_CLAUSES
 static void
 mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
@@ -733,7 +704,70 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
     state.ARGP	     = argFrameP(fr, 0);
   }
 }
+
+#else /*MARK_ALT_CLAUSES*/
+
+static void
+mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
+{ mark_arguments(fr PASS_LD);
+}
+
 #endif /*MARK_ALT_CLAUSES*/
+
+
+static void
+mark_life_data(mark_state *mstate, a_node *node ARG_LD)
+{ restart *r;
+  LocalFrame fr = node->value.frame.ptr;
+  Code PC;
+
+  if ( (r=node->value.frame.restart_list) )
+  { restart *rnext;
+    walk_state state;
+
+    state.frame    = fr;
+    state.c0       = fr->clause->clause->codes;
+    state.flags    = GCM_CLEAR;
+    state.unmarked = slotsInFrame(fr, PC);
+    state.envtop   = argFrameP(fr, state.unmarked);
+    init_visited(mstate, &state.visited, node);
+
+    for(; r; r=rnext)
+    { rnext = r->next;
+      
+      switch(r->type)
+      { case A_FRAME:
+	  walk_and_mark(&state, r->value.frame->programPointer, I_EXIT PASS_LD);
+	  state.flags = 0;
+	  break;
+	case A_CHOICE:
+	{ Choice ch = r->value.choice;
+	  
+	  switch(ch->type)
+	  { case CHP_JUMP:
+	      walk_and_mark(&state, ch->value.PC, I_EXIT PASS_LD);
+	      state.flags = 0;
+	      break;
+	    case CHP_CLAUSE:
+	      mark_alt_clauses(fr, ch->value.clause PASS_LD);
+	      break;
+	    case CHP_FOREIGN:
+	    case CHP_TOP:
+	    case CHP_CATCH:
+	    case CHP_DEBUG:
+	    case CHP_NONE:
+	      break;
+	  }
+	}
+      }
+
+      free_restart(mstate, r);
+    }
+    free_visited(mstate, &state.visited);
+  } else
+  { mark_arguments(fr PASS_LD);
+  }
+}
 
 
 #if 0					/* debugging */
@@ -754,9 +788,9 @@ mark_all_data(LocalFrame fr, Code PC ARG_LD)
 #endif
 
 static void
-set_unmarked_to_gced(LocalFrame fr, Code PC)
+set_unmarked_to_gced(LocalFrame fr)
 { Word sp = argFrameP(fr, 0);
-  int slots = slotsInFrame(fr, PC);
+  int slots = slotsInFrame(fr, (Code)1); /* PC passed as dummy */
 
   for( ; slots-- > 0; sp++ )
   { if ( !is_marked(sp) )
@@ -813,15 +847,14 @@ mark_frame(mark_state *state, a_node *node ARG_LD)
 
     a_add_frame(state, fr->parent, &pn_node);
     if ( false(fr->parent->predicate, FOREIGN) )
-    { DEBUG(2, Sdprintf("%s of [%d] %s from [%d] %s to %d\n",
-			(pn_node->value.frame.PC ? "Added restart" : "Set PC"),
+    { DEBUG(2, Sdprintf("Added restart of [%d] %s from [%d] %s to %d\n",
 			levelFrame(fr->parent),
 			predicateName(fr->parent->predicate),
 			levelFrame(fr),
 			predicateName(fr->predicate),
 			fr->programPointer - fr->parent->clause->clause->codes));
 
-      add_restart(state, pn_node, fr->programPointer);
+      add_restart_frame(state, pn_node, fr);
     }
   }
 
@@ -829,15 +862,7 @@ mark_frame(mark_state *state, a_node *node ARG_LD)
   { mark_arguments(fr PASS_LD);
   } else
   { mark_life_data(state, node PASS_LD);
-    if ( node->value.frame.alt_clause )
-    {
-#ifdef MARK_ALT_CLAUSES
-      mark_alt_clauses(fr, node->value.frame.alt_clause PASS_LD);
-#else
-      mark_arguments(fr PASS_LD);
-#endif
-    }
-    set_unmarked_to_gced(fr, node->value.frame.PC);
+    set_unmarked_to_gced(fr);
   }
 
 #ifdef O_CALL_RESIDUE
