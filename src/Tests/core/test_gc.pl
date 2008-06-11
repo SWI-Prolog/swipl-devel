@@ -31,39 +31,76 @@ This unit contains small tests for the garbage collector.
 */
 
 test_gc :-
-	run_tests([ gc_leak
+	run_tests([ gc_leak,
+		    gc_reset
 		  ]).
 
 :- module_transparent
-	space/2,
+	space/3,
 	nospace/1.
 
-space(Goal, T+G) :-
+space(T, G) :-
 	garbage_collect,
-	statistics(trailused, T0),
-	statistics(globalused, G0),
-	Goal,
-	garbage_collect,
-	statistics(trailused, T1),
-	statistics(globalused, G1),
-	T is T1-T0,
-	G is G1-G0.
+	statistics(trailused, T),
+	statistics(globalused, G).
 
-nospace(G) :-
-	space(G, Used),
-	(   Used = (0+0)
+must_space(T0, G0) :-
+	space(T1, G1),
+	(   T0 == T1,
+	    G0 == G1
 	->  true
-	;   format(user_error, '~p: Used ~w~n', [G, Used]),
+	;   T is T1-T0,
+	    G is G1-G0,
+	    format(user_error, 'Used ~D+~D~n', [T,G]),
 	    fail
 	).
 
-:- begin_tests(gc_leak).
+space(Goal, T, G) :-
+	space(T0,G0),
+	Goal,
+	space(T1,G1),
+	T is T1-T0,
+	G is G1-G0.
+
+nospace(Goal) :-
+	space(Goal, T, G),
+	(   T == 0, G == 0
+	->  true
+	;   format(user_error, 'Used ~D+~D~n', [T,G]),
+	    fail
+	).
+
+:- begin_tests(gc_leak, [sto(rational_trees)]).
 
 det_freeze :- 
 	freeze(X, X==1), X=1.
 
+early_reset :-
+	early_reset(_).
+
+early_reset(X) :- space(T,G), length(X, 10), must_space(T,G), !.
+early_reset(_) :- fail.
+
 test(attvar) :-
 	nospace(det_freeze).
+test(early_reset) :-
+	early_reset.
 
 :- end_tests(gc_leak).
 
+:- begin_tests(gc_reset).
+
+deep_reset :-
+        X = a(A),
+        deep_reset(A), !,
+        X == a(42).
+
+deep_reset(A) :-
+        (   A = 42, garbage_collect
+        ;   true
+        ).
+
+test(deep_reset) :- deep_reset.
+
+
+:- end_tests(gc_reset).
