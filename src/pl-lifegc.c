@@ -48,13 +48,9 @@ below. This predicate is NOT THREAD-SAFE!!!
 #ifdef GC_COUNTING
 typedef struct life_count
 { int64_t	marked_envs;		/* environments marked */
-  int64_t	multi_envs;		/* environments with continuations */
   int64_t	marked_cont;		/* continuations followed */
   int64_t	c_scanned;		/* Scanned clauses */
   int64_t	vm_scanned;		/* #VM codes scanned */
-  int64_t	vm_aborted;		/* scans stopped short */
-  int64_t	a_searched;		/* #agenda searches */
-  int64_t	a_scanned;		/* #agenda links followed */
 } life_count;
 
 static life_count counts;
@@ -62,17 +58,12 @@ static life_count counts;
 
 static
 PRED_IMPL("gc_statistics", 1, gc_statistics, 0)
-{ double as = (double)counts.a_scanned/(double)counts.a_searched;
-
-  int rc = PL_unify_term(A1,
-			 PL_FUNCTOR_CHARS, "gc", 7,
+{ int rc = PL_unify_term(A1,
+			 PL_FUNCTOR_CHARS, "gc", 4,
 			   PL_INT64, counts.marked_envs,
-			   PL_INT64, counts.multi_envs,
 			   PL_INT64, counts.marked_cont,
 			   PL_INT64, counts.c_scanned,
-			   PL_INT64, counts.vm_scanned,
-			   PL_INT64, counts.vm_aborted,
-			   PL_FLOAT, as);
+			   PL_INT64, counts.vm_scanned);
 		       
   memset(&counts, 0, sizeof(counts));
 
@@ -427,6 +418,7 @@ mark_choicepoints(mark_state *state, Choice ch ARG_LD)
 	mark_alt_clauses(fr, ch->value.clause PASS_LD);
         if ( false(fr, FR_MARKED) )
 	{ set(fr, FR_MARKED);
+	  COUNT(marked_envs);
 	  check_call_residue(fr PASS_LD);
 	  mark_environments(state, fr->parent, fr->programPointer PASS_LD);
 	}
@@ -474,6 +466,7 @@ mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD)
     { set(fr, FR_MARKED);
       state.flags = GCM_CLEAR;
 
+      COUNT(marked_envs);
       check_call_residue(fr PASS_LD);
     } else
     { state.flags = 0;
