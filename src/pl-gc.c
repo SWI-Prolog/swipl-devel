@@ -1045,8 +1045,10 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 	te->address = 0;
 	trailcells_deleted++;
       } else if ( !is_marked(tard) )
-      { setVar(*tard);
-	DEBUG(3, Sdprintf("Early reset at %p\n", tard));
+      { DEBUG(3,
+	      char b1[64]; char b2[64]; 
+	      Sdprintf("Early reset at %s (%s)\n", print_adr(tard, b1), print_val(*tard, b2)));
+	setVar(*tard);
 	te->address = 0;
 	trailcells_deleted++;
       } else if ( isVar(get_value(tard)) )
