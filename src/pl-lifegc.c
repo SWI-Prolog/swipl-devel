@@ -28,58 +28,13 @@
 		 *	     MARK STACKS	*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Mark the stacks based on reachable data instead of all data.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-typedef enum a_type
-{ A_FRAME,
-  A_CHOICE
-} a_type;
-
-
-typedef struct restart
-{ struct restart *next;
-  a_type type;
-  union
-  { LocalFrame frame;
-    Choice choice;
-  } value;
-} restart;
-
-
-typedef struct a_node
-{ struct a_node *next;
-  a_type type;
-  union
-  { struct
-    { LocalFrame ptr;
-      restart  *restart_list;
-      restart **restart_tail;
-    } frame;
-    struct
-    { Choice ptr;
-    } choice;
-  } value;
-} a_node;
-
-#define NODE_PTR(n) (void*)((n)->value.frame.ptr) /* anonymous pointer */
-
-typedef struct visited
-{ Code		offset;			/* smallest PC */
-  intptr_t       *bits;			/* array of values */
-} visited;
-
 typedef struct mark_state
-{ a_node  *agenda;			/* frames & choicepoint agenda */
-  a_node  *free_nodes;			/* node pool */
-  restart *free_restarts;		/* restart pool */
-  intptr_t visit_buf[10];		/* Visited for small cases */
-  FliFrame flictx;			/* foreign context for early reset */
+{ FliFrame flictx;			/* foreign context for early reset */
   GCTrailEntry reset_entry;		/* Walk trail stack for early reset */
 } mark_state;
 
 static void	early_reset_choicepoint(mark_state *state, Choice ch ARG_LD);
+
 
 		 /*******************************
 		 *	     STATISTICS		*
@@ -103,7 +58,7 @@ typedef struct life_count
 } life_count;
 
 static life_count counts;
-#define COUNT(g) g
+#define COUNT(f) counts.f++
 
 static
 PRED_IMPL("gc_statistics", 1, gc_statistics, 0)
@@ -125,278 +80,8 @@ PRED_IMPL("gc_statistics", 1, gc_statistics, 0)
 }
 
 #else
-#define COUNT(g) ((void)0)
+#define COUNT(f) ((void)0)
 #endif
-
-		 /*******************************
-		 *	MEMORY MANAGEMENT	*
-		 *******************************/
-
-static a_node *
-new_node(mark_state *state)
-{ a_node *n;
-
-  if ( (n=state->free_nodes) )
-  { state->free_nodes = n->next;
-    return n;
-  }
-
-  n = malloc(sizeof(*n));
-  return n;
-}
-
-
-static void
-free_node(mark_state *state, a_node *n)
-{ n->next = state->free_nodes;
-  state->free_nodes = n;
-}
-
-
-static void
-free_nodes(mark_state *state)
-{ a_node *n = state->free_nodes;
-  a_node *n2;
-
-  state->free_nodes = NULL;
-
-  for(; n; n=n2)
-  { n2 = n->next;
-    free(n);
-  }
-}
-
-
-static restart *
-new_restart(mark_state *state)
-{ restart *r;
-
-  if ( (r=state->free_restarts) )
-  { state->free_restarts = r->next;
-    return r;
-  }
-
-  r = malloc(sizeof(*r));
-  return r;
-}
-
-
-static void
-free_restart(mark_state *state, restart *r)
-{ r->next = state->free_restarts;
-  state->free_restarts = r;
-}
-
-
-static void
-free_restarts(mark_state *state)
-{ restart *r = state->free_restarts;
-  restart *r2;
-
-  state->free_restarts = NULL;
-
-  for(; r; r=r2)
-  { r2 = r->next;
-    free(r);
-  }
-}
-
-
-		 /*******************************
-		 *	 AGENDA MANAGEMENT	*
-		 *******************************/
-
-static int
-insert_node(mark_state *state, a_node *n, a_node **address)
-{ a_node **p = &state->agenda;
-  a_node *n2;
-  
-  COUNT(counts.a_searched++);
-
-  for(; *p; COUNT(counts.a_scanned++))
-  { a_node *o = *p;
-    
-    if ( NODE_PTR(o) > NODE_PTR(n) )
-    { p = &o->next;
-    } else if ( NODE_PTR(o) < NODE_PTR(n) )
-    { break;
-    } else
-    { if ( address )
-	*address = o;
-      return FALSE;
-    }    
-  }
-
-  n2 = new_node(state);
-  memcpy(n2, n, sizeof(*n2));
-  n2->next = *p;
-  *p = n2;
-  if ( address )
-    *address = n2;
-
-  return TRUE;
-}
-
-
-static int
-a_add_frame(mark_state *state, LocalFrame fr, a_node **node)
-{ a_node n, *n2;
-  int rc;
-
-  n.type = A_FRAME;
-  n.value.frame.ptr = fr;
-  if ( (rc=insert_node(state, &n, &n2)) )
-  { n2->value.frame.restart_list = NULL;
-    n2->value.frame.restart_tail = &n2->value.frame.restart_list;
-  }
-  if ( node )
-    *node = n2;
-
-  return rc;
-}
-
-
-static int
-a_add_choice(mark_state *state, Choice ch, a_node **node)
-{ a_node n;
-
-  n.type = A_CHOICE;
-  n.value.choice.ptr = ch;
-  return insert_node(state, &n, node);
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Add a restart address. The first is   kept in value.frame.PC and used to
-reset uninitialised variables in the environment.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-add_restart_frame(mark_state *state, a_node *n, LocalFrame fr)
-{ restart *r = new_restart(state);
-
-  r->type = A_FRAME;
-  r->value.frame = fr;
-  r->next = NULL;
-  *n->value.frame.restart_tail = r;
-  n->value.frame.restart_tail = &r->next;
-}
-
-
-static void
-add_restart_choice(mark_state *state, a_node *n, Choice ch)
-{ restart *r = new_restart(state);
-
-  r->type = A_CHOICE;
-  r->value.choice = ch;
-  r->next = NULL;
-  *n->value.frame.restart_tail = r;
-  n->value.frame.restart_tail = &r->next;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Avoid scanning the same code twice:
-
-     - create empty bitmap for code offsets from lowest PC ... code_size
-     - Call try_visit() on candidate locations:
-     	- Choice
-	- Continuation after I_CALL, etc.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-init_visited(mark_state *state, visited *v, a_node *n)
-{ if ( n->value.frame.restart_list )
-  { LocalFrame fr = n->value.frame.ptr;
-    Clause cl = fr->clause->clause;
-
-    COUNT(counts.multi_envs++);
-      
-    if ( cl->code_size < 2*sizeof(intptr_t)*8 )
-    { v->offset  = cl->codes;
-      v->bits    = state->visit_buf;
-      v->bits[0] = v->bits[1] = 0;
-    } else
-    { Code first;
-      size_t size, bsize;
-      restart *r;
-
-      first = (Code)~(uintptr_t)0;
-      for( r=n->value.frame.restart_list; r; r = r->next)
-      { Code PC = (Code)~(uintptr_t)0;
-
-	switch(r->type)
-	{ case A_FRAME:
-	    PC = r->value.frame->programPointer;
-	    break;
-	  case A_CHOICE:
-	    if ( r->value.choice->type == CHP_JUMP )
-	    { PC = r->value.choice->value.PC;
-	      break;
-	    } else
-	      continue;
-	}
-	  
-	if ( PC < first )
-	  first = PC;
-      }
-      v->offset = first;
-      
-      size  = cl->code_size + (v->offset - cl->codes);
-      bsize = ((size+sizeof(intptr_t)-1)/sizeof(intptr_t))*sizeof(intptr_t);
-      if ( bsize <= sizeof(state->visit_buf) )
-	v->bits = state->visit_buf;
-      else
-	v->bits = malloc(bsize);
-      memset(v->bits, 0, bsize);
-    }
-  } else
-    v->bits = NULL;
-}
-
-
-static void
-free_visited(mark_state *state, visited *v)
-{ if ( v->bits && v->bits != state->visit_buf )
-    free(v->bits);
-}
-
-
-static int
-try_visit(visited *v, Code PC)
-{ if ( v->bits )
-  { size_t  at  = PC-v->offset;
-    size_t  iat = at/(sizeof(intptr_t)*8);
-    intptr_t bit = (intptr_t)1<<(int)(at%(sizeof(intptr_t)*8));
-
-    if ( v->bits[iat] & bit )
-    { COUNT(counts.vm_aborted++);
-      return FALSE;
-    } else
-    { v->bits[iat] |= bit;
-      return TRUE;
-    }
-  }
-
-  return TRUE;
-}
-
-
-static void
-mark_choice(mark_state *state, Choice ch)
-{ if ( ch->type != CHP_TOP )
-  { a_node *fr_node;
-
-    a_add_frame(state, ch->frame, &fr_node);
-    add_restart_choice(state, fr_node, ch);
-    
-    a_add_choice(state, ch->parent, NULL);
-  } else
-  { GET_LD
-    early_reset_choicepoint(state, ch PASS_LD);
-  }
-}
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 mark_local_variable()
@@ -448,7 +133,6 @@ typedef struct walk_state
 { LocalFrame frame;			/* processing node */
   int flags;				/* general flags */
   Code c0;				/* start of code list */
-  visited  visited;			/* bitmap to check where we have been */
   Word envtop;				/* just above environment */
   int unmarked;				/* left when marking alt clauses */
 #ifdef MARK_ALT_CLAUSES
@@ -490,13 +174,13 @@ static Code
 walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 { code op;
 
-  COUNT(counts.marked_cont++);
+  COUNT(marked_cont);
 
   for( ; ; PC += (codeTable[op].arguments))
   { op = decode(*PC++);
 
   again:
-    COUNT(counts.vm_scanned++);
+    COUNT(vm_scanned);
     if ( op == end )
     { PC--;
       return PC;
@@ -539,8 +223,6 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	PC++;				/* skip <n> */
 	walk_and_mark(state, PC, C_JMP PASS_LD);
 	PC = alt;
-	if ( !try_visit(&state->visited, PC) )
-	  return PC;
 	op = decode(*PC++);
         goto again;
       }
@@ -552,8 +234,6 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	PC += 2;			/* skip the two arguments */
 	walk_and_mark(state, PC, C_CUT PASS_LD);
 	PC = alt;
-	if ( !try_visit(&state->visited, PC) )
-	  return PC;
 	op = decode(*PC++);
         goto again;
       }
@@ -566,24 +246,9 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	PC += 2;			/* skip the 'MARK' variable and jmp */
 	walk_and_mark(state, PC, C_JMP PASS_LD);
 	PC = alt;
-	if ( !try_visit(&state->visited, PC) )
-	  return PC;
 	op = decode(*PC++);
         goto again;
       }
-
-					/* possible continuation point */
-      case I_USERCALL0:
-      case I_USERCALLN:
-      case I_APPLY:
-	if ( !try_visit(&state->visited, PC) )
-	  return PC;
-        break;
-      case I_CALL:
-      case I_DEPART:
-	if ( !try_visit(&state->visited, PC+1) )
-	  return PC;
-        break;
 
 					/* variable access */
       case B_FIRSTVAR:			/* reset uninitialised */
@@ -690,7 +355,6 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
 
   state.frame	     = fr;
   state.flags        = GCM_ALTCLAUSE;
-  state.visited.bits = NULL;
   state.adepth       = 0;
   state.ARGP	     = argFrameP(fr, 0);
   state.envtop	     = state.ARGP + argc;
@@ -698,7 +362,7 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
   DEBUG(2, Sdprintf("Scanning clauses for %s\n", predicateName(fr->predicate)));
   for(; cref && state.unmarked > 0; cref=cref->next)
   { if ( visibleClause(cref->clause, fr->generation) )
-    { COUNT(counts.c_scanned++);
+    { COUNT(c_scanned);
       state.c0 = cref->clause->codes;
       DEBUG(3, Sdprintf("Scanning clause %p\n", cref->clause));
       walk_and_mark(&state, state.c0, I_EXIT PASS_LD);
@@ -745,170 +409,37 @@ early_reset_choicepoint(mark_state *state, Choice ch ARG_LD)
 }
 
 
+static QueryFrame mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD);
+
 static void
-mark_life_data(mark_state *mstate, a_node *node ARG_LD)
-{ restart *r;
-  LocalFrame fr = node->value.frame.ptr;
+mark_choicepoints(mark_state *state, Choice ch ARG_LD)
+{ for(; ch; ch=ch->parent)
+  { early_reset_choicepoint(state, ch PASS_LD);
 
-  if ( (r=node->value.frame.restart_list) )
-  { restart *rnext;
-    walk_state state;
+    switch(ch->type)
+    { case CHP_JUMP:
+      case CHP_FOREIGN:
+	mark_environments(state, ch->frame, ch->value.PC PASS_LD);
+	break;
+      case CHP_CLAUSE:
+      { LocalFrame fr = ch->frame;
 
-    state.frame    = fr;
-    state.flags    = GCM_CLEAR;
-    state.unmarked = slotsInFrame(fr, (Code)1); /* dummy PC */
-    state.envtop   = argFrameP(fr, state.unmarked);
-    if ( false(fr->predicate, FOREIGN) )
-    { state.c0 = fr->clause->clause->codes;
-      init_visited(mstate, &state.visited, node);
-    } else
-    { state.visited.bits = NULL;
-    }
-
-    for(; r; r=rnext)
-    { rnext = r->next;
-      
-      switch(r->type)
-      { case A_FRAME:
-	  walk_and_mark(&state, r->value.frame->programPointer, I_EXIT PASS_LD);
-	  state.flags = 0;
-	  break;
-	case A_CHOICE:
-	{ Choice ch = r->value.choice;
-	  
-	  DEBUG(3, Sdprintf("Early reset from %s\n", chp_chars(ch)));
-	  early_reset_choicepoint(mstate, ch PASS_LD);
-
-	  switch(ch->type)
-	  { case CHP_JUMP:
-	      walk_and_mark(&state, ch->value.PC, I_EXIT PASS_LD);
-	      state.flags = 0;
-	      break;
-	    case CHP_CLAUSE:
-	      mark_alt_clauses(fr, ch->value.clause PASS_LD);
-	      break;
-	    case CHP_FOREIGN:
-	      mark_arguments(fr PASS_LD);
-	      break;
-	    case CHP_TOP:
-	    case CHP_CATCH:
-	    case CHP_DEBUG:
-	    case CHP_NONE:
-	      break;
-	  }
+	mark_alt_clauses(fr, ch->value.clause PASS_LD);
+        if ( false(fr, FR_MARKED) )
+	{ set(fr, FR_MARKED);
+	  check_call_residue(fr PASS_LD);
+	  mark_environments(state, fr->parent, fr->programPointer PASS_LD);
 	}
+	break;
       }
-
-      free_restart(mstate, r);
-    }
-    free_visited(mstate, &state.visited);
-  } else
-  { mark_arguments(fr PASS_LD);
-  }
-}
-
-
-#if 0					/* debugging */
-static void				/* Only used for comparison */
-mark_all_data(LocalFrame fr, Code PC ARG_LD)
-{ Word sp = argFrameP(fr, 0);
-  int slots = slotsInFrame(fr, PC);
-
-  for( ; slots-- > 0; sp++ )
-  { if ( !is_marked(sp) )
-    { if ( isGlobalRef(*sp) )
-	mark_variable(sp PASS_LD);
-      else
-	ldomark(sp);  
+      case CHP_TOP:
+      case CHP_CATCH:
+      case CHP_DEBUG:
+      case CHP_NONE:
+	break;
     }
   }
 }
-#endif
-
-static void
-set_unmarked_to_gced(LocalFrame fr)
-{ Word sp = argFrameP(fr, 0);
-  int slots = slotsInFrame(fr, (Code)1); /* PC passed as dummy */
-
-  for( ; slots-- > 0; sp++ )
-  { if ( !is_marked(sp) )
-    { if ( isGlobalRef(*sp) )
-      { DEBUG(1, char b[64];
-	      Sdprintf("[%ld] %s: GC VAR(%d) (=%s)\n",
-		       levelFrame(fr), predicateName(fr->predicate),
-		       sp-argFrameP(fr, 0),
-		       print_val(*sp, b)));
-	if ( LIFE_GC == 1 )
-	{ *sp = ATOM_garbage_collected;
-	} else
-	{ GET_LD
-	  mark_variable(sp PASS_LD);
-	}
-      }
-    }
-  }
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Actually mark the frame, concerning life data.  There are various cases:
-
-    * If this is a foreign frame
-	- keep all arguments;
-    * If there is a clause choice
-	- keep all arguments (TBD: we could check code of alt clauses)
-	- keep life data from choices and continuation(s)
-    * If there is no clause choice
-	- keep life data from choices and continuation(s)
-
-(*) This isn't clear. Obviously we   there  are multiple active children
-and the old algorithm for   clearUninitialisedVarsFrame() used the first
-one it finds, I.e. the one from the   active  parent check or the latest
-choicepoint encountered. Does the first reference guarantee us to do the
-same?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-mark_frame(mark_state *state, a_node *node ARG_LD)
-{ LocalFrame fr = node->value.frame.ptr;
-
-  DEBUG(1, Sdprintf("Marking [%ld] %s\n",
-		    levelFrame(fr), predicateName(fr->predicate)));
-
-  assert(false(fr, FR_MARKED));
-  set(fr, FR_MARKED);
-
-  COUNT(counts.marked_envs++);
-
-  if ( fr->parent )
-  { a_node *pn_node;
-
-    a_add_frame(state, fr->parent, &pn_node);
-    if ( false(fr->parent->predicate, FOREIGN) )
-    { DEBUG(2, Sdprintf("Added restart of [%d] %s from [%d] %s to %d\n",
-			levelFrame(fr->parent),
-			predicateName(fr->parent->predicate),
-			levelFrame(fr),
-			predicateName(fr->predicate),
-			fr->programPointer - fr->parent->clause->clause->codes));
-
-      add_restart_frame(state, pn_node, fr);
-    }
-  }
-
-  mark_life_data(state, node PASS_LD);
-  set_unmarked_to_gced(fr);
-
-#ifdef O_CALL_RESIDUE
-  if ( fr->predicate == PROCEDURE_call_residue_vars2->definition )
-  { if ( !LD->gc.marked_attvars )
-    { mark_attvars();
-      LD->gc.marked_attvars = TRUE;
-    }
-  }
-#endif    
-}
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*) We need to mark  the  top   frame  to  deal  with foreign predicates
@@ -933,38 +464,65 @@ install()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
-mark_query_stacks(mark_state *state, LocalFrame fr, Choice ch ARG_LD)
-{ a_node *node;
-  QueryFrame qf = NULL;
+mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD)
+{ QueryFrame qf = NULL;
 
-  a_add_frame(state, fr, NULL);
-  a_add_choice(state, ch, NULL);
+  while(fr)
+  { walk_state state;
 
-  while((node=state->agenda))
-  { state->agenda = node->next;
+    if ( false(fr, FR_MARKED) )
+    { set(fr, FR_MARKED);
+      state.flags = GCM_CLEAR;
 
-    switch(node->type)
-    { case A_FRAME:
-      { LocalFrame fr = node->value.frame.ptr;
-
-	mark_frame(state, node PASS_LD);
-	if ( !fr->parent )
-	{ qf = QueryOfTopFrame(fr);
-	  assert(qf->magic == QID_MAGIC);
-
-	  if ( qf->saved_environment )
-	    mark_arguments(qf->saved_environment PASS_LD); /* (*) */
-	}
-
-        break;
-      }
-      case A_CHOICE:
-	mark_choice(state, node->value.choice.ptr);
-        break;
+      check_call_residue(fr PASS_LD);
+    } else
+    { state.flags = 0;
     }
-    
-    free_node(state, node);
+
+    if ( true(fr->predicate, FOREIGN) || PC == NULL )
+    { DEBUG(2, Sdprintf("Marking arguments for [%d] %s\n",
+			levelFrame(fr), predicateName(fr->predicate)));
+      mark_arguments(fr PASS_LD);
+    } else
+    { state.frame    = fr;
+      state.unmarked = slotsInFrame(fr, PC);
+      state.envtop   = argFrameP(fr, state.unmarked);
+
+      DEBUG(2, Sdprintf("Walking code for [%d] %s from PC=%d\n",
+			levelFrame(fr), predicateName(fr->predicate),
+			PC-fr->clause->clause->codes));
+
+      walk_and_mark(&state, PC, I_EXIT PASS_LD);
+    }
+
+    if ( !(state.flags&GCM_CLEAR) )	/* from choicepoint */
+      return NULL;
+
+    if ( fr->parent )
+    { PC = fr->programPointer;
+      fr = fr->parent;
+    } else
+    { qf = QueryOfTopFrame(fr);
+      assert(qf->magic == QID_MAGIC);
+
+      if ( qf->saved_environment )
+	mark_arguments(qf->saved_environment PASS_LD); /* (*) */
+
+      break;
+    }
   }
+
+  return qf;
+}
+
+
+
+static QueryFrame
+mark_query_stacks(mark_state *state, LocalFrame fr, Choice ch ARG_LD)
+{ QueryFrame qf;
+
+  qf = mark_environments(state, fr, NULL PASS_LD);
+  mark_choicepoints(state, ch PASS_LD);
 
   return qf;
 }
@@ -984,12 +542,13 @@ mark_stacks(LocalFrame fr, Choice ch)
   while(fr)
   { DEBUG(1, Sdprintf("Marking query %p\n", qf));
     qf = mark_query_stacks(&state, fr, ch PASS_LD);
-    fr = qf->saved_environment;
-    ch = qf->saved_bfr;
-  }
 
-  free_nodes(&state);
-  free_restarts(&state);
+    if ( qf )
+    { fr = qf->saved_environment;
+      ch = qf->saved_bfr;
+    } else
+      break;
+  }
 
   for( ; state.flictx; state.flictx = state.flictx->parent)
     state.reset_entry = mark_foreign_frame(state.flictx, state.reset_entry);

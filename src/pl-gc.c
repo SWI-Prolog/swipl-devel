@@ -824,6 +824,20 @@ slotsInFrame(LocalFrame fr, Code PC)
 }
 
 
+static inline void
+check_call_residue(LocalFrame fr ARG_LD)
+{
+#ifdef O_CALL_RESIDUE
+  if ( fr->predicate == PROCEDURE_call_residue_vars2->definition )
+  { if ( !LD->gc.marked_attvars )
+    { mark_attvars();
+      LD->gc.marked_attvars = TRUE;
+    }
+  }
+#endif
+}
+
+
 #ifndef LIFE_GC
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -853,14 +867,7 @@ mark_environments(LocalFrame fr, Code PC)
 		      levelFrame(fr), predicateName(fr->predicate)));
 
     clearUninitialisedVarsFrame(fr, PC);
-#ifdef O_CALL_RESIDUE
-    if ( fr->predicate == PROCEDURE_call_residue_vars2->definition )
-    { if ( !LD->gc.marked_attvars )
-      { mark_attvars();
-	LD->gc.marked_attvars = TRUE;
-      }
-    }
-#endif    
+    check_call_residue(fr PASS_LD);
 
     slots  = slotsInFrame(fr, PC);
 #if O_SECURE
@@ -1567,6 +1574,18 @@ sweep_environments(LocalFrame fr, Code PC)
 	  into_relocation_chain(sp, STG_LOCAL PASS_LD);
 	}
       }
+#ifdef LIFE_GC
+      else
+      { if ( isGlobalRef(*sp) )
+	{ DEBUG(1, char b[64];
+		Sdprintf("[%ld] %s: GC VAR(%d) (=%s)\n",
+			 levelFrame(fr), predicateName(fr->predicate),
+			 sp-argFrameP(fr, 0),
+			 print_val(*sp, b)));
+	  *sp = ATOM_garbage_collected;
+	}
+      }
+#endif
     }
 
     PC = fr->programPointer;
