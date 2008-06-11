@@ -120,7 +120,6 @@
 :- use_module(library(error)).
 
 :- op(700, xfx, cis).
-:- op(700, xfx, cis1).
 :- op(700, xfx, cis_geq).
 :- op(700, xfx, cis_gt).
 :- op(700, xfx, cis_leq).
@@ -129,7 +128,7 @@
 /** <module> Constraint Logic Programming over Finite Domains
 
 Constraint programming is a declarative formalism that lets you
-describe conditions a solution should satisfy. This library provides
+describe conditions a solution must satisfy. This library provides
 CLP(FD), Constraint Logic Programming over Finite Domains. It can be
 used to model and solve various combinatorial problems such as
 planning, scheduling and allocation tasks.
@@ -261,8 +260,11 @@ the (implied) constraint F #\= 0 before the recursive call. Otherwise,
 the query fac(N, 0) is the only non-terminating case of this kind.
 
 This library uses goal_expansion/2 to rewrite constraints at
-compilation time. To disable this expansion, set the flag
-clpfd_goal_expansion to false.
+compilation time. The expansion's aim is to transparently bring the
+performance of CLP(FD) constraints close to that of conventional
+arithmetic predicates (</2, =:=/2, is/2 etc.) when the constraints are
+used in modes that can also be handled by built-in arithmetic. To
+disable the expansion, set the flag clpfd_goal_expansion to false.
 
 @author Markus Triska
 */
@@ -295,7 +297,7 @@ cis_gt_numeric(inf, _).
 
 cis_geq(A, B) :-
         (   cis_gt(A, B) -> true
-        ;   A == B -> true
+        ;   A == B
         ).
 
 cis_geq_zero(sup).
@@ -353,7 +355,7 @@ cis_times(inf, B, P) :-
 cis_times(sup, B, P) :-
         (   B cis_gt n(0) -> P = sup
         ;   B cis_lt n(0) -> P = inf
-        ;   B == n(0) -> P = n(0)
+        ;   P = n(0)
         ).
 cis_times(n(N), B, P) :- cis_times_(B, N, P).
 
@@ -362,39 +364,53 @@ cis_times_(sup, A, P)     :- cis_times(sup, n(A), P).
 cis_times_(n(B), A, n(P)) :- P is A * B.
 
 % compactified is/2 for expressions of interest
-A cis B :- cis_(B, A).
 
-cis_(n(N), n(N)).
-cis_(inf, inf).
-cis_(sup, sup).
-cis_(sign(A0), S)    :- cis_(A0, A), cis_sign(A, S).
-cis_(A0+B0, E)       :- cis_(A0, A), cis_(B0, B), cis_plus(A, B, E).
-cis_(abs(A0), E)     :- cis_(A0, A), cis_abs(A, E).
-cis_(min(A0,B0), E)  :- cis_(A0, A), cis_(B0, B), cis_min(A, B, E).
-cis_(max(A0,B0), E)  :- cis_(A0, A), cis_(B0, B), cis_max(A, B, E).
-cis_(A0-B0, E)       :- cis_(A0, A), cis_(B0, B), cis_minus(A, B, E).
-cis_(-A0, E)         :- cis_(A0, A), cis_uminus(A, E).
-cis_(A0*B0, E)       :- cis_(A0, A), cis_(B0, B), cis_times(A, B, E).
-cis_(div(A0,B0), E)  :- cis_(A0, A), cis_(B0, B), cis_div(A, B, E).
-cis_(A0//B0, E)      :- cis_(A0, A), cis_(B0, B), cis_slash(A, B, E).
+goal_expansion(A cis B, Expansion) :-
+        phrase(cis_goals(B, A), Goals),
+        list_goal(Goals, Expansion).
 
-% special case for the frequent case of depth 1 expressions
+cis_goals(V, V)          --> { var(V) }, !.
+cis_goals(n(N), n(N))    --> [].
+cis_goals(inf, inf)      --> [].
+cis_goals(sup, sup)      --> [].
+cis_goals(A0+B0, R)      -->
+        cis_goals(A0, A),
+        cis_goals(B0, B),
+        [cis_plus(A, B, R)].
+cis_goals(A0-B0, R)      -->
+        cis_goals(A0, A),
+        cis_goals(B0, B),
+        [cis_minus(A, B, R)].
+cis_goals(min(A0,B0), R) -->
+        cis_goals(A0, A),
+        cis_goals(B0, B),
+        [cis_min(A, B, R)].
+cis_goals(max(A0,B0), R) -->
+        cis_goals(A0, A),
+        cis_goals(B0, B),
+        [cis_max(A, B, R)].
+cis_goals(sign(A0), R)   --> cis_goals(A0, A), [cis_sign(A, R)].
+cis_goals(abs(A0), R)    --> cis_goals(A0, A), [cis_abs(A, R)].
+cis_goals(-A0, R)        --> cis_goals(A0, A), [cis_uminus(A, R)].
+cis_goals(A0*B0, R)      -->
+        cis_goals(A0, A),
+        cis_goals(B0, B),
+        [cis_times(A, B, R)].
+cis_goals(div(A0,B0), R) -->
+        cis_goals(A0, A),
+        cis_goals(B0, B),
+        [cis_div(A, B, R)].
+cis_goals(A0//B0, R)     -->
+        cis_goals(A0, A),
+        cis_goals(B0, B),
+        [cis_slash(A, B, R)].
 
-A cis1 B :- cis1_(B, A).
+list_goal([], true).
+list_goal([C|Cs], Goal) :- list_goal_(Cs, C, Goal).
 
-cis1_(n(N), n(N)).
-cis1_(inf, inf).
-cis1_(sup, sup).
-cis1_(sign(A), S)    :- cis_sign(A, S).
-cis1_(A+B, E)        :- cis_plus(A, B, E).
-cis1_(abs(A), E)     :- cis_abs(A, E).
-cis1_(min(A,B), E)   :- cis_min(A, B, E).
-cis1_(max(A,B), E)   :- cis_max(A, B, E).
-cis1_(A-B, E)        :- cis_minus(A, B, E).
-cis1_(-A, E)         :- cis_uminus(A, E).
-cis1_(A*B, E)        :- cis_times(A, B, E).
-cis1_(div(A,B), E)   :- cis_div(A, B, E).
-cis1_(A//B, E)       :- cis_slash(A, B, E).
+list_goal_([], G, G).
+list_goal_([C|Cs], G0, G) :- list_goal_(Cs, (G0,C), G).
+
 
 cis_sign(sup, n(1)).
 cis_sign(inf, n(0)).
@@ -490,7 +506,7 @@ domain_num_elements(from_to(From,To), Num) :- Num cis To - From + n(1).
 domain_num_elements(split(_, Left, Right), Num) :-
         domain_num_elements(Left, NL),
         domain_num_elements(Right, NR),
-        Num cis1 NL + NR.
+        Num cis NL + NR.
 
 domain_direction_element(from_to(n(From), n(To)), Dir, E) :-
         (   Dir == up -> between(From, To, E)
@@ -511,11 +527,19 @@ domain_direction_element(split(_, D1, D2), Dir, E) :-
    Test whether domain contains a given integer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-domain_contains(from_to(From,To), I) :- From cis_leq n(I), n(I) cis_leq To.
+domain_contains(from_to(From,To), I) :-
+        domain_contains_from(From, I),
+        domain_contains_to(To, I).
 domain_contains(split(S, Left, Right), I) :-
         (   I < S -> domain_contains(Left, I)
         ;   I > S -> domain_contains(Right, I)
         ).
+
+domain_contains_from(inf, _).
+domain_contains_from(n(L), I) :- L =< I.
+
+domain_contains_to(sup, _).
+domain_contains_to(n(U), I) :- I =< U.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Test whether a domain contains another domain.
@@ -585,7 +609,7 @@ domain_remove_upper(n(U00), L0, X, D) :-
         U0 = n(U00),
         (   L0 == U0, n(X) == L0 -> D = empty
         ;   L0 == n(X) -> L1 is X + 1, D = from_to(n(L1), U0)
-        ;   U0 == n(X) -> U1 cis1 U0 - n(1), D = from_to(L0, U1)
+        ;   U0 == n(X) -> U1 is X - 1, D = from_to(L0, n(U1))
         ;   L0 cis_leq n(X), n(X) cis_leq U0 ->
             U1 is X - 1, L1 is X + 1,
             D = split(X, from_to(L0, n(U1)), from_to(n(L1), U0))
@@ -599,7 +623,7 @@ domain_remove_upper(n(U00), L0, X, D) :-
 domain_remove_greater_than(empty, _, empty).
 domain_remove_greater_than(from_to(From0,To0), G, D) :-
         (   From0 cis_gt n(G) -> D = empty
-        ;   To cis1 min(To0,n(G)), D = from_to(From0,To)
+        ;   To cis min(To0,n(G)), D = from_to(From0,To)
         ).
 domain_remove_greater_than(split(S,Left0,Right0), G, D) :-
         (   S =< G ->
@@ -613,7 +637,7 @@ domain_remove_greater_than(split(S,Left0,Right0), G, D) :-
 domain_remove_smaller_than(empty, _, empty).
 domain_remove_smaller_than(from_to(From0,To0), V, D) :-
         (   To0 cis_lt n(V) -> D = empty
-        ;   From cis1 max(From0,n(V)), D = from_to(From,To0)
+        ;   From cis max(From0,n(V)), D = from_to(From,To0)
         ).
 domain_remove_smaller_than(split(S,Left0,Right0), V, D) :-
         (   S >= V ->
@@ -640,13 +664,13 @@ domain_subtract(from_to(From0,To0), Dom, Sub, D) :-
             ;   To cis_lt From0 -> D = Dom
             ;   From cis_leq From0 ->
                 (   To cis_geq To0 -> D = empty
-                ;   From1 cis1 To + n(1),
+                ;   From1 cis To + n(1),
                     D = from_to(From1, To0)
                 )
-            ;   To1 cis1 From - n(1),
+            ;   To1 cis From - n(1),
                 (   To cis_lt To0 ->
                     From = n(S),
-                    From2 cis1 To + n(1),
+                    From2 cis To + n(1),
                     D = split(S,from_to(From0,To1),from_to(From2,To0))
                 ;   D = from_to(From0,To1)
                 )
@@ -708,7 +732,7 @@ domains_intersection_(split(S,Left0,Right0), D2, Dom) :-
 
 narrow(empty, _, _, empty).
 narrow(from_to(L0,U0), From0, To0, Dom) :-
-        From1 cis1 max(From0,L0), To1 cis1 min(To0,U0),
+        From1 cis max(From0,L0), To1 cis min(To0,U0),
         (   From1 cis_gt To1 -> Dom = empty
         ;   Dom = from_to(From1,To1)
         ).
@@ -740,7 +764,7 @@ domains_union(D1, D2, Union) :-
 
 domain_shift(empty, _, empty).
 domain_shift(from_to(From0,To0), O, from_to(From,To)) :-
-        From cis1 From0 + n(O), To cis1 To0 + n(O).
+        From cis From0 + n(O), To cis To0 + n(O).
 domain_shift(split(S0, Left0, Right0), O, split(S, Left, Right)) :-
         S is S0 + O,
         domain_shift(Left0, O, Left),
@@ -762,8 +786,8 @@ domain_expand(D0, M, D) :-
 
 domain_expand_(empty, _, empty).
 domain_expand_(from_to(From0, To0), M, from_to(From,To)) :-
-        From cis1 From0*n(M),
-        To cis1 To0*n(M).
+        From cis From0*n(M),
+        To cis To0*n(M).
 domain_expand_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
         S is M*S0,
         domain_expand_(Left0, M, Left),
@@ -787,10 +811,10 @@ domain_expand_more_(empty, _, empty).
 domain_expand_more_(from_to(From0, To0), M, from_to(From,To)) :-
         (   From0 cis_lt n(0) ->
             From cis (From0-n(1))*n(M) + n(1)
-        ;   From cis1 From0*n(M)
+        ;   From cis From0*n(M)
         ),
         (   To0 cis_lt n(0) ->
-            To cis1 To0*n(M)
+            To cis To0*n(M)
         ;   To cis (To0+n(1))*n(M) - n(1)
         ).
 domain_expand_more_(split(S0, Left0, Right0), M, D) :-
@@ -821,10 +845,10 @@ domain_contract_(empty, _, empty).
 domain_contract_(from_to(From0, To0), M, from_to(From,To)) :-
         (   cis_geq_zero(From0) ->
             From cis (From0 + n(M) - n(1)) // n(M)
-        ;   From cis1 From0 // n(M)
+        ;   From cis From0 // n(M)
         ),
         (   cis_geq_zero(To0) ->
-            To cis1 To0 // n(M)
+            To cis To0 // n(M)
         ;   To cis (To0 - n(M) + n(1)) // n(M)
         ).
 domain_contract_(split(S0,Left0,Right0), M, D) :-
@@ -844,8 +868,8 @@ domain_contract_(split(S0,Left0,Right0), M, D) :-
             max_divide(Inf, Sup, n(M), n(M), To0),
             domain_infimum(Left, LeftInf),
             domain_supremum(Right, RightSup),
-            From cis1 max(LeftInf, From0),
-            To cis1 min(RightSup, To0),
+            From cis max(LeftInf, From0),
+            To cis min(RightSup, To0),
             D = from_to(From, To)
         ).
 
@@ -862,7 +886,7 @@ domain_contract_less(D0, M, D) :-
 
 domain_contract_less_(empty, _, empty).
 domain_contract_less_(from_to(From0, To0), M, from_to(From,To)) :-
-        From cis1 From0 // n(M), To cis1 To0 // n(M).
+        From cis From0 // n(M), To cis To0 // n(M).
 domain_contract_less_(split(S0,Left0,Right0), M, D) :-
         S is S0 // M,
         %  Scaled down domains do not necessarily retain any holes of
@@ -880,8 +904,8 @@ domain_contract_less_(split(S0,Left0,Right0), M, D) :-
             max_divide_less(Inf, Sup, n(M), n(M), To0),
             domain_infimum(Left, LeftInf),
             domain_supremum(Right, RightSup),
-            From cis1 max(LeftInf, From0),
-            To cis1 min(RightSup, To0),
+            From cis max(LeftInf, From0),
+            To cis min(RightSup, To0),
             D = from_to(From, To)
             %format("got: ~w\n", [D])
         ).
@@ -892,7 +916,7 @@ domain_contract_less_(split(S0,Left0,Right0), M, D) :-
 
 domain_negate(empty, empty).
 domain_negate(from_to(From0, To0), from_to(To,From)) :-
-        From cis1 -From0, To cis1 -To0.
+        From cis -From0, To cis -To0.
 domain_negate(split(S0, Left0, Right0), split(S, Left, Right)) :-
         S is -S0,
         domain_negate(Left0, Right),
@@ -939,8 +963,10 @@ intervals_to_domain(Is, D) :-
 
 %% ?Var in +Domain
 %
-%  Constrain Var to elements of Domain. Domain is one of:
+%  Var is an element of Domain. Domain is one of:
 %
+%         * Integer
+%           Singleton set consisting only of _Integer_.
 %         * Lower..Upper
 %           All integers _I_ such that _Lower_ =< _I_ =< _Upper_. The atoms
 %           *inf* and *sup* denote negative and positive infinity,
@@ -964,7 +990,7 @@ fd_variable(V) :-
 
 %% +Vars ins +Domain
 %
-%  Constrain the variables in the list Vars to elements of Domain.
+%  The variables in the list Vars are elements of Domain.
 
 Vs ins D :-
         must_be(list, Vs),
@@ -1360,7 +1386,7 @@ tighten(max, E, V) :- E #> V.
 
 %% all_different(+Vars)
 %
-% Constrain Vars to be pairwise distinct.
+% Vars are pairwise distinct.
 
 all_different(Ls) :-
         must_be(list, Ls),
@@ -1378,13 +1404,17 @@ all_different([X|Right], Left, State) :-
         ),
         all_different(Right, [X|Left], State).
 
-%% sum(+Vars, +Op, +Expr)
+%% sum(+Vars, +Rel, +Expr)
 %
-% Constrain the sum of a list.  The sum/3 constraint demands that
-% "sumlist(Vars) Op Expr" hold, e.g.:
+% The sum of elements of the list Vars is in relation Rel to Expr. For
+% example:
 %
 % ==
-% sum(List, #=<, 100)
+% ?- [A,B,C] ins 0..sup, sum([A,B,C], #=, 100).
+% A in 0..100,
+% A+B+C#=100,
+% B in 0..100,
+% C in 0..100.
 % ==
 
 scalar_supported(#=).
@@ -1812,8 +1842,8 @@ user:goal_expansion(X0 #= Y0, Equal) :-
         current_prolog_flag(clpfd_goal_expansion, true),
         phrase(expr_conds(X0, X), CsX),
         phrase(expr_conds(Y0, Y), CsY),
-        conds_goal(CsX, CondX),
-        conds_goal(CsY, CondY),
+        list_goal(CsX, CondX),
+        list_goal(CsY, CondY),
         Equal = (   CondY ->
                     (   var(X) -> X is Y
                     ;   CondX -> X =:= Y
@@ -1825,19 +1855,13 @@ user:goal_expansion(X0 #>= Y0, Geq) :-
         current_prolog_flag(clpfd_goal_expansion, true),
         phrase(expr_conds(X0, X), Conds, Rest),
         phrase(expr_conds(Y0, Y), Rest),
-        conds_goal(Conds, Cond),
+        list_goal(Conds, Cond),
         Geq = (   Cond -> X >= Y
               ;   clpfd:clpfd_geq(X0, Y0)
               ).
 user:goal_expansion(X #=< Y,  Leq) :- user:goal_expansion(Y #>= X, Leq).
 user:goal_expansion(X #> Y, Gt)    :- user:goal_expansion(X #>= Y+1, Gt).
 user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
-
-conds_goal([], true).
-conds_goal([C|Cs], Goal) :- conds_goal_(Cs, C, Goal).
-
-conds_goal_([], G, G).
-conds_goal_([C|Cs], G0, G) :- conds_goal_(Cs, (G0,C), G).
 
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
 linsum(-X, S, S)   --> { var(X) }, !, [vn(X,-1)].
@@ -2215,9 +2239,9 @@ merge_overlapping([A-B0|ABs0], [A-B|ABs]) :-
 
 merge_remaining([], B, B, []).
 merge_remaining([N-M|NMs], B0, B, Rest) :-
-        Next cis1 B0 + n(1),
+        Next cis B0 + n(1),
         (   N cis_gt Next -> B = B0, Rest = [N-M|NMs]
-        ;   B1 cis1 max(B0,M),
+        ;   B1 cis max(B0,M),
             merge_remaining(NMs, B1, B, Rest)
         ).
 
@@ -2313,7 +2337,7 @@ put_terminating(X, Dom, Ps) :-
 domain_spread(Dom, Spread) :-
         domain_smallest_finite(Dom, S),
         domain_largest_finite(Dom, L),
-        Spread cis1 L - S.
+        Spread cis L - S.
 
 smallest_finite(inf, Y, Y).
 smallest_finite(n(N), _, n(N)).
@@ -2446,7 +2470,7 @@ init_propagator(Var, Prop) :-
 
 %% lex_chain(+Lists)
 %
-% Constrains Lists to be lexicographically non-decreasing.
+% Lists are lexicographically non-decreasing.
 
 lex_chain(Lss) :-
         must_be(list(list), Lss),
@@ -2489,8 +2513,17 @@ lex_le([V1|V1s], [V2|V2s]) :-
 
 %% tuples_in(+Tuples, +Relation).
 %
-% Relation is a ground list of lists of integers. The elements of the
-% list Tuples are constrained to be elements of Relation.
+% Relation must be a ground list of lists of integers. The elements of
+% the list Tuples are constrained to be elements of Relation.
+% Arbitrary finite relations, such as compatibility tables, can be
+% modeled in this way. For example, if 1 is compatible with 2 and 5,
+% and 4 is compatible with 0 and 3:
+%
+% ==
+% ?- tuples_in([[X,Y]], [[1,2],[1,5],[4,0],[4,3]]), X = 4.
+% X = 4,
+% Y in 0\/3.
+% ==
 
 tuples_in(Tuples, Relation) :-
         must_be(list, Tuples),
@@ -2623,11 +2656,11 @@ run_propagator(pgeq(A,B), MState) :-
             AU cis_geq BL,
             (   AL cis_gt BU -> kill(MState)
             ;   AU == BL -> A = B
-            ;   NAL cis1 max(AL,BL),
+            ;   NAL cis max(AL,BL),
                 domains_intersection(from_to(NAL,AU), AD, NAD),
                 fd_put(A, NAD, APs),
                 (   fd_get(B, BD2, BL2, BU2, BPs2) ->
-                    NBU cis1 min(BU2, AU),
+                    NBU cis min(BU2, AU),
                     domains_intersection(from_to(BL2,NBU), BD2, NBD),
                     fd_put(B, NBD, BPs2)
                 ;   true
@@ -2875,8 +2908,8 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 fd_get(Y, YD, YL, YU, _),
                 min_divide(n(Z), n(Z), YL, YU, TNXL),
                 max_divide(n(Z), n(Z), YL, YU, TNXU),
-                NXL cis1 max(XL,TNXL),
-                NXU cis1 min(XU,TNXU),
+                NXL cis max(XL,TNXL),
+                NXU cis min(XU,TNXU),
                 (   NXL == XL, NXU == XU -> true
                 ;   domains_intersection(from_to(NXL,NXU), XD, XD1),
                     fd_put(X, XD1, XPs)
@@ -2901,18 +2934,18 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             (   fd_get(X, XD, XL, XU, XExp), fd_get(Y, YD, YL, YU, _),
                 fd_get(Z, ZD, ZL, ZU, _) ->
                 min_divide(ZL,ZU,YL,YU,TXL),
-                NXL cis1 max(XL,TXL),
+                NXL cis max(XL,TXL),
                 max_divide(ZL,ZU,YL,YU,TXU),
-                NXU cis1 min(XU,TXU),
+                NXU cis min(XU,TXU),
                 (   NXL == XL, NXU == XU -> true
                 ;   domains_intersection(from_to(NXL,NXU), XD, XD1),
                     fd_put(X, XD1, XExp)
                 ),
                 (   fd_get(Y,YD2,YL2,YU2,YExp2) ->
                     min_divide(ZL,ZU,XL,XU,TYL),
-                    NYL cis1 max(YL2,TYL),
+                    NYL cis max(YL2,TYL),
                     max_divide(ZL,ZU,XL,XU,TYU),
-                    NYU cis1 min(YU2,TYU),
+                    NYU cis min(YU2,TYU),
                     (   NYL == YL2, NYU == YU2 -> true
                     ;   domains_intersection(from_to(NYL,NYU), YD2, YD3),
                         fd_put(Y, YD3, YExp2)
@@ -3021,7 +3054,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                 fd_get(Y, _, YL, YU, _),
                 fd_get(Z, ZD, ZPs),
                 NZU cis max(abs(XL), XU),
-                NZL cis1 -NZU,
+                NZL cis -NZU,
                 domains_intersection(from_to(NZL,NZU), ZD, NZD0),
                 (   cis_geq_zero(XL), cis_geq_zero(YL) ->
                     domain_remove_smaller_than(NZD0, 0, NZD1)
@@ -3127,7 +3160,7 @@ run_propagator(pmax(X,Y,Z), MState) :-
             fd_get(Y, YD, YInf, YSup, _),
             (   YInf cis_gt YSup -> Z = Y
             ;   YSup cis_lt XInf -> Z = X
-            ;   n(M) cis1 max(XSup, YSup) ->
+            ;   n(M) cis max(XSup, YSup) ->
                 domain_remove_greater_than(ZD, M, ZD1),
                 fd_put(Z, ZD1, ZPs)
             ;   true
@@ -3162,7 +3195,7 @@ run_propagator(pmin(X,Y,Z), MState) :-
             fd_get(Y, YD, YInf, YSup, _),
             (   YSup cis_lt YInf -> Z = Y
             ;   YInf cis_gt XSup -> Z = X
-            ;   n(M) cis1 min(XInf, YInf) ->
+            ;   n(M) cis min(XInf, YInf) ->
                 domain_remove_smaller_than(ZD, M, ZD1),
                 fd_put(Z, ZD1, ZPs)
             ;   true
@@ -3436,7 +3469,7 @@ min_divide(L1,U1,L2,U2,Min) :-
         ).
 max_divide(L1,U1,L2,U2,Max) :-
         (   L2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
-            Max cis1 div(U1,L2)
+            Max cis div(U1,L2)
                                 % TODO: cover more cases
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
         ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
@@ -3513,7 +3546,7 @@ outof_reducer(Left, Right, Var) :-
             domain_num_elements(Dom, N),
             num_subsets(Others, Dom, 0, Num, NonSubs),
             (   n(Num) cis_geq N -> fail
-            ;   n(Num) cis1 N - n(1) ->
+            ;   n(Num) cis N - n(1) ->
                 reduce_from_others(NonSubs, Dom)
             ;   true
             )
