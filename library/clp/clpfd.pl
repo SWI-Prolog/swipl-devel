@@ -373,6 +373,9 @@ cis_goals(V, V)          --> { var(V) }, !.
 cis_goals(n(N), n(N))    --> [].
 cis_goals(inf, inf)      --> [].
 cis_goals(sup, sup)      --> [].
+cis_goals(sign(A0), R)   --> cis_goals(A0, A), [cis_sign(A, R)].
+cis_goals(abs(A0), R)    --> cis_goals(A0, A), [cis_abs(A, R)].
+cis_goals(-A0, R)        --> cis_goals(A0, A), [cis_uminus(A, R)].
 cis_goals(A0+B0, R)      -->
         cis_goals(A0, A),
         cis_goals(B0, B),
@@ -389,9 +392,6 @@ cis_goals(max(A0,B0), R) -->
         cis_goals(A0, A),
         cis_goals(B0, B),
         [cis_max(A, B, R)].
-cis_goals(sign(A0), R)   --> cis_goals(A0, A), [cis_sign(A, R)].
-cis_goals(abs(A0), R)    --> cis_goals(A0, A), [cis_abs(A, R)].
-cis_goals(-A0, R)        --> cis_goals(A0, A), [cis_uminus(A, R)].
 cis_goals(A0*B0, R)      -->
         cis_goals(A0, A),
         cis_goals(B0, B),
