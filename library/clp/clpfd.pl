@@ -3910,3 +3910,9 @@ unfold_product([C|Cs], [V|Vs], P0, P) :-
 %         list_to_domain(L2, D2),
 %         domain_subdomain(D1, D2).
 
+:- (   current_prolog_flag(bounded, true) ->
+       format("\n--- WARNING: Using CLP(FD) with bounded arithmetic may yield wrong results.\n"),
+       format("--- Compile SWI-Prolog with the GMP library for unbounded integer arithmetic.\n\n")
+   ;   true
+   ).
+
