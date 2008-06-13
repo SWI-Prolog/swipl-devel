@@ -1962,14 +1962,14 @@ X #\= Y :-
             neq_num(X, Y),
             do_queue,
             reinforce(X)
-        ;   var(X), nonvar(Y), Y = V - C, var(V), integer(C) ->
-            var_neq_var_plus_const(V, X, C)
-        ;   var(X), nonvar(Y), Y = V + C, var(V), integer(C) ->
-            var_neq_var_plus_const(X, V, C)
-        ;   nonvar(X), var(Y), X = V + C, var(V), integer(C) ->
-            var_neq_var_plus_const(Y, V, C)
-        ;   nonvar(X), var(Y), X = V - C, var(V), integer(C) ->
-            var_neq_var_plus_const(V, Y, C)
+        ;   var(X), nonvar(Y), Y = V - Z, var(V), ( integer(Z) ; var(Z) ) ->
+            x_neq_y_plus_z(V, X, Z)
+        ;   var(X), nonvar(Y), Y = V + Z, var(V), ( integer(Z) ; var(Z) ) ->
+            x_neq_y_plus_z(X, V, Z)
+        ;   nonvar(X), var(Y), X = V + Z, var(V), ( integer(Z) ; var(Z) ) ->
+            x_neq_y_plus_z(Y, V, Z)
+        ;   nonvar(X), var(Y), X = V - Z, var(V), ( integer(Z) ; var(Z) ) ->
+            x_neq_y_plus_z(V, Y, Z)
         ;   nonvar(X), X = abs(A), nonvar(A), A = X1 - Y1, var(X1), var(Y1), integer(Y) ->
             absdiff_neq_const(X1, Y1, Y)
         ;   integer(X), nonvar(Y), Y = abs(A), nonvar(A), A = X1 - Y1, var(X1), var(Y1) ->
@@ -1989,12 +1989,19 @@ absdiff_neq_const(X, Y, C) :-
         ;   constrain_to_integer(X), constrain_to_integer(Y)
         ).
 
-% X #\= Y + C
+% X #\= Y + Z
 
-var_neq_var_plus_const(X, Y, C) :-
-        make_propagator(x_neq_y_plus_c(X,Y,C), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_once(Prop).
+x_neq_y_plus_z(X, Y, Z) :-
+        (   integer(Z) ->
+            (   Z =:= 0 -> neq(X, Y)
+            ;   make_propagator(x_neq_y_plus_z(X,Y,Z), Prop),
+                init_propagator(X, Prop), init_propagator(Y, Prop),
+                trigger_once(Prop)
+            )
+        ;   make_propagator(x_neq_y_plus_z(X,Y,Z), Prop),
+            init_propagator(X, Prop), init_propagator(Y, Prop),
+            init_propagator(Z, Prop), trigger_once(Prop)
+        ).
 
 % X is distinct from the number N. This is used internally, and does
 % not reinforce other constraints.
@@ -2705,13 +2712,21 @@ run_propagator(absdiff_neq(X,Y,C), MState) :-
         ;   true
         ).
 
-% X #\= Y + C
-run_propagator(x_neq_y_plus_c(X,Y,C), MState) :-
+% X #\= Y + Z
+run_propagator(x_neq_y_plus_z(X,Y,Z), MState) :-
         (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), X =\= Y + C
-            ;   kill(MState), R is X - C, neq_num(Y, R)
+            (   nonvar(Y) ->
+                (   nonvar(Z) -> kill(MState), X =\= Y + Z
+                ;   kill(MState), XY is X - Y, neq_num(Z, XY)
+                )
+            ;   nonvar(Z) -> kill(MState), XZ is X - Z, neq_num(Y, XZ)
+            ;   true
             )
-        ;   nonvar(Y) -> kill(MState), R is Y + C, neq_num(X, R)
+        ;   nonvar(Y) ->
+            (   nonvar(Z) ->
+                kill(MState), YZ is Y + Z, neq_num(X, YZ)
+            ;   true
+            )
         ;   true
         ).
 
@@ -2761,6 +2776,13 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
         P is P0 - I,
         (   Op == (#\=) ->
             (   Vs = [] -> kill(MState), P =\= 0
+            ;   P =:= 0, Cs = [1,1,-1] ->
+                kill(MState), Vs = [A,B,C],
+                x_neq_y_plus_z(C, A, B)
+            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B],
+                x_neq_y_plus_z(A, B, P)
+            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B],
+                x_neq_y_plus_z(B, A, P)
             ;   Vs = [V], Cs = [C] ->
                 kill(MState),
                 (   C =:= 1 -> neq_num(V, P)
@@ -2775,8 +2797,9 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                 P mod C =:= 0,
                 V is P // C
             ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
-            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B - P #= A
-            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A - B #= P
+            ;   P =:= 0, Cs == [1,1,-1] ->
+                kill(MState), Vs = [A,B,C], A + B #= C
+            ;   P =:= 0, Cs == [1,-1] -> kill(MState), Vs = [A,B], A = B
             ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
                 % nl, write(Infs-Sups-Inf-Sup), nl,
                 D1 is P - Inf,
@@ -3827,7 +3850,7 @@ attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
 attribute_goal_(pneq(A,B), A #\= B).
 attribute_goal_(ptimes(X,Y,Z), X*Y #= Z).
 attribute_goal_(absdiff_neq(X,Y,C), abs(X-Y) #\= C).
-attribute_goal_(x_neq_y_plus_c(X,Y,C), X #\= Y + C).
+attribute_goal_(x_neq_y_plus_z(X,Y,Z), X #\= Y + Z).
 attribute_goal_(x_leq_y_plus_c(X,Y,C), X #=< Y + C).
 attribute_goal_(pdiv(X,Y,Z), X/Y #= Z).
 attribute_goal_(pexp(X,Y,Z), X^Y #= Z).
