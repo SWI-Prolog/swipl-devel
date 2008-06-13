@@ -3120,17 +3120,26 @@ run_propagator(pmod(X,M,K), MState) :-
             )
         ;   nonvar(M) ->
             M =\= 0,
-            (   M =:= 1 -> K = 0
+            (   abs(M) =:= 1 -> kill(MState), K = 0
             ;   fd_get(K, KD, KPs) ->
                 MP is abs(M) - 1,
-                MN is -MP,
                 fd_get(K, KD, KPs),
-                domains_intersection(KD, from_to(n(MN), n(MP)), KD1),
+                (   M > 0 -> KDN = from_to(n(0), n(MP))
+                ;   MN is -MP, KDN = from_to(n(MN), n(0))
+                ),
+                domains_intersection(KD, KDN, KD1),
                 fd_put(K, KD1, KPs),
                 (   fd_get(X, XD, _), domain_infimum(XD, n(Min)) ->
                     K1 is Min mod M,
                     (   domain_contains(KD1, K1) -> true
                     ;   neq_num(X, Min)
+                    )
+                ;   true
+                ),
+                (   fd_get(X, XD1, _), domain_supremum(XD1, n(Max)) ->
+                    K2 is Max mod M,
+                    (   domain_contains(KD1, K2) -> true
+                    ;   neq_num(X, Max)
                     )
                 ;   true
                 )
