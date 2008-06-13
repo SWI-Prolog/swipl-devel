@@ -44,7 +44,8 @@
 :- use_module(library(lists)).
 :- use_module(library(option)).
 
-:- load_foreign_library(foreign(process)).
+:- initialization
+   load_foreign_library(foreign(process)).
 
 /** <module> Create processes and redirect I/O
 
