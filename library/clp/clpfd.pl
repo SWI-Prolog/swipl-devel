@@ -1834,12 +1834,8 @@ expr_conds(A0^B0, A^B)           -->
 :- dynamic
         user:goal_expansion/2.
 
-:- (   current_prolog_flag(clpfd_goal_expansion, _) -> true
-   ;   set_prolog_flag(clpfd_goal_expansion, true)
-   ).
-
 user:goal_expansion(X0 #= Y0, Equal) :-
-        current_prolog_flag(clpfd_goal_expansion, true),
+        \+ current_prolog_flag(clpfd_goal_expansion, false),
         phrase(expr_conds(X0, X), CsX),
         phrase(expr_conds(Y0, Y), CsY),
         list_goal(CsX, CondX),
@@ -1852,7 +1848,7 @@ user:goal_expansion(X0 #= Y0, Equal) :-
                 ;   clpfd:clpfd_equal(X0, Y0)
                 ).
 user:goal_expansion(X0 #>= Y0, Geq) :-
-        current_prolog_flag(clpfd_goal_expansion, true),
+        \+ current_prolog_flag(clpfd_goal_expansion, false),
         phrase(expr_conds(X0, X), Conds, Rest),
         phrase(expr_conds(Y0, Y), Rest),
         list_goal(Conds, Cond),
