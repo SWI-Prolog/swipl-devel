@@ -1865,15 +1865,15 @@ linsum(N*X, S, S)  --> { integer(N), var(X) }, !, [vn(X,N)].
 linsum(X*N, S, S)  --> { integer(N), var(X) }, !, [vn(X,N)].
 linsum(A+B, S0, S) --> linsum(A, S0, S1), linsum(B, S1, S).
 
-i_or_v(I) :- integer(I), !.
-i_or_v(V) :- var(V).
+v_or_i(V) :- var(V), !.
+v_or_i(I) :- integer(I).
 
 left_right_linsum_const(Left, Right, Cs, Vs, Const) :-
-        \+ ( i_or_v(Left), i_or_v(Right) ),
-        \+ ( nonvar(Left), Left = A+B, maplist(i_or_v, [A,B,Right]) ),
-        \+ ( nonvar(Right), Right = A+B, maplist(i_or_v, [A,B,Left]) ),
-        \+ ( nonvar(Left), Left = A*B, maplist(i_or_v, [A,B,Right]) ),
-        \+ ( nonvar(Right), Right = A*B, maplist(i_or_v, [A,B,Left]) ),
+        \+ ( v_or_i(Left), v_or_i(Right) ),
+        \+ ( nonvar(Left), Left = A+B, maplist(v_or_i, [A,B,Right]) ),
+        \+ ( nonvar(Right), Right = A+B, maplist(v_or_i, [A,B,Left]) ),
+        \+ ( nonvar(Left), Left = A*B, maplist(v_or_i, [A,B,Right]) ),
+        \+ ( nonvar(Right), Right = A*B, maplist(v_or_i, [A,B,Left]) ),
         phrase(linsum(Left, 0, CL), Lefts0, Rights),
         phrase(linsum(Right, 0, CR), Rights0),
         maplist(linterm_negate, Rights0, Rights),
@@ -1913,7 +1913,10 @@ clpfd_equal(X, Y)  :-
                 S mod GCD =:= 0,
                 scalar_product(Cs, Vs, #=, S)
             )
-        ;   parse_clpfd(X,RX), parse_clpfd(Y,RX), reinforce(RX)
+        ;   (   v_or_i(Y) -> parse_clpfd(X, Y), reinforce(Y)
+            ;   v_or_i(X) -> parse_clpfd(Y, X), reinforce(X)
+            ;   parse_clpfd(X, RX), parse_clpfd(Y, RX), reinforce(RX)
+            )
         ).
 
 gcd([], G, G).
@@ -2856,8 +2859,7 @@ run_propagator(pplus(X,Y,Z), MState) :-
                 fd_put(X, XD3, XPs)
             ;   true
             )
-        ;   (   X == Y, fd_get(Z, ZD, _), \+ domain_contains(ZD, 0) ->
-                neq_num(X, 0)
+        ;   (   X == Y -> kill(MState), 2*X #= Z
             ;   true
             ),
             (   fd_get(X, XD, XL, XU, XPs), fd_get(Y, YD, YL, YU, YPs),
