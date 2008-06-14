@@ -1708,11 +1708,9 @@ geq(A, B) :-
         ).
 
 myplus(X, Y, Z) :-
-        (   X == Y -> 2*X #= Z
-        ;   make_propagator(pplus(X,Y,Z), Prop),
-            init_propagator(X, Prop), init_propagator(Y, Prop),
-            init_propagator(Z, Prop), trigger_once(Prop)
-        ).
+        make_propagator(pplus(X,Y,Z), Prop),
+        init_propagator(X, Prop), init_propagator(Y, Prop),
+        init_propagator(Z, Prop), trigger_once(Prop).
 
 mytimes(X, Y, Z) :-
         make_propagator(ptimes(X,Y,Z), Prop),
@@ -2860,9 +2858,7 @@ run_propagator(pplus(X,Y,Z), MState) :-
             ;   true
             )
         ;   (   X == Y -> kill(MState), 2*X #= Z
-            ;   true
-            ),
-            (   fd_get(X, XD, XL, XU, XPs), fd_get(Y, YD, YL, YU, YPs),
+            ;   fd_get(X, XD, XL, XU, XPs), fd_get(Y, YD, YL, YU, YPs),
                 fd_get(Z, ZD, ZL, ZU, _) ->
                 NXL cis max(XL, ZL-YU),
                 NXU cis min(XU, ZU-YL),
