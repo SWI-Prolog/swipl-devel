@@ -2422,9 +2422,8 @@ trigger_props([P|Ps]) :- trigger_prop(P), trigger_props(Ps).
 
 trigger_prop(Propagator) :-
         arg(2, Propagator, MState),
-        arg(1, MState, State),
-        (   State == dead -> true
-        ;   State == queued -> true
+        (   arg(1, MState, dead) -> true
+        ;   arg(1, MState, queued) -> true
         ;   % passive
             % format("triggering: ~w\n", [Propagator]),
             setarg(1, MState, queued),
@@ -2434,8 +2433,7 @@ trigger_prop(Propagator) :-
 kill(MState) :- setarg(1, MState, dead).
 
 activate_propagator(propagator(P,MState)) :-
-        arg(1, MState, State),
-        (   State == dead -> true
+        (   arg(1, MState, dead) -> true
         ;   %format("running: ~w\n", [P]),
             setarg(1, MState, passive),
             run_propagator(P, MState)
@@ -2805,8 +2803,7 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                 D1 is P - Inf,
                 D2 is Sup - P,
                 (   Infs == [], Sups == [] ->
-                    Inf =< P,
-                    P =< Sup,
+                    between(Inf, Sup, P),
                     remove_dist_upper_lower(Cs, Vs, D1, D2)
                 ;   Sups = [] ->
                     P =< Sup,
