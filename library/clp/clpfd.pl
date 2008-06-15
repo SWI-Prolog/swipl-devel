@@ -1777,6 +1777,12 @@ clpfd_geq(X, Y) :-
             C1 is - C,
             var_leq_var_plus_const(Y, X1, C1),
             reinforce(Y)
+        ;   nonvar(Y), Y = Z+One, One == 1, integer(Z) ->
+            Y1 is Z + 1,
+            clpfd_geq(X, Y1)
+        ;   integer(X), nonvar(Y), Y = Z+One, One == 1 ->
+            X1 is X - 1,
+            clpfd_geq(X1, Z)
         ;   parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY), reinforce(RX)
         ).
 
