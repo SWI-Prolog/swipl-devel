@@ -1226,9 +1226,9 @@ select_var(max, [V|Vs], Var, RVars) :-
 select_var(ff, [V|Vs], Var, RVars) :-
         find_ff(Vs, V, Var),
         delete_eq([V|Vs], Var, RVars).
-select_var(ffc, Vars0, Var, Vars) :-
-        find_ffc(Vars0, Var),
-        delete_eq(Vars0, Var, Vars).
+select_var(ffc, [V|Vs], Var, RVars) :-
+        find_ffc(Vs, V, Var),
+        delete_eq([V|Vs], Var, RVars).
 
 find_min([], Var, Var).
 find_min([V|Vs], CM, Min) :-
@@ -1251,54 +1251,49 @@ find_ff([V|Vs], CM, FF) :-
         ;   find_ff(Vs, CM, FF)
         ).
 
-find_ffc(Vars0, Var) :-
-        find_ff(Vars0, _, SD),
-        (   var(SD) ->
-            find_ffc(Vars0, SD, Var)
-        ;   Var = SD
-        ).
-
 find_ffc([], Var, Var).
-find_ffc([V|Vs], Prev, FF) :-
+find_ffc([V|Vs], Prev, FFC) :-
         (   ffc_lt(V, Prev) ->
-            find_ffc(Vs, V, FF)
-        ;   find_ffc(Vs, Prev, FF)
+            find_ffc(Vs, V, FFC)
+        ;   find_ffc(Vs, Prev, FFC)
         ).
 
 ff_lt(X, Y) :-
         (   fd_get(X, DX, _) ->
-            domain_num_elements(DX, NX)
-        ;   NX = n(1)
+            domain_num_elements(DX, n(NX))
+        ;   NX = 1
         ),
         (   fd_get(Y, DY, _) ->
-            domain_num_elements(DY, NY)
-        ;   NY = n(1)
+            domain_num_elements(DY, n(NY))
+        ;   NY = 1
         ),
-        NX cis_lt NY.
+        NX < NY.
 
 ffc_lt(X, Y) :-
         (   fd_get(X, XD, XPs) ->
-            domain_num_elements(XD, NXD),
-            length(XPs, NXPs)
-        ;   NXD = n(0), NXPs = n(0)
+            domain_num_elements(XD, n(NXD))
+        ;   NXD = 1, XPs = []
         ),
         (   fd_get(Y, YD, YPs) ->
-            domain_num_elements(YD, NYD),
-            length(YPs, NYPs)
-        ;   NYD = n(0), NYPs = n(0)
+            domain_num_elements(YD, n(NYD))
+        ;   NYD = 1, YPs = []
         ),
-        NXD == NYD,
-        NXPs > NYPs.
+        (   NXD < NYD -> true
+        ;   NXD =:= NYD,
+            length(XPs, NXPs),
+            length(YPs, NYPs),
+            NXPs > NYPs
+        ).
 
-min_lt(X,Y) :- bounds(X,LX,_), bounds(Y,LY,_), LX cis_lt LY.
+min_lt(X,Y) :- bounds(X,LX,_), bounds(Y,LY,_), LX < LY.
 
-max_gt(X,Y) :- bounds(X,_,UX), bounds(Y,_,UY), UX cis_gt UY.
+max_gt(X,Y) :- bounds(X,_,UX), bounds(Y,_,UY), UX > UY.
 
 bounds(X, L, U) :-
         (   fd_get(X, Dom, _) ->
-            domain_infimum(Dom, L),
-            domain_supremum(Dom, U)
-        ;   L = n(X), U = L
+            domain_infimum(Dom, n(L)),
+            domain_supremum(Dom, n(U))
+        ;   L = X, U = L
         ).
 
 delete_eq([],_,[]).
