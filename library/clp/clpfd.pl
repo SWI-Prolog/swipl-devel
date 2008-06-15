@@ -1987,12 +1987,7 @@ absdiff_neq_const(X, Y, C) :-
 % X #\= Y + Z
 
 x_neq_y_plus_z(X, Y, Z) :-
-        (   integer(Z) ->
-            (   Z =:= 0 -> neq(X, Y)
-            ;   make_propagator(x_neq_y_plus_z(X,Y,Z), Prop),
-                init_propagator(X, Prop), init_propagator(Y, Prop),
-                trigger_once(Prop)
-            )
+        (   Z == 0 -> neq(X, Y)
         ;   make_propagator(x_neq_y_plus_z(X,Y,Z), Prop),
             init_propagator(X, Prop), init_propagator(Y, Prop),
             init_propagator(Z, Prop), trigger_once(Prop)
