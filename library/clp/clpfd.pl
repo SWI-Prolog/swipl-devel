@@ -413,7 +413,7 @@ list_goal_([C|Cs], G0, G) :- list_goal_(Cs, (G0,C), G).
 
 
 cis_sign(sup, n(1)).
-cis_sign(inf, n(0)).
+cis_sign(inf, n(-1)).
 cis_sign(n(N), n(S)) :-
         (   N < 0 -> S = -1
         ;   N > 0 -> S = 1
