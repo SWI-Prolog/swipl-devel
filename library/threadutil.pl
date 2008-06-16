@@ -206,6 +206,7 @@ tnodebug(ThreadID) :-
 %	Profile the operation of Thread until the user hits a key.
 
 tprofile(Thread) :-
+	init_pce,
 	thread_signal(Thread, 
 		      (	  reset_profiler,
 			  profiler(_, true)
@@ -218,6 +219,17 @@ tprofile(Thread) :-
 		      (	  profiler(_, false),
 			  show_profile(plain, 25)
 		      )).
+
+
+%%	init_pce
+%
+%	Make sure XPCE is running if it is   attached, so we can use the
+%	graphical display using in_pce_thread/1.
+
+init_pce :-
+	current_prolog_flag(gui, true), !,
+	send(@(display), open).
+init_pce.
 
 
 		 /*******************************

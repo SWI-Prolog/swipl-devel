@@ -14,9 +14,14 @@
 %	Show already collected profile using a graphical browser.
 
 pce_show_profile :-
+	'$prof_statistics'(Ticks, Account, Time, NodeCount),
+	findall(Node, prof_node(Node), Nodes),
+	in_pce_thread(show_profile(prof_data(Ticks, Account, Time, NodeCount, Nodes))).
+
+show_profile(Data) :-
 	send(new(F, prof_frame), open),
 	send(F, wait),
-	send(F, load_profile).
+	send(F, load_profile, Data).
 
 
 		 /*******************************
@@ -72,16 +77,20 @@ fill_dialog(F, TD:tool_dialog) :->
 		  ]).
 			      
 
-load_profile(F) :->
+load_profile(F, ProfData:[prolog]) :->
 	"Load stored profile from the Prolog database"::
-	'$prof_statistics'(Ticks, Account, Time, Nodes),
+	(   ProfData = prof_data(Ticks, Account, Time, NodeCount, Nodes)
+	->  true
+	;   '$prof_statistics'(Ticks, Account, Time, NodeCount),
+	    findall(Node, prof_node(Node), Nodes)
+	),
 	send(F, slot, ticks, Ticks),
 	send(F, slot, accounting_ticks, Account),
 	send(F, slot, time, Time),
-	send(F, slot, nodes, Nodes),
+	send(F, slot, nodes, NodeCount),
 	get(F, member, prof_browser, B),
 	send(F, report, progress, 'Loading profile data ...'),
-	send(B, load_profile),
+	send(B, load_profile, Nodes),
 	send(F, report, done),
 	send(F, show_statistics),
 	(   get(F, auto_reset, @on)
@@ -193,11 +202,11 @@ resize(B) :->
 	send(B, tab_stops, vector(W-80)),
 	send_super(B, resize).
 
-load_profile(B) :->
+load_profile(B, Nodes:prolog) :->
 	"Load stored profile from the Prolog database"::
 	get(B, frame, Frame),
 	get(B, sort_by, SortBy),
-	forall(prof_node(Node),
+	forall(member(Node, Nodes),
 	       send(B, append, prof_dict_item(Node, SortBy, Frame))),
 	send(B, sort).
 	
