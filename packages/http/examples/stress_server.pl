@@ -30,7 +30,8 @@
 */
 
 :- module(http_stress_server,
-	  [ server/1			% +Port
+	  [ server/1,			% +Port
+	    profile/0
 	  ]).
 :- use_module(library('http/thread_httpd')).
 :- use_module(library('http/html_write')).
@@ -58,8 +59,27 @@ server(Port, Options) :-
 		    | Options
 		    ]).
 
-:- http_handler('/ping', ping, []).
+%%	profile
+%
+%	Run thread profiler on the one and only server.
 
+profile :-
+	findall(Id, http_current_worker(_, Id), Ids),
+	(   Ids = [Id]
+	->  tprofile(Id)
+	;   Ids == []
+	->  format(user_error, 'No HTTP server!~n', []),
+	    fail
+	;   format(user_error, 'Multiple HTPP workers: ~p~n', [Ids]),
+	    fail
+	).
+
+
+		 /*******************************
+		 *	     METHODS		*
+		 *******************************/
+
+:- http_handler('/ping', ping, []).
 
 ping(_Request) :-
 	format('Content-type: text/plain~n~n'),
