@@ -8,7 +8,7 @@ Using the HTTP Chunked encoding is several advantages:
 	the need to buffer the reply in a memory file.
 
 	* Many modern browsers will update their window to reflect the
-	data processed sofar.  This allows for ging verbose messages on
+	data processed sofar.  This allows for verbose messages on
 	progress or returning results on best-first basis and allow the
 	client to close the connection when it is satisfied.
 
@@ -54,10 +54,43 @@ needed to store debugging information.
 
 ---++ JSON integration
 
-JavaScript Simple Object Notation is a simple and lightweight exchange
-protocol for structured data.  Support for it is progressing, with the
+JavaScript Simple Object Notation is a   simple and lightweight exchange
+protocol for structured data. Support for   it  is progressing, with the
 following items on our todo list.
 
 	* Hook json_convert.pl into json.pl
 	* Deal with nested objects in conversion
 	* Documentation.
+
+---++ Threading
+
+It is desirable to  allow  for   more  flexible  server thread handling.
+Specifically, depending on  PATH  and   specified  through  http_handler
+options, We note that it is perfectly ok to create a thread per request.
+On gollem (Intel X6800@2.93Ghz),  thread   create/join  time  is approx.
+30,000 thread per second (elapsed time).
+
+	* Allow processing a request on its own thread (i.e. MN thumbnails)
+	* Allow specifying stack sizes.
+
+These must be defined at the PATH  level.   At  a  global level, we must
+control overall resources:
+
+	* Max # connections
+	* Max # threads
+	* Max total virtual memory on threads
+
+We need to read the header before acting. This however is sensitive to
+DOS attacks (connect; don't send (complete) header).  Options:
+
+	* Hand connection to new thread
+	* Hand connection to pool (as now)
+
+Incremental solution:
+
+	* Allow handler to spawn a new thread.  What is needed?
+		- Replace end of wrapper with something associated to
+		the connection.
+
+
+	
