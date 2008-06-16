@@ -33,11 +33,14 @@
 	  [ server/1,			% +Port
 	    profile/0
 	  ]).
-:- use_module(library('http/thread_httpd')).
-:- use_module(library('http/html_write')).
-:- use_module(library('http/http_session')).
-:- use_module(library('http/http_dispatch')).
-:- use_module(library('http/http_error')).
+:- load_files([ library('http/thread_httpd'),
+		library('http/html_write'),
+		library('http/http_session'),
+		library('http/http_dispatch'),
+		library('http/http_error')
+	      ],
+	      [ silent(true)
+	      ]).
 
 /** <module> Sample HTTP server to run some stress tests
 
