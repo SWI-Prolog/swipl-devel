@@ -1618,6 +1618,7 @@ fetch_propagator(Propagator) :-
         ).
 
 :- thread_initialization((make_queue,
+                          nb_setval('$clpfd_current_propagator', []),
                           nb_setval('$clpfd_queue_status', enabled))).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2420,6 +2421,7 @@ trigger_prop(Propagator) :-
         arg(2, Propagator, MState),
         (   arg(1, MState, dead) -> true
         ;   arg(1, MState, queued) -> true
+        ;   b_getval('$clpfd_current_propagator', C), C == MState -> true
         ;   % passive
             % format("triggering: ~w\n", [Propagator]),
             setarg(1, MState, queued),
@@ -2432,7 +2434,12 @@ activate_propagator(propagator(P,MState)) :-
         (   arg(1, MState, dead) -> true
         ;   %format("running: ~w\n", [P]),
             setarg(1, MState, passive),
-            run_propagator(P, MState)
+            (   functor(P, rel_tuple, 2) ->
+                b_setval('$clpfd_current_propagator', MState)
+            ;   true
+            ),
+            run_propagator(P, MState),
+            b_setval('$clpfd_current_propagator', [])
         ).
 
 disable_queue :- b_setval('$clpfd_queue_status', disabled).
