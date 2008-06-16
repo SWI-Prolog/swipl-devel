@@ -774,6 +774,7 @@ header_fields([H|T]) -->
 	{ H =.. [Name, Value]
 	},
 	field_name(Name),
+	whites,
 	": ",
 	field_value(Value),
 	"\r\n",
@@ -784,34 +785,38 @@ header_fields([H|T]) -->
 %	Convert between prolog_name and HttpName
 
 field_name(Name) -->
-	{ var(Name)
-	}, !,
-	rd_field_chars(0':, Chars),
-	{ atom_codes(Name, Chars)
-	}.
+	{ var(Name) }, !,
+	rd_field_chars(Chars),
+	{ atom_codes(Name, Chars) }.
 field_name(mime_version) --> !,
 	"MIME-Version".
 field_name(Name) -->
-	{ atom_codes(Name, Chars)
-	},
+	{ atom_codes(Name, Chars) },
 	wr_field_chars(Chars).
 
-rd_field_chars(End, [C0|T]) -->
+rd_field_chars([C0|T]) -->
 	[C],
-	{ C \== End, !,
-	  (   C == 0'-
-	  ->  C0 = 0'_
-	  ;   code_type(C, to_upper(C0))
-	  )
-	},
-	rd_field_chars(End, T).
-rd_field_chars(_, []) -->
+	{ rd_field_char(C, C0) }, !,
+	rd_field_chars(T).
+rd_field_chars([]) -->
 	[].
+
+term_expansion(rd_field_char(_,_), Clauses) :-
+	Clauses = [ rd_field_char(0'-, 0'_)
+		  | Cls
+		  ],
+	findall(rd_field_char(In, Out),
+		(   between(1, 127, In),
+		    code_type(In, csymf),
+		    code_type(Out, to_lower(In))),
+		Cls).
+
+rd_field_char(_, _).
+
 
 wr_field_chars([C|T]) -->
 	[C2], !,
-	{ to_lower(C2, C)
-	},
+	{ to_lower(C2, C) },
 	wr_field_chars2(T).
 wr_field_chars([]) -->
 	[].
@@ -928,11 +933,9 @@ cookie(Name, Value) -->
 	cookie_value(Value).
 
 cookie_name(Name) -->
-	{ var(Name)
-	}, !,
-	rd_field_chars(0'=, Chars),
-	{ atom_codes(Name, Chars)
-	}.
+	{ var(Name) }, !,
+	rd_field_chars(Chars),
+	{ atom_codes(Name, Chars) }.
 
 cookie_value(Value) -->
 	chars_to_semicolon_or_blank(Chars),
@@ -970,7 +973,7 @@ cookie_options([]) -->
 cookie_option(secure=true) -->
 	"secure", !.
 cookie_option(Name=Value) -->
-	rd_field_chars(0'=, NameChars),
+	rd_field_chars(NameChars), whites,
 	"=", blanks,
 	chars_to_semicolon(ValueChars),
 	{ atom_codes(Name, NameChars),
