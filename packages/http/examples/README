@@ -34,7 +34,18 @@ body and the three documented server instantiations.
 	different conditions.  Requires SWI-Prolog with thread-support.
 	See source for usage.
 
+---+ Performance testing
 
+A very early start of some  routines   to  validate the server platform.
+Eventually, stress_server.pl will serve different   tests  from multiple
+locations  and  stress_client.pl  will  contain    client  code  to  run
+individual tests as well as doing multi-threaded tests.
+
+	$ stress_server.pl :
+	Server platform.  
+
+	$ stress_client.pl :
+	Client.  
 
 
 
