@@ -702,20 +702,33 @@ charset(CharSet) -->
 	atom(CharSet).
 
 header_field(Name, Value) -->
-	{ var(Name)
-	}, !,
+	{ var(Name) }, !,
 	field_name(Name),
 	":",
 	whites,
-	string(ValueChars),
+	read_field_value(ValueChars),
 	blanks_to_nl, !,
-	{ field_to_prolog(Name, ValueChars, Value)
-	}.
+	{ field_to_prolog(Name, ValueChars, Value) }.
 header_field(Name, Value) -->
 	field_name(Name),
 	": ",
 	field_value(Value),
 	"\r\n".
+
+%%	read_field_value(-Codes)//
+%
+%	Read a field eagerly upto the next whitespace
+
+read_field_value([H|T]) -->
+	[H],
+	{ \+ code_type(H, space) }, !,
+	read_field_value(T).
+read_field_value([]) -->
+	"".
+read_field_value([H|T]) -->
+	[H],
+	read_field_value(T).
+
 
 field_to_prolog(content_length, ValueChars, ContentLength) :- !,
 	number_codes(ContentLength, ValueChars).
