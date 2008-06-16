@@ -70,11 +70,12 @@ source_to_html(Src, stream(Out), Options) :- !,
 	retractall(nonl),		% play safe
 	colour_fragments(Src, Fragments),
 	open(Src, read, In),
-	file_base_name(Src, Base),
-	print_html_head(Out, [title(Base), Options]),
-	html_fragments(Fragments, In, Out, [], State, Options),
-	copy_rest(In, Out, State, State1),
-	pop_state(State1, Out, In),
+	call_cleanup((file_base_name(Src, Base),
+		      print_html_head(Out, [title(Base), Options]),
+		      html_fragments(Fragments, In, Out, [], State, Options),
+		      copy_rest(In, Out, State, State1),
+		      pop_state(State1, Out, In)),
+		     close(In)),
 	print_html_footer(Out, Options).
 source_to_html(Src, FileSpec, Options) :-
 	absolute_file_name(FileSpec, OutFile, [access(write)]),
