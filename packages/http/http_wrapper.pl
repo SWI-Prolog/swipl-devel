@@ -72,34 +72,46 @@ wrapper(Goal, In, Out, Close, Options) :-
 	memberchk(path(Location), Request1),
 	thread_self(Self),
 	debug(http(wrapper), '[~w] ~w ~w ...', [Self, Method, Location]),
-	call_handler(Goal, Request1, Request, Error, CgiHeader0, MemFile),
+	call_handler(Goal, Request1, Request, Error, CgiHeader, MemFile),
 	debug(http(wrapper), '[~w] ~w ~w --> ~p', [Self, Method, Location, Error]),
-	(   var(Error)
-	->  size_memory_file(MemFile, Length),
-	    open_memory_file(MemFile, read, TmpIn),
-	    http_read_header(TmpIn, CgiHeader1),
-	    append(CgiHeader0, CgiHeader1, CgiHeader),
-	    join_cgi_header(Request, CgiHeader, Header0),
-	    http_update_encoding(Header0, Encoding, Header),
-	    set_stream(Out, encoding(Encoding)),
-	    (	Encoding == utf8
-	    ->  utf8_position_memory_file(MemFile, BytePos, ByteSize),
-		Size is ByteSize - BytePos
-	    ;   seek(TmpIn, 0, current, Pos),
-		Size is Length - Pos
-	    ),
-	    call_cleanup(reply(TmpIn, Size, Out, Header),
-			 cleanup(TmpIn, Out, MemFile)),
+	send_data(Out, Request, Error, CgiHeader, MemFile, Close).
 
-	    memberchk(connection(Close), Header)
-	;   free_memory_file(MemFile),
-	    map_exception(Error, Reply, HdrExtra),
-	    http_reply(Reply, Out, HdrExtra),
-	    flush_output(Out),
-	    (	memberchk(connection(Close), HdrExtra)
-	    ->	true
-	    ;   Close = close
-	    )
+%%	send_data(+Out, +Request, +Error, +CgiHeader, +Memfile, -Close) is det.
+%
+%	Send data to the HTTP  client.   If  Error is unbound (processed
+%	ok), complete the header, fix the   encoding issues and send the
+%	data. If there is an error,  map   the  exception  into a proper
+%	error message and reply.
+%	
+%	@param Close	Unified to Keep-alife if both client and server
+%			want to keep the connection open.
+
+send_data(Out, Request, Error, CgiHeader0, MemFile, Close) :-
+	var(Error), !,
+	size_memory_file(MemFile, Length),
+	open_memory_file(MemFile, read, TmpIn),
+	http_read_header(TmpIn, CgiHeader1),
+	append(CgiHeader0, CgiHeader1, CgiHeader),
+	join_cgi_header(Request, CgiHeader, Header0),
+	http_update_encoding(Header0, Encoding, Header),
+	set_stream(Out, encoding(Encoding)),
+	(   Encoding == utf8
+	->  utf8_position_memory_file(MemFile, BytePos, ByteSize),
+	    Size is ByteSize - BytePos
+	;   seek(TmpIn, 0, current, Pos),
+	    Size is Length - Pos
+	),
+	call_cleanup(reply(TmpIn, Size, Out, Header),
+		     cleanup(TmpIn, Out, MemFile)),
+	memberchk(connection(Close), Header).
+send_data(Out, _Request, Error, _CgiHeader, MemFile, Close) :-
+	free_memory_file(MemFile),
+	map_exception(Error, Reply, HdrExtra),
+	http_reply(Reply, Out, HdrExtra),
+	flush_output(Out),
+	(   memberchk(connection(Close), HdrExtra)
+	->  true
+	;   Close = close
 	).
 
 

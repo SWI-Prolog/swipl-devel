@@ -277,7 +277,10 @@ close_session(SessionId) :-
 
 %	http_gc_sessions/0
 %	
-%	Delete dead sessions.  When should we be calling this?
+%	Delete dead sessions. When  should  we   be  calling  this? This
+%	assumes that updated sessions are at the end of the clause list,
+%	so we can break  as  soon   as  we  encounter  a no-yet-timedout
+%	session.
 
 http_gc_sessions :-
 	session_setting(timeout(Timeout)),
@@ -285,9 +288,11 @@ http_gc_sessions :-
 	get_time(Now),
 	(   last_used(SessionID, Last),
 	    Idle is Now - Last,
-	    Idle > Timeout,
-	    close_session(SessionID),
-	    fail
+	    (	Idle > Timeout
+	    ->	close_session(SessionID),
+		fail
+	    ;	!
+	    )
 	;   true
 	).
 http_gc_sessions.

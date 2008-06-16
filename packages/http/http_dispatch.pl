@@ -48,7 +48,20 @@
 This module can be placed between   http_wrapper.pl  and the application
 code to associate HTTP _locations_ to   predicates that serve the pages.
 In addition, it associates parameters  with   locations  that  deal with
-timeout handling and user authentication.
+timeout handling and user authentication.  The typical setup is:
+
+==
+server(Port, Options) :-
+	http_server(http_dispatch,
+		    [ port(Port),
+		    | Options
+		    ]).
+
+:- http_handler('/index.html', write_index, []).
+
+write_index(Request) :-
+	...
+==
 
 @author	Jan Wielemaker
 */
