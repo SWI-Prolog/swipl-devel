@@ -52,6 +52,7 @@ resource(true,	    image, image('16x16/ok.xpm')).
 resource(false,	    image, image('16x16/false.xpm')).
 resource(exception, image, image('16x16/error.xpm')).
 resource(exited,    image, image('16x16/done.xpm')).
+resource(profiling, image, image('16x16/profiler.xpm')).
 
 
 :- pce_begin_class(thread_statistics, object,
@@ -80,12 +81,14 @@ initialise(TS, Thread:any, CPU:int) :->
 :- pce_begin_class(thread_status, dict_item,
 		   "Status of a thread").
 
-variable(status,   prolog,       get,  "Current status").
+variable(status,   prolog,       get,  "Current status (thread_property(Id, status(Status)))").
+variable(state,    name := running, get,  "Core status (functor of <-status)").
 variable(seen,     bool := @off, both, "Seen this one").
 variable(recall,   int,          get,  "Recall last #samples").
 variable(lastcpu,  real*,	 get,  "CPU at last call").
 variable(lastwall, real*,	 get,  "Wall at last call").
 variable(leftcpu,  int := 0,	 none, "Pass-through").
+variable(profiling,bool := @off, get,  "Am I being profiled?").
 
 initialise(TS, Id:'int|name', Recall:int, Status:prolog, CpuH:[int]) :->
 	send_super(TS, initialise, Id, Id, new(chain), running),
@@ -96,16 +99,15 @@ update(TS, Status:prolog, CpuH:[int]) :->
 	default(CpuH, 20, CPUH),
 	get(TS, key, TID),
 	send(TS, seen, @on),
-	(   get(TS, style, Style),
-	    sub_atom(Style, 0, _, _, running)
+	(   get(TS, state, running)
 	->  send(TS, slot, status, Status),
-	    functor(Status, StatName, _),
+	    functor(Status, State, _),
 	    get(TS, object, History),
-	    (	StatName == running
+	    (	State == running
 	    ->  get(TS, cpu_percentage, CPU),
 		CPULine is round(CPU*CPUH/100),
 		atom_concat(running_, CPULine, RunningStyle),
-		send(TS, style, RunningStyle),
+		send(TS, state, running, RunningStyle),
 	        send(History, append, new(Stat, thread_statistics(TID, CPU))),
 		(   get(TS, recall, Recall),
 		    get(History, size, Len),
@@ -115,7 +117,7 @@ update(TS, Status:prolog, CpuH:[int]) :->
 		;   true
 		),
 		ignore(send(TS, send_hyper, diagram, show_stat, Stat))
-	    ;   send(TS, style, StatName)
+	    ;   send(TS, state, State)
 	    )
 	;   true
 	).
@@ -137,6 +139,14 @@ cpu_percentage(TS, CPU:'0..100') :<-
 	send(TS, slot, lastcpu, Now),
 	send(TS, slot, lastwall, WallNow).
 
+state(TS, State:name, Style:[name]) :->
+	"Set state and update icon"::
+	send(TS, slot, state, State),
+	(   get(TS, profiling, @on)
+	->  send(TS, style, profiling)
+	;   default(Style, State, TheStyle),
+	    send(TS, style, TheStyle)
+	).
 
 recall(TS, Recall:'1..') :->
 	send(TS, slot, recall, Recall),
@@ -161,6 +171,32 @@ is_running(TS) :->
 	"True if thread is running"::
 	get(TS, style, Style),
 	sub_atom(Style, 0, _, _, running).
+
+start_profile(TS) :->
+	"Start profiling this thread"::
+	(   get(TS, profiling, @on)
+	->  send(TS, report, warning, 'Already profiling')
+	;   get(TS, key, TID),
+	    thread_signal(TID, 
+			  (	  reset_profiler,
+				  profiler(_, true)
+			  )),
+	    send(TS, slot, profiling, @on),
+	    send(TS, style, profiling)
+	).
+
+end_profile(TS) :->
+	"End profiling"::
+	(   get(TS, profiling, @off)
+	->  send(TS, report, error, 'Not profiling')
+	;   get(TS, key, TID),
+	    thread_signal(TID, 
+			  (	  profiler(_, false),
+				  show_profile(plain, 25)
+			  )),
+	    send(TS, slot, profiling, @off),
+	    send(TS, style, TS?state)
+	).
 
 abort(TS) :->
 	"Send abort to the thread"::
@@ -188,8 +224,8 @@ gtrace(TS) :->
 :- pce_begin_class(thread_browser, browser,
 		   "Show active threads").
 
-variable(recall, int := 360, get, "#samples recalled").
-variable(cpu_height, int := 20, get, "Height of CPU image").
+variable(recall,     int := 360, get, "#samples recalled").
+variable(cpu_height, int := 20,	 get, "Height of CPU image").
 class_variable(size, size, size(10, 10)).
 
 initialise(TB) :->
@@ -199,6 +235,7 @@ initialise(TB) :->
 	send(TB, style, false, style(icon := resource(false))),
 	send(TB, style, exception, style(icon := resource(exception))),
 	send(TB, style, exited, style(icon := resource(exited))),
+	send(TB, style, profiling, style(icon := resource(profiling))),
 	send(TB, select_message, message(TB, details, @arg1)),
 	send(TB, running_styles),
 	send(TB?image, recogniser,
@@ -227,6 +264,14 @@ initialise(TB) :->
 		    menu_item(nodebug_mode,
 			      message(@arg1, signal, nodebug),
 			      condition := IsRunning),
+		    gap,
+		    menu_item(profile,
+			      message(@arg1, start_profile),
+			      condition := and(IsRunning,
+					       not(TB?profiling))),
+		    menu_item(show_profile,
+			      message(@arg1, end_profile),
+			      condition := @arg1?profiling == @on),
 		    gap,
 		    menu_item(abort,
 			      message(@arg1, abort),
@@ -284,11 +329,17 @@ update_thread(TB, Id:'int|name', Status:prolog) :->
 	    send(TB, append, thread_status(Id, Recall, Status, CpuH))
 	).
 
+profiling(TB, TID:any) :<-
+	"Thread we are profiling (or fail)"::
+	get(TB, dict, Dict),
+	get(Dict, find, @arg1?profiling == @on, DI),
+	get(DI, key, TID).
+
 join_all(TB) :->
 	"Join all completed threads"::
 	get(TB, dict, Dict),
 	send(Dict, for_all,
-	     if(@arg1?style \== running,
+	     if(@arg1?state \== running,
 		message(@arg1, join))).
 
 details(TB, TS:thread_status) :->
