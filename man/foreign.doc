@@ -3248,6 +3248,7 @@ of foreign code.
 /*  Include file depends on local installation */
 #include <SWI-Prolog.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 
 foreign_t
