@@ -87,21 +87,25 @@ variable(lastcpu,  real*,	 get,  "CPU at last call").
 variable(lastwall, real*,	 get,  "Wall at last call").
 variable(leftcpu,  int := 0,	 none, "Pass-through").
 
-initialise(TS, Id:'int|name', Recall:int, Status:prolog) :->
+initialise(TS, Id:'int|name', Recall:int, Status:prolog, CpuH:[int]) :->
 	send_super(TS, initialise, Id, Id, new(chain), running),
 	send(TS, slot, recall, Recall),
-	send(TS, update, Status).
+	send(TS, update, Status, CpuH).
 
-update(TS, Status:prolog) :->
+update(TS, Status:prolog, CpuH:[int]) :->
+	default(CpuH, 20, CPUH),
 	get(TS, key, TID),
 	send(TS, seen, @on),
-	(   get(TS, style, running)
+	(   get(TS, style, Style),
+	    sub_atom(Style, 0, _, _, running)
 	->  send(TS, slot, status, Status),
-	    functor(Status, Style, _),
-	    send(TS, style, Style),
+	    functor(Status, StatName, _),
 	    get(TS, object, History),
-	    (	Style == running
+	    (	StatName == running
 	    ->  get(TS, cpu_percentage, CPU),
+		CPULine is round(CPU*CPUH/100),
+		atom_concat(running_, CPULine, RunningStyle),
+		send(TS, style, RunningStyle),
 	        send(History, append, new(Stat, thread_statistics(TID, CPU))),
 		(   get(TS, recall, Recall),
 		    get(History, size, Len),
@@ -111,7 +115,7 @@ update(TS, Status:prolog) :->
 		;   true
 		),
 		ignore(send(TS, send_hyper, diagram, show_stat, Stat))
-	    ;	true
+	    ;   send(TS, style, StatName)
 	    )
 	;   true
 	).
@@ -153,6 +157,11 @@ join(TS) :->
 	catch(thread_join(TID, _), _, fail),
 	send(TS, free).
 
+is_running(TS) :->
+	"True if thread is running"::
+	get(TS, style, Style),
+	sub_atom(Style, 0, _, _, running).
+
 abort(TS) :->
 	"Send abort to the thread"::
 	get(TS, key, TID),
@@ -180,6 +189,7 @@ gtrace(TS) :->
 		   "Show active threads").
 
 variable(recall, int := 360, get, "#samples recalled").
+variable(cpu_height, int := 20, get, "Height of CPU image").
 class_variable(size, size, size(10, 10)).
 
 initialise(TB) :->
@@ -190,16 +200,17 @@ initialise(TB) :->
 	send(TB, style, exception, style(icon := resource(exception))),
 	send(TB, style, exited, style(icon := resource(exited))),
 	send(TB, select_message, message(TB, details, @arg1)),
+	send(TB, running_styles),
 	send(TB?image, recogniser,
 	     handler(ms_right_down,
 		     and(message(TB, selection, ?(TB, dict_item, @event)),
 			 new(or)))),
 	send(TB, popup, new(P, popup)),
-	new(IsRunning, @arg1?style == running),
+	new(IsRunning, message(@arg1, is_running)),
 	send_list(P, append,
 		  [ menu_item(join,
 			      message(@arg1, join),
-			      condition := @arg1?style \== running),
+			      condition := not(IsRunning)),
 		    gap,
 		    menu_item(attach_console,
 			      message(@arg1, signal, attach_console),
@@ -222,6 +233,31 @@ initialise(TB) :->
 			      condition := IsRunning)
 		  ]).
 
+running_styles(TB) :->
+	"Define styles running_0..running_<H>"::
+	get(TB, font, Font),
+	get(Font, ascent, Ascent),
+	get(Font, descent, Descent),
+	H is Ascent+Descent,
+	send(TB, slot, cpu_height, H),
+	new(Running, image(resource(running))),
+	get(Running, size, size(W,_IH)),
+	(   between(0, H, N),
+	    new(Img, image(@nil, W, H, pixmap)),
+	    send(Img, hot_spot, point(0, Ascent)),
+	    send(Img, background, grey80),
+	    send(Img, foreground, green),
+	    forall(between(0,N,I),
+		   (   Y is H-I,
+		       send(Img, draw_in, line(0,Y,W,Y)))),
+	    send(Img, draw_in, bitmap(Running)),
+	    atom_concat(running_, N, Style),
+	    send(TB, style, Style, style(icon := Img)),
+	    fail
+	;   true
+	).
+
+
 update(TB) :->
 	"Update with thread-status"::
 	get(TB, dict, Dict),
@@ -241,10 +277,11 @@ recall(TB, Recall:'1..') :->
 
 
 update_thread(TB, Id:'int|name', Status:prolog) :->
+	get(TB, cpu_height, CpuH),
 	(   get(TB, member, Id, TS)
-	->  send(TS, update, Status)
+	->  send(TS, update, Status, CpuH)
 	;   get(TB, recall, Recall),
-	    send(TB, append, thread_status(Id, Recall, Status))
+	    send(TB, append, thread_status(Id, Recall, Status, CpuH))
 	).
 
 join_all(TB) :->
