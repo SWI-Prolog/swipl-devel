@@ -1271,9 +1271,9 @@ interruptHandler(int sig)
       return;
     }
   } else
+#endif					/* no async signals; always safe */
   { safe = TRUE;
   }
-#endif
 
   Sreset();
 again:

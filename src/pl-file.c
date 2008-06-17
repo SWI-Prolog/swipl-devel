@@ -1702,9 +1702,10 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
       return PL_unify(A2, A3);
     }
     if ( s->position )
-      pos0 = *s->position;
-    else
-      pos0 = (IOPOS){0};
+    { pos0 = *s->position;
+    } else
+    { memset(&pos0, 0, sizeof(pos0));	/* make compiler happy */
+    }
 
     gstore = allocGlobal(1+n*3);	/* TBD: shift */
     lp = gstore++;
