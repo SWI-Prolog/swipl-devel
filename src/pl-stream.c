@@ -1262,7 +1262,10 @@ Sread_pending(IOSTREAM *s, char *buf, size_t limit, int flags)
   { int c = S__fillbuf(s);
 
     if ( c < 0 )
+    { if ( (s->flags & SIO_FEOF) )
+	return 0;
       return c;
+    }
 
     buf[0] = c;
     limit--;

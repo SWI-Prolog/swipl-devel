@@ -38,6 +38,7 @@ handling times must be cleaned, but that not only holds for this module.
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-utf8.h"
 #include <errno.h>
 
 #ifdef HAVE_SYS_SELECT_H
@@ -1673,11 +1674,64 @@ pl_wait_for_input(term_t Streams, term_t Available,
 
 #endif /* HAVE_SELECT */
 
+
 		/********************************
 		*      PROLOG CONNECTION        *
 		*********************************/
 
 #define MAX_PENDING SIO_BUFSIZE		/* 4096 */
+
+static void
+re_buffer(IOSTREAM *s, const char *from, size_t len)
+{ if ( s->bufp < s->limitp )
+  { size_t size = s->limitp - s->bufp;
+
+    memmove(s->buffer, s->bufp, size);
+    s->bufp = s->buffer;
+    s->limitp = &s->bufp[size];
+  } else
+  { s->bufp = s->limitp = s->buffer;
+  }
+
+  memcpy(s->bufp, from, len);
+  s->bufp += len;
+}
+
+
+#ifndef HAVE_MBSNRTOWCS
+static size_t
+mbsnrtowcs(wchar_t *dest, const char **src,
+	   size_t nms, size_t len, mbstate_t *ps)
+{ wchar_t c;
+  const char *us = *src;
+  const char *es = us+nms;
+  size_t count = 0;
+
+  assert(dest == NULL);			/* incomplete implementation */
+
+  while(us<es)
+  { size_t skip = mbrtowc(&c, us, es-us, ps);
+
+    if ( skip == (size_t)-1 )		/* error */
+    { DEBUG(1, Sdprintf("mbsnrtowcs(): bad multibyte seq\n"));
+      return skip;
+    }
+    if ( skip == (size_t)-2 )		/* incomplete */
+    { *src = us;
+      return count;
+    }
+
+    count++;
+    us += skip;
+  }
+
+  *src = us;
+  return count;
+}
+#else
+size_t mbsnrtowcs(wchar_t *dest, const char **src,
+		  size_t nms, size_t len, mbstate_t *ps);
+#endif /*HAVE_MBSNRTOWCS*/
 
 static 
 PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
@@ -1707,23 +1761,187 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
     { memset(&pos0, 0, sizeof(pos0));	/* make compiler happy */
     }
 
-    gstore = allocGlobal(1+n*3);	/* TBD: shift */
-    lp = gstore++;
-    *lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+    switch(s->encoding)
+    { case ENC_OCTET:
+      case ENC_ISO_LATIN_1:
+      case ENC_ASCII:
+	gstore = allocGlobal(1+n*3);	/* TBD: shift */
+	lp = gstore++;
+	*lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+    
+	for(i=0; i<n; )
+	{ int c = buf[i]&0xff;
+    
+	  if ( s->position )
+	    S__fupdatefilepos_getc(s, c);
+    
+	  *gstore++ = FUNCTOR_dot2;
+	  *gstore++ = consInt(c);
+	  if ( ++i < n )
+	  { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
+	    gstore++;
+	  }
+	}
+	break;
+      case ENC_ANSI:
+      { size_t count;
+	mbstate_t s0;
+	const char *us = buf;
+	const char *es = buf+n;
 
-    for(i=0; i<n; )
-    { int c = buf[i]&0xff;
+	if ( !s->mbstate )
+	{ if ( !(s->mbstate = malloc(sizeof(*s->mbstate))) )
+	  { PL_error(NULL, 0, NULL, ERR_NOMEM);
+	    goto failure;
+	  }
+	  memset(s->mbstate, 0, sizeof(*s->mbstate));
+	}
+	s0 = *s->mbstate;
+	count = mbsnrtowcs(NULL, &us, n, 0, &s0);
+	if ( count == (size_t)-1 )
+	{ Sseterr(s, SIO_WARN, "Illegal multibyte Sequence");
+	  goto failure;
+	}
+	
+	DEBUG(2, Sdprintf("Got %ld codes from %d bytes; incomplete: %ld\n",
+			  count, n, es-us));
 
-      if ( s->position )
-	S__fupdatefilepos_getc(s, c);
+	gstore = allocGlobal(1+count*3);
+	lp = gstore++;
+	*lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+    
+	for(us=buf,i=0; i<count; )
+	{ wchar_t c;
 
-      *gstore++ = FUNCTOR_dot2;
-      *gstore++ = consInt(c);
-      if ( ++i < n )
-      { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
-        gstore++;
+	  us += mbrtowc(&c, us, es-us, s->mbstate);
+    	  if ( s->position )
+	    S__fupdatefilepos_getc(s, c);
+    
+	  *gstore++ = FUNCTOR_dot2;
+	  *gstore++ = consInt(c);
+	  if ( ++i < count )
+	  { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
+	    gstore++;
+	  }
+	}
+	if ( s->position )
+	  s->position->byteno = pos0.byteno+us-buf;
+
+	re_buffer(s, us, es-us);
+        break;
+      } 
+      case ENC_UTF8:
+      { const char *us = buf;
+	const char *es = buf+n;
+	size_t count = 0;
+
+	while(us<es)
+	{ const char *ec = us + UTF8_FBN(us[0]) + 1;
+	  
+	  if ( ec <= es )
+	  { count++;
+	    us=ec;
+	  } else
+	    break;
+	}
+
+	DEBUG(2, Sdprintf("Got %ld codes from %d bytes; incomplete: %ld\n",
+			  count, n, es-us));
+	
+	gstore = allocGlobal(1+count*3);
+	lp = gstore++;
+	*lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+    
+	for(us=buf,i=0; i<count;)
+	{ int c;
+
+	  us = utf8_get_char(us, &c);
+    	  if ( s->position )
+	    S__fupdatefilepos_getc(s, c);
+    
+	  *gstore++ = FUNCTOR_dot2;
+	  *gstore++ = consInt(c);
+	  if ( ++i < count )
+	  { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
+	    gstore++;
+	  }
+	}
+	if ( s->position )
+	  s->position->byteno = pos0.byteno+us-buf;
+
+	re_buffer(s, us, es-us);
+        break;
       }
+      case ENC_UNICODE_BE:
+      case ENC_UNICODE_LE:
+      { ssize_t count = n/2;
+	const char *us = buf;
+	size_t done;
+
+	gstore = allocGlobal(1+count*3);
+	lp = gstore++;
+	*lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+    
+	for(i=0; i<count; us+=2)
+	{ int c;
+
+	  if ( s->encoding == ENC_UNICODE_BE )
+	    c = ((us[0]&0xff)<<8)+(us[1]&0xff);
+	  else
+	    c = ((us[1]&0xff)<<8)+(us[0]&0xff);
+    
+	  if ( s->position )
+	  { S__fupdatefilepos_getc(s, c);
+	    s->position->byteno++;	/* 2 bytes/code */
+	  }
+    
+	  *gstore++ = FUNCTOR_dot2;
+	  *gstore++ = consInt(c);
+	  if ( ++i < count )
+	  { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
+	    gstore++;
+	  }
+	}	
+
+	done = count*2;
+	re_buffer(s, buf+done, n-done);
+        break;
+      }
+      case ENC_WCHAR:
+      { const pl_wchar_t *ws = (const pl_wchar_t*)buf;
+	ssize_t count = n/sizeof(pl_wchar_t);
+	size_t done;
+
+	gstore = allocGlobal(1+count*3);
+	lp = gstore++;
+	*lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+    
+	for(i=0; i<count; )
+	{ int c = ws[i];
+    
+	  if ( s->position )
+	  { S__fupdatefilepos_getc(s, c);
+	    s->position->byteno += sizeof(pl_wchar_t)-1;
+	  }
+    
+	  *gstore++ = FUNCTOR_dot2;
+	  *gstore++ = consInt(c);
+	  if ( ++i < count )
+	  { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
+	    gstore++;
+	  }
+	}
+
+	done = count*sizeof(pl_wchar_t);
+	re_buffer(s, buf+done, n-done);
+        break;
+      }
+      case ENC_UNKNOWN:
+      default:
+	assert(0);
+        fail;
     }
+
 
     setVar(*gstore);
 
