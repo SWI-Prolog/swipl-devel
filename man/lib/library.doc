@@ -42,6 +42,7 @@ documented at all.
 \input{option}
 \input{ordsets}
 \input{pairs}
+\input{pio}
 \input{prologxref}
 \input{readutil}
 \input{record}

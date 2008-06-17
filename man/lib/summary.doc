@@ -112,6 +112,10 @@
 \subsection{\pllib{pairs}}
 \input{summaries.d/pairs.tex}
 
+\subsection{\pllib{pio}}
+\subsubsection{\pllib{pure_input}}
+\input{summaries.d/pureinput.tex}
+
 \subsection{\pllib{readutil}}
 
 \begin{summarylist}{ll}

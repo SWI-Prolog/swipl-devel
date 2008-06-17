@@ -46,7 +46,8 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/simplex.tex lib/assoc.tex lib/prologxref.tex \
 		lib/ugraphs.tex lib/ordsets.tex lib/broadcast.tex \
 		lib/record.tex lib/clpfd.tex lib/pairs.tex lib/option.tex \
-		lib/apply.tex lib/aggregate.tex
+		lib/apply.tex lib/aggregate.tex \
+		lib/pio.tex lib/pureinput.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
@@ -196,6 +197,8 @@ lib/option.tex:	../library/option.pl
 		$(LIBTOTEX) 'library(option)'
 lib/aggregate.tex: ../library/aggregate.pl
 		$(LIBTOTEX) 'library(aggregate)'
+lib/pureinput.tex: ../library/pure_input.pl
+		$(LIBTOTEX) --subsection 'library(pure_input)'
 
 
 ################################################################
