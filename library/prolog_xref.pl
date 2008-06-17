@@ -615,6 +615,7 @@ xref_meta(clause(G, _),		[G]).
 xref_meta(clause(G, _, _),	[G]).
 xref_meta(phrase(G, _A),	[G+2]).
 xref_meta(phrase(G, _A, _R),	[G+2]).
+xref_meta(phrase_from_file(G,_),[G+2]).
 xref_meta(catch(A, _, B),	[A, B]).
 xref_meta(thread_create(A,_,_), [A]).
 xref_meta(thread_signal(_,A),   [A]).

@@ -78,12 +78,24 @@ than compensated for by using block reads based on read_pending_input/3.
 %	==
 %	?- match_count('pure_input.pl', "file", Count).
 %	==
-:- module_transparent phrase_from_file/2.
+
+:- module_transparent
+	phrase_from_file/2.
 
 phrase_from_file(Grammar, File) :-
+	strip_module(Grammar, M, G),
+	qphrase_file(M:G, File).
+
+qphrase_file(QGrammar, File) :-
 	setup_and_call_cleanup(open(File, read, In),
-		( stream_to_lazy_list(In, List), phrase(Grammar, List) ),
-		close(In) ).
+			       qphrase_stream(QGrammar, In),
+			       close(In)).
+
+qphrase_stream(QGrammar, In) :-
+	 set_stream(In, buffer_size(512)),
+	 stream_to_lazy_list(In, List),
+	 phrase(QGrammar, List).
+
 
 %%	stream_to_lazy_list(+Stream, -List) is det.
 %
@@ -100,10 +112,6 @@ phrase_from_file(Grammar, File) :-
 %	@tbd	Enhance of lazy list throughout the system.
 
 stream_to_lazy_list(Stream, List) :-
-	set_stream(Stream, buffer_size(512)),
-	lazy_list(Stream, List).
-
-lazy_list(Stream, List) :-
 	stream_property(Stream, position(Pos)),
 	freeze(List, read_to_input_stream(Stream, Pos, List)).
 
@@ -112,5 +120,5 @@ read_to_input_stream(Stream, Pos, List) :-
 	(   at_end_of_stream(Stream)
 	->  List = []
 	;   read_pending_input(Stream, List, Tail),
-	    lazy_list(Stream, Tail)
+	    stream_to_lazy_list(Stream, Tail)
 	).
