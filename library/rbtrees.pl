@@ -802,39 +802,42 @@ keys(black(L,K,_,R),L0,Lf) :-
 %
 %	T is the red-black tree corresponding to the mapping in list L.
 
-list_to_rbtree(List, t(Nil,Tree)) :-
-	Nil = black([], [], [], []),
-	sort(List,Sorted),
-	Ar =.. [seq|Sorted],
-	functor(Ar,_,L),
-	construct_rbtree(1, L, Ar, black, Nil, Tree).
+list_to_rbtree(List, T) :-
+	sort(List, Sorted),
+	ord_list_to_rbtree(Sorted, T).
 
 %%	ord_list_to_rbtree(+L, -T) is det.
 %
 %	T is the red-black tree corresponding  to the mapping in ordered
 %	list L.
 
+ord_list_to_rbtree([], t(Nil,Nil)) :- !,
+	Nil = black([], [], [], []).
+ord_list_to_rbtree([K-V], t(Nil,black(Nil,K,V,Nil))) :- !,
+	Nil = black([], [], [], []).
 ord_list_to_rbtree(List, t(Nil,Tree)) :-
 	Nil = black([], [], [], []),
 	Ar =.. [seq|List],
 	functor(Ar,_,L),
-	construct_rbtree(1, L, Ar, black, Nil, Tree).
+	Height is integer(log(L)/log(2)),
+	construct_rbtree(1, L, Ar, Height, Nil, Tree).
 
 construct_rbtree(L, M, _, _, Nil, Nil) :- M < L, !.
-construct_rbtree(L, L, Ar, Color, Nil, Node) :- !,
+construct_rbtree(L, L, Ar, Depth, Nil, Node) :- !,
 	arg(L, Ar, K-Val),
-	build_node(Color, Nil, K, Val, Nil, Node, _).
-construct_rbtree(I0, Max, Ar, Color, Nil, Node) :-
+	build_node(Depth, Nil, K, Val, Nil, Node).
+construct_rbtree(I0, Max, Ar, Depth, Nil, Node) :-
 	I is (I0+Max)//2,
 	arg(I, Ar, K-Val),
-	build_node(Color, Left, K, Val, Right, Node, NewColor),
+	build_node(Depth, Left, K, Val, Right, Node),
 	I1 is I-1,
-	construct_rbtree(I0, I1, Ar, NewColor, Nil, Left),
+	NewDepth is Depth-1,
+	construct_rbtree(I0, I1, Ar, NewDepth, Nil, Left),
 	I2 is I+1,
-	construct_rbtree(I2, Max, Ar, NewColor, Nil, Right).
+	construct_rbtree(I2, Max, Ar, NewDepth, Nil, Right).
 
-build_node(black, Left, K, Val, Right, black(Left, K, Val, Right), red).
-build_node(red, Left, K, Val, Right, red(Left, K, Val, Right), black).
+build_node( 0, Left, K, Val, Right, red(Left, K, Val, Right)) :- !.
+build_node( _, Left, K, Val, Right, black(Left, K, Val, Right)).
 
 %%	rb_size(+T, -Size) is det.
 %
