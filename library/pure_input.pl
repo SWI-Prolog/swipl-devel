@@ -78,11 +78,12 @@ than compensated for by using block reads based on read_pending_input/3.
 %	==
 %	?- match_count('pure_input.pl', "file", Count).
 %	==
+:- module_transparent phrase_from_file/2.
 
 phrase_from_file(Grammar, File) :-
-	open(File, read, In),
-	stream_to_lazy_list(In, List),
-	call_cleanup(phrase(Grammar, List), close(In)).
+	setup_and_call_cleanup(open(File, read, In),
+		( stream_to_lazy_list(In, List), phrase(Grammar, List) ),
+		close(In) ).
 
 %%	stream_to_lazy_list(+Stream, -List) is det.
 %
