@@ -19,6 +19,7 @@
 	    rb_apply/4,			% +T, +Key, :G, -TN
 	    rb_lookupall/3,		% +Key, -Value, +T
 	    rb_insert/4,		% +T0, +Key, ?Value, -TN
+	    rb_insert_new/4,		% +T0, +Key, ?Value, -TN
 	    rb_delete/3,		% +T, +Key, -TN
 	    rb_delete/4,		% +T, +Key, -Val, -TN
 	    rb_visit/2,			% +T, -Pairs
@@ -338,13 +339,6 @@ insert(Tree0,Key,Val,Nil,Tree) :-
 	fix_root(TreeI,Tree).
 
 %
-% make sure the root is always black.
-%
-fix_root(black(L,K,V,R),black(L,K,V,R)).
-fix_root(red(L,K,V,R),black(L,K,V,R)).
-
-
-%
 % Cormen et al present the algorithm as 
 % (1) standard tree insertion;
 % (2) from the viewpoint of the newly inserted node:
@@ -384,6 +378,51 @@ insert2(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
 	;   insert2(R, K, V, Nil, IR, Flag0),
 	    fix_right(Flag0, black(L,K0,V0,IR), NT, Flag)
 	).
+
+%%	rb_insert_new(+T0, +Key, ?Value, -TN)
+%
+%	Add a new element with key Key and Value  to the tree T0 creating a
+%	new red-black tree TN. Fails if Key is already in T0.
+
+rb_insert_new(t(Nil,Tree0),Key,Val,t(Nil,Tree)) :-
+	insert_new(Tree0,Key,Val,Nil,Tree).
+
+
+insert_new(Tree0,Key,Val,Nil,Tree) :-
+	insert_new_2(Tree0,Key,Val,Nil,TreeI,_),
+	fix_root(TreeI,Tree).
+
+%
+% actual insertion, copied from insert2 
+%
+insert_new_2(black([],[],[],[]), K, V, Nil, T, Status) :- !,
+	T = red(Nil,K,V,Nil),
+	Status = not_done.
+insert_new_2(red(L,K0,V0,R), K, V, Nil, NT, Flag) :-
+	(   K @< K0
+	->  NR = R,
+	    NT = red(NL,K0,V0,R),
+	    insert_new_2(L, K, V, Nil, NL, Flag)
+	;   K == K0
+	->  fail
+	;   NT = red(L,K0,V0,NR),
+	    insert_new_2(R, K, V, Nil, NR, Flag)
+	).
+insert_new_2(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
+	(   K @< K0
+	->  insert_new_2(L, K, V, Nil, IL, Flag0),
+	    fix_left(Flag0, black(IL,K0,V0,R), NT, Flag)
+	;   K == K0
+	->  fail
+	;   insert_new_2(R, K, V, Nil, IR, Flag0),
+	    fix_right(Flag0, black(L,K0,V0,IR), NT, Flag)
+	).
+
+%
+% make sure the root is always black.
+%
+fix_root(black(L,K,V,R),black(L,K,V,R)).
+fix_root(red(L,K,V,R),black(L,K,V,R)).
 
 %
 % How to fix if we have inserted on the left
