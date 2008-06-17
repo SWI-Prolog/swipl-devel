@@ -52,7 +52,7 @@ than compensated for by using block reads based on read_pending_input/3.
 @author Jan Wielemaker
 */
 
-%%	phrase_from_file(:Grammar, File) is nondet.
+%%	phrase_from_file(:Grammar, +File) is nondet.
 %
 %	Process the content of File  using   the  DCG  rule Grammar. The
 %	space usage of this mechanism depends on   the length of the not
@@ -89,9 +89,9 @@ phrase_from_file(Grammar, File) :-
 %	Create a lazy list representing the   character codes in Stream.
 %	It must be possible to reposition Stream.   List  is a list that
 %	ends  in  a  delayed  goal.  List   can  be  unified  completely
-%	transparently to (partial)  list   and  processed  transparently
-%	using DCGs, but please be aware that a   lazy list is not a list
-%	in all respects. 
+%	transparent to a (partial)  list   and  processed  transparently
+%	using DCGs, but please be aware that a lazy list is not the same
+%	as a materialized list in all respects. 
 %	
 %	Typically, this predicate is used as   a building block for more
 %	high level safe predicates such as phrase_from_file/2.
