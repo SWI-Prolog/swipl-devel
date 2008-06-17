@@ -1482,9 +1482,11 @@ marginText(TextObj t, Int width, Name wrap)
 { int changed = FALSE;
 
   if ( isNil(width) )
+  { width = toInt(100);			/* initial default */
     wrap = NAME_extend;
-  else if ( isDefault(wrap) )
-    wrap = NAME_wrap;
+  } else if ( isDefault(wrap) )
+  { wrap = NAME_wrap;
+  }
 
   if ( t->wrap != wrap )
   { assign(t, wrap, wrap);
