@@ -30,6 +30,7 @@
 
 :- module(test_pio, [test_pio/0]).
 :- use_module(library(plunit)).
+:- use_module(library(readutil)).
 :- use_module(library(pio)).
 
 test_pio :-
@@ -106,14 +107,22 @@ test_pe(N, BF, Enc, Tmp) :-
 	set_stream(In, buffer_size(BF)),
 	stream_to_lazy_list(In, Lazy),
 	(   Lazy = List
-	->  true
+	->  close(In)
 	;   format('List: ~w~n', [List]),
 	    (	last(Lazy, _)
 	    ->	format('Lazy: ~w~n', [Lazy])
 	    ;	format('Lazy: cannot materialize~n')
-	    )
-	),
-	close(In).
+	    ),
+	    close(In),
+	    read_file_to_codes(Tmp, Codes, [encoding(Enc)]),
+	    (	Codes == List
+	    ->	format('File content ok~n')
+	    ;	Codes == Lazy
+	    ->	format('File content BAD, but read consistently~n')
+	    ;	format('File content BAD, and read inconsistently~n')
+	    ),
+	    fail
+	).
 	    
 max_char(ascii, 127).
 max_char(octet, 255).
