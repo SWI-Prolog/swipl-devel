@@ -1281,7 +1281,7 @@ Optional Features:
   --disable-readline	  Do NOT include GNU readline
   --disable-mapped-stacks Do not use mmap for stacks
   --disable-gmp		  Disable Multi-precision arithmetic
-  --enable-life-gc	  Enable lifeliness checking of data
+  --disable-life-gc	  Disable lifeliness checking of data
   --disable-largefile     omit support for large files
   --disable-custom-flags  Do not add custom build optimization flags
   --disable-load-foreign  No shared-lib interface
@@ -3086,7 +3086,7 @@ fi
 if test "${enable_life_gc+set}" = set; then
   enableval=$enable_life_gc; lifegc="$enableval"
 else
-  lifegc=no
+  lifegc=yes
 fi
 
 

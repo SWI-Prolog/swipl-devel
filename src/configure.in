@@ -142,9 +142,9 @@ AC_ARG_ENABLE(gmp, [  --disable-gmp		  Disable Multi-precision arithmetic],
 	      configgmp="$enableval",
 	      configgmp=yes)
 
-AC_ARG_ENABLE(life-gc, [  --enable-life-gc	  Enable lifeliness checking of data],
+AC_ARG_ENABLE(life-gc, [  --disable-life-gc	  Disable lifeliness checking of data],
 	      lifegc="$enableval",
-	      lifegc=no)
+	      lifegc=yes)
 
 
 dnl ****************************************************************
