@@ -51,6 +51,9 @@ compiled using compile_aux_clauses/1.  Currently this module supports:
 	* phrase/2
 	* phrase/3
 
+The idea for this library originates from ECLiPSe and came to SWI-Prolog
+through YAP.
+
 @tbd	Support more predicates
 @author	Jan Wielemaker
 */
