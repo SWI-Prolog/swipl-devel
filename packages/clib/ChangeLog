@@ -1,3 +1,27 @@
+[Jun 13 2008]
+
+ * FIXED: Include initialization to load process.so.  Matt Lilley.
+
+[May 21 2008]
+
+ * FIXED: Error message when using a service name in tcp_bind/connect.
+   Jean-Marc Vanel.
+   
+[May 20 2008]
+
+ * PORT: Port UDP socket support to Windows
+
+ * MODIFIED: Streams in socket.pl and ssl.pl appeared unbuffered.  They
+   are now fully buffered.
+   
+[May 19 2008]
+
+ * ADDED: support for 'as(Type) option to udp_receive/4
+
+[May 16 2008]
+
+ * FIXED: Process streams are by default in text-mode using full buffering.
+
 [May 12 2008]
 
  * PORT: Ported library(process) to Windows

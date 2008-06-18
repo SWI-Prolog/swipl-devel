@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.55 Reference Manual: Section 2.15</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.56 Reference Manual: Section 2.15</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="gc.html">
@@ -169,7 +169,7 @@ Escape Syntax</SPAN></A></H4>
 
 <A NAME="sec:charescapes"></A>
 
-<P>Within quoted atoms (using single quotes: <CODE>'&lt;<VAR>atom</VAR>&gt;'</CODE> 
+<P>Within quoted atoms (using single quotes: <CODE>'&lt;atom&gt;'</CODE> 
 special characters are represented using escape-sequences. An escape 
 sequence is lead in by the backslash (<CODE><CODE>\</CODE></CODE>) 
 character. The list of escape sequences is compatible with the ISO 
@@ -282,9 +282,9 @@ for non-decimal numbers</SPAN></A></H4>
 
 <P>SWI-Prolog implements both Edinburgh and ISO representations for 
 non-decimal numbers. According to Edinburgh syntax, such numbers are 
-written as <CODE>&lt;<VAR>radix</VAR>&gt;'&lt;<VAR>number</VAR>&gt;</CODE>, 
-where &lt;<VAR>radix</VAR>&gt; is a number between 2 and 36. ISO defines 
-binary, octal and hexadecimal numbers using
+written as <CODE>&lt;<VAR>radix</VAR>&gt;'&lt;number&gt;</CODE>, where &lt;<VAR>radix</VAR>&gt; 
+is a number between 2 and 36. ISO defines binary, octal and hexadecimal 
+numbers using
 <CODE>0<EM>[bxo]</EM>&lt;<VAR>number</VAR>&gt;</CODE>. For example: <CODE>A is 0b100 \/ 0xf00</CODE> 
 is a valid expression. Such numbers are always unsigned.
 

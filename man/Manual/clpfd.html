@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.55 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.56 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="clpclp_distinct.html">
@@ -137,7 +137,7 @@ font-size: smaller;
 </DL>
 
 <P>Constraint programming is a declarative formalism that lets you 
-describe conditions a solution should satisfy. This library provides 
+describe conditions a solution must satisfy. This library provides 
 CLP(FD), Constraint Logic Programming over Finite Domains. It can be 
 used to model and solve various combinatorial problems such as planning, 
 scheduling and allocation tasks.
@@ -184,7 +184,7 @@ strictly smaller than Expr2 </TD></TR>
 
 </BLOCKQUOTE>
 
-<P>The constraints <A class="pred" href="clpfd.html##=/2">#=/2</A>, <A class="pred" href="clpfd.html##\=/2">#\=/2</A>, <A class="pred" href="clpfd.html##</2">#&lt;/2</A>, <A class="pred" href="clpfd.html##>/2">#&gt;/2</A>, <A class="pred" href="clpfd.html##=</2">#=&lt;/2</A>, 
+<P>The constraints <A class="pred" href="clpfd.html#in/2">in/2</A>, <A class="pred" href="clpfd.html##=/2">#=/2</A>, <A class="pred" href="clpfd.html##\=/2">#\=/2</A>, <A class="pred" href="clpfd.html##</2">#&lt;/2</A>, <A class="pred" href="clpfd.html##>/2">#&gt;/2</A>, <A class="pred" href="clpfd.html##=</2">#=&lt;/2</A>, 
 and <A class="pred" href="clpfd.html##>=/2">#&gt;=/2</A> can be
 <I>reified</I>, which means reflecting their truth values into Boolean 
 values represented by the integers 0 and 1. Let P and Q denote reifiable 
@@ -202,10 +202,11 @@ are equivalent </TD></TR>
 
 </BLOCKQUOTE>
 
-<P>If a variable occurs at the place of a constraint that is being 
-reified, it is implicitly constrained to the Boolean values 0 and 1. 
-Therefore, the following queries all fail: <CODE>?-</CODE> <CODE>#\</CODE> 
-2., <CODE>?-</CODE> <CODE>#\</CODE> <CODE>#\</CODE> 2. etc.
+<P>The constraints of this table are reifiable as well. If a variable 
+occurs at the place of a constraint that is being reified, it is 
+implicitly constrained to the Boolean values 0 and 1. Therefore, the 
+following queries all fail: <CODE>?-</CODE> <CODE>#\</CODE> 2., <CODE>?-</CODE> <CODE>#\</CODE> <CODE>#\</CODE> 
+2. etc.
 
 <P>As an example of a constraint satisfaction problem, consider the 
 cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters 
@@ -229,16 +230,16 @@ puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
 
 <PRE class="code">
 ?- puzzle(As+Bs=Cs).
-As = [9, _G10178, _G10181, _G10184],
-Bs = [1, 0, _G10199, _G10178],
-Cs = [1, 0, _G10181, _G10178, _G10223],
-_G10223 in 2..8,
-1000*9+91*_G10178+ -90*_G10181+_G10184+ -9000*1+ -900*0+10*_G10199+ -1*_G10223#=0,
-all_different([_G10178, _G10181, _G10184, _G10199, _G10223, 0, 1, 9]),
-_G10199 in 2..8,
-_G10184 in 2..8,
-_G10181 in 5..8,
-_G10178 in 4..7.
+As = [9, _G10107, _G10110, _G10113],
+Bs = [1, 0, _G10128, _G10107],
+Cs = [1, 0, _G10110, _G10107, _G10152],
+_G10107 in 4..7,
+1000*9+91*_G10107+ -90*_G10110+_G10113+ -9000*1+ -900*0+10*_G10128+ -1*_G10152#=0,
+all_different([_G10107, _G10110, _G10113, _G10128, _G10152, 0, 1, 9]),
+_G10110 in 5..8,
+_G10113 in 2..8,
+_G10128 in 2..8,
+_G10152 in 2..8.
 </PRE>
 
 <P>Here, the constraint solver could deduce more stringent bounds for 
@@ -248,7 +249,8 @@ many variables. Labeling can be used to search for solutions:
 ?- puzzle(As+Bs=Cs), label(As).
 As = [9, 5, 6, 7],
 Bs = [1, 0, 8, 5],
-Cs = [1, 0, 6, 5, 2]
+Cs = [1, 0, 6, 5, 2] ;
+fail.
 </PRE>
 
 <P>This library also provides <I>reflection</I> predicates (like <A class="pred" href="clpfd.html#fd_dom/2">fd_dom/2</A>,
@@ -258,13 +260,57 @@ and <A class="pred" href="attvar.html#copy_term/3">copy_term/3</A> to
 inspect residual goals and the constraints in which a variable is 
 involved.
 
+<P>It is perfectly reasonable to use CLP(FD) constraints instead of 
+ordinary integer arithmetic with <A class="pred" href="arith.html#is/2">is/2</A>. 
+This can make programs more general. For example:
+
+<PRE class="code">
+:- use_module(library(clpfd)).
+
+fac(0, 1).
+fac(N, F) :- N #&gt; 0, N1 #= N - 1, F #= N * F1, fac(N1, F1).
+</PRE>
+
+<P>This predicate can be used in all directions. For example:
+
+<PRE class="code">
+?- fac(47, F).
+F = 258623241511168180642964355153611979969197632389120000000000 ;
+fail.
+
+?- fac(N, 1).
+N = 0 ;
+N = 1 ;
+fail.
+
+?- fac(N, 3).
+fail.
+</PRE>
+
+<P>To make the predicate terminate if any argument is instantiated, add 
+the (implied) constraint F <CODE>#\=</CODE> 0 before the recursive call. 
+Otherwise, the query fac(N, 0) is the only non-terminating case of this 
+kind.
+
+<P>This library uses <A class="pred" href="consulting.html#goal_expansion/2">goal_expansion/2</A> 
+to rewrite constraints at compilation time. The expansion's aim is to 
+transparently bring the performance of CLP(FD) constraints close to that 
+of conventional arithmetic predicates (<A class="pred" href="arith.html#</2">&lt;/2</A>, <A class="pred" href="arith.html#=:=/2">=:=/2</A>, <A class="pred" href="arith.html#is/2">is/2</A> 
+etc.) when the constraints are used in modes that can also be handled by 
+built-in arithmetic. To disable the expansion, set the flag 
+clpfd_goal_expansion to false.
+
 <DL>
 <DT class="pubdef"><A NAME="in/2"><VAR>?Var</VAR> <STRONG>in</STRONG> <VAR>+Domain</VAR></A></DT>
 <DD class="defbody">
-Constrain <VAR>Var</VAR> to elements of <VAR>Domain</VAR>. <VAR>Domain</VAR> 
-is one of:
+<VAR>Var</VAR> is an element of <VAR>Domain</VAR>. <VAR>Domain</VAR> is 
+one of:
 
 <DL>
+<DT><STRONG><VAR>Integer</VAR></STRONG></DT>
+<DD class="defbody">
+Singleton set consisting only of <I>Integer</I>.
+</DD>
 <DT><VAR><VAR>Lower</VAR></VAR> <STRONG>..</STRONG> <VAR><VAR>Upper</VAR></VAR></DT>
 <DD class="defbody">
 All integers <I>I</I> such that <I>Lower</I> <CODE>=&lt;</CODE> <I>I</I> <CODE>=&lt;</CODE> <I>Upper</I>. 
@@ -281,7 +327,7 @@ The union of Domain1 and Domain2.
 </DD>
 <DT class="pubdef"><A NAME="ins/2"><VAR>+Vars</VAR> <STRONG>ins</STRONG> <VAR>+Domain</VAR></A></DT>
 <DD class="defbody">
-Constrain the variables in the list <VAR>Vars</VAR> to elements of <VAR>Domain</VAR>.</DD>
+The variables in the list <VAR>Vars</VAR> are elements of <VAR>Domain</VAR>.</DD>
 <DT class="pubdef"><A NAME="indomain/1"><STRONG>indomain</STRONG>(<VAR>?Var</VAR>)</A></DT>
 <DD class="defbody">
 Bind <VAR>Var</VAR> to all feasible values of its domain on 
@@ -401,16 +447,19 @@ once(labeling([max(Expr)], Vars))
 redundant solutions.</DD>
 <DT class="pubdef"><A NAME="all_different/1"><STRONG>all_different</STRONG>(<VAR>+Vars</VAR>)</A></DT>
 <DD class="defbody">
-Constrain <VAR>Vars</VAR> to be pairwise distinct.</DD>
-<DT class="pubdef"><A NAME="sum/3"><STRONG>sum</STRONG>(<VAR>+Vars, +Op, 
-+Expr</VAR>)</A></DT>
+<VAR>Vars</VAR> are pairwise distinct.</DD>
+<DT class="pubdef"><A NAME="sum/3"><STRONG>sum</STRONG>(<VAR>+Vars, 
++Rel, +Expr</VAR>)</A></DT>
 <DD class="defbody">
-Constrain the sum of a list. The <A class="pred" href="clpfd.html#sum/3">sum/3</A> 
-constraint demands that "sumlist(<VAR>Vars</VAR>) <VAR>Op</VAR> <VAR>Expr</VAR>" 
-hold, e.g.:
+The sum of elements of the list <VAR>Vars</VAR> is in relation <VAR>Rel</VAR> 
+to <VAR>Expr</VAR>. For example:
 
 <PRE class="code">
-sum(List, #=&lt;, 100)
+?- [A,B,C] ins 0..sup, sum([A,B,C], #=, 100).
+A in 0..100,
+A+B+C#=100,
+B in 0..100,
+C in 0..100.
 </PRE>
 
 </DD>
@@ -452,12 +501,23 @@ The reifiable constraint <VAR>Q</VAR> does <I>not</I> hold.</DD>
 <VAR>P</VAR> or <VAR>Q</VAR> holds.</DD>
 <DT class="pubdef"><A NAME="lex_chain/1"><STRONG>lex_chain</STRONG>(<VAR>+Lists</VAR>)</A></DT>
 <DD class="defbody">
-Constrains <VAR>Lists</VAR> to be lexicographically non-decreasing.</DD>
+<VAR>Lists</VAR> are lexicographically non-decreasing.</DD>
 <DT class="pubdef"><A NAME="tuples_in/2"><STRONG>tuples_in</STRONG>(<VAR>+Tuples, 
 +Relation</VAR>)</A></DT>
 <DD class="defbody">
-<VAR>Relation</VAR> is a ground list of lists of integers. The elements 
-of the list <VAR>Tuples</VAR> are constrained to be elements of <VAR>Relation</VAR>.</DD>
+<VAR>Relation</VAR> must be a ground list of lists of integers. The 
+elements of the list <VAR>Tuples</VAR> are constrained to be elements of <VAR>Relation</VAR>. 
+Arbitrary finite relations, such as compatibility tables, can be modeled 
+in this way. For example, if 1 is compatible with 2 and 5, and 4 is 
+compatible with 0 and 3:
+
+<PRE class="code">
+?- tuples_in([[X,Y]], [[1,2],[1,5],[4,0],[4,3]]), X = 4.
+X = 4,
+Y in 0\/3.
+</PRE>
+
+</DD>
 <DT class="pubdef"><A NAME="all_distinct/1"><STRONG>all_distinct</STRONG>(<VAR>+Ls</VAR>)</A></DT>
 <DD class="defbody">
 Like <A class="pred" href="clpfd.html#all_different/1">all_different/1</A>, 

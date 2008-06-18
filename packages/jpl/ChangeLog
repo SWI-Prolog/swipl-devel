@@ -1,3 +1,8 @@
+[May 21 2008]
+
+ * PORT: Bug#357: Updated config.{guess,sub}, needed for development version of FC.
+   Mary Ellen Foster.
+   
 [Jan 30 2008]
 
  * FIXED: Bug#347: JPL pointer conversion.  Mary Ellen Foster.

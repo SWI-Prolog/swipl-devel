@@ -1,0 +1,224 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.56 Reference Manual: Section A.17</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="pairs.html">
+<LINK REL=next HREF="prologxref.html">
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
+}
+
+dt.pubdef
+{ background-color: #c5e1ff;
+}
+
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
+}
+
+div.navigate
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+}
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ 
+}
+
+span.pred-ext
+{ font-weight: bold;
+}
+
+span.pred-tag
+{ float: right;
+font-size: 80%;
+font-style: italic;
+color: #202020;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 80%;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="pairs.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="prologxref.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:A.17"><SPAN class="sec-nr">A.17</SPAN> <SPAN class="sec-title">library( 
+pio ): Pure I/O</SPAN></A></H2>
+
+<A NAME="pio"></A>
+<A NAME="sec:lib:pio"></A>
+
+<P>This library provides pure list-based I/O processing for Prolog, 
+where the communication to the actual I/O device is performed 
+transparently through coroutining. This module itself is just an 
+interface to the actual implementation modules.
+
+<H3><A NAME="sec:A.17.1"><SPAN class="sec-nr">A.17.1</SPAN> <SPAN class="sec-title">pure_input.pl 
+-- Pure Input from files</SPAN></A></H3>
+
+<P><A NAME="sec:pureinput"></A>
+
+<DL>
+<DT><B>author</B><DD>- Ulrich Neumerkel <BR>
+- Jan Wielemaker<DT><B>To be done</B><DD>- Provide support for 
+alternative input readers, e.g. reading terms, tokens, etc. <BR>
+- Support non-repositioning streams, such as sockets and pipes.
+</DL>
+
+<P>This module is part of <CODE>pio.pl</CODE>, dealing with <I>pure</I> <I>input</I>: 
+processing input streams from the outside world using pure predicates, 
+notably grammar rules (DCG). Using pure predicates makes 
+non-deterministic processing of input much simpler.
+
+<P>Pure input uses coroutining (<A class="pred" href="coroutining.html#freeze/2">freeze/2</A>) 
+to read input from the external source into a list <I>on demand</I>. The 
+overhead of lazy reading is more than compensated for by using block 
+reads based on <A class="pred" href="chario.html#read_pending_input/3">read_pending_input/3</A>.
+
+<DL>
+<DT class="pubdef"><span class="pred-tag">[nondet]</span><A NAME="phrase_from_file/2"><STRONG>phrase_from_file</STRONG>(<VAR>:Grammar, 
++File</VAR>)</A></DT>
+<DD class="defbody">
+Process the content of <VAR>File</VAR> using the DCG rule <VAR>Grammar</VAR>. 
+The space usage of this mechanism depends on the length of the not 
+committed part of <VAR>Grammar</VAR>. Committed parts of the temporary 
+list are reclaimed by the garbage collector, while the list is extended 
+on demand. Here is a very simple definition for searching a string in a 
+file:
+
+<PRE class="code">
+... --&gt; []|[_],... .
+
+file_contains(File, Pattern) :-
+        phrase_from_file((..., Pattern, ...), File).
+
+match_count(File, Pattern, Count) :-
+        findall(x, file_contains(File, Pattern), Xs),
+        length(Xs, Count).
+</PRE>
+
+<P>This can be called as (note that the pattern must be a string (code 
+list)):
+
+<PRE class="code">
+?- match_count('pure_input.pl', "file", Count).
+</PRE>
+
+</DD>
+<DT class="pubdef"><span class="pred-tag">[nondet]</span><A NAME="phrase_from_file/3"><STRONG>phrase_from_file</STRONG>(<VAR>:Grammar, 
++File, +Options</VAR>)</A></DT>
+<DD class="defbody">
+As <A class="pred" href="pio.html#phrase_from_file/2">phrase_from_file/2</A>, 
+providing additional <VAR>Options</VAR>. <VAR>Options</VAR> are passed 
+to <A class="pred" href="IO.html#open/4">open/4</A>, except for <CODE>buffer_size</CODE>, 
+which is passed to
+<A class="pred" href="IO.html#set_stream/2">set_stream/2</A>. If not 
+specified, the default buffer size is 512 bytes. Of particular 
+importance are the <A class="pred" href="IO.html#open/4">open/4</A> 
+options <CODE>type</CODE> and <CODE>encoding</CODE>.</DD>
+<DT class="pubdef"><span class="pred-tag">[det]</span><A NAME="stream_to_lazy_list/2"><STRONG>stream_to_lazy_list</STRONG>(<VAR>+Stream, 
+-List</VAR>)</A></DT>
+<DD class="defbody">
+Create a lazy list representing the character codes in <VAR>Stream</VAR>. 
+It must be possible to reposition <VAR>Stream</VAR>. <VAR>List</VAR> is 
+a list that ends in a delayed goal. <VAR>List</VAR> can be unified 
+completely transparent to a (partial) list and processed transparently 
+using DCGs, but please be aware that a lazy list is not the same as a 
+materialized list in all respects.
+
+<P>Typically, this predicate is used as a building block for more high 
+level safe predicates such as <A class="pred" href="pio.html#phrase_from_file/2">phrase_from_file/2</A>.
+
+<DL>
+<DT><B>To be done</B><DD> Enhance of lazy list throughout the system.
+</DL>
+
+</DD>
+</DL>
+
+<P></BODY></HTML>

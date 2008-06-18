@@ -1,3 +1,28 @@
+[Jun 17 2008]
+
+ * ADDED: access to thread profiler from thread monitor
+
+ * ADDED: Thread monitor: status icon now indicates CPU usage.
+
+ * FIXED: Bug#363: Text->margin: @nil leaving object base inconsistent.  Tom Conlon.
+
+[Jun 16 2008]
+
+ * FIXED: Several issues around tprofile, making it much more robust
+
+[May 21 2008]
+
+ * PORT: Bug#357: Updated config.{guess,sub}, needed for development version of FC.
+   Mary Ellen Foster.
+   
+[May 14 2008]
+
+ * FIXED: Bug#355: XPCE: warnings on undefined method frame->post_event.   Andreas Steiner.
+
+[May 13 2008]
+
+ * FIXED: Make index of MANUAL line-based, so we no longer depend on Windows CR/LF
+   mapping.  Jorge Cabrera.
 [May 5 2008]
 
  * FIXED: Make PceEmacs mode selection sensitive to prolog_file_type/2.

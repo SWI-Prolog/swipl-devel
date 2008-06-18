@@ -1,3 +1,7 @@
+[May 20 2008]
+
+ * FIXED: %-escape [] when transforming URI to URL.
+
 [May 5 2008]
 
  * FIXED: rdf_quote_uri/3 not to map & to %26.  Jacco van Ossenbruggen

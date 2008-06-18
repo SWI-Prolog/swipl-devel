@@ -1,3 +1,7 @@
+[May 20 2008]
+
+ * MODIFIED: Streams in socket.pl and ssl.pl appeared unbuffered.  They
+   are now fully buffered.
 [Jan 23 2008]
 
  * PORT: Bug#346: Allow overriding COFLAGS and CWFLAGS in package

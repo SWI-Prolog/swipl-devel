@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.55 Reference Manual: Section 4.16</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.56 Reference Manual: Section 4.16</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="examineprog.html">
@@ -320,6 +320,10 @@ does not give other aliases.</SPAN></SUP></DD>
 SWI-Prolog extension to query the buffering mode of this stream.
 <VAR>Buffering</VAR> is one of <CODE>full</CODE>, <CODE>line</CODE> or <CODE>false</CODE>. 
 See also <A NAME="idx:open4:689"></A><A class="pred" href="IO.html#open/4">open/4</A>.</DD>
+<DT><STRONG>buffer_size</STRONG>(<VAR>Integer</VAR>)</DT>
+<DD class="defbody">
+SWI-Prolog extension to query the size of the I/O buffer associated to a 
+stream in bytes. Fails of the stream is not buffered.</DD>
 <DT><STRONG>bom</STRONG>(<VAR>Bool</VAR>)</DT>
 <DD class="defbody">
 If present and <CODE>true</CODE>, a BOM (<EM>Byte Order Mark</EM>) was 
@@ -492,6 +496,10 @@ user terminal input is read from this stream. See also <A NAME="idx:interactor0:
 <DD class="defbody">
 Set the buffering mode of an already created stream. Buffering is one of <CODE>full</CODE>, <CODE>line</CODE> 
 or <CODE>false</CODE>.</DD>
+<DT><STRONG>buffer_size</STRONG>(<VAR>+Size</VAR>)</DT>
+<DD class="defbody">
+Set the size of the I/O buffer of the underlying stream to <VAR>Size</VAR> 
+bytes.</DD>
 <DT><STRONG>close_on_abort</STRONG>(<VAR>Bool</VAR>)</DT>
 <DD class="defbody">
 Determine whether or not the stream is closed by <A NAME="idx:abort0:720"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>. 

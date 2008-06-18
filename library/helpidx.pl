@@ -758,94 +758,95 @@ predicate(group_pairs_by_key, 2, 'Group values with the same key.', 18605, 18617
 predicate(transpose_pairs, 2, 'Swap Key-Value to Value-Key and sort the result on Value (the new key) using keysort/2.', 18619, 18622).
 predicate(map_list_to_pairs, 3, 'Create a key-value list by mapping each element of List.', 18624, 18630).
 predicate(phrase_from_file, 2, 'Process the content of File using the DCG rule Grammar.', 18662, 18683).
-predicate(stream_to_lazy_list, 2, 'Create a lazy list representing the character codes in Stream.', 18685, 18697).
-predicate(xref_source, 1, 'Cross-reference analysis of source', 18732, 18737).
-predicate(xref_current_source, 1, 'Examine cross-referenced sources', 18739, 18741).
-predicate(xref_clean, 1, 'Remove analysis of source', 18743, 18745).
-predicate(xref_defined, 3, 'Examine defined predicates', 18747, 18758).
-predicate(xref_called, 3, 'Examine called predicates', 18760, 18762).
-predicate(xref_exported, 2, 'Examine exported predicates', 18764, 18766).
-predicate(xref_module, 2, 'Module defined by source', 18768, 18770).
-predicate(xref_built_in, 1, 'Examine defined built-ins', 18772, 18777).
-predicate(called_by, 2, 'Hook (prolog) Extend cross-referencer', 18785, 18798).
-predicate(read_line_to_codes, 2, 'Read line from a stream', 18811, 18819).
-predicate(read_line_to_codes, 3, 'Read line from a stream', 18821, 18839).
-predicate(read_stream_to_codes, 2, 'Read contents of stream', 18841, 18843).
-predicate(read_stream_to_codes, 3, 'Read contents of stream', 18845, 18847).
-predicate(read_file_to_codes, 3, 'Read contents of file', 18849, 18855).
-predicate(read_file_to_terms, 3, 'Read contents of file to Prolog terms', 18857, 18863).
-predicate(record, 1, 'Define named fields in a term', 18951, 18956).
-predicate(registry_get_key, 2, 'Get principal value of key', 18975, 18978).
-predicate(registry_get_key, 3, 'Get associated value of key', 18980, 18982).
-predicate(registry_set_key, 2, 'Set principal value of key', 18984, 18987).
-predicate(registry_set_key, 3, 'Set associated value of key', 18989, 18992).
-predicate(registry_delete_key, 1, 'Remove a key', 18994, 18996).
-predicate(shell_register_file_type, 4, 'Register a file-type', 18998, 19004).
-predicate(shell_register_dde, 6, 'Register DDE action', 19006, 19013).
-predicate(shell_register_prolog, 1, 'Register Prolog', 19015, 19029).
-predicate(assignment, 2, 'Solve assignment problem', 19054, 19060).
-predicate(constraint, 3, 'Add linear constraint to state', 19062, 19072).
-predicate(constraint, 4, 'Add named linear constraint to state', 19074, 19077).
-predicate(constraint_add, 4, 'Extend a named constraint', 19079, 19083).
-predicate(gen_state, 1, 'Create empty linear program', 19085, 19088).
-predicate(maximize, 3, 'Maximize objective function in to linear constraints', 19090, 19095).
-predicate(minimize, 3, 'Minimize objective function in to linear constraints', 19097, 19099).
-predicate(objective, 2, 'Fetch value of objective function', 19101, 19104).
-predicate(shadow_price, 3, 'Fetch shadow price in solved state', 19106, 19110).
-predicate(transportation, 4, 'Solve transportation problem', 19112, 19120).
-predicate(variable_value, 3, 'Fetch value of variable in solved state', 19122, 19131).
-predicate(vertices_edges_to_ugraph, 3, 'Create unweighted graph', 19274, 19288).
-predicate(vertices, 2, 'Find vertices in graph', 19290, 19296).
-predicate(edges, 2, 'Find edges in graph', 19298, 19304).
-predicate(add_vertices, 3, 'Add vertices to graph', 19306, 19312).
-predicate(del_vertices, 3, 'Delete vertices from graph', 19314, 19323).
-predicate(add_edges, 3, 'Add edges to graph', 19325, 19333).
-predicate(del_edges, 3, 'Delete edges from graph', 19335, 19344).
-predicate(transpose, 2, 'Invert the direction of all edges', 19346, 19354).
-predicate(neighbours, 3, 'Find neighbors of vertice', 19356, 19363).
-predicate(neighbors, 3, 'Find neighbors of vertice', 19365, 19367).
-predicate(complement, 2, 'Inverse presense of edges', 19369, 19377).
-predicate(compose, 3, '', 19379, 19385).
-predicate(ugraph_union, 3, 'Union of two graphs', 19387, 19392).
-predicate(top_sort, 2, 'Sort graph topologically', 19394, 19402).
-predicate(top_sort, 3, 'Sort graph topologically', 19404, 19407).
-predicate(transitive_closure, 2, 'Create transitive closure of graph', 19409, 19415).
-predicate(reachable, 3, 'Find all reachable vertices', 19417, 19423).
-predicate(global_url, 3, 'Translate a possibly relative URL into an absolute one.', 19443, 19447).
-predicate(is_absolute_url, 1, 'True if URL is an absolute URL.', 19449, 19452).
-predicate(http_location, 2, 'Construct or analyze an HTTP location.', 19454, 19464).
-predicate(parse_url, 2, 'Construct or analyse a URL.', 19466, 19467).
-predicate(parse_url, 3, '', 19469, 19522).
-predicate(www_form_encode, 2, 'En/Decode between native value and application/x-www-form-encoded.', 19524, 19525).
-predicate(www_form_encode, 2, 'En/Decode between native value and application/x-www-form-encoded.', 19527, 19532).
-predicate(url_iri, 2, 'Convert between a URL, encoding in US-ASCII and an IRI.', 19534, 19535).
-predicate(url_iri, 2, 'Convert between a URL, encoding in US-ASCII and an IRI.', 19537, 19541).
-predicate(parse_url_search, 2, 'Construct or analyze an HTTP search specification.', 19543, 19547).
-predicate(file_name_to_url, 2, 'Translate between a filename and a file:Sidiv{} URL.', 19549, 19550).
-predicate(file_name_to_url, 2, 'Translate between a filename and a file:Sidiv{} URL.', 19552, 19557).
-predicate(prolog_current_frame, 1, 'Reference to goal\'s environment stack', 19572, 19578).
-predicate(prolog_frame_attribute, 3, 'Obtain information on a goal environment', 19580, 19658).
-predicate(prolog_choice_attribute, 3, 'Examine the choice-point stack', 19660, 19681).
-predicate(deterministic, 1, 'Test deterministicy of current clause', 19683, 19690).
-predicate(prolog_trace_interception, 4, 'library(user) Intercept the Prolog tracer', 19695, 19769).
-predicate(prolog_skip_level, 2, 'Indicate deepest recursion to trace', 19771, 19780).
-predicate(prolog_exception_hook, 4, 'Rewrite exceptions', 19790, 19830).
-predicate(exception, 3, 'Hook (user) Handle runtime exceptions', 19845, 19869).
-predicate(prolog_list_goal, 1, 'Hook (user) Intercept tracer \'L\' command', 19881, 19887).
-predicate(debug_control_hook, 1, 'Hook (prolog) Extend spy/1, etc.', 19889, 19914).
-predicate(help_hook, 1, 'Hook (prolog) User-hook in the help-system', 19916, 19931).
-predicate(prolog_load_file, 2, 'Hook (user) Program load_files/2', 19940, 19948).
-predicate(comment_hook, 3, 'Hook (prolog) handle comments in sources', 19950, 19959).
-predicate(rl_read_init_file, 1, 'Read readline(3) init file', 19969, 19973).
-predicate(rl_add_history, 1, 'Add line to readline(3) history', 19975, 19978).
-predicate(rl_write_history, 1, 'Write readline(3) history', 19980, 19983).
-predicate(rl_read_history, 1, 'Read readline(3) history', 19985, 19987).
-predicate(expects_dialect, 1, 'For which Prolog dialect is this code written?', 20030, 20056).
-predicate(exists_source, 1, 'Check existence of a Prolog source', 20058, 20062).
-predicate(source_exports, 2, 'Check whether source exports a predicate', 20064, 20067).
-predicate(eval_license, 0, 'Evaluate licenses of loaded modules', 20553, 20559).
-predicate(license, 2, 'Define license for named module', 20561, 20611).
-predicate(license, 1, 'Define license for current file', 20613, 20616).
+predicate(phrase_from_file, 3, 'As phrase_from_file/2, providing additional Options.', 18685, 18691).
+predicate(stream_to_lazy_list, 2, 'Create a lazy list representing the character codes in Stream.', 18693, 18705).
+predicate(xref_source, 1, 'Cross-reference analysis of source', 18740, 18745).
+predicate(xref_current_source, 1, 'Examine cross-referenced sources', 18747, 18749).
+predicate(xref_clean, 1, 'Remove analysis of source', 18751, 18753).
+predicate(xref_defined, 3, 'Examine defined predicates', 18755, 18766).
+predicate(xref_called, 3, 'Examine called predicates', 18768, 18770).
+predicate(xref_exported, 2, 'Examine exported predicates', 18772, 18774).
+predicate(xref_module, 2, 'Module defined by source', 18776, 18778).
+predicate(xref_built_in, 1, 'Examine defined built-ins', 18780, 18785).
+predicate(called_by, 2, 'Hook (prolog) Extend cross-referencer', 18793, 18806).
+predicate(read_line_to_codes, 2, 'Read line from a stream', 18819, 18827).
+predicate(read_line_to_codes, 3, 'Read line from a stream', 18829, 18847).
+predicate(read_stream_to_codes, 2, 'Read contents of stream', 18849, 18851).
+predicate(read_stream_to_codes, 3, 'Read contents of stream', 18853, 18855).
+predicate(read_file_to_codes, 3, 'Read contents of file', 18857, 18863).
+predicate(read_file_to_terms, 3, 'Read contents of file to Prolog terms', 18865, 18871).
+predicate(record, 1, 'Define named fields in a term', 18959, 18964).
+predicate(registry_get_key, 2, 'Get principal value of key', 18983, 18986).
+predicate(registry_get_key, 3, 'Get associated value of key', 18988, 18990).
+predicate(registry_set_key, 2, 'Set principal value of key', 18992, 18995).
+predicate(registry_set_key, 3, 'Set associated value of key', 18997, 19000).
+predicate(registry_delete_key, 1, 'Remove a key', 19002, 19004).
+predicate(shell_register_file_type, 4, 'Register a file-type', 19006, 19012).
+predicate(shell_register_dde, 6, 'Register DDE action', 19014, 19021).
+predicate(shell_register_prolog, 1, 'Register Prolog', 19023, 19037).
+predicate(assignment, 2, 'Solve assignment problem', 19062, 19068).
+predicate(constraint, 3, 'Add linear constraint to state', 19070, 19080).
+predicate(constraint, 4, 'Add named linear constraint to state', 19082, 19085).
+predicate(constraint_add, 4, 'Extend a named constraint', 19087, 19091).
+predicate(gen_state, 1, 'Create empty linear program', 19093, 19096).
+predicate(maximize, 3, 'Maximize objective function in to linear constraints', 19098, 19103).
+predicate(minimize, 3, 'Minimize objective function in to linear constraints', 19105, 19107).
+predicate(objective, 2, 'Fetch value of objective function', 19109, 19112).
+predicate(shadow_price, 3, 'Fetch shadow price in solved state', 19114, 19118).
+predicate(transportation, 4, 'Solve transportation problem', 19120, 19128).
+predicate(variable_value, 3, 'Fetch value of variable in solved state', 19130, 19139).
+predicate(vertices_edges_to_ugraph, 3, 'Create unweighted graph', 19282, 19296).
+predicate(vertices, 2, 'Find vertices in graph', 19298, 19304).
+predicate(edges, 2, 'Find edges in graph', 19306, 19312).
+predicate(add_vertices, 3, 'Add vertices to graph', 19314, 19320).
+predicate(del_vertices, 3, 'Delete vertices from graph', 19322, 19331).
+predicate(add_edges, 3, 'Add edges to graph', 19333, 19341).
+predicate(del_edges, 3, 'Delete edges from graph', 19343, 19352).
+predicate(transpose, 2, 'Invert the direction of all edges', 19354, 19362).
+predicate(neighbours, 3, 'Find neighbors of vertice', 19364, 19371).
+predicate(neighbors, 3, 'Find neighbors of vertice', 19373, 19375).
+predicate(complement, 2, 'Inverse presense of edges', 19377, 19385).
+predicate(compose, 3, '', 19387, 19393).
+predicate(ugraph_union, 3, 'Union of two graphs', 19395, 19400).
+predicate(top_sort, 2, 'Sort graph topologically', 19402, 19410).
+predicate(top_sort, 3, 'Sort graph topologically', 19412, 19415).
+predicate(transitive_closure, 2, 'Create transitive closure of graph', 19417, 19423).
+predicate(reachable, 3, 'Find all reachable vertices', 19425, 19431).
+predicate(global_url, 3, 'Translate a possibly relative URL into an absolute one.', 19451, 19455).
+predicate(is_absolute_url, 1, 'True if URL is an absolute URL.', 19457, 19460).
+predicate(http_location, 2, 'Construct or analyze an HTTP location.', 19462, 19472).
+predicate(parse_url, 2, 'Construct or analyse a URL.', 19474, 19475).
+predicate(parse_url, 3, '', 19477, 19530).
+predicate(www_form_encode, 2, 'En/Decode between native value and application/x-www-form-encoded.', 19532, 19533).
+predicate(www_form_encode, 2, 'En/Decode between native value and application/x-www-form-encoded.', 19535, 19540).
+predicate(url_iri, 2, 'Convert between a URL, encoding in US-ASCII and an IRI.', 19542, 19543).
+predicate(url_iri, 2, 'Convert between a URL, encoding in US-ASCII and an IRI.', 19545, 19549).
+predicate(parse_url_search, 2, 'Construct or analyze an HTTP search specification.', 19551, 19555).
+predicate(file_name_to_url, 2, 'Translate between a filename and a file:Sidiv{} URL.', 19557, 19558).
+predicate(file_name_to_url, 2, 'Translate between a filename and a file:Sidiv{} URL.', 19560, 19565).
+predicate(prolog_current_frame, 1, 'Reference to goal\'s environment stack', 19580, 19586).
+predicate(prolog_frame_attribute, 3, 'Obtain information on a goal environment', 19588, 19666).
+predicate(prolog_choice_attribute, 3, 'Examine the choice-point stack', 19668, 19689).
+predicate(deterministic, 1, 'Test deterministicy of current clause', 19691, 19698).
+predicate(prolog_trace_interception, 4, 'library(user) Intercept the Prolog tracer', 19703, 19777).
+predicate(prolog_skip_level, 2, 'Indicate deepest recursion to trace', 19779, 19788).
+predicate(prolog_exception_hook, 4, 'Rewrite exceptions', 19798, 19838).
+predicate(exception, 3, 'Hook (user) Handle runtime exceptions', 19853, 19877).
+predicate(prolog_list_goal, 1, 'Hook (user) Intercept tracer \'L\' command', 19889, 19895).
+predicate(debug_control_hook, 1, 'Hook (prolog) Extend spy/1, etc.', 19897, 19922).
+predicate(help_hook, 1, 'Hook (prolog) User-hook in the help-system', 19924, 19939).
+predicate(prolog_load_file, 2, 'Hook (user) Program load_files/2', 19948, 19956).
+predicate(comment_hook, 3, 'Hook (prolog) handle comments in sources', 19958, 19967).
+predicate(rl_read_init_file, 1, 'Read readline(3) init file', 19977, 19981).
+predicate(rl_add_history, 1, 'Add line to readline(3) history', 19983, 19986).
+predicate(rl_write_history, 1, 'Write readline(3) history', 19988, 19991).
+predicate(rl_read_history, 1, 'Read readline(3) history', 19993, 19995).
+predicate(expects_dialect, 1, 'For which Prolog dialect is this code written?', 20038, 20064).
+predicate(exists_source, 1, 'Check existence of a Prolog source', 20066, 20070).
+predicate(source_exports, 2, 'Check whether source exports a predicate', 20072, 20075).
+predicate(eval_license, 0, 'Evaluate licenses of loaded modules', 20561, 20567).
+predicate(license, 2, 'Define license for named module', 20569, 20619).
+predicate(license, 1, 'Define license for current file', 20621, 20624).
 
 
 %   Predicate section/4
@@ -1164,7 +1165,7 @@ section([10, 4], 'Finding Application files', 16907, 16948).
 section([10, 4, 1], 'Passing a path to the application', 16936, 16948).
 section([10, 5], 'The Runtime Environment', 16950, 17009).
 section([10, 5, 1], 'The Runtime Emulator', 16953, 17009).
-section([11], 'THE SWI-PROLOG LIBRARY', 17011, 19557).
+section([11], 'THE SWI-PROLOG LIBRARY', 17011, 19565).
 section([11, 1], 'aggregate.pl -- Aggregation operators on backtrackable predicates', 17035, 17184).
 section([11, 1, 0, 1], 'Acknowledgements', 17111, 17184).
 section([11, 2], 'apply.pl -- Apply predicates on a list', 17186, 17225).
@@ -1190,59 +1191,59 @@ section([11, 13], 'www_browser:  Activating your Web-browser', 18387, 18413).
 section([11, 14], 'option.pl -- Option list processing', 18415, 18499).
 section([11, 15], 'ordsets:  Ordered Set Manipulation', 18501, 18571).
 section([11, 16], 'pairs.pl -- Operations on key-value lists', 18573, 18630).
-section([11, 17], 'pio:  Pure I/O', 18632, 18697).
-section([11, 17, 1], 'pure_input.pl -- Pure Input from files', 18640, 18697).
-section([11, 18], 'prologxref:  Cross-reference data collection library', 18699, 18798).
-section([11, 18, 1], 'Extending the library', 18779, 18798).
-section([11, 19], 'readutil:  Reading lines, streams and files', 18800, 18863).
-section([11, 20], 'record:  Access named fields in a term', 18865, 18956).
-section([11, 21], 'registry:  Manipulating the Windows registry', 18958, 19029).
-section([11, 22], 'simplex:  Solve linear programming problems', 19031, 19244).
-section([11, 22, 1], 'Example 1', 19133, 19159).
-section([11, 22, 2], 'Example 2', 19161, 19210).
-section([11, 22, 3], 'Example 3', 19212, 19244).
-section([11, 23], 'ugraphs:  Unweighted Graphs', 19246, 19423).
-section([11, 24], 'url.pl -- Analysing and constructing URL', 19425, 19557).
-section([12], 'HACKERS CORNER', 19559, 19987).
-section([12, 1], 'Examining the Environment Stack', 19569, 19690).
-section([12, 2], 'Intercepting the Tracer', 19692, 19780).
-section([12, 3], 'Adding context to errors:  prolog_exception_hook', 19782, 19830).
-section([12, 4], 'Hooks using the exception predicate', 19832, 19869).
-section([12, 5], 'Hooks for integrating libraries', 19871, 19931).
-section([12, 6], 'Hooks for loading files', 19933, 19959).
-section([12, 7], 'Readline Interaction', 19961, 19987).
-section([13], 'COMPATIBILITY WITH OTHER PROLOG DIALECTS', 19989, 20177).
-section([13, 1], 'Some considerations for writing portable code', 20069, 20177).
-section([14], 'GLOSSARY OF TERMS', 20179, 20464).
-section([15], 'SWI-PROLOG LICENSE CONDITIONS AND TOOLS', 20466, 20916).
-section([15, 1], 'The SWI-Prolog kernel and foreign libraries', 20496, 20528).
-section([15, 1, 1], 'The SWI-Prolog Prolog libraries', 20511, 20528).
-section([15, 2], 'Contributing to the SWI-Prolog project', 20530, 20540).
-section([15, 3], 'Software support to keep track of license conditions', 20542, 20621).
-section([15, 4], 'Library predicates', 20623, 20916).
-section([15, 4, 1], aggregate, 20626, 20634).
-section([15, 4, 2], apply, 20636, 20642).
-section([15, 4, 3], assoc, 20644, 20662).
-section([15, 4, 4], broadcast, 20664, 20675).
-section([15, 4, 5], check, 20677, 20684).
-section([15, 4, 6], lists, 20686, 20712).
-section([15, 4, 7], option, 20714, 20722).
-section([15, 4, 8], ordsets, 20724, 20740).
-section([15, 4, 9], prologxref, 20742, 20754).
-section([15, 4, 10], pairs, 20756, 20764).
-section([15, 4, 11], pio, 20766, 20773).
-section([15, 4, 11, 1], pure_input, 20769, 20773).
-section([15, 4, 12], readutil, 20775, 20784).
-section([15, 4, 13], record, 20786, 20789).
-section([15, 4, 14], registry, 20791, 20803).
-section([15, 4, 15], ugraphs, 20805, 20826).
-section([15, 4, 16], url, 20828, 20839).
-section([15, 4, 17], www_browser, 20841, 20844).
-section([15, 4, 18], 'clp/clp_distinct', 20846, 20851).
-section([15, 4, 19], 'clp/clpfd', 20853, 20886).
-section([15, 4, 20], clpqr, 20888, 20900).
-section([15, 4, 21], 'clp/simplex', 20902, 20916).
-section([16], 'Bibliography', 20918, 22223).
+section([11, 17], 'pio:  Pure I/O', 18632, 18705).
+section([11, 17, 1], 'pure_input.pl -- Pure Input from files', 18640, 18705).
+section([11, 18], 'prologxref:  Cross-reference data collection library', 18707, 18806).
+section([11, 18, 1], 'Extending the library', 18787, 18806).
+section([11, 19], 'readutil:  Reading lines, streams and files', 18808, 18871).
+section([11, 20], 'record:  Access named fields in a term', 18873, 18964).
+section([11, 21], 'registry:  Manipulating the Windows registry', 18966, 19037).
+section([11, 22], 'simplex:  Solve linear programming problems', 19039, 19252).
+section([11, 22, 1], 'Example 1', 19141, 19167).
+section([11, 22, 2], 'Example 2', 19169, 19218).
+section([11, 22, 3], 'Example 3', 19220, 19252).
+section([11, 23], 'ugraphs:  Unweighted Graphs', 19254, 19431).
+section([11, 24], 'url.pl -- Analysing and constructing URL', 19433, 19565).
+section([12], 'HACKERS CORNER', 19567, 19995).
+section([12, 1], 'Examining the Environment Stack', 19577, 19698).
+section([12, 2], 'Intercepting the Tracer', 19700, 19788).
+section([12, 3], 'Adding context to errors:  prolog_exception_hook', 19790, 19838).
+section([12, 4], 'Hooks using the exception predicate', 19840, 19877).
+section([12, 5], 'Hooks for integrating libraries', 19879, 19939).
+section([12, 6], 'Hooks for loading files', 19941, 19967).
+section([12, 7], 'Readline Interaction', 19969, 19995).
+section([13], 'COMPATIBILITY WITH OTHER PROLOG DIALECTS', 19997, 20185).
+section([13, 1], 'Some considerations for writing portable code', 20077, 20185).
+section([14], 'GLOSSARY OF TERMS', 20187, 20472).
+section([15], 'SWI-PROLOG LICENSE CONDITIONS AND TOOLS', 20474, 20925).
+section([15, 1], 'The SWI-Prolog kernel and foreign libraries', 20504, 20536).
+section([15, 1, 1], 'The SWI-Prolog Prolog libraries', 20519, 20536).
+section([15, 2], 'Contributing to the SWI-Prolog project', 20538, 20548).
+section([15, 3], 'Software support to keep track of license conditions', 20550, 20629).
+section([15, 4], 'Library predicates', 20631, 20925).
+section([15, 4, 1], aggregate, 20634, 20642).
+section([15, 4, 2], apply, 20644, 20650).
+section([15, 4, 3], assoc, 20652, 20670).
+section([15, 4, 4], broadcast, 20672, 20683).
+section([15, 4, 5], check, 20685, 20692).
+section([15, 4, 6], lists, 20694, 20720).
+section([15, 4, 7], option, 20722, 20730).
+section([15, 4, 8], ordsets, 20732, 20748).
+section([15, 4, 9], prologxref, 20750, 20762).
+section([15, 4, 10], pairs, 20764, 20772).
+section([15, 4, 11], pio, 20774, 20782).
+section([15, 4, 11, 1], pure_input, 20777, 20782).
+section([15, 4, 12], readutil, 20784, 20793).
+section([15, 4, 13], record, 20795, 20798).
+section([15, 4, 14], registry, 20800, 20812).
+section([15, 4, 15], ugraphs, 20814, 20835).
+section([15, 4, 16], url, 20837, 20848).
+section([15, 4, 17], www_browser, 20850, 20853).
+section([15, 4, 18], 'clp/clp_distinct', 20855, 20860).
+section([15, 4, 19], 'clp/clpfd', 20862, 20895).
+section([15, 4, 20], clpqr, 20897, 20909).
+section([15, 4, 21], 'clp/simplex', 20911, 20925).
+section([16], 'Bibliography', 20927, 22232).
 
 
 %   Predicate function/3
@@ -1423,6 +1424,6 @@ function('PL_halt', 16105, 16110).
 function('PL_malloc', 16480, 16485).
 function('PL_realloc', 16487, 16491).
 function('PL_free', 16493, 16496).
-function('PL_license', 20618, 20621).
+function('PL_license', 20626, 20629).
 
 
