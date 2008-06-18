@@ -128,19 +128,31 @@ max_char(ascii, 127).
 max_char(octet, 255).
 max_char(text, 0xfffff).		% Only if Locale is UTF-8!  How to test?
 max_char(iso_latin_1, 255).
-max_char(utf8, 	0xfffff).
+max_char(utf8, Max) :-
+	(   current_prolog_flag(windows, true)
+	->  Max = 0xffff		% UTF-16
+	;   Max = 0xfffff
+	).
 max_char(unicode_le, 0xffff).
 max_char(unicode_be, 0xffff).
-max_char(wchar_t, 0x7fffffff).
+max_char(wchar_t, Max) :-
+	(   current_prolog_flag(windows, true)
+	->  Max = 0xffff		% UTF-16
+	;   Max = 0x7fffffff
+	).
+
 
 save_list(File, Codes, Enc) :-
 	open(File, write, Out, [encoding(Enc)]),
 	format(Out, '~s', [Codes]),
 	close(Out).
 
+%random_list(_, _, "hello\nworld\n") :- !. % debug
 random_list(0, _, []) :- !.
 random_list(N, Max, [H|T]) :-
+	repeat,
 	H is 1+random(Max-1),
+	H \== 0'\r, !,
 	N2 is N - 1,
 	random_list(N2, Max, T).
 

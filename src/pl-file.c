@@ -1735,6 +1735,21 @@ size_t mbsnrtowcs(wchar_t *dest, const char **src,
 #endif
 #endif /*HAVE_MBSNRTOWCS*/
 
+static int
+skip_cr(IOSTREAM *s)
+{ if ( s->flags&SIO_TEXT )
+  { switch(s->newline)
+    { case SIO_NL_DETECT:
+	s->newline = SIO_NL_DOS;
+        /*FALLTHROUGH*/
+      case SIO_NL_DOS:
+	return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+
 static 
 PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 { PRED_LD
@@ -1768,23 +1783,25 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
       case ENC_ISO_LATIN_1:
       case ENC_ASCII:
       { ssize_t i;
-	gstore = allocGlobal(1+n*3);	/* TBD: shift */
-	lp = gstore++;
-	*lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+	lp = gstore = allocGlobal(1+n*3); /* TBD: shift */
     
-	for(i=0; i<n; )
+	for(i=0; i<n; i++)
 	{ int c = buf[i]&0xff;
     
+	  if ( c == '\r' && skip_cr(s) )
+	    continue;
+
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
     
+	  *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
+	  gstore++;
 	  *gstore++ = FUNCTOR_dot2;
 	  *gstore++ = consInt(c);
-	  if ( ++i < n )
-	  { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
-	    gstore++;
-	  }
 	}
+	if ( s->position )
+	  s->position->byteno = pos0.byteno+n;
+
 	break;
       }
       case ENC_ANSI:
@@ -1810,23 +1827,21 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	DEBUG(2, Sdprintf("Got %ld codes from %d bytes; incomplete: %ld\n",
 			  count, n, es-us));
 
-	gstore = allocGlobal(1+count*3);
-	lp = gstore++;
-	*lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+	lp = gstore = allocGlobal(1+count*3);
     
-	for(us=buf,i=0; i<count; )
+	for(us=buf,i=0; i<count; i++)
 	{ wchar_t c;
 
 	  us += mbrtowc(&c, us, es-us, s->mbstate);
+	  if ( c == '\r' && skip_cr(s) )
+	    continue;
     	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
     
+	  *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
+	  gstore++;
 	  *gstore++ = FUNCTOR_dot2;
 	  *gstore++ = consInt(c);
-	  if ( ++i < count )
-	  { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
-	    gstore++;
-	  }
 	}
 	if ( s->position )
 	  s->position->byteno = pos0.byteno+us-buf;
@@ -1852,23 +1867,21 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	DEBUG(2, Sdprintf("Got %ld codes from %d bytes; incomplete: %ld\n",
 			  count, n, es-us));
 	
-	gstore = allocGlobal(1+count*3);
-	lp = gstore++;
-	*lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+	lp = gstore = allocGlobal(1+count*3);
     
-	for(us=buf,i=0; i<count;)
+	for(us=buf,i=0; i<count; i++)
 	{ int c;
 
 	  us = utf8_get_char(us, &c);
+	  if ( c == '\r' && skip_cr(s) )
+	    continue;
     	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
     
+	  *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
+	  gstore++;
 	  *gstore++ = FUNCTOR_dot2;
 	  *gstore++ = consInt(c);
-	  if ( ++i < count )
-	  { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
-	    gstore++;
-	  }
 	}
 	if ( s->position )
 	  s->position->byteno = pos0.byteno+us-buf;
@@ -1882,32 +1895,30 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	const char *us = buf;
 	size_t done, i;
 
-	gstore = allocGlobal(1+count*3);
-	lp = gstore++;
-	*lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+	lp = gstore = allocGlobal(1+count*3);
     
-	for(i=0; i<count; us+=2)
+	for(i=0; i<count; us+=2, i++)
 	{ int c;
 
 	  if ( s->encoding == ENC_UNICODE_BE )
 	    c = ((us[0]&0xff)<<8)+(us[1]&0xff);
 	  else
 	    c = ((us[1]&0xff)<<8)+(us[0]&0xff);
+	  if ( c == '\r' && skip_cr(s) )
+	    continue;
     
 	  if ( s->position )
-	  { S__fupdatefilepos_getc(s, c);
-	    s->position->byteno++;	/* 2 bytes/code */
-	  }
+	    S__fupdatefilepos_getc(s, c);
     
+	  *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
+	  gstore++;
 	  *gstore++ = FUNCTOR_dot2;
 	  *gstore++ = consInt(c);
-	  if ( ++i < count )
-	  { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
-	    gstore++;
-	  }
 	}	
 
 	done = count*2;
+	if ( s->position )
+	  s->position->byteno = pos0.byteno+done;
 	re_buffer(s, buf+done, n-done);
         break;
       }
@@ -1916,27 +1927,25 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	size_t count = (size_t)n/sizeof(pl_wchar_t);
 	size_t done, i;
 
-	gstore = allocGlobal(1+count*3);
-	lp = gstore++;
-	*lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+	lp = gstore = allocGlobal(1+count*3);
     
-	for(i=0; i<count; )
+	for(i=0; i<count; i++)
 	{ int c = ws[i];
     
+	  if ( c == '\r' && skip_cr(s) )
+	    continue;
 	  if ( s->position )
-	  { S__fupdatefilepos_getc(s, c);
-	    s->position->byteno += sizeof(pl_wchar_t)-1;
-	  }
+	    S__fupdatefilepos_getc(s, c);
     
+	  *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
+	  gstore++;
 	  *gstore++ = FUNCTOR_dot2;
 	  *gstore++ = consInt(c);
-	  if ( ++i < count )
-	  { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
-	    gstore++;
-	  }
 	}
 
 	done = count*sizeof(pl_wchar_t);
+	if ( s->position )
+	  s->position->byteno = pos0.byteno+done;
 	re_buffer(s, buf+done, n-done);
         break;
       }
@@ -1948,6 +1957,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 
 
     setVar(*gstore);
+    gTop = gstore+1;
 
     a = valTermRef(A2);
     deRef(a);
