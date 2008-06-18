@@ -138,7 +138,7 @@ max_char(unicode_be, 0xffff).
 max_char(wchar_t, Max) :-
 	(   current_prolog_flag(windows, true)
 	->  Max = 0xffff		% UTF-16
-	;   Max = 0x7fffffff
+	;   Max = 0xfffff
 	).
 
 
