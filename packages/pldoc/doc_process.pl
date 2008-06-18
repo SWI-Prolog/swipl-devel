@@ -280,7 +280,7 @@ process_comment(_, _, _).
 process_structured_comment(FilePos, Comment, _) :- % already processed
 	prolog_load_context(module, M),
 	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
-	M:'$pldoc'(_, FilePos, _, Comment), !.
+	catch(M:'$pldoc'(_, FilePos, _, Comment), _, fail), !.
 process_structured_comment(FilePos, Comment, Prefixes) :-
 	indented_lines(Comment, Prefixes, Lines),
 	(   section_comment_header(Lines, Header, RestLines)
