@@ -62,6 +62,9 @@ typedef int mode_t;
 #define HAVE___TRY 1
 #endif
 
+/* Define to enable life-data marking by scanning VM instructions */
+#define LIFE_GC 1
+
 /* Define for emulating dlopen(), etc. using LoadLibrary */
 #define EMULATE_DLOPEN 1
 
