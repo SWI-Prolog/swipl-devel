@@ -63,6 +63,10 @@
 /* Define to 1 if you have the `confstr' function. */
 #undef HAVE_CONFSTR
 
+/* Define to 1 if you have the declaration of `mbsnrtowcs', and to 0 if you
+   don't. */
+#undef HAVE_DECL_MBSNRTOWCS
+
 /* Define to 1 if you have the declaration of `rl_done', and to 0 if you
    don't. */
 #undef HAVE_DECL_RL_DONE
@@ -220,6 +224,9 @@
 
 /* Define to 1 if you have the `mbscoll' function. */
 #undef HAVE_MBSCOLL
+
+/* Define to 1 if you have the `mbsnrtowcs' function. */
+#undef HAVE_MBSNRTOWCS
 
 /* Define to 1 if you have the `memmove' function. */
 #undef HAVE_MEMMOVE

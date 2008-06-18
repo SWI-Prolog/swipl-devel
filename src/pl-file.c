@@ -1729,8 +1729,10 @@ mbsnrtowcs(wchar_t *dest, const char **src,
   return count;
 }
 #else
+#if defined(HAVE_DECL_MBSNRTOWCS) && !HAVE_DECL_MBSNRTOWCS
 size_t mbsnrtowcs(wchar_t *dest, const char **src,
 		  size_t nms, size_t len, mbstate_t *ps);
+#endif
 #endif /*HAVE_MBSNRTOWCS*/
 
 static 
