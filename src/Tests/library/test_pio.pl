@@ -108,8 +108,10 @@ test_pe(N, BF, Enc, Tmp) :-
 	(   Lazy = List
 	->  true
 	;   format('List: ~w~n', [List]),
-	    last(Lazy, _),
-	    format('Lazy: ~w~n', [Lazy])
+	    (	last(Lazy, _)
+	    ->	format('Lazy: ~w~n', [Lazy])
+	    ;	format('Lazy: cannot materialize~n')
+	    )
 	),
 	close(In).
 	    
