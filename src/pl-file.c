@@ -1742,7 +1742,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 
   if ( getInputStream(A1, &s) )
   { char buf[MAX_PENDING];
-    ssize_t n, i;
+    ssize_t n;
     Word gstore, a, lp;
     int64_t off0 = Stell64(s);
     IOPOS pos0;
@@ -1767,6 +1767,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
     { case ENC_OCTET:
       case ENC_ISO_LATIN_1:
       case ENC_ASCII:
+      { ssize_t i;
 	gstore = allocGlobal(1+n*3);	/* TBD: shift */
 	lp = gstore++;
 	*lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
@@ -1785,8 +1786,9 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	  }
 	}
 	break;
+      }
       case ENC_ANSI:
-      { size_t count;
+      { size_t count, i;
 	mbstate_t s0;
 	const char *us = buf;
 	const char *es = buf+n;
@@ -1835,7 +1837,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
       case ENC_UTF8:
       { const char *us = buf;
 	const char *es = buf+n;
-	size_t count = 0;
+	size_t count = 0, i;
 
 	while(us<es)
 	{ const char *ec = us + UTF8_FBN(us[0]) + 1;
@@ -1876,9 +1878,9 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
       }
       case ENC_UNICODE_BE:
       case ENC_UNICODE_LE:
-      { ssize_t count = n/2;
+      { size_t count = (size_t)n/2;
 	const char *us = buf;
-	size_t done;
+	size_t done, i;
 
 	gstore = allocGlobal(1+count*3);
 	lp = gstore++;
@@ -1911,8 +1913,8 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
       }
       case ENC_WCHAR:
       { const pl_wchar_t *ws = (const pl_wchar_t*)buf;
-	ssize_t count = n/sizeof(pl_wchar_t);
-	size_t done;
+	size_t count = (size_t)n/sizeof(pl_wchar_t);
+	size_t done, i;
 
 	gstore = allocGlobal(1+count*3);
 	lp = gstore++;
