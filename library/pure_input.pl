@@ -31,8 +31,10 @@
 
 :- module(pure_input,
 	  [ phrase_from_file/2,		% :Grammar, +File
+	    phrase_from_file/3,		% :Grammar, +File, +Options
 	    stream_to_lazy_list/2
 	  ]).
+:- use_module(library(option)).
 
 /** <module> Pure Input from files
 
@@ -80,19 +82,37 @@ than compensated for by using block reads based on read_pending_input/3.
 %	==
 
 :- module_transparent
-	phrase_from_file/2.
+	phrase_from_file/2,
+	phrase_from_file/3.
 
 phrase_from_file(Grammar, File) :-
-	strip_module(Grammar, M, G),
-	qphrase_file(M:G, File).
+	phrase_from_file(Grammar, File, []).
 
-qphrase_file(QGrammar, File) :-
-	setup_and_call_cleanup(open(File, read, In),
-			       qphrase_stream(QGrammar, In),
+%%	phrase_from_file(:Grammar, +File, +Options) is nondet.
+%
+%	As phrase_from_file/2, providing additional Options. Options are
+%	passed to open/4, except for =buffer_size=,   which is passed to
+%	set_stream/2. If not specified, the default   buffer size is 512
+%	bytes. Of particular importance are   the  open/4 options =type=
+%	and =encoding=.
+
+phrase_from_file(Grammar, File, Options) :-
+	strip_module(Grammar, M, G),
+	(   select_option(buffer_size(BS), Options, OpenOptions)
+	->  true
+	;   BS=512,
+	    OpenOptions = Options
+	),
+	qphrase_file(M:G, File, BS, OpenOptions).
+
+
+qphrase_file(QGrammar, File, BS, Options) :-
+	setup_and_call_cleanup(open(File, read, In, Options),
+			       qphrase_stream(QGrammar, In, BS),
 			       close(In)).
 
-qphrase_stream(QGrammar, In) :-
-	 set_stream(In, buffer_size(512)),
+qphrase_stream(QGrammar, In, BuffserSize) :-
+	 set_stream(In, buffer_size(BuffserSize)),
 	 stream_to_lazy_list(In, List),
 	 phrase(QGrammar, List).
 
