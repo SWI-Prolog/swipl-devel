@@ -898,8 +898,10 @@ append_binding(B, Names:prolog, ValueTerm:prolog, Fd:prolog) :->
 	    ;	Names = [VarName:ArgN|_],
 	        write_varnames(Fd, Names)
 	    ),
-	    current_prolog_flag(toplevel_print_options, Options),
-	    format(Fd, '\t= ~W~n', [Value, Options]),
+	    setting(attributes, Atts),
+	    current_prolog_flag(toplevel_print_options, Options0),
+	    delete(Options0, attributes(_), Options1),
+	    format(Fd, '\t= ~W~n', [Value, [attributes(Atts)|Options1]]),
 	    flush_output(Fd),
 	    get(TB, size, S1),
 	    new(_, prolog_frame_var_fragment(TB, S0, S1, VarName, ArgN))

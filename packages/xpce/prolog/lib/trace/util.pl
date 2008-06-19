@@ -54,6 +54,7 @@ setting(verbose, 	   false).	% debugging this package
 setting(active,	 	   true).	% actually use this tracer
 setting(show_unbound,	   false).	% show unbound variables
 setting(cluster_variables, true).	% cluster variables
+setting(attributes,        portray).	% How to print attributes
 setting(list_max_clauses,  25).		% only list this amount of clauses
 setting(stack_depth, 	   10).		% # frames shown
 setting(choice_depth,	   10).		% # choice-points shown

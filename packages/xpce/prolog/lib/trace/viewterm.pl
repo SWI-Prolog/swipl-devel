@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        jan@swi.psy.uva.nl
     WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -55,7 +55,8 @@ defaults([ view(@view_term),
 	   expose(false),
 	   write_options([ quoted(true),
 			   portray(true),
-			   numbervars(true)
+			   numbervars(true),
+			   attributes(portray)
 			 ])
 	 ]).
 
