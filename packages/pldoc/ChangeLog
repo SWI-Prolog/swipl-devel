@@ -1,3 +1,7 @@
+[Jun 18 2008]
+
+ * FIXED: Avoid undefined predicate in PlDoc on mixed modules and non-module files
+
 [Jun 17 2008]
 
  * FIXED: PlDoc: possible duplicate entries in comments.  Markus Triska

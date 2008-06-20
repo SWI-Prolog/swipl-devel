@@ -1,3 +1,7 @@
+[Jun 19 2008]
+
+ * ADDED: Provide support for printing attributes in the GUI tracer
+
 [Jun 17 2008]
 
  * ADDED: access to thread profiler from thread monitor

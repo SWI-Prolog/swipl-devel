@@ -9,6 +9,17 @@
 
 
 ============================
+VERSION 5.6.57 June 20, 2008
+============================
+
+ * FIXED: prevent GC reclaiming information that prevents a `retry' in the debugger.
+
+ * FIXED: Life-GC code walking for code holding packed strings.  With help from
+   Joost Geurts.
+   
+ * PORT: Work around different status of mbsnrtowcs() support
+
+============================
 VERSION 5.6.56 June 18, 2008
 ============================
 
