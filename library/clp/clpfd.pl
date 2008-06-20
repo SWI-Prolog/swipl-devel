@@ -1866,16 +1866,25 @@ user:goal_expansion(X #> Y, Gt)    :- user:goal_expansion(X #>= Y+1, Gt).
 user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
 
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
-linsum(-X, S, S)   --> { var(X) }, !, [vn(X,-1)].
-linsum(I, S0, S)   --> { integer(I) }, !, { S is S0 + I }, [].
-linsum(N*X, S, S)  --> { integer(N), var(X) }, !, [vn(X,N)].
-linsum(X*N, S, S)  --> { integer(N), var(X) }, !, [vn(X,N)].
+linsum(I, S0, S)   --> { integer(I), !, S is S0 + I }.
+linsum(-A, S0, S)  --> mulsum(A, -1, S0, S).
+linsum(N*A, S0, S) --> { integer(N) }, !, mulsum(A, N, S0, S).
+linsum(A*N, S0, S) --> { integer(N) }, !, mulsum(A, N, S0, S).
 linsum(A+B, S0, S) --> linsum(A, S0, S1), linsum(B, S1, S).
+linsum(A-B, S0, S) --> linsum(A, S0, S1), mulsum(B, -1, S1, S).
+
+mulsum(A, M, S0, S) -->
+        { phrase(linsum(A, 0, CA), As), S is S0 + M*CA },
+        lin_mul(As, M).
+
+lin_mul([], _)             --> [].
+lin_mul([vn(X,N0)|VNs], M) --> { N is N0*M }, [vn(X,N)], lin_mul(VNs, M).
 
 v_or_i(V) :- var(V), !.
 v_or_i(I) :- integer(I).
 
 left_right_linsum_const(Left, Right, Cs, Vs, Const) :-
+        % omit constraints that scalar_product posts
         \+ ( v_or_i(Left), v_or_i(Right) ),
         \+ ( nonvar(Left), Left = A+B, maplist(v_or_i, [A,B,Right]) ),
         \+ ( nonvar(Right), Right = A+B, maplist(v_or_i, [A,B,Left]) ),
@@ -2858,9 +2867,10 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                 P mod C =:= 0,
                 V is P // C
             ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
+            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B #= P + A
+            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A #= P + B
             ;   P =:= 0, Cs == [1,1,-1] ->
                 kill(MState), Vs = [A,B,C], A + B #= C
-            ;   P =:= 0, Cs == [1,-1] -> kill(MState), Vs = [A,B], A = B
             ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
                 % nl, write(Infs-Sups-Inf-Sup), nl,
                 D1 is P - Inf,
