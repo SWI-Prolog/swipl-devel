@@ -282,8 +282,6 @@ pl_http_chunked_open(term_t org, term_t new, term_t options)
 		 *	       INSTALL		*
 		 *******************************/
 
-#define MKFUNCTOR(name, arity) PL_new_functor(PL_new_atom(name), arity)
-
 static void
 install_http_chunked()
 { ATOM_close_parent   = PL_new_atom("close_parent");
