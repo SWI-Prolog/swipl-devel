@@ -2031,7 +2031,13 @@ X #< Y  :- Y #> X.
 
 %% #\ +Q
 %
-% The reifiable constraint Q does _not_ hold.
+% The reifiable constraint Q does _not_ hold. For example, to obtain
+% the complement of a domain:
+%
+% ==
+% ?- #\ X in -3..0\/10..80.
+% X in inf.. -4\/1..9\/81..sup.
+% ==
 
 #\ Q       :- reify(Q, 0), do_queue.
 
