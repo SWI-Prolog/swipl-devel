@@ -30,6 +30,7 @@
 static functor_t FUNCTOR_error2;	/* error(Formal, Context) */
 static functor_t FUNCTOR_type_error2;	/* type_error(Term, Expected) */
 static functor_t FUNCTOR_domain_error2;	/* domain_error(Term, Expected) */
+static functor_t FUNCTOR_permission_error3; /* permission_error(Op, Type, Term) */
 static int debuglevel = 0;
 
 #define MKFUNCTOR(name, arity) PL_new_functor(PL_new_atom(name), arity)
@@ -82,6 +83,21 @@ domain_error(term_t actual, const char *domain)
 
 
 static int
+permission_error(const char *op, const char *objtype, term_t obj)
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR, FUNCTOR_permission_error3,
+		        PL_CHARS, op,
+		        PL_CHARS, objtype,
+		        PL_TERM, obj,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+
+static int
 instantiation_error()
 { term_t ex = PL_new_term_ref();
 
@@ -113,9 +129,10 @@ get_bool_ex(term_t t, int *i)
 
 static void
 init_errors()
-{ FUNCTOR_error2        = MKFUNCTOR("error", 2);
-  FUNCTOR_type_error2   = MKFUNCTOR("type_error", 2);
-  FUNCTOR_domain_error2 = MKFUNCTOR("domain_error", 2);
+{ FUNCTOR_error2            = MKFUNCTOR("error", 2);
+  FUNCTOR_type_error2	    = MKFUNCTOR("type_error", 2);
+  FUNCTOR_domain_error2     = MKFUNCTOR("domain_error", 2);
+  FUNCTOR_permission_error3 = MKFUNCTOR("permission_error", 3);
 
 #ifdef O_DEBUG
   PL_register_foreign("http_stream_debug", 1, http_stream_debug, 0);
