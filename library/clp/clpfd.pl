@@ -215,7 +215,7 @@ _G10152 in 2..8.
 ==
 
 Here, the constraint solver could deduce more stringent bounds for
-many variables. Keeping the modeling part seperate from the search
+many variables. Keeping the modeling part separate from the search
 allows to view these residual goals, observe termination and
 determinism properties of the modeling part in isolation from the
 search, and to more easily experiment with different search
