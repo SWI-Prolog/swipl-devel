@@ -2043,7 +2043,13 @@ X #< Y  :- Y #> X.
 
 %% ?P #<==> ?Q
 %
-% P and Q are equivalent.
+% P and Q are equivalent. For example:
+%
+% ==
+% ?- X in 0..10, X #= 1 #<==> B, X #\= 1.
+% B = 0,
+% X in 0\/2..10.
+% ==
 
 L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 
@@ -2067,7 +2073,14 @@ L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 
 %% ?P #\/ ?Q
 %
-% P or Q holds.
+% P or Q holds. For example, the sum of natural numbers below 1000
+% that are multiples of 3 or 5:
+%
+% ==
+% ?- N mod 3 #= 0 #\/ N mod 5 #= 0, N in 0..999, findall(N, indomain(N), Ns), sum(Ns, #=, Sum).
+% Ns = [0, 3, 5, 6, 9, 10, 12, 15, 18|...],
+% Sum = 233168
+% ==
 
 L #\/ R    :- reify(L, BL), reify(R, BR), myor(BL, BR, 1), do_queue.
 
