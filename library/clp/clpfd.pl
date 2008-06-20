@@ -3788,7 +3788,11 @@ fd_size(X, S) :-
 
 %% fd_dom(+Var, -Dom)
 %
-%  Dom is the current domain (see in/2) of Var.
+%  Dom is the current domain (see in/2) of Var. This predicate is
+%  useful if you want to reason about domains. It is not needed if you
+%  only want to display remaining domains; instead, separate your
+%  model from the search part and let the toplevel display this
+%  information via residual goals.
 
 fd_dom(X, Drep) :-
         (   fd_get(X, XD, _) ->
