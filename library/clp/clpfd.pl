@@ -214,12 +214,12 @@ _G10128 in 2..8,
 _G10152 in 2..8.
 ==
 
-Here, the constraint solver could deduce more stringent bounds for
-many variables. Keeping the modeling part separate from the search
-allows to view these residual goals, observe termination and
-determinism properties of the modeling part in isolation from the
-search, and to more easily experiment with different search
-strategies. Labeling can then be used to search for solutions:
+Here, the constraint solver could deduce more stringent bounds for all
+variables. Keeping the modeling part separate from the search allows
+to view these residual goals, observe termination and determinism
+properties of the modeling part in isolation from the search, and to
+more easily experiment with different search strategies. Labeling can
+then be used to search for solutions:
 
 ==
 ?- puzzle(As+Bs=Cs), label(As).
