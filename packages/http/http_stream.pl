@@ -31,7 +31,8 @@
 
 :- module(http_stream,
 	  [ http_chunked_open/3,	% +Stream, -DataStream, +Options
-	    stream_range_open/3		% +Stream, -DataStream, +Options
+	    stream_range_open/3,	% +Stream, -DataStream, +Options
+	    cgi_open/4			% +Stream, -DataStream, :Hook, +Options
 	  ]).
 
 :- initialization
@@ -120,6 +121,20 @@ bytes, dispite the fact that the underlying stream may be longer.
 %	DataStream is a stream  whose  size   is  defined  by the option
 %	size(ContentLength).   Closing   DataStream   does   not   close
 %	RawStream.
+
+%%	cgi_open(+OutStream, -CGIStream, :Hook, +Options) is det.
+%
+%	Process CGI output. OutStream is   normally the socket returning
+%	data to the HTTP client. CGIStream   is  the stream the (Prolog)
+%	code writes to. The CGIStream provides the following functions:
+%	
+%	    * At the end of the header, it calls Hook using
+%	    call(Hook, header, Stream), where Stream is a stream holding
+%	    the buffered header.
+%	    
+%	    * If the stream is closed, it calls Hook using
+%	    call(Hook, data, Stream), where Stream holds the buffered
+%	    data.
 
 :- multifile
 	http:encoding_filter/3.		% +Encoding, +In0,  -In

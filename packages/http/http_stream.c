@@ -24,11 +24,13 @@
 
 #include "http_error.c"
 #include "http_chunked.c"
+#include "cgi_stream.c"
 #include "stream_range.c"
 
 install_t
 install_http_stream()
 { init_errors();
   install_http_chunked();
+  install_cgi_stream();
   install_stream_range();
 }

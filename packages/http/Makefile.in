@@ -64,7 +64,7 @@ http_stream.@SO@:	$(STREAMOBJ)
 json.@SO@:	$(JSONOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(JSONOBJ) $(LIBS)
 
-http_stream.o:	http_error.c http_chunked.c stream_range.c
+http_stream.o:	http_error.c http_chunked.c cgi_stream.c stream_range.c
 
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
