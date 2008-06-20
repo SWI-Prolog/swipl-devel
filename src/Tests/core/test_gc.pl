@@ -32,7 +32,8 @@ This unit contains small tests for the garbage collector.
 
 test_gc :-
 	run_tests([ gc_leak,
-		    gc_reset
+		    gc_reset,
+		    gc_crash
 		  ]).
 
 :- module_transparent
@@ -104,3 +105,18 @@ test(deep_reset) :- deep_reset.
 
 
 :- end_tests(gc_reset).
+
+:- begin_tests(gc_crash).
+
+:- set_prolog_flag(double_quotes, string).
+
+t1 :-
+	garbage_collect,
+	t("hello world").
+
+t("hello world").
+
+test(b_string) :-
+	t1.
+
+:- end_tests(gc_crash).
