@@ -192,7 +192,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case B_STRING:			/* string + header */
       case B_MPZ:
       { word m = *PC;
-	PC += wsizeofInd(m);
+	PC += wsizeofInd(m)+1;
 	break;
       }
 
