@@ -2563,6 +2563,31 @@ lex_le([V1|V1s], [V2|V2s]) :-
 % X = 4,
 % Y in 0\/3.
 % ==
+%
+% As another example, consider a train schedule represented as a list
+% of quadruples, denoting departure and arrival places and times for
+% each train. In the following program, Ps is a feasible journey of
+% length 3 from A to D via trains that are part of the given schedule.
+%
+% ==
+% :- use_module(library(clpfd)).
+%
+% trains([[1,2,0,1],[2,3,4,5],[2,3,0,1],[3,4,5,6],[3,4,2,3],[3,4,8,9]]).
+%
+% threepath(A, D, Ps) :-
+%         Ps = [[A,B,_T0,T1],[B,C,T2,T3],[C,D,T4,_T5]],
+%         T2 #> T1,
+%         T4 #> T3,
+%         trains(Ts),
+%         tuples_in(Ps, Ts).
+% ==
+%
+% In this example, the unique solution is found without labeling:
+%
+% ==
+% ?- threepath(1, 4, Ps).
+% Ps = [[1, 2, 0, 1], [2, 3, 4, 5], [3, 4, 8, 9]].
+% ==
 
 tuples_in(Tuples, Relation) :-
         must_be(list, Tuples),
