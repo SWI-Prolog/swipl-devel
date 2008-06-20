@@ -409,7 +409,6 @@ mark_choicepoints(mark_state *state, Choice ch ARG_LD)
 
     switch(ch->type)
     { case CHP_JUMP:
-      case CHP_FOREIGN:
 	mark_environments(state, ch->frame, ch->value.PC PASS_LD);
 	break;
       case CHP_CLAUSE:
@@ -424,9 +423,12 @@ mark_choicepoints(mark_state *state, Choice ch ARG_LD)
 	}
 	break;
       }
-      case CHP_TOP:
-      case CHP_CATCH:
+      case CHP_FOREIGN:
       case CHP_DEBUG:
+      case CHP_CATCH:
+	mark_environments(state, ch->frame, NULL PASS_LD);
+	break;
+      case CHP_TOP:
       case CHP_NONE:
 	break;
     }
