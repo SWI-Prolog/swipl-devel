@@ -95,5 +95,6 @@ autom4te.cache
 src/pl.sh
 src/pl.res
 src/swipl
+src/version.h
 boot32.prc
 boot64.prc
