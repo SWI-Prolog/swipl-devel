@@ -2025,7 +2025,16 @@ X #> Y  :- X #>= Y + 1.
 
 %% #<(?X, ?Y)
 %
-% X is less than Y.
+% X is less than Y. In addition to its regular use in problems that
+% require it, this constraint can also be useful to eliminate
+% uninteresting symmetries from a problem. For example, all possible
+% matches between pairs built from four players in total:
+%
+% ==
+% ?- Vs = [A,B,C,D], Vs ins 1..4, all_different(Vs), A #< B, C #< D, A #< C,
+%    findall(pair(A,B)-pair(C,D), label(Vs), Ms).
+% Ms = [pair(1, 2)-pair(3, 4), pair(1, 3)-pair(2, 4), pair(1, 4)-pair(2, 3)]
+% ==
 
 X #< Y  :- Y #> X.
 
