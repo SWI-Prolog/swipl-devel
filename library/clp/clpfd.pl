@@ -178,10 +178,12 @@ occurs at the place of a constraint that is being reified, it is
 implicitly constrained to the Boolean values 0 and 1. Therefore, the
 following queries all fail: ?- #\ 2., ?- #\ #\ 2. etc.
 
-As an example of a constraint satisfaction problem, consider the
-cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters
-denote distinct integers between 0 and 9. It can be modeled in CLP(FD)
-as follows:
+A common usage of this library is to first post the desired
+constraints among the variables of a model, and then to use
+enumeration predicates to search for solutions. As an example of a
+constraint satisfaction problem, consider the cryptoarithmetic puzzle
+SEND + MORE = MONEY, where different letters denote distinct integers
+between 0 and 9. It can be modeled in CLP(FD) as follows:
 
 ==
 :- use_module(library(clpfd)).
@@ -213,7 +215,11 @@ _G10152 in 2..8.
 ==
 
 Here, the constraint solver could deduce more stringent bounds for
-many variables. Labeling can be used to search for solutions:
+many variables. Keeping the modeling part seperate from the search
+allows to view these residual goals, observe termination and
+determinism properties of the modeling part in isolation from the
+search, and to more easily experiment with different search
+strategies. Labeling can then be used to search for solutions:
 
 ==
 ?- puzzle(As+Bs=Cs), label(As).
@@ -222,11 +228,6 @@ Bs = [1, 0, 8, 5],
 Cs = [1, 0, 6, 5, 2] ;
 fail.
 ==
-
-This library also provides _reflection_ predicates (like fd_dom/2,
-fd_size/2 etc.) with which you can inspect a variable's current
-domain. Use call_residue_vars/2 and copy_term/3 to inspect residual
-goals and the constraints in which a variable is involved.
 
 It is perfectly reasonable to use CLP(FD) constraints instead of
 ordinary integer arithmetic with is/2. This can make programs
@@ -265,6 +266,12 @@ performance of CLP(FD) constraints close to that of conventional
 arithmetic predicates (</2, =:=/2, is/2 etc.) when the constraints are
 used in modes that can also be handled by built-in arithmetic. To
 disable the expansion, set the flag clpfd_goal_expansion to false.
+
+Use call_residue_vars/2 and copy_term/3 to inspect residual goals and
+the constraints in which a variable is involved. This library also
+provides _reflection_ predicates (like fd_dom/2, fd_size/2 etc.) with
+which you can inspect a variable's current domain. These predicates
+can be useful if you want to implement your own labeling strategies.
 
 @author Markus Triska
 */
