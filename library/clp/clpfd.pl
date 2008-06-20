@@ -2055,9 +2055,9 @@ X #< Y  :- Y #> X.
 % P and Q are equivalent. For example:
 %
 % ==
-% ?- X in 0..10, X #= 1 #<==> B, X #\= 1.
+% ?- X #= 4 #<==> B, X #\= 4.
 % B = 0,
-% X in 0\/2..10.
+% X in inf..3\/5..sup.
 % ==
 
 L #<==> R  :- reify(L, B), reify(R, B), do_queue.
