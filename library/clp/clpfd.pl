@@ -2777,8 +2777,8 @@ run_propagator(pgeq(A,B), MState) :-
         ;   fd_get(A, AD, AL, AU, APs),
             fd_get(B, _, BL, BU, _),
             AU cis_geq BL,
-            (   AL cis_gt BU -> kill(MState)
-            ;   AU == BL -> A = B
+            (   AL cis_geq BU -> kill(MState)
+            ;   AU == BL -> kill(MState), A = AU, B = A
             ;   NAL cis max(AL,BL),
                 domains_intersection(AD, from_to(NAL,AU), NAD),
                 fd_put(A, NAD, APs),
