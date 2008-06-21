@@ -2521,7 +2521,7 @@ trigger_prop(Propagator) :-
 kill(MState) :- setarg(1, MState, dead).
 
 no_reactivation(rel_tuple).
-no_reactivation(scalar_product).
+%no_reactivation(scalar_product).
 
 activate_propagator(propagator(P,MState)) :-
         (   arg(1, MState, dead) -> true
