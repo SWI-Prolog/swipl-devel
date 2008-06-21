@@ -2875,6 +2875,10 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
             ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A #= P + B
             ;   P =:= 0, Cs == [1,1,-1] ->
                 kill(MState), Vs = [A,B,C], A + B #= C
+            ;   P =:= 0, Cs == [1,-1,1] ->
+                kill(MState), Vs = [A,B,C], A + C #= B
+            ;   P =:= 0, Cs == [-1,1,1] ->
+                kill(MState), Vs = [A,B,C], B + C #= A
             ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
                 % nl, write(Infs-Sups-Inf-Sup), nl,
                 D1 is P - Inf,
