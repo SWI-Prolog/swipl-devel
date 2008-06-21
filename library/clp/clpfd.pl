@@ -2474,11 +2474,15 @@ trigger_prop(Propagator) :-
 
 kill(MState) :- setarg(1, MState, dead).
 
+no_reactivation(rel_tuple).
+no_reactivation(scalar_product).
+
 activate_propagator(propagator(P,MState)) :-
         (   arg(1, MState, dead) -> true
         ;   %format("running: ~w\n", [P]),
             setarg(1, MState, passive),
-            (   functor(P, rel_tuple, 2) ->
+            functor(P, Functor, _),
+            (   no_reactivation(Functor) ->
                 b_setval('$clpfd_current_propagator', MState)
             ;   true
             ),
