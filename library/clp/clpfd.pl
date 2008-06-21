@@ -273,6 +273,52 @@ provides _reflection_ predicates (like fd_dom/2, fd_size/2 etc.) with
 which you can inspect a variable's current domain. These predicates
 can be useful if you want to implement your own labeling strategies.
 
+You can also define custom constraints. The mechanism to do this is
+not yet finalised, and we welcome suggestions and descriptions of use
+cases that are important to you. As an example of how it can be done
+currently, let us define a new custom constraint "oneground(X,Y,Z)",
+where Z shall be 1 if at least one of X and Y is instantiated:
+
+==
+:- use_module(library(clpfd)).
+
+:- multifile clpfd:run_propagator/2.
+
+oneground(X, Y, Z) :-
+        clpfd:make_propagator(oneground(X, Y, Z), Prop),
+        clpfd:init_propagator(X, Prop),
+        clpfd:init_propagator(Y, Prop),
+        clpfd:trigger_once(Prop).
+
+clpfd:run_propagator(oneground(X, Y, Z), MState) :-
+        (   integer(X) -> clpfd:kill(MState), Z = 1
+        ;   integer(Y) -> clpfd:kill(MState), Z = 1
+        ;   true
+        ).
+==
+
+First, clpfd:make_propagator/2 is used to transform a user-defined
+representation of the new constraint to an internal form. With
+clpfd:init_propagator/2, this internal form is then attached to X and
+Y. From now on, the propagator will be invoked whenever the domains of
+X or Y are changed. Then, clpfd:trigger_once/1 is used to give the
+propagator its first chance for propagation even though the variables'
+domains have not yet changed. Finally, clpfd:run_propagator/2 is
+extended to define the actual propagator. As explained, this predicate
+is automatically called by the constraint solver. The first argument
+is the user-defined representation of the constraint as used in
+clpfd:make_propagator/2, and the second argument is a mutable state
+that can be used to prevent further invocations of the propagator when
+the constraint has become entailed, by using clpfd:kill/1. An example
+of using the new constraint:
+
+==
+?- oneground(X, Y, Z), Y = 5.
+Y = 5,
+Z = 1,
+X in inf..sup.
+==
+
 @author Markus Triska
 */
 
@@ -3928,7 +3974,7 @@ attributes_goals([propagator(P, State)|As]) -->
         ;   { attribute_goal_(P, G) } ->
             { setarg(1, State, processed) },
             [clpfd:G]
-        ;   [] % { format("currently no conversion for ~w\n", [P]) }
+        ;   [P] % possibly user-defined constraint
         ),
         attributes_goals(As).
 
