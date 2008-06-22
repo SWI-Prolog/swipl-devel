@@ -65,7 +65,16 @@
 
    Many things can be improved; if you want to help, feel free to
    e-mail me. A good starting point is taking a propagation algorithm
-   from the literature and adding it.
+   from the literature and adding it - for example:
+
+   J-C. Régin: "A filtering algorithm for constraints of difference in
+   CSPs", AAAI-94, Seattle, WA, USA, pp 362--367, 1994.
+
+   You can implement this algorithm without any knowledge of Prolog or
+   this library. Just write an efficient C function that, given a set
+   of variables and their list of domain elements, uses the described
+   algorithm to compute the set of arcs that can be safely removed
+   from the value graph.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
