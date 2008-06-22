@@ -1226,12 +1226,18 @@ uils(t_Lu(L,U),X,_Lin,Bound,Sold) :-
 % Checks if the upperbound of X which is U, satisfies the bounds
 % of the variables in Lin: let R be the sum of all the bounds on 
 % the variables in Lin, and I be the inhomogene part of Lin, then
-% upperbound U should be larger or equal to R + I (R may contain
+% upperbound U should be larger than R + I (R may contain
 % lowerbounds).
 % See also rcb/3 in bv.pl
 
+% The code could probably be further specialized to only
+% decrement/increment in case a variable takes a value equal to a
+% _strict_ upper/lower bound. Also note that this is only for the
+% CLP(Q) version. The CLP(R) fuzzy arithmetic makes it useless to
+% really distinguish between strict and non-strict inequalities.
+
 reconsider_upper(X,[I,R|H],U) :-
-	R + I > U,	% violation
+	R + I >= U,	% violation
 	!,
 	dec_step(H,Status),	% we want to decrement R
 	rcbl_status(Status,X,[],Binds,[],u(U)),
@@ -1243,12 +1249,12 @@ reconsider_upper( _, _, _).
 % Checks if the lowerbound of X which is L, satisfies the bounds
 % of the variables in Lin: let R be the sum of all the bounds on 
 % the variables in Lin, and I be the inhomogene part of Lin, then
-% lowerbound L should be smaller or equal to R + I (R may contain
+% lowerbound L should be smaller than R + I (R may contain
 % upperbounds).
 % See also rcb/3 in bv.pl
 
 reconsider_lower(X,[I,R|H],L) :-
-	R + I < L,	% violation
+	R + I =< L,	% violation
 	!,
 	inc_step(H,Status),	% we want to increment R
 	rcbl_status(Status,X,[],Binds,[],l(L)),
