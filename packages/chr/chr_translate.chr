@@ -6914,20 +6914,18 @@ add_args_types([Arg|Args],[Type|Types],VarTypes,NVarTypes) :-
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 % add_arg_types(+Term,+Type,+VarTypes,-NVarTypes) is det.
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+% OPTIMIZATION: don't add if `any' 
 add_arg_types(Term,Type,VarTypes,NVarTypes) :-
-	( var(Term) ->
+	( Type == any ->
+		NVarTypes = VarTypes
+	; var(Term) ->
 		( lookup_eq(VarTypes,Term,_) ->
 			NVarTypes = VarTypes
 		;
 			NVarTypes = [Term-Type|VarTypes]
 		) 
-	; ground(Term) ->
-		NVarTypes = VarTypes
-	; % TODO 	improve approximation!
-		term_variables(Term,Vars),
-		length(Vars,VarNb),
-		replicate(VarNb,any,Types),	
-		add_args_types(Vars,Types,VarTypes,NVarTypes)
+	; % nonvar
+		NVarTypes = VarTypes % approximate with any
 	).	
 			
 
@@ -7038,7 +7036,8 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,
 						Sbag,
 						Susp = Suspension,		% not inlined
 						GetState
-					)
+					),
+		inline_matching_goal(MatchingGoal,MatchingGoal2)
 	;
 		delay_phase_end(validate_store_type_assumptions,
 			( static_suspension_term(F/A,Suspension),
@@ -7048,13 +7047,13 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,
 		existential_lookup(StoreType,H,[ActiveHead|PrevHs],VarDict,GroundVars,Suspension,ExistentialLookup,Susp,Pairs,NPairs),
 		get_constraint_mode(F/A,Mode),
 		NMode = Mode, % filter_mode(NPairs,Pairs,Mode,NMode),
-		head_arg_matches(NPairs,NMode,VarDict,MatchingGoal,VarDict1,GroundVars,GroundVars1)
+		head_arg_matches(NPairs,NMode,VarDict,MatchingGoal,VarDict1,GroundVars,GroundVars1),
+		filter_append(NPairs,VarDict1,DA_),		% order important here
+		translate(GroundVars1,DA_,GroundVarsA),
+		translate(GroundVars1,VarDict1,GroundVarsB),
+		inline_matching_goal(MatchingGoal,MatchingGoal2,GroundVarsA,GroundVarsB)
 	),
 	different_from_other_susps(H,Susp,PrevHs,PrevSusps,DiffSuspGoals),
-	filter_append(NPairs,VarDict1,DA_),		% order important here
-	translate(GroundVars1,DA_,GroundVarsA),
-	translate(GroundVars1,VarDict1,GroundVarsB),
-	inline_matching_goal(MatchingGoal,MatchingGoal2,GroundVarsA,GroundVarsB),
 	Goal = 
 	(
 		ExistentialLookup,
@@ -7063,11 +7062,13 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,
 	),
 	rest_heads_retrieval_and_matching_n(Hs,IDs,[H|PrevHs],[Susp|PrevSusps],ActiveHead,Goals,Susps,VarDict1,NVarDict,_NewAttrDict,GroundVars1,NGroundVars).
 
+inline_matching_goal(G1,G2) :-
+	inline_matching_goal(G1,G2,[],[]).
+
 inline_matching_goal(A==B,true,GVA,GVB) :- 
     memberchk_eq(A,GVA),
     memberchk_eq(B,GVB),
     A=B, !.
-    
 % inline_matching_goal(A=B,true,_,_) :- A=B, !.
 inline_matching_goal((A,B),(A2,B2),GVA,GVB) :- !,
     inline_matching_goal(A,A2,GVA,GVB),
@@ -7171,7 +7172,7 @@ via_goal(Vars,TypeDict,ViaGoal,Var) :-
         ( Vars = [] ->
 		ViaGoal = fail	
 	; Vars = [A] ->
-		lookup_eq(TypeDict,A,Type),
+		lookup_type(TypeDict,A,Type),
 		( atomic_type(Type) ->
 			ViaGoal = var(A),
 			A = Var
@@ -7183,6 +7184,12 @@ via_goal(Vars,TypeDict,ViaGoal,Var) :-
         ;   
 		ViaGoal = 'chr newvia'(Vars,Var)
        	).
+lookup_type(TypeDict,Var,Type) :-
+	( lookup_eq(TypeDict,Var,Type) ->
+		true
+	;
+		Type = any % default type
+	).
 gen_get_mod_constraints(FA,Var,AttrGoal,AllSusps) :-
 	get_target_module(Mod),
        	AttrGoal =
@@ -10966,3 +10973,24 @@ dump_code(Clauses) :-
 chr_banner :-
 	chr_info(banner,'\tThe K.U.Leuven CHR System\n\t\tMain Developer:\tTom Schrijvers\n\t\tContributors:\tJon Sneyers, Bart Demoen, Jan Wielemaker\n\t\tCopyright:\tK.U.Leuven, Belgium\n\t\tURL:\t\thttp://www.cs.kuleuven.be/~~toms/CHR/\n',[]).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% AST representation
+%	each AST representation caches the original term
+%
+%	ast_term ::= 	atomic(Term)		
+%		 |      compound(Functor,Arity,list(ast_term),Term)
+%		 |      var(int,Term)  
+%			-- unique integer identifier 		
+		
+	% TODO: thread Id number
+term_to_ast_term(Term,AstTerm) :- 
+ 	( atomic(Term) ->
+		AstTerm = atomic(Term)
+	; compound(Term) ->
+		functor(Term,Functor,Arity),
+		AstTerm = compound(Functor,Arity,[AstTerms],Term),
+		Term =.. [_|Args],
+		maplist(term_to_ast_term,Args,AstTerms)
+	; var(Term) ->
+		AstTerm = var(Id,Term)
+	).
