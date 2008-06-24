@@ -58,17 +58,20 @@
 		 *	    READ REQUEST	*
 		 *******************************/
 
-%%	http_read_request(+FdIn, -Request)
+%%	http_read_request(+FdIn:stream, -Request) is det.
 %
 %	Read an HTTP request-header from FdIn and return the broken-down
-%	request fields as +Name(+Value) pairs in a list.
+%	request fields as +Name(+Value) pairs  in   a  list.  Request is
+%	unified to =end_of_file= if FdIn is at the end of input.
 
-http_read_request(In, [input(In)|Request]) :-
+http_read_request(In, Request) :-
 	read_line_to_codes(In, Codes),
 	(   Codes == end_of_file
-	->  debug(http(header), 'end-of-file', [])
+	->  debug(http(header), 'end-of-file', []),
+	    Request = end_of_file
 	;   debug(http(header), 'First line: ~s~n', [Codes]),
-	    phrase(request(In, Request), Codes)
+	    Request =  [input(In)|Request1],
+	    phrase(request(In, Request1), Codes)
 	).
 
 
@@ -552,6 +555,12 @@ reply_header(cgi_data(Size), HdrExtra) -->
 	header_fields(HdrExtra),
 	content_length(Size),
 	"\r\n".
+reply_header(chunked_data, HdrExtra) -->
+	vstatus(ok),
+	date(now),
+	header_fields(HdrExtra),
+	transfer_encoding(chunked),
+	"\r\n".
 reply_header(moved(To, Tokens), HdrExtra) -->
 	vstatus(moved),
 	date(now),
@@ -675,6 +684,9 @@ content_length(Len) -->
 	},
 	"Content-Length: ", string(LenChars),
 	"\r\n".
+
+transfer_encoding(Encoding) -->
+	"Transfer-Encoding: ", atom(Encoding).
 
 content_type(Type) -->
 	content_type(Type, _).
