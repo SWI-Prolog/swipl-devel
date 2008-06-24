@@ -39,11 +39,9 @@
    Symbolic constants for infinities
    ---------------------------------
 
-   ?- Z #= X + Y.
-   %@ Z in inf..sup,
-   %@ X+Y#=Z,
-   %@ X in inf..sup,
-   %@ Y in inf..sup.
+   ?- X #>= 0, Y #=< 0.
+   %@ X in 0..sup,
+   %@ Y in inf..0.
 
    No artificial limits (using GMP)
    ---------------------------------
@@ -3971,8 +3969,15 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
 
 attribute_goals(X) -->
         { get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)), domain_to_drep(Dom, Drep) },
-        [clpfd:(X in Drep)],
+        (   { default_domain(Dom), one_alive(Ps) } -> []
+        ;   [clpfd:(X in Drep)]
+        ),
         attributes_goals(Ps).
+
+one_alive([propagator(_, State)|Ps]) :-
+        (   arg(1, State, dead) -> one_alive(Ps)
+        ;   true
+        ).
 
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
