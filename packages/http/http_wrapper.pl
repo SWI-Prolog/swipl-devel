@@ -67,14 +67,18 @@ http_wrapper(GoalSpec, In, Out, Close, Options) :-
 
 wrapper(Goal, In, Out, Close, Options) :-
 	http_read_request(In, Request0),
-	extend_request(Options, Request0, Request1),
-	memberchk(method(Method), Request1),
-	memberchk(path(Location), Request1),
-	thread_self(Self),
-	debug(http(wrapper), '[~w] ~w ~w ...', [Self, Method, Location]),
-	call_handler(Goal, Request1, Request, Error, CgiHeader, MemFile),
-	debug(http(wrapper), '[~w] ~w ~w --> ~p', [Self, Method, Location, Error]),
-	send_data(Out, Request, Error, CgiHeader, MemFile, Close).
+	(   Request0 == end_of_file
+	->  Close = close,
+	    extend_request(Options, [], _) % return request
+	;   extend_request(Options, Request0, Request1),
+	    memberchk(method(Method), Request1),
+	    memberchk(path(Location), Request1),
+	    thread_self(Self),
+	    debug(http(wrapper), '[~w] ~w ~w ...', [Self, Method, Location]),
+	    call_handler(Goal, Request1, Request, Error, CgiHeader, MemFile),
+	    debug(http(wrapper), '[~w] ~w ~w --> ~p', [Self, Method, Location, Error]),
+	    send_data(Out, Request, Error, CgiHeader, MemFile, Close)
+	).
 
 %%	send_data(+Out, +Request, +Error, +CgiHeader, +Memfile, -Close) is det.
 %
@@ -261,12 +265,15 @@ connection(Header, Close) :-
 extend_request([], R, R).
 extend_request([request(R)|T], R0, R) :- !,
 	extend_request(T, R0, R).
-extend_request([peer(P)|T], R0, R) :- !,
-	extend_request(T, [peer(P)|R0], R).
-extend_request([protocol(P)|T], R0, R) :- !,
-	extend_request(T, [protocol(P)|R0], R).
-extend_request([_|T], R0, R) :- !,
+extend_request([H|T], R0, R) :-
+	request_option(H), !,
+	extend_request(T, [H|R0], R).
+extend_request([_|T], R0, R) :-
 	extend_request(T, R0, R).
+
+request_option(peer(_)).
+request_option(protocol(_)).
+request_option(pool(_,_,_,_)).
 
 
 %%	http_current_request(-Request)
