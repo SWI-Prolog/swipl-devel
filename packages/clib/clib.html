@@ -1339,10 +1339,24 @@ yields a permission error.</DD>
 -Atom</VAR>)</A></DT>
 <DD class="defbody">
 Return the content of the memory-file in <VAR>Atom</VAR>.</DD>
+<DT class="pubdef"><A NAME="memory_file_to_atom/3"><STRONG>memory_file_to_atom</STRONG>(<VAR>+Handle, 
+-Atom, +Encoding</VAR>)</A></DT>
+<DD class="defbody">
+Return the content of the memory-file in <VAR>Atom</VAR>, pretending the 
+data is in the given <VAR>Encoding</VAR>. This can be used to convert 
+from one encoding into another, typically from/to bytes. For example, if 
+we must convert a set of bytes that contain text in UTF-8, open the 
+memory file as octet stream, fill it, and get the result using <VAR>Encoding</VAR> 
+is <CODE>utf8</CODE>.</DD>
 <DT class="pubdef"><A NAME="memory_file_to_codes/2"><STRONG>memory_file_to_codes</STRONG>(<VAR>+Handle, 
 -Codes</VAR>)</A></DT>
 <DD class="defbody">
-Return the content of the memory-file as a list of character-codes in <VAR>Codes</VAR>.
+Return the content of the memory-file as a list of character-codes in <VAR>Codes</VAR>.</DD>
+<DT class="pubdef"><A NAME="memory_file_to_codes/3"><STRONG>memory_file_to_codes</STRONG>(<VAR>+Handle, 
+-Codes, +Encoding</VAR>)</A></DT>
+<DD class="defbody">
+Return the content of the memory-file as a list of character-codes in <VAR>Codes</VAR>, 
+pretending the data is in the given <VAR>Encoding</VAR>.
 </DD>
 </DL>
 
@@ -1634,7 +1648,13 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <DT><A class="idx" href="#memory_file_to_atom/2">memory_file_to_atom/2</A></DT>
 <DD>
 </DD>
+<DT><A class="idx" href="#memory_file_to_atom/3">memory_file_to_atom/3</A></DT>
+<DD>
+</DD>
 <DT><A class="idx" href="#memory_file_to_codes/2">memory_file_to_codes/2</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#memory_file_to_codes/3">memory_file_to_codes/3</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#mime_parse/2">mime_parse/2</A></DT>

@@ -38,6 +38,8 @@
 	    atom_to_memory_file/2,	% +Atom, -Handle
 	    memory_file_to_atom/2,	% +Handle, -Atom
 	    memory_file_to_codes/2,	% +Handle, -CodeList
+	    memory_file_to_atom/3,	% +Handle, -Atom, +Encoding
+	    memory_file_to_codes/3,	% +Handle, -CodeList, +Encoding
 	    utf8_position_memory_file/3 % +Handle, -Here, -Size
 	  ]).
 :- initialization(load_foreign_library(foreign(memfile))).

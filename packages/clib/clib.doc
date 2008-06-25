@@ -868,9 +868,21 @@ yields a permission error.
     \predicate{memory_file_to_atom}{2}{+Handle, -Atom}
 Return the content of the memory-file in \arg{Atom}.
 
+    \predicate{memory_file_to_atom}{3}{+Handle, -Atom, +Encoding}
+Return the content of the memory-file in \arg{Atom}, pretending the data
+is in the given \arg{Encoding}. This can be used to convert from one
+encoding into another, typically from/to bytes. For example, if we
+must convert a set of bytes that contain text in UTF-8, open the memory
+file as octet stream, fill it, and get the result using \arg{Encoding}
+is \const{utf8}.
+
     \predicate{memory_file_to_codes}{2}{+Handle, -Codes}
 Return the content of the memory-file as a list of character-codes
 in \arg{Codes}.
+
+    \predicate{memory_file_to_codes}{3}{+Handle, -Codes, +Encoding}
+Return the content of the memory-file as a list of character-codes
+in \arg{Codes}, pretending the data is in the given \arg{Encoding}.
 \end{description}
 
 
