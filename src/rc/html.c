@@ -34,11 +34,6 @@
 #include "html.h"
 #include <stdlib.h>
 
-#if !defined(strncasecmp) && !defined(HAVE_STRCASECMP) && defined(HAVE_STRICMP) 
-#define strcasecmp stricmp
-#define strncasecmp strnicmp
-#endif
-
 #ifndef EOS
 #define EOS '\0'
 #endif
@@ -76,7 +71,7 @@ html_find_tag(const char *data, const char *end, const char *tag)
     if ( data == end )
       return NULL;
 
-    if ( strncasecmp(data+1, tag, len) == 0 )
+    if ( strncmp(data+1, tag, len) == 0 )
     { int c = data[len+1];
 
       if ( isspace(c) || c == '>' )
@@ -95,7 +90,7 @@ html_find_close_tag(const char *data, const char *tag)
   while(data)
   { if ( (data = strchr(data, '<')) &&
 	 data[1] == '/' &&
-	 strncasecmp(data+2, tag, len) == 0 &&
+	 strncmp(data+2, tag, len) == 0 &&
 	 data[len+2] == '>' )
       return (char *)data+len+3;
     if ( data )
@@ -240,7 +235,7 @@ html_decode_tag(const char *data, HtmlTagDef spec, void *dest)
     }
 
     for(d=spec; d->tag; d++)
-    { if ( strncasecmp(si, d->tag, ei-si) == 0 )
+    { if ( strncmp(si, d->tag, ei-si) == 0 )
       { void *dst = (char *)dest + d->offset;
 
 	(*d->convert)(sv, ev-sv, dst, d->closure);

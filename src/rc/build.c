@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -176,16 +176,16 @@ rc_save_data(RcMember m, FILE *fd)
 
 static int
 rc_save_member(RcMember m, FILE *fd)
-{ fprintf(fd, "\n<FILE NAME=\"%s\" CLASS=\"%s\" ENCODING=\"%s\" SIZE=%ld",
+{ fprintf(fd, "\n<file name=\"%s\" class=\"%s\" encoding=\"%s\" size=%ld",
 	  m->name, m->rc_class, m->encoding, (long)m->size);
   if ( m->modified )
-    fprintf(fd, " MODIFIED=%ld", (long)m->modified);
+    fprintf(fd, " modified=%ld", (long)m->modified);
   fprintf(fd, ">\n");
 
   if ( !rc_save_data(m, fd) )
     return FALSE;
 
-  fprintf(fd, "\n</FILE>\n");
+  fprintf(fd, "\n</file>\n");
 
   return TRUE;
 }
@@ -212,7 +212,7 @@ rc_save_archive(RcArchive rca, const char *to)
       hdrlen = hdr->size;
     }
 
-    fprintf(fd, "<ARCHIVE>\n");
+    fprintf(fd, "<archive>\n");
     for( member = rca->members; member; member = member->next )
     { if ( strcmp(member->name, "$header") == 0 &&
 	   strcmp(member->rc_class, "$rc") == 0 )
@@ -223,9 +223,9 @@ rc_save_archive(RcArchive rca, const char *to)
 	return FALSE;
       }
     }
-    fprintf(fd, "</ARCHIVE>\n");
+    fprintf(fd, "</archive>\n");
     size = ftell(fd) - hdrlen;
-    fprintf(fd, "<FOOT CONTENTLENGTH=%ld>\n", (long)size);
+    fprintf(fd, "<foot contentlength=%ld>\n", (long)size);
     if ( fclose(fd) == EOF )
     { rc_errno = RCE_ERRNO;
       return FALSE;

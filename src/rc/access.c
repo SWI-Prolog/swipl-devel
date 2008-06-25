@@ -202,7 +202,7 @@ decode_member_header(RcArchive rca, RcMember mbr)
   memset(mbr, 0, sizeof(*mbr));
 
   while( html_fd_next_tag(rca->fd, tag, properties) )
-  { if ( strcasecmp(tag, "file") == 0 )
+  { if ( strmp(tag, "file") == 0 )
     { html_decode_tag(properties, make_file_tag_def(), mbr);
 
       if ( mbr->name )
@@ -279,7 +279,7 @@ find_archive_dimensions(RcArchive rca)
 { const char *data = rca->data;
   size_t alen = strlen(ARCHIVE_TAG);
 
-  if ( strncasecmp(data, ARCHIVE_TAG, alen) != 0 )
+  if ( strncmp(data, ARCHIVE_TAG, alen) != 0 )
   { const char *rc_end = &data[rca->size];
     const char *end = rc_end-1;
     const char *s;
@@ -298,7 +298,7 @@ find_archive_dimensions(RcArchive rca)
       { const char *start = end - len;
 	rc_size hdrlen = start - (const char *)rca->map_start;
 
-	if ( strncasecmp(start, ARCHIVE_TAG, alen) == 0 )
+	if ( strncmp(start, ARCHIVE_TAG, alen) == 0 )
 	{ rca->data  = (void *)start;
 	  rca->size -= hdrlen;
 
@@ -327,7 +327,7 @@ at_archive_start(RcArchive rca)
     return FALSE;
   }
 
-  if ( strncasecmp(buf, atag, alen) == 0 )
+  if ( strncmp(buf, atag, alen) == 0 )
     return TRUE;			/* fine, this is the start */
 
   rc_errno = RCE_NOERROR;
