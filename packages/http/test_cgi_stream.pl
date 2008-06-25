@@ -167,7 +167,7 @@ test(long_unicode_text,
 	data_atom(10000, 1, 1000, Data),
 	cgi_open(Out, CGI, cgi_hook, []),
 	format(CGI, 'Content-type: text/plain\n\n', []),
-	flush_output(CGI),		% Should go; demands initial UTF-8 and switch.
+%	flush_output(CGI),		% Should go; demands initial UTF-8 and switch.
 	format(CGI, '~w', [Data]),
 	close(CGI),
 	close(Out),

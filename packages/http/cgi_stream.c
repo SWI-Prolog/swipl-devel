@@ -122,7 +122,7 @@ typedef struct cgi_context
   char		   *data;		/* Buffered data */
   size_t	    datasize;		/* #bytes buffered */
   size_t	    dataallocated;	/* #bytes allocated */
-  int		    magic;		/* CGI_MAGIC */
+  unsigned int	    magic;		/* CGI_MAGIC */
 } cgi_context;
 
 
@@ -414,6 +414,76 @@ start_chunked_encoding(cgi_context *ctx)
 } 
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Recode the data that is already buffered   in  the input into the target
+encoding. We know  the  initial  encoding   is  UTF-8.  The  only target
+encodings we accept are single-byte encodings.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define ISUTF8_CB(c)  (((c)&0xc0) == 0x80) /* Is continuation byte */
+#define CONT(i)   ISUTF8_CB(in[i])
+#define VAL(i, s) ((in[i]&0x3f) << s)
+
+static char *
+utf8_get_sub_char(const char *in, int *chr)
+{ if ( !(in[0]&0x80) )
+  { *chr = in[0];
+    return (char*)in+1;
+  }
+					/* 2-byte, 0x80-0x7ff */
+  if ( (in[0]&0xe0) == 0xc0 && CONT(1) )
+  { *chr = ((in[0]&0x1f) << 6)|VAL(1,0);
+    return (char*)in+2;
+  }
+
+  return NULL;
+}
+
+
+static int
+recode_data(cgi_context *ctx, IOENC enc)
+{ int mx;
+  const char *from;
+  const char *end;
+  char *to;
+
+  if ( !ctx->data )
+    return 0;				/* virgin buffer */
+
+  if ( ctx->cgi_stream->encoding != ENC_UTF8 )
+    return -1;
+  
+  switch(enc)
+  { case ENC_ASCII:
+      mx = 128;
+      break;
+    case ENC_OCTET:
+    case ENC_ISO_LATIN_1:
+      mx = 256;
+      break;
+    default:
+      return -1;
+  }
+
+  from = &ctx->data[ctx->data_offset];
+  end  = &ctx->data[ctx->datasize];
+  Sdprintf("Recoding %ld bytes\n", end-from);
+  
+  for(to=(char*)from; from<end;)
+  { int chr;
+
+    if ( (from=utf8_get_sub_char(from, &chr)) && chr < mx )
+      *to++ = chr;
+    else
+      return -1;			/* cannot represent! */
+  }
+
+  ctx->datasize = to - ctx->data;
+
+  return 0;
+}
+
+
 static size_t
 find_data(cgi_context *ctx, size_t start)
 { const char *s = &ctx->data[start];
@@ -483,12 +553,17 @@ cgi_write(void *handle, char *buf, size_t size)
 
 static int
 cgi_control(void *handle, int op, void *data)
-{ chunked_context *ctx = handle;
+{ cgi_context *ctx = handle;
+
+  assert(ctx->magic == CGI_MAGIC);
 
   switch(op)
   { case SIO_FLUSHOUTPUT:
-    case SIO_SETENCODING:
       return 0;				/* allow switching encoding */
+    case SIO_SETENCODING:
+    { IOENC *encp = data;
+      return recode_data(ctx, *encp);
+    }
     default:
       if ( ctx->stream->functions->control )
 	return (*ctx->stream->functions->control)(ctx->stream->handle, op, data);
@@ -596,7 +671,7 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
     return FALSE;
   }
 
-  s2->encoding = s->encoding;
+  s2->encoding = ENC_UTF8;		/* allow for any input */
   ctx->parent_encoding = s->encoding;
   s->encoding = ENC_OCTET;
   ctx->cgi_stream = s2;
