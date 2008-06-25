@@ -146,7 +146,7 @@ cgi_hook(close, _).
 :- begin_tests(cgi_stream, [sto(rational_trees)]).
 
 test(short_text_plain,
-     [ Data == Reply,
+     [ Reply == Data,
        setup(open_dest(TmpF, Out)),
        cleanup(free_dest(TmpF))
      ]) :-
@@ -160,14 +160,13 @@ test(short_text_plain,
 	assert_header(Header, status(ok, _)).
 
 test(long_unicode_text,
-     [ Data == Reply,
+     [ Reply == Data,
        setup(open_dest(TmpF, Out)),
        cleanup(free_dest(TmpF))
      ]) :-
 	data_atom(10000, 1, 1000, Data),
 	cgi_open(Out, CGI, cgi_hook, []),
 	format(CGI, 'Content-type: text/plain\n\n', []),
-%	flush_output(CGI),		% Should go; demands initial UTF-8 and switch.
 	format(CGI, '~w', [Data]),
 	close(CGI),
 	close(Out),
@@ -175,7 +174,7 @@ test(long_unicode_text,
 	assert_header(Header, status(ok, _)).
 
 test(long_binary,
-     [ Data == Reply,
+     [ Reply == Data,
        setup(open_dest(TmpF, Out)),
        cleanup(free_dest(TmpF))
      ]) :-
