@@ -43,7 +43,8 @@
 	    http_parse_header/2,	% +Codes, -Header
 	    http_join_headers/3,	% +Default, +InHdr, -OutHdr
 	    http_update_encoding/3,	% +HeaderIn, -Encoding, -HeaderOut
-	    http_update_connection/4	% +HeaderIn, +Request, -Connection, -HeaderOut
+	    http_update_connection/4,	% +HeaderIn, +Request, -Connection, -HeaderOut
+	    http_update_transfer/4	% +HeaderIn, +Request, -Transfer, -HeaderOut
 	  ]).
 :- use_module(library(readutil)).
 :- use_module(library(debug)).
@@ -369,6 +370,36 @@ connection(Header, Close) :-
 	    X >= 1
 	->  Close = 'Keep-Alive'
 	;   Close = close
+	).
+
+
+%%	http_update_transfer(+Request, +CGIHeader, -Transfer, -Header)
+%
+%	Decide on the transfer encoding  from   the  Request and the CGI
+%	header. If both request chunked,  use   this.  Otherwise  use no
+%	transfer encoding.
+
+http_update_transfer(Request, CgiHeader, Transfer, [transfer_encoding(Transfer)|Rest]) :-
+	select(transfer_encoding(CgiTransfer), CgiHeader, Rest), !,
+	transfer(Request, ReqConnection),
+	join_transfer(ReqConnection, CgiTransfer, Transfer).
+http_update_transfer(_, CgiHeader, none, CgiHeader).
+
+join_transfer(chunked, chunked, chunked) :- !.
+join_transfer(_, _, none).
+
+
+%%	transfer(+Header, -Connection)
+%	
+%	Extract the desired connection from a header.
+
+transfer(Header, Transfer) :-
+	(   memberchk(transfer_encoding(Transfer0), Header)
+	->  Transfer = Transfer0
+	;   memberchk(http_version(1-X), Header),
+	    X >= 1
+	->  Transfer = chunked
+	;   Transfer = none
 	).
 
 
@@ -726,7 +757,7 @@ content_length(Len) -->
 	"\r\n".
 
 transfer_encoding(Encoding) -->
-	"Transfer-Encoding: ", atom(Encoding).
+	"Transfer-Encoding: ", atom(Encoding), "\r\n".
 
 content_type(Type) -->
 	content_type(Type, _).

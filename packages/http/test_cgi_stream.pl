@@ -59,7 +59,8 @@ nd :-
 	nodebug(http(header)).
 
 test_cgi_stream :-
-	run_tests([ cgi_stream
+	run_tests([ cgi_stream,
+		    cgi_chunked
 		  ]).
 
 		 /*******************************
@@ -77,6 +78,11 @@ http_read_mf(TmpF, Header, Data) :-
 	open(TmpF, read, In, [type(binary)]),
 	http_read_reply_header(In, Header),
 	http_read_data(Header, Data, to(atom)).
+
+cat(TmpF) :-
+	open(TmpF, read, In),
+	call_cleanup(copy_stream_data(In, current_output),
+		     close(In)).
 
 
 		 /*******************************
@@ -127,10 +133,12 @@ cgi_hook(header, CGI) :-
 	http_parse_header(HeadText, CgiHeader),
 	cgi_property(CGI, request(Request)),
 	http_update_connection(Request, CgiHeader, Connection, Header1),
-	http_update_encoding(Header1, Encoding, Header),
+	http_update_transfer(Request, Header1, Transfer, Header2),
+	http_update_encoding(Header2, Encoding, Header),
 	set_stream(CGI, encoding(Encoding)),
 	cgi_set(CGI, connection(Connection)),
-	cgi_set(CGI, header(Header)).
+	cgi_set(CGI, header(Header)),
+	cgi_set(CGI, transfer_encoding(Transfer)). % must be LAST
 cgi_hook(send_header, CGI) :-
 	cgi_property(CGI, header(Header)),
 	cgi_property(CGI, client(Out)),
@@ -187,5 +195,41 @@ test(long_binary,
 	http_read_mf(TmpF, Header, Reply),
 	assert_header(Header, status(ok, _)).
 
+test(short_text_plain_chunked,
+     [ Reply == Data,
+       setup(open_dest(TmpF, Out)),
+       cleanup(free_dest(TmpF))
+     ]) :-
+	Data = 'Hello world\n',
+	cgi_open(Out, CGI, cgi_hook, []),
+	format(CGI, 'Transfer-encoding: chunked\n', []),
+	format(CGI, 'Content-type: text/plain\n\n', []),
+	format(CGI, '~w', [Data]),
+	close(CGI),
+	close(Out),
+	http_read_mf(TmpF, Header, Reply),
+	assert_header(Header, status(ok, _)).
+
 :- end_tests(cgi_stream).
 
+:- begin_tests(cgi_chunked, [sto(rational_trees)]).
+
+test(short_text_plain,
+     [ Reply == Data,
+       setup(open_dest(TmpF, Out)),
+       cleanup(free_dest(TmpF))
+     ]) :-
+	Data = 'Hello world\n',
+	cgi_open(Out, CGI, cgi_hook,
+ 		 [ request([http_version(1-1)])
+		 ]),
+	format(CGI, 'Transfer-encoding: chunked\n', []),
+	format(CGI, 'Content-type: text/plain\n\n', []),
+	format(CGI, '~w', [Data]),
+	close(CGI),
+	close(Out),
+	cat(TmpF),
+	http_read_mf(TmpF, Header, Reply),
+	assert_header(Header, status(ok, _)).
+
+:- end_tests(cgi_chunked).

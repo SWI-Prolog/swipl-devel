@@ -339,8 +339,8 @@ cgi_set(term_t cgi, term_t prop)
 
     if ( ctx->transfer_encoding != enc )
     { if ( enc == ATOM_chunked )
-      { rc = start_chunked_encoding(ctx);
-	ctx->transfer_encoding = enc;
+      { ctx->transfer_encoding = enc;
+	rc = start_chunked_encoding(ctx);
       } else
       { rc = domain_error(arg, "transfer_encoding");
       }
