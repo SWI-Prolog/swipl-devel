@@ -44,19 +44,24 @@ This is a clean and modular design,   but it cannot deal with especially
 chunked encoding and  thread  management.   This  module  remedies these
 issues.
 
-To do this, the stream provides a  call-back after the head is complete.
-The call-back processes the request header and the reply header and:
+To do this, the  stream  provides   a  three  call-backs. Initially, the
+stream is in line-buffering mode (SIO_LBUF),   waiting for the header to
+become complete. At that moment it calls   the  hook, passing event type
+'header' and the stream. This processes the   head and combines the head
+with the request, deciding on:
 
-    * Decides on connection (close/keep-alife) and transfer encoding
-    * Create the full header
-    * Send this info to the cgi-stream.  If encoding is set to
-    chunked, the CGI stream sends the header immediately and sends
-    new input in chunks.  If the transfer encoding is traditional
-    it collects all data and on close() it adds a Content-length
-    header, sends the header and the data.
-    * On close, it does a second call-back that allows for closing
-    the stream to the client or re-scheduling it into the thread
-    pool.
+    * The final header
+    * The transfer encoding (chunked/none)
+    * The content encoding (octet/utf8)
+    * The connection (Keep-Alife/close)
+
+Now, the stream is placed in  full   buffering  mode  (SIO_FBUF). If the
+transfer encoding is 'chunked'  it  immediately   calls  the  hook using
+'send_header' to emit the current header.   Output continues. In chunked
+mode sending the chunks, otherwisse collecting   the  data. On close, it
+writes an empty block (chunked mode)  or   (normal  mode) calls the hook
+'send_header' which now has access to   the  content-length, followed by
+the data.
 
 Note that the work-flow is kept with the stream. This allows passing the
 cgi stream from thread to thread while keeping track of the work-flow.
@@ -600,7 +605,7 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
     return FALSE;
   }
 
-  s2->encoding = ENC_UTF8;		/* allow for any input */
+  s2->encoding = ENC_ASCII;		/* Header is ASCII only */
   ctx->parent_encoding = s->encoding;
   s->encoding = ENC_OCTET;
   ctx->cgi_stream = s2;
