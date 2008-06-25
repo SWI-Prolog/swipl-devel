@@ -43,6 +43,7 @@
 :- use_module(library(debug)).
 :- use_module(library(memfile)).
 :- use_module(library(lists)).
+:- use_module(library(error)).
 :- use_module(dcg_basics).
 
 :- multifile
@@ -299,17 +300,18 @@ http_read_data(In, Fields, Data, Options) :-
 	    ;   copy_stream_data(In, Stream)
 	    )
 	;   new_memory_file(MemFile),
-	    open_memory_file(MemFile, write, Stream),
+	    open_memory_file(MemFile, write, Stream, [encoding(octet)]),
 	    (   memberchk(content_length(Bytes), Fields)
 	    ->  copy_stream_data(In, Stream, Bytes)
 	    ;   copy_stream_data(In, Stream)
 	    ),
 	    close(Stream),
+	    encoding(Fields, Encoding),
 	    (   X == atom
-	    ->  memory_file_to_atom(MemFile, Data0)
+	    ->  memory_file_to_atom(MemFile, Data0, Encoding)
 	    ;	X == codes
-	    ->	memory_file_to_codes(MemFile, Data0)
-	    ;	throw(error(domain_error(return_type, X), _))
+	    ->	memory_file_to_codes(MemFile, Data0, Encoding)
+	    ;	domain_error(return_type, X)
 	    ),
 	    free_memory_file(MemFile),
 	    Data = Data0
@@ -326,6 +328,15 @@ http_read_data(In, Fields, Data, Options) :- 			% call hook
 	), !.
 http_read_data(In, Fields, Data, Options) :-
 	http_read_data(In, Fields, Data, [to(atom)|Options]).
+
+
+encoding(Fields, utf8) :-
+	memberchk(content_type(Type), Fields),
+	(   sub_atom(Type, _, _, _, 'UTF-8')
+	->  true
+	;   sub_atom(Type, _, _, _, 'utf-8')
+	), !.
+encoding(_, octet).
 
 
 		 /*******************************
