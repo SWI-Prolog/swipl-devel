@@ -26,6 +26,42 @@
 #include <string.h>
 #include <assert.h>
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The task of cgi_stream.c is to interface between the actual wrapper code
+that implements an HTTP location and the   socket sending a reply to the
+client.  In particular, we want to deal with:
+
+    * Separating the header from the body of the reply
+    * Chunked or traditional transfer encoding
+    * Connection management (Keep-alife)
+    * Thread management
+
+The original HTTP infrastructure has an `accept thread' that accepts new
+connections. The connection is handed to a   thread  that reads the HTTP
+header and calls a handler with the  output redirected to a memory file,
+processing the reply-header and reply-data   after the handler finished.
+This is a clean and modular design,   but it cannot deal with especially
+chunked encoding and  thread  management.   This  module  remedies these
+issues.
+
+To do this, the stream provides a  call-back after the head is complete.
+The call-back processes the request header and the reply header and:
+
+    * Decides on connection (close/keep-alife) and transfer encoding
+    * Create the full header
+    * Send this info to the cgi-stream.  If encoding is set to
+    chunked, the CGI stream sends the header immediately and sends
+    new input in chunks.  If the transfer encoding is traditional
+    it collects all data and on close() it adds a Content-length
+    header, sends the header and the data.
+    * On close, it does a second call-back that allows for closing
+    the stream to the client or re-scheduling it into the thread
+    pool.
+
+Note that the work-flow is kept with the stream. This allows passing the
+cgi stream from thread to thread while keeping track of the work-flow.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 
 		 /*******************************
 		 *	      CONSTANTS		*
