@@ -90,14 +90,14 @@ wrapper(Goal, In, Out, Close, Options) :-
 %	@param Close	Unified to Keep-alife if both client and server
 %			want to keep the connection open.
 
-send_data(Out, Request, Error, CgiHeader0, MemFile, Close) :-
+send_data(Out, Request, Error, CgiHeader0, MemFile, Connection) :-
 	var(Error), !,
 	size_memory_file(MemFile, Length),
 	open_memory_file(MemFile, read, TmpIn),
 	http_read_header(TmpIn, CgiHeader1),
 	append(CgiHeader0, CgiHeader1, CgiHeader),
-	join_cgi_header(Request, CgiHeader, Header0),
-	http_update_encoding(Header0, Encoding, Header),
+	http_update_connection(CgiHeader, Request, Connection, Header1),
+	http_update_encoding(Header1, Encoding, Header),
 	set_stream(Out, encoding(Encoding)),
 	(   Encoding == utf8
 	->  utf8_position_memory_file(MemFile, BytePos, ByteSize),
@@ -106,8 +106,7 @@ send_data(Out, Request, Error, CgiHeader0, MemFile, Close) :-
 	    Size is Length - Pos
 	),
 	call_cleanup(reply(TmpIn, Size, Out, Header),
-		     cleanup(TmpIn, Out, MemFile)),
-	memberchk(connection(Close), Header).
+		     cleanup(TmpIn, Out, MemFile)).
 send_data(Out, _Request, Error, _CgiHeader, MemFile, Close) :-
 	free_memory_file(MemFile),
 	map_exception(Error, Reply, HdrExtra),
@@ -224,39 +223,6 @@ keep_alive(tmp_file(_Type, _File)).
 keep_alive(stream(_In, _Len)).
 keep_alive(cgi_stream(_In, _Len)).
 
-
-%%	join_cgi_header(+Request, +CGIHeader, -Header)
-%
-%	Merge keep-alive information from  Request   and  CGIHeader into
-%	Header.
-
-join_cgi_header(Request, CgiHeader, [connection(Connect)|Rest]) :-
-	select(connection(CgiConn), CgiHeader, Rest), !,
-	connection(Request, ReqConnection),
-	join_connection(ReqConnection, CgiConn, Connect).
-join_cgi_header(Request, CgiHeader, [connection(Connect)|CgiHeader]) :-
-	connection(Request, Connect).
-
-join_connection(Keep1, Keep2, Connection) :-
-	(   downcase_atom(Keep1, 'keep-alive'),
-	    downcase_atom(Keep2, 'keep-alive')
-	->  Connection = 'Keep-Alive'
-	;   Connection = close
-	).
-
-
-%%	connection(+Header, -Connection)
-%	
-%	Extract the desired connection from a header.
-
-connection(Header, Close) :-
-	(   memberchk(connection(Connection), Header)
-	->  Close = Connection
-	;   memberchk(http_version(1-X), Header),
-	    X >= 1
-	->  Close = 'Keep-Alive'
-	;   Close = close
-	).
 
 %%	extend_request(+Options, +RequestIn, -Request)
 %	

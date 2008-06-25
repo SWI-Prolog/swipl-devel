@@ -40,8 +40,10 @@
 	    http_post_data/3,		% +Stream, +Data, +HdrExtra
 
 	    http_read_header/2,		% +Fd, -Header
+	    http_parse_header/2,	% +Codes, -Header
 	    http_join_headers/3,	% +Default, +InHdr, -OutHdr
-	    http_update_encoding/3	% +HeaderIn, -Encoding, -HeaderOut
+	    http_update_encoding/3,	% +HeaderIn, -Encoding, -HeaderOut
+	    http_update_connection/4	% +HeaderIn, +Request, -Connection, -HeaderOut
 	  ]).
 :- use_module(library(readutil)).
 :- use_module(library(debug)).
@@ -334,6 +336,40 @@ http_update_encoding(Header, octet, Header).
 
 mime_type_encoding('application/json', utf8).
 mime_type_encoding('application/jsonrequest', utf8).
+
+
+%%	http_update_connection(+Request, +CGIHeader, -Connection, -Header)
+%
+%	Merge keep-alive information from  Request   and  CGIHeader into
+%	Header.
+
+http_update_connection(Request, CgiHeader, Connect, [connection(Connect)|Rest]) :-
+	select(connection(CgiConn), CgiHeader, Rest), !,
+	connection(Request, ReqConnection),
+	join_connection(ReqConnection, CgiConn, Connect).
+http_update_connection(Request, CgiHeader, Connect, [connection(Connect)|CgiHeader]) :-
+	connection(Request, Connect).
+
+join_connection(Keep1, Keep2, Connection) :-
+	(   downcase_atom(Keep1, 'keep-alive'),
+	    downcase_atom(Keep2, 'keep-alive')
+	->  Connection = 'Keep-Alive'
+	;   Connection = close
+	).
+
+
+%%	connection(+Header, -Connection)
+%	
+%	Extract the desired connection from a header.
+
+connection(Header, Close) :-
+	(   memberchk(connection(Connection), Header)
+	->  Close = Connection
+	;   memberchk(http_version(1-X), Header),
+	    X >= 1
+	->  Close = 'Keep-Alive'
+	;   Close = close
+	).
 
 
 %%	content_length_in_encoding(+Encoding, +In, -Bytes)
@@ -1028,7 +1064,7 @@ reply(Fd, [http_version(HttpVersion), status(Status, Comment)|Header]) -->
 		 *	      READ HEADER	*
 		 *******************************/
 
-%%	http_read_header(+Fd, -Header)
+%%	http_read_header(+Fd, -Header) is det.
 %
 %	Read Name: Value lines from FD until an empty line is encountered.
 %	Field-name are converted to Prolog conventions (all lower, _ instead
@@ -1036,7 +1072,7 @@ reply(Fd, [http_version(HttpVersion), status(Status, Comment)|Header]) -->
 
 http_read_header(Fd, Header) :-
 	read_header_data(Fd, Text),
-	parse_header(Text, Header).
+	http_parse_header(Text, Header).
 
 read_header_data(Fd, Header) :-
 	read_line_to_codes(Fd, Header, Tail),
@@ -1050,7 +1086,7 @@ read_header_data(_, Fd, Tail) :-
 	read_line_to_codes(Fd, Tail, NewTail),
 	read_header_data(Tail, Fd, NewTail).
 
-parse_header(Text, Header) :-
+http_parse_header(Text, Header) :-
 	phrase(header(Header), Text),
 	debug(http(header), 'Fields: ~w~n', [Header]).
 
