@@ -1027,9 +1027,10 @@ intervals_to_domain(Is, D) :-
 %         * Integer
 %           Singleton set consisting only of _Integer_.
 %         * Lower..Upper
-%           All integers _I_ such that _Lower_ =< _I_ =< _Upper_. The atoms
-%           *inf* and *sup* denote negative and positive infinity,
-%           respectively.
+%           All integers _I_ such that _Lower_ =< _I_ =< _Upper_.
+%           _Lower_ must be an integer or the atom *inf*, which
+%           denotes negative infinity. _Upper_ must be an integer or
+%           the atom *sup*, which denotes positive infinity.
 %         * Domain1 \/ Domain2
 %           The union of Domain1 and Domain2.
 
@@ -2303,7 +2304,7 @@ reify(Expr, B) :-
 
 is_drep(V)      :- var(V), !, instantiation_error(V).
 is_drep(N)      :- integer(N), !.
-is_drep(N..M)   :- !, drep_bound(N), drep_bound(M).
+is_drep(N..M)   :- !, drep_bound(N), N \== sup, drep_bound(M), M \== inf.
 is_drep(D1\/D2) :- !, is_drep(D1), is_drep(D2).
 
 drep_bound(V)   :- var(V), !, instantiation_error(V).
