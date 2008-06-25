@@ -30,7 +30,8 @@
 */
 
 :- module(http_stress_client,
-	  [ client/2			% +Port, +Test
+	  [ client/2,			% +Port, +Test
+	    client/3			% +Port, +Test, +Times
 	  ]).
 
 :- use_module(library(http/http_client)).
@@ -38,6 +39,11 @@
 /** <module> Sample HTTP client to run some stress tests
 
 */
+
+client(Port, Action, Times) :-
+	forall(between(1, Times, _),
+	       client(Port, Action)).
+
 
 client(Port, ping) :-
 	http_get([ host(localhost),
