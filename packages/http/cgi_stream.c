@@ -62,6 +62,12 @@ Note that the work-flow is kept with the stream. This allows passing the
 cgi stream from thread to thread while keeping track of the work-flow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+TODO
+
+	* Error handling (many places)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 
 		 /*******************************
 		 *	      CONSTANTS		*
@@ -69,11 +75,18 @@ cgi stream from thread to thread while keeping track of the work-flow.
 
 static atom_t ATOM_header;		/* header */
 static atom_t ATOM_header_codes;	/* header_codes */
+static atom_t ATOM_send_header;		/* send_header */
 static atom_t ATOM_data;		/* data */
 static atom_t ATOM_request;		/* request */
-static atom_t ATOM_header;		/* header */
 static atom_t ATOM_client;		/* client */
 static atom_t ATOM_thread;		/* thread */
+static atom_t ATOM_chunked;		/* chunked */
+static atom_t ATOM_none;		/* none */
+static atom_t ATOM_transfer_encoding;	/* transfer_encoding */
+static atom_t ATOM_connection;		/* connection */
+static atom_t ATOM_keep_alife;		/* keep_alife */
+static atom_t ATOM_close;		/* close */
+static atom_t ATOM_content_length;	/* content_length */
 static predicate_t PREDICATE_call3;	/* Goal, Event, Handle */
 
 
@@ -100,6 +113,8 @@ typedef struct cgi_context
   record_t	    hook;		/* Hook called on action */
   record_t	    request;		/* Associated request term */
   record_t	    header;		/* Associated reply header term */
+  atom_t	    transfer_encoding;	/* Current transfer encoding */
+  atom_t	    connection;		/* Keep alife? */
 					/* state */
   cgi_state	    state;		/* Current state */
 					/* data buffering */
@@ -110,6 +125,14 @@ typedef struct cgi_context
   int		    magic;		/* CGI_MAGIC */
 } cgi_context;
 
+
+static int start_chunked_encoding(cgi_context *ctx);
+static ssize_t cgi_chunked_write(cgi_context *ctx, char *buf, size_t size);
+
+
+		 /*******************************
+		 *	     ALLOC/FREE		*
+		 *******************************/
 
 static cgi_context*
 alloc_cgi_context(IOSTREAM *s)
@@ -130,10 +153,11 @@ free_cgi_context(cgi_context *ctx)
   else
     PL_release_stream(ctx->stream);
 
-  if ( ctx->data )
-    free(ctx->data);
-  if ( ctx->hook )
-    PL_erase(ctx->hook);
+  if ( ctx->data )       free(ctx->data);
+  if ( ctx->hook )       PL_erase(ctx->hook);
+  if ( ctx->request )    PL_erase(ctx->request);
+  if ( ctx->header )     PL_erase(ctx->header);
+  if ( ctx->connection ) PL_unregister_atom(ctx->connection);
 
   ctx->magic = 0;
   PL_free(ctx);
@@ -226,6 +250,12 @@ cgi_property(term_t cgi, term_t prop)
   { rc = PL_unify_stream(arg, ctx->stream);
   } else if ( name == ATOM_thread )
   { rc = PL_unify_thread_id(arg, ctx->thread);
+  } else if ( name == ATOM_transfer_encoding )
+  { rc = PL_unify_atom(arg, ctx->transfer_encoding);
+  } else if ( name == ATOM_connection )
+  { rc = PL_unify_atom(arg, ctx->connection ? ctx->connection : ATOM_close);
+  } else if ( name == ATOM_content_length )
+  { rc = PL_unify_int64(arg, ctx->datasize - ctx->data_offset);
   } else if ( name == ATOM_header_codes )
   { if ( ctx->data_offset > 0 )
       rc = PL_unify_chars(arg, PL_CODE_LIST, ctx->data_offset, ctx->data);
@@ -246,6 +276,24 @@ set_term(record_t *r, term_t t)
 { if ( *r )
     PL_erase(*r);
   *r = PL_record(t);
+
+  return TRUE;
+}
+
+
+static int
+set_atom(atom_t *a, term_t t)
+{ atom_t new;
+
+  if ( !PL_get_atom(t, &new) )
+    return type_error(t, "atom");
+
+  if ( *a != new )
+  { if ( *a )
+      PL_unregister_atom(*a);
+    *a = new;
+    PL_register_atom(new);
+  }
 
   return TRUE;
 }
@@ -273,6 +321,22 @@ cgi_set(term_t cgi, term_t prop)
   { rc = set_term(&ctx->request, arg);
   } else if ( name == ATOM_header )
   { rc = set_term(&ctx->header, arg);
+  } else if ( name == ATOM_connection )
+  { rc = set_atom(&ctx->connection, arg);
+  } else if ( name == ATOM_transfer_encoding )
+  { atom_t enc;
+
+    if ( !PL_get_atom(arg, &enc) )
+      return type_error(arg, "atom");
+
+    if ( ctx->transfer_encoding != enc )
+    { if ( enc == ATOM_chunked )
+      { rc = start_chunked_encoding(ctx);
+	ctx->transfer_encoding = enc;
+      } else
+      { rc = domain_error(arg, "transfer_encoding");
+      }
+    }
   } else
   { return existence_error(prop, "cgi_property");
   }
@@ -329,6 +393,24 @@ call_hook(cgi_context *ctx, atom_t event)
 }
 
 
+static int
+start_chunked_encoding(cgi_context *ctx)
+{ if ( call_hook(ctx, ATOM_send_header) )
+  { if ( ctx->datasize > ctx->data_offset )
+    { int rc = cgi_chunked_write(ctx,
+				 &ctx->data[ctx->data_offset],
+				 ctx->datasize - ctx->data_offset);
+      if ( rc == -1 )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+} 
+
+
 static size_t
 find_data(cgi_context *ctx, size_t start)
 { const char *s = &ctx->data[start];
@@ -351,29 +433,45 @@ find_data(cgi_context *ctx, size_t start)
 		 *	   IO FUNCTIONS		*
 		 *******************************/
 
+static ssize_t				/* encode */
+cgi_chunked_write(cgi_context *ctx, char *buf, size_t size)
+{ if ( Sfprintf(ctx->stream, "%x\r\n", size) >= 0 &&
+       Sfwrite(buf, sizeof(char), size, ctx->stream) == size &&
+       Sfprintf(ctx->stream, "\r\n") >= 0 )
+    return size;
+
+  return -1;
+}
+
+
 static ssize_t
 cgi_write(void *handle, char *buf, size_t size)
 { cgi_context *ctx = handle;
-  size_t osize = ctx->datasize;
-  size_t dstart;
+
+  if ( ctx->transfer_encoding == ATOM_chunked )
+  { return cgi_chunked_write(ctx, buf, size);
+  } else
+  { size_t osize = ctx->datasize;
+    size_t dstart;
   
-  if ( osize+size > ctx->dataallocated )
-  { if ( grow_data_buffer(ctx, size) < 0 )
-      return -1;			/* no memory */
-  }
-  memcpy(&ctx->data[osize], buf, size);
-  ctx->datasize = osize+size;
-  osize = (osize > 4 ? osize-4 : 0);	/* 4 is max size of the separator */
+    if ( osize+size > ctx->dataallocated )
+    { if ( grow_data_buffer(ctx, size) < 0 )
+	return -1;			/* no memory */
+    }
+    memcpy(&ctx->data[osize], buf, size);
+    ctx->datasize = osize+size;
+    osize = (osize > 4 ? osize-4 : 0);	/* 4 is max size of the separator */
 
-  if ( (ctx->state = CGI_HDR) &&
-       (dstart=find_data(ctx, osize)) != ((size_t)-1) )
-  { ctx->data_offset = dstart;
-    ctx->state = CGI_DATA;		/* TBD: fix encoding (UTF-8 --> octet)!!! */
-    if ( !call_hook(ctx, ATOM_header) )
-      return -1;			/* TBD: pass error kindly */
+    if ( (ctx->state = CGI_HDR) &&
+	 (dstart=find_data(ctx, osize)) != ((size_t)-1) )
+    { ctx->data_offset = dstart;
+      ctx->state = CGI_DATA;		/* TBD: fix encoding (UTF-8 --> octet)!!! */
+      if ( !call_hook(ctx, ATOM_header) )
+	return -1;			/* TBD: pass error kindly */
+    }
+    
+    return size;
   }
-
-  return size;
 }
 
 
@@ -398,7 +496,19 @@ cgi_close(void *handle)
 { cgi_context *ctx = handle;
   int rc = 0;
 
-  if ( !call_hook(ctx, ATOM_data) )	/* what if we had no header sofar? */
+  if ( ctx->transfer_encoding == ATOM_chunked )
+  { if ( cgi_chunked_write(ctx, NULL, 0) < 0 )
+      return -1;
+  } else
+  { size_t clen = ctx->datasize - ctx->data_offset;
+
+    if ( !call_hook(ctx, ATOM_send_header) )
+      return -1;
+    if ( Sfwrite(&ctx->data[ctx->data_offset], sizeof(char), clen, ctx->stream) != clen )
+      return -1;
+  }
+
+  if ( !call_hook(ctx, ATOM_close) )	/* what if we had no header sofar? */
     rc = -1;				/* TBD: pass error kindly */
 
   ctx->stream->encoding = ctx->parent_encoding;
@@ -469,6 +579,7 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
   ctx->module = module;
   ctx->thread = PL_thread_self();
   ctx->request = request;
+  ctx->transfer_encoding = ATOM_none;
   if ( !(s2 = Snew(ctx,
 		   (s->flags&CGI_COPY_FLAGS)|SIO_FBUF,
 		   &cgi_functions)) )
@@ -494,13 +605,21 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
 
 static void
 install_cgi_stream()
-{ ATOM_header       = PL_new_atom("header");
-  ATOM_header_codes = PL_new_atom("header_codes");
-  ATOM_data         = PL_new_atom("data");
-  ATOM_request      = PL_new_atom("request");
-  ATOM_header       = PL_new_atom("header");
-  ATOM_client       = PL_new_atom("client");
-  ATOM_thread       = PL_new_atom("thread");
+{ ATOM_header		 = PL_new_atom("header");
+  ATOM_header_codes	 = PL_new_atom("header_codes");
+  ATOM_send_header	 = PL_new_atom("send_header");
+  ATOM_data		 = PL_new_atom("data");
+  ATOM_request		 = PL_new_atom("request");
+  ATOM_header		 = PL_new_atom("header");
+  ATOM_client		 = PL_new_atom("client");
+  ATOM_thread		 = PL_new_atom("thread");
+  ATOM_chunked		 = PL_new_atom("chunked");
+  ATOM_none		 = PL_new_atom("none");
+  ATOM_transfer_encoding = PL_new_atom("transfer_encoding");
+  ATOM_close             = PL_new_atom("close");
+  ATOM_keep_alife        = PL_new_atom("keep_alife");
+  ATOM_connection        = PL_new_atom("connection");
+  ATOM_content_length    = PL_new_atom("content_length");
 
   PREDICATE_call3   = PL_predicate("call", 3, "system");
 
