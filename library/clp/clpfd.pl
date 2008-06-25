@@ -2304,7 +2304,7 @@ reify(Expr, B) :-
 
 is_drep(V)      :- var(V), !, instantiation_error(V).
 is_drep(N)      :- integer(N), !.
-is_drep(N..M)   :- !, drep_bound(N), N \== sup, drep_bound(M), M \== inf.
+is_drep(N..M)   :- !, drep_bound(N), drep_bound(M), N \== sup, M \== inf.
 is_drep(D1\/D2) :- !, is_drep(D1), is_drep(D2).
 
 drep_bound(V)   :- var(V), !, instantiation_error(V).
