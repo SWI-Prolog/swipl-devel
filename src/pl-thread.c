@@ -772,6 +772,15 @@ PL_thread_self()
 }
 
 
+int
+PL_unify_thread_id(term_t t, int i)
+{ if ( i < 0 || i >= MAX_THREADS || threads[i].status == PL_THREAD_UNUSED )
+    return -1;				/* error */
+
+  return unify_thread_id(t, &threads[i]);
+}
+
+
 #ifdef __WINDOWS__
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4491,6 +4500,15 @@ int
 PL_thread_self()
 { return -2;
 }
+
+
+int
+PL_unify_thread_id(term_t t, int i)
+{ if ( i == -2 )
+    return PL_unify_atom(t, ATOM_main);
+  return -1;
+}
+
 
 int
 PL_thread_at_exit(void (*function)(void *), void *closure, int global)

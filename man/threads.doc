@@ -790,6 +790,11 @@ Returns the integer Prolog identifier of the engine or -1 if the calling
 thread has no Prolog engine.  This function is also provided in the
 single-threaded version of SWI-Prolog, where it returns -2.
 
+    \cfunction{int}{PL_unify_thread_id}{term_t t, int i}
+Unify \arg{t} with the Prolog thread identifier for thread \arg{i}.
+Thread identifiers are normally returned from PL_thread_self().  Returns
+-1 if the thread does not exists or the unification result.
+
     \cfunction{int}{PL_thread_attach_engine}{const PL_thread_attr_t *attr}
 Creates a new Prolog engine in the calling thread. If the calling thread
 already has an engine the reference count of the engine is incremented.

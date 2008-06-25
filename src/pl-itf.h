@@ -878,6 +878,7 @@ typedef struct
 
 
 PL_EXPORT(int)	PL_thread_self(void);	/* Prolog thread id (-1 if none) */
+PL_EXPORT(int)  PL_unify_thread_id(term_t t, int i);
 PL_EXPORT(int)	PL_thread_attach_engine(PL_thread_attr_t *attr);
 PL_EXPORT(int)	PL_thread_destroy_engine(void);
 PL_EXPORT(int)	PL_thread_at_exit(void (*function)(void *),
