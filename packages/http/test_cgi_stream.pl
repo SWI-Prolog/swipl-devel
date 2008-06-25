@@ -42,7 +42,6 @@
 
 :- use_module(library(plunit)).
 :- use_module(library(debug)).
-:- use_module(library(memfile)).
 :- use_module(http_stream).
 :- use_module(http_header).
 :- use_module(http_client).
@@ -67,15 +66,43 @@ test_cgi_stream :-
 		 *	    DESTINATION		*
 		 *******************************/
 
-open_dest(MemF, Out) :-
-	new_memory_file(MemF),
-	open_memory_file(MemF, write, Out).
+open_dest(TmpF, Out) :-
+	tmp_file(http, TmpF),
+	open(TmpF, write, Out, [type(binary)]).
 
+free_dest(TmpF) :-
+	delete_file(TmpF).
 
-http_read_mf(MemF, Header, Data) :-
-	open_memory_file(MemF, read, In),
+http_read_mf(TmpF, Header, Data) :-
+	open(TmpF, read, In, [type(binary)]),
 	http_read_reply_header(In, Header),
 	http_read_data(Header, Data, to(atom)).
+
+
+		 /*******************************
+		 *	      MAKE DATA		*
+		 *******************************/
+
+%%	data_atom(+Length, +Min, +Max, -Atom) is det.
+%
+%	Create an atom of Length codes.  It contains repeating sequences
+%	Min..Max.
+
+data_atom(Length, Min, Max, Atom) :-
+	data_list(Length, Min, Max, List),
+	atom_codes(Atom, List).
+
+data_list(Length, Min, Max, List) :-
+	Span is Max - Min,
+	data_list(Length, Min, 0, Span, List).
+
+data_list(Len, Min, I, Span, [H|T]) :-
+	Len > 0, !,
+	H is Min + I mod Span,
+	Len2 is Len - 1,
+	I2 is I+1,
+	data_list(Len2, Min, I2, Span, T).
+data_list(_, _, _, _, []).
 
 
 		 /*******************************
@@ -120,8 +147,8 @@ cgi_hook(close, _).
 
 test(short_text_plain,
      [ Data == Reply,
-       setup(open_dest(MemF, Out)),
-       cleanup(free_memory_file(MemF))
+       setup(open_dest(TmpF, Out)),
+       cleanup(free_dest(TmpF))
      ]) :-
 	Data = 'Hello world\n',
 	cgi_open(Out, CGI, cgi_hook, []),
@@ -129,22 +156,36 @@ test(short_text_plain,
 	format(CGI, '~w', [Data]),
 	close(CGI),
 	close(Out),
-	http_read_mf(MemF, Header, Reply),
+	http_read_mf(TmpF, Header, Reply),
 	assert_header(Header, status(ok, _)).
 
 test(long_unicode_text,
      [ Data == Reply,
-       setup(open_dest(MemF, Out)),
-       cleanup(free_memory_file(MemF))
+       setup(open_dest(TmpF, Out)),
+       cleanup(free_dest(TmpF))
      ]) :-
-	numlist(1, 10000, L),
-	atom_codes(Data, L),
+	data_atom(10000, 1, 1000, Data),
 	cgi_open(Out, CGI, cgi_hook, []),
 	format(CGI, 'Content-type: text/plain\n\n', []),
+	flush_output(CGI),		% Should go; demands initial UTF-8 and switch.
 	format(CGI, '~w', [Data]),
 	close(CGI),
 	close(Out),
-	http_read_mf(MemF, Header, Reply),
+	http_read_mf(TmpF, Header, Reply),
+	assert_header(Header, status(ok, _)).
+
+test(long_binary,
+     [ Data == Reply,
+       setup(open_dest(TmpF, Out)),
+       cleanup(free_dest(TmpF))
+     ]) :-
+	data_atom(10000, 0, 255, Data),
+	cgi_open(Out, CGI, cgi_hook, []),
+	format(CGI, 'Content-type: application/octet-stream\n\n', []),
+	format(CGI, '~w', [Data]),
+	close(CGI),
+	close(Out),
+	http_read_mf(TmpF, Header, Reply),
 	assert_header(Header, status(ok, _)).
 
 :- end_tests(cgi_stream).
