@@ -265,7 +265,7 @@ x_headers(Options0, Out, Options) :-
 	x_headers(Options1, Out, Options).
 x_headers(Options, _, Options).
 
-%%	http_read_data(+Fields, +Data, +Options) is det.
+%%	http_read_data(+Fields, -Data, +Options) is det.
 %
 %	Read data from an HTTP connection.   Options must contain a term
 %	input(In) that provides the input stream   from the HTTP server.
