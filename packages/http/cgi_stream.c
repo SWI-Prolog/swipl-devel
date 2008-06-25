@@ -243,7 +243,10 @@ cgi_property(term_t cgi, term_t prop)
   
   PL_get_arg(1, prop, arg);
   if ( name == ATOM_request )
-  { rc = unify_record(arg, ctx->request);
+  { if ( ctx->request )
+      rc = unify_record(arg, ctx->request);
+    else
+      rc = PL_unify_nil(arg);
   } else if ( name == ATOM_header )
   { rc = unify_record(arg, ctx->header);
   } else if ( name == ATOM_client )
@@ -414,10 +417,11 @@ start_chunked_encoding(cgi_context *ctx)
 static size_t
 find_data(cgi_context *ctx, size_t start)
 { const char *s = &ctx->data[start];
-  const char *e = &s[ctx->datasize];
+  const char *e = &s[ctx->datasize-2];
 
   for(; s<e; s++)
   { if ( s[0] == '\r' && s[1] == '\n' &&
+	 s < e-2 &&
 	 s[2] == '\r' && s[3] == '\n' )
       return &s[4] - ctx->data;
     if ( s[0] == '\n' && s[1] == '\n' )
@@ -448,6 +452,8 @@ static ssize_t
 cgi_write(void *handle, char *buf, size_t size)
 { cgi_context *ctx = handle;
 
+  DEBUG(1, Sdprintf("cgi_write(%ld bytes)\n", (long)size));
+
   if ( ctx->transfer_encoding == ATOM_chunked )
   { return cgi_chunked_write(ctx, buf, size);
   } else
@@ -462,10 +468,10 @@ cgi_write(void *handle, char *buf, size_t size)
     ctx->datasize = osize+size;
     osize = (osize > 4 ? osize-4 : 0);	/* 4 is max size of the separator */
 
-    if ( (ctx->state = CGI_HDR) &&
+    if ( ctx->state == CGI_HDR &&
 	 (dstart=find_data(ctx, osize)) != ((size_t)-1) )
     { ctx->data_offset = dstart;
-      ctx->state = CGI_DATA;		/* TBD: fix encoding (UTF-8 --> octet)!!! */
+      ctx->state = CGI_DATA;
       if ( !call_hook(ctx, ATOM_header) )
 	return -1;			/* TBD: pass error kindly */
     }
@@ -495,6 +501,8 @@ static int
 cgi_close(void *handle)
 { cgi_context *ctx = handle;
   int rc = 0;
+
+  DEBUG(1, Sdprintf("cgi_close()\n"));
 
   if ( ctx->transfer_encoding == ATOM_chunked )
   { if ( cgi_chunked_write(ctx, NULL, 0) < 0 )
