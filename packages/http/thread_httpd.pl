@@ -34,7 +34,10 @@
 	    http_server/2,		% :Goal, +Options
 	    http_workers/2,		% +Port, ?WorkerCount
 	    http_current_worker/2,	% ?Port, ?ThreadID
-	    http_stop_server/2		% +Port, +Options
+	    http_stop_server/2,		% +Port, +Options
+	    
+	    http_requeue/1,		% +Request
+	    http_close_connection/1	% +Request
 	  ]).
 :- use_module(library(debug)).
 :- use_module(library(error)).
@@ -310,9 +313,8 @@ resize_pool(Queue, Size) :-
 %	stops.
 
 http_worker(Options) :-
-	option(timeout(Timeout), Options, infinite),
-	option(queue(Queue), Options),
 	thread_at_exit(done_worker),
+	option(queue(Queue), Options),
 	repeat,
 	  garbage_collect,
 	  thread_get_message(Queue, Message),
@@ -320,35 +322,60 @@ http_worker(Options) :-
 	  ->  thread_self(Self),
 	      thread_detach(Self),
 	      thread_send_message(Sender, quitted(Self))
-	  ;   open_client(Message, Goal, In, Out, ClientOptions),
-	      set_stream(In, timeout(Timeout)),
-	      debug(http(server), 'Running server goal ~p on ~p -> ~p',
-		    [Goal, In, Out]),
-	      (	  catch(server_loop(Goal, In, Out, ClientOptions, Options), E, true)
-	      ->  (   var(E)
-		  ->  true
-		  ;   (   message_level(E, Level)
-		      ->  true
-		      ;	  Level = error
-		      ),
-		      debug(http(server), 'Caught exception ~q (level ~q)',
-			    [E, Level]),
-		      print_message(Level, E),
-		      memberchk(peer(Peer), ClientOptions),
-		      close_connection(Peer, In, Out)
-		  )
-	      ;	  print_message(error,
-				goal_failed(server_loop(Goal, In, Out,
-							ClientOptions, Options)))
-	      ),
-	      fail
-	  ),
-	!.
+	  ;   (	  setup_and_call_cleanup(
+		    open_client(Message, Queue, Goal, In, Out,
+				Options, ClientOptions),
+		    http_process(Goal, In, Out,
+				 Options, ClientOptions),
+	            Reason,
+		    cleanup(Reason, ClientOptions, In, Out))
+	      ->  fail
+	      ;	  fail
+	      )
+	  ).
 
-%%	open_client(+Message, -Goal, -In, -Out, -Options) is det.
+cleanup(exit, _ClientOptions, _In, _Out).
+cleanup(fail, ClientOptions, In, Out) :-
+	memberchk(peer(Peer), ClientOptions),
+	close_connection(Peer, In, Out),
+	print_message(error, goal_failed(http_process/5)).
+cleanup(!, ClientOptions, In, Out) :-
+	debug(http(nondet), 'Non-deterministic success of handler', []),
+	cleanup(exit, ClientOptions, In, Out).
+cleanup(exception(Ex), ClientOptions, In, Out) :-
+	(   message_level(Ex, Level)
+	->  true
+	;   Level = error
+	),
+	print_message(Level, Ex),
+	memberchk(peer(Peer), ClientOptions),
+	close_connection(Peer, In, Out).
+	
+
+%%	open_client(+Message, +Queue, -Goal, -In, -Out,
+%%		    +Options, -ClientOptions) is semidet.
 %
 %	Opens the connection to the client in a worker from the message
 %	sent to the queue by accept_server/2.
+
+open_client(requeue(In, Out, Goal, ClOpts), _, Goal, In, Out, Opts, ClOpts) :- !,
+	memberchk(peer(Peer), ClOpts),
+	debug(http(connection), 'Waiting on keep-alife from ~p', [Peer]),
+	option(timeout(TimeOut), Opts, infinite),
+	option(keep_alive_timeout(KeepAliveTMO), Opts, 5),
+	set_stream(In, timeout(KeepAliveTMO)),
+	catch(peek_code(In, _), E,
+	      close_connection(Peer, In, Out)),
+	var(E),
+	set_stream(In, timeout(TimeOut)).
+open_client(Message, Queue, Goal, In, Out, _Opts,
+	    [ pool(Queue, Goal, In, Out)
+	    | Options
+	    ]) :-
+	open_client(Message, Goal, In, Out, Options),
+	memberchk(peer(Peer), Options),
+	debug(http(connection), 'Opened connection from ~p', [Peer]).
+
 
 open_client(Message, Goal, In, Out, Options) :-
 	open_client_hook(Message, Goal, In, Out, Options), !.
@@ -385,40 +412,66 @@ message_level(error(io_error(read, _), _),	silent).
 message_level(error(timeout_error(read, _), _),	informational).
 message_level(keep_alive_timeout,		silent).
 
-%%	server_loop(:Goal, +In, +Out, +Socket, +ClientOptions, +Options)
-%	
-%	Handle a client on the given stream. It will keep the connection
-%	open as long as the client wants this
 
-server_loop(_Goal, In, Out, ClientOptions, _) :-
-	at_end_of_stream(In), !,
-	memberchk(peer(Peer), ClientOptions),
-	close_connection(Peer, In, Out).
-server_loop(Goal, In, Out, ClientOptions, Options) :-
+%%	http_requeue(+Header)
+%
+%	Re-queue a connection to  the  worker   pool.  This  deals  with
+%	processing additional requests on keep-alife connections.
+
+http_requeue(Header) :-
+	requeue_header(Header, ClientOptions),
+	memberchk(pool(Queue, Goal, In, Out), ClientOptions),
+	thread_send_message(Queue, requeue(In, Out, Goal, ClientOptions)).
+
+requeue_header([], []).
+requeue_header([H|T0], [H|T]) :-
+	requeue_keep(H), !,
+	requeue_header(T0, T).
+requeue_header([_|T0], T) :-
+	requeue_header(T0, T).
+
+requeue_keep(pool(_,_,_,_)).
+requeue_keep(peer(_)).
+requeue_keep(protocol(_)).
+
+
+%%	http_process(Message, Queue, +Options)
+%	
+%	Handle a single client message on the given stream.
+
+http_process(Goal, In, Out, Options, ClientOptions) :-
+	debug(http(server), 'Running server goal ~p on ~p -> ~p',
+	      [Goal, In, Out]),
 	http_wrapper(Goal, In, Out, Connection,
 		     [ request(Request)
 		     | ClientOptions
 		     ]),
+	after(Request, Options),
 	(   downcase_atom(Connection, 'keep-alive')
-	->  after(Request, Options),
-	    option(timeout(TimeOut), Options, infinite),
-	    option(keep_alive_timeout(KeepAliveTMO), Options, 5),
-	    set_stream(In, timeout(KeepAliveTMO)),
-	    catch(peek_code(In, _), _, throw(keep_alive_timeout)),
-	    set_stream(In, timeout(TimeOut)),
-	    server_loop(Goal, In, Out, ClientOptions, Options)
-	;   memberchk(peer(Peer), ClientOptions),
-	    close_connection(Peer, In, Out),
-	    after(Request, Options)
+	->  http_requeue(Request)
+	;   http_close_connection(Request)
 	).
 
-%	run `after' hook each time after processing a request.
+%%	after(+Request, +Options) is det.
+%
+%	Run `after' hook each time after processing a request.
 
 after(Request, Options) :-
 	(   option(after(After), Options)
-	->  call(After, Request)
+	->  (   call(After, Request)
+	    ->	true
+	    )
 	;   true
 	).
+
+%%	http_close_connection(+Request)
+%
+%	Close connection associated to Request.  See also http_requeue/1.
+
+http_close_connection(Request) :-
+	memberchk(pool(_Queue, _Goal, In, Out), Request),
+	memberchk(peer(Peer), Request),
+	close_connection(Peer, In, Out).
 
 %%	close_connection(+Peer, +In, +Out)
 %	
