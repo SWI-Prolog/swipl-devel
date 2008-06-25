@@ -32,7 +32,10 @@
 :- module(http_stream,
 	  [ http_chunked_open/3,	% +Stream, -DataStream, +Options
 	    stream_range_open/3,	% +Stream, -DataStream, +Options
-	    cgi_open/4			% +Stream, -DataStream, :Hook, +Options
+					% CGI Stream interaction
+	    cgi_open/4,			% +Stream, -DataStream, :Hook, +Options
+	    cgi_property/2,		% +Stream, -Property
+	    cgi_set/2			% +Stream, -Property
 	  ]).
 
 :- initialization

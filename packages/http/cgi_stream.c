@@ -68,8 +68,13 @@ cgi stream from thread to thread while keeping track of the work-flow.
 		 *******************************/
 
 static atom_t ATOM_header;		/* header */
+static atom_t ATOM_header_codes;	/* header_codes */
 static atom_t ATOM_data;		/* data */
-static predicate_t PREDICATE_call3;	/* Goal, Event, Data */
+static atom_t ATOM_request;		/* request */
+static atom_t ATOM_header;		/* header */
+static atom_t ATOM_client;		/* client */
+static atom_t ATOM_thread;		/* thread */
+static predicate_t PREDICATE_call3;	/* Goal, Event, Handle */
 
 
 		 /*******************************
@@ -89,9 +94,15 @@ typedef struct cgi_context
 { IOSTREAM	   *stream;		/* Original stream */
   IOSTREAM	   *cgi_stream;		/* Stream I'm handle of */
   IOENC		    parent_encoding;	/* Saved encoding of parent */
+					/* Prolog attributes */
+  int		    thread;		/* Associated thread */
   module_t	    module;		/* Calling module */
   record_t	    hook;		/* Hook called on action */
+  record_t	    request;		/* Associated request term */
+  record_t	    header;		/* Associated reply header term */
+					/* state */
   cgi_state	    state;		/* Current state */
+					/* data buffering */
   size_t	    data_offset;	/* Start of real data */
   char		   *data;		/* Buffered data */
   size_t	    datasize;		/* #bytes buffered */
@@ -159,6 +170,121 @@ grow_data_buffer(cgi_context *ctx, size_t size)
 
 
 		 /*******************************
+		 *	     PROPERTIES		*
+		 *******************************/
+
+static IOFUNCTIONS cgi_functions;
+
+static int
+get_cgi_stream(term_t t, IOSTREAM **sp, cgi_context **ctx)
+{ IOSTREAM *s;
+  
+  if ( !PL_get_stream_handle(t, &s) || s->functions != &cgi_functions )
+    return type_error(t, "cgi_stream");
+  
+  *sp = s;
+  *ctx = s->handle;
+
+  return TRUE;
+}
+
+
+static int
+unify_record(term_t t, record_t r)
+{ if ( r )
+  { term_t t2 = PL_new_term_ref();
+    PL_recorded(r, t2);
+    return PL_unify(t, t2);
+  }
+  return FALSE;
+}
+
+
+static foreign_t
+cgi_property(term_t cgi, term_t prop)
+{ IOSTREAM *s;
+  cgi_context *ctx;
+  term_t arg = PL_new_term_ref();
+  atom_t name;
+  int arity;
+  int rc = TRUE;
+
+  if ( !get_cgi_stream(cgi, &s, &ctx) )
+    return FALSE;
+
+  if ( !PL_get_name_arity(prop, &name, &arity) || arity != 1 )
+  { rc = type_error(prop, "cgi_property");
+    goto out;
+  }
+  
+  PL_get_arg(1, prop, arg);
+  if ( name == ATOM_request )
+  { rc = unify_record(arg, ctx->request);
+  } else if ( name == ATOM_header )
+  { rc = unify_record(arg, ctx->header);
+  } else if ( name == ATOM_client )
+  { rc = PL_unify_stream(arg, ctx->stream);
+  } else if ( name == ATOM_thread )
+  { rc = PL_unify_thread_id(arg, ctx->thread);
+  } else if ( name == ATOM_header_codes )
+  { if ( ctx->data_offset > 0 )
+      rc = PL_unify_chars(arg, PL_CODE_LIST, ctx->data_offset, ctx->data);
+    else
+      rc = existence_error(cgi, "header");
+  } else
+  { return existence_error(prop, "cgi_property");
+  }
+
+out:
+  PL_release_stream(s);
+  return rc;
+}
+
+
+static int
+set_term(record_t *r, term_t t)
+{ if ( *r )
+    PL_erase(*r);
+  *r = PL_record(t);
+
+  return TRUE;
+}
+
+
+static foreign_t
+cgi_set(term_t cgi, term_t prop)
+{ IOSTREAM *s;
+  cgi_context *ctx;
+  term_t arg = PL_new_term_ref();
+  atom_t name;
+  int arity;
+  int rc = TRUE;
+
+  if ( !get_cgi_stream(cgi, &s, &ctx) )
+    return FALSE;
+
+  if ( !PL_get_name_arity(prop, &name, &arity) || arity != 1 )
+  { rc = type_error(prop, "cgi_property");
+    goto out;
+  }
+  
+  PL_get_arg(1, prop, arg);
+  if ( name == ATOM_request )
+  { rc = set_term(&ctx->request, arg);
+  } else if ( name == ATOM_header )
+  { rc = set_term(&ctx->header, arg);
+  } else
+  { return existence_error(prop, "cgi_property");
+  }
+  
+out:
+  PL_release_stream(s);
+  return rc;
+}
+
+
+
+		 /*******************************
 		 *	      HOOKS		*
 		 *******************************/
 
@@ -172,21 +298,16 @@ following additional arguments:
 
 static int
 call_hook(cgi_context *ctx, atom_t event)
-{ IOSTREAM *in;
-  fid_t fid = PL_open_foreign_frame();
+{ fid_t fid = PL_open_foreign_frame();
   term_t av = PL_new_term_refs(3);
   qid_t qid;
   int rc;
 
-  if ( !(in=Sopenmem(&ctx->data, &ctx->datasize, "r")) )
-    return FALSE;
-  
   PL_recorded(ctx->hook, av+0);
   PL_put_atom(av+1, event);
-  PL_unify_stream(av+2, in);
+  PL_unify_stream(av+2, ctx->cgi_stream);
   qid = PL_open_query(ctx->module, PL_Q_CATCH_EXCEPTION, PREDICATE_call3, av);
   rc = PL_next_solution(qid);
-  Sclose(in);
 
   if ( !rc )
   { term_t ex;
@@ -312,8 +433,9 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
   term_t head = PL_new_term_ref();
   cgi_context *ctx;
   IOSTREAM *s, *s2;
-  term_t hook = PL_new_term_ref();
   module_t module = NULL;
+  term_t hook = PL_new_term_ref();
+  record_t request = 0;
 
   PL_strip_module(closure, &module, hook);
   if ( !PL_is_callable(hook) )
@@ -327,6 +449,10 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
     if ( !PL_get_name_arity(head, &name, &arity) || arity != 1 )
       return type_error(head, "option");
     PL_get_arg(1, head, arg);
+    if ( name == ATOM_request )
+    { request = PL_record(arg);
+    } else
+      return existence_error(head, "cgi_open_option");
   }
   if ( !PL_get_nil(tail) )
     return type_error(tail, "list");
@@ -341,6 +467,8 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
   ctx = alloc_cgi_context(s);
   ctx->hook = PL_record(hook);
   ctx->module = module;
+  ctx->thread = PL_thread_self();
+  ctx->request = request;
   if ( !(s2 = Snew(ctx,
 		   (s->flags&CGI_COPY_FLAGS)|SIO_FBUF,
 		   &cgi_functions)) )
@@ -366,9 +494,17 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
 
 static void
 install_cgi_stream()
-{ ATOM_header     = PL_new_atom("header");
-  ATOM_data       = PL_new_atom("data");
-  PREDICATE_call3 = PL_predicate("call", 3, "system");
+{ ATOM_header       = PL_new_atom("header");
+  ATOM_header_codes = PL_new_atom("header_codes");
+  ATOM_data         = PL_new_atom("data");
+  ATOM_request      = PL_new_atom("request");
+  ATOM_header       = PL_new_atom("header");
+  ATOM_client       = PL_new_atom("client");
+  ATOM_thread       = PL_new_atom("thread");
 
-  PL_register_foreign("cgi_open", 4, pl_cgi_open, PL_FA_TRANSPARENT);
+  PREDICATE_call3   = PL_predicate("call", 3, "system");
+
+  PL_register_foreign("cgi_open",     4, pl_cgi_open, PL_FA_TRANSPARENT);
+  PL_register_foreign("cgi_property", 2, cgi_property, 0);
+  PL_register_foreign("cgi_set",      2, cgi_set, 0);
 }
