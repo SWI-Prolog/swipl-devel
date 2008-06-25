@@ -31,7 +31,7 @@
 
 :- module(test_cgi_stream,
 	  [ test_cgi_stream/0,
-	    t/0, d/0
+	    t/0, d/0, nd/0
 	  ]).
 :- asserta(user:file_search_path(foreign, '.')).
 :- asserta(user:file_search_path(foreign, '../clib')).
@@ -45,13 +45,19 @@
 :- use_module(library(memfile)).
 :- use_module(http_stream).
 :- use_module(http_header).
+:- use_module(http_client).
 
 t :-
 	test_cgi_stream.
 
 d :-
 	http_stream:http_stream_debug(1),
-	debug(http(hook)).
+	debug(http(hook)),
+	debug(http(header)).
+nd :-
+	http_stream:http_stream_debug(0),
+	nodebug(http(hook)),
+	nodebug(http(header)).
 
 test_cgi_stream :-
 	run_tests([ cgi_stream
@@ -64,6 +70,22 @@ test_cgi_stream :-
 open_dest(MemF, Out) :-
 	new_memory_file(MemF),
 	open_memory_file(MemF, write, Out).
+
+
+http_read_mf(MemF, Header, Data) :-
+	open_memory_file(MemF, read, In),
+	http_read_reply_header(In, Header),
+	http_read_data(Header, Data, to(atom)).
+
+
+		 /*******************************
+		 *	       TEST		*
+		 *******************************/
+
+assert_header(Header, Field) :-
+	memberchk(Field, Header), !.
+assert_header(_Header, Field) :-
+	format(user_error, 'ERROR: ~p expected in header~n', [Field]).
 
 
 		 /*******************************
@@ -96,15 +118,34 @@ cgi_hook(close, _).
 
 :- begin_tests(cgi_stream, [sto(rational_trees)]).
 
-test(short_text_plain, [setup(open_dest(MemF, Out)), cleanup(free_memory_file(MemF))]) :-
+test(short_text_plain,
+     [ Data == Reply,
+       setup(open_dest(MemF, Out)),
+       cleanup(free_memory_file(MemF))
+     ]) :-
+	Data = 'Hello world\n',
 	cgi_open(Out, CGI, cgi_hook, []),
 	format(CGI, 'Content-type: text/plain\n\n', []),
-	format(CGI, 'Hello world\n', []),
-	flush_output(CGI),
+	format(CGI, '~w', [Data]),
 	close(CGI),
 	close(Out),
-	memory_file_to_codes(MemF, Data),
-	format('~s', [Data]).
+	http_read_mf(MemF, Header, Reply),
+	assert_header(Header, status(ok, _)).
+
+test(long_unicode_text,
+     [ Data == Reply,
+       setup(open_dest(MemF, Out)),
+       cleanup(free_memory_file(MemF))
+     ]) :-
+	numlist(1, 10000, L),
+	atom_codes(Data, L),
+	cgi_open(Out, CGI, cgi_hook, []),
+	format(CGI, 'Content-type: text/plain\n\n', []),
+	format(CGI, '~w', [Data]),
+	close(CGI),
+	close(Out),
+	http_read_mf(MemF, Header, Reply),
+	assert_header(Header, status(ok, _)).
 
 :- end_tests(cgi_stream).
 

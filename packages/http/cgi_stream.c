@@ -461,7 +461,7 @@ cgi_write(void *handle, char *buf, size_t size)
     size_t dstart;
   
     if ( osize+size > ctx->dataallocated )
-    { if ( grow_data_buffer(ctx, size) < 0 )
+    { if ( grow_data_buffer(ctx, osize+size) < 0 )
 	return -1;			/* no memory */
     }
     memcpy(&ctx->data[osize], buf, size);
