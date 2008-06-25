@@ -644,6 +644,10 @@ vstatus(Status) -->
 	status_comment(Status),
 	"\r\n".
 
+%%	status_number(-Code)//
+%
+%	Parse the HTTP status numbers and return them as a code (atom).
+
 status_number(continue)	       --> "100".
 status_number(ok)	       --> "200".
 status_number(moved)	       --> "301".
@@ -1042,9 +1046,17 @@ chars_to_semicolon([]) -->
 		 *	     REPLY DCG		*
 		 *******************************/
 
-%	Typical reply:
+%%	reply(+In, -Reply:list)// is semidet.
 %
-%	HTTP/1.1 200 OK
+%	Process the first line of an HTTP   reply.  After that, read the
+%	remainder  of  the  header  and    parse  it.  After  successful
+%	completion, Reply contains the following fields, followed by the
+%	fields produced by http_read_header/2.
+%	
+%	    * http_version(Major-Minor)
+%	    * status(StatusCode, Comment)
+%	    
+%	StatusCode is one of the values provided by status_number//1.
 
 reply(Fd, [http_version(HttpVersion), status(Status, Comment)|Header]) -->
 	http_version(HttpVersion),
@@ -1053,10 +1065,12 @@ reply(Fd, [http_version(HttpVersion), status(Status, Comment)|Header]) -->
 	->  []
 	;   integer(Status)
 	),
-	string(Comment),
-	blanks_to_nl,
 	blanks,
-	{ http_read_header(Fd, Header)
+	string(CommentCodes),
+	blanks_to_nl, !,
+	blanks,
+	{ atom_codes(Comment, CommentCodes),
+	  http_read_header(Fd, Header)
 	}.
 
 
