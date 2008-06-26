@@ -30,8 +30,8 @@
 */
 
 :- module(test_cgi_stream,
-	  [ test_cgi_stream/0,
-	    t/0, d/0, nd/0
+	  [ test_cgi_stream/0
+	    , t/0, d/0, nd/0		% Handy things
 	  ]).
 :- asserta(user:file_search_path(foreign, '.')).
 :- asserta(user:file_search_path(foreign, '../clib')).
@@ -110,6 +110,28 @@ data_list(Len, Min, I, Span, [H|T]) :-
 	data_list(Len2, Min, I2, Span, T).
 data_list(_, _, _, _, []).
 
+%%	data(+Name, -Data, -ContentType) is det.
+%
+%	Create data-sets to be used with the PlUnit forall option.
+
+data(short_ascii, Data, 'text/plain') :-
+	data_atom(10, 97, 128, Data).
+data(ascii, Data, 'text/plain') :-
+	data_atom(126, 1, 128, Data).
+data(unicode, Data, 'text/plain') :-
+	data_atom(10, 1000, 1010, Data).
+data(long_unicode, Data, 'text/plain') :-
+	data_atom(10000, 1, 1000, Data).
+data(long_binary, Data, 'text/plain') :-
+	data_atom(10000, 0, 255, Data).
+
+%%	current_data(-Name) is nondet.
+%
+%	Enumerate available datasets.
+
+current_data(Name) :-
+	clause(data(Name, _, _), _).
+
 
 		 /*******************************
 		 *	       TEST		*
@@ -118,7 +140,8 @@ data_list(_, _, _, _, []).
 assert_header(Header, Field) :-
 	memberchk(Field, Header), !.
 assert_header(_Header, Field) :-
-	format(user_error, 'ERROR: ~p expected in header~n', [Field]).
+	format(user_error, 'ERROR: ~p expected in header~n', [Field]),
+	fail.
 
 
 		 /*******************************
@@ -153,57 +176,15 @@ cgi_hook(close, _).
 
 :- begin_tests(cgi_stream, [sto(rational_trees)]).
 
-test(short_text_plain,
-     [ Reply == Data,
+test(traditional,
+     [ forall(current_data(Name)),
+       Reply == Data,
        setup(open_dest(TmpF, Out)),
        cleanup(free_dest(TmpF))
      ]) :-
-	Data = 'Hello world\n',
+	data(Name, Data, ContentType),
 	cgi_open(Out, CGI, cgi_hook, []),
-	format(CGI, 'Content-type: text/plain\n\n', []),
-	format(CGI, '~w', [Data]),
-	close(CGI),
-	close(Out),
-	http_read_mf(TmpF, Header, Reply),
-	assert_header(Header, status(ok, _)).
-
-test(long_unicode_text,
-     [ Reply == Data,
-       setup(open_dest(TmpF, Out)),
-       cleanup(free_dest(TmpF))
-     ]) :-
-	data_atom(10000, 1, 1000, Data),
-	cgi_open(Out, CGI, cgi_hook, []),
-	format(CGI, 'Content-type: text/plain\n\n', []),
-	format(CGI, '~w', [Data]),
-	close(CGI),
-	close(Out),
-	http_read_mf(TmpF, Header, Reply),
-	assert_header(Header, status(ok, _)).
-
-test(long_binary,
-     [ Reply == Data,
-       setup(open_dest(TmpF, Out)),
-       cleanup(free_dest(TmpF))
-     ]) :-
-	data_atom(10000, 0, 255, Data),
-	cgi_open(Out, CGI, cgi_hook, []),
-	format(CGI, 'Content-type: application/octet-stream\n\n', []),
-	format(CGI, '~w', [Data]),
-	close(CGI),
-	close(Out),
-	http_read_mf(TmpF, Header, Reply),
-	assert_header(Header, status(ok, _)).
-
-test(short_text_plain_chunked,
-     [ Reply == Data,
-       setup(open_dest(TmpF, Out)),
-       cleanup(free_dest(TmpF))
-     ]) :-
-	Data = 'Hello world\n',
-	cgi_open(Out, CGI, cgi_hook, []),
-	format(CGI, 'Transfer-encoding: chunked\n', []),
-	format(CGI, 'Content-type: text/plain\n\n', []),
+	format(CGI, 'Content-type: ~w\n\n', [ContentType]),
 	format(CGI, '~w', [Data]),
 	close(CGI),
 	close(Out),
@@ -214,17 +195,18 @@ test(short_text_plain_chunked,
 
 :- begin_tests(cgi_chunked, [sto(rational_trees)]).
 
-test(short_text_plain,
-     [ Reply == Data,
+test(chunked,
+     [ forall(current_data(Name)),
+       Reply == Data,
        setup(open_dest(TmpF, Out)),
        cleanup(free_dest(TmpF))
      ]) :-
-	Data = 'Hello world\n',
+	data(Name, Data, ContentType),
 	cgi_open(Out, CGI, cgi_hook,
  		 [ request([http_version(1-1)])
 		 ]),
 	format(CGI, 'Transfer-encoding: chunked\n', []),
-	format(CGI, 'Content-type: text/plain\n\n', []),
+	format(CGI, 'Content-type: ~w\n\n', [ContentType]),
 	format(CGI, '~w', [Data]),
 	close(CGI),
 	close(Out),
