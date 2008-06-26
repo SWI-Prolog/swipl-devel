@@ -449,6 +449,8 @@ test_option(all(_)).
 test_option(set(_)).
 test_option(nondet).
 test_option(fixme(_)).
+test_option(forall(X)) :-
+	must_be(callable, X).
 
 %%	test_option(+Option) is semidet.
 %
@@ -630,18 +632,27 @@ unification_capability(_) :-
 %	Run a single test.  
 
 run_test(Unit, Name, Line, Options, Body) :-
+	option(forall(Generator), Options), !,
+	unit_module(Unit, Module),
+	term_variables(Generator, Vars),
+	forall(Module:Generator,
+	       run_test_once(Unit, @(Name,Vars), Line, Options, Body)).
+run_test(Unit, Name, Line, Options, Body) :-
+	run_test_once(Unit, Name, Line, Options, Body).
+
+run_test_once(Unit, Name, Line, Options, Body) :-
 	current_test_flag(test_options, GlobalOptions),
 	option(sto(false), GlobalOptions, false), !,
 	run_test_6(Unit, Name, Line, Options, Body, Result),
 	report_result(Result, Options).
-run_test(Unit, Name, Line, Options, Body) :-
+run_test_once(Unit, Name, Line, Options, Body) :-
 	current_unit(Unit, _Module, _Supers, UnitOptions),
 	option(sto(Type), UnitOptions),
 	\+ option(sto(_), Options), !,
 	current_unification_capability(Cap0),
 	call_cleanup(run_test_cap(Unit, Name, Line, [sto(Type)|Options], Body),
 		     set_unification_capability(Cap0)).
-run_test(Unit, Name, Line, Options, Body) :-
+run_test_once(Unit, Name, Line, Options, Body) :-
 	current_unification_capability(Cap0),
 	call_cleanup(run_test_cap(Unit, Name, Line, Options, Body),
 		     set_unification_capability(Cap0)).
@@ -1267,7 +1278,8 @@ message(plunit(blocked(N))) -->
 	[ '~D tests are blocked:'-[N] ].
 message(plunit(blocked(Pos, Name, Reason))) -->
 	locationprefix(Pos),
-	[ 'test ~w: ~w'-[Name, Reason] ].
+	test_name(Name),
+	[ ': ~w'-[Reason] ].
 
 					% fail/success
 message(plunit(no_tests)) --> !,
@@ -1296,7 +1308,8 @@ message(plunit(fixme(Failed,Passed,Nondet))) -->
 message(plunit(failed(Unit, Name, Line, Failure))) -->
        { unit_file(Unit, File) },
        locationprefix(File:Line),
-       ['test ~w: '- [Name] ],
+       test_name(Name),
+       [': '-[] ],
        failure(Failure).
 					% Setup/condition errors
 message(plunit(error(Where, Context, Exception))) -->
@@ -1308,7 +1321,8 @@ message(plunit(error(Where, Context, Exception))) -->
 message(plunit(sto(Unit, Name, Line))) -->
 	{ unit_file(Unit, File) },
        locationprefix(File:Line),
-       ['test ~w is subject to occurs check (STO): '- [Name] ].
+       test_name(Name),
+       [' is subject to occurs check (STO): '-[] ].
 message(plunit(sto(Type, Result))) -->
 	sto_type(Type),
 	sto_result(Result).
@@ -1327,6 +1341,11 @@ message(interrupt(begin)) -->
 message(interrupt(begin)) -->
 	'$messages':prolog_message(interrupt(begin)).
 :- endif.
+
+test_name(@(Name,Bindings)) --> !,
+	[ 'test ~w (forall bindings = ~p)'-[Name, Bindings] ].
+test_name(Name) --> !,
+	[ 'test ~w'-[Name] ].
 
 sto_type(sto_error_incomplete) -->
 	[ 'Finite trees (error checking): ' ].

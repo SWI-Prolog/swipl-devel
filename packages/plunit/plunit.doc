@@ -137,6 +137,13 @@ test(read, [ setup(create_file(Tmp)),
 the \const{cleanup} option to create and destroy the required execution
 environment.
 
+    \termitem{forall}{:Generator}
+Run the same test for each solution of \arg{Generator}. Each run invokes
+the setup and cleanup handlers. This can be used to run the same test
+with different inputs.  If an error occurs, the test is reported as
+\mbox{\texttt{name (forall bindings = } <vars> \texttt{)}}, where
+<vars> indicates the bindings of variables in \arg{Generator}.
+
     \termitem{true}{AnswerTerm Cmp Value}
 Body must succeed deterministically. AnswerTerm is compared to Value
 using the comparison operator \arg{Cmp}. \arg{Cmp} is typically one of

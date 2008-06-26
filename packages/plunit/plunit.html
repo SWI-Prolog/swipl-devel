@@ -275,6 +275,14 @@ test(read, [ setup(create_file(Tmp)),
 <VAR>Goal</VAR> is run before the test-body. Typically used together 
 with the <CODE>cleanup</CODE> option to create and destroy the required 
 execution environment.</DD>
+<DT><STRONG>forall</STRONG>(<VAR>:Generator</VAR>)</DT>
+<DD class="defbody">
+Run the same test for each solution of <VAR>Generator</VAR>. Each run 
+invokes the setup and cleanup handlers. This can be used to run the same 
+test with different inputs. If an error occurs, the test is reported as
+<TT>name (forall bindings =</TT> &lt;<VAR>vars</VAR>&gt; <TT>)</TT>, 
+where
+&lt;<VAR>vars</VAR>&gt; indicates the bindings of variables in <VAR>Generator</VAR>.</DD>
 <DT><STRONG>true</STRONG>(<VAR>AnswerTerm Cmp Value</VAR>)</DT>
 <DD class="defbody">
 Body must succeed deterministically. AnswerTerm is compared to Value 
