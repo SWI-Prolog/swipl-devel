@@ -233,7 +233,7 @@ then be used to search for solutions:
 As = [9, 5, 6, 7],
 Bs = [1, 0, 8, 5],
 Cs = [1, 0, 6, 5, 2] ;
-fail.
+false.
 ==
 
 It is perfectly reasonable to use CLP(FD) constraints instead of
@@ -252,15 +252,15 @@ This predicate can be used in all directions. For example:
 ==
 ?- fac(47, F).
 F = 258623241511168180642964355153611979969197632389120000000000 ;
-fail.
+false.
 
 ?- fac(N, 1).
 N = 0 ;
 N = 1 ;
-fail.
+false.
 
 ?- fac(N, 3).
-fail.
+false.
 ==
 
 To make the predicate terminate if any argument is instantiated, add
@@ -3905,7 +3905,7 @@ fd_dom(X, Drep) :-
    labeling all variables, fails. E must be reifiable. Examples:
 
    %?- clpfd:goals_entail([X#>2], X #> 3).
-   %@ fail.
+   %@ false.
 
    %?- clpfd:goals_entail([X#>1, X#<3], X #= 2).
    %@ true.
