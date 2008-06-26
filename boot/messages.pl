@@ -565,7 +565,7 @@ prolog_message(query(QueryResult)) -->
 	query_result(QueryResult).
 
 query_result(no) -->		% failure
-	[ 'fail.' ],
+	[ 'false.' ],
 	extra_line.
 query_result(yes([])) --> !,	% prompt_alternatives_on: groundness
 	[ 'true.' ],
