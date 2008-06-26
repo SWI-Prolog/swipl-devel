@@ -70,7 +70,8 @@ nd :-
 
 test_cgi_stream :-
 	run_tests([ cgi_stream,
-		    cgi_chunked
+		    cgi_chunked,
+		    cgi_errors
 		  ]).
 
 		 /*******************************
@@ -84,10 +85,16 @@ open_dest(TmpF, Out) :-
 free_dest(TmpF) :-
 	delete_file(TmpF).
 
+free_dest(TmpF, Out) :-
+	close(Out),
+	delete_file(TmpF).
+
 http_read_mf(TmpF, Header, Data) :-
 	open(TmpF, read, In, [type(binary)]),
 	http_read_reply_header(In, Header),
-	http_read_data(Header, Data, to(atom)).
+	http_read_data(Header, Data, to(atom)),
+	close(In).
+      
 
 cat(TmpF) :-
 	open(TmpF, read, In),
@@ -236,11 +243,11 @@ test(chunked,
 %	Run Goal as once/1, collecting possible messages in Messages.
 
 :- meta_predicate
-	collect_messages(0, -).
+	collect_messages(0, -, -).
 
-collect_messages(Goal, Messages) :-
+collect_messages(Goal, True, Messages) :-
 	strip_module(Goal, M, G),
-	collect_messages2(M:G, Messages).
+	collect_messages2(M:G, True, Messages).
 
 :- multifile
 	user:message_hook/3.
@@ -252,12 +259,16 @@ user:message_hook(Term, Kind, _Lines) :-
 	msg_collecting, !,
 	assert(msg(Term, Kind)).
 
-collect_messages2(Goal, Messages) :-
+collect_messages2(Goal, True, Messages) :-
 	assert(msg_collecting, Ref),
-	call_cleanup(Goal,
+	call_cleanup(call_result(Goal, True),
 		     (	 erase(Ref),
 			 findall(message(Term, Kind), retract(msg(Term, Kind)),
-				 Messages))), !.
+				 Messages))).
+
+call_result(Goal, true) :-
+	Goal, !.
+call_result(_, false).
 
 
 :- begin_tests(cgi_errors, [sto(rational_trees)]).
@@ -266,13 +277,38 @@ cgi_fail_hook(Event, _) :-
 	debug(http(hook), 'Failing hook for ~w', [Event]),
 	fail.
 
+cgi_error_hook(Event, _) :-
+	debug(http(hook), 'Error hook for ~w', [Event]),
+	throw(error(demo_error, _)).
+
 test(hook_failed,
+      [ setup(open_dest(TmpF, Out)),
+        cleanup(free_dest(TmpF, Out)),
+	error(io_error(_,_))
+      ]) :-
+ 	cgi_open(Out, CGI, cgi_fail_hook, []),
+ 	close(CGI).
+
+test(hook_error,
      [ setup(open_dest(TmpF, Out)),
-       cleanup(free_dest(TmpF)),
-       Messages = [message(io_warning(_,_),warning)]
+       cleanup(free_dest(TmpF, Out)),
+       error(demo_error)
      ]) :-
-	cgi_open(Out, CGI, cgi_fail_hook, []),
-	collect_messages(close(CGI), Messages),
-	close(Out).
+	cgi_open(Out, CGI, cgi_error_hook, []),
+	close(CGI).
 
 :- end_tests(cgi_errors).
+
+
+		 /*******************************
+		 *	       PORTRAY		*
+		 *******************************/
+
+user:portray(Atom) :-
+	atom(Atom),
+	atom_length(Atom, Len),
+	Len > 100, !,
+	sub_atom(Atom, 0, 35, _, Start),
+	sub_atom(Atom, _, 35, 0, End),
+	format('~q...[~D codes]...~q', [Start, Len, End]).
+

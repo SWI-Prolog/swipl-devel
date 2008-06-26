@@ -170,14 +170,14 @@ chunked_control(void *handle, int op, void *data)
 static int
 chunked_close(void *handle)
 { chunked_context *ctx = handle;
-  int rc;
+  int rc = 0;
 
   DEBUG(1, Sdprintf("chunked_close() ...\n"));
 
-  if ( Sfprintf(ctx->stream, "0\r\n\r\n") >= 0 )
-    rc = 0;
-  else
-    rc = -1;
+  if ( (ctx->chunked_stream->flags & SIO_OUTPUT) )
+  { if ( Sfprintf(ctx->stream, "0\r\n\r\n") < 0 )
+      rc = -1;
+  }
 
   ctx->stream->encoding = ctx->parent_encoding;
 
@@ -187,11 +187,13 @@ chunked_close(void *handle)
 
     free_chunked_context(ctx);
     rc2 = Sclose(parent);
-    return (rc2 == 0 && rc == 0) ? 0 : -1;
+    if ( rc == 0 )
+      rc = rc2;
   } else
   { free_chunked_context(ctx);
-    return rc;
   } 
+
+  return rc;
 }
 
 

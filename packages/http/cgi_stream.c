@@ -385,7 +385,8 @@ call_hook(cgi_context *ctx, atom_t event)
   { term_t ex;
     
     if ( (ex = PL_exception(qid)) )
-    { Sdprintf("Got exception from hook\n");
+    { Sset_exception(ctx->cgi_stream, ex);
+      
     } else
     { char buf[256];
       Ssprintf(buf, "CGI Hook %s failed", PL_atom_chars(event));
@@ -395,7 +396,8 @@ call_hook(cgi_context *ctx, atom_t event)
 
     PL_cut_query(qid);
     PL_close_foreign_frame(fid);
-    return FALSE;			/* TBD: Error */
+
+    return FALSE;
   }
   PL_close_query(qid);
   PL_discard_foreign_frame(fid);
@@ -425,11 +427,11 @@ start_chunked_encoding(cgi_context *ctx)
 static size_t
 find_data(cgi_context *ctx, size_t start)
 { const char *s = &ctx->data[start];
-  const char *e = &s[ctx->datasize-2];
+  const char *e = &ctx->data[ctx->datasize-2];
 
-  for(; s<=e; s++)
+  for(; s<e; s++)
   { if ( s[0] == '\r' && s[1] == '\n' &&
-	 s <= e-2 &&
+	 s < e-2 &&
 	 s[2] == '\r' && s[3] == '\n' )
       return &s[4] - ctx->data;
     if ( s[0] == '\n' && s[1] == '\n' )
@@ -481,7 +483,8 @@ cgi_write(void *handle, char *buf, size_t size)
 
     if ( ctx->state == CGI_HDR &&
 	 (dstart=find_data(ctx, osize)) != ((size_t)-1) )
-    { ctx->data_offset = dstart;
+    { assert(dstart <= ctx->datasize);
+      ctx->data_offset = dstart;
       ctx->state = CGI_DATA;
       if ( !call_hook(ctx, ATOM_header) )
 	return -1;			/* TBD: pass error kindly */
@@ -521,21 +524,27 @@ cgi_close(void *handle)
 
   if ( ctx->transfer_encoding == ATOM_chunked )
   { if ( cgi_chunked_write(ctx, NULL, 0) < 0 )
-      return -1;
+    { rc = -1;
+      goto out;
+    }
   } else
   { size_t clen = ctx->datasize - ctx->data_offset;
+    const char *dstart = &ctx->data[ctx->data_offset];
 
     if ( !call_hook(ctx, ATOM_send_header) )
-    { DEBUG(1, Sdprintf("send_header hook failed\n"));
-      return -1;
+    { rc = -1;
+      goto out;
     }
-    if ( Sfwrite(&ctx->data[ctx->data_offset], sizeof(char), clen, ctx->stream) != clen )
-      return -1;
+    if ( Sfwrite(dstart, sizeof(char), clen, ctx->stream) != clen )
+    { rc = -1;
+      goto out;
+    }
   }
 
   if ( !call_hook(ctx, ATOM_close) )	/* what if we had no header sofar? */
     rc = -1;				/* TBD: pass error kindly */
 
+out:
   ctx->stream->encoding = ctx->parent_encoding;
   free_cgi_context(ctx);
 
