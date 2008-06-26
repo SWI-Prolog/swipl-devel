@@ -217,6 +217,9 @@ apply(Pred, Arguments) :-
 _Var^Goal :-					% setof/3, bagof/3
 	Goal.
 
+false :-					% SICStus compatibility
+	fail.
+
 %	block/3, !/1, exit/2, fail/1
 %	`longjmp' like control-structures.  See manual.  The predicate
 %	system:block/3 is used by the VMI's I_CUT_BLOCK and B_EXIT.

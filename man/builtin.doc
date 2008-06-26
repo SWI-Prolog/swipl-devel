@@ -1164,6 +1164,8 @@ one_character_atoms(As) :-
     \predicate[ISO]{fail}{0}{}
 Always fail.  The predicate fail/0 is translated into a single virtual
 machine instruction.
+    \predicate{false}{0}{}
+Same as fail, but the name has a more declarative conotation.
     \predicate[ISO]{true}{0}{}
 Always succeed. The predicate true/0 is translated into a single virtual
 machine instruction.

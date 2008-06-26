@@ -216,6 +216,7 @@ suggest predicates from a keyword.
 \predicatesummary{export}{1}{Export a predicate from a module}
 \predicatesummary{export_list}{2}{List of public predicates of a module}
 \predicatesummary{fail}{0}{Always false}
+\predicatesummary{false}{0}{Always false}
 \predicatesummary{fail}{1}{Immediately fail named block. See block/3}
 \predicatesummary{current_prolog_flag}{2}{Get system configuration parameters}
 \predicatesummary{file_base_name}{2}{Get file part of path}
