@@ -192,7 +192,8 @@ typedef struct io_stream
   struct io_stream *	upstream;	/* stream providing our input */
   struct io_stream *	downstream;	/* stream providing our output */
   unsigned		newline : 2;	/* Newline mode */
-  intptr_t		reserved[3];	/* reserved for extension */
+  void *		exception;	/* pending exception (record_t) */
+  intptr_t		reserved[2];	/* reserved for extension */
 } IOSTREAM;
 
 
@@ -359,6 +360,11 @@ PL_EXPORT(int)		Sfpasteof(IOSTREAM *s);
 PL_EXPORT(int)		Sferror(IOSTREAM *s);
 PL_EXPORT(void)		Sclearerr(IOSTREAM *s);
 PL_EXPORT(void)		Sseterr(IOSTREAM *s, int which, const char *message);
+#ifdef _FLI_H_INCLUDED
+PL_EXPORT(void)		Sset_exception(IOSTREAM *s, term_t ex);
+#else
+PL_EXPORT(void)		Sset_exception(IOSTREAM *s, intptr_t ex);
+#endif
 PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC new_enc, IOENC *old_enc);
 PL_EXPORT(int)		Sflush(IOSTREAM *s);
 PL_EXPORT(long)		Ssize(IOSTREAM *s);

@@ -659,7 +659,18 @@ reportStreamError(IOSTREAM *s)
     PL_unify_stream_or_alias(stream, s);
 
     if ( (s->flags & SIO_FERR) )
-    { if ( s->flags & SIO_INPUT )
+    { if ( s->exception )
+      { fid_t fid = PL_open_foreign_frame();
+	term_t ex = PL_new_term_ref();
+	PL_recorded(s->exception, ex);
+	PL_erase(s->exception);
+	s->exception = NULL;
+	PL_raise_exception(ex);
+	PL_close_foreign_frame(fid);
+	fail;
+      }
+
+      if ( s->flags & SIO_INPUT )
       { if ( Sfpasteof(s) )
 	{ return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 			  ATOM_input, ATOM_past_end_of_stream, stream);
@@ -768,7 +779,8 @@ closeStream(IOSTREAM *s)
       Sclose(s);
       return FALSE;
     }
-    Sclose(s);				/* will unlock as well */
+    if ( Sclose(s) < 0 )		/* will unlock as well */
+      fail;
   }
 
   succeed;

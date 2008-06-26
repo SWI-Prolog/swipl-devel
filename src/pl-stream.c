@@ -140,12 +140,16 @@ STRYLOCK(IOSTREAM *s)
 #endif
 
 #include "pl-error.h"
+typedef void *record_t;
+typedef intptr_t term_t;
+
 extern int 			fatalError(const char *fm, ...);
 extern int 			PL_error(const char *pred, int arity,
 					 const char *msg, int id, ...);
 extern int			PL_handle_signals();
 extern IOENC			initEncoding(void);
 extern int			reportStreamError(IOSTREAM *s);
+extern record_t			PL_record(term_t t);
 
 		 /*******************************
 		 *	      BUFFER		*
@@ -1435,6 +1439,13 @@ Sseterr(IOSTREAM *s, int flag, const char *message)
 }
 
 
+void
+Sset_exception(IOSTREAM *s, term_t ex)
+{ s->exception = PL_record(ex);
+  s->flags |= SIO_FERR;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Set the encoding of a stream. The enc   argument is the new encoding. If
 old is not NULL, the old encoding is written to the given location.
@@ -1692,7 +1703,8 @@ Sclose(IOSTREAM *s)
     return rval;
 
   if ( s->upstream )
-  { errno = EPERM;
+  { Sseterr(s, SIO_FERR, "Locked by upstream filter");
+    reportStreamError(s);
     return -1;
   }
 
@@ -1713,7 +1725,9 @@ Sclose(IOSTREAM *s)
   }
 #endif
   if ( s->functions->close && (*s->functions->close)(s->handle) < 0 )
+  { s->flags |= SIO_FERR;
     rval = -1;
+  }
   run_close_hooks(s);
   while(s->locks > 0)			/* remove buffer-locks */
   { int rc = Sunlock(s);
