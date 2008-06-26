@@ -429,9 +429,9 @@ find_data(cgi_context *ctx, size_t start)
 { const char *s = &ctx->data[start];
   const char *e = &ctx->data[ctx->datasize-2];
 
-  for(; s<e; s++)
+  for(; s<=e; s++)
   { if ( s[0] == '\r' && s[1] == '\n' &&
-	 s < e-2 &&
+	 s <= e-2 &&
 	 s[2] == '\r' && s[3] == '\n' )
       return &s[4] - ctx->data;
     if ( s[0] == '\n' && s[1] == '\n' )

@@ -208,6 +208,21 @@ test(traditional,
 	http_read_mf(TmpF, Header, Reply),
 	assert_header(Header, status(ok, _)).
 
+test(unicode,
+     [ forall(Name=unicode),
+       Reply == Data,
+       setup(open_dest(TmpF, Out)),
+       cleanup(free_dest(TmpF))
+     ]) :-
+	data(Name, Data, ContentType),
+	cgi_open(Out, CGI, cgi_hook, []),
+	format(CGI, 'Content-type: ~w\n\n', [ContentType]),
+	format(CGI, '~w', [Data]),
+	close(CGI),
+	close(Out),
+	http_read_mf(TmpF, Header, Reply),
+	assert_header(Header, status(ok, _)).
+
 :- end_tests(cgi_stream).
 
 :- begin_tests(cgi_chunked, [sto(rational_trees)]).
