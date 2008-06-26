@@ -630,8 +630,8 @@ unification_capability(_) :-
 %	Run a single test.  
 
 run_test(Unit, Name, Line, Options, Body) :-
-	current_test_flag(test_options, Options),
-	option(sto(false), Options, false), !,
+	current_test_flag(test_options, GlobalOptions),
+	option(sto(false), GlobalOptions, false), !,
 	run_test_6(Unit, Name, Line, Options, Body, Result),
 	report_result(Result, Options).
 run_test(Unit, Name, Line, Options, Body) :-
