@@ -236,6 +236,12 @@ Cs = [1, 0, 6, 5, 2] ;
 false.
 ==
 
+In this case, it suffices to label a subset of variables to find the
+puzzle's unique solution, since the constraint solver is strong enough
+to reduce the domains of remaining variables to singleton sets. In
+general though, it is necessary to label all variables to obtain
+ground solutions.
+
 It is perfectly reasonable to use CLP(FD) constraints instead of
 ordinary integer arithmetic with is/2. This can make programs
 more general. For example:
