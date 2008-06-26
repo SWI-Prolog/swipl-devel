@@ -225,3 +225,54 @@ test(chunked,
 	assert_header(Header, transfer_encoding(chunked)).
 
 :- end_tests(cgi_chunked).
+
+
+		 /*******************************
+		 *	   ERROR HANDLING	*
+		 *******************************/
+
+%%	collect_messages(:Goal, -Messages) is semidet.
+%
+%	Run Goal as once/1, collecting possible messages in Messages.
+
+:- meta_predicate
+	collect_messages(0, -).
+
+collect_messages(Goal, Messages) :-
+	strip_module(Goal, M, G),
+	collect_messages2(M:G, Messages).
+
+:- multifile
+	user:message_hook/3.
+:- dynamic
+	msg_collecting/0,
+	msg/2.
+
+user:message_hook(Term, Kind, _Lines) :-
+	msg_collecting, !,
+	assert(msg(Term, Kind)).
+
+collect_messages2(Goal, Messages) :-
+	assert(msg_collecting, Ref),
+	call_cleanup(Goal,
+		     (	 erase(Ref),
+			 findall(message(Term, Kind), retract(msg(Term, Kind)),
+				 Messages))), !.
+
+
+:- begin_tests(cgi_errors, [sto(rational_trees)]).
+
+cgi_fail_hook(Event, _) :-
+	debug(http(hook), 'Failing hook for ~w', [Event]),
+	fail.
+
+test(hook_failed,
+     [ setup(open_dest(TmpF, Out)),
+       cleanup(free_dest(TmpF)),
+       Messages = [message(io_warning(_,_),warning)]
+     ]) :-
+	cgi_open(Out, CGI, cgi_fail_hook, []),
+	collect_messages(close(CGI), Messages),
+	close(Out).
+
+:- end_tests(cgi_errors).

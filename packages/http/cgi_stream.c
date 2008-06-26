@@ -387,7 +387,10 @@ call_hook(cgi_context *ctx, atom_t event)
     if ( (ex = PL_exception(qid)) )
     { Sdprintf("Got exception from hook\n");
     } else
-    { Sdprintf("Hook failed\n");
+    { char buf[256];
+      Ssprintf(buf, "CGI Hook %s failed", PL_atom_chars(event));
+
+      Sseterr(ctx->cgi_stream, SIO_WARN, buf);
     }    
 
     PL_cut_query(qid);
@@ -523,7 +526,9 @@ cgi_close(void *handle)
   { size_t clen = ctx->datasize - ctx->data_offset;
 
     if ( !call_hook(ctx, ATOM_send_header) )
+    { DEBUG(1, Sdprintf("send_header hook failed\n"));
       return -1;
+    }
     if ( Sfwrite(&ctx->data[ctx->data_offset], sizeof(char), clen, ctx->stream) != clen )
       return -1;
   }
