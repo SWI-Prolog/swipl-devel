@@ -647,55 +647,63 @@ isConsoleStream(IOSTREAM *s)
 
 
 bool
-streamStatus(IOSTREAM *s)
-{ int rval = TRUE;
+reportStreamError(IOSTREAM *s)
+{ if ( GD->cleaning == CLN_NORMAL &&
+       !isConsoleStream(s) &&
+       (s->flags & (SIO_FERR|SIO_WARN)) )
+  { GET_LD
+    atom_t op;
+    term_t stream = PL_new_term_ref();
+    char *msg;
 
-  if ( GD->cleaning == CLN_NORMAL )
-  { if ( (s->flags & (SIO_FERR|SIO_WARN)) && !isConsoleStream(s) )
-    { GET_LD
-      atom_t op;
-      term_t stream = PL_new_term_ref();
-      char *msg;
-  
-      PL_unify_stream_or_alias(stream, s);
-  
-      if ( (s->flags & SIO_FERR) )
-      { if ( s->flags & SIO_INPUT )
-	{ if ( Sfpasteof(s) )
-	  { rval = PL_error(NULL, 0, NULL, ERR_PERMISSION,
-			    ATOM_input, ATOM_past_end_of_stream, stream);
-	    goto out;
-	  } else if ( (s->flags & SIO_TIMEOUT) )
-	  { rval = PL_error(NULL, 0, NULL, ERR_TIMEOUT,
-			    ATOM_read, stream);
-	    Sclearerr(s);
-	    goto out;
-	  } else
-	    op = ATOM_read;
+    PL_unify_stream_or_alias(stream, s);
+
+    if ( (s->flags & SIO_FERR) )
+    { if ( s->flags & SIO_INPUT )
+      { if ( Sfpasteof(s) )
+	{ return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+			  ATOM_input, ATOM_past_end_of_stream, stream);
+	} else if ( (s->flags & SIO_TIMEOUT) )
+	{ PL_error(NULL, 0, NULL, ERR_TIMEOUT,
+		   ATOM_read, stream);
+	  Sclearerr(s);
+	  fail;
 	} else
-	  op = ATOM_write;
-    
-	msg = s->message ? s->message : MSG_ERRNO;
-
-	rval = PL_error(NULL, 0, msg, ERR_STREAM_OP, op, stream);
-	
-	if ( (s->flags & SIO_CLEARERR) )
-	  Sseterr(s, SIO_FERR, NULL);
+	  op = ATOM_read;
       } else
-      { printMessage(ATOM_warning,
-		     PL_FUNCTOR_CHARS, "io_warning", 2,
-		     PL_TERM, stream,
-		     PL_CHARS, s->message);
+	op = ATOM_write;
+  
+      msg = s->message ? s->message : MSG_ERRNO;
 
-	Sseterr(s, SIO_WARN, NULL);
-      }
+      PL_error(NULL, 0, msg, ERR_STREAM_OP, op, stream);
+      
+      if ( (s->flags & SIO_CLEARERR) )
+	Sseterr(s, SIO_FERR, NULL);
+
+      fail;
+    } else
+    { printMessage(ATOM_warning,
+		   PL_FUNCTOR_CHARS, "io_warning", 2,
+		   PL_TERM, stream,
+		   PL_CHARS, s->message);
+
+      Sseterr(s, SIO_WARN, NULL);
     }
   }
+  
+  succeed;
+}
 
-out:
+
+bool
+streamStatus(IOSTREAM *s)
+{ if ( (s->flags & (SIO_FERR|SIO_WARN)) )
+  { releaseStream(s);
+    return reportStreamError(s);
+  }
+
   releaseStream(s);
-
-  return rval;
+  succeed;
 }
 
 
@@ -740,9 +748,7 @@ dieIO()
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 closeStream() performs Prolog-level closing. Most important right now is
 to to avoid closing the user-streams. If a stream cannot be flushed (due
-to a write-error), an exception is  generated   and  the  stream is left
-open. This behaviour ensures proper error-handling. How to collect these
-resources??
+to a write-error), an exception is  generated.
 
 MT: We assume the stream is locked and will unlock it here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

@@ -145,6 +145,7 @@ extern int 			PL_error(const char *pred, int arity,
 					 const char *msg, int id, ...);
 extern int			PL_handle_signals();
 extern IOENC			initEncoding(void);
+extern int			reportStreamError(IOSTREAM *s);
 
 		 /*******************************
 		 *	      BUFFER		*
@@ -1715,7 +1716,13 @@ Sclose(IOSTREAM *s)
     rval = -1;
   run_close_hooks(s);
   while(s->locks > 0)			/* remove buffer-locks */
-    rval = Sunlock(s);
+  { int rc = Sunlock(s);
+
+    if ( rval == 0 )
+      rval = rc;
+  }
+  if ( rval < 0 )
+    reportStreamError(s);
 
   SUNLOCK(s);
 

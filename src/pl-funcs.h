@@ -249,6 +249,7 @@ COMMON(int) 		openFileDescriptors(unsigned char *buf, int size);
 COMMON(void) 		protocol(const char *s, size_t n);
 COMMON(bool) 		getInputStream__LD(term_t t, IOSTREAM **s ARG_LD);
 COMMON(bool) 		getOutputStream(term_t t, IOSTREAM **s);
+COMMON(bool)	        reportStreamError(IOSTREAM *s);
 COMMON(bool) 		streamStatus(IOSTREAM *s);
 COMMON(atom_t) 		fileNameStream(IOSTREAM *s);
 COMMON(int) 		getSingleChar(IOSTREAM *s, int signals);
