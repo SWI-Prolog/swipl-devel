@@ -228,7 +228,6 @@ test(short_text_plain,
 	format(CGI, '~w', [Data]),
 	close(CGI),
 	close(Out),
-	cat(TmpF),
 	http_read_mf(TmpF, Header, Reply),
 	assert_header(Header, status(ok, _)).
 
