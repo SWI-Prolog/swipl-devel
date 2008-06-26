@@ -228,7 +228,7 @@ tprofile(Thread) :-
 
 init_pce :-
 	current_prolog_flag(gui, true), !,
-	send(@(display), open).
+	call(send(@(display), open)).	% avoid autoloading
 init_pce.
 
 
