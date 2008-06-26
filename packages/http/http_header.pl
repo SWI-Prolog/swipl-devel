@@ -626,7 +626,10 @@ reply_header(chunked_data, HdrExtra) -->
 	vstatus(ok),
 	date(now),
 	header_fields(HdrExtra),
-	transfer_encoding(chunked),
+	(   {memberchk(transfer_encoding(_), HdrExtra)}
+	->  ""
+	;   transfer_encoding(chunked)
+	),
 	"\r\n".
 reply_header(moved(To, Tokens), HdrExtra) -->
 	vstatus(moved),
