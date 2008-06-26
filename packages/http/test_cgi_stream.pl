@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2008, University of Amsterdam
 
@@ -45,6 +45,16 @@
 :- use_module(http_stream).
 :- use_module(http_header).
 :- use_module(http_client).
+
+/** <module> Test CGI stream object
+
+This module defines a series of tests   outside  the context of the HTTP
+server to validate correct  processing  of   the  CGI  header,  handling
+different  encodings  and  transfer    encodings  (chunked/traditional).
+Instead of using real sockets, we use temporary storage on a file.
+
+@tbd	Validate error processing
+*/
 
 t :-
 	test_cgi_stream.
@@ -211,6 +221,7 @@ test(chunked,
 	close(CGI),
 	close(Out),
 	http_read_mf(TmpF, Header, Reply),
-	assert_header(Header, status(ok, _)).
+	assert_header(Header, status(ok, _)),
+	assert_header(Header, transfer_encoding(chunked)).
 
 :- end_tests(cgi_chunked).
