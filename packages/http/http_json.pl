@@ -91,7 +91,8 @@ http_client:http_convert_data(In, Fields, Data, Options) :-
 	->  stream_range_open(In, Range, [size(Bytes)]),
 	    set_stream(Range, encoding(utf8)),
 	    call_cleanup(json_read(Range, Data, Options), close(Range))
-	;   json_read(In, Data, Options)
+	;   set_stream(In, encoding(utf8)),
+	    json_read(In, Data, Options)
 	).
 
 
