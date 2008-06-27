@@ -52,10 +52,17 @@
 :- use_module(library(lists)).
 :- use_module(library(url)).
 :- use_module(library(memfile)).
+:- use_module(library(settings)).
 :- use_module(dcg_basics).
 :- use_module(html_write).
 :- use_module(mimetype).
 :- use_module(mimepack).
+
+
+% see http_update_transfer/4.
+
+:- setting(http:chunked_transfer, oneof([never,on_request,if_possible]),
+	   on_request, 'When to use Transfer-Encoding: Chunked').
 
 
 		 /*******************************
@@ -377,10 +384,26 @@ connection(Header, Close) :-
 %%	http_update_transfer(+Request, +CGIHeader, -Transfer, -Header)
 %
 %	Decide on the transfer encoding  from   the  Request and the CGI
-%	header. If both request chunked,  use   this.  Otherwise  use no
-%	transfer encoding.
+%	header.    The    behaviour    depends      on    the    setting
+%	http:chunked_transfer. If =never=, even   explitic  requests are
+%	ignored. If =on_request=, chunked encoding  is used if requested
+%	through  the  CGI  header  and  allowed    by   the  client.  If
+%	=if_possible=, chunked encoding is  used   whenever  the  client
+%	allows for it, which is  interpreted   as  the client supporting
+%	HTTP 1.1 or higher.
+%	
+%	Chunked encoding is more space efficient   and allows the client
+%	to start processing partial results. The drawback is that errors
+%	lead to incomplete pages instead of  a nicely formatted complete
+%	page.
 
 http_update_transfer(Request, CgiHeader, Transfer, Header) :-
+	setting(http:chunked_transfer, When),
+	http_update_transfer(When, Request, CgiHeader, Transfer, Header).
+
+http_update_transfer(never, _, CgiHeader, none, Header) :- !,
+	delete(transfer_encoding(_), CgiHeader, Header).
+http_update_transfer(_, Request, CgiHeader, Transfer, Header) :-
 	select(transfer_encoding(CgiTransfer), CgiHeader, Rest), !,
 	transfer(Request, ReqConnection),
 	join_transfer(ReqConnection, CgiTransfer, Transfer),
@@ -388,11 +411,11 @@ http_update_transfer(Request, CgiHeader, Transfer, Header) :-
 	->  Header = Rest
 	;   Header = [transfer_encoding(Transfer)|Rest]
 	).
-http_update_transfer(Request, CgiHeader, Transfer, Header) :-
+http_update_transfer(if_possible, Request, CgiHeader, Transfer, Header) :-
 	transfer(Request, Transfer),
 	Transfer \== none, !,
 	Header = [transfer_encoding(Transfer)|CgiHeader].
-http_update_transfer(_, CgiHeader, none, CgiHeader).
+http_update_transfer(_, _, CgiHeader, none, CgiHeader).
 
 join_transfer(chunked, chunked, chunked) :- !.
 join_transfer(_, _, none).
