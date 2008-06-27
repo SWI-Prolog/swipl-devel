@@ -2579,7 +2579,9 @@ parent (it is the entry of PL_next_solution()),
 	if ( BFR->frame == FR && BFR->type == CHP_CATCH )
 	{ DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));
 	  for(BFR = BFR->parent; BFR > (Choice)FR; BFR = BFR->parent)
-	  { assert(BFR->type == CHP_DEBUG);
+	  { if ( BFR->frame > FR )
+	      NEXT_INSTRUCTION;		/* choice from setup of setup_and_call_cleanup/4 */
+	    assert(BFR->type == CHP_DEBUG);
 	  }
 
 	  frameFinished(FR, FINISH_EXITCLEANUP PASS_LD);

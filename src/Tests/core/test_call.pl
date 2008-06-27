@@ -134,4 +134,11 @@ test(error_debug, [ true([X,E] == [42,error(x)]),
 	      E, true),
 	retract(v(X)).
      
+test(nondet, [Vs == [a,b,fail], cleanup(retractall(v_))]) :-
+	(   setup_and_call_cleanup(member(X,[a,b]), assert(v(X)),
+				   Exit, assert(v(Exit))),
+	    fail
+	;   findall(V, retract(v(V)), Vs)
+	).
+
 :- end_tests(setup_and_call_cleanup).
