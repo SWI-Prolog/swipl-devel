@@ -35,7 +35,8 @@
 					% CGI Stream interaction
 	    cgi_open/4,			% +Stream, -DataStream, :Hook, +Options
 	    cgi_property/2,		% +Stream, -Property
-	    cgi_set/2			% +Stream, -Property
+	    cgi_set/2,			% +Stream, -Property
+	    cgi_discard/1		% +Stream
 	  ]).
 
 :- initialization
@@ -138,6 +139,59 @@ bytes, dispite the fact that the underlying stream may be longer.
 %	    * If the stream is closed, it calls Hook using
 %	    call(Hook, data, Stream), where Stream holds the buffered
 %	    data.
+
+%%	cgi_property(+CGIStream, ?Property) is det.
+%
+%	Inquire the status of the CGI stream.  Defined properties are:
+%	
+%	    * request(-Term)
+%	    The original request
+%	    * header(-Term)
+%	    Term is the header term as registered using cgi_set/2
+%	    * client(-Stream)
+%	    Stream is the original output stream used to create
+%	    this stream.
+%	    * thread(-ThreadID)
+%	    ThreadID is the identifier of the `owning thread'
+%	    * transfer_encoding(-Tranfer)
+%	    One of =chunked= or =none=.
+%	    * connection(-Connection)
+%	    One of =keep_alife= or =close=
+%	    * content_length(-ContentLength)
+%	    Total byte-size of the content.  Available in the close
+%	    handler if the transfer_encoding is =none=.
+%	    * header_codes(-Codes)
+%	    Codes represents the header collected.  Available in the
+%	    header handler.
+%	    * state(-State)
+%	    One of =header=, =data= or =discarded=
+
+%%	cgi_set(+CGIStream, ?Property) is det.
+%
+%	Change one of the properies.  Supported properties are:
+%	
+%	    * request(+Term)
+%	    Associate a request to the stream.
+%	    * header(+Term)
+%	    Register a reply header.  This header is normally retrieved
+%	    from the =send_header= hook to send the reply header to the
+%	    client.
+%	    * connection(-Connection)
+%	    One of =keep_alife= or =close=.
+%	    * transfer_encoding(-Tranfer)
+%	    One of =chunked= or =none=.  Initially set to =none=.  When
+%	    switching to =chunked= from the =header= hook, it calls the
+%	    =send_header= hook and if there is data queed this is send
+%	    as first chunk.  Each subsequent write to the CGI stream 
+%	    emits a chunk.
+
+%%	cgi_discard(+CGIStream) is det.
+%
+%	Discard content produced sofar. It sets   the  state property to
+%	=discarded=, causing close to omit the   writing  the data. This
+%	must be to use an alternate output   (e.g. an error page) if the
+%	page generator fails.
+
 
 :- multifile
 	http:encoding_filter/3.		% +Encoding, +In0,  -In

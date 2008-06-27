@@ -41,7 +41,7 @@
 :- use_module(library(debug)).
 
 :- meta_predicate
-	http_wrapper(:, +, +, -, +).
+	http_wrapper(0, +, +, -, +).
 :- multifile
 	http:request_expansion/2.
 

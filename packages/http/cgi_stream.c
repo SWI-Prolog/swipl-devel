@@ -82,11 +82,13 @@ static atom_t ATOM_header;		/* header */
 static atom_t ATOM_header_codes;	/* header_codes */
 static atom_t ATOM_send_header;		/* send_header */
 static atom_t ATOM_data;		/* data */
+static atom_t ATOM_discarded;		/* discarded */
 static atom_t ATOM_request;		/* request */
 static atom_t ATOM_client;		/* client */
 static atom_t ATOM_thread;		/* thread */
 static atom_t ATOM_chunked;		/* chunked */
 static atom_t ATOM_none;		/* none */
+static atom_t ATOM_state;		/* state */
 static atom_t ATOM_transfer_encoding;	/* transfer_encoding */
 static atom_t ATOM_connection;		/* connection */
 static atom_t ATOM_keep_alife;		/* keep_alife */
@@ -103,7 +105,8 @@ static predicate_t PREDICATE_call3;	/* Goal, Event, Handle */
 
 typedef enum
 { CGI_HDR  = 0,
-  CGI_DATA
+  CGI_DATA,
+  CGI_DISCARDED
 } cgi_state;
 
 #define CGI_MAGIC 0xa85ce042
@@ -269,6 +272,18 @@ cgi_property(term_t cgi, term_t prop)
       rc = PL_unify_chars(arg, PL_CODE_LIST, ctx->data_offset, ctx->data);
     else
       rc = existence_error(cgi, "header");
+  } else if ( name == ATOM_state )
+  { atom_t state;
+
+    switch(ctx->state)
+    { case CGI_HDR:       state = ATOM_header; break;
+      case CGI_DATA:      state = ATOM_data; break;
+      case CGI_DISCARDED: state = ATOM_discarded; break;
+      default:
+	assert(0);
+    }
+
+    rc = PL_unify_atom(arg, state);
   } else
   { return existence_error(prop, "cgi_property");
   }
@@ -354,6 +369,20 @@ out:
   return rc;
 }
 
+
+static foreign_t
+cgi_discard(term_t cgi)
+{ IOSTREAM *s;
+  cgi_context *ctx;
+
+  if ( !get_cgi_stream(cgi, &s, &ctx) )
+    return FALSE;
+
+  ctx->state = CGI_DISCARDED;
+  PL_release_stream(s);
+
+  return TRUE;
+}
 
 
 		 /*******************************
@@ -467,6 +496,11 @@ cgi_write(void *handle, char *buf, size_t size)
 
   DEBUG(1, Sdprintf("cgi_write(%ld bytes)\n", (long)size));
 
+  if ( ctx->state == CGI_DISCARDED )
+  { Sseterr(ctx->cgi_stream, SIO_FERR, "CGI stream was discarded");
+    return -1;
+  }
+
   if ( ctx->transfer_encoding == ATOM_chunked )
   { return cgi_chunked_write(ctx, buf, size);
   } else
@@ -487,7 +521,9 @@ cgi_write(void *handle, char *buf, size_t size)
       ctx->data_offset = dstart;
       ctx->state = CGI_DATA;
       if ( !call_hook(ctx, ATOM_header) )
+      { ctx->state = CGI_DISCARDED;
 	return -1;			/* TBD: pass error kindly */
+      }
       ctx->cgi_stream->flags &= ~(SIO_FBUF|SIO_LBUF|SIO_NBUF);
       ctx->cgi_stream->flags |= SIO_FBUF;
     }
@@ -522,22 +558,24 @@ cgi_close(void *handle)
 
   DEBUG(1, Sdprintf("cgi_close()\n"));
 
-  if ( ctx->transfer_encoding == ATOM_chunked )
-  { if ( cgi_chunked_write(ctx, NULL, 0) < 0 )
-    { rc = -1;
-      goto out;
-    }
-  } else
-  { size_t clen = ctx->datasize - ctx->data_offset;
-    const char *dstart = &ctx->data[ctx->data_offset];
-
-    if ( !call_hook(ctx, ATOM_send_header) )
-    { rc = -1;
-      goto out;
-    }
-    if ( Sfwrite(dstart, sizeof(char), clen, ctx->stream) != clen )
-    { rc = -1;
-      goto out;
+  if ( ctx->state == CGI_DATA )
+  { if ( ctx->transfer_encoding == ATOM_chunked )
+    { if ( cgi_chunked_write(ctx, NULL, 0) < 0 )
+      { rc = -1;
+	goto out;
+      }
+    } else
+    { size_t clen = ctx->datasize - ctx->data_offset;
+      const char *dstart = &ctx->data[ctx->data_offset];
+  
+      if ( !call_hook(ctx, ATOM_send_header) )
+      { rc = -1;
+	goto out;
+      }
+      if ( Sfwrite(dstart, sizeof(char), clen, ctx->stream) != clen )
+      { rc = -1;
+	goto out;
+      }
     }
   }
 
@@ -643,11 +681,13 @@ install_cgi_stream()
   ATOM_header_codes	 = PL_new_atom("header_codes");
   ATOM_send_header	 = PL_new_atom("send_header");
   ATOM_data		 = PL_new_atom("data");
+  ATOM_discarded	 = PL_new_atom("discarded");
   ATOM_request		 = PL_new_atom("request");
   ATOM_header		 = PL_new_atom("header");
   ATOM_client		 = PL_new_atom("client");
   ATOM_thread		 = PL_new_atom("thread");
   ATOM_chunked		 = PL_new_atom("chunked");
+  ATOM_state		 = PL_new_atom("state");
   ATOM_none		 = PL_new_atom("none");
   ATOM_transfer_encoding = PL_new_atom("transfer_encoding");
   ATOM_close             = PL_new_atom("close");
@@ -660,4 +700,5 @@ install_cgi_stream()
   PL_register_foreign("cgi_open",     4, pl_cgi_open, PL_FA_TRANSPARENT);
   PL_register_foreign("cgi_property", 2, cgi_property, 0);
   PL_register_foreign("cgi_set",      2, cgi_set, 0);
+  PL_register_foreign("cgi_discard",  1, cgi_discard, 0);
 }
