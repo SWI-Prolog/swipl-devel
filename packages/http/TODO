@@ -37,6 +37,12 @@ alternative to using a CGI header for header info.  For example:
 	==
 
 
+---++ Session handling
+
+Especially now that we store the current request  as a record in the CGI
+stream, it is now much too expensive to get the current session.  How to
+deal with that?	 Also store in the CGI object?
+
 ---++ Debugging
 
 We plan to provide a in-core  store   for  requests with predicates that

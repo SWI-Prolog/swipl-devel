@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -36,7 +36,7 @@
 	    http_relative_path/2	% +AbsPath, -RelPath
 	  ]).
 :- use_module(http_header).
-:- use_module(library(memfile)).
+:- use_module(http_stream).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
 
@@ -75,83 +75,65 @@ wrapper(Goal, In, Out, Close, Options) :-
 	    memberchk(path(Location), Request1),
 	    thread_self(Self),
 	    debug(http(wrapper), '[~w] ~w ~w ...', [Self, Method, Location]),
-	    call_handler(Goal, Request1, Request, Error, CgiHeader, MemFile),
-	    debug(http(wrapper), '[~w] ~w ~w --> ~p', [Self, Method, Location, Error]),
-	    send_data(Out, Request, Error, CgiHeader, MemFile, Close)
-	).
-
-%%	send_data(+Out, +Request, +Error, +CgiHeader, +Memfile, -Close) is det.
-%
-%	Send data to the HTTP  client.   If  Error is unbound (processed
-%	ok), complete the header, fix the   encoding issues and send the
-%	data. If there is an error,  map   the  exception  into a proper
-%	error message and reply.
-%	
-%	@param Close	Unified to Keep-alife if both client and server
-%			want to keep the connection open.
-
-send_data(Out, Request, Error, CgiHeader0, MemFile, Connection) :-
-	var(Error), !,
-	size_memory_file(MemFile, Length),
-	open_memory_file(MemFile, read, TmpIn),
-	http_read_header(TmpIn, CgiHeader1),
-	append(CgiHeader0, CgiHeader1, CgiHeader),
-	http_update_connection(CgiHeader, Request, Connection, Header1),
-	http_update_encoding(Header1, Encoding, Header),
-	set_stream(Out, encoding(Encoding)),
-	(   Encoding == utf8
-	->  utf8_position_memory_file(MemFile, BytePos, ByteSize),
-	    Size is ByteSize - BytePos
-	;   seek(TmpIn, 0, current, Pos),
-	    Size is Length - Pos
-	),
-	call_cleanup(reply(TmpIn, Size, Out, Header),
-		     cleanup(TmpIn, Out, MemFile)).
-send_data(Out, _Request, Error, _CgiHeader, MemFile, Close) :-
-	free_memory_file(MemFile),
-	map_exception(Error, Reply, HdrExtra),
-	http_reply(Reply, Out, HdrExtra),
-	flush_output(Out),
-	(   memberchk(connection(Close), HdrExtra)
-	->  true
-	;   Close = close
+	    cgi_open(Out, CGI, cgi_hook, [request(Request1)]),
+	    current_output(OldOut),
+	    set_output(CGI),
+	    (   catch(call_handler(Goal, Request1), Error, true)
+	    ->  true
+	    ;   Error = failed
+	    ),
+	    set_output(OldOut),
+	    (	var(Error)
+	    ->  cgi_property(CGI, connection(Close))
+	    ;	cgi_discard(CGI),
+		map_exception(Error, Reply, HdrExtra),
+		http_reply(Reply, Out, HdrExtra),
+		flush_output(Out),
+		(   memberchk(connection(Close), HdrExtra)
+		->  true
+		;   Close = close
+		)
+	    ),
+	    close(CGI),
+	    debug(http(wrapper), '[~w] ~w ~w --> ~p', [Self, Method, Location, Error])
 	).
 
 
-%%	call_handler(:Goal, +RequestIn, -RequestOut, -Error, -CgiHeader, -MemFile)
-%	
-%	Process RequestIn using Goal, producing CGI data in MemFile
-
-call_handler(Goal, Request0, Request, Error, CgiHeader, MemFile) :-
-	new_memory_file(MemFile),
-	open_memory_file(MemFile, write, TmpOut),
-	current_output(OldOut),
-	set_output(TmpOut),
-	b_setval(http_cgi_header, []),
-	(   catch(call_handler(Goal, Request0, Request), Error, true)
-	->  true
-	;   Error = failed
-	),
-	b_getval(http_cgi_header, CgiHeader0),
-	reverse(CgiHeader0, CgiHeader),
-	nb_delete(http_request),
-	nb_delete(http_cgi_header),
-	set_output(OldOut),
-	close(TmpOut).
-
-call_handler(Goal, Request0, Request) :-
+call_handler(Goal, Request0) :-
 	expand_request(Request0, Request),
-	b_setval(http_request, Request),
+	current_output(CGI),
+	cgi_set(CGI, request(Request)),
 	call(Goal, Request).
 
-reply(TmpIn, Size, Out, Header) :-
-	http_reply(stream(TmpIn, Size), Out, Header),
-	flush_output(Out).
 
-cleanup(TmpIn, Out, MemFile) :-
-	set_stream(Out, encoding(octet)),
-	close(TmpIn),
-	free_memory_file(MemFile).
+%%	cgi_hook(+Event, +CGI) is det.
+%
+%	Hook called from the CGI   processing stream. See http_stream.pl
+%	for details.
+
+cgi_hook(What, _CGI) :-
+	debug(http(hook), 'Running hook: ~q', [What]),
+	fail.
+cgi_hook(header, CGI) :-
+	cgi_property(CGI, header_codes(HeadText)),
+	http_parse_header(HeadText, CgiHeader),
+	cgi_property(CGI, request(Request)),
+	http_update_connection(CgiHeader, Request, Connection, Header1),
+	http_update_transfer(Request, Header1, Transfer, Header2),
+	http_update_encoding(Header2, Encoding, Header),
+	set_stream(CGI, encoding(Encoding)),
+	cgi_set(CGI, connection(Connection)),
+	cgi_set(CGI, header(Header)),
+	cgi_set(CGI, transfer_encoding(Transfer)). % must be LAST
+cgi_hook(send_header, CGI) :-
+	cgi_property(CGI, header(Header)),
+	cgi_property(CGI, client(Out)),
+	(   cgi_property(CGI, transfer_encoding(chunked))
+	->  http_reply_header(Out, chunked_data, Header)
+	;   cgi_property(CGI, content_length(Len))
+	->  http_reply_header(Out, cgi_data(Len), Header)
+	).
+cgi_hook(close, _).
 
 
 %%	http_send_header(+Header)
@@ -159,10 +141,14 @@ cleanup(TmpIn, Out, MemFile) :-
 %	This API provides an alternative for writing the header field as
 %	a CGI header. Header has the  format Name(Value), as produced by
 %	http_read_header/2.
+%	
+%	@deprecated	Use CGI lines instead
 
 http_send_header(Header) :-
-	b_getval(http_cgi_header, CgiHeader0),
-	b_setval(http_cgi_header, [Header|CgiHeader0]).
+	current_output(CGI),
+	cgi_property(CGI, header(Header0)),
+	cgi_set(CGI, header([Header|Header0])).
+
 
 %%	expand_request(+Request0, -Request)
 %	
@@ -247,7 +233,8 @@ request_option(pool(_,_,_,_)).
 %	Returns the HTTP request currently being processed.
 
 http_current_request(Request) :-
-	b_getval(http_request, Request).
+	current_output(CGI),
+	cgi_property(CGI, request(Request)).
 
 
 %%	http_relative_path(+AbsPath, -RelPath)
