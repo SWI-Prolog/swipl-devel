@@ -211,9 +211,13 @@ static int
 get_cgi_stream(term_t t, IOSTREAM **sp, cgi_context **ctx)
 { IOSTREAM *s;
   
-  if ( !PL_get_stream_handle(t, &s) || s->functions != &cgi_functions )
+  if ( !PL_get_stream_handle(t, &s) )
+    return FALSE;
+  if ( s->functions != &cgi_functions )
+  { PL_release_stream(s);
     return type_error(t, "cgi_stream");
-  
+  }
+
   *sp = s;
   *ctx = s->handle;
 
@@ -285,7 +289,7 @@ cgi_property(term_t cgi, term_t prop)
 
     rc = PL_unify_atom(arg, state);
   } else
-  { return existence_error(prop, "cgi_property");
+  { rc = existence_error(prop, "cgi_property");
   }
 
 out:
@@ -361,7 +365,7 @@ cgi_set(term_t cgi, term_t prop)
       }
     }
   } else
-  { return existence_error(prop, "cgi_property");
+  { rc = existence_error(prop, "cgi_property");
   }
   
 out:
@@ -485,6 +489,8 @@ cgi_chunked_write(cgi_context *ctx, char *buf, size_t size)
     return -1;
   if ( Sfprintf(ctx->stream, "\r\n") < 0 )
     return -1;
+  if ( Sflush(ctx->stream) < 0 )
+    return -1;
 
   return size;
 }
@@ -572,7 +578,8 @@ cgi_close(void *handle)
       { rc = -1;
 	goto out;
       }
-      if ( Sfwrite(dstart, sizeof(char), clen, ctx->stream) != clen )
+      if ( Sfwrite(dstart, sizeof(char), clen, ctx->stream) != clen ||
+	   Sflush(ctx->stream) < 0 )
       { rc = -1;
 	goto out;
       }
