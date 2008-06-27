@@ -54,7 +54,8 @@ To use this file, simply load it.
 :- dynamic
 	user:prolog_exception_hook/4.
 
-guard(httpd_wrapper:call_handler/6).
+guard(httpd_wrapper:call_handler/6).	% old version
+guard(httpd_wrapper:wrapper/5).
 
 user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
 			   error(E, context(prolog_stack(Stack),Msg)),
