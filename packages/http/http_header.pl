@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -34,6 +34,7 @@
 	    http_read_reply_header/2,	% +Stream, -Reply
 	    http_reply/2,		% +What, +Stream
 	    http_reply/3,		% +What, +Stream, +HdrExtra
+	    http_reply_header/3,	% +Stream, +What, +HdrExtra
 
 	    http_timestamp/2,		% +Time, -HTTP string
 
@@ -379,10 +380,18 @@ connection(Header, Close) :-
 %	header. If both request chunked,  use   this.  Otherwise  use no
 %	transfer encoding.
 
-http_update_transfer(Request, CgiHeader, Transfer, [transfer_encoding(Transfer)|Rest]) :-
+http_update_transfer(Request, CgiHeader, Transfer, Header) :-
 	select(transfer_encoding(CgiTransfer), CgiHeader, Rest), !,
 	transfer(Request, ReqConnection),
-	join_transfer(ReqConnection, CgiTransfer, Transfer).
+	join_transfer(ReqConnection, CgiTransfer, Transfer),
+	(   Transfer == none
+	->  Header = Rest
+	;   Header = [transfer_encoding(Transfer)|Rest]
+	).
+http_update_transfer(Request, CgiHeader, Transfer, Header) :-
+	transfer(Request, Transfer),
+	Transfer \== none, !,
+	Header = [transfer_encoding(Transfer)|CgiHeader].
 http_update_transfer(_, CgiHeader, none, CgiHeader).
 
 join_transfer(chunked, chunked, chunked) :- !.
@@ -584,6 +593,16 @@ post_header(codes(Type, Codes), HdrExtra) -->
 		 /*******************************
 		 *       OUTPUT HEADER DCG	*
 		 *******************************/
+
+%%	http_reply_header(+Out:stream, +What, +HdrExtra) is det.
+%
+%	Create a reply header  using  reply_header//2   and  send  it to
+%	Stream.
+
+http_reply_header(Out, What, HdrExtra) :-
+	phrase(reply_header(What, HdrExtra), String), !,
+	format(Out, '~s', [String]).
+	
 
 reply_header(string(String), HdrExtra) -->
 	reply_header(string(text/plain, String), HdrExtra).
