@@ -98,6 +98,11 @@
 	    'chr not_locked'/1,
 	    'chr none_locked'/1,
 
+	    'chr error_lock'/1,
+	    'chr unerror_lock'/1,
+	    'chr not_error_locked'/1,
+	    'chr none_error_locked'/1,
+
 	    'chr update_mutable'/2,
 	    'chr get_mutable'/2,
 	    'chr create_mutable'/2,
@@ -311,9 +316,18 @@ run_suspensions_d([S|Next] ) :-
 	),
 	run_suspensions_d( Next).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% L O C K I N G
+%
+%	locking of variables in guards
+
+%= IMPLEMENTATION 1: SILENT FAILURE ============================================
+
+%- attribute handler -----------------------------------------------------------
+% 	intercepts unification of locked variable unification
+
 locked:attr_unify_hook(_,_) :- fail.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%- locking & unlocking ---------------------------------------------------------
 'chr lock'(T) :-
 	( var(T)
 	-> put_attr(T, locked, x)
@@ -334,6 +348,8 @@ lockv([T|R]) :- put_attr( T, locked, x), lockv(R).
 unlockv([]).
 unlockv([T|R]) :- del_attr( T, locked), unlockv(R).
 
+%- checking for locks ----------------------------------------------------------
+
 'chr none_locked'( []).
 'chr none_locked'( [V|Vs]) :-
 	( get_attr(V, locked, _) ->
@@ -345,6 +361,59 @@ unlockv([T|R]) :- del_attr( T, locked), unlockv(R).
 'chr not_locked'(V) :-
 	( var( V) ->
   		( get_attr( V, locked, _) ->
+			fail
+		;
+			true
+		)
+	;
+		true
+	).
+
+%= IMPLEMENTATION 2: EXPLICT EXCEPTION =========================================
+
+%- LOCK ERROR MESSAGE ----------------------------------------------------------
+lock_error(Term) :-
+	throw(error(instantation_error(Term),context(_,'CHR Runtime Error: unification in guard not allowed!'))).
+
+%- attribute handler -----------------------------------------------------------
+% 	intercepts unification of locked variable unification
+
+error_locked:attr_unify_hook(_,Term) :- lock_error(Term).
+
+%- locking & unlocking ---------------------------------------------------------
+'chr error_lock'(T) :-
+	( var(T)
+	-> put_attr(T, error_locked, x)
+        ;  term_variables(T,L),
+           error_lockv(L)
+	).
+
+error_lockv([]).
+error_lockv([T|R]) :- put_attr( T, error_locked, x), error_lockv(R).
+
+'chr unerror_lock'(T) :-
+	( var(T)
+	-> del_attr(T, error_locked)
+	;  term_variables(T,L),
+           unerror_lockv(L)
+	).
+
+unerror_lockv([]).
+unerror_lockv([T|R]) :- del_attr( T, error_locked), unerror_lockv(R).
+
+%- checking for locks ----------------------------------------------------------
+
+'chr none_error_locked'( []).
+'chr none_error_locked'( [V|Vs]) :-
+	( get_attr(V, error_locked, _) ->
+		fail
+	;
+		'chr none_error_locked'(Vs)
+	).
+
+'chr not_error_locked'(V) :-
+	( var( V) ->
+  		( get_attr( V, error_locked, _) ->
 			fail
 		;
 			true
