@@ -221,7 +221,7 @@ _G10128 in 2..8,
 _G10152 in 2..8.
 ==
 
-Here, the constraint solver could deduce more stringent bounds for all
+Here, the constraint solver has deduced more stringent bounds for all
 variables. Keeping the modeling part separate from the search allows
 to view these residual goals, observe termination and determinism
 properties of the modeling part in isolation from the search, and to
@@ -243,8 +243,7 @@ general though, it is necessary to label all variables to obtain
 ground solutions.
 
 It is perfectly reasonable to use CLP(FD) constraints instead of
-ordinary integer arithmetic with is/2. This can make programs
-more general. For example:
+ordinary integer arithmetic with is/2, >/2 etc. For example:
 
 ==
 :- use_module(library(clpfd)).
