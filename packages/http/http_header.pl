@@ -339,16 +339,16 @@ mime_type_encoding('application/json', utf8).
 mime_type_encoding('application/jsonrequest', utf8).
 
 
-%%	http_update_connection(+Request, +CGIHeader, -Connection, -Header)
+%%	http_update_connection(+CGIHeader, +Request, -Connection, -Header)
 %
 %	Merge keep-alive information from  Request   and  CGIHeader into
 %	Header.
 
-http_update_connection(Request, CgiHeader, Connect, [connection(Connect)|Rest]) :-
+http_update_connection(CgiHeader, Request, Connect, [connection(Connect)|Rest]) :-
 	select(connection(CgiConn), CgiHeader, Rest), !,
 	connection(Request, ReqConnection),
 	join_connection(ReqConnection, CgiConn, Connect).
-http_update_connection(Request, CgiHeader, Connect, [connection(Connect)|CgiHeader]) :-
+http_update_connection(CgiHeader, Request, Connect, [connection(Connect)|CgiHeader]) :-
 	connection(Request, Connect).
 
 join_connection(Keep1, Keep2, Connection) :-

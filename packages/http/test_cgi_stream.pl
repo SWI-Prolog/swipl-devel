@@ -172,7 +172,7 @@ cgi_hook(header, CGI) :-
 	cgi_property(CGI, header_codes(HeadText)),
 	http_parse_header(HeadText, CgiHeader),
 	cgi_property(CGI, request(Request)),
-	http_update_connection(Request, CgiHeader, Connection, Header1),
+	http_update_connection(CgiHeader, Request, Connection, Header1),
 	http_update_transfer(Request, Header1, Transfer, Header2),
 	http_update_encoding(Header2, Encoding, Header),
 	set_stream(CGI, encoding(Encoding)),
