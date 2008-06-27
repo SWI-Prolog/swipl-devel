@@ -287,7 +287,7 @@ print_trace(void)
      
   printf(" Stack:");
   for(i = 1; i < size; i++)
-  { printf(" [%ld] %s", (long)i, strings[i]);
+  { printf("\n\t[%ld] %s", (long)i, strings[i]);
   }
   printf("\n");
        
