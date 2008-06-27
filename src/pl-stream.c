@@ -150,6 +150,8 @@ extern int			PL_handle_signals();
 extern IOENC			initEncoding(void);
 extern int			reportStreamError(IOSTREAM *s);
 extern record_t			PL_record(term_t t);
+extern int			PL_thread_self(void);
+
 
 		 /*******************************
 		 *	      BUFFER		*
@@ -275,7 +277,7 @@ Sname(IOSTREAM *s)
 
 static void
 print_trace(void)
-{ void *array[3];
+{ void *array[7];
   size_t size;
   char **strings;
   size_t i;
@@ -285,7 +287,7 @@ print_trace(void)
      
   printf(" Stack:");
   for(i = 1; i < size; i++)
-  { printf(" [%d] %s", i, strings[i]);
+  { printf(" [%ld] %s", (long)i, strings[i]);
   }
   printf("\n");
        
@@ -299,8 +301,10 @@ Slock(IOSTREAM *s)
 { SLOCK(s);
 
 #ifdef DEBUG_IO_LOCKS
-  printf("  Lock: %d: %s: %d locks", PL_thread_self(), Sname(s), s->locks+1);
-  print_trace();
+  if ( s->locks > 2 )
+  { printf("  Lock [%d]: %s: %d locks", PL_thread_self(), Sname(s), s->locks+1);
+    print_trace();
+  }
 #endif
 
   if ( !s->locks++ )
@@ -331,8 +335,10 @@ S__unlock(IOSTREAM *s)
 { int rval = 0;
 
 #ifdef DEBUG_IO_LOCKS
-  printf("Unlock: %d: %s: %d locks", PL_thread_self(), Sname(s), s->locks-1);
-  print_trace();
+  if ( s->locks > 3 )
+  { printf("Unlock [%d]: %s: %d locks", PL_thread_self(), Sname(s), s->locks-1);
+    print_trace();
+  }
 #endif
 
   if ( s->locks )
