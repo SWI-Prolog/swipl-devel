@@ -64,6 +64,7 @@ for details.
 	http_current_server(:, ?).
 
 :- dynamic
+	port_option/2,			% Port, Option
 	current_server/4,		% Port, Goal, Thread, Queue
 	queue_worker/2,			% Queue, ThreadID
 	queue_options/2.		% Queue, Options
@@ -91,8 +92,9 @@ for details.
 http_server(Goal, Options) :-
 	strip_module(Goal, Module, G),
 	select_option(port(Port), Options, Options1), !,
-	after_option(Options1, Module, Options2),
+	meta_options(thread_httpd:http_meta_option, Options1, Options2),
 	make_socket(Port, Options2, Options3),
+	set_port_options(Port, Options3),
 	create_workers(Options3),
 	create_server(Module:G, Port, Options3).
 http_server(_Goal, _Options) :-
@@ -117,17 +119,6 @@ make_socket(Port, Options0, Options) :-
 		  | Options0
 		  ].
 
-%%	after_option(+Options0, +Module, -Options)
-%	
-%	Add the module qualifier to the goal for the after(Goal) option
-
-after_option(Options0, Module, Options) :-
-	select_option(after(After), Options0, Options1), !,
-	strip_module(Module:After, MA, A),
-	Options = [after(MA:A) | Options1].
-after_option(Options, _, Options).
-
-
 create_server(Goal, Port, Options) :-
 	memberchk(queue(Queue), Options),
 	atom_concat('http@', Port, Alias),
@@ -138,6 +129,27 @@ create_server(Goal, Port, Options) :-
 			alias(Alias)
 		      ]),
 	assert(current_server(Port, Goal, Alias, Queue)).
+
+
+%%	set_port_options(+Port, +Options) is det.
+%
+%	Register Options for the HTTP server at Port.
+
+set_port_options(Port, Options) :-
+	retractall(port_option(Port, _)),
+	assert_port_options(Options, Port).
+
+assert_port_options([], _).
+assert_port_options([Name=Value|T], Port) :- !,
+	Opt =.. [Name,Value],
+	assert(port_option(Port, Opt)),
+	assert_port_options(T, Port).
+assert_port_options([Opt|T], Port) :- !,
+	assert(port_option(Port, Opt)),
+	assert_port_options(T, Port).
+
+
+http_meta_option(after).
 
 
 %%	http_current_server(:Goal, ?Port) is nondet.
@@ -303,11 +315,7 @@ resize_pool(Queue, Size) :-
 %%	http_worker(+Options)
 %	
 %	Run HTTP worker main loop. Workers   simply  wait until they are
-%	passed an accepted socket to process  a client. After processing
-%	a request they keep processing requests from the same connection
-%	as long as =|Connection:  keep-alive|=   remains  requested from
-%	both parties. Otherwise they close the  connection and return to
-%	the worker pool.  See server_loop/6.
+%	passed an accepted socket to process  a client. 
 %	
 %	If the message quit(Sender) is read   from the queue, the worker
 %	stops.
@@ -364,9 +372,8 @@ open_client(requeue(In, Out, Goal, ClOpts), _, Goal, In, Out, Opts, ClOpts) :- !
 	option(timeout(TimeOut), Opts, infinite),
 	option(keep_alive_timeout(KeepAliveTMO), Opts, 5),
 	set_stream(In, timeout(KeepAliveTMO)),
-	catch(peek_code(In, _), E,
-	      close_connection(Peer, In, Out)),
-	var(E),
+	catch(peek_code(In, Code), E, true),
+	check_keep_alife_connection(Code, E, Peer, In, Out),
 	set_stream(In, timeout(TimeOut)).
 open_client(Message, Queue, Goal, In, Out, _Opts,
 	    [ pool(Queue, Goal, In, Out)
@@ -384,6 +391,16 @@ open_client(tcp_client(Socket, Goal, Peer), Goal, In, Out,
 	      protocol(http)
 	    ]) :-
 	tcp_open_socket(Socket, In, Out).
+
+
+%%	check_keep_alife_connection(+Peeked, +Error, +Peer, +In, +Out) is semidet.
+
+check_keep_alife_connection(Code, E, _, _, _) :-
+	var(E),				% no exception
+	Code \== -1, !.			% no end-of-file
+check_keep_alife_connection(_, _, Peer, In, Out) :-
+	close_connection(Peer, In, Out),
+	fail.
 
 
 %%	done_worker
