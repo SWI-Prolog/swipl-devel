@@ -84,8 +84,10 @@ wrapper(Goal, In, Out, Close, Options) :-
 	    ),
 	    set_output(OldOut),
 	    (	var(Error)
-	    ->  cgi_property(CGI, connection(Close))
+	    ->  cgi_property(CGI, connection(Close)),
+		close(CGI)
 	    ;	cgi_discard(CGI),
+		close(CGI),
 		map_exception(Error, Reply, HdrExtra),
 		http_reply(Reply, Out, HdrExtra),
 		flush_output(Out),
@@ -94,7 +96,6 @@ wrapper(Goal, In, Out, Close, Options) :-
 		;   Close = close
 		)
 	    ),
-	    close(CGI),
 	    debug(http(wrapper), '[~w] ~w ~w --> ~p', [Self, Method, Location, Error])
 	).
 
