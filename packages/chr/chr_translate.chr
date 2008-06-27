@@ -2285,11 +2285,7 @@ activate_constraint_body(Constraint,StoreYes,StoreNo,Vars,Susp,Generation,Body) 
 	;
 		get_dynamic_suspension_term_field(arguments,Constraint,Susp,Arguments,ArgumentsGoal),
 		generate_indexed_variables_body(Constraint,Arguments,IndexedVariablesBody,Vars),
-		( chr_pp_flag(guard_locks,off) ->
-			NoneLocked = true
-		;
-			NoneLocked = 'chr none_locked'( Vars)
-		),
+		chr_none_locked(Vars,NoneLocked),
 		if_used_state(Constraint,not_stored_yet,
 					  ( State == not_stored_yet ->
 					  	  ArgumentsGoal,
@@ -2490,11 +2486,7 @@ generate_insert_constraint_internal_body(Constraint,Susp,Continuation,Args,Vars,
 			GenID = true
 		),
 		generate_indexed_variables_body(Constraint,Args,IndexedVariablesBody,Vars),
-		( chr_pp_flag(guard_locks,off) ->
-			NoneLocked = true
-		;
-			NoneLocked = 'chr none_locked'( Vars)
-		),
+		chr_none_locked(Vars,NoneLocked),
 		Body =
 		(
 			Susp = Suspension,
@@ -2721,11 +2713,7 @@ generate_attach_increment_empty((attach_increment([],_) :- true)).
 generate_attach_increment_one(Clause) :-
 	Head = attach_increment([Var|Vars],Susps),
 	get_target_module(Mod),
-	( chr_pp_flag(guard_locks,off) ->
-		NotLocked = true
-	;
-		NotLocked = 'chr not_locked'( Var)
-	),
+	chr_not_locked(Var,NotLocked),
 	Body =
 	(
 		NotLocked,
@@ -2746,11 +2734,7 @@ generate_attach_increment_many(N,Clause) :-
 	merge_attributes(N,TAttr1,TAttr2,MergeGoal,Attr),
 	% writeln(merge_attributes_1_after),
 	get_target_module(Mod),
-	( chr_pp_flag(guard_locks,off) ->
-		NotLocked = true
-	;
-		NotLocked = 'chr not_locked'( Var)
-	),
+	chr_not_locked(Var,NotLocked),
 	Body =	
 	(
 		NotLocked,
@@ -6417,13 +6401,8 @@ guard_splitting(Rule,SplitGuardList) :-
 	ground_vars(Heads,GroundVars),	
 	list_difference_eq(HeadVars,GroundVars,LockableHeadVars),
 	intersect_eq(LockableHeadVars,GuardVars1,GuardVars),
-	( chr_pp_flag(guard_locks,on),
-          bagof(('chr lock'(X)) - ('chr unlock'(X)), (lists:member(X,GuardVars)), LocksUnlocks) ->
-		once(pairup(Locks,Unlocks,LocksUnlocks))
-	;
-		Locks = [],
-		Unlocks = []
-	),
+	maplist(chr_lock,GuardVars,Locks),
+	maplist(chr_unlock,GuardVars,Unlocks),
 	list2conj(Locks,LockPhase),
 	list2conj(Unlocks,UnlockPhase),
 	list2conj(RestGuardList,RestGuard1),
@@ -7221,11 +7200,16 @@ guard_body_copies2(Rule,VarDict,GuardCopyList,BodyCopy) :-
 	% variables that are declared to be ground don't need to be locked
 	ground_vars(H,GroundVars),
 	list_difference_eq(GuardVars,GroundVars,LockedGuardVars),
-	( chr_pp_flag(guard_locks,on),
-          bagof(('chr lock'(Y)) - ('chr unlock'(Y)),
-                X ^ (lists:member(X,LockedGuardVars),		% X is a variable appearing in the original guard
+	( chr_pp_flag(guard_locks,off) ->
+		Locks = [],
+		Unlocks = []
+	;
+          bagof(Lock - Unlock,
+                X ^ Y ^ (lists:member(X,LockedGuardVars),	 % X is a variable appearing in the original guard
                      pairlist:lookup_eq(VarDict,X,Y),            % translate X into new variable
-                     memberchk_eq(Y,GuardCopyVars)      % redundant check? or multiple entries for X possible?
+                     memberchk_eq(Y,GuardCopyVars),      	 % redundant check? or multiple entries for X possible?
+		     chr_lock(Y,Lock),
+		     chr_unlock(Y,Unlock)
                     ),
                 LocksUnlocks) ->
 		once(pairup(Locks,Unlocks,LocksUnlocks))
@@ -10973,6 +10957,49 @@ dump_code(Clauses) :-
 chr_banner :-
 	chr_info(banner,'\tThe K.U.Leuven CHR System\n\t\tMain Developer:\tTom Schrijvers\n\t\tContributors:\tJon Sneyers, Bart Demoen, Jan Wielemaker\n\t\tCopyright:\tK.U.Leuven, Belgium\n\t\tURL:\t\thttp://www.cs.kuleuven.be/~~toms/CHR/\n',[]).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LOCKING {{{
+
+chr_none_locked(Vars,Goal) :-
+	chr_pp_flag(guard_locks,Flag),
+	( Flag == off ->
+		Goal = true
+	; Flag == on ->
+		Goal = 'chr none_locked'( Vars)
+	; Flag == error ->
+		Goal = 'chr none_error_locked'( Vars)
+	).
+
+chr_not_locked(Var,Goal) :-
+	chr_pp_flag(guard_locks,Flag),
+	( Flag == off ->
+		Goal = true
+	; Flag == on ->
+		Goal = 'chr not_locked'( Var)
+	; Flag == error ->
+		Goal = 'chr not_error_locked'( Var)
+	).
+
+chr_lock(Var,Goal) :-
+	chr_pp_flag(guard_locks,Flag),
+	( Flag == off ->
+		Goal = true
+	; Flag == on ->
+		Goal = 'chr lock'( Var)
+	; Flag == error ->
+		Goal = 'chr error_lock'( Var)
+	).
+
+chr_unlock(Var,Goal) :-
+	chr_pp_flag(guard_locks,Flag),
+	( Flag == off ->
+		Goal = true
+	; Flag == on ->
+		Goal = 'chr unlock'( Var)
+	; Flag == error ->
+		Goal = 'chr unerror_lock'( Var)
+	).
+% }}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % AST representation
 %	each AST representation caches the original term

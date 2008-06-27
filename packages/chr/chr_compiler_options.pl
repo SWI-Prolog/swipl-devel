@@ -143,6 +143,8 @@ option_definition(check_guard_bindings,on,Flags) :-
 	Flags = [ guard_locks - on ].
 option_definition(check_guard_bindings,off,Flags) :-
 	Flags = [ guard_locks - off ].
+option_definition(check_guard_bindings,error,Flags) :-
+	Flags = [ guard_locks - error ].
 
 option_definition(reduced_indexing,on,Flags) :-
 	Flags = [ reduced_indexing - on ].
@@ -320,7 +322,7 @@ chr_pp_flag_definition(check_unnecessary_active,[off,full,simplification]).
 chr_pp_flag_definition(reorder_heads,[off,on]).
 chr_pp_flag_definition(set_semantics_rule,[off,on]).
 chr_pp_flag_definition(guard_via_reschedule,[off,on]).
-chr_pp_flag_definition(guard_locks,[on,off]).
+chr_pp_flag_definition(guard_locks,[on,off,error]).
 chr_pp_flag_definition(storage_analysis,[off,on]).
 chr_pp_flag_definition(debugable,[on,off]).
 chr_pp_flag_definition(reduced_indexing,[off,on]).
