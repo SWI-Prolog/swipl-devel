@@ -327,37 +327,27 @@ http_worker(Options) :-
 	  garbage_collect,
 	  thread_get_message(Queue, Message),
 	  (   Message = quit(Sender)
-	  ->  thread_self(Self),
+	  ->  !,
+	      thread_self(Self),
 	      thread_detach(Self),
 	      thread_send_message(Sender, quitted(Self))
-	  ;   (	  setup_and_call_cleanup(
-		    open_client(Message, Queue, Goal, In, Out,
-				Options, ClientOptions),
-		    http_process(Goal, In, Out,
-				 Options, ClientOptions),
-	            Reason,
-		    cleanup(Reason, ClientOptions, In, Out))
+	  ;   open_client(Message, Queue, Goal, In, Out,
+			  Options, ClientOptions),
+	      (	  catch(http_process(Goal, In, Out,
+				     Options, ClientOptions),
+			Error, true)
+	      ->  true
+	      ;	  Error = goal_failed(http_process/5)
+	      ),
+	      (	  var(Error)
 	      ->  fail
-	      ;	  fail
+	      ;	  current_message_level(Error, Level),
+		  print_message(Level, Error),
+		  memberchk(peer(Peer), ClientOptions),
+		  close_connection(Peer, In, Out),
+		  fail
 	      )
 	  ).
-
-cleanup(exit, _ClientOptions, _In, _Out).
-cleanup(fail, ClientOptions, In, Out) :-
-	memberchk(peer(Peer), ClientOptions),
-	close_connection(Peer, In, Out),
-	print_message(error, goal_failed(http_process/5)).
-cleanup(!, ClientOptions, In, Out) :-
-	debug(http(nondet), 'Non-deterministic success of handler', []),
-	cleanup(exit, ClientOptions, In, Out).
-cleanup(exception(Ex), ClientOptions, In, Out) :-
-	(   message_level(Ex, Level)
-	->  true
-	;   Level = error
-	),
-	print_message(Level, Ex),
-	memberchk(peer(Peer), ClientOptions),
-	close_connection(Peer, In, Out).
 	
 
 %%	open_client(+Message, +Queue, -Goal, -In, -Out,
@@ -368,18 +358,14 @@ cleanup(exception(Ex), ClientOptions, In, Out) :-
 
 open_client(requeue(In, Out, Goal, ClOpts), _, Goal, In, Out, Opts, ClOpts) :- !,
 	memberchk(peer(Peer), ClOpts),
-	debug(http(connection), 'Waiting on keep-alife from ~p', [Peer]),
-	option(timeout(TimeOut), Opts, infinite),
 	option(keep_alive_timeout(KeepAliveTMO), Opts, 5),
-	set_stream(In, timeout(KeepAliveTMO)),
-	catch(peek_code(In, Code), E, true),
-	check_keep_alife_connection(Code, E, Peer, In, Out),
-	set_stream(In, timeout(TimeOut)).
+	check_keep_alife_connection(In, KeepAliveTMO, Peer, In, Out).
 open_client(Message, Queue, Goal, In, Out, _Opts,
 	    [ pool(Queue, Goal, In, Out)
 	    | Options
 	    ]) :-
-	open_client(Message, Goal, In, Out, Options),
+	catch(open_client(Message, Goal, In, Out, Options),
+	      E, report_error(E)),
 	memberchk(peer(Peer), Options),
 	debug(http(connection), 'Opened connection from ~p', [Peer]).
 
@@ -392,15 +378,33 @@ open_client(tcp_client(Socket, Goal, Peer), Goal, In, Out,
 	    ]) :-
 	tcp_open_socket(Socket, In, Out).
 
-
-%%	check_keep_alife_connection(+Peeked, +Error, +Peer, +In, +Out) is semidet.
-
-check_keep_alife_connection(Code, E, _, _, _) :-
-	var(E),				% no exception
-	Code \== -1, !.			% no end-of-file
-check_keep_alife_connection(_, _, Peer, In, Out) :-
-	close_connection(Peer, In, Out),
+report_error(E) :-
+	print_message(error, E),
 	fail.
+
+
+%%	check_keep_alife_connection(+In, +TimeOut, +Peer, +In, +Out) is semidet.
+%
+%	Wait for the client for at most  TimeOut seconds. Succeed if the
+%	client starts a new request within   this  time. Otherwise close
+%	the connection and fail.
+
+check_keep_alife_connection(In, TMO, Peer, In, Out) :-
+	stream_property(In, timeout(Old)),
+	set_stream(In, timeout(TMO)),
+	debug(http(keep_alife), 'Waiting for keep-alife ...', []),
+	catch(peek_code(In, Code), E, true),
+	(   var(E),			% no exception
+	    Code \== -1			% no end-of-file
+	->  set_stream(In, timeout(Old)),
+	    debug(http(keep_alife), '\tre-using keep-alife connection', [])
+	;   (   Code == -1
+	    ->	debug(http(keep_alife), '\tRemote closed keep-alife connection', [])
+	    ;	debug(http(keep_alife), '\tTimeout on keep-alife connection', [])
+	    ),
+	    close_connection(Peer, In, Out),
+	    fail
+	).
 
 
 %%	done_worker
@@ -428,6 +432,12 @@ done_worker :-
 message_level(error(io_error(read, _), _),	silent).
 message_level(error(timeout_error(read, _), _),	informational).
 message_level(keep_alive_timeout,		silent).
+
+current_message_level(Term, Level) :-
+	(   message_level(Term, Level)
+	->  true
+	;   Level = error
+	).
 
 
 %%	http_requeue(+Header)
