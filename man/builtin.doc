@@ -2604,6 +2604,11 @@ The initial mode is \const{prolog} for the user streams and
 \const{error} for all other streams. See also \secref{encoding}
 and set_stream/2.
 
+    \termitem{timeout}{-Time}
+\arg{Time} is the timeout currently associated with the stream.  See
+set_stream/2 with the same option. If no timeout is specified,
+\arg{Time} is unified to the atom \const{infinite}.
+
     \termitem{type}{T}
 Unify \arg{Bool} with \const{text} or \const{binary}.
 

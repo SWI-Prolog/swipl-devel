@@ -3287,6 +3287,15 @@ stream_buffer_size_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+static int
+stream_timeout_prop(IOSTREAM *s, term_t prop ARG_LD)
+{ if ( s->timeout == -1 )
+    return PL_unify_atom(prop, ATOM_infinite);
+  
+  return PL_unify_float(prop, (double)s->timeout/1000.0);
+}
+
+
 typedef struct
 { functor_t functor;			/* functor of property */
   int (*function)();			/* function to generate */
@@ -3313,6 +3322,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_bom1,	    stream_bom_prop },
   { FUNCTOR_newline1,	    stream_newline_prop },
   { FUNCTOR_representation_errors1, stream_reperror_prop },
+  { FUNCTOR_timeout1,       stream_timeout_prop },
   { 0,			    NULL }
 };
 
