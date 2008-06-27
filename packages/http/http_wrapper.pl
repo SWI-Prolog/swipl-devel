@@ -51,15 +51,20 @@
 %	:Goal while watching for exceptions and send the result to the
 %	stream `Out'.
 %
-%	The goal is assumed to write a request to standard output preceeded
-%	by a header that should at least contain a Content-type: <type>
-%	line.  The header must be closed with a blank line.  The HTTP
-%	content-length is added by http_reply/3  Options:
+%	The goal is assumed  to  write   the  reply  to =current_output=
+%	preceeded by an HTTP header, closed by  a blank line. The header
+%	*must* contain a Content-type: <type>   line.  It may optionally
+%	contain a line =|Transfer-encoding: chunked|= to request chunked
+%	encoding.
+%
+%	Options:
 %	
 %		* request(-Request)
-%		Return the request to the caller
+%		Return the full request to the caller
 %		* peer(+Peer)
 %		IP address of client
+%		
+%	@param Close	Unified to one of =close= or =|Keep-Alife|=.	
 
 http_wrapper(GoalSpec, In, Out, Close, Options) :-
 	strip_module(GoalSpec, Module, Goal),

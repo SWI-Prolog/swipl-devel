@@ -139,6 +139,32 @@ bytes, dispite the fact that the underlying stream may be longer.
 %	    * If the stream is closed, it calls Hook using
 %	    call(Hook, data, Stream), where Stream holds the buffered
 %	    data.
+%	    
+%	The stream calls Hook, adding  the   event  and CGIStream to the
+%	closure. Defined events are:
+%	
+%	    * header
+%	    Called  if  the  header  is   complete.  Typically  it  uses
+%	    cgi_property/2 to extract the collected  header and combines
+%	    these with the request and policies   to decide on encoding,
+%	    transfer-encoding, connection parameters and   the  complete
+%	    header (as a Prolog term). Typically   it  uses cgi_set/2 to
+%	    associate these with the stream.
+%	    
+%	    * send_header
+%	    Called if the HTTP header must  be sent. This is immediately
+%	    after setting the transfer encoding to =chunked= or when the
+%	    CGI stream is closed.  Typically   it  requests  the current
+%	    header, optionally the content-length and   sends the header
+%	    to the original (client) stream.
+%	    
+%	    * close
+%	    Called from close/1 on the CGI   stream  after everything is
+%	    complete.
+%	    
+%	The predicates cgi_property/2  and  cgi_set/2   can  be  used to
+%	control the stream and store status   info.  Terms are stored as
+%	Prolog records and can thus be transferred between threads.
 
 %%	cgi_property(+CGIStream, ?Property) is det.
 %
@@ -156,7 +182,7 @@ bytes, dispite the fact that the underlying stream may be longer.
 %	    * transfer_encoding(-Tranfer)
 %	    One of =chunked= or =none=.
 %	    * connection(-Connection)
-%	    One of =keep_alife= or =close=
+%	    One of =Keep-Alife= or =close=
 %	    * content_length(-ContentLength)
 %	    Total byte-size of the content.  Available in the close
 %	    handler if the transfer_encoding is =none=.
@@ -177,7 +203,7 @@ bytes, dispite the fact that the underlying stream may be longer.
 %	    from the =send_header= hook to send the reply header to the
 %	    client.
 %	    * connection(-Connection)
-%	    One of =keep_alife= or =close=.
+%	    One of =Keep-Alife= or =close=.
 %	    * transfer_encoding(-Tranfer)
 %	    One of =chunked= or =none=.  Initially set to =none=.  When
 %	    switching to =chunked= from the =header= hook, it calls the
