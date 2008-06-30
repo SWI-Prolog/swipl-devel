@@ -37,6 +37,7 @@
 		library('http/html_write'),
 		library('http/http_session'),
 		library('http/http_dispatch'),
+		library('http/http_parameters'),
 		library('http/http_error')
 	      ],
 	      [ silent(true)
@@ -83,7 +84,33 @@ profile :-
 		 *******************************/
 
 :- http_handler('/ping', ping, []).
+:- http_handler('/wait', wait, []).
+:- http_handler('/wait/spawn', wait_spawn, []).
 
 ping(_Request) :-
 	format('Content-type: text/plain~n~n'),
 	format('alife~n').
+
+wait(Request) :-
+	http_parameters(Request,
+			[ wait(Time, [default(1)]),
+			  count(N, [default(10)])
+			]),
+	wait(Time, N).
+
+wait_spawn(Request) :-
+	http_parameters(Request,
+			[ wait(Time, [default(1)]),
+			  count(N, [default(10)])
+			]),
+	http_spawn(wait(Time, N), []).
+
+wait(Time, N) :-
+	format('Content-type: text/plain~n'),
+	format('Transfer-encoding: chunked~n~n'),
+	forall(between(1, N, I),
+	       (   sleep(Time),
+		   format('~D~n', [I]),
+		   flush_output
+	       )).
+	

@@ -35,6 +35,7 @@
 	    http_workers/2,		% +Port, ?WorkerCount
 	    http_current_worker/2,	% ?Port, ?ThreadID
 	    http_stop_server/2,		% +Port, +Options
+	    http_spawn/2,		% :Goal, +Options
 	    
 	    http_requeue/1,		% +Request
 	    http_close_connection/1	% +Request
@@ -45,6 +46,8 @@
 :- use_module(library(lists)).
 :- use_module(library(socket)).
 :- use_module(http_wrapper).
+:- use_module(http_stream).
+
 
 /** <module> Threaded HTTP server
 
@@ -61,7 +64,8 @@ for details.
 
 :- meta_predicate
 	http_server(:, +),
-	http_current_server(:, ?).
+	http_current_server(:, ?),
+	http_spawn(:, +).
 
 :- dynamic
 	port_option/2,			% Port, Option
@@ -473,11 +477,16 @@ http_process(Goal, In, Out, Options, ClientOptions) :-
 		     [ request(Request)
 		     | ClientOptions
 		     ]),
-	after(Request, Options),
-	(   downcase_atom(Connection, 'keep-alive')
-	->  http_requeue(Request)
-	;   http_close_connection(Request)
-	).
+	after(Request, Options),	% TBD
+	next(Connection, Request).
+
+next(spawned, _) :- !.
+next(Connection, Request) :-
+	downcase_atom(Connection, 'keep-alive'), !,
+	http_requeue(Request).
+next(_, Request) :-
+	http_close_connection(Request).
+
 
 %%	after(+Request, +Options) is det.
 %
@@ -509,6 +518,38 @@ close_connection(Peer, In, Out) :-
 	debug(http(connection), 'Closing connection from ~p', [Peer]),
 	catch(close(In, [force(true)]), _, true),
 	catch(close(Out, [force(true)]), _, true).
+
+%%	http_spawn(:Goal, +Options) is det.
+%
+%	Continue this connection on a  new   thread.  A handler may call
+%	http_spawn/1 to start a new thread that continues processing the
+%	current request using Goal. The original   thread returns to the
+%	worker pool for processing new requests.
+%	
+%	@param Options	Option list passed to thread_create/3.
+
+http_spawn(Goal, Options) :-
+	strip_module(Goal, M, G),
+	spawn(M:G, Options) .
+
+spawn(Goal, Options) :-
+	current_output(CGI),
+	thread_create(wrap_spawned(Goal), Id,
+		      [ at_exit(spawn_done)
+		      | Options
+		      ]),
+	cgi_set(CGI, thread(Id)).
+
+wrap_spawned(Goal) :-
+	current_output(CGI),
+	thread_self(Me),
+	cgi_set(CGI, thread(Me)),
+	http_wrap_spawned(Goal, Request, Connection),
+	next(Connection, Request).
+
+spawn_done :-
+	thread_self(Me),
+	thread_detach(Me).
 
 
 		 /*******************************

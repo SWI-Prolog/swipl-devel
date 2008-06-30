@@ -33,7 +33,9 @@
 	  [ http_wrapper/5,		% :Goal, +In, +Out, -Conn, +Options
 	    http_current_request/1,	% -Request
 	    http_send_header/1,		% +Term
-	    http_relative_path/2	% +AbsPath, -RelPath
+	    http_relative_path/2,	% +AbsPath, -RelPath
+
+	    http_wrap_spawned/3		% :Goal, -Request, -Connection
 	  ]).
 :- use_module(http_header).
 :- use_module(http_stream).
@@ -64,7 +66,8 @@
 %		* peer(+Peer)
 %		IP address of client
 %		
-%	@param Close	Unified to one of =close= or =|Keep-Alife|=.	
+%	@param Close	Unified to one of =close=, =|Keep-Alife|= or
+%			spawned.
 
 http_wrapper(GoalSpec, In, Out, Close, Options) :-
 	strip_module(GoalSpec, Module, Goal),
@@ -78,33 +81,70 @@ wrapper(Goal, In, Out, Close, Options) :-
 	;   extend_request(Options, Request0, Request1),
 	    memberchk(method(Method), Request1),
 	    memberchk(path(Location), Request1),
-	    thread_self(Self),
-	    debug(http(wrapper), '[~w] ~w ~w ...', [Self, Method, Location]),
+	    debug(http(wrapper), '~w ~w ...', [Method, Location]),
 	    cgi_open(Out, CGI, cgi_hook, [request(Request1)]),
-	    current_output(OldOut),
-	    set_output(CGI),
-	    (   catch(call_handler(Goal, Request1), Error, true)
-	    ->  true
-	    ;   Error = failed
-	    ),
-	    set_output(OldOut),
-	    (	var(Error)
-	    ->  cgi_property(CGI, connection(Close)),
-		close(CGI)
-	    ;	cgi_discard(CGI),
-		close(CGI),
-		map_exception(Error, Reply, HdrExtra),
-		http_reply(Reply, Out, HdrExtra),
-		flush_output(Out),
-		(   memberchk(connection(Close), HdrExtra)
-		->  true
-		;   Close = close
-		)
-	    ),
-	    debug(http(wrapper), '[~w] ~w ~w --> ~p', [Self, Method, Location, Error])
+	    handler_with_output_to(Goal, Request1, CGI, Error),
+	    cgi_close(CGI, Error, Close),
+	    debug(http(wrapper), '~w ~w --> ~p', [Method, Location, Error])
 	).
 
 
+%%	http_wrap_spawned(:Goal, -Request, -Close)
+
+http_wrap_spawned(Goal, Request, Close) :-
+	handler_with_output_to(Goal, -, current_output, Error),
+	current_output(CGI),
+	cgi_property(CGI, request(Request)),
+	cgi_close(CGI, Error, Close).
+
+
+%%	cgi_close(+CGI, +Error, -Close)
+
+cgi_close(CGI, _, Close) :-
+	thread_self(Me),
+	cgi_property(CGI, thread(Owner)),
+	Me \== Owner, !,
+	Close = spawned.
+cgi_close(CGI, ok, Close) :- !,
+	cgi_property(CGI, connection(Close)),
+	close(CGI).
+cgi_close(CGI, Error, Close) :-
+	cgi_property(CGI, client(Out)),
+	cgi_discard(CGI),
+	close(CGI),
+	map_exception(Error, Reply, HdrExtra),
+	http_reply(Reply, Out, HdrExtra),
+	flush_output(Out),
+	(   memberchk(connection(Close), HdrExtra)
+	->  true
+	;   Close = close
+	).
+
+
+%%	handler_with_output_to(:Goal, +Request, +Output, -Error) is det.
+%
+%	Run Goal with output redirected to   Output.  Unifies Error with
+%	the output of catch/3 or a term goal_failed(Goal).
+%	
+%	@param Request	The HTTP request read or '-' for a continuation
+%			using http_spawn/2.
+
+handler_with_output_to(Goal, Request, current_output, Error) :- !,
+	(   catch(call_handler(Goal, Request), Error, true)
+	->  (   var(Error)
+	    ->	Error = ok
+	    ;	true
+	    )
+	;   Error = goal_failed(Goal)
+	).
+handler_with_output_to(Goal, Request, Output, Error) :-
+	current_output(OldOut),
+	set_output(Output),
+	handler_with_output_to(Goal, Request, current_output, Error),
+	set_output(OldOut).
+
+call_handler(Goal, -) :- !,
+	call(Goal).
 call_handler(Goal, Request0) :-
 	expand_request(Request0, Request),
 	current_output(CGI),
@@ -130,6 +170,7 @@ cgi_hook(header, CGI) :-
 	set_stream(CGI, encoding(Encoding)),
 	cgi_set(CGI, connection(Connection)),
 	cgi_set(CGI, header(Header)),
+	debug(http(transfer_encoding), 'Transfer-encoding: ~w', [Transfer]),
 	cgi_set(CGI, transfer_encoding(Transfer)). % must be LAST
 cgi_hook(send_header, CGI) :-
 	cgi_property(CGI, header(Header)),
