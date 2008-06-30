@@ -357,6 +357,7 @@ static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static pl_mutex *mutexCreate(atom_t name);
 static double   ThreadCPUTime(PL_thread_info_t *info, int which);
 static int	thread_at_exit(term_t goal, PL_local_data_t *ld);
+static int	get_thread(term_t t, PL_thread_info_t **info, int warn);
 static int	is_alive(int status);
 #ifdef O_C_BACKTRACE
 static void	print_trace(int depth);
@@ -779,6 +780,20 @@ PL_unify_thread_id(term_t t, int i)
 
   return unify_thread_id(t, &threads[i]);
 }
+
+
+int
+PL_get_thread_id_ex(term_t t, int *idp)
+{ PL_thread_info_t *info;
+
+  if ( !get_thread(t, &info, TRUE) )
+    return FALSE;
+  
+  *idp = info->pl_tid;
+
+  return TRUE;
+}
+
 
 
 #ifdef __WINDOWS__
