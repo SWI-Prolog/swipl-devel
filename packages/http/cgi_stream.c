@@ -364,6 +364,13 @@ cgi_set(term_t cgi, term_t prop)
       { rc = domain_error(arg, "transfer_encoding");
       }
     }
+  } else if ( name == ATOM_thread )
+  { int tid;
+
+    if ( !PL_get_thread_id_ex(arg, &tid) )
+      return FALSE;
+    ctx->thread = tid;
+    rc = TRUE;
   } else
   { rc = existence_error(prop, "cgi_property");
   }
