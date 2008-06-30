@@ -329,7 +329,9 @@ http_worker(Options) :-
 	option(queue(Queue), Options),
 	repeat,
 	  garbage_collect,
+	  debug(http(worker), 'Waiting for a job ...', []),
 	  thread_get_message(Queue, Message),
+	  debug(http(worker), 'Got job ~p', [Message]),
 	  (   Message = quit(Sender)
 	  ->  !,
 	      thread_self(Self),
@@ -480,7 +482,8 @@ http_process(Goal, In, Out, Options, ClientOptions) :-
 	after(Request, Options),	% TBD
 	next(Connection, Request).
 
-next(spawned, _) :- !.
+next(spawned, _) :- !,
+	debug(http(spawn), 'Handler spawned', []).
 next(Connection, Request) :-
 	downcase_atom(Connection, 'keep-alive'), !,
 	http_requeue(Request).
@@ -535,7 +538,7 @@ http_spawn(Goal, Options) :-
 spawn(Goal, Options) :-
 	current_output(CGI),
 	thread_create(wrap_spawned(Goal), Id,
-		      [ at_exit(spawn_done)
+		      [ detached(true)
 		      | Options
 		      ]),
 	cgi_set(CGI, thread(Id)).
@@ -546,10 +549,6 @@ wrap_spawned(Goal) :-
 	cgi_set(CGI, thread(Me)),
 	http_wrap_spawned(Goal, Request, Connection),
 	next(Connection, Request).
-
-spawn_done :-
-	thread_self(Me),
-	thread_detach(Me).
 
 
 		 /*******************************

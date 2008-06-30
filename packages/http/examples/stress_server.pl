@@ -86,6 +86,7 @@ profile :-
 :- http_handler('/ping', ping, []).
 :- http_handler('/wait', wait, []).
 :- http_handler('/wait/spawn', wait_spawn, []).
+:- http_handler('/wait/spawn2', wait_spawn, []).
 
 ping(_Request) :-
 	format('Content-type: text/plain~n~n'),
