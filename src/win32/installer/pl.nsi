@@ -82,6 +82,7 @@ Section "Base system (required)"
   File pl\library\system.pl
   File pl\library\threadutil.pl
   File pl\library\thread.pl
+  File pl\library\thread_pool.pl
   File pl\library\tty.pl
   File pl\library\dif.pl
   File pl\library\when.pl
