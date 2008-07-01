@@ -34,6 +34,15 @@ member/2, returning the remaining elements in \arg{Rest}.  Note that
 besides selecting elements from a list, it can also be used to insert
 elements.
 
+    \predicate{selectchk}{3}{?Elem, ?List, ?Rest}
+Semi-deterministic selection from a list.   Steadfast: defines as
+
+\begin{code}
+selectchk(Elem, List, Rest) :-
+	select(Elem, List, Rest0), !,
+	Rest = Rest0.
+\end{code}
+
     \predicate{nth0}{3}{?Index, ?List, ?Elem}
 Succeeds when the \arg{Index}-th element of \arg{List} unifies with
 \arg{Elem}. Counting starts at 0.

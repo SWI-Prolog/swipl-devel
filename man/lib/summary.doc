@@ -69,6 +69,7 @@
 \predicatesummary{permutation}{2}{Test/generate permutations of a list}
 \predicatesummary{reverse}{2}{Inverse the order of the elements in a list}
 \predicatesummary{select}{3}{Select element of a list}
+\predicatesummary{selectchk}{3}{Semi-deterministic selection from a list}
 \predicatesummary{subset}{2}{Check subset relation for unordered sets}
 \predicatesummary{subtract}{3}{Delete elements that do not satisfy condition}
 \predicatesummary{sumlist}{2}{Add all numbers in a list}

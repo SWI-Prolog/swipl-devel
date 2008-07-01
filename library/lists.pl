@@ -34,6 +34,7 @@
 	  append/2,			% +ListOfLists, -List
 	  append/3,
 	  select/3,
+	  selectchk/3,
 	  nextto/3,			% ?X, ?Y, ?List
 	  delete/3,
 	  nth0/3,
@@ -103,6 +104,16 @@ append_([L|Ls], As) :-
 select(X, [X|Tail], Tail).
 select(Elem, [Head|Tail], [Head|Rest]) :-
 	select(Elem, Tail, Rest).
+
+
+%%	selectchk(+Elem, +List, -Rest) is semidet.
+%
+%	Semi-deterministic removal of first element in List that unifies
+%	Elem.
+
+selectchk(Elem, List, Rest) :-
+	select(Elem, List, Rest0), !,
+	Rest = Rest0.
 
 
 %%	nextto(?X, ?Y, ?List)
