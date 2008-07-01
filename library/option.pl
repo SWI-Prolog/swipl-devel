@@ -167,6 +167,8 @@ select_option(Option, Options, Options, Default) :-
 %	the canonical format Name(Value) holding   all  options from New
 %	and Old, after removing conflicting options from Old.
 
+merge_options([], Old, Merged) :- !, Merged = Old.
+merge_options(New, [], Merged) :- !, Merged = New.
 merge_options(New, Old, Merged) :-
 	canonise_options(New, NCanonical),
 	canonise_options(Old, OCanonical),
