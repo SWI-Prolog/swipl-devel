@@ -1,42 +1,5 @@
 ---+ HTTP Server library todo list
 
----++ Support chunked encoding
-
-Using the HTTP Chunked encoding is several advantages:
-
-	* No need to know the size of the reply in advance, avoiding
-	the need to buffer the reply in a memory file.
-
-	* Many modern browsers will update their window to reflect the
-	data processed sofar.  This allows for verbose messages on
-	progress or returning results on best-first basis and allow the
-	client to close the connection when it is satisfied.
-
-A possible approach to implement chunked encoding is to realise a stream
-similar to library(zlib) that performs  encoding   and  decoding of HTTP
-chunked streams.  This is now realised in http_chunked.pl
-
-Next step is interaction with the http_wrapper library.  Ideally we would
-like to add this to the CGI header, but how do we process this?
-
-	==
-	format('Transfer-Encoding: Chunked~n'),
-	==
-
-One  way  may  be  to  define    http_end_header/0,   which  will  cause
-http_wrapper to send the header  and   -if  the  encoding is =chunked=-,
-switch the stream logic accordingly. Alternatively   we  could define an
-alternative to using a CGI header for header info.  For example:
-
-	==
-	reply(Request) :-
-		http_send_header([ content_type('text/html'),
-				   transfer_encoding(chunked)
-				 ]),
-		<start writing HTML>
-	==
-
-
 ---++ Session handling
 
 Especially now that we store the current request  as a record in the CGI
@@ -70,33 +33,9 @@ following items on our todo list.
 
 ---++ Threading
 
-It is desirable to  allow  for   more  flexible  server thread handling.
-Specifically, depending on  PATH  and   specified  through  http_handler
-options, We note that it is perfectly ok to create a thread per request.
-On gollem (Intel X6800@2.93Ghz),  thread   create/join  time  is approx.
-30,000 thread per second (elapsed time).
+Getting close.  Remaining issues:
 
-	* Allow processing a request on its own thread (i.e. MN thumbnails)
-	* Allow specifying stack sizes.
-
-These must be defined at the PATH  level.   At  a  global level, we must
-control overall resources:
-
-	* Max # connections
-	* Max # threads
-	* Max total virtual memory on threads
-
-We need to read the header before acting. This however is sensitive to
-DOS attacks (connect; don't send (complete) header).  Options:
-
-	* Hand connection to new thread
-	* Hand connection to pool (as now)
-
-Incremental solution:
-
-	* Allow handler to spawn a new thread.  What is needed?
-		- Replace end of wrapper with something associated to
-		the connection.
-
+	* Implement spawn(+Pool) in http_dispatch
+	* Realise time limitation after moving to another thread
 
 	
