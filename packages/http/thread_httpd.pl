@@ -45,6 +45,7 @@
 :- use_module(library(option)).
 :- use_module(library(lists)).
 :- use_module(library(socket)).
+:- use_module(library(thread_pool)).
 :- use_module(http_wrapper).
 :- use_module(http_stream).
 
@@ -527,14 +528,26 @@ close_connection(Peer, In, Out) :-
 %	Continue this connection on a  new   thread.  A handler may call
 %	http_spawn/1 to start a new thread that continues processing the
 %	current request using Goal. The original   thread returns to the
-%	worker pool for processing new requests.
+%	worker pool for processing new requests.   Options are passed to
+%	thread_create/3, except for:
 %	
-%	@param Options	Option list passed to thread_create/3.
+%	    * pool(+Pool)
+%	    Interfaces to library(thread_pool), starting the thread
+%	    on the given pool.
 
 http_spawn(Goal, Options) :-
 	strip_module(Goal, M, G),
 	spawn(M:G, Options) .
 
+spawn(Goal, Options) :-
+	select_option(pool(Pool), Options, ThreadOptions), !,
+	current_output(CGI),
+	thread_create_in_pool(Pool,
+			      wrap_spawned(Goal), Id,
+			      [ detached(true)
+			      | ThreadOptions
+			      ]),
+	cgi_set(CGI, thread(Id)).
 spawn(Goal, Options) :-
 	current_output(CGI),
 	thread_create(wrap_spawned(Goal), Id,
