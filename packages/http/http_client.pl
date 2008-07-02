@@ -63,17 +63,17 @@ connect(Parts, Read, Write, _) :-
 	memberchk(socket(Read, Write), Parts), !.
 connect(Parts, Read, Write, Options) :-
 	address(Parts, Address, Options),
-	with_mutex(http_client_connect, connect2(Address, Read, Write)).
+	with_mutex(http_client_connect, connect2(Address, Read, Write, Options)).
 
-connect2(Address, In, Out) :-
+connect2(Address, In, Out, _) :-
 	thread_self(Self),
 	connection(Address, Self, In, Out), !.
-connect2(Address, In, Out) :-
+connect2(Address, In, Out, Options) :-
 	thread_self(Self),
-	do_connect(Address, In, Out),
+	do_connect(Address, In, Out, Options),
 	assert(connection(Address, Self, In, Out)).
 
-do_connect(Address, In, Out) :-
+do_connect(Address, In, Out, Options) :-
 	tcp_socket(Socket),
 	thread_self(Me),
 	debug(connection, '~w: Connecting to ~w ...', [Me, Address]),
@@ -83,8 +83,13 @@ do_connect(Address, In, Out) :-
 		  throw(E)
 	      )),
 	debug(connection, 'ok~n', []),
-	tcp_open_socket(Socket, In, Out), !.
-do_connect(Address, _, _) :-
+	tcp_open_socket(Socket, In, Out),
+	(   memberchk(timeout(Timeout), Options)
+        ->  set_stream(In, timeout(Timeout))
+        ;   true
+	), !.
+
+do_connect(Address, _, _, _) :-
 	throw(error(failed(connect, Address), _)).
 	
 
@@ -154,7 +159,7 @@ http_get(Parts, Data, Options) :-
 	      )), !.
 http_get(Parts, Data, Options) :-
 	address(Parts, Address, Options),
-	do_connect(Address, Read, Write),
+	do_connect(Address, Read, Write, Options),
 	call_cleanup(http_do_get([socket(Read, Write)|Parts], Data, Options),
 		     close_socket(Read, Write)).
 
@@ -351,7 +356,7 @@ http_post(Parts, In, Out, Options) :-
 	      )), !.
 http_post(Parts, In, Out, Options) :-
 	address(Parts, Address, Options),
-	do_connect(Address, Read, Write),
+	do_connect(Address, Read, Write, Options),
 	call_cleanup(http_do_post([socket(Read, Write)|Parts],
 				  In, Out, Options),
 		     close_socket(Read, Write)).

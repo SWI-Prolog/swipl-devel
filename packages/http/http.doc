@@ -238,6 +238,12 @@ Indicate the HTTP protocol version used for the connection.  Default is
 	\termitem{proxy}{+Host, +Port}
 Use an HTTP proxy to connect to the outside world.
 
+	\termitem{timeout}{+Timeout}
+If provided, set a timeout on the stream using set_stream/2.  With this
+option if no new data arrives within \arg{Timeout} seconds the
+stream raises an exception. Default is to wait forever
+(\const{infinite}).
+
 	\termitem{user_agent}{+Agent}
 Defines the value of the \const{User-Agent} field of the HTTP header.
 Default is \const{SWI-Prolog (http://www.swi-prolog.org)}.
