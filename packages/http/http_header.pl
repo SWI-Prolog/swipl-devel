@@ -277,6 +277,17 @@ http_status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 	phrase(reply_header(status(server_error, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
+http_status_reply(busy, Out, HrdExtra) :- !,
+	phrase(page([ title('503 Service Unavailable')
+		    ],
+		    [ h1('Service Unavailable'),
+		      p(['The server is temporarily out of resources, please try again later']),
+		      address(httpd)
+		    ]),
+	       HTML),
+	phrase(reply_header(status(service_unavailable, HTML), HrdExtra), Header),
+	format(Out, '~s', [Header]),
+	print_html(Out, HTML).
 
 
 html_message_lines([]) -->
@@ -724,16 +735,17 @@ vstatus(Status) -->
 %
 %	Parse the HTTP status numbers and return them as a code (atom).
 
-status_number(continue)	       --> "100".
-status_number(ok)	       --> "200".
-status_number(moved)	       --> "301".
-status_number(moved_temporary) --> "302".
-status_number(see_other)       --> "303".
-status_number(not_modified)    --> "304". 
-status_number(not_found)       --> "404".
-status_number(forbidden)       --> "403".
-status_number(authorise)       --> "401".
-status_number(server_error)    --> "500".
+status_number(continue)		   --> "100".
+status_number(ok)		   --> "200".
+status_number(moved)		   --> "301".
+status_number(moved_temporary)	   --> "302".
+status_number(see_other)	   --> "303".
+status_number(not_modified)	   --> "304". 
+status_number(not_found)	   --> "404".
+status_number(forbidden)	   --> "403".
+status_number(authorise)	   --> "401".
+status_number(server_error)	   --> "500".
+status_number(service_unavailable) --> "503".
 
 status_comment(continue) -->
 	"Continue".
@@ -755,6 +767,8 @@ status_comment(authorise) -->
 	"Authorization Required".
 status_comment(server_error) -->
 	"Internal Server Error".
+status_comment(service_unavailable) -->
+	"Service Unavailable".
 
 authenticate(Method, '') --> !,
 	"WWW-Authenticate: ",
