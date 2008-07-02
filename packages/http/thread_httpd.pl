@@ -547,24 +547,22 @@ spawn(Goal, Options) :-
 	select_option(backlog(BackLog), Options1, ThreadOptions, infinite),
 	check_backlog(BackLog, Pool),
 	current_output(CGI),
-	cgi_set(CGI, thread(0)),
 	thread_create_in_pool(Pool,
-			      wrap_spawned(CGI, Goal), _Id,
+			      wrap_spawned(CGI, Goal), Id,
 			      [ detached(true)
 			      | ThreadOptions
-			      ]).
+			      ]),
+	http_spawned(Id).
 spawn(Goal, Options) :-
 	current_output(CGI),
-	cgi_set(CGI, thread(0)),
-	thread_create(wrap_spawned(CGI, Goal), _Id,
+	thread_create(wrap_spawned(CGI, Goal), Id,
 		      [ detached(true)
 		      | Options
-		      ]).
+		      ]),
+	http_spawned(Id).
 
 wrap_spawned(CGI, Goal) :-
 	set_output(CGI),
-	thread_self(Me),
-	cgi_set(CGI, thread(Me)),
 	http_wrap_spawned(Goal, Request, Connection),
 	next(Connection, Request).
 

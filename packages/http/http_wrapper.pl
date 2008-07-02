@@ -34,8 +34,9 @@
 	    http_current_request/1,	% -Request
 	    http_send_header/1,		% +Term
 	    http_relative_path/2,	% +AbsPath, -RelPath
-
-	    http_wrap_spawned/3		% :Goal, -Request, -Connection
+					% Internal API
+	    http_wrap_spawned/3,	% :Goal, -Request, -Connection
+	    http_spawned/1		% +ThreadId
 	  ]).
 :- use_module(http_header).
 :- use_module(http_stream).
@@ -98,12 +99,21 @@ http_wrap_spawned(Goal, Request, Close) :-
 	cgi_close(CGI, Error, Close).
 
 
+:- thread_local
+	spawned/1.
+
+%%	http_spawned(+ThreadId)
+%
+%	Indicate that the request is handed to thread ThreadId.
+
+http_spawned(ThreadId) :-
+	assert(spawned(ThreadId)).
+
+
 %%	cgi_close(+CGI, +Error, -Close)
 
-cgi_close(CGI, _, Close) :-
-	thread_self(Me),
-	cgi_property(CGI, thread(Owner)),
-	Me \== Owner, !,
+cgi_close(_, _, Close) :-
+	retract(spawned(_)), !,
 	Close = spawned.
 cgi_close(CGI, ok, Close) :- !,
 	cgi_property(CGI, connection(Close)),

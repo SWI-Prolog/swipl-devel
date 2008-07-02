@@ -85,7 +85,6 @@ static atom_t ATOM_data;		/* data */
 static atom_t ATOM_discarded;		/* discarded */
 static atom_t ATOM_request;		/* request */
 static atom_t ATOM_client;		/* client */
-static atom_t ATOM_thread;		/* thread */
 static atom_t ATOM_chunked;		/* chunked */
 static atom_t ATOM_none;		/* none */
 static atom_t ATOM_state;		/* state */
@@ -116,7 +115,6 @@ typedef struct cgi_context
   IOSTREAM	   *cgi_stream;		/* Stream I'm handle of */
   IOENC		    parent_encoding;	/* Saved encoding of parent */
 					/* Prolog attributes */
-  int		    thread;		/* Associated thread */
   module_t	    module;		/* Calling module */
   record_t	    hook;		/* Hook called on action */
   record_t	    request;		/* Associated request term */
@@ -263,16 +261,6 @@ cgi_property(term_t cgi, term_t prop)
   { rc = unify_record(arg, ctx->header);
   } else if ( name == ATOM_client )
   { rc = PL_unify_stream(arg, ctx->stream);
-  } else if ( name == ATOM_thread )
-  { if ( ctx == 0 )
-    { rc = PL_unify_integer(arg, 0);
-    } else
-    { rc = PL_unify_thread_id(arg, ctx->thread);
-      if ( rc == -1 )
-      { Sdprintf("Thread %d does not exist!\n", ctx->thread);
-	rc = PL_unify_integer(arg, 0);
-      }
-    }
   } else if ( name == ATOM_transfer_encoding )
   { rc = PL_unify_atom(arg, ctx->transfer_encoding);
   } else if ( name == ATOM_connection )
@@ -372,15 +360,6 @@ cgi_set(term_t cgi, term_t prop)
       { rc = domain_error(arg, "transfer_encoding");
       }
     }
-  } else if ( name == ATOM_thread )
-  { int tid;
-
-    if ( PL_get_integer(arg, &tid) && tid == 0 )
-      ctx->thread = tid;
-    else if ( !PL_get_thread_id_ex(arg, &tid) )
-      return FALSE;
-    ctx->thread = tid;
-    rc = TRUE;
   } else
   { rc = existence_error(prop, "cgi_property");
   }
@@ -673,7 +652,6 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
   ctx = alloc_cgi_context(s);
   ctx->hook = PL_record(hook);
   ctx->module = module;
-  ctx->thread = PL_thread_self();
   ctx->request = request;
   ctx->transfer_encoding = ATOM_none;
   if ( !(s2 = Snew(ctx,
@@ -709,7 +687,6 @@ install_cgi_stream()
   ATOM_request		 = PL_new_atom("request");
   ATOM_header		 = PL_new_atom("header");
   ATOM_client		 = PL_new_atom("client");
-  ATOM_thread		 = PL_new_atom("thread");
   ATOM_chunked		 = PL_new_atom("chunked");
   ATOM_state		 = PL_new_atom("state");
   ATOM_none		 = PL_new_atom("none");
