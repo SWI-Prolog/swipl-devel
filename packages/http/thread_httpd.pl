@@ -534,13 +534,18 @@ close_connection(Peer, In, Out) :-
 %	    * pool(+Pool)
 %	    Interfaces to library(thread_pool), starting the thread
 %	    on the given pool.
+%	    * backlog(+MaxBacklog)
+%	    Reply using a 503 (service unavailable) if too many requests
+%	    are waiting in this pool.
 
 http_spawn(Goal, Options) :-
 	strip_module(Goal, M, G),
 	spawn(M:G, Options) .
 
 spawn(Goal, Options) :-
-	select_option(pool(Pool), Options, ThreadOptions), !,
+	select_option(pool(Pool), Options, Options1), !,
+	select_option(backlog(BackLog), Options1, ThreadOptions, infinite),
+	check_backlog(BackLog, Pool),
 	current_output(CGI),
 	thread_create_in_pool(Pool,
 			      wrap_spawned(Goal), Id,
@@ -562,6 +567,18 @@ wrap_spawned(Goal) :-
 	cgi_set(CGI, thread(Me)),
 	http_wrap_spawned(Goal, Request, Connection),
 	next(Connection, Request).
+
+%%	check_backlog(+MaxBackLog, +Pool)
+%
+%	Check whether the backlog in the pool  has been exceeded. If so,
+%	reply as =busy=, which causes an HTTP 503 response.
+
+check_backlog(BackLog, Pool) :-
+	integer(BackLog),
+	thread_pool_property(Pool, backlog(Waiting)),
+	Waiting > BackLog, !,
+	throw(http_reply(busy)).
+check_backlog(_, _).
 
 
 		 /*******************************
