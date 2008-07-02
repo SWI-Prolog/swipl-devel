@@ -40,8 +40,9 @@
 :- use_module(library(lists)).
 :- use_module(library(time)).
 :- use_module(library(settings)).
-:- use_module(library('http/mimetype')).
-:- use_module(library('http/http_header')).
+:- use_module(library(http/mimetype)).
+:- use_module(library(http/http_header)).
+:- use_module(library(http/thread_httpd)).
 
 /** <module> Dispatch requests in the HTTP server
 
@@ -91,6 +92,18 @@ write_index(Request) :-
 %		* time_limit(+Spec)
 %		One of =infinite=, =default= or a positive number
 %		(seconds)
+%		
+%		* chunked
+%		Use =|Transfer-encoding: chunked|= if the client
+%		allows for it.
+%		
+%		* spawn(+SpawnOptions)
+%		Run the handler in a seperate thread.  If SpawnOptions
+%		is an atom, it is interpreted as a thread pool name
+%		(see create_thread_pool/3).  Otherwise the options
+%		are passed to http_spawn/2 and from there to
+%		thread_create/3.  These options are typically used to
+%		set the stack limits.
 %		
 %		* authentication(+Type)
 %		Demand authentication.  Authentication methods are
@@ -271,11 +284,32 @@ find_handler([_|Tree], Path, Action, Options) :-
 
 %%	action(+Action, +Request, +Options) is det.
 %
-%	Execute the action found.
+%	Execute the action found.  Here we take care of the options
+%	=time_limit=, =chunked= and =spawn=.
 %
 %	@error	goal_failed(Goal)
 
 action(Action, Request, Options) :-
+	memberchk(chunked, Options), !,
+	format('Transfer-encoding: chunked~n'),
+	spawn_action(Action, Request, Options).
+action(Action, Request, Options) :-
+	spawn_action(Action, Request, Options).
+
+spawn_action(Action, Request, Options) :-
+	option(spawn(Spawn), Options), !,
+	spawn_options(Spawn, SpawnOption),
+	http_spawn(time_limit_action(Action, Request, Options), SpawnOption).
+spawn_action(Action, Request, Options) :-
+	time_limit_action(Action, Request, Options).
+
+spawn_options([], []) :- !.
+spawn_options(Pool, Options) :-
+	atom(Pool), !,
+	Options = [pool(Pool)].
+spawn_options(List, List).
+
+time_limit_action(Action, Request, Options) :-
 	(   option(time_limit(TimeLimit), Options),
 	    TimeLimit \== default
 	->  true
@@ -283,18 +317,18 @@ action(Action, Request, Options) :-
 	),
 	number(TimeLimit),
 	TimeLimit > 0, !,
-	call_with_time_limit(TimeLimit, action2(Action, Request, Options)).
-action(Action, Request, Options) :-
-	action2(Action, Request, Options).
+	call_with_time_limit(TimeLimit, call_action(Action, Request, Options)).
+time_limit_action(Action, Request, Options) :-
+	call_action(Action, Request, Options).
 
 
-%%	action2(+Action, +Request, +Options)
+%%	call_action(+Action, +Request, +Options)
 %
 %	@tbd	reply_file is normal call?
 
-action2(reply_file(File, FileOptions), Request, _Options) :- !,
+call_action(reply_file(File, FileOptions), Request, _Options) :- !,
 	http_reply_file(File, FileOptions, Request).
-action2(Pred, Request, _Options) :-
+call_action(Pred, Request, _Options) :-
 	(   call(Pred, Request)
 	->  true
 	;   Pred =.. List,
