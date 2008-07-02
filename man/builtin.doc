@@ -1612,7 +1612,7 @@ a list of message elements.  The elements of this list are:
 See also print_message/2 and message_hook/3.
 
     \predicate{message_hook}{3}{+Term, +Kind, +Lines}
-Hook predicate that may be define in the module \const{user} to
+Hook predicate that may be defined in the module \const{user} to
 intercept messages from print_message/2. \arg{Term} and \arg{Kind} are
 the same as passed to print_message/2. \arg{Lines} is a list of format
 statements as described with print_message_lines/3.  See also
