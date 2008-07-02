@@ -75,10 +75,16 @@ design, both approaches can be attractive.
 %	Create a pool of threads. A pool of threads is a declaration for
 %	creating threads with shared  properties   (stack  sizes)  and a
 %	limited  number  of  threads.   Threads    are   created   using
-%	thread_create_in_pool/3 or thread_create_in_pool_no_wait/3.  The
-%	first will delay until the  thread   can  be created; the latter
-%	generates a resource_error exception  if   the  thread cannot be
-%	created.
+%	thread_create_in_pool/4. If all threads in the  pool are in use,
+%	the   behaviour   depends   on    the     =wait=    option    of
+%	thread_create_in_pool/4  and  the  =backlog=   option  described
+%	below.  Options are passed to thread_create/3, except for
+%	
+%	    * backlog(+MaxBackLog)
+%	    Maximum number of requests that can be suspended.  Default
+%	    is =infinite=.  Otherwise it must be a non-negative integer.
+%	    Using backlog(0) will never delay thread creation for this
+%	    pool.
 
 thread_pool_create(Name, Size, Options) :-
 	pool_manager(Manager),
@@ -284,7 +290,8 @@ update_pool(Create,
 	    pool(Options, 0, WP, WPT0),
 	    pool(Options, 0, WP, WPT)) :-
 	Create = create(Name, _Goal, For, Wait, _Options), !,
-	(   Wait == true
+	option(backlog(BackLog), Options, infinite),
+	(   can_delay(Wait, BackLog, WP, WPT0)
 	->  WPT0 = [Create|WPT],
 	    debug(thread_pool, 'Delaying ~p', [Create])
 	;   WPT = WPT0,
@@ -302,6 +309,12 @@ update_pool(exitted(_Name, _Id),
 	    debug(thread_pool, 'Start delayed ~p', [Waiting]),
 	    update_pool(Waiting, Pool1, Pool)
 	).
+
+
+can_delay(true, infinite, _, _) :- !.
+can_delay(true, BackLog, WP, WPT) :-
+	diff_list_length(WP, WPT, Size),
+	BackLog > Size.
 
 
 		 /*******************************
