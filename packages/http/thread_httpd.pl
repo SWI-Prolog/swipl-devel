@@ -526,7 +526,7 @@ close_connection(Peer, In, Out) :-
 %%	http_spawn(:Goal, +Options) is det.
 %
 %	Continue this connection on a  new   thread.  A handler may call
-%	http_spawn/1 to start a new thread that continues processing the
+%	http_spawn/2 to start a new thread that continues processing the
 %	current request using Goal. The original   thread returns to the
 %	worker pool for processing new requests.   Options are passed to
 %	thread_create/3, except for:
@@ -548,21 +548,21 @@ spawn(Goal, Options) :-
 	check_backlog(BackLog, Pool),
 	current_output(CGI),
 	thread_create_in_pool(Pool,
-			      wrap_spawned(Goal), Id,
+			      wrap_spawned(CGI, Goal), Id,
 			      [ detached(true)
 			      | ThreadOptions
 			      ]),
 	cgi_set(CGI, thread(Id)).
 spawn(Goal, Options) :-
 	current_output(CGI),
-	thread_create(wrap_spawned(Goal), Id,
+	cgi_set(CGI, thread(0)),
+	thread_create(wrap_spawned(CGI, Goal), _Id,
 		      [ detached(true)
 		      | Options
-		      ]),
-	cgi_set(CGI, thread(Id)).
+		      ]).
 
-wrap_spawned(Goal) :-
-	current_output(CGI),
+wrap_spawned(CGI, Goal) :-
+	set_output(CGI),
 	thread_self(Me),
 	cgi_set(CGI, thread(Me)),
 	http_wrap_spawned(Goal, Request, Connection),

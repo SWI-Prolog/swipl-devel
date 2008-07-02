@@ -53,6 +53,7 @@
 %	Start the server at Port.
 
 server(Port) :-
+	create_pools,
 	server(Port,
 	       [ workers(1)
 	       ]).
@@ -63,6 +64,13 @@ server(Port, Options) :-
 		      timeout(20)
 		    | Options
 		    ]).
+
+%%	create_pools
+%
+%	Create our thread pools.
+
+create_pools :-
+	thread_pool_create(single, 1, [backlog(0)]).
 
 %%	profile
 %
@@ -86,7 +94,8 @@ profile :-
 
 :- http_handler('/ping', ping, []).
 :- http_handler('/wait', wait, [chunked]).
-:- http_handler(prefix('/spawn/'), spawn, [spawn([])]).
+:- http_handler(prefix('/spawn/'), spawn, [spawn(single)]).
+:- http_handler(prefix('/spawn2/'), spawn, [spawn(single)]).
 
 ping(_Request) :-
 	format('Content-type: text/plain~n~n'),
@@ -112,7 +121,9 @@ wait(Time, N) :-
 %	Run requests under /spawn/ in their own thread.
 
 spawn(Request) :-
-	select(path(Path), Request, Request1),
-	atom_concat('/spawn', NewPath, Path),
+	selectchk(path(Path), Request, Request1),
+	(   sub_atom(Path, Start, _, _, /), Start > 0
+	->  sub_atom(Path, Start, _, 0, NewPath)
+	),
 	http_dispatch([path(NewPath)|Request1]).
 

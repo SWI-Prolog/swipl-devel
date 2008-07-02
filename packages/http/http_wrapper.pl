@@ -243,8 +243,14 @@ map_exception(error(permission_error(http_location, access, Location), _),
 	      forbidden(Location),
 	      [connection(close)]) :- !.
 map_exception(E,
+	      resource_error(E),
+	      [connection(close)]) :-
+	resource_error(E), !.
+map_exception(E,
 	      server_error(E),
 	      [connection(close)]).
+
+resource_error(error(resource_error(_), _)).
 
 %%	keep_alive(+Reply) is semidet.	
 %
