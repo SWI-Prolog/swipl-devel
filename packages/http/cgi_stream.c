@@ -367,7 +367,9 @@ cgi_set(term_t cgi, term_t prop)
   } else if ( name == ATOM_thread )
   { int tid;
 
-    if ( !PL_get_thread_id_ex(arg, &tid) )
+    if ( PL_get_integer(arg, &tid) && tid == 0 )
+      ctx->thread = tid;
+    else if ( !PL_get_thread_id_ex(arg, &tid) )
       return FALSE;
     ctx->thread = tid;
     rc = TRUE;
