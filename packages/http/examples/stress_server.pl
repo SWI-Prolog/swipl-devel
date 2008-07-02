@@ -85,9 +85,8 @@ profile :-
 		 *******************************/
 
 :- http_handler('/ping', ping, []).
-:- http_handler('/wait', wait, []).
-:- http_handler('/wait/spawn', wait_spawn, [chunked]).
-:- http_handler('/wait/spawn2', wait_spawn, [chunked, spawn([])]).
+:- http_handler('/wait', wait, [chunked]).
+:- http_handler(prefix('/spawn/'), spawn, [spawn([])]).
 
 ping(_Request) :-
 	format('Content-type: text/plain~n~n'),
@@ -100,13 +99,6 @@ wait(Request) :-
 			]),
 	wait(Time, N).
 
-wait_spawn(Request) :-
-	http_parameters(Request,
-			[ wait(Time, [default(1)]),
-			  count(N, [default(10)])
-			]),
-	http_spawn(wait(Time, N), []).
-
 wait(Time, N) :-
 	format('Content-type: text/plain~n~n'),
 	forall(between(1, N, I),
@@ -115,3 +107,12 @@ wait(Time, N) :-
 		   flush_output
 	       )).
 	
+%%	spawn(+Request)
+%
+%	Run requests under /spawn/ in their own thread.
+
+spawn(Request) :-
+	select(path(Path), Request, Request1),
+	atom_concat('/spawn', NewPath, Path),
+	http_dispatch([path(NewPath)|Request1]).
+
