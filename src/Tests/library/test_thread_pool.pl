@@ -79,7 +79,7 @@ test(loop, [setup(start([])),cleanup(stop), L == Vs]) :-
 		    thread_create_in_pool(test, run(I), Id, [])
 		), Ids),
 	join_all(Ids),
-	findall(V, retract(v(V)), Vs).
+	setof(V, retract(v(V)), Vs).
 
 run(I) :-
 	sleep(0.05),
