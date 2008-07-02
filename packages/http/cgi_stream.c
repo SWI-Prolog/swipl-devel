@@ -264,7 +264,15 @@ cgi_property(term_t cgi, term_t prop)
   } else if ( name == ATOM_client )
   { rc = PL_unify_stream(arg, ctx->stream);
   } else if ( name == ATOM_thread )
-  { rc = PL_unify_thread_id(arg, ctx->thread);
+  { if ( ctx == 0 )
+    { rc = PL_unify_integer(arg, 0);
+    } else
+    { rc = PL_unify_thread_id(arg, ctx->thread);
+      if ( rc == -1 )
+      { Sdprintf("Thread %d does not exist!\n", ctx->thread);
+	rc = PL_unify_integer(arg, 0);
+      }
+    }
   } else if ( name == ATOM_transfer_encoding )
   { rc = PL_unify_atom(arg, ctx->transfer_encoding);
   } else if ( name == ATOM_connection )
