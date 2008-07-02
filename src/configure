@@ -3093,7 +3093,7 @@ fi
 
 
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
-PLBASE=$prefix/lib/$PL-$PLVERSION
+PLBASE=$libdir/$PL-$PLVERSION
 
 
 for ac_prog in gmake make

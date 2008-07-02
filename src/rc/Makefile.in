@@ -14,7 +14,7 @@ exec_prefix=@exec_prefix@
 srcdir=@srcdir@
 @VPATH@ @srcdir@
 bindir=$(exec_prefix)/bin
-PLBASE=$(prefix)/lib/@PL@-$(PLVERSION)
+PLBASE=@libdir@/@PL@-$(PLVERSION)
 man_prefix=$(prefix)/man
 mansec=1
 lmansec=3

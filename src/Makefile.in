@@ -36,6 +36,7 @@ exec_prefix=@exec_prefix@
 srcdir=@srcdir@
 @VPATH@ @srcdir@
 bindir=@bindir@
+libdir=@libdir@
 mandir=@mandir@
 mansec=1
 lmansec=3
@@ -46,7 +47,7 @@ plmandir=$(PLBASE)/man
 PLVERSION=@PLVERSION@
 PL=@PL@@RT@
 PLV=@PL@@RT@-@PLVERSION@
-PLBASE=$(prefix)/lib/@PL@@RT@-@PLVERSION@
+PLBASE=$(libdir)/@PL@@RT@-@PLVERSION@
 BOOTFILE=@BOOTFILE@
 
 CC=@CC@
@@ -382,7 +383,7 @@ install-implib:	idirs
 		$(INSTALL_DATA) libplimp.a $(DESTDIR)$(PLBASE)/lib/$(ARCH)
 
 idirs::
-		if [ ! -d $(DESTDIR)$(prefix)/lib  ]; then $(MKDIR) $(DESTDIR)$(prefix)/lib; fi
+		if [ ! -d $(DESTDIR)$(libdir)  ]; then $(MKDIR) $(DESTDIR)$(libdir); fi
 		if [ ! -d $(DESTDIR)$(PLBASE) ]; then $(MKDIR) $(DESTDIR)$(PLBASE); fi
 		for d in $(installdirs); do \
 			if [ ! -d $(DESTDIR)$(PLBASE)/$$d ]; then \
@@ -461,7 +462,7 @@ html-install::
 # runtime-only environment installation
 #
 
-RTHOME=		$(DESTDIR)$(prefix)/lib/$(PLV)
+RTHOME=		$(DESTDIR)$(libdir)/$(PLV)
 RTDIRS=		$(RTHOME) $(RTHOME)/bin $(RTHOME)/lib $(RTHOME)/lib/$(ARCH) \
 		$(RTHOME)/man $(RTHOME)/bin/$(ARCH) $(RTHOME)/include
 

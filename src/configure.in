@@ -152,7 +152,7 @@ dnl Setup PLBASE.  Need to expand prefix first as this isn't yet set. Yek
 dnl ****************************************************************
 
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
-PLBASE=$prefix/lib/$PL-$PLVERSION
+PLBASE=$libdir/$PL-$PLVERSION
 
 dnl ****************************************************************
 dnl Checking for GNU make vpath construct
