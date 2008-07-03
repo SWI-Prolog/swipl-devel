@@ -221,3 +221,6 @@ This library is only available on Windows systems.
 \predicatesummary{variable_value}{3}{Fetch value of variable in solved state}
 \end{summarylist}
 
+\subsection{\pllib{thread_pool}}
+\input{summaries.d/threadpool.tex}
+

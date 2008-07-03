@@ -48,5 +48,6 @@ documented at all.
 \input{record}
 \input{registry}
 \input{simplex}
+\input{threadpool}
 \input{ugraphs}
 \input{url}
