@@ -83,13 +83,12 @@ wrapper(Goal, In, Out, Close, Options) :-
 	;   extend_request(Options, Request0, Request1),
 	    memberchk(method(Method), Request1),
 	    memberchk(path(Location), Request1),
-	    debug(http(wrapper), '~w ~w ...', [Method, Location]),
 	    cgi_open(Out, CGI, cgi_hook, [request(Request1)]),
 	    cgi_property(CGI, id(Id)),
+	    debug(http(request), '[~D] ~w ~w ...', [Id, Method, Location]),
 	    broadcast(http(request_start(Id, Request0))),
 	    handler_with_output_to(Goal, Request1, CGI, Error),
-	    cgi_close(CGI, Error, Close),
-	    debug(http(wrapper), '~w ~w --> ~p', [Method, Location, Error])
+	    cgi_close(CGI, Error, Close)
 	).
 
 
@@ -144,30 +143,34 @@ cgi_close(CGI, Error, Close) :-
 	).
 
 
-%%	handler_with_output_to(:Goal, +Request, +Output, -Error) is det.
+%%	handler_with_output_to(:Goal, +Request, +Output, -Status) is det.
 %
-%	Run Goal with output redirected to   Output.  Unifies Error with
-%	the output of catch/3 or a term goal_failed(Goal).
+%	Run Goal with output redirected to   Output.  Unifies Status with
+%	=ok=, the error from catch/3 or a term goal_failed(Goal).
 %	
 %	@param Request	The HTTP request read or '-' for a continuation
 %			using http_spawn/2.
 
-handler_with_output_to(Goal, Request, current_output, Error) :- !,
-	statistics(cputime, CPU0),
-	(   catch(call_handler(Goal, Request), Error, true)
-	->  (   var(Error)
-	    ->	Error = ok
+handler_with_output_to(Goal, Request, current_output, Status) :- !,
+	thread_cputime(CPU0),
+	(   catch(call_handler(Goal, Request), Status, true)
+	->  (   var(Status)
+	    ->	Status = ok
 	    ;	true
 	    )
-	;   Error = goal_failed(Goal)
+	;   Status = goal_failed(Goal)
 	),
 	(   spawned(_)
 	->  true
-	;   statistics(cputime, CPU1),
+	;   thread_cputime(CPU1),
 	    CPU is CPU1 - CPU0,
 	    current_output(CGI),
 	    cgi_property(CGI, id(Id)),
-	    broadcast(http(request_finished(Id, CPU, Error)))
+	    (   debugging(http(request))
+	    ->  debug_request(Status, Id, CPU)
+	    ;   true
+	    ),
+	    broadcast(http(request_finished(Id, CPU, Status)))
 	).
 handler_with_output_to(Goal, Request, Output, Error) :-
 	current_output(OldOut),
@@ -182,6 +185,21 @@ call_handler(Goal, Request0) :-
 	current_output(CGI),
 	cgi_set(CGI, request(Request)),
 	call(Goal, Request).
+
+%%	thread_cputime(-CPU) is det.
+%
+%	CPU is the CPU time used by the calling thread.
+%	
+%	@tbd	This does not work on MacOS X!
+
+:- if(current_prolog_flag(threads, true)).
+thread_cputime(CPU) :- 
+	thread_self(Me),
+	thread_statistics(Me, cputime, CPU).
+:- else.
+thread_cputime(CPU) :-
+	statistics(cputime, CPU).
+:- endif.
 
 
 %%	cgi_hook(+Event, +CGI) is det.
@@ -350,6 +368,31 @@ to_dot_dot([], Tail, Tail).
 to_dot_dot([_], Tail, Tail) :- !.
 to_dot_dot([_|T0], ['..'|T], Tail) :-
 	to_dot_dot(T0, T, Tail).
+
+
+		 /*******************************
+		 *	   DEBUG SUPPORT	*
+		 *******************************/
+
+%%	debug_request(+Status, +Id, +CPU0)
+%
+%	Emit debugging info after a request completed with Status.
+
+debug_request(ok, Id, CPU) :- !,
+	debug(http(request), '[~D] 200 OK (~3f seconds)', [Id, CPU]).
+debug_request(Status, Id, _) :-
+	map_exception(Status, Reply), !,
+	debug(http(request), '[~D] ~w', [Id, Reply]).
+debug_request(Except, Id, _) :- !,
+	Except = error(_,_), !,
+	message_to_string(Except, Message),
+	debug(http(request), '[~D] ERROR: ~w', [Id, Message]).
+debug_request(Status, Id, _) :-
+	debug(http(request), '[~D] ~w', [Id, Status]).
+
+map_exception(http_reply(Reply), Reply).
+map_exception(error(existence_error(http_location, Location), _Stack),
+	      error(404, Location)).
 
 
 		 /*******************************
