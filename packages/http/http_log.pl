@@ -181,7 +181,8 @@ nolog(accept(_)).
 nolog(accept_language(_)).
 nolog(accept_encoding(_)).
 nolog(accept_charset(_)).
-
+nolog(referer(R)) :-
+	sub_atom(R, _, _, _, password), !.
 
 %%	log_completed(+Status, +Id, +CPU, +Stream) is det.
 %
