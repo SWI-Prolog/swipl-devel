@@ -260,7 +260,10 @@ cgi_property(term_t cgi, term_t prop)
     else
       rc = PL_unify_nil(arg);
   } else if ( name == ATOM_header )
-  { rc = unify_record(arg, ctx->header);
+  { if ( ctx->header )
+      rc = unify_record(arg, ctx->header);
+     else
+      rc = PL_unify_nil(arg);
   } else if ( name == ATOM_id )
   { rc = PL_unify_integer(arg, ctx->id);
   } else if ( name == ATOM_client )

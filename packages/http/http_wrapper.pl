@@ -212,7 +212,9 @@ cgi_hook(What, _CGI) :-
 	fail.
 cgi_hook(header, CGI) :-
 	cgi_property(CGI, header_codes(HeadText)),
-	http_parse_header(HeadText, CgiHeader),
+	cgi_property(CGI, header(Header0)), % see http_send_header/1
+	http_parse_header(HeadText, CgiHeader0),
+	append(Header0, CgiHeader0, CgiHeader),
 	cgi_property(CGI, request(Request)),
 	http_update_connection(CgiHeader, Request, Connection, Header1),
 	http_update_transfer(Request, Header1, Transfer, Header2),

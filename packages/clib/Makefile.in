@@ -137,7 +137,8 @@ uninstall::
 # Testing
 ################################################################
 
-check:		check-socket check-memfile check-unit check-process
+check:		check-socket check-memfile check-unit check-process \
+		check-read
 
 torture:	torture-socket
 
@@ -155,6 +156,9 @@ check-unit::
 
 check-process::
 		$(PL) -q -f test_process.pl -g true -t test_process
+
+check-read::
+		$(PL) -q -f test_readutil.pl -g true -t test_readutil
 
 ################################################################
 # Documentation

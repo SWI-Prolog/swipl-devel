@@ -64,7 +64,8 @@ read_line_to_codes3(term_t stream, term_t codes, term_t tail)
   { int	c = Sgetcode(s);
 
     if ( c == EOF )
-    { goto out;				/* error */
+    { if ( (s->flags & SIO_FERR) )
+	goto out;				/* error */
 
       if ( tail == 0 && o == buf )
       { rc = PL_unify_atom(codes, ATOM_end_of_file);
