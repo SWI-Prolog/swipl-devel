@@ -42,6 +42,7 @@
 :- use_module(http_stream).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
+:- use_module(library(broadcast)).
 
 :- meta_predicate
 	http_wrapper(0, +, +, -, +).
@@ -84,19 +85,30 @@ wrapper(Goal, In, Out, Close, Options) :-
 	    memberchk(path(Location), Request1),
 	    debug(http(wrapper), '~w ~w ...', [Method, Location]),
 	    cgi_open(Out, CGI, cgi_hook, [request(Request1)]),
+	    cgi_property(CGI, id(Id)),
+	    broadcast(http(request_start(Id, Request0))),
 	    handler_with_output_to(Goal, Request1, CGI, Error),
 	    cgi_close(CGI, Error, Close),
 	    debug(http(wrapper), '~w ~w --> ~p', [Method, Location, Error])
 	).
 
 
-%%	http_wrap_spawned(:Goal, -Request, -Close)
+%%	http_wrap_spawned(:Goal, -Request, -Close) is det.
+%
+%	Internal  use  only.  Helper  for    wrapping  the  handler  for
+%	http_spawn/2.
+%	
+%	@see http_spawned/1, http_spawn/2.
 
 http_wrap_spawned(Goal, Request, Close) :-
 	handler_with_output_to(Goal, -, current_output, Error),
-	current_output(CGI),
-	cgi_property(CGI, request(Request)),
-	cgi_close(CGI, Error, Close).
+	(   retract(spawned(_))
+	->  Close = spawned,
+	    Request = []
+	;   current_output(CGI),
+	    cgi_property(CGI, request(Request)),
+	    cgi_close(CGI, Error, Close)
+	).
 
 
 :- thread_local
@@ -104,7 +116,8 @@ http_wrap_spawned(Goal, Request, Close) :-
 
 %%	http_spawned(+ThreadId)
 %
-%	Indicate that the request is handed to thread ThreadId.
+%	Internal use only. Indicate that the request is handed to thread
+%	ThreadId.
 
 http_spawned(ThreadId) :-
 	assert(spawned(ThreadId)).
@@ -140,12 +153,21 @@ cgi_close(CGI, Error, Close) :-
 %			using http_spawn/2.
 
 handler_with_output_to(Goal, Request, current_output, Error) :- !,
+	statistics(cputime, CPU0),
 	(   catch(call_handler(Goal, Request), Error, true)
 	->  (   var(Error)
 	    ->	Error = ok
 	    ;	true
 	    )
 	;   Error = goal_failed(Goal)
+	),
+	(   spawned(_)
+	->  true
+	;   statistics(cputime, CPU1),
+	    CPU is CPU1 - CPU0,
+	    current_output(CGI),
+	    cgi_property(CGI, id(Id)),
+	    broadcast(http(request_finished(Id, CPU, Error)))
 	).
 handler_with_output_to(Goal, Request, Output, Error) :-
 	current_output(OldOut),
