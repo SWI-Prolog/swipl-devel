@@ -48,10 +48,10 @@ The module library(thread_pool) manages threads in pools. A pool defines
 properties of its member threads and the  maximum number of threads that
 can coexist in the pool. The   call  thread_create_in_pool/4 allocates a
 thread in the pool, just like  thread_create/3.   If  the  pool is fully
-allocated it can be asked to wait or to raise an error.
+allocated it can be asked to wait or raise an error.
 
 The library has been  designed  to   deal  with  server application that
-recieve a variation of requests, such as HTTP servers. Simply starting a
+recieve a variety of requests, such as   HTTP servers. Simply starting a
 thread for each request is a bit too simple minded for such servers:
 
     * Creating many CPU intensive threads often leads to a slow-down
@@ -64,6 +64,16 @@ Using this library, one can define a  pool   for  each set of tasks with
 comparable characteristics and create threads in   this pool. Unlike the
 worker-pool model, threads are not started immediately. Depending on the
 design, both approaches can be attractive.
+
+The library is implemented by means of   a manager thread with the fixed
+thread id =|__thread_pool_manager|=. All  state   is  maintained in this
+manager thread, which receives and  processes   requests  to  create and
+destroy pools, create  threads  in  a   pool  and  handle  messages from
+terminated threads. Thread pools are _not_ saved   in  a saved state and
+must therefore be recreated  using   the  initialization/1  directive or
+otherwise during startup of the application.
+
+@see http_handler/3 and http_spawn/2.
 */
 
 :- meta_predicate
@@ -85,6 +95,14 @@ design, both approaches can be attractive.
 %	    is =infinite=.  Otherwise it must be a non-negative integer.
 %	    Using backlog(0) will never delay thread creation for this
 %	    pool.
+%	    
+%	The pooling mechanism does _not_ interact with the =detached=
+%	state of a thread.  Threads can be created but =detached= and
+%	normal and must be joined using thread_join/2 if they are not
+%	detached.
+%	
+%	@bug	The thread creation option =at_exit= is reserved for
+%		internal use by this library.
 
 thread_pool_create(Name, Size, Options) :-
 	pool_manager(Manager),
@@ -154,7 +172,8 @@ thread_pool_property(Name, Property) :-
 %	    member of the pool completes.  If =false=, throw a
 %	    resource_error.
 %	    
-%	@error resource_error(threads_in_pool(Pool))
+%	@error	resource_error(threads_in_pool(Pool)) is raised if wait
+%		is =false= or the backlog limit has been reached.
 
 thread_create_in_pool(Pool, Goal, Id, Options) :-
 	strip_module(Goal, M, G),
@@ -184,7 +203,7 @@ pool_manager('__thread_pool_manager') :-
 	    fail
 	).
 pool_manager('__thread_pool_manager') :-
-	with_mutex(thread_pool, create_pool_manager).
+	with_mutex('__thread_pool', create_pool_manager).
 
 create_pool_manager :-
 	rb_new(State0),
