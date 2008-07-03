@@ -60,12 +60,11 @@ test(deflate,
 
 %	zstream: test compressed stream flushing and processing
 
-test(zstream) :-
+test(zstream, Exit == true) :-
 	server(Port),
 	debug(server, 'Server at ~w~n', [Port]),
 	client(Port),
-	thread_join(server, Exit),
-	Exit == true.
+	thread_join(server, Exit).
 
 server(Port) :-
 	tcp_socket(S),
@@ -80,17 +79,19 @@ process(AcceptFd) :-
 	zopen(ZIn, In, []),
 	zopen(ZOut, Out, []),
 	loop(In, Out),
-	close(Out), close(In).
+	read(In, X),
+	assertion(X==end_of_file),
+	close(In), close(Out).
 
 loop(In, Out) :-
 	read(In, Term),
 	debug(server, 'Read ~w', [Term]),
-	format(Out, '~q.~n', [Term]),
-	flush_output(Out),
-	debug(server, 'Replied', [Term]),
 	(   Term == quit
 	->  true
-	;   loop(In, Out)
+	;   format(Out, '~q.~n', [Term]),
+	    flush_output(Out),
+	    debug(server, 'Replied', [Term]),
+	    loop(In, Out)
 	).
 
 client(Port) :-
@@ -104,6 +105,8 @@ client(Address) :-
 	zopen(ZOut, Out, []),
 	process_client(In, Out),
 	close(Out),
+	read(In, X),
+	assertion(X==end_of_file),
 	close(In).
 
 process_client(In, Out) :-
