@@ -19,7 +19,7 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		thread_httpd.pl xpce_httpd.pl inetd_httpd.pl \
 		http_wrapper.pl http_open.pl http_session.pl \
 		http_error.pl http_parameters.pl http_dispatch.pl \
-		http_authenticate.pl http_stream.pl \
+		http_authenticate.pl http_stream.pl http_log.pl \
 		json.pl http_json.pl json_convert.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
