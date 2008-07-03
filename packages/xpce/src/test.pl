@@ -35,6 +35,18 @@ available test sets. The public goals are:
 	?- test.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+% Load XPCE from the development environment
+
+:- initialization op(200, fy,  user:(@)).
+:- initialization op(250, yfx, user:(?)).
+:- initialization op(990, xfx, user:(:=)).
+
+user:file_search_path(foreign, '.').
+user:file_search_path(pce, '..').
+user:file_search_path(library, '../prolog/lib').
+:- use_module(library(pce)).
+
+
 :- get(@pce, version, V),
    format('XPCE/SWI-Prolog test suite. (XPCE version ~w)~n\
           To run all tests run ?- test.~n~n', [V]).

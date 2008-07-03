@@ -136,11 +136,11 @@ clean::
         done
 
 check::
-	rm -f .FAILED_TESTS
+	@rm -f .FAILED_TESTS
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || touch .FAILED_TESTS; fi; \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) ||  echo $$P > .FAILED_TESTS; fi; \
         done
-	if [ -f .FAILED_TESTS ]; then exit 1; fi
+	@if [ -f .FAILED_TESTS ]; then echo "Tests in `cat .FAILED_TESTS` failed" && exit 1; fi
 
 # test environment
 
