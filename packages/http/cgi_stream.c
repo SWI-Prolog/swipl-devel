@@ -93,6 +93,7 @@ static atom_t ATOM_connection;		/* connection */
 static atom_t ATOM_keep_alife;		/* keep_alife */
 static atom_t ATOM_close;		/* close */
 static atom_t ATOM_content_length;	/* content_length */
+static atom_t ATOM_id;			/* id */
 static predicate_t PREDICATE_call3;	/* Goal, Event, Handle */
 
 
@@ -128,6 +129,7 @@ typedef struct cgi_context
   char		   *data;		/* Buffered data */
   size_t	    datasize;		/* #bytes buffered */
   size_t	    dataallocated;	/* #bytes allocated */
+  int		    id;			/* Identifier */
   unsigned int	    magic;		/* CGI_MAGIC */
 } cgi_context;
 
@@ -259,6 +261,8 @@ cgi_property(term_t cgi, term_t prop)
       rc = PL_unify_nil(arg);
   } else if ( name == ATOM_header )
   { rc = unify_record(arg, ctx->header);
+  } else if ( name == ATOM_id )
+  { rc = PL_unify_integer(arg, ctx->id);
   } else if ( name == ATOM_client )
   { rc = PL_unify_stream(arg, ctx->stream);
   } else if ( name == ATOM_transfer_encoding )
@@ -607,6 +611,8 @@ static IOFUNCTIONS cgi_functions =
 		 *	       OPEN		*
 		 *******************************/
 
+static int current_id = 0;		/* TBD: MT: lock */
+
 #define CGI_COPY_FLAGS (SIO_OUTPUT| \
 			SIO_TEXT| \
 			SIO_REPXML|SIO_REPPL|\
@@ -669,6 +675,7 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
   if ( PL_unify_stream(new, s2) )
   { Sset_filter(s, s2);
     PL_release_stream(s);
+    ctx->id = ++current_id;
 
     return TRUE;
   } else
@@ -695,6 +702,7 @@ install_cgi_stream()
   ATOM_keep_alife        = PL_new_atom("keep_alife");
   ATOM_connection        = PL_new_atom("connection");
   ATOM_content_length    = PL_new_atom("content_length");
+  ATOM_id  	         = PL_new_atom("id");
 
   PREDICATE_call3   = PL_predicate("call", 3, "system");
 
