@@ -1035,25 +1035,6 @@ common options:
 Specify the port to listen to for stand-alone servers.  \arg{Port} is
 either an integer or unbound.  If unbound, it is unified to the selected
 free port.
-
-    \termitem{after}{:Goal}
-Specify a goal to be run on the query just like the first argument of
-http_server/2.  This goal however is started \emph{after} the request
-has been answered.  It is called using \term{call}{Goal, Request}.  This
-extension was added to support the FIPA-HTTP protocol, which issues HTTP
-POST requests on the server.  The server answers these requests with an
-empty document before starting processing.  The \const{after}-option
-is used for the processing:
-
-\begin{code}
-:- http_server(reply, [after(action), ...]).
-
-reply(Request) :-
-	format('Content-type: text/plain\r\n\r\n').
-
-action(Request) :-
-	<start agent work on request>
-\end{code}
 \end{description}
 
 
@@ -1125,10 +1106,6 @@ commandline option.
     \termitem{trail}{+KBytes}
 Size of the trail-stack for the workers. Default is taken from the
 commandline option.
-
-    \termitem{after}{:Goal}
-After replying a request, execute \arg{Goal} providing the request as
-argument.
 
     \termitem{ssl}{+SSLOptions}
 Use SSL (Secure Socket Layer) rather than plan TCP/IP. A server created
@@ -1223,8 +1200,8 @@ application.
 Create an instance of \class{interactive_httpd}.  \arg{Options} must
 provide the \term{port}{?Port} option to specify the port the server
 should listen to. If \arg{Port} is unbound an arbitrary free port is
-selected and \arg{Port} is unified to this port-number. The only
-other option provided is the \term{after}{:Goal} option.
+selected and \arg{Port} is unified to this port-number.  Currently
+no options are defined.
 \end{description}
 
 The file \file{demo_xpce} gives a typical example of this wrapper,

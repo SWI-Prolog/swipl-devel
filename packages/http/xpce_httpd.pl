@@ -60,10 +60,7 @@ http_current_server(Goal, Port) :-
 
 %%	http_server(:Goal, +Options) is det.
 %
-%	Start server at given or arbitrary port.  Options:
-%	
-%	   * after(:After)
-%	     call(After, Request) after completion
+%	Start server at given or arbitrary port.
 
 http_server(Goal, Options) :-
 	select(port(Port), Options, Options1), !,
@@ -71,17 +68,12 @@ http_server(Goal, Options) :-
 http_server(_Goal, _Options) :-
 	throw(error(existence_error(option, port), _)).
 
-http_server(Goal, Port, Options) :-
+http_server(Goal, Port, _Options) :-
 	strip_module(Goal, M, PlainGoal),
 	(   var(Port)
 	->  new(X, interactive_httpd(M:PlainGoal)),
 	    get(X, address, Port)
 	;   new(X, interactive_httpd(M:PlainGoal, Port))
-	),
-	(   memberchk(after(After), Options)
-	->  strip_module(After, MA, A),
-	    send(X, after, MA:A)
-	;   send(X, after, [])
 	).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -98,7 +90,6 @@ services while running the XPCE GUI.
 
 variable(allowed_hosts,	chain*,	 both, "Chain of regex with acceptable peers").
 variable(goal,		prolog,	 get,  "Goal to use for processing").
-variable(after,		prolog,  both, "Goal for `after' processing").
 variable(out_stream,	prolog,	 get,  "Stream for output").
 variable(peer,		name,	 get,  "Peer connection (host only)").
 variable(request,	string*, get,  "Data for first line").
@@ -247,9 +238,8 @@ dispatch(S, Input:string) :->
 	),
 	pce_open(Input, read, In),
 	get(S, goal, Goal),
-	get(S, after, After),
 	get(S, out_stream, Out),
-	(   catch(http_wrapper(Goal, In, Out, Close, [request(Request)]),
+	(   catch(http_wrapper(Goal, In, Out, Close, []),
 		  E, wrapper_error(E))
 	->  close(In),
 	    (   downcase_atom(Close, 'keep-alive')
@@ -257,10 +247,6 @@ dispatch(S, Input:string) :->
 		send(S, record_separator, @http_end_line_regex),
 		send(S, slot, data, @nil)
 	    ;   free(S)
-	    ),
-	    (   After \== []
-	    ->  call(After, Request)
-	    ;   true
 	    )
 	;   close(In),			% exception or failure
 	    free(S)

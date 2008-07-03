@@ -42,10 +42,7 @@
 %	
 %	Start the server from inetd. This is really easy as user_input
 %	is connected to the HTTP input and user_output is the place to
-%	write our reply to.  Options:
-%	
-%	      * after(:Goal)
-%		Run Goal on the request after reply 
+%	write our reply to.
 
 http_server(Goal, Options) :-
 	prompt(_, ''),
@@ -59,13 +56,7 @@ server_loop(_, _) :-
 	at_end_of_stream(user_input), !,
 	halt.
 server_loop(Goal, Options) :-
-	http_wrapper(Goal, user_input, user_output, Connection,
-		     [ request(Request)
-		     ]), !,
-	(   memberchk(after(After), Options)
-	->  call(After, Request)
-	;   true
-	),
+	http_wrapper(Goal, user_input, user_output, Connection, []),
 	(   downcase_atom(Connection, 'keep-alive')
 	->  server_loop(Goal, Options)
 	;   halt

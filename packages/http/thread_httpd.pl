@@ -92,16 +92,14 @@ for details.
 %	| local(KBytes)	     | <CommandLine> |				    |
 %	| global(KBytes)     | <CommandLine> |				    |
 %	| trail(KBytes)      | <CommandLine> | Stack-sizes of worker threads  |
-%	| after(:Goal)       |		|Run Goal on request after finishing the HTTP reply. |
 
 http_server(Goal, Options) :-
 	strip_module(Goal, Module, G),
 	select_option(port(Port), Options, Options1), !,
-	meta_options(thread_httpd:http_meta_option, Options1, Options2),
-	make_socket(Port, Options2, Options3),
-	set_port_options(Port, Options3),
-	create_workers(Options3),
-	create_server(Module:G, Port, Options3).
+	make_socket(Port, Options1, Options2),
+	set_port_options(Port, Options2),
+	create_workers(Options2),
+	create_server(Module:G, Port, Options2).
 http_server(_Goal, _Options) :-
 	throw(error(existence_error(option, port), _)).
 
@@ -152,9 +150,6 @@ assert_port_options([Name=Value|T], Port) :- !,
 assert_port_options([Opt|T], Port) :- !,
 	assert(port_option(Port, Opt)),
 	assert_port_options(T, Port).
-
-
-http_meta_option(after).
 
 
 %%	http_current_server(:Goal, ?Port) is nondet.
@@ -340,11 +335,10 @@ http_worker(Options) :-
 	      thread_send_message(Sender, quitted(Self))
 	  ;   open_client(Message, Queue, Goal, In, Out,
 			  Options, ClientOptions),
-	      (	  catch(http_process(Goal, In, Out,
-				     Options, ClientOptions),
+	      (	  catch(http_process(Goal, In, Out, ClientOptions),
 			Error, true)
 	      ->  true
-	      ;	  Error = goal_failed(http_process/5)
+	      ;	  Error = goal_failed(http_process/4)
 	      ),
 	      (	  var(Error)
 	      ->  fail
@@ -473,14 +467,13 @@ requeue_keep(protocol(_)).
 %	
 %	Handle a single client message on the given stream.
 
-http_process(Goal, In, Out, Options, ClientOptions) :-
+http_process(Goal, In, Out, Options) :-
 	debug(http(server), 'Running server goal ~p on ~p -> ~p',
 	      [Goal, In, Out]),
 	http_wrapper(Goal, In, Out, Connection,
 		     [ request(Request)
-		     | ClientOptions
+		     | Options
 		     ]),
-	after(Request, Options),	% TBD
 	next(Connection, Request).
 
 next(spawned, _) :- !,
@@ -491,18 +484,6 @@ next(Connection, Request) :-
 next(_, Request) :-
 	http_close_connection(Request).
 
-
-%%	after(+Request, +Options) is det.
-%
-%	Run `after' hook each time after processing a request.
-
-after(Request, Options) :-
-	(   option(after(After), Options)
-	->  (   call(After, Request)
-	    ->	true
-	    )
-	;   true
-	).
 
 %%	http_close_connection(+Request)
 %
