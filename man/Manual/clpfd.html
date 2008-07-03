@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.56 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.57 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="clpclp_distinct.html">
@@ -208,10 +208,12 @@ implicitly constrained to the Boolean values 0 and 1. Therefore, the
 following queries all fail: <CODE>?-</CODE> <CODE>#\</CODE> 2., <CODE>?-</CODE> <CODE>#\</CODE> <CODE>#\</CODE> 
 2. etc.
 
-<P>As an example of a constraint satisfaction problem, consider the 
-cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters 
-denote distinct integers between 0 and 9. It can be modeled in CLP(FD) 
-as follows:
+<P>A common usage of this library is to first post the desired 
+constraints among the variables of a model, and then to use enumeration 
+predicates to search for solutions. As an example of a constraint 
+satisfaction problem, consider the cryptoarithmetic puzzle SEND + MORE = 
+MONEY, where different letters denote distinct integers between 0 and 9. 
+It can be modeled in CLP(FD) as follows:
 
 <PRE class="code">
 :- use_module(library(clpfd)).
@@ -223,7 +225,7 @@ puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
                   S*1000 + E*100 + N*10 + D +
                   M*1000 + O*100 + R*10 + E #=
         M*10000 + O*1000 + N*100 + E*10 + Y,
-        M #&gt; 0, S #&gt; 0.
+        M #\= 0, S #\= 0.
 </PRE>
 
 <P>Sample query and its result:
@@ -242,27 +244,30 @@ _G10128 in 2..8,
 _G10152 in 2..8.
 </PRE>
 
-<P>Here, the constraint solver could deduce more stringent bounds for 
-many variables. Labeling can be used to search for solutions:
+<P>Here, the constraint solver has deduced more stringent bounds for all 
+variables. Keeping the modeling part separate from the search allows to 
+view these residual goals, observe termination and determinism 
+properties of the modeling part in isolation from the search, and to 
+more easily experiment with different search strategies. Labeling can 
+then be used to search for solutions:
 
 <PRE class="code">
 ?- puzzle(As+Bs=Cs), label(As).
 As = [9, 5, 6, 7],
 Bs = [1, 0, 8, 5],
 Cs = [1, 0, 6, 5, 2] ;
-fail.
+false.
 </PRE>
 
-<P>This library also provides <I>reflection</I> predicates (like <A class="pred" href="clpfd.html#fd_dom/2">fd_dom/2</A>,
-<A class="pred" href="clpfd.html#fd_size/2">fd_size/2</A> etc.) with 
-which you can inspect a variable's current domain. Use <A class="pred" href="coroutining.html#call_residue_vars/2">call_residue_vars/2</A> 
-and <A class="pred" href="attvar.html#copy_term/3">copy_term/3</A> to 
-inspect residual goals and the constraints in which a variable is 
-involved.
+<P>In this case, it suffices to label a subset of variables to find the 
+puzzle's unique solution, since the constraint solver is strong enough 
+to reduce the domains of remaining variables to singleton sets. In 
+general though, it is necessary to label all variables to obtain ground 
+solutions.
 
 <P>It is perfectly reasonable to use CLP(FD) constraints instead of 
-ordinary integer arithmetic with <A class="pred" href="arith.html#is/2">is/2</A>. 
-This can make programs more general. For example:
+ordinary integer arithmetic with <A class="pred" href="arith.html#is/2">is/2</A>, <A class="pred" href="arith.html#>/2">&gt;/2</A> 
+etc. For example:
 
 <PRE class="code">
 :- use_module(library(clpfd)).
@@ -276,15 +281,15 @@ fac(N, F) :- N #&gt; 0, N1 #= N - 1, F #= N * F1, fac(N1, F1).
 <PRE class="code">
 ?- fac(47, F).
 F = 258623241511168180642964355153611979969197632389120000000000 ;
-fail.
+false.
 
 ?- fac(N, 1).
 N = 0 ;
 N = 1 ;
-fail.
+false.
 
 ?- fac(N, 3).
-fail.
+false.
 </PRE>
 
 <P>To make the predicate terminate if any argument is instantiated, add 
@@ -300,6 +305,62 @@ etc.) when the constraints are used in modes that can also be handled by
 built-in arithmetic. To disable the expansion, set the flag 
 clpfd_goal_expansion to false.
 
+<P>Use <A class="pred" href="coroutining.html#call_residue_vars/2">call_residue_vars/2</A> 
+and <A class="pred" href="attvar.html#copy_term/3">copy_term/3</A> to 
+inspect residual goals and the constraints in which a variable is 
+involved. This library also provides <I>reflection</I> predicates (like <A class="pred" href="clpfd.html#fd_dom/2">fd_dom/2</A>, <A class="pred" href="clpfd.html#fd_size/2">fd_size/2</A> 
+etc.) with which you can inspect a variable's current domain. These 
+predicates can be useful if you want to implement your own labeling 
+strategies.
+
+<P>You can also define custom constraints. The mechanism to do this is 
+not yet finalised, and we welcome suggestions and descriptions of use 
+cases that are important to you. As an example of how it can be done 
+currently, let us define a new custom constraint "oneground(X,Y,Z)", 
+where Z shall be 1 if at least one of X and Y is instantiated:
+
+<PRE class="code">
+:- use_module(library(clpfd)).
+
+:- multifile clpfd:run_propagator/2.
+
+oneground(X, Y, Z) :-
+        clpfd:make_propagator(oneground(X, Y, Z), Prop),
+        clpfd:init_propagator(X, Prop),
+        clpfd:init_propagator(Y, Prop),
+        clpfd:trigger_once(Prop).
+
+clpfd:run_propagator(oneground(X, Y, Z), MState) :-
+        (   integer(X) -&gt; clpfd:kill(MState), Z = 1
+        ;   integer(Y) -&gt; clpfd:kill(MState), Z = 1
+        ;   true
+        ).
+</PRE>
+
+<P>First, clpfd:<SPAN class="pred-ext">make_propagator/2</SPAN> is used 
+to transform a user-defined representation of the new constraint to an 
+internal form. With clpfd:<SPAN class="pred-ext">init_propagator/2</SPAN>, 
+this internal form is then attached to X and Y. From now on, the 
+propagator will be invoked whenever the domains of X or Y are changed. 
+Then, clpfd:<SPAN class="pred-ext">trigger_once/1</SPAN> is used to give 
+the propagator its first chance for propagation even though the 
+variables' domains have not yet changed. Finally, clpfd:<SPAN class="pred-ext">run_propagator/2</SPAN> 
+is extended to define the actual propagator. As explained, this 
+predicate is automatically called by the constraint solver. The first 
+argument is the user-defined representation of the constraint as used in 
+clpfd:<SPAN class="pred-ext">make_propagator/2</SPAN>, and the second 
+argument is a mutable state that can be used to prevent further 
+invocations of the propagator when the constraint has become entailed, 
+by using clpfd:<SPAN class="pred-ext">kill/1</SPAN>. An example of using 
+the new constraint:
+
+<PRE class="code">
+?- oneground(X, Y, Z), Y = 5.
+Y = 5,
+Z = 1,
+X in inf..sup.
+</PRE>
+
 <DL>
 <DT class="pubdef"><A NAME="in/2"><VAR>?Var</VAR> <STRONG>in</STRONG> <VAR>+Domain</VAR></A></DT>
 <DD class="defbody">
@@ -313,10 +374,10 @@ Singleton set consisting only of <I>Integer</I>.
 </DD>
 <DT><VAR><VAR>Lower</VAR></VAR> <STRONG>..</STRONG> <VAR><VAR>Upper</VAR></VAR></DT>
 <DD class="defbody">
-All integers <I>I</I> such that <I>Lower</I> <CODE>=&lt;</CODE> <I>I</I> <CODE>=&lt;</CODE> <I>Upper</I>. 
-The atoms
-<B>inf</B> and <B>sup</B> denote negative and positive infinity, 
-respectively.
+All integers <I>I</I> such that <I>Lower</I> <CODE>=&lt;</CODE> <I>I</I> <CODE>=&lt;</CODE> <I>Upper</I>.
+<I>Lower</I> must be an integer or the atom <B>inf</B>, which denotes 
+negative infinity. <I>Upper</I> must be an integer or the atom <B>sup</B>, 
+which denotes positive infinity.
 </DD>
 <DT><VAR><VAR>Domain1</VAR></VAR> <STRONG><CODE>\/</CODE></STRONG> <VAR><VAR>Domain2</VAR></VAR></DT>
 <DD class="defbody">
@@ -480,13 +541,40 @@ C in 0..100.
 <VAR>X</VAR> is greater than <VAR>Y</VAR>.</DD>
 <DT class="pubdef"><A NAME="#</2"><VAR>?X</VAR> <STRONG>#&lt;</STRONG> <VAR>?Y</VAR></A></DT>
 <DD class="defbody">
-<VAR>X</VAR> is less than <VAR>Y</VAR>.</DD>
+<VAR>X</VAR> is less than <VAR>Y</VAR>. In addition to its regular use 
+in problems that require it, this constraint can also be useful to 
+eliminate uninteresting symmetries from a problem. For example, all 
+possible matches between pairs built from four players in total:
+
+<PRE class="code">
+?- Vs = [A,B,C,D], Vs ins 1..4, all_different(Vs), A #&lt; B, C #&lt; D, A #&lt; C,
+   findall(pair(A,B)-pair(C,D), label(Vs), Ms).
+Ms = [pair(1, 2)-pair(3, 4), pair(1, 3)-pair(2, 4), pair(1, 4)-pair(2, 3)]
+</PRE>
+
+</DD>
 <DT class="pubdef"><A NAME="#\/1"><STRONG>#\</STRONG> <VAR>+Q</VAR></A></DT>
 <DD class="defbody">
-The reifiable constraint <VAR>Q</VAR> does <I>not</I> hold.</DD>
+The reifiable constraint <VAR>Q</VAR> does <I>not</I> hold. For example, 
+to obtain the complement of a domain:
+
+<PRE class="code">
+?- #\ X in -3..0\/10..80.
+X in inf.. -4\/1..9\/81..sup.
+</PRE>
+
+</DD>
 <DT class="pubdef"><A NAME="#<==>/2"><VAR>?P</VAR> <STRONG>#&lt;==&gt;</STRONG> <VAR>?Q</VAR></A></DT>
 <DD class="defbody">
-<VAR>P</VAR> and <VAR>Q</VAR> are equivalent.</DD>
+<VAR>P</VAR> and <VAR>Q</VAR> are equivalent. For example:
+
+<PRE class="code">
+?- X #= 4 #&lt;==&gt; B, X #\= 4.
+B = 0,
+X in inf..3\/5..sup.
+</PRE>
+
+</DD>
 <DT class="pubdef"><A NAME="#==>/2"><VAR>?P</VAR> <STRONG>#==&gt;</STRONG> <VAR>?Q</VAR></A></DT>
 <DD class="defbody">
 <VAR>P</VAR> implies <VAR>Q</VAR>.</DD>
@@ -498,15 +586,24 @@ The reifiable constraint <VAR>Q</VAR> does <I>not</I> hold.</DD>
 <VAR>P</VAR> and <VAR>Q</VAR> hold.</DD>
 <DT class="pubdef"><A NAME="#\//2"><VAR>?P</VAR> <STRONG>#\/</STRONG> <VAR>?Q</VAR></A></DT>
 <DD class="defbody">
-<VAR>P</VAR> or <VAR>Q</VAR> holds.</DD>
+<VAR>P</VAR> or <VAR>Q</VAR> holds. For example, the sum of natural 
+numbers below 1000 that are multiples of 3 or 5:
+
+<PRE class="code">
+?- N mod 3 #= 0 #\/ N mod 5 #= 0, N in 0..999, findall(N, indomain(N), Ns), sum(Ns, #=, Sum).
+Ns = [0, 3, 5, 6, 9, 10, 12, 15, 18|...],
+Sum = 233168
+</PRE>
+
+</DD>
 <DT class="pubdef"><A NAME="lex_chain/1"><STRONG>lex_chain</STRONG>(<VAR>+Lists</VAR>)</A></DT>
 <DD class="defbody">
 <VAR>Lists</VAR> are lexicographically non-decreasing.</DD>
 <DT class="pubdef"><A NAME="tuples_in/2"><STRONG>tuples_in</STRONG>(<VAR>+Tuples, 
 +Relation</VAR>)</A></DT>
 <DD class="defbody">
-<VAR>Relation</VAR> must be a ground list of lists of integers. The 
-elements of the list <VAR>Tuples</VAR> are constrained to be elements of <VAR>Relation</VAR>. 
+<VAR>Relation</VAR> must be a list of lists of integers. The elements of 
+the list <VAR>Tuples</VAR> are constrained to be elements of <VAR>Relation</VAR>. 
 Arbitrary finite relations, such as compatibility tables, can be modeled 
 in this way. For example, if 1 is compatible with 2 and 5, and 4 is 
 compatible with 0 and 3:
@@ -515,6 +612,31 @@ compatible with 0 and 3:
 ?- tuples_in([[X,Y]], [[1,2],[1,5],[4,0],[4,3]]), X = 4.
 X = 4,
 Y in 0\/3.
+</PRE>
+
+<P>As another example, consider a train schedule represented as a list 
+of quadruples, denoting departure and arrival places and times for each 
+train. In the following program, Ps is a feasible journey of length 3 
+from A to D via trains that are part of the given schedule.
+
+<PRE class="code">
+:- use_module(library(clpfd)).
+ 
+trains([[1,2,0,1],[2,3,4,5],[2,3,0,1],[3,4,5,6],[3,4,2,3],[3,4,8,9]]).
+ 
+threepath(A, D, Ps) :-
+        Ps = [[A,B,_T0,T1],[B,C,T2,T3],[C,D,T4,_T5]],
+        T2 #&gt; T1,
+        T4 #&gt; T3,
+        trains(Ts),
+        tuples_in(Ps, Ts).
+</PRE>
+
+<P>In this example, the unique solution is found without labeling:
+
+<PRE class="code">
+?- threepath(1, 4, Ps).
+Ps = [[1, 2, 0, 1], [2, 3, 4, 5], [3, 4, 8, 9]].
 </PRE>
 
 </DD>
@@ -559,7 +681,10 @@ or the atom <B>sup</B> if the domain is unbounded.</DD>
 -Dom</VAR>)</A></DT>
 <DD class="defbody">
 <VAR>Dom</VAR> is the current domain (see <A class="pred" href="clpfd.html#in/2">in/2</A>) 
-of <VAR>Var</VAR>.
+of <VAR>Var</VAR>. This predicate is useful if you want to reason about 
+domains. It is not needed if you only want to display remaining domains; 
+instead, separate your model from the search part and let the toplevel 
+display this information via residual goals.
 </DD>
 </DL>
 

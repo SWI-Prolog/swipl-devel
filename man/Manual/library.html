@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.56 Reference Manual: Section E.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.57 Reference Manual: Section E.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="softlicense.html">
@@ -268,6 +268,8 @@ permutations of a list</TD></TR>
 the order of the elements in a list</TD></TR>
 <TR><TD><A class="pred" href="lists.html#select/3">select/3</A></TD><TD>Select 
 element of a list</TD></TR>
+<TR><TD><A class="pred" href="lists.html#selectchk/3">selectchk/3</A></TD><TD>Semi-deterministic 
+selection from a list</TD></TR>
 <TR><TD><A class="pred" href="lists.html#subset/2">subset/2</A></TD><TD>Check 
 subset relation for unordered sets</TD></TR>
 <TR><TD><A class="pred" href="lists.html#subtract/3">subtract/3</A></TD><TD>Delete 
@@ -561,7 +563,7 @@ a set of intervals to a non-overlapping sequence.</TD></TR>
 <TR><TD><A class="pred" href="clpfd.html#sum/3">sum/3</A></TD><TD>The 
 sum of elements of the list Vars is in relation Rel to Expr.</TD></TR>
 <TR><TD><A class="pred" href="clpfd.html#tuples_in/2">tuples_in/2</A></TD><TD>Relation 
-must be a ground list of lists of integers.</TD></TR>
+must be a list of lists of integers.</TD></TR>
 </TABLE>
 
 <H3><A NAME="sec:E.4.20"><SPAN class="sec-nr">E.4.20</SPAN> <SPAN class="sec-title"><CODE>library(clpqr)</CODE></SPAN></A></H3>
@@ -612,6 +614,21 @@ shadow price in solved state</TD></TR>
 transportation problem</TD></TR>
 <TR><TD><A class="pred" href="simplex.html#variable_value/3">variable_value/3</A></TD><TD>Fetch 
 value of variable in solved state</TD></TR>
+</TABLE>
+
+<H3><A NAME="sec:E.4.22"><SPAN class="sec-nr">E.4.22</SPAN> <SPAN class="sec-title"><CODE>library(thread_pool)</CODE></SPAN></A></H3>
+
+<TABLE>
+<TR><TD><A class="pred" href="threadpool.html#current_thread_pool/1">current_thread_pool/1</A></TD><TD>True 
+if Name refers to a defined thread pool.</TD></TR>
+<TR><TD><A class="pred" href="threadpool.html#thread_create_in_pool/4">thread_create_in_pool/4</A></TD><TD>Create 
+a thread in Pool.</TD></TR>
+<TR><TD><A class="pred" href="threadpool.html#thread_pool_create/3">thread_pool_create/3</A></TD><TD>Create 
+a pool of threads.</TD></TR>
+<TR><TD><A class="pred" href="threadpool.html#thread_pool_destroy/1">thread_pool_destroy/1</A></TD><TD>Destroy 
+the thread pool named Name.</TD></TR>
+<TR><TD><A class="pred" href="threadpool.html#thread_pool_property/2">thread_pool_property/2</A></TD><TD>True 
+if Property is a property of thread pool Name.</TD></TR>
 </TABLE>
 
 <P></BODY></HTML>
