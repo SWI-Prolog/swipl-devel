@@ -469,6 +469,13 @@ print_request([H|T]) :-
 	print_request(T).
 \end{code}
 
+The infrastructure recognises the header
+\texttt{Transfer-encoding:~chunked}, causing it to use chunked encoding
+if the client allows for it. See also \secref{transfer} and the
+\const{chunked} option in http_handler/3. Other header lines are passed
+verbatim to the client.   Typical examples are \texttt{Set-Cookie} and
+authentication headers (see \secref{auth}.
+
 
 \subsubsection{Returning special status codes}	\label{sec:httpspecials}
 
@@ -553,22 +560,32 @@ Call \term{call}{Closure, Request} if an HTTP request for the path
 \arg{Location} is dispatched by http_dispatch/1.  Options include:
 
     \begin{description}
+	\termitem{authentication}{+Type}
+Demand authentication. Authentication methods define \arg{Type} and are
+pluggable. The library \file{http_authenticate.pl} provides a plugin for
+user/password based \const{Basic} HTTP authentication.
+
+	\termitem{chunked}{}
+Enable chunked transfer-encoding if the client allows for it. See
+\secref{transfer}.
+
 	\termitem{time_limit}{+Spec}
 Specify a (wall-)time limit to handle the request. \arg{Spec} is one of
 \const{infinite}, \const{default} or a number expressing seconds. If
 \const{default} or omitted, the setting (see setting/4)
 \const{http:time_limit} is used.
 
-	\termitem{authentication}{+Type}
-Demand authentication. Authentication methods define \arg{Type} and are
-pluggable. The library \file{http_authenticate.pl} provides a plugin for
-user/password based \const{Basic} HTTP authentication.
-
 	\termitem{priority}{+Integer}
 If two handlers handle the same path, the one with the highest priority
 is used. If equal, the last registered is used. Please be aware that the
 order of clauses in multifile predicates can change due to reloading
 files.
+
+	\termitem{spawn}{+Spec}
+Handle the request on a seperate thread. \arg{Spec} is either the name
+of a thread pool (see thread_pool_create/3 from library(thread_pool) or
+a set of options that are passed to thread_create/3. See also
+http_spawn/2.
     \end{description}
 
 Note that http_handler/3 is normally invoked as a directive and
@@ -611,7 +628,7 @@ defined using file_search_path/2.
 \end{description}
 
 
-\subsection{Session management}			\label{sec:session}
+\subsection{HTTP Session management}			\label{sec:session}
 
 The library \pllib{http/http_session.pl} provides cookie-based session
 management.  The library installs a session-id cookie using the hook
@@ -973,6 +990,17 @@ make them available from the public web-server as described in
 
 
 \begin{itemlist}
+    \item [Using \pllib{thread_httpd} for a multi-threaded server]
+This server exploits the multi-threaded version of SWI-Prolog, running
+the users body code parallel from a pool of worker threads. As it avoids
+the state engine and copying required in the event-driven server it is
+generally faster and capable to handle multiple requests concurrently.
+
+This server is harder to debug due to the involved threading, although
+the GUI tracer provides reasonable support for multi-threaded
+applications using the tspy/1 command. It can provide fast communication
+to multiple clients and can be used for more demanding servers.
+
     \item [Using \pllib{xpce_httpd} for an event-driven server]
 This approach provides a single-threaded event-driven application.  The
 clients talk to XPCE sockets that collect an HTTP request.  The server
@@ -983,16 +1011,6 @@ clients are thus fully serialised in one Prolog process.
 
 This server setup is very suitable for debugging as well as embedded
 server in simple applications in a fairly controlled environment.
-
-    \item [Using \pllib{thread_httpd} for a multi-threaded server]
-This server exploits the multi-threaded version of SWI-Prolog, running
-the users body code parallel from a pool of worker threads. As it avoids
-the state engine and copying required in the event-driven server it is
-generally faster and capable to handle multiple requests concurrently.
-
-This server is harder to debug due to the involved threading.  It
-can provide fast communication to multiple clients and can be used for
-more demanding servers.
 
     \item [Using \pllib{inetd_httpd} for server-per-client]
 In this setup the Unix \program{inetd} user-daemon is used to initialise
@@ -1039,67 +1057,14 @@ action(Request) :-
 \end{description}
 
 
-\subsubsection{From an interactive Prolog session using XPCE}
-
-The \pllib{http/xpce_httpd.pl} provides the infrastructure to manage
-multiple clients with an event-driven control-structure. This version
-can be started from an interactive Prolog session, providing a
-comfortable infra-structure to debug the body of your server. It also
-allows the combination of an (XPCE-based) GUI with web-technology in one
-application.
-
-\begin{description}
-    \predicate{http_server}{2}{:Goal, +Options}
-Create an instance of \class{interactive_httpd}.  \arg{Options} must
-provide the \term{port}{?Port} option to specify the port the server
-should listen to. If \arg{Port} is unbound an arbitrary free port is
-selected and \arg{Port} is unified to this port-number. The only
-other option provided is the \term{after}{:Goal} option.
-\end{description}
-
-The file \file{demo_xpce} gives a typical example of this wrapper,
-assuming \file{demo_body} defines the predicate reply/1.
-
-\begin{code}
-:- use_module(xpce_httpd).
-:- use_module(demo_body).
-
-server(Port) :-
-	http_server(reply, Port, []).
-\end{code}
-
-The created server opens a server socket at the selected address and
-waits for incoming connections. On each accepted connection it collects
-input until an HTTP request is complete. Then it opens an input stream
-on the collected data and using the output stream directed to the XPCE
-\class{socket} it calls http_wrapper/5. This approach is fundamentally
-different compared to the other approaches:
-
-\begin{itemlist}
-    \item [Server can handle multiple connections]
-When \emph{inetd} will start a server for each \emph{client}, and CGI
-starts a server for each \emph{request}, this approach starts a single
-server handling multiple clients.
-
-    \item [Requests are serialised]
-All calls to \arg{Goal} are fully serialised, processing on behalf of a
-new client can only start after all previous requests are answered. This
-easier and quite acceptable if the server is mostly inactive and
-requests take not very long to process.
-
-    \item [Lifetime of the server]
-The server lives as long as Prolog runs.
-\end{itemlist}
-
-
 \subsubsection{Multi-threaded Prolog}		\label{sec:mthttpd}
 
 The \pllib{http/thread_httpd.pl} provides the infrastructure to manage
 multiple clients using a pool of \jargon{worker-threads}.  This realises
-a popular server design, also seen in SUN JavaBeans and Microsoft .NET.
+a popular server design, also seen in Java Tomcat and Microsoft .NET.
 As a single persistent server process maintains communication to all
 clients startup time is not an important issue and the server can
-easily maintain state-information for all clients.
+easily maintain state-information for all clients.  
 
 In addition to the functionality provided by the other (XPCE and
 inetd) servers, the threaded server can also be used to realise an
@@ -1205,8 +1170,96 @@ True if \arg{ThreadID} is the identifier of a Prolog thread serving
 \arg{Port}. This predicate is motivated to allow for the use of
 arbitrary interaction with the worker thread for development and
 statistics.
+
+    \predicate{http_spawn}{2}{:Goal, +Spec}
+Continue handling this request in a new thread running \arg{Goal}. After
+http_spawn/2, the worker returns to the pool to process new requests. In
+its simplest form, \arg{Spec} is the name of a thread pool as defined by
+thread_pool_create/3. Alternatively it is an option list, whose options
+are passed to thread_create_in_pool/4 if \arg{Spec} contains
+\term{pool}{Pool} or to thread_create/3 of the pool option is not
+present. If the dispatch module is used (see \secref{dispatch}),
+spawning is normally specified as an option to the http_handler/3
+registration.
+
+We recomment the use of thread pools. They allow registration of a set
+of threads using common characteristics, specify how many can be active
+and what to do if all threads are active. A typical application may
+define a small pool of threads with large stacks for computation
+intensive tasks, and a large pool of threads with small stacks to serve
+media. The declaration could be the one below, allowing for max 3
+concurrent solvers and a maximum backlog of 5 and 30 tasks creating
+image thumbnails.
+
+\begin{code}
+:- use_module(library(thread_pool)).
+
+:- thread_pool_create(compute, 3,
+		      [ local(20000), global(100000), trail(50000),
+			backlog(5)
+		      ]).
+:- thread_pool_create(media, 30,
+		      [ local(100), global(100), trail(100),
+			backlog(100)
+		      ]).
+
+:- http_handler('/solve',     solve,     [spawn(compute)]).
+:- http_handler('/thumbnail', thumbnail, [spawn(media)]).
+\end{code}
 \end{description}
 
+
+\subsubsection{From an interactive Prolog session using XPCE}
+
+The \pllib{http/xpce_httpd.pl} provides the infrastructure to manage
+multiple clients with an event-driven control-structure. This version
+can be started from an interactive Prolog session, providing a
+comfortable infra-structure to debug the body of your server. It also
+allows the combination of an (XPCE-based) GUI with web-technology in one
+application.
+
+\begin{description}
+    \predicate{http_server}{2}{:Goal, +Options}
+Create an instance of \class{interactive_httpd}.  \arg{Options} must
+provide the \term{port}{?Port} option to specify the port the server
+should listen to. If \arg{Port} is unbound an arbitrary free port is
+selected and \arg{Port} is unified to this port-number. The only
+other option provided is the \term{after}{:Goal} option.
+\end{description}
+
+The file \file{demo_xpce} gives a typical example of this wrapper,
+assuming \file{demo_body} defines the predicate reply/1.
+
+\begin{code}
+:- use_module(xpce_httpd).
+:- use_module(demo_body).
+
+server(Port) :-
+	http_server(reply, Port, []).
+\end{code}
+
+The created server opens a server socket at the selected address and
+waits for incoming connections. On each accepted connection it collects
+input until an HTTP request is complete. Then it opens an input stream
+on the collected data and using the output stream directed to the XPCE
+\class{socket} it calls http_wrapper/5. This approach is fundamentally
+different compared to the other approaches:
+
+\begin{itemlist}
+    \item [Server can handle multiple connections]
+When \emph{inetd} will start a server for each \emph{client}, and CGI
+starts a server for each \emph{request}, this approach starts a single
+server handling multiple clients.
+
+    \item [Requests are serialised]
+All calls to \arg{Goal} are fully serialised, processing on behalf of a
+new client can only start after all previous requests are answered. This
+easier and quite acceptable if the server is mostly inactive and
+requests take not very long to process.
+
+    \item [Lifetime of the server]
+The server lives as long as Prolog runs.
+\end{itemlist}
 
 
 \subsubsection{From (Unix) inetd}
@@ -1404,6 +1457,7 @@ If ---for whatever reason--- the conversion is not possible it simply
 unifies \arg{RelPath} to \arg{AbsPath}.
 \end{description}
 
+\input{httplog}
 
 \subsection{Debugging Servers}				\label{sec:debug}
 

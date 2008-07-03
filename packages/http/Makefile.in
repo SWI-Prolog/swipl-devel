@@ -27,7 +27,9 @@ LIBS=@LIBS@
 LD=@LD@
 LDFLAGS=@LDSOFLAGS@
 
+PUBLICPL=       pl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
+PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 RUNTEX=../../man/runtex
 LATEX=latex
 DOC=http
@@ -108,7 +110,7 @@ doc:		$(PDF) $(HTML)
 pdf:		$(PDF)
 html:		$(HTML)
 
-SUBTEX=		post.tex json.tex
+SUBTEX=		post.tex json.tex httplog.tex
 
 $(HTML):	$(TEX) $(SUBTEX)
 		latex2html $(DOC)
@@ -124,7 +126,10 @@ $(TEX):		$(DOCTOTEX)
 json.tex:	json.pl json_convert.pl http_json.pl
 
 .txt.tex:
-		pl -q -s txttotex.pl -g txttotex,halt -t 'halt(1)' -- $*.txt
+		$(PUBLICPL) -q -s txttotex.pl -g txttotex,halt -t 'halt(1)' -- $*.txt
+
+httplog.tex:	http_log.pl
+		$(PLTOTEX) --subsection $<
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex

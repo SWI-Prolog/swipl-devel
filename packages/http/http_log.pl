@@ -41,10 +41,13 @@
 
 Simple module for logging HTTP requests to a file. Logging is enabled by
 loading this file and ensure the setting   http:logfile is not the empty
-atom.  The default file for writing the log is =|httpd.log|=.
+atom. The default  file  for  writing   the  log  is  =|httpd.log|=. See
+library(settings) for details.
 
 The  level  of  logging  can  modified  using  the  multifile  predicate
-http_log:nolog/1 to hide HTTP request fields from the logfile and
+http_log:nolog/1 to hide HTTP  request  fields   from  the  logfile  and
+http_log:password_field/1   to   hide   passwords   from   HTTP   search
+specifications (e.g. =|/topsecret?password=secret|=.
 */
 
 :- multifile
@@ -114,8 +117,9 @@ close_log(_).
 
 %%	http_log(+Format, +Args) is det.
 %
-%	Write message from Format and Args to log-stream.  See format/2
-%	for details.
+%	Write message from Format and Args   to log-stream. See format/2
+%	for details. Succeed without side  effects   if  logging  is not
+%	enabled.
 
 http_log(Format, Args) :-
 	(   http_log_stream(Stream)
