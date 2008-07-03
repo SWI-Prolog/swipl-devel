@@ -1151,7 +1151,7 @@ lookupOSSocket(SOCKET socket)
 
 
 static plsocket *
-nbio_to_plsocket_raw(nbio_sock_t socket)
+nbio_to_plsocket_nolock(nbio_sock_t socket)
 { plsocket *p;
 
   if ( socket < 0 || (size_t)socket >= socks_allocated )
@@ -1159,9 +1159,7 @@ nbio_to_plsocket_raw(nbio_sock_t socket)
     return NULL;
   }
 
-  LOCK();
   p = sockets[socket];
-  UNLOCK();
 
   if ( !p || p->magic != SOCK_MAGIC )
   { DEBUG(1, Sdprintf("Invalid NBIO socket: %d\n", socket));
@@ -1170,6 +1168,18 @@ nbio_to_plsocket_raw(nbio_sock_t socket)
   }
 
   return p;
+}
+
+
+static plsocket *
+nbio_to_plsocket_raw(nbio_sock_t socket)
+{ plsocket *s;
+
+  LOCK();
+  s = nbio_to_plsocket_nolock(socket);
+  UNLOCK();
+
+  return s;
 }
 
 
@@ -1195,7 +1205,7 @@ SOCKET
 nbio_fd(nbio_sock_t socket)
 { plsocket *p;
 
-  if ( !(p=nbio_to_plsocket(socket)) )
+  if ( !(p=nbio_to_plsocket_nolock(socket)) )
     return -1;
 
   return p->socket;
