@@ -743,7 +743,7 @@ open_shared_object(File, Handle, Flags) :-
 	'$open_shared_object'(File, Handle, Mask).
 
 open_shared_object(File, Handle) :-
-	open_shared_object(File, [], Handle). % use pl-load.c defaults
+	open_shared_object(File, Handle, []). % use pl-load.c defaults
 
 
 		 /*******************************
