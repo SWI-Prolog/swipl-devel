@@ -1,3 +1,10 @@
+/*  Part of SWI-Prolog
+
+    Author:        Nicos Angelopoulos
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 2008, Nicos Angelopoulos
+*/
+
 :- module( r_session,
           [
                r_open/0, r_open/1,
@@ -34,29 +41,30 @@
 
 /** <module> R session
 
-@copyright	YAP: Artistic
+This library facilitates interaction with an R session. On the Yap
+system it depends on library(System) and on SWI on library(process)-
+part of the clib package. Currently it only works on Linux systems. It
+assumes an R executable in $PATH or can be given a location to a
+functioning R executable. R is run as a slave with Prolog writing and
+reading on/off the associated streams.
+
+Multiple session can be managed simultaneously. Each has 3 main
+components: a name or alias, a term structure holding the communicating
+streams and a number of associated data items.
+
+The library attempts to ease the translation between prolog terms and R
+inputs. Thus, Prolog term =|x <- c(1,2,3)|= is translated to atomic =|'x
+<- c(1,2,3)'|= which is then passed on to R. That is, =|<-|= is a
+defined/recognised operator. =|X <- c(1,2,3)|=, where X is a variable,
+instantiates X to the list =|[1,2,3]|=. Currently only vectors can be
+translated in this fashion.
+
 @author 	Nicos Angelopoulos
-@version 0:0:1
-
-This library facilitates interaction with an R session. 
-On the Yap system it depends on library(System) and on SWI 
-on library(process)- part of the clib package.
-Currently it only works on Linux systems. It assumes an R executable in
-$PATH or can be given a location to a functioning R executable. R is run
-as a slave with Prolog writing and reading on/off the associated streams.
-
-Multiple session can be managed simultaneously. Each has 3 main components:
-a name or alias, a term structure holding the communicating streams and
-a number of associated data items.
-
-The library attempts to ease the translation between prolog terms and R inputs.
-Thus, Prolog term x <- c(1,2,3) is translated to atomic 'x <- c(1,2,3)'
-which is then passed on to R.  That is, '<-' is a defined/recognised operator.
-X <- c(1,2,3), where X is a variable, instantiates X to the list [1,2,3].
-Currently only vectors can be translated in this fashion.
-
-See r_session_ex.pl for some examples.
-
+@version	0:0:1
+@copyright	Nicos Angelopoulos
+@license	YAP: Artistic
+@see		examples/R/r_demo.pl, http://www.r-project.org/
+@tbd		Fix starting the R process on Windows.
 */
 
 %%% Section: Interface predicates
@@ -72,45 +80,49 @@ r_open :-
 
 %% r_open( +Opts )
 %
-%   Open  a new R session with optional list of arguments. They should be a 
-%   list of the following
+%   Open a new R session with optional list of arguments. Opts should be
+%   a list of the following
 %
-%   alias(Alias) 
-%            Name for the session. If absent or a variable an opaque term is generated.    
-%
-%   assert(A)  assert token. By default session opened last is the
-%              default session (see default_r_session/1). Using A=z 
-%              will push the session to the bottom of the pile.
-%
-%   at_r_halt(RHAction)
-%             R slaves often halt when they encounter an error.
-%             This option provides a handle to changing the behaviour of the
-%             session when this happens. RHAction should be one of 
-%             [abort,fail,call/1,call_ground/1,reinstate,restart].
-%             Default is fail. When RHAction==reinstate, the history of
-%             the session is used to roll-back all the commands sent so far.
-%             At `restart' the session is restarted with same name and 
-%             options, but history is not replayed.
-%
-%   copy(CopyTo,CopyWhat),
-%            Records interaction with R to a file/stream. CopyTo should be in
-%            [null,stream(Stream),OpenStream,AtomicFile,once(File),many(File)].
-%            In the case of many(File), file is opened and closed at each
-%            write operation. CopyWhat should be in [both,in,out,none].
-%            In all cases apart from when CopyTo is null, error stream is
-%            copied to CopyTo. Default is no recording (CopyTo = null).
-%
-%   ssh(Host[,Dir])
-%            Run R on Host with start directory Dir. Dir defaults to /tmp.
+%       * alias(Alias) 
+%	Name for the session. If absent or  a variable an opaque term is
+%	generated. 
+%       
+%       * assert(A)
+%	Assert token. By default session  opened   last  is  the default
+%	session (see default_r_session/1). Using A =   =z= will push the
+%	session to the bottom of the pile.
 %              
-%   rbin(Rbin) 
-%            R executable location. Default is 'R'.
-%   
-%   with(With) 
-%            With is in [environ,restore,save]. The default behaviour
-%            is to start the R executable is started with flags
-%            --no-environ --no-restore --no-save. For each With value  found
-%            in Opts the corresponding --no- flag is removed.
+%	* at_r_halt(RHAction)
+%	R slaves often halt when they   encounter  an error. This option
+%	provides a handle to changing the  behaviour of the session when
+%	this happens. RHAction should be one of =abort=, =fail=, call/1,
+%	call_ground/1, =reinstate= or =restart=. Default is =fail=. When
+%	RHAction is =reinstate=, the history of   the session is used to
+%	roll-back all the commands sent so far. At `restart' the session
+%	is restarted with same name  and   options,  but  history is not
+%	replayed.
+%             
+%       * copy(CopyTo,CopyWhat)
+%	Records interaction with R to a   file/stream.  CopyTo should be
+%	one   of   =null=,   stream(Stream),   OpenStream,   AtomicFile,
+%	once(File) or many(File). In the  case   of  many(File), file is
+%	opened and closed at each write   operation.  CopyWhat should be
+%	one of =both=, =in=, =out= or =none=.   In  all cases apart from
+%	when CopyTo is =null=, error stream is copied to CopyTo. Default
+%	is no recording (CopyTo = =null=).
+%            
+%       * ssh(Host)
+%       * ssh(Host,Dir)
+%       Run R on Host with start directory Dir. Dir defaults to /tmp.
+%            
+%       * rbin(Rbin) 
+%       R executable location. Default is 'R'.
+%            
+%       * with(With) 
+%	With is in [environ,restore,save]. The   default behaviour is to
+%	start the R executable  is   started  with  flags =|--no-environ
+%	--no-restore --no-save|=. For each With value  found in Opts the
+%	corresponding =|--no-|= flag is removed.
 %
 r_open( Opts ) :-
      r_open_1( Opts, _R, false ).

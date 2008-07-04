@@ -3,7 +3,7 @@
 # Author:    Nicos Angelopoulos
 ################################################################
 
-.SUFFIXES: .tex .pl
+.SUFFIXES: .tex .doc .pl
 
 SHELL=@SHELL@
 PLBASE=@PLBASE@
@@ -12,9 +12,11 @@ PL=@PL@
 PKGDOC=$(PLBASE)/doc/packages
 LIBDIR=$(PLBASE)/library
 EXDIR=$(PKGDOC)/examples/R
+PCEHOME=../xpce
 DESTDIR=
 
 PUBLICPL=pl
+DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 RUNTEX=env TEXINPUTS=../pldoc ../../man/runtex
 DOC=R
@@ -74,21 +76,25 @@ doc:		$(PDF) $(HTML)
 pdf:		$(PDF)
 html:		$(HTML)
 
+SUBTEX=		rdoc.tex
+
 $(HTML):	$(TEX)
 		latex2html $(DOC)
 		mv html/index.html $@
 		rmdir html
 
-$(PDF):		$(TEX)
+$(PDF):		$(TEX) $(SUBTEX)
 		$(RUNTEX) --pdf $(DOC)
 
 $(TEX):		$(DOCTOTEX)
 
-R.tex:		R.pl
-		$(PLTOTEX) --stand_alone $<
+rdoc.tex:	R.pl
+		$(PLTOTEX) --out=rdoc $<
 
 .pl.tex:
 		$(PLTOTEX) $*.pl
+.doc.tex:
+		$(DOCTOTEX) $*.doc > $*.tex
 
 ################################################################
 # Clean
@@ -96,7 +102,7 @@ R.tex:		R.pl
 
 clean:
 		rm -f *~ *% config.log
-		rm -f $(TEX)
+		rm -f $(TEX) $(SUBTEX)
 		../../man/runtex --clean $(DOC)
 		rm -rf html
 

@@ -1,0 +1,43 @@
+\documentclass[11pt]{article}
+\usepackage{times}
+\usepackage{pl}
+\usepackage{plpage}
+\usepackage{html}
+\makeindex
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+\sloppy
+
+\renewcommand{\runningtitle}{SWI-Prolog interface to R}
+
+\begin{document}
+
+\title{SWI-Prolog interface to R}
+\author{Nicos Angelopoulos}
+
+\maketitle
+
+\begin{abstract}
+This article documents the package R, a library to talk to R
+system for Statistical Computing.
+\end{abstract}
+
+% Use these for large packages
+%\vfill
+%\pagebreak
+%\tableofcontents
+%\vfill
+%\vfill
+%\newpage
+
+\input{rdoc.tex}
+
+\printindex
+
+\end{document}
+
+
+
