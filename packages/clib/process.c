@@ -404,7 +404,7 @@ Sclose_process(void *handle)
     int rc;
 
     rc = (*Sfilefunctions.close)((void*)(uintptr_t)fd);
-    pc->open_mask &= ~(which+1);
+    pc->open_mask &= ~(1<<which);
     
     DEBUG(Sdprintf("Closing fd[%d]; mask = 0x%x\n", which, pc->open_mask));
 
@@ -457,7 +457,7 @@ open_process_pipe(process_context *pc, int which, int fd)
 { void *handle;
   int flags;
 
-  pc->open_mask |= (which+1);
+  pc->open_mask |= (1<<which);
 #ifdef __WINDOWS__
   pc->pipes[which] = _open_osfhandle((long)fd, _O_BINARY);
 #else
