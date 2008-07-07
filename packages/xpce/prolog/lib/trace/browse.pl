@@ -186,8 +186,10 @@ goto(FB, File:'file|node', Line:int) :->
 		    send(FB, normalise, Node)
 		;   send(FB, goto, N2, Line)
 		)
-	    ;	get(Node?sons, tail, Last),
-		send(FB, goto, Last, Line)
+	    ;	get(Node?sons, tail, Last)
+	    ->	send(FB, goto, Last, Line)
+	    ;	send(FB?tree, selection, Node),
+		send(FB, normalise, Node)
 	    )
 	).
 
