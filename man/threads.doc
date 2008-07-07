@@ -768,11 +768,6 @@ a Prolog thread if it needs to call Prolog and detaches is when
 finished, as opposed to the model from \secref{threadmanymany} where
 threads temporary use a Prolog engine.
 
-{\bf Please note that the interface below will only work if threading
-in your application is based on the same thread-library as used to
-compile SWI-Prolog.}
-
-
 \subsection{A Prolog thread for each native thread (one-to-one)}
 \label{sec:threadoneone}
 
