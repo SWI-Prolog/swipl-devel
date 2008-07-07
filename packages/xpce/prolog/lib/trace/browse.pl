@@ -122,10 +122,20 @@ class_variable(size,	size,	size(200, 500),
 variable(file_pattern,	regex, get, "Pattern of showed files").
 
 initialise(FB, Root:directory) :->
-	send(FB, slot, file_pattern, '.*\.pl$'),
+	source_pattern(Regex),
+	send(FB, slot, file_pattern, Regex),
 	send_super(FB, initialise, Root),
 	send(FB?frame, label, 'SWI-Prolog Navigator'),
 	asserta(prolog_overview_window(FB)).
+
+source_pattern(Pat) :-
+	findall(E, (prolog_file_type(E, prolog),
+		    \+ prolog_file_type(E, qlf)), Exts),
+	(   Exts = [Ext]
+	->  format(atom(Pat), '.*\\.~w$', [Ext])
+	;   concat_atom(Exts, '|', P1),
+	    format(atom(Pat), '.*\\.(~w)$', [P1])
+	).
 
 unlink(FB) :->
 	retractall(prolog_overview_window(FB)),
