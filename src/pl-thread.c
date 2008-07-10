@@ -994,8 +994,8 @@ start_thread(void *closure)
     { info->status = PL_THREAD_SUCCEEDED;
     } else
     { if ( ex )
-      { info->status = PL_THREAD_EXCEPTION;
-	info->return_value = PL_record(ex);
+      { info->return_value = PL_record(ex);
+	info->status = PL_THREAD_EXCEPTION;
       } else
       { info->status = PL_THREAD_FAILED;
       }
@@ -1168,8 +1168,15 @@ unify_thread_id(term_t id, PL_thread_info_t *info)
 }
 
 
+/* If lock = TRUE, this is used from thread_property/2 and we must
+   be careful that the thread may vanish during the process if it
+   is a detached thread.  Note that we only avoid crashes.  The fact
+   that the value may not be true at the moment it is requested is
+   simply a limitation of status pulling.
+*/
+
 static int
-unify_thread_status(term_t status, PL_thread_info_t *info)
+unify_thread_status(term_t status, PL_thread_info_t *info, int lock)
 { GET_LD
 
   switch(info->status)
@@ -1179,8 +1186,10 @@ unify_thread_status(term_t status, PL_thread_info_t *info)
     case PL_THREAD_EXITED:
     { term_t tmp = PL_new_term_ref();
 
+      if ( lock ) LOCK();
       if ( info->return_value )
 	PL_recorded(info->return_value, tmp);
+      if ( lock ) UNLOCK();
 
       return PL_unify_term(status,
 			   PL_FUNCTOR, FUNCTOR_exited1,
@@ -1193,7 +1202,10 @@ unify_thread_status(term_t status, PL_thread_info_t *info)
     case PL_THREAD_EXCEPTION:
     { term_t tmp = PL_new_term_ref();
 
-      PL_recorded(info->return_value, tmp);
+      if ( lock ) LOCK();
+      if ( info->return_value )
+	PL_recorded(info->return_value, tmp);
+      if ( lock ) UNLOCK();
       return PL_unify_term(status,
 			   PL_FUNCTOR, FUNCTOR_exception1,
 			     PL_TERM, tmp);
@@ -1272,7 +1284,7 @@ pl_thread_join(term_t thread, term_t retcode)
 		      ERR_SYSCALL, "pthread_join");
   }
   
-  rval = unify_thread_status(retcode, info);
+  rval = unify_thread_status(retcode, info, FALSE);
    
   free_thread_info(info);
 
@@ -1338,15 +1350,17 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
 
 static int
 thread_alias_propery(PL_thread_info_t *info, term_t prop ARG_LD)
-{ if ( info->name )
-    return PL_unify_atom(prop, info->name);
+{ atom_t a;
+
+  if ( (a=info->name) )
+    return PL_unify_atom(prop, a);
 
   fail;
 }
 
 static int
 thread_status_propery(PL_thread_info_t *info, term_t prop ARG_LD)
-{ return unify_thread_status(prop, info);
+{ return unify_thread_status(prop, info, TRUE);
 }
 
 static int
