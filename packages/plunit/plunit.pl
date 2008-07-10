@@ -930,7 +930,7 @@ setup(Module, Context, Options) :-
 	setup(Module, Context, [setup(Setup)]).
 setup(Module, Context, Options) :-
 	option(setup(Setup), Options), !,
-	(   catch(Module:Setup, E, true)
+	(   catch(call_ex(Module, Setup), E, true)
 	->  (   var(E)
 	    ->	true
 	    ;	print_message(error, plunit(error(setup, Context, E))),
@@ -941,7 +941,7 @@ setup(Module, Context, Options) :-
 	).
 setup(Module, Context, Options) :-
 	option(condition(Setup), Options), !,
-	(   catch(Module:Setup, E, true)
+	(   catch(call_ex(Module, Setup), E, true)
 	->  (   var(E)
 	    ->	true
 	    ;	print_message(error, plunit(error(condition, Context, E))),
@@ -951,6 +951,14 @@ setup(Module, Context, Options) :-
 	).
 setup(_,_,_).
 
+%%	call_ex(+Module, +Goal)
+%
+%	Call Goal in Module after applying goal expansion.
+
+call_ex(Module, Goal) :-
+	Module:(expand_goal(Goal, GoalEx),
+		GoalEx).
+
 %%	cleanup(+Module, +Options) is det.
 %
 %	Call the cleanup handler and succeed.   Failure  or error of the
@@ -958,7 +966,7 @@ setup(_,_,_).
 
 cleanup(Module, Options) :-
 	option(cleanup(Cleanup), Options, true),
-	(   catch(Module:Cleanup, E, true)
+	(   catch(call_ex(Module, Cleanup), E, true)
 	->  (   var(E)
 	    ->	true
 	    ;	print_message(warning, E)
