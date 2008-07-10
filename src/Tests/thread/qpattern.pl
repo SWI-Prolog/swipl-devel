@@ -42,7 +42,7 @@ qpattern(N, Running) :-
 	    findall(Th, thread_property(Th, status(_)), Ths0),
 	    subtract(Ths0, Running, Ths),
 %	    writeln(Ths),
-	    (	length(Ths, 4)
+	    (	length(Ths, 3)
 	    ->	true
 	    ;	thread_send_message(Queue, go_away),
 	        sleep(0.1),
