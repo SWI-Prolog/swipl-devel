@@ -2798,7 +2798,7 @@ is not the Prolog application.  Prolog is sometimes embedded in C, C++,
 Java or other languages to provide logic based services in a larger
 application.  Embedding loads the Prolog engine as a library to the
 external language.  Prolog itself only provides for embedding in the
-C-language (compatible to C++).  Embedding in Java is achieved using
+C-language (compatible with C++).  Embedding in Java is achieved using
 JPL using a C-glue between the Java and Prolog C-interfaces.
 
 The most simple embedded program is below. The interface function

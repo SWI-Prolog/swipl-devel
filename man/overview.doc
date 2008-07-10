@@ -986,7 +986,7 @@ Note that autoloading only works if the flag \prologflag{unknown} is
     \prologflagitem{backquoted_string}{bool}{rw}
 If \const{true} (default \const{false}), read translates text between
 backquotes into a string object (see \secref{strings}).  This flag is
-mainly for compatibility to LPA Prolog.
+mainly for compatibility with LPA Prolog.
 
     \prologflagitem{bounded}{bool}{r}
 ISO Prolog flag. If \const{true}, integer representation is bound by
@@ -1178,7 +1178,7 @@ ISO Prolog flag describing rounding by \verb$//$ and \verb$rem$ arithmetic
 functions. Value depends on the C-compiler used.
 
     \prologflagitem{iso}{bool}{rw}
-Include some weird ISO compatibility that is incompatible to normal
+Include some weird ISO compatibility that is incompatible with normal
 SWI-Prolog behaviour.  Currently it has the following effect:
 \begin{itemize}
     \item The \functor{/}{2} (float division) {\em always} return a
@@ -1621,7 +1621,7 @@ garbage collection.  These features are controlled using Prolog flags
 \section{Syntax Notes}				\label{sec:syntax}
 
 SWI-Prolog uses ISO-Prolog standard syntax, which is closely compatible
-to Edinburgh Prolog syntax. A description of this syntax can be found in
+with Edinburgh Prolog syntax. A description of this syntax can be found in
 the Prolog books referenced in the introduction. Below are some
 non-standard or non-common constructs that are accepted by SWI-Prolog:
 
@@ -1683,7 +1683,7 @@ Vertical tab-character (ASCII 11).
     \escapeitem{xXX..\}
 Hexadecimal specification of a character. The closing \verb$\$ is
 obligatory according to the ISO standard, but optional in SWI-Prolog to
-enhance compatibility to the older Edinburgh standard. The code
+enhance compatibility with the older Edinburgh standard. The code
 \verb$\xa\3$ emits the character 10 (hexadecimal `a') followed by `3'.
 Characters specified this way are interpreted as Unicode characters. See
 also \verb$\u$.
@@ -1922,7 +1922,7 @@ The encoding can be specified explicitly in load_files/2 for loading
 Prolog source with an alternative encoding, open/4 when opening files or
 using set_stream/2 on any open stream. For Prolog source files we also
 provide the encoding/1 directive that can be used to switch between
-encodings that are compatible to US-ASCII (\const{ascii},
+encodings that are compatible with US-ASCII (\const{ascii},
 \const{iso_latin_1}, \const{utf8} and many locales).  See also
 \secref{intsrcfile} for writing Prolog files with non-US-ASCII
 characters and \secref{unicodesyntax} for syntax issues. For additional
@@ -1953,7 +1953,7 @@ same as \const{iso_latin_1} for western languages and \const{utf8}
 in a UTF-8 context.
 
     \termitem{utf8}{}
-Multi-byte encoding of full UCS, compatible to \const{ascii}.
+Multi-byte encoding of full UCS, compatible with \const{ascii}.
 See above.
 
     \termitem{unicode_be}{}

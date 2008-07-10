@@ -205,7 +205,7 @@ system-predicates implemented in the C-language. The aim is twofold.
 First of all to make garbage-collection and stack-expansion
 (stack-shifts) possible while foreign code is active without the
 C-programmer having to worry about locking and unlocking C-variables
-pointing to Prolog terms. The new approach is closely compatible to the
+pointing to Prolog terms. The new approach is closely compatible with the
 Quintus and SICStus Prolog foreign interface using the \const{+term}
 argument specification (see their respective manuals). This allows for
 writing foreign interfaces that are easily portable over these three
