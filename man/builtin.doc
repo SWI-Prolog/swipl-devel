@@ -5486,7 +5486,7 @@ second as it is the scientific unit.%
 		  readable notation of time and Julian days cannot deal
 		  naturally with leap seconds, we decided for second as
 		  our unit.}
-e have placed our origin at 1970-1-1T0:0:0Z for compatibility with the
+We have placed our origin at 1970-1-1T0:0:0Z for compatibility with the
 POSIX notion of time as well as with older time support provided by
 SWI-Prolog.
 
