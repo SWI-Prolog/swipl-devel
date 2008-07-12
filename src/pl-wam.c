@@ -2755,10 +2755,21 @@ the moment the code marked (**) handles this not very elegant
           unblockGC(PASS_LD1);
 	} else
 #endif /*O_DEBUGGER*/
-	{ for( ; FR && FR > catchfr; FR = FR->parent )
-	  { SECURE(checkData(catcher));
-	    dbg_discardChoicesAfter(FR PASS_LD);
+	{ DEBUG(3, Sdprintf("Unwinding for exception\n"));
+
+	  for( ; FR && FR > catchfr; FR = FR->parent )
+	  { Choice ch;
+
 	    SECURE(checkData(catcher));
+	    if ( true(FR, FR_WATCHED) && (ch = findStartChoice(FR, LD->choicepoints)) )
+	    { word old = except;
+	      
+	      undo_while_saving_term(&ch->mark, catcher);
+	      except = *catcher;
+	      if ( old != except )
+		updateMovedTerm(FR, old, except);
+	    }
+	    dbg_discardChoicesAfter(FR PASS_LD);
 	    discardFrame(FR, FINISH_EXCEPT PASS_LD);
 	    SECURE(checkData(catcher));
 	  }
