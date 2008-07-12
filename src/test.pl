@@ -881,6 +881,8 @@ cleanup(findall-2) :-
 cleanup(findall-3) :-
 	catch(findall(X, genex3(X), _), E, true),
 	ex(Ex), E == Ex.
+cleanup(gc) :-
+	garbage_collect.
 
 
 		 /*******************************
