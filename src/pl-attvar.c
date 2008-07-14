@@ -54,49 +54,16 @@ vName(Word adr)
 #endif
 
 
-		 /*******************************
-		 *	     ASSIGNMENT		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-assignAttVar(Word var, Word value)		(var := value)
-	
-Assign  value  to  the  given  attributed    variable,   adding  a  term
-wake(Attribute, Value, Tail) to the global variable resembling the goals
-that should be awoken.
-
-Before calling, av *must* point to   a  dereferenced attributed variable
-and value to a legal value.
-
-The predicate unifiable/3 relies on  the   trailed  pattern left by this
-function. If you change this you must also adjust unifiable/3.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-int
-assignAttVar(Word av, Word value ARG_LD)
-{ Word wake, a;				/*  */
+static int
+registerWakeup(Word name, Word value ARG_LD)
+{ Word wake;
   Word tail = valTermRef(LD->attvar.tail);
 
-  assert(isAttVar(*av));
-  assert(!isRef(*value));
-
-  DEBUG(1, Sdprintf("assignAttVar(%s)\n", vName(av)));
-
-  if ( isAttVar(*value) )
-  { if ( value > av )
-    { Word tmp = av;
-      av = value;
-      value = tmp;
-    } else if ( av == value )
-      succeed;
-  }
-
-  a = valPAttVar(*av);
   wake = allocGlobalNoShift(4);		/* may NOT shift the stacks!!! */
   if ( !wake )
     return outOfStack(&LD->stacks.global, STACK_OVERFLOW_THROW);
   wake[0] = FUNCTOR_wakeup3;
-  wake[1] = needsRef(*a) ? makeRef(a) : *a;
+  wake[1] = needsRef(*name) ? makeRef(name) : *name;
   wake[2] = needsRef(*value) ? makeRef(value) : *value;
   wake[3] = ATOM_nil;
 
@@ -119,6 +86,49 @@ assignAttVar(Word av, Word value ARG_LD)
     Trail(tail);			/* not gc-ed!? */
     DEBUG(1, Sdprintf("new wakeup\n"));
   }
+
+  succeed;
+}
+
+
+		 /*******************************
+		 *	     ASSIGNMENT		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+assignAttVar(Word var, Word value)		(var := value)
+	
+Assign  value  to  the  given  attributed    variable,   adding  a  term
+wake(Attribute, Value, Tail) to the global variable resembling the goals
+that should be awoken.
+
+Before calling, av *must* point to   a  dereferenced attributed variable
+and value to a legal value.
+
+The predicate unifiable/3 relies on  the   trailed  pattern left by this
+function. If you change this you must also adjust unifiable/3.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+assignAttVar(Word av, Word value ARG_LD)
+{ Word a;
+  assert(isAttVar(*av));
+  assert(!isRef(*value));
+
+  DEBUG(1, Sdprintf("assignAttVar(%s)\n", vName(av)));
+
+  if ( isAttVar(*value) )
+  { if ( value > av )
+    { Word tmp = av;
+      av = value;
+      value = tmp;
+    } else if ( av == value )
+      succeed;
+  }
+
+  a = valPAttVar(*av);
+  if ( !registerWakeup(a, value PASS_LD) )
+    fail;
 
   TrailAssignment(av);
   if ( isAttVar(*value) )
