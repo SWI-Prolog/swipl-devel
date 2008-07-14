@@ -409,6 +409,8 @@ COMMON(void)            bindExtensions(const char *module,
 				       const PL_extension *ext);
 COMMON(void)		initForeign(void);
 COMMON(int)		PL_rethrow(void);
+COMMON(int)		PL_pending__LD(int sig ARG_LD);
+COMMON(int)		PL_clearsig__LD(int sig ARG_LD);
 
 
 /* pl-fmt.c */

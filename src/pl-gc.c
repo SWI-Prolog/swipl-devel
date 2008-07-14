@@ -1872,8 +1872,7 @@ void
 considerGarbageCollect(Stack s)
 { GET_LD
 
-  if ( trueFeature(GC_FEATURE) &&
-       !gc_status.requested )
+  if ( trueFeature(GC_FEATURE) && !PL_pending(SIG_GC) )
   { if ( s == NULL )
     { considerGarbageCollect((Stack)&LD->stacks.global);
       considerGarbageCollect((Stack)&LD->stacks.trail);
@@ -1891,13 +1890,13 @@ considerGarbageCollect(Stack s)
 	if ( used > s->factor*s->gced_size + s->small )
 	{ DEBUG(2, Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
 			    s->name, s->factor, s->gced_size, s->small));
-	  gc_status.requested = TRUE;
+	  PL_raise(SIG_GC);
 	} else if ( free < limit/8 && used > s->gced_size + limit/32 ) 
 	{ DEBUG(2, Sdprintf("GC: request on low free\n"));
-	  gc_status.requested = TRUE;
+	  PL_raise(SIG_GC);
 	}
     
-	DEBUG(1, if ( gc_status.requested)
+	DEBUG(1, if ( PL_pending(SIG_GC) )
 		 { Sdprintf("%s overflow: Posted garbage collect request\n",
 			    s->name);
 		 });
@@ -2228,7 +2227,7 @@ garbageCollect(LocalFrame fr, Choice ch)
   blockSignals(&mask);
 #endif
   blockGC(PASS_LD1);			/* avoid recursion due to */
-  gc_status.requested = FALSE;		/* printMessage() */
+  PL_clearsig(SIG_GC);
 
   gc_status.active = TRUE;
   if ( verbose )
@@ -2806,7 +2805,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
   enterGC();				/* atom-gc synchronisation */
   blockSignals(&mask);
   blockGC(PASS_LD1);			/* avoid recursion due to */
-  gc_status.requested = FALSE;		/* printMessage() */
+  PL_clearsig(SIG_GC);
 
   if ( !fr )
     fr = environment_frame;

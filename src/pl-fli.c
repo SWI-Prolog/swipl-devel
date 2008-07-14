@@ -3405,14 +3405,34 @@ PL_open_resource(Module m,
 int
 PL_raise(int sig)
 { GET_LD
+
   if ( sig > 0 && sig <= MAXSIGNAL && LD )
-  { LD->pending_signals |= (1L << (sig-1));
+  { LD->pending_signals |= ((int64_t)1 << (sig-1));
     return TRUE;
   }
 
   return FALSE;
 }
 
+
+int
+PL_pending__LD(int sig ARG_LD)
+{ if ( sig > 0 && sig <= MAXSIGNAL && LD )
+    return (LD->pending_signals & ((int64_t)1 << (sig-1))) ? TRUE : FALSE;
+
+  return -1;
+}
+
+
+int
+PL_clearsig__LD(int sig ARG_LD)
+{ if ( sig > 0 && sig <= MAXSIGNAL && LD )
+  { LD->pending_signals &= ~((int64_t)1 << (sig-1));
+    return TRUE;
+  }
+
+  return FALSE;
+}
 
 		/********************************
 		*         RESET (ABORTS)	*

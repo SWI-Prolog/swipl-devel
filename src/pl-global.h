@@ -308,7 +308,7 @@ typedef struct PL_local_data
 #ifdef O_PLMT
   int		cancel_counter;		/* check cancellation */
 #endif
-  uintptr_t	pending_signals;	/* PL_raise() pending signals */
+  int64_t	pending_signals;	/* PL_raise() pending signals */
   record_t	pending_exception;	/* Pending exception from signal */
   int		current_signal;		/* Currently handled signal */
   int		sync_signal;		/* Current signal is synchronous */

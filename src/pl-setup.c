@@ -261,6 +261,15 @@ static struct signame
 #ifdef SIGPWR
   { SIGPWR,	"pwr",    0},
 #endif
+  { SIG_EXCEPTION,     "prolog:exception",     0 },
+#ifdef SIG_ATOM_GC
+  { SIG_ATOM_GC,   "prolog:atom_gc",       0 },
+#endif
+  { SIG_GC,	       "prolog:gc",	       0 },
+#ifdef SIG_THREAD_SIGNAL
+  { SIG_THREAD_SIGNAL, "prolog:thread_signal", 0 },
+#endif
+
   { -1,		NULL,     0}
 };
 
@@ -401,7 +410,8 @@ dispatch_signal(int sig, int sync)
     return;
   }
 
-  blockGC(PASS_LD1);
+  if ( !sync )
+    blockGC(PASS_LD1);
   LD->current_signal = sig;
   LD->sync_signal = sync;
   fid = PL_open_signal_foreign_frame();
@@ -421,7 +431,8 @@ dispatch_signal(int sig, int sync)
 			sigterm);
     if ( !PL_next_solution(qid) && (except = PL_exception(qid)) )
     { PL_cut_query(qid);
-      unblockGC(PASS_LD1);
+      if ( !sync )
+	unblockGC(PASS_LD1);
       PL_throw(except);
       return;				/* make sure! */
     } else
@@ -439,7 +450,8 @@ dispatch_signal(int sig, int sync)
     }
       
     PL_error(predname, arity, NULL, ERR_SIGNALLED, sig, signal_name(sig));
-    unblockGC(PASS_LD1);
+    if ( !sync )
+      unblockGC(PASS_LD1);
 
     PL_throw(exception_term);		/* throw longjmp's */
     return;				/* make sure! */
@@ -458,7 +470,8 @@ dispatch_signal(int sig, int sync)
   PL_discard_foreign_frame(fid);
   lTop = addPointer(lBase, lTopSave);
 
-  unblockGC(PASS_LD1);
+  if ( !sync )
+    unblockGC(PASS_LD1);
 }
 
 #undef LD
@@ -539,7 +552,8 @@ prepareSignal(int sig)
 
   if ( false(sh, PLSIG_PREPARED) )
   { set(sh, PLSIG_PREPARED);
-    sh->saved_handler = set_sighandler(sig, pl_signal_handler);
+    if ( sig < SIG_PROLOG_OFFSET )
+      sh->saved_handler = set_sighandler(sig, pl_signal_handler);
   }
 
   return sh;
@@ -567,6 +581,37 @@ hupHandler(int sig)
 
 
 static void
+sig_exception_handler(int sig)
+{ if ( LD && LD->pending_exception )
+  { record_t ex = LD->pending_exception;
+	  
+    LD->pending_exception = 0;
+
+    PL_put_variable(exception_bin);
+    PL_recorded(ex, exception_bin);
+    PL_erase(ex);
+    exception_term = exception_bin;
+
+    SECURE(checkData(valTermRef(exception_term)));
+  }
+}
+
+
+static void
+agc_handler(int sig)
+{ if ( GD->statistics.atoms >= GD->atoms.non_garbage + GD->atoms.margin &&
+       !gc_status.blocked )
+    pl_garbage_collect_atoms();
+}
+
+
+static void
+gc_handler(int sig)
+{ garbageCollect(NULL, NULL);
+}
+
+
+static void
 initSignals(void)
 { struct signame *sn = signames;
   
@@ -581,6 +626,15 @@ initSignals(void)
     }
   }
 
+  PL_signal(SIG_EXCEPTION|PL_SIGSYNC, sig_exception_handler);
+  PL_signal(SIG_GC|PL_SIGSYNC, gc_handler);
+
+#ifdef SIG_THREAD_SIGNAL
+  PL_signal(SIG_THREAD_SIGNAL|PL_SIGSYNC, executeThreadSignals);
+#endif
+#ifdef SIG_ATOM_GC
+  PL_signal(SIG_ATOM_GC|PL_SIGSYNC, agc_handler);
+#endif
 #ifdef SIGHUP
   PL_signal(SIGHUP, hupHandler);
 #endif
@@ -762,46 +816,17 @@ PL_handle_signals()
       { ld->pending_signals &= ~mask;	/* reset the signal */
 
 	done++;
-
-#ifdef O_PLMT
-        if ( sig == SIG_THREAD_SIGNAL )
-	  executeThreadSignals(sig);
-	else
-#endif
-#ifdef O_ATOMGC
-	if ( sig == SIG_ATOM_GC )
-	{ if ( GD->statistics.atoms >= GD->atoms.non_garbage + GD->atoms.margin &&
-	       !gc_status.blocked )
-	    pl_garbage_collect_atoms();
-	} else
-#endif
-        if ( sig == SIG_EXCEPTION && ld->pending_exception )
-	{ record_t ex = ld->pending_exception;
-	  
-	  ld->pending_exception = 0;
-
-	  PL_put_variable(exception_bin);
-	  PL_recorded(ex, exception_bin);
-	  PL_erase(ex);
-	  exception_term = exception_bin;
-
-	  SECURE(checkData(valTermRef(exception_term)));
-	} else
-	  dispatch_signal(sig, TRUE);
+	dispatch_signal(sig, TRUE);
 
 	if ( exception_term )
-	  return -1;
+	  goto out;
       }
     }
   }
 
+out:
   if ( exception_term )
     return -1;
-
-  if ( gc_status.requested )
-  { DEBUG(1, Sprintf("GC from PL_handle_signals()\n"));
-    garbageCollect(NULL, NULL);
-  }
 
   return done;
 }

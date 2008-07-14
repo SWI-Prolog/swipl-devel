@@ -1810,7 +1810,8 @@ Defining built-in predicates using the new interface
 		 *******************************/
 
 #if HAVE_SIGNAL
-#define MAXSIGNAL		32	/* highest system signal number */
+#define MAXSIGNAL		64	/* highest system signal number */
+#define SIG_PROLOG_OFFSET	32	/* Start of Prolog signals */
 
 typedef RETSIGTYPE (*handler_t)(int);
 typedef void *SignalContext;		/* struct sigcontext on sun */
@@ -1823,9 +1824,15 @@ typedef struct
 } sig_handler, *SigHandler;
 #endif /* HAVE_SIGNAL */
 
-#define SIG_EXCEPTION	   9		/* cannot be caught anyway */
-#define SIG_ATOM_GC	  30		/* `safe' and reserved signals */
-#define SIG_THREAD_SIGNAL 31
+#define SIG_EXCEPTION	  (SIG_PROLOG_OFFSET+0)
+#ifdef O_ATOMGC
+#define SIG_ATOM_GC	  (SIG_PROLOG_OFFSET+1)
+#endif
+#define SIG_GC		  (SIG_PROLOG_OFFSET+2)
+#ifdef O_PLMT
+#define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+3)
+#endif
+
 
 		 /*******************************
 		 *	   OPTION LISTS		*
@@ -2033,8 +2040,7 @@ typedef struct redir_context
 		*********************************/
 
 typedef struct
-{ bool		requested;		/* GC is requested by stack expander */
-  int		blocked;		/* GC is blocked now */
+{ int		blocked;		/* GC is blocked now */
   bool		active;			/* Currently running? */
   long		collections;		/* # garbage collections */
   int64_t	global_gained;		/* global stack bytes collected */

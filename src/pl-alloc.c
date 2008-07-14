@@ -643,7 +643,7 @@ outOfStack(void *stack, stack_overflow_action how)
     case STACK_OVERFLOW_RAISE:
     { fid_t fid = PL_open_foreign_frame();
       LD->outofstack = NULL;
-      gc_status.requested = FALSE;
+      PL_clearsig(SIG_GC);
       s->gced_size = 0;			/* after handling, all is new */
       PL_unify_term(LD->exception.tmp,
 		    PL_FUNCTOR, FUNCTOR_error2,

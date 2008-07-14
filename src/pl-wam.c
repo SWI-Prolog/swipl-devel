@@ -4159,11 +4159,7 @@ be able to access these!
 	if ( false(DEF, HIDE_CHILDS) )	/* was SYSTEM */
 	  clear(FR, FR_NODEBUG);
 
-#if O_DYNAMIC_STACKS
-	if ( gc_status.requested )
-	{ garbageCollect(FR, BFR);
-	}
-#else /*O_DYNAMIC_STACKS*/
+#if !O_DYNAMIC_STACKS
 #if O_SHIFT_STACKS
       { int gshift = narrowStack(global);
 	int lshift = narrowStack(local);
