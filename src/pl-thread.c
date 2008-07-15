@@ -1785,7 +1785,7 @@ pl_thread_signal(term_t thread, term_t goal)
   { ld->thread.sig_tail->next = sg;
     ld->thread.sig_tail = sg;
   }
-  ld->pending_signals |= (1L << (SIG_THREAD_SIGNAL-1));
+  ld->pending_signals |= ((int64_t)1 << (SIG_THREAD_SIGNAL-1));
 
 #ifdef __WINDOWS__
   if ( ld->thread.info->w32id )
