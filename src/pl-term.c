@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -43,6 +43,7 @@ windowing!
 #endif
 
 #undef clear				/* conflicts */
+#define bool curses_bool		/* defined in some curses versions */
 #include <curses.h>
 #include <term.h>
 
@@ -87,7 +88,7 @@ resetTerm()
 /* MT: Locked by calling lookupEntry()
 */
 
-static bool
+static int
 initTerm(void)
 { if ( term_initialised == STAT_START )
   { char term[100];
@@ -145,7 +146,7 @@ lookupEntry(atom_t name, atom_t type)
 
   LOCK();
   if ( (s = lookupHTable(capabilities, (void*)name)) == NULL )
-  { if ( initTerm() == FALSE )
+  { if ( !initTerm() )
     { e = NULL;
       goto out;
     }
@@ -161,7 +162,7 @@ lookupEntry(atom_t name, atom_t type)
       if ( (n = tgetnum(stringAtom(name))) != -1 )
         e->value  = consInt(n);
     } else if ( type == ATOM_bool )
-    { bool b;
+    { int b;
     
       if ( (b = tgetflag(stringAtom(name))) != -1 )
         e->value = (b ? ATOM_on : ATOM_off);
