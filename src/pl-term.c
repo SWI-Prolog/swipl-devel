@@ -22,7 +22,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define bool pl_bool			/* avoid conflict with curses */
 #include "pl-incl.h"
+#undef bool
 
 #define LOCK()   PL_LOCK(L_TERM)
 #define UNLOCK() PL_UNLOCK(L_TERM)
@@ -43,7 +45,6 @@ windowing!
 #endif
 
 #undef clear				/* conflicts */
-#define bool curses_bool		/* defined in some curses versions */
 #include <curses.h>
 #include <term.h>
 
