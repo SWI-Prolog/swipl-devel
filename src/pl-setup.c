@@ -436,7 +436,11 @@ dispatch_signal(int sig, int sync)
       PL_throw(except);
       return;				/* make sure! */
     } else
-      PL_close_query(qid);
+    { if ( sync )
+	PL_cut_query(qid);
+      else
+	PL_close_query(qid);
+    }
   } else if ( true(sh, PLSIG_THROW) )
   { char *predname;
     int  arity;
@@ -467,7 +471,10 @@ dispatch_signal(int sig, int sync)
 
   LD->current_signal = saved_current_signal;
   LD->sync_signal = saved_sync;
-  PL_discard_foreign_frame(fid);
+  if ( sync )
+    PL_close_foreign_frame(fid);
+  else
+    PL_discard_foreign_frame(fid);
   lTop = addPointer(lBase, lTopSave);
 
   if ( !sync )
