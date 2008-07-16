@@ -808,7 +808,7 @@ PL_handle_signals()
     return 0;
 
   while(ld->pending_signals)
-  { uintptr_t mask = 1;
+  { int64_t mask = 1;
     int sig = 1;
 
     for( ; mask ; mask <<= 1, sig++ )
