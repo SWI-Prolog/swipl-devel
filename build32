@@ -62,6 +62,7 @@ PATH=$PREFIX/bin:$JAVA_HOME/bin:$PATH
 # 	LDFLAGS: Link flags such as "-L/opt/lib"
 
 # export COFLAGS=
+  export COFLAGS="-O2 -g -fno-strict-aliasing"
   export CMFLAGS=-m32
 # export CIFLAGS=
   export LDFLAGS=-m32

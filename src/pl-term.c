@@ -42,12 +42,9 @@ windowing!
 #include <sys/ioctl.h>
 #endif
 
-extern int  tgetent();
-extern int  tgetnum();
-extern int  tgetflag();
-extern char *tgetstr();
-extern char *tgoto();
-extern int  tputs();
+#undef clear				/* conflicts */
+#include <curses.h>
+#include <term.h>
 
 #define MAX_TERMBUF	1024		/* Confirming manual */
 #define STAT_START	0
