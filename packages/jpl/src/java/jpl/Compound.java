@@ -28,8 +28,8 @@
 package jpl;
 
 import java.util.Map;
+
 import jpl.fli.IntHolder;
-import jpl.fli.ObjectHolder;
 import jpl.fli.Prolog;
 import jpl.fli.StringHolder;
 import jpl.fli.term_t;
@@ -212,6 +212,15 @@ public class Compound extends Term {
 	public boolean isJRef() {
 		return isJObject() || isJNull();
 	}
+	public Object jrefToObject() {
+		if (this.isJObject()) {
+			return Prolog.tag_to_object(arg(1).name());
+		} else if (this.isJNull()) {
+			return null;
+		} else {
+			throw new JPLException("Term.jrefToObject: term is not a JRef");
+		}
+	}
 	/**
 	 * Returns the name (unquoted) of this Compound.
 	 * 
@@ -358,7 +367,7 @@ public class Compound extends Term {
 	 * @return                    A new Compound
 	 */
 	protected static Term getTerm1(Map varnames_to_vars, term_t term) {
-		ObjectHolder jthing_holder = new ObjectHolder();
+		// ObjectHolder jthing_holder = new ObjectHolder();
 		StringHolder name_holder = new StringHolder();
 		IntHolder arity_holder = new IntHolder();
 		Prolog.get_name_arity(term, name_holder, arity_holder); // assume it succeeds
@@ -381,6 +390,12 @@ public class Compound extends Term {
 	 */
 	protected final void getSubst(Map varnames_to_Terms, Map vars_to_Vars) {
 		Term.getSubsts(varnames_to_Terms, vars_to_Vars, args);
+	}
+	public boolean hasFunctor(int value, int arity) {
+		return false;
+	}
+	public boolean hasFunctor(double value, int arity) {
+		return false;
 	}
 }
 //345678901234567890123456789012346578901234567890123456789012345678901234567890

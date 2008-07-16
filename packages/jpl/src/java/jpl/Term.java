@@ -90,9 +90,7 @@ public abstract class Term {
 	 * 
 	 * @return the ano-th argument of a (Compound) Term
 	 */
-	public Term arg(int ano) {
-		throw new JPLException("jpl." + this.typeName() + ".arg() is undefined");
-	};
+	public abstract Term arg(int ano);
 
 	/**
 	 * returns, as a Term[], the arguments of a Compound
@@ -109,9 +107,7 @@ public abstract class Term {
 	 * 
 	 * @return whether this Term's functor has (String) 'name' and 'arity'
 	 */
-	public boolean hasFunctor(String name, int arity) {
-		return false;
-	}
+	public abstract boolean hasFunctor(String name, int arity);
 
 	/**
 	 * Tests whether this Term's functor has (int) 'name' and 'arity'
@@ -119,19 +115,14 @@ public abstract class Term {
 	 * 
 	 * @return whether this Term's functor has (int) 'name' and 'arity'
 	 */
-	public boolean hasFunctor(int value, int arity) {
-		return false;
-	}
-
+	public abstract boolean hasFunctor(int value, int arity);
 	/**
 	 * Tests whether this Term's functor has (double) 'name' and 'arity'
 	 * Returns false if called inappropriately
 	 * 
 	 * @return whether this Term's functor has (double) 'name' and 'arity'
 	 */
-	public boolean hasFunctor(double value, int arity) {
-		return false;
-	}
+	public abstract boolean hasFunctor(double value, int arity);
 
 	/**
 	 * returns, as a String, the name of a Compound, Atom or Variable
@@ -308,6 +299,16 @@ public abstract class Term {
 		return false; // overridden in Compound, where it might sometimes be true
 	}
 
+	public abstract Object jrefToObject();
+
+	// objectToJRef(Object)
+	/**
+	 * returns a new Term instance which represents the given object
+	 */
+	public static Term objectToJRef(Object obj) {
+		return new Compound( "@", new Term[]{new Atom(Prolog.object_to_tag(obj))});
+	}
+
 	public Term putParams(Term[] ps) {
 		IntHolder next = new IntHolder();
 		next.value = 0;
@@ -355,8 +356,6 @@ public abstract class Term {
 	 * @return the length (as an int) of this list, iff it is one
 	 */
 	public int listLength() {
-		int len = 0;
-
 		if (this.hasFunctor(".", 2)) {
 			return 1 + this.arg(2).listLength();
 		} else if (this.hasFunctor("[]", 0)) {
@@ -741,20 +740,6 @@ public abstract class Term {
 			}
 		}
 		return true;
-	}
-
-	// newJRef
-	/**
-	 * This method is used (by Compound.equals) to determine the Terms in two Term arrays
-	 * are pairwise equal, where two Terms are equal if they satisfy
-	 * the equals predicate (defined differently in each Term subclass).
-	 * 
-	 * @param   t1  an array of Terms
-	 * @param   t2  another array of Terms
-	 * @return  true if all of the Terms in the (same-length) arrays are pairwise equal
-	 */
-	protected static Term newJRef(Object obj) {
-		return JPL.JNULL; // not yet implemented
 	}
 
 	//------------------------------------------------------------------/

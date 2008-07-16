@@ -89,6 +89,15 @@ public class Integer extends Term {
 	//==================================================================/
 
 	/**
+	 * The (nonexistent) ano-th arg of this Integer
+	 * 
+	 * @return the (nonexistent) ano-th arg of this Integer
+	 */
+	public Term arg(int ano) {
+		throw new JPLException("jpl." + this.typeName() + ".arg() is undefined");
+	}
+
+	/**
 	 * The (nonexistent) args of this Integer
 	 * 
 	 * @return the (nonexistent) args of this Integer
@@ -105,6 +114,24 @@ public class Integer extends Term {
 	 */
 	public final boolean hasFunctor(int val, int arity) {
 		return val == this.value && arity == 0;
+	}
+
+	/**
+	 * Tests whether this Integer's functor has (String) 'name' and 'arity' (c.f. functor/3)
+	 * 
+	 * @return whether this Integer's functor has (String) 'name' and 'arity'
+	 */
+	public boolean hasFunctor(String name, int arity) {
+		return false;
+	}
+
+	/**
+	 * Tests whether this Integer's functor has (double) 'name' and 'arity' (c.f. functor/3)
+	 * 
+	 * @return whether this Integer's functor has (double) 'name' and 'arity'
+	 */
+	public boolean hasFunctor(double value, int arity) {
+		return false;
 	}
 
 	/**
@@ -261,6 +288,10 @@ public class Integer extends Term {
 	 * @param   vars_to_Vars       A Map from Prolog variables to JPL Variables.
 	 */
 	protected final void getSubst(Map varnames_to_Terms, Map vars_to_Vars) {
+	}
+
+	public Object jrefToObject() {
+		throw new JPLException("Integer.jrefToObject(): term is not a jref");
 	}
 
 }

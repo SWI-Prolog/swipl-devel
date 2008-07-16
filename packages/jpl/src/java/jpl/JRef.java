@@ -94,6 +94,10 @@ public class JRef extends Term {
 	//  Methods (common)
 	//==================================================================/
 
+	public Term arg(int ano) {
+		return (ano == 1 ? new Atom(jpl.fli.Prolog.object_to_tag(ref)) : null);
+	}
+
 	/**
 	 * Returns a Prolog source text representation of this JRef
 	 * 
@@ -188,6 +192,22 @@ public class JRef extends Term {
 	 * @param   vars_to_Vars       A Map from Prolog variables to JPL Variables.
 	 */
 	protected final void getSubst(Map varnames_to_Terms, Map vars_to_Vars) {
+	}
+
+	public boolean hasFunctor(String name, int arity) {
+		return name != null && name.equals("@") && arity == 1;
+	}
+
+	public boolean hasFunctor(int value, int arity) {
+		return false;
+	}
+
+	public boolean hasFunctor(double value, int arity) {
+		return false;
+	}
+
+	public Object jrefToObject() {
+		return ref;
 	}
 
 }

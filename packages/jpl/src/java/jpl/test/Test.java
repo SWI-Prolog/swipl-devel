@@ -1,5 +1,6 @@
 package jpl.test;
 
+import jpl.Compound;
 import jpl.Query;
 import jpl.Term;
 
@@ -279,5 +280,8 @@ public class Test {
 	}
 	public static String methodStaticArray(short[] a) {
 		return "short[]";
+	}
+	public static Term wrapTerm(Term in) { // for dmiles 11/Jul/2008
+		return new Compound("javaWrap", new Term[] {in});
 	}
 }

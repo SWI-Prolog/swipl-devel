@@ -210,10 +210,17 @@ public class Query implements Enumeration {
 	private engine_t	engine		= null;	// handle of attached Prolog engine iff open, else null
 	private Query		subQuery	= null;	// the open Query (if any) on top of which this open Query is stacked, else null
 	private predicate_t	predicate	= null;	// handle of this Query's predicate iff open, else undefined
-	// private fid_t fid = null; // id of current Prolog foreign frame iff open, else null
-	// private fid_t fid2 = null; // id of experimental inner frame
+	private fid_t		fid			= null; // id of current Prolog foreign frame iff open, else null
 	private term_t		term0		= null;	// term refs of this Query's args iff open, else undefined
 	private qid_t		qid			= null;	// id of current Prolog query iff open, else null
+	//
+	/**
+	 * isOpen() returns true iff the query is open.
+	 * @return	true if the query is open, otherwise false.
+	 */
+	public synchronized final boolean isOpen() {
+		return open;
+	}
 	//------------------------------------------------------------------/
 	// hasMoreSolutions
 	/**
@@ -257,16 +264,12 @@ public class Query implements Enumeration {
 	 * Query within the Prolog engine.  It is designed to be used
 	 * with the getSolution() and close() methods to retrieve one or
 	 * more substitutions in the form of Hashtables.
-	 * To ensure thread-safety, you should wrap sequential calls to
-	 * this method in a synchronized block, using the static
-	 * lock method to obtain the monitor.
 	 * <pre>
 	 * Query q = // obtain Query reference
-	 * synchronized ( jpl.Query.lock() ){
-	 *     while ( q.hasMoreElements() ){
-	 *          Hashtable solution = q.nextSolution();
-	 *          // process solution...
-	 *     }
+	 * Hashtable soln;
+	 * q.open();
+	 * while ((soln = q.getSolution()) != null) {
+	 *      // process solution...
 	 * }
 	 * </pre>
 	 * <p>
@@ -312,7 +315,7 @@ public class Query implements Enumeration {
 			goal = goal_;
 		}
 		predicate = Prolog.predicate(goal.name(), goal.arity(), module); // was hostModule
-		// fid = Prolog.open_foreign_frame(); // always succeeds?
+		fid = Prolog.open_foreign_frame();
 		Map varnames_to_vars = new Hashtable();
 		term0 = Term.putTerms(varnames_to_vars, goal.args());
 		// THINKS: invert varnames_to_Vars and use it when getting substitutions?
@@ -321,12 +324,7 @@ public class Query implements Enumeration {
 		// called = false;
 	}
 	private final boolean get1() { // try to get the next solution; if none, close the query;
-		// if (fid2 != null) { // PS 23/Mar/2007 ensure inner frame is closed
-		//	Prolog.close_foreign_frame(fid2);
-		//	fid2 = null;
-		// }
 		if (Prolog.next_solution(qid)) {
-			//	fid2 = Prolog.open_foreign_frame(); // PS 23/Mar/2007 open an inner frame
 			// called = true; // OK to call get2()
 			return true;
 		} else {
@@ -376,16 +374,20 @@ public class Query implements Enumeration {
 	 * @return  A Hashtable representing a substitution, or null
 	 */
 	public synchronized final Hashtable getSolution() {
-		// oughta check: Query is open and thread has its engine
-		if (get1()) {
+		// oughta check: thread has query's engine
+		if (!open) {
+			throw new JPLException("Query is not open");
+		} else if (get1()) {
 			return get2();
 		} else {
 			return null;
 		}
 	}
 	public synchronized final Hashtable getSubstWithNameVars() {
-		// oughta check: Query is open and thread has its engine
-		if (get1()) {
+		// oughta check: thread has query's engine
+		if (!open) {
+			throw new JPLException("Query is not open");
+		} else if (get1()) {
 			return get2WithNameVars();
 		} else {
 			return null;
@@ -515,6 +517,8 @@ public class Query implements Enumeration {
 		}
 		Prolog.close_query(qid);
 		qid = null; // for tidiness
+		jpl.fli.Prolog.discard_foreign_frame(fid);
+		fid = null; // for tidiness
 		m.remove(new Long(engine.value));
 		if (subQuery == null) { // only Query open in this engine?
 			if (Prolog.current_engine_is_pool()) { // this (Query's) engine is from the pool?

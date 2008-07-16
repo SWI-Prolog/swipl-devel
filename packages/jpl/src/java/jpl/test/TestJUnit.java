@@ -2,11 +2,11 @@
 package jpl.test;
 
 import java.util.Map;
+
 import jpl.Atom;
 import jpl.Compound;
 import jpl.Integer;
 import jpl.JPL;
-import jpl.JRef;
 import jpl.PrologException;
 import jpl.Query;
 import jpl.Term;
@@ -19,7 +19,6 @@ import junit.framework.TestSuite;
 // This class defines all the tests which are run from Java.
 // It needs junit.framework.TestCase and junit.framework.TestSuite, which are not supplied with JPL.
 public class TestJUnit extends TestCase {
-	//
 	public static long fac(long n) { // complements jpl:jpl_test_fac(+integer,-integer)
 		if (n == 1) {
 			return 1;
@@ -522,11 +521,156 @@ public class TestJUnit extends TestCase {
 		// System.out.println("jpl.c version = " + jpl.fli.Prolog.get_c_lib_version());
 		int i = 76543;
 		Integer I = new Integer(i);
-		Query q = new Query("jpl_call(?,intValue,[],I2)", new Term[] { new JRef(I) });
+		Query q = new Query("jpl_call(?,intValue,[],I2)", new Term[] { Term.objectToJRef(I) });
 		Term I2 = (Term) q.oneSolution().get("I2");
 		assertTrue(I2.isInteger() && I2.intValue() == i);
 	}
 	public void testBerhhard1() {
 		assertTrue(Query.allSolutions( "consult(library('lists'))" ).length == 1);
 	}
+	public void testJRef2() {
+		int i = 76543;
+		Integer I = new Integer(i);
+		Query q = new Query("jpl_call(?,intValue,[],I2)", jpl.JPL.newJRef(I));
+		Term I2 = (Term) q.oneSolution().get("I2");
+		assertTrue(I2.isInteger() && I2.intValue() == i);
+	}
+	public void testJRef3() {
+		StringBuffer sb = new StringBuffer();
+		Query.oneSolution("jpl_call(?,append,['xyz'],_)", new Term[] {JPL.newJRef(sb)});
+		assertTrue(sb.toString().equals("xyz"));
+	}
+	public void testJRef4() {
+		Term jrefSB = (Term) Query.oneSolution("jpl_new('java.lang.StringBuffer',['abc'],SB)").get("SB");
+		assertTrue(jrefSB.isJRef() && ((StringBuffer) jrefSB.jrefToObject()).toString().equals("abc"));
+	}
+	public void testJRef5() {
+		String token = "foobar345";
+		Term a = (Term) (Query.oneSolution("jpl_new('java.lang.StringBuffer',[?],A)", new Term[] {new Atom(token)}).get("A"));
+		assertTrue(((java.lang.StringBuffer) (a.jrefToObject())).toString().equals(token));
+	}
+	public void testRef6() {
+		Term nullJRef = new Compound("@", new Term[] {new Atom("null")});
+		Object nullObject = nullJRef.jrefToObject();
+		assertNull("@(null) .jrefToObject() yields null", nullObject);
+	}
+	public void testRef7() {
+		Term badJRef = new Compound("@", new Term[] {new Atom("foobar")});
+		try {
+			badJRef.jrefToObject();
+			// shouldn't get to here
+			fail("@(foobar) .jrefToObject() shoulda thrown JPLException");
+		} catch (jpl.JPLException e) {
+			// correct exception class, but is it correct in detail?
+			if (e.getMessage().endsWith("term is not a JRef")) {
+				// OK: an appropriate exception was thrown
+			} else {
+				fail("@(foobar) .jrefToObject() threw incorrect JPLException: " + e);
+			}
+		} catch (Exception e) {
+			fail("@(foobar) .jrefToObject() threw wrong class of exception: " + e);
+		}
+	}
+	public void testForeignFrame1() {
+		int ls1 = ((Term) (Query.oneSolution("statistics(localused,LS)").get("LS"))).intValue();
+		int ls2 = ((Term) (Query.oneSolution("statistics(localused,LS)").get("LS"))).intValue();
+		assertTrue("local stack size unchanged after query", ls1 == ls2);
+	}
+	public void testOpenGetClose1() {
+		StringBuffer sb = new StringBuffer();
+		Query q = new Query("atom_chars(prolog, Cs), member(C, Cs)");
+		Map soln;
+		q.open();
+		while ((soln = q.getSolution()) != null) {
+			sb.append(((Atom) soln.get("C")).name());
+		}
+		q.close();
+		assertEquals("prolog", sb.toString());
+	}
+	public void testOpenGetClose2() {
+		Query q = new Query("dummy"); // we're not going to open this...
+		try {
+			q.getSolution(); // but mistakenly try to get a solution from it...
+		} catch (jpl.JPLException e) { // correct exception class, but is it correct in detail?
+			if (e.getMessage().endsWith("Query is not open")) { // ...which should throw a JPLException like this
+				// OK: an appropriate exception was thrown
+			} else {
+				fail("jpl.Query#getSolution() threw incorrect JPLException: " + e);
+			}
+		} catch (Exception e) {
+			fail("jpl.Query#getSolution() threw wrong class of exception: " + e);
+		}
+	}
+	public void testOpen1() {
+		Query q = new Query("dummy");
+		assertTrue("a newly created query is not open", !q.isOpen());
+	}
+	public void testOpen2() {
+		Query q = new Query("fail");
+		q.open();
+		assertTrue("a newly opened query which has no solutions is open", q.isOpen());
+	}
+	public void testGetSolution1() {
+		Query q = new Query("fail");
+		q.open();
+		q.getSolution();
+		assertTrue("an opened query on which getSolution has failed once is closed", !q.isOpen());
+	}
+	public void testGetSolution2() {
+		Query q = new Query("fail"); // this query has no solutions
+		q.open(); // this opens the query
+		q.getSolution(); // this finds no solution, and closes the query
+		try {
+			q.getSolution(); // this call is invalid, as the query is closed
+			// shouldn't get to here
+			fail("jpl.Query#getSolution() shoulda thrown JPLException");
+		} catch (jpl.JPLException e) { // correct exception class, but is it correct in detail?
+			if (e.getMessage().endsWith("Query is not open")) { // ...which should throw a JPLException like this
+				// OK: an appropriate exception was thrown
+			} else {
+				fail("jpl.Query#getSolution() threw incorrect JPLException: " + e);
+			}
+		} catch (Exception e) {
+			fail("jpl.Query#getSolution() threw wrong class of exception: " + e);
+		}
+	}
+	public void testHasMoreSolutions1() {
+		StringBuffer sb = new StringBuffer();
+		Query q = new Query("atom_chars(prolog, Cs), member(C, Cs)");
+		Map soln;
+		q.open();
+		while (q.hasMoreSolutions()) {
+			soln = q.nextSolution();
+			sb.append(((Atom) soln.get("C")).name());
+		}
+		q.close();
+		assertEquals("Query#hasMoreSolutions() + Query#nextSolution() work as intended", "prolog", sb.toString());
+	}
+	public void testHasMoreElements1() {
+		StringBuffer sb = new StringBuffer();
+		Query q = new Query("atom_chars(prolog, Cs), member(C, Cs)");
+		Map soln;
+		q.open();
+		while (q.hasMoreElements()) {
+			soln = (Map) q.nextElement();
+			sb.append(((Atom) soln.get("C")).name());
+		}
+		q.close();
+		assertEquals("Query#hasMoreElements() + Query#nextElement() work as intended", "prolog", sb.toString());
+	}
+	public void testStackedQueries1() {
+		StringBuffer sb = new StringBuffer();
+		Query q = new Query("atom_chars(prolog, Cs), member(C, Cs)");
+		Map soln;
+		q.open();
+		while ((soln = q.getSolution()) != null) {
+			Atom a = (Atom) soln.get("C");
+			if (Query.hasSolution("memberchk(?, [l,o,r])", new Term[] {a})) { // this query opens and closes while an earlier query is still open
+				sb.append(((Atom) soln.get("C")).name());
+			}
+		}
+		assertTrue(!q.isOpen()); // q will have been closed by the final getSolution()
+		assertEquals("rolo", sb.toString());
+	}
+
 }
