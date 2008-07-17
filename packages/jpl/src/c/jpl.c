@@ -44,10 +44,10 @@ refactoring (trivial):
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* update this to distinguish releases of this C library: */
-#define	JPL_C_LIB_VERSION	 "3.1.3-alpha"
+#define	JPL_C_LIB_VERSION	 "3.1.4-alpha"
 #define	JPL_C_LIB_VERSION_MAJOR	 3
 #define	JPL_C_LIB_VERSION_MINOR	 1
-#define	JPL_C_LIB_VERSION_PATCH	 3
+#define	JPL_C_LIB_VERSION_PATCH	 4
 #define	JPL_C_LIB_VERSION_STATUS "alpha"
 
 /*#define DEBUG(n, g) ((void)0) */
@@ -676,18 +676,15 @@ static int	    jni_hr_del(JNIEnv*, pointer);
 
 /*=== JNI functions (NB first 6 are cited in macros used subsequently) ============================= */
 
-/* this now checks that the atom's name resembles a tag (PS 18/Jun/2004) */
 static bool
-jni_tag_to_iref(
-    atom_t	a,
-    pointer	*iref
+jni_tag_to_iref2(
+    const char  *s,
+    pointer		*iref
     )
     {
-    const char  *s = PL_atom_chars(a);
     pointer r;
 
-	if ( strlen(s) == 22
-	 && s[0] == 'J'
+	if (s[0] == 'J'
 	 && s[1] == '#'
 	 && isdigit(s[2])
 	 && isdigit(s[3])
@@ -698,17 +695,17 @@ jni_tag_to_iref(
 	 && isdigit(s[8])
 	 && isdigit(s[9])
 	 && isdigit(s[10])
-		&& isdigit(s[11])
-		&& isdigit(s[12])
-		&& isdigit(s[13])
-		&& isdigit(s[14])
-		&& isdigit(s[15])
-		&& isdigit(s[16])
-		&& isdigit(s[17])
-		&& isdigit(s[18])
-		&& isdigit(s[19])
-		&& isdigit(s[20])
-		&& isdigit(s[21])			 /* s is like 'J#01234567890123456789' */
+	 && isdigit(s[11])
+	 && isdigit(s[12])
+	 && isdigit(s[13])
+	 && isdigit(s[14])
+	 && isdigit(s[15])
+	 && isdigit(s[16])
+	 && isdigit(s[17])
+	 && isdigit(s[18])
+	 && isdigit(s[19])
+	 && isdigit(s[20])
+	 && isdigit(s[21])			 /* s is like 'J#01234567890123456789' */
 	 && (r=(pointer)strtoul(&s[2], (char**)NULL, 10)) != ULONG_MAX)
 		{
 		*iref = r;
@@ -719,6 +716,37 @@ jni_tag_to_iref(
     return 0;
     }
 	}
+
+
+static bool
+jni_tag_to_iref1(
+    const char  *s,
+    pointer		*iref
+    )
+    {
+
+	if (strlen(s) == 22) 
+		{
+		return jni_tag_to_iref2(s,iref);
+		}
+	else
+		{
+		return 0;
+		}
+	}
+
+
+/* this now checks that the atom's name resembles a tag (PS 18/Jun/2004) */
+static bool
+jni_tag_to_iref(
+    atom_t	a,
+    pointer	*iref
+    )
+    {
+
+	return jni_tag_to_iref1(PL_atom_chars(a), iref);
+	}
+
 
 
 static bool
@@ -4964,6 +4992,55 @@ JNIEXPORT void JNICALL
 
 
 /*
+ * Class:     jpl_fli_Prolog
+ * Method:    tag_to_object
+ * Signature: (Ljava/lang/String;)Ljava/lang/Object;
+ */
+/* added 29/5/2008 PS to support alternative to deprecated jpl.JRef */
+JNIEXPORT jobject JNICALL 
+ Java_jpl_fli_Prolog_tag_1to_1object(
+	JNIEnv     *env, 
+	jclass      jProlog, 
+	jstring     tag
+	)
+	{
+	jobject     jobj;
+
+	if	(	jni_ensure_jvm()
+		&&	(*env)->GetStringLength(env,tag) == 22
+	)
+	{
+		jni_tag_to_iref2((char*)(*env)->GetStringUTFChars(env,tag,0), (pointer *)&jobj);
+		return jobj;
+	}
+	}
+
+
+/*
+ * Class:	  jpl_fli_Prolog
+ * Method:	  is_tag
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL
+ Java_jpl_fli_Prolog_is_1tag(
+    JNIEnv     *env, 
+	jclass		 jProlog, 
+	jstring     tag
+    )
+    {
+	jobject     jobj;
+    
+	if	(	jni_ensure_jvm()
+		&&	(*env)->GetStringLength(env,tag) == 22
+	)
+	{
+		jni_tag_to_iref2((char*)(*env)->GetStringUTFChars(env,tag,0), (pointer *)&jobj);
+		return jobj != 0;
+	}
+    }
+
+
+/*
  * Class:	  jpl_fli_Prolog
  * Method:	  put_variable
  * Signature: (Ljpl/fli/term_t;)V
@@ -5033,6 +5110,56 @@ JNIEXPORT void JNICALL
 		DEBUG(1, Sdprintf( "  ok: PL_unregister_atom(%lu)\n", (long)atom));
 	}
     }
+
+
+/*
+ * Class:	  jpl_fli_Prolog
+ * Method:	  open_foreign_frame
+ * Signature: ()Ljpl/fli/fid_t;
+ */
+JNIEXPORT jobject JNICALL
+ Java_jpl_fli_Prolog_open_1foreign_1frame(
+	JNIEnv	   *env,
+	jclass		jProlog
+	)
+	{
+	jobject 	 rval;
+	
+	if	(	jpl_ensure_pvm_init(env)
+		&&	(rval=(*env)->AllocObject(env,jFidT_c)) != NULL 		// get a new fid_t object
+		&&	setLongValue(env,rval,(long)PL_open_foreign_frame())	// open a frame only if alloc succeeds
+		)
+		{
+		return rval;
+		}
+	else
+		{
+		return NULL;
+		}
+	}
+
+
+/*
+ * Class:	  jpl_fli_Prolog
+ * Method:	  discard_foreign_frame
+ * Signature: (Ljpl/fli/fid_t;)V
+ */
+JNIEXPORT void JNICALL
+ Java_jpl_fli_Prolog_discard_1foreign_1frame(
+	JNIEnv	   *env,
+	jclass		jProlog,
+	jobject 	jfid
+	)
+	{
+	fid_t		fid;
+	
+	if	(	jpl_ensure_pvm_init(env)
+		&&	getLongValue(env,jfid,(long*)&fid)				// checks that jfid isn't null
+		)
+		{
+		PL_discard_foreign_frame(fid);
+		}
+	}
 
 
 /*=== JPL's Prolog engine pool and thread management =============================================== */

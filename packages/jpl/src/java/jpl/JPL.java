@@ -27,6 +27,7 @@
 //*****************************************************************************/
 package jpl;
 
+import java.io.File;
 import jpl.fli.Prolog;
 
 //----------------------------------------------------------------------/
@@ -68,6 +69,37 @@ public class JPL {
 	
 	protected static boolean modeDontTellMe = true;
 
+	private static String nativeLibraryName = "jpl";
+	private static String nativeLibraryDir = null;
+	private static String nativeLibraryPath = null;
+	public static String setNativeLibraryName(String newName) {
+		if (newName == null) {
+			throw new NullPointerException("newName cannot be null");
+		} else {
+			String oldName = nativeLibraryName;
+			nativeLibraryName = newName;
+			return oldName;
+		}
+	}
+	public static String setNativeLibraryDir(String newDir) {
+		String oldDir = nativeLibraryDir;
+		nativeLibraryDir = newDir;
+		return oldDir;
+	}
+	public static String setNativeLibraryPath(String newPath) {
+		String oldPath = nativeLibraryPath;
+		nativeLibraryPath = newPath;
+		return oldPath;
+	}
+	public static void loadNativeLibrary() {
+		if (nativeLibraryPath != null) {
+            System.load((new File(nativeLibraryPath)).getAbsolutePath());
+		} else if (nativeLibraryDir != null) {
+            System.load((new File(nativeLibraryDir, System.mapLibraryName(nativeLibraryName))).getAbsolutePath());
+		} else {
+			System.loadLibrary(nativeLibraryName); // as resolved somewhere on system property 'java.library.path'
+		}
+	}
 	// setDTMMode
 	/**
 	 * Sets the global "dont-tell-me" mode (default value: true).
@@ -159,7 +191,7 @@ public class JPL {
 	 * whether the String arg is a plausible tag, e.g. "J#0123456789".
 	 */
 	public static boolean isTag(String s) {
-		return s.length()==12 && s.charAt(0)=='J' && s.charAt(1)=='#' && Character.isDigit(s.charAt(2)) && Character.isDigit(s.charAt(3)) && Character.isDigit(s.charAt(4)) && Character.isDigit(s.charAt(5)) && Character.isDigit(s.charAt(6)) && Character.isDigit(s.charAt(7)) && Character.isDigit(s.charAt(8)) && Character.isDigit(s.charAt(9)) && Character.isDigit(s.charAt(10)) && Character.isDigit(s.charAt(11));
+		return s.length()==22 && s.charAt(0)=='J' && s.charAt(1)=='#' && Character.isDigit(s.charAt(2)) && Character.isDigit(s.charAt(3)) && Character.isDigit(s.charAt(4)) && Character.isDigit(s.charAt(5)) && Character.isDigit(s.charAt(6)) && Character.isDigit(s.charAt(7)) && Character.isDigit(s.charAt(8)) && Character.isDigit(s.charAt(9)) && Character.isDigit(s.charAt(10)) && Character.isDigit(s.charAt(11)) && Character.isDigit(s.charAt(12)) && Character.isDigit(s.charAt(13)) && Character.isDigit(s.charAt(14)) && Character.isDigit(s.charAt(15)) && Character.isDigit(s.charAt(16)) && Character.isDigit(s.charAt(17)) && Character.isDigit(s.charAt(18)) && Character.isDigit(s.charAt(19)) && Character.isDigit(s.charAt(20)) && Character.isDigit(s.charAt(21));
 	}
 
 	// newJRef(Object)

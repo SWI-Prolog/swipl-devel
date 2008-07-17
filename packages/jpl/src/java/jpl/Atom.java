@@ -97,7 +97,11 @@ public class Atom extends Compound {
 	public String typeName() { // overrides same in jpl.Term
 		return "Atom";
 	}
-	//==================================================================/
+
+	public Object jrefToObject() {
+		throw new JPLException("Atom.jrefToObject: term is not a JRef");
+	}
+//==================================================================/
 	//  Methods (deprecated)
 	//==================================================================/
 

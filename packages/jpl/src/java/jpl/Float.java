@@ -218,6 +218,10 @@ public class Float extends Term {
 		return this == obj || (obj instanceof Float && value == ((Float) obj).value);
 	}
 	
+	public Object jrefToObject() {
+		throw new JPLException("Float.jrefToObject: term is not a JRef");
+	}
+
 	//==================================================================/
 	//  Methods (deprecated)
 	//==================================================================/

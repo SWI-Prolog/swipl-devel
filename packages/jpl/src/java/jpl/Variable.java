@@ -107,6 +107,18 @@ public class Variable extends Term {
 	public Term[] args() {
 		throw new JPLException("jpl.Variable#args(): call is improper");
 	}
+	public boolean hasFunctor(String name, int arity) {
+		throw new JPLException("jpl.Variable#hasFunctor(): term is not sufficiently instantiated");
+	}
+	public boolean hasFunctor(int value, int arity) {
+		throw new JPLException("jpl.Variable#hasFunctor(): term is not sufficiently instantiated");
+	}
+	public boolean hasFunctor(double value, int arity) {
+		throw new JPLException("jpl.Variable#hasFunctor(): term is not sufficiently instantiated");
+	}
+	public Object jrefToObject() {
+		throw new JPLException("jpl.Variable#jrefToObject(): term is not a jref");
+	}
 	/**
 	 * returns the lexical name of this Variable
 	 * 
@@ -148,7 +160,17 @@ public class Variable extends Term {
 	public final boolean equals(Object obj) {
 		return obj instanceof Variable && !this.name.equals("_") && this.name.equals(((Variable) obj).name);
 	}
-	//==================================================================/
+
+	/**
+	 * throws a JPLException (arg(int) is defined only for Compound and Atom)
+	 * 
+	 * @return the ith argument (counting from 1) of this Variable (never)
+	 */
+	public final Term arg(int i) {
+		throw new JPLException("jpl.Variable#arg(int) is undefined");
+	}
+
+//==================================================================/
 	//  Methods (private)
 	//==================================================================/
 	/**

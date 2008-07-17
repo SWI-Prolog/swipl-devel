@@ -26,6 +26,8 @@
 //*****************************************************************************/
 package jpl.fli;
 
+import jpl.JPL;
+
 
 //----------------------------------------------------------------------/
 // Prolog
@@ -79,7 +81,8 @@ package jpl.fli;
  */
 public final class Prolog {
 	static {
-		System.loadLibrary("jpl");
+		// System.loadLibrary("jpl");
+		JPL.loadNativeLibrary();
 	}
 
 	/* term types */
@@ -146,6 +149,8 @@ public final class Prolog {
 	public static native boolean get_arg(int index, term_t t, term_t a);
 
 	public static native String object_to_tag(Object obj);
+	public static native Object tag_to_object(String tag); // 29/May/2008
+	public static native boolean is_tag(String tag); // 30/May/2008
 
 	/* Verify types */
 	public static native int term_type(term_t t);
@@ -192,8 +197,13 @@ public final class Prolog {
 	// misc.
 	public static native String get_c_lib_version();
 	
+	// not yet working:
 	public static native int action_abort();
 
+	// revived 17/Jun/2008:
+	public static native fid_t open_foreign_frame();
+	public static native void discard_foreign_frame(fid_t cid);
+	
 	// not used:
 	// public static native void reset_term_refs(term_t r);
 	// public static native atom_t functor_name(functor_t f);
@@ -225,7 +235,6 @@ public final class Prolog {
 	// public static native void cut_query(qid_t qid);
 	// public static native boolean call(term_t t, module_t m);
 	// public static native boolean call_predicate(module_t m, int debug, predicate_t pred, term_t t0);
-	// public static native fid_t open_foreign_frame(); // NOT USED
 	// public static native void close_foreign_frame(fid_t cid); // NOT USED
 	// public static native void discard_foreign_frame(fid_t cid); // NOT USED
 	// public static native module_t context();
