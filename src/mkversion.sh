@@ -1,7 +1,7 @@
 #!/bin/sh
 
 cat >> version.h.new <<_EOM_
-/*  Generate file that contains the version identifier from
+/*  Generated file that contains the version identifier from
     the "git describe" command.
 
     DO NOTE EDIT.   Check Makefile and mkversion.sh in src.
@@ -13,6 +13,7 @@ gitversion=''
 if v=`git describe 2>/dev/null`; then
     if [ ! -z $v ]; then
 	gitversion=`echo $v | sed 's/^V//'`
+	if ! git diff --quiet; then gitversion="$gitversion-DIRTY"; fi
 	echo "#define GIT_VERSION "'"'$gitversion'"' >> version.h.new
     fi
 fi
