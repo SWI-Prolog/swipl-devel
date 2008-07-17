@@ -1260,10 +1260,8 @@ interruptHandler(int sig)
 
 #if __unix__				/* actually, asynchronous signal handling */
   if ( !LD->sync_signal )
-  { long mask = (1L<<(sig-1));
-
-    if ( (LD->pending_signals & mask) )
-    { LD->pending_signals &= ~mask;
+  { if ( PL_pending(sig) )
+    { PL_clearsig(sig);
       safe = FALSE;
     } else
     { DEBUG(1, Sdprintf("Reposting as synchronous\n"));
