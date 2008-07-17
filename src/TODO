@@ -30,8 +30,6 @@ UNICODE support
 	* Incomplete support in packages
 		- ODBC
 			- No support at all
-		- JPL
-			- No support at all
 		- XPCE
 			- Limited XIM support for X11 version
 			- No input method support in Windows version
