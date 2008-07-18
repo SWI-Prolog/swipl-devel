@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -2018,10 +2018,11 @@ of waiting threads and the number waiting  with a variable. Only if they
 are not equal and there are multiple waiters we must be using broadcast.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct _thread_msg
-{ struct _thread_msg *next;		/* next in queue */
+typedef struct thread_message
+{ struct thread_message *next;		/* next in queue */
   record_t            message;		/* message in queue */
   word		      key;		/* Indexing key */
+  uint64_t	      sequence_id;	/* Numbered sequence */
 } thread_message;
 
 
@@ -2080,6 +2081,7 @@ queue_message(message_queue *queue, term_t msg)
     queue->wait_for_drain--;
   }  
 
+  msgp->sequence_id = ++queue->sequence_next;
   if ( !queue->head )
   { queue->head = queue->tail = msgp;
   } else
@@ -2201,6 +2203,7 @@ get_message(message_queue *queue, term_t msg)
   word key = (isvar ? 0L : getIndexOfTerm(msg));
   int rval = TRUE;
   fid_t fid = PL_open_foreign_frame();
+  uint64_t seen = 0;
 
   ctx.queue = queue;
   ctx.isvar = isvar;
@@ -2213,7 +2216,11 @@ get_message(message_queue *queue, term_t msg)
 
     DEBUG(1, Sdprintf("%d: scanning queue\n", PL_thread_self()));
     for( ; msgp; prev = msgp, msgp = msgp->next )
-    { if ( key && msgp->key && key != msgp->key )
+    { if ( msgp->sequence_id < seen )
+	continue;
+      seen = msgp->sequence_id;
+
+      if ( key && msgp->key && key != msgp->key )
 	continue;			/* fast search */
 
       PL_recorded(msgp->message, tmp);

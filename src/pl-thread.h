@@ -89,8 +89,9 @@ typedef struct message_queue
   pthread_cond_t       cond_var;	/* condvar for reading */
   pthread_cond_t       drain_var;	/* condvar for writing */
 #endif
-  struct _thread_msg   *head;		/* Head of message queue */
-  struct _thread_msg   *tail;		/* Tail of message queue */
+  struct thread_message   *head;		/* Head of message queue */
+  struct thread_message   *tail;		/* Tail of message queue */
+  uint64_t	       sequence_next;	/* next for sequence id */
   word		       id;		/* Id of the queue */
   long		       size;		/* # terms in queue */
   long		       max_size;	/* Max # terms in queue */
