@@ -536,6 +536,9 @@ free_prolog_thread(void *data)
     sem_post(sem_canceled_ptr);
 }
 
+#ifdef O_QUEUE_STATS
+static void msg_statistics(void);
+#endif
 
 void
 initPrologThreads()
@@ -547,6 +550,10 @@ initPrologThreads()
   { UNLOCK();
     return;
   }
+
+#ifdef O_QUEUE_STATS
+  atexit(msg_statistics);
+#endif
 
   if ( !init_ldata_key )
   { TLD_alloc(&PL_ldata);		/* see also alloc_thread() */
@@ -2193,6 +2200,20 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
 
 #endif /*__WINDOWS__*/
 
+#ifdef O_QUEUE_STATS
+static uint64_t getmsg  = 0;
+static uint64_t unified = 0;
+static uint64_t skipped = 0;
+
+static void
+msg_statistics(void)
+{ Sdprintf("get_message: %lld, unified: %lld, skipped: %lld\n",
+	   getmsg, unified, skipped);
+}
+#define QSTAT(n) (n++)
+#else
+#define QSTAT(n) ((void)0)
+#endif
 
 static int
 get_message(message_queue *queue, term_t msg)
@@ -2204,6 +2225,8 @@ get_message(message_queue *queue, term_t msg)
   int rval = TRUE;
   fid_t fid = PL_open_foreign_frame();
   uint64_t seen = 0;
+
+  QSTAT(getmsg);
 
   ctx.queue = queue;
   ctx.isvar = isvar;
@@ -2217,12 +2240,15 @@ get_message(message_queue *queue, term_t msg)
     DEBUG(1, Sdprintf("%d: scanning queue\n", PL_thread_self()));
     for( ; msgp; prev = msgp, msgp = msgp->next )
     { if ( msgp->sequence_id < seen )
+      { QSTAT(skipped);
 	continue;
+      }
       seen = msgp->sequence_id;
 
       if ( key && msgp->key && key != msgp->key )
 	continue;			/* fast search */
 
+      QSTAT(unified);
       PL_recorded(msgp->message, tmp);
 
       if ( PL_unify(msg, tmp) )
