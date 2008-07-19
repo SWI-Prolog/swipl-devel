@@ -4169,7 +4169,11 @@ the precedence is the precedence of this operator. A term enclosed in
 brackets \exam{(\ldots)} has precedence 0.
 
 The predefined operators are shown in \tabref{operators}. Note that
-all operators can be redefined by the user.
+although all operators can be redefined by the user, this is strongly
+discouraged as it often leads to syntax errors or even different
+semantic interpretations when loading system libraries.  It is adviced
+to keep operators local to modules and load the system modules you need
+before changing operators.
 
 \begin{table}
 \begin{center}
@@ -4190,12 +4194,12 @@ all operators can be redefined by the user.
             \op{@>=}, \op{\=}, \op{\==}, \op{is} \\
 600 & xfy & \op{:} \\
 500 & yfx & \op{+}, \op{-}, \op{/\}, \op{\/}, \op{xor} \\
-500 & fx & \op{+}, \op{-}, \op{?} \\
+500 & fx & \op{?} \\
 400 & yfx & \op{*}, \op{/}, \op{//}, \op{rdiv},
             \op{<<}, \op{>>}, \op{mod}, \op{rem} \\
 200 & xfx & \op{**} \\
 200 & xfy & \op{^} \\
-200 & fy & \op{\} \\
+200 & fy & \op{+}, \op{-}, \op{\} \\
 \hline
 \end{tabular}
 \end{center}
