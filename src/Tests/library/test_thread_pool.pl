@@ -61,7 +61,8 @@ join_all([H|T]) :-
 	assertion(Status==true),
 	join_all(T).
 
-:- begin_tests(thread_pool, [sto(rational_trees)]).
+:- begin_tests(thread_pool, [sto(rational_trees),
+			     condition(current_prolog_flag(threads, true))]).
 
 :- dynamic
 	v/1.
