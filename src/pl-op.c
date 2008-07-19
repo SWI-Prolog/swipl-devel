@@ -510,7 +510,7 @@ pl_local_op(term_t prec, term_t type, term_t name, control_t h)
 
 static const opdef operators[] = {
   OP(ATOM_star,		OP_YFX,		400),	/* * */
-  OP(ATOM_plus,		OP_FX,		500),	/* + */
+  OP(ATOM_plus,		OP_FY,		200),	/* + */
   OP(ATOM_plus,		OP_YFX,		500),
   OP(ATOM_comma,	OP_XFY,	       1000),	/* , */
   OP(ATOM_minus,	OP_FY,		200),	/* - */
