@@ -426,7 +426,7 @@ S__flushbufc(int c, IOSTREAM *s)
 	c = -1;
       }
     } else
-    { if ( S__setbuf(s, NULL, 0) < 0 )
+    { if ( S__setbuf(s, NULL, 0) == (size_t)-1 )
       { s->flags |= SIO_FERR;
 	c = -1;
       } else
@@ -520,7 +520,7 @@ S__fillbuf(IOSTREAM *s)
     size_t len;
 
     if ( !s->buffer )
-    { if ( S__setbuf(s, NULL, 0) < 0 )
+    { if ( S__setbuf(s, NULL, 0) == (size_t)-1 )
 	return -1;
       s->bufp = s->limitp = s->buffer;
       len = s->bufsize;
