@@ -61,7 +61,9 @@ registerWakeup(Word name, Word value ARG_LD)
 
   wake = allocGlobalNoShift(4);		/* may NOT shift the stacks!!! */
   if ( !wake )
-    return outOfStack(&LD->stacks.global, STACK_OVERFLOW_THROW);
+  { outOfStack(&LD->stacks.global, STACK_OVERFLOW_THROW);
+    fail;
+  }
   wake[0] = FUNCTOR_wakeup3;
   wake[1] = needsRef(*name) ? makeRef(name) : *name;
   wake[2] = needsRef(*value) ? makeRef(value) : *value;

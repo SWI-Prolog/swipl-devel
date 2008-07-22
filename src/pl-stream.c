@@ -165,8 +165,8 @@ case, but this is only used by the output stream Svfprintf() where it is
 not needed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-S__setbuf(IOSTREAM *s, char *buffer, int size)
+static size_t
+S__setbuf(IOSTREAM *s, char *buffer, size_t size)
 { char *newbuf, *newunbuf;
   int newflags = s->flags;
 
@@ -191,17 +191,17 @@ S__setbuf(IOSTREAM *s, char *buffer, int size)
   }
 
   if ( (s->flags & SIO_INPUT) )
-  { int buffered = s->limitp - s->bufp;
-    int copy = (buffered < size ? buffered : size);
+  { size_t buffered = s->limitp - s->bufp;
+    size_t copy = (buffered < size ? buffered : size);
 
     if ( size < buffered )
-    { int offset = size - buffered;
+    { size_t offset = size - buffered;
       int64_t newpos;
 
       if ( s->functions->seek64 )
       { newpos = (*s->functions->seek64)(s->handle, offset, SIO_SEEK_CUR);
       } else if ( s->functions->seek )
-      { newpos = (*s->functions->seek)(s->handle, offset, SIO_SEEK_CUR);
+      { newpos = (*s->functions->seek)(s->handle, (long)offset, SIO_SEEK_CUR);
       } else
       { newpos = -1;
 	errno = ESPIPE;
@@ -228,7 +228,7 @@ S__setbuf(IOSTREAM *s, char *buffer, int size)
     s->bufp = s->buffer = newbuf;
     s->limitp = &s->buffer[size];
   }
-  s->bufsize = size;
+  s->bufsize = (int)size;
   s->flags = newflags;
 
   return size;
@@ -309,7 +309,7 @@ Slock(IOSTREAM *s)
 
   if ( !s->locks++ )
   { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
-      return S__setbuf(s, NULL, TMPBUFSIZE);
+      return S__setbuf(s, NULL, TMPBUFSIZE) == (size_t)-1 ? -1 : 0;
   }
 
   return 0;
@@ -323,7 +323,7 @@ StryLock(IOSTREAM *s)
 
   if ( !s->locks++ )
   { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
-      return S__setbuf(s, NULL, TMPBUFSIZE);
+      return S__setbuf(s, NULL, TMPBUFSIZE) == (size_t)-1 ? -1 : 0;
   }
 
   return 0;

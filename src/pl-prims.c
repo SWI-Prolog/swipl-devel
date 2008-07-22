@@ -1988,7 +1988,7 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
     if ( !PL_get_atom_ex(head, &name) )
       fail;
     
-    if ( (arity = lengthList(tail, FALSE)) < 0 )
+    if ( (arity = (int)lengthList(tail, FALSE)) < 0 ) /* TBD: check MAXINT */
     { if ( arity == -1 )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
       else
@@ -2933,7 +2933,9 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
   rc = do_copy_term(valTermRef(from), valTermRef(to), flags PASS_LD);
   exitCyclicCopy(0, flags PASS_LD);
   if ( rc == -1 )
-    return outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
+  { outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
+    fail;
+  }
 
   succeed;
 #endif

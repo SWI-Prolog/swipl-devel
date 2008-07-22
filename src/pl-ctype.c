@@ -489,7 +489,7 @@ init_tout(PL_chars_t *t, size_t len)
 
 
 static inline wint_t
-get_chr_from_text(const PL_chars_t *t, int index)
+get_chr_from_text(const PL_chars_t *t, size_t index)
 { switch(t->encoding)
   { case ENC_ISO_LATIN_1:
       return t->text.t[index]&0xff;
@@ -611,7 +611,7 @@ PRED_IMPL("upcase_atom", 2, upcase_atom, 0)
 static int
 write_normalize_space(IOSTREAM *out, term_t in)
 { PL_chars_t tin;
-  int i, end;
+  size_t i, end;
 
   if ( !PL_get_text(in, &tin, CVT_ATOMIC|CVT_EXCEPTION) )
     return FALSE;
