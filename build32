@@ -48,7 +48,7 @@ esac
 done
 
 # get 32-bit java
-export JAVA_HOME=/usr/lib/jvm/java-1.4.2-sun
+export JAVA_HOME=/usr/local/lib/jvm/java-1.6.0-sun
 export JAVA_LIB=$JAVA_HOME/jre/lib/i386
 export LD_LIBRARY_PATH=$JAVA_LIB/client:$JAVA_LIB:$LD_LIBRARY_PATH
 export JAVALIBS="-L$JAVA_LIB/client -L$JAVA_LIB -ljava -lverify -ljvm"
@@ -60,6 +60,7 @@ PATH=$PREFIX/bin:$JAVA_HOME/bin:$PATH
 # 	CMFLAGS: Machine flags such as "-m64" (64-bits on gcc)
 # 	CIFLAGS: Include-path such as "-I/opt/include"
 # 	LDFLAGS: Link flags such as "-L/opt/lib"
+#    CONFIGOPTS: Alternative locations; skip packages
 
 # export COFLAGS=
   export COFLAGS="-O2 -g -fno-strict-aliasing"
@@ -69,6 +70,7 @@ PATH=$PREFIX/bin:$JAVA_HOME/bin:$PATH
   export CFLAGS=$CMFLAGS $CIFLAGS
   export ARCH=i386-linux
   export CONFIGOPTS="--x-libraries=/usr/X11/lib"
+# export CONFIGOPTS="$CONFIGOPTS --without-jpl"
 
 # [EDIT] Packages to configure.  Leaving it blank compiles all packages.
 # export PKG=
