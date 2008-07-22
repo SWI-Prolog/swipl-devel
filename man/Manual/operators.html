@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.57 Reference Manual: Section 4.24</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.58 Reference Manual: Section 4.24</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="strings.html">
@@ -192,7 +192,11 @@ of this operator. A term enclosed in brackets <CODE>( ... )</CODE> has
 precedence 0.
 
 <P>The predefined operators are shown in <A class="tab" href="operators.html#tab:operators">table 
-4</A>. Note that all operators can be redefined by the user.
+4</A>. Note that although all operators can be redefined by the user, 
+this is strongly discouraged as it often leads to syntax errors or even 
+different semantic interpretations when loading system libraries. It is 
+adviced to keep operators local to modules and load the system modules 
+you need before changing operators.
 
 <P>
 <CENTER>
@@ -213,12 +217,12 @@ op<CODE>*-&gt;</CODE> </TD></TR>
 <STRONG><CODE>@&gt;=</CODE></STRONG>, <STRONG><CODE>\=</CODE></STRONG>, <STRONG><CODE>\==</CODE></STRONG>, <STRONG>is</STRONG> </TD></TR>
 <TR VALIGN=top><TD ALIGN=right>600</TD><TD ALIGN=char CHAR=f>xfy</TD><TD><STRONG><CODE>:</CODE></STRONG> </TD></TR>
 <TR VALIGN=top><TD ALIGN=right>500</TD><TD ALIGN=char CHAR=f>yfx</TD><TD><STRONG><CODE>+</CODE></STRONG>, <STRONG><CODE>-</CODE></STRONG>, <STRONG><CODE>/\</CODE></STRONG>, <STRONG><CODE>\/</CODE></STRONG>, <STRONG>xor</STRONG> </TD></TR>
-<TR VALIGN=top><TD ALIGN=right>500</TD><TD ALIGN=char CHAR=f>fx</TD><TD><STRONG><CODE>+</CODE></STRONG>, <STRONG><CODE>-</CODE></STRONG>, <STRONG><CODE>?</CODE></STRONG> </TD></TR>
+<TR VALIGN=top><TD ALIGN=right>500</TD><TD ALIGN=char CHAR=f>fx</TD><TD><STRONG><CODE>?</CODE></STRONG> </TD></TR>
 <TR VALIGN=top><TD ALIGN=right>400</TD><TD ALIGN=char CHAR=f>yfx</TD><TD><STRONG><CODE>*</CODE></STRONG>, <STRONG><CODE>/</CODE></STRONG>, <STRONG><CODE>//</CODE></STRONG>, <STRONG>rdiv</STRONG>,
 <STRONG><CODE>&lt;&lt;</CODE></STRONG>, <STRONG><CODE>&gt;&gt;</CODE></STRONG>, <STRONG>mod</STRONG>, <STRONG>rem</STRONG> </TD></TR>
 <TR VALIGN=top><TD ALIGN=right>200</TD><TD ALIGN=char CHAR=f>xfx</TD><TD><STRONG><CODE>**</CODE></STRONG> </TD></TR>
 <TR VALIGN=top><TD ALIGN=right>200</TD><TD ALIGN=char CHAR=f>xfy</TD><TD><STRONG><CODE>^</CODE></STRONG> </TD></TR>
-<TR VALIGN=top><TD ALIGN=right>200</TD><TD ALIGN=char CHAR=f>fy</TD><TD><STRONG><CODE>\</CODE></STRONG> </TD></TR>
+<TR VALIGN=top><TD ALIGN=right>200</TD><TD ALIGN=char CHAR=f>fy</TD><TD><STRONG><CODE>+</CODE></STRONG>, <STRONG><CODE>-</CODE></STRONG>, <STRONG><CODE>\</CODE></STRONG> </TD></TR>
 </TABLE>
 
 </CENTER>

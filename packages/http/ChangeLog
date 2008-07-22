@@ -1,3 +1,29 @@
+[Jul 3 2008]
+
+ * MODIFIED: Deleted the `after' option processing.  Modern code can start a
+   thread to deal with formulating a reply and start procesing after the reply
+   has been sent.
+   
+[Jul 2 2008]
+
+ * ADDED: Support for HTTP 503 (service unavailable)
+   
+ * ADDED: Support for options chunked and spawn in http_handler/3.
+   
+[Jun 27 2008]
+
+ * FIXED: Read JSON reply when using chunked encoding
+   
+ * FIXED: Post header when using data in CGI format (used by JSON posts)
+   
+[Jun 25 2008]
+
+ * MODIFIED: http_get/3 using to(atom) or to(codes) perform UTF-8 decoding if
+   the content type is declared as UTF-8.
+   
+[Jul 2 2008]
+
+ * ADDED: Bug#365: timeout support for the HTTP client library.  Keri Harris.
 [Jun 16 2008]
 
  * ENHANCED: Reduce HTTP header parsing time

@@ -1,3 +1,9 @@
+[Jun 27 2008]
+
+ * CHR: ADDED error value for check_guard_bindings option: throw error on guard binding
+   
+ * CHR: ADDED error value for check_guard_bindings option: throw error on guard binding
+   
 [May 22 2008]
 
  * CHR: experimental detach code size reduction (bug fix)

@@ -9,6 +9,72 @@
 
 
 ============================
+VERSION 5.6.57 July 22, 2008
+============================
+
+ * MODIFIED: + as prefix operator from 500 fx to 200 fy.  Compatibility with the
+   ISO proposal and priorities of -.  Paulo Moura.
+   
+ * ENHANCED: Message queue scanning performance.
+   
+ * ADDED: -DIRTY postfix in version when building from a not committed git repository
+   
+ * PORT: Another atempt to work around the bool conflict in pl-term.c
+   
+ * PORT: Fix possible bool conflict with curses.h in pl-term.c (not verified).
+   
+ * ADDED: Allow signal handlers to set global variables
+   
+ * PORT: Properly include curses.h and term.h in pl-term.c.  Does this need to
+   be conditional?
+   
+ * CLEANUP: bring normal requests under the signalling interface.  This implies
+   notably handling gc, atom-gc and thread-signals.  This simplifies the overall
+   design and allows executing additional hooks if these operations happen.
+   
+ * FIXED: rewind before calling the cleanup handler in call_cleanup.
+   Item#413, Ulrich Neumerkel
+   
+ * FIXED: Possible crash in thread_property/2 when polling threads that terminates
+   with an exception or through thread_exit/1.
+   
+ * ADDED: PL_get_thread_id_ex() to convert a Prolog thread id into a C-one
+   
+ * ADDED: Allow passing Prolog exceptions from stream hooks.
+   
+ * FIXED: Properly report errors that result from a stream close hook.
+   
+ * ADDED: PL_unify_thread_id() to the foreign interface
+   
+ * PORT: Bug#172: Added support for `multilib' systesms.  Keri Harris.
+   
+ * ADDED: library(thread_pool): pools of threads with similar properties
+   
+ * ADDED: selectchk/3 to library(lists)
+   
+ * ADDED: query current timeout of a stream (stream_property/2).
+   
+ * FIXED: Crash on non-deterministic setup handler in setup_and_call_cleanup/4.
+   
+ * CHANGED: toplevel answers "false." in stead of "fail."
+   
+ * ADDED: false/0
+   
+ * FIXED: Avoid autoloading XPCE from library(threadutil).  Matt Lilley.
+   
+ * FIXED: Bug#364: Make archive independent from locale by avoiding case independent
+   tags.  Keri Harris.  Old archives cannot be loaded with the current version.
+   Trying to open an old archive yields a
+   FATAL ERROR: Could not open resource database
+   
+ * MODIFIED: CLP(FD): X in N..inf and X in sup..N now yield domain errors
+   
+ * ENHANCED: CLP(FD): recognise linear expressions involving
+             subtractions, following a benchmark from Joost Geurts.
+   
+ * PORT: Add Windows Vista manifest to plwin.exe.  Uwe Lesta.
+   
+============================
 VERSION 5.6.57 June 20, 2008
 ============================
 

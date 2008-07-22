@@ -1,3 +1,14 @@
+[Jul 10 2008]
+
+ * FIXED: PlUnit: Perform goal_expansion/2 on setup, condition and cleanup options.
+   Ivo Swartjes.
+   
+[Jun 26 2008]
+
+ * ADDED: forall option to unit tests that allows running the same test on
+   different data sets.
+   
+ * FIXED: wrong handling of gloabl option sto(false)
 [May 31 2008]
 
  * FIXED: Properly support tests with condition and setup

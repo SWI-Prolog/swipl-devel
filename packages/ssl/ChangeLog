@@ -1,3 +1,6 @@
+[Jul 3 2008]
+
+ * FIXED: Bug#366: SSL Certificates for tesing expired.  Keri Harris.
 [May 20 2008]
 
  * MODIFIED: Streams in socket.pl and ssl.pl appeared unbuffered.  They

@@ -1,3 +1,18 @@
+[Jul 4 2008]
+
+ * FIXED: library(process) stream administration (could lead to errors in close)
+   
+[Jul 3 2008]
+
+ * FIXED: Avoid possible deadlock in PL_cleanup_fork(). Michiel William Kauw-A-Tjoe
+   
+[Jun 25 2008]
+
+ * ADDED: memory_file_to_atom/3 and memory_file_to_codes/3 to convert encodings.
+   
+[Jun 27 2008]
+
+ * FIXED: read_line_to_codes/3: foreign implementation did not unlock stream.
 [Jun 13 2008]
 
  * FIXED: Include initialization to load process.so.  Matt Lilley.

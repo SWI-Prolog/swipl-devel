@@ -43,9 +43,3 @@ else
 fi
 
 rm -f $tmp
-
-cvstag="XPCE-${major}_${minor}_${patch}"
-
-if confirm "Tag the CVS repository with $cvstag? "; then
-    cvs rtag -F $cvstag pl/packages/xpce
-fi

@@ -1,3 +1,8 @@
+[Jul 7 2008]
+
+ * ADDED: Prolog navigator listens to prolog_file_type/2.  Jean-Marc Vanel.
+   
+ * FIXED: Navigator failed to open on files with only directives.
 [Jun 19 2008]
 
  * ADDED: Provide support for printing attributes in the GUI tracer

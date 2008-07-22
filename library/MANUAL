@@ -7745,8 +7745,12 @@ oopp((_+_P_r_e_c_e_d_e_n_c_e_, _+_T_y_p_e_, _:_N_a_m_e
     which  case the precedence  is the precedence of  this operator.   A
     term enclosed in brackets (...) has precedence 0.
 
-    The  predefined operators are  shown in  table 4.1.   Note that  all
-    operators can be redefined by the user.
+    The  predefined  operators  are shown  in  table  4.1.    Note  that
+    although  all  operators  can be  redefined  by the  user,  this  is
+    strongly  discouraged as  it often  leads to syntax  errors or  even
+    different  semantic interpretations  when loading system  libraries.
+    It  is  adviced to  keep operators  local to  modules  and load  the
+    system modules you need before changing operators.
      ______________________________________________________________
      | 1200 |xfx  |-->, :-                                        |
      | 1200 | fx  |:-, ?-                                         |
@@ -7764,11 +7768,11 @@ oopp((_+_P_r_e_c_e_d_e_n_c_e_, _+_T_y_p_e_, _:_N_a_m_e
      |  600 |xfy  |:                                              |
 
      |  500 | yfx |+, -, /\, \/, xor                              |
-     |  500 | fx  |+, -, ?                                        |
+     |  500 | fx  |?                                              |
      |  400 | yfx |*, /, //, rdiv, <<, >>, mod, rem               |
      |  200 |xfx  |**                                             |
      |  200 |xfy  |^                                              |
-     |__200_|_fy__|\______________________________________________|_
+     |__200_|_fy__|+,_-,_\________________________________________|_
 
                       Table 4.1:  System operators
 
@@ -9059,7 +9063,7 @@ with a large  but finite time interval at  constant resolution.  In  our
 opinion using  a floating point  number is a more  natural choice as  we
 can use a natural unit and the interface does not need  to be changed if
 a higher resolution  is required in the future.   Our unit of choice  is
-the second as  it is the scientific unit.   e have placed our  origin at
+the second as it is  the scientific unit.  We have placed our  origin at
 1970-1-1T0:0:0Z for compatibility with the POSIX notion of  time as well
 as with older time support provided by SWI-Prolog.
 
@@ -12925,10 +12929,6 @@ one-to-one mapping.   In this schema  a native thread attaches a  Prolog
 thread if  it needs  to call Prolog  and detaches is  when finished,  as
 opposed to the  model from section 8.7.2  where threads temporary use  a
 Prolog engine.
-
-PPlleeaassee nnoottee  tthhaatt tthhee  iinntteerrffaaccee bbeellooww  wwiillll oonnllyy wwoorrkk  iiff tthhrreeaaddiinngg  iinn
-yyoouurr aapppplliiccaattiioonn iiss bbaasseedd oonn tthhee ssaammee tthhrreeaadd--lliibbrraarryy aass  uusseedd ttoo ccoommppiillee
-SSWWII--PPrroolloogg..
 
 
 88..77..11 AA PPrroolloogg tthhrreeaadd ffoorr eeaacchh nnaattiivvee tthhrreeaadd ((oonnee--ttoo--oonnee))

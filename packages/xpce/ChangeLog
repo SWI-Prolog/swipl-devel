@@ -1,3 +1,14 @@
+[Jul 16 2008]
+
+ * PORT: Properly include curses.h and term.h in pl-term.c.  Does this need to
+   be conditional?
+   
+[Jul 7 2008]
+
+ * ADDED: Prolog navigator listens to prolog_file_type/2.  Jean-Marc Vanel.
+   
+ * FIXED: Navigator failed to open on files with only directives.
+   
 [Jun 19 2008]
 
  * ADDED: Provide support for printing attributes in the GUI tracer

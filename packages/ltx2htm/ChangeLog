@@ -1,3 +1,6 @@
+[Jul 2 2008]
+
+ * PORT: Bug#172: Added support for `multilib' systesms.  Keri Harris.
 [Jan 23 2008]
 
  * PORT: Bug#346: Allow overriding COFLAGS and CWFLAGS in package
