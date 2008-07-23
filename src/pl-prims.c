@@ -2905,7 +2905,11 @@ again:
 
 static int
 copy_term_refs(term_t from, term_t to, int flags ARG_LD)
-{
+{ Word dest = allocGlobal(1);
+  
+  setVar(*dest);
+  *valTermRef(to) = makeRef(dest);
+
 #ifdef O_SHIFT_STACKS
   intptr_t grow = sizeStack(global)/2;
 
@@ -2921,6 +2925,7 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
     { gTop = gsave;
       if ( !growStacks(NULL, NULL, NULL, 0, grow, 0) )
 	return outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
+      dest = &gTop[-1];
     } else
     { succeed;		/* do_copy_term returning FALSE just means not-ground */
     }
@@ -2930,7 +2935,7 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
   int rc;
 
   initCyclicCopy(PASS_LD1);
-  rc = do_copy_term(valTermRef(from), valTermRef(to), flags PASS_LD);
+  rc = do_copy_term(valTermRef(from), dest, flags PASS_LD);
   exitCyclicCopy(0, flags PASS_LD);
   if ( rc == -1 )
   { outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
