@@ -2906,6 +2906,7 @@ again:
 static int
 copy_term_refs(term_t from, term_t to, int flags ARG_LD)
 { Word dest = allocGlobal(1);
+  int rc;
   
   setVar(*dest);
   *valTermRef(to) = makeRef(dest);
@@ -2914,8 +2915,7 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
   intptr_t grow = sizeStack(global)/2;
 
   for(;; grow *= 2)
-  { int rc;
-    Word gsave = gTop;
+  { Word gsave = gTop;
 
     initCyclicCopy(PASS_LD1);
     rc = do_copy_term(valTermRef(from), valTermRef(to), flags PASS_LD);
@@ -2932,7 +2932,6 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
   }
 
 #else
-  int rc;
 
   initCyclicCopy(PASS_LD1);
   rc = do_copy_term(valTermRef(from), dest, flags PASS_LD);
