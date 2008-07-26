@@ -116,6 +116,7 @@
                   indomain/1,
                   lex_chain/1,
                   serialized/2,
+                  element/3,
                   fd_var/1,
                   fd_inf/2,
                   fd_sup/2,
@@ -2663,6 +2664,8 @@ lex_le([V1|V1s], [V2|V2s]) :-
 
 tuples_in(Tuples, Relation) :-
         must_be(list, Tuples),
+        append(Tuples, Vs),
+        maplist(fd_variable, Vs),
         must_be(list(list(integer)), Relation),
         tuples_domain(Tuples, Relation),
         do_queue.
@@ -2719,8 +2722,7 @@ all_in_domain([], []).
 all_in_domain([A|As], [T|Ts]) :-
         (   fd_get(T, Dom, _) ->
             domain_contains(Dom, A)
-        ;   must_be(integer, T),
-            T =:= A
+        ;   T =:= A
         ),
         all_in_domain(As, Ts).
 
@@ -3839,6 +3841,23 @@ serialize_upper_bound(I, D_I, J, D_J) :-
             fd_put(I, DomI1, Ps)
         ;   true
         ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%    element(?N, +Is, ?I)
+%
+%     The N-th element of the list of integers Is is I. Analogous to nth1/3.
+
+element(N, Is, I) :-
+        must_be(list(integer), Is),
+        fd_variable(N),
+        fd_variable(I),
+        length(Is, L),
+        numlist(1, L, Ns),
+        maplist(twolist, Ns, Is, Rs),
+        tuples_in([[N,I]], Rs).
+
+twolist(N, I, [N,I]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
