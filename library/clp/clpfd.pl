@@ -3849,6 +3849,7 @@ serialize_upper_bound(I, D_I, J, D_J) :-
 %     The N-th element of the list of integers Is is I. Analogous to nth1/3.
 
 element(N, Is, I) :-
+        must_be(list, Is),
         length(Is, L),
         numlist(1, L, Ns),
         maplist(twolist, Ns, Is, Rs),
