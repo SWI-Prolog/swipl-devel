@@ -2596,6 +2596,7 @@ init_propagator(Var, Prop) :-
         ).
 
 constraint_wake(pneq, ground).
+constraint_wake(x_neq_y_plus_z, ground).
 constraint_wake(absdiff_neq, ground).
 constraint_wake(pdifferent, ground).
 constraint_wake(pdistinct, ground).
