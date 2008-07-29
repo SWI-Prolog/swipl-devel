@@ -1347,8 +1347,8 @@ ffc_lt(X, Y) :-
         ),
         (   NXD < NYD -> true
         ;   NXD =:= NYD,
-            length(XPs, NXPs),
-            length(YPs, NYPs),
+            props_number(XPs, NXPs),
+            props_number(YPs, NYPs),
             NXPs > NYPs
         ).
 
@@ -2362,10 +2362,14 @@ domain(V, Dom) :-
 domains([], _).
 domains([V|Vs], D) :- domain(V, D), domains(Vs, D).
 
+props_number(fd_props(Gs,Os), N) :-
+        length(Gs, N1),
+        length(Os, N2),
+        N is N1 + N2.
 
 fd_get(X, Dom, Ps) :-
-        (   get_attr(X, clpfd, Attr) -> Attr = clpfd(_,_,_,Dom,Ps)
-        ;   var(X) -> default_domain(Dom), Ps = []
+        (   get_attr(X, clpfd, Attr) -> Attr = clpfd_attr(_,_,_,Dom,Ps)
+        ;   var(X) -> default_domain(Dom), Ps = fd_props([],[])
         ).
 
 fd_get(X, Dom, Inf, Sup, Ps) :-
@@ -2387,18 +2391,18 @@ fd_get(X, Dom, Inf, Sup, Ps) :-
    ?- B #==> X #> abs(X), indomain(B).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-fd_put(X, Dom, Pos) :-
+fd_put(X, Dom, Ps) :-
         (   current_prolog_flag(clpfd_propagation, full) ->
-            put_full(X, Dom, Pos)
-        ;   put_terminating(X, Dom, Pos)
+            put_full(X, Dom, Ps)
+        ;   put_terminating(X, Dom, Ps)
         ).
 
 put_terminating(X, Dom, Ps) :-
         Dom \== empty,
         (   Dom = from_to(F, F) -> F = n(X)
         ;   (   get_attr(X, clpfd, Attr) ->
-                Attr = clpfd(Left,Right,Spread,OldDom, _OldPs),
-                put_attr(X, clpfd, clpfd(Left,Right,Spread,Dom,Ps)),
+                Attr = clpfd_attr(Left,Right,Spread,OldDom, _OldPs),
+                put_attr(X, clpfd, clpfd_attr(Left,Right,Spread,Dom,Ps)),
                 (   OldDom == Dom -> true
                 ;   (   Left == (.) -> Bounded = yes
                     ;   domain_infimum(Dom, Inf), domain_supremum(Dom, Sup),
@@ -2408,8 +2412,8 @@ put_terminating(X, Dom, Ps) :-
                         )
                     ),
                     (   Bounded == yes ->
-                        put_attr(X, clpfd, clpfd(.,.,.,Dom,Ps)),
-                        trigger_props(Ps)
+                        put_attr(X, clpfd, clpfd_attr(.,.,.,Dom,Ps)),
+                        trigger_props(Ps, X)
                     ;   % infinite domain; consider border and spread changes
                         domain_infimum(OldDom, OldInf),
                         (   Inf == OldInf -> LeftP = Left
@@ -2424,16 +2428,16 @@ put_terminating(X, Dom, Ps) :-
                         (   NewSpread == OldSpread -> SpreadP = Spread
                         ;   SpreadP = yes
                         ),
-                        put_attr(X, clpfd, clpfd(LeftP,RightP,SpreadP,Dom,Ps)),
+                        put_attr(X, clpfd, clpfd_attr(LeftP,RightP,SpreadP,Dom,Ps)),
                         (   RightP == yes, Right = yes -> true
                         ;   LeftP == yes, Left = yes -> true
                         ;   SpreadP == yes, Spread = yes -> true
-                        ;   trigger_props(Ps)
+                        ;   trigger_props(Ps, X)
                         )
                     )
                 )
             ;   var(X) ->
-                put_attr(X, clpfd, clpfd(no,no,no,Dom, Ps))
+                put_attr(X, clpfd, clpfd_attr(no,no,no,Dom, Ps))
             ;   true
             )
         ).
@@ -2494,14 +2498,14 @@ put_full(X, Dom, Ps) :-
         Dom \== empty,
         (   Dom = from_to(F, F) -> F = n(X)
         ;   (   get_attr(X, clpfd, Attr) ->
-                Attr = clpfd(_,_,_,OldDom, _OldPs),
-                put_attr(X, clpfd, clpfd(no,no,no,Dom, Ps)),
+                Attr = clpfd_attr(_,_,_,OldDom, _OldPs),
+                put_attr(X, clpfd, clpfd_attr(no,no,no,Dom, Ps)),
                 %format("putting dom: ~w\n", [Dom]),
                 (   OldDom == Dom -> true
-                ;   trigger_props(Ps)
+                ;   trigger_props(Ps, X)
                 )
             ;   var(X) -> %format('\t~w in ~w .. ~w\n',[X,L,U]),
-                put_attr(X, clpfd, clpfd(no,no,no,Dom, Ps))
+                put_attr(X, clpfd, clpfd_attr(no,no,no,Dom, Ps))
             ;   true
             )
         ).
@@ -2518,8 +2522,19 @@ put_full(X, Dom, Ps) :-
 
 make_propagator(C, propagator(C, mutable(passive, _))).
 
-trigger_props([]).
-trigger_props([P|Ps]) :- trigger_prop(P), trigger_props(Ps).
+trigger_props(fd_props(Ground, Other), X) :-
+        (   ground(X) ->
+            trigger_props_(Ground),
+            trigger_props_(Other)
+        ;   trigger_props_(Other)
+        ).
+
+trigger_props(fd_props(Ground, Other)) :-
+        trigger_props_(Ground),
+        trigger_props_(Other).
+
+trigger_props_([]).
+trigger_props_([P|Ps]) :- trigger_prop(P), trigger_props_(Ps).
 
 trigger_prop(Propagator) :-
         arg(2, Propagator, MState),
@@ -2574,8 +2589,24 @@ do_queue :-
         ).
 
 init_propagator(Var, Prop) :-
-        (   fd_get(Var, Dom, Ps) -> fd_put(Var, Dom, [Prop|Ps])
+        (   fd_get(Var, Dom, Ps0) ->
+            insert_propagator(Prop, Ps0, Ps),
+            fd_put(Var, Dom, Ps)
         ;   true
+        ).
+
+constraint_wake(pneq, ground).
+constraint_wake(absdiff_neq, ground).
+constraint_wake(pdifferent, ground).
+constraint_wake(pdistinct, ground).
+
+insert_propagator(Prop, Ps0, Ps) :-
+        Ps0 = fd_props(Ground,Other),
+        arg(1, Prop, Constraint),
+        functor(Constraint, F, _),
+        (   constraint_wake(F, ground) ->
+            Ps = fd_props([Prop|Ground], Other)
+        ;   Ps = fd_props(Ground, [Prop|Other])
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3952,7 +3983,7 @@ goals_entail(Goals, E) :-
    Unification hook and constraint projection
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-attr_unify_hook(clpfd(_,_,_,Dom,Ps), Other) :-
+attr_unify_hook(clpfd_attr(_,_,_,Dom,Ps), Other) :-
         (   nonvar(Other) ->
             (   integer(Other) -> true
             ;   type_error(integer, Other)
@@ -3962,11 +3993,15 @@ attr_unify_hook(clpfd(_,_,_,Dom,Ps), Other) :-
             do_queue
         ;   fd_get(Other, OD, OPs),
             domains_intersection(OD, Dom, Dom1),
-            append(Ps, OPs, Ps1),
+            append_propagators(Ps, OPs, Ps1),
             fd_put(Other, Dom1, Ps1),
             trigger_props(Ps1),
             do_queue
         ).
+
+append_propagators(fd_props(Gs0,Os0), fd_props(Gs1,Os1), fd_props(Gs,Os)) :-
+        append(Gs0, Gs1, Gs),
+        append(Os0, Os1, Os).
 
 bound_portray(inf, inf).
 bound_portray(sup, sup).
@@ -3991,7 +4026,9 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
         intervals_to_drep(Rest, Drep0 \/ D1, Drep).
 
 attribute_goals(X) -->
-        { get_attr(X, clpfd, clpfd(_,_,_,Dom,Ps)), domain_to_drep(Dom, Drep) },
+        { get_attr(X, clpfd, clpfd_attr(_,_,_,Dom,fd_props(Ground,Other))),
+          append(Ground, Other, Ps),
+          domain_to_drep(Dom, Drep) },
         (   { default_domain(Dom), one_alive(Ps) } -> []
         ;   [clpfd:(X in Drep)]
         ),
