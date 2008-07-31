@@ -400,7 +400,7 @@ dispatch_signal(int sig, int sync)
 	sysError("Recursively received fatal signal %d", sig);
   }
 
-  if ( gc_status.active )
+  if ( gc_status.active && sig < SIG_PROLOG_OFFSET )
   { fatalError("Received signal %d (%s) while in %ld-th garbage collection",
 	       sig, signal_name(sig), gc_status.collections);
   }
