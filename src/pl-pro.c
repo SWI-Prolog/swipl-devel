@@ -494,19 +494,33 @@ last_arg:
     if ( isReal(*p) )
       return key+(word) valReal(*p);
     if ( isString(*p) )
-    { size_t sz, len;
-      char *s;
-
-      s = getCharsString(*p, &sz);
-
-      if ( sz != (len=strlen(s)) )
-      { if ( sz < len )
-	  printk("String has inconsistent length: 0x%x", *p);
-	else if ( s[sz] )
-	  printk("String not followed by NUL-char: 0x%x", *p);
+    { if ( isBString(*p) )
+      { size_t sz, len;
+	char *s;
+  
+	s = getCharsString(*p, &sz);
+  
+	if ( sz != (len=strlen(s)) )
+	{ if ( sz < len )
+	    printk("String has inconsistent length: 0x%x", *p);
+	  else if ( s[sz] )
+	    printk("String not followed by NUL-char: 0x%x", *p);
 /*	else
-	  printf("String contains NUL-chars: 0x%x", *p);
+	    printf("String contains NUL-chars: 0x%x", *p);
 */
+	}
+      } else
+      { size_t sz, len;
+	pl_wchar_t *s;
+
+	s = getCharsWString(*p, &sz);
+  
+	if ( sz != (len=wcslen(s)) )
+	{ if ( sz < len )
+	    printk("String has inconsistent length: 0x%x", *p);
+	  else if ( s[sz] )
+	    printk("String not followed by NUL-char: 0x%x", *p);	
+	}
       }
       return key + *addressIndirect(*p);
     }
