@@ -2627,6 +2627,7 @@ constraint_wake(absdiff_neq, ground).
 constraint_wake(pdifferent, ground).
 constraint_wake(pdistinct, ground).
 
+constraint_wake(x_leq_y_plus_c, bounds).
 constraint_wake(scalar_product, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
