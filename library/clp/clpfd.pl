@@ -3976,7 +3976,6 @@ twolist(N, I, [N,I]).
 % F = 265252859812191058636308480000000.
 % ==
 
-
 zcompare(Order, A, B) :-
         (   nonvar(Order) ->
             zcompare_(Order, A, B)
