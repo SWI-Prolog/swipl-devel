@@ -1373,17 +1373,16 @@ tag_trail()
 
       SECURE(assert(onStack(global, p2)));
       te->address = (Word)consPtr(p2, STG_GLOBAL|TAG_TRAILVAL);
-      te--;
-    }
-
-    if ( onLocal(te->address) )
-    { stg = STG_LOCAL;
     } else
-    { SECURE(assert(onStackArea(global, te->address)));
-      stg = STG_GLOBAL;
+    { if ( onLocal(te->address) )
+      { stg = STG_LOCAL;
+      } else
+      { SECURE(assert(onStackArea(global, te->address)));
+	stg = STG_GLOBAL;
+      }
+	
+      te->address = (Word)consPtr(te->address, stg);
     }
-
-    te->address = (Word)consPtr(te->address, stg);
   }
 }
 
