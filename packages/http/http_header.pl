@@ -426,7 +426,7 @@ http_update_transfer(Request, CgiHeader, Transfer, Header) :-
 	http_update_transfer(When, Request, CgiHeader, Transfer, Header).
 
 http_update_transfer(never, _, CgiHeader, none, Header) :- !,
-	delete(transfer_encoding(_), CgiHeader, Header).
+	delete(CgiHeader, transfer_encoding(_), Header).
 http_update_transfer(_, Request, CgiHeader, Transfer, Header) :-
 	select(transfer_encoding(CgiTransfer), CgiHeader, Rest), !,
 	transfer(Request, ReqConnection),
