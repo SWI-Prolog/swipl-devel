@@ -117,6 +117,7 @@
                   lex_chain/1,
                   serialized/2,
                   element/3,
+                  zcompare/3,
                   fd_var/1,
                   fd_inf/2,
                   fd_sup/2,
@@ -3448,6 +3449,36 @@ run_propagator(pexp(X,Y,Z), MState) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+run_propagator(pzcompare(Order, A, B), MState) :-
+        (   A == B -> kill(MState), Order = (=)
+        ;   (   nonvar(A) ->
+                (   nonvar(B) ->
+                    kill(MState),
+                    (   A > B -> Order = (>)
+                    ;   Order = (<)
+                    )
+                ;   fd_get(B, _, BL, BU, _),
+                    (   BL cis_gt n(A) -> kill(MState), Order = (<)
+                    ;   BU cis_lt n(A) -> kill(MState), Order = (>)
+                    ;   true
+                    )
+                )
+            ;   nonvar(B) ->
+                fd_get(A, _, AL, AU, _),
+                (   AL cis_gt n(B) -> kill(MState), Order = (>)
+                ;   AU cis_lt n(B) -> kill(MState), Order = (<)
+                ;   true
+                )
+            ;   fd_get(A, _, AL, AU, _),
+                fd_get(B, _, BL, BU, _),
+                (   AL cis_gt BU -> kill(MState), Order = (>)
+                ;   AU cis_lt BL -> kill(MState), Order = (<)
+                ;   true
+                )
+            )
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % reified constraints
 
@@ -3923,6 +3954,46 @@ element(N, Is, I) :-
 twolist(N, I, [N,I]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% zcompare(?Order, ?A, ?B)
+%
+% Analogous to compare/3, with finite domain variables A and B.
+% Example:
+%
+% ==
+%  fac(N, F) :-
+%          zcompare(C, N, 0),
+%          fac_(C, N, F).
+%
+%  fac_(=, _, 1).
+%  fac_(>, N, F) :- F #= F0*N, N1 #= N - 1, fac(N1, F0).
+% ==
+%
+% This version is deterministic if the first argument is instantiated:
+%
+% ==
+% ?- fac(30, F).
+% F = 265252859812191058636308480000000.
+% ==
+
+
+zcompare(Order, A, B) :-
+        (   nonvar(Order) ->
+            zcompare_(Order, A, B)
+        ;   freeze(Order, zcompare_(Order, A, B)),
+            fd_variable(A),
+            fd_variable(B),
+            make_propagator(pzcompare(Order, A, B), Prop),
+            init_propagator(A, Prop),
+            init_propagator(B, Prop),
+            trigger_once(Prop)
+        ).
+
+zcompare_(=, A, B) :- A #= B.
+zcompare_(<, A, B) :- A #< B.
+zcompare_(>, A, B) :- A #> B.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Reflection predicates
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -4119,6 +4190,7 @@ attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
         append(Left, [Var-D|Right], VDs),
         pair_up(Vs, Ds, VDs).
 attribute_goal_(rel_tuple(mutable(Rel,_), Tuple), tuples_in([Tuple], Rel)).
+attribute_goal_(pzcompare(O,A,B), zcompare(O,A,B)).
 % reified constraints
 attribute_goal_(reified_in(V, D, B), V in Drep #<==> B) :-
         domain_to_drep(D, Drep).
