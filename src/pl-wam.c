@@ -4576,14 +4576,6 @@ frame_failed:
 
   DEBUG(3, Sdprintf("BACKTRACKING\n"));
 
-  if ( is_signalled(PASS_LD1) )
-  { SAVE_REGISTERS(qid);
-    PL_handle_signals();
-    LOAD_REGISTERS(qid);
-    if ( exception_term )
-      goto b_throw;
-  }
-
 next_choice:
   ch = BFR;
   fr0 = FR;
@@ -4701,6 +4693,14 @@ next_choice:
 	  ch = newChoice(CHP_DEBUG, FR PASS_LD);
       }
 
+      if ( is_signalled(PASS_LD1) )
+      { SAVE_REGISTERS(qid);
+	PL_handle_signals();
+	LOAD_REGISTERS(qid);
+	if ( exception_term )
+	  goto b_throw;
+      }
+
 			/* require space for the args of the next frame */
       requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
       NEXT_INSTRUCTION;
@@ -4715,6 +4715,14 @@ next_choice:
       BFR  = ch->parent;
       Profile(profRedo(ch->prof_node PASS_LD));
       lTop = (LocalFrame)ch;
+
+      if ( is_signalled(PASS_LD1) )
+      { SAVE_REGISTERS(qid);
+	PL_handle_signals();
+	LOAD_REGISTERS(qid);
+	if ( exception_term )
+	  goto b_throw;
+      }
 
       SAVE_REGISTERS(qid);
       rval = callForeign(FR, FRG_REDO PASS_LD);
