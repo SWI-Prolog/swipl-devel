@@ -442,7 +442,7 @@ the default value \const{normal}, tests are loaded if the code is
 not compiled with optimisation turned on.
 
     \termitem{run}{+Run}
-Specifies when tests are ran. Using \const{manual}, tests can only be
+Specifies when tests are run. Using \const{manual}, tests can only be
 run using run_tests/0 or run_tests/1. Using \const{make}, tests will be
 run for reloaded files, but not for files loaded the first time. Using
 \const{make(all)} make/0 will run all test-suites, not only those that
