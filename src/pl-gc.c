@@ -672,7 +672,7 @@ gvars_to_term_refs(Word **saved_bar_at)
     freeTableEnum(e);
     assert(LD->gvar.grefs == found);
 
-    DEBUG(0, Sdprintf("Found %d global vars on global stack. "
+    DEBUG(1, Sdprintf("Found %d global vars on global stack. "
 		      "stored in frame %p\n", found, fli_context));
   } else
     fid = 0;
@@ -2211,7 +2211,7 @@ garbageCollect(LocalFrame fr, Choice ch)
   word key;
 #endif
 
-  DEBUG(0, verbose = TRUE);
+  DEBUG(1, verbose = TRUE);
 
   if ( gc_status.blocked || !trueFeature(GC_FEATURE) )
     return;
@@ -2817,7 +2817,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
     double time = CpuTime(CPU_USER);
     int verbose = trueFeature(TRACE_GC_FEATURE);
     
-    DEBUG(0, verbose = TRUE);
+    DEBUG(1, verbose = TRUE);
 
     if ( verbose )
     { printMessage(ATOM_informational,
@@ -2884,7 +2884,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
 	}
 
 
-    DEBUG(0, { Sputchar('\n');
+    DEBUG(1, { Sputchar('\n');
 	       PrintStackParms(global, "global", gb, gsize);
 	       PrintStackParms(local, "local", lb, lsize);
 	       PrintStackParms(trail, "trail", tb, tsize);
