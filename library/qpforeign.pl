@@ -40,65 +40,66 @@
 :- use_module(shlib).
 :- use_module(gensym).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Quintus compatible foreign loader
+
 This module defines a  Quintus   compatible  foreign  language interface
 based on the foreign_file/2 and foreign/3 declarations.
 
 Predicates:
 
-	# load_foreign_files/0
+	* load_foreign_files
 	Load all foreign files defined with foreign_file/2 statement
 	in the current module.
 
-	# load_foreign_files(+Files, +Libs)
+	* load_foreign_files(+Files, +Libs)
 	Load specified foreign files, linking them with the given
 	libraries
 
-	# load_foreign_files(+SharedObject, +Files, +Libs)
+	* load_foreign_files(+SharedObject, +Files, +Libs)
 	As load_foreign_files/2, but first tries to load `SharedObject'.
 	If the SharedObject exists it is loaded using load_foreign_library/1.
 	Otherwise it is first created with make_shared_object/3.
 
-	# make_shared_object(+SharedObject, +Files, +Libs)
+	* make_shared_object(+SharedObject, +Files, +Libs)
 	Generate a wrapper and link it using plld to the given SharedObject.
 
-	# make_foreign_wrapper_file(+Files, +OutBase)
+	* make_foreign_wrapper_file(+Files, +OutBase)
 	Generate wrapper for the named object files in OutBase.c.
 
-	# make_foreign_wrapper_file(+Files)
+	* make_foreign_wrapper_file(+Files)
 	Generate wrapper for all declared object files in OutBase.c.
 	
 Example:
 
+	==
 	foreign_file('-lm', [sin/2]).
 	foreign(sin, c, sin(+float, [-float])).
 	:- load_foreign_files,
 	   abolish(foreign_file, 2),
 	   abolish(foreign, 3).
+	==
 
 Supported types:
 
-	=============================================================
-	Spec		Prolog		C
-	=============================================================
-	integer		integer		long
-	float		float|integer	double
-	single		float|integer	single
-	string		atom|string	char *
-	atom		atom		atom identifier (type atomic)
-	=============================================================
+	| *Spec*	| *Prolog*	| *C*                           |
+	| integer	| integer	| long                          |
+	| float		| float,integer	| double                        |
+	| single	| float,integer	| single                        |
+	| string	| atom,string	| char *			|
+	| atom		| atom		| atom identifier (type atomic) |
 
-NOTE:	This modules requires a correctly functioning plld and
+*NOTE*	This modules requires a correctly functioning plld and
 	load_foreign_library/1 on your system.  If this isn't the
 	case use make_foreign_wrapper_file/[1,2] to generate a
 	wrapper and use static embedding.
 
-NOTE:	The generated linkN.c file may also be used for creating a
+*NOTE*	The generated linkN.c file may also be used for creating a
 	statically linked executable as described in pl-extend.c
 
-BUGS:	* Only supports C-interface
-	* Insufficient checking for misusage.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+@bug	Only supports C-interface
+@bug	Insufficient checking for misusage.
+@bug	Documentation is too short and very outdated
+*/
 
 :- module_transparent
 	load_foreign_files/0,
@@ -229,10 +230,6 @@ make_C_decls(Out, _) :-
 %	declaration for it to avoid unwanted conversions.
 
 make_C_prototype(Out, Head) :-
-%%	arg(_, Head, A),
-%	(   term_member(float, A)
-%	;   term_member(single, A)
-%	), !,
 	(   arg(_, Head, [-Type])
 	->  map_C_type(Type, CType)
 	;   CType = ''
@@ -413,6 +410,10 @@ make_C_file_header(Out) :-
 		 *	     TOPLEVEL		*
 		 *******************************/
 
+%%	load_foreign_files is det.
+%%	load_foreign_files(+Files, +Libs) is det.
+%%	load_foreign_files(+SharedObject, +Files, +Libs) is det.
+%
 %	Calls make_foreign_wrapper_file(+File), compiles the wrapper
 %	and loads the predicates.
 
@@ -429,11 +430,19 @@ load_foreign_files(LinkBase, OFiles, Libs) :-
 	make_shared_object(LinkBase, OFiles, Libs),
 	load_foreign_library(LinkBase).
 
+%%	make_shared_object(+Object, +Files, +Libs) is det.
+%
+%	Generate  a  wrapper  and  link  it  using  plld  to  the  given
+%	SharedObject.
+
 make_shared_object(LinkBase, OFiles, Libs) :-
 	make_foreign_wrapper_file(OFiles, LinkBase),
 	file_name_extension(LinkBase, c, CFile),
 	build_shared_object(LinkBase, [CFile|OFiles], Libs).
 	
+%%	make_foreign_wrapper_file(+OutFile) is det.
+%%	make_foreign_wrapper_file(+Files, +OutFile) is det.
+%
 %	Just output the wrapper file to the named .c file.  May be used
 %	to prepare for static linking or the preparation of the native
 %	SWI-Prolog foreign-file.
