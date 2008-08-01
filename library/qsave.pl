@@ -419,10 +419,22 @@ save_imports :-
 	    \+ default_import(M, H, I),
 	    functor(H, F, A),
 	    feedback('~t~8|~w:~w/~d <-- ~w~n', [M, F, A, I]),
-	    '$add_directive_wic'(M:import(I:H)),
+	    '$add_directive_wic'(qsave:restore_import(M, I, F/A)),
 	    fail
 	;   true
 	).	    
+
+%%	restore_import(+TargetModule, +SourceModule, +PI) is det.
+%
+%	Restore import relation. This notably   deals  with imports from
+%	the module =user=, avoiding a message  that the predicate is not
+%	exported.
+
+restore_import(To, user, PI) :- !,
+	export(user:PI),
+	To:import(user:PI).
+restore_import(To, From, PI) :-
+	To:import(From:PI).
 
 		 /*******************************
 		 *	      FEATURES		*
