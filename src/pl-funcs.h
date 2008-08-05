@@ -713,6 +713,8 @@ COMMON(void) 		unblockSignal(int sig);
 COMMON(void) 		blockSignal(int sig);
 COMMON(void) 		resetSignals(void);
 COMMON(void) 		cleanupSignals(void);
+COMMON(int)		handleSignals(Code PC);
+
 COMMON(int) 		initPrologStacks(intptr_t local,
 				 intptr_t global,
 				 intptr_t trail,

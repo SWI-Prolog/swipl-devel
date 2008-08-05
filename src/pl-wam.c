@@ -1536,6 +1536,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->flags		= flags;
   qf->saved_environment = environment_frame;
   qf->saved_bfr		= LD->choicepoints;
+  qf->saved_PC		= NULL;
   qf->aSave             = aTop;
   qf->solutions         = 0;
   qf->exception		= 0;
@@ -3817,7 +3818,7 @@ increase lTop too to prepare for asynchronous interrupts.
 	    SAVE_REGISTERS(qid);
 	    fid = PL_open_foreign_frame();
 	    if ( is_signalled(PASS_LD1) )
-	    { PL_handle_signals();
+	    { handleSignals(NULL);
 	      LOAD_REGISTERS(qid);
 	      if ( exception_term )
 	      { PL_close_foreign_frame(fid);
@@ -4113,7 +4114,7 @@ possible to be able to call-back to Prolog.
 
 	if ( is_signalled(PASS_LD1) )
 	{ SAVE_REGISTERS(qid);
-	  PL_handle_signals();
+	  handleSignals(PC);
 	  LOAD_REGISTERS(qid);
 	  if ( exception_term )
 	  { CL = NULL;
@@ -4708,7 +4709,7 @@ next_choice:
 
       if ( is_signalled(PASS_LD1) )
       { SAVE_REGISTERS(qid);
-	PL_handle_signals();
+	handleSignals(PC);
 	LOAD_REGISTERS(qid);
 	if ( exception_term )
 	  goto b_throw;
@@ -4731,7 +4732,7 @@ next_choice:
 
       if ( is_signalled(PASS_LD1) )
       { SAVE_REGISTERS(qid);
-	PL_handle_signals();
+	handleSignals(NULL);
 	LOAD_REGISTERS(qid);
 	if ( exception_term )
 	  goto b_throw;

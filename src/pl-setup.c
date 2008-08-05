@@ -361,7 +361,7 @@ to the main thread.
 #define LD LOCAL_LD
 
 static void
-dispatch_signal(int sig, int sync)
+dispatch_signal(int sig, int sync, Code PC)
 { GET_LD
   SigHandler sh = &GD->sig_handlers[sig];
   fid_t fid;
@@ -429,6 +429,8 @@ dispatch_signal(int sig, int sync)
 			PL_Q_CATCH_EXCEPTION,
 			sh->predicate,
 			sigterm);
+    if ( PC )
+      QueryFromQid(qid)->saved_PC = PC;
     if ( !PL_next_solution(qid) && (except = PL_exception(qid)) )
     { PL_cut_query(qid);
       if ( !sync )
@@ -486,7 +488,7 @@ dispatch_signal(int sig, int sync)
 
 static void
 pl_signal_handler(int sig)
-{ dispatch_signal(sig, FALSE);
+{ dispatch_signal(sig, FALSE, NULL);
 }
 
 #ifndef SA_RESTART
@@ -808,6 +810,17 @@ PL_signal(int sigandflags, handler_t func)
 
 int
 PL_handle_signals()
+{ PL_local_data_t *ld = LD;
+
+  if ( !ld || ld->critical || !ld->pending_signals )
+    return 0;
+
+  return handleSignals(NULL);
+}
+
+
+int
+handleSignals(Code PC)
 { int done = 0;
   PL_local_data_t *ld = LD;
 
@@ -823,7 +836,7 @@ PL_handle_signals()
       { ld->pending_signals &= ~mask;	/* reset the signal */
 
 	done++;
-	dispatch_signal(sig, TRUE);
+	dispatch_signal(sig, TRUE, PC);
 
 	if ( exception_term )
 	  goto out;

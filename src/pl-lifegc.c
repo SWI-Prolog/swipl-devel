@@ -514,10 +514,10 @@ mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD)
 
 
 static QueryFrame
-mark_query_stacks(mark_state *state, LocalFrame fr, Choice ch ARG_LD)
+mark_query_stacks(mark_state *state, LocalFrame fr, Choice ch, Code PC ARG_LD)
 { QueryFrame qf;
 
-  qf = mark_environments(state, fr, NULL PASS_LD);
+  qf = mark_environments(state, fr, PC PASS_LD);
   mark_choicepoints(state, ch PASS_LD);
 
   return qf;
@@ -529,6 +529,7 @@ mark_stacks(LocalFrame fr, Choice ch)
 { GET_LD
   QueryFrame qf=NULL;
   mark_state state;
+  Code PC = NULL;
 
   memset(&state, 0, sizeof(state));
   state.reset_entry = (GCTrailEntry)tTop - 1;
@@ -537,11 +538,12 @@ mark_stacks(LocalFrame fr, Choice ch)
 
   while(fr)
   { DEBUG(1, Sdprintf("Marking query %p\n", qf));
-    qf = mark_query_stacks(&state, fr, ch PASS_LD);
+    qf = mark_query_stacks(&state, fr, ch, PC PASS_LD);
 
     if ( qf )
     { fr = qf->saved_environment;
       ch = qf->saved_bfr;
+      PC = qf->saved_PC;
     } else
       break;
   }
