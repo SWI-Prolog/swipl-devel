@@ -1341,8 +1341,14 @@ vsysError(const char *fm, va_list args)
     PL_halt(1);
 
 action:
-  Sfprintf(Serror, "\nAction? "); Sflush(Soutput);
+#ifdef HAVE_GETPID
+  Sfprintf(Serror, "\n[pid=%d] Action? ", getpid());
+#else
+  Sfprintf(Serror, "\nAction? ");
+#endif
+  Sflush(Soutput);
   ResetTty();
+
   switch(getSingleChar(Sinput, FALSE))
   { case 'a':
       pl_abort(ABORT_FATAL);
