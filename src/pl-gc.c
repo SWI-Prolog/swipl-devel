@@ -457,11 +457,13 @@ mark_variable(Word start ARG_LD)
   if ( is_marked(start) )
     sysError("Attempt to mark twice");
 
-  local_marked++;
+  if ( onStackArea(local, start) )
+  { local_marked++;
+    total_marked--;			/* do not count local stack cell */
+  }
   current = start;
   mark_first(current);
   val = get_value(current);  
-  total_marked--;			/* do not count local stack cell */
   FORWARD;
 
 forward:				/* Go into the tree */
@@ -741,9 +743,7 @@ mark_attvars()
 
   for( gp = gBase; gp < gTop; gp += (offset_cell(gp)+1) )
   { if ( isAttVar(*gp) && !is_marked(gp) )
-    { local_marked--;			/* see mark_variable() */
-      total_marked++;
-      DEBUG(3, Sdprintf("mark_attvars(): marking %p\n", gp));
+    { DEBUG(3, Sdprintf("mark_attvars(): marking %p\n", gp));
       mark_variable(gp PASS_LD);
     }
   }
@@ -1009,10 +1009,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 	assert(onGlobal(gp));
 	assert(!is_first(gp));
 	if ( !is_marked(gp) )
-	{ total_marked++;			/* fix counters */
-	  local_marked--;
-
-	  DEBUG(3,
+	{ DEBUG(3,
 		char b1[64]; char b2[64]; char b3[64];
 		Sdprintf("Marking assignment at %s (%s --> %s)\n",
 			 print_adr(tard, b1),
