@@ -76,11 +76,12 @@ http_wrapper(GoalSpec, In, Out, Close, Options) :-
 	wrapper(Module:Goal, In, Out, Close, Options).
 
 wrapper(Goal, In, Out, Close, Options) :-
-	http_read_request(In, Request0),
+	catch(http_read_request(In, Request0), ReqError, true),
 	(   Request0 == end_of_file
 	->  Close = close,
 	    extend_request(Options, [], _) % return request
-	;   extend_request(Options, Request0, Request1),
+	;   var(ReqError)
+	->  extend_request(Options, Request0, Request1),
 	    memberchk(method(Method), Request1),
 	    memberchk(path(Location), Request1),
 	    cgi_open(Out, CGI, cgi_hook, [request(Request1)]),
@@ -89,6 +90,8 @@ wrapper(Goal, In, Out, Close, Options) :-
 	    broadcast(http(request_start(Id, Request0))),
 	    handler_with_output_to(Goal, Request1, CGI, Error),
 	    cgi_close(CGI, Error, Close)
+	;   send_error(Out, ReqError, Close),
+	    extend_request(Options, [], _)
 	).
 
 
@@ -134,6 +137,9 @@ cgi_close(CGI, Error, Close) :-
 	cgi_property(CGI, client(Out)),
 	cgi_discard(CGI),
 	close(CGI),
+	send_error(Out, Error, Close).
+
+send_error(Out, Error, Close) :-
 	map_exception(Error, Reply, HdrExtra),
 	http_reply(Reply, Out, HdrExtra),
 	flush_output(Out),

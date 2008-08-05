@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2008, University of Amsterdam
 
@@ -53,6 +53,7 @@
 :- use_module(library(url)).
 :- use_module(library(memfile)).
 :- use_module(library(settings)).
+:- use_module(library(error)).
 :- use_module(dcg_basics).
 :- use_module(html_write).
 :- use_module(mimetype).
@@ -82,7 +83,12 @@ http_read_request(In, Request) :-
 	    Request = end_of_file
 	;   debug(http(header), 'First line: ~s~n', [Codes]),
 	    Request =  [input(In)|Request1],
-	    phrase(request(In, Request1), Codes)
+	    phrase(request(In, Request1), Codes),
+	    (	Request1 = [unknown(Text)|_]
+	    ->	string_to_list(S, Text),
+		domain_error(http_request, S)
+	    ;	true
+	    )
 	).
 
 
