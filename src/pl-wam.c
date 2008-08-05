@@ -4119,7 +4119,7 @@ possible to be able to call-back to Prolog.
 
 	if ( is_signalled(PASS_LD1) )
 	{ SAVE_REGISTERS(qid);
-	  handleSignals(PC);
+	  handleSignals(NULL);
 	  LOAD_REGISTERS(qid);
 	  if ( exception_term )
 	  { CL = NULL;
@@ -4714,7 +4714,7 @@ next_choice:
 
       if ( is_signalled(PASS_LD1) )
       { SAVE_REGISTERS(qid);
-	handleSignals(PC);
+	handleSignals(NULL);
 	LOAD_REGISTERS(qid);
 	if ( exception_term )
 	  goto b_throw;
