@@ -35,6 +35,9 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
+#ifdef __WINDOWS__
+#include <process.h>			/* getpid() */
+#endif
 
 #define LOCK()   PL_LOCK(L_INIT)
 #define UNLOCK() PL_UNLOCK(L_INIT)
