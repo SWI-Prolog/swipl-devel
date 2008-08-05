@@ -41,8 +41,9 @@
 :- use_module(library(option)).
 :- use_module(library(error)).
 :- use_module(library(base64)).
+:- use_module(library(debug)).
 
-user_agent('SWI-Prolog (http://www.swi-prolog.org)').
+user_agent('SWI-Prolog <http://www.swi-prolog.org>').
 
 /** <module> Simple HTTP client
 
@@ -315,6 +316,7 @@ transfer_encoding_filter(_, In, In).
 transfer_encoding(Lines, Encoding) :-
 	member(Line, Lines),
 	phrase(transfer_encoding(Encoding0), Line), !,
+	debug(http(transfer_encoding), 'Transfer-encoding: ~w', [Encoding0]),
 	Encoding = Encoding0.
 
 transfer_encoding(Encoding) -->
