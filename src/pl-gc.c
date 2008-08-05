@@ -1012,7 +1012,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 	{ total_marked++;			/* fix counters */
 	  local_marked--;
 
-	  DEBUG(2,
+	  DEBUG(3,
 		char b1[64]; char b2[64]; char b3[64];
 		Sdprintf("Marking assignment at %s (%s --> %s)\n",
 			 print_adr(tard, b1),
@@ -1373,6 +1373,7 @@ tag_trail()
 
       SECURE(assert(onStack(global, p2)));
       te->address = (Word)consPtr(p2, STG_GLOBAL|TAG_TRAILVAL);
+      SECURE(assert(te == tBase || !isTrailVal(te[-1].address)));
     } else
     { if ( onLocal(te->address) )
       { stg = STG_LOCAL;
