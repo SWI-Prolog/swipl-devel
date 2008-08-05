@@ -119,6 +119,8 @@ char tmp[256];				/* for calling print_val(), etc. */
 #define recordMark(p)
 #define needsRelocation(p) { needs_relocation++; }
 #define check_relocation(p)
+#define markLocal(p) (local_marked++)
+#define processLocal(p) (local_marked--)
 #endif
 
 #define ldomark(p)	{ *(p) |= MARK_MASK; }
@@ -209,6 +211,7 @@ static int		check_marked(const char *s);
 #define mark_base	   (LD->gc._mark_base)
 #define mark_top	   (LD->gc._mark_top)
 #define check_table	   (LD->gc._check_table)
+#define local_table	   (LD->gc._local_table)
 #endif
 
 #undef LD
@@ -311,6 +314,28 @@ do_check_relocation(Word addr, char *file, int line ARG_LD)
   }
 
   s->value = FALSE;
+}
+
+
+static void
+markLocal(Word addr)
+{ GET_LD
+  
+  local_marked++;
+  addHTable(local_table, addr, (Void)TRUE);
+}
+
+static void
+processLocal(Word addr)
+{ GET_LD
+  Symbol s;
+
+  local_marked--;
+  if ( (s = lookupHTable(local_table, addr)) )
+  { s->value = (Void)FALSE;
+  } else
+  { assert(0);
+  }
 }
 
 #endif /* O_SECURE */
@@ -458,7 +483,7 @@ mark_variable(Word start ARG_LD)
     sysError("Attempt to mark twice");
 
   if ( onStackArea(local, start) )
-  { local_marked++;
+  { markLocal(start);
     total_marked--;			/* do not count local stack cell */
   }
   current = start;
@@ -1459,7 +1484,7 @@ sweep_foreign()
     { if ( is_marked(sp) )
       {	unmark(sp);
 	if ( isGlobalRef(get_value(sp)) )
-	{ local_marked--;
+	{ processLocal(sp);
 	  check_relocation(sp);
 	  into_relocation_chain(sp, STG_LOCAL PASS_LD);
 	}
@@ -1566,7 +1591,7 @@ sweep_environments(LocalFrame fr, Code PC)
     { if ( is_marked(sp) )
       { unmark(sp);
 	if ( isGlobalRef(get_value(sp)) )
-	{ local_marked--;
+	{ processLocal(sp);
 	  check_relocation(sp);
 	  into_relocation_chain(sp, STG_LOCAL PASS_LD);
 	}
@@ -1618,7 +1643,24 @@ sweep_stacks(LocalFrame fr, Choice ch)
   }
 
   if ( local_marked != 0 )
+  {
+#ifdef O_SECURE
+    TableEnum e = newTableEnum(local_table);
+    Symbol s;
+
+    Sdprintf("FATAL: unprocessed local variables:\n");
+
+    while((s=advanceTableEnum(e)))
+    { if ( s->value )
+      {	char buf[64];
+	Sdprintf("\t%s\n", print_adr(s->name, buf));
+      }
+    }
+
+    freeTableEnum(e);
+#endif
     sysError("local_marked = %ld", local_marked);
+  }
 }
 
 
@@ -2247,9 +2289,12 @@ garbageCollect(LocalFrame fr, Choice ch)
   key = checkStacks(fr, ch);
 
   if ( check_table == NULL )
-    check_table = newHTable(256);
-  else
-    clearHTable(check_table);
+  { check_table = newHTable(256);
+    local_table = newHTable(256);
+  } else
+  { clearHTable(check_table);
+    clearHTable(local_table);
+  }
 
   mark_base = mark_top = malloc(usedStack(global));
 #endif

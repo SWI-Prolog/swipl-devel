@@ -494,6 +494,7 @@ typedef struct PL_local_data
     Word *_mark_base;			/* Array of marked cells addresses */
     Word *_mark_top;			/* Top of this array */
     Table _check_table;			/* relocation address table */
+    Table _local_table;			/* marked local variables */
 #endif
     int64_t inferences;			/* #inferences at last GC */
 
