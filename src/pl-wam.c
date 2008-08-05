@@ -1024,7 +1024,6 @@ findStartChoice(LocalFrame fr, Choice ch)
   { if ( ch->frame == fr )
     { switch ( ch->type )
       { case CHP_JUMP:
-	case CHP_NONE:
 	  continue;			/* might not be at start */
 	default:
 	  return ch;
@@ -3100,14 +3099,20 @@ conditions should be rare (I hope :-).
 
 #ifdef O_SOFTCUT
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Handle the commit-to of A *-> B; C.  Simply mark the $alt/1 frame as cutted,
-and control will not reach C again.
+Handle the commit-to of A *-> B; C.   Walk the choicepoints and skip the
+pointer to the choice of the softcut.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_SOFTCUT) MARK(CSOFTCUT);
       { Choice ch = (Choice) varFrame(FR, *PC);
+	Choice bfr = BFR;
 
 	PC++;
-	ch->type = CHP_NONE;
+	for(; bfr; bfr=bfr->parent)
+	{ if ( bfr->parent == ch )
+	  { bfr->parent = ch->parent;
+	    break;
+	  }
+	}
 	NEXT_INSTRUCTION;
       }
 #endif
@@ -4760,7 +4765,6 @@ next_choice:
       Undo(ch->mark);
       callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
     case CHP_DEBUG:			/* Just for debugging purposes */
-    case CHP_NONE:			/* used for C_SOFTCUT */
       BFR  = ch->parent;
 #if 0
       for(; (void *)FR > (void *)ch; FR = FR->parent)

@@ -1433,8 +1433,7 @@ typedef enum
   CHP_FOREIGN,				/* Foreign code choicepoint */
   CHP_TOP,				/* First (toplevel) choice */
   CHP_CATCH,				/* $catch initiated choice */
-  CHP_DEBUG,				/* Enable redo */
-  CHP_NONE				/* not a choice any-more */
+  CHP_DEBUG				/* Enable redo */
 } choice_type;
 
 typedef enum

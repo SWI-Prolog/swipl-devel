@@ -251,11 +251,14 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  DEBUG(3, Sdprintf("Clear var %d at %d\n", 
 			    PC[0]-VAROFFSET(0), (PC-state->c0)-1));
 #ifdef O_SECURE
-	  if ( !isVar(varFrame(fr, PC[0]) & ~MARK_MASK) )
-	  { sysError("ERROR: [%ld] %s: Wrong clear of var %d, PC=%d\n",
-		     levelFrame(fr), predicateName(fr->predicate),
-		     PC[0]-VAROFFSET(0),
-		     (PC-state->c0)-1);
+	  { Word vp = varFrameP(fr, PC[0]);
+
+	    if ( !isVar(*vp & ~MARK_MASK) )
+	    { Sdprintf("ERROR: [%ld] %s: Wrong clear of var %d, PC=%d\n",
+		       levelFrame(fr), predicateName(fr->predicate),
+		       PC[0]-VAROFFSET(0),
+		       (PC-state->c0)-1);
+	    }
 	  } 
 #else
 	  setVar(varFrame(fr, PC[0]));
@@ -430,7 +433,6 @@ mark_choicepoints(mark_state *state, Choice ch ARG_LD)
 	mark_environments(state, ch->frame, NULL PASS_LD);
 	break;
       case CHP_TOP:
-      case CHP_NONE:
 	break;
     }
   }

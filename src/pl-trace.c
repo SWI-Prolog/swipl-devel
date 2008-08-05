@@ -1121,7 +1121,6 @@ hasAlternativesFrame(LocalFrame frame)
 	    return TRUE;
 	  case CHP_TOP:			/* no default to get warning */
 	  case CHP_CATCH:
-	  case CHP_NONE:
 	  case CHP_DEBUG:
 	    continue;
 	}

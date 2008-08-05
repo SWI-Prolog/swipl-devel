@@ -1395,7 +1395,7 @@ tag_trail()
 
       SECURE(assert(onStack(global, p2)));
       te->address = (Word)consPtr(p2, STG_GLOBAL|TAG_TRAILVAL);
-      SECURE(assert(te == tBase || !isTrailVal(te[-1].address)));
+      //SECURE(assert(te == tBase || !isTrailVal(te[-1].address)));
     } else
     { if ( onLocal(te->address) )
       { stg = STG_LOCAL;

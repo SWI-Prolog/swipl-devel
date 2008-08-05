@@ -4064,7 +4064,6 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
 	{ switch(ch->type)
 	  { case CHP_CATCH:
 	    case CHP_DEBUG:
-	    case CHP_NONE:
 	      continue;
 	    default:
 	      break;
