@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007, University of Amsterdam
+    Copyright (C): 2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -90,12 +90,12 @@ client support is provided by http_client.pl
 
 http_open(URL, Stream, Options) :-
 	atom(URL), !,
-	parse_url(URL, Parts),
+	parse_url_ex(URL, Parts),
 	add_authorization(URL, Options, Options1),
 	http_open(Parts, Stream, Options1).
 http_open(Parts, Stream, Options0) :-
 	memberchk(proxy(Host, ProxyPort), Options0), !,
-	parse_url(Location, Parts),
+	parse_url_ex(Location, Parts),
 	Options = [visited(Parts)|Options0],
 	open_socket(Host:ProxyPort, In, Out, Options),
 	option(port(Port), Parts, 80),
@@ -216,19 +216,19 @@ do_open(200, _, Lines, Options, Parts, In0, In) :- !,
 	return_fields(Options, Lines),
 	transfer_encoding_filter(Lines, In0, In),
 					% properly re-initialise the stream
-	parse_url(Id, Parts),
+	parse_url_ex(Id, Parts),
 	set_stream(In, file_name(Id)),
 	set_stream(In, record_position(true)).
 					% Handle redirections
 do_open(Code, _, Lines, Options, Parts, In, Stream) :-
 	redirect_code(Code),
 	location(Lines, Location), !,
-	parse_url(Location, Parts, Redirected),
+	parse_url_ex(Location, Parts, Redirected),
 	close(In),
 	http_open(Redirected, Stream, [visited(Redirected)|Options]).
 					% report anything else as error
 do_open(Code, Comment, _,  _, Parts, _, _) :-
-	parse_url(Id, Parts),
+	parse_url_ex(Id, Parts),
 	(   map_error_code(Code, Error)
 	->  Formal =.. [Error, url, Id]
 	;   Formal = existence_error(url, Id)
@@ -291,7 +291,7 @@ return_final_url(Options) :-
 	memberchk(final_url(URL), Options),
 	var(URL), !,
 	memberchk(visited(Parts), Options),
-	parse_url(URL, Parts).
+	parse_url_ex(URL, Parts).
 return_final_url(_).
 
 	
@@ -487,9 +487,14 @@ add_authorization(For, Options0, Options) :-
 	stored_authorization(_, _) ->	% quick test to avoid work
 	(   atom(For)
 	->  URL = For
-	;   parse_url(URL, For)
+	;   parse_url_ex(URL, For)
 	),
 	authorization(URL, Auth), !,
 	Options = [authorization(Auth)|Options0].
 add_authorization(_, Options, Options).
 	
+
+parse_url_ex(URL, Parts) :-
+	parse_url(URL, Parts), !.
+parse_url_ex(URL, _) :-
+	domain_error(url, URL).		% Syntax error?
