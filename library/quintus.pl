@@ -58,7 +58,6 @@
 	  no_style_check/1,
 	  otherwise/0,
 	  simple/1,
-	  variant/2,
 %	  statistics/2,			% Please access as quintus:statistics/2
 	  prolog_flag/2,
 
@@ -260,18 +259,6 @@ no_style_check(QOption) :-
 
 mode(_).
 public(_).
-
-
-		 /*******************************
-		 *	TERM MANIPULATION	*
-		 *******************************/
-
-%%	variant(@Term1, @Term2) is semidet.
-%
-%	Same as SWI-Prolog =|Term1 =@= Term2|=.
-
-variant(X, Y) :-
-	X =@= Y.
 
 
 		 /*******************************
