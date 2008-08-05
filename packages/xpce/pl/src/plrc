@@ -60,12 +60,18 @@ gui_setup_ :-
 	), !,
 	set_prolog_flag(gui, true),
 	menu_setup_,
+	editor_setup,
 	use_module(user:library(swi_hooks)).	% help, etc.
 
 menu_setup_ :-					% plwin.exe menus
 	current_prolog_flag(console_menu, true),
 	use_module(user:library(win_menu)).
 menu_setup_.
+
+editor_setup :-
+	current_prolog_flag(editor, default), !,
+	set_prolog_flag(editor, pce_emacs).
+editor_setup.
 
 pce_setup_ :-
 	current_prolog_flag(xpce, true), !.

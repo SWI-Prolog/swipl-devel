@@ -279,13 +279,14 @@ pceemacs(built_in).
 
 editor(Editor) :-			% $EDITOR
 	current_prolog_flag(editor, Editor),
-	sub_atom(Editor, 0, _, _, $),
-	sub_atom(Editor, 1, _, 0, Var),
-	getenv(Var, Editor), !.
-editor(Editor) :-			% An editor
-	current_prolog_flag(editor, Editor),
-	\+ sub_atom(Editor, 0, _, _, $),
-	\+ pceemacs(Editor), !.
+	(   sub_atom(Editor, 0, _, _, $)
+	->  sub_atom(Editor, 1, _, 0, Var),
+	    catch(getenv(Var, Editor), _, fail), !
+	;   Editor == default
+	->  catch(getenv('EDITOR', Editor), _, fail), !
+	;   \+ pceemacs(Editor)
+	->  !
+	).
 editor(Editor) :-			% User defaults
 	getenv('EDITOR', Editor), !.
 editor(vi) :-				% Platform defaults
