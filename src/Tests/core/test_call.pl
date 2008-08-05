@@ -36,6 +36,7 @@ meta-calling. Please define a test-set for each predicate.
 test_call :-
 	run_tests([ apply,
 		    callN,
+		    snip,
 		    no_autoload,
 		    setup_and_call_cleanup
 		  ]).
@@ -54,6 +55,17 @@ test(error, error(type_error(callable, 1))) :-
 	call(1, a, b).
 
 :- end_tests(callN).
+
+:- begin_tests(snip).
+
+test(indent, [all(Gnosc == [scio])]) :-
+	( true *-> Gnosc = scio, verum ; Gnosc = nescio ).
+
+verum :-
+	( false *-> true ; true ).
+
+:- end_tests(snip).
+
 
 
 :- begin_tests(no_autoload, [ setup(set_prolog_flag(autoload, false)),

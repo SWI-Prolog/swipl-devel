@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.58 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.59 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="clpclp_distinct.html">
@@ -659,6 +659,34 @@ j <CODE>=&lt;</CODE> n.
 <DT><B>See also</B><DD> Dorndorf et al. 2000, "Constraint Propagation 
 Techniques for the Disjunctive Scheduling Problem"
 </DL>
+
+</DD>
+<DT class="pubdef"><A NAME="element/3"><STRONG>element</STRONG>(<VAR>?N, 
++Is, ?I</VAR>)</A></DT>
+<DD class="defbody">
+The <VAR>N</VAR>-th element of the list of integers <VAR>Is</VAR> is <VAR>I</VAR>. 
+Analogous to <A class="pred" href="lists.html#nth1/3">nth1/3</A>.</DD>
+<DT class="pubdef"><A NAME="zcompare/3"><STRONG>zcompare</STRONG>(<VAR>?Order, 
+?A, ?B</VAR>)</A></DT>
+<DD class="defbody">
+Analogous to <A class="pred" href="compare.html#compare/3">compare/3</A>, 
+with finite domain variables <VAR>A</VAR> and <VAR>B</VAR>. Example:
+
+<PRE class="code">
+ fac(N, F) :-
+         zcompare(C, N, 0),
+         fac_(C, N, F).
+ 
+ fac_(=, _, 1).
+ fac_(&gt;, N, F) :- F #= F0*N, N1 #= N - 1, fac(N1, F0).
+</PRE>
+
+<P>This version is deterministic if the first argument is instantiated:
+
+<PRE class="code">
+?- fac(30, F).
+F = 265252859812191058636308480000000.
+</PRE>
 
 </DD>
 <DT class="pubdef"><A NAME="fd_var/1"><STRONG>fd_var</STRONG>(<VAR>+Var</VAR>)</A></DT>

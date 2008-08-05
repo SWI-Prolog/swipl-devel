@@ -119,6 +119,7 @@ Section "Base system (required)"
   File pl\library\pairs.pl
   File pl\library\record.pl
   File pl\library\settings.pl
+  File pl\library\terms.pl
   File pl\library\dialect.pl
   File pl\library\apply_macros.pl
   File pl\library\apply.pl

@@ -8,8 +8,41 @@
 					--------------------------------------
 
 
+==============================
+VERSION 5.6.59 August 05, 2008
+==============================
+
+ * ADDED: library(terms) for enhanced compatibility to YAP/Quintus/SICStus.
+   Moved variant/2 from library(quintus) to this new library.
+   
+ * FIXED: GC issue (local_marked > 0) related to *-> (deleted CHP_NONE)
+   
+ * DOC: Fixed documentation
+   
+ * FIXED: Avoid import messages from module user in saved states
+   
+ * FIXED: Possible crash of profiler on GC
+   
+ * FIXED: Call signal handlers at a safe place in backtracking.  This should
+   fix 5.6.58 GC issues.
+   
+ * ADDED: CLP(FD): zcompare/3, analogous to compare/3 for FD variables
+   
+ * FIXED: Life-gc walker: added support for A_MPZ (crashed)
+   
+ * FIXED: Avoid crash on recursive GC signalling
+   
+ * ENHANCED: CLP(FD) faster disequalities and all_different/1
+   
+ * ADDED: CLP(FD) constraint element/3, analogous to nth/1.
+   
+ * FIXED: Possible crash in copy_term/2 and variations on 32-bit systems using
+   128Mb global stack.  Item#428, Ulrich Neumerkel.
+   
+ * FIXED: Various (pathetic) 32/64 issues.
+
 ============================
-VERSION 5.6.57 July 22, 2008
+VERSION 5.6.58 July 22, 2008
 ============================
 
  * MODIFIED: + as prefix operator from 500 fx to 200 fy.  Compatibility with the

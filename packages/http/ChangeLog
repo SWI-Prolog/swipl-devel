@@ -1,3 +1,14 @@
+[Aug 5 2008]
+
+ * MODIFIED: http_read_request/3 throws error on illegal request and http_wrapper/5
+   maps these to internal server errors.
+   
+ * MODIFIED: http_open/3 now raises an error if the URL is not well-formed
+   (used to fail silently).
+   
+[Jul 31 2008]
+
+ * FIXED: handling setting http:chunked_transfer(never).  Yves Raimond.
 [Jul 3 2008]
 
  * MODIFIED: Deleted the `after' option processing.  Modern code can start a

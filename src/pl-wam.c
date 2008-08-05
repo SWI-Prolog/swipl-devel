@@ -3107,10 +3107,14 @@ pointer to the choice of the softcut.
 	Choice bfr = BFR;
 
 	PC++;
-	for(; bfr; bfr=bfr->parent)
-	{ if ( bfr->parent == ch )
-	  { bfr->parent = ch->parent;
-	    break;
+	if ( bfr == ch )
+	{ BFR = bfr->parent;
+	} else
+	{ for(; bfr; bfr=bfr->parent)
+	  { if ( bfr->parent == ch )
+	    { bfr->parent = ch->parent;
+	      break;
+	    }
 	  }
 	}
 	NEXT_INSTRUCTION;
