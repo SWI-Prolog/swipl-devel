@@ -242,6 +242,8 @@ is_signalled(ARG1_LD)
     pthread_testcancel();
 #endif
 
+  /*PL_raise(SIG_GC);*/
+
   return (LD->pending_signals != 0);
 }
 
@@ -1321,9 +1323,17 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
     Last clause has been found deterministically
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FRAME_FAILED		goto frame_failed
-#define CLAUSE_FAILED		goto clause_failed
-#define BODY_FAILED		goto body_failed
+#ifdef O_DEBUG_BACKTRACK
+int backtrack_from_line;
+choice_type last_choice;
+#define GO(label) do { backtrack_from_line = __LINE__; goto label; } while(0);
+#else
+#define GO(label) goto label
+#endif
+
+#define FRAME_FAILED		GO(frame_failed)
+#define CLAUSE_FAILED		GO(clause_failed)
+#define BODY_FAILED		GO(body_failed)
 
 #ifdef O_PROFILE
 #define Profile(g) if ( LD->profile.active ) g
@@ -4218,7 +4228,7 @@ be able to access these!
 	  }
 #endif
 
-	  goto frame_failed;
+	  FRAME_FAILED;
 	} 
 
 #if O_DEBUGGER
@@ -4226,7 +4236,7 @@ be able to access these!
 	{ CL = DEF->definition.clauses;
 	  set(FR, FR_INBOX);
 	  switch(tracePort(FR, BFR, CALL_PORT, NULL PASS_LD))
-	  { case ACTION_FAIL:	goto frame_failed;
+	  { case ACTION_FAIL:	FRAME_FAILED;
 	    case ACTION_IGNORE: goto exit_builtin;
 	  }
 	}
@@ -4626,6 +4636,9 @@ next_choice:
   Undo(ch->mark);
   aTop = aFloor;			/* reset to start, for interrupts */
   DEF  = FR->predicate;
+#ifdef O_DEBUG_BACKTRACK
+  last_choice = ch->type;
+#endif
 
   switch(ch->type)
   { case CHP_JUMP:
