@@ -2277,7 +2277,7 @@ get_message(message_queue *queue, term_t msg)
     queue->waiting_var += isvar;
     DEBUG(1, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
     while( dispatch_cond_wait(queue, QUEUE_WAIT_READ) == EINTR || !queue->head )
-    { DEBUG(1, Sdprintf("%d: EINTR\n", PL_thread_self()));
+    { DEBUG(9, Sdprintf("%d: EINTR\n", PL_thread_self()));
 
       if ( !LD )			/* needed for clean exit */
       { Sdprintf("Forced exit from get_message()\n");

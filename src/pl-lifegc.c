@@ -483,10 +483,11 @@ mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD)
     { state.frame    = fr;
       state.unmarked = slotsInFrame(fr, PC);
       state.envtop   = argFrameP(fr, state.unmarked);
+      state.c0       = fr->clause->clause->codes;
 
       DEBUG(2, Sdprintf("Walking code for [%d] %s from PC=%d\n",
 			levelFrame(fr), predicateName(fr->predicate),
-			PC-fr->clause->clause->codes));
+			PC-state.c0));
 
       walk_and_mark(&state, PC, I_EXIT PASS_LD);
     }
