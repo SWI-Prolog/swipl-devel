@@ -1652,8 +1652,11 @@ sweep_stacks(LocalFrame fr, Choice ch)
 
     while((s=advanceTableEnum(e)))
     { if ( s->value )
-      {	char buf[64];
-	Sdprintf("\t%s\n", print_adr(s->name, buf));
+      {	Word p = s->name;
+	char buf1[64];
+	char buf2[64];
+
+	Sdprintf("\t%s (*= %s)\n", print_adr(p, buf1), print_val(*p, buf2));
       }
     }
 
