@@ -56,6 +56,11 @@
 	, tree_set_empty/1
 	, tree_set_memberchk/2
 	, tree_set_add/3
+	, tree_set_merge/3
+	, fold1/3
+	, fold/4
+	, maplist_dcg//3
+	, maplist_dcg//4
 	]).
 
 :- use_module(pairlist).
@@ -296,7 +301,36 @@ wrap_in_functor(Functor,X,Term) :-
 tree_set_empty(TreeSet) :- empty_assoc(TreeSet).
 tree_set_memberchk(Element,TreeSet) :- get_assoc(Element,TreeSet,_).
 tree_set_add(TreeSet,Element,NTreeSet) :- put_assoc(Element,TreeSet,x,NTreeSet).
+tree_set_merge(TreeSet1,TreeSet2,TreeSet3) :-
+	assoc_to_list(TreeSet1,List),
+	fold(List,tree_set_add_pair,TreeSet2,TreeSet3).
+tree_set_add_pair(Key-Value,TreeSet,NTreeSet) :-
+	put_assoc(Key,TreeSet,Value,NTreeSet).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fold1(P,[Head|Tail],Result) :-
+	fold(Tail,P,Head,Result).
+
+fold([],_,Acc,Acc).
+fold([X|Xs],P,Acc,Res) :-
+	call(P,X,Acc,NAcc),
+	fold(Xs,P,NAcc,Res).
+
+maplist_dcg(P,L1,L2,L) -->
+	maplist_dcg_(L1,L2,L,P).
+
+maplist_dcg_([],[],[],_) --> [].
+maplist_dcg_([X|Xs],[Y|Ys],[Z|Zs],P) -->
+	call(P,X,Y,Z),
+	maplist_dcg_(Xs,Ys,Zs,P).	
+
+maplist_dcg(P,L1,L2) -->
+	maplist_dcg_(L1,L2,P).
+
+maplist_dcg_([],[],_) --> [].
+maplist_dcg_([X|Xs],[Y|Ys],P) -->
+	call(P,X,Y),
+	maplist_dcg_(Xs,Ys,P).	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- dynamic
 	user:goal_expansion/2.

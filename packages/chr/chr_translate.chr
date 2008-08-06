@@ -883,8 +883,9 @@ chr_translate_line_info(Declarations0,File,NewDeclarations) :-
 	!. /* cut choicepoint of restart_after_flattening */
 
 chr_analysis(Rules,Constraints,Declarations) :-
-	check_rules(Rules,Constraints),
-	time('type checking',chr_translate:static_type_check),
+	maplist(pragma_rule_to_ast_rule,Rules,AstRules),
+	check_rules(PragmaRules,AstRules,Constraints),
+	time('type checking',chr_translate:static_type_check(PragmaRules,AstRules)),
 	/* constants */	
 	collect_constants(Rules,Constraints,Declarations),
 	add_occurrences(Rules),
@@ -1251,22 +1252,38 @@ check_declared_constraints([C|Cs],Acc) :-
 %%  - all constraints in heads are declared constraints
 %%  - all passive pragmas refer to actual head constraints
 
-check_rules([],_).
-check_rules([PragmaRule|Rest],Decls) :-
-	check_rule(PragmaRule,Decls),
-	check_rules(Rest,Decls).
+check_rules(PragmaRules,AstRules,Decls) :-
+	maplist(check_rule(Decls),PragmaRules,AstRules).
 
-check_rule(PragmaRule,Decls) :-
-	check_rule_indexing(PragmaRule),
-	check_trivial_propagation_rule(PragmaRule),
-	PragmaRule = pragma(Rule,_IDs,Pragmas,_Name,_N),
-	Rule = rule(H1,H2,_,_),
-	append(H1,H2,HeadConstraints),
-	check_head_constraints(HeadConstraints,Decls,PragmaRule),
+check_rule(Decls,PragmaRule,AstRule) :-
+	PragmaRule = pragma(_Rule,_IDs,Pragmas,_Name,_N),
+	check_ast_rule_indexing(AstRule,PragmaRule),
+	% check_rule_indexing(PragmaRule),
+	check_ast_trivial_propagation_rule(AstRule,PragmaRule),
+	% check_trivial_propagation_rule(PragmaRule),
+	check_ast_head_constraints(AstRule,Decls,PragmaRule),
+	% Rule = rule(H1,H2,_,_),
+	% check_head_constraints(H1,Decls,PragmaRule),
+	% check_head_constraints(H2,Decls,PragmaRule),
 	check_pragmas(Pragmas,PragmaRule).
 
+%-------------------------------------------------------------------------------
 % 	Make all heads passive in trivial propagation rule
 %	... ==> ... | true.
+check_ast_trivial_propagation_rule(AstRule,PragmaRule) :-
+	AstRule = ast_rule(AstHead,_,_,AstBody,_),
+	( AstHead = propagation(_),
+          Body == [] ->
+    		chr_warning(weird_program,'Ignoring propagation rule with empty body: ~@.\n\t\n',[format_rule(PragmaRule)]),
+		set_rule_passive(PragmaRule)
+	;
+		true
+	).
+
+set_rule_passive(PragmaRule) :-
+	PragmaRule = pragma(_Rule,_IDs,_Pragmas,_Name,RuleNb),
+	set_all_passive(RuleNb).
+
 check_trivial_propagation_rule(PragmaRule) :-
 	PragmaRule = pragma(Rule,IDs,Pragmas,Name,RuleNb),
 	( Rule = rule([],_,_,true) ->
@@ -1274,6 +1291,25 @@ check_trivial_propagation_rule(PragmaRule) :-
 		set_all_passive(RuleNb)
 	;
 		true
+	).
+
+%-------------------------------------------------------------------------------
+check_ast_head_constraints(ast_rule(AstHead,_,_,_,_),Decls,PragmaRule) :-
+	check_ast_head_constraints_(AstHead,Decls,PragmaRule).	
+
+check_ast_head_constraints_(simplification(AstConstraints),Decls,PragmaRule) :-
+	maplist(check_ast_head_constraint(Decls,PragmaRule),AstConstraints).
+check_ast_head_constraints_(propagation(AstConstraints),Decls,PragmaRule) :-
+	maplist(check_ast_head_constraint(Decls,PragmaRule),AstConstraints).
+check_ast_head_constraints_(simpagation(AstConstraints1,AstConstraints2),Decls,PragmaRule) :-
+	maplist(check_ast_head_constraint(Decls,PragmaRule),AstConstraints1).
+	maplist(check_ast_head_constraint(Decls,PragmaRule),AstConstraints2).
+
+check_ast_head_constraint(Decls,PragmaRule,chr_constraint(Symbol,_,Constraint)) :-
+	( memberchk(Symbol,Decls) ->
+		true
+	;
+		chr_error(syntax(Constraint),'Undeclared constraint ~w in head of ~@.\n\tConstraint should be one of ~w.\n', [F/A,format_rule(PragmaRule),Decls])
 	).
 
 check_head_constraints([],_,_).
@@ -1284,6 +1320,7 @@ check_head_constraints([Constr|Rest],Decls,PragmaRule) :-
 	;
 		chr_error(syntax(Constr),'Undeclared constraint ~w in head of ~@.\n\tConstraint should be one of ~w.\n', [F/A,format_rule(PragmaRule),Decls])
 	).
+%-------------------------------------------------------------------------------
 
 check_pragmas([],_).
 check_pragmas([Pragma|Pragmas],PragmaRule) :-
@@ -1420,6 +1457,38 @@ format_rule(PragmaRule) :-
 	write(LineNumber),
 	write(')').
 
+check_ast_rule_indexing(AstRule,PragmaRule) :-
+	AstRule = ast_rule(AstHead,AstGuard,_,_,_),
+	tree_set_empty(EmptyVarSet),
+	ast_head_variables(AstHead,EmptyVarSet,VarSet),
+	ast_remove_anti_monotonic_guards(AstGuard,VarSet,MonotonicAstGuard),
+	ast_term_list_variables(MonotonicAstGuard,EmptyVarSet,GuardVarSet),
+	check_ast_head_indexing(AstHead,GuardVarSet),
+	% check_indexing(H1,NG-H2),
+	% check_indexing(H2,NG-H1),
+	% EXPERIMENT
+	( chr_pp_flag(term_indexing,on) -> 
+		PragmaRule = pragma(Rule,_,_,_,_),
+		Rule = rule(H1,H2,G,_),
+		term_variables(H1-H2,HeadVars),
+		remove_anti_monotonic_guards(G,HeadVars,NG),
+		term_variables(NG,GuardVariables),
+		append(H1,H2,Heads),
+		check_specs_indexing(Heads,GuardVariables,Specs)
+	;
+		true
+	).
+
+check_ast_head_indexing(simplification(H1),VarSet) :-
+	check_ast_indexing(H1,VarSet).	
+check_ast_head_indexing(propagation(H2),VarSet) :-
+	check_ast_indexing(H2,VarSet).	
+check_ast_head_indexing(simpagation(H1,H2),VarSet) :-
+	ast_constraint_list_variables(H2,VarSet,VarSet1),
+	check_ast_indexing(H1,VarSet1),	
+	ast_constraint_list_variables(H1,VarSet,VarSet2),
+	check_ast_indexing(H2,VarSet2).	
+
 check_rule_indexing(PragmaRule) :-
 	PragmaRule = pragma(Rule,_,_,_,_),
 	Rule = rule(H1,H2,G,_),
@@ -1460,15 +1529,49 @@ remove_anti_monotonic_guard_list([],_,[]).
 remove_anti_monotonic_guard_list([G|Gs],Vars,NGs) :-
 	( G = var(X), memberchk_eq(X,Vars) ->
 		NGs = RGs
-% TODO: this is not correct
-% 	; G = functor(Term,Functor,Arity),			% isotonic
-% 	  \+ memberchk_eq(Functor,Vars), \+ memberchk_eq(Arity,Vars) ->
-% 		NGs = RGs
 	;
 		NGs = [G|RGs]
 	),
 	remove_anti_monotonic_guard_list(Gs,Vars,RGs).
 
+ast_remove_anti_monotonic_guards([],_,[]).
+ast_remove_anti_monotonic_guards([G|Gs],VarSet,NGs) :-
+	( G = compound(var,1,[X],_), 
+          ast_var_memberchk(X,VarSet) ->
+		NGs = RGs
+	;
+		NGs = [G|RGs]
+	),
+	ast_remove_anti_monotonic_guards(Gs,VarSet,RGs).
+%-------------------------------------------------------------------------------
+
+check_ast_indexing([],_).
+check_ast_indexing([Head|Heads],VarSet) :-
+	Head = chr_constraint(Symbol,Args,_Constraint),
+	ast_constraint_list_variables(Heads,VarSet,VarSet1),
+	check_ast_indexing(Args,1,Symbol,VarSet1),
+	ast_constraint_variables(Head,VarSet,NVarSet),
+	check_ast_indexing(Heads,NVarSet).
+
+check_ast_indexing([],_,_,_).
+check_ast_indexing([Arg|Args],I,Symbol,VarSet) :-
+	( is_indexed_argument(Symbol,I) ->
+		true
+	; ast_nonvar(Arg) ->
+		indexed_argument(Symbol,I)
+	; % ast_var(Arg)  ->
+		ast_term_list_variables(Args,VarSet,VarSet1),
+		( ast_var_memberchk(Arg,VarSet1) ->
+			indexed_argument(Symbol,I)
+		;
+			true
+		)
+	),
+	J is I + 1,
+	ast_term_variables(Arg,VarSet,NVarSet),
+	check_ast_indexing(Args,J,Symbol,NVarSet).
+
+% check_indexing(list(chr_constraint),variables)
 check_indexing([],_).
 check_indexing([Head|Heads],Other) :-
 	functor(Head,F,A),
@@ -1496,6 +1599,7 @@ check_indexing([Arg|Args],I,FA,OtherVars) :-
 	term_variables(Arg,NVars),
 	append(NVars,OtherVars,NOtherVars),
 	check_indexing(Args,J,FA,NOtherVars).	
+%-------------------------------------------------------------------------------
 
 check_specs_indexing([],_,[]).
 check_specs_indexing([Head|Heads],Variables,Specs) :-
@@ -4071,7 +4175,7 @@ rec_cases([Pattern|Patterns],[MorePattern|MorePatterns],[Result|Results],F/A,Cas
 
 %% common_pattern(+terms,-term,-vars,-differences) is det.
 common_pattern(Ts,T,Vars,Differences) :-
-	fold1(gct,Ts,T),
+	fold1(chr_translate:gct,Ts,T),
 	term_variables(T,Vars),
 	findall(Vars,member(T,Ts),Differences).
 
@@ -4089,7 +4193,7 @@ gct_(T1,T2,T,Dict0,Dict) :-
 		T1 =.. [_|Args1],
 		T2 =.. [_|Args2],
 		T  =.. [_|Args],
-		maplist_dcg(gct_,Args1,Args2,Args,Dict0,Dict)
+		maplist_dcg(chr_translate:gct_,Args1,Args2,Args,Dict0,Dict)
 	;
 		/* T is a variable */
 		( lookup_eq(Dict0,T1+T2,T) ->
@@ -4101,22 +4205,6 @@ gct_(T1,T2,T,Dict0,Dict) :-
 		)
 	).
 
-
-fold1(P,[Head|Tail],Result) :-
-	fold(Tail,P,Head,Result).
-
-fold([],_,Acc,Acc).
-fold([X|Xs],P,Acc,Res) :-
-	call(P,X,Acc,NAcc),
-	fold(Xs,P,NAcc,Res).
-
-maplist_dcg(P,L1,L2,L) -->
-	maplist_dcg_(L1,L2,L,P).
-
-maplist_dcg_([],[],[],_) --> [].
-maplist_dcg_([X|Xs],[Y|Ys],[Z|Zs],P) -->
-	call(P,X,Y,Z),
-	maplist_dcg_(Xs,Ys,Zs,P).	
 
 %-------------------------------------------------------------------------------	
 global_list_store_name(F/A,Name) :-
@@ -5388,6 +5476,14 @@ type_condition([DefCase|DefCases],Arg,UnrollArg,Mode,[Condition|Conditions]) :-
 					chr_constants(any,any).
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
+ast_atomic_builtin_type(Type,AstTerm,Goal) :-
+	ast_term_to_term(AstTerm,Term),
+	atomic_builtin_type(Type,Term,Goal).
+
+ast_compound_builtin_type(Type,AstTerm,Goal) :-
+	ast_term_to_term(AstTerm,Term),
+	compound_builtin_type(Type,Term,_,Goal).
+
 atomic_builtin_type(any,_Arg,true).
 atomic_builtin_type(dense_int,Arg,(integer(Arg),Arg>=0)).
 atomic_builtin_type(int,Arg,integer(Arg)).
@@ -5447,12 +5543,11 @@ type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition) :-
 %	- indicate position in terms in error messages
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 :- chr_constraint
-	static_type_check/0.
-
+	static_type_check/2.
 
 % 1. Check the declared types
 
-constraint_type(Constraint,ArgTypes), static_type_check 
+constraint_type(Constraint,ArgTypes), static_type_check(_,_) 
 	==>
 		forall(
 			( member(ArgType,ArgTypes), sub_term(ArgType,Type) ),
@@ -5467,173 +5562,185 @@ constraint_type(Constraint,ArgTypes), static_type_check
  
 :- chr_type type_error_src ---> head(any) ; body(any).
 
-rule(_,Rule), static_type_check 
-	==>
-	    	copy_term_nat(Rule,RuleCopy),
-	    	RuleCopy = pragma(rule(Head1,Head2,G,Body),ids(IDs1,IDs2),Pragmas,Name,RuleNb),
+static_type_check(PragmaRules,AstRules) 
+	<=>
+		maplist(static_type_check_rule,PragmaRules,AstRules).
+
+static_type_check_rule(PragmaRule,AstRule) :-
+		AstRule = ast_rule(AstHead,_AstGuard,_Guard,AstBody,_Body),
 		(
 			catch(
-				( static_type_check_heads(Head1),
-			          static_type_check_heads(Head2),
-				  conj2list(Body,GoalList),
-				  static_type_check_body(GoalList)
+				( ast_static_type_check_head(AstHead),
+				  ast_static_type_check_body(AstBody)
 				),
 				type_error(Error),
 				( Error = invalid_functor(Src,Term,Type) ->
 	  				chr_error(type_error,'Invalid functor in ~@ of ~@:\n\t\tfound `~w\',\n\t\texpected type `~w\'!\n',
-						[chr_translate:format_src(Src),format_rule(Rule),Term,Type])
+						[chr_translate:format_src(Src),format_rule(PragmaRule),Term,Type])
 				; Error = type_clash(Var,Src1,Src2,Type1,Type2) ->
    					chr_error(type_error,'Type clash for variable ~w in ~@:\n\t\texpected type ~w in ~@\n\t\texpected type ~w in ~@\n',
-						[Var,format_rule(Rule),Type1,chr_translate:format_src(Src1),Type2,chr_translate:format_src(Src2)])
+						[Var,format_rule(PragmaRule),Type1,chr_translate:format_src(Src1),Type2,chr_translate:format_src(Src2)])
 				)
 			),
 			fail % cleanup constraints
 		;
 			true
 		).
-			
 
-static_type_check <=> true.
+%------------------------------------------------------------------------------%
+% Static Type Checking: Head Constraints {{{
+ast_static_type_check_head(simplification(AstConstraints)) :-
+	maplist(ast_static_type_check_head_constraint,AstConstraints).
+ast_static_type_check_head(propagation(AstConstraints)) :-
+	maplist(ast_static_type_check_head_constraint,AstConstraints).
+ast_static_type_check_head(simpagation(AstConstraints1,AstConstraints2)) :-
+	maplist(ast_static_type_check_head_constraint,AstConstraints1),
+	maplist(ast_static_type_check_head_constraint,AstConstraints2).
 
-static_type_check_heads([]).
-static_type_check_heads([Head|Heads]) :-
-	static_type_check_head(Head),
-	static_type_check_heads(Heads).
+ast_static_type_check_head_constraint(AstConstraint) :-
+	AstConstraint = chr_constraint(Symbol,Arguments,_),	
+	get_constraint_type_det(Symbol,Types),
+	maplist(ast_static_type_check_term(head(Head)),Arguments,Types).
+% }}}
+%------------------------------------------------------------------------------%
+% Static Type Checking: Terms {{{
+:- chr_constraint ast_static_type_check_term/3.
+:- chr_option(mode,ast_static_type_check_term(?,?,?)).
+:- chr_option(type_declaration,ast_static_type_check_term(type_error_src,any,any)).
 
-static_type_check_head(Head) :-
-	functor(Head,F,A),
-	get_constraint_type_det(F/A,Types),
-	Head =..[_|Args],
-	maplist(static_type_check_term(head(Head)),Args,Types).
-
-static_type_check_body([]).
-static_type_check_body([Goal|Goals]) :-
-	functor(Goal,F,A),	
-	get_constraint_type_det(F/A,Types),
-	Goal =..[_|Args],
-	maplist(static_type_check_term(body(Goal)),Args,Types),
-	static_type_check_body(Goals).
-
-:- chr_constraint static_type_check_term/3.
-:- chr_option(mode,static_type_check_term(?,?,?)).
-:- chr_option(type_declaration,static_type_check_term(type_error_src,any,any)).
-
-static_type_check_term(Src,Term,Type) 
+ast_static_type_check_term(_,_,any) 
 	<=> 
-		var(Term) 
-	| 
-		static_type_check_var(Src,Term,Type).
-static_type_check_term(Src,Term,Type) 
+		true.
+
+ast_static_type_check_term(Src,var(Id,Var),Type) 
 	<=> 
-		atomic_builtin_type(Type,Term,Goal)
+		ast_static_type_check_var(Id,var(Id,Var),Type,Src).
+
+ast_static_type_check_term(Src,Term,Type) 
+	<=> 
+		ast_atomic_builtin_type(Type,Term,Goal)
 	|
 		( call(Goal) ->
 			true
 		;
 			throw(type_error(invalid_functor(Src,Term,Type)))	
 		).	
-static_type_check_term(Src,Term,Type) 
+ast_static_type_check_term(Src,Term,Type) 
 	<=> 
-		compound_builtin_type(Type,Term,_,Goal)
+		ast_compound_builtin_type(Type,Term,Goal)
 	|
 		( call(Goal) ->
 			true
 		;
 			throw(type_error(invalid_functor(Src,Term,Type)))	
 		).	
-type_alias(AType,ADef) \ static_type_check_term(Src,Term,Type)
+type_alias(AType,ADef) \ ast_static_type_check_term(Src,Term,Type)
 	<=>
 		functor(Type,F,A),
 		functor(AType,F,A)
 	|
 		copy_term_nat(AType-ADef,Type-Def),
-		static_type_check_term(Src,Term,Def).
+		ast_static_type_check_term(Src,Term,Def).
 
-type_definition(AType,ADef) \ static_type_check_term(Src,Term,Type)
+type_definition(AType,ADef) \ ast_static_type_check_term(Src,Term,Type)
 	<=>
 		functor(Type,F,A),
 		functor(AType,F,A)
 	|
 		copy_term_nat(AType-ADef,Type-Variants),
-		functor(Term,TF,TA),
+		ast_functor(Term,TF,TA),
 		( member(Variant,Variants), functor(Variant,TF,TA) -> 
-			Term =.. [_|Args],
+			ast_args(Term,Args),
 			Variant =.. [_|Types],
-			maplist(static_type_check_term(Src),Args,Types)
+			maplist(ast_static_type_check_term(Src),Args,Types)
 		;
 			throw(type_error(invalid_functor(Src,Term,Type)))	
 		).
 
-static_type_check_term(Src,Term,Type)
+ast_static_type_check_term(Src,Term,Type)
 	<=>
 		chr_error(internal,'Undefined type ~w while type checking term ~w in ~@.\n',[Type,Term,chr_translate:format_src(Src)]).
+% }}}
+%------------------------------------------------------------------------------%
+% Static Type Checking: Variables {{{
 
-:- chr_constraint static_type_check_var/3.
-:- chr_option(mode,static_type_check_var(?,-,?)).
-:- chr_option(type_declaration,static_type_check_term(type_error_src,any,any)).
+:- chr_constraint ast_static_type_check_var/4.
+:- chr_option(mode,ast_static_type_check_var(+,?,?,?)).
+:- chr_option(type_declaration,ast_static_type_check_var(var_id,any,any,type_error_src)).
 
-type_alias(AType,ADef) \ static_type_check_var(Src,Var,Type) 
+type_alias(AType,ADef) \ ast_static_type_check_var(VarId,Var,Type,Src) 
 	<=> 
 		functor(AType,F,A),
 		functor(Type,F,A)
 	| 
 		copy_term_nat(AType-ADef,Type-Def),
-		static_type_check_var(Src,Var,Def).
+		ast_static_type_check_var(VarId,Var,Def,Src).
 
-static_type_check_var(Src,Var,Type)
+ast_static_type_check_var(VarId,Var,Type,Src)
 	<=>
 		atomic_builtin_type(Type,_,_)
 	|
-		static_atomic_builtin_type_check_var(Src,Var,Type).
+		ast_static_atomic_builtin_type_check_var(VarId,Var,Type,Src).
 
-static_type_check_var(Src,Var,Type)
+ast_static_type_check_var(VarId,Var,Type,Src)
 	<=>
 		compound_builtin_type(Type,_,_,_)
 	|
 		true.
 		
 
-static_type_check_var(Src1,Var,Type1), static_type_check_var(Src2,Var,Type2)
+ast_static_type_check_var(VarId,Var,Type1,Src1), ast_static_type_check_var(VarId,_Var,Type2,Src2)
 	<=>
 		Type1 \== Type2
 	|
 		throw(type_error(type_clash(Var,Src1,Src2,Type1,Type2))).
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-%%	static_atomic_builtin_type_check_var(+type_error_src,-Var,+atomic_builtin_type)
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-:- chr_constraint static_atomic_builtin_type_check_var/3.
-:- chr_option(mode,static_type_check_var(?,-,+)).
-:- chr_option(type_declaration,static_type_check_term(type_error_src,any,atomic_builtin_type)).
+:- chr_constraint ast_static_atomic_builtin_type_check_var/4.
+:- chr_option(mode,ast_static_atomic_builtin_type_check_var(+,?,+,?)).
+:- chr_option(type_declaration,ast_static_atomic_builtin_type_check_var(var_id,any,atomic_builtin_type,type_error_src)).
 
-static_atomic_builtin_type_check_var(_,_,any) <=> true.
-static_atomic_builtin_type_check_var(_,Var,BuiltinType) \ static_atomic_builtin_type_check_var(_,Var,BuiltinType)
+ast_static_atomic_builtin_type_check_var(_,_,any,_) <=> true.
+ast_static_atomic_builtin_type_check_var(VarId,_,BuiltinType,_) \ ast_static_atomic_builtin_type_check_var(VarId,_,BuiltinType,_)
 	<=> 
 		true.
-static_atomic_builtin_type_check_var(_,Var,float) \ static_atomic_builtin_type_check_var(_,Var,number)
+ast_static_atomic_builtin_type_check_var(VarId,_,float,_) \ ast_static_atomic_builtin_type_check_var(VarId,_,number,_)
 	<=>
 		true.
-static_atomic_builtin_type_check_var(_,Var,int) \ static_atomic_builtin_type_check_var(_,Var,number)
+ast_static_atomic_builtin_type_check_var(VarId,_,int,_) \ ast_static_atomic_builtin_type_check_var(VarId,_,number,_)
 	<=>
 		true.
-static_atomic_builtin_type_check_var(_,Var,natural) \ static_atomic_builtin_type_check_var(_,Var,number)
+ast_static_atomic_builtin_type_check_var(VarId,_,natural,_) \ ast_static_atomic_builtin_type_check_var(VarId,_,number,_)
 	<=>
 		true.
-static_atomic_builtin_type_check_var(_,Var,dense_int) \ static_atomic_builtin_type_check_var(_,Var,number)
+ast_static_atomic_builtin_type_check_var(VarId,_,dense_int,_) \ ast_static_atomic_builtin_type_check_var(VarId,_,number,_)
 	<=>
 		true.
-static_atomic_builtin_type_check_var(_,Var,natural) \ static_atomic_builtin_type_check_var(_,Var,int)
+ast_static_atomic_builtin_type_check_var(VarId,_,natural,_) \ ast_static_atomic_builtin_type_check_var(VarId,_,int,_)
 	<=>
 		true.
-static_atomic_builtin_type_check_var(_,Var,dense_int) \ static_atomic_builtin_type_check_var(_,Var,int)
+ast_static_atomic_builtin_type_check_var(VarId,_,dense_int,_) \ ast_static_atomic_builtin_type_check_var(VarId,_,int,_)
 	<=>
 		true.
-static_atomic_builtin_type_check_var(_,Var,dense_int) \ static_atomic_builtin_type_check_var(_,Var,natural)
+ast_static_atomic_builtin_type_check_var(VarId,_,dense_int,_) \ ast_static_atomic_builtin_type_check_var(VarId,_,natural,_)
 	<=>
 		true.
-static_atomic_builtin_type_check_var(Src1,Var,Type1), static_atomic_builtin_type_check_var(Src2,Var,Type2)	
+ast_static_atomic_builtin_type_check_var(VarId,Var,Type1,Src1), ast_static_atomic_builtin_type_check_var(VarId,_Var,Type2,Src2)
 	<=>
 		throw(type_error(type_clash(Var,Src1,Src2,Type1,Type2))).
+% }}}
+%------------------------------------------------------------------------------%
+% Static Type Checking: Bodies {{{
+ast_static_type_check_body([]).
+ast_static_type_check_body([Goal|Goals]) :-
+	ast_functor(Goal,F,A),	
+	get_constraint_type_det(F/A,Types),
+	ast_args(Goal,Args),
+	maplist(ast_static_type_check_term(body(Goal)),Args,Types),
+	ast_static_type_check_body(Goals).
+
+% }}}
+%------------------------------------------------------------------------------%
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %%	format_src(+type_error_src) is det.
@@ -11008,16 +11115,121 @@ chr_unlock(Var,Goal) :-
 %		 |      compound(Functor,Arity,list(ast_term),Term)
 %		 |      var(int,Term)  
 %			-- unique integer identifier 		
-		
-	% TODO: thread Id number
-term_to_ast_term(Term,AstTerm) :- 
+	
+% Conversion Predicate {{{	
+:- chr_type var_id == natural.
+
+term_to_ast_term(Term,AstTerm,VarEnv,NVarEnv) :- 
  	( atomic(Term) ->
-		AstTerm = atomic(Term)
+		AstTerm = atomic(Term),
+		NVarEnv  = VarEnv 
 	; compound(Term) ->
 		functor(Term,Functor,Arity),
-		AstTerm = compound(Functor,Arity,[AstTerms],Term),
+		AstTerm = compound(Functor,Arity,AstTerms,Term),
 		Term =.. [_|Args],
-		maplist(term_to_ast_term,Args,AstTerms)
+		maplist_dcg(chr_translate:term_to_ast_term,Args,AstTerms,VarEnv,NVarEnv)
 	; var(Term) ->
-		AstTerm = var(Id,Term)
+		var_to_ast_term(Term,VarEnv,AstTerm,NVarEnv)
 	).
+
+var_to_ast_term(Var,Env,AstTerm,NVarEnv) :-
+	Env = VarDict - VarId,
+	( lookup_eq(VarDict,Var,AstTerm) ->
+		NVarEnv = Env
+	;
+		AstTerm = var(VarId,Var),
+		NVarId is VarId + 1,
+		NVarDict = [Var - AstTerm|VarDict],
+		NVarEnv = NVarDict - NVarId
+	).
+
+%	ast_constraint ::= chr_constraint(Symbol,Arguments,Constraint)	
+chr_constraint_to_ast_constraint(CHRConstraint,AstConstraint,VarEnv,NVarEnv) :-
+	AstConstraint = chr_constraint(Functor/Arity,AstTerms,CHRConstraint),
+	functor(CHRConstraint,Functor,Arity),
+	CHRConstraint =.. [_|Arguments],
+	maplist_dcg(chr_translate:term_to_ast_term,Arguments,AstTerms,VarEnv,NVarEnv).
+	
+% 	ast_head       ::= simplification(list(chr_constraint))
+%			 | propagation(list(chr_constraint))
+%			 | simpagation(list(chr_constraint),list(chr_constraint))
+
+%	head_id	       ::= int
+
+%       ast_guard      ::= list(ast_term) 
+%       ast_body       ::= list(ast_term) 
+
+% 	ast_rule       ::= ast_rule(ast_head,ast_guard,guard,ast_body,body)
+
+rule_to_ast_rule(Rule,AstRule) :-
+	AstRule = ast_rule(Head,AstGuard,Guard,AstBody,Body),
+	Rule = rule(H1,H2,Guard,Body),
+	EmptyVarEnv = []-1,
+	( H1 == [] ->
+		Head = propagation(AstConstraints),
+	  	maplist_dcg(chr_translate:chr_constraint_to_ast_constraint,H2,AstConstraints,EmptyVarEnv,VarEnv1) 	
+	; H2 == [] ->
+		Head = simplification(AstConstraints),
+	  	maplist_dcg(chr_translate:chr_constraint_to_ast_constraint,H1,AstConstraints,EmptyVarEnv,VarEnv1) 	
+	;
+		Head = simpagation(RemovedAstConstraints,KeptAstConstraints),
+	  	maplist_dcg(chr_translate:chr_constraint_to_ast_constraint,H1,RemovedAstConstraints,EmptyVarEnv,VarEnv0), 	
+	  	maplist_dcg(chr_translate:chr_constraint_to_ast_constraint,H2,KeptAstConstraints,VarEnv0,VarEnv1) 
+	),
+	conj2list(Guard,GuardList),
+	maplist_dcg(chr_translate:term_to_ast_term,GuardList,AstGuard,VarEnv1,VarEnv2),
+	conj2list(Body,BodyList),
+	maplist_dcg(chr_translate:term_to_ast_term,BodyList,AstBody,VarEnv2,_).
+
+pragma_rule_to_ast_rule(pragma(Rule,_,_,_,_),AstRule) :-
+	rule_to_ast_rule(Rule,AstRule).
+
+check_rule_to_ast_rule(Rule) :-
+	( rule_to_ast_rule(Rule,AstRule) ->
+		writeln(AstRule)
+	;
+		writeln(failed(rule_to_ast_rule(Rule,AstRule)))
+	).
+
+% }}}
+
+% AST Utility Predicates {{{
+ast_term_to_term(var(_,Var),Var).
+ast_term_to_term(atomic(Atom),Atom).
+ast_term_to_term(compound(_,_,_,Compound),Compound).
+
+ast_nonvar(atomic(_)).
+ast_nonvar(compound(_,_,_,_)).
+
+ast_functor(atomic(Atom),Atom,0).
+ast_functor(compound(Functor,Arity,_,_),Functor,Arity).
+
+ast_args(atomic(_),[]).
+ast_args(compound(_,_,Arguments,_),Arguments).
+
+ast_term_variables(atomic(_),Set,Set).
+ast_term_variables(compound(_,_,Args,_),Set,NSet) :-
+	ast_term_list_variables(Args,Set,NSet).	
+ast_term_variables(var(VarId,_),Set,NSet) :-
+	tree_set_add(Set,VarId,NSet).	
+
+ast_term_list_variables(Terms,Set,NSet) :-
+	fold(Terms,chr_translate:ast_term_variables,Set,NSet).
+
+ast_constraint_variables(chr_constraint(_,Args,_),Set,NSet) :-
+	ast_term_list_variables(Args,Set,NSet).
+
+ast_constraint_list_variables(Constraints,Set,NSet) :-
+	fold(Constraints,chr_translate:ast_constraint_variables,Set,NSet).
+
+ast_head_variables(simplification(H1),Set,NSet) :-
+	ast_constraint_list_variables(H1,Set,NSet).
+ast_head_variables(propagation(H2),Set,NSet) :-
+	ast_constraint_list_variables(H2,Set,NSet).
+ast_head_variables(simpagation(H1,H2),Set,NSet) :-
+	ast_constraint_list_variables(H1,Set,Set1),
+	ast_constraint_list_variables(H2,Set1,NSet).
+
+ast_var_memberchk(var(VarId,_),Set) :-
+	tree_set_memberchk(VarId,Set).
+
