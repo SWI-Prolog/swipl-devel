@@ -337,9 +337,11 @@ inc_rule_count(NC)
 
 :- chr_constraint passive/2.
 :- chr_option(mode,passive(+,+)).
+:- chr_option(type_declaration,passive(rule_nb,id)).
 
 :- chr_constraint is_passive/2.
 :- chr_option(mode,is_passive(+,+)).
+:- chr_option(type_declaration,is_passive(rule_nb,id)).
 
 :- chr_constraint any_passive_head/1.
 :- chr_option(mode,any_passive_head(+)).
@@ -349,11 +351,15 @@ inc_rule_count(NC)
 
 :- chr_constraint occurrence/5.
 :- chr_option(mode,occurrence(+,+,+,+,+)).
+
 :- chr_type occurrence_type ---> simplification ; propagation.
 :- chr_option(type_declaration,occurrence(constraint,occurrence,rule_nb,id,occurrence_type)).
 
 :- chr_constraint get_occurrence/4.
 :- chr_option(mode,get_occurrence(+,+,-,-)).
+
+:- chr_constraint get_occurrence/5.
+:- chr_option(mode,get_occurrence(+,+,-,-,-)).
 
 :- chr_constraint get_occurrence_from_id/4.
 :- chr_option(mode,get_occurrence_from_id(+,-,+,+)).
@@ -585,6 +591,11 @@ occurrence(C,ON,Rule,ID,_) \ get_occurrence(C,ON,QRule,QID)
 	<=> Rule = QRule, ID = QID.
 get_occurrence(C,O,_,_)
 	<=> chr_error(internal,'get_occurrence: missing occurrence ~w:~w\n',[C,O]).
+
+occurrence(C,ON,Rule,ID,OccType) \ get_occurrence(C,ON,QRule,QID,QOccType)
+	<=> Rule = QRule, ID = QID, OccType = QOccType.
+get_occurrence(C,O,_,_,_)
+ 	<=> chr_error(internal,'get_occurrence: missing occurrence ~w:~w\n',[C,O]).
 
 occurrence(C,ON,Rule,ID,_) \ get_occurrence_from_id(QC,QON,Rule,ID)
 	<=> QC = C, QON = ON.
@@ -884,11 +895,11 @@ chr_translate_line_info(Declarations0,File,NewDeclarations) :-
 
 chr_analysis(Rules,Constraints,Declarations) :-
 	maplist(pragma_rule_to_ast_rule,Rules,AstRules),
-	check_rules(PragmaRules,AstRules,Constraints),
-	time('type checking',chr_translate:static_type_check(PragmaRules,AstRules)),
+	check_rules(Rules,AstRules,Constraints),
+	time('type checking',chr_translate:static_type_check(Rules,AstRules)),
 	/* constants */	
-	collect_constants(Rules,Constraints,Declarations),
-	add_occurrences(Rules),
+	collect_constants(Rules,AstRules,Constraints,Declarations),
+	add_occurrences(Rules,AstRules),
 	time('functional dependency',chr_translate:functional_dependency_analysis(Rules)),
 	time('set semantics',chr_translate:set_semantics_rules(Rules)),
 	time('symmetry analysis',chr_translate:symmetry_analysis(Rules)),
@@ -1644,19 +1655,39 @@ check_arg_spec_indexing(Arg,I,Variables,ArgSpec) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Occurrences
 
-add_occurrences([]).
-add_occurrences([Rule|Rules]) :-
-	Rule = pragma(rule(H1,H2,_,_),ids(IDs1,IDs2),_,_,Nb),
-	add_occurrences(H1,IDs1,simplification,Nb),
-	add_occurrences(H2,IDs2,propagation,Nb),
-	add_occurrences(Rules).
+add_occurrences(PragmaRules,AstRules) :-
+	maplist(add_rule_occurrences,PragmaRules,AstRules).
 
-add_occurrences([],[],_,_).
-add_occurrences([H|Hs],[ID|IDs],Type,RuleNb) :-
-	functor(H,F,A),
-	FA = F/A,
-	new_occurrence(FA,RuleNb,ID,Type),
-	add_occurrences(Hs,IDs,Type,RuleNb).
+add_rule_occurrences(PragmaRule,AstRule) :-
+	PragmaRule = pragma(_,IDs,_,_,Nb),
+	AstRule    = ast_rule(AstHead,_,_,_,_),
+	add_head_occurrences(AstHead,IDs,Nb).
+
+add_head_occurrences(simplification(H1),ids(IDs1,_),Nb) :-
+	maplist(add_constraint_occurrence(Nb,simplification),H1,IDs1).
+add_head_occurrences(propagation(H2),ids(_,IDs2),Nb) :-
+	maplist(add_constraint_occurrence(Nb,propagation),H2,IDs2).
+add_head_occurrences(simpagation(H1,H2),ids(IDs1,IDs2),Nb) :-
+	maplist(add_constraint_occurrence(Nb,simplification),H1,IDs1),
+	maplist(add_constraint_occurrence(Nb,propagation),H2,IDs2).
+
+add_constraint_occurrence(Nb,OccType,Constraint,ID) :-
+	Constraint = chr_constraint(Symbol,_,_),
+	new_occurrence(Symbol,Nb,ID,OccType).
+
+% add_occurrences([],[]).
+% add_occurrences([Rule|Rules],[]) :-
+% 	Rule = pragma(rule(H1,H2,_,_),ids(IDs1,IDs2),_,_,Nb),
+% 	add_occurrences(H1,IDs1,simplification,Nb),
+% 	add_occurrences(H2,IDs2,propagation,Nb),
+% 	add_occurrences(Rules).
+% 
+% add_occurrences([],[],_,_).
+% add_occurrences([H|Hs],[ID|IDs],Type,RuleNb) :-
+% 	functor(H,F,A),
+% 	FA = F/A,
+% 	new_occurrence(FA,RuleNb,ID,Type),
+% 	add_occurrences(Hs,IDs,Type,RuleNb).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -5733,8 +5764,8 @@ ast_static_atomic_builtin_type_check_var(VarId,Var,Type1,Src1), ast_static_atomi
 % Static Type Checking: Bodies {{{
 ast_static_type_check_body([]).
 ast_static_type_check_body([Goal|Goals]) :-
-	ast_functor(Goal,F,A),	
-	get_constraint_type_det(F/A,Types),
+	ast_symbol(Goal,Symbol),	
+	get_constraint_type_det(Symbol,Types),
 	ast_args(Goal,Args),
 	maplist(ast_static_type_check_term(body(Goal)),Args,Types),
 	ast_static_type_check_body(Goals).
@@ -5997,10 +6028,7 @@ storage_analysis(Constraints) :-
 		true
 	).
 
-check_constraint_storages([]).
-check_constraint_storages([C|Cs]) :-
-	check_constraint_storage(C),
-	check_constraint_storages(Cs).
+check_constraint_storages(Symbols) :- maplist(check_constraint_storage,Symbols).
 
 check_constraint_storage(C) :-
 	get_max_occurrence(C,MO),
@@ -6016,15 +6044,15 @@ check_occurrences_storage(C,O,MO) :-
 	).
 
 check_occurrence_storage(C,O) :-
-	get_occurrence(C,O,RuleNb,ID),
+	get_occurrence(C,O,RuleNb,ID,OccType),
 	( is_passive(RuleNb,ID) ->
 		stored(C,O,maybe)
 	;
 		get_rule(RuleNb,PragmaRule),
 		PragmaRule = pragma(rule(Heads1,Heads2,Guard,Body),ids(IDs1,IDs2),_,_,_),
-		( select2(ID,Head1,IDs1,Heads1,RIDs1,RHeads1) ->
+		( OccType == simplification, select2(ID,Head1,IDs1,Heads1,RIDs1,RHeads1) ->
 			check_storage_head1(Head1,O,Heads1,Heads2,Guard)
-		; select2(ID,Head2,IDs2,Heads2,RIDs2,RHeads2) ->
+		; OccType == propagation, select2(ID,Head2,IDs2,Heads2,RIDs2,RHeads2) ->
 			check_storage_head2(Head2,O,Heads1,Body)
 		)
 	).
@@ -6799,16 +6827,16 @@ symmetry_analysis_heads_propagation([H|Hs],[ID|IDs],PreHs,PreIDs,Rule,RuleNb) :-
 %%                   |_| 
 %% {{{
 
-simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
+simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,Symbol,O,Id,L,T) :-
 	PragmaRule = pragma(Rule,_,Pragmas,_,RuleNb),
-	head_info(Head,A,_Vars,Susp,HeadVars,HeadPairs),
-	build_head(F,A,Id,HeadVars,ClauseHead),
-	get_constraint_mode(F/A,Mode),
+	head_info1(Head,Symbol,_Vars,Susp,HeadVars,HeadPairs),
+	build_head(Symbol,Id,HeadVars,ClauseHead),
+	get_constraint_mode(Symbol,Mode),
 	head_arg_matches(HeadPairs,Mode,[],FirstMatching,VarDict1,[],GroundVars),
 
 	
 	guard_splitting(Rule,GuardList0),
-	( is_stored_in_guard(F/A, RuleNb) ->
+	( is_stored_in_guard(Symbol, RuleNb) ->
 		GuardList = [Hole1|GuardList0]
 	;
 		GuardList = GuardList0
@@ -6819,9 +6847,9 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
 
-	( is_stored_in_guard(F/A, RuleNb) ->
-		gen_occ_allocation_in_guard(F/A,O,Vars,Susp,Allocation),
-		gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,_),
+	( is_stored_in_guard(Symbol, RuleNb) ->
+		gen_occ_allocation_in_guard(Symbol,O,Vars,Susp,Allocation),
+		gen_uncond_attach_goal(Symbol,Susp,Vars,Attachment,_),
 		GuardCopyList = [Hole1Copy|_],
 		Hole1Copy = (Allocation, Attachment)
 	;
@@ -6842,7 +6870,7 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	;
 		Cut = ActualCut
 	),
-	( unconditional_occurrence(F/A,O), chr_pp_flag(late_allocation,on) -> ActualCut = true ; ActualCut = (!) ),	
+	actual_cut(Symbol,O,ActualCut),
 	Clause = ( ClauseHead :-
 			FirstMatching, 
 			RescheduledTest,
@@ -6854,6 +6882,13 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	add_location(Clause,RuleNb,LocatedClause),
 	L = [LocatedClause | T].
 
+actual_cut(Symbol,Occurrence,ActualCut) :-
+	( unconditional_occurrence(Symbol,Occurrence), 
+          chr_pp_flag(late_allocation,on) -> 
+		ActualCut = true 
+	; 
+		ActualCut = (!) 
+	).	
 % }}}
 
 add_location(Clause,RuleNb,NClause) :-
@@ -7776,11 +7811,7 @@ propagation_single_headed(Head,ID,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) 
 	% - recursive call -
 	RecursiveCall = NextHead,
 
-	( unconditional_occurrence(F/A,O), chr_pp_flag(late_allocation,on) ->
-		ActualCut = true
-	;
-		ActualCut = !
-	),
+	actual_cut(F/A,O,ActualCut),
 
 	Rule = rule(_,_,Guard,Body),
 	( chr_pp_flag(debugable,on) ->
@@ -8328,6 +8359,16 @@ gen_var(_).
 gen_vars(N,Xs) :-
    length(Xs,N). 
 
+ast_head_info1(AstHead,Vars,Susp,VarsSusp,HeadPairs) :-
+   AstHead = chr_constraint(_/A,Args,_),
+   vars_susp(A,Vars,Susp,VarsSusp),
+   pairup(Args,Vars,HeadPairs).
+
+head_info1(Head,_/A,Vars,Susp,VarsSusp,HeadPairs) :-
+   vars_susp(A,Vars,Susp,VarsSusp),
+   Head =.. [_|Args],
+   pairup(Args,Vars,HeadPairs).
+
 head_info(Head,A,Vars,Susp,VarsSusp,HeadPairs) :-
    vars_susp(A,Vars,Susp,VarsSusp),
    Head =.. [_|Args],
@@ -8345,6 +8386,8 @@ next_id([_,N|Ns],[O|Ns]) :-
 
 	% return clause Head
 	% for F/A constraint symbol, predicate identifier Id and arguments Head
+build_head(F/A,Id,Args,Head) :-
+	build_head(F,A,Id,Args,Head).
 build_head(F,A,Id,Args,Head) :-
 	buildName(F,A,Id,Name),
 	( (chr_pp_flag(debugable,on) ; is_stored(F/A), ( has_active_occurrence(F/A) ; chr_pp_flag(late_allocation,off)),
@@ -10350,8 +10393,8 @@ get_success_continuation_code_id(C,O,NextId) :-
 
 %%% TODO: APPLY NEW DICT FORMAT DOWNWARDS
 
-% collect_constants(+rules,+constraint_symbols,+clauses) {{{
-collect_constants(Rules,Constraints,Clauses0) :- 
+% collect_constants(+rules,+ast_rules,+constraint_symbols,+clauses) {{{
+collect_constants(Rules,AstRules,Constraints,Clauses0) :- 
 	( not_restarted, chr_pp_flag(experiment,on) ->
 		( chr_pp_flag(sss,on) ->
 				Dictionary = [fep/4-[2,3]-[[a,b]-fep1,[c,d]-fep2]-no],
@@ -10359,7 +10402,7 @@ collect_constants(Rules,Constraints,Clauses0) :-
 				flatten_clauses(Clauses,Dictionary,FlatClauses),
 				install_new_declarations_and_restart(FlatClauses)
 		;
-			maplist(collect_rule_constants(Constraints),Rules),
+			maplist(collect_rule_constants(Constraints),AstRules),
 			( chr_pp_flag(verbose,on) ->
 				print_chr_constants
 			;
@@ -10387,39 +10430,52 @@ chr_constants(Constants) \ get_chr_constants(Q) <=> Q = Constants.
 
 get_chr_constants(Q) <=> chr_warning(internal,'No constants found for key ~w.\n',[Key]), Q = [].
 
-% collect_rule_constants(+constraint_symbols,+rule) {{{
-collect_rule_constants(Constraints,Rule) :-
-	Rule = pragma(rule(H1,H2,_,B),_,_,_,_),
-	maplist(collect_head_constants,H1),
-	maplist(collect_head_constants,H2),
-	collect_body_constants(B,Constraints).
+% collect_rule_constants(+constraint_symbols,+ast_rule) {{{
+collect_rule_constants(Constraints,AstRule) :-
+	AstRule = ast_rule(AstHead,_,_,AstBody,_),
+	collect_head_constants(AstHead),
+	collect_body_constants(AstBody,Constraints).
 
-collect_body_constants(Body,Constraints) :-
-	conj2list(Body,Goals),
-	maplist(collect_goal_constants(Constraints),Goals).
+collect_head_constants(simplification(H1)) :-
+	maplist(collect_constraint_constants,H1).
+collect_head_constants(propagation(H2)) :-
+	maplist(collect_constraint_constants,H2).
+collect_head_constants(simpagation(H1,H2)) :-
+	maplist(collect_constraint_constants,H1),
+	maplist(collect_constraint_constants,H2).
+
+collect_body_constants(AstBody,Constraints) :-
+	maplist(collect_goal_constants(Constraints),AstBody).
 
 collect_goal_constants(Constraints,Goal) :-
-	( nonvar(Goal),
-          functor(Goal,C,N),
-	  memberchk(C/N,Constraints) ->
-		collect_head_constants(Goal)
-	; nonvar(Goal),
-	  Goal = Mod : TheGoal,
-	  get_target_module(Module),
-	  Mod == Module,
-	  nonvar(TheGoal),
-	  functor(TheGoal,C,N),
-	  memberchk(C/N,Constraints) ->
-		collect_head_constants(TheGoal)
+	( ast_nonvar(Goal) ->
+		ast_symbol(Goal,Symbol),
+		( memberchk(Symbol,Constraints) ->
+			ast_term_to_term(Goal,Term),
+			ast_args(Goal,Arguments),
+			collect_constraint_constants(chr_constraint(Symbol,Arguments,Term))
+		; Symbol == (:)/2,
+		  ast_args(Goal,[Arg1,Goal2]),
+		  Arg1 = atomic(Mod),
+		  get_target_module(Module),
+		  Mod == Module,
+		  ast_nonvar(Goal2),
+		  ast_symbol(Goal2,Symbol2),  
+		  memberchk(Symbol2,Constraints) ->
+			ast_term_to_term(Goal2,Term2),
+			ast_args(Goal2,Arguments2),
+			collect_constraint_constants(chr_constraint(Symbol2,Arguments2,Term2))
+		;
+			true
+		)
 	;
 		true
 	).
 
-collect_head_constants(Head) :-
-	functor(Head,C,N),
-	get_constraint_type_det(C/N,Types),
-	Head =.. [_|Args],
-	collect_all_arg_constants(Args,Types,[]).
+collect_constraint_constants(Head) :-
+	Head = chr_constraint(Symbol,Arguments,_),
+	get_constraint_type_det(Symbol,Types),
+	collect_all_arg_constants(Arguments,Types,[]).
 
 collect_all_arg_constants([],[],Constants) :-
 	( Constants \== [] ->
@@ -10430,8 +10486,9 @@ collect_all_arg_constants([],[],Constants) :-
 collect_all_arg_constants([Arg|Args],[Type|Types],Constants0) :-
 	unalias_type(Type,NormalizedType),
 	( is_chr_constants_type(NormalizedType,Key,_) ->
-		( ground(Arg) ->
-			collect_all_arg_constants(Args,Types,[Key-Arg|Constants0])
+		( ast_ground(Arg) ->
+			ast_term_to_term(Arg,Term),
+			collect_all_arg_constants(Args,Types,[Key-Term|Constants0])
 		; % no useful information here
 			true
 		)
@@ -11201,12 +11258,35 @@ ast_term_to_term(compound(_,_,_,Compound),Compound).
 ast_nonvar(atomic(_)).
 ast_nonvar(compound(_,_,_,_)).
 
+ast_ground(atomic(_)).
+ast_ground(compound(_,_,Arguments,_)) :-
+	maplist(ast_ground,Arguments).
+
+%------------------------------------------------------------------------------%
+% Check whether a term is ground, given a set of variables that are ground.
+%------------------------------------------------------------------------------%
+ast_is_ground(VarSet,AstTerm) :-
+	ast_is_ground_(AstTerm,VarSet).
+
+ast_is_ground_(var(VarId,_),VarSet) :-
+	tree_set_memberchk(VarId,VarSet).
+ast_is_ground_(atomic(_),_).
+ast_is_ground_(compound(_,_,Arguments,_),VarSet) :-
+	maplist(ast_is_ground(VarSet),Arguments).
+%------------------------------------------------------------------------------%
+
 ast_functor(atomic(Atom),Atom,0).
 ast_functor(compound(Functor,Arity,_,_),Functor,Arity).
+
+ast_symbol(atomic(Atom),Atom/0).
+ast_symbol(compound(Functor,Arity,_,_),Functor/Arity).
 
 ast_args(atomic(_),[]).
 ast_args(compound(_,_,Arguments,_),Arguments).
 
+%------------------------------------------------------------------------------%
+% Add variables in a term to a given set.
+%------------------------------------------------------------------------------%
 ast_term_variables(atomic(_),Set,Set).
 ast_term_variables(compound(_,_,Args,_),Set,NSet) :-
 	ast_term_list_variables(Args,Set,NSet).	
@@ -11215,6 +11295,7 @@ ast_term_variables(var(VarId,_),Set,NSet) :-
 
 ast_term_list_variables(Terms,Set,NSet) :-
 	fold(Terms,chr_translate:ast_term_variables,Set,NSet).
+%------------------------------------------------------------------------------%
 
 ast_constraint_variables(chr_constraint(_,Args,_),Set,NSet) :-
 	ast_term_list_variables(Args,Set,NSet).
@@ -11233,3 +11314,113 @@ ast_head_variables(simpagation(H1,H2),Set,NSet) :-
 ast_var_memberchk(var(VarId,_),Set) :-
 	tree_set_memberchk(VarId,Set).
 
+%------------------------------------------------------------------------------%
+% Return term based on AST-term with variables mapped.
+%------------------------------------------------------------------------------%
+ast_instantiate(Map,AstTerm,Term) :-
+	ast_instantiate_(AstTerm,Map,Term).
+
+ast_instantiate_(var(VarId,_),Map,Term) :-
+	get_assoc(VarId,Map,Term).
+ast_instantiate_(atomic(Atom),_,Atom).
+ast_instantiate_(compound(Functor,Arity,Arguments,_),Map,Term) :-
+	functor(Term,Functor,Arity),
+	Term =.. [_|Terms],
+	maplist(ast_instantiate(Map),Arguments,Terms).	
+%------------------------------------------------------------------------------%
+% }}}
+
+%------------------------------------------------------------------------------%
+% ast_head_arg_matches_(list(silent_pair(ast_term,var)
+%                      ,modes
+%                      ,map(var_id,...)
+%                      ,set(variables)
+%                      ,list(goal)
+%                      ,vardict
+%                      ,set(variables)
+%                      )
+%------------------------------------------------------------------------------%
+
+ast_head_arg_matches_([],[],VarDict,GroundVars,[],VarDict,GroundVars).
+ast_head_arg_matches_([silent(Arg-Var)| Rest],[Mode|Modes],VarDict,GroundVars,GoalList,NVarDict,NGroundVars) :- !,
+	( Mode == (+) ->
+		ast_term_variables(Arg,GroundVars0,GroundVars),
+		ast_head_arg_matches_(Rest,Modes,VarDict,GroundVars0,GoalList,NVarDict,NGroundVars)
+	;
+		ast_head_arg_matches_(Rest,Modes,VarDict,GroundVars,GoalList,NVarDict,NGroundVars)
+	).
+ast_head_arg_matches_([Arg-Var| Rest],[Mode|Modes],VarDict,GroundVars,GoalList,NVarDict,NGroundVars) :- 
+	( Arg = var(VarId,_) ->
+	    	( get_assoc(VarId,VarDict,OtherVar) ->
+	        	( Mode = (+) ->
+		     		( tree_set_memberchk(VarId,GroundVars) ->
+		     			GoalList = [Var = OtherVar | RestGoalList],
+			     		GroundVars1 = GroundVars
+			     	;
+			     		GoalList = [Var == OtherVar | RestGoalList],
+			     		tree_set_add(GroundVars,VarId,GroundVars1)
+			     	)
+		        ;
+	        		GoalList = [Var == OtherVar | RestGoalList],
+		     		GroundVars1 = GroundVars
+		        ),
+	        	VarDict1 = VarDict
+	    	;   
+			put_assoc(VarId,VarDict,Var,VarDict1),
+	        	GoalList = RestGoalList,
+	        	( Mode = (+) ->
+				
+		     		tree_set_add(GroundVars,VarId,GroundVars1)
+	        	;
+	     			GroundVars1 = GroundVars
+	        	)
+	    	),
+	    	Pairs = Rest,
+	    	RestModes = Modes	
+	; ground(Arg), Arg = '$chr_identifier_match'(ActualArg,IndexType) -> % TODO
+	    identifier_label_atom(IndexType,Var,ActualArg,Goal),
+	    GoalList = [Goal|RestGoalList],
+	    VarDict = VarDict1,
+	    GroundVars1 = GroundVars,
+	    Pairs = Rest,
+	    RestModes = Modes
+	; Arg = atomic(Atom) -> 
+	    ( Mode = (+) ->
+	            GoalList = [ Var = Atom | RestGoalList]	
+	    ;
+	            GoalList = [ Var == Atom | RestGoalList]
+	    ),
+	    VarDict = VarDict1,
+	    GroundVars1 = GroundVars,
+	    Pairs = Rest,
+	    RestModes = Modes
+	; Mode == (+), ast_is_ground(GroundVars,Arg)  -> 
+	    ast_instantiate(VarDict,Arg,ArgInst),
+	    GoalList = [ Var = ArgInst | RestGoalList],	
+	    VarDict = VarDict1,
+	    GroundVars1 = GroundVars,
+	    Pairs = Rest,
+	    RestModes = Modes
+	; Mode == (?), ast_is_ground(GroundVars,Arg)  -> 
+	    ast_instantiate(VarDict,Arg,ArgInst),
+	    GoalList = [ Var == ArgInst | RestGoalList],	
+	    VarDict = VarDict1,
+	    GroundVars1 = GroundVars,
+	    Pairs = Rest,
+	    RestModes = Modes
+	;   Arg = compound(Functor,Arity,Arguments,_), 
+	    functor(Term,Functor,Arity),
+	    Term =.. [_|Vars],
+	    ( Mode = (+) ->
+	     	GoalList = [ Var = Term | RestGoalList ] 
+	    ;
+	     	GoalList = [ nonvar(Var), Var = Term | RestGoalList ] 
+	    ),
+	    pairup(Arguments,Vars,NewPairs),
+	    append(NewPairs,Rest,Pairs),
+	    replicate(N,Mode,NewModes),
+	    append(NewModes,Modes,RestModes),
+	    VarDict1 = VarDict,
+	    GroundVars1 = GroundVars
+	),
+	ast_head_arg_matches_(Pairs,RestModes,VarDict1,GroundVars1,RestGoalList,NVarDict,NGroundVars).
