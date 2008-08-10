@@ -2534,7 +2534,8 @@ trigger_props(fd_props(Gs,Bs,Os), X, D0, D) :-
         (   ground(X) ->
             trigger_props_(Gs),
             trigger_props_(Bs)
-        ;   domain_infimum(D0, I0),
+        ;   Bs \== [] ->
+            domain_infimum(D0, I0),
             domain_infimum(D, I),
             (   I == I0 ->
                 domain_supremum(D0, S0),
@@ -2544,6 +2545,7 @@ trigger_props(fd_props(Gs,Bs,Os), X, D0, D) :-
                 )
             ;   trigger_props_(Bs)
             )
+        ;   true
         ).
 
 
