@@ -848,7 +848,7 @@ formatNumber(bool split, int div, int radix, bool small, Number i,
       int digits = 0;
       bool negative = FALSE;
 
-      if ( div+3 > sizeof(buf) )	/* 0.000NNNN with div digits after 0. */
+      if ( div+3 > (int)sizeof(buf) )	/* 0.000NNNN with div digits after 0. */
       { tmp = PL_malloc(div+3);
 	end = tmp+div+3;
       } else
@@ -880,6 +880,8 @@ formatNumber(bool split, int div, int radix, bool small, Number i,
       }
 
       addMultipleBuffer(out, s, end-s, char);
+      if ( tmp != buf )
+	PL_free(tmp);
 
       return baseBuffer(out, char);
     }
