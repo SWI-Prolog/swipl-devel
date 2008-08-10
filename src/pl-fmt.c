@@ -842,14 +842,21 @@ formatNumber(bool split, int div, int radix, bool small, Number i,
 { switch(i->type)
   { case V_INTEGER:
     { int64_t n = i->value.i;
-
-      char tmp[100]; 
-      char *end = &tmp[sizeof(tmp)];
-      char *s = end;			/* i.e. start at the end */
+      char buf[100]; 
+      char *tmp, *end, *s;
       int before = (div == 0);
       int digits = 0;
       bool negative = FALSE;
 
+      if ( div+3 > sizeof(buf) )	/* 0.000NNNN with div digits after 0. */
+      { tmp = PL_malloc(div+3);
+	end = tmp+div+3;
+      } else
+      { tmp = buf;
+	end = tmp+sizeof(buf);
+      }
+
+      s = end;				/* i.e. start at the end */
       *--s = EOS;
       if ( n < 0 )
       { n = -n;
