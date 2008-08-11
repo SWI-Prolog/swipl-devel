@@ -624,29 +624,30 @@ esac
 
 dnl ATOMIC inc/dec for reference counts
 
-  AC_CHECK_HEADERS(asm/atomic.h)
-  AC_MSG_CHECKING("atomic increment/decrement")
-  AC_TRY_RUN(
-  [
-#ifdef HAVE_ASM_ATOMIC_H
-# include <asm/atomic.h>
-#endif
-    main()
-    { int i = 0;
-      if ( sizeof(atomic_t) != sizeof(int) )
-        exit(1);
-      atomic_inc((atomic_t *)&i);
-      if ( i != 1 ) exit(1);
-      atomic_dec((atomic_t *)&i);
-      if ( i != 0 ) exit(1);
-      return 0;
-    }
-  ],
-  AC_MSG_RESULT(yes)
-  AC_DEFINE(HAVE_ATOMIC_INC, 1,
-	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int]),
-  AC_MSG_RESULT(no),
-  AC_MSG_RESULT(assuming no))
+dnl   AC_CHECK_HEADERS(asm/atomic.h)
+dnl   AC_MSG_CHECKING("atomic increment/decrement")
+dnl   AC_TRY_RUN(
+dnl   [
+dnl #ifdef HAVE_ASM_ATOMIC_H
+dnl # include <asm/atomic.h>
+dnl #endif
+dnl     main()
+dnl     { int i = 0;
+dnl       if ( sizeof(atomic_t) != sizeof(int) )
+dnl         exit(1);
+dnl       atomic_inc((atomic_t *)&i);
+dnl       if ( i != 1 ) exit(1);
+dnl       atomic_dec((atomic_t *)&i);
+dnl       if ( i != 0 ) exit(1);
+dnl       return 0;
+dnl     }
+dnl   ],
+dnl   AC_MSG_RESULT(yes)
+dnl   AC_DEFINE(HAVE_ATOMIC_INC, 1,
+dnl 	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int]),
+dnl   AC_MSG_RESULT(no),
+dnl   AC_MSG_RESULT(assuming no))
+
 fi	dnl End of MT configuration
 
 
