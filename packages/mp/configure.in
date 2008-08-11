@@ -101,7 +101,7 @@ LIBS="$LIBS -lgmp"
 AC_TRY_LINK([#include <gmp.h>],
 	    [mpz_t r; mpz_init(r);],
 	    AC_MSG_RESULT(yes),
-	    AC_DEFINE(HAVE_LIBGMP),
+	    AC_DEFINE(HAVE_LIBGMP, 1, [Define if you have -lgmp]),
 	    AC_MSG_RESULT(no)
 	    exit 1)
 			     

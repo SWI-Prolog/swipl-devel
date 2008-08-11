@@ -19,7 +19,8 @@ AC_SUBST(LDSOFLAGS)
 
 AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	      [case "$enableval" in
-		   yes) AC_DEFINE(_REENTRANT)
+		   yes) AC_DEFINE(_REENTRANT, 1,
+				  [Define for multi-threaded version])
 			;;
 		   *)  ;;
 	       esac])
@@ -60,7 +61,7 @@ case $PLARCH in
     *darwin*)
 	CMFLAGS="$CMFLAGS -cc-options,-no-cpp-precomp"
         undefine([__unix__])
-	AC_DEFINE(__unix__)
+	AC_DEFINE(__unix__, 1, [Define if OS is Unix-like])
 	;;
 esac
 

@@ -1,0 +1,42 @@
+#!/bin/sh
+# ./prepare
+# 
+# Run GNU autoconf to generate all configure files
+
+findexe()
+{ oldifs="$IFS"
+  IFS=:
+  for d in $PATH; do
+    if [ -x $d/$1 ]; then
+       IFS="$oldifs"
+       return 0
+    fi
+  done
+  IFS="$oldifs"
+  return 1
+}
+
+
+confdir()
+{ if grep AC_INIT configure.in 2>&1 >/dev/null; then
+    if [ -f configure -a ! configure.in -nt configure ]; then
+      return
+    fi
+    echo -n "Generating configure in $1 ... "
+    if grep AC_CONFIG_HEADERS configure.in 2>&1 >/dev/null; then
+      autoheader
+    fi
+    autoconf
+    echo done
+  fi
+}
+
+if ! findexe autoconf; then
+    echo 'ERROR: Cannot find GNU autoconf in $PATH'
+    exit 1
+fi
+
+for f in `find . -name configure.in`; do
+    d=`dirname $f`
+    (cd $d && confdir $d)
+done
