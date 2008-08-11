@@ -381,9 +381,15 @@ gnu/gregex.o:	gnu/gregex.c gnu/gregex.h
 		$(CC) -c $(CFLAGS) -Dpce_source $< -o $@
 gnu/getdate.o:	$(srcdir)/gnu/getdate.c
 		$(CC) -c $(CNWFLAGS) $< -o $@
-$(srcdir)/gnu/getdate.c:	gnu/getdate.y
-		$(YACC) $<
-		mv -f y.tab.c $@
+
+# NOTE: this is not a normal dependency as include the .c file in
+# the distro to reduce build dependencies (M$-Windows) and we do
+# not expect gnu/getdate.y to change regularly.  If yoou change
+# it, run "make getdate-src".
+
+getdate-src::
+		$(YACC) $(srcdir)/gnu/getdate.y
+		mv -f y.tab.c $(srcdir)/gnu/getdate.c
 
 $(srcdir)/gnu/proto.h:	$(GNUSRC)
 		$(MKPROTO) $(GNUSRC) > $@
