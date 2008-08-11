@@ -72,6 +72,11 @@ scan_file(const char *file)
   char buf[LINESIZE];
   int len = strlen(name);
   
+  if ( !fd )
+  { fprintf(stderr, "Warning: could not open %s (skipped)\n", file);
+    return 0;
+  }
+
   while(fgets(buf, sizeof(buf), fd))
   { const char *s;
 

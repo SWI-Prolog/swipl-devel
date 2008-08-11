@@ -278,11 +278,13 @@ $(XPCEDLL):	$(OBJECTS)
 
 prepare:	h\names.ih
 
-h\names.ih:	find_names.exe
-		find_names.exe h/names.ic h/names.ih -- h\*.h ???\*.c
+NAMESRC=	$(OBJECTS:.obj=.c) gra\graphstate.c
 
-find_names.exe: find_names-install.obj
-		$(LD) /out:$@ /subsystem:console \
+h\names.ih:	find_names.exe
+		find_names.exe h/names.ic h/names.ih -- h\*.h $(NAMESRC)
+
+find_names.exe: find_names.obj
+		$(LD) $(LDFLAGS) /out:$@ /subsystem:console \
 			find_names.obj setargv.obj $(LIBS)
 
 
@@ -457,6 +459,7 @@ clean::
 		$(CMD) /c "chdir ..\pl\src & if exist *.obj del *.obj"
 		$(CMD) /c "chdir ..\pl\src & if exist *~ del *~"
 		if exist xpce-install.exe del xpce-install.exe
+		if exist find_names.exe del find_names.exe
 		if exist *.obj del *.obj
 		if exist *~ del *~
 
