@@ -8,3 +8,5 @@ pl-atom.ic
 pl-atom.ih
 pl-funct.ic
 pl-funct.ih
+defatom
+defatom.exe

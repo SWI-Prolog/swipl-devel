@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef __WINDOWS__
+#include <direct.h>
 #else
 #include <unistd.h>
 #endif
