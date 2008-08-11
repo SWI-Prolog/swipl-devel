@@ -167,15 +167,15 @@ pl-atom.obj:	pl-funct.ih
 pl-wam.obj:	pl-alloc.c pl-index.c pl-fli.c
 pl-stream.obj:	popen.c
 
-# Use these if you have the awk program and want to add new reserved atoms
-# to the C-code
-#
-#pl-funct.ih:	ATOMS
-#		$(AWK) -f defatom.awk < ATOMS
-#
-#pl-atom.ih:	ATOMS
-#		$(AWK) -f defatom.awk < ATOMS
+pl-funct.ih:	ATOMS defatom.exe
+		defatom.exe
 
+pl-atom.ih:	ATOMS defatom.exe
+		defatom.exe 
+
+defatom.exe:	defatom.obj
+		$(LD) /out:$@ /subsystem:console defatom.obj
+		
 $(PLLD):	plld.obj
 		$(LD) /out:$@ /subsystem:console plld.obj $(LIBS)
 

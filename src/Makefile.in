@@ -293,11 +293,13 @@ pl-rl.o:	pl-rl.c
 		$(CC) -c -I$(RLPREFIX)/include -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
 endif
 
-$(srcdir)/pl-funct.ih:	$(srcdir)/ATOMS
-		cd $(srcdir) ; $(AWK) -f defatom.awk < ATOMS
+$(srcdir)/pl-funct.ih:	$(srcdir)/ATOMS	defatom
+		./defatom "$(srcdir)"
+$(srcdir)/pl-atom.ih:	$(srcdir)/ATOMS defatom
+		./defatom "$(srcdir)"
 
-$(srcdir)/pl-atom.ih:	$(srcdir)/ATOMS
-		cd $(srcdir) ; $(AWK) -f defatom.awk < ATOMS
+defatom:	defatom.c
+		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
 
 # Hack to deal with __register_frame problems in different glibc 2 versions
 # (Linux, compiled on SuSE 6.0, glibc 2.0.7, egcs 1.1.1)
@@ -512,6 +514,7 @@ clean:
 distclean:	clean
 		@(cd rc && $(MAKE) distclean)
 		@(cd libtai && $(MAKE) distclean)
+		(cd $(srcdir) && rm -f pl-atom.ic pl-atom.ih pl-funct.ic pl-funct.ih)
 		rm -rf $(INCLUDEDIR) ../lib
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h
