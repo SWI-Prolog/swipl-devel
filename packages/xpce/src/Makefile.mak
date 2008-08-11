@@ -2,18 +2,15 @@
 # Makefile for XPCE as a SWI-Prolog package for MS-Windows
 #
 # Author:	Jan Wielemaker
-# E-mail:	jan@swi.psy.uva.nl
+# E-mail:	J.Wielemaker@uva.nl
 # Copyright:	University of Amsterdam
-# Copying:	GPL-2.  See file COPYING or http://www.gnu.org/
+# Copying:	LGPL.  See file COPYING or http://www.gnu.org/
 #
 # This makefile assumes the xpce sources are in the packages
 # directory of SWI-Prolog (...\pl\packages).
 #
 # This makefile is for use with Microsoft NMAKE.  The configuration
-# for Unix-based platforms uses GNU autoconf.  This Makefile uses
-# the CMD.EXE command FOR %var (list) DO command and therefore only
-# runs on Windows-NT or Windows-2000.  The result runs on all Win32
-# platforms, starting with Windows-95.
+# for Unix-based platforms uses GNU autoconf.
 #
 # Configuration is done in the ...\pl\src\rules.mk file
 ################################################################
