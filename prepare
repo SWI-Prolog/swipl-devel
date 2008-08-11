@@ -23,7 +23,7 @@ confdir()
       return
     fi
     echo -n "Generating configure in $1 ... "
-    if grep AC_CONFIG_HEADERS configure.in 2>&1 >/dev/null; then
+    if grep AC_CONFIG_HEADER configure.in 2>&1 >/dev/null; then
       autoheader
     fi
     autoconf

@@ -1,7 +1,20 @@
 #!/bin/sh
 
 version=`cat VERSION`
-out=pl-$version.tar.gz
+out=pl-$version.tar
+extra=pl-extra-$version.tar
 compress=gzip
 
-git-archive --format=tar --prefix=pl-$version/ V$version | $compress > ../$out
+make_extra_archive()
+{ ln -s pl pl-$version
+  tar cfh $extra `sed "s@^@pl-$version/@" pl/gen-files/config`
+  rm pl-$version
+}
+
+git archive --format=tar --prefix=pl-$version/ V$version > ../$out
+cd ..
+
+make_extra_archive
+tar -Af $out $extra
+rm $extra
+$compress $out
