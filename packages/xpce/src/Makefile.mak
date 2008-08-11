@@ -273,12 +273,26 @@ $(XPCEDLL):	$(OBJECTS)
 		$(LD) $(LDFLAGS) /out:$@ /dll $(OBJECTS) $(LIBS) $(XLIBS)
 	
 ################################################################
+# Names
+################################################################
+
+prepare:	h\names.ih
+
+h\names.ih:	find_names.exe
+		find_names.exe h/names.ic h/names.ih -- h\*.h ???\*.c
+
+find_names.exe: find_names-install.obj
+		$(LD) /out:$@ /subsystem:console \
+			find_names.obj setargv.obj $(LIBS)
+
+
+################################################################
 # Build SWI-Prolog interface
 ################################################################
 
 PLOBJ=		$(OBJECTS) ..\pl\src\interface.obj ..\pl\src\pcecall.obj
 
-$(PL2XPCE).dll:	$(PLOBJ)
+$(PL2XPCE).dll:	prepare $(PLOBJ)
 		@echo Linking $@ ...
 		@$(LD) $(LDFLAGS) /out:$@ /dll $(PLOBJ) $(LIBS) $(XLIBS)
 

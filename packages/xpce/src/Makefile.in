@@ -298,7 +298,7 @@ proto:		$(foreach m, $(MODULES) $(VWS), $(srcdir)/$(m)/proto.h)
 # Building the directories
 ################################################################
 
-prepare:	directories names version h/interface.h
+prepare:	directories h/names.ih version h/interface.h
 
 directories:	h $(MODULES) $(VWS)
 
@@ -308,13 +308,6 @@ $(MODULES) bin lib $(VWS):
 h:		
 		ln -s $(srcdir)/h .
 
-names::	
-		@if [ ! -d $(srcdir)/names ]; then \
-		    mkdir $(srcdir)/names; \
-		    if [ ! -d names ]; then ln -s $(srcdir)/names .; fi; \
-		    $(MAKE) names/built; \
-	        fi
-
 version:
 		@rm -f ../src/version.h
 
@@ -322,14 +315,12 @@ version:
 # Building the name tables
 ################################################################
 
-Names.Gen:	$(srcdir)/Names.Gen.c
-		$(CC) $(CFLAGS) -o Names.Gen $(srcdir)/Names.Gen.c
-Names.X:	$(srcdir)/Names.X.c
-		$(CC) $(CFLAGS) -o Names.X $(srcdir)/Names.X.c
+find_names:	$(srcdir)/find_names.c
+		$(CC) $(CFLAGS) -o find_names $(srcdir)/find_names.c
 
-names/built:	names Names.Gen Names.X
-		$(srcdir)/FN -a $(srcdir)/h/*.h $(srcdir)/???/*.c
-		@touch names/built
+h/names.ih:	find_names	
+		cd $(srcdir); \
+		../$(builddir)/find_names h/names.ic h/names.ih -- h/*.h ???/*.c
 
 ################################################################
 # GNU-Emacs TAG table
@@ -911,14 +902,12 @@ clean:
 		        (cd $$m; $(RM) -f *.o *~ *% core); \
 		    fi; \
 		done
+		$(RM) -f h/names.ic h/names.ih
 		$(RM) -f *.o config.log
-		$(RM) -rf names $(srcdir)/names
 
 distclean:	clean
 		for d in ../pl/src; do (cd $$d; $(MAKE) distclean); done
 		$(RM) -f version.h ../xpce.spec
-		$(RM) -f h/names.ic h/names.ih
-		$(RM) -rf names Names.Gen Names.X
 		$(RM) -f $(LIB)
 		$(RM) -f xpce-install rt-install xpce pl2xpce.so xpce-client
 		$(RM) -f Makefile config.h config.status config.cache
