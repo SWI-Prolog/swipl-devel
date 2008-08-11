@@ -11,9 +11,7 @@ libc6-dev
 libgmp3-dev
 libncursesw5-dev
 libreadline5-dev
-linux-kernel-headers
 make
-mawk
 sed
 
 List of packages needed to compile additional SWI Prolog packages on
