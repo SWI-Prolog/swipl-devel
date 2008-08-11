@@ -1,0 +1,9 @@
+./src/pl-atom.ic
+./src/pl-funct.ic
+./src/pl-atom.ih
+./src/pl-funct.ih
+./packages/xpce/src/h/names.ih
+./packages/xpce/src/ker/name.ih
+./packages/xpce/src/h/names.ic
+./packages/xpce/src/ker/name.ic
+./packages/xpce/src/gnu/getdate.c
