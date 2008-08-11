@@ -112,6 +112,7 @@ packages/http/config.h.in
 packages/http/configure
 packages/inclpr/config.h.in
 packages/inclpr/configure
+packages/jasmine/config.h.in
 packages/jasmine/configure
 packages/jpl/config.h.in
 packages/jpl/configure
