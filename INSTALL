@@ -17,11 +17,56 @@ compiler, so in most case you will need to modify the CFLAGS and LDFLAGS
 definitions in the Makefile to reach at optimal results.
 
 
+Prerequisites
+-------------
+
+SWI-Prolog depends on a lot of other   (open source) tools and libraries
+that  is  not  bundled  and  must  be  installed  seperately.  The  file
+README.debian contains the package requirements for  Debian Linux and is
+probably a good start for any  Unix system. README.MacOSX contains notes
+for Apples' MacOSX and README.windows   contains pointers for MS-Windows
+that requires a totally different  approach   (stop  reading this if you
+want to compile on Windows). Notably, one needs:
+
+Tools:
+    * gcc (with some effort, other C compilers may work as well)
+    * GNU-make
+    * autoconf (when building from GIT/CVS, see README.git)
+    * LaTeX (optional for documentation, see README.doc)
+    * perl (optional for documentation, see README.doc)
+    
+Libraries (core system):
+    * gmp (http://gmplib.org/)
+    Provides unbounded integers and rational numbers.  Optional,
+    but especially some of the constraint libraries demand it.
+    * GNU readline library
+    Optional, provides commandline editing and completion.  You
+    really want this!
+
+Libraries (packages):
+    * UNIXodbc (http://www.unixodbc.org/)
+    Optional for building package odbc, providing database access.
+    * OpenSSL (www.openssl.org/)
+    Optional for building package ssl (Secure Socket layer)
+    * zlib
+    Optional for building package zlib (compressed streams)
+    * SUN Java SDK
+    Optional for building JPL (Java interface).  Note that auto-detection
+    of JPL prerequisites often fails.  See DISABLE_PKGS in build.templ
+    * libXt, X11 core libraries, libjpeg and libxpm
+    Required libraries for XPCE, the SWI-Prolog graphics layer that 
+    provides the built-in editor, graphical debugger and many other 
+    developers tools.
+    * libXft, libfontconfig and pkg-config
+    Provide proper Unicode font support for XPCE.  Without, XPCE may work
+    or not, depending on locale and installed fonts.
+    
+    
 Using the build.templ script
 ----------------------------
 
-The  bash-script  build.templ  contains  the   default  build  procedure
-outlined above and  some  comments   and  skeleton  environment changes.
+The bash-script build.templ contains  the   default  build procedure and
+some comments and  skeleton  environment   changes  marked  with [EDIT].
 Especially for those who  want  to   update  SWI-Prolog  regulary, it is
 recommended to copy this file to 'build' and edit it to suit your needs.
 The file also gives some  hints   dealing  with non-default locations of
