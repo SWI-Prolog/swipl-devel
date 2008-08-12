@@ -25,6 +25,7 @@
 ./packages/ssl/ssl.html
 ./packages/clib/clib.html
 ./packages/http/http.html
+./packages/http/httpserver.gif
 ./packages/odbc/odbc.html
 ./packages/sgml/RDF/rdf2pl.html
 ./packages/sgml/sgml.html
