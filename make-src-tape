@@ -1,4 +1,13 @@
 #!/bin/sh
+#
+# Make the SWI-Prolog source archives by running this script. Before
+# you start:
+# 
+# 	* Update VERSION
+# 	* Run ./newversion, which creates a GIT tag VN.N.N
+# 	* Run ./make-src-tape
+# 	
+# This script required GNU-tar!
 
 version=`cat VERSION`
 out=pl-$version.tar
@@ -6,28 +15,28 @@ extra=pl-extra-$version.tar
 doc=pl-doc-$version.tar
 compress=gzip
 
-make_extra_archive()
-{ tar cfh $extra `sed "s@^@pl-$version/@" pl/gen-files/config`
-}
-
-make_doc_archive()
-{ tar cfh $doc `sed "s@^@pl-$version/@" pl/gen-files/doc`
-}
-
+# core SWI-Prolog snapshot from GIT
 git archive --format=tar --prefix=pl-$version/ V$version > ../$out
+# generated documentation files
+tar zcf ../$doc.gz `cat gen-files/doc`
 
 cd ..
 ln -s pl pl-$version
 
-make_extra_archive
-make_doc_archive
+# Extras, also starting with pl-<version>
+tar cfh $extra `sed "s@^@pl-$version/@" pl/gen-files/config`
+tar cfh $doc `sed "s@^@pl-$version/@" pl/gen-files/doc`
 
+# Append them (needs GNU-tar)
 tar -Af $out $extra
 tar -Af $out $doc
+
+# cleanup
 rm $extra
-
-rm -f $.gz $doc.gz
-$compress $out
-$compress $doc
-
+rm $doc
 rm pl-$version
+
+# compress the result
+rm -f $out.gz
+$compress $out
+
