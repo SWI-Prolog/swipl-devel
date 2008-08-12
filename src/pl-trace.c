@@ -1694,6 +1694,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   { if ( fr->programPointer &&
 	 fr->parent &&
 	 false(fr->parent->predicate, FOREIGN) &&
+	 fr->parent->clause &&
 	 fr->parent->predicate != PROCEDURE_dcall1->definition )
     { intptr_t pc = fr->programPointer - fr->parent->clause->clause->codes;
 
