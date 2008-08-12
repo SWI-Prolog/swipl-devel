@@ -21,7 +21,7 @@ For clib: no other package required
 For cpp: no other package required
 For odbc: unixodbc-dev
 For table: no other package required
-For xpce: bison libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev
+For xpce: libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev
 libxpm-dev libxt-dev pkg-config
 For sgml: no other package required
 For sgml/RDF: no other package required
