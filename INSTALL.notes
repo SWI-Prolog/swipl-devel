@@ -1,10 +1,7 @@
 			Installing SWI-Prolog
 			=====================
 
-			   Jan Wielemaker
-		      (wielemak@science.uva.nl)
-
-Last updated: Feb 2, 2007
+Last updated: Aug 12, 2008
 
 Configuration, compilation and installation is based on the GNU autoconf
 package and consists of two steps:  builting the basic SWI-Prolog system
@@ -18,6 +15,20 @@ GCC avoids a lot of trouble. The   configure  script has very incomplete
 and sometimes aged default  compiler  settings   for  the  system native
 compiler, so in most case you will need to modify the CFLAGS and LDFLAGS
 definitions in the Makefile to reach at optimal results.
+
+
+Using the build.templ script
+----------------------------
+
+The  bash-script  build.templ  contains  the   default  build  procedure
+outlined above and  some  comments   and  skeleton  environment changes.
+Especially for those who  want  to   update  SWI-Prolog  regulary, it is
+recommended to copy this file to 'build' and edit it to suit your needs.
+The file also gives some  hints   dealing  with non-default locations of
+libraryes, non-standard compiler settings, etc.
+
+If this fails, considering following the step-by-step instructions below
+to get everything in place.
 
 
 Building SWI-Prolog lite
@@ -51,23 +62,14 @@ package itself. Most packages are installed with the ./configure && make
 && make install sequence.
 
 
-Using the build.templ script
-----------------------------
-
-The  bash-script  build.templ  contains  the   default  build  procedure
-outlined above and  some  comments   and  skeleton  environment changes.
-Especially for those who  want  to   update  SWI-Prolog  regulary, it is
-recommended to copy this file to 'build' and edit it to suit your needs.
-The file also gives some  hints   dealing  with non-default locations of
-libraryes, non-standard compiler settings, etc.
-
-
 Put the Prolog kernel in a shared object
 ========================================
 
 There is limited support to compile the Prolog kernel in a shared object
-rather than an executable and static library.  This feature is tested on
-Linux (SuSE 9.0) and activated using
+rather than an executable and static library. This feature only works on
+platforms where gcc provided standard support  for creating and managing
+shared objects. Using shared objects is default on some platforms (MacOS
+X and Linux on x86_64 (AMD64)).
 
 	./configure --enable-shared
 
@@ -82,60 +84,5 @@ performance  degradation.  The  approach   has    some   advantages  and
 disadvantages:
 
 	- `stand-alone' executables need the shared object
-	- less performance for most processors
+	- less performance for some processors (particularly on IA32)
 	+ Easier linking, especially for complicated embedded systems
-
-
-Some things may need attention:
-===============================
-
-# GNU readline library
-
-When present, SWI-Prolog will  automatically   include  the GNU readline
-library. It is *strongly*  adviced  to   install  this  library  on your
-system. It provides editing of previously  entered commands (history) as
-well as completion on Prolog  atoms   and  filenames (for consult, etc.)
-much like the bash and tcsh shells do.
-
-SWI-Prolog has been linked with versions 1.1,   1.2, 2.0, 4.0 and 5.1 of
-the readline library.
-
-# Memory mapped stacks.  Segmentation faults during the installation.
-
-Configure will see if mmap() may be used to allocate the stacks.  If you
-think this should be possible, but Configure   says `no', please work on
-test/mmap.c
-
-Using mmapped stacks works on  most   modern  Unix  platforms, including
-Linux, Solaris, OpenBSD, FreeBSD, IRIX, HP/UX and many more.
-
-# Assembler warnings
-
-If you get assembler warnings compiling pl-wam.c, try #define NO_ASM_NOP
-1 in config.h. Should be  determined   automatically  by test/nop.c, but
-sometimes appears to fail.
-
-# Old include files
-
-Old versions of SWI-Prolog   installed  $prefix/include/SWI-Prolog.h and
-$prefix/include/SWI-Stream.h that are  incompatible   with  the  current
-releases.     New     versions     install       these      files     in
-$prefix/lib/pl-<version>/include. Please remove the old   files to avoid
-the  compiler  picking  the  wrong  include  files  when  compiling  the
-packages.
-
-
-Platform specific notes
-=======================
-
-SCO OpenServer
---------------
-
-According to Tamas Laufer, best  results   are  obtained  if you install
-gcc-2.8.1 (latest version at time of   writing) from the original source
-at prep.ai.mit.edu/pub/gnu or  one  of   its  mirrors.  Using  GNU-make.
-installation is reported to work flawlessly.
-
-Compilation using SCO `cc' is  possible   too,  though  requires special
-attention to get alloca() and dlopen() working.  The result is about 20%
-slower then the gcc-compiled executable.

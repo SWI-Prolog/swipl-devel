@@ -1,0 +1,40 @@
+Building the documentation
+--------------------------
+
+Last update: Aug 12, 2008
+
+As of SWI-Prolog 5.6.60, the generated documentation files are no longer
+part of the GIT repository (see  README.git).   There  are  many ways to
+access documentation:
+
+	1) Read it online at http://www.swi-prolog.org
+	2) Install a binary version
+	3) Install from the release files (pl-<version>.tar,gz)
+
+If you use GIT/CVS, you  can  download   the  generated  files  from the
+http://www.swi-prolog.org/dl-stable.html  and  unpack  them    from  the
+toplevel of the source.
+
+Finally, you can build them
+---------------------------
+
+To do this:
+
+	* Get a Unix machine, preferably Linux as most requirements are
+	available by default.
+	* Install Prolog, at least with the pldoc package.
+	* Intall LaTeX, probably best the teTeX distribution
+	(http://www.tug.org/tetex/) that comes with may Linux systems.
+	* Install the plain-text conversion tools from pl/man/txt using
+	the README there.
+	* Build and install latex2html from packages/ltx2htm
+
+If all that is installed correctly, it   should  be possible to generate
+all documentation using the following from the toplevel:
+
+	% make doc
+
+Alternatively, build the system  docs  from   the  Makefile  in  the man
+directory and the documentation for packages   in the package directory.
+Each pachage with documentation has the make targets 'pdf' to create the
+PDF docs and 'html' to create the HTML documentation.

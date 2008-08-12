@@ -1,0 +1,107 @@
+Installing from GIT/CVS
+-----------------------
+
+Last update: Aug 12, 2008
+
+Git (git.or.cz/) is the  recommended  way   to  track  the  development,
+especially if you plan to maintain a  modified version or want to submit
+patches.
+
+To start working,  get  GIT  for  your   platform.  We  use  msysGit  in
+MS-Windows. GIT is under  heavy  development   (don't  worry,  the  core
+appears very stable), so  make  sure  to   have  a  recent  version.  In
+particular SWI-Prolog will shortly require   git  modules, introduced in
+version 1.5.3.
+
+Downloading
+===========
+
+Next, get the SWI-Prolog git. This  takes   a  while the first time, but
+subsequent updates will be fast:
+
+	% git clone git://gollem.science.uva.nl/home/git/pl.git
+
+If you have the poor luck that you are behind a firewall, you can almost
+certainly use this alternative.  Note however that this is much slower.
+
+	% git clone http://gollem.science.uva.nl/home/git/pl.git
+
+
+Building
+========
+
+Building from GIT is close to building   from  the tar archives, but the
+GIT source does  *not*  include  generated   files,  in  particular  the
+autoconf configure scripts and the generated  manual files. The autoconf
+files are created using prepare, which  assumes autoconf (we use version
+2.61) installed:
+
+	% ./prepare
+
+Building the documentation is not necessary (you   can read it online at
+http://swi-prolog.org). If you want to build  it, see README.doc. If you
+want the local documentation but you do not   want to build, get it as a
+.tar.gz file from the SWI-Prolog download  page in the *Sources* section
+and unpack it in the toplevel using
+
+	% tar zxvf pl-doc-<version>.tar.gz
+
+Next, continue as described in INSTALL and INSTALL.notes
+
+
+Branching and patching
+======================
+
+If you plan to submit patches, configure  GIT, so it automatically keeps
+track of you. Don't use a secret mail address: it will end up on the GIT
+web access at http://gollem.science.uva.nl/git/pl.git
+
+	% git config --global user.name "Your Name Comes Here"
+	% git config --global user.email you@yourdomain.example.com
+
+It you want to fix something, it is convenient to first start a branch:
+
+	% git checkout -b mybug
+
+Now, hack away and fix it.  If you have a coherent fix, commit it using
+
+	% git commit -a
+
+and add a descriptive message to your   patch, in particular if you want
+to submit it.
+
+
+Submitting a patch
+------------------
+
+GIT is very good at structured   handling of distributed development. If
+you want to submit a patch, use   git-format-patch to create the content
+of an e-mail message. Depending on  the   nature,  send the patch to the
+SWI-Prolog mailinglist or bugs@swi-prolog.org.
+
+
+Updating
+--------
+
+If you made no branches and patches, you update to the latest using
+
+	% git pull
+	% make distclean
+	<optionally get new documentation archive and unpack>
+	% ./build 	(see using of the build script in INSTALL.notes)
+	
+If you have patches, this is slightly   you  can keep your history clean
+using this instead of the simple pull above:
+
+	% git checkout master
+	% git pull
+	% git checkout mybug
+	% git rebase master
+
+Further reading
+---------------
+
+	* http://git.or.cz/ (very good introductions)
+	* http://wiki.sourcemage.org/Git_Guide (lots of useful HOWTO tips)
+	* http://www-cs-students.stanford.edu/~blynn/gitmagic/ (if you
+	want to understand GIT)
