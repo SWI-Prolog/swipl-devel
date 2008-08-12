@@ -448,11 +448,13 @@ install-lman:	idirs
 		$(INSTALL_DATA) $(srcdir)/readline.3 $(DESTDIR)$(plmandir)/readline.$(lmansec)
 
 html-install::
-		if [ ! -d $(DESTDIR)$(PLBASE)/doc ]; then $(MKDIR) $(DESTDIR)$(PLBASE)/doc; fi
-		if [ ! -d $(DESTDIR)$(PLBASE)/doc/Manual ]; then $(MKDIR) $(DESTDIR)$(PLBASE)/doc/Manual; fi
-		for f in ../man/Manual/*.html ../man/Manual/*.gif; do \
+		if [ -d ../man/Manual ]; then \
+		  if [ ! -d $(DESTDIR)$(PLBASE)/doc ]; then $(MKDIR) $(DESTDIR)$(PLBASE)/doc; fi; \
+		  if [ ! -d $(DESTDIR)$(PLBASE)/doc/Manual ]; then $(MKDIR) $(DESTDIR)$(PLBASE)/doc/Manual; fi; \
+		  for f in ../man/Manual/*.html ../man/Manual/*.gif; do \
 		    $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/doc/Manual; \
-		done
+		  done; \
+		fi
 
 #
 # runtime-only environment installation
