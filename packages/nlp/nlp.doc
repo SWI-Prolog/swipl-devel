@@ -10,8 +10,6 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog NLP library}
-
 \begin{document}
 
 \title{SWI-Prolog Natural Language Processing Primitives}

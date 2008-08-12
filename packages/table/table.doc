@@ -7,8 +7,6 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog external tables}
-
 \begin{document}
 
 \title{Managing external tables for SWI-Prolog}
@@ -16,7 +14,7 @@
 	Human Computer Studies (HCS), \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{wielemak@science.uva.nl}}
+	E-mail: \email{J.Wielemaker@uva.nl}}
 
 \maketitle
 
@@ -457,11 +455,11 @@ The following predicates are defined to manage and use these tables:
     Succeeds if \arg{Prefix} is a prefix of \arg{String} using the named
     \arg{Table}, and \arg{Rest} is unified with the remainder of
     \arg{String} that is not matched.  Please note that the existence of
-    an order-table implies simple contatenation using concat/3 cannot be
-    used to determine the non-matched part of the string.
-\predicate{sub_string}{3}{+Table, +Sub, +String}
-    Succeeds if \arg{Sub} is a substring of \arg{String} using the
-    named \arg{Table}.
+    an order-table implies simple contatenation using atom_concat/3
+    cannot be used to determine the non-matched part of the string.
+    \predicate{sub_string}{3}{+Table, +Sub, +String} Succeeds if
+    \arg{Sub} is a substring of \arg{String} using the named
+    \arg{Table}.
 \end{description}
 
 \section{Example: accessing the Unix passwd file}	\label{sec:example}

@@ -8,7 +8,7 @@
 
 PL=@PL@
 PLBASE=@PLBASE@
-PCEHOME=/staff/jan/src/xpce
+PCEHOME=../xpce
 
 CC=@CC@
 COFLAGS=@COFLAGS@

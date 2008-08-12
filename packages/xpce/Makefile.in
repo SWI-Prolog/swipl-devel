@@ -34,4 +34,6 @@ distclean::
 	@cd $(BUILDARCH) && $(MAKE) $@
 	rm -f Makefile
 
+doc::
+pdf::
 html::

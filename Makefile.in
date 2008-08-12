@@ -30,6 +30,12 @@ check::
 	   cd packages && $(MAKE) $@; \
 	fi
 
+doc::
+	@cd man && $(MAKE) all
+	@if [ -f packages/Makefile ]; then \
+	   cd packages && $(MAKE) $@; \
+	fi
+
 clean::
 	@cd $(BUILDARCH) && $(MAKE) $@
 	@if [ -f packages/Makefile ]; then \

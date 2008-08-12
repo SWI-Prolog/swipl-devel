@@ -13,7 +13,7 @@ PLINCL=@PLINCL@
 PL=@PL@
 XPCEBASE=$(PLBASE)/xpce
 PKGDOC=$(PLBASE)/doc/packages
-PCEHOME=../../xpce
+PCEHOME=../xpce
 LIBDIR=$(PLBASE)/library
 CHRDIR=$(LIBDIR)/chr
 EXDIR=$(PKGDOC)/examples/chr
@@ -131,9 +131,10 @@ check:		chr.pl
 
 # NOTE: Manual is integrated in system manual
 
-doc:		$(PDF) $(HTML)
-pdf:		$(PDF)
+doc:		pdf html
+#pdf:		$(PDF)
 #html:		$(HTML)
+pdf::
 html::
 
 $(HTML):	$(TEX)

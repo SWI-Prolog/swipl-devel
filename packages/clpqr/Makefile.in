@@ -68,7 +68,9 @@ check::
 #		$(PL) -q -f clpr_test.pl -g test,halt -t 'halt(1)'
 
 
+doc:		html pdf
 html::
+pdf::
 
 ################################################################
 # Clean

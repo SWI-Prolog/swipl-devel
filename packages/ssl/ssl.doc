@@ -10,8 +10,6 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog SSL Interface}
-
 \begin{document}
 
 %\urldef{\diff}\url[Diff Automatisering v.o.f]{http://www.diff.nl}

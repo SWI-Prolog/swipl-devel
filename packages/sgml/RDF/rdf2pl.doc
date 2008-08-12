@@ -8,8 +8,6 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog RDF IO}
-
 \newcommand{\elem}[1]{{\tt\string<#1\string>}}
 
 \begin{document}

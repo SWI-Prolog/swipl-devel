@@ -10,7 +10,7 @@ PL=@PL@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PKGDOC=$(PLBASE)/doc/packages
-PCEHOME=/staff/jan/src/xpce
+PCEHOME=../xpce
 DESTDIR=
 
 CC=@CC@

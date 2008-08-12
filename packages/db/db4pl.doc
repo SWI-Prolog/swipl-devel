@@ -7,16 +7,14 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog External Database}
-
 \begin{document}
 
-\title{SWI-Prolog External Database}
+\title{SWI-Prolog BerkelyDB interface}
 \author{Jan Wielemaker \\
 	HCS, \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{wielemak@science.uva.nl}}
+	E-mail: \email{J.Wielemak@uva.nl}}
 
 \maketitle
 

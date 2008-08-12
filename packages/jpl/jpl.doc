@@ -10,11 +10,9 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{JPL: a SWI-Prolog <-> Java Interface}
-
 \begin{document}
 
-\title{JPL: a SWI-Prolog <-> Java Interface}
+\title{JPL: a SWI-Prolog to Java Interface}
 \author{Paul Singleton \\
 	Jambusters Ltd \\
 	United Kingdom \\

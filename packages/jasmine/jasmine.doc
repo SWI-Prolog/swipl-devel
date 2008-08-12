@@ -7,18 +7,16 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog Jasmine (ODB) Interface}
-
 \newcommand{\elem}[1]{{\tt\string<#1\string>}}
 
 \begin{document}
 
-\title{\runningtitle}
+\title{SWI-Prolog Jasmine (ODB) Interface}
 \author{Jan Wielemaker \\
 	SWI, \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{jan@swi.psy.uva.nl}}
+	E-mail: \email{J.Wielemaker@uva.nl}}
 
 \maketitle
 

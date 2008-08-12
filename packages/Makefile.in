@@ -124,6 +124,11 @@ configure::
 	    fi; \
         done
 
+doc::
+	for p in $(PKG); do \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) pdf html ) || exit 1; fi; \
+        done
+
 distclean::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \

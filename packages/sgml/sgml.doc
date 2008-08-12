@@ -10,8 +10,6 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog SGML/XML parser}
-
 \begin{document}
 
 \title{SWI-Prolog SGML/XML parser}
@@ -19,7 +17,7 @@
 	HCS, \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{wielemak@science.uva.nl}}
+	E-mail: \email{J.Wielemaker@uva.nl}}
 
 \maketitle
 

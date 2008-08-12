@@ -90,9 +90,7 @@ doc.ps:		doc.dvi
 		dvips $< -o $@
 
 html:		$(TEXFILES) $(STYFILES) doc.bbl
-		rm -rf Manual.tmp
 		env TEXINPUTS=lib:$$TEXINPUTS latex2html doc
-		./update-man Manual.tmp Manual
 
 pdf:		$(PDF)
 
