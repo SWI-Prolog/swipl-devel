@@ -1,6 +1,8 @@
 ./library/MANUAL
 ./library/helpidx.pl
 ./man/Manual/
+./man/windows.html
+./man/macosx/macosx.html
 ./packages/R/R.pdf
 ./packages/db/db4pl.pdf
 ./packages/cpp/pl2cpp.pdf

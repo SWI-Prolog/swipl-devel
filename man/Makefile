@@ -70,12 +70,13 @@ help:
 		@echo
 
 all:		
-		$(MAKE) online
-		$(MAKE) clean
 		$(MAKE) pdf
+		$(MAKE) clean
+		$(MAKE) online
 		$(MAKE) clean
 		$(MAKE) html
 		$(MAKE) clean
+		$(MAKE) windows.html macosx/macosx.html
 
 dvi:		doc.dvi
 
