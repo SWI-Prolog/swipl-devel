@@ -3,18 +3,31 @@
 version=`cat VERSION`
 out=pl-$version.tar
 extra=pl-extra-$version.tar
+doc=pl-doc-$version.tar
 compress=gzip
 
 make_extra_archive()
-{ ln -s pl pl-$version
-  tar cfh $extra `sed "s@^@pl-$version/@" pl/gen-files/config`
-  rm pl-$version
+{ tar cfh $extra `sed "s@^@pl-$version/@" pl/gen-files/config`
+}
+
+make_doc_archive()
+{ tar cfh $doc `sed "s@^@pl-$version/@" pl/gen-files/doc`
 }
 
 git archive --format=tar --prefix=pl-$version/ V$version > ../$out
+
 cd ..
+ln -s pl pl-$version
 
 make_extra_archive
+make_doc_archive
+
 tar -Af $out $extra
+tar -Af $out $doc
 rm $extra
+
+rm -f $.gz $doc.gz
 $compress $out
+$compress $doc
+
+rm pl-$version
