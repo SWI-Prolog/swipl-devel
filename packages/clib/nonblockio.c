@@ -2185,8 +2185,9 @@ nbio_close_input(nbio_sock_t socket)
     { DEBUG(1, Sdprintf("shutdown(%d=%d, SD_RECEIVE) failed: %s\n",
 			socket, s->socket,
 			WinSockError(WSAGetLastError())));
+      Sseterr(s->input, SIO_FERR, WinSockError(WSAGetLastError()));
+      rc = -1;
     }
-    rc = -1;
   }
 #endif
 
@@ -2220,18 +2221,17 @@ nbio_close_output(nbio_sock_t socket)
     { s->error = WSAECONNRESET;
       rc = -1;
     } else if ( shutdown(sock, SD_SEND) == SOCKET_ERROR )
-    {
+    { const char *msg;
+#ifdef __WINDOWS__
+      msg = WinSockError(WSAGetLastError());
+#else
+      msg = strerror(errno);
+#endif
+      Sseterr(s->output, SIO_FERR, msg);
 #ifdef O_DEBUG
       if ( debugging )
-      { const char *msg;
-#ifdef __WINDOWS__
-	msg = WinSockError(WSAGetLastError());
-#else
-        msg = strerror(errno);
-#endif
-        Sdprintf("shutdown(%d=%d, SD_SEND) failed: %s\n",
+	Sdprintf("shutdown(%d=%d, SD_SEND) failed: %s\n",
 		 socket, s->socket, msg);
-      }
 #endif
       rc = -1;
     }
