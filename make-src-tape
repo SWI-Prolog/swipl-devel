@@ -18,7 +18,8 @@ compress=gzip
 # core SWI-Prolog snapshot from GIT
 git archive --format=tar --prefix=pl-$version/ V$version > ../$out
 # generated documentation files
-tar zcf ../$doc.gz `cat gen-files/doc`
+echo $version > doc-version
+tar zcf ../$doc.gz ./doc-version `cat gen-files/doc`
 
 cd ..
 ln -s pl pl-$version

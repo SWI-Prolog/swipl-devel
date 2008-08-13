@@ -66,5 +66,9 @@ packages::
 install-world::
 	cd $(BUILDARCH) && $(MAKE) install
 	cd packages && $(MAKE) install
-	cd packages && $(MAKE) html-install
+	@if [ -d man/Manual ]; then \
+	    cd packages && $(MAKE) html-install; \
+	else; \
+	    echo "WARNING: No documentation.  See README.doc"; \
+	fi
 

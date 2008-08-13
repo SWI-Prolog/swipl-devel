@@ -3,6 +3,9 @@
 # 
 # Run GNU autoconf to generate all configure files
 
+version="`cat VERSION`"
+server="http://gollem.science.uva.nl/cgi-bin/nph-download/SWI-Prolog"
+
 findexe()
 { oldifs="$IFS"
   IFS=:
@@ -16,6 +19,10 @@ findexe()
   return 1
 }
 
+
+################################################################
+# Configuration
+################################################################
 
 confdir()
 { if grep AC_INIT configure.in 2>&1 >/dev/null; then
@@ -31,12 +38,38 @@ confdir()
   fi
 }
 
+
 if ! findexe autoconf; then
     echo 'ERROR: Cannot find GNU autoconf in $PATH'
     exit 1
 fi
 
+
 for f in `find . -name configure.in`; do
     d=`dirname $f`
     (cd $d && confdir $d)
 done
+
+
+################################################################
+# Documentation check and download
+################################################################
+
+download_docs()
+{ doc=pl-doc-$version.tar.gz
+
+  echo -n "Downloading documentation for SWI-Prolog $version from $server ..."
+  curl $server/generated/$doc > $doc
+  ls -l $doc
+  tar zxvf $doc
+}
+
+
+if [ ! -d man/Manual ]; then
+    cat << _EOM_
+WARNING: Cannot find documentation in man/Manual.  See README.git
+WARNING: and README.doc for further information and how to
+WARNING: download the documentation when using the GIT/CVS sources.
+_EOM_
+fi
+    
