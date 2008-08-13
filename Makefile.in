@@ -68,7 +68,7 @@ install-world::
 	cd packages && $(MAKE) install
 	@if [ -d man/Manual ]; then \
 	    cd packages && $(MAKE) html-install; \
-	else; \
+	else \
 	    echo "WARNING: No documentation.  See README.doc"; \
 	fi
 
