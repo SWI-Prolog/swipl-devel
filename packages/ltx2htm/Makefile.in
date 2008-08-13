@@ -2,12 +2,13 @@
 # Makefile for the SWI-Prolog based latex2html converter
 #
 # Author: Jan Wielemaker
-# E-mail: jan@swi.psy.uva.nl
+# E-mail: J.Wielemaker@uva.nl
 #
 # Copying: GPL-2, see COPYING or www.gnu.org
 #
-# Copyright (c) 1996-2001, SWI, University of Amsterdam, all rights reserved
-################################################################
+# Copyright (c) 1996-2008, HCS, University of Amsterdam, all rights
+# reserved
+# ###############################################################
 
 MAKE=@MAKE@
 
@@ -31,6 +32,8 @@ CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@ $(CDFLAGS)
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
+RUNTEX=../../man/runtex
+DOC=ltx2htm
 
 # Don't change, this is also in latex2html.in!
 LIBDIR=@libdir@/latex2html
@@ -39,14 +42,7 @@ OBJ=	tex.o psfile.o
 LIB=	latex2html.pl latex.cmd pl.pl pl.cmd xpce.pl xpce.cmd \
 	latex2html.css
 
-all:
-	@echo "==============================================================="
-	@echo "Usage:"
-	@echo ""
-	@echo "$(MAKE) install        Install the package"
-	@echo "$(MAKE) html           Translate the documentation into HTML"
-	@echo "$(MAKE) dvi            Translate the documentation into DVI"
-	@echo "==============================================================="
+all:	tex.@SO@
 
 install:	tex.@SO@
 	mkdir -p $(DESTDIR)$(LIBDIR)/lib/$(PLARCH)
@@ -63,15 +59,16 @@ tex.@SO@:		$(OBJ)
 # Documentation
 ################################################################
 
-html:	manual.tex
-	latex2html manual
+doc:	html pdf
 
-dvi:	manual.tex
-	latex manual
-	latex manual
+html:	$(DOC).tex
+	latex2html $(DOC)
 
-manual.tex:	manual.doc
-	./doc2tex manual.doc > manual.tex
+pdf:	$(DOC).tex
+	$(RUNTEX) --pdf $(DOC)
+
+$(DOC).tex:	$(DOC).doc
+	./doc2tex $< > $@
 
 ################################################################
 # Cleanup
