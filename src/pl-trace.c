@@ -1554,6 +1554,8 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 
   if ( !PL_get_frame(frame, &fr) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_frame_reference, frame);
+  if ( !fr )
+    fail;				/* frame == 'none' */
   if ( !PL_get_name_arity(what, &key, &arity) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, what);
 
