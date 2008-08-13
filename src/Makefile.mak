@@ -299,7 +299,6 @@ install-readme::
 		$(INSTALL_DATA) ..\README "$(PLBASE)\README.TXT"
 		$(INSTALL_DATA) ..\VERSION "$(PLBASE)"
 		$(INSTALL_DATA) ..\ChangeLog "$(PLBASE)\ChangeLog.TXT"
-		$(INSTALL_DATA) ..\README.WIN "$(PLBASE)\READWIN.TXT"
 		$(INSTALL_DATA) ..\COPYING "$(PLBASE)\COPYING.TXT"
 		$(INSTALL_DATA) ..\man\windows.html "$(PLBASE)\doc"
 
