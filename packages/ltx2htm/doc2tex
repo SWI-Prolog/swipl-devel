@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/env perl
 
 sub printTeX
 { s/`([@\w]+)\s*<->(\w+)/\\index{\l\1,\\both{\2}}`\1 \\both{\2}/g;
