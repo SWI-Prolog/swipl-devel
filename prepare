@@ -73,3 +73,11 @@ WARNING: download the documentation when using the GIT/CVS sources.
 _EOM_
 fi
     
+if [ -f doc-version ]; then
+    docversion="`cat doc-version`"
+    if [ "$docversion" != $version ]; then
+    cat << _EOM_
+WARNING: "Documentation version ($docversion) does not match version ($version)"
+_EOM_
+    fi
+fi
