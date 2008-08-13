@@ -5,6 +5,9 @@
 \onefile
 \makeindex
 
+\htmloutput{.}
+\htmlmainfile{ltx2htm}	
+
 \title{Converting LaTeX into HTML}
 \author{Jan Wielemaker\\
 	HCS, University of Amsterdam\\

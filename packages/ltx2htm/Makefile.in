@@ -58,11 +58,10 @@ tex.@SO@:		$(OBJ)
 ################################################################
 # Documentation
 ################################################################
-
 doc:	html pdf
 
 html:	$(DOC).tex
-	latex2html $(DOC)
+	../pl.sh -s run.pl -g main -- $(DOC)
 
 pdf:	$(DOC).tex
 	$(RUNTEX) --pdf $(DOC)
@@ -76,6 +75,7 @@ $(DOC).tex:	$(DOC).doc
 
 clean::
 	rm -f *% *~ $(OBJ) tex.@SO@
+	$(RUNTEX) --clean $(DOC)
 
 distclean: clean
 	rm -f Makefile latex2html

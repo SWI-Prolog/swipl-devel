@@ -992,8 +992,9 @@ cmd(htmloutput({Dir}), []) :-
 		   'Cannot change output directory after output has started~n',
 		   []),
 	    fail
-	;   retract(html_output_dir(_)), !,
-	    asserta(html_output_dir(Dir))
+	;   clean_tt(Dir, Clean),
+	    retract(html_output_dir(_)), !,
+	    asserta(html_output_dir(Clean))
 	).
 cmd(htmlmainfile({File}), []) :-
 	retractall(html_file_base(_)),
@@ -1375,6 +1376,7 @@ translate_reference(Name, Tag, Label,
 
 clean_tt([Atom], Atom) :-
 	atomic(Atom), !.
+clean_tt('\\Sdot', '.') :- !.
 clean_tt(Raw, Clean) :-
 	atom_codes(Raw, S0),
 	(   append("{", S1, S0),
