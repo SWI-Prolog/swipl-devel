@@ -35,6 +35,10 @@
 	   , term_to_atom/2
 	   ]).
 
+:- if(exists_source(library(helpidx))).
+:- use_module(library(helpidx), [predicate/5]).
+:- endif.
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Class prolog_predicate represents the identity of a Prolog predicate. It
 is used with predicate_item  for   locating  predicates and encapsulates
@@ -187,7 +191,7 @@ has_help(P) :->
 summary(P, Summary:string) :<-
 	get(P, name, Name),
 	get(P, arity, Arity),
-	(   predicate(Name, Arity, Summary0, _, _),
+	(   catch(predicate(Name, Arity, Summary0, _, _), _, fail),
 	    new(Summary, string('%s', Summary0))
 	->  true
 	;   (   get(P, module, M),

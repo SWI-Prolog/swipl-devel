@@ -30,12 +30,23 @@
 */
 
 :- module(online_help,
-	[ help/1
-	, help/0
-	, apropos/1
-	]).
+	  [ help/1,
+	    help/0,
+	    apropos/1
+	  ]).
 :- use_module(lists, [append/3, member/2]).
+
+:- if(exists_source(library(helpidx))).
 :- use_module(library(helpidx)).
+no_help :-
+	fail.
+:- else.
+no_help :-
+	print_message(warning, no_help_files).
+function(_,_,_).			% make check silent
+predicate(_,_,_,_,_).
+section(_,_,_,_).
+:- endif.
 
 :- multifile
 	prolog:help_hook/1.		% Generic help hook.
@@ -50,6 +61,8 @@ defined pager, which defaults to `more'.
 %	help/0
 
 help :-
+	no_help, !.
+help :-
 	prolog:help_hook(help), !.
 help :-
 	help(help/1).
@@ -58,6 +71,8 @@ help :-
 %
 %	Display online help on specified subject.
 
+help(_) :-
+	no_help, !.
 help(What) :-
 	prolog:help_hook(help(What)), !.
 help(What) :-
@@ -66,6 +81,8 @@ help(What) :-
 %%	apropos(Pattern)
 %	Give a list of subjects that might be appropriate.
 
+apropos(_) :-
+	no_help, !.
 apropos(What) :-
 	prolog:help_hook(apropos(What)), !.
 apropos(What) :-
@@ -298,3 +315,18 @@ to_system_index(A-B, I) :- !,
 	append(C, [B], I).
 to_system_index(A, [A]) :-
 	integer(A).
+
+                 /*******************************
+                 *            MESSAGES          *
+                 *******************************/
+
+:- multifile
+        prolog:message/3.
+
+prolog:message(no_help_files) -->
+        [ 'The online help files (helpidx.pl, MANUAL) are not installed.', nl,
+	  'If you installed SWI-Prolog from GIT/CVS, please consult', nl,
+	  'README.doc and README.git in the toplevel of the sources.'
+	].
+
+
