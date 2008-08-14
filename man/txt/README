@@ -1,41 +1,16 @@
 To install:
 
 Modified for LaTeX2e, tested using teTeX installation by Jan
-Wielemaker.  This read file has been updated.
+Wielemaker.  This README file has been updated.
 
-1) Copy the desired .sty files to your favoriate LaTeX library.
-   I created /usr/share/texmf/tex/latex/doc/ and copied the
-   .sty files below to this new directory.
+1-3) Edit Makefile to suit your TeX configuration and run
 
-   txt.sty      - Generates fixed-width font output from LaTeX input.
-                  Does flush-right output if doc.tfm is installed.
+	% sudo make install
 
-   txt.tex      - "Documentation" for the above.
+4) Make and install the new version of dvi2tty:
 
-   rfc.sty      - .sty for Internet RFCs.
-
-   i-d.sty      - .sty for Internet Drafts.
-
-   rfc.tex      - "Documentation" for the above.
-
-2) Copy the doc.tfm file to your favorite LaTeX font directory.
-   I created /usr/share/texmf/fonts/tfm/doc/ and copied the
-   file there.  Make links or copies using the names docbf.tfm
-   and docul.tfm:
-
-	% cd /usr/lib/teTeX/texmf/fonts/tfm/doc/
-	% ln doc.tfm docbf.tfm
-	% ln doc.tfm docul.tfm
-
-3) Update the kpathsea database.  On teTeX installation, run texconfig:
-
-	% texconfig rehash
-
-3) Make and install the new version of dvi2tty:
-
-   cd dvi2tty
-   make
-   cp dvi2tty <your favorite binary directory>
+	% cd dvi2tty
+	% make
 
 ================================================================
 Usage:
