@@ -7,3 +7,6 @@
 [submodule "packages/clpqr"]
 	path = packages/clpqr
 	url = ../clpqr.git
+[submodule "packages/inclpr"]
+	path = packages/inclpr
+	url = ../inclpr.git
