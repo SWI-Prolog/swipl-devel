@@ -15,8 +15,39 @@ extra=pl-extra-$version.tar
 doc=pl-doc-$version.tar
 compress=gzip
 
+TAG="V$version"
+
+case "$1" in
+    --tag=*)
+	TAG=`echo $1 | sed 's/--tag=//'`
+	shift
+	;;
+    --*)
+	echo "Usage: make-source-tape [--tag=TAG]"
+	exit 1
+	;;
+    *)
+esac
+
+if ! git diff --quiet; then
+    echo "Fatal: directory is dirty"
+    exit 1
+fi
+
 # core SWI-Prolog snapshot from GIT
-git archive --format=tar --prefix=pl-$version/ V$version > ../$out
+git archive --format=tar --prefix=pl-$version/ "$TAG" > ../$out
+
+#add the submodules
+for sm in `git submodule status | awk '{printf "%s:%s\n", $1, $2}'`; do
+    sha1=`echo $sm | awk -F: '{print $1}'`
+    path=`echo $sm | awk -F: '{print $2}'`
+    echo -n "adding module $path at $sha1 ... " 
+    git --git-dir $path/.git archive --format=tar --prefix=pl-$version/$path/ $sha1 > tmp.tar
+    tar -Af ../$out tmp.tar
+    rm tmp.tar
+    echo ok
+done
+
 # generated documentation files
 echo $version > doc-version
 tar zcf ../$doc.gz ./doc-version `cat gen-files/doc`
