@@ -1,0 +1,3 @@
+[submodule "packages/chr"]
+	path = packages/chr
+	url = ../chr.git
