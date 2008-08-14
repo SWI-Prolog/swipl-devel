@@ -2172,7 +2172,6 @@ nbio_close_input(nbio_sock_t socket)
 
   DEBUG(2, Sdprintf("[%d]: nbio_close_input(%d, flags=0x%x)\n",
 		    PL_thread_self(), socket, s->flags));
-  s->input = NULL;
   s->flags &= ~SOCK_INSTREAM;
 #ifdef __WINDOWS__
   if ( false(s, SOCK_LISTEN) )
@@ -2191,6 +2190,7 @@ nbio_close_input(nbio_sock_t socket)
   }
 #endif
 
+  s->input = NULL;
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
     return freeSocket(s);
 
@@ -2214,7 +2214,6 @@ nbio_close_output(nbio_sock_t socket)
     SOCKET sock;
 #endif
 
-    s->output = NULL;
     s->flags &= ~SOCK_OUTSTREAM;
 #if __WINDOWS__
     if ( (sock=s->socket) < 0 )
@@ -2239,6 +2238,7 @@ nbio_close_output(nbio_sock_t socket)
   }
 
   DEBUG(3, Sdprintf("%d->flags = 0x%x\n", socket, s->flags));
+  s->output = NULL;
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
     return freeSocket(s);
 
