@@ -1602,7 +1602,7 @@ srcdir=`cd $srcdir && pwd`
 # Prepare the package configuration if present
 
 if test -r ../packages/Makefile.in; then
-  OutputFiles="$OutputFiles ../packages/Makefile ../packages/plld.sh ../packages/pl.sh"
+  OutputFiles="$OutputFiles ../man/Makefile ../packages/Makefile ../packages/plld.sh ../packages/pl.sh"
 fi
 
 if test -r ../packages/configure.in; then

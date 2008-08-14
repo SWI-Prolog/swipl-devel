@@ -8,11 +8,8 @@
 #
 # If you insist building it yourself, at least check the following
 #
-#	* Setting of the $(PL) below
-#	* Path to perl in doc2tex
 #	* Installed programs
-#		- latex 2e
-#		- pdflatex
+#		- latex (teTeX)
 #		- latex2html from the html subdirectory of Prolog
 #		- gcc (for ccp as well as building modified dvi2tty)
 #	* The PlDoc generated manuals need to installed system as
@@ -20,11 +17,12 @@
 #
 ################################################################
 
-PUBLICPL=	pl
-PL=		../linux/$(PUBLICPL)
+PUBLICPL=	@PL@
+PL=		../@BUILDDIR@/pl.sh
 
-CP=		ln -fs
-CCCP=		gcc -E -C -P
+CP=		cp
+CPP=		@CPP@
+CCCP=		$(CPP) -C -P
 DVITOTTY=	./dvi2tty
 DVITOTTY-HOME=	txt/dvi2tty
 INDEX=  	makeindex
@@ -112,6 +110,7 @@ clean:
 distclean:	clean
 		rm -f $(MANUAL) $(DVITOTTY)
 		rm -rf Manual.tmp
+		rm -f Makefile
 		make -C$(DVITOTTY-HOME) distclean
 
 $(PDF):		doc.tex $(TEXFILES) doc.bbl
