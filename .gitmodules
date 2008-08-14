@@ -4,3 +4,6 @@
 [submodule "packages/jpl"]
 	path = packages/jpl
 	url = ../jpl.git
+[submodule "packages/clpqr"]
+	path = packages/clpqr
+	url = ../clpqr.git
