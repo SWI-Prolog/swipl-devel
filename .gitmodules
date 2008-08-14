@@ -1,3 +1,6 @@
 [submodule "packages/chr"]
 	path = packages/chr
 	url = ../chr.git
+[submodule "packages/jpl"]
+	path = packages/jpl
+	url = ../jpl.git
