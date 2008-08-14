@@ -91,6 +91,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 PLLIBS=$(PLLIBS) threadutil.pl thread.pl thread_pool.pl
 !ENDIF
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
+COMMON=	README
 DIALECT=yap.pl
 YAP=	README.TXT
 ISO=	iso_predicates.pl
@@ -247,6 +248,7 @@ install-demo:	idirs
 IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
 		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
+		"$(PLBASE)\library\common" \
 		"$(PLBASE)\library\dialect" "$(PLBASE)\library\dialect\yap" \
 		"$(PLBASE)\library\dialect\iso" \
 		"$(PLBASE)\library\unicode" $(MANDIR) \
@@ -261,13 +263,18 @@ iboot:
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
-ilib:		iclp idialect iyap iiso iunicode
+ilib:		icommon iclp idialect iyap iiso iunicode
 		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"
 
 iclp::
 		chdir $(PLHOME)\library\clp & \
 			for %f in ($(CLP)) do copy %f "$(PLBASE)\library\clp"
+
+icommon::
+		copy "$(PLHOME)\boot\library\common\README" "$(PLBASE)\library\common\README.TXT"
+		chdir $(PLHOME)\library\common & \
+			for %f in ($(COMMON)) do copy %f "$(PLBASE)\library\common"
 
 idialect:	iyap
 		chdir $(PLHOME)\library\dialect & \

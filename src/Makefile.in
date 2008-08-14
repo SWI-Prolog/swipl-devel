@@ -150,6 +150,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	thread.pl dialect.pl apply_macros.pl apply.pl nb_rbtrees.pl \
 	aggregate.pl pure_input.pl pio.pl thread_pool.pl terms.pl
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
+COMMON= README
 DIALECT=yap.pl
 YAP=	README.TXT
 ISO=	iso_predicates.pl
@@ -352,7 +353,8 @@ install-demo:	idirs
 
 installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man demo boot library \
 		library/clp library/unicode include dotfiles \
-		library/dialect library/dialect/yap library/dialect/iso
+		library/dialect library/dialect/yap library/dialect/iso \
+		library/common
 
 iruntime:	idirs
 		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(ARCH)
@@ -391,7 +393,7 @@ idirs::
 iboot:		idirs
 		for f in $(PLINIT) $(PLSRC); do $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/boot; done
 
-ilib:		idirs iclp idialect iunicode
+ilib:		idirs icommon iclp idialect iunicode
 		for f in $(PLLIBS); do \
 			$(INSTALL_DATA) ../library/$$f $(DESTDIR)$(PLBASE)/library; \
 		done
@@ -399,6 +401,11 @@ ilib:		idirs iclp idialect iunicode
 iclp:		idirs
 		for f in $(CLP); do \
 			$(INSTALL_DATA) ../library/clp/$$f $(DESTDIR)$(PLBASE)/library/clp; \
+		done
+
+icommon:	idirs
+		for f in $(COMMON); do \
+			$(INSTALL_DATA) ../library/common/$$f $(DESTDIR)$(PLBASE)/library/common; \
 		done
 
 idialect:	idirs iyap iiso

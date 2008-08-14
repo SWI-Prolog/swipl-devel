@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi.psy.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -54,6 +54,11 @@ user:library_directory(Dir) :-
 user:library_directory(Dir) :-
 	cached_library_directory(system,
 				 absolute_file_name(swi(library), Dir0),
+				 Dir0),
+	Dir = Dir0.
+user:library_directory(Dir) :-
+	cached_library_directory(system,
+				 absolute_file_name(swi('library/common'), Dir0),
 				 Dir0),
 	Dir = Dir0.
 user:library_directory(Dir) :-
