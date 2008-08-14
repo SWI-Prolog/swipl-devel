@@ -10,7 +10,7 @@ cat >> version.h.new <<_EOM_
 _EOM_
 
 gitversion=''
-if v=`git describe 2>/dev/null`; then
+if v=`git describe --match 'V*' 2>/dev/null`; then
     if [ ! -z $v ]; then
 	gitversion=`echo $v | sed 's/^V//'`
 	if ! git diff --quiet; then gitversion="$gitversion-DIRTY"; fi
