@@ -151,3 +151,5 @@ src/swipl
 src/version.h
 boot32.prc
 boot64.prc
+doc-version
+.doc-action

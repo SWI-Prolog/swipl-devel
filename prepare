@@ -19,6 +19,21 @@ findexe()
   return 1
 }
 
+function confirm ()
+{ while true; do
+    echo -n "$1"
+    read answer
+    case "$answer" in
+          y*)   return 0
+                ;;
+          n*)   return 1
+                ;;
+          *)
+                echo "Please answer yes or no"
+                ;;
+    esac
+  done
+}
 
 ################################################################
 # Configuration
@@ -58,26 +73,93 @@ done
 download_docs()
 { doc=pl-doc-$version.tar.gz
 
+  if ! findexe curl; then
+    echo "ERROR: downloading documentation requires the curl program"
+    exit 1
+  fi
+
   echo -n "Downloading documentation for SWI-Prolog $version from $server ..."
   curl $server/generated/$doc > $doc
   ls -l $doc
   tar zxvf $doc
+  eval_doc
 }
 
 
-if [ ! -d man/Manual ]; then
+eval_doc()
+{ doc=unknown
+  if [ ! -d man/Manual ]; then
+    doc=absent
+  else
+    if [ -f doc-version ]; then
+      docversion="`cat doc-version`"
+      if [ "$docversion" != $version ]; then
+	doc=out-of-date
+      else
+	doc=ok
+      fi
+    else
+      doc=build
+    fi
+  fi
+}
+
+done=false
+while [ "$done" = false ]; do
+  case "$doc" in
+    absent|out-of-date)
+      if [ -f .doc-action ]; then
+	done=true
+	case "`cat .doc-action`" in
+	  download)
+	    download_docs
+	    ;;
+	  ask)
+	    if confirm "Download documentation for $version from $server"; then
+		download_docs
+	    fi
+	    ;;
+	  warn)
+	    ;;
+	esac
+      else
+	echo "Could not find documentation.  What do you want to do?"
+	echo ""
+	echo "    1) Automatically download and unpack documentation from $server"
+	echo "    2) Ask to download and unpack download"
+	echo "    3) Warn only"
+	echo ""
+	echo -n "Option? "
+	read answer
+	case "$answer" in
+	  1) echo download > .doc-action
+	     ;;
+	  2) echo ask > .doc-action
+	     ;;
+	  3) echo warn > .doc-action
+	     ;;
+	  *) goto doc_again
+	     ;;
+	esac
+      fi
+      ;;
+    *)
+      done=true
+      ;;
+  esac
+done
+
+case "$doc" in
+  absent)
     cat << _EOM_
 WARNING: Cannot find documentation in man/Manual.  See README.git
 WARNING: and README.doc for further information and how to
 WARNING: download the documentation when using the GIT/CVS sources.
 _EOM_
-fi
-    
-if [ -f doc-version ]; then
-    docversion="`cat doc-version`"
-    if [ "$docversion" != $version ]; then
+    ;;
+  out-of-date)
     cat << _EOM_
 WARNING: "Documentation version ($docversion) does not match version ($version)"
 _EOM_
-    fi
-fi
+    ;;
+esac
