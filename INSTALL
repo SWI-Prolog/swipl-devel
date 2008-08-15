@@ -16,6 +16,13 @@ and sometimes aged default  compiler  settings   for  the  system native
 compiler, so in most case you will need to modify the CFLAGS and LDFLAGS
 definitions in the Makefile to reach at optimal results.
 
+GIT
+---
+
+This guide assumes installation from the source tar-ball. If you use GIT
+to download, please consult README.git  to   learn  how to complete your
+pack.
+
 
 Prerequisites
 -------------
