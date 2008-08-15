@@ -236,8 +236,7 @@ case "$doc" in
   absent)
     cat << _EOM_
 WARNING: Cannot find documentation in man/Manual.  See README.git
-WARNING: and README.doc for further information and how to
-WARNING: download the documentation when using the GIT/CVS sources.
+WARNING: and README.doc for further information.
 _EOM_
     ;;
   out-of-date)
