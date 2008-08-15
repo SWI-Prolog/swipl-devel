@@ -13,6 +13,21 @@
 
 version="`cat VERSION`"
 server="http://gollem.science.uva.nl/cgi-bin/nph-download/SWI-Prolog"
+yes=ask
+
+done=false
+while [ "$done" = false ]; do
+  case "$1" in
+    --yes)
+	yes=yes
+	shift
+	;;
+    *)
+	done=true
+	;;
+  esac
+done
+
 
 findexe()
 { oldifs="$IFS"
@@ -27,8 +42,13 @@ findexe()
   return 1
 }
 
+
 function confirm ()
-{ while true; do
+{ if [ "$yes" = yes ]; then
+    return 0
+  fi
+
+  while true; do
     echo -n "$1"
     read answer
     case "$answer" in
@@ -42,6 +62,31 @@ function confirm ()
     esac
   done
 }
+
+
+################################################################
+# Sub-modules
+################################################################
+
+if git submodule | grep '^-' > /dev/null; then
+  echo "Not (all) submodules have been initialised."
+  if confirm "Do you want me to initialize and download the submodules? "; then
+    git submodule init
+    git submodule update
+  fi
+fi
+
+outofdate=`git submodule | grep '^[-+]' | awk '{print $2}'`
+if [ -z "$outofdate" ]; then
+  echo "All submodules are up-to-date"
+else
+  echo "The following submodules are not up-to-date"
+  echo "   $outofdate"
+  if confirm "Do you want me to run git submodule update? "; then
+    git submodule update
+  fi
+fi
+
 
 ################################################################
 # Configuration
