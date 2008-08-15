@@ -274,7 +274,7 @@ format_impl(IOSTREAM *out, term_t format, term_t Args)
   if ( !PL_get_text(format, &fmt, CVT_ALL|BUF_RING) )
     return PL_error("format", 3, NULL, ERR_TYPE, ATOM_text, format);
 
-  if ( (argc = lengthList(args, FALSE)) >= 0 )
+  if ( (argc = (int)lengthList(args, FALSE)) >= 0 )
   { term_t head = PL_new_term_ref();
     int n = 0;
 
