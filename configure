@@ -61,8 +61,10 @@ sed -e "s/@BUILDARCH@/$BUILDARCH/" \
     -e "s%@CONFIG_OPTIONS@%$configoptions%" \
 	Makefile.in > Makefile
 
-if ! ./prepare; then
-  exit 1
+if [ -d .git ]; then
+  if ! ./prepare; then
+    exit 1
+  fi
 fi
 
 (cd $BUILDARCH && ../src/configure $configoptions $mtoptions)
