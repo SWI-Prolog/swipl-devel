@@ -175,7 +175,7 @@ pl-atom.ih:	ATOMS defatom.exe
 		defatom.exe 
 
 defatom.exe:	defatom.obj
-		$(LD) /out:$@ /subsystem:console defatom.obj
+		$(LD) /out:$@ /subsystem:console defatom.obj $(LIBS)
 		
 $(PLLD):	plld.obj
 		$(LD) /out:$@ /subsystem:console plld.obj $(LIBS)
