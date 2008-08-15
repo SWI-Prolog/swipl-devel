@@ -11,7 +11,8 @@
 # master repository. It is  normally  executed   from  configure  in the
 # toplevel directory.
 # 
-# On Windows installations, this script may be run from the MsysGit.
+# On Windows installations, this script may be run from the MsysGit bash
+# shell to initialise the submodules and download the documentation.
 
 version="`cat VERSION`"
 server="http://gollem.science.uva.nl"
