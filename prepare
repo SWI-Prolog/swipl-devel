@@ -16,6 +16,7 @@ server="http://gollem.science.uva.nl"
 serverpath="/cgi-bin/nph-download/SWI-Prolog"
 serverurl="$server$serverpath"
 yes=ask
+tar=tar
 
 done=false
 while [ "$done" = false ]; do
@@ -65,6 +66,17 @@ function confirm ()
   done
 }
 
+
+################################################################
+# Fix programs
+################################################################
+
+if findexe gtar; then tar=gtar; fi;
+if ! findexe autoconf; then
+    echo "FATAL: prepare needs GNU autoconf."
+    echo "FATAL: Please install autoconf and try again"
+    exit 1;
+fi
 
 ################################################################
 # Sub-modules
@@ -136,8 +148,12 @@ download_docs()
   echo -n "Downloading documentation for SWI-Prolog $version from $server ..."
   curl $serverurl/generated/$doc > $doc
   ls -l $doc
-  if tar zxf $doc; then
+  echo -n "Unpacking $doc ..."
+  if $tar zxf $doc; then
      rm $doc
+     echo "ok"
+  else
+     echo "Unpack failed."
   fi
   eval_doc
 }
@@ -182,6 +198,7 @@ while [ "$done" = false ]; do
 	    ;;
 	esac
       else
+	echo ""
 	echo "Could not find documentation.  What do you want to do?"
 	echo ""
 	echo "    1) Download and unpack documentation from $server"
@@ -229,3 +246,5 @@ WARNING: "Documentation version ($docversion) does not match version ($version)"
 _EOM_
     ;;
 esac
+
+echo "Your kit is prepared.  Please consult INSTALL for further instructions."
