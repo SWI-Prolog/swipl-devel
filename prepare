@@ -12,7 +12,9 @@
 # toplevel directory.
 
 version="`cat VERSION`"
-server="http://gollem.science.uva.nl/cgi-bin/nph-download/SWI-Prolog"
+server="http://gollem.science.uva.nl"
+serverpath="/cgi-bin/nph-download/SWI-Prolog"
+serverurl="$server$serverpath"
 yes=ask
 
 done=false
@@ -132,9 +134,11 @@ download_docs()
   fi
 
   echo -n "Downloading documentation for SWI-Prolog $version from $server ..."
-  curl $server/generated/$doc > $doc
+  curl $serverurl/generated/$doc > $doc
   ls -l $doc
-  tar zxvf $doc
+  if tar zxf $doc; then
+     rm $doc
+  fi
   eval_doc
 }
 
@@ -157,6 +161,8 @@ eval_doc()
   fi
 }
 
+eval_doc
+
 done=false
 while [ "$done" = false ]; do
   case "$doc" in
@@ -178,18 +184,25 @@ while [ "$done" = false ]; do
       else
 	echo "Could not find documentation.  What do you want to do?"
 	echo ""
-	echo "    1) Automatically download and unpack documentation from $server"
-	echo "    2) Ask to download and unpack download"
+	echo "    1) Download and unpack documentation from $server"
+	echo "       and do this again automatically next time"
+	echo "    2) Download and unpack documentation from $server"
+	echo "       and ask next time"
 	echo "    3) Warn only"
 	echo ""
 	echo -n "Option? "
 	read answer
 	case "$answer" in
 	  1) echo download > .doc-action
+	     download_docs
+	     done=true
 	     ;;
 	  2) echo ask > .doc-action
+	     download_docs
+	     done=true
 	     ;;
 	  3) echo warn > .doc-action
+	     done=true
 	     ;;
 	  *) goto doc_again
 	     ;;
