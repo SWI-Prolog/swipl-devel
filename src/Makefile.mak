@@ -272,7 +272,7 @@ iclp::
 			for %f in ($(CLP)) do copy %f "$(PLBASE)\library\clp"
 
 icommon::
-		copy "$(PLHOME)\boot\library\common\README" "$(PLBASE)\library\common\README.TXT"
+		copy "$(PLHOME)\library\common\README" "$(PLBASE)\library\common\README.TXT"
 		chdir $(PLHOME)\library\common & \
 			for %f in ($(COMMON)) do copy %f "$(PLBASE)\library\common"
 
