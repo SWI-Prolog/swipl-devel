@@ -1,7 +1,15 @@
 #!/bin/sh
 # ./prepare
 # 
-# Run GNU autoconf to generate all configure files
+# Prepare sources obtained from GIT for   compilation. Runs GNU autoconf
+# to generate all configure  files   and  optionally downloads generated
+# documentation  files.  On  first  run  the  desired  handling  of  the
+# documentation is stored in the  file   .doc-action.  This  file can be
+# deleted to make this script ask again.
+# 
+# This script must be run each time after updating your version from the
+# master repository. It is  normally  executed   from  configure  in the
+# toplevel directory.
 
 version="`cat VERSION`"
 server="http://gollem.science.uva.nl/cgi-bin/nph-download/SWI-Prolog"
