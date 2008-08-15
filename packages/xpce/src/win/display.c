@@ -1396,23 +1396,27 @@ typedef struct
 #define XNAME(x) x
 #endif
 
+#ifndef FIXED_FAMILY
+#define FIXED_FAMILY "courier"
+#endif
+
 static fontdef screen_fonts[] =
 { PFONT(NAME_roman, 10,
-	"-efont-fixed-medium-r-normal--10-*-*-*-*-*-iso10646-*"),
+	"-" FIXED_FAMILY "-fixed-medium-r-normal--10-*-*-*-*-*-iso10646-*"),
   PFONT(NAME_roman, 12,
-	"-efont-fixed-medium-r-normal--12-*-*-*-*-*-iso10646-*"),
+	"-" FIXED_FAMILY "-fixed-medium-r-normal--12-*-*-*-*-*-iso10646-*"),
   PFONT(NAME_roman, 14,
-	"-efont-fixed-medium-r-normal--14-*-*-*-*-*-iso10646-*"),
+	"-" FIXED_FAMILY "-fixed-medium-r-normal--14-*-*-*-*-*-iso10646-*"),
   PFONT(NAME_roman, 16,
-	"-efont-fixed-medium-r-normal--16-*-*-*-*-*-iso10646-*"),
+	"-" FIXED_FAMILY "-fixed-medium-r-normal--16-*-*-*-*-*-iso10646-*"),
   PFONT(NAME_bold, 10,
-	"-efont-fixed-bold-r-normal--10-*-*-*-*-*-iso10646-*"),
+	"-" FIXED_FAMILY "-fixed-bold-r-normal--10-*-*-*-*-*-iso10646-*"),
   PFONT(NAME_bold, 12,
-	"-efont-fixed-bold-r-normal--12-*-*-*-*-*-iso10646-*"),
+	"-" FIXED_FAMILY "-fixed-bold-r-normal--12-*-*-*-*-*-iso10646-*"),
   PFONT(NAME_bold, 14,
-	"-efont-fixed-bold-r-normal--14-*-*-*-*-*-iso10646-*"),
+	"-" FIXED_FAMILY "-fixed-bold-r-normal--14-*-*-*-*-*-iso10646-*"),
   PFONT(NAME_bold, 16,
-	"-efont-fixed-bold-r-normal--16-*-*-*-*-*-iso10646-*"),
+	"-" FIXED_FAMILY "-fixed-bold-r-normal--16-*-*-*-*-*-iso10646-*"),
   ENDFONTLIST
 };
 
