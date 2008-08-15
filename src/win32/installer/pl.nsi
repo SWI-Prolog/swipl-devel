@@ -191,6 +191,7 @@ SectionEnd
 Section "Common Prolog Library"
   SectionIn 1 3
   SetOutPath $INSTDIR\library\common
+  File /r pl\library\common
 SectionEnd
 
 Section "Constraint Handling Rules"

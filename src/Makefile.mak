@@ -91,7 +91,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 PLLIBS=$(PLLIBS) threadutil.pl thread.pl thread_pool.pl
 !ENDIF
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
-COMMON=	README
+COMMON=	
 DIALECT=yap.pl
 YAP=	README.TXT
 ISO=	iso_predicates.pl
