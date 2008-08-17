@@ -1705,6 +1705,16 @@ constrain_to_integer(Var) :-
         fd_get(Var, D, Ps),
         fd_put(Var, D, Ps).
 
+power_var_num(P, X, N) :-
+        (   var(P) -> X = P, N = 1
+        ;   P = Left*Right,
+            power_var_num(Left, XL, L),
+            power_var_num(Right, XR, R),
+            XL == XR,
+            X = XL,
+            N is L + R
+        ).
+
 parse_clpfd(Expr, Result) :-
         (   cyclic_term(Expr) -> domain_error(clpfd_expression, Expr)
         ;   var(Expr) ->
@@ -1714,6 +1724,8 @@ parse_clpfd(Expr, Result) :-
         ;   Expr = (L + R) ->
             parse_clpfd(L, RL), parse_clpfd(R, RR),
             myplus(RL, RR, Result)
+        ;   power_var_num(Expr, Var, N), N > 2 ->
+            Var^N #= Result
         ;   Expr = (L * R) ->
             parse_clpfd(L, RL), parse_clpfd(R, RR),
             mytimes(RL, RR, Result)
@@ -2013,26 +2025,33 @@ gcd_(A, B, G) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Non-negative square root of N, if N is a square number.
+   k-th root of N, if N is a power of k.
 
    TODO: Replace this when the GMP function becomes available.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-integer_sqrt(N, S) :-
-        N >= 0,
-        integer_sqrt(0, N, N, S).
+integer_kroot(K, N, R) :-
+        (   K mod 2 =:= 0 ->
+            N >= 0
+        ;   true
+        ),
+        (   N < 0 ->
+            K mod 2 =:= 1,
+            integer_kroot(N, 0, K, N, R)
+        ;   integer_kroot(0, N, K, N, R)
+        ).
 
-integer_sqrt(L, U, N, S) :-
-        (   L =:= U -> N =:= L*L, S = L
-        ;   succ(L, U) ->
-            (   L*L =:= N -> S = L
-            ;   U*U =:= N -> S = U
+integer_kroot(L, U, K, N, R) :-
+        (   L =:= U -> N =:= L**K, R = L
+        ;   L + 1 =:= U ->
+            (   L**K =:= N -> R = L
+            ;   U**K =:= N -> R = U
             ;   fail
             )
         ;   Mid is (L + U)//2,
-            (   Mid*Mid > N ->
-                integer_sqrt(L, Mid, N, S)
-            ;   integer_sqrt(Mid, U, N, S)
+            (   Mid**K > N ->
+                integer_kroot(L, Mid, K, N, R)
+            ;   integer_kroot(Mid, U, K, N, R)
             )
         ).
 
@@ -3122,7 +3141,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ;   nonvar(Z) ->
             (   X == Y ->
                 kill(MState),
-                integer_sqrt(Z, PRoot),
+                integer_kroot(2, Z, PRoot),
                 NRoot is -PRoot,
                 X in NRoot \/ PRoot
             ;   true
@@ -3447,6 +3466,14 @@ run_propagator(pexp(X,Y,Z), MState) :-
             ( Y >= 0 -> true ; X =:= -1 ),
             kill(MState),
             Z is X**Y
+        ;   nonvar(Z), nonvar(Y) ->
+            integer_kroot(Y, Z, R),
+            kill(MState),
+            (   Y mod 2 =:= 0 ->
+                N is -R,
+                X in N \/ R
+            ;   X = R
+            )
         ;   true
         ).
 
