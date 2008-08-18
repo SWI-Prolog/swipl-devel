@@ -3483,19 +3483,15 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 (   domain_contains(XD, 0) -> true
                 ;   neq_num(Z, 0)
                 ),
-                (   Y mod 2 =:= 0 ->
-                    (   XL cis_geq n(0) ->
-                        XL = n(NXL),
-                        NZL is NXL ** Y,
-                        domain_remove_smaller_than(ZD, NZL, ZD1),
-                        (   XU = n(NXU) ->
-                            NZU is NXU ** Y,
-                            domain_remove_greater_than(ZD1, NZU, ZD2)
-                        ;   ZD2 = ZD1
-                        ),
-                        fd_put(Z, ZD2, ZPs)
-                    ;   true
-                    )
+                (   XL = n(NXL), NXL >= 0 ->
+                    NZL is NXL ** Y,
+                    domain_remove_smaller_than(ZD, NZL, ZD1),
+                    (   XU = n(NXU) ->
+                        NZU is NXU ** Y,
+                        domain_remove_greater_than(ZD1, NZU, ZD2)
+                    ;   ZD2 = ZD1
+                    ),
+                    fd_put(Z, ZD2, ZPs)
                 ;   true        % TODO: propagate more
                 )
             ;   true
