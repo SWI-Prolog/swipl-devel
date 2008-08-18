@@ -1,0 +1,162 @@
+---+ Planning for kernel revision 5.7.X
+
+---++ VMI Restructuring [MOSTLY OK]
+
+Use a single definition:
+Open ends:
+
+	BEGIN_VMI(Param, ...)
+	{
+	}
+	- VMIs sharing variables.  See BEGIN_SHAREDVARS ... END_SHAREDVARS
+		- Does this harm optimization?
+
+VMI Info:
+---++ Supervisor instructions
+
+	Name
+	# args
+	argtype
+	* Type-specific header
+	* Generic header
+		- Type
+		- Size (header and body)
+		- Functions?
+	* Code
+
+Generate:
+---+++ Supervisors
+
+	* Table in pl-comp.c
+	* Enum for type `code' (now in pl-inc.h)
+	* GCC-2 Labels in VM switch
+	* Undefined
+	* Foreign
+		- Deterministic
+		- Non-deterministic
+	* Dynamic
+		- Thread-local
+		- Normal
+	* Static
+		- Generic (current model)
+		- 1 clause
+		- Simple type-switch
+		- Hashed
+			- Unique
+			- Unique+Var
+			- Var+Unique
+
+Loose ends:
+================================================================
+---+ Current setup
+
+	- VMIs sharing variables (TBD: Untangle)
+	- Variable sharing in calling variations
+Module:
+	* Table functor -> procedure
+
+Procedure:
+	* -> Definition
+
+Definition:
+	* Module
+	* -> ClauseRefList
+	   | Func
+	   | LocalDefinitions
+
+LocalDefinitions
+	* [Per Thread] -> Definition
+
+ClauseRefList
+	* Linked list of clause_ref
+
+ClauseRef
+	* -> Clause
+
+Clause
+	* -> Procedure
+	* -> Code
+
+VM-Code:
+	* I_CALL <Procedure>
+================================================================
+
+================================================================
+---+ New Setup
+
+Demands:
+	* I_CALL must point to
+		- Procedure (fixed from func+module)
+		- recursive: implementation
+	* We must be able to `hot-swap' the implementation
+
+Suppose:
+	* Current `definition' becomes `new supervisor'
+Then
+	- I_CALL: goto proc->definition; [GOOD]
+	- Supervisor will contain meta-data (module, etc).
+		- Swap needs to copy meta-data [OK]
+================================================================
+
+Simple way forward:
+
+	* Keep Definition around and get things out one-by-one?
+	* Create alternative compiler?
+		- I_CALL must be same?
+================================================================
+---+ Debugging
+
+	* Debug-mode
+		- Patch VM dispatching?
+		VMI(I_CALL)
+		{ goto *LD->vmi.I_CALL;
+		}
+
+	* Spy: 
+		- Patch code?
+		- Run on top of advice?
+
+================================================================
+Normal Prolog Supervisor:
+
+	* S_FIRSTCLAUSE
+		- Find first possibly interesting clause
+		- If nondet
+			Create choicepoint for next
+		- Jump to clause
+	* S_NEXTCLAUSE
+
+Frame:
+	* Implementation
+	* Clause
+
+================================================================
+Logical update behaviour:
+
+	* Dynamic code: based on created/erased; 
+	* Static code: replace entire supervisor;
+		- Compilation creates new one
+		- At end of def: replace
+		++ Recompilation of running code
+		- Compiler for static code
+			If name/arity == current
+				Add clause
+			else if have-current
+				Install
+		- Multifile/discontiguous/dynamic?
+
+================================================================
+Problems:
+
+	* Additional local info?
+		- Profiling (prof-node)
+		- Generation (dynamic code)
+	- Use registers?
+	- Clauses 
+
+================================================================
+Prolog representation of VM
+
+	* Instruction:
+	name(Arg, ...)
+	* Branching: c_or(Left, Right)

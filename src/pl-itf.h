@@ -127,6 +127,7 @@ typedef Record		record_t;	/* handle to a recorded term */
 typedef struct PL_local_data *PL_engine_t; /* handle to a engine */
 #else
 typedef	uintptr_t	atom_t;		/* Prolog atom */
+typedef uintptr_t	functor_t;	/* Name/arity pair */
 typedef void *		module_t;	/* Prolog module */
 typedef void *		predicate_t;	/* Prolog procedure */
 typedef void *		record_t;	/* Prolog recorded term */
@@ -136,7 +137,6 @@ typedef uintptr_t	PL_fid_t;	/* opaque foreign context handle */
 typedef void *		control_t;	/* non-deterministic control arg */
 typedef void *		PL_engine_t;	/* opaque engine handle */
 #endif
-typedef uintptr_t	functor_t;	/* Name/arity pair */
 typedef uintptr_t	PL_atomic_t;	/* same a word */
 typedef uintptr_t	foreign_t;	/* return type of foreign functions */
 typedef wchar_t	        pl_wchar_t;	/* Prolog wide character */
@@ -797,14 +797,12 @@ PL_EXPORT(void)		PL_free(void *mem);
 typedef int  (*PL_dispatch_hook_t)(int fd);
 typedef void (*PL_abort_hook_t)(void);
 typedef void (*PL_initialise_hook_t)(int argc, char **argv);
-typedef void (*PL_async_hook_t)(void);	/* Win32 only (O_ASYNC_HOOK) */
 typedef int  (*PL_agc_hook_t)(atom_t a);
 
 PL_EXPORT(PL_dispatch_hook_t) 	PL_dispatch_hook(PL_dispatch_hook_t);
 PL_EXPORT(void)	       		PL_abort_hook(PL_abort_hook_t);
 PL_EXPORT(void)	       		PL_initialise_hook(PL_initialise_hook_t);
 PL_EXPORT(int)		      	PL_abort_unhook(PL_abort_hook_t);
-PL_EXPORT(PL_async_hook_t)    	PL_async_hook(unsigned int, PL_async_hook_t);
 PL_EXPORT(PL_agc_hook_t)      	PL_agc_hook(PL_agc_hook_t);
 
 

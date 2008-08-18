@@ -575,138 +575,7 @@ struct foreign_context
 #define ForeignContextPtr(h)	((void *)(h)->context)
 #define ForeignEngine(h)	((h)->engine)
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Virtual machine instruction declarations.  Prefixes:
-
-  I_	General instructions
-  B_	Body specific version
-  H_	Head specific versin
-  A_	Arithmetic compilation specific
-  C_	Control (compilation of ;/2, etc.)
-
-Numbering these things is arbitrary,  but  for  fast  operation  of  the
-switch  in  pl-wam.c,  numbering  should start at 0 and be without gaps.
-I_HIGHEST must be made equal to the highest  value  of  the  instruction
-codes.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define I_NOP		((code) 0)		/* nop */
-#define I_ENTER		((code) 1)		/* enter body */
-#define I_CALL		((code) 2)		/* call procedure */
-#define I_DEPART	((code) 3)		/* last call of procedure */
-#define I_EXIT		((code) 4)		/* exit procedure */
-#define B_FUNCTOR	((code) 5)		/* start functor */
-#define B_RFUNCTOR	((code) 6)		/* start functor */
-#define H_FUNCTOR	((code) 7)
-#define H_RFUNCTOR	((code) 8)
-#define I_POPF		((code) 9)		/* end functor */
-#define B_VAR		((code)10)		/* variable */
-#define H_VAR		((code)11)
-#define B_CONST		((code)12)		/* constant (atomic) */
-#define H_CONST		((code)13)
-#define B_STRING	((code)14)		/* String in body */
-#define H_STRING	((code)15)		/* String in the head */
-#define B_MPZ		((code)16)		/* String in body */
-#define H_MPZ		((code)17)		/* String in the head */
-#define B_INTEGER	((code)18)		/* bignum in the head */
-#define H_INTEGER	((code)19)		/* bignum in the body */
-#define B_INT64		((code)20)		/* bignum in the head */
-#define H_INT64		((code)21)		/* bignum in the body */
-#define B_FLOAT		((code)22)		/* double in the head */
-#define H_FLOAT		((code)23)		/* double in the body */
-
-#define B_FIRSTVAR	((code)24)		/* first occurrence of var */
-#define H_FIRSTVAR	((code)25)
-#define B_VOID		((code)26)		/* anonimous variables */
-#define H_VOID		((code)27)
-#define B_ARGFIRSTVAR	((code)28)		/* body vars nested in funct */
-#define B_ARGVAR	((code)29)
-
-#define H_NIL		((code)30)		/* [] in the head */
-#define B_NIL		((code)31)		/* [] in the body */
-#define H_LIST		((code)32)		/* ./2 in the head */
-#define H_RLIST		((code)33)		/* right-recursive list */
-#define B_LIST		((code)34)		/* ./2 in the body */
-#define B_RLIST		((code)35)		/* right-recursive list */
-
-#define B_VAR0		((code)36)		/* B_VAR 0 */
-#define B_VAR1		((code)37)		/* B_VAR 1 */
-#define B_VAR2		((code)38)		/* B_VAR 2 */
-
-#define I_USERCALL0	((code)39)		/* variable in body (call/1) */
-#define I_USERCALLN	((code)40)		/* call/[2...] */
-#define I_CUT		((code)41)		/* ! */
-#define I_APPLY		((code)42)		/* apply/2 */
-
-#if O_COMPILE_ARITH
-#define A_ENTER		((code)43)		/* start arithmetic sequence */
-#define A_INTEGER	((code)44)		/* 32-bit signed int */
-#define A_INT64		((code)45)		/* 64-bit signed int */
-#define A_MPZ		((code)46)		/* GMP mpz_t */
-#define A_DOUBLE	((code)47)		/* 64-bit double */
-#define A_VAR0		((code)48)		/* variable-0 */
-#define A_VAR1		((code)49)		/* variable-1 */
-#define A_VAR2		((code)50)		/* variable-2 */
-#define A_VAR		((code)51)		/* variable-n */
-#define A_FUNC0		((code)52)		/* nullary arithmic function */
-#define A_FUNC1		((code)53)		/* unary arithmic function */
-#define A_FUNC2		((code)54)		/* binary arithmic function */
-#define A_FUNC		((code)55)		/* n-ary arithmic function */
-#define A_LT		((code)56)		/* < */
-#define A_GT		((code)57)		/* > */
-#define A_LE		((code)58)		/* =< */
-#define A_GE		((code)59)		/* >= */
-#define A_EQ		((code)60)		/* =:= */
-#define A_NE		((code)61)		/* =\= */
-#define A_IS		((code)62)		/* is */
-#endif /* O_COMPILE_ARITH */
-
-#if O_COMPILE_OR
-#define C_OR		((code)63)		/* In-clause backtract point */
-#define C_JMP		((code)64)		/* Jump over code */
-#define C_MARK		((code)65)		/* Sub-clause cut mark */
-#define C_CUT		((code)66)		/* cut to corresponding mark */
-#define C_IFTHENELSE	((code)67)		/* if-then-else start */
-#define C_VAR		((code)68)		/* make a variable */
-#define C_END		((code)69)		/* dummy to help decompiler */
-#define C_NOT		((code)70)		/* same as C_IFTHENELSE */
-#define C_FAIL		((code)71)		/* fail */
-#endif /* O_COMPILE_OR */
-
-#if O_BLOCK
-#define I_CUT_BLOCK	((code)72)		/* !(block) */
-#define B_EXIT		((code)73)		/* exit(block, rval) */
-#endif /*O_BLOCK*/
-
-#if O_INLINE_FOREIGNS
-#define I_CALL_FV0	((code)74)		/* call foreign, no args */
-#define I_CALL_FV1	((code)75)		/* call foreign, 1 var arg */
-#define I_CALL_FV2	((code)76)		/* call foreign, 2 var args */
-#endif /*O_INLINE_FOREIGNS*/
-
-#define I_FAIL		((code)77)		/* fail */
-#define I_TRUE		((code)78)		/* true */
-
-#ifdef O_SOFTCUT
-#define C_SOFTIF	((code)79)		/* Start A *-> B ; C */
-#define C_SOFTCUT	((code)80)		/* `Cut' of A *-> B ; C */
-#endif /*O_SOFTCUT*/
-
-#define I_EXITFACT	((code)81)		/* exit from a fact */
-#define D_BREAK		((code)82)		/* Debugger break-point */
-
-#if O_CATCHTHROW
-#define I_CATCH		((code)83)		/* $catch (catch/3) */
-#define I_EXITCATCH	((code)84)		/* $exit_catch (catch/3) */
-#define B_THROW		((code)85)		/* throw(Exception) */
-#endif
-
-#define I_CONTEXT	((code)86)		/* Push context module */
-#define C_LCUT		((code)87)		/* ! local in \+ and -> */
-#define I_CALLCLEANUP	((code)88)		/* $call_cleanup */
-#define I_EXITCLEANUP	((code)89)		/* $exit_cleanup */
-
-#define I_HIGHEST	((code)89)		/* largest WAM code !!! */
+#include "pl-vmi.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -845,6 +714,7 @@ typedef uintptr_t		term_t;		/* external term-reference */
 typedef uintptr_t		word;		/* Anonymous 4 byte object */
 typedef word *			Word;		/* a pointer to anything */
 typedef word			atom_t;		/* encoded atom */
+typedef word			functor_t;	/* encoded functor */
 typedef uintptr_t		code WORD_ALIGNED; /* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
@@ -1278,7 +1148,7 @@ struct clause
   unsigned short	variables;	/* # of variables for frame */
   unsigned short	prolog_vars;	/* # real Prolog variables */
 #ifdef O_SHIFT_STACKS
-  unsigned short	marks;		/* C_MARK reserved */
+  unsigned short	marks;		/* C_IFTHEN reserved */
   unsigned short	line_no;	/* Source line-number */
 #else
   unsigned int		line_no; 	/* Source line-number */
@@ -1311,7 +1181,7 @@ struct clause_ref
 
 typedef struct
 { char		*name;		/* name of the code */
-  code		code;		/* number of the code */
+  vmi		code;		/* number of the code */
   char		arguments;	/* # arguments code takes */
   char		argtype;	/* # `external' arguments code takes */
 } code_info;

@@ -110,7 +110,8 @@ OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
 	pl-sys.o pl-table.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
 	pl-term.o pl-buffer.o pl-thread.o pl-xterm.o pl-feature.o pl-ctype.o \
 	pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o pl-utf8.o pl-main.o \
-	pl-text.o pl-gmp.o pl-tai.o pl-segstack.o pl-hash.o pl-version.o
+	pl-text.o pl-gmp.o pl-tai.o pl-segstack.o pl-hash.o pl-version.o \
+	pl-codetable.o
 XOBJ=	@ALLOCA@ @EXTRAOBJ@
 RCOBJ=	rc/access.o rc/build.o rc/html.o rc/util.o
 TAIOBJ= libtai/caltime_utc.o libtai/caltime_tai.o libtai/leapsecs_sub.o \
@@ -284,10 +285,17 @@ gitversion::
 		@$(srcdir)/mkversion.sh
 pl-version.o:	version.h
 
-$(OBJ):		parms.h $(srcdir)/pl-funct.ih
-pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c
+$(OBJ):		parms.h $(srcdir)/pl-funct.ih $(srcdir)/pl-vmi.h
+pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c pl-vmi.c $(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic
+pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
 pl-gc.o:	pl-lifegc.c
+$(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: $(srcdir)/pl-vmi.c mkvmi
+		./mkvmi "$(srcdir)"
+
+mkvmi:		mkvmi.c
+		$(CC) $(CFLAGS) -o $@ $(srcdir)/mkvmi.c
+
 
 ifdef RLPREFIX
 pl-rl.o:	pl-rl.c
@@ -518,6 +526,7 @@ distclean:	clean
 		@(cd rc && $(MAKE) distclean)
 		@(cd libtai && $(MAKE) distclean)
 		(cd $(srcdir) && rm -f pl-atom.ic pl-atom.ih pl-funct.ic pl-funct.ih)
+		(cd $(srcdir) && rm -f pl-codetable.c pl-vmi.h pl-jumptable.ic)
 		rm -rf $(INCLUDEDIR) ../lib
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h

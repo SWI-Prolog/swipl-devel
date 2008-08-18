@@ -158,9 +158,6 @@ COMMON(word) 		pl_xr_member(term_t ref, term_t term, control_t h);
 COMMON(void) 		wamListClause(Clause clause);
 COMMON(Code) 		wamListInstruction(IOSTREAM *out, Clause clause,
 					   Code bp);
-COMMON(word) 		pl_wam_list(term_t ref);
-COMMON(word) 		pl_fetch_vm(term_t ref, term_t offset, term_t noffset,
-				    term_t instruction);
 COMMON(int) 		unify_definition(term_t head, Definition def,
 				 term_t thehead, int flags);
 COMMON(word) 		pl_clause_term_position(term_t ref, term_t pc,

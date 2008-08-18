@@ -8,5 +8,8 @@ pl-atom.ic
 pl-atom.ih
 pl-funct.ic
 pl-funct.ih
+pl-codetable.c
+pl-jumptable.ic
+pl-vmi.h
 defatom
 defatom.exe
