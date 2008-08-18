@@ -1724,8 +1724,7 @@ parse_clpfd(Expr, Result) :-
         ;   Expr = (L + R) ->
             parse_clpfd(L, RL), parse_clpfd(R, RR),
             myplus(RL, RR, Result)
-        ;   power_var_num(Expr, Var, N), N > 2 ->
-            Var^N #= Result
+        ;   power_var_num(Expr, Var, N) -> Var^N #= Result
         ;   Expr = (L * R) ->
             parse_clpfd(L, RL), parse_clpfd(R, RR),
             mytimes(RL, RR, Result)
@@ -2025,23 +2024,23 @@ gcd_(A, B, G) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   k-th root of N, if N is a power of k.
+   k-th root of N, if N is a k-th power.
 
    TODO: Replace this when the GMP function becomes available.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-integer_kroot(K, N, R) :-
+integer_kth_root(N, K, R) :-
         (   K mod 2 =:= 0 ->
             N >= 0
         ;   true
         ),
         (   N < 0 ->
             K mod 2 =:= 1,
-            integer_kroot(N, 0, K, N, R)
-        ;   integer_kroot(0, N, K, N, R)
+            integer_kroot(N, 0, N, K, R)
+        ;   integer_kroot(0, N, N, K, R)
         ).
 
-integer_kroot(L, U, K, N, R) :-
+integer_kroot(L, U, N, K, R) :-
         (   L =:= U -> N =:= L**K, R = L
         ;   L + 1 =:= U ->
             (   L**K =:= N -> R = L
@@ -2050,8 +2049,8 @@ integer_kroot(L, U, K, N, R) :-
             )
         ;   Mid is (L + U)//2,
             (   Mid**K > N ->
-                integer_kroot(L, Mid, K, N, R)
-            ;   integer_kroot(Mid, U, K, N, R)
+                integer_kroot(L, Mid, N, K, R)
+            ;   integer_kroot(Mid, U, N, K, R)
             )
         ).
 
@@ -3073,18 +3072,20 @@ run_propagator(pplus(X,Y,Z), MState) :-
             )
         ;   nonvar(Y) -> run_propagator(pplus(Y,X,Z), MState)
         ;   nonvar(Z) ->
-            fd_get(X, XD, _),
-            fd_get(Y, YD, YPs),
-            domain_negate(XD, XDN),
-            domain_shift(XDN, Z, YD1),
-            domains_intersection(YD, YD1, YD2),
-            fd_put(Y, YD2, YPs),
-            (   fd_get(X, XD1, XPs) ->
-                domain_negate(YD2, YD2N),
-                domain_shift(YD2N, Z, XD2),
-                domains_intersection(XD1, XD2, XD3),
-                fd_put(X, XD3, XPs)
-            ;   true
+            (   X == Y -> kill(MState), Z mod 2 =:= 0, X is Z // 2
+            ;   fd_get(X, XD, _),
+                fd_get(Y, YD, YPs),
+                domain_negate(XD, XDN),
+                domain_shift(XDN, Z, YD1),
+                domains_intersection(YD, YD1, YD2),
+                fd_put(Y, YD2, YPs),
+                (   fd_get(X, XD1, XPs) ->
+                    domain_negate(YD2, YD2N),
+                    domain_shift(YD2N, Z, XD2),
+                    domains_intersection(XD1, XD2, XD3),
+                    fd_put(X, XD3, XPs)
+                ;   true
+                )
             )
         ;   (   X == Y -> kill(MState), 2*X #= Z
             ;   fd_get(X, XD, XL, XU, XPs), fd_get(Y, YD, YL, YU, YPs),
@@ -3141,12 +3142,10 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ;   nonvar(Z) ->
             (   X == Y ->
                 kill(MState),
-                integer_kroot(2, Z, PRoot),
-                NRoot is -PRoot,
-                X in NRoot \/ PRoot
-            ;   true
-            ),
-            (   fd_get(X, XD, XL, XU, XPs) ->
+                integer_kth_root(Z, 2, R),
+                NR is -R,
+                X in NR \/ R
+            ;   fd_get(X, XD, XL, XU, XPs),
                 fd_get(Y, YD, YL, YU, _),
                 min_divide(n(Z), n(Z), YL, YU, TNXL),
                 max_divide(n(Z), n(Z), YL, YU, TNXU),
@@ -3167,14 +3166,14 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                     ;   kill(MState), Z = 0
                     )
                 )
-            ;   true
             ),
             (   Z =\= 0 -> neq_num(X, 0), neq_num(Y, 0)
             ;   true
             )
-        ;   (   X == Y -> geq(Z, 0) ; true ),
-            (   fd_get(X, XD, XL, XU, XExp), fd_get(Y, YD, YL, YU, _),
-                fd_get(Z, ZD, ZL, ZU, _) ->
+        ;   (   X == Y -> kill(MState), X^2#=Z
+            ;   fd_get(X, XD, XL, XU, XExp),
+                fd_get(Y, YD, YL, YU, _),
+                fd_get(Z, ZD, ZL, ZU, _),
                 min_divide(ZL,ZU,YL,YU,TXL),
                 NXL cis max(XL,TXL),
                 max_divide(ZL,ZU,YL,YU,TXU),
@@ -3203,7 +3202,6 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                     )
                 ;   true
                 )
-            ;   true
             )
         ).
 
@@ -3461,18 +3459,46 @@ run_propagator(pexp(X,Y,Z), MState) :-
         ;   X == 0 -> kill(MState), Z #<==> Y #= 0
         ;   Y == 0 -> kill(MState), Z = 1
         ;   Y == 1 -> kill(MState), Z = X
-        ;   Y == 2 -> kill(MState), Z #= X*X
         ;   nonvar(X), nonvar(Y) ->
             ( Y >= 0 -> true ; X =:= -1 ),
             kill(MState),
             Z is X**Y
         ;   nonvar(Z), nonvar(Y) ->
-            integer_kroot(Y, Z, R),
+            integer_kth_root(Z, Y, R),
             kill(MState),
             (   Y mod 2 =:= 0 ->
                 N is -R,
                 X in N \/ R
             ;   X = R
+            )
+        ;   nonvar(Y), Y > 0 ->
+            (   Y mod 2 =:= 0 ->
+                geq(Z, 0)
+            ;   true
+            ),
+            (   fd_get(X, XD, XL, XU, _), fd_get(Z, ZD, ZPs) ->
+                (   domain_contains(ZD, 0) -> true
+                ;   neq_num(X, 0)
+                ),
+                (   domain_contains(XD, 0) -> true
+                ;   neq_num(Z, 0)
+                ),
+                (   Y mod 2 =:= 0 ->
+                    (   XL cis_geq n(0) ->
+                        XL = n(NXL),
+                        NZL is NXL ** Y,
+                        domain_remove_smaller_than(ZD, NZL, ZD1),
+                        (   XU = n(NXU) ->
+                            NZU is NXU ** Y,
+                            domain_remove_greater_than(ZD1, NZU, ZD2)
+                        ;   ZD2 = ZD1
+                        ),
+                        fd_put(Z, ZD2, ZPs)
+                    ;   true
+                    )
+                ;   true        % TODO: propagate more
+                )
+            ;   true
             )
         ;   true
         ).
