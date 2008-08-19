@@ -3669,7 +3669,10 @@ unified with a reference to the new clause.
 
 TBD The current implementation is very incomplete. Using direct jumps is
 very unattractive and we should abstract away from some details, such as
-the different integer sizes (inline, int, int64, mpz).
+the different integer sizes (inline, int, int64, mpz).  Other issues:
+
+	- Automatic variable balancing
+	- Computation of Prolog vars and size of stack-frame
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
  
 static const code_info *
