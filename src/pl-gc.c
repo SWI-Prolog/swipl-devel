@@ -811,6 +811,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	case B_MPZ:
 	{ word m = PC[1];
 	  PC += wsizeofInd(m)+1;
+	  PC -= VM_DYNARGC;		/* compensate for codeTable[c].arguments */
 	  break;
 	}
 	case I_EXIT:
