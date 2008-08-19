@@ -3660,13 +3660,43 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, 0)
   fail;
 }
 
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$vm_assert(+PI, :VM, -Ref)
+'$vm_assert'(+PI, :VM, -Ref) is det.
 
 Create a clause from VM and  assert  it   to  the  predicate  PI. Ref is
-unified with a reference to the new clause.
+unified with a reference to the new clause. 
+
+TBD The current implementation is very incomplete. Using direct jumps is
+very unattractive and we should abstract away from some details, such as
+the different integer sizes (inline, int, int64, mpz).
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
  
+static const code_info *
+lookup_vmi(atom_t name)
+{ static Table ctable = NULL;
+  Symbol s;
+
+  if ( !ctable )
+  { PL_LOCK(L_MISC);
+    if ( !ctable )
+    { int i;
+
+      ctable = newHTable(32);
+      for(i=0; i<I_HIGHEST; i++)
+       addHTable(ctable, (void*)PL_new_atom(codeTable[i].name), (void*)&codeTable[i]);
+    }
+    PL_UNLOCK(L_MISC);
+  }
+
+  if ( (s=lookupHTable(ctable, (void*)name)) )
+    return (const code_info*)s->value;
+
+  return NULL;
+}
+
+
+
 static int
 vm_compile_instruction(term_t t, CompileInfo ci)
 { GET_LD
@@ -3674,53 +3704,125 @@ vm_compile_instruction(term_t t, CompileInfo ci)
   int arity;
 
   if ( PL_get_name_arity(t, &name, &arity) )
-  { const char *nm = PL_atom_chars(name);
-    int i;
+  { const code_info *cinfo;
 
-    for(i=0; i<I_HIGHEST; i++)		/* TBD: Index */
-    { if ( strcmp(codeTable[i].name, nm) == 0 )
-      { if ( arity == 0 )
-	{ assert(codeTable[i].arguments == 0);
-	  Output_0(ci, codeTable[i].code);
-	  return TRUE;
-	} else if ( arity == 1 )
-	{ term_t a = PL_new_term_ref();
-	  _PL_get_arg(1, t, a);
+    if ( (cinfo = lookup_vmi(name)) )
+    { Output_0(ci, cinfo->code);
 
-	  switch(codeTable[i].argtype[0]) /* TBD: multi-argument */
+      if ( arity == 0 )
+      { assert(cinfo->arguments == 0);
+      } else
+      { const char *ats = cinfo->argtype;
+	int an;
+	term_t a = PL_new_term_ref();
+
+	assert(cinfo->arguments == VM_DYNARGC ||
+	       strlen(ats) == cinfo->arguments);
+
+	for(an=0; ats[an]; an++)
+	{ _PL_get_arg(an+1, t, a);
+
+	  switch(ats[an])
 	  { case CA1_VAR:
 	    { int vn;
 
 	      if ( !PL_get_integer_ex(a, &vn) )
 		fail;
-	      Output_1(ci, codeTable[i].code, VAROFFSET(vn));
-	      succeed;
+	      Output_a(ci, VAROFFSET(vn));
+	      break;
+	    }
+	    case CA1_INTEGER:
+	    case CA1_JUMP:
+	    { intptr_t val;
+
+	      if ( !PL_get_intptr_ex(a, &val) )
+		fail;
+	      Output_a(ci, val);
+	    }
+	    case CA1_FLOAT:
+	    { double d;
+	      Word p = (Word)&d;
+
+	      if ( !PL_get_float_ex(a, &d) )
+		fail;
+	      Output_n(ci, p, WORDS_PER_DOUBLE);
+	    }
+	    case CA1_INT64:
+	    { int64_t val;
+	      Word p = (Word)&val;
+
+	      if ( !PL_get_int64_ex(a, &val) )
+		fail;
+	      Output_n(ci, p, WORDS_PER_INT64);
+	    }
+	    case CA1_MPZ:
+	    case CA1_STRING:
+	    { Word ap = valTermRef(a);
+	      Word p;
+	      size_t n;
+
+	      deRef(ap);
+	      switch(ats[an])
+	      { case CA1_MPZ:
+		  if ( !isIndirect(*ap) ||
+		       !isInteger(*ap) )
+		    return PL_error(NULL, 0, "must be an mpz", ERR_TYPE, ATOM_integer, a);
+		  p = addressIndirect(*ap);
+		  n = wsizeofInd(*p);
+		  if ( n == WORDS_PER_INT64 )
+		    return PL_error(NULL, 0, "must be an mpz", ERR_TYPE, ATOM_integer, a);
+		  break;
+		case CA1_STRING:
+		  if ( !isString(*ap) )
+		    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_string, a);
+		  break;
+	      }
+	      p = addressIndirect(*ap);
+	      n = wsizeofInd(*p);
+	      Output_n(ci, p, n+1);
+	      break;
 	    }
 	    case CA1_DATA:
 	    { word val = _PL_get_atomic(a);
 
-	      if ( isAtom(val) ||
-		   (isInteger(val) && storage(val) == STG_INLINE) )
-	      { Output_1(ci, codeTable[i].code, val);
-		succeed;
-	      }
+	      if ( !isConst(val) )
+		return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atomic, a);
 
-	      return PL_error(NULL, 0, NULL, ERR_TYPE,
-			      ATOM_atomic, a);
+	      Output_a(ci, val);
+	      break;
+	    }
+	    case CA1_FUNC:
+	    { functor_t f;
+	      Module m = NULL;
+
+	      if ( !get_functor(a, &f, &m, 0, 0) )
+		fail;
+
+	      Output_a(ci, f);
+	      break;
+	    }
+	    case CA1_MODULE:
+	    { atom_t name;
+
+	      if ( !PL_get_atom_ex(a, &name) )
+		fail;
+
+	      Output_a(ci, (intptr_t)lookupModule(name));
+	      break;
 	    }
 	    case CA1_PROC:
 	    { Procedure proc;
 
 	      if ( get_procedure(a, &proc, 0, GP_CREATE|GP_NAMEARITY) )
-	      { Output_1(ci, codeTable[i].code, (code)proc);
-		succeed;
+	      { Output_a(ci, (code)proc);
+		break;
 	      }
 	      fail;
 	    }
 	  }
 	}
-	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_vmi, t);
       }
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_vmi, t);
     }
 
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_vmi, t);
