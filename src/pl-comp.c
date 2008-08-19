@@ -24,6 +24,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-inline.h"
 #include <limits.h>
 
 #undef LD			/* Get at most once per function */
@@ -1770,29 +1771,11 @@ unregisterAtomsClause(Clause clause)
   PC = clause->codes;
   ep = PC + clause->code_size;
 
-  for( ; PC < ep; PC += (codeTable[c].arguments + 1) )
+  for( ; PC < ep; PC = stepPC(PC) )
   { c = decode(*PC);
 
-#if O_DEBUGGER
-  again:
-#endif
     switch(c)
-    {
-#if O_DEBUGGER
-      case D_BREAK:
-	c = decode(replacedBreak(PC));
-        goto again;
-#endif
-      case H_STRING:		/* only skip the size of the */
-      case B_STRING:		/* string + header */
-      case H_MPZ:
-      case B_MPZ:
-      case A_MPZ:
-      { word m = PC[1];
-	PC += wsizeofInd(m)+1;
-	break;
-      }
-      case H_CONST:
+    { case H_CONST:
       case B_CONST:
       { word w = PC[1];
 
@@ -1805,6 +1788,37 @@ unregisterAtomsClause(Clause clause)
 }
 
 #endif /*O_ATOMGC*/
+
+
+		 /*******************************
+		 *	     VMI LOGIC		*
+		 *******************************/
+
+Code
+stepDynPC(Code PC, const code_info *ci)
+{ const char *ats = ci->argtype;
+
+  for(; *ats; ats++)
+  { switch(*ats)
+    { case CA1_STRING:
+      case CA1_MPZ:
+      { word m = *PC++;
+	PC += wsizeofInd(m);
+	break;
+      }
+      case CA1_FLOAT:
+	PC += WORDS_PER_DOUBLE;
+	break;
+      case CA1_INT64:
+	PC += WORDS_PER_INT64;
+	break;
+      default:
+	PC++;
+    }
+  }
+
+  return PC;
+}
 
 
 		/********************************
@@ -3310,36 +3324,6 @@ get_clause_ptr_ex(term_t ref, Clause *cl)
 
 #if O_DEBUGGER				/* to the end of the file */
 
-static code
-fetchop(Code PC)
-{ code op = decode(*PC);
-
-  if ( op == D_BREAK )
-    op = decode(replacedBreak(PC));
-
-  return op;
-}
-
-
-static Code
-stepPC(Code PC)
-{ code op = fetchop(PC++);
-
-  switch(codeTable[op].argtype)
-  { case CA1_STRING:
-    case CA1_MPZ:
-    { word m = *PC++;
-      PC += wsizeofInd(m);
-      break;
-    }
-  }
-
-  PC += codeTable[op].arguments;
-
-  return PC;
-}
-
-
 static int
 wouldBindToDefinition(Definition from, Definition to)
 { Module m = from->module;
@@ -3398,7 +3382,7 @@ pl_xr_member(term_t ref, term_t term, control_t h)
     { bool rval = FALSE;
       code op = fetchop(PC++);
       
-      switch(codeTable[op].argtype)
+      switch(codeTable[op].argtype[0])	/* TBD */
       { case CA1_PROC:
 	{ Procedure proc = (Procedure) *PC;
 	  rval = unify_definition(term, getProcDefinition(proc), 0, 0);
@@ -3449,7 +3433,7 @@ pl_xr_member(term_t ref, term_t term, control_t h)
     { while( PC < end )
       { code op = fetchop(PC);
 
-	if ( codeTable[op].argtype == CA1_DATA &&
+	if ( codeTable[op].argtype[0] == CA1_DATA && /* TBD */
 	     _PL_unify_atomic(term, PC[1]) )
 	    succeed;
 
@@ -3462,7 +3446,7 @@ pl_xr_member(term_t ref, term_t term, control_t h)
     { while( PC < end )
       { code op = fetchop(PC);
 
-	if ( codeTable[op].argtype == CA1_FUNC )
+	if ( codeTable[op].argtype[0] == CA1_FUNC ) /* TBD */
 	{ functor_t fa = (functor_t)PC[1];
 
 	  if ( fa == fd )
@@ -3490,7 +3474,7 @@ pl_xr_member(term_t ref, term_t term, control_t h)
       while( PC < end )
       { code op = fetchop(PC);
 
-	if ( codeTable[op].argtype == CA1_PROC )
+	if ( codeTable[op].argtype[0] == CA1_PROC ) /* TBD */
 	{ Procedure pa = (Procedure)PC[1];
 	  Definition def = getProcDefinition(pa);
 
@@ -3573,7 +3557,7 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
       break;
     }
     default:
-      switch(codeTable[op].argtype)
+      switch(codeTable[op].argtype[0])	/* TBD */
       { case CA1_PROC:
 	{ Procedure proc = (Procedure) *bp++;
 	  n++;
@@ -3694,48 +3678,21 @@ PRED_IMPL("$wam_list", 1, wam_list, 0)
 }
 
 
-static Code unify_vmi_list(term_t t, Clause clause,
-			   Code bp, Code ep, code end);
+		 /*******************************
+		 *	 CLAUSE <-> PROLOG	*
+		 *******************************/
 
-typedef union
-{ atom_t a;
-  functor_t f;
-} i_name;
-
-static i_name inames[I_HIGHEST];
-
-static atom_t
-op_name(const code_info *info)
-{ if ( !inames[info->code].a )
-  { char tmp[32];
-    strcpy(tmp, info->name);
-    strlwr(tmp);
-    inames[info->code].a = PL_new_atom(tmp);
-  }
-
-  return inames[info->code].a;
-}
-
-
-static atom_t
-op_functor(const code_info *info, int n)
-{ if ( !inames[info->code].f )
-  { char tmp[32];
-    strcpy(tmp, info->name);
-    strlwr(tmp);
-    inames[info->code].f = PL_new_functor(PL_new_atom(tmp), n);
-  }
-
-  return inames[info->code].f;
-}
-
-
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Translate between a clause  and  a   Prolog  description  of the virtual
+machine code.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Code
 unify_vmi(term_t t, Clause clause, Code bp)
 { GET_LD
   code op = decode(*bp);
   const code_info *ci;
+  int rc;
 
   if ( op == D_BREAK )
     op = decode(replacedBreak(bp));
@@ -3743,186 +3700,108 @@ unify_vmi(term_t t, Clause clause, Code bp)
   ci = &codeTable[op];
   bp++;					/* skip the instruction */
 
-  switch(op)
-  { case C_OR:
-    { int to_jump = (int) *bp++;
-      term_t av = PL_new_term_refs(2);
-      Code ep = bp+to_jump;
+  if ( ci->arguments == 0 )
+  { if ( !PL_unify_atom_chars(t, ci->name) )
+      return NULL;
+  } else
+  { const char *ats = codeTable[op].argtype;
+    term_t av = PL_new_term_refs(strlen(ats));
+    int an;
 
-      if ( !(bp=unify_vmi_list(av+0, clause, bp, ep-2, -1)) )
-	return NULL;
-      assert(decode(*bp) == C_JMP);
-      bp++;
-      to_jump = (int) *bp++;
-      if ( !(bp=unify_vmi_list(av+1, clause, bp, bp+to_jump, -1)) )
-	return NULL;
-      PL_cons_functor_v(av+0, op_functor(ci, 2), av);
-      PL_unify(t, av+0);
-      return bp;
-    }
-    case C_IFTHENELSE:
-    case C_SOFTIF:
-    case C_NOT:
-    { int vn = VARNUM(*bp++);
-      int to_jump = (int) *bp++;
-      Code ep = bp+to_jump;
-      term_t av = PL_new_term_refs(4);
-
-      PL_unify_integer(av+0, vn);
-      if ( !(bp=unify_vmi_list(av+1, clause, bp, ep,
-			       encode(op == C_SOFTIF ? C_LCUT : C_CUT))) )
-	return NULL;
-      assert(decode(*bp) == C_CUT);
-      bp += 2;
-      if ( !(bp=unify_vmi_list(av+2, clause, bp, ep-2, -1)) )
-	return NULL;
-      assert(decode(*bp) == C_JMP);
-      bp++;
-      to_jump = (int) *bp++;
-      if ( !(bp=unify_vmi_list(av+3, clause, bp, bp+to_jump, -1)) )
-	return NULL;
-      PL_cons_functor_v(av+0, op_functor(ci, 4), av);
-      PL_unify(t, av+0);
-      return bp;
-    }
-    case C_IFTHEN:			/* If -> Then */
-    { int vn =  VARNUM(*bp++);
-      term_t av = PL_new_term_refs(2);
-
-      PL_unify_integer(av+0, vn);
-      if ( !(bp=unify_vmi_list(av+1, clause, bp, NULL, encode(C_CUT))) )
-	return NULL;
-      assert(decode(*bp) == C_CUT);
-      bp += 2;
-      if ( !(bp=unify_vmi_list(av+2, clause, bp, NULL, encode(C_END))) )
-	return NULL;
-      bp++;
-      PL_cons_functor_v(av+0, op_functor(ci, 3), av);
-      PL_unify(t, av+0);
-      return bp;
-    }
-    default:
-      if ( ci->arguments == 0 )
-      { PL_unify_atom(t, op_name(ci));
-	return bp;
-      }
-      switch(codeTable[op].argtype)
+    for(an=0; ats[an]; an++)
+    { switch(ats[an])
       { case CA1_VAR:
 	{ int vn =  VARNUM(*bp++);
-
-	  PL_unify_term(t, PL_FUNCTOR, op_functor(ci, 1),
-			     PL_INTEGER, vn);
-	  return bp;
+    
+	  PL_put_integer(av+an, vn);
+	  break;
 	}
 	case CA1_INTEGER:
-	{ long i = (long)*bp++;
-	  PL_unify_term(t, PL_FUNCTOR, op_functor(ci, 1),
-			     PL_LONG, i);
-	  return bp;
+	case CA1_JUMP:
+	{ intptr_t i = (intptr_t)*bp++;
+  
+	  PL_put_int64(av+an, i);
+	  break;
 	}
 	case CA1_FLOAT:
 	{ double d;
 	  Word dp = (Word)&d;
-
+    
 	  cpDoubleData(dp, bp);
-	  bp += WORDS_PER_DOUBLE;
-
-	  PL_unify_term(t, PL_FUNCTOR, op_functor(ci, 1),
-			     PL_FLOAT, d);
-	  return bp;
+	  PL_put_float(av+an, d);
+	  break;
 	}
 	case CA1_INT64:
-	{ int64_t n;
-	  Word dp = (Word)&n;
-
+	{ int64_t i;
+	  Word dp = (Word)&i;
+    
 	  cpInt64Data(dp, bp);
-	  bp += WORDS_PER_INT64;
-
-	  PL_unify_term(t, PL_FUNCTOR, op_functor(ci, 1),
-			     PL_INT64, n);
-	  return bp;
+	  PL_put_int64(av+an, i);
+	  break;
 	}
 	case CA1_DATA:
-	{ term_t tmp = PL_new_term_ref();
-	  _PL_unify_atomic(tmp, *bp++);
-	  PL_unify_term(t, PL_FUNCTOR, op_functor(ci, 1),
-			     PL_TERM, tmp);
-	  PL_reset_term_refs(tmp);
-	  return bp;
+	{ _PL_unify_atomic(av+an, *bp++);
+	  break;
 	}
 	case CA1_FUNC:
 	{ functor_t f = (functor_t) *bp++;
-	  term_t tmp = PL_new_term_ref();
-	  unify_functor(tmp, f, GP_NAMEARITY);
-	  PL_unify_term(t, PL_FUNCTOR, op_functor(ci, 1),
-			     PL_TERM, tmp);
-	  PL_reset_term_refs(tmp);
-	  return bp;
+	  unify_functor(av+an, f, GP_NAMEARITY);
+	  break;
 	}
 	case CA1_MODULE:
 	{ Module m = (Module)*bp++;
-	  PL_unify_term(t, PL_FUNCTOR, op_functor(ci, 1),
-			     PL_ATOM, m->name);
-	  return bp;
+	  PL_put_atom(av+an, m->name);
+	  break;
 	}
 	case CA1_PROC:
 	{ Procedure proc = (Procedure)*bp++;
-	  term_t tmp = PL_new_term_ref();
-
-	  unify_definition(tmp, proc->definition, 0,
+    
+	  unify_definition(av+an, proc->definition, 0,
 			   GP_HIDESYSTEM|GP_NAMEARITY);
-	  PL_unify_term(t, PL_FUNCTOR, op_functor(ci, 1),
-			     PL_TERM, tmp);
-	  PL_reset_term_refs(tmp);
-	  return bp;
-
+	  break;
+	}
+	case CA1_AFUNC:
+	{ int findex = (int)*bp++;
+	  functor_t f = functorArithFunction(findex);
+	  unify_functor(av+an, f, GP_NAMEARITY);
+	  break;
+	}
+	case CA1_MPZ:
+	case CA1_STRING:
+	{ word c = globalIndirectFromCode(&bp);
+	  _PL_unify_atomic(av+an, c);
+	  break;
 	}
 	default:
-	  Sdprintf("Cannot list %s at %d\n", ci->name, bp-clause->codes-1);
+	  Sdprintf("Cannot list %d-th arg of %s (type=%d)\n",
+		   an+1, ci->name, ats[an]);
 	  return NULL;
       }
+    }
+
+    switch(an)
+    { case 1:
+	rc = PL_unify_term(t, PL_FUNCTOR_CHARS, ci->name, an,
+			   PL_TERM, av+0);
+        break;
+      case 2:
+	rc = PL_unify_term(t, PL_FUNCTOR_CHARS, ci->name, an,
+			   PL_TERM, av+0, PL_TERM, av+1);
+        break;
+      case 3:
+	rc = PL_unify_term(t, PL_FUNCTOR_CHARS, ci->name, an,
+			   PL_TERM, av+0, PL_TERM, av+1, PL_TERM, av+2);
+        break;
+      default:
+	assert(0);
+        rc = FALSE;
+    }
+    if ( !rc )
+      return NULL;
   }
 
   return bp;
 }
-
-
-static Code
-unify_vmi_list(term_t t, Clause clause, Code bp, Code ep, code end)
-{ GET_LD
-  term_t tail = PL_copy_term_ref(t);
-  term_t head = PL_new_term_ref();
-
-  while( (!ep || bp < ep) && *bp != end )
-  { PL_put_variable(head);
-    if ( !PL_unify_list(tail, head, tail) )
-      return NULL;
-    if ( !(bp=unify_vmi(head, clause, bp)) )
-      return NULL;
-  }
-  if ( !PL_unify_nil(tail) )
-    return NULL;
-  PL_reset_term_refs(tail);
-
-  return bp;
-}
-
-
-static
-PRED_IMPL("$vm_list_clause", 2, vm_list_clause, 0)
-{ Clause clause = NULL;
-  Code bp, ep;
-
-  if ( !get_clause_ptr_ex(A1, &clause) )
-    fail;
-
-  bp = clause->codes;
-  ep = bp + clause->code_size;
-
-  return unify_vmi_list(A2, clause, bp, ep, -1) ? TRUE : FALSE;
-}
-
-
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3934,10 +3813,9 @@ instruction.
 
 static
 PRED_IMPL("$fetch_vm", 4, fetch_vm, 0)
-{ GET_LD
-  Clause clause = NULL;
+{ Clause clause = NULL;
   int pcoffset;
-  Code PC;
+  Code PC, next;
   code op;
   const code_info *ci;
 
@@ -3949,22 +3827,154 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, 0)
   if ( !get_clause_ptr_ex(ref, &clause) ||
        !PL_get_integer_ex(offset, &pcoffset) )
     fail;
-  if ( pcoffset < 0 || pcoffset >= (int)clause->code_size )
+  if ( pcoffset < 0 || pcoffset > (int)clause->code_size )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, offset);
+  if ( pcoffset == (int)clause->code_size )
+    fail;
 
   PC = clause->codes + pcoffset;
   op = fetchop(PC);
   ci = &codeTable[op];
   
-  pcoffset = pcoffset + 1 + ci->arguments;
-
-  if ( PL_unify_integer(noffset, pcoffset) &&
-       PL_unify_atom_chars(instruction, ci->name) )
-    succeed;
+  if ( (next=unify_vmi(instruction, clause, PC)) )
+    return PL_unify_int64(noffset, next-clause->codes);
 
   fail;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+$vm_assert(+PI, :VM, -Ref)
+
+Create a clause from VM and  assert  it   to  the  predicate  PI. Ref is
+unified with a reference to the new clause.
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+ 
+static int
+vm_compile_instruction(term_t t, CompileInfo ci)
+{ GET_LD
+  atom_t name;
+  int arity;
+
+  if ( PL_get_name_arity(t, &name, &arity) )
+  { const char *nm = PL_atom_chars(name);
+    int i;
+
+    for(i=0; i<I_HIGHEST; i++)		/* TBD: Index */
+    { if ( strcmp(codeTable[i].name, nm) == 0 )
+      { if ( arity == 0 )
+	{ assert(codeTable[i].arguments == 0);
+	  Output_0(ci, codeTable[i].code);
+	  return TRUE;
+	} else if ( arity == 1 )
+	{ term_t a = PL_new_term_ref();
+	  _PL_get_arg(1, t, a);
+
+	  switch(codeTable[i].argtype[0]) /* TBD: multi-argument */
+	  { case CA1_VAR:
+	    { int vn;
+
+	      if ( !PL_get_integer_ex(a, &vn) )
+		fail;
+	      Output_1(ci, codeTable[i].code, VAROFFSET(vn));
+	      succeed;
+	    }
+	    case CA1_DATA:
+	    { word val = _PL_get_atomic(a);
+
+	      if ( isAtom(val) ||
+		   (isInteger(val) && storage(val) == STG_INLINE) )
+	      { Output_1(ci, codeTable[i].code, val);
+		succeed;
+	      }
+
+	      return PL_error(NULL, 0, NULL, ERR_TYPE,
+			      ATOM_atomic, a);
+	    }
+	    case CA1_PROC:
+	    { Procedure proc;
+
+	      if ( get_procedure(a, &proc, 0, GP_CREATE|GP_NAMEARITY) )
+	      { Output_1(ci, codeTable[i].code, (code)proc);
+		succeed;
+	      }
+	      fail;
+	    }
+	  }
+	}
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_vmi, t);
+      }
+    }
+
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_vmi, t);
+  }
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_vmi, t);
+}
+
+
+static int
+vm_compile(term_t t, CompileInfo ci)
+{ GET_LD
+  term_t head = PL_new_term_ref();
+
+  while(PL_get_list(t, head, t))
+  { if ( !vm_compile_instruction(head, ci) )
+      fail;
+  }
+
+  if ( !PL_get_nil(t) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, t);
+  
+  succeed;
+}
+
+
+static
+PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
+{ GET_LD
+  Procedure proc;
+  compileInfo ci;
+  struct clause clause;
+  Clause cl;
+  Module module = NULL;
+  int size;
+  
+  if ( !get_procedure(A1, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
+    fail;
+  PL_strip_module(A2, &module, A2);
+
+  ci.islocal      = FALSE;
+  ci.subclausearg = 0;
+  ci.arity        = proc->definition->functor->arity;
+  ci.argvars      = 0;
+
+  clause.flags      = 0;
+  clause.procedure  = proc;
+  clause.code_size  = 0;
+  clause.source_no  = clause.line_no = 0;
+  ci.clause	    = &clause;
+  ci.module	    = module;
+  initBuffer(&ci.codes);
+
+  if ( !vm_compile(A2, &ci) )
+  { discardBuffer(&ci.codes);
+    fail;
+  }
+
+  clause.code_size = entriesBuffer(&ci.codes, code);
+  size  = sizeofClause(clause.code_size);
+  cl = allocHeap(size);
+  memcpy(cl, &clause, sizeofClause(0));
+  GD->statistics.codes += clause.code_size;
+  memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
+  discardBuffer(&ci.codes);
+
+					/* TBD: see assert_term() */
+  if ( !assertProcedure(proc, cl, CL_END PASS_LD) )
+    fail;
+
+  return PL_unify_pointer(A3, cl);
+}
 
 
 		 /*******************************
@@ -4507,7 +4517,7 @@ BeginPredDefs(comp)
   PRED_DEF("assertz", 2, assertz2, PL_FA_TRANSPARENT)
   PRED_DEF("asserta", 2, asserta2, PL_FA_TRANSPARENT)
   PRED_DEF("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
-  PRED_DEF("$fetch_vm", 4, fetch_vm, 0)
   PRED_DEF("$wam_list", 1, wam_list, 0)
-  PRED_DEF("$vm_list_clause", 2, vm_list_clause, 0)
+  PRED_DEF("$fetch_vm", 4, fetch_vm, 0)
+  PRED_DEF("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 EndPredDefs

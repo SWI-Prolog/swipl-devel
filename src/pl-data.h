@@ -190,6 +190,7 @@ and while loading .wic files.  It comes at no price.
 #define isReal(w)	(tag(w)   == TAG_FLOAT)
 #define isString(w)	(tag(w)   == TAG_STRING)
 #define isTerm(w)	(tag(w)   == TAG_COMPOUND)
+#define isConst(w)	(isAtom(w) || isTaggedInt(w)) /* H_CONST, B_CONST */
 
 
 		 /*******************************

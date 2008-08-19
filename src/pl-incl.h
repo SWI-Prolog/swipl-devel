@@ -1168,9 +1168,11 @@ struct clause_ref
   ClauseRef	next;
 };
 
+#define VM_DYNARGC    127	/* compute argcount dynamically */
+
 #define CA1_PROC	1	/* code arg 1 is procedure */
 #define CA1_FUNC	2	/* code arg 1 is functor */
-#define CA1_DATA	3	/* code arg 2 is prolog data */
+#define CA1_DATA	3	/* code arg 2 is prolog data (H_CONST) */
 #define CA1_INTEGER	4	/* intptr_t value */
 #define CA1_INT64	5	/* int64 value */
 #define CA1_FLOAT	6	/* next WORDS_PER_DOUBLE are double */
@@ -1178,12 +1180,16 @@ struct clause_ref
 #define CA1_MODULE	8	/* a module */
 #define CA1_VAR		9	/* a variable(-offset) */
 #define CA1_MPZ	       10	/* GNU mpz number */
+#define CA1_FOREIGN    12	/* Foreign function pointer */
+#define CA1_CLAUSEREF  13	/* Clause reference */
+#define CA1_JUMP       14	/* Instructions to skip */
+#define CA1_AFUNC      15	/* Number of arithmetic function */
 
 typedef struct
 { char		*name;		/* name of the code */
   vmi		code;		/* number of the code */
-  char		arguments;	/* # arguments code takes */
-  char		argtype;	/* # `external' arguments code takes */
+  int		arguments;	/* #args code takes (or VM_DYNARGC) */
+  char		argtype[4];	/* Argument type(s) code takes */
 } code_info;
 
 struct mark

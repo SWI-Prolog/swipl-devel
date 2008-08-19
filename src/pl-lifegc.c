@@ -194,6 +194,8 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case B_MPZ:
       { word m = *PC;
 	PC += wsizeofInd(m)+1;
+	assert(codeTable[op].arguments == VM_DYNARGC);
+	PC -= VM_DYNARGC;		/* compensate for for-step */
 	break;
       }
 

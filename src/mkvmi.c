@@ -125,13 +125,14 @@ load_vmis(const char *file)
 	const char *e1 = skip_id(s1);
 	const char *s2 = skip_ws(skip_over(e1, ','));
 	const char *e2 = skip_id(s2);
-	const char *s3 = skip_ws(skip_over(e2, ','));
-	const char *e3 = skip_id(s3);
+	const char *s3 = skip_over(skip_ws(skip_over(e2, ',')), '(');
+	const char *e3 = skip_over(s3, ')');
 
 	if ( !e3 )
 	{ fprintf(stderr, "Syntax error at %s:%d\n", file, line);
 	  exit(1);
-	}
+	} else
+	  e3--;				/* backspace over ) */
 
 	vmi_list[vmi_count].name = strndup(s1, e1-s1);
 	vmi_list[vmi_count].argc = strndup(s2, e2-s2);
@@ -227,14 +228,14 @@ emit_code_table(const char *to)
   for(i=0; i<vmi_count; i++)
   { char name[100];
 
-    fprintf(out, "  {\"%s\", %s, %s, %s},\n",
+    fprintf(out, "  {\"%s\", %s, %s, {%s}},\n",
 	    strlwr(name, vmi_list[i].name),
 	    vmi_list[i].name,
 	    vmi_list[i].argc,
 	    vmi_list[i].args); 
   }
   
-  fprintf(out, "  { NULL, 0, 0, 0 }\n");
+  fprintf(out, "  { NULL, 0, 0, {} }\n");
   fprintf(out, "};\n");
   fclose(out);
 

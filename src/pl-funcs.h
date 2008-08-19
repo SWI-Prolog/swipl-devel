@@ -144,6 +144,7 @@ COMMON(Clause) 		assert_term(term_t term, int where,
 				    SourceLoc loc ARG_LD);
 COMMON(void) 		unregisterAtomsClause(Clause clause);
 COMMON(word) 		pl_redefine_system_predicate(term_t term);
+COMMON(Code)		stepDynPC(Code PC, const code_info *ci);
 COMMON(bool) 		decompileHead(Clause clause, term_t head);
 COMMON(int) 		arg1Key(Clause clause, word *key);
 COMMON(bool) 		decompile(Clause clause, term_t term, term_t bindings);
