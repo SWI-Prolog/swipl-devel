@@ -3926,12 +3926,10 @@ PRED_IMPL("$vm_list_clause", 2, vm_list_clause, 0)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$fetch_vm(+Clause, +Offset, -NextOffset, -Instruction)
-	fetches the virtual machine instruction at the indicated position
-	and return NextOffset with the offset of the next instruction, or
-	[] if there is no next instruction.  Instruction is unified with
-	a descriptive term of the instruction, but for now only with the
-	name of the instruction.
+$fetch_vm(+Clause, +PC, -NextPC, -Instruction) is det.
+
+Intruction is the VM instruction at PC and  NextPC is the PC of the next
+instruction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
