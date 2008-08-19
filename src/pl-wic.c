@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2008, University of Amsterdam
 
@@ -1015,96 +1015,100 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 
 	while( bp < ep )
 	{ code op = getInt(fd);
+	  const char *ats;
 	  int n = 0;
-	  int narg = codeTable[op].arguments;
 	  
-	  DEBUG(3, Sdprintf("\t%s (%d args) from %ld\n",
-			    codeTable[op].name, narg, Stell(fd)));
+	  if ( op >= I_HIGHEST )
+	    fatalError("Illegal op-code (%d) at %ld", op, Stell(fd));
+
+	  ats = codeTable[op].argtype;
+	  DEBUG(3, Sdprintf("\t%s from %ld\n", codeTable[op].name, Stell(fd)));
 	  *bp++ = encode(op);
-	  switch(codeTable[op].argtype[0]) /* TBD */
-	  { case CA1_PROC:
-	    { *bp++ = loadXR(fd);
-	      n++;
-	      break;
-	    }
-	    case CA1_FUNC:
-	    case CA1_DATA:
-	    { word w = loadXR(fd);
-	      if ( isAtom(w) )
-		PL_register_atom(w);
-	      *bp++ = w;
-	      n++;
-	      break;
-	    }
-	    case CA1_MODULE:
-	      *bp++ = loadXR(fd);
-	      n++;
-	      break;
-	    case CA1_INTEGER:
-	      *bp++ = getLong(fd);
-	      n++;
-	      break;
-	    case CA1_INT64:
-	    { int64_t val = getInt64(fd);
-	      Word p = (Word)&val;
-	      
-	      cpInt64Data(bp, p);
-	      n += WORDS_PER_INT64;
-	      break;
-	    }
-	    case CA1_FLOAT:
-	    { union
-	      { word w[WORDS_PER_DOUBLE];
-		double f;
-	      } v;
-	      Word p = v.w;
-	      v.f = getReal(fd);
-	      cpDoubleData(bp, p);
-	      n += WORDS_PER_DOUBLE;
-	      break;
-	    }
-	    case CA1_STRING:		/* <n> chars */
-	    { int l = getInt(fd);
-	      int lw = (l+sizeof(word))/sizeof(word);
-	      int pad = (lw*sizeof(word) - l);
-	      char *s = (char *)&bp[1];
+	  DEBUG(0, assert(codeTable[op].arguments == VM_DYNARGC ||
+			  (size_t)codeTable[op].arguments == strlen(ats)));
 
-	      DEBUG(3, Sdprintf("String of %ld bytes\n", l));
-	      *bp = mkStrHdr(lw, pad);
-	      bp += lw;
-	      *bp++ = 0L;
-	      while(--l >= 0)
-		*s++ = Getc(fd);
-	      n++;
-	      break;
-	    }
-	    case CA1_MPZ:
+	  for(n=0; ats[n]; n++)
+	  { switch(ats[n])
+	    { case CA1_PROC:
+	      { *bp++ = loadXR(fd);
+		break;
+	      }
+	      case CA1_FUNC:
+	      case CA1_DATA:
+	      { word w = loadXR(fd);
+		if ( isAtom(w) )
+		  PL_register_atom(w);
+		*bp++ = w;
+		break;
+	      }
+	      case CA1_MODULE:
+		*bp++ = loadXR(fd);
+		break;
+	      case CA1_INTEGER:
+	      case CA1_JUMP:
+	      case CA1_VAR:
+	      case CA1_AFUNC:
+		*bp++ = (intptr_t)getInt64(fd);
+		break;
+	      case CA1_INT64:
+	      { int64_t val = getInt64(fd);
+		Word p = (Word)&val;
+		
+		cpInt64Data(bp, p);
+		break;
+	      }
+	      case CA1_FLOAT:
+	      { union
+		{ word w[WORDS_PER_DOUBLE];
+		  double f;
+		} v;
+		Word p = v.w;
+		v.f = getReal(fd);
+		cpDoubleData(bp, p);
+		break;
+	      }
+	      case CA1_STRING:		/* <n> chars */
+	      { int l = getInt(fd);
+		int lw = (l+sizeof(word))/sizeof(word);
+		int pad = (lw*sizeof(word) - l);
+		char *s = (char *)&bp[1];
+  
+		DEBUG(3, Sdprintf("String of %ld bytes\n", l));
+		*bp = mkStrHdr(lw, pad);
+		bp += lw;
+		*bp++ = 0L;
+		while(--l >= 0)
+		  *s++ = Getc(fd);
+		break;
+	      }
+	      case CA1_MPZ:
 #ifdef O_GMP
-	    DEBUG(3, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
-	    { int mpsize = getInt(fd);
-	      int l      = abs(mpsize)*sizeof(mp_limb_t);
-	      int wsz	 = (l+sizeof(word)-1)/sizeof(word);
-	      word m     = mkIndHdr(wsz+1, TAG_INTEGER);
-	      char *s;
-
-	      *bp++     = m;
-	      *bp++     = mpsize;
-	      s         = (char*)bp;
-	      bp[wsz-1] = 0L;
-	      bp       += wsz;
-
-	      while(--l >= 0)
-		*s++ = Getc(fd);
-	      DEBUG(3, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
-	      n++;
-	      break;
-	    }
+	      DEBUG(3, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
+	      { int mpsize = getInt(fd);
+		int l      = abs(mpsize)*sizeof(mp_limb_t);
+		int wsz	 = (l+sizeof(word)-1)/sizeof(word);
+		word m     = mkIndHdr(wsz+1, TAG_INTEGER);
+		char *s;
+  
+		*bp++     = m;
+		*bp++     = mpsize;
+		s         = (char*)bp;
+		bp[wsz-1] = 0L;
+		bp       += wsz;
+  
+		while(--l >= 0)
+		  *s++ = Getc(fd);
+		DEBUG(3, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
+		break;
+	      }
 #else
-  	      fatalError("No support for MPZ numbers");
+		fatalError("No support for MPZ numbers");
 #endif
+	      default:
+		fatalError("No support for VM argtype %d (arg %d of %s)",
+			   ats[n], n, codeTable[op].name);
+	    }
 	  }
-	  for( ; n < narg; n++ )
-	    *bp++ = getInt(fd);
 	}
 
 	if ( skip )
@@ -1761,96 +1765,92 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 
   while( bp < ep )
   { code op = decode(*bp++);
-    int n = 0;
+    const char *ats = codeTable[op].argtype;
+    int n;
 
     putNum(op, fd);
-    DEBUG(3, Sdprintf("\t%s (%d args) at %ld\n", 
-		      codeTable[op].name, codeTable[op].arguments,
-		      Stell(fd)));
-    switch(codeTable[op].argtype[0])	/* TBD */
-    { case CA1_PROC:
-      { Procedure p = (Procedure) *bp++;
-	n++;
-	saveXRProc(p, fd PASS_LD);
-	break;
-      }
-      case CA1_MODULE:
-      { Module m = (Module) *bp++;
-	n++;
-	saveXRModule(m, fd PASS_LD);
-	break;
-      }
-      case CA1_FUNC:
-      { functor_t f = (functor_t) *bp++;
-	n++;
-	saveXRFunctor(f, fd PASS_LD);
-	break;
-      }
-      case CA1_DATA:
-      { word xr = (word) *bp++;
-	n++;
-	saveXR(xr, fd);
-	break;
-      }
-      case CA1_INTEGER:
-      { putNum(*bp++, fd);
-	n++;
-	break;
-      }
-      case CA1_INT64:
-      { int64_t val;
-	Word p = (Word)&val;
-
-	cpInt64Data(p, bp);
-	n += WORDS_PER_INT64;
-	putNum(val, fd);
-	break;
-      }
-      case CA1_FLOAT:
-      { union
-	{ word w[WORDS_PER_DOUBLE];
-	  double f;
-	} v;
-	Word p = v.w;
-	cpDoubleData(p, bp);
-	n += WORDS_PER_DOUBLE;
-	putReal(v.f, fd);
-	break;
-      }
-      case CA1_STRING:
-      { word m = *bp;
-	char *s = (char *)++bp;
-	size_t wn = wsizeofInd(m);
-	size_t l = wn*sizeof(word) - padHdr(m);
-	bp += wn;
-
-	putNum(l, fd);
-	while(l-- > 0)
-	  Sputc(*s++&0xff, fd);
-	n++;
-	break;
-      }
+    DEBUG(3, Sdprintf("\t%s at %ld\n", codeTable[op].name, Stell(fd)));
+    for(n=0; ats[n]; n++)
+    { switch(ats[n])
+      { case CA1_PROC:
+	{ Procedure p = (Procedure) *bp++;
+	  saveXRProc(p, fd PASS_LD);
+	  break;
+	}
+	case CA1_MODULE:
+	{ Module m = (Module) *bp++;
+	  saveXRModule(m, fd PASS_LD);
+	  break;
+	}
+	case CA1_FUNC:
+	{ functor_t f = (functor_t) *bp++;
+	  saveXRFunctor(f, fd PASS_LD);
+	  break;
+	}
+	case CA1_DATA:
+	{ word xr = (word) *bp++;
+	  saveXR(xr, fd);
+	  break;
+	}
+	case CA1_INTEGER:
+	case CA1_JUMP:
+	case CA1_VAR:
+	case CA1_AFUNC:
+	{ putNum(*bp++, fd);
+	  break;
+	}
+	case CA1_INT64:
+	{ int64_t val;
+	  Word p = (Word)&val;
+  
+	  cpInt64Data(p, bp);
+	  putNum(val, fd);
+	  break;
+	}
+	case CA1_FLOAT:
+	{ union
+	  { word w[WORDS_PER_DOUBLE];
+	    double f;
+	  } v;
+	  Word p = v.w;
+	  cpDoubleData(p, bp);
+	  putReal(v.f, fd);
+	  break;
+	}
+	case CA1_STRING:
+	{ word m = *bp;
+	  char *s = (char *)++bp;
+	  size_t wn = wsizeofInd(m);
+	  size_t l = wn*sizeof(word) - padHdr(m);
+	  bp += wn;
+  
+	  putNum(l, fd);
+	  while(l-- > 0)
+	    Sputc(*s++&0xff, fd);
+	  break;
+	}
 #ifdef O_GMP
-      case CA1_MPZ:
-      { word m = *bp++;
-	size_t wn = wsizeofInd(m);
-	int mpsize = (int)*bp;
-	int l = abs(mpsize)*sizeof(mp_limb_t);
-	char *s = (char*)&bp[1];
-	bp += wn;
-
-	DEBUG(3, Sdprintf("Saving MPZ from %ld\n", Stell(fd)));
-	putNum(mpsize, fd);
-	while(--l >= 0)
-	  Sputc(*s++&0xff, fd);
-	DEBUG(3, Sdprintf("Saved MPZ to %ld\n", Stell(fd)));
-	n++;
-	break;
-      }
+	case CA1_MPZ:
+	{ word m = *bp++;
+	  size_t wn = wsizeofInd(m);
+	  int mpsize = (int)*bp;
+	  int l = abs(mpsize)*sizeof(mp_limb_t);
+	  char *s = (char*)&bp[1];
+	  bp += wn;
+  
+	  DEBUG(3, Sdprintf("Saving MPZ from %ld\n", Stell(fd)));
+	  putNum(mpsize, fd);
+	  while(--l >= 0)
+	    Sputc(*s++&0xff, fd);
+	  DEBUG(3, Sdprintf("Saved MPZ to %ld\n", Stell(fd)));
+	  break;
+	}
 #endif
+	default:
+	  fatalError("No support for VM argtype %d (arg %d of %s)",
+		     ats[n], n, codeTable[op].name);
+      }
     }
-    for( ; n < codeTable[op].arguments; n++ )
-      putNum(*bp++, fd);
   }
 }
 
@@ -1965,11 +1965,6 @@ addClauseWic(term_t term, atom_t file ARG_LD)
 
   if ( (clause = assert_term(term, CL_END, &loc PASS_LD)) )
   { IOSTREAM *s = wicFd;
-
-#ifdef O_DEBUGGER
-    DEBUG(3, Sdprintf("WAM code:\n");
-	     wamListClause(clause));
-#endif
 
     openProcedureWic(clause->procedure, s, ATOM_development PASS_LD);
     saveWicClause(clause, s);

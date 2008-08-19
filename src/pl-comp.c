@@ -3720,7 +3720,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	term_t a = PL_new_term_ref();
 
 	assert(cinfo->arguments == VM_DYNARGC ||
-	       strlen(ats) == cinfo->arguments);
+	       strlen(ats) == (size_t)cinfo->arguments);
 
 	for(an=0; ats[an]; an++)
 	{ _PL_get_arg(an+1, t, a);
