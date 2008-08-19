@@ -101,7 +101,10 @@ static char *
 strndup(const char *in, size_t len)
 { char *s = malloc(len+1);
   
-  return strncpy(s, in, len);
+  strncpy(s, in, len);
+  s[len] = '\0';
+
+  return s;
 }
 
 

@@ -519,7 +519,6 @@ DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
 DECL_PLIST(read);
-DECL_PLIST(wam);
 DECL_PLIST(thread);
 DECL_PLIST(profile);
 DECL_PLIST(wic);
@@ -549,7 +548,6 @@ initBuildIns(void)
   REG_PLIST(module);
   REG_PLIST(prims);
   REG_PLIST(read);
-  REG_PLIST(wam);
   REG_PLIST(thread);
   REG_PLIST(profile);
   REG_PLIST(wic);

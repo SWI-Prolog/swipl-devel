@@ -1,8 +1,8 @@
 ################################################################
-# Makefile for SWI-Prolog 3.x on MS-Windows
+# Makefile for SWI-Prolog on MS-Windows
 #
 # Author:	Jan Wielemaker
-#		wielemak@science.uva.nl
+#		J.Wielemaker@uva.nl
 #		HCS (formerly SWI)
 #		University of Amsterdam
 #    		Kruislaan 419
@@ -57,7 +57,7 @@ OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
 	pl-xterm.obj pl-feature.obj pl-ctype.obj pl-main.obj \
 	pl-dde.obj pl-nt.obj pl-attvar.obj pl-gvar.obj pl-btree.obj \
 	pl-utf8.obj pl-text.obj pl-mswchar.obj pl-gmp.obj pl-tai.obj \
-	pl-segstack.obj pl-hash.obj pl-version.obj
+	pl-segstack.obj pl-hash.obj pl-version.obj pl-codetable.obj
 
 PLINIT=	$(PB)/init.pl
 
@@ -65,6 +65,7 @@ INCSRC=	pl-index.c pl-alloc.c pl-fli.c
 SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 	pl-os.h pl-data.h
+VMI=	pl-jumptable.ic pl-codetable.c pl-vmi.h
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/bags.pl ../boot/apply.pl \
@@ -101,7 +102,7 @@ MANDIR= "$(PLBASE)\doc\Manual"
 all:	lite packages
 
 lite:	banner \
-	headers	swipl subdirs \
+	headers	swipl subdirs vmi \
 	$(PLCON) startup index $(PLWIN) $(PLLD) \
 	dlldemos
 
@@ -163,11 +164,18 @@ $(CINCLUDE):	$(OUTDIRS) pl-itf.h
 $(STREAMH):	pl-stream.h $(INCLUDEDIR)
 		copy pl-stream.h $@
 
+$(OBJ):		pl-vmi.h
 pl-funct.obj:	pl-funct.ih
 pl-atom.obj:	pl-funct.ih
-pl-wam.obj:	pl-alloc.c pl-index.c pl-fli.c
+pl-wam.obj:	pl-alloc.c pl-index.c pl-fli.c pl-jumptable.ic
 pl-stream.obj:	popen.c
 
+# this should be pl-vmi.h, but that causes a recompile of everything.
+# Seems NMAKE dependency computation is broken ...
+vmi:		pl-vmi.c mkvmi.exe
+		mkvmi.exe
+		touch vmi
+		
 pl-funct.ih:	ATOMS defatom.exe
 		defatom.exe
 
@@ -176,6 +184,9 @@ pl-atom.ih:	ATOMS defatom.exe
 
 defatom.exe:	defatom.obj
 		$(LD) /out:$@ /subsystem:console defatom.obj $(LIBS)
+		
+mkvmi.exe:	mkvmi.obj
+		$(LD) /out:$@ /subsystem:console mkvmi.obj $(LIBS)
 		
 $(PLLD):	plld.obj
 		$(LD) /out:$@ /subsystem:console plld.obj $(LIBS)
@@ -394,7 +405,7 @@ clean:		clean_packages
 		chdir win32\uxnt & $(MAKE) clean
 		chdir win32\console & $(MAKE) clean
 		chdir win32\foreign & $(MAKE) clean
-		-del *.obj *~ pl.res 2>nul
+		-del *.obj *~ pl.res vmi 2>nul
 
 distclean:	clean distclean_packages
 		@chdir rc & $(MAKE) distclean

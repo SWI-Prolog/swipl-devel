@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -25,6 +25,9 @@
 /*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#ifdef _MSC_VER
+#pragma warning(disable: 4102)		/* unreferenced labels */
+#endif
 
 #define	     BFR (LD->choicepoints)	/* choicepoint registration */
 
@@ -2187,11 +2190,3 @@ next_choice:
   assert(0);
   return FALSE;
 } /* end of PL_next_solution() */
-
-
-		 /*******************************
-		 *      PUBLISH PREDICATES	*
-		 *******************************/
-
-BeginPredDefs(wam)
-EndPredDefs

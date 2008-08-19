@@ -702,7 +702,7 @@ VMI(B_FUNCTOR, 1, CA1_FUNC)
 
 
 VMI(B_RFUNCTOR, 1, CA1_FUNC)
-{ functor_t f = (functor_t) *PC++;;
+{ functor_t f = (functor_t) *PC++;
   int arity = arityFunctor(f);
 
   requireStack(global, sizeof(word) * (1+arity));
