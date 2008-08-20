@@ -3406,12 +3406,7 @@ int
 PL_raise(int sig)
 { GET_LD
 
-  if ( sig > 0 && sig <= MAXSIGNAL && LD )
-  { LD->pending_signals |= ((int64_t)1 << (sig-1));
-    return TRUE;
-  }
-
-  return FALSE;
+  return raiseSignal(LD, sig);
 }
 
 

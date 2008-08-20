@@ -51,13 +51,23 @@ are available.
 	* ARGP
 	Argument pointer
 
+	* CL
+	Running clause (= FR->clause)
+
+	* DEF
+	Running definition
+
 Virtual machine instructions can return with one of:
 
 	* NEXT_INSTRUCTION
 	Proceed
 
 	* CLAUSE_FAILED
-	Backtrack
+	Failed unifying the head: backtrack to next clause
+
+	* BODY_FAILED
+	* FRAME_FAILED
+	Other failures: deep backtracking.
 
 	* VMI_GOTO(VMI)
 	Continue executing another virtual instruction.  Note this is
@@ -855,7 +865,7 @@ Note: we are working above `lTop' here!!   We restore this as quickly as
 possible to be able to call-back to Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
   NFR->parent         = FR;
-  NFR->predicate	     = DEF;		/* TBD */
+  NFR->predicate      = DEF;		/* TBD */
   NFR->programPointer = PC;		/* save PC in child */
   NFR->clause         = NULL;		/* for save atom-gc */
   environment_frame = FR = NFR;		/* open the frame */
@@ -869,7 +879,7 @@ retry_continue:
   lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 
 #ifdef O_DEBUGLOCAL
-{	Word ap = argFrameP(FR, DEF->functor->arity);
+{ Word ap = argFrameP(FR, DEF->functor->arity);
   int n;
   
   for(n=50; --n; )
@@ -879,21 +889,30 @@ retry_continue:
 
   clear(FR, FR_SKIPPED|FR_WATCHED|FR_CATCHED);
 
-  if ( is_signalled(PASS_LD1) )
-  { SAVE_REGISTERS(qid);
-    handleSignals(NULL);
-    LOAD_REGISTERS(qid);
-    if ( exception_term )
-    { CL = NULL;
+  if ( LD->alerted )
+  { if ( is_signalled(PASS_LD1) )
+    { SAVE_REGISTERS(qid);
+      handleSignals(NULL);
+      LOAD_REGISTERS(qid);
+      if ( exception_term )
+      { CL = NULL;
 
-      enterDefinition(DEF);
-				  /* The catch is not yet installed, */
-				  /* so we ignore it */
-      if ( FR->predicate == PROCEDURE_catch3->definition )
-	set(FR, FR_CATCHED);
+	enterDefinition(DEF);
+				    /* The catch is not yet installed, */
+				    /* so we ignore it */
+	if ( FR->predicate == PROCEDURE_catch3->definition )
+	  set(FR, FR_CATCHED);
 
-      goto b_throw;
+	goto b_throw;
+      }
     }
+
+#ifdef O_PROFILE
+    if ( LD->profile.active )
+      FR->prof_node = profCall(DEF PASS_LD);
+    else
+      FR->prof_node = NULL;
+#endif
   }
 
   LD->statistics.inferences++;
@@ -917,13 +936,6 @@ be able to access these!
       goto b_throw;
     }
   }
-
-#ifdef O_PROFILE	
-  if ( LD->profile.active )
-    FR->prof_node = profCall(DEF PASS_LD);
-  else
-    FR->prof_node = NULL;
-#endif
 
   if ( false(DEF, METAPRED) )
     FR->context = DEF->module;

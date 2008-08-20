@@ -249,6 +249,7 @@ pl_abort(abort_type type)
   resetSignals();
   resetForeign();
   resetAtoms();
+  updateAlerted(LD);
 
   longjmp(abort_context, 1);
   /*NOTREACHED*/
@@ -286,6 +287,8 @@ resetProlog()
 #ifndef O_ABORT_WITH_THROW
   can_abort = TRUE;
 #endif
+
+  updateAlerted(LD);
 }
 
 
@@ -312,10 +315,10 @@ prologToplevel(volatile atom_t goal)
     Procedure p;
     word gn;
 
-   resetProlog();
-   fid = PL_open_foreign_frame();
+    resetProlog();
+    fid = PL_open_foreign_frame();
 
-   if ( aborted )
+    if ( aborted )
     { aborted = FALSE;
       gn = PL_new_atom("$abort");
     } else

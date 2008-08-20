@@ -84,6 +84,7 @@ activateProfiler(int active ARG_LD)
   { /* consider using thread-time? */
     LD->profile.time_at_start = CpuTime(CPU_USER); 
   }
+  updateAlerted(LD);
 
   sum_ok = FALSE;
 }

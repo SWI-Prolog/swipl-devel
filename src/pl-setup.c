@@ -847,6 +847,8 @@ handleSignals(Code PC)
 out:
   if ( exception_term )
     return -1;
+  if ( done )
+    updateAlerted(ld);
 
   return done;
 }

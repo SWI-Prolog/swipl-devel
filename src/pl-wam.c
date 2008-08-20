@@ -197,33 +197,56 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
 		 *	     SIGNALS		*
 		 *******************************/
 
-#if 0 /*def O_SAFE_SIGNALS*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+LD->alerted indicates the system is running in  some sort of `safe' mode
+and therefore should perform various checks. It   is  a disjunction of a
+number of conditions that would ortherwise  have to be tested one-by-one
+in several virtual machine instructions.  Currently covers:
 
-static inline int
-is_signalled()
-{ sigset_t set;
+	* Pending signals
+	* pthread_cancel() requested
+        * Activation of the profiler
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  sigpending(&set);
-
-  return set != 0;			/* non-portable! */
+void
+updateAlerted(PL_local_data_t *ld)
+{ if ( ld->pending_signals
+#ifdef O_PROFILE
+       || ld->profile.active
+#endif
+#ifdef O_PLMT
+       || ld->exit_requested
+#endif
+     )
+    ld->alerted = TRUE;
+  else
+    ld->alerted = FALSE;
 }
 
-#else
+
+int
+raiseSignal(PL_local_data_t *ld, int sig)
+{ if ( sig > 0 && sig <= MAXSIGNAL && ld )
+  { ld->pending_signals |= ((int64_t)1 << (sig-1));
+    updateAlerted(ld);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 
 static inline int
 is_signalled(ARG1_LD)
 {
 #ifdef O_PLMT
-  if ( LD->cancel_counter++ % 64 == 0 )
+  if ( LD->exit_requested )
     pthread_testcancel();
 #endif
-
-  /*PL_raise(SIG_GC);*/
 
   return (LD->pending_signals != 0);
 }
 
-#endif
 
 
 		 /*******************************

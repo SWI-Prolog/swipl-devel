@@ -632,14 +632,15 @@ exitPrologThreads()
 	  break;
 	}
 	case PL_THREAD_RUNNING:
-	{ if ( t->cancel )
+	{ t->thread_data->exit_requested = TRUE;
+
+	  if ( t->cancel )
 	  { if ( (*t->cancel)(i) == TRUE )
 	      break;			/* done so */
 	  }
 
 #ifdef __WINDOWS__
-  	  t->thread_data->exit_requested = TRUE;
-	  t->thread_data->pending_signals |= (1L << (SIGINT-1));
+	  raiseSignal(t->thread_data, SIGINT);
 	  PostThreadMessage(t->w32id, WM_QUIT, 0, 0);
 	  DEBUG(1, Sdprintf("Cancelled %d\n", i));
 	  canceled++;
@@ -823,7 +824,7 @@ PL_w32thread_raise(DWORD id, int sig)
   LOCK();
   for(i = 0, info = threads; i < MAX_THREADS; i++, info++)
   { if ( info->w32id == id && info->thread_data )
-    { info->thread_data->pending_signals |= (1L << (sig-1));
+    { raiseSignal(info->thread_data, sig);
 #ifdef __WINDOWS__
       if ( info->w32id )
 	PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
@@ -860,7 +861,8 @@ PL_thread_raise(int tid, int sig)
   if ( info->status == PL_THREAD_UNUSED )
     goto error;
 
-  info->thread_data->pending_signals |= (1L << (sig-1));
+  if ( !raiseSignal(info->thread_data, sig) )
+    goto error;
 #ifdef __WINDOWS__
   if ( info->w32id )
     PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
@@ -1792,7 +1794,7 @@ pl_thread_signal(term_t thread, term_t goal)
   { ld->thread.sig_tail->next = sg;
     ld->thread.sig_tail = sg;
   }
-  ld->pending_signals |= ((int64_t)1 << (SIG_THREAD_SIGNAL-1));
+  raiseSignal(ld, SIG_THREAD_SIGNAL);
 
 #ifdef __WINDOWS__
   if ( ld->thread.info->w32id )
