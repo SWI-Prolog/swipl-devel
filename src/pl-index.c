@@ -156,6 +156,7 @@ indexOfWord(word w ARG_LD)
 	    key++;
           return key;
 	}
+        /*FALLTHROUGH*/
       case TAG_ATOM:
 	break;				/* atom_t */
       case TAG_FLOAT:
