@@ -9,7 +9,7 @@ Open ends:
 	{
 	}
 	- VMIs sharing variables.  See BEGIN_SHAREDVARS ... END_SHAREDVARS
-		- Does this harm optimization?
+	- Does this harm optimization?
 
 VMI Info:
 ---++ Supervisor instructions
@@ -100,9 +100,13 @@ Then
 
 Simple way forward:
 
-	* Keep Definition around and get things out one-by-one?
-	* Create alternative compiler?
-		- I_CALL must be same?
+	* Add ->codes to definition
+	    - Jump to it if it exists
+	    - Keep (most of) the rest
+		- Simply ignore ->codes for debugging
+	    - Index: if only one clause create the jump
+	    - Link one and only clause
+		TBD: Unlink on eraseClause
 ================================================================
 ---+ Debugging
 
@@ -155,8 +159,53 @@ Problems:
 	- Clauses 
 
 ================================================================
-Prolog representation of VM
+Cleanup:
 
-	* Instruction:
-	name(Arg, ...)
-	* Branching: c_or(Left, Right)
+	- Associate all special conditions under one test:
+		- Profiling
+		- Debugging
+		- Signalled
+		- OutOfStack
+		- GC requested
+
+================================================================
+bench_peirera(1) on 5.6.59
+	- using pl -O -g bench_peirera
+	- AMD Athlon X2/5400+, gcc -O3
+----------------------------------------------------------------
+tail_call_atom_atom    took 1.05-0.13=0.92/145946 =      6.3 usec/iter.
+binary_call_atom_atom  took 1.04-0.08=0.96/94737 =      10.1 usec/iter.
+cons_list              took 1.00-0.09=0.91/91525 =       9.9 usec/iter.
+walk_list              took 1.12-0.12=1.00/122727 =      8.1 usec/iter.
+walk_list_rec          took 1.14-0.12=1.02/125581 =      8.1 usec/iter.
+args(1)                took 1.11-0.11=1.00/120000 =      8.3 usec/iter.
+args(2)                took 1.08-0.08=1.00/81818 =      12.2 usec/iter.
+args(4)                took 1.11-0.05=1.06/54545 =      19.4 usec/iter.
+args(8)                took 1.05-0.03=1.02/33333 =      30.6 usec/iter.
+args(16)               took 1.05-0.02=1.03/19355 =      53.2 usec/iter.
+cons_term              took 1.04-0.08=0.96/84375 =      11.4 usec/iter.
+walk_term              took 1.08-0.11=0.97/110204 =      8.8 usec/iter.
+walk_term_rec          took 1.15-0.12=1.03/122727 =      8.4 usec/iter.
+shallow_backtracking   took 1.48-0.47=1.01/415385 =      2.4 usec/iter.
+deep_backtracking      took 1.05-0.07=0.98/59341 =      16.5 usec/iter.
+choice_point           took 1.15-0.11=1.04/94737 =      11.0 usec/iter.
+trail_variables        took 1.06-0.10=0.96/87097 =      11.0 usec/iter.
+medium_unify           took 1.68-0.75=0.93/771429 =      1.2 usec/iter.
+deep_unify             took 1.21-0.23=0.98/235161 =      4.2 usec/iter.
+integer_add            took 0.99-0.05=0.94/49091 =      19.1 usec/iter.
+floating_add           took 0.97-0.04=0.93/40909 =      22.7 usec/iter.
+arg(1)                 took 1.04-0.04=1.00/40000 =      25.0 usec/iter.
+arg(2)                 took 1.06-0.04=1.02/40909 =      24.9 usec/iter.
+arg(4)                 took 0.97-0.03=0.94/37500 =      25.1 usec/iter.
+arg(8)                 took 0.98-0.04=0.94/38217 =      24.6 usec/iter.
+arg(16)                took 0.99-0.04=0.95/38298 =      24.8 usec/iter.
+index                  took 1.18-0.09=1.09/100000 =     10.9 usec/iter.
+assert_unit            took 1.09-0.00=1.09/1525 =      714.8 usec/iter.
+access_unit            took 1.05-0.02=1.03/26471 =      38.9 usec/iter.
+slow_access_unit       took 0.96-0.00=0.96/1607 =      597.4 usec/iter.
+setof                  took 1.02-0.01=1.01/7692 =      131.3 usec/iter.
+pair_setof             took 1.00-0.00=1.00/6522 =      153.3 usec/iter.
+double_setof           took 0.98-0.01=0.97/1837 =      528.0 usec/iter.
+bagof                  took 1.02-0.00=1.02/10112 =     100.9 usec/iter.
+================================================================
+

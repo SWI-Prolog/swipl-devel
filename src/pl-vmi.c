@@ -963,10 +963,19 @@ be able to access these!
 #endif /*O_SHIFT_STACKS*/
 #endif /*O_DYNAMIC_STACKS*/
 
-  if ( LD->outofstack )
+  if ( LD->outofstack )			/* TBD: sit on signalled */
   { enterDefinition(DEF);		/* exception will lower! */
     outOfStack(LD->outofstack, STACK_OVERFLOW_RAISE);
     goto b_throw;
+  }
+
+  if ( DEF->codes )			/* entry point for new supervisors */
+  { ARGP = argFrameP(FR, 0);
+    CL   = DEF->definition.clauses;
+    lTop = (LocalFrame)(ARGP + CL->clause->variables);
+
+    PC = DEF->codes;
+    NEXT_INSTRUCTION;
   }
 
   if ( true(DEF, FOREIGN) )
@@ -1038,7 +1047,6 @@ values found in the clause,  give  a   reference  to  the clause and set
   DEBUG(9, Sdprintf("Searching clause ... "));
 
 { ClauseRef nextcl;
-  Clause clause;
 
   lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
   if ( !(CL = firstClause(ARGP, FR, DEF, &nextcl PASS_LD)) )
@@ -1050,9 +1058,8 @@ values found in the clause,  give  a   reference  to  the clause and set
   }
   DEBUG(9, Sdprintf("Clauses found.\n"));
 
-  clause = CL->clause;
-  PC = clause->codes;
-  lTop = (LocalFrame)(ARGP + clause->variables);
+  PC = CL->clause->codes;
+  lTop = (LocalFrame)(ARGP + CL->clause->variables);
 
   if ( nextcl )
   { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);

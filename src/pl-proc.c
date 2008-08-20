@@ -143,18 +143,12 @@ resetProcedure(Procedure proc, bool isnew)
   if ( stringAtom(def->functor->name)[0] != '$' )
     set(def, TRACE_ME);
   def->number_of_clauses = 0;
+  def->codes = NULL;			/* TBD: point to undef sequence? */
 
   if ( isnew )
   { def->indexCardinality = 0;
-    if ( def->functor->arity == 0 )
-    { def->indexPattern = 0x0;
-    } else if ( true(def, DYNAMIC) )
-    { def->indexPattern = 0x1;
-      set(def, AUTOINDEX);
-    } else
-    { def->indexPattern = (0x0 | NEED_REINDEX);
-      set(def, AUTOINDEX);
-    }
+    def->indexPattern = (0x0 | NEED_REINDEX);
+    set(def, AUTOINDEX);
   
     if ( def->hash_info )
     { unallocClauseIndexTable(def->hash_info);
@@ -2228,6 +2222,16 @@ reindexDefinition(Definition def)
   assert(def->references == 1 || !def->hash_info);
   DEBUG(2, Sdprintf("reindexDefinition(%s)\n", predicateName(def)));
   def->indexPattern &= ~NEED_REINDEX;
+
+                                       /* directly link one and only clause */
+  if ( def->number_of_clauses == 1 && false(def, DYNAMIC|MULTIFILE) )
+  { for(cref = def->definition.clauses; cref; cref = cref->next)
+    { if ( visibleClause(cref->clause, GD->generation) )
+      { DEBUG(1, Sdprintf("Linked clause for %s\n", predicateName(def)));
+	def->codes = cref->clause->codes;
+      }
+    }
+  }
 
   if ( true(def, AUTOINDEX) || def->indexPattern == 0x1 )
   { for(cref = def->definition.clauses; cref; cref = cref->next)
