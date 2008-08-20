@@ -206,11 +206,13 @@ in several virtual machine instructions.  Currently covers:
 	* Pending signals
 	* pthread_cancel() requested
         * Activation of the profiler
+	* out-of-stack signalled
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 updateAlerted(PL_local_data_t *ld)
 { if ( ld->pending_signals
+       || ld->outofstack
 #ifdef O_PROFILE
        || ld->profile.active
 #endif

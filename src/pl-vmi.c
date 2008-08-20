@@ -890,7 +890,13 @@ retry_continue:
   clear(FR, FR_SKIPPED|FR_WATCHED|FR_CATCHED);
 
   if ( LD->alerted )
-  { if ( is_signalled(PASS_LD1) )
+  { if ( LD->outofstack )
+    { enterDefinition(DEF);		/* exception will lower! */
+      outOfStack(LD->outofstack, STACK_OVERFLOW_RAISE);
+      goto b_throw;
+    }
+
+    if ( is_signalled(PASS_LD1) )
     { SAVE_REGISTERS(qid);
       handleSignals(NULL);
       LOAD_REGISTERS(qid);
@@ -898,8 +904,8 @@ retry_continue:
       { CL = NULL;
 
 	enterDefinition(DEF);
-				    /* The catch is not yet installed, */
-				    /* so we ignore it */
+					/* The catch is not yet installed, */
+					/* so we ignore it */
 	if ( FR->predicate == PROCEDURE_catch3->definition )
 	  set(FR, FR_CATCHED);
 
@@ -975,12 +981,6 @@ be able to access these!
     garbageCollect(FR);
 #endif /*O_SHIFT_STACKS*/
 #endif /*O_DYNAMIC_STACKS*/
-
-  if ( LD->outofstack )			/* TBD: sit on signalled */
-  { enterDefinition(DEF);		/* exception will lower! */
-    outOfStack(LD->outofstack, STACK_OVERFLOW_RAISE);
-    goto b_throw;
-  }
 
   if ( DEF->codes )			/* entry point for new supervisors */
   { ARGP = argFrameP(FR, 0);

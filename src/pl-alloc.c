@@ -634,6 +634,7 @@ outOfStack(void *stack, stack_overflow_action how)
   switch(how)
   { case STACK_OVERFLOW_FATAL:
       LD->outofstack = s;
+      updateAlerted(LD);
       Sdprintf("ERROR: Out of %s stack (ungraceful overflow)", s->name);
 
       pl_abort(ABORT_FATAL);
@@ -643,6 +644,7 @@ outOfStack(void *stack, stack_overflow_action how)
     case STACK_OVERFLOW_RAISE:
     { fid_t fid = PL_open_foreign_frame();
       LD->outofstack = NULL;
+      updateAlerted(LD);
       PL_clearsig(SIG_GC);
       s->gced_size = 0;			/* after handling, all is new */
       PL_unify_term(LD->exception.tmp,
@@ -662,6 +664,7 @@ outOfStack(void *stack, stack_overflow_action how)
     }
     case STACK_OVERFLOW_SIGNAL:
       LD->outofstack = s;
+      updateAlerted(LD);
       succeed;
   }
   assert(0);
