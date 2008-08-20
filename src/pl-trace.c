@@ -1413,6 +1413,7 @@ debugmode(debug_type doit, debug_type *old)
     { setFeatureMask(LASTCALL_FEATURE);
     }
     debugstatus.debugging = doit;
+    updateAlerted(LD);
     printMessage(ATOM_silent,
 		 PL_FUNCTOR_CHARS, "debug_mode", 1,
 		   PL_ATOM, doit ? ATOM_on : ATOM_off);

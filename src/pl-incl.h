@@ -840,6 +840,7 @@ typedef struct
 #define	ALERT_EXITREQ	 0x10
 #define	ALERT_DEPTHLIMIT 0x20
 #define	ALERT_WAKEUP	 0x40
+#define ALERT_DEBUG	 0x80
 
 
 		 /*******************************
