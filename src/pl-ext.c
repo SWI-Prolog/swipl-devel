@@ -126,10 +126,6 @@ static const PL_extension foreigns[] = {
   FRG("break",			0, pl_break,			0),
   FRG("$break",			1, pl_break1,			0),
   FRG("notrace",		1, pl_notrace1,		     META),
-#ifdef O_LIMIT_DEPTH
-  FRG("$depth_limit",		3, pl_depth_limit,		0),
-  FRG("$depth_limit_true",	5, pl_depth_limit_true,	     NDET),
-#endif
 
   FRG("write_canonical",	1, pl_write_canonical,	      ISO),
   FRG("write_term",		2, pl_write_term,	      ISO),

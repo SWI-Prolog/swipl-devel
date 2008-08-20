@@ -585,12 +585,6 @@ COMMON(int) 		setDoubleQuotes(atom_t a, unsigned int *flagp);
 COMMON(word) 		pl_break(void);
 COMMON(word) 		pl_break1(term_t goal);
 COMMON(word) 		pl_notrace1(term_t goal);
-#ifdef O_LIMIT_DEPTH
-COMMON(word) 		pl_depth_limit(term_t limit, term_t olimit, term_t oreached);
-COMMON(word) 		pl_depth_limit_true(term_t limit,
-				    term_t olimit, term_t oreached,
-				    term_t res, term_t cut, control_t b);
-#endif /*O_LIMIT_DEPTH*/
 COMMON(int) 		callProlog(Module module, term_t goal, int flags, term_t *ex);
 COMMON(word) 		pl_abort(abort_type type);
 COMMON(bool) 		prologToplevel(atom_t toplevel);

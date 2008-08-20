@@ -4017,15 +4017,18 @@ not allowed to return to  the   parent  environment  without closing the
 query.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_depth_limit(term_t limit, term_t olimit, term_t oreached)
+/* $depth_limit(+Limit, -OldLimit, -DepthReached)
+*/
+
+static
+PRED_IMPL("$depth_limit", 3, pl_depth_limit, 0)
 { GET_LD
   long levels;
   long clevel = levelFrame(environment_frame) - 1;
 
-  if ( PL_get_long_ex(limit, &levels) )
-  { if ( PL_unify_integer(olimit, depth_limit) &&
-	 PL_unify_integer(oreached, depth_reached) )
+  if ( PL_get_long_ex(A1, &levels) )
+  { if ( PL_unify_integer(A2, depth_limit) &&
+	 PL_unify_integer(A3, depth_reached) )
     { depth_limit   = clevel + levels + 1; /* 1 for the catch/3 */
       depth_reached = clevel;
     
@@ -4037,10 +4040,15 @@ pl_depth_limit(term_t limit, term_t olimit, term_t oreached)
 }
 
 
-word
-pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
-		    term_t res, term_t cut, control_t b)
-{ switch(ForeignControl(b))
+static
+PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
+{ term_t limit = A1;
+  term_t olimit = A2;
+  term_t oreached = A3;
+  term_t res = A4;
+  term_t cut = A5;
+
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { GET_LD
       long l, ol, or;
@@ -4679,6 +4687,8 @@ BeginPredDefs(prims)
 #ifdef O_LIMIT_DEPTH
   PRED_DEF("$depth_limit_except", 3, depth_limit_except, 0)
   PRED_DEF("$depth_limit_false",  3, depth_limit_false, 0)
+  PRED_DEF("$depth_limit", 3, pl_depth_limit, 0)
+  PRED_DEF("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
 #endif
   PRED_DEF("atom_length", 2, atom_length, PL_FA_ISO)
   PRED_DEF("name", 2, name, 0)
