@@ -289,6 +289,7 @@ $(OBJ):		parms.h $(srcdir)/pl-funct.ih $(srcdir)/pl-vmi.h
 pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c pl-vmi.c $(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic
 pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
+pl-prof.o:	pentium.c
 pl-gc.o:	pl-lifegc.c
 $(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: $(srcdir)/pl-vmi.c mkvmi
 		./mkvmi "$(srcdir)"

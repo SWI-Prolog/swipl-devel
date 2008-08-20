@@ -1759,7 +1759,8 @@ pl-comp.c
 #ifdef O_PROF_PENTIUM
 #include "pentium.h"
 
-#define PROF_FOREIGN (I_HIGHEST)
+#define PROF_FOREIGN	(I_HIGHEST)
+#define DEPART_CONTINUE (I_HIGHEST+1)
 
 #else
 #define START_PROF(id, name)
@@ -1772,9 +1773,10 @@ pl-comp.c
 #define VMI(Name,na,a)		Name ## _LBL: \
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);
-#define VMI_GOTO(n)		goto n ## _LBL;
-#define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
-				  END_PROF(); \
+#define VMI_GOTO(n)		END_PROF(); \
+				goto n ## _LBL;
+#define NEXT_INSTRUCTION	{ END_PROF(); \
+				  DbgPrintInstruction(FR, PC); \
 				  goto *(void *)((intptr_t)(*PC++)); \
 				}
 #ifndef ASM_NOP
@@ -1790,7 +1792,8 @@ code thiscode;
 				  case_ ## Name:
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);
-#define VMI_GOTO(n)		goto case_ ## n;
+#define VMI_GOTO(n)		END_PROF(); \
+				goto case_ ## n;
 #define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
 				  END_PROF(); \
                                   goto next_instruction; \

@@ -26,7 +26,7 @@
 #ifndef PROF_H_INCLUDED
 #define PROF_H_INCLUDED
 
-typedef intptr_t intptr_t ticks;
+typedef int64_t ticks;
 typedef struct
 { ticks ticks;				/* time spent */
   ticks fastest;			/* fastest call */
@@ -61,8 +61,8 @@ extern ticks		prof_ticks;
 	prof_ticks = pentium_clock(); 
 #define END_PROF() \
 	if ( prof_current ) \
-	{ prof_record *pr = prof_current; \
-	  ticks t = pentium_clock() - prof_ticks; \
+	{ ticks t = pentium_clock() - prof_ticks; \
+	  prof_record *pr = prof_current; \
 	  pr->calls++; \
 	  if ( !pr->fastest || pr->fastest > t ) pr->fastest = t; \
 	  pr->ticks += t; \
