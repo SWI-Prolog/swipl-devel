@@ -594,14 +594,11 @@ retry:
   }
 
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
-  { int port = (result ? EXIT_PORT : FAIL_PORT);
+					/* exit already moved to I_EXIT */
+  if ( debugstatus.debugging && !result )
+  { Undo(ffr->mark);
 
-    if ( port == FAIL_PORT )
-    { Undo(ffr->mark);
-    }
-
-    switch( tracePort(frame, LD->choicepoints, port, NULL PASS_LD) )
+    switch( tracePort(frame, LD->choicepoints, FAIL_PORT, NULL PASS_LD) )
     { case ACTION_FAIL:
 	exception_term = 0;
         fail;

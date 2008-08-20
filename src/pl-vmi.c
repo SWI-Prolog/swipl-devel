@@ -1011,7 +1011,7 @@ be able to access these!
 	PC = &exit;
 	goto wakeup;
       }
-      goto exit_builtin_cont;
+      VMI_GOTO(I_EXIT);
 #endif
     }
 
@@ -1195,10 +1195,9 @@ bit more careful.
   }
 #endif /*O_DEBUGGER*/
 
-exit_builtin_cont:			/* tracer already by callForeign() */
-  if ( (void *)BFR <= (void *)FR ) /* deterministic */
-  { FR->clause = NULL;		/* leaveDefinition() destroys clause */
-    leaveDefinition(DEF);	/* dynamic pred only */
+  if ( (void *)BFR <= (void *)FR )	/* deterministic */
+  { FR->clause = NULL;			/* leaveDefinition() destroys clause */
+    leaveDefinition(DEF);		/* dynamic pred only */
     lTop = FR;
     DEBUG(3, Sdprintf("Deterministic exit of %s, lTop = #%ld\n",
 		      predicateName(FR->predicate), loffset(lTop)));
@@ -1206,13 +1205,13 @@ exit_builtin_cont:			/* tracer already by callForeign() */
   { clear(FR, FR_INBOX);
   }
 
-  if ( !FR->parent )		/* query exit */
-  { QF = QueryFromQid(qid);	/* may be shifted: recompute */
+  if ( !FR->parent )			/* query exit */
+  { QF = QueryFromQid(qid);		/* may be shifted: recompute */
     QF->solutions++;
 
     assert(FR == &QF->frame);
 
-    if ( BFR == &QF->choice )	/* No alternatives */
+    if ( BFR == &QF->choice )		/* No alternatives */
     { set(QF, PL_Q_DETERMINISTIC);
       lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
 
@@ -2217,7 +2216,7 @@ VMI(I_EXITCATCH, 0, ())
     BFR = BFR->parent;
   }
 
-  goto exit_builtin_cont;
+  VMI_GOTO(I_EXIT);
 }
 
 
