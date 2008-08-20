@@ -103,6 +103,22 @@ code into functions.
 
 
 		 /*******************************
+		 *	 ATTRIBUTED VARS	*
+		 *******************************/
+
+#ifdef O_ATTVAR
+#define CHECK_WAKEUP \
+	if ( LD->alerted & ALERT_WAKEUP ) \
+	{ LD->alerted &= ~ALERT_WAKEUP; \
+	  if ( *valTermRef(LD->attvar.head) ) \
+	    goto wakeup; \
+	}
+#else
+#define CHECK_WAKEUP (void)0
+#endif
+
+
+		 /*******************************
 		 *	    DEBUGGING		*
 		 *******************************/
 
@@ -792,10 +808,7 @@ VMI(I_ENTER, 0, ())
 #endif /*O_DEBUGGER*/
 
   ARGP = argFrameP(lTop, 0);
-#ifdef O_ATTVAR
-  if ( *valTermRef(LD->attvar.head) ) /* can be faster */
-    goto wakeup;
-#endif
+  CHECK_WAKEUP;
   NEXT_INSTRUCTION;
 }
 
@@ -1019,12 +1032,16 @@ be able to access these!
     if ( rval )
     { exit_builtin:
 #ifdef O_ATTVAR
-      if ( *valTermRef(LD->attvar.head) ) /* can be faster */
-      { static code exit;
+      if ( LD->alerted & ALERT_WAKEUP )
+      {	LD->alerted &= ~ALERT_WAKEUP;
 
-	exit = encode(I_EXIT);
-	PC = &exit;
-	goto wakeup;
+	if ( *valTermRef(LD->attvar.head) ) /* can be faster */
+	{ static code exit;
+
+	  exit = encode(I_EXIT);
+	  PC = &exit;
+	  goto wakeup;
+	}
       }
       VMI_GOTO(I_EXIT);
 #endif
@@ -1277,13 +1294,17 @@ VMI(I_EXITFACT, 0, ())
   }
 #endif /*O_DEBUGGER*/
 #ifdef O_ATTVAR
-  if ( *valTermRef(LD->attvar.head) ) /* can be faster */
-  { static code exit;
+  if ( LD->alerted & ALERT_WAKEUP )
+  { LD->alerted &= ~ALERT_WAKEUP;
 
-    exit = encode(I_EXIT);
-    PC = &exit;
-    ARGP = argFrameP(lTop, 0);	    /* needed? */
-    goto wakeup;
+    if ( *valTermRef(LD->attvar.head) ) /* can be faster */
+    { static code exit;
+
+      exit = encode(I_EXIT);
+      PC = &exit;
+      ARGP = argFrameP(lTop, 0);	    /* needed? */
+      goto wakeup;
+    }
   }
 #endif
 
@@ -1927,10 +1948,7 @@ VMI(A_IS, 0, ())
 #endif
     deRef2(ARGP, k);
     bindConst(k, c);
-#ifdef O_ATTVAR
-    if ( *valTermRef(LD->attvar.head) ) /* can be faster */
-      goto wakeup;
-#endif
+    CHECK_WAKEUP;
     NEXT_INSTRUCTION;
   } else
   { int rc;
@@ -2114,10 +2132,7 @@ increase lTop too to prepare for asynchronous interrupts.
       { assert(rval == TRUE);
 	Profile(profExit(FR->prof_node PASS_LD));
 
-#ifdef O_ATTVAR
-	if ( *valTermRef(LD->attvar.head) ) /* can be faster */
-	  goto wakeup;
-#endif
+	CHECK_WAKEUP;
 	NEXT_INSTRUCTION;
       }
 

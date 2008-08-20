@@ -86,6 +86,7 @@ registerWakeup(Word name, Word value ARG_LD)
     Trail(head);			/* not gc-ed!? */
     *tail = makeRef(wake+3);
     Trail(tail);			/* not gc-ed!? */
+    LD->alerted |= ALERT_WAKEUP;
     DEBUG(1, Sdprintf("new wakeup\n"));
   }
 

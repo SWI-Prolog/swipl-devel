@@ -208,25 +208,29 @@ in several virtual machine instructions.  Currently covers:
         * Activation of the profiler
 	* out-of-stack signalled
 	* active depth-limit
+	* attributed variable wakeup requested
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 updateAlerted(PL_local_data_t *ld)
-{ if ( ld->pending_signals
-       || ld->outofstack
+{ int mask = 0;
+
+  if ( ld->pending_signals )			mask |= ALERT_SIGNAL;
+  if ( ld->outofstack )				mask |= ALERT_OUTOFSTACK;
 #ifdef O_PROFILE
-       || ld->profile.active
+  if ( ld->profile.active )			mask |= ALERT_PROFILE;
 #endif
 #ifdef O_PLMT
-       || ld->exit_requested
+  if ( ld->exit_requested )			mask |= ALERT_EXITREQ;
 #endif
 #ifdef O_LIMIT_DEPTH
-       || ld->depth_info.limit != DEPTH_NO_LIMIT
+  if ( ld->depth_info.limit != DEPTH_NO_LIMIT ) mask |= ALERT_DEPTHLIMIT;
 #endif
-     )
-    ld->alerted = TRUE;
-  else
-    ld->alerted = FALSE;
+#ifdef O_ATTVAR
+  if ( !isVar(ld->attvar.head) )		mask |= ALERT_WAKEUP;
+#endif
+
+  ld->alerted = mask;
 }
 
 
@@ -960,21 +964,25 @@ cut such as \=/2 (implemented as A \= B :- ( A = B -> fail ; true )).
 
 bool
 foreignWakeup(ARG1_LD)
-{ if ( *valTermRef(LD->attvar.head) )
-  { fid_t fid = PL_open_foreign_frame();
-    int rval;
-    term_t a0 = PL_new_term_ref();
+{ if ( LD->alerted & ALERT_WAKEUP )
+  { LD->alerted &= ~ALERT_WAKEUP;
 
-    PL_put_term(a0, LD->attvar.head);
-    setVar(*valTermRef(LD->attvar.head));
-    setVar(*valTermRef(LD->attvar.tail));
-
-    rval = PL_call_predicate(NULL, PL_Q_NORMAL, PROCEDURE_dwakeup1,
-			     a0);
-
-    PL_close_foreign_frame(fid);
-
-    return rval;
+    if ( *valTermRef(LD->attvar.head) )
+    { fid_t fid = PL_open_foreign_frame();
+      int rval;
+      term_t a0 = PL_new_term_ref();
+  
+      PL_put_term(a0, LD->attvar.head);
+      setVar(*valTermRef(LD->attvar.head));
+      setVar(*valTermRef(LD->attvar.tail));
+  
+      rval = PL_call_predicate(NULL, PL_Q_NORMAL, PROCEDURE_dwakeup1,
+			       a0);
+  
+      PL_close_foreign_frame(fid);
+  
+      return rval;
+    }
   }
 
   succeed;

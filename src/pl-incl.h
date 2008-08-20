@@ -827,6 +827,22 @@ typedef struct
 
 
 		 /*******************************
+		 *	       ALERT		*
+		 *******************************/
+
+/* See updateAlerted()
+*/
+
+#define	ALERT_SIGNAL	 0x01
+#define	ALERT_GCREQ	 0x02
+#define	ALERT_OUTOFSTACK 0x04
+#define	ALERT_PROFILE	 0x08
+#define	ALERT_EXITREQ	 0x10
+#define	ALERT_DEPTHLIMIT 0x20
+#define	ALERT_WAKEUP	 0x40
+
+
+		 /*******************************
 		 *	     CLEANUP		*
 		 *******************************/
 
