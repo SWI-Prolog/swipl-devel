@@ -794,6 +794,10 @@ typedef struct
 	} value;
 } number, *Number;
 
+#define same_type_numbers(n1, n2) \
+	if ( (n1)->type != (n2)->type ) \
+	  make_same_type_numbers(n1, n2)
+
 #define TOINT_CONVERT_FLOAT	0x1	/* toIntegerNumber() */
 #define TOINT_TRUNCATE		0x2
 

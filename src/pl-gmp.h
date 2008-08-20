@@ -36,12 +36,14 @@ COMMON(void) 	initGMP(void);
 COMMON(void)	get_integer(word w, number *n);
 COMMON(void)	promoteToMPZNumber(number *n);
 COMMON(void)	promoteToMPQNumber(number *n);
-COMMON(void)	clearNumber(Number n);
+COMMON(void)	clearGMPNumber(Number n);
 COMMON(void)	addMPZToBuffer(Buffer b, mpz_t mpz);
 COMMON(char *)	loadMPZFromCharp(const char *data, Word r, Word *store);
 COMMON(char *)	skipMPZOnCharp(const char *data);
 COMMON(int)	mpz_to_int64(mpz_t mpz, int64_t *i);
 
+#define clearNumber(n) \
+	do { if ( (n)->type != V_INTEGER ) clearGMPNumber(n); } while(0)
 #else /*O_GMP*/
 
 #define get_integer(w, n) \

@@ -466,7 +466,7 @@ numbers that are created by GMP only.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-clearNumber(Number n)
+clearGMPNumber(Number n)
 { switch(n->type)
   { case V_MPZ:
       if ( n->value.mpz->_mp_alloc )
@@ -771,18 +771,12 @@ same_type_numbers(n1, n2)
     total ordering between the number types.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef max
-#define max(a,b) ((a) >= (b) ? (a) : (b))
-#endif
-
 void
-same_type_numbers(Number n1, Number n2)
-{ if ( n1->type != n2->type )
-  { if ( (int)n1->type > (int)n2->type )
-      promoteNumber(n2, n1->type);
-    else
-      promoteNumber(n1, n2->type);
-  }
+make_same_type_numbers(Number n1, Number n2)
+{ if ( (int)n1->type > (int)n2->type )
+    promoteNumber(n2, n1->type);
+  else
+    promoteNumber(n1, n2->type);
 }
 
 

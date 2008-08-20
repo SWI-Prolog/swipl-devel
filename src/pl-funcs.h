@@ -929,7 +929,7 @@ COMMON(void)	get_number(word w, Number n  ARG_LD);
 COMMON(int)	PL_get_number(term_t t, Number n);
 COMMON(word)	put_number__LD(Number n ARG_LD);
 COMMON(void)	promoteToRealNumber(Number n);
-COMMON(void)	same_type_numbers(Number n1, Number n2);
+COMMON(void)	make_same_type_numbers(Number n1, Number n2);
 COMMON(void)    promoteNumber(Number n1, numtype type);
 COMMON(int)	cmpNumbers(Number n1, Number n2);
 COMMON(void)	cpNumber(Number to, Number from);
