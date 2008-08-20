@@ -927,7 +927,7 @@ COMMON(int) 		enableThreads(int enable);
 COMMON(int)	PL_unify_number(term_t t, Number n);
 COMMON(void)	get_number(word w, Number n  ARG_LD);
 COMMON(int)	PL_get_number(term_t t, Number n);
-COMMON(word)	put_number(Number n);
+COMMON(word)	put_number__LD(Number n ARG_LD);
 COMMON(void)	promoteToRealNumber(Number n);
 COMMON(void)	same_type_numbers(Number n1, Number n2);
 COMMON(void)    promoteNumber(Number n1, numtype type);

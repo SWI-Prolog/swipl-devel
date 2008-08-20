@@ -579,10 +579,8 @@ put_mpz(mpz_t mpz)
 #endif /*O_GMP*/
 
 word
-put_number(Number n)
-{ GET_LD
-
-  switch(n->type)
+put_number__LD(Number n ARG_LD)
+{ switch(n->type)
   { case V_INTEGER:
     { word w = consInt(n->value.i);
 
