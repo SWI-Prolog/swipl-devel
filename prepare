@@ -49,13 +49,13 @@ findexe()
 }
 
 
-function confirm ()
+confirm ()
 { if [ "$yes" = yes ]; then
     return 0
   fi
 
   while true; do
-    echo -n "$1"
+    printf "$1"
     read answer
     case "$answer" in
           y*)   return 0
@@ -112,10 +112,10 @@ download_docs()
     exit 1
   fi
 
-  echo -n "Downloading documentation for SWI-Prolog $version from $server ..."
+  printf "Downloading documentation for SWI-Prolog $version from $server ..."
   curl $serverurl/generated/$doc > $doc
   ls -l $doc
-  echo -n "Unpacking $doc ..."
+  printf "Unpacking $doc ..."
   if $tar zxf $doc; then
      rm $doc
      echo "ok"
@@ -174,7 +174,7 @@ while [ "$done" = false ]; do
 	echo "       and ask next time"
 	echo "    3) Warn only"
 	echo ""
-	echo -n "Option? "
+	printf "Option? "
 	read answer
 	case "$answer" in
 	  1) echo download > .doc-action
@@ -222,7 +222,7 @@ confdir()
     if [ -f configure -a ! configure.in -nt configure ]; then
       return
     fi
-    echo -n "Generating configure in $1 ... "
+    printf "Generating configure in $1 ... "
     if grep AC_CONFIG_HEADER configure.in 2>&1 >/dev/null; then
       autoheader
     fi
