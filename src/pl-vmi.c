@@ -841,6 +841,7 @@ true:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 normal_call:
+					/* ensure room for next args */
   requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1048,7 +1049,6 @@ values found in the clause,  give  a   reference  to  the clause and set
 
 { ClauseRef nextcl;
 
-  lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
   if ( !(CL = firstClause(ARGP, FR, DEF, &nextcl PASS_LD)) )
   { DEBUG(9, Sdprintf("No clause matching index.\n"));
     if ( debugstatus.debugging )
@@ -1066,9 +1066,6 @@ values found in the clause,  give  a   reference  to  the clause and set
     ch->value.clause = nextcl;
   } else if ( debugstatus.debugging )
     newChoice(CHP_DEBUG, FR PASS_LD);
-
-		  /* require space for the args of the next frame */
-  requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
 }
 
   SECURE(
