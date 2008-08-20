@@ -49,7 +49,7 @@ findexe()
 }
 
 
-function confirm ()
+confirm ()
 { if [ "$yes" = yes ]; then
     return 0
   fi
