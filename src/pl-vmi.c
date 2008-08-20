@@ -919,6 +919,21 @@ retry_continue:
     else
       FR->prof_node = NULL;
 #endif
+
+#ifdef O_LIMIT_DEPTH
+    { uintptr_t depth = levelFrame(FR);
+    
+      if ( depth > depth_reached )
+	depth_reached = depth;
+      if ( depth > depth_limit )
+      { DEBUG(2, Sdprintf("depth-limit\n"));
+    
+	if ( debugstatus.debugging )
+	  newChoice(CHP_DEBUG, FR PASS_LD);
+	FRAME_FAILED;
+      }
+    }
+#endif
   }
 
   LD->statistics.inferences++;
@@ -1043,20 +1058,6 @@ values found in the clause,  give  a   reference  to  the clause and set
   ARGP = argFrameP(FR, 0);
   enterDefinition(DEF);
 
-#ifdef O_LIMIT_DEPTH
-{ uintptr_t depth = levelFrame(FR);
-
-  if ( depth > depth_reached )
-    depth_reached = depth;
-  if ( depth > depth_limit )
-  { DEBUG(2, Sdprintf("depth-limit\n"));
-
-    if ( debugstatus.debugging )
-      newChoice(CHP_DEBUG, FR PASS_LD);
-    FRAME_FAILED;
-  }
-}
-#endif
   DEBUG(9, Sdprintf("Searching clause ... "));
 
 { ClauseRef nextcl;

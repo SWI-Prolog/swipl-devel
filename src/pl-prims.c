@@ -4032,6 +4032,7 @@ PRED_IMPL("$depth_limit", 3, pl_depth_limit, 0)
     { depth_limit   = clevel + levels + 1; /* 1 for the catch/3 */
       depth_reached = clevel;
     
+      updateAlerted(LD);
       succeed;
     }
   }
@@ -4062,6 +4063,7 @@ PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
 
 	depth_limit   = ol;
 	depth_reached = or;
+	updateAlerted(LD);
 
 	if ( used < 1 )
 	  used = 1;
@@ -4098,6 +4100,7 @@ PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
       PL_get_long_ex(limit, &levels);
       depth_limit   = clevel + levels + 1; /* 1 for catch/3 */
       depth_reached = clevel;
+      updateAlerted(LD);
 
       fail;				/* backtrack to goal */
     }
@@ -4120,6 +4123,7 @@ PRED_IMPL("$depth_limit_false", 3, depth_limit_false, 0)
 
     depth_limit   = ol;
     depth_reached = or;
+    updateAlerted(LD);
 
     if ( exceeded )
       return PL_unify_atom(A3, ATOM_depth_limit_exceeded);
@@ -4138,6 +4142,7 @@ PRED_IMPL("$depth_limit_except", 3, depth_limit_except, 0)
        PL_get_long_ex(A2, &or) )
   { depth_limit   = ol;
     depth_reached = or;
+    updateAlerted(LD);
 
     return PL_raise_exception(A3);
   }
