@@ -1353,8 +1353,8 @@ static void
 leaveFrame(LocalFrame fr ARG_LD)
 { Definition def = fr->predicate;
 
-  if ( false(def, FOREIGN) )
-    leaveDefinition(def);
+  fr->clause = NULL;
+  leaveDefinition(def);
 
   if ( true(fr, FR_WATCHED) )
     frameFinished(fr, FINISH_FAIL PASS_LD);
