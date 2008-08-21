@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemak@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -1193,59 +1193,48 @@ from C.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_EXIT, 0, ())
-{
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-First, call the tracer. Basically,  the   current  frame is garbage, but
-given that the tracer might need to print the variables, we have to be a
-bit more careful.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+{ LocalFrame leave;
+
+  if ( LD->alerted )
+  {
 #if O_DEBUGGER
-  if ( debugstatus.debugging )
-  { int action = tracePort(FR, BFR, EXIT_PORT, PC PASS_LD);
-
-    switch( action )
-    { case ACTION_RETRY:
-	goto retry;
-      case ACTION_FAIL:
-	discardChoicesAfter(FR PASS_LD);
-	FRAME_FAILED;
+    if ( debugstatus.debugging )
+    { int action = tracePort(FR, BFR, EXIT_PORT, PC PASS_LD);
+  
+      switch( action )
+      { case ACTION_RETRY:
+	  goto retry;
+	case ACTION_FAIL:
+	  discardChoicesAfter(FR PASS_LD);
+	  FRAME_FAILED;
+      }
+  
+      if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
+	BFR = BFR->parent;
     }
-
-    if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
-      BFR = BFR->parent;
-  }
 #endif /*O_DEBUGGER*/
+    Profile(profExit(FR->prof_node PASS_LD));
+  }
 
   if ( (void *)BFR <= (void *)FR )	/* deterministic */
-  { FR->clause = NULL;			/* leaveDefinition() destroys clause */
+  { leave = true(FR, FR_WATCHED) ? FR : NULL;
+    FR->clause = NULL;			/* leaveDefinition() destroys clause */
     leaveDefinition(DEF);		/* dynamic pred only */
     lTop = FR;
     DEBUG(3, Sdprintf("Deterministic exit of %s, lTop = #%ld\n",
 		      predicateName(FR->predicate), loffset(lTop)));
   } else
-  { clear(FR, FR_INBOX);
+  { leave = NULL;
+    clear(FR, FR_INBOX);
   }
-
-{
-#if O_DEBUGGER
-  LocalFrame leave;
-
-  leave = (true(FR, FR_WATCHED) && FR == lTop) ? FR : NULL;
-#endif
-
-  SECURE(assert(onStackArea(local, FR->parent)));
 
   PC = FR->programPointer;
   environment_frame = FR = FR->parent;
   DEF = FR->predicate;
   ARGP = argFrameP(lTop, 0);
-  Profile(profExit(FR->prof_node PASS_LD));
-
-#if O_DEBUGGER
   if ( leave )
     frameFinished(leave, FINISH_EXIT PASS_LD);
-#endif
-}
+
   NEXT_INSTRUCTION;
 }
 

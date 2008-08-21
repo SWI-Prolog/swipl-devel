@@ -807,7 +807,6 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
   callEventHook(PLEV_FRAMEFINISHED, fr);
   PL_close_foreign_frame(cid);
 #endif
-
 }
 
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
