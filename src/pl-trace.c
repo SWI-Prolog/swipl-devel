@@ -1097,7 +1097,7 @@ findQuery(LocalFrame fr)
     fr = fr->parent;
 
   if ( fr )
-    return QueryOfTopFrame(fr);
+    return queryOfFrame(fr);
   return NULL;
 }
 
@@ -1401,8 +1401,7 @@ debugmode(debug_type doit, debug_type *old)
 	{ if ( fr->parent )
 	    fr = fr->parent;
 	  else
-	  { QueryFrame qf = QueryOfTopFrame(fr);
-	    assert(qf->magic == QID_MAGIC);
+	  { QueryFrame qf = queryOfFrame(fr);
 	    qf->debugSave = DBG_ON;
 	    fr = qf->saved_environment;
 	  }

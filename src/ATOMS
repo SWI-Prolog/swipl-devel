@@ -125,6 +125,7 @@ A cut_exit		"cut_exit"
 A cut_parent		"cut_parent"
 A cutted		"cut"
 A date			"date"
+A dc_call_prolog	"$c_call_prolog"
 A db_reference		"db_reference"
 A dcall			"<meta-call>"
 A dcall_cleanup		"$call_cleanup"
@@ -801,3 +802,4 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
+F dc_call_prolog	0

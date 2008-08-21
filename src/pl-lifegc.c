@@ -199,6 +199,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	break;
       }
 
+      case I_EXITQUERY:
       case I_EXITFACT:
 	return PC-1;
 
@@ -487,12 +488,12 @@ mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD)
     { state.frame    = fr;
       state.unmarked = slotsInFrame(fr, PC);
       state.envtop   = argFrameP(fr, state.unmarked);
-      state.c0       = fr->clause->clause->codes;
+      state.c0     = fr->clause->clause->codes;
 
       DEBUG(2, Sdprintf("Walking code for [%d] %s from PC=%d\n",
 			levelFrame(fr), predicateName(fr->predicate),
 			PC-state.c0));
-
+	
       walk_and_mark(&state, PC, I_EXIT PASS_LD);
     }
 
@@ -503,8 +504,7 @@ mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD)
     { PC = fr->programPointer;
       fr = fr->parent;
     } else
-    { qf = QueryOfTopFrame(fr);
-      assert(qf->magic == QID_MAGIC);
+    { qf = queryOfFrame(fr);
 
       if ( qf->saved_environment )
 	mark_arguments(qf->saved_environment PASS_LD); /* (*) */

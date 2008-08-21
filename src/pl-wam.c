@@ -1129,7 +1129,7 @@ isCatchedInOuterQuery(QueryFrame qf, Word catcher)
       if ( fr->parent )
       { fr = fr->parent;
       } else
-      { qf = QueryOfTopFrame(fr);
+      { qf = queryOfFrame(fr);
 	break;
       }
     }
@@ -1491,14 +1491,33 @@ newChoice(choice_type type, LocalFrame fr ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Op top of the query frame there are two   local frames. The top one is a
+dummy one, just enough to satisfy stack-walking   and GC. The first real
+one has a programPointer pointing to  I_EXITQUERY, doing the return from
+a query.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 qid_t
 PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 { GET_LD
   QueryFrame qf;
-  LocalFrame fr;
+  LocalFrame fr, top;
   Definition def;
   int arity;
   Word ap;
+  static int top_initialized = FALSE;
+  static struct clause clause;
+  static struct clause_ref cref = {&clause};
+
+  if ( !top_initialized )
+  { clause.procedure = PROCEDURE_dc_call_prolog;
+    clause.generation.erased = ~0L;
+    clause.code_size = 1;
+    clause.codes[0] = encode(I_EXITQUERY);
+
+    top_initialized = TRUE;
+  }
 
   DEBUG(2, { FunctorDef f = proc->definition->functor;
 	     unsigned int n;
@@ -1511,6 +1530,10 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 	     }
 	     Sdprintf(")\n");
 	   });
+  SECURE(checkStacks(environment_frame, NULL));
+  assert((ulong)fli_context > (ulong)environment_frame);
+  assert((ulong)lTop >= (ulong)(fli_context+1));
+
 
 					/* should be struct alignment, */
 					/* but for now, I think this */
@@ -1522,15 +1545,22 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
   requireStack(local, sizeof(struct queryFrame)+MAXARITY*sizeof(word));
 
-  qf	     = (QueryFrame) lTop;
-  fr         = &qf->frame;
-  fr->parent = NULL;
-  fr->flags  = FR_INBOX;
-  def        = getProcDefinedDefinition(&fr, NULL, proc PASS_LD);
+  qf	             = (QueryFrame) lTop;
+					/* fill top-frame */
+  top	             = &qf->top_frame;
+  top->parent        = NULL;
+  top->flags	     = 0;		/* TBD: level? */
+  top->predicate     = PROCEDURE_dc_call_prolog->definition;
+  top->clause        = &cref;
+  fr                 = &qf->frame;
+  fr->parent         = top;
+  fr->flags          = FR_INBOX;
+  fr->programPointer = clause.codes;
+  def                = getProcDefinedDefinition(&fr, NULL, proc PASS_LD);
 #ifdef O_SHIFT_STACKS
-  qf	     = (QueryFrame) lTop;
+  qf	             = (QueryFrame) lTop;
 #endif
-  arity	     = def->functor->arity;
+  arity		     = def->functor->arity;
 
   SECURE(checkStacks(environment_frame, NULL));
   assert((uintptr_t)fli_context > (uintptr_t)environment_frame);
