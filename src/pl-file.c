@@ -3349,6 +3349,7 @@ typedef struct
 { TableEnum e;				/* Enumerator on stream-table */
   IOSTREAM *s;				/* Stream we are enumerating */
   const sprop *p;			/* Pointer in properties */
+  int fixed_p;				/* Propety is given */
 } prop_enum;
 
 
@@ -3365,14 +3366,16 @@ pl_stream_property(term_t stream, term_t property, control_t h)
       a1 = PL_new_term_ref();
       
       if ( PL_is_variable(stream) )	/* generate */
-      {	functor_t f;
+      {	const sprop *p = sprop_list;
+	int fixed = FALSE;
+	functor_t f;
 
 	if ( PL_get_functor(property, &f) ) /* test for defined property */
-	{ const sprop *p = sprop_list;
-
-	  for( ; p->functor; p++ )
+	{ for( ; p->functor; p++ )
 	  { if ( f == p->functor )
+	    { fixed = TRUE;
 	      break;
+	    }
 	  }
 	  if ( !p->functor )
 	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
@@ -3383,11 +3386,13 @@ pl_stream_property(term_t stream, term_t property, control_t h)
 
 	pe->e = newTableEnum(streamContext);
 	pe->s = NULL;
-	pe->p = sprop_list;
-
+	pe->p = p;
+	pe->fixed_p = fixed;
+	
 	break;
       }
-      LOCK();
+
+      LOCK();				/* given stream */
       if ( get_stream_handle(stream, &s, SH_ERRORS|SH_UNLOCKED) )
       { functor_t f;
 
@@ -3397,10 +3402,13 @@ pl_stream_property(term_t stream, term_t property, control_t h)
 	  pe->e = NULL;
 	  pe->s = s;
 	  pe->p = sprop_list;
+	  pe->fixed_p = FALSE;
 	  UNLOCK();
 
 	  break;
-	} else if ( PL_get_functor(property, &f) )
+	}
+
+	if ( PL_get_functor(property, &f) )
 	{ const sprop *p = sprop_list;
 
 	  for( ; p->functor; p++ )
@@ -3488,12 +3496,19 @@ pl_stream_property(term_t stream, term_t property, control_t h)
 	      rval = FALSE;
 	  }
 	  if ( rval )
-	  { pe->p++;
+	  { if ( pe->fixed_p )
+	      pe->s = NULL;
+	    else
+	      pe->p++;
 	    ForeignRedoPtr(pe);
 	  }
 	}
+
+	if ( pe->fixed_p )
+	  break;
 	PL_rewind_foreign_frame(fid2);
       }
+      PL_close_foreign_frame(fid2);
       pe->s = NULL;
     }
   
@@ -3505,7 +3520,8 @@ pl_stream_property(term_t stream, term_t property, control_t h)
       { PL_rewind_foreign_frame(fid);
 	if ( PL_unify_stream(stream, symb->name) )
 	{ pe->s = symb->name;
-	  pe->p = sprop_list;
+	  if ( !pe->fixed_p )
+	    pe->p = sprop_list;
 	  break;
 	}
       } 

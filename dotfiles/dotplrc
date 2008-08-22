@@ -57,7 +57,7 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 % :- set_prolog_flag(editor, pico).
 
 %:- multifile
-%	prolog_edit:edit_command/3.
+%	prolog_edit:edit_command/2.
 %
 %prolog_edit:edit_command(pico, '%e +%d "%f"').
 %prolog_edit:edit_command(pico, '%e "%f"').
