@@ -137,7 +137,6 @@ handy for it someone wants to add a data type to the system.
 #define O_PROLOG_FUNCTIONS	1
 #define O_BLOCK			1
 #define O_CATCHTHROW		1
-#define O_INLINE_FOREIGNS	1
 #define O_DEBUGGER		1
 #define O_INTERRUPT		1
 #define O_DESTRUCTIVE_ASSIGNMENT 1
@@ -928,7 +927,6 @@ with one operation, it turns out to be faster as well.
 #define UNKNOWN_ERROR		(0x0040) /* module */
 #define UNKNOWN_WARNING		(0x0080) /* module */
 
-#define INLINE_F		(0x0001) /* functor (inline foreign) */
 #define CONTROL_F		(0x0002) /* functor (compiled controlstruct) */
 #define ARITH_F			(0x0004) /* functor (arithmetic operator) */
 
@@ -1131,7 +1129,8 @@ struct functorDef
   word		name;		/* Name of functor */
   unsigned	arity;		/* arity of functor */
   unsigned      flags;		/* Flag field holding: */
-  /* INLINE_F	   Inlined foreign (system) predicate */
+		  /* CONTROL_F	   Compiled control-structure */
+		  /* ARITH_F	   Arithmetic function */
 };
 
 
@@ -1328,7 +1327,6 @@ struct localFrame
 typedef enum
 { CHP_JUMP = 0,				/* A jump due to ; */
   CHP_CLAUSE,				/* Next clause of predicate */
-  CHP_FOREIGN,				/* Foreign code choicepoint */
   CHP_TOP,				/* First (toplevel) choice */
   CHP_CATCH,				/* $catch initiated choice */
   CHP_DEBUG				/* Enable redo */
@@ -2086,7 +2084,7 @@ typedef enum
 
 
 #ifdef O_LIMIT_DEPTH
-#define DEPTH_NO_LIMIT	(~0x0L)		/* Highest value */
+#define DEPTH_NO_LIMIT	(~(uintptr_t)0x0) /* Highest value */
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

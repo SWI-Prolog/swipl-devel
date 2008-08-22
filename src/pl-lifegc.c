@@ -293,12 +293,6 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* The ball */
 	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* recovery goal */
 	  break;
-	case I_CALL_FV2:
-	  mark_frame_var(state, PC[2] PASS_LD);
-	  /*FALLTHROUGH*/
-	case I_CALL_FV1:
-	  mark_frame_var(state, PC[1] PASS_LD);
-	  break;
 #ifdef MARK_ALT_CLAUSES
 	case H_VAR:
 	  mark_frame_var(state, PC[0] PASS_LD);
@@ -430,7 +424,6 @@ mark_choicepoints(mark_state *state, Choice ch ARG_LD)
 	}
 	break;
       }
-      case CHP_FOREIGN:
       case CHP_DEBUG:
       case CHP_CATCH:
 	mark_environments(state, ch->frame, NULL PASS_LD);

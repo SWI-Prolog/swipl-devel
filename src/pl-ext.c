@@ -494,9 +494,7 @@ registerBuiltins(const PL_extension *f)
     def->definition.function = f->function;
     def->indexPattern = 0;
     def->indexCardinality = 0;
-    if ( false(def, NONDETERMINISTIC) && 
-	 f->arity <= 2 )
-      set(valueFunctor(fdef), INLINE_F);
+    createForeignSupervisor(def, f->function);
   }
 }
 

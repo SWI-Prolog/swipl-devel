@@ -960,6 +960,12 @@ PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
 		 *	 META-CALL SUPPORT	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+deterministic(-Bool)
+
+Bool = true if no choicepoint has been created in the current clause.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static
 PRED_IMPL("deterministic", 1, deterministic, 0)
 { PRED_LD
@@ -972,7 +978,6 @@ PRED_IMPL("deterministic", 1, deterministic, 0)
 	if ( BFR->frame == FR )
 	  return PL_unify_atom(A1, ATOM_true);
       case CHP_JUMP:
-      case CHP_FOREIGN:
 	if ( (void *)BFR > (void *)FR )
 	  return PL_unify_atom(A1, ATOM_false);
         else
@@ -4071,7 +4076,9 @@ PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
 	  fail;
     
 	for(ch=LD->choicepoints; ch; ch = ch->parent)
-	{ switch(ch->type)
+	{ if ( ch->frame == environment_frame )
+	    continue;			/* choice from I_FOPENNDET */
+	  switch(ch->type)
 	  { case CHP_CATCH:
 	    case CHP_DEBUG:
 	      continue;

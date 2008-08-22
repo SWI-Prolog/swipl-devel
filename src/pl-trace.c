@@ -282,8 +282,8 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
   if ( !bfr )
     bfr = LD->choicepoints;
 
-  if ( (true(frame, FR_NODEBUG) && !SYSTEM_MODE) || /* hidden */
-       debugstatus.suspendTrace )		      /* called back */
+  if ( (true(frame, FR_NODEBUG) && !SYSTEM_MODE) ||	/* hidden */
+       debugstatus.suspendTrace )			/* called back */
     return ACTION_CONTINUE;
 
   if ( port == EXCEPTION_PORT )		/* do not trace abort */
@@ -293,7 +293,7 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
     if ( *p == ATOM_aborted )
       return ACTION_CONTINUE;
   }
-					/* trace/[1,2] */
+							/* trace/[1,2] */
   if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) )
   { int doit = FALSE;
 
@@ -582,6 +582,8 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
     case '\r':
     case 'c':	FeedBack("creep\n");
 		clear(frame, FR_SKIPPED);
+		if ( !(port & EXIT_PORT) )
+		  clear(frame, FR_SKIPPED);
 		return ACTION_CONTINUE;
     case '\04':
     case EOF:	FeedBack("EOF: ");
@@ -1117,7 +1119,6 @@ hasAlternativesFrame(LocalFrame frame)
       { switch( ch->type )
 	{ case CHP_CLAUSE:
 	  case CHP_JUMP:
-	  case CHP_FOREIGN:
 	    return TRUE;
 	  case CHP_TOP:			/* no default to get warning */
 	  case CHP_CATCH:
@@ -1172,7 +1173,6 @@ alternativeFrame(LocalFrame frame)
 
 	  switch( ch->type )
 	  { case CHP_CLAUSE:
-	    case CHP_FOREIGN:
 	    case CHP_JUMP:
 	      DEBUG(3, Sdprintf("\tReturning: %s\n", chp_chars(ch)));
 	      return ch->frame;

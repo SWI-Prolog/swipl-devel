@@ -24,6 +24,7 @@
 
 :- module(test_debug, [test_debug/0]).
 :- use_module(library(plunit)).
+:- use_module(library(edinburgh)).	% debug/0 and friends.
 
 /** <module> Test debugging predicates
 
@@ -40,5 +41,7 @@ test_debug :-
 
 test(none, fail) :-
 	prolog_frame_attribute(none, predicate_indicator, _PI).
+test(foreign_choice, true) :-
+	debug, nodebug, !.		% check discardFrame()
 
 :- end_tests(prolog_frame_attribute).

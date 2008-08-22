@@ -3262,6 +3262,7 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
   if ( (flags & PL_FA_NONDETERMINISTIC) ) set(def, NONDETERMINISTIC);
   if ( (flags & PL_FA_VARARGS) )	  set(def, P_VARARG);
 
+  createForeignSupervisor(def, f);
   notify_registered_foreign(fdef, m);
 
   succeed;

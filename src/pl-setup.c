@@ -72,7 +72,11 @@ setupProlog(void)
   LD->pending_signals = 0;
 
   startCritical;
+  DEBUG(1, Sdprintf("wam_table ...\n"));
+  initWamTable();
+  DEBUG(1, Sdprintf("character types ...\n"));
   initCharTypes();
+  DEBUG(1, Sdprintf("foreign predicates ...\n"));
   initForeign();
 #if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
@@ -115,8 +119,6 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Tracer ...\n"));
   initTracer();
   debugstatus.styleCheck = SINGLETON_CHECK;
-  DEBUG(1, Sdprintf("wam_table ...\n"));
-  initWamTable();
   DEBUG(1, Sdprintf("IO ...\n"));
   initIO();
   initCharConversion();

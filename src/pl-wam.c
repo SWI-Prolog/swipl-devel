@@ -228,7 +228,10 @@ updateAlerted(PL_local_data_t *ld)
   if ( ld->depth_info.limit != DEPTH_NO_LIMIT ) mask |= ALERT_DEPTHLIMIT;
 #endif
 #ifdef O_ATTVAR
-  if ( !isVar(ld->attvar.head) )		mask |= ALERT_WAKEUP;
+					/* is valTermRef(ld->attvar.head) */
+  if ( ld->stacks.local.base &&
+       !isVar(((Word)ld->stacks.local.base)[ld->attvar.head]) )
+						mask |= ALERT_WAKEUP;
 #endif
 #ifdef O_DEBUGGER
   if ( ld->_debugstatus.debugging )		mask |= ALERT_DEBUG;
@@ -308,6 +311,7 @@ open_foreign_frame(ARG1_LD)
   lTop = addPointer(lTop, sizeof(struct fliFrame));
   fr->size = 0;
   Mark(fr->mark);
+  SECURE(assert(fr>fli_context));
   fr->parent = fli_context;
   fr->magic = FLI_MAGIC;
   fli_context = fr;
@@ -398,285 +402,45 @@ PL_discard_foreign_frame(fid_t id)
 		*         FOREIGN CALLS         *
 		*********************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Calling foreign predicates.  We will have to  set  `lTop',  compose  the
-argument  vector  for  the  foreign  function,  call  it and analyse the
-result.  The arguments of the frame are derefenced  here  to  avoid  the
-need for explicit dereferencing in most foreign predicates themselves.
-
-A non-deterministic foreign predicate  can   return  either the constant
-FALSE  to  start  backtracking,  TRUE    to   indicate  success  without
-alternatives or anything  else.  The  return   value  is  saved  in  the
-choice-point that is  created  after   return  of  the non-deterministic
-foreign function. On `redo', the  foreign   predicate  is  called with a
-control_t argument that indicates the context   value and the reason for
-the call-back.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define MAX_FLI_ARGS 10			/* extend switches on change */
-
-#define CALLDETFN(r, argc) \
+#define CALL_FCUTTED(argc, f, c) \
   { switch(argc) \
     { case 0: \
-	r = F(); \
+	f(c); \
         break; \
       case 1: \
-	r = F(A(0)); \
+	f(0,(c)); \
 	break; \
       case 2: \
-	r = F(A(0),A(1)); \
+	f(0,0,(c)); \
         break; \
       case 3: \
-	r = F(A(0),A(1),A(2)); \
+	f(0,0,0,(c)); \
         break; \
       case 4: \
-	r = F(A(0),A(1),A(2),A(3)); \
+	f(0,0,0,0,(c)); \
         break; \
       case 5: \
-	r = F(A(0),A(1),A(2),A(3),A(4)); \
+	f(0,0,0,0,0,(c)); \
         break; \
       case 6: \
-	r = F(A(0),A(1),A(2),A(3),A(4),A(5)); \
+	f(0,0,0,0,0,0,(c)); \
         break; \
       case 7: \
-	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6)); \
+	f(0,0,0,0,0,0,0,(c)); \
         break; \
       case 8: \
-	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),A(7)); \
+	f(0,0,0,0,0,0,0,0,(c)); \
         break; \
       case 9: \
-	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),A(7),A(8)); \
+	f(0,0,0,0,0,0,0,0,0,(c)); \
         break; \
       case 10: \
-	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),A(7),A(8),A(9)); \
+	f(0,0,0,0,0,0,0,0,0,0,(c)); \
         break; \
       default: \
-	r = sysError("Too many arguments to foreign function (>%d)", \
-		     MAX_FLI_ARGS); \
+	assert(0); \
     } \
   }
-
-#define CALLNDETFN(r, argc, c) \
-  { switch(argc) \
-    { case 0: \
-	r = F(c); \
-        break; \
-      case 1: \
-	r = F(A(0),(c)); \
-	break; \
-      case 2: \
-	r = F(A(0),A(1),(c)); \
-        break; \
-      case 3: \
-	r = F(A(0),A(1),A(2),(c)); \
-        break; \
-      case 4: \
-	r = F(A(0),A(1),A(2),A(3),(c)); \
-        break; \
-      case 5: \
-	r = F(A(0),A(1),A(2),A(3),A(4),(c)); \
-        break; \
-      case 6: \
-	r = F(A(0),A(1),A(2),A(3),A(4),A(5),(c)); \
-        break; \
-      case 7: \
-	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),(c)); \
-        break; \
-      case 8: \
-	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),A(7),(c)); \
-        break; \
-      case 9: \
-	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),A(7),A(8),(c)); \
-        break; \
-      case 10: \
-	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),A(7),A(8),A(9),(c)); \
-        break; \
-      default: \
-	r = sysError("Too many arguments to foreign function (>%d)", \
-		     MAX_FLI_ARGS); \
-    } \
-  }
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  * We are after a `normal call', so we have MAXARITY free cells on the
-    local stack
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define F (*function)    
-#define A(n) (h0+n)
-
-static bool
-callForeign(LocalFrame frame, frg_code control ARG_LD)
-{ Definition def = frame->predicate;
-  Func function = def->definition.function;
-  int argc = def->functor->arity;
-  word result;
-  term_t h0 = argFrameP(frame, 0) - (Word)lBase;
-  FliFrame ffr;
-
-#ifdef O_DEBUGGER
-retry:
-  if ( debugstatus.debugging )
-  { int port = (control == FRG_FIRST_CALL ? CALL_PORT : REDO_PORT);
-
-    lTop = (LocalFrame)argFrameP(frame, argc);
-
-    switch( tracePort(frame, LD->choicepoints, port, NULL PASS_LD) )
-    { case ACTION_FAIL:
-	exception_term = 0;
-	fail;
-      case ACTION_IGNORE:
-	exception_term = 0;
-	succeed;
-      case ACTION_RETRY:
-	exception_term = 0;
-	control = FRG_FIRST_CALL;
-	frame->clause = NULL;
-    }
-  }
-#endif /*O_DEBUGGER*/
-
-					/* open foreign frame */
-  ffr  = (FliFrame)argFrameP(frame, argc);
-  lTop = addPointer(ffr, sizeof(struct fliFrame));
-  ffr->magic = FLI_MAGIC;
-  ffr->size = 0;
-  Mark(ffr->mark);
-  ffr->parent = fli_context;
-  fli_context = ffr;
-
-  SECURE({ int n;
-	   Word p0 = argFrameP(frame, 0);
-	   
-	   for(n=0; n<argc; n++)
-	     checkData(p0+n);
-	 });
-
-					/* do the call */
-  { SaveLocalPtr(fid, frame);
-    SaveLocalPtr(cid, ffr);
-
-    if ( true(def, P_VARARG) )
-    { struct foreign_context context;
-  
-      context.context = (word)frame->clause;
-      context.engine  = LD;
-      context.control = control;
-  
-      frame->clause = NULL;
-      result = F(h0, argc, &context);
-    } else
-    { if ( false(def, NONDETERMINISTIC) )
-      { CALLDETFN(result, argc);
-      } else
-      { struct foreign_context context;
-  
-	context.context = (word)frame->clause;
-	context.engine  = LD;
-	context.control = control;
-
-	frame->clause = NULL;
-	CALLNDETFN(result, argc, &context);
-      }
-    }
-    
-    RestoreLocalPtr(fid, frame);
-    RestoreLocalPtr(cid, ffr);
-  }
-
-  if ( exception_term )			/* EXCEPTION */
-  { frame->clause = NULL;		/* no discardFrame() needed */
-
-    if ( result )			/* No, false alarm */
-    { exception_term = 0;
-      setVar(*valTermRef(exception_bin));
-    } else
-    { mark m = ffr->mark;
-      Choice ch;
-
-      fli_context = ffr->parent;
-      lTop = (LocalFrame)ffr;
-      ch = newChoice(CHP_DEBUG, frame PASS_LD);
-      ch->mark = m;
-
-      return FALSE;
-    }
-  }
-
-#ifdef O_DEBUGGER
-					/* exit already moved to I_EXIT */
-  if ( debugstatus.debugging && !result )
-  { Undo(ffr->mark);
-
-    switch( tracePort(frame, LD->choicepoints, FAIL_PORT, NULL PASS_LD) )
-    { case ACTION_FAIL:
-	exception_term = 0;
-        fail;
-      case ACTION_IGNORE:
-	exception_term = 0;
-        succeed;
-      case ACTION_RETRY:
-	Undo(ffr->mark);
-	control = FRG_FIRST_CALL;
-        frame->clause = NULL;
-	fli_context = ffr->parent;
-	exception_term = 0;
-	goto retry;
-    }
-  }
-#endif
-
-					/* deterministic result */
-  if ( result == TRUE || result == FALSE )
-  { fli_context = ffr->parent;
-    return (int)result;
-  }
-
-  if ( true(def, NONDETERMINISTIC) )
-  { mark m = ffr->mark;
-    Choice ch;
-
-    if ( (result & FRG_REDO_MASK) == REDO_INT )
-    {					/* must be a signed shift */
-      result = (word)(((intptr_t)result)>>FRG_REDO_BITS);
-    } else
-      result &= ~FRG_REDO_MASK;
-
-    fli_context = ffr->parent;
-    ch = (Choice)ffr;
-    lTop = addPointer(ch, sizeof(*ch));
-
-					/* see newChoice() */
-    ch->type = CHP_FOREIGN;
-    ch->frame = frame;
-    ch->parent = BFR;
-    ch->mark = m;
-    ch->value.foreign = result;
-#ifdef O_PROFILE
-    ch->prof_node = LD->profile.current;
-#endif
-    BFR = ch;
-
-    frame->clause = (ClauseRef)result; /* for discardFrame() */
-    
-    return TRUE;
-  } else				/* illegal return */
-  { FunctorDef fd = def->functor;
-    term_t ex = PL_new_term_ref();
-
-    PL_put_intptr(ex, result);
-
-    PL_error(stringAtom(fd->name), fd->arity, NULL, ERR_DOMAIN,
-	     ATOM_foreign_return_value, ex);
-    fli_context = ffr->parent;
-    return FALSE;
-  }
-}
-#undef A
-#undef F
-
 
 static void
 discardForeignFrame(LocalFrame fr ARG_LD)
@@ -684,11 +448,7 @@ discardForeignFrame(LocalFrame fr ARG_LD)
   int argc       = def->functor->arity;
   Func function  = def->definition.function;
   struct foreign_context context;
-  word result;
   fid_t fid;
-
-#define F	(*function)
-#define A(n)	0
 
   DEBUG(5, Sdprintf("\tCut %s, context = 0x%lx\n",
 		    predicateName(def), context));
@@ -699,14 +459,11 @@ discardForeignFrame(LocalFrame fr ARG_LD)
 
   fid = PL_open_foreign_frame();
   if ( true(def, P_VARARG) )
-  { result = F(0, argc, &context);
+  { (*function)(0, argc, &context);
   } else
-  { CALLNDETFN(result, argc, &context);
+  { CALL_FCUTTED(argc, (*function), &context);
   }
   PL_close_foreign_frame(fid);
-
-#undef A
-#undef F
 }
 
 
@@ -1410,7 +1167,6 @@ chp_chars(Choice ch)
 	   loffset(ch), loffset(ch->frame),
 	   ch->type == CHP_JUMP ? "JUMP" :
 	   ch->type == CHP_CLAUSE ? "CLAUSE" :
-	   ch->type == CHP_FOREIGN ? "FOREIGN" : 
 	   ch->type == CHP_TOP ? "TOP" :
 	   ch->type == CHP_DEBUG ? "DEBUG" :
 	   ch->type == CHP_CATCH ? "CATCH" : "NONE");
@@ -1551,6 +1307,10 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   top->flags	     = 0;		/* TBD: level? */
   top->predicate     = PROCEDURE_dc_call_prolog->definition;
   top->clause        = &cref;
+  if ( LD->profile.active )
+    top->prof_node = profCall(top->predicate PASS_LD);
+  else
+    top->prof_node = NULL;
   fr                 = &qf->frame;
   fr->parent         = top;
   fr->flags          = FR_INBOX;
@@ -2077,8 +1837,7 @@ next_choice:
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
   { for(; (void *)FR > (void *)ch; FR = FR->parent)
-    { if ( false(FR->predicate, FOREIGN) && /* done by callForeign() */
-	   false(FR, FR_NODEBUG) )
+    { if ( false(FR, FR_NODEBUG) )
       { Choice sch = findStartChoice(FR, ch0);
 
 	if ( sch )
@@ -2164,7 +1923,7 @@ next_choice:
 	  { case ACTION_FAIL:
 	      FRAME_FAILED;
 	    case ACTION_IGNORE:
-	      goto exit_builtin;
+	      VMI_GOTO(I_EXIT);
 	    case ACTION_RETRY:
 #ifdef O_LOGICAL_UPDATE
 	      if ( false(DEF, DYNAMIC) )
@@ -2202,36 +1961,6 @@ next_choice:
       requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
       NEXT_INSTRUCTION;
     }
-    case CHP_FOREIGN:
-    { int rval;
-
-      DEBUG(3, Sdprintf("    REDO #%ld: Foreign %s, ctx = 0x%x\n",
-			loffset(FR),
-			predicateName(DEF),
-		        ch->value.foreign));
-      BFR  = ch->parent;
-      Profile(profRedo(ch->prof_node PASS_LD));
-      lTop = (LocalFrame)ch;
-
-      if ( is_signalled(PASS_LD1) )
-      { SAVE_REGISTERS(qid);
-	handleSignals(NULL);
-	LOAD_REGISTERS(qid);
-	if ( exception_term )
-	  goto b_throw;
-      }
-
-      SAVE_REGISTERS(qid);
-      rval = callForeign(FR, FRG_REDO PASS_LD);
-      LOAD_REGISTERS(qid);
-
-      if ( rval )
-	goto exit_builtin;
-      if ( exception_term )
-	goto b_throw;
-
-      FRAME_FAILED;
-    }
     case CHP_TOP:			/* Query toplevel */
     { Profile(profRedo(ch->prof_node PASS_LD));
       QF = QueryFromQid(qid);
@@ -2244,14 +1973,6 @@ next_choice:
       callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
     case CHP_DEBUG:			/* Just for debugging purposes */
       BFR  = ch->parent;
-#if 0
-      for(; (void *)FR > (void *)ch; FR = FR->parent)
-      { /*Profile(FR->predicate->profile_fails++);*/
-	leaveFrame(FR PASS_LD);
-	if ( exception_term )
-	  goto b_throw;
-      }
-#endif
       goto next_choice;
   }
 }
