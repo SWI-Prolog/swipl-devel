@@ -353,63 +353,66 @@ PRED_IMPL("plus", 3, plus, 0)
 		*           COMPARISON          *
 		*********************************/
 
+#ifdef O_GMP
+
+#define COMPARE_FUNC(name, op, n1, n2) \
+int \
+name(Number n1, Number n2) \
+{ switch(n1->type) \
+  { case V_INTEGER: \
+      return n1->value.i op n2->value.i; \
+    case V_MPZ: \
+      return mpz_cmp(n1->value.mpz, n2->value.mpz) op 0; \
+    case V_MPQ: \
+      return mpq_cmp(n1->value.mpq, n2->value.mpq) op 0; \
+    case V_REAL: \
+      return n1->value.f op n2->value.f; \
+    default: \
+      assert(0); \
+      fail; \
+  } \
+}
+
+#else /*O_GMP*/
+
+#define COMPARE_FUNC(name, op, n1, n2) \
+int \
+name(Number n1, Number n2) \
+{ switch(n1->type) \
+  { case V_INTEGER: \
+      return n1->value.i op n2->value.i; \
+    case V_REAL: \
+      return n1->value.f op n2->value.f; \
+    default: \
+      assert(0); \
+      fail; \
+  } \
+}
+
+#endif /*O_GMP*/
+
+static COMPARE_FUNC(ar_compare_lt, <,  n1, n2)
+static COMPARE_FUNC(ar_compare_gt, >,  n1, n2)
+static COMPARE_FUNC(ar_compare_le, <=, n1, n2)
+static COMPARE_FUNC(ar_compare_ge, >=, n1, n2)
+static COMPARE_FUNC(ar_compare_ne, !=, n1, n2)
+       COMPARE_FUNC(ar_compare_eq, ==, n1, n2)
+
 int
 ar_compare(Number n1, Number n2, int what)
 { same_type_numbers(n1, n2);
 
-  switch(n1->type)
-  { case V_INTEGER:
-      switch(what)
-      { case LT: return n1->value.i <  n2->value.i; break;
-	case GT: return n1->value.i >  n2->value.i; break;
-	case LE: return n1->value.i <= n2->value.i; break;
-	case GE: return n1->value.i >= n2->value.i; break;
-	case NE: return n1->value.i != n2->value.i; break;
-	case EQ: return n1->value.i == n2->value.i; break;
-      }
-      break;
-#ifdef O_GMP
-    case V_MPZ:
-    { int rc = mpz_cmp(n1->value.mpz, n2->value.mpz);
-
-      switch(what)
-      { case LT: return rc <  0; break;
-	case GT: return rc >  0; break;
-	case LE: return rc <= 0; break;
-	case GE: return rc >= 0; break;
-	case NE: return rc != 0; break;
-	case EQ: return rc == 0; break;
-      }
-      break;
-    }
-    case V_MPQ:
-    { int rc = mpq_cmp(n1->value.mpq, n2->value.mpq);
-
-      switch(what)
-      { case LT: return rc <  0; break;
-	case GT: return rc >  0; break;
-	case LE: return rc <= 0; break;
-	case GE: return rc >= 0; break;
-	case NE: return rc != 0; break;
-	case EQ: return rc == 0; break;
-      }
-      break;
-    }
-#endif
-    case V_REAL:
-      switch(what)
-      { case LT: return n1->value.f <  n2->value.f; break;
-	case GT: return n1->value.f >  n2->value.f; break;
-	case LE: return n1->value.f <= n2->value.f; break;
-	case GE: return n1->value.f >= n2->value.f; break;
-	case NE: return n1->value.f != n2->value.f; break;
-	case EQ: return n1->value.f == n2->value.f; break;
-      }
-      break;
-  }  
-
-  assert(0);
-  fail;
+  switch(what)
+  { case LT: return ar_compare_lt(n1, n2);
+    case GT: return ar_compare_gt(n1, n2);
+    case LE: return ar_compare_le(n1, n2);
+    case GE: return ar_compare_ge(n1, n2);
+    case NE: return ar_compare_ne(n1, n2);
+    case EQ: return ar_compare_eq(n1, n2);
+    default:
+      assert(0);
+      fail;
+  }
 }
 
 
@@ -1055,25 +1058,32 @@ ar_add_ui(Number n, long add)
   fail;
 }
 
+#define SAME_SIGN(i1, i2) (((i1) ^ (i2)) < 0)
+
 static int
 ar_add(Number n1, Number n2, Number r)
 { same_type_numbers(n1, n2);
 
   switch(n1->type)
   { case V_INTEGER:
-    { r->value.i = n1->value.i + n2->value.i; 
-    
-      if ( (n1->value.i > 0 && n2->value.i > 0 && r->value.i <= 0) ||
-	   (n1->value.i < 0 && n2->value.i < 0 && r->value.i >= 0) )
-      {					/* overflow */
-	if ( !promoteIntNumber(n1) ||
-	     !promoteIntNumber(n2) )
-	  fail;
-      } else
-      { r->type = V_INTEGER;
-	succeed;
+    { if ( SAME_SIGN(n1->value.i, n2->value.i) )
+      { if ( n2->value.i < 0 )		/* both negative */
+	{ if ( n1->value.i < PLMININT - n2->value.i )
+	    goto overflow;
+	} else				/* both positive */
+	{ if ( PLMAXINT - n1->value.i < n2->value.i )
+	    goto overflow;
+	}
       }
+      r->value.i = n1->value.i + n2->value.i; 
+      r->type = V_INTEGER;
+      succeed;
+    overflow:
+      if ( !promoteIntNumber(n1) ||
+	   !promoteIntNumber(n2) )
+	fail;
     }
+    /*FALLTHROUGH*/
 #ifdef O_GMP
     case V_MPZ:
     { r->type = V_MPZ;

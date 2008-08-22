@@ -652,7 +652,8 @@ PL_unify_number(term_t t, Number n)
 	int rc;
 
 	get_integer(*p, &n2);
-	rc = ar_compare(n, &n2, EQ);
+	same_type_numbers(n, &n2);
+	rc = ar_compare_eq(n, &n2);
 	clearNumber(&n2);
 
 	return rc;

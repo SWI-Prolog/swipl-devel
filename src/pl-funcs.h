@@ -120,6 +120,7 @@ COMMON(void) 		_PL_debug_unregister_atom(atom_t a,
 /* pl-arith.c */
 
 COMMON(int) 		ar_compare(Number n1, Number n2, int what);
+COMMON(int) 		ar_compare_eq(Number n1, Number n2);
 COMMON(word) 		pl_current_arithmetic_function(term_t f, control_t h);
 COMMON(void) 		initArith(void);
 COMMON(void) 		cleanupArith(void);
