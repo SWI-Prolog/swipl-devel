@@ -23,6 +23,7 @@
 */
 
 :- module(test_occurs_check, [test_occurs_check/0]).
+:- use_module(library(plunit)).
 
 /** <module> Test occurs check
 
