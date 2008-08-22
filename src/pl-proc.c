@@ -143,7 +143,14 @@ resetProcedure(Procedure proc, bool isnew)
   if ( stringAtom(def->functor->name)[0] != '$' )
     set(def, TRACE_ME);
   def->number_of_clauses = 0;
-  def->codes = NULL;			/* TBD: point to undef sequence? */
+  if ( def->codes )
+  { GET_LD
+    Code tmp = def->codes-1;
+    int size = (int)tmp[0];
+
+    def->codes = NULL;
+    freeHeap(tmp, size*sizeof(code));
+  }
 
   if ( isnew )
   { def->indexCardinality = 0;
