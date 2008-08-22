@@ -122,9 +122,11 @@ forall(Cond, Action) :-
 %	@depricated	Almost all usage can be replaced by call/N.
 
 apply(Goal, Extra) :-
-	strip_module(Goal, M, G0),
-	G0 =.. List0,
-	'$append'(List0, Extra, List),
-	G =.. List,
-	M:G.
-	
+	(   callable(Goal)
+	->  strip_module(Goal, M, G0),
+	    G0 =.. List0,
+	    '$append'(List0, Extra, List),
+	    G =.. List,
+	    M:G
+	;   throw(error(type_error(callable, Goal), _))
+	).
