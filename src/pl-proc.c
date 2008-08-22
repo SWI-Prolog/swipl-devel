@@ -1377,11 +1377,11 @@ pl_check_definition(term_t spec)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-A dynamic call to `f' in `m' has to be made (via call/1, apply/2 or from
-C). This procedure  returns  the  procedure  to  be  run.   If  no  such
-procedure  exists  an  undefined  procedure is created and returned.  In
-this case interpret() will later call  trapUndefined()  to  generate  an
-error message (or link the procedure from the library via autoload).
+A dynamic call to `f' in `m' has to be made (via call/1 or from C). This
+procedure returns the procedure to be run.   If no such procedure exists
+an undefined procedure is created and returned. In this case interpret()
+will later call trapUndefined() to generate   an  error message (or link
+the procedure from the library via autoload).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Procedure

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -34,7 +34,8 @@
 	    maplist/3,			% :Goal, ?List1, ?List2
 	    maplist/4,			% :Goal, ?List1, ?List2, ?List3
 	    maplist/5,			% :Goal, ?List1, ?List2, ?List3, List4
-	    forall/2			% :Goal, :Goal
+	    forall/2,			% :Goal, :Goal
+	    apply/2			% :Goal, +ExtraArgs
 	  ]).
 
 :- module_transparent
@@ -46,9 +47,12 @@
 	maplist2/4, 
 	maplist/5, 
 	maplist2/5, 
-	forall/2.
+	forall/2,
+	apply/2.
 
-%	maplist(:Goal, +List)
+:- noprofile((forall/2, apply/2)).
+
+%%	maplist(:Goal, +List)
 %
 %	True if Goal can succesfully be applied on all elements of List.
 %	Arguments are reordered to gain performance as well as to make
@@ -62,7 +66,7 @@ maplist2([Elem|Tail], Goal) :-
 	call(Goal, Elem), 
 	maplist2(Tail, Goal).
 
-%	maplist(:Goal, ?List1, ?List2)
+%%	maplist(:Goal, ?List1, ?List2)
 %
 %	True if Goal can succesfully be applied to all succesive pairs
 %	of elements of List1 and List2.
@@ -75,7 +79,7 @@ maplist2([Elem1|Tail1], [Elem2|Tail2], Goal) :-
 	call(Goal, Elem1, Elem2), 
 	maplist2(Tail1, Tail2, Goal).
 
-%	maplist(:Goal, ?List1, ?List2, ?List3)
+%%	maplist(:Goal, ?List1, ?List2, ?List3)
 %
 %	True if Goal can succesfully be applied to all succesive triples
 %	of elements of List1..List3.
@@ -88,7 +92,7 @@ maplist2([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], Goal) :-
 	call(Goal, Elem1, Elem2, Elem3), 
 	maplist2(Tail1, Tail2, Tail3, Goal).
 
-%	maplist(:Goal, ?List1, ?List2, ?List3, List4)
+%%	maplist(:Goal, ?List1, ?List2, ?List3, List4)
 %
 %	True if Goal  can  succesfully  be   applied  to  all  succesive
 %	quadruples of elements of List1..List4
@@ -101,7 +105,7 @@ maplist2([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
 	call(Goal, Elem1, Elem2, Elem3, Elem4), 
 	maplist2(Tail1, Tail2, Tail3, Tail4, Goal).
 
-%	forall(+Condition, +Action)
+%%	forall(+Condition, +Action)
 %	
 %	True if Action if true for all variable bindings for which Condition
 %	if true.
@@ -110,3 +114,17 @@ maplist2([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
 
 forall(Cond, Action) :-
 	\+ (Cond, \+ Action).
+
+%%	apply(:Goal, +ExtraArgs) is nondet.
+%
+%	Extend Goal with arguments from ExtraArgs and call it.
+%	
+%	@depricated	Almost all usage can be replaced by call/N.
+
+apply(Goal, Extra) :-
+	strip_module(Goal, M, G0),
+	G0 =.. List0,
+	'$append'(List0, Extra, List),
+	G =.. List,
+	M:G.
+	

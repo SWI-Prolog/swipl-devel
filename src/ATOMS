@@ -28,7 +28,6 @@ A alternative		"alternative"
 A and			"/\\"
 A anonvar		"_"
 A append		"append"
-A apply			"$apply"
 A ar_equals		"=:="
 A ar_not_equal		"=\\="
 A argument		"argument"
@@ -611,7 +610,6 @@ F access		1
 F acos			1
 F alias			1
 F and			2
-F apply			2
 F ar_equals		2
 F ar_not_equal		2
 F asin			1

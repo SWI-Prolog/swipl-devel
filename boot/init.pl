@@ -143,8 +143,7 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	setup_and_call_cleanup/3,
 	setup_and_call_cleanup/4,
 	call_cleanup/2,
-	call_cleanup/3,
-	apply/2.
+	call_cleanup/3.
 
 :- '$iso'((call/1, (\+)/1, once/1, (;)/2, (,)/2, (->)/2, catch/3)).
 
@@ -211,9 +210,6 @@ ignore(Goal) :-
 	Goal, !.
 ignore(_Goal).
 
-apply(Pred, Arguments) :-
-	'$apply'(Pred, Arguments).		% handled by the compiler
-
 _Var^Goal :-					% setof/3, bagof/3
 	Goal.
 
@@ -223,8 +219,7 @@ false :-					% SICStus compatibility
 %	block/3, !/1, exit/2, fail/1
 %	`longjmp' like control-structures.  See manual.  The predicate
 %	system:block/3 is used by the VMI's I_CUT_BLOCK and B_EXIT.
-%	'$exit' and '$cut' are interpreted by the compiler/decompiler,
-%	just like '$apply'/2.
+%	'$exit' and '$cut' are interpreted by the compiler/decompiler.
 
 block(_Label, Goal, _RVal) :-
 	Goal.
