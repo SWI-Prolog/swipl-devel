@@ -2526,17 +2526,7 @@ b_throw:
     if ( trueFeature(DEBUG_ON_ERROR_FEATURE) &&
 	 false(QF, PL_Q_CATCH_EXCEPTION) &&
 	 !isCatchedInOuterQuery(QF, catcher) )
-    { fid_t fid = PL_open_foreign_frame();
-      term_t t0 = PL_new_term_refs(2);
-      
-      PL_put_atom(t0+0, ATOM_error);
-      *valTermRef(t0+1) = except;
-      PL_call_predicate(NULL,
-			PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
-			PROCEDURE_print_message2, t0);
-      PL_close_foreign_frame(fid);
-      *valTermRef(exception_printed) = except;
-
+    { printMessage(ATOM_error, PL_TERM, exception_term);
       pl_trace();
     }
   }
