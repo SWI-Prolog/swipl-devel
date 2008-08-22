@@ -2109,10 +2109,8 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-decompileArg1()  is  a  simplified  version   of  decompileHead().   Its
-function is to extract the relevant   information  for (re)computing the
-index information for indexing on the   first argument (the 99.9% case).
-See reindexClause().
+arg1Key() determines the first argument-key   by  inspecting the virtual
+machine code.
 
 NOTE: this function must  be  kept   consistent  with  indexOfWord()  in
 pl-index.c!

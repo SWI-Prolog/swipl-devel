@@ -2195,15 +2195,21 @@ pl_default_predicate(term_t d1, term_t d2)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 reindexDefinition()
-    Rebuilds the clause index for the predicate. This predicate is
-    called whenever NEED_REINDEX is set.  It locks the predicate and
-    checks the flag again to ensure proper multi-threaded behaviour.
 
-    We cannot re-index if the predicate is referenced and hashed: other
-    predicates are operating on the hashed clauses-lists.  If we are not
-    hashed there is no problem: the clause-list remains unaltered.  Therefore
-    assertProcedure() only signals a re-index request if the predicate is
-    not yet hashed.
+Rebuilds the clause index for the   predicate.  This predicate is called
+whenever NEED_REINDEX is set. It locks the predicate and checks the flag
+again to ensure proper multi-threaded behaviour.
+
+We cannot re-index if the  predicate   is  referenced  and hashed: other
+predicates are operating on the  hashed   clauses-lists.  If  we are not
+hashed there is no problem: the clause-list remains unaltered. Therefore
+assertProcedure() only signals a re-index request   if  the predicate is
+not yet hashed.
+
+This is the place that  builds   the  supervisors dealing with efficient
+calling conventions for the various cases.
+
+TBD: Clear NEED_REINDEX at the end?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -2212,6 +2218,7 @@ reindexDefinition(Definition def)
   int do_hash = 0;
   int canindex = 0;
   int cannotindex = 0;
+  unsigned long pattern = (def->indexPattern & ~NEED_REINDEX);
 
   LOCKDEF(def);
   if ( !(def->indexPattern & NEED_REINDEX) )
@@ -2225,15 +2232,11 @@ reindexDefinition(Definition def)
 
                                        /* directly link one and only clause */
   if ( def->number_of_clauses == 1 && false(def, DYNAMIC|MULTIFILE) )
-  { for(cref = def->definition.clauses; cref; cref = cref->next)
-    { if ( visibleClause(cref->clause, GD->generation) )
-      { DEBUG(1, Sdprintf("Linked clause for %s\n", predicateName(def)));
-	def->codes = cref->clause->codes;
-      }
-    }
+  { createSingleClauseSupervisor(def);
+    goto out;
   }
 
-  if ( true(def, AUTOINDEX) || def->indexPattern == 0x1 )
+  if ( true(def, AUTOINDEX) || pattern == 0x1 )
   { for(cref = def->definition.clauses; cref; cref = cref->next)
     { word key;
       
@@ -2250,25 +2253,27 @@ reindexDefinition(Definition def)
   if ( true(def, AUTOINDEX) )
   { if ( canindex == 0 )
     { DEBUG(2, Sdprintf("not indexed: %s\n", predicateName(def)));
-      def->indexPattern = 0x0;
+      pattern = 0x0;
     } else
-    { def->indexPattern = 0x1;
+    { pattern = 0x1;
     }
   }
 
-  if ( def->indexPattern == 0x1 &&
+  if ( pattern == 0x1 &&
        canindex > 5 && cannotindex <= 2 )
     do_hash = canindex / 2;
 
-  def->indexCardinality = cardinalityPattern(def->indexPattern);
+  def->indexCardinality = cardinalityPattern(pattern);
   for(cref = def->definition.clauses; cref; cref = cref->next)
-    reindexClause(cref->clause, def);
+    reindexClause(cref->clause, def, pattern);
 
   if ( do_hash )
   { DEBUG(3, Sdprintf("hash(%s, %d)\n", predicateName(def), do_hash));
     hashDefinition(def, do_hash);
   }
 
+out:
+  def->indexPattern = pattern;
   UNLOCKDEF(def);
 }
 
@@ -2660,11 +2665,11 @@ This function is called when starting the consult a file. Its task is to
 remove all clauses that come from this   file  if this is a *reconsult*.
 There are two options.
 
-    # Immediately remove the clauses from any non-referenced predicate.
+    * Immediately remove the clauses from any non-referenced predicate.
     This saves space, but if there are multiple threads it may cause
     other threads to trap an undefined predicate.
 
-    # Delay until garbage_collect_clauses/0
+    * Delay until garbage_collect_clauses/0
     This way other threads can happily keep running.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 

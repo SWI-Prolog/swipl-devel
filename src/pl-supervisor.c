@@ -26,6 +26,16 @@
 
 #define MAX_FLI_ARGS 10			/* extend switches on change */
 
+static Code
+allocCodes(int n)
+{ Code codes = PL_malloc(sizeof(code)*(n+1));
+  
+  *codes++ = (code)n;
+
+  return codes;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Foreign supervisors.  Creates one of:
 
@@ -44,9 +54,8 @@ createForeignSupervisor(Definition def, Func f)
   }
 
   if ( false(def, NONDETERMINISTIC) )
-  { Code codes = PL_malloc(sizeof(code)*5);
+  { Code codes = allocCodes(4);
     
-    *codes++ = (code)4;		/* code-size */
     codes[0] = encode(I_FOPEN);
     if ( true(def, P_VARARG) )
       codes[1] = encode(I_FCALLDETVA);
@@ -57,9 +66,8 @@ createForeignSupervisor(Definition def, Func f)
 
     def->codes = codes;
   } else
-  { Code codes = PL_malloc(sizeof(code)*6);
+  { Code codes = allocCodes(5);
     
-    *codes++ = (code)5;		/* code-size */
     codes[0] = encode(I_FOPENNDET);
     if ( true(def, P_VARARG) )
       codes[1] = encode(I_FCALLNDETVA);
@@ -74,3 +82,34 @@ createForeignSupervisor(Definition def, Func f)
 
   succeed;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+createSingleClauseSupervisor() creates a supervisor to call the one and
+only clause of the predicate.  Creates
+
+	S_TRUSTME <ClauseRef>
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+createSingleClauseSupervisor(Definition def)
+{ ClauseRef cref;
+
+  for(cref = def->definition.clauses; cref; cref = cref->next)
+  { if ( visibleClause(cref->clause, GD->generation) )
+    { Code codes = allocCodes(2);
+
+      DEBUG(1, Sdprintf("Single clause supervisor for %s\n",
+			predicateName(def)));
+
+      codes[0] = encode(S_TRUSTME);
+      codes[1] = (code)cref->clause;
+
+      succeed;
+    }
+  }
+
+  fail;
+}
+
+

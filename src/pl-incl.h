@@ -1200,10 +1200,10 @@ struct clause_ref
 #define CA1_MODULE	8	/* a module */
 #define CA1_VAR		9	/* a variable(-offset) */
 #define CA1_MPZ	       10	/* GNU mpz number */
-#define CA1_FOREIGN    12	/* Foreign function pointer */
-#define CA1_CLAUSEREF  13	/* Clause reference */
-#define CA1_JUMP       14	/* Instructions to skip */
-#define CA1_AFUNC      15	/* Number of arithmetic function */
+#define CA1_FOREIGN    11	/* Foreign function pointer */
+#define CA1_CLAUSEREF  12	/* Clause reference */
+#define CA1_JUMP       13	/* Instructions to skip */
+#define CA1_AFUNC      14	/* Number of arithmetic function */
 
 typedef struct
 { char		*name;		/* name of the code */

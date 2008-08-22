@@ -402,10 +402,8 @@ part of the stacks (e.g. backtrailing is not needed).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-reindexClause(Clause clause, Definition def)
-{ unsigned long pattern = def->indexPattern & ~NEED_REINDEX;
-
-  if ( pattern == 0x0 )
+reindexClause(Clause clause, Definition def, unsigned long pattern)
+{ if ( pattern == 0x0 )
     succeed;
   if ( false(clause, ERASED) )
   { if ( pattern == 0x1 )		/* the 99.9% case.  Speedup a little */
@@ -730,8 +728,8 @@ pl_hash(term_t pred)
 
       def->indexCardinality = 1;
       for(cref = def->definition.clauses; cref; cref = cref->next)
-	reindexClause(cref->clause, def);
-      def->indexPattern = 0x1;
+	reindexClause(cref->clause, def, 0x1L);
+      def->indexPattern = 0x1L;
     }
 
     hashDefinition(def, size);

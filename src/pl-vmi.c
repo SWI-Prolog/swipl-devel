@@ -1021,14 +1021,9 @@ be able to access these!
 #endif /*O_DYNAMIC_STACKS*/
 
   ARGP = argFrameP(FR, 0);
-  
-  if ( DEF->codes )			/* entry point for new supervisors */
-  { if ( false(DEF, FOREIGN) )
-    { CL   = DEF->definition.clauses;
-      lTop = (LocalFrame)(ARGP + CL->clause->variables);
-    }
 
-    PC = DEF->codes;
+  if ( DEF->codes )			/* entry point for new supervisors */
+  { PC = DEF->codes;
     NEXT_INSTRUCTION;
   }
 
@@ -1589,6 +1584,27 @@ VMI(I_TRUE, 0, ())
   NEXT_INSTRUCTION;
 }
 
+
+		 /*******************************
+		 *	    SUPERVISORS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_TRUSTME: Trust this clause. Generated   for  single-clause supervisors
+and for the last one of a disjunction.
+
+TBD: get rid of clause-references
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_TRUSTME, 1, (CA1_CLAUSEREF))
+{ ClauseRef cref = (ClauseRef)*PC++;
+
+  CL   = cref;
+  lTop = (LocalFrame)(ARGP + cref->clause->variables);
+  PC   = cref->clause->codes;
+
+  NEXT_INSTRUCTION;
+}
 
 
 
