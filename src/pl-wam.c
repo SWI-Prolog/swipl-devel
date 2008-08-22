@@ -1286,8 +1286,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 	     Sdprintf(")\n");
 	   });
   SECURE(checkStacks(environment_frame, NULL));
-  assert((ulong)fli_context > (ulong)environment_frame);
-  assert((ulong)lTop >= (ulong)(fli_context+1));
+  assert((void*)fli_context > (void*)environment_frame);
+  assert((void*)lTop >= (void*)(fli_context+1));
 
 
 					/* should be struct alignment, */
