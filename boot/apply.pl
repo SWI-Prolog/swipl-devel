@@ -110,8 +110,6 @@ maplist2([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
 %	True if Action if true for all variable bindings for which Condition
 %	if true.
 
-:- noprofile(forall/2).
-
 forall(Cond, Action) :-
 	\+ (Cond, \+ Action).
 
