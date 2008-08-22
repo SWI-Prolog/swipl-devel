@@ -1556,12 +1556,23 @@ compileArith(Word arg, compileInfo *ci ARG_LD)
   else if ( fdef == FUNCTOR_smaller_equal2 )	a_func = A_LE;	/* =< */
   else if ( fdef == FUNCTOR_larger_equal2 )	a_func = A_GE;	/* >= */
   else if ( fdef == FUNCTOR_is2 )				/* is */
-  { if ( !compileArgument(argTermP(*arg, 0), A_BODY, ci PASS_LD) )
+  { int tc_a1 = PC(ci);
+    code isvar;
+
+    if ( !compileArgument(argTermP(*arg, 0), A_BODY, ci PASS_LD) )
       fail;
+    if ( PC(ci) == tc_a1 + 2 &&	OpCode(ci, tc_a1) == encode(B_FIRSTVAR) )
+    { isvar = OpCode(ci, tc_a1+1);
+      seekBuffer(&ci->codes, tc_a1, code);
+    } else
+      isvar = 0;
     Output_0(ci, A_ENTER);
     if ( !compileArithArgument(argTermP(*arg, 1), ci PASS_LD) )
       fail;
-    Output_0(ci, A_IS);
+    if ( isvar )
+      Output_1(ci, A_FIRSTVAR_IS, isvar);
+    else
+      Output_0(ci, A_IS);
     succeed;
   } else	
   { assert(0);			/* see pl-func.c, registerArithFunctors() */
@@ -2741,6 +2752,14 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case A_GE:	    f = FUNCTOR_larger_equal2;	goto f_common;
 	case A_EQ:	    f = FUNCTOR_ar_equals2;	goto f_common;
 	case A_NE:	    f = FUNCTOR_ar_not_equal2;	goto f_common;
+	case A_FIRSTVAR_IS:
+			  { int index;
+			    index = *PC++;
+			    ARGP[0] = ARGP[-1];
+			    ARGP[-1] = makeVarRef(index);
+			    ARGPinc();
+			  }
+			    /*FALLTHROUGH*/
 	case A_IS:	    f = FUNCTOR_is2;		goto f_common;
 #endif /* O_COMPILE_ARITH */
 #if O_BLOCK

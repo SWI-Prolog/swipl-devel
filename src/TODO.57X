@@ -162,11 +162,16 @@ Problems:
 Cleanup:
 
 	- Associate all special conditions under one test:
-		- Profiling
+		- Profiling [ok]
 		- Debugging
-		- Signalled
-		- OutOfStack
-		- GC requested
+		- Signalled [ok]
+		- OutOfStack [ok]
+		- GC requested [ok]
+		- Coroutining wakeup [ok]
+
+================================================================
+Arithmetic:
+	- A_FIRSTVAR_IS [OK]
 
 ================================================================
 bench_peirera(1) on 5.6.59

@@ -248,6 +248,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 					/* variable access */
       case B_FIRSTVAR:			/* reset uninitialised */
       case B_ARGFIRSTVAR:
+      case A_FIRSTVAR_IS:
       case C_VAR:
 	if ( (state->flags & GCM_CLEAR) )
 	{ LocalFrame fr = state->frame;
