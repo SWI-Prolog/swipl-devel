@@ -764,14 +764,10 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 
 static void
 frameFinished(LocalFrame fr, enum finished reason ARG_LD)
-{ fid_t cid;
-
-  callCleanupHandler(fr, reason PASS_LD);
+{ callCleanupHandler(fr, reason PASS_LD);
 
 #ifdef O_DEBUGGER
-  cid  = PL_open_foreign_frame();
   callEventHook(PLEV_FRAMEFINISHED, fr);
-  PL_close_foreign_frame(cid);
 #endif
 
 }

@@ -551,15 +551,32 @@ tostr(char *buf, const char *fmt, ...)
 		 *	PRINTING MESSAGES	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+printMessage(atom_t severity, ...)
+
+Calls print_message(severity, term), where  ...   are  arguments  as for
+PL_unify_term(). This predicate saves possible   pending  exceptions and
+restores them to make the call from B_THROW possible.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 printMessage(atom_t severity, ...)
-{ fid_t fid = PL_open_foreign_frame();
-  term_t av = PL_new_term_refs(2);
+{ fid_t fid;
+  term_t ex, av;
   predicate_t pred = PROCEDURE_print_message2;
   va_list args;
 
-  gc_status.blocked++;			/* sometimes called from dangerous */
+  blockGC(PASS_LD1);			/* sometimes called from dangerous */
 					/* places */
+  fid = PL_open_foreign_frame();
+  av = PL_new_term_refs(2);
+
+  if ( exception_term )
+  { ex = PL_copy_term_ref(exception_term);
+    exception_term = 0;
+  } else
+    ex = 0;
+
   va_start(args, severity);
   PL_put_atom(av+0, severity);
   PL_unify_termv(av+1, args);
@@ -572,9 +589,14 @@ printMessage(atom_t severity, ...)
     PL_write_term(Serror, av+1, 1200, 0);
     Sfprintf(Serror, "\n");
   }
-  gc_status.blocked--;
+
+  if ( ex )
+  { PL_put_term(exception_bin, ex);
+    exception_term = exception_bin;
+  }
 
   PL_discard_foreign_frame(fid);
+  unblockGC(PASS_LD1);
 }
 
 
