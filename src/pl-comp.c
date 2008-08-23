@@ -26,6 +26,10 @@
 #include "pl-incl.h"
 #include "pl-inline.h"
 #include <limits.h>
+#ifdef HAVE_DLADDR
+#define __USE_GNU 1
+#include <dlfcn.h>
+#endif
 
 #undef LD			/* Get at most once per function */
 #define LD LOCAL_LD
@@ -3535,6 +3539,27 @@ unify_vmi(term_t t, Clause clause, Code bp)
 			   GP_HIDESYSTEM|GP_NAMEARITY);
 	  break;
 	}
+	case CA1_FOREIGN:
+	{ void *func = (void*)*bp++;
+
+#ifdef HAVE_DLADDR
+	  Dl_info info;
+	  
+	  if ( dladdr(func, &info) )
+	  { if ( info.dli_sname )
+	      PL_unify_term(av+an, PL_FUNCTOR, FUNCTOR_colon2,
+			    PL_CHARS, info.dli_fname,
+			    PL_CHARS, info.dli_sname);
+	    else
+	      PL_unify_term(av+an, PL_FUNCTOR, FUNCTOR_plus2,
+			    PL_CHARS, info.dli_fname,
+			    PL_INTPTR, (char*)func-(char*)info.dli_fbase);
+	    break;
+	  }
+#endif
+	  PL_put_pointer(av+an, func);
+	  break;
+	}
 	case CA1_AFUNC:
 	{ int findex = (int)*bp++;
 	  functor_t f = functorArithFunction(findex);
@@ -3580,42 +3605,62 @@ unify_vmi(term_t t, Clause clause, Code bp)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$fetch_vm(+Clause, +PC, -NextPC, -Instruction) is det.
+$fetch_vm(+ClauseOrProc, +PC, -NextPC, -Instruction) is det.
 
 Intruction is the VM instruction at PC and  NextPC is the PC of the next
 instruction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
-PRED_IMPL("$fetch_vm", 4, fetch_vm, 0)
+PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
 { Clause clause = NULL;
-  int pcoffset;
-  Code PC, next;
+  Procedure proc = NULL;
+  size_t len;
+  intptr_t pcoffset;
+  Code base, PC, next;
   code op;
   const code_info *ci;
 
-  term_t ref = A1;
+  term_t from = A1;
   term_t offset = A2;
   term_t noffset = A3;
   term_t instruction = A4;
 
-  if ( !get_clause_ptr_ex(ref, &clause) ||
-       !PL_get_integer_ex(offset, &pcoffset) )
+  if ( PL_is_integer(from) )
+  { if ( !get_clause_ptr_ex(from, &clause) )
+      fail;
+    base = clause->codes;
+    len  = (size_t)clause->code_size;
+  } else
+  { Module module = NULL;
+    functor_t fd;
+
+    if ( !get_functor(from, &fd, &module, 0, GF_PROCEDURE) ||
+	 !(proc = resolveProcedure(fd, module)) )
+      fail;
+    base = proc->definition->codes;
+    if ( !base )
+      fail;
+    len = (size_t)base[-1];
+  }
+
+  if ( !PL_get_intptr_ex(offset, &pcoffset) )
     fail;
-  if ( pcoffset < 0 || pcoffset > (int)clause->code_size )
+  if ( pcoffset < 0 || pcoffset > (intptr_t)len )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, offset);
-  if ( pcoffset == (int)clause->code_size )
+  if ( pcoffset == (intptr_t)len )
     fail;
 
-  PC = clause->codes + pcoffset;
+  PC = base + pcoffset;
   op = fetchop(PC);
   ci = &codeTable[op];
   
   if ( (next=unify_vmi(instruction, clause, PC)) )
-    return PL_unify_int64(noffset, next-clause->codes);
+    return PL_unify_int64(noffset, next-base);
 
   fail;
 }
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4389,6 +4434,6 @@ BeginPredDefs(comp)
   PRED_DEF("assertz", 2, assertz2, PL_FA_TRANSPARENT)
   PRED_DEF("asserta", 2, asserta2, PL_FA_TRANSPARENT)
   PRED_DEF("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
-  PRED_DEF("$fetch_vm", 4, fetch_vm, 0)
+  PRED_DEF("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
   PRED_DEF("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 EndPredDefs

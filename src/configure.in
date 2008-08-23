@@ -349,6 +349,7 @@ if test "$configshared" = "yes"; then
   AC_CHECK_LIB(dl, dlopen)
   if test "$ac_cv_lib_dl_dlopen" = "yes"; then
     AC_CHECK_FUNCS(dlopen)
+    AC_CHECK_FUNCS(dladdr)
   else
     AC_CHECK_LIB(dld, shl_load)
     AC_CHECK_FUNCS(shl_load)

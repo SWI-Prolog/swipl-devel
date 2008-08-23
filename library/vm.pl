@@ -23,6 +23,10 @@ vm_list(Spec) :-
 	(   member(Head, List),
 	    predicate_name(Head, Name),
 	    format('~72c~n~w~n~72c~n', [0'=, Name, 0'=]),
+	    (	'$fetch_vm'(Head, 0, _, _)
+	    ->	vm_list_clause(Head)
+	    ;	format('    (No supervisor)~n')
+	    ),
 	    (   nth_clause(Head, N, Ref),
 		format('~40c~nclause ~d (~d):~n~40c~n', [0'-, N, Ref, 0'-]),
 		vm_list_clause(Ref),
