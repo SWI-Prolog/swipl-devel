@@ -189,7 +189,7 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
 	  { relto = FR->clause->clause->codes;
 	  }
 
-	  wamListInstruction(Serror, relto, PC);
+	  Sdprintf("\t%s\n", codeTable[decode(*PC)].name);
 	});
 }
 
