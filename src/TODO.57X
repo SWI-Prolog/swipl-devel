@@ -9,7 +9,7 @@ Open ends:
 	{
 	}
 	- VMIs sharing variables.  See BEGIN_SHAREDVARS ... END_SHAREDVARS
-	- Does this harm optimization?
+	- Does this harm C-compiler optimization?
 
 VMI Info:
 ---++ Supervisor instructions
@@ -31,7 +31,7 @@ Generate:
 	* Enum for type `code' (now in pl-inc.h)
 	* GCC-2 Labels in VM switch
 	* Undefined
-	* Foreign
+	* Foreign				[OK]
 		- Deterministic
 		- Non-deterministic
 	* Dynamic
@@ -39,7 +39,7 @@ Generate:
 		- Normal
 	* Static
 		- Generic (current model)
-		- 1 clause
+		- 1 clause			[OK]
 		- Simple type-switch
 		- Hashed
 			- Unique
@@ -104,7 +104,6 @@ Simple way forward:
 	    - Jump to it if it exists
 	    - Keep (most of) the rest
 		- Simply ignore ->codes for debugging
-	    - Index: if only one clause create the jump
 	    - Link one and only clause
 		TBD: Unlink on eraseClause
 ================================================================
@@ -161,17 +160,17 @@ Problems:
 ================================================================
 Cleanup:
 
-	- Associate all special conditions under one test:
-		- Profiling [ok]
-		- Debugging
-		- Signalled [ok]
-		- OutOfStack [ok]
-		- GC requested [ok]
-		- Coroutining wakeup [ok]
+	- Associate all special conditions under one test (LD->alerted):
+		- Profiling		[OK]
+		- Debugging		[OK]
+		- Signalled		[OK]
+		- OutOfStack		[OK]
+		- GC requested		[OK]
+		- Coroutining wakeup	[OK]
 
 ================================================================
 Arithmetic:
-	- A_FIRSTVAR_IS [OK]
+	- A_FIRSTVAR_IS			[OK]
 
 ================================================================
 bench_peirera(1) on 5.6.59
