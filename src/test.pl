@@ -1772,7 +1772,7 @@ avar(wakeup-7) :-
 	test_wakeup(functor).
 avar(type-1) :-
 	put_attr(X, test, a),
-	avar(X).
+	attvar(X).
 avar(type-2) :-
 	put_attr(X, test, a),
 	var(X).
