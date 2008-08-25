@@ -804,6 +804,7 @@ loadWicFd(IOSTREAM *fd)
   char mbuf[100];
   int saved_wsize;
   int saved_version;
+  int vm_signature;
 
   s = getMagicString(fd, mbuf, sizeof(mbuf));
   if ( !s || !streq(s, saveMagic) )
@@ -813,6 +814,10 @@ loadWicFd(IOSTREAM *fd)
 
   if ( (saved_version=getInt(fd)) < LOADVERSION )
   { fatalError("Saved state has incompatible save version");
+    fail;
+  }
+  if ( (vm_signature=getInt(fd)) != VM_SIGNATURE )
+  { fatalError("Saved state has incompatible VM signature");
     fail;
   }
 
@@ -1926,6 +1931,7 @@ writeWicHeader(IOSTREAM *fd)
 
   putMagic(saveMagic, fd);
   putNum(VERSION, fd);
+  putNum(VM_SIGNATURE, fd);
   putNum(sizeof(word)*8, fd);	/* bits-per-word */
   if ( systemDefaults.home )
     putString(systemDefaults.home, STR_NOLEN, fd);
@@ -2082,6 +2088,7 @@ qlfInfo(const char *file,
   word rval = TRUE;
   term_t files = PL_copy_term_ref(files0);
   int saved_wsize;
+  int vm_signature;
 
   TRY(PL_unify_integer(cversion, VERSION));
 
@@ -2101,6 +2108,7 @@ qlfInfo(const char *file,
   }
   TRY(PL_unify_integer(version, lversion));
 
+  vm_signature = getInt(s);		/* TBD: provide to Prolog layer */
   saved_wsize = getInt(s);		/* word-size of file */
   TRY(PL_unify_integer(wsize, saved_wsize));
 
@@ -2171,6 +2179,7 @@ qlfOpen(atom_t name)
 
   putMagic(qlfMagic, wicFd);
   putNum(VERSION, wicFd);
+  putNum(VM_SIGNATURE, wicFd);
   putNum(sizeof(word)*8, wicFd);
 
   putString(absname, STR_NOLEN, wicFd);
@@ -2279,6 +2288,7 @@ qlfLoad(IOSTREAM *fd, Module *module ARG_LD)
   const char *absloadname;
   char tmp[MAXPATHLEN];
   int saved_wsize;
+  int vm_signature;
   atom_t file;
 
   if ( (file = fileNameStream(fd)) )
@@ -2302,6 +2312,12 @@ qlfLoad(IOSTREAM *fd, Module *module ARG_LD)
   { if ( lversion )
       warning("$qlf_load/1: %s bad version (file version = %d, prolog = %d)",
 	      wicFile, lversion, VERSION);
+    fail;
+  }
+  vm_signature = getInt(fd);
+  if ( vm_signature != VM_SIGNATURE )
+  { warning("QLF file %s has incompatible VM-signature (0x%x; expected 0x%x)",
+	    file, vm_signature, VM_SIGNATURE);
     fail;
   }
   saved_wsize = getInt(fd);

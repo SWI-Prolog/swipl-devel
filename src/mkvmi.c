@@ -32,6 +32,9 @@
 #include <unistd.h>
 #endif
 
+#define NO_SWIPL 1
+#include "pl-hash.c"
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This program creates pl-codetable.c, pl-jumptable.ic   and pl-vmi.h from
 pl-vmi.c.
@@ -54,6 +57,29 @@ typedef struct
 
 vmi vmi_list[MAX_VMI];
 int vmi_count = 0;
+
+char *synopsis;
+size_t syn_size = 0;
+size_t syn_allocated = 0;
+
+static void
+add_synopsis(const char *s, size_t len)
+{ if ( syn_size+len+1 > syn_allocated )
+  { if ( syn_allocated == 0 )
+    { syn_allocated = 1024;
+      synopsis = malloc(syn_allocated);
+      syn_size = 0;
+    } else
+    { syn_allocated *= 2;
+      synopsis = realloc(synopsis, syn_allocated);
+    }
+  }
+
+  strncpy(&synopsis[syn_size], s, len);
+  syn_size+=len;
+  synopsis[syn_size++]='&';
+}
+
 
 static char *
 skip_ws(const char *s)
@@ -138,6 +164,10 @@ load_vmis(const char *file)
 	vmi_list[vmi_count].argc = strndup(s2, e2-s2);
 	vmi_list[vmi_count].args = strndup(s3, e3-s3);
   
+	add_synopsis(s1, e1-s1);
+	add_synopsis(s2, e2-s2);
+	add_synopsis(s3, e3-s3);
+
 	vmi_count++;
       }
     }
@@ -298,6 +328,7 @@ emit_code_defs(const char *to)
   fprintf(out, "  VMI_END_LIST\n");
   fprintf(out, "} vmi;\n\n");
   fprintf(out, "#define I_HIGHEST ((int)VMI_END_LIST)\n");
+  fprintf(out, "#define VM_SIGNATURE 0x%x\n", MurmurHashAligned2(synopsis, syn_size, 0x12345678));
 
   fclose(out);
 

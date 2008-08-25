@@ -7,7 +7,12 @@
     See:	http://murmurhash.googlepages.com/
 */
 
+#ifdef NO_SWIPL
+#define uintptr_t long
+#define DEBUG(l,g) (void)0
+#else
 #include <pl-incl.h>
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The first one is actually  MurmurHashNeutral2().   It  produces the same
