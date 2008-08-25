@@ -35,10 +35,13 @@ iso_builtin_predicate(true).
 iso_builtin_predicate(fail).
 iso_builtin_predicate(call(_)).
 iso_builtin_predicate(!).
-iso_builtin_predicate((_; _)).
+iso_builtin_predicate((Goal; _)) :-
+	(   var(Goal)
+	->  true
+	;   Goal \= '*->'(_,_)		% exclude SWI's soft-cut.
+	).
 iso_builtin_predicate((_, _)).
 iso_builtin_predicate((_ -> _)).
-iso_builtin_predicate((_ -> _ ; _)).
 iso_builtin_predicate(catch(_, _, _)).
 iso_builtin_predicate(throw(_)).
 
