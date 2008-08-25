@@ -1878,8 +1878,11 @@ typedef struct
 		 *	    STREAM I/O		*
 		 *******************************/
 
+#define REDIR_MAGIC 0x23a9bef3
+
 typedef struct redir_context
-{ IOSTREAM     *stream;			/* temporary output */
+{ int		magic;			/* REDIR_MAGIC */
+  IOSTREAM     *stream;			/* temporary output */
   int		is_stream;		/* redirect to stream */
   int		redirected;		/* output is redirected */
   term_t	term;			/* redirect target */
