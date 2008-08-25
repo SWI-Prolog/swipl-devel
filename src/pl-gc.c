@@ -27,6 +27,7 @@
 #define O_SECURE 1
 #endif
 #include "pl-incl.h"
+#include "pentium.h"
 
 #ifndef HAVE_MEMMOVE			/* Note order!!!! */
 #define memmove(dest, src, n) bcopy(src, dest, n)
@@ -2276,6 +2277,9 @@ garbageCollect(LocalFrame fr, Choice ch)
 #ifdef O_SECURE
   word key;
 #endif
+
+  END_PROF();
+  START_PROF(P_GC, "P_GC");
 
   DEBUG(1, verbose = TRUE);
 

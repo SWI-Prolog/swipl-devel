@@ -1543,16 +1543,7 @@ will export jmp_table as the compiler  needs   to  know  this table. See
 pl-comp.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_PROF_PENTIUM
 #include "pentium.h"
-
-#define PROF_FOREIGN	(I_HIGHEST)
-#define DEPART_CONTINUE (I_HIGHEST+1)
-
-#else
-#define START_PROF(id, name)
-#define END_PROF()
-#endif
 
 #if VMCODE_IS_ADDRESS
 #include <pl-jumptable.ic>

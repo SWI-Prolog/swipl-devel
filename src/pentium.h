@@ -25,6 +25,7 @@
 
 #ifndef PROF_H_INCLUDED
 #define PROF_H_INCLUDED
+#ifdef O_PROF_PENTIUM
 
 typedef int64_t ticks;
 typedef struct
@@ -68,5 +69,18 @@ extern ticks		prof_ticks;
 	  pr->ticks += t; \
 	  prof_current = NULL; \
 	}
+
+/* non-VMI profile identifiers */
+
+#define PROF_FOREIGN	(I_HIGHEST)
+#define DEPART_CONTINUE (I_HIGHEST+1)
+#define P_GC 		(I_HIGHEST+2)
+
+#else /*O_PROF_PENTIUM*/
+
+#define START_PROF(id, name)
+#define END_PROF()
+
+#endif /*O_PROF_PENTIUM*/
 	
 #endif /*PROF_H_INCLUDED*/
