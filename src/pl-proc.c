@@ -155,10 +155,10 @@ resetProcedure(Procedure proc, bool isnew)
     }
 
     if ( def->codes )
-      freeCodes(def->codes);
+      freeCodesDefinition(def);
+  } else
+  { def->codes = NULL;
   }
-
-  def->codes = NULL;
 }
 
 
@@ -2715,9 +2715,7 @@ startConsult(SourceFile f)
       if ( true(def, NEEDSCLAUSEGC) )
       { if ( def->references == 0 )
 	{ if ( def->codes )
-	  { freeCodes(def->codes);
-	    def->codes = NULL;
-	  }
+	    freeCodesDefinition(def);
 	  garbage = cleanDefinition(def, garbage);
 	} else if ( false(def, DYNAMIC) )
 	{ registerDirtyDefinition(def);

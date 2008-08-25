@@ -38,10 +38,13 @@ allocCodes(size_t n)
 
 
 void
-freeCodes(Code codes)
-{ if ( codes )
+freeCodesDefinition(Definition def)
+{ Code codes;
+
+  if ( (codes = def->codes) )
   { size_t size = (size_t)codes[-1];
 
+    def->codes = NULL;
     freeHeap(&codes[-1], (size+1)*sizeof(code));
   }
 }
