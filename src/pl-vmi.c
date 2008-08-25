@@ -894,7 +894,6 @@ possible to be able to call-back to Prolog.
   NFR->predicate      = DEF;		/* TBD */
   NFR->programPointer = PC;		/* save PC in child */
   NFR->clause         = NULL;		/* for save atom-gc */
-  NFR->prof_node      = NULL;		/* could be reset when switching profiler on */
   environment_frame = FR = NFR;		/* open the frame */
 
 depart_continue:
@@ -904,6 +903,9 @@ depart_continue:
   incLevel(FR);
 
 retry_continue:
+#ifdef O_PROFILE
+  FR->prof_node = NULL;
+#endif
   clear(FR, FR_SKIPPED|FR_WATCHED|FR_CATCHED);
   if ( false(DEF, METAPRED) )
     FR->context = DEF->module;
@@ -2533,7 +2535,7 @@ VMI(I_CALLCLEANUP, 0, ())
 				/* = B_VAR1 */
   *argFrameP(lTop, 0) = linkVal(argFrameP(FR, 1));
 
-  goto i_usercall0;
+  VMI_GOTO(I_USERCALL0);
 }
 
 
@@ -2582,8 +2584,7 @@ VMI(I_CATCH, 0, ())
 
 				  /* = B_VAR0 */
   *argFrameP(lTop, 0) = linkVal(argFrameP(FR, 0));
-
-  goto i_usercall0;
+  VMI_GOTO(I_USERCALL0);
 }
 
 
@@ -2764,7 +2765,7 @@ b_throw:
       trimStacks(PASS_LD1);
 #endif
 
-    goto i_usercall0;
+    VMI_GOTO(I_USERCALL0);
   } else
   { Word p;
 
@@ -2927,7 +2928,6 @@ VMI(I_USERCALL0, 0, ())
 { word goal;
   Word a;
 
-i_usercall0:				/* from call_cleanup/3 and catch/3 */
   module = NULL;
   NFR = lTop;
   a = argFrameP(NFR, 0);		/* get the goal */

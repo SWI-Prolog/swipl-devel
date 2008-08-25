@@ -1303,10 +1303,12 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   top->flags	     = 0;		/* TBD: level? */
   top->predicate     = PROCEDURE_dc_call_prolog->definition;
   top->clause        = &cref;
+#ifdef O_PROFILE
   if ( LD->profile.active )
     top->prof_node = profCall(top->predicate PASS_LD);
   else
     top->prof_node = NULL;
+#endif
   fr                 = &qf->frame;
   fr->parent         = top;
   fr->flags          = FR_INBOX;
