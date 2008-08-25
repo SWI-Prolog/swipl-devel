@@ -415,23 +415,27 @@ VMI(H_VAR, 1, (CA1_VAR))
 { Word k = varFrameP(FR, (int)*PC++);
 
   if ( umode == uwrite )
-  { deRef(k);
-    if ( isVar(*k) )
-    { if ( k > ARGP )			/* k on local stack */
-      { setVar(*ARGP);
-	*k = makeRefG(ARGP);
-	Trail(k);
+  { if ( LD->feature.occurs_check == OCCURS_CHECK_FALSE )
+    { deRef(k);
+      if ( isVar(*k) )
+      { if ( k > ARGP )			/* k on local stack */
+	{ setVar(*ARGP);
+	  *k = makeRefG(ARGP);
+	  Trail(k);
+	} else
+	{ *ARGP = makeRefG(k);		/* ARGP on global, so k also */
+	}
+      } else if ( isAttVar(*k) )
+      { *ARGP = makeRefG(k);
       } else
-      { *ARGP = makeRefG(k);		/* ARGP on global, so k also */
+      { *ARGP = *k;
       }
-    } else if ( isAttVar(*k) )
-    { *ARGP = makeRefG(k);
+  
+      ARGP++;
+      NEXT_INSTRUCTION;
     } else
-    { *ARGP = *k;
+    { setVar(*ARGP);
     }
-
-    ARGP++;
-    NEXT_INSTRUCTION;
   }
 
   if ( raw_unify_ptrs(k, ARGP++ PASS_LD) )
