@@ -974,6 +974,8 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
     ctx->stream->encoding = ENC_WCHAR;
   }
 
+  ctx->magic = REDIR_MAGIC;
+
   if ( redir )
   { pushOutputContext();
     Scurout = ctx->stream;
@@ -986,6 +988,10 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
 int
 closeOutputRedirect(redir_context *ctx)
 { int rval = TRUE;
+
+  if ( ctx->magic != REDIR_MAGIC )
+    return rval;			/* already done */
+  ctx->magic = 0;
 
   if ( ctx->redirected )
     popOutputContext();
@@ -1023,7 +1029,12 @@ closeOutputRedirect(redir_context *ctx)
 
 void
 discardOutputRedirect(redir_context *ctx)
-{ if ( ctx->redirected )
+{ if ( ctx->magic != REDIR_MAGIC )
+    return;				/* already done */
+
+  ctx->magic = 0;
+
+  if ( ctx->redirected )
     popOutputContext();
 
   if ( ctx->is_stream )
