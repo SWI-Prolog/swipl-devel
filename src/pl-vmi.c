@@ -476,34 +476,47 @@ VMI(H_LIST, 0, ())
 
 
 VMI(H_RLIST, 0, ())
-{ deRef(ARGP);
-  if ( canBind(*ARGP) )
-  { Word ap = gTop;
-    word c;
+{ for(;;)
+  { word w = *ARGP;
+
+    switch(tag(w))
+    { case TAG_COMPOUND:
+	if ( valueTerm(w)->definition == FUNCTOR_dot2 )
+	{ ARGP = argTermP(w, 0);
+	  NEXT_INSTRUCTION;
+	}
+	CLAUSE_FAILED;
+      case TAG_VAR:
+      case TAG_ATTVAR:
+      { Word ap = gTop;
+	word c;
 
 #if O_SHIFT_STACKS
-    if ( ap + 3 > gMax )
-    { if ( !growStacks(FR, BFR, PC, 0, 3*sizeof(word), 0) )
-	goto b_throw;
-      ap = gTop;
-    }
+        if ( ap + 3 > gMax )
+	{ if ( !growStacks(FR, BFR, PC, 0, 3*sizeof(word), 0) )
+	    goto b_throw;
+	  ap = gTop;
+	}
 #else
-    requireStack(global, 3*sizeof(word));
+	if ( ap + 3 > gMax )
+	  ensureRoomStack(global, 3*sizeof(word));
 #endif
-    ap[0] = FUNCTOR_dot2;
-    setVar(ap[1]);
-    setVar(ap[2]);
-    gTop = ap+3;
-    c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
-    bindConst(ARGP, c);
-    ARGP = ap+1;
-    NEXT_INSTRUCTION;
+        gTop += 3;
+	c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+	*ap++ = FUNCTOR_dot2;
+	bindConst(ARGP, c);
+	ARGP = ap;
+	setVar(*ap++);
+	setVar(*ap++);
+	NEXT_INSTRUCTION;
+      }
+      case TAG_REFERENCE:
+	ARGP = unRef(w);
+        continue;
+      default:
+	CLAUSE_FAILED;
+    }
   }
-  if ( isList(*ARGP) )
-  { ARGP = argTermP(*ARGP, 0);
-    NEXT_INSTRUCTION;
-  }
-  CLAUSE_FAILED;
 }
 
 
