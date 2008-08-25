@@ -317,10 +317,10 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  state->adepth++;
 	  break;
 	case H_VOID:
-	  if ( state->adepth == 0 )
-	    state->ARGP++;
+	  assert(state->adepth == 0);
+	  state->ARGP++;
 	  break;
-	case I_POPF:
+	case H_POP:
 	  state->adepth--;
 	  break;
 	case I_ENTER:

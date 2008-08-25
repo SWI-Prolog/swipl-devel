@@ -167,8 +167,7 @@ COMMON(word) 		pl_nth_clause(term_t p, term_t n, term_t ref,
 				      control_t h);
 COMMON(word) 		pl_xr_member(term_t ref, term_t term, control_t h);
 COMMON(void) 		wamListClause(Clause clause);
-COMMON(Code) 		wamListInstruction(IOSTREAM *out, Clause clause,
-					   Code bp);
+COMMON(Code) 		wamListInstruction(IOSTREAM *out, Code relto, Code bp);
 COMMON(int) 		unify_definition(term_t head, Definition def,
 				 term_t thehead, int flags);
 COMMON(word) 		pl_clause_term_position(term_t ref, term_t pc,

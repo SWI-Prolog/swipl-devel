@@ -177,7 +177,20 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
 	  ofr = FR;
 	});
 
-  DEBUG(3, wamListInstruction(Serror, FR->clause->clause, PC));
+  DEBUG(3,
+	{ Code relto = NULL;
+
+	  if ( FR->predicate->codes )
+	  { int offset = PC - FR->predicate->codes;
+	    
+	    if ( offset >= 0 && offset < (int)FR->predicate->codes[-1] )
+	      relto = FR->predicate->codes;
+	  } else if ( FR->clause )
+	  { relto = FR->clause->clause->codes;
+	  }
+
+	  wamListInstruction(Serror, relto, PC);
+	});
 }
 
 #else
@@ -1521,6 +1534,31 @@ int _PL_nop_counter;
 #define ASM_NOP _PL_nop_counter++
 #endif
 
+typedef enum
+{ uread = 0,				/* Unification in read-mode */
+  uwrite				/* Unification in write mode */
+} unify_mode;
+
+#define IF_WRITE_MODE_GOTO(label) \
+	if ( umode == uwrite ) VMI_GOTO(label)
+
+#define TRUST_CLAUSE(cref) \
+	umode = uread; \
+	CL    = cref; \
+	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
+	PC    = cref->clause->codes; \
+	NEXT_INSTRUCTION;
+#define TRY_CLAUSE(cref, cond, altpc) \
+	umode = uread; \
+	CL    = cref; \
+	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
+	if ( cond ) \
+	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
+ 	  ch->value.PC = altpc; \
+	} \
+	PC    = cref->clause->codes; \
+	NEXT_INSTRUCTION;
+
 int
 PL_next_solution(qid_t qid)
 { GET_LD
@@ -1531,6 +1569,7 @@ PL_next_solution(qid_t qid)
   Word	     ARGP = NULL;		/* current argument pointer */
   Code	     PC = NULL;			/* program counter */
   Definition DEF = NULL;		/* definition of current procedure */
+  unify_mode umode = uread;		/* Unification mode */
   Word *     aFloor = aTop;		/* don't overwrite old arguments */
 #define	     CL (FR->clause)		/* clause of current frame */
 
@@ -1551,8 +1590,9 @@ pl-comp.c
 #define VMI(Name,na,a)		Name ## _LBL: \
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);
-#define VMI_GOTO(n)		END_PROF(); \
-				goto n ## _LBL;
+#define VMI_GOTO(n)		{ END_PROF(); \
+				  goto n ## _LBL; \
+				}
 #define NEXT_INSTRUCTION	{ END_PROF(); \
 				  DbgPrintInstruction(FR, PC); \
 				  goto *(void *)((intptr_t)(*PC++)); \
@@ -1570,8 +1610,9 @@ code thiscode;
 				  case_ ## Name:
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);
-#define VMI_GOTO(n)		END_PROF(); \
-				goto case_ ## n;
+#define VMI_GOTO(n)		{ END_PROF(); \
+				  goto case_ ## n; \
+				}
 #define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
 				  END_PROF(); \
                                   goto next_instruction; \
@@ -1775,6 +1816,7 @@ clause_failed:				/* shallow backtracking */
     if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
       FRAME_FAILED;			/* should not happen */
     PC = CL->clause->codes;
+    umode = uread;
 
     if ( ch == (Choice)argFrameP(FR, CL->clause->variables) )
     { if ( next )
@@ -1809,7 +1851,6 @@ clause_failed:				/* shallow backtracking */
 
 body_failed:
 frame_failed:
-
 {
 #ifdef O_DEBUGGER
   Choice ch0 = BFR;
@@ -1929,6 +1970,7 @@ next_choice:
       PC     = clause->codes;
       Profile(profRedo(ch->prof_node PASS_LD));
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
+      umode  = uread;
 
       if ( next )
       { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
