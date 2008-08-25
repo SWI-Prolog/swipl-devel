@@ -1856,13 +1856,15 @@ typedef enum
   STACK_OVERFLOW_FATAL
 } stack_overflow_action;
 
+#define ensureRoomStack(s, n) ensure_room_stack((Stack)&LD->stacks.s, (n))
+
 #if O_DYNAMIC_STACKS
 #ifdef O_SEGV_HANDLING
 #define requireStack(s, n)
 #else
 #define requireStack(s, n) \
 	{ if ( roomStack(s) < (intptr_t)(n) ) \
- 	    ensureRoomStack((void*)&LD->stacks.s, n); \
+ 	    ensureRoomStack(s, n); \
 	}
 #endif /*O_SEGV_HANDLING*/
 #else

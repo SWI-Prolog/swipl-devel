@@ -1244,7 +1244,7 @@ mapOrOutOf(Stack s)
 
 #ifndef O_SEGV_HANDLING
 void
-ensureRoomStack(Stack s, size_t bytes)
+ensure_room_stack(Stack s, size_t bytes)
 { while((char *)s->max <= &((char *)s->top)[bytes])
     mapOrOutOf(s);
 }
@@ -1417,7 +1417,7 @@ mapOrOutOf(Stack s)
 
 #ifndef O_SEGV_HANDLING
 void
-ensureRoomStack(Stack s, size_t bytes)
+ensure_room_stack(Stack s, size_t bytes)
 { while((char *)s->max <= &((char *)s->top)[bytes])
     mapOrOutOf(s);
 }
