@@ -42,7 +42,7 @@ extern prof_record	prof_data[];
 extern prof_record     *prof_current;
 extern ticks		prof_ticks;
 
-#define MAXPROF I_HIGHEST+10
+#define MAXPROF I_HIGHEST+2000		/* see createForeignSupervisor() */
 #define CPU_SPEED 200.0
 
 #define PROF(Id, code) \
@@ -72,7 +72,6 @@ extern ticks		prof_ticks;
 
 /* non-VMI profile identifiers */
 
-#define PROF_FOREIGN	(I_HIGHEST)
 #define DEPART_CONTINUE (I_HIGHEST+1)
 #define P_GC 		(I_HIGHEST+2)
 

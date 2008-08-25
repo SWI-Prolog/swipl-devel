@@ -1293,6 +1293,10 @@ struct definition
   		/*	P_SHARED	   Multiple procs are using me */
   unsigned	indexCardinality : 8;	/* cardinality of index pattern */
   unsigned	number_of_clauses : 24;	/* number of associated clauses */
+#ifdef O_PROF_PENTIUM
+  int		prof_index;		/* index in profiling */
+  char	       *prof_name;		/* name in profiling */
+#endif
 };
 
 

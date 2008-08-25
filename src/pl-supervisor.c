@@ -54,6 +54,11 @@ DET code:  I_FOPEN,     I_FCALLDETVA|I_FCALLDET<N>,   I_FEXITDET
 NDET code: I_FOPENNDET, I_FCALLNDETVA|I_FCALLNDET<N>, I_FEXITNDET, I_FREDO
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_PROF_PENTIUM
+#include "pentium.h"
+static int prof_foreign_index = (I_HIGHEST+20);
+#endif
+
 int
 createForeignSupervisor(Definition def, Func f)
 { assert(true(def, FOREIGN));
@@ -90,6 +95,12 @@ createForeignSupervisor(Definition def, Func f)
 
     def->codes = codes;
   }
+
+#ifdef O_PROF_PENTIUM
+  assert(prof_foreign_index < MAXPROF);
+  def->prof_index = prof_foreign_index++;
+  def->prof_name  = strdup(predicateName(def));
+#endif
 
   succeed;
 }
