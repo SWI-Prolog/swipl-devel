@@ -1607,6 +1607,82 @@ VMI(S_TRUSTME, 1, (CA1_CLAUSEREF))
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_ALLCLAUSES: Simply try the clauses one-by-one. This works for all code
+and is the ultimate fallback of the indexing code.  The supervisor code
+is 
+
+	S_ALLCLAUSES
+	S_NEXTCLAUSE
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+BEGIN_SHAREDVARS
+ClauseRef cref;
+
+VMI(S_ALLCLAUSES, 0, ())
+{ cref = DEF->definition.clauses;
+
+next_clause:
+  for(; cref; cref = cref->next)
+  { if ( visibleClause(cref->clause, FR->generation) )
+    { CL   = cref;
+      lTop = (LocalFrame)(ARGP + cref->clause->variables);
+      if ( cref->next )
+      { Choice ch = newChoice(CHP_JUMP, FR PASS_LD);
+
+	ch->value.PC = PC;
+	assert(*PC == encode(S_NEXTCLAUSE));
+      }
+      PC   = cref->clause->codes;
+      NEXT_INSTRUCTION;
+    }
+  }
+
+  FRAME_FAILED;
+}
+
+
+VMI(S_NEXTCLAUSE, 0, ())
+{ cref = CL->next;
+
+  PC--;
+  ARGP = argFrameP(FR, 0);
+  goto next_clause;
+}
+END_SHAREDVARS
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_LIST: Predicate consisting of two clauses, one of them using [] and
+the other [_|_].
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_LIST, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF))
+{ ClauseRef cref;
+  Word k;
+
+  deRef2(ARGP, k);
+  if ( isList(*k) )
+    cref = (ClauseRef)PC[1];
+  else if ( isNil(*k) )
+    cref = (ClauseRef)PC[0];
+  else if ( isVar(*k) )
+  { static code c;			/* TBD: generic code sequences */
+
+    c = encode(S_NEXTCLAUSE);
+    PC = &c;
+    VMI_GOTO(S_ALLCLAUSES);
+  } else
+    FRAME_FAILED;
+
+  PC += 2;
+  CL   = cref;
+  lTop = (LocalFrame)(ARGP + cref->clause->variables);
+  PC   = cref->clause->codes;
+
+  NEXT_INSTRUCTION;
+}
+
 
 		 /*******************************
 		 *	    ARITHMETIC		*

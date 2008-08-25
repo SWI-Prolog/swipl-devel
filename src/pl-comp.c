@@ -2114,14 +2114,16 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 arg1Key() determines the first argument-key   by  inspecting the virtual
-machine code.
+machine code. If constonly is  non-zero,  it   creates  a  key for large
+integers and floats. Otherwise it only succeeds on atoms, small integers
+and functors.
 
 NOTE: this function must  be  kept   consistent  with  indexOfWord()  in
 pl-index.c!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-arg1Key(Clause clause, word *key)
+arg1Key(Clause clause, int constonly, word *key)
 { Code PC = clause->codes;
 
   for(;;)
@@ -2146,24 +2148,30 @@ arg1Key(Clause clause, word *key)
 	*key = FUNCTOR_dot2;
         succeed;
       case H_INT64:			/* only on 32-bit hardware! */
-	*key = (word)PC[0] ^ (word)PC[1];
-        succeed;
+	if ( !constonly )
+	{ *key = (word)PC[0] ^ (word)PC[1];
+          succeed;
+	} else
+	  fail;
       case H_INTEGER:
-      { word k;
+	if ( !constonly )
+	{ word k;
 #if SIZEOF_VOIDP == 4
-	k = (word)*PC;			/* indexOfWord() picks 64-bits */
-        if ( (intptr_t)k < 0L )
-	  k ^= -1L;
-	DEBUG(9, Sdprintf("key for %ld = 0x%x\n", *PC, k));
+	  k = (word)*PC;			/* indexOfWord() picks 64-bits */
+	  if ( (intptr_t)k < 0L )
+	    k ^= -1L;
+	  DEBUG(9, Sdprintf("key for %ld = 0x%x\n", *PC, k));
 #else
-	k = (word)*PC;
+	  k = (word)*PC;
 #endif
-	if ( !k )
-	  k++;
-        *key = k;
-	succeed;
-      }
+	  if ( !k )
+	    k++;
+	  *key = k;
+	  succeed;
+	} else
+	  fail;
       case H_FLOAT:			/* tbd */
+      if ( !constonly )
       { word k;
 	switch(WORDS_PER_DOUBLE)
 	{ case 2:
@@ -3537,6 +3545,14 @@ unify_vmi(term_t t, Clause clause, Code bp)
     
 	  unify_definition(av+an, proc->definition, 0,
 			   GP_HIDESYSTEM|GP_NAMEARITY);
+	  break;
+	}
+	case CA1_CLAUSEREF:
+	{ ClauseRef cref = (ClauseRef)*bp++;
+
+	  PL_unify_term(av+an, PL_FUNCTOR, FUNCTOR_clause1,
+			PL_POINTER, cref->clause);
+
 	  break;
 	}
 	case CA1_FOREIGN:

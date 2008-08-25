@@ -636,6 +636,7 @@ F ceil			1
 F ceiling		1
 F chars			1
 F chars			2
+F clause		1
 F close_on_abort	1
 F codes			1
 F codes			2

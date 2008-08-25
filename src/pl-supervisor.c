@@ -22,6 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define O_DEBUG 1
 #include "pl-incl.h"
 
 #define MAX_FLI_ARGS 10			/* extend switches on change */
@@ -84,6 +85,23 @@ createForeignSupervisor(Definition def, Func f)
 }
 
 
+		 /*******************************
+		 *	   PROLOG CASES		*
+		 *******************************/
+
+static int
+getClauses(Definition def, ClauseRef *refp0)
+{ ClauseRef cref, *refp = refp0;
+
+  for(cref = def->definition.clauses; cref; cref = cref->next)
+  { if ( visibleClause(cref->clause, GD->generation) )
+      *refp++ = cref;
+  }
+
+  return refp - refp0;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 createSingleClauseSupervisor() creates a supervisor to call the one and
 only clause of the predicate.  Creates
@@ -93,23 +111,65 @@ only clause of the predicate.  Creates
 
 int
 createSingleClauseSupervisor(Definition def)
-{ ClauseRef cref;
-
-  for(cref = def->definition.clauses; cref; cref = cref->next)
-  { if ( visibleClause(cref->clause, GD->generation) )
-    { Code codes = allocCodes(2);
-
-      DEBUG(1, Sdprintf("Single clause supervisor for %s\n",
-			predicateName(def)));
-
-      codes[0] = encode(S_TRUSTME);
-      codes[1] = (code)cref->clause;
-
-      succeed;
-    }
+{ if ( def->number_of_clauses == 1 )
+  { ClauseRef cref;
+    Code codes = allocCodes(2);
+  
+    getClauses(def, &cref);
+    DEBUG(1, Sdprintf("Single clause supervisor for %s\n",
+		      predicateName(def)));
+  
+    codes[0] = encode(S_TRUSTME);
+    codes[1] = (code)cref;
+  
+    def->codes = codes;
+    succeed;
   }
 
   fail;
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+createListSuperVisor() creates a supervisor for predicates that have two
+clauses:
+	
+	pred([], ....)
+	pred([H|T], ...)
+
+The code is
+
+	S_LIST <nilclause> <listclause>
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+createListSupervisor(Definition def)
+{ if ( def->number_of_clauses == 2 )
+  { ClauseRef cref[2];
+    word c[2];
+
+    getClauses(def, cref);
+    if ( arg1Key(cref[0]->clause, TRUE, &c[0]) &&
+	 arg1Key(cref[1]->clause, TRUE, &c[1]) &&
+	 ( (c[0] == ATOM_nil && c[1] == FUNCTOR_dot2) ||
+	   (c[1] == ATOM_nil && c[0] == FUNCTOR_dot2) ) )
+    { Code codes = allocCodes(3);
+
+      DEBUG(1, Sdprintf("List supervisor for %s\n", predicateName(def)));
+
+      codes[0] = encode(S_LIST);
+      if ( c[0] == ATOM_nil )
+      { codes[1] = (code)cref[0];
+	codes[2] = (code)cref[1];
+      } else
+      { codes[1] = (code)cref[1];
+	codes[2] = (code)cref[0];
+      }
+
+      def->codes = codes;
+      succeed;
+    }
+  }
+
+  fail;
+}

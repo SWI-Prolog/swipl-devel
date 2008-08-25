@@ -154,7 +154,7 @@ COMMON(void) 		unregisterAtomsClause(Clause clause);
 COMMON(word) 		pl_redefine_system_predicate(term_t term);
 COMMON(Code)		stepDynPC(Code PC, const code_info *ci);
 COMMON(bool) 		decompileHead(Clause clause, term_t head);
-COMMON(int) 		arg1Key(Clause clause, word *key);
+COMMON(int) 		arg1Key(Clause clause, int constonly, word *key);
 COMMON(bool) 		decompile(Clause clause, term_t term, term_t bindings);
 COMMON(word) 		pl_clause4(term_t p, term_t t, term_t ref, term_t b,
 				   control_t h);

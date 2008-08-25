@@ -409,7 +409,7 @@ reindexClause(Clause clause, Definition def, unsigned long pattern)
   { if ( pattern == 0x1 )		/* the 99.9% case.  Speedup a little */
     { word key;
 
-      if ( arg1Key(clause, &key) )
+      if ( arg1Key(clause, FALSE, &key) )
       { clause->index.key     = key;
 	clause->index.varmask = (uintptr_t)~0L;
       } else
@@ -629,7 +629,7 @@ addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
   { int n = ci->buckets;
 
     SECURE({ word k;
-	     assert(!arg1Key(cl, &k));
+	     assert(!arg1Key(cl, FALSE, &k));
 	   });
     
     DEBUG(1,
