@@ -143,14 +143,6 @@ resetProcedure(Procedure proc, bool isnew)
   if ( stringAtom(def->functor->name)[0] != '$' )
     set(def, TRACE_ME);
   def->number_of_clauses = 0;
-  if ( def->codes )
-  { GET_LD
-    Code tmp = def->codes-1;
-    int size = (int)tmp[0];
-
-    def->codes = NULL;
-    freeHeap(tmp, size*sizeof(code));
-  }
 
   if ( isnew )
   { def->indexCardinality = 0;
@@ -161,7 +153,12 @@ resetProcedure(Procedure proc, bool isnew)
     { unallocClauseIndexTable(def->hash_info);
       def->hash_info = NULL;
     }
+
+    if ( def->codes )
+      freeCodes(def->codes);
   }
+
+  def->codes = NULL;
 }
 
 
@@ -2717,9 +2714,15 @@ startConsult(SourceFile f)
       
       if ( true(def, NEEDSCLAUSEGC) )
       { if ( def->references == 0 )
+	{ if ( def->codes )
+	  { freeCodes(def->codes);
+	    def->codes = NULL;
+	  }
 	  garbage = cleanDefinition(def, garbage);
-	else if ( false(def, DYNAMIC) )
-	  registerDirtyDefinition(def);
+	} else if ( false(def, DYNAMIC) )
+	{ registerDirtyDefinition(def);
+	  def->codes = NULL;		/* TBD: make available for GC */
+	}
       }
       
       if ( false(def, MULTIFILE) )

@@ -91,8 +91,10 @@ COMMON(int)		raiseSignal(PL_local_data_t *ld, int sig);
 
 /* pl-supervisor.c */
 
+COMMON(void)		freeCodes(Code cl);
 COMMON(int)		createForeignSupervisor(Definition def, Func f);
 COMMON(int)		createSingleClauseSupervisor(Definition def);
+COMMON(int)		createListSupervisor(Definition def);
 
 /* pl-atom.c */
 COMMON(word) 		lookupAtom(const char *s, size_t len);

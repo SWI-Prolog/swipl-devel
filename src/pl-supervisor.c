@@ -28,12 +28,22 @@
 #define MAX_FLI_ARGS 10			/* extend switches on change */
 
 static Code
-allocCodes(int n)
+allocCodes(size_t n)
 { Code codes = allocHeap(sizeof(code)*(n+1));
   
   *codes++ = (code)n;
 
   return codes;
+}
+
+
+void
+freeCodes(Code codes)
+{ if ( codes )
+  { size_t size = (size_t)codes[-1];
+
+    freeHeap(&codes[-1], (size+1)*sizeof(code));
+  }
 }
 
 
@@ -132,7 +142,7 @@ createSingleClauseSupervisor(Definition def)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 createListSuperVisor() creates a supervisor for predicates that have two
-clauses:
+clauses (possibly swapped):
 	
 	pred([], ....)
 	pred([H|T], ...)
