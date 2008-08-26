@@ -1036,21 +1036,24 @@ backtrack without showing the fail ports explicitely.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_ENTER, 0, ())
-{ 
+{ ARGP = argFrameP(lTop, 0);
+ 
+  if ( LD->alerted )
+  {
 #if O_DEBUGGER
-  if ( debugstatus.debugging )
-  { clearUninitialisedVarsFrame(FR, PC);
-    switch(tracePort(FR, BFR, UNIFY_PORT, PC PASS_LD))
-    { case ACTION_RETRY:
-	goto retry;
-      case ACTION_FAIL:
-	FRAME_FAILED;
+    if ( debugstatus.debugging )
+    { clearUninitialisedVarsFrame(FR, PC);
+      switch(tracePort(FR, BFR, UNIFY_PORT, PC PASS_LD))
+      { case ACTION_RETRY:
+	  goto retry;
+	case ACTION_FAIL:
+	  FRAME_FAILED;
+      }
     }
-  }
 #endif /*O_DEBUGGER*/
 
-  ARGP = argFrameP(lTop, 0);
-  CHECK_WAKEUP;
+    CHECK_WAKEUP;
+  }
   NEXT_INSTRUCTION;
 }
 
