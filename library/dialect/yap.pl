@@ -34,8 +34,7 @@
 	    depth_bound_call/2,		% :Goal, +Limit
 	    system/1,			% +Command
 	    exists/1,			% +File
-	    assert_static/1,		% :Term
-	    false/0
+	    assert_static/1		% :Term
 	  ]).
 
 /** <module> YAP Compatibility module
@@ -102,7 +101,6 @@ yap_expansion(if(Goal, Then),
 	      (Goal *-> Then; true)).
 yap_expansion(if(Goal, Then, Else),
 	      (Goal *-> Then; Else)).
-yap_expansion(false, fail).
 
 
 
@@ -201,13 +199,3 @@ exists(File) :-
 
 assert_static(Term) :-
 	assert(Term).
-
-
-%%	false
-%
-%	Equivalent to fail/0
-%	
-%	@compat yap
-
-false :-
-	fail.
