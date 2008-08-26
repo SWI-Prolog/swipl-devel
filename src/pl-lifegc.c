@@ -283,7 +283,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	if ( op == B_UNIFY_VAR )
 	  break;
 	/*FALLTHROUGH*/
-      case B_FIRSTVAR:			/* reset uninitialised */
+      case B_FIRSTVAR:
       case B_ARGFIRSTVAR:
       case A_FIRSTVAR_IS:
       case C_VAR:
@@ -332,10 +332,16 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* recovery goal */
 	  break;
 #ifdef MARK_ALT_CLAUSES
+	case H_FIRSTVAR:
+	  if ( (state->flags & GCM_CLEAR) )
+	  { clear_frame_var(state, PC PASS_LD);
+	    break;
+	  }
+	  mark_argp(state PASS_LD);
+	  break;
 	case H_VAR:
 	  mark_frame_var(state, PC[0] PASS_LD);
 	  /*FALLTHROUGH*/
-	case H_FIRSTVAR:
 	case H_CONST:
 	case H_NIL:
 	case H_INTEGER:

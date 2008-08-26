@@ -841,6 +841,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	  PC += (int)PC[1]+2;
 	  c = decode(*PC);
 	  goto again;
+	case H_FIRSTVAR:
 	case B_FIRSTVAR:
 	case B_ARGFIRSTVAR:
 	case A_FIRSTVAR_IS:
