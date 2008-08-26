@@ -251,6 +251,13 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       }
 
 					/* variable access */
+      case B_UNIFY_FIRSTVAR:
+      case B_UNIFY_VAR:
+	state->ARGP = varFrameP(state->frame, PC[0]);
+        state->adepth = 0;
+	if ( op == B_UNIFY_VAR )
+	  break;
+	/*FALLTHROUGH*/
       case B_FIRSTVAR:			/* reset uninitialised */
       case B_ARGFIRSTVAR:
       case A_FIRSTVAR_IS:
@@ -276,6 +283,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	break;
 
       { size_t index;			/* mark variable access */
+
 	case B_ARGVAR:
 	case A_VAR:
 	case B_VAR:	    index = *PC;		goto var_common;
@@ -321,8 +329,10 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  state->ARGP++;
 	  break;
 	case H_POP:
+	case B_POP:
 	  state->adepth--;
 	  break;
+	case B_UNIFY_EXIT:
 	case I_ENTER:
 	  assert(state->adepth==0);
 	  break;
@@ -487,7 +497,7 @@ mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD)
     { state.frame    = fr;
       state.unmarked = slotsInFrame(fr, PC);
       state.envtop   = argFrameP(fr, state.unmarked);
-      state.c0     = fr->clause->clause->codes;
+      state.c0       = fr->clause->clause->codes;
 
       DEBUG(2, Sdprintf("Walking code for [%d] %s from PC=%d\n",
 			levelFrame(fr), predicateName(fr->predicate),
