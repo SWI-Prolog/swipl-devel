@@ -1052,6 +1052,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	      case CA1_INTEGER:
 	      case CA1_JUMP:
 	      case CA1_VAR:
+	      case CA1_CHP:
 	      case CA1_AFUNC:
 		*bp++ = (intptr_t)getInt64(fd);
 		break;
@@ -1800,6 +1801,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 	case CA1_INTEGER:
 	case CA1_JUMP:
 	case CA1_VAR:
+	case CA1_CHP:
 	case CA1_AFUNC:
 	{ putNum(*bp++, fd);
 	  break;

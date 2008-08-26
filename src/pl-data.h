@@ -237,13 +237,13 @@ and while loading .wic files.  It comes at no price.
 #define canBind(w)	needsRef(w)
 #ifdef O_ATTVAR
 #define bindConst(p, c) if ( isVar(*p) ) \
-			{ *p = c; \
+			{ *p = (c); \
     			  Trail(p); \
 			} else \
-			{ assignAttVar(p, &c PASS_LD); \
+			{ assignAttVar(p, &(c) PASS_LD); \
 			}
 #else
-#define bindConst(p, c) { *p = c; \
+#define bindConst(p, c) { *p = (c); \
 			  Trail(p); \
 			}
 #endif

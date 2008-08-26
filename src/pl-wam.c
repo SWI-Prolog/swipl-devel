@@ -65,6 +65,7 @@ count(code c, Code PC)
   counting[c].times++;
   switch(info->argtype)
   { case CA1_VAR:
+    case CA1_CHP:
     { int v = (int)*PC;
       
       v -= ARGOFFSET/sizeof(word);

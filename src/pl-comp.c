@@ -3666,6 +3666,7 @@ unify_vmi(term_t t, Clause clause, Code bp)
     for(an=0; ats[an]; an++)
     { switch(ats[an])
       { case CA1_VAR:
+	case CA1_CHP:
 	{ int vn =  VARNUM(*bp++);
     
 	  PL_put_integer(av+an, vn);
@@ -3858,7 +3859,6 @@ very unattractive and we should abstract away from some details, such as
 the different integer sizes (inline, int, int64, mpz).  Other issues:
 
 	- Automatic variable balancing
-	- Computation of Prolog vars and size of stack-frame
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
  
 static const code_info *
@@ -3897,6 +3897,8 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 
     if ( (cinfo = lookup_vmi(name)) )
     { Output_0(ci, cinfo->code);
+      if ( cinfo->code == I_EXITFACT )
+	set(ci->clause, UNIT_CLAUSE);
 
       if ( arity == 0 )
       { assert(cinfo->arguments == 0);
@@ -3913,11 +3915,17 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 
 	  switch(ats[an])
 	  { case CA1_VAR:
-	    { int vn;
+	    case CA1_CHP:
+	    { int vn, i;
 
 	      if ( !PL_get_integer_ex(a, &vn) )
 		fail;
-	      Output_a(ci, VAROFFSET(vn));
+	      i = VAROFFSET(vn);
+	      Output_a(ci, i);
+	      if ( ats[an] == CA1_VAR && ci->clause->prolog_vars < i )
+		ci->clause->prolog_vars = i;
+	      if ( ci->clause->variables < i )
+		ci->clause->variables = i;
 	      break;
 	    }
 	    case CA1_INTEGER:
@@ -4057,12 +4065,14 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   ci.arity        = proc->definition->functor->arity;
   ci.argvars      = 0;
 
-  clause.flags      = 0;
-  clause.procedure  = proc;
-  clause.code_size  = 0;
-  clause.source_no  = clause.line_no = 0;
-  ci.clause	    = &clause;
-  ci.module	    = module;
+  clause.flags       = 0;
+  clause.procedure   = proc;
+  clause.code_size   = 0;
+  clause.source_no   = clause.line_no = 0;
+  clause.variables   = ci.arity;
+  clause.prolog_vars = ci.arity;
+  ci.clause	     = &clause;
+  ci.module	     = module;
   initBuffer(&ci.codes);
 
   if ( !vm_compile(A2, &ci) )

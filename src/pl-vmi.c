@@ -1614,7 +1614,7 @@ local-frame pointer is  *not*  reserved   in  clause->variables,  so the
 garbage collector won't see it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(C_IFTHEN, 1, (CA1_VAR))
+VMI(C_IFTHEN, 1, (CA1_CHP))
 { varFrame(FR, *PC++) = (word) BFR;
 
   NEXT_INSTRUCTION;
@@ -1628,13 +1628,13 @@ c,  which  would  otherwise  only  be    possible  to  distinguis  using
 look-ahead.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(C_NOT, 2, (CA1_VAR, CA1_JUMP))
+VMI(C_NOT, 2, (CA1_CHP,CA1_JUMP))
 { SEPERATE_VMI;
   VMI_GOTO(C_IFTHENELSE);
 }
 
 
-VMI(C_IFTHENELSE, 2, (CA1_VAR, CA1_JUMP))
+VMI(C_IFTHENELSE, 2, (CA1_CHP,CA1_JUMP))
 { varFrame(FR, *PC++) = (word) BFR; /* == C_IFTHEN */
 
   VMI_GOTO(C_OR);
@@ -1678,7 +1678,7 @@ BEGIN_SHAREDVARS
   LocalFrame fr;
   Choice ch;
 
-VMI(C_LCUT, 1, (CA1_VAR))
+VMI(C_LCUT, 1, (CA1_CHP))
 { och = (Choice) varFrame(FR, *PC);
   PC++;
 
@@ -1692,7 +1692,7 @@ VMI(C_LCUT, 1, (CA1_VAR))
   NEXT_INSTRUCTION;
 }
 
-VMI(C_CUT, 1, (CA1_VAR))
+VMI(C_CUT, 1, (CA1_CHP))
 { och = (Choice) varFrame(FR, *PC);
   PC++;					/* cannot be in macro! */
 c_cut:
@@ -1738,7 +1738,7 @@ END_SHAREDVARS
 C_SOFTIF: A *-> B ; C is translated to C_SOFIF <A> C_SOFTCUT <B> C_JMP
 end <C>. See pl-comp.c and C_SOFTCUT implementation for details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-VMI(C_SOFTIF, 2, (CA1_VAR, CA1_JUMP))
+VMI(C_SOFTIF, 2, (CA1_CHP,CA1_JUMP))
 { varFrame(FR, *PC++) = (word) lTop; /* see C_SOFTCUT */
 
   VMI_GOTO(C_OR);
@@ -1749,7 +1749,7 @@ VMI(C_SOFTIF, 2, (CA1_VAR, CA1_JUMP))
 C_SOFTCUT: Handle the commit-to of A *-> B; C. Simply invalidate the
 choicepoint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-VMI(C_SOFTCUT, 1, (CA1_VAR))
+VMI(C_SOFTCUT, 1, (CA1_CHP))
 { Choice ch = (Choice) varFrame(FR, *PC);
   Choice bfr = BFR;
 
