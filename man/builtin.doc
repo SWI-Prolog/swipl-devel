@@ -2059,7 +2059,7 @@ The hash-key does not rely on temporary information like addresses of
 atoms and may be assumed constant over different invocations and
 versions of SWI-Prolog.\footnote{Last change: version 5.6.53} The
 term_hash/2 predicate is cycle-safe.  Hashes for numbers differ
-between bit and little endian machines.
+between big and little endian machines.
 
     \predicate[det]{term_hash}{2}{+Term, +Depth, +Range, -HashKey}
 As term_hash/2, but only considers \arg{Term} to the specified
