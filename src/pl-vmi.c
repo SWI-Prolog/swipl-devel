@@ -818,7 +818,49 @@ VMI(B_UNIFY_EXIT, 0, ())
   CHECK_WAKEUP;				/* only for non-first-var */
   NEXT_INSTRUCTION;
 }
-#endif
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	B_UNIFY_[FV][FV] VAR1 VAR2
+Unify two variables.  F stands for a first-var; V for any other var
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(B_UNIFY_FF, 2, (CA1_VAR,CA1_VAR))
+{ Word v1 = varFrameP(FR, (int)*PC++);
+  Word v2 = varFrameP(FR, (int)*PC++);
+
+  setVar(*v1);
+  *v2 = makeRefL(v1);
+
+  NEXT_INSTRUCTION;
+}
+
+
+VMI(B_UNIFY_FV, 2, (CA1_VAR,CA1_VAR))
+{ Word v1 = varFrameP(FR, (int)*PC++);
+  Word v2 = varFrameP(FR, (int)*PC++);
+
+  *v1 = linkVal(v2);
+
+  NEXT_INSTRUCTION;
+}
+
+
+VMI(B_UNIFY_VV, 2, (CA1_VAR,CA1_VAR))
+{ Word v1 = varFrameP(FR, (int)*PC++);
+  Word v2 = varFrameP(FR, (int)*PC++);
+
+  if ( raw_unify_ptrs(v1, v2 PASS_LD) )
+  { CHECK_WAKEUP;
+    NEXT_INSTRUCTION;
+  }
+  if ( exception_term )
+    goto b_throw;
+
+  FRAME_FAILED;
+}
+
+#endif /*O_COMPILE_IS*/
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

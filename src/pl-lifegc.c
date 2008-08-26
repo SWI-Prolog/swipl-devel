@@ -147,6 +147,29 @@ mark_frame_var(walk_state *state, code v ARG_LD)
 
 
 static inline void
+clear_frame_var(walk_state *state, Code PC ARG_LD)
+{ if ( (state->flags & GCM_CLEAR) )
+  { LocalFrame fr = state->frame;
+    DEBUG(3, Sdprintf("Clear var %d at %d\n", 
+		      PC[0]-VAROFFSET(0), (PC-state->c0)-1));
+#ifdef O_SECURE
+    { Word vp = varFrameP(fr, PC[0]);
+
+      if ( !isVar(*vp & ~MARK_MASK) )
+      { Sdprintf("ERROR: [%ld] %s: Wrong clear of var %d, PC=%d\n",
+		 levelFrame(fr), predicateName(fr->predicate),
+		 PC[0]-VAROFFSET(0),
+		 (PC-state->c0)-1);
+      }
+    } 
+#else
+    setVar(varFrame(fr, PC[0]));
+#endif
+  }
+}
+
+
+static inline void
 mark_argp(walk_state *state ARG_LD)
 {
 #ifdef MARK_ALT_CLAUSES
@@ -264,24 +287,19 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case B_ARGFIRSTVAR:
       case A_FIRSTVAR_IS:
       case C_VAR:
-	if ( (state->flags & GCM_CLEAR) )
-	{ LocalFrame fr = state->frame;
-	  DEBUG(3, Sdprintf("Clear var %d at %d\n", 
-			    PC[0]-VAROFFSET(0), (PC-state->c0)-1));
-#ifdef O_SECURE
-	  { Word vp = varFrameP(fr, PC[0]);
-
-	    if ( !isVar(*vp & ~MARK_MASK) )
-	    { Sdprintf("ERROR: [%ld] %s: Wrong clear of var %d, PC=%d\n",
-		       levelFrame(fr), predicateName(fr->predicate),
-		       PC[0]-VAROFFSET(0),
-		       (PC-state->c0)-1);
-	    }
-	  } 
-#else
-	  setVar(varFrame(fr, PC[0]));
-#endif
-	}
+	clear_frame_var(state, PC PASS_LD);
+	break;
+      case B_UNIFY_FF:
+	clear_frame_var(state, PC+0 PASS_LD);
+	clear_frame_var(state, PC+1 PASS_LD);
+	break;
+      case B_UNIFY_FV:
+	clear_frame_var(state, PC+0 PASS_LD);
+	mark_frame_var(state, PC[1] PASS_LD);
+	break;
+      case B_UNIFY_VV:
+	mark_frame_var(state, PC[0] PASS_LD);
+        mark_frame_var(state, PC[1] PASS_LD);
 	break;
 
       { size_t index;			/* mark variable access */

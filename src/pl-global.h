@@ -43,10 +43,11 @@ that is related to a Prolog thread.
 typedef struct
 {
 #if VMCODE_IS_ADDRESS
-  char   *_dewam_table;			/* decoding table */
-  intptr_t	  _dewam_table_offset;		/* offset of 1st */
-  code    _wam_table[I_HIGHEST];	/* code --> address */
+  unsigned char   *_dewam_table;	/* decoding table */
+  intptr_t	  _dewam_table_offset;	/* offset of 1st */
   void  **_interpreter_jmp_table;	/* interpreters table */
+					/* must be last! (why?) */
+  code    _wam_table[I_HIGHEST];	/* code --> address */
 #else
   int	  struct_may_not_be_empty;	/* empty structure is illegal */
 #endif

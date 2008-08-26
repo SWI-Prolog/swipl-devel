@@ -124,7 +124,7 @@ initWamTable(void)
   dewam_table_offset = mincoded;
 
   assert(wam_table[C_NOT] != wam_table[C_IFTHENELSE]);
-  dewam_table = (char *)allocHeap(((maxcoded-dewam_table_offset) + 1) *
+  dewam_table = (unsigned char *)allocHeap(((maxcoded-dewam_table_offset) + 1) *
 				  sizeof(char));
   
   for(n = 0; n < I_HIGHEST; n++)
@@ -1757,19 +1757,44 @@ TBD:	* Allow for Term = Var
 
 static bool
 compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
-{ Word a1;
-  int index;
+{ Word a1, a2;
+  int i1, i2;
 
   a1 = argTermP(*arg, 0);
   deRef(a1);
   if ( isVar(*a1) )			/* Singleton = ?: no need to compile */
     succeed;
-  if ( (index = isIndexedVarTerm(*a1 PASS_LD)) >= 0 )
-  { int first = isFirstVar(ci->used_var, index);
+
+  a2 = argTermP(*arg, 1);
+  deRef(a2);
+  if ( isVar(*a2) )			/* ? = Singleton: no need to compile */
+    succeed;
+
+  i1 = isIndexedVarTerm(*a1 PASS_LD);
+  i2 = isIndexedVarTerm(*a2 PASS_LD);
+  
+  if ( i1 >=0 && i2 >= 0 )		/* unify two variables */
+  { int f1 = isFirstVar(ci->used_var, i1);
+    int f2 = isFirstVar(ci->used_var, i2);
+
+    if ( f1 && f2 )
+      Output_2(ci, B_UNIFY_FF, VAROFFSET(i1), VAROFFSET(i2));
+    else if ( f1 )
+      Output_2(ci, B_UNIFY_FV, VAROFFSET(i1), VAROFFSET(i2));
+    else if ( f2 )
+      Output_2(ci, B_UNIFY_FV, VAROFFSET(i2), VAROFFSET(i1));
+    else
+      Output_2(ci, B_UNIFY_VV, VAROFFSET(i1), VAROFFSET(i2));
+
+    succeed;
+  }
+
+  if ( i1 >= 0 )
+  { int first = isFirstVar(ci->used_var, i1);
     int where = (first ? A_BODY : A_HEAD|A_ARG);
 
-    Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(index));
-    compileArgument(argTermP(*arg, 1), where, ci PASS_LD);
+    Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(i1));
+    compileArgument(a2, where, ci PASS_LD);
     Output_0(ci, B_UNIFY_EXIT);
 
     succeed;
@@ -2766,6 +2791,12 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			      *ARGPinc() = makeVarRef(index);
 			    continue;
       }
+      case B_UNIFY_FF:
+      case B_UNIFY_FV:
+      case B_UNIFY_VV:
+			    *ARGPinc() = makeVarRef((int)*PC++);
+			    *ARGPinc() = makeVarRef((int)*PC++);
+			    goto b_unify_exit;
       case H_VOID:
       case H_ARGVOID:
       case B_VOID:
@@ -2812,7 +2843,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    nested--;
 			    continue;
 #ifdef O_COMPILE_IS
-      case B_UNIFY_EXIT:    build_term(FUNCTOR_equals2, di PASS_LD);
+      case B_UNIFY_EXIT:    
+			  b_unify_exit:
+			    build_term(FUNCTOR_equals2, di PASS_LD);
 			    pushed++;
 			    continue;
 #endif
