@@ -562,19 +562,22 @@ initBuildIns(void)
   REG_PLIST(win);
 #endif
 
-  PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1, m);
-  PROCEDURE_block3	     = lookupProcedure(FUNCTOR_block3, 		  m);
-  PROCEDURE_catch3           = lookupProcedure(FUNCTOR_catch3, 		  m);
-  PROCEDURE_true0            = lookupProcedure(FUNCTOR_true0, 		  m);
-  PROCEDURE_fail0            = lookupProcedure(FUNCTOR_fail0, 		  m);
-  PROCEDURE_print_message2   = lookupProcedure(FUNCTOR_print_message2, 	  m);
-  PROCEDURE_dcall1	     = lookupProcedure(FUNCTOR_dcall1,		  m);
-  PROCEDURE_setup_and_call_cleanup4
-		    = lookupProcedure(FUNCTOR_setup_and_call_cleanup4,	  m); 
-  PROCEDURE_dthread_init0    = lookupProcedure(FUNCTOR_dthread_init0,	  m);
-  PROCEDURE_dc_call_prolog   = lookupProcedure(FUNCTOR_dc_call_prolog0,   m);
+#define LOOKUPPROC(name) \
+	GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m);
+
+  LOOKUPPROC(dgarbage_collect1);
+  LOOKUPPROC(block3);
+  LOOKUPPROC(catch3);
+  LOOKUPPROC(true0);
+  LOOKUPPROC(fail0);
+  LOOKUPPROC(equals2);
+  LOOKUPPROC(print_message2);
+  LOOKUPPROC(dcall1);
+  LOOKUPPROC(setup_and_call_cleanup4);
+  LOOKUPPROC(dthread_init0);
+  LOOKUPPROC(dc_call_prolog0);
 #ifdef O_ATTVAR
-  PROCEDURE_dwakeup1	     = lookupProcedure(FUNCTOR_dwakeup1,	  m);
+  LOOKUPPROC(dwakeup1);
 #endif
 #ifdef O_CALL_RESIDUE
   PROCEDURE_call_residue_vars2  = 

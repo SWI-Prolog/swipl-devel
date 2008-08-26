@@ -1983,7 +1983,6 @@ typedef struct
 		*         PREDICATES            *
 		*********************************/
 
-#define PROCEDURE_garbage_collect0	(GD->procedures.garbage_collect0)
 #define PROCEDURE_block3		(GD->procedures.block3)
 #define PROCEDURE_catch3		(GD->procedures.catch3)
 #define PROCEDURE_true0			(GD->procedures.true0)

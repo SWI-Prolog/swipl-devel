@@ -2307,7 +2307,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 
 #ifdef O_PROFILE
   if ( LD->profile.active )
-    prof_node = profCall(PROCEDURE_garbage_collect0->definition PASS_LD);
+    prof_node = profCall(GD->procedures.dgarbage_collect1->definition PASS_LD);
 #endif
 
 #if O_SECURE
