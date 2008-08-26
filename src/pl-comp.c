@@ -483,9 +483,10 @@ Variable table operations.
 forwards int	compileBody(Word, code, compileInfo * ARG_LD);
 forwards int	compileArgument(Word, int, compileInfo * ARG_LD);
 forwards int	compileSubClause(Word, code, compileInfo *);
-forwards bool	isFirstVar(VarTable vt, int n);
+forwards bool	isFirstVarSet(VarTable vt, int n);
 forwards int	balanceVars(VarTable, VarTable, compileInfo *);
 forwards void	orVars(VarTable, VarTable);
+forwards int	compileListFF(word arg, compileInfo *ci ARG_LD);
 #if O_COMPILE_ARITH
 forwards int	compileArith(Word, compileInfo * ARG_LD);
 forwards bool	compileArithArgument(Word, compileInfo * ARG_LD);
@@ -515,7 +516,7 @@ clearVarTable(compileInfo *ci)
 }
 
 static bool
-isFirstVar(VarTable vt, int n)
+isFirstVarSet(VarTable vt, int n)
 { int m  = 1 << (n % BITSPERINT);
   int *p = &vt->entry[n / BITSPERINT];
   
@@ -523,6 +524,15 @@ isFirstVar(VarTable vt, int n)
     return FALSE;
   *p |= m;
   return TRUE;
+}
+
+
+static bool
+isFirstVar(VarTable vt, int n)
+{ int m  = 1 << (n % BITSPERINT);
+  int *p = &vt->entry[n / BITSPERINT];
+  
+  return (*p & m) == 0;
 }
 
 
@@ -580,7 +590,7 @@ last_arg:
 
   deRef(t);
   if ( (index = isIndexedVarTerm(*t PASS_LD)) >= 0 )
-  { isFirstVar(vt, index);
+  { isFirstVarSet(vt, index);
     return;
   }
 
@@ -626,6 +636,25 @@ resetVars(ARG1_LD)
     { *vd->address = vd->saved;
     }
   }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+True if p points to a first-var allocated at *i.  P is derefereced.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+isFirstVarP(Word p, compileInfo *ci, int *i ARG_LD)
+{ int idx;
+
+  deRef(p);
+  if ( (idx=isIndexedVarTerm(*p PASS_LD)) >= 0 &&
+       isFirstVar(ci->used_var, idx) )
+  { *i = idx;
+    succeed;
+  }
+
+  fail;
 }
 
 
@@ -1244,7 +1273,7 @@ isvar:
       return NONVOID;
     }
 
-    first = isFirstVar(ci->used_var, index);
+    first = isFirstVarSet(ci->used_var, index);
 
     if ( index < ci->arity )		/* variable on its own in the head */
     { if ( where & A_BODY )
@@ -1323,9 +1352,12 @@ isvar:
     { code c;
 
       if ( (where & A_HEAD) )		/* index in array! */
+      { if ( compileListFF(*arg, ci PASS_LD) )
+	  return NONVOID;
 	c = (isright ? H_RLIST : H_LIST);
-      else
-	c = (isright ? B_RLIST : B_LIST);
+      } else
+      { c = (isright ? B_RLIST : B_LIST);
+      }
 
       Output_0(ci, c);
     } else
@@ -1369,6 +1401,23 @@ isvar:
 
     return NONVOID;
   }
+}
+
+
+static int
+compileListFF(word arg, compileInfo *ci ARG_LD)
+{ Word p = argTermP(arg, 0);
+  int i1, i2;
+
+  if ( isFirstVarP(p+0, ci, &i1 PASS_LD) &&
+       isFirstVarP(p+1, ci, &i2 PASS_LD) )
+  { isFirstVarSet(ci->used_var, i1);
+    isFirstVarSet(ci->used_var, i2);
+    Output_2(ci, H_LIST_FF, VAROFFSET(i1), VAROFFSET(i2));
+    succeed;
+  }
+
+  fail;
 }
 
 
@@ -1664,7 +1713,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
   }
 					/* variable */
   if ( (index = isIndexedVarTerm(*arg PASS_LD)) >= 0 )
-  { int first = isFirstVar(ci->used_var, index);
+  { int first = isFirstVarSet(ci->used_var, index);
 
     if ( index < ci->arity )		/* shared in the head */
     { if ( index < 3 )
@@ -1774,8 +1823,8 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
   i2 = isIndexedVarTerm(*a2 PASS_LD);
   
   if ( i1 >=0 && i2 >= 0 )		/* unify two variables */
-  { int f1 = isFirstVar(ci->used_var, i1);
-    int f2 = isFirstVar(ci->used_var, i2);
+  { int f1 = isFirstVarSet(ci->used_var, i1);
+    int f2 = isFirstVarSet(ci->used_var, i2);
 
     if ( f1 && f2 )
       Output_2(ci, B_UNIFY_FF, VAROFFSET(i1), VAROFFSET(i2));
@@ -1790,7 +1839,7 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
   }
 
   if ( i1 >= 0 )
-  { int first = isFirstVar(ci->used_var, i1);
+  { int first = isFirstVarSet(ci->used_var, i1);
     int where = (first ? A_BODY : A_HEAD|A_ARG);
 
     Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(i1));
@@ -2216,6 +2265,7 @@ arg1Key(Clause clause, int constonly, word *key)
       case H_NIL:
 	*key = ATOM_nil;
         succeed;
+      case H_LIST_FF:
       case H_LIST:
       case H_RLIST:
 	*key = FUNCTOR_dot2;
@@ -2564,6 +2614,18 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  if ( !pushed )
 	    argn++;
 	  continue;
+      case H_LIST_FF:
+      { Word p;
+
+	TRY(PL_unify_functor(argp, FUNCTOR_dot2));
+	p = valTermRef(argp);
+	deRef(p);
+	p = argTermP(*p, 0);
+        TRY(unifyVar(p+0, di->variables, *PC++ PASS_LD) );
+        TRY(unifyVar(p+1, di->variables, *PC++ PASS_LD) );
+	NEXTARG;
+	continue;
+      }
       case I_EXITCATCH:
       case I_EXITFACT:
       case I_EXIT:			/* fact */

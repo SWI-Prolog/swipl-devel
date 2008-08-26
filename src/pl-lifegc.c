@@ -289,6 +289,9 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case C_VAR:
 	clear_frame_var(state, PC PASS_LD);
 	break;
+      case H_LIST_FF:
+	mark_argp(state PASS_LD);
+        /*FALLTHROUGH*/
       case B_UNIFY_FF:
 	clear_frame_var(state, PC+0 PASS_LD);
 	clear_frame_var(state, PC+1 PASS_LD);

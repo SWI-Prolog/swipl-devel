@@ -593,6 +593,55 @@ VMI(H_POP, 0, ())
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+H_LIST_FF: [Var1|Var2] in the head where both   Var1 and Var2 appear for
+the  first  time.  This  appears    quite  commonly  in  list-processing
+predicates:
+
+	pred([], ...).
+	pred([H|T], ...) :-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(H_LIST_FF, 2, (CA1_VAR,CA1_VAR))
+{ Word p;
+
+  if ( umode == uwrite )
+  { p = ARGP++;
+    goto write;
+  } else
+  { deRef2(ARGP, p);
+    ARGP++;
+
+    if ( isList(*p) )
+    { p = argTermP(*p, 0);
+      varFrame(FR, *PC++) = (needsRef(*p) ? makeRef(p) : *p);
+      p++;
+      varFrame(FR, *PC++) = (needsRef(*p) ? makeRef(p) : *p);
+    } else if ( isVar(*p) )
+    { word c;
+      Word ap;
+
+    write:
+      requireStack(global, 3*sizeof(word));
+      ap = gTop;
+      gTop = ap+3;
+      c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+      *ap++ = FUNCTOR_dot2;
+      setVar(*ap); varFrame(FR, *PC++) = makeRefG(ap); ap++;
+      setVar(*ap); varFrame(FR, *PC++) = makeRefG(ap);
+      if ( umode == uwrite )
+	*p = c;
+      else
+	bindConst(p, c);
+    } else
+    { CLAUSE_FAILED;
+    }
+  }
+
+  NEXT_INSTRUCTION;
+} 
+
+
 		 /*******************************
 		 *	 BODY UNIFICATION	*
 		 *******************************/
