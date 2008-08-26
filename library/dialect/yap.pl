@@ -34,7 +34,8 @@
 	    depth_bound_call/2,		% :Goal, +Limit
 	    system/1,			% +Command
 	    exists/1,			% +File
-	    assert_static/1		% :Term
+	    assert_static/1,		% :Term
+	    atomic_concat/3		% +Atomic, +Atomic, -Atom
 	  ]).
 
 /** <module> YAP Compatibility module
@@ -199,3 +200,12 @@ exists(File) :-
 
 assert_static(Term) :-
 	assert(Term).
+
+
+%%	atomic_concat(+Prefix, +Suffix, -Atom) is det.
+%
+%	Append to atomic values.  SWI-Prolog's built-in atom_concat/3
+%	already overloads this behaviour.
+
+atomic_concat(Prefix, Suffix, Atom) :-
+	atom_concat(Prefix, Suffix, Atom).
