@@ -878,6 +878,17 @@ VMI(B_UNIFY_FF, 2, (CA1_VAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
+#ifdef O_DEBUGGER
+  if ( debugstatus.debugging )
+  { setVar(*v1);
+    setVar(*v2);
+    ARGP = argFrameP(lTop, 0);
+    *ARGP++ = linkVal(v1);
+    *ARGP++ = linkVal(v2);
+    goto debug_equals2;
+  }
+#endif  
+
   setVar(*v1);
   *v2 = makeRefL(v1);
 
@@ -889,6 +900,16 @@ VMI(B_UNIFY_FV, 2, (CA1_VAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
+#ifdef O_DEBUGGER
+  if ( debugstatus.debugging )
+  { setVar(*v1);
+    ARGP = argFrameP(lTop, 0);
+    *ARGP++ = linkVal(v1);
+    *ARGP++ = linkVal(v2);
+    goto debug_equals2;
+  }
+#endif  
+
   *v1 = linkVal(v2);
 
   NEXT_INSTRUCTION;
@@ -898,6 +919,21 @@ VMI(B_UNIFY_FV, 2, (CA1_VAR,CA1_VAR))
 VMI(B_UNIFY_VV, 2, (CA1_VAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
+
+#ifdef O_DEBUGGER
+  if ( debugstatus.debugging )
+  { ARGP = argFrameP(lTop, 0);
+    *ARGP++ = linkVal(v1);
+    *ARGP++ = linkVal(v2);
+  debug_equals2:
+    NFR = lTop;
+    DEF = getProcDefinedDefinition(&NFR, PC,
+				   GD->procedures.equals2 PASS_LD);
+    NFR->context = MODULE_system;
+    NFR->flags = FR->flags;
+    goto normal_call;
+  }
+#endif
 
   if ( raw_unify_ptrs(v1, v2 PASS_LD) )
   { CHECK_WAKEUP;
@@ -916,6 +952,20 @@ B_EQ_VV: translation of	Var1 == Var2
 VMI(B_EQ_VV, 2, (CA1_VAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
+
+#ifdef O_DEBUGGER
+  if ( debugstatus.debugging )
+  { ARGP = argFrameP(lTop, 0);
+    *ARGP++ = linkVal(v1);
+    *ARGP++ = linkVal(v2);
+    NFR = lTop;
+    DEF = getProcDefinedDefinition(&NFR, PC,
+				   GD->procedures.strict_equal2 PASS_LD);
+    NFR->context = MODULE_system;
+    NFR->flags = FR->flags;
+    goto normal_call;
+  }
+#endif
 
   if ( compareStandard(v1, v2, TRUE PASS_LD) == 0 )
     NEXT_INSTRUCTION;

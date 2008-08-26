@@ -1492,7 +1492,7 @@ will use the meta-call mechanism for all these types of calls.
 #endif /* O_COMPILE_ARITH */
 
 #ifdef O_COMPILE_IS
-    if ( !ci->islocal && trueFeature(OPTIMISE_FEATURE) )
+    if ( !ci->islocal )
     { if ( functor == FUNCTOR_equals2 &&	/* =/2 */
 	   compileBodyUnify(arg, call, ci PASS_LD) )
 	succeed;

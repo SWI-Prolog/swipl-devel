@@ -229,6 +229,7 @@ typedef struct
     Procedure	true0;
     Procedure	fail0;
     Procedure	equals2;		/* =/2 */
+    Procedure	strict_equal2;		/* ==/2 */
     Procedure	event_hook1;
     Procedure	exception_hook4;
     Procedure	print_message2;
