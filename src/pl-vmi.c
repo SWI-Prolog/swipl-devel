@@ -507,11 +507,11 @@ VMI(H_RFUNCTOR, 1, (CA1_FUNC))
 #endif
 
     ap = gTop;
+    gTop += 1+arity;
     c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
     bindConst(ARGP, c);
     *ap++ = f;
     ARGP = ap;
-    gTop = ap+arity;
     umode = uwrite;
     NEXT_INSTRUCTION;
   }
@@ -778,18 +778,10 @@ VMI(B_UNIFY_VAR, 1, CA1_VAR)
 }
 
 
-VMI(B_UNIFY_FIRSTVAR, 1, CA1_VAR)
-{ int n = (int)*PC++;
-  
-  ARGP = varFrameP(FR, n);
-  umode = uwrite;
-  NEXT_INSTRUCTION;
-}
-
-
 VMI(B_UNIFY_EXIT, 0, 0)
 { ARGP = argFrameP(lTop, 0);
 
+  CHECK_WAKEUP;				/* only for non-first-var */
   NEXT_INSTRUCTION;
 }
 #endif
@@ -1358,7 +1350,6 @@ VMI(I_EXITFACT, 0, ())
   
 	exit = encode(I_EXIT);
 	PC = &exit;
-	ARGP = argFrameP(lTop, 0);	/* needed? */
 	goto wakeup;
       }
     }
