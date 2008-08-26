@@ -756,6 +756,45 @@ VMI(B_VAR, 1, (CA1_VAR))
 }
 
 
+#ifdef O_COMPILE_IS
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+B_UNIFY_VAR, B_UNIFY_EXIT: Unification in the body. We compile A = Term
+into
+
+	B_UNIFY_VAR <A>
+	<head unify instructions for Term>
+	B_UNIFY_EXIT
+
+TBD: B_UNIFY_CONST <var>, <const>
+     B_UNIFY_VAR <var1>, <var2>
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(B_UNIFY_VAR, 1, CA1_VAR)
+{ int n = (int)*PC++;
+  
+  ARGP = varFrameP(FR, n);
+  umode = uread;			/* needed? */
+  NEXT_INSTRUCTION;
+}
+
+
+VMI(B_UNIFY_FIRSTVAR, 1, CA1_VAR)
+{ int n = (int)*PC++;
+  
+  ARGP = varFrameP(FR, n);
+  umode = uwrite;
+  NEXT_INSTRUCTION;
+}
+
+
+VMI(B_UNIFY_EXIT, 0, 0)
+{ ARGP = argFrameP(lTop, 0);
+
+  NEXT_INSTRUCTION;
+}
+#endif
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 B_ARGFIRSTVAR: A variable in the body nested  in a term, encountered for
 the first time. We now know both   *ARGP and the variable are variables.

@@ -93,6 +93,8 @@ handy for it someone wants to add a data type to the system.
       has been taken out.
   O_COMPILE_ARITH
       Include arithmetic compiler (compiles is/2, >/2, etc. into WAM).
+  O_COMPILE_IS
+      Compile Var = Value in the body.
   O_PROLOG_FUNCTIONS
       Include evaluable Prolog functions into the arithmetic module.
   O_BLOCK
@@ -133,6 +135,7 @@ handy for it someone wants to add a data type to the system.
 #define O_COMPILE_OR		1
 #define O_SOFTCUT		1
 #define O_COMPILE_ARITH		1
+#define O_COMPILE_IS		1
 #define O_STRING		1
 #define O_PROLOG_FUNCTIONS	1
 #define O_BLOCK			1

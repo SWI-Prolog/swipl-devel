@@ -490,6 +490,9 @@ forwards void	orVars(VarTable, VarTable);
 forwards int	compileArith(Word, compileInfo * ARG_LD);
 forwards bool	compileArithArgument(Word, compileInfo * ARG_LD);
 #endif
+#if O_COMPILE_IS
+forwards bool	compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD);
+#endif
 
 static inline int
 isIndexedVarTerm(word w ARG_LD)
@@ -1438,6 +1441,15 @@ will use the meta-call mechanism for all these types of calls.
       return compileArith(arg, ci PASS_LD);
 #endif /* O_COMPILE_ARITH */
 
+#ifdef O_COMPILE_IS
+    if ( !ci->islocal &&
+	 functor == FUNCTOR_equals2 &&	/* =/2 */
+	 trueFeature(OPTIMISE_FEATURE) )
+    { if ( compileBodyUnify(arg, call, ci PASS_LD) )
+	succeed;			/* failure: use general code */
+    }
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Term, not a variable and not a module   call. First of all, we check for
 `inline calls'. This refers to a  light-weight calling mechanism applied
@@ -1736,6 +1748,36 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
   }
 }
 #endif /* O_COMPILE_ARITH */
+
+
+#ifdef O_COMPILE_IS
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+TBD:	* Allow for Term = Var
+	* Deal with B_VAR0..B_VAR2
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
+{ Word a1;
+  int index;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+  if ( isVar(*a1) )			/* Singleton = ?: no need to compile */
+    succeed;
+  if ( (index = isIndexedVarTerm(*a1 PASS_LD)) >= 0 )
+  { int first = isFirstVar(ci->used_var, index);
+
+    Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(index));
+    compileArgument(argTermP(*arg, 1), A_HEAD, ci PASS_LD);
+    Output_0(ci, B_UNIFY_EXIT);
+
+    succeed;
+  }
+
+  fail;
+}
+#endif
 
 
 		 /*******************************
@@ -2625,7 +2667,7 @@ Unfortunately it also has some serious disadvantages:
     bottom-up.
 
 In the current implementation the head is decompiled in the  unification
-style  and the head is decompiled using a stack machine.  This takes the
+style  and the body is decompiled using a stack machine.  This takes the
 best of both approaches: the head is not in reverse polish notation  and
 is  not  unlikely  to be instantiated (retract/1), while it is very rare
 that clause/retract are used with instantiated body.
