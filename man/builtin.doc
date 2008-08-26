@@ -6379,24 +6379,24 @@ loop :-
 The prolog top level loop is written this way, reclaiming memory
 resources after every user query.
 
-    \predicate{stack_parameter}{4}{+Stack, +Key, -Old, +New}
-Query/set a parameter for the runtime stacks.  \arg{Stack} is one
-of \const{local}, \const{global}, \const{trail} or \const{argument}.
-The table below describes the \arg{Key}/\arg{Value} pairs.  Old is first
-unified with the current value.
+    \predicate{set_prolog_stack}{3}{+Stack, +Key, +Value}
+Set a parameter for a runtime stack. \arg{Stack} is one of
+\const{local}, \const{global}, \const{trail} or \const{argument}. The
+table below describes the \arg{Key}/\arg{Value} pairs.
 
-\begin{center}
-\begin{tabular}{|l|l|}
-\hline
-\const{limit}       & Maximum size of the stack in bytes \\
-\const{min_free}    & Minimum free space at entry of foreign predicate \\
-\hline
-\end{tabular}
-\end{center}
+\begin{description}
+    \termitem{low}{}
+Do not perform GC below this amount (bytes).
+    \termitem{factor}{}
+Run next GC if memory exceeds $max(low,checked) \times factor$.
+    \termitem{min_free}{}
+Enlarge stack if free memory is below this value (bytes). This option is
+only provided if the system is compiled to support the stack-shifter;
+otherwise it is silently ignored.
+\end{description}
 
-This predicate is currently only available on versions that use the
-stack-shifter to enlarge the runtime stacks when necessary.  It's
-definition is subject to change.
+Not all flags have impact for all stacks and the current implementation
+lacks proper checking for sensible values.  Use with extreme care.
 \end{description}
 
 

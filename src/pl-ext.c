@@ -523,6 +523,7 @@ DECL_PLIST(file);
 DECL_PLIST(btree);
 DECL_PLIST(ctype);
 DECL_PLIST(tai);
+DECL_PLIST(setup);
 DECL_PLIST(gc);
 DECL_PLIST(proc);
 DECL_PLIST(write);
@@ -549,6 +550,7 @@ initBuildIns(void)
   REG_PLIST(btree);
   REG_PLIST(ctype);
   REG_PLIST(tai);
+  REG_PLIST(setup);
   REG_PLIST(gc);
   REG_PLIST(proc);
   REG_PLIST(write);

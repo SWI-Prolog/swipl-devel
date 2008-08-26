@@ -1662,39 +1662,6 @@ why does IBM bring computers on the marked that are 10 years out-of-date
 at the moment of announcement?).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_stack_parameter(term_t name, term_t key, term_t old, term_t new)
-{ atom_t a, k;
-  Stack stack = NULL;
-  intptr_t *value = NULL;
-
-  if ( PL_get_atom(name, &a) )
-  { if ( a == ATOM_local )
-      stack = (Stack) &LD->stacks.local;
-    else if ( a == ATOM_global )
-      stack = (Stack) &LD->stacks.global;
-    else if ( a == ATOM_trail )
-      stack = (Stack) &LD->stacks.trail;
-    else if ( a == ATOM_argument )
-      stack = (Stack) &LD->stacks.argument;
-  }
-  if ( !stack )
-    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stack, name);
-
-  if ( PL_get_atom(key, &k) )
-  { if ( k == ATOM_min_free )
-      value = &stack->minfree;
-  }
-  if ( !value )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stack_parameter, key);
-
-  if ( !PL_unify_int64(old, *value) ||
-       !PL_get_intptr_ex(new, value) )
-    fail;
-
-  succeed;
-}
-
 
 static void
 init_stack(Stack s, char *name, intptr_t size, intptr_t limit, intptr_t minfree)
@@ -1837,11 +1804,6 @@ word
 pl_trim_stacks()
 { trimStacks(PASS_LD1);
 
-#ifdef O_DYNAMIC_STACKS
-  gcPolicy((Stack) &LD->stacks.global, GC_FAST_POLICY);
-  gcPolicy((Stack) &LD->stacks.trail,  GC_FAST_POLICY);
-#endif
-
   succeed;
 }
 
@@ -1883,3 +1845,60 @@ freeLocalData(PL_local_data_t *ld)
   if ( ld->arith.stack.base )
     PL_free(ld->arith.stack.base);
 }
+
+
+
+		 /*******************************
+		 *	     PREDICATES		*
+		 *******************************/
+
+static
+PRED_IMPL("set_prolog_stack", 3, set_prolog_stack, 0)
+{ atom_t a, k;
+  Stack stack = NULL;
+
+  term_t name  = A1;
+  term_t prop  = A2;
+  term_t value = A3;
+
+  if ( PL_get_atom(name, &a) )
+  { if ( a == ATOM_local )
+      stack = (Stack) &LD->stacks.local;
+    else if ( a == ATOM_global )
+      stack = (Stack) &LD->stacks.global;
+    else if ( a == ATOM_trail )
+      stack = (Stack) &LD->stacks.trail;
+    else if ( a == ATOM_argument )
+      stack = (Stack) &LD->stacks.argument;
+  }
+  if ( !stack )
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stack, name);
+
+  if ( PL_get_atom_ex(prop, &k) )
+  { if ( k == ATOM_low )
+      return PL_get_intptr_ex(value, &stack->small);
+    if ( k == ATOM_factor )
+      return PL_get_integer_ex(value, &stack->factor);
+    if ( k == ATOM_min_free )
+    {
+#ifdef O_SHIFT_STACKS
+      return PL_get_intptr_ex(value, &stack->minfree);
+#else
+      succeed;
+#endif
+    }
+
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stack_parameter, prop);
+  }
+
+  fail;
+}
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(setup)
+  PRED_DEF("set_prolog_stack", 3, set_prolog_stack, 0)
+EndPredDefs

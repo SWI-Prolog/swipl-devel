@@ -492,6 +492,7 @@ suggest predicates from a keyword.
 \predicatesummary{set_output}{1}{Set current output stream from a stream}
 \predicatesummary{set_prolog_IO}{3}{Prepare streams for interactive session}
 \predicatesummary{set_prolog_flag}{2}{Define a system feature}
+\predicatesummary{set_prolog_stack}{3}{Modify stack characteristics}
 \predicatesummary{set_stream}{2}{Set stream attribute}
 \predicatesummary{set_stream_position}{2}{Seek stream to position}
 \predicatesummary{set_tty}{2}{Set `tty' stream}
@@ -520,7 +521,6 @@ suggest predicates from a keyword.
 \predicatesummary{source_file}{2}{Obtain source file of predicate}
 \predicatesummary{source_location}{2}{Location of last read term}
 \predicatesummary{spy}{1}{Force tracer on specified predicate}
-\predicatesummary{stack_parameter}{4}{Some systems: Query/Set runtime stack parameter}
 \predicatesummary{stamp_date_time}{3}{Convert time-stamp to date structure}
 \predicatesummary{statistics}{0}{Show execution statistics}
 \predicatesummary{statistics}{2}{Obtain collected statistics}
