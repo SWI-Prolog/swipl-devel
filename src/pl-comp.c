@@ -1804,7 +1804,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 
 #ifdef O_COMPILE_IS
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TBD:	* Allow for Term = Var
+Compile unifications (=/2) in the body into inline instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -1841,18 +1841,25 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
     succeed;
   }
 
-  if ( i1 >= 0 )
-  { int first = isFirstVarSet(ci->used_var, i1);
-    int where = (first ? A_BODY : A_HEAD|A_ARG);
+  if ( i1 >= 0 )			/* Var = Term */
+  { int first, where;
 
+  unify_term:
+    first = isFirstVarSet(ci->used_var, i1);
+    where = (first ? A_BODY : A_HEAD|A_ARG);
     Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(i1));
     compileArgument(a2, where, ci PASS_LD);
     Output_0(ci, B_UNIFY_EXIT);
 
     succeed;
   }
+  if ( i2 >= 0 )			/* (Term = Var), translated as (Var = Term)! */
+  { i1 = i2;
+    a2 = a1;
+    goto unify_term;
+  }
 
-  fail;
+  fail;					/* Term = Term */
 }
 
 
@@ -1881,7 +1888,7 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
   i1 = isIndexedVarTerm(*a1 PASS_LD);
   i2 = isIndexedVarTerm(*a2 PASS_LD);
   
-  if ( i1 >=0 && i2 >= 0 )		/* unify two variables */
+  if ( i1 >=0 && i2 >= 0 )		/* Var1 == Var2 */
   { int f1 = isFirstVar(ci->used_var, i1);
     int f2 = isFirstVar(ci->used_var, i2);
 
@@ -1897,6 +1904,23 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
 
     succeed;
   }
+
+#if 0
+  if ( i1 >= 0 && isConst(*a2) )	/* Var == const */
+  { int f1 = isFirstVar(ci->used_var, i1);
+
+    if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
+    Output_2(ci, B_EQ_VC, VAROFFSET(i1), *a2);
+    succeed;
+  }
+  if ( i2 >= 0 && isConst(*a1) )	/* const == Var */
+  { int f2 = isFirstVar(ci->used_var, i2);
+
+    if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
+    Output_2(ci, B_EQ_VC, VAROFFSET(i2), *a1);
+    succeed;
+  }
+#endif
 
   fail;
 }
