@@ -774,13 +774,13 @@ TBD: B_UNIFY_CONST <var>, <const>
      B_UNIFY_VAR <var1>, <var2>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_UNIFY_FIRSTVAR, 1, CA1_VAR)
+VMI(B_UNIFY_FIRSTVAR, 1, (CA1_VAR))
 { SEPERATE_VMI;
   VMI_GOTO(B_UNIFY_VAR);
 }
 
 
-VMI(B_UNIFY_VAR, 1, CA1_VAR)
+VMI(B_UNIFY_VAR, 1, (CA1_VAR))
 { ARGP = varFrameP(FR, (int)*PC++);
   
 #if O_DEBUGGER
@@ -802,13 +802,13 @@ VMI(B_UNIFY_VAR, 1, CA1_VAR)
 }
 
 
-VMI(B_UNIFY_EXIT, 0, 0)
+VMI(B_UNIFY_EXIT, 0, ())
 { ARGP = argFrameP(lTop, 0);
 
 #if O_DEBUGGER
   if ( debugstatus.debugging )
   { NFR = lTop;
-    DEF = getProcDefinedDefinition(lTop, PC, GD->procedures.equals2 PASS_LD);
+    DEF = getProcDefinedDefinition(&FR, PC, GD->procedures.equals2 PASS_LD);
     NFR->context = MODULE_system;
     NFR->flags = FR->flags;
     goto normal_call;
