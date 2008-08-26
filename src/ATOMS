@@ -496,7 +496,7 @@ A stream_option		"stream_option"
 A stream_or_alias	"stream_or_alias"
 A stream_position	"$stream_position"
 A stream_property	"stream_property"
-A strick_equal		"=="
+A strict_equal		"=="
 A string		"string"
 A string_position	"string_position"
 A subterm_positions	"subterm_positions"
@@ -802,3 +802,4 @@ F warning		3
 F xor			2
 F xpceref		1
 F dc_call_prolog	0
+F strict_equal		2

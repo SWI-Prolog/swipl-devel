@@ -493,6 +493,7 @@ forwards bool	compileArithArgument(Word, compileInfo * ARG_LD);
 #endif
 #if O_COMPILE_IS
 forwards bool	compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD);
+forwards bool	compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD);
 #endif
 
 static inline int
@@ -1491,11 +1492,13 @@ will use the meta-call mechanism for all these types of calls.
 #endif /* O_COMPILE_ARITH */
 
 #ifdef O_COMPILE_IS
-    if ( !ci->islocal &&
-	 functor == FUNCTOR_equals2 &&	/* =/2 */
-	 trueFeature(OPTIMISE_FEATURE) )
-    { if ( compileBodyUnify(arg, call, ci PASS_LD) )
-	succeed;			/* failure: use general code */
+    if ( !ci->islocal && trueFeature(OPTIMISE_FEATURE) )
+    { if ( functor == FUNCTOR_equals2 &&	/* =/2 */
+	   compileBodyUnify(arg, call, ci PASS_LD) )
+	succeed;
+      if ( functor == FUNCTOR_strict_equal2 &&	/* ==/2 */
+	   compileBodyEQ(arg, call, ci PASS_LD) )
+	succeed;
     }
 #endif
 
@@ -1851,7 +1854,53 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
 
   fail;
 }
-#endif
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Compile ==/2. Note that if either  side   is  a  firstvar, the test will
+always fail. When doing optimized compilation we simply generate fail/0.
+otherwise we generate a balancing instruction and the normal equivalence
+test.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
+{ Word a1, a2;
+  int i1, i2;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+  if ( isVar(*a1) )			/* Singleton = ?: no need to compile */
+    succeed;
+
+  a2 = argTermP(*arg, 1);
+  deRef(a2);
+  if ( isVar(*a2) )			/* ? = Singleton: no need to compile */
+    succeed;
+
+  i1 = isIndexedVarTerm(*a1 PASS_LD);
+  i2 = isIndexedVarTerm(*a2 PASS_LD);
+  
+  if ( i1 >=0 && i2 >= 0 )		/* unify two variables */
+  { int f1 = isFirstVar(ci->used_var, i1);
+    int f2 = isFirstVar(ci->used_var, i2);
+
+    if ( f1 || f2 )
+    { if ( trueFeature(OPTIMISE_FEATURE) )
+	Output_0(ci, I_FAIL);
+    } else
+    { if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
+      if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
+    }
+
+    Output_2(ci, B_EQ_VV, VAROFFSET(i1), VAROFFSET(i2));
+
+    succeed;
+  }
+
+  fail;
+}
+#endif /*O_COMPILE_IS*/
 
 
 		 /*******************************
@@ -2859,6 +2908,12 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    *ARGPinc() = makeVarRef((int)*PC++);
 			    *ARGPinc() = makeVarRef((int)*PC++);
 			    goto b_unify_exit;
+      case B_EQ_VV:
+			    *ARGPinc() = makeVarRef((int)*PC++);
+			    *ARGPinc() = makeVarRef((int)*PC++);
+			    build_term(FUNCTOR_strict_equal2, di PASS_LD);
+			    pushed++;
+			    continue;
       case H_VOID:
       case H_ARGVOID:
       case B_VOID:

@@ -534,7 +534,7 @@ static const opdef operators[] = {
   OP(ATOM_ar_equals,	OP_XFX,		700),	/* =:= */
   OP(ATOM_smaller_equal,OP_XFX,		700),	/* =< */
   OP(ATOM_larger_equal,	OP_XFX,		700),	/* >= */
-  OP(ATOM_strick_equal,	OP_XFX,		700),	/* == */
+  OP(ATOM_strict_equal,	OP_XFX,		700),	/* == */
   OP(ATOM_ar_not_equal,	OP_XFX,		700),	/* =\= */
   OP(ATOM_larger,	OP_XFX,		700),	/* > */
   OP(ATOM_rshift,	OP_YFX,		400),	/* >> */

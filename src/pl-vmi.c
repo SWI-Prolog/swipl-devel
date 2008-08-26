@@ -909,6 +909,20 @@ VMI(B_UNIFY_VV, 2, (CA1_VAR,CA1_VAR))
   FRAME_FAILED;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+B_EQ_VV: translation of	Var1 == Var2
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(B_EQ_VV, 2, (CA1_VAR,CA1_VAR))
+{ Word v1 = varFrameP(FR, (int)*PC++);
+  Word v2 = varFrameP(FR, (int)*PC++);
+
+  if ( compareStandard(v1, v2, TRUE PASS_LD) == 0 )
+    NEXT_INSTRUCTION;
+
+  FRAME_FAILED;
+}
+
 #endif /*O_COMPILE_IS*/
 
 
