@@ -759,20 +759,44 @@ VMI(B_VAR, 1, (CA1_VAR))
 #ifdef O_COMPILE_IS
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 B_UNIFY_VAR, B_UNIFY_EXIT: Unification in the body. We compile A = Term
-into
+into one of the following:
 
-	B_UNIFY_VAR <A>
-	<head unify instructions for Term>
-	B_UNIFY_EXIT
+    Normal:			    A is firstvar:
+	B_UNIFY_VAR <A>			B_UNIFY_FIRSTVAR <A>	
+	<head unify instructions>	<body unify instructions>
+	B_UNIFY_EXIT			B_UNIFY_EXIT
+
+We  need  B_UNIFY_FIRSTVAR  for   the   debugger    as   well   as   for
+clearUninitialisedVarsFrame() in pl-gc.c. When in   debug mode we simply
+create a frame for =/2 and call it.
 
 TBD: B_UNIFY_CONST <var>, <const>
      B_UNIFY_VAR <var1>, <var2>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+VMI(B_UNIFY_FIRSTVAR, 1, CA1_VAR)
+{ SEPERATE_VMI;
+  VMI_GOTO(B_UNIFY_VAR);
+}
+
+
 VMI(B_UNIFY_VAR, 1, CA1_VAR)
-{ int n = (int)*PC++;
+{ ARGP = varFrameP(FR, (int)*PC++);
   
-  ARGP = varFrameP(FR, n);
+#if O_DEBUGGER
+  if ( debugstatus.debugging )
+  { Word k = ARGP;
+
+    if ( decode(PC[-2]) == B_UNIFY_FIRSTVAR )
+      setVar(*k);
+    ARGP = argFrameP(lTop, 0);
+    *ARGP++ = linkVal(k);
+    setVar(*ARGP);
+    umode = uread;
+    NEXT_INSTRUCTION;
+  }
+#endif
+
   umode = uread;			/* needed? */
   NEXT_INSTRUCTION;
 }
@@ -780,6 +804,16 @@ VMI(B_UNIFY_VAR, 1, CA1_VAR)
 
 VMI(B_UNIFY_EXIT, 0, 0)
 { ARGP = argFrameP(lTop, 0);
+
+#if O_DEBUGGER
+  if ( debugstatus.debugging )
+  { NFR = lTop;
+    DEF = getProcDefinedDefinition(lTop, PC, GD->procedures.equals2 PASS_LD);
+    NFR->context = MODULE_system;
+    NFR->flags = FR->flags;
+    goto normal_call;
+  }
+#endif
 
   CHECK_WAKEUP;				/* only for non-first-var */
   NEXT_INSTRUCTION;

@@ -844,6 +844,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	case B_FIRSTVAR:
 	case B_ARGFIRSTVAR:
 	case A_FIRSTVAR_IS:
+	case B_UNIFY_FIRSTVAR:
 	case C_VAR:
 #if O_SECURE	  
 	  if ( varFrameP(fr, PC[1]) <

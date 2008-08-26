@@ -1768,7 +1768,7 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
   { int first = isFirstVar(ci->used_var, index);
     int where = (first ? A_BODY : A_HEAD|A_ARG);
 
-    Output_1(ci, B_UNIFY_VAR, VAROFFSET(index));
+    Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(index));
     compileArgument(argTermP(*arg, 1), where, ci PASS_LD);
     Output_0(ci, B_UNIFY_EXIT);
 
@@ -2750,6 +2750,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case H_FIRSTVAR:
 	case B_FIRSTVAR:
 	case B_UNIFY_VAR:
+	case B_UNIFY_FIRSTVAR:
 	case H_VAR:
 	case A_VAR:
 	case B_VAR:	    index = *PC++;		goto var_common;
