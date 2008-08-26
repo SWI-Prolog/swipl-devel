@@ -958,6 +958,7 @@ VMI(B_EQ_VV, 2, (CA1_VAR,CA1_VAR))
   { ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(v1);
     *ARGP++ = linkVal(v2);
+  debug_eq_vv:
     NFR = lTop;
     DEF = getProcDefinedDefinition(&NFR, PC,
 				   GD->procedures.strict_equal2 PASS_LD);
@@ -972,6 +973,32 @@ VMI(B_EQ_VV, 2, (CA1_VAR,CA1_VAR))
 
   FRAME_FAILED;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+B_EQ_VC Var == constant
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(B_EQ_VC, 2, (CA1_VAR,CA1_DATA))
+{ Word v1 = varFrameP(FR, (int)*PC++);
+  word c  = (word)*PC++;
+
+#ifdef O_DEBUGGER
+  if ( debugstatus.debugging )
+  { ARGP = argFrameP(lTop, 0);
+    *ARGP++ = linkVal(v1);
+    *ARGP++ = c;
+    goto debug_eq_vv;
+  }
+#endif
+
+  deRef(v1);
+  if ( *v1 == c )
+    NEXT_INSTRUCTION;
+
+  BODY_FAILED;
+}
+
 
 #endif /*O_COMPILE_IS*/
 

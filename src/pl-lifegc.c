@@ -308,6 +308,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 
       { size_t index;			/* mark variable access */
 
+	case B_EQ_VC:
 	case B_ARGVAR:
 	case A_VAR:
 	case B_VAR:	    index = *PC;		goto var_common;

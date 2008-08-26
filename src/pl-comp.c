@@ -1905,12 +1905,13 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
     succeed;
   }
 
-#if 0
   if ( i1 >= 0 && isConst(*a2) )	/* Var == const */
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
     Output_2(ci, B_EQ_VC, VAROFFSET(i1), *a2);
+    if ( isAtom(*a2) )
+      PL_register_atom(*a2);
     succeed;
   }
   if ( i2 >= 0 && isConst(*a1) )	/* const == Var */
@@ -1918,9 +1919,10 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
 
     if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
     Output_2(ci, B_EQ_VC, VAROFFSET(i2), *a1);
+    if ( isAtom(*a1) )
+      PL_register_atom(*a1);
     succeed;
   }
-#endif
 
   fail;
 }
@@ -1948,6 +1950,17 @@ unregisterAtomsClause(Clause clause)
     { case H_CONST:
       case B_CONST:
       { word w = PC[1];
+
+	if ( isAtom(w) )
+	  PL_unregister_atom(w);
+	break;
+      }
+      case B_EQ_VC:
+#if 0
+      case B_UNIFY_FC:
+      case B_UNIFY_VC:			/* var, const */
+#endif
+      { word w = PC[2];
 
 	if ( isAtom(w) )
 	  PL_unregister_atom(w);
@@ -2932,9 +2945,14 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    *ARGPinc() = makeVarRef((int)*PC++);
 			    *ARGPinc() = makeVarRef((int)*PC++);
 			    goto b_unify_exit;
+      case B_EQ_VC:
+			    *ARGPinc() = makeVarRef((int)*PC++);
+			    *ARGPinc() = (word)*PC++;
+      			    goto b_eq_vv_cont;
       case B_EQ_VV:
 			    *ARGPinc() = makeVarRef((int)*PC++);
 			    *ARGPinc() = makeVarRef((int)*PC++);
+      			  b_eq_vv_cont:
 			    build_term(FUNCTOR_strict_equal2, di PASS_LD);
 			    pushed++;
 			    continue;
@@ -3127,7 +3145,8 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_EXIT:
 			    break;
       default:
-	  sysError("Illegal instruction in clause body: %d", PC[-1]);
+	  sysError("Decompiler: unknown instruction in clause body: %s",
+		   codeTable[op].name);
 	  /*NOTREACHED*/
     }
   }
