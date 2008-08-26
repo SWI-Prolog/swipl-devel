@@ -171,6 +171,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
   { op = decode(*PC++);
 
   again:
+    DEBUG(3, Sdprintf("\t%s\n", codeTable[op].name));
     COUNT(vm_scanned);
     if ( op == end )
     { PC--;
@@ -206,6 +207,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case I_FREDO:
       case S_TRUSTME:			/* Consider supervisor handling! */
       case S_LIST:
+      case S_NEXTCLAUSE:
 	return PC-1;
 
       case C_JMP:			/* unconditional jump */
