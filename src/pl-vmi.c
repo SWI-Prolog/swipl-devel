@@ -80,6 +80,7 @@ Virtual machine instruction names.  Prefixes:
   H_	Head specific versin
   A_	Arithmetic compilation specific
   C_	Control (compilation of ;/2, etc.)
+  S_   Supervisor instructions.  See pl-supervisor.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
