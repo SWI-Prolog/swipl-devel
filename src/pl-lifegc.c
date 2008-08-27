@@ -286,6 +286,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case B_FIRSTVAR:
       case B_ARGFIRSTVAR:
       case A_FIRSTVAR_IS:
+      case B_UNIFY_FC:
       case C_VAR:
 	clear_frame_var(state, PC PASS_LD);
 	break;
@@ -308,6 +309,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 
       { size_t index;			/* mark variable access */
 
+	case B_UNIFY_VC:
 	case B_EQ_VC:
 	case B_ARGVAR:
 	case A_VAR:

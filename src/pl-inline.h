@@ -25,7 +25,7 @@
 #ifndef PL_INLINE_H_INCLUDED
 #define PL_INLINE_H_INCLUDED
 
-inline code
+static inline code
 fetchop(Code PC)
 { code op = decode(*PC);
 
@@ -36,7 +36,7 @@ fetchop(Code PC)
 }
 
 
-inline Code
+static inline Code
 stepPC(Code PC)
 { code op = fetchop(PC++);
 

@@ -1844,18 +1844,24 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
   }
 
   if ( i1 >= 0 )			/* Var = Term */
-  { int first, where;
+  { int first;
 
   unify_term:
     first = isFirstVarSet(ci->used_var, i1);
-    where = (first ? A_BODY : A_HEAD|A_ARG);
-    Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(i1));
-    compileArgument(a2, where, ci PASS_LD);
-    Output_0(ci, B_UNIFY_EXIT);
+    if ( isConst(*a2) )
+    { Output_2(ci, first ? B_UNIFY_FC : B_UNIFY_VC, VAROFFSET(i1), *a2);
+      if ( isAtom(*a2) )
+	PL_register_atom(*a2);
+    } else
+    { int where = (first ? A_BODY : A_HEAD|A_ARG);
+      Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(i1));
+      compileArgument(a2, where, ci PASS_LD);
+      Output_0(ci, B_UNIFY_EXIT);
+    }
 
     succeed;
   }
-  if ( i2 >= 0 )			/* (Term = Var), translated as (Var = Term)! */
+  if ( i2 >= 0 )			/* (Term = Var): as (Var = Term)! */
   { i1 = i2;
     a2 = a1;
     goto unify_term;
@@ -1958,10 +1964,8 @@ unregisterAtomsClause(Clause clause)
 	break;
       }
       case B_EQ_VC:
-#if 0
       case B_UNIFY_FC:
       case B_UNIFY_VC:			/* var, const */
-#endif
       { word w = PC[2];
 
 	if ( isAtom(w) )
@@ -2946,6 +2950,11 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case B_UNIFY_VV:
 			    *ARGPinc() = makeVarRef((int)*PC++);
 			    *ARGPinc() = makeVarRef((int)*PC++);
+			    goto b_unify_exit;
+      case B_UNIFY_FC:
+      case B_UNIFY_VC:
+			    *ARGPinc() = makeVarRef((int)*PC++);
+			    *ARGPinc() = (word)*PC++;
 			    goto b_unify_exit;
       case B_EQ_VC:
 			    *ARGPinc() = makeVarRef((int)*PC++);
