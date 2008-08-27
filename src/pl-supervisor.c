@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 #define MAX_FLI_ARGS 10			/* extend switches on change */
