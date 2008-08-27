@@ -1231,6 +1231,8 @@ execution can continue at `next_instruction'
 VMI(I_CALL, 1, (CA1_PROC))
 { NFR          = lTop;
   setNextFrameFlags(NFR, FR);
+  updateFrameDebug(FR, DEF);
+
   { Procedure proc = (Procedure) *PC++;
     SAVE_REGISTERS(qid);
     DEF = getProcDefinedDefinition(&NFR, PC, proc PASS_LD);
@@ -1249,7 +1251,6 @@ true:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 normal_call:
-  updateFrameDebug(FR, DEF);
 					/* ensure room for next args */
   requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
 
@@ -1287,7 +1288,6 @@ retry_continue:
     *ap++ = (word)(((char*)ATOM_nil) + 1);
 }
 #endif
-
 
   if ( LD->alerted )
   {					/* play safe */
