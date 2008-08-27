@@ -834,8 +834,9 @@ Finish up the clause.
     cl->variables += (int)(p-p0);
 
     fr->clause = cref;
-    fr->context = module;
     fr->predicate = getProcDefinition(proc);
+    setNextFrameFlags(fr, environment_frame);
+    setContextModule(fr, module);
 
     DEBUG(1, Sdprintf("; now %d vars\n", clause.variables));
     lTop = (LocalFrame)p;
@@ -843,11 +844,6 @@ Finish up the clause.
 
   memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
   discardBuffer(&ci.codes);
-
-  DEBUG(1,
-	if ( !head )
-	{ wamListClause(cl);
-	});
 
   return cl;
 

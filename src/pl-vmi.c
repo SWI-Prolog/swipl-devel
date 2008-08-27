@@ -858,8 +858,7 @@ VMI(B_UNIFY_EXIT, 0, ())
   if ( debugstatus.debugging )
   { NFR = lTop;
     DEF = getProcDefinedDefinition(&FR, PC, GD->procedures.equals2 PASS_LD);
-    NFR->context = MODULE_system;
-    NFR->flags = FR->flags + FR_LEVEL_STEP;
+    setNextFrameFlags(NFR, FR);
     goto normal_call;
   }
 #endif
@@ -929,8 +928,7 @@ VMI(B_UNIFY_VV, 2, (CA1_VAR,CA1_VAR))
     NFR = lTop;
     DEF = getProcDefinedDefinition(&NFR, PC,
 				   GD->procedures.equals2 PASS_LD);
-    NFR->context = MODULE_system;
-    NFR->flags = FR->flags + FR_LEVEL_STEP;
+    setNextFrameFlags(NFR, FR);
     goto normal_call;
   }
 #endif
@@ -1016,8 +1014,7 @@ VMI(B_EQ_VV, 2, (CA1_VAR,CA1_VAR))
     NFR = lTop;
     DEF = getProcDefinedDefinition(&NFR, PC,
 				   GD->procedures.strict_equal2 PASS_LD);
-    NFR->context = MODULE_system;
-    NFR->flags = FR->flags + FR_LEVEL_STEP;
+    setNextFrameFlags(NFR, FR);
     goto normal_call;
   }
 #endif
@@ -1211,7 +1208,7 @@ instruction immediately follows the I_ENTER. The argument is the module.
 VMI(I_CONTEXT, 1, (CA1_MODULE))
 { Module m = (Module)*PC++;
 
-  FR->context = m;
+  setContextModule(FR, m);
 
   NEXT_INSTRUCTION;
 }
@@ -1232,8 +1229,7 @@ execution can continue at `next_instruction'
 
 VMI(I_CALL, 1, (CA1_PROC))
 { NFR          = lTop;
-  NFR->flags   = FR->flags + FR_LEVEL_STEP;
-  NFR->context = FR->context;
+  setNextFrameFlags(NFR, FR);
   if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
     set(NFR, FR_NODEBUG);
   { Procedure proc = (Procedure) *PC++;
@@ -1283,8 +1279,6 @@ retry_continue:
   FR->prof_node = NULL;
 #endif
   clear(FR, FR_SKIPPED|FR_WATCHED|FR_CATCHED);
-  if ( false(DEF, METAPRED) )
-    FR->context = DEF->module;
   if ( false(DEF, HIDE_CHILDS) )	/* was SYSTEM */
     clear(FR, FR_NODEBUG);
   LD->statistics.inferences++;
@@ -1495,7 +1489,7 @@ VMI(I_DEPART, 1, (CA1_PROC))
     LOAD_REGISTERS(qid);
     if ( true(DEF, METAPRED) )
     { FR->context = contextModule(FR);
-      FR->flags = (((FR->flags+FR_LEVEL_STEP) /*| FR_CONTEXT*/) &
+      FR->flags = (((FR->flags+FR_LEVEL_STEP) | FR_CONTEXT) &
                    ~(FR_SKIPPED|FR_WATCHED|FR_CATCHED));
     } else
       setNextFrameFlags(FR, FR);
@@ -1948,11 +1942,8 @@ VMI(I_FAIL, 0, ())
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
   { NFR = lTop;
-    NFR->flags = FR->flags + FR_LEVEL_STEP;
-    if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
-      set(NFR, FR_NODEBUG);
+    setNextFrameFlags(NFR, FR);
     DEF = lookupProcedure(FUNCTOR_fail0, MODULE_system)->definition;
-    NFR->context = FR->context;
 
     goto normal_call;
   }
@@ -1970,11 +1961,8 @@ VMI(I_TRUE, 0, ())
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
   { NFR = lTop;
-    NFR->flags = FR->flags + FR_LEVEL_STEP;
-    if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
-      set(NFR, FR_NODEBUG);
+    setNextFrameFlags(NFR, FR);
     DEF = lookupProcedure(FUNCTOR_true0, MODULE_system)->definition;
-    NFR->context = FR->context;
 
     goto normal_call;
   }
@@ -3341,13 +3329,13 @@ atom is referenced by the goal-term anyway.
 		 lTop = ot;
 	       });
       lTop = NFR;
+      setNextFrameFlags(NFR, FR);
       if ( !(cl = compileClause(NULL, a, PROCEDURE_dcall1,
 				module PASS_LD)) )
 	goto b_throw;
 
       DEF 		  = NFR->predicate;
       SECURE(assert(DEF == PROCEDURE_dcall1->definition));
-      NFR->flags          = FR->flags + FR_LEVEL_STEP;
       NFR->parent	  = FR;
       NFR->programPointer = PC;
 #ifdef O_PROFILE
@@ -3443,7 +3431,7 @@ VMI(I_USERCALLN, 1, (CA1_INTEGER))
   }
 
 i_usercall_common:
-  NFR->flags = FR->flags + FR_LEVEL_STEP;
+  setNextFrameFlags(NFR, FR);
   if ( true(DEF, HIDE_CHILDS) )
     set(NFR, FR_NODEBUG);
 
@@ -3478,8 +3466,9 @@ Save the program counter (note  that   I_USERCALL0  has no argument) and
 continue as with a normal call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  NFR->context = module;
-  goto normal_call;
+  if ( true(DEF, METAPRED) )
+    setContextModule(NFR, module);
 
+  goto normal_call;
 }  
 END_SHAREDVARS

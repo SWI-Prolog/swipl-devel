@@ -88,6 +88,8 @@ COMMON(fid_t) 		PL_open_signal_foreign_frame(void);
 COMMON(bool)		foreignWakeup(ARG1_LD);
 COMMON(void)		updateAlerted(PL_local_data_t *ld);
 COMMON(int)		raiseSignal(PL_local_data_t *ld, int sig);
+COMMON(Module)		contextModule(LocalFrame fr);
+COMMON(void)		setContextModule(LocalFrame fr, Module context);
 
 /* pl-supervisor.c */
 

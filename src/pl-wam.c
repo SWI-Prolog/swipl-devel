@@ -548,13 +548,13 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 
 	exception_term = 0;
 	*valTermRef(exception_bin) = 0;
-	rval = callProlog(fr->context, clean, PL_Q_CATCH_EXCEPTION, &ex);
+	rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
 	if ( rval || !ex )
 	{ *valTermRef(exception_bin) = *valTermRef(pending);
 	  exception_term = exception_bin;
 	}
       } else
-      { rval = callProlog(fr->context, clean, PL_Q_CATCH_EXCEPTION, &ex);
+      { rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
       }
       unblockGC(PASS_LD1);
 
@@ -723,6 +723,33 @@ getProcDefinedDefinition(LocalFrame *frp, Code PC, Procedure proc ARG_LD)
   return def;
 #endif
 }
+
+
+Module
+contextModule(LocalFrame fr)
+{ for(; fr; fr = fr->parent)
+  { if ( true(fr, FR_CONTEXT) )
+      return fr->context;
+    if ( false(fr->predicate, METAPRED) )
+      return fr->predicate->module;
+  }
+
+  return MODULE_user;
+}
+
+
+static inline void
+setContextModule__(LocalFrame fr, Module context)
+{ fr->context = context;
+  set(fr, FR_CONTEXT);
+}
+
+
+void
+setContextModule(LocalFrame fr, Module context)
+{ setContextModule__(fr, context);
+}
+#define setContextModule(fr, ctx) setContextModule__(fr, ctx)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1412,13 +1439,12 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 					/* context module */
   if ( true(def, METAPRED) )
   { if ( ctx )
-      fr->context = ctx;
+      setContextModule(fr, ctx);
     else if ( qf->saved_environment )
-      fr->context = qf->saved_environment->context;
+      setContextModule(fr, contextModule(qf->saved_environment));
     else
-      fr->context = MODULE_user;
-  } else
-    fr->context = def->module;
+      setContextModule(fr, MODULE_user);
+  }
 
   environment_frame = fr;
   DEBUG(2, Sdprintf("QID=%d\n", QidFromQuery(qf)));
@@ -1719,8 +1745,7 @@ Attributed variable handling
 wakeup:
   DEBUG(1, Sdprintf("Activating wakeup\n"));
   NFR = lTop;
-  NFR->context = MODULE_system;
-  NFR->flags = FR->flags;
+  setNextFrameFlags(NFR, FR);
   SAVE_REGISTERS(qid);
   DEF = getProcDefinedDefinition(&NFR, PC,
 				 PROCEDURE_dwakeup1

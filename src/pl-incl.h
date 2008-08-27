@@ -942,7 +942,7 @@ with one operation, it turns out to be faster as well.
 Handling environment (or local stack) frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FR_BITS			7	/* mask-bits */
+#define FR_BITS			8	/* mask-bits */
 #define FR_NODEBUG		(0x01L)	/* Invisible frame */
 #define FR_SKIPPED		(0x02L)	/* We have skipped on this frame */
 #define FR_MARKED		(0x04L)	/* GC */
@@ -950,8 +950,9 @@ Handling environment (or local stack) frames.
 #define FR_WATCHED		(0x10L)	/* GUI debugger */
 #define FR_CATCHED		(0x20L)	/* Frame caught an exception */
 #define FR_INBOX		(0x40L) /* Inside box (for REDO in built-in) */
+#define FR_CONTEXT		(0x80L)	/* fr->context is set */
 
-/* FR_LEVEL now handles levels upto 32M.  This is a bit low, but as it is
+/* FR_LEVEL now handles levels upto 16M.  This is a bit low, but as it is
    only used for the debugger (skip, etc) it is most likely acceptable.
    We must consider using a seperate slot in the localFrame
 */
@@ -976,7 +977,6 @@ Handling environment (or local stack) frames.
 #define slotsFrame(f)		(true((f)->predicate, FOREIGN) ? \
 				      (f)->predicate->functor->arity : \
 				      (f)->clause->clause->prolog_vars)
-#define contextModule(f)	((f)->context)
 #ifdef O_LOGICAL_UPDATE
 #define generationFrame(f)	((f)->generation)
 #else
@@ -985,7 +985,7 @@ Handling environment (or local stack) frames.
 
 #define setNextFrameFlags(next, fr) \
         (next)->flags = ((fr)->flags + FR_LEVEL_STEP) & \
-                        (~(/*FR_CONTEXT|*/FR_SKIPPED|FR_WATCHED|FR_CATCHED))
+                        (~(FR_CONTEXT|FR_SKIPPED|FR_WATCHED|FR_CATCHED))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Predicate reference counting. The aim  of   this  mechanism  is to avoid
