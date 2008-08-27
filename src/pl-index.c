@@ -702,7 +702,8 @@ pl_hash(term_t pred)
 { Procedure proc;
 
   if ( get_procedure(pred, &proc, 0, GP_CREATE) )
-  { Definition def = getProcDefinition(proc);
+  { GET_LD
+    Definition def = getProcDefinition(proc);
     int size, minsize;
 
     if ( def->hash_info )		/* already hashed; won't change */

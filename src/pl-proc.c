@@ -2930,7 +2930,8 @@ checkDefinition(Definition def)
 
 foreign_t
 pl_check_procedure(term_t desc)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   Definition def;
 
   if ( !get_procedure(desc, &proc, 0, GP_FIND) )
@@ -2948,7 +2949,8 @@ pl_check_procedure(term_t desc)
 
 foreign_t
 pl_list_generations(term_t desc)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   Definition def;
 
   if ( !get_procedure(desc, &proc, 0, GP_FIND) )

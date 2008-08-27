@@ -411,6 +411,7 @@ extern void		initPrologThreads(void);
 #else
 #define allocGlobalNoShift(n)	allocGlobal__LD(n PASS_LD)
 #endif
+#define getProcDefinition(proc)	getProcDefinition__LD(proc->definition PASS_LD)
 
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
 #define _PL_put_number(t, n) 	_PL_put_number__LD(t, n PASS_LD)

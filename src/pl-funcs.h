@@ -82,7 +82,7 @@ COMMON(void)		freezeGlobal(ARG1_LD);
 COMMON(word) 		pl_count(void);
 COMMON(void) 		TrailAssignment__LD(Word p ARG_LD);
 COMMON(void) 		do_undo(mark *m);
-COMMON(Definition) 	getProcDefinition(Procedure proc);
+COMMON(Definition) 	getProcDefinition__LD(Definition def ARG_LD);
 COMMON(void) 		fix_term_ref_count(void);
 COMMON(fid_t) 		PL_open_signal_foreign_frame(void);
 COMMON(bool)		foreignWakeup(ARG1_LD);

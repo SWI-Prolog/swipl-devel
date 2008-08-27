@@ -659,41 +659,27 @@ do_undo(mark *m)
 		 *	    PROCEDURES		*
 		 *******************************/
 
-static inline Definition
-pl__getProcDefinition(Procedure proc ARG_LD)
+Definition
+getProcDefinition__LD(Definition def ARG_LD)
 {
 #ifdef O_PLMT
-  Definition def = proc->definition;
-
   if ( true(def, P_THREAD_LOCAL) )
   { int i = LD->thread.info->pl_tid;
     Definition local;
 
-    LOCKDEF(def);
+    LOCKDYNDEF(def);
     if ( !def->definition.local ||
 	 i >= def->definition.local->size ||
 	 !(local=def->definition.local->thread[i]) )
       local = localiseDefinition(def);
-    UNLOCKDEF(def);
+    UNLOCKDYNDEF(def);
 
     return local;
   }
+#endif
 
   return def;
-#else
-  return proc->definition;
-#endif
 }
-
-
-Definition
-getProcDefinition(Procedure proc)
-{ GET_LD
-
-  return pl__getProcDefinition(proc PASS_LD);
-}
-
-#define getProcDefinition(proc) pl__getProcDefinition(proc PASS_LD)
 
 
 static inline Definition
@@ -705,23 +691,10 @@ getProcDefinedDefinition(LocalFrame *frp, Code PC, Procedure proc ARG_LD)
 
 #ifdef O_PLMT
   if ( true(def, P_THREAD_LOCAL) )
-  { int i = LD->thread.info->pl_tid;
-    Definition local;
-
-    LOCKDEF(def);
-    if ( !def->definition.local ||
-	 i >= def->definition.local->size ||
-	 !(local=def->definition.local->thread[i]) )
-      local = localiseDefinition(def);
-    UNLOCKDEF(def);
-
-    return local;
-  }
-
-  return def;
-#else
-  return def;
+    return getProcDefinition__LD(def PASS_LD);
 #endif
+
+  return def;
 }
 
 

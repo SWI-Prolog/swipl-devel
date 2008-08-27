@@ -3577,7 +3577,9 @@ wouldBindToDefinition(Definition from, Definition to)
     }
 
     if ( (c = m->supers) )
-    { m = c->value;			/* TBD: multiple supers */
+    { GET_LD
+
+      m = c->value;			/* TBD: multiple supers */
       proc = isCurrentProcedure(from->functor->functor, m);
       def = proc ? getProcDefinition(proc) : (Definition)NULL;
     } else

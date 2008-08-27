@@ -3246,7 +3246,8 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 
 					/* P_FOREIGN_CREF: clause, etc. choicepoints */
     if ( true(fr->predicate, P_FOREIGN_CREF) && fr->clause )
-    { ClauseRef cref = (ClauseRef)fr->clause;
+    { GET_LD				/* Is this save? */
+      ClauseRef cref = (ClauseRef)fr->clause;
 
       def = getProcDefinition(cref->clause->procedure);
     } else
