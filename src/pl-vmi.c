@@ -1270,15 +1270,13 @@ possible to be able to call-back to Prolog.
   environment_frame = FR = NFR;		/* open the frame */
 
 depart_continue:
+retry_continue:
 #ifdef O_LOGICAL_UPDATE
   FR->generation     = GD->generation;
 #endif
-
-retry_continue:
 #ifdef O_PROFILE
   FR->prof_node = NULL;
 #endif
-  clear(FR, FR_SKIPPED|FR_WATCHED|FR_CATCHED);
   if ( false(DEF, HIDE_CHILDS) )	/* was SYSTEM */
     clear(FR, FR_NODEBUG);
   LD->statistics.inferences++;
@@ -3047,10 +3045,6 @@ b_throw:
 	    Undo(ch->mark);
 	    discardChoicesAfter(FR PASS_LD);
 	    DEF = FR->predicate;
-#ifdef O_LOGICAL_UPDATE
-	    if ( false(DEF, DYNAMIC) )
-	      FR->generation = GD->generation;
-#endif
 	    unblockGC(PASS_LD1);
 	    goto retry_continue;
 	}

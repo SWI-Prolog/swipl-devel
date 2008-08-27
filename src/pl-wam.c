@@ -1803,10 +1803,6 @@ do_retry:
   DEF = FR->predicate;
   Undo(m);
   exception_term = 0;
-#ifdef O_LOGICAL_UPDATE
-  if ( false(DEF, DYNAMIC) )
-    FR->generation = GD->generation;
-#endif
 
   goto retry_continue;
 }
@@ -1902,10 +1898,6 @@ next_choice:
 	  { case ACTION_RETRY:
 	      environment_frame = FR;
 	      DEF = FR->predicate;
-#ifdef O_LOGICAL_UPDATE
-	      if ( false(DEF, DYNAMIC) )
-		FR->generation = GD->generation;
-#endif
 	      clear(FR, FR_CATCHED);
 	      goto retry_continue;
 	  }
@@ -1980,10 +1972,6 @@ next_choice:
 	    case ACTION_IGNORE:
 	      VMI_GOTO(I_EXIT);
 	    case ACTION_RETRY:
-#ifdef O_LOGICAL_UPDATE
-	      if ( false(DEF, DYNAMIC) )
-		FR->generation = GD->generation;
-#endif
 	      goto retry_continue;
 	  }
 	  set(fr, FR_INBOX);
