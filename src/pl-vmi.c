@@ -1230,8 +1230,6 @@ execution can continue at `next_instruction'
 VMI(I_CALL, 1, (CA1_PROC))
 { NFR          = lTop;
   setNextFrameFlags(NFR, FR);
-  if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
-    set(NFR, FR_NODEBUG);
   { Procedure proc = (Procedure) *PC++;
     SAVE_REGISTERS(qid);
     DEF = getProcDefinedDefinition(&NFR, PC, proc PASS_LD);
@@ -1250,6 +1248,7 @@ true:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 normal_call:
+  updateFrameDebug(FR, DEF);
 					/* ensure room for next args */
   requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
 
@@ -1277,8 +1276,6 @@ retry_continue:
 #ifdef O_PROFILE
   FR->prof_node = NULL;
 #endif
-  if ( false(DEF, HIDE_CHILDS) )	/* was SYSTEM */
-    clear(FR, FR_NODEBUG);
   LD->statistics.inferences++;
 
 #ifdef O_DEBUGLOCAL
@@ -1471,14 +1468,12 @@ VMI(I_DEPART, 1, (CA1_PROC))
 
     if ( true(FR, FR_WATCHED) )
     { LocalFrame lSave = lTop;
-      lTop = (LocalFrame)ARGP;         /* just pushed arguments, so top */
+      lTop = (LocalFrame)ARGP;		/* just pushed arguments, so top */
       frameFinished(FR, FINISH_EXIT PASS_LD);
       lTop = lSave;
     }
 
-    FR->clause = NULL;		/* for save atom-gc */
-    if ( true(DEF, HIDE_CHILDS) )
-      set(FR, FR_NODEBUG);
+    FR->clause = NULL;			/* for save atom-gc */
     leaveDefinition(DEF);
     proc = (Procedure) *PC++;
 
@@ -3426,8 +3421,6 @@ VMI(I_USERCALLN, 1, (CA1_INTEGER))
 
 i_usercall_common:
   setNextFrameFlags(NFR, FR);
-  if ( true(DEF, HIDE_CHILDS) )
-    set(NFR, FR_NODEBUG);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Now scan the argument vector of the goal and fill the arguments  of  the

@@ -986,6 +986,12 @@ Handling environment (or local stack) frames.
 #define setNextFrameFlags(next, fr) \
         (next)->flags = ((fr)->flags + FR_LEVEL_STEP) & \
                         (~(FR_CONTEXT|FR_SKIPPED|FR_WATCHED|FR_CATCHED))
+#define updateFrameDebug(fr, def) \
+	do { if ( true(fr, FR_NODEBUG) && false(def, HIDE_CHILDS) ) \
+	       clear(fr, FR_NODEBUG); \
+	     if ( false(fr, FR_NODEBUG) && true(def, HIDE_CHILDS) ) \
+	       set(fr, FR_NODEBUG); \
+	   } while(0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Predicate reference counting. The aim  of   this  mechanism  is to avoid
