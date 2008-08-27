@@ -32,16 +32,18 @@ ticks prof_ticks;
 
 static ticks overhead;
 
+/* See http://www.technovelty.org/code/c/reading-rdtsc.html */
+
 ticks
 pentium_clock()
-{ register uintptr_t iax;
-  uintptr_t idx;
+{ unsigned int iax;
+  unsigned int idx;
 
   __asm__ __volatile__ ("rdtsc"
 			: "=a" (iax), "=d" (idx)
 		       );
 
-  return (ticks)iax + ((ticks)idx<<32);
+  return (ticks)iax | ((ticks)idx<<32);
 }
 
 
@@ -149,6 +151,8 @@ prof_reset()
 { prof_record *pr = &prof_data[0];
   int i;
 
+  END_PROF();
+  
   for(i=0; i<MAXPROF; i++, pr++)
     memset(pr, 0, sizeof(*pr));
 }

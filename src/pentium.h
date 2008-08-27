@@ -63,11 +63,15 @@ extern ticks		prof_ticks;
 #define END_PROF() \
 	if ( prof_current ) \
 	{ ticks t = pentium_clock() - prof_ticks; \
-	  prof_record *pr = prof_current; \
-	  pr->calls++; \
-	  if ( !pr->fastest || pr->fastest > t ) pr->fastest = t; \
-	  pr->ticks += t; \
-	  prof_current = NULL; \
+	  if ( t >= 0 ) \
+	  { prof_record *pr = prof_current; \
+	    pr->calls++; \
+	    if ( !pr->fastest || pr->fastest > t ) pr->fastest = t; \
+	    pr->ticks += t; \
+	    prof_current = NULL; \
+	  } else \
+	  { Sdprintf("%s: T=%lld (t0=%lld)\n", prof_current->name, prof_ticks); \
+	  } \
 	}
 
 /* non-VMI profile identifiers */
