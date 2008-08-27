@@ -108,6 +108,8 @@ initWamTable(void)
   unsigned int n;
   code maxcoded, mincoded;
 
+  assert(I_HIGHEST < 255);	/* need short for dewam_table on overflow */
+
   if ( interpreter_jmp_table == NULL )
     PL_next_solution(QID_EXPORT_WAM_TABLE);
 
@@ -128,7 +130,7 @@ initWamTable(void)
 				  sizeof(char));
   
   for(n = 0; n < I_HIGHEST; n++)
-    dewam_table[wam_table[n]-dewam_table_offset] = (char) n;
+    dewam_table[wam_table[n]-dewam_table_offset] = (unsigned char) n;
 
   checkCodeTable();
 }
