@@ -28,10 +28,7 @@
 #endif
 #include "pl-incl.h"
 #include "pentium.h"
-
-#ifndef HAVE_MEMMOVE			/* Note order!!!! */
-#define memmove(dest, src, n) bcopy(src, dest, n)
-#endif
+#include "pl-inline.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is based on
@@ -807,27 +804,12 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 { if ( PC != NULL )
   { code c;
 
-    for( ; ; PC += (codeTable[c].arguments + 1))
+    for( ; ; PC = stepPC(PC))
     { c = decode(*PC);
 
     again:
       switch( c )
-      {
-#if O_DEBUGGER
-	case D_BREAK:
-	  c = decode(replacedBreak(PC));
-	  goto again;
-#endif
-	case H_STRING:			/* only skip the size of the */
-	case B_STRING:			/* string + header */
-	case H_MPZ:
-	case B_MPZ:
-	{ word m = PC[1];
-	  PC += wsizeofInd(m)+1;
-	  PC -= VM_DYNARGC;		/* compensate for codeTable[c].arguments */
-	  break;
-	}
-	case I_EXIT:
+      { case I_EXIT:			/* terminate code list */
 	case I_EXITFACT:
 	case I_EXITCATCH:
 	case I_EXITQUERY:
@@ -837,11 +819,13 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	case S_TRUSTME:
 	case S_LIST:
 	  return;
-	case C_JMP:
+
+	case C_JMP:			/* jumps */
 	  PC += (int)PC[1]+2;
 	  c = decode(*PC);
 	  goto again;
-	case H_FIRSTVAR:
+
+	case H_FIRSTVAR:		/* Firstvar assignments */
 	case B_FIRSTVAR:
 	case B_ARGFIRSTVAR:
 	case A_FIRSTVAR_IS:
@@ -861,6 +845,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
           setVar(varFrame(fr, PC[2]));
           break;
        case B_UNIFY_FV:
+       case B_UNIFY_FC:
          setVar(varFrame(fr, PC[1]));
          break;
       }
