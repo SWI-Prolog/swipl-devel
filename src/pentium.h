@@ -76,8 +76,10 @@ extern ticks		prof_ticks;
 
 /* non-VMI profile identifiers */
 
-#define DEPART_CONTINUE (I_HIGHEST+1)
-#define P_GC 		(I_HIGHEST+2)
+#define DEPART_CONTINUE 	(I_HIGHEST+1)
+#define P_GC 			(I_HIGHEST+2)
++#define P_SHALLOW_BACKTRACK    (I_HIGHEST+3)
++#define P_DEEP_BACKTRACK       (I_HIGHEST+4)
 
 #else /*O_PROF_PENTIUM*/
 
