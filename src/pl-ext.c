@@ -573,6 +573,7 @@ initBuildIns(void)
   LOOKUPPROC(true0);
   LOOKUPPROC(fail0);
   LOOKUPPROC(equals2);
+  LOOKUPPROC(is2);
   LOOKUPPROC(strict_equal2);
   LOOKUPPROC(print_message2);
   LOOKUPPROC(dcall1);

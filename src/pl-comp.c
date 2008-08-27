@@ -460,10 +460,14 @@ calculation at runtime.
 
 #define BLOCK(s) do { s; } while (0)
 
-#define Output_0(ci, c)		addBuffer(&(ci)->codes, encode(c), code)
-#define Output_a(ci, c)		addBuffer(&(ci)->codes, c, code)
-#define Output_1(ci, c, a)	BLOCK(Output_0(ci, c); Output_a(ci, a))
-#define Output_2(ci, c, a0, a1)	BLOCK(Output_1(ci, c, a0); Output_a(ci, a1))
+#define Output_0(ci,c)		addBuffer(&(ci)->codes, encode(c), code)
+#define Output_a(ci,c)		addBuffer(&(ci)->codes, c, code)
+#define Output_1(ci,c,a)	BLOCK(Output_0(ci, c); \
+				      Output_a(ci, a))
+#define Output_2(ci,c,a0,a1)	BLOCK(Output_1(ci, c, a0); \
+				      Output_a(ci, a1))
+#define Output_3(ci,c,a0,a1,a2) BLOCK(Output_2(ci, c, a0, a1); \
+				      Output_a(ci, a2))
 #define Output_n(ci, p, n)	addMultipleBuffer(&(ci)->codes, p, n, word)
 
 #define PC(ci)		entriesBuffer(&(ci)->codes, code)
@@ -480,6 +484,7 @@ forwards bool	isFirstVarSet(VarTable vt, int n);
 forwards int	balanceVars(VarTable, VarTable, compileInfo *);
 forwards void	orVars(VarTable, VarTable);
 forwards int	compileListFF(word arg, compileInfo *ci ARG_LD);
+forwards bool	compileSimpleAddition(Word, compileInfo * ARG_LD);
 #if O_COMPILE_ARITH
 forwards int	compileArith(Word, compileInfo * ARG_LD);
 forwards bool	compileArithArgument(Word, compileInfo * ARG_LD);
@@ -1473,12 +1478,15 @@ will use the meta-call mechanism for all these types of calls.
     }
 /*  cont: */
 
+    if ( true(fdef, ARITH_F) && !ci->islocal )
+    { if ( functor == FUNCTOR_is2 &&
+	   compileSimpleAddition(arg, ci PASS_LD) )
+	succeed;
 #if O_COMPILE_ARITH
-    if ( true(fdef, ARITH_F) &&
-	 trueFeature(OPTIMISE_FEATURE) &&
-	 !ci->islocal )			/* no use for local compilation */
-      return compileArith(arg, ci PASS_LD);
-#endif /* O_COMPILE_ARITH */
+      if ( trueFeature(OPTIMISE_FEATURE) )
+	 return compileArith(arg, ci PASS_LD);
+#endif
+    }
 
 #ifdef O_COMPILE_IS
     if ( !ci->islocal )
@@ -1577,6 +1585,60 @@ re-definition.
   return NOT_CALLABLE;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+compileSimpleAddition() compiles NewVar is Var   +/- SmallInt. At entry,
+vc is known to be a dereferenced pointer to term is/2.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+compileSimpleAddition(Word sc, compileInfo *ci ARG_LD)
+{ Word a = argTermP(*sc, 0);
+  int rvar;
+
+  if ( isFirstVarP(a, ci, &rvar PASS_LD) ) /* NewVar is ? */
+  { int neg = FALSE;
+
+    a++;
+    deRef(a);
+    
+    if ( hasFunctor(*a, FUNCTOR_plus2) ||
+	 (neg=hasFunctor(*a, FUNCTOR_minus2)) )
+    { Word a1 = argTermP(*a, 0);
+      Word a2 = a1 + 1;
+      int vi, swapped = 0;
+
+      deRef(a1);
+      deRef(a2);
+
+      while(swapped++ < 2)
+      { Word tmp;
+
+	if ( (vi=isIndexedVarTerm(*a1 PASS_LD)) >= 0 &&
+	     !isFirstVar(ci->used_var, vi) &&
+	     tagex(*a2) == (TAG_INTEGER|STG_INLINE) )
+	{ intptr_t i = valInt(*a2);
+      
+	  if ( neg )
+	    i = -i;			/* tagged int: cannot overflow */
+
+	  isFirstVarSet(ci->used_var, rvar);
+	  Output_3(ci, A_ADD_FC, VAROFFSET(rvar), VAROFFSET(vi), i);
+	  succeed;
+	}
+    
+	tmp = a1;
+	a1 = a2;
+	a2 = tmp;
+      }
+    }
+  }
+
+  fail;
+}
+
+
+#if O_COMPILE_ARITH
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic compilation compiles is/2, >/2, etc.  Instead of building the
 compound terms holding the arithmetic expression as  a  whole  and  then
@@ -1606,7 +1668,6 @@ Note. This function assumes the functors   of  all arithmetic predicates
 are tagged using the functor ARITH_F. See registerArithFunctors().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_COMPILE_ARITH
 static bool
 compileArith(Word arg, compileInfo *ci ARG_LD)
 { code a_func;
@@ -3016,6 +3077,19 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       			    build_term(functorArithFunction((int)*PC++), di PASS_LD);
       			    PC++;
 			    continue;
+      case A_ADD_FC:
+      { int rvar = (int)*PC++;
+	int ivar = (int)*PC++;
+	intptr_t add = (intptr_t)*PC++;
+	
+	*ARGPinc() = makeVarRef(rvar);
+	*ARGPinc() = makeVarRef(ivar);
+	*ARGPinc() = consInt(add);
+	build_term(FUNCTOR_plus2, di PASS_LD); /* create B+<n> */
+	build_term(FUNCTOR_is2, di PASS_LD);
+	pushed++;
+	continue;
+      }
 #endif /* O_COMPILE_ARITH */
       { functor_t f;
 #if O_COMPILE_ARITH

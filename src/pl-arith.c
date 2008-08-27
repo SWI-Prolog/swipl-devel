@@ -130,7 +130,6 @@ static ArithFunction	isCurrentArithFunction(functor_t, Module);
 static int		registerFunction(ArithFunction f, int index);
 static int		getCharExpression(term_t t, Number r ARG_LD);
 static int		ar_add(Number n1, Number n2, Number r);
-static int		ar_add_ui(Number n, long val);
 static int		ar_minus(Number n1, Number n2, Number r);
 
 
@@ -224,7 +223,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
     case FRG_REDO:
       { state = CTX_PTR;
 
-	ar_add_ui(&state->low, 1L);
+	ar_add_ui(&state->low, 1);
 	PL_unify_number(n, &state->low);
 	if ( !state->hinf &&
 	     cmpNumbers(&state->low, &state->high) == 0 )
@@ -1025,8 +1024,8 @@ promoteIntNumber(Number n)
 		*     ARITHMETIC FUNCTIONS      *
 		*********************************/
 
-static int
-ar_add_ui(Number n, long add)
+int
+ar_add_ui(Number n, intptr_t add)
 { switch(n->type)
   { case V_INTEGER:
     { int64_t r = n->value.i + add;

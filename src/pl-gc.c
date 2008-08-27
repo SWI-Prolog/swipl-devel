@@ -846,6 +846,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
           break;
        case B_UNIFY_FV:
        case B_UNIFY_FC:
+       case A_ADD_FC:
          setVar(varFrame(fr, PC[1]));
          break;
       }

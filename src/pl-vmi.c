@@ -2291,6 +2291,69 @@ common_an:
 }
 END_SHAREDVARS
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A_ADD_FC: Simple case A is B + <int>, where   A is a firstvar and B is a
+normal variable. This case is very   common,  especially with relatively
+small integers.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(A_ADD_FC, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
+{ Word rp  = varFrameP(FR, *PC++);
+  Word np  = varFrameP(FR, *PC++);
+  intptr_t add = (intptr_t)*PC++;
+
+  deRef(np);
+
+#ifdef O_DEBUGGER
+  if ( debugstatus.debugging )
+  { Word expr = allocGlobal(3);
+
+    expr[0] = FUNCTOR_plus2;
+    expr[1] = linkVal(np);
+    expr[2] = makeNum(add);
+
+    ARGP = argFrameP(lTop, 0);
+    setVar(*rp);
+    *ARGP++ = linkVal(rp);
+    *ARGP++ = consPtr(expr, TAG_COMPOUND|STG_GLOBAL);
+    NFR = lTop;
+    DEF = getProcDefinedDefinition(&NFR, PC,
+				   GD->procedures.is2 PASS_LD);
+    setNextFrameFlags(NFR, FR);
+    goto normal_call;
+  }
+#endif
+
+  if ( tagex(*np) == (TAG_INTEGER|STG_INLINE) )
+  { intptr_t v = valInt(*np);
+    int64_t r = v+add;			/* tagged ints never overflow */
+    
+    *rp = makeNum(r);
+    NEXT_INSTRUCTION;
+  } else
+  { number n;
+    fid_t fid;
+    int rc;
+  
+    fid = PL_open_foreign_frame();
+    rc = valueExpression(wordToTermRef(np), &n PASS_LD);
+    PL_close_foreign_frame(fid);
+    if ( !rc )
+      goto b_throw;
+
+    if ( ar_add_ui(&n, add) )
+    { *rp = put_number(&n);
+      clearNumber(&n);
+
+      NEXT_INSTRUCTION;
+    }
+
+    goto b_throw;
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Translation of the arithmic comparison predicates (<, >, =<,  >=,  =:=).
 Both sides are pushed on the stack, so we just compare the two values on
