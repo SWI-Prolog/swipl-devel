@@ -1,30 +1,5 @@
 ---+ Planning for kernel revision 5.7.X
 
----++ VMI Restructuring [MOSTLY OK]
-
-Use a single definition:
-Open ends:
-
-	BEGIN_VMI(Param, ...)
-	{
-	}
-	- VMIs sharing variables.  See BEGIN_SHAREDVARS ... END_SHAREDVARS
-	- Does this harm C-compiler optimization?
-
-VMI Info:
----++ Supervisor instructions
-
-	Name
-	# args
-	argtype
-	* Type-specific header
-	* Generic header
-		- Type
-		- Size (header and body)
-		- Functions?
-	* Code
-
-Generate:
 ---+++ Supervisors
 
 	* Table in pl-comp.c
@@ -46,41 +21,6 @@ Generate:
 			- Unique+Var
 			- Var+Unique
 
-Loose ends:
-================================================================
----+ Current setup
-
-	- VMIs sharing variables (TBD: Untangle)
-	- Variable sharing in calling variations
-Module:
-	* Table functor -> procedure
-
-Procedure:
-	* -> Definition
-
-Definition:
-	* Module
-	* -> ClauseRefList
-	   | Func
-	   | LocalDefinitions
-
-LocalDefinitions
-	* [Per Thread] -> Definition
-
-ClauseRefList
-	* Linked list of clause_ref
-
-ClauseRef
-	* -> Clause
-
-Clause
-	* -> Procedure
-	* -> Code
-
-VM-Code:
-	* I_CALL <Procedure>
-================================================================
-
 ================================================================
 ---+ New Setup
 
@@ -96,16 +36,15 @@ Then
 	- I_CALL: goto proc->definition; [GOOD]
 	- Supervisor will contain meta-data (module, etc).
 		- Swap needs to copy meta-data [OK]
-================================================================
 
+================================================================
 Simple way forward:
 
 	* Add ->codes to definition
 	    - Jump to it if it exists
 	    - Keep (most of) the rest
 		- Simply ignore ->codes for debugging
-	    - Link one and only clause
-		TBD: Unlink on eraseClause
+
 ================================================================
 ---+ Debugging
 
@@ -118,20 +57,6 @@ Simple way forward:
 	* Spy: 
 		- Patch code?
 		- Run on top of advice?
-
-================================================================
-Normal Prolog Supervisor:
-
-	* S_FIRSTCLAUSE
-		- Find first possibly interesting clause
-		- If nondet
-			Create choicepoint for next
-		- Jump to clause
-	* S_NEXTCLAUSE
-
-Frame:
-	* Implementation
-	* Clause
 
 ================================================================
 Logical update behaviour:
@@ -169,9 +94,21 @@ Cleanup:
 		- Coroutining wakeup	[OK]
 
 ================================================================
-Arithmetic:
-	- A_FIRSTVAR_IS			[OK]
+Testing and debugging:
 
+ * Verify clear/mark of all new instructions.  This can be done
+ using a generic testing framework that creates clause and an
+ explicit GC goal.
+
+ * Realise a testing framework for the debugger, indicating what
+ must be visible in the trace.  This can be done using the
+ trace interception hook.
+
+ * Realise a testing framework to locate positions in clauses as
+ needed by the graphical debugger.
+
+ * Integrate supervisor generation such that it is called as generated
+ to avoid unnecessary choicepoints.
 ================================================================
 bench_peirera(1) on 5.6.59
 	- using pl -O -g bench_peirera
