@@ -158,7 +158,7 @@ be kept consistent.
 #define storage(w)	((w) & STG_MASK)
 #define valPtr2(w, s)	((Word)(((w) >> 5) + base_addresses[s]))
 #define valPtr(w)	valPtr2(w, storage(w))
-#define valInt(w)	((intptr_t)(w) >> 7)
+#define valInt(w)	((intptr_t)(w) >> LMASK_BITS)
 
 		 /*******************************
 		 *	  EXTENDED TAG		*
