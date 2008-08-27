@@ -249,6 +249,7 @@ Section "YAP Portability support"
   SectionIn 1 3
   SetOutPath $INSTDIR\library\dialect
   File pl\library\dialect\yap.pl
+  File pl\library\dialect\hprolog.pl
   File /r pl\library\dialect\yap
 SectionEnd
 

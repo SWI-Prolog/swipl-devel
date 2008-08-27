@@ -152,7 +152,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	aggregate.pl pure_input.pl pio.pl thread_pool.pl terms.pl
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON= README
-DIALECT=yap.pl
+DIALECT=yap.pl hprolog.pl
 YAP=	README.TXT
 ISO=	iso_predicates.pl
 UNICODE=blocks.pl unicode_data.pl

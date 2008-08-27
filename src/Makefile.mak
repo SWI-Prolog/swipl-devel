@@ -93,7 +93,7 @@ PLLIBS=$(PLLIBS) threadutil.pl thread.pl thread_pool.pl
 !ENDIF
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON=	
-DIALECT=yap.pl
+DIALECT=yap.pl hprolog.pl
 YAP=	README.TXT
 ISO=	iso_predicates.pl
 UNICODE=blocks.pl unicode_data.pl

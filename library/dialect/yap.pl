@@ -35,7 +35,7 @@
 	    system/1,			% +Command
 	    exists/1,			% +File
 	    assert_static/1,		% :Term
-	    false/0
+	    atomic_concat/3		% +Atomic, +Atomic, -Atom
 	  ]).
 
 /** <module> YAP Compatibility module
@@ -102,7 +102,6 @@ yap_expansion(if(Goal, Then),
 	      (Goal *-> Then; true)).
 yap_expansion(if(Goal, Then, Else),
 	      (Goal *-> Then; Else)).
-yap_expansion(false, fail).
 
 
 
@@ -203,11 +202,10 @@ assert_static(Term) :-
 	assert(Term).
 
 
-%%	false
+%%	atomic_concat(+Prefix, +Suffix, -Atom) is det.
 %
-%	Equivalent to fail/0
-%	
-%	@compat yap
+%	Append to atomic values.  SWI-Prolog's built-in atom_concat/3
+%	already overloads this behaviour.
 
-false :-
-	fail.
+atomic_concat(Prefix, Suffix, Atom) :-
+	atom_concat(Prefix, Suffix, Atom).
