@@ -2296,26 +2296,44 @@ Both sides are pushed on the stack, so we just compare the two values on
 the  top  of  this  stack  and  backtrack  if  they  do  not suffice the
 condition.  Example translation: `a(Y) :- b(X), X > Y'
 
-ENTER
-B_FIRSTVAR 1	% Link X from B's frame to a new var in A's frame
-CALL 0		% call b/1
-A_VAR 1		% Push X
-A_VAR 0		% Push Y
-A_GT		% compare
-EXIT
+	I_ENTER
+	B_FIRSTVAR 1	% Link X from B's frame to a new var in A's frame
+	I_CALL b/1	% call b/1
+	A_ENTER		% Enter arithmetic mode
+	A_VAR 1		% Push X
+	A_VAR 0		% Push Y
+	A_GT		% compare
+	EXIT
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 BEGIN_SHAREDVARS
+  Number n1, n2;
   int cmp;
-  Number n;
   int rc;
   
-VMI(A_LT, 0, ())
-{ cmp = LT;
+#define CMP_FAST(op) \
+  n1 = argvArithStack(2 PASS_LD); \
+  n2 = n1 + 1; \
+  if ( n1->type == n2->type ) \
+  { switch(n1->type) \
+    { case V_INTEGER: \
+        rc = n1->value.i op n2->value.i; \
+	goto a_cmp_out; \
+      case V_REAL: \
+        rc = n1->value.f op n2->value.f; \
+	goto a_cmp_out; \
+      default: \
+        ; \
+    } \
+  }
 
-acmp:				/* common entry */
-  n = argvArithStack(2 PASS_LD);
-  rc = ar_compare(n, n+1, cmp);
+
+VMI(A_LT, 0, ())
+{ CMP_FAST(<)
+  cmp = LT;
+acmp:
+  rc = ar_compare(n1, n2, cmp);
+a_cmp_out:
   popArgvArithStack(2 PASS_LD);
   AR_END();
   if ( rc )
@@ -2324,27 +2342,32 @@ acmp:				/* common entry */
 }
 
 VMI(A_LE, 0, ())
-{ cmp = LE; 
+{ CMP_FAST(<=);
+  cmp = LE;
   goto acmp;
 }
 
 VMI(A_GT, 0, ())
-{ cmp = GT;
+{ CMP_FAST(>);
+  cmp = GT;
   goto acmp;
 }
 
 VMI(A_GE, 0, ())
-{ cmp = GE;
+{ CMP_FAST(>=);
+  cmp = GE;
   goto acmp;
 }
 
 VMI(A_EQ, 0, ())
-{ cmp = EQ;
+{ CMP_FAST(==);
+  cmp = EQ;
   goto acmp;
 }
 
 VMI(A_NE, 0, ())
-{ cmp = NE;
+{ CMP_FAST(!=);
+  cmp = NE;
   goto acmp;
 }
 END_SHAREDVARS
