@@ -2174,6 +2174,15 @@ a_var_n:
   p = varFrameP(FR, offset);
   deRef2(p, p2);
 
+					/* speedup common case a bit */
+  if ( tagex(*p2) == (TAG_INTEGER|STG_INLINE) )
+  { n = allocArithStack(PASS_LD1);
+    n->value.i = valInt(*p2);
+    n->type = V_INTEGER;
+    NEXT_INSTRUCTION;
+    /*NOTREACHED*/
+  }
+
   switch(tag(*p2))
   { case TAG_INTEGER:
       n = allocArithStack(PASS_LD1);
