@@ -1486,7 +1486,7 @@ autoLoader(LocalFrame *frp, Code PC, Definition def)
   { LocalFrame fr = *frp;
 
     fr->parent = environment_frame;
-    fr->flags = fr->parent->flags;
+    setNextFrameFlags(fr, fr->parent);
     fr->predicate = def;
     fr->programPointer = PC;
     fr->clause = NULL;
