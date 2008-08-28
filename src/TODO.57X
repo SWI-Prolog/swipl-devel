@@ -38,14 +38,6 @@ Then
 		- Swap needs to copy meta-data [OK]
 
 ================================================================
-Simple way forward:
-
-	* Add ->codes to definition
-	    - Jump to it if it exists
-	    - Keep (most of) the rest
-		- Simply ignore ->codes for debugging
-
-================================================================
 ---+ Debugging
 
 	* Debug-mode
