@@ -174,7 +174,7 @@ mark_argp(walk_state *state ARG_LD)
 {
 #ifdef MARK_ALT_CLAUSES
   if ( state->adepth == 0 )
-  { if ( !is_marked(state->ARGP) )
+  { if ( state->ARGP < state->envtop && !is_marked(state->ARGP) )
     { mark_local_variable(state->ARGP PASS_LD);
       state->unmarked--;
     }
@@ -183,6 +183,7 @@ mark_argp(walk_state *state ARG_LD)
 #endif
 }
 
+#define NO_ADEPTH 1234567
 
 static Code
 walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
@@ -276,13 +277,14 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       }
 
 					/* variable access */
+	
+      case B_UNIFY_VAR:			/* Var = Term */
+	mark_frame_var(state, PC[0] PASS_LD);
+        state->adepth = NO_ADEPTH;
+	break;
       case B_UNIFY_FIRSTVAR:
-      case B_UNIFY_VAR:
-	state->ARGP = varFrameP(state->frame, PC[0]);
-        state->adepth = 0;
-	if ( op == B_UNIFY_VAR )
-	  break;
-	/*FALLTHROUGH*/
+	state->adepth = NO_ADEPTH;	/* never need to mark over ARGP */
+        /*FALLTHROUGH*/
       case B_FIRSTVAR:
       case B_ARGFIRSTVAR:
       case A_FIRSTVAR_IS:
@@ -356,6 +358,8 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	case H_FUNCTOR:
 	case H_LIST:
 	  mark_argp(state PASS_LD);
+	case B_FUNCTOR:
+	case B_LIST:
 	  state->adepth++;
 	  break;
 	case H_VOID:
@@ -367,6 +371,8 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  state->adepth--;
 	  break;
 	case B_UNIFY_EXIT:
+	  assert(state->adepth == NO_ADEPTH);
+	  break;
 	case I_ENTER:
 	  assert(state->adepth==0);
 	  break;
