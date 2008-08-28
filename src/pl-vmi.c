@@ -2271,25 +2271,60 @@ VMI(A_FUNC2, 1, (CA1_AFUNC))
 }
 
 VMI(A_FUNC, 2, (CA1_AFUNC, CA1_INTEGER))
-{ Number n;
-
-  fn = *PC++;
+{ fn = *PC++;
   an = (int) *PC++;
 
 common_an:
-  n = (Number) ARGP;
-
   if ( !ar_func_n((int)fn, an PASS_LD) )
   { resetArithStack(PASS_LD1);
-
-    if ( exception_term )
-      goto b_throw;
-    BODY_FAILED;
+    goto b_throw;
   }
 
   NEXT_INSTRUCTION;
 }
 END_SHAREDVARS
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A_ADD: Shorthand for A_FUNC2 ar_add()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(A_ADD, 0, ())
+{ Number argv = argvArithStack(2 PASS_LD);
+  int rc;
+  number r;
+
+  rc = ar_add(argv, argv+1, &r);
+  popArgvArithStack(2 PASS_LD);
+  if ( rc )
+  { pushArithStack(&r PASS_LD);
+    NEXT_INSTRUCTION;
+  }
+
+  resetArithStack(PASS_LD1);
+  goto b_throw;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A_MUL: Shorthand for A_FUNC2 ar_mul()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(A_MUL, 0, ())
+{ Number argv = argvArithStack(2 PASS_LD);
+  int rc;
+  number r;
+
+  rc = ar_mul(argv, argv+1, &r);
+  popArgvArithStack(2 PASS_LD);
+  if ( rc )
+  { pushArithStack(&r PASS_LD);
+    NEXT_INSTRUCTION;
+  }
+
+  resetArithStack(PASS_LD1);
+  goto b_throw;
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

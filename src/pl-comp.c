@@ -1839,6 +1839,15 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
     for(n=0; n<ar; a++, n++)
       TRY( compileArithArgument(a, ci PASS_LD) );
 
+    if ( fdef == FUNCTOR_plus2 )
+    { Output_0(ci, A_ADD);
+      succeed;
+    }
+    if ( fdef == FUNCTOR_star2 )
+    { Output_0(ci, A_MUL);
+      succeed;
+    }
+
     switch(ar)
     { case 0:	Output_1(ci, A_FUNC0, index); break;
       case 1:	Output_1(ci, A_FUNC1, index); break;
@@ -3068,6 +3077,12 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    continue;
 #endif
 #if O_COMPILE_ARITH
+      case A_ADD:
+			    build_term(FUNCTOR_plus2, di PASS_LD);
+			    continue;
+      case A_MUL:
+			    build_term(FUNCTOR_star2, di PASS_LD);
+			    continue;
       case A_FUNC0:
       case A_FUNC1:
       case A_FUNC2:

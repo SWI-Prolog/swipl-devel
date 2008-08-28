@@ -126,6 +126,8 @@ COMMON(void) 		_PL_debug_unregister_atom(atom_t a,
 
 COMMON(int) 		ar_compare(Number n1, Number n2, int what);
 COMMON(int) 		ar_compare_eq(Number n1, Number n2);
+COMMON(int) 		ar_add(Number n1, Number n2, Number r);
+COMMON(int) 		ar_mul(Number n1, Number n2, Number r);
 COMMON(word) 		pl_current_arithmetic_function(term_t f, control_t h);
 COMMON(void) 		initArith(void);
 COMMON(void) 		cleanupArith(void);
