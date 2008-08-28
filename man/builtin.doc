@@ -6294,7 +6294,8 @@ thread_cputime  & MT-version: seconds CPU time used by finished threads.
 \multicolumn{2}{|c|}{Compatibility keys (times in milliseconds)} \\
 \hline
 runtime		& [ CPU time, CPU time since last ]
-		  (milliseconds) \\
+		  (milliseconds, excluding time spent in
+		   garbage collection) \\
 system_time	& [ System CPU time, System CPU time since last ]
 		  (milliseconds)\\
 real_time	& [ Wall time, Wall time since last ] (see get_time/1) \\
