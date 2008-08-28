@@ -1957,7 +1957,7 @@ VMI(S_VIRGIN, 0, ())
     NEXT_INSTRUCTION;
   }
 
-  goto old_call;			/* temporary */
+  goto old_call;			/* TBD: temporary */
 }
 
 
@@ -1988,6 +1988,22 @@ VMI(S_UNDEF, 0, ())
   }
 
   FRAME_FAILED;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_THREAD_LOCAL: Get thread-local definition
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_THREAD_LOCAL, 0, ())
+{ FR->predicate = DEF = getProcDefinition__LD(DEF PASS_LD);
+
+  if ( DEF->codes )
+  { PC = DEF->codes;
+    NEXT_INSTRUCTION;
+  }
+
+  goto old_call;			/* TBD: temporary */
 }
 
 
