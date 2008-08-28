@@ -51,6 +51,10 @@ typedef struct
 #else
   int	  struct_may_not_be_empty;	/* empty structure is illegal */
 #endif
+  struct				/* see initSupervisors() */
+  { code exit[1];			/* I_EXIT */
+    code next_clause[1];		/* S_NEXTCLAUSE */
+  } supervisors;
 } PL_code_data_t;
 
 typedef struct

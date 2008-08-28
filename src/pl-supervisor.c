@@ -197,3 +197,20 @@ createListSupervisor(Definition def)
 
   fail;
 }
+
+
+		 /*******************************
+		 *	       INIT		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Generic and reusable code-sequences.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define SV PL_code_data.supervisors
+
+void
+initSupervisors(void)
+{ SV.exit[0]        = encode(I_EXIT);
+  SV.next_clause[0] = encode(S_NEXTCLAUSE);
+}
