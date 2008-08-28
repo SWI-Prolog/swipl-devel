@@ -37,20 +37,27 @@ allocCodes(size_t n)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+freeCodesDefinition() destroys the supervisor of  a predicate, replacing
+it  by  the  statically  allocated  S_VIRGIN  supervisor.  Note  that  a
+predicate *always* has non-NULL def->codes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 freeCodesDefinition(Definition def)
 { Code codes;
 
-  if ( (codes = def->codes) )
-  { size_t size = (size_t)codes[-1];
+  if ( (codes=def->codes) != SUPERVISOR(virgin) )
+  { if ( (codes = def->codes) )
+    { size_t size = (size_t)codes[-1];
 
-    def->codes = SUPERVISOR(virgin);
-    if ( size > 0 )			/* 0: built-in, see initSupervisors() */
-      freeHeap(&codes[-1], (size+1)*sizeof(code));
+      def->codes = SUPERVISOR(virgin);
+      if ( size > 0 )		/* 0: built-in, see initSupervisors() */
+	freeHeap(&codes[-1], (size+1)*sizeof(code));
+    } else
+      def->codes = SUPERVISOR(virgin);
   }
 }
-
-
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

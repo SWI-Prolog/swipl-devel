@@ -154,8 +154,7 @@ resetProcedure(Procedure proc, bool isnew)
       def->hash_info = NULL;
     }
 
-    if ( def->codes )
-      freeCodesDefinition(def);
+    freeCodesDefinition(def);		/* carefully sets to S_VIRGIN */
   } else
   { def->codes = SUPERVISOR(virgin);
   }

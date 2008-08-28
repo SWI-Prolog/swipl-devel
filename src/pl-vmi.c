@@ -1227,25 +1227,19 @@ execution can continue at `next_instruction'
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CALL, 1, (CA1_PROC))
-{ NFR          = lTop;
-  setNextFrameFlags(NFR, FR);
-  updateFrameDebug(FR, DEF);
+{ Procedure proc = (Procedure) *PC++;
 
-  { Procedure proc = (Procedure) *PC++;
-    SAVE_REGISTERS(qid);
-    DEF = getProcDefinedDefinition(&NFR, PC, proc->definition PASS_LD);
-    LOAD_REGISTERS(qid);
-  }
+  NFR = lTop;
+  setNextFrameFlags(NFR, FR);
+  DEF = proc->definition;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This is the common part of the call variations.  By now the following is
 true:
 
-- NFR				Points to new frame
-- arguments, nodebug		filled
-- context			filled with context for
-			  transparent predicate
-- DEF				filled
+  - NFR			Points to new frame
+  - arguments		filled
+  - DEF			filled with predicate to call
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 normal_call:
@@ -1336,9 +1330,13 @@ retry_continue:
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
-    { if ( false(DEF, FOREIGN) )
+    { DEF = getProcDefinedDefinition(&FR, NULL, DEF PASS_LD);
+      FR->predicate = DEF;
+      updateFrameDebug(FR, DEF);
+      if ( false(DEF, FOREIGN) )
 	FR->clause = DEF->definition.clauses;
       set(FR, FR_INBOX);
+
       switch(tracePort(FR, BFR, CALL_PORT, NULL PASS_LD))
       { case ACTION_FAIL:   FRAME_FAILED;
 	case ACTION_IGNORE: VMI_GOTO(I_EXIT);
@@ -1948,7 +1946,15 @@ S_VIRGIN: Fresh, unused predicate
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_VIRGIN, 0, ())
-{ reindexDefinition(DEF);
+{ SAVE_REGISTERS(qid);
+  DEF = getProcDefinedDefinition(&FR, NULL, DEF PASS_LD);
+  LOAD_REGISTERS(qid);
+  FR->predicate = DEF;
+
+#ifdef O_LOGICAL_UPDATE
+  FR->generation     = GD->generation;
+#endif
+  reindexDefinition(DEF);		/* will block if it needs to do work */
 
   if ( DEF->codes == SUPERVISOR(virgin) )
   { DEF->codes = NULL;
@@ -1969,7 +1975,9 @@ one instruction and dynamic checking.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_UNDEF, 0, ())
-{ if ( true(DEF->module, UNKNOWN_ERROR) )
+{ updateFrameDebug(FR, DEF);
+
+  if ( true(DEF->module, UNKNOWN_ERROR) )
   { fid_t fid;
     Definition caller;
 
@@ -2017,6 +2025,7 @@ TBD: get rid of clause-references
 VMI(S_TRUSTME, 1, (CA1_CLAUSEREF))
 { ClauseRef cref = (ClauseRef)*PC++;
 
+  updateFrameDebug(FR, DEF);
   ARGP = argFrameP(FR, 0);
   TRUST_CLAUSE(cref);
 }
@@ -2067,6 +2076,7 @@ VMI(S_LIST, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF))
 { ClauseRef cref;
   Word k;
 
+  updateFrameDebug(FR, DEF);
   ARGP = argFrameP(FR, 0);
   deRef2(ARGP, k);
   if ( isList(*k) )

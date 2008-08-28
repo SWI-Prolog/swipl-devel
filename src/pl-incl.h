@@ -989,7 +989,7 @@ Handling environment (or local stack) frames.
 #define updateFrameDebug(fr, def) \
 	do { if ( true(fr, FR_NODEBUG) && false(def, HIDE_CHILDS) ) \
 	       clear(fr, FR_NODEBUG); \
-	     if ( false(fr, FR_NODEBUG) && true(def, HIDE_CHILDS) ) \
+	     else if ( false(fr, FR_NODEBUG) && true(def, HIDE_CHILDS) ) \
 	       set(fr, FR_NODEBUG); \
 	   } while(0)
 
