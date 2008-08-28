@@ -1233,7 +1233,7 @@ VMI(I_CALL, 1, (CA1_PROC))
 
   { Procedure proc = (Procedure) *PC++;
     SAVE_REGISTERS(qid);
-    DEF = getProcDefinedDefinition(&NFR, PC, proc PASS_LD);
+    DEF = getProcDefinedDefinition(&NFR, PC, proc->definition PASS_LD);
     LOAD_REGISTERS(qid);
   }
 
@@ -1456,7 +1456,7 @@ VMI(I_DEPART, 1, (CA1_PROC))
     proc = (Procedure) *PC++;
 
     SAVE_REGISTERS(qid);
-    DEF = getProcDefinedDefinition(&lTop, PC, proc PASS_LD);
+    DEF = getProcDefinedDefinition(&lTop, PC, proc->definition PASS_LD);
     LOAD_REGISTERS(qid);
     if ( true(DEF, METAPRED) )
     { FR->context = contextModule(FR);
@@ -3609,7 +3609,7 @@ contextModule().
 
   SAVE_REGISTERS(qid);
   DEF = getProcDefinedDefinition(&NFR, PC,
-				 resolveProcedure(functor, module)
+				 resolveProcedure(functor, module)->definition
 				 PASS_LD);
   LOAD_REGISTERS(qid);
 
