@@ -2331,7 +2331,7 @@ END_SHAREDVARS
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-A_ADD: Shorthand for A_FUNC2 ar_add()
+A_ADD: Shorthand for A_FUNC2 pl_ar_add()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(A_ADD, 0, ())
@@ -2339,7 +2339,7 @@ VMI(A_ADD, 0, ())
   int rc;
   number r;
 
-  rc = ar_add(argv, argv+1, &r);
+  rc = pl_ar_add(argv, argv+1, &r);
   popArgvArithStack(2 PASS_LD);
   if ( rc )
   { pushArithStack(&r PASS_LD);

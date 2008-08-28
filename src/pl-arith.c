@@ -258,7 +258,7 @@ PRED_IMPL("succ", 2, succ, 0)
     if ( ar_sign_i(&i1) < 0 )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		      ATOM_not_less_than_zero, A1);
-    ar_add(&i1, &one, &i2);
+    pl_ar_add(&i1, &one, &i2);
     rc = PL_unify_number(A2, &i2);
   } else if ( !canBind(*p1) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, A1);
@@ -324,7 +324,7 @@ PRED_IMPL("plus", 3, plus, 0)
   switch(mask)
   { case 0x7:				/* +, +, + */
     case 0x3:				/* +, +, - */
-      ar_add(&m, &n, &o);
+      pl_ar_add(&m, &n, &o);
       rc = PL_unify_number(A3, &o);
       break;
     case 0x5:				/* +, -, + */
@@ -1056,7 +1056,7 @@ ar_add_ui(Number n, intptr_t add)
 #define SAME_SIGN(i1, i2) (((i1) ^ (i2)) < 0)
 
 int
-ar_add(Number n1, Number n2, Number r)
+pl_ar_add(Number n1, Number n2, Number r)
 { same_type_numbers(n1, n2);
 
   switch(n1->type)
@@ -2830,7 +2830,7 @@ typedef struct
 #define ADD(functor, func) { functor, func }
 
 static const ar_funcdef ar_funcdefs[] = {
-  ADD(FUNCTOR_plus2,		ar_add),
+  ADD(FUNCTOR_plus2,		pl_ar_add),
   ADD(FUNCTOR_minus2,		ar_minus),
   ADD(FUNCTOR_star2,		ar_mul),
   ADD(FUNCTOR_divide2,		ar_divide),
