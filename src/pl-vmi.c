@@ -1354,27 +1354,6 @@ retry_continue:
     NEXT_INSTRUCTION;
   }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Undefined predicate detection and handling.   trapUndefined() takes care
-of linking from the public modules or calling the exception handler.
-
-Note that DEF->definition is  a  union   of  the  clause  or C-function.
-Testing is suffices to find out that the predicate is defined.
-
-Logical-update: note that trapUndefined() may add  clauses and we should
-be able to access these!
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  if ( !DEF->definition.clauses && false(DEF, PROC_DEFINED) &&
-       true(DEF->module, UNKNOWN_ERROR) )
-  { FR->clause = NULL;
-    if ( exception_term )		/* left by trapUndefined() */
-    { lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
-      enterDefinition(DEF);		/* will be left in exception code */
-      goto b_throw;
-    }
-  }
-
 
 #if !O_DYNAMIC_STACKS
 #if O_SHIFT_STACKS
@@ -1410,13 +1389,13 @@ be able to access these!
 #endif /*O_SHIFT_STACKS*/
 #endif /*O_DYNAMIC_STACKS*/
 
-  ARGP = argFrameP(FR, 0);
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call a normal Prolog predicate.  Just   load  the machine registers with
 values found in the clause,  give  a   reference  to  the clause and set
 `lTop' to point to the first location after the current frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+old_call:				/* See S_VIRGIN */
+  ARGP = argFrameP(FR, 0);
   enterDefinition(DEF);
 
   DEBUG(9, Sdprintf("Searching clause ... "));
@@ -1609,7 +1588,7 @@ VMI(I_EXITFACT, 0, ())
     { LD->alerted &= ~ALERT_WAKEUP;
   
       if ( *valTermRef(LD->attvar.head) )
-      { PC = PL_code_data.supervisors.exit;
+      { PC = SUPERVISOR(exit);
 	goto wakeup;
       }
     }
@@ -1967,6 +1946,54 @@ VMI(I_TRUE, 0, ())
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_VIRGIN: Fresh, unused predicate
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_VIRGIN, 0, ())
+{ reindexDefinition(DEF);
+
+  if ( DEF->codes == SUPERVISOR(virgin) )
+  { DEF->codes = NULL;
+  } else if ( DEF->codes )
+  { PC = DEF->codes;
+    NEXT_INSTRUCTION;
+  }
+
+  goto old_call;			/* temporary */
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_UNDEF: Undefined predicate. We could make   two  instructions, one for
+trapping and one not, but the disadvantage of that is that switching the
+unknown flag of the module has no   immediate consequences. Hence we use
+one instruction and dynamic checking.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_UNDEF, 0, ())
+{ if ( true(DEF->module, UNKNOWN_ERROR) )
+  { fid_t fid;
+    Definition caller;
+
+    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+    fid = PL_open_foreign_frame();
+    if ( FR->parent )
+      caller = FR->parent->predicate;
+    else
+      caller = NULL;
+
+    PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, DEF, caller);
+    PL_close_foreign_frame(fid);
+    enterDefinition(DEF);		/* will be left in exception code */
+
+    goto b_throw;
+  }
+
+  FRAME_FAILED;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 S_TRUSTME: Trust this clause. Generated   for  single-clause supervisors
 and for the last one of a disjunction.
 
@@ -2033,7 +2060,7 @@ VMI(S_LIST, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF))
   else if ( isNil(*k) )
     cref = (ClauseRef)PC[0];
   else if ( isVar(*k) )
-  { PC = PL_code_data.supervisors.next_clause;
+  { PC = SUPERVISOR(next_clause);
     VMI_GOTO(S_ALLCLAUSES);
   } else
     FRAME_FAILED;

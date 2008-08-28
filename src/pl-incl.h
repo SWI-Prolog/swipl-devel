@@ -1664,6 +1664,14 @@ Note that the local stack is always _above_ the global stack.
 
 
 		 /*******************************
+		 *	    SUPERVISORS		*
+		 *******************************/
+
+#define SUPERVISOR(name)	(&PL_code_data.supervisors.name[1])
+
+
+
+		 /*******************************
 		 *	   FLI INTERNALS	*
 		 *******************************/
 

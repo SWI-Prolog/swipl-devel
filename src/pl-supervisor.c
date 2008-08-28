@@ -44,10 +44,13 @@ freeCodesDefinition(Definition def)
   if ( (codes = def->codes) )
   { size_t size = (size_t)codes[-1];
 
-    def->codes = NULL;
-    freeHeap(&codes[-1], (size+1)*sizeof(code));
+    def->codes = SUPERVISOR(virgin);
+    if ( size > 0 )			/* 0: built-in, see initSupervisors() */
+      freeHeap(&codes[-1], (size+1)*sizeof(code));
   }
 }
+
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -133,7 +136,7 @@ only clause of the predicate.  Creates
 	S_TRUSTME <ClauseRef>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+static int
 createSingleClauseSupervisor(Definition def)
 { if ( def->number_of_clauses == 1 )
   { ClauseRef cref;
@@ -166,7 +169,7 @@ The code is
 	S_LIST <nilclause> <listclause>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+static int
 createListSupervisor(Definition def)
 { if ( def->number_of_clauses == 2 )
   { ClauseRef cref[2];
@@ -199,18 +202,63 @@ createListSupervisor(Definition def)
 }
 
 
+static int
+createUndefSupervisor(Definition def)
+{ if ( def->number_of_clauses == 0 && false(def, PROC_DEFINED) )
+  { def->codes = SUPERVISOR(undef);
+
+    succeed;
+  }
+
+  fail;
+}
+
+
+
+		 /*******************************
+		 *	      ENTRY		*
+		 *******************************/
+
+int
+createSupervisor(Definition def)
+{ if ( true(def, (DYNAMIC|MULTIFILE)) )
+    fail;
+
+  if ( createUndefSupervisor(def))
+    succeed;
+  if ( createSingleClauseSupervisor(def) )
+    succeed;
+  if ( createListSupervisor(def) )
+    succeed;
+
+  fail;
+}
+
+
 		 /*******************************
 		 *	       INIT		*
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Generic and reusable code-sequences.
+Generic and reusable code-sequences. The  entry-point of these sequences
+must be accessed as:
+
+	SUPERVISOR(name)
+
+The code sequence starts with 0 to   avoid freeing using freeCodes(). It
+ends in I_EXIT, such that generic code  walkers will always find the end
+of the sequence.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define SV PL_code_data.supervisors
+#define MAKE_SV1(name, i) { PL_code_data.supervisors.name[0] = (code)0; \
+			    PL_code_data.supervisors.name[1] = encode(i); \
+			    PL_code_data.supervisors.name[2] = encode(I_EXIT); \
+			  }
 
 void
 initSupervisors(void)
-{ SV.exit[0]        = encode(I_EXIT);
-  SV.next_clause[0] = encode(S_NEXTCLAUSE);
+{ MAKE_SV1(exit,	I_EXIT);
+  MAKE_SV1(next_clause,	S_NEXTCLAUSE);
+  MAKE_SV1(virgin,	S_VIRGIN);
+  MAKE_SV1(undef,	S_UNDEF);
 }
