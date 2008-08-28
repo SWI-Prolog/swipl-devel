@@ -1934,7 +1934,7 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
 Compile ==/2. Note that if either  side   is  a  firstvar, the test will
 always fail. When doing optimized compilation we simply generate fail/0.
 otherwise we generate a balancing instruction and the normal equivalence
-test.
+test.  Likewise, an == on a singleton fails.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -1944,13 +1944,21 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
 
   a1 = argTermP(*arg, 0);
   deRef(a1);
-  if ( isVar(*a1) )			/* Singleton = ?: no need to compile */
-    succeed;
+  if ( isVar(*a1) )			/* Singleton == ?: always fail */
+  { 
+  eq_always_false:
+    if ( trueFeature(OPTIMISE_FEATURE) )
+    { Output_0(ci, I_FAIL);
+      succeed;
+    }
+
+    fail;				/* debugging: compile as normal code */
+  }
 
   a2 = argTermP(*arg, 1);
   deRef(a2);
   if ( isVar(*a2) )			/* ? = Singleton: no need to compile */
-    succeed;
+    goto eq_always_false;
 
   i1 = isIndexedVarTerm(*a1 PASS_LD);
   i2 = isIndexedVarTerm(*a2 PASS_LD);
