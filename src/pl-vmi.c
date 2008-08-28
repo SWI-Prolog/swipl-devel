@@ -858,7 +858,7 @@ VMI(B_UNIFY_EXIT, 0, ())
 #if O_DEBUGGER
   if ( debugstatus.debugging )
   { NFR = lTop;
-    DEF = getProcDefinedDefinition(&FR, PC, GD->procedures.equals2 PASS_LD);
+    DEF = GD->procedures.equals2->definition;
     setNextFrameFlags(NFR, FR);
     goto normal_call;
   }
@@ -927,8 +927,7 @@ VMI(B_UNIFY_VV, 2, (CA1_VAR,CA1_VAR))
     *ARGP++ = linkVal(v2);
   debug_equals2:
     NFR = lTop;
-    DEF = getProcDefinedDefinition(&NFR, PC,
-				   GD->procedures.equals2 PASS_LD);
+    DEF = GD->procedures.equals2->definition;
     setNextFrameFlags(NFR, FR);
     goto normal_call;
   }
@@ -1013,8 +1012,7 @@ VMI(B_EQ_VV, 2, (CA1_VAR,CA1_VAR))
     *ARGP++ = linkVal(v2);
   debug_eq_vv:
     NFR = lTop;
-    DEF = getProcDefinedDefinition(&NFR, PC,
-				   GD->procedures.strict_equal2 PASS_LD);
+    DEF = GD->procedures.strict_equal2->definition;
     setNextFrameFlags(NFR, FR);
     goto normal_call;
   }
@@ -2374,8 +2372,7 @@ VMI(A_ADD_FC, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
     *ARGP++ = linkVal(rp);
     *ARGP++ = consPtr(expr, TAG_COMPOUND|STG_GLOBAL);
     NFR = lTop;
-    DEF = getProcDefinedDefinition(&NFR, PC,
-				   GD->procedures.is2 PASS_LD);
+    DEF = GD->procedures.is2->definition;
     setNextFrameFlags(NFR, FR);
     goto normal_call;
   }
