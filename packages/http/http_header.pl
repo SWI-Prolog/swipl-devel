@@ -968,7 +968,7 @@ term_expansion(rd_field_char(_,_), Clauses) :-
 		  ],
 	findall(rd_field_char(In, Out),
 		(   between(1, 127, In),
-		    code_type(In, csymf),
+		    code_type(In, csym),
 		    code_type(Out, to_lower(In))),
 		Cls).
 
