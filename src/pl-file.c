@@ -1722,8 +1722,11 @@ re_buffer(IOSTREAM *s, const char *from, size_t len)
   { s->bufp = s->limitp = s->buffer;
   }
 
-  memcpy(s->bufp, from, len);
-  s->bufp += len;
+  if ( len > 0 )
+  { memcpy(s->limitp, from, len);
+    s->limitp += len;
+    s->flags |= SIO_PARTIAL;
+  }
 }
 
 
@@ -1884,13 +1887,24 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	size_t count = 0, i;
 
 	while(us<es)
-	{ const char *ec = us + UTF8_FBN(us[0]) + 1;
-	  
-	  if ( ec <= es )
+	{ if ( !(us[0]&0x80) )
 	  { count++;
-	    us=ec;
+	    us++;
 	  } else
-	    break;
+	  { int ex = UTF8_FBN(us[0]);
+
+	    if ( ex > 0 )
+	    { if ( us+ex+1 <= es )
+	      { count++;
+		us += ex+1;
+	      } else
+	      { break;
+	      }
+	    } else
+	    { Sseterr(s, SIO_WARN, "Illegal UTF-8 sequence");
+	      goto failure;
+	    }
+	  }
 	}
 
 	DEBUG(2, Sdprintf("Got %ld codes from %d bytes; incomplete: %ld\n",

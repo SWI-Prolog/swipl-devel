@@ -723,7 +723,7 @@ eval_expression(term_t t, Number r, int recursion ARG_LD)
       return PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
   }
 
-  if ( recursion > 100 && !PL_is_acyclic(t) )
+  if ( recursion == 100 && !PL_is_acyclic(t) )
     return PL_error(NULL, 0, "cyclic term", ERR_TYPE, ATOM_expression, t);
 
 #if O_PROLOG_FUNCTIONS
