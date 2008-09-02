@@ -212,10 +212,10 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 					/* dynamically sized objects */
       case H_STRING:			/* only skip the size of the */
       case H_MPZ:
-      case A_MPZ:
 	mark_argp(state PASS_LD);
 	/*FALLTHROUGH*/
       case B_STRING:			/* string + header */
+      case A_MPZ:
       case B_MPZ:
       { word m = *PC;
 	PC += wsizeofInd(m)+1;
