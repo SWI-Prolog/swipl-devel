@@ -34,6 +34,7 @@ typedef struct mark_state
 } mark_state;
 
 static void	early_reset_choicepoint(mark_state *state, Choice ch ARG_LD);
+static void	mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD);
 
 
 		 /*******************************
@@ -228,11 +229,15 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case I_EXITFACT:
       case I_FEXITDET:
       case I_FEXITNDET:
-      case I_FREDO:
       case S_TRUSTME:			/* Consider supervisor handling! */
       case S_LIST:
-      case S_NEXTCLAUSE:
 	return PC-1;
+      case S_NEXTCLAUSE:
+	mark_alt_clauses(state->frame, state->frame->clause->next PASS_LD);
+        return PC-1;
+      case I_FREDO:
+	mark_arguments(state->frame PASS_LD);
+        return PC-1;
 
       case C_JMP:			/* unconditional jump */
 	if ( (state->flags & GCM_ALTCLAUSE) )
