@@ -537,7 +537,6 @@ S__fillbuf(IOSTREAM *s)
 
     if ( (n=(*s->functions->read)(s->handle, s->limitp, len)) > 0 )
     { s->limitp += n;
-      s->flags &= ~SIO_PARTIAL;
       c = char_to_int(*s->bufp++);
       return c;
     } else
@@ -1384,7 +1383,7 @@ Sfeof(IOSTREAM *s)
 { if ( s->flags & SIO_FEOF )
     return TRUE;
 
-  if ( s->bufp < s->limitp && !(s->flags & SIO_PARTIAL) )
+  if ( s->bufp < s->limitp )
     return FALSE;
 
   if ( s->flags & SIO_NBUF )
@@ -1629,7 +1628,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
   }
 
 update:
-  s->flags &= ~(SIO_FEOF|SIO_FEOF2|SIO_PARTIAL); /* not on eof of file anymore */
+  s->flags &= ~(SIO_FEOF|SIO_FEOF2);	/* not on eof of file anymore */
 
   if ( s->position )
   { s->flags |= (SIO_NOLINENO|SIO_NOLINEPOS); /* no update this */
