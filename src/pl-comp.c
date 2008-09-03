@@ -4642,21 +4642,10 @@ PRED_IMPL("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
   { code op = fetchop(PC);
     Code next = stepPC(PC);
 
-    switch(op)
-    { case I_ENTER:
-      case I_EXIT:
-      case I_EXITCATCH:
-      case I_EXITFACT:
-      case I_CALL:
-      case I_DEPART:
-      case I_CUT:
-      case I_FAIL:
-      case I_TRUE:
-      case I_USERCALL0:
-      case I_USERCALLN:
-	if ( PL_unify_integer(A2, PC-clause->codes) &&
-	     PL_unify_integer(A3, next-clause->codes) )
-	  ForeignRedoInt(next-clause->codes);
+    if ( (codeTable[op].flags & VIF_BREAK) )
+    { if ( PL_unify_integer(A2, PC-clause->codes) &&
+	   PL_unify_integer(A3, next-clause->codes) )
+	ForeignRedoInt(next-clause->codes);
     }
 
     PC = next;
@@ -4811,7 +4800,7 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
     { fid_t cid = PL_open_foreign_frame();
 
       if ( PL_unify_pointer(A1, bp->clause) &&
-	   PL_unify_integer(A2,  bp->offset) )
+	   PL_unify_integer(A2, bp->offset) )
       { ForeignRedoPtr(e);
       }
 

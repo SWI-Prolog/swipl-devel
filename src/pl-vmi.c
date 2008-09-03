@@ -1176,7 +1176,7 @@ makes debugging much more  difficult  as  the  system  will  do  a  deep
 backtrack without showing the fail ports explicitely.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_ENTER, 0, 0, ())
+VMI(I_ENTER, VIF_BREAK, 0, ())
 { ARGP = argFrameP(lTop, 0);
  
   if ( LD->alerted )
@@ -1226,7 +1226,7 @@ frame,  fill  the next frame and initialise the machine registers.  Then
 execution can continue at `next_instruction'
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_CALL, 0, 1, (CA1_PROC))
+VMI(I_CALL, VIF_BREAK, 1, (CA1_PROC))
 { Procedure proc = (Procedure) *PC++;
 
   NFR = lTop;
@@ -1434,7 +1434,7 @@ I_DEPART: implies it is the last subclause of the clause. This is be the
 entry point for last call optimisation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_DEPART, 0, 1, (CA1_PROC))
+VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 { if ( (void *)BFR <= (void *)FR
 #if O_DEBUGGER
        && trueFeature(LASTCALL_FEATURE)
@@ -1513,7 +1513,7 @@ TBD: Insert a layer in between, so   this  never has to handle call-back
 from C.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_EXIT, 0, 0, ())
+VMI(I_EXIT, VIF_BREAK, 0, ())
 { LocalFrame leave;
 
   if ( LD->alerted )
@@ -1642,7 +1642,7 @@ frame. If we are in  debug-mode  we   create  a  new  CHP_DEBUG frame to
 provide proper debugger output.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_CUT, 0, 0, ())
+VMI(I_CUT, VIF_BREAK, 0, ())
 { 
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
@@ -1903,7 +1903,7 @@ I_FAIL: Translation of fail/0. Same as C_FAIL, but we make a normal call
 when in debug-mode, so we can trace the call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_FAIL, 0, 0, ())
+VMI(I_FAIL, VIF_BREAK, 0, ())
 {
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
@@ -1922,7 +1922,7 @@ VMI(I_FAIL, 0, 0, ())
 I_TRUE: Translation of true/0.  See also I_FAIL.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_TRUE, 0, 0, ())
+VMI(I_TRUE, VIF_BREAK, 0, ())
 {
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
@@ -3108,7 +3108,7 @@ VMI(I_CATCH, 0, 0, ())
 }
 
 
-VMI(I_EXITCATCH, 0, 0, ())
+VMI(I_EXITCATCH, VIF_BREAK, 0, ())
 { if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
   { assert(BFR->type == CHP_CATCH);
     BFR = BFR->parent;
@@ -3440,7 +3440,7 @@ It also is responsible of filling the   argument part of the environment
 frame with the arguments of the term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_USERCALL0, 0, 0, ())
+VMI(I_USERCALL0, VIF_BREAK, 0, ())
 { word goal;
   Word a;
 
@@ -3534,7 +3534,7 @@ atom is referenced by the goal-term anyway.
 I_USERCALLN: translation of call(Goal, Arg1, ...)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_USERCALLN, 0, 1, (CA1_INTEGER))
+VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
 { Word a;
   int callargs = (int)*PC++;
   word goal;
