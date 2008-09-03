@@ -852,7 +852,7 @@ VMI(B_UNIFY_VAR, 0, 1, (CA1_VAR))
 }
 
 
-VMI(B_UNIFY_EXIT, 0, 0, ())
+VMI(B_UNIFY_EXIT, VIF_BREAK, 0, ())
 { ARGP = argFrameP(lTop, 0);
 
 #if O_DEBUGGER
@@ -874,7 +874,7 @@ VMI(B_UNIFY_EXIT, 0, 0, ())
 Unify two variables.  F stands for a first-var; V for any other var
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_UNIFY_FF, 0, 2, (CA1_VAR,CA1_VAR))
+VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
@@ -896,7 +896,7 @@ VMI(B_UNIFY_FF, 0, 2, (CA1_VAR,CA1_VAR))
 }
 
 
-VMI(B_UNIFY_FV, 0, 2, (CA1_VAR,CA1_VAR))
+VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
@@ -916,7 +916,7 @@ VMI(B_UNIFY_FV, 0, 2, (CA1_VAR,CA1_VAR))
 }
 
 
-VMI(B_UNIFY_VV, 0, 2, (CA1_VAR,CA1_VAR))
+VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
@@ -949,7 +949,7 @@ B_UNIFY_FC: Unify first variable with a constant.  Always succeeds, no
 need for wakeup.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_UNIFY_FC, 0, 2, (CA1_VAR, CA1_DATA))
+VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
   word c = (word)*PC++;
 
@@ -972,7 +972,7 @@ VMI(B_UNIFY_FC, 0, 2, (CA1_VAR, CA1_DATA))
 B_UNIFY_VC: Unify a variable (not first) with a constant in the body.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_UNIFY_VC, 0, 2, (CA1_VAR, CA1_DATA))
+VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
 { Word k = varFrameP(FR, (int)*PC++);
   word c = (word)*PC++;
   
@@ -1001,7 +1001,7 @@ VMI(B_UNIFY_VC, 0, 2, (CA1_VAR, CA1_DATA))
 B_EQ_VV: translation of	Var1 == Var2
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_EQ_VV, 0, 2, (CA1_VAR,CA1_VAR))
+VMI(B_EQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
@@ -1029,7 +1029,7 @@ VMI(B_EQ_VV, 0, 2, (CA1_VAR,CA1_VAR))
 B_EQ_VC Var == constant
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_EQ_VC, 0, 2, (CA1_VAR,CA1_DATA))
+VMI(B_EQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
   word c  = (word)*PC++;
 
