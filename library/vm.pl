@@ -16,11 +16,20 @@ instructions.
 %%	vm_list(:Spec) is det.
 %
 %	Lists  the  definition  of  the   predicates  matching  Spec  to
-%	=current_output=.
+%	=current_output=. Spec is also allowed to be a clause-reference.
 
+vm_list(Ref) :-
+	integer(Ref), !,
+	(   nth_clause(_Head, N, Ref),
+	    format('~40c~nclause ~d (~d):~n~40c~n', [0'-, N, Ref, 0'-]),
+	    vm_list_clause(Ref),
+	    fail
+	;   true
+	).
 vm_list(Spec) :-
 	'$find_predicate'(Spec, List),
 	(   member(Head, List),
+	    unify_args(Head, Spec),
 	    predicate_name(Head, Name),
 	    format('~72c~n~w~n~72c~n', [0'=, Name, 0'=]),
 	    (	'$fetch_vm'(Head, 0, _, _)
@@ -28,6 +37,7 @@ vm_list(Spec) :-
 	    ;	format('    (No supervisor)~n')
 	    ),
 	    (   nth_clause(Head, N, Ref),
+		clause(Head, _, Ref),
 		format('~40c~nclause ~d (~d):~n~40c~n', [0'-, N, Ref, 0'-]),
 		vm_list_clause(Ref),
 		fail
@@ -45,3 +55,11 @@ vm_list_clause(Clause, PC) :-
 	format('~t~d~4| ~q~n', [PC, VMI]),
 	vm_list_clause(Clause, NextPC).
 vm_list_clause(_, _).
+
+%	Unify the arguments of the specification with the given term,
+%	so we can partially instantate the head.
+
+unify_args(_, _/_) :- !.		% Name/arity spec
+unify_args(X, X) :- !.
+unify_args(_:X, X) :- !.
+unify_args(_, _).
