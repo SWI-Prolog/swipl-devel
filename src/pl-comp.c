@@ -4318,14 +4318,12 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 
 static Code
 find_code1(Code PC, code fop, code ctx)
-{ for(;;)
-  { code op = fetchop(PC++);
+{ for(;; PC = stepPC(PC))
+  { code op = fetchop(PC);
 
-    if ( fop == op && ctx == *PC )
-      return &PC[-1];
+    if ( fop == op && ctx == PC[1] )
+      return PC;
     assert(op != I_EXIT);
-
-    PC += codeTable[op].arguments;
   }
 }
 
@@ -4333,51 +4331,52 @@ find_code1(Code PC, code fop, code ctx)
 static Code
 find_if_then_end(Code PC)
 { for(;;)
-  { code op = fetchop(PC++);
+  { code op = fetchop(PC);
+    Code nextpc = stepPC(PC);
 
     if ( op == C_END )
-      return &PC[-1];
+      return PC;
 
     assert(op != I_EXIT);
 
     switch(op)				/* jump over control structures */
     { case C_OR:
       { Code jmploc;
-	code inc = *PC++;
 	
-	jmploc = PC + inc;
+	jmploc = nextpc + PC[0];
 	PC = jmploc + jmploc[-1];
 	break;
       }
       case C_NOT:
-	PC = PC + PC[1] + 2;
+	PC = nextpc + PC[2] + 1;
         break;
       case C_SOFTIF:
       case C_IFTHENELSE:
-      { Code elseloc = PC + PC[1] + 2;
+      { Code elseloc = nextpc + PC[2] + 1;
 
 	PC = elseloc + elseloc[-1];
 	break;
       }
       case C_IFTHEN:
-      { Code cutloc = find_code1(&PC[1], C_CUT, PC[0]);
+      { Code cutloc = find_code1(nextpc, C_CUT, PC[1]);
 	PC = find_if_then_end(cutloc+2) + 1; /* returns location of C_END */
 	break;
       }
       default:
-	PC += codeTable[op].arguments;
+	PC = nextpc;
         break;
     }
-
   }
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$clause_term_position(+ClauseRef, +PCoffset, -TermPos)
-	Find the term-location of the call that ends in the given PC offset.
-	The term-position is a list of argument-numbers one has to use from
-	the clause-term to find the subterm that sets up the goal.
+'$clause_term_position'(+ClauseRef, +PCoffset, -TermPos)
+
+Find the location of the subterm of the   call for which PCoffset is the
+continuation PC, i.e. the PC that follows the call. The term-position is
+a list of argument-numbers one has to   use from the clause-term to find
+the subterm that sets up the goal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -4403,6 +4402,19 @@ add_1_if_not_at_end(Code PC, Code end, term_t tail ARG_LD)
     add_node(tail, 1 PASS_LD);
 }
 
+
+static int
+not_breakable(atom_t op, Clause clause, int offset)
+{ GET_LD
+  term_t brk = PL_new_term_ref();
+
+  PL_unify_term(brk, PL_FUNCTOR, FUNCTOR_break2,
+		       PL_POINTER, clause,
+		       PL_INT, offset);
+
+  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		  op, ATOM_break, brk);
+}
 
 
 static
@@ -4430,34 +4442,38 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
     add_node(tail, 2 PASS_LD);			/* $call :- <Body> */
 
   while( PC < loc )
-  { code op = fetchop(PC++);
+  { code op = fetchop(PC);
     const code_info *ci;
+    Code nextpc = stepPC(PC);
 
     ci = &codeTable[op];
+    DEBUG(1, Sdprintf("\t%s at %d\n", ci->name, PC-clause->codes));
 
     switch(op)
     { case I_ENTER:
-	if ( loc == PC )
+	if ( loc == nextpc )
 	{ add_node(tail, 1 PASS_LD);
 
 	  return PL_unify_nil(tail);
 	}
 	add_node(tail, 2 PASS_LD);
+	PC = nextpc;
 	continue;
       case I_EXIT:
       case I_EXITFACT:
       case I_EXITCATCH:
-	if ( loc == PC )
+      case I_EXITCLEANUP:
+	if ( loc == nextpc )
 	{ return PL_unify_nil(tail);
 	}
         continue;
     { Code endloc;
       case C_OR:			/* C_OR <jmp1> <A> C_JMP <jmp2> <B> */
       { Code jmploc;
-	code inc = *PC++;
 	
-	jmploc = PC + inc;
+	jmploc = nextpc + PC[1];
 	endloc = jmploc + jmploc[-1];
+	PC = nextpc;
 
 	DEBUG(1, Sdprintf("jmp = %d, end = %d\n",
 			  jmploc - clause->codes, endloc - clause->codes));
@@ -4483,7 +4499,8 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	continue;
       }
       case C_NOT:		/* C_NOT <var> <jmp> <A> C_CUT <var>, C_FAIL */
-      { endloc = PC + PC[1] + 2;
+      { endloc = nextpc+PC[2];
+	PC = nextpc;
 
 	DEBUG(1, Sdprintf("not: PC= %d, endloc = %d\n",
 			  PC - clause->codes, endloc - clause->codes));
@@ -4502,7 +4519,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
       case C_SOFTIF:
       case C_IFTHENELSE:	/* C_IFTHENELSE <var> <jmp1> */
 				/* <IF> C_CUT <THEN> C_JMP <jmp2> <ELSE> */
-      { Code elseloc = PC + PC[1] + 2;
+      { Code elseloc = nextpc + PC[2];
 	code cut = (op == C_IFTHENELSE ? C_CUT : C_SOFTCUT);
 
 	endloc = elseloc + elseloc[-1];
@@ -4514,7 +4531,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
 
 	  if ( loc <= elseloc )		/* a->b */
-	  { Code cutloc = find_code1(&PC[2], cut, PC[0]);
+	  { Code cutloc = find_code1(nextpc, cut, PC[1]);
 
 	    DEBUG(1, Sdprintf("cut at %d\n", cutloc - clause->codes));
 	    add_node(tail, 1 PASS_LD);
@@ -4522,7 +4539,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	    if ( loc <= cutloc )	/* a */
 	    { add_node(tail, 1 PASS_LD);
 	      end = cutloc;
-	      PC = &PC[2];
+	      PC = nextpc;
 	    } else			/* b */
 	    { add_node(tail, 2 PASS_LD);
 	      PC = cutloc + 2;
@@ -4542,11 +4559,12 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
       }
       case C_IFTHEN:		/* A -> B */
 				/* C_IFTHEN <var> <A> C_CUT <var> <B> C_END */
-      { Code cutloc = find_code1(&PC[1], C_CUT, PC[0]);
+      { Code cutloc = find_code1(nextpc, C_CUT, PC[1]);
 	
 	endloc = find_if_then_end(cutloc+2);
+	PC = nextpc;
 
-	DEBUG(0, Sdprintf("C_MARK: cut = %d, end = %d\n",
+	DEBUG(1, Sdprintf("C_MARK: cut = %d, end = %d\n",
 			  cutloc - clause->codes, endloc - clause->codes));
 
 	if ( loc <= endloc )
@@ -4555,7 +4573,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	  if ( loc <= cutloc )		/* a */
 	  { add_node(tail, 1 PASS_LD);
 
-	    PC += 1;
+	    PC = nextpc;
 	    end = cutloc;
 	  } else			/* b */
 	  { add_node(tail, 2 PASS_LD);
@@ -4570,38 +4588,19 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
       }
       }					/* closes the special constructs */
       case I_CONTEXT:			/* used to compile m:head :- body */
-	PC += ci->arguments;
+	PC = nextpc;
 	add_node(tail, 2 PASS_LD);
         continue;
-      case I_CALL:
-      case I_DEPART:
-      case I_CUT:
-      case I_FAIL:
-      case I_TRUE:
-      case I_USERCALL0:
-      case I_USERCALLN:
-      case I_CATCH:
-	PC += ci->arguments;
-        if ( loc == PC )
-	{ add_1_if_not_at_end(PC, end, tail PASS_LD);
+      default:
+        if ( loc == nextpc )
+	{ add_1_if_not_at_end(nextpc, end, tail PASS_LD);
 
 	  return PL_unify_nil(tail);
 	}
-	add_node(tail, 2 PASS_LD);
-	continue;
-      case H_STRING:
-      case B_STRING:
-#ifdef O_GMP
-      case H_MPZ:
-      case B_MPZ:
-      case A_MPZ:
-#endif
-      { word m = PC[0];
-	PC += wsizeofInd(m)+1;
-	break;
-      }
-      default:
-	PC += ci->arguments;
+        if ( codeTable[op].flags & VIF_BREAK )
+	  add_node(tail, 2 PASS_LD);
+	PC = nextpc;
+        continue;
     }
   }
 
@@ -4610,6 +4609,8 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+'$break_pc'(+ClauseRef, -StartPC, EndPC) is nondet.
+
 Generate (on backtracing), all  possible   break-points  of  the clause.
 Works in combination with pl_clause_term_position()   to  find the place
 for placing a break-point.
@@ -4690,14 +4691,7 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
     callEventHook(PLEV_BREAK, clause, offset);
     succeed;
   } else
-  { term_t brk = PL_new_term_ref();
-
-    PL_unify_term(brk, PL_FUNCTOR, FUNCTOR_break2,
-		  	 PL_POINTER, clause,
-		         PL_INT, offset);
-
-    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		    ATOM_set, ATOM_break, brk);
+  { return not_breakable(ATOM_set, clause, offset);
   }
 }
 
