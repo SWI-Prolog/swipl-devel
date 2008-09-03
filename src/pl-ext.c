@@ -191,7 +191,6 @@ static const PL_extension foreigns[] = {
 #if O_DEBUGGER
   FRG("$xr_member",		2, pl_xr_member,        NDET|META),
   FRG("$clause_term_position",	3, pl_clause_term_position,	0),
-  FRG("$break_pc",		3, pl_break_pc,		     NDET),
   FRG("$break_at",		3, pl_break_at,			0),
   FRG("$current_break",		2, pl_current_break,	     NDET),
 #endif  

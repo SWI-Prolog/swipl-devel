@@ -4209,14 +4209,14 @@ Works in combination with pl_clause_term_position()   to  find the place
 for placing a break-point.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h)
-{ GET_LD
+static
+PRED_IMPL("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
   Clause clause = NULL;
   size_t offset;
   Code PC, end;
 
-  switch( ForeignControl(h) )
+  switch( CTX_CNTRL )
   { case FRG_CUTTED:
       succeed;
     case FRG_FIRST_CALL:
@@ -4224,19 +4224,17 @@ pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h)
       break;
     case FRG_REDO:
     default:
-      offset = ForeignContextInt(h);
+      offset = CTX_INT;
   }
 
-  if ( !get_clause_ptr_ex(ref, &clause) )
+  if ( !get_clause_ptr_ex(A1, &clause) )
     fail;
   PC = clause->codes + offset;
   end = clause->codes + clause->code_size;
 
   while( PC < end )
   { code op = fetchop(PC);
-    Code next;
-
-    next = PC + 1 + codeTable[op].arguments;
+    Code next = stepPC(PC);
 
     switch(op)
     { case I_ENTER:
@@ -4254,8 +4252,8 @@ pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h)
       case I_CALL_FV0:
       case I_CALL_FV1:
       case I_CALL_FV2:
-	if ( PL_unify_integer(pc, PC-clause->codes) &&
-	     PL_unify_integer(nextpc, next-clause->codes) )
+	if ( PL_unify_integer(A2, PC-clause->codes) &&
+	     PL_unify_integer(A3, next-clause->codes) )
 	  ForeignRedoInt(next-clause->codes);
     }
 
@@ -4442,4 +4440,5 @@ BeginPredDefs(comp)
   PRED_DEF("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
   PRED_DEF("$fetch_vm", 4, fetch_vm, 0)
   PRED_DEF("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
+  PRED_DEF("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
 EndPredDefs

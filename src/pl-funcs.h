@@ -163,8 +163,6 @@ COMMON(int) 		unify_definition(term_t head, Definition def,
 				 term_t thehead, int flags);
 COMMON(word) 		pl_clause_term_position(term_t ref, term_t pc,
 						term_t locterm);
-COMMON(word) 		pl_break_pc(term_t ref, term_t pc, term_t nextpc,
-				    control_t h);
 COMMON(word) 		pl_break_at(term_t ref, term_t pc, term_t set);
 COMMON(code) 		replacedBreak(Code PC);
 COMMON(void) 		clearBreakPointsClause(Clause clause);
