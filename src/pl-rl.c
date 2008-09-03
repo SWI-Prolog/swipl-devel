@@ -112,7 +112,7 @@ int rl_readline_state = 0;
 #define rl_cleanup_after_signal() (void)0
 #endif
 
-#if defined(HAVE_DECL_RL_DONE) && !HAVE_DECL_RL_DONE
+#if !defined(HAVE_RL_DONE) && defined(HAVE_DECL_RL_DONE) && !HAVE_DECL_RL_DONE
 /* surely not provided, so we provide a dummy.  We do this as
    a global symbol, so if there is one in a dynamic library it
    will work anyway.

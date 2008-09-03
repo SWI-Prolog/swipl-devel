@@ -197,7 +197,7 @@ typedef struct io_stream
 } IOSTREAM;
 
 
-#define SmakeFlag(n)	(1<<(n-1))
+#define SmakeFlag(n)	((unsigned)1<<(n-1))
 
 #define SIO_FBUF	SmakeFlag(1)	/* full buffering */
 #define SIO_LBUF	SmakeFlag(2)	/* line buffering */
@@ -230,6 +230,7 @@ typedef struct io_stream
 #define SIO_REPXML	SmakeFlag(29)	/* Bad char --> XML entity */
 #define SIO_REPPL	SmakeFlag(30)	/* Bad char --> Prolog \hex\ */
 #define SIO_BOM		SmakeFlag(31)	/* BOM was detected/written */
+#define SIO_PARTIAL	SmakeFlag(32)	/* Partial multibyte in buffer */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */

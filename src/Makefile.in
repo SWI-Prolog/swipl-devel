@@ -348,7 +348,7 @@ install-arch:	idirs iruntime
 		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(ARCH); \
 		done
 
-install-libs:	idirs iboot ilib iruntime iinclude iman idot install-demo
+install-libs:	idirs iboot ilib iruntime iinclude ipkgconfig iman idot install-demo
 		$(INSTALL_DATA) $(STARTUPPATH) $(DESTDIR)$(PLBASE)/$(BOOTFILE)
 		echo . > $(DESTDIR)$(PLBASE)/swipl
 		echo .. > $(DESTDIR)$(PLBASE)/bin/swipl
@@ -391,6 +391,7 @@ install-implib:	idirs
 
 idirs::
 		if [ ! -d $(DESTDIR)$(libdir)  ]; then $(MKDIR) $(DESTDIR)$(libdir); fi
+		if [ ! -d $(DESTDIR)$(libdir)/pkgconfig ]; then $(MKDIR) $(DESTDIR)$(libdir)/pkgconfig; fi
 		if [ ! -d $(DESTDIR)$(PLBASE) ]; then $(MKDIR) $(DESTDIR)$(PLBASE); fi
 		for d in $(installdirs); do \
 			if [ ! -d $(DESTDIR)$(PLBASE)/$$d ]; then \
@@ -449,6 +450,9 @@ iinclude:	idirs
 			$(INSTALL_DATA) ../include/$$f $(DESTDIR)$(PLBASE)/include; \
 		    fi; \
 		done
+
+ipkgconfig:	idirs
+		$(INSTALL_DATA) pl.pc $(DESTDIR)$(libdir)/pkgconfig/
 
 iman::
 		-if [ ! -d $(DESTDIR)$(mandir) ]; then $(MKDIR) $(DESTDIR)$(mandir); fi
