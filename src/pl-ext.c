@@ -188,12 +188,6 @@ static const PL_extension foreigns[] = {
   FRG("nth_clause", 		3, pl_nth_clause,       NDET|META|CREF),
   FRG("retract",    		1, pl_retract,          NDET|META|CREF|ISO),
   FRG("retractall",		1, pl_retractall,	 META|ISO),
-#if O_DEBUGGER
-  FRG("$xr_member",		2, pl_xr_member,        NDET|META),
-  FRG("$clause_term_position",	3, pl_clause_term_position,	0),
-  FRG("$break_at",		3, pl_break_at,			0),
-  FRG("$current_break",		2, pl_current_break,	     NDET),
-#endif  
 #ifdef O_MAINTENANCE
   FRG("$list_generations",	1, pl_list_generations,	     META),
   FRG("$check_procedure",	1, pl_check_procedure,	     META),

@@ -3355,25 +3355,32 @@ wouldBindToDefinition(Definition from, Definition to)
 }
 
 
-word
-pl_xr_member(term_t ref, term_t term, control_t h)
-{ GET_LD
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+'$xr_member'(+ClauseRef, ?Object)
+
+Is true if Object is referenced by ClauseRef.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static
+PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
   Clause clause = NULL;
   Code PC;
   Code end;
+  term_t term = A2;
 
-  if ( ForeignControl(h) == FRG_CUTTED )
+  if ( CTX_CNTRL == FRG_CUTTED )
     succeed;
 
-  if ( !get_clause_ptr_ex(ref, &clause) )
+  if ( !get_clause_ptr_ex(A1, &clause) )
     fail;
 
   PC  = clause->codes;
   end = &PC[clause->code_size];
 
   if ( PL_is_variable(term) )
-  { if ( ForeignControl(h) != FRG_FIRST_CALL)
-    { intptr_t i = ForeignContextInt(h);
+  { if ( CTX_CNTRL != FRG_FIRST_CALL)
+    { size_t i = CTX_INT;
 
       PC += i;
     }
@@ -3998,19 +4005,19 @@ add_1_if_not_at_end(Code PC, Code end, term_t tail ARG_LD)
 
 
 
-word
-pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
-{ GET_LD
+static
+PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
+{ PRED_LD
   Clause clause = NULL;
   int pcoffset;
   Code PC, loc, end;
-  term_t tail = PL_copy_term_ref(locterm);
+  term_t tail = PL_copy_term_ref(A3);
 
-  if ( !get_clause_ptr_ex(ref, &clause) ||
-       !PL_get_integer_ex(pc, &pcoffset) )
+  if ( !get_clause_ptr_ex(A1, &clause) ||
+       !PL_get_integer_ex(A2, &pcoffset) )
     fail;
   if ( pcoffset < 0 || pcoffset > (int)clause->code_size )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, pc);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, A2);
 
   PC = clause->codes;
   loc = &PC[pcoffset];
@@ -4188,8 +4195,11 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 	continue;
       case H_STRING:
       case B_STRING:
+#ifdef O_GMP
       case H_MPZ:
       case B_MPZ:
+      case A_MPZ:
+#endif
       { word m = PC[0];
 	PC += wsizeofInd(m)+1;
 	break;
@@ -4356,19 +4366,19 @@ replacedBreak(Code PC)
 }
 
 
-word
-pl_break_at(term_t ref, term_t pc, term_t set)
+static
+PRED_IMPL("$break_at", 3, break_at, 0)
 { Clause clause = NULL;
   int offset;
   int doit;
 
-  if ( !get_clause_ptr_ex(ref, &clause) )
+  if ( !get_clause_ptr_ex(A1, &clause) )
     fail;
-  if ( !PL_get_bool_ex(set, &doit) ||
-       !PL_get_integer_ex(pc, &offset) )
+  if ( !PL_get_bool_ex(A3, &doit) ||
+       !PL_get_integer_ex(A2, &offset) )
     fail;
   if ( offset < 0 || offset >= (int)clause->code_size )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_pc, pc);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_pc, A2);
 
   PL_LOCK(L_BREAK);
   if ( doit )
@@ -4381,8 +4391,8 @@ pl_break_at(term_t ref, term_t pc, term_t set)
 }
 
 
-word
-pl_current_break(term_t ref, term_t pc, control_t h)
+static
+PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 { GET_LD
   TableEnum e = NULL;			/* make gcc happy */
   Symbol symb;
@@ -4390,15 +4400,15 @@ pl_current_break(term_t ref, term_t pc, control_t h)
   if ( !breakTable )
     fail;
 
-  switch( ForeignControl(h) )
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       e = newTableEnum(breakTable);
       break;
     case FRG_REDO:
-      e = ForeignContextPtr(h);
+      e = CTX_PTR;
       break;
     case FRG_CUTTED:
-      e = ForeignContextPtr(h);
+      e = CTX_PTR;
       freeTableEnum(e);
       succeed;
   }
@@ -4408,8 +4418,8 @@ pl_current_break(term_t ref, term_t pc, control_t h)
 
     { fid_t cid = PL_open_foreign_frame();
 
-      if ( PL_unify_pointer(ref, bp->clause) &&
-	   PL_unify_integer(pc,  bp->offset) )
+      if ( PL_unify_pointer(A1, bp->clause) &&
+	   PL_unify_integer(A2,  bp->offset) )
       { ForeignRedoPtr(e);
       }
 
@@ -4441,4 +4451,8 @@ BeginPredDefs(comp)
   PRED_DEF("$fetch_vm", 4, fetch_vm, 0)
   PRED_DEF("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   PRED_DEF("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$clause_term_position", 3, clause_term_position, 0)
+  PRED_DEF("$break_at", 3, break_at, 0)
+  PRED_DEF("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 EndPredDefs

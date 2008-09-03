@@ -155,18 +155,13 @@ COMMON(word) 		pl_clause3(term_t p, term_t term, term_t ref,
 COMMON(word) 		pl_clause2(term_t p, term_t term, control_t h);
 COMMON(word) 		pl_nth_clause(term_t p, term_t n, term_t ref,
 				      control_t h);
-COMMON(word) 		pl_xr_member(term_t ref, term_t term, control_t h);
 COMMON(void) 		wamListClause(Clause clause);
 COMMON(Code) 		wamListInstruction(IOSTREAM *out, Clause clause,
 					   Code bp);
 COMMON(int) 		unify_definition(term_t head, Definition def,
 				 term_t thehead, int flags);
-COMMON(word) 		pl_clause_term_position(term_t ref, term_t pc,
-						term_t locterm);
-COMMON(word) 		pl_break_at(term_t ref, term_t pc, term_t set);
 COMMON(code) 		replacedBreak(Code PC);
 COMMON(void) 		clearBreakPointsClause(Clause clause);
-COMMON(word) 		pl_current_break(term_t ref, term_t pc, control_t h);
 COMMON(int) 		get_clause_ptr_ex(term_t ref, Clause *cl);
 COMMON(int)		unify_functor(term_t t, functor_t fd, int how);
 
