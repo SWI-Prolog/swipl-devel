@@ -4668,19 +4668,20 @@ typedef struct
 
 
 static bool
-setBreak(Clause clause, int offset)
+setBreak(Clause clause, int offset)	/* offset is already verified */
 { GET_LD
   Code PC = clause->codes + offset;
+  code op = *PC;
 
   if ( !breakTable )
     breakTable = newHTable(16);
 
-  if ( *PC != encode(D_BREAK) )
+  if ( (codeTable[decode(op)].flags & VIF_BREAK) )
   { BreakPoint bp = allocHeap(sizeof(break_point));
 
     bp->clause = clause;
     bp->offset = offset;
-    bp->saved_instruction = *PC;
+    bp->saved_instruction = op;
 
     addHTable(breakTable, PC, bp);
     *PC = encode(D_BREAK);
@@ -4688,9 +4689,16 @@ setBreak(Clause clause, int offset)
 
     callEventHook(PLEV_BREAK, clause, offset);
     succeed;
-  }
+  } else
+  { term_t brk = PL_new_term_ref();
 
-  fail;
+    PL_unify_term(brk, PL_FUNCTOR, FUNCTOR_break2,
+		  	 PL_POINTER, clause,
+		         PL_INT, offset);
+
+    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		    ATOM_set, ATOM_break, brk);
+  }
 }
 
 
@@ -4703,7 +4711,14 @@ clearBreak(Clause clause, int offset)
 
   PC = clause->codes + offset;
   if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
-    fail;
+  { term_t brk = PL_new_term_ref();
+
+    PL_unify_term(brk, PL_FUNCTOR, FUNCTOR_break2,
+		  	 PL_POINTER, clause,
+		         PL_INT, offset);
+
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_break, brk);
+  }
 
   bp = (BreakPoint)s->value;
   *PC = bp->saved_instruction;
@@ -4747,11 +4762,17 @@ replacedBreak(Code PC)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+'$break_at'(+ClauseRef, +PC, +Bool) is det.
+
+Set/clear a breakpoint at PC on ClauseRef.   Setting a break replaces an
+instruction with D_BREAK.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static
 PRED_IMPL("$break_at", 3, break_at, 0)
 { Clause clause = NULL;
-  int offset;
-  int doit;
+  int offset, doit, rc;
 
   if ( !get_clause_ptr_ex(A1, &clause) )
     fail;
@@ -4759,16 +4780,16 @@ PRED_IMPL("$break_at", 3, break_at, 0)
        !PL_get_integer_ex(A2, &offset) )
     fail;
   if ( offset < 0 || offset >= (int)clause->code_size )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_pc, A2);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, A2);
 
   PL_LOCK(L_BREAK);
   if ( doit )
-    setBreak(clause, offset);
+    rc = setBreak(clause, offset);
   else
-    clearBreak(clause, offset);
+    rc = clearBreak(clause, offset);
   PL_UNLOCK(L_BREAK);
 
-  succeed;
+  return rc;
 }
 
 

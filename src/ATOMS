@@ -461,6 +461,7 @@ A seek_method		"seek_method"
 A select		"select"
 A semicolon		";"
 A separated		"separated"
+A set			"set"
 A setup_and_call_cleanup "setup_and_call_cleanup"
 A shared		"shared"
 A shared_object		"shared_object"
@@ -627,6 +628,7 @@ F block			3
 F bom			1
 F brace_term_position	3
 F break			1
+F break			2
 F break			3
 F buffer		1
 F buffer_size		1
