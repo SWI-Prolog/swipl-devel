@@ -2378,7 +2378,7 @@ normal variable. This case is very   common,  especially with relatively
 small integers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(A_ADD_FC, 0, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
+VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
 { Word rp  = varFrameP(FR, *PC++);
   Word np  = varFrameP(FR, *PC++);
   intptr_t add = (intptr_t)*PC++;
@@ -2471,7 +2471,7 @@ BEGIN_SHAREDVARS
   }
 
 
-VMI(A_LT, 0, 0, ())
+VMI(A_LT, VIF_BREAK, 0, ())		/* A < B */
 { CMP_FAST(<)
   cmp = LT;
 acmp:
@@ -2484,31 +2484,31 @@ a_cmp_out:
   BODY_FAILED;
 }
 
-VMI(A_LE, 0, 0, ())
+VMI(A_LE, VIF_BREAK, 0, ())		/* A =< B */
 { CMP_FAST(<=);
   cmp = LE;
   goto acmp;
 }
 
-VMI(A_GT, 0, 0, ())
+VMI(A_GT, VIF_BREAK, 0, ())		/* A > B */
 { CMP_FAST(>);
   cmp = GT;
   goto acmp;
 }
 
-VMI(A_GE, 0, 0, ())
+VMI(A_GE, VIF_BREAK, 0, ())		/* A >= B */
 { CMP_FAST(>=);
   cmp = GE;
   goto acmp;
 }
 
-VMI(A_EQ, 0, 0, ())
+VMI(A_EQ, VIF_BREAK, 0, ())		/* A =:= B */
 { CMP_FAST(==);
   cmp = EQ;
   goto acmp;
 }
 
-VMI(A_NE, 0, 0, ())
+VMI(A_NE, VIF_BREAK, 0, ())		/* A \=:= B */
 { CMP_FAST(!=);
   cmp = NE;
   goto acmp;
@@ -2530,7 +2530,7 @@ for the result (a word) and the number holding the result. For example:
   I_EXIT
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(A_IS, 0, 0, ())
+VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
 { Number n = argvArithStack(1 PASS_LD);
   Word k;
 
@@ -2584,7 +2584,7 @@ TBD: link with following B_VAR? How  frequent?   Likely  very: we are in
 body mode and in many cases the result is used only once.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(A_FIRSTVAR_IS, 0, 1, (CA1_VAR))
+VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_VAR)) /* A is B */
 { Word k = varFrameP(FR, *PC++);
   Number n = argvArithStack(1 PASS_LD);
 
