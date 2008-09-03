@@ -1581,7 +1581,7 @@ pl-comp.c
 #if VMCODE_IS_ADDRESS
 #include <pl-jumptable.ic>
 
-#define VMI(Name,na,a)		Name ## _LBL: \
+#define VMI(Name,f,na,a)	Name ## _LBL: \
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);
 #define VMI_GOTO(n)		{ END_PROF(); \
@@ -1600,7 +1600,7 @@ pl-comp.c
 
 code thiscode;
 
-#define VMI(Name,na,a)		case Name: \
+#define VMI(Name,f,na,a)	case Name: \
 				  case_ ## Name:
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);

@@ -49,11 +49,12 @@ const char *vmi_hdr	= "pl-vmi.h";
 
 #define MAX_VMI 1000
 
-typedef struct
-{ char *name;
-  char *argc;
-  char *args;
-} vmi;
+typedef struct				/* VMI( */
+{ char *name;				/* Name */
+  char *flags;				/* Flags (VIF_*) */
+  char *argc;				/* Argument length (or VM_DYNARGC) */
+  char *args;				/* Argument types (max 3) */
+} vmi;					/* ) */
 
 vmi vmi_list[MAX_VMI];
 int vmi_count = 0;
@@ -112,6 +113,23 @@ skip_id(const char *s)
 
 
 static char *
+skip_flags(const char *s)
+{ if ( s )
+  { for (; *s; s++)
+    { if ( *s == '_' || *s == '|' ||
+	   (*s >= 'A' && *s <= 'Z') ||
+	   (*s >= '0' && *s <= '9') )
+	continue;
+
+      return (char*)s;
+    }
+  }
+
+  return NULL;
+}
+
+
+static char *
 skip_over(const char *s, int c)
 { if ( s )
   { for (; *s; s++)
@@ -150,23 +168,26 @@ load_vmis(const char *file)
       { const char *s1 = skip_ws(buf+4);
 	const char *e1 = skip_id(s1);
 	const char *s2 = skip_ws(skip_over(e1, ','));
-	const char *e2 = skip_id(s2);
-	const char *s3 = skip_over(skip_ws(skip_over(e2, ',')), '(');
-	const char *e3 = skip_over(s3, ')');
+	const char *e2 = skip_flags(s2);
+	const char *s3 = skip_ws(skip_over(e2, ','));
+	const char *e3 = skip_flags(s3);
+	const char *s4 = skip_over(skip_ws(skip_over(e3, ',')), '(');
+	const char *e4 = skip_over(s4, ')');
 
-	if ( !e3 )
+	if ( !e4 )
 	{ fprintf(stderr, "Syntax error at %s:%d\n", file, line);
 	  exit(1);
 	} else
-	  e3--;				/* backspace over ) */
+	  e4--;				/* backspace over ) */
 
-	vmi_list[vmi_count].name = strndup(s1, e1-s1);
-	vmi_list[vmi_count].argc = strndup(s2, e2-s2);
-	vmi_list[vmi_count].args = strndup(s3, e3-s3);
+	vmi_list[vmi_count].name  = strndup(s1, e1-s1);
+	vmi_list[vmi_count].flags = strndup(s2, e2-s2);
+	vmi_list[vmi_count].argc  = strndup(s3, e3-s3);
+	vmi_list[vmi_count].args  = strndup(s4, e4-s4);
   
-	add_synopsis(s1, e1-s1);
-	add_synopsis(s2, e2-s2);
+	add_synopsis(s1, e1-s1);	/* flags (s2) isn't needed for VM signature */
 	add_synopsis(s3, e3-s3);
+	add_synopsis(s4, e4-s4);
 
 	vmi_count++;
       }
@@ -253,19 +274,20 @@ emit_code_table(const char *to)
   fprintf(out, "*/\n\n");
   fprintf(out, "#include \"pl-incl.h\"\n\n");
   fprintf(out, "const code_info codeTable[] = {\n");
-  fprintf(out, "  /* {name, ID, #args, argtype} */\n");
+  fprintf(out, "  /* {name, ID, flags, #args, argtype} */\n");
 
   for(i=0; i<vmi_count; i++)
   { char name[100];
 
-    fprintf(out, "  {\"%s\", %s, %s, {%s}},\n",
+    fprintf(out, "  {\"%s\", %s, %s, %s, {%s}},\n",
 	    strlwr(name, vmi_list[i].name),
 	    vmi_list[i].name,
+	    vmi_list[i].flags,
 	    vmi_list[i].argc,
 	    vmi_list[i].args); 
   }
   
-  fprintf(out, "  { NULL, 0, 0, {} }\n");
+  fprintf(out, "  { NULL, 0, 0, 0, {} }\n");
   fprintf(out, "};\n");
   fclose(out);
 

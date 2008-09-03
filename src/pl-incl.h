@@ -1201,7 +1201,7 @@ struct clause_ref
   ClauseRef	next;
 };
 
-#define VM_DYNARGC    127	/* compute argcount dynamically */
+#define VM_DYNARGC    255	/* compute argcount dynamically */
 
 #define CA1_PROC	1	/* code arg 1 is procedure */
 #define CA1_FUNC	2	/* code arg 1 is functor */
@@ -1219,10 +1219,13 @@ struct clause_ref
 #define CA1_JUMP       14	/* Instructions to skip */
 #define CA1_AFUNC      15	/* Number of arithmetic function */
 
+#define VIF_BREAK      0x01	/* Can be a breakpoint */
+
 typedef struct
 { char		*name;		/* name of the code */
   vmi		code;		/* number of the code */
-  int		arguments;	/* #args code takes (or VM_DYNARGC) */
+  unsigned char flags;		/* Addional flags (VIF_*) */
+  unsigned char	arguments;	/* #args code takes (or VM_DYNARGC) */
   char		argtype[4];	/* Argument type(s) code takes */
 } code_info;
 
