@@ -1397,7 +1397,7 @@ typedef struct
 #endif
 
 #ifndef FIXED_FAMILY
-#define FIXED_FAMILY "courier"
+#define FIXED_FAMILY "*"
 #endif
 
 static fontdef screen_fonts[] =
