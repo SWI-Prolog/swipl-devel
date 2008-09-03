@@ -29,7 +29,7 @@ Each VMI has the structure below. Using this structure we are completely
 flexible in how we implement the instruction   and  we can easily create
 the derived tables, which is done by the program mkvmi.c.
 
-	VMI(Name, #Args, (ArgType, ...))
+	VMI(Name, Flags, #Args, (ArgType, ...))
 	{
 	}
 
