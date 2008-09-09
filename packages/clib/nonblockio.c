@@ -1667,7 +1667,7 @@ nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
     { int val = va_arg(args, int);
 
       if( setsockopt(s->socket, SOL_SOCKET, SO_REUSEADDR,
-		     (const char *)&val, sizeof(val)) == -1)
+		     (const char *)&val, sizeof(val)) == -1 )
       { nbio_error(h_errno, TCP_HERRNO);
 	rc = -1;
       } else
@@ -1675,11 +1675,31 @@ nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
 
       break;
     }
+    case TCP_NO_DELAY:
+#ifdef TCP_NODELAY
+    { int val = va_arg(args, int);
+
+#ifndef IPPROTO_TCP			/* Is this correct? */
+#define IPPROTO_TCP SOL_SOCKET
+#endif
+      if ( setsockopt(s->socket, IPPROTO_TCP, TCP_NODELAY,
+		      (const char *)&val, sizeof(val)) == -1 )
+      { nbio_error(h_errno, TCP_HERRNO);
+	rc = -1;
+      } else
+      { rc = 0;
+      }
+
+      break;
+    }
+#else
+    rc = -2;				/* not implemented */
+#endif
     case UDP_BROADCAST:
     { int val = va_arg(args, int);
 
-      if( setsockopt(s->socket, SOL_SOCKET, SO_BROADCAST,
-		     (const char *)&val, sizeof(val)) == -1)
+      if ( setsockopt(s->socket, SOL_SOCKET, SO_BROADCAST,
+		     (const char *)&val, sizeof(val)) == -1 )
       { nbio_error(h_errno, TCP_HERRNO);
 	rc = -1;
       } else
@@ -2321,7 +2341,9 @@ ssize_t
 nbio_sendto(nbio_sock_t socket, void *buf, size_t bufSize, int flags,
 	    const struct sockaddr *to, socklen_t tolen)
 { plsocket *s;
+#ifdef __WINDOWS__
   ssize_t n;
+#endif
 
   if ( !(s = nbio_to_plsocket(socket)) )
     return -1;

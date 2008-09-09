@@ -310,6 +310,20 @@ Set options on the socket.  Defined options are:
 Allow servers to reuse a port without the system being completely sure
 the port is no longer in use.
 
+    \termitem{nodelay}{}
+Same as \term{nodelay}{true}
+
+    \termitem{nodelay}{Bool}
+If \const{true}, disable the Nagle optimization on this socket, which
+is enabled by default on almost all modern TCP/IP stacks.  The Nagle
+optimization joins small packages, which is generally desirable, but
+sometimes not.   Please note that the underlying TCP_NODELAY setting
+to setsockopt() is not available on all platforms and systems
+may require additional privileges to change this option.  If the option
+is not supported, tcp_setopt/2 raises a domain_error exception.
+See \url[Wikipedia]{http://en.wikipedia.org/wiki/Nagle's_algorithm} for
+details.
+
     \termitem{broadcast}{}
 UDP sockets only: broadcast the package to all addresses matching the
 address.  The address is normally the address of the local subnet

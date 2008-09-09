@@ -58,6 +58,7 @@
 
 static atom_t ATOM_reuseaddr;		/* "reuseaddr" */
 static atom_t ATOM_broadcast;		/* "broadcast" */
+static atom_t ATOM_nodelay;		/* "nodelay" */
 static atom_t ATOM_dispatch;		/* "dispatch" */
 static atom_t ATOM_nonblock;		/* "nonblock" */
 static atom_t ATOM_infinite;		/* "infinite" */
@@ -160,6 +161,25 @@ pl_setopt(term_t Socket, term_t opt)
 	return TRUE;
 
       return FALSE;
+    } else if ( a == ATOM_nodelay && arity <= 1 )
+    { int enable, rc;
+
+      if ( arity == 0 )
+      { enable = TRUE;
+      } else /*if ( arity == 1 )*/
+      { term_t a = PL_new_term_ref();
+
+	PL_get_arg(1, opt, a);
+	if ( !PL_get_bool(a, &enable) )
+	  return pl_error(NULL, 0, NULL, ERR_DOMAIN, a, "boolean");
+      }
+
+      if ( (rc=nbio_setopt(socket, TCP_NO_DELAY, enable) == 0) )
+	return TRUE;
+      if ( rc == -2 )
+	goto not_implemented;
+
+      return FALSE;
     } else if ( a == ATOM_broadcast && arity == 0 )
     { if ( nbio_setopt(socket, UDP_BROADCAST, TRUE) == 0 )
 	return TRUE;
@@ -181,6 +201,7 @@ pl_setopt(term_t Socket, term_t opt)
     }
   }
        
+not_implemented:
   return pl_error(NULL, 0, NULL, ERR_DOMAIN, opt, "socket_option");
 }
 
@@ -730,6 +751,7 @@ install_socket()
 
   ATOM_reuseaddr  = PL_new_atom("reuseaddr");
   ATOM_broadcast  = PL_new_atom("broadcast");
+  ATOM_nodelay    = PL_new_atom("nodelay");
   ATOM_dispatch   = PL_new_atom("dispatch");
   ATOM_nonblock   = PL_new_atom("nonblock");
   ATOM_infinite   = PL_new_atom("infinite");
