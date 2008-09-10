@@ -65,6 +65,9 @@ typedef size_t socklen_t;
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
 #ifdef HAVE_H_ERRNO
 extern int h_errno;
 #else
@@ -86,6 +89,7 @@ typedef enum
 typedef enum				/* nbio_setopt() commands */
 { TCP_NONBLOCK,
   TCP_REUSEADDR,
+  TCP_NO_DELAY,
   TCP_DISPATCH,
   TCP_INSTREAM,
   TCP_OUTSTREAM,
