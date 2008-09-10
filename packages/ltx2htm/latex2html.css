@@ -10,6 +10,14 @@ dt.pubdef
 { background-color: #c5e1ff;
 }
 
+.bib dd
+{ margin-bottom: 1em;
+}
+
+.bib dt
+{ float: left;
+}
+
 pre.code
 { margin-left: 1.5em;
   margin-right: 1.5em;

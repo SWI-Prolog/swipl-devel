@@ -753,6 +753,7 @@ env(thebibliography(Args, Tokens),
 	),
 	translate_section(SecLevel, Number, Title, SectionHeader,
 			  'Bibliography'),
+	List = thebibliography,
 	(   list_command(List, Args, Open, Close),
 	    items(Tokens, Items),
 	    translate_items(Items, List, HtmlItems)
@@ -778,7 +779,7 @@ list_command(itemize,         _, html('<UL>'), html('</UL>')).
 list_command(itemlist,        _, html('<UL>'), html('</UL>')).
 list_command(shortlist,       _, html('<UL COMPACT>'), html('</UL>')).
 list_command(enumerate,       _, html('<OL>'), html('</OL>')).
-list_command(thebibliography, _, html('<DL>'), html('</DL>')).
+list_command(thebibliography, _, html('<DL class="bib">'), html('</dl>')).
 
 %	items(+Tokens, -Items)
 %
@@ -1029,11 +1030,13 @@ cmd(protect, []).				% BiBTeX produced?
 cmd(citename({TeX}), HTML) :-
 	translate_group([\sc|TeX], HTML).
 cmd(bibitem([TeXCite], {Key}),			% \bibitem
-    [ html('<P>'), html('<DT>'), #label(Key, #strong(Cite)), html('<DD>') ]) :-
+    [ html('<DT class="bib">'), #label(Key, #strong(Cite)),
+      html('<DD class="bib">') ]) :-
 	translate(TeXCite, normal, Cite),
 	assert(cite(Key, Cite)).
 cmd(bibitem([], {Key}), 
-    [ html('<P>'), html('<DT>'), #label(Key, #strong(Cite)), html('<DD>') ]) :-
+    [ html('<DT class="bib">'), #label(Key, #strong(Cite)),
+      html('<DD class="bib">') ]) :-
 	flag(cite, N, N+1),
 	TeXCite is N + 1,
 	expand_macros(#embrace("[]", TeXCite), Cite),
