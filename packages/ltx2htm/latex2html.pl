@@ -530,6 +530,7 @@ language_map(table,	'Table').
 			  html('</CITE>')
 			]) :-
 	cite_references(Key, yearcite, Cites).
+#(nocite(_), []).
 #(header,		HTML) :-
 	node_header(HTML).
 #(header(Tag),		HTML) :-
@@ -740,7 +741,11 @@ env(thebibliography(Args, Tokens),
       HtmlItems,
       Close
     ]) :- !,
-	translate_section(1, -, ['Bibliography'], SectionHeader,
+	(   user_cmd(refname, document, _, Title)
+	->  true
+	;   Title = ['Bibliography']
+	),
+	translate_section(1, -, Title, SectionHeader,
 			  'Bibliography'),
 	(   list_command(List, Args, Open, Close),
 	    items(Tokens, Items),
@@ -1025,6 +1030,7 @@ cmd(bibitem([], {Key}),
 	expand_macros(#embrace("[]", TeXCite), Cite),
 	assert(cite(Key, Cite)).
 cmd(cite({Key}),	#cite(Key)).		% \cite
+cmd(nocite({Key}),	#nocite(Key)).		% \nocite
 cmd(yearcite({Key}),	#yearcite(Key)).	% \yearcite
 cmd(opencite({Key}),	#opencite(Key)).	% \opencite
 cmd(bibliography({_}), HTML) :-			% \bibliography
