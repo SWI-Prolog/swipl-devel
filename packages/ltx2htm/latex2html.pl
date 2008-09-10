@@ -745,7 +745,13 @@ env(thebibliography(Args, Tokens),
 	->  true
 	;   Title = ['Bibliography']
 	),
-	translate_section(1, -, Title, SectionHeader,
+	(   documentclass(article)
+	->  SecLevel = 2,
+	    Number = *
+	;   SecLevel = 1,
+	    Number = -
+	),
+	translate_section(SecLevel, Number, Title, SectionHeader,
 			  'Bibliography'),
 	(   list_command(List, Args, Open, Close),
 	    items(Tokens, Items),
@@ -854,8 +860,10 @@ prolog_function(\(renewcommand, [{Name}, [Args], {Expanded}])) :-
 		 *	      COMMANDS		*
 		 *******************************/
 
-%
-%	cmd(+Command, +Mode, -HTML)
+:- dynamic
+	documentclass/1.
+
+%%	cmd(+Command, +Mode, -HTML)
 %
 
 cmd(onefile, preamble, []) :-
@@ -871,7 +879,8 @@ cmd(htmlpackage({File}), preamble, []) :-
 	->  ensure_loaded(user:PlFile)
 	;   format(user_error, 'Cannot find Prolog extension "~w"~n', [File])
 	).
-cmd(documentclass(_, _), preamble, []).
+cmd(documentclass(_, {Class}), preamble, []) :-
+	assert(documentclass(Class)).
 cmd(usepackage(_, {_File}, _), preamble, []) :- !.
 cmd(makeindex, preamble, []) :-
 	retractall(makeindex(_)),
