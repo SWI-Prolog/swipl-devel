@@ -1965,6 +1965,8 @@ VMI(S_VIRGIN, 0, 0, ())
     NEXT_INSTRUCTION;
   }
 
+  FR->predicate = DEF;
+
   goto old_call;			/* TBD: temporary */
 }
 
