@@ -3,6 +3,7 @@ dnl
 dnl Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 AC_INIT(rfc2045.c)
+AC_PREREQ([2.50])
 
 AC_CONFIG_HEADER(config.h)
 AC_SUBST(AR)

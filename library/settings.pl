@@ -164,6 +164,18 @@ setting(QName, Value) :-
 	).
 
 
+:- dynamic
+	setting_cache/3.
+:- volatile
+	setting_cache/3.
+
+%%	clear_setting_cache is det.
+%
+%	Clear the cache for evaluation of default values.
+
+clear_setting_cache :-
+	retractall(setting_cache(_,_,_)).
+
 %%	eval_default(+Default, +Module, +Type, -Value) is det.
 %
 %	Convert the settings default value. The notation allows for some
@@ -187,11 +199,6 @@ setting(QName, Value) :-
 %		evaluates to the value of an environment variable.
 %		If Type is =atom=, concatenate A+B+....  Elements of the
 %		expression can be env(Name).
-
-:- dynamic
-	setting_cache/3.
-:- volatile
-	setting_cache/3.
 
 :- multifile
 	eval_default/3.			% +Default, +Type, -Value
@@ -339,7 +346,8 @@ set_setting(QName, Value) :-
 	    ->	setting(Module:Name, Old),
 	        retract_setting(Module:Name),
 	        assert_setting(Module:Name, Value),
-		broadcast(settings(changed(Module:Name, Old, Value)))
+		broadcast(settings(changed(Module:Name, Old, Value))),
+		clear_setting_cache	% might influence dependent settings.
 	    )
 	;   existence_error(setting, Name)
 	).
@@ -432,7 +440,8 @@ load_settings(File, Options) :-
 	assert(local_file(Path)),
 	open(Path, read, In, [encoding(utf8)]),
 	read_setting(In, T0),
-	call_cleanup(load_settings(T0, In, Options), close(In)).
+	call_cleanup(load_settings(T0, In, Options), close(In)),
+	clear_setting_cache.
 load_settings(File, _) :-
 	absolute_file_name(File, Path,
 			   [ access(write),
