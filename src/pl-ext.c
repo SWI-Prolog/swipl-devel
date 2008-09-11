@@ -583,7 +583,7 @@ initBuildIns(void)
   PROCEDURE_exception_hook4  = 
 	PL_predicate("prolog_exception_hook", 4, "user");
 					/* allow debugging in call/1 */
-  clear(PROCEDURE_dcall1->definition, HIDE_CHILDS);
+  clear(PROCEDURE_dcall1->definition, HIDE_CHILDS|TRACE_ME);
   set(PROCEDURE_dcall1->definition, DYNAMIC);
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
