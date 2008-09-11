@@ -530,6 +530,7 @@ language_map(table,	'Table').
 			  html('</CITE>')
 			]) :-
 	cite_references(Key, yearcite, Cites).
+#(nocite(_), []).
 #(header,		HTML) :-
 	node_header(HTML).
 #(header(Tag),		HTML) :-
@@ -740,8 +741,19 @@ env(thebibliography(Args, Tokens),
       HtmlItems,
       Close
     ]) :- !,
-	translate_section(1, -, ['Bibliography'], SectionHeader,
+	(   user_cmd(refname, document, _, Title)
+	->  true
+	;   Title = ['Bibliography']
+	),
+	(   documentclass(article)
+	->  SecLevel = 2,
+	    Number = *
+	;   SecLevel = 1,
+	    Number = -
+	),
+	translate_section(SecLevel, Number, Title, SectionHeader,
 			  'Bibliography'),
+	List = thebibliography,
 	(   list_command(List, Args, Open, Close),
 	    items(Tokens, Items),
 	    translate_items(Items, List, HtmlItems)
@@ -767,7 +779,7 @@ list_command(itemize,         _, html('<UL>'), html('</UL>')).
 list_command(itemlist,        _, html('<UL>'), html('</UL>')).
 list_command(shortlist,       _, html('<UL COMPACT>'), html('</UL>')).
 list_command(enumerate,       _, html('<OL>'), html('</OL>')).
-list_command(thebibliography, _, html('<DL>'), html('</DL>')).
+list_command(thebibliography, _, html('<DL class="bib">'), html('</dl>')).
 
 %	items(+Tokens, -Items)
 %
@@ -849,8 +861,10 @@ prolog_function(\(renewcommand, [{Name}, [Args], {Expanded}])) :-
 		 *	      COMMANDS		*
 		 *******************************/
 
-%
-%	cmd(+Command, +Mode, -HTML)
+:- dynamic
+	documentclass/1.
+
+%%	cmd(+Command, +Mode, -HTML)
 %
 
 cmd(onefile, preamble, []) :-
@@ -866,7 +880,8 @@ cmd(htmlpackage({File}), preamble, []) :-
 	->  ensure_loaded(user:PlFile)
 	;   format(user_error, 'Cannot find Prolog extension "~w"~n', [File])
 	).
-cmd(documentclass(_, _), preamble, []).
+cmd(documentclass(_, {Class}), preamble, []) :-
+	assert(documentclass(Class)).
 cmd(usepackage(_, {_File}, _), preamble, []) :- !.
 cmd(makeindex, preamble, []) :-
 	retractall(makeindex(_)),
@@ -1015,16 +1030,19 @@ cmd(protect, []).				% BiBTeX produced?
 cmd(citename({TeX}), HTML) :-
 	translate_group([\sc|TeX], HTML).
 cmd(bibitem([TeXCite], {Key}),			% \bibitem
-    [ html('<P>'), html('<DT>'), #label(Key, #strong(Cite)), html('<DD>') ]) :-
+    [ html('<DT class="bib">'), #label(Key, #strong(Cite)),
+      html('<DD class="bib">') ]) :-
 	translate(TeXCite, normal, Cite),
 	assert(cite(Key, Cite)).
 cmd(bibitem([], {Key}), 
-    [ html('<P>'), html('<DT>'), #label(Key, #strong(Cite)), html('<DD>') ]) :-
+    [ html('<DT class="bib">'), #label(Key, #strong(Cite)),
+      html('<DD class="bib">') ]) :-
 	flag(cite, N, N+1),
 	TeXCite is N + 1,
 	expand_macros(#embrace("[]", TeXCite), Cite),
 	assert(cite(Key, Cite)).
 cmd(cite({Key}),	#cite(Key)).		% \cite
+cmd(nocite({Key}),	#nocite(Key)).		% \nocite
 cmd(yearcite({Key}),	#yearcite(Key)).	% \yearcite
 cmd(opencite({Key}),	#opencite(Key)).	% \opencite
 cmd(bibliography({_}), HTML) :-			% \bibliography
