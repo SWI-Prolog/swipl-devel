@@ -174,7 +174,7 @@ pl-stream.obj:	popen.c
 # Seems NMAKE dependency computation is broken ...
 vmi:		pl-vmi.c mkvmi.exe
 		mkvmi.exe
-		touch vmi
+		echo "ok" > vmi
 		
 pl-funct.ih:	ATOMS defatom.exe
 		defatom.exe
