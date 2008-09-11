@@ -12,4 +12,5 @@ pl-codetable.c
 pl-jumptable.ic
 pl-vmi.h
 defatom
-defatom.exe
+vmi
+*.exe

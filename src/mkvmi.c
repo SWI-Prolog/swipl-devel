@@ -194,7 +194,7 @@ update_file(const char *from, const char *to)
 
 
 static char *
-strlwr(char *to, const char *from)
+mystrlwr(char *to, const char *from)	/* my*: Windows name conflict */
 { char *s;
 
   for(s=to; *from; from++)
@@ -229,13 +229,13 @@ emit_code_table(const char *to)
   { char name[100];
 
     fprintf(out, "  {\"%s\", %s, %s, {%s}},\n",
-	    strlwr(name, vmi_list[i].name),
+	    mystrlwr(name, vmi_list[i].name),
 	    vmi_list[i].name,
 	    vmi_list[i].argc,
-	    vmi_list[i].args); 
+	    vmi_list[i].args[0] ? vmi_list[i].args : "0"); 
   }
   
-  fprintf(out, "  { NULL, 0, 0, {} }\n");
+  fprintf(out, "  { NULL, 0, 0, {0} }\n");
   fprintf(out, "};\n");
   fclose(out);
 
