@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -137,6 +137,41 @@ PL_get_choice(term_t r, Choice *chp)
 
 
 #ifdef O_DEBUGGER
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+isDebugFrame(LocalFrame FR) is true if this call  must be visible in the
+tracer. `No-debug' code has HIDE_CHILDS. Calls to  it must be visible if
+the parent is a debug frame.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+isDebugFrame(LocalFrame FR)
+{ if ( false(FR->predicate, TRACE_ME) )
+    return FALSE;			/* hidden predicate */
+
+  if ( false(FR->predicate, HIDE_CHILDS) )
+    return TRUE;			/* user pred */
+
+  if ( FR->parent )
+  { LocalFrame parent = FR->parent;
+
+    if ( levelFrame(FR) == levelFrame(parent)+1 )
+    {					/* not last-call optimized */
+      if ( false(parent->predicate, HIDE_CHILDS) )
+	return TRUE;			/* user calls system */
+      return FALSE;			/* system cals system */
+    } else
+    { if ( false(parent, FR_HIDE_CHILDS) )
+	return TRUE;
+      return FALSE;
+    }
+  } else
+  { QueryFrame qf = queryOfFrame(FR);
+
+    return (qf->flags & PL_Q_NODEBUG) ? FALSE : TRUE;
+  }
+}
+
 
 static void
 exitFromDebugger(int status)
@@ -282,8 +317,8 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
   if ( !bfr )
     bfr = LD->choicepoints;
 
-  if ( (true(frame, FR_NODEBUG) && !SYSTEM_MODE) ||	/* hidden */
-       debugstatus.suspendTrace )			/* called back */
+  if ( (!isDebugFrame(frame) && !SYSTEM_MODE) || /* hidden */
+       debugstatus.suspendTrace )	        /* called back */
     return ACTION_CONTINUE;
 
   if ( port == EXCEPTION_PORT )		/* do not trace abort */
@@ -859,7 +894,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
 static void
 alternatives(Choice ch)
 { for(; ch; ch = ch->parent)
-  { if ( (false(ch->frame, FR_NODEBUG) || SYSTEM_MODE) )
+  { if ( (isDebugFrame(ch->frame) || SYSTEM_MODE) )
       writeFrameGoal(ch->frame, NULL, WFG_CHOICE);
   }
 }    
@@ -945,7 +980,7 @@ backTrace(LocalFrame frame, int depth)
       }
     } else
     { if ( same_proc_frame != NULL )
-      { if ( false(same_proc_frame, FR_NODEBUG) || SYSTEM_MODE )
+      { if ( isDebugFrame(same_proc_frame) || SYSTEM_MODE )
         { writeFrameGoal(same_proc_frame, PC, WFG_BACKTRACE);
 	  depth--;
 	}
@@ -955,7 +990,7 @@ backTrace(LocalFrame frame, int depth)
       def = frame->predicate;
     }
 
-    if (false(frame, FR_NODEBUG) || SYSTEM_MODE)
+    if ( isDebugFrame(frame) || SYSTEM_MODE)
     { writeFrameGoal(frame, PC, WFG_BACKTRACE);
       depth--;
     }
@@ -1713,10 +1748,10 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
     if ( SYSTEM_MODE )
     { a = ATOM_true;
     } else
-    { if ( true(fr, FR_NODEBUG) || false(fr->predicate, TRACE_ME) )
-	a = ATOM_true;
-      else
+    { if ( isDebugFrame(fr) )
 	a = ATOM_false;
+      else
+	a = ATOM_true;
     }
 
     PL_put_atom(result, a);

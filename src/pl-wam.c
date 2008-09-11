@@ -1327,7 +1327,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   fr                 = &qf->frame;
   fr->parent         = top;
   setNextFrameFlags(fr, top);
-  set(top, FR_NODEBUG);
+  set(top, FR_HIDE_CHILDS);
   fr->programPointer = clause.codes;
   def                = getProcDefinedDefinition(&fr, NULL,
 						proc->definition PASS_LD);
@@ -1371,7 +1371,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
   DEBUG(3, Sdprintf("Level = %d\n", levelFrame(fr)));
   if ( true(qf, PL_Q_NODEBUG) )
-  { set(fr, FR_NODEBUG);
+  { set(fr, FR_HIDE_CHILDS);
     debugstatus.suspendTrace++;
     qf->debugSave = debugstatus.debugging;
     debugstatus.debugging = DBG_OFF;
@@ -1858,7 +1858,7 @@ next_choice:
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
   { for(; (void *)FR > (void *)ch; FR = FR->parent)
-    { if ( false(FR, FR_NODEBUG) )
+    { if ( isDebugFrame(FR) )
       { Choice sch = findStartChoice(FR, ch0);
 
 	if ( sch )
@@ -1928,7 +1928,7 @@ next_choice:
       { LocalFrame fr;
 
 	if ( !SYSTEM_MODE )		/* find user-level goal to retry */
-	{ for(fr = FR; fr && true(fr, FR_NODEBUG); fr = fr->parent)
+	{ for(fr = FR; fr && !isDebugFrame(fr); fr = fr->parent)
 	    ;
 	} else
 	  fr = FR;
@@ -1959,7 +1959,7 @@ next_choice:
       { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
 	ch->value.clause = next;
       } else if ( debugstatus.debugging )
-      { if ( false(FR, FR_NODEBUG) && true(FR->predicate, HIDE_CHILDS) )
+      { if ( !isDebugFrame(FR) && true(FR->predicate, HIDE_CHILDS) )
 	  ch = newChoice(CHP_DEBUG, FR PASS_LD);
       }
 

@@ -754,6 +754,7 @@ COMMON(void) 		freeTableEnum(TableEnum e);
 COMMON(Symbol) 		advanceTableEnum(TableEnum e);
 
 /* pl-trace.c */
+COMMON(int)		isDebugFrame(LocalFrame FR);
 COMMON(int) 		tracePort(LocalFrame frame, Choice bfr,
 			  int port, Code PC ARG_LD);
 COMMON(void) 		backTrace(LocalFrame frame, int depth);

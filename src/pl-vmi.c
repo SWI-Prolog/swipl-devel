@@ -1332,7 +1332,6 @@ retry_continue:
     if ( debugstatus.debugging )
     { DEF = getProcDefinedDefinition(&FR, NULL, DEF PASS_LD);
       FR->predicate = DEF;
-      updateFrameDebug(FR, DEF);
       if ( false(DEF, FOREIGN) )
 	FR->clause = DEF->definition.clauses;
       set(FR, FR_INBOX);
@@ -1461,8 +1460,11 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
       FR->flags = (((FR->flags+FR_LEVEL_STEP) | FR_CONTEXT) &
                    ~(FR_SKIPPED|FR_WATCHED|FR_CATCHED));
     } else
-      setNextFrameFlags(FR, FR);
-    
+    { setNextFrameFlags(FR, FR);
+    }
+    if ( true(DEF, HIDE_CHILDS) )
+      set(FR, FR_HIDE_CHILDS);
+
     FR->predicate = DEF;
     copyFrameArguments(lTop, FR, DEF->functor->arity PASS_LD);
 
@@ -1975,9 +1977,7 @@ one instruction and dynamic checking.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_UNDEF, 0, 0, ())
-{ updateFrameDebug(FR, DEF);
-
-  if ( true(DEF->module, UNKNOWN_ERROR) )
+{ if ( true(DEF->module, UNKNOWN_ERROR) )
   { fid_t fid;
     Definition caller;
 
@@ -2025,7 +2025,6 @@ TBD: get rid of clause-references
 VMI(S_TRUSTME, 0, 1, (CA1_CLAUSEREF))
 { ClauseRef cref = (ClauseRef)*PC++;
 
-  updateFrameDebug(FR, DEF);
   ARGP = argFrameP(FR, 0);
   TRUST_CLAUSE(cref);
 }
@@ -2076,7 +2075,6 @@ VMI(S_LIST, 0, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF))
 { ClauseRef cref;
   Word k;
 
-  updateFrameDebug(FR, DEF);
   ARGP = argFrameP(FR, 0);
   deRef2(ARGP, k);
   if ( isList(*k) )

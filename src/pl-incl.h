@@ -943,7 +943,7 @@ Handling environment (or local stack) frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define FR_BITS			8	/* mask-bits */
-#define FR_NODEBUG		(0x01L)	/* Invisible frame */
+#define FR_HIDE_CHILDS		(0x01L)	/* flag of pred after I_DEPART */
 #define FR_SKIPPED		(0x02L)	/* We have skipped on this frame */
 #define FR_MARKED		(0x04L)	/* GC */
 #define FR_MARKED_PRED		(0x08L)	/* GC predicates/clauses */
@@ -985,13 +985,7 @@ Handling environment (or local stack) frames.
 
 #define setNextFrameFlags(next, fr) \
         (next)->flags = ((fr)->flags + FR_LEVEL_STEP) & \
-                        (~(FR_CONTEXT|FR_SKIPPED|FR_WATCHED|FR_CATCHED))
-#define updateFrameDebug(fr, def) \
-	do { if ( true(fr, FR_NODEBUG) && false(def, HIDE_CHILDS) ) \
-	       clear(fr, FR_NODEBUG); \
-	     else if ( false(fr, FR_NODEBUG) && true(def, HIDE_CHILDS) ) \
-	       set(fr, FR_NODEBUG); \
-	   } while(0)
+                        (~(FR_CONTEXT|FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Predicate reference counting. The aim  of   this  mechanism  is to avoid
@@ -1337,7 +1331,7 @@ struct localFrame
 #endif
   unsigned long	flags;			/* packed long holding: */
 		/*	LEVEL	   recursion level (28 bits) */
-		/*	FR_NODEBUG don't debug this frame ? */
+		/*	FR_HIDE_CHILDS don't debug this frame ? */
 		/*	FR_SKIPPED skipped in the tracer */
 		/*	FR_MARKED  Marked by GC */
 		/*	FR_WATCHED Watched by the debugger */
