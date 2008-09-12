@@ -31,6 +31,15 @@
 #include <dlfcn.h>
 #endif
 
+/* MacOS (re-)defines bool, true and false.  This is a bit unelegant,
+   but it works
+*/
+#undef false
+#undef true
+#undef bool
+#define true(s, a)		((s)->flags & (a))
+#define false(s, a)		(!true((s), (a)))
+
 #undef LD			/* Get at most once per function */
 #define LD LOCAL_LD
 
