@@ -38,6 +38,8 @@
 :- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [append/3]).
 :- use_module(library(occurs), [sub_term/2]).
+:- use_module(library(debug)).
+:- use_module(library(listing)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module started life as part of the   GUI tracer. As it is generally
@@ -220,11 +222,11 @@ find_varname(Var, [_|T], Name) :-
 %%	unify_clause(+Read, +Decompiled, +ReadTermPos, -RecompiledTermPos).
 %	
 %	What you read isn't always what goes into the database. The task
-%	of this predicate is to establish the relation between the term
+%	of this predicate is to establish  the relation between the term
 %	read from the file and the result from decompiling the clause.
 %	
-%	This really must be more flexible, dealing with much more
-%	complex source-translations, falling back to a heristic method
+%	This really must be  more  flexible,   dealing  with  much  more
+%	complex source-translations, falling back to  a heuristic method
 %	locating as much as possible.
 
 unify_clause(Read, Read, TermPos, TermPos) :- !.
@@ -351,6 +353,23 @@ ubody(X0, X,
 	X0 =.. [_|A0],
 	X  =.. [_|A],
 	ubody_list(A0, A, PA0, PA).
+					% 5.7.X optimizations
+ubody(_=_, true,			% singleton = Any
+      term_position(F,T,_FF,_TT,_PA),
+      F-T) :- !.
+ubody(_==_, fail,			% singleton/firstvar == Any
+      term_position(F,T,_FF,_TT,_PA),
+      F-T) :- !.
+ubody(A1=B1, B2=A2,			% Term = Var --> Var = Term
+      term_position(F,T,FF,TT,[PA1,PA2]),
+      term_position(F,T,FF,TT,[PA2,PA1])) :-
+	(A1==B1) =@= (B2==A2), !,
+	A1 = A2, B1=B2.
+ubody(A1==B1, B2==A2,			% const == Var --> Var == const
+      term_position(F,T,FF,TT,[PA1,PA2]),
+      term_position(F,T,FF,TT,[PA2,PA1])) :-
+	(A1==B1) =@= (B2==A2), !,
+	A1 = A2, B1=B2.
 	
 ubody_list([], [], [], []).
 ubody_list([G0|T0], [G|T], [PA0|PAT0], [PA|PAT]) :-

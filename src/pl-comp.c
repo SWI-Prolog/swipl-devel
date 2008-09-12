@@ -1884,13 +1884,16 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
 
   a1 = argTermP(*arg, 0);
   deRef(a1);
-  if ( isVar(*a1) )			/* Singleton = ?: no need to compile */
+  if ( isVar(*a1) )			/* Singleton = ? --> true */
+  { unify_always_yields_true:
+    Output_0(ci, I_TRUE);
     succeed;
+  }
 
   a2 = argTermP(*arg, 1);
   deRef(a2);
-  if ( isVar(*a2) )			/* ? = Singleton: no need to compile */
-    succeed;
+  if ( isVar(*a2) )
+    goto unify_always_yields_true;
 
   i1 = isIndexedVarTerm(*a1 PASS_LD);
   i2 = isIndexedVarTerm(*a2 PASS_LD);
