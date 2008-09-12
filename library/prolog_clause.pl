@@ -370,7 +370,10 @@ ubody(A1==B1, B2==A2,			% const == Var --> Var == const
       term_position(F,T,FF,TT,[PA2,PA1])) :-
 	(A1==B1) =@= (B2==A2), !,
 	A1 = A2, B1=B2.
-	
+ubody(A is B - C, A is B + C2, Pos, Pos) :-
+	integer(C),
+	C2 =:= -C, !.
+      
 ubody_list([], [], [], []).
 ubody_list([G0|T0], [G|T], [PA0|PAT0], [PA|PAT]) :-
 	ubody(G0, G, PA0, PA),

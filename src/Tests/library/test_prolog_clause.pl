@@ -57,11 +57,13 @@ t1 :-	a, _ = hello, b.
 t2 :-	a(X), a(b) = X, b(X).
 t3 :-	a, _ == hello, b.
 t4 :-	a(X), x == X, b(X).
+t5 :-	i(A), B is A-1, b(B).
 
 a.
 b.
 a(_).
 b(_).
+i(10).
 
 test_ci(Head) :-
 	clause(Head, _Body, Ref),
