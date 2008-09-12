@@ -45,6 +45,7 @@ user:file_search_path(foreign, '.').
 user:file_search_path(pce, '..').
 user:file_search_path(library, '../prolog/lib').
 :- use_module(library(pce)).
+:- use_module(library(pce_util)).
 
 
 :- get(@pce, version, V),
