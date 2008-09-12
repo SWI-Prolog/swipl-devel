@@ -1655,12 +1655,11 @@ remove_lower([C*X|CXs], Min) :-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Constraint propagation proceeds as follows: Each CLP(FD) variable
-   has an attribute that stores its associated domain and contains a
-   list of all associated constraints. Whenever the domain of a
-   variable is changed, all constraints it participates in are
-   triggered: They are stored in a global structure that contains a
-   list of triggered constraints. do_queue/0 works off all triggered
-   constraints, possible triggering new ones, until fixpoint.
+   has an attribute that stores its associated domain and constraints.
+   Constraints are triggered when the event they are registered for
+   occurs (for example: variable is instantiated, bounds change etc.).
+   do_queue/0 works off all triggered constraints, possibly triggering
+   new ones, until fixpoint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 % % LIFO queue
