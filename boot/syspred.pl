@@ -531,15 +531,16 @@ predicate_property(Pred, Property) :-
 '$predicate_property'(iso, Pred) :-
 	'$get_predicate_attribute'(Pred, iso, 1).
 
-:- index(clause_property(0, 1)).
+clause_property(Clause, Property) :-
+	'$clause_property'(Property, Clause).
 
-clause_property(Clause, line_count(LineNumber)) :-
+'$clause_property'(line_count(LineNumber), Clause) :-
 	'$get_clause_attribute'(Clause, line_count, LineNumber).
-clause_property(Clause, file(File)) :-
+'$clause_property'(file(File), Clause) :-
 	'$get_clause_attribute'(Clause, file, File).
-clause_property(Clause, fact) :-
+'$clause_property'(fact, Clause) :-
 	'$get_clause_attribute'(Clause, fact, true).
-clause_property(Clause, erased) :-
+'$clause_property'(erased, Clause) :-
 	'$get_clause_attribute'(Clause, erased, true).
 
 
