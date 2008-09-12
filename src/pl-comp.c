@@ -4050,6 +4050,8 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
     if ( !base )
       fail;
     len = (size_t)base[-1];
+    if ( len == 0 )
+      len = supervisorLength(base);
   }
 
   if ( !PL_get_intptr_ex(offset, &pcoffset) )

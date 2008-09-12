@@ -24,6 +24,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-inline.h"
 
 #define MAX_FLI_ARGS 10			/* extend switches on change */
 
@@ -238,6 +239,22 @@ createSupervisor(Definition def)
     succeed;
 
   fail;
+}
+
+
+		 /*******************************
+		 *	      INFO		*
+		 *******************************/
+
+size_t
+supervisorLength(Code base)
+{ Code PC = base;
+
+  for(; decode(*PC) != I_EXIT; PC = stepPC(PC))
+    ;
+
+  PC++;					/* include I_EXIT */
+  return PC-base;
 }
 
 
