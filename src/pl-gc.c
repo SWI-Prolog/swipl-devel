@@ -2128,6 +2128,9 @@ check_trail()
 
       assert(onGlobal(gp));
       key += checkData(gp);
+      assert(te > tBase);
+      te--;
+      assert(!isTrailVal(te->address));
 #ifdef O_SECURE
     } else
     { if ( onStackArea(global, te->address) )
