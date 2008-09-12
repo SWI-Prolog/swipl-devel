@@ -1956,6 +1956,9 @@ VMI(S_VIRGIN, 0, 0, ())
 #ifdef O_LOGICAL_UPDATE
   FR->generation     = GD->generation;
 #endif
+  
+					/* reindexDefinition can open foreign frames */
+  lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
   reindexDefinition(DEF);		/* will block if it needs to do work */
 
   if ( DEF->codes == SUPERVISOR(virgin) )
