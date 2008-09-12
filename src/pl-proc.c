@@ -776,10 +776,16 @@ freeClauseRef(ClauseRef cref ARG_LD)
 }
 
 
-/*  Assert a clause to a procedure. Where askes to assert either at the
-    head or at the tail of the clause list.
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Assert a clause to a procedure. Where askes to assert either at the head
+or at the tail of the clause list.
 
- ** Fri Apr 29 12:44:08 1988  jan@swivax.UUCP (Jan Wielemaker)  */
+(*) This function updates the indexing information.  If we have a static
+procedure, it deletes the supervisor. This is  probably a bit rough, but
+deals with -for example- clauses for   term_expansion/2. After the first
+definition this will be  called  and   an  S_TRUSTME  supervisor will be
+installed, causing further clauses to have no effect.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 ClauseRef
 assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
@@ -810,6 +816,9 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   clause->generation.created = ++GD->generation;
   clause->generation.erased  = ~0L;	/* infinite */
 #endif
+
+  if ( false(def, DYNAMIC) )		/* see (*) above */
+    freeCodesDefinition(def);
 
   if ( def->hash_info )
   { assert(!(def->indexPattern & NEED_REINDEX));
