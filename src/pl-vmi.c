@@ -1944,7 +1944,13 @@ VMI(I_TRUE, VIF_BREAK, 0, ())
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-S_VIRGIN: Fresh, unused predicate
+S_VIRGIN: Fresh, unused predicate. Any new   predicate  is created using
+this supervisor (see resetProcedure()). The task of this is to
+
+	* Resolve the definition (i.e. auto-import or auto-load if
+	not defined).
+	* Check the indexing opportunities and install the proper
+        supervisor (see reindexDefinition()).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_VIRGIN, 0, 0, ())
