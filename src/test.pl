@@ -721,6 +721,10 @@ gmp(length) :-
 	N is 1<<66,
 	catch(length(_L, N), Error, true),
 	Error = error(resource_error(stack), global).
+gmp(ar_add_ui) :-			% check realloc of gmp number
+	A = 1000000000000000000000,
+	X is A+1,
+	X == 1000000000000000000001.
 
 :- endif.
 

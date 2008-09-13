@@ -36,6 +36,7 @@ COMMON(void) 	initGMP(void);
 COMMON(void)	get_integer(word w, number *n);
 COMMON(void)	promoteToMPZNumber(number *n);
 COMMON(void)	promoteToMPQNumber(number *n);
+COMMON(void)	ensureWritableNumber(Number n);
 COMMON(void)	clearGMPNumber(Number n);
 COMMON(void)	addMPZToBuffer(Buffer b, mpz_t mpz);
 COMMON(char *)	loadMPZFromCharp(const char *data, Word r, Word *store);
@@ -52,8 +53,9 @@ COMMON(int)	mpz_to_int64(mpz_t mpz, int64_t *i);
 	  (n)->value.i = valInteger(w); \
 	} while(0)
 
-#define clearNumber(n)	(void)0
-#define initGMP()	(void)0
+#define clearGMPNumber(n)	(void)0
+#define clearNumber(n)		(void)0
+#define initGMP()		(void)0
 
 #endif /*O_GMP*/
 

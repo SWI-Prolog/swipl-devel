@@ -2424,11 +2424,14 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
     if ( !rc )
       goto b_throw;
 
+    ensureWritableNumber(&n);
     if ( ar_add_ui(&n, add) )
     { *rp = put_number(&n);
       clearNumber(&n);
 
       NEXT_INSTRUCTION;
+    } else
+    { clearNumber(&n);
     }
 
     goto b_throw;

@@ -454,6 +454,43 @@ promoteToMPQNumber(number *n)
 
 
 		 /*******************************
+		 *		RW		*
+		 *******************************/
+
+void
+ensureWritableNumber(Number n)
+{ switch(n->type)
+  { case V_MPZ:
+      if ( !n->value.mpz->_mp_alloc )
+      { mpz_t tmp;
+
+	tmp[0] = n->value.mpz[0];
+	mpz_init_set(n->value.mpz, tmp);
+	break;
+      }
+    case V_MPQ:
+    { if ( !mpq_numref(n->value.mpq)->_mp_alloc )
+      { mpz_t tmp;
+
+	tmp[0] = mpq_numref(n->value.mpq)[0];
+	mpz_init_set(mpq_numref(n->value.mpq), tmp);
+      }
+      if ( !mpq_denref(n->value.mpq)->_mp_alloc )
+      { mpz_t tmp;
+
+	tmp[0] = mpq_denref(n->value.mpq)[0];
+	mpz_init_set(mpq_denref(n->value.mpq), tmp);
+      }
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+
+
+		 /*******************************
 		 *	       CLEAR		*
 		 *******************************/
 
