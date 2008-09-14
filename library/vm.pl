@@ -37,7 +37,8 @@ vm_list(Spec) :-
 	    ;	format('    (No supervisor)~n')
 	    ),
 	    (   nth_clause(Head, N, Ref),
-		clause(Head, _, Ref),
+		clause(MHead, _, Ref),
+		same_head(Head, MHead),
 		format('~40c~nclause ~d (~d):~n~40c~n', [0'-, N, Ref, 0'-]),
 		vm_list_clause(Ref),
 		fail
@@ -63,3 +64,8 @@ unify_args(_, _/_) :- !.		% Name/arity spec
 unify_args(X, X) :- !.
 unify_args(_:X, X) :- !.
 unify_args(_, _).
+
+same_head(X, X).
+same_head(H1, H2) :-
+	strip_module(H1, _, H),
+	strip_module(H2, _, H).
