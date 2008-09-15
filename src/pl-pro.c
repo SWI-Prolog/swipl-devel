@@ -567,7 +567,10 @@ last_arg:
          storage(f->definition) != STG_GLOBAL )
       printk("Illegal term: 0x%x", *p);
     arity = arityFunctor(f->definition);
-    if (arity <= 0 || arity > 256)
+    if ( arity < 0 )
+      printk("Illegal arity (%d)", arity);
+    else if ( arity > 256 &&
+	      (arity % 359) != 0 )	/* CHR hashtables */
       printk("Dubious arity (%d)", arity);
     for(n=0; n<arity-1; n++)
       key += check_data(&f->arguments[n], recursive);
