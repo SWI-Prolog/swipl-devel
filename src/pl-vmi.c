@@ -66,6 +66,8 @@ Virtual machine instructions can return with one of:
 	Failed unifying the head: backtrack to next clause
 
 	* BODY_FAILED
+	Failure of in-body instructions (I_FAIL, B_UNIFY_EXIT, ...)
+
 	* FRAME_FAILED
 	Other failures: deep backtracking.
 
@@ -940,7 +942,7 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   if ( exception_term )
     goto b_throw;
 
-  FRAME_FAILED;
+  BODY_FAILED;
 }
 
 
@@ -1021,7 +1023,7 @@ VMI(B_EQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   if ( compareStandard(v1, v2, TRUE PASS_LD) == 0 )
     NEXT_INSTRUCTION;
 
-  FRAME_FAILED;
+  BODY_FAILED;
 }
 
 
@@ -2290,11 +2292,7 @@ a_var_n:
 	NEXT_INSTRUCTION;
       } else
       { resetArithStack(PASS_LD1);
-#if O_CATCHTHROW
-	if ( exception_term )
-	  goto b_throw;
-#endif
-	BODY_FAILED;		/* check this */
+	goto b_throw;
       }
     }
   }

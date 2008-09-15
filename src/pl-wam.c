@@ -1280,10 +1280,10 @@ newChoice(choice_type type, LocalFrame fr ARG_LD)
   ch->frame = fr;
   ch->parent = BFR;
   Mark(ch->mark);
-  BFR = ch;
 #ifdef O_PROFILE
   ch->prof_node = LD->profile.current;
 #endif
+  BFR = ch;
   DEBUG(3, Sdprintf("NEW %s\n", chp_chars(ch)));
 
   return ch;
@@ -1827,58 +1827,67 @@ The rest of this giant procedure handles   backtracking. This used to be
 very complicated, but as of pl-3.3.6, choice-points are explicit objects
 and life is a lot easier. In the old days we distinquished between three
 cases to get here. We leave that   it for documentation purposes as well
-as to investigate optimisation in the future.
+as to investigate optimization in the future.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 				MARK(BKTRK);
 clause_failed:				/* shallow backtracking */
+body_failed:
 END_PROF();
 START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 { Choice ch = BFR;
 
-  if ( FR == ch->frame && ch->type == CHP_CLAUSE )
-  { ClauseRef next;
-    Undo(ch->mark);
+  if ( FR == ch->frame )
+  { Undo(ch->mark);
     aTop = aFloor;
 
-    ARGP = argFrameP(FR, 0);
-    if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
-      FRAME_FAILED;			/* should not happen */
-    PC = CL->clause->codes;
-    umode = uread;
-
-    if ( ch == (Choice)argFrameP(FR, CL->clause->variables) )
-    { if ( next )
-      { ch->value.clause = next;
-	lTop = addPointer(ch, sizeof(*ch));
-	NEXT_INSTRUCTION;
-      } else if ( debugstatus.debugging )
-      { ch->type = CHP_DEBUG;
-	lTop = addPointer(ch, sizeof(*ch));
-	NEXT_INSTRUCTION;
-      }
-
-      BFR = ch->parent;
+    if ( ch->type == CHP_JUMP )
+    { PC   = ch->value.PC;
+      BFR  = ch->parent;
       lTop = (LocalFrame)ch;
-      NEXT_INSTRUCTION;
-    } else
-    { BFR = ch->parent;
-      lTop = (LocalFrame)argFrameP(FR, CL->clause->variables);
-      
-      if ( next )
-      { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	ch->value.clause = next;
-      } else if ( debugstatus.debugging )
-      { ch = newChoice(CHP_DEBUG, FR PASS_LD);
-      }
+      ARGP = argFrameP(lTop, 0);
 
-      requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
       NEXT_INSTRUCTION;
+    } else if ( ch->type == CHP_CLAUSE )
+    { ClauseRef next;
+      
+      ARGP = argFrameP(FR, 0);
+      if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
+	FRAME_FAILED;			/* should not happen */
+      PC = CL->clause->codes;
+      umode = uread;
+  
+      if ( ch == (Choice)argFrameP(FR, CL->clause->variables) )
+      { if ( next )
+	{ ch->value.clause = next;
+	  lTop = addPointer(ch, sizeof(*ch));
+	  NEXT_INSTRUCTION;
+	} else if ( debugstatus.debugging )
+	{ ch->type = CHP_DEBUG;
+	  lTop = addPointer(ch, sizeof(*ch));
+	  NEXT_INSTRUCTION;
+	}
+  
+	BFR = ch->parent;
+	lTop = (LocalFrame)ch;
+	NEXT_INSTRUCTION;
+      } else
+      { BFR = ch->parent;
+	lTop = (LocalFrame)argFrameP(FR, CL->clause->variables);
+	
+	if ( next )
+	{ ch = newChoice(CHP_CLAUSE, FR PASS_LD);
+	  ch->value.clause = next;
+	} else if ( debugstatus.debugging )
+	{ ch = newChoice(CHP_DEBUG, FR PASS_LD);
+	}
+	NEXT_INSTRUCTION;
+      }
     }
   }  
 }
 
-body_failed:
+
 frame_failed:
 END_PROF();
 START_PROF(P_DEEP_BACKTRACK, "P_DEEP_BACKTRACK");
