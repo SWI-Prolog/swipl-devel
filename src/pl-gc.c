@@ -1452,31 +1452,34 @@ cell. Hence the `goto found'.
 
 static void
 sweep_global_mark(Word *m ARG_LD)
-{ Word gm, prev;
+{ Word gm, base = gBase;
 
   SECURE(assert(onStack(local, m)));
   gm = *m;
 
-  for(;;)
-  { if ( gm == gBase )
-    { *m = (Word)consPtr(gm, STG_GLOBAL);
-      alien_relocations++;
-      break;
-    }
-    if ( is_first(gm-1) )
-      goto found;
-    prev = previous_gcell(gm);
-    if ( is_marked(prev) )
-    {
-    found:
-      *m = gm;
-      DEBUG(3, Sdprintf("gTop mark from choice point: "));
-      needsRelocation(m);
-      alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL PASS_LD);
-      break;
+  while(gm > base)
+  { Word prev = gm-1;
+
+    if ( (*prev & (MARK_MASK|FIRST_MASK|STG_LOCAL)) )
+    { if ( is_marked_or_first(prev) )
+      { found:
+	*m = gm;
+        DEBUG(3, Sdprintf("gTop mark from choice point: "));
+	needsRelocation(m);
+	alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL PASS_LD);
+	return;
+      } else if ( storage(*prev) == STG_LOCAL )
+      { long offset = offset_cell(prev);
+	prev -= offset;
+	if ( is_marked_or_first(prev) )
+	  goto found;
+      }
     }
     gm = prev;
   }
+
+  *m = (Word)consPtr(gm, STG_GLOBAL);
+  alien_relocations++;
 }
 
 
