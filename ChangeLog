@@ -8,6 +8,65 @@
 					--------------------------------------
 
 
+=================================
+VERSION 5.6.60 September 15, 2008
+=================================
+
+ * ADDED: PL_get_intptr()
+   
+ * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
+   versions.  After tip by Ulrich Neumerkel.
+   
+ * FIXED: Correctly update computed settings after changing one of the
+   dependencies.  Jacco van Ossenbruggen.
+   
+ * PORT: Some issues in VM instruction generation for MSVC8
+   
+ * CLEANUP: Use new interface for all debugging support predicates in pl-comp.c
+   
+ * FIXED: Setting break-points in code with strings and/or GMP numbers;
+   use new interface for $break_pc/3.
+   
+ * PORT: Added pkgconfig support to the installation.  Patch by John Carr
+   
+ * ENHANCED: Fixed quadratic behaviour when checking for cycles in very
+   large terms handed to is/2.  Matt Lilley.
+   
+ * FIXED: read_pending_input/3 and at_end_of_file/1 handling of incomplete
+   multi-byte characters.
+   
+ * ADDED: library(dialect/hprolog) that is used by the CHR package
+   
+ * FIXED: format/3: fails if goal fails using the ~@ construction.
+   
+ * FIXED: Possible loss of exception term when printing an uncaught exception
+   
+ * FIXED: possible foreign frame corruption on stream_property/2 and speedup of stream_property(-, +).
+   
+ * INTERNAL: Added multi-argument VM types to code-info and provide full
+   VM assembler listing through '$fetch_vm'/4
+   
+ * CLEANUP: Re-done the first step of the 5.7.x kernel enhancements.
+   This step changes the overall structure of the virtual machine instructions to
+   simplify changes to the set of supported instructions and guarantee
+   consistency of the declarations.  The changes upto this point are purely
+   syntactic: there are no changes to the instruction set or the compiler.
+   
+ * ENHANCED: CLP(FD): stronger exponentiation
+   
+ * FIXED: NULL-pointer dereference (crash) on prolog_frame_attribute(none, _, _).
+   
+ * FIXED: Possible crash in prolog_frame_attribute(Fr, pc, PC).  Matt Lilley.
+   
+ * INSTALL: Remove all configure files from the git repository
+   
+ * FIXED: Buffer overrun in format/3 using ~<arg>D with arg > 97.  Mike Elston
+   This is a security risc if <arg> is not controlled by the program (which
+   should be rare).
+   
+ * MODIFIED: Now uses PceEmacs as default editor if XPCE can be enabled
+
+
 ==============================
 VERSION 5.6.59 August 05, 2008
 ==============================

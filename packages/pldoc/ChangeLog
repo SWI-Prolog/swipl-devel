@@ -1,3 +1,11 @@
+[Sep 11 2008]
+
+ * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
+   versions.  After tip by Ulrich Neumerkel.
+   
+[Aug 11 2008]
+
+ * INSTALL: Remove all configure files from the git repository
 [Jun 18 2008]
 
  * FIXED: Avoid undefined predicate in PlDoc on mixed modules and non-module files

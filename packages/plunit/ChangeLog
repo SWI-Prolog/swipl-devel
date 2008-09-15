@@ -1,3 +1,12 @@
+[Sep 11 2008]
+
+ * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
+   versions.  After tip by Ulrich Neumerkel.
+   
+[Aug 11 2008]
+
+ * INSTALL: Remove all configure files from the git repository
+   
 [Jul 10 2008]
 
  * FIXED: PlUnit: Perform goal_expansion/2 on setup, condition and cleanup options.

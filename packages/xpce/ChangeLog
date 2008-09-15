@@ -1,3 +1,18 @@
+[Sep 11 2008]
+
+ * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
+   versions.  After tip by Ulrich Neumerkel.
+   
+[Aug 11 2008]
+
+ * BUILD: XPCE: deleted generated h/names.[ic] files and replace the scripts
+   by a plain C program to build these files.
+   
+ * INSTALL: Remove all configure files from the git repository
+   
+[Aug 5 2008]
+
+ * MODIFIED: Now uses PceEmacs as default editor if XPCE can be enabled
 [Jul 16 2008]
 
  * PORT: Properly include curses.h and term.h in pl-term.c.  Does this need to
