@@ -1044,6 +1044,12 @@ ar_add_ui(Number n, intptr_t add)
 
       succeed;
     }
+#else
+    case V_REAL:
+    { n->value.f += (double)add;
+
+      succeed;
+    }
 #endif
     default:
       ;

@@ -55,6 +55,7 @@ COMMON(int)	mpz_to_int64(mpz_t mpz, int64_t *i);
 
 #define clearGMPNumber(n)	(void)0
 #define clearNumber(n)		(void)0
+#define ensureWritableNumber(n) (void)0
 #define initGMP()		(void)0
 
 #endif /*O_GMP*/
