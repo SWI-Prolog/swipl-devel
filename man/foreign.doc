@@ -840,6 +840,12 @@ If \arg{t} is a Prolog integer or float that can be represented as a
 integers can be represented using this type, but this might change if
 SWI-Prolog introduces unbounded integers.
 
+\cfunction{int}{PL_get_intptr}{term_t +t, intptr_t *i}
+Get an integer that is at least as wide a as a pointer. On most
+platforms this is the same as PL_get_long(), but on Win64 pointers are 8
+bytes and longs only 4. Unlike PL_get_pointer(), the value is not
+modified.
+
 \cfunction{int}{PL_get_bool}{term_t +t, int *val}
 If \arg{t} has the value \const{true} or \const{false}, set \arg{val}
 to the C constant \const{TRUE} or \const{FALSE} and return success.
