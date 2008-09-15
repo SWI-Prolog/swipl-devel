@@ -1,3 +1,11 @@
+[Sep 11 2008]
+
+ * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
+   versions.  After tip by Ulrich Neumerkel.
+   
+[Aug 11 2008]
+
+ * INSTALL: Remove all configure files from the git repository
 [Mar 4 2008]
 
  * ENHANCED: Determinism of odbc_table_column/3,4.  Nicos Angelopoulos.

@@ -1,3 +1,11 @@
+[Sep 11 2008]
+
+ * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
+   versions.  After tip by Ulrich Neumerkel.
+   
+[Aug 11 2008]
+
+ * INSTALL: Remove all configure files from the git repository
 [Apr 18 2008]
 
  * MODIFIED: Renamed hash_term/2 to term_hash/2.  Added hash_term/2 to

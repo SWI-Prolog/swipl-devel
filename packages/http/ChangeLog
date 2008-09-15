@@ -1,3 +1,15 @@
+[Sep 11 2008]
+
+ * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
+   versions.  After tip by Ulrich Neumerkel.
+   
+[Aug 30 2008]
+
+ * FIXED: use csym instead of csymf for valid HTTP fieldname characters.  Edward Blake.
+   
+[Aug 11 2008]
+
+ * INSTALL: Remove all configure files from the git repository
 [Aug 5 2008]
 
  * MODIFIED: http_read_request/3 throws error on illegal request and http_wrapper/5

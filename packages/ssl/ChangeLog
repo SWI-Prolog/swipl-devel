@@ -1,3 +1,11 @@
+[Sep 11 2008]
+
+ * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
+   versions.  After tip by Ulrich Neumerkel.
+   
+[Aug 11 2008]
+
+ * INSTALL: Remove all configure files from the git repository
 [Jul 3 2008]
 
  * FIXED: Bug#366: SSL Certificates for tesing expired.  Keri Harris.
