@@ -1576,6 +1576,8 @@ typedef enum
 	umode = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
+	if ( debugstatus.debugging ) \
+	  newChoice(CHP_DEBUG, FR PASS_LD); \
 	PC    = cref->clause->codes; \
 	NEXT_INSTRUCTION;
 #define TRY_CLAUSE(cref, cond, altpc) \
@@ -1585,6 +1587,8 @@ typedef enum
 	if ( cond ) \
 	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
  	  ch->value.PC = altpc; \
+	} else if ( debugstatus.debugging ) \
+	{ newChoice(CHP_DEBUG, FR PASS_LD); \
 	} \
 	PC    = cref->clause->codes; \
 	NEXT_INSTRUCTION;
@@ -1897,6 +1901,8 @@ next_choice:
     { if ( isDebugFrame(FR) )
       { Choice sch = findStartChoice(FR, ch0);
 
+	DEBUG(1, Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
+
 	if ( sch )
 	{ Undo(sch->mark);
 
@@ -1986,8 +1992,7 @@ next_choice:
       { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
 	ch->value.clause = next;
       } else if ( debugstatus.debugging )
-      { if ( !isDebugFrame(FR) && true(FR->predicate, HIDE_CHILDS) )
-	  ch = newChoice(CHP_DEBUG, FR PASS_LD);
+      { newChoice(CHP_DEBUG, FR PASS_LD);
       }
 
       if ( is_signalled(PASS_LD1) )
