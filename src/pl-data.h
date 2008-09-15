@@ -153,6 +153,7 @@ be kept consistent.
 #define clear_both(p)	do { *(p) &= ~(FIRST_MASK|MARK_MASK); } while(0)
 #define is_marked(p)	(*(p) & MARK_MASK)
 #define is_first(p)	(*(p) & FIRST_MASK)
+#define is_marked_or_first(p) (*(p) & (MARK_MASK|FIRST_MASK))
 
 #define tag(w)		((w) & TAG_MASK)
 #define storage(w)	((w) & STG_MASK)
