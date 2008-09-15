@@ -357,6 +357,10 @@ typedef struct PL_local_data
   } attvar;
 #endif
 
+  struct
+  { term_t	dummy;			/* see trimStacks() */
+  } trim;
+
 #ifdef O_GVAR
   struct
   { Table	nb_vars;		/* atom --> value */

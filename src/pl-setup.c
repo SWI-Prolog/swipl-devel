@@ -1041,6 +1041,7 @@ emptyStacks()
   exception_printed     = PL_new_term_ref();
   LD->exception.tmp     = PL_new_term_ref();
   LD->exception.pending = PL_new_term_ref();
+  LD->trim.dummy        = PL_new_term_ref();
 #ifdef O_ATTVAR
   LD->attvar.head	= PL_new_term_ref();
   LD->attvar.tail       = PL_new_term_ref();
@@ -1782,7 +1783,7 @@ trimStacks() reclaims all unused space on the stack. Note that the trail
 can have references to unused stack. We set the references to point to a
 dummy variable, so no harm  will  be   done.  Setting  it  to NULL would
 require a test in Undo(), which   is time-critical. trim_stacks normally
-isn't. This precaution is explicitly requires  for the trimStacks() that
+isn't. This precaution is explicitly required  for the trimStacks() that
 result from a stack-overflow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1815,12 +1816,7 @@ trimStacks(ARG1_LD)
       continue;
 
     if ( !onStack(local, p) && !onStack(global, p) )
-    { if ( !dummy )
-      { dummy = allocGlobal(1);
-	setVar(*dummy);
-      }
-
-      te->address = dummy;
+    { te->address = valTermRef(LD->trim.dummy);
     }
   }
 #undef LD

@@ -1902,6 +1902,7 @@ undo_while_saving_term(mark *m, Word term)
   }
 
   discardBuffer(&info.vars);
+  LD->mark_bar = m->globaltop;
 }
 
 

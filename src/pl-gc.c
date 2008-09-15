@@ -1047,6 +1047,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 	}
 
 	assignments++;
+	te--;
       } else
       { Word gp = val_ptr(te->address);
 
@@ -2134,7 +2135,15 @@ check_trail()
 #ifdef O_SECURE
     } else
     { if ( onStackArea(global, te->address) )
-	assert(onStack(global, te->address));
+      { if ( !onStack(global, te->address) )
+	{ char b1[64], b2[64], b3[64];
+
+	  Sdprintf("Trail entry at %s not on global stack: %s (*=%s)\n",
+		   print_adr(te, b1),
+		   print_adr(te->address, b2),
+		   print_val(*te->address, b3));
+	}
+      }
 #endif
     }
   }
