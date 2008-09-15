@@ -1005,6 +1005,7 @@ initPrologStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argum
   base_addresses[STG_LOCAL]  = (uintptr_t)lBase;
   base_addresses[STG_GLOBAL] = (uintptr_t)gBase;
   base_addresses[STG_TRAIL]  = (uintptr_t)tBase;
+  *gBase++ = MARK_MASK;			/* see sweep_global_mark() */
   emptyStacks();
 
   DEBUG(1, Sdprintf("base_addresses[STG_LOCAL] = %p\n",
@@ -1352,6 +1353,7 @@ freeStacks(ARG1_LD)
 
 #undef LD
 #define LD LOCAL_LD
+  gBase--;				/* see initPrologStacks() */
   tlen  = limitStack(trail);
   alen  = limitStack(argument);
   gllen = limitStack(global) + limitStack(local);
@@ -1506,6 +1508,7 @@ void
 freeStacks(PL_local_data_t *ld)
 { DEBUG(1, Sdprintf("[%d]: freeStacks()\n", PL_thread_self()));
 
+  ld->stacks.global.base--;		/* see initPrologStacks() */
   freeStack((Stack)&ld->stacks.global);	/* Region must be entirely committed */
   freeStack((Stack)&ld->stacks.local);	/* or decommitted */
   freeStack((Stack)&ld->stacks.trail);
@@ -1733,6 +1736,7 @@ freeStacks(ARG1_LD)
 {
 #undef LD
 #define LD LOCAL_LD
+  gBase--;
   if ( gBase ) { free(gBase); gBase = NULL; lBase = NULL; }
   if ( tBase ) { free(tBase); tBase = NULL; }
   if ( aBase ) { free(aBase); aBase = NULL; }

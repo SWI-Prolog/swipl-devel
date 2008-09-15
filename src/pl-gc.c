@@ -1443,43 +1443,77 @@ untag_trail()
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Sweep a mark. This is a bit tricky as the global-stack pointer may point
-to  a  garbage  global  cell.  Therefore  we  have  to  find  the  first
-non-garbage one. Unfortunately, the cell may  already be in a relocation
-chain (in which case `first' is true). In  this case it is not a garbage
-cell. Hence the `goto found'.
+Make a hole. This is used by functions   doing a scan on the global data
+after marking. By creating a large cell   (disguised  as a string) other
+functions doing a scan can skip large portions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Word
+make_gc_hole(Word bottom, Word top)
+{ if ( top - bottom > 4 )
+  { int wsize = top - bottom - 1;
+    word hdr = mkIndHdr(wsize, TAG_STRING); /* limited by size of string? */
+
+    *top = hdr;
+    *bottom = hdr;
+
+    DEBUG(3, Sdprintf("Created Garbage hole %p..%p, size %d\n",
+		      bottom+1, top, wsize));
+  }
+
+  return bottom;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Sweep a mark. *m is a top-of-global   pointer,  i.e. it points the first
+free place in the global stack. Simply   updating is not good enough, as
+this part may be garbage. Hence, we  have   to  scan  until we find real
+data.
+
+Note that initPrologStacks writes a dummy   marked cell below the global
+stack, so this routine needs not to check   for the bottom of the global
+stack.  This almost doubles the performance of this critical routine.
+
+NOTE: making a hole using make_gc_hole() doubles  the speed when we have
+mostly empty stacks. Unfortunately other marks can point in the hole and
+react wrong. Possibly  we  can  fix   that  using  a  different  marking
+technique for the hole?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 sweep_global_mark(Word *m ARG_LD)
-{ Word gm, base = gBase;
+{ Word gm;
 
   SECURE(assert(onStack(local, m)));
   gm = *m;
 
-  while(gm > base)
+  for(;;)
   { Word prev = gm-1;
 
-    if ( (*prev & (MARK_MASK|FIRST_MASK|STG_LOCAL)) )
-    { if ( is_marked_or_first(prev) )
-      { found:
-	*m = gm;
-        DEBUG(3, Sdprintf("gTop mark from choice point: "));
-	needsRelocation(m);
-	alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL PASS_LD);
-	return;
-      } else if ( storage(*prev) == STG_LOCAL )
-      { long offset = offset_cell(prev);
-	prev -= offset;
-	if ( is_marked_or_first(prev) )
-	  goto found;
-      }
+    while( !(*prev & (MARK_MASK|FIRST_MASK|STG_LOCAL)) )
+      prev--;
+    gm = prev+1;
+
+    if ( is_marked_or_first(prev) )
+    {
+    found:
+/*    if ( *m - gm > 5 )		See NOTE */
+/*	make_gc_hole(gm, *m - 1);		 */
+
+      *m = gm;
+      DEBUG(3, Sdprintf("gTop mark from choice point: "));
+      needsRelocation(m);
+      alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL PASS_LD);
+      return;
+    } else if ( storage(*prev) == STG_LOCAL )
+    { long offset = offset_cell(prev);
+      prev -= offset;
+      if ( is_marked_or_first(prev) )
+	goto found;
     }
     gm = prev;
   }
-
-  *m = (Word)consPtr(gm, STG_GLOBAL);
-  alien_relocations++;
 }
 
 
@@ -1786,30 +1820,16 @@ returning a pointer to the bottom of the   garbage  or the bottom of the
 global stack. If the found garbage  hole   is  big enough, create a cell
 that represents a large garbage string,  so   the  up-phase  can skip it
 quickly.
+
+Note that below the bottom of the stack   there  is a dummy marked cell.
+See also sweep_global_mark().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static Word
-make_gc_hole(Word bottom, Word top)
-{ if ( top - bottom > 4 )
-  { int wsize = top - bottom - 1;
-    word hdr = mkIndHdr(wsize, TAG_STRING);
-
-    *top = hdr;
-    *bottom = hdr;
-
-    DEBUG(3, Sdprintf("Created Garbage hole %p..%p, size %d\n",
-		      bottom+1, top, wsize));
-  }
-
-  return bottom;
-}
-
 
 static Word
 downskip_combine_garbage(Word current, Word dest ARG_LD)
 { Word top_gc = current + offset_cell(current);
 
-  for(current-- ; current >= gBase; current-- )
+  for(current-- ; ; current-- )
   { if ( (*current & (MARK_MASK|FIRST_MASK|STG_LOCAL)) )
     { if ( is_marked(current) )
       { DEBUG(3, Sdprintf("Normal-non-GC cell at %p\n", current));
