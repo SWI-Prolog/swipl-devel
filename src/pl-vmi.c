@@ -2071,6 +2071,31 @@ next_clause:
 VMI(S_NEXTCLAUSE, 0, 0, ())
 { cref = CL->next;
 
+  if ( debugstatus.debugging && !debugstatus.suspendTrace )
+  { ARGP = argFrameP(FR, 0);
+    lTop = (LocalFrame)ARGP + FR->predicate->functor->arity;
+
+    for(; cref; cref = cref->next)
+    { if ( visibleClause(cref->clause, FR->generation) )
+      {	LocalFrame fr;
+	CL = cref;
+
+	if ( (fr = dbgRedoFrame(FR PASS_LD)) )
+	{ switch( tracePort(fr, BFR, REDO_PORT, NULL PASS_LD) )
+	  { case ACTION_FAIL:
+	      FRAME_FAILED;
+	    case ACTION_IGNORE:
+	      VMI_GOTO(I_EXIT);
+	    case ACTION_RETRY:
+	      goto retry_continue;
+	  }
+	}
+
+        break;
+      }
+    }  
+  }
+
   PC--;
   goto next_clause;
 }

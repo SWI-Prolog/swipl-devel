@@ -931,6 +931,42 @@ updateMovedTerm(LocalFrame fr, word old, word new)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+dbgRedoFrame(LocalFrame fr)
+
+Find the frame we report  for  a  retry.   If  the  current  frame  is a
+debugable frame, we only debug if it is a user predicate.
+
+If the current frame  is  not  debuggable   we  have  a  choicepoint  in
+non-debug code. We walk up the stack to   find  a debug frame. If we are
+already in the box of this frame, we   have  an internal retry of called
+system predicate, which we should not trace. If we are outside the `box'
+however, we must trace the toplevel visible predicate.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static LocalFrame
+dbgRedoFrame(LocalFrame fr ARG_LD)
+{ DEBUG(1, Sdprintf("REDO on %s\n", predicateName(fr->predicate)));
+
+  if ( SYSTEM_MODE )
+    return fr;
+  if ( isDebugFrame(fr) )
+    return true(fr->predicate, HIDE_CHILDS) ? NULL : fr;
+  for( ; fr && !isDebugFrame(fr); fr = fr->parent)
+    ;
+  DEBUG(1, if ( fr )
+	Sdprintf("REDO user frame of %s\n",
+		 predicateName(fr->predicate)));
+  if ( fr && false(fr, FR_INBOX) )
+  { set(fr, FR_INBOX);
+    return fr;
+  }
+
+  return NULL;
+}
+
+
+
 #endif /*O_DEBUGGER*/
 
 static int
@@ -1925,17 +1961,9 @@ next_choice:
 
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-      { LocalFrame fr;
+      { LocalFrame fr = dbgRedoFrame(FR PASS_LD);
 
-	if ( !SYSTEM_MODE )		/* find user-level goal to retry */
-	{ for(fr = FR; fr && !isDebugFrame(fr); fr = fr->parent)
-	    ;
-	} else
-	  fr = FR;
-
-	if ( fr &&
-	     (false(fr->predicate, HIDE_CHILDS) ||
-	      false(fr, FR_INBOX)) )
+	if ( fr )
 	{ switch( tracePort(fr, BFR, REDO_PORT, NULL PASS_LD) )
 	  { case ACTION_FAIL:
 	      FRAME_FAILED;
@@ -1944,7 +1972,6 @@ next_choice:
 	    case ACTION_RETRY:
 	      goto retry_continue;
 	  }
-	  set(fr, FR_INBOX);
 	}
       }
 #endif
