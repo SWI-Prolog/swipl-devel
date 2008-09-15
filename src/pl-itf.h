@@ -378,6 +378,7 @@ PL_EXPORT(int)		PL_get_nchars(term_t t,
 				      unsigned int flags);
 PL_EXPORT(int)		PL_get_integer(term_t t, int *i);
 PL_EXPORT(int)		PL_get_long(term_t t, long *i);
+PL_EXPORT(int)		PL_get_intptr(term_t t, intptr_t *i);
 PL_EXPORT(int)		PL_get_pointer(term_t t, void **ptr);
 PL_EXPORT(int)		PL_get_float(term_t t, double *f);
 PL_EXPORT(int)		PL_get_functor(term_t t, functor_t *f);
