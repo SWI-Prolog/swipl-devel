@@ -520,6 +520,12 @@ idiv(Dd,Dr,Iq):-
         Iq is Qt//Qn.
 
 
+gmp(add-promote1) :-
+	A is 1 + 9223372036854775807,
+	A =:= 9223372036854775808.
+gmp(add-promote2) :-
+	A is -9223372036854775808 + -1,
+	A =:= -9223372036854775809.
 gmp(neg-1) :-				% check conversion of PLMININT
 	A is -9223372036854775808,
 	-A =:= 9223372036854775808.

@@ -1059,7 +1059,7 @@ ar_add_ui(Number n, intptr_t add)
   fail;
 }
 
-#define SAME_SIGN(i1, i2) (((i1) ^ (i2)) < 0)
+#define SAME_SIGN(i1, i2) (((i1) ^ (i2)) >= 0)
 
 int
 pl_ar_add(Number n1, Number n2, Number r)
