@@ -1846,6 +1846,16 @@ trimStacks(ARG1_LD)
 #endif /*O_DYNAMIC_STACKS*/
 #endif /*O_SHIFT_STACKS*/
 
+#ifdef SECURE_GC
+  { Word p;				/* clear the stacks */
+
+    for(p=gTop; p<gMax; p++)
+      *p = 0xbfbfbfbf;
+    for(p=(Word)lTop; p<(Word)lMax; p++)
+      *p = 0xbfbfbfbf;
+  }
+#endif
+
   for(te = tTop; --te >= tBase; )
   { Word p = te->address;
     
