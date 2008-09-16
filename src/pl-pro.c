@@ -428,6 +428,17 @@ last_arg:
 }
 
 
+static int				/* avoid false alarm in CHR */
+is_ht_capacity(int arity)
+{ int cap = 89;				/* chr_hashtable_store.pl */
+
+  while(cap < arity)
+    cap = cap*2+1;
+
+  return cap == arity;
+}
+
+
 static word
 check_data(Word p, int *recursive)
 { int arity; int n;
@@ -570,7 +581,9 @@ last_arg:
          storage(f->definition) != STG_GLOBAL )
       printk("Illegal term: 0x%x", *p);
     arity = arityFunctor(f->definition);
-    if (arity <= 0 || arity > 256)
+    if ( arity < 0 )
+      printk("Illegal arity (%d)", arity);
+    else if ( arity > 256 && !is_ht_capacity(arity) )
       printk("Dubious arity (%d)", arity);
     for(n=0; n<arity-1; n++)
       key += check_data(&f->arguments[n], recursive);

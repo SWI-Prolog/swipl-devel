@@ -54,6 +54,16 @@ vName(Word adr)
 #endif
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) Although this is an assignment from var   to value, we use a trailed
+assignment  to  exploit  mergeTrailedAssignments()   in  GC,  discarding
+multiple  assignments  in  the  same  segment,  needed  to  ensure  that
+deterministic wakeup does not leak  space.   The  test  program is this,
+which must run in constant space.
+
+	loop :- freeze(X, true), X = a, loop.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 registerWakeup(Word name, Word value ARG_LD)
 { Word wake;
@@ -82,10 +92,10 @@ registerWakeup(Word name, Word value ARG_LD)
   { Word head = valTermRef(LD->attvar.head);
     
     assert(isVar(*head));
+    TrailAssignment(head);		/* See (*) */
     *head = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
-    Trail(head);			/* not gc-ed!? */
+    TrailAssignment(tail);
     *tail = makeRef(wake+3);
-    Trail(tail);			/* not gc-ed!? */
     LD->alerted |= ALERT_WAKEUP;
     DEBUG(1, Sdprintf("new wakeup\n"));
   }
