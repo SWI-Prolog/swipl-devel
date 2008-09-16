@@ -2369,7 +2369,11 @@ b_throw:
     considerGarbageCollect((Stack)NULL);
 
     if ( LD->trim_stack_requested )
+    { LocalFrame lsave = lTop;
+      lTop = (LocalFrame)argFrameP(lTop, 1);
       trimStacks(PASS_LD1);
+      lTop = lsave;
+    }
 #endif
 
     goto i_usercall0;
