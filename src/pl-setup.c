@@ -1274,9 +1274,32 @@ unmap(Stack s)
 
 /* mmap() version */
 
+#ifdef SECURE_GC
+#include <stdio.h>
+
+static void
+fixed_bases(void **gbase, void**tbase)
+{ const char *bases;
+
+  if ( PL_thread_self() == 1 && (bases=getenv("PL_STACK_BASES")) )
+  { unsigned long gb, tb;
+
+    if ( sscanf(bases, "G%lx+T%lx", &gb, &tb) == 2 )
+    { *gbase = (void*)gb;
+      *tbase = (void*)tb;
+    } else
+    { Sdprintf("Usage: export PL_STACK_BASES=\"G<gBase>+T<tBase>\"\n");
+      exit(1);
+    }
+  }
+}
+
+#endif /*SECURE_GC*/
+
 static int
 allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
-{ caddress lbase, gbase, tbase, abase;
+{ caddress lbase, gbase=NULL, tbase=NULL, abase=NULL;
+  int flags = MAP_FLAGS;
   intptr_t glsize;
   intptr_t minglobal   = 4*SIZEOF_VOIDP K;
   intptr_t minlocal    = 2*SIZEOF_VOIDP K;
@@ -1305,9 +1328,18 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   argument = (intptr_t) align_size(argument);
   glsize   = global+local;
 
-  tbase = mmap(NULL, trail,    MAPPROTECT, MAP_FLAGS, mapfd, 0L);
-  abase = mmap(NULL, argument, MAPPROTECT, MAP_FLAGS, mapfd, 0L);
-  gbase = mmap(NULL, glsize,   MAPPROTECT, MAP_FLAGS, mapfd, 0L);
+#ifdef SECURE_GC
+  fixed_bases(&gbase, &tbase);
+  if ( gbase || tbase )
+  { flags |= MAP_FIXED;
+    Sdprintf("Using fixed stack bases at gBase=0x%lx; tBase=0x%lx\n",
+	     gbase, tbase);
+  }
+#endif
+
+  tbase = mmap(tbase, trail,    MAPPROTECT, flags, mapfd, 0L);
+  abase = mmap(abase, argument, MAPPROTECT, MAP_FLAGS, mapfd, 0L);
+  gbase = mmap(gbase, glsize,   MAPPROTECT, flags, mapfd, 0L);
   lbase = addPointer(gbase, global);
 
   if ( tbase == MAP_FAILED || abase == MAP_FAILED || gbase == MAP_FAILED )
@@ -1320,6 +1352,12 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
 
     fail;
   }
+
+#ifdef SECURE_GC
+  if ( !(flags & MAP_FIXED) && PL_thread_self() == 1 )
+    Sdprintf("Realised export PL_STACK_BASES=\"G0x%lx+T0x%lx\"\n",
+	     (unsigned long)gbase, (unsigned long)tbase);
+#endif
 
 #define INIT_STACK(name, print, base, limit, minsize) \
   DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
@@ -1793,7 +1831,6 @@ trimStacks(ARG1_LD)
 #undef LD
 #define LD LOCAL_LD
   TrailEntry te;
-  Word dummy = NULL;
 
   LD->trim_stack_requested = FALSE;
 
