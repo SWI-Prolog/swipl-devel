@@ -351,7 +351,7 @@ call_action(Pred, Request, _Options) :-
 %		provided by file_mime_type/2.
 %
 %	@throws	http_reply(not_modified)
-%	@throws http_reply(file(MimeType, Path)
+%	@throws http_reply(file(MimeType, Path))
 
 http_reply_file(File, Options, Request) :-
 	absolute_file_name(File, Path,
