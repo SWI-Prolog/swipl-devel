@@ -56,6 +56,11 @@
 		    - if-ndet <goto normal code>
 		    - Tweak args
 		    - Depart
+	* <Tweak args>
+		- Args at the same place (no-op!)
+		- Constants (ground): a normal body pushing
+		- Arg vars
+		- Normal Vars
 
 ================================================================
 ---++ Debugging
