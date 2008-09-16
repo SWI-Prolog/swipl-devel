@@ -2530,6 +2530,29 @@ unifiable_occurs_check(term_t t1, term_t t2 ARG_LD)
 }
 
 
+static int
+unify_all_trail(term_t t1, term_t t2 ARG_LD)
+{ Word p1 = valTermRef(t1);
+  Word p2 = valTermRef(t2);
+  tmp_mark m;
+  bool rval;
+
+  TmpMark(m);
+  LD->mark_bar = NO_MARK_BAR;
+  if ( !(rval = raw_unify_ptrs(p1, p2 PASS_LD)) )
+  { if ( exception_term )
+    { Word ex = valTermRef(exception_term);
+      undo_while_saving_term((mark*)&m, ex);
+    } else
+    { TmpUndo(m);
+    }
+  }
+  EndTmpMark(m);
+
+  return rval; 
+}
+
+
 static intptr_t
 unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 { fid_t fid;
@@ -2565,7 +2588,7 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
   fid = PL_open_foreign_frame();
   tmark = (char*)tTop - (char*)tBase;	/* prepare for a shift */
 
-  if ( PL_unify(t1, t2) )
+  if ( unify_all_trail(t1, t2 PASS_LD) )
   { TrailEntry tt = tTop;
     TrailEntry mt = addPointer(tBase, tmark);
 
@@ -2652,7 +2675,9 @@ PRED_IMPL("unifiable", 3, unifiable, 0)
     { if ( !growStacks(NULL, NULL, NULL, 0, (-rc)*sizeof(word), 0) )
 	return outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
     } else
+    { LD->mark_bar = mbarSave;
       return rc;
+    }
   } 
 #else
   return unifiable(A1, A2, A3 PASS_LD);
