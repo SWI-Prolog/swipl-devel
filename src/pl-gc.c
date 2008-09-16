@@ -1082,13 +1082,6 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 	setVar(*tard);
 	te->address = 0;
 	trailcells_deleted++;
-      } else if ( isVar(get_value(tard)) )
-      { if ( tard == valTermRef(LD->attvar.tail) ||
-	     tard == valTermRef(LD->attvar.head) )
-	{ DEBUG(3, Sdprintf("Trailed wakeup list already reset %p\n", tard));
-	  te->address = 0;
-	  trailcells_deleted++;
-	}
       }
     }
   }

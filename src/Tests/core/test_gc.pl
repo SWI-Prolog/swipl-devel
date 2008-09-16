@@ -73,8 +73,14 @@ nospace(Goal) :-
 
 :- begin_tests(gc_leak, [sto(rational_trees)]).
 
-det_freeze :- 
-	freeze(X, X==1), X=1.
+det_freeze_loop(N, T) :-
+	(   succ(N2, N)
+	->  freeze(X, true),
+	    X = a,
+	    det_freeze_loop(N2, T)
+	;   garbage_collect,
+	    statistics(trailused, T)
+	).
 
 early_reset :-
 	early_reset(_).
@@ -82,8 +88,12 @@ early_reset :-
 early_reset(X) :- space(T,G), length(X, 10), must_space(T,G), !.
 early_reset(_) :- fail.
 
-test(attvar) :-
-	nospace(det_freeze).
+test(det_freeze_no_space) :-
+	garbage_collect,
+	statistics(trailused, T0),
+	det_freeze_loop(1000, T1),
+	T is T1 - T0,
+	T < 100.			% A small constant use is ok
 test(early_reset) :-
 	early_reset.
 
@@ -118,5 +128,11 @@ t("hello world").
 
 test(b_string) :-
 	t1.
+test(wakeup_two) :-
+	freeze(V1, true),
+	freeze(V2, (garbage_collect,V2==y)),
+	(   x(V1,V2) = x(a,b)
+	;   x(V1,V2) = x(x,y)
+	).
 
 :- end_tests(gc_crash).
