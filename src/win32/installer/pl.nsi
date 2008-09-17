@@ -69,6 +69,7 @@ Section "Base system (required)"
   File pl\${BOOT}
   File pl\COPYING.TXT
   File pl\README.TXT
+  File pl\READWIN.TXT
   File pl\VERSION
   File pl\swipl
 
