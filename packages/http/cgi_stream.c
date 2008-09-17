@@ -386,6 +386,8 @@ cgi_discard(term_t cgi)
     return FALSE;
 
   ctx->state = CGI_DISCARDED;
+					/* empty buffer to avoid write */
+  ctx->cgi_stream->bufp = ctx->cgi_stream->buffer;
   PL_release_stream(s);
 
   return TRUE;
@@ -567,26 +569,34 @@ cgi_close(void *handle)
 
   DEBUG(1, Sdprintf("cgi_close()\n"));
 
-  if ( ctx->state == CGI_DATA )
-  { if ( ctx->transfer_encoding == ATOM_chunked )
-    { if ( cgi_chunked_write(ctx, NULL, 0) < 0 )
-      { rc = -1;
-	goto out;
+  switch( ctx->state )
+  { case CGI_DATA:
+    { if ( ctx->transfer_encoding == ATOM_chunked )
+      { if ( cgi_chunked_write(ctx, NULL, 0) < 0 )
+	{ rc = -1;
+	  goto out;
+	}
+      } else
+      { size_t clen = ctx->datasize - ctx->data_offset;
+	const char *dstart = &ctx->data[ctx->data_offset];
+
+	if ( !call_hook(ctx, ATOM_send_header) )
+	{ rc = -1;
+	  goto out;
+	}
+	if ( Sfwrite(dstart, sizeof(char), clen, ctx->stream) != clen ||
+	     Sflush(ctx->stream) < 0 )
+	{ rc = -1;
+	  goto out;
+	}
       }
-    } else
-    { size_t clen = ctx->datasize - ctx->data_offset;
-      const char *dstart = &ctx->data[ctx->data_offset];
-  
-      if ( !call_hook(ctx, ATOM_send_header) )
-      { rc = -1;
-	goto out;
-      }
-      if ( Sfwrite(dstart, sizeof(char), clen, ctx->stream) != clen ||
-	   Sflush(ctx->stream) < 0 )
-      { rc = -1;
-	goto out;
-      }
+
+      break;
     }
+    case CGI_HDR:
+      break;
+    case CGI_DISCARDED:
+      goto out;
   }
 
   if ( !call_hook(ctx, ATOM_close) )	/* what if we had no header sofar? */
