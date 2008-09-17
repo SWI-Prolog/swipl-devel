@@ -15,8 +15,8 @@ libraries, Garbage-collector, stack-expandor, C/C++-interface,
 Multiple threads, GNU-readline interface, very fast
 compiler. Including packages clib (Unix process control, sockets,
 MIME), cpp (C++ interface), sgml (reading XML/SGML), sgml/RDF (reading
-RDF into triples), ODBC interface and XPCE (Graphics UI toolkit,
-integrated editor (Emacs-clone) and graphical debugger).
+RDF into triples), ODBC interface and XPCEï¿½(Graphics UI toolkit,
+integrated editor (Emacs-clone) and graphicalï¿½debugger).
 
 If you only want the plain compiler, there is also SWI-Prolog/lite.
 

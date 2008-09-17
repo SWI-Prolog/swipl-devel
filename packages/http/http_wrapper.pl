@@ -151,8 +151,9 @@ send_error(Out, Error, Close) :-
 
 %%	handler_with_output_to(:Goal, +Request, +Output, -Status) is det.
 %
-%	Run Goal with output redirected to   Output.  Unifies Status with
-%	=ok=, the error from catch/3 or a term goal_failed(Goal).
+%	Run Goal with output redirected to   Output. Unifies Status with
+%	=ok=, the error from catch/3  or a term error(goal_failed(Goal),
+%	_).
 %	
 %	@param Request	The HTTP request read or '-' for a continuation
 %			using http_spawn/2.
@@ -164,7 +165,7 @@ handler_with_output_to(Goal, Request, current_output, Status) :- !,
 	    ->	Status = ok
 	    ;	true
 	    )
-	;   Status = goal_failed(Goal)
+	;   Status = error(goal_failed(Goal),_)
 	),
 	(   spawned(_)
 	->  true

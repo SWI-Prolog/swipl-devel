@@ -284,8 +284,8 @@ iclp::
 
 icommon::
 		copy "$(PLHOME)\library\common\README" "$(PLBASE)\library\common\README.TXT"
-		chdir $(PLHOME)\library\common & \
-			for %f in ($(COMMON)) do copy %f "$(PLBASE)\library\common"
+#		chdir $(PLHOME)\library\common & \
+#			for %f in ($(COMMON)) do copy %f "$(PLBASE)\library\common"
 
 idialect:	iyap
 		chdir $(PLHOME)\library\dialect & \
