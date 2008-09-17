@@ -727,7 +727,7 @@ cut such as \=/2 (implemented as A \= B :- ( A = B -> fail ; true )).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-foreignWakeup(ARG1_LD)
+foreignWakeup(ARG1_LD, term_t *ex)
 { if ( LD->alerted & ALERT_WAKEUP )
   { LD->alerted &= ~ALERT_WAKEUP;
 
@@ -735,16 +735,21 @@ foreignWakeup(ARG1_LD)
     { fid_t fid = PL_open_foreign_frame();
       int rval;
       term_t a0 = PL_new_term_ref();
-  
+      qid_t qid;
+
       PL_put_term(a0, LD->attvar.head);
       setVar(*valTermRef(LD->attvar.head));
       setVar(*valTermRef(LD->attvar.tail));
-  
-      rval = PL_call_predicate(NULL, PL_Q_NORMAL, PROCEDURE_dwakeup1,
-			       a0);
-  
+
+      qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, PROCEDURE_dwakeup1, a0);
+      rval = PL_next_solution(qid);
+      if ( rval == FALSE )
+	*ex = PL_exception(qid);
+      else
+	*ex = 0;
+      PL_cut_query(qid);
       PL_close_foreign_frame(fid);
-  
+
       return rval;
     }
   }
@@ -881,9 +886,10 @@ isCatchedInOuterQuery(QueryFrame qf, Word catcher)
 
   while( qf && true(qf, PL_Q_PASS_EXCEPTION) )
   { LocalFrame fr = qf->saved_environment;
+    term_t ex;
 
     while( fr )
-    { if ( fr->predicate == catch3 && can_unify(argFrameP(fr, 1), catcher) )
+    { if ( fr->predicate == catch3 && can_unify(argFrameP(fr, 1), catcher, &ex) )
 	succeed;
 
       if ( fr->parent )

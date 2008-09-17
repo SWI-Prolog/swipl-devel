@@ -342,8 +342,13 @@ static
 PRED_IMPL("\\=", 2, not_unify, 0)
 { PRED_LD
   Word p0 = valTermRef(A1);
+  term_t ex = 0;
 
-  return can_unify(p0, p0+1) ? FALSE : TRUE;
+  if ( can_unify(p0, p0+1, &ex) )
+    return FALSE;
+  if ( ex )
+    return PL_raise_exception(ex);
+  return TRUE;
 }
 
 
@@ -375,20 +380,22 @@ unify_ptrs(Word t1, Word t2 ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-can_unify(t1, t2) succeeds if  two  terms   *can*  be  unified,  without
+can_unify(t1, t2, &ex) succeeds if two   terms *can* be unified, without
 actually doing so. This  is  basically   a  stripped  version of unify()
-above. See this function for comments.
+above. See this function for comments.  Note   that  we  have to execute
+delayed goals and these may raise an exception. If this happens, ex is a
+reference to the exception term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-can_unify(Word t1, Word t2)
+can_unify(Word t1, Word t2, term_t *ex)
 { GET_LD
   tmp_mark m;
   bool rval;
 
   TmpMark(m);
   if ( (rval = raw_unify_ptrs(t1, t2 PASS_LD)) )
-    rval = foreignWakeup(PASS_LD1);
+    rval = foreignWakeup(PASS_LD1, ex);
   TmpUndo(m);
   EndTmpMark(m);
 
@@ -2360,10 +2367,11 @@ static int
 subsumes(term_t general, term_t specific ARG_LD)
 { term_t v0;
   int i, n;
+  term_t ex = 0;
 
   n = term_variables_to_termv(specific, &v0 PASS_LD);
   if ( PL_unify(general, specific) &&
-       foreignWakeup(PASS_LD1) )
+       foreignWakeup(PASS_LD1, &ex) )
   { int rc = TRUE;
 
     startCritical;
@@ -2381,6 +2389,9 @@ subsumes(term_t general, term_t specific ARG_LD)
     endCritical;
     return rc;
   }
+
+  if ( ex )
+    return PL_raise_exception(ex);
 
   fail;
 }

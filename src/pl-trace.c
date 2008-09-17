@@ -249,6 +249,7 @@ canUnifyTermWithGoal(LocalFrame fr)
 	Word a, b;
 	int arity = fr->predicate->functor->arity;
 	int rval = TRUE;
+	term_t ex;
 
 	copyRecordToGlobal(t, find->goal.term.term PASS_LD);
 	a = valTermRef(t);
@@ -256,7 +257,7 @@ canUnifyTermWithGoal(LocalFrame fr)
 	a = argTermP(*a, 0);
 	b = argFrameP(fr, 0);
 	while( arity-- > 0 )
-	{ if ( !can_unify(a++, b++) )
+	{ if ( !can_unify(a++, b++, &ex) )
 	  { rval = FALSE;
 	    break;
 	  }
