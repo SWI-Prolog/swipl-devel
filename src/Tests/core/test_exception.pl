@@ -34,7 +34,8 @@ Please define a test-set for each predicate.
 */
 
 test_exception :-
-	run_tests([ throw
+	run_tests([ throw,
+		    ex_coroutining
 		  ]).
 
 :- begin_tests(throw).
@@ -56,3 +57,16 @@ test(cyclic, [ sto(rational_trees), setup(Ball = hello(Ball)),
 	throw(Ball).
 
 :- end_tests(throw).
+
+
+:- begin_tests(ex_coroutining).
+
+test(not, error(foo)) :-
+	freeze(X, throw(error(foo, bar))),
+	\+ X = x.
+test(non_unify, error(foo)) :-		% verifies error handling in
+					% foreignWakeup()
+	freeze(X, throw(error(foo, bar))),
+	X \= x.
+
+:- end_tests(ex_coroutining).

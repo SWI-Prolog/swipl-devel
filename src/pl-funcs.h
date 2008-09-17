@@ -85,7 +85,7 @@ COMMON(void) 		do_undo(mark *m);
 COMMON(Definition) 	getProcDefinition(Procedure proc);
 COMMON(void) 		fix_term_ref_count(void);
 COMMON(fid_t) 		PL_open_signal_foreign_frame(void);
-COMMON(bool)		foreignWakeup(ARG1_LD);
+COMMON(bool)		foreignWakeup(ARG1_LD, term_t *ex);
 
 /* pl-atom.c */
 COMMON(word) 		lookupAtom(const char *s, size_t len);
@@ -536,7 +536,7 @@ COMMON(int) 		Pause(real time);
 /* pl-prims.c */
 COMMON(bool) 		raw_unify_ptrs(Word t1, Word t2 ARG_LD);
 COMMON(bool) 		unify_ptrs(Word t1, Word t2 ARG_LD);
-COMMON(bool) 		can_unify(Word t1, Word t2);
+COMMON(bool) 		can_unify(Word t1, Word t2, term_t *ex);
 COMMON(int) 		compareStandard(Word t1, Word t2, int eq ARG_LD);
 COMMON(intptr_t)	skip_list(Word l, Word *tailp ARG_LD);
 COMMON(intptr_t) 	lengthList(term_t list, int errors);
