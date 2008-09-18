@@ -1060,7 +1060,7 @@ freeClause(Clause c ARG_LD)
 
   GD->statistics.codes -= c->code_size;
 #ifdef O_ATOMGC
-  unregisterAtomsClause(c);
+  forAtomsInClause(c, PL_unregister_atom);
 #endif
   freeHeap(c, sizeofClause(c->code_size));
 }

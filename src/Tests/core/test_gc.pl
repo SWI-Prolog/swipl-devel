@@ -34,7 +34,8 @@ test_gc :-
 	run_tests([ gc_leak,
 		    gc_reset,
 		    gc_crash,
-		    gc_mark
+		    gc_mark,
+		    agc
 		  ]).
 
 :- module_transparent
@@ -152,3 +153,42 @@ test(s_fredo, true) :-
 	N == 5, !.
 
 :- end_tests(gc_mark).
+
+
+:- begin_tests(agc).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Verify marking atoms from temporary clauses  for meta-calling. Using the
+enhanced garbage collector access through  the   variables  is no longer
+guaranteed.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- dynamic
+	v/1.
+
+test :-
+        atom_concat(abcd, efgh, A),
+        Goal = ( garbage_collect,
+                 garbage_collect_atoms,
+                 make_atoms,
+		 assert_atom(A)
+               ),
+	test_c(Goal).
+
+test_c(Goal) :-
+        Goal.
+
+assert_atom(A) :-
+	assert(v(A)).
+
+make_atoms :-
+        forall(between(1, 10000, X),
+               atom_concat(foo, X, _)).
+
+test(usercall, A == Ok) :-
+	retractall(v(_)),
+	test,
+	retract(v(A)),
+	atom_concat(abcd, efgh, Ok).
+		
+:- end_tests(agc).

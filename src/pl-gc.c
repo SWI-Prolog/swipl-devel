@@ -3179,6 +3179,9 @@ mark_atoms_in_environments(PL_local_data_t *ld, LocalFrame fr)
     ld->gc._local_frames++;
     clearUninitialisedVarsFrame(fr, PC);
 
+    if ( fr->predicate == PROCEDURE_dcall1->definition )
+      forAtomsInClause(fr->clause->clause, markAtom);
+
     if ( true(fr->predicate, FOREIGN) ||
 	 !fr->clause )
       slots = fr->predicate->functor->arity;
