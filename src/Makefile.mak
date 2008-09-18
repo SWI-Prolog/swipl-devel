@@ -57,7 +57,8 @@ OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
 	pl-xterm.obj pl-feature.obj pl-ctype.obj pl-main.obj \
 	pl-dde.obj pl-nt.obj pl-attvar.obj pl-gvar.obj pl-btree.obj \
 	pl-utf8.obj pl-text.obj pl-mswchar.obj pl-gmp.obj pl-tai.obj \
-	pl-segstack.obj pl-hash.obj pl-version.obj pl-codetable.obj
+	pl-segstack.obj pl-hash.obj pl-version.obj pl-codetable.obj \
+	pl-supervisor.obj
 
 PLINIT=	$(PB)/init.pl
 
@@ -76,7 +77,7 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 PLWINLIBS=	wise.pl dde.pl progman.pl registry.pl
 PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	qsave.pl shlib.pl statistics.pl system.pl \
-	backcomp.pl gensym.pl listing.pl debug.pl error.pl \
+	backcomp.pl gensym.pl listing.pl debug.pl vm.pl error.pl \
 	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
 	edit.pl emacs_interface.pl shell.pl check.pl ugraphs.pl \
 	tty.pl readln.pl readutil.pl make.pl hotfix.pl option.pl date.pl \

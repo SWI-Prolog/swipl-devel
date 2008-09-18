@@ -140,6 +140,7 @@ Section "Base system (required)"
   File pl\library\emacs_interface.pl
   File pl\library\explain.pl
   File pl\library\debug.pl
+  File pl\library\vm.pl
   File pl\library\check.pl
   File pl\library\checklast.pl
   File pl\library\checkselect.pl
