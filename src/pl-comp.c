@@ -51,10 +51,10 @@ forwards void	checkCodeTable(void);
 static void
 checkCodeTable(void)
 { const code_info *ci;
-  unsigned int n;
+  int n;
 
   for(ci = codeTable, n = 0; ci->name != NULL; ci++, n++ )
-  { if ( ci->code != n )
+  { if ( ci->code != (int)n )
       sysError("Wrong entry in codeTable: %d", n);
   }
 
