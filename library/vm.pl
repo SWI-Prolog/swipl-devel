@@ -65,7 +65,7 @@ unify_args(X, X) :- !.
 unify_args(_:X, X) :- !.
 unify_args(_, _).
 
-same_head(X, X).
+same_head(X, X) :- !.
 same_head(H1, H2) :-
 	strip_module(H1, _, H),
 	strip_module(H2, _, H).
