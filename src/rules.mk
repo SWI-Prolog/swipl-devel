@@ -21,7 +21,7 @@ MD=WIN32
 
 # prefix=C:\Program Files
 #HOME=$(USERPROFILE)
-prefix=$(HOME)\installed
+prefix=$(HOME)\installed-57x
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
