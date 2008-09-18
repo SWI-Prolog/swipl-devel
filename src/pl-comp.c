@@ -1691,7 +1691,7 @@ compileArith(Word arg, compileInfo *ci ARG_LD)
   else if ( fdef == FUNCTOR_smaller_equal2 )	a_func = A_LE;	/* =< */
   else if ( fdef == FUNCTOR_larger_equal2 )	a_func = A_GE;	/* >= */
   else if ( fdef == FUNCTOR_is2 )				/* is */
-  { int tc_a1 = PC(ci);
+  { size_t tc_a1 = PC(ci);
     code isvar;
 
     if ( !compileArgument(argTermP(*arg, 0), A_BODY, ci PASS_LD) )
