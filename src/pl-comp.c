@@ -54,7 +54,7 @@ checkCodeTable(void)
   int n;
 
   for(ci = codeTable, n = 0; ci->name != NULL; ci++, n++ )
-  { if ( ci->code != (int)n )
+  { if ( (int)ci->code != n )
       sysError("Wrong entry in codeTable: %d", n);
   }
 
