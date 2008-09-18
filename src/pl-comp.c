@@ -1764,7 +1764,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 #ifdef O_ATOMGC
 
 void
-unregisterAtomsClause(Clause clause)
+forAtomsInClause(Clause clause, void (func)(atom_t a))
 { Code PC, ep;
   code c;
 
@@ -1780,7 +1780,10 @@ unregisterAtomsClause(Clause clause)
       { word w = PC[1];
 
 	if ( isAtom(w) )
-	  PL_unregister_atom(w);
+	{ atom_t a = w;
+
+	  (*func)(a);
+	}
 	break;
       }
     }
