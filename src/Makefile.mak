@@ -263,8 +263,7 @@ IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\library\common" \
 		"$(PLBASE)\library\dialect" "$(PLBASE)\library\dialect\yap" \
 		"$(PLBASE)\library\dialect\iso" \
-		"$(PLBASE)\library\unicode" $(MANDIR) \
-		"$(PLBASE)\demo"
+		"$(PLBASE)\library\unicode" $(MANDIR)
 
 $(IDIRS):
 		if not exist $@/$(NULL) $(MKDIR) $@

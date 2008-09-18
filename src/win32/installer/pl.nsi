@@ -205,7 +205,6 @@ Section "Constraint Handling Rules"
   File pl\library\chr\chr_debug.pl
   File pl\library\chr\chr_op.pl
   File pl\library\chr\chr_translate.pl
-  File pl\library\chr\hprolog.pl
   File pl\library\chr\pairlist.pl
   File pl\library\chr\a_star.pl
   File pl\library\chr\binomialheap.pl
