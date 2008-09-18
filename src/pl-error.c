@@ -83,8 +83,8 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       break;
     case ERR_MUST_BE_VAR:
     { int argn = va_arg(args, int);
-      /*term_t bound =*/ va_arg(args, term_t);
       char buf[50];
+      /*term_t bound =*/ va_arg(args, term_t);
 
       if ( !msg )
       { Ssprintf(buf, "%d-%s argument",
