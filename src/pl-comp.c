@@ -3073,6 +3073,15 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	fdef = FUNCTOR_dot2;
         goto common_bfunctor;
       }
+      case H_LIST_FF:
+      { size_t v1 = *PC++;
+	size_t v2 = *PC++;
+	word w = globalFunctor(FUNCTOR_dot2);
+	*ARGPinc() = w;
+	unifyVar(argTermP(w, 0), di->variables, v1 PASS_LD);
+	unifyVar(argTermP(w, 1), di->variables, v2 PASS_LD);
+	continue;
+      }
       case H_RFUNCTOR:
       case B_RFUNCTOR:
       { functor_t fdef;

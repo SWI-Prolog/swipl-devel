@@ -1365,6 +1365,13 @@ compiler(assert-6) :-
 	T =.. [x|A],
 	assert(T),
 	T.
+compiler(assert-7) :-
+	Body = (a(A), A=[B|C], a(B), a(C)),
+	Clause = (at:-Body),
+	assert(Clause, Ref),
+	clause(_H, BC, Ref),
+	BC =@= Body,
+	erase(Ref).
 
 unify(X, X).
 
