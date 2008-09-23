@@ -16,6 +16,7 @@ dt.pubdef
 
 .bib dt
 { float: left;
+  margin-right: 1.3ex;
 }
 
 pre.code

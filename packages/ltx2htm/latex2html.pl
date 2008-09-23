@@ -740,7 +740,9 @@ env(thebibliography(Args, Tokens),
       Open,
       HtmlItems,
       Close
-    ]) :- !,
+    ]) :-
+	memberchk(\newblock, Tokens),
+%	writeln(Tokens),
 	(   user_cmd(refname, document, _, Title)
 	->  true
 	;   Title = ['Bibliography']
@@ -760,6 +762,7 @@ env(thebibliography(Args, Tokens),
 	->  true
 	;   format(user_error, 'Failed to translate "~w" list~n', [List])
 	).
+env(thebibliography(_Args, _Tokens), []) :- !.
 env(Env, [Open, HtmlItems, Close]) :-		% General lists
 	functor(Env, List, _),
 	tex_environment_function(List, list), !,
@@ -779,7 +782,7 @@ list_command(itemize,         _, html('<UL>'), html('</UL>')).
 list_command(itemlist,        _, html('<UL>'), html('</UL>')).
 list_command(shortlist,       _, html('<UL COMPACT>'), html('</UL>')).
 list_command(enumerate,       _, html('<OL>'), html('</OL>')).
-list_command(thebibliography, _, html('<DL class="bib">'), html('</dl>')).
+list_command(thebibliography, _, html('<DL class="bib">'), html('</DL>')).
 
 %	items(+Tokens, -Items)
 %
