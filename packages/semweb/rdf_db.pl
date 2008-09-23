@@ -710,6 +710,19 @@ rdf_load_db_no_admin(File, Id, Graphs) :-
 	call_cleanup(rdf_load_db_(In, Id, Graphs), close(In)).
 
 
+%%	check_loaded_cache(+DB, +Graphs, +Modified) is det.
+%
+%	Verify the loaded cache file and optionally fix the modification
+%	time (new versions save this along with the snapshot).
+%	
+%	@tbd	What to do if there is a cache mismatch? Delete the loaded
+%		graphs and fail?
+
+check_loaded_cache(DB, DB, _Modified) :- !.
+check_loaded_cache(DB, Graphs, _) :-
+	print_message(warning, rdf(inconsistent_cache(DB, Graphs))).
+
+
 %%	rdf_load_db(+File) is det.
 %
 %	Load triples from a file created using rdf_save_db/2 and update
@@ -724,8 +737,9 @@ rdf_load_db(File) :-
 	    ),
 	    rdf_md5(DB, MD5),
 	    rdf_statistics_(triples(DB, Triples)),
+	    rdf_graph_source_(DB, SourceURL, Modified),
 	    retractall(rdf_source(DB, _, _, _, _)),
-	    assert(rdf_source(DB, -, 0, Triples, MD5)),
+	    assert(rdf_source(DB, SourceURL, Modified, Triples, MD5)),
 	    fail
 	;   true
 	).
@@ -819,12 +833,13 @@ rdf_load(Spec, Options0) :-
 	->  do_unload(DB),		% unload old
 	    (   Cache == true,
 		read_cache(SourceURL, Modified, CacheFile),
-	        catch(rdf_load_db_no_admin(CacheFile, cache(DB), _Graphs), _, fail)
-	    ->	Action = load
+	        catch(rdf_load_db_no_admin(CacheFile, cache(DB), Graphs), _, fail),
+		check_loaded_cache(DB, Graphs, Modified)
+	    ->  Action = load
 	    ;   rdf_input_open(Input, Stream, Format),
 		must_be(ground, Format),
 		rdf_format(Format, RDFFormat),
-		rdf_set_graph_source(DB, SourceURL),
+		rdf_set_graph_source(DB, SourceURL, Modified),
 		call_cleanup(rdf_load_stream(RDFFormat, Stream,
 					     [ base_uri(BaseURI),
 					       blank_nodes(ShareMode),
@@ -1042,12 +1057,12 @@ read_cache(BaseURI, Modified, CacheFile) :-
 
 must_load(true, _, _) :- !.
 must_load(changed, DB, ModifiedSrc) :- !,
-	(   rdf_source(DB, _SourceURL, ModifiedLoaded, _, _)
+	(   rdf_graph_source_(DB, _SourceURL, ModifiedLoaded)
 	->  ModifiedSrc > ModifiedLoaded
 	;   true
 	).
 must_load(not_loaded, DB, _) :- !,
-	\+ rdf_source(DB, _SourceURL, _, _, _).
+	\+ rdf_source(DB).
 must_load(Cond, _, _) :-
 	throw(eror(domain_error(condition, Cond), _)).
 
@@ -1111,7 +1126,7 @@ rdf_graph(DB) :-
 
 rdf_source(DB, SourceURL) :-
 	rdf_graph(DB),
-	rdf_graph_source_(DB, SourceURL).
+	rdf_graph_source_(DB, SourceURL, _Modified).
 
 %%	rdf_source(?Source)
 %	
@@ -1868,6 +1883,10 @@ prolog:message(rdf(saved(File, SavedSubjects, SavedTriples))) -->
 	].
 prolog:message(rdf(using_namespace(Id, NS))) -->
 	[ 'Using namespace id ~w for ~w'-[Id, NS] ].
+prolog:message(rdf(inconsistent_cache(DB, Graphs))) -->
+	[ 'RDF cache file for ~w contains the following graphs'-[DB], nl,
+	  '~t~8|~p'-[Graphs]
+	].
 
 how(load)   --> [ 'Loaded' ].
 how(parsed) --> [ 'Parsed' ].
