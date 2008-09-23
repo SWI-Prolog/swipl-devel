@@ -210,7 +210,7 @@ createListSupervisor(Definition def)
 }
 
 
-static int
+int
 createUndefSupervisor(Definition def)
 { if ( def->number_of_clauses == 0 && false(def, PROC_DEFINED) )
   { def->codes = SUPERVISOR(undef);

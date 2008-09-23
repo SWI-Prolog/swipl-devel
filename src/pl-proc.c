@@ -1577,22 +1577,7 @@ error:
   if ( GD->bootsession )
   { sysError("Undefined predicate: %s", predicateName(def));
   } else if ( true(module, UNKNOWN_ERROR) )
-  {			/* caller is in environment frame, which is default */
-    PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, def, NULL);
-  } else
-  { fid_t fid = PL_open_foreign_frame();
-    term_t pred = PL_new_term_ref();
-
-    unify_definition(pred, def, 0, GP_NAMEARITY);
-
-    printMessage(ATOM_warning,
-		 PL_FUNCTOR, FUNCTOR_error2,
-		   PL_FUNCTOR, FUNCTOR_existence_error2,
-		     PL_ATOM, ATOM_procedure,
-		     PL_TERM, pred,
-		   PL_VARIABLE);
-
-    PL_discard_foreign_frame(fid);
+  { createUndefSupervisor(def);
   }
 
   return def;

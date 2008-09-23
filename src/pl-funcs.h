@@ -95,6 +95,7 @@ COMMON(void)		setContextModule(LocalFrame fr, Module context);
 
 COMMON(void)		freeCodesDefinition(Definition def);
 COMMON(int)		createForeignSupervisor(Definition def, Func f);
+COMMON(int)		createUndefSupervisor(Definition def);
 COMMON(int)		createSupervisor(Definition def);
 COMMON(size_t)		supervisorLength(Code base);
 COMMON(void)		initSupervisors(void);
