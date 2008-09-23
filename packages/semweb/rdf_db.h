@@ -128,6 +128,7 @@ typedef struct graph
 { struct graph    *next;		/* next in table */
   atom_t	    name;		/* name of the graph */
   atom_t	    source;		/* URL graph was loaded from */
+  double	    modified;		/* Modified time of source URL */
   int		    triple_count;	/* # triples associated to it */
 #ifdef WITH_MD5
   unsigned	    md5 : 1;		/* do/don't record MD5 */

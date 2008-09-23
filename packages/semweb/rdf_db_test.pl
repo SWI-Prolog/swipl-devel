@@ -741,7 +741,8 @@ duplicates(1) :-
 
 source(1) :-
 	rdf_assert(a,b,c,test),
-	rdf_db:rdf_set_graph_source(test, 'test.rdf'),
+	get_time(Now),
+	rdf_db:rdf_set_graph_source(test, 'test.rdf', Now),
 	rdf_source(test, X),
 	X == 'test.rdf'.
 

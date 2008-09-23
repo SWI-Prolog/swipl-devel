@@ -363,6 +363,15 @@ get_long_ex(term_t t, long *v)
 
 
 static int
+get_double_ex(term_t t, double *v)
+{ if ( PL_get_float(t, v) )
+    return TRUE;
+
+  return type_error(t, "float");
+}
+
+
+static int
 get_atom_or_var_ex(term_t t, atom_t *a)
 { if ( PL_get_atom(t, a) )
     return TRUE;
@@ -1492,7 +1501,7 @@ rdf_graphs(term_t list)
 
 
 static foreign_t
-rdf_graph_source(term_t graph_name, term_t source)
+rdf_graph_source(term_t graph_name, term_t source, term_t modified)
 { atom_t gn;
   int rc = FALSE;
   rdf_db *db = DB;
@@ -1506,7 +1515,8 @@ rdf_graph_source(term_t graph_name, term_t source)
     if ( !RDLOCK(db) )
       return FALSE;
     if ( (s = lookup_graph(db, gn, FALSE)) && s->source)
-    { rc = PL_unify_atom(source, s->source);
+    { rc = ( PL_unify_atom(source, s->source) &&
+	     PL_unify_float(modified, s->modified) );
     }
     RDUNLOCK(db);
   } else
@@ -1524,7 +1534,9 @@ rdf_graph_source(term_t graph_name, term_t source)
       
 	for( s = *ht; s; s = s->next )
 	{ if ( s->source == src )
-	    rc = PL_unify_atom(graph_name, s->name);
+	  { rc = ( PL_unify_atom(graph_name, s->name) &&
+		   PL_unify_float(modified, s->modified) );
+	  }
 	}
       }
 
@@ -1537,14 +1549,16 @@ rdf_graph_source(term_t graph_name, term_t source)
 
 
 static foreign_t
-rdf_set_graph_source(term_t graph_name, term_t source)
+rdf_set_graph_source(term_t graph_name, term_t source, term_t modified)
 { atom_t gn, src;
   int rc = FALSE;
   rdf_db *db = DB;
   graph *s;
+  double mtime;
 
   if ( !get_atom_ex(graph_name, &gn) ||
-       !get_atom_ex(source, &src) )
+       !get_atom_ex(source, &src) ||
+       !get_double_ex(modified, &mtime) )
     return FALSE;
 
   if ( !RDLOCK(db) )
@@ -1556,6 +1570,7 @@ rdf_set_graph_source(term_t graph_name, term_t source)
       s->source = src;
       PL_register_atom(s->source);
     }
+    s->modified = mtime;
     rc = TRUE;
   }
   RDUNLOCK(db);
@@ -2476,6 +2491,7 @@ Quick Load Format (implemented in pl-wic.c).
 			    <version>
 			    ['S' <graph-name>]
 			    ['F' <graph-source>]
+		            ['t' <modified>]
 			    ['M' <md5>]
 			    {<triple>}
 			    'E'
@@ -2611,6 +2627,25 @@ save_int(IOSTREAM *fd, int64_t n)
 }
 
 
+#define BYTES_PER_DOUBLE sizeof(double)
+#ifdef WORDS_BIGENDIAN
+static const int double_byte_order[] = { 7,6,5,4,3,2,1,0 };
+#else
+static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
+#endif
+
+static int
+save_double(IOSTREAM *fd, double f)
+{ unsigned char *cl = (unsigned char *)&f;
+  unsigned int i;
+
+  for(i=0; i<BYTES_PER_DOUBLE; i++)
+    Sputc(cl[double_byte_order[i]], fd);
+
+  return TRUE;
+}
+
+
 static int
 save_atom(rdf_db *db, IOSTREAM *out, atom_t a, save_context *ctx)
 { int hash = atom_hash(a) % ctx->saved_size;
@@ -2660,13 +2695,6 @@ save_atom(rdf_db *db, IOSTREAM *out, atom_t a, save_context *ctx)
 }
 
 
-#ifdef WORDS_BIGENDIAN
-static const int double_byte_order[] = { 7,6,5,4,3,2,1,0 };
-#else
-static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
-#endif
-
-
 static void
 write_triple(rdf_db *db, IOSTREAM *out, triple *t, save_context *ctx)
 { Sputc('T', out);
@@ -2690,17 +2718,11 @@ write_triple(rdf_db *db, IOSTREAM *out, triple *t, save_context *ctx)
 	break;
       case OBJ_INTEGER:
 	Sputc('I', out);
-	save_int(out, lit->value.integer); /* TBD: 64-bit int */
+	save_int(out, lit->value.integer);
 	break;
       case OBJ_DOUBLE:
-      { double f = lit->value.real;
-	unsigned char *cl = (unsigned char *)&f;
-	unsigned int i;
-	
-	Sputc('F', out);
-	for(i=0; i<sizeof(double); i++)
-	  Sputc(cl[double_byte_order[i]], out);
-  
+      {	Sputc('F', out);
+	save_double(out, lit->value.real);
 	break;
       }
       case OBJ_TERM:
@@ -2734,6 +2756,8 @@ write_source(rdf_db *db, IOSTREAM *out, atom_t src, save_context *ctx)
   if ( s && s->source )
   { Sputc('F', out);
     save_atom(db, out, s->source, ctx);
+    Sputc('t', out);
+    save_double(out, s->modified);
   }
 }
 
@@ -2851,12 +2875,35 @@ load_int(IOSTREAM *fd)
   return first;
 }
 
+
+static int
+load_double(IOSTREAM *fd, double *fp)
+{ double f;
+  unsigned char *cl = (unsigned char *)&f;
+  unsigned int i;
+
+  for(i=0; i<BYTES_PER_DOUBLE; i++)
+  { int c = Sgetc(fd);
+
+    if ( c == -1 )
+    { *fp = 0.0;
+      return FALSE;
+    }
+    cl[double_byte_order[i]] = c;
+  }
+
+  *fp = f;
+  return TRUE;
+}
+
+
 typedef struct ld_context
 { long		loaded_id;		/* keep track of atoms */
   atom_t       *loaded_atoms;
   long		atoms_size;
   atom_t	graph;			/* for single-graph files */
   atom_t	graph_source;
+  double	modified;
   int		has_digest;
   md5_byte_t    digest[16];
   atom_hash    *graph_table;		/* multi-graph file */
@@ -2943,24 +2990,6 @@ load_atom(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 }
 
 
-static double
-load_double(IOSTREAM *fd)
-{ double f;
-  unsigned char *cl = (unsigned char *)&f;
-  unsigned int i;
-
-  for(i=0; i<sizeof(double); i++)
-  { int c = Sgetc(fd);
-    
-    assert(c != EOF);
-      
-    cl[double_byte_order[i]] = c;
-  }
-  
-  return f;
-}
-
-
 static triple *
 load_triple(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 { triple *t = new_triple(db);
@@ -2989,7 +3018,7 @@ load_triple(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 	break;
       case 'F':
 	lit->objtype = OBJ_DOUBLE;
-	lit->value.real = load_double(in);
+        load_double(in, &lit->value.real);
 	break;
       case 'T':
       { unsigned int i;
@@ -3097,6 +3126,9 @@ load_db(rdf_db *db, IOSTREAM *in, ld_context *ctx)
       case 'F':				/* file of the graph */
 	ctx->graph_source = load_atom(db, in, ctx);
 	break;				/* end of one-graph handling */
+      case 't':
+	load_double(in, &ctx->modified);
+        break;
       case 'E':				/* end of file */
 	return list;
       default:
@@ -3122,6 +3154,7 @@ link_loaded_triples(rdf_db *db, triple *t, ld_context *ctx)
 	PL_unregister_atom(graph->source);
       graph->source = ctx->graph_source;
       PL_register_atom(graph->source);
+      graph->modified = ctx->modified;
     }
 
     if ( ctx->has_digest )
@@ -6421,8 +6454,8 @@ install_rdf_db()
   PL_register_foreign("rdf_current_literal",
 					1, rdf_current_literal, NDET);
   PL_register_foreign("rdf_graphs_",    1, rdf_graphs,      0);
-  PL_register_foreign("rdf_set_graph_source", 2, rdf_set_graph_source, 0);
-  PL_register_foreign("rdf_graph_source_", 2, rdf_graph_source, 0);
+  PL_register_foreign("rdf_set_graph_source", 3, rdf_set_graph_source, 0);
+  PL_register_foreign("rdf_graph_source_", 3, rdf_graph_source, 0);
   PL_register_foreign("rdf_estimate_complexity",
 					4, rdf_estimate_complexity, 0);
   PL_register_foreign("rdf_transaction_",2, rdf_transaction, META);
