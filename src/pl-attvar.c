@@ -382,29 +382,65 @@ so we will use save/restore in all places.
 The functions below provide a way to   realise the save/restore. It must
 be nicely nested in the  same  way   and  using  the same constraints as
 PL_open_foreign_frame/PL_close_foreign_frame.
+
+NOTE: Now we also save pending  exceptions,   for  which  the same rules
+apply. The environment has size 1 if there  is a pending exception, 2 if
+a wakeup was saved and 3 if both where saved.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 fid_t
 saveWakeup(ARG1_LD)
 { Word h;
 
-  if ( *(h=valTermRef(LD->attvar.head)) )
+  if ( *(h=valTermRef(LD->attvar.head)) || exception_term )
   { fid_t fid = PL_open_foreign_frame();
-    term_t s = PL_new_term_refs(2);
-    
-    DEBUG(1, pl_write(LD->attvar.head); pl_nl());
+    term_t s;
 
-    *valTermRef(s+0) = *h;
-    setVar(*h);
-    h = valTermRef(LD->attvar.tail);
-    *valTermRef(s+1) = *h;
-    setVar(*h);    
-    DEBUG(1, Sdprintf("Saved wakeup to %p\n", valTermRef(s)));
+    if ( exception_term )
+    { s = PL_new_term_ref();
+      *valTermRef(s) = *valTermRef(exception_term);
+      exception_term = 0;
+    }
+
+    if ( *h )
+    { s = PL_new_term_refs(2);
+
+      DEBUG(1, pl_write(LD->attvar.head); pl_nl());
+
+      *valTermRef(s+0) = *h;
+      setVar(*h);
+      h = valTermRef(LD->attvar.tail);
+      *valTermRef(s+1) = *h;
+      setVar(*h);
+      DEBUG(1, Sdprintf("Saved wakeup to %p\n", valTermRef(s)));
+    }
 
     return fid;
   }
 
   return (fid_t)0;
+}
+
+
+static void
+restore_exception(Word p ARG_LD)
+{ DEBUG(1, Sdprintf("Restore exception from %p\n", p));
+
+  *valTermRef(exception_bin) = p[0];
+  exception_term = exception_bin;
+
+  DEBUG(1, pl_writeln(exception_term));
+}
+
+
+static void
+restore_wakeup(Word p ARG_LD)
+{ 
+
+  *valTermRef(LD->attvar.head) = p[0];
+  *valTermRef(LD->attvar.tail) = p[1];
+
+  DEBUG(1, pl_writeln(LD->attvar.head));
 }
 
 
@@ -414,12 +450,20 @@ restoreWakeup(fid_t fid ARG_LD)
   { FliFrame fr = (FliFrame) valTermRef(fid);
     Word p = (Word)(fr+1);
 
-    DEBUG(1, Sdprintf("Restore wakeup from %p\n", p));
-
-    *valTermRef(LD->attvar.head) = p[0];
-    *valTermRef(LD->attvar.tail) = p[1];
-
-    DEBUG(1, pl_write(LD->attvar.head); pl_nl());
+    switch(fr->size)
+    { case 3:
+	restore_exception(p PASS_LD);
+        p++;
+	/*FALLTHROUGH*/
+      case 2:
+	restore_wakeup(p PASS_LD);
+        break;
+      case 1:
+	restore_exception(p PASS_LD);
+        break;
+      default:
+	assert(0);
+    }
 
     PL_discard_foreign_frame(fid);
   }

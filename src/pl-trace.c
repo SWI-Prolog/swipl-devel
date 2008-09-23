@@ -928,7 +928,7 @@ exceptionDetails()
   fid_t cid = PL_open_foreign_frame();
 
   Sflush(Suser_output);			/* make sure to stay `in sync' */
-  Sfputs("\n\n\tException term: ", Sdout);
+  Sfputs("\n\tException term: ", Sdout);
   PL_write_term(Sdout, except, 1200, PL_WRT_QUOTED);
   Sfprintf(Sdout, "\n\t       Message: %s\n", messageToString(except));
 
