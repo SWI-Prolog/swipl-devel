@@ -445,7 +445,7 @@ are defined:
 \const{module}        & Module into which file is loaded \\
 \const{source}        & File loaded.  Returns the original Prolog file
 			when loading a \fileext{qlf} file. Compatible
-			to SICStus Prolog. \\
+			with SICStus Prolog. \\
 \const{file}          & Currently equivalent to \const{source}.  In future
 			versions it may report a different values for
 			files being loaded using include/1. \\
@@ -962,7 +962,7 @@ True if \arg{Term} holds no free variables.
 True if \arg{Term} contains cycles, i.e.\ is an infinite term.
 See also acyclic_term/1 and \secref{cyclic}.%
 	\footnote{The predicates cyclic_term/1 and acyclic_term/1 are
-		  compatible to SICStus Prolog.  Some Prolog systems
+		  compatible with SICStus Prolog.  Some Prolog systems
 		  supporting cyclic terms use \nopredref{is_cyclic}{1}.}
 
     \predicate{acyclic_term}{1}{+Term}
@@ -1406,13 +1406,13 @@ Det = yes ;
 \end{code}
 
 This predicate is a SWI-Prolog extension. See also call_cleanup/2 for
-compatibility to other Prolog implementations.
+compatibility with other Prolog implementations.
 
     \predicate{call_cleanup}{2}{:Goal, :Cleanup}
 This predicate is equivalent to \term{call_cleanup}{Goal, _, Cleanup},
 calling \arg{Cleanup} regardless of the reason for termination and
 without providing information.  This predicate provides compatibility
-to a number of other Prolog implementations.
+with a number of other Prolog implementations.
 
     \predicate{setup_and_call_cleanup}{3}{:Setup, :Goal, :Cleanup}
 This predicate is introduced to allow for the proper definition of
@@ -2410,7 +2410,7 @@ either a variable, in which case it is bound to an integer identifying
 the stream, or an atom, in which case this atom will be the stream
 identifier.%
     \footnote{New code should use the \term{alias}{Alias}
-	      option for compatibility to the ISO standard}
+	      option for compatibility with the ISO standard}
 The \arg{Options} list can contain the following options:
 
 \begin{description}
@@ -2670,7 +2670,7 @@ If the stream cannot be repositioned, a \const{permission_error} is
 raised. If applying the offset would result in a file-position less then
 zero, a \const{domain_error} is raised. Behaviour when seeking to
 positions beyond the size of the underlying object depend on the object
-and possibly the operating system. The predicate seek/4 is compatible to
+and possibly the operating system. The predicate seek/4 is compatible with
 Quintus Prolog, though the error conditions and signalling is ISO
 compliant. See also stream_property/2 and set_stream_position/2.
 
@@ -2764,7 +2764,7 @@ server for creating an interactive session to Prolog.
 \subsection{Edinburgh-style I/O}	\label{sec:edinburghIO}
 
 The package for implicit input and output destination is (almost) 
-compatible to Edinburgh DEC-10 and C-Prolog. The reading and writing
+compatible with Edinburgh DEC-10 and C-Prolog. The reading and writing
 predicates refer to resp. the \emph{current} input- and output stream.
 Initially these streams are connected to the terminal. The current
 output stream is changed using tell/1 or append/1. The current input
@@ -2833,7 +2833,7 @@ with \emph{exactly} the same name.  If such a stream, created using
 tell/1 or see/1 exists, output (input) is switch to the open stream.
 Otherwise a file with the specified name is opened.
 
-The behaviour is compatible to Edinburgh Prolog.  This is not without
+The behaviour is compatible with Edinburgh Prolog.  This is not without
 problems. Changing directory, non-file streams, multiple names referring
 to the same file easily lead to unexpected behaviour. New code,
 especially when managing multiple I/O channels should consider using
@@ -3313,6 +3313,20 @@ is an atom it is written without quotes.  This extension allows for
 writing variables with user-provided names.  The default is
 \const{false}.  See also numbervars/3.
 
+    \termitem{partial}{Bool}
+If \const{true} (default \const{false}), do not reset the logic that
+inserts extra spaces that seperate tokens where needed. This is intended
+to this problems with the code below.  Calling \term{write_value}{.}
+writes \verb$..$, which cannot be read.  By adding \term{partial}{true}
+to the option, it correctly emits \verb$. .$.  Similar problems appear
+when emitting operators using multiple calls to write_term/3.
+
+\begin{code}
+write_value(Value) :-
+	write_term(Value, [quoted(true)]),
+	write('.'), nl.
+\end{code}
+
     \termitem{portray}{Bool}
 If \const{true}, the hook portray/1 is called before printing a term
 that is not a variable.  If portray/1 succeeds, the term is considered
@@ -3412,7 +3426,7 @@ Read a clause from \arg{Stream}.  See read_clause/1.
 Read a term from the current input stream and unify the term with
 \arg{Term}. The reading is controlled by options from the list of
 \arg{Options}. If this list is empty, the behaviour is the same as for
-read/1. The options are upward compatible to Quintus Prolog. The
+read/1. The options are upward compatible with Quintus Prolog. The
 argument order is according to the ISO standard.  Syntax-errors are
 always reported using exception-handling (see catch/3). Options:
 
@@ -3689,7 +3703,7 @@ is \emph{not} reversed.  If \arg{Term} is not atomic, it is duplicated
 using duplicate_term/2. This predicate uses the same technique as
 nb_setval/2.  We therefore refer to the description of nb_setval/2
 for details on non-backtrackable assignment of terms.  This predicate
-is compatible to GNU-Prolog \term{setarg}{A,T,V,false}, removing the
+is compatible with GNU-Prolog \term{setarg}{A,T,V,false}, removing the
 type-restriction on \arg{Value}.  See also nb_linkarg/3.  Below
 is an example for counting the number of solutions of a goal.  Note
 that this implementation is thread-safe, reentrant and capable of
@@ -3740,7 +3754,7 @@ return a number if possible and an atom otherwise.
 
 The ISO standard defines atom_chars/2 to describe the `broken-up'
 atom as a list of one-character atoms instead of a list of codes.  Up-to
-version 3.2.x, SWI-Prolog's atom_chars/2 behaved, compatible to
+version 3.2.x, SWI-Prolog's atom_chars/2 behaved, compatible with
 Quintus and SICStus Prolog, like atom_codes.  As of 3.3.x SWI-Prolog
 atom_codes/2 and atom_chars/2 are compliant to the ISO standard.
 
@@ -3891,7 +3905,7 @@ predicates to exploit the C-character classification's handling of
 fast, logical and deterministic if applicable.
 
 In addition, there is the library \pllib{ctype} providing compatibility
-to some other Prolog systems. The predicates of this library are defined
+with some other Prolog systems. The predicates of this library are defined
 in terms of code_type/2.
 
 \begin{description}
@@ -4058,7 +4072,7 @@ Starting with version 3.3, SWI-Prolog offers garbage collection on the
 atom-space as well as representing 0-bytes in atoms.  Although strings
 and atoms still have different features, new code should consider using
 atoms to avoid too many representations for text as well as for
-compatibility to other Prolog implementations.  Below are some of the
+compatibility with other Prolog implementations.  Below are some of the
 differences:
 
 \begin{itemlist}
@@ -4082,7 +4096,7 @@ is by setting the \prologflag{double_quotes} flag to \const{string} and the
 other is by setting the \prologflag{backquoted_string} flag to \const{true}.
 In latter case, \verb$`Hello world`$ is read into a string and
 write_term/2 prints strings between back-quotes if \const{quoted} is
-\const{true}. This flag provides compatibility to LPA Prolog string
+\const{true}. This flag provides compatibility with LPA Prolog string
 handling.
 
 
@@ -4135,7 +4149,7 @@ mechanism of portability is not an important concern.
 
 The module-table of the module \const{user} acts as default table for
 all modules and can be modified explicitly from inside a module to
-achieve compatibility to other Prolog systems:
+achieve compatibility with other Prolog systems:
 
 \begin{code}
 :- module(prove,
@@ -4683,7 +4697,7 @@ ECLiPSe and is under consideration for YAP.}
 \paragraph{Bitvector functions}
 
 The functions below are not covered by the standard.  The msb/1 function
-is compatible to hProlog. The others are private extensions that improve
+is compatible with hProlog. The others are private extensions that improve
 handling of ---unbounded--- integers as bit-vectors.  
 
 \begin{description}
@@ -5895,7 +5909,7 @@ Defines extensions. Current mapping: \const{txt} implies \const{['']},
 \const{prolog} implies \const{['.pl', '']}, \const{executable} implies
 \const{['.so', '']}, \const{qlf} implies \const{['.qlf', '']} and
 \const{directory} implies \const{['']}.  The file-type \const{source}
-is an alias for \const{prolog} for compatibility to SICStus Prolog.
+is an alias for \const{prolog} for compatibility with SICStus Prolog.
 See also prolog_file_type/2.
 
     \termitem{file_errors}{fail/error}
@@ -5917,7 +5931,7 @@ proceeding.  This is a SWI-Prolog extension.
 The Prolog flag \prologflag{verbose_file_search} can be set to \const{true}
 to help debugging Prolog's search for files.
 
-Compatibility considerations to common argument-order in ISO as well as
+Compatibility considerations with common argument-order in ISO as well as
 SICStus absolute_file_name/3 forced us to be flexible here.  If the last
 argument is a list and the 2nd not, the arguments are swapped, making
 the call \term{absolute_file_name}{+Spec, -Path, +Options} valid as
@@ -6249,7 +6263,7 @@ Name & Default & Description \\
     \predicate{statistics}{2}{+Key, -Value}
 Unify system statistics determined by \arg{Key} with \arg{Value}. The
 possible keys are given in the \tabref{statistics}.  The last part of
-the table contains keys for compatibility to other Prolog implementations
+the table contains keys for compatibility with other Prolog implementations
 (Quintus) for improved portability.  Note that the ISO standard does not
 define methods to collect system statistics. Space unit is bytes%
 	\footnote{This may change to `cells' to enhance compatibility

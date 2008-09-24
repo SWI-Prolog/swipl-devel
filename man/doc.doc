@@ -65,7 +65,7 @@ for graphics, databases, networking, web-services, XML, RDF and many
 more complete the system.
 
 SWI-Prolog is compliant to part one of ISO standard Prolog. In addition
-it provides functionality compatible to Quintus, SICStus, LPA, Ciao and
+it provides functionality compatible with Quintus, SICStus, LPA, Ciao and
 many more.
 
 Since version 5 the system and all bundled extensions are distributed

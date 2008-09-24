@@ -565,10 +565,10 @@ prolog_message(query(QueryResult)) -->
 	query_result(QueryResult).
 
 query_result(no) -->		% failure
-	[ 'false.' ],
+	[ 'false.'-[] ],
 	extra_line.
 query_result(yes([])) --> !,	% prompt_alternatives_on: groundness
-	[ 'true.' ],
+	[ 'true.'-[] ],
 	extra_line.
 query_result(yes(Residuals)) -->
 	residuals(Residuals),
@@ -586,17 +586,17 @@ query_result(more(Bindings, Residuals)) -->
 	residuals(Residuals),
 	prompt(more, Bindings, Residuals).
 query_result(help) -->
-	[ nl, 'Actions:', nl, nl,
-	  '; (n, r, space, TAB): redo    t:          trace & redo', nl,
-	  'b:                    break   c (a, RET): exit', nl,
-	  'w:                    write   p           print', nl,
-	  'h (?):                help',
+	[ nl, 'Actions:'-[], nl, nl,
+	  '; (n, r, space, TAB): redo    t:          trace & redo'-[], nl,
+	  'b:                    break   c (a, RET): exit'-[], nl,
+	  'w:                    write   p           print'-[], nl,
+	  'h (?):                help'-[],
 	  nl, nl
 	].
 query_result(action) -->
-	[ 'Action? ', flush ].
+	[ 'Action? '-[], flush ].
 query_result(confirm) -->
-	[ 'Please answer \'y\' or \'n\'? ', flush ].
+	[ 'Please answer \'y\' or \'n\'? '-[], flush ].
 query_result(eof) -->
 	[ nl ].
 query_result(toplevel_open_line) -->
@@ -608,15 +608,15 @@ prompt(Answer, _, _) --> !,
 	prompt(Answer, non_empty).
 
 prompt(yes, empty) --> !,
-	[ 'true.' ],
+	[ 'true.'-[] ],
 	extra_line.
 prompt(yes, _) --> !,
-	[ '.' ],
+	[ full_stop ],
 	extra_line.
 prompt(more, empty) --> !,
-	[ 'true ', flush ].
+	[ 'true '-[], flush ].
 prompt(more, _) --> !,
-	[ ' ', flush ].
+	[ ' '-[], flush ].
 
 bindings([]) -->
 	[].
@@ -627,7 +627,7 @@ bindings([Name = Value|T]) -->
 	  ;   Cont = (,)
 	  )
 	},
-	[ '~w = ~W~w'-[Name, Value, Options, Cont] ],
+	[ '~w = ~W~a'-[Name, Value, [partial(true)|Options], Cont] ],
 	(   {T == []}
 	->  []
 	;   [nl]
@@ -690,7 +690,12 @@ prolog_message(history(history(Events))) -->
 history_events([]) -->
 	[].
 history_events([Nr/Event|T]) -->
-	[ '~t~w   ~8|~w.'-[Nr, Event], nl ],
+	[ '~t~w   ~8|~W~W'-[ Nr,
+			     Event, [partial(true)],
+			     '.', [partial(true)]
+			   ],
+	  nl
+	],
 	history_events(T).
 
 
@@ -947,6 +952,8 @@ print_message_line(S, [], []) :- !,
 	nl(S).
 print_message_line(S, [nl|T], T) :- !,
 	nl(S).
+print_message_line(S, [full_stop|T], T) :- !,
+	'$put_token'(S, '.').		% insert space if needed.
 print_message_line(S, [Fmt-Args|T0], T) :- !,
 	format(S, Fmt, Args),
 	print_message_line(S, T0, T).

@@ -66,7 +66,7 @@ Currently, this file has this functionality:
     applied if prolog_load_context(dialect, Dialect) is active.
 
     \item Modify the search path for library directories, putting 
-    libraries compatible to the target dialect before the native
+    libraries compatible with the target dialect before the native
     libraries.
 
     \item Setup support for the default filename extension of the
@@ -176,7 +176,7 @@ compare(=, Term1, Term2) :-
 
 This code is \textbf{much} more robust against changes to the intended
 dialect and, possible at least as important, will provide compatibility
-to dialects you didn't even consider porting to right now.
+with dialects you didn't even consider porting to right now.
 
 In a more challenging case, the target Prolog has compare/3, but the
 semantics are different. What to do? One option is to write a

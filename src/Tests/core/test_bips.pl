@@ -38,6 +38,19 @@ has_occurs_check_flag :-
 
 
 :- begin_tests(bips).
+test(iso_8_3_10_4,[]) :-
+       ground(3).
+test(iso_8_3_10_4,[fail]) :-
+       ground(a(1,_)).
+test(iso_8_3_10, []) :-
+       forall(between(0, 20, _),
+              ( X=1,Y=2, ground(X-Y))).
+test(iso_8_3_10, []) :-
+       forall(true,ground(1-1)).
+test(iso_8_3_10, [fail]) :-
+       ground(1-1),
+       fail.
+
 test(iso_8_4_2_4,[Order == (<)]) :-
 	compare(Order, 3, 5).
 test(iso_8_4_2_4,[Order == (=)]) :-

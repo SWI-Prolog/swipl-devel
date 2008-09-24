@@ -149,7 +149,7 @@ code.
 
 	\termitem{gpl}{}
 Indicates this module is strictly Free Software, which implies it cannot
-be used together with any module that is incompatible to the GPL. Please
+be used together with any module that is incompatible with the GPL. Please
 only use these conditions when forced by other code used in the
 component.
     \end{description}
@@ -160,7 +160,7 @@ Other licenses known to the system are \const{guile}, \const{gnu_ada},
 and \const{gpl_compatible}.  New licenses can be defined by adding
 clauses for the multifile predicate license:license/3.  Below is
 an example.  The second argument is either \const{gpl} or \const{lgpl}
-to indicate compatibility to these licenses.  Other values cause the
+to indicate compatibility with these licenses.  Other values cause the
 license to interpreted as \jargon{proprietary}.  Proprietary licenses
 are reported by eval_license/0.  See the file \file{boot/license.pl} for
 details.
