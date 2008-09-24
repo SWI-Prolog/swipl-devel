@@ -346,7 +346,7 @@ odbc_report(HENV henv, HDBC hdbc, HSTMT hstmt, RETCODE rc)
       PL_unify_term(msg, PL_FUNCTOR, FUNCTOR_odbc3,
 			   PL_CHARS,   state,
 		           PL_INTEGER, (long)native,
-		           PL_NCHARS,  msglen, message);
+		           PL_NCHARS,  (size_t)msglen, message);
       break;
     case SQL_INVALID_HANDLE:
       return PL_warning("ODBC INTERNAL ERROR: Invalid handle in error");
