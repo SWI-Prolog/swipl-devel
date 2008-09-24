@@ -71,6 +71,8 @@ test(unify, [condition(error_unification),error(occurs_check(X, f(X)))]) :-
 	unify(X, f(X)).
 test(unifiable, [condition(error_unification),error(occurs_check(X, f(X)))]) :-
 	unifiable(X, f(X), _).
+test(?=,  [condition(error_unification),error(occurs_check(X, f(X)))]) :-
+	?=(X, f(X)).
 test(head, [condition(error_unification),error(occurs_check(X, s(X)))]) :-
         my_unify(X,X).
 
