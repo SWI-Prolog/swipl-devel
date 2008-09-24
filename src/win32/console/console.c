@@ -2642,7 +2642,7 @@ rlc_putansi(RlcData b, int chr)
       }
       switch(chr)
       { case ';':
-	  break;			/* wait for more args */
+	  return;			/* wait for more args */
 	case 'H':
 	case 'f':
 	  rlc_need_arg(b, 1, 0);
