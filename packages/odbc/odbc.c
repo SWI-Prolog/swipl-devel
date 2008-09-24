@@ -252,7 +252,7 @@ typedef struct connection
   nulldef     *null;			/* Prolog null value */
   unsigned     flags;			/* general flags */
   int	       max_qualifier_lenght;	/* SQL_MAX_QUALIFIER_NAME_LEN */
-  int	       max_nogetdata;		/* handle as long field if larger */
+  SQLULEN      max_nogetdata;		/* handle as long field if larger */
   struct connection *next;		/* next in chain */
 } connection;
 
@@ -272,7 +272,7 @@ typedef struct
   unsigned     flags;			/* general flags */
   nulldef     *null;			/* Prolog null value */
   findall     *findall;			/* compiled code to create result */
-  int	       max_nogetdata;		/* handle as long field if larger */
+  SQLULEN      max_nogetdata;		/* handle as long field if larger */
   struct context *clones;		/* chain of clones */
 } context;
 
@@ -1926,7 +1926,7 @@ prepare_result(context *ctxt)
 
     DEBUG(1, Sdprintf("prepare_result(): column %d, "
 		      "sqlTypeID = %d, cTypeID = %d, "
-		      "columnSize = %d\n",
+		      "columnSize = %u\n",
 		      i, ptr_result->sqlTypeID, ptr_result->cTypeID,
 		      columnSize));
 
@@ -1949,7 +1949,7 @@ prepare_result(context *ctxt)
     switch (ptr_result->sqlTypeID)
     { case SQL_LONGVARCHAR:
       case SQL_LONGVARBINARY:
-      { if ( (int)columnSize > ctxt->max_nogetdata || columnSize == 0 )
+      { if ( columnSize > ctxt->max_nogetdata || columnSize == 0 )
 	{ use_sql_get_data:
 	  DEBUG(2,
 		Sdprintf("Wide SQL_LONGVAR* column %d: using SQLGetData()\n", i));
@@ -1968,7 +1968,7 @@ prepare_result(context *ctxt)
 	columnSize++;			/* one for decimal dot */
         /*FALLTHROUGH*/
       case SQL_C_BINARY:
-	if ( (int)columnSize > ctxt->max_nogetdata || columnSize == 0 )
+	if ( columnSize > ctxt->max_nogetdata || columnSize == 0 )
 	  goto use_sql_get_data;
         ptr_result->len_value = sizeof(char)*columnSize+1;
 	break;
@@ -2196,8 +2196,12 @@ set_statement_options(context *ctxt, term_t options)
 	  return domain_error(a, "fetch");
 	}
       } else if ( PL_is_functor(head, FUNCTOR_wide_column_threshold1) )
-      { if ( !get_int_arg_ex(1, head, &ctxt->max_nogetdata) )
+      { int val;
+
+	if ( !get_int_arg_ex(1, head, &val) )
 	  return FALSE;
+
+	ctxt->max_nogetdata = val;
       } else
 	return domain_error(head, "odbc_option");
     }
