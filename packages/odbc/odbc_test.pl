@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -87,6 +87,12 @@ types we test this too.
 
 type(integer,
      integer = [-1, 0, 42, '$null$' ],
+     [ atom  = integer_to_atom,		% exchange as text
+       float = integer_to_float		% exchange as float
+     ],
+     []).
+type(bigint,
+     integer = [-1, 0, 42, 35184372088832, -35184372088832, '$null$' ],
      [ atom  = integer_to_atom,		% exchange as text
        float = integer_to_float		% exchange as float
      ],
@@ -326,10 +332,21 @@ compare_elements([H0|T0], [H1|T1]) :-
 	    float(H1)
 	->  Diff is H0-H1,
 	    format('~NERROR: ~q != ~q (diff=~f)~n', [H0, H1, Diff])
-	;   format('~NERROR: ~q != ~q~n', [H0, H1])
+	;   print_val(H0, P0),
+	    print_val(H1, P1),
+	    format('~NERROR: ~q != ~q~n', [P0, P1])
 	),
 	compare_elements(T0, T1).
 
+
+print_val(H, P) :-
+	atom(H),
+	atom_length(H, Len),
+	Len > 60, !,
+	sub_atom(H, 0, 40, _, Start),
+	sub_atom(H, _, 20, 0, End),
+	concat_atom([Start, '...', End], P).
+print_val(H, H).
 
 		 /*******************************
 		 *	       MAPS		*
