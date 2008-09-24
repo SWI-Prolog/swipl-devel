@@ -1975,6 +1975,9 @@ prepare_result(context *ctxt)
       case SQL_C_SLONG:
 	ptr_result->len_value = sizeof(SQLINTEGER);
 	break;
+      case SQL_C_SBIGINT:
+	ptr_result->len_value = sizeof(SQLBIGINT);
+	break;
       case SQL_C_DOUBLE:
 	ptr_result->len_value = sizeof(SQLDOUBLE);
 	break;
@@ -2637,11 +2640,15 @@ declare_parameters(context *ctxt, term_t parms)
         vlenptr = &params->len_value;
 	break;
       case SQL_C_SLONG:
-	params->len_value = sizeof(long);
+	params->len_value = sizeof(SQLINTEGER);
+        vlenptr = &params->len_value;
+	break;
+      case SQL_C_SBIGINT:
+	params->len_value = sizeof(SQLBIGINT);
         vlenptr = &params->len_value;
 	break;
       case SQL_C_DOUBLE:
-	params->len_value = sizeof(double);
+	params->len_value = sizeof(SQLDOUBLE);
         vlenptr = &params->len_value;
 	break;
       case SQL_C_DATE:
@@ -2662,6 +2669,9 @@ declare_parameters(context *ctxt, term_t parms)
         params->len_value = sizeof(SQL_TIMESTAMP_STRUCT);
 	vlenptr = &params->len_value;
         break;
+      default:
+	Sdprintf("declare_parameters(): cTypeID %d not supported\n",
+		 params->cTypeID);
     }
 
 
@@ -2898,11 +2908,27 @@ bind_parameters(context *ctxt, term_t parms)
 
     switch(prm->cTypeID)
     { case SQL_C_SLONG:
-	if ( PL_get_long(head, (long *)prm->ptr_value) )
-	  prm->len_value = sizeof(long);
-	else if ( !try_null(ctxt, prm, head, "integer") )
+      { long val;
+
+	if ( PL_get_long(head, &val) )
+	{ SQLINTEGER sqlval = val;
+	  memcpy(prm->ptr_value, &sqlval, sizeof(SQLINTEGER));
+	  prm->len_value = sizeof(SQLINTEGER);
+	} else if ( !try_null(ctxt, prm, head, "integer") )
 	  return FALSE;
         break;
+      }
+      case SQL_C_SBIGINT:
+      { int64_t val;
+
+	if ( PL_get_int64(head, &val) )
+	{ SQLBIGINT sqlval = val;
+	  memcpy(prm->ptr_value, &sqlval, sizeof(SQLBIGINT));
+	  prm->len_value = sizeof(SQLBIGINT);
+	} else if ( !try_null(ctxt, prm, head, "integer") )
+	  return FALSE;
+        break;
+      }
       case SQL_C_DOUBLE:
 	if ( PL_get_float(head, (double *)prm->ptr_value) )
 	  prm->len_value = sizeof(double);
@@ -3351,6 +3377,9 @@ CvtSqlToCType(context *ctxt, SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
 	case SQL_INTEGER:
 	  return SQL_C_SLONG;
     
+	case SQL_BIGINT:		/* 64-bit integers */
+	  return SQL_C_SBIGINT;
+
 	case SQL_DATE:
 	case SQL_TYPE_DATE:
 	  return SQL_C_TYPE_DATE;
@@ -3380,6 +3409,8 @@ CvtSqlToCType(context *ctxt, SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
       switch(fSqlType)
       { case SQL_TIMESTAMP:
 	  return SQL_C_TIMESTAMP;
+	case SQL_BIGINT:		/* 64-bit integers */
+	  return SQL_C_SBIGINT;
 	default:
 	  return SQL_C_SLONG;
       }
@@ -3537,6 +3568,9 @@ pl_put_column(context *c, int nth, term_t col)
 	break;
       case SQL_C_SLONG:
 	PL_put_integer(val,*(SQLINTEGER *)p->ptr_value);
+	break;
+      case SQL_C_SBIGINT:
+	PL_put_int64(val, *(SQLBIGINT *)p->ptr_value);
 	break;
       case SQL_C_DOUBLE:
 	PL_put_float(val,*(SQLDOUBLE *)p->ptr_value);
