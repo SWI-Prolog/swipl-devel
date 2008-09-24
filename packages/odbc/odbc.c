@@ -2652,12 +2652,14 @@ declare_parameters(context *ctxt, term_t parms)
         vlenptr = &params->len_value;
 	break;
       case SQL_C_DATE:
+      case SQL_C_TYPE_DATE:
 	if ( !(params->ptr_value = odbc_malloc(sizeof(DATE_STRUCT))) )
 	  return FALSE;
         params->len_value = sizeof(DATE_STRUCT);
 	vlenptr = &params->len_value;
         break;
       case SQL_C_TIME:
+      case SQL_C_TYPE_TIME:
 	if ( !(params->ptr_value = odbc_malloc(sizeof(TIME_STRUCT))) )
 	  return FALSE;
         params->len_value = sizeof(TIME_STRUCT);
