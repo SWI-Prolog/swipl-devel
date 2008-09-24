@@ -1110,6 +1110,7 @@ static const opt_spec write_term_options[] =
   { ATOM_backquoted_string, OPT_BOOL },
   { ATOM_attributes,	    OPT_ATOM },
   { ATOM_priority,	    OPT_INT },
+  { ATOM_partial,	    OPT_BOOL },
   { NULL_ATOM,	     	    0 }
 };
 
@@ -1124,6 +1125,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   atom_t mname    = ATOM_user;
   atom_t attr     = ATOM_nil;
   int  priority   = 1200;
+  bool partial    = FALSE;
   IOSTREAM *s;
   write_options options;
 
@@ -1132,7 +1134,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
 		     &quoted, &ignore_ops, &numbervars, &portray,
 		     &charescape, &options.max_depth, &mname,
-		     &bqstring, &attr, &priority) )
+		     &bqstring, &attr, &priority, &partial) )
     fail;
 
   if ( attr == ATOM_nil )
@@ -1168,7 +1170,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( bqstring )   options.flags |= PL_WRT_BACKQUOTED_STRING;
 
   options.out = s;
-  PutOpenToken(EOF, s);			/* reset this */
+  if ( !partial )
+    PutOpenToken(EOF, s);		/* reset this */
   if ( (options.flags & PL_WRT_QUOTED) && !(s->flags&SIO_REPPL) )
   { s->flags |= SIO_REPPL;
     writeTerm(term, priority, &options);

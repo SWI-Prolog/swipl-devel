@@ -144,7 +144,10 @@ substitute(Old, New, String, Substituted) :-
 save_history_line(end_of_file) :- !.
 save_history_line(Line) :-
 	current_prolog_flag(readline, true),
-	atom_concat(Line, '.', CompleteLine),
+	format(atom(CompleteLine), '~W~W',
+	       [ Line, [partial(true)],
+		 '.', [partial(true)]
+	       ]),
 	catch(user:rl_add_history(CompleteLine), _, fail), !.
 save_history_line(_).
 

@@ -3313,6 +3313,20 @@ is an atom it is written without quotes.  This extension allows for
 writing variables with user-provided names.  The default is
 \const{false}.  See also numbervars/3.
 
+    \termitem{partial}{Bool}
+If \const{true} (default \const{false}), do not reset the logic that
+inserts extra spaces that seperate tokens where needed. This is intended
+to this problems with the code below.  Calling \term{write_value}{.}
+writes \verb$..$, which cannot be read.  By adding \term{partial}{true}
+to the option, it correctly emits \verb$. .$.  Similar problems appear
+when emitting operators using multiple calls to write_term/3.
+
+\begin{code}
+write_value(Value) :-
+	write_term(Value, [quoted(true)]),
+	write('.'), nl.
+\end{code}
+
     \termitem{portray}{Bool}
 If \const{true}, the hook portray/1 is called before printing a term
 that is not a variable.  If portray/1 succeeds, the term is considered
