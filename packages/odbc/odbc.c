@@ -252,7 +252,7 @@ typedef struct connection
   nulldef     *null;			/* Prolog null value */
   unsigned     flags;			/* general flags */
   int	       max_qualifier_lenght;	/* SQL_MAX_QUALIFIER_NAME_LEN */
-  int	       max_nogetdata;		/* handle as long field if larger */
+  SQLULEN      max_nogetdata;		/* handle as long field if larger */
   struct connection *next;		/* next in chain */
 } connection;
 
@@ -272,7 +272,7 @@ typedef struct
   unsigned     flags;			/* general flags */
   nulldef     *null;			/* Prolog null value */
   findall     *findall;			/* compiled code to create result */
-  int	       max_nogetdata;		/* handle as long field if larger */
+  SQLULEN      max_nogetdata;		/* handle as long field if larger */
   struct context *clones;		/* chain of clones */
 } context;
 
@@ -346,7 +346,7 @@ odbc_report(HENV henv, HDBC hdbc, HSTMT hstmt, RETCODE rc)
       PL_unify_term(msg, PL_FUNCTOR, FUNCTOR_odbc3,
 			   PL_CHARS,   state,
 		           PL_INTEGER, (long)native,
-		           PL_NCHARS,  msglen, message);
+		           PL_NCHARS,  (size_t)msglen, message);
       break;
     case SQL_INVALID_HANDLE:
       return PL_warning("ODBC INTERNAL ERROR: Invalid handle in error");
@@ -1926,7 +1926,7 @@ prepare_result(context *ctxt)
 
     DEBUG(1, Sdprintf("prepare_result(): column %d, "
 		      "sqlTypeID = %d, cTypeID = %d, "
-		      "columnSize = %d\n",
+		      "columnSize = %u\n",
 		      i, ptr_result->sqlTypeID, ptr_result->cTypeID,
 		      columnSize));
 
@@ -1949,7 +1949,7 @@ prepare_result(context *ctxt)
     switch (ptr_result->sqlTypeID)
     { case SQL_LONGVARCHAR:
       case SQL_LONGVARBINARY:
-      { if ( (int)columnSize > ctxt->max_nogetdata || columnSize == 0 )
+      { if ( columnSize > ctxt->max_nogetdata || columnSize == 0 )
 	{ use_sql_get_data:
 	  DEBUG(2,
 		Sdprintf("Wide SQL_LONGVAR* column %d: using SQLGetData()\n", i));
@@ -1968,12 +1968,15 @@ prepare_result(context *ctxt)
 	columnSize++;			/* one for decimal dot */
         /*FALLTHROUGH*/
       case SQL_C_BINARY:
-	if ( (int)columnSize > ctxt->max_nogetdata || columnSize == 0 )
+	if ( columnSize > ctxt->max_nogetdata || columnSize == 0 )
 	  goto use_sql_get_data;
         ptr_result->len_value = sizeof(char)*columnSize+1;
 	break;
       case SQL_C_SLONG:
 	ptr_result->len_value = sizeof(SQLINTEGER);
+	break;
+      case SQL_C_SBIGINT:
+	ptr_result->len_value = sizeof(SQLBIGINT);
 	break;
       case SQL_C_DOUBLE:
 	ptr_result->len_value = sizeof(SQLDOUBLE);
@@ -2193,8 +2196,12 @@ set_statement_options(context *ctxt, term_t options)
 	  return domain_error(a, "fetch");
 	}
       } else if ( PL_is_functor(head, FUNCTOR_wide_column_threshold1) )
-      { if ( !get_int_arg_ex(1, head, &ctxt->max_nogetdata) )
+      { int val;
+
+	if ( !get_int_arg_ex(1, head, &val) )
 	  return FALSE;
+
+	ctxt->max_nogetdata = val;
       } else
 	return domain_error(head, "odbc_option");
     }
@@ -2637,20 +2644,26 @@ declare_parameters(context *ctxt, term_t parms)
         vlenptr = &params->len_value;
 	break;
       case SQL_C_SLONG:
-	params->len_value = sizeof(long);
+	params->len_value = sizeof(SQLINTEGER);
+        vlenptr = &params->len_value;
+	break;
+      case SQL_C_SBIGINT:
+	params->len_value = sizeof(SQLBIGINT);
         vlenptr = &params->len_value;
 	break;
       case SQL_C_DOUBLE:
-	params->len_value = sizeof(double);
+	params->len_value = sizeof(SQLDOUBLE);
         vlenptr = &params->len_value;
 	break;
       case SQL_C_DATE:
+      case SQL_C_TYPE_DATE:
 	if ( !(params->ptr_value = odbc_malloc(sizeof(DATE_STRUCT))) )
 	  return FALSE;
         params->len_value = sizeof(DATE_STRUCT);
 	vlenptr = &params->len_value;
         break;
       case SQL_C_TIME:
+      case SQL_C_TYPE_TIME:
 	if ( !(params->ptr_value = odbc_malloc(sizeof(TIME_STRUCT))) )
 	  return FALSE;
         params->len_value = sizeof(TIME_STRUCT);
@@ -2662,6 +2675,9 @@ declare_parameters(context *ctxt, term_t parms)
         params->len_value = sizeof(SQL_TIMESTAMP_STRUCT);
 	vlenptr = &params->len_value;
         break;
+      default:
+	Sdprintf("declare_parameters(): cTypeID %d not supported\n",
+		 params->cTypeID);
     }
 
 
@@ -2898,11 +2914,27 @@ bind_parameters(context *ctxt, term_t parms)
 
     switch(prm->cTypeID)
     { case SQL_C_SLONG:
-	if ( PL_get_long(head, (long *)prm->ptr_value) )
-	  prm->len_value = sizeof(long);
-	else if ( !try_null(ctxt, prm, head, "integer") )
+      { long val;
+
+	if ( PL_get_long(head, &val) )
+	{ SQLINTEGER sqlval = val;
+	  memcpy(prm->ptr_value, &sqlval, sizeof(SQLINTEGER));
+	  prm->len_value = sizeof(SQLINTEGER);
+	} else if ( !try_null(ctxt, prm, head, "integer") )
 	  return FALSE;
         break;
+      }
+      case SQL_C_SBIGINT:
+      { int64_t val;
+
+	if ( PL_get_int64(head, &val) )
+	{ SQLBIGINT sqlval = val;
+	  memcpy(prm->ptr_value, &sqlval, sizeof(SQLBIGINT));
+	  prm->len_value = sizeof(SQLBIGINT);
+	} else if ( !try_null(ctxt, prm, head, "integer") )
+	  return FALSE;
+        break;
+      }
       case SQL_C_DOUBLE:
 	if ( PL_get_float(head, (double *)prm->ptr_value) )
 	  prm->len_value = sizeof(double);
@@ -3351,6 +3383,9 @@ CvtSqlToCType(context *ctxt, SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
 	case SQL_INTEGER:
 	  return SQL_C_SLONG;
     
+	case SQL_BIGINT:		/* 64-bit integers */
+	  return SQL_C_SBIGINT;
+
 	case SQL_DATE:
 	case SQL_TYPE_DATE:
 	  return SQL_C_TYPE_DATE;
@@ -3380,6 +3415,8 @@ CvtSqlToCType(context *ctxt, SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
       switch(fSqlType)
       { case SQL_TIMESTAMP:
 	  return SQL_C_TIMESTAMP;
+	case SQL_BIGINT:		/* 64-bit integers */
+	  return SQL_C_SBIGINT;
 	default:
 	  return SQL_C_SLONG;
       }
@@ -3537,6 +3574,9 @@ pl_put_column(context *c, int nth, term_t col)
 	break;
       case SQL_C_SLONG:
 	PL_put_integer(val,*(SQLINTEGER *)p->ptr_value);
+	break;
+      case SQL_C_SBIGINT:
+	PL_put_int64(val, *(SQLBIGINT *)p->ptr_value);
 	break;
       case SQL_C_DOUBLE:
 	PL_put_float(val,*(SQLDOUBLE *)p->ptr_value);

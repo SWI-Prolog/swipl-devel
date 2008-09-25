@@ -1640,9 +1640,14 @@ PRED_IMPL("?=", 2, can_compare, 0)
   if ( rval )
   { if ( m.trailtop != tTop )
       rval = FALSE;			/* can be equal after substitution */
+  } else if ( exception_term )
+  { rval = FALSE;
+    goto no_undo;			/* keep the exception term! */
   } else
-    rval = TRUE;			/* cannot unify */
+  { rval = TRUE;			/* cannot unify */
+  }
   TmpUndo(m);
+no_undo:
   EndTmpMark(m);
 
   return rval;

@@ -10,7 +10,7 @@
 
 % Configure latex2html
 
-\htmloutput{Manual} % Output directory
+\htmloutput{Manual.tmp} % Output directory
 \htmlmainfile{index} % Main document file
 \bodycolor{white} % Page colour
 \linkimage{home}{home.gif} % Images for links
@@ -40,8 +40,8 @@
 
 \newcommand{\vmajor}{5}
 \newcommand{\vminor}{6}
-\newcommand{\vpatch}{59}
-\newcommand{\vmonth}{August}
+\newcommand{\vpatch}{61}
+\newcommand{\vmonth}{September}
 \newcommand{\vyear}{2008}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
@@ -65,7 +65,7 @@ for graphics, databases, networking, web-services, XML, RDF and many
 more complete the system.
 
 SWI-Prolog is compliant to part one of ISO standard Prolog. In addition
-it provides functionality compatible to Quintus, SICStus, LPA, Ciao and
+it provides functionality compatible with Quintus, SICStus, LPA, Ciao and
 many more.
 
 Since version 5 the system and all bundled extensions are distributed

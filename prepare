@@ -150,7 +150,9 @@ done=false
 while [ "$done" = false ]; do
   case "$doc" in
     absent|out-of-date)
-      if [ -f .doc-action ]; then
+      if [ "$yes" = yes ]; then
+        download_docs
+      elif [ -f .doc-action ]; then
 	done=true
 	case "`cat .doc-action`" in
 	  download)
