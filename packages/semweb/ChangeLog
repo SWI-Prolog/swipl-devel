@@ -1,3 +1,7 @@
+[Sep 23 2008]
+
+ * ADDED: Preserve the modification time of the source URL in binary RDF files.
+   
 [Sep 11 2008]
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
