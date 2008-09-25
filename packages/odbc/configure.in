@@ -91,6 +91,8 @@ fi
 
 AC_CHECK_HEADERS(malloc.h sql.h time.h)
 AC_CHECK_FUNCS(localtime mktime gmtime timegm)
+AC_CHECK_TYPES([long long])
+AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_TYPES([SQLLEN, SQLULEN],,,
 	       [#include <sql.h>
 	       ])
