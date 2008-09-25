@@ -1,3 +1,13 @@
+[Sep 24 2008]
+
+ * FIXED: ODBC: Support for longblob on 64-bit machines.
+   
+ * FIXED: ODBC support for time and date (SQL_C_TYPE_DATE/SQL_C_TYPE_TIME)
+   
+ * ADDED: ODBC: Support SQL_BIGINT
+   
+ * FIXED: ODBC error reporting on 64-bit machines (crash)
+   
 [Sep 11 2008]
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf

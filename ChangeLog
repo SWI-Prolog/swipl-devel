@@ -9,6 +9,18 @@
 
 
 =================================
+VERSION 5.6.61 September 25, 2008
+=================================
+
+ * FIXED: Toplevel issues with commands that end in a symbol-char.  Item#433, Ulrich Neumerkel.
+   
+ * FIXED: Support occurs_check flag in ?=/2.  Item#440, Ulrich Neumerkel.
+   
+ * FIXED: Bug#373: Win32 console: multi-argument ANSI sequences.  Dave Eyers.
+   
+ * FIXED: Bug#380: AGC error related to complex meta-calls.  Pierre Nugues.
+   
+=================================
 VERSION 5.6.60 September 17, 2008
 =================================
 
