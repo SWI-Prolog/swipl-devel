@@ -5992,10 +5992,17 @@ file system, but never to a link.  Fails if \arg{File} is not a link.
 Fails always on systems that do not support symbolic links.
 
     \predicate{tmp_file}{2}{+Base, -TmpName}
-Create a name for a temporary file.  \arg{Base} is an identifier for
-the category of file.  The \arg{TmpName} is guaranteed to be unique.
-If the system halts, it will automatically remove all created temporary
-files.
+Create a name for a temporary file. \arg{Base} is an identifier for the
+category of file. The \arg{TmpName} is guaranteed to be unique. If the
+system halts, it will automatically remove all created temporary files.
+\arg{Base} is used as part of the final filename.  Portable applications
+should limit themselves to alphanumerical characters.
+
+Because it is possible to guess the generated filename, attackers may
+create the filesystem entry as a link and possibly create a security 
+issue.  This call must be replaced with a new predicate that combines
+generating the filename and creating the file, based on mkstemp() or
+tmpfile().
 
     \predicate{make_directory}{1}{+Directory}
 Create a new directory (folder) on the filesystem.  Raises an exception
