@@ -290,8 +290,10 @@ pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c pl-vmi.c $(srcdir)/pl-vmi.h $(srcdir)/p
 pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
 pl-gc.o:	pl-lifegc.c
-$(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: $(srcdir)/pl-vmi.c mkvmi
+$(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: .vmi-sentinel
+.vmi-sentinel:	$(srcdir)/pl-vmi.c mkvmi
 		./mkvmi "$(srcdir)"
+		@touch $@
 
 mkvmi:		mkvmi.c
 		$(CC) $(CFLAGS) -o $@ $(srcdir)/mkvmi.c
@@ -302,15 +304,15 @@ pl-rl.o:	pl-rl.c
 		$(CC) -c -I$(RLPREFIX)/include -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
 endif
 
-$(srcdir)/pl-funct.ih:	$(srcdir)/ATOMS	defatom
+$(srcdir)/pl-funct.ih $(srcdir)/pl-atom.ih: .defatom-sentinel
+.defatom-sentinel: $(srcdir)/ATOMS defatom
 		./defatom "$(srcdir)"
-$(srcdir)/pl-atom.ih:	$(srcdir)/ATOMS defatom
-		./defatom "$(srcdir)"
+		@touch $@
 
 defatom:	defatom.c
 		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
 
-plld:		$(srcdir)/plld.c parms.h
+plld:		$(srcdir)/plld.c parms.h $(srcdir)/pl-vmi.h
 		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/plld.c
 
 tags:		$(srcdir)/TAGS
@@ -529,8 +531,8 @@ clean:
 distclean:	clean
 		@(cd rc && $(MAKE) distclean)
 		@(cd libtai && $(MAKE) distclean)
-		(cd $(srcdir) && rm -f pl-atom.ic pl-atom.ih pl-funct.ic pl-funct.ih)
-		(cd $(srcdir) && rm -f pl-codetable.c pl-vmi.h pl-jumptable.ic)
+		(cd $(srcdir) && rm -f pl-atom.ic pl-atom.ih pl-funct.ic pl-funct.ih .defatom-sentinel)
+		(cd $(srcdir) && rm -f pl-codetable.c pl-vmi.h pl-jumptable.ic .vmi-sentinel)
 		rm -rf $(INCLUDEDIR) ../lib
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h
