@@ -2178,9 +2178,9 @@ L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 % that are multiples of 3 or 5:
 %
 % ==
-% ?- N mod 3 #= 0 #\/ N mod 5 #= 0, N in 0..999, findall(N, indomain(N), Ns), sum(Ns, #=, Sum).
+% ?- findall(N, (N mod 3 #= 0 #\/ N mod 5 #= 0, N in 0..999, indomain(N)), Ns), sum(Ns, #=, Sum).
 % Ns = [0, 3, 5, 6, 9, 10, 12, 15, 18|...],
-% Sum = 233168
+% Sum = 233168.
 % ==
 
 L #\/ R    :- reify(L, BL), reify(R, BR), myor(BL, BR, 1), do_queue.
