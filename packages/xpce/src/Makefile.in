@@ -298,7 +298,7 @@ proto:		$(foreach m, $(MODULES) $(VWS), $(srcdir)/$(m)/proto.h)
 # Building the directories
 ################################################################
 
-prepare:	directories h/names.ih version h/interface.h
+prepare:	directories h/names.ih h/interface.h
 
 directories:	h $(MODULES) $(VWS)
 
@@ -308,9 +308,6 @@ $(MODULES) bin lib $(VWS):
 h:		
 		ln -s $(srcdir)/h .
 
-version:
-		@rm -f ../src/version.h
-
 ################################################################
 # Building the name tables
 ################################################################
@@ -318,9 +315,11 @@ version:
 find_names:	$(srcdir)/find_names.c
 		$(CC) $(CFLAGS) -o find_names $(srcdir)/find_names.c
 
-h/names.ih:	find_names	
+h/names.ih h/names.ic:	.names-sentinel
+.names-sentinel:	find_names
 		cd $(srcdir); \
 		../$(builddir)/find_names h/names.ic h/names.ih -- h/*.h ???/*.c
+		@touch $@
 
 ################################################################
 # GNU-Emacs TAG table
@@ -445,15 +444,17 @@ version.h:	Makefile
 		@echo "#define MACHINE \"$(ARCH)\"" > $@%
 		@echo "#define PCE_VERSION \"$(VERSION)\"" >> $@%
 		@echo "#define OS \"$(OS)\"" >> $@%
-		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
+		@mv $@% $@
 
 h/interface.h:	Makefile
 		@sed 's/^#define *PCE_VERSION *.*/#define PCE_VERSION \"$(VERSION)\"/' $@ > $@%
 		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
 
+h/kernel.h:	h/names.ih
+
 ker/self.o:	version.h
 
-ker/name.o:	h/names.ih
+ker/name.o:	h/names.ih h/names.ic
 
 ker/glob.o:	h/kernel.h h/types.h h/graphics.h h/lang.h h/layout.h
 
@@ -670,12 +671,14 @@ WSOBJECTS=	$(addprefix msw/, $(MSWOBJS)) \
 		$(addprefix img/, $(IMGOBJS))
 endif
 
+$(OBJECTS) $(WSOBJECTS):	h/kernel.h
+
 libXPCE:	version.h $(OBJECTS) dowsobjs
 		@echo "Running ar ru $(LIB) objects ..."
 		@$(AR) ru $(LIB) $(OBJECTS) $(WSOBJECTS)
 		$(RANLIB) $(LIB)
 
-dowsobjs:
+dowsobjs:	h/kernel.h
 ifeq ($(VWS),x11)
 		$(MAKE) CIFLAGS="$(CIFLAGS) $(XINCLUDES)" wsobjs
 else
@@ -725,7 +728,7 @@ RTBINS=		xpce xpce-client
 RTLIBS=		pl2xpce.$(SO) $(LIBXPCESOMM) $(LIBXPCEMAIN)
 
 rt-home:
-		if [ ! -d $(DESTDIR)$(RTHOME) ]; then mkdir $(DESTDIR)$(RTHOME); fi
+		if [ ! -d $(DESTDIR)$(RTHOME) ]; then mkdir -p $(DESTDIR)$(RTHOME); fi
 
 rt-bitmaps:	rt-home
 		BMFS=`find ../bitmaps/ \( -name '*.bm' -o -name '*.xpm' -o -name '*.xbm' \) -print` && \
@@ -764,7 +767,7 @@ rt-bins:	rt-home
 		fi
 
 dv-home:
-		if [ ! -d $(DESTDIR)$(DVHOME) ]; then mkdir $(DESTDIR)$(DVHOME); fi
+		if [ ! -d $(DESTDIR)$(DVHOME) ]; then mkdir -p $(DESTDIR)$(DVHOME); fi
 
 dv-lib:		dv-home
 		@if [ ! -d $(DESTDIR)$(DVHOME)/prolog ]; then mkdir $(DESTDIR)$(DVHOME)/prolog; fi
@@ -908,7 +911,7 @@ clean:
 		        (cd $$m; $(RM) -f *.o *~ *% core); \
 		    fi; \
 		done
-		$(RM) -f h/names.ic h/names.ih
+		$(RM) -f h/names.ic h/names.ih .names-sentinel
 		$(RM) -f *.o config.log
 
 distclean:	clean

@@ -13,11 +13,14 @@
 
 PREFIX=$HOME
 
-# [EDIT] Version of make to use.  This must be GNU-make.  On many
-# proprietary Unix systems this is installed as 'gmake'.  On most
-# open systems make is GNU-make.
+# [EDIT] Version of make  to  use.  This   must  be  GNU-make.  On  many
+# proprietary Unix systems this is installed   as  'gmake'. On most open
+# systems make is GNU-make.
+# In you have multi-core hardware you  can   use  'make -j' to build the
+# system faster using all your cores (experimental).
 
 MAKE=make
+# MAKE='make -j'
 
 # [EDIT] Compiler and options.
 # 
@@ -34,7 +37,6 @@ MAKE=make
 # export CMFLAGS=
 # export CIFLAGS=
 # export LDFLAGS=
-  export CFLAGS="$CMFLAGS $CIFLAGS"
 
 # [EDIT] Packages to configure.  Leaving it blank compiles all packages.
 # export PKG=
@@ -48,6 +50,12 @@ MAKE=make
 # [EDIT] On MacOS you need this to get some libraries from Darwinports
 # export LIBRARY_PATH=/opt/local/lib
 # export CPATH=/opt/local/include
+
+# [EDIT] On Solaris also puts there stuff everywhere ...
+# export CIFLAGS=-I/opt/csw/include/ncurses
+# export LDFLAGS=-L/opt/csw/lib
+
+export CFLAGS="$CMFLAGS $CIFLAGS"
 
 ################################################################
 # No edit should be needed below this line
