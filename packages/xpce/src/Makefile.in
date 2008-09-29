@@ -827,12 +827,12 @@ dv-manual:	dv-home
 		$(INSTALL_DATA) -p1 ../man/reference/class/*.doc $(DESTDIR)$(DVHOME)
 		$(INSTALL_DATA) -p1 ../man/faq/*.html $(DESTDIR)$(DVHOME)
 
-dv-online:	manindex dv-home
+dv-online:	manindex dv-manual
 		if [ -r $(MANINDEX) ]; then \
-		    $(INSTALL_DATA) -p1 $(MANINDEX) $(DESTDIR)$(DVHOME); \
+		    $(INSTALL_DATA) $(MANINDEX) $(DESTDIR)$(DVHOME)/man; \
 		fi
 
-dv-man:		dv-home
+dv-man:		dv-manual
 		for f in xpce-client xpce; do \
 		    $(INSTALL_DATA) ../man/$$f.1 $(DESTDIR)$(DVHOME)/man; \
 		    if test -w $(smandir); then \
