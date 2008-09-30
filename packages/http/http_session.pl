@@ -43,12 +43,36 @@
 	    http_session_data/1		% ?Data
 	  ]).
 :- use_module(http_wrapper).
+:- use_module(library(error)).
 :- use_module(library(debug)).
+:- use_module(library(socket)).
 :- use_module(library(broadcast)).
 
 /** <module> HTTP Session management
 
-This library defines session management based on HTTP cookies.  
+This library defines session management based   on HTTP cookies. Session
+management is enabled simply by  loading   this  module.  Details can be
+modified using http_set_session_options/1.
+
+If sessions are enabled, http_session_id/1  produces the current session
+and http_session_assert/1 and friends maintain   data about the session.
+If the session is reclaimed, all associated data is reclaimed too.
+
+Begin and end of sessions can be monitored using library(broadcast). The
+broadcasted messages are:
+
+    * http_session(begin(SessionID, Peer))
+    * http_session(end(SessionId, Peer))
+
+I.e. the following  calls  end_session(SessionId)   whenever  a  session
+terminates. Please note that sessions ends are not scheduled. Creating a
+new session scans the  active  list   for  timed-out  sessions. This may
+change in future versions of this library.
+
+    ==
+    :- listen(http_session(end(SessionId, Peer)),
+	      end_session(SessionId)).
+    ==
 */
 
 :- dynamic
@@ -60,6 +84,11 @@ This library defines session management based on HTTP cookies.
 session_setting(timeout(600)).		% timeout in seconds
 session_setting(cookie('swipl_session')).
 session_setting(path(/)).
+
+session_option(timeout, integer).
+session_option(cookie, atom).
+session_option(path, atom).
+session_option(route, atom).
 
 %%	http_set_session_options(+Options) is det.
 %
@@ -74,7 +103,13 @@ session_setting(path(/)).
 %		
 %		* path(+Path)
 %		Path to which the cookie is associated.  Default is
-%		=|/|=.
+%		=|/|=.	Cookies are only sent if the HTTP request path
+%		is a refinement of Path.
+%
+%		* route(+Route)
+%		Set the route name. Default is the unqualified
+%		hostname. To cancel adding a route, use the empty
+%		atom.  See route/1.
 
 http_set_session_options([]).
 http_set_session_options([H|T]) :-
@@ -83,6 +118,11 @@ http_set_session_options([H|T]) :-
 
 http_session_option(Option) :-
 	functor(Option, Name, Arity),
+	arg(1, Option, Value),
+	(   session_option(Name, Type)
+	->  must_be(Type, Value)
+	;   domain_error(http_session_option, Option)
+	),
 	functor(Free, Name, Arity),
 	retractall(session_setting(Free)),
 	assert(session_setting(Option)).
@@ -105,7 +145,7 @@ http_session_id(Request, SessionID) :-
 	).
 
 
-%%	http_session(+RequestIn, -RequestOut, -SessionID)
+%%	http_session(+RequestIn, -RequestOut, -SessionID) is semidet.
 %	
 %	Maintain the notion of a  session   using  a client-side cookie.
 %	This must be called first when handling a request that wishes to
@@ -124,10 +164,12 @@ http_session(Request0, Request, SessionID) :-
 	SessionID = SessionID0,
 	Request = [session(SessionID)|Request0].
 http_session(Request0, Request, SessionID) :-
+	session_setting(path(Path)),
+	memberchk(path(ReqPath), Request0),
+	sub_atom(ReqPath, 0, _, _, Path), !,
 	http_gc_sessions,		% GC dead sessions
 	gen_cookie(SessionID),
 	session_setting(cookie(Cookie)),
-	session_setting(path(Path)),
 	format('Set-Cookie: ~w=~w; path=~w~n', [Cookie, SessionID, Path]),
 	Request = [session(SessionID)|Request0],
 	peer(Request0, Peer),
@@ -302,18 +344,76 @@ http_gc_sessions.
 		 *	       UTIL		*
 		 *******************************/
 
-%%	gen_cookie(-Cookie)
+%%	gen_cookie(-Cookie) is det.
 %	
 %	Generate a random cookie that  can  be   used  by  a  browser to
-%	identify the current session.
-%	
-%	@tbd	Use /dev/urandom when present
+%	identify  the  current  session.  The   cookie  has  the  format
+%	XXXX-XXXX-XXXX-XXXX[.<route>], where XXXX are random hexadecimal
+%	numbers  and  [.<route>]  is  the    optionally   added  routing
+%	information.
 
 gen_cookie(Cookie) :-
-	R1 is random(65536),
-	R2 is random(65536),
-	R3 is random(65536),
-	R4 is random(65536),
+	route(Route), !,
+	random_4(R1,R2,R3,R4),
+	format(atom(Cookie),
+		'~`0t~16r~4|-~`0t~16r~9|-~`0t~16r~14|-~`0t~16r~19|.~w',
+		[R1,R2,R3,R4,Route]).
+gen_cookie(Cookie) :-
+	random_4(R1,R2,R3,R4),
 	format(atom(Cookie),
 		'~`0t~16r~4|-~`0t~16r~9|-~`0t~16r~14|-~`0t~16r~19|',
 		[R1,R2,R3,R4]).
+
+:- thread_local
+	no_urandom/0,
+	route_cache/1.
+
+%%	route(-RouteID) is semidet.
+%
+%	Fetch the route identifier. This value   is added as .<route> to
+%	the session cookie and used  by   -for  example- the apache load
+%	balanching module. The default route is   the  local name of the
+%	host.     Alternatives     may      be       provided      using
+%	http_set_session_options/1.
+
+route(Route) :-
+	route_cache(Route), !,
+	Route \== ''.
+route(Route) :-
+	route_no_cache(Route),
+	assert(route_cache(Route)),
+	Route \== ''.
+
+route_no_cache(Route) :-
+	session_setting(route(Route)), !.
+route_no_cache(Route) :-
+	gethostname(Host),
+	(   sub_atom(Host, Before, _, _, '.')
+	->  sub_atom(Host, 0, Before, _, Route)
+	;   Route = Host
+	).
+
+
+%%	random_4(-R1,-R2,-R3,-R4) is det.
+%
+%	Generate 4 2-byte random  numbers.   Uses  =|/dev/urandom|= when
+%	available to make prediction of the session IDs hard.
+
+random_4(R1,R2,R3,R4) :-
+	\+ no_urandom,
+	catch(open('/dev/urandom', read, In, [type(binary)]), _,
+	      asserta(no_urandom)), !,
+	get_pair(In, R1),
+	get_pair(In, R2),
+	get_pair(In, R3),
+	get_pair(In, R4).
+random_4(R1,R2,R3,R4) :-
+	R1 is random(65536),
+	R2 is random(65536),
+	R3 is random(65536),
+	R4 is random(65536).
+
+get_pair(In, Value) :-
+	get_byte(In, B1),
+	get_byte(In, B2),
+	Value is B1<<8+B2.
