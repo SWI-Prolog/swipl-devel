@@ -657,7 +657,8 @@ space_atom('\n').
 %	True if Ext is a filename extensions that create automatic links
 %	in the documentation.
 
-autolink_extension(pl, prolog).
+autolink_extension(Ext, prolog) :-
+	prolog_file_type(Ext,prolog).
 autolink_extension(txt, wiki).
 autolink_extension(gif, image).
 autolink_extension(png, image).
