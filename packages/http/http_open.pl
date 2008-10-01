@@ -498,3 +498,8 @@ parse_url_ex(URL, Parts) :-
 	parse_url(URL, Parts), !.
 parse_url_ex(URL, _) :-
 	domain_error(url, URL).		% Syntax error?
+
+parse_url_ex(URL, RelativeTo, Parts) :-
+	parse_url(URL, RelativeTo, Parts), !.
+parse_url_ex(URL, _, _) :-
+	domain_error(url, URL).		% Syntax error?
