@@ -1223,7 +1223,7 @@ header([]) -->
 	blanks,
 	[].
 
-%%	address//0
+%%	address//
 %
 %	Emit the HTML for the server address on behalve of error and
 %	status messages (non-200 replies).  Default is
