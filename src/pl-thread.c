@@ -348,7 +348,7 @@ static void	destroy_message_queue(message_queue *queue);
 static void	init_message_queue(message_queue *queue, long max_size);
 static void	freeThreadSignals(PL_local_data_t *ld);
 static void	unaliasThread(atom_t name);
-static void	run_thread_exit_hooks();
+static void	run_thread_exit_hooks(PL_local_data_t *ld);
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
 static int	get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD);
@@ -500,7 +500,7 @@ free_prolog_thread(void *data)
 #if O_DEBUGGER
   callEventHook(PL_EV_THREADFINISHED, info);
 #endif
-  run_thread_exit_hooks();
+  run_thread_exit_hooks(ld);
   cleanupLocalDefinitions(ld);
   
   DEBUG(2, Sdprintf("Destroying data\n"));
@@ -1722,17 +1722,20 @@ run_exit_hooks(at_exit_goal *eg, int free)
 
 
 static void
-run_thread_exit_hooks()
+run_thread_exit_hooks(PL_local_data_t *ld)
 { GET_LD
-  at_exit_goal *eg;
 
-  while( (eg = LD->thread.exit_goals) )
-  { LD->thread.exit_goals = NULL;	/* empty these */
+  if ( LD == ld )	/* if FALSE, we are called from another thread (create) */
+  { at_exit_goal *eg;
 
-    run_exit_hooks(eg, TRUE);
+    while( (eg = ld->thread.exit_goals) )
+    { ld->thread.exit_goals = NULL;	/* empty these */
+
+      run_exit_hooks(eg, TRUE);
+    }
+
+    run_exit_hooks(GD->thread.exit_goals, FALSE);
   }
-
-  run_exit_hooks(GD->thread.exit_goals, FALSE);
 }
 
 
