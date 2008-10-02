@@ -1223,9 +1223,26 @@ header([]) -->
 	blanks,
 	[].
 
+%%	address//0
+%
+%	Emit the HTML for the server address on behalve of error and
+%	status messages (non-200 replies).  Default is
+%
+%	    ==
+%	    SWI-Prolog httpd at <hostname>
+%	    ==
+%
+%	The address can be modified by   providing  a definition for the
+%	multifile predicate http:http_address//0.
+
+:- multifile
+	http:http_address//0.
+
+address -->
+	http:http_address, !.
 address -->
 	{ gethostname(Host) },
-	html(address([httpd, ' at ', Host])).
+	html(address(['SWI-Prolog httpd at ', Host])).
 
 mkfield(host, Host:Port, [host(Host),port(Port)|Tail], Tail) :- !.
 mkfield(Name, Value, [Att|Tail], Tail) :-
