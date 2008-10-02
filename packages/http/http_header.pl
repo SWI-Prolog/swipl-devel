@@ -185,7 +185,7 @@ http_status_reply(moved(To), Out, HrdExtra) :- !,
 		      p(['The document has moved ',
 			 a(href(To), ' Here')
 			]),
-		      address(httpd)
+		      \address
 		    ]),
 	       HTML),
 	phrase(reply_header(moved(To, HTML), HrdExtra), Header),
@@ -198,7 +198,7 @@ http_status_reply(moved_temporary(To), Out, HrdExtra) :- !,
 		      p(['The document is currently ',
 			 a(href(To), ' Here')
 			]),
-		      address(httpd)
+		      \address
 		    ]),
 	       HTML),
 	phrase(reply_header(moved_temporary(To, HTML), HrdExtra), Header),
@@ -211,7 +211,7 @@ http_status_reply(see_other(To),Out,HdrExtra) :- !,
                       p(['See other document ',
                          a(href(To), ' Here')
                         ]),
-                      address(httpd)
+                      \address
                     ]),
                HTML),
         phrase(reply_header(see_other(To, HTML), HdrExtra), Header),
@@ -224,7 +224,7 @@ http_status_reply(not_found(URL), Out, HrdExtra) :- !,
 		      p(['The requested URL ', tt(URL),
 			 ' was not found on this server'
 			]),
-		      address(httpd)
+		      \address
 		    ]),
 	       HTML),
 	phrase(reply_header(status(not_found, HTML), HrdExtra), Header),
@@ -237,7 +237,7 @@ http_status_reply(forbidden(URL), Out, HrdExtra) :- !,
 		      p(['You don\'t have permission to access ', URL,
 			 ' on this server'
 			]),
-		      address(httpd)
+		      \address
 		    ]),
 	       HTML),
 	phrase(reply_header(status(forbidden, HTML), HrdExtra), Header),
@@ -254,7 +254,7 @@ http_status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
 			 'browser doesn\'t understand how to supply ',
 			 'the credentials required.'
 			]),
-		      address(httpd)
+		      \address
 		    ]),
 	       HTML),
 	phrase(reply_header(authorise(Method, Realm, HTML), HrdExtra), Header),
@@ -265,7 +265,7 @@ http_status_reply(not_modified, Out, HrdExtra) :- !,
 		    ],
 		    [ h1('Not Modified'),
 		      p(['The resource has not changed']),
-		      address(httpd)
+		      \address
 		    ]),
 	       HTML),
 	phrase(reply_header(status(not_modified, HTML), HrdExtra), Header),
@@ -277,7 +277,7 @@ http_status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 		    ],
 		    [ h1('Internal server error'),
 		      p(\html_message_lines(Lines)),
-		      address(httpd)
+		      \address
 		    ]),
 	       HTML),
 	phrase(reply_header(status(server_error, HTML), HrdExtra), Header),
@@ -290,7 +290,7 @@ http_status_reply(resource_error(ErrorTerm), Out, HrdExtra) :- !,
 		    [ h1('Service Unavailable'),
 		      p(['The server is temporarily out of resources, please try again later']),
 		      p(\html_message_lines(Lines)),
-		      address(httpd)
+		      \address
 		    ]),
 	       HTML),
 	phrase(reply_header(status(service_unavailable, HTML), HrdExtra), Header),
@@ -301,7 +301,7 @@ http_status_reply(busy, Out, HrdExtra) :- !,
 		    ],
 		    [ h1('Service Unavailable'),
 		      p(['The server is temporarily out of resources, please try again later']),
-		      address(httpd)
+		      \address
 		    ]),
 	       HTML),
 	phrase(reply_header(status(service_unavailable, HTML), HrdExtra), Header),
@@ -1222,6 +1222,10 @@ header(List) -->
 header([]) -->
 	blanks,
 	[].
+
+address -->
+	{ gethostname(Host) },
+	html(address([httpd, ' at ', Host])).
 
 mkfield(host, Host:Port, [host(Host),port(Port)|Tail], Tail) :- !.
 mkfield(Name, Value, [Att|Tail], Tail) :-
