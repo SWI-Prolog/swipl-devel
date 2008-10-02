@@ -564,18 +564,24 @@ pl_accept(term_t Master, term_t Slave, term_t Peer)
 
 static foreign_t
 pl_gethostname(term_t name)
-{ char buf[256];
+{ static atom_t hname;
 
-  if ( gethostname(buf, sizeof(buf)) == 0 )
-  { struct hostent *he;
+  if ( !hname )
+  { char buf[256];
 
-    if ( (he = gethostbyname(buf)) )
-      return PL_unify_atom_chars(name, he->h_name);
-    else
-      return PL_unify_atom_chars(name, buf);
+    if ( gethostname(buf, sizeof(buf)) == 0 )
+    { struct hostent *he;
+      
+      if ( (he = gethostbyname(buf)) )
+	hname = PL_new_atom(he->h_name);
+      else
+	hname = PL_new_atom(buf);
+    } else
+    { return nbio_error(h_errno, TCP_HERRNO);
+    }
   }
 
-  return nbio_error(h_errno, TCP_HERRNO);
+  return PL_unify_atom(name, hname);
 }
 
 
