@@ -365,7 +365,6 @@ gen_cookie(Cookie) :-
 		[R1,R2,R3,R4]).
 
 :- thread_local
-	no_urandom/0,
 	route_cache/1.
 
 %%	route(-RouteID) is semidet.
@@ -400,9 +399,7 @@ route_no_cache(Route) :-
 %	available to make prediction of the session IDs hard.
 
 random_4(R1,R2,R3,R4) :-
-	\+ no_urandom,
-	catch(open('/dev/urandom', read, In, [type(binary)]), _,
-	      asserta(no_urandom)), !,
+	urandom(In), !,
 	get_pair(In, R1),
 	get_pair(In, R2),
 	get_pair(In, R3),
@@ -412,6 +409,20 @@ random_4(R1,R2,R3,R4) :-
 	R2 is random(65536),
 	R3 is random(65536),
 	R4 is random(65536).
+
+:- dynamic
+	urandom_handle/1.
+
+urandom(Handle) :-
+	urandom_handle(Handle), !,
+	Handle \== [].
+urandom(Handle) :-
+	catch(open('/dev/urandom', read, In, [type(binary)]), _, fail), !,
+	assert(urandom_handle(In)),
+	Handle = In.
+urandom(_) :-
+	assert(urandom_handle([])),
+	fail.
 
 get_pair(In, Value) :-
 	get_byte(In, B1),
