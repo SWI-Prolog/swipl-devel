@@ -117,7 +117,7 @@ thread_pool_create(Name, Size, Options) :-
 %	@error	existence_error(thread_pool, Name).
 
 thread_pool_destroy(Name) :-
-		pool_manager(Manager),
+	pool_manager(Manager),
 	thread_self(Me),
 	thread_send_message(Manager, destroy_pool(Name, Me)),
 	wait_reply.
@@ -211,7 +211,7 @@ create_pool_manager :-
 		      [ alias('__thread_pool_manager'),
 			local(100),
 			global(1000),
-			trail(100)
+			trail(1000)
 		      ]).
 
 
