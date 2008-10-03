@@ -63,6 +63,7 @@
 :- use_module(library(option)).
 :- use_module(library(pairs)).
 :- use_module(library(sgml)).		% Quote output
+:- use_module(library(url)).
 :- use_module(library(quintus)).	% for meta_predicate/1
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -548,6 +549,9 @@ attribute_value(Value) -->
 attribute_value(A+B) --> !,
 	attribute_value(A),
 	attribute_value(B).
+attribute_value(encode(Value)) --> !,
+	{ www_form_encode(Value, Encoded) },
+	[ Encoded ].
 attribute_value(Value) -->
 	html_quoted_attribute(Value).
 
