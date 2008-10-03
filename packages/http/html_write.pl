@@ -1,11 +1,11 @@
 /*  $Id$
 
-    Part of XPCE --- The SWI-Prolog GUI toolkit
+    Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        wielemak@science.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2007, University of Amsterdam
+    E-mail:        J.Wielemak@uva.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -525,15 +525,26 @@ name(NS:Name) --> !,
 name(Name) -->
 	[ Name ].
 
-%%	attribute_value(+Value)
+%%	attribute_value(+Value) is det.
 %
 %	Print an attribute value.  Value  is   either  atomic  or a term
-%	=|A+B|=, concatenating A and B.
+%	=|A+B|=, concatenating A and B. 
+%
+%	The hook html_write:expand_attribute_value//1 can  be defined to
+%	provide additional `function like'   translations.  For example,
+%	http_dispatch.pl  defines  location_by_id(ID)  to   refer  to  a
+%	location on the current server  based   on  the  handler id. See
+%	http_location_by_id/2.
+
+:- multifile
+	expand_attribute_value//1.
 
 attribute_value(Var) -->
 	{ var(Var), !,
-	  throw(error(instantiation_error, _))
+	  instantiation_error(Var)
 	}.
+attribute_value(Value) -->
+	expand_attribute_value(Value), !.
 attribute_value(A+B) --> !,
 	attribute_value(A),
 	attribute_value(B).

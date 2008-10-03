@@ -34,11 +34,13 @@
 	    http_handler/3,		% +Path, +Predicate, +Options
 	    http_delete_handler/1,	% +Path
 	    http_reply_file/3,		% +File, +Options, +Request
-	    http_current_handler/2	% ?Path, ?Pred
+	    http_current_handler/2,	% ?Path, ?Pred
+	    http_location_by_id/2	% +ID, -Location
 	  ]).
 :- use_module(library(option)).
 :- use_module(library(lists)).
 :- use_module(library(time)).
+:- use_module(library(error)).
 :- use_module(library(settings)).
 :- use_module(library(http/mimetype)).
 :- use_module(library(http/http_header)).
@@ -116,6 +118,11 @@ write_index(Request) :-
 %		highest priority is used.  If equal, the last registered
 %		is used.  Please be aware that the order of clauses in
 %		multifile predicates can change due to reloading files.
+%		The default priority is 0 (zero).
+%		
+%		* id(+Term)
+%		Identifier of the handler.  The default identifier is
+%		the predicate name.  Used by http_location_by_id/2.
 %		
 %	Note that http_handler/3 is normally invoked  as a directive and
 %	processed using term-expansion.  Using   term-expansion  ensures
@@ -217,6 +224,79 @@ http_current_handler(Path, M:C) :- !,
 http_current_handler(Path, Closure) :-
 	strip_module(Closure, M, C),
 	handler(Path, M:C, _).
+
+
+%%	http_location_by_id(+ID, -Location) is det.
+%
+%	Find the HTTP Location of handler with   ID. If the setting (see
+%	setting/2)  http:prefix  is  active,  Location  is  the  handler
+%	location prefixed with the prefix setting.   Handler  IDs can be
+%	specified in two ways:
+%	
+%	    * id(ID)
+%	    If this appears in the option list of the handler, this
+%	    it is used and takes preference over using the predicate.
+%	    * M:PredName
+%	    The module-qualified name of the predicate.
+%	    * PredName
+%	    The unqualified name of the predicate.
+%
+%	@error existence_error(http_handler_id, Id).
+
+:- dynamic
+	id_location_cache/2.
+
+http_location_by_id(ID, Location) :-
+	must_be(ground, ID),
+	id_location_cache(ID, L0), !,
+	Location = L0.
+http_location_by_id(ID, Location) :-
+	findall(P-L, location_by_id(ID, L, P), List),
+	keysort(List, RevSorted),
+	reverse(RevSorted, Sorted),
+	(   Sorted = [_-One]
+	->  assert(id_location_cache(ID, One)),
+	    Location = One
+	;   List == []
+	->  existence_error(http_handler_id, ID)
+	;   List = [P0-Best,P1-_|_]
+	->  (   P0 == P1
+	    ->	print_message(warning,
+			      http_dispatch(ambiguous_id(ID, Sorted, Best)))
+	    ;	true
+	    ),
+	    assert(id_location_cache(ID, Best)),
+	    Location = Best
+	).
+
+location_by_id(ID, Location, Priority) :-
+	location_by_id_raw(ID, L0, Priority),
+	(   setting(http:prefix, Prefix)
+	->  atom_concat(Prefix, L0, Location)
+	;   Location = L0
+	).
+
+location_by_id_raw(ID, Location, Priority) :-
+	handler(Location, _, Options),
+	option(id(ID), Options),
+	option(priority(P0), Options, 0),
+	Priority is P0+1000.		% id(ID) takes preference over predicate
+location_by_id_raw(ID, Location, Priority) :-
+	handler(Location, M:C, Options),
+	option(priority(Priority), Options, 0),
+	functor(C, PN, _),
+	(   ID = M:PN
+	;   ID = PN
+	), !.
+
+%	hook into html_write:attribute_value//1.
+
+:- multifile
+	html_write:expand_attribute_value//1.
+
+html_write:expand_attribute_value(location_by_id(ID)) -->
+	{ http_location_by_id(ID, Location) },
+	html_write:html_quoted_attribute(Location).
 
 
 %%	authentication(+Request, +Options, -User) is det.
@@ -488,6 +568,18 @@ add_path_tree(Path, Action, Options1, DefOptions, [H0|T], [H|T]) :-
 	H = node(Path, Action, Options, []).
 add_path_tree(Path, Action, Options, DefOptions, [H|T0], [H|T]) :-
 	add_path_tree(Path, Action, Options, DefOptions, T0, T).
+
+
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(http_dispatch(ambiguous_id(ID, _List, Selected))) -->
+	[ 'HTTP dispatch: ambiguous handler ID ~q (selected ~q)'-[ID, Selected]
+	].
 
 
 		 /*******************************
