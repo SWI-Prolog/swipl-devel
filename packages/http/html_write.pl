@@ -1050,13 +1050,15 @@ attr_colours([], classify) :- !.
 attr_colours(Term, list-Elements) :-
 	Term = [_|_], !,
 	attr_list_colours(Term, Elements).
-attr_colours(Name=_, built_in-[html_attribute(Name), classify]) :- !.
+attr_colours(Name=Value, built_in-[html_attribute(Name), VColour]) :- !,
+	attr_value_colour(Value, VColour).
 attr_colours(NS:Term, built_in-[html_xmlns(NS), html_attribute(Name)-[classify]]) :-
 	compound(Term),
 	Term =.. [Name,_], !.
-attr_colours(Term, html_attribute(Name)-[classify]) :-
+attr_colours(Term, html_attribute(Name)-[VColour]) :-
 	compound(Term),
-	Term =.. [Name,_], !.
+	Term =.. [Name,Value], !,
+	attr_value_colour(Value, VColour).
 attr_colours(Name, html_attribute(Name)) :-
 	atom(Name), !.
 attr_colours(_, error).
@@ -1068,6 +1070,28 @@ attr_list_colours([H0|T0], [H|T]) :-
 	attr_colours(H0, H),
 	attr_list_colours(T0, T).
 
+attr_value_colour(Var, classify) :-
+	var(Var).
+attr_value_colour(location_by_id(ID), sgml_attr_function-[Colour]) :- !,
+	location_id(ID, Colour).
+attr_value_colour(A+B, sgml_attr_function-[CA,CB]) :- !,
+	attr_value_colour(A, CA),
+	attr_value_colour(B, CB).
+attr_value_colour(encode(_), sgml_attr_function-[classify]) :- !.
+attr_value_colour(Atom, classify) :-
+	atomic(Atom), !.
+attr_value_colour(_, error).
+
+location_id(ID, classify) :- 
+	var(ID), !.
+location_id(ID, Class) :-
+	current_predicate(http_dispatch:http_location_by_id/2),
+	(   catch(http_dispatch:http_location_by_id(ID, Location), _, fail)
+	->  Class = http_location_for_id(Location)
+	;   Class = http_no_location_for_id(ID)
+	).
+location_id(_, classify).
+
 
 :- op(990, xfx, :=).			% allow compiling without XPCE
 :- op(200, fy, @).
@@ -1077,6 +1101,9 @@ emacs_prolog_colours:style(html(_), style(bold := @on,
 emacs_prolog_colours:style(entity(_), style(colour := magenta4)).
 emacs_prolog_colours:style(html_attribute(_), style(colour := magenta4)).
 emacs_prolog_colours:style(html_xmlns(_), style(colour := magenta4)).
+emacs_prolog_colours:style(sgml_attr_function, style(colour := blue)).
+emacs_prolog_colours:style(http_location_for_id(_), style(bold := @on)).
+emacs_prolog_colours:style(http_no_location_for_id(_), style(colour := red, bold := @on)).
 
 
 emacs_prolog_colours:identify(html(Element), Summary) :-
@@ -1085,6 +1112,11 @@ emacs_prolog_colours:identify(entity(Entity), Summary) :-
 	format(string(Summary), '~w: SGML entity', [Entity]).
 emacs_prolog_colours:identify(html_attribute(Attr), Summary) :-
 	format(string(Summary), '~w: SGML attribute', [Attr]).
+emacs_prolog_colours:identify(sgml_attr_function, 'SGML Attribute function').
+emacs_prolog_colours:identify(http_location_for_id(Location), Summary) :-
+	format(string(Summary), 'ID resolves to ~w', [Location]).
+emacs_prolog_colours:identify(http_no_location_for_id(ID), Summary) :-
+	format(string(Summary), '~w: no such ID', [ID]).
 
 
 %	prolog:called_by(+Goal, -Called)
