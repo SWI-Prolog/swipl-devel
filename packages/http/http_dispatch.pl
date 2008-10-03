@@ -170,6 +170,7 @@ http_delete_handler(Path) :-
 %	Increment the generation count.
 
 next_generation :-
+	retractall(id_location_cache(_,_)),
 	with_mutex(http_dispatch, next_generation_unlocked).
 
 next_generation_unlocked :-
@@ -271,10 +272,14 @@ http_location_by_id(ID, Location) :-
 
 location_by_id(ID, Location, Priority) :-
 	location_by_id_raw(ID, L0, Priority),
+	to_path(L0, L1),
 	(   setting(http:prefix, Prefix)
-	->  atom_concat(Prefix, L0, Location)
-	;   Location = L0
+	->  atom_concat(Prefix, L1, Location)
+	;   Location = L1
 	).
+
+to_path(prefix(Path), Path) :- !.
+to_path(Path, Path).
 
 location_by_id_raw(ID, Location, Priority) :-
 	handler(Location, _, Options),
