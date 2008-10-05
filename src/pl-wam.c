@@ -594,14 +594,17 @@ pass through the trail-stack, marking   the  global-stack references for
 assigned data and the sweep_trail() must be   careful about this type of
 marks.
 
-Note this function doesn't call Trail() for   the address as it can only
-be called from setarg/3 and the argument  is thus always a term-argument
-on the global stack.
+Typically, this is only called to modify   values in terms in the global
+stack. Unfortunately it is also called  for   the  head  and tail of the
+wakeup list which is allocated on the local stack.
+
+TBD: allocate the head and tail of the  wakeup list on the global stack.
+Possibly this should also hold for the other `special term references'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 TrailAssignment__LD(Word p ARG_LD)
-{ if ( p < LD->mark_bar )
+{ if ( p < LD->mark_bar || p >= (Word)lBase )
   { Word old = allocGlobal(1);
 
     assert(!(*p & (MARK_MASK|FIRST_MASK)));

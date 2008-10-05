@@ -1713,7 +1713,12 @@ intoverflow(syntax-2) :-
 		 *	ATTRIBUTED VARIABLES	*
 		 *******************************/
 
+:- dynamic
+	woken/2.
+
 test:attr_unify_hook(_Att, _Val).
+woken:attr_unify_hook(Att, Var) :-
+	assert(woken(Att, Var)).
 
 u_predarg(predarg).
 u_termarg(f(termarg)).
@@ -1847,6 +1852,11 @@ avar(order-1) :-			% attributes do not change standard
 	;   put_attr(A, test, x),
 	    A @> B
 	).
+avar(nowake-1) :-
+	retractall(woken(_,_)),
+	put_attr(V, woken, 10),
+	\+ (V-a = 10-b),
+	\+ woken(_,_).
 
 
 		 /*******************************
