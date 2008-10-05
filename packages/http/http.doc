@@ -1616,10 +1616,43 @@ Concatenation of $A$ and $B$
 Use www_form_encode/2 to create a valid URL component.
 	\item [\term{location_by_id}{ID}]
 HTTP location of the HTTP handler with given ID.  See http_location_by_id/2.
-    \end{itemlist}
+	\item [List]
+A list is handled as a URL `search' component. The list members are
+terms of the format \mbox{\arg{Name} = \arg{Value}} or
+\term{Name}{Value}.  Values are encoded as in the encode option
+described above.
+\end{itemlist}
 
-is either atomic or a term
-\arg{Left}+\arg{Right}. The \const{+} operator implements concatenation.
+The example below generates a   URL  that references the predicate
+set_lang/1 in the application with given parameters.  The http_handler/3
+declaration binds \const{/setlang} to the predicate set_lang/1 for which
+we provide a very simple implementation.  The code between \const{...}
+is part of an HTML page showing the english flag which, when pressed,
+calls \term{set_lang}{Request} where \arg{Request} contains the search
+parameter \mbox{\const{lang} = \const{en}}.  Note that the HTTP location
+(path) \const{/setlang} can be moved without affecting this code.
+
+\begin{code}
+:- http_handler('/setlang', set_lang, []).
+
+set_lang(Request) :-
+	http_parameters(Request,
+			[ lang(Lang, [])
+			]),
+	http_session_retractall(lang(_)),
+	http_session_assert(lang(Lang)),
+	reply_html_page(title('Switched language'),
+			p(['Switch language to ', Lang])).
+
+
+	...
+	html(a(href(location_by_id(set_lang) + [lang(en)]),
+	       img(src('/www/images/flags/en.png')))),
+	...
+\end{code}
+
+
+
 \end{itemlist}
 
     \dcg{page}{2}{:HeadContent, :BodyContent}

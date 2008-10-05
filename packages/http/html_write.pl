@@ -528,8 +528,15 @@ name(Name) -->
 
 %%	attribute_value(+Value) is det.
 %
-%	Print an attribute value.  Value  is   either  atomic  or a term
-%	=|A+B|=, concatenating A and B. 
+%	Print an attribute value. Value is either   atomic or one of the
+%	following terms:
+%
+%	  * A+B
+%	  Concatenation of A and B
+%	  * encode(V)
+%	  Emit URL-encoded version of V.  See www_form_encode/2.
+%	  * An option list
+%	  Emit ?Name1=encode(Value1)&Name2=encode(Value2) ...
 %
 %	The hook html_write:expand_attribute_value//1 can  be defined to
 %	provide additional `function like'   translations.  For example,
@@ -544,16 +551,45 @@ attribute_value(Var) -->
 	{ var(Var), !,
 	  instantiation_error(Var)
 	}.
-attribute_value(Value) -->
-	expand_attribute_value(Value), !.
 attribute_value(A+B) --> !,
 	attribute_value(A),
 	attribute_value(B).
+attribute_value([]) --> !.
+attribute_value(List) -->
+	{ is_list(List) }, !,
+	[ ? ],
+	search_parameters(List).
 attribute_value(encode(Value)) --> !,
 	{ www_form_encode(Value, Encoded) },
 	[ Encoded ].
 attribute_value(Value) -->
+	expand_attribute_value(Value), !.
+attribute_value(Value) -->
 	html_quoted_attribute(Value).
+
+search_parameters([H|T]) -->
+	search_parameter(H),
+	(   {T == []}
+	->  []
+	;   [&],
+	    search_parameters(T)
+	).
+
+search_parameter(Var) -->
+	{ var(Var), !,
+	  instantiation_error(Var)
+	}.
+search_parameter(Name=Value) -->
+	{ www_form_encode(Value, Encoded) },
+	[Name, =, Encoded].
+search_parameter(Term) -->
+	{ Term =.. [Name, Value], !,
+	  www_form_encode(Value, Encoded)
+	},
+	[Name, =, Encoded].
+search_parameter(Term) -->
+	{ domain_error(search_parameter, Term)
+	}.
 
 
 		 /*******************************
