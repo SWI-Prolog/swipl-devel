@@ -20,7 +20,7 @@
 	HCS, \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{wielemak@science.uva.nl}}
+	E-mail: \email{J.Wielemaker@uva.nl}}
 
 \maketitle
 
@@ -569,6 +569,10 @@ user/password based \const{Basic} HTTP authentication.
 Enable chunked transfer-encoding if the client allows for it. See
 \secref{transfer}.
 
+	\termitem{id}{+ID}
+Identifier of the handler.  The default identifier is the predicate name.
+Used by http_location_by_id/2.
+
 	\termitem{time_limit}{+Spec}
 Specify a (wall-)time limit to handle the request. \arg{Spec} is one of
 \const{infinite}, \const{default} or a number expressing seconds. If
@@ -598,6 +602,23 @@ the meta-call.
 Delete handler for \arg{Path}. Typically, this should only be used for
 handlers that are registered dynamically.  Use the priority option to
 overrule an existing handler.
+
+    \predicate{http_location_by_id}{2}{+ID, -Location}
+Find the HTTP Location of handler with ID. If the setting (see
+setting/2) http:prefix is active, Location is the handler location
+prefixed with the prefix setting. Handler IDs can be specified in two
+ways:
+
+    \begin{itemlist}
+	\item [\term{id}{ID}]
+If this appears in the option list of the handler, this
+it is used and takes preference over using the predicate.
+
+	\item [<module>:<predicate>]
+The module-qualified name of the predicate.
+
+        \item [<predicate>]
+    \end{itemlist}
 
     \predicate{http_current_handler}{2}{?Location, ?Closure}
 True if \arg{Location} is handled by \arg{Closure}.  It \arg{Location}
@@ -1585,7 +1606,19 @@ on the automatically generated layout.
 Emit HTML element \arg{Tag} using \arg{Attributes} and \arg{Content}.
 \arg{Attributes} is either a single attribute of a list of attributes.
 Each attributes is of the format \term{Name}{Value} or
-\mbox{\arg{Name}=\arg{Value}}. \arg{Value} is either atomic or a term
+\mbox{\arg{Name}=\arg{Value}}. \arg{Value} is the atomic attribute
+value but allows for a limited functional notation:
+
+    \begin{itemlist}
+	\item [$A$ + $B$]
+Concatenation of $A$ and $B$
+	\item [\term{encode}{Atom}]
+Use www_form_encode/2 to create a valid URL component.
+	\item [\term{location_by_id}{ID}]
+HTTP location of the HTTP handler with given ID.  See http_location_by_id/2.
+    \end{itemlist}
+
+is either atomic or a term
 \arg{Left}+\arg{Right}. The \const{+} operator implements concatenation.
 \end{itemlist}
 

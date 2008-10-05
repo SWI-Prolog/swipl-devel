@@ -57,7 +57,9 @@ dif(10) :-
 	dif(f(X,_Z),f(a,b)),
 	dif(f(X,Y),f(b,b)),
 	X = a, Y = b.
-
+dif(11) :-
+	dif(A,B), memberchk(A, [B, C]),
+	A == C.
 
 :- dynamic
 	failed/1.

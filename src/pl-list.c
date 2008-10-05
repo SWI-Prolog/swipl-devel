@@ -81,17 +81,31 @@ pl_length(term_t list, term_t l)
 }  
 
 
-word
-pl_memberchk(term_t e, term_t list)
+static
+PRED_IMPL("memberchk", 2, memberchk, 0)
 { GET_LD
   term_t h = PL_new_term_ref();
-  term_t l = PL_copy_term_ref(list);
+  term_t l = PL_copy_term_ref(A2);
+  fid_t fid = PL_open_foreign_frame();
 
   for(;;)
-  { TRY(PL_unify_list(l, h, l));
+  { if ( !PL_unify_list(l, h, l) )
+    { PL_close_foreign_frame(fid);
+      fail;
+    }
       
-    if ( PL_unify(e, h) )
-      succeed;
+    if ( PL_unify(A1, h) )
+    { term_t ex = 0;
+
+      if ( foreignWakeup(&ex PASS_LD) )
+      { PL_close_foreign_frame(fid);
+	succeed;
+      } else
+      { if ( ex )
+	  return PL_raise_exception(ex);
+	PL_rewind_foreign_frame(fid);
+      }
+    }
   }
 }
 
@@ -440,6 +454,7 @@ PRED_IMPL("keysort", 2, keysort, 0)
 
 BeginPredDefs(list)
   PRED_DEF("is_list", 1, is_list, 0)
+  PRED_DEF("memberchk", 2, memberchk, 0)
   PRED_DEF("sort", 2, sort, PL_FA_ISO)
   PRED_DEF("msort", 2, msort, 0)
   PRED_DEF("keysort", 2, keysort, PL_FA_ISO)

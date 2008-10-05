@@ -62,7 +62,7 @@
 	  switch_to_buffer	   = key('\\C-xb') +
 				     button(file, @emacs_mode?buffers),
 	  -			   = button(file),
-	  find_file		   = key('\\C-x\\C-f') + button(file),
+	  open			   = key('\\C-x\\C-f') + button(file),
 	  new			   = button(file),
 	  save_buffer		   = key('\\C-x\\C-s') + button(file),
 	  save_as		   = button(file),
@@ -416,7 +416,7 @@ new(M, File:save_file) :->
 	send(M, find_file(File)).
 
 open(M, File:file) :->
-	"Open existing file"::
+	"Open existing file (use File/New ... to create a new file)"::
 	send(M, find_file(File)).
 
 

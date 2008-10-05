@@ -727,7 +727,7 @@ cut such as \=/2 (implemented as A \= B :- ( A = B -> fail ; true )).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-foreignWakeup(ARG1_LD, term_t *ex)
+foreignWakeup(term_t *ex ARG_LD)
 { if ( LD->alerted & ALERT_WAKEUP )
   { LD->alerted &= ~ALERT_WAKEUP;
 
