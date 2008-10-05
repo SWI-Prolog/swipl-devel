@@ -579,6 +579,11 @@ Specify a (wall-)time limit to handle the request. \arg{Spec} is one of
 \const{default} or omitted, the setting (see setting/4)
 \const{http:time_limit} is used.
 
+	\termitem{prefix}{}
+If present, call handler for all paths that \emph{start with} the
+given path.  If multiple specifications match the most specific one
+is used.
+
 	\termitem{priority}{+Integer}
 If two handlers handle the same path, the one with the highest priority
 is used. If equal, the last registered is used. Please be aware that the
