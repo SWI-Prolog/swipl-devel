@@ -395,7 +395,7 @@ can_unify(Word t1, Word t2, term_t *ex)
 
   TmpMark(m);
   if ( (rval = raw_unify_ptrs(t1, t2 PASS_LD)) )
-    rval = foreignWakeup(PASS_LD1, ex);
+    rval = foreignWakeup(ex PASS_LD);
   TmpUndo(m);
   EndTmpMark(m);
 
@@ -2371,7 +2371,7 @@ subsumes(term_t general, term_t specific ARG_LD)
 
   n = term_variables_to_termv(specific, &v0 PASS_LD);
   if ( PL_unify(general, specific) &&
-       foreignWakeup(PASS_LD1, &ex) )
+       foreignWakeup(&ex PASS_LD) )
   { int rc = TRUE;
 
     startCritical;

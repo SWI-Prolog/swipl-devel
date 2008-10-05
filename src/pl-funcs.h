@@ -85,7 +85,7 @@ COMMON(void) 		do_undo(mark *m);
 COMMON(Definition) 	getProcDefinition(Procedure proc);
 COMMON(void) 		fix_term_ref_count(void);
 COMMON(fid_t) 		PL_open_signal_foreign_frame(void);
-COMMON(bool)		foreignWakeup(ARG1_LD, term_t *ex);
+COMMON(bool)		foreignWakeup(term_t *ex ARG_LD);
 
 /* pl-atom.c */
 COMMON(word) 		lookupAtom(const char *s, size_t len);
@@ -448,7 +448,6 @@ COMMON(void) 		resetForeign(void);
 
 /* pl-list.c */
 COMMON(word) 		pl_length(term_t list, term_t l);
-COMMON(word) 		pl_memberchk(term_t e, term_t list);
 
 /* pl-load.c */
 COMMON(word) 		pl_open_shared_object(term_t file, term_t h, term_t flags);
