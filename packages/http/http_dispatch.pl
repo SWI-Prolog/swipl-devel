@@ -1,6 +1,4 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
@@ -43,6 +41,7 @@
 :- use_module(library(error)).
 :- use_module(library(settings)).
 :- use_module(library(http/mimetype)).
+:- use_module(library(http/http_path)).
 :- use_module(library(http/http_header)).
 :- use_module(library(http/thread_httpd)).
 
@@ -235,10 +234,12 @@ http_current_handler(Path, Closure) :-
 	path_tree(Tree),
 	find_handler(Tree, Path, Closure, _).
 http_current_handler(Path, M:C) :- !,
-	handler(Path, M:C, _, _).
+	handler(Spec, M:C, _, _),
+	http_absolute_location(Spec, Path, []).
 http_current_handler(Path, Closure) :-
 	strip_module(Closure, M, C),
-	handler(Path, M:C, _, _).
+	handler(Spec, M:C, _, _),
+	http_absolute_location(Spec, Path, []).
 
 
 %%	http_location_by_id(+ID, -Location) is det.
@@ -293,7 +294,10 @@ location_by_id(ID, Location, Priority) :-
 	).
 
 to_path(prefix(Path), Path) :- !.
-to_path(Path, Path).
+to_path(Path, Path) :-
+	atomic(Path), !.
+to_path(Spec, Path) :-
+	http_absolute_location(Spec, Path, []).
 
 location_by_id_raw(ID, Location, Priority) :-
 	handler(Location, _, _, Options),
@@ -506,7 +510,8 @@ path_tree(Tree) :-
 	nb_setval(http_dispatch_tree, G-Tree).
 
 prefix_handler(Prefix, Action, Options) :-
-	handler(Prefix, Action, true, Options).
+	handler(Spec, Action, true, Options),
+	http_absolute_location(Spec, Prefix, []).
 
 %%	prefix_tree(PrefixList, +Tree0, -Tree)
 %
@@ -562,7 +567,8 @@ add_paths_tree([path(Path, Action, Options)|T], Tree0, Tree) :-
 %	(i.e. not _prefix_) location.
 
 plain_path(Path, Action, Options) :-
-	handler(Path, Action, false, Options).
+	handler(Spec, Action, false, Options),
+	http_absolute_location(Spec, Path, []).
 
 
 %%	add_path_tree(+Path, +Action, +Options, +Tree0, -Tree) is det.
@@ -642,3 +648,20 @@ closure_name_arity(Term, Extra, Name/Arity) :-
 	functor(Term, Name, Arity0),
 	Arity is Arity0 + Extra.
 
+
+		 /*******************************
+		 *	  CACHE CLEANUP		*
+		 *******************************/
+
+:- listen(settings(changed(http:prefix, _, _)),
+	  next_generation).
+
+:- multifile
+	user:message_hook/3.
+:- dynamic
+	user:message_hook/3.
+
+user:message_hook(make(done(Reload)), _Level, _Lines) :-
+	Reload \== [],
+	next_generation,
+	fail.
