@@ -76,6 +76,13 @@ login(Request) :-
 :- dynamic
 	http:location/3.		% Alias, Expansion, Options
 
+http:location(root, Root, []) :-
+	(   setting(http:prefix, Prefix),
+	    Prefix \== ''
+	->  Root = Prefix
+	;   Root = (/)
+	).
+
 %%	http_absolute_location(+Spec, -Path) is det.
 %
 %	Path is the HTTP location for the abstract specification Spec.
@@ -126,7 +133,7 @@ http_location_path(Alias, Path) :-
 	findall(P-L, http_location_path(Alias, L, P), Pairs),
 	keysort(Pairs, Sorted0),
 	reverse(Sorted0, Result),
-	(   Result = [One]
+	(   Result = [_-One]
 	->  Path = One
 	;   Result == []
 	->  existence_error(http_location, Spec)
@@ -211,6 +218,8 @@ path_list(Var) -->
 path_list(A/B) --> !,
 	path_list(A),
 	path_list(B).
+path_list(.) --> !,
+	[].
 path_list(A) -->
 	{ must_be(atomic, A) },
 	[A].
