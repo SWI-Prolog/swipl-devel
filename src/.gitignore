@@ -14,3 +14,5 @@ pl-vmi.h
 defatom
 vmi
 *.exe
+.defatom-sentinel
+.vmi-sentinel
