@@ -1116,6 +1116,8 @@ attr_value_colour(A+B, sgml_attr_function-[CA,CB]) :- !,
 attr_value_colour(encode(_), sgml_attr_function-[classify]) :- !.
 attr_value_colour(Atom, classify) :-
 	atomic(Atom), !.
+attr_value_colour(List, classify) :-
+	is_list(List), !.
 attr_value_colour(_, error).
 
 location_id(ID, classify) :- 
