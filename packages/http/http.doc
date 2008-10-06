@@ -1917,6 +1917,8 @@ invocation of sub-rules using the \bsl\arg{RuleSet} and
 that can be done at compile-time.
 
 
+\input{httppath}
+
 \subsection{Security}
 
 Writing servers is an inherently dangerous job that should be carried out

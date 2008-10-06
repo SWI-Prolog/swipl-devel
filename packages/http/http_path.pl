@@ -39,7 +39,7 @@
 :- use_module(library(broadcast)).
 
 
-/* <module> Abstract specification of HTTP server locations
+/** <module> Abstract specification of HTTP server locations
 
 This module provides an abstract specification  of HTTP server locations
 that is inspired on absolute_file_name/3. The   specification is done by
@@ -68,7 +68,8 @@ login(Request) :-
 	...
 ==
 
-@tbd	Use in http_dispatch.pl
+@tbd	Make this module replace the http:prefix option.
+@tbd	Remove hard-wired support for prefix().
 */
 
 :- multifile
@@ -83,9 +84,14 @@ http:location(root, Root, []) :-
 	;   Root = (/)
 	).
 
-%%	http_absolute_location(+Spec, -Path) is det.
+%%	http_absolute_location(+Spec, -Path, +Options) is det.
 %
 %	Path is the HTTP location for the abstract specification Spec.
+%	Options:
+%	
+%	    * relative_to(Base)
+%	    Path is made relative to Base.  Default is to generate
+%	    absolute URLs.
 
 :- dynamic
 	location_cache/3.

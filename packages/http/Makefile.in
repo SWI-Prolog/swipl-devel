@@ -111,7 +111,7 @@ doc:		$(PDF) $(HTML)
 pdf:		$(PDF)
 html:		$(HTML)
 
-SUBTEX=		post.tex json.tex httplog.tex
+SUBTEX=		post.tex json.tex httplog.tex httppath.tex
 
 $(HTML):	$(TEX) $(SUBTEX)
 		latex2html $(DOC)
@@ -130,6 +130,9 @@ json.tex:	json.pl json_convert.pl http_json.pl
 		$(PUBLICPL) -q -s txttotex.pl -g txttotex,halt -t 'halt(1)' -- $*.txt
 
 httplog.tex:	http_log.pl
+		$(PLTOTEX) --subsection $<
+
+httppath.tex:	http_path.pl
 		$(PLTOTEX) --subsection $<
 
 .doc.tex:
