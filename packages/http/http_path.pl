@@ -78,7 +78,7 @@ login(Request) :-
 	http:location/3.		% Alias, Expansion, Options
 
 http:location(root, Root, []) :-
-	(   setting(http:prefix, Prefix),
+	(   catch(setting(http:prefix, Prefix), _, fail),
 	    Prefix \== ''
 	->  Root = Prefix
 	;   Root = (/)
@@ -161,7 +161,7 @@ http_location_path(Alias, Path, Priority) :-
 	http:location(Alias, Path, Options),
 	option(priority(Priority), Options, 0).
 http_location_path(prefix, Path, 0) :-
-	(   setting(http:prefix, Prefix),
+	(   catch(setting(http:prefix, Prefix), _, fail),
 	    Prefix \== ''
 	->  (	sub_atom(Prefix, 0, _, _, /)
 	    ->  Path = Prefix

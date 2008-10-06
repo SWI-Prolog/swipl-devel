@@ -288,7 +288,8 @@ http_location_by_id(ID, Location) :-
 location_by_id(ID, Location, Priority) :-
 	location_by_id_raw(ID, L0, Priority),
 	to_path(L0, L1),
-	(   setting(http:prefix, Prefix)
+	(   catch(setting(http:prefix, Prefix), _, fail),
+	    Prefix \== ''
 	->  atom_concat(Prefix, L1, Location)
 	;   Location = L1
 	).
