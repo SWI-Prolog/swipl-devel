@@ -147,6 +147,10 @@ http_location_path(Alias, Path) :-
 	).
 
 
+%%	http_location_path(+Alias, -Path, -Priority) is nondet.
+%
+%	@tbd	prefix(Path) is discouraged; use root(Path)
+
 http_location_path(Alias, Path, Priority) :-
 	http:location(Alias, Path, Options),
 	option(priority(Priority), Options, 0).
