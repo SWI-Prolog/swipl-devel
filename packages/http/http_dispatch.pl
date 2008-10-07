@@ -164,7 +164,7 @@ user:term_expansion((:- http_handler(Path, Pred, Options)), Clause) :-
 %	handlers that are registered dynamically.
 
 http_delete_handler(Path) :-
-	retractall(handler(Path, _Pred, _Options)),
+	retractall(handler(Path, _Pred, _, _Options)),
 	next_generation.
 
 
