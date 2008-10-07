@@ -217,11 +217,9 @@ compile_handler(Path, PredSpec, Options0,
 http_dispatch(Request) :-
 	memberchk(path(Path), Request),
 	find_handler(Path, Pred, Options),
-	authentication(Request, Options, User),
-	(   nonvar(User)
-	->  action(Pred, [user(User)|Request], Options)
-	;   action(Pred, Request, Options)
-	).
+	authentication(Options, Request, Fields),
+	append(Fields, Request, AuthRequest),
+	action(Pred, AuthRequest, Options).
 
 
 %%	http_current_handler(+Location, -Closure) is semidet.
@@ -323,7 +321,7 @@ html_write:expand_attribute_value(location_by_id(ID)) -->
 	html_write:html_quoted_attribute(Location).
 
 
-%%	authentication(+Request, +Options, -User) is det.
+%%	authentication(+Options, +Request, -Fields) is det.
 %
 %	Verify  authentication  information.   If    authentication   is
 %	requested through Options, demand it. The actual verification is
@@ -336,14 +334,17 @@ html_write:expand_attribute_value(location_by_id(ID)) -->
 :- multifile
 	http:authenticate/3.
 
-authentication(Request, Options, User) :-
-	memberchk(authentication(Type), Options), !,
-	(   http:authenticate(Type, Request, User)
-	->  true
+authentication([], _, []).
+authentication([authentication(Type)|Options], Request, Fields) :- !,
+	(   http:authenticate(Type, Request, XFields)
+	->  append(XFields, More, Fields),
+	    authentication(Options, Request, More)
 	;   memberchk(path(Path), Request),
 	    throw(error(permission_error(http_location, access, Path), _))
 	).
-authentication(_Request, _Options, _User).
+authentication([_|Options], Request, Fields) :-
+	authentication(Options, Request, Fields).
+
 
 %%	find_handler(+Path, -Action, -Options) is det.
 %

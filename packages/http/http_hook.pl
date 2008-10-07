@@ -61,3 +61,10 @@ Get the declarations of the HTTP package using
 	html_write:html_head_expansion/2,
 	html_write:layout/3.
 
+
+		 /*******************************
+		 *	   HTTP-DISPATCH	*
+		 *******************************/
+
+:- multifile
+	http:authenticate/3.
