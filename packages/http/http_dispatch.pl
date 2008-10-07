@@ -285,18 +285,22 @@ http_location_by_id(ID, Location) :-
 
 location_by_id(ID, Location, Priority) :-
 	location_by_id_raw(ID, L0, Priority),
-	to_path(L0, L1),
+	to_path(L0, Location).
+
+to_path(prefix(Path0), Path) :- !,	% old style prefix notation
+	add_prefix(Path0, Path).
+to_path(Path0, Path) :-
+	atomic(Path0), !,		% old style notation
+	add_prefix(Path0, Path).
+to_path(Spec, Path) :-			% new style notation
+	http_absolute_location(Spec, Path, []).
+
+add_prefix(P0, P) :-
 	(   catch(setting(http:prefix, Prefix), _, fail),
 	    Prefix \== ''
-	->  atom_concat(Prefix, L1, Location)
-	;   Location = L1
+	->  atom_concat(Prefix, P0, P)
+	;   P = P0
 	).
-
-to_path(prefix(Path), Path) :- !.
-to_path(Path, Path) :-
-	atomic(Path), !.
-to_path(Spec, Path) :-
-	http_absolute_location(Spec, Path, []).
 
 location_by_id_raw(ID, Location, Priority) :-
 	handler(Location, _, _, Options),
