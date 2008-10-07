@@ -59,6 +59,7 @@
 :- use_module(pldoc(doc_man)).
 :- use_module(pldoc(doc_wiki)).
 :- use_module(pldoc(doc_util)).
+:- use_module(pldoc(doc_access)).
 
 /** <module> Documentation server
 
@@ -119,8 +120,7 @@ doc_server(Port, _) :-
 	catch(doc_current_server(Port), _, fail), !.
 doc_server(Port, Options) :-
 	prepare_editor,
-	auth_options(Options, Options1),
-	edit_option(Options1, ServerOptions),
+	host_access_options(Options, ServerOptions),
 	append(ServerOptions,		% Put provides options first,
 	       [ port(Port),		% so they override our defaults
 		 timeout(60),
@@ -129,7 +129,7 @@ doc_server(Port, Options) :-
 		 global(4000),		% from main application
 		 trail(4000)
 	       ], HTTPOptions),
-	http_server(doc_reply, HTTPOptions),
+	http_server(http_dispatch, HTTPOptions),
 	assert(doc_server_port(Port)),
 	print_message(informational, pldoc(server_started(Port))).
 
@@ -202,149 +202,15 @@ prepare_editor.
 
 
 		 /*******************************
-		 *	  ACCESS CONTROL	*
-		 *******************************/
-
-%%	doc_reply(Request)
-%
-%	Central handler for PlDoc.  Takes care of authentication.
-%	
-%	@tbd	Must move to http_authentication.pl or similar.
-
-doc_reply(Request) :-
-	memberchk(peer(Peer), Request),
-	(   allowed_peer(Peer)
-	->  (   http_dispatch(Request)
-	    ->	true
-	    ;	throw(http_reply(not_found(Path0)))
-	    )		      
-	;   throw(http_reply(forbidden(Path0)))
-	).
-
-:- dynamic
-	allow_from/1,
-	deny_from/1.
-
-%%	auth_options(+AllOptions, -NoAuthOptions) is det.
-%
-%	Filter the authorization options from   AllOptions,  leaving the
-%	remaining options in NoAuthOptions.
-
-auth_options([], []).
-auth_options([H|T0], T) :-
-	auth_option(H), !,
-	auth_options(T0, T).
-auth_options([H|T0], [H|T]) :-
-	auth_options(T0, T).
-
-auth_option(allow(From)) :-
-	assert(allow_from(From)).
-auth_option(deny(From)) :-
-	assert(deny_from(From)).
-
-%%	match_peer(:RuleSet, +PlusMin, +Peer) is semidet.
-%
-%	True if Peer is covered by the   ruleset RuleSet. Peer is a term
-%	ip(A,B,C,D). RuleSet is a predicate with   one  argument that is
-%	either  a  partial  ip  term,  a    hostname  or  a  domainname.
-%	Domainnames start with a '.'.
-%	
-%	@param PlusMin	Positive/negative test.  If IP->Host fails, a
-%		       	positive test fails, while a negative succeeds.
-%			I.e. deny('.com') succeeds for unknown IP
-%			addresses.
-
-match_peer(Spec, _, Peer) :-
-	call(Spec, Peer), !.
-match_peer(Spec, PM, Peer) :-
-	(   call(Spec, HOrDom), atom(HOrDom)
-	->  (   catch(tcp_host_to_address(Host, Peer), E, true),
-	        var(E)
-	    ->	call(Spec, HostOrDomain),
-		atom(HostOrDomain),
-		(   sub_atom(HostOrDomain, 0, _, _, '.')
-		->  sub_atom(Host, _, _, 0, HostOrDomain)
-		;   HostOrDomain == Host
-		)
-	    ;   PM == (+)
-	    ->	!, fail
-	    ;	true
-	    )
-	).
-	
-%%	allowed_peer(+Peer) is semidet.
-%
-%	True if Peer is allowed according to the rules.
-
-allowed_peer(Peer) :-
-	match_peer(deny_from, -, Peer), !,
-	match_peer(allow_from, +, Peer).
-allowed_peer(Peer) :-
-	allow_from(_), !,
-	match_peer(allow_from, +, Peer).
-allowed_peer(_).
-
-
-:- dynamic
-	can_edit/1.
-
-%%	allow_edit(+Request) is semidet.
-%
-%	True if, given Request, we allow editing sources.
-
-allow_edit(_) :-
-	can_edit(false), !, 
-	fail.
-allow_edit(Request) :-
-	(   memberchk(x_forwarded_for(Forwarded), Request),
-	    primary_forwarded_host(Forwarded, IPAtom),
-	    parse_ip(IPAtom, Peer)
-	->  true
-	;   memberchk(peer(Peer), Request)
-	),
-	match_peer(localhost, +, Peer).
-
-
-%%	primary_forwarded_host(+Spec, -Host) is det.
-%
-%	x_forwarded host contains multiple hosts seperated   by  ', ' if
-%	there are multiple proxy servers in   between.  The first one is
-%	the one the user's browser knows about.
-
-primary_forwarded_host(Spec, Host) :-
-	sub_atom(Spec, B, _, _, ','), !,
-	sub_atom(Spec, 0, B, _, Host).
-primary_forwarded_host(Host, Host).
-
-
-localhost(ip(127,0,0,1)).
-localhost(localhost).
-
-parse_ip(Atom, IP) :-
-	atom_codes(Atom, Codes),
-	phrase(ip(IP), Codes).
-
-%%	ip(?IP)// is semidet.
-%
-%	Parses A.B.C.D into ip(A,B,C,D)
-
-ip(ip(A,B,C,D)) -->
-	integer(A), ".", integer(B), ".", integer(C), ".", integer(D).
-	
-edit_option(Options0, Options) :-
-	select_option(edit(Bool), Options0, Options), !,
-	assert(can_edit(Bool)).
-edit_option(Options, Options).
-
-
-		 /*******************************
 		 *	    USER REPLIES	*
 		 *******************************/
 
-:- http_handler(pldoc(.),	   pldoc_root,	   []).
+:- http_handler(pldoc(.),	   pldoc_root,
+		[prefix, authentication(pldoc(read))]).
 :- http_handler(pldoc(file),	   pldoc_file,	   []).
 :- http_handler(pldoc(directory),  pldoc_dir,	   []).
-:- http_handler(pldoc(edit),	   pldoc_edit,	   []).
+:- http_handler(pldoc(edit),	   pldoc_edit,
+		[authentication(pldoc(edit))]).
 :- http_handler(pldoc(doc),	   pldoc_doc,	   [prefix]).
 :- http_handler(pldoc(man),	   pldoc_man,	   []).
 :- http_handler(pldoc(doc_for),	   pldoc_object,   []).
@@ -360,6 +226,11 @@ edit_option(Options, Options).
 %	we could also use the file or   directory of the file that would
 %	be edited using edit/0.
 
+pldoc_root(Request) :-
+	http_location_by_id(pldoc_root, Root),
+	memberchk(path(Path), Request),
+	Root \== Path, !,
+	existence_error(http_location, Path).
 pldoc_root(_Request) :-
 	working_directory(Dir0, Dir0),
 	allowed_directory(Dir0), !,
@@ -393,7 +264,6 @@ pldoc_file(Request) :-
 %	File.
 
 pldoc_edit(Request) :-
-	allow_edit(Request), !,
 	http_parameters(Request,
 			[ file(File,     [optional(true)]),
 			  module(Module, [optional(true)]),
@@ -566,7 +436,7 @@ documentation(Path, Request) :-
 %	localhost.
 
 edit_options(Request, [edit(true)]) :-
-	allow_edit(Request), !.
+	catch(http:authenticate(pldoc(edit), Request, _), _, fail), !.
 edit_options(_, []).
 
 
