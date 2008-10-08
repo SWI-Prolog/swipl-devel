@@ -39,7 +39,7 @@ SUPPORT=	pldoc.css pldoc.js pllisting.css pldoc.sty \
 		up.gif source.gif
 DOCALL=		$(LIBPL) $(SUPPORT)
 PUBPL=		pldoc.pl doc_http.pl doc_latex.pl
-EXAMPLES=	doc_log.pl README
+EXAMPLES=	README
 EXAMPLEEXE=	man_server.pl
 
 all:		pldoc.sty

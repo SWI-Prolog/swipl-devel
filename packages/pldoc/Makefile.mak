@@ -22,7 +22,7 @@ SUPPORT=	pldoc.css pldoc.js pllisting.css pldoc.sty \
 		edit.gif zoomin.gif zoomout.gif reload.gif favicon.ico \
 		up.gif source.gif
 DOCALL=		$(LIBPL) $(SUPPORT)
-EXAMPLES=	doc_log.pl README
+EXAMPLES=	README
 EXAMPLEEXE=	man_server.pl
 
 all:		pldoc.sty
