@@ -933,8 +933,7 @@ file_input(Spec, Path, BaseURI) :-
 	findall(Ext, valid_extension(Ext), Exts),
 	absolute_file_name(Spec, Path,
 			   [ access(read),
-			     extensions(Exts),
-			     file_errors(fail)
+			     extensions(Exts)
 			   ]),
 	file_name_to_url(Path, BaseURI0),
 	clean_base_uri(BaseURI0, BaseURI).
