@@ -79,8 +79,8 @@ access, loading and saving of settings.
 */
 
 :- dynamic
-	value/3,			% Name, Module, Value
-	default/3,			% Name, Module, Value
+	st_value/3,			% Name, Module, Value
+	st_default/3,			% Name, Module, Value
 	local_file/1.			% Path
 
 :- multifile
@@ -96,7 +96,7 @@ access, loading and saving of settings.
 
 curr_setting(Name, Module, Type, Default, Comment) :-
 	current_setting(Name, Module, Type, Default0, Comment, _Src),
-	(   default(Name, Module, Default1)
+	(   st_default(Name, Module, Default1)
 	->  Default = Default1
 	;   Default = Default0
 	).
@@ -153,7 +153,7 @@ to_atom(String, Atom) :-
 setting(QName, Value) :-
 	strip_module(QName, Module, Name),
 	(   ground(Name)
-	->  (   value(Name, Module, Value0)
+	->  (   st_value(Name, Module, Value0)
 	    ->  Value = Value0
 	    ;   curr_setting(Name, Module, Type, Default, _)
 	    ->	eval_default(Default, Module, Type, Value)
@@ -340,7 +340,7 @@ set_setting(QName, Value) :-
 	    eval_default(Default0, Module, Type, Default)
 	->  (   Value == Default
 	    ->	retract_setting(Module:Name)
-	    ;	value(Name, Module, Value)
+	    ;	st_value(Name, Module, Value)
 	    ->	true
 	    ;	check_type(Type, Value)
 	    ->	setting(Module:Name, Old),
@@ -353,10 +353,10 @@ set_setting(QName, Value) :-
 	).
 
 retract_setting(Module:Name) :-
-	retractall(value(Name, Module, _)).
+	retractall(st_value(Name, Module, _)).
 
 assert_setting(Module:Name, Value) :-
-	assert(value(Name, Module, Value)).
+	assert(st_value(Name, Module, Value)).
 
 %%	restore_setting(:Name) is det.
 %
@@ -367,7 +367,7 @@ assert_setting(Module:Name, Value) :-
 restore_setting(QName) :-
 	strip_module(QName, Module, Name),
 	must_be(atom, Name),
-	(   value(Name, Module, Old)
+	(   st_value(Name, Module, Old)
 	->  retract_setting(Module:Name),
 	    setting(Module:Name, Value),
 	    (	Old \== Value
@@ -388,11 +388,11 @@ set_setting_default(QName, Default) :-
 	strip_module(QName, Module, Name),
 	must_be(atom, Name),
 	(   current_setting(Name, Module, Type, Default0, _Comment, _Src)
-	->  retractall(settings:default(Name, Module, _)),
+	->  retractall(settings:st_default(Name, Module, _)),
 	    retract_setting(Module:Name),
 	    (   Default == Default0
 	    ->	true
-	    ;	assert(settings:default(Name, Module, Default))
+	    ;	assert(settings:st_default(Name, Module, Default))
 	    ),
 	    eval_default(Default, Module, Type, Value),
 	    set_setting(Module:Name, Value)
@@ -472,14 +472,14 @@ store_setting(setting(Module:Name, Value), _) :-
 	(   Value == Default
 	->  true
 	;   check_type(Type, Value)
-	->  retractall(value(Name, Module, _)),
-	    assert(value(Name, Module, Value)),
+	->  retractall(st_value(Name, Module, _)),
+	    assert(st_value(Name, Module, Value)),
 	    broadcast(settings(changed(Module:Name, Default, Value)))
 	).
 store_setting(setting(Module:Name, Value), Options) :- !,
 	(   option(undefined(load), Options, load)
-	->  retractall(value(Name, Module, _)),
-	    assert(value(Name, Module, Value))
+	->  retractall(st_value(Name, Module, _)),
+	    assert(st_value(Name, Module, Value))
 	;   existence_error(setting, Module:Name)
 	).
 store_setting(Term, _) :-
@@ -517,7 +517,7 @@ write_setting_header(Out) :-
 
 save_setting(Out, Module:Name) :-
 	curr_setting(Name, Module, Type, Default, Comment),
-	(   value(Name, Module, Value),
+	(   st_value(Name, Module, Value),
 	    \+ ( eval_default(Default, Module, Type, DefValue),
 		 debug(setting, '~w <-> ~w~n', [DefValue, Value]),
 	         DefValue =@= Value

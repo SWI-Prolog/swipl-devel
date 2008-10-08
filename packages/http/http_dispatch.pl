@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007, University of Amsterdam
+    Copyright (C): 2007-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -43,6 +41,7 @@
 :- use_module(library(error)).
 :- use_module(library(settings)).
 :- use_module(library(http/mimetype)).
+:- use_module(library(http/http_path)).
 :- use_module(library(http/http_header)).
 :- use_module(library(http/thread_httpd)).
 
@@ -74,9 +73,9 @@ write_index(Request) :-
 
 %%	http_handler(+Path, :Pred, +Options) is det.
 %
-%	Register Pred as a handler for HTTP requests. Path is either the
-%	full location of the HTTP  request   or  a term prefix(+Prefix).
-%	Pred is either an atom or one of the following reserved terms:
+%	Register Pred as  a  handler  for   HTTP  requests.  Path  is is
+%	specification as provided by  http_path.pl.   Pred  is either an
+%	atom or one of the following reserved terms:
 %	
 %		* reply_file(+File, +FileOptions)
 %		Reply contents of File using the given options.
@@ -91,13 +90,31 @@ write_index(Request) :-
 %
 %	Options is a list containing the following options:
 %	
-%		* time_limit(+Spec)
-%		One of =infinite=, =default= or a positive number
-%		(seconds)
+%		* authentication(+Type)
+%		Demand authentication.  Authentication methods are
+%		pluggable.  The library http_authenticate.pl provides
+%		a plugin for user/password based =Basic= HTTP
+%		authentication.
 %		
 %		* chunked
 %		Use =|Transfer-encoding: chunked|= if the client
 %		allows for it.
+%		
+%		* id(+Term)
+%		Identifier of the handler.  The default identifier is
+%		the predicate name.  Used by http_location_by_id/2.
+%		
+%		* priority(+Integer)
+%		If two handlers handle the same path, the one with the
+%		highest priority is used.  If equal, the last registered
+%		is used.  Please be aware that the order of clauses in
+%		multifile predicates can change due to reloading files.
+%		The default priority is 0 (zero).
+%		
+%		* prefix
+%		Call Pred on any location that is a specialisation of
+%		Path.  If multiple handlers match, the one with the
+%		longest path is used.
 %		
 %		* spawn(+SpawnOptions)
 %		Run the handler in a seperate thread.  If SpawnOptions
@@ -107,22 +124,9 @@ write_index(Request) :-
 %		thread_create/3.  These options are typically used to
 %		set the stack limits.
 %		
-%		* authentication(+Type)
-%		Demand authentication.  Authentication methods are
-%		pluggable.  The library http_authenticate.pl provides
-%		a plugin for user/password based =Basic= HTTP
-%		authentication.
-%		
-%		* priority(+Integer)
-%		If two handlers handle the same path, the one with the
-%		highest priority is used.  If equal, the last registered
-%		is used.  Please be aware that the order of clauses in
-%		multifile predicates can change due to reloading files.
-%		The default priority is 0 (zero).
-%		
-%		* id(+Term)
-%		Identifier of the handler.  The default identifier is
-%		the predicate name.  Used by http_location_by_id/2.
+%		* time_limit(+Spec)
+%		One of =infinite=, =default= or a positive number
+%		(seconds)
 %		
 %	Note that http_handler/3 is normally invoked  as a directive and
 %	processed using term-expansion.  Using   term-expansion  ensures
@@ -130,8 +134,8 @@ write_index(Request) :-
 %	We do not expand when the  cross-referencer is running to ensure
 %	proper handling of the meta-call.
 
-:- dynamic handler/3.
-:- multifile handler/3.
+:- dynamic handler/4.			% Path, Action, IsPrefix, Options
+:- multifile handler/4.
 :- dynamic generation/1.
 
 :- meta_predicate
@@ -160,7 +164,7 @@ user:term_expansion((:- http_handler(Path, Pred, Options)), Clause) :-
 %	handlers that are registered dynamically.
 
 http_delete_handler(Path) :-
-	retractall(handler(Path, _Pred, _Options)),
+	retractall(handler(Path, _Pred, _, _Options)),
 	next_generation.
 
 
@@ -192,9 +196,18 @@ current_generation(0).
 %	presence of one or multiple prefix declarations. We can also use
 %	this to detect conflicts.
 
-compile_handler(Path, PredSpec, Options,
-		http_dispatch:handler(Path, M:Pred, Options)) :-
+compile_handler(prefix(Path), PredSpec, Options,
+		http_dispatch:handler(Path, M:Pred, true, Options)) :- !,
+	print_message(warning, http_dispatch(prefix(Path))),
 	strip_module(PredSpec, M, Pred).
+compile_handler(Path, PredSpec, Options0,
+		http_dispatch:handler(Path, M:Pred, IsPrefix, Options)) :-
+	strip_module(PredSpec, M, Pred),
+	(   select(prefix, Options0, Options)
+	->  IsPrefix = true
+	;   IsPrefix = false,
+	    Options = Options0
+	).
 
 
 %%	http_dispatch(Request) is det.
@@ -204,11 +217,9 @@ compile_handler(Path, PredSpec, Options,
 http_dispatch(Request) :-
 	memberchk(path(Path), Request),
 	find_handler(Path, Pred, Options),
-	authentication(Request, Options, User),
-	(   nonvar(User)
-	->  action(Pred, [user(User)|Request], Options)
-	;   action(Pred, Request, Options)
-	).
+	authentication(Options, Request, Fields),
+	append(Fields, Request, AuthRequest),
+	action(Pred, AuthRequest, Options).
 
 
 %%	http_current_handler(+Location, -Closure) is semidet.
@@ -221,10 +232,12 @@ http_current_handler(Path, Closure) :-
 	path_tree(Tree),
 	find_handler(Tree, Path, Closure, _).
 http_current_handler(Path, M:C) :- !,
-	handler(Path, M:C, _).
+	handler(Spec, M:C, _, _),
+	http_absolute_location(Spec, Path, []).
 http_current_handler(Path, Closure) :-
 	strip_module(Closure, M, C),
-	handler(Path, M:C, _).
+	handler(Spec, M:C, _, _),
+	http_absolute_location(Spec, Path, []).
 
 
 %%	http_location_by_id(+ID, -Location) is det.
@@ -272,22 +285,30 @@ http_location_by_id(ID, Location) :-
 
 location_by_id(ID, Location, Priority) :-
 	location_by_id_raw(ID, L0, Priority),
-	to_path(L0, L1),
-	(   setting(http:prefix, Prefix)
-	->  atom_concat(Prefix, L1, Location)
-	;   Location = L1
+	to_path(L0, Location).
+
+to_path(prefix(Path0), Path) :- !,	% old style prefix notation
+	add_prefix(Path0, Path).
+to_path(Path0, Path) :-
+	atomic(Path0), !,		% old style notation
+	add_prefix(Path0, Path).
+to_path(Spec, Path) :-			% new style notation
+	http_absolute_location(Spec, Path, []).
+
+add_prefix(P0, P) :-
+	(   catch(setting(http:prefix, Prefix), _, fail),
+	    Prefix \== ''
+	->  atom_concat(Prefix, P0, P)
+	;   P = P0
 	).
 
-to_path(prefix(Path), Path) :- !.
-to_path(Path, Path).
-
 location_by_id_raw(ID, Location, Priority) :-
-	handler(Location, _, Options),
+	handler(Location, _, _, Options),
 	option(id(ID), Options),
 	option(priority(P0), Options, 0),
 	Priority is P0+1000.		% id(ID) takes preference over predicate
 location_by_id_raw(ID, Location, Priority) :-
-	handler(Location, M:C, Options),
+	handler(Location, M:C, _, Options),
 	option(priority(Priority), Options, 0),
 	functor(C, PN, _),
 	(   ID = M:PN
@@ -304,7 +325,7 @@ html_write:expand_attribute_value(location_by_id(ID)) -->
 	html_write:html_quoted_attribute(Location).
 
 
-%%	authentication(+Request, +Options, -User) is det.
+%%	authentication(+Options, +Request, -Fields) is det.
 %
 %	Verify  authentication  information.   If    authentication   is
 %	requested through Options, demand it. The actual verification is
@@ -317,14 +338,17 @@ html_write:expand_attribute_value(location_by_id(ID)) -->
 :- multifile
 	http:authenticate/3.
 
-authentication(Request, Options, User) :-
-	memberchk(authentication(Type), Options), !,
-	(   http:authenticate(Type, Request, User)
-	->  true
+authentication([], _, []).
+authentication([authentication(Type)|Options], Request, Fields) :- !,
+	(   http:authenticate(Type, Request, XFields)
+	->  append(XFields, More, Fields),
+	    authentication(Options, Request, More)
 	;   memberchk(path(Path), Request),
 	    throw(error(permission_error(http_location, access, Path), _))
 	).
-authentication(_Request, _Options, _User).
+authentication([_|Options], Request, Fields) :-
+	authentication(Options, Request, Fields).
+
 
 %%	find_handler(+Path, -Action, -Options) is det.
 %
@@ -483,7 +507,7 @@ path_tree(Tree) :-
 	current_generation(G),
 	nb_current(http_dispatch_tree, G-Tree), !. % Avoid existence error
 path_tree(Tree) :-
-	findall(Prefix, handler(prefix(Prefix), _, _), Prefixes0),
+	findall(Prefix, prefix_handler(Prefix, _, _), Prefixes0),
 	sort(Prefixes0, Prefixes),
 	prefix_tree(Prefixes, [], PTree),
 	prefix_options(PTree, [], OPTree),
@@ -491,6 +515,9 @@ path_tree(Tree) :-
 	current_generation(G),
 	nb_setval(http_dispatch_tree, G-Tree).
 
+prefix_handler(Prefix, Action, Options) :-
+	handler(Spec, Action, true, Options),
+	http_absolute_location(Spec, Prefix, []).
 
 %%	prefix_tree(PrefixList, +Tree0, -Tree)
 %
@@ -518,7 +545,7 @@ insert_prefix(Prefix, Tree, [Prefix-[]|Tree]).
 prefix_options([], _, []).
 prefix_options([P-C|T0], DefOptions,
 	       [node(prefix(P), Action, Options, Children)|T]) :-
-	once(handler(prefix(P), Action, Options0)),
+	once(prefix_handler(P, Action, Options0)),
 	merge_options(Options0, DefOptions, Options),
 	prefix_options(C, Options, Children),
 	prefix_options(T0, DefOptions, T).
@@ -546,8 +573,8 @@ add_paths_tree([path(Path, Action, Options)|T], Tree0, Tree) :-
 %	(i.e. not _prefix_) location.
 
 plain_path(Path, Action, Options) :-
-	handler(Path, Action, Options),
-	atom(Path).
+	handler(Spec, Action, false, Options),
+	http_absolute_location(Spec, Path, []).
 
 
 %%	add_path_tree(+Path, +Action, +Options, +Tree0, -Tree) is det.
@@ -584,6 +611,9 @@ add_path_tree(Path, Action, Options, DefOptions, [H|T0], [H|T]) :-
 
 prolog:message(http_dispatch(ambiguous_id(ID, _List, Selected))) -->
 	[ 'HTTP dispatch: ambiguous handler ID ~q (selected ~q)'-[ID, Selected]
+	].
+prolog:message(http_dispatch(prefix(_Path))) -->
+	[ 'HTTP dispatch: prefix(Path) is replaced by the option prefix'-[]
 	].
 
 
@@ -624,3 +654,20 @@ closure_name_arity(Term, Extra, Name/Arity) :-
 	functor(Term, Name, Arity0),
 	Arity is Arity0 + Extra.
 
+
+		 /*******************************
+		 *	  CACHE CLEANUP		*
+		 *******************************/
+
+:- listen(settings(changed(http:prefix, _, _)),
+	  next_generation).
+
+:- multifile
+	user:message_hook/3.
+:- dynamic
+	user:message_hook/3.
+
+user:message_hook(make(done(Reload)), _Level, _Lines) :-
+	Reload \== [],
+	next_generation,
+	fail.

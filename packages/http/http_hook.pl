@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -29,35 +27,44 @@
     the GNU General Public License.
 */
 
+:- module(http_hook,
+	  []).
 
-:- module(rdf_zlib_plugin, []).
-:- use_module(library(zlib)).
-:- use_module(library('semweb/rdf_db')).
+/** <module> HTTP library hooks
 
-/** <module> RDF Zip Plugin
+Get the declarations of the HTTP package using
 
-This  module  connects   library(zlib)    to   library(rdf_db),  causing
-rdf_load/2 to seemlessly load .gz files.
+    ==
+    :- use_module(library(http/http_hook)).
+    ==
+
+@tbd	This should be using include, but then it cannot be a module
+	and this would cause more overhead in SWI-Prolog
+@tbd	Complete this and document the hooks.
 */
 
+		 /*******************************
+		 *	     HTTP-PATH		*
+		 *******************************/
+
+:- multifile http:location/3.
+:- dynamic   http:location/3.
+
+ 
+		 /*******************************
+		 *	     HTML-WRITE		*
+		 *******************************/
+
 :- multifile
-	rdf_db:rdf_open_hook/3,
-	rdf_db:rdf_input_info_hook/3,
-	rdf_db:rdf_file_encoding/2.
+	html_write:expand//1,
+	html_write:expand_attribute_value//1,
+	html_write:html_head_expansion/2,
+	html_write:layout/3.
 
-rdf_db:rdf_open_hook(file(GZFile), Stream, gzip(Format)) :-
-	file_name_extension(File, gz, GZFile), !,
-	file_name_extension(_, Ext, File),
-	rdf_db:rdf_file_type(Ext, Format),
-	gzopen(GZFile, read, Stream, [type(binary)]).
-rdf_db:rdf_open_hook(Source, Stream, gzip(Format)) :-
-	rdf_db:rdf_input_open(Source, Stream0, Format),
-	zopen(Stream0, Stream, []).
 
-rdf_db:rdf_input_info_hook(file(GZFile), Modified, gzip(Format)) :-
-	file_name_extension(File, gz, GZFile), !,
-	file_name_extension(_, Ext, File),
-	rdf_db:rdf_file_type(Ext, Format),
-	time_file(GZFile, Modified).
+		 /*******************************
+		 *	   HTTP-DISPATCH	*
+		 *******************************/
 
-rdf_db:rdf_storage_encoding(gz, gzip).
+:- multifile
+	http:authenticate/3.

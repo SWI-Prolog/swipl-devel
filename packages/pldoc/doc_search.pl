@@ -64,10 +64,9 @@ search_form(Options) -->
 	  ;   Extra = []
 	  ),
 	  option(search_in(In), Options, all),
-	  option(search_match(Match), Options, summary),
-	  doc_server_root(Root)
+	  option(search_match(Match), Options, summary)
 	},
-	html(form(action(Root+'search'),
+	html(form(action(location_by_id(pldoc_search)),
 		  [ div([ input([ name(for),
 				  size(36)
 				| Extra
@@ -87,7 +86,7 @@ search_form(Options) -->
 				 \radio(match, summary, 'Summary', Match)
 			       ]),
 			  span(class('search-help'),
-			       [ a(href(Root+'package/pldoc.html#sec:browser'),
+			       [ a(href(location_by_id(pldoc_package)+'pldoc.html#sec:browser'),
 				   'Help')
 			       ])
 			])

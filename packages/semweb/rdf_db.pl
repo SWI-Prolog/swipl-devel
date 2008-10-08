@@ -754,6 +754,7 @@ rdf_load_db(File) :-
 	rdf_load_stream/3,
 	rdf_input_info_hook/3,
 	rdf_file_type/2,
+	rdf_storage_encoding/2,
 	url_protocol/1,
 	exists_url/1.
 
@@ -905,9 +906,6 @@ close_input(_, Stream) :-
 %	
 %	BaseURI is unified with a default base   URI. Note that this may
 %	be overruled from the options of rdf_load/2.
-%	
-%	@tbd	More generic mechanism to deal with encoding envelopes
-%		such as gzip compression.
 
 rdf_input(stream(Stream), stream(Stream), BaseURI) :- !,
 	(   stream_property(Stream, file_name(File))
@@ -923,7 +921,7 @@ rdf_input(FileURL, file(File), BaseURI) :-
 	file_input(File0, File, BaseURI).
 rdf_input(URL0, url(Protocol, URL), URL0) :-
 	is_url(URL0, Protocol), !,
-	(   gzip_extend(URL0, URL),
+	(   storage_extend(URL0, URL),
 	    exists_url(url(Protocol, URL))
 	->  true
 	;   URL=URL0
@@ -932,26 +930,32 @@ rdf_input(Spec, file(Path), BaseURI) :-
 	file_input(Spec, Path, BaseURI).
 
 file_input(Spec, Path, BaseURI) :-
-	findall(Ext, (rdf_file_type(Ext, _);Ext=gz;Ext=''), Exts),
+	findall(Ext, valid_extension(Ext), Exts),
 	absolute_file_name(Spec, Path,
 			   [ access(read),
-			     extensions(Exts),
-			     file_errors(fail)
+			     extensions(Exts)
 			   ]),
 	file_name_to_url(Path, BaseURI0),
 	clean_base_uri(BaseURI0, BaseURI).
 
-gzip_extend(Path, Path).
-gzip_extend(Path0, Path) :-
-	file_name_extension(Path0, gz, Path).
+valid_extension(Ext) :-
+	rdf_file_type(Ext, _).
+valid_extension(Ext) :-
+	rdf_storage_encoding(Ext, _).
+
+
+storage_extend(Path, Path).
+storage_extend(Path0, Path) :-
+	rdf_storage_encoding(Ext, _), Ext \== '',
+	file_name_extension(Path0, Ext, Path).
 
 %%	clean_base_uri(+BaseURI0, -BaseURI) is det.
 %
-%	BaseURI  is  BaseURI0  after    removing  packaging  extensions.
-%	Currently only deals with =|.gz|=.
+%	BaseURI  is  BaseURI0  after    removing  storage  extensions.
 
 clean_base_uri(BaseURI0, BaseURI) :-
-	file_name_extension(BaseURI, gz, BaseURI0), !.
+	rdf_storage_encoding(Ext, _), Ext \== '',
+	file_name_extension(BaseURI, Ext, BaseURI0), !.
 clean_base_uri(BaseURI, BaseURI).
 	
 %%	is_url(+Term, -Protocol) is semidet.
@@ -1021,6 +1025,13 @@ rdf_file_type(htm,   xhtml).
 rdf_file_type(html,  xhtml).
 rdf_file_type(xhtml, xhtml).
 rdf_file_type(trp,   triples).
+
+
+%%	rdf_file_encoding(+Extension, -Format) is semidet.
+%
+%	True if Format describes the storage encoding of file.
+
+rdf_storage_encoding('', plain).
 
 
 %%	rdf_load_stream(+Format, +Stream, +Options)
