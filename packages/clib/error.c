@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -39,7 +39,13 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
   switch(id)
   { case ERR_ERRNO:
     { int err = va_arg(args, int);
-      
+      const char *action = va_arg(args, const char *);
+      const char *type   = va_arg(args, const char *);
+      term_t	  object = va_arg(args, term_t);
+
+      if ( !object )
+	object = PL_new_term_ref();
+
       msg = strerror(err);
 
       switch(err)
@@ -49,23 +55,20 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
 			  AtomArg("no_memory"));
 	  break;
 	case EACCES:
-	{ const char *file = va_arg(args,   const char *);
-	  const char *action = va_arg(args, const char *);
-
-	  PL_unify_term(formal,
+	case EPERM:
+	{ PL_unify_term(formal,
 			CompoundArg("permission_error", 3),
 			  AtomArg(action),
-			  AtomArg("file"),
-			  AtomArg(file));
+			  AtomArg(type),
+			  PL_TERM, object);
 	  break;
 	}
 	case ENOENT:
-	{ const char *file = va_arg(args, const char *);
-
-	  PL_unify_term(formal,
+	case ESRCH:
+	{ PL_unify_term(formal,
 			CompoundArg("existence_error", 2),
-			  AtomArg("file"),
-			  AtomArg(file));
+			  AtomArg(type),
+			  PL_TERM, object);
 	  break;
 	}
 	default:
@@ -161,7 +164,7 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
 
     if ( pred )
     { PL_unify_term(predterm,
-		    CompoundArg("divide", 2),
+		    CompoundArg("/", 2),
 		      AtomArg(pred),
 		      IntArg(arity));
     }

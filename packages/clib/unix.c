@@ -121,7 +121,7 @@ pl_exec(term_t cmd)
 
     execvp(argv[0], argv);
     free_argv(argc);
-    return pl_error("exec", 1, NULL, ERR_ERRNO, errno, argv[0], "execute");
+    return pl_error("exec", 1, NULL, ERR_ERRNO, errno, "execute", "command", cmd);
   }
   
   return pl_error("exec", 1, NULL, ERR_ARGTYPE, 1, cmd, "compound");
@@ -134,7 +134,7 @@ pl_wait(term_t Pid, term_t Status)
   pid_t pid = wait(&status);
 
   if ( pid == -1 )
-    return pl_error("wait", 2, NULL, ERR_ERRNO, errno);
+    return pl_error("wait", 2, NULL, ERR_ERRNO, errno, "wait", "process", Pid);
 
   if ( PL_unify_integer(Pid, pid) )
   { if ( WIFEXITED(status) )
@@ -167,7 +167,8 @@ pl_kill(term_t Pid, term_t Sig)
     return pl_error("kill", 2, NULL, ERR_ARGTYPE, 2, Sig, "signal");
 
   if ( kill(pid, sig) < 0 )
-    return pl_error("kill", 1, NULL, ERR_ERRNO, Pid);
+    return pl_error("kill", 2, NULL, ERR_ERRNO, errno,
+		    "kill", "process", Pid);
 
   return TRUE;
 }
@@ -183,7 +184,7 @@ pl_pipe(term_t Read, term_t Write)
   IOSTREAM *in, *out;
 
   if ( pipe(fd) != 0 )
-    return pl_error("pipe", 2, NULL, ERR_ERRNO, errno, "");
+    return pl_error("pipe", 2, NULL, ERR_ERRNO, errno, "create", "pipe", 0);
 
   in  = Sfdopen(fd[0], "r");
   out = Sfdopen(fd[1], "w");
@@ -220,7 +221,7 @@ pl_dup(term_t from, term_t to)
     goto out;
   
   if ( dup2(fn, tn) < 0 )
-  { pl_error("dup", 2, NULL, ERR_ERRNO, errno, "");
+  { pl_error("dup", 2, NULL, ERR_ERRNO, errno, "dup", "stream", from);
     goto out;
   } else
   { rval = TRUE;
