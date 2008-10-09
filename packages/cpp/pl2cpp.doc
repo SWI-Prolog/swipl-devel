@@ -824,7 +824,7 @@ assertWord(const char *word)
 { PlFrame fr;
   PlTermv av(1);
 
-  av[1] = PlCompound("word", PlTermv(word));
+  av[0] = PlCompound("word", PlTermv(word));
   PlQuery q("assert", av);
   q.next_solution();
 }

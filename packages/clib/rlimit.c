@@ -106,7 +106,7 @@ pl_rlimit(term_t what, term_t old, term_t new)
 	if ( rlim.rlim_cur != (unsigned long) n )
 	{ rlim.rlim_cur = n;
 	  if ( !setrlimit(resource, &rlim) == 0 )
-	    return pl_error("rlimit", 3, NULL, ERR_ERRNO, errno);
+	    return pl_error("rlimit", 3, NULL, ERR_ERRNO, errno, "set", "resource_limit", what);
 	}
 	return TRUE;
       } else if ( PL_get_atom_chars(new, &s) && strcmp(s, "unlimited") == 0 )
@@ -118,7 +118,7 @@ pl_rlimit(term_t what, term_t old, term_t new)
     } else
       return FALSE;
   } else
-    return pl_error("rlimit", 3, NULL, ERR_ERRNO, errno);
+    return pl_error("rlimit", 3, NULL, ERR_ERRNO, errno, "get",  "resource_limit", what);
 }
 
 

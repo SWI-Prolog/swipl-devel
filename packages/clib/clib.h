@@ -33,7 +33,7 @@
 #define AtomArg(name) \
 	PL_CHARS, name
 #define IntArg(i) \
-	PL_INTEGER, (i)
+	PL_INTEGER, (long)(i)
 
 install_t	install_process(void);
 install_t	install_socket(void);

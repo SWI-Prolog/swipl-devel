@@ -27,6 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <errno.h>
 #include "error.h"
 
 #define streq(s,q) (strcmp((s), (q)) == 0)
@@ -108,7 +109,7 @@ new_memory_file(term_t handle)
 { memfile *m = calloc(1, sizeof(*m));
 
   if ( !m )
-    return pl_error(NULL, 0, NULL, ERR_ERRNO);
+    return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "create", "memory_file", handle);
 
   m->magic = MEMFILE_MAGIC;
   m->encoding = ENC_UTF8;
@@ -266,8 +267,8 @@ open_memory_file4(term_t handle, term_t mode, term_t stream, term_t options)
   }
 
   if ( !(fd = Sopenmem(&m->data, &m->data_size, x)) )
-    return pl_error("open_memory_file", 3, NULL, ERR_ERRNO,
-		    "memory_file", "create");
+    return pl_error("open_memory_file", 3, NULL, ERR_ERRNO, errno,
+		    "create", "memory_file", handle);
 
   fd->close_hook = closehook;
   fd->closure = m;
@@ -363,7 +364,7 @@ atom_to_memory_file(term_t atom, term_t handle)
   { memfile *m = calloc(1, sizeof(*m));
 
     if ( !m )
-      return pl_error(NULL, 0, NULL, ERR_ERRNO);
+      return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "create", "memory_file", handle);
 
     m->atom = a;
     PL_register_atom(m->atom);

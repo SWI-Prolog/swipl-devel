@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2006, University of Amsterdam
 
@@ -33,21 +33,24 @@
 	  [ doc_server/1,		% ?Port
 	    doc_server/2,		% ?Port, +Options
 	    doc_browser/0,
-	    doc_browser/1,		% +What
-	    doc_server_root/1		% -Root
+	    doc_browser/1		% +What
 	  ]).
 :- use_module(library(pldoc)).
-:- use_module(library('http/thread_httpd')).
-:- use_module(library('http/http_parameters')).
-:- use_module(library('http/html_write')).
-:- use_module(library('http/mimetype')).
-:- use_module(library('http/dcg_basics')).
+:- use_module(library(http/thread_httpd)).
+:- use_module(library(http/http_parameters)).
+:- use_module(library(http/html_write)).
+:- use_module(library(http/mimetype)).
+:- use_module(library(http/dcg_basics)).
+:- use_module(library(http/http_dispatch)).
+:- use_module(library(http/http_log)).
+:- use_module(library(http/http_hook)).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 :- use_module(library(url)).
 :- use_module(library(socket)).
 :- use_module(library(option)).
 :- use_module(library(error)).
+:- use_module(library(www_browser)).
 :- use_module(pldoc(doc_process)).
 :- use_module(pldoc(doc_htmlsrc)).
 :- use_module(pldoc(doc_html)).
@@ -56,6 +59,7 @@
 :- use_module(pldoc(doc_man)).
 :- use_module(pldoc(doc_wiki)).
 :- use_module(pldoc(doc_util)).
+:- use_module(pldoc(doc_access)).
 
 /** <module> Documentation server
 
@@ -64,8 +68,11 @@ server that allows for browsing the   documentation  of all files loaded
 _after_ library(pldoc) has been loaded.
 */
 
-:- multifile
-	log_hook/3.			% +Port, +ReqNr, +Result
+:- dynamic
+	doc_server_port/1.
+
+http:location(pldoc,	root(.),    []).
+
 
 %%	doc_server(?Port) is det.
 %%	doc_server(?Port, +Options) is det.
@@ -89,9 +96,6 @@ _after_ library(pldoc) has been loaded.
 %		Allow editing from localhost connections? Default:
 %		=true=.
 %		
-%		* root(Path)
-%		Path of the root.  Default is /
-%	
 %	The predicate doc_server/1 is defined as below, which provides a
 %	good default for development.
 %	
@@ -105,7 +109,6 @@ _after_ library(pldoc) has been loaded.
 %	
 %	@see	doc_browser/1
 
-
 doc_server(Port) :-
 	doc_server(Port,
 		   [ workers(1),
@@ -117,9 +120,7 @@ doc_server(Port, _) :-
 	catch(doc_current_server(Port), _, fail), !.
 doc_server(Port, Options) :-
 	prepare_editor,
-	auth_options(Options, Options1),
-	root_option(Options1, Options2),
-	edit_option(Options2, ServerOptions),
+	host_access_options(Options, ServerOptions),
 	append(ServerOptions,		% Put provides options first,
 	       [ port(Port),		% so they override our defaults
 		 timeout(60),
@@ -128,17 +129,23 @@ doc_server(Port, Options) :-
 		 global(4000),		% from main application
 		 trail(4000)
 	       ], HTTPOptions),
-	http_server(doc_reply, HTTPOptions),
-	call_log_hook(started, 0, port(Port)),
+	http_server(http_dispatch, HTTPOptions),
+	assert(doc_server_port(Port)),
 	print_message(informational, pldoc(server_started(Port))).
 
+%%	doc_current_server(-Port) is det.
+%
+%	TCP/IP port of the documentation server. Fails if no server is
+%	running.
+%	
+%	@tbd	Trap destruction of the server.
+%	@error	existence_error(http_server, pldoc)
+
 doc_current_server(Port) :-
-	http_current_server(doc_reply, Port), !.
-doc_current_server(Port) :-
-	findall(P, http_current_server(_, P), Ports),
-	Ports = [Port], !.		% only one; hope its the right one
+	doc_server_port(Port).
 doc_current_server(_) :-
-	existence_error(http_server, doc_reply).
+	existence_error(http_server, pldoc).
+
 
 %%	doc_browser is det.
 %%	doc_browser(+What) is semidet.
@@ -154,7 +161,7 @@ doc_browser(Spec) :-
 	www_open_url(URL).
 
 browser_url([], Root) :- !,
-	doc_server_root(Root).
+	http_location_by_id(pldoc_root, Root).
 browser_url(Name, URL) :-
 	atom(Name), !,
 	browser_url(Name/_, URL).
@@ -166,22 +173,22 @@ browser_url(Name//Arity, URL) :-
 browser_url(Name/Arity, URL) :- !,
 	must_be(atom, Name),
 	(   predicate(Name, Arity, _, _, _)
-	->  doc_server_root(Root),
+	->  http_location_by_id(pldoc_man, ManLoc),
 	    format(string(S), '~q/~w', [Name, Arity]),
 	    www_form_encode(S, Enc),
-	    format(string(URL), '~wman?predicate=~w', [Root, Enc])
+	    format(string(URL), '~w?predicate=~w', [ManLoc, Enc])
 	;   browser_url(_:Name/Arity, URL)
 	).
 browser_url(Spec, URL) :- !,
 	Spec = M:Name/Arity,
 	doc_comment(Spec, _Pos, _Summary, _Comment), !,
-	doc_server_root(Root),
+	http_location_by_id(pldoc_object, ObjLoc),
 	(   var(M)
 	->  format(string(S), '~q/~w', [Name, Arity])
 	;   format(string(S), '~q:~q/~w', [M, Name, Arity])
 	),
 	www_form_encode(S, Enc),
-	format(string(URL), '~wdoc_for?object=~w', [Root, Enc]).
+	format(string(URL), '~w?object=~w', [ObjLoc, Enc]).
 
 %%	prepare_editor
 %
@@ -194,223 +201,53 @@ prepare_editor :-
 prepare_editor.
 
 
-doc_reply(Request) :-
-	flag('$pldoc_current_request', N, N+1),
-	call_log_hook(enter, N, Request),
-	call_cleanup(do_reply(Request), Why,
-		     call_log_hook(exit, N, Why)).
-
-do_reply(Request) :-
-	memberchk(peer(Peer), Request),
-	select(path(Path0), Request, Request1),
-	(   allowed_peer(Peer)
-	->  debug(pldoc, 'HTTP ~q', [Path0]),
-	    (	normalise_path(Path0, Path),
-		reply(Path, [path(Path)|Request1])
-	    ->	true
-	    ;	throw(http_reply(not_found(Path0)))
-	    )		      
-	;   throw(http_reply(forbidden(Path0)))
-	).
-
-
-%%	call_log_hook(+Port, +ReqNR, +Data)
-%
-%	Call log_hook/3, but always succeed.
-
-call_log_hook(Port, ReqNR, Data) :-
-	log_hook(Port, ReqNR, Data), !.
-call_log_hook(_, _, _).
-
-
-		 /*******************************
-		 *	  ACCESS CONTROL	*
-		 *******************************/
-
-:- dynamic
-	allow_from/1,
-	deny_from/1.
-
-%%	auth_options(+AllOptions, -NoAuthOptions) is det.
-%
-%	Filter the authorization options from   AllOptions,  leaving the
-%	remaining options in NoAuthOptions.
-
-auth_options([], []).
-auth_options([H|T0], T) :-
-	auth_option(H), !,
-	auth_options(T0, T).
-auth_options([H|T0], [H|T]) :-
-	auth_options(T0, T).
-
-auth_option(allow(From)) :-
-	assert(allow_from(From)).
-auth_option(deny(From)) :-
-	assert(deny_from(From)).
-
-%%	match_peer(:RuleSet, +PlusMin, +Peer) is semidet.
-%
-%	True if Peer is covered by the   ruleset RuleSet. Peer is a term
-%	ip(A,B,C,D). RuleSet is a predicate with   one  argument that is
-%	either  a  partial  ip  term,  a    hostname  or  a  domainname.
-%	Domainnames start with a '.'.
-%	
-%	@param PlusMin	Positive/negative test.  If IP->Host fails, a
-%		       	positive test fails, while a negative succeeds.
-%			I.e. deny('.com') succeeds for unknown IP
-%			addresses.
-
-match_peer(Spec, _, Peer) :-
-	call(Spec, Peer), !.
-match_peer(Spec, PM, Peer) :-
-	(   call(Spec, HOrDom), atom(HOrDom)
-	->  (   catch(tcp_host_to_address(Host, Peer), E, true),
-	        var(E)
-	    ->	call(Spec, HostOrDomain),
-		atom(HostOrDomain),
-		(   sub_atom(HostOrDomain, 0, _, _, '.')
-		->  sub_atom(Host, _, _, 0, HostOrDomain)
-		;   HostOrDomain == Host
-		)
-	    ;   PM == (+)
-	    ->	!, fail
-	    ;	true
-	    )
-	).
-	
-%%	allowed_peer(+Peer) is semidet.
-%
-%	True if Peer is allowed according to the rules.
-
-allowed_peer(Peer) :-
-	match_peer(deny_from, -, Peer), !,
-	match_peer(allow_from, +, Peer).
-allowed_peer(Peer) :-
-	allow_from(_), !,
-	match_peer(allow_from, +, Peer).
-allowed_peer(_).
-
-
-:- dynamic
-	can_edit/1.
-
-%%	allow_edit(+Request) is semidet.
-%
-%	True if, given Request, we allow editing sources.
-
-allow_edit(_) :-
-	can_edit(false), !, 
-	fail.
-allow_edit(Request) :-
-	(   memberchk(x_forwarded_for(Forwarded), Request),
-	    primary_forwarded_host(Forwarded, IPAtom),
-	    parse_ip(IPAtom, Peer)
-	->  true
-	;   memberchk(peer(Peer), Request)
-	),
-	match_peer(localhost, +, Peer).
-
-
-%%	primary_forwarded_host(+Spec, -Host) is det.
-%
-%	x_forwarded host contains multiple hosts seperated   by  ', ' if
-%	there are multiple proxy servers in   between.  The first one is
-%	the one the user's browser knows about.
-
-primary_forwarded_host(Spec, Host) :-
-	sub_atom(Spec, B, _, _, ','), !,
-	sub_atom(Spec, 0, B, _, Host).
-primary_forwarded_host(Host, Host).
-
-
-localhost(ip(127,0,0,1)).
-localhost(localhost).
-
-parse_ip(Atom, IP) :-
-	atom_codes(Atom, Codes),
-	phrase(ip(IP), Codes).
-
-%%	ip(?IP)// is semidet.
-%
-%	Parses A.B.C.D into ip(A,B,C,D)
-
-ip(ip(A,B,C,D)) -->
-	integer(A), ".", integer(B), ".", integer(C), ".", integer(D).
-	
-edit_option(Options0, Options) :-
-	select_option(edit(Bool), Options0, Options), !,
-	assert(can_edit(Bool)).
-edit_option(Options, Options).
-
-
-		 /*******************************
-		 *	       ROOT		*
-		 *******************************/
-
-:- dynamic
-	root/1.
-
-root_option(Options0, Options) :-
-	select_option(root(Root), Options0, Options), !,
-	assert(root(Root)).
-root_option(Options, Options).
-	
-%%	doc_server_root(?Root) is semidet.
-%
-%	True if Root is the root of our documentation server. Default is
-%	=|/|=. Can be set with the =root= option of doc_server/1.
-
-doc_server_root(Root) :-
-	(   root(Root0)
-	->  Root = Root0
-	;   Root = /
-	).
-
-
-%%	normalise_path(+Path0, -NormalPath) is det.
-%
-%	Make paths relative to / if it was moved.
-
-normalise_path(Path0, Path) :-
-	(   doc_server_root(/)
-	->  Path = Path0
-	;   doc_server_root(Root),
-	    atom_concat(Root, Rest, Path0)
-	->  atom_concat(/, Rest, Path)
-	).
-
-
 		 /*******************************
 		 *	    USER REPLIES	*
 		 *******************************/
 
-:- discontiguous
-	reply/2.
+:- http_handler(pldoc(.),	   pldoc_root,
+		[prefix, authentication(pldoc(read))]).
+:- http_handler(pldoc(file),	   pldoc_file,	   []).
+:- http_handler(pldoc(directory),  pldoc_dir,	   []).
+:- http_handler(pldoc(edit),	   pldoc_edit,
+		[authentication(pldoc(edit))]).
+:- http_handler(pldoc(doc),	   pldoc_doc,	   [prefix]).
+:- http_handler(pldoc(man),	   pldoc_man,	   []).
+:- http_handler(pldoc(doc_for),	   pldoc_object,   []).
+:- http_handler(pldoc(search),	   pldoc_search,   []).
+:- http_handler(pldoc('package/'), pldoc_package,  [prefix]).
+:- http_handler(pldoc('res/'),	   pldoc_resource, [prefix]).
 
-%	/
+
+%%	pldoc_root(+Request)
 %	
 %	Reply using the index-page  of   the  Prolog  working directory.
 %	There are various options for the   start directory. For example
 %	we could also use the file or   directory of the file that would
 %	be edited using edit/0.
 
-reply(/, _) :-
+pldoc_root(Request) :-
+	http_location_by_id(pldoc_root, Root),
+	memberchk(path(Path), Request),
+	Root \== Path, !,
+	existence_error(http_location, Path).
+pldoc_root(_Request) :-
 	working_directory(Dir0, Dir0),
 	allowed_directory(Dir0), !,
 	ensure_slash_end(Dir0, Dir1),
 	doc_file_href(Dir1, Ref0),
 	atom_concat(Ref0, 'index.html', Index),
 	throw(http_reply(see_other(Index))).
-reply(/, _) :-
+pldoc_root(_Request) :-
 	reply_page('PlDoc directory index',
 		   \doc_links('', [])).
 
 
-%	/file?file=REF
-%	
-%	Reply using documentation of file
+%%	pldoc_file(+Request)
+%
+%	Hander for /file?file=File, providing documentation for File.
 
-reply('/file', Request) :-
+pldoc_file(Request) :-
 	http_parameters(Request,
 			[ file(File, [])
 			]),
@@ -421,12 +258,12 @@ reply('/file', Request) :-
 	format('Content-type: text/html~n~n'),
 	doc_for_file(File, current_output, []).
 
-%	/edit?file=REF
-%	
-%	Start SWI-Prolog editor on file
+%%	pldoc_edit(+Request)
+%
+%	Handler for /edit?file=REF, starting the   SWI-Prolog  editor on
+%	File.
 
-reply('/edit', Request) :-
-	allow_edit(Request), !,
+pldoc_edit(Request) :-
 	http_parameters(Request,
 			[ file(File,     [optional(true)]),
 			  module(Module, [optional(true)]),
@@ -446,15 +283,16 @@ reply('/edit', Request) :-
 	reply_page('Edit',
 		   [ p(['Started ', Cmd])
 		   ]).
-reply('/edit', _Request) :-
+pldoc_edit(_Request) :-
 	throw(http_reply(forbidden('/edit'))).
 
 
-%	/directory?dir=Dir
-%	
-%	Give index of directory.  Mapped to /doc/Dir/index.html.
+%%	pldoc_dir(+Request)
+%
+%	Handler for /directory?dir=Dir, providing an index for
+%	Dir.  Mapped to /doc/Dir/index.html.
 
-reply('/directory', Request) :-
+pldoc_dir( Request) :-
 	http_parameters(Request,
 			[ dir(Dir0, [])
 			]),
@@ -491,7 +329,32 @@ allowed_file(File) :-
 	allowed_directory(Dir).
 
 
-%	/doc/Path
+%%	pldoc_resource(+Request)
+%
+%	Handler for /res/File, serving CSS, JS and image files.
+
+pldoc_resource(Request) :-
+	http_location_by_id(pldoc_resource, ResRoot),
+	memberchk(path(Path), Request),
+	atom_concat(ResRoot, File, Path),
+	file(File, Local),
+	http_reply_file(pldoc(Local), [], Request).
+
+file('pldoc.css',     'pldoc.css').
+file('pllisting.css', 'pllisting.css').
+file('pldoc.js',      'pldoc.js').
+file('edit.gif',      'edit.gif').
+file('up.gif',        'up.gif').
+file('source.gif',    'source.gif').
+file('zoomin.gif',    'zoomin.gif').
+file('zoomout.gif',   'zoomout.gif').
+file('reload.gif',    'reload.gif').
+file('favicon.ico',   'favicon.ico').
+
+
+%%	pldoc_doc(+Request)
+%	
+%	Handler for /doc/Path
 %	
 %	Reply documentation of a file. Path is  the absolute path of the
 %	file for which to return the  documentation. Extension is either
@@ -500,8 +363,10 @@ allowed_file(File) :-
 %	Note that we reply  with  pldoc.css   if  the  file  basename is
 %	pldoc.css to allow for a relative link from any directory.
 
-reply(ReqPath, Request) :-
-	atom_concat('/doc', AbsFile0, ReqPath),
+pldoc_doc(Request) :-
+	memberchk(path(ReqPath), Request),
+	http_location_by_id(pldoc_doc, Me),
+	atom_concat(Me, AbsFile0, ReqPath),
 	(   sub_atom(ReqPath, _, _, 0, /)
 	->  atom_concat(ReqPath, 'index.html', File),
 	    throw(http_reply(moved(File)))
@@ -511,10 +376,10 @@ reply(ReqPath, Request) :-
 	->  documentation(AbsFile, Request)
 	).
 
-documentation(Path, _Request) :-
+documentation(Path, Request) :-
 	file_base_name(Path, Base),
 	file(_, Base), !,			% serve pldoc.css, etc.
-	reply_file(pldoc(Base)).
+	http_reply_file(pldoc(Base), [], Request).
 documentation(Path, Request) :-
 	Index = '/index.html',
 	sub_atom(Path, _, _, 0, Index), 
@@ -571,7 +436,7 @@ documentation(Path, Request) :-
 %	localhost.
 
 edit_options(Request, [edit(true)]) :-
-	allow_edit(Request), !.
+	catch(http:authenticate(pldoc(edit), Request, _), _, fail), !.
 edit_options(_, []).
 
 
@@ -599,33 +464,12 @@ clean_path(Path0, Path) :-
 clean_path(Path, Path).
 
 
-%	/pldoc.css
-%	
-%	Reply the documentation style-sheet.
+%%	pldoc_man(+Request)
+%
+%	Handler for /man?predicate=PI, providing  documentation from the
+%	manual on the predicate PI.
 
-reply(Path, _Request) :-
-	file(Path, LocalFile),
-	reply_file(pldoc(LocalFile)).
-
-file('/pldoc.css',     'pldoc.css').
-file('/pllisting.css', 'pllisting.css').
-file('/pldoc.js',      'pldoc.js').
-file('/edit.gif',      'edit.gif').
-file('/up.gif',	       'up.gif').
-file('/source.gif',    'source.gif').
-file('/zoomin.gif',    'zoomin.gif').
-file('/zoomout.gif',   'zoomout.gif').
-file('/reload.gif',    'reload.gif').
-file('/favicon.ico',   'favicon.ico').
-
-
-%	/man?predicate=PI
-%	
-%	Provide documentation from the manual.
-%	
-%	@tbd	Make link to reference manual.
-
-reply('/man', Request) :-
+pldoc_man(Request) :-
 	http_parameters(Request,
 			[ predicate(PI, [])
 			]),
@@ -634,11 +478,12 @@ reply('/man', Request) :-
 		   [ \man_page(PI, [])
 		   ]).
 
-%	/doc_for?object=Term
-%	
-%	Provide documentation for the given term
+%%	pldoc_object(+Request)
+%
+%	Handler for /doc_for?object=Term, Provide  documentation for the
+%	given term.
 
-reply('/doc_for', Request) :-
+pldoc_object(Request) :-
 	http_parameters(Request,
 			[ object(Atom, [])
 			]),
@@ -653,11 +498,11 @@ reply('/doc_for', Request) :-
 		   ]).
 
 
-%	/search?for=String
-%	
-%	Search for String
+%%	pldoc_search(+Request)
+%
+%	Handler for /search?for=String, searching for String.
 
-reply('/search', Request) :-
+pldoc_search(Request) :-
 	http_parameters(Request,
 			[ for(For, [length > 1]),
 			  in(In,
@@ -683,19 +528,21 @@ reply('/search', Request) :-
 				   ])
 		   ]).
 
-%	/package/Name
-%	
-%	Show documentation file of a package.  Exploits the file
-%	search path =package_documentation=.
+%%	pldoc_package(+Request)
+%
+%	Handler  for  /package/Name,  providing  documentation  for  the
+%	SWI-Prolog  package  Name.  Exploits  the    file   search  path
+%	=package_documentation=.
 
-reply(Path, _Request) :-
-	atom_concat('/package/', Package, Path), !,
+pldoc_package(Request) :-
+	http_location_by_id(pldoc_package, Path),
+	atom_concat(Path, Package, Path), !,
 	absolute_file_name(package_documentation(Package),
 			   DocFile,
 			   [ access(read),
 			     file_errors(fail)
 			   ]),
-	reply_file(DocFile).
+	http_reply_file(DocFile, [], Request).
 
 
 
@@ -709,11 +556,6 @@ reply_page(Title, Content) :-
 	format('Content-type: text/html~n~n'),
 	print_html_head(current_output),
 	print_html(Tokens).
-
-reply_file(File) :-
-	absolute_file_name(File, Path, [access(read)]),
-	file_mime_type(Path, MimeType),
-	throw(http_reply(file(MimeType, Path))).
 
 
 		 /*******************************
@@ -742,8 +584,9 @@ param(source,
 	prolog:message/3.
 
 prolog:message(pldoc(server_started(Port))) -->
+	{ http_location_by_id(pldoc_root, Root) },
 	[ 'Started Prolog Documentation server at port ~w'-[Port], nl,
-	  'You may access the server at http://localhost:~w/'-[Port]
+	  'You may access the server at http://localhost:~w~w'-[Port, Root]
 	].
 
 

@@ -261,16 +261,8 @@ http_status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
 http_status_reply(not_modified, Out, HrdExtra) :- !,
-	phrase(page([ title('304 Not Modified')
-		    ],
-		    [ h1('Not Modified'),
-		      p(['The resource has not changed']),
-		      \address
-		    ]),
-	       HTML),
-	phrase(reply_header(status(not_modified, HTML), HrdExtra), Header),
-	format(Out, '~s', [Header]),
-	print_html(Out, HTML).
+	phrase(reply_header(status(not_modified), HrdExtra), Header),
+	format(Out, '~s', [Header]).
 http_status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 	'$messages':translate_message(ErrorTerm, Lines, []),
 	phrase(page([ title('500 Internal server error')
@@ -283,30 +275,23 @@ http_status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 	phrase(reply_header(status(server_error, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(resource_error(ErrorTerm), Out, HrdExtra) :- !,
+http_status_reply(unavailable(WhyHTML), Out, HdrExtra) :- !,
+	phrase(page([ title('503 Service Unavailable')
+		    ],
+		    [ h1('Service Unavailable'),
+		      WhyHTML,
+		      \address
+		    ]),
+	       HTML),
+	phrase(reply_header(status(service_unavailable, HTML), HdrExtra), Header),
+	format(Out, '~s', [Header]),
+	print_html(Out, HTML).
+http_status_reply(resource_error(ErrorTerm), Out, HdrExtra) :- !,
 	'$messages':translate_message(ErrorTerm, Lines, []),
-	phrase(page([ title('503 Service Unavailable')
-		    ],
-		    [ h1('Service Unavailable'),
-		      p(['The server is temporarily out of resources, please try again later']),
-		      p(\html_message_lines(Lines)),
-		      \address
-		    ]),
-	       HTML),
-	phrase(reply_header(status(service_unavailable, HTML), HrdExtra), Header),
-	format(Out, '~s', [Header]),
-	print_html(Out, HTML).
-http_status_reply(busy, Out, HrdExtra) :- !,
-	phrase(page([ title('503 Service Unavailable')
-		    ],
-		    [ h1('Service Unavailable'),
-		      p(['The server is temporarily out of resources, please try again later']),
-		      \address
-		    ]),
-	       HTML),
-	phrase(reply_header(status(service_unavailable, HTML), HrdExtra), Header),
-	format(Out, '~s', [Header]),
-	print_html(Out, HTML).
+	http_status_reply(unavailable(p(\html_message_lines(Lines))), Out, HdrExtra).
+http_status_reply(busy, Out, HdrExtra) :- !,
+	HTML = p(['The server is temporarily out of resources, please try again later']),
+	http_status_reply(unavailable(HTML), Out, HdrExtra).
 
 
 html_message_lines([]) -->
@@ -726,6 +711,10 @@ reply_header(see_other(To,Tokens),HdrExtra) -->
 	header_fields(HdrExtra),
 	content_length(html(Tokens)),
 	content_type(text/html, utf8),
+	"\r\n".
+reply_header(status(Status), HdrExtra) --> % Empty messages: 1xx, 204 and 304
+	vstatus(Status),
+	header_fields(HdrExtra),
 	"\r\n".
 reply_header(status(Status, Tokens), HdrExtra) -->
 	vstatus(Status),

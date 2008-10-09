@@ -38,6 +38,7 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <errno.h>
 
 static functor_t FUNCTOR_access1;
 static functor_t FUNCTOR_modified1;
@@ -122,7 +123,7 @@ pl_set_time_file(term_t spec, term_t old, term_t new)
     return FALSE;
 
   if ( stat(name, &sbuf) )
-    return pl_error(NULL, 0, NULL, ERR_ERRNO, name, "stat");
+    return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "stat", "file", spec);
 
   add_time_option(old, FUNCTOR_access1,   sbuf.st_atime);
   add_time_option(old, FUNCTOR_modified1, sbuf.st_mtime);
@@ -141,7 +142,7 @@ pl_set_time_file(term_t spec, term_t old, term_t new)
       return FALSE;
 
     if ( utime(name, &tbuf) != 0 )
-      return pl_error(NULL, 0, NULL, ERR_ERRNO, name, "set_time");
+      return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "set_time", "file", spec);
   }
 #else
     return pl_error(NULL, 0, NULL, ERR_NOTIMPLEMENTED, "set_time", name);

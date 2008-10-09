@@ -49,7 +49,7 @@ process is cached to achieve optimal performance.
 @author	Jan Wielemaker
 */
 
-%%	http_authenticate(+Type, +Request, -User)
+%%	http_authenticate(+Type, +Request, -Fields)
 %
 %	True if Request contains the   information to continue according
 %	to Type. Type identifies the required authentication technique:
@@ -73,7 +73,7 @@ process is cached to achieve optimal performance.
 %	code to generate an HTTP 401 reply.
 %	
 %	==
-%	(   http_authenticate(basic(passwd), Request, User)
+%	(   http_authenticate(basic(passwd), Request, Fields)
 %	->  true
 %	;   throw(http_reply(authorise(basic, Realm)))
 %	).
@@ -82,7 +82,7 @@ process is cached to achieve optimal performance.
 %	@tbd	Should we also cache failures to reduce the risc of
 %		DoS attacks?
 
-http_authenticate(basic(File), Request, User) :-
+http_authenticate(basic(File), Request, [user(User)]) :-
 	memberchk(authorization(Text), Request),
 	debug(http_authenticate, 'Authorization: ~w', [Text]),
 	(   cached_authenticated(Text, File, User)

@@ -68,6 +68,7 @@
 :- use_module(library(url)).
 :- use_module(library(readutil)).
 :- use_module(library('http/html_write')).
+:- use_module(library('http/http_dispatch')).
 :- use_module(library(doc_http)).
 :- use_module(library(debug)).
 :- use_module(doc_process).
@@ -275,17 +276,14 @@ file_title(Title, File, Options) -->
 
 reload_button(Base, Options) -->
 	{ option(edit(true), Options), !,
-	  option(public_only(Public), Options, true),
-	  format(string(HREF), '~w?reload=true&public_only=~w', 
-		 [Base, Public]),
-	  doc_server_root(Root)
+	  option(public_only(Public), Options, true)
 	},
-	html(a(href=HREF,
+	html(a(href(Base+[reload(true), public_only(Public)]),
 	       img([ %class(icon),
 		     height=24,
 		     alt('Reload'),
 		     style('padding-top:4px; border:0;'),
-		     src(Root+'reload.gif')
+		     src(location_by_id(pldoc_resource)+'reload.gif')
 		   ]))).
 reload_button(_, _) -->
 	[].
@@ -298,19 +296,17 @@ reload_button(_, _) -->
 
 edit_button(File, Options) -->
 	{ option(edit(true), Options), !,
-	  option(button_height(H), Options, 24),
-	  www_form_encode(File, Enc),
-	  doc_server_root(Root),
-	  format(string(HREF), '~wedit?file=~w', [Root, Enc]),
-	  format(string(OnClick), 'HTTPrequest("~w")', [HREF])
+	  option(button_height(H), Options, 24)
 	},
-	html(a([ onClick(OnClick),
+	html(a([ onClick('HTTPrequest(\'' + 
+			 location_by_id(pldoc_edit) + [file(File)] +
+			 '\')'),
 		 onMouseOver('window.status=\'Edit file\'; return true;')
 	       ],
 	       img([ height(H),
 		     alt(edit),
 		     style('border:0'),
-		     src(Root+'edit.gif')
+		     src(location_by_id(pldoc_resource)+'edit.gif')
 		 ]))).
 edit_button(_, _) -->
 	[].
@@ -324,20 +320,19 @@ zoom_button(_, Options) -->
 	{ option(files(_Map), Options) }, !.	% generating files
 zoom_button(Base, Options) -->
 	{   (   option(public_only(true), Options, true)
-	    ->  format(string(HREF), '~w?public_only=false', [Base]),
-		Zoom = 'zoomin.gif',
-		Alt = 'Show all'
-	    ;   format(string(HREF), '~w?public_only=true', [Base]),
-		Zoom = 'zoomout.gif',
-		Alt = 'Show public'
-	    ),
-	    doc_server_root(Root)
+	    ->  Zoom = 'zoomin.gif',
+		Alt = 'Show all',
+		PublicOnly = false
+	    ;   Zoom = 'zoomout.gif',
+		Alt = 'Show public',
+		PublicOnly = true
+	    )
 	},
-	html(a(href=HREF,
+	html(a(href(Base+[public_only(PublicOnly)]),
 	       img([ height=24,
 		     alt(Alt),
 		     style('padding-top:4px; border:0;'),
-		     src(Root+Zoom)
+		     src(location_by_id(pldoc_resource)+Zoom)
 		   ]))).
 	
 
@@ -349,18 +344,16 @@ source_button(_File, Options) -->
 	{ option(files(_Map), Options) }, !.	% generating files
 source_button(File, Options) -->
 	{ (   is_absolute_file_name(File)
-	  ->  doc_file_href(File, HREF0),
-	      atom_concat(HREF0, '?source=true', HREF)
-	  ;   format(string(HREF), '~w?source=true', [File])
+	  ->  doc_file_href(File, HREF0)
+	  ;   HREF0 = File
 	  ),
-	  option(button_height(H), Options, 24),
-	  doc_server_root(Root)
+	  option(button_height(H), Options, 24)
 	},
-	html(a(href=HREF,
+	html(a(href(HREF0+[source(true)]),
 	       img([ height(H),
 		     alt('Show source'),
 		     style('padding-top:4px; border:0;'),
-		     src(Root+'source.gif')
+		     src(location_by_id(pldoc_resource)+'source.gif')
 		   ]))).
 	
 
@@ -520,12 +513,11 @@ is_pi(_//_).
 object_page(Obj, Options) -->
 	prolog:doc_object_page(Obj, Options).
 object_page(Obj, Options) -->
-	{ doc_comment(Obj, File:_Line, _Summary, _Comment),
-	  doc_server_root(Root),
-	  format(string(FileRef), '~wdoc~w', [Root, File])
+	{ doc_comment(Obj, File:_Line, _Summary, _Comment)
 	},
 	html([ div(class(navhdr),
-		   [ span(style('float:left'), a(href(FileRef), File)),
+		   [ span(style('float:left'),
+			  a(href(location_by_id(pldoc_doc)+File), File)),
 		     span(style('float:right'), \search_form(Options)),
 		     br(clear(both))
 		   ]),
@@ -553,13 +545,12 @@ doc_write_html(Out, Title, Doc) :-
 %	links to the style-sheet and javaScript files.
 
 doc_page_dom(Title, Body, DOM) :-
-	doc_server_root(Root),
 	DOM = html([ head([ title(Title),
 			    link([ rel(stylesheet),
 				   type('text/css'),
-				   href('pldoc.css')
+				   href(location_by_id(pldoc_resource)+'pldoc.css')
 				 ]),
-			    script([ src(Root+'pldoc.js'),
+			    script([ src(location_by_id(pldoc_resource)+'pldoc.js'),
 				     type('text/javascript')
 				   ], [])
 			  ]),
@@ -740,23 +731,18 @@ pred_edit_button2(Name/Arity, Options) -->
 	     )
 	}, !.
 pred_edit_button2(Name/Arity, Options) -->
-	{ doc_server_root(Root),
-	  www_form_encode(Name, QName),
-	  (   option(module(M), Options)
-	  ->  www_form_encode(M, QM),
-	      format(string(OnClick),
-		     'HTTPrequest("~wedit?name=~w&arity=~w&module=~w")',
-		     [Root, QName, Arity, QM])
-	  ;   format(string(OnClick),
-		     'HTTPrequest("~wedit?name=~w&arity=~w")',
-		     [Root, QName, Arity])
+	{ (   option(module(M), Options)
+	  ->  Extra = [module(M)]
+	  ;   Extra = []
 	  )
 	},
-	html(a([ onClick(OnClick)
+	html(a([ onClick('HTTPrequest(\'' +
+			 location_by_id(pldoc_edit)+[name(Name),arity(Arity)|Extra] +
+			 '\')')
 	       ],
 	       img([ height=12,
 		     style('border:0;'),
-		     src(Root+'edit.gif')
+		     src(location_by_id(pldoc_resource)+'edit.gif')
 		   ]))).
 pred_edit_button2(_, _) --> !,
 	[].
@@ -782,14 +768,13 @@ object_edit_button(_, _) -->
 pred_source_button(PI0, Options0) -->
 	{ canonise_predref(PI0, PI, Options0, Options),
 	  option(module(M), Options, _),
-	  pred_source_href(PI, M, HREF), !,
-	  doc_server_root(Root)
+	  pred_source_href(PI, M, HREF), !
 	},
 	html(a([ href(HREF)
 	       ],
 	       img([ height=12,
 		     style('border:0;'),
-		     src(Root+'source.gif')
+		     src(location_by_id(pldoc_resource)+'source.gif')
 		   ]))).
 pred_source_button(_, _) -->
 	[].
@@ -1017,11 +1002,12 @@ manref(Name/Arity, HREF, Options) :-
 	format(string(FragmentId), '~w/~d', [Name, Arity]),
 	www_form_encode(FragmentId, EncId),
 	(   option(files(_Map), Options)
-	->  option(man_server(Root), Options,
-		   'http://gollem.science.uva.nl/SWI-Prolog/pldoc/')
-	;   doc_server_root(Root)
+	->  option(man_server(ManHandler), Options,
+		   'http://gollem.science.uva.nl/SWI-Prolog/pldoc/man')
+	;   http_location_by_id(pldoc_man, ManHandler)
 	),
-	format(string(HREF), '~wman?predicate=~w', [Root, EncId]).
+	http_location_by_id(pldoc_man, ManHandler),
+	format(string(HREF), '~w?predicate=~w', [ManHandler, EncId]).
 	
 
 %%	pred_href(+NameArity, +Module, -HREF) is semidet.
@@ -1039,7 +1025,6 @@ pred_href(Name/Arity, Module, HREF) :-
 	format(string(FragmentId), '~w/~d', [Name, Arity]),
 	www_form_encode(FragmentId, EncId),
 	functor(Head, Name, Arity),
-	doc_server_root(Root),
 	(   catch(relative_file(Module:Head, File), _, fail)
 	->  format(string(HREF), '~w#~w', [File, EncId])
 	;   in_file(Module:Head, File)
@@ -1048,8 +1033,10 @@ pred_href(Name/Arity, Module, HREF) :-
 		prolog:doc_object_summary(Name/Arity, packages, _, _)
 	    ->	format(string(FragmentId), '~w/~d', [Name, Arity]),
 		www_form_encode(FragmentId, EncId),
-		format(string(HREF), '~wman?predicate=~w', [Root, EncId])
-	    ;	format(string(HREF), '~wdoc~w#~w', [Root, File, EncId])
+		http_location_by_id(pldoc_man, ManHandler),
+		format(string(HREF), '~w?predicate=~w', [ManHandler, EncId])
+	    ;	http_location_by_id(pldoc_doc, DocHandler),
+	        format(string(HREF), '~w~w#~w', [DocHandler, File, EncId])
 	    )
 	).
 
@@ -1072,8 +1059,8 @@ pred_source_href(Name/Arity, Module, HREF) :-
 	(   catch(relative_file(Module:Head, File), _, fail)
 	->  format(string(HREF), '~w?source=true#~w', [File, EncId])
 	;   in_file(Module:Head, File),
-	    doc_server_root(Root),
-	    format(string(HREF), '~wdoc~w?source=true#~w', [Root, File, EncId])
+	    http_location_by_id(pldoc_doc, DocHandler),
+	    format(string(HREF), '~w~w?source=true#~w', [DocHandler, File, EncId])
 	).
 
 
@@ -1117,8 +1104,8 @@ object_href(M:PI0, HREF, Options) :-
 object_href(Obj, HREF, _Options) :-
 	term_to_string(Obj, String),
 	www_form_encode(String, Enc),
-	doc_server_root(Root),
-	format(string(HREF), '~wdoc_for?object=~w', [Root, Enc]).
+	http_location_by_id(pldoc_object, ObjHandler),
+	format(string(HREF), '~w?object=~w', [ObjHandler, Enc]).
 
 expand_pi(Name//Arity0, Name/Arity) :- !,
 	Arity is Arity0+2.
@@ -1236,6 +1223,12 @@ file(File, Options) -->
 	html(a([class(file), href(HREF)], File)).
 file(File, _) -->
 	html(code(class(file), File)).
+
+
+%%	existing_linked_file(+File, -Path) is semidet.
+%
+%	True if File is a path to an existing file relative to the
+%	current file.  Path is the absolute location of File.
 
 existing_linked_file(File, Path) :-
 	catch(b_getval(pldoc_file, CurrentFile), _, fail),

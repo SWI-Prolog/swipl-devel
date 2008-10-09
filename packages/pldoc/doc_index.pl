@@ -43,6 +43,7 @@
 :- use_module(doc_wiki).
 :- use_module(doc_search).
 :- use_module(doc_util).
+:- use_module(library('http/http_dispatch')).
 :- use_module(library('http/html_write')).
 :- use_module(library(readutil)).
 :- use_module(library(url)).
@@ -225,8 +226,8 @@ doc_file_href(File0, HREF) :-
 	insert_alias(File0, File),
 	ensure_slash_start(File, SlashFile),
 	http_location([path(SlashFile)], Escaped),
-	doc_server_root(Root),
-	format(string(HREF), '~wdoc~w', [Root, Escaped]).
+	http_location_by_id(pldoc_doc, DocRoot),
+	format(string(HREF), '~w~w', [DocRoot, Escaped]).
 
 %%	ensure_slash_start(+File0, -File) is det.
 %
@@ -343,10 +344,9 @@ version -->
 
 source_dir_menu(Dir) -->
 	{ findall(D, source_directory(D), List),
-	  sort(List, Dirs),
-	  doc_server_root(Root)
+	  sort(List, Dirs)
 	},
-	html(form([ action(Root+'directory')
+	html(form([ action(location_by_id(pldoc_dir))
 		  ],
 		  [ input([type(submit), value('Go')]),
 		    select(name(dir),

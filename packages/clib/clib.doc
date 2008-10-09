@@ -125,9 +125,13 @@ due to a signal, \arg{Status} is unified with \term{stopped}{Signal}.
 
     \predicate{kill}{2}{+Pid, +Signal}
 Deliver a software interrupt to the process with identifier \arg{Pid}
-using software-interrupt number \arg{Signal}.  See also on_signal/2.
-The meaning of the signal numbers can be found in the Unix manual.%
-\footnote{kill/2 should support interrupt-names as well}.
+using software-interrupt number \arg{Signal}. See also on_signal/2.
+Signals can be specified as an integer or signal name, where signal
+names are derived from the C constant by dropping the \const{SIG} prefix
+and mapping to lowercase. E.g.\ \const{int} is the same as
+\const{SIGINT} in C. The meaning of the signal numbers can be found in
+the Unix manual.% \footnote{kill/2 should support interrupt-names as
+well}.
 
     \predicate{pipe}{2}{-InSream, -OutStream}
 Create a communication-pipe. This is normally used to make a child
