@@ -163,8 +163,8 @@ pl_kill(term_t Pid, term_t Sig)
 
   if ( !PL_get_integer(Pid, &pid) )
     return pl_error("kill", 2, NULL, ERR_ARGTYPE, 1, Pid, "pid");
-  if ( !PL_get_integer(Sig, &sig) )
-    return pl_error("kill", 2, NULL, ERR_ARGTYPE, 2, Sig, "signal");
+  if ( !PL_get_signum_ex(Sig, &sig) )
+    return FALSE;
 
   if ( kill(pid, sig) < 0 )
     return pl_error("kill", 2, NULL, ERR_ERRNO, errno,
