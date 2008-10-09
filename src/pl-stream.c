@@ -2709,7 +2709,7 @@ IOSTREAM *
 Sopen_file(const char *path, const char *how)
 { int fd;
   int oflags = O_BINARY;
-  int flags = SIO_FILE|SIO_TEXT|SIO_RECORDPOS;
+  int flags = SIO_FILE|SIO_TEXT|SIO_RECORDPOS|SIO_FBUF;
   int op = *how++;
   intptr_t lfd;
   enum {lnone=0,lread,lwrite} lock = lnone;
@@ -2834,9 +2834,9 @@ Sfdopen(int fd, const char *type)
 #endif
 
   if ( *type == 'r' )
-    flags = SIO_FILE|SIO_INPUT|SIO_RECORDPOS;
+    flags = SIO_FILE|SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
   else
-    flags = SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS;
+    flags = SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF;
 
   lfd = (intptr_t)fd;
 
@@ -2939,9 +2939,9 @@ Sopen_pipe(const char *command, const char *type)
   { int flags;
 
     if ( *type == 'r' )
-      flags = SIO_PIPE|SIO_INPUT;
+      flags = SIO_PIPE|SIO_INPUT|SIO_FBUF;
     else
-      flags = SIO_PIPE|SIO_OUTPUT;
+      flags = SIO_PIPE|SIO_OUTPUT|SIO_FBUF;
 
     return Snew((void *)fd, flags, &Spipefunctions);
   }
