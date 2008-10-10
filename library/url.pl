@@ -651,7 +651,7 @@ segment_nz_nc_char(C) --> pchar(C).
 %	Extract &Name=Value, ...
 
 query([search(Params)|T], T) -->
-	"?",
+	"?", !,
 	search(Params).
 query(T,T) -->
 	[].
