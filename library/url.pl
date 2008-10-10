@@ -41,9 +41,12 @@
 	    
 	    url_iri/2,			% ?URL, ?IRI
 
-	    file_name_to_url/2		% ?FileName, ?URL
+	    file_name_to_url/2,		% ?FileName, ?URL
+
+	    set_url_encoding/2		% ?Old, +New
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(error)).
 :- use_module(library(utf8)).
 
 /** <module> Analysing and constructing URL
@@ -848,8 +851,12 @@ percent_encode(C, _) -->
 	{ C =< 128 }, !,
 	percent_byte(C).
 percent_encode(C, _) -->		% Unicode characters
-	{ phrase(utf8_codes([C]), Bytes) },
+	{ current_prolog_flag(url_encoding, utf8), !,
+	  phrase(utf8_codes([C]), Bytes)
+	},
 	percent_bytes(Bytes).
+percent_encode(C, _) -->
+	percent_byte(C).
 
 percent_bytes([]) -->
 	"".
@@ -906,6 +913,24 @@ utf8_cont([H|T]) -->
 utf8_cont([]) -->
 	[].
 
+
+%%	set_url_encoding(?Old, +New) is semidet.
+%
+%	Query and set the encoding for URLs.  The default is =utf8=.
+%	The only other defined value is =iso_latin_1=.
+%	
+%	@tbd	Having a global flag is highly inconvenient, but a 
+%		work-around for old sites using ISO Latin 1 encoding.
+
+:- set_prolog_flag(url_encoding, utf8).
+
+set_url_encoding(Old, New) :-
+	current_prolog_flag(url_encoding, Old),
+	(   Old == New
+	->  true
+	;   must_be(oneof([utf8, iso_latin_1]), New),
+	    set_prolog_flag(url_encoding, New)
+	).
 
 
 		 /*******************************
