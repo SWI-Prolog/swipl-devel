@@ -51,7 +51,7 @@
 	index_checked_at/1.
 
 
-%	'$find_library'(+Module, +Name, +Arity, -LoadModule, -Library)
+%%	'$find_library'(+Module, +Name, +Arity, -LoadModule, -Library)
 %
 %	Locate a predicate in the library.  Name and arity are the name
 %	and arity of the predicate searched for.  `Module' is the
@@ -81,7 +81,7 @@
 	library_index(Head, _, Path),
 	functor(Head, Name, Arity).
 
-%	'$define_predicate'(+Head)
+%%	'$define_predicate'(+Head)
 %
 %	Make sure pred can be called.  First test if the predicate is
 %	defined.  If not, invoke the autoloader.
@@ -144,7 +144,7 @@ indexed_directory(Dir) :-
 		*           LOAD INDEX		*
 		********************************/
 
-%	reload_library_index
+%%	reload_library_index
 %	
 %	Reload the index on the next call
 
@@ -154,7 +154,7 @@ reload_library_index :-
 	retractall(index_checked_at(_)).
 
 
-%	load_library_index(?Name, ?Arity) is det.
+%%	load_library_index(?Name, ?Arity) is det.
 %	
 %	Try to find Name/Arity  in  the   library.  If  the predicate is
 %	there, we are happy. If not, we  check whether the set of loaded
@@ -315,15 +315,19 @@ index_header(Fd):-
 		 *	   DO AUTOLOAD		*
 		 *******************************/
 
-%	autoload([options ...]) 
+%%	autoload is det.
+%%	autoload(+Options) is det.
 %
-%	Force all necessary autoloading to be done now.
+%	Force all necessary autoloading to be done _now_.  Options:
+%	
+%	    * verbose(+Boolean)
+%	    If =true=, report on the files loaded.
 
 autoload :-
 	autoload([]).
 
 autoload(Options) :-
-	option(Options, verbose/true, Verbose),
+	al_option(Options, verbose/true, Verbose),
 	'$style_check'(Old, Old), 
 	style_check(+dollar), 
 	current_prolog_flag(autoload, OldAutoLoad),
@@ -349,8 +353,11 @@ needs_autoloading(Module:Head) :-
 	functor(Head, Functor, Arity), 
 	'$in_library'(Functor, Arity, _).
 
-option(Options, Name/Default, Value) :-
+al_option(Options, Name/Default, Value) :-
 	(   memberchk(Name = Value, Options)
+	->  true
+	;   Term =.. [Name,Value],
+	    memberchk(Term, Options)
 	->  true
 	;   Value = Default
 	).
