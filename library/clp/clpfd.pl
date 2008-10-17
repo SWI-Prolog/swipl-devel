@@ -2050,9 +2050,7 @@ integer_kroot(L, U, N, K, R) :-
 %
 % X is not Y.
 
-X #\= Y :- '#\=_internal'(X, Y), reinforce(X), reinforce(Y).
-
-'#\=_internal'(X ,Y) :-
+X #\= Y :-
         (   var(X), integer(Y) ->
             neq_num(X, Y),
             do_queue
@@ -3651,7 +3649,7 @@ run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
 run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
         ;   DY == 0 -> kill(MState), B = 0
-        ;   B == 1 -> kill(MState), DX = 1, DY = 1, '#\=_internal'(X, Y)
+        ;   B == 1 -> kill(MState), DX = 1, DY = 1, X #\= Y
         ;   DX == 1, DY == 1 ->
             (   var(B) ->
                 (   nonvar(X) ->
