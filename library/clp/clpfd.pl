@@ -1840,28 +1840,26 @@ mymin(X, Y, Z) :-
 
 X #>= Y :- clpfd_geq(X, Y).
 
-clpfd_geq(X, Y) :-
+clpfd_geq(X, Y) :- clpfd_geq_(X, Y), reinforce(X), reinforce(Y).
+
+clpfd_geq_(X, Y) :-
         (   var(X), nonvar(Y), Y = Y1 - C, var(Y1), integer(C) ->
-            var_leq_var_plus_const(Y1, X, C),
-            reinforce(X)
+            var_leq_var_plus_const(Y1, X, C)
         ;   var(X), nonvar(Y), Y = Y1 + C, var(Y1), integer(C) ->
             C1 is -C,
-            var_leq_var_plus_const(Y1, X, C1),
-            reinforce(X)
+            var_leq_var_plus_const(Y1, X, C1)
         ;   nonvar(X), var(Y), X = X1 + C, var(X1), integer(C) ->
-            var_leq_var_plus_const(Y, X1, C),
-            reinforce(Y)
+            var_leq_var_plus_const(Y, X1, C)
         ;   nonvar(X), var(Y), X = X1 - C, var(X1), integer(C) ->
             C1 is - C,
-            var_leq_var_plus_const(Y, X1, C1),
-            reinforce(Y)
+            var_leq_var_plus_const(Y, X1, C1)
         ;   nonvar(Y), Y = Z+One, One == 1, integer(Z) ->
             Y1 is Z + 1,
-            clpfd_geq(X, Y1)
+            clpfd_geq_(X, Y1)
         ;   integer(X), nonvar(Y), Y = Z+One, One == 1 ->
             X1 is X - 1,
-            clpfd_geq(X1, Z)
-        ;   parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY), reinforce(RX)
+            clpfd_geq_(X1, Z)
+        ;   parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY)
         ).
 
 var_leq_var_plus_const(X, Y, C) :-
@@ -2052,11 +2050,12 @@ integer_kroot(L, U, N, K, R) :-
 %
 % X is not Y.
 
-X #\= Y :-
+X #\= Y :- '#\=_internal'(X, Y), reinforce(X), reinforce(Y).
+
+'#\=_internal'(X ,Y) :-
         (   var(X), integer(Y) ->
             neq_num(X, Y),
-            do_queue,
-            reinforce(X)
+            do_queue
         ;   var(X), nonvar(Y), Y = V - Z, var(V), ( integer(Z) ; var(Z) ) ->
             x_neq_y_plus_z(V, X, Z)
         ;   var(X), nonvar(Y), Y = V + Z, var(V), ( integer(Z) ; var(Z) ) ->
@@ -2488,7 +2487,7 @@ reinforce(X) :-
         (   current_prolog_flag(clpfd_propagation, full) ->
             % full propagation propagates everything in any case
             true
-        ;   collect_variables(X, [], Vs),
+        ;   term_variables(X, Vs),
             maplist(reinforce_, Vs),
             do_queue
         ).
@@ -3586,7 +3585,7 @@ run_propagator(reified_mod(X,Y,D,Z), MState) :-
 run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
         ;   DY == 0 -> kill(MState), B = 0
-        ;   B == 1 -> kill(MState), DX = 1, DY = 1, X #>= Y
+        ;   B == 1 -> kill(MState), DX = 1, DY = 1, geq(X, Y)
         ;   DX == 1, DY == 1 ->
             (   var(B) ->
                 (   nonvar(X) ->
@@ -3652,7 +3651,7 @@ run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
 run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
         ;   DY == 0 -> kill(MState), B = 0
-        ;   B == 1 -> kill(MState), DX = 1, DY = 1, X #\= Y
+        ;   B == 1 -> kill(MState), DX = 1, DY = 1, '#\=_internal'(X, Y)
         ;   DX == 1, DY == 1 ->
             (   var(B) ->
                 (   nonvar(X) ->
