@@ -1652,9 +1652,11 @@ with similar environment-control predicates, the current value is
 retrieved using \exam{on_signal(Signal, Current, Current)}.
 
 The action description is an atom denoting the name of the predicate
-that will be called if \arg{Signal} arrives.  on_signal/3 is a 
-meta-predicate, which implies that <Module>:<Name> refers the <Name>/1 
-in the module <Module>.
+that will be called if \arg{Signal} arrives. on_signal/3 is a
+meta-predicate, which implies that <Module>:<Name> refers the <Name>/1
+in the module <Module>. The handler is called with a single argument:
+the name of the signal as an atom. The Prolog names for signals is
+explained below.
 
 Two predicate-names have special meaning.  \const{throw} implies Prolog
 will map the signal onto a Prolog exception as described in
@@ -1722,7 +1724,7 @@ call_with_time_limit(MaxTime, Goal) :-
 \end{code}
 
 The signal names are defined by the POSIX standard as symbols of the
-form {\tt SIG_}<SIGNAME>. The Prolog name for a signal is the lowercase
+form {\tt SIG}<SIGNAME>. The Prolog name for a signal is the lowercase
 version of <SIGNAME>. The predicate current_signal/3 may be used to map
 between names and signals.
 

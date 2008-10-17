@@ -298,7 +298,7 @@ allocEvent(struct timeval *at)
 { Event ev = malloc(sizeof(*ev));
 
   if ( !ev )
-  { pl_error(NULL, 0, NULL, ERR_ERRNO, errno);
+  { pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "allocate", "memory", 0);
     return NULL;
   }
 

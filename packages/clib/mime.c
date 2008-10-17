@@ -102,7 +102,7 @@ add_data(const char *ndata, size_t len, void *closure)
       dbuf->buf = malloc(dbuf->allocated);
 
     if ( !dbuf->buf )
-    { pl_error("mime_parse", 3, NULL, ERR_ERRNO, errno);
+    { pl_error("mime_parse", 3, NULL, ERR_ERRNO, errno, "add_data", "mime", 0);
       return -1;
     }
   }
@@ -265,14 +265,14 @@ get_character_data(term_t from, char **data, size_t *len, int *malloced)
 	size_t done, allocated = 1024;
 
 	if ( !(buf = malloc(allocated)) )
-	  return pl_error(NULL, 0, NULL, ERR_ERRNO, errno);
+	  return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "allocate", "memory", 0);
     
 	for( done=0; (c=Sgetcode(stream)) != EOF; )
 	{ if ( done >= allocated )
 	  { allocated *= 2;
 
 	    if ( !(buf = realloc(buf, allocated)) )
-	      return pl_error(NULL, 0, NULL, ERR_ERRNO, errno);
+	      return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "allocate", "memory", 0);
 	  }
 
 	  buf[done++] = c;
@@ -293,7 +293,7 @@ get_character_data(term_t from, char **data, size_t *len, int *malloced)
 	  return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1, arg, "natural");
 	
 	if ( !(buf = malloc(size)) )
-	  return pl_error(NULL, 0, NULL, ERR_ERRNO, errno);
+	  return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "allocate", "memory", 0);
     
 	for( done=0; (c=Sgetcode(stream)) != EOF && done < size; )
 	  buf[done++] = c;

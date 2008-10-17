@@ -61,6 +61,7 @@
 	    xml_is_dom/1		% +Term
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(option)).
 
 :- multifile user:file_search_path/2.
 :- dynamic   user:file_search_path/2.
@@ -321,23 +322,6 @@ load_html_file(File, Term) :-
 			 dialect(sgml),
 			 shorttag(false)
 		       ]).
-
-
-		 /*******************************
-		 *	      UTIL		*
-		 *******************************/
-
-%	select_option(Option(?Value), +OptionList, -RestList)
-%	
-%	Get  value  for  Option,  returning   the  unparsed  options  in
-%	RestList.
-
-select_option(Opt, Options, Rest) :-
-	select(Opt, Options, Rest), !.
-select_option(Opt, Options, Rest) :-
-	functor(Opt, OptName, 1),
-	arg(1, Opt, OptVal),
-	select(OptName=OptVal, Options, Rest), !.
 
 
 		 /*******************************

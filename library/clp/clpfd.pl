@@ -1043,9 +1043,6 @@ intervals_to_domain(Is, D) :-
 
 V in D :-
         fd_variable(V),
-        (   is_drep(D) -> true
-        ;   domain_error(clpfd_domain, D)
-        ),
         drep_to_domain(D, Dom),
         domain(V, Dom).
 
@@ -1062,9 +1059,6 @@ fd_variable(V) :-
 Vs ins D :-
         must_be(list, Vs),
         maplist(fd_variable, Vs),
-        (   is_drep(D) -> true
-        ;   domain_error(clpfd_domain, D)
-        ),
         drep_to_domain(D, Dom),
         domains(Vs, Dom).
 
@@ -2270,7 +2264,6 @@ reify(Expr, B) :-
         ;   var(Expr) -> B = Expr
         ;   integer(Expr) -> B = Expr
         ;   Expr = (V in Drep) ->
-            is_drep(Drep),
             drep_to_domain(Drep, Dom),
             fd_variable(V),
             make_propagator(reified_in(V,Dom,B), Prop),
@@ -2351,6 +2344,9 @@ drep_to_intervals(D1 \/ D2) -->
         drep_to_intervals(D1), drep_to_intervals(D2).
 
 drep_to_domain(DR, D) :-
+        (   is_drep(DR) -> true
+        ;   domain_error(clpfd_domain, DR)
+        ),
         phrase(drep_to_intervals(DR), Is0),
         merge_intervals(Is0, Is1),
         intervals_to_domain(Is1, D).

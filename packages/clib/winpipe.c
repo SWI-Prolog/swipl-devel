@@ -267,7 +267,7 @@ tcp_pipe(term_t Read, term_t Write)
   IOSTREAM *in, *out;
 
   if ( pipe(fd) != 0 )
-    return pl_error("pipe", 2, NULL, ERR_ERRNO, errno, "");
+    return pl_error("pipe", 2, NULL, ERR_ERRNO, errno, "create", "pipe", 0);
 
   in  = Sfdopen(fd[0], "r");
   out = Sfdopen(fd[1], "w");

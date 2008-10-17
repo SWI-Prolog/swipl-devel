@@ -1080,7 +1080,14 @@ wait_for_pid(pid_t pid, term_t code, wait_options *opts)
     else if ( p2 == 0 )
       return PL_unify_atom(code, ATOM_timeout);
     else
-      return pl_error(NULL, 0, "waitpid", ERR_ERRNO, errno);
+    { term_t PID;
+
+    error:
+      PID = PL_new_term_ref();
+      PL_put_integer(PID, pid);
+
+      return pl_error(NULL, 0, "waitpid", ERR_ERRNO, errno, "wait", "process", PID);
+    }
   }
 
   for(;;)
@@ -1091,7 +1098,7 @@ wait_for_pid(pid_t pid, term_t code, wait_options *opts)
     { if ( PL_handle_signals() < 0 )
 	return FALSE;
     } else
-    { return pl_error(NULL, 0, "waitpid", ERR_ERRNO, errno);
+    { goto error;
     }
   }
 }
@@ -1211,7 +1218,11 @@ do_create_process(p_options *info)
       exit(1);
     }
 
-    return pl_error(NULL, 0, "execv", ERR_ERRNO, errno);
+    { term_t exe = PL_new_term_ref();
+      PL_put_atom_chars(exe, info->exe);
+
+      return pl_error(NULL, 0, "execv", ERR_ERRNO, errno, "exec", "process", exe);
+    }
   } else				/* parent */
   { if ( info->pipes > 0 && info->pid == 0 )
     { IOSTREAM *s;
@@ -1399,7 +1410,7 @@ process_kill(term_t pid, term_t signal)
       return pl_error("process_kill", 2, NULL, ERR_EXISTENCE,
 		      "process", pid);
     default:
-      return pl_error("process_kill", 2, "kill", ERR_ERRNO, errno);
+      return pl_error("process_kill", 2, "kill", ERR_ERRNO, errno, "kill", "process", pid);
   }
 #endif /*__WINDOWS__*/
 }

@@ -275,30 +275,23 @@ http_status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 	phrase(reply_header(status(server_error, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(resource_error(ErrorTerm), Out, HrdExtra) :- !,
+http_status_reply(unavailable(WhyHTML), Out, HdrExtra) :- !,
+	phrase(page([ title('503 Service Unavailable')
+		    ],
+		    [ h1('Service Unavailable'),
+		      WhyHTML,
+		      \address
+		    ]),
+	       HTML),
+	phrase(reply_header(status(service_unavailable, HTML), HdrExtra), Header),
+	format(Out, '~s', [Header]),
+	print_html(Out, HTML).
+http_status_reply(resource_error(ErrorTerm), Out, HdrExtra) :- !,
 	'$messages':translate_message(ErrorTerm, Lines, []),
-	phrase(page([ title('503 Service Unavailable')
-		    ],
-		    [ h1('Service Unavailable'),
-		      p(['The server is temporarily out of resources, please try again later']),
-		      p(\html_message_lines(Lines)),
-		      \address
-		    ]),
-	       HTML),
-	phrase(reply_header(status(service_unavailable, HTML), HrdExtra), Header),
-	format(Out, '~s', [Header]),
-	print_html(Out, HTML).
-http_status_reply(busy, Out, HrdExtra) :- !,
-	phrase(page([ title('503 Service Unavailable')
-		    ],
-		    [ h1('Service Unavailable'),
-		      p(['The server is temporarily out of resources, please try again later']),
-		      \address
-		    ]),
-	       HTML),
-	phrase(reply_header(status(service_unavailable, HTML), HrdExtra), Header),
-	format(Out, '~s', [Header]),
-	print_html(Out, HTML).
+	http_status_reply(unavailable(p(\html_message_lines(Lines))), Out, HdrExtra).
+http_status_reply(busy, Out, HdrExtra) :- !,
+	HTML = p(['The server is temporarily out of resources, please try again later']),
+	http_status_reply(unavailable(HTML), Out, HdrExtra).
 
 
 html_message_lines([]) -->
