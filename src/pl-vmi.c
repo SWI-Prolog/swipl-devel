@@ -1959,26 +1959,21 @@ VMI(S_VIRGIN, 0, 0, ())
 { SAVE_REGISTERS(qid);
   DEF = getProcDefinedDefinition(&FR, NULL, DEF PASS_LD);
   LOAD_REGISTERS(qid);
-  FR->predicate = DEF;
 
-#ifdef O_LOGICAL_UPDATE
-  FR->generation     = GD->generation;
-#endif
-  
-					/* reindexDefinition can open foreign frames */
-  lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
-  reindexDefinition(DEF);		/* will block if it needs to do work */
-
-  if ( DEF->codes == SUPERVISOR(virgin) )
-  { DEF->codes = NULL;
-  } else if ( DEF->codes )
-  { PC = DEF->codes;
-    NEXT_INSTRUCTION;
+  if ( FR->predicate != DEF )		/* auto imported/loaded */
+  { FR->predicate = DEF;
+    goto retry_continue;
   }
 
-  FR->predicate = DEF;
-
-  goto old_call;			/* TBD: temporary */
+  if ( createSupervisor(DEF) )
+  { PC = DEF->codes;
+    NEXT_INSTRUCTION;
+  } else
+  { lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+    DEF->codes = NULL;
+    FR->predicate = DEF;
+    goto old_call;			/* TBD: temporary */
+  }
 }
 
 

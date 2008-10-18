@@ -153,11 +153,9 @@ resetProcedure(Procedure proc, bool isnew)
     { unallocClauseIndexTable(def->hash_info);
       def->hash_info = NULL;
     }
-
-    freeCodesDefinition(def);		/* carefully sets to S_VIRGIN */
-  } else
-  { def->codes = SUPERVISOR(virgin);
   }
+
+  freeCodesDefinition(def);		/* carefully sets to S_VIRGIN */
 }
 
 
@@ -2226,9 +2224,6 @@ reindexDefinition(Definition def)
   assert(def->references == 1 || !def->hash_info);
   DEBUG(2, Sdprintf("reindexDefinition(%s)\n", predicateName(def)));
   def->indexPattern &= ~NEED_REINDEX;
-
-  if ( createSupervisor(def) )
-    goto out;
 
   if ( true(def, AUTOINDEX) || pattern == 0x1 )
   { for(cref = def->definition.clauses; cref; cref = cref->next)
