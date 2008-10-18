@@ -29,7 +29,6 @@
 #undef LD
 #define LD LOCAL_LD
 
-static int	duplicate_term(term_t in, term_t copy ARG_LD);
 static bool	unify_with_occurs_check(Word t1, Word t2,
 					occurs_check_t mode ARG_LD);
 
@@ -366,13 +365,7 @@ unify_ptrs(Word t1, Word t2 ARG_LD)
 
   TmpMark(m);
   if ( !(rval = raw_unify_ptrs(t1, t2 PASS_LD)) )
-  { if ( exception_term )
-    { Word ex = valTermRef(exception_term);
-      undo_while_saving_term((mark*)&m, ex);
-    } else
-    { TmpUndo(m);
-    }
-  }
+    TmpUndo(m);
   EndTmpMark(m);
 
   return rval;  
@@ -2974,7 +2967,7 @@ PRED_IMPL("copy_term", 2, copy_term, 0)
 }
 
 
-static int
+int
 duplicate_term(term_t in, term_t copy ARG_LD)
 { return copy_term_refs(in, copy, COPY_ATTRS PASS_LD);
 }

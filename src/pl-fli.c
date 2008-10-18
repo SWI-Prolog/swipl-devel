@@ -3176,8 +3176,12 @@ PL_foreign_control(control_t h)
 int
 PL_raise_exception(term_t exception)
 { GET_LD
-  PL_put_term(exception_bin, exception);
+
+  setVar(*valTermRef(exception_bin));
+  if ( !duplicate_term(exception, exception_bin PASS_LD) )
+    fatalError("Failed to copy exception term");
   exception_term = exception_bin;
+  freezeGlobal(PASS_LD1);
 
   fail;
 }
@@ -3187,10 +3191,7 @@ int
 PL_throw(term_t exception)
 { GET_LD
 
-  PL_put_term(exception_bin, exception);
-  exception_term = exception_bin;
-  assert(exception_term);
-
+  PL_raise_exception(exception);
   if ( LD->exception.throw_environment )
     longjmp(LD->exception.throw_environment->exception_jmp_env, 1);
 

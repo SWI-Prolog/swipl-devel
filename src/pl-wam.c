@@ -1115,22 +1115,6 @@ slotsInFrame(LocalFrame fr, Code PC)
 }
 
 
-static void
-updateMovedTerm(LocalFrame fr, word old, word new)
-{ Code pc = NULL;
-
-  for(; fr; fr=fr->parent)
-  { int slots = slotsInFrame(fr, pc);
-    Word p = argFrameP(fr, 0);
-    
-    for(; slots-- > 0; p++)
-    { if ( *p == old )
-	*p = new;
-    }
-  }
-}
-
-
 #endif /*O_DEBUGGER*/
 
 static int
@@ -1167,8 +1151,12 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
 	if ( trace ) debugstatus.tracing = TRUE;
       }
 
-      PL_put_term(exception_bin, rc ? av+1 : av+0);
-      exception_term = exception_bin;
+      if ( rc )
+      { PL_raise_exception(av+1);	/* copy term again */
+      } else
+      { PL_put_term(exception_bin, av+0);
+	exception_term = exception_bin;
+      }
       
       PL_close_foreign_frame(fid);
       restoreWakeup(wake PASS_LD);
