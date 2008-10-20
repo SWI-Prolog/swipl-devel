@@ -2277,10 +2277,7 @@ b_throw:
 
       if ( ch )
       { int printed = (*valTermRef(exception_printed) == except);
-	word old = except;
 
-				  /* needed to avoid destruction */
-				  /* in the undo */
 	SECURE(checkStacks(FR, ch));
 	dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
 	Undo(ch->mark);
