@@ -1410,6 +1410,7 @@ old_call:				/* See S_VIRGIN */
 
   PC = CL->clause->codes;
   lTop = (LocalFrame)(ARGP + CL->clause->variables);
+  requireStack(local, 0);
 
   if ( nextcl )
   { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);
