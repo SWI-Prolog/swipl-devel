@@ -130,10 +130,10 @@ json.tex:	json.pl json_convert.pl http_json.pl
 		$(PUBLICPL) -q -s txttotex.pl -g txttotex,halt -t 'halt(1)' -- $*.txt
 
 httplog.tex:	http_log.pl
-		$(PLTOTEX) --subsection $<
+		$(PLTOTEX) --subsection 'library(http/http_log)'
 
 httppath.tex:	http_path.pl
-		$(PLTOTEX) --subsection $<
+		$(PLTOTEX) --subsection 'library(http/http_path)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
