@@ -1,3 +1,6 @@
+[Oct 13 2008]
+
+ * CLEANUP: Avoid repetition and warnings on option processing predicates.  Matt Lilley.
 [Sep 11 2008]
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf

@@ -1,3 +1,61 @@
+[Oct 9 2008]
+
+ * ADDED: More flexible support for HTTP 503 (service unavailable) replies.
+   
+[Oct 8 2008]
+
+ * FIXED: drop body of HTTP 304 response
+   
+[Oct 7 2008]
+
+ * MODIFIED: Generalized the HTTP dispatch module authentication interface.
+       * Instead of returning an atom representing the authenticated
+       user, the hook must deliver a list of options that is added to
+       the request.  The new API allows for multiple authentication
+       hooks on the same location.  It is used by PlDoc to provide host
+       access control.  See doc_access.pl from the PlDoc package.
+   
+[Oct 6 2008]
+
+ * FIXED: Updated http_error to deal with new HTTP server
+   
+[Oct 5 2008]
+
+ * ADDED: Support http_path.pl specifications in http_handler/3.
+   
+ * MODIFIED: library(http/http_dispatch): Handler changes.
+   :- http_handler(prefix(Path), Action, Options) is now
+   translated into http_handler(Path, Action, [prefix|Options]) with a
+   warning.  Future versions will drop the prefix(Path) syntax as it
+   becomes ambiguous after integrating http_path.pl with the handler
+   declarations.
+   
+ * ADDED: html_write.pl: Support href(loc+[name1(value1),name2(value2)])
+   
+[Oct 3 2008]
+
+ * ADDED: Support encode(Value) and describe http location handling.
+   
+ * ADDED: http_location_by_id/2 and location_by_id(ID) to html_write values.
+   Suggested by Jacco van Ossenbruggen.
+   
+[Oct 2 2008]
+
+ * ADDED: Allow redefining the HTTP server address output of non-200 pages.
+   
+ * ADDED: Provide hostname in http error messages
+   
+ * FIXED: File descriptor leak in http session management.
+   
+[Oct 1 2008]
+
+ * FIXED: undefined parse_url_ex/3 in http_open.pl (deals with redirections)
+   
+[Sep 30 2008]
+
+ * ADDED: Support for proxy routes in HTTP session management.  Also cleanup
+   and additional tests in library(http/http_session).
+   
 [Sep 11 2008]
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf

@@ -1,3 +1,8 @@
+[Oct 8 2008]
+
+ * MODIFIED: rdf_load/[1,2] now raises an existence_error if the input does not exist.
+   
+ * CLEANUP: Generalise plugin interface to deal with different storage envelopes in rdf_load/2.
 [Sep 23 2008]
 
  * ADDED: Preserve the modification time of the source URL in binary RDF files.
