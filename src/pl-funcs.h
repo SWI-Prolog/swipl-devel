@@ -558,6 +558,7 @@ COMMON(int) 		compareStandard(Word t1, Word t2, int eq ARG_LD);
 COMMON(intptr_t)	skip_list(Word l, Word *tailp ARG_LD);
 COMMON(intptr_t) 	lengthList(term_t list, int errors);
 COMMON(int) 		numberVars(term_t t, nv_options *opts, int n ARG_LD);
+COMMON(int)		duplicate_term(term_t in, term_t copy ARG_LD);
 COMMON(word) 		pl_e_free_variables(term_t t, term_t l);
 COMMON(word) 		stringToList(char *s);
 COMMON(word) 		pl_atom_concat(term_t a1, term_t a2, term_t a3,
@@ -697,7 +698,6 @@ COMMON(word) 		pl_recordz(term_t key, term_t term, term_t ref);
 COMMON(word) 		pl_recorded(term_t key, term_t term, term_t ref, control_t h);
 COMMON(word) 		pl_erase(term_t ref);
 COMMON(word) 		pl_term_complexity(term_t t, term_t mx, term_t count);
-COMMON(void) 		undo_while_saving_term(mark *m, Word term);
 COMMON(void)		markAtomsRecord(Record record);
 
 /* pl-rl.c */

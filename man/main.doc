@@ -46,8 +46,8 @@
 
 \newcommand{\vmajor}{5}
 \newcommand{\vminor}{6}
-\newcommand{\vpatch}{61}
-\newcommand{\vmonth}{September}
+\newcommand{\vpatch}{62}
+\newcommand{\vmonth}{October}
 \newcommand{\vyear}{2008}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
@@ -55,7 +55,7 @@
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog \versionshort{} Reference Manual}
-\author{\email[Jan Wielemaker]{wielemak@science.uva.nl}	\\ 
+\author{\email[Jan Wielemaker]{J.Wielemaker@uva.nl}	\\ 
 	Human-Computer Studies (HCS, formerly SWI)	\\ 
 	    Kruislaan 419, 1098 VA~~Amsterdam		\\ 
 		    The Netherlands			\\ 

@@ -8,6 +8,38 @@
 					--------------------------------------
 
 
+===============================
+VERSION 5.6.62 October 22, 2008
+===============================
+
+ * CLEANUP: Use the frozen stack mechanism to preserve the exception term
+   while unwinding to the state of the catch/3.  This does however change
+   the semantics of throw/1.  Consider the following code that use to succeed
+   but now fails (also fails in SICStus and YAP):
+   
+           catch(throw(x(A)), E, true),
+           E == x(A).
+   
+ * ENHANCED: CLP(FD): Avoid constraint reinforcement in reified disequalities,
+                      following a test case by Uwe Lesta.
+   
+ * ENHANCED: CLP(FD): Domain error when reifying in/2 with invalid domain.
+   
+ * CLEANUP: Avoid repetition and warnings on option processing predicates.  Matt Lilley.
+   
+ * ADDED: library(url): set_url_encoding/2 to control the encoding for encoded values.
+   
+ * FIXED: parse_url(+,-) leaves choicepoint if the URL contains a search expression.
+   
+ * FIXED: By default, enable full buffering on file and pipe streams.  Matt Lilley.
+   
+ * FIXED: memberchk/2 with atributes.  Victor NOEL.
+   
+ * FIXED: Handle exception from option processing in thread_create/3
+   
+ * FIXED: Very small trail in thread pool manager
+   
+ * BUILD: Parallel build patches by Keri Harris.
 =================================
 VERSION 5.6.61 September 25, 2008
 =================================

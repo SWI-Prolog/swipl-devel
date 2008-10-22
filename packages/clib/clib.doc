@@ -130,7 +130,7 @@ Signals can be specified as an integer or signal name, where signal
 names are derived from the C constant by dropping the \const{SIG} prefix
 and mapping to lowercase. E.g.\ \const{int} is the same as
 \const{SIGINT} in C. The meaning of the signal numbers can be found in
-the Unix manual.% \footnote{kill/2 should support interrupt-names as
+the Unix manual.\footnote{kill/2 should support interrupt-names as
 well}.
 
     \predicate{pipe}{2}{-InSream, -OutStream}

@@ -3158,11 +3158,9 @@ failure. Otherwise, it will simulate an I_USERCALL0 instruction: it sets
 the FR and lTop as it it  was   running  the  throw/3 predicate. Then it
 pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 
-NOTE (**): At the moment  this   code  uses  undo_while_saving_term() to
-unwind while preserving the ball. This  call   may  move the ball in the
-current implementation but there may be   references  from the old ball.
-What exactly are the conditions and how   can we avoid trouble here? For
-the moment the code marked (**) handles this not very elegant
+Note that exceptions are placed on the stack using PL_raise_exception(),
+which use duplicate_term() and freezeGlobal() to make the exception term
+immune for undo operations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_THROW, 0, 0, ())
@@ -3174,6 +3172,7 @@ VMI(B_THROW, 0, 0, ())
 b_throw:
   assert(exception_term);
   catcher = valTermRef(exception_term);
+  deRef(catcher);
 
   SECURE(checkData(catcher));
   DEBUG(1, { Sdprintf("[%d] Throwing ", PL_thread_self());
@@ -3197,8 +3196,8 @@ b_throw:
   if ( debugstatus.suspendTrace == FALSE &&
        exception_hook(FR, catchfr PASS_LD) )
   { catcher = valTermRef(exception_term);
+    deRef(catcher);
     except = *catcher;
-    /*catchfr = findCatcher(FR, catcher PASS_LD); already unified */
   }
 
 #if O_DEBUGGER
@@ -3228,20 +3227,16 @@ b_throw:
 				  /* in the undo */
 	SECURE(checkStacks(FR, ch));
 	dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
-	undo_while_saving_term(&ch->mark, catcher);
-	except = *catcher;
+	Undo(ch->mark);
 	*valTermRef(LD->exception.pending) = except;
 	if ( printed )
 	  *valTermRef(exception_printed) = except;
-
-	if ( old != except )
-	  updateMovedTerm(FR, old, except);  /* (**) See above */
 
 	environment_frame = FR;
 	SECURE(checkStacks(FR, ch));
 	switch(tracePort(FR, ch, EXCEPTION_PORT, PC PASS_LD))
 	{ case ACTION_RETRY:
-	    *valTermRef(exception_printed) = 0;
+	    setVar(*valTermRef(exception_printed));
 	    exception_term = 0;
 	    Undo(ch->mark);
 	    discardChoicesAfter(FR PASS_LD);
@@ -3250,7 +3245,7 @@ b_throw:
 	    goto retry_continue;
 	}
 
-	*valTermRef(LD->exception.pending) = 0;
+	setVar(*valTermRef(LD->exception.pending));
       }
 
       exception_term = 0;		/* save exception over call-back */
@@ -3265,23 +3260,19 @@ b_throw:
   { DEBUG(3, Sdprintf("Unwinding for exception\n"));
 
     for( ; FR && FR > catchfr; FR = FR->parent )
-    { Choice ch;
+    { Choice ch = findStartChoice(FR, LD->choicepoints);
 
-      SECURE(checkData(catcher));
-      if ( true(FR, FR_WATCHED) && (ch = findStartChoice(FR, LD->choicepoints)) )
-      { word old = except;
-	
-	undo_while_saving_term(&ch->mark, catcher);
-	except = *catcher;
-	if ( old != except )
-	  updateMovedTerm(FR, old, except);
-      }
       dbg_discardChoicesAfter(FR PASS_LD);
+      if ( ch )
+	Undo(ch->mark);
       discardFrame(FR, FINISH_EXCEPT PASS_LD);
       SECURE(checkData(catcher));
     }
   }
 
+					/* re-fetch (test cleanup(clean-5)) */
+  catcher = valTermRef(exception_term);
+  deRef(catcher);
   SECURE(checkData(catcher));
 
   if ( catchfr )
@@ -3295,14 +3286,14 @@ b_throw:
     assert(catchfr == FR);
     discardChoicesAfter(FR PASS_LD);
     environment_frame = FR;
-    undo_while_saving_term(&ch->mark, catcher);
-    unify_ptrs(p, catcher PASS_LD); /* undo_while_saving_term() also */
+    Undo(ch->mark);
+    unify_ptrs(p, catcher PASS_LD); /* Undo() also */
 				    /* undoes unify of findCatcher() */
     lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
     argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
     *valTermRef(exception_printed) = 0;   /* consider it handled */
     *valTermRef(exception_bin)     = 0;
-    exception_term		 = 0;
+    exception_term		   = 0;
 
     PC = findCatchExit();
 #if O_DYNAMIC_STACKS
@@ -3326,18 +3317,14 @@ b_throw:
     p = argFrameP(FR, FR->predicate->functor->arity);
     lTop = (LocalFrame)(p+1);
 
-				  /* TBD: needs a foreign frame? */
+    Undo(QF->choice.mark);
     QF->exception = consTermRef(p);
     *p = except;
 
-    undo_while_saving_term(&QF->choice.mark, p);
     if ( false(QF, PL_Q_PASS_EXCEPTION) )
     { *valTermRef(exception_bin)     = 0;
-      exception_term		   = 0;
+      exception_term		     = 0;
       *valTermRef(exception_printed) = 0; /* consider it handled */
-    } else
-    { *valTermRef(exception_bin)     = *p;
-      exception_term		   = exception_bin;
     }
 
 #if O_DYNAMIC_STACKS
@@ -3345,7 +3332,7 @@ b_throw:
 #endif
     if ( LD->trim_stack_requested )
     { trimStacks(PASS_LD1);
-      QF = QueryFromQid(qid);	/* may be shifted: recompute */
+      QF = QueryFromQid(qid);		/* may be shifted: recompute */
     }
 
     QF->foreign_frame = PL_open_foreign_frame();
