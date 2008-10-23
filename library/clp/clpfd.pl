@@ -1402,6 +1402,35 @@ contracting([V|Vs], Repeat, Vars) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   fds_sespsize(Vs, S).
+
+   S is an upper bound on the search space size with respect to finite
+   domain variables Vs.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+fds_sespsize(Vs, S) :-
+        must_be(list, Vs),
+        maplist(fd_variable, Vs),
+        (   Vs = [] -> S = 0
+        ;   Vs = [X|Xs] ->
+            fd_size_(X, S1),
+            fds_sespsize(Xs, S1, S2),
+            bound_portray(S2, S)
+        ).
+
+fd_size_(V, S) :-
+        (   fd_get(V, D, _) ->
+            domain_num_elements(D, S)
+        ;   S = n(1)
+        ).
+
+fds_sespsize([], S, S).
+fds_sespsize([V|Vs], S0, S) :-
+        fd_size_(V, S1),
+        S2 cis S0*S1,
+        fds_sespsize(Vs, S2, S).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Optimisation uses destructive assignment to save the computed
    extremum over backtracking. Failure is used to get rid of copies of
    attributed variables that are created in intermediate steps. At
