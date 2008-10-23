@@ -1224,6 +1224,8 @@ label(Vars, Selection, Order, Choice, Consistency) :-
                 fd_size(Var, Size),
                 I1 is I0*Size,
                 label(RVars, Selection, Order, Choice, upto_in(I1,I))
+            ;   Consistency = upto_in, fd_get(Var, _, Ps), all_dead(Ps) ->
+                label(RVars, Selection, Order, Choice, Consistency)
             ;   choice_order_variable(Choice, Order, Var, RVars, Selection, Consistency)
             )
         ;   label(RVars, Selection, Order, Choice, Consistency)
@@ -1278,6 +1280,7 @@ order(up).
 order(down).
 
 consistency(upto_in(I), upto_in(1, I)).
+consistency(upto_in, upto_in).
 consistency(upto_ground, upto_ground).
 
 optimisation(min(_)).
