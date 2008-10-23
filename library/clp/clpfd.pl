@@ -118,6 +118,7 @@
                   serialized/2,
                   element/3,
                   zcompare/3,
+                  chain/2,
                   fd_var/1,
                   fd_inf/2,
                   fd_sup/2,
@@ -1225,8 +1226,7 @@ label(Vars, Selection, Order, Choice, Consistency) :-
                 label(RVars, Selection, Order, Choice, upto_in(I1,I))
             ;   choice_order_variable(Choice, Order, Var, RVars, Selection, Consistency)
             )
-        ;   must_be(integer, Var),
-            label(RVars, Selection, Order, Choice, Consistency)
+        ;   label(RVars, Selection, Order, Choice, Consistency)
         ).
 
 choice_order_variable(step, Order, Var, Vars, Selection, Consistency) :-
@@ -4034,6 +4034,41 @@ zcompare(Order, A, B) :-
 zcompare_(=, A, B) :- A #= B.
 zcompare_(<, A, B) :- A #< B.
 zcompare_(>, A, B) :- A #> B.
+
+%% chain(+Zs, +Relation)
+%
+% Zs is a list of finite domain variables that are a chain with
+% respect to the partial order Relation, in the order they appear in
+% the list. Relation must be #=, #=<, #>=, #< or #>. For example:
+%
+% ==
+% ?- chain([X,Y,Z], #>=).
+% X#>=Y,
+% Y#>=Z.
+% ==
+
+chain(Zs, Relation) :-
+        must_be(list, Zs),
+        maplist(fd_variable, Zs),
+        must_be(ground, Relation),
+        (   chain_relation(Relation) -> true
+        ;   domain_error(chain_relation, Relation)
+        ),
+        (   Zs = [] -> true
+        ;   Zs = [X|Xs],
+            chain(Xs, X, Relation)
+        ).
+
+chain_relation(#=).
+chain_relation(#<).
+chain_relation(#=<).
+chain_relation(#>).
+chain_relation(#>=).
+
+chain([], _, _).
+chain([X|Xs], Prev, Relation) :-
+        call(Relation, Prev, X),
+        chain(Xs, X, Relation).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
