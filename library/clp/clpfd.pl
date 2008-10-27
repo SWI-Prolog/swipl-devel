@@ -118,6 +118,7 @@
                   serialized/2,
                   element/3,
                   zcompare/3,
+                  chain/2,
                   fd_var/1,
                   fd_inf/2,
                   fd_sup/2,
@@ -1223,10 +1224,11 @@ label(Vars, Selection, Order, Choice, Consistency) :-
                 fd_size(Var, Size),
                 I1 is I0*Size,
                 label(RVars, Selection, Order, Choice, upto_in(I1,I))
+            ;   Consistency = upto_in, fd_get(Var, _, Ps), all_dead(Ps) ->
+                label(RVars, Selection, Order, Choice, Consistency)
             ;   choice_order_variable(Choice, Order, Var, RVars, Selection, Consistency)
             )
-        ;   must_be(integer, Var),
-            label(RVars, Selection, Order, Choice, Consistency)
+        ;   label(RVars, Selection, Order, Choice, Consistency)
         ).
 
 choice_order_variable(step, Order, Var, Vars, Selection, Consistency) :-
@@ -1278,6 +1280,7 @@ order(up).
 order(down).
 
 consistency(upto_in(I), upto_in(1, I)).
+consistency(upto_in, upto_in).
 consistency(upto_ground, upto_ground).
 
 optimisation(min(_)).
@@ -1397,6 +1400,35 @@ contracting([V|Vs], Repeat, Vars) :-
         ;   V #\= Min,
             contracting(Vs, true, Vars)
         ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   fds_sespsize(Vs, S).
+
+   S is an upper bound on the search space size with respect to finite
+   domain variables Vs.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+fds_sespsize(Vs, S) :-
+        must_be(list, Vs),
+        maplist(fd_variable, Vs),
+        (   Vs = [] -> S = 0
+        ;   Vs = [X|Xs] ->
+            fd_size_(X, S1),
+            fds_sespsize(Xs, S1, S2),
+            bound_portray(S2, S)
+        ).
+
+fd_size_(V, S) :-
+        (   fd_get(V, D, _) ->
+            domain_num_elements(D, S)
+        ;   S = n(1)
+        ).
+
+fds_sespsize([], S, S).
+fds_sespsize([V|Vs], S0, S) :-
+        fd_size_(V, S1),
+        S2 cis S0*S1,
+        fds_sespsize(Vs, S2, S).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Optimisation uses destructive assignment to save the computed
@@ -4034,6 +4066,41 @@ zcompare(Order, A, B) :-
 zcompare_(=, A, B) :- A #= B.
 zcompare_(<, A, B) :- A #< B.
 zcompare_(>, A, B) :- A #> B.
+
+%% chain(+Zs, +Relation)
+%
+% Zs is a list of finite domain variables that are a chain with
+% respect to the partial order Relation, in the order they appear in
+% the list. Relation must be #=, #=<, #>=, #< or #>. For example:
+%
+% ==
+% ?- chain([X,Y,Z], #>=).
+% X#>=Y,
+% Y#>=Z.
+% ==
+
+chain(Zs, Relation) :-
+        must_be(list, Zs),
+        maplist(fd_variable, Zs),
+        must_be(ground, Relation),
+        (   chain_relation(Relation) -> true
+        ;   domain_error(chain_relation, Relation)
+        ),
+        (   Zs = [] -> true
+        ;   Zs = [X|Xs],
+            chain(Xs, X, Relation)
+        ).
+
+chain_relation(#=).
+chain_relation(#<).
+chain_relation(#=<).
+chain_relation(#>).
+chain_relation(#>=).
+
+chain([], _, _).
+chain([X|Xs], Prev, Relation) :-
+        call(Relation, Prev, X),
+        chain(Xs, X, Relation).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
