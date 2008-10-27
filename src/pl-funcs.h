@@ -666,6 +666,8 @@ COMMON(bool) 		resetProfiler(void);
 COMMON(struct)  call_node* profCall(Definition def ARG_LD);
 COMMON(void) 		profExit(struct call_node *node ARG_LD);
 COMMON(void) 		profRedo(struct call_node *node ARG_LD);
+COMMON(void)		profSetHandle(struct call_node *node, void *handle);
+
 
 /* pl-read.c */
 COMMON(void) 		resetRead(void);

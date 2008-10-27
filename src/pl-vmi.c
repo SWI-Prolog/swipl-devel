@@ -1963,6 +1963,8 @@ VMI(S_VIRGIN, 0, 0, ())
 
   if ( FR->predicate != DEF )		/* auto imported/loaded */
   { FR->predicate = DEF;
+    if ( FR->prof_node ) 
+      profSetHandle(FR->prof_node, DEF);
     goto retry_continue;
   }
 

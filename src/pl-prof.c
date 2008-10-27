@@ -972,6 +972,12 @@ profRedo(struct call_node *node ARG_LD)
 }
 
 
+void
+profSetHandle(struct call_node *node, void *handle)
+{ node->handle = handle;
+}
+
+
 		 /*******************************
 		 *	 FOREIGN ACCESS		*
 		 *******************************/
