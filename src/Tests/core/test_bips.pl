@@ -169,3 +169,14 @@ test(when8,[fail]) :-
 	when(ground(g),fail).
 
 :- end_tests(coroutining).
+
+
+:- begin_tests(eq).
+
+a :-
+	A == A.
+
+test(eq_ff, true) :-
+	a.
+
+:- end_tests(eq).

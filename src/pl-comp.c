@@ -1982,7 +1982,9 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
 
     if ( f1 || f2 )
     { if ( trueFeature(OPTIMISE_FEATURE) )
-	Output_0(ci, I_FAIL);
+      {	Output_0(ci, i1 == i2 ? I_TRUE : I_FAIL);
+	succeed;
+      }
     } else
     { if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
       if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
