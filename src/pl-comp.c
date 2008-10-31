@@ -1416,7 +1416,8 @@ compileListFF(word arg, compileInfo *ci ARG_LD)
   int i1, i2;
 
   if ( isFirstVarP(p+0, ci, &i1 PASS_LD) &&
-       isFirstVarP(p+1, ci, &i2 PASS_LD) )
+       isFirstVarP(p+1, ci, &i2 PASS_LD) &&
+       i1 != i2 )
   { isFirstVarSet(ci->used_var, i1);
     isFirstVarSet(ci->used_var, i2);
     Output_2(ci, H_LIST_FF, VAROFFSET(i1), VAROFFSET(i2));
