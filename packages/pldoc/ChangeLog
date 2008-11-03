@@ -1,3 +1,23 @@
+[Oct 7 2008]
+
+ * CLEANUP: Make PlDoc run entirely on top of the http_dispatch module, so
+   it can be integrated much easier with other packages.
+   
+[Oct 6 2008]
+
+ * CLEANUP: Modernisation of the PlDoc code:
+       - Use the central dispatcher library(http/http_dispatch)
+       - Use the central logging facility library(http/http_log)
+   
+   Changing the root of the server is now done using
+   
+   	:- use_module(http/http_hook).
+   
+   	http:location(pldoc, '/pldoc', [priority(10)]).
+   
+[Sep 29 2008]
+
+ * ADDED: PlDoc: use alternate extensions for Prolog source files.  Chris Mungall.
 [Sep 11 2008]
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
