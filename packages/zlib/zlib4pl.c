@@ -701,8 +701,6 @@ pl_zopen(term_t org, term_t new, term_t options)
     }
   }
 
-  
-
   if ( !(s2 = Snew(ctx,
 		   (s->flags&COPY_FLAGS)|SIO_FBUF,
 		   &zfunctions))	)
@@ -711,6 +709,7 @@ pl_zopen(term_t org, term_t new, term_t options)
     return FALSE;
   }
 
+  s2->encoding = s->encoding;
   ctx->zstream = s2;
   Sset_filter(s, s2);
   PL_release_stream(s);

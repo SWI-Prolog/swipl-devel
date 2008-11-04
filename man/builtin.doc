@@ -2512,9 +2512,14 @@ write_length(Term, Len) :-
 \end{code}
 
     \predicate[ISO]{close}{1}{+Stream}
-Close the specified stream.  If \arg{Stream} is not open an error
-message is displayed.  If the closed stream is the current input or
-output stream the terminal is made the current input or output.
+Close the specified stream. If \arg{Stream} is not open an error message
+is displayed. Please be aware that anonymous streams handles (streams
+that have no alias and are represented as \term{\$stream}{Int}) are
+\emph{invalid} after closing. Although the system uses some heuristic to
+raise an existence error in these cases, closing a stream multiple times
+can crash Prolog. This is particularly true for multi-threaded
+applications. If the closed stream is the current input or output stream
+the terminal is made the current input or output.
 
     \predicate[ISO]{close}{2}{+Stream, +Options}
 Provides \term{close}{Stream, [force(true)]} as the only option.  Called
