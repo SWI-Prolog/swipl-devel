@@ -2785,7 +2785,9 @@ tuples_domain([Tuple|Tuples], Relation) :-
         relation_unifiable(Relation, Tuple, Us, 0, _),
         (   ground(Tuple) -> memberchk(Tuple, Relation)
         ;   tuple_domain(Tuple, Us),
-            tuple_freeze(Tuple, Us)
+            (   Tuple = [_,_|_] -> tuple_freeze(Tuple, Us)
+            ;   true
+            )
         ),
         tuples_domain(Tuples, Relation).
 
