@@ -1870,7 +1870,7 @@ compact_global(void)
         sysError("Marked cell at %p (*= %p); gTop = %p; should be %p",
 		 current, *current, gTop, *v);
 #endif
-      dest--
+      dest--;
       DEBUG(3, Sdprintf("Marked cell at %p (dest = %p)\n", current, dest));
       if ( is_first(current) )
 	update_relocation_chain(current, dest PASS_LD);
