@@ -1440,19 +1440,35 @@ untag_trail()
 Make a hole. This is used by functions   doing a scan on the global data
 after marking. By creating a large cell   (disguised  as a string) other
 functions doing a scan can skip large portions.
+
+bottom points to the bottom of the  garbage   and  top to the top *cell*
+that is garbage.  I.e., the total size of the cell is (top+1)-bottom.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define MAX_STRLEN wsizeofInd(~(word)0)
 
 static Word
 make_gc_hole(Word bottom, Word top)
 { if ( top - bottom > 4 )
-  { int wsize = top - bottom - 1;
-    word hdr = mkIndHdr(wsize, TAG_STRING); /* limited by size of string? */
+  { size_t wsize = top - bottom - 1;
+    Word bt = bottom;
+    word hdr;
 
-    *top = hdr;
-    *bottom = hdr;
+    while(wsize > MAX_STRLEN)
+    { Word t1  = bottom+MAX_STRLEN+1;
 
-    DEBUG(3, Sdprintf("Created Garbage hole %p..%p, size %d\n",
-		      bottom+1, top, wsize));
+      hdr = mkIndHdr(MAX_STRLEN, TAG_STRING);
+      *t1 = *bt = hdr;
+      DEBUG(3, Sdprintf("Created Garbage hole %p..%p\n", bt, t1+1));
+      bt = t1+1;
+      wsize = top - bt - 1;
+    }
+
+    hdr = mkIndHdr(wsize, TAG_STRING); /* limited by size of string? */
+    *top = *bt = hdr;
+
+    DEBUG(3, Sdprintf("Created Garbage hole %p..%p, size %ld\n",
+		      bt, top+1, (long)wsize));
   }
 
   return bottom;
@@ -1831,7 +1847,7 @@ downskip_combine_garbage(Word current, Word dest ARG_LD)
       } else if ( is_first(current) )
       { update_relocation_chain(current, dest PASS_LD);
       } else if ( storage(*current) == STG_LOCAL ) /* large cell */
-      { long offset = offset_cell(current);
+      { size_t offset = offset_cell(current);
   
 	assert(offset > 0);
 	current -= offset;		/* start large cell */
@@ -1971,6 +1987,7 @@ compact_global(void)
 
   gTop = dest;
 }
+
 
 static void
 collect_phase(LocalFrame fr, Choice ch, Word *saved_bar_at)

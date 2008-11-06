@@ -1632,6 +1632,9 @@ resource(stack-4) :-
 	E1 = error(resource_error(stack), global),
 	catch(global_overflow(_), E2, true),
 	E2 = error(resource_error(stack), global).
+resource(stack-5) :-
+	catch(length(_L,10000000), E, true),
+	E = error(resource_error(stack), global).
 
 
 		 /*******************************
