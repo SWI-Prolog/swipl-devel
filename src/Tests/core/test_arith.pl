@@ -33,7 +33,8 @@
 test_arith :-
 	run_tests([ rem,
 		    mod,
-		    errors
+		    errors,
+		    ar_builtin
 		  ]).
 
 :- begin_tests(rem).
@@ -90,3 +91,17 @@ test(cyclic, [sto(rational_trees), error(type_error(expression, T))]) :-
 	number(A).			% avoid singleton
 
 :- end_tests(errors).
+
+
+:- begin_tests(ar_builtin).
+
+a1(A, R) :-
+	B is A+1,
+	B =:= R.
+
+test(a_add_fc_int) :-
+	a1(1, 2).
+test(a_add_fc_float) :-
+	a1(0.1, 1.1).
+
+:- end_tests(ar_builtin).
