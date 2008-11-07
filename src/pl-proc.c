@@ -2261,7 +2261,6 @@ reindexDefinition(Definition def)
     hashDefinition(def, do_hash);
   }
 
-out:
   def->indexPattern = pattern;
   UNLOCKDEF(def);
 }
