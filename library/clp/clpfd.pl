@@ -2785,7 +2785,9 @@ tuples_domain([Tuple|Tuples], Relation) :-
         relation_unifiable(Relation, Tuple, Us, 0, _),
         (   ground(Tuple) -> memberchk(Tuple, Relation)
         ;   tuple_domain(Tuple, Us),
-            tuple_freeze(Tuple, Us)
+            (   Tuple = [_,_|_] -> tuple_freeze(Tuple, Us)
+            ;   true
+            )
         ),
         tuples_domain(Tuples, Relation).
 
@@ -3127,7 +3129,7 @@ run_propagator(pplus(X,Y,Z), MState) :-
                     ;   domains_intersection(YD2, from_to(NYL, NYU), NYD),
                         fd_put(Y, NYD, YPs2)
                     )
-                ;   NYL = Y, NYU = Y
+                ;   NYL = n(Y), NYU = n(Y)
                 ),
                 (   fd_get(Z, ZD2, ZL2, ZU2, ZPs2) ->
                     NZL cis max(ZL2,NXL+NYL),
@@ -3215,7 +3217,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                     ;   domains_intersection(YD2, from_to(NYL,NYU), YD3),
                         fd_put(Y, YD3, YExp2)
                     )
-                ;   NYL = Y, NYU = Y
+                ;   NYL = n(Y), NYU = n(Y)
                 ),
                 (   fd_get(Z, ZD2, ZL2, ZU2, ZExp2) ->
                     min_times(NXL,NXU,NYL,NYU,NZL),
