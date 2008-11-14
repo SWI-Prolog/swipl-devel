@@ -335,10 +335,6 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 }
 
 
-#if defined(PTHREAD_CPUCLOCKS) || defined(LINUX_CPU_CLOCKS)
-#define ThreadCPUTime(info, which)	ThreadCPUTime(info)
-#endif
-
 		 /*******************************
 		 *	  LOCAL PROTOTYPES	*
 		 *******************************/
@@ -3818,13 +3814,17 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 #else /*__WINDOWS__*/
 
 #define timespec_to_double(ts) \
-	(double)ts.tv_sec + (double)ts.tv_nsec/1000000000ull
+	((double)(ts).tv_sec + (double)(ts).tv_nsec/(double)1000000000.0)
 
 #ifdef PTHREAD_CPUCLOCKS
+#define NO_THREAD_SYSTEM_TIME 1
 
 static double
 ThreadCPUTime(PL_thread_info_t *info, int which)
-{ if ( info->has_tid )
+{ if ( which == CPU_SYSTEM )
+    return 0.0;
+
+  if ( info->has_tid )
   { clockid_t clock_id;
     struct timespec ts;
     int rc;
@@ -3841,21 +3841,6 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 }
 
 #else /*PTHREAD_CPUCLOCKS*/
-
-#ifdef LINUX_CPUCLOCKS
-
-static double
-ThreadCPUTime(PL_thread_info_t *info, int which)
-{
-  struct timespec ts;
-
-  if (syscall(__NR_clock_gettime, CLOCK_THREAD_CPUTIME_ID, &ts) == 0)
-    return timespec_to_double(ts);
-
-  return 0.0;
-}
-
-#else /*LINUX_CPUCLOCKS*/
 
 #ifdef LINUX_PROCFS
 
@@ -4008,11 +3993,40 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 #else /*LINUX_PROCFS*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Code that probably only works  on   Linux  2.4  systems, where CpuTime()
-returns the per-thread time. This isn't very   nice as the time is store
-in LD in addition to being returned, but it  is ok for now and Linux 2.4
-is almost dead anyway.
+Systems where we can get the  thread   CPU  time from the calling thread
+only. Upto Linux 2.4, linux threads where   more  like processes, and we
+can  get  these  using  times().  Some    POSIX  systems  have  a  clock
+CLOCK_THREAD_CPUTIME_ID. Odly enough, on Debian etche at least, fetching
+this with clock_gettime() produces bogus,  but   getting  it through the
+syscall interface works. This might  be   because  the  kernel is fairly
+up-to-date, but the C library is very much out of data (glibc 2.3)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef LINUX_CPUCLOCKS
+#define NO_THREAD_SYSTEM_TIME 1
+
+static void
+SyncUserCPU(int sig)
+{ GET_LD
+  struct timespec ts;
+
+  if ( syscall(__NR_clock_gettime, CLOCK_THREAD_CPUTIME_ID, &ts) == 0 )
+  { LD->statistics.user_cputime = timespec_to_double(ts);
+  } else
+  { perror("clock_gettime");
+  }
+
+  sem_post(sem_mark_ptr);
+}
+
+
+static void
+SyncSystemCPU(int sig)
+{ assert(0);
+}
+
+#else /*LINUX_CPUCLOCKS*/
+#define THREAD_CPU_BY_PID 1
 
 static void
 SyncUserCPU(int sig)
@@ -4031,13 +4045,22 @@ SyncSystemCPU(int sig)
   sem_post(sem_mark_ptr);
 }
 
+#endif  /*LINUX_CPUCLOCKS*/
 
 static double
 ThreadCPUTime(PL_thread_info_t *info, int which)
 { GET_LD
 
+#ifdef NO_THREAD_SYSTEM_TIME
+  if ( which == CPU_SYSTEM )
+    return 0.0;
+#endif
+
   if ( info->thread_data == LD )
-  { return CpuTime(which);
+  { if ( which == CPU_USER )
+      SyncUserCPU(SIG_FORALL);
+    else 
+      SyncSystemCPU(SIG_FORALL);
   } else
   { struct sigaction old;
     struct sigaction new;
@@ -4057,16 +4080,15 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
     }
     sem_destroy(&sem_mark);
     sigaction(SIG_FORALL, &old, NULL);
-
-    if ( which == CPU_USER )
-      return LD->statistics.user_cputime;
-    else
-      return LD->statistics.system_cputime;
   }
+
+  if ( which == CPU_USER )
+    return info->thread_data->statistics.user_cputime;
+  else
+    return info->thread_data->statistics.system_cputime;
 }
 
 #endif /*LINUX_PROCFS*/
-#endif /*LINUX_CPUCLOCKS*/
 #endif /*PTHREAD_CPUCLOCKS*/
 #endif /*__WINDOWS__*/
 
