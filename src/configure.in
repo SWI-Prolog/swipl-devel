@@ -847,16 +847,28 @@ AC_CHECK_FUNCS(clock_gettime)
 
 AC_MSG_CHECKING(for pthread support for cpu clocks)
 AC_TRY_RUN(
-[ #include <pthread.h>
-  #include <time.h>
+[
+#include <stdio.h>
+#include <pthread.h>
+#include <time.h>
+#include <stdlib.h>
+#define ts2d(ts) \
+	((double)(ts).tv_sec + (double)(ts).tv_nsec/(double)1000000000.0)
 main()
 {
   clockid_t clock_id;
-  struct timespec ts;
-  pthread_getcpuclockid(pthread_self(), &clock_id);
+  struct timespec ts = {1,1};
+  if ( pthread_getcpuclockid(pthread_self(), &clock_id) != 0 )
+  { perror("pthread_getcpuclockid");
+    exit(1);
+  }
   sleep(1);
-  clock_gettime(clock_id, &ts);
-  exit (ts.tv_sec);
+  if ( clock_gettime(clock_id, &ts) != 0 )
+  { perror("clock_gettime");
+    exit(1);
+  }
+  fprintf(stderr, "Used %f sec\n", ts2d(ts));
+  exit (ts.tv_sec == 0 ? 0 : 1);
 }], ac_pthread_cpuclocks="yes"
     AC_MSG_RESULT(yes),
     AC_MSG_RESULT(no))
@@ -875,14 +887,27 @@ AC_TRY_COMPILE(
 
 AC_MSG_CHECKING(for syscall support for cpu clocks)
 AC_TRY_RUN(
-[#include <time.h>
- #include <sys/syscall.h>
+[
+#include <stdio.h>
+#include <time.h>
+#include <sys/syscall.h>
+#include <stdlib.h>
+#define ts2d(ts) \
+	((double)(ts).tv_sec + (double)(ts).tv_nsec/(double)1000000000.0)
 main()
-{
-  struct timespec ts;
+{ struct timespec ts0;
+  struct timespec ts1;
+  double t;
+  if ( syscall(__NR_clock_gettime, CLOCK_THREAD_CPUTIME_ID, &ts0) )
+    exit(1);
   sleep(1);
-  syscall(__NR_clock_gettime, CLOCK_THREAD_CPUTIME_ID, &ts);
-  exit (ts.tv_sec);
+  syscall(__NR_clock_gettime, CLOCK_THREAD_CPUTIME_ID, &ts1);
+  t = ts2d(ts1) - ts2d(ts0);
+  fprintf(stderr, "sleep(1) used %f sec\n", t);
+  if ( t > 0.5 )
+  { exit(1);
+  }
+  exit(0);
 }], ac_linux_cpuclocks="yes"
     AC_MSG_RESULT(yes),
     AC_MSG_RESULT(no))
@@ -894,7 +919,7 @@ else
 
 AC_MSG_CHECKING(linux 2.6 /proc)
 if test -f /proc/$$/task/$$/stat -a \
-	`cat /proc/$$/task/$$/stat | wc -w` = "41"; then
+	`cat /proc/$$/task/$$/stat | wc -w` -gt 41; then
    AC_MSG_RESULT(yes)
    AC_DEFINE(LINUX_PROCFS, 26,
 	     [Define if you have Linux 2.6 compatible /proc])
