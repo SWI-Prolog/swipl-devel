@@ -4008,15 +4008,19 @@ up-to-date, but the C library is very much out of data (glibc 2.3)
 static void
 SyncUserCPU(int sig)
 { GET_LD
-  struct timespec ts;
 
-  if ( syscall(__NR_clock_gettime, CLOCK_THREAD_CPUTIME_ID, &ts) == 0 )
-  { LD->statistics.user_cputime = timespec_to_double(ts);
-  } else
-  { perror("clock_gettime");
+  if ( LD )
+  { struct timespec ts;
+
+    if ( syscall(__NR_clock_gettime, CLOCK_THREAD_CPUTIME_ID, &ts) == 0 )
+    { LD->statistics.user_cputime = timespec_to_double(ts);
+    } else
+    { perror("clock_gettime");
+    }
   }
 
-  sem_post(sem_mark_ptr);
+  if ( sig )
+    sem_post(sem_mark_ptr);
 }
 
 
@@ -4032,8 +4036,10 @@ static void
 SyncUserCPU(int sig)
 { GET_LD
 
-  LD->statistics.user_cputime = CpuTime(CPU_USER);
-  sem_post(sem_mark_ptr);
+  if ( LD )
+    LD->statistics.user_cputime = CpuTime(CPU_USER);
+  if ( sig )
+    sem_post(sem_mark_ptr);
 }
 
 
@@ -4041,8 +4047,10 @@ static void
 SyncSystemCPU(int sig)
 { GET_LD
 
-  LD->statistics.system_cputime = CpuTime(CPU_SYSTEM);
-  sem_post(sem_mark_ptr);
+  if ( LD )
+    LD->statistics.system_cputime = CpuTime(CPU_SYSTEM);
+  if ( sig )
+    sem_post(sem_mark_ptr);
 }
 
 #endif  /*LINUX_CPUCLOCKS*/
@@ -4058,28 +4066,39 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 
   if ( info->thread_data == LD )
   { if ( which == CPU_USER )
-      SyncUserCPU(SIG_FORALL);
+      SyncUserCPU(0);
     else 
-      SyncSystemCPU(SIG_FORALL);
+      SyncSystemCPU(0);
   } else
   { struct sigaction old;
     struct sigaction new;
+    sigset_t sigmask;
+    sigset_t set;
+    int ok;
 
+    blockSignals(&set);
     sem_init(sem_mark_ptr, USYNC_THREAD, 0);
+    allSignalMask(&sigmask);
     memset(&new, 0, sizeof(new));
-    if ( which == CPU_USER )
-      new.sa_handler = SyncUserCPU;
-    else 
-      new.sa_handler = SyncSystemCPU;
-
+    new.sa_handler = (which == CPU_USER ? SyncUserCPU : SyncSystemCPU);
     new.sa_flags   = SA_RESTART;
+    new.sa_mask    = sigmask;
     sigaction(SIG_FORALL, &new, &old);
-    if ( pthread_kill(info->tid, SIG_FORALL) == 0 )
+
+    if ( info->has_tid )
+      ok = (pthread_kill(info->tid, SIG_FORALL) == 0);
+    else
+      ok = FALSE;
+
+    if ( ok )
     { while( sem_wait(sem_mark_ptr) == -1 && errno == EINTR )
 	;
     }
     sem_destroy(&sem_mark);
     sigaction(SIG_FORALL, &old, NULL);
+    unblockSignals(&set);
+    if ( !ok )
+      return 0.0;
   }
 
   if ( which == CPU_USER )
