@@ -734,8 +734,10 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
     { term_t clean = argFrameP(fr, 3) - (Word)lBase;
       term_t ex;
       int rval;
+      LocalFrame esave = environment_frame;
       
       blockGC(PASS_LD1);
+      environment_frame = fr;		/* ensure proper parent for the handler */
       if ( reason == FINISH_EXCEPT )
       {	term_t pending = PL_new_term_ref();
 
@@ -751,6 +753,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
       } else
       { rval = callProlog(fr->context, clean, PL_Q_CATCH_EXCEPTION, &ex);
       }
+      environment_frame = esave;
       unblockGC(PASS_LD1);
 
       if ( !rval && ex )
