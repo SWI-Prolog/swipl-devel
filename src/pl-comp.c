@@ -1600,7 +1600,8 @@ re-definition.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 compileSimpleAddition() compiles NewVar is Var   +/- SmallInt. At entry,
-vc is known to be a dereferenced pointer to term is/2.
+vc is known to be a dereferenced pointer to term is/2.  For addition, it
+allows for swapping the arguments.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -1639,6 +1640,9 @@ compileSimpleAddition(Word sc, compileInfo *ci ARG_LD)
 	  succeed;
 	}
     
+	if ( neg )
+	  break;			/* do not swap X is 10 - Y */
+
 	tmp = a1;
 	a1 = a2;
 	a2 = tmp;

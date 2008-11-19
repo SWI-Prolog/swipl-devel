@@ -98,10 +98,16 @@ test(cyclic, [sto(rational_trees), error(type_error(expression, T))]) :-
 a1(A, R) :-
 	B is A+1,
 	B =:= R.
+a2 :-
+	X = 7,
+	Y is 10 - X,
+	Y == 3.
 
 test(a_add_fc_int) :-
 	a1(1, 2).
 test(a_add_fc_float) :-
 	a1(0.1, 1.1).
+test(a_fc_minus) :-
+	a2.
 
 :- end_tests(ar_builtin).
