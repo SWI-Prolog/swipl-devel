@@ -970,7 +970,6 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
   
       LD->exception.in_hook++;
       blockGC(PASS_LD1);
-      wake = saveWakeup(PASS_LD1);
       fid = PL_open_foreign_frame();
       av = PL_new_term_refs(4);
   
@@ -982,12 +981,14 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
   
       exception_term = 0;
       setVar(*valTermRef(exception_bin));
+      wake = saveWakeup(PASS_LD1);
       qid = PL_open_query(MODULE_user, PL_Q_NODEBUG,
 			  PROCEDURE_exception_hook4, av);
       rc = PL_next_solution(qid);
       debug = debugstatus.debugging;
       trace = debugstatus.tracing;
       PL_cut_query(qid);
+      restoreWakeup(wake PASS_LD);
       if ( rc )				/* pass user setting trace/debug */
       { if ( debug ) debugstatus.debugging = TRUE;
 	if ( trace ) debugstatus.tracing = TRUE;
@@ -1001,7 +1002,6 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
       }
       
       PL_close_foreign_frame(fid);
-      restoreWakeup(wake PASS_LD);
       unblockGC(PASS_LD1);
       LD->exception.in_hook--;
 
