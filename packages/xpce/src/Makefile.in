@@ -916,6 +916,7 @@ clean:
 
 distclean:	clean
 		for d in ../pl/src; do (cd $$d; $(MAKE) distclean); done
+		if [ -h h ]; then $(RM) h; fi
 		$(RM) -f version.h ../xpce.spec
 		$(RM) -f $(LIB)
 		$(RM) -f xpce-install rt-install xpce pl2xpce.so xpce-client
