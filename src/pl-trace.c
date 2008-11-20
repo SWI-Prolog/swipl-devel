@@ -1661,7 +1661,9 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   } else if (key == ATOM_context_module)
   { PL_put_atom(result, contextModule(fr)->name);
   } else if (key == ATOM_clause)
-  { if ( false(fr->predicate, FOREIGN) && fr->clause )
+  { if ( false(fr->predicate, FOREIGN) &&
+	 fr->clause &&
+	 fr->predicate != PROCEDURE_dc_call_prolog->definition )
       PL_put_pointer(result, fr->clause->clause);
     else
       fail;

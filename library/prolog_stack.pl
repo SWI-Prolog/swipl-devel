@@ -80,8 +80,9 @@ backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 	;   PC == call
 	->  prolog_frame_attribute(Fr, predicate_indicator, Pred),
 	    Where = call(Pred)
-	;   prolog_frame_attribute(Fr, clause, Clause),
-	    Where = clause(Clause, PC)
+	;   prolog_frame_attribute(Fr, clause, Clause)
+	->  Where = clause(Clause, PC)
+	;   Where = meta_call
 	),
 	(   prolog_frame_attribute(Fr, pc, PC2)
 	->  true
@@ -137,6 +138,8 @@ where(clause(Clause, _PC)) -->
 	{ clause_name(Clause, ClauseName)
 	},
 	[ '~w <no source>'-[ClauseName] ].
+where(meta_call) -->
+	[ '<meta call>' ].
 
 level(Level) -->
 	[ '~|~t[~D]~8+ '-[Level] ].
