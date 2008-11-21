@@ -28,6 +28,7 @@
 #include <uriparser/Uri.h>
 
 static functor_t FUNCTOR_uri7;
+static functor_t FUNCTOR_eq2;		/* =/2 */
 static atom_t    ATOM_;
 static atom_t	 ATOM_normalize;
 static atom_t	 ATOM_base;
@@ -86,6 +87,51 @@ put_path_segments(term_t t, UriPathSegmentW *segment)
     *o++ = '/';
 
   PL_unify_wchars(t, PL_ATOM, o-buf, buf);
+}
+
+static void
+PL_put_atom_wchars(term_t t, const wchar_t *s)
+{ PL_put_variable(t);
+  PL_unify_wchars(t, PL_ATOM, (size_t)-1, s);
+}
+
+
+static int
+put_query(term_t t, UriUriW *uri)
+{ if ( uri->query.first == uri->query.afterLast )
+  { PL_put_nil(t);
+    return TRUE;
+  } else
+  { UriQueryListW *ql, *qe;
+    int itemCount;
+
+    if ( uriDissectQueryMallocW(&ql, &itemCount,
+				uri->query.first, uri->query.afterLast) == URI_SUCCESS)
+    { term_t tail = PL_copy_term_ref(t);
+      term_t head = PL_new_term_ref();
+      term_t qel  = PL_new_term_refs(3);
+      int i;
+
+      for(i=0,qe=ql; i<itemCount; i++,qe=qe->next)
+      { PL_unify_list(tail, head, tail);
+	if ( qe->value )
+	{ PL_put_atom_wchars(qel+1, qe->key);
+	  PL_put_atom_wchars(qel+2, qe->value);
+	  PL_cons_functor_v(qel+0, FUNCTOR_eq2, qel+1);
+	  PL_unify(head, qel+0);
+	} else
+	{ PL_put_atom_wchars(qel, qe->key);
+	  PL_unify(head, qel);
+	}
+      }      
+      PL_unify_nil(tail);
+    } else
+    { return FALSE;			/* TBD: exception */
+    }
+
+    uriFreeQueryListW(ql);
+    return TRUE;
+  }
 }
 
 
@@ -188,7 +234,7 @@ parse_uri(term_t text, term_t parts, term_t options)
   put_text_range(av+2, &uri.hostText);
   put_num_text_range(av+3, &uri.portText);
   put_path_segments(av+4, uri.pathHead);
-  put_text_range(av+5, &uri.query);
+  put_query(av+5, &uri);
   put_text_range(av+6, &uri.fragment);
 
   term_t f = PL_new_term_ref();
@@ -203,6 +249,7 @@ parse_uri(term_t text, term_t parts, term_t options)
 static void
 install_parse()
 { FUNCTOR_uri7 = PL_new_functor(PL_new_atom("uri"), 7);
+  FUNCTOR_eq2  = PL_new_functor(PL_new_atom("="), 2);
   ATOM_ = PL_new_atom("");
   ATOM_normalize = PL_new_atom("normalize");
   ATOM_base = PL_new_atom("base");
