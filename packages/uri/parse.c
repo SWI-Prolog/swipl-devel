@@ -34,36 +34,36 @@ static atom_t	 ATOM_normalize;
 static atom_t	 ATOM_base;
 
 static void
-put_text_range(term_t t, UriTextRangeW *text)
+put_text_range(term_t t, UriTextRangeA *text)
 { if ( text->afterLast > text->first )
-    PL_unify_wchars(t, PL_ATOM, text->afterLast - text->first, text->first);
+    PL_unify_chars(t, PL_ATOM, text->afterLast - text->first, text->first);
   else
     PL_put_atom(t, ATOM_);
 }
 
 
 static void
-put_num_text_range(term_t t, UriTextRangeW *text)
+put_num_text_range(term_t t, UriTextRangeA *text)
 { if ( text->afterLast > text->first )
   { unsigned long v;
-    wchar_t *e;
+    char *e;
 
-    v = wcstoul(text->first, &e, 10);
+    v = strtoul(text->first, &e, 10);
     if ( e == text->afterLast )
       PL_put_integer(t, v);
     else
-      PL_unify_wchars(t, PL_ATOM, text->afterLast - text->first, text->first);
+      PL_unify_chars(t, PL_ATOM, text->afterLast - text->first, text->first);
   }
 }
 
 
 
 static void
-put_path_segments(term_t t, UriPathSegmentW *segment)
+put_path_segments(term_t t, UriPathSegmentA *segment)
 { size_t len = 0;
-  UriPathSegmentW *s;
-  wchar_t tmp[256];
-  wchar_t *buf, *o;
+  UriPathSegmentA *s;
+  char tmp[256];
+  char *buf, *o;
 
   for(s=segment; s; s=s->next)
   { len += (s->text.afterLast -  s->text.first) + 1;
@@ -74,38 +74,32 @@ put_path_segments(term_t t, UriPathSegmentW *segment)
   if ( len < 256 )
     buf = tmp;
   else
-    buf = PL_malloc((len+1)*sizeof(wchar_t));
+    buf = PL_malloc((len+1)*sizeof(char));
 
   for(o=buf,s=segment; s; s=s->next)
   { size_t l = s->text.afterLast -  s->text.first;
 
     *o++ = '/';
-    wcsncpy(o, s->text.first, l);
+    strncpy(o, s->text.first, l);
     o+= l;
   }
   if ( o == buf )
     *o++ = '/';
 
-  PL_unify_wchars(t, PL_ATOM, o-buf, buf);
-}
-
-static void
-PL_put_atom_wchars(term_t t, const wchar_t *s)
-{ PL_put_variable(t);
-  PL_unify_wchars(t, PL_ATOM, (size_t)-1, s);
+  PL_unify_chars(t, PL_ATOM, o-buf, buf);
 }
 
 
 static int
-put_query(term_t t, UriUriW *uri)
+put_query(term_t t, UriUriA *uri)
 { if ( uri->query.first == uri->query.afterLast )
   { PL_put_nil(t);
     return TRUE;
   } else
-  { UriQueryListW *ql, *qe;
+  { UriQueryListA *ql, *qe;
     int itemCount;
 
-    if ( uriDissectQueryMallocW(&ql, &itemCount,
+    if ( uriDissectQueryMallocA(&ql, &itemCount,
 				uri->query.first, uri->query.afterLast) == URI_SUCCESS)
     { term_t tail = PL_copy_term_ref(t);
       term_t head = PL_new_term_ref();
@@ -115,12 +109,12 @@ put_query(term_t t, UriUriW *uri)
       for(i=0,qe=ql; i<itemCount; i++,qe=qe->next)
       { PL_unify_list(tail, head, tail);
 	if ( qe->value )
-	{ PL_put_atom_wchars(qel+1, qe->key);
-	  PL_put_atom_wchars(qel+2, qe->value);
+	{ PL_put_atom_chars(qel+1, qe->key);
+	  PL_put_atom_chars(qel+2, qe->value);
 	  PL_cons_functor_v(qel+0, FUNCTOR_eq2, qel+1);
 	  PL_unify(head, qel+0);
 	} else
-	{ PL_put_atom_wchars(qel, qe->key);
+	{ PL_put_atom_chars(qel, qe->key);
 	  PL_unify(head, qel);
 	}
       }      
@@ -129,7 +123,7 @@ put_query(term_t t, UriUriW *uri)
     { return FALSE;			/* TBD: exception */
     }
 
-    uriFreeQueryListW(ql);
+    uriFreeQueryListA(ql);
     return TRUE;
   }
 }
@@ -146,11 +140,10 @@ Options include:
 
 
 static int
-parse_uri_options(UriParserStateW *state, UriUriW *uri, term_t options)
+parse_uri_options(UriParserStateA *state, UriUriA *uri, term_t options)
 { if ( !PL_get_nil(options) )
   { int normalize = FALSE;
-    wchar_t *base = NULL;
-    size_t baselen;
+    char *base = NULL;
     term_t tail  = PL_copy_term_ref(options);
     term_t head  = PL_new_term_ref();
     term_t ov    = PL_new_term_ref();
@@ -168,7 +161,7 @@ parse_uri_options(UriParserStateW *state, UriUriW *uri, term_t options)
       { if ( !PL_get_bool(ov, &normalize) )
 	  return type_error(ov, "bool");
       } else if ( oname == ATOM_base )
-      { if ( !PL_get_wchars(ov, &baselen, &base, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
+      { if ( !PL_get_chars(ov, &base, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
 	  return FALSE;
 	bterm = PL_copy_term_ref(ov);
       } else
@@ -179,27 +172,27 @@ parse_uri_options(UriParserStateW *state, UriUriW *uri, term_t options)
       return type_error(tail, "list");
 
     if ( base )
-    { UriUriW buri = { {0} };
-      UriUriW absuri = { {0} };
+    { UriUriA buri = { {0} };
+      UriUriA absuri = { {0} };
       
       state->uri = &buri;
-      if ( uriParseUriW(state, base) != URI_SUCCESS)
-      { uriFreeUriMembersW(&buri);
+      if ( uriParseUriA(state, base) != URI_SUCCESS)
+      { uriFreeUriMembersA(&buri);
 	return syntax_error(bterm, "uri");
       }
 
-      if ( uriAddBaseUriW(&absuri, uri, &buri) != URI_SUCCESS)
-      { uriFreeUriMembersW(&buri);
-	uriFreeUriMembersW(&absuri);
+      if ( uriAddBaseUriA(&absuri, uri, &buri) != URI_SUCCESS)
+      { uriFreeUriMembersA(&buri);
+	uriFreeUriMembersA(&absuri);
 	return FALSE;			/* TBD: Exception */
       }
 
-      uriFreeUriMembersW(&buri);
-      uriFreeUriMembersW(uri);
+      uriFreeUriMembersA(&buri);
+      uriFreeUriMembersA(uri);
       *uri = absuri;
     }
     if ( normalize )
-    { if ( uriNormalizeSyntaxW(uri) != URI_SUCCESS )
+    { if ( uriNormalizeSyntaxA(uri) != URI_SUCCESS )
 	return FALSE;			/* TBD: error */
     }
   }
@@ -211,17 +204,16 @@ parse_uri_options(UriParserStateW *state, UriUriW *uri, term_t options)
 
 static foreign_t
 parse_uri(term_t text, term_t parts, term_t options)
-{ UriParserStateW state = { 0 };
-  UriUriW uri = { {0} };
-  wchar_t *in;
-  size_t len;
+{ UriParserStateA state = { 0 };
+  UriUriA uri = { {0} };
+  char *in;
 
-  if ( !PL_get_wchars(text, &len, &in, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
+  if ( !PL_get_chars(text, &in, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
     return FALSE;
 
   state.uri = &uri;
-  if ( uriParseUriW(&state, in) != URI_SUCCESS)
-  { uriFreeUriMembersW(&uri);
+  if ( uriParseUriA(&state, in) != URI_SUCCESS)
+  { uriFreeUriMembersA(&uri);
     return syntax_error(text, "uri");
   }
   
@@ -240,7 +232,7 @@ parse_uri(term_t text, term_t parts, term_t options)
   term_t f = PL_new_term_ref();
   PL_cons_functor_v(f, FUNCTOR_uri7, av);
 
-  uriFreeUriMembersW(&uri);
+  uriFreeUriMembersA(&uri);
 
   return PL_unify(parts, f);
 }
