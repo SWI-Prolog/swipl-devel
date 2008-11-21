@@ -37,7 +37,8 @@
 	    decode_uri/2,		% +Text, -Atom
 	    decode_uri_component/2,	% +Text, -Atom
 
-	    parse_uri/3			% +Text, -Parts, +Options
+	    parse_uri/3,		% +Text, -Parts, +Options
+	    uri_iri/3			% +URI, -IRI, +Options
 	  ]).
 :- use_module(library(shlib)).
 
@@ -78,5 +79,5 @@
 %	    
 %	    * base(+BaseURI)
 %	    Decompose, relative to Base.
-%	    
-%	
+
+%%	uri_iri(+URI, -IRI, +Options) is det.

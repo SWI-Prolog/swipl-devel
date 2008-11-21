@@ -30,6 +30,7 @@
 */
 
 #include <SWI-Prolog.h>
+#include <assert.h>
 
 static functor_t FUNCTOR_error2;
 static functor_t FUNCTOR_type_error2;

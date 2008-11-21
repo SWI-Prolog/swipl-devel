@@ -201,23 +201,32 @@ parse_uri_options(UriParserStateA *state, UriUriA *uri, term_t options)
 }
 
 
+static int
+get_uri(term_t text, UriParserStateA *state, UriUriA *uri, term_t options)
+{ char *in;
+
+  if ( !PL_get_chars(text, &in, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
+    return FALSE;
+
+  state->uri = uri;
+  if ( uriParseUriA(state, in) != URI_SUCCESS)
+  { uriFreeUriMembersA(uri);
+    return syntax_error(text, "uri");
+  }
+  
+  if ( !parse_uri_options(state, uri, options) )
+    return FALSE;
+
+  return TRUE;
+}
+
 
 static foreign_t
 parse_uri(term_t text, term_t parts, term_t options)
 { UriParserStateA state = { 0 };
   UriUriA uri = { {0} };
-  char *in;
 
-  if ( !PL_get_chars(text, &in, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
-    return FALSE;
-
-  state.uri = &uri;
-  if ( uriParseUriA(&state, in) != URI_SUCCESS)
-  { uriFreeUriMembersA(&uri);
-    return syntax_error(text, "uri");
-  }
-  
-  if ( !parse_uri_options(&state, &uri, options) )
+  if ( !get_uri(text, &state, &uri, options) )
     return FALSE;
 
   term_t av = PL_new_term_refs(7);
@@ -238,6 +247,47 @@ parse_uri(term_t text, term_t parts, term_t options)
 }
 
 
+static foreign_t
+uri_iri(term_t uri_string, term_t iri, term_t options)
+{ if ( !PL_is_variable(uri_string) )
+  { UriParserStateA state = { 0 };
+    UriUriA uri = { {0} };
+    int charsRequired;
+
+    if ( !get_uri(uri_string, &state, &uri, options) )
+      return FALSE;
+    if ( uriToStringCharsRequiredA(&uri, &charsRequired) == URI_SUCCESS)
+    { char tmp[1024];
+      char *buf;
+      int rc;
+
+      charsRequired++;
+      if ( charsRequired > sizeof(tmp) )
+	buf = malloc(charsRequired);
+      else
+	buf = tmp;
+
+      rc = uriToStringA(buf, &uri, charsRequired, NULL);
+      uriFreeUriMembersA(&uri);
+
+      if ( rc == URI_SUCCESS )
+      { rc = decode_chars(charsRequired-1, buf, iri, FALSE);
+      } else
+      { rc = FALSE;
+      }
+      if ( buf && buf != tmp )
+	free(buf);
+
+      return rc;
+    }
+  } else
+  { assert(0);
+  }
+
+  return FALSE;
+}
+
+
 static void
 install_parse()
 { FUNCTOR_uri7 = PL_new_functor(PL_new_atom("uri"), 7);
@@ -247,4 +297,5 @@ install_parse()
   ATOM_base = PL_new_atom("base");
 
   PL_register_foreign("parse_uri", 3, parse_uri, 0);
+  PL_register_foreign("uri_iri",   3, uri_iri, 0);
 }
