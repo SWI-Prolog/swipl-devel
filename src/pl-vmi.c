@@ -620,7 +620,7 @@ VMI(H_LIST_FF, 0, 2, (CA1_VAR,CA1_VAR))
       varFrame(FR, *PC++) = (needsRef(*p) ? makeRef(p) : *p);
       p++;
       varFrame(FR, *PC++) = (needsRef(*p) ? makeRef(p) : *p);
-    } else if ( isVar(*p) )
+    } else if ( canBind(*p) )
     { word c;
       Word ap;
 
@@ -2117,7 +2117,7 @@ VMI(S_LIST, 0, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF))
     cref = (ClauseRef)PC[1];
   else if ( isNil(*k) )
     cref = (ClauseRef)PC[0];
-  else if ( isVar(*k) )
+  else if ( canBind(*k) )
   { PC = SUPERVISOR(next_clause);
     VMI_GOTO(S_ALLCLAUSES);
   } else
