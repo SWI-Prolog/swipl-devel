@@ -148,6 +148,7 @@ parse_uri_options(UriParserStateA *state, UriUriA *uri, term_t options)
     term_t head  = PL_new_term_ref();
     term_t ov    = PL_new_term_ref();
     term_t bterm = 0;
+    int is_abs   = (uri->scheme.first < uri->scheme.afterLast);
 
     while( PL_get_list(tail, head, tail) )
     { atom_t oname;
@@ -161,9 +162,11 @@ parse_uri_options(UriParserStateA *state, UriUriA *uri, term_t options)
       { if ( !PL_get_bool(ov, &normalize) )
 	  return type_error(ov, "bool");
       } else if ( oname == ATOM_base )
-      { if ( !PL_get_chars(ov, &base, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
-	  return FALSE;
-	bterm = PL_copy_term_ref(ov);
+      { if ( !is_abs )
+	{ if ( !PL_get_chars(ov, &base, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
+	    return FALSE;
+	  bterm = PL_copy_term_ref(ov);
+	}
       } else
       { return domain_error(head, "parse_uri_option");
       }
@@ -171,7 +174,7 @@ parse_uri_options(UriParserStateA *state, UriUriA *uri, term_t options)
     if ( !PL_get_nil(tail) )
       return type_error(tail, "list");
 
-    if ( base )
+    if ( base && !is_abs )
     { UriUriA buri = { {0} };
       UriUriA absuri = { {0} };
       
@@ -191,6 +194,7 @@ parse_uri_options(UriParserStateA *state, UriUriA *uri, term_t options)
       uriFreeUriMembersA(uri);
       *uri = absuri;
     }
+
     if ( normalize )
     { if ( uriNormalizeSyntaxA(uri) != URI_SUCCESS )
 	return FALSE;			/* TBD: error */

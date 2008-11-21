@@ -81,4 +81,17 @@
 %	    * base(+BaseURI)
 %	    Decompose, relative to Base.
 
+%%	is_absolute_uri(+URI) is semidet.
+%
+%	True if URI contains a schema.
+
 %%	uri_iri(+URI, -IRI, +Options) is det.
+%
+%	Translate between URI and IRI. Notably   the  base and normalize
+%	options can be used to translate between a local URL to a global
+%	IRI as needed for -for example- RDF.  E.g.,
+%	
+%	==
+%	?- uri_iri(cow, IRI, [base('http://example.com/ns/animals/')]).
+%	IRI = 'http://example.com/ns/animals/cow'.
+%	==
