@@ -38,6 +38,7 @@
 	    decode_uri_component/2,	% +Text, -Atom
 
 	    parse_uri/3,		% +Text, -Parts, +Options
+	    is_absolute_uri/1,		% +Text
 	    uri_iri/3			% +URI, -IRI, +Options
 	  ]).
 :- use_module(library(shlib)).

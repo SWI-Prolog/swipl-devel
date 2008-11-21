@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2008, University of Amsterdam
 
@@ -141,7 +141,7 @@ Options include:
 
 static int
 parse_uri_options(UriParserStateA *state, UriUriA *uri, term_t options)
-{ if ( !PL_get_nil(options) )
+{ if ( options && !PL_get_nil(options) )
   { int normalize = FALSE;
     char *base = NULL;
     term_t tail  = PL_copy_term_ref(options);
@@ -248,6 +248,21 @@ parse_uri(term_t text, term_t parts, term_t options)
 
 
 static foreign_t
+is_absolute_uri(term_t text)
+{ UriParserStateA state = { 0 };
+  UriUriA uri = { {0} };
+  int rc;
+
+  if ( !get_uri(text, &state, &uri, 0) )
+    return FALSE;
+  rc = (uri.scheme.first < uri.scheme.afterLast);
+  uriFreeUriMembersA(&uri);
+
+  return rc;
+}
+
+
+static foreign_t
 uri_iri(term_t uri_string, term_t iri, term_t options)
 { if ( !PL_is_variable(uri_string) )
   { UriParserStateA state = { 0 };
@@ -296,6 +311,7 @@ install_parse()
   ATOM_normalize = PL_new_atom("normalize");
   ATOM_base = PL_new_atom("base");
 
-  PL_register_foreign("parse_uri", 3, parse_uri, 0);
-  PL_register_foreign("uri_iri",   3, uri_iri, 0);
+  PL_register_foreign("parse_uri",       3, parse_uri,       0);
+  PL_register_foreign("uri_iri",         3, uri_iri,         0);
+  PL_register_foreign("is_absolute_uri", 1, is_absolute_uri, 0);
 }
