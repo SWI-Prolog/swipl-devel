@@ -127,12 +127,6 @@ escape(term_t in, term_t out, term_t tail, const char *map)
 
 
 static foreign_t
-js_escape(term_t uri, term_t url)
-{ return escape(uri, url, 0, escape_map);
-}
-
-
-static foreign_t
 encode_uri(term_t uri, term_t url)
 { return escape(uri, url, 0, escape_uri_map);
 }
@@ -238,12 +232,6 @@ decode(term_t in, term_t out, int plustoo)
 
 
 static foreign_t
-unescape(term_t in, term_t out)
-{ return decode(in, out, TRUE);
-}
-
-
-static foreign_t
 decode_uri(term_t in, term_t out)
 { return decode(in, out, FALSE);
 }
@@ -253,12 +241,10 @@ static void
 install_escape()
 { init_maps();
 
-/*  PL_register_foreign("escape", 2, js_escape, 0); */
   PL_register_foreign("encode_uri", 2, encode_uri, 0);
   PL_register_foreign("encode_uri_component", 2, encode_uri_component, 0);
   PL_register_foreign("encode_uri", 3, encode_uri3, 0);
   PL_register_foreign("encode_uri_component", 3, encode_uri_component3, 0);
-/*  PL_register_foreign("unescape", 2, unescape, 0); */
   PL_register_foreign("decode_uri", 2, decode_uri, 0);
   PL_register_foreign("decode_uri_component", 2, decode_uri, 0);
 }
