@@ -1209,7 +1209,7 @@ all_dead(fd_props(Bs,Gs,Os)) :-
         all_dead_(Os).
 
 all_dead_([]).
-all_dead_([propagator(_, mutable(dead, _))|Ps]) :- all_dead_(Ps).
+all_dead_([propagator(_, S)|Ps]) :- S == dead, all_dead_(Ps).
 
 label([], _, _, _, Consistency) :- !,
         (   Consistency = upto_in(I0,I) -> I0 = I
@@ -1483,8 +1483,7 @@ tighten(max, E, V) :- E #> V.
 
 all_different(Ls) :-
         must_be(list, Ls),
-        State = mutable(shared, _),
-        all_different(Ls, [], State),
+        all_different(Ls, [], _),
         do_queue.
 
 all_different([], _, _).
@@ -1707,12 +1706,10 @@ pop_queue(E) :-
         b_getval('$clpfd_queue', H-T),
         nonvar(H), H = [E|NH], b_setval('$clpfd_queue', NH-T).
 
-fetch_propagator(Propagator) :-
-        pop_queue(Prop),
-        arg(2, Prop, MState),
-        arg(1, MState, State),
-        (   State == dead -> fetch_propagator(Propagator)
-        ;   Propagator = Prop
+fetch_propagator(Prop) :-
+        pop_queue(P),
+        (   arg(2, P, S), S == dead -> fetch_propagator(Prop)
+        ;   Prop = P
         ).
 
 :- thread_initialization((make_queue,
@@ -2561,15 +2558,13 @@ put_full(X, Dom, Ps) :-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A propagator is a term of the form propagator(C, State), where C
-   represents a constraint, and State is a term of the form
-   mutable(S,X). S can be used to destructively change the state of
-   the propagator. This can be used to avoid redundant invocation of
-   the same propagator, or to disable the propagator. X is a free
-   variable that prevents a factorizing garbage collector from folding
-   unrelated states.
+   represents a constraint, and State is a free variable that can be
+   used to destructively change the state of the propagator via
+   attributes. This can be used to avoid redundant invocation of the
+   same propagator, or to disable the propagator.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-make_propagator(C, propagator(C, mutable(passive, _))).
+make_propagator(C, propagator(C, _)).
 
 trigger_props(fd_props(Gs,Bs,Os), X, D0, D) :-
         trigger_props_(Os),
@@ -2608,33 +2603,34 @@ trigger_props_([]).
 trigger_props_([P|Ps]) :- trigger_prop(P), trigger_props_(Ps).
 
 trigger_prop(Propagator) :-
-        arg(2, Propagator, MState),
-        (   arg(1, MState, dead) -> true
-        ;   arg(1, MState, queued) -> true
-        ;   b_getval('$clpfd_current_propagator', C), C == MState -> true
+        arg(2, Propagator, State),
+        (   State == dead -> true
+        ;   get_attr(State, clpfd_aux, queued) -> true
+        ;   b_getval('$clpfd_current_propagator', C), C == State -> true
         ;   % passive
             % format("triggering: ~w\n", [Propagator]),
-            setarg(1, MState, queued),
+            put_attr(State, clpfd_aux, queued),
             push_queue(Propagator)
         ).
 
-kill(MState) :- setarg(1, MState, dead).
+kill(State) :- del_attr(State, clpfd_aux), State = dead.
 
 no_reactivation(rel_tuple).
 %no_reactivation(scalar_product).
 
-activate_propagator(propagator(P,MState)) :-
-        setarg(1, MState, passive),
+activate_propagator(propagator(P,State)) :-
+        % format("running: ~w\n", [P]),
+        del_attr(State, clpfd_aux),
         functor(P, Functor, _),
         (   no_reactivation(Functor) ->
-            b_setval('$clpfd_current_propagator', MState)
+            b_setval('$clpfd_current_propagator', State)
         ;   true
         ),
-        run_propagator(P, MState),
+        run_propagator(P, State),
         b_setval('$clpfd_current_propagator', []).
 
 disable_queue :- b_setval('$clpfd_queue_status', disabled).
-enable_queue  :- b_setval('$clpfd_queue_status', enabled), do_queue.
+enable_queue  :- b_setval('$clpfd_queue_status', enabled).
 
 portray_propagator(propagator(P,_), F) :- functor(P, F, _).
 
@@ -3053,6 +3049,7 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                 % nl, write(Infs-Sups-Inf-Sup), nl,
                 D1 is P - Inf,
                 D2 is Sup - P,
+                disable_queue,
                 (   Infs == [], Sups == [] ->
                     between(Inf, Sup, P),
                     remove_dist_upper_lower(Cs, Vs, D1, D2)
@@ -3070,7 +3067,8 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                 ;   Sups = [_] ->
                     remove_lower(Sups, D2)
                 ;   true
-                )
+                ),
+                enable_queue
             )
         ).
 
@@ -3822,8 +3820,7 @@ max_divide(L1,U1,L2,U2,Max) :-
 all_distinct(Ls) :-
         must_be(list, Ls),
         length(Ls, _),
-        MState = mutable(shared,_),
-        all_distinct(Ls, [], MState),
+        all_distinct(Ls, [], _),
         do_queue.
 
 all_distinct([], _, _).
@@ -4240,28 +4237,25 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
         intervals_to_drep(Rest, Drep0 \/ D1, Drep).
 
 attribute_goals(X) -->
+        % { get_attr(X, clpfd, Attr), format("A: ~w\n", [Attr]) },
         { get_attr(X, clpfd, clpfd_attr(_,_,_,Dom,fd_props(Gs,Bs,Os))),
           append(Gs, Bs, Ps0),
           append(Ps0, Os, Ps),
           domain_to_drep(Dom, Drep) },
-        (   { default_domain(Dom), one_alive(Ps) } -> []
+        (   { default_domain(Dom), \+ all_dead_(Ps) } -> []
         ;   [clpfd:(X in Drep)]
         ),
         attributes_goals(Ps).
 
-one_alive([propagator(_, State)|Ps]) :-
-        (   arg(1, State, dead) -> one_alive(Ps)
-        ;   true
-        ).
+clpfd_aux:attribute_goals(_) --> [].
 
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
-        (   { arg(1, State, dead) } -> []
-        ;   { arg(1, State, processed) } -> []
+        (   { ground(State) } -> []
         ;   { ( functor(P, pdifferent, _) ; functor(P, pdistinct, _) ),
-              arg(4, P, mutable(processed,_)) } -> []
+              arg(4, P, S), S == processed } -> []
         ;   { attribute_goal_(P, G) } ->
-            { setarg(1, State, processed) },
+            { del_attr(State, clpfd_aux), State = processed },
             [clpfd:G]
         ;   [P] % possibly user-defined constraint
         ),
@@ -4289,11 +4283,11 @@ attribute_goal_(scalar_product(Cs,Vs,Op,C), Goal) :-
 attribute_goal_(pdifferent(Left, Right, X, Shared), all_different(Vs)) :-
         append(Left, [X|Right], Vs0),
         msort(Vs0, Vs),
-        setarg(1, Shared, processed).
+        Shared = processed.
 attribute_goal_(pdistinct(Left, Right, X, Shared), all_distinct(Vs)) :-
         append(Left, [X|Right], Vs0),
         msort(Vs0, Vs),
-        setarg(1, Shared, processed).
+        Shared = processed.
 attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
         append(Left, [Var-D|Right], VDs),
         pair_up(Vs, Ds, VDs).
