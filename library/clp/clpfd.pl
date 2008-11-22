@@ -2624,17 +2624,14 @@ no_reactivation(rel_tuple).
 %no_reactivation(scalar_product).
 
 activate_propagator(propagator(P,MState)) :-
-        (   arg(1, MState, dead) -> true
-        ;   %format("running: ~w\n", [P]),
-            setarg(1, MState, passive),
-            functor(P, Functor, _),
-            (   no_reactivation(Functor) ->
-                b_setval('$clpfd_current_propagator', MState)
-            ;   true
-            ),
-            run_propagator(P, MState),
-            b_setval('$clpfd_current_propagator', [])
-        ).
+        setarg(1, MState, passive),
+        functor(P, Functor, _),
+        (   no_reactivation(Functor) ->
+            b_setval('$clpfd_current_propagator', MState)
+        ;   true
+        ),
+        run_propagator(P, MState),
+        b_setval('$clpfd_current_propagator', []).
 
 disable_queue :- b_setval('$clpfd_queue_status', disabled).
 enable_queue  :- b_setval('$clpfd_queue_status', enabled), do_queue.
