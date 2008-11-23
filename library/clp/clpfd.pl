@@ -1724,8 +1724,10 @@ fetch_propagator(Prop) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 constrain_to_integer(Var) :-
-        fd_get(Var, D, Ps),
-        fd_put(Var, D, Ps).
+        (   integer(Var) -> true
+        ;   fd_get(Var, D, Ps),
+            fd_put(Var, D, Ps)
+        ).
 
 power_var_num(P, X, N) :-
         (   var(P) -> X = P, N = 1
