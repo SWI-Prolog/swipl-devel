@@ -1209,7 +1209,7 @@ all_dead(fd_props(Bs,Gs,Os)) :-
         all_dead_(Os).
 
 all_dead_([]).
-all_dead_([propagator(_, mutable(dead, _))|Ps]) :- all_dead_(Ps).
+all_dead_([propagator(_, S)|Ps]) :- S == dead, all_dead_(Ps).
 
 label([], _, _, _, Consistency) :- !,
         (   Consistency = upto_in(I0,I) -> I0 = I
@@ -1483,8 +1483,7 @@ tighten(max, E, V) :- E #> V.
 
 all_different(Ls) :-
         must_be(list, Ls),
-        State = mutable(shared, _),
-        all_different(Ls, [], State),
+        all_different(Ls, [], _),
         do_queue.
 
 all_different([], _, _).
@@ -1707,12 +1706,10 @@ pop_queue(E) :-
         b_getval('$clpfd_queue', H-T),
         nonvar(H), H = [E|NH], b_setval('$clpfd_queue', NH-T).
 
-fetch_propagator(Propagator) :-
-        pop_queue(Prop),
-        arg(2, Prop, MState),
-        arg(1, MState, State),
-        (   State == dead -> fetch_propagator(Propagator)
-        ;   Propagator = Prop
+fetch_propagator(Prop) :-
+        pop_queue(P),
+        (   arg(2, P, S), S == dead -> fetch_propagator(Prop)
+        ;   Prop = P
         ).
 
 :- thread_initialization((make_queue,
@@ -1727,8 +1724,10 @@ fetch_propagator(Propagator) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 constrain_to_integer(Var) :-
-        fd_get(Var, D, Ps),
-        fd_put(Var, D, Ps).
+        (   integer(Var) -> true
+        ;   fd_get(Var, D, Ps),
+            fd_put(Var, D, Ps)
+        ).
 
 power_var_num(P, X, N) :-
         (   var(P) -> X = P, N = 1
@@ -2082,26 +2081,66 @@ integer_kroot(L, U, N, K, R) :-
 %
 % X is not Y.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Some expressions are handled by special propagators, and we want to
+   recognise all their variations. A fact match(Expr, Call) describes
+   which specialised predicate can be applied for Expr.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+match(var(X) #\= integer(Y), neq_num(X, Y)).
+match(var(X) #\= var(Y) + var(Z), x_neq_y_plus_z(X, Y, Z)).
+match(var(X) #\= var(Y) - var(Z), x_neq_y_plus_z(Y, X, Z)).
+match(integer(X) #\= abs(var(Y)-var(Z)), absdiff_neq_const(Y, Z, X)).
+
+left_right_matcher(X, Y, M) :-
+        findall(Term-Pred, match(Term,Pred), TPs),
+        matcher(TPs, X, Y, M).
+
+matcher([], _, _, false).
+matcher([Term-Pred|TPs], X, Y, Matchers) :-
+        (   Term = (Left #\= Right) ->
+            Matchers = (Cond1 ->  Pred; Cond2 -> Pred ; Rest),
+            condition(Left, Right, X, Y, Cond1),
+            condition(Right, Left, X, Y, Cond2),
+            matcher(TPs, X, Y, Rest)
+        ;   domain_error(matcher_expression, Term)
+        ).
+
+condition(Left, Right, X, Y, Cond) :-
+        phrase((conditions(Left,X),conditions(Right,Y)), Cs),
+        list_goal(Cs, Cond).
+
+conditions(var(V), T)     --> [v_or_i(T), V = T].
+conditions(integer(I), T) --> [integer(T), I = T].
+conditions(X+Y, T)        -->
+        [nonvar(T), T = A + B],
+        conditions(X, A),
+        conditions(Y, B).
+conditions(X-Y, T)        -->
+        [nonvar(T), T = A - B],
+        conditions(X, A),
+        conditions(Y, B).
+conditions(abs(X), T)     -->
+        [nonvar(T), T = abs(A)],
+        conditions(X, A).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 X #\= Y :-
-        (   var(X), integer(Y) ->
-            neq_num(X, Y),
-            do_queue
-        ;   var(X), nonvar(Y), Y = V - Z, var(V), ( integer(Z) ; var(Z) ) ->
-            x_neq_y_plus_z(V, X, Z)
-        ;   var(X), nonvar(Y), Y = V + Z, var(V), ( integer(Z) ; var(Z) ) ->
-            x_neq_y_plus_z(X, V, Z)
-        ;   nonvar(X), var(Y), X = V + Z, var(V), ( integer(Z) ; var(Z) ) ->
-            x_neq_y_plus_z(Y, V, Z)
-        ;   nonvar(X), var(Y), X = V - Z, var(V), ( integer(Z) ; var(Z) ) ->
-            x_neq_y_plus_z(V, Y, Z)
-        ;   nonvar(X), X = abs(A), nonvar(A), A = X1 - Y1, var(X1), var(Y1), integer(Y) ->
-            absdiff_neq_const(X1, Y1, Y)
-        ;   integer(X), nonvar(Y), Y = abs(A), nonvar(A), A = X1 - Y1, var(X1), var(Y1) ->
-            absdiff_neq_const(X1, Y1, X)
+        (
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %% matcher for specialised propagators, generated with:
+        %%?- set_prolog_flag(toplevel_print_options, [portray(true)]),
+        %%   clpfd:left_right_matcher(X, Y, M).
+          ((v_or_i(X), M1481=X), integer(Y)), M1483=Y->neq_num(M1481, M1483); ((integer(X), M1483=X), v_or_i(Y)), M1481=Y->neq_num(M1481, M1483); ((((((v_or_i(X), M1459=X), nonvar(Y)), Y=M1674+M1675), v_or_i(M1674)), M1464=M1674), v_or_i(M1675)), M1466=M1675->x_neq_y_plus_z(M1459, M1464, M1466); ((((((nonvar(X), X=M1756+M1757), v_or_i(M1756)), M1464=M1756), v_or_i(M1757)), M1466=M1757), v_or_i(Y)), M1459=Y->x_neq_y_plus_z(M1459, M1464, M1466); ((((((v_or_i(X), M1437=X), nonvar(Y)), Y=M1872-M1873), v_or_i(M1872)), M1442=M1872), v_or_i(M1873)), M1444=M1873->x_neq_y_plus_z(M1442, M1437, M1444); ((((((nonvar(X), X=M1954-M1955), v_or_i(M1954)), M1442=M1954), v_or_i(M1955)), M1444=M1955), v_or_i(Y)), M1437=Y->x_neq_y_plus_z(M1442, M1437, M1444); ((((((((integer(X), M1413=X), nonvar(Y)), Y=abs(M2070)), nonvar(M2070)), M2070=M2083-M2084), v_or_i(M2083)), M1420=M2083), v_or_i(M2084)), M1422=M2084->absdiff_neq_const(M1420, M1422, M1413); ((((((((nonvar(X), X=abs(M2171)), nonvar(M2171)), M2171=M2184-M2185), v_or_i(M2184)), M1420=M2184), v_or_i(M2185)), M1422=M2185), integer(Y)), M1413=Y->absdiff_neq_const(M1420, M1422, M1413)
+        %% end of generated code
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         ;   left_right_linsum_const(X, Y, Cs, Vs, S) ->
             scalar_product(Cs, Vs, #\=, S)
         ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
-        ).
+        ),
+        do_queue.
 
 % abs(X-Y) #\= C
 
@@ -2561,15 +2600,13 @@ put_full(X, Dom, Ps) :-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A propagator is a term of the form propagator(C, State), where C
-   represents a constraint, and State is a term of the form
-   mutable(S,X). S can be used to destructively change the state of
-   the propagator. This can be used to avoid redundant invocation of
-   the same propagator, or to disable the propagator. X is a free
-   variable that prevents a factorizing garbage collector from folding
-   unrelated states.
+   represents a constraint, and State is a free variable that can be
+   used to destructively change the state of the propagator via
+   attributes. This can be used to avoid redundant invocation of the
+   same propagator, or to disable the propagator.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-make_propagator(C, propagator(C, mutable(passive, _))).
+make_propagator(C, propagator(C, _)).
 
 trigger_props(fd_props(Gs,Bs,Os), X, D0, D) :-
         trigger_props_(Os),
@@ -2608,36 +2645,34 @@ trigger_props_([]).
 trigger_props_([P|Ps]) :- trigger_prop(P), trigger_props_(Ps).
 
 trigger_prop(Propagator) :-
-        arg(2, Propagator, MState),
-        (   arg(1, MState, dead) -> true
-        ;   arg(1, MState, queued) -> true
-        ;   b_getval('$clpfd_current_propagator', C), C == MState -> true
+        arg(2, Propagator, State),
+        (   State == dead -> true
+        ;   get_attr(State, clpfd_aux, queued) -> true
+        ;   b_getval('$clpfd_current_propagator', C), C == State -> true
         ;   % passive
             % format("triggering: ~w\n", [Propagator]),
-            setarg(1, MState, queued),
+            put_attr(State, clpfd_aux, queued),
             push_queue(Propagator)
         ).
 
-kill(MState) :- setarg(1, MState, dead).
+kill(State) :- del_attr(State, clpfd_aux), State = dead.
 
 no_reactivation(rel_tuple).
 %no_reactivation(scalar_product).
 
-activate_propagator(propagator(P,MState)) :-
-        (   arg(1, MState, dead) -> true
-        ;   %format("running: ~w\n", [P]),
-            setarg(1, MState, passive),
-            functor(P, Functor, _),
-            (   no_reactivation(Functor) ->
-                b_setval('$clpfd_current_propagator', MState)
-            ;   true
-            ),
-            run_propagator(P, MState),
-            b_setval('$clpfd_current_propagator', [])
-        ).
+activate_propagator(propagator(P,State)) :-
+        % format("running: ~w\n", [P]),
+        del_attr(State, clpfd_aux),
+        functor(P, Functor, _),
+        (   no_reactivation(Functor) ->
+            b_setval('$clpfd_current_propagator', State)
+        ;   true
+        ),
+        run_propagator(P, State),
+        b_setval('$clpfd_current_propagator', []).
 
 disable_queue :- b_setval('$clpfd_queue_status', disabled).
-enable_queue  :- b_setval('$clpfd_queue_status', enabled), do_queue.
+enable_queue  :- b_setval('$clpfd_queue_status', enabled).
 
 portray_propagator(propagator(P,_), F) :- functor(P, F, _).
 
@@ -3056,6 +3091,7 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                 % nl, write(Infs-Sups-Inf-Sup), nl,
                 D1 is P - Inf,
                 D2 is Sup - P,
+                disable_queue,
                 (   Infs == [], Sups == [] ->
                     between(Inf, Sup, P),
                     remove_dist_upper_lower(Cs, Vs, D1, D2)
@@ -3073,7 +3109,8 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                 ;   Sups = [_] ->
                     remove_lower(Sups, D2)
                 ;   true
-                )
+                ),
+                enable_queue
             )
         ).
 
@@ -3825,8 +3862,7 @@ max_divide(L1,U1,L2,U2,Max) :-
 all_distinct(Ls) :-
         must_be(list, Ls),
         length(Ls, _),
-        MState = mutable(shared,_),
-        all_distinct(Ls, [], MState),
+        all_distinct(Ls, [], _),
         do_queue.
 
 all_distinct([], _, _).
@@ -4243,28 +4279,25 @@ intervals_to_drep([A0-B0|Rest], Drep0, Drep) :-
         intervals_to_drep(Rest, Drep0 \/ D1, Drep).
 
 attribute_goals(X) -->
+        % { get_attr(X, clpfd, Attr), format("A: ~w\n", [Attr]) },
         { get_attr(X, clpfd, clpfd_attr(_,_,_,Dom,fd_props(Gs,Bs,Os))),
           append(Gs, Bs, Ps0),
           append(Ps0, Os, Ps),
           domain_to_drep(Dom, Drep) },
-        (   { default_domain(Dom), one_alive(Ps) } -> []
+        (   { default_domain(Dom), \+ all_dead_(Ps) } -> []
         ;   [clpfd:(X in Drep)]
         ),
         attributes_goals(Ps).
 
-one_alive([propagator(_, State)|Ps]) :-
-        (   arg(1, State, dead) -> one_alive(Ps)
-        ;   true
-        ).
+clpfd_aux:attribute_goals(_) --> [].
 
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
-        (   { arg(1, State, dead) } -> []
-        ;   { arg(1, State, processed) } -> []
+        (   { ground(State) } -> []
         ;   { ( functor(P, pdifferent, _) ; functor(P, pdistinct, _) ),
-              arg(4, P, mutable(processed,_)) } -> []
+              arg(4, P, S), S == processed } -> []
         ;   { attribute_goal_(P, G) } ->
-            { setarg(1, State, processed) },
+            { del_attr(State, clpfd_aux), State = processed },
             [clpfd:G]
         ;   [P] % possibly user-defined constraint
         ),
@@ -4292,11 +4325,11 @@ attribute_goal_(scalar_product(Cs,Vs,Op,C), Goal) :-
 attribute_goal_(pdifferent(Left, Right, X, Shared), all_different(Vs)) :-
         append(Left, [X|Right], Vs0),
         msort(Vs0, Vs),
-        setarg(1, Shared, processed).
+        Shared = processed.
 attribute_goal_(pdistinct(Left, Right, X, Shared), all_distinct(Vs)) :-
         append(Left, [X|Right], Vs0),
         msort(Vs0, Vs),
-        setarg(1, Shared, processed).
+        Shared = processed.
 attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
         append(Left, [Var-D|Right], VDs),
         pair_up(Vs, Ds, VDs).

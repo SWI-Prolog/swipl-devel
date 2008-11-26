@@ -249,19 +249,24 @@ att_terms_residuals([A|As], [V|Vs]) -->
 
 att_term_residuals([], _)		    --> [].
 att_term_residuals(att(Module,Value,As), V) -->
-	% temporarily reinstate this attribute for attribute_goals//1
-	{ put_attr(V, Module, Value) },
-	(   { Module == freeze }
-	->  [freeze(V, Value)]
-	;   { current_predicate(Module:attribute_goals/3) }
-	->  { phrase(Module:attribute_goals(V), Goals) },
-	    dlist(Goals)
-	;   { current_predicate(Module:attribute_goal/2) }
-	->  { Module:attribute_goal(V, Goal) },
-	    dot_list(Goal)
-	;   [put_attr(V, Module, Value)]
+	(   { nonvar(V) }
+	->  % a previous projection predicate could have instantiated
+	    % this variable, for example, to avoid redundant goals
+	    []
+	;   % temporarily reinstate this attribute for attribute_goals//1
+	    { put_attr(V, Module, Value) },
+	    (	{ Module == freeze }
+	    ->	[freeze(V, Value)]
+	    ;	{ current_predicate(Module:attribute_goals/3) }
+	    ->	{ phrase(Module:attribute_goals(V), Goals) },
+		dlist(Goals)
+	    ;	{ current_predicate(Module:attribute_goal/2) }
+	    ->	{ Module:attribute_goal(V, Goal) },
+		dot_list(Goal)
+	    ;	[put_attr(V, Module, Value)]
+	    ),
+	    { del_attr(V, Module) }
 	),
-	{ del_attr(V, Module) },
 	term_residuals(Value),
 	att_term_residuals(As, V).
 
