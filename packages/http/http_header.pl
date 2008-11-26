@@ -889,7 +889,7 @@ field_to_prolog(set_cookie, ValueChars, SetCookie) :- !,
 	debug(cookie, 'SetCookie: ~s', [ValueChars]),
 	phrase(set_cookie(SetCookie), ValueChars).
 field_to_prolog(host, ValueChars, Host) :- !,
-	(   append(HostChars, [0':|PortChars], ValueChars),
+	(   append(HostChars, [0':|PortChars], ValueChars), % 0'
 	    catch(number_codes(Port, PortChars), _, fail)
 	->  atom_codes(HostName, HostChars),
 	    Host = HostName:Port
@@ -932,7 +932,17 @@ header_fields([H|T]) -->
 
 %%	field_name(?PrologName)
 %
-%	Convert between prolog_name and HttpName
+%	Convert between prolog_name and HttpName.  Field names are,
+%	aoording to RFC 2616, considered tokens and covered by the
+%	following definition:
+%	
+%	==
+%	token          = 1*<any CHAR except CTLs or separators>
+%       separators     = "(" | ")" | "<" | ">" | "@"
+%                      | "," | ";" | ":" | "\" | <">
+%                      | "/" | "[" | "]" | "?" | "="
+%                      | "{" | "}" | SP | HT
+%	==
 
 field_name(Name) -->
 	{ var(Name) }, !,
@@ -951,18 +961,25 @@ rd_field_chars([C0|T]) -->
 rd_field_chars([]) -->
 	[].
 
+%%	separators(-CharCodes) is det.
+%
+%	CharCodes is a list of separators according to RFC2616
+
+separators("()<>@,;:\\\"/[]?={} \t").
+
 term_expansion(rd_field_char(_,_), Clauses) :-
 	Clauses = [ rd_field_char(0'-, 0'_)
 		  | Cls
 		  ],
+	separators(Seps),
 	findall(rd_field_char(In, Out),
-		(   between(1, 127, In),
-		    code_type(In, csym),
+		(   between(32, 127, In),
+		    \+ memberchk(In, Seps),
+		    In \== 0'-,		% 0'
 		    code_type(Out, to_lower(In))),
 		Cls).
 
 rd_field_char(_, _).
-
 
 wr_field_chars([C|T]) -->
 	[C2], !,
