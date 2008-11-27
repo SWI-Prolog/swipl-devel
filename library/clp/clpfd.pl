@@ -2664,11 +2664,11 @@ activate_propagator(propagator(P,State)) :-
         % format("running: ~w\n", [P]),
         del_attr(State, clpfd_aux),
         (   no_reactivation(P) ->
-            b_setval('$clpfd_current_propagator', State)
-        ;   true
-        ),
-        run_propagator(P, State),
-        b_setval('$clpfd_current_propagator', []).
+            b_setval('$clpfd_current_propagator', State),
+            run_propagator(P, State),
+            b_setval('$clpfd_current_propagator', [])
+        ;   run_propagator(P, State)
+        ).
 
 disable_queue :- b_setval('$clpfd_queue_status', disabled).
 enable_queue  :- b_setval('$clpfd_queue_status', enabled).
