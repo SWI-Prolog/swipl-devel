@@ -2657,14 +2657,13 @@ trigger_prop(Propagator) :-
 
 kill(State) :- del_attr(State, clpfd_aux), State = dead.
 
-no_reactivation(rel_tuple).
-%no_reactivation(scalar_product).
+no_reactivation(rel_tuple(_,_)).
+%no_reactivation(scalar_product(_,_,_,_)).
 
 activate_propagator(propagator(P,State)) :-
         % format("running: ~w\n", [P]),
         del_attr(State, clpfd_aux),
-        functor(P, Functor, _),
-        (   no_reactivation(Functor) ->
+        (   no_reactivation(P) ->
             b_setval('$clpfd_current_propagator', State)
         ;   true
         ),
@@ -3861,7 +3860,6 @@ max_divide(L1,U1,L2,U2,Max) :-
 %all_distinct(Ls) :- all_different(Ls).
 all_distinct(Ls) :-
         must_be(list, Ls),
-        length(Ls, _),
         all_distinct(Ls, [], _),
         do_queue.
 
