@@ -533,8 +533,8 @@ ispell(F, Ispell) :<-
 	(    get(F, slot, ispell, Ispell),
 	     Ispell \== @nil
 	->   true
-	;    get(F, ispell_program, Ispell),
-	     new(Ispell, process('/bin/sh', '-c', string('%s -a', Ispell))),
+	;    get(F, ispell_program, CMD),
+	     new(Ispell, process('/bin/sh', '-c', string('%s -a', CMD))),
 	     send(Ispell, use_tty, @off),
 	     send(Ispell, input_message, message(F, ispell_utterance, @arg1)),
 	     send(Ispell, open),
