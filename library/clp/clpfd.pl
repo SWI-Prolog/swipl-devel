@@ -1237,6 +1237,7 @@ choice_order_variable(step, Order, Var, Vars, Selection, Consistency) :-
         (   Var = Next,
             label(Vars, Selection, Order, step, Consistency)
         ;   neq_num(Var, Next),
+            do_queue,
             label([Var|Vars], Selection, Order, step, Consistency)
         ).
 choice_order_variable(enum, Order, Var, Vars, Selection, Consistency) :-
