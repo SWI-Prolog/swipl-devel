@@ -8,6 +8,25 @@
 					--------------------------------------
 
 
+================================
+VERSION 5.6.63 December 02, 2008
+================================
+
+ * FIXED: Unix: avoid deadlock in shell/1 and library(process) when closing
+   open files. Files in the child are closed only if FD_CLOEXEC is
+   supported by fcntl().
+   
+ * ENHANCED: CLP(FD): recognise more expressions with specialised propagators
+   
+ * FIXED: Possible stack corruption throwing an exception from a cleanup handler.
+   Keri Harris.
+   
+ * FIXED: Per thread CPU clock handling in Debian etch and possibly other Linux
+   systems with up-to-date kernel, but pre 2.4 glibc.
+   
+ * ADDED: CLP(FD): chain/2, constraining a list of variables to form a chain with
+                   respect to a partial order. Example: ?- chain([X,Y,Z], #<).
+   
 ===============================
 VERSION 5.6.62 October 22, 2008
 ===============================

@@ -1,3 +1,6 @@
+[Nov 17 2008]
+
+ * BUILD: Make distclean removes h-link in xpce
 [Sep 29 2008]
 
  * BUILD: Bug#381: more parallel build issues.  Keri Harris.
