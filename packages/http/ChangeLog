@@ -1,3 +1,6 @@
+[Nov 26 2008]
+
+ * FIXED: Update HTTP header definition for a token to RFC 2616.  Matt Lilley
 [Oct 9 2008]
 
  * ADDED: More flexible support for HTTP 503 (service unavailable) replies.
