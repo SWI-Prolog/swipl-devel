@@ -202,7 +202,7 @@ decode_member_header(RcArchive rca, RcMember mbr)
   memset(mbr, 0, sizeof(*mbr));
 
   while( html_fd_next_tag(rca->fd, tag, properties) )
-  { if ( strmp(tag, "file") == 0 )
+  { if ( strcmp(tag, "file") == 0 )
     { html_decode_tag(properties, make_file_tag_def(), mbr);
 
       if ( mbr->name )
