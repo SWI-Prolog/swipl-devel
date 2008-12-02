@@ -2683,8 +2683,13 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     recursiveMutexInit(s->mutex);
   }
 #endif
-  if ( (fd = Sfileno(s)) >= 0 && isatty(fd) )
-    s->flags |= SIO_ISATTY;
+  if ( (fd = Sfileno(s)) >= 0 )
+  { if ( isatty(fd) )
+      s->flags |= SIO_ISATTY;
+#if defined(F_SETFD) && defined(FD_CLOEXEC)
+    fcntl(fd, F_SETFD, FD_CLOEXEC);
+#endif
+  }
 
   return s;
 }
