@@ -628,7 +628,6 @@ COMMON(void) 		destroyDefinition(Definition def);
 COMMON(void) 		resetReferences(void);
 COMMON(Procedure) 	resolveProcedure(functor_t f, Module module);
 COMMON(Definition) 	trapUndefined(LocalFrame *frp, Code PC, Definition undef ARG_LD);
-COMMON(word) 		pl_retract(term_t term, control_t h);
 COMMON(word) 		pl_retractall(term_t head);
 COMMON(word) 		pl_abolish(term_t atom, term_t arity);
 COMMON(word) 		pl_abolish1(term_t pred);
