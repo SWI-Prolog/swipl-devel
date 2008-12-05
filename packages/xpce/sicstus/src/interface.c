@@ -1143,6 +1143,9 @@ getPrintNameProlog(PceObject hd)
   rval = cToPceString(NIL, buffer, FALSE);
   Sclose(s);
 
+  if ( buffer )
+    Sfree(buffer);
+
   return rval;
 }
 
