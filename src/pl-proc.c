@@ -1643,12 +1643,13 @@ pl_require(term_t pred)
 		*            RETRACT            *
 		*********************************/
 
-word
-pl_retract(term_t term, control_t h)
-{ GET_LD
+static
+PRED_IMPL("retract", 1, retract, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  term_t term = A1;
 
-  if ( ForeignControl(h) == FRG_CUTTED )
-  { ClauseRef cref = ForeignContextPtr(h);
+  if ( CTX_CNTRL == FRG_CUTTED )
+  { ClauseRef cref = CTX_PTR;
 
     if ( cref )
     { Definition def = getProcDefinition(cref->clause->procedure);
@@ -1682,7 +1683,7 @@ pl_retract(term_t term, control_t h)
     else
       argv = NULL;			/* retract(foobar) */
 
-    if ( ForeignControl(h) == FRG_FIRST_CALL )
+    if ( CTX_CNTRL == FRG_FIRST_CALL )
     { functor_t fd;
 
       if ( !PL_get_functor(head, &fd) )
@@ -1718,7 +1719,7 @@ pl_retract(term_t term, control_t h)
 	fail;
       }
     } else
-    { cref = ForeignContextPtr(h);
+    { cref = CTX_PTR;
       proc = cref->clause->procedure;
       def  = getProcDefinition(proc);
       cref = findClause(cref, argv, environment_frame, def, &next PASS_LD);
@@ -2956,4 +2957,5 @@ pl_list_generations(term_t desc)
 BeginPredDefs(proc)
   PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
+  PRED_DEF("retract", 1, retract, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 EndPredDefs
