@@ -742,19 +742,6 @@ COMMON(word) 		pl_get_time(term_t t);
 COMMON(word) 		pl_sleep(term_t time);
 COMMON(word) 		pl_get_pid(term_t pid);
 
-/* pl-table.c */
-COMMON(void) 		initTables();
-COMMON(Table) 		newHTable(int size);
-COMMON(void) 		destroyHTable(Table ht);
-COMMON(Symbol) 		lookupHTable(Table ht, void *name);
-COMMON(Symbol) 		addHTable(Table ht, void *name, void *value);
-COMMON(void) 		deleteSymbolHTable(Table ht, Symbol s);
-COMMON(void) 		clearHTable(Table ht);
-COMMON(Table) 		copyHTable(Table org);
-COMMON(TableEnum) 	newTableEnum(Table ht);
-COMMON(void) 		freeTableEnum(TableEnum e);
-COMMON(Symbol) 		advanceTableEnum(TableEnum e);
-
 /* pl-trace.c */
 COMMON(int)		isDebugFrame(LocalFrame FR);
 COMMON(int) 		tracePort(LocalFrame frame, Choice bfr,
