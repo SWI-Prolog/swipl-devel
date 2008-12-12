@@ -777,8 +777,6 @@ COMMON(word) 		setInteger(int *val, term_t old, term_t new);
 COMMON(bool) 		strprefix(const char *string, const char *prefix);
 COMMON(bool) 		strpostfix(const char *string, const char *postfix);
 COMMON(bool) 		stripostfix(const char *string, const char *postfix);
-COMMON(bool) 		scan_options(term_t list, int flags, atom_t name,
-				     const opt_spec *specs, ...);
 COMMON(const char *)	atom_summary(atom_t name, unsigned int maxlen);
 #ifndef HAVE_STRCASECMP
 COMMON(int) 		strcasecmp(const char *s1, const char *s2);
