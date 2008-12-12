@@ -2390,6 +2390,8 @@ th_do_something :-
 th_check_done :-
 	findall(X, retract(th_data(X)), [1,2,3,4,5]).
 
+thread(queue-1) :-			% crash if no queue exists?
+	findall(Q, message_queue_property(Q,_), _).
 thread(join-1) :-
 	thread_create(th_do_something, Id, []),
 	thread_join(Id, Exit),
