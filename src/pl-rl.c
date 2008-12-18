@@ -513,7 +513,7 @@ prolog_complete(int ignore, int key)
       rl_delete_text(rl_point-1, rl_point);
       rl_point -= 1;
 #else
-      rl_delete(-1);
+      rl_delete(-1, key);
 #endif
     }
     rl_end_undo_group();
