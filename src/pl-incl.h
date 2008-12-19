@@ -357,6 +357,7 @@ A common basis for C keywords.
 #else
 #define SO_LOCAL
 #endif
+#define COMMON(type) SO_LOCAL type
 
 #if defined(__GNUC__) && !defined(NORETURN)
 #define NORETURN __attribute__ ((noreturn))
@@ -492,50 +493,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define FLAGHASHSIZE		16	/* global flag/3 table */
 #define ARITHHASHSIZE		64	/* arithmetic function table */
 
-#define TABLE_UNLOCKED		0x10000000L /* do not create mutex for table */
-#define TABLE_MASK		0xf0000000UL
-
-#define pointerHashValue(p, size) ((((intptr_t)(p) >> LMASK_BITS) ^ \
-				    ((intptr_t)(p) >> (LMASK_BITS+5)) ^ \
-				    ((intptr_t)(p))) & \
-				   ((size)-1))
-
-#define TABLE_REF_MASK		0x1UL
-#define isTableRef(p)		((uintptr_t)(p) & TABLE_REF_MASK)
-#define makeTableRef(p)		((void*)((uintptr_t)(p) | TABLE_REF_MASK))
-#define unTableRef(s, p)	(*((s*)((uintptr_t)(p) & ~TABLE_REF_MASK)))
-
-#define return_next_table(t, v, clean) \
-	{ for((v) = (v)->next; isTableRef(v) && (v); (v) = unTableRef(t, v)) \
-	  if ( (v) == (t)NULL ) \
-	  { clean; \
-	    succeed; \
-	  } \
-	  ForeignRedoPtr(v); \
-	}
-
-#define for_table(ht, s, code) \
-	{ int _k; \
-	  PL_LOCK(L_TABLE); \
-	  for(_k = 0; _k < (ht)->buckets; _k++) \
-	  { Symbol _n, s; \
-	    for(s=(ht)->entries[_k]; s; s = _n) \
-	    { _n = s->next; \
-	      code; \
-	    } \
-	  } \
-          PL_UNLOCK(L_TABLE); \
-	}
-#define for_unlocked_table(ht, s, code) \
-	{ int _k; \
-	  for(_k = 0; _k < (ht)->buckets; _k++) \
-	  { Symbol _n, s; \
-	    for(s=(ht)->entries[_k]; s; s = _n) \
-	    { _n = s->next; \
-	      code; \
-	    } \
-	  } \
-	}
+#include "pl-table.h"
 
 /* Definition->indexPattern is set to NEED_REINDEX if the definition's index
    pattern needs to be recomputed */
@@ -739,9 +697,6 @@ typedef struct recordList *	RecordList;	/* list of these */
 typedef struct module *		Module;		/* predicate modules */
 typedef struct sourceFile *	SourceFile;	/* file adminitration */
 typedef struct list_cell *	ListCell;	/* Anonymous list */
-typedef struct table *		Table;		/* (numeric) hash table */
-typedef struct symbol *		Symbol;		/* symbol of hash table */
-typedef struct table_enum *	TableEnum; 	/* Enumerate table entries */
 typedef struct localFrame *	LocalFrame;	/* environment frame */
 typedef struct local_definitions *LocalDefinitions; /* thread-local preds */
 typedef struct choice *		Choice;		/* Choice-point */
@@ -1527,31 +1482,6 @@ struct gc_trail_entry
 { word		address;	/* address of the variable */
 };
 
-struct table
-{ int		buckets;	/* size of hash table */
-  int		size;		/* # symbols in the table */
-  TableEnum	enumerators;	/* Handles for enumeration */
-#ifdef O_PLMT
-  simpleMutex  *mutex;		/* Mutex to guard table */
-#endif
-  void 		(*copy_symbol)(Symbol s);
-  void 		(*free_symbol)(Symbol s);
-  Symbol	*entries;	/* array of hash symbols */
-};
-
-struct symbol
-{ Symbol	next;		/* next in chain */
-  void *	name;		/* name entry of symbol */
-  void *	value;		/* associated value with name */
-};
-
-struct table_enum
-{ Table		table;		/* Table we are working on */
-  int		key;		/* Index of current symbol-chain */
-  Symbol	current;	/* The current symbol */
-  TableEnum	next;		/* More choice points */
-};
-
 		 /*******************************
 		 *	 MEMORY ALLOCATION	*
 		 *******************************/
@@ -1754,27 +1684,6 @@ typedef struct
 #define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+3)
 #endif
 
-
-		 /*******************************
-		 *	   OPTION LISTS		*
-		 *******************************/
-
-#define OPT_BOOL	(0)		/* types */
-#define OPT_INT		(1)
-#define OPT_STRING	(2)
-#define OPT_ATOM	(3)
-#define OPT_TERM	(4)		/* arbitrary term */
-#define OPT_LONG	(5)
-#define OPT_NATLONG	(6)		/* > 0 */
-#define OPT_TYPE_MASK	0xff
-#define OPT_INF		0x100		/* allow 'inf' */
-
-#define OPT_ALL		0x1		/* flags */
-
-typedef struct
-{ word		name;			/* Name of option */
-  int		type;			/* Type of option */
-} opt_spec, *OptSpec;
 
 		 /*******************************
 		 *	      EVENTS		*
@@ -2173,8 +2082,6 @@ decrease).
 #include SYSLIB_H
 #endif
 
-#define COMMON(type) SO_LOCAL type
-
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
 #include "pl-error.h"			/* Exception generation */
 #include "pl-thread.h"			/* thread manipulation */
@@ -2185,6 +2092,7 @@ decrease).
 #include "pl-funcs.h"			/* global functions */
 #include "pl-text.h"			/* text manipulation */
 #include "pl-hash.h"			/* Murmurhash function */
+#include "pl-option.h"			/* Option processing */
 
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */
 #undef leave

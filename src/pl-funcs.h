@@ -628,7 +628,6 @@ COMMON(void) 		destroyDefinition(Definition def);
 COMMON(void) 		resetReferences(void);
 COMMON(Procedure) 	resolveProcedure(functor_t f, Module module);
 COMMON(Definition) 	trapUndefined(LocalFrame *frp, Code PC, Definition undef ARG_LD);
-COMMON(word) 		pl_retract(term_t term, control_t h);
 COMMON(word) 		pl_retractall(term_t head);
 COMMON(word) 		pl_abolish(term_t atom, term_t arity);
 COMMON(word) 		pl_abolish1(term_t pred);
@@ -743,19 +742,6 @@ COMMON(word) 		pl_get_time(term_t t);
 COMMON(word) 		pl_sleep(term_t time);
 COMMON(word) 		pl_get_pid(term_t pid);
 
-/* pl-table.c */
-COMMON(void) 		initTables();
-COMMON(Table) 		newHTable(int size);
-COMMON(void) 		destroyHTable(Table ht);
-COMMON(Symbol) 		lookupHTable(Table ht, void *name);
-COMMON(Symbol) 		addHTable(Table ht, void *name, void *value);
-COMMON(void) 		deleteSymbolHTable(Table ht, Symbol s);
-COMMON(void) 		clearHTable(Table ht);
-COMMON(Table) 		copyHTable(Table org);
-COMMON(TableEnum) 	newTableEnum(Table ht);
-COMMON(void) 		freeTableEnum(TableEnum e);
-COMMON(Symbol) 		advanceTableEnum(TableEnum e);
-
 /* pl-trace.c */
 COMMON(int)		isDebugFrame(LocalFrame FR);
 COMMON(int) 		tracePort(LocalFrame frame, Choice bfr,
@@ -791,8 +777,6 @@ COMMON(word) 		setInteger(int *val, term_t old, term_t new);
 COMMON(bool) 		strprefix(const char *string, const char *prefix);
 COMMON(bool) 		strpostfix(const char *string, const char *postfix);
 COMMON(bool) 		stripostfix(const char *string, const char *postfix);
-COMMON(bool) 		scan_options(term_t list, int flags, atom_t name,
-				     const opt_spec *specs, ...);
 COMMON(const char *)	atom_summary(atom_t name, unsigned int maxlen);
 #ifndef HAVE_STRCASECMP
 COMMON(int) 		strcasecmp(const char *s1, const char *s2);

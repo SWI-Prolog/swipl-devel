@@ -1,3 +1,6 @@
+[Nov 14 2008]
+
+ * FIXED: PlDoc: Avoid deadlock asking for source-listing with syntax errors
 [Oct 7 2008]
 
  * CLEANUP: Make PlDoc run entirely on top of the http_dispatch module, so

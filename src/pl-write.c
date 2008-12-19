@@ -228,7 +228,7 @@ PutToken(const char *s, IOSTREAM *stream)
 { if ( s[0] )
   { int rc;
 
-    TRY(rc=PutOpenToken(s[0], stream));
+    TRY(rc=PutOpenToken(s[0]&0xff, stream));
     TRY(PutString(s, stream));
 
     return rc;
@@ -243,7 +243,7 @@ PutTokenN(const char *s, size_t len, IOSTREAM *stream)
 { if ( len > 0 )
   { int rc;
 
-    TRY(rc=PutOpenToken(s[0], stream));
+    TRY(rc=PutOpenToken(s[0]&0xff, stream));
     TRY(PutStringN(s, len, stream));
 
     return rc;

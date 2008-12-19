@@ -4462,7 +4462,8 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
        !PL_get_integer_ex(A2, &pcoffset) )
     fail;
   if ( pcoffset < 0 || pcoffset > (int)clause->code_size )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, A2);
+    return PL_error(NULL, 0, "not in clause executable code",
+		    ERR_DOMAIN, ATOM_program_counter, A2);
 
   PC = clause->codes;
   loc = &PC[pcoffset];
@@ -4538,13 +4539,17 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	DEBUG(1, Sdprintf("not: PC= %d, endloc = %d\n",
 			  PC - clause->codes, endloc - clause->codes));
 
-	if ( loc <= endloc )		/* in the \+ argument */
+	if ( loc <= endloc-3 )		/* in the \+ argument */
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
 
 	  add_node(tail, 1 PASS_LD);
-	  PC += 2;
 	  end = endloc-3;		/* C_CUT <var>, C_FAIL */
+	  DEBUG(1, Sdprintf("Inside not: PC=%d, end = %d\n",
+			    PC - clause->codes, end - clause->codes));
 	  continue;
+	} else if ( loc <= endloc )
+	{ return PL_error(NULL, 0, "not a possible continuation",
+			  ERR_DOMAIN, ATOM_program_counter, A2);
 	}
 
 	goto after_construct;

@@ -2681,6 +2681,9 @@ PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
   qprop_enum statebuf;
   qprop_enum *state;
 
+  if ( !queueTable )
+    return FALSE;
+
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { memset(&statebuf, 0, sizeof(statebuf));

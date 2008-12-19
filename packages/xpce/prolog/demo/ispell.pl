@@ -131,11 +131,9 @@ examined/replaced  and the current fragment.   They are manipulated by
 `ispell ->select'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-class_variable(spell_program, name, 'ispell -t -l', "Spell command").
-class_variable(error_style,   style,
-	       when(@colour_display,
-		    style(colour := red),
-		    style(bold := @on)),
+class_variable(ispell_program, name, 'ispell',
+	       "ISpell command with common options").
+class_variable(error_style,   style, style(colour := red),
 	       "Style used to highlight errors").
 
 variable(word,	   name*,	get,	"Currently handled word").
@@ -385,8 +383,8 @@ using `process ->wait'.
 spell(F) :->
 	send(F, clear_errors),
 
-	get(F, spell_program, Prog),
-	new(P, process('/bin/sh', '-c', string('%s | sort -u', Prog))),
+	get(F, ispell_program, Prog),
+	new(P, process('/bin/sh', '-c', string('%s -l | sort -u', Prog))),
 	send(P, use_tty, @off),
 	send(P, input_message, message(F, mark_word, @arg1)),
 	send(F, report, progress, 'Running "%s" ...', Prog),
@@ -535,7 +533,8 @@ ispell(F, Ispell) :<-
 	(    get(F, slot, ispell, Ispell),
 	     Ispell \== @nil
 	->   true
-	;    new(Ispell, process(ispell, '-a')),
+	;    get(F, ispell_program, CMD),
+	     new(Ispell, process('/bin/sh', '-c', string('%s -a', CMD))),
 	     send(Ispell, use_tty, @off),
 	     send(Ispell, input_message, message(F, ispell_utterance, @arg1)),
 	     send(Ispell, open),
@@ -605,7 +604,7 @@ action(F, R:[name], AddToDict:[bool]) :->
 	;   ToDict = Word
 	),
 	(   AddToDict == @on
-	->  send(F?ispell, format, '*%s\\n', ToDict),
+	->  send(F?ispell, format, '*%s\\n#\\n', ToDict),
 	    send(F, report, status, 'Added "%s" to dictionary', ToDict)
 	;   true
 	),
