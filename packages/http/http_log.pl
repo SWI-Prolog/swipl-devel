@@ -29,7 +29,8 @@
 
 :- module(http_log,
 	  [ http_log_stream/1,		% -Stream
-	    http_log/2			% +Format, +Args
+	    http_log/2,			% +Format, +Args
+	    http_log_close/1		% +Reason
 	  ]).
 :- use_module(library(settings)).
 :- use_module(library(broadcast)).
@@ -58,7 +59,7 @@ specifications (e.g. =|/topsecret?password=secret|=.
 % reopened with the new settings.
 
 :- listen(settings(changed(http:logfile, _, New)),
-	  with_mutex(http_log, close_log(changed(New)))).
+	  http_log_close(changed(New))).
 :- listen(http(Message),
 	  http_message(Message)).
 
@@ -104,6 +105,24 @@ http_log_stream(Stream) :-
 		   )).
 http_log_stream(_) :-
 	assert(log_stream([])).
+
+%%	http_log_close(+Reason) is det.
+%
+%	If there is a currently open HTTP logfile, close it after adding
+%	a term server(Reason, Time).  to  the   logfile.  This  call  is
+%	intended for cooperation with the Unix logrotate facility
+%	using the following schema:
+%	
+%	    * Move logfile (the HTTP server keeps writing to the moved
+%	    file)
+%	    * Inform the server using an HTTP request that calls
+%	    http_log_close/1
+%	    * Compress the moved logfile
+%	    
+%	@author Suggested by Jacco van Ossenbruggen    
+
+http_log_close(Reason) :-
+	with_mutex(http_log, close_log(Reason)).
 
 close_log(Reason) :-
 	retract(log_stream(Stream)), !,
