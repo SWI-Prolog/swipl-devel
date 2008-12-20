@@ -167,9 +167,10 @@ backtrace(MaxDepth) :-
 
 
 subgoal_position(ClauseRef, PC, File, CharA, CharZ) :-
+	debug(clause, 'Term-position in ~w at PC=~w:', [ClauseRef, PC]),
 	clause_info(ClauseRef, File, TPos, _),
 	'$clause_term_position'(ClauseRef, PC, List),
-	debug(clause, 'Term-position: ~w~n', [List]),
+	debug(clause, '\t~w~n', [List]),
 	find_subgoal(List, TPos, PosTerm),
 	arg(1, PosTerm, CharA),
 	arg(2, PosTerm, CharZ).
