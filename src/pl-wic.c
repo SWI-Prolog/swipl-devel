@@ -45,7 +45,6 @@ static void	putNum(int64_t, IOSTREAM *);
 static void	putReal(real, IOSTREAM *);
 static void	saveWicClause(Clause, IOSTREAM *);
 static void	closeProcedureWic(IOSTREAM *);
-static bool	compileFile(char *);
 static word	loadXRc(int c, IOSTREAM *fd ARG_LD);
 static atom_t   getBlob(IOSTREAM *fd ARG_LD);
 static bool	loadStatement(int c, IOSTREAM *fd, int skip ARG_LD);
@@ -816,7 +815,7 @@ loadWicFd(IOSTREAM *fd)
   { fatalError("Saved state has incompatible save version");
     fail;
   }
-  if ( (vm_signature=getInt(fd)) != VM_SIGNATURE )
+  if ( (vm_signature=getInt(fd)) != (int)VM_SIGNATURE )
   { fatalError("Saved state has incompatible VM signature");
     fail;
   }
@@ -2670,7 +2669,7 @@ directiveClause(term_t directive, term_t clause, const char *functor)
  ** Thu Apr 28 13:44:43 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static bool
-compileFile(char *file)
+compileFile(const char *file)
 { GET_LD
   char tmp[MAXPATHLEN];
   char *path;

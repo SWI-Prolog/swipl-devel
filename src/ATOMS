@@ -5,11 +5,8 @@
 #	F <name> <arity>	--> #define FUNCTOR_<name><arity>
 #				(A name should exist as well)
 #
-# This file is processed using the Unix awk program defineatoms to produce
-# pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.  If you do not have
-# awk you can propagate the changes by hand, but be careful!
-
-
+# This file is processed using defatom, compiled from defatom.c to
+# produce pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.
 
 A abort			"abort"
 A aborted		"$aborted"
@@ -282,6 +279,7 @@ A int			"int"
 A int64_t		"int64_t"
 A int_overflow		"int_overflow"
 A integer		"integer"
+A integer_expression	"integer_expression"
 A interrupt		"interrupt"
 A io_error		"io_error"
 A io_mode		"io_mode"

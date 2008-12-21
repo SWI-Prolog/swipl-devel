@@ -67,6 +67,7 @@ handling times must be cleaned, but that not only holds for this module.
 #define LD LOCAL_LD
 
 static int	bad_encoding(atom_t name);
+static int	noprotocol(void);
 
 const atom_t standardStreams[] =
 { ATOM_user_input,			/* 0 */
@@ -749,7 +750,7 @@ static IOSTREAM *openStream(term_t file, term_t mode, term_t options);
 void
 dieIO()
 { if ( GD->io_initialised )
-  { pl_noprotocol();
+  { noprotocol();
     closeFiles(TRUE);
     PopTty(Sinput, &ttytab);
   }
@@ -855,8 +856,8 @@ protocol(const char *str, size_t n)
 		 *******************************/
 
 
-word
-pl_push_input_context()
+static int
+push_input_context()
 { GET_LD
   InputContext c = allocHeap(sizeof(struct input_context));
 
@@ -870,8 +871,8 @@ pl_push_input_context()
 }
 
 
-word
-pl_pop_input_context()
+static int
+pop_input_context()
 { GET_LD
   InputContext c = input_context_stack;
 
@@ -887,6 +888,18 @@ pl_pop_input_context()
   { Scurin		= Sinput;
     fail;
   }
+}
+
+
+static
+PRED_IMPL("$push_input_context", 0, push_input_context, 0)
+{ return push_input_context();
+}
+
+
+static
+PRED_IMPL("$pop_input_context", 0, pop_input_context, 0)
+{ return pop_input_context();
 }
 
 
@@ -1224,7 +1237,7 @@ openProtocol(term_t f, bool appnd)
   IOSTREAM *s;
   term_t mode = PL_new_term_ref();
 
-  pl_noprotocol();
+  noprotocol();
 
   PL_put_atom(mode, appnd ? ATOM_append : ATOM_write);
   if ( (s = openStream(f, mode, 0)) )
@@ -1242,8 +1255,8 @@ openProtocol(term_t f, bool appnd)
 }
 
 
-word
-pl_noprotocol()
+static int
+noprotocol(void)
 { GET_LD
   IOSTREAM *s;
 
@@ -1268,17 +1281,26 @@ pl_noprotocol()
 }
 
 
+static
+PRED_IMPL("noprotocol", 0, noprotocol, 0)
+{ return noprotocol();
+}
+
+
 		 /*******************************
 		 *	 STREAM ATTRIBUTES	*
 		 *******************************/
 
 
-foreign_t
-pl_set_stream(term_t stream, term_t attr)
-{ GET_LD
+static
+PRED_IMPL("set_stream", 2, set_stream, 0)
+{ PRED_LD
   IOSTREAM *s;
   atom_t aname;
   int arity;
+
+  term_t stream = A1;
+  term_t attr = A2;
 
   if ( !PL_get_stream_handle(stream, &s) )
     fail;
@@ -1539,11 +1561,9 @@ toldString()
 
 #ifndef HAVE_SELECT
 
-word
-pl_wait_for_input(term_t streams, term_t available,
-		  term_t timeout)
-{ GET_LD
-  return notImplemented("wait_for_input", 3);
+static
+PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
+{ return notImplemented("wait_for_input", 3);
 }
 
 #else
@@ -1566,21 +1586,22 @@ findmap(fdentry *map, int fd)
 }
 
 
-word
-pl_wait_for_input(term_t Streams, term_t Available,
-		  term_t timeout)
-{ GET_LD
+static
+PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
+{ PRED_LD
   fd_set fds;
   struct timeval t, *to;
   double time;
   int n, max = 0, ret, min = 1 << (INTBITSIZE-2);
   fdentry *map     = NULL;
   term_t head      = PL_new_term_ref();
-  term_t streams   = PL_copy_term_ref(Streams);
-  term_t available = PL_copy_term_ref(Available);
+  term_t streams   = PL_copy_term_ref(A1);
+  term_t available = PL_copy_term_ref(A2);
   term_t ahead     = PL_new_term_ref();
   int from_buffer  = 0;
   atom_t a;
+
+  term_t timeout = A3;
 
   FD_ZERO(&fds);
   while( PL_get_list(streams, head, streams) )
@@ -1622,7 +1643,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
       min = fd;
   }
   if ( !PL_get_nil(streams) )
-    return PL_error("wait_for_input", 3, NULL, ERR_TYPE, ATOM_list, Streams);
+    return PL_error("wait_for_input", 3, NULL, ERR_TYPE, ATOM_list, A1);
 
   if ( from_buffer > 0 )
     return PL_unify_nil(available);
@@ -1680,7 +1701,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   switch(ret)
   { case -1:
       return PL_error("wait_for_input", 3, MSG_ERRNO, ERR_FILE_OPERATION,
-		      ATOM_select, ATOM_stream, Streams);
+		      ATOM_select, ATOM_stream, A1);
 
     case 0: /* Timeout */
       break;
@@ -2226,25 +2247,25 @@ PRED_IMPL("skip", 2, skip2, 0)
 }
 
 
-word
-pl_get_single_char(term_t chr)
+static 
+PRED_IMPL("get_single_char", 1, get_single_char, 0)
 { GET_LD
   IOSTREAM *s = getStream(Suser_input);
   int c = getSingleChar(s, TRUE);
 
   if ( c == EOF )
-  { PL_unify_integer(chr, -1);
+  { PL_unify_integer(A1, -1);
     return streamStatus(s);
   }
 
   releaseStream(s);
 
-  return PL_unify_integer(chr, c);
+  return PL_unify_integer(A1, c);
 }
 
 
 static foreign_t
-pl_get_byte2(term_t in, term_t chr ARG_LD)
+get_byte2(term_t in, term_t chr ARG_LD)
 { IOSTREAM *s;
 
   if ( getInputStream(in, &s) )
@@ -2267,7 +2288,7 @@ static
 PRED_IMPL("get_byte", 2, get_byte2, 0)
 { PRED_LD
 
-  return pl_get_byte2(A1, A2 PASS_LD);
+  return get_byte2(A1, A2 PASS_LD);
 }
 
 
@@ -2275,14 +2296,13 @@ static
 PRED_IMPL("get_byte", 1, get_byte1, 0)
 { PRED_LD
 
-  return pl_get_byte2(0, A1 PASS_LD);
+  return get_byte2(0, A1 PASS_LD);
 }
 
 
 static foreign_t
-pl_get_code2(term_t in, term_t chr)
-{ GET_LD
-  IOSTREAM *s;
+get_code2(term_t in, term_t chr ARG_LD)
+{ IOSTREAM *s;
 
   if ( getInputStream(in, &s) )
   { int c = Sgetcode(s);
@@ -2303,20 +2323,21 @@ pl_get_code2(term_t in, term_t chr)
 
 static 
 PRED_IMPL("get_code", 2, get_code2, 0)
-{ return pl_get_code2(A1, A2);
+{ PRED_LD
+  return get_code2(A1, A2 PASS_LD);
 }
 
 
 static 
 PRED_IMPL("get_code", 1, get_code1, 0)
-{ return pl_get_code2(0, A1);
+{ PRED_LD
+  return get_code2(0, A1 PASS_LD);
 }
 
 
 static foreign_t
-pl_get_char2(term_t in, term_t chr)
-{ GET_LD
-  IOSTREAM *s;
+get_char2(term_t in, term_t chr ARG_LD)
+{ IOSTREAM *s;
 
   if ( getInputStream(in, &s) )
   { int c = Sgetcode(s);
@@ -2337,19 +2358,21 @@ pl_get_char2(term_t in, term_t chr)
 
 static 
 PRED_IMPL("get_char", 2, get_char2, 0)
-{ return pl_get_char2(A1, A2);
+{ PRED_LD
+  return get_char2(A1, A2 PASS_LD);
 }
 
 
 static 
 PRED_IMPL("get_char", 1, get_char1, 0)
-{ return pl_get_char2(0, A1);
+{ PRED_LD
+  return get_char2(0, A1 PASS_LD);
 }
 
 
-word
-pl_ttyflush()
-{ GET_LD
+static 
+PRED_IMPL("ttyflush", 0, ttyflush, 0)
+{ PRED_LD
   IOSTREAM *s = getStream(Suser_output);
 
   Sflush(s);
@@ -2358,40 +2381,43 @@ pl_ttyflush()
 }
 
 
-word
-pl_protocol(term_t file)
-{ return openProtocol(file, FALSE);
+static 
+PRED_IMPL("protocol", 1, protocol, 0)
+{ return openProtocol(A1, FALSE);
 }
 
 
-word
-pl_protocola(term_t file)
-{ return openProtocol(file, TRUE);
+static 
+PRED_IMPL("protocola", 1, protocola, 0)
+{ return openProtocol(A1, TRUE);
 }
 
 
-word
-pl_protocolling(term_t file)
-{ GET_LD
+static 
+PRED_IMPL("protocolling", 1, protocolling, 0)
+{ PRED_LD
   IOSTREAM *s;
 
   if ( (s = Sprotocol) )
   { atom_t a;
 
     if ( (a = fileNameStream(s)) )
-      return PL_unify_atom(file, a);
+      return PL_unify_atom(A1, a);
     else
-      return PL_unify_stream_or_alias(file, s);
+      return PL_unify_stream_or_alias(A1, s);
   }
 
   fail;
 }
 
 
-word
-pl_prompt(term_t old, term_t new)
-{ GET_LD
+static 
+PRED_IMPL("prompt", 2, prompt, 0)
+{ PRED_LD
   atom_t a;
+
+  term_t old = A1;
+  term_t new = A2;
 
   if ( PL_unify_atom(old, LD->prompt.current) &&
        PL_get_atom(new, &a) )
@@ -2421,15 +2447,15 @@ prompt1(atom_t prompt)
 }
 
 
-word
-pl_prompt1(term_t prompt)
+static 
+PRED_IMPL("prompt1", 1, prompt1, 0)
 { GET_LD
   atom_t a;
   PL_chars_t txt;
 
-  if ( PL_get_atom(prompt, &a) )
+  if ( PL_get_atom(A1, &a) )
   { prompt1(a);
-  } else if ( PL_get_text(prompt, &txt,  CVT_ALL|CVT_EXCEPTION) )
+  } else if ( PL_get_text(A1, &txt,  CVT_ALL|CVT_EXCEPTION) )
   { prompt1(textToAtom(&txt));
   } else
     fail;
@@ -2455,63 +2481,34 @@ PrologPrompt()
 }
 
 
-word
-pl_tab2(term_t out, term_t spaces)
-{ GET_LD
-  number n;
+static int
+tab(term_t out, term_t spaces)
+{ int64_t count;
   int rval = FALSE;
   IOSTREAM *s;
 
   if ( !getOutputStream(out, &s) )
     fail;
+  if ( !PL_eval_expression_to_int64_ex(spaces, &count) )
+    fail;
 
-  if ( valueExpression(spaces, &n PASS_LD) )
-  { if ( toIntegerNumber(&n, 0) )
-    { int64_t m;
-
-      switch(n.type)
-      { case V_INTEGER:
-	  m = n.value.i;
-	  break;
-#ifdef O_GMP
-	case V_MPZ:
-	{ if ( !mpz_to_int64(n.value.mpz, &m) )
-	  { PL_error(NULL, 0, NULL, ERR_EVALUATION, ATOM_int_overflow);
-	    goto error;
-	  }
-	}
-#endif
-	default:
-	  assert(0);
-      }
-  
-      while(m-- > 0)
-      { if ( Sputcode(' ', s) < 0 )
-	  break;
-      }
-  
-      rval = TRUE;
-    }
-
-    clearNumber(&n);
-  } else
-  { rval = PL_error("tab", 1, NULL, ERR_TYPE, ATOM_integer, spaces);
+  while(count-- > 0)
+  { if ( Sputcode(' ', s) < 0 )
+      break;
   }
-
-  if ( rval )
-    return streamStatus(s);
-
-#ifdef O_GMP
-error:
-#endif
-  (void)streamStatus(s);
-  fail;
+  
+  return streamStatus(s);
 }
 
 
-word
-pl_tab(term_t n)
-{ return pl_tab2(0, n);
+static
+PRED_IMPL("tab", 2, tab2, 0)
+{ return tab(A1, A2);
+}
+
+static
+PRED_IMPL("tab", 1, tab1, 0)
+{ return tab(0, A1);
 }
 
 
@@ -2769,20 +2766,25 @@ openStream(term_t file, term_t mode, term_t options)
 }
 
 
-word
-pl_open4(term_t file, term_t mode, term_t stream, term_t options)
-{ IOSTREAM *s = openStream(file, mode, options);
+static
+PRED_IMPL("open", 4, open4, PL_FA_ISO)
+{ IOSTREAM *s = openStream(A1, A2, A4);
 
   if ( s )
-    return PL_unify_stream_or_alias(stream, s);
+    return PL_unify_stream_or_alias(A3, s);
 
   fail;
 }
 
 
-word
-pl_open(term_t file, term_t mode, term_t stream)
-{ return pl_open4(file, mode, stream, 0);
+static
+PRED_IMPL("open", 3, open3, PL_FA_ISO)
+{ IOSTREAM *s = openStream(A1, A2, 0);
+
+  if ( s )
+    return PL_unify_stream_or_alias(A3, s);
+
+  fail;
 }
 
 		 /*******************************
@@ -2841,7 +2843,7 @@ pl_see(term_t f)
   }
 
   set(getStreamContext(s), IO_SEE);
-  pl_push_input_context();
+  push_input_context();
   Scurin = s;
 
 ok:
@@ -2851,26 +2853,40 @@ ok:
 }
 
 word
-pl_seeing(term_t f)
-{ GET_LD
-  if ( Scurin == Suser_input )
-    return PL_unify_atom(f, ATOM_user);
-
-  return pl_current_input(f);
-}
-
-word
 pl_seen()
 { GET_LD
   IOSTREAM *s = getStream(Scurin);
 
-  pl_pop_input_context();
+  pop_input_context();
 
   if ( s->flags & SIO_NOFEOF )
     succeed;
 
   return closeStream(s);
 }
+
+static
+PRED_IMPL("see", 1, see, 0)
+{ return pl_see(A1);
+}
+
+
+static
+PRED_IMPL("seen", 0, seen, 0)
+{ return pl_seen();
+}
+
+
+static
+PRED_IMPL("seeing", 1, seeing, 0)
+{ PRED_LD
+
+  if ( Scurin == Suser_input )
+    return PL_unify_atom(A1, ATOM_user);
+
+  return PL_unify_stream(A1, Scurin);
+}
+
 
 /* MT: Does not create a lock on the stream
 */
@@ -2914,28 +2930,29 @@ ok:
   succeed;
 }
 
-word
-pl_tell(term_t f)
-{ return do_tell(f, ATOM_write);
+static
+PRED_IMPL("tell", 1, tell, 0)
+{ return do_tell(A1, ATOM_write);
 }
 
-word
-pl_append(term_t f)
-{ return do_tell(f, ATOM_append);
+static
+PRED_IMPL("append", 1, append, 0)
+{ return do_tell(A1, ATOM_append);
 }
 
-word
-pl_telling(term_t f)
-{ GET_LD
+static
+PRED_IMPL("telling", 1, telling, 0)
+{ PRED_LD
+
   if ( Scurout == Suser_output )
-    return PL_unify_atom(f, ATOM_user);
+    return PL_unify_atom(A1, ATOM_user);
 
-  return pl_current_output(f);
+  return PL_unify_stream(A1, Scurout);
 }
 
-word
-pl_told()
-{ GET_LD
+static
+PRED_IMPL("told", 0, told, 0)
+{ PRED_LD
   IOSTREAM *s = getStream(Scurout);
 
   popOutputContext();
@@ -2989,25 +3006,25 @@ static const IOFUNCTIONS nullFunctions =
 };
 
 
-word
-pl_open_null_stream(term_t stream)
+static
+PRED_IMPL("open_null_stream", 1, open_null_stream, 0)
 { int sflags = SIO_NBUF|SIO_RECORDPOS|SIO_OUTPUT;
   IOSTREAM *s = Snew((void *)NULL, sflags, (IOFUNCTIONS *)&nullFunctions);
 
   if ( s )
   { s->encoding = ENC_UTF8;
-    return PL_unify_stream_or_alias(stream, s);
+    return PL_unify_stream_or_alias(A1, s);
   }
 
   fail;
 }
 
 
-word
-pl_close(term_t stream)
+static
+PRED_IMPL("close", 1, close, PL_FA_ISO)
 { IOSTREAM *s;
 
-  if ( PL_get_stream_handle(stream, &s) )
+  if ( PL_get_stream_handle(A1, &s) )
     return closeStream(s);
 
   fail;
@@ -3020,19 +3037,18 @@ static const opt_spec close2_options[] =
 };
 
 
-word
-pl_close2(term_t stream, term_t options)
+static
+PRED_IMPL("close", 2, close2, PL_FA_ISO)
 { IOSTREAM *s;
   bool force = FALSE;
 
-  if ( !scan_options(options, 0, ATOM_close_option, close2_options, &force) )
+  if ( !scan_options(A2, 0, ATOM_close_option, close2_options, &force) )
     fail;
 
+  if ( !PL_get_stream_handle(A1, &s) )
+    fail;
   if ( !force )
-    return pl_close(stream);
-
-  if ( !PL_get_stream_handle(stream, &s) )
-    fail;
+    return closeStream(s);
 
   if ( s == Sinput )
     Sclearerr(s);
@@ -3362,15 +3378,19 @@ typedef struct
 } prop_enum;
 
 
-foreign_t
-pl_stream_property(term_t stream, term_t property, control_t h)
-{ GET_LD
+static
+PRED_IMPL("stream_property", 2, stream_property,
+	  PL_FA_ISO|PL_FA_NONDETERMINISTIC)
+{ PRED_LD
   IOSTREAM *s;
   prop_enum *pe;
   fid_t fid;
   term_t a1;
 
-  switch( ForeignControl(h) )
+  term_t stream = A1;
+  term_t property = A2;
+
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       a1 = PL_new_term_ref();
       
@@ -3452,13 +3472,13 @@ pl_stream_property(term_t stream, term_t property, control_t h)
       UNLOCK();
       fail;				/* bad stream handle */
     case FRG_REDO:
-    { pe = ForeignContextPtr(h);
+    { pe = CTX_PTR;
       a1 = PL_new_term_ref();
       
       break;
     }
     case FRG_CUTTED:
-    { pe = ForeignContextPtr(h);
+    { pe = CTX_PTR;
 
       if ( pe )				/* 0 if exception on FRG_FIRST_CALL */
       { if ( pe->e )
@@ -3567,8 +3587,8 @@ PRED_IMPL("is_stream", 1, is_stream, 0)
 		 *******************************/
 
 
-word
-pl_flush_output1(term_t out)
+static int
+flush_output(term_t out)
 { IOSTREAM *s;
 
   if ( getOutputStream(out, &s) )
@@ -3579,10 +3599,14 @@ pl_flush_output1(term_t out)
   fail;
 }
 
+static
+PRED_IMPL("flush_output", 0, flush_output, PL_FA_ISO)
+{ return flush_output(0);
+}
 
-word
-pl_flush_output()
-{ return pl_flush_output1(0);
+static
+PRED_IMPL("flush_output", 1, flush_output1, PL_FA_ISO)
+{ return flush_output(A1);
 }
 
 
@@ -3627,13 +3651,16 @@ getRepositionableStream(term_t stream, IOSTREAM **sp)
 }
 
 
-word
-pl_set_stream_position(term_t stream, term_t pos)
-{ GET_LD
+static
+PRED_IMPL("set_stream_position", 2, set_stream_position, PL_FA_ISO)
+{ PRED_LD
   IOSTREAM *s;
   int64_t charno, byteno;
   long linepos, lineno;
   term_t a = PL_new_term_ref();
+
+  term_t stream = A1;
+  term_t pos = A2;
 
   if ( !(getRepositionableStream(stream, &s)) )
     fail;
@@ -3667,13 +3694,18 @@ pl_set_stream_position(term_t stream, term_t pos)
 }
 
 
-word
-pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
-{ GET_LD
+static
+PRED_IMPL("seek", 4, seek, 0)
+{ PRED_LD
   atom_t m;
   int whence = -1;
   int64_t off, new;
   IOSTREAM *s;
+
+  term_t stream = A1;
+  term_t offset = A2;
+  term_t method = A3;
+  term_t newloc = A4;
 
   if ( !(PL_get_atom_ex(method, &m)) )
     return FALSE;
@@ -3716,12 +3748,12 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
 }
 
 
-word
-pl_set_input(term_t stream)
-{ GET_LD
+static
+PRED_IMPL("set_input", 1, set_input, PL_FA_ISO)
+{ PRED_LD
   IOSTREAM *s;
 
-  if ( getInputStream(stream, &s) )
+  if ( getInputStream(A1, &s) )
   { Scurin = s;
     releaseStream(s);
     return TRUE;
@@ -3731,12 +3763,12 @@ pl_set_input(term_t stream)
 }
 
 
-word
-pl_set_output(term_t stream)
-{ GET_LD
+static
+PRED_IMPL("set_output", 1, set_output, PL_FA_ISO)
+{ PRED_LD
   IOSTREAM *s;
 
-  if ( getOutputStream(stream, &s) )
+  if ( getOutputStream(A1, &s) )
   { Scurout = s;
     releaseStream(s);
     return TRUE;
@@ -3746,17 +3778,17 @@ pl_set_output(term_t stream)
 }
 
 
-word
-pl_current_input(term_t stream)
-{ GET_LD
-  return PL_unify_stream(stream, Scurin);
+static
+PRED_IMPL("current_input", 1, current_input, PL_FA_ISO)
+{ PRED_LD
+  return PL_unify_stream(A1, Scurin);
 }
 
 
-word
-pl_current_output(term_t stream)
-{ GET_LD
-  return PL_unify_stream(stream, Scurout);
+static
+PRED_IMPL("current_output", 1, current_output, PL_FA_ISO)
+{ PRED_LD
+  return PL_unify_stream(A1, Scurout);
 }
 
 
@@ -3822,22 +3854,21 @@ PRED_IMPL("line_position", 2, line_position, 0)
 }
 
 
-word
-pl_source_location(term_t file, term_t line)
-{ GET_LD
+static
+PRED_IMPL("source_location", 2, source_location, 0)
+{ PRED_LD
   if ( ReadingSource &&
-       PL_unify_atom(file, source_file_name) &&
-       PL_unify_integer(line, source_line_no) )
+       PL_unify_atom(A1, source_file_name) &&
+       PL_unify_integer(A2, source_line_no) )
     succeed;
   
   fail;
 }
 
 
-word
-pl_at_end_of_stream1(term_t stream)
-{ GET_LD
-  IOSTREAM *s;
+static int
+at_end_of_stream(term_t stream ARG_LD)
+{ IOSTREAM *s;
 
   if ( getInputStream(stream, &s) )
   { int rval = Sfeof(s);
@@ -3859,16 +3890,22 @@ pl_at_end_of_stream1(term_t stream)
   return FALSE;				/* exception */
 }
 
-
-word
-pl_at_end_of_stream0()
-{ return pl_at_end_of_stream1(0);
+static
+PRED_IMPL("at_end_of_stream", 1, at_end_of_stream, PL_FA_ISO)
+{ PRED_LD
+  return at_end_of_stream(A1 PASS_LD);
 }
 
+static
+PRED_IMPL("at_end_of_stream", 0, at_end_of_stream0, PL_FA_ISO)
+{ PRED_LD
+  return at_end_of_stream(0 PASS_LD);
+}
+
+
 static foreign_t
-peek(term_t stream, term_t chr, int how)
-{ GET_LD
-  IOSTREAM *s;
+peek(term_t stream, term_t chr, int how ARG_LD)
+{ IOSTREAM *s;
   IOPOS pos;
   int c;
 
@@ -3896,37 +3933,43 @@ peek(term_t stream, term_t chr, int how)
 
 static 
 PRED_IMPL("peek_byte", 2, peek_byte2, 0)
-{ return peek(A1, A2, BYTE_MODE);
+{ PRED_LD
+  return peek(A1, A2, BYTE_MODE PASS_LD);
 }
 
 
 static 
 PRED_IMPL("peek_byte", 1, peek_byte1, 0)
-{ return peek(0, A1, BYTE_MODE);
+{ PRED_LD
+  return peek(0, A1, BYTE_MODE PASS_LD);
 }
 
 
 static 
 PRED_IMPL("peek_code", 2, peek_code2, 0)
-{ return peek(A1, A2, CODE_MODE);
+{ PRED_LD
+  return peek(A1, A2, CODE_MODE PASS_LD);
 }
 
 
 static 
 PRED_IMPL("peek_code", 1, peek_code1, 0)
-{ return peek(0, A1, CODE_MODE);
+{ PRED_LD
+  return peek(0, A1, CODE_MODE PASS_LD);
 }
 
 
 static 
 PRED_IMPL("peek_char", 2, peek_char2, 0)
-{ return peek(A1, A2, CHAR_MODE);
+{ PRED_LD
+  return peek(A1, A2, CHAR_MODE PASS_LD);
 }
 
 
 static 
 PRED_IMPL("peek_char", 1, peek_char1, 0)
-{ return peek(0, A1, CHAR_MODE);
+{ PRED_LD
+  return peek(0, A1, CHAR_MODE PASS_LD);
 }
 
 
@@ -3935,7 +3978,7 @@ PRED_IMPL("peek_char", 1, peek_char1, 0)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-set_prolog_OI(+In, +Out, +Error)
+set_prolog_IO(+In, +Out, +Error)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -4154,63 +4197,67 @@ PL_get_file_name(term_t n, char **namep, int flags)
 }
 
 
-word
-pl_time_file(term_t name, term_t t)
+static
+PRED_IMPL("time_file", 2, time_file, 0)
 { char *fn;
 
-  if ( PL_get_file_name(name, &fn, 0) )
+  if ( PL_get_file_name(A1, &fn, 0) )
   { intptr_t time;
 
     if ( (time = LastModifiedFile(fn)) == -1 )
-      return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION, ATOM_time, ATOM_file, name);
+      return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
+		      ATOM_time, ATOM_file, A1);
 
-    return unifyTime(t, time);
+    return unifyTime(A2, time);
   }
 
   fail;
 }
 
 
-word
-pl_size_file(term_t name, term_t len)
+static
+PRED_IMPL("size_file", 2, size_file, 0)
 { char *n;
 
-  if ( PL_get_file_name(name, &n, 0) )
+  if ( PL_get_file_name(A1, &n, 0) )
   { int64_t size;
 
     if ( (size = SizeFile(n)) < 0 )
       return PL_error("size_file", 2, OsError(), ERR_FILE_OPERATION,
-		      ATOM_size, ATOM_file, name);
+		      ATOM_size, ATOM_file, A1);
 
-    return PL_unify_int64(len, size);
+    return PL_unify_int64(A2, size);
   }
 
   fail;
 }
 
 
-word
-pl_size_stream(term_t stream, term_t len)
+static
+PRED_IMPL("$size_stream", 2, size_stream, 0)
 { GET_LD
   IOSTREAM *s;
   int rval;
 
-  if ( !PL_get_stream_handle(stream, &s) )
+  if ( !PL_get_stream_handle(A1, &s) )
     fail;
 
-  rval = PL_unify_integer(len, Ssize(s));
+  rval = PL_unify_integer(A2, Ssize(s));
   PL_release_stream(s);
 
   return rval;
 }
 
 
-word
-pl_access_file(term_t name, term_t mode)
-{ GET_LD
+static
+PRED_IMPL("access_file", 2, access_file, 0)
+{ PRED_LD
   char *n;
   int md;
   atom_t m;
+
+  term_t name = A1;
+  term_t mode = A2;
 
   if ( !PL_get_atom(mode, &m) )
     return PL_error("access_file", 2, NULL, ERR_TYPE, ATOM_atom, mode);
@@ -4250,10 +4297,14 @@ pl_access_file(term_t name, term_t mode)
 }
 
 
-word
-pl_read_link(term_t file, term_t link, term_t to)
+static
+PRED_IMPL("read_link", 3, read_link, 0)
 { char *n, *l, *t;
   char buf[MAXPATHLEN];
+
+  term_t file = A1;
+  term_t link = A2;
+  term_t to   = A3;
 
   if ( !PL_get_file_name(file, &n, 0) )
     fail;
@@ -4268,32 +4319,35 @@ pl_read_link(term_t file, term_t link, term_t to)
 }
 
 
-word
-pl_exists_file(term_t name)
+static
+PRED_IMPL("exists_file", 1, exists_file, 0)
 { char *n;
 
-  if ( !PL_get_file_name(name, &n, 0) )
+  if ( !PL_get_file_name(A1, &n, 0) )
     fail;
   
   return ExistsFile(n);
 }
 
 
-word
-pl_exists_directory(term_t name)
+static
+PRED_IMPL("exists_directory", 1, exists_directory, 0)
 { char *n;
 
-  if ( !PL_get_file_name(name, &n, 0) )
+  if ( !PL_get_file_name(A1, &n, 0) )
     fail;
   
   return ExistsDirectory(n);
 }
 
 
-word
-pl_tmp_file(term_t base, term_t name)
-{ GET_LD
+static
+PRED_IMPL("tmp_file", 2, tmp_file, 0)
+{ PRED_LD
   char *n;
+
+  term_t base = A1;
+  term_t name = A2;
 
   if ( !PL_get_chars(base, &n, CVT_ALL) )
     return PL_error("tmp_file", 2, NULL, ERR_TYPE, ATOM_atom, base);
@@ -4302,67 +4356,70 @@ pl_tmp_file(term_t base, term_t name)
 }
 
 
-word
-pl_delete_file(term_t name)
+static
+PRED_IMPL("delete_file", 1, delete_file, 0)
 { char *n;
 
-  if ( !PL_get_file_name(name, &n, 0) )
+  if ( !PL_get_file_name(A1, &n, 0) )
     fail;
   
   if ( RemoveFile(n) )
     succeed;
 
   return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
-		    ATOM_delete, ATOM_file, name);
+		    ATOM_delete, ATOM_file, A1);
 }
 
 
-word
-pl_delete_directory(term_t name)
+static
+PRED_IMPL("delete_directory", 1, delete_directory, 0)
 { char *n;
 
-  if ( !PL_get_file_name(name, &n, 0) )
+  if ( !PL_get_file_name(A1, &n, 0) )
     fail;
   
   if ( rmdir(n) == 0 )
     succeed;
   else
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
-		    ATOM_delete, ATOM_directory, name);
+		    ATOM_delete, ATOM_directory, A1);
 }
 
 
-word
-pl_make_directory(term_t name)
+static
+PRED_IMPL("make_directory", 1, make_directory, 0)
 { char *n;
 
-  if ( !PL_get_file_name(name, &n, 0) )
+  if ( !PL_get_file_name(A1, &n, 0) )
     fail;
   
   if ( mkdir(n, 0777) == 0 )
     succeed;
   else
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
-		    ATOM_create, ATOM_directory, name);
+		    ATOM_create, ATOM_directory, A1);
 }
 
 
-word
-pl_same_file(term_t file1, term_t file2)
+static
+PRED_IMPL("same_file", 2, same_file, 0)
 { char *n1, *n2;
 
-  if ( PL_get_file_name(file1, &n1, 0) &&
-       PL_get_file_name(file2, &n2, 0) )
+  if ( PL_get_file_name(A1, &n1, 0) &&
+       PL_get_file_name(A2, &n2, 0) )
     return SameFile(n1, n2);
 
   fail;
 }
 
 
-word
-pl_rename_file(term_t old, term_t new)
-{ GET_LD
+static
+PRED_IMPL("rename_file", 2, rename_file, 0)
+{ PRED_LD
   char *o, *n;
+
+  term_t old = A1;
+  term_t new = A2;
 
   if ( PL_get_file_name(old, &o, 0) &&
        PL_get_file_name(new, &n, 0) )
@@ -4386,17 +4443,20 @@ pl_rename_file(term_t old, term_t new)
 }
 
 
-word
-pl_fileerrors(term_t old, term_t new)
-{ GET_LD
-  return setBoolean(&fileerrors, old, new);
+static
+PRED_IMPL("fileerrors", 2, fileerrors, 0)
+{ PRED_LD
+  return setBoolean(&fileerrors, A1, A2);
 }
 
 
-word
-pl_absolute_file_name(term_t name, term_t expanded)
+static
+PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
 { char *n;
   char tmp[MAXPATHLEN];
+
+  term_t name = A1;
+  term_t expanded = A2;
 
   if ( PL_get_file_name(name, &n, 0) &&
        (n = AbsoluteFile(n, tmp)) )
@@ -4406,11 +4466,11 @@ pl_absolute_file_name(term_t name, term_t expanded)
 }
 
 
-word
-pl_is_absolute_file_name(term_t name)
+static
+PRED_IMPL("is_absolute_file_name", 1, is_absolute_file_name, 0)
 { char *n;
 
-  if ( PL_get_file_name(name, &n, 0) &&
+  if ( PL_get_file_name(A1, &n, 0) &&
        IsAbsolutePath(n) )
     succeed;
 
@@ -4418,10 +4478,13 @@ pl_is_absolute_file_name(term_t name)
 }
 
 
-word
-pl_working_directory(term_t old, term_t new)
-{ GET_LD
+static
+PRED_IMPL("working_directory", 2, working_directory, 0)
+{ PRED_LD
   const char *wd;
+
+  term_t old = A1;
+  term_t new = A2;
 
   if ( !(wd = PL_cwd()) )
     fail;
@@ -4448,26 +4511,26 @@ pl_working_directory(term_t old, term_t new)
 }
 
 
-word
-pl_file_base_name(term_t f, term_t b)
+static
+PRED_IMPL("file_base_name", 2, file_base_name, 0)
 { char *n;
 
-  if ( !PL_get_chars_ex(f, &n, CVT_ALL|REP_FN) )
+  if ( !PL_get_chars_ex(A1, &n, CVT_ALL|REP_FN) )
     fail;
 
-  return PL_unify_chars(b, PL_ATOM|REP_FN, -1, BaseName(n));
+  return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, BaseName(n));
 }
 
 
-word
-pl_file_dir_name(term_t f, term_t b)
+static
+PRED_IMPL("file_directory_name", 2, file_directory_name, 0)
 { char *n;
   char tmp[MAXPATHLEN];
 
-  if ( !PL_get_chars_ex(f, &n, CVT_ALL|REP_FN) )
+  if ( !PL_get_chars_ex(A1, &n, CVT_ALL|REP_FN) )
     fail;
 
-  return PL_unify_chars(b, PL_ATOM|REP_FN, -1, DirName(n, tmp));
+  return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, DirName(n, tmp));
 }
 
 
@@ -4500,11 +4563,15 @@ name_too_long()
 }
 
 
-word
-pl_file_name_extension(term_t base, term_t ext, term_t full)
-{ GET_LD
+static
+PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
+{ PRED_LD
   char *b = NULL, *e = NULL, *f;
   char buf[MAXPATHLEN];
+
+  term_t base = A1;
+  term_t ext  = A2;
+  term_t full = A3;
 
   if ( !PL_is_variable(full) )
   { if ( PL_get_chars(full, &f, CVT_ALL|CVT_EXCEPTION|REP_FN) )
@@ -4559,9 +4626,13 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
 }
 
 
-word
-pl_prolog_to_os_filename(term_t pl, term_t os)
-{ GET_LD
+static
+PRED_IMPL("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
+{ PRED_LD
+
+  term_t pl = A1;
+  term_t os = A2;
+
 #ifdef O_XOS
   wchar_t *wn;
 
@@ -4595,12 +4666,12 @@ pl_prolog_to_os_filename(term_t pl, term_t os)
 }
 
 
-foreign_t
-pl_mark_executable(term_t path)
+static
+PRED_IMPL("mark_executable", 1, mark_executable, 0)
 { char *name;
 
-  if ( !PL_get_file_name(path, &name, 0) )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, path);
+  if ( !PL_get_file_name(A1, &name, 0) )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, A1);
 
   return MarkExecutable(name);
 }
@@ -4612,11 +4683,9 @@ copy_stream_data(+StreamIn, +StreamOut, [Len])
 	and maybe we need something else to copy resources.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
-foreign_t
-pl_copy_stream_data3(term_t in, term_t out, term_t len)
-{ GET_LD
-  IOSTREAM *i, *o;
+static int
+copy_stream_data(term_t in, term_t out, term_t len ARG_LD)
+{ IOSTREAM *i, *o;
   int c;
   int count = 0;
 
@@ -4662,9 +4731,16 @@ pl_copy_stream_data3(term_t in, term_t out, term_t len)
   return streamStatus(i);
 }
 
-foreign_t
-pl_copy_stream_data2(term_t in, term_t out)
-{ return pl_copy_stream_data3(in, out, 0);
+static
+PRED_IMPL("copy_stream_data", 3, copy_stream_data3, 0)
+{ PRED_LD
+  return copy_stream_data(A1, A2, A3 PASS_LD);
+}
+
+static
+PRED_IMPL("copy_stream_data", 2, copy_stream_data2, 0)
+{ PRED_LD
+  return copy_stream_data(A1, A2, 0 PASS_LD);
 }
 
 
@@ -4673,8 +4749,15 @@ pl_copy_stream_data2(term_t in, term_t out)
 		 *******************************/
 
 BeginPredDefs(file)
-  PRED_DEF("set_prolog_IO", 3, set_prolog_IO, 0)
-  PRED_DEF("read_pending_input", 3, read_pending_input, 0)
+					/* ISO IO */
+  PRED_DEF("open", 4, open4, PL_FA_ISO)
+  PRED_DEF("open", 3, open3, PL_FA_ISO)
+  PRED_DEF("close", 1, close, PL_FA_ISO)
+  PRED_DEF("close", 2, close2, PL_FA_ISO)
+  PRED_DEF("set_input", 1, set_input, PL_FA_ISO)
+  PRED_DEF("set_output", 1, set_output, PL_FA_ISO)
+  PRED_DEF("current_input", 1, current_input, PL_FA_ISO)
+  PRED_DEF("current_output", 1, current_output, PL_FA_ISO)
   PRED_DEF("get_code", 2, get_code2, PL_FA_ISO)
   PRED_DEF("get_code", 1, get_code1, PL_FA_ISO)
   PRED_DEF("get_char", 2, get_char2, PL_FA_ISO)
@@ -4693,6 +4776,22 @@ BeginPredDefs(file)
   PRED_DEF("put_code", 1, put_code1, PL_FA_ISO)
   PRED_DEF("put_char", 2, put_code2, PL_FA_ISO)
   PRED_DEF("put_char", 1, put_code1, PL_FA_ISO)
+  PRED_DEF("flush_output", 0, flush_output, PL_FA_ISO)
+  PRED_DEF("flush_output", 1, flush_output1, PL_FA_ISO)
+  PRED_DEF("at_end_of_stream", 1, at_end_of_stream, PL_FA_ISO)
+  PRED_DEF("at_end_of_stream", 0, at_end_of_stream0, PL_FA_ISO)
+  PRED_DEF("stream_property", 2, stream_property,
+	   PL_FA_ISO|PL_FA_NONDETERMINISTIC)
+  PRED_DEF("set_stream_position", 2, set_stream_position, PL_FA_ISO)
+
+					/* edinburgh IO */
+  PRED_DEF("see", 1, see, 0)
+  PRED_DEF("seen", 0, seen, 0)
+  PRED_DEF("seeing", 1, seeing, 0)
+  PRED_DEF("tell", 1, tell, 0)
+  PRED_DEF("append", 1, append, 0)
+  PRED_DEF("told", 0, told, 0)
+  PRED_DEF("telling", 1, telling, 0)
   PRED_DEF("put", 2, put2, 0)
   PRED_DEF("put", 1, put1, 0)
   PRED_DEF("skip", 1, skip1, 0)
@@ -4701,10 +4800,60 @@ BeginPredDefs(file)
   PRED_DEF("get", 2, get2, 0)
   PRED_DEF("get0", 2, get_code2, 0)
   PRED_DEF("get0", 1, get_code1, 0)
-  PRED_DEF("is_stream", 1, is_stream, 0)
+  PRED_DEF("ttyflush", 0, ttyflush, 0)
+  PRED_DEF("prompt", 2, prompt, 0)
+  PRED_DEF("tab", 2, tab2, 0)
+  PRED_DEF("tab", 1, tab1, 0)
+  PRED_DEF("fileerrors", 2, fileerrors, 0)
+					/* Quintus IO */
   PRED_DEF("byte_count", 2, byte_count, 0)
   PRED_DEF("character_count", 2, character_count, 0)
   PRED_DEF("line_count", 2, line_count, 0)
   PRED_DEF("line_position", 2, line_position, 0)
+  PRED_DEF("open_null_stream", 1, open_null_stream, 0)
+  PRED_DEF("access_file", 2, access_file, 0)
+
+					/* SICStus IO */
+  PRED_DEF("working_directory", 2, working_directory, 0)
+
+					/* SWI specific */
+  PRED_DEF("is_stream", 1, is_stream, 0)
+  PRED_DEF("set_stream", 2, set_stream, 0)
   PRED_DEF("with_output_to", 2, with_output_to, PL_FA_TRANSPARENT)
+  PRED_DEF("set_prolog_IO", 3, set_prolog_IO, 0)
+  PRED_DEF("protocol", 1, protocol, 0)
+  PRED_DEF("protocola", 1, protocola, 0)
+  PRED_DEF("noprotocol", 0, noprotocol, 0)
+  PRED_DEF("protocolling", 1, protocolling, 0)
+  PRED_DEF("prompt1", 1, prompt1, 0)
+  PRED_DEF("seek", 4, seek, 0)
+  PRED_DEF("wait_for_input", 3, wait_for_input, 0)
+  PRED_DEF("get_single_char", 1, get_single_char, 0)
+  PRED_DEF("read_pending_input", 3, read_pending_input, 0)
+  PRED_DEF("source_location", 2, source_location, 0)
+  PRED_DEF("time_file", 2, time_file, 0)
+  PRED_DEF("size_file", 2, size_file, 0)
+  PRED_DEF("read_link", 3, read_link, 0)
+  PRED_DEF("exists_file", 1, exists_file, 0)
+  PRED_DEF("exists_directory", 1, exists_directory, 0)
+  PRED_DEF("tmp_file", 2, tmp_file, 0)
+  PRED_DEF("delete_file", 1, delete_file, 0)
+  PRED_DEF("delete_directory", 1, delete_directory, 0)
+  PRED_DEF("make_directory", 1, make_directory, 0)
+  PRED_DEF("same_file", 2, same_file, 0)
+  PRED_DEF("rename_file", 2, rename_file, 0)
+  PRED_DEF("is_absolute_file_name", 1, is_absolute_file_name, 0)
+  PRED_DEF("file_base_name", 2, file_base_name, 0)
+  PRED_DEF("file_directory_name", 2, file_directory_name, 0)
+  PRED_DEF("file_name_extension", 3, file_name_extension, 0)
+  PRED_DEF("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
+  PRED_DEF("$mark_executable", 1, mark_executable, 0)
+  PRED_DEF("copy_stream_data", 3, copy_stream_data3, 0)
+  PRED_DEF("copy_stream_data", 2, copy_stream_data2, 0)
+
+					/* SWI internal */
+  PRED_DEF("$push_input_context", 0, push_input_context, 0)
+  PRED_DEF("$pop_input_context", 0, pop_input_context, 0)
+  PRED_DEF("$size_stream", 2, size_stream, 0)
+  PRED_DEF("$absolute_file_name", 2, absolute_file_name, 0)
 EndPredDefs
