@@ -30,7 +30,7 @@
 #include <malloc.h>
 #include <stdio.h>
 #include "pl-stream.h"
-#include "pl-itf.h"
+#include "SWI-Prolog.h"
 #include <ctype.h>
 #include "win32/console/console.h"
 #include <signal.h>

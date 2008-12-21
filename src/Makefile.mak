@@ -64,8 +64,8 @@ PLINIT=	$(PB)/init.pl
 
 INCSRC=	pl-index.c pl-alloc.c pl-fli.c
 SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) $(INCSRC)
-HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
-	pl-os.h pl-data.h
+HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
+	pl-main.h pl-os.h pl-data.h
 VMI=	pl-jumptable.ic pl-codetable.c pl-vmi.h
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
@@ -159,8 +159,8 @@ index:
 			-g make_library_index('../library') \
 			-t halt
 
-$(CINCLUDE):	$(OUTDIRS) pl-itf.h
-		copy pl-itf.h $@
+$(CINCLUDE):	$(OUTDIRS) SWI-Prolog.h
+		copy SWI-Prolog.h $@
 
 $(STREAMH):	pl-stream.h $(INCLUDEDIR)
 		copy pl-stream.h $@

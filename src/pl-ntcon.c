@@ -23,7 +23,7 @@
 */
 
 #include <windows.h>
-#include "pl-itf.h"
+#include "SWI-Prolog.h"
 #include <signal.h>
 
 #if 0

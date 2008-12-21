@@ -127,8 +127,8 @@ PLINIT=	$(PB)/init.pl
 
 INCSRC=	pl-index.c pl-alloc.c pl-fli.c
 SRC=	$(OBJ:.o=.c) $(PLOBJ:.o=.c) $(INCSRC)
-HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
-	pl-os.h pl-data.h
+HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
+	pl-main.h pl-os.h pl-data.h
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/bags.pl ../boot/apply.pl \
@@ -238,9 +238,9 @@ $(INCLUDEDIR):
 exports:	$(EXPORTS)
 def:		$(DEF)
 
-$(EXPORTS):	Makefile $(srcdir)/pl-itf.h $(INCLUDEDIR)
+$(EXPORTS):	Makefile $(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL) > $@
-		grep '^PL_EXPORT' $(srcdir)/pl-itf.h $(srcdir)/pl-stream.h | \
+		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/pl-stream.h | \
 		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
 			   -e 's/.*[ 	*]\(S[a-zA-Z_]*\).*/\1/' | \
 		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
@@ -250,23 +250,23 @@ $(EXPORTS):	Makefile $(srcdir)/pl-itf.h $(INCLUDEDIR)
 # Create pl.def, required for exporting symbols from pl.exe for the Cygwin
 # platform
 
-$(DEF):		$(srcdir)/pl-itf.h
+$(DEF):		$(srcdir)/SWI-Prolog.h
 		echo EXPORTS > $@
-		grep '^PL_EXPORT' $(srcdir)/pl-itf.h $(srcdir)/pl-stream.h | \
+		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/pl-stream.h | \
 		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
 			   -e 's/.*[ 	*]\(S[a-zA-Z_]*\).*/\1/' | \
 		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
 		    grep -v PL_w32thread_raise | grep -v PL_win_message_proc | \
 		    sort -u >> $@
 
-$(CINCLUDE):	$(srcdir)/pl-itf.h $(INCLUDEDIR)
-		cp $(srcdir)/pl-itf.h $(CINCLUDE)
+$(CINCLUDE):	$(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
+		cp $(srcdir)/SWI-Prolog.h $(CINCLUDE)
 
 $(STREAMH):	$(srcdir)/pl-stream.h $(INCLUDEDIR)
 		cp $(srcdir)/pl-stream.h $@
 
 $(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
-		$(SED) 's/"pl-itf.h"/<SWI-Prolog.h>/' $(srcdir)/pl-extend.c > $@
+		$(SED) 's/"SWI-Prolog.h"/<SWI-Prolog.h>/' $(srcdir)/pl-extend.c > $@
 
 parms.h:	Makefile
 		@echo "#define PLHOME       \"$(PLBASE)\""      > $@%
