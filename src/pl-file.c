@@ -2031,66 +2031,6 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 }
 
 
-int
-PL_get_char(term_t c, int *p, int eof)
-{ GET_LD
-  int chr;
-  atom_t name;
-  PL_chars_t text;
-
-  if ( PL_get_integer(c, &chr) )
-  { if ( chr >= 0 )
-    { *p = chr;
-      return TRUE;
-    }
-    if ( eof && chr == -1 )
-    { *p = chr;
-      return TRUE;
-    }
-  } else if ( PL_get_text(c, &text, CVT_ATOM|CVT_STRING|CVT_LIST) &&
-	      text.length == 1 )
-  { *p = text.encoding == ENC_ISO_LATIN_1 ? text.text.t[0]&0xff
-					  : text.text.w[0];
-    return TRUE;
-  } else if ( eof && PL_get_atom(c, &name) && name == ATOM_end_of_file )
-  { *p = -1;
-    return TRUE;
-  }
-
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, c);
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PL_unify_char(term_t chr, int c, int how)
-    Unify a character.  Try to be as flexible as possible, only binding a
-    variable `chr' to a code or one-char-atom.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-int
-PL_unify_char(term_t chr, int c, int how)
-{ GET_LD
-  int c2 = -1;
-
-  if ( PL_is_variable(chr) )
-  { switch(how)
-    { case CHAR_MODE:
-      { atom_t a = (c == -1 ? ATOM_end_of_file : codeToAtom(c));
-
-	return PL_unify_atom(chr, a);
-      }
-      case CODE_MODE:
-      case BYTE_MODE:
-      default:
-	return PL_unify_integer(chr, c);
-    }
-  } else if ( PL_get_char(chr, &c2, TRUE) )
-    return c == c2;
-
-  fail;
-}
-
-
 static foreign_t
 put_byte(term_t stream, term_t byte ARG_LD)
 { IOSTREAM *s;
@@ -3913,7 +3853,7 @@ peek(term_t stream, term_t chr, int how ARG_LD)
     fail;
 
   pos = s->posbuf;
-  if ( how == BYTE_MODE )
+  if ( how == PL_BYTE )
   { c = Sgetc(s);
     if ( c != EOF )
       Sungetc(c, s);
@@ -3934,42 +3874,42 @@ peek(term_t stream, term_t chr, int how ARG_LD)
 static 
 PRED_IMPL("peek_byte", 2, peek_byte2, 0)
 { PRED_LD
-  return peek(A1, A2, BYTE_MODE PASS_LD);
+  return peek(A1, A2, PL_BYTE PASS_LD);
 }
 
 
 static 
 PRED_IMPL("peek_byte", 1, peek_byte1, 0)
 { PRED_LD
-  return peek(0, A1, BYTE_MODE PASS_LD);
+  return peek(0, A1, PL_BYTE PASS_LD);
 }
 
 
 static 
 PRED_IMPL("peek_code", 2, peek_code2, 0)
 { PRED_LD
-  return peek(A1, A2, CODE_MODE PASS_LD);
+  return peek(A1, A2, PL_CODE PASS_LD);
 }
 
 
 static 
 PRED_IMPL("peek_code", 1, peek_code1, 0)
 { PRED_LD
-  return peek(0, A1, CODE_MODE PASS_LD);
+  return peek(0, A1, PL_CODE PASS_LD);
 }
 
 
 static 
 PRED_IMPL("peek_char", 2, peek_char2, 0)
 { PRED_LD
-  return peek(A1, A2, CHAR_MODE PASS_LD);
+  return peek(A1, A2, PL_CHAR PASS_LD);
 }
 
 
 static 
 PRED_IMPL("peek_char", 1, peek_char1, 0)
 { PRED_LD
-  return peek(0, A1, CHAR_MODE PASS_LD);
+  return peek(0, A1, PL_CHAR PASS_LD);
 }
 
 

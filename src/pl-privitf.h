@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,15 +22,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include "pl-incl.h"
+#ifndef PL_PRIVITF_H_INCLUDED
+#define PL_PRIVITF_H_INCLUDED
 
-#define setHandle(h, w)		(*valTermRef(h) = (w))
-#define valHandleP(h)		valTermRef(h)
+COMMON(int) 	PL_get_char(term_t c, int *p, int eof);
+COMMON(int) 	PL_unify_char(term_t chr, int c, int mode);
 
-static inline word
-valHandle(term_t r)
-{ Word p = valTermRef(r);
-
-  deRef(p);
-  return *p;
-}
+#endif /*PL_PRIVITF_H_INCLUDED*/

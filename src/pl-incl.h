@@ -410,10 +410,6 @@ typedef void *			caddress;
 #define ESC			((char) 27)
 #define streq(s, q)		((strcmp((s), (q)) == 0))
 
-#define CHAR_MODE 0		/* See PL_unify_char() */
-#define CODE_MODE 1
-#define BYTE_MODE 2
-
 #ifndef abs
 #define abs(x)			((x) < 0 ? -(x) : (x))
 #endif
@@ -2090,6 +2086,7 @@ decrease).
 #include "pl-gmp.h"			/* GNU-GMP support */
 #include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */
+#include "pl-privitf.h"			/* private foreign interface */
 #include "pl-text.h"			/* text manipulation */
 #include "pl-hash.h"			/* Murmurhash function */
 #include "pl-option.h"			/* Option processing */

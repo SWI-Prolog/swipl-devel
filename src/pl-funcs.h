@@ -282,8 +282,6 @@ COMMON(bool) 		unifyTime(term_t t, intptr_t time);
 #ifdef __WINDOWS__
 COMMON(word) 		pl_make_fat_filemap(term_t dir);
 #endif
-COMMON(int) 		PL_get_char(term_t c, int *p, int eof);
-COMMON(int) 		PL_unify_char(term_t chr, int c, int mode);
 COMMON(int) 		PL_unify_stream_or_alias(term_t t, IOSTREAM *s);
 COMMON(void) 		pushOutputContext(void);
 COMMON(void) 		popOutputContext(void);
