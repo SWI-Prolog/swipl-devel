@@ -1231,7 +1231,7 @@ PL_current_output()
 }
 
 
-static word
+static int
 openProtocol(term_t f, bool appnd)
 { GET_LD
   IOSTREAM *s;
@@ -2813,7 +2813,7 @@ findStreamFromFile(atom_t name, unsigned int flags)
 }
 
 
-word
+int
 pl_see(term_t f)
 { GET_LD
   IOSTREAM *s;
@@ -2852,7 +2852,7 @@ ok:
   succeed;
 }
 
-word
+int
 pl_seen()
 { GET_LD
   IOSTREAM *s = getStream(Scurin);
@@ -2891,7 +2891,7 @@ PRED_IMPL("seeing", 1, seeing, 0)
 /* MT: Does not create a lock on the stream
 */
 
-static word
+static int
 do_tell(term_t f, atom_t m)
 { GET_LD
   IOSTREAM *s;
