@@ -620,7 +620,7 @@ PL_EXPORT(int)		PL_recorded_external(const char *rec, term_t term);
 PL_EXPORT(int)		PL_erase_external(char *rec);
 
 		 /*******************************
-		 *	      FEATURES		*
+		 *	   PROLOG FLAGS		*
 		 *******************************/
 
 #define PL_set_feature  PL_set_prolog_flag /* compatibility */

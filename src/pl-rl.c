@@ -584,8 +584,8 @@ PL_install_readline()
   PL_register_foreign("rl_add_history",    1, pl_rl_add_history, PL_FA_NOTRACE);
   PL_register_foreign("rl_write_history",  1, pl_rl_write_history, 0);
   PL_register_foreign("rl_read_history",   1, pl_rl_read_history, 0);
-  PL_set_feature("readline",    PL_BOOL, TRUE);
-  PL_set_feature("tty_control", PL_BOOL, TRUE);
+  PL_set_prolog_flag("readline",    PL_BOOL, TRUE);
+  PL_set_prolog_flag("tty_control", PL_BOOL, TRUE);
   PL_license("gpl", "GNU Readline library");
 }
 

@@ -945,8 +945,8 @@ install_readline(rlc_console c)
   PL_register_foreign_in_module("system", "rl_add_history",    1, pl_rl_add_history,    0);
   PL_register_foreign_in_module("system", "rl_read_init_file", 1, pl_rl_read_init_file, 0);
 
-  PL_set_feature("tty_control", PL_BOOL, TRUE);
-  PL_set_feature("readline",    PL_BOOL, TRUE);
+  PL_set_prolog_flag("tty_control", PL_BOOL, TRUE);
+  PL_set_prolog_flag("readline",    PL_BOOL, TRUE);
 }
 
 /* destroy the console on exit.  Using PL_on_halt() is the clean, but somewhat
@@ -1000,11 +1000,11 @@ win32main(rlc_console c, int argc, TCHAR **argv)
   PL_on_halt(closeWin, c);
 
   create_prolog_hidden_window(c);
-  PL_set_feature("hwnd", PL_INTEGER, (intptr_t)rlc_hwnd(c));
+  PL_set_prolog_flag("hwnd", PL_INTEGER, (intptr_t)rlc_hwnd(c));
   rlc_interrupt_hook(interrupt);
   rlc_menu_hook(menu_select);
   rlc_message_hook(message_proc);
-  PL_set_feature("console_menu", PL_BOOL, TRUE);
+  PL_set_prolog_flag("console_menu", PL_BOOL, TRUE);
 #ifdef O_PLMT
   rlc_insert_menu_item(c, _T("&Run"), _T("&New thread"), NULL);
 #endif

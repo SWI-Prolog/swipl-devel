@@ -56,7 +56,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   argc = breakargs(program, lpszCmdLine, argv);
 
   bind_terminal();
-  PL_set_feature("verbose", PL_ATOM, "silent"); /* operate silently */
+  PL_set_prolog_flag("verbose", PL_ATOM, "silent"); /* operate silently */
   DEBUG(ok("About to start Prolog with %d arguments", argc));
   if ( !PL_initialise(argc, argv) )
   { ok("Initialisation failed");
