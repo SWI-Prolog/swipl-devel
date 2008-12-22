@@ -1244,7 +1244,8 @@ rdf_reset_db :-
 %		the full URI.  Useful to make file comparison easier.
 %	
 %	@param File	Location to save the data.  This can also be a 
-%			file-url (=|file://path|=).
+%			file-url (=|file://path|=) or a stream wrapped
+%			in a term stream(Out).
 
 :- module_transparent
 	rdf_transaction/1,
@@ -1270,13 +1271,14 @@ rdf_save(Spec, DB) :-
 	rdf_save2(File, [db(DB)]).
 
 to_file(URL, File) :-
+	atom(URL),
 	file_name_to_url(File, URL), !.
 to_file(File, File).
 
 rdf_save2(File, Options) :-
 	option(encoding(Encoding), Options, utf8),
 	valid_encoding(Encoding),
-	open(File, write, Out, [encoding(Encoding)]),
+	open_output(File, Encoding, Out, Close),
 	flag(rdf_db_saved_subjects, OSavedSubjects, 0),
 	flag(rdf_db_saved_triples, OSavedTriples, 0),
 	call_cleanup(rdf_do_save(Out, Options),
@@ -1285,8 +1287,15 @@ rdf_save2(File, Options) :-
 				  File,
 				  OSavedSubjects,
 				  OSavedTriples,
-				  Out)).
+				  Close)).
 
+open_output(stream(Out), Encoding, Out,
+	    set_stream(Out, encoding(Old))) :-
+	stream_property(Out, encoding(Old)),
+	set_stream(Out, encoding(Encoding)).
+open_output(File, Encoding, Out,
+	    close(Out)) :-
+	open(File, write, Out, [encoding(Encoding)]).
 
 valid_encoding(Enc) :-
 	(   xml_encoding_name(Enc, _)
@@ -1299,8 +1308,8 @@ cleanup_save(Reason,
 	     File,
 	     OSavedSubjects,
 	     OSavedTriples,
-	     Out) :-
-	close(Out),
+	     Close) :-
+	call(Close),
 	flag(rdf_db_saved_subjects, SavedSubjects, OSavedSubjects),
 	flag(rdf_db_saved_triples, SavedTriples, OSavedTriples),
 	retractall(named_anon(_, _)),

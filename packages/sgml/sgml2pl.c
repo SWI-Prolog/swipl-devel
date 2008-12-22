@@ -1556,7 +1556,7 @@ pl_sgml_parse(term_t parser, term_t options)
   IOSTREAM *in = NULL;
   int recursive;
   int has_content_length = FALSE;
-  long content_length = 0;		/* content_length(Len) */
+  int64_t content_length = 0;		/* content_length(Len) */
   int count = 0;
   int rc = TRUE;
 
@@ -1610,7 +1610,7 @@ pl_sgml_parse(term_t parser, term_t options)
     { term_t a = PL_new_term_ref();
 
       PL_get_arg(1, head, a);
-      if ( !PL_get_long(a, &content_length) )
+      if ( !PL_get_int64(a, &content_length) )
 	return sgml2pl_error(ERR_TYPE, "integer", a);
       has_content_length = TRUE;
     } else if ( PL_is_functor(head, FUNCTOR_call2) )
@@ -1729,7 +1729,13 @@ pl_sgml_parse(term_t parser, term_t options)
 	if ( c == LF )			/* file ends in LF */
 	  c = CR;
 	else if ( c != CR )		/* file ends in normal char */
-	{ putchar_dtd_parser(p, c);
+	{ if ( has_content_length && in->position )
+	  { int64_t bc0 = in->position->byteno;
+	    putchar_dtd_parser(p, c);
+	    content_length -= in->position->byteno-bc0;
+	  } else
+	  { putchar_dtd_parser(p, c);
+	  }
 	  CHECKERROR;
 	  if ( pd->stopped )
 	    goto stopped;
@@ -1737,7 +1743,13 @@ pl_sgml_parse(term_t parser, term_t options)
 	}
       }
 
-      putchar_dtd_parser(p, c);
+      if ( has_content_length && in->position )
+      { int64_t bc0 = in->position->byteno;
+	putchar_dtd_parser(p, c);
+	content_length -= in->position->byteno-bc0;
+      } else
+      { putchar_dtd_parser(p, c);
+      }
       CHECKERROR;
       if ( pd->stopped )
       { stopped:

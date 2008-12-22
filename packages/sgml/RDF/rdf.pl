@@ -185,7 +185,8 @@ member_attribute(A) :-
 process_rdf(File, OnObject, Options0) :-
 	is_list(Options0), !,
 	entity_options(Options0, EntOptions, Options1),
-	meta_options(Options1, Options),
+	meta_options(Options1, Options2),
+	process_options(Options2, ProcessOptions, Options),
 	option(base_uri(BaseURI), Options, []),
 	rdf_start_file(Options, Cleanup),
 	strip_module(OnObject, Module, Pred),
@@ -207,7 +208,7 @@ process_rdf(File, OnObject, Options0) :-
 	set_sgml_parser(Parser, file(Source)),
 	set_sgml_parser(Parser, dialect(xmlns)),
 	set_sgml_parser(Parser, space(sgml)),
-	do_process_rdf(Parser, In, NSList, Close, Cleanup).
+	do_process_rdf(Parser, In, NSList, Close, Cleanup, ProcessOptions).
 process_rdf(File, BaseURI, OnObject) :-
 	process_rdf(File, OnObject, [base_uri(BaseURI)]).
 
@@ -225,11 +226,12 @@ def_entity(DTD, Name, Value) :-
 	close(Stream).
 
 
-do_process_rdf(Parser, In, NSList, Close, Cleanup) :-
+do_process_rdf(Parser, In, NSList, Close, Cleanup, Options) :-
 	call_cleanup((   sgml_parse(Parser,
 				    [ source(In),
 				      call(begin, rdf:on_begin),
 				      call(xmlns, rdf:on_xmlns)
+				    | Options
 				    ]),
 			 exit_ns_collect(NSList)
 		     ),
@@ -346,6 +348,12 @@ meta_options([H0|T0], [H|T]) :-
 	;   H = H0
 	),
 	meta_options(T0, T).
+
+
+process_options(Options, Process, RestOptions) :-
+	select_option(content_length(Len), Options, RestOptions), !,
+	Process = [content_length(Len)].
+process_options(Options, [], Options).
 
 
 		 /*******************************
