@@ -35,9 +35,6 @@ This module defines:
 See manual for details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define CHAR_MODE 0
-#define CODE_MODE 1
-
 #define CTX_CHAR 0			/* Class(Char) */
 #define CTX_CODE 1			/* Class(Int) */
 
@@ -431,13 +428,13 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 
 static
 PRED_IMPL("char_type", 2, char_type, PL_FA_NONDETERMINISTIC)
-{ return do_char_type(A1, A2, PL__ctx, CHAR_MODE);
+{ return do_char_type(A1, A2, PL__ctx, PL_CHAR);
 }
 
 
 static
 PRED_IMPL("code_type", 2, code_type, PL_FA_NONDETERMINISTIC)
-{ return do_char_type(A1, A2, PL__ctx, CODE_MODE);
+{ return do_char_type(A1, A2, PL__ctx, PL_CODE);
 }
 
 

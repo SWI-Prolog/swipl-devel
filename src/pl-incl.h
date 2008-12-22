@@ -410,10 +410,6 @@ typedef void *			caddress;
 #define ESC			((char) 27)
 #define streq(s, q)		((strcmp((s), (q)) == 0))
 
-#define CHAR_MODE 0		/* See PL_unify_char() */
-#define CODE_MODE 1
-#define BYTE_MODE 2
-
 #ifndef abs
 #define abs(x)			((x) < 0 ? -(x) : (x))
 #endif
@@ -500,8 +496,8 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define NEED_REINDEX (1UL << (LONGBITSIZE-1))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Foreign language interface definitions.  Note that these macros MUST  be
-consistent  with  the  definitions  in  pl-itf.h, which is included with
+Foreign language interface definitions. Note that   these macros MUST be
+consistent with the definitions in SWI-Prolog.h,  which is included with
 users foreign language code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1619,7 +1615,7 @@ Note that the local stack is always _above_ the global stack.
 #define QidFromQuery(f)		(consTermRef(f))
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
 
-#include "pl-itf.h"
+#include "SWI-Prolog.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Defining built-in predicates using the new interface 
@@ -2090,6 +2086,7 @@ decrease).
 #include "pl-gmp.h"			/* GNU-GMP support */
 #include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */
+#include "pl-privitf.h"			/* private foreign interface */
 #include "pl-text.h"			/* text manipulation */
 #include "pl-hash.h"			/* Murmurhash function */
 #include "pl-option.h"			/* Option processing */

@@ -22,7 +22,6 @@ TODO:
     * Abstract some interfaces
 	- read_pending_input/3
     * Define generic interfaces
-	- Have all predicates using the PRED_IMPL interface (document)
 	- Memory allocation
 	- Hash-table management (just renaming?)
     * Cleanup foreign flag interface (naming)

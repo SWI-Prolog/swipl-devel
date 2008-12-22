@@ -74,20 +74,6 @@ COMMON(Symbol) 		advanceTableEnum(TableEnum e);
 				    ((intptr_t)(p))) & \
 				   ((size)-1))
 
-#define TABLE_REF_MASK		0x1UL
-#define isTableRef(p)		((uintptr_t)(p) & TABLE_REF_MASK)
-#define makeTableRef(p)		((void*)((uintptr_t)(p) | TABLE_REF_MASK))
-#define unTableRef(s, p)	(*((s*)((uintptr_t)(p) & ~TABLE_REF_MASK)))
-
-#define return_next_table(t, v, clean) \
-	{ for((v) = (v)->next; isTableRef(v) && (v); (v) = unTableRef(t, v)) \
-	  if ( (v) == (t)NULL ) \
-	  { clean; \
-	    succeed; \
-	  } \
-	  ForeignRedoPtr(v); \
-	}
-
 #define for_table(ht, s, code) \
 	{ int _k; \
 	  PL_LOCK(L_TABLE); \

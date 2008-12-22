@@ -51,15 +51,6 @@ typedef unsigned long uintptr_t;
 extern "C" {
 #endif
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This interface has been changed considerable  between version 2.1.14 and
-2.5.0. You may get most old code to work using
-
-	#define PL_OLD_INTERFACE
-
-before loading this file.  See end of this file.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
@@ -209,6 +200,9 @@ typedef union
 #define PL_MBCODES	 (35)		/* const char * */
 #define PL_MBSTRING	 (36)		/* const char * */
 #define PL_INTPTR	 (37)		/* intptr_t */
+#define PL_CHAR		 (38)		/* int */
+#define PL_CODE		 (39)		/* int */
+#define PL_BYTE		 (40)		/* int */
 
 
 		/********************************
@@ -952,84 +946,6 @@ PL_EXPORT(int)	_PL_get_xpce_reference(term_t t, xpceref_t *ref);
 PL_EXPORT(int)  _PL_unify_xpce_reference(term_t t, xpceref_t *ref);
 PL_EXPORT(void) _PL_put_xpce_reference_i(term_t t, uintptr_t r);
 PL_EXPORT(void) _PL_put_xpce_reference_a(term_t t, atom_t name);
-
-		 /*******************************
-		 *        COMPATIBILITY		*
-		 *******************************/
-
-#ifdef PL_OLD_INTERFACE
-
-typedef term_t term;
-typedef PL_atomic_t atomic;
-
-#ifndef _PL_INCLUDE_H
-					/* renamed functions */
-#define PL_is_var(t)		PL_is_variable(t)
-#define PL_is_int(t)		PL_is_integer(t)
-#define PL_is_term(t)		PL_is_compound(t)
-#define PL_type(t)		PL_term_type(t)
-#define PL_atom_value(a)	(char *)PL_atom_chars((atom_t)(a))
-#define PL_predicate(f, m)	PL_pred(f, m)
-
-					/* force undefined symbols */
-					/* if PL_OLD_INTERFACE isn't set */
-#define PL_strip_module(t, m)	_PL_strip_module(t, m)
-#define PL_atomic(t)		_PL_atomic(t)
-#define PL_float_value(t)	_PL_float_value(t)
-#define PL_integer_value(t)	_PL_integer_value(t)
-#define PL_string_value(t)	_PL_string_value(t)
-#define PL_functor(t)		_PL_functor(t)
-#define PL_arg(t, n)		_PL_arg(t, n)
-#define PL_new_term()		_PL_new_term()
-#define PL_new_integer(i)	_PL_new_integer(i)
-#define PL_new_float(f)		_PL_new_float(f)
-#define PL_new_string(s)	_PL_new_string(s)
-#define PL_new_var()		_PL_new_var()
-#define PL_term(a)		_PL_term(a)
-#define PL_unify_atomic(t, a)	_PL_unify_atomic(t, (PL_atomic_t) (a))
-
-typedef fid_t			bktrk_buf;
-#define PL_mark(b)		(*(b) = PL_open_foreign_frame())
-#define PL_bktrk(b)		PL_discard_foreign_frame(*(b))
-#endif /*_PL_INCLUDE_H*/
-
-		 /*******************************
-		 *	     ANALYSIS		*
-		 *******************************/
-
-PL_EXPORT(PL_atomic_t)	_PL_atomic(term_t t);
-PL_EXPORT(int64_t)	_PL_integer_value(PL_atomic_t t);
-PL_EXPORT(double)	_PL_float_value(PL_atomic_t t);
-PL_EXPORT(char *)	_PL_string_value(PL_atomic_t t);
-PL_EXPORT(char *)	_PL_list_string_value(term_t t);
-PL_EXPORT(functor_t)	_PL_functor(term_t t);
-PL_EXPORT(term_t)	_PL_arg(term_t t, int n);
-
-
-		 /*******************************
-		 *	     CONSTRUCT		*
-		 *******************************/
-
-PL_EXPORT(term_t)	_PL_new_term(void);
-PL_EXPORT(PL_atomic_t)	_PL_new_integer(intptr_t i);
-PL_EXPORT(PL_atomic_t)	_PL_new_float(double f);
-PL_EXPORT(PL_atomic_t)	_PL_new_string(const char *s);
-PL_EXPORT(PL_atomic_t)	_PL_new_var(void);
-PL_EXPORT(term_t)	_PL_term(PL_atomic_t a);
-
-		 /*******************************
-		 *	       UNIFY		*
-		 *******************************/
-
-PL_EXPORT(int)		_PL_unify_atomic(term_t t, PL_atomic_t a);
-
-		 /*******************************
-		 *	       MODULES		*
-		 *******************************/
-
-PL_EXPORT(term_t)	_PL_strip_module(term_t t, module_t *m);
-
-#endif /*PL_OLD_INTERFACE*/
 
 #ifdef __cplusplus
 }

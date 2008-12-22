@@ -333,7 +333,6 @@ and while loading .wic files.  It comes at no price.
 #define MAXTAGGEDPTR	(((word)1<<((8*sizeof(word))-5)) - 1)
 
 #define consInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
-#if !O_DEBUG
 #define consPtr(p,ts)	((word)((((word)(p)-base_addresses[(ts)&STG_MASK])<<5)|(ts)))
-#endif
+
 

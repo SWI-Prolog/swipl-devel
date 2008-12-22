@@ -4361,8 +4361,12 @@ find_code1(Code PC, code fop, code ctx)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find C_END, where we need to jump over control structures.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static Code
-find_if_then_end(Code PC)
+find_if_then_end(Code PC, Code base)
 { for(;;)
   { code op = fetchop(PC);
     Code nextpc = stepPC(PC);
@@ -4376,23 +4380,24 @@ find_if_then_end(Code PC)
     { case C_OR:
       { Code jmploc;
 	
-	jmploc = nextpc + PC[0];
+	jmploc = nextpc + PC[1];
 	PC = jmploc + jmploc[-1];
+	DEBUG(1, Sdprintf("find_if_then_end: C_OR --> %d\n", PC-base));
 	break;
       }
       case C_NOT:
-	PC = nextpc + PC[2] + 1;
+	PC = nextpc + PC[2];
         break;
       case C_SOFTIF:
       case C_IFTHENELSE:
-      { Code elseloc = nextpc + PC[2] + 1;
+      { Code elseloc = nextpc + PC[2];
 
 	PC = elseloc + elseloc[-1];
 	break;
       }
       case C_IFTHEN:
       { Code cutloc = find_code1(nextpc, C_CUT, PC[1]);
-	PC = find_if_then_end(cutloc+2) + 1; /* returns location of C_END */
+	PC = find_if_then_end(cutloc+2, base) + 1; /* returns location of C_END */
 	break;
       }
       default:
@@ -4432,7 +4437,9 @@ add_1_if_not_at_end(Code PC, Code end, term_t tail ARG_LD)
     PC += 2;
 
   if ( PC != end )
+  { DEBUG(1, Sdprintf("not-at-end: adding 1\n"));
     add_node(tail, 1 PASS_LD);
+  }
 }
 
 
@@ -4467,10 +4474,13 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 
   PC = clause->codes;
   loc = &PC[pcoffset];
-  end = &PC[clause->code_size - 1];	/* forget the final I_EXIT */
+  end = &PC[clause->code_size - 1];		/* forget the final I_EXIT */
   DEBUG(0, assert(fetchop(end) == I_EXIT ||
 		  fetchop(end) == I_EXITFACT ||
 		  fetchop(end) == I_EXITCATCH));
+
+  if ( pcoffset == (int)clause->code_size )
+    return PL_unify_atom(A3, ATOM_exit);
 
   if ( true(clause, GOAL_CLAUSE) )
     add_node(tail, 2 PASS_LD);			/* $call :- <Body> */
@@ -4599,14 +4609,15 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 				/* C_IFTHEN <var> <A> C_CUT <var> <B> C_END */
       { Code cutloc = find_code1(nextpc, C_CUT, PC[1]);
 	
-	endloc = find_if_then_end(cutloc+2);
+	DEBUG(1, Sdprintf("C_IFTHEN: cut at %d\n", cutloc - clause->codes));
+	endloc = find_if_then_end(cutloc+2, clause->codes)+1;
 	PC = nextpc;
 
 	DEBUG(1, Sdprintf("C_MARK: cut = %d, end = %d\n",
 			  cutloc - clause->codes, endloc - clause->codes));
 
 	if ( loc <= endloc )
-	{ add_1_if_not_at_end(endloc+1, end, tail PASS_LD);
+	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
 
 	  if ( loc <= cutloc )		/* a */
 	  { add_node(tail, 1 PASS_LD);
@@ -4616,7 +4627,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	  } else			/* b */
 	  { add_node(tail, 2 PASS_LD);
 	    PC = cutloc+2;
-	    end = endloc;
+	    end = endloc-1;		/* point at the C_END */
 	  }
 
 	  continue;

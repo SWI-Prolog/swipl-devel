@@ -108,6 +108,21 @@ problem.
 
 typedef int (*ArithF)();
 
+#define TABLE_REF_MASK		0x1UL
+#define isTableRef(p)		((uintptr_t)(p) & TABLE_REF_MASK)
+#define makeTableRef(p)		((void*)((uintptr_t)(p) | TABLE_REF_MASK))
+#define unTableRef(s, p)	(*((s*)((uintptr_t)(p) & ~TABLE_REF_MASK)))
+
+#define return_next_table(t, v, clean) \
+	{ for((v) = (v)->next; isTableRef(v) && (v); (v) = unTableRef(t, v)) \
+	  if ( (v) == (t)NULL ) \
+	  { clean; \
+	    succeed; \
+	  } \
+	  ForeignRedoPtr(v); \
+	}
+
+
 struct arithFunction
 { ArithFunction next;		/* Next of chain */
   functor_t	functor;	/* Functor defined */
@@ -3060,6 +3075,49 @@ ar_func_n(int findex, int argc ARG_LD)
 }
 
 #endif /* O_COMPILE_ARITH */
+
+
+		 /*******************************
+		 *	  MISC INTERFACE	*
+		 *******************************/
+
+/* Evaluate a term to a 64-bit integer.  Term is of type
+*/
+
+int
+PL_eval_expression_to_int64_ex(term_t t, int64_t *val)
+{ GET_LD
+  number n;
+  int rval;
+
+  if ( valueExpression(t, &n PASS_LD) )
+  { if ( toIntegerNumber(&n, 0) )
+    { switch(n.type)
+      { case V_INTEGER:
+	  *val = n.value.i;
+	  rval = TRUE;
+	  break;
+#ifdef O_GMP
+	case V_MPZ:
+	{ if ( !(rval=mpz_to_int64(n.value.mpz, val)) )
+	    rval = PL_error(NULL, 0, NULL, ERR_EVALUATION, ATOM_int_overflow);
+	  break;
+	}
+#endif
+	default:
+	  assert(0);
+      }
+    } else
+    { rval = PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer_expression, t);
+    }
+
+    clearNumber(&n);
+  } else
+  { rval = FALSE;
+  }
+  
+  return rval;
+}
 
 
 		 /*******************************

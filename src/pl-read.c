@@ -104,7 +104,7 @@ pl_current_char_conversion(term_t in, term_t out, control_t h)
 
       if ( !PL_is_variable(in) )
       { if ( PL_get_char(in, &cin, FALSE) )
-	  return PL_unify_char(out, char_conversion_table[cin], CHAR_MODE);
+	  return PL_unify_char(out, char_conversion_table[cin], PL_CHAR);
 	fail;
       }
       ctx = 0;
@@ -121,8 +121,8 @@ pl_current_char_conversion(term_t in, term_t out, control_t h)
 
   fid = PL_open_foreign_frame();
   for( ; ctx < 256; ctx++)
-  { if ( PL_unify_char(in, ctx, CHAR_MODE) &&
-	 PL_unify_char(out, char_conversion_table[ctx], CHAR_MODE) )
+  { if ( PL_unify_char(in, ctx, PL_CHAR) &&
+	 PL_unify_char(out, char_conversion_table[ctx], PL_CHAR) )
       ForeignRedoInt(ctx+1);
 
     PL_rewind_foreign_frame(fid);
