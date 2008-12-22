@@ -703,7 +703,7 @@ pl_garbage_collect_atoms()
 
   gc_status.blocked++;			/* avoid recursion */
 
-  if ( (verbose = trueFeature(TRACE_GC_FEATURE)) )
+  if ( (verbose = truePrologFlag(PLFLAG_TRACE_GC)) )
   {
 #ifdef O_DEBUG_ATOMGC
 /*

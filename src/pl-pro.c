@@ -226,7 +226,7 @@ static int can_abort;			/* embeded code can't abort */
 word
 pl_abort(abort_type type)
 { if ( !can_abort ||
-       (trueFeature(EX_ABORT_FEATURE) && type == ABORT_NORMAL) )
+       (truePrologFlag(PLFLAG_EX_ABORT) && type == ABORT_NORMAL) )
     return pl_throw_abort();
 
   if ( LD->critical > 0 )		/* abort in critical region: delay */
@@ -235,7 +235,7 @@ pl_abort(abort_type type)
     succeed;
   }
 
-  if ( !trueFeature(READLINE_FEATURE) )
+  if ( !truePrologFlag(PLFLAG_READLINE) )
     PopTty(Sinput, &ttytab);
   LD->outofstack = NULL;
   clearSegStack(&LD->cycle.stack);
@@ -333,7 +333,7 @@ prologToplevel(volatile atom_t goal)
       
       tracemode(FALSE, NULL);
       debugmode(DBG_OFF, NULL);
-      setFeatureMask(LASTCALL_FEATURE);
+      setPrologFlagMask(PLFLAG_LASTCALL);
       if ( PL_get_atom(except, &a) && a == ATOM_aborted )
       { aborted = TRUE;
       } else if ( !PL_is_functor(except, FUNCTOR_error2) )

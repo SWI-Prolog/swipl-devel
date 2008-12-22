@@ -2040,7 +2040,7 @@ void
 considerGarbageCollect(Stack s)
 { GET_LD
 
-  if ( trueFeature(GC_FEATURE) && !PL_pending(SIG_GC) )
+  if ( truePrologFlag(PLFLAG_GC) && !PL_pending(SIG_GC) )
   { if ( s == NULL )
     { considerGarbageCollect((Stack)&LD->stacks.global);
       considerGarbageCollect((Stack)&LD->stacks.trail);
@@ -2383,7 +2383,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 { GET_LD
   intptr_t tgar, ggar;
   double t = CpuTime(CPU_USER);
-  int verbose = trueFeature(TRACE_GC_FEATURE);
+  int verbose = truePrologFlag(PLFLAG_TRACE_GC);
   sigset_t mask;
   fid_t fid;
   Word *saved_bar_at;
@@ -2399,7 +2399,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 
   DEBUG(1, verbose = TRUE);
 
-  if ( gc_status.blocked || !trueFeature(GC_FEATURE) )
+  if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return;
 
   if ( !fr )
@@ -2997,7 +2997,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
     Word gb = gBase;
     LocalFrame lb = lBase;
     double time = CpuTime(CPU_USER);
-    int verbose = trueFeature(TRACE_GC_FEATURE);
+    int verbose = truePrologFlag(PLFLAG_TRACE_GC);
     
     DEBUG(1, verbose = TRUE);
 

@@ -179,7 +179,7 @@ typedef union
 					/* PlArg::PlArg(text, type) */
 #define PL_CODE_LIST	 (14)		/* [ascii...] */
 #define PL_CHAR_LIST	 (15)		/* [h,e,l,l,o] */
-#define PL_BOOL		 (16)		/* PL_set_feature() */
+#define PL_BOOL		 (16)		/* PL_set_prolog_flag() */
 #define PL_FUNCTOR_CHARS (17)		/* PL_unify_term() */
 #define _PL_PREDICATE_INDICATOR (18)	/* predicate_t (Procedure) */
 #define PL_SHORT	 (19)		/* short */
@@ -203,6 +203,11 @@ typedef union
 #define PL_CHAR		 (38)		/* int */
 #define PL_CODE		 (39)		/* int */
 #define PL_BYTE		 (40)		/* int */
+
+/* Or'ed flags for PL_set_prolog_flag() */
+#define FF_READONLY	 0x10000	/* Read-only prolog flag */
+#define FF_KEEP		 0x20000	/* keep prolog flag if already set */
+#define FF_MASK		 0xf0000
 
 
 		/********************************
@@ -618,7 +623,9 @@ PL_EXPORT(int)		PL_erase_external(char *rec);
 		 *	      FEATURES		*
 		 *******************************/
 
-PL_EXPORT(int)		PL_set_feature(const char *name, int type, ...);
+#define PL_set_feature  PL_set_prolog_flag /* compatibility */
+PL_EXPORT(int)		PL_set_prolog_flag(const char *name, int type, ...);
+
 
 		 /*******************************
 		 *	INTERNAL FUNCTIONS	*

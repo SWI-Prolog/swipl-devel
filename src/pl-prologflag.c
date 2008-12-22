@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -30,62 +30,62 @@
 #include <process.h>			/* getpid() */
 #endif
 
-#define LOCK()   PL_LOCK(L_FEATURE)
-#define UNLOCK() PL_UNLOCK(L_FEATURE)
+#define LOCK()   PL_LOCK(PLFLAG_L)
+#define UNLOCK() PL_UNLOCK(PLFLAG_L)
 
 
 		 /*******************************
-		 *	 FEATURE HANDLING	*
+		 *	PROLOG FLAG HANDLING	*
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Features (ISO Prolog prolog_flags) are properties  of the running Prolog
-system. Some of these features can be set   by the user, such as whether
-read/1 honours character-escapes, whether garbage-collection is enabled,
-etc. Some are global and read-only, such as whether the operating system
-is unix.
+ISO Prolog flags are properties of the   running  Prolog system. Some of
+these flags can be set  by  the   user,  such  as whether read/1 honours
+character-escapes, whether garbage-collection is enabled,  etc. Some are
+global and read-only, such as whether the operating system is unix.
 
-In  the  multi-threading  version,   features    have   to   be  changed
-thread-local. Therefore two feature-tables have   been defined: a global
-one which is used as intptr_t as there is   only one thread, and a local one
-that is used to write changes to after multiple threads exist. On thread
+In  the  multi-threading  version,  Prolog  flags  have  to  be  changed
+thread-local. Therefore two flag-tables have been  defined: a global one
+which is used as long as there is only  one thread, and a local one that
+is used to write changes to  after   multiple  threads  exist. On thread
 creation this table is copied from  the   parent  and on destruction the
 local table is destroyed.  Note  that   the  flag-mask  for  fast access
-(trueFeature(*_FEATURE)) is always copied to the local thread-data.
+(truePrologFlag(*PLFLAG_)) is always copied to the local thread-data.
 
 Altogether  this  module  is  a  bit  too  complex,  but  I  see  little
 alternative. I considered creating  copy-on-write   hash-tables,  but in
 combination to the table-enumator  objects  this   proves  very  hard to
 implement safely. Using plain Prolog is not  a good option too: they are
 used before we can  use  any  Prolog   at  startup,  predicates  are not
-thread-local and some of the features require   very  fast access from C
-(the booleans in the mask).
+thread-local and some of the prolog flags  require very fast access from
+C (the booleans in the mask).
 
 Just using a local table and  copy   it  on  thread-creation would be an
-option, but 90% of the features are   read-only  or never changed and we
-want to be able to have a lot and don't harm thread_create/3 too much.
+option, but 90% of the prolog flags   are read-only or never changed and
+we want to be able to have a lot of flags and don't harm thread_create/3
+too much.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void setArgvFeature();
-static void setTZFeature();
-static void setVersionFeature(void);
+static void setArgvPrologFlag();
+static void setTZPrologFlag();
+static void setVersionPrologFlag(void);
 
-typedef struct _feature
+typedef struct _prolog_flag
 { short		flags;			/* Type | Flags */
-  short		index;			/* index in _FEATURE mask */
+  short		index;			/* index in PLFLAG_ mask */
   union
   { atom_t	a;			/* value as atom */
     int64_t	i;			/* value as integer */
     record_t	t;			/* value as term */
   } value;
-} feature;
+} prolog_flag;
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C-interface for defining features.  Depending on the type, the
+C-interface for defining Prolog  flags.  Depending   on  the  type,  the
 following arguments are to be provided:
 
-    FT_BOOL	TRUE/FALSE, *_FEATURE
+    FT_BOOL	TRUE/FALSE, *PLFLAG_
     FT_INTEGER  intptr_t
     FT_ATOM	const char *
     FT_TERM	a term
@@ -107,19 +107,19 @@ indexOfBoolMask(uintptr_t mask)
 
 
 void
-defFeature(const char *name, int flags, ...)
+setPrologFlag(const char *name, int flags, ...)
 { atom_t an = PL_new_atom(name);
-  feature *f;
+  prolog_flag *f;
   Symbol s;
   va_list args;
   int type = (flags & FT_MASK);
 
-  initFeatureTable();
+  initPrologFlagTable();
 
   if ( type == FT_INT64 )
     flags = (flags & ~FT_MASK)|FT_INTEGER;
 
-  if ( (s = lookupHTable(GD->feature.table, (void *)an)) )
+  if ( (s = lookupHTable(GD->prolog_flag.table, (void *)an)) )
   { f = s->value;
     assert((f->flags & FT_MASK) == (flags & FT_MASK));
     if ( flags & FF_KEEP )
@@ -128,7 +128,7 @@ defFeature(const char *name, int flags, ...)
   { f = allocHeap(sizeof(*f));
     f->index = -1;
     f->flags = flags;
-    addHTable(GD->feature.table, (void *)an, f);
+    addHTable(GD->prolog_flag.table, (void *)an, f);
   }
   
   va_start(args, flags);
@@ -142,7 +142,7 @@ defFeature(const char *name, int flags, ...)
 	val = (f->value.a == ATOM_true);
       } else if ( !s )				/* 1st definition */
       { f->index = indexOfBoolMask(mask);
-	DEBUG(2, Sdprintf("Feature %s at 0x%08lx\n", name, mask));
+	DEBUG(2, Sdprintf("Prolog flag %s at 0x%08lx\n", name, mask));
       }
 
       f->value.a = (val ? ATOM_true : ATOM_false);
@@ -150,9 +150,9 @@ defFeature(const char *name, int flags, ...)
       { mask = 1L << (f->index-1);
 
 	if ( val )
-	  setFeatureMask(mask);
+	  setPrologFlagMask(mask);
 	else
-	  clearFeatureMask(mask);
+	  clearPrologFlagMask(mask);
       }
       break;
     }
@@ -195,9 +195,9 @@ defFeature(const char *name, int flags, ...)
 
 #ifdef O_PLMT
 static void
-copySymbolFeatureTable(Symbol s)
-{ feature *f = s->value;
-  feature *copy = allocHeap(sizeof(*copy));
+copySymbolPrologFlagTable(Symbol s)
+{ prolog_flag *f = s->value;
+  prolog_flag *copy = allocHeap(sizeof(*copy));
 
   *copy = *f;
   if ( (f->flags & FT_MASK) == FT_TERM )
@@ -207,8 +207,8 @@ copySymbolFeatureTable(Symbol s)
 
 
 static void
-freeSymbolFeatureTable(Symbol s)
-{ feature *f = s->value;
+freeSymbolPrologFlagTable(Symbol s)
+{ prolog_flag *f = s->value;
 
   if ( (f->flags & FT_MASK) == FT_TERM )
     PL_erase(f->value.t);
@@ -274,7 +274,7 @@ setWriteAttributes(atom_t a)
 { int mask = writeAttributeMask(a);
 
   if ( mask )
-  { LD->feature.write_attributes = mask;
+  { LD->prolog_flag.write_attributes = mask;
     succeed;
   } else
   { term_t value = PL_new_term_ref();
@@ -302,7 +302,7 @@ getOccursCheckMask(atom_t a, occurs_check_t *val)
 
 static int
 setOccursCheck(atom_t a)
-{ if ( getOccursCheckMask(a, &LD->feature.occurs_check) )
+{ if ( getOccursCheckMask(a, &LD->prolog_flag.occurs_check) )
   { succeed;
   } else
   { term_t value = PL_new_term_ref();
@@ -331,10 +331,10 @@ setEncoding(atom_t a)
 
 
 static word
-set_feature_unlocked(term_t key, term_t value)
+set_prolog_flag_unlocked(term_t key, term_t value)
 { atom_t k;
   Symbol s;
-  feature *f;
+  prolog_flag *f;
   Module m = MODULE_parse;
   int rval = TRUE;
 
@@ -342,14 +342,14 @@ set_feature_unlocked(term_t key, term_t value)
   if ( !PL_get_atom(key, &k) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, key);
 
-					/* set existing feature */
+					/* set existing Prolog flag */
 #ifdef O_PLMT
-  if ( LD->feature.table &&
-       (s = lookupHTable(LD->feature.table, (void *)k)) )
-  { f = s->value;			/* already local feature */
+  if ( LD->prolog_flag.table &&
+       (s = lookupHTable(LD->prolog_flag.table, (void *)k)) )
+  { f = s->value;			/* already local Prolog flag */
   } else
 #endif
-  if ( (s = lookupHTable(GD->feature.table, (void *)k)) )
+  if ( (s = lookupHTable(GD->prolog_flag.table, (void *)k)) )
   { f = s->value;
     if ( f->flags & FF_READONLY )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION,
@@ -357,26 +357,26 @@ set_feature_unlocked(term_t key, term_t value)
 
 #ifdef O_PLMT    
     if ( GD->statistics.threads_created > 1 )
-    { feature *f2 = allocHeap(sizeof(*f2));
+    { prolog_flag *f2 = allocHeap(sizeof(*f2));
 
       *f2 = *f;
       if ( (f2->flags & FT_MASK) == FT_TERM )
 	f2->value.t = PL_duplicate_record(f2->value.t);
 
-      if ( !LD->feature.table )
-      { LD->feature.table = newHTable(4);
+      if ( !LD->prolog_flag.table )
+      { LD->prolog_flag.table = newHTable(4);
 
-	LD->feature.table->copy_symbol = copySymbolFeatureTable;
-	LD->feature.table->free_symbol = freeSymbolFeatureTable;
+	LD->prolog_flag.table->copy_symbol = copySymbolPrologFlagTable;
+	LD->prolog_flag.table->free_symbol = freeSymbolPrologFlagTable;
       }
 
-      addHTable(LD->feature.table, (void *)k, f2);
-      DEBUG(1, Sdprintf("Localised feature %s\n", PL_atom_chars(k)));
+      addHTable(LD->prolog_flag.table, (void *)k, f2);
+      DEBUG(1, Sdprintf("Localised Prolog flag %s\n", PL_atom_chars(k)));
       f = f2;
     }
 #endif
-  } else				/* define new feature */
-  { feature *f = allocHeap(sizeof(*f));
+  } else				/* define new Prolog flag */
+  { prolog_flag *f = allocHeap(sizeof(*f));
     atom_t a;
     int64_t i;
 
@@ -398,16 +398,16 @@ set_feature_unlocked(term_t key, term_t value)
 
 #ifdef O_PLMT
     if ( GD->statistics.threads_created > 1 )
-    { if ( !LD->feature.table )
-      { LD->feature.table = newHTable(4);
+    { if ( !LD->prolog_flag.table )
+      { LD->prolog_flag.table = newHTable(4);
 
-	LD->feature.table->copy_symbol = copySymbolFeatureTable;
-	LD->feature.table->free_symbol = freeSymbolFeatureTable;
+	LD->prolog_flag.table->copy_symbol = copySymbolPrologFlagTable;
+	LD->prolog_flag.table->free_symbol = freeSymbolPrologFlagTable;
       }
-      addHTable(LD->feature.table, (void *)k, f);
+      addHTable(LD->prolog_flag.table, (void *)k, f);
     } else
 #endif
-      addHTable(GD->feature.table, (void *)k, f);
+      addHTable(GD->prolog_flag.table, (void *)k, f);
 
     succeed;
   }
@@ -423,9 +423,9 @@ set_feature_unlocked(term_t key, term_t value)
       { uintptr_t mask = 1L << (f->index-1);
 
 	if ( val )
-	  setFeatureMask(mask);
+	  setPrologFlagMask(mask);
 	else
-	  clearFeatureMask(mask);
+	  clearPrologFlagMask(mask);
       }
       if ( k == ATOM_character_escapes )
       { if ( val )
@@ -508,11 +508,11 @@ set_feature_unlocked(term_t key, term_t value)
 
 
 word
-pl_set_feature(term_t key, term_t value)
+pl_set_prolog_flag(term_t key, term_t value)
 { word rc;
 
   LOCK();
-  rc = set_feature_unlocked(key, value);
+  rc = set_prolog_flag_unlocked(key, value);
   UNLOCK();
 
   return rc;
@@ -520,7 +520,7 @@ pl_set_feature(term_t key, term_t value)
 
 
 static int
-unify_feature_value(Module m, atom_t key, feature *f, term_t val)
+unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
 { if ( key == ATOM_character_escapes )
   { atom_t v = (true(m, CHARESCAPE) ? ATOM_true : ATOM_false);
 
@@ -564,7 +564,7 @@ unify_feature_value(Module m, atom_t key, feature *f, term_t val)
       if ( f->index >= 0 )
       { uintptr_t mask = 1L << (f->index-1);
 
-	return PL_unify_bool_ex(val, trueFeature(mask) != FALSE);
+	return PL_unify_bool_ex(val, truePrologFlag(mask) != FALSE);
       }
       /*FALLTHROUGH*/
     case FT_ATOM:
@@ -585,7 +585,7 @@ unify_feature_value(Module m, atom_t key, feature *f, term_t val)
 
 
 static int
-unify_feature_access(feature *f, term_t access)
+unify_prolog_flag_access(prolog_flag *f, term_t access)
 { if ( f->flags & FF_READONLY )
     return PL_unify_atom(access, ATOM_read);
   else
@@ -594,7 +594,7 @@ unify_feature_access(feature *f, term_t access)
 
 
 static int
-unify_feature_type(feature *f, term_t type)
+unify_prolog_flag_type(prolog_flag *f, term_t type)
 { atom_t a;
 
   switch(f->flags & FT_MASK)
@@ -624,13 +624,13 @@ typedef struct
   atom_t scope;
   int explicit_scope;
   Module module;
-} feature_enum;
+} prolog_flag_enum;
 
 word
-pl_feature5(term_t key, term_t value,
+pl_prolog_flag5(term_t key, term_t value,
 	    word scope, word access, word type,
 	    control_t h)
-{ feature_enum *e;
+{ prolog_flag_enum *e;
   Symbol s;
   fid_t fid;
   Module module;
@@ -646,12 +646,12 @@ pl_feature5(term_t key, term_t value,
       { Symbol s;
 
 #ifdef O_PLMT
-	if ( LD->feature.table &&
-	     (s = lookupHTable(LD->feature.table, (void *)k)) )
-	  return unify_feature_value(module, k, s->value, value);
+	if ( LD->prolog_flag.table &&
+	     (s = lookupHTable(LD->prolog_flag.table, (void *)k)) )
+	  return unify_prolog_flag_value(module, k, s->value, value);
 #endif
-	if ( (s = lookupHTable(GD->feature.table, (void *)k)) )
-	  return unify_feature_value(module, k, s->value, value);
+	if ( (s = lookupHTable(GD->prolog_flag.table, (void *)k)) )
+	  return unify_prolog_flag_value(module, k, s->value, value);
 	else
 	  fail;
       } else if ( PL_is_variable(key) )
@@ -669,16 +669,16 @@ pl_feature5(term_t key, term_t value,
 	} else
 	{ e->explicit_scope = FALSE;
 
-	  if ( LD->feature.table )
+	  if ( LD->prolog_flag.table )
 	    e->scope = ATOM_local;
 	  else
 	    e->scope = ATOM_global;
 	}
 	  
 	if ( e->scope == ATOM_local )
-	  e->table_enum = newTableEnum(LD->feature.table);
+	  e->table_enum = newTableEnum(LD->prolog_flag.table);
 	else
-	  e->table_enum = newTableEnum(GD->feature.table);
+	  e->table_enum = newTableEnum(GD->prolog_flag.table);
 
 	break;
       } else
@@ -705,15 +705,15 @@ pl_feature5(term_t key, term_t value,
 
       if ( e->explicit_scope == FALSE &&
 	   e->scope == ATOM_global &&
-	   LD->feature.table &&
-	   lookupHTable(LD->feature.table, (void *)fn) )
+	   LD->prolog_flag.table &&
+	   lookupHTable(LD->prolog_flag.table, (void *)fn) )
 	continue;
 
       if ( PL_unify_atom(key, fn) &&
-	   unify_feature_value(e->module, fn, s->value, value) &&
+	   unify_prolog_flag_value(e->module, fn, s->value, value) &&
 	   (!scope  || PL_unify_atom(scope, e->scope)) &&
-	   (!access || unify_feature_access(s->value, access)) &&
-	   (!type   || unify_feature_type(s->value, type)) )
+	   (!access || unify_prolog_flag_access(s->value, access)) &&
+	   (!type   || unify_prolog_flag_type(s->value, type)) )
       { UNLOCK();
 	ForeignRedoPtr(e);
       }
@@ -727,7 +727,7 @@ pl_feature5(term_t key, term_t value,
     if ( e->scope == ATOM_local )
     { e->scope = ATOM_global;
       freeTableEnum(e->table_enum);
-      e->table_enum = newTableEnum(GD->feature.table);
+      e->table_enum = newTableEnum(GD->prolog_flag.table);
     } else
       break;
   }
@@ -741,8 +741,8 @@ pl_feature5(term_t key, term_t value,
 
 
 foreign_t
-pl_feature(term_t name, term_t value, control_t h)
-{ return pl_feature5(name, value, 0, 0, 0, h);
+pl_prolog_flag(term_t name, term_t value, control_t h)
+{ return pl_prolog_flag5(name, value, 0, 0, 0, h);
 }
 
 
@@ -758,162 +758,162 @@ pl_feature(term_t name, term_t value, control_t h)
 #endif
 
 void
-initFeatureTable()
-{ if ( !GD->feature.table )
+initPrologFlagTable()
+{ if ( !GD->prolog_flag.table )
   { initPrologThreads();	/* may be called before PL_initialise() */
   
-    GD->feature.table = newHTable(32);
+    GD->prolog_flag.table = newHTable(32);
   }
 }
 
 
 void
-initFeatures()
-{ defFeature("iso",  FT_BOOL, FALSE, ISO_FEATURE);
-  defFeature("arch", FT_ATOM|FF_READONLY, ARCH);
+initPrologFlags()
+{ setPrologFlag("iso",  FT_BOOL, FALSE, PLFLAG_ISO);
+  setPrologFlag("arch", FT_ATOM|FF_READONLY, ARCH);
 #if __WINDOWS__
-  defFeature("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
+  setPrologFlag("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
-  defFeature("version",	FT_INTEGER|FF_READONLY, PLVERSION);
-  defFeature("dialect", FT_ATOM|FF_READONLY, "swi");
+  setPrologFlag("version",	FT_INTEGER|FF_READONLY, PLVERSION);
+  setPrologFlag("dialect", FT_ATOM|FF_READONLY, "swi");
   if ( systemDefaults.home )
-    defFeature("home", FT_ATOM|FF_READONLY, systemDefaults.home);
+    setPrologFlag("home", FT_ATOM|FF_READONLY, systemDefaults.home);
   if ( GD->paths.executable )
-    defFeature("executable", FT_ATOM|FF_READONLY, GD->paths.executable);
+    setPrologFlag("executable", FT_ATOM|FF_READONLY, GD->paths.executable);
 #if defined(HAVE_GETPID) || defined(EMULATE_GETPID)
-  defFeature("pid", FT_INTEGER|FF_READONLY, getpid());
+  setPrologFlag("pid", FT_INTEGER|FF_READONLY, getpid());
 #endif
-  defFeature("optimise", FT_BOOL, GD->cmdline.optimise, OPTIMISE_FEATURE);
-  defFeature("generate_debug_info", FT_BOOL,
-	     trueFeature(DEBUGINFO_FEATURE), DEBUGINFO_FEATURE);
-  defFeature("last_call_optimisation", FT_BOOL, TRUE, LASTCALL_FEATURE);
+  setPrologFlag("optimise", FT_BOOL, GD->cmdline.optimise, PLFLAG_OPTIMISE);
+  setPrologFlag("generate_debug_info", FT_BOOL,
+	     truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);
+  setPrologFlag("last_call_optimisation", FT_BOOL, TRUE, PLFLAG_LASTCALL);
 #ifdef O_PLMT
-  defFeature("abort_with_exception", FT_BOOL|FF_READONLY,
-	     TRUE, EX_ABORT_FEATURE);
+  setPrologFlag("abort_with_exception", FT_BOOL|FF_READONLY,
+	     TRUE, PLFLAG_EX_ABORT);
 #else
-  defFeature("abort_with_exception", FT_BOOL,
-	     FALSE, EX_ABORT_FEATURE);
+  setPrologFlag("abort_with_exception", FT_BOOL,
+	     FALSE, PLFLAG_EX_ABORT);
 #endif
-  defFeature("c_libs",	  FT_ATOM|FF_READONLY, C_LIBS);
-  defFeature("c_cc",	  FT_ATOM|FF_READONLY, C_CC);
-  defFeature("c_ldflags", FT_ATOM|FF_READONLY, C_LDFLAGS);
+  setPrologFlag("c_libs",	  FT_ATOM|FF_READONLY, C_LIBS);
+  setPrologFlag("c_cc",	  FT_ATOM|FF_READONLY, C_CC);
+  setPrologFlag("c_ldflags", FT_ATOM|FF_READONLY, C_LDFLAGS);
 #if defined(O_LARGEFILES) || SIZEOF_LONG == 8
-  defFeature("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
+  setPrologFlag("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
-  defFeature("gc",	  FT_BOOL,	       TRUE,  GC_FEATURE);
-  defFeature("trace_gc",  FT_BOOL,	       FALSE, TRACE_GC_FEATURE);
+  setPrologFlag("gc",	  FT_BOOL,	       TRUE,  PLFLAG_GC);
+  setPrologFlag("trace_gc",  FT_BOOL,	       FALSE, PLFLAG_TRACE_GC);
 #ifdef O_ATOMGC
-  defFeature("agc_margin",FT_INTEGER,	       GD->atoms.margin);
+  setPrologFlag("agc_margin",FT_INTEGER,	       GD->atoms.margin);
 #endif
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
-  defFeature("open_shared_object",	  FT_BOOL|FF_READONLY, TRUE, 0);
-  defFeature("shared_object_extension",	  FT_ATOM|FF_READONLY, SO_EXT);
-  defFeature("shared_object_search_path", FT_ATOM|FF_READONLY, SO_PATH);
+  setPrologFlag("open_shared_object",	  FT_BOOL|FF_READONLY, TRUE, 0);
+  setPrologFlag("shared_object_extension",	  FT_ATOM|FF_READONLY, SO_EXT);
+  setPrologFlag("shared_object_search_path", FT_ATOM|FF_READONLY, SO_PATH);
 #endif
 #if O_DYNAMIC_STACKS
-  defFeature("dynamic_stacks",	FT_BOOL|FF_READONLY, TRUE, 0);
+  setPrologFlag("dynamic_stacks",	FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
-  defFeature("address_bits", FT_INTEGER|FF_READONLY, sizeof(void*)*8);
+  setPrologFlag("address_bits", FT_INTEGER|FF_READONLY, sizeof(void*)*8);
 #ifdef HAVE_POPEN
-  defFeature("pipe", FT_BOOL, TRUE, 0);
+  setPrologFlag("pipe", FT_BOOL, TRUE, 0);
 #endif
 #ifdef O_PLMT
-  defFeature("threads",	FT_BOOL, TRUE, 0);	/* FF_READONLY? */
-  defFeature("system_thread_id", FT_INTEGER|FF_READONLY, 0, 0);
+  setPrologFlag("threads",	FT_BOOL, TRUE, 0);	/* FF_READONLY? */
+  setPrologFlag("system_thread_id", FT_INTEGER|FF_READONLY, 0, 0);
 #ifdef MAX_THREADS
-  defFeature("max_threads", FT_INTEGER|FF_READONLY, MAX_THREADS);
+  setPrologFlag("max_threads", FT_INTEGER|FF_READONLY, MAX_THREADS);
 #endif
 #else
-  defFeature("threads",	FT_BOOL|FF_READONLY, FALSE, 0);
+  setPrologFlag("threads",	FT_BOOL|FF_READONLY, FALSE, 0);
 #endif
 #ifdef ASSOCIATE_SRC
-  defFeature("associate", FT_ATOM, ASSOCIATE_SRC);
+  setPrologFlag("associate", FT_ATOM, ASSOCIATE_SRC);
 #endif
 #ifdef O_DDE
-  defFeature("dde", FT_BOOL|FF_READONLY, TRUE, 0);
+  setPrologFlag("dde", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
 #ifdef O_RUNTIME
-  defFeature("runtime",	FT_BOOL|FF_READONLY, TRUE, 0);
-  defFeature("debug_on_error", FT_BOOL|FF_READONLY, FALSE,
-	     DEBUG_ON_ERROR_FEATURE);
-  defFeature("report_error",	FT_BOOL|FF_READONLY, FALSE,
-	     REPORT_ERROR_FEATURE);
+  setPrologFlag("runtime",	FT_BOOL|FF_READONLY, TRUE, 0);
+  setPrologFlag("debug_on_error", FT_BOOL|FF_READONLY, FALSE,
+	     PLFLAG_DEBUG_ON_ERROR);
+  setPrologFlag("report_error",	FT_BOOL|FF_READONLY, FALSE,
+	     PLFLAG_REPORT_ERROR);
 #else
-  defFeature("debug_on_error",	FT_BOOL, TRUE, DEBUG_ON_ERROR_FEATURE);
-  defFeature("report_error",	FT_BOOL, TRUE, REPORT_ERROR_FEATURE);
+  setPrologFlag("debug_on_error",	FT_BOOL, TRUE, PLFLAG_DEBUG_ON_ERROR);
+  setPrologFlag("report_error",	FT_BOOL, TRUE, PLFLAG_REPORT_ERROR);
 #endif
-  defFeature("editor",		   FT_ATOM, "default");
-  defFeature("debugger_show_context", FT_BOOL, FALSE, 0);
-  defFeature("autoload",  FT_BOOL, TRUE,  AUTOLOAD_FEATURE);
+  setPrologFlag("editor",		   FT_ATOM, "default");
+  setPrologFlag("debugger_show_context", FT_BOOL, FALSE, 0);
+  setPrologFlag("autoload",  FT_BOOL, TRUE,  PLFLAG_AUTOLOAD);
 #ifndef O_GMP
-  defFeature("max_integer",	   FT_INT64|FF_READONLY, PLMAXINT);
-  defFeature("min_integer",	   FT_INT64|FF_READONLY, PLMININT);
+  setPrologFlag("max_integer",	   FT_INT64|FF_READONLY, PLMAXINT);
+  setPrologFlag("min_integer",	   FT_INT64|FF_READONLY, PLMININT);
 #endif
-  defFeature("max_tagged_integer", FT_INTEGER|FF_READONLY, PLMAXTAGGEDINT);
-  defFeature("min_tagged_integer", FT_INTEGER|FF_READONLY, PLMINTAGGEDINT);
+  setPrologFlag("max_tagged_integer", FT_INTEGER|FF_READONLY, PLMAXTAGGEDINT);
+  setPrologFlag("min_tagged_integer", FT_INTEGER|FF_READONLY, PLMINTAGGEDINT);
 #ifdef O_GMP
-  defFeature("bounded",		   FT_BOOL|FF_READONLY,	   FALSE, 0);
+  setPrologFlag("bounded",		   FT_BOOL|FF_READONLY,	   FALSE, 0);
 #ifdef __GNU_MP__
-  defFeature("gmp_version",	   FT_INTEGER|FF_READONLY, __GNU_MP__);
+  setPrologFlag("gmp_version",	   FT_INTEGER|FF_READONLY, __GNU_MP__);
 #endif
 #else
-  defFeature("bounded",		   FT_BOOL|FF_READONLY,	   TRUE, 0);
+  setPrologFlag("bounded",		   FT_BOOL|FF_READONLY,	   TRUE, 0);
 #endif
   if ( (-3 / 2) == -2 )
-    defFeature("integer_rounding_function", FT_ATOM|FF_READONLY, "down");
+    setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "down");
   else
-    defFeature("integer_rounding_function", FT_ATOM|FF_READONLY, "toward_zero");
-  defFeature("max_arity", FT_ATOM|FF_READONLY, "unbounded");
-  defFeature("float_format", FT_ATOM, "%g");
-  defFeature("answer_format", FT_ATOM, "~p");
-  defFeature("character_escapes", FT_BOOL, TRUE, CHARESCAPE_FEATURE);
-  defFeature("char_conversion", FT_BOOL, FALSE, CHARCONVERSION_FEATURE);
-  defFeature("backquoted_string", FT_BOOL, FALSE, BACKQUOTED_STRING_FEATURE);
-  defFeature("write_attributes", FT_ATOM, "ignore");
-  defFeature("occurs_check", FT_ATOM, "false");
-  defFeature("double_quotes", FT_ATOM, "codes");
-  defFeature("unknown", FT_ATOM, "error");
-  defFeature("debug", FT_BOOL, FALSE, 0);
-  defFeature("verbose", FT_ATOM|FF_KEEP, GD->options.silent ? "silent" : "normal");
-  defFeature("verbose_load", FT_BOOL, TRUE, 0);
-  defFeature("allow_variable_name_as_functor", FT_BOOL, FALSE,
+    setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "toward_zero");
+  setPrologFlag("max_arity", FT_ATOM|FF_READONLY, "unbounded");
+  setPrologFlag("float_format", FT_ATOM, "%g");
+  setPrologFlag("answer_format", FT_ATOM, "~p");
+  setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
+  setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);
+  setPrologFlag("backquoted_string", FT_BOOL, FALSE, PLFLAG_BACKQUOTED_STRING);
+  setPrologFlag("write_attributes", FT_ATOM, "ignore");
+  setPrologFlag("occurs_check", FT_ATOM, "false");
+  setPrologFlag("double_quotes", FT_ATOM, "codes");
+  setPrologFlag("unknown", FT_ATOM, "error");
+  setPrologFlag("debug", FT_BOOL, FALSE, 0);
+  setPrologFlag("verbose", FT_ATOM|FF_KEEP, GD->options.silent ? "silent" : "normal");
+  setPrologFlag("verbose_load", FT_BOOL, TRUE, 0);
+  setPrologFlag("allow_variable_name_as_functor", FT_BOOL, FALSE,
 	     ALLOW_VARNAME_FUNCTOR);
-  defFeature("toplevel_var_size", FT_INTEGER, 1000);
-  defFeature("toplevel_print_anon", FT_BOOL, TRUE, 0);
-  defFeature("file_name_variables", FT_BOOL, FALSE, FILEVARS_FEATURE);
+  setPrologFlag("toplevel_var_size", FT_INTEGER, 1000);
+  setPrologFlag("toplevel_print_anon", FT_BOOL, TRUE, 0);
+  setPrologFlag("file_name_variables", FT_BOOL, FALSE, PLFLAG_FILEVARS);
 #ifdef __unix__
-  defFeature("unix", FT_BOOL|FF_READONLY, TRUE, 0);
+  setPrologFlag("unix", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
 
-  defFeature("encoding", FT_ATOM, stringAtom(encoding_to_atom(LD->encoding)));
+  setPrologFlag("encoding", FT_ATOM, stringAtom(encoding_to_atom(LD->encoding)));
 
-  defFeature("tty_control", FT_BOOL|FF_READONLY,
-	     trueFeature(TTY_CONTROL_FEATURE), TTY_CONTROL_FEATURE);
-  defFeature("signals", FT_BOOL|FF_READONLY,
-	     trueFeature(SIGNALS_FEATURE), SIGNALS_FEATURE);
-  defFeature("readline", FT_BOOL/*|FF_READONLY*/, FALSE, 0);
+  setPrologFlag("tty_control", FT_BOOL|FF_READONLY,
+	     truePrologFlag(PLFLAG_TTY_CONTROL), PLFLAG_TTY_CONTROL);
+  setPrologFlag("signals", FT_BOOL|FF_READONLY,
+	     truePrologFlag(PLFLAG_SIGNALS), PLFLAG_SIGNALS);
+  setPrologFlag("readline", FT_BOOL/*|FF_READONLY*/, FALSE, 0);
 
 #if defined(__WINDOWS__) && defined(_DEBUG)
-  defFeature("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");
+  setPrologFlag("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");
 #endif
 
 #if defined(__DATE__) && defined(__TIME__)
   { char buf[100];
 
     Ssprintf(buf, "%s, %s", __DATE__, __TIME__);
-    defFeature("compiled_at", FT_ATOM|FF_READONLY, buf);
+    setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, buf);
   }
 #endif
 
-  setArgvFeature();
-  setTZFeature();
-  setOSFeatures();
-  setVersionFeature();
+  setArgvPrologFlag();
+  setTZPrologFlag();
+  setOSPrologFlags();
+  setVersionPrologFlag();
 }
 
 
 static void
-setArgvFeature()
+setArgvPrologFlag()
 { fid_t fid = PL_open_foreign_frame();
   term_t e = PL_new_term_ref();
   term_t l = PL_new_term_ref();
@@ -928,21 +928,21 @@ setArgvFeature()
     PL_cons_list(l, e, l);
   }
 
-  defFeature("argv", FT_TERM, l);
+  setPrologFlag("argv", FT_TERM, l);
   PL_discard_foreign_frame(fid);
 }
 
 
 static void
-setTZFeature()
+setTZPrologFlag()
 { tzset();
 
-  defFeature("timezone", FT_INTEGER|FF_READONLY, timezone);
+  setPrologFlag("timezone", FT_INTEGER|FF_READONLY, timezone);
 }
 
 
 static void
-setVersionFeature(void)
+setVersionPrologFlag(void)
 { fid_t fid = PL_open_foreign_frame();
   term_t t = PL_new_term_ref();
   int major = PLVERSION/10000;
@@ -955,7 +955,7 @@ setVersionFeature(void)
 		PL_INT, patch,
 		PL_ATOM, ATOM_nil);
 
-  defFeature("version_data", FF_READONLY|FT_TERM, t);
+  setPrologFlag("version_data", FF_READONLY|FT_TERM, t);
   PL_discard_foreign_frame(fid);
 
   setGITVersion();

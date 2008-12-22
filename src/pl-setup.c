@@ -80,7 +80,7 @@ setupProlog(void)
   initForeign();
 #if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
-  if ( trueFeature(SIGNALS_FEATURE) )
+  if ( truePrologFlag(PLFLAG_SIGNALS) )
     initSignals();
 #endif
   DEBUG(1, Sdprintf("Stacks ...\n"));
@@ -94,7 +94,7 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Atoms ...\n"));
   initAtoms();
   DEBUG(1, Sdprintf("Features ...\n"));
-  initFeatures();
+  initPrologFlags();
   DEBUG(1, Sdprintf("Functors ...\n"));
   initFunctors();
   DEBUG(1, Sdprintf("Modules ...\n"));
@@ -143,7 +143,7 @@ initPrologLocalData(void)
   environment_frame = (LocalFrame) NULL;
   LD->statistics.inferences = 0;
   LD->float_format = "%g";
-  LD->feature.write_attributes = PL_WRT_ATTVAR_IGNORE;
+  LD->prolog_flag.write_attributes = PL_WRT_ATTVAR_IGNORE;
   updateAlerted(LD);
 }
 
@@ -540,7 +540,7 @@ set_stack_guard_handler(int sig, void *func)
   new.sa_flags     = SA_RESTART;
 #endif
 
-  if ( !trueFeature(SIGNALS_FEATURE) &&
+  if ( !truePrologFlag(PLFLAG_SIGNALS) &&
        !GD->options.silent )
   {			/* We need double \\ to get a single at Sdprintf() */
     Sdprintf("\\% Prolog still handles SIG_SEGV\n"

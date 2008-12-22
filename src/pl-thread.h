@@ -135,7 +135,7 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_TABLE		9
 #define L_BREAK	       10
 #define L_FILE	       11
-#define L_FEATURE      12
+#define PLFLAG_L      12
 #define L_OP	       13
 #define L_INIT	       14
 #define L_TERM	       15

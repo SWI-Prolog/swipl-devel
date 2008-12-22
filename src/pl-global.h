@@ -202,7 +202,7 @@ typedef struct
 
   struct 
   { Table	table;			/* global (read-only) features */
-  } feature;
+  } prolog_flag;
 
   struct
   { buffer	array;			/* index --> functor */
@@ -454,7 +454,7 @@ typedef struct PL_local_data
     pl_features_t mask;			/* Masked access to booleans */
     int		  write_attributes;	/* how to write attvars? */
     occurs_check_t occurs_check;	/* Unify and occurs check */
-  } feature;
+  } prolog_flag;
 
   struct
   { FindData	find;			/* /<ports> <goal> in tracer */
@@ -566,7 +566,6 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define heap_base		(GD->rounded_heap_base)
 #define functor_array		(GD->functors.array)
 #define systemDefaults		(GD->defaults)
-#define features		(LD->feature.mask)
 
 #define environment_frame 	(LD->environment)
 #define fli_context	  	(LD->foreign_environment)

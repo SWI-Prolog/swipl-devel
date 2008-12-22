@@ -1495,7 +1495,7 @@ will use the meta-call mechanism for all these types of calls.
 	   compileSimpleAddition(arg, ci PASS_LD) )
 	succeed;
 #if O_COMPILE_ARITH
-      if ( trueFeature(OPTIMISE_FEATURE) )
+      if ( truePrologFlag(PLFLAG_OPTIMISE) )
 	 return compileArith(arg, ci PASS_LD);
 #endif
     }
@@ -1964,7 +1964,7 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
   if ( isVar(*a1) )			/* Singleton == ?: always fail */
   { 
   eq_always_false:
-    if ( trueFeature(OPTIMISE_FEATURE) )
+    if ( truePrologFlag(PLFLAG_OPTIMISE) )
     { Output_0(ci, I_FAIL);
       succeed;
     }
@@ -1985,7 +1985,7 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
     int f2 = isFirstVar(ci->used_var, i2);
 
     if ( f1 || f2 )
-    { if ( trueFeature(OPTIMISE_FEATURE) )
+    { if ( truePrologFlag(PLFLAG_OPTIMISE) )
       {	Output_0(ci, i1 == i2 ? I_TRUE : I_FAIL);
 	succeed;
       }
@@ -2223,7 +2223,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
       { if ( false(def, SYSTEM) )
 	  set(def, SYSTEM|HIDE_CHILDS|LOCKED);
       } else
-      { if ( trueFeature(DEBUGINFO_FEATURE) )
+      { if ( truePrologFlag(PLFLAG_DEBUGINFO) )
 	  clear(def, HIDE_CHILDS);
 	else
 	  set(def, HIDE_CHILDS);
@@ -3473,7 +3473,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
       def = getProcDefinition(proc);
 
       if ( true(def, FOREIGN) ||
-	   (   trueFeature(ISO_FEATURE) &&
+	   (   truePrologFlag(PLFLAG_ISO) &&
 	       false(def, DYNAMIC)
 	   ) )
 	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,

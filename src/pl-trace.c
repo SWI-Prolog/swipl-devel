@@ -430,7 +430,7 @@ again:
 
     Sfputs(" ? ", Sdout);
     Sflush(Sdout);
-    if ( !trueFeature(TTY_CONTROL_FEATURE) )
+    if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     { buf[0] = EOS;
       if ( !readLine(Sdin, Sdout, buf) )
       { Sfputs("EOF: exit\n", Sdout);
@@ -451,7 +451,7 @@ again:
       }
     }
     action = traceAction(buf, port, frame, bfr,
-			 trueFeature(TTY_CONTROL_FEATURE));
+			 truePrologFlag(PLFLAG_TTY_CONTROL));
     if ( action == ACTION_AGAIN )
       goto again;
   } else
@@ -859,7 +859,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     ctx.context = 0;
     ctx.control = FRG_FIRST_CALL;
     ctx.engine  = LD;
-    if ( !pl_feature(tmp, options, &ctx) )
+    if ( !pl_prolog_flag(tmp, options, &ctx) )
       PL_put_nil(options);
     PL_put_atom(tmp, ATOM_user_output);
 
@@ -1234,7 +1234,7 @@ void
 resetTracer(void)
 {
 #ifdef O_INTERRUPT
-  if ( trueFeature(SIGNALS_FEATURE) )
+  if ( truePrologFlag(PLFLAG_SIGNALS) )
     PL_signal(SIGINT, interruptHandler);
 #endif
 
@@ -1244,7 +1244,7 @@ resetTracer(void)
   debugstatus.skiplevel    = 0;
   debugstatus.retryFrame   = NULL;
 
-  setFeatureMask(LASTCALL_FEATURE);
+  setPrologFlagMask(PLFLAG_LASTCALL);
 }
 
 
@@ -1429,7 +1429,7 @@ debugmode(debug_type doit, debug_type *old)
   if ( debugstatus.debugging != doit )
   { if ( doit )
     { debugstatus.skiplevel = VERY_DEEP;
-      clearFeatureMask(LASTCALL_FEATURE);
+      clearPrologFlagMask(PLFLAG_LASTCALL);
       if ( doit == DBG_ALL )
       { LocalFrame fr = environment_frame;
 
@@ -1445,7 +1445,7 @@ debugmode(debug_type doit, debug_type *old)
 	doit = DBG_ON;
       }
     } else
-    { setFeatureMask(LASTCALL_FEATURE);
+    { setPrologFlagMask(PLFLAG_LASTCALL);
     }
     debugstatus.debugging = doit;
     updateAlerted(LD);

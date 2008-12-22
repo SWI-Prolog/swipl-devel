@@ -1978,38 +1978,35 @@ typedef struct debuginfo
 #define FT_INT64	4		/* passed as int64_t */
 #define FT_MASK		0x0f		/* mask to get type */
 
-#define FF_READONLY	0x10		/* feature is read-only */
-#define FF_KEEP		0x20		/* keep value it already set */
-
-#define CHARESCAPE_FEATURE	  0x00001 /* handle \ in atoms */
-#define GC_FEATURE		  0x00002 /* do GC */
-#define TRACE_GC_FEATURE	  0x00004 /* verbose gc */
-#define TTY_CONTROL_FEATURE	  0x00008 /* allow for tty control */
-#define READLINE_FEATURE	  0x00010 /* readline is loaded */
-#define DEBUG_ON_ERROR_FEATURE	  0x00020 /* start tracer on error */
-#define REPORT_ERROR_FEATURE	  0x00040 /* print error message */
-#define FILE_CASE_FEATURE	  0x00080 /* file names are case sensitive */
-#define FILE_CASE_PRESERVING_FEATURE 0x0100 /* case preserving file names */
-#define DOS_FILE_NAMES_FEATURE    0x00200 /* dos (8+3) file names */
+#define PLFLAG_CHARESCAPE	  0x00001 /* handle \ in atoms */
+#define PLFLAG_GC		  0x00002 /* do GC */
+#define PLFLAG_TRACE_GC	  0x00004 /* verbose gc */
+#define PLFLAG_TTY_CONTROL	  0x00008 /* allow for tty control */
+#define PLFLAG_READLINE	  0x00010 /* readline is loaded */
+#define PLFLAG_DEBUG_ON_ERROR	  0x00020 /* start tracer on error */
+#define PLFLAG_REPORT_ERROR	  0x00040 /* print error message */
+#define PLFLAG_FILE_CASE	  0x00080 /* file names are case sensitive */
+#define PLFLAG_FILE_CASE_PRESERVING 0x0100 /* case preserving file names */
+#define PLFLAG_DOS_FILE_NAMES    0x00200 /* dos (8+3) file names */
 #define ALLOW_VARNAME_FUNCTOR	  0x00400 /* Read Foo(x) as 'Foo'(x) */
-#define ISO_FEATURE		  0x00800 /* Strict ISO compliance */
-#define OPTIMISE_FEATURE	  0x01000 /* -O: optimised compilation */
-#define FILEVARS_FEATURE	  0x02000 /* Expand $var and ~ in filename */
-#define AUTOLOAD_FEATURE	  0x04000 /* do autoloading */
-#define CHARCONVERSION_FEATURE	  0x08000 /* do character-conversion */
-#define LASTCALL_FEATURE	  0x10000 /* Last call optimization enabled? */
-#define EX_ABORT_FEATURE	  0x20000 /* abort with exception */
-#define BACKQUOTED_STRING_FEATURE 0x40000 /* `a string` */
-#define SIGNALS_FEATURE		  0x80000 /* Handle signals */
-#define DEBUGINFO_FEATURE	  0x100000 /* generate debug info */
+#define PLFLAG_ISO		  0x00800 /* Strict ISO compliance */
+#define PLFLAG_OPTIMISE	  0x01000 /* -O: optimised compilation */
+#define PLFLAG_FILEVARS	  0x02000 /* Expand $var and ~ in filename */
+#define PLFLAG_AUTOLOAD	  0x04000 /* do autoloading */
+#define PLFLAG_CHARCONVERSION	  0x08000 /* do character-conversion */
+#define PLFLAG_LASTCALL	  0x10000 /* Last call optimization enabled? */
+#define PLFLAG_EX_ABORT	  0x20000 /* abort with exception */
+#define PLFLAG_BACKQUOTED_STRING 0x40000 /* `a string` */
+#define PLFLAG_SIGNALS		  0x80000 /* Handle signals */
+#define PLFLAG_DEBUGINFO	  0x100000 /* generate debug info */
 
 typedef struct
 { unsigned long flags;			/* the feature flags */
 } pl_features_t;
 
-#define trueFeature(mask)	true(&features, mask)
-#define setFeatureMask(mask)	set(&features, mask)
-#define clearFeatureMask(mask)	clear(&features, mask)
+#define truePrologFlag(flag)	  true(&LD->prolog_flag.mask, flag)
+#define setPrologFlagMask(flag)	  set(&LD->prolog_flag.mask, flag)
+#define clearPrologFlagMask(flag) clear(&LD->prolog_flag.mask, flag)
 
 typedef enum
 { OCCURS_CHECK_FALSE = 0,

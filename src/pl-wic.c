@@ -2316,7 +2316,7 @@ qlfLoad(IOSTREAM *fd, Module *module ARG_LD)
     fail;
   }
   vm_signature = getInt(fd);
-  if ( vm_signature != VM_SIGNATURE )
+  if ( vm_signature != (int)VM_SIGNATURE )
   { warning("QLF file %s has incompatible VM-signature (0x%x; expected 0x%x)",
 	    file, vm_signature, VM_SIGNATURE);
     fail;
@@ -2742,7 +2742,7 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
 { TRY(writeWicHeader(fd));
   
   systemMode(TRUE);
-  defFeature("autoload", FT_BOOL, FALSE, 0);
+  PL_set_prolog_flag("autoload", PL_BOOL, FALSE);
 
   for(;argc > 0; argc--, argv++)
   { if ( streq(argv[0], "-c" ) )
@@ -2750,7 +2750,7 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
     compileFile(argv[0]);
   }
 
-  defFeature("autoload", FT_BOOL, TRUE, 0);
+  PL_set_prolog_flag("autoload", PL_BOOL, TRUE);
   systemMode(FALSE);
 
   { predicate_t pred = PL_predicate("$load_additional_boot_files", 0, "user");

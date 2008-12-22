@@ -54,7 +54,7 @@ OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
 	pl-prof.obj pl-read.obj pl-rec.obj pl-rl.obj pl-setup.obj \
 	pl-sys.obj pl-table.obj pl-trace.obj pl-util.obj pl-wic.obj \
 	pl-write.obj pl-term.obj pl-buffer.obj pl-thread.obj \
-	pl-xterm.obj pl-feature.obj pl-ctype.obj pl-main.obj \
+	pl-xterm.obj pl-prologflag.obj pl-ctype.obj pl-main.obj \
 	pl-dde.obj pl-nt.obj pl-attvar.obj pl-gvar.obj pl-btree.obj \
 	pl-utf8.obj pl-text.obj pl-mswchar.obj pl-gmp.obj pl-tai.obj \
 	pl-segstack.obj pl-hash.obj pl-version.obj pl-codetable.obj \

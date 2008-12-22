@@ -1020,7 +1020,7 @@ promoteIntNumber(Number n)
 #else
   GET_LD
 
-    if ( trueFeature(ISO_FEATURE) )
+    if ( truePrologFlag(PLFLAG_ISO) )
       return PL_error("+", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
 
   promoteToRealNumber(n);
@@ -1546,7 +1546,7 @@ ar_powm(Number base, Number exp, Number mod, Number r)
   succeed;
 #else
   return PL_error("powm", 3, "requires unbounded arithmetic (GMP) support",
-		  ERR_NOT_IMPLEMENTED_FEATURE, "powm/3");
+		  ERR_NOT_IMPLEMENTED, "powm/3");
 #endif
 }
 
@@ -1821,7 +1821,7 @@ static int
 ar_divide(Number n1, Number n2, Number r)
 { GET_LD
 
-  if ( !trueFeature(ISO_FEATURE) )
+  if ( !truePrologFlag(PLFLAG_ISO) )
   { same_type_numbers(n1, n2);
 
     switch(n1->type)

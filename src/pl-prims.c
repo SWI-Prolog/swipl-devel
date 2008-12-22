@@ -298,7 +298,7 @@ right_recursion:
 
 bool
 raw_unify_ptrs(Word t1, Word t2 ARG_LD)
-{ switch(LD->feature.occurs_check)
+{ switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
     { bool rc;
 
@@ -1233,7 +1233,7 @@ tail_recursion:
   t2 = tag(w2);
 
   if ( t1 != t2 )
-  { if ( !trueFeature(ISO_FEATURE) && !eq )
+  { if ( !truePrologFlag(PLFLAG_ISO) && !eq )
     { if ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
 	   (t1 == TAG_FLOAT && t2 == TAG_INTEGER) )
       { number left, right;
@@ -1745,7 +1745,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
       deRef(p);
       if ( isTerm(*p) )
 	arity = arityTerm(*p);
-      else if ( isTextAtom(*p) && !trueFeature(ISO_FEATURE) )
+      else if ( isTextAtom(*p) && !truePrologFlag(PLFLAG_ISO) )
 	arity = 0;
       else
 	return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
@@ -2516,7 +2516,7 @@ these always live on the global stack.
 
 static int
 unifiable_occurs_check(term_t t1, term_t t2 ARG_LD)
-{ switch(LD->feature.occurs_check)
+{ switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
       return TRUE;
     case OCCURS_CHECK_TRUE:
@@ -2529,7 +2529,7 @@ unifiable_occurs_check(term_t t1, term_t t2 ARG_LD)
 	return TRUE;
 
       return failed_unify_with_occurs_check(p1, p2,
-					    LD->feature.occurs_check
+					    LD->prolog_flag.occurs_check
 					    PASS_LD);
     }
     default:
@@ -3030,7 +3030,7 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
   int flags;
   PL_chars_t txt;
 
-  if ( trueFeature(ISO_FEATURE) )
+  if ( truePrologFlag(PLFLAG_ISO) )
     flags = CVT_ATOM|CVT_STRING|CVT_EXCEPTION;	/* strings are not known to ISO */
   else
     flags = CVT_ALL|CVT_EXCEPTION;

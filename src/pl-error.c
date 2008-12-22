@@ -373,7 +373,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_CHARS, err);
       break;
     }
-    case ERR_NOT_IMPLEMENTED_FEATURE:		/* non-ISO */
+    case ERR_NOT_IMPLEMENTED:		/* non-ISO */
     { const char *what = va_arg(args, const char *);
 
       PL_unify_term(formal,

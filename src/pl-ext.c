@@ -238,9 +238,9 @@ static const PL_extension foreigns[] = {
 #endif
 
   FRG("$atom_hashstat",		2, pl_atom_hashstat,		0),
-  FRG("$current_prolog_flag",	5, pl_feature5,		     NDET),
-  FRG("current_prolog_flag",	2, pl_feature,		 NDET|ISO),
-  FRG("set_prolog_flag",	2, pl_set_feature,	      ISO),
+  FRG("$current_prolog_flag",	5, pl_prolog_flag5,	     NDET),
+  FRG("current_prolog_flag",	2, pl_prolog_flag,	 NDET|ISO),
+  FRG("set_prolog_flag",	2, pl_set_prolog_flag,	      ISO),
   FRG("trim_stacks",		0, pl_trim_stacks,		0),
 #if O_SHIFT_STACKS
   FRG("stack_parameter",	4, pl_stack_parameter,		0),

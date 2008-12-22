@@ -122,7 +122,7 @@ static bool	match_pattern(matchcode *, char *);
 
 static inline void
 setMap(matchcode *map, int c)
-{ if ( !trueFeature(FILE_CASE_FEATURE) )
+{ if ( !truePrologFlag(PLFLAG_FILE_CASE) )
     c = makeLower(c);
 
   map[(c)/8] |= 1 << ((c) % 8);
@@ -244,7 +244,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl)
 	}
 	/*FALLTHROUGH*/
       default:
-        if ( !trueFeature(FILE_CASE_FEATURE) )
+        if ( !truePrologFlag(PLFLAG_FILE_CASE) )
 	  c = makeLower(c);
 	Output(c);
 	continue;
@@ -279,7 +279,7 @@ match_pattern(matchcode *p, char *str)
       case ANYOF:					/* [...] */
         { matchcode c2 = *s;
 
-	  if ( !trueFeature(FILE_CASE_FEATURE) )
+	  if ( !truePrologFlag(PLFLAG_FILE_CASE) )
 	    c2 = makeLower(c2);
 
 	  if ( p[c2 / 8] & (1 << (c2 % 8)) )
@@ -305,7 +305,7 @@ match_pattern(matchcode *p, char *str)
 	  continue;	  
       default:						/* character */
 	  if ( c == *s ||
-	       (!trueFeature(FILE_CASE_FEATURE) && c == makeLower(*s)) )
+	       (!truePrologFlag(PLFLAG_FILE_CASE) && c == makeLower(*s)) )
 	  { s++;
 	    continue;
 	  }
@@ -544,7 +544,7 @@ compareBagEntries(const void *a1, const void *a2)
   s1 = expand_str(info, i1);
   s2 = expand_str(info, i2);
   
-  if ( trueFeature(FILE_CASE_FEATURE) )
+  if ( truePrologFlag(PLFLAG_FILE_CASE) )
     return mbscoll(s1, s2);
   else
     return mbscasecoll(s1, s2);

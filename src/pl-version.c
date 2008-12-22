@@ -31,6 +31,6 @@ void
 setGITVersion(void)
 {
 #ifdef GIT_VERSION
-  defFeature("version_git", FT_ATOM, GIT_VERSION);
+  PL_set_prolog_flag("version_git", PL_ATOM, GIT_VERSION);
 #endif
 }

@@ -316,7 +316,7 @@ initIO()
 
   if ( (fd=Sfileno(Sinput))  < 0 || !isatty(fd) ||
        (fd=Sfileno(Soutput)) < 0 || !isatty(fd) )
-    defFeature("tty_control", FT_BOOL, FALSE);
+    PL_set_prolog_flag("tty_control", PL_BOOL, FALSE);
 }
 #endif
   ResetTty();
@@ -1101,7 +1101,7 @@ PL_write_prompt(int dowrite)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get a single character from Sinput  without   waiting  for a return. The
-character should not be echoed.  If   TTY_CONTROL_FEATURE  is false this
+character should not be echoed.  If   PLFLAG_TTY_CONTROL  is false this
 function will read the first character and  then skip all character upto
 and including the newline.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1140,7 +1140,7 @@ getSingleChar(IOSTREAM *stream, int signals)
   Sflush(stream);
   PushTty(stream, &buf, TTY_RAW);	/* just donot prompt */
   
-  if ( !trueFeature(TTY_CONTROL_FEATURE) )
+  if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
   { int c2;
 
     c2 = Sgetcode_intr(stream, signals);
@@ -1204,12 +1204,12 @@ readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
 	return c == EOF ? FALSE : TRUE;
       case '\b':
       case DEL:
-	if ( trueFeature(TTY_CONTROL_FEATURE) && buf > buffer )
+	if ( truePrologFlag(PLFLAG_TTY_CONTROL) && buf > buffer )
 	{ Sfputs("\b \b", out);
 	  buf--;
 	}
       default:
-	if ( trueFeature(TTY_CONTROL_FEATURE) )
+	if ( truePrologFlag(PLFLAG_TTY_CONTROL) )
 	  Sputc(c, out);
 	*buf++ = c;
     }
@@ -4100,7 +4100,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
       fail;
   }
 
-  if ( trueFeature(FILEVARS_FEATURE) )
+  if ( truePrologFlag(PLFLAG_FILEVARS) )
   { if ( !(name = ExpandOneFile(name, tmp)) )
       fail;
   }
@@ -4487,7 +4487,7 @@ has_extension(const char *name, const char *ext)
   if ( *s == '.' && s > name && s[-1] != '/' )
   { if ( ext[0] == '.' )
       ext++;
-    if ( trueFeature(FILE_CASE_FEATURE) )
+    if ( truePrologFlag(PLFLAG_FILE_CASE) )
       return strcmp(&s[1], ext) == 0;
     else
       return strcasecmp(&s[1], ext) == 0;
@@ -4523,7 +4523,7 @@ PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
       { if ( PL_get_chars(ext, &e, CVT_ALL|REP_FN) )
 	{ if ( e[0] == '.' )
 	    e++;
-	  if ( trueFeature(FILE_CASE_FEATURE) )
+	  if ( truePrologFlag(PLFLAG_FILE_CASE) )
 	  { TRY(strcmp(&s[1], e) == 0);
 	  } else
 	  { TRY(strcasecmp(&s[1], e) == 0);

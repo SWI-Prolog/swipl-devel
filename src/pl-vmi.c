@@ -418,7 +418,7 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
 { Word k = varFrameP(FR, (int)*PC++);
 
   if ( umode == uwrite )
-  { if ( LD->feature.occurs_check == OCCURS_CHECK_FALSE )
+  { if ( LD->prolog_flag.occurs_check == OCCURS_CHECK_FALSE )
     { deRef(k);
       if ( isVar(*k) )
       { if ( k > ARGP )			/* k on local stack */
@@ -1439,7 +1439,7 @@ entry point for last call optimisation.
 VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 { if ( (void *)BFR <= (void *)FR
 #if O_DEBUGGER
-       && trueFeature(LASTCALL_FEATURE)
+       && truePrologFlag(PLFLAG_LASTCALL)
 #endif
      )
   { Procedure proc;
@@ -3208,7 +3208,7 @@ b_throw:
        *valTermRef(exception_printed) != except )
   { QF = QueryFromQid(qid);	/* reload for relocation */
 
-    if ( trueFeature(DEBUG_ON_ERROR_FEATURE) &&
+    if ( truePrologFlag(PLFLAG_DEBUG_ON_ERROR) &&
 	 false(QF, PL_Q_CATCH_EXCEPTION) &&
 	 !isCatchedInOuterQuery(QF, catcher) )
     { printMessage(ATOM_error, PL_TERM, exception_term);

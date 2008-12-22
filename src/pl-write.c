@@ -1120,7 +1120,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool ignore_ops = FALSE;
   bool numbervars = -1;			/* not set */
   bool portray    = FALSE;
-  bool bqstring   = trueFeature(BACKQUOTED_STRING_FEATURE);
+  bool bqstring   = truePrologFlag(PLFLAG_BACKQUOTED_STRING);
   bool charescape = -1;			/* not set */
   atom_t mname    = ATOM_user;
   atom_t attr     = ATOM_nil;
@@ -1138,7 +1138,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
     fail;
 
   if ( attr == ATOM_nil )
-  { options.flags |= LD->feature.write_attributes;
+  { options.flags |= LD->prolog_flag.write_attributes;
   } else
   { int mask = writeAttributeMask(attr);
 
@@ -1217,7 +1217,7 @@ do_write2(term_t stream, term_t term, int flags)
     options.module    = MODULE_user;
     if ( options.module && true(options.module, CHARESCAPE) )
       options.flags |= PL_WRT_CHARESCAPES;
-    if ( trueFeature(BACKQUOTED_STRING_FEATURE) )
+    if ( truePrologFlag(PLFLAG_BACKQUOTED_STRING) )
       options.flags |= PL_WRT_BACKQUOTED_STRING;
 
     PutOpenToken(EOF, s);		/* reset this */

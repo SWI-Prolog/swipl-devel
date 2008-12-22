@@ -1545,7 +1545,7 @@ trapUndefined_unlocked(LocalFrame *frp, Code PC, Definition def ARG_LD)
   DEBUG(5, Sdprintf("trapUndefined(%s)\n", predicateName(def)));
 
 					/* Trap via exception/3 */
-  if ( trueFeature(AUTOLOAD_FEATURE) && !GD->bootsession )
+  if ( truePrologFlag(PLFLAG_AUTOLOAD) && !GD->bootsession )
   { if ( LD->autoload_nesting > 100 )
     { LD->autoload_nesting = 1;
       sysError("trapUndefined(): undefined: %s", predicateName(def));
@@ -1827,7 +1827,7 @@ do_abolish(Module m, term_t atom, term_t arity)
   if ( !(proc = isCurrentProcedure(f, m)) )
     succeed;
 
-  if ( trueFeature(ISO_FEATURE) && false(proc->definition, DYNAMIC) )
+  if ( truePrologFlag(PLFLAG_ISO) && false(proc->definition, DYNAMIC) )
     return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
 
   return abolishProcedure(proc, m);
@@ -2164,7 +2164,7 @@ pl_set_predicate_attribute(term_t pred,
     if ( SYSTEM_MODE )
     { set(def, SYSTEM|HIDE_CHILDS);
     } else
-    { if ( trueFeature(DEBUGINFO_FEATURE) )
+    { if ( truePrologFlag(PLFLAG_DEBUGINFO) )
 	clear(def, HIDE_CHILDS);
       else
 	set(def, HIDE_CHILDS);

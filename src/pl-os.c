@@ -134,10 +134,10 @@ initOs(void)
   initEnviron();
 
 #ifdef __WINDOWS__
-  set(&features, FILE_CASE_PRESERVING_FEATURE);
+  setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
 #else
-  set(&features, FILE_CASE_FEATURE);
-  set(&features, FILE_CASE_PRESERVING_FEATURE);
+  setPrologFlagMask(PLFLAG_FILE_CASE);
+  setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
 #endif
 
 #ifdef HAVE_CLOCK
@@ -406,11 +406,11 @@ CpuCount()
 
 
 void
-setOSFeatures(void)
+setOSPrologFlags(void)
 { int cpu_count = CpuCount();
 
   if ( cpu_count > 0 )
-    defFeature("cpu_count", FT_INTEGER, cpu_count);
+    PL_set_prolog_flag("cpu_count", PL_INTEGER, cpu_count);
 }
 #endif
 
@@ -805,7 +805,7 @@ OsPath(const char *p, char *buf)
 #if O_XOS
 char *
 PrologPath(const char *p, char *buf, size_t len)
-{ int flags = (trueFeature(FILE_CASE_FEATURE) ? 0 : XOS_DOWNCASE);
+{ int flags = (truePrologFlag(PLFLAG_FILE_CASE) ? 0 : XOS_DOWNCASE);
 
   return _xos_canonical_filename(p, buf, len, flags);
 }
@@ -1023,7 +1023,7 @@ RenameFile(const char *old, const char *new)
 
 bool
 SameFile(const char *f1, const char *f2)
-{ if ( trueFeature(FILE_CASE_FEATURE) )
+{ if ( truePrologFlag(PLFLAG_FILE_CASE) )
   { if ( streq(f1, f2) )
       succeed;
   } else
@@ -1456,7 +1456,7 @@ utf8_strlwr(char *s)
 
 char *
 canonisePath(char *path)
-{ if ( !trueFeature(FILE_CASE_FEATURE) )
+{ if ( !truePrologFlag(PLFLAG_FILE_CASE) )
     utf8_strlwr(path);
 
   canoniseFileName(path);
@@ -1559,7 +1559,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
     }	  
 #else
     { if ( fileerrors )
-	PL_error(NULL, 0, NULL, ERR_NOT_IMPLEMENTED_FEATURE, "user_info");
+	PL_error(NULL, 0, NULL, ERR_NOT_IMPLEMENTED, "user_info");
 
       UNLOCK();
       fail;
@@ -1758,7 +1758,7 @@ AbsoluteFile(const char *spec, char *path)
   char buf[MAXPATHLEN];
   char *file = PrologPath(spec, buf, sizeof(buf));
   
-  if ( trueFeature(FILEVARS_FEATURE) )
+  if ( truePrologFlag(PLFLAG_FILEVARS) )
   { if ( !(file = ExpandOneFile(buf, tmp)) )
       return (char *) NULL;
   }
@@ -2124,7 +2124,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
     succeed;				/* not a terminal */
-  if ( !trueFeature(TTY_CONTROL_FEATURE) )
+  if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
 #ifdef HAVE_TCSETATTR 
@@ -2188,7 +2188,7 @@ PopTty(IOSTREAM *s, ttybuf *buf)
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
     succeed;				/* not a terminal */
-  if ( !trueFeature(TTY_CONTROL_FEATURE) )
+  if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
 #ifdef HAVE_TCSETATTR
@@ -2219,7 +2219,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
     succeed;				/* not a terminal */
-  if ( !trueFeature(TTY_CONTROL_FEATURE) )
+  if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
   if ( ioctl(fd, TIOCGETP, &buf->tab) )  /* save the old one */
@@ -2256,7 +2256,7 @@ PopTty(IOSTREAM *s, ttybuf *buf)
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
     succeed;				/* not a terminal */
-  if ( !trueFeature(TTY_CONTROL_FEATURE) )
+  if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
   ioctl(fd, TIOCSETP,  &buf->tab);

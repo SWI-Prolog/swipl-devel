@@ -239,7 +239,7 @@ CpuCount()
 
 void
 setOSFeatures()
-{ defFeature("cpu_count", FT_INTEGER, CpuCount());
+{ PL_set_prolog_flag("cpu_count", PL_INTEGER, CpuCount());
 }
 
 

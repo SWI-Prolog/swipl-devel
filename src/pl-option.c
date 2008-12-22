@@ -57,7 +57,7 @@ scan_options(term_t options, int flags, atom_t optype,
   term_t val  = PL_new_term_ref();
   int n;
 
-  if ( trueFeature(ISO_FEATURE) )
+  if ( truePrologFlag(PLFLAG_ISO) )
     flags |= OPT_ALL;
 
   va_start(args, specs);

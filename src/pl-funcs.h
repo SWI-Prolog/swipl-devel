@@ -296,8 +296,6 @@ COMMON(void)		discardOutputRedirect(redir_context *ctx);
 /* pl-flag.c */
 COMMON(void) 		initFlags(void);
 COMMON(word) 		pl_current_flag(term_t k, control_t h);
-COMMON(void) 		initFeatureTable(void);
-COMMON(void) 		initFeatures(void);
 
 /* pl-fli.c */
 COMMON(word) 		linkVal__LD(Word p ARG_LD);
@@ -451,7 +449,7 @@ COMMON(uint64_t)	_PL_Random(void);
 COMMON(char *) 		canonisePath(char *path);
 COMMON(char *) 		OsPath(const char *plpath, char *ospath);
 COMMON(char *) 		PrologPath(const char *ospath, char *plpath, size_t len);
-COMMON(void)		setOSFeatures(void);
+COMMON(void)		setOSPrologFlags(void);
 COMMON(intptr_t) 	LastModifiedFile(char *f);
 COMMON(bool) 		ExistsFile(const char *path);
 COMMON(bool) 		AccessFile(const char *path, int mode);
@@ -515,14 +513,16 @@ COMMON(int) 		pl_statistics_ld(term_t k, term_t value,
 COMMON(int) 		set_pl_option(const char *name, const char *value);
 COMMON(word) 		pl_novice(term_t old, term_t new);
 
-/* pl-feature.c */
-COMMON(void) 		defFeature(const char *name, int flags, ...);
-COMMON(word) 		pl_feature(term_t key, term_t value, control_t h);
-COMMON(word) 		pl_feature5(term_t key, term_t value,
-				    term_t local, term_t access, term_t type,
-				    control_t h);
-COMMON(word) 		pl_set_feature(term_t key, term_t value);
+/* pl-prologflag.c */
+COMMON(void) 		setPrologFlag(const char *name, int flags, ...);
+COMMON(word) 		pl_prolog_flag(term_t key, term_t value, control_t h);
+COMMON(word) 		pl_prolog_flag5(term_t key, term_t value,
+					term_t local, term_t access, term_t type,
+					control_t h);
+COMMON(word) 		pl_set_prolog_flag(term_t key, term_t value);
 COMMON(int) 		setDoubleQuotes(atom_t a, unsigned int *flagp);
+COMMON(void) 		initPrologFlagTable(void);
+COMMON(void) 		initPrologFlags(void);
 
 /* pl-pro.c */
 COMMON(word) 		pl_break(void);

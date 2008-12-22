@@ -556,7 +556,7 @@ install_t
 PL_install_readline()
 { 
 #ifndef __WINDOWS__
-  if ( !trueFeature(TTY_CONTROL_FEATURE) || !isatty(0) )
+  if ( !truePrologFlag(PLFLAG_TTY_CONTROL) || !isatty(0) )
     return;
 #endif
 

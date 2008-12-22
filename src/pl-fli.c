@@ -3572,7 +3572,7 @@ PL_ttymode(IOSTREAM *s)
 { GET_LD
 
   if ( s == Suser_input )
-  { if ( !trueFeature(TTY_CONTROL_FEATURE) ) /* -tty in effect */
+  { if ( !truePrologFlag(PLFLAG_TTY_CONTROL) ) /* -tty in effect */
       return PL_NOTTY;
     if ( ttymode == TTY_RAW )		/* get_single_char/1 and friends */
       return PL_RAWTTY;
@@ -3724,30 +3724,31 @@ PL_duplicate_record(record_t r)
 		 *******************************/
 
 int
-PL_set_feature(const char *name, int type, ...)
+PL_set_prolog_flag(const char *name, int type, ...)
 { va_list args;
   int rval = TRUE;
+  int flags = (type & FF_MASK);
 
-  initFeatureTable();
+  initPrologFlagTable();
 
   va_start(args, type);
-  switch(type)
+  switch(type & ~FF_MASK)
   { case PL_BOOL:
     { int val = va_arg(args, int);
       
-      defFeature(name, FT_BOOL, val, 0);
+      setPrologFlag(name, FT_BOOL|flags, val, 0);
       break;
     }
     case PL_ATOM:
     { const char *v = va_arg(args, const char *);
       if ( !GD->initialised )
 	initAtoms();
-      defFeature(name, FT_ATOM, v);
+      setPrologFlag(name, FT_ATOM|flags, v);
       break;
     }
     case PL_INTEGER:
     { intptr_t v = va_arg(args, intptr_t);
-      defFeature(name, FT_INTEGER, v);
+      setPrologFlag(name, FT_INTEGER|flags, v);
       break;
     }
     default:

@@ -275,8 +275,8 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
   _PL_rd->flags  = _PL_rd->module->flags; /* change for options! */
   _PL_rd->styleCheck = debugstatus.styleCheck;
   _PL_rd->on_error = ATOM_error;
-  _PL_rd->backquoted_string = trueFeature(BACKQUOTED_STRING_FEATURE);
-  if ( trueFeature(CHARCONVERSION_FEATURE) )
+  _PL_rd->backquoted_string = truePrologFlag(PLFLAG_BACKQUOTED_STRING);
+  if ( truePrologFlag(PLFLAG_CHARCONVERSION) )
     _PL_rd->char_conversion_table = char_conversion_table;
   else
     _PL_rd->char_conversion_table = NULL;
@@ -1835,7 +1835,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		{ rdhere = SkipIdCont(rdhere);
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "variable");
-		  if ( *rdhere == '(' && trueFeature(ALLOW_VARNAME_FUNCTOR) )
+		  if ( *rdhere == '(' && truePrologFlag(ALLOW_VARNAME_FUNCTOR) )
 		    goto functor;
 		  if ( start[0] == '_' &&
 		       rdhere == start + 1 &&

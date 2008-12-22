@@ -229,7 +229,7 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_TABLE"),
   COUNT_MUTEX_INITIALIZER("L_BREAK"),
   COUNT_MUTEX_INITIALIZER("L_FILE"),
-  COUNT_MUTEX_INITIALIZER("L_FEATURE"),
+  COUNT_MUTEX_INITIALIZER("PLFLAG_L"),
   COUNT_MUTEX_INITIALIZER("L_OP"),
   COUNT_MUTEX_INITIALIZER("L_INIT"),
   COUNT_MUTEX_INITIALIZER("L_TERM"),
@@ -505,8 +505,8 @@ free_prolog_thread(void *data)
     freeStacks(ld);			/* initialised */
   freeLocalData(ld);
 
-  if ( ld->feature.table )
-    destroyHTable(ld->feature.table);
+  if ( ld->prolog_flag.table )
+    destroyHTable(ld->prolog_flag.table);
   /*PL_unregister_atom(ld->prompt.current);*/
 
   freeThreadSignals(ld);
@@ -1101,11 +1101,11 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   ldnew->encoding		 = LD->encoding;
   ldnew->_debugstatus		 = LD->_debugstatus;
   ldnew->_debugstatus.retryFrame = NULL;
-  ldnew->feature.mask		 = LD->feature.mask;
-  if ( LD->feature.table )
-  { PL_LOCK(L_FEATURE);
-    ldnew->feature.table	 = copyHTable(LD->feature.table);
-    PL_UNLOCK(L_FEATURE);
+  ldnew->prolog_flag.mask	 = LD->prolog_flag.mask;
+  if ( LD->prolog_flag.table )
+  { PL_LOCK(PLFLAG_L);
+    ldnew->prolog_flag.table	 = copyHTable(LD->prolog_flag.table);
+    PL_UNLOCK(PLFLAG_L);
   }
   init_message_queue(&info->thread_data->thread.messages, -1);
   if ( at_exit )
@@ -3560,13 +3560,13 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   ldnew->encoding		 = ldmain->encoding;
   ldnew->_debugstatus		 = ldmain->_debugstatus;
   ldnew->_debugstatus.retryFrame = NULL;
-  ldnew->feature.mask		 = ldmain->feature.mask;
-  if ( ldmain->feature.table )
+  ldnew->prolog_flag.mask	 = ldmain->prolog_flag.mask;
+  if ( ldmain->prolog_flag.table )
   { TLD_set(PL_ldata, info->thread_data);
 
-    PL_LOCK(L_FEATURE);
-    ldnew->feature.table	 = copyHTable(ldmain->feature.table);
-    PL_UNLOCK(L_FEATURE);
+    PL_LOCK(PLFLAG_L);
+    ldnew->prolog_flag.table	 = copyHTable(ldmain->prolog_flag.table);
+    PL_UNLOCK(PLFLAG_L);
   }
 
   if ( !initialise_thread(info, FALSE) )

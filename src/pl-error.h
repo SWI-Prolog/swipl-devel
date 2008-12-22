@@ -35,7 +35,7 @@
 #define ERR_FAILED	       10	/* predicate_t proc */
 #define ERR_FILE_OPERATION     11	/* atom_t action, atom_t type, term_t */
 #define ERR_PERMISSION	       12	/* atom_t type, atom_t op, term_t obj*/
-#define ERR_NOT_IMPLEMENTED_FEATURE 13	/* const char *what */
+#define ERR_NOT_IMPLEMENTED 13	/* const char *what */
 #define ERR_EXISTENCE	       14	/* atom_t type, term_t obj */
 #define ERR_STREAM_OP	       15	/* atom_t action, term_t obj */
 #define ERR_RESOURCE	       16	/* atom_t resource */

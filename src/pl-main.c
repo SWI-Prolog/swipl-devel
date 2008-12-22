@@ -257,13 +257,13 @@ setupGNUEmacsInferiorMode()
 
   if ( ((s = Getenv("EMACS", envbuf, sizeof(envbuf))) && s[0]) ||
        ((s = Getenv("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
-  { clearFeatureMask(TTY_CONTROL_FEATURE);
+  { clearPrologFlagMask(PLFLAG_TTY_CONTROL);
     val = TRUE;
   } else
   { val = FALSE;
   } 
 
-  defFeature("emacs_inferior_process", FT_BOOL|FF_READONLY, val, 0);
+  PL_set_prolog_flag("emacs_inferior_process", PL_BOOL|FF_READONLY, val);
 }
 
 
@@ -331,11 +331,11 @@ initDefaults()
   GD->bootsession	     = FALSE;
 
   if ( systemDefaults.notty )
-    clearFeatureMask(TTY_CONTROL_FEATURE);
+    clearPrologFlagMask(PLFLAG_TTY_CONTROL);
   else
-    setFeatureMask(TTY_CONTROL_FEATURE);
+    setPrologFlagMask(PLFLAG_TTY_CONTROL);
 
-  setFeatureMask(DEBUGINFO_FEATURE);
+  setPrologFlagMask(PLFLAG_DEBUGINFO);
 }
 
 
@@ -448,16 +448,16 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 
     if ( streq(s, "tty") )	/* +/-tty */
     { if ( s[-1] == '+' )
-	setFeatureMask(TTY_CONTROL_FEATURE);
+	setPrologFlagMask(PLFLAG_TTY_CONTROL);
       else
-	clearFeatureMask(TTY_CONTROL_FEATURE);
+	clearPrologFlagMask(PLFLAG_TTY_CONTROL);
 
       continue;
     } else if ( isoption(s, "nosignals") )
-    { clearFeatureMask(SIGNALS_FEATURE);
+    { clearPrologFlagMask(PLFLAG_SIGNALS);
       continue;
     } else if ( isoption(s, "nodebug") )
-    { clearFeatureMask(DEBUGINFO_FEATURE);
+    { clearPrologFlagMask(PLFLAG_DEBUGINFO);
       continue;
     } else if ( streq(s, "-quiet") )
     { GD->options.silent = TRUE;
@@ -867,7 +867,7 @@ properly on Linux. Don't bother with it.
 
   setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 #ifdef HAVE_SIGNAL
-  setFeatureMask(SIGNALS_FEATURE);	/* default: handle signals */
+  setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
 
   if ( (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY)) )
@@ -917,7 +917,7 @@ properly on Linux. Don't bother with it.
   aliasThread(PL_thread_self(), ATOM_main);
   enableThreads(TRUE);
 #endif
-  defFeature("resource_database", FT_ATOM|FF_READONLY, rcpath);
+  PL_set_prolog_flag("resource_database", PL_ATOM|FF_READONLY, rcpath);
   initialiseForeign(GD->cmdline.argc, /* PL_initialise_hook() functions */
 		    GD->cmdline.argv);
   systemMode(TRUE);
@@ -1409,7 +1409,7 @@ bool
 vwarning(const char *fm, va_list args)
 { toldString();				/* play safe */
 
-  if ( trueFeature(REPORT_ERROR_FEATURE) )
+  if ( truePrologFlag(PLFLAG_REPORT_ERROR) )
   { if ( !GD->bootsession && GD->initialised &&
 	 !LD->outofstack && 		/* cannot call Prolog */
 	 !fm[0] == '$')			/* explicit: don't call Prolog */
@@ -1451,7 +1451,7 @@ vwarning(const char *fm, va_list args)
     }
   }
 
-  if ( !ReadingSource && trueFeature(DEBUG_ON_ERROR_FEATURE) )
+  if ( !ReadingSource && truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
     pl_trace();
 
   PL_fail;
