@@ -415,6 +415,13 @@ public:
   PlRegister(const char *module, const char *name, foreign_t (*f)(PlTerm a0, PlTerm a1, PlTerm a2))
   { PL_register_foreign_in_module(module, name, 3, (void *)f, 0);
   }
+
+  // for non-deterministic calls
+  PlRegister(const char *module, const char *name, int arity,
+             foreign_t (f)(term_t t0, int a, control_t ctx), short flags)
+  { PL_register_foreign_in_module(module, name, arity, (void *)f, flags);
+  }
+
 };
 
 
@@ -912,6 +919,25 @@ public:
 	static PlRegister _x ## name ## __ ## arity(PROLOG_MODULE, #name, arity, \
 					    _pl_ ## name ## __ ## arity); \
 	static foreign_t pl_ ## name ## __ ## arity(PlTermv _av)
+
+
+#define PREDICATE_NONDET(name, arity)          \
+	static foreign_t \
+	pl_ ## name ## __ ## arity(PlTermv _av, foreign_t handle);       \
+	static foreign_t \
+	_pl_ ## name ## __ ## arity(term_t t0, int a, control_t c) \
+	{ try \
+	  { \
+	    return pl_ ## name ## __ ## arity(PlTermv(arity, t0), (foreign_t)c); \
+	  } catch ( PlException &ex ) \
+	  { return ex.plThrow(); \
+	  } \
+	} \
+        static PlRegister _x ## name ## __ ## arity(PROLOG_MODULE, #name, arity, \
+                                                    _pl_ ## name ## __ ## arity, \
+                                                    PL_FA_NONDETERMINISTIC | PL_FA_VARARGS); \
+	static foreign_t pl_ ## name ## __ ## arity(PlTermv _av, foreign_t handle)
+
 #define A1  _av[0]        
 #define A2  _av[1]        
 #define A3  _av[2]        
