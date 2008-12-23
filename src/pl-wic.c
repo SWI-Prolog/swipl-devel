@@ -341,7 +341,7 @@ getString(IOSTREAM *fd, unsigned *length)
   }
 
   for( i=0, s = getstr_buffer; i<len; i++ )
-  { int c = Getc(fd);
+  { int c = Sgetc(fd);
 
     if ( c == EOF )
       fatalError("Unexpected EOF on intermediate code file at offset %d",
@@ -402,7 +402,7 @@ getAtom(IOSTREAM *fd, PL_blob_t *type ARG_LD)
     tmp = allocHeap(len);
   
   for(s=tmp, i=0; i<len; i++)
-  { int c = Getc(fd);
+  { int c = Sgetc(fd);
 
     if ( c == EOF )
       fatalError("Unexpected EOF on intermediate code file at offset %d",
@@ -437,7 +437,7 @@ getMagicString(IOSTREAM *fd, char *buf, int maxlen)
 { char *s;
   int c;
 
-  for( s = buf; --maxlen >= 0 && (*s = (c = Getc(fd))); s++ )
+  for( s = buf; --maxlen >= 0 && (*s = (c = Sgetc(fd))); s++ )
     if ( c == EOF )
       return NULL;
 
@@ -455,7 +455,7 @@ getInt64(IOSTREAM *fd)
 
   DEBUG(4, Sdprintf("getInt64() from %ld --> \n", Stell(fd)));
 
-  first = Getc(fd);
+  first = Sgetc(fd);
   if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */    
   { first <<= (INT64BITSIZE-6);
     first >>= (INT64BITSIZE-6);
@@ -470,7 +470,7 @@ getInt64(IOSTREAM *fd)
   if ( bytes <= 2 )
   { for( b = 0; b < bytes; b++ )
     { first <<= 8;
-      first |= Getc(fd) & 0xff;
+      first |= Sgetc(fd) & 0xff;
     }
 
     shift = (sizeof(first)-1-bytes)*8 + 2;
@@ -482,7 +482,7 @@ getInt64(IOSTREAM *fd)
 
     for(m=0; m<bytes; m++)
     { first <<= 8;
-      first |= Getc(fd) & 0xff;
+      first |= Sgetc(fd) & 0xff;
     }
     shift = (sizeof(first)-bytes)*8;
   }
@@ -830,7 +830,7 @@ loadWicFd(IOSTREAM *fd)
   load_state->saved_version = saved_version;
 
   for(;;)
-  { c = Getc(fd);
+  { c = Sgetc(fd);
 
     switch( c )
     { case EOF:
@@ -970,7 +970,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
   loadPredicateFlags(def, fd, skip PASS_LD);
 
   for(;;)
-  { switch(Getc(fd) )
+  { switch(Sgetc(fd) )
     { case 'X':
       { unsigned long pattern = getLong(fd);
 
@@ -1083,7 +1083,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 		bp += lw;
 		*bp++ = 0L;
 		while(--l >= 0)
-		  *s++ = Getc(fd);
+		  *s++ = Sgetc(fd);
 		break;
 	      }
 	      case CA1_MPZ:
@@ -1102,7 +1102,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 		bp       += wsz;
   
 		while(--l >= 0)
-		  *s++ = Getc(fd);
+		  *s++ = Sgetc(fd);
 		DEBUG(3, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
 		break;
 	      }
@@ -2070,7 +2070,7 @@ qlfSourceInfo(IOSTREAM *s, long offset, term_t list ARG_LD)
 
   if ( Sseek(s, offset, SIO_SEEK_SET) != 0 )
     return warning("%s: seek failed: %s", wicFile, OsError());
-  if ( Getc(s) != 'F' || !(str=getString(s, NULL)) )
+  if ( Sgetc(s) != 'F' || !(str=getString(s, NULL)) )
     return warning("QLF format error");
   
   return PL_unify_list(list, head, list) &&
