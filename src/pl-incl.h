@@ -1395,7 +1395,7 @@ struct recordRef
 struct sourceFile
 { atom_t	name;		/* name of source file */
   int		count;		/* number of times loaded */
-  intptr_t		time;		/* load time of file */
+  time_t	time;		/* load time of file */
   ListCell	procedures;	/* List of associated procedures */
   Procedure	current_procedure;	/* currently loading one */
   int		index;		/* index number (1,2,...) */

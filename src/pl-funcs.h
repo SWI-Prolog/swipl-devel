@@ -448,7 +448,7 @@ COMMON(char *) 		canonisePath(char *path);
 COMMON(char *) 		OsPath(const char *plpath, char *ospath);
 COMMON(char *) 		PrologPath(const char *ospath, char *plpath, size_t len);
 COMMON(void)		setOSPrologFlags(void);
-COMMON(intptr_t) 	LastModifiedFile(char *f);
+COMMON(time_t)	 	LastModifiedFile(char *f);
 COMMON(bool) 		ExistsFile(const char *path);
 COMMON(bool) 		AccessFile(const char *path, int mode);
 COMMON(bool) 		ExistsDirectory(const char *path);

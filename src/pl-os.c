@@ -98,7 +98,7 @@ static char *	Which(const char *program, char *fullname);
 		 *	       GLOBALS		*
 		 *******************************/
 #ifdef HAVE_CLOCK
-intptr_t clock_wait_ticks;
+long clock_wait_ticks;
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -286,7 +286,7 @@ CpuTime(cputime_kind which)
 #endif /*__WINDOWS__*/
 
 void
-PL_clock_wait_ticks(intptr_t waited)
+PL_clock_wait_ticks(long waited)
 {
 #ifdef HAVE_CLOCK
   clock_wait_ticks += waited;
@@ -652,7 +652,7 @@ macros to deal with 16-bit machines, but are not  defined  as  functions
 here.   Some  more  specific things SWI-Prolog wants to know about files
 are defined here:
 
-    intptr_t LastModifiedFile(path)
+    time_t LastModifiedFile(path)
 	 char *path;
 
     Returns the last time `path' has been modified.  Used by the  source
@@ -811,7 +811,7 @@ OsPath(const char *p, char *buf)
 }
 #endif /* O_XOS */
 
-intptr_t
+time_t
 LastModifiedFile(char *f)
 { char tmp[MAXPATHLEN];
 
@@ -819,9 +819,9 @@ LastModifiedFile(char *f)
   STAT_TYPE buf;
 
   if ( statfunc(OsPath(f, tmp), &buf) < 0 )
-    return -1;
+    return (time_t)-1;
 
-  return (intptr_t)buf.st_mtime;
+  return buf.st_mtime;
 #endif
 }  
 
@@ -1923,8 +1923,7 @@ ChDir(const char *path)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    struct tm *LocalTime(time, struct tm *r)
-	      intptr_t *time;
+    struct tm *LocalTime(time_t time, struct tm *r)
 
     Convert time in Unix internal form (seconds since Jan 1 1970) into a
     structure providing easier access to the time.
@@ -1945,7 +1944,7 @@ ChDir(const char *path)
 	int	tm_isdst;	/ * daylight saving time info * /
     };
 
-    intptr_t Time()
+    time_t Time()
 
     Return time in seconds after Jan 1 1970 (Unix' time notion).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -2814,12 +2813,16 @@ Which(const char *program, char *fullname)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    int Pause(double time)
+/** int Pause(double time)
 
-    Suspend execution `time' seconds.   Time  is  given  as  a  floating
-    point number,  expressing  the  time  to sleep in seconds.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+Suspend execution `time' seconds. Time  is   given  as  a floating point
+number, expressing the time  to  sleep   in  seconds.  Just  about every
+platform requires it own implementation. We provide them in the order of
+preference. The implementations differ on  their granularity and whether
+or not they can  be  interrupted   savely  restarted.  The  recent POSIX
+nanosleep() is just about the  only   function  that  really works well:
+accurate, interruptable and restartable.
+*/
 
 #ifdef __WINDOWS__
 #define PAUSE_DONE 1			/* see pl-nt.c */
@@ -2837,7 +2840,7 @@ Pause(double t)
     succeed;
 
   req.tv_sec = (time_t) t;
-  req.tv_nsec = (intptr_t)((t - floor(t)) * 1000000000);
+  req.tv_nsec = (long)((t - floor(t)) * 1000000000);
 
   for(;;)
   { rc = nanosleep(&req, &req);
@@ -2860,7 +2863,7 @@ Pause(double t)
 { if ( t <= 0.0 )
     return TRUE;
 
-  usleep((uintptr_t)(t * 1000000.0));
+  usleep((unsigned long)(t * 1000000.0));
 
   return TRUE;
 }
@@ -2879,8 +2882,8 @@ Pause(double time)
     return;
 
   if ( time < 60.0 )		/* select() is expensive. Does it make sense */
-  { timeout.tv_sec = (intptr_t) time;
-    timeout.tv_usec = (intptr_t)(time * 1000000) % 1000000;
+  { timeout.tv_sec = (long)time;
+    timeout.tv_usec = (long)(time * 1000000) % 1000000;
     select(32, NULL, NULL, NULL, &timeout);
     
     return TRUE;
@@ -2907,11 +2910,9 @@ Pause(double time)
 #define PAUSE_DONE 1
 
 int					/* a millisecond granualrity. */
-Pause(time)				/* the EMX function sleep uses a seconds */
-double time;				/* granularity only. */
-{					/* the select() trick does not work at all. */
-  if ( time <= 0.0 )
-    return;
+Pause(double time)			/* the EMX function sleep uses seconds */
+{ if ( time <= 0.0 )			/* the select() trick does not work at all. */
+    return TRUE;
 
   DosSleep((ULONG)(time * 1000));
 

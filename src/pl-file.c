@@ -4015,7 +4015,7 @@ out:
 		*********************************/
 
 int
-unifyTime(term_t t, intptr_t time)
+unifyTime(term_t t, time_t time)
 { return PL_unify_float(t, (double)time);
 }
 
@@ -4116,9 +4116,9 @@ PRED_IMPL("time_file", 2, time_file, 0)
 { char *fn;
 
   if ( PL_get_file_name(A1, &fn, 0) )
-  { intptr_t time;
+  { time_t time;
 
-    if ( (time = LastModifiedFile(fn)) == -1 )
+    if ( (time = LastModifiedFile(fn)) == (time_t)-1 )
       return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
 		      ATOM_time, ATOM_file, A1);
 
