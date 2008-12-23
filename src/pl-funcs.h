@@ -462,8 +462,6 @@ COMMON(char *) 		AbsoluteFile(const char *spec, char *path);
 COMMON(int) 		IsAbsolutePath(const char *spec);
 COMMON(char *) 		BaseName(const char *f);
 COMMON(char *) 		DirName(const char *f, char *buf);
-COMMON(char *) 		ReadLink(const char *f, char *buf);
-COMMON(char *) 		DeRefLink(const char *link, char *buf);
 COMMON(bool) 		ChDir(const char *path);
 COMMON(atom_t) 		TemporaryFile(const char *id);
 COMMON(int) 		hasConsole(void);

@@ -80,6 +80,7 @@ extern bool initOs(void);
 #endif
 #endif
 
+COMMON(char*)	canoniseFileName(char *path);
 
 #define Fflush(fd)		Sflush(fd)
 #define Fclose(fd)		Sclose(fd)

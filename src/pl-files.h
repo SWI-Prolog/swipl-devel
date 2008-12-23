@@ -34,5 +34,6 @@ COMMON(void)		initFiles(void);
 COMMON(time_t)	 	LastModifiedFile(const char *f);
 COMMON(int) 		RemoveFile(const char *path);
 COMMON(int)		AccessFile(const char *path, int mode);
+COMMON(char *) 		DeRefLink(const char *link, char *buf);
 
 #endif /*PL_FILES_H_INCLUDED*/

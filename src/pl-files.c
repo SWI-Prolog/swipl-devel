@@ -87,6 +87,67 @@ AccessFile(const char *path, int mode)
 }
 
 
+static char *
+ReadLink(const char *f, char *buf)
+{
+#ifdef HAVE_READLINK
+  int n;
+
+  if ( (n=readlink(f, buf, MAXPATHLEN-1)) > 0 )
+  { buf[n] = EOS;
+    return buf;
+  }
+#endif
+
+  return NULL;
+}
+
+
+static char *
+DeRefLink1(const char *f, char *lbuf)
+{ char buf[MAXPATHLEN];
+  char *l;
+
+  if ( (l=ReadLink(f, buf)) )
+  { if ( l[0] == '/' )			/* absolute path */
+    { strcpy(lbuf, buf);
+      return lbuf;
+    } else
+    { char *q;
+
+      strcpy(lbuf, f);
+      q = &lbuf[strlen(lbuf)];
+      while(q>lbuf && q[-1] != '/')
+	q--;
+      strcpy(q, l);
+
+      canoniseFileName(lbuf);
+
+      return lbuf;
+    }
+  }
+
+  return NULL;
+}
+
+
+char *
+DeRefLink(const	char *link, char *buf)
+{ char tmp[MAXPATHLEN];
+  char *f;
+  int n = 20;				/* avoid loop! */
+
+  while((f=DeRefLink1(link, tmp)) && n-- > 0)
+    link = f;
+
+  if ( n > 0 )
+  { strcpy(buf, link);
+    return buf;
+  } else
+    return NULL;
+}
+
+
 int
 RemoveFile(const char *path)
 { char tmp[MAXPATHLEN];
