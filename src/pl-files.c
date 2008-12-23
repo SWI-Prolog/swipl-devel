@@ -84,6 +84,10 @@ or created from one or more  of the constants ACCESS_EXIST, ACCESS_READ,
 ACCESS_WRITE and ACCESS_EXECUTE.
 */
 
+#ifndef F_OK
+#define F_OK 0
+#endif
+
 int
 AccessFile(const char *path, int mode)
 { char tmp[MAXPATHLEN];
@@ -104,6 +108,45 @@ AccessFile(const char *path, int mode)
 #else
 #error "No implementation for AccessFile()"
 #endif
+}
+
+
+int
+ExistsFile(const char *path)
+{ 
+#ifdef O_XOS
+  return _xos_exists(path, _XOS_FILE);
+#else
+  char tmp[MAXPATHLEN];
+  struct stat buf;
+
+  if ( stat(OsPath(path, tmp), &buf) == -1 || !S_ISREG(buf.st_mode) )
+  { DEBUG(2, perror(tmp));
+    return FALSE;
+  }
+  return TRUE;
+#endif
+}
+
+
+int
+ExistsDirectory(const char *path)
+{
+#ifdef O_XOS
+  return _xos_exists(path, _XOS_DIR);
+#else
+  char tmp[MAXPATHLEN];
+  char *ospath = OsPath(path, tmp);
+  struct stat buf;
+
+  if ( stat(ospath, &buf) < 0 )
+    return FALSE;
+
+  if ( S_ISDIR(buf.st_mode) )
+    return TRUE;
+
+  return FALSE;
+#endif /*O_XOS*/
 }
 
 
@@ -175,6 +218,41 @@ DeRefLink(const	char *link, char *buf)
 }
 
 
+static int
+SameFile(const char *f1, const char *f2)
+{ GET_LD
+
+  if ( truePrologFlag(PLFLAG_FILE_CASE) )
+  { if ( streq(f1, f2) )
+      return TRUE;
+  } else
+  { if ( strcasecmp(f1, f2) == 0 )
+      return TRUE;
+  }
+
+#ifdef __unix__				/* doesn't work on most not Unix's */
+  { struct stat buf1;
+    struct stat buf2;
+    char tmp[MAXPATHLEN];
+
+    if ( stat(OsPath(f1, tmp), &buf1) != 0 ||
+	 stat(OsPath(f2, tmp), &buf2) != 0 )
+      return FALSE;
+    if ( buf1.st_ino == buf2.st_ino && buf1.st_dev == buf2.st_dev )
+      return TRUE;
+  }
+#endif
+#ifdef O_XOS
+  return _xos_same_file(f1, f2);
+#endif /*O_XOS*/
+    /* Amazing! There is no simple way to check two files for identity. */
+    /* stat() and fstat() both return dummy values for inode and device. */
+    /* this is fine as OS'es not supporting symbolic links don't need this */
+
+  return FALSE;
+}
+
+
 /** int RemoveFile(const char *path)
 
 Remove a file from the filesystem.  Returns   TRUE  on success and FALSE
@@ -190,6 +268,71 @@ RemoveFile(const char *path)
 #else
   return unlink(OsPath(path, tmp)) == 0 ? TRUE : FALSE;
 #endif
+}
+
+
+static int
+RenameFile(const char *old, const char *new)
+{ char oldbuf[MAXPATHLEN];
+  char newbuf[MAXPATHLEN];
+  char *osold, *osnew;
+
+  osold = OsPath(old, oldbuf);
+  osnew = OsPath(new, newbuf);
+
+#ifdef HAVE_RENAME
+  remove(osnew);			/* assume we have this too */
+  return rename(osold, osnew) == 0 ? TRUE : FALSE;
+#else
+{ int rval;
+
+  unlink(osnew);
+  if ( (rval = link(osold, osnew)) == 0 
+       && (rval = unlink(osold)) != 0)
+    unlink(osnew);
+
+  if ( rval == 0 )
+    return TRUE;
+
+  return FALSE;
+}
+#endif /*HAVE_RENAME*/
+}
+
+
+static int
+MarkExecutable(const char *name)
+{
+#if (defined(HAVE_STAT) && defined(HAVE_CHMOD)) || defined(__unix__)
+  struct stat buf;
+  mode_t um;
+
+  um = umask(0777);
+  umask(um);
+  if ( stat(name, &buf) == -1 )
+  { GET_LD
+    term_t file = PL_new_term_ref();
+
+    PL_put_atom_chars(file, name);
+    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+		    ATOM_stat, ATOM_file, file);
+  }
+
+  if ( (buf.st_mode & 0111) == (~um & 0111) )
+    return TRUE;
+
+  buf.st_mode |= 0111 & ~um;
+  if ( chmod(name, buf.st_mode) == -1 )
+  { GET_LD
+    term_t file = PL_new_term_ref();
+
+    PL_put_atom_chars(file, name);
+    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+		    ATOM_chmod, ATOM_file, file);
+  }
+#endif /* defined(HAVE_STAT) && defined(HAVE_CHMOD) */
+
+  return TRUE;
 }
 
 

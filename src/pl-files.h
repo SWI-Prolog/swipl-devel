@@ -35,5 +35,7 @@ COMMON(time_t)	 	LastModifiedFile(const char *f);
 COMMON(int) 		RemoveFile(const char *path);
 COMMON(int)		AccessFile(const char *path, int mode);
 COMMON(char *) 		DeRefLink(const char *link, char *buf);
+COMMON(int) 		ExistsFile(const char *path);
+COMMON(int) 		ExistsDirectory(const char *path);
 
 #endif /*PL_FILES_H_INCLUDED*/
