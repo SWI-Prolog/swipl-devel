@@ -33,7 +33,7 @@ General file operations and binding to Prolog
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 		/********************************
-		*             FILES             *
+		*	FIND FILES FROM C       *
 		*********************************/
 
 int
@@ -132,6 +132,10 @@ PL_get_file_name(term_t n, char **namep, int flags)
   return TRUE;
 }
 
+
+		 /*******************************
+		 *	   QUERY FILES		*
+		 *******************************/
 
 static
 PRED_IMPL("time_file", 2, time_file, 0)
@@ -262,6 +266,57 @@ PRED_IMPL("exists_directory", 1, exists_directory, 0)
 
 
 static
+PRED_IMPL("is_absolute_file_name", 1, is_absolute_file_name, 0)
+{ char *n;
+
+  if ( PL_get_file_name(A1, &n, 0) &&
+       IsAbsolutePath(n) )
+    return TRUE;
+
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("same_file", 2, same_file, 0)
+{ char *n1, *n2;
+
+  if ( PL_get_file_name(A1, &n1, 0) &&
+       PL_get_file_name(A2, &n2, 0) )
+    return SameFile(n1, n2);
+
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("file_base_name", 2, file_base_name, 0)
+{ char *n;
+
+  if ( !PL_get_chars_ex(A1, &n, CVT_ALL|REP_FN) )
+    return FALSE;
+
+  return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, BaseName(n));
+}
+
+
+static
+PRED_IMPL("file_directory_name", 2, file_directory_name, 0)
+{ char *n;
+  char tmp[MAXPATHLEN];
+
+  if ( !PL_get_chars_ex(A1, &n, CVT_ALL|REP_FN) )
+    return FALSE;
+
+  return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, DirName(n, tmp));
+}
+
+
+		 /*******************************
+		 *	  TEMPORARY FILES	*
+		 *******************************/
+
+static
 PRED_IMPL("tmp_file", 2, tmp_file, 0)
 { PRED_LD
   char *n;
@@ -274,6 +329,11 @@ PRED_IMPL("tmp_file", 2, tmp_file, 0)
 
   return PL_unify_atom(name, TemporaryFile(n));
 }
+
+
+		 /*******************************
+		 *	CHANGE FILESYSTEM	*
+		 *******************************/
 
 
 static
@@ -322,18 +382,6 @@ PRED_IMPL("make_directory", 1, make_directory, 0)
 
 
 static
-PRED_IMPL("same_file", 2, same_file, 0)
-{ char *n1, *n2;
-
-  if ( PL_get_file_name(A1, &n1, 0) &&
-       PL_get_file_name(A2, &n2, 0) )
-    return SameFile(n1, n2);
-
-  return FALSE;
-}
-
-
-static
 PRED_IMPL("rename_file", 2, rename_file, 0)
 { PRED_LD
   char *o, *n;
@@ -364,13 +412,6 @@ PRED_IMPL("rename_file", 2, rename_file, 0)
 
 
 static
-PRED_IMPL("fileerrors", 2, fileerrors, 0)
-{ PRED_LD
-  return setBoolean(&LD->fileerrors, A1, A2);
-}
-
-
-static
 PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
 { char *n;
   char tmp[MAXPATHLEN];
@@ -381,18 +422,6 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
   if ( PL_get_file_name(name, &n, 0) &&
        (n = AbsoluteFile(n, tmp)) )
     return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
-
-  return FALSE;
-}
-
-
-static
-PRED_IMPL("is_absolute_file_name", 1, is_absolute_file_name, 0)
-{ char *n;
-
-  if ( PL_get_file_name(A1, &n, 0) &&
-       IsAbsolutePath(n) )
-    return TRUE;
 
   return FALSE;
 }
@@ -428,29 +457,6 @@ PRED_IMPL("working_directory", 2, working_directory, 0)
   }
 
   return FALSE;
-}
-
-
-static
-PRED_IMPL("file_base_name", 2, file_base_name, 0)
-{ char *n;
-
-  if ( !PL_get_chars_ex(A1, &n, CVT_ALL|REP_FN) )
-    return FALSE;
-
-  return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, BaseName(n));
-}
-
-
-static
-PRED_IMPL("file_directory_name", 2, file_directory_name, 0)
-{ char *n;
-  char tmp[MAXPATHLEN];
-
-  if ( !PL_get_chars_ex(A1, &n, CVT_ALL|REP_FN) )
-    return FALSE;
-
-  return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, DirName(n, tmp));
 }
 
 
@@ -594,6 +600,19 @@ PRED_IMPL("mark_executable", 1, mark_executable, 0)
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, A1);
 
   return MarkExecutable(name);
+}
+
+
+		 /*******************************
+		 *	       FLAGS		*
+		 *******************************/
+
+/* TBD: change to a Prolog flag */
+
+static
+PRED_IMPL("fileerrors", 2, fileerrors, 0)
+{ PRED_LD
+  return setBoolean(&LD->fileerrors, A1, A2);
 }
 
 
