@@ -26,9 +26,6 @@
 
 /*#define O_DEBUG 1*/
 
-#if __TOS__
-#include <tos.h>		/* before pl-os.h due to Fopen, ... */
-#endif
 #if OS2 && EMX
 #include <os2.h>                /* this has to appear before pl-incl.h */
 #endif
@@ -618,10 +615,6 @@ TemporaryFile(const char *id)
     Ssprintf(temp, "pl_%s_%d_%d", id, getpid(), temp_counter++);
 #endif
 
-#if tos
-  tmpnam(temp);
-#endif
-
   tf->name = PL_new_atom(temp);		/* locked: ok! */
   tf->next = NULL;
   
@@ -830,37 +823,6 @@ LastModifiedFile(char *f)
 
   return (intptr_t)buf.st_mtime;
 #endif
-
-#if tos
-#define DAY	(24*60*60L)
-  static int msize[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-  intptr_t t;
-  int n;
-  struct ffblk buf;
-  struct dz
-  { unsigned int hour : 5;	/* hour (0-23) */
-    unsigned int min  : 6;	/* minute (0-59) */
-    unsigned int sec  : 5;	/* seconds in steps of 2 */
-    unsigned int year : 7;	/* year (0=1980) */
-    unsigned int mon  : 4;	/* month (1-12) */
-    unsigned int day  : 5;	/* day (1-31) */
-  } *dz;
-
-  if ( findfirst(OsPath(f, tmp), &buf, FA_HIDDEN) != 0 )
-    return -1;
-  dz = (struct dz *) &buf.ff_ftime;
-  DEBUG(2, Sdprintf("%d/%d/%d %d:%d:%d\n",
-	   dz->day, dz->mon, dz->year+1980, dz->hour, dz->min, dz->sec));
-
-  t = (10*365+2) * DAY;		/* Start of 1980 */
-  for(n=0; n < dz->year; n++)
-    t += ((n % 4) == 0 ? 366 : 365) * DAY;
-  for(n=1; n < dz->mon; n++)
-    t += msize[n+1] * DAY;
-  t += (dz->sec * 2) + (dz->min * 60) + (dz->hour *60*60L);
-
-  return t;
-#endif
 }  
 
 
@@ -875,8 +837,6 @@ ExistsFile(const char *path)
   return _xos_exists(path, _XOS_FILE);
 #else
   char tmp[MAXPATHLEN];
-
-#if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
   if ( statfunc(OsPath(path, tmp), &buf) == -1 || !S_ISREG(buf.st_mode) )
@@ -884,18 +844,6 @@ ExistsFile(const char *path)
     fail;
   }
   succeed;
-#endif
-
-#if tos
-  struct ffblk buf;
-
-  if ( findfirst(OsPath(path, tmp), &buf, FA_HIDDEN) == 0 )
-  { DEBUG(2, Sdprintf("%s (%s) exists\n", path, OsPath(path)));
-    succeed;
-  }
-  DEBUG(2, Sdprintf("%s (%s) does not exist\n", path, OsPath(path)));
-  fail;
-#endif
 #endif
 }
 
@@ -917,17 +865,8 @@ AccessFile(const char *path, int mode)
   }
 
   return access(OsPath(path, tmp), m) == 0 ? TRUE : FALSE;
-#endif
-
-#ifdef tos
-  struct ffblk buf;
-
-  if ( findfirst(OsPath(path, tmp), &buf, FA_DIREC|FA_HIDDEN) != 0 )
-    fail;			/* does not exists */
-  if ( (mode & ACCESS_WRITE) && (buf.ff_attrib & FA_RDONLY) )
-    fail;			/* readonly file */
-
-  succeed;
+#else
+#error "No implementation for AccessFile()"
 #endif
 }
 
@@ -940,8 +879,6 @@ ExistsDirectory(const char *path)
 #else
   char tmp[MAXPATHLEN];
   char *ospath = OsPath(path, tmp);
-
-#if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
   if ( statfunc(ospath, &buf) < 0 )
@@ -951,18 +888,6 @@ ExistsDirectory(const char *path)
     succeed;
 
   fail;
-#endif
-
-#ifdef tos
-  struct ffblk buf;
-
-  if ( findfirst(ospath, &buf, FA_DIREC|FA_HIDDEN) == 0 &&
-       buf.ff_attrib & FA_DIREC )
-    succeed;
-  if ( streq(ospath, ".") || streq(ospath, "..") )	/* hack */
-    succeed;
-  fail;
-#endif
 #endif /*O_XOS*/
 }
 
@@ -2403,11 +2328,7 @@ initEnviron()
 
 #else /*HAVE_PUTENV*/
 
-#ifdef tos
-char **environ;
-#else
 extern char **environ;		/* Unix predefined environment */
-#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Grow the environment array by one and return the (possibly  moved)  base
@@ -2660,90 +2581,6 @@ System(char *cmd)
 }
 #endif /* __unix__ */
 
-#ifdef tos
-#define SPECIFIC_SYSTEM 1
-#include <aes.h>
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The routine system_via_shell() has been written by Tom Demeijer.  Thanks!
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define _SHELL_P ((intptr_t *)0x4f6L)
-#define SHELL_OK (do_sys != 0)
-
-int cdecl (*do_sys)(const char *cmd); /* Parameter on stack ! */
-
-static int
-system_via_shell(const char *cmd)
-{ intptr_t oldssp;
-
-  oldssp = Super((void *)0L);
-  do_sys = (void (*))*_SHELL_P;
-  Super((void *)oldssp);
-
-  if(cmd==NULL && SHELL_OK)
-    return 0;
-
-  if (SHELL_OK)
-    return do_sys(cmd);
-
-  return -1;
-}
-
-int
-System(command)
-char *command;
-{ char     tmp[MANIPULATION];
-  char	   path[MAXPATHLEN];
-  char	   *cmd_path;
-  COMMAND  commandline;
-  char	   *s, *q;
-  int	   status, l;
-  char	   *cmd = command;
-
-  if ( (status = system_via_shell(command)) != -1 )
-  { Sprintf("\033e");		/* get cursor back */
-
-    return status;
-  }
-
-	/* get the name of the executable and store in path */
-  for(s=path; *cmd != EOS && !isBlank(*cmd); *s++ = *cmd++)
-    ;
-  *s = EOS;
-  if ( !(cmd_path = Which(path, tmp)) )
-  { warning("%s: command not found", path);
-    return 1;
-  }
-
-	/* copy the command in commandline */
-  while( isBlank(*cmd) )
-    cmd++;
-
-  for(l = 0, s = cmd, q = commandline.command_tail; *s && l <= 126; s++ )
-  { if ( *s != '\'' )
-    { *q++ = (*s == '/' ? '\\' : *s);
-      l++;
-    }
-  }
-  commandline.length = l;
-  *q = EOS;
-  
-	/* execute the command */
-  if ( (status = (int) Pexec(0, OsPath(cmd_path), &commandline, NULL)) < 0 )
-  { warning("Failed to execute %s: %s", command, OsError());
-    return 1;
-  }
-
-	/* clean up after a graphics application */
-  if ( strpostfix(cmd_path, ".prg") || strpostfix(cmd_path, ".tos") )
-  { graf_mouse(M_OFF, NULL);		/* get rid of the mouse */
-    Sprintf("\033e\033E");		/* clear screen and get cursor */
-  }  
-
-  return status;
-}
-#endif
 
 #ifdef HAVE_WINEXEC			/* Windows 3.1 */
 #define SPECIFIC_SYSTEM 1
@@ -2888,11 +2725,6 @@ okToExec(const char *s)
 }
 #define PATHSEP	':'
 #endif /* __unix__ */
-
-#ifdef tos
-#define EXEC_EXTENSIONS { ".ttp", ".prg", NULL }
-#define PATHSEP ','
-#endif
 
 #if defined(OS2) || defined(__DOS__) || defined(__WINDOWS__)
 #define EXEC_EXTENSIONS { ".exe", ".com", ".bat", ".cmd", NULL }
@@ -3116,30 +2948,6 @@ Pause(real t)
 }
 
 #endif /*HAVE_DELAY*/
-
-#if !defined(PAUSE_DONE) && defined(tos)
-#define PAUSE_DONE 1
-
-int
-Pause(real t)
-{ intptr_t wait = (intptr_t)(t * 200.0);
-  intptr_t start_tick = clock();
-  intptr_t end_tick = wait + start_tick;
-
-  while( clock() < end_tick )
-  { if ( kbhit() )
-    { wait_ticks += clock() - start_tick;
-      start_tick = clock();
-      TtyAddChar(getch());
-    }
-  }
-
-  wait_ticks += end_tick - start_tick;
-
-  return TRUE;
-}
-
-#endif /*tos*/
 
 #ifndef PAUSE_DONE
 int

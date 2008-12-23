@@ -22,12 +22,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#if __TOS__
-#include <tos.h>
-#define HIDDEN	0x02
-#define SUBDIR 0x10
-#endif
-
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
