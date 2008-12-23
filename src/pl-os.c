@@ -1464,7 +1464,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
       { value = GD->os.fredshome;
       } else
       { if ( !(pwent = getpwnam(user)) )
-	{ if ( fileerrors )
+	{ if ( LD->fileerrors )
 	  { term_t name = PL_new_term_ref();
 
 	    PL_put_atom_chars(name, user);
@@ -1519,7 +1519,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
 	  LOCK();
 	  value = Getenv(var, envbuf, sizeof(envbuf));
 	  if ( value == (char *) NULL )
-	  { if ( fileerrors )
+	  { if ( LD->fileerrors )
 	    { term_t name = PL_new_term_ref();
 
 	      PL_put_atom_chars(name, var);

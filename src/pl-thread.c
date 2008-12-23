@@ -1096,7 +1096,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   }
   ldnew->modules		 = LD->modules;
   ldnew->IO			 = LD->IO;
-  ldnew->_fileerrors		 = LD->_fileerrors;
+  ldnew->fileerrors		 = LD->fileerrors;
   ldnew->float_format		 = LD->float_format;
   ldnew->encoding		 = LD->encoding;
   ldnew->_debugstatus		 = LD->_debugstatus;
@@ -3555,7 +3555,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   ldnew->prompt			 = ldmain->prompt;
   ldnew->modules		 = ldmain->modules;
   ldnew->IO			 = ldmain->IO;
-  ldnew->_fileerrors		 = ldmain->_fileerrors;
+  ldnew->fileerrors		 = ldmain->fileerrors;
   ldnew->float_format		 = ldmain->float_format;
   ldnew->encoding		 = ldmain->encoding;
   ldnew->_debugstatus		 = ldmain->_debugstatus;

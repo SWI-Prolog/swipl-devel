@@ -2010,6 +2010,7 @@ decrease).
 #include "pl-text.h"			/* text manipulation */
 #include "pl-hash.h"			/* Murmurhash function */
 #include "pl-option.h"			/* Option processing */
+#include "pl-files.h"			/* File management */
 
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */
 #undef leave

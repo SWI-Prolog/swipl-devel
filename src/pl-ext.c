@@ -446,6 +446,7 @@ DECL_PLIST(attvar);
 DECL_PLIST(gvar);
 DECL_PLIST(win);
 DECL_PLIST(file);
+DECL_PLIST(files);
 DECL_PLIST(btree);
 DECL_PLIST(ctype);
 DECL_PLIST(tai);
@@ -473,6 +474,7 @@ initBuildIns(void)
   REG_PLIST(profile);
   REG_PLIST(wic);
   REG_PLIST(file);
+  REG_PLIST(files);
   REG_PLIST(btree);
   REG_PLIST(ctype);
   REG_PLIST(tai);

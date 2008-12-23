@@ -120,6 +120,7 @@ setupProlog(void)
   initTracer();
   debugstatus.styleCheck = SINGLETON_CHECK;
   DEBUG(1, Sdprintf("IO ...\n"));
+  initFiles();
   initIO();
   initCharConversion();
   DEBUG(1, Sdprintf("Term ...\n"));

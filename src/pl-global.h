@@ -347,7 +347,7 @@ struct PL_local_data
   } prompt;
 
   source_location read_source;		/* file, line, char of last term */
-  int	 _fileerrors;			/* current file-error status */
+  int	 	fileerrors;		/* current file-error status */
   const char   *float_format;		/* floating point format */
 
   struct
@@ -576,7 +576,6 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define exception_term		(LD->exception.term)
 #define exception_bin		(LD->exception.bin)
 #define exception_printed	(LD->exception.printed)
-#define fileerrors		(LD->_fileerrors)
 #define gc_status		(LD->gc.status)
 #define debugstatus		(LD->_debugstatus)
 #define depth_limit		(LD->depth_info.limit)
