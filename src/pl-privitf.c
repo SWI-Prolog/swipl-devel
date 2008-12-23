@@ -23,12 +23,16 @@
 */
 
 #include "pl-incl.h"
+#undef LD
+#define LD LOCAL_LD
 
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #define valHandleP(h)		valTermRef(h)
 
+#define valHandle(r) valHandle__LD(r PASS_LD)
+
 static inline word
-valHandle(term_t r)
+valHandle__LD(term_t r ARG_LD)
 { Word p = valTermRef(r);
 
   deRef(p);
@@ -123,14 +127,16 @@ PL_unify_char(term_t chr, int c, int how)
 
 int
 allocList(size_t maxcells, list_ctx *ctx)
-{ ctx->lp = ctx->gstore = allocGlobal(1+maxcells*3);
+{ GET_LD
+  ctx->lp = ctx->gstore = allocGlobal(1+maxcells*3);
 
   return TRUE;
 }
 
 int
 unifyList(term_t term, list_ctx *ctx)
-{ Word a;
+{ GET_LD
+  Word a;
 
   ctx->gstore[0] = ATOM_nil;
   gTop = &ctx->gstore[1];
@@ -147,7 +153,8 @@ unifyList(term_t term, list_ctx *ctx)
 
 int
 unifyDiffList(term_t head, term_t tail, list_ctx *ctx)
-{ Word a;
+{ GET_LD
+  Word a;
 
   setVar(ctx->gstore[0]);
   gTop = &ctx->gstore[1];

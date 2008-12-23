@@ -278,7 +278,7 @@ COMMON(void) 		prompt1(atom_t prompt);
 COMMON(atom_t) 		PrologPrompt(void);
 COMMON(int) 		streamNo(term_t spec, int mode);
 COMMON(void) 		release_stream_handle(term_t spec);
-COMMON(int) 		unifyTime(term_t t, intptr_t time);
+COMMON(int) 		unifyTime(term_t t, time_t time);
 #ifdef __WINDOWS__
 COMMON(word) 		pl_make_fat_filemap(term_t dir);
 #endif

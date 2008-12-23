@@ -779,7 +779,7 @@ PL_EXPORT(pl_wchar_t*)  PL_atom_generator_w(const pl_wchar_t *pref,
 					    pl_wchar_t *buffer,
 					    size_t buflen,
 					    int state);
-PL_EXPORT(void)		PL_clock_wait_ticks(intptr_t waited);
+PL_EXPORT(void)		PL_clock_wait_ticks(long waited);
 
 
 		 /*******************************

@@ -23,6 +23,8 @@
 */
 
 #include "pl-incl.h"
+#undef LD
+#define LD LOCAL_LD
 
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>

@@ -2396,7 +2396,6 @@ PrologPrompt()
 static int
 tab(term_t out, term_t spaces)
 { int64_t count;
-  int rval = FALSE;
   IOSTREAM *s;
 
   if ( !getOutputStream(out, &s) )
