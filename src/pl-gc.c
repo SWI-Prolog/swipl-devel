@@ -1303,7 +1303,7 @@ update_relocation_chain(Word current, Word dest ARG_LD)
 	    f = addPointer(current, - offset(fliFrame, mark.trailtop));
 	    if ( onStack(local, f) && f->magic == FLI_MAGIC )
 	      Sdprintf("Updating trail-mark of foreign frame at %p\n", f);
-	  })
+	  });
     set_value(current, makePtr(dest, tag PASS_LD));
     relocated_cells++;
   } while( is_first(current) );

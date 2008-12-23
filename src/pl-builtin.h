@@ -129,6 +129,32 @@ typedef struct PL_global_data PL_global_data_t;
 
 
 		 /*******************************
+		 *	 PRINT DEBUG INFO	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Internal debugging and extra security checks.   To  enable them, compile
+with -DO_DEBUG and/or -DO_SECURE. Information   should  be printed using
+Sdprintf, which takes the same arguments   as printf(). Using Sdprintf()
+ensures that information is also printed if stdio is not available.
+
+    DEBUG(1, Sdprintf("Running with pid=%d\n", getpid()));
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if O_DEBUG
+#define DEBUG(n, g) do { if (GD->debug_level >= (n)) { g; } } while(0)
+#else
+#define DEBUG(a, b) ((void)0)
+#endif
+
+#if O_SECURE
+#define SECURE(g) do { g; } while(0)
+#else
+#define SECURE(g) ((void)0)
+#endif
+
+
+		 /*******************************
 		 *   NON-DET PREDICATE CONTEXT	*
 		 *******************************/
 

@@ -1906,30 +1906,30 @@ typedef struct debuginfo
 #define FT_INT64	4		/* passed as int64_t */
 #define FT_MASK		0x0f		/* mask to get type */
 
-#define PLFLAG_CHARESCAPE	  0x00001 /* handle \ in atoms */
-#define PLFLAG_GC		  0x00002 /* do GC */
-#define PLFLAG_TRACE_GC	  0x00004 /* verbose gc */
-#define PLFLAG_TTY_CONTROL	  0x00008 /* allow for tty control */
-#define PLFLAG_READLINE	  0x00010 /* readline is loaded */
-#define PLFLAG_DEBUG_ON_ERROR	  0x00020 /* start tracer on error */
-#define PLFLAG_REPORT_ERROR	  0x00040 /* print error message */
-#define PLFLAG_FILE_CASE	  0x00080 /* file names are case sensitive */
-#define PLFLAG_FILE_CASE_PRESERVING 0x0100 /* case preserving file names */
-#define PLFLAG_DOS_FILE_NAMES    0x00200 /* dos (8+3) file names */
-#define ALLOW_VARNAME_FUNCTOR	  0x00400 /* Read Foo(x) as 'Foo'(x) */
-#define PLFLAG_ISO		  0x00800 /* Strict ISO compliance */
-#define PLFLAG_OPTIMISE	  0x01000 /* -O: optimised compilation */
-#define PLFLAG_FILEVARS	  0x02000 /* Expand $var and ~ in filename */
-#define PLFLAG_AUTOLOAD	  0x04000 /* do autoloading */
-#define PLFLAG_CHARCONVERSION	  0x08000 /* do character-conversion */
-#define PLFLAG_LASTCALL	  0x10000 /* Last call optimization enabled? */
-#define PLFLAG_EX_ABORT	  0x20000 /* abort with exception */
-#define PLFLAG_BACKQUOTED_STRING 0x40000 /* `a string` */
-#define PLFLAG_SIGNALS		  0x80000 /* Handle signals */
-#define PLFLAG_DEBUGINFO	  0x100000 /* generate debug info */
+#define PLFLAG_CHARESCAPE	    0x000001 /* handle \ in atoms */
+#define PLFLAG_GC		    0x000002 /* do GC */
+#define PLFLAG_TRACE_GC	  	    0x000004 /* verbose gc */
+#define PLFLAG_TTY_CONTROL	    0x000008 /* allow for tty control */
+#define PLFLAG_READLINE	  	    0x000010 /* readline is loaded */
+#define PLFLAG_DEBUG_ON_ERROR	    0x000020 /* start tracer on error */
+#define PLFLAG_REPORT_ERROR	    0x000040 /* print error message */
+#define PLFLAG_FILE_CASE	    0x000080 /* file names are case sensitive */
+#define PLFLAG_FILE_CASE_PRESERVING 0x000100 /* case preserving file names */
+#define PLFLAG_DOS_FILE_NAMES       0x000200 /* dos (8+3) file names */
+#define ALLOW_VARNAME_FUNCTOR	    0x000400 /* Read Foo(x) as 'Foo'(x) */
+#define PLFLAG_ISO		    0x000800 /* Strict ISO compliance */
+#define PLFLAG_OPTIMISE	  	    0x001000 /* -O: optimised compilation */
+#define PLFLAG_FILEVARS	  	    0x002000 /* Expand $var and ~ in filename */
+#define PLFLAG_AUTOLOAD	  	    0x004000 /* do autoloading */
+#define PLFLAG_CHARCONVERSION	    0x008000 /* do character-conversion */
+#define PLFLAG_LASTCALL	  	    0x010000 /* Last call optimization enabled? */
+#define PLFLAG_EX_ABORT	  	    0x020000 /* abort with exception */
+#define PLFLAG_BACKQUOTED_STRING    0x040000 /* `a string` */
+#define PLFLAG_SIGNALS		    0x080000 /* Handle signals */
+#define PLFLAG_DEBUGINFO	    0x100000 /* generate debug info */
 
 typedef struct
-{ unsigned long flags;			/* the feature flags */
+{ unsigned long flags;			/* Fast access to some boolean Prolog flags */
 } pl_features_t;
 
 #define truePrologFlag(flag)	  true(&LD->prolog_flag.mask, flag)
@@ -1980,18 +1980,6 @@ decrease).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define REL(a)		((Word)(a) - (Word)(lBase))
-
-#if O_DEBUG
-#define DEBUG(n, g) { if (GD->debug_level >= (n)) { g; } }
-#else
-#define DEBUG(a, b) 
-#endif
-
-#if O_SECURE
-#define SECURE(g) {g;}
-#else
-#define SECURE(g)
-#endif
 
 #ifdef _DEBUG
 #define O_MAINTENANCE
