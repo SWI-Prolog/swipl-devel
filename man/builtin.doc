@@ -3034,19 +3034,6 @@ Unify \arg{Count} with the position on the current line. Note that this
 assumes the position is 0 after the open.  Tabs are assumed to be
 defined on each 8-th character and backspaces are assumed to reduce the
 count by one, provided it is positive.
-
-    \predicate{fileerrors}{2}{-Old, +New}
-Define error behaviour on errors when opening a file for reading or
-writing. Valid values are the atoms \const{on} (default) and \const{off}.
-First \arg{Old} is unified with the current value. Then the new value is
-set to \arg{New}.%
-    \footnote{Note that Edinburgh Prolog defines fileerrors/0 and
-              nofileerrors/0.  As this does not allow you to switch back
-              to the old mode I think this definition is better.}
-
-With the introduction of exception-handling, it is advised to use
-catch/3 to catch possibly file-errors and act accordingly.  Note that
-if \emph{fileerrors} is \const{off}, \emph{no} exception is generated.
 \end{description}
 
 

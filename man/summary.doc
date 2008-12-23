@@ -223,7 +223,6 @@ suggest predicates from a keyword.
 \predicatesummary{file_directory_name}{2}{Get directory part of path}
 \predicatesummary{file_name_extension}{3}{Add, remove or test file extensions}
 \predicatesummary{file_search_path}{2}{Define path-aliases for locating files}
-\predicatesummary{fileerrors}{2}{Do/Don't warn on file errors}
 \predicatesummary{findall}{3}{Find all solutions to a goal}
 \predicatesummary{findall}{4}{Difference list version of findall/3}
 \predicatesummary{flag}{3}{Simple global variable system}

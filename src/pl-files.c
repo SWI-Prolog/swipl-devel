@@ -392,7 +392,7 @@ PRED_IMPL("rename_file", 2, rename_file, 0)
   if ( PL_get_file_name(old, &o, 0) &&
        PL_get_file_name(new, &n, 0) )
   { if ( SameFile(o, n) )
-    { if ( LD->fileerrors )
+    { if ( truePrologFlag(PLFLAG_FILEERRORS) )
 	return PL_error("rename_file", 2, "same file", ERR_PERMISSION,
 			ATOM_rename, ATOM_file, old);
       return FALSE;
@@ -401,7 +401,7 @@ PRED_IMPL("rename_file", 2, rename_file, 0)
     if ( RenameFile(o, n) )
       return TRUE;
 
-    if ( LD->fileerrors )
+    if ( truePrologFlag(PLFLAG_FILEERRORS) )
       return PL_error("rename_file", 2, OsError(), ERR_FILE_OPERATION,
 		      ATOM_rename, ATOM_file, old);
     return FALSE;
@@ -446,7 +446,7 @@ PRED_IMPL("working_directory", 2, working_directory, 0)
       { if ( ChDir(n) )
 	  return TRUE;
 
-	if ( LD->fileerrors )
+	if ( truePrologFlag(PLFLAG_FILEERRORS) )
 	  return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
 			  ATOM_chdir, ATOM_directory, new);
 	return FALSE;
@@ -604,27 +604,12 @@ PRED_IMPL("mark_executable", 1, mark_executable, 0)
 
 
 		 /*******************************
-		 *	       FLAGS		*
-		 *******************************/
-
-/* TBD: change to a Prolog flag */
-
-static
-PRED_IMPL("fileerrors", 2, fileerrors, 0)
-{ PRED_LD
-  return setBoolean(&LD->fileerrors, A1, A2);
-}
-
-
-		 /*******************************
 		 *	       INIT		*
 		 *******************************/
 
 void
 initFiles(void)
-{ GET_LD
-
-  LD->fileerrors = TRUE;
+{ 
 }
 
 
@@ -633,7 +618,6 @@ initFiles(void)
 		 *******************************/
 
 BeginPredDefs(files)
-  PRED_DEF("fileerrors", 2, fileerrors, 0)
   PRED_DEF("working_directory", 2, working_directory, 0)
   PRED_DEF("access_file", 2, access_file, 0)
   PRED_DEF("time_file", 2, time_file, 0)

@@ -1464,7 +1464,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
       { value = GD->os.fredshome;
       } else
       { if ( !(pwent = getpwnam(user)) )
-	{ if ( LD->fileerrors )
+	{ if ( truePrologFlag(PLFLAG_FILEERRORS) )
 	  { term_t name = PL_new_term_ref();
 
 	    PL_put_atom_chars(name, user);
@@ -1483,7 +1483,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
       }
     }	  
 #else
-    { if ( fileerrors )
+    { if ( truePrologFlag(PLFLAG_FILEERRORS) )
 	PL_error(NULL, 0, NULL, ERR_NOT_IMPLEMENTED, "user_info");
 
       UNLOCK();
@@ -1519,7 +1519,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
 	  LOCK();
 	  value = Getenv(var, envbuf, sizeof(envbuf));
 	  if ( value == (char *) NULL )
-	  { if ( LD->fileerrors )
+	  { if ( truePrologFlag(PLFLAG_FILEERRORS) )
 	    { term_t name = PL_new_term_ref();
 
 	      PL_put_atom_chars(name, var);

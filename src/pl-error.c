@@ -60,7 +60,8 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
   else
     caller = NULL;
 
-  if ( id == ERR_FILE_OPERATION && !LD->fileerrors )
+  if ( id == ERR_FILE_OPERATION &&
+       !truePrologFlag(PLFLAG_FILEERRORS) )
     fail;
 
   if ( msg == MSG_ERRNO )

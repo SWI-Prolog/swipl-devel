@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -34,7 +34,8 @@
 	    display/2,
 	    unknown/2,
 	    debug/0,
-	    nodebug/0
+	    nodebug/0,
+	    fileerrors/2
 	  ]).
 
 
@@ -87,3 +88,21 @@ map_unknown(fail,    fail).
 
 debug	:- set_prolog_flag(debug, true).
 nodebug :- set_prolog_flag(debug, false).
+
+
+%%	fileerrors(-Old, +New) is det.
+%
+%	Query and change the  fileerrors  flag.   Default  it  is set to
+%	=true=, causing file operations to   raise an exception. Setting
+%	it to =false=  activates  the  old   Edinburgh  mode  of  silent
+%	failure.
+%	
+%	@deprecated	New code should use catch/3 to handle file errors
+%			silently
+
+fileerrors(Old, New) :-
+	current_prolog_flag(fileerrors, Old),
+	(   Old == New
+	->  true
+	;   set_prolog_flag(fileerrors, New)
+	).

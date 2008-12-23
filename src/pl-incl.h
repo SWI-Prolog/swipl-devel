@@ -1929,6 +1929,7 @@ typedef struct debuginfo
 #define PLFLAG_BACKQUOTED_STRING    0x040000 /* `a string` */
 #define PLFLAG_SIGNALS		    0x080000 /* Handle signals */
 #define PLFLAG_DEBUGINFO	    0x100000 /* generate debug info */
+#define PLFLAG_FILEERRORS	    0x200000 /* Edinburgh file errors */
 
 typedef struct
 { unsigned long flags;			/* Fast access to some boolean Prolog flags */
