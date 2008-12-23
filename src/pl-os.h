@@ -41,7 +41,8 @@
 		*        MEMORY MANAGEMENT      *
 		*********************************/
 
-extern Void Allocate(intptr_t);
+extern void *Allocate(intptr_t);
+
 
 		/********************************
 		*         MISCELLANEOUS         *

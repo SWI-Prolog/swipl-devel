@@ -226,7 +226,7 @@ needsRelocation(void *addr)
 
   needs_relocation++;
 
-  addHTable(check_table, addr, (Void) TRUE);
+  addHTable(check_table, addr, (void*)TRUE);
 }
 
 
@@ -320,7 +320,7 @@ markLocal(Word addr)
 { GET_LD
   
   local_marked++;
-  addHTable(local_table, addr, (Void)TRUE);
+  addHTable(local_table, addr, (void*)TRUE);
 }
 
 static void
@@ -330,7 +330,7 @@ processLocal(Word addr)
 
   local_marked--;
   if ( (s = lookupHTable(local_table, addr)) )
-  { s->value = (Void)FALSE;
+  { s->value = (void*)FALSE;
   } else
   { assert(0);
   }

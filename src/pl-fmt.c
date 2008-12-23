@@ -408,7 +408,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 
 					/* Check for user defined format */
 	  if ( format_predicates &&
-	       (s = lookupHTable(format_predicates, (Void)((intptr_t)c))) )
+	       (s = lookupHTable(format_predicates, (void*)((intptr_t)c))) )
 	  { Procedure proc = (Procedure) s->value;
 	    FunctorDef fdef = proc->definition->functor;
 	    term_t av = PL_new_term_refs(fdef->arity);

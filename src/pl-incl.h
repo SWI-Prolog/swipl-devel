@@ -376,14 +376,11 @@ A common basis for C keywords.
 #define forwards static		/* forwards function declarations */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Booleans,  addresses,  strings  and other   goodies.   Note that  ANSI
-compilers have  `Void'.   This should  be  made part  of  the  general
-platform as well.
+Booleans,  addresses,  strings  and other   goodies.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef int			bool;
 typedef double			real;
-typedef void *			Void;
 
 #if __GNUC__ && !__STRICT_ANSI__
 #define LocalArray(t, n, s)	t n[s]

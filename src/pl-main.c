@@ -1147,17 +1147,17 @@ giveVersionInfo(const char *a)
 		 *	     CLEANUP		*
 		 *******************************/
 
-typedef void (*halt_function)(int, Void);
+typedef void (*halt_function)(int, void*);
 
 struct on_halt
 { halt_function	function;
-  Void		argument;
+  void*		argument;
   OnHalt	next;
 };
 
 
 void
-PL_on_halt(halt_function f, Void arg)
+PL_on_halt(halt_function f, void *arg)
 { if ( !GD->os.halting )
   { OnHalt h = allocHeap(sizeof(struct on_halt));
 
