@@ -151,7 +151,7 @@ pl_rc_open(term_t rc_h,
       }
 
       if ( (stream = Snew(o, sflags, &rc_stream_functions)) )
-      { if ( PL_open_stream(handle, stream) )
+      { if ( PL_unify_stream(handle, stream) )
 	  return TRUE;
 
 	Sclose(stream);

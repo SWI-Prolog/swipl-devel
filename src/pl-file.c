@@ -541,12 +541,6 @@ PL_unify_stream(term_t t, IOSTREAM *s)
 }
 
 
-bool					/* old FLI name (compatibility) */
-PL_open_stream(term_t handle, IOSTREAM *s)
-{ return PL_unify_stream(handle, s);
-}
-
-
 IOSTREAM **				/* provide access to Suser_input, */
 _PL_streams(void)			/* Suser_output and Suser_error */
 { GET_LD
