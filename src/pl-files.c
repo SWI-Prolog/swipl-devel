@@ -40,17 +40,30 @@ General file operations and binding to Prolog
 		 *	      OS STUFF		*
 		 *******************************/
 
+/** time_t LastModifiedFile(const char *file)
+
+Return the last modification time of file  as a POSIX timestamp. Returns
+(time_t)-1 on failure.
+*/
+
+
 time_t
-LastModifiedFile(const char *f)
+LastModifiedFile(const char *file)
 { char tmp[MAXPATHLEN];
   struct stat buf;
 
-  if ( stat(OsPath(f, tmp), &buf) < 0 )
+  if ( stat(OsPath(file, tmp), &buf) < 0 )
     return (time_t)-1;
 
   return buf.st_mtime;
 }  
 
+
+/** static int64_t SizeFile(const char *path)
+
+Return the size of the file path in bytes. Returns -1 if the file cannot
+be accessed.
+*/
 
 static int64_t
 SizeFile(const char *path)
@@ -63,6 +76,13 @@ SizeFile(const char *path)
   return buf.st_size;
 }
 
+
+/** int AccessFile(const char *path, int mode)
+
+TRUE if path can be accessed in the   specified modes. Mode is a bitwise
+or created from one or more  of the constants ACCESS_EXIST, ACCESS_READ,
+ACCESS_WRITE and ACCESS_EXECUTE.
+*/
 
 int
 AccessFile(const char *path, int mode)
@@ -131,6 +151,13 @@ DeRefLink1(const char *f, char *lbuf)
 }
 
 
+/** char *DeRefLink(const char *link, char *buf)
+
+Dereference a symbolic  link,  returning   its  final  destination.  The
+returned filename is canonical  (i.e.,  references   to  ./  and ../ are
+removed). Returns NULL if more than 20 links have been followed.
+*/
+
 char *
 DeRefLink(const	char *link, char *buf)
 { char tmp[MAXPATHLEN];
@@ -147,6 +174,12 @@ DeRefLink(const	char *link, char *buf)
     return NULL;
 }
 
+
+/** int RemoveFile(const char *path)
+
+Remove a file from the filesystem.  Returns   TRUE  on success and FALSE
+otherwise.
+*/
 
 int
 RemoveFile(const char *path)
