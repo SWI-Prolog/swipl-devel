@@ -238,7 +238,7 @@ CpuCount()
 
 
 void
-setOSFeatures()
+setOSPrologFlags()
 { PL_set_prolog_flag("cpu_count", PL_INTEGER, CpuCount());
 }
 
