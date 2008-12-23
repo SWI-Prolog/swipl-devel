@@ -2002,6 +2002,11 @@ decrease).
 #include SYSLIB_H
 #endif
 
+#define NULL_ATOM ((atom_t)0)
+#define MK_ATOM(n)    		((atom_t)((n)<<7|TAG_ATOM|STG_STATIC))
+#include "pl-atom.ih"
+#include "pl-funct.ih"
+
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
 #include "pl-error.h"			/* Exception generation */
 #include "pl-thread.h"			/* thread manipulation */
@@ -2020,10 +2025,5 @@ decrease).
 #undef except
 #undef try
 #endif
-
-#define NULL_ATOM ((atom_t)0)
-#define MK_ATOM(n)    		((atom_t)((n)<<7|TAG_ATOM|STG_STATIC))
-#include "pl-atom.ih"
-#include "pl-funct.ih"
 
 #endif /*_PL_INCLUDE_H*/

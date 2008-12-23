@@ -28,4 +28,47 @@
 COMMON(int) 	PL_get_char(term_t c, int *p, int eof);
 COMMON(int) 	PL_unify_char(term_t chr, int c, int mode);
 
+
+		 /*******************************
+		 *	    LIST BUILDING	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Quickly create a list on the stack. This   is for creating lists were we
+can give an upperbound to the length  in advance. By allocation upfront,
+we know there are no garbage  collections   or  stack-shifts  and we can
+avoid using term-references to address the list.
+
+    * allocList(size_t maxcells, list_ctx *ctx)
+    Allocate enough space on the stack for a list of maxcells elements.
+    The final list may be shorter!
+
+    * addSmallIntList(list_ctx *ctx, int value)
+    Add a small integer to the list
+
+    * unifyList(term_t term, list_ctx *ctx);
+    Unify term with the created list.  This closes the list and adjusts
+    the top of the stack.
+
+    * unifyDiffList(term_t head, term_t tail, list_ctx *ctx);
+    Represent the list as Head\Tail.  This adjusts the top of the stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct list_ctx
+{ Word lp;
+  Word gstore;
+} list_ctx;
+
+static inline void
+addSmallIntList(list_ctx *ctx, int value)
+{ ctx->gstore[0] = consPtr(&ctx->gstore[1], TAG_COMPOUND|STG_GLOBAL);
+  ctx->gstore[1] = FUNCTOR_dot2;
+  ctx->gstore[2] = consInt(value);
+  ctx->gstore += 3;
+}
+
+COMMON(int)	allocList(size_t maxcells, list_ctx *ctx);
+COMMON(int)	unifyList(term_t term, list_ctx *ctx);
+COMMON(int)	unifyDiffList(term_t head, term_t tail, list_ctx *ctx);
+
 #endif /*PL_PRIVITF_H_INCLUDED*/

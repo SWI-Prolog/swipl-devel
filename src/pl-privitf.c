@@ -115,3 +115,56 @@ PL_unify_char(term_t chr, int c, int how)
 
   return FALSE;
 }
+
+
+		 /*******************************
+		 *	  LIST BUILDING		*
+		 *******************************/
+
+int
+allocList(size_t maxcells, list_ctx *ctx)
+{ ctx->lp = ctx->gstore = allocGlobal(1+maxcells*3);
+
+  return TRUE;
+}
+
+int
+unifyList(term_t term, list_ctx *ctx)
+{ Word a;
+
+  ctx->gstore[0] = ATOM_nil;
+  gTop = &ctx->gstore[1];
+
+  a = valTermRef(term);
+  deRef(a);
+  if ( !unify_ptrs(a, ctx->lp PASS_LD) )
+  { gTop = ctx->lp;
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+int
+unifyDiffList(term_t head, term_t tail, list_ctx *ctx)
+{ Word a;
+
+  setVar(ctx->gstore[0]);
+  gTop = &ctx->gstore[1];
+
+  a = valTermRef(head);
+  deRef(a);
+  if ( !unify_ptrs(a, ctx->lp PASS_LD) )
+  { gTop = ctx->lp;
+    return FALSE;
+  }
+  a = valTermRef(tail);
+  deRef(a);
+  if ( !unify_ptrs(a, ctx->gstore PASS_LD) )
+  { gTop = ctx->lp;
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
