@@ -72,12 +72,6 @@
 #include <dos.h>
 #endif
 
-#ifdef __WINDOWS__
-#define STAT_TYPE struct _stat
-#else
-#define STAT_TYPE struct stat
-#endif
-
 #if OS2 && EMX
 static double initial_time;
 #endif /* OS2 */
@@ -811,20 +805,6 @@ OsPath(const char *p, char *buf)
 }
 #endif /* O_XOS */
 
-time_t
-LastModifiedFile(char *f)
-{ char tmp[MAXPATHLEN];
-
-#if defined(HAVE_STAT) || defined(__unix__)
-  STAT_TYPE buf;
-
-  if ( statfunc(OsPath(f, tmp), &buf) < 0 )
-    return (time_t)-1;
-
-  return buf.st_mtime;
-#endif
-}  
-
 
 #ifndef F_OK
 #define F_OK 0
@@ -895,7 +875,7 @@ ExistsDirectory(const char *path)
 int64_t
 SizeFile(const char *path)
 { char tmp[MAXPATHLEN];
-  STAT_TYPE buf;
+  struct stat buf;
 
 #if defined(HAVE_STAT) || defined(__unix__)
   if ( statfunc(OsPath(path, tmp), &buf) < 0 )
@@ -983,7 +963,7 @@ bool
 MarkExecutable(const char *name)
 {
 #if (defined(HAVE_STAT) && defined(HAVE_CHMOD)) || defined(__unix__)
-  STAT_TYPE buf;
+  struct stat buf;
   mode_t um;
 
   um = umask(0777);

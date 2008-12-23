@@ -25,6 +25,7 @@
 #ifndef PL_FILES_H_INCLUDED
 #define PL_FILES_H_INCLUDED
 
-COMMON(void)	initFiles(void);
+COMMON(void)		initFiles(void);
+COMMON(time_t)	 	LastModifiedFile(const char *f);
 
 #endif /*PL_FILES_H_INCLUDED*/

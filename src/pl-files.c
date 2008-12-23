@@ -34,6 +34,24 @@
 General file operations and binding to Prolog
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+		 /*******************************
+		 *	      OS STUFF		*
+		 *******************************/
+
+time_t
+LastModifiedFile(const char *f)
+{ char tmp[MAXPATHLEN];
+  struct stat buf;
+
+  if ( stat(OsPath(f, tmp), &buf) < 0 )
+    return (time_t)-1;
+
+  return buf.st_mtime;
+}  
+
+
+
+
 		/********************************
 		*	FIND FILES FROM C       *
 		*********************************/
