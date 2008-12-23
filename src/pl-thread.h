@@ -273,23 +273,8 @@ choose to store the result of LD is a local variable.
 
 extern TLD_KEY PL_ldata;		/* key to local data */
 
-#if 0					/* doesn't seem to help much */
-#define GLOBAL_LD (GD->thread.enabled ? \
-		   (PL_local_data_t *)TLD_get(PL_ldata) : \
-		   &PL_local_data)
-#else
 #define GLOBAL_LD ((PL_local_data_t *)TLD_get(PL_ldata))
-#endif
 
-#define GET_LD    PL_local_data_t *__PL_ld = GLOBAL_LD;
-#define PRED_LD   PL_local_data_t *__PL_ld = PL__ctx->engine;
-
-#define ARG1_LD   PL_local_data_t *__PL_ld
-#define ARG_LD    , ARG1_LD
-#define PASS_LD1  LD
-#define PASS_LD   , LD
-#define LOCAL_LD  __PL_ld
-#define LD	  GLOBAL_LD
 
 		 /*******************************
 		 *	       WINDOWS		*
@@ -350,24 +335,11 @@ void		markAtomsThreads(void);
 
 #ifdef O_MULTIPLE_ENGINES
 
-#define GLOBAL_LD	PL_current_engine_ptr
-#define GET_LD		PL_local_data_t *__PL_ld = GLOBAL_LD;
-#define PRED_LD   PL_local_data_t *__PL_ld = PL__ctx->engine;
-
-#define ARG1_LD   PL_local_data_t *__PL_ld
-#define ARG_LD    , ARG1_LD
-#define PASS_LD1  LD
-#define PASS_LD   , LD
-#define LOCAL_LD  __PL_ld
-#define LD	  GLOBAL_LD
+#define GLOBAL_LD PL_current_engine_ptr
 
 #else /*O_MULTIPLE_ENGINES*/
 
-#define GET_LD
-#define PRED_LD
-#define LOCAL_LD  (&PL_local_data)
 #define GLOBAL_LD (&PL_local_data)
-#define LD	  GLOBAL_LD
 
 #endif /*O_MULTIPLE_ENGINES*/
 

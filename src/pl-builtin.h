@@ -35,6 +35,97 @@ system.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 		 /*******************************
+		 *	    ENGINE ACCESS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The  engine  is  a  structure  that  is    represented  by  LD.  On  the
+single-engine version this is simply the  address of a global structure.
+On the multi-threaded version we must use some thread-specific mechanism
+to find the engine structure  associated   with  the current thread. The
+user of this module must provide two   definitions:
+
+	* PL_local_data_t
+	Is a typedef for the engine structure
+	* LD_GLOBAL
+	Is a macro that expands to a pointer to the current engine.  The
+	implementation varies.  Without engines it is just an alias for
+	the address of the global engine structure.  With engines, it
+	can use pthread_getspecific() (POSIX), TlsGetValue (Windows) or
+	some compiler provided extension for thread-local variables.
+	
+LD always points to the  engine,  but   retrieving  it  everywhere  in a
+function can be costly. GET_LD and  PRED_LD create an automatic variable
+__PL_ld pointing to the engine.  LOCAL_LD   points  there. Time critical
+modules generally start with:
+
+#undef LD
+#define LD LOCAL_LD
+
+Now, functions that access LD must be written as:
+
+func()
+{ GET_LD
+
+  ...
+}
+
+And predicates as
+
+static
+PRED_IMPL("foo", 2, foo, 0)
+{ PRED_LD
+
+   ...
+}
+
+In addition, LD can be passed between functions.  This is written as
+
+func1(int arg ARG_LD)
+{ ...
+}
+
+  func1(42 PASS_LD)
+
+Note there is *NO* , before  ARG_LD   and  PASS_LD, because these macros
+expand to nothing of there is just  one engine. The versions ARG1_LD and
+PASS_LD1 are used if there is no other argument.
+
+On some frequently used functions,   writing PASS_LD everywhere clutters
+the code too much. In this case  we   use  the schema below. Many of the
+time critical functions from the public   foreign  interface are handled
+this way for the internal builtins.
+
+func__LD(int arg ARG_LD)
+{ ...
+}
+
+#define func(arg) func__LD(arg PASS_LD)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define LD	  GLOBAL_LD
+
+#if defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)
+
+#define GET_LD	  PL_local_data_t *__PL_ld = GLOBAL_LD;
+#define PRED_LD   PL_local_data_t *__PL_ld = PL__ctx->engine;
+
+#define ARG1_LD   PL_local_data_t *__PL_ld
+#define ARG_LD    , ARG1_LD
+#define PASS_LD1  LD
+#define PASS_LD   , LD
+#define LOCAL_LD  __PL_ld
+
+#else
+
+#define GET_LD
+#define PRED_LD
+#define LOCAL_LD  GLOBAL_LD
+
+#endif
+
+
+		 /*******************************
 		 *   NON-DET PREDICATE CONTEXT	*
 		 *******************************/
 
