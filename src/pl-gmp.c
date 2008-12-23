@@ -419,7 +419,7 @@ promoteToMPZNumber(number *n)
       n->value.mpz[0] = mpz[0];
       break;
     }
-    case V_REAL:
+    case V_FLOAT:
       mpz_init_set_d(n->value.mpz, n->value.f);
       n->type = V_MPZ;
       break;
@@ -441,7 +441,7 @@ promoteToMPQNumber(number *n)
     }
     case V_MPQ:
       break;
-    case V_REAL:
+    case V_FLOAT:
     { double v = n->value.f;
 
       n->type = V_MPQ;
@@ -650,8 +650,8 @@ put_number__LD(Number n ARG_LD)
       }
     }
 #endif
-    case V_REAL:
-      return globalReal(n->value.f);
+    case V_FLOAT:
+      return globalFloat(n->value.f);
   }
 
   assert(0);
@@ -706,9 +706,9 @@ PL_unify_number(term_t t, Number n)
       return _PL_unify_atomic(t, w);
     }
 #endif
-    case V_REAL:
-      if ( isReal(*p) )
-	return n->value.f == valReal(*p);
+    case V_FLOAT:
+      if ( isFloat(*p) )
+	return n->value.f == valFloat(*p);
       break;
   }
 
@@ -721,8 +721,8 @@ get_number(word w, Number n ARG_LD)
 { if ( isInteger(w) )
   { get_integer(w, n);
   } else
-  { n->type = V_REAL;
-    n->value.f = valReal(w);
+  { n->type = V_FLOAT;
+    n->value.f = valFloat(w);
   }
 }
 
@@ -737,9 +737,9 @@ PL_get_number(term_t t, Number n)
   { get_integer(*p, n);
     succeed;
   }
-  if ( isReal(*p) )
-  { n->value.f = valReal(*p);
-    n->type = V_REAL;
+  if ( isFloat(*p) )
+  { n->value.f = valFloat(*p);
+    n->type = V_FLOAT;
     succeed;
   }
 
@@ -752,11 +752,11 @@ PL_get_number(term_t t, Number n)
 		 *******************************/
 
 void
-promoteToRealNumber(Number n)
+promoteToFloatNumber(Number n)
 { switch(n->type)
   { case V_INTEGER:
       n->value.f = (double)n->value.i;
-      n->type = V_REAL;
+      n->type = V_FLOAT;
       break;
 #ifdef O_GMP
     case V_MPZ:
@@ -764,7 +764,7 @@ promoteToRealNumber(Number n)
 
       clearNumber(n);
       n->value.f = val;
-      n->type = V_REAL;
+      n->type = V_FLOAT;
       break;
     }
     case V_MPQ:
@@ -772,11 +772,11 @@ promoteToRealNumber(Number n)
 
       clearNumber(n);
       n->value.f = val;
-      n->type = V_REAL;
+      n->type = V_FLOAT;
       break;
     }
 #endif
-    case V_REAL:
+    case V_FLOAT:
       break;
   }
 }
@@ -795,8 +795,8 @@ promoteNumber(Number n, numtype t)
       promoteToMPQNumber(n);
       break;
 #endif
-    case V_REAL:
-      promoteToRealNumber(n);
+    case V_FLOAT:
+      promoteToFloatNumber(n);
       break;
   }
 }
@@ -847,7 +847,7 @@ cmpNumbers(Number n1, Number n2)
       return rc < 0 ? LESS : rc == 0 ? EQUAL : GREATER;
     }
 #endif
-    case V_REAL:
+    case V_FLOAT:
       return n1->value.f  < n2->value.f ? LESS :
 	     n1->value.f == n2->value.f ? EQUAL : GREATER;
   }
@@ -875,7 +875,7 @@ cpNumber(Number to, Number from)
       mpq_set(to->value.mpq, from->value.mpq);
       break;
 #endif
-    case V_REAL:
+    case V_FLOAT:
       to->value.f = from->value.f;
   }
 }

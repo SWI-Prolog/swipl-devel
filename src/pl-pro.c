@@ -507,8 +507,8 @@ last_arg:
       printk("Indirect data not on global");
     if ( isBignum(*p) )
       return key+(word) valBignum(*p);
-    if ( isReal(*p) )
-      return key+(word) valReal(*p);
+    if ( isFloat(*p) )
+      return key+(word) valFloat(*p);
     if ( isString(*p) )
     { if ( isBString(*p) )
       { size_t sz, len;

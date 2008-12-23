@@ -122,7 +122,7 @@ struct PL_global_data
 #ifdef O_PLMT
     int		threads_created;	/* # threads created */
     int		threads_finished;	/* # finished threads */
-    real	thread_cputime;		/* Total CPU time of threads */
+    double	thread_cputime;		/* Total CPU time of threads */
 #endif
   } statistics;
 
@@ -157,7 +157,7 @@ struct PL_global_data
     size_t	non_garbage;		/* # atoms for after last AGC */
     int		gc;			/* # atom garbage collections */
     int64_t	collected;		/* # collected atoms */
-    real	gc_time;		/* Time spent on atom-gc */
+    double	gc_time;		/* Time spent on atom-gc */
     PL_agc_hook_t gc_hook;		/* Current hook */
 #endif
     atom_t     *for_code[256];		/* code --> one-char-atom */

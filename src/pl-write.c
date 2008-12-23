@@ -651,7 +651,7 @@ WriteNumber(Number n, write_options *options)
     }
     case V_MPQ:				/* should not get here */
 #endif
-    case V_REAL:
+    case V_FLOAT:
       assert(0);
   }
 

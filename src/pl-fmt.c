@@ -1006,9 +1006,9 @@ formatFloat(int how, int arg, Number f, Buffer out)
     }
 #endif
     case V_INTEGER:
-      promoteToRealNumber(f);
+      promoteToFloatNumber(f);
       /*FALLTHROUGH*/
-    case V_REAL:
+    case V_FLOAT:
     { char tmp[12];
 
       if ( arg > 256 )

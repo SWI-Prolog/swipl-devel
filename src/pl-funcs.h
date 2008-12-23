@@ -48,9 +48,9 @@ COMMON(char *)		getCharsString__LD(word w, size_t *len ARG_LD);
 COMMON(pl_wchar_t *)	getCharsWString__LD(word w, size_t *len ARG_LD);
 COMMON(Word) 		newTerm(void);
 COMMON(void) 		doublecpy(void *to, void *from);
-COMMON(word) 		globalReal(real f);
+COMMON(word) 		globalFloat(double f);
 COMMON(word) 		globalLong(int64_t i ARG_LD);
-COMMON(double) 		valReal__LD(word w ARG_LD);
+COMMON(double) 		valFloat__LD(word w ARG_LD);
 #ifdef INT64_ALIGNMENT
 COMMON(int64_t)		valBignum__LD(word w ARG_LD);
 #endif
@@ -479,7 +479,7 @@ COMMON(int) 		Setenv(char *name, char *value);
 COMMON(int) 		Unsetenv(char *name);
 COMMON(int) 		System(char *cmd);
 COMMON(char *) 		findExecutable(const char *module, char *buf);
-COMMON(int) 		Pause(real time);
+COMMON(int) 		Pause(double time);
 
 /* pl-prims.c */
 COMMON(bool) 		raw_unify_ptrs(Word t1, Word t2 ARG_LD);
@@ -854,7 +854,7 @@ COMMON(int)	PL_unify_number(term_t t, Number n);
 COMMON(void)	get_number(word w, Number n  ARG_LD);
 COMMON(int)	PL_get_number(term_t t, Number n);
 COMMON(word)	put_number__LD(Number n ARG_LD);
-COMMON(void)	promoteToRealNumber(Number n);
+COMMON(void)	promoteToFloatNumber(Number n);
 COMMON(void)	make_same_type_numbers(Number n1, Number n2);
 COMMON(void)    promoteNumber(Number n1, numtype type);
 COMMON(int)	cmpNumbers(Number n1, Number n2);

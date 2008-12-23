@@ -830,7 +830,7 @@ PL_get_term_value(term_t t, term_value_t *val)
       val->i = valInteger(w);		/* TBD: Handle MPZ integers? */
       break;
     case PL_FLOAT:
-      val->f = valReal(w);
+      val->f = valFloat(w);
       break;
     case PL_ATOM:
       val->a = (atom_t)w;
@@ -1211,17 +1211,17 @@ PL_get_integer__LD(term_t t, int *i ARG_LD)
     *i = (int)val;
     succeed;
   }
-  if ( isReal(w) )
-  { real f = valReal(w);
+  if ( isFloat(w) )
+  { double f = valFloat(w);
     int l;
 
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( f > (real)INT_MAX || f < (real)INT_MIN )
+    if ( f > (double)INT_MAX || f < (double)INT_MIN )
       fail;
 #endif
 
     l = (int)f;
-    if ( (real)l == f )
+    if ( (double)l == f )
     { *i = l;
       succeed;
     }
@@ -1260,17 +1260,17 @@ PL_get_long__LD(term_t t, long *i ARG_LD)
     *i = (long)val;
     succeed;
   }
-  if ( isReal(w) )
-  { real f = valReal(w);
+  if ( isFloat(w) )
+  { double f = valFloat(w);
     long l;
     
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( f > (real)LONG_MAX || f < (real)LONG_MIN )
+    if ( f > (double)LONG_MAX || f < (double)LONG_MIN )
       fail;
 #endif
 
     l = (long) f;
-    if ( (real)l == f )
+    if ( (double)l == f )
     { *i = l;
       succeed;
     }
@@ -1300,8 +1300,8 @@ PL_get_int64__LD(term_t t, int64_t *i ARG_LD)
   { *i = valBignum(w);
     succeed;
   }
-  if ( isReal(w) )
-  { real f = valReal(w);
+  if ( isFloat(w) )
+  { double f = valFloat(w);
     int64_t l;
     
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
@@ -1310,7 +1310,7 @@ PL_get_int64__LD(term_t t, int64_t *i ARG_LD)
 #endif
 
     l = (int64_t) f;
-    if ( (real)l == f )
+    if ( (double)l == f )
     { *i = l;
       succeed;
     }
@@ -1358,8 +1358,8 @@ PL_get_float(term_t t, double *f)
 { GET_LD
   word w = valHandle(t);
   
-  if ( isReal(w) )
-  { *f = valReal(w);
+  if ( isFloat(w) )
+  { *f = valFloat(w);
     succeed;
   }
   if ( isTaggedInt(w) )
@@ -1733,7 +1733,7 @@ PL_is_float(term_t t)
 { GET_LD
   word w = valHandle(t);
 
-  return isReal(w) ? TRUE : FALSE;
+  return isFloat(w) ? TRUE : FALSE;
 }
 
 
@@ -1850,7 +1850,7 @@ PL_is_number(term_t t)
   word w = valHandle(t);
 
   if ( isInteger(w) ||
-       isReal(w) )
+       isFloat(w) )
     return TRUE;
 
   return FALSE;
@@ -2055,7 +2055,7 @@ PL_put_pointer(term_t t, void *ptr)
 void
 PL_put_float(term_t t, double f)
 { GET_LD
-  setHandle(t, globalReal(f));
+  setHandle(t, globalFloat(f));
 }
 
 
@@ -2466,7 +2466,7 @@ PL_unify_pointer(term_t t, void *ptr)
 int
 PL_unify_float(term_t t, double f)
 { GET_LD
-  word w = globalReal(f);
+  word w = globalFloat(f);
 
   return unifyAtomic(t, w PASS_LD);
 }

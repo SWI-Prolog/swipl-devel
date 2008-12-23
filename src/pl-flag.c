@@ -24,21 +24,21 @@
 
 #include "pl-incl.h"
 
-typedef struct flag *	Flag;
+typedef enum flag_type
+{ FLG_ATOM,
+  FLG_INTEGER,
+  FLG_FLOAT
+} flag_type;
 
-#define FLG_ATOM	0
-#define FLG_INTEGER	1
-#define FLG_REAL	2
-
-struct flag
+typedef struct flag
 { word	key;				/* key to the flag */
-  int	type;				/* type (atom, int, real */
+  int	type;				/* type (atom, int, float */
   union
   { atom_t  a;				/* atom */
     int64_t i;				/* integer */
     double  f;				/* float */
   } value;				/* value of the flag */
-};
+} *Flag;
 
 #define flagTable (GD->flags.table)
 #define LOCK()   PL_LOCK(L_FLAG)
@@ -108,7 +108,7 @@ PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
       if ( !PL_unify_int64(old, f->value.i) )
 	goto out;
       break;
-    case FLG_REAL:
+    case FLG_FLOAT:
     { 
 #ifdef DOUBLE_ALIGNMENT
       double v;
@@ -144,9 +144,9 @@ PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
       case V_MPQ:
 	goto type_error;
 #endif
-      case V_REAL:
+      case V_FLOAT:
       { freeFlagValue(f);
-	f->type = FLG_REAL;
+	f->type = FLG_FLOAT;
 #ifdef DOUBLE_ALIGNMENT
         doublecpy(&f->value.f, &n.value.f);
 #else

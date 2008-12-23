@@ -35,14 +35,14 @@ static char *	getString(IOSTREAM *, unsigned *len);
 static int64_t	getInt64(IOSTREAM *);
 static long	getLong(IOSTREAM *);
 static int	getInt(IOSTREAM *);
-static real	getReal(IOSTREAM *);
+static double	getFloat(IOSTREAM *);
 static bool	loadWicFd(IOSTREAM *);
 static bool	loadPredicate(IOSTREAM *, int skip ARG_LD);
 static bool	loadImport(IOSTREAM *, int skip ARG_LD);
 static void	saveXRBlobType(PL_blob_t *type, IOSTREAM *fd);
 static void	putString(const char *, size_t len, IOSTREAM *);
 static void	putNum(int64_t, IOSTREAM *);
-static void	putReal(real, IOSTREAM *);
+static void	putFloat(double, IOSTREAM *);
 static void	saveWicClause(Clause, IOSTREAM *);
 static void	closeProcedureWic(IOSTREAM *);
 static word	loadXRc(int c, IOSTREAM *fd ARG_LD);
@@ -138,7 +138,7 @@ Below is an informal description of the format of a `.qlf' file:
 			XR_ATOM    <len><chars>		% atom
 			XR_BLOB	   <blob><private>	% typed atom (blob)
 			XR_INT     <num>		% number
-			XR_FLOAT   <word>*		% real (double)
+			XR_FLOAT   <word>*		% float (double)
 			XR_STRING  <string>		% string
 			XR_STRING_UTF8  <utf-8 string>	% wide string
 			XR_FUNCTOR <XR/name> <num>	% functor
@@ -519,9 +519,9 @@ static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
 
 #define BYTES_PER_DOUBLE (sizeof(double_byte_order)/sizeof(int))
 
-static real
-getReal(IOSTREAM *fd)
-{ real f;
+static double
+getFloat(IOSTREAM *fd)
+{ double f;
   unsigned char *cl = (unsigned char *)&f;
   unsigned int i;
 
@@ -533,7 +533,7 @@ getReal(IOSTREAM *fd)
     cl[double_byte_order[i]] = c;
   }
   
-  DEBUG(3, Sdprintf("getReal() --> %f\n", f));
+  DEBUG(3, Sdprintf("getFloat() --> %f\n", f));
 
   return f;
 }
@@ -622,7 +622,7 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
     case XR_INT:
       return makeNum(getInt64(fd));
     case XR_FLOAT:
-      return globalReal(getReal(fd));
+      return globalFloat(getFloat(fd));
 #if O_STRING
     case XR_STRING:
     { char *s;
@@ -1068,7 +1068,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 		  double f;
 		} v;
 		Word p = v.w;
-		v.f = getReal(fd);
+		v.f = getFloat(fd);
 		cpDoubleData(bp, p);
 		break;
 	      }
@@ -1463,11 +1463,11 @@ putNum(int64_t n, IOSTREAM *fd)
 
 
 static void
-putReal(real f, IOSTREAM *fd)
+putFloat(double f, IOSTREAM *fd)
 { unsigned char *cl = (unsigned char *)&f;
   unsigned int i;
 
-  DEBUG(3, Sdprintf("putReal(%f)\n", f));
+  DEBUG(3, Sdprintf("putFloat(%f)\n", f));
 
   for(i=0; i<BYTES_PER_DOUBLE; i++)
     Sputc(cl[double_byte_order[i]], fd);
@@ -1583,9 +1583,9 @@ saveXR__LD(word xr, IOSTREAM *fd ARG_LD)
   { Sputc(XR_INT, fd);
     putNum(valBignum(xr), fd);
     return;
-  } else if ( isReal(xr) )
+  } else if ( isFloat(xr) )
   { Sputc(XR_FLOAT, fd);
-    putReal(valReal(xr), fd);
+    putFloat(valFloat(xr), fd);
     return;
 #if O_STRING
   } else if ( isString(xr) )
@@ -1820,7 +1820,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 	  } v;
 	  Word p = v.w;
 	  cpDoubleData(p, bp);
-	  putReal(v.f, fd);
+	  putFloat(v.f, fd);
 	  break;
 	}
 	case CA1_STRING:

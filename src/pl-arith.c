@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -378,7 +378,7 @@ name(Number n1, Number n2) \
       return mpz_cmp(n1->value.mpz, n2->value.mpz) op 0; \
     case V_MPQ: \
       return mpq_cmp(n1->value.mpq, n2->value.mpq) op 0; \
-    case V_REAL: \
+    case V_FLOAT: \
       return n1->value.f op n2->value.f; \
     default: \
       assert(0); \
@@ -394,7 +394,7 @@ name(Number n1, Number n2) \
 { switch(n1->type) \
   { case V_INTEGER: \
       return n1->value.i op n2->value.i; \
-    case V_REAL: \
+    case V_FLOAT: \
       return n1->value.f op n2->value.f; \
     default: \
       assert(0); \
@@ -715,8 +715,8 @@ eval_expression(term_t t, Number r, int recursion ARG_LD)
       get_integer(w, r);
       succeed;
     case TAG_FLOAT:
-      r->value.f = valReal(w);
-      r->type = V_REAL;
+      r->value.f = valFloat(w);
+      r->type = V_FLOAT;
       succeed;
     case TAG_VAR:
       return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
@@ -977,7 +977,7 @@ toIntegerNumber(Number n, int flags)
       }
       fail;
 #endif
-    case V_REAL:
+    case V_FLOAT:
       if ( (flags & TOINT_CONVERT_FLOAT) )
       { if ( double_in_int64_range(n->value.f) )
 	{ int64_t l = (int64_t)n->value.f;
@@ -1023,7 +1023,7 @@ promoteIntNumber(Number n)
     if ( truePrologFlag(PLFLAG_ISO) )
       return PL_error("+", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
 
-  promoteToRealNumber(n);
+  promoteToFloatNumber(n);
 #endif
 
   succeed;
@@ -1060,7 +1060,7 @@ ar_add_ui(Number n, intptr_t add)
       succeed;
     }
 #endif
-    case V_REAL:
+    case V_FLOAT:
     { n->value.f += (double)add;
 
       return check_float(n->value.f);
@@ -1113,9 +1113,9 @@ pl_ar_add(Number n1, Number n2, Number r)
       succeed;
     }
 #endif
-    case V_REAL:
+    case V_FLOAT:
     { r->value.f = n1->value.f + n2->value.f; 
-      r->type = V_REAL;
+      r->type = V_FLOAT;
 
       return check_float(r->value.f);
     }
@@ -1159,9 +1159,9 @@ ar_minus(Number n1, Number n2, Number r)
       succeed;
     }  
 #endif
-    case V_REAL:
+    case V_FLOAT:
     { r->value.f = n1->value.f - n2->value.f; 
-      r->type = V_REAL;
+      r->type = V_FLOAT;
 
       return check_float(r->value.f);
     }
@@ -1348,9 +1348,9 @@ ar_shift_right(Number n1, Number n2, Number r)
 #define UNAIRY_FLOAT_FUNCTION(name, op) \
   static int \
   name(Number n1, Number r) \
-  { promoteToRealNumber(n1); \
+  { promoteToFloatNumber(n1); \
     r->value.f = op(n1->value.f); \
-    r->type    = V_REAL; \
+    r->type    = V_FLOAT; \
     return check_float(r->value.f); \
   }
 
@@ -1406,10 +1406,10 @@ ar_shift_right(Number n1, Number n2, Number r)
 #define BINAIRY_FLOAT_FUNCTION(name, func) \
   static int \
   name(Number n1, Number n2, Number r) \
-  { promoteToRealNumber(n1); \
-    promoteToRealNumber(n2); \
+  { promoteToFloatNumber(n1); \
+    promoteToFloatNumber(n2); \
     r->value.f = func(n1->value.f, n2->value.f); \
-    r->type = V_REAL; \
+    r->type = V_FLOAT; \
     return check_float(r->value.f); \
   }
 
@@ -1515,10 +1515,10 @@ ar_pow(Number n1, Number n2, Number r)
 
 doreal:
 #endif /*O_GMP*/
-  promoteToRealNumber(n1);
-  promoteToRealNumber(n2);
+  promoteToFloatNumber(n1);
+  promoteToFloatNumber(n2);
   r->value.f = pow(n1->value.f, n2->value.f);
-  r->type = V_REAL;
+  r->type = V_FLOAT;
 
   return check_float(r->value.f);
 }
@@ -1553,11 +1553,11 @@ ar_powm(Number base, Number exp, Number mod, Number r)
 
 static int
 ar_sqrt(Number n1, Number r)
-{ promoteToRealNumber(n1);
+{ promoteToFloatNumber(n1);
   if ( n1->value.f < 0 )
     return PL_error("sqrt", 1, NULL, ERR_AR_UNDEF);
   r->value.f = sqrt(n1->value.f);
-  r->type    = V_REAL;
+  r->type    = V_FLOAT;
 
   return check_float(r->value.f);
 }
@@ -1565,11 +1565,11 @@ ar_sqrt(Number n1, Number r)
 
 static int
 ar_asin(Number n1, Number r)
-{ promoteToRealNumber(n1);
+{ promoteToFloatNumber(n1);
   if ( n1->value.f < -1.0 || n1->value.f > 1.0 )
     return PL_error("asin", 1, NULL, ERR_AR_UNDEF);
   r->value.f = asin(n1->value.f);
-  r->type    = V_REAL;
+  r->type    = V_FLOAT;
 
   return check_float(r->value.f);
 }
@@ -1577,11 +1577,11 @@ ar_asin(Number n1, Number r)
 
 static int
 ar_acos(Number n1, Number r)
-{ promoteToRealNumber(n1);
+{ promoteToFloatNumber(n1);
   if ( n1->value.f < -1.0 || n1->value.f > 1.0 )
     return PL_error("acos", 1, NULL, ERR_AR_UNDEF);
   r->value.f = acos(n1->value.f);
-  r->type    = V_REAL;
+  r->type    = V_FLOAT;
 
   return check_float(r->value.f);
 }
@@ -1589,11 +1589,11 @@ ar_acos(Number n1, Number r)
 
 static int
 ar_log(Number n1, Number r)
-{ promoteToRealNumber(n1);
+{ promoteToFloatNumber(n1);
   if ( n1->value.f <= 0.0 )
     return PL_error("log", 1, NULL, ERR_AR_UNDEF);
   r->value.f = log(n1->value.f);
-  r->type    = V_REAL;
+  r->type    = V_FLOAT;
 
   return check_float(r->value.f);
 }
@@ -1601,11 +1601,11 @@ ar_log(Number n1, Number r)
 
 static int
 ar_log10(Number n1, Number r)
-{ promoteToRealNumber(n1);
+{ promoteToFloatNumber(n1);
   if ( n1->value.f <= 0.0 )
     return PL_error("log10", 1, NULL, ERR_AR_UNDEF);
   r->value.f = log10(n1->value.f);
-  r->type    = V_REAL;
+  r->type    = V_FLOAT;
 
   return check_float(r->value.f);
 }
@@ -1657,7 +1657,7 @@ ar_sign_i(Number n1)
     case V_MPQ:
       return mpq_sgn(n1->value.mpq);
 #endif
-    case V_REAL:
+    case V_FLOAT:
       return (n1->value.f < 0.0 ? -1 : n1->value.f > 0.0 ? 1 : 0);
     default:
       assert(0);
@@ -1744,7 +1744,7 @@ ar_rationalize(Number n1, Number r)
       cpNumber(r, n1);
       promoteToMPQNumber(r);
       succeed;
-    case V_REAL:
+    case V_FLOAT:
     { double e0 = n1->value.f, p0 = 0.0, q0 = 1.0;
       double e1 =	 -1.0, p1 = 1.0, q1 = 0.0;
       double d;
@@ -1853,18 +1853,18 @@ ar_divide(Number n1, Number n2, Number r)
 	mpq_div(r->value.mpq, n1->value.mpq, n2->value.mpq);
 	succeed;
 #endif
-      case V_REAL:
+      case V_FLOAT:
 	break;
     }
   }
 
 					/* TBD: How to handle Q? */
-  promoteToRealNumber(n1);
-  promoteToRealNumber(n2);
+  promoteToFloatNumber(n1);
+  promoteToFloatNumber(n2);
   if ( n2->value.f == 0.0 )
     return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
   r->value.f = n1->value.f / n2->value.f;
-  r->type = V_REAL;
+  r->type = V_FLOAT;
 
   return check_float(r->value.f);
 }
@@ -1964,9 +1964,9 @@ ar_mul(Number n1, Number n2, Number r)
 #else
       return PL_error("*", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
-    case V_REAL:
+    case V_FLOAT:
       r->value.f = n1->value.f * n2->value.f;
-      r->type = V_REAL;
+      r->type = V_FLOAT;
 
       return check_float(r->value.f);
   }
@@ -2007,7 +2007,7 @@ ar_minmax(Number n1, Number n2, Number r, int ismax)
       which = (mpq_cmp(c1->value.mpq, c2->value.mpq) > 0);
       break;
 #endif
-    case V_REAL:
+    case V_FLOAT:
       which = c1->value.f >= c2->value.f;
       break;
     default:
@@ -2225,8 +2225,8 @@ ar_u_minus(Number n1, Number r)
 	promoteToMPZNumber(n1);
 	r->type = V_MPZ;
 #else
-  	promoteToRealNumber(n1);
-	r->type = V_REAL;
+  	promoteToFloatNumber(n1);
+	r->type = V_FLOAT;
 #endif
 	/*FALLTHROUGH*/
       } else
@@ -2243,9 +2243,9 @@ ar_u_minus(Number n1, Number r)
       mpq_neg(r->value.mpq, n1->value.mpq);
       break;
 #endif
-    case V_REAL:
+    case V_FLOAT:
       r->value.f = -n1->value.f;
-      r->type = V_REAL;
+      r->type = V_FLOAT;
       break;
   }
 
@@ -2279,8 +2279,8 @@ ar_abs(Number n1, Number r)
 	promoteToMPZNumber(n1);
 	r->type = V_MPZ;
 #else
-	promoteToRealNumber(n1);
-	r->type = V_REAL;
+	promoteToFloatNumber(n1);
+	r->type = V_FLOAT;
 #endif
 	/*FALLTHROUGH*/
       } else
@@ -2300,9 +2300,9 @@ ar_abs(Number n1, Number r)
       mpq_abs(r->value.mpq, n1->value.mpq);
       break;
 #endif
-    case V_REAL:
+    case V_FLOAT:
     { r->value.f = abs(n1->value.f);
-      r->type = V_REAL;
+      r->type = V_FLOAT;
       break;
     }
   }
@@ -2347,7 +2347,7 @@ ar_integer(Number n1, Number r)
       succeed;
     }
 #endif
-    case V_REAL:
+    case V_FLOAT:
     { if ( n1->value.f <= PLMAXINT && n1->value.f >= PLMININT )
       { if ( n1->value.f > 0 )
 	{ r->value.i = (int64_t)(n1->value.f + 0.5);
@@ -2369,7 +2369,7 @@ ar_integer(Number n1, Number r)
 #else
 #ifdef HAVE_RINT
       r->value.f = rint(n1->value.f);
-      r->type = V_REAL;
+      r->type = V_FLOAT;
       succeed;
 #else
       return PL_error("integer", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
@@ -2386,7 +2386,7 @@ ar_integer(Number n1, Number r)
 static int
 ar_float(Number n1, Number r)
 { cpNumber(r, n1);
-  promoteToRealNumber(r);
+  promoteToFloatNumber(r);
 
   succeed;
 }
@@ -2411,10 +2411,10 @@ ar_floor(Number n1, Number r)
 	mpz_sub_ui(r->value.mpz, r->value.mpz, 1L);
       succeed;
 #endif
-    case V_REAL:
+    case V_FLOAT:
     {
 #ifdef HAVE_FLOOR
-      r->type = V_REAL;
+      r->type = V_FLOAT;
       r->value.f = floor(n1->value.f);
       if ( !toIntegerNumber(r, TOINT_CONVERT_FLOAT|TOINT_TRUNCATE) )
       { return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
@@ -2422,7 +2422,7 @@ ar_floor(Number n1, Number r)
 #else /*HAVE_FLOOR*/
       if ( n1->value.f > (double)PLMININT && n1->value.f < (double)PLMAXINT )
       { r->value.i = (int64_t)n1->value.f;
-	if ( n1->value.f < 0 && (real)r->value.i > n1->value.f )
+	if ( n1->value.f < 0 && (double)r->value.i > n1->value.f )
 	  r->value.i--;
 	r->type = V_INTEGER;
       } else
@@ -2464,10 +2464,10 @@ ar_ceil(Number n1, Number r)
 	mpz_add_ui(r->value.mpz, r->value.mpz, 1L);
       succeed;
 #endif
-    case V_REAL:
+    case V_FLOAT:
     {
 #ifdef HAVE_CEIL
-       r->type = V_REAL;
+       r->type = V_FLOAT;
        r->value.f = ceil(n1->value.f);
        if ( !toIntegerNumber(r, TOINT_CONVERT_FLOAT|TOINT_TRUNCATE) )
        { return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
@@ -2475,7 +2475,7 @@ ar_ceil(Number n1, Number r)
 #else /*HAVE_CEIL*/
        if ( n1->value.f > (double)PLMININT && n1->value.f < (double)PLMAXINT )
        { r->value.i = (int64_t)n1->value.f;
-	 if ( (real)r->value.i < n1->value.f )
+	 if ( (double)r->value.i < n1->value.f )
 	   r->value.i++;
 	 r->type = V_INTEGER;
        } else
@@ -2524,11 +2524,11 @@ ar_float_fractional_part(Number n1, Number r)
       mpq_sub(r->value.mpq, n1->value.mpq, r->value.mpq);
       succeed;
 #endif
-    case V_REAL:
+    case V_FLOAT:
     { double ip;
 
       r->value.f = modf(n1->value.f, &ip);
-      r->type = V_REAL;
+      r->type = V_FLOAT;
     }
   }
 
@@ -2554,12 +2554,12 @@ ar_float_integer_part(Number n1, Number r)
 		 mpq_denref(n1->value.mpq));
       succeed;
 #endif
-    case V_REAL:
+    case V_FLOAT:
     { double ip;
 
       (void)modf(n1->value.f, &ip);
       r->value.f = ip;
-      r->type = V_REAL;
+      r->type = V_FLOAT;
       succeed;
     }
   }
@@ -2580,7 +2580,7 @@ ar_truncate(Number n1, Number r)
       else
 	return ar_ceil(n1, r);
 #endif
-    case V_REAL:
+    case V_FLOAT:
       if ( n1->value.f >= 0.0 )
 	return ar_floor(n1, r);
       else
@@ -2634,7 +2634,7 @@ static int
 ar_pi(Number r)
 { r->value.f = M_PI;
 
-  r->type = V_REAL;
+  r->type = V_FLOAT;
   succeed;
 }
 
@@ -2643,7 +2643,7 @@ static int
 ar_e(Number r)
 { r->value.f = M_E;
 
-  r->type = V_REAL;
+  r->type = V_FLOAT;
   succeed;
 }
 
@@ -2652,7 +2652,7 @@ static int
 ar_cputime(Number r)
 { r->value.f = CpuTime(CPU_USER);
 
-  r->type = V_REAL;
+  r->type = V_FLOAT;
   succeed;
 }
 

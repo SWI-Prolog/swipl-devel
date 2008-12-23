@@ -1773,7 +1773,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
     }
     succeed;
   }
-  if ( isReal(*arg) )
+  if ( isFloat(*arg) )
   { Word p = valIndirectP(*arg);
 
     Output_0(ci, A_DOUBLE);

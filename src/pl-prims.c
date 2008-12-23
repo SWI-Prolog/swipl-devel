@@ -1275,8 +1275,8 @@ tail_recursion:
       return rc;
     }
     case TAG_FLOAT:
-    { real f1 = valReal(w1);
-      real f2 = valReal(w2);
+    { double f1 = valFloat(w1);
+      double f2 = valFloat(w2);
 
       return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
     }
@@ -4315,7 +4315,7 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
 { v->type = V_INTEGER;			/* most of them */
 
   if      (key == ATOM_cputime)				/* time */
-  { v->type = V_REAL;
+  { v->type = V_FLOAT;
     v->value.f = LD->statistics.user_cputime;
   } else if (key == ATOM_inferences)			/* inferences */
     v->value.i = LD->statistics.inferences;
@@ -4356,7 +4356,7 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
   else if (key == ATOM_codes)				/* codes */
     v->value.i = GD->statistics.codes;
   else if (key == ATOM_gctime)
-  { v->type = V_REAL;
+  { v->type = V_FLOAT;
     v->value.f = gc_status.time;
   } else if (key == ATOM_collections)
     v->value.i = gc_status.collections;
@@ -4368,7 +4368,7 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
   else if (key == ATOM_agc_gained)
     v->value.i = GD->atoms.collected;
   else if (key == ATOM_agc_time)
-  { v->type = V_REAL;
+  { v->type = V_FLOAT;
     v->value.f = GD->atoms.gc_time;
   }
 #endif
@@ -4392,7 +4392,7 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
   else if ( key == ATOM_threads_created )
     v->value.i = GD->statistics.threads_created;
   else if ( key == ATOM_thread_cputime )
-  { v->type = V_REAL;
+  { v->type = V_FLOAT;
     v->value.f = GD->statistics.thread_cputime;
   }
 #endif

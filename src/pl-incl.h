@@ -380,7 +380,6 @@ Booleans,  addresses,  strings  and other   goodies.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef int			bool;
-typedef double			real;
 
 #if __GNUC__ && !__STRICT_ANSI__
 #define LocalArray(t, n, s)	t n[s]
@@ -559,10 +558,13 @@ stored.  We call the latter type of data `indirect'.
 Below is a description of the  representation  used  for  each  type  of
 Prolog data:
 
+***TBD*** This is totally out of date.  The datatypes are accessed using
+macros defined in pl-data.h.
+
 INTEGER
     Integers are stored in the  27  remaining  bits  of  a  word.   This
     implies they are limited to +- 2^26.
-REAL
+FLOAT
     For a real, the 27 bits are a pointer to a 8 byte unit on the global
     stack.  For both words of the 8 byte unit, the top 3  and  bottom  2
     bits  are  reserved  for identification and garbage collection.  The
@@ -693,12 +695,12 @@ typedef enum
   V_MPZ,				/* mpz_t */
   V_MPQ,				/* mpq_t */
 #endif
-  V_REAL				/* Floating point number (double) */
+  V_FLOAT				/* Floating point number (double) */
 } numtype;
 
 typedef struct
 { numtype type;				/* type of number */
-  union { double f;			/* value as real */
+  union { double f;			/* value as a floating point number */
 	  int64_t i;			/* value as integer */
 	  word  w[WORDS_PER_DOUBLE];	/* for packing/unpacking the double */
 #ifdef O_GMP
@@ -718,9 +720,9 @@ typedef struct
 #ifdef O_GMP
 #define intNumber(n)	((n)->type <=  V_MPZ)
 #else
-#define intNumber(n)	((n)->type <  V_REAL)
+#define intNumber(n)	((n)->type <  V_FLOAT)
 #endif
-#define floatNumber(n)	((n)->type >= V_REAL)
+#define floatNumber(n)	((n)->type >= V_FLOAT)
 
 		 /*******************************
 		 *	   GET-PROCEDURE	*
@@ -1806,13 +1808,13 @@ typedef struct
   int64_t	trail_gained;		/* trail stack bytes collected */
   int64_t	global_left;		/* global stack bytes left after GC */
   int64_t	trail_left;		/* trail stack bytes left after GC */
-  real		time;			/* time spent in collections */
+  double	time;			/* time spent in collections */
 } pl_gc_status_t;
 
 
 typedef struct
 { int		blocked;		/* No shifts allowed */
-  real		time;			/* time spent in stack shifts */
+  double	time;			/* time spent in stack shifts */
   int		local_shifts;		/* Shifts of the local stack */
   int		global_shifts;		/* Shifts of the global stack */
   int		trail_shifts;		/* Shifts of the trail stack */

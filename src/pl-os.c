@@ -79,7 +79,7 @@
 #endif
 
 #if OS2 && EMX
-static real initial_time;
+static double initial_time;
 #endif /* OS2 */
 
 #define LOCK()   PL_LOCK(L_OS)
@@ -273,7 +273,7 @@ CpuTime(cputime_kind which)
 #else
 
 #ifdef HAVE_CLOCK
-  return (real) (clock() - clock_wait_ticks) / (real) CLOCKS_PER_SEC;
+  return (double) (clock() - clock_wait_ticks) / (double) CLOCKS_PER_SEC;
 #else
 
   return 0.0;
@@ -2815,11 +2815,10 @@ Which(const char *program, char *fullname)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    int Pause(time)
-	 real time;
+    int Pause(double time)
 
     Suspend execution `time' seconds.   Time  is  given  as  a  floating
-    point,  expressing  the  time  to sleep in seconds.
+    point number,  expressing  the  time  to sleep in seconds.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef __WINDOWS__
@@ -2830,7 +2829,7 @@ Which(const char *program, char *fullname)
 #define PAUSE_DONE 1
 
 int
-Pause(real t)
+Pause(double t)
 { struct timespec req;
   int rc;
 
@@ -2857,10 +2856,9 @@ Pause(real t)
 #define PAUSE_DONE 1
 
 int
-Pause(real t)
-{
-  if ( t <= 0.0 )
-    return;
+Pause(double t)
+{ if ( t <= 0.0 )
+    return TRUE;
 
   usleep((uintptr_t)(t * 1000000.0));
 
@@ -2874,7 +2872,7 @@ Pause(real t)
 #define PAUSE_DONE 1
 
 int
-Pause(real time)
+Pause(double time)
 { struct timeval timeout;
 
   if ( time <= 0.0 )
@@ -2908,10 +2906,10 @@ Pause(real time)
 #if !defined(PAUSE_DONE) && defined(HAVE_DOSSLEEP)
 #define PAUSE_DONE 1
 
-int                            /* a millisecond granualrity. */
-Pause(time)                     /* the EMX function sleep uses a seconds */
-real time;                      /* granularity only. */
-{                               /* the select() trick does not work at all. */
+int					/* a millisecond granualrity. */
+Pause(time)				/* the EMX function sleep uses a seconds */
+double time;				/* granularity only. */
+{					/* the select() trick does not work at all. */
   if ( time <= 0.0 )
     return;
 
@@ -2926,7 +2924,7 @@ real time;                      /* granularity only. */
 #define PAUSE_DONE 1
 
 int
-Pause(real t)
+Pause(double t)
 { if ( t <= 0.5 )
     succeed;
 
@@ -2941,7 +2939,7 @@ Pause(real t)
 #define PAUSE_DONE 1
 
 int
-Pause(real t)
+Pause(double t)
 { delay((int)(t * 1000));
 
   return TRUE;
@@ -2951,7 +2949,7 @@ Pause(real t)
 
 #ifndef PAUSE_DONE
 int
-Pause(real t)
+Pause(double t)
 { return notImplemented("sleep", 1);
 }
 #endif

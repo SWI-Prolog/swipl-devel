@@ -983,7 +983,7 @@ doublecpy(void *to, void *from)
 
 
 double					/* take care of alignment! */
-valReal__LD(word w ARG_LD)
+valFloat__LD(word w ARG_LD)
 { fword *v = (fword *)valIndirectP(w);
   union
   { double d;
@@ -997,7 +997,7 @@ valReal__LD(word w ARG_LD)
 
 
 word
-globalReal(double d)
+globalFloat(double d)
 { GET_LD
   Word p = allocGlobal(2+WORDS_PER_DOUBLE);
   word r = consPtr(p, TAG_FLOAT|STG_GLOBAL);

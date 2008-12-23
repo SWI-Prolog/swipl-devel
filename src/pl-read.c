@@ -1280,17 +1280,17 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
 #define unget_token()	{ unget = TRUE; }
 
 #ifndef O_GMP
-static real
-uint64_to_real(uint64_t i)
+static double
+uint64_to_double(uint64_t i)
 {
 #ifdef __WINDOWS__
   int64_t s = (int64_t)i;
   if ( s >= 0 )
-    return (real)s;
+    return (double)s;
   else
-    return (real)s + 18446744073709551616.0;
+    return (double)s + 18446744073709551616.0;
 #else
-  return (real)i;
+  return (double)i;
 #endif
 }
 #endif
@@ -1320,7 +1320,7 @@ scan_decimal(cucharp *sp, Number n)
       succeed;
 #else
       double maxf = MAXREAL / (double) 10 - (double) 10;
-      double tf = uint64_to_real(t);
+      double tf = uint64_to_double(t);
 
       for(c = *s; isDigit(c); c = *++s)
       { if ( tf > maxf )
@@ -1329,7 +1329,7 @@ scan_decimal(cucharp *sp, Number n)
       }
       *sp = s;
       n->value.f = tf;
-      n->type = V_REAL;
+      n->type = V_FLOAT;
       succeed;
 #endif
     } else
@@ -1373,18 +1373,18 @@ scan_number(cucharp *s, int b, Number n)
 
       succeed;
 #else
-      real maxf = MAXREAL / (real) b - (real) b;
-      real tf = uint64_to_real(t);
+      double maxf = MAXREAL / (double) b - (double) b;
+      double tf = uint64_to_double(t);
 
-      tf = tf * (real)b + (real)d;
+      tf = tf * (double)b + (double)d;
       while((d = digitValue(b, *q)) >= 0)
       { q++;
         if ( tf > maxf )
 	  fail;				/* number too large */
-        tf = tf * (real)b + (real)d;
+        tf = tf * (double)b + (double)d;
       }
       n->value.f = tf;
-      n->type = V_REAL;
+      n->type = V_FLOAT;
       *s = q;
       succeed;
 #endif
@@ -1594,7 +1594,7 @@ neg_number(Number n)
 	promoteToMPZNumber(n);
 	mpz_neg(n->value.mpz, n->value.mpz);
 #else
-	n->type = V_REAL;
+	n->type = V_FLOAT;
 	n->value.f = -(double)n->value.i;
 #endif
       } else
@@ -1608,7 +1608,7 @@ neg_number(Number n)
     case V_MPQ:
       assert(0);			/* are not read directly */
 #endif
-    case V_REAL:
+    case V_FLOAT:
       n->value.f = -n->value.f;
   }
 }
@@ -1695,7 +1695,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
   if ( *in == '.' && isDigit(in[1]) )
   { double n;
 
-    promoteToRealNumber(value);
+    promoteToFloatNumber(value);
     n = 10.0, in++;
     while( isDigit(c = *in) )
     { in++;
@@ -1727,7 +1727,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 	 exponent.type != V_INTEGER )
       fail;				/* too large exponent */
 
-    promoteToRealNumber(value);
+    promoteToFloatNumber(value);
 
     value->value.f *= pow((double)10.0,
 			  neg_exponent ? -(double)exponent.value.i

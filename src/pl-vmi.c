@@ -324,7 +324,7 @@ VMI(H_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
     *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
     bindConst(k, c);
     NEXT_INSTRUCTION;
-  } else if ( isReal(*k) )
+  } else if ( isFloat(*k) )
   { Word p = valIndirectP(*k);
 
     switch(WORDS_PER_DOUBLE) /* depend on compiler to clean up */
@@ -2232,7 +2232,7 @@ VMI(A_DOUBLE, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
   Word p = &n->value.w[0];
 
   cpDoubleData(p, PC);
-  n->type       = V_REAL;
+  n->type       = V_FLOAT;
   NEXT_INSTRUCTION;
 }
 
@@ -2270,8 +2270,8 @@ a_var_n:
       NEXT_INSTRUCTION;
     case TAG_FLOAT:
       n = allocArithStack(PASS_LD1);
-      n->value.f = valReal(*p2);
-      n->type = V_REAL;
+      n->value.f = valFloat(*p2);
+      n->type = V_FLOAT;
       NEXT_INSTRUCTION;
     default:
     { intptr_t lsafe = (char*)lTop - (char*)lBase;
@@ -2495,7 +2495,7 @@ BEGIN_SHAREDVARS
     { case V_INTEGER: \
         rc = n1->value.i op n2->value.i; \
 	goto a_cmp_out; \
-      case V_REAL: \
+      case V_FLOAT: \
         rc = n1->value.f op n2->value.f; \
 	goto a_cmp_out; \
       default: \
@@ -2591,8 +2591,8 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
       get_integer(*k, &left);
       rc = (cmpNumbers(&left, n) == 0);
       clearNumber(&left);
-    } else if ( isReal(*k) && floatNumber(n) )
-    { rc = (valReal(*k) == n->value.f);
+    } else if ( isFloat(*k) && floatNumber(n) )
+    { rc = (valFloat(*k) == n->value.f);
     } else
     { rc = FALSE;
     }

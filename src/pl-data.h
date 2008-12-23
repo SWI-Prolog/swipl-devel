@@ -188,7 +188,7 @@ and while loading .wic files.  It comes at no price.
 #define isAtom(w)	(tagex(w) == TAG_ATOM)
 #define isTextAtom(w)	(isAtom(w) && true(atomValue(w)->type, PL_BLOB_TEXT))
 #define isInteger(w)	(tag(w)   == TAG_INTEGER)
-#define isReal(w)	(tag(w)   == TAG_FLOAT)
+#define isFloat(w)	(tag(w)   == TAG_FLOAT)
 #define isString(w)	(tag(w)   == TAG_STRING)
 #define isTerm(w)	(tag(w)   == TAG_COMPOUND)
 #define isConst(w)	(isAtom(w) || isTaggedInt(w)) /* H_CONST, B_CONST */
@@ -322,7 +322,7 @@ and while loading .wic files.  It comes at no price.
 		 *******************************/
 
 #define nonvar(w)	(!isVar(w))
-#define isNumber(w)	(isInteger(w) || isReal(w))
+#define isNumber(w)	(isInteger(w) || isFloat(w))
 #define isAtomic(w)	(!canBind(w) && !isTerm(w))
 
 

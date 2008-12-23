@@ -371,7 +371,7 @@ extern void		initPrologThreads(void);
 #define freeRecord(r)		freeRecord__LD(r PASS_LD)
 #define makeNum(n)		makeNum__LD(n PASS_LD)
 #define getInputStream(t, s)	getInputStream__LD(t, s PASS_LD)
-#define valReal(w)		valReal__LD(w PASS_LD)
+#define valFloat(w)		valFloat__LD(w PASS_LD)
 #define getCharsString(s, l)	getCharsString__LD(s, l PASS_LD)
 #define getCharsWString(s, l)	getCharsWString__LD(s, l PASS_LD)
 #define compileTermToHeap(t, f)	compileTermToHeap__LD(t, f PASS_LD)
