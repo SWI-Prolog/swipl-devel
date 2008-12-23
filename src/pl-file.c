@@ -473,12 +473,12 @@ get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
     return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		    (flags&SH_ALIAS) ? ATOM_stream_or_alias : ATOM_stream, t);
 
-  fail;
+  return FALSE;
 
 noent:
   if ( flags & SH_ERRORS )
     PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
-  fail;
+  return FALSE;
 }
 
 #define get_stream_handle(t, sp, flags) \
@@ -533,9 +533,9 @@ PL_unify_stream(term_t t, IOSTREAM *s)
   PL_cons_functor(a, FUNCTOR_dstream1, a);
 
   if ( PL_unify(t, a) )
-    succeed;
+    return TRUE;
   if ( PL_is_functor(t, FUNCTOR_dstream1) )
-    fail;
+    return FALSE;
 
   return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream, t);
 }
@@ -561,8 +561,7 @@ getOutputStream(term_t t, IOSTREAM **s)
     using releaseStream() or streamStatus().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
-bool
+int
 getOutputStream(term_t t, IOSTREAM **stream)
 { GET_LD
   atom_t a;
@@ -579,7 +578,7 @@ getOutputStream(term_t t, IOSTREAM **stream)
   }
 
   if ( !PL_get_stream_handle(t, &s) )
-    fail;
+    return FALSE;
   
   if ( !(s->flags &SIO_OUTPUT) )
   { releaseStream(s);
@@ -588,11 +587,11 @@ getOutputStream(term_t t, IOSTREAM **stream)
   }
 
   *stream = s;
-  succeed;
+  return TRUE;
 }
 
 
-bool
+int
 getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
 { atom_t a;
   IOSTREAM *s;
@@ -608,7 +607,7 @@ getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
   }
 
   if ( !get_stream_handle(t, &s, SH_ERRORS|SH_ALIAS) )
-    fail;
+    return FALSE;
 
   if ( !(s->flags &SIO_INPUT) )
   { releaseStream(s);
@@ -617,7 +616,7 @@ getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
   }
 
   *stream = s;
-  succeed;
+  return TRUE;
 }
 
 
@@ -641,7 +640,7 @@ isConsoleStream(IOSTREAM *s)
 #endif
 
 
-bool
+int
 reportStreamError(IOSTREAM *s)
 { if ( GD->cleaning == CLN_NORMAL &&
        !isConsoleStream(s) &&
@@ -662,7 +661,7 @@ reportStreamError(IOSTREAM *s)
 	s->exception = NULL;
 	PL_raise_exception(ex);
 	PL_close_foreign_frame(fid);
-	fail;
+	return FALSE;
       }
 
       if ( s->flags & SIO_INPUT )
@@ -673,7 +672,7 @@ reportStreamError(IOSTREAM *s)
 	{ PL_error(NULL, 0, NULL, ERR_TIMEOUT,
 		   ATOM_read, stream);
 	  Sclearerr(s);
-	  fail;
+	  return FALSE;
 	} else
 	  op = ATOM_read;
       } else
@@ -686,7 +685,7 @@ reportStreamError(IOSTREAM *s)
       if ( (s->flags & SIO_CLEARERR) )
 	Sseterr(s, SIO_FERR, NULL);
 
-      fail;
+      return FALSE;
     } else
     { printMessage(ATOM_warning,
 		   PL_FUNCTOR_CHARS, "io_warning", 2,
@@ -697,11 +696,11 @@ reportStreamError(IOSTREAM *s)
     }
   }
   
-  succeed;
+  return TRUE;
 }
 
 
-bool
+int
 streamStatus(IOSTREAM *s)
 { if ( (s->flags & (SIO_FERR|SIO_WARN)) )
   { releaseStream(s);
@@ -709,7 +708,7 @@ streamStatus(IOSTREAM *s)
   }
 
   releaseStream(s);
-  succeed;
+  return TRUE;
 }
 
 
@@ -759,7 +758,7 @@ to a write-error), an exception is  generated.
 MT: We assume the stream is locked and will unlock it here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 closeStream(IOSTREAM *s)
 { if ( s == Sinput )
   { Sclearerr(s);
@@ -775,10 +774,10 @@ closeStream(IOSTREAM *s)
       return FALSE;
     }
     if ( Sclose(s) < 0 )		/* will unlock as well */
-      fail;
+      return FALSE;
   }
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -861,7 +860,7 @@ push_input_context()
   c->previous         = input_context_stack;
   input_context_stack = c;
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -877,10 +876,10 @@ pop_input_context()
     input_context_stack = c->previous;
     freeHeap(c, sizeof(struct input_context));
 
-    succeed;
+    return TRUE;
   } else
   { Scurin		= Sinput;
-    fail;
+    return FALSE;
   }
 }
 
@@ -986,7 +985,7 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
     Scurout = ctx->stream;
   }
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -1067,7 +1066,7 @@ PRED_IMPL("with_output_to", 2, with_output_to, PL_FA_TRANSPARENT)
       return PL_raise_exception(ex);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -1171,7 +1170,7 @@ readLine() reads a line from the terminal.  It is used only by the tracer.
 #define DEL 127
 #endif
 
-bool
+int
 readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
 { GET_LD
   int c;
@@ -1226,7 +1225,7 @@ PL_current_output()
 
 
 static int
-openProtocol(term_t f, bool appnd)
+openProtocol(term_t f, int appnd)
 { GET_LD
   IOSTREAM *s;
   term_t mode = PL_new_term_ref();
@@ -1271,7 +1270,7 @@ noprotocol(void)
     Sprotocol = NULL;
   }
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -1297,7 +1296,7 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
   term_t attr = A2;
 
   if ( !PL_get_stream_handle(stream, &s) )
-    fail;
+    return FALSE;
 
   if ( PL_get_name_arity(attr, &aname, &arity) )
   { if ( arity == 1 )
@@ -1360,7 +1359,7 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
       { atom_t action;
 
 	if ( !PL_get_atom_ex(a, &action) )
-	  fail;
+	  return FALSE;
 	if ( action == ATOM_eof_code )
 	{ s->flags &= ~(SIO_NOFEOF|SIO_FEOF2ERR);
 	} else if ( action == ATOM_reset )
@@ -1504,10 +1503,10 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 
 ok:
   releaseStream(s);
-  succeed;
+  return TRUE;
 error:
   releaseStream(s);
-  fail;
+  return FALSE;
 }
 
 
@@ -1517,7 +1516,7 @@ error:
 
 extern IOFUNCTIONS Smemfunctions;
 
-bool
+int
 tellString(char **s, size_t *size, IOENC enc)
 { GET_LD
   IOSTREAM *stream;
@@ -1531,13 +1530,13 @@ tellString(char **s, size_t *size, IOENC enc)
 }
 
 
-bool
+int
 toldString()
 { GET_LD
   IOSTREAM *s = getStream(Scurout);
 
   if ( !s )
-    succeed;
+    return TRUE;
 
   if ( s->functions == &Smemfunctions )
   { closeStream(s);
@@ -1545,7 +1544,7 @@ toldString()
   } else
     releaseStream(s);
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -1604,7 +1603,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     fdentry *e;
 
     if ( !PL_get_stream_handle(head, &s) )
-      fail;
+      return FALSE;
     if ( (fd=Sfileno(s)) < 0 )
     { releaseStream(s);
       return PL_error("wait_for_input", 3, NULL, ERR_DOMAIN,
@@ -1615,7 +1614,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     if ( s->bufp < s->limitp )
     { if ( !PL_unify_list(available, ahead, available) ||
 	   !PL_unify(ahead, head) )
-	fail;
+	return FALSE;
       from_buffer++;
     }
 
@@ -1679,7 +1678,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
   { fdentry *e;
 
     if ( PL_handle_signals() < 0 )
-      fail;				/* exception */
+      return FALSE;				/* exception */
 
     FD_ZERO(&fds);			/* EINTR may leave fds undefined */
     for(e=map; e; e=e->next)		/* so we rebuild it to be safe */
@@ -1705,7 +1704,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
       { if ( FD_ISSET(n, &fds) )
 	{ if ( !PL_unify_list(available, ahead, available) ||
 	       !PL_unify(ahead, findmap(map, n)) )
-	    fail;
+	    return FALSE;
 	}
       }
       break;
@@ -1994,7 +1993,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
       case ENC_UNKNOWN:
       default:
 	assert(0);
-        fail;
+        return FALSE;
     }
 
 
@@ -2011,17 +2010,17 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
       goto failure;
     
     releaseStream(s);
-    succeed;
+    return TRUE;
 
   failure:
     Sseek64(s, off0, SIO_SEEK_SET);	/* TBD: error? */
     if ( s->position )
       *s->position = pos0;
     releaseStream(s);
-    fail;
+    return FALSE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -2033,7 +2032,7 @@ put_byte(term_t stream, term_t byte ARG_LD)
   if ( !PL_get_integer(byte, &c) || c < 0 || c > 255 )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_byte, byte);
   if ( !getOutputStream(stream, &s) )
-    fail;
+    return FALSE;
 
   Sputc(c, s);
   
@@ -2063,9 +2062,9 @@ put_code(term_t stream, term_t chr ARG_LD)
   int c = 0;
 
   if ( !PL_get_char(chr, &c, FALSE) )
-    fail;
+    return FALSE;
   if ( !getOutputStream(stream, &s) )
-    fail;
+    return FALSE;
 
   Sputcode(c, s);
   
@@ -2127,7 +2126,7 @@ get_nonblank(term_t in, term_t chr ARG_LD)
     }
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -2154,9 +2153,9 @@ skip(term_t in, term_t chr ARG_LD)
   IOSTREAM *s;
 
   if ( !PL_get_char(chr, &c, FALSE) )
-    fail;
+    return FALSE;
   if ( !getInputStream(in, &s) )
-    fail;
+    return FALSE;
   
   while((r=Sgetcode(s)) != c && r != EOF )
     ;
@@ -2214,7 +2213,7 @@ get_byte2(term_t in, term_t chr ARG_LD)
     PL_get_char(chr, &c, TRUE);		/* set type-error */
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -2251,7 +2250,7 @@ get_code2(term_t in, term_t chr ARG_LD)
     releaseStream(s);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -2286,7 +2285,7 @@ get_char2(term_t in, term_t chr ARG_LD)
     releaseStream(s);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -2341,7 +2340,7 @@ PRED_IMPL("protocolling", 1, protocolling, 0)
       return PL_unify_stream_or_alias(A1, s);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -2359,10 +2358,10 @@ PRED_IMPL("prompt", 2, prompt, 0)
       PL_unregister_atom(LD->prompt.current);
     LD->prompt.current = a;
     PL_register_atom(a);
-    succeed;
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -2392,9 +2391,9 @@ PRED_IMPL("prompt1", 1, prompt1, 0)
   } else if ( PL_get_text(A1, &txt,  CVT_ALL|CVT_EXCEPTION) )
   { prompt1(textToAtom(&txt));
   } else
-    fail;
+    return FALSE;
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -2422,9 +2421,9 @@ tab(term_t out, term_t spaces)
   IOSTREAM *s;
 
   if ( !getOutputStream(out, &s) )
-    fail;
+    return FALSE;
   if ( !PL_eval_expression_to_int64_ex(spaces, &count) )
-    fail;
+    return FALSE;
 
   while(count-- > 0)
   { if ( Sputcode(' ', s) < 0 )
@@ -2545,14 +2544,14 @@ openStream(term_t file, term_t mode, term_t options)
 { GET_LD
   atom_t mname;
   atom_t type           = ATOM_text;
-  bool   reposition     = TRUE;
+  int    reposition     = TRUE;
   atom_t alias	        = NULL_ATOM;
   atom_t eof_action     = ATOM_eof_code;
   atom_t buffer         = ATOM_full;
   atom_t lock		= ATOM_none;
   atom_t encoding	= NULL_ATOM;
-  bool   close_on_abort = TRUE;
-  bool	 bom		= -1;
+  int    close_on_abort = TRUE;
+  int	 bom		= -1;
   char   how[10];
   char  *h		= how;
   char *path;
@@ -2563,7 +2562,7 @@ openStream(term_t file, term_t mode, term_t options)
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
 		       &type, &reposition, &alias, &eof_action,
 		       &close_on_abort, &buffer, &lock, &encoding, &bom) )
-      fail;
+      return FALSE;
   }
 
 					/* MODE */
@@ -2707,7 +2706,7 @@ PRED_IMPL("open", 4, open4, PL_FA_ISO)
   if ( s )
     return PL_unify_stream_or_alias(A3, s);
 
-  fail;
+  return FALSE;
 }
 
 
@@ -2718,7 +2717,7 @@ PRED_IMPL("open", 3, open3, PL_FA_ISO)
   if ( s )
     return PL_unify_stream_or_alias(A3, s);
 
-  fail;
+  return FALSE;
 }
 
 		 /*******************************
@@ -2773,7 +2772,7 @@ pl_see(term_t f)
   PL_put_atom(mode, ATOM_read);
   if ( !(s = openStream(f, mode, 0)) )
   { UNLOCK();
-    fail;
+    return FALSE;
   }
 
   set(getStreamContext(s), IO_SEE);
@@ -2783,7 +2782,7 @@ pl_see(term_t f)
 ok:
   UNLOCK();
 
-  succeed;
+  return TRUE;
 }
 
 int
@@ -2794,7 +2793,7 @@ pl_seen()
   pop_input_context();
 
   if ( s->flags & SIO_NOFEOF )
-    succeed;
+    return TRUE;
 
   return closeStream(s);
 }
@@ -2852,7 +2851,7 @@ do_tell(term_t f, atom_t m)
   PL_put_atom(mode, m);
   if ( !(s = openStream(f, mode, 0)) )
   { UNLOCK();
-    fail;
+    return FALSE;
   }
 
   set(getStreamContext(s), IO_TELL);
@@ -2861,7 +2860,7 @@ do_tell(term_t f, atom_t m)
 
 ok:
   UNLOCK();
-  succeed;
+  return TRUE;
 }
 
 static
@@ -2892,7 +2891,7 @@ PRED_IMPL("told", 0, told, 0)
   popOutputContext();
 
   if ( s->flags & SIO_NOFEOF )
-    succeed;
+    return TRUE;
 
   return closeStream(s);
 }
@@ -2950,7 +2949,7 @@ PRED_IMPL("open_null_stream", 1, open_null_stream, 0)
     return PL_unify_stream_or_alias(A1, s);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -2961,7 +2960,7 @@ PRED_IMPL("close", 1, close, PL_FA_ISO)
   if ( PL_get_stream_handle(A1, &s) )
     return closeStream(s);
 
-  fail;
+  return FALSE;
 }
 
 
@@ -2974,13 +2973,13 @@ static const opt_spec close2_options[] =
 static
 PRED_IMPL("close", 2, close2, PL_FA_ISO)
 { IOSTREAM *s;
-  bool force = FALSE;
+  int force = FALSE;
 
   if ( !scan_options(A2, 0, ATOM_close_option, close2_options, &force) )
-    fail;
+    return FALSE;
 
   if ( !PL_get_stream_handle(A1, &s) )
-    fail;
+    return FALSE;
   if ( !force )
     return closeStream(s);
 
@@ -2994,7 +2993,7 @@ PRED_IMPL("close", 2, close2, PL_FA_ISO)
     Sclose(s);
   }
   
-  succeed;
+  return TRUE;
 }
 
 
@@ -3010,7 +3009,7 @@ stream_file_name_propery(IOSTREAM *s, term_t prop ARG_LD)
   { return PL_unify_atom(prop, name);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3093,7 +3092,7 @@ stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
 			   PL_INT64, s->position->byteno);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3183,7 +3182,7 @@ stream_file_no_prop(IOSTREAM *s, term_t prop ARG_LD)
   if ( (fd = Sfileno(s)) >= 0 )
     return PL_unify_integer(prop, fd);
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3192,7 +3191,7 @@ stream_tty_prop(IOSTREAM *s, term_t prop ARG_LD)
 { if ( (s->flags & SIO_ISATTY) ) 
     return PL_unify_bool_ex(prop, TRUE);
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3201,7 +3200,7 @@ stream_bom_prop(IOSTREAM *s, term_t prop ARG_LD)
 { if ( (s->flags & SIO_BOM) ) 
     return PL_unify_bool_ex(prop, TRUE);
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3215,7 +3214,7 @@ stream_newline_prop(IOSTREAM *s, term_t prop ARG_LD)
       return PL_unify_atom(prop, ATOM_dos);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3258,7 +3257,7 @@ stream_buffer_prop(IOSTREAM *s, term_t prop ARG_LD)
 static int
 stream_buffer_size_prop(IOSTREAM *s, term_t prop ARG_LD)
 { if ( (s->flags & SIO_NBUF) )
-    fail;
+    return FALSE;
     
   return PL_unify_integer(prop, s->bufsize);
 }
@@ -3404,7 +3403,7 @@ PRED_IMPL("stream_property", 2, stream_property,
 	}
       }
       UNLOCK();
-      fail;				/* bad stream handle */
+      return FALSE;				/* bad stream handle */
     case FRG_REDO:
     { pe = CTX_PTR;
       a1 = PL_new_term_ref();
@@ -3420,11 +3419,11 @@ PRED_IMPL("stream_property", 2, stream_property,
 
 	freeHeap(pe, sizeof(*pe));
       }
-      succeed;
+      return TRUE;
     }
     default:
       assert(0);
-      fail;
+      return FALSE;
   }
 
 
@@ -3495,7 +3494,7 @@ PRED_IMPL("stream_property", 2, stream_property,
 	freeTableEnum(pe->e);
 
       freeHeap(pe, sizeof(*pe));
-      fail;
+      return FALSE;
     }
   }
 }
@@ -3508,10 +3507,10 @@ PRED_IMPL("is_stream", 1, is_stream, 0)
 
   if ( get_stream_handle(A1, &s, SH_SAFE) )
   { releaseStream(s);
-    succeed;
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3530,7 +3529,7 @@ flush_output(term_t out)
     return streamStatus(s);
   }
 
-  fail;
+  return FALSE;
 }
 
 static
@@ -3597,7 +3596,7 @@ PRED_IMPL("set_stream_position", 2, set_stream_position, PL_FA_ISO)
   term_t pos = A2;
 
   if ( !(getRepositionableStream(stream, &s)) )
-    fail;
+    return FALSE;
 
   if ( !PL_is_functor(pos, FUNCTOR_stream_position4) ||
        !PL_get_arg(1, pos, a) ||
@@ -3624,7 +3623,7 @@ PRED_IMPL("set_stream_position", 2, set_stream_position, PL_FA_ISO)
 
   releaseStream(s);
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -3668,7 +3667,7 @@ PRED_IMPL("seek", 4, seek, 0)
 	PL_error("seek", 4, OsError(), ERR_PERMISSION,
 		 ATOM_reposition, ATOM_stream, stream);
       releaseStream(s);
-      fail;
+      return FALSE;
     }
 
     new = Stell64(s);
@@ -3678,7 +3677,7 @@ PRED_IMPL("seek", 4, seek, 0)
     return PL_unify_int64(newloc, new);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3737,7 +3736,7 @@ PRED_IMPL("byte_count", 2, byte_count, 0)
     return PL_unify_int64(A2, n);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3752,7 +3751,7 @@ PRED_IMPL("character_count", 2, character_count, 0)
     return PL_unify_int64(A2, n);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3768,7 +3767,7 @@ PRED_IMPL("line_count", 2, line_count, 0)
     return PL_unify_integer(A2, n);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3784,7 +3783,7 @@ PRED_IMPL("line_position", 2, line_position, 0)
     return PL_unify_integer(A2, n);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3794,9 +3793,9 @@ PRED_IMPL("source_location", 2, source_location, 0)
   if ( ReadingSource &&
        PL_unify_atom(A1, source_file_name) &&
        PL_unify_integer(A2, source_line_no) )
-    succeed;
+    return TRUE;
   
-  fail;
+  return FALSE;
 }
 
 
@@ -3844,7 +3843,7 @@ peek(term_t stream, term_t chr, int how ARG_LD)
   int c;
 
   if ( !getInputStream(stream, &s) )
-    fail;
+    return FALSE;
 
   pos = s->posbuf;
   if ( how == PL_BYTE )
@@ -4034,7 +4033,7 @@ out:
 		*             FILES             *
 		*********************************/
 
-bool
+int
 unifyTime(term_t t, intptr_t time)
 { return PL_unify_float(t, (double)time);
 }
@@ -4081,22 +4080,22 @@ PL_get_file_name(term_t n, char **namep, int flags)
     PL_unify_nil(options);
 
     if ( !PL_call_predicate(NULL, cflags, pred, av) )
-      fail;
+      return FALSE;
     
     return PL_get_chars_ex(av+1, namep, CVT_ATOMIC|BUF_RING|REP_FN);
   }
 
   if ( flags & PL_FILE_NOERRORS )
   { if ( !PL_get_chars(n, &name, CVT_FILENAME|REP_FN) )
-      fail;
+      return FALSE;
   } else
   { if ( !PL_get_chars_ex(n, &name, CVT_FILENAME|REP_FN) )
-      fail;
+      return FALSE;
   }
 
   if ( truePrologFlag(PLFLAG_FILEVARS) )
   { if ( !(name = ExpandOneFile(name, tmp)) )
-      fail;
+      return FALSE;
   }
   
   if ( !(flags & PL_FILE_NOERRORS) )
@@ -4118,16 +4117,16 @@ PL_get_file_name(term_t n, char **namep, int flags)
 
   if ( flags & PL_FILE_ABSOLUTE )
   { if ( !(name = AbsoluteFile(name, tmp)) )
-      fail;
+      return FALSE;
   }
 
   if ( flags & PL_FILE_OSPATH )
   { if ( !(name = OsPath(name, ospath)) )
-      fail;
+      return FALSE;
   }
     
   *namep = buffer_string(name, BUF_RING);
-  succeed;
+  return TRUE;
 }
 
 
@@ -4145,7 +4144,7 @@ PRED_IMPL("time_file", 2, time_file, 0)
     return unifyTime(A2, time);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -4163,7 +4162,7 @@ PRED_IMPL("size_file", 2, size_file, 0)
     return PL_unify_int64(A2, size);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -4174,7 +4173,7 @@ PRED_IMPL("$size_stream", 2, size_stream, 0)
   int rval;
 
   if ( !PL_get_stream_handle(A1, &s) )
-    fail;
+    return FALSE;
 
   rval = PL_unify_integer(A2, Ssize(s));
   PL_release_stream(s);
@@ -4196,10 +4195,10 @@ PRED_IMPL("access_file", 2, access_file, 0)
   if ( !PL_get_atom(mode, &m) )
     return PL_error("access_file", 2, NULL, ERR_TYPE, ATOM_atom, mode);
   if ( !PL_get_file_name(name, &n, 0) )
-    fail;
+    return FALSE;
 
   if ( m == ATOM_none )
-    succeed;
+    return TRUE;
   
   if      ( m == ATOM_write || m == ATOM_append )
     md = ACCESS_WRITE;
@@ -4213,7 +4212,7 @@ PRED_IMPL("access_file", 2, access_file, 0)
     return PL_error("access_file", 2, NULL, ERR_DOMAIN, ATOM_io_mode, mode);
 
   if ( AccessFile(n, md) )
-    succeed;
+    return TRUE;
 
   if ( md == ACCESS_WRITE && !AccessFile(n, ACCESS_EXIST) )
   { char tmp[MAXPATHLEN];
@@ -4221,13 +4220,13 @@ PRED_IMPL("access_file", 2, access_file, 0)
 
     if ( dir[0] )
     { if ( !ExistsDirectory(dir) )
-	fail;
+	return FALSE;
     }
     if ( AccessFile(dir[0] ? dir : ".", md) )
-      succeed;
+      return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -4241,15 +4240,15 @@ PRED_IMPL("read_link", 3, read_link, 0)
   term_t to   = A3;
 
   if ( !PL_get_file_name(file, &n, 0) )
-    fail;
+    return FALSE;
 
   if ( (l = ReadLink(n, buf)) &&
        PL_unify_atom_chars(link, l) &&
        (t = DeRefLink(n, buf)) &&
        PL_unify_atom_chars(to, t) )
-    succeed;
+    return TRUE;
 
-  fail;
+  return FALSE;
 }
 
 
@@ -4258,7 +4257,7 @@ PRED_IMPL("exists_file", 1, exists_file, 0)
 { char *n;
 
   if ( !PL_get_file_name(A1, &n, 0) )
-    fail;
+    return FALSE;
   
   return ExistsFile(n);
 }
@@ -4269,7 +4268,7 @@ PRED_IMPL("exists_directory", 1, exists_directory, 0)
 { char *n;
 
   if ( !PL_get_file_name(A1, &n, 0) )
-    fail;
+    return FALSE;
   
   return ExistsDirectory(n);
 }
@@ -4295,10 +4294,10 @@ PRED_IMPL("delete_file", 1, delete_file, 0)
 { char *n;
 
   if ( !PL_get_file_name(A1, &n, 0) )
-    fail;
+    return FALSE;
   
   if ( RemoveFile(n) )
-    succeed;
+    return TRUE;
 
   return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_delete, ATOM_file, A1);
@@ -4310,10 +4309,10 @@ PRED_IMPL("delete_directory", 1, delete_directory, 0)
 { char *n;
 
   if ( !PL_get_file_name(A1, &n, 0) )
-    fail;
+    return FALSE;
   
   if ( rmdir(n) == 0 )
-    succeed;
+    return TRUE;
   else
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_delete, ATOM_directory, A1);
@@ -4325,10 +4324,10 @@ PRED_IMPL("make_directory", 1, make_directory, 0)
 { char *n;
 
   if ( !PL_get_file_name(A1, &n, 0) )
-    fail;
+    return FALSE;
   
   if ( mkdir(n, 0777) == 0 )
-    succeed;
+    return TRUE;
   else
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_create, ATOM_directory, A1);
@@ -4343,7 +4342,7 @@ PRED_IMPL("same_file", 2, same_file, 0)
        PL_get_file_name(A2, &n2, 0) )
     return SameFile(n1, n2);
 
-  fail;
+  return FALSE;
 }
 
 
@@ -4361,19 +4360,19 @@ PRED_IMPL("rename_file", 2, rename_file, 0)
     { if ( fileerrors )
 	return PL_error("rename_file", 2, "same file", ERR_PERMISSION,
 			ATOM_rename, ATOM_file, old);
-      fail;
+      return FALSE;
     }
 
     if ( RenameFile(o, n) )
-      succeed;
+      return TRUE;
 
     if ( fileerrors )
       return PL_error("rename_file", 2, OsError(), ERR_FILE_OPERATION,
 		      ATOM_rename, ATOM_file, old);
-    fail;
+    return FALSE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -4396,7 +4395,7 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
        (n = AbsoluteFile(n, tmp)) )
     return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
 
-  fail;
+  return FALSE;
 }
 
 
@@ -4406,9 +4405,9 @@ PRED_IMPL("is_absolute_file_name", 1, is_absolute_file_name, 0)
 
   if ( PL_get_file_name(A1, &n, 0) &&
        IsAbsolutePath(n) )
-    succeed;
+    return TRUE;
 
-  fail;
+  return FALSE;
 }
 
 
@@ -4421,7 +4420,7 @@ PRED_IMPL("working_directory", 2, working_directory, 0)
   term_t new = A2;
 
   if ( !(wd = PL_cwd()) )
-    fail;
+    return FALSE;
 
   if ( PL_unify_chars(old, PL_ATOM|REP_FN, -1, wd) )
   { if ( PL_compare(old, new) != 0 )
@@ -4429,19 +4428,19 @@ PRED_IMPL("working_directory", 2, working_directory, 0)
 
       if ( PL_get_file_name(new, &n, 0) )
       { if ( ChDir(n) )
-	  succeed;
+	  return TRUE;
 
 	if ( fileerrors )
 	  return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
 			  ATOM_chdir, ATOM_directory, new);
-	fail;
+	return FALSE;
       }
     }
 
-    succeed;
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -4450,7 +4449,7 @@ PRED_IMPL("file_base_name", 2, file_base_name, 0)
 { char *n;
 
   if ( !PL_get_chars_ex(A1, &n, CVT_ALL|REP_FN) )
-    fail;
+    return FALSE;
 
   return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, BaseName(n));
 }
@@ -4462,7 +4461,7 @@ PRED_IMPL("file_directory_name", 2, file_directory_name, 0)
   char tmp[MAXPATHLEN];
 
   if ( !PL_get_chars_ex(A1, &n, CVT_ALL|REP_FN) )
-    fail;
+    return FALSE;
 
   return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, DirName(n, tmp));
 }
@@ -4474,7 +4473,7 @@ has_extension(const char *name, const char *ext)
   const char *s = name + strlen(name);
 
   if ( ext[0] == EOS )
-    succeed;
+    return TRUE;
 
   while(*s != '.' && *s != '/' && s > name)
     s--;
@@ -4487,7 +4486,7 @@ has_extension(const char *name, const char *ext)
       return strcasecmp(&s[1], ext) == 0;
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -4556,7 +4555,7 @@ PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
 
     return PL_unify_chars(full, PL_ATOM|REP_FN, -1, buf);
   } else
-    fail;
+    return FALSE;
 }
 
 
@@ -4580,7 +4579,7 @@ PRED_IMPL("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
 
       return PL_unify_wchars(os, PL_ATOM, -1, buf);
     }
-    fail;
+    return FALSE;
   }
 
   if ( PL_get_wchars(os, NULL, &wn, CVT_ALL) )
@@ -4635,7 +4634,7 @@ copy_stream_data(term_t in, term_t out, term_t len ARG_LD)
     { if ( (++count % 4096) == 0 && PL_handle_signals() < 0 )
       { releaseStream(i);
 	releaseStream(o);
-	fail;
+	return FALSE;
       }
       if ( Sputcode(c, o) < 0 )
       { releaseStream(i);
@@ -4646,13 +4645,13 @@ copy_stream_data(term_t in, term_t out, term_t len ARG_LD)
   { int64_t n;
 
     if ( !PL_get_int64_ex(len, &n) )
-      fail;
+      return FALSE;
     
     while ( n-- > 0 && (c = Sgetcode(i)) != EOF )
     { if ( (++count % 4096) == 0 && PL_handle_signals() < 0 )
       { releaseStream(i);
 	releaseStream(o);
-	fail;
+	return FALSE;
       }
       if ( Sputcode(c, o) < 0 )
       { releaseStream(i);
