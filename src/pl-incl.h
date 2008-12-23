@@ -1616,41 +1616,7 @@ Note that the local stack is always _above_ the global stack.
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
 
 #include "SWI-Prolog.h"
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Defining built-in predicates using the new interface 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define PRED_IMPL(name, arity, fname, flags) \
-        foreign_t \
-        pl_ ## fname ## _va(term_t PL__t0, int PL__ac, control_t PL__ctx)
-
-#define Arg(N)  (PL__t0+((n)-1))
-#define A1      (PL__t0)
-#define A2      (PL__t0+1)
-#define A3      (PL__t0+2)
-#define A3      (PL__t0+2)
-#define A4      (PL__t0+3)
-#define A5      (PL__t0+4)
-#define A6      (PL__t0+5)
-#define A7      (PL__t0+6)
-#define A8      (PL__t0+7)
-#define A9      (PL__t0+8)
-#define A10     (PL__t0+9)
-
-#define CTX_CNTRL ForeignControl(PL__ctx)
-#define CTX_PTR   ForeignContextPtr(PL__ctx)
-#define CTX_INT   ForeignContextInt(PL__ctx)
-#define CTX_ARITY PL__ac
-
-#define BeginPredDefs(id) \
-        PL_extension PL_predicates_from_ ## id[] = {
-#define PRED_DEF(name, arity, fname, flags) \
-        { name, arity, pl_ ## fname ## _va, (flags)|PL_FA_VARARGS },
-#define EndPredDefs \
-        { NULL, 0, NULL, 0 } \
-        };
-
+#include "pl-builtin.h"
 
 		 /*******************************
 		 *	       SIGNALS		*

@@ -2934,41 +2934,35 @@ retry:
 }
 
 
+static int
+read_clause_pred(term_t from, term_t term ARG_LD)
+{ int rval;
+  IOSTREAM *s;
+
+  if ( !getInputStream(from, &s) )
+    fail;
+  rval = read_clause(s, term PASS_LD);
+  if ( Sferror(s) )
+    return streamStatus(s);
+  else
+    PL_release_stream(s);
+
+  return rval;
+}
+
+
+static
+PRED_IMPL("read_clause", 1, read_clause, 0)
+{ PRED_LD
+
+  return read_clause_pred(0, A2 PASS_LD);
+}
+
 static
 PRED_IMPL("read_clause", 2, read_clause, 0)
 { PRED_LD
-  int rval;
 
-  switch( CTX_ARITY )
-  { case 1:
-    { IOSTREAM *s;
-
-      if ( !getInputStream(0, &s) )	/* Scurin */
-	fail;
-      rval = read_clause(s, A1 PASS_LD);
-      if ( Sferror(s) )
-	return streamStatus(s);
-      else
-	PL_release_stream(s);
-
-      return rval;
-    }
-    case 2:
-    { IOSTREAM *s;
-
-      if ( !getInputStream(A1, &s) )
-	fail;
-      rval = read_clause(s, A2 PASS_LD);
-      if ( Sferror(s) )
-	return streamStatus(s);
-      else
-	PL_release_stream(s);
-
-      return rval;
-    }
-  }
-  assert(0);
-  fail;
+  return read_clause_pred(A1, A2 PASS_LD);
 }
 
 
