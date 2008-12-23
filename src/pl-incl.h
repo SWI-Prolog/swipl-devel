@@ -1579,6 +1579,7 @@ Note that the local stack is always _above_ the global stack.
 #include "pl-builtin.h"
 #include "SWI-Prolog.h"
 
+
 		 /*******************************
 		 *	       SIGNALS		*
 		 *******************************/

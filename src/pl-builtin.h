@@ -45,8 +45,8 @@ On the multi-threaded version we must use some thread-specific mechanism
 to find the engine structure  associated   with  the current thread. The
 user of this module must provide two   definitions:
 
-	* PL_local_data_t
-	Is a typedef for the engine structure
+	* struct PL_local_data
+	Structure definition for the engine
 	* LD_GLOBAL
 	Is a macro that expands to a pointer to the current engine.  The
 	implementation varies.  Without engines it is just an alias for
@@ -102,6 +102,9 @@ func__LD(int arg ARG_LD)
 
 #define func(arg) func__LD(arg PASS_LD)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct PL_local_data  PL_local_data_t;
+typedef struct PL_global_data PL_global_data_t;
 
 #define LD	  GLOBAL_LD
 
@@ -220,5 +223,18 @@ EndPredDefs
 #define EndPredDefs \
         { NULL, 0, NULL, 0 } \
         };
+
+		 /*******************************
+		 *	       MISC		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+blockGC() and unblockGC() control  garbage   collection  in the provided
+engine. The calls can be  nested,  but   the  program  must  ensure each
+blockGC() is matched by an unblockGC().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+COMMON(void) 	blockGC(ARG1_LD);	/* disallow garbage collect */
+COMMON(void) 	unblockGC(ARG1_LD);	/* re-allow garbage collect */
 
 #endif /*PL_BUILTIN_H_INCLUDED*/

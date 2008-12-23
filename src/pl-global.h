@@ -71,7 +71,7 @@ typedef struct
 		 *	    GLOBAL DATA		*
 		 *******************************/
 
-typedef struct
+struct PL_global_data
 { char *top_of_heap;			/* highest allocated heap address */
   char *base_of_heap;			/* lowest allocated heap address */
   uintptr_t rounded_heap_base;		/* heap-base rounded downwards */
@@ -297,7 +297,7 @@ typedef struct
     counting_mutex     *mutexes;	/* Registered mutexes */
   } thread;
 #endif /*O_PLMT*/
-} PL_global_data_t;
+};
 
 
 		 /*******************************
@@ -306,7 +306,7 @@ typedef struct
 
 #define LD_MAGIC	0x3cfd82b4	/* Valid local-data structure */
 
-typedef struct PL_local_data
+struct PL_local_data
 { uintptr_t	magic;			/* LD_MAGIC */
   LocalFrame    environment;		/* Current local frame */
   Choice	choicepoints;		/* Choice-point chain */
@@ -539,7 +539,7 @@ typedef struct PL_local_data
 
   struct alloc_pool alloc_pool;		/* Thread allocation pool */
 #endif
-} PL_local_data_t;
+};
 
 GLOBAL PL_global_data_t PL_global_data;
 GLOBAL PL_code_data_t	PL_code_data;

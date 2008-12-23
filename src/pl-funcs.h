@@ -374,8 +374,6 @@ COMMON(word) 		pl_current_functor(term_t name, term_t arity,
 COMMON(void) 		considerGarbageCollect(Stack s);
 COMMON(void) 		garbageCollect(LocalFrame fr, Choice ch);
 COMMON(word) 		pl_garbage_collect(term_t d);
-COMMON(void) 		blockGC(ARG1_LD);
-COMMON(void) 		unblockGC(ARG1_LD);
 COMMON(Word) 		findGRef(int n);
 COMMON(size_t)		nextStackSizeAbove(size_t n);
 COMMON(int) 		growStacks(LocalFrame fr, Choice ch, Code PC,
