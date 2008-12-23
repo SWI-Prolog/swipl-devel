@@ -639,60 +639,6 @@ RemoveTemporaryFiles(void)
   endCritical;
 }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Fortunately most C-compilers  are  sold  with  a  library  that  defines
-Unix-style  access  to  the  file system.  The standard functions go via
-macros to deal with 16-bit machines, but are not  defined  as  functions
-here.   Some  more  specific things SWI-Prolog wants to know about files
-are defined here:
-
-    time_t LastModifiedFile(path)
-	 char *path;
-
-    Returns the last time `path' has been modified.  Used by the  source
-    file administration to implement make/0.
-
-    bool ExistsFile(path)
-	 char *path;
-
-    Succeeds if `path' refers to the pathname of a regular file  (not  a
-    directory).
-
-    bool AccessFile(path, mode)
-	 char *path;
-	 int mode;
-
-    Succeeds if `path' is the pathname of an existing file and it can
-    be accessed in any of the inclusive or constructed argument `mode'.
-
-    bool ExistsDirectory(path)
-	 char *path;
-
-    Succeeds if `path' refers to the pathname  of  a  directory.
-
-    bool RemoveFile(path)
-	 char *path;
-
-    Removes a (regular) file from the  file  system.   Returns  TRUE  if
-    succesful FALSE otherwise.
-
-    bool RenameFile(old, new)
-	 char *old, *new;
-
-    Rename file from name `old' to name `new'. If new already exists, it is
-    deleted. Returns TRUE if succesful, FALSE otherwise.
-
-    bool OpenStream(stream)
-	 int stream;
-
-    Succeeds if `stream' refers to an open i/o stream.
-
-    bool MarkExecutable(path)
-	 char *path;
-
-    Mark `path' as an executable program.  Used by the intermediate code
-    compiler and the creation of stand-alone executables.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Size of a VM page of memory.  Most BSD machines have this function.  If not,
@@ -829,29 +775,6 @@ ExistsFile(const char *path)
 
 
 bool
-AccessFile(const char *path, int mode)
-{ char tmp[MAXPATHLEN];
-#ifdef HAVE_ACCESS
-  int m = 0;
-
-  if ( mode == ACCESS_EXIST ) 
-    m = F_OK;
-  else
-  { if ( mode & ACCESS_READ    ) m |= R_OK;
-    if ( mode & ACCESS_WRITE   ) m |= W_OK;
-#ifdef X_OK
-    if ( mode & ACCESS_EXECUTE ) m |= X_OK;
-#endif
-  }
-
-  return access(OsPath(path, tmp), m) == 0 ? TRUE : FALSE;
-#else
-#error "No implementation for AccessFile()"
-#endif
-}
-
-
-bool
 ExistsDirectory(const char *path)
 {
 #ifdef O_XOS
@@ -869,32 +792,6 @@ ExistsDirectory(const char *path)
 
   fail;
 #endif /*O_XOS*/
-}
-
-
-int64_t
-SizeFile(const char *path)
-{ char tmp[MAXPATHLEN];
-  struct stat buf;
-
-#if defined(HAVE_STAT) || defined(__unix__)
-  if ( statfunc(OsPath(path, tmp), &buf) < 0 )
-    return -1;
-#endif
-
-  return buf.st_size;
-}
-
-
-int
-RemoveFile(const char *path)
-{ char tmp[MAXPATHLEN];
-
-#ifdef HAVE_REMOVE
-  return remove(OsPath(path, tmp)) == 0 ? TRUE : FALSE;
-#else
-  return unlink(OsPath(path, tmp)) == 0 ? TRUE : FALSE;
-#endif
 }
 
 

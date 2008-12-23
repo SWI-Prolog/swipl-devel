@@ -23,12 +23,14 @@
 */
 
 #include "pl-incl.h"
-#undef LD
-#define LD LOCAL_LD
+#include <stdio.h>
 
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
 #endif
+
+#undef LD
+#define LD LOCAL_LD
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 General file operations and binding to Prolog
@@ -50,6 +52,51 @@ LastModifiedFile(const char *f)
 }  
 
 
+static int64_t
+SizeFile(const char *path)
+{ char tmp[MAXPATHLEN];
+  struct stat buf;
+
+  if ( stat(OsPath(path, tmp), &buf) < 0 )
+    return -1;
+
+  return buf.st_size;
+}
+
+
+int
+AccessFile(const char *path, int mode)
+{ char tmp[MAXPATHLEN];
+#ifdef HAVE_ACCESS
+  int m = 0;
+
+  if ( mode == ACCESS_EXIST ) 
+    m = F_OK;
+  else
+  { if ( mode & ACCESS_READ    ) m |= R_OK;
+    if ( mode & ACCESS_WRITE   ) m |= W_OK;
+#ifdef X_OK
+    if ( mode & ACCESS_EXECUTE ) m |= X_OK;
+#endif
+  }
+
+  return access(OsPath(path, tmp), m) == 0 ? TRUE : FALSE;
+#else
+#error "No implementation for AccessFile()"
+#endif
+}
+
+
+int
+RemoveFile(const char *path)
+{ char tmp[MAXPATHLEN];
+
+#ifdef HAVE_REMOVE
+  return remove(OsPath(path, tmp)) == 0 ? TRUE : FALSE;
+#else
+  return unlink(OsPath(path, tmp)) == 0 ? TRUE : FALSE;
+#endif
+}
 
 
 		/********************************

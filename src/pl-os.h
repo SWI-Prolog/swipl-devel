@@ -118,15 +118,6 @@ extern int	getdtablesize(void);
 extern int	getpagesize(void);
 #endif
 
-		 /*******************************
-		 *	    FILE ACCESS		*
-		 *******************************/
-
-#define ACCESS_EXIST	0
-#define ACCESS_EXECUTE	1
-#define ACCESS_READ	2
-#define ACCESS_WRITE	4
-
 
 		/********************************
 		*        TIME CONVERSION        *

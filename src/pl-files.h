@@ -25,7 +25,14 @@
 #ifndef PL_FILES_H_INCLUDED
 #define PL_FILES_H_INCLUDED
 
+#define ACCESS_EXIST	0		/* AccessFile() modes */
+#define ACCESS_EXECUTE	1
+#define ACCESS_READ	2
+#define ACCESS_WRITE	4
+
 COMMON(void)		initFiles(void);
 COMMON(time_t)	 	LastModifiedFile(const char *f);
+COMMON(int) 		RemoveFile(const char *path);
+COMMON(int)		AccessFile(const char *path, int mode);
 
 #endif /*PL_FILES_H_INCLUDED*/
