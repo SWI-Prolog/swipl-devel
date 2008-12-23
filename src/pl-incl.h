@@ -495,42 +495,6 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
    pattern needs to be recomputed */
 #define NEED_REINDEX (1UL << (LONGBITSIZE-1))
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Foreign language interface definitions. Note that   these macros MUST be
-consistent with the definitions in SWI-Prolog.h,  which is included with
-users foreign language code.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-typedef enum
-{ FRG_FIRST_CALL = 0,		/* Initial call */
-  FRG_CUTTED     = 1,		/* Context was cutted */
-  FRG_REDO	 = 2		/* Normal redo */
-} frg_code;
-
-typedef struct foreign_context *control_t;
-
-struct foreign_context
-{ uintptr_t		context;	/* context value */
-  frg_code		control;	/* FRG_* action */
-  struct PL_local_data *engine;		/* invoking engine */
-};
-
-#define FRG_REDO_MASK	0x00000003L
-#define FRG_REDO_BITS	2
-#define REDO_INT	0x02		/* Returned an integer */
-#define REDO_PTR	0x03		/* returned a pointer */
-
-#define ForeignRedoIntVal(v)	(((uintptr_t)(v)<<FRG_REDO_BITS)|REDO_INT)
-#define ForeignRedoPtrVal(v)	(((uintptr_t)(v))|REDO_PTR)
-
-#define ForeignRedoInt(v)	return ForeignRedoIntVal(v)
-#define ForeignRedoPtr(v)	return ForeignRedoPtrVal(v)
-
-#define ForeignControl(h)	((h)->control)
-#define ForeignContextInt(h)	((intptr_t)(h)->context)
-#define ForeignContextPtr(h)	((void *)(h)->context)
-#define ForeignEngine(h)	((h)->engine)
-
 #include "pl-vmi.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1615,8 +1579,8 @@ Note that the local stack is always _above_ the global stack.
 #define QidFromQuery(f)		(consTermRef(f))
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
 
-#include "SWI-Prolog.h"
 #include "pl-builtin.h"
+#include "SWI-Prolog.h"
 
 		 /*******************************
 		 *	       SIGNALS		*

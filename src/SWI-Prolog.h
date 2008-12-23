@@ -225,7 +225,8 @@ typedef union
 /*  Note 1: Non-deterministic foreign functions may also use the deterministic
     return methods PL_succeed and PL_fail.
 
-    Note 2: The argument to PL_retry is a 30 bits signed integer (intptr_t).
+    Note 2: The argument to PL_retry is a sizeof(ptr)-2 bits signed
+    integer (use type intptr_t).
 */
 
 #define PL_FIRST_CALL		(0)
@@ -238,7 +239,7 @@ typedef union
 PL_EXPORT(foreign_t)	_PL_retry(intptr_t);
 PL_EXPORT(foreign_t)	_PL_retry_address(void *);
 PL_EXPORT(int)	 	PL_foreign_control(control_t);
-PL_EXPORT(intptr_t)	 	PL_foreign_context(control_t);
+PL_EXPORT(intptr_t)	PL_foreign_context(control_t);
 PL_EXPORT(void *)	PL_foreign_context_address(control_t);
 
 

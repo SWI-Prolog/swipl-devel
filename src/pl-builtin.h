@@ -35,6 +35,39 @@ system.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 		 /*******************************
+		 *   NON-DET PREDICATE CONTEXT	*
+		 *******************************/
+
+typedef enum
+{ FRG_FIRST_CALL = 0,		/* Initial call */
+  FRG_CUTTED     = 1,		/* Context was cutted */
+  FRG_REDO	 = 2		/* Normal redo */
+} frg_code;
+
+typedef struct foreign_context
+{ uintptr_t		context;	/* context value */
+  frg_code		control;	/* FRG_* action */
+  struct PL_local_data *engine;		/* invoking engine */
+} *control_t;
+
+#define FRG_REDO_MASK	0x03
+#define FRG_REDO_BITS	2
+#define REDO_INT	0x02		/* Returned an integer */
+#define REDO_PTR	0x03		/* returned a pointer */
+
+#define ForeignRedoIntVal(v)	(((uintptr_t)(v)<<FRG_REDO_BITS)|REDO_INT)
+#define ForeignRedoPtrVal(v)	(((uintptr_t)(v))|REDO_PTR)
+
+#define ForeignRedoInt(v)	return ForeignRedoIntVal(v)
+#define ForeignRedoPtr(v)	return ForeignRedoPtrVal(v)
+
+#define ForeignControl(h)	((h)->control)
+#define ForeignContextInt(h)	((intptr_t)(h)->context)
+#define ForeignContextPtr(h)	((void *)(h)->context)
+#define ForeignEngine(h)	((h)->engine)
+
+
+		 /*******************************
 		 *	   BIND PREDICATES	*
 		 *******************************/
 
@@ -45,6 +78,17 @@ PRED_IMPL("name", arity, c_symbol, flags)
 { <implementation body>
 }
 
+The macros A1..A10 provide access to the arguments (of type term_t). The
+CTX_*  macros  provide  the  actual  arity  and  context  arguments  for
+non-deterministic predicates. The implementation returns   using  one of
+these  constructs.  The  `Redo'   variations    are   only   allowed  if
+PL_FA_NONDETERMINISTIC is present in `flags'.
+
+    * return FALSE
+    * return TRUE
+    * ForeignRedoInt(intptr_t val)
+    * ForeignRedoPtr(void *ptr)
+
 At the end of the file there is   a  section that looks like this, where
 each PRED_DEF line  is  a  simple   direct  copy  of  the  corresponding
 PRED_IMPL declaration:
@@ -53,12 +97,6 @@ BeginPredDefs(module)
   PRED_DEF("name", arity, c_symbol, flags)
   ...
 EndPredDefs
-
-The macros A1..A10 provide access to the arguments (of type term_t).
-The CTX_* macros provide the actual arity and context arguments for
-non-deterministic predicates.
-
-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define PRED_IMPL(name, arity, fname, flags) \
