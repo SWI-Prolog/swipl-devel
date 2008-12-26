@@ -43,7 +43,6 @@ typedef struct
 } segstack;
 
 
-COMMON(void *)	allocSegStack(segstack *stack);
 COMMON(int)	pushSegStack(segstack *stack, void* data);
 COMMON(int)	popSegStack(segstack *stack, void *data);
 COMMON(void)	scanSegStack(segstack *s, void (*func)(void *cell));
