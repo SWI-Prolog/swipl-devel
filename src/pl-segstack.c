@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2007, University of Amsterdam
 
@@ -34,55 +34,51 @@ Measurements with the chunksize on SuSE Linux  10.2 indicate there is no
 measurable performance change above approximately  256 bytes. We'll keep
 the figure on the safe  side  for   systems  with  less efficient malloc
 implementations.
+
+Note  that  atom-gc  requires   completely    asynchronous   calling  of
+scanSegStack() and therefore pushSegStack()/popSegStack()  must push the
+data before updating the pointers.
+
+TBD: Avoid instruction/cache write reordering in push/pop.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define CHUNKSIZE (1*1024)
 
-void *
-allocSegStack(segstack *stack)
+int
+pushSegStack(segstack *stack, void *data)
 { if ( stack->top + stack->unit_size <= stack->max )
-  { void *r = stack->top;
+  { memcpy(stack->top, data, stack->unit_size);
     stack->top += stack->unit_size;
     stack->count++;
 
-    return r;
+    return TRUE;
   } else
   { segchunk *chunk = PL_malloc(CHUNKSIZE);
 
     if ( !chunk )
-      return NULL;			/* out of memory */
+      return FALSE;			/* out of memory */
 
     chunk->next = NULL;
     chunk->previous = stack->last;
+    chunk->top = chunk->data;		/* async scanning */
     if ( stack->last )
     { stack->last->next = chunk;
       stack->last->top = stack->top;
+      stack->top = chunk->top;		/* async scanning */
       stack->last = chunk;
     } else
-    { stack->last = stack->first = chunk;
+    { stack->top = chunk->top;		/* async scanning */
+      stack->last = stack->first = chunk;
     }
 
     stack->base = chunk->data;
     stack->max  = addPointer(chunk, CHUNKSIZE);
+    memcpy(chunk->data, data, stack->unit_size);
     stack->top  = chunk->data + stack->unit_size;
     stack->count++;
 
-    return chunk->data;
-  }
-}
-
-
-int
-pushSegStack(segstack *stack, void* data)
-{ void *e;
-
-  if ( (e = allocSegStack(stack)) )
-  { memcpy(e, data, stack->unit_size);
-
     return TRUE;
   }
-
-  return FALSE;
 }
 
 
