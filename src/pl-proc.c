@@ -883,7 +883,7 @@ abolishProcedure(Procedure proc, Module module)
   { UNLOCKDEF(def);
     endCritical;
     return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		    ATOM_modify, ATOM_thread_local_procedure, def);
+		    ATOM_modify, ATOM_thread_local_procedure, proc);
   } else				/* normal Prolog procedure */
   { removeClausesProcedure(proc, 0, FALSE);
 
@@ -2298,7 +2298,7 @@ pl_index(term_t pred)
 
     if ( true(def, FOREIGN) )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		      ATOM_index, PL_new_atom("foreign_procedure"), def);
+		      ATOM_index, PL_new_atom("foreign_procedure"), proc);
 
     if ( arity > 0 )
     { unsigned long pattern = 0x0;

@@ -2198,10 +2198,10 @@ care of reconsult, redefinition, etc.
     if ( def->module != mhead )
     { if ( true(def->module, SYSTEM) )
       { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		 ATOM_redefine, ATOM_built_in_procedure, def);
+		 ATOM_redefine, ATOM_built_in_procedure, proc);
       } else
       { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		 ATOM_redefine, ATOM_imported_procedure, def);
+		 ATOM_redefine, ATOM_imported_procedure, proc);
       }
       freeClause(clause PASS_LD);
       return NULL;
@@ -3350,6 +3350,12 @@ unify_functor(term_t t, functor_t fd, int how)
 
 
 int
+PL_unify_predicate(term_t head, predicate_t pred, int how)
+{ return unify_definition(head, pred->definition, 0, how);
+}
+
+
+int
 unify_definition(term_t head, Definition def, term_t thehead, int how)
 { GET_LD
 
@@ -3477,7 +3483,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
 	       false(def, DYNAMIC)
 	   ) )
 	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-			ATOM_access, ATOM_private_procedure, def);
+			ATOM_access, ATOM_private_procedure, proc);
 
       cref = NULL;			/* see below */
       enterDefinition(def);		/* reference the predicate */
