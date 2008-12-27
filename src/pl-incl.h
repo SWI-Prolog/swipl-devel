@@ -51,22 +51,7 @@
 #include <parms.h>			/* pick from the working dir */
 #endif
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-First, include config.h or, if MD is  specified, this file.  This allows
-for -DMD="config/win64.h"
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifndef CONFTEST
-#ifdef MD
-#include MD
-#else
-#include <config.h>
-#endif
-#endif
-
-#if defined(O_PLMT) && !defined(_REENTRANT)
-#define _REENTRANT 1
-#endif
+#include "pl-builtin.h"
 
 #ifdef HAVE_DMALLOC_H
 #include <dmalloc.h>			/* Use www.dmalloc.com debugger */
@@ -267,8 +252,6 @@ void *alloca ();
 #ifdef __WINDOWS__
 #include <winsock2.h>
 #endif
-#include "pl-mutex.h"
-#include "SWI-Stream.h"
 
 #include <sys/types.h>
 #include <setjmp.h>
@@ -351,13 +334,6 @@ A common basis for C keywords.
 #ifndef HAVE_VOLATILE
 #define volatile
 #endif
-
-#ifdef HAVE_VISIBILITY_ATTRIBUTE
-#define SO_LOCAL __attribute__((visibility("hidden")))
-#else
-#define SO_LOCAL
-#endif
-#define COMMON(type) SO_LOCAL type
 
 #if defined(__GNUC__) && !defined(NORETURN)
 #define NORETURN __attribute__ ((noreturn))
@@ -1578,7 +1554,6 @@ Note that the local stack is always _above_ the global stack.
 #define QidFromQuery(f)		(consTermRef(f))
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
 
-#include "pl-builtin.h"
 #include "SWI-Prolog.h"
 
 
