@@ -268,7 +268,7 @@ void *alloca ();
 #include <winsock2.h>
 #endif
 #include "pl-mutex.h"
-#include "pl-stream.h"
+#include "SWI-Stream.h"
 
 #include <sys/types.h>
 #include <setjmp.h>
