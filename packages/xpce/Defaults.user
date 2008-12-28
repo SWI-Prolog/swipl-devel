@@ -35,6 +35,12 @@
 !emacs_buffer.newline_existing_file: detect
 !emacs_buffer.newline_new_file: posix
 
+! Backup encoding for PceEmacs if the default encoding cannot save the
+! text.  Default is UTF-16 little endian on Windows and UTF-8 on non-Windows
+! system.
+
+!emacs_buffer.unicode_encoding: utf8
+
 ! Spelling program options for the ispell demo and checker for PceEmacs.
 ! Ispell is available on most Unix installations.
 
