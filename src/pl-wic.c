@@ -2318,13 +2318,15 @@ qlfLoad(IOSTREAM *fd, Module *module ARG_LD)
   vm_signature = getInt(fd);
   if ( vm_signature != (int)VM_SIGNATURE )
   { warning("QLF file %s has incompatible VM-signature (0x%x; expected 0x%x)",
-	    file, vm_signature, VM_SIGNATURE);
+	    stringAtom(file),
+	    (unsigned int)vm_signature,
+	    (unsigned int)VM_SIGNATURE);
     fail;
   }
   saved_wsize = getInt(fd);
   if ( saved_wsize != sizeof(word)*8 )
   { warning("QLF file %s has incompatible (%d) word-length",
-	    file, saved_wsize);
+	    stringAtom(file), (int)saved_wsize);
     fail;
   }
 
