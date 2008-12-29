@@ -3782,62 +3782,47 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
   end = &PC[clause->code_size];
 
   if ( PL_is_variable(term) )
-  { if ( CTX_CNTRL != FRG_FIRST_CALL)
+  { int an;
+
+    if ( CTX_CNTRL != FRG_FIRST_CALL)
     { size_t i = CTX_INT;
 
-      PC += i;
+      PC += i >> 3;
+      an = i & 0x7;
+    } else
+    { an = 0;
     }
 
-    while( PC < end )
-    { bool rval = FALSE;
-      code op = fetchop(PC++);
+    for( ; PC < end; PC = stepPC(PC),an=0 )
+    { code op = fetchop(PC);
       const char *ats=codeTable[op].argtype;
-      int i;
 
-      for(i=0; ats[i]; i++)
-      { switch(ats[i])
+      while(ats[an])
+      { switch(ats[an++])
 	{ case CA1_PROC:
-	  { Procedure proc = (Procedure) *PC++;
-	    rval = unify_definition(term, getProcDefinition(proc), 0, 0);
-	    break;
+	  { size_t i;
+	    Procedure proc = (Procedure) PC[an];
+	    unify_definition(term, getProcDefinition(proc), 0, 0);
+	  hit:
+	    i = ((PC - clause->codes)<<3) + an;
+	    ForeignRedoInt(i);
 	  }
 	  case CA1_FUNC:
-	  { functor_t fd = (functor_t) *PC++;
-	    rval = PL_unify_functor(term, fd);
-	    break;
+	  { functor_t fd = (functor_t) PC[an];
+	    PL_unify_functor(term, fd);
+	    goto hit;
 	  }
 	  case CA1_DATA:
-	  { word xr = *PC++;
-	    rval = _PL_unify_atomic(term, xr);
-	    break;
+	  { word xr = PC[an];
+	    _PL_unify_atomic(term, xr);
+	    goto hit;
 	  }
 	  case CA1_MODULE:
-	  { Module xr = (Module)*PC++;
-	    rval = _PL_unify_atomic(term, xr->name);
-	    break;
+	  { Module xr = (Module)PC[an];
+	    PL_unify_atom(term, xr->name);
+	    goto hit;
 	  }
-	  case CA1_INT64:
-	    PC += WORDS_PER_INT64;
-	    break;
-	  case CA1_FLOAT:
-	    PC += WORDS_PER_DOUBLE;
-	    break;
-	  case CA1_MPZ:
-	  case CA1_STRING:
-	  { word m = *PC++;
-	    PC += wsizeofInd(m);
-	    break;
-	  }
-	  default:
-	    PC++;
-	    break;
 	}
-      }
-
-      if ( rval )
-      { intptr_t i = PC - clause->codes;	/* compensate ++ above! */
-
-	ForeignRedoInt(i);
       }
     }
 
