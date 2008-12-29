@@ -3830,42 +3830,46 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
   } else				/* instantiated */
   { Procedure proc;
     functor_t fd;
+    int an = 0;
 
     if ( PL_is_atomic(term) )
-    { while( PC < end )
+    { for( ; PC < end; PC = stepPC(PC),an=0 )
       { code op = fetchop(PC);
+	const char *ats=codeTable[op].argtype;
 
-	if ( codeTable[op].argtype[0] == CA1_DATA && /* TBD */
-	     _PL_unify_atomic(term, PC[1]) )
-	    succeed;
-
-	PC = stepPC(PC);
+	while(ats[an])
+	{ switch(ats[an++])
+	  { case CA1_DATA:
+	      if ( _PL_unify_atomic(term, PC[an]) )
+		succeed;
+	      break;
+	    case CA1_MODULE:
+	    { Module xr = (Module)PC[an];
+	      
+	      if ( PL_unify_atom(term, xr->name) )
+		succeed;
+	    }
+	  }
+	}
       }
     }
 
     PC = clause->codes;
     if ( PL_get_functor(term, &fd) && fd != FUNCTOR_colon2 )
-    { while( PC < end )
+    { for( ; PC < end; PC = stepPC(PC),an=0 )
       { code op = fetchop(PC);
+	const char *ats=codeTable[op].argtype;
 
-	if ( codeTable[op].argtype[0] == CA1_FUNC ) /* TBD */
-	{ functor_t fa = (functor_t)PC[1];
-
-	  if ( fa == fd )
-	  { DEBUG(1,
-		  { term_t ref = PL_new_term_ref();
-		    intptr_t i;
-		    
-		    PL_unify_pointer(ref, clause);
-		    PL_get_long(ref, &i);
-		    Sdprintf("Got it, clause %d at %d\n",
-			     i, PC-clause->codes);
-		  });
-	    succeed;
+	while(ats[an])
+	{ switch(ats[an++])
+	  { case CA1_FUNC:
+	    { functor_t fa = (functor_t) PC[an];
+	      
+	      if ( fa == fd )
+		succeed;
+	    }
 	  }
 	}
-
-	PC = stepPC(PC);
       }
     }
 
@@ -3873,21 +3877,24 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
     if ( get_procedure(term, &proc, 0, GP_FINDHERE|GP_TYPE_QUIET) )
     { Definition pd = getProcDefinition(proc);
 
-      while( PC < end )
+      for( ; PC < end; PC = stepPC(PC),an=0 )
       { code op = fetchop(PC);
+	const char *ats=codeTable[op].argtype;
 
-	if ( codeTable[op].argtype[0] == CA1_PROC ) /* TBD */
-	{ Procedure pa = (Procedure)PC[1];
-	  Definition def = getProcDefinition(pa);
+	while(ats[an])
+	{ switch(ats[an++])
+	  { case CA1_PROC:
+	    { Procedure pa = (Procedure)PC[an];
+	      Definition def = getProcDefinition(pa);
 
-	  if ( pd == def )
-	    succeed;
-	  if ( pd->functor == def->functor &&
-	       wouldBindToDefinition(def, pd) )
-	    succeed;
+	      if ( pd == def )
+		succeed;
+	      if ( pd->functor == def->functor &&
+		   wouldBindToDefinition(def, pd) )
+		succeed;
+	    }
+	  }
 	}
-
-	PC = stepPC(PC);
       }
     }
   }
