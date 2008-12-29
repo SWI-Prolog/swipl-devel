@@ -1428,6 +1428,19 @@ compileListFF(word arg, compileInfo *ci ARG_LD)
 }
 
 
+static inline code
+mcall(code call)
+{ switch(call)
+  { case I_CALL:
+      return I_CALLM;
+    case I_DEPART:
+      return I_DEPARTM;
+    default:
+      assert(0);
+      return (code)0;
+  }
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The task of compileSubClause() is to  generate  code  for  a  subclause.
 First  it will call compileArgument for each argument to the call.  Then
@@ -1439,6 +1452,7 @@ static int
 compileSubClause(Word arg, code call, compileInfo *ci)
 { GET_LD
   Module tm = ci->module;
+  Procedure proc;
 
   deRef(arg);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1455,36 +1469,41 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     FunctorDef fdef = valueFunctor(functor);
       
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If the argument is of the form <Module>:<Goal>, <Module> is an atom  and
-<Goal>  is  nonvar  then compile to the specified module.  Otherwise use
-the meta-call mechanism (BUG: `user:hello:foo' is called  via  meta-call
-mechanism, but this only is a bit slower).
+If the argument is of the form  <Module>:<Goal>, <Module> is an atom and
+<Goal> is callable, compile to to  a   call  I_CALLM  <module> <proc> or
+I_DEPARTM <module> <proc>. There are two special   cases  that we do not
+compile, but they are related to meta-calling anyway.
 
-This is a bit more complex then expected: foo:assert(baz) should  assert
-baz/0  into module foo.  In general: the context module should be set to
-the appropriate value.  This needs a  new  virtual  machine  instruction
-that  handles  calls  with  specified context module.  For the moment we
-will use the meta-call mechanism for all these types of calls.
-
-[Tue Dec 18 2001] Now we do have I_CONTEXT.  Time to reconsider!
+	* When compiling in local mode, this is all much more complicated
+	  due to the ci->argvars computation and maintenance, so we skip
+	  this
+	* We do not try to be smart with <module>:call(...)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     if ( functor == FUNCTOR_colon2 )
-    {
-  /*							SEE COMMENT ABOVE
-      Word mp, g;
+    { Word mp, g;
 
       mp = argTermP(*arg, 0); deRef(mp);
-      if ( isTextAtom(*mp) )
+      if ( isTextAtom(*mp) && !ci->islocal )
       { g = argTermP(*arg, 1); deRef(g);
 	if ( isIndexedVarTerm(*g PASS_LD) < 0 )
-	{ arg = g;
-	  functor = functorTerm(*arg);
-	  fdef = valueFunctor(functor);
-	  tm = lookupModule(*mp);
-	  goto cont;
+	{ if ( isTerm(*g) )
+	  { functor_t f2 = functorTerm(*g);
+	    FunctorDef fd2 = valueFunctor(f2);
+
+	    if ( fd2->name != ATOM_call )
+	    { arg = g;
+	      functor = f2;
+	      fdef = fd2;
+	      tm = lookupModule(*mp);
+	      goto cont;
+	    }
+	  } else if ( isTextAtom(*g) )
+	  { arg = g;
+	    tm = lookupModule(*mp);
+	    goto cont_atom;
+	  }
 	}
       }
-  */
 
       compileArgument(arg, A_BODY, ci PASS_LD);
       Output_0(ci, I_USERCALL0);
@@ -1521,10 +1540,11 @@ If we call a currently undefined procedure we   check it is not a system
 procedure. If it is, we import the  procedure immediately to avoid later
 re-definition.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-/*  cont: */
-    { Procedure proc = lookupProcedure(functor, tm);
-      int ar = fdef->arity;
+    cont:
+    { int ar = fdef->arity;
 
+      proc = lookupProcedure(functor, tm);
+      
       if ( !isDefinedProcedure(proc) &&
 	   !true(proc->definition, P_REDEFINED) &&
 	   !GD->bootsession )
@@ -1557,39 +1577,45 @@ re-definition.
 	succeed;
 #endif
       }
-      Output_1(ci, call, (code) proc);
-
-      succeed;
     }
-  }
+  } else if ( isTextAtom(*arg) )
+  { cont_atom:
 
-  if ( isTextAtom(*arg) )
-  { if ( *arg == ATOM_cut )
+    if ( *arg == ATOM_cut )
     { if ( ci->cut.var )			/* local cut for \+ */
 	Output_1(ci, ci->cut.instruction, ci->cut.var);
       else
 	Output_0(ci, I_CUT);
+      succeed;
     } else if ( *arg == ATOM_true )
     { Output_0(ci, I_TRUE);
+      succeed;
     } else if ( *arg == ATOM_fail )
     { Output_0(ci, I_FAIL);
+      succeed;
     } else if ( *arg == ATOM_dcatch )		/* $catch */
     { Output_0(ci, I_CATCH);
       Output_0(ci, I_EXITCATCH);
+      succeed;
     } else if ( *arg == ATOM_dcall_cleanup )	/* $call_cleanup */
     { Output_0(ci, I_CALLCLEANUP);
       Output_0(ci, I_EXITCLEANUP);
+      succeed;
     } else
     { functor_t fdef = lookupFunctorDef(*arg, 0);
-      code cproc = (code) lookupProcedure(fdef, tm);
 
-      Output_1(ci, call, cproc);
+      proc = lookupProcedure(fdef, tm);
     }
-
-    succeed;
+  } else
+  { return NOT_CALLABLE;
   }
-    
-  return NOT_CALLABLE;
+
+  if ( tm == ci->module )
+    Output_1(ci, call, (code) proc);
+  else
+    Output_2(ci, mcall(call), (code)tm, (code)proc);
+
+  succeed;
 }
 
 
@@ -3197,6 +3223,17 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_DEPART:
       case I_CALL:        { Procedure proc = (Procedure)XR(*PC++);
 			    build_term(proc->definition->functor->functor, di PASS_LD);
+			    pushed++;
+			    continue;
+			  }
+      case I_DEPARTM:
+      case I_CALLM:       { Module m = (Module)XR(*PC++);
+			    Procedure proc = (Procedure)XR(*PC++);
+			    build_term(proc->definition->functor->functor, di PASS_LD);
+			    ARGPinc();
+			    ARGP[-1] = ARGP[-2];	/* need to swap arguments */
+			    ARGP[-2] = m->name;
+			    build_term(FUNCTOR_colon2, di PASS_LD);
 			    pushed++;
 			    continue;
 			  }

@@ -1437,11 +1437,7 @@ entry point for last call optimisation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
-{ if ( (void *)BFR <= (void *)FR
-#if O_DEBUGGER
-       && truePrologFlag(PLFLAG_LASTCALL)
-#endif
-     )
+{ if ( (void *)BFR <= (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
   { Procedure proc;
 
     if ( true(FR, FR_WATCHED) )
@@ -1477,6 +1473,28 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
   }
 
   VMI_GOTO(I_CALL);
+}
+
+
+VMI(I_CALLM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
+{ Module m = (Module)*PC++;
+  Procedure proc = (Procedure)*PC++;
+
+  NFR = lTop;
+  setNextFrameFlags(NFR, FR);
+  DEF = proc->definition;
+  if ( true(DEF, METAPRED ) )
+    setContextModule(NFR, m);
+
+  goto normal_call;
+}
+
+
+VMI(I_DEPARTM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
+{ Module m = (Module)*PC++;
+
+  setContextModule(FR, m);
+  VMI_GOTO(I_DEPART);
 }
 
 
