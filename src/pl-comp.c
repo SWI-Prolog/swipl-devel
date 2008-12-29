@@ -1478,6 +1478,8 @@ will use the meta-call mechanism for all these types of calls.
       { g = argTermP(*arg, 1); deRef(g);
 	if ( isIndexedVarTerm(*g PASS_LD) < 0 )
 	{ arg = g;
+	  functor = functorTerm(*arg);
+	  fdef = valueFunctor(functor);
 	  tm = lookupModule(*mp);
 	  goto cont;
 	}
@@ -1488,7 +1490,6 @@ will use the meta-call mechanism for all these types of calls.
       Output_0(ci, I_USERCALL0);
       succeed;
     }
-/*  cont: */
 
     if ( true(fdef, ARITH_F) && !ci->islocal )
     { if ( functor == FUNCTOR_is2 &&
@@ -1512,16 +1513,6 @@ will use the meta-call mechanism for all these types of calls.
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Term, not a variable and not a module   call. First of all, we check for
-`inline calls'. This refers to a  light-weight calling mechanism applied
-to deterministic foreign predicates that are   called with simple normal
-variable arguments only. This deals with fast  calling of checks such as
-var/1 as well as  A  =  B.  If   we  are  compiling  clauses  for call/1
-(islocal), we skip this, as it   complicates the compilation process and
-the dynamic clause will be used  once   only  anyhow. Moreover, it would
-require  one  more  place  to  do    the   special  variable-linking  in
-compileArgument().
-
 For normal cases, simply compile the arguments   (push on the stack) and
 create a call-instruction. Finally, some  special   atoms  are mapped to
 special instructions.
@@ -1530,6 +1521,7 @@ If we call a currently undefined procedure we   check it is not a system
 procedure. If it is, we import the  procedure immediately to avoid later
 re-definition.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/*  cont: */
     { Procedure proc = lookupProcedure(functor, tm);
       int ar = fdef->arity;
 
@@ -1578,7 +1570,7 @@ re-definition.
     { Output_0(ci, I_TRUE);
     } else if ( *arg == ATOM_fail )
     { Output_0(ci, I_FAIL);
-    } else if ( *arg == ATOM_dcatch )	/* $catch */
+    } else if ( *arg == ATOM_dcatch )		/* $catch */
     { Output_0(ci, I_CATCH);
       Output_0(ci, I_EXITCATCH);
     } else if ( *arg == ATOM_dcall_cleanup )	/* $call_cleanup */
