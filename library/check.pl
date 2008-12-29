@@ -119,8 +119,10 @@ system_undefined(system:window_title/2).
 
 find_references([], []).
 find_references([H|T0], [H-Refs|T]) :-
-	ignore(H = M:_),
-	findall(Ref, referenced(H, M, Ref), Refs),
+	(   ignore(H = M:_),
+	    findall(Ref, referenced(H, M, Ref), Refs)
+	;   findall(Ref, referenced(H, _, Ref), Refs)
+	),
 	Refs \== [], !,
 	find_references(T0, T).
 find_references([_|T0], T) :-

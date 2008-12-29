@@ -510,9 +510,9 @@ process_directive(set_prolog_flag(character_escapes, Esc), _) :-
 	set_prolog_flag(character_escapes, Esc).
 process_directive(pce_expansion:push_compile_operators, _) :-
 	'$set_source_module'(SM, SM),
-	pce_expansion:push_compile_operators(SM).
+	call(pce_expansion:push_compile_operators(SM)). % call to avoid xref
 process_directive(pce_expansion:pop_compile_operators, _) :-
-	pce_expansion:pop_compile_operators.
+	call(pce_expansion:pop_compile_operators).
 process_directive(meta_predicate(Meta), _) :-
 	process_meta_predicate(Meta).
 process_directive(arithmetic_function(FSpec), Src) :-
