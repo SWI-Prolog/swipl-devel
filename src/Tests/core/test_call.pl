@@ -34,12 +34,27 @@ meta-calling. Please define a test-set for each predicate.
 */
 
 test_call :-
-	run_tests([ apply,
+	run_tests([ call1,
+		    apply,
 		    callN,
 		    snip,
 		    no_autoload,
 		    setup_and_call_cleanup
 		  ]).
+
+:- begin_tests(call1).
+
+call1_a(X) :- X.			% These must be compiled the same.
+call1_b(X) :- call(X).
+
+test(call, X == 42) :-
+	call1_a(X = 42).
+test(clause, Body == call(X)) :-
+	clause(call1_a(X), Body).
+test(clause, Body == call(X)) :-
+	clause(call1_b(X), Body).
+
+:- end_tests(call1).
 
 :- begin_tests(apply).
 

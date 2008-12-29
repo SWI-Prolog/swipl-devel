@@ -1542,8 +1542,11 @@ re-definition.
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
 	compileArgument(arg, A_BODY, ci PASS_LD);
 
-      if ( fdef->name == ATOM_call && fdef->arity > 1 )
-      { Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
+      if ( fdef->name == ATOM_call )
+      { if ( fdef->arity == 1 )
+	  Output_0(ci, I_USERCALL0);
+	else
+	  Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
 	succeed;
 #if O_BLOCK
       } else if ( functor == FUNCTOR_dcut1 )
@@ -3197,7 +3200,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
 			  }
-      case I_USERCALL0:
+      case I_USERCALL0:	    build_term(FUNCTOR_call1, di PASS_LD);
 			    pushed++;
 			    continue;
 #if O_COMPILE_OR
