@@ -104,6 +104,9 @@ undefined_predicate(Module:Head) :-
 	\+ system_undefined(Module:Functor/Arity).
 
 system_undefined(user:prolog_trace_interception/4).
+system_undefined(user:prolog_exception_hook/4).
+system_undefined(system:'$c_call_prolog'/0).
+system_undefined(system:window_title/2).
 
 %%	find_references(+Heads, -HeadRefs:list) is det.
 %	
