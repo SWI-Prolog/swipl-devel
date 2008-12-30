@@ -89,14 +89,17 @@
 ================================================================
 ---++ Meta predicates:
 
-	- Fast module:callable calls
+	- Fast module:callable calls	[OK]
 		- Resolve to target
 		- Set context to <module>
-		- I_CALL_MODULE <m> <pred>
+		- I_CALLM <m> <pred>
 	- Proper :- meta_predicate directive implementation
 		- Use transparent
 		- Mark meta-arguments (part of supervisor)
 			- S_META <N>
+		- Reset context to definition module.
+		- Can we `chain' supervisors?  I.e.:
+			S_META <n>, S_LASTMETA <n>, S_VIRGIN
 
 ================================================================
 ---++ Testing and debugging:
