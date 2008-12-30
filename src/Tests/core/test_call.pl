@@ -37,6 +37,7 @@ test_call :-
 	run_tests([ call1,
 		    apply,
 		    callN,
+		    cross_module_call,
 		    snip,
 		    no_autoload,
 		    setup_and_call_cleanup
@@ -70,6 +71,38 @@ test(error, error(type_error(callable, 1))) :-
 	call(1, a, b).
 
 :- end_tests(callN).
+
+:- begin_tests(cross_module_call).
+
+cmc1:ok(cmc1).
+cmc2:ok(cmc2).
+
+cmc1(X) :-
+	cmc1:ok(X).			% I_DEPARTM
+cmc2(X) :-
+	cmc2:ok(X),			% I_CALLM
+	atom(X).
+cmc3(X) :-
+	cmc3:context_module(X).
+cmc4(X) :-
+	cmc4:context_module(X),
+	atom(X).
+
+test(cmc1, X == cmc1) :-
+	cmc1(X).
+test(cmc1, Body == cmc1:ok(X)) :-
+	clause(cmc1(X), Body).
+test(cmc2, X == cmc2) :-
+	cmc2(X).
+test(cmc2, Body == (cmc2:ok(X),atom(X))) :-
+	clause(cmc2(X), Body).
+test(cmc3, X == cmc3) :-
+	cmc3(X).
+test(cmc4, X == cmc4) :-
+	cmc4(X).
+
+:- end_tests(cross_module_call).
+
 
 :- begin_tests(snip).
 
