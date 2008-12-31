@@ -2512,14 +2512,12 @@ write_length(Term, Len) :-
 \end{code}
 
     \predicate[ISO]{close}{1}{+Stream}
-Close the specified stream. If \arg{Stream} is not open an error message
-is displayed. Please be aware that anonymous streams handles (streams
-that have no alias and are represented as \term{\$stream}{Int}) are
-\emph{invalid} after closing. Although the system uses some heuristic to
-raise an existence error in these cases, closing a stream multiple times
-can crash Prolog. This is particularly true for multi-threaded
-applications. If the closed stream is the current input or output stream
-the terminal is made the current input or output.
+Close the specified stream. If \arg{Stream} is not open, an existence
+error is raised.  However, closing a stream multiple times may crash
+Prolog.  This is particularly true for multi-threaded applications.
+
+If the closed stream is the current input or output stream, the
+terminal is made the current input or output.
 
     \predicate[ISO]{close}{2}{+Stream, +Options}
 Provides \term{close}{Stream, [force(true)]} as the only option.  Called
@@ -3322,8 +3320,8 @@ writing variables with user-provided names.  The default is
 
     \termitem{partial}{Bool}
 If \const{true} (default \const{false}), do not reset the logic that
-inserts extra spaces that seperate tokens where needed. This is intended
-to this problems with the code below.  Calling \term{write_value}{.}
+inserts extra spaces that separate tokens where needed. This is intended
+to solve the problems with the code below.  Calling \term{write_value}{.}
 writes \verb$..$, which cannot be read.  By adding \term{partial}{true}
 to the option, it correctly emits \verb$. .$.  Similar problems appear
 when emitting operators using multiple calls to write_term/3.
