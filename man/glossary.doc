@@ -38,7 +38,7 @@ Current value of the \g{variable}.  See also \g{backtracking} and
 \g{query}.
 
     \glossitem{built-in [predicate]}\index{built-in predicate}%
-Predicate that is part of the Prolog system.  Built in predicates cannot
+Predicate that is part of the Prolog system.  Built-in predicates cannot
 be redefined by the user, unless this is overruled using
 redefine_system_predicate/1.
 

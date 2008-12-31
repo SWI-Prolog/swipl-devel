@@ -1051,7 +1051,7 @@ The predicate unify_with_occurs_check/2 provides sound unification and
 is part of the ISO standard. The predicates subsumes/2 and
 subsumes_chk/2 define `one-sided-unification' and are found in many
 Prolog systems.  Finally, unifiable/3 is a `what-if' version of 
-unification that is often qused a building block in constraint
+unification that is often used as a building block in constraint
 reasoners.
 
 
@@ -1344,7 +1344,7 @@ by deterministic success, failure, its choice-point being cut or
 raising an exception and \arg{Catcher} unifies to the termination
 code (see below), \arg{Cleanup} is called.  Success or failure of
 \arg{Cleanup} is ignored and possible choice-points it created are
-destroyed (as once/1).  If cleanup throws an exception this is
+destroyed (as once/1).  If \arg{Cleanup} throws an exception this is
 executed as normal.%
 	\bug{During the execution of \arg{Cleanup}, garbage collection
 	     and stack-shifts are disabled.}
@@ -1369,7 +1369,7 @@ if-then-else).
 \arg{Goal} raised the given \arg{Exception}.    
 \end{description}
 
-Typical use of this predicate is cleanup of permanent data storage
+Typically, this predicate is used to cleanup permanent data storage
 required to execute \arg{Goal}, close file-descriptors, etc. The example
 below provides a non-deterministic search for a term in a file, closing
 the stream as needed.
@@ -1388,10 +1388,10 @@ term_in_stream(Term, In) :-
 	).
 \end{code}
 
-Note that this predicate is impossible to implement in Prolog other then
-reading all terms into a list, close the file and call member/2 because
+Note that this predicate is impossible to implement in Prolog other than
+by reading all terms into a list, close the file and call member/2, because
 without call_cleanup/3 there is no way to gain control if the
-choice-point left by repeat is killed by a cut.
+choice-point left by repeat is removed by a cut.
 
 The call_cleanup/2 can also be used to test determinism of a goal,
 providing a portable alternative to deterministic/1:
@@ -2043,7 +2043,7 @@ that encloses the generation of the current goal are considered visible.
 By default, SWI-Prolog, as most other implementations, indexes
 predicates on their first argument.  SWI-Prolog allows indexing
 on other and multiple arguments using the declaration index/1.
-Dedicated index schemas can be build using term_hash/2 or term_hash/4.
+Dedicated index schemas can be built using term_hash/2 or term_hash/4.
 
 \begin{description}
     \predicate[det]{term_hash}{2}{+Term, -HashKey}
@@ -2401,7 +2401,7 @@ these predicates to manage input and output streams.
 
 \begin{description}
     \predicate[ISO]{open}{4}{+SrcDest, +Mode, -Stream, +Options}
-ISO compliant predicate to open a stream. \arg{SrcDes} is either an
+ISO compliant predicate to open a stream. \arg{SrcDest} is either an
 atom, specifying a file, or a term `\exam{pipe(\arg{Command})}',
 like see/1 and tell/1. \arg{Mode} is one of \const{read}, \const{write},
 \const{append} or \const{update}. Mode \const{append} opens the file for
@@ -2602,7 +2602,7 @@ file-descriptor that is not associated to a regular file.
     \termitem{representation_errors}{Mode}
 Determines behaviour of character output if the stream cannot represent
 a character. For example, an ISO Latin-1 stream cannot represent
-cyrillic characters.  The behaviour is one of \const{error} (throw
+Cyrillic characters.  The behaviour is one of \const{error} (throw
 and I/O error exception), \const{prolog} (write \verb$\...\$ escape
 code or \const{xml} (write \verb$&#...;$ XML character entity).
 The initial mode is \const{prolog} for the user streams and
@@ -4782,7 +4782,7 @@ functor `\const{.}' and arity~2 and the second argument is a list.%
 	\footnote{In versions before 5.0.1, is_list/1 just checked for
 		  \const{[]} or \exam{[_|_]} and
 		  \nopredref{proper_list}{1} had the role of the current
-		  is_list/1. The current definition is conform the
+		  is_list/1. The current definition conforms to the
 		  de-facto standard. Assuming proper coding standards,
 		  there should only be very few cases where a
 		  quick-and-dirty is_list/1 is a good choice. Richard
@@ -5534,7 +5534,7 @@ integers expressing the year, month (1..12), day (1..31), hour (0..23),
 Minute (0..59). The \arg{S} field holds the seconds as a floating point
 number between 0.0 and 60.0. \arg{Off} is an integer representing the
 offset relative to UTC in seconds where positive values are west of
-Greenwhich.  If converted from local time (see stamp_date_time/3,
+Greenwich.  If converted from local time (see stamp_date_time/3,
 \arg{TZ} holds the name of the local timezone.  If the timezone is
 not known \arg{TZ} is the atom \const{-}.  \arg{DST} is \const{true}
 if daylight saving time applies to the current time, \const{false}
@@ -5564,7 +5564,7 @@ Convert a \arg{TimeStamp} to a \arg{DateTime} in the given time zone.
 See \secref{dattimedata} for details on the data-types.  \arg{TimeZone}
 describes the timezone for the conversion.  It is one of \const{local}
 to extract the local time, \const{'UTC'} to extract at UTC time or an
-integer describing the seconds west of Greenwhich.
+integer describing the seconds west of Greenwich.
 
     \predicate{date_time_stamp}{2}{+DateTime, -TimeStamp}
 Compute the timestamp from a {date}/9 term.  Values for month, day,
@@ -5634,7 +5634,7 @@ The day of the month as a decimal number (range 01 to 31).
     \fmtchar{D}
 Equivalent to \%m/\%d/\%y. (Yecch — for Americans only. Americans should
 note that in other countries \%d/\%m/\%y is rather common. This means
-that in international context this format is ambigu‐ ous and should not
+that in international context this format is ambiguous and should not
 be used.)
     \fmtchar{e}
 Like \%d, the day of the month as a decimal number, but a leading
@@ -5725,7 +5725,7 @@ The year as a decimal number without a century (range 00 to 99).
 The year as a decimal number including the century.
     \fmtchar{z}
 The time-zone  as  hour  offset  from  GMT.   Required  to  emit
-RFC822-conformant  dates  (using  "\%a,  \%d  \%b \%Y \%H:\%M:\%S \%z").
+RFC822-conforming  dates  (using  "\%a,  \%d  \%b \%Y \%H:\%M:\%S \%z").
     \fmtchar{Z}
 The time zone or name or abbreviation.
     \fmtchar{+}
