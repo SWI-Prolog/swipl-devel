@@ -140,7 +140,9 @@ list_item(Lines, _, Indent, [SubList|LIT], LIT, Rest) :-	% sub-list
 %	Extract the remainder (after the first line) of a list item.
 
 rest_list_item([], _, _, [], []).
-rest_list_item([_-[]|L], _, _, [], L) :- !.	% empty line
+rest_list_item([_-[]|RestLines], _, N, Pars, Rest) :-	% empty line
+	take_pars_at_indent(RestLines, N, Pars, Rest).
+rest_list_item([_-[]|Ln], _, _, [], Ln) :- !.
 rest_list_item(L, _, N, [], L) :-		% less indented
 	L = [I-_|_], I < N, !.
 rest_list_item(L, _, _, [], L) :-		% Start with mark
@@ -150,6 +152,14 @@ rest_list_item([_-L1|L0], Type, N, ['\n'|LI], L) :-
 	append(L1, LIT, LI),
 	rest_list_item(L0, Type, N, LIT, L).
 
+%%	take_pars_at_indent(+Lines, +Indent, -Pars, -RestLines) is det.
+%
+%	Process paragraphs in bullet-lists.
+
+take_pars_at_indent(Lines, N, [Par|RestPars], RestLines) :-
+	take_par(Lines, Par, RL), Par = p(_), !,
+	take_pars_at_indent(RL, N, RestPars, RestLines).
+take_pars_at_indent(Lines, _, [], Lines).
 
 %%	rest_list(+Lines, +Type, +Indent,
 %%		  -Items, -ItemTail, -RestLines) is det.
