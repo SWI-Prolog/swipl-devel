@@ -87,21 +87,6 @@ get_object(Obj, Sel, A1, A2, A3, A4, Out) :-
 get_object(Obj, Sel, A1, A2, A3, A4, A5, Out) :-
 	get(Obj, Sel, A1, A2, A3, A4, A5, R),
 	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, R),
-	get_to_object(R, Out).
 
 get_to_object(Ref, Object) :-
 	(   atomic(Ref)

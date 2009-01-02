@@ -65,7 +65,10 @@
 	verbose/0,
 	recording/2.			% items recorded
 
-pce_ifhostproperty(prolog(swi), (:- index(attribute(1,1,0)))).
+pce_ifhostproperty(prolog(swi),
+		   [ (:- index(attribute(1,1,0))),
+		     (:- use_module(library(quintus), [genarg/3]))
+		   ]).
 
 		 /*******************************
 		 *	     OPERATORS		*

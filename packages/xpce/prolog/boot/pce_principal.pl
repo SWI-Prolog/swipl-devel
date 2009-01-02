@@ -139,42 +139,42 @@ free(_).
 %	given Arguments succeeds. Normally, goal_expansion/2 expands all
 %	these goals into send(Receiver, Method(Args...)).
 
-send(Receiver, Selector, A1) :-
+send(Receiver, M:Selector, A1) :-
         functor(Message, Selector, 1),
         arg(1, Message, A1),
-        send(Receiver, Message).
+        send(Receiver, M:Message).
 
-send(Receiver, Selector, A1, A2) :-
+send(Receiver, M:Selector, A1, A2) :-
         functor(Message, Selector, 2),
         arg(1, Message, A1),
         arg(2, Message, A2),
-        send(Receiver, Message).
+        send(Receiver, M:Message).
 
-send(Receiver, Selector, A1, A2, A3) :-
+send(Receiver, M:Selector, A1, A2, A3) :-
         functor(Message, Selector, 3),
         arg(1, Message, A1),
         arg(2, Message, A2),
         arg(3, Message, A3),
-        send(Receiver, Message).
+        send(Receiver, M:Message).
 
-send(Receiver, Selector, A1, A2, A3, A4) :-
+send(Receiver, M:Selector, A1, A2, A3, A4) :-
         functor(Message, Selector, 4),
         arg(1, Message, A1),
         arg(2, Message, A2),
         arg(3, Message, A3),
         arg(4, Message, A4),
-        send(Receiver, Message).
+        send(Receiver, M:Message).
 
-send(Receiver, Selector, A1, A2, A3, A4, A5) :-
+send(Receiver, M:Selector, A1, A2, A3, A4, A5) :-
         functor(Message, Selector, 5),
         arg(1, Message, A1),
         arg(2, Message, A2),
         arg(3, Message, A3),
         arg(4, Message, A4),
         arg(5, Message, A5),
-        send(Receiver, Message).
+        send(Receiver, M:Message).
 
-send(Receiver, Selector, A1, A2, A3, A4, A5, A6) :-
+send(Receiver, M:Selector, A1, A2, A3, A4, A5, A6) :-
         functor(Message, Selector, 6),
         arg(1, Message, A1),
         arg(2, Message, A2),
@@ -182,47 +182,47 @@ send(Receiver, Selector, A1, A2, A3, A4, A5, A6) :-
         arg(4, Message, A4),
         arg(5, Message, A5),
         arg(6, Message, A6),
-        send(Receiver, Message).
+        send(Receiver, M:Message).
 
 
-%%	get(+Object, +Selector, +Arg..., ?Rval) is semidet.
+%%	get(+Object, :Selector, +Arg..., ?Rval) is semidet.
 %
 %	See the comments with send/[3-12].
 
-get(Receiver, Selector, A1, Answer) :-
+get(Receiver, M:Selector, A1, Answer) :-
         functor(Message, Selector, 1),
         arg(1, Message, A1),
-        get(Receiver, Message, Answer).
+        get(Receiver, M:Message, Answer).
 
-get(Receiver, Selector, A1, A2, Answer) :-
+get(Receiver, M:Selector, A1, A2, Answer) :-
         functor(Message, Selector, 2),
         arg(1, Message, A1),
         arg(2, Message, A2),
-        get(Receiver, Message, Answer).
+        get(Receiver, M:Message, Answer).
 
-get(Receiver, Selector, A1, A2, A3, Answer) :-
+get(Receiver, M:Selector, A1, A2, A3, Answer) :-
         functor(Message, Selector, 3),
         arg(1, Message, A1),
         arg(2, Message, A2),
         arg(3, Message, A3),
-        get(Receiver, Message, Answer).
+        get(Receiver, M:Message, Answer).
 
-get(Receiver, Selector, A1, A2, A3, A4, Answer) :-
+get(Receiver, M:Selector, A1, A2, A3, A4, Answer) :-
         functor(Message, Selector, 4),
         arg(1, Message, A1),
         arg(2, Message, A2),
         arg(3, Message, A3),
         arg(4, Message, A4),
-        get(Receiver, Message, Answer).
+        get(Receiver, M:Message, Answer).
 
-get(Receiver, Selector, A1, A2, A3, A4, A5, Answer) :-
+get(Receiver, M:Selector, A1, A2, A3, A4, A5, Answer) :-
         functor(Message, Selector, 5),
         arg(1, Message, A1),
         arg(2, Message, A2),
         arg(3, Message, A3),
         arg(4, Message, A4),
         arg(5, Message, A5),
-        get(Receiver, Message, Answer).
+        get(Receiver, M:Message, Answer).
 
 
 		 /*******************************
