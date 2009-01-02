@@ -2152,7 +2152,7 @@ VMI(S_LMQUAL, 0, 1, (CA1_VAR))
 { Word k = varFrameP(FR, (int)*PC++);
 
   m_qualify_argument(FR, k PASS_LD);
-  clear(FR, FR_CONTEXT);
+  setContextModule(FR, FR->predicate->module);
 
   NEXT_INSTRUCTION;
 }

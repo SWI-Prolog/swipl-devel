@@ -38,6 +38,15 @@ allocCodes(size_t n)
 }
 
 
+static void
+freeCodes(Code codes)
+{ size_t size = (size_t)codes[-1];
+
+  if ( size > 0 )		/* 0: built-in, see initSupervisors() */
+    freeHeap(&codes[-1], (size+1)*sizeof(code));
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 freeCodesDefinition() destroys the supervisor of  a predicate, replacing
 it  by  the  statically  allocated  S_VIRGIN  supervisor.  Note  that  a
@@ -236,6 +245,57 @@ staticSupervisor(Definition def)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Prepend the already provided  supervisor   with  code  for meta-argument
+module qualifications.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+copySuperVisorCode(Buffer buf, Code add)
+{ size_t len = supervisorLength(add);
+
+  addMultipleBuffer(buf, add, len, code);
+}
+
+
+static void
+copyCodes(Code dest, Code src, size_t count)
+{ memcpy(dest, src, count*sizeof(code));
+}
+
+
+static Code
+chainMetaPredicateSupervisor(Definition def, Code post)
+{ if ( true(def, P_META) && true(def, P_TRANSPARENT) )
+  { tmp_buffer buf;
+    unsigned int i;
+    int count = 0;
+    Code codes;
+
+    initBuffer(&buf);
+    for(i=0; i < def->functor->arity; i++)
+    { int ma = MA_INFO(def, i);
+      
+      if ( ma <= 10 )			/* 0..9 or : */
+      { addBuffer(&buf, encode(S_MQUAL), code);
+	addBuffer(&buf, VAROFFSET(i), code);
+	count++;
+      }
+    }
+    assert(count>0);
+    baseBuffer(&buf, code)[(count-1)*2] = encode(S_LMQUAL);
+
+    copySuperVisorCode((Buffer)&buf, post);
+    freeCodes(post);
+    codes = allocCodes(entriesBuffer(&buf, code));
+    copyCodes(codes, baseBuffer(&buf, code), entriesBuffer(&buf, code));
+
+    return codes;
+  }
+
+  return post;
+}
+
 
 		 /*******************************
 		 *	      ENTRIES		*
@@ -266,7 +326,7 @@ createSupervisor(Definition def)
   (codes = staticSupervisor(def));
 
   assert(codes);
-  def->codes = codes;
+  def->codes = chainMetaPredicateSupervisor(def, codes);
 
   succeed;
 }
@@ -279,12 +339,16 @@ createSupervisor(Definition def)
 size_t
 supervisorLength(Code base)
 { Code PC = base;
+  size_t len = (size_t)base[-1];
 
-  for(; decode(*PC) != I_EXIT; PC = stepPC(PC))
-    ;
-
-  PC++;					/* include I_EXIT */
-  return PC-base;
+  if ( len != 0 )
+  { return len;
+  } else
+  { for(; decode(*PC) != I_EXIT; PC = stepPC(PC))
+      ;
+    PC++;					/* include I_EXIT */
+    return PC-base;
+  }
 }
 
 
