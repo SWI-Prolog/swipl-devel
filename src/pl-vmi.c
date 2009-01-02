@@ -1386,48 +1386,7 @@ retry_continue:
 #endif /*O_SHIFT_STACKS*/
 #endif /*O_DYNAMIC_STACKS*/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Call a normal Prolog predicate.  Just   load  the machine registers with
-values found in the clause,  give  a   reference  to  the clause and set
-`lTop' to point to the first location after the current frame.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-old_call:				/* See S_VIRGIN */
-  ARGP = argFrameP(FR, 0);
-  enterDefinition(DEF);
-
-  DEBUG(9, Sdprintf("Searching clause ... "));
-
-{ ClauseRef nextcl;
-
-  if ( !(CL = firstClause(ARGP, FR, DEF, &nextcl PASS_LD)) )
-  { DEBUG(9, Sdprintf("No clause matching index.\n"));
-    if ( debugstatus.debugging )
-      newChoice(CHP_DEBUG, FR PASS_LD);
-
-    FRAME_FAILED;
-  }
-  DEBUG(9, Sdprintf("Clauses found.\n"));
-
-  PC = CL->clause->codes;
-  lTop = (LocalFrame)(ARGP + CL->clause->variables);
-  requireStack(local, 0);
-
-  if ( nextcl )
-  { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-    ch->value.clause = nextcl;
-  } else if ( debugstatus.debugging )
-    newChoice(CHP_DEBUG, FR PASS_LD);
-}
-
-  SECURE(
-  int argc; int n;
-  argc = DEF->functor->arity;
-  for(n=0; n<argc; n++)
-    checkData(argFrameP(FR, n));
-  );
-
-  umode = uread;
-  NEXT_INSTRUCTION;
+  VMI_GOTO(S_INDEXED);
 }
 
 
@@ -1989,11 +1948,11 @@ VMI(S_VIRGIN, 0, 0, ())
   if ( createSupervisor(DEF) )
   { PC = DEF->codes;
     NEXT_INSTRUCTION;
-  } else
+  } else				/* TBD: temporary */
   { lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
     DEF->codes = NULL;
     FR->predicate = DEF;
-    goto old_call;			/* TBD: temporary */
+    VMI_GOTO(S_INDEXED);
   }
 }
 
@@ -2029,6 +1988,48 @@ VMI(S_UNDEF, 0, 0, ())
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Generic calling code.  This needs to be specialised.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_INDEXED, 0, 0, ())
+{ ClauseRef nextcl;
+  ARGP = argFrameP(FR, 0);
+  enterDefinition(DEF);
+
+  DEBUG(9, Sdprintf("Searching clause ... "));
+
+  if ( !(CL = firstClause(ARGP, FR, DEF, &nextcl PASS_LD)) )
+  { DEBUG(9, Sdprintf("No clause matching index.\n"));
+    if ( debugstatus.debugging )
+      newChoice(CHP_DEBUG, FR PASS_LD);
+
+    FRAME_FAILED;
+  }
+  DEBUG(9, Sdprintf("Clauses found.\n"));
+
+  PC = CL->clause->codes;
+  lTop = (LocalFrame)(ARGP + CL->clause->variables);
+  requireStack(local, 0);
+
+  if ( nextcl )
+  { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);
+    ch->value.clause = nextcl;
+  } else if ( debugstatus.debugging )
+    newChoice(CHP_DEBUG, FR PASS_LD);
+
+  SECURE(
+  int argc; int n;
+  argc = DEF->functor->arity;
+  for(n=0; n<argc; n++)
+    checkData(argFrameP(FR, n));
+  );
+
+  umode = uread;
+  NEXT_INSTRUCTION;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 S_THREAD_LOCAL: Get thread-local definition
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -2040,7 +2041,7 @@ VMI(S_THREAD_LOCAL, 0, 0, ())
     NEXT_INSTRUCTION;
   }
 
-  goto old_call;			/* TBD: temporary */
+  VMI_GOTO(S_INDEXED);			/* TBD: specialise */
 }
 
 
