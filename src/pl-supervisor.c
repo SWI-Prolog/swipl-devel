@@ -222,23 +222,51 @@ createUndefSupervisor(Definition def)
 }
 
 
+static int
+createDynamicSupervisor(Definition def)
+{ if ( true(def, DYNAMIC) )
+  { def->codes = SUPERVISOR(dynamic);
+
+    succeed;
+  }
+
+  fail;
+}
+
+
+static int
+createMultifileSupervisor(Definition def)
+{ if ( true(def, (DYNAMIC|MULTIFILE)) )
+  { if ( true(def, DYNAMIC) )
+      def->codes = SUPERVISOR(dynamic);
+    else
+      def->codes = SUPERVISOR(multifile);
+
+    succeed;
+  }
+
+  fail;
+}
+
+
 		 /*******************************
 		 *	      ENTRY		*
 		 *******************************/
 
 int
 createSupervisor(Definition def)
-{ if ( true(def, (DYNAMIC|MULTIFILE)) )
-    fail;
-
-  if ( createUndefSupervisor(def))
+{ if ( createUndefSupervisor(def))
+    succeed;
+  if ( createMultifileSupervisor(def) )
     succeed;
   if ( createSingleClauseSupervisor(def) )
     succeed;
   if ( createListSupervisor(def) )
     succeed;
 
-  fail;
+  def->codes = SUPERVISOR(staticp);
+
+  succeed;
 }
 
 
@@ -284,5 +312,8 @@ initSupervisors(void)
   MAKE_SV1(next_clause,	 S_NEXTCLAUSE);
   MAKE_SV1(virgin,	 S_VIRGIN);
   MAKE_SV1(undef,	 S_UNDEF);
+  MAKE_SV1(dynamic,      S_DYNAMIC);
   MAKE_SV1(thread_local, S_THREAD_LOCAL);
+  MAKE_SV1(multifile,    S_MULTIFILE);
+  MAKE_SV1(staticp,      S_STATIC);
 }

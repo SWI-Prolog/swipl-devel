@@ -1346,47 +1346,9 @@ retry_continue:
 #endif /*O_DEBUGGER*/
   }
 
-  if ( DEF->codes )			/* entry point for new supervisors */
-  { PC = DEF->codes;
-    NEXT_INSTRUCTION;
-  }
-
-
-#if !O_DYNAMIC_STACKS
-#if O_SHIFT_STACKS
-{ int gshift = narrowStack(global);
-  int lshift = narrowStack(local);
-  int tshift = narrowStack(trail);
-
-  if ( gshift || lshift || tshift )
-  { if ( gshift || tshift )
-    { intptr_t gused = usedStack(global);
-      intptr_t tused = usedStack(trail);
-
-      garbageCollect(FR, BFR);
-      DEBUG(1, Sdprintf("\tgshift = %d; tshift = %d", gshift, tshift));
-      if ( gshift )
-	gshift = ((2 * usedStack(global)) > gused);
-      if ( tshift )
-	tshift = ((2 * usedStack(trail)) > tused);
-      DEBUG(1, Sdprintf(" --> gshift = %d; tshift = %d\n",
-		      gshift, tshift));
-    }
-
-    if ( gshift || tshift || lshift )
-    { SAVE_REGISTERS(qid);
-      growStacks(FR, BFR, NULL, lshift, gshift, tshift);
-      LOAD_REGISTERS(qid);
-    }
-  }
-}
-#else /*O_SHIFT_STACKS*/
-  if ( narrowStack(global) || narrowStack(trail) )
-    garbageCollect(FR);
-#endif /*O_SHIFT_STACKS*/
-#endif /*O_DYNAMIC_STACKS*/
-
-  VMI_GOTO(S_INDEXED);
+  PC = DEF->codes;
+  assert(PC);
+  NEXT_INSTRUCTION;
 }
 
 
@@ -1949,10 +1911,7 @@ VMI(S_VIRGIN, 0, 0, ())
   { PC = DEF->codes;
     NEXT_INSTRUCTION;
   } else				/* TBD: temporary */
-  { lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
-    DEF->codes = NULL;
-    FR->predicate = DEF;
-    VMI_GOTO(S_INDEXED);
+  { assert(0);
   }
 }
 
@@ -1991,10 +1950,10 @@ VMI(S_UNDEF, 0, 0, ())
 Generic calling code.  This needs to be specialised.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(S_INDEXED, 0, 0, ())
+VMI(S_STATIC, 0, 0, ())
 { ClauseRef nextcl;
   ARGP = argFrameP(FR, 0);
-  enterDefinition(DEF);
+  lTop = (LocalFrame)ARGP+DEF->functor->arity;
 
   DEBUG(9, Sdprintf("Searching clause ... "));
 
@@ -2030,6 +1989,19 @@ VMI(S_INDEXED, 0, 0, ())
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_DYNAMIC: Dynamic predicate. Dynamic predicates   must  use the dynamic
+indexing and need to lock the predicate. This VMI can also handle static
+code.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_DYNAMIC, 0, 0, ())
+{ enterDefinition(DEF);
+
+  VMI_GOTO(S_STATIC);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 S_THREAD_LOCAL: Get thread-local definition
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -2041,7 +2013,17 @@ VMI(S_THREAD_LOCAL, 0, 0, ())
     NEXT_INSTRUCTION;
   }
 
-  VMI_GOTO(S_INDEXED);			/* TBD: specialise */
+  VMI_GOTO(S_DYNAMIC);			/* TBD: specialise */
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_MULTIFILE: Multifile predicate.  These need to be aware of new
+clauses that can be added at runtime.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_MULTIFILE, 0, 0, ())
+{ VMI_GOTO(S_STATIC);
 }
 
 

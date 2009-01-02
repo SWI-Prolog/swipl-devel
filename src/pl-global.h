@@ -56,7 +56,10 @@ typedef struct
     code next_clause[3];		/* S_NEXTCLAUSE */
     code virgin[3];			/* S_VIRGIN */
     code undef[3];			/* S_UNDEF */
+    code dynamic[3];			/* S_DYNAMIC */
     code thread_local[3];		/* S_THREAD_LOCAL */
+    code multifile[3];			/* S_MULTIFILE */
+    code staticp[3];			/* S_STATIC */
   } supervisors;
 } PL_code_data_t;
 
