@@ -42,12 +42,12 @@
 :- use_module(library(error)).
 :- use_module(library(lists)).
 
-:- module_transparent
-	foreach/2,
-	aggregate/3,
-	aggregate/4,
-	aggregate_all/3,
-	aggregate_all/4.
+:- meta_predicate
+	foreach(0,0),
+	aggregate(?,0,-),
+	aggregate(?,?,0,-),
+	aggregate_all(?,0,-),
+	aggregate_all(?,?,0,-).
 
 /** <module> Aggregation operators on backtrackable predicates
 
@@ -437,9 +437,7 @@ state1(_,   X, X,     _).
 %	@bug	Goal is copied repeatetly, which may cause problems if
 %		attributed variables are involved.
 
-foreach(Generator, Goal0) :-
-	strip_module(Goal0, M, G),
-	Goal = M:G,
+foreach(Generator, Goal) :-
 	term_variables(Generator, GenVars0), sort(GenVars0, GenVars),
 	term_variables(Goal, GoalVars0), sort(GoalVars0, GoalVars),
 	ord_subtract(GoalVars, GenVars, SharedGoalVars),
