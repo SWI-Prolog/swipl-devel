@@ -144,8 +144,8 @@ only clause of the predicate.  Creates
 	S_TRUSTME <ClauseRef>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-createSingleClauseSupervisor(Definition def)
+static Code
+singleClauseSupervisor(Definition def)
 { if ( def->number_of_clauses == 1 )
   { ClauseRef cref;
     Code codes = allocCodes(2);
@@ -157,11 +157,10 @@ createSingleClauseSupervisor(Definition def)
     codes[0] = encode(S_TRUSTME);
     codes[1] = (code)cref;
   
-    def->codes = codes;
-    succeed;
+    return codes;
   }
 
-  fail;
+  return NULL;
 }
 
 
@@ -177,8 +176,8 @@ The code is
 	S_LIST <nilclause> <listclause>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-createListSupervisor(Definition def)
+static Code
+listSupervisor(Definition def)
 { if ( def->number_of_clauses == 2 )
   { ClauseRef cref[2];
     word c[2];
@@ -201,14 +200,46 @@ createListSupervisor(Definition def)
 	codes[2] = (code)cref[0];
       }
 
-      def->codes = codes;
-      succeed;
+      return codes;
     }
   }
 
-  fail;
+  return NULL;
 }
 
+
+static Code
+dynamicSupervisor(Definition def)
+{ if ( true(def, DYNAMIC) )
+    return SUPERVISOR(dynamic);
+
+  return NULL;
+}
+
+
+static Code
+multifileSupervisor(Definition def)
+{ if ( true(def, (DYNAMIC|MULTIFILE)) )
+  { if ( true(def, DYNAMIC) )
+      return SUPERVISOR(dynamic);
+    else
+      return SUPERVISOR(multifile);
+  }
+
+  return NULL;
+}
+
+
+static Code
+staticSupervisor(Definition def)
+{ return SUPERVISOR(dynamic);
+}
+
+
+
+		 /*******************************
+		 *	      ENTRIES		*
+		 *******************************/
 
 int
 createUndefSupervisor(Definition def)
@@ -222,49 +253,20 @@ createUndefSupervisor(Definition def)
 }
 
 
-static int
-createDynamicSupervisor(Definition def)
-{ if ( true(def, DYNAMIC) )
-  { def->codes = SUPERVISOR(dynamic);
-
-    succeed;
-  }
-
-  fail;
-}
-
-
-static int
-createMultifileSupervisor(Definition def)
-{ if ( true(def, (DYNAMIC|MULTIFILE)) )
-  { if ( true(def, DYNAMIC) )
-      def->codes = SUPERVISOR(dynamic);
-    else
-      def->codes = SUPERVISOR(multifile);
-
-    succeed;
-  }
-
-  fail;
-}
-
-
-		 /*******************************
-		 *	      ENTRY		*
-		 *******************************/
-
 int
 createSupervisor(Definition def)
-{ if ( createUndefSupervisor(def))
-    succeed;
-  if ( createMultifileSupervisor(def) )
-    succeed;
-  if ( createSingleClauseSupervisor(def) )
-    succeed;
-  if ( createListSupervisor(def) )
+{ Code codes;
+
+  if ( createUndefSupervisor(def))
     succeed;
 
-  def->codes = SUPERVISOR(staticp);
+  (codes = multifileSupervisor(def)) ||
+  (codes = singleClauseSupervisor(def)) ||
+  (codes = listSupervisor(def)) ||
+  (codes = staticSupervisor(def));
+
+  assert(codes);
+  def->codes = codes;
 
   succeed;
 }
