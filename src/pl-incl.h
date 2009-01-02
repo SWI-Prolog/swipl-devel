@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -465,7 +465,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 
 /* Definition->indexPattern is set to NEED_REINDEX if the definition's index
    pattern needs to be recomputed */
-#define NEED_REINDEX (1UL << (LONGBITSIZE-1))
+#define NEED_REINDEX (1U << (INTBITSIZE-1))
 
 #include "pl-vmi.h"
 
@@ -1168,8 +1168,9 @@ struct definition
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
   ClauseIndex 	hash_info;		/* clause hash-tables */
-  unsigned long indexPattern;		/* indexed argument pattern */
-  unsigned long flags;			/* booleans: */
+  unsigned int  indexPattern;		/* indexed argument pattern */
+  unsigned int  meta_info;		/* meta-predicate info */
+  unsigned int  flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
 		/*	PROFILE_TICKED	   has been ticked this time? */
 		/*	TRACE_ME	   is my call visible? */
