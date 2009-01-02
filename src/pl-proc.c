@@ -1335,6 +1335,51 @@ PRED_IMPL("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
 }
 
 
+static int
+unify_meta_argument(term_t head, Definition def, int i)
+{ GET_LD
+  term_t arg = PL_new_term_ref();
+  int m = MA_INFO(def, i);
+
+  _PL_get_arg(i+1, head, arg);
+  if ( m < 10 )
+  { return PL_unify_integer(arg, m);
+  } else
+  { atom_t a;
+
+    switch(m)
+    { case MA_META:	a = ATOM_colon; break;	
+      case MA_VAR:	a = ATOM_minus; break;
+      case MA_ANY:	a = ATOM_question_mark; break;
+      case MA_NONVAR:	a = ATOM_plus; break;
+      default:		a = NULL_ATOM; assert(0);
+    }
+
+    return PL_unify_atom(arg, a);
+  }
+}
+
+
+static int
+unify_meta_pattern(Procedure proc, term_t head)
+{ Definition def = proc->definition;
+
+  if ( PL_unify_functor(head, def->functor->functor) )
+  { int arity = def->functor->arity;
+    int i;
+
+    for(i=0; i<arity; i++)
+    { if ( !unify_meta_argument(head, def, i) )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 #ifdef O_CLAUSEGC
 		 /*******************************
 		 *	     CLAUSE-GC		*
@@ -2022,6 +2067,10 @@ pl_get_predicate_attribute(term_t pred,
   { if ( def->indexPattern == 0x0 )
       fail;
     return unify_index_pattern(proc, value);
+  } else if ( key == ATOM_meta )
+  { if ( false(def, P_META) )
+      fail;
+    return unify_meta_pattern(proc, value);
   } else if ( key == ATOM_exported )
   { return PL_unify_integer(value, isPublicModule(module, proc));
   } else if ( key == ATOM_defined )

@@ -508,6 +508,8 @@ predicate_property(Pred, Property) :-
 	'$get_predicate_attribute'(Pred, transparent, 1).
 '$predicate_property'(indexed(Pattern), Pred) :-
 	'$get_predicate_attribute'(Pred, indexed, Pattern).
+'$predicate_property'(meta(Pattern), Pred) :-
+	'$get_predicate_attribute'(Pred, meta, Pattern).
 '$predicate_property'(file(File), Pred) :-
 	source_file(Pred, File).
 '$predicate_property'(line_count(LineNumber), Pred) :-
