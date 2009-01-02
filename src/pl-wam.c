@@ -725,12 +725,25 @@ setContextModule(LocalFrame fr, Module context)
 #define setContextModule(fr, ctx) setContextModule__(fr, ctx)
 
 
+static inline int
+is_qualified(Word p ARG_LD)
+{ if ( hasFunctor(*p, FUNCTOR_colon2) )
+  { Word a1 = argTermP(*p, 0);
+    deRef(a1);
+
+    return isAtom(*a1);
+  }
+
+  return FALSE;
+}
+
+
 static void
 m_qualify_argument(LocalFrame fr, Word k ARG_LD)
 { Word p;
 
   deRef2(k, p);
-  if ( !hasFunctor(*p, FUNCTOR_colon2) )
+  if ( !is_qualified(p PASS_LD) )
   { Word p = allocGlobal(3);
 
     p[0] = FUNCTOR_colon2;
@@ -743,7 +756,7 @@ m_qualify_argument(LocalFrame fr, Word k ARG_LD)
       Word ap;
 
       deRef2(p2, ap);
-      if ( hasFunctor(*ap, FUNCTOR_colon2) )
+      if ( is_qualified(ap PASS_LD) )
 	p = ap;
       else
 	break;
