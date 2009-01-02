@@ -1454,7 +1454,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
     SAVE_REGISTERS(qid);
     DEF = getProcDefinedDefinition(&lTop, PC, proc->definition PASS_LD);
     LOAD_REGISTERS(qid);
-    if ( true(DEF, METAPRED) )
+    if ( true(DEF, P_TRANSPARENT) )
     { FR->context = contextModule(FR);
       FR->flags = (((FR->flags+FR_LEVEL_STEP) | FR_CONTEXT) &
                    ~(FR_SKIPPED|FR_WATCHED|FR_CATCHED));
@@ -1483,7 +1483,7 @@ VMI(I_CALLM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
   NFR = lTop;
   setNextFrameFlags(NFR, FR);
   DEF = proc->definition;
-  if ( true(DEF, METAPRED ) )
+  if ( true(DEF, P_TRANSPARENT ) )
     setContextModule(NFR, m);
 
   goto normal_call;
@@ -3667,7 +3667,7 @@ Save the program counter (note  that   I_USERCALL0  has no argument) and
 continue as with a normal call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( true(DEF, METAPRED) )
+  if ( true(DEF, P_TRANSPARENT) )
     setContextModule(NFR, module);
 
   goto normal_call;

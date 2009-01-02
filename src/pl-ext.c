@@ -52,7 +52,7 @@ Link all foreign language predicates.  The arguments to FRG are:
 
 Flags almost always is TRACE_ME.  Additional common flags:
 
-	METAPRED		Predicate is module transparent
+	P_TRANSPARENT		Predicate is module transparent
 	NONDETERMINISTIC	Predicate can be resatisfied
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -408,7 +408,7 @@ registerBuiltins(const PL_extension *f)
     set(def, FOREIGN|SYSTEM|HIDE_CHILDS|LOCKED);
 
     if ( f->flags & PL_FA_NOTRACE )	     clear(def, TRACE_ME);
-    if ( f->flags & PL_FA_TRANSPARENT )	     set(def, METAPRED);
+    if ( f->flags & PL_FA_TRANSPARENT )	     set(def, P_TRANSPARENT);
     if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, NONDETERMINISTIC);
     if ( f->flags & PL_FA_VARARGS )	     set(def, P_VARARG);
     if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);

@@ -3270,7 +3270,7 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
     set(def, SYSTEM|HIDE_CHILDS);
 
   if ( (flags & PL_FA_NOTRACE) )	  clear(def, TRACE_ME);
-  if ( (flags & PL_FA_TRANSPARENT) )	  set(def, METAPRED);
+  if ( (flags & PL_FA_TRANSPARENT) )	  set(def, P_TRANSPARENT);
   if ( (flags & PL_FA_NONDETERMINISTIC) ) set(def, NONDETERMINISTIC);
   if ( (flags & PL_FA_VARARGS) )	  set(def, P_VARARG);
 

@@ -782,7 +782,7 @@ with one operation, it turns out to be faster as well.
 #define SPY_ME			(0x00000080L) /* predicate */
 #define SYSTEM			(0x00000100L) /* predicate, module */
 #define TRACE_ME		(0x00000200L) /* predicate */
-#define METAPRED		(0x00000400L) /* predicate */
+#define P_TRANSPARENT		(0x00000400L) /* predicate */
 #define GC_SAFE			(0x00000800L) /* predicate */
 #define TRACE_CALL		(0x00001000L) /* predicate */
 #define TRACE_REDO		(0x00002000L) /* predicate */
@@ -803,6 +803,7 @@ with one operation, it turns out to be faster as well.
 #define P_FOREIGN_CREF		(0x02000000L) /* predicate */
 #define P_DIRTYREG		(0x04000000L) /* predicate */
 #define P_ISO			(0x08000000L) /* predicate */
+#define P_META			(0x10000000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause, record */
 					 /* clause flags */
@@ -1179,7 +1180,7 @@ struct definition
 		/*	DYNAMIC		   dynamic predicate? */
 		/*	MULTIFILE	   defined over more files? */
 		/*	SYSTEM		   system predicate */
-		/*	METAPRED	   procedure transparent to modules */
+		/*	P_TRANSPARENT	   procedure transparent to modules */
 		/*	DISCONTIGUOUS	   procedure might be discontiguous */
 		/*	NONDETERMINISTIC   deterministic foreign (not used) */
 		/*	GC_SAFE		   Save to perform GC while active */
@@ -1417,6 +1418,21 @@ struct trail_entry
 struct gc_trail_entry
 { word		address;	/* address of the variable */
 };
+
+		 /*******************************
+		 *	   META PREDICATE	*
+		 *******************************/
+
+/*0..9*/				/* 0..9: `Extra meta arguments' */
+#define MA_META		10		/* : */
+#define MA_VAR		11		/* - */
+#define MA_ANY		12		/* ? */
+#define MA_NONVAR	13		/* + */
+
+#define MA_INFO(def, n)		(((def)->meta_info >> ((n)*4)) & 0xf)
+#define MA_SETINFO(def, n, i)	((def)->meta_info &= ~(0xf << (n)*4), \
+				 (def)->meta_info |= (i << (n)*4))
+
 
 		 /*******************************
 		 *	 MEMORY ALLOCATION	*

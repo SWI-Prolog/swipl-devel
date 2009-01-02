@@ -1235,6 +1235,106 @@ resetReferences(void)
 }
 
 
+		 /*******************************
+		 *	  META PREDICATE	*
+		 *******************************/
+
+/** meta_predicate :HeadList is det.
+
+Quintus compatible declaration  for   meta-predicates.  The  declaration
+fills the meta_info field of a  definition   as  well  as the P_META and
+P_TRANSPARENT  flags.  P_META  indicates  that    meta_info   is  valid.
+P_TRANSPARENT indicates that  the  declaration   contains  at  least one
+meta-argument (: or 0..9).
+
+@param HeadList	Comma separated list of predicates heads, where each
+		predicate head has arguments 0..9, :,+,-,?
+*/
+
+static int
+meta_declaration(term_t spec)
+{ GET_LD
+  term_t head = PL_new_term_ref();
+  term_t arg = PL_new_term_ref();
+  Procedure proc;
+  Definition def;
+  atom_t name;
+  int i, arity;
+  int mask = 0;
+  int transparent = FALSE;
+
+  if ( !get_procedure(spec, &proc, head, GP_DEFINE) )
+    return FALSE;
+
+  PL_get_name_arity(head, &name, &arity);
+  if ( arity > (int)sizeof(mask)*2 )
+    return PL_error(NULL, 0, "max arity of meta predicates is 8",
+		    ERR_REPRESENTATION, ATOM_max_arity);
+  for(i=0; i<arity; i++)
+  { atom_t ma;
+
+    _PL_get_arg(i+1, head, arg);
+
+    if ( PL_is_integer(arg) )
+    { int e;
+      
+      if ( !PL_get_integer_ex(arg, &e) )
+	return FALSE;
+      if ( e < 0 || e > 9 )
+      { domain_error:
+	return PL_error(NULL, 0, "0..9",
+			ERR_DOMAIN, ATOM_meta_argument_specifier, arg);
+      }
+      mask |= e<<(i*4);
+      transparent = TRUE;
+    } else if ( PL_get_atom(arg, &ma) )
+    { int m;
+
+      if      ( ma == ATOM_plus ) m = MA_NONVAR;
+      else if ( ma == ATOM_minus ) m = MA_VAR;
+      else if ( ma == ATOM_question_mark ) m = MA_ANY;
+      else if ( ma == ATOM_colon ) m = MA_META, transparent = TRUE;
+      else goto domain_error;
+	
+      mask |= m<<(i*4);
+    } else
+    { return PL_error(NULL, 0, "0..9",
+			ERR_TYPE, ATOM_meta_argument_specifier, arg);;
+    }
+  }
+
+  def = proc->definition;
+  def->meta_info = mask;
+  if ( transparent )
+    set(def, P_TRANSPARENT);
+  else
+    clear(def, P_TRANSPARENT);
+  set(def, P_META);
+
+  return TRUE;
+}
+
+
+static
+PRED_IMPL("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
+{ PRED_LD
+  term_t tail = PL_copy_term_ref(A1);
+  term_t head = PL_new_term_ref();
+
+  while ( PL_is_functor(tail, FUNCTOR_comma2) )
+  { _PL_get_arg(1, tail, head);
+    if ( !meta_declaration(head) )
+      return FALSE;
+    _PL_get_arg(2, tail, tail);
+  }
+
+  if ( !meta_declaration(tail) )
+    return FALSE;
+
+  return TRUE;
+}
+
+
 #ifdef O_CLAUSEGC
 		 /*******************************
 		 *	     CLAUSE-GC		*
@@ -1881,7 +1981,7 @@ attribute_mask(atom_t key)
   if (key == ATOM_trace_fail)	 return TRACE_FAIL;
   if (key == ATOM_trace_any)	 return TRACE_ANY;
   if (key == ATOM_hide_childs)	 return HIDE_CHILDS;
-  if (key == ATOM_transparent)	 return METAPRED;
+  if (key == ATOM_transparent)	 return P_TRANSPARENT;
   if (key == ATOM_discontiguous) return DISCONTIGUOUS;
   if (key == ATOM_volatile)	 return VOLATILE;
   if (key == ATOM_thread_local)  return P_THREAD_LOCAL;
@@ -2958,6 +3058,7 @@ pl_list_generations(term_t desc)
 		 *******************************/
 
 BeginPredDefs(proc)
+  PRED_DEF("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
   PRED_DEF("retract", 1, retract, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)

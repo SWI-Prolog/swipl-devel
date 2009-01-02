@@ -606,6 +606,8 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
+A meta_argument_specifier "meta_argument_specifier"
+A question_mark		"?"
 
 F abs			1
 F access		1

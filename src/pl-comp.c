@@ -785,7 +785,7 @@ automatic update if a predicate is later defined as meta-predicate.
     { Output_0(&ci, I_ENTER);
 					/* ok; all live in the same module */
       if ( ci.module != proc->definition->module &&
-	   false(proc->definition, METAPRED) )
+	   false(proc->definition, P_TRANSPARENT) )
       { Output_1(&ci, I_CONTEXT, (code)ci.module);
       }
     }
