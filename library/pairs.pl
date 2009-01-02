@@ -148,9 +148,8 @@ flip_pairs([Key-Val|Pairs], [Val-Key|Flipped]) :-
 %		map_list_to_pairs(length, ListOfLists, Pairs),
 %	==
 
-:- module_transparent
-	map_list_to_pairs/3,
-	map_list_to_pairs2/3.
+:- meta_predicate
+	map_list_to_pairs(2, +, -).
 
 map_list_to_pairs(Function, List, Pairs) :-
 	map_list_to_pairs2(List, Function, Pairs).
