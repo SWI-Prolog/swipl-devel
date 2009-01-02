@@ -461,9 +461,29 @@ dynamic/1).  Each goal associated with a transparent declared predicate
 will inherit the \jargon{context module} from its parent goal.
 
     \prefixop{meta_predicate}{+Heads}
-This predicate is defined in \pllib{quintus} and provides a partial
-emulation of the Quintus predicate.  See \secref{metapredicate} for
-details.
+Define the predicates referenced by \arg{Heads} as
+\jargon{meta-predicates}.  Each argument of each head is a 
+\jargon{meta argument specifier}.  Defined specifiers are:
+
+    \begin{description}
+        \termitem{0..9}{}
+The argument is a term that is used to reference a predicate
+with the $N$ more arguments than the given argument term.  For
+example: call(0) or maplist(1, +).
+        \termitem{:}{}
+The argument is module sensitive, but does not directly refer
+to a predicate.  For example: consult(:).
+        \termitem{-}{}
+The argument is not module sensitive and unbound on entry.
+        \termitem{?}{}
+The arguemnt is not module sensitive and the mode is unspecified.
+        \termitem{+}{}
+The argument is not module sensitive and bound (i.e., nonvar)
+on entry.
+    \end{description}
+
+If at least one argument is module-sensitive, the predicate is made
+\jargon{transparent} (see module_transparent/1).
 
     \predicate{current_module}{1}{-Module}
 Generates all currently known modules.

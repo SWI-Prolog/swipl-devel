@@ -2278,6 +2278,13 @@ also source_file/2.
 Is true there may be multiple (or no) file providing clauses for the
 predicate.  This property is set using multifile/1.
 
+    \termitem{meta}{Pattern}
+If the predicate is declared a meta-predicate using meta_predicate/1,
+Unify \arg{Pattern} with the head-pattern.  The head-pattern is a 
+compound term with the same name and arity as the predicate where each
+argument of the term is a meta predicate specifier.  See meta_predicate/1
+for details.
+
     \termitem{nodebug}{}
 Details of the predicate are not shown by the debugger. This is the
 default for built-in predicates.  User predicates can be compiled this
