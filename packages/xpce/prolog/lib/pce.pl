@@ -47,10 +47,9 @@ reexports the content of these files.
 	  [ new/2, free/1,		% pce_principal predicates
 
 	    send/2, send/3, send/4, send/5, send/6, send/7,
-	    send/8, send/9, send/10, send/11, send/12,
+	    send/8,
 
 	    get/3, get/4, get/5, get/6, get/7, get/8,
-	    get/9, get/10, get/11, get/12, get/13,
 
 	    send_class/3,
 	    get_class/4,
