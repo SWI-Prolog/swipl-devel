@@ -737,6 +737,19 @@ m_qualify_argument(LocalFrame fr, Word k ARG_LD)
     p[1] = contextModule(fr)->name;
     p[2] = *k;
     *k = consPtr(p, STG_GLOBAL|TAG_COMPOUND);
+  } else
+  { for(;;)
+    { Word p2 = argTermP(*p, 1);
+      Word ap;
+
+      deRef2(p2, ap);
+      if ( hasFunctor(*ap, FUNCTOR_colon2) )
+	p = ap;
+      else
+	break;
+    }
+
+    *k = *p;
   }
 }
 
