@@ -2147,6 +2147,34 @@ VMI(S_LIST, 0, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF))
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Meta-predicate  argument  qualification.  S_MQUAL    qualifies  the  Nth
+argument. S_LMQUAL does the same and resets   the  context module of the
+frame to be definition module of   the  predicate, such that unqualified
+calls refer again to  the  definition   module.  This  sequence  must be
+processed as part of the supervisor,   notably before creating the first
+choicepoint.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_MQUAL, 0, 1, (CA1_VAR))
+{ Word k = varFrameP(FR, (int)*PC++);
+
+  m_qualify_argument(FR, k PASS_LD);
+
+  NEXT_INSTRUCTION;
+}
+
+
+VMI(S_LMQUAL, 0, 1, (CA1_VAR))
+{ Word k = varFrameP(FR, (int)*PC++);
+
+  m_qualify_argument(FR, k PASS_LD);
+  clear(FR, FR_CONTEXT);
+
+  NEXT_INSTRUCTION;
+}
+
+
 		 /*******************************
 		 *	    ARITHMETIC		*
 		 *******************************/

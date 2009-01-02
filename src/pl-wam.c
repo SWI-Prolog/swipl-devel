@@ -725,6 +725,22 @@ setContextModule(LocalFrame fr, Module context)
 #define setContextModule(fr, ctx) setContextModule__(fr, ctx)
 
 
+static void
+m_qualify_argument(LocalFrame fr, Word k ARG_LD)
+{ Word p;
+
+  deRef2(k, p);
+  if ( !hasFunctor(*p, FUNCTOR_colon2) )
+  { Word p = allocGlobal(3);
+
+    p[0] = FUNCTOR_colon2;
+    p[1] = contextModule(fr)->name;
+    p[2] = *k;
+    *k = consPtr(p, STG_GLOBAL|TAG_COMPOUND);
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 foreignWakeup() calls delayed goals while executing a foreign procedure.
 Note that the  choicepoints  of  the   awoken  code  are  destroyed  and
