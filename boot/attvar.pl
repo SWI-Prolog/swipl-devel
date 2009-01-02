@@ -99,7 +99,8 @@ unfreeze(Goal) :-
 %	
 %	Suspend execution of Goal until Var is unbound.
 
-:- module_transparent freeze/2.
+:- meta_predicate
+	freeze(?, 0).
 
 freeze(Var, Goal) :-
 	'$freeze'(Var, Goal), !.	% Succeeds if delayed
