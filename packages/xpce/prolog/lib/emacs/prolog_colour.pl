@@ -38,6 +38,7 @@
 :- use_module(library(lists)).
 :- use_module(library(operators)).
 :- use_module(library(debug)).
+:- use_module(library(edit)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 User extension hooks.
