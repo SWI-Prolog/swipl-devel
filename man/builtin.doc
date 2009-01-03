@@ -1715,8 +1715,8 @@ a timeout occurs.%
 
 :- on_signal(alrm, _, throw).
 
-:- module_transparent
-	call_with_time_limit/2.
+:- meta_predicate
+	call_with_time_limit(+, 0).
 
 call_with_time_limit(MaxTime, Goal) :-
 	alarm(MaxTime),
@@ -2304,7 +2304,9 @@ thread_local/1.
 
     \termitem{transparent}{}
 Is true if the predicate is declared transparent using the
-module_transparent/1 declaration.
+module_transparent/1 or meta_predicate/1 declaration.  In the
+latter case the property \const{meta} is also provided. See
+\chapref{modules} for details.
 
     \termitem{undefined}{}
 Is true if a procedure definition block for the predicate exists, but
@@ -3713,7 +3715,8 @@ implementation based on assert/retract or flag/3 is much more
 complicated.
 
 \begin{code}
-:- module_transparent succeeds_n_times/2.
+:- meta_predicate
+	succeeds_n_times(0, -).
 
 succeeds_n_times(Goal, Times) :-
 	Counter = counter(0),
@@ -4197,6 +4200,7 @@ before changing operators.
 1200 & xfx & \op{-->}, \op{:-} \\
 1200 & fx & \op{:-}, \op{?-} \\
 1150 & fx & \op{dynamic}, \op{discontiguous}, \op{initialization},
+	    \op{meta_predicate},
 	    \op{module_transparent}, \op{multifile}, \op{thread_local},
 	    \op{volatile} \\
 1100 & xfy & \op{;}, \op{|} \\

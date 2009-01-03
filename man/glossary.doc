@@ -74,7 +74,7 @@ If a \g{term} is referring to a \g{predicate} in a \g{module}, the
 module of a \g{goal} is the module in which the \g{predicate} is
 defined, unless this \g{predicate} is \g{module transparent}, in
 which case the \g{context module} is inherited from the parent
-\g{goal}.  See also module_transparent/1.
+\g{goal}.  See also module_transparent/1 and \g{meta-predicate}.
 
     \glossitem{dynamic [predicate]}\index{dynamic predicate}\index{predicate,dynamic}%
 A \g{dynamic} predicate is a predicate to which \g{clauses} may be

@@ -24,7 +24,7 @@ reference programs can indicate possible problems much better.
 
 \section{Name-based versus Predicate-based Modules} \label{sec:whichmodules}
 
-Two approaches to realize a module system are commonly used in Prolog
+Two approaches to realise a module system are commonly used in Prolog
 and other languages. The first one is the \jargon{name based} module
 system. In these systems, each atom read is tagged (normally prefixed)
 with the module name, with the exception of those atoms that are defined
@@ -328,18 +328,82 @@ from a Prolog term.  The predicate `solution(Solution)' can exist in
 more than one module, but `assert(solution(4))' in some module is
 supposed to refer to the correct version of {solution}/1.
 
-Various approaches are possible to solve this problem.  One is to add
-an extra argument to all predicates (e.g.\ `assert(Module, Term)').
-Another is to tag the term somehow to indicate which module is desired
-(e.g.\ `assert(Module:Term)').  Both approaches are not very
-attractive as they make the user responsible for choosing the correct
-module, inviting unclear programming by asserting in other modules.
-The predicate assert/1 is supposed to assert in the module it is
-called from and should do so without being told explicitly.  For
-this reason, the notion \jargon{context module} has been introduced.
+Various approaches are possible to solve this problem. One is to tag the
+term to indicate which module is desired (e.g., `assert(Module:Term)').
+Of course, this tagging should not be done by hand because this invites
+spagetti-style programming such as asserting into other modules. The
+predicate assert/1 is supposed to assert in the module it is called from
+and should do so without being told explicitly.   Current SWI-Prolog has
+two mechanisms to achieve this:
+
+\begin{itemize}
+    \item Use a meta_predicate/1 declaration, which causes the compiler
+    to provide the above mentioned <module>:<term> tagging.
+
+    \item Use a module_transparent/1 declaration, which causes the
+    compiler to preserves the current \jargon{context module} over
+    the call.  The context module was the original mechanism provided
+    by SWI-Prolog and although new code should use meta_predicate/1
+    for compatibility, the context module mechanism still underpins
+    SWI-Prologs handling of meta_predicate/1.  See \secref{ctxmodule}
+    for a further explanation of this construct.
+\end{itemize}
+
+
+\subsection{Defining a meta-predicate}
+\label{sec:metapred}
+
+The meta_predicate/1 directive causes all module-sensitive arguments to
+be passed as <module>:<term>.  If the argument is already qualified this
+way, it is left untouched because the context has already been assigned
+elsewhere.  This mechanism can be used to address specific modules
+explicitely as in the code below that asserts `term' in the module
+`target':
+
+\begin{code}
+	assert(target:term).
+\end{code}
+
+Below we use this to define maplist inside a module. The argument `2' in
+the meta_predicate declaration means that the argument is module
+sensitive and refers to a predicate with an arity that is two more than
+the term that is passed in. The compiler only distinguishes the values
+0..9 and \chr{:}, which denode module-sensitive arguments from \chr{+},
+\chr{-} and \chr{?} which denotes \jargon{modes}. The values 0..9 are
+used by the \jargon{cross-referencer} and syntax highlighting. Note that
+the helper-predicate maplist_/3 does not need to be declared as a
+meta-predicate because the maplist/3 wrapper already ensures that
+\arg{Goal} is qualified as <module>:\arg{Goal}.  See the description
+of meta_predicate/1 for details.
+
+\begin{code}
+:- module(maplist, [maplist/3]).
+:- meta_predicate maplist(2, ?, ?).
+
+%%      maplist(:Goal, +List1, ?List2)
+%
+%       True if Goal can successfully be applied to all successive pairs
+%       of elements from List1 and List2.
+
+maplist(Goal, L1, L2) :-
+	maplist_(L1, L2, G).
+
+maplist_([], [], _).
+maplist_([H0|T0], [H|T], Goal) :-
+	call(Goal, H0, H),
+	maplist_(T0, T, Goal).
+\end{code}
 
 
 \subsection{Definition and Context Module}
+\label{sec:ctxmodule}
+
+The qualification of arguments with their module described in
+\secref{metapred} is realised using \jargon{transparent} predicates.
+Direct use of this underlying mechanism is now deprecated, but its
+understanding may still contributed to understanding modules in
+SWI-Prolog, while in some respects the transparent mechanism is
+more powerful than the meta-predicate mechanism.
 
 Each predicate of the program is assigned a module, called its
 \jargon{definition module}. The definition module of a predicate is
@@ -348,32 +412,56 @@ active goal in the Prolog system has a \jargon{context module} assigned
 to it.
 
 The context module is used to find predicates from a Prolog term. By
-default, this module is the definition module of the predicate running
-the goal. For meta-predicates however, this is the context module of the
-goal that invoked them. We call this \jargon{module_transparent} in
-SWI-Prolog. In the `using maplist' example above, the predicate
-maplist/3 is declared module_transparent. This implies the context
-module remains \const{extend}, the context module of {add_extension}/3.
-This way maplist/3 can decide to call extend_atom in module
-\const{extend} rather than in its own definition module.
-
-All built-in predicates that refer to predicates via a Prolog term are
-declared module_transparent.  Below is the code defining maplist.
+default, the context module is the definition module of the predicate
+running the goal. For transparent predicates however, this is the
+context module of the goal that calls them, i.e., the context module is
+\emph{not} changed when calling a transparent predicate. Below, we
+implement maplist/3 using the transparent mechanims. The code more
+maplist/3 and maplist_/3 is the same, but note that we must also declare
+the helper as transparent to avoid changing the context module when
+calling it. 
 
 \begin{code}
 :- module(maplist, maplist/3).
 
-:- module_transparent maplist/3.
+:- module_transparent
+	maplist/3,
+	maplist_/3.
 
-%       maplist(+Goal, +List1, ?List2)
-%       True if Goal can successfully be applied to all successive pairs
-%       of elements of List1 and List2.
+maplist(Goal, L1, L2) :-
+	maplist_(L1, L2, G).
 
-maplist(_, [], []).
-maplist(Goal, [Elem1|Tail1], [Elem2|Tail2]) :-
-        apply(Goal, [Elem1, Elem2]), 
-        maplist(Goal, Tail1, Tail2).
+maplist_([], [], _).
+maplist_([H0|T0], [H|T], Goal) :-
+	call(Goal, H0, H),
+	maplist_(T0, T, Goal).
 \end{code}
+
+Also note that \emph{any} call that translates terms into predicates is
+subject to the transparent mechanism, not just the term passed as first
+argument into maplist/3. For example, consider the code below that
+counts the number of unique atoms returned as binding for a variable.
+Defined using \exam{:- meta_predicate count_atom_results(-,0,-).}, this
+works as expected. If we define count_atom_results/3 as transparent,
+atom_result/2 is called wrongly in the module \emph{calling}
+count_atom_results/3. This can be solved using strip_module/3 to create
+a qualified goal and a non-transparent helper predicate that is defined
+in the same module. 
+
+\begin{code}
+:- module(count_atom_results,
+	  count_atom_results/3).
+
+count_atom_results(A, Goal, Count) :-
+	setof(A, atom_result(A, Goal), As), !,
+	length(As, Count).
+count_atom_results(_, _, 0).
+
+atom_result(Var, Goal) :-
+	call(Goal),
+	atom(Var).
+\end{code}
+
 
 \subsection{Overruling Module Boundaries}       \label{sec:overrule}
 
@@ -455,15 +543,20 @@ Name}. Operators defined in the export list are available inside the
 module as well as to modules importing this module. See also
 \secref{operators}.
 
-    \prefixop{module_transparent}{+Preds}
-\arg{Preds} is a comma separated list of name/arity pairs (like
-dynamic/1).  Each goal associated with a transparent declared predicate
-will inherit the \jargon{context module} from its parent goal.
+    \predicate{current_module}{1}{-Module}
+Generates all currently known modules.
+
+    \predicate{current_module}{2}{?Module, ?File}
+Is true if \arg{File} is the file from which \arg{Module} was loaded.
+\arg{File} is the internal canonical filename. See also
+source_file/[1,2].
 
     \prefixop{meta_predicate}{+Heads}
-Define the predicates referenced by \arg{Heads} as
-\jargon{meta-predicates}.  Each argument of each head is a 
-\jargon{meta argument specifier}.  Defined specifiers are:
+Define the predicates referenced by the comma-separated list \arg{Heads}
+as \jargon{meta-predicates}. Each argument of each head is a
+\jargon{meta argument specifier}. Defined specifiers are given below.
+Only 0..9 and \chr{:} are interpreted; the mode declarations \chr{+},
+\chr{-} and \chr{?} are not distinguished.
 
     \begin{description}
         \termitem{0..9}{}
@@ -476,22 +569,51 @@ to a predicate.  For example: consult(:).
         \termitem{-}{}
 The argument is not module sensitive and unbound on entry.
         \termitem{?}{}
-The arguemnt is not module sensitive and the mode is unspecified.
+The argument is not module sensitive and the mode is unspecified.
         \termitem{+}{}
 The argument is not module sensitive and bound (i.e., nonvar)
 on entry.
     \end{description}
 
-If at least one argument is module-sensitive, the predicate is made
-\jargon{transparent} (see module_transparent/1).
+Each argument that is module-sensitive (i.e., marked 0..9 or \chr{:}) is
+qualified with the context module of the caller if it is not already
+qualified. The implementation ensures that the argument is passed as
+<module>:<term>, where <atom> is an atom denoting the name of a module
+and <term> itself is not of this form.  Below is a simple declaration
+and a number of queries.
 
-    \predicate{current_module}{1}{-Module}
-Generates all currently known modules.
+\begin{code}
+:- meta_predicate
+	meta(0, +).
 
-    \predicate{current_module}{2}{?Module, ?File}
-Is true if \arg{File} is the file from which \arg{Module} was loaded.
-\arg{File} is the internal canonical filename. See also
-source_file/[1,2].
+meta(Module:Term, _Arg) :-
+	format('Module=~w, Term = ~q~n', [Module, Term]).
+\end{code}
+
+\begin{code}
+?- meta(test, x).
+Module=user, Term = test
+?- meta(m1:test, x).
+Module=m1, Term = test
+?- m2:meta(test, x).
+Module=m2, Term = test
+?- m1:meta(m2:test, x).
+Module=m2, Term = test
+?- meta(m1:m2:test, x).
+Module=m2, Term = test
+?- meta(m1:42:test, x).
+Module=m1, Term = 42:test
+\end{code}
+
+The meta_predicate/1 declaration is the portable mechanism for defining
+meta-predicates and replaces the old SWI-Prolog specific mechanism
+provided by de deprecated predicates module_transparent/1,
+context_module/1 and strip_module/3.  See also \secref{modulecompat}.
+
+    \prefixop{module_transparent}{+Preds}
+\arg{Preds} is a comma separated list of name/arity pairs (like
+dynamic/1).  Each goal associated with a transparent declared predicate
+will inherit the \jargon{context module} from its parent goal.
 
     \predicate{context_module}{1}{-Module}
 Unify \arg{Module} with the context module of the current goal.
@@ -560,114 +682,59 @@ tex: 2 ?- listing(file_of_label/2).
 
 \section{Compatibility of the Module System}	\label{sec:modulecompat}
 
-The principles behind the module system of SWI-Prolog differ in a
-number of aspects from the Quintus Prolog module system.
+The SWI-Prolog module system is largely derived from the Quintus Prolog
+module system, which is also adopted by SICStus, Ciao and YAP.
+Originally, the mechanism for defining meta-predicates in SWI-Prolog was
+based on the module_transparent/1 directive and strip_module/3. Since
+5.7.4 it supports the de-facto standard meta_predicate/1 directive for
+implementing meta-predicates, providing much better compatibility.
+
+The support for the meta_predicate/1 mechanism however is considerably
+different. On other systems, the \emph{caller} of a meta-predicate is
+compiled differently to provide the required <module>:<term>
+qualification. This implies that the meta-declaration must be available
+to the the compiler when compiling code that calls a meta-predicate. In
+practice, this implies that other systems pose the following
+restrictions on meta-predicates:
+
+\begin{itemize}
+    \item Modules that provide meta-predicates for a module to-be-compiled
+    must be loaded explicitly by that module.
+    \item The meta_predicate directives of exported predicates must follow
+    the module/2 directive immediately.
+    \item After changing a meta-declaration, all modules that \emph{call}
+    the modified predicates need to be recompiled.
+\end{itemize}
+
+In SWI-Prolog, meta-predicates are also \jargon{module-transparent} and
+qualifying the module sensitive arguments is done inside the
+meta-predicate. As a result, the caller need not be aware that it is
+calling a meta-predicate and none of the above restrictions hold for
+SWI-Prolog. However, code that aims at portability must obey the above
+rules.
+
+Other differences are listed below.
 
 \begin{itemize}
     \item
-The SWI-Prolog module system allows the user to redefine system
-predicates.
+If a module does not define a predicate, it is searched for in the
+\jargon{import modules}. By default, the import module of any
+user-defined module is the \const{user} module. In turn, the
+\const{user} module imports from the module \const{system} that provides
+all built-in predicates.  The auto-import hierarchy can be changed 
+using add_import_module/3 and delete_import_module/2.
+
+This mechanisms can be used to realise a simple object oriented system
+or hierarchical module system.
+
     \item
-All predicates that are available in the \const{system} and \const{user}
-modules are visible in all other modules as well.
-    \item
-Quintus has the `meta_predicate/1' declaration were SWI-Prolog has the
-module_transparent/1 declaration.
-    \item
-Operator declarations are local to a module and may be exported.
-\end{itemize}
-
-The meta_predicate/1 declaration causes the compiler to tag arguments
-that pass module sensitive information with the module using the
-\functor{:}{2} operator.  This approach has some disadvantages:
-
-\begin{itemize}
-    \item
-Changing a meta_predicate declaration implies all predicates
-\strong{calling} the predicate need to be reloaded. This can cause
-serious consistency problems.
-    \item
-It does not help for dynamically defined predicates calling module
-sensitive predicates.
-    \item
-It slows down the compiler (at least in the SWI-Prolog architecture).
-    \item
-At least within the SWI-Prolog architecture the run-time overhead is
-larger than the overhead introduced by the transparent mechanism.
-\end{itemize}
-
-Unfortunately the transparent predicate approach also has some
-disadvantages. If a predicate $A$ passes module sensitive information
-to a predicate $B$, passing the same information to a module
-sensitive system predicate both $A$ and $B$ should be declared
-transparent. Using the Quintus approach only $A$ needs to be
-treated special (i.e., declared with meta_predicate/1)%
-    \footnote{Although this would make it impossible to call $B$
-              directly.}.
-A second problem arises if the body of a transparent predicate uses
-module sensitive predicates for which it wants to refer to its own
-module. Suppose we want to define findall/3 using assert/1 and
-retract/1%
-    \footnote{The system version uses recordz/2 and recorded/3.}.
-The example in \figref{findall} gives the solution.
-
-\begin{figure}
-\begin{code}
-:- module(findall, [findall/3]).
-
-:- dynamic
-        solution/1.
-
-:- module_transparent
-        findall/3, 
-        store/2.
-
-findall(Var, Goal, Bag) :-
-        assert(findall:solution('$mark')), 
-        store(Var, Goal), 
-        collect(Bag).
-
-store(Var, Goal) :-
-        Goal,                   % refers to context module of
-                                % caller of findall/3
-        assert(findall:solution(Var)), 
-        fail.
-store(_, _).
-
-collect(Bag) :-
-        ..., 
-\end{code}
-    \caption{findall/3 using modules}
-    \label{fig:findall}
-\end{figure}
-
-
-\subsection{Emulating meta_predicate}		\label{sec:metapredicate}
-
-The Quintus meta_predicate/1 directive can in many cases be replaced by
-the transparent declaration. Below is the definition of meta_predicate/1
-as available from \pllib{quintus}.
+Operator declarations are local to a module and may be exported. In
+Quintus and SICStus all operators are global.  YAP and Ciao also use
+local operators.  SWI-Prolog provides global operator declarations
+from within a module using the following construct:
 
 \begin{code}
-:- op(1150, fx, (meta_predicate)).
-
-meta_predicate((Head, More)) :- !, 
-        meta_predicate1(Head), 
-        meta_predicate(More).
-meta_predicate(Head) :-
-        meta_predicate1(Head).
-
-meta_predicate1(Head) :-
-        Head =.. [Name|Arguments], 
-        member(Arg, Arguments), 
-        module_expansion_argument(Arg), !, 
-        functor(Head, Name, Arity), 
-        module_transparent(Name/Arity).
-meta_predicate1(_).             % just a mode declaration
-
-module_expansion_argument(:).
-module_expansion_argument(N) :- integer(N).
+:- op(precedence, type, user:(name)).
 \end{code}
+\end{itemize}
 
-The discussion above about the problems with the transparent mechanism
-show the two cases in which this simple transformation does not work.
