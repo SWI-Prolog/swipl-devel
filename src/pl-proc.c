@@ -2067,7 +2067,7 @@ pl_get_predicate_attribute(term_t pred,
   { if ( def->indexPattern == 0x0 )
       fail;
     return unify_index_pattern(proc, value);
-  } else if ( key == ATOM_meta )
+  } else if ( key == ATOM_meta_predicate )
   { if ( false(def, P_META) )
       fail;
     return unify_meta_pattern(proc, value);
