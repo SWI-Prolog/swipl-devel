@@ -72,6 +72,11 @@ test(error, error(type_error(callable, 1))) :-
 
 :- end_tests(callN).
 
+cm1(X) :- context_module(X).
+cm2(X) :- context_module(X).
+:- export((cm1/1, cm2/1)).
+:- user:(import((cm1/1, cm2/1))).	% import to user to call from foo:
+
 :- begin_tests(cross_module_call).
 
 cmc1:ok(cmc1).
@@ -87,6 +92,10 @@ cmc3(X) :-
 cmc4(X) :-
 	cmc4:context_module(X),
 	atom(X).
+c_cm1(X) :-
+	foo:cm1(X).
+c_cm2(X) :-
+	foo:cm2(X).
 
 test(cmc1, X == cmc1) :-
 	cmc1(X).
@@ -100,6 +109,11 @@ test(cmc3, X == cmc3) :-
 	cmc3(X).
 test(cmc4, X == cmc4) :-
 	cmc4(X).
+test(c_cm1, X == test_call) :-
+	c_cm1(X),
+	1 = 1.				% avoid last-call
+test(c_cm2, X == test_call) :-
+	c_cm2(X).
 
 :- end_tests(cross_module_call).
 
