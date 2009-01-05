@@ -744,12 +744,17 @@ m_qualify_argument(LocalFrame fr, Word k ARG_LD)
 
   deRef2(k, p);
   if ( !is_qualified(p PASS_LD) )
-  { Word p = allocGlobal(3);
+  { Word p2 = allocGlobal(3);
 
-    p[0] = FUNCTOR_colon2;
-    p[1] = contextModule(fr)->name;
-    p[2] = *k;
-    *k = consPtr(p, STG_GLOBAL|TAG_COMPOUND);
+    p2[0] = FUNCTOR_colon2;
+    p2[1] = contextModule(fr)->name;
+    if ( isVar(*p) && p > (Word)lBase )
+    { setVar(p2[2]);
+      *p = makeRefG(&p2[2]);
+    } else
+    { p2[2] = (needsRef(*p) ? makeRef(p) : *p);
+    }
+    *k = consPtr(p2, STG_GLOBAL|TAG_COMPOUND);
   } else
   { for(;;)
     { Word p2 = argTermP(*p, 1);

@@ -53,11 +53,19 @@ m2(X, _, X).
        assert(this(M))
    ).
 
+a(_).
+
 test(qualify, X == M:x) :-
 	this(M),
 	m(x, X).
 test(qualify, X == m1:x) :-
 	m(m1:x, X).
+test(qualify, X == m1:Y) :-
+	a(Y),
+	m(m1:Y, X).
+test(qualify, X == m1:Y) :-
+	a(Y), freeze(Y, fail),
+	m(m1:Y, X).
 test(qualify, X == m1:x) :-
 	m(m2:m1:x, X).
 test(qualify, X == m2:42:x) :-		% only <atom>:X is considered qualified
