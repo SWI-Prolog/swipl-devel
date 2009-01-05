@@ -51,6 +51,18 @@
 #include <parms.h>			/* pick from the working dir */
 #endif
 
+#if HAVE_XOS_H
+#include <xos.h>
+#endif
+#ifdef HAVE_UXNT_H
+#include <uxnt.h>
+#endif
+
+#ifdef __WINDOWS__
+#include <winsock2.h>
+#endif
+
+#define PL_KERNEL		1
 #include "pl-builtin.h"
 
 #ifdef HAVE_DMALLOC_H
@@ -116,7 +128,6 @@ handy for it someone wants to add a data type to the system.
       Use GNU gmp library for infinite precision arthmetic
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define PL_KERNEL		1
 #define O_COMPILE_OR		1
 #define O_SOFTCUT		1
 #define O_COMPILE_ARITH		1
@@ -240,17 +251,6 @@ void *alloca ();
 #define O_LARGEFILES 1		/* use for conditional code in Prolog */
 #else
 #undef O_LARGEFILES
-#endif
-
-#if HAVE_XOS_H
-#include <xos.h>
-#endif
-#ifdef HAVE_UXNT_H
-#include <uxnt.h>
-#endif
-
-#ifdef __WINDOWS__
-#include <winsock2.h>
 #endif
 
 #include <sys/types.h>

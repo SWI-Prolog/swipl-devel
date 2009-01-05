@@ -63,6 +63,7 @@ controlled using the following macros:
 
 #ifdef USE_CRITICAL_SECTIONS
 #define WINDOWS_LEAN_AND_MEAN
+#include <winsock2.h>
 #include <windows.h>
 #define RECURSIVE_MUTEXES 1
 
