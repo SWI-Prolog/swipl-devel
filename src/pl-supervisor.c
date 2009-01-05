@@ -218,15 +218,6 @@ listSupervisor(Definition def)
 
 
 static Code
-dynamicSupervisor(Definition def)
-{ if ( true(def, DYNAMIC) )
-    return SUPERVISOR(dynamic);
-
-  return NULL;
-}
-
-
-static Code
 multifileSupervisor(Definition def)
 { if ( true(def, (DYNAMIC|MULTIFILE)) )
   { if ( true(def, DYNAMIC) )
@@ -320,12 +311,13 @@ createSupervisor(Definition def)
   if ( createUndefSupervisor(def))
     succeed;
 
-  (codes = multifileSupervisor(def)) ||
-  (codes = singleClauseSupervisor(def)) ||
-  (codes = listSupervisor(def)) ||
-  (codes = staticSupervisor(def));
-
-  assert(codes);
+  if ( !((codes = multifileSupervisor(def)) ||
+	 (codes = singleClauseSupervisor(def)) ||
+	 (codes = listSupervisor(def)) ||
+	 (codes = staticSupervisor(def))) )
+  { fatalError("Failed to create supervisor for %s\n",
+	       predicateName(def));
+  }
   def->codes = chainMetaPredicateSupervisor(def, codes);
 
   succeed;
