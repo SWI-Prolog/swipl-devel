@@ -53,6 +53,13 @@ for -DMD="config/win64.h"
 #define _REENTRANT 1
 #endif
 
+#if HAVE_XOS_H
+#include <xos.h>			/* Windows POSIX enhancements */
+#endif
+#ifdef HAVE_UXNT_H
+#include <uxnt.h>			/* More Windows POSIX enhancements */
+#endif
+
 #include "pl-mutex.h"
 #include "SWI-Stream.h"
 

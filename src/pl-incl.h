@@ -51,17 +51,6 @@
 #include <parms.h>			/* pick from the working dir */
 #endif
 
-#if HAVE_XOS_H
-#include <xos.h>
-#endif
-#ifdef HAVE_UXNT_H
-#include <uxnt.h>
-#endif
-
-#ifdef __WINDOWS__
-#include <winsock2.h>
-#endif
-
 #define PL_KERNEL		1
 #include "pl-builtin.h"
 
