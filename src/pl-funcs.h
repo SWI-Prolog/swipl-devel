@@ -399,9 +399,6 @@ COMMON(void) 		resetForeign(void);
 COMMON(word) 		pl_length(term_t list, term_t l);
 
 /* pl-load.c */
-COMMON(word) 		pl_open_shared_object(term_t file, term_t h, term_t flags);
-COMMON(word) 		pl_close_shared_object(term_t plhandle);
-COMMON(word) 		pl_call_shared_object_function(term_t plhandle, term_t name);
 COMMON(word) 		pl_load_shared_object(term_t file, term_t entry);
 COMMON(void)		cleanupForeign(void);
 

@@ -209,13 +209,6 @@ static const PL_extension foreigns[] = {
   FRG("export_list",		2, pl_export_list,		0),
   FRG("index",			1, pl_index,		     META),
   FRG("hash",			1, pl_hash,		     META),
-  FRG("$open_shared_object",	3, pl_open_shared_object,    META),
-#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
-  FRG("close_shared_object",	1, pl_close_shared_object,   META),
-  FRG("call_shared_object_function",
-				2, pl_call_shared_object_function,
-							     META),
-#endif /*HAVE_DLOPEN*/
 
 #if O_DDE
   FRG("open_dde_conversation",	3, pl_open_dde_conversation,	0),
@@ -451,6 +444,7 @@ DECL_PLIST(setup);
 DECL_PLIST(gc);
 DECL_PLIST(proc);
 DECL_PLIST(write);
+DECL_PLIST(dlopen);
 
 void
 initBuildIns(void)
@@ -479,6 +473,7 @@ initBuildIns(void)
   REG_PLIST(gc);
   REG_PLIST(proc);
   REG_PLIST(write);
+  REG_PLIST(dlopen);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
 #endif

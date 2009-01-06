@@ -98,6 +98,7 @@ dlsym(void *handle, const char *name)
 #endif /*HAVE_DLOPEN*/
 
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
+#define HAVE_SHARED_OBJECTS
 
 #ifndef RTLD_GLOBAL			/* solaris defines this */
 #define RTLD_GLOBAL 0
@@ -150,15 +151,19 @@ under_valgrind()
 }
 
 
-word
-pl_open_shared_object(term_t file, term_t plhandle,
-		      term_t flags)
+static
+PRED_IMPL("$open_shared_object", 3, open_shared_object, 0)
 { void *dlhandle;
   char *fn;
   atom_t afile;
   DlEntry e;
   int dlflags;
   int n;
+
+  term_t file     = A1;
+  term_t plhandle = A2;
+  term_t flags    = A3;
+
 
   if ( PL_get_integer(flags, &n) )
   { dlflags = (n & DL_NOW) ? RTLD_NOW : RTLD_LAZY;
@@ -215,9 +220,9 @@ find_dl_entry(term_t h)
 }
 
 
-word
-pl_close_shared_object(term_t plhandle)
-{ DlEntry e = find_dl_entry(plhandle);
+static
+PRED_IMPL("close_shared_object", 1, close_shared_object, 0)
+{ DlEntry e = find_dl_entry(A1);
 
   if ( e && e->dlhandle) 
   { if ( !under_valgrind() )
@@ -237,14 +242,15 @@ of this OS, dlsym() adds an _, in others not.  We'll try to work around
 this junk with a runtime test ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_call_shared_object_function(term_t plhandle, term_t name)
-{ DlEntry e = find_dl_entry(plhandle);
+static
+PRED_IMPL("call_shared_object_function", 2, call_shared_object_function,
+	  PL_FA_TRANSPARENT)
+{ DlEntry e = find_dl_entry(A1);
   char *fname;
   dl_funcptr ef;
 
   if ( !e || !e->dlhandle ||
-       !PL_get_chars_ex(name, &fname, CVT_ALL) )
+       !PL_get_chars_ex(A2, &fname, CVT_ALL) )
     fail;
   
 #ifdef LD_SYMBOL_PREFIX			/* first try plain anyway */
@@ -253,7 +259,7 @@ pl_call_shared_object_function(term_t plhandle, term_t name)
     
     if ( strlen(fname)+strlen(LD_SYMBOL_PREFIX) > MAXSYMBOLLEN )
       return PL_error(NULL, 0,
-		      "Symbol too intptr_t",
+		      "Symbol too long",
 		      ERR_REPRESENTATION,
 		      PL_new_atom("symbol"));
 
@@ -296,12 +302,24 @@ cleanupForeign(void)
   dl_head = dl_tail = NULL;
 }
 
-
 #else /*HAVE_DLOPEN*/
 
-word
-pl_open_shared_object(term_t file, term_t plhandle, term_t flags)
+static
+PRED_IMPL("$open_shared_object", 3, open_shared_object, 0)
 { return notImplemented("open_shared_object", 3);
 }
 
 #endif /*HAVE_DLOPEN*/
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(dlopen)
+  PRED_DEF("$open_shared_object", 3, open_shared_object, 0)
+#ifdef HAVE_SHARED_OBJECTS
+  PRED_DEF("close_shared_object", 1, close_shared_object, 0)
+  PRED_DEF("call_shared_object_function", 2, call_shared_object_function,
+	   PL_FA_TRANSPARENT)
+#endif
+EndPredDefs
