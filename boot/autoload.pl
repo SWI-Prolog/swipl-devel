@@ -86,13 +86,13 @@
 %	Make sure pred can be called.  First test if the predicate is
 %	defined.  If not, invoke the autoloader.
 
-:- module_transparent
-	'$define_predicate'/1.
+:- meta_predicate
+	'$define_predicate'(0).
 
 '$define_predicate'(Head) :-
 	'$defined_predicate'(Head), !.
 '$define_predicate'(Term) :-
-	strip_module(Term, Module, Head),
+	Term = Module:Head,
 	functor(Head, Name, Arity),
 	current_prolog_flag(autoload, true),
 	'$find_library'(Module, Name, Arity, LoadModule, Library),
