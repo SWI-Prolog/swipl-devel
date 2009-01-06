@@ -140,11 +140,6 @@ style_check(Spec) :-
 	'$map_bits'('$map_style_check', Spec, Old, New),
 	'$style_check'(_, New).
 
-:- module_transparent
-	trace/1,
-	trace/2,
-	'$trace'/2.
-
 %	prolog:debug_control_hook(+Action)
 %
 %	Allow user-hooks in the Prolog debugger interaction.  See the calls
@@ -156,17 +151,30 @@ style_check(Spec) :-
 :- multifile
 	prolog:debug_control_hook/1.	% +Action
 
+%%	trace(:Preds) is det.
+%%	trace(:Preds, +PortSpec) is det.
+%
+%	Start printing messages if control passes specified ports of
+%	the given predicates.
+
+:- meta_predicate
+	trace(:),
+	trace(:, +).
+
 trace(Preds) :-
 	trace(Preds, +all).
 
-trace([], _) :- !.
-trace([H|T], Ps) :- !,
-	trace(H, Ps),
-	trace(T, Ps).
+trace(_:X, _) :-
+	var(X), !,
+	throw(error(instantiation_error, _)).
+trace(_:[], _) :- !.
+trace(M:[H|T], Ps) :- !,
+	trace(M:H, Ps),
+	trace(M:T, Ps).
 trace(Pred, Ports) :-
-	set_prolog_flag(debug, true),
 	'$find_predicate'(Pred, Preds),
 	Preds \== [],
+	set_prolog_flag(debug, true),
 	(   '$member'(Head, Preds),
 	        (   Head = _:_
 		->  QHead0 = Head
