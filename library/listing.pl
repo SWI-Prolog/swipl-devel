@@ -148,7 +148,7 @@ declaration(Pred, Source, Decl) :-
 	decl_term(Pred, Source, Funct),
 	Decl =.. [ Declname, Funct ].
 declaration(Pred, Source, Decl) :- !,
-	predicate_property(Pred, meta(Head)),
+	predicate_property(Pred, meta_predicate(Head)),
 	strip_module(Pred, Module, _),
 	(   (Module == system; Source == Module)
 	->  Decl = meta_predicate(Head)
