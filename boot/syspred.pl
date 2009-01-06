@@ -143,9 +143,7 @@ style_check(Spec) :-
 :- module_transparent
 	trace/1,
 	trace/2,
-	'$trace'/2,
-	spy/1,
-	nospy/1.
+	'$trace'/2.
 
 %	prolog:debug_control_hook(+Action)
 %
@@ -157,8 +155,6 @@ style_check(Spec) :-
 
 :- multifile
 	prolog:debug_control_hook/1.	% +Action
-:- module_transparent
-	prolog:debug_control_hook/1.
 
 trace(Preds) :-
 	trace(Preds, +all).
@@ -222,10 +218,23 @@ tag_list([H0|T0], F, [H1|T1]) :-
 	H1 =.. [F, H0],
 	tag_list(T0, F, T1).
 
-spy([]) :- !.
-spy([H|T]) :- !,
-	spy(H),
-	spy(T).
+:- meta_predicate
+	spy(:),
+	nospy(:).
+
+%%	spy(:Spec) is det.
+%%	nospy(:Spec) is det.
+%%	nospyall is det.
+%
+%	Set/clear spy-points.
+
+spy(_:X) :-
+	var(X),
+	throw(error(instantiation_error, _)).
+spy(_:[]) :- !.
+spy(M:[H|T]) :- !,
+	spy(M:H),
+	spy(M:T).
 spy(Spec) :-
 	prolog:debug_control_hook(spy(Spec)), !.
 spy(Spec) :-
@@ -236,10 +245,13 @@ spy(Spec) :-
 	fail.
 spy(_).
 
-nospy([]) :- !.
-nospy([H|T]) :- !,
-	nospy(H),
-	nospy(T).
+nospy(_:X) :-
+	var(X),
+	throw(error(instantiation_error, _)).
+nospy(_:[]) :- !.
+nospy(M:[H|T]) :- !,
+	nospy(M:H),
+	nospy(M:T).
 nospy(Spec) :-
 	prolog:debug_control_hook(nospy(Spec)), !.
 nospy(Spec) :-
@@ -257,6 +269,10 @@ nospyall :-
 	    '$nospy'(Head),
 	fail.
 nospyall.
+
+%%	debugging is det.
+%
+%	Report current status of the debugger.
 
 debugging :-
 	prolog:debug_control_hook(debugging), !.
