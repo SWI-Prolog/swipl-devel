@@ -216,8 +216,8 @@ Each argument that is module-sensitive (i.e., marked 0..9 or \chr{:}) is
 qualified with the context module of the caller if it is not already
 qualified. The implementation ensures that the argument is passed as
 <module>:<term>, where <atom> is an atom denoting the name of a module
-and <term> itself is not of this form.  Below is a simple declaration
-and a number of queries.
+and <term> itself is not a \functor{:}{2} term. Below is a simple
+declaration and a number of queries.
 
 \begin{code}
 :- meta_predicate
@@ -239,7 +239,7 @@ Module=m2, Term = test
 ?- meta(m1:m2:test, x).
 Module=m2, Term = test
 ?- meta(m1:42:test, x).
-Module=m1, Term = 42:test
+Module=42, Term = test
 \end{code}
 
 The meta_predicate/1 declaration is the portable mechanism for defining

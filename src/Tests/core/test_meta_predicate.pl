@@ -68,7 +68,7 @@ test(qualify, X == m1:Y) :-
 	m(m1:Y, X).
 test(qualify, X == m1:x) :-
 	m(m2:m1:x, X).
-test(qualify, X == m2:42:x) :-		% only <atom>:X is considered qualified
+test(qualify, X == 42:x) :-		% do not check module-type
 	m(m2:42:x, X).
 test(alias, X == Out) :-		% shared variables
 	m(X, X, Out).

@@ -725,16 +725,14 @@ setContextModule(LocalFrame fr, Module context)
 #define setContextModule(fr, ctx) setContextModule__(fr, ctx)
 
 
+/* Earlier versions tested for <atom>:X, but this makes it very hard
+   to write predicates such as current_resource/3. This is also
+   compatible to at least SICStus and YAP.
+*/
+
 static inline int
 is_qualified(Word p ARG_LD)
-{ if ( hasFunctor(*p, FUNCTOR_colon2) )
-  { Word a1 = argTermP(*p, 0);
-    deRef(a1);
-
-    return isAtom(*a1);
-  }
-
-  return FALSE;
+{ return hasFunctor(*p, FUNCTOR_colon2);
 }
 
 
