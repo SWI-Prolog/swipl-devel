@@ -578,19 +578,33 @@ recordz(Key, Value) :-
 recorded(Key, Value) :-
 	recorded(Key, Value, _).
 
+
 		 /*******************************
 		 *	       REQUIRE		*
 		 *******************************/
 
-:- module_transparent
-	require/1.
+:- meta_predicate
+	require(:).
 
-require([]).
-require([N/A|T]) :- !,
+%%	require(:ListOfPredIndicators) is det.
+%
+%	Tag given predicates as undefined, so they will be included
+%	into a saved state through the autoloader.
+%	
+%	@see autoload/0.
+
+require(M:List) :-
+	(   is_list(List)
+	->  require(List, M)
+	;   throw(error(type_error(list, List), _))
+	).
+
+require([], _).
+require([N/A|T], M) :- !,
 	functor(Head, N, A),
-	'$require'(Head),
-	require(T).
-require([H|_T]) :-
+	'$require'(M:Head),
+	require(T, M).
+require([H|_T], _) :-
 	throw(error(type_error(predicate_indicator, H), _)).
 
 
