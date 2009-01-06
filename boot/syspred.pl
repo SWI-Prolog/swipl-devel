@@ -30,52 +30,52 @@
 */
 
 :- module('$syspreds',
-	[ leash/1
-	, visible/1
-	, style_check/1
-	, (spy)/1
-	, (nospy)/1
-	, trace/1
-	, trace/2
-	, nospyall/0
-	, debugging/0
-	, rational/3
-	, concat_atom/2
-	, atom_prefix/2
-	, dwim_match/2
-	, source_file/1
-	, prolog_load_context/2
-	, stream_position_data/3
-	, current_predicate/2
-	, '$defined_predicate'/1
-	, predicate_property/2
-	, '$predicate_property'/2
-	, clause_property/2
-	, recorda/2
-	, recordz/2
-	, recorded/2
-	, current_module/1
-	, current_module/2
-	, module/1
-	, statistics/0
-	, shell/2
-	, shell/1
-	, shell/0
-	, on_signal/3
-	, current_signal/3
-	, open_shared_object/2
-	, open_shared_object/3
-	, format/1
-	, garbage_collect/0
-	, arithmetic_function/1
-        , default_module/2
-	, absolute_file_name/2
-	, require/1
-	, call_with_depth_limit/3
-	, length/2
-	, numbervars/3
-	, nb_setval/2				% +Var, +Value
-	]).	
+	  [ leash/1,
+	    visible/1,
+	    style_check/1,
+	    (spy)/1,
+	    (nospy)/1,
+	    trace/1,
+	    trace/2,
+	    nospyall/0,
+	    debugging/0,
+	    rational/3,
+	    concat_atom/2,
+	    atom_prefix/2,
+	    dwim_match/2,
+	    source_file/1,
+	    prolog_load_context/2,
+	    stream_position_data/3,
+	    current_predicate/2,
+	    '$defined_predicate'/1,
+	    predicate_property/2,
+	    '$predicate_property'/2,
+	    clause_property/2,
+	    recorda/2,
+	    recordz/2,
+	    recorded/2,
+	    current_module/1,
+	    current_module/2,
+	    module/1,
+	    statistics/0,
+	    shell/2,
+	    shell/1,
+	    shell/0,
+	    on_signal/3,
+	    current_signal/3,
+	    open_shared_object/2,
+	    open_shared_object/3,
+	    format/1,
+	    garbage_collect/0,
+	    arithmetic_function/1,
+	    default_module/2,
+	    absolute_file_name/2,
+	    require/1,
+	    call_with_depth_limit/3,
+	    length/2,			% ?List, ?Length
+	    numbervars/3,		% +Term, +Start, -End
+	    nb_setval/2			% +Var, +Value
+	  ]).	
 
 		/********************************
 		*           DEBUGGER            *
