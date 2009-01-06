@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -36,45 +36,49 @@
 	  '$similar_module'/2
 	]).
 
-:- module_transparent
-	'$dwim_correct_goal'/3, 
-	correct_goal/4.
+:- meta_predicate
+	dwim_predicate(:, -),
+	'$dwim_correct_goal'(:, +, -),
+	'$similar_module'(:, -),
+	'$find_predicate'(:, -).
 
-%%	'$dwim_correct_goal'(+Goal, +Bindings, -Corrected)
+%%	'$dwim_correct_goal'(:Goal, +Bindings, -Corrected)
 %
 %	Correct a goal (normally typed by the   user)  in the `Do What I
-%	Mean' sense. Ask the user to confirm  if a unique correction
-%	can be found. Otherwise warn that   the predicate does not exist
-%	and fail.
+%	Mean' sense. Ask the user to confirm  if a unique correction can
+%	be found. Otherwise warn that the   predicate does not exist and
+%	fail.
 
-'$dwim_correct_goal'(Goal, _, Goal) :-		% Not instantiated. Hope it
+'$dwim_correct_goal'(M:Goal, Bindings, Corrected) :-
+	correct_goal(Goal, M, Bindings, Corrected).
+
+correct_goal(Goal, M, _, M:Goal) :-		% Not instantiated. Hope it
 	var(Goal), !.				% will be in time
-'$dwim_correct_goal'((A,B), Bindings, (NA,NB)) :- !,
-	'$dwim_correct_goal'(A, Bindings, NA),
-	'$dwim_correct_goal'(B, Bindings, NB).
-'$dwim_correct_goal'((A->B), Bindings, (NA->NB)) :- !,
-	'$dwim_correct_goal'(A, Bindings, NA),
-	'$dwim_correct_goal'(B, Bindings, NB).
-'$dwim_correct_goal'((A*->B), Bindings, (NA*->NB)) :- !,
-	'$dwim_correct_goal'(A, Bindings, NA),
-	'$dwim_correct_goal'(B, Bindings, NB).
-'$dwim_correct_goal'((A;B), Bindings, (NA;NB)) :- !,
-	'$dwim_correct_goal'(A, Bindings, NA),
-	'$dwim_correct_goal'(B, Bindings, NB).
-'$dwim_correct_goal'(\+(A), Bindings, \+(NA)) :- !,
-	'$dwim_correct_goal'(A, Bindings, NA).
-'$dwim_correct_goal'(Module:Goal, _, Module:Goal) :-
-	(var(Module) ; var(Goal)), !.
-'$dwim_correct_goal'(Goal, _, Goal) :-		% is defined
-	current_predicate(_, Goal), !.
-'$dwim_correct_goal'(Goal, Bindings, NewGoal) :-	% correct the goal
-	dwim_predicate_list(Goal, DWIMs0), !,
-	context_module(C),
-	principal_predicates(C, DWIMs0, DWIMs),
-	correct_goal(Goal, Bindings, DWIMs, NewGoal).
-'$dwim_correct_goal'(Goal, _, NewGoal) :-
-	strip_module(Goal, Module, G1),
-	functor(G1, Name, Arity),
+correct_goal((A,B), M, Bindings, (NA,NB)) :- !,
+	'$dwim_correct_goal'(M:A, Bindings, NA),
+	'$dwim_correct_goal'(M:B, Bindings, NB).
+correct_goal((A->B), M, Bindings, (NA->NB)) :- !,
+	'$dwim_correct_goal'(M:A, Bindings, NA),
+	'$dwim_correct_goal'(M:B, Bindings, NB).
+correct_goal((A*->B), M, Bindings, (NA*->NB)) :- !,
+	'$dwim_correct_goal'(M:A, Bindings, NA),
+	'$dwim_correct_goal'(M:B, Bindings, NB).
+correct_goal((A;B), M, Bindings, (NA;NB)) :- !,
+	'$dwim_correct_goal'(M:A, Bindings, NA),
+	'$dwim_correct_goal'(M:B, Bindings, NB).
+correct_goal(\+(A), M, Bindings, \+(NA)) :- !,
+	'$dwim_correct_goal'(M:A, Bindings, NA).
+correct_goal(Module:Goal, _, _, Module:Goal) :-
+	var(Module), !.
+correct_goal(Goal, M, _, M:Goal) :-		% is defined
+	current_predicate(_, M:Goal), !.
+correct_goal(Goal, M, Bindings, NewGoal) :-	% correct the goal
+	dwim_predicate_list(M:Goal, DWIMs0), !,
+	'$module'(TypeIn, TypeIn),
+	principal_predicates(TypeIn, DWIMs0, DWIMs),
+	correct_literal(M:Goal, Bindings, DWIMs, NewGoal).
+correct_goal(Goal, Module, _, NewGoal) :-	% try to autoload
+	functor(Goal, Name, Arity),
 	'$undefined_procedure'(Module, Name, Arity, Action),
 	(   Action == error
 	->  existence_error(Module:Name/Arity)
@@ -84,49 +88,38 @@
 	).
 
 existence_error(PredSpec) :- !,
-	(   PredSpec = user:Spec
-	->  true
-	;   Spec = PredSpec
-	),
+	'$module'(TypeIn, TypeIn),
+	unqualify_if_context(TypeIn, PredSpec, Spec),
 	throw(error(existence_error(procedure, Spec),
 		    context(toplevel, 'DWIM could not correct goal'))).
 
-correct_goal(Goal, Bindings, [Dwim], DwimGoal) :-
+%%	correct_literal(:Goal, +Bindings, +DWIMs, -Corrected) is semidet.
+% 
+%	Correct a single literal.  DWIMs is a list of heads that can
+%	replace the head in Goal.
+
+correct_literal(Goal, Bindings, [Dwim], DwimGoal) :-
 	strip_module(Goal, _, G1), 
 	strip_module(Dwim, DM, G2), 
 	functor(G1, _, Arity), 
-	functor(G2, Name, Arity), !, 
+	functor(G2, Name, Arity), !,	% same arity: we can replace arguments
 	G1 =.. [_|Arguments], 
 	G2 =.. [Name|Arguments], 
-	context_module(Context),
-	(   '$prefix_module'(DM, Context, G2, DwimGoal),
+	'$module'(TypeIn, TypeIn),
+	(   '$prefix_module'(DM, TypeIn, G2, DwimGoal),
 	    goal_name(DwimGoal, Bindings, String),
 	    '$confirm'(dwim_correct(String))
 	->  true
 	;   DwimGoal = Goal
 	).
-correct_goal(Goal, Bindings, Dwims, NewGoal) :-
+correct_literal(Goal, Bindings, Dwims, NewGoal) :-
 	strip_module(Goal, _, G1), 
 	functor(G1, _, Arity), 
 	include_arity(Dwims, Arity, [Dwim]), !,
-	correct_goal(Goal, Bindings, [Dwim], NewGoal).
-correct_goal(Goal, _, Dwims, _) :-
-	tag_module(Goal, MGoal),
-	tag_modules(Dwims, MDwims),
-	print_message(error, dwim_undefined(MGoal, MDwims)),
+	correct_literal(Goal, Bindings, [Dwim], NewGoal).
+correct_literal(Goal, _, Dwims, _) :-
+	print_message(error, dwim_undefined(Goal, Dwims)),
 	fail.
-
-:- module_transparent
-	tag_module/2,
-	tag_modules/2.
-
-tag_module(T, M:T2) :-
-	strip_module(T, M, T2).
-
-tag_modules([], []).
-tag_modules([H0|T0], [H|T]) :-
-	tag_module(H0, H),
-	tag_modules(T0, T).
 
 include_arity([], _, []).
 include_arity([H|T0], Arity, [H|T]) :-
@@ -138,34 +131,26 @@ include_arity([_|T0], Arity, T)	:-
 
 
 %	goal_name(+Goal, +Bindings, -Name)
-%	Transform Goal into a readable format.
+%	
+%	Transform Goal into a readable format by binding its variables.
 
 goal_name(Goal, Bindings, String) :-
-	bind_vars(Bindings),
-	goal_name_(Goal, String),
-	recorda('$goal_name', String),
-	fail.
-goal_name(_, _, String) :-
-	recorded('$goal_name', String, Ref), !,
-	erase(Ref).
+	State = s(_),
+	(   bind_vars(Bindings),
+	    numbervars(Goal, 0, _, [singletons(true), attvar(skip)]),
+	    format(string(S), '~q', [Goal]),
+	    nb_setarg(1, State, S),
+	    fail
+	;   arg(1, State, String)
+	).
 
 bind_vars([]).
-bind_vars([Name=Value|Rest]) :-
-	Name = Value,
-	bind_vars(Rest).
-
-goal_name_('_', '_') :- !.			% catch anonymous variable
-goal_name_(Module:Name/Arity, String) :- !,
-	format(string(String), '~q:~q/~q', [Module, Name, Arity]).
-goal_name_(Name/Arity, String) :- !,
-	format(string(String), '~q/~q', [Name, Arity]).
-goal_name_(Module:Term, String) :- !,
-	format(string(String), '~q:~w', [Module, Term]).
-goal_name_(Goal, String) :-
-	format(string(String), '~w', [Goal]).
+bind_vars([Name=Var|T]) :-
+	Var = '$VAR'(Name),		% portray prints Name
+	bind_vars(T).
 
 
-%	'$find_predicate'(+Spec, -List)
+%%	'$find_predicate'(:Spec, -List) is det.
 %
 %	Unify `List' with a list  of  predicate  heads  that  match  the
 %	specification  `Spec'.  `Spec' is a term Name/Arity, a ``Head'', 
@@ -173,24 +158,21 @@ goal_name_(Goal, String) :-
 %	name with arbitrary arity.  `Do What I Mean' correction is done.
 %	If the requested module is `user' predicates residing in any
 %	module will be considered matching.
-%	If  no predicates can be found or more than one `Do What I Mean'
-%	solution exists an error message is displayed.
+%	
+%	@error	existence_error(procedure, Spec) if no matching predicate
+%		can be found.
 
-:- module_transparent
-	'$find_predicate'/2.
-
-'$find_predicate'(Spec, List) :-
-	strip_module(Spec, M, S),
+'$find_predicate'(M:S, List) :-
 	name_arity(S, Name, Arity),
-	context_module(C),
+	'$module'(TypeIn, TypeIn),
 	(   M == user
+	->  true
 	;   Module = M
-	) ->
-	find_predicate(Module, C, Name, Arity, L0), !,
+	),
+	find_predicate(Module, TypeIn, Name, Arity, L0), !,
 	sort(L0, L1),
-	principal_predicates(C, L1, List).
-'$find_predicate'(Spec, List) :-
-	strip_module(Spec, _M, S),
+	principal_predicates(TypeIn, L1, List).
+'$find_predicate'(_:S, List) :-
 	name_arity(S, Name, Arity),
 	findall(Head, ('$in_library'(Name, Arity, _Path),
 		       functor(Head, Name, Arity)), List),
@@ -205,17 +187,14 @@ find_predicate(Module, C, Name, Arity, Pack) :-
 	findall(Head, find_sim_pred(Module, Name, Arity, Head), List),
 	pack(List, Module, Arity, C, Packs),
 	'$member'(Dwim-Pack, Packs),
-	print_pack_name(C, Dwim, PredName),
+	unqualify_if_context(C, Dwim, PredName),
 	'$confirm'(dwim_correct(PredName)), !.
 
-print_pack_name(C, C:Name/Arity, P) :- !, concat_atom([Name, /, Arity], P).
-print_pack_name(_, M:Name/Arity, P) :- !, concat_atom([M, :, Name, /, Arity], P).
-print_pack_name(C, C:Name, Name)    :- !.
-print_pack_name(_, M:Name, P)       :- !, concat_atom([M, :, Name], P).
-print_pack_name(_, Name,   Name).
+unqualify_if_context(C, C:X, X) :- !.
+unqualify_if_context(_, X, X) :- !.
 
-
-%	pack(+Heads, +Context, -Packs)
+%%	pack(+Heads, +Context, -Packs)
+%	
 %	Pack the list of heads into packets, consisting of the corrected
 %	specification and a list of heads satisfying this specification.
 
@@ -239,21 +218,11 @@ pack_name(_:T, V1,  _, Name/A)   :- var(V1),          !, functor(T, Name, A).
 pack_name(M:T,  _,  _, M:Name/A) :-                      functor(T, Name, A).
 
 
-find_predicate_(M, C, Name, Arity, Head) :-
-	same_module(M, Module),
+find_predicate_(Module, C, Name, Arity, Head) :-
+	current_module(Module),
 	current_predicate(Name, Module:Term),
-	functor(Term, Name, A),
-	same_arity(Arity, A),
+	functor(Term, Name, Arity),
 	'$prefix_module'(Module, C, Term, Head).
-
-same_module(M, Module) :-
-	var(M), !,
-	current_module(Module).
-same_module(M, M) :-
-	current_module(M).
-
-same_arity(A, _) :- var(A), !.
-same_arity(A, A).
 
 find_sim_pred(M, Name, Arity, Module:Term) :-
 	sim_module(M, Module),
@@ -293,8 +262,9 @@ name_arity(Spec, _, _) :-
 	throw(error(type_error(predicate_indicator, Spec), _)).
 
 
-%	principal_predicates(+Context, +Heads, -Principals)
-%	Get the principal predicate list from a list of heads (e.g. the
+%%	principal_predicates(+Context, +Heads, -Principals)
+%	
+%	Get the principal predicate list from a list of heads (e.g., the
 %	module in which the predicate is defined).
 
 principal_predicates(C, Heads, Principals) :-
@@ -337,13 +307,10 @@ find_definition(C, Head, Principal) :-
 find_definition(_, Head, Head).
 
 
-%	dwim_predicate(+Head, -NewHead)
+%%	dwim_predicate(:Head, -NewHead) is nondet.
+%	
 %	Find a head that is in a `Do What I Mean' sence the same as `Head'.
 %	backtracking produces more such predicates.
-
-:- module_transparent
-	dwim_predicate/2, 
-	dwim_predicate_list/2.
 
 dwim_predicate(Head, DWIM) :-
 	dwim_predicate_list(Head, DWIMs),
@@ -351,24 +318,27 @@ dwim_predicate(Head, DWIM) :-
 
 dwim_predicate_list(Head, [Head]) :-
 	current_predicate(_, Head), !.
-dwim_predicate_list(Head, DWIMs) :-
-	context_module(C),
-	setof(DWIM, '$dwim':dwim_pred(C:Head, DWIM), DWIMs), !.
+dwim_predicate_list(M:Head, DWIMs) :-
+	setof(DWIM, dwim_pred(M:Head, DWIM), DWIMs), !.
 dwim_predicate_list(Head, DWIMs) :-
 	setof(DWIM, '$similar_module'(Head, DWIM), DWIMs), !.
-dwim_predicate_list(Head, DWIMs) :-
-	strip_module(Head, _, Goal),
-	setof(Module:Goal, ( current_module(Module),
-			     current_predicate(_, Module:Goal)
-			   ), DWIMs).
+dwim_predicate_list(_:Goal, DWIMs) :-
+	setof(Module:Goal,
+	      ( current_module(Module),
+		current_predicate(_, Module:Goal)
+	      ), DWIMs).
 
 dwim_pred(Head, Dwim) :-
 	strip_module(Head, Module, H),
 	default_module(Module, M),
 	'$dwim_predicate'(M:H, Dwim).
 
-'$similar_module'(Head, DwimModule:Goal) :-
-	strip_module(Head, Module, Goal),
+%%	'$similar_module'(:Goal, -DWIMGoal) is nondet.
+%
+%	True if DWIMGoal exists and is, except from a typo in the
+%	module specification, equivalent to Goal.
+
+'$similar_module'(Module:Goal, DwimModule:Goal) :-
 	current_module(DwimModule),
 	dwim_match(Module, DwimModule),
 	current_predicate(_, DwimModule:Goal).
