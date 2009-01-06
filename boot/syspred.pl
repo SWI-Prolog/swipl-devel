@@ -346,9 +346,6 @@ source_file(File) :-
 %	Note  that  only  the  line-number  info    is   valid  for  the
 %	'$stream_position'. Largely Quintus compatible.
 
-:- module_transparent
-	prolog_load_context/2.
-
 prolog_load_context(module, Module) :-
 	'$set_source_module'(Module, Module).
 prolog_load_context(file, F) :-
@@ -801,7 +798,7 @@ arithmetic_function(Module:Term) :-
 	functor(Head, Name, PredArity),
 	'$arithmetic_function'(Module:Head, 0).
 
-%%	default_module(+Me, -Super)
+%%	default_module(+Me, -Super) is nondet.
 %	
 %	Is true if `Super' is `Me' or a super (auto import) module of `Me'.
 
