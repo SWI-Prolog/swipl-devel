@@ -947,6 +947,7 @@ goal_colours(reexport(_),	     built_in-[file]).
 goal_colours(reexport(File,_),       built_in-[file,imports(File)]).
 goal_colours(dynamic(_),	     built_in-[predicates]).
 goal_colours(thread_local(_),	     built_in-[predicates]).
+goal_colours(module_transparent(_),  built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
 goal_colours(volatile(_),	     built_in-[predicates]).
 goal_colours(consult(_),	     built_in-[file]).
