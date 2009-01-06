@@ -723,9 +723,28 @@ current_signal(Name, Id, Handler) :-
 		 *	      DLOPEN		*
 		 *******************************/
 
-:- module_transparent
-	open_shared_object/2,
-	open_shared_object/3.
+%%	open_shared_object(+File, -Handle) is det.
+%%	open_shared_object(+File, -Handle, +Flags) is det.
+%
+%	Open a shared object or DLL file. Flags  is a list of flags. The
+%	following flags are recognised. Note   however  that these flags
+%	may have no affect on the target platform.
+%	
+%	    * =now=
+%	    Resolve all symbols in the file now instead of lazily.
+%	    * =global=
+%	    Make new symbols globally known.
+
+open_shared_object(File, Handle) :-
+	open_shared_object(File, Handle, []). % use pl-load.c defaults
+
+open_shared_object(File, Handle, Flags) :-
+	(   is_list(Flags)
+	->  true
+	;   throw(error(type_error(list, Flags), _))
+	),
+	map_dlflags(Flags, Mask),
+	'$open_shared_object'(File, Handle, Mask).
 
 dlopen_flag(now,	2'01).		% see pl-load.c for these constants
 dlopen_flag(global,	2'10).		% Solaris only
@@ -733,18 +752,11 @@ dlopen_flag(global,	2'10).		% Solaris only
 map_dlflags([], 0).
 map_dlflags([F|T], M) :-
 	map_dlflags(T, M0),
-	dlopen_flag(F, I),
+	(   dlopen_flag(F, I)
+	->  true
+	;   throw(error(domain_error(dlopen_flag, F), _))
+	),
 	M is M0 \/ I.
-
-open_shared_object(File, Flags, Handle) :- % compatibility
-	is_list(Flags), \+ is_list(Handle), !,
-	open_shared_object(File, Handle, Flags).
-open_shared_object(File, Handle, Flags) :-
-	map_dlflags(Flags, Mask),
-	'$open_shared_object'(File, Handle, Mask).
-
-open_shared_object(File, Handle) :-
-	open_shared_object(File, Handle, []). % use pl-load.c defaults
 
 
 		 /*******************************
