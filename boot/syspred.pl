@@ -397,13 +397,14 @@ stream_position_field(byte_count,    4).
 		 *	      CONTROL		*
 		 *******************************/
 
-%	call_with_depth_limit(+Goal, +DepthLimit, -Result)
+%%	call_with_depth_limit(:Goal, +DepthLimit, -Result)
 %
 %	Try to proof Goal, but fail on any branch exceeding the indicated
 %	depth-limit.  Unify Result with the maximum-reached limit on success,
 %	depth_limit_exceeded if the limit was exceeded and fails otherwise.
 
-:- module_transparent call_with_depth_limit/3.
+:- meta_predicate
+	call_with_depth_limit(0, +, -).
 
 call_with_depth_limit(G, Limit, Result) :-
 	'$depth_limit'(Limit, OLimit, OReached),
@@ -784,15 +785,15 @@ absolute_file_name(Term, Abs) :-
 garbage_collect :-
 	'$garbage_collect'(0).
 
-%	arithmetic_function(Spec)
+%%	arithmetic_function(:Spec)
+%
 %	Register a predicate as an arithmetic function.  Takes Name/Arity
 %	and a term as argument.
 
-:- module_transparent
-	arithmetic_function/1.
+:- meta_predicate
+	arithmetic_function(1).
 
-arithmetic_function(Spec) :-
-	strip_module(Spec, Module, Term),
+arithmetic_function(Module:Term) :-
 	(   Term = Name/Arity
 	;   functor(Term, Name, Arity)
 	), !,
@@ -800,7 +801,8 @@ arithmetic_function(Spec) :-
 	functor(Head, Name, PredArity),
 	'$arithmetic_function'(Module:Head, 0).
 
-%	default_module(+Me, -Super)
+%%	default_module(+Me, -Super)
+%	
 %	Is true if `Super' is `Me' or a super (auto import) module of `Me'.
 
 default_module(Me, Me).
