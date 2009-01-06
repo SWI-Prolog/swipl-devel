@@ -4917,46 +4917,6 @@ Equivalent to bagof/3, but sorts the result using sort/2 to get a sorted
 list of alternatives without duplicates.
 \end{description}
 
-\section{Invoking Predicates on all Members of a List} \label{sec:applylist}
-
-All the predicates in this section call a predicate on all members of a
-list or until the predicate called fails. The predicate is called via
-call/[2..], which implies common arguments can be put in front of the
-arguments obtained from the list(s). For example:
-
-\begin{code}
-?- maplist(plus(1), [0, 1, 2], X).
-
-X = [1, 2, 3]
-\end{code}
-
-we phrase this as ``\arg{Predicate} is applied on \ldots''
-
-Currently, the predicates below are defined as built-in predicates.  It
-is planned to move these to library(apply).  See \secref{apply} for more
-predicates.  The library(apply_macros) defines macros that compile some
-of these meta-calling constructs away.
-
-\begin{description}
-    \predicate{maplist}{2}{:Pred, +List}
-\arg{Pred} is applied successively on each element of \arg{List} until
-the end of the list or \arg{Pred} fails. In the latter case the
-maplist/2 fails.%
-	\footnote{The maplist/2 predicate replaces the obsolete
-		  \nopredref{checklist}{2} predicate.}
-
-    \predicate{maplist}{3}{:Pred, ?List1, ?List2}
-Apply \arg{Pred} on all successive pairs of elements from \arg{List1}
-and \arg{List2}. Fails if \arg{Pred} can not be applied to a pair. See
-the example above.
-
-    \predicate{maplist}{4}{:Pred, ?List1, ?List2, ?List3}
-Apply \arg{Pred} on all successive triples of elements from \arg{List1},
-\arg{List2} and \arg{List3}. Fails if \arg{Pred} can not be applied to a
-triple. See the example above.
-\end{description}
-
-
 \section{Forall}			\label{sec:forall2}
 
 \begin{description}

@@ -317,9 +317,6 @@ suggest predicates from a keyword.
 \predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl}
 \predicatesummary{map_assoc}{2}{Map association tree}
 \predicatesummary{map_assoc}{3}{Map association tree}
-\predicatesummary{maplist}{2}{Apply predicate on all elements}
-\predicatesummary{maplist}{3}{Map elements pairwise}
-\predicatesummary{maplist}{4}{Map triples of elements}
 \predicatesummary{max_assoc}{3}{Highest key in association tree}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{merge}{3}{Merge two sorted lists}

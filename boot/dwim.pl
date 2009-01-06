@@ -141,13 +141,18 @@ include_arity([_|T0], Arity, T)	:-
 %	Transform Goal into a readable format.
 
 goal_name(Goal, Bindings, String) :-
-	maplist(call, Bindings),		% Bind the variables
+	bind_vars(Bindings),
 	goal_name_(Goal, String),
 	recorda('$goal_name', String),
 	fail.
 goal_name(_, _, String) :-
 	recorded('$goal_name', String, Ref), !,
 	erase(Ref).
+
+bind_vars([]).
+bind_vars([Name=Value|Rest]) :-
+	Name = Value,
+	bind_vars(Rest).
 
 goal_name_('_', '_') :- !.			% catch anonymous variable
 goal_name_(Module:Name/Arity, String) :- !,
@@ -293,9 +298,9 @@ name_arity(Spec, _, _) :-
 %	module in which the predicate is defined).
 
 principal_predicates(C, Heads, Principals) :-
-	maplist(find_definition(C), Heads, P0),
+	find_definitions(Heads, C, P0),
 	(   C == user
-	->  maplist(find_public, P0, P1),
+	->  find_publics(P0, P1),
 	    delete_defaults(P1, P1, P2)
 	;   P2 = P0
 	),	
@@ -308,11 +313,21 @@ delete_defaults([system:Head|T], L, R) :-
 delete_defaults([H|T], L, [H|R]) :-
 	delete_defaults(T, L, R).
 
+find_publics([], []).
+find_publics([H0|T0], [H|T]) :-
+	find_public(H0, H),
+	find_publics(T0, T).
+
 find_public(Head, user:Term) :-
 	strip_module(Head, M, Term),
 	current_predicate(_, user:Term),
 	'$predicate_property'(imported_from(M), user:Term), !.
 find_public(Head, Head).
+
+find_definitions([], _, []).
+find_definitions([H0|T0], M, [H|T]) :-
+	find_definition(M, H0, H),
+	find_definitions(T0, M, T).
 
 find_definition(C, Head, Principal) :-
 	'$predicate_property'(imported_from(Module), C:Head), !,
