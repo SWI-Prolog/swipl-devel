@@ -34,9 +34,9 @@
 	    apply/2			% :Goal, +ExtraArgs
 	  ]).
 
-:- module_transparent
-	forall/2,
-	apply/2.
+:- meta_predicate
+	forall(0,0),
+	apply(:, +).
 
 :- noprofile((forall/2, apply/2)).
 
@@ -52,12 +52,11 @@ forall(Cond, Action) :-
 %
 %	Extend Goal with arguments from ExtraArgs and call it.
 %	
-%	@depricated	Almost all usage can be replaced by call/N.
+%	@deprecated	Almost all usage can be replaced by call/N.
 
-apply(Goal, Extra) :-
+apply(M:Goal, Extra) :-
 	(   callable(Goal)
-	->  strip_module(Goal, M, G0),
-	    G0 =.. List0,
+	->  Goal =.. List0,
 	    '$append'(List0, Extra, List),
 	    G =.. List,
 	    M:G
