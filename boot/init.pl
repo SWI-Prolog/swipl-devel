@@ -116,34 +116,37 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	      setup_and_call_cleanup/4,
 	      (^)/2)).
 
+:- meta_predicate
+	';'(0,0),
+	'|'(0,0),
+	','(0,0),
+	call(0),
+	call(1,?),
+	call(2,?,?),
+	call(3,?,?,?),
+	call(4,?,?,?,?),
+	call(5,?,?,?,?,?),
+	call(6,?,?,?,?,?,?),
+	call(7,?,?,?,?,?,?,?),
+	^(+,0),
+	not(0),
+	\+(0),
+	'->'(0,0),
+	'*->'(0,0),
+	once(0),
+	ignore(0),
+	block(+,0,-),
+	catch(0,?,0),
+	setup_and_call_cleanup(0,0,0),
+	setup_and_call_cleanup(0,0,?,0),
+	call_cleanup(0,0),
+	call_cleanup(0,?,0).
+
 :- module_transparent
-	';'/2,
-	'|'/2,
-	','/2,
-	call/1,
-	call/2,
-	call/3,
-	call/4,
-	call/5,
-	call/6,
-	call/7,
 	call/8,
 	call/9,
 	call/10,
-	call/11,
-	(^)/2,
-	(not)/1,
-	(\+)/1,
-	(->)/2,
-	(*->)/2,
-	once/1,
-	ignore/1,
-	block/3,
-	catch/3,
-	setup_and_call_cleanup/3,
-	setup_and_call_cleanup/4,
-	call_cleanup/2,
-	call_cleanup/3.
+	call/11.
 
 :- '$iso'((call/1, (\+)/1, once/1, (;)/2, (,)/2, (->)/2, catch/3)).
 

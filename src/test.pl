@@ -815,8 +815,9 @@ meta(call-11) :-
 	forall(A, true),
 	flag(a, 3, Old).
 meta(call-12) :-
+	context_module(M),
 	catch(call(1), E, true),
-	error(E, type_error(callable, 1)).
+	error(E, type_error(callable, M:1)).
 meta(apply-1) :-
 	apply(=, [a,a]).
 meta(apply-2) :-
