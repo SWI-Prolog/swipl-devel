@@ -81,14 +81,17 @@
 		*           DEBUGGER            *
 		*********************************/
 
+:- meta_predicate
+	'$map_bits'(2, +, +, -).
+
 '$map_bits'(_, [], Bits, Bits) :- !.
 '$map_bits'(Pred, [H|T], Old, New) :-
 	'$map_bits'(Pred, H, Old, New0),
 	'$map_bits'(Pred, T, New0, New).
-'$map_bits'(Pred, +Name, Old, New) :- !, 		% set a bit
+'$map_bits'(Pred, +Name, Old, New) :- !,	% set a bit
 	call(Pred, Name, Bits), !,
 	New is Old \/ Bits.
-'$map_bits'(Pred, -Name, Old, New) :- !, 		% clear a bit
+'$map_bits'(Pred, -Name, Old, New) :- !, 	% clear a bit
 	call(Pred, Name, Bits), !,
 	New is Old /\ (\Bits).
 '$map_bits'(Pred, ?(Name), Old, Old) :-		% ask a bit
