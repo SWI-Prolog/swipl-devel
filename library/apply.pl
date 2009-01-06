@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -49,16 +49,11 @@ members of a list.
 @tbd	Add include/4, include/5, exclude/4, exclude/5
 */
 
-:- module_transparent
-	include/3,
-	include_/3,
-	exclude/3,
-	exclude_/3,
-	partition/4,
-	partition_/4,
-	partition/5,
-	partition_/5,
-	partition_/7.
+:- meta_predicate
+	include(1, +, -),
+	exclude(1, +, -),
+	partition(1, +, -, -),
+	partition(2, +, -, -, -).
 
 
 %%	include(:Goal, +List1, ?List2) is det.
