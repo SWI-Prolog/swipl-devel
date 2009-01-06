@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -30,7 +30,7 @@
 */
 
 :- module('$qlf',
-	  [ qcompile/1,		% +File
+	  [ qcompile/1,		% :Files
 	    '$qload_file'/6,	% +Path, +Enc, +Module, +IsModule, -Ac, -LM
 	    '$qload_stream'/5	% +Stream, +Module, +IsModule, -Ac, -LM
 	  ]).
@@ -40,22 +40,29 @@
 		 *	   COMPILATION		*
 		 *******************************/
 
-:- module_transparent
-	qcompile/1.
+:- meta_predicate
+	qcompile(:).
 
-qcompile([]) :- !.
-qcompile([H|T]) :- !,
-	qcompile(H),
-	qcompile(T).
-qcompile(File) :-
-	strip_module(File, Module, FileName),
+%%	qcompile(:Files) is det.
+%
+%	Compile Files as consult/1 and generate   a  Quick Load File for
+%	each compiled file.
+
+qcompile(M:Files) :-
+	qcompile(Files, M).
+
+qcompile([], _) :- !.
+qcompile([H|T], M) :- !,
+	qcompile(H, M),
+	qcompile(T, M).
+qcompile(FileName, Module) :-
 	absolute_file_name(FileName,
 			   [ file_type(prolog),
 			     access(read)
 			   ], Absolute),
 	file_name_extension(ABase, PlExt, Absolute),
 	(   user:prolog_file_type(PlExt, qlf)
-	->  throw(error(permission_error(compile, qlf, File),
+	->  throw(error(permission_error(compile, qlf, FileName),
 			context(qcompile/1, 'Conflicting extension')))
 	;   true
 	),
