@@ -645,7 +645,7 @@ module_property(Module, Property) :-
 	nonvar(Module), nonvar(Property), !,
 	'$module_property'(Module, Property).
 module_property(Module, Property) :-
-	nonvar(Property), Property = file(_), !,
+	nonvar(Property), Property = file(File), !,
 	'$current_module'(Module, File),
 	File \== [].
 module_property(Module, Property) :-
