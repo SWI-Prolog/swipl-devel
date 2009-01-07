@@ -1281,11 +1281,11 @@ load_files(Module:Files, Options) :-
 	var(Var), !,
 	throw(error(instantitation_error, _)).
 '$import_list'(Target, Source, all, Reexport) :- !,
-	export_list(Source, Import),
+	'$module_property'(Source, exports(Import)),
 	'$import_ops'(Target, Source),
 	'$import_list'(Target, Source, Import, Reexport).
 '$import_list'(Target, Source, except(Spec), Reexport) :- !,
-	export_list(Source, Export),
+	'$module_property'(Source, exports(Export)),
 	(   is_list(Spec)
 	->  true
 	;   throw(error(type_error(list, Spec), _))

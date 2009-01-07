@@ -166,8 +166,8 @@ doc_file_objects(FileSpec, File, Objects, FileOptions, Options) :-
 %	File is a module file.
 
 module_info(File, [module(Module), public(Exports)|Options], Options) :-
-	current_module(Module, File), !,
-	export_list(Module, Exports).
+	module_property(Module, file(File)), !,
+	module_property(Module, exports(Exports)).
 module_info(_, Options, Options).
 
 
@@ -1094,7 +1094,7 @@ object_href(Obj, HREF) :-
 
 object_href(M:PI0, HREF, Options) :-
 	option(files(Map), Options),
-	current_module(M, File),
+	module_property(M, file(File)),
 	memberchk(file(File, DocFile), Map), !,
 	expand_pi(PI0, PI),
 	term_to_string(PI, PIS),
@@ -1142,7 +1142,7 @@ object_link(_M:PI, _) --> !,
 object_link(PI, _) -->
 	pi(PI), !.
 object_link(Module:module(_Title), _) -->
-	{ current_module(Module, File),
+	{ module_property(Module, file(File)),
 	  file_base_name(File, Base)
 	}, !,
 	html(Base).

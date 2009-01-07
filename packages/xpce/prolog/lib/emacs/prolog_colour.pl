@@ -1792,7 +1792,7 @@ file(F, File:name) :<-
 	(   get(F, classification, file)
 	->  File = Context
 	;   get(F, classification, module)
-	->  current_module(Context, File)
+	->  module_property(Context, file(File))
 	).
 
 
@@ -1817,7 +1817,7 @@ identify_fragment(directory(Path), _, Summary) :-
 identify_fragment(type_error(Type), _, Summary) :-
 	new(Summary, string('Type error: argument must be a %s', Type)).
 identify_fragment(module(Module), _, Summary) :-
-	current_module(Module, Path),
+	module_property(Module, file(Path)),
 	new(Summary, string('Module %s loaded from %s', Module, Path)).
 identify_fragment(method(send), _, 'XPCE send method').
 identify_fragment(method(get), _, 'XPCE get method').

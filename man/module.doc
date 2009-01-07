@@ -589,23 +589,28 @@ The following predicates can be used to query the module system for
 reflexive programming:
 
 \begin{description}
-    \predicate[nondet]{current_module}{1}{-Module}
+    \predicate[nondet]{current_module}{1}{?Module}
 True if \arg{Module} is a currently defined module. This predicate
 enumerates all modules, whether loaded from a file or created
-dynamically.
+dynamically.  Note that modules cannot be destroyed in the current
+version of SWI-Prolog.
 
-    \predicate{current_module}{2}{?Module, ?File}
-Is true if \arg{File} is the file from which \arg{Module} was loaded.
-\arg{File} is the internal canonical filename. See also
-source_file/[1,2].
+    \predicate{module_property}{2}{?Module, ?Property}
+True if \arg{Property} is a property of \arg{Module}. Defined properties
+are:
 
-    \predicate{export_list}{2}{+Module, ?Exports}
-Unifies \arg{Exports} with a list of predicate indicators, one for each
-public predicate of \arg{Module}.  The order of the terms in
-\arg{Exports} is not defined.   Predicate indicators are in canonical
-form (i.e., always using Name/Arity and never the DCG form
-Name//Arity). Future versions may also use the DCG form and include
-public operators. See also predicate_property/2.
+    \begin{description}
+        \termitem{file}{?File}
+	True if \arg{Module} was loaded from \arg{File}.
+	\termitem{line_count}{-Line}
+	True if \arg{Module} was loaded from the N-th line of file.
+	\termitem{exports}{-ListOfPredicateIndicators}
+	True if \arg{Module} exports the givven predicates. Predicate
+	indicators are in canonical form (i.e., always using Name/Arity
+	and never the DCG form Name//Arity). Future versions may also
+	use the DCG form and include public operators. See also
+	predicate_property/2.
+    \end{description}
 \end{description}
  
 

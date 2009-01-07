@@ -414,7 +414,6 @@ COMMON(word) 		pl_current_module(term_t module, term_t file, control_t h);
 COMMON(word) 		pl_module(term_t old, term_t new);
 COMMON(word) 		pl_set_source_module(term_t old, term_t new);
 COMMON(word) 		pl_declare_module(term_t name, term_t file, term_t line);
-COMMON(word) 		pl_export_list(term_t modulename, term_t list);
 COMMON(word) 		pl_check_export(void);
 COMMON(word) 		pl_context_module(term_t module);
 COMMON(word) 		pl_import(term_t pred);

@@ -151,7 +151,6 @@ suggest predicates from a keyword.
 \predicatesummary{current_input}{1}{Get current input stream}
 \predicatesummary{current_key}{1}{Examine existing database keys}
 \predicatesummary{current_module}{1}{Examine existing modules}
-\predicatesummary{current_module}{2}{Examine existing modules}
 \predicatesummary{current_op}{3}{Examine current operator declarations}
 \predicatesummary{current_output}{1}{Get the current output stream}
 \predicatesummary{current_predicate}{1}{Examine existing predicates (ISO)}
@@ -213,7 +212,6 @@ suggest predicates from a keyword.
 \predicatesummary{explain}{1}{\pllib{explain} Explain argument}
 \predicatesummary{explain}{2}{\pllib{explain} 2nd argument is explanation of first}
 \predicatesummary{export}{1}{Export a predicate from a module}
-\predicatesummary{export_list}{2}{List of public predicates of a module}
 \predicatesummary{fail}{0}{Always false}
 \predicatesummary{false}{0}{Always false}
 \predicatesummary{fail}{1}{Immediately fail named block. See block/3}

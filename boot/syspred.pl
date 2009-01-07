@@ -55,7 +55,7 @@
 	    recordz/2,
 	    recorded/2,
 	    current_module/1,
-	    current_module/2,
+	    module_property/2,
 	    module/1,
 	    statistics/0,
 	    shell/1,
@@ -621,12 +621,44 @@ require([H|_T], _) :-
 		*            MODULES            *
 		*********************************/
 
+%%	current_module(?Module) is nondet.
+%
+%	True if Module is a currently defined module.
+
 current_module(Module) :-
 	'$current_module'(Module, _).
 
-current_module(Module, File) :-
+%%	module_property(?Module, ?Property) is nondet.
+%
+%	True if Property is a property of Module.  Defined properties
+%	are:
+%	
+%	    * file(File)
+%	    Module is loaded from File.
+%	    * line_count(Count)
+%	    The module declaration is on line Count of File.
+%	    * exports(ListOfPredicateIndicators)
+%	    The module exports ListOfPredicateIndicators
+
+module_property(Module, Property) :-
+	nonvar(Module), nonvar(Property), !,
+	'$module_property'(Module, Property).
+module_property(Module, Property) :-
+	nonvar(Property), Property = file(_), !,
 	'$current_module'(Module, File),
 	File \== [].
+module_property(Module, Property) :-
+	current_module(Module),
+	module_property(Property),
+	'$module_property'(Module, Property).
+
+module_property(file(_)).
+module_property(line_count(_)).
+module_property(exports(_)).
+
+%%	module(+Module) is det.
+%
+%	Set the module that is associated to the toplevel to Module.
 
 module(Module) :-
 	atom(Module),

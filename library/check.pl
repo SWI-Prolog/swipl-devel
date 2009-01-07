@@ -218,7 +218,7 @@ prolog:message(check(undefined(Pred, Refs))) -->
 	[ ', which is referenced by', nl ],
 	referenced_by(Refs).
 prolog:message(check(autoload(Module, Pairs))) -->
-	{ current_module(Module, Path)
+	{ module_property(Module, file(Path))
 	}, !,
 	[ 'Into module ~w ('-[Module] ],
 	short_filename(Path),

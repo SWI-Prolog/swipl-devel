@@ -188,8 +188,8 @@ locate(Module:Name/Arity, [file(File), line(Line)]) :-
 	predicate_property(Module:Head, line_count(Line)).
 locate(module(Module), [file(Path)|Rest]) :-
 	atom(Module),
-	current_module(Module, Path),
-	(   '$module_property'(Module, line_count(Line))
+	module_property(Module, file(Path)),
+	(   module_property(Module, line_count(Line))
 	->  Rest = [line(Line)]
 	;   Rest = []
 	).

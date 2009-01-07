@@ -66,7 +66,7 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	),
 	File \== user,			% loaded using ?- [user].
 	clause_property(ClauseRef, line_count(LineNo)),
-	(   current_module(Module, File)
+	(   module_property(Module, file(File))
 	->  true
 	;   strip_module(user:Head, Module, _)
 	),
