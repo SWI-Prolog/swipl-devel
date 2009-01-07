@@ -484,23 +484,18 @@ generate_current_predicate(Name, Module, Head) :-
 '$defined_predicate'(Head) :-
 	'$get_predicate_attribute'(Head, defined, 1), !.
 
-:- module_transparent
-	predicate_property/2,
-	'$predicate_property'/2.
+:- meta_predicate
+	predicate_property(:, ?).
 
 :- '$iso'(predicate_property/2).
 
 predicate_property(Pred, Property) :-
 	Property == undefined, !,
-	(   Pred = Module:Head,
-	    var(Module)
-	;   strip_module(Pred, Module, Head)
-	), !,
+	Pred = Module:_,
 	current_module(Module),
-	Term = Module:Head,
-	'$c_current_predicate'(_, Term),
-	\+ '$defined_predicate'(Term),		% Speed up a bit
-	\+ current_predicate(_, Term).
+	'$c_current_predicate'(_, Pred),
+	\+ '$defined_predicate'(Pred),		% Speed up a bit
+	\+ current_predicate(_, Pred).
 predicate_property(Pred, Property) :-
 	current_predicate(_, Pred),
 	'$predicate_property'(Property, Pred).
