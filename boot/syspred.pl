@@ -499,6 +499,7 @@ predicate_property(Pred, Property) :-
 	\+ system_undefined(Module:Name/Arity).
 predicate_property(Pred, Property) :-
 	current_predicate(_, Pred),
+	'$define_predicate'(Pred),		% autoload if needed
 	'$predicate_property'(Property, Pred).
 
 '$predicate_property'(interpreted, Pred) :-
