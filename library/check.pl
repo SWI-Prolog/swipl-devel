@@ -98,15 +98,8 @@ list_undefined_(Level) :-
 
 undefined_predicate(Module:Head) :-
 	predicate_property(Module:Head, undefined), 
-	\+ predicate_property(Module:Head, imported_from(_)),
-	functor(Head, Functor, Arity), 
-	\+ '$in_library'(Functor, Arity, _),
-	\+ system_undefined(Module:Functor/Arity).
+	\+ predicate_property(Module:Head, imported_from(_)).
 
-system_undefined(user:prolog_trace_interception/4).
-system_undefined(user:prolog_exception_hook/4).
-system_undefined(system:'$c_call_prolog'/0).
-system_undefined(system:window_title/2).
 
 %%	find_references(+Heads, -HeadRefs:list) is det.
 %	

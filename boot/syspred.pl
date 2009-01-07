@@ -491,11 +491,13 @@ generate_current_predicate(Name, Module, Head) :-
 
 predicate_property(Pred, Property) :-
 	Property == undefined, !,
-	Pred = Module:_,
+	Pred = Module:Head,
 	current_module(Module),
 	'$c_current_predicate'(_, Pred),
 	\+ '$defined_predicate'(Pred),		% Speed up a bit
-	\+ current_predicate(_, Pred).
+	\+ current_predicate(_, Pred),
+	functor(Head, Name, Arity),
+	\+ system_undefined(Module:Name/Arity).
 predicate_property(Pred, Property) :-
 	current_predicate(_, Pred),
 	'$predicate_property'(Property, Pred).
@@ -546,6 +548,25 @@ predicate_property(Pred, Property) :-
 	'$get_predicate_attribute'(Pred, noprofile, 1).
 '$predicate_property'(iso, Pred) :-
 	'$get_predicate_attribute'(Pred, iso, 1).
+
+system_undefined(user:prolog_trace_interception/4).
+system_undefined(user:prolog_exception_hook/4).
+system_undefined(system:'$c_call_prolog'/0).
+system_undefined(system:window_title/2).
+
+%%	clause_property(+ClauseRef, ?Property) is nondet.
+%
+%	Provide information on individual clauses.  Defined properties
+%	are:
+%	
+%	    * line_count(-Line)
+%	    Line from which the clause is loaded.
+%	    * file(-File)
+%	    File from which the clause is loaded.
+%	    * fact
+%	    Clause has body =true=.
+%	    * erased
+%	    Clause was erased.
 
 clause_property(Clause, Property) :-
 	'$clause_property'(Property, Clause).
