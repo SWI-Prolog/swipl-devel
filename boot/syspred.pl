@@ -457,28 +457,22 @@ etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-:- module_transparent
-	current_predicate/2,
-	'$defined_predicate'/1.
+:- meta_predicate
+	current_predicate(?, :),
+	'$defined_predicate'(:).
 
-current_predicate(Name, Head) :-
-	var(Head), !,
-	context_module(Module),
-	generate_current_predicate(Name, Module, Head).
 current_predicate(Name, Module:Head) :-
 	(var(Module) ; var(Head)), !,
 	generate_current_predicate(Name, Module, Head).
 current_predicate(Name, Term) :-
 	'$c_current_predicate'(Name, Term),
 	'$defined_predicate'(Term), !.
-current_predicate(Name, Term) :-
-	strip_module(Term, Module, Head),
+current_predicate(Name, Module:Head) :-
 	default_module(Module, DefModule),
 	'$c_current_predicate'(Name, DefModule:Head),
 	'$defined_predicate'(DefModule:Head), !.
-current_predicate(Name, Term) :-
+current_predicate(Name, Module:Head) :-
 	current_prolog_flag(autoload, true),
-	strip_module(Term, Module, Head),
 	functor(Head, Name, Arity),
 	'$find_library'(Module, Name, Arity, _LoadModule, _Library), !.
 
