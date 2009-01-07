@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemak@uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2009, University of Amsterdam
 
@@ -42,9 +42,6 @@ If you want  to  debug  this  module,  put  a  '$:-'(trace).   directive
 somewhere.   The  tracer will work properly under boot compilation as it
 will use the C defined write predicate  to  print  goals  and  does  not
 attempt to call the Prolog defined trace interceptor.
-
-Please note that of version  3.3,  $:-   is  no  longer  an operator and
-therefore you have to use braces.
 */
 
 '$:-'(format('Loading boot file ...~n', [])).
