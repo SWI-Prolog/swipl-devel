@@ -2192,11 +2192,11 @@ at_halt(Goal) :-
 		*      LOAD OTHER MODULES       *
 		*********************************/
 
-:- module_transparent
-	'$load_wic_files'/2,
-	'$load_additional_boot_files'/0.
+:- meta_predicate
+	'$load_wic_files'(:).
 
-'$load_wic_files'(Module, Files) :-
+'$load_wic_files'(Files) :-
+	Files = Module:_,
 	'$execute_directive'('$set_source_module'(OldM, Module), []),
 	'$save_lex_state'(LexState),
 	'$style_check'(_, 2'1111),
@@ -2207,12 +2207,17 @@ at_halt(Goal) :-
 	flag('$compiling', _, OldC).
 
 
+%%	'$load_additional_boot_files' is det.
+%
+%	Called from compileFileList() in pl-wic.c.   Gets the files from
+%	"-c file ..." and loads them into the module user.
+
 '$load_additional_boot_files' :-
 	current_prolog_flag(argv, Argv),
 	'$get_files_argv'(Argv, Files),
 	(   Files \== []
 	->  format('Loading additional boot files~n'),
-	    '$load_wic_files'(user, Files),
+	    '$load_wic_files'(user:Files),
 	    format('additional boot files loaded~n')
 	;   true
         ).
@@ -2221,10 +2226,10 @@ at_halt(Goal) :-
        source_location(File, _Line),
        file_directory_name(File, Dir),
        atom_concat(Dir, '/load.pl', LoadFile),
-       '$load_wic_files'(system, [LoadFile]),
+       '$load_wic_files'(system:[LoadFile]),
        (   current_prolog_flag(windows, true)
        ->  atom_concat(Dir, '/menu.pl', MenuFile),
-	   '$load_wic_files'(system, [MenuFile])
+	   '$load_wic_files'(system:[MenuFile])
        ;   true
        ),
        format('SWI-Prolog boot files loaded~n', []),
