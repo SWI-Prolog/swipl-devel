@@ -1353,13 +1353,26 @@ retry_continue:
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-I_DEPART: implies it is the last subclause of the clause. This is be the
-entry point for last call optimisation.
+I_DEPART: implies it is the last subclause   of  the clause. This is the
+entry point for last call optimisation. 
+
+(*) Handling undefined predicates here is very tricky because we need to
+destroy de clause pointer before   leaveDefinition() to get asynchronous
+atom-gc ok, but this destroys  the  environment   for  normal  GC if the
+undefined predicate trapping code starts a GC. Therefore, undefined code
+runs normal I_CALL. This isn't too  bad,   as  it only affects the first
+call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 { if ( (void *)BFR <= (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
-  { Procedure proc;
+  { Procedure proc = (Procedure) *PC++;
+
+    if ( !proc->definition->definition.clauses &&	/* see (*) */
+	 false(proc->definition, PROC_DEFINED) )
+    { PC--;
+      VMI_GOTO(I_CALL);
+    }
 
     if ( true(FR, FR_WATCHED) )
     { LocalFrame lSave = lTop;
@@ -1370,11 +1383,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 
     FR->clause = NULL;			/* for save atom-gc */
     leaveDefinition(DEF);
-    proc = (Procedure) *PC++;
-
-    SAVE_REGISTERS(qid);
-    DEF = getProcDefinedDefinition(&lTop, PC, proc->definition PASS_LD);
-    LOAD_REGISTERS(qid);
+    DEF = proc->definition;
     if ( true(DEF, P_TRANSPARENT) )
     { FR->context = contextModule(FR);
       FR->flags = (((FR->flags+FR_LEVEL_STEP) | FR_CONTEXT) &
@@ -2006,12 +2015,9 @@ S_THREAD_LOCAL: Get thread-local definition
 VMI(S_THREAD_LOCAL, 0, 0, ())
 { FR->predicate = DEF = getProcDefinition__LD(DEF PASS_LD);
 
-  if ( DEF->codes )
-  { PC = DEF->codes;
-    NEXT_INSTRUCTION;
-  }
-
-  VMI_GOTO(S_DYNAMIC);			/* TBD: specialise */
+  assert(DEF->codes);
+  PC = DEF->codes;
+  NEXT_INSTRUCTION;
 }
 
 
