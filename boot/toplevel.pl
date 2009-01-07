@@ -372,8 +372,8 @@ initialise_prolog :-
 	print_message(informational, break(exit(New))),
 	flag('$break_level', _, Old), !.
 
-:- '$hide'('$toplevel', 0).			% avoid in the GUI stacktrace
-:- '$hide'('$abort', 0).			% same after an abort
+:- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
+:- '$hide'('$abort'/0).			% same after an abort
 
 '$toplevel' :-
 	'$runtoplevel',

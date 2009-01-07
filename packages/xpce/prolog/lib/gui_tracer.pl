@@ -68,7 +68,7 @@ noguitracer.
 %	
 %	Like trace/0, but uses the graphical tracer.
 
-:- '$hide'(gtrace,0).			% don't trace it
+:- '$hide'(gtrace/0).			% don't trace it
 
 gtrace :-
 	guitracer,

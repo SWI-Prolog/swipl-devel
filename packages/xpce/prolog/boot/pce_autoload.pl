@@ -101,7 +101,7 @@ register_handler :-
 	register_handler.
 
 pce_ifhostproperty(prolog(swi),
-		   (:- '$hide'(trap_autoload, 1)),
+		   (:- '$hide'(trap_autoload/1)),
 		   (notrace(G) :- G)).
 
 trap_autoload(Class) :-

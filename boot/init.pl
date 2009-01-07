@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemak@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -59,13 +59,27 @@ therefore you have to use braces.
 		*          DIRECTIVES           *
 		*********************************/
 
-'$set_pattr'([], _) :- !.
-'$set_pattr'([H|T], Attr) :- !,		% ISO
-	'$set_pattr'(H, Attr),
-	'$set_pattr'(T, Attr).
-'$set_pattr'((A,B), Attr) :- !,		% ISO and traditional
-	'$set_pattr'(A, Attr),
-	'$set_pattr'(B, Attr).
+:- meta_predicate
+	dynamic(:),
+	multifile(:),
+	module_transparent(:),
+	discontiguous(:),
+	volatile(:),
+	thread_local(:),
+	noprofile(:),
+	'$iso'(:),
+	'$hide'(:).
+
+'$set_pattr'(_:X, _) :-
+	var(X),
+	throw(error(instantiation_error, _)).
+'$set_pattr'(_:[], _) :- !.
+'$set_pattr'(M:[H|T], Attr) :- !,		% ISO
+	'$set_pattr'(M:H, Attr),
+	'$set_pattr'(M:T, Attr).
+'$set_pattr'(M:(A,B), Attr) :- !,		% ISO and traditional
+	'$set_pattr'(M:A, Attr),
+	'$set_pattr'(M:B, Attr).
 '$set_pattr'(A, Attr) :-
 	'$set_predicate_attribute'(A, Attr, 1).
 
@@ -78,28 +92,12 @@ thread_local(Spec)	 :- '$set_pattr'(Spec, (thread_local)).
 noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 '$iso'(Spec)		 :- '$set_pattr'(Spec, (iso)).
 
-:- module_transparent
-	'$set_pattr'/2,
-	(dynamic)/1,
-	(multifile)/1,
-	(module_transparent)/1,
-	(discontiguous)/1,
-	(volatile)/1,
-	(thread_local)/1,
-	(noprofile)/1,
-	'$hide'/2,
-	'$iso'/1.
-
-
-		/********************************
-		*        TRACE BEHAVIOUR        *
-		*********************************/
-
-%	'$hide'(+Name, +Arity)
+%%	'$hide'(:PI)
+%
 %	Predicates protected this way are never visible in the tracer.
 
-'$hide'(Name, Arity) :-
-	'$set_predicate_attribute'(Name/Arity, trace, 0).
+'$hide'(Pred) :-
+	'$set_predicate_attribute'(Pred, trace, 0).
 
 
 		/********************************
@@ -328,7 +326,7 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 	;   true
 	).
 
-:- '$hide'('$calleventhook', 1).
+:- '$hide'('$calleventhook'/1).
 
 %	 handle debugger 'w', 'p' and <N> depth options.
 

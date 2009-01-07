@@ -271,7 +271,7 @@ resolve_method_message(X) :-
 	).
 
 pce_ifhostproperty(prolog(swi),
-		   (:- '$hide'('_bind_lazy', 3))).
+		   (:- '$hide'('_bind_lazy'/3))).
 
 pce_ifhostproperty(prolog(swi),
 ('_bind_lazy'(Type, ClassName, Selector) :-
