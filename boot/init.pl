@@ -140,8 +140,10 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	call_cleanup(0,0),
 	call_cleanup(0,?,0).
 
+/* Currently, meta_predicate is only supported upto arity 8
+*/
+
 :- module_transparent
-	call/8,
 	call/9,
 	call/10,
 	call/11.
@@ -724,8 +726,8 @@ compiling :-
 	       flag('$directive', database, database)
 	   ).
 
-:- module_transparent
-	'$ifcompiling'/1.
+:- meta_predicate
+	'$ifcompiling'(0).
 
 '$ifcompiling'(_) :-
 	flag('$compiling', database, database), !.
@@ -2056,9 +2058,9 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 	'$copy_args'(I2, Arity, Old, New).
 '$copy_args'(_, _, _, _).
 
-:- module_transparent
-	phrase/2,
-	phrase/3.
+:- meta_predicate
+	phrase(2, ?),
+	phrase(2, ?, ?).
 :- noprofile((phrase/2,
 	      phrase/3)).
 
@@ -2170,14 +2172,13 @@ halt :-
 	halt(0).
 
 
-:- module_transparent
-	at_halt/1.
+:- meta_predicate
+	at_halt(0).
 :- dynamic
 	'$at_halt'/1.
 
-at_halt(Spec) :-
-	strip_module(Spec, Module, Goal),
-	asserta(system:'$at_halt'(Module:Goal)).
+at_halt(Goal) :-
+	asserta('$at_halt'(Goal)).
 
 '$run_at_halt' :-
 	(   '$at_halt'(Goal),
