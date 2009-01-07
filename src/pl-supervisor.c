@@ -232,7 +232,7 @@ multifileSupervisor(Definition def)
 
 static Code
 staticSupervisor(Definition def)
-{ return SUPERVISOR(dynamic);
+{ return SUPERVISOR(staticp);
 }
 
 
