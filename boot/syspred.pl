@@ -749,8 +749,8 @@ shell :-
 		 *	      SIGNALS		*
 		 *******************************/
 
-:- module_transparent
-	on_signal/3.
+:- meta_predicate
+	on_signal(+, :, :).
 
 on_signal(Signal, Old, New) :-
 	atom(Signal), !,

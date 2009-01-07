@@ -76,8 +76,6 @@ static const PL_extension foreigns[] = {
   FRG("win_module_file",	2, pl_win_module_file,		0),
 #endif
 
-  FRG("$on_signal",		4, pl_on_signal,	     META),
-
   FRG("halt",			1, pl_halt,		      ISO),
   FRG("$shell",			2, pl_shell,			0),
   FRG("getenv",			2, pl_getenv,			0),
