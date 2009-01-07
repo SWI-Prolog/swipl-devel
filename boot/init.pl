@@ -828,17 +828,16 @@ preprocessor(Old, New) :-
 		*       LOAD PREDICATES         *
 		*********************************/
 
-:- module_transparent
-	ensure_loaded/1,
-	'.'/2,
-	consult/1,
-	use_module/1,
-	use_module/2,
-	reexport/1,
-	reexport/2,
-	'$load_file'/3,
-	load_files/1,
-	load_files/2.
+:- meta_predicate
+	ensure_loaded(:),
+	[:|+],
+	consult(:),
+	use_module(:),
+	use_module(:, +),
+	reexport(:),
+	reexport(:, +),
+	load_files(:),
+	load_files(:, +).
 
 %	ensure_loaded(+File|+ListOfFiles)
 %	
@@ -896,11 +895,11 @@ reexport(File, Import) :-
 
 [X] :- !,
 	consult(X).
-[F|R] :-
-	consult([F|R]).
+[M:F|R] :-
+	consult(M:[F|R]).
 [].
 
-consult(X) :-
+consult(_:X) :-
 	X == user, !,
 	flag('$user_consult', N, N+1),
 	NN is N + 1,
@@ -916,11 +915,11 @@ consult(List) :-
 '$consult_goal'(Path, Goal) :-
 	(   file_name_extension(_, Ext, Path),
 	    user:prolog_file_type(Ext, qlf)
-	->  Goal = '$qload_file'
-	;   Goal = '$consult_file'
+	->  Goal = system:'$qload_file'
+	;   Goal = system:'$consult_file'
 	).
 
-%	load_files(+File, +Options)
+%%	load_files(:File, +Options)
 %	
 %	Common entry for all the consult derivates.  File is the raw user
 %	specified file specification, possibly tagged with the module.
@@ -933,9 +932,8 @@ consult(List) :-
 
 load_files(Files) :-
 	load_files(Files, []).
-load_files(Files, Options) :-
-	strip_module(Files, Module, TheFiles),
-        with_mutex('$load', '$load_files'(TheFiles, Module, Options)).
+load_files(Module:Files, Options) :-
+        with_mutex('$load', '$load_files'(Files, Module, Options)).
 
 '$load_files'(Id, Module, Options) :-	% load_files(foo, [stream(In)])
 	memberchk(stream(_), Options), !,
