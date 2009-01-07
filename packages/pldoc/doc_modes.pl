@@ -417,7 +417,7 @@ head_to_pi(Head, Name/Arity) :-
 %	
 %	Add a clause to the  compiled   program.  Unlike  assert/1, this
 %	associates the clause with the   given source-location, makes it
-%	static code and removes the  clause   of  the  file is reloaded.
+%	static code and removes the  clause   if  the  file is reloaded.
 %	Finally,  as  we  create  clauses   one-by-one,  we  define  our
 %	predicates as discontiguous.
 %	
