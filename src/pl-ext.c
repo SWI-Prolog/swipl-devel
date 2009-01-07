@@ -77,7 +77,6 @@ static const PL_extension foreigns[] = {
 #endif
 
   FRG("halt",			1, pl_halt,		      ISO),
-  FRG("$shell",			2, pl_shell,			0),
   FRG("getenv",			2, pl_getenv,			0),
   FRG("setenv",			2, pl_setenv,			0),
   FRG("unsetenv",		1, pl_unsetenv,			0),
@@ -443,6 +442,7 @@ DECL_PLIST(gc);
 DECL_PLIST(proc);
 DECL_PLIST(write);
 DECL_PLIST(dlopen);
+DECL_PLIST(system);
 
 void
 initBuildIns(void)
@@ -472,6 +472,7 @@ initBuildIns(void)
   REG_PLIST(proc);
   REG_PLIST(write);
   REG_PLIST(dlopen);
+  REG_PLIST(system);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
 #endif

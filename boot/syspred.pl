@@ -58,7 +58,6 @@
 	    current_module/2,
 	    module/1,
 	    statistics/0,
-	    shell/2,
 	    shell/1,
 	    shell/0,
 	    on_signal/3,
@@ -729,9 +728,6 @@ thread_statistics.
 		/********************************
 		*      SYSTEM INTERACTION       *
 		*********************************/
-
-shell(Command, Status) :-
-	'$shell'(Command, Status).
 
 shell(Command) :-
 	shell(Command, 0).
