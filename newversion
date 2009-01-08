@@ -31,7 +31,7 @@ numversion=$(($major * 10000 + $minor * 100 + $patch))
 
 tmp=.tmp$$
 
-f=src/pl-itf.h
+f=src/SWI-Prolog.h
 sed "s/^#define PLVERSION.*/#define PLVERSION $numversion/" $f > $tmp
 if cmp $f $tmp; then
     rm -f $tmp
