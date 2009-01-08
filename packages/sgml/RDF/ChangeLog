@@ -1,3 +1,6 @@
+[Dec 19 2008]
+
+ * ADDED: Pass content_length through process_rdf/3
 [Sep 11 2008]
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf

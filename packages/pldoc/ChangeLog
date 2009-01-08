@@ -1,3 +1,12 @@
+[Jan 7 2009]
+
+ * MODIFIED: Removed current_module/2 and export_list/2 and introduced
+   module_property/2. The removed predicates have been moved to the
+   backcomp.pl library and are thus autoloaded, providing compatibility.
+   
+[Dec 31 2008]
+
+ * FIXED: PlDoc: support multi-paragraph items in a list.
 [Nov 14 2008]
 
  * FIXED: PlDoc: Avoid deadlock asking for source-listing with syntax errors

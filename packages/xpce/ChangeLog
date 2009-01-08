@@ -1,3 +1,27 @@
+[Jan 7 2009]
+
+ * MODIFIED: Removed current_module/2 and export_list/2 and introduced
+   module_property/2. The removed predicates have been moved to the
+   backcomp.pl library and are thus autoloaded, providing compatibility.
+   
+[Jan 2 2009]
+
+ * CLEANUP: Make XPCE work with new meta_predicate declarations
+   
+ * MODIFIED: Removed high-arity meta declarations for XPCE's get/N, send/N and
+   get_object/N.  Note that this only limits these predicates for meta-calling
+   because normally compiled versions are expanded by means of goal_expansion/2.
+   
+[Dec 28 2008]
+
+ * ADDED: PceEmacs: realise a backup encoding for saving files as Unicode if the normal encoding cannot represent the content of the buffer.
+   
+ * FIXED: XPCE: text_buffer->save failed to report representation errors.
+   
+[Dec 5 2008]
+
+ * FIXED: Bug#384: Memory leak in XPCE conversion of Prolog objects to text.  Keri Harris
+   
 [Nov 17 2008]
 
  * BUILD: Make distclean removes h-link in xpce

@@ -1,3 +1,8 @@
+[Dec 19 2008]
+
+ * FIXED: Correct usage of content_length option in sgml_parse/3 when using callbacks. Needed to deal with streaming input for parsing RDF.
+   
+ * ADDED: Pass content_length through process_rdf/3
 [Oct 13 2008]
 
  * CLEANUP: Avoid repetition and warnings on option processing predicates.  Matt Lilley.
