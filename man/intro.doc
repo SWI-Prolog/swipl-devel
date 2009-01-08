@@ -41,7 +41,7 @@ nor how one should write a program in Prolog. These subjects have been
 described extensively in the literature. See \cite{Bratko:86},
 \cite{Sterling:86}, and \cite{Clocksin:87}. For more advanced Prolog
 material see \cite{Keefe:90}. Syntax and standard operator declarations
-confirm to the `Edinburgh standard'. Most built in predicates are
+conform to the `Edinburgh standard'. Most built-in predicates are
 compatible with those described in \cite{Clocksin:87}. SWI-Prolog also
 offers a number of primitive predicates compatible with Quintus Prolog%
     \footnote{Quintus is a trademark of Quintus Computer Systems Inc., USA} 
