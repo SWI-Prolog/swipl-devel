@@ -64,8 +64,8 @@
 	  ]).
 :- set_prolog_flag(generate_debug_info, false).
 
-:- module_transparent
-	when/2.
+:- meta_predicate
+	when(?, 0).
 
 :- use_module(library(error)).
 
