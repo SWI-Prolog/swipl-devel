@@ -309,6 +309,7 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 	;   Level = silent
 	),
 	print_message(Level, autoload(Module:Name/Arity, Library)),
+	flag('$compiling', OldComp, database),
 	(   Module == LoadModule
 	->  ensure_loaded(Module:Library)
 	;   (   '$c_current_predicate'(_, LoadModule:Head)
@@ -316,6 +317,7 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 	    ;	use_module(Module:Library, [Name/Arity])
 	    )
 	),
+	flag('$compiling', _, OldComp),
 	flag('$autoloading', _, Old),
 	'$c_current_predicate'(_, Module:Head).
 
