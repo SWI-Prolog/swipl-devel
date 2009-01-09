@@ -36,15 +36,15 @@
 	    				% Support doc_index
 	    doc_page_dom/3,		% +Title, +Body, -DOM
 	    print_html_head/1,		% +Stream
-	    predref/3,			% +PI //
-	    predref/4,			% +PI, Options //
+	    predref//1,			% +PI //
+	    predref//2,			% +PI, Options //
 	    module_info/3,		% +File, +Options0, -Options
 	    doc_hide_private/3,		% +Doc0, -Doc, +Options
-	    edit_button/4,		% +File, +Options, //
-	    source_button/4,		% +File, +Options, //
-	    pred_edit_button/4,		% +PredInd, +Options, //
-	    object_edit_button/4,	% +Obj, +Options, //
-	    object_source_button/4,	% +Obj, +Options, //
+	    edit_button//2,		% +File, +Options, //
+	    source_button//2,		% +File, +Options, //
+	    pred_edit_button//2,		% +PredInd, +Options, //
+	    object_edit_button//2,	% +Obj, +Options, //
+	    object_source_button//2,	% +Obj, +Options, //
 					% Support other backends
 	    doc_file_objects/5,		% +FSpec, -File, -Objs, -FileOpts, +Opts
 	    existing_linked_file/2,	% +FileSpec, -Path
@@ -54,14 +54,15 @@
 	    is_pi/1,			% @Term
 	    is_op_type/2,		% +Atom, ?Type
 					% Output routines
-	    file/3,			% +File, //
-	    include/4,			% +File, +Type, //
-	    tags/3,			% +Tags, //
-	    file_header/4,		% +File, +Options, //
-	    objects/4,			% +Objects, +Options, //
-	    object_ref/4,		% +Object, +Options, //
+	    file//1,			% +File, //
+	    file//2,			% +File, +Options, //
+	    include//2,			% +File, +Type, //
+	    tags//1,			% +Tags, //
+	    file_header//2,		% +File, +Options, //
+	    objects//2,			% +Objects, +Options, //
+	    object_ref//2,		% +Object, +Options, //
 	    object_href/2,		% +Object, -URL
-	    object_page/4		% +Object, +Options, //
+	    object_page//2		% +Object, +Options, //
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
@@ -1213,14 +1214,16 @@ file(File) -->
 	file(File, Options).
 	  
 file(File, Options) -->
-	{ existing_linked_file(File, Path) }, !,
-	{ (   option(files(Map), Options),
+	{ existing_linked_file(File, Path), !,
+	  (   option(files(Map), Options),
 	      memberchk(file(Path, DocFile), Map)
 	  ->  file_base_name(DocFile, HREF)	% TBD: proper location
 	  ;   HREF=File
-	  )
+	  ),
+	  option(label(Label), Options, File),
+	  option(class(Class), Options, file)
 	},
-	html(a([class(file), href(HREF)], File)).
+	html(a([class(Class), href(HREF)], Label)).
 file(File, _) -->
 	html(code(class(file), File)).
 
