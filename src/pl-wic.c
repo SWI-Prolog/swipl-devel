@@ -33,6 +33,7 @@
 
 static char *	getString(IOSTREAM *, unsigned *len);
 static int64_t	getInt64(IOSTREAM *);
+static int	getInt32(IOSTREAM *s);
 static long	getLong(IOSTREAM *);
 static int	getInt(IOSTREAM *);
 static double	getFloat(IOSTREAM *);
@@ -539,8 +540,8 @@ getFloat(IOSTREAM *fd)
 }
 
 
-word
-getWord(IOSTREAM *s)
+static int
+getInt32(IOSTREAM *s)
 { word v;
 
   v  = (Sgetc(s) & 0xff) << 24;
@@ -1151,7 +1152,7 @@ qlfFixSourcePath(const char *raw)
     const char *tail = &raw[lensave];
 
     if ( strlen(load_state->load_dir)+1+strlen(tail)+1 > MAXPATHLEN )
-      fatalError("Path name too intptr_t: %s", raw);
+      fatalError("Path name too long: %s", raw);
 
     strcpy(buf, load_state->load_dir);
     s = &buf[strlen(buf)];
@@ -1159,7 +1160,7 @@ qlfFixSourcePath(const char *raw)
     strcpy(s, tail);
   } else
   { if ( strlen(raw)+1 > MAXPATHLEN )
-      fatalError("Path name too intptr_t: %s", raw);
+      fatalError("Path name too long: %s", raw);
     strcpy(buf, raw);
   }
 
@@ -1475,7 +1476,7 @@ putFloat(double f, IOSTREAM *fd)
 
 
 static void
-putLong(long v, IOSTREAM *fd)		/* always 4 bytes */
+putInt32(int v, IOSTREAM *fd)
 { Sputc((v>>24)&0xff, fd);
   Sputc((v>>16)&0xff, fd);
   Sputc((v>>8)&0xff, fd);
@@ -2050,31 +2051,33 @@ writeSourceMarks(IOSTREAM *s ARG_LD)
   { pn = pm->next;
 
     DEBUG(1, Sdprintf(" %d", pm->file_index));
-    putLong(pm->file_index, s);
+    putInt32(pm->file_index, s);
     freeHeap(pm, sizeof(*pm));
     n++;
   }
   source_mark_head = source_mark_tail = NULL;
   
   DEBUG(1, Sdprintf("Written %d marks\n", n));
-  putLong(n, s);
+  putInt32(n, s);
 
   return 0;
 }
 
 
 static int
-qlfSourceInfo(IOSTREAM *s, long offset, term_t list ARG_LD)
+qlfSourceInfo(IOSTREAM *s, size_t offset, term_t list ARG_LD)
 { char *str;
   term_t head = PL_new_term_ref();
+  atom_t fname;
 
   if ( Sseek(s, offset, SIO_SEEK_SET) != 0 )
     return warning("%s: seek failed: %s", wicFile, OsError());
   if ( Sgetc(s) != 'F' || !(str=getString(s, NULL)) )
     return warning("QLF format error");
+  fname = qlfFixSourcePath(str);
   
   return PL_unify_list(list, head, list) &&
-         PL_unify_atom(head, qlfFixSourcePath(str));
+         PL_unify_atom(head, fname);
 }
 
 
@@ -2085,7 +2088,7 @@ qlfInfo(const char *file,
 { IOSTREAM *s = NULL;
   int lversion;
   int nqlf, i;
-  long *qlfstart = NULL;
+  size_t *qlfstart = NULL;
   word rval = TRUE;
   term_t files = PL_copy_term_ref(files0);
   int saved_wsize;
@@ -2115,15 +2118,15 @@ qlfInfo(const char *file,
 
   pushPathTranslation(s, file, 0);
 
-  if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of putLong() */
+  if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
     return warning("qlf_info/4: seek failed: %s", OsError());
-  nqlf = (int)getWord(s);
+  nqlf = (int)getInt32(s);
   DEBUG(1, Sdprintf("Found %d sources at", nqlf));
-  qlfstart = (long*)allocHeap(sizeof(long) * nqlf);
+  qlfstart = (size_t*)allocHeap(sizeof(long) * nqlf);
   Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
   for(i=0; i<nqlf; i++)
-  { qlfstart[i] = getLong(s);
-    DEBUG(1, Sdprintf(" %d", qlfstart[i]));
+  { qlfstart[i] = (size_t)getInt32(s);
+    DEBUG(1, Sdprintf(" %ld", qlfstart[i]));
   }
   DEBUG(1, Sdprintf("\n"));
 
@@ -2139,7 +2142,7 @@ qlfInfo(const char *file,
 
 out:
   if ( qlfstart )
-    freeHeap(qlfstart, sizeof(intptr_t) * nqlf);
+    freeHeap(qlfstart, sizeof(*qlfstart) * nqlf);
   if ( s )
     Sclose(s);
 
