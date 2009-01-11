@@ -2002,6 +2002,15 @@ capitalise_textbuffer(TextBuffer tb, int from, int len)
 }
 
 
+static Any
+streamError(IOSTREAM *fd)
+{ if ( fd->message )
+    return cToPceStringA(NIL, fd->message, strlen(fd->message), FALSE);
+
+  return getOsErrorPce(PCE);
+}
+
+
 static status
 save_textbuffer(TextBuffer tb, int from, int len, SourceSink file)
 { IOSTREAM *fd;
@@ -2021,7 +2030,12 @@ save_textbuffer(TextBuffer tb, int from, int len, SourceSink file)
 
     for( ; f<e; f++)
     { if ( Sputcode(*f, fd) < 0 )
-	break;
+      { Any msg;
+      error:
+	msg = streamError(fd);
+	Sclose(fd);
+	return errorPce(file, NAME_ioError, msg);
+      }
     }
   } else
   { const charW *f = &tb->tb_bufferW[from];
@@ -2029,7 +2043,7 @@ save_textbuffer(TextBuffer tb, int from, int len, SourceSink file)
 
     for( ; f<e; f++)
     { if ( Sputcode(*f, fd) < 0 )
-	break;
+	goto error;
     }
   }
 

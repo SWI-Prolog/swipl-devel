@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -54,7 +54,6 @@
 
 	  (mode)/1,
 	  (public)/1,
-	  (meta_predicate)/1,
 	  no_style_check/1,
 	  otherwise/0,
 	  simple/1,
@@ -275,33 +274,6 @@ simple(X) :-
 	;   var(X)
 	).
 
-		/********************************
-		*            MODULES            *
-		*********************************/
-
-:- initialization op(1150, fx, user:(meta_predicate)).
-
-:- module_transparent
-	(meta_predicate)/1.
-
-meta_predicate((Head, More)) :- !, 
-	meta_predicate(Head), 
-	meta_predicate(More).
-meta_predicate(Spec) :-
-	strip_module(Spec, M, Head),
-	meta_predicate(M, Head).
-
-meta_predicate(M, Head) :-
-	Head =.. [Name|Arguments], 
-	member(Arg, Arguments), 
-	module_expansion_argument(Arg), !, 
-	functor(Head, Name, Arity), 
-	module_transparent(M:Name/Arity).
-meta_predicate(_, _).		% just a mode declaration
-
-module_expansion_argument(:).
-module_expansion_argument(N) :- integer(N).
-
 
 		 /*******************************
 		 *	      STREAMS		*
@@ -422,7 +394,7 @@ raise_exception(Term) :-
 %%	on_exception(+Template, :Goal, :Recover)
 
 :- meta_predicate
-	on_exception(+, :, :).
+	on_exception(+, 0, 0).
 
 on_exception(Except, Goal, Recover) :-
 	catch(Goal, Except, Recover).

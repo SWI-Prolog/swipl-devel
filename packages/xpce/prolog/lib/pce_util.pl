@@ -32,8 +32,6 @@
 :- module(pce_util,
 	  [ get_object/3, get_object/4, get_object/5
 	  , get_object/6, get_object/7, get_object/8
-	  , get_object/9, get_object/10, get_object/11
-	  , get_object/12, get_object/13
 
 	  , send_list/2, send_list/3
 	  , get_chain/3
@@ -51,11 +49,6 @@
 	get_object(+, :, +, +, +, -),
 	get_object(+, :, +, +, +, +, -),
 	get_object(+, :, +, +, +, +, +, -),
-	get_object(+, :, +, +, +, +, +, +, -),
-	get_object(+, :, +, +, +, +, +, +, +, -),
-	get_object(+, :, +, +, +, +, +, +, +, +, -),
-	get_object(+, :, +, +, +, +, +, +, +, +, +, -),
-	get_object(+, :, +, +, +, +, +, +, +, +, +, +, -),
 
 	send_list(:, +),
 	send_list(:, +, +),
@@ -93,21 +86,6 @@ get_object(Obj, Sel, A1, A2, A3, A4, Out) :-
 	get_to_object(R, Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, Out) :-
 	get(Obj, Sel, A1, A2, A3, A4, A5, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, R),
 	get_to_object(R, Out).
 
 get_to_object(Ref, Object) :-

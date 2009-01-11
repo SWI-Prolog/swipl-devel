@@ -52,7 +52,7 @@ Link all foreign language predicates.  The arguments to FRG are:
 
 Flags almost always is TRACE_ME.  Additional common flags:
 
-	METAPRED		Predicate is module transparent
+	P_TRANSPARENT		Predicate is module transparent
 	NONDETERMINISTIC	Predicate can be resatisfied
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -76,10 +76,7 @@ static const PL_extension foreigns[] = {
   FRG("win_module_file",	2, pl_win_module_file,		0),
 #endif
 
-  FRG("$on_signal",		4, pl_on_signal,	     META),
-
   FRG("halt",			1, pl_halt,		      ISO),
-  FRG("$shell",			2, pl_shell,			0),
   FRG("getenv",			2, pl_getenv,			0),
   FRG("setenv",			2, pl_setenv,			0),
   FRG("unsetenv",		1, pl_unsetenv,			0),
@@ -206,16 +203,8 @@ static const PL_extension foreigns[] = {
   FRG("context_module",		1, pl_context_module,	     META),
   FRG("import",			1, pl_import,		     META),
   FRG("$check_export",		0, pl_check_export,	     META),
-  FRG("export_list",		2, pl_export_list,		0),
   FRG("index",			1, pl_index,		     META),
   FRG("hash",			1, pl_hash,		     META),
-  FRG("$open_shared_object",	3, pl_open_shared_object,    META),
-#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
-  FRG("close_shared_object",	1, pl_close_shared_object,   META),
-  FRG("call_shared_object_function",
-				2, pl_call_shared_object_function,
-							     META),
-#endif /*HAVE_DLOPEN*/
 
 #if O_DDE
   FRG("open_dde_conversation",	3, pl_open_dde_conversation,	0),
@@ -242,9 +231,6 @@ static const PL_extension foreigns[] = {
   FRG("current_prolog_flag",	2, pl_prolog_flag,	 NDET|ISO),
   FRG("set_prolog_flag",	2, pl_set_prolog_flag,	      ISO),
   FRG("trim_stacks",		0, pl_trim_stacks,		0),
-#if O_SHIFT_STACKS
-  FRG("stack_parameter",	4, pl_stack_parameter,		0),
-#endif
   FRG("$garbage_collect",	1, pl_garbage_collect,		0),
 #ifdef O_ATOMGC
   FRG("garbage_collect_atoms",	0, pl_garbage_collect_atoms,	0),
@@ -411,7 +397,7 @@ registerBuiltins(const PL_extension *f)
     set(def, FOREIGN|SYSTEM|HIDE_CHILDS|LOCKED);
 
     if ( f->flags & PL_FA_NOTRACE )	     clear(def, TRACE_ME);
-    if ( f->flags & PL_FA_TRANSPARENT )	     set(def, METAPRED);
+    if ( f->flags & PL_FA_TRANSPARENT )	     set(def, P_TRANSPARENT);
     if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, NONDETERMINISTIC);
     if ( f->flags & PL_FA_VARARGS )	     set(def, P_VARARG);
     if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);
@@ -454,6 +440,8 @@ DECL_PLIST(setup);
 DECL_PLIST(gc);
 DECL_PLIST(proc);
 DECL_PLIST(write);
+DECL_PLIST(dlopen);
+DECL_PLIST(system);
 
 void
 initBuildIns(void)
@@ -482,6 +470,8 @@ initBuildIns(void)
   REG_PLIST(gc);
   REG_PLIST(proc);
   REG_PLIST(write);
+  REG_PLIST(dlopen);
+  REG_PLIST(system);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
 #endif

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -86,13 +86,13 @@
 %	Make sure pred can be called.  First test if the predicate is
 %	defined.  If not, invoke the autoloader.
 
-:- module_transparent
-	'$define_predicate'/1.
+:- meta_predicate
+	'$define_predicate'(0).
 
 '$define_predicate'(Head) :-
 	'$defined_predicate'(Head), !.
 '$define_predicate'(Term) :-
-	strip_module(Term, Module, Head),
+	Term = Module:Head,
 	functor(Head, Name, Arity),
 	current_prolog_flag(autoload, true),
 	'$find_library'(Module, Name, Arity, LoadModule, Library),
@@ -111,18 +111,21 @@
 
 '$update_library_index' :-
 	setof(Dir, indexed_directory(Dir), Dirs), !,
-	maplist(guarded_make_library_index, Dirs),
+	guarded_make_library_index(Dirs),
 	(   flag('$modified_index', true, false)
 	->  reload_library_index
 	;   true
 	).
 '$update_library_index'.
 
-guarded_make_library_index(Dir) :-
-	catch(make_library_index(Dir), E,
-	      print_message(error, E)), !.
-guarded_make_library_index(Dir) :-
-	print_message(warning, goal_failed(make_library_index(Dir))).
+guarded_make_library_index([]).
+guarded_make_library_index([Dir|Dirs]) :-
+	(   catch(make_library_index(Dir), E,
+		  print_message(error, E))
+	->  true
+	;   print_message(warning, goal_failed(make_library_index(Dir)))
+	),
+	guarded_make_library_index(Dirs).
 
 
 indexed_directory(Dir) :-
@@ -289,20 +292,23 @@ do_make_library_index(Index, Files) :-
 	style_check(-dollar),
 	open(Index, write, Fd),
 	index_header(Fd),
-	maplist(index_file(Fd), Files),
+	index_files(Files, Fd),
 	close(Fd),
 	'$style_check'(_, OldStyle).
 
-index_file(Fd, File) :-
+index_files([], _).
+index_files([File|Files], Fd) :-
 	open(File, read, In),
 	read(In, Term),
 	close(In),
-	Term = (:- module(Module, Public)), !,
-	file_name_extension(Base, _, File),
-	forall( '$member'(Name/Arity, Public),
-		format(Fd, 'index((~k), ~k, ~k, ~k).~n',
-		       [Name, Arity, Module, Base])).
-index_file(_, _).
+	(   Term = (:- module(Module, Public))
+	->  file_name_extension(Base, _, File),
+	    forall('$member'(Name/Arity, Public),
+		   format(Fd, 'index((~k), ~k, ~k, ~k).~n',
+			  [Name, Arity, Module, Base]))
+	;   true
+	),
+	index_files(Files, Fd).
 
 index_header(Fd):-
 	format(Fd, '/*  $Id', []),
@@ -340,13 +346,18 @@ autoload(Options) :-
 	->  true
 	;   set_prolog_flag(autoload, true),
 	    set_prolog_flag(verbose_autoload, Verbose),
-	    maplist('$define_predicate', Preds),
+	    defined_predicates(Preds),
 	    set_prolog_flag(autoload, OldAutoLoad),
 	    set_prolog_flag(verbose_autoload, OldVerbose),
 	    autoload(Verbose)		% recurse for possible new
 					% unresolved links
 	).
 	
+defined_predicates([]).
+defined_predicates([H|T]) :-
+	'$define_predicate'(H),
+	defined_predicates(T).
+
 needs_autoloading(Module:Head) :-
 	predicate_property(Module:Head, undefined), 
 	\+ predicate_property(Module:Head, imported_from(_)), 

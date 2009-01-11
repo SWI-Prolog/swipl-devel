@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -42,9 +42,6 @@ If you want  to  debug  this  module,  put  a  '$:-'(trace).   directive
 somewhere.   The  tracer will work properly under boot compilation as it
 will use the C defined write predicate  to  print  goals  and  does  not
 attempt to call the Prolog defined trace interceptor.
-
-Please note that of version  3.3,  $:-   is  no  longer  an operator and
-therefore you have to use braces.
 */
 
 '$:-'(format('Loading boot file ...~n', [])).
@@ -59,13 +56,27 @@ therefore you have to use braces.
 		*          DIRECTIVES           *
 		*********************************/
 
-'$set_pattr'([], _) :- !.
-'$set_pattr'([H|T], Attr) :- !,		% ISO
-	'$set_pattr'(H, Attr),
-	'$set_pattr'(T, Attr).
-'$set_pattr'((A,B), Attr) :- !,		% ISO and traditional
-	'$set_pattr'(A, Attr),
-	'$set_pattr'(B, Attr).
+:- meta_predicate
+	dynamic(:),
+	multifile(:),
+	module_transparent(:),
+	discontiguous(:),
+	volatile(:),
+	thread_local(:),
+	noprofile(:),
+	'$iso'(:),
+	'$hide'(:).
+
+'$set_pattr'(_:X, _) :-
+	var(X),
+	throw(error(instantiation_error, _)).
+'$set_pattr'(_:[], _) :- !.
+'$set_pattr'(M:[H|T], Attr) :- !,		% ISO
+	'$set_pattr'(M:H, Attr),
+	'$set_pattr'(M:T, Attr).
+'$set_pattr'(M:(A,B), Attr) :- !,		% ISO and traditional
+	'$set_pattr'(M:A, Attr),
+	'$set_pattr'(M:B, Attr).
 '$set_pattr'(A, Attr) :-
 	'$set_predicate_attribute'(A, Attr, 1).
 
@@ -78,28 +89,12 @@ thread_local(Spec)	 :- '$set_pattr'(Spec, (thread_local)).
 noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 '$iso'(Spec)		 :- '$set_pattr'(Spec, (iso)).
 
-:- module_transparent
-	'$set_pattr'/2,
-	(dynamic)/1,
-	(multifile)/1,
-	(module_transparent)/1,
-	(discontiguous)/1,
-	(volatile)/1,
-	(thread_local)/1,
-	(noprofile)/1,
-	'$hide'/2,
-	'$iso'/1.
-
-
-		/********************************
-		*        TRACE BEHAVIOUR        *
-		*********************************/
-
-%	'$hide'(+Name, +Arity)
+%%	'$hide'(:PI)
+%
 %	Predicates protected this way are never visible in the tracer.
 
-'$hide'(Name, Arity) :-
-	'$set_predicate_attribute'(Name/Arity, trace, 0).
+'$hide'(Pred) :-
+	'$set_predicate_attribute'(Pred, trace, 0).
 
 
 		/********************************
@@ -116,34 +111,39 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	      setup_and_call_cleanup/4,
 	      (^)/2)).
 
+:- meta_predicate
+	';'(0,0),
+	'|'(0,0),
+	','(0,0),
+	call(0),
+	call(1,?),
+	call(2,?,?),
+	call(3,?,?,?),
+	call(4,?,?,?,?),
+	call(5,?,?,?,?,?),
+	call(6,?,?,?,?,?,?),
+	call(7,?,?,?,?,?,?,?),
+	^(+,0),
+	not(0),
+	\+(0),
+	'->'(0,0),
+	'*->'(0,0),
+	once(0),
+	ignore(0),
+	block(+,0,-),
+	catch(0,?,0),
+	setup_and_call_cleanup(0,0,0),
+	setup_and_call_cleanup(0,0,?,0),
+	call_cleanup(0,0),
+	call_cleanup(0,?,0).
+
+/* Currently, meta_predicate is only supported upto arity 8
+*/
+
 :- module_transparent
-	';'/2,
-	'|'/2,
-	','/2,
-	call/1,
-	call/2,
-	call/3,
-	call/4,
-	call/5,
-	call/6,
-	call/7,
-	call/8,
 	call/9,
 	call/10,
-	call/11,
-	(^)/2,
-	(not)/1,
-	(\+)/1,
-	(->)/2,
-	(*->)/2,
-	once/1,
-	ignore/1,
-	block/3,
-	catch/3,
-	setup_and_call_cleanup/3,
-	setup_and_call_cleanup/4,
-	call_cleanup/2,
-	call_cleanup/3.
+	call/11.
 
 :- '$iso'((call/1, (\+)/1, once/1, (;)/2, (,)/2, (->)/2, catch/3)).
 
@@ -309,6 +309,7 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 	;   Level = silent
 	),
 	print_message(Level, autoload(Module:Name/Arity, Library)),
+	flag('$compiling', OldComp, database),
 	(   Module == LoadModule
 	->  ensure_loaded(Module:Library)
 	;   (   '$c_current_predicate'(_, LoadModule:Head)
@@ -316,6 +317,7 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 	    ;	use_module(Module:Library, [Name/Arity])
 	    )
 	),
+	flag('$compiling', _, OldComp),
 	flag('$autoloading', _, Old),
 	'$c_current_predicate'(_, Module:Head).
 
@@ -325,7 +327,7 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 	;   true
 	).
 
-:- '$hide'('$calleventhook', 1).
+:- '$hide'('$calleventhook'/1).
 
 %	 handle debugger 'w', 'p' and <N> depth options.
 
@@ -723,8 +725,8 @@ compiling :-
 	       flag('$directive', database, database)
 	   ).
 
-:- module_transparent
-	'$ifcompiling'/1.
+:- meta_predicate
+	'$ifcompiling'(0).
 
 '$ifcompiling'(_) :-
 	flag('$compiling', database, database), !.
@@ -825,17 +827,16 @@ preprocessor(Old, New) :-
 		*       LOAD PREDICATES         *
 		*********************************/
 
-:- module_transparent
-	ensure_loaded/1,
-	'.'/2,
-	consult/1,
-	use_module/1,
-	use_module/2,
-	reexport/1,
-	reexport/2,
-	'$load_file'/3,
-	load_files/1,
-	load_files/2.
+:- meta_predicate
+	ensure_loaded(:),
+	[:|+],
+	consult(:),
+	use_module(:),
+	use_module(:, +),
+	reexport(:),
+	reexport(:, +),
+	load_files(:),
+	load_files(:, +).
 
 %	ensure_loaded(+File|+ListOfFiles)
 %	
@@ -893,11 +894,11 @@ reexport(File, Import) :-
 
 [X] :- !,
 	consult(X).
-[F|R] :-
-	consult([F|R]).
+[M:F|R] :-
+	consult(M:[F|R]).
 [].
 
-consult(X) :-
+consult(_:X) :-
 	X == user, !,
 	flag('$user_consult', N, N+1),
 	NN is N + 1,
@@ -913,11 +914,11 @@ consult(List) :-
 '$consult_goal'(Path, Goal) :-
 	(   file_name_extension(_, Ext, Path),
 	    user:prolog_file_type(Ext, qlf)
-	->  Goal = '$qload_file'
-	;   Goal = '$consult_file'
+	->  Goal = system:'$qload_file'
+	;   Goal = system:'$consult_file'
 	).
 
-%	load_files(+File, +Options)
+%%	load_files(:File, +Options)
 %	
 %	Common entry for all the consult derivates.  File is the raw user
 %	specified file specification, possibly tagged with the module.
@@ -930,9 +931,8 @@ consult(List) :-
 
 load_files(Files) :-
 	load_files(Files, []).
-load_files(Files, Options) :-
-	strip_module(Files, Module, TheFiles),
-        with_mutex('$load', '$load_files'(TheFiles, Module, Options)).
+load_files(Module:Files, Options) :-
+        with_mutex('$load', '$load_files'(Files, Module, Options)).
 
 '$load_files'(Id, Module, Options) :-	% load_files(foo, [stream(In)])
 	memberchk(stream(_), Options), !,
@@ -1280,11 +1280,11 @@ load_files(Files, Options) :-
 	var(Var), !,
 	throw(error(instantitation_error, _)).
 '$import_list'(Target, Source, all, Reexport) :- !,
-	export_list(Source, Import),
+	'$module_property'(Source, exports(Import)),
 	'$import_ops'(Target, Source),
 	'$import_list'(Target, Source, Import, Reexport).
 '$import_list'(Target, Source, except(Spec), Reexport) :- !,
-	export_list(Source, Export),
+	'$module_property'(Source, exports(Export)),
 	(   is_list(Spec)
 	->  true
 	;   throw(error(type_error(list, Spec), _))
@@ -2055,9 +2055,9 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 	'$copy_args'(I2, Arity, Old, New).
 '$copy_args'(_, _, _, _).
 
-:- module_transparent
-	phrase/2,
-	phrase/3.
+:- meta_predicate
+	phrase(2, ?),
+	phrase(2, ?, ?).
 :- noprofile((phrase/2,
 	      phrase/3)).
 
@@ -2169,14 +2169,13 @@ halt :-
 	halt(0).
 
 
-:- module_transparent
-	at_halt/1.
+:- meta_predicate
+	at_halt(0).
 :- dynamic
 	'$at_halt'/1.
 
-at_halt(Spec) :-
-	strip_module(Spec, Module, Goal),
-	asserta(system:'$at_halt'(Module:Goal)).
+at_halt(Goal) :-
+	asserta('$at_halt'(Goal)).
 
 '$run_at_halt' :-
 	(   '$at_halt'(Goal),
@@ -2190,11 +2189,11 @@ at_halt(Spec) :-
 		*      LOAD OTHER MODULES       *
 		*********************************/
 
-:- module_transparent
-	'$load_wic_files'/2,
-	'$load_additional_boot_files'/0.
+:- meta_predicate
+	'$load_wic_files'(:).
 
-'$load_wic_files'(Module, Files) :-
+'$load_wic_files'(Files) :-
+	Files = Module:_,
 	'$execute_directive'('$set_source_module'(OldM, Module), []),
 	'$save_lex_state'(LexState),
 	'$style_check'(_, 2'1111),
@@ -2205,12 +2204,17 @@ at_halt(Spec) :-
 	flag('$compiling', _, OldC).
 
 
+%%	'$load_additional_boot_files' is det.
+%
+%	Called from compileFileList() in pl-wic.c.   Gets the files from
+%	"-c file ..." and loads them into the module user.
+
 '$load_additional_boot_files' :-
 	current_prolog_flag(argv, Argv),
 	'$get_files_argv'(Argv, Files),
 	(   Files \== []
 	->  format('Loading additional boot files~n'),
-	    '$load_wic_files'(user, Files),
+	    '$load_wic_files'(user:Files),
 	    format('additional boot files loaded~n')
 	;   true
         ).
@@ -2219,10 +2223,10 @@ at_halt(Spec) :-
        source_location(File, _Line),
        file_directory_name(File, Dir),
        atom_concat(Dir, '/load.pl', LoadFile),
-       '$load_wic_files'(system, [LoadFile]),
+       '$load_wic_files'(system:[LoadFile]),
        (   current_prolog_flag(windows, true)
        ->  atom_concat(Dir, '/menu.pl', MenuFile),
-	   '$load_wic_files'(system, [MenuFile])
+	   '$load_wic_files'(system:[MenuFile])
        ;   true
        ),
        format('SWI-Prolog boot files loaded~n', []),

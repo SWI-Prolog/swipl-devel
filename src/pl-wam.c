@@ -703,7 +703,7 @@ contextModule(LocalFrame fr)
 { for(; fr; fr = fr->parent)
   { if ( true(fr, FR_CONTEXT) )
       return fr->context;
-    if ( false(fr->predicate, METAPRED) )
+    if ( false(fr->predicate, P_TRANSPARENT) )
       return fr->predicate->module;
   }
 
@@ -723,6 +723,51 @@ setContextModule(LocalFrame fr, Module context)
 { setContextModule__(fr, context);
 }
 #define setContextModule(fr, ctx) setContextModule__(fr, ctx)
+
+
+/* Earlier versions tested for <atom>:X, but this makes it very hard
+   to write predicates such as current_resource/3. This is also
+   compatible to at least SICStus and YAP.
+*/
+
+static inline int
+is_qualified(Word p ARG_LD)
+{ return hasFunctor(*p, FUNCTOR_colon2);
+}
+
+
+static void
+m_qualify_argument(LocalFrame fr, Word k ARG_LD)
+{ Word p;
+
+  deRef2(k, p);
+  if ( !is_qualified(p PASS_LD) )
+  { Word p2 = allocGlobal(3);
+
+    p2[0] = FUNCTOR_colon2;
+    p2[1] = contextModule(fr)->name;
+    if ( isVar(*p) && p > (Word)lBase )
+    { setVar(p2[2]);
+      *p = makeRefG(&p2[2]);
+    } else
+    { p2[2] = (needsRef(*p) ? makeRef(p) : *p);
+    }
+    *k = consPtr(p2, STG_GLOBAL|TAG_COMPOUND);
+  } else
+  { for(;;)
+    { Word p2 = argTermP(*p, 1);
+      Word ap;
+
+      deRef2(p2, ap);
+      if ( is_qualified(ap PASS_LD) )
+	p = ap;
+      else
+	break;
+    }
+
+    *k = *p;
+  }
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1434,7 +1479,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   fr->generation = GD->generation;
 #endif
 					/* context module */
-  if ( true(def, METAPRED) )
+  if ( true(def, P_TRANSPARENT) )
   { if ( ctx )
       setContextModule(fr, ctx);
     else if ( qf->saved_environment )

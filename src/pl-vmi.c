@@ -1346,103 +1346,33 @@ retry_continue:
 #endif /*O_DEBUGGER*/
   }
 
-  if ( DEF->codes )			/* entry point for new supervisors */
-  { PC = DEF->codes;
-    NEXT_INSTRUCTION;
-  }
-
-
-#if !O_DYNAMIC_STACKS
-#if O_SHIFT_STACKS
-{ int gshift = narrowStack(global);
-  int lshift = narrowStack(local);
-  int tshift = narrowStack(trail);
-
-  if ( gshift || lshift || tshift )
-  { if ( gshift || tshift )
-    { intptr_t gused = usedStack(global);
-      intptr_t tused = usedStack(trail);
-
-      garbageCollect(FR, BFR);
-      DEBUG(1, Sdprintf("\tgshift = %d; tshift = %d", gshift, tshift));
-      if ( gshift )
-	gshift = ((2 * usedStack(global)) > gused);
-      if ( tshift )
-	tshift = ((2 * usedStack(trail)) > tused);
-      DEBUG(1, Sdprintf(" --> gshift = %d; tshift = %d\n",
-		      gshift, tshift));
-    }
-
-    if ( gshift || tshift || lshift )
-    { SAVE_REGISTERS(qid);
-      growStacks(FR, BFR, NULL, lshift, gshift, tshift);
-      LOAD_REGISTERS(qid);
-    }
-  }
-}
-#else /*O_SHIFT_STACKS*/
-  if ( narrowStack(global) || narrowStack(trail) )
-    garbageCollect(FR);
-#endif /*O_SHIFT_STACKS*/
-#endif /*O_DYNAMIC_STACKS*/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Call a normal Prolog predicate.  Just   load  the machine registers with
-values found in the clause,  give  a   reference  to  the clause and set
-`lTop' to point to the first location after the current frame.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-old_call:				/* See S_VIRGIN */
-  ARGP = argFrameP(FR, 0);
-  enterDefinition(DEF);
-
-  DEBUG(9, Sdprintf("Searching clause ... "));
-
-{ ClauseRef nextcl;
-
-  if ( !(CL = firstClause(ARGP, FR, DEF, &nextcl PASS_LD)) )
-  { DEBUG(9, Sdprintf("No clause matching index.\n"));
-    if ( debugstatus.debugging )
-      newChoice(CHP_DEBUG, FR PASS_LD);
-
-    FRAME_FAILED;
-  }
-  DEBUG(9, Sdprintf("Clauses found.\n"));
-
-  PC = CL->clause->codes;
-  lTop = (LocalFrame)(ARGP + CL->clause->variables);
-  requireStack(local, 0);
-
-  if ( nextcl )
-  { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-    ch->value.clause = nextcl;
-  } else if ( debugstatus.debugging )
-    newChoice(CHP_DEBUG, FR PASS_LD);
-}
-
-  SECURE(
-  int argc; int n;
-  argc = DEF->functor->arity;
-  for(n=0; n<argc; n++)
-    checkData(argFrameP(FR, n));
-  );
-
-  umode = uread;
+  PC = DEF->codes;
+  assert(PC);
   NEXT_INSTRUCTION;
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-I_DEPART: implies it is the last subclause of the clause. This is be the
-entry point for last call optimisation.
+I_DEPART: implies it is the last subclause   of  the clause. This is the
+entry point for last call optimisation. 
+
+(*) Handling undefined predicates here is very tricky because we need to
+destroy de clause pointer before   leaveDefinition() to get asynchronous
+atom-gc ok, but this destroys  the  environment   for  normal  GC if the
+undefined predicate trapping code starts a GC. Therefore, undefined code
+runs normal I_CALL. This isn't too  bad,   as  it only affects the first
+call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
-{ if ( (void *)BFR <= (void *)FR
-#if O_DEBUGGER
-       && truePrologFlag(PLFLAG_LASTCALL)
-#endif
-     )
-  { Procedure proc;
+{ if ( (void *)BFR <= (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
+  { Procedure proc = (Procedure) *PC++;
+
+    if ( !proc->definition->definition.clauses &&	/* see (*) */
+	 false(proc->definition, PROC_DEFINED) )
+    { PC--;
+      VMI_GOTO(I_CALL);
+    }
 
     if ( true(FR, FR_WATCHED) )
     { LocalFrame lSave = lTop;
@@ -1453,12 +1383,8 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 
     FR->clause = NULL;			/* for save atom-gc */
     leaveDefinition(DEF);
-    proc = (Procedure) *PC++;
-
-    SAVE_REGISTERS(qid);
-    DEF = getProcDefinedDefinition(&lTop, PC, proc->definition PASS_LD);
-    LOAD_REGISTERS(qid);
-    if ( true(DEF, METAPRED) )
+    DEF = proc->definition;
+    if ( true(DEF, P_TRANSPARENT) )
     { FR->context = contextModule(FR);
       FR->flags = (((FR->flags+FR_LEVEL_STEP) | FR_CONTEXT) &
                    ~(FR_SKIPPED|FR_WATCHED|FR_CATCHED));
@@ -1477,6 +1403,28 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
   }
 
   VMI_GOTO(I_CALL);
+}
+
+
+VMI(I_CALLM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
+{ Module m = (Module)*PC++;
+  Procedure proc = (Procedure)*PC++;
+  DEF = getProcDefinedDefinition(&FR, NULL, proc->definition PASS_LD);
+
+  NFR = lTop;
+  setNextFrameFlags(NFR, FR);
+  if ( true(DEF, P_TRANSPARENT) )
+    setContextModule(NFR, m);
+
+  goto normal_call;
+}
+
+
+VMI(I_DEPARTM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
+{ Module m = (Module)*PC++;
+
+  setContextModule(FR, m);
+  VMI_GOTO(I_DEPART);
 }
 
 
@@ -1957,9 +1905,7 @@ this supervisor (see resetProcedure()). The task of this is to
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_VIRGIN, 0, 0, ())
-{ SAVE_REGISTERS(qid);
-  DEF = getProcDefinedDefinition(&FR, NULL, DEF PASS_LD);
-  LOAD_REGISTERS(qid);
+{ DEF = getProcDefinedDefinition(&FR, NULL, DEF PASS_LD);
 
   if ( FR->predicate != DEF )		/* auto imported/loaded */
   { FR->predicate = DEF;
@@ -1971,11 +1917,8 @@ VMI(S_VIRGIN, 0, 0, ())
   if ( createSupervisor(DEF) )
   { PC = DEF->codes;
     NEXT_INSTRUCTION;
-  } else
-  { lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
-    DEF->codes = NULL;
-    FR->predicate = DEF;
-    goto old_call;			/* TBD: temporary */
+  } else				/* TBD: temporary */
+  { assert(0);
   }
 }
 
@@ -2011,18 +1954,80 @@ VMI(S_UNDEF, 0, 0, ())
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Generic calling code.  This needs to be specialised.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_STATIC, 0, 0, ())
+{ ClauseRef nextcl;
+  ARGP = argFrameP(FR, 0);
+  lTop = (LocalFrame)ARGP+DEF->functor->arity;
+
+  DEBUG(9, Sdprintf("Searching clause ... "));
+
+  if ( !(CL = firstClause(ARGP, FR, DEF, &nextcl PASS_LD)) )
+  { DEBUG(9, Sdprintf("No clause matching index.\n"));
+    if ( debugstatus.debugging )
+      newChoice(CHP_DEBUG, FR PASS_LD);
+
+    FRAME_FAILED;
+  }
+  DEBUG(9, Sdprintf("Clauses found.\n"));
+
+  PC = CL->clause->codes;
+  lTop = (LocalFrame)(ARGP + CL->clause->variables);
+  requireStack(local, 0);
+
+  if ( nextcl )
+  { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);
+    ch->value.clause = nextcl;
+  } else if ( debugstatus.debugging )
+    newChoice(CHP_DEBUG, FR PASS_LD);
+
+  SECURE(
+  int argc; int n;
+  argc = DEF->functor->arity;
+  for(n=0; n<argc; n++)
+    checkData(argFrameP(FR, n));
+  );
+
+  umode = uread;
+  NEXT_INSTRUCTION;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_DYNAMIC: Dynamic predicate. Dynamic predicates   must  use the dynamic
+indexing and need to lock the predicate. This VMI can also handle static
+code.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_DYNAMIC, 0, 0, ())
+{ enterDefinition(DEF);
+
+  VMI_GOTO(S_STATIC);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 S_THREAD_LOCAL: Get thread-local definition
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_THREAD_LOCAL, 0, 0, ())
 { FR->predicate = DEF = getProcDefinition__LD(DEF PASS_LD);
 
-  if ( DEF->codes )
-  { PC = DEF->codes;
-    NEXT_INSTRUCTION;
-  }
+  assert(DEF->codes);
+  PC = DEF->codes;
+  NEXT_INSTRUCTION;
+}
 
-  goto old_call;			/* TBD: temporary */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_MULTIFILE: Multifile predicate.  These need to be aware of new
+clauses that can be added at runtime.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_MULTIFILE, 0, 0, ())
+{ VMI_GOTO(S_STATIC);
 }
 
 
@@ -2126,6 +2131,34 @@ VMI(S_LIST, 0, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF))
   PC += 2;
 
   TRUST_CLAUSE(cref);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Meta-predicate  argument  qualification.  S_MQUAL    qualifies  the  Nth
+argument. S_LMQUAL does the same and resets   the  context module of the
+frame to be definition module of   the  predicate, such that unqualified
+calls refer again to  the  definition   module.  This  sequence  must be
+processed as part of the supervisor,   notably before creating the first
+choicepoint.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_MQUAL, 0, 1, (CA1_VAR))
+{ Word k = varFrameP(FR, (int)*PC++);
+
+  m_qualify_argument(FR, k PASS_LD);
+
+  NEXT_INSTRUCTION;
+}
+
+
+VMI(S_LMQUAL, 0, 1, (CA1_VAR))
+{ Word k = varFrameP(FR, (int)*PC++);
+
+  m_qualify_argument(FR, k PASS_LD);
+  setContextModule(FR, FR->predicate->module);
+
+  NEXT_INSTRUCTION;
 }
 
 
@@ -3649,7 +3682,7 @@ Save the program counter (note  that   I_USERCALL0  has no argument) and
 continue as with a normal call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( true(DEF, METAPRED) )
+  if ( true(DEF, P_TRANSPARENT) )
     setContextModule(NFR, module);
 
   goto normal_call;

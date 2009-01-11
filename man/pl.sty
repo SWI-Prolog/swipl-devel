@@ -417,44 +417,27 @@
 %			CODE environment			%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\newlength{\codeindent}
-\setlength{\codeindent}{\leftmargin}
-\newenvironment{codequote}%
-	{\begin{list}{}{\setlength{\leftmargin}{0pt}%
-			\setlength{\rightmargin}{0pt}}%
-			\item[]\small\ignorespaces}%
-  	{\end{list}}
+\usepackage{fancyvrb}
+\usepackage{color}
+
+%\definecolor{codeboxcolor}{rgb}{0.7,0.7,0.7}
+\definecolor{codeboxcolor}{rgb}{0.4,0.4,0.4}
+\DefineVerbatimEnvironment%
+  {code}{Verbatim}
+  {frame=single,
+   framerule=0.2pt,
+   rulecolor=\color{codeboxcolor},
+  }
 
 
-%	just like verbatim, but indents like quote.
-%	allows also the use of leading tabs
-
-\makeatletter
-{\catcode`\^^I=\active
-    \gdef^^I{\mbox{}\space\space\space\space\space\space\space\space}}
-
-\begingroup \catcode `|=0 \catcode `[= 1
-\catcode`]=2 \catcode `\{=12 \catcode `\}=12
-\catcode`\\=12
-|gdef|@xcode#1\end{code}[#1|end[code]]
-|endgroup
-
-\def\@code{\trivlist\setlength{\leftmargin}{\codeindent}%
-		    \setlength{\rightmargin}{\codeindent}%
-		    \item[]\if@minipage\else\vskip\parskip\fi
-\leftskip\@totalleftmargin\rightskip\z@
-\parindent\z@\parfillskip\@flushglue\parskip\z@
-\@tempswafalse \def\par{\if@tempswa\hbox{}\fi\@tempswatrue\@@par}
-\obeylines \catcode`\^^I=\active \tt \let\do\@makeother \dospecials}
-
-\def\code{\@code \frenchspacing\@vobeyspaces \@xcode}
-\def\@endcode{\endtrivlist}
-\let\endcode=\@endcode
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%			INCLUDE FIGURES				%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %	PostScript figures
 %	\postscriptfig[width=5in]{label}{Title}
 
+\makeatletter
 \def\postscriptfig{\@ifnextchar[{\@scaledpostscriptfig}{\@postscriptfig}}
 \def\@scaledpostscriptfig[#1]#2#3{%
 	\begin{figure}%
@@ -468,7 +451,7 @@
 	    \caption{#2}
 	    \label{fig:#1}
 	\end{figure}}
-\makeatletter
+\makeatother
 
 %	\begin{tabularlp}{longest-text}
 

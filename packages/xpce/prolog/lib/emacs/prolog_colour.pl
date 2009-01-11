@@ -38,6 +38,7 @@
 :- use_module(library(lists)).
 :- use_module(library(operators)).
 :- use_module(library(debug)).
+:- use_module(library(edit)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 User extension hooks.
@@ -946,6 +947,7 @@ goal_colours(reexport(_),	     built_in-[file]).
 goal_colours(reexport(File,_),       built_in-[file,imports(File)]).
 goal_colours(dynamic(_),	     built_in-[predicates]).
 goal_colours(thread_local(_),	     built_in-[predicates]).
+goal_colours(module_transparent(_),  built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
 goal_colours(volatile(_),	     built_in-[predicates]).
 goal_colours(consult(_),	     built_in-[file]).
@@ -1790,7 +1792,7 @@ file(F, File:name) :<-
 	(   get(F, classification, file)
 	->  File = Context
 	;   get(F, classification, module)
-	->  current_module(Context, File)
+	->  module_property(Context, file(File))
 	).
 
 
@@ -1815,7 +1817,7 @@ identify_fragment(directory(Path), _, Summary) :-
 identify_fragment(type_error(Type), _, Summary) :-
 	new(Summary, string('Type error: argument must be a %s', Type)).
 identify_fragment(module(Module), _, Summary) :-
-	current_module(Module, Path),
+	module_property(Module, file(Path)),
 	new(Summary, string('Module %s loaded from %s', Module, Path)).
 identify_fragment(method(send), _, 'XPCE send method').
 identify_fragment(method(get), _, 'XPCE get method').

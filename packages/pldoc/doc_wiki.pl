@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2006, University of Amsterdam
+    Copyright (C): 2006-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -140,7 +140,9 @@ list_item(Lines, _, Indent, [SubList|LIT], LIT, Rest) :-	% sub-list
 %	Extract the remainder (after the first line) of a list item.
 
 rest_list_item([], _, _, [], []).
-rest_list_item([_-[]|L], _, _, [], L) :- !.	% empty line
+rest_list_item([_-[]|RestLines], _, N, Pars, Rest) :-	% empty line
+	take_pars_at_indent(RestLines, N, Pars, Rest).
+rest_list_item([_-[]|Ln], _, _, [], Ln) :- !.
 rest_list_item(L, _, N, [], L) :-		% less indented
 	L = [I-_|_], I < N, !.
 rest_list_item(L, _, _, [], L) :-		% Start with mark
@@ -150,6 +152,14 @@ rest_list_item([_-L1|L0], Type, N, ['\n'|LI], L) :-
 	append(L1, LIT, LI),
 	rest_list_item(L0, Type, N, LIT, L).
 
+%%	take_pars_at_indent(+Lines, +Indent, -Pars, -RestLines) is det.
+%
+%	Process paragraphs in bullet-lists.
+
+take_pars_at_indent(Lines, N, [Par|RestPars], RestLines) :-
+	take_par(Lines, Par, RL), Par = p(_), !,
+	take_pars_at_indent(RL, N, RestPars, RestLines).
+take_pars_at_indent(Lines, _, [], Lines).
 
 %%	rest_list(+Lines, +Type, +Indent,
 %%		  -Items, -ItemTail, -RestLines) is det.
@@ -542,17 +552,15 @@ wiki_face(span(class=cvs, CVS), _) -->
 	[$, Word, :], {string(Word)}, wiki_faces(CVS0, []), [$], !,
 	{ strip_ws_tokens(CVS0, CVS) }.
 wiki_face(\include(Name, Type), _) -->
-	['[','['], word_token(BaseS), ['.'], word_token(ExtS), [']',']'],
-	{  concat_atom([BaseS, '.', ExtS], Name),
-	   file_name_extension(_, Ext, Name),
-	   autolink_extension(Ext, Type)
+	['[','['], file_name(Base, Ext), [']',']'],
+	{ autolink_extension(Ext, Type),
+	  file_name_extension(Base, Ext, Name)
 	}, !.
 wiki_face(\file(Name), _) -->
-	word_token(BaseS), ['.'], word_token(ExtS),
-	{ concat_atom([BaseS, '.', ExtS], Name),
+	file_name(Base, Ext),
+	{ file_name_extension(Base, Ext, Name),
 	  (   autolink_file(Name, _)
-	  ;   file_name_extension(_, Ext, Name),
-	      autolink_extension(Ext, _)
+	  ;   autolink_extension(Ext, _)
 	  ), !
 	}.
 wiki_face(\file(Name), _) -->
@@ -572,6 +580,35 @@ wiki_face(FT, ArgNames) -->
 	{   atomic(T)
 	->  FT = T
 	;   wiki_faces(T, ArgNames, FT)
+	}.
+
+%%	filename(-Name:atom, -Ext:atom)// is semidet.
+%
+%	Matches a filename.  A filename is defined as a	sequence
+%	<segment>{/<segment}.<ext>.
+
+file_name(FileBase, Extension) -->
+	segment(S1),
+	segments(List),
+	['.'], file_extension(Extension), !,
+	{ concat_atom([S1|List], '/', FileBase) }.
+
+segment(..) -->
+	['.','.'], !.
+segment(Word) -->
+	word_token(Word).
+
+segments([H|T]) -->
+	['/'], !,
+	segment(H),
+	segments(T).
+segments([]) -->
+	[].
+
+file_extension(Ext) -->
+	word_token(String),
+	{ concat_atom([String], Ext),
+	  autolink_extension(Ext, _)
 	}.
 
 %%	word_token(-Word:string)// is semidet.

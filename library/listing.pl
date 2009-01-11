@@ -141,13 +141,23 @@ decl(thread_local, thread_local).
 decl(dynamic,	   dynamic).
 decl(volatile,	   volatile).
 decl(multifile,	   multifile).
-decl(transparent,  module_transparent).
 
 declaration(Pred, Source, Decl) :-
 	decl(Prop, Declname),
 	predicate_property(Pred, Prop),
 	decl_term(Pred, Source, Funct),
 	Decl =.. [ Declname, Funct ].
+declaration(Pred, Source, Decl) :- !,
+	predicate_property(Pred, meta_predicate(Head)),
+	strip_module(Pred, Module, _),
+	(   (Module == system; Source == Module)
+	->  Decl = meta_predicate(Head)
+	;   Decl = meta_predicate(Module:Head)
+	).
+declaration(Pred, Source, Decl) :-
+	predicate_property(Pred, transparent),
+	decl_term(Pred, Source, PI),
+	Decl = module_transparent(PI).
 	    
 list_declarations(Pred, Source) :-
 	findall(Decl, declaration(Pred, Source, Decl), Decls),

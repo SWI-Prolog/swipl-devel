@@ -94,7 +94,7 @@ process_stored_comments :-
 	       delayed_process(Comments, TermPos, File)).
 
 delayed_process(Comments, TermPos, File) :-
-	current_module(Module, File),
+	module_property(Module, file(File)),
 	'$set_source_module'(Old, Module),
 	process_comments(Comments, TermPos, File),
 	'$set_source_module'(_, Old).

@@ -99,7 +99,8 @@ unfreeze(Goal) :-
 %	
 %	Suspend execution of Goal until Var is unbound.
 
-:- module_transparent freeze/2.
+:- meta_predicate
+	freeze(?, 0).
 
 freeze(Var, Goal) :-
 	'$freeze'(Var, Goal), !.	% Succeeds if delayed
@@ -181,9 +182,8 @@ portray_attr(Name, Value, Var) :-
 %	@bug	In the current implementation attributed variables may
 %		be garbage collected and will not appear in Vars.
 
-:- module_transparent
-	call_residue_vars/2,
-	call_det/2.
+:- meta_predicate
+	call_residue_vars(0, -).
 
 call_residue_vars(Goal, Vars) :-
 	'$get_choice_point'(Chp),

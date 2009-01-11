@@ -650,6 +650,28 @@ pl_declare_module(term_t name, term_t file, term_t line)
 }
 
 
+static int
+unify_export_list(term_t public, Module module ARG_LD)
+{ term_t head = PL_new_term_ref();
+  term_t list = PL_copy_term_ref(public);
+  int rval = TRUE;
+
+  LOCKMODULE(module);
+  for_table(module->public, s,
+	    { if ( !PL_unify_list(list, head, list) ||
+		   !unify_functor(head, (functor_t)s->name, GP_NAMEARITY) )
+	      { rval = FALSE;
+		break;
+	      }
+	    })
+  UNLOCKMODULE(module);
+  if ( rval )
+    return PL_unify_nil(list);
+
+  fail;
+}
+
+
 static
 PRED_IMPL("$module_property", 2, module_property, 0)
 { PRED_LD
@@ -670,47 +692,11 @@ PRED_IMPL("$module_property", 2, module_property, 0)
       return PL_unify_atom(a, m->file->name);
     else
       fail;
+  } else if ( PL_is_functor(A2, FUNCTOR_exports1) )
+  { return unify_export_list(a, m PASS_LD);
   } else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		    ATOM_module_property, A2);
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-export_list(+Module, -PublicPreds)
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-word
-pl_export_list(term_t modulename, term_t public)
-{ Module module;
-  atom_t mname;
-
-  if ( !PL_get_atom_ex(modulename, &mname) )
-    fail;
-  
-  if ( !(module = isCurrentModule(mname)) )
-    fail;
-  
-  { GET_LD
-
-    term_t head = PL_new_term_ref();
-    term_t list = PL_copy_term_ref(public);
-    int rval = TRUE;
-
-    LOCKMODULE(module);
-    for_table(module->public, s,
-	      { if ( !PL_unify_list(list, head, list) ||
-		     !unify_functor(head, (functor_t)s->name, GP_NAMEARITY) )
-		{ rval = FALSE;
-		  break;
-		}
-	      })
-    UNLOCKMODULE(module);
-    if ( rval )
-      return PL_unify_nil(list);
-
-    fail;
-  }
 }
 
 

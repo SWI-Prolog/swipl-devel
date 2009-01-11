@@ -29,7 +29,7 @@
 #include <tchar.h>
 #include <malloc.h>
 #include <stdio.h>
-#include "pl-stream.h"
+#include "SWI-Stream.h"
 #include "SWI-Prolog.h"
 #include <ctype.h>
 #include "win32/console/console.h"

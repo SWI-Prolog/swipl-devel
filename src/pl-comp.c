@@ -785,7 +785,7 @@ automatic update if a predicate is later defined as meta-predicate.
     { Output_0(&ci, I_ENTER);
 					/* ok; all live in the same module */
       if ( ci.module != proc->definition->module &&
-	   false(proc->definition, METAPRED) )
+	   false(proc->definition, P_TRANSPARENT) )
       { Output_1(&ci, I_CONTEXT, (code)ci.module);
       }
     }
@@ -1428,6 +1428,19 @@ compileListFF(word arg, compileInfo *ci ARG_LD)
 }
 
 
+static inline code
+mcall(code call)
+{ switch(call)
+  { case I_CALL:
+      return I_CALLM;
+    case I_DEPART:
+      return I_DEPARTM;
+    default:
+      assert(0);
+      return (code)0;
+  }
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The task of compileSubClause() is to  generate  code  for  a  subclause.
 First  it will call compileArgument for each argument to the call.  Then
@@ -1439,6 +1452,7 @@ static int
 compileSubClause(Word arg, code call, compileInfo *ci)
 { GET_LD
   Module tm = ci->module;
+  Procedure proc;
 
   deRef(arg);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1455,40 +1469,46 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     FunctorDef fdef = valueFunctor(functor);
       
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If the argument is of the form <Module>:<Goal>, <Module> is an atom  and
-<Goal>  is  nonvar  then compile to the specified module.  Otherwise use
-the meta-call mechanism (BUG: `user:hello:foo' is called  via  meta-call
-mechanism, but this only is a bit slower).
+If the argument is of the form  <Module>:<Goal>, <Module> is an atom and
+<Goal> is callable, compile to to  a   call  I_CALLM  <module> <proc> or
+I_DEPARTM <module> <proc>. There are two special   cases  that we do not
+compile, but they are related to meta-calling anyway.
 
-This is a bit more complex then expected: foo:assert(baz) should  assert
-baz/0  into module foo.  In general: the context module should be set to
-the appropriate value.  This needs a  new  virtual  machine  instruction
-that  handles  calls  with  specified context module.  For the moment we
-will use the meta-call mechanism for all these types of calls.
-
-[Tue Dec 18 2001] Now we do have I_CONTEXT.  Time to reconsider!
+	* When compiling in local mode, this is all much more complicated
+	  due to the ci->argvars computation and maintenance, so we skip
+	  this
+	* We do not try to be smart with <module>:call(...)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     if ( functor == FUNCTOR_colon2 )
-    {
-  /*							SEE COMMENT ABOVE
-      Word mp, g;
+    { Word mp, g;
 
       mp = argTermP(*arg, 0); deRef(mp);
-      if ( isTextAtom(*mp) )
+      if ( isTextAtom(*mp) && !ci->islocal )
       { g = argTermP(*arg, 1); deRef(g);
 	if ( isIndexedVarTerm(*g PASS_LD) < 0 )
-	{ arg = g;
-	  tm = lookupModule(*mp);
-	  goto cont;
+	{ if ( isTerm(*g) )
+	  { functor_t f2 = functorTerm(*g);
+	    FunctorDef fd2 = valueFunctor(f2);
+
+	    if ( fd2->name != ATOM_call )
+	    { arg = g;
+	      functor = f2;
+	      fdef = fd2;
+	      tm = lookupModule(*mp);
+	      goto cont;
+	    }
+	  } else if ( isTextAtom(*g) )
+	  { arg = g;
+	    tm = lookupModule(*mp);
+	    goto cont_atom;
+	  }
 	}
       }
-  */
 
       compileArgument(arg, A_BODY, ci PASS_LD);
       Output_0(ci, I_USERCALL0);
       succeed;
     }
-/*  cont: */
 
     if ( true(fdef, ARITH_F) && !ci->islocal )
     { if ( functor == FUNCTOR_is2 &&
@@ -1512,16 +1532,6 @@ will use the meta-call mechanism for all these types of calls.
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Term, not a variable and not a module   call. First of all, we check for
-`inline calls'. This refers to a  light-weight calling mechanism applied
-to deterministic foreign predicates that are   called with simple normal
-variable arguments only. This deals with fast  calling of checks such as
-var/1 as well as  A  =  B.  If   we  are  compiling  clauses  for call/1
-(islocal), we skip this, as it   complicates the compilation process and
-the dynamic clause will be used  once   only  anyhow. Moreover, it would
-require  one  more  place  to  do    the   special  variable-linking  in
-compileArgument().
-
 For normal cases, simply compile the arguments   (push on the stack) and
 create a call-instruction. Finally, some  special   atoms  are mapped to
 special instructions.
@@ -1530,9 +1540,11 @@ If we call a currently undefined procedure we   check it is not a system
 procedure. If it is, we import the  procedure immediately to avoid later
 re-definition.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    { Procedure proc = lookupProcedure(functor, tm);
-      int ar = fdef->arity;
+    cont:
+    { int ar = fdef->arity;
 
+      proc = lookupProcedure(functor, tm);
+      
       if ( !isDefinedProcedure(proc) &&
 	   !true(proc->definition, P_REDEFINED) &&
 	   !GD->bootsession )
@@ -1550,8 +1562,11 @@ re-definition.
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
 	compileArgument(arg, A_BODY, ci PASS_LD);
 
-      if ( fdef->name == ATOM_call && fdef->arity > 1 )
-      { Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
+      if ( fdef->name == ATOM_call )
+      { if ( fdef->arity == 1 )
+	  Output_0(ci, I_USERCALL0);
+	else
+	  Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
 	succeed;
 #if O_BLOCK
       } else if ( functor == FUNCTOR_dcut1 )
@@ -1562,39 +1577,45 @@ re-definition.
 	succeed;
 #endif
       }
-      Output_1(ci, call, (code) proc);
-
-      succeed;
     }
-  }
+  } else if ( isTextAtom(*arg) )
+  { cont_atom:
 
-  if ( isTextAtom(*arg) )
-  { if ( *arg == ATOM_cut )
+    if ( *arg == ATOM_cut )
     { if ( ci->cut.var )			/* local cut for \+ */
 	Output_1(ci, ci->cut.instruction, ci->cut.var);
       else
 	Output_0(ci, I_CUT);
+      succeed;
     } else if ( *arg == ATOM_true )
     { Output_0(ci, I_TRUE);
+      succeed;
     } else if ( *arg == ATOM_fail )
     { Output_0(ci, I_FAIL);
-    } else if ( *arg == ATOM_dcatch )	/* $catch */
+      succeed;
+    } else if ( *arg == ATOM_dcatch )		/* $catch */
     { Output_0(ci, I_CATCH);
       Output_0(ci, I_EXITCATCH);
+      succeed;
     } else if ( *arg == ATOM_dcall_cleanup )	/* $call_cleanup */
     { Output_0(ci, I_CALLCLEANUP);
       Output_0(ci, I_EXITCLEANUP);
+      succeed;
     } else
     { functor_t fdef = lookupFunctorDef(*arg, 0);
-      code cproc = (code) lookupProcedure(fdef, tm);
 
-      Output_1(ci, call, cproc);
+      proc = lookupProcedure(fdef, tm);
     }
-
-    succeed;
+  } else
+  { return NOT_CALLABLE;
   }
-    
-  return NOT_CALLABLE;
+
+  if ( tm == ci->module )
+    Output_1(ci, call, (code) proc);
+  else
+    Output_2(ci, mcall(call), (code)tm, (code)proc);
+
+  succeed;
 }
 
 
@@ -2198,10 +2219,10 @@ care of reconsult, redefinition, etc.
     if ( def->module != mhead )
     { if ( true(def->module, SYSTEM) )
       { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		 ATOM_redefine, ATOM_built_in_procedure, def);
+		 ATOM_redefine, ATOM_built_in_procedure, proc);
       } else
       { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		 ATOM_redefine, ATOM_imported_procedure, def);
+		 ATOM_redefine, ATOM_imported_procedure, proc);
       }
       freeClause(clause PASS_LD);
       return NULL;
@@ -3205,7 +3226,18 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
 			  }
-      case I_USERCALL0:
+      case I_DEPARTM:
+      case I_CALLM:       { Module m = (Module)XR(*PC++);
+			    Procedure proc = (Procedure)XR(*PC++);
+			    build_term(proc->definition->functor->functor, di PASS_LD);
+			    ARGPinc();
+			    ARGP[-1] = ARGP[-2];	/* need to swap arguments */
+			    ARGP[-2] = m->name;
+			    build_term(FUNCTOR_colon2, di PASS_LD);
+			    pushed++;
+			    continue;
+			  }
+      case I_USERCALL0:	    build_term(FUNCTOR_call1, di PASS_LD);
 			    pushed++;
 			    continue;
 #if O_COMPILE_OR
@@ -3350,6 +3382,12 @@ unify_functor(term_t t, functor_t fd, int how)
 
 
 int
+PL_unify_predicate(term_t head, predicate_t pred, int how)
+{ return unify_definition(head, pred->definition, 0, how);
+}
+
+
+int
 unify_definition(term_t head, Definition def, term_t thehead, int how)
 { GET_LD
 
@@ -3477,7 +3515,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
 	       false(def, DYNAMIC)
 	   ) )
 	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-			ATOM_access, ATOM_private_procedure, def);
+			ATOM_access, ATOM_private_procedure, proc);
 
       cref = NULL;			/* see below */
       enterDefinition(def);		/* reference the predicate */
@@ -3744,62 +3782,47 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
   end = &PC[clause->code_size];
 
   if ( PL_is_variable(term) )
-  { if ( CTX_CNTRL != FRG_FIRST_CALL)
+  { int an;
+
+    if ( CTX_CNTRL != FRG_FIRST_CALL)
     { size_t i = CTX_INT;
 
-      PC += i;
+      PC += i >> 3;
+      an = i & 0x7;
+    } else
+    { an = 0;
     }
 
-    while( PC < end )
-    { bool rval = FALSE;
-      code op = fetchop(PC++);
+    for( ; PC < end; PC = stepPC(PC),an=0 )
+    { code op = fetchop(PC);
       const char *ats=codeTable[op].argtype;
-      int i;
 
-      for(i=0; ats[i]; i++)
-      { switch(ats[i])
+      while(ats[an])
+      { switch(ats[an++])
 	{ case CA1_PROC:
-	  { Procedure proc = (Procedure) *PC++;
-	    rval = unify_definition(term, getProcDefinition(proc), 0, 0);
-	    break;
+	  { size_t i;
+	    Procedure proc = (Procedure) PC[an];
+	    unify_definition(term, getProcDefinition(proc), 0, 0);
+	  hit:
+	    i = ((PC - clause->codes)<<3) + an;
+	    ForeignRedoInt(i);
 	  }
 	  case CA1_FUNC:
-	  { functor_t fd = (functor_t) *PC++;
-	    rval = PL_unify_functor(term, fd);
-	    break;
+	  { functor_t fd = (functor_t) PC[an];
+	    PL_unify_functor(term, fd);
+	    goto hit;
 	  }
 	  case CA1_DATA:
-	  { word xr = *PC++;
-	    rval = _PL_unify_atomic(term, xr);
-	    break;
+	  { word xr = PC[an];
+	    _PL_unify_atomic(term, xr);
+	    goto hit;
 	  }
 	  case CA1_MODULE:
-	  { Module xr = (Module)*PC++;
-	    rval = _PL_unify_atomic(term, xr->name);
-	    break;
+	  { Module xr = (Module)PC[an];
+	    PL_unify_atom(term, xr->name);
+	    goto hit;
 	  }
-	  case CA1_INT64:
-	    PC += WORDS_PER_INT64;
-	    break;
-	  case CA1_FLOAT:
-	    PC += WORDS_PER_DOUBLE;
-	    break;
-	  case CA1_MPZ:
-	  case CA1_STRING:
-	  { word m = *PC++;
-	    PC += wsizeofInd(m);
-	    break;
-	  }
-	  default:
-	    PC++;
-	    break;
 	}
-      }
-
-      if ( rval )
-      { intptr_t i = PC - clause->codes;	/* compensate ++ above! */
-
-	ForeignRedoInt(i);
       }
     }
 
@@ -3807,42 +3830,46 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
   } else				/* instantiated */
   { Procedure proc;
     functor_t fd;
+    int an = 0;
 
     if ( PL_is_atomic(term) )
-    { while( PC < end )
+    { for( ; PC < end; PC = stepPC(PC),an=0 )
       { code op = fetchop(PC);
+	const char *ats=codeTable[op].argtype;
 
-	if ( codeTable[op].argtype[0] == CA1_DATA && /* TBD */
-	     _PL_unify_atomic(term, PC[1]) )
-	    succeed;
-
-	PC = stepPC(PC);
+	while(ats[an])
+	{ switch(ats[an++])
+	  { case CA1_DATA:
+	      if ( _PL_unify_atomic(term, PC[an]) )
+		succeed;
+	      break;
+	    case CA1_MODULE:
+	    { Module xr = (Module)PC[an];
+	      
+	      if ( PL_unify_atom(term, xr->name) )
+		succeed;
+	    }
+	  }
+	}
       }
     }
 
     PC = clause->codes;
     if ( PL_get_functor(term, &fd) && fd != FUNCTOR_colon2 )
-    { while( PC < end )
+    { for( ; PC < end; PC = stepPC(PC),an=0 )
       { code op = fetchop(PC);
+	const char *ats=codeTable[op].argtype;
 
-	if ( codeTable[op].argtype[0] == CA1_FUNC ) /* TBD */
-	{ functor_t fa = (functor_t)PC[1];
-
-	  if ( fa == fd )
-	  { DEBUG(1,
-		  { term_t ref = PL_new_term_ref();
-		    intptr_t i;
-		    
-		    PL_unify_pointer(ref, clause);
-		    PL_get_long(ref, &i);
-		    Sdprintf("Got it, clause %d at %d\n",
-			     i, PC-clause->codes);
-		  });
-	    succeed;
+	while(ats[an])
+	{ switch(ats[an++])
+	  { case CA1_FUNC:
+	    { functor_t fa = (functor_t) PC[an];
+	      
+	      if ( fa == fd )
+		succeed;
+	    }
 	  }
 	}
-
-	PC = stepPC(PC);
       }
     }
 
@@ -3850,21 +3877,24 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
     if ( get_procedure(term, &proc, 0, GP_FINDHERE|GP_TYPE_QUIET) )
     { Definition pd = getProcDefinition(proc);
 
-      while( PC < end )
+      for( ; PC < end; PC = stepPC(PC),an=0 )
       { code op = fetchop(PC);
+	const char *ats=codeTable[op].argtype;
 
-	if ( codeTable[op].argtype[0] == CA1_PROC ) /* TBD */
-	{ Procedure pa = (Procedure)PC[1];
-	  Definition def = getProcDefinition(pa);
+	while(ats[an])
+	{ switch(ats[an++])
+	  { case CA1_PROC:
+	    { Procedure pa = (Procedure)PC[an];
+	      Definition def = getProcDefinition(pa);
 
-	  if ( pd == def )
-	    succeed;
-	  if ( pd->functor == def->functor &&
-	       wouldBindToDefinition(def, pd) )
-	    succeed;
+	      if ( pd == def )
+		succeed;
+	      if ( pd->functor == def->functor &&
+		   wouldBindToDefinition(def, pd) )
+		succeed;
+	    }
+	  }
 	}
-
-	PC = stepPC(PC);
       }
     }
   }
@@ -4068,9 +4098,7 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
     base = proc->definition->codes;
     if ( !base )
       fail;
-    len = (size_t)base[-1];
-    if ( len == 0 )
-      len = supervisorLength(base);
+    len = supervisorLength(base);
   }
 
   if ( !PL_get_intptr_ex(offset, &pcoffset) )

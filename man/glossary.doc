@@ -38,7 +38,7 @@ Current value of the \g{variable}.  See also \g{backtracking} and
 \g{query}.
 
     \glossitem{built-in [predicate]}\index{built-in predicate}%
-Predicate that is part of the Prolog system.  Built in predicates cannot
+Predicate that is part of the Prolog system.  Built-in predicates cannot
 be redefined by the user, unless this is overruled using
 redefine_system_predicate/1.
 
@@ -74,7 +74,7 @@ If a \g{term} is referring to a \g{predicate} in a \g{module}, the
 module of a \g{goal} is the module in which the \g{predicate} is
 defined, unless this \g{predicate} is \g{module transparent}, in
 which case the \g{context module} is inherited from the parent
-\g{goal}.  See also module_transparent/1.
+\g{goal}.  See also module_transparent/1 and \g{meta-predicate}.
 
     \glossitem{dynamic [predicate]}\index{dynamic predicate}\index{predicate,dynamic}%
 A \g{dynamic} predicate is a predicate to which \g{clauses} may be
@@ -190,7 +190,7 @@ to interpret \verb$a+b*c$ as \verb$+(a, *(b,c))$.
     \glossitem{predicate}\index{predicate}%
 Collection of \g{clauses} with the same \g{functor} (name/\g{arity}).
 If a \g{goal} is proved, the system looks for a \g{predicate} with the
-same functor, then used \g{indexing} to select candidate \g{clauses}
+same functor, then uses \g{indexing} to select candidate \g{clauses}
 and then tries these \g{clauses} one-by-one.  See also \g{backtracking}.
 
     \glossitem{predicate indicator}\index{predicate indicator}%

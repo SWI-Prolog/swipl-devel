@@ -205,15 +205,15 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     case ERR_PERMISSION_PROC:
     { atom_t op = va_arg(args, atom_t);
       atom_t type = va_arg(args, atom_t);
-      Definition def = va_arg(args, Definition);
-      term_t pred = PL_new_term_ref();
+      predicate_t pred = va_arg(args, predicate_t);
+      term_t pi = PL_new_term_ref();
 
-      unify_definition(pred, def, 0, GP_NAMEARITY|GP_HIDESYSTEM);
+      PL_unify_predicate(pi, pred, GP_NAMEARITY|GP_HIDESYSTEM);
       PL_unify_term(formal,
 		    PL_FUNCTOR, FUNCTOR_permission_error3,
 		    PL_ATOM, op,
 		    PL_ATOM, type,
-		    PL_TERM, pred);
+		    PL_TERM, pi);
       break;
     }
     case ERR_NOT_IMPLEMENTED_PROC:

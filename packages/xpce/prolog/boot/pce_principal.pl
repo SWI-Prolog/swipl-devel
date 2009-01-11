@@ -33,10 +33,9 @@
 	  [ new/2, free/1,
 
 	    send/2, send/3, send/4, send/5, send/6, send/7,
-	    send/8, send/9, send/10, send/11, send/12,
+	    send/8,
 
 	    get/3, get/4, get/5, get/6, get/7, get/8,
-	    get/9, get/10, get/11, get/12, get/13,
 
 	    send_class/3,
 	    get_class/4,
@@ -66,11 +65,6 @@
 	send(+, :, +, +, +),
 	send(+, :, +, +, +, +),
 	send(+, :, +, +, +, +, +),
-	send(+, :, +, +, +, +, +, +),
-	send(+, :, +, +, +, +, +, +, +),
-	send(+, :, +, +, +, +, +, +, +, +),
-	send(+, :, +, +, +, +, +, +, +, +, +),
-	send(+, :, +, +, +, +, +, +, +, +, +, +),
 
 	get_class(+, +, :, -),
 	get(+, :, -),
@@ -79,11 +73,6 @@
 	get(+, :, +, +, +, -),
 	get(+, :, +, +, +, +, -),
 	get(+, :, +, +, +, +, +, -),
-	get(+, :, +, +, +, +, +, +, -),
-	get(+, :, +, +, +, +, +, +, +, -),
-	get(+, :, +, +, +, +, +, +, +, +, -),
-	get(+, :, +, +, +, +, +, +, +, +, +, -),
-	get(+, :, +, +, +, +, +, +, +, +, +, +, -),
 
 	new(?, :).
 
@@ -150,42 +139,42 @@ free(_).
 %	given Arguments succeeds. Normally, goal_expansion/2 expands all
 %	these goals into send(Receiver, Method(Args...)).
 
-send(Receiver, Selector, A1) :-
+send(Receiver, M:Selector, A1) :-
         functor(Message, Selector, 1),
         arg(1, Message, A1),
-        send(Receiver, Message).
+        send(Receiver, M:Message).
 
-send(Receiver, Selector, A1, A2) :-
+send(Receiver, M:Selector, A1, A2) :-
         functor(Message, Selector, 2),
         arg(1, Message, A1),
         arg(2, Message, A2),
-        send(Receiver, Message).
+        send(Receiver, M:Message).
 
-send(Receiver, Selector, A1, A2, A3) :-
+send(Receiver, M:Selector, A1, A2, A3) :-
         functor(Message, Selector, 3),
         arg(1, Message, A1),
         arg(2, Message, A2),
         arg(3, Message, A3),
-        send(Receiver, Message).
+        send(Receiver, M:Message).
 
-send(Receiver, Selector, A1, A2, A3, A4) :-
+send(Receiver, M:Selector, A1, A2, A3, A4) :-
         functor(Message, Selector, 4),
         arg(1, Message, A1),
         arg(2, Message, A2),
         arg(3, Message, A3),
         arg(4, Message, A4),
-        send(Receiver, Message).
+        send(Receiver, M:Message).
 
-send(Receiver, Selector, A1, A2, A3, A4, A5) :-
+send(Receiver, M:Selector, A1, A2, A3, A4, A5) :-
         functor(Message, Selector, 5),
         arg(1, Message, A1),
         arg(2, Message, A2),
         arg(3, Message, A3),
         arg(4, Message, A4),
         arg(5, Message, A5),
-        send(Receiver, Message).
+        send(Receiver, M:Message).
 
-send(Receiver, Selector, A1, A2, A3, A4, A5, A6) :-
+send(Receiver, M:Selector, A1, A2, A3, A4, A5, A6) :-
         functor(Message, Selector, 6),
         arg(1, Message, A1),
         arg(2, Message, A2),
@@ -193,156 +182,47 @@ send(Receiver, Selector, A1, A2, A3, A4, A5, A6) :-
         arg(4, Message, A4),
         arg(5, Message, A5),
         arg(6, Message, A6),
-        send(Receiver, Message).
+        send(Receiver, M:Message).
 
-send(Receiver, Selector, A1, A2, A3, A4, A5, A6, A7) :-
-        functor(Message, Selector, 7),
-        arg(1, Message, A1),
-        arg(2, Message, A2),
-        arg(3, Message, A3),
-        arg(4, Message, A4),
-        arg(5, Message, A5),
-        arg(6, Message, A6),
-        arg(7, Message, A7),
-        send(Receiver, Message).
 
-send(Receiver, Selector, A1, A2, A3, A4, A5, A6, A7, A8) :-
-        functor(Message, Selector, 8),
-        arg(1, Message, A1),
-        arg(2, Message, A2),
-        arg(3, Message, A3),
-        arg(4, Message, A4),
-        arg(5, Message, A5),
-        arg(6, Message, A6),
-        arg(7, Message, A7),
-        arg(8, Message, A8),
-        send(Receiver, Message).
-
-send(Receiver, Selector, A1, A2, A3, A4, A5, A6, A7, A8, A9) :-
-        functor(Message, Selector, 9),
-        arg(1, Message, A1),
-        arg(2, Message, A2),
-        arg(3, Message, A3),
-        arg(4, Message, A4),
-        arg(5, Message, A5),
-        arg(6, Message, A6),
-        arg(7, Message, A7),
-        arg(8, Message, A8),
-        arg(9, Message, A9),
-        send(Receiver, Message).
-
-send(Receiver, Selector, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10) :-
-        functor(Message, Selector, 10),
-        arg(1, Message, A1),
-        arg(2, Message, A2),
-        arg(3, Message, A3),
-        arg(4, Message, A4),
-        arg(5, Message, A5),
-        arg(6, Message, A6),
-        arg(7, Message, A7),
-        arg(8, Message, A8),
-        arg(9, Message, A9),
-        arg(10, Message, A10),
-        send(Receiver, Message).
-
-%%	get(+Object, +Selector, +Arg..., ?Rval) is semidet.
+%%	get(+Object, :Selector, +Arg..., ?Rval) is semidet.
 %
 %	See the comments with send/[3-12].
 
-get(Receiver, Selector, A1, Answer) :-
+get(Receiver, M:Selector, A1, Answer) :-
         functor(Message, Selector, 1),
         arg(1, Message, A1),
-        get(Receiver, Message, Answer).
+        get(Receiver, M:Message, Answer).
 
-get(Receiver, Selector, A1, A2, Answer) :-
+get(Receiver, M:Selector, A1, A2, Answer) :-
         functor(Message, Selector, 2),
         arg(1, Message, A1),
         arg(2, Message, A2),
-        get(Receiver, Message, Answer).
+        get(Receiver, M:Message, Answer).
 
-get(Receiver, Selector, A1, A2, A3, Answer) :-
+get(Receiver, M:Selector, A1, A2, A3, Answer) :-
         functor(Message, Selector, 3),
         arg(1, Message, A1),
         arg(2, Message, A2),
         arg(3, Message, A3),
-        get(Receiver, Message, Answer).
+        get(Receiver, M:Message, Answer).
 
-get(Receiver, Selector, A1, A2, A3, A4, Answer) :-
+get(Receiver, M:Selector, A1, A2, A3, A4, Answer) :-
         functor(Message, Selector, 4),
         arg(1, Message, A1),
         arg(2, Message, A2),
         arg(3, Message, A3),
         arg(4, Message, A4),
-        get(Receiver, Message, Answer).
+        get(Receiver, M:Message, Answer).
 
-get(Receiver, Selector, A1, A2, A3, A4, A5, Answer) :-
+get(Receiver, M:Selector, A1, A2, A3, A4, A5, Answer) :-
         functor(Message, Selector, 5),
         arg(1, Message, A1),
         arg(2, Message, A2),
         arg(3, Message, A3),
         arg(4, Message, A4),
         arg(5, Message, A5),
-        get(Receiver, Message, Answer).
-
-get(Receiver, Selector, A1, A2, A3, A4, A5, A6, Answer) :-
-        functor(Message, Selector, 6),
-        arg(1, Message, A1),
-        arg(2, Message, A2),
-        arg(3, Message, A3),
-        arg(4, Message, A4),
-        arg(5, Message, A5),
-        arg(6, Message, A6),
-        get(Receiver, Message, Answer).
-
-get(Receiver, Selector, A1, A2, A3, A4, A5, A6, A7, Answer) :-
-        functor(Message, Selector, 7),
-        arg(1, Message, A1),
-        arg(2, Message, A2),
-        arg(3, Message, A3),
-        arg(4, Message, A4),
-        arg(5, Message, A5),
-        arg(6, Message, A6),
-        arg(7, Message, A7),
-        get(Receiver, Message, Answer).
-
-get(Receiver, Selector, A1, A2, A3, A4, A5, A6, A7, A8, Answer) :-
-        functor(Message, Selector, 8),
-        arg(1, Message, A1),
-        arg(2, Message, A2),
-        arg(3, Message, A3),
-        arg(4, Message, A4),
-        arg(5, Message, A5),
-        arg(6, Message, A6),
-        arg(7, Message, A7),
-        arg(8, Message, A8),
-        get(Receiver, Message, Answer).
-
-get(Receiver, Selector, A1, A2, A3, A4, A5, A6, A7, A8, A9, Answer) :-
-        functor(Message, Selector, 9),
-        arg(1, Message, A1),
-        arg(2, Message, A2),
-        arg(3, Message, A3),
-        arg(4, Message, A4),
-        arg(5, Message, A5),
-        arg(6, Message, A6),
-        arg(7, Message, A7),
-        arg(8, Message, A8),
-        arg(9, Message, A9),
-        get(Receiver, Message, Answer).
-
-get(Receiver, Selector, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, Answer) :-
-        functor(Message, Selector, 10),
-        arg(1, Message, A1),
-        arg(2, Message, A2),
-        arg(3, Message, A3),
-        arg(4, Message, A4),
-        arg(5, Message, A5),
-        arg(6, Message, A6),
-        arg(7, Message, A7),
-        arg(8, Message, A8),
-        arg(9, Message, A9),
-        arg(10, Message, A10),
-        get(Receiver, Message, Answer).
+        get(Receiver, M:Message, Answer).
 
 
 		 /*******************************

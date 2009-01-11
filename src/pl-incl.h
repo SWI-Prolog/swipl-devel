@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -51,22 +51,8 @@
 #include <parms.h>			/* pick from the working dir */
 #endif
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-First, include config.h or, if MD is  specified, this file.  This allows
-for -DMD="config/win64.h"
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifndef CONFTEST
-#ifdef MD
-#include MD
-#else
-#include <config.h>
-#endif
-#endif
-
-#if defined(O_PLMT) && !defined(_REENTRANT)
-#define _REENTRANT 1
-#endif
+#define PL_KERNEL		1
+#include "pl-builtin.h"
 
 #ifdef HAVE_DMALLOC_H
 #include <dmalloc.h>			/* Use www.dmalloc.com debugger */
@@ -131,7 +117,6 @@ handy for it someone wants to add a data type to the system.
       Use GNU gmp library for infinite precision arthmetic
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define PL_KERNEL		1
 #define O_COMPILE_OR		1
 #define O_SOFTCUT		1
 #define O_COMPILE_ARITH		1
@@ -257,19 +242,6 @@ void *alloca ();
 #undef O_LARGEFILES
 #endif
 
-#if HAVE_XOS_H
-#include <xos.h>
-#endif
-#ifdef HAVE_UXNT_H
-#include <uxnt.h>
-#endif
-
-#ifdef __WINDOWS__
-#include <winsock2.h>
-#endif
-#include "pl-mutex.h"
-#include "pl-stream.h"
-
 #include <sys/types.h>
 #include <setjmp.h>
 #ifdef ASSERT_H_REQUIRES_STDIO_H
@@ -351,13 +323,6 @@ A common basis for C keywords.
 #ifndef HAVE_VOLATILE
 #define volatile
 #endif
-
-#ifdef HAVE_VISIBILITY_ATTRIBUTE
-#define SO_LOCAL __attribute__((visibility("hidden")))
-#else
-#define SO_LOCAL
-#endif
-#define COMMON(type) SO_LOCAL type
 
 #if defined(__GNUC__) && !defined(NORETURN)
 #define NORETURN __attribute__ ((noreturn))
@@ -489,7 +454,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 
 /* Definition->indexPattern is set to NEED_REINDEX if the definition's index
    pattern needs to be recomputed */
-#define NEED_REINDEX (1UL << (LONGBITSIZE-1))
+#define NEED_REINDEX (1U << (INTBITSIZE-1))
 
 #include "pl-vmi.h"
 
@@ -806,7 +771,7 @@ with one operation, it turns out to be faster as well.
 #define SPY_ME			(0x00000080L) /* predicate */
 #define SYSTEM			(0x00000100L) /* predicate, module */
 #define TRACE_ME		(0x00000200L) /* predicate */
-#define METAPRED		(0x00000400L) /* predicate */
+#define P_TRANSPARENT		(0x00000400L) /* predicate */
 #define GC_SAFE			(0x00000800L) /* predicate */
 #define TRACE_CALL		(0x00001000L) /* predicate */
 #define TRACE_REDO		(0x00002000L) /* predicate */
@@ -827,6 +792,7 @@ with one operation, it turns out to be faster as well.
 #define P_FOREIGN_CREF		(0x02000000L) /* predicate */
 #define P_DIRTYREG		(0x04000000L) /* predicate */
 #define P_ISO			(0x08000000L) /* predicate */
+#define P_META			(0x10000000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause, record */
 					 /* clause flags */
@@ -1192,8 +1158,9 @@ struct definition
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
   ClauseIndex 	hash_info;		/* clause hash-tables */
-  unsigned long indexPattern;		/* indexed argument pattern */
-  unsigned long flags;			/* booleans: */
+  unsigned int  indexPattern;		/* indexed argument pattern */
+  unsigned int  meta_info;		/* meta-predicate info */
+  unsigned int  flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
 		/*	PROFILE_TICKED	   has been ticked this time? */
 		/*	TRACE_ME	   is my call visible? */
@@ -1202,7 +1169,7 @@ struct definition
 		/*	DYNAMIC		   dynamic predicate? */
 		/*	MULTIFILE	   defined over more files? */
 		/*	SYSTEM		   system predicate */
-		/*	METAPRED	   procedure transparent to modules */
+		/*	P_TRANSPARENT	   procedure transparent to modules */
 		/*	DISCONTIGUOUS	   procedure might be discontiguous */
 		/*	NONDETERMINISTIC   deterministic foreign (not used) */
 		/*	GC_SAFE		   Save to perform GC while active */
@@ -1442,6 +1409,21 @@ struct gc_trail_entry
 };
 
 		 /*******************************
+		 *	   META PREDICATE	*
+		 *******************************/
+
+/*0..9*/				/* 0..9: `Extra meta arguments' */
+#define MA_META		10		/* : */
+#define MA_VAR		11		/* - */
+#define MA_ANY		12		/* ? */
+#define MA_NONVAR	13		/* + */
+
+#define MA_INFO(def, n)		(((def)->meta_info >> ((n)*4)) & 0xf)
+#define MA_SETINFO(def, n, i)	((def)->meta_info &= ~(0xf << (n)*4), \
+				 (def)->meta_info |= (i << (n)*4))
+
+
+		 /*******************************
 		 *	 MEMORY ALLOCATION	*
 		 *******************************/
 
@@ -1578,7 +1560,6 @@ Note that the local stack is always _above_ the global stack.
 #define QidFromQuery(f)		(consTermRef(f))
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
 
-#include "pl-builtin.h"
 #include "SWI-Prolog.h"
 
 

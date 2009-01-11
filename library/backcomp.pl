@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -59,7 +59,9 @@
 	    current_mutex/3,		% ?Mutex, ?Owner, ?Count
 	    message_queue_size/2,	% +Queue, -TermsWaiting
 	    lock_predicate/2,		% +Name, +Arity
-	    unlock_predicate/2		% +Name, +Arity
+	    unlock_predicate/2,		% +Name, +Arity
+	    current_module/2,		% ?Module, ?File
+	    export_list/2		% +Module, -Exports
 	  ]).
 
 /** <module> Backward compatibility
@@ -336,3 +338,20 @@ lock_predicate(Name, Arity) :-
 unlock_predicate(Name, Arity) :-
 	unlock_predicate(Name/Arity).
 
+%%	current_module(?Module, ?File) is nondet.
+%
+%	True if Module is a module loaded from File.
+%	
+%	@deprecated Use module_property(Module, file(File))
+
+current_module(Module, File) :-
+	module_property(Module, file(File)).
+
+%%	export_list(+Module, -List) is det.
+%
+%	Module exports the predicates of List.
+%	
+%	@deprecated Use module_property(Module, exports(List))
+
+export_list(Module, List) :-
+	module_property(Module, exports(List)).

@@ -633,7 +633,7 @@ pce_get_method(Class, Selector, RType, Head, Types, Doc, Loc, Group) :-
        message(@prolog, call, bind_lazy, @arg1, @arg2, @arg3)).
 
 pce_ifhostproperty(prolog(swi),		% Hide from the tracer
-		   (:- '$hide'(bind_lazy, 3))).
+		   (:- '$hide'(bind_lazy/3))).
 
 bind_lazy(Kind, ClassName, @default) :- !,
 	retract(lazy_method(Selector, ClassName, Kind, Arguments)),

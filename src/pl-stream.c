@@ -61,7 +61,7 @@ locking is required.
 #define PL_KERNEL 1
 #include <wchar.h>
 typedef wchar_t pl_wchar_t;
-#include "pl-stream.h"
+#include "SWI-Stream.h"
 #include "pl-utf8.h"
 #include <sys/types.h>
 #ifdef HAVE_SYS_TIME_H

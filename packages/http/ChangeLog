@@ -1,3 +1,10 @@
+[Dec 20 2008]
+
+ * ADDED: http_log_close/1 to provide for cooperation with logrotate
+   
+[Dec 18 2008]
+
+ * MSFIX: Accept invalid cookie options sent by Microsoft (httponly). Matt Lilley.
 [Nov 26 2008]
 
  * FIXED: Update HTTP header definition for a token to RFC 2616.  Matt Lilley

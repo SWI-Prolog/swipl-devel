@@ -32,14 +32,12 @@
 
 :- module(pce_host,
 	  [ '$load_pce'/0
-	  , (meta_predicate)/1
 	  ]).
 
 
 :- module_transparent
 	'$load_pce'/0.
 
-:- use_module(library(quintus), [(meta_predicate)/1]).
 
 		 /*******************************
 		 *	    EXPANSION		*

@@ -35,6 +35,53 @@ system.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 		 /*******************************
+		 *	   COMMON GROUND	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+First, include config.h or, if MD is  specified, this file.  This allows
+for -DMD="config/win64.h"
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef MD
+#include MD
+#else
+#include <config.h>
+#endif
+
+#if defined(O_PLMT) && !defined(_REENTRANT)
+#define _REENTRANT 1
+#endif
+
+#if HAVE_XOS_H
+#include <xos.h>			/* Windows POSIX enhancements */
+#endif
+#ifdef HAVE_UXNT_H
+#include <uxnt.h>			/* More Windows POSIX enhancements */
+#endif
+
+#include "pl-mutex.h"
+#include "SWI-Stream.h"
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Symbols are local to shared objects  by   default  in  COFF based binary
+formats, and public in ELF based formats.   In some ELF based systems it
+is possible to make them local   anyway. This enhances encapsulation and
+avoids an indirection for calling these   functions.  Functions that are
+supposed to be local to the SWI-Prolog kernel are declared using
+
+    COMMON(<type) <function>(<args>);
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef HAVE_VISIBILITY_ATTRIBUTE
+#define SO_LOCAL __attribute__((visibility("hidden")))
+#else
+#define SO_LOCAL
+#endif
+#define COMMON(type) SO_LOCAL type
+
+
+		 /*******************************
 		 *	    ENGINE ACCESS	*
 		 *******************************/
 

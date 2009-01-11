@@ -98,12 +98,8 @@ list_undefined_(Level) :-
 
 undefined_predicate(Module:Head) :-
 	predicate_property(Module:Head, undefined), 
-	\+ predicate_property(Module:Head, imported_from(_)),
-	functor(Head, Functor, Arity), 
-	\+ '$in_library'(Functor, Arity, _),
-	\+ system_undefined(Module:Functor/Arity).
+	\+ predicate_property(Module:Head, imported_from(_)).
 
-system_undefined(user:prolog_trace_interception/4).
 
 %%	find_references(+Heads, -HeadRefs:list) is det.
 %	
@@ -116,8 +112,10 @@ system_undefined(user:prolog_trace_interception/4).
 
 find_references([], []).
 find_references([H|T0], [H-Refs|T]) :-
-	ignore(H = M:_),
-	findall(Ref, referenced(H, M, Ref), Refs),
+	(   ignore(H = M:_),
+	    findall(Ref, referenced(H, M, Ref), Refs)
+	;   findall(Ref, referenced(H, _, Ref), Refs)
+	),
 	Refs \== [], !,
 	find_references(T0, T).
 find_references([_|T0], T) :-
@@ -220,7 +218,7 @@ prolog:message(check(undefined(Pred, Refs))) -->
 	[ ', which is referenced by', nl ],
 	referenced_by(Refs).
 prolog:message(check(autoload(Module, Pairs))) -->
-	{ current_module(Module, Path)
+	{ module_property(Module, file(Path))
 	}, !,
 	[ 'Into module ~w ('-[Module] ],
 	short_filename(Path),

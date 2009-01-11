@@ -8,6 +8,221 @@
 					--------------------------------------
 
 
+==============================
+VERSION 5.7.4 January 08, 2009
+==============================
+
+ * FIXED: module_property(M, file(File)).
+   
+ * FIXED: Possible crash in the garbage collector if a last-call traps the
+   autoloader, which traps the garbage collector.
+   
+ * MODIFIED: predicate_property(+,?) now autoloads predicates to be able
+   to report the proper properties
+   
+ * MODIFIED: Removed current_module/2 and export_list/2 and introduced
+   module_property/2. The removed predicates have been moved to the
+   backcomp.pl library and are thus autoloaded, providing compatibility.
+   
+ * CLEANUP: Use meta_predicate for spy/nospy and trap instantiation errors.
+   
+ * CLEANUP: Prolog end of open_shared_object/3.  Dropped very old swapped
+   argument handling and added type/domain errors.
+   
+ * CLEANUP: Use modern foreign interface for loading shared objects
+   
+ * CLEANUP: boot/dwim.pl: use meta_predicate and general code cleanup.  Not
+   very well tested.
+   
+ * CLEANUP: Use meta_predicate for forall/2 and apply/2
+   
+ * CLEANUP: Moved maplist/2... to library(apply).
+   
+ * PORT: Reorder statements to fix compilation on Windows.
+   
+ * PORT: Reorder some things to make it compile again on Windows.  Matt Lilley.
+   
+ * FIXED: I_CALLM handling of auto-imported/auto-loaded predicates.  Matt Lilley.
+   
+ * FIXED: initialization/1 directive handling in saved states (Matt Lilley)
+   
+ * FIXED: Make compatible to meta_predicate/1
+   
+ * FIXED: meta-predicate qualification of (attributed-)variables
+   
+ * TEST: Added unit tests for mera-predicates
+   
+ * ENHANCED: Ensure module qualified arguments has exactly one level M:X
+   
+ * ADDED: Proper implementation of meta_predicate/1 directive processing.
+   
+ * CLEANUP: Use (simple) supervisors for all predicates
+   
+ * ADDED: predicate property `meta' to query meta_predicate declarations.
+   
+ * ADDED: meta_predicate/2 as built-in.  The implementation still maps to
+   module_transparent.
+   
+ * TEST: Added some tests for new module-qualified calling
+   
+ * ENHANCED: Avoid uneeded checking in list_undefined/0
+   
+ * FIXED: Possible crash reporting incompatible saved state
+   
+ * FIXED: '$xr_member'(+,+) for multi-argument virtual machine instructions
+   
+ * FIXED: $xr_member(+, -) to deal with multiple solutions and multi-argument
+   virtual machine instructions
+   
+ * ADDED: compile <module>:<goal> if sufficiently instantated.  This change
+   adds two new virtual machine instructions: I_CALLM and I_DEPARTM.
+   
+ * MODIFIED: Using a variable and call(X) are now compiled to the same code
+   and decompilation always returns the call(X) form.
+   
+ * CLEANUP: Renamed pl-stream.h into its public version SWI-Stream.h
+   
+ * FIXED: asynchronous scanning of segmented stacks. This fixes findall during atom-garbage collection (multi-threaded applications only)
+   
+ * CLEANUP: Remove a lot of unused macros
+   
+ * PORT: Fixed compilation of all cleanup for Windows
+   
+ * CLEANUP: changed the implementation of fileerrors/2 to be based on Prolog
+   flags.  Moved fileerrors/2 to library(edinburgh) flagged as deprecated
+   and removed it from the system documentation.  This approach should not
+   break any code, but hopefully helps to burry this deep down :-)
+   
+ * CLEANUP: Moved handling of files into a new module pl-files.c
+   
+ * CLEANUP: type handling in time-related functions
+   
+ * CLEANUP: Replaced the internal naming of Prolog floats as `real' with more
+   intuitive naming based on the term `float'.
+   
+ * CLEANUP: Deleted support for Atari OS (__TOS__)
+   
+ * CLEANUP: Move engine fetching to pl-builtin.h and document it
+   
+ * CLEANUP: Add interface for quick list building for read_pending_input/3
+   
+ * CLEANUP: bool and deterministic return in pl-file.c
+   
+ * MODIFIED: Delete long deprecated PL_open_stream().  New code must use
+   PL_unify_stream() with the same arguments and semantics.
+   
+ * CLEANUP: Internal renaming of feature --> Prolog flag
+   
+ * CLEANUP: Start collecting private foreign interface functions in a new file
+   
+ * CLEANUP: Renamed internal pl-itf.h into SWI-Prolog.h
+   
+ * DELETED: The old < 2.5.x foreign language interface compatibility.
+   
+ * CLEANUP: remove last traces of SWI-Prolog type word from pl-file.c
+   
+ * CLEANUP: Use PRED_DEF interface to register all predicates in pl-file.c.
+   This is part of an effort to modularize pl-file.c and make it independent
+   from SWI-Prolog.
+   
+ * FIXED: Various fixes to $clause_term_position/3 (used to generate stack traces)
+   Keri Harris.
+   
+ * FIXED: Spaces around operators for characters in range 128..256
+   
+ * FIXED: Bug#385: Crash in message_queue_property/2 if there is no queue.
+   Akiduki Rindow.
+   
+ * CLEANUP: Separate hash-table header from the common include files
+   
+ * FIXED: Clause location information from program counter: wrong results
+   for PC inside \+/1 and possible crash.  Matt Lilley.
+   
+ * FIXED: wakeup issue in S_LIST and H_LIST_FF instructions.  Matt Lilley.
+   
+ * FIXED: Avoid returning temporary clauses for meta-calls.
+   
+ * FIXED: Actually preserve modified exception when using exception_hook/4.  Matt Lilley.
+   
+ * FIXED: arithmetic compilation for FirstVar is SmallInt - Var.  Mike Elston.
+   
+ * FIXED: FirstVar is X(+/-)Int for float(X).  Paulo Moura.
+   
+ * FIXED: Possible GC crash.  Item#455, Ulrich Neumerkel
+   
+ * FIXED: Item#446: Optimization of X==X where X is a `first-var'.  Ulrich Neumerkel.
+   
+ * FIXED: Blam :-)  Ulrich Neumerkel.
+   
+ * FIXED: Possible crash in the profiler.  Markus Triska.
+   
+ * FIXED: Possible crash on clauses with many variables.  Markus Triska.
+   
+ * FIXED: Issues with S_VIRGIN, causing problems with reloading predicates.  Markus Triska.
+   
+ * FIXED: failure to reset wakeup list.  Ulrich Neumerkel.
+   
+ * FIXED: Decompiler support for H_LIST_FF if it appears in the body
+   
+ * TBD: Added adding holes from sweeping the global marks, but this is more
+   difficult.  See NOTE before sweep_global_mark().
+   
+ * PORT: Avoid bool/false/true name conflict on MacOS X. Paulo Moura.
+   
+ * KERNEL: Introduced VIF_* flags to attribute instructions in codeTable[]
+   These flags will be used to generalise a number of tasks in the debugger
+   support predicates in pl-comp.c and the garbage collector.
+   
+ * FIXED: scan alternate clauses on S_NEXTCLAUSE.  Fixed GC interaction with length/2.
+   
+ * KERNEL: Added S_THREAD_LOCAL supervisor
+   
+ * KERNEL: Added the VIRGIN and UNDEF supervisors
+   
+ * KERNEL: Added A_ADD and A_MUL, bypassing the general function interface.
+   This patch also removes check_float() from the general routines and places
+   it in those functions that may cause floating point errors.
+   
+ * MODIFIED: Quintus/SICStus/etc compatibility mode of runtime statistics
+   now exclude GC time for compatibility reasons.
+   
+ * KERNEL: Added A_ADD_FC to deal with the common NewVar is Var+SmallInt case.
+   
+ * KERNEL: Added B_UNIFY_[FV]C specialised unify instructions
+   
+ * WIP: KERNEL: Added B_EQ_VC: test equivalence of variable against constant.
+   
+ * MODIFIED: Replaced stack_parameter/4 with set_prolog_stack/3.
+   
+ * KERNEL: Introduce B_EQ_VV: inline equivalence test for variables
+   
+ * KERNEL: Added instruction H_LIST_FF
+   
+ * KERNEL: Add Virtual Machine signature to saved states and qlf files
+   
+ * KERNEL: Added structure read/write mode to unification instructions.
+   
+ * KERNEL: Added S_LIST supervisor, dealing efficiently with predicates that
+   iterate lists.
+   
+       - Note that reindexDefinition sets the supervisor, but will make the
+       first call without any indexing.  This will be fixed using a virgin
+       supervisor.
+   
+ * KERNEL: Re-applied the S_TRUSTME supervisor to deal with single-clause preds.
+   
+ * KERNEL: Introduced A_FIRSTVAR_IS
+   
+ * KERNEL: Deleted VMI support for apply/2.  Apply/2 still works, but is now
+   defined in Prolog and much slower.   New code should use call/N.
+   
+ * KERNEL: Handle foreign predicates through the virtual machine.
+   This change introduces the `supervisor' as VM code associated to
+   the predicate.  It replaces callForeign() and the I_CALL_FV* that
+   where used for `quick-and-dirty' foreign calls.  The changes also
+   introduce a special extra frames for calls from C to isolate the
+   query-return from I_EXIT into I_EXITQUERY.
+   
 ================================
 VERSION 5.6.63 December 02, 2008
 ================================

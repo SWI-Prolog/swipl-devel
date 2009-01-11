@@ -38,6 +38,15 @@ allocCodes(size_t n)
 }
 
 
+static void
+freeCodes(Code codes)
+{ size_t size = (size_t)codes[-1];
+
+  if ( size > 0 )		/* 0: built-in, see initSupervisors() */
+    freeHeap(&codes[-1], (size+1)*sizeof(code));
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 freeCodesDefinition() destroys the supervisor of  a predicate, replacing
 it  by  the  statically  allocated  S_VIRGIN  supervisor.  Note  that  a
@@ -144,8 +153,8 @@ only clause of the predicate.  Creates
 	S_TRUSTME <ClauseRef>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-createSingleClauseSupervisor(Definition def)
+static Code
+singleClauseSupervisor(Definition def)
 { if ( def->number_of_clauses == 1 )
   { ClauseRef cref;
     Code codes = allocCodes(2);
@@ -157,11 +166,10 @@ createSingleClauseSupervisor(Definition def)
     codes[0] = encode(S_TRUSTME);
     codes[1] = (code)cref;
   
-    def->codes = codes;
-    succeed;
+    return codes;
   }
 
-  fail;
+  return NULL;
 }
 
 
@@ -177,8 +185,8 @@ The code is
 	S_LIST <nilclause> <listclause>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-createListSupervisor(Definition def)
+static Code
+listSupervisor(Definition def)
 { if ( def->number_of_clauses == 2 )
   { ClauseRef cref[2];
     word c[2];
@@ -201,14 +209,88 @@ createListSupervisor(Definition def)
 	codes[2] = (code)cref[0];
       }
 
-      def->codes = codes;
-      succeed;
+      return codes;
     }
   }
 
-  fail;
+  return NULL;
 }
 
+
+static Code
+multifileSupervisor(Definition def)
+{ if ( true(def, (DYNAMIC|MULTIFILE)) )
+  { if ( true(def, DYNAMIC) )
+      return SUPERVISOR(dynamic);
+    else
+      return SUPERVISOR(multifile);
+  }
+
+  return NULL;
+}
+
+
+static Code
+staticSupervisor(Definition def)
+{ return SUPERVISOR(staticp);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Prepend the already provided  supervisor   with  code  for meta-argument
+module qualifications.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+copySuperVisorCode(Buffer buf, Code add)
+{ size_t len = supervisorLength(add);
+
+  addMultipleBuffer(buf, add, len, code);
+}
+
+
+static void
+copyCodes(Code dest, Code src, size_t count)
+{ memcpy(dest, src, count*sizeof(code));
+}
+
+
+static Code
+chainMetaPredicateSupervisor(Definition def, Code post)
+{ if ( true(def, P_META) && true(def, P_TRANSPARENT) )
+  { tmp_buffer buf;
+    unsigned int i;
+    int count = 0;
+    Code codes;
+
+    initBuffer(&buf);
+    for(i=0; i < def->functor->arity; i++)
+    { int ma = MA_INFO(def, i);
+      
+      if ( ma <= 10 )			/* 0..9 or : */
+      { addBuffer(&buf, encode(S_MQUAL), code);
+	addBuffer(&buf, VAROFFSET(i), code);
+	count++;
+      }
+    }
+    assert(count>0);
+    baseBuffer(&buf, code)[(count-1)*2] = encode(S_LMQUAL);
+
+    copySuperVisorCode((Buffer)&buf, post);
+    freeCodes(post);
+    codes = allocCodes(entriesBuffer(&buf, code));
+    copyCodes(codes, baseBuffer(&buf, code), entriesBuffer(&buf, code));
+
+    return codes;
+  }
+
+  return post;
+}
+
+
+		 /*******************************
+		 *	      ENTRIES		*
+		 *******************************/
 
 int
 createUndefSupervisor(Definition def)
@@ -222,23 +304,23 @@ createUndefSupervisor(Definition def)
 }
 
 
-		 /*******************************
-		 *	      ENTRY		*
-		 *******************************/
-
 int
 createSupervisor(Definition def)
-{ if ( true(def, (DYNAMIC|MULTIFILE)) )
-    fail;
+{ Code codes;
 
   if ( createUndefSupervisor(def))
     succeed;
-  if ( createSingleClauseSupervisor(def) )
-    succeed;
-  if ( createListSupervisor(def) )
-    succeed;
 
-  fail;
+  if ( !((codes = multifileSupervisor(def)) ||
+	 (codes = singleClauseSupervisor(def)) ||
+	 (codes = listSupervisor(def)) ||
+	 (codes = staticSupervisor(def))) )
+  { fatalError("Failed to create supervisor for %s\n",
+	       predicateName(def));
+  }
+  def->codes = chainMetaPredicateSupervisor(def, codes);
+
+  succeed;
 }
 
 
@@ -249,12 +331,16 @@ createSupervisor(Definition def)
 size_t
 supervisorLength(Code base)
 { Code PC = base;
+  size_t len = (size_t)base[-1];
 
-  for(; decode(*PC) != I_EXIT; PC = stepPC(PC))
-    ;
-
-  PC++;					/* include I_EXIT */
-  return PC-base;
+  if ( len != 0 )
+  { return len;
+  } else
+  { for(; decode(*PC) != I_EXIT; PC = stepPC(PC))
+      ;
+    PC++;					/* include I_EXIT */
+    return PC-base;
+  }
 }
 
 
@@ -284,5 +370,8 @@ initSupervisors(void)
   MAKE_SV1(next_clause,	 S_NEXTCLAUSE);
   MAKE_SV1(virgin,	 S_VIRGIN);
   MAKE_SV1(undef,	 S_UNDEF);
+  MAKE_SV1(dynamic,      S_DYNAMIC);
   MAKE_SV1(thread_local, S_THREAD_LOCAL);
+  MAKE_SV1(multifile,    S_MULTIFILE);
+  MAKE_SV1(staticp,      S_STATIC);
 }

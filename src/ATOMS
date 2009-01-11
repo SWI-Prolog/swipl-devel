@@ -8,6 +8,7 @@
 # This file is processed using defatom, compiled from defatom.c to
 # produce pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.
 
+
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -121,8 +122,8 @@ A cut_exit		"cut_exit"
 A cut_parent		"cut_parent"
 A cutted		"cut"
 A date			"date"
-A dc_call_prolog	"$c_call_prolog"
 A db_reference		"db_reference"
+A dc_call_prolog	"$c_call_prolog"
 A dcall			"<meta-call>"
 A dcall_cleanup		"$call_cleanup"
 A dcatch		"$catch"
@@ -194,6 +195,7 @@ A exit			"exit"
 A exited		"exited"
 A exp			"exp"
 A export		"export"
+A exports		"exports"
 A exported		"exported"
 A expression		"expression"
 A externals		"externals"
@@ -333,6 +335,8 @@ A message		"message"
 A message_lines		"message_lines"
 A message_queue		"message_queue"
 A message_queue_property "message_queue_property"
+A meta_argument		"meta_argument"
+A meta_argument_specifier "meta_argument_specifier"
 A meta_predicate	"meta_predicate"
 A min			"min"
 A min_free		"min_free"
@@ -421,6 +425,7 @@ A protocol		"protocol"
 A prove			":-"
 A punct			"punct"
 A query			"?-"
+A question_mark		"?"
 A queue_option		"queue_option"
 A quiet			"quiet"
 A quote			"quote"
@@ -687,6 +692,7 @@ F exception		3
 F existence_error	2
 F exited		1
 F exp			1
+F exports		1
 F fail			0
 F failure_error		1
 F file			1

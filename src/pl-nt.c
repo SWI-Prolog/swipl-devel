@@ -39,7 +39,7 @@
 #include "pl-ctype.h"
 #include <stdio.h>
 #include <stdarg.h>
-#include "pl-stream.h"
+#include "SWI-Stream.h"
 #include <process.h>
 #include <winbase.h>
 

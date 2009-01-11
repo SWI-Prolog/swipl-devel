@@ -4497,11 +4497,11 @@ localiseDefinition(Definition def)
   int id = LD->thread.info->pl_tid;
 
   *local = *def;
-  local->codes = NULL;			/* TBD: dynamic supervisor */
   local->mutex = NULL;
   clear(local, P_THREAD_LOCAL);		/* remains DYNAMIC */
   local->definition.clauses = NULL;
   local->hash_info = NULL;
+  createSupervisor(local);
   
   if ( !def->definition.local ||
        id >= def->definition.local->size )

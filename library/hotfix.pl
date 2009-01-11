@@ -108,7 +108,7 @@ prolog_source_files(_) -->
 
 apply_hotfix(_HotfixDir, File) :-
 	file_module(File, Module),
-	current_module(Module, Loaded),
+	module_property(Module, file(Loaded)),
 	'$time_source_file'(Loaded, Time, _Type), !,
 	time_file(File, HotfixTime),
 	(   HotfixTime =\= Time

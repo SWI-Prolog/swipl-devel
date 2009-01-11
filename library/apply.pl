@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -33,7 +33,11 @@
 	  [ include/3,			% :Pred, +List, -Ok
 	    exclude/3,			% :Pred. +List, -NotOk
 	    partition/4,		% :Pred, +List, -Included, -Excluded
-	    partition/5			% :Pred, +List, ?Less, ?Equal, ?Greater
+	    partition/5,		% :Pred, +List, ?Less, ?Equal, ?Greater
+	    maplist/2,			% :Pred, +List
+	    maplist/3,			% :Pred, ?List, ?List
+	    maplist/4,			% :Pred, ?List, ?List, ?List
+	    maplist/5			% :Pred, ?List, ?List, ?List, ?List
 	  ]).
 :- use_module(library(error)).
 
@@ -45,20 +49,18 @@ members of a list.
 @see	apply_macros.pl provides compile-time expansion for part of this
 	library.
 @see	http://www.cs.otago.ac.nz/staffpriv/ok/pllib.htm
-@tbd	Move maplist/N from boot/apply.pl to here.
 @tbd	Add include/4, include/5, exclude/4, exclude/5
 */
 
-:- module_transparent
-	include/3,
-	include_/3,
-	exclude/3,
-	exclude_/3,
-	partition/4,
-	partition_/4,
-	partition/5,
-	partition_/5,
-	partition_/7.
+:- meta_predicate
+	include(1, +, -),
+	exclude(1, +, -),
+	partition(1, +, -, -),
+	partition(2, +, -, -, -),
+	maplist(1, ?),
+	maplist(2, ?, ?),
+	maplist(3, ?, ?, ?),
+	maplist(4, ?, ?, ?, ?).
 
 
 %%	include(:Goal, +List1, ?List2) is det.
@@ -142,3 +144,60 @@ partition_(Diff, _, _, _, _, _, _) :-
 	must_be(oneof([<.=,>]), Diff).
 	
 	
+		 /*******************************
+		 *	    MAPLIST/2...	*
+		 *******************************/
+
+%%	maplist(:Goal, ?List)
+%
+%	True if Goal can succesfully be applied on all elements of List.
+%	Arguments are reordered to gain performance as well as to make
+%	the predicate deterministic under normal circumstances.
+
+maplist(Goal, List) :-
+	maplist_(List, Goal).
+
+maplist_([], _).
+maplist_([Elem|Tail], Goal) :-
+	call(Goal, Elem), 
+	maplist_(Tail, Goal).
+
+%%	maplist(:Goal, ?List1, ?List2)
+%
+%	True if Goal can succesfully be applied to all succesive pairs
+%	of elements of List1 and List2.
+
+maplist(Goal, List1, List2) :-
+	maplist_(List1, List2, Goal).
+
+maplist_([], [], _).
+maplist_([Elem1|Tail1], [Elem2|Tail2], Goal) :-
+	call(Goal, Elem1, Elem2), 
+	maplist_(Tail1, Tail2, Goal).
+
+%%	maplist(:Goal, ?List1, ?List2, ?List3)
+%
+%	True if Goal can succesfully be applied to all succesive triples
+%	of elements of List1..List3.
+
+maplist(Goal, List1, List2, List3) :-
+	maplist_(List1, List2, List3, Goal).
+
+maplist_([], [], [], _).
+maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], Goal) :-
+	call(Goal, Elem1, Elem2, Elem3), 
+	maplist_(Tail1, Tail2, Tail3, Goal).
+
+
+%%	maplist(:Goal, ?List1, ?List2, ?List3, List4)
+%
+%	True if Goal  can  succesfully  be   applied  to  all  succesive
+%	quadruples of elements of List1..List4
+
+maplist(Goal, List1, List2, List3, List4) :-
+	maplist_(List1, List2, List3, List4, Goal).
+
+maplist_([], [], [], [], _).
+maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
+	call(Goal, Elem1, Elem2, Elem3, Elem4), 
+	maplist_(Tail1, Tail2, Tail3, Tail4, Goal).

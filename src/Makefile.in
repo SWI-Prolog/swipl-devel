@@ -240,7 +240,7 @@ def:		$(DEF)
 
 $(EXPORTS):	Makefile $(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL) > $@
-		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/pl-stream.h | \
+		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/SWI-Stream.h | \
 		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
 			   -e 's/.*[ 	*]\(S[a-zA-Z_]*\).*/\1/' | \
 		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
@@ -252,7 +252,7 @@ $(EXPORTS):	Makefile $(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 
 $(DEF):		$(srcdir)/SWI-Prolog.h
 		echo EXPORTS > $@
-		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/pl-stream.h | \
+		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/SWI-Stream.h | \
 		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
 			   -e 's/.*[ 	*]\(S[a-zA-Z_]*\).*/\1/' | \
 		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
@@ -262,8 +262,8 @@ $(DEF):		$(srcdir)/SWI-Prolog.h
 $(CINCLUDE):	$(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 		cp $(srcdir)/SWI-Prolog.h $(CINCLUDE)
 
-$(STREAMH):	$(srcdir)/pl-stream.h $(INCLUDEDIR)
-		cp $(srcdir)/pl-stream.h $@
+$(STREAMH):	$(srcdir)/SWI-Stream.h $(INCLUDEDIR)
+		cp $(srcdir)/SWI-Stream.h $@
 
 $(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
 		$(SED) 's/"SWI-Prolog.h"/<SWI-Prolog.h>/' $(srcdir)/pl-extend.c > $@

@@ -866,19 +866,53 @@ endCritical__LD(ARG1_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-signal(+Signal, :Old, :Handler)
-	Assign Handler to be called if signal arrises.  Example:
+on_signal(?SigNum, ?SigName, :OldHandler, :NewHandler)
 
-		signal(usr1, Old, handle_user_1/1).
+Assign NewHandler to be called if signal arrives.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-foreign_t
-pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
+static int
+get_meta_arg(term_t arg, term_t m, term_t t)
+{ if ( PL_is_functor(arg, FUNCTOR_colon2) )
+  { _PL_get_arg(1, arg, m);
+    _PL_get_arg(2, arg, t);
+    return TRUE;
+  }
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE,
+		  ATOM_meta_argument, arg);
+}
+
+
+static int
+get_module(term_t t, Module *m) 
+{ atom_t a;
+
+  if ( !PL_get_atom_ex(t, &a) )
+    return FALSE;
+  *m = PL_new_module(a);
+
+  return TRUE;
+}
+
+
+static
+PRED_IMPL("$on_signal", 4, on_signal, 0)
 { int sign = -1;
   SigHandler sh;
   char *sn;
   atom_t a;
-  Module m = NULL;
+  term_t mold = PL_new_term_ref();
+  term_t mnew = PL_new_term_ref();
+
+  term_t sig  = A1;
+  term_t name = A2;
+  term_t old  = A3;
+  term_t new  = A4;
+
+  if ( !get_meta_arg(old, mold, old) ||
+       !get_meta_arg(new, mnew, new) )
+    return FALSE;
 
   if ( PL_get_integer(sig, &sign) && sign >= 1 && sign <= MAXSIGNAL )
   { TRY(PL_unify_atom_chars(name, signal_name(sign)));
@@ -899,24 +933,18 @@ pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
   } else if ( sh->predicate )			/* call predicate */
   { Definition def = sh->predicate->definition;
 
-    if ( def->module == MODULE_user )
-    { TRY(PL_unify_atom(old, def->functor->name));
-    } else
-    { TRY(PL_unify_term(old,
-			PL_FUNCTOR, FUNCTOR_colon2,
-			   PL_ATOM, def->module->name, 
-			   PL_ATOM, def->functor->name));
-    }
+    if ( !PL_unify_atom(mold, def->module->name) ||
+	 !PL_unify_atom(old, def->functor->name) )
+      return FALSE;
   } else if ( sh->handler )
   { TRY(PL_unify_term(old,
 		      PL_FUNCTOR, FUNCTOR_foreign_function1,
 		      PL_POINTER, sh->handler));
   }    
 
-  if ( PL_compare(old, new) == 0 )
+  if ( PL_compare(old, new) == 0 &&
+       PL_compare(mold, mnew) == 0 )
     succeed;					/* no change */
-
-  PL_strip_module(new, &m, new);
 
   if ( PL_get_atom(new, &a) )
   { if ( a == ATOM_default )
@@ -927,7 +955,12 @@ pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
       sh->handler   = NULL;
       sh->predicate = NULL;
     } else
-    { predicate_t pred = lookupProcedure(PL_new_functor(a, 1), m);
+    { Module m;
+      predicate_t pred;
+
+      if ( !get_module(mnew, &m) )
+	return FALSE;
+      pred = lookupProcedure(PL_new_functor(a, 1), m);
       
       sh = prepareSignal(sign);
       clear(sh, PLSIG_THROW);
@@ -1949,4 +1982,5 @@ PRED_IMPL("set_prolog_stack", 3, set_prolog_stack, 0)
 
 BeginPredDefs(setup)
   PRED_DEF("set_prolog_stack", 3, set_prolog_stack, 0)
+  PRED_DEF("$on_signal", 4, on_signal, 0)
 EndPredDefs

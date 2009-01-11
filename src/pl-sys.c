@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -28,14 +28,19 @@
 #define MAXVARNAME 1024
 #endif
 
-word
-pl_shell(term_t command, term_t status)
+/** shell(+Command:text, -Status:integer) is det.
+
+Run an external command and wait for its completion.
+*/
+
+static
+PRED_IMPL("shell", 2, shell, 0)
 { char *cmd;
 
-  if ( PL_get_chars_ex(command, &cmd, CVT_ALL|REP_FN) )
+  if ( PL_get_chars_ex(A1, &cmd, CVT_ALL|REP_FN) )
   { int rval = System(cmd);
 
-    return PL_unify_integer(status, rval);
+    return PL_unify_integer(A2, rval);
   }
     
   fail;
@@ -122,3 +127,12 @@ word
 pl_get_pid(term_t pid)
 { return PL_unify_integer(pid, getpid());
 }
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(system)
+  PRED_DEF("shell", 2, shell, 0)
+EndPredDefs

@@ -1,3 +1,6 @@
+[Dec 19 2008]
+
+ * ADDED: Allow for stream(Stream) as target in rdf_save/2
 [Oct 8 2008]
 
  * MODIFIED: rdf_load/[1,2] now raises an existence_error if the input does not exist.

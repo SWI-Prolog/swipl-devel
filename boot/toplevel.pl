@@ -111,18 +111,19 @@
 		 *	 AT_INITIALISATION	*
 		 *******************************/
 
-:- module_transparent
-	at_initialization/1,
-	(initialization)/1.
+:- meta_predicate
+	at_initialization(0),
+	initialization(0).
 :- dynamic
 	'$at_initialization'/1.
 
-at_initialization(Spec) :-
-	strip_module(Spec, Module, Goal),
-	'$toplevel':assert('$at_initialization'(Module:Goal)).
+%%	at_initialization(:Goal)
+%
+%	Runs Goal after loading a saved state.
 
-'$run_at_initialization' :-
-	\+ current_prolog_flag(saved_program, true), !.
+at_initialization(Goal) :-
+	assert('$at_initialization'(Goal)).
+
 '$run_at_initialization' :-
 	(   '$at_initialization'(Goal),
 	    (   catch(Goal, E,
@@ -135,33 +136,38 @@ at_initialization(Spec) :-
 	),
 	'$thread_init'.
 
-%	initialization(+Goal)
+%%	initialization(+Goal)
 %
-%	Runs `Goal' both a load and initialization time.
+%	Runs `Goal' immediately and after loading a saved state.
 
 initialization(Goal) :-
 	at_initialization(Goal),
-	Goal.
+	call(Goal).
 
 
 		 /*******************************
 		 *     THREAD INITIALIZATION	*
 		 *******************************/
 
-:- module_transparent
-	(thread_initialization)/1.
+:- meta_predicate
+	thread_initialization(0).
 :- dynamic
 	'$at_thread_initialization'/1.
 
-thread_initialization(Spec) :-
-	strip_module(Spec, Module, Goal),
-	'$toplevel':assert('$at_thread_initialization'(Module:Goal)),
-	Spec.
+%%	thread_initialization(:Goal)
+%
+%	Run Goal now and everytime a new thread is created. 
+
+thread_initialization(Goal) :-
+	assert('$at_thread_initialization'(Goal)),
+	call(Goal), !.
 
 '$thread_init' :-
 	(   '$at_thread_initialization'(Goal),
-	    Goal,
-	    fail
+	    (	call(Goal)
+	    ->	fail
+	    ;	fail
+	    )
 	;   true
 	).
 
@@ -366,8 +372,8 @@ initialise_prolog :-
 	print_message(informational, break(exit(New))),
 	flag('$break_level', _, Old), !.
 
-:- '$hide'('$toplevel', 0).			% avoid in the GUI stacktrace
-:- '$hide'('$abort', 0).			% same after an abort
+:- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
+:- '$hide'('$abort'/0).			% same after an abort
 
 '$toplevel' :-
 	'$runtoplevel',

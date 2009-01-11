@@ -711,7 +711,7 @@ pl_hash(term_t pred)
 
     if ( true(def, FOREIGN) )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		      ATOM_hash, ATOM_foreign, def);
+		      ATOM_hash, ATOM_foreign, proc);
 
     LOCKDEF(def);
     indexDefinition(def, 0x1L);		/* index in 1st argument */

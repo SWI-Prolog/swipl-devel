@@ -883,7 +883,7 @@ abolishProcedure(Procedure proc, Module module)
   { UNLOCKDEF(def);
     endCritical;
     return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		    ATOM_modify, ATOM_thread_local_procedure, def);
+		    ATOM_modify, ATOM_thread_local_procedure, proc);
   } else				/* normal Prolog procedure */
   { removeClausesProcedure(proc, 0, FALSE);
 
@@ -1232,6 +1232,151 @@ resetReferences(void)
   for_unlocked_table(GD->tables.modules, s,
 		     resetReferencesModule((Module) s->value));
   UNLOCK();
+}
+
+
+		 /*******************************
+		 *	  META PREDICATE	*
+		 *******************************/
+
+/** meta_predicate :HeadList is det.
+
+Quintus compatible declaration  for   meta-predicates.  The  declaration
+fills the meta_info field of a  definition   as  well  as the P_META and
+P_TRANSPARENT  flags.  P_META  indicates  that    meta_info   is  valid.
+P_TRANSPARENT indicates that  the  declaration   contains  at  least one
+meta-argument (: or 0..9).
+
+@param HeadList	Comma separated list of predicates heads, where each
+		predicate head has arguments 0..9, :,+,-,?
+*/
+
+static int
+meta_declaration(term_t spec)
+{ GET_LD
+  term_t head = PL_new_term_ref();
+  term_t arg = PL_new_term_ref();
+  Procedure proc;
+  Definition def;
+  atom_t name;
+  int i, arity;
+  int mask = 0;
+  int transparent = FALSE;
+
+  if ( !get_procedure(spec, &proc, head, GP_DEFINE) )
+    return FALSE;
+
+  PL_get_name_arity(head, &name, &arity);
+  if ( arity > (int)sizeof(mask)*2 )
+    return PL_error(NULL, 0, "max arity of meta predicates is 8",
+		    ERR_REPRESENTATION, ATOM_max_arity);
+  for(i=0; i<arity; i++)
+  { atom_t ma;
+
+    _PL_get_arg(i+1, head, arg);
+
+    if ( PL_is_integer(arg) )
+    { int e;
+      
+      if ( !PL_get_integer_ex(arg, &e) )
+	return FALSE;
+      if ( e < 0 || e > 9 )
+      { domain_error:
+	return PL_error(NULL, 0, "0..9",
+			ERR_DOMAIN, ATOM_meta_argument_specifier, arg);
+      }
+      mask |= e<<(i*4);
+      transparent = TRUE;
+    } else if ( PL_get_atom(arg, &ma) )
+    { int m;
+
+      if      ( ma == ATOM_plus ) m = MA_NONVAR;
+      else if ( ma == ATOM_minus ) m = MA_VAR;
+      else if ( ma == ATOM_question_mark ) m = MA_ANY;
+      else if ( ma == ATOM_colon ) m = MA_META, transparent = TRUE;
+      else goto domain_error;
+	
+      mask |= m<<(i*4);
+    } else
+    { return PL_error(NULL, 0, "0..9",
+			ERR_TYPE, ATOM_meta_argument_specifier, arg);;
+    }
+  }
+
+  def = proc->definition;
+  def->meta_info = mask;
+  if ( transparent )
+    set(def, P_TRANSPARENT);
+  else
+    clear(def, P_TRANSPARENT);
+  set(def, P_META);
+
+  return TRUE;
+}
+
+
+static
+PRED_IMPL("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
+{ PRED_LD
+  term_t tail = PL_copy_term_ref(A1);
+  term_t head = PL_new_term_ref();
+
+  while ( PL_is_functor(tail, FUNCTOR_comma2) )
+  { _PL_get_arg(1, tail, head);
+    if ( !meta_declaration(head) )
+      return FALSE;
+    _PL_get_arg(2, tail, tail);
+  }
+
+  if ( !meta_declaration(tail) )
+    return FALSE;
+
+  return TRUE;
+}
+
+
+static int
+unify_meta_argument(term_t head, Definition def, int i)
+{ GET_LD
+  term_t arg = PL_new_term_ref();
+  int m = MA_INFO(def, i);
+
+  _PL_get_arg(i+1, head, arg);
+  if ( m < 10 )
+  { return PL_unify_integer(arg, m);
+  } else
+  { atom_t a;
+
+    switch(m)
+    { case MA_META:	a = ATOM_colon; break;	
+      case MA_VAR:	a = ATOM_minus; break;
+      case MA_ANY:	a = ATOM_question_mark; break;
+      case MA_NONVAR:	a = ATOM_plus; break;
+      default:		a = NULL_ATOM; assert(0);
+    }
+
+    return PL_unify_atom(arg, a);
+  }
+}
+
+
+static int
+unify_meta_pattern(Procedure proc, term_t head)
+{ Definition def = proc->definition;
+
+  if ( PL_unify_functor(head, def->functor->functor) )
+  { int arity = def->functor->arity;
+    int i;
+
+    for(i=0; i<arity; i++)
+    { if ( !unify_meta_argument(head, def, i) )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
@@ -1881,7 +2026,7 @@ attribute_mask(atom_t key)
   if (key == ATOM_trace_fail)	 return TRACE_FAIL;
   if (key == ATOM_trace_any)	 return TRACE_ANY;
   if (key == ATOM_hide_childs)	 return HIDE_CHILDS;
-  if (key == ATOM_transparent)	 return METAPRED;
+  if (key == ATOM_transparent)	 return P_TRANSPARENT;
   if (key == ATOM_discontiguous) return DISCONTIGUOUS;
   if (key == ATOM_volatile)	 return VOLATILE;
   if (key == ATOM_thread_local)  return P_THREAD_LOCAL;
@@ -1922,6 +2067,10 @@ pl_get_predicate_attribute(term_t pred,
   { if ( def->indexPattern == 0x0 )
       fail;
     return unify_index_pattern(proc, value);
+  } else if ( key == ATOM_meta_predicate )
+  { if ( false(def, P_META) )
+      fail;
+    return unify_meta_pattern(proc, value);
   } else if ( key == ATOM_exported )
   { return PL_unify_integer(value, isPublicModule(module, proc));
   } else if ( key == ATOM_defined )
@@ -2298,7 +2447,7 @@ pl_index(term_t pred)
 
     if ( true(def, FOREIGN) )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		      ATOM_index, PL_new_atom("foreign_procedure"), def);
+		      ATOM_index, PL_new_atom("foreign_procedure"), proc);
 
     if ( arity > 0 )
     { unsigned long pattern = 0x0;
@@ -2958,6 +3107,7 @@ pl_list_generations(term_t desc)
 		 *******************************/
 
 BeginPredDefs(proc)
+  PRED_DEF("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
   PRED_DEF("retract", 1, retract, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)

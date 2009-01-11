@@ -1918,6 +1918,7 @@ that can be done at compile-time.
 
 
 \input{httppath}
+\input{htmlhead}
 
 \subsection{Security}
 

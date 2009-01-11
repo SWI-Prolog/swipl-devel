@@ -117,10 +117,9 @@ following consequences:
 %	       be used. In particular, do not pass the detached or alias
 %	       options.
 
-concurrent(1, Goals, _) :- !,
-	maplist(call, Goals).
-concurrent(N, Goals, Options) :-
-	strip_module(Goals, M, List),
+concurrent(1, M:List, _) :- !,
+	maplist(M:call, List).
+concurrent(N, M:List, Options) :-
 	current_prolog_flag(max_threads, MaxThreads),
 	Max is MaxThreads - 1,		% TBD: actually - already running
 	must_be(between(1, Max), N),
@@ -282,8 +281,7 @@ join_all([Id|T]) :-
 %		solutions are needed wrap the solvers in findall/3.
 
 
-first_solution(X, Goals, Options) :-
-	strip_module(Goals, M, List),
+first_solution(X, M:List, Options) :-
 	message_queue_create(Done),
 	thread_options(Options, ThreadOptions, RestOptions),
 	length(List, JobCount),

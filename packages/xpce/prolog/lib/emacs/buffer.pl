@@ -64,8 +64,10 @@ class_variable(newline_existing_file, {posix,dos,detect}, detect).
 class_variable(newline_new_file,      {posix,dos},        posix).
 :- if(current_prolog_flag(windows, true)).
 class_variable(newline_new_file,      {posix,dos},        dos).
+class_variable(unicode_encoding,      {utf8,unicode_le,unicode_be}, unicode_le).
 :- else.
 class_variable(newline_new_file,      {posix,dos},        posix).
+class_variable(unicode_encoding,      {utf8,unicode_le,unicode_be}, utf8).
 :- endif.
 
 initialise(B, File:file*, Name:[name]) :->
@@ -309,14 +311,32 @@ save(B, File:[file]) :->
 	).
 
 
-do_save(B, SaveFile:file) :->
+do_save(B, SaveFile:file, Start:[int], Length:[int]) :->
 	"Do the actual saving"::
-	send(B, send_super, save, SaveFile).
+	get(B, unicode_encoding, FallBackEncoding),
+	(   pce_catch_error(io_error,
+			    send_super(B, save, SaveFile, Start, Length))
+	->  true
+	;   get(SaveFile, encoding, Encoding),
+	    Encoding \== FallBackEncoding
+	->  send(SaveFile, encoding, FallBackEncoding),
+	    send(SaveFile, bom, @on),
+	    send_super(B, save, SaveFile, Start, Length),
+	    once(user_encoding(FallBackEncoding, UserEnc)),
+	    send(B, report, warning,
+		 'Could not save using default locale; saved using %s', UserEnc)
+	;   send_super(B, save, SaveFile, Start, Length)
+	).
+
+user_encoding(utf8, 'UTF-8').
+user_encoding(unicode_le, 'UTF-16 (little endian)').
+user_encoding(unicode_be, 'UTF-16 (big endian)').
+user_encoding(Enc, Enc).
 
 
 write_region(B, File:file, Start:int, Length:int) :->
 	"Wrote region to file (start, length)"::
-	send(B, send_super, save, File, Start, Length).
+	send(B, do_save, File, Start, Length).
 
 
 save_if_modified(B, Confirm:[bool]) :->

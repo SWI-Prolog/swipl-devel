@@ -174,4 +174,3 @@ unifyDiffList(term_t head, term_t tail, list_ctx *ctx)
 
   return TRUE;
 }
-

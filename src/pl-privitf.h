@@ -27,6 +27,8 @@
 
 COMMON(int) 	PL_get_char(term_t c, int *p, int eof);
 COMMON(int) 	PL_unify_char(term_t chr, int c, int mode);
+COMMON(int)	PL_unify_predicate(term_t head, predicate_t pred, int how);
+
 
 
 		 /*******************************

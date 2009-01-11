@@ -162,8 +162,8 @@ index:
 $(CINCLUDE):	$(OUTDIRS) SWI-Prolog.h
 		copy SWI-Prolog.h $@
 
-$(STREAMH):	pl-stream.h $(INCLUDEDIR)
-		copy pl-stream.h $@
+$(STREAMH):	SWI-Stream.h $(INCLUDEDIR)
+		copy SWI-Stream.h $@
 
 $(OBJ):		pl-vmi.h
 pl-funct.obj:	pl-funct.ih

@@ -151,7 +151,6 @@ suggest predicates from a keyword.
 \predicatesummary{current_input}{1}{Get current input stream}
 \predicatesummary{current_key}{1}{Examine existing database keys}
 \predicatesummary{current_module}{1}{Examine existing modules}
-\predicatesummary{current_module}{2}{Examine existing modules}
 \predicatesummary{current_op}{3}{Examine current operator declarations}
 \predicatesummary{current_output}{1}{Get the current output stream}
 \predicatesummary{current_predicate}{1}{Examine existing predicates (ISO)}
@@ -174,7 +173,6 @@ suggest predicates from a keyword.
 \predicatesummary{debug_control_hook}{1}{\hook{prolog} Extend spy/1, etc.}
 \predicatesummary{debugging}{0}{Show debugger status}
 \predicatesummary{debugging}{1}{Test where we are debugging topic}
-\predicatesummary{default_module}{2}{Get the default modules of a module}
 \predicatesummary{del_attr}{2}{Delete attribute from variable}
 \predicatesummary{delete_directory}{1}{Remove a folder from the file system}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
@@ -214,7 +212,6 @@ suggest predicates from a keyword.
 \predicatesummary{explain}{1}{\pllib{explain} Explain argument}
 \predicatesummary{explain}{2}{\pllib{explain} 2nd argument is explanation of first}
 \predicatesummary{export}{1}{Export a predicate from a module}
-\predicatesummary{export_list}{2}{List of public predicates of a module}
 \predicatesummary{fail}{0}{Always false}
 \predicatesummary{false}{0}{Always false}
 \predicatesummary{fail}{1}{Immediately fail named block. See block/3}
@@ -318,9 +315,6 @@ suggest predicates from a keyword.
 \predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl}
 \predicatesummary{map_assoc}{2}{Map association tree}
 \predicatesummary{map_assoc}{3}{Map association tree}
-\predicatesummary{maplist}{2}{Apply predicate on all elements}
-\predicatesummary{maplist}{3}{Map elements pairwise}
-\predicatesummary{maplist}{4}{Map triples of elements}
 \predicatesummary{max_assoc}{3}{Highest key in association tree}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{merge}{3}{Merge two sorted lists}

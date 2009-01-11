@@ -28,7 +28,7 @@ library. Existence of this  this  library   is  detected  by  configure.
 Binding is achieved by rebinding the read function of the Sinput stream. 
 
 This  module  only  depends  on  the  public  interface  as  defined  by
-SWI-Prolog.h (SWI-Prolog.h) and SWI-Stream.h (pl-stream.h).
+SWI-Prolog.h and SWI-Stream.h
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -37,7 +37,7 @@ SWI-Prolog.h (SWI-Prolog.h) and SWI-Stream.h (pl-stream.h).
 #endif
 #include <string.h>
 #include <stdlib.h>
-#include "pl-stream.h"
+#include "SWI-Stream.h"
 #include "SWI-Prolog.h"
 
 #ifdef __WINDOWS__

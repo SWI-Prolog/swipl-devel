@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -51,10 +51,15 @@ expand_query(Query, Expanded, Bindings, ExpandedBindings) :-
 
 
 print_query(Query, Bindings) :-
-	maplist(call, Bindings),
+	bind_vars(Bindings),
 	writeq(Query), write('.'), nl,
-	fail.
+	fail.				% undo bind_vars/2.
 print_query(_, _).
+
+bind_vars([]).
+bind_vars([Name=Value|Rest]) :-
+	Name = Value,
+	bind_vars(Rest).
 
 
 expand_vars(_, Var, Var) :-

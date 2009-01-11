@@ -87,6 +87,21 @@
 		- Coroutining wakeup	[OK]
 
 ================================================================
+---++ Meta predicates:
+
+	- Fast module:callable calls	[OK]
+		- Resolve to target
+		- Set context to <module>
+		- I_CALLM <m> <pred>
+	- Proper :- meta_predicate directive implementation
+		- Use transparent
+		- Mark meta-arguments (part of supervisor)
+			- S_META <N>
+		- Reset context to definition module.
+		- Can we `chain' supervisors?  I.e.:
+			S_META <n>, S_LASTMETA <n>, S_VIRGIN
+
+================================================================
 ---++ Testing and debugging:
 
  * Verify clear/mark of all new instructions.  This can be done

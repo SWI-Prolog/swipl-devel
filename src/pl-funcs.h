@@ -399,9 +399,6 @@ COMMON(void) 		resetForeign(void);
 COMMON(word) 		pl_length(term_t list, term_t l);
 
 /* pl-load.c */
-COMMON(word) 		pl_open_shared_object(term_t file, term_t h, term_t flags);
-COMMON(word) 		pl_close_shared_object(term_t plhandle);
-COMMON(word) 		pl_call_shared_object_function(term_t plhandle, term_t name);
 COMMON(word) 		pl_load_shared_object(term_t file, term_t entry);
 COMMON(void)		cleanupForeign(void);
 
@@ -417,7 +414,6 @@ COMMON(word) 		pl_current_module(term_t module, term_t file, control_t h);
 COMMON(word) 		pl_module(term_t old, term_t new);
 COMMON(word) 		pl_set_source_module(term_t old, term_t new);
 COMMON(word) 		pl_declare_module(term_t name, term_t file, term_t line);
-COMMON(word) 		pl_export_list(term_t modulename, term_t list);
 COMMON(word) 		pl_check_export(void);
 COMMON(word) 		pl_context_module(term_t module);
 COMMON(word) 		pl_import(term_t pred);
@@ -629,7 +625,6 @@ COMMON(void) 		install_rl(void);
 /* pl-setup.c */
 COMMON(void) 		setupProlog(void);
 COMMON(void)		endCritical__LD(ARG1_LD);
-COMMON(foreign_t) 	pl_on_signal(term_t sig, term_t name, term_t old, term_t new);
 COMMON(handler_t) 	set_sighandler(int sig, handler_t func);
 COMMON(void) 		blockSignals(sigset_t *mask);
 COMMON(void) 		allSignalMask(sigset_t *set);
