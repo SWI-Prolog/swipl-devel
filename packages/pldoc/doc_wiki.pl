@@ -104,6 +104,8 @@ take_par(Lines, List, Rest) :-
 take_par([N-['|'|RL1]|LT], table(class=wiki, [tr(R0)|RL]), Rest) :-
 	phrase(row(R0), RL1),
 	rest_table(LT, N, RL, Rest), !.
+take_par([_-[@|_]], _, _) :- !,		% starts @tags section
+	fail.
 take_par([_-L1|LT], Section, LT) :-
 	section_line(L1, Section), !.
 take_par([_-L1|LT], p(Par), Rest) :- !,
@@ -341,7 +343,7 @@ tags(Lines, Tags) :-
 	pairs_values(Tags1, Tags2),
 	combine_tags(Tags2, Tags).
 
-%%	collect_tags(+IndentedLines, -Tags) is det
+%%	collect_tags(+IndentedLines, -Tags) is semidet
 %
 %	Create a list Order-tag(Tag,Tokens) for   each @tag encountered.
 %	Order is the desired position as defined by tag_order/2.
