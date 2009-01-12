@@ -261,3 +261,8 @@ a.prolog_version
 { font-style: italic;
   font-size: 70%;
 }
+
+
+code.nofile				# non-existing file-link
+{ color: red;
+}

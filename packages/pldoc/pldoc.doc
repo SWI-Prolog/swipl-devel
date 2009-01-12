@@ -420,8 +420,6 @@ PceEmacs can be set as default editor using
 \tt\chr{<}url\chr{>} & Create a hyperlink to URL. \\
 \tt Word	& Capitalised words that appear as argument-name
 		  are written in \arg{Italic} \\
-\tt $Word: CVS$ & CVS expanded keyword.  Typeset as the plain
-		  keyword value. \\
 \end{tabular}
 \end{center}
 

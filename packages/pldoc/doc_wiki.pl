@@ -550,25 +550,25 @@ wiki_face(\predref(Name//Arity), _) -->
 	{ functor_name(NameS), !,
 	  string_to_atom(NameS, Name)
 	}.
-wiki_face(span(class=cvs, CVS), _) -->
-	[$, Word, :], {string(Word)}, wiki_faces(CVS0, []), [$], !,
-	{ strip_ws_tokens(CVS0, CVS) }.
-wiki_face(\include(Name, Type), _) -->
+wiki_face(\include(Name, Type, Options), _) -->
 	['[','['], file_name(Base, Ext), [']',']'],
 	{ autolink_extension(Ext, Type),
-	  file_name_extension(Base, Ext, Name)
+	  file_name_extension(Base, Ext, Name), !,
+	  resolve_file(Name, Options)
 	}, !.
-wiki_face(\file(Name), _) -->
+wiki_face(\file(Name, Options), _) -->
 	file_name(Base, Ext),
 	{ file_name_extension(Base, Ext, Name),
 	  (   autolink_file(Name, _)
 	  ;   autolink_extension(Ext, _)
-	  ), !
+	  ), !,
+	  resolve_file(Name, Options)
 	}.
-wiki_face(\file(Name), _) -->
+wiki_face(\file(Name, Options), _) -->
 	word_token(NameS),
 	{ autolink_file(Name, _),
-	  sub_atom(NameS, 0, _, 0, Name)
+	  sub_atom(NameS, 0, _, 0, Name), !,
+	  resolve_file(Name, Options)
 	}, !.
 wiki_face(a(href=Ref, Ref), _) -->
 	word_token(ProtS), [:,/,/], { url_protocol(ProtS) },
@@ -612,6 +612,26 @@ file_extension(Ext) -->
 	{ concat_atom([String], Ext),
 	  autolink_extension(Ext, _)
 	}.
+
+
+%%	resolve_file(+Name, -Options) is det.
+%
+%	Find the actual file based on the pldoc_file global variable. If
+%	present  and  the   file   is    resolvable,   add   an   option
+%	absolute_path(Path) that reflects the current   location  of the
+%	file.
+
+resolve_file(Name, Options) :-
+	nb_current(pldoc_file, RelativeTo),
+	RelativeTo \== [],
+	absolute_file_name(Name, Path,
+			   [ relative_to(RelativeTo),
+			     access(read),
+			     file_errors(fail)
+			   ]), !,
+	Options = [ absolute_path(Path) ].
+resolve_file(_, []).
+
 
 %%	word_token(-Word:string)// is semidet.
 %
