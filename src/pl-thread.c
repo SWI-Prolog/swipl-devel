@@ -2680,16 +2680,16 @@ PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
   qprop_enum statebuf;
   qprop_enum *state;
 
-  if ( !queueTable )
-    return FALSE;
-
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { memset(&statebuf, 0, sizeof(statebuf));
       state = &statebuf;
 
       if ( PL_is_variable(queue) )
-      { switch( get_prop_def(property, ATOM_message_queue_property,
+      { if ( !queueTable )
+	  return FALSE;
+
+	switch( get_prop_def(property, ATOM_message_queue_property,
 			     qprop_list, &state->p) )
 	{ case 1:
 	    state->e = newTableEnum(queueTable);
