@@ -193,7 +193,10 @@ find_predicate(Module, C, Name, Arity, Pack) :-
 	unqualify_if_context(C, Dwim, PredName),
 	'$confirm'(dwim_correct(PredName)), !.
 
-unqualify_if_context(C, C:X, X) :- !.
+unqualify_if_context(_, X, X) :-
+	var(X), !.
+unqualify_if_context(C, C2:X, X) :-
+	C == C2, !.
 unqualify_if_context(_, X, X) :- !.
 
 %%	pack(+Heads, +Context, -Packs)
