@@ -69,8 +69,11 @@ correct_goal((A;B), M, Bindings, (NA;NB)) :- !,
 correct_goal(\+(A), M, Bindings, \+(NA)) :- !,
 	'$dwim_correct_goal'(M:A, Bindings, NA).
 correct_goal(Module:Goal, _, _, Module:Goal) :-
-	var(Module), !.
-correct_goal(Goal, M, _, M:Goal) :-		% is defined
+	(   var(Module)
+	;   var(Goal)
+	;   current_predicate(_, Module:Goal)
+	), !.
+correct_goal(Goal, M, _, Goal) :-		% is defined
 	current_predicate(_, M:Goal), !.
 correct_goal(Goal, M, Bindings, NewGoal) :-	% correct the goal
 	dwim_predicate_list(M:Goal, DWIMs0), !,
