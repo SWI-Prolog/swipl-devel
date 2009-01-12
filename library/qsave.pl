@@ -326,6 +326,8 @@ save_module(M, SaveClass) :-
 	
 pred_attrib(indexed(Term), Head, index(M:Term)) :- !,
 	    strip_module(Head, M, _).
+pred_attrib(meta_predicate(Term), Head, meta_predicate(M:Term)) :- !,
+	    strip_module(Head, M, _).
 pred_attrib(Attrib, Head, '$set_predicate_attribute'(M:Name/Arity, AttName, Val)) :-
 	attrib_name(Attrib, AttName, Val),
 	strip_module(Head, M, Term),
