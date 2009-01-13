@@ -312,7 +312,7 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 	flag('$compiling', OldComp, database),
 	(   Module == LoadModule
 	->  ensure_loaded(Module:Library)
-	;   (   '$c_current_predicate'(_, LoadModule:Head)
+	;   (   '$get_predicate_attribute'(LoadModule:Head, defined, 1)
 	    ->	Module:import(LoadModule:Head)
 	    ;	use_module(Module:Library, [Name/Arity])
 	    )
