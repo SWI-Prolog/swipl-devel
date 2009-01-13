@@ -10,15 +10,15 @@ This is an internal developers  module   to  manage  the virtual machine
 instructions.
 */
 
-:- module_transparent
-	vm_list/1.
+:- meta_predicate
+	vm_list(:).
 
 %%	vm_list(:Spec) is det.
 %
 %	Lists  the  definition  of  the   predicates  matching  Spec  to
 %	=current_output=. Spec is also allowed to be a clause-reference.
 
-vm_list(Ref) :-
+vm_list(_:Ref) :-
 	integer(Ref), !,
 	(   nth_clause(_Head, N, Ref),
 	    format('~40c~nclause ~d (~d):~n~40c~n', [0'-, N, Ref, 0'-]),
@@ -28,7 +28,8 @@ vm_list(Ref) :-
 	).
 vm_list(Spec) :-
 	'$find_predicate'(Spec, List),
-	(   member(Head, List),
+	(   member(PI, List),
+	    pi_to_head(PI, Head),
 	    unify_args(Head, Spec),
 	    predicate_name(Head, Name),
 	    format('~72c~n~w~n~72c~n', [0'=, Name, 0'=]),
@@ -47,6 +48,11 @@ vm_list(Spec) :-
 	    fail
 	;   true
 	).
+
+pi_to_head(M:PI, M:Head) :- !,
+	pi_to_head(PI, Head).
+pi_to_head(Name/Arity, Head) :-
+	functor(Head, Name, Arity).
 
 vm_list_clause(Clause) :-
 	vm_list_clause(Clause, 0).
