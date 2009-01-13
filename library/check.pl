@@ -121,15 +121,18 @@ find_references([H|T0], [H-Refs|T]) :-
 find_references([_|T0], T) :-
 	find_references(T0, T).
 
-%%	referenced(+Predicate, ?Module, -ClauseRef)
+%%	referenced(+Predicate, ?Module, -ClauseRef) is nondet.
 %
-%	True if Clause ClauseRef references Predicate.
+%	True if clause ClauseRef references Predicate.
 
 referenced(Term, Module, Ref) :-
-	current_predicate(_, Module:Head),
-	\+ predicate_property(Module:Head, built_in),
-	\+ predicate_property(Module:Head, imported_from(_)),
-	nth_clause(Module:Head, _, Ref),
+	Goal = Module:_Head,
+	current_predicate(_, Goal),
+%	\+ predicate_property(Goal, built_in),
+%	\+ predicate_property(Goal, imported_from(_)),
+	'$get_predicate_attribute'(Goal, system, 0),
+	\+ '$get_predicate_attribute'(Goal, imported, _),
+	nth_clause(Goal, _, Ref),
 	'$xr_member'(Ref, Term).
 
 %%	list_autoload

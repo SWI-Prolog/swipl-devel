@@ -39,9 +39,9 @@
 %:- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
-	listing/0, 
-	listing/1, 
-	list_predicates/2.
+	listing/0.
+:- meta_predicate
+	listing(:).
 
 :- multifile
 	prolog:locate_clauses/2.	% +Spec, -ClauseRefList
@@ -95,10 +95,12 @@ list_clauserefs(Ref) :-
 	clause(Head, Body, Ref),
 	portray_clause((Head :- Body)).
 
+%%	list_predicates(:Preds:list(pi), +Spec) is det.
 
-list_predicates(Preds, X) :-
+list_predicates(PIs, X) :-
 	context_module(Context),
-	member(Pred, Preds),
+	member(PI, PIs),
+	pi_to_head(PI, Pred),
 	unify_args(Pred, X),
 	'$define_predicate'(Pred),
 	strip_module(Pred, Module, Head), 
@@ -106,6 +108,12 @@ list_predicates(Preds, X) :-
 	nl,
         fail.
 list_predicates(_, _).
+
+pi_to_head(M:PI, M:Head) :- !,
+	pi_to_head(PI, Head).
+pi_to_head(Name/Arity, Head) :-
+	functor(Head, Name, Arity).
+
 
 %	Unify the arguments of the specification with the given term,
 %	so we can partially instantate the head.

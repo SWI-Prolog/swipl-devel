@@ -174,7 +174,8 @@ trace(Pred, Ports) :-
 	'$find_predicate'(Pred, Preds),
 	Preds \== [],
 	set_prolog_flag(debug, true),
-	(   '$member'(Head, Preds),
+	(   '$member'(PI, Preds),
+	        pi_to_head(PI, Head),
 	        (   Head = _:_
 		->  QHead0 = Head
 		;   QHead0 = user:Head
@@ -246,7 +247,8 @@ spy(Spec) :-
 	prolog:debug_control_hook(spy(Spec)), !.
 spy(Spec) :-
 	'$find_predicate'(Spec, Preds),
-	'$member'(Head, Preds),
+	'$member'(PI, Preds),
+	    pi_to_head(PI, Head),
 	    '$define_predicate'(Head),
 	    '$spy'(Head),
 	fail.
@@ -263,7 +265,8 @@ nospy(Spec) :-
 	prolog:debug_control_hook(nospy(Spec)), !.
 nospy(Spec) :-
 	'$find_predicate'(Spec, Preds),
-	'$member'(Head, Preds),
+	'$member'(PI, Preds),
+	     pi_to_head(PI, Head),
 	    '$nospy'(Head),
 	fail.
 nospy(_).
@@ -276,6 +279,11 @@ nospyall :-
 	    '$nospy'(Head),
 	fail.
 nospyall.
+
+pi_to_head(M:PI, M:Head) :- !,
+	pi_to_head(PI, Head).
+pi_to_head(Name/Arity, Head) :-
+	functor(Head, Name, Arity).
 
 %%	debugging is det.
 %
@@ -477,8 +485,9 @@ current_predicate(Name, Module:Head) :-
 
 generate_current_predicate(Name, Module, Head) :-
 	current_module(Module),
-	'$c_current_predicate'(Name, Module:Head),
-	'$defined_predicate'(Module:Head).
+	QHead = Module:Head,
+	'$c_current_predicate'(Name, QHead),
+	'$get_predicate_attribute'(QHead, defined, 1).
 
 '$defined_predicate'(Head) :-
 	'$get_predicate_attribute'(Head, defined, 1), !.

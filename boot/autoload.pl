@@ -81,13 +81,13 @@
 	library_index(Head, _, Path),
 	functor(Head, Name, Arity).
 
-%%	'$define_predicate'(+Head)
+%%	'$define_predicate'(:Head)
 %
-%	Make sure pred can be called.  First test if the predicate is
-%	defined.  If not, invoke the autoloader.
+%	Make sure PredInd can be called. First  test if the predicate is
+%	defined. If not, invoke the autoloader.
 
 :- meta_predicate
-	'$define_predicate'(0).
+	'$define_predicate'(:).
 
 '$define_predicate'(Head) :-
 	'$defined_predicate'(Head), !.

@@ -68,8 +68,7 @@ correct_goal(Goal0, M, Bindings, M:Goal) :-	% is defined
 	correct_meta_arguments(Goal0, M, Bindings, Goal).
 correct_goal(Goal0, M, Bindings, Goal) :-	% correct the goal
 	dwim_predicate_list(M:Goal0, DWIMs0), !,
-	'$module'(TypeIn, TypeIn),
-	principal_predicates(TypeIn, DWIMs0, DWIMs),
+	principal_predicates(DWIMs0, DWIMs),
 	correct_literal(M:Goal0, Bindings, DWIMs, Goal1),
 	correct_meta_arguments(Goal1, M, Bindings, Goal).
 correct_goal(Goal, Module, _, NewGoal) :-	% try to autoload
@@ -173,14 +172,14 @@ bind_vars([Name=Var|T]) :-
 	bind_vars(T).
 
 
-%%	'$find_predicate'(:Spec, -List) is det.
+%%	'$find_predicate'(:Spec, -PIs:list(pi)) is det.
 %
-%	Unify `List' with a list  of  predicate  heads  that  match  the
-%	specification  `Spec'.  `Spec' is a term Name/Arity, a ``Head'', 
-%	or just an atom.  The latter refers to  all  predicate  of  that
-%	name with arbitrary arity.  `Do What I Mean' correction is done.
-%	If the requested module is `user' predicates residing in any
-%	module will be considered matching.
+%	Unify `List' with a list of  predicate indicators that match the
+%	specification `Spec'. `Spec' is a   term Name/Arity, a ``Head'',
+%	or just an atom. The latter refers to all predicate of that name
+%	with arbitrary arity. `Do What I   Mean'  correction is done. If
+%	the requested module is `user' predicates residing in any module
+%	will be considered matching.
 %	
 %	@error	existence_error(procedure, Spec) if no matching predicate
 %		can be found.
@@ -188,30 +187,29 @@ bind_vars([Name=Var|T]) :-
 '$find_predicate'(M:S, List) :-
 	name_arity(S, Name, Arity),
 	'$module'(TypeIn, TypeIn),
-	(   M == user
+	(   M == TypeIn			% I.e. unspecified default module
 	->  true
 	;   Module = M
 	),
-	find_predicate(Module, TypeIn, Name, Arity, L0), !,
+	find_predicate(Module, Name, Arity, L0), !,
 	sort(L0, L1),
-	principal_predicates(TypeIn, L1, List).
+	principal_pis(L1, List).
 '$find_predicate'(_:S, List) :-
 	name_arity(S, Name, Arity),
-	findall(Head, ('$in_library'(Name, Arity, _Path),
-		       functor(Head, Name, Arity)), List),
+	findall(Name/Arity,
+		'$in_library'(Name, Arity, _Path), List),
 	List \== [], !.
 '$find_predicate'(Spec, _) :-
 	existence_error(Spec).
 	
-find_predicate(Module, C, Name, Arity, VList) :-
-	findall(Head, find_predicate_(Module, C, Name, Arity, Head), VList),
+find_predicate(Module, Name, Arity, VList) :-
+	findall(Head, find_predicate_(Module, Name, Arity, Head), VList),
 	VList \== [], !.
-find_predicate(Module, C, Name, Arity, Pack) :-
-	findall(Head, find_sim_pred(Module, Name, Arity, Head), List),
-	pack(List, Module, Arity, C, Packs),
+find_predicate(Module, Name, Arity, Pack) :-
+	findall(PI, find_sim_pred(Module, Name, Arity, PI), List),
+	pack(List, Module, Arity, Packs),
 	'$member'(Dwim-Pack, Packs),
-	unqualify_if_context(C, Dwim, PredName),
-	'$confirm'(dwim_correct(PredName)), !.
+	'$confirm'(dwim_correct(Dwim)), !.
 
 unqualify_if_context(_, X, X) :-
 	var(X), !.
@@ -219,41 +217,42 @@ unqualify_if_context(C, C2:X, X) :-
 	C == C2, !.
 unqualify_if_context(_, X, X) :- !.
 
-%%	pack(+Heads, +Context, -Packs)
+%%	pack(+PIs, +Module, +Arity, +Context, -Packs)
 %	
 %	Pack the list of heads into packets, consisting of the corrected
 %	specification and a list of heads satisfying this specification.
 
-pack([], _, _, _, []) :- !.
-pack([M:T|Rest], Module, Arity, C, [Name-[H|R]|Packs]) :-
-	'$prefix_module'(M, C, T, H),
+pack([], _, _, []) :- !.
+pack([M:T|Rest], Module, Arity, [Name-[M:T|R]|Packs]) :-
 	pack_name(M:T, Module, Arity, Name),
-	pack_(Module, Arity, Name, C, Rest, R, NewRest),
-	pack(NewRest, Module, Arity, C, Packs).
+	pack_(Module, Arity, Name, Rest, R, NewRest),
+	pack(NewRest, Module, Arity, Packs).
 
-pack_(Module, Arity, Name, C, List, [H|R], Rest) :-
-	'$select'(M:T, List, R0),
-	pack_name(M:T, Module, Arity, Name), !,
-	'$prefix_module'(M, C, T, H),
+pack_(Module, Arity, Name, List, [H|R], Rest) :-
+	'$select'(M:PI, List, R0),
+	pack_name(M:PI, Module, Arity, Name), !,
+	'$prefix_module'(M, C, PI, H),
 	pack_(Module, Arity, Name, C, R0, R, Rest).
 pack_(_, _, _, _, Rest, [], Rest).
 
-pack_name(_:T, V1, V2,   Name)   :- var(V1), var(V2), !, functor(T, Name, _).
-pack_name(M:T,  _, V2, M:Name)   :-          var(V2), !, functor(T, Name, _).
-pack_name(_:T, V1,  _, Name/A)   :- var(V1),          !, functor(T, Name, A).
-pack_name(M:T,  _,  _, M:Name/A) :-                      functor(T, Name, A).
+pack_name(_:Name/_, M, A,   Name) :-
+	var(M), var(A), !.
+pack_name(M:Name/_, _, A, M:Name) :- 
+	var(A), !.
+pack_name(_:PI, M, _, PI)   :-
+	var(M), !.
+pack_name(QPI, _, _, QPI).
 
 
-find_predicate_(Module, C, Name, Arity, Head) :-
+find_predicate_(Module, Name, Arity, Module:Name/Arity) :-
 	current_module(Module),
 	current_predicate(Name, Module:Term),
-	functor(Term, Name, Arity),
-	'$prefix_module'(Module, C, Term, Head).
+	functor(Term, Name, Arity).
 
-find_sim_pred(M, Name, Arity, Module:Term) :-
+find_sim_pred(M, Name, Arity, Module:DName/Arity) :-
 	sim_module(M, Module),
 	'$dwim_predicate'(Module:Name, Term),
-	functor(Term, _, DArity),
+	functor(Term, DName, DArity),
 	sim_arity(Arity, DArity).
 	
 sim_module(M, Module) :-
@@ -288,49 +287,40 @@ name_arity(Spec, _, _) :-
 	throw(error(type_error(predicate_indicator, Spec), _)).
 
 
-%%	principal_predicates(+Context, +Heads, -Principals)
+principal_pis(PIS, Principals) :-
+	map_pi_heads(PIS, Heads),
+	principal_predicates(Heads, Heads2),
+	map_pi_heads(Principals, Heads2).
+
+map_pi_heads([], []) :- !.
+map_pi_heads([PI0|T0], [H0|T]) :-
+	map_pi_head(PI0, H0),
+	map_pi_heads(T0, T).
+
+map_pi_head(M:PI, M:Head) :-
+	nonvar(M), !,
+	map_pi_head(PI, Head).
+map_pi_head(Name/Arity, Term) :-
+	functor(Term, Name, Arity).
+
+%%	principal_predicates(:Heads, -Principals)
 %	
 %	Get the principal predicate list from a list of heads (e.g., the
 %	module in which the predicate is defined).
 
-principal_predicates(C, Heads, Principals) :-
-	find_definitions(Heads, C, P0),
-	(   C == user
-	->  find_publics(P0, P1),
-	    delete_defaults(P1, P1, P2)
-	;   P2 = P0
-	),	
-	'$list_to_set'(P2, Principals).		% remove duplicates
+principal_predicates(Heads, Principals) :-
+	find_definitions(Heads, Heads2),
+	'$list_to_set'(Heads2, Principals).
 	
-delete_defaults([], _, []) :- !.
-delete_defaults([system:Head|T], L, R) :-
-	memberchk(Head, L), !,
-	delete_defaults(T, L, R).
-delete_defaults([H|T], L, [H|R]) :-
-	delete_defaults(T, L, R).
+find_definitions([], []).
+find_definitions([H0|T0], [H|T]) :-
+	find_definition(H0, H),
+	find_definitions(T0, T).
 
-find_publics([], []).
-find_publics([H0|T0], [H|T]) :-
-	find_public(H0, H),
-	find_publics(T0, T).
-
-find_public(Head, user:Term) :-
-	strip_module(Head, M, Term),
-	current_predicate(_, user:Term),
-	'$predicate_property'(imported_from(M), user:Term), !.
-find_public(Head, Head).
-
-find_definitions([], _, []).
-find_definitions([H0|T0], M, [H|T]) :-
-	find_definition(M, H0, H),
-	find_definitions(T0, M, T).
-
-find_definition(C, Head, Principal) :-
-	'$predicate_property'(imported_from(Module), C:Head), !,
-	strip_module(Head, _, Term),
-	'$prefix_module'(Module, C, Term, P0),
-	find_definition(C, P0, Principal).
-find_definition(_, Head, Head).
+find_definition(Head, Module:Plain) :-
+	predicate_property(Head, imported_from(Module)), !,
+	strip_module(Head, _, Plain).
+find_definition(Head, Head).
 
 
 %%	dwim_predicate(:Head, -NewHead) is nondet.
