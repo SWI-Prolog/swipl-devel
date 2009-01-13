@@ -1500,8 +1500,9 @@ decl_used_predicate_ns(DB) :-
 decl_predicate_ns(Pred) :-
 	predicate_ns(Pred, _), !.
 decl_predicate_ns(Pred) :-
-	rdf_global_id(NS:_Local, Pred),
-	assert(predicate_ns(Pred, NS)), !.
+	rdf_global_id(NS:Local, Pred),
+	xml_name(Local), !,
+	assert(predicate_ns(Pred, NS)).
 decl_predicate_ns(Pred) :-
 	atom_codes(Pred, Codes),
 	append(NSCodes, LocalCodes, Codes),

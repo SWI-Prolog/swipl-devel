@@ -1412,12 +1412,8 @@ contracting([V|Vs], Repeat, Vars) :-
 fds_sespsize(Vs, S) :-
         must_be(list, Vs),
         maplist(fd_variable, Vs),
-        (   Vs = [] -> S = 0
-        ;   Vs = [X|Xs] ->
-            fd_size_(X, S1),
-            fds_sespsize(Xs, S1, S2),
-            bound_portray(S2, S)
-        ).
+        fds_sespsize(Vs, n(1), S1),
+        bound_portray(S1, S).
 
 fd_size_(V, S) :-
         (   fd_get(V, D, _) ->

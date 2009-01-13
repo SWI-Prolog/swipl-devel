@@ -186,8 +186,9 @@ decl_used_predicate_ns(Triples) :-
 decl_predicate_ns(Pred) :-
 	predicate_ns(Pred, _), !.
 decl_predicate_ns(Pred) :-
-	rdf_global_id(NS:_Local, Pred),
-	assert(predicate_ns(Pred, NS)), !.
+	rdf_global_id(NS:Local, Pred),
+	xml_name(Local), !,
+	assert(predicate_ns(Pred, NS)).
 decl_predicate_ns(Pred) :-
 	is_bag_li_predicate(Pred), !.
 decl_predicate_ns(Pred) :-
