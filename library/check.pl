@@ -274,11 +274,18 @@ autoload([Lib-Pred|T]) -->
 referenced_by([]) -->
 	[].
 referenced_by([Ref|T]) -->
-	{ nth_clause(M:Head, N, Ref),
-	  suffix(N, Suff)
+	{ nth_clause(M:Head, N, Ref)
 	},
-	[ '        ~d-~w clause of '-[N, Suff] ],
-	predicate(M:Head),
+	(   { clause_property(Ref, file(Path)),
+	      clause_property(Ref, line_count(Line))
+	    }
+	->  ['\t'-[] ], predicate(M:Head),
+	    [' at ~w:~w'-[Path, Line] ]
+	;   { suffix(N, Suff)
+	    },
+	    [ '\t~d-~w clause of '-[N, Suff] ],
+	    predicate(M:Head)
+	),
 	[ nl ],
 	referenced_by(T).
 
