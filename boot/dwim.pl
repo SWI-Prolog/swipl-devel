@@ -46,40 +46,32 @@
 %
 %	Correct a goal (normally typed by the   user)  in the `Do What I
 %	Mean' sense. Ask the user to confirm  if a unique correction can
-%	be found. Otherwise warn that the   predicate does not exist and
-%	fail.
+%	be found.
+%
+%	@error	existence_error(procedure, PI) if the goal cannot be
+%		corrected.
 
 '$dwim_correct_goal'(M:Goal, Bindings, Corrected) :-
 	correct_goal(Goal, M, Bindings, Corrected).
 
-correct_goal(Goal, M, _, M:Goal) :-		% Not instantiated. Hope it
-	var(Goal), !.				% will be in time
-correct_goal((A,B), M, Bindings, (NA,NB)) :- !,
-	'$dwim_correct_goal'(M:A, Bindings, NA),
-	'$dwim_correct_goal'(M:B, Bindings, NB).
-correct_goal((A->B), M, Bindings, (NA->NB)) :- !,
-	'$dwim_correct_goal'(M:A, Bindings, NA),
-	'$dwim_correct_goal'(M:B, Bindings, NB).
-correct_goal((A*->B), M, Bindings, (NA*->NB)) :- !,
-	'$dwim_correct_goal'(M:A, Bindings, NA),
-	'$dwim_correct_goal'(M:B, Bindings, NB).
-correct_goal((A;B), M, Bindings, (NA;NB)) :- !,
-	'$dwim_correct_goal'(M:A, Bindings, NA),
-	'$dwim_correct_goal'(M:B, Bindings, NB).
-correct_goal(\+(A), M, Bindings, \+(NA)) :- !,
-	'$dwim_correct_goal'(M:A, Bindings, NA).
+correct_goal(Goal, M, _, M:Goal) :-
+	var(Goal), !.
 correct_goal(Module:Goal, _, _, Module:Goal) :-
 	(   var(Module)
 	;   var(Goal)
-	;   current_predicate(_, Module:Goal)
 	), !.
-correct_goal(Goal, M, _, Goal) :-		% is defined
-	current_predicate(_, M:Goal), !.
-correct_goal(Goal, M, Bindings, NewGoal) :-	% correct the goal
-	dwim_predicate_list(M:Goal, DWIMs0), !,
+correct_goal(Module:Goal0, _, Bindings, Module:Goal) :-
+	current_predicate(_, Module:Goal0), !,
+	correct_meta_arguments(Goal0, Module, Bindings, Goal).
+correct_goal(Goal0, M, Bindings, M:Goal) :-	% is defined
+	current_predicate(_, M:Goal0), !,
+	correct_meta_arguments(Goal0, M, Bindings, Goal).
+correct_goal(Goal0, M, Bindings, Goal) :-	% correct the goal
+	dwim_predicate_list(M:Goal0, DWIMs0), !,
 	'$module'(TypeIn, TypeIn),
 	principal_predicates(TypeIn, DWIMs0, DWIMs),
-	correct_literal(M:Goal, Bindings, DWIMs, NewGoal).
+	correct_literal(M:Goal0, Bindings, DWIMs, Goal1),
+	correct_meta_arguments(Goal1, M, Bindings, Goal).
 correct_goal(Goal, Module, _, NewGoal) :-	% try to autoload
 	functor(Goal, Name, Arity),
 	'$undefined_procedure'(Module, Name, Arity, Action),
@@ -95,6 +87,34 @@ existence_error(PredSpec) :- !,
 	unqualify_if_context(TypeIn, PredSpec, Spec),
 	throw(error(existence_error(procedure, Spec),
 		    context(toplevel, 'DWIM could not correct goal'))).
+
+%%	correct_meta_arguments(:Goal, +Module, +Bindings, -Final) is det.
+%
+%	Correct possible meta-arguments. This performs a recursive check
+%	on meta-arguments specified as `0' using :- meta_predicate/1. As
+%	a special exception, the arment of call/1 is not checked, so you
+%	can use call(X) as an escape for the DWIM system.
+
+correct_meta_arguments(call(Goal), _, _, Goal) :- !.
+correct_meta_arguments(Goal0, M, Bindings, Goal) :-
+	predicate_property(M:Goal0, meta_predicate(MHead)), !,
+	functor(Goal0, Name, Arity),
+	functor(Goal, Name, Arity),
+	correct_margs(0, Arity, MHead, Goal0, Goal, M, Bindings).
+correct_meta_arguments(Goal, _, _, Goal) :- !.
+
+correct_margs(Arity, Arity, _, _, _, _, _) :- !.
+correct_margs(A, Arity, MHead, GoalIn, GoalOut, M, Bindings) :-
+	I is A+1,
+	arg(I, GoalIn, Ain),
+	arg(I, GoalOut, AOut),
+	(   arg(I, MHead, 0)
+	->  correct_goal(Ain, M, Bindings, AOut0),
+	    unqualify_if_context(M, AOut0, AOut)
+	;   AOut = Ain
+	),
+	correct_margs(I, Arity, MHead, GoalIn, GoalOut, M, Bindings).
+
 
 %%	correct_literal(:Goal, +Bindings, +DWIMs, -Corrected) is semidet.
 % 
@@ -316,7 +336,11 @@ find_definition(_, Head, Head).
 %%	dwim_predicate(:Head, -NewHead) is nondet.
 %	
 %	Find a head that is in a `Do What I Mean' sence the same as `Head'.
-%	backtracking produces more such predicates.
+%	backtracking produces more such predicates.  If searches for:
+%	
+%	    * predicates with a simlar name in an import module
+%	    * predicates in a similar module with the same name
+%	    * predicates in any module with the same name
 
 dwim_predicate(Head, DWIM) :-
 	dwim_predicate_list(Head, DWIMs),
@@ -334,7 +358,12 @@ dwim_predicate_list(_:Goal, DWIMs) :-
 		current_predicate(_, Module:Goal)
 	      ), DWIMs).
 
-dwim_pred(Head, Dwim) :-
+%%	dwim_pred(:Head, -DWIM) is nondet.
+%
+%	True if DWIM is a predicate with a similar name than Head in the
+%	module of Head or an import module thereof.
+
+dwim_pred(Head, M:Dwim) :-
 	strip_module(Head, Module, H),
 	default_module(Module, M),
 	'$dwim_predicate'(M:H, Dwim).

@@ -557,7 +557,7 @@ subst_chars([H|T]) -->
 '$execute'(Goal, Bindings) :-
 	'$module'(TypeIn, TypeIn), 
 	expand_goal(Goal, Expanded),
-	TypeIn:'$dwim_correct_goal'(Expanded, Bindings, Corrected), !, 
+	'$dwim_correct_goal'(TypeIn:Expanded, Bindings, Corrected), !, 
 	'$execute_goal'(Corrected, Bindings).
 '$execute'(_, _) :-
 	notrace, 
@@ -569,9 +569,8 @@ subst_chars([H|T]) -->
 	print_message(query, query(yes)), !,
 	fail.
 '$execute_goal'(Goal, Bindings) :-
-	'$module'(TypeIn, TypeIn),
-	print_message(silent, toplevel_goal(TypeIn:Goal, Bindings)),
-	'$execute_goal2'(TypeIn:Goal, Bindings).
+	print_message(silent, toplevel_goal(Goal, Bindings)),
+	'$execute_goal2'(Goal, Bindings).
 
 '$execute_goal2'(Goal, Bindings) :-
 	Goal,
