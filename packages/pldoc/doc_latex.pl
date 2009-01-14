@@ -624,15 +624,15 @@ include_file(Path, Type) -->
 	;   latex_tokens_for_wiki_file(Path, Options)
 	).
 
-%%	file(+File)// is det.
+%%	file(+File, +Options)// is det.
 %
 %	Called from implicitely linked files.  The HTML version creates
 %	a hyperlink.  We just name the file.
 
-file(File) -->
+file(File, _Options) -->
 	{ fragile }, !,
 	latex(cmd(texttt(File))).
-file(File) -->
+file(File, _Options) -->
 	latex(cmd(file(File))).
 
 %%	predref(+PI)// is det.

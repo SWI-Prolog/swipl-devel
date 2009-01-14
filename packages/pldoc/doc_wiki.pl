@@ -43,6 +43,7 @@
 :- use_module(library(debug)).
 :- use_module(library(memfile)).
 :- use_module(library(pairs)).
+:- use_module(library(option)).
 
 
 		 /*******************************
@@ -554,35 +555,69 @@ wiki_face(\include(Name, Type, Options), _) -->
 	['[','['], file_name(Base, Ext), [']',']'],
 	{ autolink_extension(Ext, Type),
 	  file_name_extension(Base, Ext, Name), !,
-	  resolve_file(Name, Options)
+	  resolve_file(Name, Options, [])
 	}, !.
-wiki_face(\file(Name, Options), _) -->
-	file_name(Base, Ext),
-	{ file_name_extension(Base, Ext, Name),
-	  (   autolink_file(Name, _)
-	  ;   autolink_extension(Ext, _)
-	  ), !,
-	  resolve_file(Name, Options)
-	}.
-wiki_face(\file(Name, Options), _) -->
-	word_token(NameS),
-	{ autolink_file(Name, _),
-	  sub_atom(NameS, 0, _, 0, Name), !,
-	  resolve_file(Name, Options)
-	}, !.
-wiki_face(a(href=Ref, Ref), _) -->
-	word_token(ProtS), [:,/,/], { url_protocol(ProtS) },
-	string(Rest), peek_end_url, !,
-	{ concat_atom([ProtS, :,/,/ | Rest], Ref) }.
-wiki_face(a(href=Ref, Ref), _) -->
-	[<], word_token(ProtS), [:], string(Rest), [>], !,
-	{ concat_atom([ProtS, : | Rest], Ref) }.
+wiki_face(Link, _ArgNames) -->		% [[Label][Link]]
+	['[','['], string(LabelParts), [']','['],
+	{ concat_atom(LabelParts, Label) },
+	wiki_link(Link, [label(Label), relative(true)]), [']',']'], !.
+wiki_face(Link, _ArgNames) -->
+	wiki_link(Link, []), !.
 wiki_face(FT, ArgNames) -->
 	[T],
 	{   atomic(T)
 	->  FT = T
 	;   wiki_faces(T, ArgNames, FT)
 	}.
+
+%%	wiki_link(-Link, +Options)// is semidet.
+%
+%	True if we can find a link to a file or URL. Links are described
+%	as one of:
+%	
+%	    $ filename :
+%	    A filename defined using autolink_file/2 or
+%	    autolink_extension/2
+%	    $ <url-protocol>://<rest-url> :
+%	    A fully qualified URL
+%	    $ '<' URL '>' :
+%	    Be more relaxed on the URL specification.
+
+wiki_link(\file(Name, FileOptions), Options) -->
+	file_name(Base, Ext),
+	{ file_name_extension(Base, Ext, Name),
+	  (   autolink_file(Name, _)
+	  ;   autolink_extension(Ext, _)
+	  ), !,
+	  resolve_file(Name, FileOptions, Options)
+	}.
+wiki_link(\file(Name, FileOptions), Options) -->
+	word_token(NameS),
+	{ autolink_file(Name, _),
+	  sub_atom(NameS, 0, _, 0, Name), !,
+	  resolve_file(Name, FileOptions, Options)
+	}, !.
+wiki_link(a(href=Ref, Label), Options) -->
+	word_token(ProtS), [:,/,/], { url_protocol(ProtS) },
+	string_no_whitespace(Rest), peek_end_url, !,
+	{ concat_atom([ProtS, :,/,/ | Rest], Ref),
+	  option(label(Label), Options, Ref)
+	}.
+wiki_link(a(href=Ref, Label), Options) -->
+	[<], 
+	(   { option(relative(true), Options),
+	      Parts = Rest
+	    }
+	->  string_no_whitespace(Rest)
+	;   { Parts = [ProtS, : | Rest]
+	    },
+	    word_token(ProtS), [:], string_no_whitespace(Rest)
+	),
+	[>], !,
+	{ concat_atom(Parts, Ref),
+	  option(label(Label), Options, Ref)
+	}.
+
 
 %%	filename(-Name:atom, -Ext:atom)// is semidet.
 %
@@ -614,14 +649,14 @@ file_extension(Ext) -->
 	}.
 
 
-%%	resolve_file(+Name, -Options) is det.
+%%	resolve_file(+Name, -Options, ?RestOptions) is det.
 %
 %	Find the actual file based on the pldoc_file global variable. If
 %	present  and  the   file   is    resolvable,   add   an   option
 %	absolute_path(Path) that reflects the current   location  of the
 %	file.
 
-resolve_file(Name, Options) :-
+resolve_file(Name, Options, Rest) :-
 	nb_current(pldoc_file, RelativeTo),
 	RelativeTo \== [],
 	absolute_file_name(Name, Path,
@@ -629,8 +664,8 @@ resolve_file(Name, Options) :-
 			     access(read),
 			     file_errors(fail)
 			   ]), !,
-	Options = [ absolute_path(Path) ].
-resolve_file(_, []).
+	Options = [ absolute_path(Path) | Rest ].
+resolve_file(_, Options, Options).
 
 
 %%	word_token(-Word:string)// is semidet.
@@ -1115,5 +1150,16 @@ peek(H, L, L) :-
 
 string([]) --> [].
 string([H|T]) --> [H], string(T).
+
+%%	string_no_whitespace(-Tokens:list)// is nondet.
+%
+%	Defensively take tokens from the input.  Backtracking takes more
+%	tokens.  Tokens cannot include whitespace.
+
+string_no_whitespace([]) -->
+	[].
+string_no_whitespace([H|T]) --> [H],
+	{ \+ space_atom(H) },
+	string_no_whitespace(T).
 
 
