@@ -564,8 +564,8 @@ wiki_face(\include(Name, Type, Options), _) -->
 	}, !.
 wiki_face(Link, _ArgNames) -->		% [[Label][Link]]
 	['[','['], string(LabelParts), [']','['],
-	{ concat_atom(LabelParts, Label) },
-	wiki_link(Link, [label(Label), relative(true)]), [']',']'], !.
+	wiki_link(Link, [label(Label), relative(true), end(']')]), [']',']'], !,
+	{ concat_atom(LabelParts, Label) }.
 wiki_face(Link, _ArgNames) -->
 	wiki_link(Link, []), !.
 wiki_face(FT, ArgNames) -->
@@ -604,7 +604,9 @@ wiki_link(\file(Name, FileOptions), Options) -->
 	}, !.
 wiki_link(a(href=Ref, Label), Options) -->
 	word_token(ProtS), [:,/,/], { url_protocol(ProtS) },
-	string_no_whitespace(Rest), peek_end_url, !,
+	{ option(end(End), Options, space)
+	},
+	string_no_whitespace(Rest), peek_end_url(End), !,
 	{ concat_atom([ProtS, :,/,/ | Rest], Ref),
 	  option(label(Label), Options, Ref)
 	}.
@@ -741,11 +743,13 @@ url_protocol(String) :-	sub_atom(String, 0, _, 0, ftp).
 url_protocol(String) :-	sub_atom(String, 0, _, 0, mailto).
 
 
-peek_end_url -->
+peek_end_url(space) -->
 	peek(End),
 	{ space_atom(End) }, !.
-peek_end_url -->
+peek_end_url(space) -->
 	eos, !.
+peek_end_url(Token) -->
+	peek(Token), !.
 
 space_atom(' ').
 space_atom('\r').
