@@ -162,6 +162,8 @@ rest_list_item([_-L1|L0], Type, N, ['\n'|LI], L) :-
 %	Process paragraphs in bullet-lists.
 
 take_pars_at_indent(Lines, N, [Par|RestPars], RestLines) :-
+	Lines = [I-_|_],
+	I >= N,
 	take_par(Lines, Par, RL), Par = p(_), !,
 	take_pars_at_indent(RL, N, RestPars, RestLines).
 take_pars_at_indent(Lines, _, [], Lines).
