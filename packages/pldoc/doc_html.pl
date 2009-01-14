@@ -1219,21 +1219,30 @@ file(File, Options) -->
 	link_file(File, FinalOptions).
 
 link_file(File, Options) -->
-	{ (   option(absolute_path(Path), Options)
-	  ;   existing_linked_file(File, Path)
-	  ), !,
-	  (   option(files(Map), Options),
-	      memberchk(file(Path, LinkFile), Map)
-	  ->  true
-	  ;   LinkFile = Path
-	  ),
-	  file_href(LinkFile, HREF),
+	{ file_href(File, HREF, Options),
 	  option(label(Label), Options, File),
 	  option(class(Class), Options, file)
 	},
 	html(a([class(Class), href(HREF)], Label)).
 link_file(File, _) -->
 	html(code(class(file), File)).
+
+%%	file_href(+FilePath, -HREF, +Options) is det.
+%
+%	Find URL for refering to FilePath based on Options.
+
+file_href(_, HREF, Options) :-
+	option(href(HREF), Options), !.
+file_href(File, HREF, Options) :-
+	(   option(absolute_path(Path), Options)
+	;   existing_linked_file(File, Path)
+	), !,
+	(   option(files(Map), Options),
+	    memberchk(file(Path, LinkFile), Map)
+	->  true
+	;   LinkFile = Path
+	),
+	file_href(LinkFile, HREF).
 
 %%	file_href(+FilePath, -HREF) is det.
 %
