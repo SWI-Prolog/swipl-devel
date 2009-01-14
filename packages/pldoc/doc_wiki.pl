@@ -105,6 +105,8 @@ take_par(Lines, List, Rest) :-
 take_par([N-['|'|RL1]|LT], table(class=wiki, [tr(R0)|RL]), Rest) :-
 	phrase(row(R0), RL1),
 	rest_table(LT, N, RL, Rest), !.
+take_par([0-[-,-|More]|LT], hr([]), LT) :- % seperation line
+	maplist(=(-), More), !.
 take_par([_-[@|_]], _, _) :- !,		% starts @tags section
 	fail.
 take_par([_-L1|LT], Section, LT) :-
@@ -484,6 +486,7 @@ structure_term(h1(Att, Args), h1(Att), [Args]) :- !.
 structure_term(h2(Att, Args), h2(Att), [Args]) :- !.
 structure_term(h3(Att, Args), h3(Att), [Args]) :- !.
 structure_term(h4(Att, Args), h4(Att), [Args]) :- !.
+structure_term(hr(Att), hr(Att), []) :- !.
 structure_term(Term, Functor, Args) :-
 	functor(Term, Functor, 1),
 	structure_tag(Functor), !,

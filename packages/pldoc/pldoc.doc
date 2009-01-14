@@ -379,6 +379,15 @@ the \verb$==$ marks.
 		X < 5.
 	==
 \end{verbatim}
+
+    \item [Rules]
+A single line starting at column 1 with at least two dashes is
+translated into a horizontal rule over the page.  For example:
+
+\begin{code}
+--
+\end{code}
+
 \end{description}
 
 \subsection{Text markup: fonts and links}

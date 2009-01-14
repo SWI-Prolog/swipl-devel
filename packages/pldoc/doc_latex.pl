@@ -319,6 +319,8 @@ latex(a(Attrs, Content)) -->
 	->  latex(cmd(url(HREF)))
 	;   latex(cmd(url(opt(Content), HREF)))
 	).
+latex(hr(_)) -->
+	latex(cmd(hrule)).
 latex(code(CodeList)) -->
 	{ is_list(CodeList), !,
 	  concat_atom(CodeList, Atom)
