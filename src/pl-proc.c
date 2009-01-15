@@ -642,21 +642,7 @@ pl_current_predicate1(term_t spec, control_t ctx)
 
       if ( e->functor )
       { if ( !e->emod )			/* fully specified */
-	{ int retry_times = 0;
-
-	  while(retry_times++ < 3)
-	  { if ( visibleProcedure(e->functor, e->module) )
-	      succeed;
-	    else
-	    { Procedure proc = lookupProcedure(e->functor, e->module);
-
-	      if ( autoLoader(&environment_frame, NULL,
-			      proc->definition) != ATOM_retry )
-		break;
-	    }
-	  }
-	  fail;
-	}
+	  return visibleProcedure(e->functor, e->module) ? TRUE : FALSE;
       } else
       { e->epred = newTableEnum(e->module->procedures);
       }
