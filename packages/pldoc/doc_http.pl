@@ -428,7 +428,8 @@ documentation(Path, Request) :-
 	),
 	edit_options(Request, EditOptions),
 	(   Source == true
-	->  source_to_html(File, stream(current_output), [])
+	->  format('Content-type: text/html~n~n', []),
+	    source_to_html(File, stream(current_output), [])
 	;   doc_for_file(File,
 			 [ public_only(Public)
 			 | EditOptions
