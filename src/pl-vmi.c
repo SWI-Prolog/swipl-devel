@@ -1421,7 +1421,7 @@ VMI(I_CALLM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
 
 
 VMI(I_DEPARTM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
-{ if ( (void *)BFR <= (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
+{ if ( (void *)BFR > (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
   { VMI_GOTO(I_CALLM);
   } else
   { Module m = (Module)*PC++;
