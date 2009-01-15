@@ -543,7 +543,7 @@ object_page(Obj, Options) -->
 		   [ div(class(jump),
 			  a(href(location_by_id(pldoc_doc)+File), File)),
 		     div(class(search), \search_form(Options)),
-		     br(clear(both))
+		     br(clear(right))
 		   ]),
 	       \objects([Obj], Options)
 	     ]).

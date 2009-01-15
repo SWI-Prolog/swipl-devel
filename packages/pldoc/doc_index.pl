@@ -321,7 +321,7 @@ doc_links(Directory, Options) -->
 				\version
 			      ])),
 		     div(class(search), \search_form(Options)),
-		     br(clear(both))
+		     br(clear(right))
 		   ])
 	     ]).
 

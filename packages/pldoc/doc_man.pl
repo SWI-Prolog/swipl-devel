@@ -608,7 +608,7 @@ man_links(Parent, Options) -->
 	html(div(class(navhdr),
 		 [ div(class(jump), \man_parent(Parent)),
 		   div(class(search), \search_form(Options)),
-		   br(clear(both))
+		   br(clear(right))
 		 ])).
 
 man_parent(Section) -->
