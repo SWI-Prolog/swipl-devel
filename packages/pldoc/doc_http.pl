@@ -44,6 +44,7 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_log)).
 :- use_module(library(http/http_hook)).
+:- use_module(library(http/http_path)).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 :- use_module(library(url)).
@@ -72,6 +73,8 @@ _after_ library(pldoc) has been loaded.
 	doc_server_port/1.
 
 http:location(pldoc,	root(.),    []).
+http:location(pldoc_resource, Path, []) :-
+	http_location_by_id(pldoc_resource, Path).
 
 
 %%	doc_server(?Port) is det.

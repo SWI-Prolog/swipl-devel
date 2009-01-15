@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2006, University of Amsterdam
+    Copyright (C): 2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -68,8 +68,9 @@
 :- use_module(library(option)).
 :- use_module(library(url)).
 :- use_module(library(readutil)).
-:- use_module(library('http/html_write')).
-:- use_module(library('http/http_dispatch')).
+:- use_module(library(http/html_write)).
+:- use_module(library(http/http_dispatch)).
+:- use_module(library(http/html_head)).
 :- use_module(library(doc_http)).
 :- use_module(library(debug)).
 :- use_module(doc_process).
@@ -87,6 +88,28 @@ extracting module doc_wiki.pl into HTML+CSS.
 @tbd	Split put generation from computation as computation is reusable
 	in other backends.
 */
+
+		 /*******************************
+		 *	     RESOURCES		*
+		 *******************************/
+
+:- html_resource(pldoc_css,
+		 [ virtual(true),
+		   requires([ pldoc_resource('pldoc.css')
+			    ])
+		 ]).
+:- html_resource(pldoc_js,
+		 [ virtual(true),
+		   requires([ pldoc_resource('pldoc.js')
+			    ])
+		 ]).
+:- html_resource(pldoc,
+		 [ virtual(true),
+		   requires([ pldoc_css,
+			      pldoc_js
+			    ])
+		 ]).
+
 
 		 /*******************************
 		 *	 FILE PROCESSING	*
