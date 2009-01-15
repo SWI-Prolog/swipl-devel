@@ -136,6 +136,14 @@ div.navhdr
   background-color: #f0f0f0;
 }
 
+div.navhdr div.jump
+{ float: left;
+}
+
+div.navhdr div.search
+{ float: right;
+}
+
 /* Summary index */
 
 table.summary

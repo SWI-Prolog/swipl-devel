@@ -540,9 +540,9 @@ object_page(Obj, Options) -->
 	},
 	html([ \html_requires(pldoc),
 	       div(class(navhdr),
-		   [ div(style('float:left'),
+		   [ div(class(jump),
 			  a(href(location_by_id(pldoc_doc)+File), File)),
-		     div(style('float:right'), \search_form(Options)),
+		     div(class(search), \search_form(Options)),
 		     br(clear(both))
 		   ]),
 	       \objects([Obj], Options)

@@ -606,8 +606,8 @@ referenced_section(Fragment, File, Path, section(Level, Nr, SecPath)) :-
 
 man_links(Parent, Options) -->
 	html(div(class(navhdr),
-		 [ div(style('float:left'), \man_parent(Parent)),
-		   div(style('float:right'), \search_form(Options)),
+		 [ div(class(jump), \man_parent(Parent)),
+		   div(class(search), \search_form(Options)),
 		   br(clear(both))
 		 ])).
 

@@ -316,11 +316,11 @@ doc_links(Directory, Options) -->
 	},
 	html([ \html_requires(pldoc),
 	       div(class(navhdr),
-		   [ div(style('float:left'),
+		   [ div(class(jump),
 			  div([ \source_dir_menu(Dir),
 				\version
 			      ])),
-		     div(style('float:right'), \search_form(Options)),
+		     div(class(search), \search_form(Options)),
 		     br(clear(both))
 		   ])
 	     ]).
