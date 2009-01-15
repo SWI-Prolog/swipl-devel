@@ -33,11 +33,12 @@
 	  [ search_form/3,		% +Options, //
 	    search_reply/4		% +Search, +Options, //
 	  ]).
-:- use_module(library('http/html_write')).
+:- use_module(library(http/html_write)).
+:- use_module(library(http/html_head)).
+:- use_module(library(http/dcg_basics)).
 :- use_module(library(occurs)).
 :- use_module(library(option)).
 :- use_module(doc_process).
-:- use_module(library('http/dcg_basics')).
 :- use_module(doc_html).
 :- use_module(doc_index).
 :- use_module(library(doc_http)).
@@ -127,7 +128,8 @@ search_reply(For, Options) -->
 	  option(resultFormat(Format), Options, summary),
 	  count_matches(PerCategory, Matches)
 	}, !,
-	html([ \doc_links('', [for(For)|Options]),
+	html([ \html_requires(pldoc),
+	       \doc_links('', [for(For)|Options]),
 	       div(class('search-results'),
 		   ['Search results for ', span(class(for), ['"', For, '"'])]),
 	       div(class('search-counts'),
@@ -137,7 +139,8 @@ search_reply(For, Options) -->
 	     | \matches(Format, PerCategory, Options)
 	     ]).
 search_reply(For, Options) -->
-	html([ \doc_links('', [for(For)|Options]),
+	html([ \html_requires(pldoc),
+	       \doc_links('', [for(For)|Options]),
 	       h1(class(search), 'No matches')
 	     ]).
 

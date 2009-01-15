@@ -230,20 +230,28 @@ prepare_editor.
 %	be edited using edit/0.
 
 pldoc_root(Request) :-
+	http_parameters(Request,
+			[ empty(Empty, [ oneof([true,false]),
+					 default(false)
+				       ])
+			]),
+	pldoc_root(Request, Empty).
+
+pldoc_root(Request, false) :-
 	http_location_by_id(pldoc_root, Root),
 	memberchk(path(Path), Request),
 	Root \== Path, !,
 	existence_error(http_location, Path).
-pldoc_root(_Request) :-
+pldoc_root(_Request, false) :-
 	working_directory(Dir0, Dir0),
 	allowed_directory(Dir0), !,
 	ensure_slash_end(Dir0, Dir1),
 	doc_file_href(Dir1, Ref0),
 	atom_concat(Ref0, 'index.html', Index),
 	throw(http_reply(see_other(Index))).
-pldoc_root(_Request) :-
-	reply_page('PlDoc directory index',
-		   \doc_links('', [])).
+pldoc_root(_Request, _) :-
+	reply_html_page(title('PlDoc directory index'),
+			\doc_links('', [])).
 
 
 %%	pldoc_file(+Request)
@@ -258,8 +266,7 @@ pldoc_file(Request) :-
 	->  true
 	;   throw(http_reply(forbidden(File)))
 	),
-	format('Content-type: text/html~n~n'),
-	doc_for_file(File, current_output, []).
+	doc_for_file(File, []).
 
 %%	pldoc_edit(+Request)
 %
@@ -283,9 +290,8 @@ pldoc_edit(Request) :-
 	),
 	format(string(Cmd), '~q', [edit(Edit)]),
 	edit(Edit),
-	reply_page('Edit',
-		   [ p(['Started ', Cmd])
-		   ]).
+	reply_html_page(title('Edit'),
+			p(['Started ', Cmd])).
 pldoc_edit(_Request) :-
 	throw(http_reply(forbidden('/edit'))).
 
@@ -390,8 +396,7 @@ documentation(Path, Request) :-
 	exists_directory(Dir), !,		% Directory index
 	(   allowed_directory(Dir)
 	->  edit_options(Request, EditOptions),
-	    format('Content-type: text/html~n~n'),
-	    doc_for_dir(Dir, current_output, EditOptions)
+	    doc_for_dir(Dir, EditOptions)
 	;   throw(http_reply(forbidden(Dir)))
 	).
 documentation(File, _Request) :-
@@ -403,8 +408,7 @@ documentation(File, _Request) :-
 	->  true
 	;   throw(http_reply(forbidden(File)))
 	),
-	format('Content-type: text/html~n~n'),
-	doc_for_wiki_file(File, current_output, []).
+	doc_for_wiki_file(File, []).
 documentation(Path, Request) :-
 	http_parameters(Request,
 			[ public_only(Public),
@@ -423,10 +427,9 @@ documentation(Path, Request) :-
 	;   true
 	),
 	edit_options(Request, EditOptions),
-	format('Content-type: text/html~n~n'),
 	(   Source == true
 	->  source_to_html(File, stream(current_output), [])
-	;   doc_for_file(File, current_output,
+	;   doc_for_file(File,
 			 [ public_only(Public)
 			 | EditOptions
 			 ])
@@ -477,9 +480,8 @@ pldoc_man(Request) :-
 			[ predicate(PI, [])
 			]),
 	format(string(Title), 'Manual -- ~w', [PI]),
-	reply_page(Title,
-		   [ \man_page(PI, [])
-		   ]).
+	reply_html_page(title(Title),
+			\man_page(PI, [])).
 
 %%	pldoc_object(+Request)
 %
@@ -496,9 +498,8 @@ pldoc_object(Request) :-
 	;   Title = Atom
 	),
 	edit_options(Request, EditOptions),
-	reply_page(Title,
-		   [ \object_page(Obj, EditOptions)
-		   ]).
+	reply_html_page(title(Title),
+			\object_page(Obj, EditOptions)).
 
 
 %%	pldoc_search(+Request)
@@ -522,20 +523,21 @@ pldoc_search(Request) :-
 			]),
 	edit_options(Request, EditOptions),
 	format(string(Title), 'Prolog search -- ~w', [For]),
-	reply_page(Title,
-		   [ \search_reply(For,
-				   [ resultFormat(Format),
-				     search_in(In),
-				     search_match(Match)
-				   | EditOptions
-				   ])
-		   ]).
+	reply_html_page(title(Title),
+			\search_reply(For,
+				      [ resultFormat(Format),
+					search_in(In),
+					search_match(Match)
+				      | EditOptions
+				      ])).
 
 %%	pldoc_package(+Request)
 %
 %	Handler  for  /package/Name,  providing  documentation  for  the
 %	SWI-Prolog  package  Name.  Exploits  the    file   search  path
 %	=package_documentation=.
+%	
+%	@tbd	Allow embedding div element
 
 pldoc_package(Request) :-
 	http_location_by_id(pldoc_package, Path),
@@ -546,19 +548,6 @@ pldoc_package(Request) :-
 			     file_errors(fail)
 			   ]),
 	http_reply_file(DocFile, [], Request).
-
-
-
-		 /*******************************
-		 *	       UTIL		*
-		 *******************************/
-
-reply_page(Title, Content) :-
-	doc_page_dom(Title, Content, DOM),
-	phrase(html(DOM), Tokens),
-	format('Content-type: text/html~n~n'),
-	print_html_head(current_output),
-	print_html(Tokens).
 
 
 		 /*******************************
@@ -591,20 +580,3 @@ prolog:message(pldoc(server_started(Port))) -->
 	[ 'Started Prolog Documentation server at port ~w'-[Port], nl,
 	  'You may access the server at http://localhost:~w~w'-[Port, Root]
 	].
-
-
-                 /*******************************
-                 *        PCEEMACS SUPPORT      *
-                 *******************************/
-
-:- multifile
-        emacs_prolog_colours:goal_colours/2,
-        prolog:called_by/2.
-
-
-emacs_prolog_colours:goal_colours(reply_page(_, HTML),
-                                  built_in-[classify, Colours]) :-
-        catch(html_write:html_colours(HTML, Colours), _, fail).
-
-prolog:called_by(reply_page(_, HTML), Called) :-
-        catch(phrase(html_write:called_by(HTML), Called), _, fail).

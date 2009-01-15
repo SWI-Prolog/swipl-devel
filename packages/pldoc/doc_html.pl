@@ -30,9 +30,9 @@
 */
 
 :- module(pldoc_html,
-	  [ doc_for_file/3,		% +FileSpec, +Out, +Options
+	  [ doc_for_file/2,		% +FileSpec, +Options
 	    doc_write_html/3,		% +Stream, +Title, +Term
-	    doc_for_wiki_file/3,	% +FileSpec, +Out, +Options
+	    doc_for_wiki_file/2,	% +FileSpec, +Options
 	    				% Support doc_index
 	    doc_page_dom/3,		% +Title, +Body, -DOM
 	    print_html_head/1,		% +Stream
@@ -115,9 +115,9 @@ extracting module doc_wiki.pl into HTML+CSS.
 		 *	 FILE PROCESSING	*
 		 *******************************/
 
-%%	doc_for_file(+File, +Out:stream, +Options) is det
+%%	doc_for_file(+File, +Options) is det
 %
-%	Write documentation for File to Out in HTML.  Options:
+%	Write documentation for File as HTML.  Options:
 %	
 %		* public_only(+Bool)
 %		If =true= (default), only emit documentation for
@@ -130,7 +130,7 @@ extracting module doc_wiki.pl into HTML+CSS.
 %	@param File	Prolog file specification.
 %	@param Out	Output stream
 
-doc_for_file(FileSpec, Out, Options) :-
+doc_for_file(FileSpec, Options) :-
 	absolute_file_name(FileSpec,
 			   [ file_type(prolog),
 			     access(read)
@@ -138,17 +138,16 @@ doc_for_file(FileSpec, Out, Options) :-
 			   File),
 	file_base_name(File, Base),
 	Title = Base,
-	doc_page_dom(Title, \prolog_file(FileSpec, Options), DOM),
-	phrase(html(DOM), Tokens),
-	print_html_head(Out),
-	print_html(Out, Tokens).
+	reply_html_page(title(Title),
+			\prolog_file(FileSpec, Options)).
 
 prolog_file(FileSpec, Options) -->
 	{ doc_file_objects(FileSpec, File, Objects, FileOptions, Options),
 	  b_setval(pldoc_file, File),	% TBD: delete?
 	  file_directory_name(File, Dir)
 	},
-	html([ \doc_links(Dir, FileOptions),
+	html([ \html_requires(pldoc),
+	       \doc_links(Dir, FileOptions),
 	       \file_header(File, FileOptions)
 	     | \objects(Objects, FileOptions)
 	     ]),
@@ -539,10 +538,11 @@ object_page(Obj, Options) -->
 object_page(Obj, Options) -->
 	{ doc_comment(Obj, File:_Line, _Summary, _Comment)
 	},
-	html([ div(class(navhdr),
-		   [ span(style('float:left'),
+	html([ \html_requires(pldoc),
+	       div(class(navhdr),
+		   [ div(style('float:left'),
 			  a(href(location_by_id(pldoc_doc)+File), File)),
-		     span(style('float:right'), \search_form(Options)),
+		     div(style('float:right'), \search_form(Options)),
 		     br(clear(both))
 		   ]),
 	       \objects([Obj], Options)
@@ -1363,22 +1363,29 @@ generalise_spec(Name//Arity, _M:Name//Arity).
 		 *******************************/
 
 
-%%	doc_for_wiki_file(+File, +Out:stream, +Options) is det.
+%%	doc_for_wiki_file(+File, +Options) is det.
 %
 %	Write HTML for the File containing wiki data.
 
-doc_for_wiki_file(FileSpec, Out, _Options) :-
+doc_for_wiki_file(FileSpec, _Options) :-
 	absolute_file_name(FileSpec, File,
 			   [ access(read)
 			   ]),
 	read_file_to_codes(File, String, []),
 	b_setval(pldoc_file, File),
-	call_cleanup((wiki_string_to_dom(String, [], DOM),
-		      phrase(html(DOM), Tokens),
-		      print_html_head(Out),
-		      print_html(Out, Tokens)
-		     ),
+	call_cleanup(reply_wiki_page(File, String),
 		     nb_delete(pldoc_file)).
+
+reply_wiki_page(File, String) :-
+	wiki_string_to_dom(String, [], DOM),
+	title(DOM, File, Title),
+	reply_html_page(title(Title),
+			DOM).
+
+title(DOM, _, Title) :-
+	sub_term(h1(_,Title), DOM), !.
+title(_, File, Title) :-
+	file_base_name(File, Title).
 
 
 		 /*******************************

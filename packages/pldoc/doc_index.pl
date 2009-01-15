@@ -30,7 +30,7 @@
 */
 
 :- module(pldoc_index,
-	  [ doc_for_dir/3,		% +Dir, +Out, +Options
+	  [ doc_for_dir/2,		% +Dir, +Options
 	    dir_index/4,		% +Dir, +Options, //
 	    object_summaries/5,		% +Objs, +Section, +Options, //
 	    file_index_header/4,	% +File, +Options, //
@@ -43,8 +43,9 @@
 :- use_module(doc_wiki).
 :- use_module(doc_search).
 :- use_module(doc_util).
-:- use_module(library('http/http_dispatch')).
-:- use_module(library('http/html_write')).
+:- use_module(library(http/http_dispatch)).
+:- use_module(library(http/html_write)).
+:- use_module(library(http/html_head)).
 :- use_module(library(readutil)).
 :- use_module(library(url)).
 :- use_module(library(option)).
@@ -54,14 +55,14 @@
 /** <module> Create indexes
 */
 
-%%	doc_for_dir(+Dir, +Out, +Options) is det.
+%%	doc_for_dir(+Dir, +Options) is det.
 %
 %	Write summary index for all files  in   Dir  to  Out. The result
 %	consists of the =README= file  (if   any),  a  table holding with
 %	links to objects and summary  sentences   and  finaly the =TODO=
 %	file (if any).
 
-doc_for_dir(DirSpec, Out, Options) :-
+doc_for_dir(DirSpec, Options) :-
 	absolute_file_name(DirSpec,
 			   [ file_type(directory),
 			     access(read)
@@ -69,10 +70,8 @@ doc_for_dir(DirSpec, Out, Options) :-
 			   Dir),
 	file_base_name(Dir, Base),
 	Title = Base,
-	doc_page_dom(Title, \dir_index(Dir, Options), DOM),
-	phrase(html(DOM), Tokens),
-	print_html_head(Out),
-	print_html(Out, Tokens).
+	reply_html_page(title(Title),
+			\dir_index(Dir, Options)).
 
 
 %%	dir_index(+Dir, +Options)//
@@ -315,14 +314,16 @@ doc_links(Directory, Options) -->
 	->  working_directory(Dir, Dir)
 	;   Dir = Directory
 	},
-	html(div(class(navhdr),
-		 [ span(style('float:left'),
-			div([ \source_dir_menu(Dir),
-			      \version
-			    ])),
-		   span(style('float:right'), \search_form(Options)),
-		   br(clear(both))
-		 ])).
+	html([ \html_requires(pldoc),
+	       div(class(navhdr),
+		   [ div(style('float:left'),
+			  div([ \source_dir_menu(Dir),
+				\version
+			      ])),
+		     div(style('float:right'), \search_form(Options)),
+		     br(clear(both))
+		   ])
+	     ]).
 
 
 %%	version// is det.

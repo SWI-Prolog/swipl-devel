@@ -42,8 +42,9 @@
 :- use_module(doc_wiki).
 :- use_module(doc_html).
 :- use_module(doc_search).
-:- use_module(library('http/html_write')).
-:- use_module(library('http/http_dispatch')).
+:- use_module(library(http/html_write)).
+:- use_module(library(http/html_head)).
+:- use_module(library(http/http_dispatch)).
 :- use_module(library(doc_http)).
 :- include(hooks).
 
@@ -461,7 +462,8 @@ man_page(Obj, Options) -->
 		  Matches),
 	  Matches = [Parent+Path-_|_]
 	},
-	html([ \man_links(Parent, Options),
+	html([ \html_requires(pldoc),
+	       \man_links(Parent, Options),
 	       p([]),
 	       \man_matches(Matches)
 	     ]).
@@ -469,7 +471,8 @@ man_page(Obj, Options) -->
 	{ \+ option(no_manual(fail), Options),
 	  term_to_atom(Obj, Atom)
 	},
-	html([ \man_links([], []),	% Use index file?
+	html([ \html_requires(pldoc),
+	       \man_links([], []),	% Use index file?
 	       p(['No manual entry for ', Atom])
 	     ]).
 
@@ -603,8 +606,8 @@ referenced_section(Fragment, File, Path, section(Level, Nr, SecPath)) :-
 
 man_links(Parent, Options) -->
 	html(div(class(navhdr),
-		 [ span(style('float:left'), \man_parent(Parent)),
-		   span(style('float:right'), \search_form(Options)),
+		 [ div(style('float:left'), \man_parent(Parent)),
+		   div(style('float:right'), \search_form(Options)),
 		   br(clear(both))
 		 ])).
 
