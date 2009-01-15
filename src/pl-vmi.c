@@ -1421,10 +1421,14 @@ VMI(I_CALLM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
 
 
 VMI(I_DEPARTM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
-{ Module m = (Module)*PC++;
+{ if ( (void *)BFR <= (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
+  { VMI_GOTO(I_CALLM);
+  } else
+  { Module m = (Module)*PC++;
 
-  setContextModule(FR, m);
-  VMI_GOTO(I_DEPART);
+    setContextModule(FR, m);
+    VMI_GOTO(I_DEPART);
+  }
 }
 
 

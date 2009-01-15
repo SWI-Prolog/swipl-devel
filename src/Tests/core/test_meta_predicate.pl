@@ -55,6 +55,13 @@ m2(X, _, X).
 
 a(_).
 
+mtry:no :- fail.
+
+mdepart(_) :-
+	mtry:no, !.
+mdepart(X) :-
+	context_module(X).
+
 test(qualify, X == M:x) :-
 	this(M),
 	m(x, X).
@@ -74,5 +81,8 @@ test(alias, X == Out) :-		% shared variables
 	m(X, X, Out).
 test(alias2, X == Out) :-		% shared variables
 	m2(X, X, Out).
+test(i_departm, X == Me) :-
+	context_module(Me),
+	mdepart(X).
 
 :- end_tests(meta_predicate).
