@@ -39,8 +39,10 @@
 	  ]).
 :- use_module(library(lists)).
 
-:- module_transparent
-	time/1.
+:- meta_predicate
+	time(0),
+	profile(0),
+	profile(0, +, +).
 
 %%	time(:Goal)
 %
@@ -85,9 +87,6 @@ visualiser for profiling results defined in library('swi/pce_profile').
 Later we will add a proper textual report-generator.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- module_transparent
-	profile/1,
-	profile/3.
 :- multifile
 	prolog:show_profile_hook/2.
 

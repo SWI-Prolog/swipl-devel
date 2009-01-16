@@ -77,10 +77,10 @@ wiki_string_to_dom(Codes, Args, DOM) :-
 	wiki_lines_to_dom(Lines, Args, DOM).
 
 
-%%	wiki_structure(+Lines:lines, -Pars:list(par)) is det
+%%	wiki_structure(+Lines:lines, -Blocks:list(block)) is det
 %
-%	Get the structure in terms of  paragraphs, lists and tables from
-%	the  lines.  This  processing  uses  a  mixture  of  layout  and
+%	Get the structure in terms  of block-level elements: paragraphs,
+%	lists and tables. This processing uses   a mixture of layout and
 %	punctuation.
 
 wiki_structure([], []) :- !.
@@ -89,11 +89,17 @@ wiki_structure([_-[]|T], Pars) :- !,	% empty lines
 wiki_structure(Lines, [\tags(Tags)]) :-
 	tags(Lines, Tags), !.
 wiki_structure(Lines, [P1|PL]) :-
-	take_par(Lines, P1, RestLines),
+	take_block(Lines, P1, RestLines),
 	wiki_structure(RestLines, PL).
 	
-take_par(Lines, List, Rest) :-
+%%	take_block(+Lines, ?Block, -RestLines) is semidet.
+%
+%	Take a block-structure from the input.  Defined block elements
+%	are lists, table, hrule, section header and paragraph.
+
+take_block(Lines, List, Rest) :-
 	list_item(Lines, Type, Indent, LI, LIT, Rest0), !,
+	can_be_list(List),
 	rest_list(Rest0, Type, Indent, LIT, [], Rest),
 	List0 =.. [Type, LI],
 	(   ul_to_dl(List0, List)
@@ -102,19 +108,27 @@ take_par(Lines, List, Rest) :-
 	->  List = dl(class=wiki, Items)
 	;   List = List0
 	).
-take_par([N-['|'|RL1]|LT], table(class=wiki, [tr(R0)|RL]), Rest) :-
+take_block([N-['|'|RL1]|LT], Table, Rest) :-
 	phrase(row(R0), RL1),
-	rest_table(LT, N, RL, Rest), !.
-take_par([0-[-,-|More]|LT], hr([]), LT) :- % seperation line
-	maplist(=(-), More), !.
-take_par([_-[@|_]], _, _) :- !,		% starts @tags section
+	rest_table(LT, N, RL, Rest), !,
+	Table = table(class=wiki, [tr(R0)|RL]).
+take_block([0-[-,-|More]|LT], Block, LT) :-	% seperation line
+	maplist(=(-), More), !,
+	Block = hr([]).
+take_block([_-[@|_]], _, _) :- !,		% starts @tags section
 	fail.
-take_par([_-L1|LT], Section, LT) :-
+take_block([_-L1|LT], Section, LT) :-
 	section_line(L1, Section), !.
-take_par([_-L1|LT], p(Par), Rest) :- !,
+take_block([_-L1|LT], p(Par), Rest) :- !,
 	append(L1, PT, Par),
 	rest_par(LT, PT, Rest).
-take_par([Verb|Lines], Verb, Lines).
+take_block([Verb|Lines], Verb, Lines).
+
+can_be_list(List) :- var(List), !.
+can_be_list(dl(_)).
+can_be_list(ul(_)).
+can_be_list(ol(_)).
+
 
 %%	list_item(+Lines, ?Type, ?Indent, -LI0, -LIT, -RestLines) is det.
 %
@@ -138,15 +152,15 @@ list_item(Lines, _, Indent, [SubList|LIT], LIT, Rest) :-	% sub-list
 	Lines = [SubIndent-Line|_],
 	SubIndent > Indent,
 	list_item_prefix(_, Line, _), !,
-	take_par(Lines, SubList, Rest).
+	take_block(Lines, SubList, Rest).
 
 %%	rest_list_item(+Lines, +Type, +Indent, -RestItem, -RestLines) is det
 %
 %	Extract the remainder (after the first line) of a list item.
 
-rest_list_item([], _, _, [], []).
+rest_list_item([], _, _, [], []) :- !.
 rest_list_item([_-[]|RestLines], _, N, Pars, Rest) :-	% empty line
-	take_pars_at_indent(RestLines, N, Pars, Rest).
+	take_pars_at_indent(RestLines, N, Pars, Rest), !.
 rest_list_item([_-[]|Ln], _, _, [], Ln) :- !.
 rest_list_item(L, _, N, [], L) :-		% less indented
 	L = [I-_|_], I < N, !.
@@ -161,10 +175,10 @@ rest_list_item([_-L1|L0], Type, N, ['\n'|LI], L) :-
 %
 %	Process paragraphs in bullet-lists.
 
-take_pars_at_indent(Lines, N, [Par|RestPars], RestLines) :-
+take_pars_at_indent(Lines, N, [p(Par)|RestPars], RestLines) :-
 	Lines = [I-_|_],
 	I >= N,
-	take_par(Lines, Par, RL), Par = p(_), !,
+	take_block(Lines, p(Par), RL), !,
 	take_pars_at_indent(RL, N, RestPars, RestLines).
 take_pars_at_indent(Lines, _, [], Lines).
 
