@@ -562,8 +562,9 @@ wiki_face(\predref(Name/Arity), _) -->
 	  string_to_atom(NameS, Name)
 	}.
 wiki_face(\predref(Name/Arity), _) -->
-	symbol_string(S), [ '/' ], arity(Arity), !,
-	{ atom_chars(Name, S)
+	prolog_symbol_char(S0),
+	symbol_string(SRest), [ '/' ], arity(Arity), !,
+	{ atom_chars(Name, [S0|SRest])
 	}.
 wiki_face(\predref(Name//Arity), _) -->
 	[ NameS, '/', '/' ], arity(Arity),
@@ -713,16 +714,19 @@ arity(Arity) -->
 
 %%	symbol_string(-String)// is nondet
 %
-%	Accept  a  non-empty  sequence  of   Prolog  symbol  characters,
-%	starting with the shortest match.
+%	Accept a sequence of Prolog symbol characters, starting with the
+%	shortest (empty) match.
 
-symbol_string([S]) -->
-	[S],
-	{ prolog_symbol_char(S) }.
+symbol_string([]) -->
+	[].
 symbol_string([H|T]) -->
 	[H],
 	{ prolog_symbol_char(H) },
 	symbol_string(T).
+
+prolog_symbol_char(C) -->
+	[C],
+	{ prolog_symbol_char(C) }.
 
 %%	prolog_symbol_char(?Char)
 %
