@@ -578,9 +578,12 @@ wiki_face(\include(Name, Type, Options), _) -->
 	  resolve_file(Name, Options, [])
 	}, !.
 wiki_face(Link, _ArgNames) -->		% [[Label][Link]]
-	['[','['], string(LabelParts), [']','['],
-	wiki_link(Link, [label(Label), relative(true), end(']')]), [']',']'], !,
-	{ concat_atom(LabelParts, Label) }.
+	['[','['],
+	string(LabelParts),
+	[']','['],
+	wiki_link(Link, [label(Label), relative(true), end(']')]),
+	[']',']'], !,
+	{ make_label(LabelParts, Label) }.
 wiki_face(Link, _ArgNames) -->
 	wiki_link(Link, []), !.
 wiki_face(FT, ArgNames) -->
@@ -589,6 +592,20 @@ wiki_face(FT, ArgNames) -->
 	->  FT = T
 	;   wiki_faces(T, ArgNames, FT)
 	}.
+
+%%	make_label(+Parts, -Label) is det.
+%
+%	Translate the [[Parts][...] into a label
+
+make_label(Parts, Label) :-
+	concat_atom(Parts, Text),
+	(   \+ memberchk(' ', Parts),
+	    file_name_extension(_, Ext, Text),
+	    autolink_extension(Ext, image),
+	    resolve_file(Text, Options, [])
+	->  Label = \include(Text, image, Options)
+	;   Label = Text
+	).
 
 %%	wiki_link(-Link, +Options)// is semidet.
 %
@@ -617,7 +634,7 @@ wiki_link(\file(Name, FileOptions), Options) -->
 	  sub_atom(NameS, 0, _, 0, Name), !,
 	  resolve_file(Name, FileOptions, Options)
 	}, !.
-wiki_link(a(href=Ref, Label), Options) -->
+wiki_link(a(href(Ref), Label), Options) -->
 	word_token(ProtS), [:,/,/], { url_protocol(ProtS) },
 	{ option(end(End), Options, space)
 	},
@@ -625,7 +642,7 @@ wiki_link(a(href=Ref, Label), Options) -->
 	{ concat_atom([ProtS, :,/,/ | Rest], Ref),
 	  option(label(Label), Options, Ref)
 	}.
-wiki_link(a(href=Ref, Label), Options) -->
+wiki_link(a(href(Ref), Label), Options) -->
 	[<], 
 	(   { option(relative(true), Options),
 	      Parts = Rest

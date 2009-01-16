@@ -57,6 +57,7 @@
 	    file//1,			% +File, //
 	    file//2,			% +File, +Options, //
 	    include//2,			% +File, +Type, //
+	    include//3,			% +File, +Type, +Options //
 	    tags//1,			% +Tags, //
 	    file_header//2,		% +File, +Options, //
 	    objects//2,			% +Objects, +Options, //
@@ -1239,7 +1240,9 @@ file(File, Options) -->
 	{ catch(nb_getval(pldoc_options, GenOptions), _, GenOptions = []),
 	  merge_options(Options, GenOptions, FinalOptions)
 	},
-	link_file(File, FinalOptions).
+	link_file(File, FinalOptions), !.
+file(File, _) -->
+	html(code(class(nofile), File)).
 
 link_file(File, Options) -->
 	{ file_href(File, HREF, Options),
@@ -1247,8 +1250,6 @@ link_file(File, Options) -->
 	  option(class(Class), Options, file)
 	},
 	html(a([class(Class), href(HREF)], Label)).
-link_file(File, _) -->
-	html(code(class(file), File)).
 
 %%	file_href(+FilePath, -HREF, +Options) is det.
 %
@@ -1296,24 +1297,27 @@ existing_linked_file(File, Path) :-
 
 
 %%	include(+FileName, +Type)// is det.
+%%	include(+FileName, +Type, +Options)// is det.
 %
 %	Inline FileName. If this is an image file, show an inline image.
 %	Else we create a link  like   file//1.  Called by \include(File,
 %	Type)  terms  in  the  DOM  term  generated  by  wiki.pl  if  it
 %	encounters [[file.ext]].
 
-include(PI, predicate) --> !,
+include(What, Type) -->
+	include(What, Type, []).
+
+include(PI, predicate, _) --> !,
 	(   html_tokens_for_predicates(PI, [])
 	->  []
 	;   html(['[[', \predref(PI), ']]'])
 	).
-include(File, image) -->
-	{ existing_linked_file(File, _) }, !,
-	html(img([src(File), alt(File)])).
-include(File, _Type) -->
-	{ existing_linked_file(File, _) }, !,
-	file(File).
-include(File, _) -->
+include(File, image, Options) -->
+	{ file_href(File, HREF, Options) }, !,
+	html(img([src(HREF), alt(File)])).
+include(File, _Type, Options) -->
+	link_file(File, Options), !.
+include(File, _, _) -->
 	html(code(class(nofile), ['[[',File,']]'])).
 
 
