@@ -59,6 +59,7 @@
 	    include//2,			% +File, +Type, //
 	    include//3,			% +File, +Type, +Options //
 	    tags//1,			% +Tags, //
+	    term//2,			% +Term, +Bindings, //
 	    file_header//2,		% +File, +Options, //
 	    objects//2,			% +Objects, +Options, //
 	    object_ref//2,		% +Object, +Options, //
