@@ -573,8 +573,8 @@ wiki_face(\predref(Name//Arity), _) -->
 	}.
 wiki_face(\include(Name, Type, Options), _) -->
 	['[','['], file_name(Base, Ext), [']',']'],
-	{ autolink_extension(Ext, Type),
-	  file_name_extension(Base, Ext, Name), !,
+	{ autolink_extension(Ext, Type), !,
+	  file_name_extension(Base, Ext, Name),
 	  resolve_file(Name, Options, [])
 	}, !.
 wiki_face(Link, _ArgNames) -->		% [[Label][Link]]
@@ -598,14 +598,44 @@ wiki_face(FT, ArgNames) -->
 %	Translate the [[Parts][...] into a label
 
 make_label(Parts, Label) :-
-	concat_atom(Parts, Text),
-	(   \+ memberchk(' ', Parts),
-	    file_name_extension(_, Ext, Text),
-	    autolink_extension(Ext, image),
-	    resolve_file(Text, Options, [])
-	->  Label = \include(Text, image, Options)
-	;   Label = Text
+	phrase(image_label(Label), Parts), !.
+make_label(Parts, Label) :-
+	concat_atom(Parts, Label).
+
+image_label(\include(Name, image, Options)) -->
+	file_name(Base, Ext),
+	{ autolink_extension(Ext, image),
+	  file_name_extension(Base, Ext, Name),
+	  resolve_file(Name, Options, RestOptions)
+	},
+	file_options(RestOptions).
+
+
+%%	file_options(-Options) is det.
+%
+%	Extracts additional processing options for  files. The format is
+%	;name="value",name2=value2,... Spaces are not allowed.
+
+file_options(Options) -->
+	[;], nv_pairs(Options), !.
+file_options([]) -->
+	[].
+
+nv_pairs([H|T]) -->
+	nv_pair(H),
+	(   [',']
+	->  nv_pairs(T)
+	;   {T=[]}
 	).
+
+nv_pair(Option) -->
+	word_token(NameS), [=,'"'], string(ValueS), ['"'], !,
+	{ concat_atom([NameS], Name),
+	  concat_atom(ValueS, Value0),
+	  catch(atom_number(Value0, Value), _, Value=Value0),
+	  Option =.. [Name,Value]
+	}.
+
 
 %%	wiki_link(-Link, +Options)// is semidet.
 %

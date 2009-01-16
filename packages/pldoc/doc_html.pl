@@ -75,6 +75,7 @@
 :- use_module(library(http/html_head)).
 :- use_module(library(doc_http)).
 :- use_module(library(debug)).
+:- use_module(library(apply)).
 :- use_module(doc_process).
 :- use_module(doc_modes).
 :- use_module(doc_wiki).
@@ -1323,12 +1324,26 @@ include(PI, predicate, _) --> !,
 	;   html(['[[', \predref(PI), ']]'])
 	).
 include(File, image, Options) -->
-	{ file_href(File, HREF, Options) }, !,
-	html(img([src(HREF), alt(File)])).
+	{ file_href(File, HREF, Options),
+	  include(image_attribute, Options, Attrs0),
+	  merge_options(Attrs0,
+			[ alt(File),
+			  border(0),
+			  src(HREF)
+			], Attrs)
+	},
+	html(img(Attrs)).
 include(File, _Type, Options) -->
 	link_file(File, Options), !.
 include(File, _, _) -->
 	html(code(class(nofile), ['[[',File,']]'])).
+
+image_attribute(src(_)).
+image_attribute(alt(_)).
+image_attribute(align(_)).
+image_attribute(width(_)).
+image_attribute(height(_)).
+image_attribute(border(_)).
 
 
 %%	html_tokens_for_predicates(+PI, +Options)// is semidet.
