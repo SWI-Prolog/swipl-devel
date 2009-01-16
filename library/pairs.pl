@@ -56,8 +56,11 @@ O'Keefe.
 %
 %	True if Keys holds the keys of Pairs and Values the values.
 %	
-%	Deterministic if any argument is instantiated to a finite list
-%	and the others are either free or finite lists.
+%	Deterministic if any argument is instantiated   to a finite list
+%	and the others are either free or  finite lists. All three lists
+%	are in the same order.
+%	
+%	@see pairs_values/2 and pairs_keys/2.
 
 pairs_keys_values(Pairs, Keys, Values) :-
 	(   nonvar(Pairs) ->
