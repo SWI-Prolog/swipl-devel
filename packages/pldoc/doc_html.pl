@@ -71,6 +71,7 @@
 :- use_module(library(readutil)).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_dispatch)).
+:- use_module(library(http/http_path)).
 :- use_module(library(http/html_head)).
 :- use_module(library(doc_http)).
 :- use_module(library(debug)).
@@ -1267,12 +1268,21 @@ file_href(File, HREF, Options) :-
 	;   LinkFile = Path
 	),
 	file_href(LinkFile, HREF).
+file_href(File, HREF, _) :-
+	http:location(Alias, _, _),
+	Term =.. [Alias,File],
+	absolute_file_name(Term, _,
+			   [ access(read),
+			     file_errors(fail)
+			   ]), !,
+	http_absolute_location(Term, HREF, []).
 
 %%	file_href(+FilePath, -HREF) is det.
 %
 %	Create a relative URL from  the   current  location to the given
-%	absolute file name. Relies on  processing using the =pldoc_file=
-%	global variable.
+%	absolute file name. Ite resolves the   filename  relative to the
+%	fiel being processed  that  is   available  through  the  global
+%	variable =pldoc_file=.
 
 file_href(Path, HREF) :-
 	nb_current(pldoc_file, CFile),
