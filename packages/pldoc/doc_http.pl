@@ -145,10 +145,10 @@ doc_server(Port, Options) :-
 %	@error	existence_error(http_server, pldoc)
 
 doc_current_server(Port) :-
-	doc_server_port(Port).
-doc_current_server(_) :-
-	existence_error(http_server, pldoc).
-
+	(   doc_server_port(P)
+	->  Port = P
+	;   existence_error(http_server, pldoc)
+	).
 
 %%	doc_browser is det.
 %%	doc_browser(+What) is semidet.
