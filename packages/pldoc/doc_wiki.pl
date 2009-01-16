@@ -673,6 +673,20 @@ wiki_link(a(href(Ref), Label), Options) -->
 	  option(label(Label), Options, Ref)
 	}.
 wiki_link(a(href(Ref), Label), Options) -->
+	[<], word_token(AliasS), [:],
+	{ concat_atom([AliasS], Alias),
+	  user:url_path(Alias, _)
+	},
+	string_no_whitespace(Rest), [>],
+	{ concat_atom(Rest, Local),
+	  (   Local == ''
+	  ->  Term =.. [Alias,'.']
+	  ;   Term =.. [Alias,Local]
+	  ),
+	  expand_url_path(Term, Ref),
+	  option(label(Label), Options, Ref)
+	}.
+wiki_link(a(href(Ref), Label), Options) -->
 	[<], 
 	(   { option(relative(true), Options),
 	      Parts = Rest
