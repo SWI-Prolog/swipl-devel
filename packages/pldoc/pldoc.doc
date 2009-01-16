@@ -448,10 +448,16 @@ PceEmacs can be set as default editor using
 		  create a link to the file. \\
 \tt prot\verb$://$url	& If <prot> is one of \const{http} or
 		  \const{ftp}, create a link. \\
-\tt\chr{<}url\chr{>} & Create a hyperlink to URL. \\
+\tt\chr{<}url\chr{>} & Create a hyperlink to URL.  This construct
+		  supports the expand_url_path/2 using the construct
+		  <alias>:<local>.  <local> can be empty. \\
 \tt\verb$[[$label\verb$][$link\verb$]]$ &
-		  Create a link using the given <label>.  <link>
-		  must be a filename as above or url. \\
+		  Create a link using the given <label>.  Label
+		  can be text or a reference to an image file.
+		  Additional arguments can be supplied as
+		  \chr{;}<name>=\chr{"}<value>\chr{"}.  More
+		  arguments are separated by commas. <link> must be a
+		  filename as above or a url. \\
 \hline
 \end{tabular}
 \end{center}
