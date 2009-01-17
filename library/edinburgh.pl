@@ -50,8 +50,12 @@ Standard Prolog.
 		 *******************************/
 
 %%	display(+Term) is det.
+%%	display(+Stream, +Term) is det.
 %
 %	Write a term, ignoring operators.
+%	
+%	@deprecated	New code must use write_term/3 using the option
+%			ignore_ops(true).
 
 display(Term) :-
 	write_term(Term, [ignore_ops(true)]).
