@@ -321,7 +321,8 @@ cdata(_) -->
 %	
 %	@tbd	Nondet?
 
-load_man_object(For, ParentSection, Path, DOM) :-
+load_man_object(Obj, ParentSection, Path, DOM) :-
+	resolve_section(Obj, For),
 	For = section(_,SN,Path),
 	parent_section(For, ParentSection),
 	findall(Nr-Pos, section_start(Path, Nr, Pos), Pairs),
@@ -392,6 +393,25 @@ section_start(Path, Nr, Pos) :-
 	index_manual,
 	man_index(section(_,Nr,_), _, Path, _, Pos).
 
+%%	resolve_section(+SecIn, -SecOut) is det.
+%
+%	Resolve symbolic path reference and fill   in  level and section
+%	number if this information is missing.   The latter allows us to
+%	refer to files of the manual.
+
+resolve_section(section(Level, No, Spec),
+		section(Level, No, Path)) :-
+	absolute_file_name(Spec, Path,
+			   [ access(read)
+			   ]),
+	(   (   var(Level)
+	    ;   var(Path)
+	    )
+	->  index_manual,
+	    man_index(section(Level, No, Path), _, _, _, _)
+	;   true
+	).
+
 %%	parent_section(+Section, +Parent) is det.
 %
 %	Parent is the parent-section  of   Section.  First  computes the
@@ -450,7 +470,15 @@ object_spec(Atom, PI) :-
 %
 %	Produce a Prolog manual page for  Obj.   The  page consists of a
 %	link to the section-file and  a   search  field, followed by the
-%	predicate description.  Options:
+%	predicate description.  Obj is one of:
+%	
+%	    * Name/Arity
+%	    Predicate indicator: display documentation of the predicate
+
+%	    * section(Level, Number, File)
+%	    Display a section of the manual
+%	
+%	Options:
 %	
 %		* no_manual(Action)
 %		If Action = =fail=, fail instead of displaying a
@@ -694,3 +722,12 @@ prolog:doc_file_index_header(File, Options) -->
 prolog:doc_object_title(Obj, Title) :-
 	Obj = section(_,_,_),
 	man_index(Obj, Title, _, _, _), !.
+
+prolog:doc_canonical_object(section(Level, No, Path),
+			    section(Level, No, swi(Local))) :-
+	is_absolute_file_name(Path),
+	absolute_file_name(swi(.), SWI,
+			   [ file_type(directory),
+			     solutions(all)
+			   ]),
+	atom_concat(SWI, Local, Path), !.

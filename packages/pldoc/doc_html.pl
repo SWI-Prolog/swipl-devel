@@ -1129,7 +1129,8 @@ object_href(M:PI0, HREF, Options) :-
 	www_form_encode(PIS, PIEnc),
 	file_base_name(DocFile, LocalFile),	% TBD: proper directory index
 	format(string(HREF), '~w#~w', [LocalFile, PIEnc]).
-object_href(Obj, HREF, _Options) :-
+object_href(Obj0, HREF, _Options) :-
+	localise_object(Obj0, Obj),
 	term_to_string(Obj, String),
 	www_form_encode(String, Enc),
 	http_location_by_id(pldoc_object, ObjHandler),
@@ -1138,6 +1139,16 @@ object_href(Obj, HREF, _Options) :-
 expand_pi(Name//Arity0, Name/Arity) :- !,
 	Arity is Arity0+2.
 expand_pi(PI, PI).
+
+
+%%	localise_object(+ObjIn, -ObjOut) is det.
+%
+%	Abstract  path-details  to  make  references  more  stable  over
+%	versions.
+
+localise_object(Obj0, Obj) :-
+	prolog:doc_canonical_object(Obj0, Obj), !.
+localise_object(Obj, Obj).
 
 
 %%	term_to_string(+Term, -String) is det.
