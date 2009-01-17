@@ -455,6 +455,10 @@ object_spec(Atom, PI) :-
 %		* no_manual(Action)
 %		If Action = =fail=, fail instead of displaying a
 %		not-found message.
+%		
+%		* links(Bool)
+%		If =true= (default), include links to the parent object;
+%		if =false=, just emit the manual material.
 
 man_page(Obj, Options) -->
 	{ findall((Parent+Path)-DOM,
@@ -462,19 +466,22 @@ man_page(Obj, Options) -->
 		  Matches),
 	  Matches = [Parent+Path-_|_]
 	},
-	html([ \html_requires(pldoc),
-	       \man_links(Parent, Options),
-	       p([]),
-	       \man_matches(Matches)
-	     ]).
+	html_requires(pldoc),
+	(   { option(links(true), Options, true) }
+	->  man_links(Parent, Options),
+	    html(p([]))
+	;   []
+	),
+	man_matches(Matches).
 man_page(Obj, Options) -->
 	{ \+ option(no_manual(fail), Options),
 	  term_to_atom(Obj, Atom)
 	},
-	html([ \html_requires(pldoc),
-	       \man_links([], []),	% Use index file?
-	       p(['No manual entry for ', Atom])
-	     ]).
+	html_requires(pldoc),
+	(   { option(links(true), Options, true) }
+	->  man_links([], [])
+	;   html(p(['No manual entry for ', Atom]))
+	).
 
 man_matches([]) -->
 	[].

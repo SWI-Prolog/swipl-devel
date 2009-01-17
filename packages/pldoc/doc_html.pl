@@ -78,6 +78,7 @@
 :- use_module(library(debug)).
 :- use_module(library(apply)).
 :- use_module(doc_process).
+:- use_module(doc_man).
 :- use_module(doc_modes).
 :- use_module(doc_wiki).
 :- use_module(doc_search).
@@ -1372,12 +1373,11 @@ html_tokens_for_predicates(PI, Options) -->
 	object(PI, Pos, Comment, [dl], _, Options).
 html_tokens_for_predicates(Spec, Options) -->
 	{ findall(PI, documented_pi(Spec, PI), List),
-	  (   List == []
-	  ->  print_message(warning, pldoc(no_predicates_from(Spec)))
-	  ;   true
-	  )
+	  List \== [], !
 	},
 	html_tokens_for_predicates(List, Options).
+html_tokens_for_predicates(Spec, Options) -->
+	man_page(Spec, [links(false)|Options]).
 
 
 documented_pi(Spec, PI) :-
