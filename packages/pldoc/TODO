@@ -9,9 +9,10 @@ Incomplete, but very usable.
 Making solid progress.  remaining issues:
 
 	* Tables in lists
-	* Paragraphs in list-items
+	* Verbatim in list-items
 	* Complete tag processing
 		* Combining multiple tags
+	* Translated indended paragraphs to <blockquote>
 
 ---++ HTML generation
 
@@ -20,14 +21,9 @@ Making solid progress.  remaining issues:
 
 ---++ LaTeX generation
 
-	* Generate summary file
 	* Generate entire directory
 		- Need some driver file to now which files to generate
 		  and provide the overall header
-
----++ Integrate with help/apropos
-
-	* Should also link to PceEmacs
 
 ---++ UI
 
