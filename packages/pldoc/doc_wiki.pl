@@ -255,7 +255,7 @@ read_dt_term(In, Term, Bindings) :-
 
 terms_to_predicate_includes([], []).
 terms_to_predicate_includes([dt(class=term, \term([[PI]], [])), dd([])|T0],
-			    [\include(PI, predicate)|T]) :-
+			    [\include(PI, predicate, [])|T]) :-
 	is_pi(PI),
 	terms_to_predicate_includes(T0, T).
 
@@ -494,7 +494,7 @@ structure_term(\tags(Tags), tags, [Tags]) :- !.
 structure_term(\params(Params), params, [Params]) :- !.
 structure_term(param(Name,Descr), param(Name), [Descr]) :- !.
 structure_term(\tag(Name,Value), tag(Name), [Value]) :- !.
-structure_term(\include(What,Type), include(What,Type), []) :- !.
+structure_term(\include(What,Type,Opts), include(What,Type,Opts), []) :- !.
 structure_term(dl(Att, Args), dl(Att), [Args]) :- !.
 structure_term(dt(Att, Args), dt(Att), [Args]) :- !.
 structure_term(table(Att, Args), table(Att), [Args]) :- !.

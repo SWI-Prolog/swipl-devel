@@ -596,19 +596,19 @@ delete_unsafe_label_chars(LabelIn, LabelOut) :-
 		 *	   \ COMMANDS		*
 		 *******************************/
 
-%%	include(+File, +Type)// is det.
+%%	include(+File, +Type, +Options)// is det.
 %
 %	Called from [[File]].
 
-include(PI, predicate) --> !,
+include(PI, predicate, _) --> !,
 	(   latex_tokens_for_predicates(PI, [])
 	->  []
 	;   latex(cmd(item(['[[', \predref(PI), ']]'])))
 	).
-include(File, Type) -->
+include(File, Type, _) -->
 	{ existing_linked_file(File, Path) }, !,
 	include_file(Path, Type).
-include(File, _) -->
+include(File, _, _) -->
 	latex(code(['[[', File, ']]'])).
 
 include_file(Path, image) --> !,
