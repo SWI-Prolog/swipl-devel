@@ -326,7 +326,9 @@ load_man_object(Obj, ParentSection, Path, DOM) :-
 	For = section(_,SN,Path),
 	parent_section(For, ParentSection),
 	findall(Nr-Pos, section_start(Path, Nr, Pos), Pairs),
-	(   Pairs = [SN-_|_]
+	(   (   Pairs = [SN-_|_]
+	    ;	Pairs == []
+	    )
 	->  !,
 	    load_html_file(Path, DOM)		% Load whole file
 	;   append(_, [SN-Start|Rest], Pairs)
@@ -408,7 +410,7 @@ resolve_section(section(Level, No, Spec),
 	    ;   var(Path)
 	    )
 	->  index_manual,
-	    man_index(section(Level, No, Path), _, _, _, _)
+	    ignore(man_index(section(Level, No, Path), _, _, _, _))
 	;   true
 	).
 
@@ -419,6 +421,7 @@ resolve_section(section(Level, No, Spec),
 %	file or same directory.
 
 parent_section(section(Level, Nr, File), Parent) :-
+	integer(Level),
 	Parent = section(PL, PNr, _PFile),
 	PL is Level - 1,
 	findall(B, sub_atom(Nr, B, _, _, '.'), BL),
