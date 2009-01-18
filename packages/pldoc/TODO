@@ -40,6 +40,10 @@ Making solid progress.  remaining issues:
 	* Verify declared @param exists
 	* Verify references name/arity point to existing code
 
+---++ Prolog issues
+
+	* Deal with reexport/1 and friends.
+
 ---++ Notes on CSS:
 
 	* See <http://www.htmldog.com/guides/cssbeginner/selectors/>
