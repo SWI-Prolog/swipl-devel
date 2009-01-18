@@ -11,7 +11,6 @@ Making solid progress.  remaining issues:
 	* Tables in lists
 	* Complete tag processing
 		* Combining multiple tags
-	* Translated indended paragraphs to <blockquote>
 
 ---++ HTML generation
 

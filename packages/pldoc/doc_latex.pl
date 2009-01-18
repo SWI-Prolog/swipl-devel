@@ -313,6 +313,14 @@ latex(h4(Attrs, Content)) -->
 latex(p(Content)) -->
 	[ nl_exact(2) ],
 	latex(Content).
+latex(blockquote(Content)) -->
+	latex(cmd(begin(quote))),
+	latex(Content),
+	latex(cmd(end(quote))).
+latex(center(Content)) -->
+	latex(cmd(begin(center))),
+	latex(Content),
+	latex(cmd(end(center))).
 latex(a(Attrs, Content)) -->
 	{ attribute(href(HREF), Attrs) },
 	(   {HREF == Content}

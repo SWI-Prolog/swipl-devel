@@ -56,7 +56,8 @@
 %	from the html_write library.
 
 wiki_lines_to_dom(Lines, Args, HTML) :-
-	tokenize_lines(Lines, Tokens),
+	tokenize_lines(Lines, Tokens0),
+	normalise_indentation(Tokens0, Tokens),
 	wiki_structure(Tokens, Pars),
 	wiki_faces(Pars, Args, HTML).
 
@@ -121,9 +122,15 @@ take_block([_-L1|LT], Section, LT) :-
 	section_line(L1, Section), !.
 take_block([_-Verb|Lines], Verb, Lines) :-
 	verbatim_term(Verb), !.
-take_block([_-L1|LT], p(Par), Rest) :- !,
+take_block([I-L1|LT], Elem, Rest) :- !,
 	append(L1, PT, Par),
-	rest_par(LT, PT, Rest).
+	rest_par(LT, PT, I, MaxI, Rest),
+	(   MaxI == 0
+	->  Elem = p(Par)
+	;   MaxI >= 16
+	->  Elem = center(Par)
+	;   Elem = blockquote(Par)
+	).
 take_block([Verb|Lines], Verb, Lines).
 
 can_be_list(List) :- var(List), !.
@@ -296,13 +303,14 @@ rest_table([N-['|'|RL1]|LT], N, [tr(R0)|RL], Rest) :- !,
 	rest_table(LT, N, RL, Rest).
 rest_table(Rest, _, [], Rest).
 
-%%	rest_par(+Lines, -Part, -RestLines) is det.
+%%	rest_par(+Lines, -Part, +MaxI0, -MaxI, -RestLines) is det.
 
-rest_par([], [], []).
-rest_par([_-[]|Rest], [], Rest) :- !.
-rest_par([_-L1|LT], ['\n'|Par], Rest) :-
+rest_par([], [], MaxI, MaxI, []).
+rest_par([_-[]|Rest], [], MaxI, MaxI, Rest) :- !.
+rest_par([I-L1|LT], ['\n'|Par], MaxI0, MaxI, Rest) :-
 	append(L1, PT, Par),
-	rest_par(LT, PT, Rest).
+	MaxI1 is max(I, MaxI0),
+	rest_par(LT, PT, MaxI1, MaxI, Rest).
 
 
 %%	section_line(+Tokens, -Section) is det.
@@ -511,12 +519,12 @@ structure_term(h2(Att, Args), h2(Att), [Args]) :- !.
 structure_term(h3(Att, Args), h3(Att), [Args]) :- !.
 structure_term(h4(Att, Args), h4(Att), [Args]) :- !.
 structure_term(hr(Att), hr(Att), []) :- !.
+structure_term(p(Args), p, [Args]) :- !.
 structure_term(Term, Functor, Args) :-
 	functor(Term, Functor, 1),
 	structure_tag(Functor), !,
 	Term =.. [Functor|Args].
 
-structure_tag(p).
 structure_tag(ul).
 structure_tag(ol).
 structure_tag(dl).
@@ -526,6 +534,8 @@ structure_tag(dd).
 structure_tag(table).
 structure_tag(tr).
 structure_tag(td).
+structure_tag(blockquote).
+structure_tag(center).
 
 %%	verbatim_term(?Term) is det
 %
@@ -1035,7 +1045,7 @@ sentence([0' |T0], T) -->
 sentence([H|T0], T) -->
 	[H],
 	sentence(T0, T).
-sentence([0' |T], T) -->
+sentence([0' |T], T) -->		% '
 	eos.
 
 white -->
@@ -1171,6 +1181,30 @@ take_white([H|T0], T) -->
 take_white(T, T) -->
 	[].
 
+%%	normalise_indentation(+LinesIn, -LinesOut) is det.
+%
+%	Re-normalise the indentation, such that the  lef-most line is at
+%	zero.  Note that we skip empty lines in the computation.
+
+normalise_indentation(Lines0, Lines) :-
+	skip_empty_lines(Lines0, Lines1),
+	Lines1 = [I0-_|Lines2], !,
+	smallest_indentation(Lines2, I0, Subtract),
+	(   Subtract == 0
+	->  Lines = Lines0
+	;   maplist(substract_indent(Subtract), Lines0, Lines)
+	).
+normalise_indentation(Lines, Lines).
+
+smallest_indentation([], I, I).
+smallest_indentation([_-[]|T], I0, I) :- !,
+	smallest_indentation(T, I0, I).
+smallest_indentation([X-_|T], I0, I) :-
+	I1 is min(I0, X),
+	smallest_indentation(T, I1, I).
+
+substract_indent(Subtract, I0-L, I-L) :-
+	I is max(0,I0-Subtract).
 
 
 		 /*******************************

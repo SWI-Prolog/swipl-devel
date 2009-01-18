@@ -292,7 +292,12 @@ Prolog specific additions.
 
 \begin{description}
     \item [Paragraphs]
-Paragraphs are seperated by a blank line.
+Paragraphs are seperated by a blank line. Paragraphs that are indented
+in the source-code \emph{after} normalising the left-margin are also
+indented in the output.  Indentation is realised in the HTML backend
+using a \const{blockquote} element and in \LaTeX{} using the
+\const{quote} environment.  Finally, if the initial indentation is
+16 or more, the paragraph is \textit{centered}.
 
     \item [General lists]
 The wiki knows three types of lists: \emph{bullet lists} (HTML
