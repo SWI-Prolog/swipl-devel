@@ -9,7 +9,6 @@ Incomplete, but very usable.
 Making solid progress.  remaining issues:
 
 	* Tables in lists
-	* Verbatim in list-items
 	* Complete tag processing
 		* Combining multiple tags
 	* Translated indended paragraphs to <blockquote>

@@ -119,6 +119,8 @@ take_block([_-[@|_]], _, _) :- !,		% starts @tags section
 	fail.
 take_block([_-L1|LT], Section, LT) :-
 	section_line(L1, Section), !.
+take_block([_-Verb|Lines], Verb, Lines) :-
+	verbatim_term(Verb), !.
 take_block([_-L1|LT], p(Par), Rest) :- !,
 	append(L1, PT, Par),
 	rest_par(LT, PT, Rest).
@@ -173,14 +175,20 @@ rest_list_item([_-L1|L0], Type, N, ['\n'|LI], L) :-
 
 %%	take_pars_at_indent(+Lines, +Indent, -Pars, -RestLines) is det.
 %
-%	Process paragraphs in bullet-lists.
+%	Process paragraphs and verbatim blocks (==..==) in bullet-lists.
 
 take_pars_at_indent(Lines, N, [p(Par)|RestPars], RestLines) :-
 	Lines = [I-_|_],
 	I >= N,
 	take_block(Lines, p(Par), RL), !,
 	take_pars_at_indent(RL, N, RestPars, RestLines).
+take_pars_at_indent([I-Verb|Ln0], N, [Verb|RestPars], RestLines) :-
+	I >= N,
+	verbatim_term(Verb), !,
+	skip_empty_lines(Ln0, Ln),
+	take_pars_at_indent(Ln, N, RestPars, RestLines).
 take_pars_at_indent(Lines, _, [], Lines).
+
 
 %%	rest_list(+Lines, +Type, +Indent,
 %%		  -Items, -ItemTail, -RestLines) is det.
@@ -964,7 +972,7 @@ word([]) -->
 %		...,
 %	==
 
-verbatim([Indent-"=="|Lines], pre(class(code),Pre), RestLines) :-
+verbatim([Indent-"=="|Lines], Indent-pre(class(code),Pre), RestLines) :-
 	verbatim_body(Lines, Indent, [10|PreCodes], [],
 		      [Indent-"=="|RestLines]), !,
 	string_to_list(Pre, PreCodes).
@@ -1035,8 +1043,13 @@ white -->
 white -->
 	eos.
 
+%%	skip_empty_lines(+LinesIn, -LinesOut) is det.
+%
+%	Remove empty lines from the start of the input.  Note that
+%	this is used both to process character and token data.
+
 skip_empty_lines([], []).
-skip_empty_lines([_-""|Lines0], Lines) :- !,
+skip_empty_lines([_-[]|Lines0], Lines) :- !,
 	skip_empty_lines(Lines0, Lines).
 skip_empty_lines(Lines, Lines).
 
