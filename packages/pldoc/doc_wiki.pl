@@ -90,15 +90,15 @@ wiki_structure([_-[]|T], Pars) :- !,	% empty lines
 wiki_structure(Lines, [\tags(Tags)]) :-
 	tags(Lines, Tags), !.
 wiki_structure(Lines, [P1|PL]) :-
-	take_block(Lines, P1, RestLines),
+	take_block(Lines, 0, P1, RestLines),
 	wiki_structure(RestLines, PL).
 	
-%%	take_block(+Lines, ?Block, -RestLines) is semidet.
+%%	take_block(+Lines, +BaseIndent, ?Block, -RestLines) is semidet.
 %
 %	Take a block-structure from the input.  Defined block elements
 %	are lists, table, hrule, section header and paragraph.
 
-take_block(Lines, List, Rest) :-
+take_block(Lines, _, List, Rest) :-
 	list_item(Lines, Type, Indent, LI, LIT, Rest0), !,
 	can_be_list(List),
 	rest_list(Rest0, Type, Indent, LIT, [], Rest),
@@ -109,29 +109,29 @@ take_block(Lines, List, Rest) :-
 	->  List = dl(class=wiki, Items)
 	;   List = List0
 	).
-take_block([N-['|'|RL1]|LT], Table, Rest) :-
+take_block([N-['|'|RL1]|LT], _, Table, Rest) :-
 	phrase(row(R0), RL1),
 	rest_table(LT, N, RL, Rest), !,
 	Table = table(class=wiki, [tr(R0)|RL]).
-take_block([0-[-,-|More]|LT], Block, LT) :-	% seperation line
+take_block([0-[-,-|More]|LT], _, Block, LT) :-	% seperation line
 	maplist(=(-), More), !,
 	Block = hr([]).
-take_block([_-[@|_]], _, _) :- !,		% starts @tags section
+take_block([_-[@|_]], _, _, _) :- !,		% starts @tags section
 	fail.
-take_block([_-L1|LT], Section, LT) :-
+take_block([_-L1|LT], _, Section, LT) :-
 	section_line(L1, Section), !.
-take_block([_-Verb|Lines], Verb, Lines) :-
+take_block([_-Verb|Lines], _, Verb, Lines) :-
 	verbatim_term(Verb), !.
-take_block([I-L1|LT], Elem, Rest) :- !,
+take_block([I-L1|LT], BaseIndent, Elem, Rest) :- !,
 	append(L1, PT, Par),
 	rest_par(LT, PT, I, MaxI, Rest),
-	(   MaxI == 0
-	->  Elem = p(Par)
-	;   MaxI >= 16
+	(   MaxI >= BaseIndent+16
 	->  Elem = center(Par)
-	;   Elem = blockquote(Par)
+	;   MaxI >= BaseIndent+4
+	->  Elem = blockquote(Par)
+	;   Elem = p(Par)
 	).
-take_block([Verb|Lines], Verb, Lines).
+take_block([Verb|Lines], _, Verb, Lines).
 
 can_be_list(List) :- var(List), !.
 can_be_list(dl(_)).
@@ -144,6 +144,8 @@ can_be_list(ol(_)).
 %	Create a list-item. Naturally this should produce a single item,
 %	but DL lists produce two items, so   we create the list of items
 %	as a difference list.
+%	
+%	@tbd	Pass base-indent
 
 list_item([Indent-Line|LT], Type, Indent, Items, ItemT, Rest) :- !,
 	list_item_prefix(Type, Line, L1),
@@ -161,7 +163,7 @@ list_item(Lines, _, Indent, [SubList|LIT], LIT, Rest) :-	% sub-list
 	Lines = [SubIndent-Line|_],
 	SubIndent > Indent,
 	list_item_prefix(_, Line, _), !,
-	take_block(Lines, SubList, Rest).
+	take_block(Lines, 0, SubList, Rest).
 
 %%	rest_list_item(+Lines, +Type, +Indent, -RestItem, -RestLines) is det
 %
@@ -187,7 +189,7 @@ rest_list_item([_-L1|L0], Type, N, ['\n'|LI], L) :-
 take_pars_at_indent(Lines, N, [p(Par)|RestPars], RestLines) :-
 	Lines = [I-_|_],
 	I >= N,
-	take_block(Lines, p(Par), RL), !,
+	take_block(Lines, N, p(Par), RL), !,
 	take_pars_at_indent(RL, N, RestPars, RestLines).
 take_pars_at_indent([I-Verb|Ln0], N, [Verb|RestPars], RestLines) :-
 	I >= N,
