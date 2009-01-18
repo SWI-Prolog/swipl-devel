@@ -58,7 +58,7 @@
 wiki_lines_to_dom(Lines, Args, HTML) :-
 	tokenize_lines(Lines, Tokens0),
 	normalise_indentation(Tokens0, Tokens),
-	wiki_structure(Tokens, Pars),
+	wiki_structure(Tokens, 0, Pars),
 	wiki_faces(Pars, Args, HTML).
 
 
@@ -78,20 +78,20 @@ wiki_string_to_dom(Codes, Args, DOM) :-
 	wiki_lines_to_dom(Lines, Args, DOM).
 
 
-%%	wiki_structure(+Lines:lines, -Blocks:list(block)) is det
+% %	wiki_structure(+Lines:lines, +BaseIndent, -Blocks:list(block)) is det
 %
 %	Get the structure in terms  of block-level elements: paragraphs,
 %	lists and tables. This processing uses   a mixture of layout and
 %	punctuation.
 
-wiki_structure([], []) :- !.
-wiki_structure([_-[]|T], Pars) :- !,	% empty lines
-	wiki_structure(T, Pars).
-wiki_structure(Lines, [\tags(Tags)]) :-
+wiki_structure([], _, []) :- !.
+wiki_structure([_-[]|T], BI, Pars) :- !,	% empty lines
+	wiki_structure(T, BI, Pars).
+wiki_structure(Lines, _, [\tags(Tags)]) :-
 	tags(Lines, Tags), !.
-wiki_structure(Lines, [P1|PL]) :-
-	take_block(Lines, 0, P1, RestLines),
-	wiki_structure(RestLines, PL).
+wiki_structure(Lines, BI, [P1|PL]) :-
+	take_block(Lines, BI, P1, RestLines),
+	wiki_structure(RestLines, BI, PL).
 	
 %%	take_block(+Lines, +BaseIndent, ?Block, -RestLines) is semidet.
 %
@@ -384,13 +384,19 @@ tags(Lines, Tags) :-
 %
 %	Create a list Order-tag(Tag,Tokens) for   each @tag encountered.
 %	Order is the desired position as defined by tag_order/2.
+%	
+%	@tbd	Tag content is often poorly aligned.  We now pass a
+%		high value for the base indent to avoid creating
+%		blockquote and center environments.  Possible we
+%		need some normalisation, notably aligning the first
+%		with the remaining lines.
 
 collect_tags([], []).
 collect_tags([Indent-[@,String|L0]|Lines], [Order-tag(Tag,Value)|Tags]) :-
 	tag_name(String, Tag, Order), !,
 	strip_leading_ws(L0, L),
 	rest_tag(Lines, Indent, VT, RestLines),
-	wiki_structure([0-L|VT], Value0),
+	wiki_structure([0-L|VT], 100, Value0), 		% TBD
 	strip_leading_par(Value0, Value),
 	collect_tags(RestLines, Tags).
 
