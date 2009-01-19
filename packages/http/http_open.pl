@@ -223,6 +223,7 @@ do_open(200, _, Lines, Options, Parts, In0, In) :- !,
 do_open(Code, _, Lines, Options, Parts, In, Stream) :-
 	redirect_code(Code),
 	location(Lines, Location), !,
+	debug(http(redirect), 'http_open: redirecting to ~w', [Location]),
 	parse_url_ex(Location, Parts, Redirected),
 	close(In),
 	http_open(Redirected, Stream, [visited(Redirected)|Options]).
