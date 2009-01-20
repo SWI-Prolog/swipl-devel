@@ -222,8 +222,8 @@ http_dispatch(Request) :-
 	action(Pred, AuthRequest, Options).
 
 
-%%	http_current_handler(+Location, -Closure) is semidet.
-%%	http_current_handler(-Location, +Closure) is nondet.
+%%	http_current_handler(+Location, :Closure) is semidet.
+%%	http_current_handler(-Location, :Closure) is nondet.
 %
 %	True if Location is handled by Closure.
 
@@ -641,6 +641,7 @@ prolog:meta_goal(http_current_handler(_, G), [G+1]).
 
 prolog_edit:locate(Path, Spec, Location) :-
 	atom(Path),
+	Pred = _M:_H,
 	http_current_handler(Path, Pred),
 	closure_name_arity(Pred, 1, PI),
 	prolog_edit:locate(PI, Spec, Location).
