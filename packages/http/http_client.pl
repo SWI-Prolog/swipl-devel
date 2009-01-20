@@ -75,22 +75,20 @@ connect2(Address, In, Out, Options) :-
 	assert(connection(Address, Self, In, Out)).
 
 do_connect(Address, In, Out, Options) :-
+	debug(http(client), 'http_client: Connecting to ~p ...', [Address]),
 	tcp_socket(Socket),
-	thread_self(Me),
-	debug(connection, '~w: Connecting to ~w ...', [Me, Address]),
 	catch(tcp_connect(Socket, Address),
 	      E,
 	      (	  tcp_close_socket(Socket),
 		  throw(E)
 	      )),
-	debug(connection, 'ok~n', []),
 	tcp_open_socket(Socket, In, Out),
+	debug(http(client), '\tok ~p --> ~p', [In, Out]),
 	(   memberchk(timeout(Timeout), Options)
         ->  set_stream(In, timeout(Timeout))
         ;   true
 	), !.
-
-do_connect(Address, _, _, _) :-
+do_connect(Address, _, _, _) :-		% can this happen!?
 	throw(error(failed(connect, Address), _)).
 	
 

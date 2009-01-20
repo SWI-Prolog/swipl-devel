@@ -134,17 +134,31 @@ replaceFont(FontObj f, DisplayObj d)
 }
 
 
+static int XopenNesting = 0;
+
 static status
 XopenFont(FontObj f, DisplayObj d)
-{ if ( isDefault(d) )
+{ status rc;
+
+  if ( isDefault(d) )
     d = CurrentDisplay(f);
 
   makeBuiltinFonts();
 
   if ( !ws_create_font(f, d) )
   { errorPce(f, NAME_noRelatedXFont);
-    return replaceFont(f, d);
-  }      
+    if ( XopenNesting <= 2 )
+    { status rc;
+
+      XopenNesting++;
+      rc = replaceFont(f, d);
+      XopenNesting--;
+      if ( rc )
+	succeed;
+    }
+
+    fail;
+  }
 
   succeed;
 }

@@ -254,10 +254,27 @@ redirect_code(301).			% moved permanently
 redirect_code(302).			% moved temporary
 redirect_code(303).			% see also
 
-open_socket(Host:Port, In, Out, Options) :-
+%%	open_socket(+Address, -In, -Out, +Options) is det.
+%
+%	Create and connect a client socket to Address.  Options
+%	
+%	    * timeout(+Timeout)
+%	    Sets timeout on the stream, *after* connecting the
+%	    socket.
+%	    
+%	@tbd	Make timeout also work on tcp_connect/2.
+%	@tbd	This is the same as do_connect/4 in http_client.pl
+
+open_socket(Address, In, Out, Options) :-
+	debug(http(open), 'http_open: Connecting to ~p ...', [Address]),
 	tcp_socket(Socket),
-	tcp_connect(Socket, Host:Port),
+	catch(tcp_connect(Socket, Address),
+	      E,
+	      (	  tcp_close_socket(Socket),
+		  throw(E)
+	      )),
 	tcp_open_socket(Socket, In, Out),
+	debug(http(open), '\tok ~p --> ~p', [In, Out]),
 	set_stream(In, record_position(false)),
 	(   memberchk(Options, timeout(Timeout))
 	->  set_stream(In, timeout(Timeout))
