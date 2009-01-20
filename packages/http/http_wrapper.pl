@@ -49,7 +49,7 @@
 :- multifile
 	http:request_expansion/2.
 
-%%	http_wrapper(:Goal, +In, +Out, -Close, +Options)
+%%	http_wrapper(:Goal, +In, +Out, -Close, +Options) is det.
 %
 %	Simple wrapper to read and decode an HTTP header from `In', call
 %	:Goal while watching for exceptions and send the result to the
@@ -71,11 +71,7 @@
 %	@param Close	Unified to one of =close=, =|Keep-Alife|= or
 %			spawned.
 
-http_wrapper(GoalSpec, In, Out, Close, Options) :-
-	strip_module(GoalSpec, Module, Goal),
-	wrapper(Module:Goal, In, Out, Close, Options).
-
-wrapper(Goal, In, Out, Close, Options) :-
+http_wrapper(Goal, In, Out, Close, Options) :-
 	catch(http_read_request(In, Request0), ReqError, true),
 	(   Request0 == end_of_file
 	->  Close = close,
