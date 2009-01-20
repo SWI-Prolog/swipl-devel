@@ -651,9 +651,13 @@ pl_prolog_flag5(term_t key, term_t value,
 	  return unify_prolog_flag_value(module, k, s->value, value);
 #endif
 	if ( (s = lookupHTable(GD->prolog_flag.table, (void *)k)) )
-	  return unify_prolog_flag_value(module, k, s->value, value);
-	else
-	  fail;
+	{ if ( unify_prolog_flag_value(module, k, s->value, value) &&
+	       (!access || unify_prolog_flag_access(s->value, access)) &&
+	       (!type   || unify_prolog_flag_type(s->value, type)) )
+	    succeed;
+	}
+
+	fail;
       } else if ( PL_is_variable(key) )
       { e = allocHeap(sizeof(*e));
 
@@ -818,7 +822,7 @@ initPrologFlags()
   setPrologFlag("pipe", FT_BOOL, TRUE, 0);
 #endif
 #ifdef O_PLMT
-  setPrologFlag("threads",	FT_BOOL, TRUE, 0);	/* FF_READONLY? */
+  setPrologFlag("threads",	FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("system_thread_id", FT_INTEGER|FF_READONLY, 0, 0);
 #ifdef MAX_THREADS
   setPrologFlag("max_threads", FT_INTEGER|FF_READONLY, MAX_THREADS);

@@ -205,9 +205,10 @@ typedef union
 #define PL_BYTE		 (40)		/* int */
 
 /* Or'ed flags for PL_set_prolog_flag() */
-#define FF_READONLY	 0x10000	/* Read-only prolog flag */
-#define FF_KEEP		 0x20000	/* keep prolog flag if already set */
-#define FF_MASK		 0xf0000
+/* MUST fit in a short int! */
+#define FF_READONLY	 0x1000	/* Read-only prolog flag */
+#define FF_KEEP		 0x2000	/* keep prolog flag if already set */
+#define FF_MASK		 0xf000
 
 
 		/********************************

@@ -401,7 +401,7 @@ setOSPrologFlags(void)
 { int cpu_count = CpuCount();
 
   if ( cpu_count > 0 )
-    PL_set_prolog_flag("cpu_count", PL_INTEGER, cpu_count);
+    PL_set_prolog_flag("cpu_count", PL_INTEGER|FF_READONLY, cpu_count);
 }
 #endif
 
