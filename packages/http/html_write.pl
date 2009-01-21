@@ -847,7 +847,7 @@ layout(blockquote, 2-1,	1-2).
 layout(pre, 	   2-1,	1-2).
 layout(center,	   2-1,	1-2).
 layout(dl,	   2-1,	1-2).
-layout(ul,	   2-1,	1-2).
+layout(ul,	   1-1,	1-1).
 layout(ol,	   2-1,	1-2).
 layout(form,	   2-1,	1-2).
 layout(frameset,   2-1,	1-2).

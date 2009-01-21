@@ -58,7 +58,7 @@
 wiki_lines_to_dom(Lines, Args, HTML) :-
 	tokenize_lines(Lines, Tokens0),
 	normalise_indentation(Tokens0, Tokens),
-	wiki_structure(Tokens, 0, Pars),
+	wiki_structure(Tokens, -1, Pars),
 	wiki_faces(Pars, Args, HTML).
 
 
@@ -78,7 +78,8 @@ wiki_string_to_dom(Codes, Args, DOM) :-
 	wiki_lines_to_dom(Lines, Args, DOM).
 
 
-% %	wiki_structure(+Lines:lines, +BaseIndent, -Blocks:list(block)) is det
+%%	wiki_structure(+Lines:lines, +BaseIndent,
+%%		       -Blocks:list(block)) is det
 %
 %	Get the structure in terms  of block-level elements: paragraphs,
 %	lists and tables. This processing uses   a mixture of layout and
@@ -98,9 +99,14 @@ wiki_structure(Lines, BI, [P1|PL]) :-
 %	Take a block-structure from the input.  Defined block elements
 %	are lists, table, hrule, section header and paragraph.
 
-take_block(Lines, _, List, Rest) :-
+take_block([_-[]|Lines], BaseIndent, Block, Rest) :- !,
+	take_block(Lines, BaseIndent, Block, Rest).
+take_block([N-_|_], BaseIndent, _, _) :-
+	N < BaseIndent, !,
+	fail.				% less indented
+take_block(Lines, BaseIndent, List, Rest) :-
 	list_item(Lines, Type, Indent, LI, LIT, Rest0), !,
-	can_be_list(List),
+	Indent > BaseIndent,
 	rest_list(Rest0, Type, Indent, LIT, [], Rest),
 	List0 =.. [Type, LI],
 	(   ul_to_dl(List0, List)
@@ -124,7 +130,7 @@ take_block([_-Verb|Lines], _, Verb, Lines) :-
 	verbatim_term(Verb), !.
 take_block([I-L1|LT], BaseIndent, Elem, Rest) :- !,
 	append(L1, PT, Par),
-	rest_par(LT, PT, I, MaxI, Rest),
+	rest_par(LT, PT, I, BaseIndent, MaxI, Rest),
 	(   MaxI >= BaseIndent+16
 	->  Elem = center(Par)
 	;   MaxI >= BaseIndent+4
@@ -132,11 +138,6 @@ take_block([I-L1|LT], BaseIndent, Elem, Rest) :- !,
 	;   Elem = p(Par)
 	).
 take_block([Verb|Lines], _, Verb, Lines).
-
-can_be_list(List) :- var(List), !.
-can_be_list(dl(_)).
-can_be_list(ul(_)).
-can_be_list(ol(_)).
 
 
 %%	list_item(+Lines, ?Type, ?Indent, -LI0, -LIT, -RestLines) is det.
@@ -158,58 +159,41 @@ list_item([Indent-Line|LT], Type, Indent, Items, ItemT, Rest) :- !,
 	    Items = [li(LI0)|ItemT]
 	),
 	rest_list_item(LT, Type, Indent, LIT, Rest).
-list_item(Lines, _, Indent, [SubList|LIT], LIT, Rest) :-	% sub-list
-	nonvar(Indent),
-	Lines = [SubIndent-Line|_],
-	SubIndent > Indent,
-	list_item_prefix(_, Line, _), !,
-	take_block(Lines, 0, SubList, Rest).
 
 %%	rest_list_item(+Lines, +Type, +Indent, -RestItem, -RestLines) is det
 %
 %	Extract the remainder (after the first line) of a list item.
 
-rest_list_item([], _, _, [], []) :- !.
-rest_list_item([_-[]|RestLines], _, N, Pars, Rest) :-	% empty line
-	take_pars_at_indent(RestLines, N, Pars, Rest), !.
-rest_list_item([_-[]|Ln], _, _, [], Ln) :- !.
-rest_list_item(L, _, N, [], L) :-		% less indented
-	L = [I-_|_], I < N, !.
-rest_list_item(L, _, _, [], L) :-		% Start with mark
-	L = [_-Line|_],
-	list_item_prefix(_, Line, _), !.
-rest_list_item([_-L1|L0], Type, N, ['\n'|LI], L) :-
-	append(L1, LIT, LI),
-	rest_list_item(L0, Type, N, LIT, L).
+rest_list_item(Lines, _Type, Indent, RestItem, RestLines) :-
+	take_blocks_at_indent(Lines, Indent, Blocks, RestLines),
+	(   Blocks = [p(Par)|MoreBlocks]
+	->  append(['\n'|Par], MoreBlocks, RestItem)
+	;   RestItem = Blocks
+	).
 
-%%	take_pars_at_indent(+Lines, +Indent, -Pars, -RestLines) is det.
+%%	take_blocks_at_indent(+Lines, +Indent, -Pars, -RestLines) is det.
 %
 %	Process paragraphs and verbatim blocks (==..==) in bullet-lists.
 
-take_pars_at_indent(Lines, N, [p(Par)|RestPars], RestLines) :-
-	Lines = [I-_|_],
-	I >= N,
-	take_block(Lines, N, p(Par), RL), !,
-	take_pars_at_indent(RL, N, RestPars, RestLines).
-take_pars_at_indent([I-Verb|Ln0], N, [Verb|RestPars], RestLines) :-
-	I >= N,
-	verbatim_term(Verb), !,
-	skip_empty_lines(Ln0, Ln),
-	take_pars_at_indent(Ln, N, RestPars, RestLines).
-take_pars_at_indent(Lines, _, [], Lines).
+take_blocks_at_indent(Lines, N, [Block|RestBlocks], RestLines) :-
+	take_block(Lines, N, Block, Rest0), !,
+	take_blocks_at_indent(Rest0, N, RestBlocks, RestLines).
+take_blocks_at_indent(Lines, _, [], Lines).
 
 
 %%	rest_list(+Lines, +Type, +Indent,
 %%		  -Items, -ItemTail, -RestLines) is det.
 
 rest_list(Lines, Type, N, Items, IT, Rest) :-
-	list_item(Lines, Type, N, Items, IT0, Rest0), !,
+	skip_empty_lines(Lines, Lines1),
+	list_item(Lines1, Type, N, Items, IT0, Rest0), !,
 	rest_list(Rest0, Type, N, IT0, IT, Rest).
 rest_list(Rest, _, _, IT, IT, Rest).
 
 %%	list_item_prefix(?Type, +Line, -Rest) is det.
 
 list_item_prefix(ul, [*, ' '|T], T) :- !.
+list_item_prefix(ul, [-, ' '|T], T) :- !.
 list_item_prefix(dl, [$, ' '|T], T) :-
 	memberchk(:, T), !.
 list_item_prefix(ol, [N, '.', ' '|T], T) :-
@@ -305,14 +289,22 @@ rest_table([N-['|'|RL1]|LT], N, [tr(R0)|RL], Rest) :- !,
 	rest_table(LT, N, RL, Rest).
 rest_table(Rest, _, [], Rest).
 
-%%	rest_par(+Lines, -Part, +MaxI0, -MaxI, -RestLines) is det.
+%%	rest_par(+Lines, -Par,
+%%		 +BaseIndent, +MaxI0, -MaxI, -RestLines) is det.
+%
+%	Take the rest of a paragraph. Paragraphs   are  ended by a blank
+%	line or the start of a list-item.   The latter is a bit dubious.
+%	Why not a  general  block-level   object?  The  current defition
+%	allows for writing lists without a blank line between the items.
 
-rest_par([], [], MaxI, MaxI, []).
-rest_par([_-[]|Rest], [], MaxI, MaxI, Rest) :- !.
-rest_par([I-L1|LT], ['\n'|Par], MaxI0, MaxI, Rest) :-
+rest_par([], [], _, MaxI, MaxI, []).
+rest_par([_-[]|Rest], [], _, MaxI, MaxI, Rest) :- !.
+rest_par([I-L|Rest], [], I, MaxI, MaxI, [I-L|Rest]) :-
+	list_item_prefix(_, L, _), !.
+rest_par([I-L1|LT], ['\n'|Par], BI, MaxI0, MaxI, Rest) :-
 	append(L1, PT, Par),
 	MaxI1 is max(I, MaxI0),
-	rest_par(LT, PT, MaxI1, MaxI, Rest).
+	rest_par(LT, PT, BI, MaxI1, MaxI, Rest).
 
 
 %%	section_line(+Tokens, -Section) is det.
@@ -385,18 +377,17 @@ tags(Lines, Tags) :-
 %	Create a list Order-tag(Tag,Tokens) for   each @tag encountered.
 %	Order is the desired position as defined by tag_order/2.
 %	
-%	@tbd	Tag content is often poorly aligned.  We now pass a
-%		high value for the base indent to avoid creating
-%		blockquote and center environments.  Possible we
-%		need some normalisation, notably aligning the first
-%		with the remaining lines.
+%	@tbd Tag content is  often  poorly   aligned.  We  now  find the
+%	alignment of subsequent lines  and  assume   the  first  line is
+%	alligned with the remaining lines.
 
 collect_tags([], []).
 collect_tags([Indent-[@,String|L0]|Lines], [Order-tag(Tag,Value)|Tags]) :-
 	tag_name(String, Tag, Order), !,
 	strip_leading_ws(L0, L),
 	rest_tag(Lines, Indent, VT, RestLines),
-	wiki_structure([0-L|VT], 100, Value0), 		% TBD
+	normalise_indentation(VT, VT1),
+	wiki_structure([0-L|VT1], -1, Value0),
 	strip_leading_par(Value0, Value),
 	collect_tags(RestLines, Tags).
 
