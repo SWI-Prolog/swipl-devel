@@ -1176,16 +1176,17 @@ term_to_string(Term, String) :-
 
 object_link(Obj, Options) -->
 	prolog:doc_object_link(Obj, Options), !.
-object_link(_M:PI, _) --> !,
-	pi(PI).
 object_link(PI, _) -->
-	pi(PI), !.
+	{ is_pi(PI) }, !,
+	pi(PI).
 object_link(Module:module(_Title), _) -->
 	{ module_property(Module, file(File)),
 	  file_base_name(File, Base)
 	}, !,
 	html(Base).
 
+pi(_M:PI) --> !,
+	pi(PI).
 pi(Name/Arity) --> !,
 	html([Name, /, Arity]).
 pi(Name//Arity) -->
