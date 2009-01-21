@@ -385,9 +385,10 @@ pl_current_module(term_t module, term_t file, control_t h)
 
 		if ( m->file && m->file->name == name )
 		{ rval = PL_unify_atom(module, m->name);
-		  break;
+		  goto out;		/* double for-loop: cannot `break' */
 		}
 	      })
+  out:
     return rval;
   }
 
