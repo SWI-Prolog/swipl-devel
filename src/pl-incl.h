@@ -1366,7 +1366,8 @@ struct sourceFile
   ListCell	procedures;	/* List of associated procedures */
   Procedure	current_procedure;	/* currently loading one */
   int		index;		/* index number (1,2,...) */
-  bool		system;		/* system sourcefile: do not reload */
+  unsigned	system : 1;	/* system sourcefile: do not reload */
+  unsigned	module_count:8;	/* # modules in the file */
 };
 
 

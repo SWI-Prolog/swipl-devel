@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -356,19 +356,39 @@ PRED_IMPL("delete_import_module", 2, delete_import_module, 0)
 }
 
 
+static int
+get_existing_source_file(term_t file, SourceFile *sfp ARG_LD)
+{ SourceFile sf;
+  atom_t a;
+
+  if ( PL_get_atom(file, &a) )
+  { if ( (sf = lookupSourceFile(a, FALSE)) )
+    { *sfp = sf;
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  *sfp = NULL;
+  return TRUE;
+}
+
+
 word
 pl_current_module(term_t module, term_t file, control_t h)
 { GET_LD
   TableEnum e = NULL;
   Symbol symb;
   atom_t name;
+  SourceFile sf;
 
   if ( ForeignControl(h) == FRG_CUTTED )
   { e = ForeignContextPtr(h);
     freeTableEnum(e);
     succeed;
   }
-					/* deterministic cases */
+				/* deterministic case: module --> file */
   if ( PL_get_atom(module, &name) )
   { Module m;
 
@@ -378,26 +398,17 @@ pl_current_module(term_t module, term_t file, control_t h)
     }
 
     fail;
-  } else if ( PL_get_atom(file, &name) )
-  { int rval = FALSE;
-    for_table(GD->tables.modules, s,
-	      { Module m = s->value;
-
-		if ( m->file && m->file->name == name )
-		{ rval = PL_unify_atom(module, m->name);
-		  goto out;		/* double for-loop: cannot `break' */
-		}
-	      })
-  out:
-    return rval;
   }
 
   switch(ForeignControl(h))
   { case FRG_FIRST_CALL:
+      if ( !get_existing_source_file(file, &sf PASS_LD) )
+	fail;				/* given, but non-existing file */
       e = newTableEnum(GD->tables.modules);
       break;
     case FRG_REDO:
       e = ForeignContextPtr(h);
+      get_existing_source_file(file, &sf PASS_LD);
       break;
     default:
       assert(0);
@@ -413,9 +424,15 @@ pl_current_module(term_t module, term_t file, control_t h)
     { fid_t cid = PL_open_foreign_frame();
       atom_t f = ( !m->file ? ATOM_nil : m->file->name);
 
-      if ( PL_unify_atom(module, m->name) &&
+      if ( (!sf || (m->file == sf)) &&
+	   PL_unify_atom(module, m->name) &&
 	   PL_unify_atom(file, f) )
       { PL_close_foreign_frame(cid);
+
+	if ( sf && sf->module_count == 1 )
+	{ freeTableEnum(e);
+	  succeed;
+	}
 	ForeignRedoPtr(e);
       }
 
@@ -597,7 +614,8 @@ declareModule(atom_t name, SourceFile sf, int line)
   }
 	    
   module->file = sf;
-  module->line_no = line;
+  sf->module_count++;			/* current determinism in */
+  module->line_no = line;		/* $current_module/2 */
   LD->modules.source = module;
 
   for_table(module->procedures, s,

@@ -2548,15 +2548,12 @@ lookupSourceFile(atom_t name, int create)
   { GET_LD
 
     file = (SourceFile) allocHeap(sizeof(struct sourceFile));
+    memset(file, 0, sizeof(struct sourceFile));
     file->name = name;
-    file->count = 0;
-    file->time = 0L;
     file->index = ++source_index;
     file->system = GD->bootsession;
-    file->procedures = NULL;
 
     PL_register_atom(file->name);
-
     registerSourceFile(file);
 
     addHTable(sourceTable, (void*)name, file);
