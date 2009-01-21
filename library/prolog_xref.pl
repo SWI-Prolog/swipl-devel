@@ -116,6 +116,8 @@ called_by(on_signal(_,_,New), [New+1]) :-
 %	True if Callable is a built-in
 
 system_predicate(Goal) :-
+	functor(Goal, Name, Arity),
+	current_predicate(system:Name/Arity),	% avoid autoloading
 	predicate_property(system:Goal, built_in), !.
 
 
