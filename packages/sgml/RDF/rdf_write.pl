@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemak@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2004-2007, University of Amsterdam
+    Copyright (C): 2004-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -94,7 +94,10 @@ rdf_write_header(Out, Triples) :-
 	used_namespaces(Triples, NSList),
 	(   member(Id, NSList),
 	    ns(Id, NS),
-	    format(Out, '~N    <!ENTITY ~w \'~w\'>', [Id, NS]),
+	    rdf_quote_uri(NS, QNS),
+	    xml_quote_attribute(QNS, NSText0, Encoding),
+	    xml_escape_parameter_entity(NSText0, NSText),
+	    format(Out, '~N    <!ENTITY ~w \'~w\'>', [Id, NSText]),
 	    fail
 	;   true
 	),
@@ -119,6 +122,24 @@ xml_encoding_name(ascii,       'US-ASCII').
 xml_encoding_name(iso_latin_1, 'ISO-8859-1').
 xml_encoding_name(utf8,        'UTF-8').
 
+%%	xml_escape_parameter_entity(+In, -Out) is det.
+%
+%	Escape % as &#37; for entity declarations.
+
+xml_escape_parameter_entity(In, Out) :-
+	sub_atom(In, _, _, _, '%'), !,
+	atom_codes(In, Codes),
+	phrase(escape_parent(Codes), OutCodes),
+	atom_codes(Out, OutCodes).
+xml_escape_parameter_entity(In, In).
+
+escape_parent([]) --> [].
+escape_parent([H|T]) -->
+	(   { H == 37 }
+	->  "&#37;"
+	;   [H]
+	),
+	escape_parent(T).
 
 %%	used_namespaces(+Triples:list(rdf(S,P,O)), -List:atom) is det.
 %
@@ -186,9 +207,8 @@ decl_used_predicate_ns(Triples) :-
 decl_predicate_ns(Pred) :-
 	predicate_ns(Pred, _), !.
 decl_predicate_ns(Pred) :-
-	rdf_global_id(NS:Local, Pred),
-	xml_name(Local), !,
-	assert(predicate_ns(Pred, NS)).
+	rdf_global_id(NS:_Local, Pred),
+	assert(predicate_ns(Pred, NS)), !.
 decl_predicate_ns(Pred) :-
 	is_bag_li_predicate(Pred), !.
 decl_predicate_ns(Pred) :-
@@ -197,7 +217,9 @@ decl_predicate_ns(Pred) :-
 	xml_codes(LocalCodes), !,
 	(   NSCodes \== []
 	->  atom_codes(NS, NSCodes),
-	    (   between(1, infinite, N),
+	    (   ns(Id, NS)
+	    ->	assert(predicate_ns(Pred, Id))
+	    ;	between(1, infinite, N),
 		atom_concat(ns, N, Id),
 		\+ ns(Id, _)
 	    ->  rdf_register_ns(Id, NS),
