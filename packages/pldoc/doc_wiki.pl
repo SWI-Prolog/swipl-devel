@@ -279,7 +279,7 @@ row([]) -->
 	[].
 
 cell(td(C)) -->
-	string(C0),
+	tokens(C0),
 	['|'], !,
 	{ strip_ws_tokens(C0, C)
 	}.
@@ -596,19 +596,20 @@ wiki_face(\include(Name, Type, Options), _) -->
 	}, !.
 wiki_face(Link, _ArgNames) -->		% [[Label][Link]]
 	['[','['],
-	string(LabelParts),
+	tokens(LabelParts),
 	[']','['],
 	wiki_link(Link, [label(Label), relative(true), end(']')]),
 	[']',']'], !,
 	{ make_label(LabelParts, Label) }.
 wiki_face(Link, _ArgNames) -->
 	wiki_link(Link, []), !.
+wiki_face(T, _) -->
+	token(T), !.
 wiki_face(FT, ArgNames) -->
-	[T],
-	{   atomic(T)
-	->  FT = T
-	;   wiki_faces(T, ArgNames, FT)
+	[Structure],
+	{ wiki_faces(Structure, ArgNames, FT)
 	}.
+
 
 %%	make_label(+Parts, -Label) is det.
 %
@@ -646,7 +647,7 @@ nv_pairs([H|T]) -->
 	).
 
 nv_pair(Option) -->
-	word_token(NameS), [=,'"'], string(ValueS), ['"'], !,
+	word_token(NameS), [=,'"'], tokens(ValueS), ['"'], !,
 	{ concat_atom([NameS], Name),
 	  concat_atom(ValueS, Value0),
 	  catch(atom_number(Value0, Value), _, Value=Value0),
@@ -685,7 +686,7 @@ wiki_link(a(href(Ref), Label), Options) -->
 	word_token(ProtS), [:,/,/], { url_protocol(ProtS) },
 	{ option(end(End), Options, space)
 	},
-	string_no_whitespace(Rest), peek_end_url(End), !,
+	tokens_no_whitespace(Rest), peek_end_url(End), !,
 	{ concat_atom([ProtS, :,/,/ | Rest], Ref),
 	  option(label(Label), Options, Ref)
 	}.
@@ -694,7 +695,7 @@ wiki_link(a(href(Ref), Label), Options) -->
 	{ concat_atom([AliasS], Alias),
 	  user:url_path(Alias, _)
 	},
-	string_no_whitespace(Rest), [>],
+	tokens_no_whitespace(Rest), [>],
 	{ concat_atom(Rest, Local),
 	  (   Local == ''
 	  ->  Term =.. [Alias,'.']
@@ -708,10 +709,10 @@ wiki_link(a(href(Ref), Label), Options) -->
 	(   { option(relative(true), Options),
 	      Parts = Rest
 	    }
-	->  string_no_whitespace(Rest)
+	->  tokens_no_whitespace(Rest)
 	;   { Parts = [ProtS, : | Rest]
 	    },
-	    word_token(ProtS), [:], string_no_whitespace(Rest)
+	    word_token(ProtS), [:], tokens_no_whitespace(Rest)
 	),
 	[>], !,
 	{ concat_atom(Parts, Ref),
@@ -930,23 +931,23 @@ tokenize_lines(Lines, [Pre|T]) :-
 	verbatim(Lines, Pre, RestLines), !,
 	tokenize_lines(RestLines, T).
 tokenize_lines([I-H0|T0], [I-H|T]) :-
-	phrase(tokens(H), H0),
+	phrase(line_tokens(H), H0),
 	tokenize_lines(T0, T).
 
 
-%%	tokens(-Tokens:list)// is det.
+%%	line_tokens(-Tokens:list)// is det.
 %
 %	Create a list of tokens, where  is  token   is  either  a ' ' to
 %	denote spaces, a string denoting a word   or  an atom denoting a
 %	punctuation character.
 
-tokens([H|T]) -->
-	token(H), !,
-	tokens(T).
-tokens([]) -->
+line_tokens([H|T]) -->
+	line_token(H), !,
+	line_tokens(T).
+line_tokens([]) -->
 	[].
 
-token(T) -->
+line_token(T) -->
 	[C],
 	(   { code_type(C, space) }
 	->  ws,
@@ -1113,10 +1114,13 @@ stars --> "*", !, stars.
 
 take_prefix(Prefixes, I0, I) -->
 	{ member(Prefix, Prefixes) },
-	string(Prefix), !,
+	prefix(Prefix), !,
 	{ string_update_linepos(Prefix, I0, I) }.
 take_prefix(_, I, I) -->
 	[].
+
+prefix([]) --> [].
+prefix([H|T]) --> [H], prefix(T).
 
 white_prefix(I0, I) -->
 	[C],
@@ -1277,23 +1281,29 @@ nl -->
 peek(H, L, L) :-
 	L = [H|_].
 
-%%	string(-Tokens:list)// is nondet.
+%%	tokens(-Tokens:list)// is nondet.
 %
 %	Defensively take tokens from the input.  Backtracking takes more
-%	tokens.
+%	tokens.  Do not include structure terms.
 
-string([]) --> [].
-string([H|T]) --> [H], string(T).
+tokens([]) --> [].
+tokens([H|T]) --> token(H), tokens(T).
 
-%%	string_no_whitespace(-Tokens:list)// is nondet.
+%%	tokens_no_whitespace(-Tokens:list)// is nondet.
 %
 %	Defensively take tokens from the input.  Backtracking takes more
 %	tokens.  Tokens cannot include whitespace.
 
-string_no_whitespace([]) -->
+tokens_no_whitespace([]) -->
 	[].
-string_no_whitespace([H|T]) --> [H],
+tokens_no_whitespace([H|T]) -->
+	token(H),
 	{ \+ space_atom(H) },
-	string_no_whitespace(T).
+	tokens_no_whitespace(T).
 
+token(Token) -->
+	[Token],
+	{ token(Token) }.
 
+token(Token) :- atom(Token), !.
+token(Token) :- string(Token).
