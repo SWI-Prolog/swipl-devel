@@ -414,7 +414,8 @@ pl_current_module(term_t module, term_t file, control_t h)
 
       if ( PL_unify_atom(module, m->name) &&
 	   PL_unify_atom(file, f) )
-      { ForeignRedoPtr(e);
+      { PL_close_foreign_frame(cid);
+	ForeignRedoPtr(e);
       }
 
       PL_discard_foreign_frame(cid);
