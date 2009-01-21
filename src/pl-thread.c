@@ -1809,8 +1809,7 @@ void
 executeThreadSignals(int sig)
 { GET_LD
   thread_sig *sg, *next;
-  fid_t fid = PL_open_foreign_frame();
-  term_t goal = PL_new_term_ref();
+  fid_t fid;
 
   if ( !is_alive(LD->thread.info->status) )
     return;
@@ -1820,10 +1819,13 @@ executeThreadSignals(int sig)
   LD->thread.sig_head = LD->thread.sig_tail = NULL;
   UNLOCK();
 
+  fid = PL_open_foreign_frame();
+
   for( ; sg; sg = next)
-  { term_t ex;
+  { term_t goal = PL_new_term_ref();
+    term_t ex;
     int rval;
-  
+      
     next = sg->next;
     PL_recorded(sg->goal, goal);
     PL_erase(sg->goal);
