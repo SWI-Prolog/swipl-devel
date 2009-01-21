@@ -235,12 +235,14 @@ update_thread_pool(create_pool(Name, Size, Options, For), State0, State) :- !,
 			  Name, pool(Options, Size, WP, WP),
 			  State)
 	->  thread_send_message(For, thread_pool(true))
-	;   reply_error(For, permission_error(create, thread_pool, Name))
+	;   reply_error(For, permission_error(create, thread_pool, Name)),
+	    State = State0
 	).
 update_thread_pool(destroy_pool(Name, For), State0, State) :- !,
 	(   rb_delete(State0, Name, State)
 	->  thread_send_message(For, thread_pool(true))
-	;   reply_error(For, existence_error(thread_pool, Name))
+	;   reply_error(For, existence_error(thread_pool, Name)),
+	    State = State0
 	).
 update_thread_pool(current_pools(For), State, State) :- !,
 	rb_keys(State, Keys),
