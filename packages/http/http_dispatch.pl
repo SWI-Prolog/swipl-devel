@@ -440,12 +440,18 @@ call_action(reply_file(File, FileOptions), Request, _Options) :- !,
 call_action(Pred, Request, _Options) :-
 	(   call(Pred, Request)
 	->  true
-	;   Pred =.. List,
-	    append(List, [Request], List2),
-	    Goal =.. List2,
+	;   extend(Pred, [Request], Goal),
 	    throw(error(goal_failed(Goal), _))
 	).
 
+extend(Var, _, Var) :-
+	var(Var), !.
+extend(M:G0, Extra, M:G) :-
+	extend(G0, Extra, G).
+extend(G0, Extra, G) :-
+	G0 =.. List,
+	append(List, Extra, List2),
+	G =.. List2.
 
 %%	http_reply_file(+FileSpec, +Options, +Request) is det.
 %
