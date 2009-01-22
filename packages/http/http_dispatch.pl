@@ -33,6 +33,7 @@
 	    http_delete_handler/1,	% +Path
 	    http_reply_file/3,		% +File, +Options, +Request
 	    http_current_handler/2,	% ?Path, ?Pred
+	    http_current_handler/3,	% ?Path, ?Pred
 	    http_location_by_id/2	% +ID, -Location
 	  ]).
 :- use_module(library(option)).
@@ -140,7 +141,8 @@ write_index(Request) :-
 
 :- meta_predicate
 	http_handler(+, :, +),
-	http_current_handler(?, :).
+	http_current_handler(?, :),
+	http_current_handler(?, :, ?).
 
 http_handler(Path, Pred, Options) :-
 	strip_module(Pred, M, P),
@@ -231,13 +233,24 @@ http_current_handler(Path, Closure) :-
 	atom(Path), !,
 	path_tree(Tree),
 	find_handler(Tree, Path, Closure, _).
-http_current_handler(Path, M:C) :- !,
+http_current_handler(Path, M:C) :-
 	handler(Spec, M:C, _, _),
 	http_absolute_location(Spec, Path, []).
-http_current_handler(Path, Closure) :-
-	strip_module(Closure, M, C),
+
+%%	http_current_handler(+Location, :Closure, -Options) is semidet.
+%%	http_current_handler(?Location, :Closure, ?Options) is nondet.
+%
+%	Resolve the current handler and options to execute it.
+
+http_current_handler(Path, Closure, Options) :-
+	atom(Path), !,
+	path_tree(Tree),
+	find_handler(Tree, Path, Closure, Options).
+http_current_handler(Path, M:C, Options) :-
 	handler(Spec, M:C, _, _),
-	http_absolute_location(Spec, Path, []).
+	http_absolute_location(Spec, Path, []),
+	path_tree(Tree),
+	find_handler(Tree, Path, _, Options).
 
 
 %%	http_location_by_id(+ID, -Location) is det.
