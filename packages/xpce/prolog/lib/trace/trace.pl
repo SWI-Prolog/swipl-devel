@@ -57,8 +57,14 @@
 
 user:prolog_trace_interception(Port, Frame, CHP, Action) :-
 	current_prolog_flag(gui_tracer, true),
-	notrace(intercept(Port, Frame, CHP, GuiAction)),
-	map_action(GuiAction, Frame, Action).
+	(   notrace(intercept(Port, Frame, CHP, GuiAction)),
+	    map_action(GuiAction, Frame, Action)
+	->  true
+	;   print_message(warning,
+			  guitracer(intercept_failed(Port, Frame,
+						     CHP, Action))),
+	    Action = continue
+	).
 
 
 %%	map_action(+GuiAction, +Frame, -Action) is det.
