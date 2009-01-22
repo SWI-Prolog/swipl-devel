@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -39,6 +39,11 @@
 	  ]).
 :- use_module(library(lists)).
 :- set_prolog_flag(generate_debug_info, false).
+
+:- meta_predicate
+	call_with_time_limit(+, 0),
+	alarm(+, 0, -),
+	alarm(+, 0, -, +).
 
 %%	alarm(+Time, :Callable, -Id) is det.
 %%	alarm(+Time, :Callable, -Id, +Options) is det.
@@ -89,9 +94,6 @@
 :- initialization
    load_foreign_library(foreign(time)).
 
-:- module_transparent
-	call_with_time_limit/2.
-
 %%	call_with_time_limit(+Time, :Goal) is det.
 %	
 %	Call Goal, while watching out for   a (wall-time) limit. If this
@@ -102,15 +104,14 @@
 
 call_with_time_limit(Time, Goal) :-
 	Time > 0, !,
-	strip_module(Goal, M, G),
-	call_with_time_limit2(Time, M:G).
+	setup_and_call_cleanup(alarm(Time, time_limit_exceeded(Time), Id),
+			       once(Goal),
+			       remove_alarm_notrace(Id)).
 call_with_time_limit(_Time, _Goal) :-
 	throw(time_limit_exceeded).
 		     
-call_with_time_limit2(Time, Goal) :-
-	setup_and_call_cleanup(alarm(Time, throw(time_limit_exceeded), Id),
-			       once(Goal),
-			       remove_alarm_notrace(Id)).
+time_limit_exceeded(_Time) :-
+	throw(time_limit_exceeded).
 
 current_alarm(Time, Goal, Id, Status) :-
 	current_alarms(Time, Goal, Id, Status, List),
