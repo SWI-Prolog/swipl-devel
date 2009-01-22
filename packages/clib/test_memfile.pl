@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -29,8 +29,8 @@
     the GNU General Public License.
 */
 
-:- module(memfile_test,
-	  [ test/0
+:- module(test_memfile,
+	  [ test_memfile/0
 	  ]).
 :- asserta(user:file_search_path(foreign, '.')).
 
@@ -136,7 +136,7 @@ testset(encoding).
 	failed/1,
 	blocked/2.
 
-test :-
+test_memfile :-
 	retractall(failed(_)),
 	retractall(blocked(_,_)),
 	forall(testset(Set), runtest(Set)),
