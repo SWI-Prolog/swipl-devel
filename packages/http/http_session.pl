@@ -34,6 +34,7 @@
 	  [ http_set_session_options/1,	% +Options
 
 	    http_session_id/1,		% -SessionId
+	    http_in_session/1,		% -SessionId
 	    http_current_session/2,	% ?SessionId, ?Data
 
 	    http_session_asserta/1,	% +Data
@@ -128,11 +129,12 @@ http_session_option(Option) :-
 	assert(session_setting(Option)).
 
 %%	http_session_id(-SessionId) is det.
-%%	http_session_id(+Request, -SessionId) is det.
 %	
 %	Fetch the current session ID from the global request variable.
 %	
 %	@error existence_error(http_session, _)
+%	@see   http_in_session/1 for a version that fails if there is
+%	       no session.
 
 http_session_id(SessionID) :-
 	http_current_request(Request),
@@ -144,6 +146,14 @@ http_session_id(Request, SessionID) :-
 	;   throw(error(existence_error(http_session, _), _))
 	).
 
+%%	http_in_session(-SessionId) is semidet.
+%
+%	As http_session_id/1, but fails of there is no session.
+
+http_in_session(SessionID) :-
+	http_current_request(Request),
+	memberchk(session(SessionID0), Request),
+	SessionID = SessionID0.
 
 %%	http_session(+RequestIn, -RequestOut, -SessionID) is semidet.
 %	
