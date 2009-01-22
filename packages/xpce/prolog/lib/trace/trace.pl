@@ -111,9 +111,6 @@ traceall :-
 %
 %	Toplevel of the tracer interception.  Runs in debugged thread.
 
-intercept(_, _, _, _) :-
-	setting(active, false), !,
-	fail.
 intercept(Port, Frame, CHP, Action) :-
 	send_tracer(current_break(@nil)),
 	debug('*** do_intercept(~w, ~w, ~w, _) ...~n', [Port, Frame, CHP]), 
@@ -390,7 +387,7 @@ show_source(Frame, Attributes) :-
 	    attribute(Attributes, port(Port), call),
 	    attribute(Attributes, style(Style), Port),
 	    debug('Show source, PC = ~w, Port = ~w~n', [PC, Port]),
-	    (   (PC == call ; PC == fail ; PC == exception )
+	    (   atom(PC)		% PC is a port-name
 	    ->  prolog_frame_attribute(GUI, Frame, goal, Goal),
 		find_source(Goal, File, Line),
 		debug('At ~w:~d~n', [File, Line]),
