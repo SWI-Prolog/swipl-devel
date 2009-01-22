@@ -97,6 +97,7 @@ Section "Base system (required)"
   File pl\library\qpforeign.pl
   File pl\library\quintus.pl
   File pl\library\files.pl
+  File pl\library\charsio.pl
 
 ; `STANDARD LIBRARIES'
   File pl\library\ctypes.pl

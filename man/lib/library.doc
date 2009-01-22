@@ -30,6 +30,7 @@ documented at all.
 \input{apply}
 \input{assoc}
 \input{broadcast}
+\input{charsio}
 \input{check}
 \input{clpdistinct}
 \input{clpfd}
