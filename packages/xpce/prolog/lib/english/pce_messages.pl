@@ -119,7 +119,7 @@ pce_message(object_already_defined(Ref,Mod)) -->
 	['Global object @~w already defined in module ~w'-[Ref,Mod],nl].
 pce_message(create_failed(Term)) -->
 	[':- pce_global/2: create failed: ~w'-[Term],nl].
-pce_message(goal_failed(Goal)) -->
+pce_message(make_global_failed(Goal)) -->
 	[':- pce_global/2: goal failed: ~w'-[Goal],nl].
 
 
