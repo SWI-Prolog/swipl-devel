@@ -146,6 +146,8 @@ current_thread_pool(Name) :-
 %	    Thread creation options for this pool
 %	    * free(Size)
 %	    Number of free slots on this pool
+%	    * size(Size)
+%	    Total number of slots on this pool
 %	    * backlog(Size)
 %	    Number of delayed thread creations on this pool
 
@@ -232,7 +234,7 @@ manage_thread_pool(State0) :-
 
 update_thread_pool(create_pool(Name, Size, Options, For), State0, State) :- !,
 	(   rb_insert_new(State0,
-			  Name, pool(Options, Size, WP, WP),
+			  Name, pool(Options, Size, Size, WP, WP),
 			  State)
 	->  thread_send_message(For, thread_pool(true))
 	;   reply_error(For, permission_error(create, thread_pool, Name)),
@@ -266,10 +268,11 @@ update_thread_pool(Message, State0, State) :-
 	    )
 	).
 
-pool_property(options(Options), pool(Options, _Free, _WP, _WPT)).
-pool_property(backlog(Size), pool(_, _Free, WP, WPT)) :-
+pool_property(options(Options), pool(Options, _Free, _Size, _WP, _WPT)).
+pool_property(backlog(Size), pool(_, _Free, _Size, WP, WPT)) :-
 	diff_list_length(WP, WPT, Size).
-pool_property(free(Free), pool(_, Free, _, _)).
+pool_property(free(Free), pool(_, Free, _Size, _, _)).
+pool_property(size(Size), pool(_, _Free, Size, _, _)).
 
 diff_list_length(List, Tail, Size) :-
 	'$skip_list'(Length, List, Rest),
@@ -294,8 +297,8 @@ diff_list_length(List, Tail, Size) :-
 %	    create a new one.
 
 update_pool(create(Name, Goal, For, _, MyOptions),
-	    pool(Options, Free0, WP, WPT),
-	    pool(Options, Free, WP, WPT)) :-
+	    pool(Options, Free0, Size, WP, WPT),
+	    pool(Options, Free, Size, WP, WPT)) :-
 	succ(Free, Free0), !,
 	thread_self(Me),
 	merge_options(MyOptions, Options, ThreadOptions),
@@ -308,8 +311,8 @@ update_pool(create(Name, Goal, For, _, MyOptions),
 	    reply(For, Id)
 	).
 update_pool(Create,
-	    pool(Options, 0, WP, WPT0),
-	    pool(Options, 0, WP, WPT)) :-
+	    pool(Options, 0, Size, WP, WPT0),
+	    pool(Options, 0, Size, WP, WPT)) :-
 	Create = create(Name, _Goal, For, Wait, _Options), !,
 	option(backlog(BackLog), Options, infinite),
 	(   can_delay(Wait, BackLog, WP, WPT0)
@@ -319,10 +322,10 @@ update_pool(Create,
 	    reply_error(For, resource_error(threads_in_pool(Name)))
 	).
 update_pool(exitted(_Name, _Id),
-	    pool(Options, Free0, WP0, WPT),
+	    pool(Options, Free0, Size, WP0, WPT),
 	    Pool) :-
 	succ(Free0, Free),
-	Pool1 = pool(Options, Free, WP, WPT),
+	Pool1 = pool(Options, Free, Size, WP, WPT),
 	(   WP0 == WPT
 	->  WP = WP0,
 	    Pool = Pool1
