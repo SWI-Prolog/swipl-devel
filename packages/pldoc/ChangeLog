@@ -1,3 +1,6 @@
+[Dec 31 2008]
+
+ * FIXED: PlDoc: support multi-paragraph items in a list.
 [Nov 14 2008]
 
  * FIXED: PlDoc: Avoid deadlock asking for source-listing with syntax errors

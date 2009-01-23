@@ -1,3 +1,18 @@
+[Jan 21 2009]
+
+ * FIXED: RDF writer: write valid XML if the namespace entity contains characters
+   that must be %-escaped.  Jacopo Urbani.
+   
+[Jan 13 2009]
+
+ * FIXED: RDF/XML could save illegal XML if multiple namespaces are used
+   for predicates where one namespace is a prefix of another one.  Jacopo Urbani.
+   
+[Dec 19 2008]
+
+ * FIXED: Correct usage of content_length option in sgml_parse/3 when using callbacks. Needed to deal with streaming input for parsing RDF.
+   
+ * ADDED: Pass content_length through process_rdf/3
 [Oct 13 2008]
 
  * CLEANUP: Avoid repetition and warnings on option processing predicates.  Matt Lilley.
