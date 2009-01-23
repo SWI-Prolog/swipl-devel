@@ -1149,7 +1149,7 @@ summary([H|T], Options) -->
 summary_line(Obj, _Options) -->
 	{ doc_comment(Obj, _Pos, Summary, _Comment) ->
 	  atom_codes(Summary, Codes),
-	  phrase(pldoc_wiki:tokens(Tokens), Codes), % TBD: proper export
+	  phrase(pldoc_wiki:line_tokens(Tokens), Codes), % TBD: proper export
 	  object_name_arity(Obj, Name, Arity)
 	},
 	(   { strip_module(Obj, M, _),
