@@ -297,7 +297,7 @@ rest_table(Rest, _, [], Rest).
 %	Why not a  general  block-level   object?  The  current defition
 %	allows for writing lists without a blank line between the items.
 
-rest_par([], [], _, MaxI, MaxI, []).
+rest_par([], [], _, MaxI, MaxI, []) :- !.
 rest_par([_-[]|Rest], [], _, MaxI, MaxI, Rest) :- !.
 rest_par(Lines, [], _, MaxI, MaxI, Lines) :-
 	Lines = [_-Verb|_],
