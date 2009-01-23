@@ -2068,7 +2068,10 @@ next_choice:
       Undo(ch->mark);
       callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
     case CHP_DEBUG:			/* Just for debugging purposes */
-      BFR  = ch->parent;
+#ifdef O_DEBUGGER
+      ch0 = ch;
+#endif
+      BFR = ch->parent;
       goto next_choice;
   }
 }
