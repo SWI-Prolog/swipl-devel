@@ -3214,9 +3214,11 @@ b_throw:
   deRef(catcher);
 
   SECURE(checkData(catcher));
-  DEBUG(1, { Sdprintf("[%d] Throwing ", PL_thread_self());
+  DEBUG(1, { fid_t fid = PL_open_foreign_frame();
+	     Sdprintf("[%d] Throwing ", PL_thread_self());
 	     PL_write_term(Serror, wordToTermRef(catcher), 1200, 0);
 	     Sdprintf("\n");
+	     PL_discard_foreign_frame(fid);
 	   });
 
   except = *catcher;
