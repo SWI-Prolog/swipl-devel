@@ -1,3 +1,13 @@
+[Jan 23 2009]
+
+ * CHECK: Fixed makefile for modified test entry-point
+   
+[Jan 22 2009]
+
+ * ADDED: free_on_close option to open_memory_file/4
+   
+ * CLEANUP: library(time) to use meta_predicate declaration and make debugging a
+   bit simpler.
 [Oct 9 2008]
 
  * ADDED: library(unix): support symbolic signal names.

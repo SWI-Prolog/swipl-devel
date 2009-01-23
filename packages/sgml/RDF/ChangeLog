@@ -1,3 +1,12 @@
+[Jan 21 2009]
+
+ * FIXED: RDF writer: write valid XML if the namespace entity contains characters
+   that must be %-escaped.  Jacopo Urbani.
+   
+[Jan 13 2009]
+
+ * FIXED: RDF/XML could save illegal XML if multiple namespaces are used
+   for predicates where one namespace is a prefix of another one.  Jacopo Urbani.
 [Dec 19 2008]
 
  * ADDED: Pass content_length through process_rdf/3

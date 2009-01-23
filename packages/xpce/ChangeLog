@@ -1,3 +1,17 @@
+[Jan 22 2009]
+
+ * FIXED: Tracer handling of redo port.
+   
+ * EHANCED: Avoid that the gui-tracer ever reverts to the normal tracer by
+   adding a catch-all rule.  Especially avoids deadlocks when tracing threads
+   that cannot interact with the toplevel.
+   
+ * CLEANUP: Avoid pce_global failure messages to use the general goal_failed/1
+   term.
+   
+[Jan 20 2009]
+
+ * ENHANCED: Avoid crash if XPCE cannot even find its default font
 [Jan 7 2009]
 
  * MODIFIED: Removed current_module/2 and export_list/2 and introduced

@@ -1,3 +1,10 @@
+[Jan 22 2009]
+
+ * FIXED: Tracer handling of redo port.
+   
+ * EHANCED: Avoid that the gui-tracer ever reverts to the normal tracer by
+   adding a catch-all rule.  Especially avoids deadlocks when tracing threads
+   that cannot interact with the toplevel.
 [Jul 7 2008]
 
  * ADDED: Prolog navigator listens to prolog_file_type/2.  Jean-Marc Vanel.

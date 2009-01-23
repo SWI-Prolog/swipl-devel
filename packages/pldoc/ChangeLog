@@ -1,3 +1,35 @@
+[Jan 16 2009]
+
+ * FIXED: Determinism of doc_browser/0. Erik Flister.
+   
+ * ENHANCED: PlDoc: small speedup in (not) matching predicate references.
+   
+ * CLEANUP: PlDoc item-list processing
+   
+[Jan 15 2009]
+
+ * CLEANUP: PlDoc to use the standard page generation and resource management to
+   facilitate customizing the PlDoc page layout using the html:page//2 hooks.
+   
+[Jan 14 2009]
+
+ * FIXED: PlDoc: properly terminate lists
+   
+ * ADDED: PlDoc: support horizontal rules for structuring.
+   
+ * ADDED: PlDoc: [[label][link]] notation to provide links with given label.
+   
+[Jan 12 2009]
+
+ * ADDED: PlDoc: support referencing files with relative URLs.
+   
+ * FIXED: PlDoc: @tag was not recognised if it followed a list.  Jeff Rose.
+   
+[Jan 9 2009]
+
+ * ADDED: PlDoc: allow linking to files in other directories using relative
+   links.
+   
 [Jan 7 2009]
 
  * MODIFIED: Removed current_module/2 and export_list/2 and introduced

@@ -9,6 +9,75 @@
 
 
 ==============================
+VERSION 5.7.5 January 23, 2009
+==============================
+
+ * FIXED: Debugger: initial choicepoint was often lost, failing to skip/retry
+   in the debugger.
+   
+ * FIXED: Code compiled from [user] ended up in the system module.  Ulrich Neumerkel.
+   
+ * ADDED: library(charsio): Quintus/SICSTus/YAP/... compatible reading and
+   writing from/to lists of character codes.
+   
+ * ADDED: library(thread_pool): return original size as property.
+   
+ * FIXED: Possible deadlock when loading a module with an undefined exported
+   predicate. Erik Flister.
+   
+ * FIXED: module_property(M, file(+File)) if a file has multiple modules.
+   This happens if unit tests are defined inside the module file.  Erik Flister.
+   
+ * FIXED: module_property(M, file(File)) if there are multiple modules
+   in this file (reports the first one though: multiple modules are not
+   officially supported).
+   
+ * FIXED: Using illegal term-reference in handling thread signals.  Can cause
+   crashes; shows up as being totally unresponsive most of the time in Linux.
+   
+ * FIXED: library(thread_pool): inconsistent state after an illegal request.
+   
+ * FIXED: Avoid autoloading in XREF analysis phase
+   
+ * FIXED: Access-protection of Prolog flags.  Also fixes flag handling in
+   saved states.  Matt Lilley.
+   
+ * DOC: Updates to library(pairs).
+   
+ * CLEANUP: PlDoc item-list processing
+   
+ * FIXED: Module handling issue in I_DEPARTM instruction.
+   	test :-
+   		m:foo, !.
+   	test :-
+   		...
+   
+ * MODIFIED: current_predicate/1 (ISO) no longer tries to autoload the
+   target predicate.  This also prevents that current_predicate/1 creates
+   an `undefined predicate' and provides a significant speedup in the case
+   where current_predicate/1 fails.  Mike Elston.
+   
+ * FIXED: Possibly autoloader errors
+   
+ * CLEANUP: Further cleanup of toplevel DWIM handling.  Now performs checking
+   on any argument marked as `0' using meta_predicate/1.
+   
+ * ENHANCED: Provide file:line for clause calling undefined predicate
+   
+ * FIXED: Bug#389: message_queue_property(+Queue, ?Prop) if Queue is a thread id.
+   Holger Kanwischer.
+   
+ * FIXED: DWIM incorrectly qualifies toplevel goals.  Paulo Mauro.
+   
+ * FIXED: qsave_program/2 to save meta-predicate status.  Matt Lilley.
+   
+ * FIXED: Do not include files into qlf files due to autoloading.  Mostly
+   causes problems with PlDoc, where the version included in the qlf file
+   has no documentation.
+   
+ * FIXED: '$qlf_info'/5 (incorrectly reported a format error)
+   
+==============================
 VERSION 5.7.4 January 08, 2009
 ==============================
 
