@@ -102,7 +102,10 @@ yap_expansion(if(Goal, Then),
 	      (Goal *-> Then; true)).
 yap_expansion(if(Goal, Then, Else),
 	      (Goal *-> Then; Else)).
-
+yap_expansion(style_check(all),
+	      style_check([+singleton,
+			   +discontiguous
+			  ])).
 
 
 		 /*******************************

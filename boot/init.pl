@@ -1445,34 +1445,42 @@ load_files(Module:Files, Options) :-
 	       E,
 	       '$print_message_fail'(E)).
 
-'$execute_directive'(include(File), F) :- !,
+%%	'$execute_directive'(:Goal, +F) is det.
+%
+%	Execute the argument of :- or ?- while loading a file.
+
+'$execute_directive'(Goal, F) :-
+	expand_goal(Goal, Goal1),
+	'$execute_directive_2'(Goal1, F).
+
+'$execute_directive_2'(include(File), F) :- !,
 	'$expand_include'(File, F).
-'$execute_directive'(encoding(Encoding), F) :- !,
+'$execute_directive_2'(encoding(Encoding), F) :- !,
 	source_location(F, _),
 	'$load_input'(F, S),
 	set_stream(S, encoding(Encoding)).
-'$execute_directive'(ISO, F) :-
+'$execute_directive_2'(ISO, F) :-
 	'$expand_directive'(ISO, Normal), !,
 	'$execute_directive'(Normal, F).
-'$execute_directive'(Goal, _) :-
+'$execute_directive_2'(Goal, _) :-
 	\+ flag('$compiling', database, database), !,
 	'$add_directive_wic2'(Goal, Type),
 	(   Type == call		% suspend compiling into .qlf file
 	->  flag('$compiling', Old, database),
 	    flag('$directive', OldDir, Old),
-	    call_cleanup('$execute_directive2'(Goal),
+	    call_cleanup('$execute_directive_3'(Goal),
 			 (   flag('$compiling', _, Old),
 			     flag('$directive', _, OldDir)
 			 ))
-	;   '$execute_directive2'(Goal)
+	;   '$execute_directive_3'(Goal)
 	).
-'$execute_directive'(Goal, _) :-
-	'$execute_directive2'(Goal).
+'$execute_directive_2'(Goal, _) :-
+	'$execute_directive_3'(Goal).
 
-'$execute_directive2'(Goal) :-
+'$execute_directive_3'(Goal) :-
 	'$set_source_module'(Module, Module),
 	catch(Module:Goal, Term, '$exception_in_directive'(Term)), !.
-'$execute_directive2'(Goal) :-
+'$execute_directive_3'(Goal) :-
 	'$set_source_module'(Module, Module),
 	print_message(warning, goal_failed(directive, Module:Goal)),
 	fail.
