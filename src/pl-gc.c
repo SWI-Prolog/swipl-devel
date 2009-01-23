@@ -646,6 +646,9 @@ mark_term_refs()
   { Word sp = refFliP(fr, 0);
     int n = fr->size;
 
+    DEBUG(3, Sdprintf("Marking foreign frame %ld (size=%d)\n",
+		      (Word)fr-(Word)lBase, n));
+
     assert(fr->magic == FLI_MAGIC);
     for( ; n-- > 0; sp++ )
     { SECURE(assert(!is_marked(sp)));
