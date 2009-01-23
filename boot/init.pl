@@ -898,12 +898,12 @@ reexport(File, Import) :-
 	consult(M:[F|R]).
 [].
 
-consult(_:X) :-
+consult(M:X) :-
 	X == user, !,
 	flag('$user_consult', N, N+1),
 	NN is N + 1,
 	atom_concat('user://', NN, Id),
-	load_files(Id, [stream(user_input)]).
+	load_files(M:Id, [stream(user_input)]).
 consult(List) :-
 	load_files(List).
 
