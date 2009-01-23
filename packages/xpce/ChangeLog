@@ -1,3 +1,27 @@
+[Jan 22 2009]
+
+ * CLEANUP: Avoid pce_global failure messages to use the general goal_failed/1
+   term.
+   
+ * EHANCED: Avoid that the gui-tracer ever reverts to the normal tracer by
+   adding a catch-all rule.  Especially avoids deadlocks when tracing threads
+   that cannot interact with the toplevel.
+   
+ * FIXED: Tracer handling of redo port.
+   
+[Jan 20 2009]
+
+ * ENHANCED: Avoid crash if XPCE cannot even find its default font
+   
+[Dec 28 2008]
+
+ * ADDED: PceEmacs: realise a backup encoding for saving files as Unicode if the normal encoding cannot represent the content of the buffer.
+   
+ * FIXED: XPCE: text_buffer->save failed to report representation errors.
+   
+[Dec 5 2008]
+
+ * FIXED: Bug#384: Memory leak in XPCE conversion of Prolog objects to text.  Keri Harris
 [Nov 17 2008]
 
  * BUILD: Make distclean removes h-link in xpce
