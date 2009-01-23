@@ -149,7 +149,7 @@ torture-socket::
 		$(PL) -q -f stresssocket.pl -F none -g test,halt -t 'halt(1)'
 
 check-memfile::
-		$(PL) -q -f testmemfile.pl -F none -g test,halt -t 'halt(1)'
+		$(PL) -q -f test_memfile.pl -F none -g test_memfile,halt -t 'halt(1)'
 
 check-unit::
 		$(PL) -q -f test.pl -g true -t run_tests
