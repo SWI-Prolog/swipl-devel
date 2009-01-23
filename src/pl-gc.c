@@ -285,7 +285,7 @@ print_val(word val, char *buf)
   return buf;
 }
 
-#endif O_DEBUG
+#endif /*O_DEBUG*/
 
 #if O_SECURE
 
