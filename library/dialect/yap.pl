@@ -35,7 +35,9 @@
 	    system/1,			% +Command
 	    exists/1,			% +File
 	    assert_static/1,		% :Term
-	    atomic_concat/3		% +Atomic, +Atomic, -Atom
+	    atomic_concat/3,		% +Atomic, +Atomic, -Atom
+	    source/0,
+	    yap_flag/2			% +Flag, +Value
 	  ]).
 
 /** <module> YAP Compatibility module
@@ -212,3 +214,43 @@ assert_static(Term) :-
 
 atomic_concat(Prefix, Suffix, Atom) :-
 	atom_concat(Prefix, Suffix, Atom).
+
+
+%%	source is det.
+%
+%	YAP directive to  maintain  source-information.   We  have  that
+%	always.
+
+source.
+
+
+%%	yap_flag(+Key, +Value) is det.
+%
+%	Map some YAP flags to SWI-Prolog.  Supported flags:
+%	
+%	    * write_strings: Bool
+%	    If =on=, writes strings as "..." instead of a list of
+%	    integers.  In SWI-Prolog this only affects write routines
+%	    that use portray.
+
+yap_flag(write_strings, OnOff) :-
+	map_bool(OnOff, Bool),
+	set_prolog_flag(write_strings, Bool).
+
+map_bool(on, true) :- !.
+map_bool(off, false) :- !.
+map_bool(Bool, Bool).
+
+:- multifile
+	user:portray/1.
+
+user:portray(String) :-
+	current_prolog_flag(write_strings, true),
+	is_list(String),
+	length(String, L),
+	L > 2,
+	maplist(printable, String),
+	format('"~s"', [String]).
+
+printable(C) :-	code_type(C, graph), !.
+printable(C) :-	code_type(C, space), !.
