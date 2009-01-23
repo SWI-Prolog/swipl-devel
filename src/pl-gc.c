@@ -215,20 +215,11 @@ static int		check_marked(const char *s);
 #undef LD
 #define LD LOCAL_LD
 
-#if O_SECURE
 		/********************************
 		*           DEBUGGING           *
 		*********************************/
 
-static void
-needsRelocation(void *addr)
-{ GET_LD
-
-  needs_relocation++;
-
-  addHTable(check_table, addr, (void*)TRUE);
-}
-
+#if O_DEBUG
 
 static char *
 print_adr(Word adr, char *buf)
@@ -293,6 +284,20 @@ print_val(word val, char *buf)
 
   return buf;
 }
+
+#endif O_DEBUG
+
+#if O_SECURE
+
+static void
+needsRelocation(void *addr)
+{ GET_LD
+
+  needs_relocation++;
+
+  addHTable(check_table, addr, (void*)TRUE);
+}
+
 
 static void
 do_check_relocation(Word addr, char *file, int line ARG_LD)

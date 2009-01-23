@@ -1468,7 +1468,8 @@ pl_garbage_collect_clauses(void)
 
 word
 pl_check_definition(term_t spec)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   Definition def;
   int nclauses = 0;
   int nerased = 0;
