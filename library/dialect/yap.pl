@@ -37,7 +37,8 @@
 	    assert_static/1,		% :Term
 	    atomic_concat/3,		% +Atomic, +Atomic, -Atom
 	    source/0,
-	    yap_flag/2			% +Flag, +Value
+	    yap_flag/2,			% +Flag, +Value
+	    yap_style_check/1		% +Style
 	  ]).
 
 /** <module> YAP Compatibility module
@@ -104,10 +105,9 @@ yap_expansion(if(Goal, Then),
 	      (Goal *-> Then; true)).
 yap_expansion(if(Goal, Then, Else),
 	      (Goal *-> Then; Else)).
-yap_expansion(style_check(all),
-	      style_check([+singleton,
-			   +discontiguous
-			  ])).
+yap_expansion(style_check(Style),
+	      yap_style_check(Style)).
+
 
 
 		 /*******************************
@@ -233,9 +233,11 @@ source.
 %	    integers.  In SWI-Prolog this only affects write routines
 %	    that use portray.
 
-yap_flag(write_strings, OnOff) :-
+yap_flag(write_strings, OnOff) :- !,
 	map_bool(OnOff, Bool),
 	set_prolog_flag(write_strings, Bool).
+yap_flag(Flag, Value) :- 
+	fixme_true(yap_flag(Flag, Value)).
 
 map_bool(on, true) :- !.
 map_bool(off, false) :- !.
@@ -254,3 +256,36 @@ user:portray(String) :-
 
 printable(C) :-	code_type(C, graph), !.
 printable(C) :-	code_type(C, space), !.
+
+
+%%	yap_style_check(+Style) is det.
+%
+%	Map YAP style-check options onto the SWI-Prolog ones.
+
+yap_style_check(all) :- !,
+	style_check([+singleton,
+		     +discontiguous
+		    ]).
+yap_style_check(Style) :-
+	fixme_true(yap_style_check(Style)).
+
+
+		 /*******************************
+		 *	   UNIMPLEMENTED		*
+		 *******************************/
+
+:- dynamic
+	fixme_reported/1.
+
+fixme_true(Goal) :-
+	fixme_reported(Goal), !.
+fixme_true(Goal) :-
+	print_message(warning, yap_unsupported(Goal)),
+	assert(fixme_reported(Goal)).
+
+
+:- multifile
+	prolog:message//1.
+
+prolog:message(yap_unsupported(Goal)) -->
+	[ 'YAP emulation (yap.pl): unsupported: ~p'-[Goal] ].
