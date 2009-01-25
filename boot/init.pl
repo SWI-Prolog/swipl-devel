@@ -1836,7 +1836,7 @@ expand_goal(A, B) :-
 '$do_expand_body'(V^G, V^EG) :- !,
         '$do_expand_body'(G, EG).
 '$do_expand_body'(M:G, M:EG) :-
-	atom(M),
+	atom(M), !,
 	(   M == system			% or should we define this:
 	->  EG = G			% system:goal_expansion(X,X)
 	;   '$set_source_module'(Old, M),
