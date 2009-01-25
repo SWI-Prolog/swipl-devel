@@ -306,7 +306,7 @@ numlist(L, U, Ns) :-
 
 numlist_(U, U, [U]) :- !.
 numlist_(L, U, [L|Ns]) :-
-	succ(L, L2),
+	L2 is L+1,
 	numlist_(L2, U, Ns).
 
 
