@@ -68,7 +68,7 @@ correct_goal(Goal0, M, Bindings, M:Goal) :-	% is defined
 	correct_meta_arguments(Goal0, M, Bindings, Goal).
 correct_goal(Goal0, M, Bindings, Goal) :-	% correct the goal
 	dwim_predicate_list(M:Goal0, DWIMs0), !,
-	principal_predicates(DWIMs0, DWIMs),
+	principal_predicates(DWIMs0, M, DWIMs),
 	correct_literal(M:Goal0, Bindings, DWIMs, Goal1),
 	correct_meta_arguments(Goal1, M, Bindings, Goal).
 correct_goal(Goal, Module, _, NewGoal) :-	% try to autoload
@@ -193,7 +193,7 @@ bind_vars([Name=Var|T]) :-
 	),
 	find_predicate(Module, Name, Arity, L0), !,
 	sort(L0, L1),
-	principal_pis(L1, List).
+	principal_pis(L1, Module, List).
 '$find_predicate'(_:S, List) :-
 	name_arity(S, Name, Arity),
 	findall(Name/Arity,
@@ -287,9 +287,9 @@ name_arity(Spec, _, _) :-
 	throw(error(type_error(predicate_indicator, Spec), _)).
 
 
-principal_pis(PIS, Principals) :-
+principal_pis(PIS, M, Principals) :-
 	map_pi_heads(PIS, Heads),
-	principal_predicates(Heads, Heads2),
+	principal_predicates(Heads, M, Heads2),
 	map_pi_heads(Principals, Heads2).
 
 map_pi_heads([], []) :- !.
@@ -303,24 +303,30 @@ map_pi_head(M:PI, M:Head) :-
 map_pi_head(Name/Arity, Term) :-
 	functor(Term, Name, Arity).
 
-%%	principal_predicates(:Heads, -Principals)
+%%	principal_predicates(:Heads, +Context, -Principals)
 %	
 %	Get the principal predicate list from a list of heads (e.g., the
 %	module in which the predicate is defined).
 
-principal_predicates(Heads, Principals) :-
-	find_definitions(Heads, Heads2),
+principal_predicates(Heads, M, Principals) :-
+	find_definitions(Heads, M, Heads2),
 	'$list_to_set'(Heads2, Principals).
 	
-find_definitions([], []).
-find_definitions([H0|T0], [H|T]) :-
-	find_definition(H0, H),
-	find_definitions(T0, T).
+find_definitions([], _, []).
+find_definitions([H0|T0], M, [H|T]) :-
+	find_definition(H0, M, H),
+	find_definitions(T0, M, T).
 
-find_definition(Head, Module:Plain) :-
-	predicate_property(Head, imported_from(Module)), !,
-	strip_module(Head, _, Plain).
-find_definition(Head, Head).
+find_definition(Head, M, Def) :-
+	strip_module(Head, _, Plain),
+	callable(Plain),
+	(   functor(Plain, Name, Arity),
+	    current_predicate(system:Name/Arity)
+	->  Def = M:Plain
+	;   predicate_property(Head, imported_from(Module))
+	->  Def = Module:Plain
+	;   Def = Head
+	).
 
 
 %%	dwim_predicate(:Head, -NewHead) is nondet.
