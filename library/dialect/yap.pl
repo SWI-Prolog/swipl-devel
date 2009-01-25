@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemak@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007, University of Amsterdam
+    Copyright (C): 2007-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -38,7 +38,8 @@
 	    atomic_concat/3,		% +Atomic, +Atomic, -Atom
 	    source/0,
 	    yap_flag/2,			% +Flag, +Value
-	    yap_style_check/1		% +Style
+	    yap_style_check/1,		% +Style
+	    yap_initialization/1	% :Goal
 	  ]).
 
 /** <module> YAP Compatibility module
@@ -75,6 +76,10 @@ David Reitter and Steve Moyle
 @author Jan Wielemaker
 */
 
+:- meta_predicate
+	yap_initialization(0).
+
+
 		 /*******************************
 		 *	     EXPANSION		*
 		 *******************************/
@@ -107,7 +112,8 @@ yap_expansion(if(Goal, Then, Else),
 	      (Goal *-> Then; Else)).
 yap_expansion(style_check(Style),
 	      yap_style_check(Style)).
-
+yap_expansion(initialization(Goal),
+	      yap_initialization(Goal)).
 
 
 		 /*******************************
@@ -263,11 +269,35 @@ printable(C) :-	code_type(C, space), !.
 %	Map YAP style-check options onto the SWI-Prolog ones.
 
 yap_style_check(all) :- !,
-	style_check([+singleton,
-		     +discontiguous
-		    ]).
+	system:style_check([ +singleton,
+			     +discontiguous
+			   ]).
 yap_style_check(Style) :-
 	fixme_true(yap_style_check(Style)).
+
+
+%%	yap_initialization(:Goal) is det.
+%
+%	Register a goal to be ran `after preparing the Prolog text
+%	for execution'.  Currently we interpret this as at the end
+%	of the file.
+
+:- dynamic
+	yap_init_goal/2.		% +File, :Goal
+
+yap_initialization(Goal) :-
+	prolog_load_context(file, File),
+	assert(yap_init_goal(File, Goal)).
+
+user:message_hook(load_file(done(_Level,
+				 file(_File, Absolute),
+				 _Action,
+				 _LM,
+				 _TimeUsed,
+				 _HeapUsed)),
+		  _Kind, _Lines) :-
+	retract(yap_init_goal(Absolute, Goal)),
+	system:initialization(Goal).
 
 
 		 /*******************************
