@@ -304,7 +304,8 @@ numlist(L, U, Ns) :-
 	L =< U,
 	numlist_(L, U, Ns).
 
-numlist_(U, U, [U]) :- !.
+numlist_(U, U, List) :- !,
+	List = [U].
 numlist_(L, U, [L|Ns]) :-
 	L2 is L+1,
 	numlist_(L2, U, Ns).
