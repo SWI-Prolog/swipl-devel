@@ -1837,9 +1837,12 @@ expand_goal(A, B) :-
         '$do_expand_body'(G, EG).
 '$do_expand_body'(M:G, M:EG) :-
 	atom(M),
-	'$set_source_module'(Old, M),
-	call_cleanup('$do_expand_body'(G, EG),
-		     '$set_source_module'(_, Old)), !.
+	(   M == system			% or should we define this:
+	->  EG = G			% system:goal_expansion(X,X)
+	;   '$set_source_module'(Old, M),
+	    call_cleanup('$do_expand_body'(G, EG),
+			 '$set_source_module'(_, Old))
+	).
 '$do_expand_body'(A, A).
 
 %	Delete extraneous true's that result from goal_expansion(..., true)
