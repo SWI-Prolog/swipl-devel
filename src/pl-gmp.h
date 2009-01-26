@@ -31,6 +31,7 @@
 #include <gmp.h>
 
 #define O_MY_GMP_ALLOC 1
+#define O_GMP_PRECHECK_ALLOCATIONS 1	/* GMP 4.2.3 uses abort() sometimes */
 
 COMMON(void) 	initGMP(void);
 COMMON(void)	get_integer(word w, number *n);

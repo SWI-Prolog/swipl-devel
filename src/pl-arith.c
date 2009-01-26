@@ -1319,9 +1319,18 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       r->type = V_MPZ; 
       mpz_init(r->value.mpz); 
       if ( dir < 0 )
+      {
+#ifdef O_GMP_PRECHECK_ALLOCATIONS
+	GET_LD
+	uint64_t msb = mpz_sizeinbase(n1->value.mpz, 2)+shift;
+
+	if ( (msb/sizeof(char)) > (uint64_t)limitStack(global) )
+	  return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
+#endif /*O_GMP_PRECHECK_ALLOCATIONS*/
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift);
-      else
-	mpz_fdiv_q_2exp(r->value.mpz, n1->value.mpz, shift); 
+      } else
+      { mpz_fdiv_q_2exp(r->value.mpz, n1->value.mpz, shift); 
+      }
       succeed; 
 #endif
     default: 
