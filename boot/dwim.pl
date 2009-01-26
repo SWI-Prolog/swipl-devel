@@ -128,10 +128,10 @@ correct_literal(Goal, Bindings, [Dwim], DwimGoal) :-
 	G1 =.. [_|Arguments], 
 	G2 =.. [Name|Arguments], 
 	'$module'(TypeIn, TypeIn),
-	(   '$prefix_module'(DM, TypeIn, G2, DwimGoal),
-	    goal_name(DwimGoal, Bindings, String),
+	(   '$prefix_module'(DM, TypeIn, G2, ConfirmGoal),
+	    goal_name(ConfirmGoal, Bindings, String),
 	    '$confirm'(dwim_correct(String))
-	->  true
+	->  DwimGoal = DM:G2
 	;   DwimGoal = Goal
 	).
 correct_literal(Goal, Bindings, Dwims, NewGoal) :-
