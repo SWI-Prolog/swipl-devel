@@ -473,7 +473,11 @@ ws_pointer_location_display(DisplayObj d, int *x, int *y)
 
 
 #ifdef HAVE_X11_EXTENSIONS_XINERAMA_H
+#ifdef HAVE_LIBXINERAMA
 #include <X11/extensions/Xinerama.h>
+#else
+#undef HAVE_X11_EXTENSIONS_XINERAMA_H
+#endif
 #endif
 
 status
