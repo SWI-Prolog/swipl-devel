@@ -1338,20 +1338,68 @@ This predicate may be used for theorem-provers to realise techniques
 like \jargon{iterative deepening}.  It was implemented after discussion
 with Steve Moyle \email{smoyle@ermine.ox.ac.uk}.
 
-    \predicate{call_cleanup}{3}{:Goal, +Catcher, :Cleanup}
-Calls \arg{Goal}.  If \arg{Goal} is completely finished, either
-by deterministic success, failure, its choice-point being cut or
-raising an exception and \arg{Catcher} unifies to the termination
-code (see below), \arg{Cleanup} is called.  Success or failure of
-\arg{Cleanup} is ignored and possible choice-points it created are
-destroyed (as once/1).  If \arg{Cleanup} throws an exception this is
-executed as normal.%
-	\bug{During the execution of \arg{Cleanup}, garbage collection
-	     and stack-shifts are disabled.}
+    \predicate{setup_call_cleanup}{3}{:Setup, :Goal, :Cleanup}
+Calls \exam{(Setup, Goal)}. For each case calling \arg{Goal}, the
+cleanup handler \arg{Cleanup} is guaranteed to be called exactly once.
+This will happen after \arg{Goal} is finished: Either on failure,
+deterministic success, commit, or an exception.  \arg{Setup} should
+contain goals that need to be protected from asynchronous interrupts
+like call_with_time_limit/2 (package clib) or thread_signal/2.  In
+most uses, \arg{Setup} will perform temporary side-effects required by
+\arg{Goal} that are finally undone by \arg{Cleanup}.
 
-\arg{Catcher} is unified with a term describing how the call has
-finished.  If this unification fails, \arg{Cleanup} is \emph{not}
-called.
+Success or failure of \arg{Cleanup} is ignored and
+choice-points it created are destroyed (as once/1).  If \arg{Cleanup}
+throws an exception, this is executed as normal.% \bug{During the
+execution of \arg{Cleanup}, garbage collection and stack-shifts are
+disabled.}
+
+Typically, this predicate is used to cleanup permanent data storage
+required to execute \arg{Goal}, close file-descriptors, etc. The example
+below provides a non-deterministic search for a term in a file, closing
+the stream as needed.
+
+\begin{code}
+term_in_file(Term, File) :-
+	setup_call_cleanup( open(File, read, In),
+			    term_in_stream(Term, In),
+			    close(In) ).
+
+term_in_stream(Term, In) :-
+	repeat,
+	read(In, T),
+	(   T == end_of_file
+	->  !, fail
+	;   T = Term
+	).
+\end{code}
+
+Note that it is impossible to implement this predicate in Prolog other than
+by reading all terms into a list, close the file and call member/2.
+Without setup_call_cleanup/3 there is no way to gain control if the
+choice-point left by repeat is removed by a cut or an exception.
+
+setup_call_cleanup/2 can also be used to test determinism of a goal,
+providing a portable alternative to deterministic/1:
+
+\begin{code}
+?- setup_call_cleanup(true,(X=1;X=2), Det=yes).
+
+X = 1 ;
+
+X = 2,
+Det = yes ;
+\end{code}
+
+This predicate is under consideration for inclusion into the ISO standard.
+For compatibility with other Prolog implementations see call_cleanup/2.
+
+    \predicate{setup_call_catcher_cleanup}{4}{:Setup, :Goal, +Catcher, :Cleanup}
+Similar to \term{setup_call_cleanup}{Setup, Goal, Cleanup} with
+additional information on the reason of calling \arg{Cleanup}.  Prior
+to calling \arg{Cleanup}, \arg{Catcher} unifies with the termination
+code (see below).  If this unification fails, \arg{Cleanup} is
+\emph{not} called.
 
 \begin{description}
     \termitem{exit}{}
@@ -1369,65 +1417,18 @@ if-then-else).
 \arg{Goal} raised the given \arg{Exception}.    
 \end{description}
 
-Typically, this predicate is used to cleanup permanent data storage
-required to execute \arg{Goal}, close file-descriptors, etc. The example
-below provides a non-deterministic search for a term in a file, closing
-the stream as needed.
-
-\begin{code}
-term_in_file(Term, File) :-
-	open(File, read, In),
-	call_cleanup(term_in_stream(Term, In), _, close(In)).
-
-term_in_stream(Term, In) :-
-	repeat,
-	read(In, T),
-	(   T == end_of_file
-	->  !, fail
-	;   T = Term
-	).
-\end{code}
-
-Note that this predicate is impossible to implement in Prolog other than
-by reading all terms into a list, close the file and call member/2, because
-without call_cleanup/3 there is no way to gain control if the
-choice-point left by repeat is removed by a cut.
-
-The call_cleanup/2 can also be used to test determinism of a goal,
-providing a portable alternative to deterministic/1:
-
-\begin{code}
-?- call_cleanup((X=1;X=2), Det=yes).
-
-X = 1 ;
-
-X = 2,
-Det = yes ;
-\end{code}
-
-This predicate is a SWI-Prolog extension. See also call_cleanup/2 for
-compatibility with other Prolog implementations.
-
     \predicate{call_cleanup}{2}{:Goal, :Cleanup}
-This predicate is equivalent to \term{call_cleanup}{Goal, _, Cleanup},
-calling \arg{Cleanup} regardless of the reason for termination and
-without providing information.  This predicate provides compatibility
-with a number of other Prolog implementations.
+Same as \term{setup_call_cleanup}{true, Goal, Cleanup}.
+This is provided
+for compatibility with a number of other Prolog implementations only.  Do
+not use call_cleanup/2, if you perform side-effects prior to calling,
+that will be undone by \arg{Cleanup}.  Instead, use
+setup_call_cleanup/3 with an appropriate first argument perform those
+side-effects.
 
-    \predicate{setup_and_call_cleanup}{3}{:Setup, :Goal, :Cleanup}
-This predicate is introduced to allow for the proper definition of
-predicates with temporary side-effects under asynchronous interrupts
-from call_with_time_limit/2 (package clib) or thread_signal/2. It
-behaves as if defined below, but the \arg{Cleanup} handler is also
-called if the interrupt occurs between \arg{Setup} and the
-call_cleanup/2 call.
-
-\begin{code}
-setup_and_call_cleanup(Setup, Goal, Cleanup) :-
-	Setup,
-	call_cleanup(Goal, Cleanup).
-\end{code}
-\end{description}
+    \predicate{call_cleanup}{3}{:Goal, +Catcher, :Cleanup}
+Same as \term{setup_call_catcher_cleanup}{true, Goal, Catcher, Cleanup}.
+The same warning as for call_cleanup/2 applies.
 
 
 \section{ISO compliant Exception handling}   \label{sec:exception}

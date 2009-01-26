@@ -40,7 +40,7 @@ test_call :-
 		    cross_module_call,
 		    snip,
 		    no_autoload,
-		    setup_and_call_cleanup
+		    setup_call_cleanup
 		  ]).
 
 :- begin_tests(call1).
@@ -144,7 +144,7 @@ test(unknown, error(existence_error(procedure,
 
 :- end_tests(no_autoload).
 
-:- begin_tests(setup_and_call_cleanup,
+:- begin_tests(setup_call_cleanup,
 	       [ setup(retractall(v(_)))
 	       ]).
 
@@ -152,51 +152,51 @@ test(unknown, error(existence_error(procedure,
 	v/1.
 
 test(true, X == 42) :-
-	setup_and_call_cleanup(A=42, true, assert(v(A))),
+	setup_call_cleanup(A=42, true, assert(v(A))),
 	retract(v(X)).
      
 test(true_debug, [ true(X == 42),
 		   setup(debug),
 		   cleanup(nodebug)
 		 ]) :-
-	setup_and_call_cleanup(A=42, true, assert(v(A))),
+	setup_call_cleanup(A=42, true, assert(v(A))),
 	retract(v(X)).
      
 test(cut, X == 42) :-
-	setup_and_call_cleanup(A=42, (true;true), assert(v(A))), !,
+	setup_call_cleanup(A=42, (true;true), assert(v(A))), !,
 	retract(v(X)).
      
 test(cut_debug, [ true(X == 42),
 		   setup(debug),
 		   cleanup(nodebug)
 		 ]) :-
-	setup_and_call_cleanup(A=42, (true;true), assert(v(A))), !,
+	setup_call_cleanup(A=42, (true;true), assert(v(A))), !,
 	retract(v(X)).
      
 test(fail, X == 42) :-
-	\+ setup_and_call_cleanup(A=42, fail, assert(v(A))),
+	\+ setup_call_cleanup(A=42, fail, assert(v(A))),
 	retract(v(X)).
      
 test(fail2, X =@= [42,_]) :-
-	\+ setup_and_call_cleanup(A=42, (B=2,fail), assert(v([A,B]))),
+	\+ setup_call_cleanup(A=42, (B=2,fail), assert(v([A,B]))),
 	retract(v(X)).
      
 test(fail_debug, [ true(X == 42),
 		   setup(debug),
 		   cleanup(nodebug)
 		 ]) :-
-	\+ setup_and_call_cleanup(A=42, fail, assert(v(A))),
+	\+ setup_call_cleanup(A=42, fail, assert(v(A))),
 	retract(v(X)).
      
 test(fail_debug2, [ true(X =@= [42,_]),
 		    setup(debug),
 		    cleanup(nodebug)
 		  ]) :-
-	\+ setup_and_call_cleanup(A=42, (B=2,fail), assert(v([A,B]))),
+	\+ setup_call_cleanup(A=42, (B=2,fail), assert(v([A,B]))),
 	retract(v(X)).
      
 test(error, [X,E] == [42,error(x)]) :-
-	catch(setup_and_call_cleanup(A=42, throw(error(x)), assert(v(A))),
+	catch(setup_call_cleanup(A=42, throw(error(x)), assert(v(A))),
 	      E, true),
 	retract(v(X)).
      
@@ -204,15 +204,15 @@ test(error_debug, [ true([X,E] == [42,error(x)]),
 		    setup(debug),
 		    cleanup(nodebug)
 		 ]) :-
-	catch(setup_and_call_cleanup(A=42, throw(error(x)), assert(v(A))),
+	catch(setup_call_cleanup(A=42, throw(error(x)), assert(v(A))),
 	      E, true),
 	retract(v(X)).
      
 test(nondet, [Vs == [a,b,fail], cleanup(retractall(v_))]) :-
-	(   setup_and_call_cleanup(member(X,[a,b]), assert(v(X)),
+	(   setup_call_catcher_cleanup(member(X,[a,b]), assert(v(X)),
 				   Exit, assert(v(Exit))),
 	    fail
 	;   findall(V, retract(v(V)), Vs)
 	).
 
-:- end_tests(setup_and_call_cleanup).
+:- end_tests(setup_call_cleanup).

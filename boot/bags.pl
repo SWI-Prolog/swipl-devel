@@ -68,7 +68,7 @@ findall(Templ, Goal, List) :-
 	findall(Templ, Goal, List, []).
 
 findall(Templ, Goal, List, Tail) :-
-	setup_and_call_cleanup('$new_findall_bag'(Bag),
+	setup_call_cleanup('$new_findall_bag'(Bag),
 			       fa_loop(Templ, Goal, Bag, List, Tail),
 			       '$destroy_findall_bag'(Bag)).
 			       

@@ -3137,7 +3137,7 @@ VMI(I_EXITCLEANUP, 0, 0, ())
   { DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));
     for(BFR = BFR->parent; BFR > (Choice)FR; BFR = BFR->parent)
     { if ( BFR->frame > FR )
-	NEXT_INSTRUCTION;		/* choice from setup of setup_and_call_cleanup/4 */
+	NEXT_INSTRUCTION;		/* choice from setup of setup_call_catcher_cleanup/4 */
       assert(BFR->type == CHP_DEBUG);
     }
 

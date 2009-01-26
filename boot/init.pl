@@ -107,8 +107,8 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	      ignore/1,
 	      call_cleanup/2,
 	      call_cleanup/3,
-	      setup_and_call_cleanup/3,
-	      setup_and_call_cleanup/4,
+	      setup_call_cleanup/3,
+	      setup_call_catcher_cleanup/4,
 	      (^)/2)).
 
 :- meta_predicate
@@ -132,8 +132,8 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	ignore(0),
 	block(+,0,-),
 	catch(0,?,0),
-	setup_and_call_cleanup(0,0,0),
-	setup_and_call_cleanup(0,0,?,0),
+	setup_call_cleanup(0,0,0),
+	setup_call_catcher_cleanup(0,0,?,0),
 	call_cleanup(0,0),
 	call_cleanup(0,?,0).
 
@@ -241,26 +241,26 @@ fail(Label) :-
 catch(_Goal, _Catcher, _Recover) :-
 	'$catch'.
 
-%%	setup_and_call_cleanup(:Setup, :Goal, :Cleanup).
-%%	setup_and_call_cleanup(:Setup, :Goal, +Catcher, :Cleanup).
+%%	setup_call_cleanup(:Setup, :Goal, :Cleanup).
+%%	setup_call_catcher_cleanup(:Setup, :Goal, +Catcher, :Cleanup).
 %%	call_cleanup(:Goal, :Cleanup)
 %%	call_cleanup(:Goal, +Catcher, :Cleanup)
 %
-%	Call Cleanup as Goal finished (deterministic success, failure,
+%	Call Cleanup once after Goal is finished (deterministic success, failure,
 %	exception or cut).  '$call_cleanup' translated to I_CALLCLEANUP.
 
-setup_and_call_cleanup(Setup, _Goal, _Catcher, _Cleanup) :-
+setup_call_catcher_cleanup(Setup, _Goal, _Catcher, _Cleanup) :-
 	Setup,
 	'$call_cleanup'.
 
-setup_and_call_cleanup(Setup, Goal, Cleanup) :-
-	setup_and_call_cleanup(Setup, Goal, _Catcher, Cleanup).
+setup_call_cleanup(Setup, Goal, Cleanup) :-
+	setup_call_catcher_cleanup(Setup, Goal, _Catcher, Cleanup).
 
 call_cleanup(Goal, Cleanup) :-
-	setup_and_call_cleanup(true, Goal, _Catcher, Cleanup).
+	setup_call_catcher_cleanup(true, Goal, _Catcher, Cleanup).
 
 call_cleanup(Goal, Catcher, Cleanup) :-
-	setup_and_call_cleanup(true, Goal, Catcher, Cleanup).
+	setup_call_catcher_cleanup(true, Goal, Catcher, Cleanup).
 
 
 		/********************************

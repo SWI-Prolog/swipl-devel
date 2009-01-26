@@ -529,7 +529,7 @@ developers issue. Cleanup seems reasonable too.
 
 static void
 callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
-{ if ( fr->predicate == PROCEDURE_setup_and_call_cleanup4->definition &&
+{ if ( fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition &&
        false(fr, FR_CATCHED) )		/* from handler */
   { fid_t cid  = PL_open_foreign_frame();
     term_t catcher = argFrameP(fr, 2) - (Word)lBase;

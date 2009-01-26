@@ -626,8 +626,8 @@ xref_meta(thread_initialization(A), [A]).
 xref_meta(predsort(A,_,_),	[A+3]).
 xref_meta(call_cleanup(A, B),	[A, B]).
 xref_meta(call_cleanup(A, _, B),[A, B]).
-xref_meta(setup_and_call_cleanup(A, B, C),[A, B, C]).
-xref_meta(setup_and_call_cleanup(A, B, _, C),[A, B, C]).
+xref_meta(setup_call_cleanup(A, B, C),[A, B, C]).
+xref_meta(setup_call_catcher_cleanup(A, B, _, C),[A, B, C]).
 xref_meta(with_mutex(_,A),	[A]).
 xref_meta(assume(G),		[G]).	% library(debug)
 xref_meta(assertion(G),		[G]).	% library(debug)

@@ -355,3 +355,27 @@ current_module(Module, File) :-
 
 export_list(Module, List) :-
 	module_property(Module, exports(List)).
+
+%%	setup_and_call_cleanup(:Setup, :Goal, :Cleanup).
+%
+%	Call Cleanup once after Goal is finished.
+%	@deprecated Use setup_call_cleanup/3.
+
+:- module_transparent setup_and_call_cleanup/3, setup_and_call_cleanup/4.
+
+setup_and_call_cleanup(Setup, Goal, Cleanup) :-
+	setup_call_cleanup(Setup, Goal, Cleanup).
+
+%%	setup_and_call_cleanup(:Setup, :Goal, :Cleanup).
+%
+%	Call Cleanup once after Goal is finished.
+%	@deprecated Use setup_call_cleanup/3.
+
+setup_and_call_cleanup(Setup, Goal, Catcher, Cleanup) :-
+	setup_call_catcher_cleanup(Setup, Goal, Catcher,Cleanup).
+
+%%	setup_and_call_cleanup(:Setup, :Goal, Catcher, :Cleanup).
+%
+%	Call Cleanup once after Goal is finished, with Catcher
+%       unified to the reason
+%	@deprecated Use setup_call_cleanup/3.

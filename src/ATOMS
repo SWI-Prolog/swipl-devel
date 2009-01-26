@@ -466,7 +466,7 @@ A select		"select"
 A semicolon		";"
 A separated		"separated"
 A set			"set"
-A setup_and_call_cleanup "setup_and_call_cleanup"
+A setup_call_catcher_cleanup "setup_call_catcher_cleanup"
 A shared		"shared"
 A shared_object		"shared_object"
 A shared_object_handle	"shared_object_handle"
@@ -768,7 +768,7 @@ F retry			1
 F round			1
 F rshift		2
 F semicolon		2
-F setup_and_call_cleanup 4
+F setup_call_catcher_cleanup 4
 F shared_object		2
 F shell			2
 F sign			1

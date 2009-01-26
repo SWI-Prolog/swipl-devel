@@ -494,7 +494,7 @@ initBuildIns(void)
   LOOKUPPROC(strict_equal2);
   LOOKUPPROC(print_message2);
   LOOKUPPROC(dcall1);
-  LOOKUPPROC(setup_and_call_cleanup4);
+  LOOKUPPROC(setup_call_catcher_cleanup4);
   LOOKUPPROC(dthread_init0);
   LOOKUPPROC(dc_call_prolog0);
 #ifdef O_ATTVAR

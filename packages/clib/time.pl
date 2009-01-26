@@ -104,7 +104,7 @@
 
 call_with_time_limit(Time, Goal) :-
 	Time > 0, !,
-	setup_and_call_cleanup(alarm(Time, time_limit_exceeded(Time), Id),
+	setup_call_cleanup(alarm(Time, time_limit_exceeded(Time), Id),
 			       once(Goal),
 			       remove_alarm_notrace(Id)).
 call_with_time_limit(_Time, _Goal) :-
