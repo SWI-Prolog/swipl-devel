@@ -120,7 +120,7 @@ install:	$(TARGETS) $(LIBPL)
 		$(PL) -f none -g make -t halt
 
 ln-install::
-		@$(MAKE) INSTALL_DATA='../ln-install' install
+		@$(MAKE) INSTALL_DATA='../ln-install' INSTALL_PROGRAM='../ln-install' install
 
 rpm-install:	install
 
