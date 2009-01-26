@@ -53,10 +53,6 @@
 %	be used to raise an exception using throw/1 to abort some
 %	execution.
 %	
-%	The alarm system manages a sorted list of scheduled alarms. Each
-%	time an alarm is added, removed or expires, this list is
-%	re-examined and a new signal is scheduled using setitimer()
-%	
 %	Options is a list of Name(Value) options.  Currently defined
 %	options are:
 %	
@@ -69,14 +65,11 @@
 
 %%	install_alarm(+Id) is det.
 %
-%	Install an alarm allocated using alarm(Time, Goal, Id,
-%	[install(false)]).  Typically used with call_cleanup/2:
+%	Install an alarm allocated using alarm/4 with the install(false)
+%	option.
 %	
-%	==
-%		alarm(Time, Goal1, Id, [install(false)]),
-%		call_cleanup((install_alarm(Id), Goal2),
-%			     remove_alarm(Id)),
-%	==
+%	@deprecated	With the introduction of setup_call_cleanup/3,
+%			this predicate is probable no longer needed.
 
 %%	remove_alarm(+Id) is det.
 %	

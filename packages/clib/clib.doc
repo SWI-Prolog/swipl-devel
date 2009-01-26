@@ -946,9 +946,8 @@ scheduled for execution.   It must be started later using install_alarm/1.
 Same as \term{alarm}{Time, Callable, Id, []}.
 
     \predicate{install_alarm}{1}{+Id}
-Activate an alarm allocated usign alarm/4 with the option
-\term{install}{false}.  This is intended to reclaim alarms reliably
-using call_cleanup/2.  See the implementation of call_with_time_limit/2.
+Activate an alarm allocated using alarm/4 with the option
+\term{install}{false}.
 
     \predicate{remove_alarm}{1}{+Id}
 Remove an alarm.  If it is not yet fired, it will not be fired
