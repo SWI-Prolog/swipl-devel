@@ -287,7 +287,7 @@ static schedule the_schedule;		/* the schedule */
 int signal_function_set = FALSE;	/* signal function is set */
 static handler_t signal_function;	/* Current signal function */
 
-static void uninstallEvent(Event ev);
+static int uninstallEvent(Event ev);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Allocate the event, maintaining a time-sorted list of scheduled events.
@@ -310,7 +310,7 @@ allocEvent(struct timeval *at)
 }
 
 
-static void
+static int
 insertEvent(Event ev)
 { schedule *sched = TheSchedule();
   Event e;
@@ -319,6 +319,9 @@ insertEvent(Event ev)
 
   for(e = sched->first; e; e = e->next)
   { struct timeval d;
+
+    if ( e == ev )
+      return ERR_PERMISSION;		/* already scheduled */
 
     d.tv_sec  = ev->at.tv_sec  - e->at.tv_sec;
     d.tv_usec = ev->at.tv_usec - e->at.tv_usec;
@@ -331,13 +334,14 @@ insertEvent(Event ev)
     { ev->next = e;
       ev->previous = e->previous;
       if ( e->previous )
-	e->previous->next = ev;
+      { e->previous->next = ev;
+      } else
+      { assert(sched->first == e);
+	sched->first = ev;
+      }
       e->previous = ev;
 
-      if ( sched->first == e )		/* allocated as first */
-	sched->first = ev;
-
-      return;
+      return TRUE;
     } else
     { if ( e->next )
 	continue;
@@ -345,11 +349,12 @@ insertEvent(Event ev)
       ev->previous = e;			/* end of the list */
       e->next = ev;
 
-      return;
+      return TRUE;
     }
   }
 
-  sched->first = ev;
+  sched->first = ev;			/* the very first one */
+  return TRUE;
 }
 
 
@@ -470,8 +475,13 @@ callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
 static int
 installEvent(Event ev)
 { MMRESULT rval;
+  int rc;
 
-  insertEvent(ev);
+  LOCK();
+  rc = insertEvent(ev);
+  UNLOCK();
+  if ( rc != TRUE )
+    return rc;
 
   rval = timeSetEvent((int)(ev->time*1000),
 		      50,			/* resolution (milliseconds) */
@@ -486,13 +496,15 @@ installEvent(Event ev)
     return TRUE;
   }
     
-  return pl_error(NULL, 0, NULL, ERR_RESOURCE, "no_timers");
+  return ERR_RESOURCE;
 }
 
 
-static void
+static int
 uninstallEvent(Event ev)
-{ if ( TheSchedule()->scheduled == ev )
+{ LOCK();
+
+  if ( TheSchedule()->scheduled == ev )
     ev->flags |= EV_DONE;
 
   if ( ev->mmid )
@@ -501,6 +513,9 @@ uninstallEvent(Event ev)
   }
 
   freeEvent(ev);
+  UNLOCK();
+
+  return TRUE;
 }
 
 
@@ -614,7 +629,9 @@ on_alarm(int sig)
 
 static int
 installEvent(Event ev)
-{ LOCK();
+{ int rc;
+
+  LOCK();
 
   ev->thread_id = pthread_self();
 #ifdef O_DEBUG
@@ -638,15 +655,16 @@ installEvent(Event ev)
     scheduler_running = TRUE;
   }
 
-  insertEvent(ev);
-  pthread_cond_signal(&cond);
+  if ( (rc=insertEvent(ev)) == TRUE )
+    pthread_cond_signal(&cond);
+
   UNLOCK();
 
-  return TRUE;
+  return rc;
 }
 
 
-static void
+static int
 uninstallEvent(Event ev)
 { LOCK();
   if ( TheSchedule()->scheduled == ev )
@@ -654,6 +672,8 @@ uninstallEvent(Event ev)
   freeEvent(ev);
   pthread_cond_signal(&cond);
   UNLOCK();
+
+  return TRUE;
 }
 
 
@@ -737,14 +757,16 @@ on_alarm(int sig)
 
 static int
 installEvent(Event ev)
-{ insertEvent(ev);
-  re_schedule();
+{ int rc;
 
-  return TRUE;
+  if ( (rc=insertEvent(ev)) == TRUE )
+    re_schedule();
+
+  return rc;
 }
 
 
-static void
+static int
 uninstallEvent(Event ev)
 { if ( TheSchedule()->scheduled == ev )
   { ev->flags |= EV_DONE;
@@ -752,6 +774,8 @@ uninstallEvent(Event ev)
   }
 
   freeEvent(ev);
+
+  return TRUE;
 }
 
 #endif /*SHARED_TABLE*/
@@ -761,6 +785,20 @@ uninstallEvent(Event ev)
 		 /*******************************
 		 *	PROLOG CONNECTION	*
 		 *******************************/
+
+int
+alarm_error(term_t alarm, int err)
+{ switch(err)
+  { case ERR_RESOURCE:
+      return pl_error(NULL, 0, NULL, ERR_RESOURCE, "timers");
+    case ERR_PERMISSION:
+      return pl_error(NULL, 0, "already installed", ERR_PERMISSION,
+		      alarm, "install", "alarm");
+    default:
+      assert(0);
+  }
+}
+
 
 static int
 unify_timer(term_t t, Event ev)
@@ -867,7 +905,7 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
     return FALSE;
   ev->time = t;
   if ( !unify_timer(id, ev) )
-  { freeEvent(ev);
+  { freeEvent(ev);			/* not linked: no need to lock */
     return FALSE;
   }
 
@@ -877,9 +915,11 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
   ev->goal = PL_record(callable);
 
   if ( !(ev->flags & EV_NOINSTALL) )
-  { if ( !installEvent(ev) )
-    { freeEvent(ev);
-      return FALSE;
+  { int rc;
+
+    if ( (rc=installEvent(ev)) != TRUE )
+    { freeEvent(ev);			/* not linked: no need to lock */
+      return alarm_error(id, rc);
     }
   }
 
@@ -896,14 +936,13 @@ alarm3(term_t time, term_t callable, term_t id)
 static foreign_t
 install_alarm(term_t alarm)
 { Event ev = NULL;
+  int rc;
 
   if ( !get_timer(alarm, &ev) )
     return FALSE;
 
-  if ( !installEvent(ev) )
-  { freeEvent(ev);
-    return FALSE;
-  }
+  if ( (rc=installEvent(ev)) != TRUE )
+    return alarm_error(alarm, rc);
 
   return TRUE;
 }
@@ -916,9 +955,7 @@ remove_alarm(term_t alarm)
   if ( !get_timer(alarm, &ev) )
     return FALSE;
 
-  uninstallEvent(ev);
-
-  return TRUE;
+  return uninstallEvent(ev);
 }
 
 
