@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -213,6 +213,7 @@ S__setbuf(IOSTREAM *s, char *buffer, size_t size)
 
 	  free(newunbuf);
 	  errno = oldeno;
+	  S__seterror(s);
 	  return -1;
 	}
       }
@@ -237,8 +238,8 @@ S__setbuf(IOSTREAM *s, char *buffer, size_t size)
 
 void
 Ssetbuffer(IOSTREAM *s, char *buffer, size_t size)
-{ S__setbuf(s, buffer, size);
-  s->flags &= ~SIO_USERBUF;
+{ if ( S__setbuf(s, buffer, size) != (size_t)-1 )
+    s->flags &= ~SIO_USERBUF;
 }
 
 
@@ -422,14 +423,13 @@ S__flushbufc(int c, IOSTREAM *s)
     { char chr = (char)c;
     
       if ( (*s->functions->write)(s->handle, &chr, 1) != 1 )
-      { s->flags |= SIO_FERR;
+      { S__seterror(s);
 	c = -1;
       }
     } else
     { if ( S__setbuf(s, NULL, 0) == (size_t)-1 )
-      { s->flags |= SIO_FERR;
 	c = -1;
-      } else
+      else
 	*s->bufp++ = (char)c;
     }
   }
@@ -548,6 +548,7 @@ S__fillbuf(IOSTREAM *s)
       } else if ( errno == EWOULDBLOCK )
       { s->bufp = s->buffer;
 	s->limitp = s->buffer;
+	S__seterror(s);
 	return -1;
 #endif
       } else
@@ -1401,7 +1402,9 @@ Sfeof(IOSTREAM *s)
 
 static int
 S__seterror(IOSTREAM *s)
-{ if ( s->functions->control )
+{ s->io_errno = errno;
+
+  if ( s->functions->control )
   { char *msg;
 
     if ( (*s->functions->control)(s->handle,
@@ -1432,6 +1435,7 @@ Sfpasteof(IOSTREAM *s)
 void
 Sclearerr(IOSTREAM *s)
 { s->flags &= ~(SIO_FEOF|SIO_WARN|SIO_FERR|SIO_FEOF2|SIO_TIMEOUT|SIO_CLEARERR);
+  s->io_errno = 0;
   Sseterr(s, 0, NULL);
 }
 
@@ -1554,6 +1558,7 @@ Ssize(IOSTREAM *s)
   }
 
   errno = ESPIPE;
+  S__seterror(s);
   return -1;
 }
 
@@ -1599,6 +1604,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
 
   if ( !s->functions->seek && !s->functions->seek64 )
   { errno = ESPIPE;
+    S__seterror(s);
     return -1;
   }
 
@@ -1619,11 +1625,12 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
     pos = (*s->functions->seek)(s->handle, (long)pos, whence);
   else
   { errno = EINVAL;
+    S__seterror(s);
     return -1;
   }
   
   if ( pos < 0 )
-  { errno = EINVAL;
+  { S__seterror(s);
     return -1;
   }
 
@@ -1675,6 +1682,7 @@ Stell64(IOSTREAM *s)
     return pos;
   } else
   { errno = EINVAL;
+    S__seterror(s);
     return -1;
   }
 }
@@ -1684,10 +1692,13 @@ long
 Stell(IOSTREAM *s)
 { int64_t pos = Stell64(s);
 
+  if ( pos == -1 )
+    return -1;
   if ( pos <= LONG_MAX )
     return (long) pos;
 
   errno = EINVAL;
+  S__seterror(s);
   return -1;
 }
 
@@ -1708,7 +1719,7 @@ Sclose(IOSTREAM *s)
 { int rval = 0;
 
   if ( s->magic != SIO_MAGIC )		/* already closed!? */
-  { errno = EINVAL;
+  { s->io_errno = errno = EINVAL;
     return -1;
   }
 
@@ -1738,7 +1749,7 @@ Sclose(IOSTREAM *s)
   }
 #endif
   if ( s->functions->close && (*s->functions->close)(s->handle) < 0 )
-  { s->flags |= SIO_FERR;
+  { S__seterror(s);
     rval = -1;
   }
   while(s->locks > 0)			/* remove buffer-locks */
@@ -1762,6 +1773,8 @@ Sclose(IOSTREAM *s)
 #endif
 
   s->magic = SIO_CMAGIC;
+  if ( s->message )
+    free(s->message);
   if ( !(s->flags & SIO_STATIC) )
     free(s);
 
@@ -1817,8 +1830,7 @@ Sgets(char *buf)
 
 int
 Sfputs(const char *q, IOSTREAM *s)
-{ 
-  for( ; *q; q++)
+{ for( ; *q; q++)
   { if ( Sputcode(*q&0xff, s) < 0 )
       return EOF;
   }

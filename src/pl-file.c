@@ -676,7 +676,13 @@ reportStreamError(IOSTREAM *s)
       } else
 	op = ATOM_write;
   
-      msg = s->message ? s->message : MSG_ERRNO;
+      if ( s->message )
+      { msg = s->message;
+      } else
+      { msg = MSG_ERRNO;
+	if ( s->io_errno )
+	  errno = s->io_errno;
+      }
 
       PL_error(NULL, 0, msg, ERR_STREAM_OP, op, stream);
       
