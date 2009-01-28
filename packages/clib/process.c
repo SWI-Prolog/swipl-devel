@@ -55,6 +55,7 @@ static atom_t ATOM_null;
 static atom_t ATOM_process;
 static atom_t ATOM_detached;
 static atom_t ATOM_cwd;
+static atom_t ATOM_env;
 static atom_t ATOM_window;
 static atom_t ATOM_timeout;
 static atom_t ATOM_release;
@@ -68,6 +69,7 @@ static functor_t FUNCTOR_system_error2;
 static functor_t FUNCTOR_pipe1;
 static functor_t FUNCTOR_exit1;
 static functor_t FUNCTOR_killed1;
+static functor_t FUNCTOR_eq2;		/* =/2 */
 
 #define MAYBE 2
 
@@ -172,6 +174,7 @@ typedef struct p_options
   char **argv;				/* argument vector */
   char *cwd;				/* CWD of new process */
 #endif
+  char **envp;				/* New environment */
   term_t pid;				/* process(PID) */
   int pipes;				/* #pipes found */
   p_stream streams[3];
@@ -191,6 +194,83 @@ typedef struct wait_options
 static int win_command_line(term_t t, int arity,
 			    const wchar_t *exepath, wchar_t **cmdline);
 #endif
+
+static int
+get_chars_arg_ex(int i, term_t from, term_t arg, char **sp, size_t *lenp)
+{ PL_get_arg(i, from, arg);
+  if ( !PL_get_nchars(arg, lenp, sp, CVT_ATOMIC|CVT_EXCEPTION|BUF_RING|REP_FN) )
+    return FALSE;
+
+  return TRUE;
+}
+
+
+static void
+free_envp_members(char **envp)
+{ for(; *envp; envp++)
+    PL_free(*envp);
+}
+
+
+static void
+free_envp(char **envp)
+{ if ( envp )
+  { free_envp_members(envp);
+    PL_free(envp);
+  }
+}
+
+
+#define MAXENV 1000
+
+static int
+parse_environment(term_t t, p_options *info)
+{ term_t tail = PL_copy_term_ref(t);
+  term_t head = PL_new_term_ref();
+  term_t tmp  = PL_new_term_ref();
+  char *env[MAXENV];
+  int  count = 0;
+
+  env[count] = NULL;
+  while( PL_get_list(tail, head, tail) )
+  { char *name, *value;
+    size_t nlen, vlen;
+    char *var;
+
+    if ( count >= MAXENV )
+    { free_envp_members(env);
+      return resource_error("environment");
+    }
+
+    if ( !PL_is_functor(head, FUNCTOR_eq2) )
+    { free_envp_members(env);
+      return type_error(head, "environment_variable");
+    }
+    if ( !get_chars_arg_ex(1, head, tmp, &name, &nlen) ||
+	 !get_chars_arg_ex(2, head, tmp, &value, &vlen) )
+    { free_envp_members(env);
+      return FALSE;
+    }
+
+    var = PL_malloc(nlen+vlen+2);
+    memcpy(var, name, nlen);
+    var[nlen] = '=';
+    memcpy(var+nlen+1, value, vlen+1);
+    env[count++] = var;
+    env[count] = NULL;
+  }
+
+  if ( !PL_get_nil(tail) )
+  { free_envp_members(env);
+    return type_error(tail, "list");
+  }
+
+  info->envp = PL_malloc((count+1)*sizeof(char*));
+  memcpy(info->envp, env, (count+1)*sizeof(char*));
+
+  return TRUE;
+}
+
 
 static int
 get_stream(term_t t, p_options *info, p_stream *stream)
@@ -261,6 +341,9 @@ parse_options(term_t options, p_options *info)
     } else if ( name == ATOM_window )
     { if ( !PL_get_bool(arg, &info->window) )
 	return type_error(arg, "boolean");
+    } else if ( name == ATOM_env )
+    { if ( !parse_environment(arg, info) )
+	return FALSE;
     } else
       return domain_error(head, "process_option");
   }
@@ -320,6 +403,10 @@ free_options(p_options *info)		/* TBD: close streams */
   if ( info->cwd )
   { PL_free(info->cwd);
     info->cwd = NULL;
+  }
+  if ( info->envp )
+  { free_envp(info->envp);
+    info->envp = NULL;
   }
 #ifdef __WINDOWS__
   if ( info->cmdline )
@@ -1163,6 +1250,7 @@ do_create_process(p_options *info)
 
   if ( !(pid=fork()) )			/* child */
   { int fd;
+    int rc;
 
     PL_cleanup_fork();
 
@@ -1213,7 +1301,12 @@ do_create_process(p_options *info)
 	break;
     }
 
-    if ( execv(info->exe, info->argv) )
+    if ( info->envp )
+      rc = execve(info->exe, info->argv, info->envp);
+    else
+      rc = execv(info->exe, info->argv);
+
+    if ( rc )
     { perror(info->exe);
       exit(1);
     }
@@ -1435,6 +1528,7 @@ install_process()
   MKATOM(process);
   MKATOM(detached);
   MKATOM(cwd);
+  MKATOM(env);
   MKATOM(window);
   MKATOM(timeout);
   MKATOM(release);
@@ -1449,6 +1543,8 @@ install_process()
   MKFUNCTOR(resource_error, 1);
   MKFUNCTOR(exit, 1);
   MKFUNCTOR(killed, 1);
+
+  FUNCTOR_eq2 = PL_new_functor(PL_new_atom("="), 2);
 
   PL_register_foreign("process_create", 2, process_create, 0);
   PL_register_foreign("process_wait", 3, process_wait, 0);

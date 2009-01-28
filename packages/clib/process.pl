@@ -80,6 +80,9 @@ following finds the executable for =ls=:
     is unclear what it is supposed to do.  Disable signals in the child?
     Use setsid() to detach from the session?
 
+    * An extra option env([Name=Value, ...]) is added to
+    process_create/3.
+
 @tbd	Implement detached option in process_create/3
 @compat	SICStus 4
 */
@@ -140,6 +143,12 @@ user:file_search_path(path, Dir) :-
 %	    Run the new process in Directory.  Directory can be a
 %	    compound specification, which is converted using
 %	    absolute_file_name/3.
+%	    * env(+List)
+%	    Specify the environment for the new process.  List is
+%	    a list of Name=Value terms.  Note that the current 
+%	    implementation does not pass any environment variables.
+%	    If unspecified, the environment is inherited from the
+%	    Prolog process.
 %	    * process(-PID)
 %	    Unify PID with the process id of the created process.
 %	    * detached(+Bool)
