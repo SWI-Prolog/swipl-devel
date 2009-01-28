@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2008, University of Amsterdam
+    Copyright (C): 2007-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -393,15 +393,19 @@ find_handler(Path, Action, Options) :-
 
 find_handler([node(prefix(Prefix), PAction, POptions, Children)|_],
 	     Path, Action, Options) :-
-	sub_atom(Path, 0, _, _, Prefix), !,
+	sub_atom(Path, 0, _, After, Prefix), !,
 	(   find_handler(Children, Path, Action, Options)
 	->  true
 	;   Action = PAction,
-	    Options = POptions
+	    path_info(After, Path, POptions, Options)
 	).
 find_handler([node(Path, Action, Options, _)|_], Path, Action, Options) :- !.
 find_handler([_|Tree], Path, Action, Options) :-
 	find_handler(Tree, Path, Action, Options).
+
+path_info(0, _, Options, Options) :- !.
+path_info(After, Path, Options, [path_info(PathInfo)|Options]) :-
+	sub_atom(Path, _, After, 0, PathInfo).
 
 
 %%	action(+Action, +Request, +Options) is det.
@@ -450,7 +454,13 @@ time_limit_action(Action, Request, Options) :-
 
 call_action(reply_file(File, FileOptions), Request, _Options) :- !,
 	http_reply_file(File, FileOptions, Request).
+call_action(Pred, Request, Options) :-
+	memberchk(path_info(PathInfo), Options), !,
+	call_action(Pred, [path_info(PathInfo)|Request]).
 call_action(Pred, Request, _Options) :-
+	call_action(Pred, Request).
+
+call_action(Pred, Request) :-
 	(   call(Pred, Request)
 	->  true
 	;   extend(Pred, [Request], Goal),

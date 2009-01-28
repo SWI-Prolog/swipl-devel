@@ -582,7 +582,11 @@ Specify a (wall-)time limit to handle the request. \arg{Spec} is one of
 	\termitem{prefix}{}
 If present, call handler for all paths that \emph{start with} the
 given path.  If multiple specifications match the most specific one
-is used.
+is used.  If a prefix is matched and the actual path is longer than
+the prefix, a term \term{path_info}{Rest} is added, where \arg{Rest}
+expresses the remainder of the specified path. The name
+\const{path_info} in inspired by the CHI variable \const{PATH_INFO}
+serving the same purpose for CGI scripts.
 
 	\termitem{priority}{+Integer}
 If two handlers handle the same path, the one with the highest priority
