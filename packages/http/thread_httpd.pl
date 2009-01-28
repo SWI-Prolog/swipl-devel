@@ -449,7 +449,10 @@ current_message_level(Term, Level) :-
 http_requeue(Header) :-
 	requeue_header(Header, ClientOptions),
 	memberchk(pool(Queue, Goal, In, Out), ClientOptions),
-	thread_send_message(Queue, requeue(In, Out, Goal, ClientOptions)).
+	thread_send_message(Queue, requeue(In, Out, Goal, ClientOptions)), !.
+http_requeue(Header) :-
+	debug(http(error), 'Re-queue failed: ~p', [Header]),
+	fail.
 
 requeue_header([], []).
 requeue_header([H|T0], [H|T]) :-
@@ -476,11 +479,11 @@ http_process(Goal, In, Out, Options) :-
 		     ]),
 	next(Connection, Request).
 
-next(spawned, _) :- !,
-	debug(http(spawn), 'Handler spawned', []).
+next(spawned(ThreadId), _) :- !,
+	debug(http(spawn), 'Handler spawned to thread ~w', [ThreadId]).
 next(Connection, Request) :-
-	downcase_atom(Connection, 'keep-alive'), !,
-	http_requeue(Request).
+	downcase_atom(Connection, 'keep-alive'),
+	http_requeue(Request), !.
 next(_, Request) :-
 	http_close_connection(Request).
 
@@ -520,10 +523,6 @@ close_connection(Peer, In, Out) :-
 %	    are waiting in this pool.
 
 http_spawn(Goal, Options) :-
-	strip_module(Goal, M, G),
-	spawn(M:G, Options) .
-
-spawn(Goal, Options) :-
 	select_option(pool(Pool), Options, Options1), !,
 	select_option(backlog(BackLog), Options1, ThreadOptions, infinite),
 	check_backlog(BackLog, Pool),
@@ -534,7 +533,7 @@ spawn(Goal, Options) :-
 			      | ThreadOptions
 			      ]),
 	http_spawned(Id).
-spawn(Goal, Options) :-
+http_spawn(Goal, Options) :-
 	current_output(CGI),
 	thread_create(wrap_spawned(CGI, Goal), Id,
 		      [ detached(true)

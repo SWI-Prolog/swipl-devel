@@ -69,7 +69,7 @@
 %		IP address of client
 %		
 %	@param Close	Unified to one of =close=, =|Keep-Alife|= or
-%			spawned.
+%			spawned(ThreadId).
 
 http_wrapper(Goal, In, Out, Close, Options) :-
 	catch(http_read_request(In, Request0), ReqError, true),
@@ -100,8 +100,8 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 
 http_wrap_spawned(Goal, Request, Close) :-
 	handler_with_output_to(Goal, -, current_output, Error),
-	(   retract(spawned(_))
-	->  Close = spawned,
+	(   retract(spawned(ThreadId))
+	->  Close = spawned(ThreadId),
 	    Request = []
 	;   current_output(CGI),
 	    cgi_property(CGI, request(Request)),
@@ -124,8 +124,8 @@ http_spawned(ThreadId) :-
 %%	cgi_close(+CGI, +Error, -Close)
 
 cgi_close(_, _, Close) :-
-	retract(spawned(_)), !,
-	Close = spawned.
+	retract(spawned(ThreadId)), !,
+	Close = spawned(ThreadId).
 cgi_close(CGI, ok, Close) :- !,
 	cgi_property(CGI, connection(Close)),
 	close(CGI).
@@ -296,6 +296,9 @@ map_exception(error(existence_error(http_location, Location), _),
 	      [connection(close)]) :- !.
 map_exception(error(permission_error(http_location, access, Location), _),
 	      forbidden(Location),
+	      [connection(close)]) :- !.
+map_exception(error(threads_in_pool(_Pool), _), % see thread_create_in_pool/4
+	      busy,
 	      [connection(close)]) :- !.
 map_exception(E,
 	      resource_error(E),
