@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -669,16 +669,17 @@ search([]) -->
 	[].
 
 parameter(Param)--> !, 
-	parameter_component(Name), 
+	search_chars(NameS), 
+	{ atom_codes(Name, NameS)
+	},
 	(   "="
-        ->  parameter_component(Value), 
-	    { Param = (Name = Value) }
-        ;   { Param = Name }
+        ->  search_value_chars(ValueS),
+	    { atom_codes(Value, ValueS),
+	      Param = (Name = Value)
+	    }
+        ;   { Param = Name
+	    }
         ).
-
-parameter_component(Component)-->
-	search_chars(String), 
-	{ atom_codes(Component, String) }. 
 
 search_chars([C|T]) -->
 	search_char(C), !, 
@@ -689,6 +690,15 @@ search_chars([]) -->
 search_char(_) --> "&", !, { fail }.
 search_char(_) --> "=", !, { fail }.
 search_char(C) --> fragment_char(C).
+
+search_value_chars([C|T]) -->
+	search_value_char(C), !, 
+	search_value_chars(T).
+search_value_chars([]) -->
+	[].
+
+search_value_char(_) --> "&", !, { fail }.
+search_value_char(C) --> fragment_char(C).
 
 
 %%	fragment(-Fragment, ?Tail)//
