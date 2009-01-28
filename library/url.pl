@@ -661,7 +661,7 @@ query(T,T) -->
 
 search([Parameter|Parameters])--> 
 	parameter(Parameter), !,  
-	(   "&"
+	(   search_sep
         ->  search(Parameters)
         ;   { Parameters = [] }
         ). 
@@ -687,7 +687,7 @@ search_chars([C|T]) -->
 search_chars([]) -->
 	[].
 
-search_char(_) --> "&", !, { fail }.
+search_char(_) --> search_sep, !, { fail }.
 search_char(_) --> "=", !, { fail }.
 search_char(C) --> fragment_char(C).
 
@@ -697,8 +697,19 @@ search_value_chars([C|T]) -->
 search_value_chars([]) -->
 	[].
 
-search_value_char(_) --> "&", !, { fail }.
+search_value_char(_) --> search_sep, !, { fail }.
 search_value_char(C) --> fragment_char(C).
+
+%%	search_sep// is semidet.
+%
+%	Matches a search-parameter separator.  Traditonally, this is the
+%	&-char, but these days there are `newstyle' ;-char separators. 
+%	
+%	@see http://perldoc.perl.org/CGI.html
+%	@tbd This should be configurable
+
+search_sep --> "&", !.
+search_sep --> ";".
 
 
 %%	fragment(-Fragment, ?Tail)//
