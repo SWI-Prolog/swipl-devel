@@ -917,8 +917,8 @@ environments.
     \predicate[ISO]{current_prolog_flag}{2}{?Key, -Value}
 The predicate current_prolog_flag/2 defines an interface to installation
 features: options compiled in, version, home, etc. With both arguments
-unbound, it will generate all defined Prolog flags. With the `Key'
-instantiated it unifies the value of the Prolog flag. Flag values are
+unbound, it will generate all defined Prolog flags. With `Key'
+instantiated, it unifies the value of the Prolog flag. Flag values are
 typed. Flags marked as \const{bool} can have the values \const{true} and
 \const{false}. Some Prolog flags are not defined in all versions, which
 is normally indicated in the documentation below as \textit{``if present
@@ -1646,7 +1646,7 @@ primitives.  See also \secref{widechars}.
 
 \subsubsection{Character Escape Syntax} 	\label{sec:charescapes}
 
-Within quoted atoms (using single quotes: \exam{'<atom>'} special
+Within quoted atoms (using single quotes: \exam{'<atom>'}) special
 characters are represented using escape-sequences. An escape sequence is
 lead in by the backslash (\chr{\}) character. The list of escape
 sequences is compatible with the ISO standard, but contains one
@@ -1804,7 +1804,7 @@ a normal variable.%
 	\footnote{Some Prolog dialects write variables this way.}
 \end{itemlist}
 
-Any normal variable appearing exactly ones in the clause \emph{and}
+Any normal variable appearing exactly once in the clause \emph{and}
 any named singleton variables appearing more than once are reported.
 Below are some examples with warnings in the right column.  Singleton
 messages can be suppressed using the style_check/1 directive.
@@ -1814,6 +1814,7 @@ messages can be suppressed using the style_check/1 directive.
 \hline
 test(_). 	& \\
 test(_a).	& Singleton variables: [_a] \\
+test(_12).	& Singleton variables: [_12] \\
 test(A).	& Singleton variables: [A] \\
 test(_A).	& \\
 test(__a).	& \\
@@ -1833,7 +1834,7 @@ test(A, A).	& \\
 SWI-Prolog has limited support for infinite trees, also known as cyclic
 terms. Full support requires special code in all built-in predicates that
 require recursive exploration of a term. The current version supports
-cycles terms in the pure Prolog kernel including the garbage collector
+cyclic terms in the pure Prolog kernel including the garbage collector
 and in the following predicates:
 \predref{=..}{2},
 \predref{==}{2},
