@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -142,7 +142,9 @@ resource_error(const char *resource)
 #include <fcntl.h>
 #include <io.h>
 typedef DWORD  pid_t;
+typedef wchar_t echar;			/* environment character */
 #else
+typedef char echar;
 #endif
 
 typedef enum std_type
@@ -163,6 +165,13 @@ typedef struct p_stream
 } p_stream;
 
 
+typedef struct ecbuf
+{ echar *buffer;
+  size_t size;
+  size_t allocated;
+} ecbuf;
+
+
 typedef struct p_options
 { atom_t exe_name;			/* exe as atom */
 #ifdef __WINDOWS__
@@ -173,8 +182,9 @@ typedef struct p_options
   char *exe;				/* Executable */
   char **argv;				/* argument vector */
   char *cwd;				/* CWD of new process */
-#endif
   char **envp;				/* New environment */
+#endif
+  ecbuf  envbuf;			/* environment buffer */
   term_t pid;				/* process(PID) */
   int pipes;				/* #pipes found */
   p_stream streams[3];
@@ -195,78 +205,113 @@ static int win_command_line(term_t t, int arity,
 			    const wchar_t *exepath, wchar_t **cmdline);
 #endif
 
-static int
-get_chars_arg_ex(int i, term_t from, term_t arg, char **sp, size_t *lenp)
-{ PL_get_arg(i, from, arg);
-  if ( !PL_get_nchars(arg, lenp, sp, CVT_ATOMIC|CVT_EXCEPTION|BUF_RING|REP_FN) )
-    return FALSE;
-
-  return TRUE;
-}
-
+		 /*******************************
+		 *	  STRING BUFFER		*
+		 *******************************/
 
 static void
-free_envp_members(char **envp)
-{ for(; *envp; envp++)
-    PL_free(*envp);
-}
-
-
-static void
-free_envp(char **envp)
-{ if ( envp )
-  { free_envp_members(envp);
-    PL_free(envp);
+free_ecbuf(ecbuf *b)
+{ if ( b->buffer )
+  { PL_free(b->buffer);
+    b->buffer = NULL;
   }
 }
 
 
-#define MAXENV 1000
+static int
+add_ecbuf(ecbuf *b, echar *data, size_t len)
+{ if ( b->size + len > b->allocated )
+  { size_t newsize = (b->allocated ? b->allocated * 2 : 2048);
+
+    while( b->size + len > newsize )
+      newsize *= 2;
+
+    if ( b->buffer )
+    { b->buffer = PL_realloc(b->buffer, newsize*sizeof(echar));
+    } else
+    { b->buffer = PL_malloc(newsize*sizeof(echar));
+    }
+
+    b->allocated = newsize;
+  }
+
+  memcpy(b->buffer+b->size, data, len*sizeof(echar));
+  b->size += len;
+
+  return TRUE;
+}
+
+		 /*******************************
+		 *	ENVIRONMENT PARSING	*
+		 *******************************/
+
+static int
+get_echars_arg_ex(int i, term_t from, term_t arg, echar **sp, size_t *lenp)
+{ const echar *s, *e;
+
+  PL_get_arg(i, from, arg);
+
+#ifdef __WINDOWS__
+  if ( !PL_get_wchars(arg, lenp, sp,
+		      CVT_ATOMIC|CVT_EXCEPTION) )
+#else
+  if ( !PL_get_nchars(arg, lenp, sp,
+		      CVT_ATOMIC|CVT_EXCEPTION|REP_FN) )
+#endif
+    return FALSE;
+
+  for(s = *sp, e = s+*lenp; s<e; s++)
+  { if ( !*s )
+      return domain_error(arg, "text_non_zero_code");
+  }
+
+  return TRUE;
+}
+
 
 static int
 parse_environment(term_t t, p_options *info)
 { term_t tail = PL_copy_term_ref(t);
   term_t head = PL_new_term_ref();
   term_t tmp  = PL_new_term_ref();
-  char *env[MAXENV];
-  int  count = 0;
+  ecbuf *eb   = &info->envbuf;
+  int count,c = 0;
+  echar *q;
+  char **ep;
 
-  env[count] = NULL;
   while( PL_get_list(tail, head, tail) )
-  { char *name, *value;
-    size_t nlen, vlen;
-    char *var;
-
-    if ( count >= MAXENV )
-    { free_envp_members(env);
-      return resource_error("environment");
-    }
+  { char *s;
+    size_t len;
 
     if ( !PL_is_functor(head, FUNCTOR_eq2) )
-    { free_envp_members(env);
       return type_error(head, "environment_variable");
-    }
-    if ( !get_chars_arg_ex(1, head, tmp, &name, &nlen) ||
-	 !get_chars_arg_ex(2, head, tmp, &value, &vlen) )
-    { free_envp_members(env);
-      return FALSE;
-    }
 
-    var = PL_malloc(nlen+vlen+2);
-    memcpy(var, name, nlen);
-    var[nlen] = '=';
-    memcpy(var+nlen+1, value, vlen+1);
-    env[count++] = var;
-    env[count] = NULL;
+    if ( !get_echars_arg_ex(1, head, tmp, &s, &len) )
+      return FALSE;
+    add_ecbuf(eb, s, len);
+    add_ecbuf(eb, "=", 1);
+    if ( !get_echars_arg_ex(2, head, tmp, &s, &len) )
+      return FALSE;
+    add_ecbuf(eb, s, len);
+    add_ecbuf(eb, "\0", 1);
+
+    count++;
   }
 
   if ( !PL_get_nil(tail) )
-  { free_envp_members(env);
     return type_error(tail, "list");
-  }
 
+#ifdef __WINDOWS__
+  add_ecbuf(eb, "\0", 1);
+#else
   info->envp = PL_malloc((count+1)*sizeof(char*));
-  memcpy(info->envp, env, (count+1)*sizeof(char*));
+
+  for(ep=info->envp, c=0, q=eb->buffer; c<count; c++, ep++)
+  { *ep = q;
+    q += strlen(q)+1;
+  }
+  *ep = NULL;
+#endif
 
   return TRUE;
 }
@@ -404,10 +449,13 @@ free_options(p_options *info)		/* TBD: close streams */
   { PL_free(info->cwd);
     info->cwd = NULL;
   }
+#ifndef __WINDOWS__
   if ( info->envp )
-  { free_envp(info->envp);
+  { PL_free(info->envp);
     info->envp = NULL;
   }
+#endif
+  free_ecbuf(&info->envbuf);
 #ifdef __WINDOWS__
   if ( info->cmdline )
   { PL_free(info->cmdline);
@@ -1054,7 +1102,7 @@ do_create_process(p_options *info)
 		      NULL,		/* Thread security */
 		      TRUE,		/* Inherit handles */
 		      flags,		/* Creation flags */
-		      NULL,		/* Environment */
+		      info->envp.buffer, /* Environment */
 		      info->cwd,	/* Directory */
 		      &si,		/* Startup info */
 		      &pi) )		/* Process information */
