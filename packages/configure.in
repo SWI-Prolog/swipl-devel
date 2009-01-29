@@ -54,7 +54,7 @@ delpkg()
 
 
 if [ -z "$PKG" ]; then
-  PKG="clib cpp odbc table xpce sgml sgml/RDF semweb http chr clpqr nlp ssl pldoc plunit jpl zlib"
+  PKG="clib cpp odbc table xpce sgml sgml/RDF semweb http chr clpqr nlp ssl tipc pldoc plunit jpl zlib"
 fi
 
 if [ ! -z "$DISABLE_PKGS" ]; then
