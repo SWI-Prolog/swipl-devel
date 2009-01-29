@@ -93,7 +93,8 @@ typedef enum				/* nbio_setopt() commands */
   TCP_DISPATCH,
   TCP_INSTREAM,
   TCP_OUTSTREAM,
-  UDP_BROADCAST
+  UDP_BROADCAST,
+  NBIO_END
 } nbio_option;
 
 typedef enum
@@ -121,6 +122,7 @@ typedef enum
 
 
 typedef int	nbio_sock_t;		/* socket handle (not a file-descr) */
+typedef struct _plsocket *plsocket_ptr;	/* wrapped socket */
 
 		 /*******************************
 		 *	 BASIC FUNCTIONS	*
@@ -171,12 +173,18 @@ extern const char*
 extern int	nbio_setopt(int socket, nbio_option opt, ...);
 extern int	nbio_get_flags(int socket);
 
+					/* support tipc_setopt() */
+extern plsocket_ptr
+		nbio_to_plsocket(nbio_sock_t socket);
+extern SOCKET	plsocket_handle(plsocket_ptr s);
+
 
 		 /*******************************
 		 *	    CONVERSION		*
 		 *******************************/
 
-extern int	nbio_get_sockaddr(term_t Address, struct sockaddr_in *addr);
+extern int	nbio_get_sockaddr(term_t Address,
+				  struct sockaddr_in *addr);
 extern int	nbio_get_ip4(term_t ip4, struct in_addr *ip);
 
 #endif /*H_NONBLOCKIO_INCLUDED*/

@@ -97,6 +97,8 @@ streaminfo.@SO@: $(STREAMINFOOBJ)
 sha4pl.@SO@:	$(SHAOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(SHAOBJ)
 
+socket.o:	socket.c sockcommon.c
+
 sha1/hmac_sha1.o:	
 		$(CC) -c $(CFLAGS) -DUSE_SHA1 -o $@ sha1/hmac.c
 sha1/hmac_sha256.o:	

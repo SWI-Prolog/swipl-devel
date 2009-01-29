@@ -1,29 +1,47 @@
 :- module(pltotex,
-	  [ pltotex/3,
+	  [ pltotex/2,
 	    pltotex/0
 	  ]).
-:- asserta(user:file_search_path(foreign, '.')).
-:- asserta(user:file_search_path(library, '.')).
-
 :- use_module(library(doc_latex)).
 :- use_module(library(main)).
 :- use_module(library(error)).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
 
-pltotex(Lib, Out, Options) :-
-	user:use_module(Lib),		% we want the operators in user
-	doc_latex(Lib, Out,
+pltotex(File, Options) :-
+	file_name_extension(_, txt, File), !,
+	tex_file(File, Out),
+	doc_latex(File, Out,
+		  [ stand_alone(false)
+		  | Options
+		  ]).
+pltotex(Lib, Options) :-
+	(   file_name_extension(_, pl, Lib)
+	->  Spec = Lib
+	;   atom_to_term(Lib, Spec, _)
+	),
+	absolute_file_name(Spec, File,
+			   [ access(read),
+			     file_type(prolog)
+			   ]),
+	tex_file(File, Out),
+	user:use_module(File),		% we want the operators in user
+	doc_latex(File, Out,
 		  [ stand_alone(false)
 		  | Options
 		  ]).
 
-pltotex(File) :-
-	use_module(File, []),
+tex_file(File, TeXFile) :-
 	file_base_name(File, Local),
-	file_name_extension(Base, _, Local),
-	file_name_extension(Base, tex, TeXFile),
-	doc_latex(File, TeXFile,
-		  [ stand_alone(false)
-		  ]).
+	file_name_extension(Base0, _, Local),
+	strip(Base0, 0'_, Base),
+	file_name_extension(Base, tex, TeXFile).
+
+strip(In, Code, Out) :-
+	atom_codes(In, Codes0),
+	delete(Codes0, Code, Codes),
+	atom_codes(Out, Codes).
+
 
 %%	pltotex
 %
@@ -33,4 +51,17 @@ pltotex :-
 	main.
 
 main(Argv) :-
-	maplist(pltotex, Argv).
+	partition(is_option, Argv, OptArgs, Files),
+	maplist(to_option, OptArgs, Options),
+	maplist(process_file(Options), Files).
+
+is_option(Arg) :-
+	sub_atom(Arg, 0, _, _, --).
+
+to_option('--section', section_level(section)).
+to_option('--subsection', section_level(subsection)).
+to_option('--subsubsection', section_level(subsubsection)).
+
+process_file(Options, File) :-
+	pltotex(File, Options).
+

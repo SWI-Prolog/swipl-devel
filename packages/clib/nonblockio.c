@@ -127,6 +127,7 @@ leave the details to this function.
 #include <malloc.h>
 #endif
 
+
 #ifndef __WINDOWS__
 #define closesocket(n) close((n))	/* same on Unix */
 #endif
@@ -248,7 +249,6 @@ typedef struct _plsocket
 } plsocket;
 
 static plsocket *allocSocket(SOCKET socket);
-static plsocket *nbio_to_plsocket(nbio_sock_t socket);
 #ifdef __WINDOWS__
 static plsocket *lookupOSSocket(SOCKET socket);
 static const char *WinSockError(unsigned long eno);
@@ -1171,6 +1171,12 @@ nbio_to_plsocket_nolock(nbio_sock_t socket)
 }
 
 
+SOCKET
+plsocket_handle(plsocket_ptr pls)
+{ return pls->socket;
+}
+
+
 static plsocket *
 nbio_to_plsocket_raw(nbio_sock_t socket)
 { plsocket *s;
@@ -1183,7 +1189,7 @@ nbio_to_plsocket_raw(nbio_sock_t socket)
 }
 
 
-static plsocket *
+plsocket *
 nbio_to_plsocket(nbio_sock_t socket)
 { plsocket *p;
 
@@ -1535,12 +1541,12 @@ nbio_init(const char *module)
   }
   initialised = TRUE;
 
-  FUNCTOR_module2 = PL_new_functor(PL_new_atom(":"), 2);
-  FUNCTOR_ip4     = PL_new_functor(PL_new_atom("ip"), 4);
-  FUNCTOR_ip1     = PL_new_functor(PL_new_atom("ip"), 1);
-  ATOM_any	  = PL_new_atom("any");
-  ATOM_broadcast  = PL_new_atom("broadcast");
-  ATOM_loopback   = PL_new_atom("loopback");
+  FUNCTOR_module2  = PL_new_functor(PL_new_atom(":"), 2);
+  FUNCTOR_ip4	   = PL_new_functor(PL_new_atom("ip"), 4);
+  FUNCTOR_ip1	   = PL_new_functor(PL_new_atom("ip"), 1);
+  ATOM_any	   = PL_new_atom("any");
+  ATOM_broadcast   = PL_new_atom("broadcast");
+  ATOM_loopback	   = PL_new_atom("loopback");
 
 #ifdef __WINDOWS__
 { WSADATA WSAData;
@@ -1646,7 +1652,6 @@ nbio_closesocket(nbio_sock_t socket)
 
   return 0;
 }
-
 
 int
 nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
@@ -2313,7 +2318,7 @@ nbio_recvfrom(int socket, void *buf, size_t bufSize, int flags,
 #else /*__WINDOWS__*/
 
   for(;;)
-  { if ( !wait_socket(s) )
+  { if ( (flags & MSG_DONTWAIT) == 0 && !wait_socket(s) )
     { errno = EPLEXCEPTION;
       return -1;
     }
@@ -2325,6 +2330,10 @@ nbio_recvfrom(int socket, void *buf, size_t bufSize, int flags,
       { errno = EPLEXCEPTION;
 	return -1;
       }
+
+      if((flags & MSG_DONTWAIT) != 0)
+        break;
+
       continue;
     }
 
