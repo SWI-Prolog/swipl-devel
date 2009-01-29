@@ -548,7 +548,11 @@ static int
 cgi_control(void *handle, int op, void *data)
 { cgi_context *ctx = handle;
 
-  assert(ctx->magic == CGI_MAGIC);
+  if ( ctx->magic != CGI_MAGIC )
+  { DEBUG(0, Sdprintf("OOPS: cgi_control(%d): invalid handle\n", op));
+    errno = EINVAL;
+    return -1;
+  }
 
   switch(op)
   { case SIO_FLUSHOUTPUT:
