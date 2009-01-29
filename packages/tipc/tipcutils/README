@@ -1,0 +1,11 @@
+Incredibly, tipc-config is not distributed with the Linux kernel.
+
+CAUTION:
+
+Use this version of tipc-config at you own risk. Using a version
+of the tool that is not contemporaneous with the loadable module
+may crash the module. You are strongly encouraged to go and find
+a version that is compatible with your system.
+
+This version was used on Fedora 8, (kernel 2.6.26) without any
+difficulty.
