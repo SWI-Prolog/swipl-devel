@@ -291,7 +291,8 @@ status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
 	print_html(Out, HTML).
 status_reply(not_modified, Out, HrdExtra) :- !,
 	phrase(reply_header(status(not_modified), HrdExtra), Header),
-	format(Out, '~s', [Header]).
+	format(Out, '~s', [Header]),
+	flush_output(Out).
 status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 	'$messages':translate_message(ErrorTerm, Lines, []),
 	phrase(page([ title('500 Internal server error')
