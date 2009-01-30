@@ -106,7 +106,7 @@ http_wrap_spawned(Goal, Request, Close) :-
 	    Request = []
 	;   current_output(CGI),
 	    cgi_property(CGI, request(Request)),
-	    cgi_close(CGI, Error, Close)
+	    catch(cgi_close(CGI, Error, Close), _, Close = close)
 	).
 
 
