@@ -40,6 +40,7 @@
 	  ]).
 :- use_module(http_header).
 :- use_module(http_stream).
+:- use_module(http_exception).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
 :- use_module(library(broadcast)).
@@ -135,10 +136,11 @@ cgi_close(CGI, Error, Close) :-
 	close(CGI),
 	send_error(Out, Error, Close).
 
+%%	send_error(+Out, +Error, -Close)
+
 send_error(Out, Error, Close) :-
-	map_exception(Error, Reply, HdrExtra),
+	map_exception_to_http_status(Error, Reply, HdrExtra),
 	http_reply(Reply, Out, HdrExtra),
-	flush_output(Out),
 	(   memberchk(connection(Close), HdrExtra)
 	->  true
 	;   Close = close
@@ -264,63 +266,6 @@ expand_request(R0, R) :-
 expand_request(R, R).
 
 
-%%	map_exception(+Exception, -Reply, -HdrExtra)
-%	
-%	Map certain defined  exceptions  to   special  reply  codes. The
-%	http(not_modified)   provides   backward     compatibility    to
-%	http_reply(not_modified).
-
-map_exception(http(not_modified),
-	      not_modified,
-	      [connection('Keep-Alive')]) :- !.
-map_exception(http_reply(Reply),
-	      Reply,
-	      [connection(Close)]) :- !,
-	(   keep_alive(Reply)
-	->  Close = 'Keep-Alive'
-	;   Close = close
-	).
-map_exception(http_reply(Reply, HdrExtra0),
-	      Reply,
-	      HdrExtra) :- !,
-	(   memberchk(close(_), HdrExtra0)
-	->  HdrExtra = HdrExtra0
-	;   HdrExtra = [close(Close)|HdrExtra0],
-	    (   keep_alive(Reply)
-	    ->  Close = 'Keep-Alive'
-	    ;   Close = close
-	    )
-	).
-map_exception(error(existence_error(http_location, Location), _),
-	      not_found(Location),
-	      [connection(close)]) :- !.
-map_exception(error(permission_error(http_location, access, Location), _),
-	      forbidden(Location),
-	      [connection(close)]) :- !.
-map_exception(error(threads_in_pool(_Pool), _), % see thread_create_in_pool/4
-	      busy,
-	      [connection(close)]) :- !.
-map_exception(E,
-	      resource_error(E),
-	      [connection(close)]) :-
-	resource_error(E), !.
-map_exception(E,
-	      server_error(E),
-	      [connection(close)]).
-
-resource_error(error(resource_error(_), _)).
-
-%%	keep_alive(+Reply) is semidet.	
-%
-%	If true for Reply, the default is to keep the connection open.
-
-keep_alive(not_modified).
-keep_alive(file(_Type, _File)).
-keep_alive(tmp_file(_Type, _File)).
-keep_alive(stream(_In, _Len)).
-keep_alive(cgi_stream(_In, _Len)).
-
-
 %%	extend_request(+Options, +RequestIn, -Request)
 %	
 %	Merge options in the request.
@@ -401,16 +346,3 @@ debug_request(Status, Id, _) :-
 map_exception(http_reply(Reply), Reply).
 map_exception(error(existence_error(http_location, Location), _Stack),
 	      error(404, Location)).
-
-
-		 /*******************************
-		 *	    IDE SUPPORT		*
-		 *******************************/
-
-% See library('trace/exceptions')
-
-:- multifile
-	prolog:general_exception/2.
-
-prolog:general_exception(http_reply(_), http_reply(_)).
-prolog:general_exception(http_reply(_,_), http_reply(_,_)).

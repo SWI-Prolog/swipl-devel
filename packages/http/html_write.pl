@@ -924,7 +924,8 @@ print_html(Out, List) :-
 	;   true
 	),
 	mailman(List),
-	write_html(List, Out).
+	write_html(List, Out),
+	flush_output(Out).
 
 write_html([], _).
 write_html([nl(N)|T], Out) :- !,

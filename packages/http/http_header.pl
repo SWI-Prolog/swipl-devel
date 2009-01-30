@@ -56,6 +56,7 @@
 :- use_module(library(error)).
 :- use_module(dcg_basics).
 :- use_module(html_write).
+:- use_module(http_exception).
 :- use_module(mimetype).
 :- use_module(mimepack).
 
@@ -136,49 +137,77 @@ http_read_reply_header(In, [input(In)|Reply]) :-
 %		HTTP header, followed by a blank line.  This is the
 %		typical output from a CGI script.
 %		
+%		* Status
+%		HTTP status report and defined by http_status_reply/3.
+%		
 %	@tbd	Complete documentation	
 
 http_reply(What, Out) :-
 	http_reply(What, Out, [connection(close)]).
 
-http_reply(html(HTML), Out, HrdExtra) :- !,
+http_reply(Data, Out, HdrExtra) :-
+	catch(http_reply_data(Data, Out, HdrExtra), E, true), !,
+	(   var(E)
+	->  true
+	;   map_exception_to_http_status(E, Status, NewHdr),
+	    http_status_reply(Status, Out, NewHdr)
+	).
+http_reply(Status, Out, HdrExtra) :-
+	http_status_reply(Status, Out, HdrExtra).
+
+
+%%	http_reply_data(+Data, +Out, +HdrExtra) is semidet.
+%
+%	Fails if Data is not a defined   reply-data format, but a status
+%	term. See http_reply/3 and http_status_reply/3.
+%
+%	@error Various I/O errors.
+
+http_reply_data(html(HTML), Out, HrdExtra) :- !,
 	phrase(reply_header(html(HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_reply(file(Type, File), Out, HrdExtra) :- !,
+http_reply_data(file(Type, File), Out, HrdExtra) :- !,
 	phrase(reply_header(file(Type, File), HrdExtra), Header),
-	format(Out, '~s', [Header]),
-	open(File, read, In, [type(binary)]),
-	call_cleanup(copy_stream_data(In, Out),
-		     close(In)).
-http_reply(tmp_file(Type, File), Out, HrdExtra) :- !,
+	reply_file(Out, File, Header).
+http_reply_data(tmp_file(Type, File), Out, HrdExtra) :- !,
 	phrase(reply_header(tmp_file(Type, File), HrdExtra), Header),
-	format(Out, '~s', [Header]),
-	open(File, read, In, [type(binary)]),
-	call_cleanup(copy_stream_data(In, Out),
-		     close(In)).
-http_reply(stream(In, Len), Out, HdrExtra) :- !,
+	reply_file(Out, File, Header).
+http_reply_data(stream(In, Len), Out, HdrExtra) :- !,
 	phrase(reply_header(cgi_data(Len), HdrExtra), Header),
-	format(Out, '~s', [Header]),
-	copy_stream_data(In, Out).
-http_reply(cgi_stream(In, Len), Out, HrdExtra) :- !,
+	copy_stream(Out, In, Header).
+http_reply_data(cgi_stream(In, Len), Out, HrdExtra) :- !,
 	http_read_header(In, CgiHeader),
 	seek(In, 0, current, Pos),
 	Size is Len - Pos,
 	http_join_headers(HrdExtra, CgiHeader, Hdr2),
 	phrase(reply_header(cgi_data(Size), Hdr2), Header),
+	copy_stream(Out, In, Header).
+
+reply_file(Out, File, Header) :-
+	setup_call_cleanup(open(File, read, In, [type(binary)]),
+			   copy_stream(Out, In, Header),
+			   close(In)).
+
+copy_stream(Out, In, Header) :-
+	peek_byte(In, _),
 	format(Out, '~s', [Header]),
-	copy_stream_data(In, Out).
-http_reply(Status, Out, HdrExtra) :-
-	set_stream(Out, encoding(utf8)),
-	call_cleanup(http_status_reply(Status, Out, HdrExtra),
-		     set_stream(Out, encoding(octet))), !.
+	copy_stream_data(In, Out),
+	flush_output(Out).
+
 
 %%	http_status_reply(+Status, +Out, +HdrExtra) is det.
 %
-%	Emit HTML non-200 status reports.
+%	Emit HTML non-200 status reports. Such  requests are always sent
+%	as UTF-8 documents.
 
-http_status_reply(moved(To), Out, HrdExtra) :- !,
+http_status_reply(Status, Out, HdrExtra) :-
+	setup_call_cleanup(set_stream(Out, encoding(utf8)),
+			   status_reply(Status, Out, HdrExtra),
+			   set_stream(Out, encoding(octet))), !.
+
+
+status_reply(moved(To), Out, HrdExtra) :- !,
 	phrase(page([ title('301 Moved Permanently')
 		    ],
 		    [ h1('Moved Permanently'),
@@ -191,7 +220,7 @@ http_status_reply(moved(To), Out, HrdExtra) :- !,
 	phrase(reply_header(moved(To, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(moved_temporary(To), Out, HrdExtra) :- !,
+status_reply(moved_temporary(To), Out, HrdExtra) :- !,
 	phrase(page([ title('302 Moved Temporary')
 		    ],
 		    [ h1('Moved Temporary'),
@@ -204,7 +233,7 @@ http_status_reply(moved_temporary(To), Out, HrdExtra) :- !,
 	phrase(reply_header(moved_temporary(To, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(see_other(To),Out,HdrExtra) :- !,
+status_reply(see_other(To),Out,HdrExtra) :- !,
        phrase(page([ title('303 See Other')
                     ],
                     [ h1('See Other'),
@@ -217,7 +246,7 @@ http_status_reply(see_other(To),Out,HdrExtra) :- !,
         phrase(reply_header(see_other(To, HTML), HdrExtra), Header),
         format(Out, '~s', [Header]),
         print_html(Out, HTML).
-http_status_reply(not_found(URL), Out, HrdExtra) :- !,
+status_reply(not_found(URL), Out, HrdExtra) :- !,
 	phrase(page([ title('404 Not Found')
 		    ],
 		    [ h1('Not Found'),
@@ -230,7 +259,7 @@ http_status_reply(not_found(URL), Out, HrdExtra) :- !,
 	phrase(reply_header(status(not_found, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(forbidden(URL), Out, HrdExtra) :- !,
+status_reply(forbidden(URL), Out, HrdExtra) :- !,
 	phrase(page([ title('403 Forbidden')
 		    ],
 		    [ h1('Forbidden'),
@@ -243,7 +272,7 @@ http_status_reply(forbidden(URL), Out, HrdExtra) :- !,
 	phrase(reply_header(status(forbidden, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
+status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
 	phrase(page([ title('401 Authorization Required')
 		    ],
 		    [ h1('Authorization Required'),
@@ -260,10 +289,10 @@ http_status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
 	phrase(reply_header(authorise(Method, Realm, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(not_modified, Out, HrdExtra) :- !,
+status_reply(not_modified, Out, HrdExtra) :- !,
 	phrase(reply_header(status(not_modified), HrdExtra), Header),
 	format(Out, '~s', [Header]).
-http_status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
+status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 	'$messages':translate_message(ErrorTerm, Lines, []),
 	phrase(page([ title('500 Internal server error')
 		    ],
@@ -275,7 +304,7 @@ http_status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 	phrase(reply_header(status(server_error, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(unavailable(WhyHTML), Out, HdrExtra) :- !,
+status_reply(unavailable(WhyHTML), Out, HdrExtra) :- !,
 	phrase(page([ title('503 Service Unavailable')
 		    ],
 		    [ h1('Service Unavailable'),
@@ -286,10 +315,10 @@ http_status_reply(unavailable(WhyHTML), Out, HdrExtra) :- !,
 	phrase(reply_header(status(service_unavailable, HTML), HdrExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(resource_error(ErrorTerm), Out, HdrExtra) :- !,
+status_reply(resource_error(ErrorTerm), Out, HdrExtra) :- !,
 	'$messages':translate_message(ErrorTerm, Lines, []),
-	http_status_reply(unavailable(p(\html_message_lines(Lines))), Out, HdrExtra).
-http_status_reply(busy, Out, HdrExtra) :- !,
+	status_reply(unavailable(p(\html_message_lines(Lines))), Out, HdrExtra).
+status_reply(busy, Out, HdrExtra) :- !,
 	HTML = p(['The server is temporarily out of resources, please try again later']),
 	http_status_reply(unavailable(HTML), Out, HdrExtra).
 
