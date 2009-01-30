@@ -212,6 +212,7 @@ prepare_editor.
 
 :- http_handler(pldoc(.),	   pldoc_root,
 		[prefix, authentication(pldoc(read))]).
+:- http_handler(pldoc('index.html'), pldoc_index,   []).
 :- http_handler(pldoc(file),	   pldoc_file,	   []).
 :- http_handler(pldoc(directory),  pldoc_dir,	   []).
 :- http_handler(pldoc(edit),	   pldoc_edit,
@@ -250,10 +251,19 @@ pldoc_root(_Request, false) :-
 	doc_file_href(Dir1, Ref0),
 	atom_concat(Ref0, 'index.html', Index),
 	throw(http_reply(see_other(Index))).
-pldoc_root(_Request, _) :-
-	reply_html_page(title('PlDoc directory index'),
+pldoc_root(Request, _) :-
+	pldoc_index(Request).
+
+
+%%	pldoc_index(+Request)
+%
+%	HTTP handle for /index.html, providing an overall overview
+%	of the available documentation.
+
+pldoc_index(_Request) :-
+	reply_html_page(title('SWI-Prolog documentation'),
 			[ \doc_links('', []),
-			  h1('SWI-Prolog documentation'),
+			   h1('SWI-Prolog documentation'),
 			  \man_overview([])
 			]).
 

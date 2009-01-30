@@ -709,14 +709,13 @@ section_link(_, Obj, _Options) --> !,
 man_overview(Options) -->
 	{ http_absolute_location(pldoc_man(.), RefMan, [])
 	},
-	html([ div(class(refman_link),
-		   a(href(RefMan),
-		     'SWI-Prolog reference manual')),
-	       div(class(package_overview),
-		   [ div(class(package_doc_title),
-			 'SWI-Prolog packages')
-		   | \packages(Options)
-		   ])
+	html([ blockquote(class(refman_link),
+			  a(href(RefMan),
+			    'SWI-Prolog reference manual')),
+	       h2(class(package_doc_title),
+		  'SWI-Prolog package documentation'),
+	       blockquote(class(package_overview),
+			  \packages(Options))
 	     ]).
 
 packages(Options) -->
