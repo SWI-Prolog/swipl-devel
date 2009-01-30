@@ -1,0 +1,52 @@
+\documentclass[11pt]{article}
+\usepackage{times}
+\usepackage{pl}
+\usepackage{plpage}
+\usepackage{html}
+\sloppy
+\makeindex
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog TIPC library}
+
+\begin{document}
+
+\title{Transparent Inter-Process Communications (TIPC) library} 
+\author{Jeffrey Rosenwald \\
+        E-mail: \email{JeffRose@acm.org}}
+
+\maketitle
+
+\begin{abstract}
+TIPC provides a framework for cooperation between federations of trusted
+peers that are operating as a unit. It  was developed by Ericsson AB, as
+a means to provide for  communications   between  Common Control Systems
+processes and Network Elements in telephone switching systems, sometimes
+operating at arm's  length  on  different   line  cards  or  mainframes.
+Delegation of responsibility in  this  way   is  one  of the fundamental
+precepts of the Erlang programming system,   also developed at Ericsson.
+TIPC represents a more generalized version of the same behavioral design
+pattern. 
+\end{abstract}
+
+\vfill
+
+\pagebreak
+\tableofcontents
+
+\vfill
+\vfill
+
+\newpage
+
+\input{tipcoverview.tex}
+\input{tipcpl.tex}
+\input{tipcbroadcast.tex}
+
+\printindex
+
+\end{document}

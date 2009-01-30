@@ -1,29 +1,30 @@
-			SWI-Prolog Library CLIB
-			=======================
+---+ SWI-Prolog Library CLIB
 
-Author:		Jan Wielemaker
-Copyright:	May be used with SWI-Prolog under the license conditions
-		thereof.  Usage with other versions of Prolog is subject
-		to the GNU-Public licence (GPL).
+Author:    Jan Wielemaker
+Copyright: SWI-Prolog conditions
+	   LGPL for C-code, GPL+exception for Prolog-code
 
 This library contains SWI-Prolog foreign-libraries  to deal with various
 OS-dependent or obscure stuff from SWI-Prolog.
 
 Currently provided:
 
-	# library(unix)
+	* library(unix)
 	Unix process management and other Unix-specific extensions:
 	fork/1, exec/1, pipe/2, etc.
 
-	# library(socket)
+	* library(process)
+	Create and manage processes, compatible to SICStus 4.
+
+	* library(socket)
 	General purpose inet tcp socket library. Loosely based on a TCP
 	library from Gordon Streeter.
 	
-	# library(cgi)
+	* library(cgi)
 	Get form-arguments from input and/or environment for CGI scripts
 	
-	# library(crypt)
+	* library(crypt)
 	Unix password generation and validation.
 	
-	# library(memfile)
+	* library(memfile)
 	Read-write to memory-buffers, an alternative to temporary files.
