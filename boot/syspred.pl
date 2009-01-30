@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2004, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -506,6 +506,12 @@ predicate_property(Pred, Property) :-
 	\+ current_predicate(_, Pred),
 	functor(Head, Name, Arity),
 	\+ system_undefined(Module:Name/Arity).
+predicate_property(Pred, Property) :-		
+	Pred = M:_,
+	M == system, !,				% do not autoload into system
+	'$c_current_predicate'(_, Pred),
+	'$defined_predicate'(Pred),
+	'$predicate_property'(Property, Pred).
 predicate_property(Pred, Property) :-
 	current_predicate(_, Pred),
 	'$define_predicate'(Pred),		% autoload if needed
