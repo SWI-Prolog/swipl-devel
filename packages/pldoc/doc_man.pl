@@ -33,18 +33,22 @@
 	  [ clean_man_index/0,		% 
 	    index_man_directory/2,	% +DirSpec, +Options
 	    index_man_file/2,		% +Class, +FileSpec
-	    man_page/4			% +Obj, +Options, //
+					% HTML generation
+	    man_page//2,		% +Obj, +Options
+	    man_overview//1		% +Options
 	  ]).
 :- use_module(library(sgml)).
 :- use_module(library(occurs)).
 :- use_module(library(lists)).
 :- use_module(library(url)).
+:- use_module(library(apply)).
 :- use_module(doc_wiki).
 :- use_module(doc_html).
 :- use_module(doc_search).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/html_head)).
 :- use_module(library(http/http_dispatch)).
+:- use_module(library(http/http_path)).
 :- use_module(library(doc_http)).
 :- include(hooks).
 
@@ -692,6 +696,80 @@ section_link(_, Obj, _Options) --> !,
 	;   html([Number, ' ', Title])
 	).
 
+
+		 /*******************************
+		 *	 INDICES & OVERVIEW	*
+		 *******************************/
+
+%%	man_overview(+Options)// is det.
+%
+%	Provide a toplevel overview on the  manual: the reference manual
+%	and the available packages.
+
+man_overview(Options) -->
+	{ http_absolute_location(pldoc_man(.), RefMan, [])
+	},
+	html([ div(class(refman_link),
+		   a(href(RefMan),
+		     'SWI-Prolog reference manual')),
+	       div(class(package_overview),
+		   [ div(class(package_doc_title),
+			 'SWI-Prolog packages')
+		   | \packages(Options)
+		   ])
+	     ]).
+
+packages(Options) -->
+	{ findall(Pkg, current_package(Pkg), Pkgs)
+	},
+	packages(Pkgs, Options).
+
+packages([], _) -->
+	[].
+packages([Pkg|T], Options) -->
+	package(Pkg, Options),
+	packages(T, Options).
+
+package(pkg(Title, HREF, HavePackage), Options) -->
+	{ package_class(HavePackage, Class, Options)
+	},
+	html(div(class(Class),
+		 a([href(HREF)], Title))).
+
+package_class(true,  pkg_link, _).
+package_class(false, no_pkg_link, _).
+
+current_package(pkg(Title, HREF, HavePackage)) :-
+	man_index(section(0, _, _), Title, File, packages, _),
+	file_base_name(File, FileNoDir),
+	file_name_extension(Base, _, FileNoDir),
+	(   exists_source(library(Base))
+	->  HavePackage = true
+	;   HavePackage = false
+	),
+	http_absolute_location(pldoc_pkg(FileNoDir), HREF, []).
+
+
+:- http_handler(pldoc_pkg(.), pldoc_package, [prefix]).
+
+%%	pldoc_package(+Request)
+%
+%	HTTP handler for PlDoc package documentation.  Accepts
+%	/pkg/<package>.html.
+
+pldoc_package(Request) :-
+	(   memberchk(path_info(PkgDoc), Request),
+	    \+ sub_atom(PkgDoc, _, _, _, /),
+	    Obj = section(0,_,_),
+	    index_manual,
+	    man_index(Obj, Title, File, packages, _),
+	    file_base_name(File, PkgDoc)
+	->  reply_html_page(title(Title),
+			    \object_page(Obj, []))
+	;   memberchk(path(Path), Request),
+	    existence_error(http_location, Path)
+	).
+	
 
 		 /*******************************
 		 *	    HOOK SEARCH		*
