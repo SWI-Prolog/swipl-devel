@@ -336,18 +336,29 @@ colourise_term(Fact, TB, Pos) :- !,
 	colour_item(clause, TB,	Pos),
 	colourise_clause_head(Fact, TB, Pos).
 
+%%	colourise_extended_head(+Head, +ExtraArgs, +TB, +Pos) is det.
+%
+%	Colourise a clause-head that  is   extended  by  term_expansion,
+%	getting ExtraArgs more  arguments  (e.g.,   DCGs  add  two  more
+%	arguments.
+
 colourise_extended_head(Head, N, TB, Pos) :-
-	functor_position(Pos, FPos, _),
+	extend(Head, N, TheHead),
+	colourise_clause_head(TheHead, TB, Pos).
+
+extend(M:Head, N, M:ExtHead) :-
+	nonvar(Head), !,
+	extend(Head, N, ExtHead).
+extend(Head, N, ExtHead) :-
+	callable(Head), !,
 	Head =.. List,
 	length(Extra, N),
 	append(List, Extra, List1),
-	TheHead =.. List1,
-	classify_head(TB, TheHead, Class),
-	colour_item(head(Class), TB, FPos),
-	colourise_term_args(Head, TB, Pos).
+	ExtHead =.. List1.
+extend(Head, _, Head).
+
 
 colourise_clause_head(Head, TB, Pos) :-
-	nonvar(Head),
 	head_colours(Head, ClassSpec-ArgSpecs), !,
 	functor_position(Pos, FPos, ArgPos),
 	(   ClassSpec == classify
@@ -994,6 +1005,9 @@ head_colours(file_search_path(_,_), hook-[identifier,classify]).
 head_colours(library_directory(_),  hook-[file]).
 head_colours(resource(_,_,_),	    hook-[identifier,classify,file]).
 
+head_colours(Var, _) :-
+	var(Var), !,
+	fail.
 head_colours(M:H, Colours) :-
 	atom(M), callable(H),
 	xref_hook(M:H), !,
@@ -1003,7 +1017,7 @@ head_colours(M:H, Colours) :-
 	head_colours(H, HC),
 	HC = hook - _, !,
 	Colours = hook - [ hook, HC ].
-head_colours(M:_,		    meta-[module(M),extern(M)]).
+head_colours(M:_, meta-[module(M),extern(M)]).
 
 
 		 /*******************************
