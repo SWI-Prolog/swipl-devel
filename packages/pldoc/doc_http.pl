@@ -252,7 +252,10 @@ pldoc_root(_Request, false) :-
 	throw(http_reply(see_other(Index))).
 pldoc_root(_Request, _) :-
 	reply_html_page(title('PlDoc directory index'),
-			\doc_links('', [])).
+			[ \doc_links('', []),
+			  h1('SWI-Prolog documentation'),
+			  \man_overview([])
+			]).
 
 
 %%	pldoc_file(+Request)
