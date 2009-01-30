@@ -750,6 +750,7 @@ current_package(pkg(Title, HREF, HavePackage)) :-
 
 
 :- http_handler(pldoc_pkg(.), pldoc_package, [prefix]).
+:- http_handler(pldoc_man(.), pldoc_refman, [prefix]).
 
 %%	pldoc_package(+Request)
 %
@@ -769,6 +770,29 @@ pldoc_package(Request) :-
 	    existence_error(http_location, Path)
 	).
 	
+%%	pldoc_refman(+Request)
+%
+%	HTTP handler for PlDoc Reference Manual access.  Accepts
+%	/refman/[<package>.html.]
+
+pldoc_refman(Request) :-
+	memberchk(path_info(Section), Request),
+	\+ sub_atom(Section, _, _, _, /),
+	Obj = section(0,_,_),
+	index_manual,
+	man_index(Obj, Title, File, manual, _),
+	file_base_name(File, Section), !,
+	reply_html_page(title(Title),
+			\object_page(Obj, [])).
+pldoc_refman(Request) :-		% server Contents.html
+	\+ memberchk(path_info(_), Request), !,
+	Section = section(_, _, swi('doc/Manual/Contents.html')),
+	reply_html_page(title('SWI-Prolog manual'),
+			\man_page(Section, [])).
+pldoc_refman(Request) :-
+	memberchk(path(Path), Request),
+	existence_error(http_location, Path).
+
 
 		 /*******************************
 		 *	    HOOK SEARCH		*

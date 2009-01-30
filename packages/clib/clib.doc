@@ -11,7 +11,7 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog C-library}
+\renewcommand{\runningtitle}{CLIB -- System interfaces}
 
 \begin{document}
 
