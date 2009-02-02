@@ -32,6 +32,7 @@ MANUAL=		./MANUAL.dvi
 PDF=		MANUAL.pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
+VERSION=	$(shell cat ../VERSION)
 
 WWWMAN=		~www/SWI-Prolog/Manual
 FTPDIR=		~ftp/SWI-Prolog
@@ -165,17 +166,10 @@ $(DVITOTTY):
 		$(CP) $(DVITOTTY-HOME)/dvi2tty ./$(DVITOTTY)
 
 install::
-		rm -rf $(WWWMAN)
-		cp -a Manual $(WWWMAN)
-		tar zcf $(FTPDIR)/refman/HTMLmanual.tar.gz Manual
-		install -m 644 $(PDF) $(FTPDIR)/refman/refman.pdf
-		rsync -aCv --delete Manual liduop:/home/web/hcs/projects/SWI-Prolog
+		rsync -av $(PDF) ec:/home/pl/web/download/stable/doc/SWI-Prolog-$(VERSION).pdf
 
 beta-install::
-		rm -rf $(BETAMAN)
-		cp -a Manual $(BETAMAN)
-		install -m 644 MANUAL.pdf $(FTPDIR)/BETA/Manual.pdf
-		tar zcf $(FTPDIR)/BETA/Manual.html.tgz Manual
+		rsync -av $(PDF) ec:/home/pl/web/download/devel/doc/SWI-Prolog-$(VERSION).pdf
 
 ################################################################
 # PlDoc generated manual files
