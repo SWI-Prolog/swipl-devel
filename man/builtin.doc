@@ -1348,11 +1348,10 @@ like call_with_time_limit/2 (package clib) or thread_signal/2.  In
 most uses, \arg{Setup} will perform temporary side-effects required by
 \arg{Goal} that are finally undone by \arg{Cleanup}.
 
-Success or failure of \arg{Cleanup} is ignored and
-choice-points it created are destroyed (as once/1).  If \arg{Cleanup}
-throws an exception, this is executed as normal.% \bug{During the
-execution of \arg{Cleanup}, garbage collection and stack-shifts are
-disabled.}
+Success or failure of \arg{Cleanup} is ignored and choice-points it
+created are destroyed (as once/1). If \arg{Cleanup} throws an exception,
+this is executed as normal.\bug{During the execution of \arg{Cleanup},
+garbage collection and stack-shifts are disabled.}
 
 Typically, this predicate is used to cleanup permanent data storage
 required to execute \arg{Goal}, close file-descriptors, etc. The example
@@ -1361,9 +1360,9 @@ the stream as needed.
 
 \begin{code}
 term_in_file(Term, File) :-
-	setup_call_cleanup( open(File, read, In),
-			    term_in_stream(Term, In),
-			    close(In) ).
+	setup_call_cleanup(open(File, read, In),
+			   term_in_stream(Term, In),
+			   close(In) ).
 
 term_in_stream(Term, In) :-
 	repeat,
@@ -1429,6 +1428,7 @@ side-effects.
     \predicate{call_cleanup}{3}{:Goal, +Catcher, :Cleanup}
 Same as \term{setup_call_catcher_cleanup}{true, Goal, Catcher, Cleanup}.
 The same warning as for call_cleanup/2 applies.
+\end{description}
 
 
 \section{ISO compliant Exception handling}   \label{sec:exception}
