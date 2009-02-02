@@ -150,18 +150,16 @@ and subtle differences that must be taken into consideration:
 :- use_module(library(time)).
 :- use_module(library(unix)).
 
-:- require([ call_cleanup/2
+:- require([ once/1
 	   , forall/2
 	   , member/2
-	   , qsave_program/2
 	   , term_to_atom/2
 	   , thread_property/2
-	   , with_output_to/2
 	   , catch/3
-	   , flag/3
+	   , setup_call_cleanup/3
 	   , thread_create/3
-	   , tipc_socket/2 
 	   ]).
+
 
 tipc_broadcast_service(node,            name_seq(20005, 0, 0)).
 tipc_broadcast_service(cluster,         name_seq(20005, 1, 1)).
@@ -201,7 +199,7 @@ tipc_broadcast_service(zone,            name_seq(20005, 2, 2)).
 %
 
 try_finally(Setup, Cleanup) :-
-	setup_and_call_cleanup(Setup, (true; fail), Cleanup).
+	setup_call_cleanup(Setup, (true; fail), Cleanup).
 
 ld_dispatch(S, '$tipc_request'(wru(Name)), From) :-
 	tipc_get_name(S, Name),
@@ -248,6 +246,8 @@ start_tipc_listener_daemon :-
 start_tipc_listener_daemon :-
 	thread_create(tipc_listener_daemon, _,
 	       [alias(tipc_listener_daemon), detached(true)]),
+
+	listen(tipc_broadcast_service(Class, Addr), tipc_broadcast_service(Class, Addr)),
 
 	listen(tipc_broadcast, tipc_node(X), tipc_broadcast(X, node, 0.250)),
 	listen(tipc_broadcast, tipc_cluster(X), tipc_broadcast(X, cluster, 0.250)),
