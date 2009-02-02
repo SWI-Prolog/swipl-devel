@@ -1170,17 +1170,21 @@ load_files(Module:Files, Options) :-
 %	Switch the currently expected dialect.
 
 '$set_dialect'(Old, New) :-
-	Old == New, !,
-	(   '$current_load_dialect'(Dialect)
+	'$my_dialect'(Old),
+	(   Old == New
 	->  true
-	;   Dialect = swi
+	;   retractall('$current_load_dialect'(_)),
+	    (	New == swi
+	    ->	true
+	    ;	assert('$current_load_dialect'(New))
+	    )
 	).
-'$set_dialect'(Old, Dialect) :-
-	(   retract('$current_load_dialect'(Old))
-	->  true
-	;   Old = swi
-	),
-	assert('$current_load_dialect'(Dialect)).
+
+'$my_dialect'(Current) :-
+	(   '$current_load_dialect'(Dialect)
+	->  Current = Dialect
+	;   Current = swi
+	).
 
 '$save_lex_state'(lexstate(Style, Dialect)) :-
 	'$style_check'(Style, Style),
