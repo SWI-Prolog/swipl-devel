@@ -82,7 +82,6 @@ pattern. For an overview, please see: tipc_overview.txt.
 %	 Creates  a  TIPC-domain  socket  of    the  type  specified  by
 %	 SocketType, and unifies it to an  identifier, SocketId.
 %	 
-%	 
 %	 @param SocketType is one of  the   following  atoms:  
 %        
 %	 * rdm - unnumbered, reliable datagram service, 
@@ -104,21 +103,21 @@ pattern. For an overview, please see: tipc_overview.txt.
 %	 tipc_close_socket/1   is   used   because     there    are   no
 %	 stream-handles:
 %	 
-%	 * After tipc_accept/3, the server does a fork/1 to handle
-%	 the client in a sub-process. In this case the accepted socket
-%	 is not longer needed from the main server and must be discarded
-%	 using tipc_close_socket/1.
+%	  * After tipc_accept/3, the server does  a fork/1 to handle the
+%	  client in a sub-process. In this   case the accepted socket is
+%	  not longer needed from the main   server and must be discarded
+%	  using tipc_close_socket/1.
 %	 
-%	 * If, after discovering the connecting client with
-%	 tipc_accept/3, the server does not want to accept the
-%	 connection, it should discard the accepted socket immediately
-%	 using tipc_close_socket/1.
+%	  *  If,  after  discovering   the    connecting   client   with
+%	  tipc_accept/3,  the  server  does  not   want  to  accept  the
+%	  connection, it should discard the  accepted socket immediately
+%	  using tipc_close_socket/1.
 %	 
 %	 @param SocketId the socket identifier returned by tipc_socket/2
 %	 or tipc_accept/3.
 %	 
-%	 @error socket_error('Invalid argument) is thrown if an attempt
-%	 is made to close a socket identifier that has already been
+%	 @error socket_error('Invalid argument) is thrown  if an attempt
+%	 is made to close a  socket   identifier  that  has already been
 %	 closed.
 
 % % tipc_subscribe(+SocketId, +NameSeqAddress, +Timeout, +Filter, +UserHandle) is det.
