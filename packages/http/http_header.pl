@@ -925,6 +925,8 @@ field_to_prolog(host, ValueChars, Host) :- !,
 	    Host = HostName:Port
 	;   atom_codes(Host, ValueChars)
 	).
+field_to_prolog(range, ValueChars, Range) :-
+	phrase(range(Range), ValueChars), !.
 field_to_prolog(_, ValueChars, Atom) :-
 	atom_codes(Atom, ValueChars).
 
@@ -1196,6 +1198,21 @@ chars_to_semicolon([H|T]) -->
 	chars_to_semicolon(T).
 chars_to_semicolon([]) -->
 	[].
+
+%%	range(-Range)// is semidet.
+%
+%	Process the range header value. Range is currently defined as:
+%	
+%	    * bytes(From, To)
+%	    Where From is an integer and To is either an integer or
+%	    the atom =end=.
+
+range(bytes(From, To)) -->
+	"bytes", white, "=", integer(From), "-",
+	(   integer(To)
+	->  ""
+	;   { To = end }
+	).
 
 
 		 /*******************************

@@ -24,4 +24,7 @@ following items on our todo list.
 	* Deal with nested objects in conversion
 	* Documentation.
 
-	
+---++ Support ranges	
+
+	* Deal with Range: bytes=<from>-[<to>]
+	* If we cannot deal, send status "501 Not Implemented"
