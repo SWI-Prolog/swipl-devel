@@ -2240,7 +2240,9 @@ get_message(message_queue *queue, term_t msg)
 
     DEBUG(1, Sdprintf("%d: scanning queue\n", PL_thread_self()));
     for( ; msgp; prev = msgp, msgp = msgp->next )
-    { if ( msgp->sequence_id < seen )
+    { int rc;
+
+      if ( msgp->sequence_id < seen )
       { QSTAT(skipped);
 	continue;
       }
@@ -2250,9 +2252,14 @@ get_message(message_queue *queue, term_t msg)
 	continue;			/* fast search */
 
       QSTAT(unified);
-      PL_recorded(msgp->message, tmp);
+      EXCEPTION_GUARDED({ PL_recorded(msgp->message, tmp);
+			  rc = PL_unify(msg, tmp);
+			},
+			{ rval = FALSE;
+			  goto out;
+			});
 
-      if ( PL_unify(msg, tmp) )
+      if ( rc )
       { DEBUG(1, Sdprintf("%d: match\n", PL_thread_self()));
 	if ( prev )
 	{ if ( !(prev->next = msgp->next) )
@@ -2317,11 +2324,18 @@ peek_message(message_queue *queue, term_t msg)
   msgp = queue->head;
 
   for( msgp = queue->head; msgp; msgp = msgp->next )
-  { if ( key && msgp->key && key != msgp->key )
-      continue;
-    PL_recorded(msgp->message, tmp);
+  { int rc;
 
-    if ( PL_unify(msg, tmp) )
+    if ( key && msgp->key && key != msgp->key )
+      continue;
+
+    EXCEPTION_GUARDED({ PL_recorded(msgp->message, tmp);
+		        rc = PL_unify(msg, tmp);
+		      },
+		      { goto out;
+		      });
+
+    if ( rc )
     { simpleMutexUnlock(&queue->mutex);
       succeed;
     }
@@ -2329,6 +2343,7 @@ peek_message(message_queue *queue, term_t msg)
     PL_rewind_foreign_frame(fid);
   }
      
+out:
   simpleMutexUnlock(&queue->mutex);
   fail;
 }
