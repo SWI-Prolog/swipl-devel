@@ -126,6 +126,9 @@ http_read_reply_header(In, [input(In)|Reply]) :-
 %		* file(+MimeType, +FileName)
 %		Reply content of FileName using MimeType
 %		
+%		* file(+MimeType, +FileName, +Range)
+%		Reply partial content of FileName with given MimeType
+%		
 %		* tmp_file(+MimeType, +FileName)
 %		Same as =file=, but do not include modification time
 %		
@@ -170,29 +173,45 @@ http_reply_data(html(HTML), Out, HrdExtra) :- !,
 http_reply_data(file(Type, File), Out, HrdExtra) :- !,
 	phrase(reply_header(file(Type, File), HrdExtra), Header),
 	reply_file(Out, File, Header).
+http_reply_data(file(Type, File, Range), Out, HrdExtra) :- !,
+	phrase(reply_header(file(Type, File, Range), HrdExtra), Header),
+	reply_file_range(Out, File, Header, Range).
 http_reply_data(tmp_file(Type, File), Out, HrdExtra) :- !,
 	phrase(reply_header(tmp_file(Type, File), HrdExtra), Header),
 	reply_file(Out, File, Header).
 http_reply_data(stream(In, Len), Out, HdrExtra) :- !,
 	phrase(reply_header(cgi_data(Len), HdrExtra), Header),
-	copy_stream(Out, In, Header).
+	copy_stream(Out, In, Header, 0, end).
 http_reply_data(cgi_stream(In, Len), Out, HrdExtra) :- !,
 	http_read_header(In, CgiHeader),
 	seek(In, 0, current, Pos),
 	Size is Len - Pos,
 	http_join_headers(HrdExtra, CgiHeader, Hdr2),
 	phrase(reply_header(cgi_data(Size), Hdr2), Header),
-	copy_stream(Out, In, Header).
+	copy_stream(Out, In, Header, 0, end).
 
 reply_file(Out, File, Header) :-
 	setup_call_cleanup(open(File, read, In, [type(binary)]),
-			   copy_stream(Out, In, Header),
+			   copy_stream(Out, In, Header, 0, end),
 			   close(In)).
 
-copy_stream(Out, In, Header) :-
+reply_file_range(Out, File, Header, bytes(From, To)) :- !,
+	setup_call_cleanup(open(File, read, In, [type(binary)]),
+			   copy_stream(Out, In, Header, From, To),
+			   close(In)).
+
+copy_stream(Out, In, Header, From, To) :-
+	(   From == 0
+	->  true
+	;   seek(In, From, bof, _)
+	),
 	peek_byte(In, _),
 	format(Out, '~s', [Header]),
-	copy_stream_data(In, Out),
+	(   To == end
+	->  copy_stream_data(In, Out)
+	;   Len is To - From,
+	    copy_stream_data(In, Out, Len)
+	),
 	flush_output(Out).
 
 
@@ -696,6 +715,14 @@ reply_header(file(Type, File), HdrExtra) -->
 	content_length(file(File)),
 	content_type(Type),
 	"\r\n".
+reply_header(file(Type, File, Range), HdrExtra) -->
+	vstatus(ok),
+	date(now),
+	modified(file(File)),
+	header_fields(HdrExtra),
+	content_length(file(File, Range)),
+	content_type(Type),
+	"\r\n".
 reply_header(tmp_file(Type, File), HdrExtra) -->
 	vstatus(ok),
 	date(now),
@@ -843,6 +870,13 @@ content_length(file(File)) --> !,
 	{ size_file(File, Len)
 	},
 	content_length(Len).
+content_length(file(File, bytes(From, To))) --> !,
+	{   To == end
+	->  size_file(File, End),
+	    Len is End - From
+	;   Len is To - From
+	},
+	content_length(Len).
 content_length(html(Tokens)) --> !,
 	{ html_print_length(Tokens, Len)
 	},
@@ -925,6 +959,8 @@ field_to_prolog(host, ValueChars, Host) :- !,
 	    Host = HostName:Port
 	;   atom_codes(Host, ValueChars)
 	).
+field_to_prolog(range, ValueChars, Range) :-
+	phrase(range(Range), ValueChars), !.
 field_to_prolog(_, ValueChars, Atom) :-
 	atom_codes(Atom, ValueChars).
 
@@ -1196,6 +1232,21 @@ chars_to_semicolon([H|T]) -->
 	chars_to_semicolon(T).
 chars_to_semicolon([]) -->
 	[].
+
+%%	range(-Range)// is semidet.
+%
+%	Process the range header value. Range is currently defined as:
+%	
+%	    * bytes(From, To)
+%	    Where From is an integer and To is either an integer or
+%	    the atom =end=.
+
+range(bytes(From, To)) -->
+	"bytes", whites, "=", whites, integer(From), "-",
+	(   integer(To)
+	->  ""
+	;   { To = end }
+	).
 
 
 		 /*******************************

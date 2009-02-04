@@ -487,6 +487,9 @@ extend(G0, Extra, G) :-
 %		* mime_type(+Type)
 %		Overrule mime-type guessing from the filename as
 %		provided by file_mime_type/2.
+%		
+%	If caching is not disabled,  it   processed  the request headers
+%	=|If-modified-since|= and =Range=.
 %
 %	@throws	http_reply(not_modified)
 %	@throws http_reply(file(MimeType, Path))
@@ -502,7 +505,10 @@ http_reply_file(File, Options, Request) :-
 	    ->  throw(http_reply(not_modified))
 	    ;	true
 	    ),
-	    Reply = file(Type, Path)
+	    (	memberchk(range(Range), Request)
+	    ->	Reply = file(Type, Path, Range)
+	    ;	Reply = file(Type, Path)
+	    )
 	;   Reply = tmp_file(Type, Path)
 	),
 	(   option(mime_type(Type), Options)
