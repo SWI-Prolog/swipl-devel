@@ -1404,7 +1404,8 @@ static int
 S__seterror(IOSTREAM *s)
 { s->io_errno = errno;
 
-  if ( s->functions->control )
+  if ( !(s->flags&SIO_CLOSING) &&	/* s->handle is already invalid */
+       s->functions->control )
   { char *msg;
 
     if ( (*s->functions->control)(s->handle,
