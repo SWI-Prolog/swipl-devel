@@ -275,7 +275,7 @@ parse_environment(term_t t, p_options *info)
   term_t head = PL_new_term_ref();
   term_t tmp  = PL_new_term_ref();
   ecbuf *eb   = &info->envbuf;
-  int count,c = 0;
+  int count = 0, c = 0;
   echar *q;
   char **ep;
 
@@ -1102,7 +1102,7 @@ do_create_process(p_options *info)
 		      NULL,		/* Thread security */
 		      TRUE,		/* Inherit handles */
 		      flags,		/* Creation flags */
-		      info->envp.buffer, /* Environment */
+		      info->envbuf.buffer, /* Environment */
 		      info->cwd,	/* Directory */
 		      &si,		/* Startup info */
 		      &pi) )		/* Process information */
