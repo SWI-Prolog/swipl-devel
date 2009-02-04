@@ -115,8 +115,10 @@ curr_setting(Name, Module, Type, Default, Comment) :-
 %	@param Comment	Atom containing a (short) descriptive note.
 
 	
-setting(_Name, _Type, _Default, _Comment) :-
-	throw(error(context_error(only_in_directive), _)).
+setting(Name, Type, Default, Comment) :-
+	throw(error(context_error(nodirective,
+				  setting(Name, Type, Default, Comment)),
+		    _)).
 
 :- multifile
 	user:term_expansion/2.
