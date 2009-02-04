@@ -191,25 +191,52 @@ current_generation(G) :-
 current_generation(0).
 
 
-%%	compile_handler(+Path, +Pred, +Options) is det.
+%%	compile_handler(+Path, :Pred, +Options) is det.
 %
 %	Compile a handler specification. For now we this is a no-op, but
 %	in the feature can make this more efficiently, especially in the
 %	presence of one or multiple prefix declarations. We can also use
 %	this to detect conflicts.
 
-compile_handler(prefix(Path), PredSpec, Options,
-		http_dispatch:handler(Path, M:Pred, true, Options)) :- !,
-	print_message(warning, http_dispatch(prefix(Path))),
-	strip_module(PredSpec, M, Pred).
-compile_handler(Path, PredSpec, Options0,
-		http_dispatch:handler(Path, M:Pred, IsPrefix, Options)) :-
-	strip_module(PredSpec, M, Pred),
+compile_handler(prefix(Path), Pred, Options,
+		http_dispatch:handler(Path, Pred, true, Options)) :- !,
+	check_path(Path),
+	print_message(warning, http_dispatch(prefix(Path))).
+compile_handler(Path, Pred, Options0,
+		http_dispatch:handler(Path, Pred, IsPrefix, Options)) :-
+	check_path(Path),
 	(   select(prefix, Options0, Options)
 	->  IsPrefix = true
 	;   IsPrefix = false,
 	    Options = Options0
 	).
+
+%%	check_path(+PathSpec) is det.
+%
+%	Validate the given path specification.  We want one of
+%	
+%		* AbsoluteLocation
+%		* Alias(Relative)
+%
+%	@error	domain_error, type_error
+%	@see	http_absolute_location/3
+
+check_path(Path) :-
+	atom(Path), !,
+	(   sub_atom(Path, 0, _, _, /)
+	->  true
+	;   domain_error(absolute_http_location, Path)
+	).
+check_path(Alias) :-
+	compound(Alias),
+	Alias =.. [_Name, Relative], !,
+	must_be(atom, Relative),
+	(   sub_atom(Relative, 0, _, _, /)
+	->  domain_error(relative_location, Relative)
+	;   true
+	).
+check_path(PathSpec) :-
+	type_error(path_or_alias, PathSpec).
 
 
 %%	http_dispatch(Request) is det.
