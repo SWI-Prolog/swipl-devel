@@ -57,14 +57,25 @@ tipc.@SO@:	$(TIPCOBJ)
 
 tipc.o:		tipc.c ../clib/sockcommon.c
 
+ifeq ($(TARGETS),)
+
+install::
+ln-install::
+rpm-install::
+html-install::
+pdf-install::
+uninstall::
+
+else
+
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
 		for f in $(TARGETS); do \
 		  $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/lib/$(PLARCH); \
 		done
-		mkdir -p $(DESTDIR)$(PLBASE)/library
+		mkdir -p $(DESTDIR)$(PLBASE)/library/tipc
 		for f in $(LIBPL) $(LIBTXT); do \
-		  $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library; \
+		  $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library/tipc; \
 		done
 		$(PL) -f none -g make -t halt
 
@@ -83,8 +94,10 @@ pdf-install::
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
-		(cd $(PLBASE)/library && rm -f $(LIBPL))
+		(cd $(PLBASE)/library/tipc && rm -f $(LIBPL) $(LIBTXT))
 		$(PL) -f none -g make -t halt
+
+endif
 
 ################################################################
 # Testing
