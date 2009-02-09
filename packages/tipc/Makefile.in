@@ -32,7 +32,7 @@ PUBLICPL=       pl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=tipc
-TEX=$(DOC).tex tipcoverview.tex tipcpl.tex tipcbroadcast.tex
+TEX=$(DOC).tex tipcoverview.tex tipcpl.tex tipcbroadcast.tex tipcpaxos.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
@@ -129,6 +129,8 @@ tipcoverview.tex:	tipc_overview.txt
 tipcpl.tex:	tipc.pl
 		$(PLTOTEX) --subsection --out=tipcpl $<
 tipcbroadcast.tex:	tipc_broadcast.pl
+		$(PLTOTEX) --subsection $<
+tipcpaxos.tex:	tipc_paxos.pl
 		$(PLTOTEX) --subsection $<
 
 .doc.tex:
