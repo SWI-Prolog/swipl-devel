@@ -36,7 +36,7 @@
 	   tipc_paxos_on_change/2    % ?Term +Goal
 	  ]).
 
-:- use_module(library(tipc_broadcast)).
+:- use_module(tipc_broadcast).
 
 /** <module> A Replicated Data Store
 This module provides a replicated data store that is coordinated using a
@@ -55,46 +55,49 @@ which includes roundtrip delivery delay. This property is easy to
 satisfy given that every coordinator is necessarily a member of the
 quorum as well, and a quorum of one is permitted. An inattentive member
 (e.g. one whose actions are late or lost) is deemed to be "not-present"
-for the purposes of the transaction at hand and consistency cannot be
-assured for that member. As long as there is at least one
-attentive member of the quorum, then persistence of
-the database is assured.
+for the purposes of the present transaction and consistency
+cannot be assured for that member. As long as there is at least one
+attentive member of the quorum, then persistence of the database is
+assured.
 
 Each member maintains a ledger of terms along with information about
 when they were originally recorded. The member's ledger is
 deterministic. That is to say that there can only be one entry per
 functor/arity combination. No member will accept a new term proposal
-that has a line number that is equal-to or lower than
-the one that is already recorded in his/her ledger.
+that has a line number that is equal-to or lower-than
+the one that is already recorded in the ledger.
 
 Paxos is a three-phase protocol:
 
    1: A coordinator first prepares the quorum for a new proposal by
    broadcasting a proposed term. The quorum responds by returning the
-   last known line number for that term that is recorded in their
-   respective ledgers. 
+   last known line number for that functor/arity combination that is
+   recorded in their respective ledgers. 
 
-   2: The coordinator selects the highest known line number it receives,
+   2: The coordinator selects the highest line number it receives,
    increments it by one, and then asks the quorum to finally accept the
    new term with the new line number. The quorum checks their respective
-   ledgers once again and if there is no other ledger entry for that
-   term that is higher, then the member records the term at the
-   specified line and indicates consent by returning the specified line
-   number back to the coordinator. If consent is withheld by a member,
-   then the member returns a =nack= instead. The coordinator requires
-   unanimous consent. If it isn't achieved then the proposal fails and
-   the coordinator must start over from the beginning.
+   ledgers once again and if there is still no other ledger entry for
+   that functor/arity combination that is equal-to or higher than the
+   specified line, then each member records the term in the ledger at
+   the specified line. The member indicates consent by returning the
+   specified line number back to the coordinator. If consent is withheld
+   by a member, then the member returns a =nack= instead. The
+   coordinator requires unanimous consent. If it isn't achieved then the
+   proposal fails and the coordinator must start over from the
+   beginning.
 
    3: Finally, the coordinator concludes the successful negotiation by
    broadcasting the agreement to the quorum in the form of a
-   =|tipc_paxos_changed(Term)|= event. This is the only event that should be
+   =|paxos_changed(Term)|= event. This is the only event that should be
    of interest to user programs.
    
-For practical reasons, we use the partially synchronous behavior (e.g.
-limited upper time bound for replies) of broadcast_request/1 over TIPC
-to ensure Progress. Perhaps more importantly, we rely on the fact that
-the TIPC broadcast listener state machine guarantees the atomicity of
-broadcast_request/1 at the process level.
+For practical reasons, we rely on the partially synchronous behavior
+(e.g. limited upper time bound for replies) of broadcast_request/1 over
+TIPC to ensure Progress. Perhaps more importantly, we rely on the fact
+that the TIPC broadcast listener state machine guarantees the atomicity
+of broadcast_request/1 at the process level, thus obviating the need for
+external mutual exclusion mechanisms.
    
 _|Note that this algorithm does not guarantee the rightness of the value
 proposed. It only guarantees that if successful, the value proposed is
@@ -130,13 +133,14 @@ tipc_paxos_init :-
 %
 
 tipc_paxos_prepare(K-Term) :-
-	recorded(Term, paxons_ledger(K, Term)).
+	recorded(Term, paxons_ledger(K, _Term)), 
+	!.
 
 tipc_paxos_prepare(0-Term) :-
 	recorda(Term, paxons_ledger(0, Term)).
 
 tipc_paxos_accept(K-Term, K) :-
-	recorded(Term, paxons_ledger(K1, Term), Ref),
+	recorded(Term, paxons_ledger(K1, _Term), Ref),
 	K > K1,
 	recorda(Term, paxons_ledger(K, Term)),
 	erase(Ref),
@@ -144,8 +148,11 @@ tipc_paxos_accept(K-Term, K) :-
 
 tipc_paxos_accept(_, nack).
 
+
 tipc_paxos_retrieve(K-Term) :-
-	recorded(Term, paxons_ledger(K, Term)), !.
+	recorded(Term, paxons_ledger(K, Term)), 
+	!.
+
 %
 % These are the cooordinator predicates
 %
@@ -154,19 +161,19 @@ max_gets(5).
 
 %%  tipc_paxos_set(?Term) is semidet.
 %%  tipc_paxos_set(?Term, +Retries) is semidet.
-%   negotiates to have Term recorded  in  the   ledger  for  each  of the
+%     negotiates to have Term recorded in  the   ledger  for  each of the
 % quorum's members. This predicate  succeeds   if  the quorum unanimously
 % accepts the proposed term. If  no  such   entry  exists  in the Paxon's
-% ledger, then one is  silently  created.   tipc_paxos_set/1  will  retry  the
-% transaction several times (default:  20)   before  failing.  Failure is
-% rare and is usually the result of a collision of two or more writers
-% writing to the same term at precisely the same time. On failure, it
-% may be useful to wait some random period of time, and then retry the
+% ledger, then one is silently created.   tipc_paxos_set/1 will retry the
+% transaction several times (default: 20) before failing. Failure is rare
+% and is usually the result of a collision of two or more writers writing
+% to the same term at precisely the  same   time.  On  failure, it may be
+% useful to wait  some  random  period  of   time,  and  then  retry  the
 % transaction. By specifying a retry count of zero, tipc_paxos_set/2 will
 % succeed iff the first ballot succeeds.
 % 
 % On success, tipc_paxos_set/1 will also broadcast the term
-% =|tipc_paxos_changed(Term)|=, to the quorum. 
+% =|paxos_changed(Term)|=, to the quorum. 
 % 
 % @param Term is a compound  that   may  have  unbound variables. 
 % @param Retries (optional) is a non-negative integer  specifying the number of
@@ -174,7 +181,8 @@ max_gets(5).
 %
 tipc_paxos_set(Term) :-
 	max_sets(N),
-	tipc_paxos_set(Term, N).
+	tipc_paxos_set(Term, N),
+	!.
 
 tipc_paxos_set(Term, Retries) :-
 	compound(Term),
@@ -200,18 +208,21 @@ tipc_paxos_set(Term, Retries) :-
 % 
 
 tipc_paxos_get(Term) :-
-	recorded(Term, paxons_ledger(_K, Term)), !.
+	recorded(Term, paxons_ledger(_K, Term)), 
+	!.
 
 tipc_paxos_get(Term) :-
 	max_gets(N),
 	between(1,N, _),
 	findall(K-Term, broadcast_request(tipc_cluster(paxos_retrieve(K-Term), 0.020)), Terms),
 	c_element(Terms, no, K-Term),
-	tipc_paxos_set(Term), !.
+	tipc_paxos_set(Term),
+	!.
 
 %% tipc_paxos_replicate(?Term) is det.
-% delares that Term is to be automatically replicated to the quorum each
-% time it becomes grounded. It uses the behavior afforded by when/2.
+% declares that Term is to be automatically replicated to the quorum
+% each time it becomes grounded. It uses the behavior afforded by
+% when/2.
 % 
 % @param Term is an ungrounded Term
 % 
@@ -219,19 +230,24 @@ tipc_paxos_get(Term) :-
 tipc_paxos_replicate(X) :-
 	when(ground(X), tipc_paxos_set(X)).
 
-%% tipc_paxos_on_change(Term, Goal) is det.
-% executes the specified Goal when Term changes as the result of a
-% tipc_paxos_set/1, transaction.
-% 
-% @param Term is one of:
-%   * a callable compound, which is executed in a separate thread from
-%   the listener, or
+%% tipc_paxos_on_change(?Term, :Goal) is det.
+% executes the specified Goal when Term changes. tipc_paxos_on_change/2
+% listens for paxos_changed/1 notifications for Term, which are emitted
+% as the result of successful tipc_paxos_set/1 transactions. When one is
+% received for Term, then Goal is executed in a separate thread of
+% execution.
+%
+%  @param Term is a compound, identical to that used for
+%  tipc_paxos_get/1. 
+%  @param Goal is one of: 
+%   * a callable atom or term, or
 %   * the atom =ignore=, which causes monitoring for Term to be
 %   discontinued.
 % 
 
 tipc_paxos_on_change(Term, ignore) :-
-	unlisten(tipc_paxos, paxos_changed(Term)), !.
+	unlisten(tipc_paxos, paxos_changed(Term)), 
+	!.
 
 tipc_paxos_on_change(Term, Goal) :-
 	compound(Term),
@@ -241,10 +257,6 @@ tipc_paxos_on_change(Term, Goal) :-
 
 :- initialization
         tipc_paxos_init.
-
-
-
-
 
 
 

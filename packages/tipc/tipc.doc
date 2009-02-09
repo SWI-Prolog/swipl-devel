@@ -11,11 +11,11 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog TIPC library}
+\renewcommand{\runningtitle}{SWI-Prolog TIPC libraries}
 
 \begin{document}
 
-\title{Transparent Inter-Process Communications (TIPC) library} 
+\title{Transparent Inter-Process Communications (TIPC) libraries} 
 \author{Jeffrey Rosenwald \\
         E-mail: \email{JeffRose@acm.org}}
 
@@ -44,8 +44,10 @@ pattern.
 \newpage
 
 \input{tipcoverview.tex}
+\section{ The TIPC libraries: \pllib{tipc/...} }
 \input{tipcpl.tex}
 \input{tipcbroadcast.tex}
+\input{tipcpaxos.tex}
 
 \printindex
 
