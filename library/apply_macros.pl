@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -135,7 +135,7 @@ expand_apply(Maplist, Goal) :-
 	callable(Callable), !,
 	expand_maplist(Callable, Lists, Goal).
 expand_apply(forall(Cond, Action), \+((Cond, \+(Action)))).
-expand_apply(once(Goal), (Goal->true)).
+expand_apply(once(Goal), (Goal->true;fail)).
 expand_apply(ignore(Goal), (Goal->true;true)).
 expand_apply(phrase(NT,Xs), NTXsNil) :-
 	expand_apply(phrase(NT,Xs,[]), NTXsNil).
