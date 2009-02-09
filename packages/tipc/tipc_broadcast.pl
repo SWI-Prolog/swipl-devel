@@ -153,7 +153,7 @@ and subtle differences that must be taken into consideration:
 @compat    Linux only
 */
 
-:- use_module(library(tipc)).
+:- use_module(tipc).
 :- use_module(library(broadcast)).
 :- use_module(library(time)).
 :- use_module(library(unix)).
