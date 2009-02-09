@@ -279,9 +279,10 @@ pattern. For an overview, please see: tipc_overview.txt.
 %	 Waits  for,  and  returns  the  next  datagram.  Like  its  UDP
 %	 counterpart, the data are returned as   a  Prolog string object
 %	 (see string_to_list/2). From is  an   address  structure of the
-%	 form port_id/2, indicating the sender   of the message. Sockets
-%	 can be waited for using wait_for_input/3. Defined Options:
+%	 form port_id/2, indicating the sender of the message.
 %	 
+%         Defined options are:
+%         
 %	   * as(+Type)
 %	   Defines the returned term-type. Type is one of atom, codes or
 %	   string (default).
@@ -495,14 +496,13 @@ tipc_service_exists(Address) :-
 tipc_service_exists(Address, Timeout) :-
 	tipc_address(Address, NameSeq),!,
 	ITime is integer(Timeout * 1000),
-	tipc_socket(S, seqpacket),
+	try_finally(tipc_socket(S, seqpacket), tipc_close_socket(S)),
 	tipc_connect(S, name(1,1,0)),   % connect to the topology server
-	tipc_subscribe(S, NameSeq, ITime, 2, " "), 
+	tipc_subscribe(S, NameSeq, ITime, 2, "prolog"), 
 	repeat,
 	    tipc_receive(S, Data, _From, [as(codes)]),
 	    tipc_event(Data, Event, []),
 	    se_dispatch(NameSeq, Service, Event),
-	tipc_close_socket(S),
 	!, ground(Service).
 
 %%	tipc_service_probe(?Address) is nondet.
@@ -526,7 +526,7 @@ tipc_service_probe(Address) :-
 	NameSeq = name_seq(Type, Lower, Upper),
 	try_finally(tipc_socket(S, seqpacket), tipc_close_socket(S)),
 	tipc_connect(S, name(1,1,0)),   % connect to the topology server
-	tipc_subscribe(S, name_seq(Type, 0, -1), 0, 2, " "),  % look for everything
+	tipc_subscribe(S, name_seq(Type, 0, -1), 0, 2, "prolog"),  % look for everything
 	sp_collect(S, Members),
 	!, member([NameSeq, _], Members).
 
@@ -536,7 +536,7 @@ tipc_service_probe(Address, PortId) :-
 	NameSeq = name_seq(Type, Lower, Upper),
 	try_finally(tipc_socket(S, seqpacket), tipc_close_socket(S)),
 	tipc_connect(S, name(1,1,0)),   % connect to the topology server
-	tipc_subscribe(S, name_seq(Type, 0, -1), 0, 1, " "),  % look for everything
+	tipc_subscribe(S, name_seq(Type, 0, -1), 0, 1, "prolog"),  % look for everything
 	sp_collect(S, Members), 
 	!, member([NameSeq, PortId], Members).
 
@@ -615,23 +615,12 @@ tipc_service_port_monitor(Addresses, Goal, Timeout) :-
 	try_finally(tipc_socket(S, seqpacket), tipc_close_socket(S)),
 	tipc_connect(S, name(1,1,0)),   % connect to the topology server
 	forall(member(NameSeq, NameSeqs),
-	       tipc_subscribe(S, NameSeq, ITime, 1, " ")),
+	       tipc_subscribe(S, NameSeq, ITime, 1, "prolog")),
 	    repeat,
 	        tipc_receive(S, Data, _From, [as(codes)]),
 	        tipc_event(Data, Event, []),
 	        spm_dispatch(Goal, Event),
         !.
-	
-
-
-
-
-
-
-
-
-
-
 
 
 
