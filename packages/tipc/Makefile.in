@@ -151,5 +151,5 @@ distclean:	clean
 		rm -f config.cache config.h config.h.in configure
 		rm -f config.status Makefile
 		rm -f $(DOC).aux $(DOC).log $(DOC).out $(DOC).toc
-		rm -f tipc.pdf tipc.html tipc.idx tipc.ilg
+		rm -f tipc.idx tipc.ilg
 		rm -rf html autom4te.cache
