@@ -151,7 +151,7 @@ take_block([Verb|Lines], _, Verb, Lines).
 list_item([Indent-Line|LT], Type, Indent, Items, ItemT, Rest) :- !,
 	list_item_prefix(Type, Line, L1),
 	(   Type == dl
-	->  append(DT0, [:|DD1], L1),
+	->  split_dt(L1, DT0, DD1),
 	    append(DD1, LIT, DD),
 	    strip_ws_tokens(DT0, DT),
 	    Items = [dt(DT),dd(DD)|ItemT]
@@ -195,11 +195,19 @@ rest_list(Rest, _, _, IT, IT, Rest).
 list_item_prefix(ul, [*, ' '|T], T) :- !.
 list_item_prefix(ul, [-, ' '|T], T) :- !.
 list_item_prefix(dl, [$, ' '|T], T) :-
-	memberchk(:, T), !.
+	split_dt(T, _, _), !.
 list_item_prefix(ol, [N, '.', ' '|T], T) :-
 	string(N),
 	string_to_list(N, [D]),
 	between(0'0, 0'9, D).
+
+split_dt(In, DT, Rest) :-
+	append(DT, [':'|Rest0], In),
+	(   Rest0 == []
+	->  Rest = []
+	;   Rest0 = [' '|Rest]
+	), !.
+
 
 %%	ul_to_dl(+UL, -DL) is semidet.
 %
