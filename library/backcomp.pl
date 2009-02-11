@@ -35,6 +35,7 @@
 	    '$home'/1,
 	    '$argv'/1,
 	    '$strip_module'/3,
+	    '$declare_module'/3,
 	    displayq/1,
 	    displayq/2,
 	    sformat/2,			% -String, +Fmt
@@ -238,6 +239,15 @@ sublist(Goal, [_|T], R) :-
 
 '$strip_module'(Term, Module, Plain) :-
 	strip_module(Term, Module, Plain).
+
+
+%%	'$declare_module'(Module, File, Line)
+%
+%	Used in triple20 particle library. Should use a public interface
+
+'$declare_module'(Module, File, Line) :-
+	'$declare_module'(Module, File, Line, false).
+
 
 %%	convert_time(+Stamp, -String)
 %

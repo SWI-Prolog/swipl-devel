@@ -240,7 +240,7 @@ begin_tests(Unit, Name, File:Line, Options) :-
 	    set_import_modules(Name, Supers)
 	),
 	'$set_source_module'(Old, Name),
-	'$declare_module'(Name, File, Line),
+	'$declare_module'(Name, File, Line, false),
 	discontiguous(Name:'unit test'/4),
 	'$set_predicate_attribute'(Name:'unit test'/4, trace, 0),
 	discontiguous(Name:'unit body'/2),

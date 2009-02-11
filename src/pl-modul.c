@@ -592,7 +592,7 @@ in it are abolished.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-declareModule(atom_t name, SourceFile sf, int line)
+declareModule(atom_t name, SourceFile sf, int line, int allow_newfile)
 { GET_LD
   Module module;
   term_t tmp = 0, rdef = 0, rtail = 0;
@@ -600,7 +600,7 @@ declareModule(atom_t name, SourceFile sf, int line)
   LOCK();
   module = _lookupModule(name);
 
-  if ( module->file && module->file != sf)
+  if ( allow_newfile && module->file && module->file != sf)
   { term_t obj;
     char msg[256];
     UNLOCK();
@@ -613,9 +613,11 @@ declareModule(atom_t name, SourceFile sf, int line)
 		    ATOM_redefine, ATOM_module, obj);
   }
 	    
-  module->file = sf;
-  sf->module_count++;			/* current determinism in */
-  module->line_no = line;		/* $current_module/2 */
+  if ( module->file != sf )
+  { module->file = sf;
+    sf->module_count++;		/* current determinism in $current_module/2 */
+  }
+  module->line_no = line;
   LD->modules.source = module;
 
   for_table(module->procedures, s,
@@ -654,19 +656,20 @@ declareModule(atom_t name, SourceFile sf, int line)
 }
 
 
-word
-pl_declare_module(term_t name, term_t file, term_t line)
+static
+PRED_IMPL("$declare_module", 4, declare_module, 0)
 { SourceFile sf;
   atom_t mname, fname;
-  int line_no;
+  int line_no, rdef;
 
-  if ( !PL_get_atom_ex(name, &mname) ||
-       !PL_get_atom_ex(file, &fname) ||
-       !PL_get_integer_ex(line, &line_no) )
+  if ( !PL_get_atom_ex(A1, &mname) ||
+       !PL_get_atom_ex(A2, &fname) ||
+       !PL_get_integer_ex(A3, &line_no) ||
+       !PL_get_bool_ex(A4, &rdef) )
     fail;
 
   sf = lookupSourceFile(fname, TRUE);
-  return declareModule(mname, sf, line_no);
+  return declareModule(mname, sf, line_no, rdef);
 }
 
 
@@ -946,6 +949,7 @@ BeginPredDefs(module)
 	   PL_FA_NONDETERMINISTIC)
   PRED_DEF("import_module", 2, import_module,
 	   PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$declare_module", 4, declare_module, 0)
   PRED_DEF("add_import_module", 3, add_import_module, 0)
   PRED_DEF("delete_import_module", 2, delete_import_module, 0)
   PRED_DEF("$module_property", 2, module_property, 0)

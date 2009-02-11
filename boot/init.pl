@@ -1265,7 +1265,7 @@ load_files(Module:Files, Options) :-
 '$load_module'(Module, Public, In, File) :-
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
-	'$declare_module'(Module, File, Line),
+	'$declare_module'(Module, File, Line, false),
 	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),
