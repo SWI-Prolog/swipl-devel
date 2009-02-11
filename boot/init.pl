@@ -1272,14 +1272,23 @@ load_files(Module:Files, Options) :-
 '$reserved_module'(user).
 
 %%	'$load_module'(+Module, +Public, +Stream, +File, +Options)
+%
+%	Options processed:
+%	
+%		* redefine_module(Action)
+%		Action is one of =true=, =false= or =ask=.
+%		
+%	Redefining a module by loading another file must be more subtle.
+%	Verify the compatibility of the interface could be one example.
 
 '$load_module'(Reserved, _, _, _, _) :-
 	'$reserved_module'(Reserved), !,
 	throw(error(permission_error(load, module, Reserved), _)).
-'$load_module'(Module, Public, In, File, _) :-
+'$load_module'(Module, Public, In, File, Options) :-
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
-	'$declare_module'(Module, File, Line, false),
+	'$get_option'(redefine_module(Action), Options, false),
+	'$declare_module'(Module, File, Line, Action),
 	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),

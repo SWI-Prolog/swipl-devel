@@ -600,7 +600,7 @@ declareModule(atom_t name, SourceFile sf, int line, int allow_newfile)
   LOCK();
   module = _lookupModule(name);
 
-  if ( allow_newfile && module->file && module->file != sf)
+  if ( !allow_newfile && module->file && module->file != sf)
   { term_t obj;
     char msg[256];
     UNLOCK();
