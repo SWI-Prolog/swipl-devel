@@ -907,13 +907,13 @@ consult(M:X) :-
 consult(List) :-
 	load_files(List).
 
-%	'$consult_goal'(+Path, -Goal)
+%%	'$consult_goal'(+Path, -Goal)
 %
 %	Determine how to load the indicated file
 
 '$consult_goal'(Path, Goal) :-
-	(   file_name_extension(_, Ext, Path),
-	    user:prolog_file_type(Ext, qlf)
+	file_name_extension(_, Ext, Path),
+	(   user:prolog_file_type(Ext, qlf)
 	->  Goal = system:'$qload_file'
 	;   Goal = system:'$consult_file'
 	).
@@ -1132,7 +1132,12 @@ load_files(Module:Files, Options) :-
 	print_message(error, E),
 	fail.
 
-%%	'$consult_file'(+Path, +Encoding, +Module, +IsModule, -Action, -LoadedIn)
+%%	'$consult_file'(+Path, +Encoding, +Module, +IsModule,
+%%			-Action, -LoadedIn)
+%
+%	Called  from  '$load_file'/3  using   the    goal   returned  by
+%	'$consult_goal'/2. This means that the  calling conventions must
+%	be kept synchronous with '$qload_file'/6.
 
 '$consult_file'(Absolute, Enc, Module, IsModule, What, LM) :-
 	'$set_source_module'(Module, Module), !, % same module
