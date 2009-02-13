@@ -1200,8 +1200,20 @@ label([], _, Selection, Order, Choice, Optim0, Consistency, Vars) :-
         ( Optim0 == [] ->
             label(Vars, S, O, C, Consistency)
         ;   reverse(Optim0, Optim),
-            optimise(Vars, [S,O,C], Optim)
+            exprs_singlevars(Optim, SVs),
+            optimise(Vars, [S,O,C], SVs)
         ).
+
+% Introduce new variables for each min/max expression to avoid
+% reparsing expressions during optimisation. This restricts the set of
+% arithmetic expressions that can be optimised to CLP(FD) expressions.
+
+exprs_singlevars([], []).
+exprs_singlevars([E|Es], [SV|SVs]) :-
+        E =.. [F,Expr],
+        Single #= Expr,
+        SV =.. [F,Single],
+        exprs_singlevars(Es, SVs).
 
 all_dead(fd_props(Bs,Gs,Os)) :-
         all_dead_(Bs),
