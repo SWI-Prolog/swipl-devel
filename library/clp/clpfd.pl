@@ -1205,8 +1205,7 @@ label([], _, Selection, Order, Choice, Optim0, Consistency, Vars) :-
         ).
 
 % Introduce new variables for each min/max expression to avoid
-% reparsing expressions during optimisation. This restricts the set of
-% arithmetic expressions that can be optimised to CLP(FD) expressions.
+% reparsing expressions during optimisation.
 
 exprs_singlevars([], []).
 exprs_singlevars([E|Es], [SV|SVs]) :-
