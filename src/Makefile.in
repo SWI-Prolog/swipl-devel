@@ -153,7 +153,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	charsio.pl
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON= README
-DIALECT=yap.pl hprolog.pl
+DIALECT=yap.pl hprolog.pl commons.pl ciao.pl
 YAP=	README.TXT
 ISO=	iso_predicates.pl
 UNICODE=blocks.pl unicode_data.pl
@@ -366,7 +366,7 @@ install-demo:	idirs
 installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man demo boot library \
 		library/clp library/unicode include dotfiles \
 		library/dialect library/dialect/yap library/dialect/iso \
-		library/common
+		library/common library/commons library/ciao
 
 iruntime:	idirs
 		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(ARCH)
