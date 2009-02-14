@@ -310,7 +310,7 @@ rest_par([_-[]|Rest], [], _, MaxI, MaxI, Rest) :- !.
 rest_par(Lines, [], _, MaxI, MaxI, Lines) :-
 	Lines = [_-Verb|_],
 	verbatim_term(Verb), !.
-rest_par([I-L|Rest], [], I, MaxI, MaxI, [I-L|Rest]) :-
+rest_par([I-L|Rest], [], _, MaxI, MaxI, [I-L|Rest]) :-
 	list_item_prefix(_, L, _), !.
 rest_par([I-L1|LT], ['\n'|Par], BI, MaxI0, MaxI, Rest) :-
 	append(L1, PT, Par),
