@@ -1263,6 +1263,7 @@ PL_cleanup(int rval)
   cleanupThreads();
 #endif
   cleanupForeign();
+  cleanupCodeToAtom();
   cleanupMemAlloc();
 
   UNLOCK();				/* requires GD->thread.enabled */

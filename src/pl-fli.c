@@ -2283,6 +2283,21 @@ codeToAtom(int chrcode)
 }
 
 
+void
+cleanupCodeToAtom(void)
+{ int page;
+  atom_t **pv;
+
+  for(page=0, pv=GD->atoms.for_code; page<256; page++)
+  { if ( *pv )
+    { void *ptr = *pv;
+      *pv = NULL;
+      PL_free(ptr);
+    }
+  }
+}
+
+
 int
 PL_unify_list_ncodes(term_t l, size_t len, const char *chars)
 { GET_LD

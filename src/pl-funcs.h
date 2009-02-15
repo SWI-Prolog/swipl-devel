@@ -352,7 +352,7 @@ COMMON(void)		initForeign(void);
 COMMON(int)		PL_rethrow(void);
 COMMON(int)		PL_pending__LD(int sig ARG_LD);
 COMMON(int)		PL_clearsig__LD(int sig ARG_LD);
-
+COMMON(void)		cleanupCodeToAtom(void);
 
 /* pl-fmt.c */
 COMMON(word) 		pl_format_predicate(term_t chr, term_t descr);

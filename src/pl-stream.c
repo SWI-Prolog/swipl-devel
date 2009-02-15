@@ -3425,6 +3425,14 @@ Scleanup(void)
 
     s->bufp = s->buffer;		/* avoid actual flush */
     S__removebuf(s);
+    if ( S__iob[i].mutex )
+    { recursiveMutex *m = S__iob[i].mutex;
+
+      S__iob[i].mutex = NULL;
+      recursiveMutexDelete(m);
+      free(m);
+    }
+
     *s = S__iob0[i];			/* re-initialise */
   }
 }

@@ -2977,7 +2977,8 @@ recursiveMutexUnlock(recursiveMutex *m)
 
 counting_mutex *
 allocSimpleMutex(const char *name)
-{ counting_mutex *m = PL_malloc(sizeof(*m));
+{ GET_LD
+  counting_mutex *m = allocHeap(sizeof(*m));
 
   simpleMutexInit(&m->mutex);
   m->count = 0L;
@@ -3000,7 +3001,8 @@ allocSimpleMutex(const char *name)
 
 void
 freeSimpleMutex(counting_mutex *m)
-{ counting_mutex *cm;
+{ GET_LD
+  counting_mutex *cm;
 
   simpleMutexDelete(&m->mutex);
   LOCK();
@@ -3015,7 +3017,7 @@ freeSimpleMutex(counting_mutex *m)
   UNLOCK();
 
   remove_string((char *)m->name);
-  PL_free(m);
+  freeHeap(m, sizeof(*m));
 }
 
 
