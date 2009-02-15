@@ -132,7 +132,7 @@ expand_apply(Maplist, Goal) :-
 	functor(Maplist, maplist, N),
 	N >= 2,
 	Maplist =.. [maplist, Callable|Lists],
-	callable(Callable), !,
+	qcall_instantiated(Callable), !,
 	expand_maplist(Callable, Lists, Goal).
 expand_apply(forall(Cond, Action), \+((Cond, \+(Action)))).
 expand_apply(once(Goal), (Goal->true;fail)).
@@ -159,6 +159,22 @@ expand_apply(phrase(NT,Xs0,Xs), NewGoal) :-
 	   NewGoal = NewGoal1
 	;  ( Xs0 = Xs0c, NewGoal1 ) = NewGoal
 	).
+
+%%	qcall_instantiated(@Term) is semidet.
+%
+%	True if Term is instantiated sufficiently to call it.
+%	
+%	@tbd	Shouldn't this be callable straight away?
+
+qcall_instantiated(Var) :-
+	var(Var), !,
+	fail.
+qcall_instantiated(M:C) :- !,
+	atom(M),
+	callable(C).
+qcall_instantiated(C) :-
+	callable(C).
+
 
 harmless_dcgexception(instantiation_error).	% ex: phrase(([1],x:X,[3]),L)
 harmless_dcgexception(type_error(callable,_)).	% ex: phrase(27,L)
