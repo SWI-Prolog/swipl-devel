@@ -678,9 +678,11 @@ free_name_list(dtd_name_list *nl)
 }
 
 
+#define REFS_VIRGIN (-42)
+
 static void
 free_attribute(dtd_attr *a)
-{ if ( --a->references == 0 )
+{ if ( a->references == REFS_VIRGIN || --a->references == 0 )
   { switch(a->type)
     { case AT_NAMEOF:
       case AT_NOTATION:
@@ -690,10 +692,11 @@ free_attribute(dtd_attr *a)
     }
     switch(a->def)
     { case AT_DEFAULT:
-      { if ( a->type == AT_CDATA )
-	  sgml_free(a->att_def.cdata);
-	else if ( a->islist )
+      case AT_FIXED:
+      { if ( a->islist )
 	  sgml_free(a->att_def.list);
+	else if ( a->type == AT_CDATA && a->att_def.cdata )
+	  sgml_free(a->att_def.cdata);
       }
       default:
 	;
@@ -1966,7 +1969,9 @@ make_model(dtd *dtd, const ichar *decl, const ichar **end)
       modeltype mt;
 
       if ( !(sub = make_model(dtd, decl, &s)) )
+      { free_model(sub);
 	return NULL;
+      }
       decl = s;
       add_submodel(m, sub);
       
@@ -2356,10 +2361,13 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 					/* fetch attributes */
   while(*decl)
   { dtd_attr *at = sgml_calloc(1, sizeof(*at));
+    at->references = REFS_VIRGIN;
 
 					/* name of attribute */
     if ( !(s = itake_name(dtd, decl, &at->name)) )
+    { free_attribute(at);
       return gripe(ERC_SYNTAX_ERROR, L"Name expected", decl);
+    }
     decl = s;
 
 					/* (name1|name2|...) type */
@@ -2373,7 +2381,9 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
       { dtd_symbol *nm;
 
 	if ( !(s = itake_nmtoken(dtd, decl, &nm)) )
+	{ free_attribute(at);
 	  return gripe(ERC_SYNTAX_ERROR, L"Name expected", decl);
+	}
 	decl = s;
 	add_name_list(&at->typeex.nameof, nm);
 	if ( (s=isee_ngsep(dtd, decl, &ngs)) )
@@ -2385,6 +2395,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 	  decl = iskip_layout(dtd, decl);
 	  break;
 	}
+	free_attribute(at);
 	return gripe(ERC_SYNTAX_ERROR, L"Illegal name-group", decl);
       }
     } else if ( (s=isee_identifier(dtd, decl, "cdata")) )
@@ -2447,9 +2458,13 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 	for(i=0; i<ns; i++)
 	  add_name_list(&at->typeex.nameof, ng[i]);
       } else
+      { free_attribute(at);
 	return gripe(ERC_SYNTAX_ERROR, L"name-group expected", decl);
+      }
     } else
+    { free_attribute(at);
       return gripe(ERC_SYNTAX_ERROR, L"Attribute-type expected", decl);
+    }
 
 					/* Attribute Defaults */
     if ( (s=isee_identifier(dtd, decl, "#fixed")) )
@@ -2532,13 +2547,16 @@ length of the parsed data to verify we parsed all of it.
 	  break;
 	}
 	default:
+	{ free_attribute(at);
 	  return gripe(ERC_REPRESENTATION, L"No default for type");
+	}
       }
 
       decl = end;
     }
 
 					/* add to list */
+    at->references = 0;
     for(i=0; i<en; i++)
     { dtd_element *e = def_element(dtd, eid[i]);
 
