@@ -716,7 +716,7 @@ reply_header(file(Type, File), HdrExtra) -->
 	content_type(Type),
 	"\r\n".
 reply_header(file(Type, File, Range), HdrExtra) -->
-	vstatus(ok),
+	vstatus(partial_content),
 	date(now),
 	modified(file(File)),
 	header_fields(HdrExtra),
@@ -802,6 +802,7 @@ vstatus(Status) -->
 
 status_number(continue)		   --> "100".
 status_number(ok)		   --> "200".
+status_number(partial_content)	   --> "206".
 status_number(moved)		   --> "301".
 status_number(moved_temporary)	   --> "302".
 status_number(see_other)	   --> "303".
@@ -816,6 +817,8 @@ status_comment(continue) -->
 	"Continue".
 status_comment(ok) -->
 	"OK".
+status_comment(partial_content) -->
+	"Partial content".
 status_comment(moved) -->
 	"Moved Permanently".
 status_comment(moved_temporary) -->
@@ -871,11 +874,15 @@ content_length(file(File)) --> !,
 	},
 	content_length(Len).
 content_length(file(File, bytes(From, To))) --> !,
-	{   To == end
-	->  size_file(File, End),
-	    Len is End - From
-	;   Len is To - From
+	{ size_file(File, Size),
+	  (   To == end
+	  ->  Len is Size - From,
+	      RangeEnd is Size - 1
+	  ;   Len is To+1 - From,		% To is index of last byte
+	      RangeEnd = To
+	  )
 	},
+	content_range(bytes, From, RangeEnd, Size),
 	content_length(Len).
 content_length(html(Tokens)) --> !,
 	{ html_print_length(Tokens, Len)
@@ -885,6 +892,16 @@ content_length(Len) -->
 	{ number_codes(Len, LenChars)
 	},
 	"Content-Length: ", string(LenChars),
+	"\r\n".
+
+%%	content_range(+Unit:atom, +From:int, +RangeEnd:int, +Size:int)// is det
+%
+%	Emit the =|Content-Range|= header  for   partial  content  (206)
+%	replies.
+
+content_range(Unit, From, RangeEnd, Size) -->
+	"Content-Range: ", atom(Unit), " ",
+	integer(From), "-", integer(RangeEnd), "/", integer(Size),
 	"\r\n".
 
 transfer_encoding(Encoding) -->
