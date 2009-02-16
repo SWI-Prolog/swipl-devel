@@ -110,6 +110,10 @@ diagnosed to mess with the entity resolution by Fabien Todescato.
 	current_dtd/2.
 :- volatile
 	current_dtd/2.
+:- thread_local
+	registered_cleanup/0.
+:- volatile
+	registered_cleanup/0.
 
 :- multifile
 	dtd_alias/2.
@@ -129,16 +133,17 @@ dtd(Type, DTD) :-
 			     access(read)
 			   ], DtdFile),
 	load_dtd(DTD, DtdFile),
+	register_cleanup,
 	asserta(current_dtd(Type, DTD)).
 
-%	load_dtd(+DTD, +DtdFile, +Options)
+%%	load_dtd(+DTD, +DtdFile, +Options)
 %	
 %	Load file into a DTD.  Defined options are:
 %	
-%		# dialect(+Dialect)
+%		* dialect(+Dialect)
 %		Dialect to use (xml, xmlns, sgml)
 %
-%		# encoding(+Encoding)
+%		* encoding(+Encoding)
 %		Encoding of DTD file
 
 load_dtd(DTD, DtdFile) :-
@@ -161,7 +166,7 @@ split_dtd_options([H|T], TD, [H|S]) :-
 dtd_option(dialect(_)).
 
 
-%	destroy_dtds
+%%	destroy_dtds
 %	
 %	Destroy  DTDs  cached  by  this  thread   as  they  will  become
 %	unreachable anyway.
@@ -173,9 +178,15 @@ destroy_dtds :-
 	;   true
 	).
 
-%	catch for if we do not have threads
+%%	register_cleanup
+%
+%	Register cleanup of DTDs created for this thread.
 
-:- catch(thread_at_exit(destroy_dtds), _, true).
+register_cleanup :-
+	registered_cleanup, !.
+register_cleanup :-
+	catch(thread_at_exit(destroy_dtds), _, true),
+	assert(registered_cleanup).
 
 
 		 /*******************************
