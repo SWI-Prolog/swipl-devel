@@ -1,3 +1,26 @@
+[Feb 15 2009]
+
+ * FIXED: Proper reply on partial content (use 206 reply; fix length computation)
+   
+[Feb 3 2009]
+
+ * ADDED: HTTP server support for byte-ranges of files.
+   
+ * ADDED: Parsing of HTTP Range field into a structured term
+   
+[Jan 30 2009]
+
+ * ENHANCED: HTTP error handler in formulating replies from a file.
+   
+[Jan 29 2009]
+
+ * CLEANUP: be careful, but to not crash on unexpected event on CGI streams.
+   
+[Jan 28 2009]
+
+ * ADDED: When matching a prefix-path in http_dispatch, makethe remainder
+   of the path available through path_info(PathInfo) in the request.
+   
 [Jan 22 2009]
 
  * ADDED: http_in_session/1 to find the current session but do not raise an

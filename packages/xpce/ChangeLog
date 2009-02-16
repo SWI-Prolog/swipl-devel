@@ -1,3 +1,10 @@
+[Jan 30 2009]
+
+ * FIXED: PceEmacs colouring of module:head --> body clauses.
+   
+[Jan 26 2009]
+
+ * PORT: Build properly working XPCE if xinerama is missing
 [Jan 22 2009]
 
  * FIXED: Tracer handling of redo port.

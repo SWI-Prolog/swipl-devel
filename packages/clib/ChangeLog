@@ -1,3 +1,28 @@
+[Feb 4 2009]
+
+ * FIXED: Uninitialised variable in environment parsing of process.c.  Keri Harris.
+   
+[Jan 29 2009]
+
+ * CLEANUP: generalisations in the socket library design to allow TIPC to
+   reuse parts of it.  Contributed by Jeff Rosenwald.
+   
+ * PORT: Port new environment initialisation of process_create/3 to Windows.
+   The new environment processing code is free of limits (of course, except
+   limits of the operating system).
+   
+[Jan 28 2009]
+
+ * ADDED: env option to process_create/3 to specify the environment for
+   the child process.
+   
+[Jan 26 2009]
+
+ * FIXED: make install_alarm/1 produce an error when installing twice.
+   
+ * MODIFIED: Renamed setup_and_call_cleanup/3,4 to setup_call_cleanup/3 and setup_call_catcher_cleanup/4; added to library(backcomp).
+   
+ * ADDED: library(streaminfo) for debugging (network) stream issues
 [Jan 23 2009]
 
  * CHECK: Fixed makefile for modified test entry-point

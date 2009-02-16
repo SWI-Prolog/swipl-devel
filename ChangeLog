@@ -8,6 +8,63 @@
 					--------------------------------------
 
 
+===============================
+VERSION 5.7.6 February 16, 2009
+===============================
+
+ * FIXED: Support Name//Arity in exports for generating the library-index
+   
+ * FIXED: Reading unintialised memory in expand_file_name/2
+   
+ * FIXED: Memory leak in Prolog reader when reading long Unicode atoms.
+   
+ * CLEANUP: make simple startup/stop free of memory-leaks
+   
+ * FIXED: maplist expansion for insufficiently instantiated callable
+   term (M:C).
+   
+ * ENHANCED: CLP(FD): Faster labeling for complex optimisation expressions.
+   
+ * ADDED: More dialect stuff
+   
+ * CLEANUP: Module declaration code
+   
+ * FIXED: Problem in apply_macros.pl for once/1.  Paulo Moura.
+   
+ * FIXED: Resource exception handling in thread_get_message/2.  Keri Harris
+   managed to diagnose this nasty problem.
+   
+ * FIXED: prolog_load_context(dialect, D).  Caused loading problems for CHR.
+   Keri Harris.
+   
+ * ENHANCED: predicate_property/2: do not try to autoload libraries into
+   the system module.
+   
+ * MODIFIED: library(url): break search parameters on ; as well (new-style).
+   
+ * ENHANCED: Be a bit more careful with preserving I/O errors over streams
+   
+ * PORT: Pre-check allocation for GMP left-shift
+   
+ * MODIFIED: Renamed setup_and_call_cleanup/3,4 to setup_call_cleanup/3 and setup_call_catcher_cleanup/4; added to library(backcomp).
+   
+ * FIXED: DWIM correct of goals in module user.
+   
+ * FIXED: MODIFIED: Do not perform goal-expansion....
+   
+ * FIXED: Steadfastness problem in numlist/3.  Ulrich Neumerkel.
+   
+ * FIXED: numlist/3 for negative input.  Erik Flister.
+   
+ * ENHANCED: Avoid tagging corrected system predicates with their module.
+   
+ * MODIFIED: Do not perform goal-expansion on system:Goal.  This simplifies
+   changing system predicates in the dialect handling system
+   
+ * ADDED: Some extensions to YAP compatibility library: source/0,
+   yap_flag(write_strings, Bool) and map style_check(all).
+   
+ * FIXED: make sure directives are first processed by expand_goal/2
 ==============================
 VERSION 5.7.5 January 23, 2009
 ==============================

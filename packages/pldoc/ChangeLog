@@ -1,3 +1,15 @@
+[Feb 16 2009]
+
+ * FIXED: Use call_cleanup when processing HTML manual-files
+   
+[Feb 14 2009]
+
+ * FIXED: List recognition in PlDoc.  Markus Triska.
+   
+[Feb 10 2009]
+
+ * ENHANCED: PlDoc recognition of $ title : to ask for white-space after the :
+   
 [Jan 16 2009]
 
  * FIXED: Determinism of doc_browser/0. Erik Flister.

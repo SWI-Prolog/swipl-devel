@@ -1,3 +1,11 @@
+[Feb 16 2009]
+
+ * FIXED: Release HTML DTDs when using load_html_file/2 in a thread.
+   
+[Feb 15 2009]
+
+ * FIXED: Memory leak in SGML parser.
+   
 [Jan 21 2009]
 
  * FIXED: RDF writer: write valid XML if the namespace entity contains characters
