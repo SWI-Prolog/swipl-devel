@@ -2371,6 +2371,9 @@ pl_sgml_register_catalog_file(term_t file, term_t where)
 		 *******************************/
 
 extern install_t install_xml_quote(void);
+#ifdef O_STATISTICS
+extern void sgml_statistics(void);
+#endif
 
 install_t
 install()
@@ -2392,5 +2395,8 @@ install()
 		      PL_FA_NONDETERMINISTIC);
 
   install_xml_quote();
+#ifdef O_STATISTICS
+  atexit(sgml_statistics);
+#endif
 }
 

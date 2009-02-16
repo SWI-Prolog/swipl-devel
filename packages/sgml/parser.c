@@ -118,6 +118,37 @@ static int		prepare_cdata(dtd_parser *p);
 	}
 
 		 /*******************************
+		 *	     STATISTICS		*
+		 *******************************/
+
+#ifdef O_STATISTICS
+
+int edefs_created = 0;
+int edefs_freed = 0;
+int edefs_implicit = 0;
+int edefs_atts = 0;
+int edefs_decl = 0;
+int dtd_created = 0;
+int dtd_freed = 0;
+
+void
+sgml_statistics(void)
+{ fprintf(stderr, "EDEFS: created %d; freed %d\n", edefs_created, edefs_freed);
+  fprintf(stderr, "EDEFS: implicit %d; atts %d; decl %d\n",
+	  edefs_implicit, edefs_atts, edefs_decl);
+  fprintf(stderr, "DTDs: created: %d; freed: %d\n", dtd_created, dtd_freed);
+}
+
+#define STAT(g) g
+
+#else
+
+#define STAT(g) ((void)0)
+
+#endif
+
+
+		 /*******************************
 		 *	   SRC LOCATION		*
 		 *******************************/
 
@@ -652,12 +683,22 @@ find_element(dtd *dtd, dtd_symbol *id)
 }
 
 
+static dtd_edef *
+new_element_definition(dtd *dtd)
+{ dtd_edef *def = sgml_calloc(1, sizeof(*def));
+  
+  STAT(edefs_created++);
+
+  return def;
+}
+
+
 static dtd_element *
 def_element(dtd *dtd, dtd_symbol *id)
 { dtd_element *e = find_element(dtd, id);
 
   if ( !e->structure )
-  { e->structure = sgml_calloc(1, sizeof(*e->structure));
+  { e->structure = new_element_definition(dtd);
     e->structure->references = 1;
     e->structure->type = C_EMPTY;
   }
@@ -731,11 +772,11 @@ free_element_list(dtd_element_list *l)
   }
 }
 
-
 static void
 free_element_definition(dtd_edef *def)
 { if ( --def->references == 0 )
-  { if ( def->content )
+  { STAT(edefs_freed++);
+    if ( def->content )
       free_model(def->content);
     free_element_list(def->included);
     free_element_list(def->excluded);
@@ -1130,6 +1171,7 @@ dtd *
 new_dtd(const ichar *doctype)
 { dtd *dtd = sgml_calloc(1, sizeof(*dtd));
 
+  STAT(dtd_created++);
   dtd->magic	 = SGML_DTD_MAGIC;
   dtd->implicit  = TRUE;
   dtd->dialect   = DL_SGML;
@@ -1150,7 +1192,9 @@ new_dtd(const ichar *doctype)
 void
 free_dtd(dtd *dtd)
 { if ( --dtd->references == 0 )
-  { if ( dtd->doctype )
+  { STAT(dtd_freed++);
+
+    if ( dtd->doctype )
       sgml_free(dtd->doctype);
   
     free_entity_list(dtd->entities);
@@ -2214,9 +2258,11 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
   if ( en == 0 )
     return TRUE;			/* 0 elements */
 
-  def = sgml_calloc(1, sizeof(*def));
+  STAT(edefs_decl++);
+  def = new_element_definition(dtd);
   for(i=0; i<en; i++)
   { find_element(dtd, eid[i]);
+    assert(eid[i]->element->structure == NULL);
     eid[i]->element->structure = def;
     eid[i]->element->undefined = FALSE;
   }
@@ -3357,6 +3403,7 @@ process_begin_element(dtd_parser *p, const ichar *decl)
     if ( !e->structure )
     { dtd_edef *def;
       e->undefined = TRUE;
+      STAT(edefs_implicit++);
       def_element(dtd, id);
       def = e->structure;
       def->type = C_EMPTY;
