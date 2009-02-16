@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -132,10 +132,10 @@ expand_apply(Maplist, Goal) :-
 	functor(Maplist, maplist, N),
 	N >= 2,
 	Maplist =.. [maplist, Callable|Lists],
-	callable(Callable), !,
+	qcall_instantiated(Callable), !,
 	expand_maplist(Callable, Lists, Goal).
 expand_apply(forall(Cond, Action), \+((Cond, \+(Action)))).
-expand_apply(once(Goal), (Goal->true)).
+expand_apply(once(Goal), (Goal->true;fail)).
 expand_apply(ignore(Goal), (Goal->true;true)).
 expand_apply(phrase(NT,Xs), NTXsNil) :-
 	expand_apply(phrase(NT,Xs,[]), NTXsNil).
@@ -159,6 +159,22 @@ expand_apply(phrase(NT,Xs0,Xs), NewGoal) :-
 	   NewGoal = NewGoal1
 	;  ( Xs0 = Xs0c, NewGoal1 ) = NewGoal
 	).
+
+%%	qcall_instantiated(@Term) is semidet.
+%
+%	True if Term is instantiated sufficiently to call it.
+%	
+%	@tbd	Shouldn't this be callable straight away?
+
+qcall_instantiated(Var) :-
+	var(Var), !,
+	fail.
+qcall_instantiated(M:C) :- !,
+	atom(M),
+	callable(C).
+qcall_instantiated(C) :-
+	callable(C).
+
 
 harmless_dcgexception(instantiation_error).	% ex: phrase(([1],x:X,[3]),L)
 harmless_dcgexception(type_error(callable,_)).	% ex: phrase(27,L)

@@ -1137,11 +1137,22 @@ handles as normal variables.  Associated hooks are \emph{not}
 executed.
 
     \predicate{?=}{2}{{@}Term1, {@}Term2}
-Decide whether the equality of \arg{Term1} and \arg{Term2} can be
-compared safely, i.e.\ whether the result of \exam{Term1 == Term2}
-can change due to further instantiation of either term.  It is
-defined as by \verb$?=(A,B) :- (A==B ; A \= B), !.$  See also
-dif/2.
+Succeeds, if the syntactic equality of \arg{Term1} and \arg{Term2}
+can be decided safely, i.e.\ if the result of \exam{Term1 == Term2}
+will not change due to further instantiation of either term.  It is
+defined similar to \verb$?=(X,Y) :- once((X==Y ; X \= Y)).$ However,
+attributed variables are not considered.  A case of different behaviour
+is:
+
+\begin{code}
+?- freeze(X,X=1),Y=2, ?=(X,Y).
+false.
+
+?- freeze(X,X=1), Y=2, once((X==Y ; X \= Y)).
+Y = 2,
+freeze(X, X=1).
+\end{code}
+
 \end{description}
 
 
@@ -1348,11 +1359,10 @@ like call_with_time_limit/2 (package clib) or thread_signal/2.  In
 most uses, \arg{Setup} will perform temporary side-effects required by
 \arg{Goal} that are finally undone by \arg{Cleanup}.
 
-Success or failure of \arg{Cleanup} is ignored and
-choice-points it created are destroyed (as once/1).  If \arg{Cleanup}
-throws an exception, this is executed as normal.% \bug{During the
-execution of \arg{Cleanup}, garbage collection and stack-shifts are
-disabled.
+Success or failure of \arg{Cleanup} is ignored and choice-points it
+created are destroyed (as once/1). If \arg{Cleanup} throws an exception,
+this is executed as normal.\bug{During the execution of \arg{Cleanup},
+garbage collection and stack-shifts are disabled.}
 
 Typically, this predicate is used to cleanup permanent data storage
 required to execute \arg{Goal}, close file-descriptors, etc. The example
@@ -1361,9 +1371,9 @@ the stream as needed.
 
 \begin{code}
 term_in_file(Term, File) :-
-	setup_call_cleanup( open(File, read, In),
-			    term_in_stream(Term, In),
-			    close(In) ).
+	setup_call_cleanup(open(File, read, In),
+			   term_in_stream(Term, In),
+			   close(In) ).
 
 term_in_stream(Term, In) :-
 	repeat,
@@ -1429,6 +1439,7 @@ side-effects.
     \predicate{call_cleanup}{3}{:Goal, +Catcher, :Cleanup}
 Same as \term{setup_call_catcher_cleanup}{true, Goal, Catcher, Cleanup}.
 The same warning as for call_cleanup/2 applies.
+\end{description}
 
 
 \section{ISO compliant Exception handling}   \label{sec:exception}
@@ -4787,7 +4798,7 @@ functor `\const{.}' and arity~2 and the second argument is a list.%
 		  quick-and-dirty is_list/1 is a good choice. Richard
 		  O'Keefe pointed at this issue.}
 This predicate acts as if defined by the definition below on
-\jargon{acyclic} terms. The implementation is \emph{fails} safely if
+\jargon{acyclic} terms. The implementation \emph{fails} safely if
 \arg{Term} represents a cyclic list.
 
 \begin{code}
@@ -4800,7 +4811,7 @@ is_list([_|T]) :-
 \end{code}
 
     \predicate{memberchk}{2}{?Elem, +List}
-Equivalent to member/2, but leaves no choice point.
+Same as \exam{once(member(\arg{Elem}, \arg{List}))}.
 
     \predicate{length}{2}{?List, ?Int}
 True if \arg{Int} represents the number of elements of list \arg{List}. Can be used to create a list holding only variables.
@@ -4816,7 +4827,7 @@ version with the same elements.
 
     \predicate{msort}{2}{+List, -Sorted}
 Equivalent to sort/2, but does not remove duplicates.  Fails with
-a \except{type_error} if \arg{List} is not a list or a cyclic list.
+a \except{type_error} if \arg{List} is a cyclic list or not a list.
 
     \predicate{keysort}{2}{+List, -Sorted}
 List is a proper list whose elements are \exam{\arg{Key}-\arg{Value}},
@@ -4829,8 +4840,8 @@ Sorting on more than one criterion can be done using terms as keys,
 putting the first criterion as argument 1, the second as argument 2,
 etc. The order of multiple elements that have the same \arg{Key} is not
 changed. The implementation is in C, using \jargon{natural merge sort}.
-Fails with a \except{type_error} if \arg{List} is not a list or a cyclic
-list or one of the elements of \arg{List} is not a \jargon{pair}.
+Fails with a \except{type_error} if \arg{List} is a cyclic list or not
+a list or one of the elements of \arg{List} is not a \jargon{pair}.
 
     \predicate{predsort}{3}{+Pred, +List, -Sorted}
 Sorts similar to sort/2, but determines the order of two terms by

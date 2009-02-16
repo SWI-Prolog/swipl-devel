@@ -1404,7 +1404,8 @@ static int
 S__seterror(IOSTREAM *s)
 { s->io_errno = errno;
 
-  if ( s->functions->control )
+  if ( !(s->flags&SIO_CLOSING) &&	/* s->handle is already invalid */
+       s->functions->control )
   { char *msg;
 
     if ( (*s->functions->control)(s->handle,
@@ -3424,6 +3425,14 @@ Scleanup(void)
 
     s->bufp = s->buffer;		/* avoid actual flush */
     S__removebuf(s);
+    if ( S__iob[i].mutex )
+    { recursiveMutex *m = S__iob[i].mutex;
+
+      S__iob[i].mutex = NULL;
+      recursiveMutexDelete(m);
+      free(m);
+    }
+
     *s = S__iob0[i];			/* re-initialise */
   }
 }

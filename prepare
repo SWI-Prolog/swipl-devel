@@ -15,8 +15,10 @@
 # shell to initialise the submodules and download the documentation.
 
 version="`cat VERSION`"
-server="http://gollem.science.uva.nl"
-serverpath="/cgi-bin/nph-download/SWI-Prolog"
+#server="http://gollem.science.uva.nl"
+#serverpath="/cgi-bin/nph-download/SWI-Prolog"
+server="http://prolog.cs.vu.nl"
+serverpath="/download"
 serverurl="$server$serverpath"
 yes=ask
 tar=tar

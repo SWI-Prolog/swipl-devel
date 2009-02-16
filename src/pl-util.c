@@ -302,11 +302,11 @@ int_mbscoll(const char *s1, const char *s2, int icase)
   }
 
   memset(&mbs, 0, sizeof(mbs));
-  if ( mbsrtowcs(w1, &s1, l1, &mbs) == (size_t)-1 )
+  if ( mbsrtowcs(w1, &s1, l1+1, &mbs) == (size_t)-1 )
   { rc = -2;
     goto out;
   }
-  if ( mbsrtowcs(w2, &s2, l2, &mbs) == (size_t)-1 )
+  if ( mbsrtowcs(w2, &s2, l2+1, &mbs) == (size_t)-1 )
   { rc = 2;
     goto out;
   }

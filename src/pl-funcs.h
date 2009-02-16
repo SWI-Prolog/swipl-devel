@@ -352,7 +352,7 @@ COMMON(void)		initForeign(void);
 COMMON(int)		PL_rethrow(void);
 COMMON(int)		PL_pending__LD(int sig ARG_LD);
 COMMON(int)		PL_clearsig__LD(int sig ARG_LD);
-
+COMMON(void)		cleanupCodeToAtom(void);
 
 /* pl-fmt.c */
 COMMON(word) 		pl_format_predicate(term_t chr, term_t descr);
@@ -409,11 +409,11 @@ COMMON(void) 		initModules(void);
 COMMON(int) 		isSuperModule(Module s, Module m);
 COMMON(Word) 		stripModule(Word term, Module *module ARG_LD);
 COMMON(bool) 		isPublicModule(Module module, Procedure proc);
-COMMON(int) 		declareModule(atom_t name, SourceFile sf, int line);
+COMMON(int) 		declareModule(atom_t name, SourceFile sf, int line,
+				      int rdef);
 COMMON(word) 		pl_current_module(term_t module, term_t file, control_t h);
 COMMON(word) 		pl_module(term_t old, term_t new);
 COMMON(word) 		pl_set_source_module(term_t old, term_t new);
-COMMON(word) 		pl_declare_module(term_t name, term_t file, term_t line);
 COMMON(word) 		pl_context_module(term_t module);
 COMMON(word) 		pl_import(term_t pred);
 #ifdef O_PROLOG_HOOK

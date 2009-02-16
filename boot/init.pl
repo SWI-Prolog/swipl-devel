@@ -740,33 +740,38 @@ compiling :-
 preprocessor(Old, New) :-
 	flag('$preprocessor', Old, New).
 
-'$set_encoding'(default, _) :- !.
-'$set_encoding'(Encoding, Stream) :-
-	set_stream(Stream, encoding(Encoding)).
+'$set_encoding'(Stream, Options) :-
+	memberchk(encoding(Enc), Options),
+	Enc \== default,
+	set_stream(Stream, encoding(Enc)).
+'$set_encoding'(_, _).
+	
 
-'$open_source'(stream(Id, In), Enc, In, Goal) :- !,
+%%	'$open_source'(+Spec, -In, :Goal, +Options) is semidet.
+
+'$open_source'(stream(Id, In), In, Goal, Options) :- !,
 	'$push_input_context',
-	'$set_encoding'(Enc, In),
+	'$set_encoding'(In, Options),
 	set_stream(In, file_name(Id)),
 	set_stream(In, record_position(true)),
 	'$open_source_call'(Id, In, Goal, True),
 	'$pop_input_context',
 	True == yes.
-'$open_source'(File, Enc, In, Goal) :-
+'$open_source'(File, In, Goal, Options) :-
 	preprocessor(none, none), !,
 	'$push_input_context',
 	open(File, read, In),
-	'$set_encoding'(Enc, In),
+	'$set_encoding'(In, Options),
 	'$open_source_call'(File, In, Goal, True),
 	close(In),
 	'$pop_input_context',
 	True == yes.
-'$open_source'(File, Enc, In, Goal) :-
+'$open_source'(File, In, Goal, Options) :-
 	preprocessor(Pre, Pre),
 	(   '$substitute_atom'('%f', File, Pre, Command)
 	->  '$push_input_context',
 	    open(pipe(Command), read, In),
-	    '$set_encoding'(Enc, In),
+	    '$set_encoding'(In, Options),
 	    '$open_source_call'(File, In, Goal, True),
 	    close(In),
 	    '$pop_input_context',
@@ -907,13 +912,13 @@ consult(M:X) :-
 consult(List) :-
 	load_files(List).
 
-%	'$consult_goal'(+Path, -Goal)
+%%	'$consult_goal'(+Path, -Goal)
 %
 %	Determine how to load the indicated file
 
 '$consult_goal'(Path, Goal) :-
-	(   file_name_extension(_, Ext, Path),
-	    user:prolog_file_type(Ext, qlf)
+	file_name_extension(_, Ext, Path),
+	(   user:prolog_file_type(Ext, qlf)
 	->  Goal = system:'$qload_file'
 	;   Goal = system:'$consult_file'
 	).
@@ -959,9 +964,13 @@ load_files(Module:Files, Options) :-
 
 
 '$get_option'(Term, Options, Default) :-
-	(   memberchk(Term, Options)
-	->  true
-	;   arg(1, Term, Default)
+	arg(1, Term, Value),
+	functor(Term, Name, 1),
+	functor(Gen, Name, 1),
+	arg(1, Gen, GVal),
+	(   memberchk(Gen, Options)
+	->  Value = GVal
+	;   Value = Default
 	).
 
 
@@ -1026,7 +1035,6 @@ load_files(Module:Files, Options) :-
 	    
 	'$get_option'(imports(Import), Options, all),
 	'$get_option'(reexport(Reexport), Options, false),
-	'$get_option'(must_be_module(IsModule), Options, false),
 	current_prolog_flag(verbose_load, DefVerbose),
 	'$negate'(DefVerbose, DefSilent),
 	'$get_option'(silent(Silent), Options, DefSilent),
@@ -1035,7 +1043,7 @@ load_files(Module:Files, Options) :-
 	'$get_option'(if(If), Options, true),
 	'$get_option'(autoload(Autoload), Options, false),
 	'$get_option'(derived_from(DerivedFrom), Options, -),
-	'$get_option'(encoding(Encoding), Options, default),
+
 	current_prolog_flag(generate_debug_info, DebugInfo),
 
 	(   Autoload == false
@@ -1072,16 +1080,14 @@ load_files(Module:Files, Options) :-
 	    (   nonvar(FromStream),
 		(   '$get_option'(format(qlf), Options, source)
 		->  set_stream(FromStream, file_name(Absolute)),
-		    '$qload_stream'(FromStream, Module, IsModule, Action, LM)
-		;   '$consult_file'(stream(Absolute, FromStream), Encoding,
-				    Module, IsModule, Action, LM)
+		    '$qload_stream'(FromStream, Module, Action, LM, Options)
+		;   '$consult_file'(stream(Absolute, FromStream),
+				    Module, Action, LM, Options)
 		)
 	    ->	true
 	    ;   var(FromStream),
 		'$consult_goal'(Absolute, Goal),
-		call(Goal,
-		     Absolute, Encoding,
-		     Module, IsModule, Action, LM)
+		call(Goal, Absolute, Module, Action, LM, Options)
 	    ->  true
 	    ;   print_message(error, load_file(failed(File))),
 		fail
@@ -1132,19 +1138,23 @@ load_files(Module:Files, Options) :-
 	print_message(error, E),
 	fail.
 
-%%	'$consult_file'(+Path, +Encoding, +Module, +IsModule, -Action, -LoadedIn)
+%%	'$consult_file'(+Path, +Module, -Action, -LoadedIn, +Options)
+%
+%	Called  from  '$load_file'/3  using   the    goal   returned  by
+%	'$consult_goal'/2. This means that the  calling conventions must
+%	be kept synchronous with '$qload_file'/6.
 
-'$consult_file'(Absolute, Enc, Module, IsModule, What, LM) :-
+'$consult_file'(Absolute, Module, What, LM, Options) :-
 	'$set_source_module'(Module, Module), !, % same module
-	'$consult_file_2'(Absolute, Enc, Module, IsModule, What, LM).
-'$consult_file'(Absolute, Enc, Module, IsModule, What, LM) :-
+	'$consult_file_2'(Absolute, Module, What, LM, Options).
+'$consult_file'(Absolute, Module, What, LM, Options) :-
 	'$set_source_module'(OldModule, Module),
 	'$ifcompiling'('$qlf_start_sub_module'(Module)),
-        '$consult_file_2'(Absolute, Enc, Module, IsModule, What, LM),
+        '$consult_file_2'(Absolute, Module, What, LM, Options),
 	'$ifcompiling'('$qlf_end_part'),
 	'$set_source_module'(_, OldModule).
 
-'$consult_file_2'(Absolute, Enc, Module, IsModule, What, LM) :-
+'$consult_file_2'(Absolute, Module, What, LM, Options) :-
 	'$set_source_module'(OldModule, Module),	% Inform C we start loading
 	'$load_id'(Absolute, Id),
 	'$start_consult'(Id),
@@ -1157,8 +1167,9 @@ load_files(Module:Files, Options) :-
 
 	
 	'$save_lex_state'(LexState),
-	'$open_source'(Absolute, Enc, In,
-		     '$load_file'(In, Id, IsModule, LM)),
+	'$open_source'(Absolute, In,
+		       '$load_file'(In, Id, LM, Options),
+		       Options),
 	'$restore_lex_state'(LexState),
 	'$set_source_module'(_, OldModule).	% Restore old module
 
@@ -1170,17 +1181,21 @@ load_files(Module:Files, Options) :-
 %	Switch the currently expected dialect.
 
 '$set_dialect'(Old, New) :-
-	Old == New, !,
-	(   '$current_load_dialect'(Dialect)
+	'$my_dialect'(Old),
+	(   Old == New
 	->  true
-	;   Dialect = swi
+	;   retractall('$current_load_dialect'(_)),
+	    (	New == swi
+	    ->	true
+	    ;	assert('$current_load_dialect'(New))
+	    )
 	).
-'$set_dialect'(Old, Dialect) :-
-	(   retract('$current_load_dialect'(Old))
-	->  true
-	;   Old = swi
-	),
-	assert('$current_load_dialect'(Dialect)).
+
+'$my_dialect'(Current) :-
+	(   '$current_load_dialect'(Dialect)
+	->  Current = Dialect
+	;   Current = swi
+	).
 
 '$save_lex_state'(lexstate(Style, Dialect)) :-
 	'$style_check'(Style, Style),
@@ -1218,34 +1233,35 @@ load_files(Module:Files, Options) :-
 	).
 
 
-%   '$load_file'(+In, +Path, +IsModule, -Module)
+%   '$load_file'(+In, +Path, -Module, +Options)
 %
 %   '$load_file'/4 does the actual loading.
 
-'$load_file'(In, File, IsModule, Module) :-
+'$load_file'(In, File, Module, Options) :-
 	(   peek_char(In, #)
 	->  skip(In, 10)
 	;   true
 	),
 	'$read_clause'(In, First),
-	'$load_file'(First, In, File, IsModule, Module).
+	'$load_file'(First, In, File, Module, Options).
 
 
-'$load_file'((?- module(Module, Public)), In, File, _, Module) :- !,
-	'$load_module'(Module, Public, In, File).
-'$load_file'((:- module(Module, Public)), In, File, _, Module) :- !,
-	'$load_module'(Module, Public, In, File).
+'$load_file'((?- module(Module, Public)), In, File, Module, Options) :- !,
+	'$load_module'(Module, Public, In, File, Options).
+'$load_file'((:- module(Module, Public)), In, File, Module, Options) :- !,
+	'$load_module'(Module, Public, In, File, Options).
 '$load_file'((?- module(Module, Public)),
-	     In, File, _, Module) :- !,
-	'$load_module'(Module, Public, In, File).
+	     In, File, Module, Options) :- !,
+	'$load_module'(Module, Public, In, File, Options).
 '$load_file'((:- module(Module, Public)),
-	     In, File, _, Module) :- !,
-	'$load_module'(Module, Public, In, File).
-'$load_file'(_, _, File, true, _) :- !,
+	     In, File, Module, Options) :- !,
+	'$load_module'(Module, Public, In, File, Options).
+'$load_file'(_, _, File, _, Options) :-
+	'$get_option'(must_be_module(true), Options, false), !,
 	throw(error(domain_error(module_file, File), _)).
-'$load_file'(end_of_file, _, _, _, Module) :- !, 	% empty file
+'$load_file'(end_of_file, _, _, Module, _) :- !, 	% empty file
 	'$set_source_module'(Module, Module).
-'$load_file'(FirstClause, In, File, false, Module) :- !,
+'$load_file'(FirstClause, In, File, Module, _Options) :- !,
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(File)),
 	ignore('$consult_clause'(FirstClause, File)),
@@ -1255,13 +1271,24 @@ load_files(Module:Files, Options) :-
 '$reserved_module'(system).
 '$reserved_module'(user).
 
-'$load_module'(Reserved, _, _, _) :-
+%%	'$load_module'(+Module, +Public, +Stream, +File, +Options)
+%
+%	Options processed:
+%	
+%		* redefine_module(Action)
+%		Action is one of =true=, =false= or =ask=.
+%		
+%	Redefining a module by loading another file must be more subtle.
+%	Verify the compatibility of the interface could be one example.
+
+'$load_module'(Reserved, _, _, _, _) :-
 	'$reserved_module'(Reserved), !,
 	throw(error(permission_error(load, module, Reserved), _)).
-'$load_module'(Module, Public, In, File) :-
+'$load_module'(Module, Public, In, File, Options) :-
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
-	'$declare_module'(Module, File, Line),
+	'$get_option'(redefine_module(Action), Options, false),
+	'$declare_module'(Module, File, Line, Action),
 	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),

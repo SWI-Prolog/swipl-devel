@@ -53,6 +53,7 @@ things:
 
     * It registered three listeners: tipc_node/2, tipc_cluster/2, and
     tipc_zone/2. 
+
 A broadcast/1 or broadcast_request/1 that is not  directed to one of the
 six listeners above, behaves as usual and is confined to the instance of
 Prolog that originated it. But when so   directed, the broadcast will be
@@ -115,6 +116,12 @@ and subtle differences that must be taken into consideration:
     random number generator), then the broadcast request will never
     terminate and trouble is bound to ensue.
 
+    * broadcast_request/1 with TIPC scope is _not_ reentrant (at
+    least, not now anyway). If a listener performs a broadcast_request/1
+    with TIPC scope recursively, then disaster looms certain. This
+    caveat does not apply to a TIPC scoped broadcast/1, which can safely
+    be performed from a listener context.
+
     * TIPC's capacity is not infinite. While TIPC can tolerate
     substantial bursts of activity, it is
     designed for short bursts of small messages. It can tolerate
@@ -123,9 +130,9 @@ and subtle differences that must be taken into consideration:
     that. And in congested conditions, things will start to become
     unreliable as TIPC begins prioritizing and/or discarding traffic.
 
-    * A TIPC broadcast_request/1 term that is grounded is considered
-    to be a broadcast only. No replies are collected unless the there
-    is at least one unbound variable to unify.
+    * A TIPC broadcast_request/1 term that is grounded is considered to
+    be a broadcast only. No replies are collected unless the there is at
+    least one unbound variable to unify.
 
     * A TIPC broadcast/1 always succeeds, even if there are no
     listeners.
@@ -139,29 +146,28 @@ and subtle differences that must be taken into consideration:
     atoms using term_to_atom/2. Passing real numbers this way may
     result in a substantial truncation of precision. See prolog flag
     option, 'float_format', of current_prolog_flag/2.
+
 @author    Jeffrey Rosenwald (JeffRose@acm.org)
 @license   LGPL
 @see       tipc.pl
 @compat    Linux only
 */
 
-:- use_module(library(tipc)).
+:- use_module(tipc).
 :- use_module(library(broadcast)).
 :- use_module(library(time)).
 :- use_module(library(unix)).
 
-:- require([ call_cleanup/2
+:- require([ once/1
 	   , forall/2
 	   , member/2
-	   , qsave_program/2
 	   , term_to_atom/2
 	   , thread_property/2
-	   , with_output_to/2
 	   , catch/3
-	   , flag/3
+	   , setup_call_cleanup/3
 	   , thread_create/3
-	   , tipc_socket/2 
 	   ]).
+
 
 tipc_broadcast_service(node,            name_seq(20005, 0, 0)).
 tipc_broadcast_service(cluster,         name_seq(20005, 1, 1)).
@@ -201,7 +207,7 @@ tipc_broadcast_service(zone,            name_seq(20005, 2, 2)).
 %
 
 try_finally(Setup, Cleanup) :-
-	setup_and_call_cleanup(Setup, (true; fail), Cleanup).
+	setup_call_cleanup(Setup, (true; fail), Cleanup).
 
 ld_dispatch(S, '$tipc_request'(wru(Name)), From) :-
 	tipc_get_name(S, Name),
@@ -248,6 +254,8 @@ start_tipc_listener_daemon :-
 start_tipc_listener_daemon :-
 	thread_create(tipc_listener_daemon, _,
 	       [alias(tipc_listener_daemon), detached(true)]),
+
+	listen(tipc_broadcast_service(Class, Addr), tipc_broadcast_service(Class, Addr)),
 
 	listen(tipc_broadcast, tipc_node(X), tipc_broadcast(X, node, 0.250)),
 	listen(tipc_broadcast, tipc_cluster(X), tipc_broadcast(X, cluster, 0.250)),

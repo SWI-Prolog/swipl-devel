@@ -528,8 +528,10 @@ free_prolog_thread(void *data)
   mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
   freeHeap__LD(ld, sizeof(*ld), NULL);	/* move to global pool */
 
-  if ( acknowledge )
+  if ( acknowledge )			/* == canceled */
+  { pthread_detach(info->tid);
     sem_post(sem_canceled_ptr);
+  }
 }
 
 #ifdef O_QUEUE_STATS
@@ -579,8 +581,12 @@ initPrologThreads()
 void
 cleanupThreads()
 { /*TLD_free(PL_ldata);*/		/* this causes crashes */
+  
+  if ( queueTable )
+  { destroyHTable(queueTable);		/* removes shared queues */
+    queueTable = NULL;
+  }
   threadTable = NULL;
-  queueTable = NULL;
   memset(&threads, 0, sizeof(threads));
   threads_ready = FALSE;
   queue_id = 0;
@@ -2241,7 +2247,9 @@ get_message(message_queue *queue, term_t msg)
 
     DEBUG(1, Sdprintf("%d: scanning queue\n", PL_thread_self()));
     for( ; msgp; prev = msgp, msgp = msgp->next )
-    { if ( msgp->sequence_id < seen )
+    { int rc;
+
+      if ( msgp->sequence_id < seen )
       { QSTAT(skipped);
 	continue;
       }
@@ -2251,9 +2259,14 @@ get_message(message_queue *queue, term_t msg)
 	continue;			/* fast search */
 
       QSTAT(unified);
-      PL_recorded(msgp->message, tmp);
+      EXCEPTION_GUARDED({ PL_recorded(msgp->message, tmp);
+			  rc = PL_unify(msg, tmp);
+			},
+			{ rval = FALSE;
+			  goto out;
+			});
 
-      if ( PL_unify(msg, tmp) )
+      if ( rc )
       { DEBUG(1, Sdprintf("%d: match\n", PL_thread_self()));
 	if ( prev )
 	{ if ( !(prev->next = msgp->next) )
@@ -2318,11 +2331,18 @@ peek_message(message_queue *queue, term_t msg)
   msgp = queue->head;
 
   for( msgp = queue->head; msgp; msgp = msgp->next )
-  { if ( key && msgp->key && key != msgp->key )
-      continue;
-    PL_recorded(msgp->message, tmp);
+  { int rc;
 
-    if ( PL_unify(msg, tmp) )
+    if ( key && msgp->key && key != msgp->key )
+      continue;
+
+    EXCEPTION_GUARDED({ PL_recorded(msgp->message, tmp);
+		        rc = PL_unify(msg, tmp);
+		      },
+		      { goto out;
+		      });
+
+    if ( rc )
     { simpleMutexUnlock(&queue->mutex);
       succeed;
     }
@@ -2330,6 +2350,7 @@ peek_message(message_queue *queue, term_t msg)
     PL_rewind_foreign_frame(fid);
   }
      
+out:
   simpleMutexUnlock(&queue->mutex);
   fail;
 }
@@ -2416,6 +2437,15 @@ unify_queue(term_t t, message_queue *q)
 }
 
 
+static void
+free_queue_symbol(Symbol s)
+{ message_queue *q = s->value;
+
+  destroy_message_queue(q);
+  PL_free(q);
+}
+
+
 static message_queue *
 unlocked_message_queue_create(term_t queue, long max_size)
 { GET_LD
@@ -2425,7 +2455,9 @@ unlocked_message_queue_create(term_t queue, long max_size)
   word id;
 
   if ( !queueTable )
-    queueTable = newHTable(16);
+  { queueTable = newHTable(16);
+    queueTable->free_symbol = free_queue_symbol;
+  }
   
   if ( PL_get_atom(queue, &name) )
   { if ( (s = lookupHTable(queueTable, (void *)name)) ||
@@ -2962,7 +2994,8 @@ recursiveMutexUnlock(recursiveMutex *m)
 
 counting_mutex *
 allocSimpleMutex(const char *name)
-{ counting_mutex *m = PL_malloc(sizeof(*m));
+{ GET_LD
+  counting_mutex *m = allocHeap(sizeof(*m));
 
   simpleMutexInit(&m->mutex);
   m->count = 0L;
@@ -2985,7 +3018,8 @@ allocSimpleMutex(const char *name)
 
 void
 freeSimpleMutex(counting_mutex *m)
-{ counting_mutex *cm;
+{ GET_LD
+  counting_mutex *cm;
 
   simpleMutexDelete(&m->mutex);
   LOCK();
@@ -3000,7 +3034,7 @@ freeSimpleMutex(counting_mutex *m)
   UNLOCK();
 
   remove_string((char *)m->name);
-  PL_free(m);
+  freeHeap(m, sizeof(*m));
 }
 
 

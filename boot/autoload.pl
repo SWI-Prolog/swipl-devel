@@ -288,27 +288,41 @@ library_index_out_of_date(Index, Files) :-
 
 
 do_make_library_index(Index, Files) :-
-	'$style_check'(OldStyle, OldStyle),
-	style_check(-dollar),
-	open(Index, write, Fd),
-	index_header(Fd),
-	index_files(Files, Fd),
-	close(Fd),
-	'$style_check'(_, OldStyle).
+	setup_call_cleanup((   '$style_check'(OldStyle, OldStyle),
+			       style_check(-dollar), 
+			       open(Index, write, Fd)
+			   ),
+			   (   index_header(Fd),
+			       index_files(Files, Fd)
+			   ),
+			   (   close(Fd),
+			       '$style_check'(_, OldStyle)
+			   )).
 
 index_files([], _).
 index_files([File|Files], Fd) :-
 	open(File, read, In),
-	read(In, Term),
-	close(In),
+	call_cleanup(read(In, Term),
+		     close(In)),
 	(   Term = (:- module(Module, Public))
 	->  file_name_extension(Base, _, File),
-	    forall('$member'(Name/Arity, Public),
+	    forall(public_predicate(Public, Name/Arity),
 		   format(Fd, 'index((~k), ~k, ~k, ~k).~n',
 			  [Name, Arity, Module, Base]))
 	;   true
 	),
 	index_files(Files, Fd).
+
+public_predicate(Public, PI) :-
+	'$member'(PI0, Public),
+	canonical_pi(PI0, PI).
+
+canonical_pi(Var, _) :-
+	var(Var), !, fail.
+canonical_pi(Name/Arity, Name/Arity).
+canonical_pi(Name//A0,   Name/Arity) :-
+	Arity is A0 + 2.
+
 
 index_header(Fd):-
 	format(Fd, '/*  $Id', []),

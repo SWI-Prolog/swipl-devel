@@ -5,7 +5,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007, 2008 Markus Triska
+    Copyright (C): 2007-2009 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -225,11 +225,11 @@ _G10152 in 2..8.
 ==
 
 Here, the constraint solver has deduced more stringent bounds for all
-variables. Keeping the modeling part separate from the search allows
-to view these residual goals, observe termination and determinism
-properties of the modeling part in isolation from the search, and to
-more easily experiment with different search strategies. Labeling can
-then be used to search for solutions:
+variables. Keeping the modeling part separate from the search lets you
+view these residual goals, observe termination and determinism
+properties of the modeling part in isolation from the search, and more
+easily experiment with different search strategies. Labeling can then
+be used to search for solutions:
 
 ==
 ?- puzzle(As+Bs=Cs), label(As).
@@ -245,8 +245,8 @@ to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
 
-It is perfectly reasonable to use CLP(FD) constraints instead of
-ordinary integer arithmetic with is/2, >/2 etc. For example:
+You can also use CLP(FD) constraints as a more declarative alternative
+for ordinary integer arithmetic with is/2, >/2 etc. For example:
 
 ==
 :- use_module(library(clpfd)).
@@ -1089,7 +1089,7 @@ label(Vs) :- labeling([], Vs).
 % categories of options exist:
 %
 % The variable selection strategy lets you specify which variable of
-% Vars should be labeled next and is one of:
+% Vars is labeled next and is one of:
 %
 %   * leftmost
 %   Label the variables in the order they occur in Vars. This is the
@@ -1200,8 +1200,19 @@ label([], _, Selection, Order, Choice, Optim0, Consistency, Vars) :-
         ( Optim0 == [] ->
             label(Vars, S, O, C, Consistency)
         ;   reverse(Optim0, Optim),
-            optimise(Vars, [S,O,C], Optim)
+            exprs_singlevars(Optim, SVs),
+            optimise(Vars, [S,O,C], SVs)
         ).
+
+% Introduce new variables for each min/max expression to avoid
+% reparsing expressions during optimisation.
+
+exprs_singlevars([], []).
+exprs_singlevars([E|Es], [SV|SVs]) :-
+        E =.. [F,Expr],
+        Single #= Expr,
+        SV =.. [F,Single],
+        exprs_singlevars(Es, SVs).
 
 all_dead(fd_props(Bs,Gs,Os)) :-
         all_dead_(Bs),

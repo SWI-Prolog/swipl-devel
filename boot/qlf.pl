@@ -31,8 +31,8 @@
 
 :- module('$qlf',
 	  [ qcompile/1,		% :Files
-	    '$qload_file'/6,	% +Path, +Enc, +Module, +IsModule, -Ac, -LM
-	    '$qload_stream'/5	% +Stream, +Module, +IsModule, -Ac, -LM
+	    '$qload_file'/5,	% +Path, +Module, -Ac, -LM, +Options
+	    '$qload_stream'/5	% +Stream, +Module, -Ac, -LM, +Options
 	  ]).
 
 
@@ -81,22 +81,24 @@ qcompile(FileName, Module) :-
 	Ok == true.
 
 
-%%	'$qload_file'(+File, _Enc, +Module, -IsModule, -Action, -LoadedModule)
+%%	'$qload_file'(+File, +Module, -Action, -LoadedModule, +Options)
 %
 %	Load predicate for .qlf files.  See init.pl
 
-'$qload_file'(File, _Enc, Module, IsModule, Action, LoadedModule) :-
+'$qload_file'(File, Module, Action, LoadedModule, Options) :-
 	open(File, read, In, [type(binary)]),
 	call_cleanup('$qload_stream'(In, Module,
-				     IsModule, Action, LoadedModule),
+				     Action, LoadedModule, Options),
 		     close(In)).
 
 
-'$qload_stream'(In, Module, IsModule, loaded, LoadedModule) :-
+'$qload_stream'(In, Module, loaded, LoadedModule, Options) :-
 	'$qlf_load'(Module:In, LoadedModule),
-	check_is_module(IsModule, LoadedModule, In).
+	check_is_module(LoadedModule, In, Options).
 
-check_is_module(true, 0, In) :- !,
+check_is_module(LM, In, Options) :-
+	var(LM),
+	'$get_option'(must_be_module(true), Options, false), !,
 	stream_property(In, file_name(File)),
 	throw(error(domain_error(module_file, File), _)).
 check_is_module(_, _, _).

@@ -215,7 +215,7 @@ assert_static(Term) :-
 
 %%	atomic_concat(+Prefix, +Suffix, -Atom) is det.
 %
-%	Append to atomic values.  SWI-Prolog's built-in atom_concat/3
+%	Append two atomic values.   SWI-Prolog's  built-in atom_concat/3
 %	already overloads this behaviour.
 
 atomic_concat(Prefix, Suffix, Atom) :-

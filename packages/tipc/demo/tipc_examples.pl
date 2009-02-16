@@ -1,4 +1,4 @@
-:- use_module(library(tipc)).
+:- use_module(library(tipc/tipc)).
 :- use_module(library(unix)).
 
 

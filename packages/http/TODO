@@ -14,13 +14,6 @@ as well as replaying requests from the user-thread for easy debugging.
 
 Can we deal with HTTP POST requests?
 
-
----++ Logging
-
-We should provide centralized logging based on a hook similar to what is
-needed to store debugging information.
-
-
 ---++ JSON integration
 
 JavaScript Simple Object Notation is a   simple and lightweight exchange
@@ -31,11 +24,7 @@ following items on our todo list.
 	* Deal with nested objects in conversion
 	* Documentation.
 
----++ Threading
+---++ Support ranges	
 
-Getting close.  Remaining issues:
-
-	* Implement spawn(+Pool) in http_dispatch
-	* Realise time limitation after moving to another thread
-
-	
+	* Deal with Range: bytes=<from>-[<to>]
+	* If we cannot deal, send status "501 Not Implemented"

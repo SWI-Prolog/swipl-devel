@@ -32,7 +32,7 @@ PUBLICPL=       pl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=tipc
-TEX=$(DOC).tex tipcoverview.tex tipcpl.tex tipcbroadcast.tex
+TEX=$(DOC).tex tipcoverview.tex tipcpl.tex tipcbroadcast.tex tipcpaxos.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
@@ -57,14 +57,25 @@ tipc.@SO@:	$(TIPCOBJ)
 
 tipc.o:		tipc.c ../clib/sockcommon.c
 
+ifeq ($(TARGETS),)
+
+install::
+ln-install::
+rpm-install::
+html-install::
+pdf-install::
+uninstall::
+
+else
+
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
 		for f in $(TARGETS); do \
 		  $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/lib/$(PLARCH); \
 		done
-		mkdir -p $(DESTDIR)$(PLBASE)/library
+		mkdir -p $(DESTDIR)$(PLBASE)/library/tipc
 		for f in $(LIBPL) $(LIBTXT); do \
-		  $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library; \
+		  $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library/tipc; \
 		done
 		$(PL) -f none -g make -t halt
 
@@ -83,8 +94,10 @@ pdf-install::
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
-		(cd $(PLBASE)/library && rm -f $(LIBPL))
+		(cd $(PLBASE)/library/tipc && rm -f $(LIBPL) $(LIBTXT))
 		$(PL) -f none -g make -t halt
+
+endif
 
 ################################################################
 # Testing
@@ -117,6 +130,8 @@ tipcpl.tex:	tipc.pl
 		$(PLTOTEX) --subsection --out=tipcpl $<
 tipcbroadcast.tex:	tipc_broadcast.pl
 		$(PLTOTEX) --subsection $<
+tipcpaxos.tex:	tipc_paxos.pl
+		$(PLTOTEX) --subsection $<
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
@@ -136,5 +151,5 @@ distclean:	clean
 		rm -f config.cache config.h config.h.in configure
 		rm -f config.status Makefile
 		rm -f $(DOC).aux $(DOC).log $(DOC).out $(DOC).toc
-		rm -f tipc.pdf tipc.html tipc.idx tipc.ilg
+		rm -f tipc.idx tipc.ilg
 		rm -rf html autom4te.cache

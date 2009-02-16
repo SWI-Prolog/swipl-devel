@@ -72,7 +72,9 @@ _after_ library(pldoc) has been loaded.
 :- dynamic
 	doc_server_port/1.
 
-http:location(pldoc,	root(.),    []).
+http:location(pldoc, root(.), []).
+http:location(pldoc_man, pldoc(refman), []).
+http:location(pldoc_pkg, pldoc(package), []).
 http:location(pldoc_resource, Path, []) :-
 	http_location_by_id(pldoc_resource, Path).
 
@@ -210,6 +212,7 @@ prepare_editor.
 
 :- http_handler(pldoc(.),	   pldoc_root,
 		[prefix, authentication(pldoc(read))]).
+:- http_handler(pldoc('index.html'), pldoc_index,   []).
 :- http_handler(pldoc(file),	   pldoc_file,	   []).
 :- http_handler(pldoc(directory),  pldoc_dir,	   []).
 :- http_handler(pldoc(edit),	   pldoc_edit,
@@ -218,7 +221,6 @@ prepare_editor.
 :- http_handler(pldoc(man),	   pldoc_man,	   []).
 :- http_handler(pldoc(doc_for),	   pldoc_object,   []).
 :- http_handler(pldoc(search),	   pldoc_search,   []).
-:- http_handler(pldoc('package/'), pldoc_package,  [prefix]).
 :- http_handler(pldoc('res/'),	   pldoc_resource, [prefix]).
 
 
@@ -249,9 +251,21 @@ pldoc_root(_Request, false) :-
 	doc_file_href(Dir1, Ref0),
 	atom_concat(Ref0, 'index.html', Index),
 	throw(http_reply(see_other(Index))).
-pldoc_root(_Request, _) :-
-	reply_html_page(title('PlDoc directory index'),
-			\doc_links('', [])).
+pldoc_root(Request, _) :-
+	pldoc_index(Request).
+
+
+%%	pldoc_index(+Request)
+%
+%	HTTP handle for /index.html, providing an overall overview
+%	of the available documentation.
+
+pldoc_index(_Request) :-
+	reply_html_page(title('SWI-Prolog documentation'),
+			[ \doc_links('', []),
+			   h1('SWI-Prolog documentation'),
+			  \man_overview([])
+			]).
 
 
 %%	pldoc_file(+Request)
@@ -531,24 +545,6 @@ pldoc_search(Request) :-
 					search_match(Match)
 				      | EditOptions
 				      ])).
-
-%%	pldoc_package(+Request)
-%
-%	Handler  for  /package/Name,  providing  documentation  for  the
-%	SWI-Prolog  package  Name.  Exploits  the    file   search  path
-%	=package_documentation=.
-%	
-%	@tbd	Allow embedding div element
-
-pldoc_package(Request) :-
-	http_location_by_id(pldoc_package, Path),
-	atom_concat(Path, Package, Path), !,
-	absolute_file_name(package_documentation(Package),
-			   DocFile,
-			   [ access(read),
-			     file_errors(fail)
-			   ]),
-	http_reply_file(DocFile, [], Request).
 
 
 		 /*******************************

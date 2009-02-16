@@ -1236,7 +1236,7 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 	    skip = TRUE;
 	    LD->modules.source = m;
 	  } else
-	  { if ( !declareModule(mname, currentSource, 0) ) /* TBD: line */
+	  { if ( !declareModule(mname, currentSource, 0, FALSE) ) /* TBD: line */
 	      fail;
 	  }
 

@@ -280,7 +280,9 @@ Sets the starting line-number for reporting errors.
 
     \termitem{max_errors}{+Max}
 Sets the maximum number of errors. If this number is reached, an 
-exception of the format below is raised. The default is 50.
+exception of the format below is raised. The default is 50.  Using
+\term{max_errors}{-1} makes the parser continue, no matter how many
+errors it encounters.
 
 	\begin{quote}
 	\term{error}{limit_exceeded(max_errors, Max), _}

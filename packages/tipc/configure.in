@@ -122,7 +122,7 @@ fi
 
 PLTARGETS=`echo $TARGETS | sed -e "s/\.$SO/.pl/g" -e "s/files.pl/filesex.pl/"`
 if echo "$PLTARGETS" | grep tipc.pl 2>&1 >/dev/null; then
-  PLTARGETS="$PLTARGETS tipc_broadcast.pl"
+  PLTARGETS="$PLTARGETS tipc_broadcast.pl tipc_paxos.pl"
 fi
 
 AC_OUTPUT(Makefile)

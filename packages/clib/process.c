@@ -275,12 +275,16 @@ parse_environment(term_t t, p_options *info)
   term_t head = PL_new_term_ref();
   term_t tmp  = PL_new_term_ref();
   ecbuf *eb   = &info->envbuf;
-  int count,c = 0;
+  int count = 0, c = 0;
   echar *q;
   char **ep;
 
+  assert(eb->size == 0);
+  assert(eb->allocated == 0);
+  assert(eb->buffer == NULL);
+
   while( PL_get_list(tail, head, tail) )
-  { char *s;
+  { echar *s;
     size_t len;
 
     if ( !PL_is_functor(head, FUNCTOR_eq2) )
@@ -310,6 +314,7 @@ parse_environment(term_t t, p_options *info)
   { *ep = q;
     q += strlen(q)+1;
   }
+  assert((size_t)(q-eb->buffer) == eb->size);
   *ep = NULL;
 #endif
 
@@ -1102,7 +1107,7 @@ do_create_process(p_options *info)
 		      NULL,		/* Thread security */
 		      TRUE,		/* Inherit handles */
 		      flags,		/* Creation flags */
-		      info->envp.buffer, /* Environment */
+		      info->envbuf.buffer, /* Environment */
 		      info->cwd,	/* Directory */
 		      &si,		/* Startup info */
 		      &pi) )		/* Process information */

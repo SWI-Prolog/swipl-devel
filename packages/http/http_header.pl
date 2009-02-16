@@ -56,6 +56,7 @@
 :- use_module(library(error)).
 :- use_module(dcg_basics).
 :- use_module(html_write).
+:- use_module(http_exception).
 :- use_module(mimetype).
 :- use_module(mimepack).
 
@@ -125,6 +126,9 @@ http_read_reply_header(In, [input(In)|Reply]) :-
 %		* file(+MimeType, +FileName)
 %		Reply content of FileName using MimeType
 %		
+%		* file(+MimeType, +FileName, +Range)
+%		Reply partial content of FileName with given MimeType
+%		
 %		* tmp_file(+MimeType, +FileName)
 %		Same as =file=, but do not include modification time
 %		
@@ -136,49 +140,93 @@ http_read_reply_header(In, [input(In)|Reply]) :-
 %		HTTP header, followed by a blank line.  This is the
 %		typical output from a CGI script.
 %		
+%		* Status
+%		HTTP status report and defined by http_status_reply/3.
+%		
 %	@tbd	Complete documentation	
 
 http_reply(What, Out) :-
 	http_reply(What, Out, [connection(close)]).
 
-http_reply(html(HTML), Out, HrdExtra) :- !,
+http_reply(Data, Out, HdrExtra) :-
+	catch(http_reply_data(Data, Out, HdrExtra), E, true), !,
+	(   var(E)
+	->  true
+	;   map_exception_to_http_status(E, Status, NewHdr),
+	    http_status_reply(Status, Out, NewHdr)
+	).
+http_reply(Status, Out, HdrExtra) :-
+	http_status_reply(Status, Out, HdrExtra).
+
+
+%%	http_reply_data(+Data, +Out, +HdrExtra) is semidet.
+%
+%	Fails if Data is not a defined   reply-data format, but a status
+%	term. See http_reply/3 and http_status_reply/3.
+%
+%	@error Various I/O errors.
+
+http_reply_data(html(HTML), Out, HrdExtra) :- !,
 	phrase(reply_header(html(HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_reply(file(Type, File), Out, HrdExtra) :- !,
+http_reply_data(file(Type, File), Out, HrdExtra) :- !,
 	phrase(reply_header(file(Type, File), HrdExtra), Header),
-	format(Out, '~s', [Header]),
-	open(File, read, In, [type(binary)]),
-	call_cleanup(copy_stream_data(In, Out),
-		     close(In)).
-http_reply(tmp_file(Type, File), Out, HrdExtra) :- !,
+	reply_file(Out, File, Header).
+http_reply_data(file(Type, File, Range), Out, HrdExtra) :- !,
+	phrase(reply_header(file(Type, File, Range), HrdExtra), Header),
+	reply_file_range(Out, File, Header, Range).
+http_reply_data(tmp_file(Type, File), Out, HrdExtra) :- !,
 	phrase(reply_header(tmp_file(Type, File), HrdExtra), Header),
-	format(Out, '~s', [Header]),
-	open(File, read, In, [type(binary)]),
-	call_cleanup(copy_stream_data(In, Out),
-		     close(In)).
-http_reply(stream(In, Len), Out, HdrExtra) :- !,
+	reply_file(Out, File, Header).
+http_reply_data(stream(In, Len), Out, HdrExtra) :- !,
 	phrase(reply_header(cgi_data(Len), HdrExtra), Header),
-	format(Out, '~s', [Header]),
-	copy_stream_data(In, Out).
-http_reply(cgi_stream(In, Len), Out, HrdExtra) :- !,
+	copy_stream(Out, In, Header, 0, end).
+http_reply_data(cgi_stream(In, Len), Out, HrdExtra) :- !,
 	http_read_header(In, CgiHeader),
 	seek(In, 0, current, Pos),
 	Size is Len - Pos,
 	http_join_headers(HrdExtra, CgiHeader, Hdr2),
 	phrase(reply_header(cgi_data(Size), Hdr2), Header),
+	copy_stream(Out, In, Header, 0, end).
+
+reply_file(Out, File, Header) :-
+	setup_call_cleanup(open(File, read, In, [type(binary)]),
+			   copy_stream(Out, In, Header, 0, end),
+			   close(In)).
+
+reply_file_range(Out, File, Header, bytes(From, To)) :- !,
+	setup_call_cleanup(open(File, read, In, [type(binary)]),
+			   copy_stream(Out, In, Header, From, To),
+			   close(In)).
+
+copy_stream(Out, In, Header, From, To) :-
+	(   From == 0
+	->  true
+	;   seek(In, From, bof, _)
+	),
+	peek_byte(In, _),
 	format(Out, '~s', [Header]),
-	copy_stream_data(In, Out).
-http_reply(Status, Out, HdrExtra) :-
-	set_stream(Out, encoding(utf8)),
-	call_cleanup(http_status_reply(Status, Out, HdrExtra),
-		     set_stream(Out, encoding(octet))), !.
+	(   To == end
+	->  copy_stream_data(In, Out)
+	;   Len is To - From,
+	    copy_stream_data(In, Out, Len)
+	),
+	flush_output(Out).
+
 
 %%	http_status_reply(+Status, +Out, +HdrExtra) is det.
 %
-%	Emit HTML non-200 status reports.
+%	Emit HTML non-200 status reports. Such  requests are always sent
+%	as UTF-8 documents.
 
-http_status_reply(moved(To), Out, HrdExtra) :- !,
+http_status_reply(Status, Out, HdrExtra) :-
+	setup_call_cleanup(set_stream(Out, encoding(utf8)),
+			   status_reply(Status, Out, HdrExtra),
+			   set_stream(Out, encoding(octet))), !.
+
+
+status_reply(moved(To), Out, HrdExtra) :- !,
 	phrase(page([ title('301 Moved Permanently')
 		    ],
 		    [ h1('Moved Permanently'),
@@ -191,7 +239,7 @@ http_status_reply(moved(To), Out, HrdExtra) :- !,
 	phrase(reply_header(moved(To, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(moved_temporary(To), Out, HrdExtra) :- !,
+status_reply(moved_temporary(To), Out, HrdExtra) :- !,
 	phrase(page([ title('302 Moved Temporary')
 		    ],
 		    [ h1('Moved Temporary'),
@@ -204,7 +252,7 @@ http_status_reply(moved_temporary(To), Out, HrdExtra) :- !,
 	phrase(reply_header(moved_temporary(To, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(see_other(To),Out,HdrExtra) :- !,
+status_reply(see_other(To),Out,HdrExtra) :- !,
        phrase(page([ title('303 See Other')
                     ],
                     [ h1('See Other'),
@@ -217,7 +265,7 @@ http_status_reply(see_other(To),Out,HdrExtra) :- !,
         phrase(reply_header(see_other(To, HTML), HdrExtra), Header),
         format(Out, '~s', [Header]),
         print_html(Out, HTML).
-http_status_reply(not_found(URL), Out, HrdExtra) :- !,
+status_reply(not_found(URL), Out, HrdExtra) :- !,
 	phrase(page([ title('404 Not Found')
 		    ],
 		    [ h1('Not Found'),
@@ -230,7 +278,7 @@ http_status_reply(not_found(URL), Out, HrdExtra) :- !,
 	phrase(reply_header(status(not_found, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(forbidden(URL), Out, HrdExtra) :- !,
+status_reply(forbidden(URL), Out, HrdExtra) :- !,
 	phrase(page([ title('403 Forbidden')
 		    ],
 		    [ h1('Forbidden'),
@@ -243,7 +291,7 @@ http_status_reply(forbidden(URL), Out, HrdExtra) :- !,
 	phrase(reply_header(status(forbidden, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
+status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
 	phrase(page([ title('401 Authorization Required')
 		    ],
 		    [ h1('Authorization Required'),
@@ -260,10 +308,11 @@ http_status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
 	phrase(reply_header(authorise(Method, Realm, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(not_modified, Out, HrdExtra) :- !,
+status_reply(not_modified, Out, HrdExtra) :- !,
 	phrase(reply_header(status(not_modified), HrdExtra), Header),
-	format(Out, '~s', [Header]).
-http_status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
+	format(Out, '~s', [Header]),
+	flush_output(Out).
+status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 	'$messages':translate_message(ErrorTerm, Lines, []),
 	phrase(page([ title('500 Internal server error')
 		    ],
@@ -275,7 +324,7 @@ http_status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 	phrase(reply_header(status(server_error, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(unavailable(WhyHTML), Out, HdrExtra) :- !,
+status_reply(unavailable(WhyHTML), Out, HdrExtra) :- !,
 	phrase(page([ title('503 Service Unavailable')
 		    ],
 		    [ h1('Service Unavailable'),
@@ -286,10 +335,10 @@ http_status_reply(unavailable(WhyHTML), Out, HdrExtra) :- !,
 	phrase(reply_header(status(service_unavailable, HTML), HdrExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(resource_error(ErrorTerm), Out, HdrExtra) :- !,
+status_reply(resource_error(ErrorTerm), Out, HdrExtra) :- !,
 	'$messages':translate_message(ErrorTerm, Lines, []),
-	http_status_reply(unavailable(p(\html_message_lines(Lines))), Out, HdrExtra).
-http_status_reply(busy, Out, HdrExtra) :- !,
+	status_reply(unavailable(p(\html_message_lines(Lines))), Out, HdrExtra).
+status_reply(busy, Out, HdrExtra) :- !,
 	HTML = p(['The server is temporarily out of resources, please try again later']),
 	http_status_reply(unavailable(HTML), Out, HdrExtra).
 
@@ -666,6 +715,14 @@ reply_header(file(Type, File), HdrExtra) -->
 	content_length(file(File)),
 	content_type(Type),
 	"\r\n".
+reply_header(file(Type, File, Range), HdrExtra) -->
+	vstatus(partial_content),
+	date(now),
+	modified(file(File)),
+	header_fields(HdrExtra),
+	content_length(file(File, Range)),
+	content_type(Type),
+	"\r\n".
 reply_header(tmp_file(Type, File), HdrExtra) -->
 	vstatus(ok),
 	date(now),
@@ -745,6 +802,7 @@ vstatus(Status) -->
 
 status_number(continue)		   --> "100".
 status_number(ok)		   --> "200".
+status_number(partial_content)	   --> "206".
 status_number(moved)		   --> "301".
 status_number(moved_temporary)	   --> "302".
 status_number(see_other)	   --> "303".
@@ -759,6 +817,8 @@ status_comment(continue) -->
 	"Continue".
 status_comment(ok) -->
 	"OK".
+status_comment(partial_content) -->
+	"Partial content".
 status_comment(moved) -->
 	"Moved Permanently".
 status_comment(moved_temporary) -->
@@ -813,6 +873,17 @@ content_length(file(File)) --> !,
 	{ size_file(File, Len)
 	},
 	content_length(Len).
+content_length(file(File, bytes(From, To))) --> !,
+	{ size_file(File, Size),
+	  (   To == end
+	  ->  Len is Size - From,
+	      RangeEnd is Size - 1
+	  ;   Len is To+1 - From,		% To is index of last byte
+	      RangeEnd = To
+	  )
+	},
+	content_range(bytes, From, RangeEnd, Size),
+	content_length(Len).
 content_length(html(Tokens)) --> !,
 	{ html_print_length(Tokens, Len)
 	},
@@ -821,6 +892,16 @@ content_length(Len) -->
 	{ number_codes(Len, LenChars)
 	},
 	"Content-Length: ", string(LenChars),
+	"\r\n".
+
+%%	content_range(+Unit:atom, +From:int, +RangeEnd:int, +Size:int)// is det
+%
+%	Emit the =|Content-Range|= header  for   partial  content  (206)
+%	replies.
+
+content_range(Unit, From, RangeEnd, Size) -->
+	"Content-Range: ", atom(Unit), " ",
+	integer(From), "-", integer(RangeEnd), "/", integer(Size),
 	"\r\n".
 
 transfer_encoding(Encoding) -->
@@ -895,6 +976,8 @@ field_to_prolog(host, ValueChars, Host) :- !,
 	    Host = HostName:Port
 	;   atom_codes(Host, ValueChars)
 	).
+field_to_prolog(range, ValueChars, Range) :-
+	phrase(range(Range), ValueChars), !.
 field_to_prolog(_, ValueChars, Atom) :-
 	atom_codes(Atom, ValueChars).
 
@@ -1166,6 +1249,21 @@ chars_to_semicolon([H|T]) -->
 	chars_to_semicolon(T).
 chars_to_semicolon([]) -->
 	[].
+
+%%	range(-Range)// is semidet.
+%
+%	Process the range header value. Range is currently defined as:
+%	
+%	    * bytes(From, To)
+%	    Where From is an integer and To is either an integer or
+%	    the atom =end=.
+
+range(bytes(From, To)) -->
+	"bytes", whites, "=", whites, integer(From), "-",
+	(   integer(To)
+	->  ""
+	;   { To = end }
+	).
 
 
 		 /*******************************
