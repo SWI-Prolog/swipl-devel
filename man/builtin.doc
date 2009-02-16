@@ -1352,7 +1352,7 @@ Success or failure of \arg{Cleanup} is ignored and
 choice-points it created are destroyed (as once/1).  If \arg{Cleanup}
 throws an exception, this is executed as normal.% \bug{During the
 execution of \arg{Cleanup}, garbage collection and stack-shifts are
-disabled.}
+disabled.
 
 Typically, this predicate is used to cleanup permanent data storage
 required to execute \arg{Goal}, close file-descriptors, etc. The example
