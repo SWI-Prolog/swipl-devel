@@ -579,8 +579,12 @@ initPrologThreads()
 void
 cleanupThreads()
 { /*TLD_free(PL_ldata);*/		/* this causes crashes */
+  
+  if ( queueTable )
+  { destroyHTable(queueTable);		/* removes shared queues */
+    queueTable = NULL;
+  }
   threadTable = NULL;
-  queueTable = NULL;
   memset(&threads, 0, sizeof(threads));
   threads_ready = FALSE;
   queue_id = 0;
@@ -2431,6 +2435,15 @@ unify_queue(term_t t, message_queue *q)
 }
 
 
+static void
+free_queue_symbol(Symbol s)
+{ message_queue *q = s->value;
+
+  destroy_message_queue(q);
+  PL_free(q);
+}
+
+
 static message_queue *
 unlocked_message_queue_create(term_t queue, long max_size)
 { GET_LD
@@ -2440,7 +2453,9 @@ unlocked_message_queue_create(term_t queue, long max_size)
   word id;
 
   if ( !queueTable )
-    queueTable = newHTable(16);
+  { queueTable = newHTable(16);
+    queueTable->free_symbol = free_queue_symbol;
+  }
   
   if ( PL_get_atom(queue, &name) )
   { if ( (s = lookupHTable(queueTable, (void *)name)) ||
