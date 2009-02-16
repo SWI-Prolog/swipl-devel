@@ -354,14 +354,15 @@ load_man_object(Obj, ParentSection, Path, DOM) :-
 	    set_sgml_parser(Parser, dialect(sgml)),
 	    set_sgml_parser(Parser, shorttag(false)),
 	    set_sgml_parser(Parser, defaults(false)),
-	    sgml_parse(Parser,
-		       [ document(DOM),
-			 source(In),
-			 syntax_errors(quiet)
-		       | Options
-		       ]),
-	    free_sgml_parser(Parser),
-	    close(In)
+	    call_cleanup(sgml_parse(Parser,
+				    [ document(DOM),
+				      source(In),
+				      syntax_errors(quiet)
+				    | Options
+				    ]),
+			 ( free_sgml_parser(Parser),
+			   close(In)
+			 ))
 	).
 load_man_object(For, Parent, Path, DOM) :-
 	index_manual,
@@ -381,18 +382,20 @@ load_man_object(For, Parent, Path, DOM) :-
         set_sgml_parser(Parser, dialect(sgml)),
 	set_sgml_parser(Parser, shorttag(false)),
 	set_sgml_parser(Parser, defaults(false)),
-	sgml_parse(Parser,
-		   [ document(DT),
-		     source(In),
-		     parse(element)
-		   ]),
-	sgml_parse(Parser,
-		   [ document(DD),
-		     source(In),
-		     parse(element)
-		   ]),
-	free_sgml_parser(Parser),
-	close(In),
+	call_cleanup((sgml_parse(Parser,
+				 [ document(DT),
+				   source(In),
+				   parse(element)
+				 ]),
+		      sgml_parse(Parser,
+				 [ document(DD),
+				   source(In),
+				   parse(element)
+				 ])
+		     ),
+		     ( free_sgml_parser(Parser),
+		       close(In)
+		     )),
 	append(DT, DD, DOM).
 
 section_start(Path, Nr, Pos) :-
