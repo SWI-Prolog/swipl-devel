@@ -528,8 +528,10 @@ free_prolog_thread(void *data)
   mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
   freeHeap__LD(ld, sizeof(*ld), NULL);	/* move to global pool */
 
-  if ( acknowledge )
+  if ( acknowledge )			/* == canceled */
+  { pthread_detach(info->tid);
     sem_post(sem_canceled_ptr);
+  }
 }
 
 #ifdef O_QUEUE_STATS
