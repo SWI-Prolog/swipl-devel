@@ -462,8 +462,12 @@ combine_tags([tag(Tag,V0)|T0], [\tag(Tag, [V0|Vs])|T]) :-
 	same_tag(Tag, T0, T1, Vs),
 	combine_tags(T1, T).
 
-param_tag([PN|Descr0], param(PN, Descr)) :-
+param_tag([PT|Descr0], param(PN, Descr)) :-
+	word_of(PT, PN),
 	strip_leading_ws(Descr0, Descr).
+
+word_of(w(W), W) :- !.			% TBD: check non-word param
+word_of(W, W).
 
 param_tags([tag(param, V1)|T0], [P1|PL], T) :- !,
 	param_tag(V1, P1),

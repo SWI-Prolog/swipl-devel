@@ -294,6 +294,8 @@ latex(Atomic) -->			% can this actually happen?
 latex(List) -->
 	latex_special(List, Rest), !,
 	latex(Rest).
+latex(w(Word)) -->
+	[ Word ].
 latex([H|T]) --> !,
 	(   latex(H)
 	->  latex(T)
@@ -730,7 +732,8 @@ file_header(File, Options) -->
 	},
 	file_title([Base, ' -- ', Title], File, Options),
 	{ is_structured_comment(Comment, Prefixes),
-	  indented_lines(Comment, Prefixes, Lines),
+	  string_to_list(Comment, Codes),
+	  indented_lines(Codes, Prefixes, Lines),
 	  section_comment_header(Lines, _Header, Lines1),
 	  wiki_lines_to_dom(Lines1, [], DOM0),
 	  tags_to_front(DOM0, DOM)
@@ -786,7 +789,8 @@ object(Obj, Mode0, Mode, Options) -->
 object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	{ is_pi(Obj), !,
 	  is_structured_comment(Comment, Prefixes),
-	  indented_lines(Comment, Prefixes, Lines),
+	  string_to_list(Comment, Codes),
+	  indented_lines(Codes, Prefixes, Lines),
 	  strip_module(user:Obj, Module, _),
 	  process_modes(Lines, Module, Pos, Modes, Args, Lines1),
 	  (   private(Obj, Options)
@@ -1215,6 +1219,8 @@ print_latex_token(code(Code), Out) :- !,
 	format(Out, '~N\\end{code}', []).
 print_latex_token(latex(Code), Out) :- !,
 	write(Out, Code).
+print_latex_token(w(Word), Out) :- !,
+	print_latex(Out, Word).
 print_latex_token(Rest, Out) :-
 	(   atomic(Rest)
 	->  print_latex(Out, Rest)
