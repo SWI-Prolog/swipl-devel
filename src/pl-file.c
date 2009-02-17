@@ -1189,7 +1189,7 @@ readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
   for(;;)
   { Sflush(out);
 
-    switch( (c=Sgetc(in)) )
+    switch( (c=Sgetcode_intr(in, FALSE)) )
     { case '\n':
       case '\r':
       case EOF:
@@ -1204,10 +1204,11 @@ readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
 	if ( truePrologFlag(PLFLAG_TTY_CONTROL) && buf > buffer )
 	{ Sfputs("\b \b", out);
 	  buf--;
+	  continue;
 	}
       default:
 	if ( truePrologFlag(PLFLAG_TTY_CONTROL) )
-	  Sputc(c, out);
+	  Sputcode(c, out);
 	*buf++ = c;
     }
   }
