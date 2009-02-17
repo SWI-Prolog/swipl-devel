@@ -621,7 +621,15 @@ wiki_face(FT, ArgNames) -->
 make_label(Parts, Label) :-
 	phrase(image_label(Label), Parts), !.
 make_label(Parts, Label) :-
-	concat_atom(Parts, Label).
+	untag(Parts, Atoms),
+	concat_atom(Atoms, Label).
+
+untag([], []).
+untag([w(W)|T0], [W|T]) :- !,
+	untag(T0, T).
+untag([H|T0], [H|T]) :-
+	untag(T0, T).
+
 
 image_label(\include(Name, image, Options)) -->
 	file_name(Base, Ext),
@@ -650,8 +658,9 @@ nv_pairs([H|T]) -->
 	).
 
 nv_pair(Option) -->
-	[ w(Name), =,'"'], tokens(ValueS), ['"'], !,
-	{ concat_atom(ValueS, Value0),
+	[ w(Name), =,'"'], tokens(Tokens), ['"'], !,
+	{ untag(Tokens, Atoms),
+	  concat_atom(Atoms, Value0),
 	  catch(atom_number(Value0, Value), _, Value=Value0),
 	  Option =.. [Name,Value]
 	}.
