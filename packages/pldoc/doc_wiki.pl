@@ -33,7 +33,7 @@
 	  [ wiki_codes_to_dom/3,	% +Codes, +Args, -DOM
 	    wiki_lines_to_dom/3,	% +Lines, +Map, -DOM
 	    section_comment_header/3,	% +Lines, -Header, -RestLines
-	    summary_from_lines/2,	% +Lines, -Summary
+	    summary_from_lines/2,	% +Lines, -Codes
 	    indented_lines/3,		% +Text, +PrefixChars, -Lines
 	    strip_leading_par/2,	% +DOM0, -DOM
 	    normalise_white_space/3,	% -Text, //
@@ -599,8 +599,11 @@ wiki_face(Link, _ArgNames) -->		% [[Label][Link]]
 	{ make_label(LabelParts, Label) }.
 wiki_face(Link, _ArgNames) -->
 	wiki_link(Link, []), !.
-wiki_face(T, _) -->
-	token(T), !.
+wiki_face(Word, _) -->
+	[ w(Word) ], !.
+wiki_face(SpaceOrPunct, _) -->
+	[ SpaceOrPunct ],
+	{ atomic(SpaceOrPunct) }, !.
 wiki_face(FT, ArgNames) -->
 	[Structure],
 	{ wiki_faces(Structure, ArgNames, FT)
@@ -1069,6 +1072,7 @@ end_sentence([H|T0], [H|T]) :-
 %	Indent specifies the line_position of the real text of the line.
 
 indented_lines(Comment, Prefixes, Lines) :-
+	must_be(codes, Comment),
 	phrase(split_lines(Prefixes, Lines), Comment).
 
 split_lines(_, []) -->
@@ -1277,15 +1281,19 @@ peek(H, L, L) :-
 tokens([]) --> [].
 tokens([H|T]) --> token(H), tokens(T).
 
-%%	tokens_no_whitespace(-Tokens:list)// is nondet.
+%%	tokens_no_whitespace(-Tokens:list(atom))// is nondet.
 %
-%	Defensively take tokens from the input.  Backtracking takes more
-%	tokens.  Tokens cannot include whitespace.
+%	Defensively take tokens from the  input. Backtracking takes more
+%	tokens.  Tokens  cannot  include  whitespace.  Word  tokens  are
+%	returned as their represented words.
 
 tokens_no_whitespace([]) -->
 	[].
+tokens_no_whitespace([Word|T]) -->
+	[ w(Word) ], !,
+	tokens_no_whitespace(T).
 tokens_no_whitespace([H|T]) -->
-	token(H),
+	[H],
 	{ \+ space_atom(H) },
 	tokens_no_whitespace(T).
 

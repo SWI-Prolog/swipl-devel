@@ -215,7 +215,7 @@ latex_tokens_for_wiki_file(FileSpec, Options, Tokens, Tail) :-
 	read_file_to_codes(File, String, []),
 	b_setval(pldoc_file, File),
 	asserta(options(Options), Ref),
-	call_cleanup((wiki_string_to_dom(String, [], DOM),
+	call_cleanup((wiki_codes_to_dom(String, [], DOM),
 		      phrase(latex(DOM), Tokens, Tail)
 		     ),
 		     (nb_delete(pldoc_file),

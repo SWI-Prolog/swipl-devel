@@ -50,8 +50,6 @@ Making solid progress.  remaining issues:
 
 ---++ Commons
 
-	* wiki_string_to_dom/3: only accept codes
-	* summary_from_lines/2 now returns code-list
 	* Add %! processing
 	* If no predicate, link to last :- pred.
 	* Add ! Name: Value processing

@@ -267,7 +267,8 @@ file_header(File, Options) -->
 	},
 	file_title([Base, ' -- ', Title], File, Options),
 	{ is_structured_comment(Comment, Prefixes),
-	  indented_lines(Comment, Prefixes, Lines),
+	  string_to_list(Comment, Codes),
+	  indented_lines(Codes, Prefixes, Lines),
 	  section_comment_header(Lines, _Header, Lines1),
 	  wiki_lines_to_dom(Lines1, [], DOM)
 	},
@@ -407,7 +408,8 @@ object(Obj, Mode0, Mode, Options) -->
 object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	{ is_pi(Obj), !,
 	  is_structured_comment(Comment, Prefixes),
-	  indented_lines(Comment, Prefixes, Lines),
+	  string_to_list(Comment, Codes),
+	  indented_lines(Codes, Prefixes, Lines),
 	  strip_module(user:Obj, Module, _),
 	  process_modes(Lines, Module, Pos, Modes, Args, Lines1),
 	  (   private(Obj, Options)
@@ -665,7 +667,8 @@ param(param(Name,Descr)) -->
 		 *******************************/
 
 section(Type, Title) -->
-	{ wiki_string_to_dom(Title, [], Content0),
+	{ string_to_list(Title, Codes),
+	  wiki_codes_to_dom(Codes, [], Content0),
 	  strip_leading_par(Content0, Content),
 	  make_section(Type, Content, HTML)
 	},
@@ -1453,7 +1456,7 @@ doc_for_wiki_file(FileSpec, _Options) :-
 		     nb_delete(pldoc_file)).
 
 reply_wiki_page(File, String) :-
-	wiki_string_to_dom(String, [], DOM),
+	wiki_codes_to_dom(String, [], DOM),
 	title(DOM, File, Title),
 	reply_html_page(title(Title),
 			DOM).

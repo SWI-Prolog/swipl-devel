@@ -128,6 +128,9 @@ read_comments(In, Term, Comments) :-
 is_structured_comment(_Pos-Comment, Prefixes) :- !,
 	is_structured_comment(Comment, Prefixes).
 is_structured_comment(Comment, Prefixes) :-
+	is_list(Comment), !,
+	phrase(structured_comment(Prefixes), Comment, _).
+is_structured_comment(Comment, Prefixes) :-
 	sub_string(Comment, 0, _, _, '%%'), !,
 	sub_atom(Comment, 2, 1, _, Space),
 	char_type(Space, space),
@@ -154,6 +157,46 @@ blanks_to_nl(Comment) :-
 	;   !, fail
 	).
 blanks_to_nl(_).
+
+%%	structured_comment(-Prefixes:list(codes)) is semidet.
+%
+%	Grammar rule version of the above.  Avoids the need for
+%	conversion.
+
+structured_comment(["%"]) -->
+	"%%", space,
+	\+ blanks_to_nl,
+	\+ contains(" SWI "),
+	\+ contains(" SICStus "),
+	\+ contains(" Mats ").
+structured_comment(Prefixes) -->
+	"/**", space,
+	{ Prefixes = ["/**", " *"]
+	}.
+
+space -->
+	[H],
+	{ code_type(H, space) }.
+
+blanks_to_nl -->
+	blank_or_percents,
+	"\n".
+
+blank_or_percents -->
+	space, !,
+	blank_or_percents.
+blank_or_percents -->
+	"%", !,
+	blank_or_percents.
+blank_or_percents -->
+	"".
+	
+contains(String) -->
+	...,
+	String, !.
+
+... --> "".
+... --> [_], ... .
 
 
 %%	doc_file_name(+Source:atom, -Doc:atom, +Options:list) is det.
@@ -277,12 +320,15 @@ process_comment(Pos, Comment, File) :-
 	process_structured_comment(FilePos, Comment, Prefixes).
 process_comment(_, _, _).
 
+%%	process_structured_comment(+FilePos, +Comment:string) is det.
+
 process_structured_comment(FilePos, Comment, _) :- % already processed
 	prolog_load_context(module, M),
 	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
 	catch(M:'$pldoc'(_, FilePos, _, Comment), _, fail), !.
 process_structured_comment(FilePos, Comment, Prefixes) :-
-	indented_lines(Comment, Prefixes, Lines),
+	string_to_list(Comment, CommentCodes),
+	indented_lines(CommentCodes, Prefixes, Lines),
 	(   section_comment_header(Lines, Header, RestLines)
 	->  Header = \section(Type, Title),
 	    Id =.. [Type,Title],
@@ -291,7 +337,8 @@ process_structured_comment(FilePos, Comment, Prefixes) :-
 	    process_modes(Lines, Module, FilePos, Modes, _, RestLines)
 	->  store_modes(Modes, FilePos),
 	    modes_to_predicate_indicators(Modes, [PI0|PIs]),
-	    summary_from_lines(RestLines, Summary),
+	    summary_from_lines(RestLines, Codes),
+	    string_to_list(Summary, Codes),
 	    compile_clause('$pldoc'(PI0, FilePos, Summary, Comment), FilePos),
 	    forall(member(PI, PIs),
 		   compile_clause('$pldoc_link'(PI, PI0), FilePos))

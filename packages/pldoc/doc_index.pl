@@ -137,7 +137,7 @@ wiki_file(Dir, Type) -->
 	  concat_atom([Dir, /, Base], File),
 	  access_file(File, read), !,
 	  read_file_to_codes(File, String, []),
-	  wiki_string_to_dom(String, [], DOM)
+	  wiki_codes_to_dom(String, [], DOM)
 	},
 	pldoc_html:html(DOM).
 
@@ -272,7 +272,8 @@ tag_pub_priv([H|T0], [Tag-H|T], Options) :-
 %	@tbd	Hacky interface.  Do we demand Summary to be in Wiki?
 
 object_summary(doc(Obj, _Pos, Summary), _Section, Options) --> !,
-	(   { wiki_string_to_dom(Summary, [], DOM0),
+	(   { string_to_list(Summary, Codes),
+	      wiki_codes_to_dom(Codes, [], DOM0),
 	      strip_leading_par(DOM0, DOM),
 	      (	  private(Obj, Options)
 	      ->  Class = private		% private definition
