@@ -30,7 +30,7 @@
 */
 
 :- module(pldoc_wiki,
-	  [ wiki_string_to_dom/3,	% +String, +Args, -DOM
+	  [ wiki_codes_to_dom/3,	% +Codes, +Args, -DOM
 	    wiki_lines_to_dom/3,	% +Lines, +Map, -DOM
 	    section_comment_header/3,	% +Lines, -Header, -RestLines
 	    summary_from_lines/2,	% +Lines, -Summary
@@ -62,18 +62,13 @@ wiki_lines_to_dom(Lines, Args, HTML) :-
 	wiki_faces(Pars, Args, HTML).
 
 
-%%	wiki_string_to_dom(+String, +Args, -DOM) is det.
+%%	wiki_codes_to_dom(+String, +Args, -DOM) is det.
 %
 %	Translate a plain text into a DOM term.
 %	
 %	@param String	Plain text.  Either a string or a list of codes.
 
-wiki_string_to_dom(String, Args, DOM) :-
-	string(String), !,
-	string_to_list(String, Codes),
-	indented_lines(Codes, [], Lines),
-	wiki_lines_to_dom(Lines, Args, DOM).
-wiki_string_to_dom(Codes, Args, DOM) :-
+wiki_codes_to_dom(Codes, Args, DOM) :-
 	indented_lines(Codes, [], Lines),
 	wiki_lines_to_dom(Lines, Args, DOM).
 
@@ -196,9 +191,8 @@ list_item_prefix(ul, [*, ' '|T], T) :- !.
 list_item_prefix(ul, [-, ' '|T], T) :- !.
 list_item_prefix(dl, [$, ' '|T], T) :-
 	split_dt(T, _, _), !.
-list_item_prefix(ol, [N, '.', ' '|T], T) :-
-	string(N),
-	string_to_list(N, [D]),
+list_item_prefix(ol, [w(N), '.', ' '|T], T) :-
+	atom_codes(N, [D]),
 	between(0'0, 0'9, D).
 
 split_dt(In, DT, Rest) :-
@@ -338,10 +332,8 @@ plusses([+, +, +, +, ' '|Rest], h4(Attrs, Content)) :-
 
 hdr_attributes(List, Attrs, Content) :-
 	strip_leading_ws(List, List2),
-	(   List2 = ['[',Word,']'|List3],
-	    atomic(Word)
+	(   List2 = ['[',w(Name),']'|List3]
 	->  strip_ws_tokens(List3, Content),
-	    string_to_atom(Word, Name),
 	    Attrs = [class(wiki), name(Name)]
 	;   Attrs = class(wiki),
 	    strip_ws_tokens(List, Content)
@@ -407,9 +399,7 @@ collect_tags([Indent-[@,String|L0]|Lines], [Order-tag(Tag,Value)|Tags]) :-
 %
 %	If String denotes a know tag-name, 
 
-tag_name(String, Tag, Order) :-
-	string(String),
-	format(atom(Name), '~s', [String]),
+tag_name(w(Name), Tag, Order) :-
 	(   renamed_tag(Name, Tag),
 	    tag_order(Tag, Order)
 	->  print_message(warning, pldoc(deprecated_tag(Name, Tag)))
@@ -422,8 +412,7 @@ tag_name(String, Tag, Order) :-
 
 rest_tag([], _, [], []) :- !.
 rest_tag(Lines, Indent, [], Lines) :-
-	Lines = [Indent-[@,NameS|_]|_],
-	string(NameS), !.
+	Lines = [Indent-[@,w(_Name)|_]|_], !.
 rest_tag([L|Lines0], Indent, [L|VT], Lines) :-
 	rest_tag(Lines0, Indent, VT, Lines).
 
@@ -566,39 +555,35 @@ wiki_faces([H|T], ArgNames) -->
 	wiki_face(H, ArgNames),
 	wiki_faces(T, ArgNames).
 
-wiki_face(var(Word), ArgNames) -->
-	[Word],
-	{ string(Word),			% punctuation and blanks are atoms
-	  member(Arg, ArgNames),
-	  sub_atom(Arg, 0, _, 0, Word)	% match string to atom
+wiki_face(var(Arg), ArgNames) -->
+	[w(Arg)],
+	{ memberchk(Arg, ArgNames)
 	}, !.
 wiki_face(b(Bold), _) -->
-	[*], word_token(Bold), [*], !.
+	[*, w(Bold), *], !.
 wiki_face(b(Bold), ArgNames) -->
 	[*,'|'], wiki_faces(Bold, ArgNames), ['|',*], !.
 wiki_face(i(Italic), _) -->
-	['_'], word_token(Italic), ['_'], !.
+	['_', w(Italic), '_'], !.
 wiki_face(i(Italic), ArgNames) -->
 	['_','|'], wiki_faces(Italic, ArgNames), ['|','_'], !.
 wiki_face(code(Code), _) -->
-	[=], word_token(Code), [=], !.
+	[=, w(Code), =], !.
 wiki_face(code(Code), _) -->
 	[=,'|'], wiki_faces(Code, []), ['|',=], !.
 wiki_face(\predref(Name/Arity), _) -->
-	[ NameS, '/' ], arity(Arity),
-	{ functor_name(NameS), !,
-	  string_to_atom(NameS, Name)
-	}.
+	[ w(Name), '/' ], arity(Arity),
+	{ functor_name(Name)
+	}, !.
 wiki_face(\predref(Name/Arity), _) -->
 	prolog_symbol_char(S0),
 	symbol_string(SRest), [ '/' ], arity(Arity), !,
 	{ atom_chars(Name, [S0|SRest])
 	}.
 wiki_face(\predref(Name//Arity), _) -->
-	[ NameS, '/', '/' ], arity(Arity),
-	{ functor_name(NameS), !,
-	  string_to_atom(NameS, Name)
-	}.
+	[ w(Name), '/', '/' ], arity(Arity),
+	{ functor_name(Name)
+	}, !.
 wiki_face(\include(Name, Type, Options), _) -->
 	['[','['], file_name(Base, Ext), [']',']'],
 	{ autolink_extension(Ext, Type), !,
@@ -658,9 +643,8 @@ nv_pairs([H|T]) -->
 	).
 
 nv_pair(Option) -->
-	word_token(NameS), [=,'"'], tokens(ValueS), ['"'], !,
-	{ concat_atom([NameS], Name),
-	  concat_atom(ValueS, Value0),
+	[ w(Name), =,'"'], tokens(ValueS), ['"'], !,
+	{ concat_atom(ValueS, Value0),
 	  catch(atom_number(Value0, Value), _, Value=Value0),
 	  Option =.. [Name,Value]
 	}.
@@ -688,23 +672,21 @@ wiki_link(\file(Name, FileOptions), Options) -->
 	  resolve_file(Name, FileOptions, Options)
 	}.
 wiki_link(\file(Name, FileOptions), Options) -->
-	word_token(NameS),
-	{ autolink_file(Name, _),
-	  sub_atom(NameS, 0, _, 0, Name), !,
+	[w(Name)],
+	{ autolink_file(Name, _), !,
 	  resolve_file(Name, FileOptions, Options)
 	}, !.
 wiki_link(a(href(Ref), Label), Options) -->
-	word_token(ProtS), [:,/,/], { url_protocol(ProtS) },
+	[ w(Prot),:,/,/], { url_protocol(Prot) },
 	{ option(end(End), Options, space)
 	},
 	tokens_no_whitespace(Rest), peek_end_url(End), !,
-	{ concat_atom([ProtS, :,/,/ | Rest], Ref),
+	{ concat_atom([Prot, :,/,/ | Rest], Ref),
 	  option(label(Label), Options, Ref)
 	}.
 wiki_link(a(href(Ref), Label), Options) -->
-	[<], word_token(AliasS), [:],
-	{ concat_atom([AliasS], Alias),
-	  user:url_path(Alias, _)
+	[<, w(Alias), :],
+	{ user:url_path(Alias, _)
 	},
 	tokens_no_whitespace(Rest), [>],
 	{ concat_atom(Rest, Local),
@@ -721,9 +703,9 @@ wiki_link(a(href(Ref), Label), Options) -->
 	      Parts = Rest
 	    }
 	->  tokens_no_whitespace(Rest)
-	;   { Parts = [ProtS, : | Rest]
+	;   { Parts = [Prot, : | Rest]
 	    },
-	    word_token(ProtS), [:], tokens_no_whitespace(Rest)
+	    [w(Prot), :], tokens_no_whitespace(Rest)
 	),
 	[>], !,
 	{ concat_atom(Parts, Ref),
@@ -745,7 +727,7 @@ file_name(FileBase, Extension) -->
 segment(..) -->
 	['.','.'], !.
 segment(Word) -->
-	word_token(Word).
+	[w(Word)].
 
 segments([H|T]) -->
 	['/'], !,
@@ -755,9 +737,8 @@ segments([]) -->
 	[].
 
 file_extension(Ext) -->
-	word_token(String),
-	{ concat_atom([String], Ext),
-	  autolink_extension(Ext, _)
+	[w(Ext)],
+	{ autolink_extension(Ext, _)
 	}.
 
 
@@ -780,15 +761,6 @@ resolve_file(Name, Options, Rest) :-
 resolve_file(_, Options, Options).
 
 
-%%	word_token(-Word:string)// is semidet.
-%
-%	True if the next token  is  a   string,  which  implies  it is a
-%	sequence of alpha-numerical characters.
-
-word_token(Word) -->
-	[Word],
-	{ string(Word) }.
-
 %%	arity(-Arity:int)// is semidet.
 %
 %	True if the next token can be  interpreted as an arity. That is,
@@ -797,7 +769,7 @@ word_token(Word) -->
 %	user-created predicates that are documented.
 
 arity(Arity) -->
-	[ Word ],
+	[ w(Word) ],
 	{ catch(atom_number(Word, Arity), _, fail),
 	  Arity >= 0, Arity < 20
 	}.
@@ -846,10 +818,9 @@ functor_name(String) :-
 	sub_atom(String, 0, 1, _, Char),
 	char_type(Char, lower).
 
-url_protocol(String) :-	sub_atom(String, 0, _, 0, http).
-url_protocol(String) :-	sub_atom(String, 0, _, 0, ftp).
-url_protocol(String) :-	sub_atom(String, 0, _, 0, mailto).
-
+url_protocol(http).
+url_protocol(ftp).
+url_protocol(mailto).
 
 peek_end_url(space) -->
 	peek(End),
@@ -892,7 +863,7 @@ autolink_file('ChangeLog', wiki).
 %%	section_comment_header(+Lines, -Header, -RestLines) is semidet.
 %
 %	Processes   /**   <section>   comments.   Header   is   a   term
-%	\section(Type, Title), where  Title  is   a  string  holding the
+%	\section(Type, Title), where  Title  is   an  atom  holding  the
 %	section title and Type is an atom holding the text between <>.
 %	
 %	@param Lines	List of Indent-Codes.
@@ -906,7 +877,7 @@ section_comment_header([_-Line|Lines], Header, Lines) :-
 section_line(\section(Type, Title)) -->
 	ws, "<", word(Codes), ">", normalise_white_space(TitleCodes),
 	{ atom_codes(Type, Codes),
-	  string_to_list(Title, TitleCodes)
+	  atom_codes(Title, TitleCodes)
 	}.
 
 
@@ -949,8 +920,8 @@ tokenize_lines([I-H0|T0], [I-H|T]) :-
 %%	line_tokens(-Tokens:list)// is det.
 %
 %	Create a list of tokens, where  is  token   is  either  a ' ' to
-%	denote spaces, a string denoting a word   or  an atom denoting a
-%	punctuation character.
+%	denote spaces, a  term  w(Word)  denoting   a  word  or  an atom
+%	denoting a punctuation character.
 
 line_tokens([H|T]) -->
 	line_token(H), !,
@@ -965,7 +936,9 @@ line_token(T) -->
 	    { T = ' ' }
 	;   { code_type(C, alnum) },
 	    word(Rest),
-	    { string_to_list(T, [C|Rest]) }
+	    { atom_codes(W, [C|Rest]),
+	      T = w(W)
+	    }
 	;   { char_code(T, C) }
 	).
 
@@ -996,12 +969,12 @@ word([]) -->
 verbatim([Indent-"=="|Lines], Indent-pre(class(code),Pre), RestLines) :-
 	verbatim_body(Lines, Indent, [10|PreCodes], [],
 		      [Indent-"=="|RestLines]), !,
-	string_to_list(Pre, PreCodes).
+	atom_codes(Pre, PreCodes).
 
 verbatim_body(Lines, _, PreT, PreT, Lines).
 verbatim_body([I-L|Lines], Indent, [10|Pre], PreT, RestLines) :-
 	PreI is I - Indent,
-	pre_indent(PreI, Pre, PreT0),
+	phrase(pre_indent(PreI), Pre, PreT0),
 	verbatim_line(L, PreT0, PreT1),
 	verbatim_body(Lines, Indent, PreT1, PreT, RestLines).
 
@@ -1010,8 +983,13 @@ verbatim_body([I-L|Lines], Indent, [10|Pre], PreT, RestLines) :-
 %	Insert Indent leading spaces.  Note we cannot use tabs as these
 %	are not expanded by the HTML <pre> element.
 
-pre_indent(Indent, Pre, PreT) :-
-	format(codes(Pre, PreT), '~*c', [Indent, 32]).
+pre_indent(N) -->
+	{ N > 0, !,
+	  N2 is N - 1
+	}, " ",
+	pre_indent(N2).
+pre_indent(_) -->
+	"".
 
 verbatim_line(Line, Pre, PreT) :-
 	append(Line, PreT, Pre).
@@ -1021,18 +999,17 @@ verbatim_line(Line, Pre, PreT) :-
 		 *	      SUMMARY		*
 		 *******************************/
 
-%%	summary_from_lines(+Lines:lines, -Summary:string) is det.
+%%	summary_from_lines(+Lines:lines, -Summary:list(codes)) is det.
 %
 %	Produce a summary for Lines. Similar  to JavaDoc, the summary is
 %	defined as the first sentence of the documentation. In addition,
 %	a sentence is also ended by an  empty   line  or  the end of the
 %	comment.
 
-summary_from_lines(Lines, Summary) :-
+summary_from_lines(Lines, Sentence) :-
 	skip_empty_lines(Lines, Lines1),
 	summary2(Lines1, Sentence0),
-	end_sentence(Sentence0, Sentence),
-	string_to_list(Summary, Sentence).
+	end_sentence(Sentence0, Sentence).
 
 summary2(_, Sentence) :-
 	Sentence == [], !.		% we finished our sentence
@@ -1084,15 +1061,15 @@ end_sentence([H|T0], [H|T]) :-
 		 *	  CREATE LINES		*
 		 *******************************/
 
-%%	indented_lines(+Text:string, +Prefixes:list(codes), -Lines:list) is det.
+%%	indented_lines(+Text:list(codes), +Prefixes:list(codes),
+%%		       -Lines:list) is det.
 %
 %	Extract a list of lines  without   leading  blanks or characters
 %	from Prefix from Text. Each line   is a term Indent-Codes, where
 %	Indent specifies the line_position of the real text of the line.
 
 indented_lines(Comment, Prefixes, Lines) :-
-	string_to_list(Comment, List),
-	phrase(split_lines(Prefixes, Lines), List).
+	phrase(split_lines(Prefixes, Lines), Comment).
 
 split_lines(_, []) -->
 	end_of_comment, !.
@@ -1316,5 +1293,5 @@ token(Token) -->
 	[Token],
 	{ token(Token) }.
 
-token(Token) :- atom(Token), !.
-token(Token) :- string(Token).
+token(w(_)) :- !.
+token(Token) :- atom(Token).
