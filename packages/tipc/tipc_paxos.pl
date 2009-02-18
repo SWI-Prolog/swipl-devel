@@ -176,8 +176,8 @@ max_gets(5).
 % =|paxos_changed(Term)|=, to the quorum. 
 % 
 % @param Term is a compound  that   may  have  unbound variables. 
-% @param Retries (optional) is a non-negative integer  specifying the number of
-% retries that will be performed before a set is abandoned.
+% @param Retries (optional) is a non-negative integer  specifying the
+% number of retries that will be performed before a set is abandoned.
 %
 tipc_paxos_set(Term) :-
 	max_sets(N),
@@ -257,9 +257,3 @@ tipc_paxos_on_change(Term, Goal) :-
 
 :- initialization
         tipc_paxos_init.
-
-
-
-
-
-
