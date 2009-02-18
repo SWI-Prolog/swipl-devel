@@ -177,8 +177,8 @@ pattern. For an overview, please see: tipc_overview.txt.
 %	 
 %	 Opens two SWI-Prolog I/O-streams, one to   deal with input from
 %	 the socket and one with output   to  the socket. If tipc_bind/3
-%	 has been called on the socket, OutSream is useless and will not
-%	 be created. After  closing  both   InStream  and  OutSream, the
+%	 has been called on the socket, OutStream is useless and will
+%	 not be created. After closing both InStream and OutStream, the
 %	 socket itself is discarded.
 	
 %%	 tipc_bind(+Socket, +Address, +ScopingOption) is det.
@@ -217,15 +217,12 @@ pattern. For an overview, please see: tipc_overview.txt.
 %	 Connectionless, datagram services  may   be  implemented  using
 %	 tipc_receive/4.
 %	 
-%	 Note that clients do not need to,  and in fact, should not bind
-%	 to any address. Its port-id is   sufficient for this role. Note
-%	 also note that sockets that are  bound to name_seq/3, addresses
-%	 (e.g. servers) may not act as clients.   That  is, they may not
-%	 originate connections from  the  socket.   This  is  of  little
-%	 consequence since a server may instantiate   a client socket of
-%	 it's own, and may  originate   transactions  to  other servers,
-%	 including other instances of itself,  from this socket. Please,
-%	 see the TIPC programmers's guide for other restrictions.
+%	 Note that clients do not  need  to   bind  to  any address. Its
+%	 port-id is sufficient for this role.   And server sockets (e.g.
+%	 those that are bound to name/3   or  name_seq/3, addresses) may
+%	 not act as clients. That is, they may not originate connections
+%	 from the socket. Please see the   TIPC programmers's guide for
+%	 other restrictions.
 	
 %%	 tipc_listen(+Socket,+Backlog) is det.
 %	 
@@ -575,7 +572,7 @@ sp_collect(S, Members) :-
 %	its socket to the address.
 %	
 %	$ withdrawn(-NameSeq, -PortId) : when the worker
-%	unbinds it socket from the address.
+%	unbinds its socket from the address.
 %	
 %	@param Timeout is optional.  It  is   one  of:
 %
