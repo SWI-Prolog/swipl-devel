@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -73,6 +73,7 @@
 %			spawned(ThreadId).
 
 http_wrapper(Goal, In, Out, Close, Options) :-
+	status(Id, State0),
 	catch(http_read_request(In, Request0), ReqError, true),
 	(   Request0 == end_of_file
 	->  Close = close,
@@ -86,10 +87,15 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	    debug(http(request), '[~D] ~w ~w ...', [Id, Method, Location]),
 	    broadcast(http(request_start(Id, Request0))),
 	    handler_with_output_to(Goal, Request1, CGI, Error),
-	    cgi_close(CGI, Error, Close)
-	;   send_error(Out, ReqError, Close),
+	    cgi_close(CGI, State0, Error, Close)
+	;   Id = 0,
+	    send_error(Out, ReqError, Close, State0),
 	    extend_request(Options, [], _)
 	).
+
+status(Id, state0(Thread, CPU, Id)) :-
+	thread_self(Thread),
+	thread_cputime(CPU).
 
 
 %%	http_wrap_spawned(:Goal, -Request, -Close) is det.
@@ -106,7 +112,11 @@ http_wrap_spawned(Goal, Request, Close) :-
 	    Request = []
 	;   current_output(CGI),
 	    cgi_property(CGI, request(Request)),
-	    catch(cgi_close(CGI, Error, Close), _, Close = close)
+	    cgi_property(CGI, id(Id)),
+	    status(Id, State0),
+	    catch(cgi_close(CGI, State0, Error, Close),
+		  _,
+		  Close = close)
 	).
 
 
@@ -122,29 +132,77 @@ http_spawned(ThreadId) :-
 	assert(spawned(ThreadId)).
 
 
-%%	cgi_close(+CGI, +Error, -Close)
+%%	cgi_close(+CGI, +State0, +Error, -Close) is det.
+%
+%	The wrapper has completed. Finish the  CGI output. We have three
+%	cases:
+%	
+%	    * The wrapper delegated the request to a new thread
+%	    * The wrapper succeeded
+%	    * The wrapper threw an error, non-200 status reply
+%	    (e.g., =not_modified=, =moved=) or a request to reply with
+%	    the content of a file.
+%	    
+%	@error socket I/O errors.
 
-cgi_close(_, _, Close) :-
+cgi_close(_, _, _, Close) :-
 	retract(spawned(ThreadId)), !,
 	Close = spawned(ThreadId).
-cgi_close(CGI, ok, Close) :- !,
+cgi_close(CGI, State0, ok, Close) :- !,
+	flush_output,			% update the content-length
 	cgi_property(CGI, connection(Close)),
-	close(CGI).
-cgi_close(CGI, Error, Close) :-
+	cgi_property(CGI, content_length(Bytes)),
+	catch(close(CGI), E, true),
+	(   var(E)
+	->  http_done(ok, Bytes, State0)
+	;   http_done(E, 0, State0),	% TBD: amount written?
+	    throw(E)
+	).
+cgi_close(CGI, Id, Error, Close) :-
 	cgi_property(CGI, client(Out)),
 	cgi_discard(CGI),
 	close(CGI),
-	send_error(Out, Error, Close).
+	send_error(Out, Id, Error, Close).
 
-%%	send_error(+Out, +Error, -Close)
+%%	send_error(+Out, +State0, +Error, -Close)
+%
+%	Send status replies and  reply   files.  The =current_output= no
+%	longer points to the CGI stream, but   simply to the socket that
+%	connects us to the client.
+%	
+%	@param	State0 is start-status as returned by status/1.  Used to
+%		find CPU usage, etc.
 
-send_error(Out, Error, Close) :-
+send_error(Out, State0, Error, Close) :-
 	map_exception_to_http_status(Error, Reply, HdrExtra),
-	http_reply(Reply, Out, HdrExtra),
+	catch(http_reply(Reply, Out, HdrExtra), E, true),
+	(   var(E)
+	->  http_done(Error, 0, State0)
+	;   http_done(E, 0, State0),
+	    throw(E)			% is that wise?
+	),
 	(   memberchk(connection(Close), HdrExtra)
 	->  true
 	;   Close = close
 	).
+
+
+%%	http_done(+Status, +BytesSent, +State0) is det.
+%
+%	Provide feedback for logging and debugging   on  how the request
+%	has been completed.
+
+http_done(Status, Bytes, state0(_Thread, CPU0, Id)) :-
+	thread_cputime(CPU1),
+	CPU is CPU1 - CPU0,
+	(   debugging(http(request))
+	->  debug_request(Status, Id, CPU, Bytes)
+	;   true
+	),
+	broadcast(http(request_finished(Id, CPU, Status, Bytes))).
+
+
+
 
 
 %%	handler_with_output_to(:Goal, +Request, +Output, -Status) is det.
@@ -157,25 +215,12 @@ send_error(Out, Error, Close) :-
 %			using http_spawn/2.
 
 handler_with_output_to(Goal, Request, current_output, Status) :- !,
-	thread_cputime(CPU0),
 	(   catch(call_handler(Goal, Request), Status, true)
 	->  (   var(Status)
 	    ->	Status = ok
 	    ;	true
 	    )
 	;   Status = error(goal_failed(Goal),_)
-	),
-	(   spawned(_)
-	->  true
-	;   thread_cputime(CPU1),
-	    CPU is CPU1 - CPU0,
-	    current_output(CGI),
-	    cgi_property(CGI, id(Id)),
-	    (   debugging(http(request))
-	    ->  debug_request(Status, Id, CPU)
-	    ;   true
-	    ),
-	    broadcast(http(request_finished(Id, CPU, Status)))
 	).
 handler_with_output_to(Goal, Request, Output, Error) :-
 	current_output(OldOut),
@@ -327,20 +372,21 @@ to_dot_dot([_|T0], ['..'|T], Tail) :-
 		 *	   DEBUG SUPPORT	*
 		 *******************************/
 
-%%	debug_request(+Status, +Id, +CPU0)
+%%	debug_request(+Status, +Id, +CPU0, Bytes)
 %
 %	Emit debugging info after a request completed with Status.
 
-debug_request(ok, Id, CPU) :- !,
-	debug(http(request), '[~D] 200 OK (~3f seconds)', [Id, CPU]).
-debug_request(Status, Id, _) :-
+debug_request(ok, Id, CPU, Bytes) :- !,
+	debug(http(request), '[~D] 200 OK (~3f seconds; ~D bytes)',
+	      [Id, CPU, Bytes]).
+debug_request(Status, Id, _, _) :-
 	map_exception(Status, Reply), !,
 	debug(http(request), '[~D] ~w', [Id, Reply]).
-debug_request(Except, Id, _) :- !,
+debug_request(Except, Id, _, _) :- !,
 	Except = error(_,_), !,
 	message_to_string(Except, Message),
 	debug(http(request), '[~D] ERROR: ~w', [Id, Message]).
-debug_request(Status, Id, _) :-
+debug_request(Status, Id, _, _) :-
 	debug(http(request), '[~D] ~w', [Id, Status]).
 
 map_exception(http_reply(Reply), Reply).

@@ -67,9 +67,9 @@ specifications (e.g. =|/topsecret?password=secret|=.
 http_message(request_start(Id, Request)) :- !,
 	http_log_stream(Stream),
 	log_started(Request, Id, Stream).
-http_message(request_finished(Id, CPU, Status)) :- !,
+http_message(request_finished(Id, CPU, Status, Bytes)) :- !,
 	http_log_stream(Stream),
-	log_completed(Status, Id, CPU, Stream).
+	log_completed(Status, Bytes, Id, CPU, Stream).
 
 
 		 /*******************************
@@ -208,7 +208,7 @@ nolog(pool(_,_,_,_)).
 nolog(referer(R)) :-
 	sub_atom(R, _, _, _, password), !.
 
-%%	log_completed(+Status, +Id, +CPU, +Stream) is det.
+%%	log_completed(+Status, +Bytes, +Id, +CPU, +Stream) is det.
 %
 %	Write log message to Stream from a call_cleanup/3 call.
 %	
@@ -217,26 +217,26 @@ nolog(referer(R)) :-
 %	@param CPU0	CPU time at time of entrance
 %	@param Stream	Stream to write to (normally from http_log_stream/1).
 
-log_completed(Status, Id, CPU, Stream) :-
+log_completed(Status, Bytes, Id, CPU, Stream) :-
 	is_stream(Stream), !,
-	log(Status, Id, CPU, Stream).
-log_completed(Status, Id, CPU0, _) :-
+	log(Status, Bytes, Id, CPU, Stream).
+log_completed(Status, Bytes, Id, CPU0, _) :-
 	http_log_stream(Stream), !,	% Logfile has changed!
-	log_completed(Status, Id, CPU0, Stream).
-log_completed(_,_,_,_).
+	log_completed(Status, Bytes, Id, CPU0, Stream).
+log_completed(_,_,_,_,_).
 
 
-log(ok, Id, CPU, Stream) :-
-	format(Stream, 'completed(~q, ~2f, true).~n',
-	       [ Id, CPU ]).
-log(Error, Id, CPU, Stream) :-
+log(ok, Bytes, Id, CPU, Stream) :-
+	format(Stream, 'completed(~q, ~2f, ~q, ok).~n',
+	       [ Id, CPU, Bytes ]).
+log(Error, Bytes, Id, CPU, Stream) :-
 	(   map_exception(Error, Term)
 	->  true
 	;   message_to_string(Error, String),
 	    Term = error(String)
 	),
-	format(Stream, 'completed(~q, ~2f, ~q).~n',
-	       [ Id, CPU, Term ]).
+	format(Stream, 'completed(~q, ~2f, ~q, ~q).~n',
+	       [ Id, CPU, Bytes, Term ]).
 
 map_exception(http_reply(Reply), Reply).
 map_exception(error(existence_error(http_location, Location), _Stack),
