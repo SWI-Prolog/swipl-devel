@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -142,6 +142,11 @@ http_read_reply_header(In, [input(In)|Reply]) :-
 %		
 %		* Status
 %		HTTP status report and defined by http_status_reply/3.
+%		
+%	@param HdrExtra provides additional reply-header fields, encoded
+%	       as Name(Value). It can also contain a field
+%	       content_length(-Len) to _retrieve_ the
+%	       value of the Content-length header that is replied.
 %		
 %	@tbd	Complete documentation	
 
@@ -657,22 +662,22 @@ http_post_data(List, Out, HdrExtra) :-		% multipart-mixed
 %	HTTP Content-length and Content-type fields.
 
 post_header(html(Tokens), HdrExtra) -->
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, Len),
+	content_length(html(Tokens), Len),
 	content_type(text/html),
 	"\r\n". 
 post_header(file(Type, File), HdrExtra) -->
-	header_fields(HdrExtra),
-	content_length(file(File)),
+	header_fields(HdrExtra, Len),
+	content_length(file(File), Len),
 	content_type(Type),
 	"\r\n". 
 post_header(cgi_data(Size), HdrExtra) -->
-	header_fields(HdrExtra),
-	content_length(Size),
+	header_fields(HdrExtra, Len),
+	content_length(Size, Len),
 	"\r\n". 
 post_header(codes(Type, Codes), HdrExtra) -->
-	header_fields(HdrExtra),
-	content_length(ascii_string(Codes)),
+	header_fields(HdrExtra, Len),
+	content_length(ascii_string(Codes), Len),
 	content_type(Type),
 	"\r\n". 
 
@@ -696,50 +701,50 @@ reply_header(string(String), HdrExtra) -->
 reply_header(string(Type, String), HdrExtra) -->
 	vstatus(ok),
 	date(now),
-	header_fields(HdrExtra),
-	content_length(ascii_string(String)),
+	header_fields(HdrExtra, CLen),
+	content_length(ascii_string(String), CLen),
 	content_type(Type),
 	"\r\n".
 reply_header(html(Tokens), HdrExtra) -->
 	vstatus(ok),
 	date(now),
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
 	content_type(text/html),
 	"\r\n".
 reply_header(file(Type, File), HdrExtra) -->
 	vstatus(ok),
 	date(now),
 	modified(file(File)),
-	header_fields(HdrExtra),
-	content_length(file(File)),
+	header_fields(HdrExtra, CLen),
+	content_length(file(File), CLen),
 	content_type(Type),
 	"\r\n".
 reply_header(file(Type, File, Range), HdrExtra) -->
 	vstatus(partial_content),
 	date(now),
 	modified(file(File)),
-	header_fields(HdrExtra),
-	content_length(file(File, Range)),
+	header_fields(HdrExtra, CLen),
+	content_length(file(File, Range), CLen),
 	content_type(Type),
 	"\r\n".
 reply_header(tmp_file(Type, File), HdrExtra) -->
 	vstatus(ok),
 	date(now),
-	header_fields(HdrExtra),
-	content_length(file(File)),
+	header_fields(HdrExtra, CLen),
+	content_length(file(File), CLen),
 	content_type(Type),
 	"\r\n".
 reply_header(cgi_data(Size), HdrExtra) -->
 	vstatus(ok),
 	date(now),
-	header_fields(HdrExtra),
-	content_length(Size),
+	header_fields(HdrExtra, CLen),
+	content_length(Size, CLen),
 	"\r\n".
 reply_header(chunked_data, HdrExtra) -->
 	vstatus(ok),
 	date(now),
-	header_fields(HdrExtra),
+	header_fields(HdrExtra, _),
 	(   {memberchk(transfer_encoding(_), HdrExtra)}
 	->  ""
 	;   transfer_encoding(chunked)
@@ -749,43 +754,43 @@ reply_header(moved(To, Tokens), HdrExtra) -->
 	vstatus(moved),
 	date(now),
 	header_field('Location', To),
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
 reply_header(moved_temporary(To, Tokens), HdrExtra) -->
 	vstatus(moved_temporary),
 	date(now),
 	header_field('Location', To),
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
 reply_header(see_other(To,Tokens),HdrExtra) -->
 	vstatus(see_other),
 	date(now),
 	header_field('Location',To),
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
 reply_header(status(Status), HdrExtra) --> % Empty messages: 1xx, 204 and 304
 	vstatus(Status),
-	header_fields(HdrExtra),
+	header_fields(HdrExtra, _),
 	"\r\n".
 reply_header(status(Status, Tokens), HdrExtra) -->
 	vstatus(Status),
 	date(now),
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
 reply_header(authorise(Method, Realm, Tokens), HdrExtra) -->
 	vstatus(authorise),
 	date(now),
 	authenticate(Method, Realm),
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
 
@@ -865,34 +870,42 @@ modified(Time) -->
 	),
 	"\r\n".
 
-content_length(ascii_string(String)) --> !,
-	{ length(String, Len)
-	},
-	content_length(Len).
-content_length(file(File)) --> !,
-	{ size_file(File, Len)
-	},
-	content_length(Len).
-content_length(file(File, bytes(From, To))) --> !,
+
+%%	content_length(+Object, ?Len)// is det.
+%
+%	Emit the content-length field and (optionally) the content-range
+%	field.
+%	
+%	@param Len Number of bytes specified
+
+content_length(file(File, bytes(From, To)), Len) --> !,
 	{ size_file(File, Size),
 	  (   To == end
 	  ->  Len is Size - From,
 	      RangeEnd is Size - 1
-	  ;   Len is To+1 - From,		% To is index of last byte
+	  ;   Len is To+1 - From,	% To is index of last byte
 	      RangeEnd = To
 	  )
 	},
 	content_range(bytes, From, RangeEnd, Size),
-	content_length(Len).
-content_length(html(Tokens)) --> !,
-	{ html_print_length(Tokens, Len)
+	content_length(Len, Len).
+content_length(Reply, Len) -->
+	{ length_of(Reply, Len)
 	},
-	content_length(Len).
-content_length(Len) -->
-	{ number_codes(Len, LenChars)
-	},
-	"Content-Length: ", string(LenChars),
+	"Content-Length: ", integer(Len),
 	"\r\n".
+
+
+length_of(_, Len) :-
+	nonvar(Len), !.
+length_of(ascii_string(String), Len) :- !,
+	length(String, Len).
+length_of(file(File), Len) :- !,
+	size_file(File, Len).
+length_of(html(Tokens), Len) :- !,
+	html_print_length(Tokens, Len).
+length_of(Len, Len).
+
 
 %%	content_range(+Unit:atom, +From:int, +RangeEnd:int, +Size:int)// is det
 %
@@ -998,20 +1011,27 @@ set_cookie_options([Name=Value|T]) -->
 	set_cookie_options(T).
 
 
-%	Process a sequence of [Name(Value), ...] attributes for the
-%	header.
+%%	header_fields(+Fields, ?ContentLength)// is det.
+%
+%	Process a sequence of  [Name(Value),   ...]  attributes  for the
+%	header. A term content_length(Len) is   special. If instantiated
+%	it emits the header. If not   it just unifies ContentLength with
+%	the argument of the content_length(Len)   term.  This allows for
+%	both sending and retrieving the content-length.
 
-header_fields([]) -->
+header_fields([], _) -->
 	[].
-header_fields([H|T]) -->
-	{ H =.. [Name, Value]
-	},
-	field_name(Name),
-	whites,
-	": ",
-	field_value(Value),
-	"\r\n",
-	header_fields(T).
+header_fields([content_length(CLen)|T], CLen) --> !,
+	(   { var(CLen) }
+	->  ""
+	;   header_field(content_length, CLen)
+	),
+	header_fields(T, CLen).		% Continue or return first only?
+header_fields([H|T], CLen) -->
+	{ H =.. [Name, Value] },
+	header_field(Name, Value),
+	header_fields(T, CLen).
+
 
 %%	field_name(?PrologName)
 %

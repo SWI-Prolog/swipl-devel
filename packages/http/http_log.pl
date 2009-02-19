@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -227,16 +227,16 @@ log_completed(_,_,_,_,_).
 
 
 log(ok, Bytes, Id, CPU, Stream) :-
-	format(Stream, 'completed(~q, ~2f, ~q, ok).~n',
+	format(Stream, 'completed(~q, ~2f, ~q, 200, ok).~n',
 	       [ Id, CPU, Bytes ]).
-log(Error, Bytes, Id, CPU, Stream) :-
-	(   map_exception(Error, Term)
+log(Status, Bytes, Id, CPU, Stream) :-
+	(   map_exception(Status, Term)
 	->  true
-	;   message_to_string(Error, String),
+	;   message_to_string(Status, String),
 	    Term = error(String)
 	),
-	format(Stream, 'completed(~q, ~2f, ~q, ~q).~n',
-	       [ Id, CPU, Bytes, Term ]).
+	format(Stream, 'completed(~q, ~2f, ~q, ~q, ~q).~n',
+	       [ Id, CPU, Bytes, Code, Term ]).
 
 map_exception(http_reply(Reply), Reply).
 map_exception(error(existence_error(http_location, Location), _Stack),

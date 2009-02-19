@@ -175,9 +175,12 @@ cgi_close(CGI, Id, Error, Close) :-
 
 send_error(Out, State0, Error, Close) :-
 	map_exception_to_http_status(Error, Reply, HdrExtra),
-	catch(http_reply(Reply, Out, HdrExtra), E, true),
+	catch(http_reply(Reply, Out, [ content_length(CLen)
+				     | HdrExtra
+				     ]),
+	      E, true),
 	(   var(E)
-	->  http_done(Error, 0, State0)
+	->  http_done(Error, CLen, State0)
 	;   http_done(E, 0, State0),
 	    throw(E)			% is that wise?
 	),
@@ -200,9 +203,6 @@ http_done(Status, Bytes, state0(_Thread, CPU0, Id)) :-
 	;   true
 	),
 	broadcast(http(request_finished(Id, CPU, Status, Bytes))).
-
-
-
 
 
 %%	handler_with_output_to(:Goal, +Request, +Output, -Status) is det.
@@ -379,15 +379,15 @@ to_dot_dot([_|T0], ['..'|T], Tail) :-
 debug_request(ok, Id, CPU, Bytes) :- !,
 	debug(http(request), '[~D] 200 OK (~3f seconds; ~D bytes)',
 	      [Id, CPU, Bytes]).
-debug_request(Status, Id, _, _) :-
+debug_request(Status, Id, _, Bytes) :-
 	map_exception(Status, Reply), !,
-	debug(http(request), '[~D] ~w', [Id, Reply]).
+	debug(http(request), '[~D] ~w; ~D bytes', [Id, Reply, Bytes]).
 debug_request(Except, Id, _, _) :- !,
 	Except = error(_,_), !,
 	message_to_string(Except, Message),
 	debug(http(request), '[~D] ERROR: ~w', [Id, Message]).
-debug_request(Status, Id, _, _) :-
-	debug(http(request), '[~D] ~w', [Id, Status]).
+debug_request(Status, Id, _, Bytes) :-
+	debug(http(request), '[~D] ~w; ~D bytes', [Id, Status, Bytes]).
 
 map_exception(http_reply(Reply), Reply).
 map_exception(error(existence_error(http_location, Location), _Stack),
