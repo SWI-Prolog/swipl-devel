@@ -34,6 +34,7 @@
 	    http_read_reply_header/2,	% +Stream, -Reply
 	    http_reply/2,		% +What, +Stream
 	    http_reply/3,		% +What, +Stream, +HdrExtra
+	    http_reply/4,		% +What, +Stream, +HdrExtra, -Code
 	    http_reply_header/3,	% +Stream, +What, +HdrExtra
 
 	    http_timestamp/2,		% +Time, -HTTP string
@@ -151,48 +152,51 @@ http_read_reply_header(In, [input(In)|Reply]) :-
 %	@tbd	Complete documentation	
 
 http_reply(What, Out) :-
-	http_reply(What, Out, [connection(close)]).
+	http_reply(What, Out, [connection(close)], _).
 
 http_reply(Data, Out, HdrExtra) :-
-	catch(http_reply_data(Data, Out, HdrExtra), E, true), !,
+	http_reply(Data, Out, HdrExtra, _Code).
+
+http_reply(Data, Out, HdrExtra, Code) :-
+	catch(http_reply_data(Data, Out, HdrExtra, Code), E, true), !,
 	(   var(E)
 	->  true
 	;   map_exception_to_http_status(E, Status, NewHdr),
-	    http_status_reply(Status, Out, NewHdr)
+	    http_status_reply(Status, Out, NewHdr, Code)
 	).
-http_reply(Status, Out, HdrExtra) :-
-	http_status_reply(Status, Out, HdrExtra).
+http_reply(Status, Out, HdrExtra, Code) :-
+	http_status_reply(Status, Out, HdrExtra, Code).
 
 
-%%	http_reply_data(+Data, +Out, +HdrExtra) is semidet.
+%%	http_reply_data(+Data, +Out, +HdrExtra, -Code) is semidet.
 %
 %	Fails if Data is not a defined   reply-data format, but a status
 %	term. See http_reply/3 and http_status_reply/3.
 %
 %	@error Various I/O errors.
 
-http_reply_data(html(HTML), Out, HrdExtra) :- !,
-	phrase(reply_header(html(HTML), HrdExtra), Header),
+http_reply_data(html(HTML), Out, HrdExtra, Code) :- !,
+	phrase(reply_header(html(HTML), HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_reply_data(file(Type, File), Out, HrdExtra) :- !,
-	phrase(reply_header(file(Type, File), HrdExtra), Header),
+http_reply_data(file(Type, File), Out, HrdExtra, Code) :- !,
+	phrase(reply_header(file(Type, File), HrdExtra, Code), Header),
 	reply_file(Out, File, Header).
-http_reply_data(file(Type, File, Range), Out, HrdExtra) :- !,
-	phrase(reply_header(file(Type, File, Range), HrdExtra), Header),
+http_reply_data(file(Type, File, Range), Out, HrdExtra, Code) :- !,
+	phrase(reply_header(file(Type, File, Range), HrdExtra, Code), Header),
 	reply_file_range(Out, File, Header, Range).
-http_reply_data(tmp_file(Type, File), Out, HrdExtra) :- !,
-	phrase(reply_header(tmp_file(Type, File), HrdExtra), Header),
+http_reply_data(tmp_file(Type, File), Out, HrdExtra, Code) :- !,
+	phrase(reply_header(tmp_file(Type, File), HrdExtra, Code), Header),
 	reply_file(Out, File, Header).
-http_reply_data(stream(In, Len), Out, HdrExtra) :- !,
-	phrase(reply_header(cgi_data(Len), HdrExtra), Header),
+http_reply_data(stream(In, Len), Out, HdrExtra, Code) :- !,
+	phrase(reply_header(cgi_data(Len), HdrExtra, Code), Header),
 	copy_stream(Out, In, Header, 0, end).
-http_reply_data(cgi_stream(In, Len), Out, HrdExtra) :- !,
+http_reply_data(cgi_stream(In, Len), Out, HrdExtra, Code) :- !,
 	http_read_header(In, CgiHeader),
 	seek(In, 0, current, Pos),
 	Size is Len - Pos,
 	http_join_headers(HrdExtra, CgiHeader, Hdr2),
-	phrase(reply_header(cgi_data(Size), Hdr2), Header),
+	phrase(reply_header(cgi_data(Size), Hdr2, Code), Header),
 	copy_stream(Out, In, Header, 0, end).
 
 reply_file(Out, File, Header) :-
@@ -220,18 +224,18 @@ copy_stream(Out, In, Header, From, To) :-
 	flush_output(Out).
 
 
-%%	http_status_reply(+Status, +Out, +HdrExtra) is det.
+%%	http_status_reply(+Status, +Out, +HdrExtra, -Code) is det.
 %
 %	Emit HTML non-200 status reports. Such  requests are always sent
 %	as UTF-8 documents.
 
-http_status_reply(Status, Out, HdrExtra) :-
+http_status_reply(Status, Out, HdrExtra, Code) :-
 	setup_call_cleanup(set_stream(Out, encoding(utf8)),
-			   status_reply(Status, Out, HdrExtra),
+			   status_reply(Status, Out, HdrExtra, Code),
 			   set_stream(Out, encoding(octet))), !.
 
 
-status_reply(moved(To), Out, HrdExtra) :- !,
+status_reply(moved(To), Out, HrdExtra, Code) :- !,
 	phrase(page([ title('301 Moved Permanently')
 		    ],
 		    [ h1('Moved Permanently'),
@@ -241,10 +245,10 @@ status_reply(moved(To), Out, HrdExtra) :- !,
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(moved(To, HTML), HrdExtra), Header),
+	phrase(reply_header(moved(To, HTML), HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-status_reply(moved_temporary(To), Out, HrdExtra) :- !,
+status_reply(moved_temporary(To), Out, HrdExtra, Code) :- !,
 	phrase(page([ title('302 Moved Temporary')
 		    ],
 		    [ h1('Moved Temporary'),
@@ -254,10 +258,11 @@ status_reply(moved_temporary(To), Out, HrdExtra) :- !,
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(moved_temporary(To, HTML), HrdExtra), Header),
+	phrase(reply_header(moved_temporary(To, HTML),
+			    HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-status_reply(see_other(To),Out,HdrExtra) :- !,
+status_reply(see_other(To),Out,HdrExtra, Code) :- !,
        phrase(page([ title('303 See Other')
                     ],
                     [ h1('See Other'),
@@ -267,10 +272,10 @@ status_reply(see_other(To),Out,HdrExtra) :- !,
                       \address
                     ]),
                HTML),
-        phrase(reply_header(see_other(To, HTML), HdrExtra), Header),
+        phrase(reply_header(see_other(To, HTML), HdrExtra, Code), Header),
         format(Out, '~s', [Header]),
         print_html(Out, HTML).
-status_reply(not_found(URL), Out, HrdExtra) :- !,
+status_reply(not_found(URL), Out, HrdExtra, Code) :- !,
 	phrase(page([ title('404 Not Found')
 		    ],
 		    [ h1('Not Found'),
@@ -280,10 +285,10 @@ status_reply(not_found(URL), Out, HrdExtra) :- !,
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(status(not_found, HTML), HrdExtra), Header),
+	phrase(reply_header(status(not_found, HTML), HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-status_reply(forbidden(URL), Out, HrdExtra) :- !,
+status_reply(forbidden(URL), Out, HrdExtra, Code) :- !,
 	phrase(page([ title('403 Forbidden')
 		    ],
 		    [ h1('Forbidden'),
@@ -293,10 +298,10 @@ status_reply(forbidden(URL), Out, HrdExtra) :- !,
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(status(forbidden, HTML), HrdExtra), Header),
+	phrase(reply_header(status(forbidden, HTML), HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
+status_reply(authorise(Method, Realm), Out, HrdExtra, Code) :- !,
 	phrase(page([ title('401 Authorization Required')
 		    ],
 		    [ h1('Authorization Required'),
@@ -310,14 +315,15 @@ status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(authorise(Method, Realm, HTML), HrdExtra), Header),
+	phrase(reply_header(authorise(Method, Realm, HTML),
+			    HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-status_reply(not_modified, Out, HrdExtra) :- !,
-	phrase(reply_header(status(not_modified), HrdExtra), Header),
+status_reply(not_modified, Out, HrdExtra, Code) :- !,
+	phrase(reply_header(status(not_modified), HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	flush_output(Out).
-status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
+status_reply(server_error(ErrorTerm), Out, HrdExtra, Code) :-
 	'$messages':translate_message(ErrorTerm, Lines, []),
 	phrase(page([ title('500 Internal server error')
 		    ],
@@ -326,10 +332,11 @@ status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(status(server_error, HTML), HrdExtra), Header),
+	phrase(reply_header(status(server_error, HTML),
+			    HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-status_reply(unavailable(WhyHTML), Out, HdrExtra) :- !,
+status_reply(unavailable(WhyHTML), Out, HdrExtra, Code) :- !,
 	phrase(page([ title('503 Service Unavailable')
 		    ],
 		    [ h1('Service Unavailable'),
@@ -337,15 +344,17 @@ status_reply(unavailable(WhyHTML), Out, HdrExtra) :- !,
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(status(service_unavailable, HTML), HdrExtra), Header),
+	phrase(reply_header(status(service_unavailable, HTML), HdrExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-status_reply(resource_error(ErrorTerm), Out, HdrExtra) :- !,
+status_reply(resource_error(ErrorTerm), Out, HdrExtra, Code) :- !,
 	'$messages':translate_message(ErrorTerm, Lines, []),
-	status_reply(unavailable(p(\html_message_lines(Lines))), Out, HdrExtra).
-status_reply(busy, Out, HdrExtra) :- !,
-	HTML = p(['The server is temporarily out of resources, please try again later']),
-	http_status_reply(unavailable(HTML), Out, HdrExtra).
+	status_reply(unavailable(p(\html_message_lines(Lines))),
+		     Out, HdrExtra, Code).
+status_reply(busy, Out, HdrExtra, Code) :- !,
+	HTML = p(['The server is temporarily out of resources, ',
+		  'please try again later']),
+	http_status_reply(unavailable(HTML), Out, HdrExtra, Code).
 
 
 html_message_lines([]) -->
@@ -692,57 +701,57 @@ post_header(codes(Type, Codes), HdrExtra) -->
 %	Stream.
 
 http_reply_header(Out, What, HdrExtra) :-
-	phrase(reply_header(What, HdrExtra), String), !,
+	phrase(reply_header(What, HdrExtra, _Code), String), !,
 	format(Out, '~s', [String]).
 	
 
-reply_header(string(String), HdrExtra) -->
-	reply_header(string(text/plain, String), HdrExtra).
-reply_header(string(Type, String), HdrExtra) -->
-	vstatus(ok),
+reply_header(string(String), HdrExtra, Code) -->
+	reply_header(string(text/plain, String), HdrExtra, Code).
+reply_header(string(Type, String), HdrExtra, Code) -->
+	vstatus(ok, Code),
 	date(now),
 	header_fields(HdrExtra, CLen),
 	content_length(ascii_string(String), CLen),
 	content_type(Type),
 	"\r\n".
-reply_header(html(Tokens), HdrExtra) -->
-	vstatus(ok),
+reply_header(html(Tokens), HdrExtra, Code) -->
+	vstatus(ok, Code),
 	date(now),
 	header_fields(HdrExtra, CLen),
 	content_length(html(Tokens), CLen),
 	content_type(text/html),
 	"\r\n".
-reply_header(file(Type, File), HdrExtra) -->
-	vstatus(ok),
+reply_header(file(Type, File), HdrExtra, Code) -->
+	vstatus(ok, Code),
 	date(now),
 	modified(file(File)),
 	header_fields(HdrExtra, CLen),
 	content_length(file(File), CLen),
 	content_type(Type),
 	"\r\n".
-reply_header(file(Type, File, Range), HdrExtra) -->
-	vstatus(partial_content),
+reply_header(file(Type, File, Range), HdrExtra, Code) -->
+	vstatus(partial_content, Code),
 	date(now),
 	modified(file(File)),
 	header_fields(HdrExtra, CLen),
 	content_length(file(File, Range), CLen),
 	content_type(Type),
 	"\r\n".
-reply_header(tmp_file(Type, File), HdrExtra) -->
-	vstatus(ok),
+reply_header(tmp_file(Type, File), HdrExtra, Code) -->
+	vstatus(ok, Code),
 	date(now),
 	header_fields(HdrExtra, CLen),
 	content_length(file(File), CLen),
 	content_type(Type),
 	"\r\n".
-reply_header(cgi_data(Size), HdrExtra) -->
-	vstatus(ok),
+reply_header(cgi_data(Size), HdrExtra, Code) -->
+	vstatus(ok, Code),
 	date(now),
 	header_fields(HdrExtra, CLen),
 	content_length(Size, CLen),
 	"\r\n".
-reply_header(chunked_data, HdrExtra) -->
-	vstatus(ok),
+reply_header(chunked_data, HdrExtra, Code) -->
+	vstatus(ok, Code),
 	date(now),
 	header_fields(HdrExtra, _),
 	(   {memberchk(transfer_encoding(_), HdrExtra)}
@@ -750,43 +759,43 @@ reply_header(chunked_data, HdrExtra) -->
 	;   transfer_encoding(chunked)
 	),
 	"\r\n".
-reply_header(moved(To, Tokens), HdrExtra) -->
-	vstatus(moved),
+reply_header(moved(To, Tokens), HdrExtra, Code) -->
+	vstatus(moved, Code),
 	date(now),
 	header_field('Location', To),
 	header_fields(HdrExtra, CLen),
 	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
-reply_header(moved_temporary(To, Tokens), HdrExtra) -->
-	vstatus(moved_temporary),
+reply_header(moved_temporary(To, Tokens), HdrExtra, Code) -->
+	vstatus(moved_temporary, Code),
 	date(now),
 	header_field('Location', To),
 	header_fields(HdrExtra, CLen),
 	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
-reply_header(see_other(To,Tokens),HdrExtra) -->
-	vstatus(see_other),
+reply_header(see_other(To,Tokens),HdrExtra, Code) -->
+	vstatus(see_other, Code),
 	date(now),
 	header_field('Location',To),
 	header_fields(HdrExtra, CLen),
 	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
-reply_header(status(Status), HdrExtra) --> % Empty messages: 1xx, 204 and 304
-	vstatus(Status),
+reply_header(status(Status), HdrExtra, Code) --> % Empty messages: 1xx, 204 and 304
+	vstatus(Status, Code),
 	header_fields(HdrExtra, _),
 	"\r\n".
-reply_header(status(Status, Tokens), HdrExtra) -->
-	vstatus(Status),
+reply_header(status(Status, Tokens), HdrExtra, Code) -->
+	vstatus(Status, Code),
 	date(now),
 	header_fields(HdrExtra, CLen),
 	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
-reply_header(authorise(Method, Realm, Tokens), HdrExtra) -->
-	vstatus(authorise),
+reply_header(authorise(Method, Realm, Tokens), HdrExtra, Code) -->
+	vstatus(authorise, Code),
 	date(now),
 	authenticate(Method, Realm),
 	header_fields(HdrExtra, CLen),
@@ -794,29 +803,43 @@ reply_header(authorise(Method, Realm, Tokens), HdrExtra) -->
 	content_type(text/html, utf8),
 	"\r\n".
 
-vstatus(Status) -->
+vstatus(Status, Code) -->
 	"HTTP/1.1 ",
-	status_number(Status),
+	status_number(Status, Code),
 	" ",
 	status_comment(Status),
 	"\r\n".
 
-%%	status_number(-Code)//
+%%	status_number(?Status, ?Code)// is semidet.
 %
-%	Parse the HTTP status numbers and return them as a code (atom).
+%	Parse/generate the HTTP status numbers and return them as a code
+%	(atom).
 
-status_number(continue)		   --> "100".
-status_number(ok)		   --> "200".
-status_number(partial_content)	   --> "206".
-status_number(moved)		   --> "301".
-status_number(moved_temporary)	   --> "302".
-status_number(see_other)	   --> "303".
-status_number(not_modified)	   --> "304". 
-status_number(not_found)	   --> "404".
-status_number(forbidden)	   --> "403".
-status_number(authorise)	   --> "401".
-status_number(server_error)	   --> "500".
-status_number(service_unavailable) --> "503".
+status_number(Status, Code) -->
+	{ var(Status) }, !,
+	integer(Code),
+	{ status_number(Status, Code) }, !.
+status_number(Status, Code) -->
+	{ status_number(Status, Code) },
+	integer(Code).
+
+status_number(continue,		   100).
+status_number(ok,		   200).
+status_number(partial_content,	   206).
+status_number(moved,		   301).
+status_number(moved_temporary,	   302).
+status_number(see_other,	   303).
+status_number(not_modified,	   304). 
+status_number(not_found,	   404).
+status_number(forbidden,	   403).
+status_number(authorise,	   401).
+status_number(server_error,	   500).
+status_number(service_unavailable, 503).
+
+
+%%	status_comment(+Code:atom)// is det.
+%
+%	Emit standard HTTP human-readable comment on the reply-status.
 
 status_comment(continue) -->
 	"Continue".
@@ -1305,7 +1328,7 @@ range(bytes(From, To)) -->
 reply(Fd, [http_version(HttpVersion), status(Status, Comment)|Header]) -->
 	http_version(HttpVersion),
 	blanks,
-	(   status_number(Status)
+	(   status_number(Status, _Code)
 	->  []
 	;   integer(Status)
 	),

@@ -154,8 +154,8 @@ cgi_close(CGI, State0, ok, Close) :- !,
 	cgi_property(CGI, content_length(Bytes)),
 	catch(close(CGI), E, true),
 	(   var(E)
-	->  http_done(ok, Bytes, State0)
-	;   http_done(E, 0, State0),	% TBD: amount written?
+	->  http_done(200, ok, Bytes, State0)
+	;   http_done(500, E, 0, State0),	% TBD: amount written?
 	    throw(E)
 	).
 cgi_close(CGI, Id, Error, Close) :-
@@ -175,13 +175,15 @@ cgi_close(CGI, Id, Error, Close) :-
 
 send_error(Out, State0, Error, Close) :-
 	map_exception_to_http_status(Error, Reply, HdrExtra),
-	catch(http_reply(Reply, Out, [ content_length(CLen)
-				     | HdrExtra
-				     ]),
+	catch(http_reply(Reply, Out,
+			 [ content_length(CLen)
+			 | HdrExtra
+			 ], 
+			 Code),
 	      E, true),
 	(   var(E)
-	->  http_done(Error, CLen, State0)
-	;   http_done(E, 0, State0),
+	->  http_done(Code, Error, CLen, State0)
+	;   http_done(500,  E, 0, State0),
 	    throw(E)			% is that wise?
 	),
 	(   memberchk(connection(Close), HdrExtra)
@@ -190,19 +192,19 @@ send_error(Out, State0, Error, Close) :-
 	).
 
 
-%%	http_done(+Status, +BytesSent, +State0) is det.
+%%	http_done(+Code, +Status, +BytesSent, +State0) is det.
 %
 %	Provide feedback for logging and debugging   on  how the request
 %	has been completed.
 
-http_done(Status, Bytes, state0(_Thread, CPU0, Id)) :-
+http_done(Code, Status, Bytes, state0(_Thread, CPU0, Id)) :-
 	thread_cputime(CPU1),
 	CPU is CPU1 - CPU0,
 	(   debugging(http(request))
-	->  debug_request(Status, Id, CPU, Bytes)
+	->  debug_request(Code, Status, Id, CPU, Bytes)
 	;   true
 	),
-	broadcast(http(request_finished(Id, CPU, Status, Bytes))).
+	broadcast(http(request_finished(Id, Code, Status, CPU, Bytes))).
 
 
 %%	handler_with_output_to(:Goal, +Request, +Output, -Status) is det.
@@ -372,22 +374,25 @@ to_dot_dot([_|T0], ['..'|T], Tail) :-
 		 *	   DEBUG SUPPORT	*
 		 *******************************/
 
-%%	debug_request(+Status, +Id, +CPU0, Bytes)
+%%	debug_request(+Code, +Status, +Id, +CPU0, Bytes)
 %
 %	Emit debugging info after a request completed with Status.
 
-debug_request(ok, Id, CPU, Bytes) :- !,
-	debug(http(request), '[~D] 200 OK (~3f seconds; ~D bytes)',
-	      [Id, CPU, Bytes]).
-debug_request(Status, Id, _, Bytes) :-
+debug_request(Code, ok, Id, CPU, Bytes) :- !,
+	debug(http(request), '[~D] ~w OK (~3f seconds; ~D bytes)',
+	      [Id, Code, CPU, Bytes]).
+debug_request(Code, Status, Id, _, Bytes) :-
 	map_exception(Status, Reply), !,
-	debug(http(request), '[~D] ~w; ~D bytes', [Id, Reply, Bytes]).
-debug_request(Except, Id, _, _) :- !,
+	debug(http(request), '[~D] ~w ~w; ~D bytes',
+	      [Id, Code, Reply, Bytes]).
+debug_request(Code, Except, Id, _, _) :- !,
 	Except = error(_,_), !,
 	message_to_string(Except, Message),
-	debug(http(request), '[~D] ERROR: ~w', [Id, Message]).
-debug_request(Status, Id, _, Bytes) :-
-	debug(http(request), '[~D] ~w; ~D bytes', [Id, Status, Bytes]).
+	debug(http(request), '[~D] ~w ERROR: ~w',
+	      [Id, Code, Message]).
+debug_request(Code, Status, Id, _, Bytes) :-
+	debug(http(request), '[~D] ~w ~w; ~D bytes',
+	      [Id, Code, Status, Bytes]).
 
 map_exception(http_reply(Reply), Reply).
 map_exception(error(existence_error(http_location, Location), _Stack),

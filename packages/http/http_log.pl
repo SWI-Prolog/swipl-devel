@@ -67,9 +67,9 @@ specifications (e.g. =|/topsecret?password=secret|=.
 http_message(request_start(Id, Request)) :- !,
 	http_log_stream(Stream),
 	log_started(Request, Id, Stream).
-http_message(request_finished(Id, CPU, Status, Bytes)) :- !,
+http_message(request_finished(Id, Code, Status, CPU, Bytes)) :- !,
 	http_log_stream(Stream),
-	log_completed(Status, Bytes, Id, CPU, Stream).
+	log_completed(Code, Status, Bytes, Id, CPU, Stream).
 
 
 		 /*******************************
@@ -208,7 +208,7 @@ nolog(pool(_,_,_,_)).
 nolog(referer(R)) :-
 	sub_atom(R, _, _, _, password), !.
 
-%%	log_completed(+Status, +Bytes, +Id, +CPU, +Stream) is det.
+%%	log_completed(+Code, +Status, +Bytes, +Id, +CPU, +Stream) is det.
 %
 %	Write log message to Stream from a call_cleanup/3 call.
 %	
@@ -217,19 +217,19 @@ nolog(referer(R)) :-
 %	@param CPU0	CPU time at time of entrance
 %	@param Stream	Stream to write to (normally from http_log_stream/1).
 
-log_completed(Status, Bytes, Id, CPU, Stream) :-
+log_completed(Code, Status, Bytes, Id, CPU, Stream) :-
 	is_stream(Stream), !,
-	log(Status, Bytes, Id, CPU, Stream).
-log_completed(Status, Bytes, Id, CPU0, _) :-
+	log(Code, Status, Bytes, Id, CPU, Stream).
+log_completed(Code, Status, Bytes, Id, CPU0, _) :-
 	http_log_stream(Stream), !,	% Logfile has changed!
-	log_completed(Status, Bytes, Id, CPU0, Stream).
-log_completed(_,_,_,_,_).
+	log_completed(Code, Status, Bytes, Id, CPU0, Stream).
+log_completed(_,_,_,_,_,_).
 
 
-log(ok, Bytes, Id, CPU, Stream) :-
+log(Code, ok, Bytes, Id, CPU, Stream) :- !,
 	format(Stream, 'completed(~q, ~2f, ~q, 200, ok).~n',
-	       [ Id, CPU, Bytes ]).
-log(Status, Bytes, Id, CPU, Stream) :-
+	       [ Id, CPU, Code, Bytes ]).
+log(Code, Status, Bytes, Id, CPU, Stream) :-
 	(   map_exception(Status, Term)
 	->  true
 	;   message_to_string(Status, String),
