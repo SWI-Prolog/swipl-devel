@@ -2605,6 +2605,12 @@ One of \const{posix} or \const{dos}.  If \const{dos}, text-streams
 will emit \verb$\r\n$ for \verb$\n$ and discard \verb$\r$ from input
 streams.  Default depends on the operating system.
 
+    \termitem{nlink}{-Count}
+Number of hard links to the file.  This expresses the number of `names'
+the file has. Not supported on all operating systems and the value might
+be bogus.  See the documentation of fstat() for your OS and the value
+\texttt{st_nlink}.
+
     \termitem{output}{}
 True if \arg{Stream} has mode \const{write}, \const{append} or
 \const{update}.

@@ -357,6 +357,7 @@ A mutex_property	"mutex_property"
 A natural		"natural"
 A newline		"newline"
 A nil			"[]"
+A nlink			"nlink"
 A no_memory		"no_memory"
 A nodebug		"nodebug"
 A non_empty_list	"non_empty_list"
@@ -725,6 +726,7 @@ F log			1
 F log10			1
 F lsb			1
 F lshift		2
+F nlink			1
 F max			2
 F max_size		1
 F message_lines		1

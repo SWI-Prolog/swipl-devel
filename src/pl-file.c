@@ -3257,6 +3257,22 @@ stream_timeout_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+static int
+stream_nlink_prop(IOSTREAM *s, term_t prop ARG_LD)
+{ int fd;
+
+  if ( (fd = Sfileno(s)) >= 0 )
+  { struct stat buf;
+
+    if ( fstat(fd, &buf) == 0 )
+    { return PL_unify_integer(prop, buf.st_nlink);
+    }
+  }
+
+  return FALSE;
+}
+
+
 typedef struct
 { functor_t functor;			/* functor of property */
   int (*function)();			/* function to generate */
@@ -3284,6 +3300,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_newline1,	    stream_newline_prop },
   { FUNCTOR_representation_errors1, stream_reperror_prop },
   { FUNCTOR_timeout1,       stream_timeout_prop },
+  { FUNCTOR_nlink1,         stream_nlink_prop },
   { 0,			    NULL }
 };
 
