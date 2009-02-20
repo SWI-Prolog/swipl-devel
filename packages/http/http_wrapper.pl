@@ -85,7 +85,7 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	    cgi_open(Out, CGI, cgi_hook, [request(Request1)]),
 	    cgi_property(CGI, id(Id)),
 	    debug(http(request), '[~D] ~w ~w ...', [Id, Method, Location]),
-	    broadcast(http(request_start(Id, Request0))),
+	    broadcast(http(request_start(Id, Request1))),
 	    handler_with_output_to(Goal, Request1, CGI, Error),
 	    cgi_close(CGI, State0, Error, Close)
 	;   Id = 0,

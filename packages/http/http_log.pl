@@ -205,6 +205,7 @@ nolog(accept_language(_)).
 nolog(accept_encoding(_)).
 nolog(accept_charset(_)).
 nolog(pool(_,_,_,_)).
+nolog(protocol(_)).
 nolog(referer(R)) :-
 	sub_atom(R, _, _, _, password), !.
 
