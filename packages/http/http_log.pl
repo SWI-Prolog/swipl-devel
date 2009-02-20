@@ -246,8 +246,8 @@ log_check_deleted(_).
 
 
 log(Code, ok, Bytes, Id, CPU, Stream) :- !,
-	format(Stream, 'completed(~q, ~2f, ~q, 200, ok).~n',
-	       [ Id, CPU, Code, Bytes ]).
+	format(Stream, 'completed(~q, ~2f, ~q, ~q, ok).~n',
+	       [ Id, CPU, Bytes, Code ]).
 log(Code, Status, Bytes, Id, CPU, Stream) :-
 	(   map_exception(Status, Term)
 	->  true

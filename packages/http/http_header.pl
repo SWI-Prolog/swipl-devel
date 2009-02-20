@@ -785,7 +785,8 @@ reply_header(see_other(To,Tokens),HdrExtra, Code) -->
 	"\r\n".
 reply_header(status(Status), HdrExtra, Code) --> % Empty messages: 1xx, 204 and 304
 	vstatus(Status, Code),
-	header_fields(HdrExtra, _),
+	header_fields(HdrExtra, Clen),
+	{ Clen = 0 },
 	"\r\n".
 reply_header(status(Status, Tokens), HdrExtra, Code) -->
 	vstatus(Status, Code),
