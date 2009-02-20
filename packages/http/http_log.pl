@@ -218,12 +218,31 @@ nolog(referer(R)) :-
 %	@param Stream	Stream to write to (normally from http_log_stream/1).
 
 log_completed(Code, Status, Bytes, Id, CPU, Stream) :-
-	is_stream(Stream), !,
+	is_stream(Stream),
+	log_check_deleted(Stream), !,
 	log(Code, Status, Bytes, Id, CPU, Stream).
 log_completed(Code, Status, Bytes, Id, CPU0, _) :-
 	http_log_stream(Stream), !,	% Logfile has changed!
 	log_completed(Code, Status, Bytes, Id, CPU0, Stream).
 log_completed(_,_,_,_,_,_).
+
+
+%%	log_check_deleted(+Stream) is semidet.
+%
+%	If the link-count of the stream has   dropped  to zero, the file
+%	has been deleted/moved. In this case the  log file is closed and
+%	log_check_deleted/6 will open a  new   one.  This  provides some
+%	support for cleaning up the logfile   without  shutting down the
+%	server.
+%	
+%	@see logrotate(1) to manage logfiles on Unix systems.
+
+log_check_deleted(Stream) :-
+	stream_property(Stream, nlink(Links)),
+	Links == 0, !,
+	http_log_close(log_file_deleted),
+	fail.
+log_check_deleted(_).
 
 
 log(Code, ok, Bytes, Id, CPU, Stream) :- !,
