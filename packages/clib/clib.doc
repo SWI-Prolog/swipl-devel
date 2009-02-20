@@ -747,11 +747,12 @@ by FIPS (\jargon{Federal Information Processing Standard}). Quoting
 algorithms for computing a condensed digital representation (known as a
 message digest) that is, to a high degree of probability, unique for a
 given input data sequence (the message). These algorithms are called
-“secure” because (in the words of the standard), “for a given algorithm,
-it is computationally infeasible 1) to find a message that corresponds
-to a given message digest, or 2) to find two different messages that
-produce the same message digest. Any change to a message will, with a
-very high probability, result in a different message digest.”''}
+`secure' because (in the words of the standard), ``for a given
+algorithm, it is computationally infeasible 1) to find a message that
+corresponds to a given message digest, or 2) to find two different
+messages that produce the same message digest. Any change to a message
+will, with a very high probability, result in a different message
+digest.''}
 
 The current library supports all 5 approved algorithms, both computing
 the hash-key from data and the \jargon{hash Message Authentication Code}
