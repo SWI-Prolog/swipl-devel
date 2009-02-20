@@ -158,9 +158,14 @@ http_reply(Data, Out, HdrExtra) :-
 	http_reply(Data, Out, HdrExtra, _Code).
 
 http_reply(Data, Out, HdrExtra, Code) :-
+	byte_count(Out, C0),
 	catch(http_reply_data(Data, Out, HdrExtra, Code), E, true), !,
 	(   var(E)
 	->  true
+	;   E = error(io_error(write, _), _)
+	->  byte_count(Out, C1),
+	    Sent is C1 - C0,
+	    throw(error(http_write_short(Data, Sent), _))
 	;   map_exception_to_http_status(E, Status, NewHdr),
 	    http_status_reply(Status, Out, NewHdr, Code)
 	).
@@ -1406,3 +1411,14 @@ address -->
 mkfield(host, Host:Port, [host(Host),port(Port)|Tail], Tail) :- !.
 mkfield(Name, Value, [Att|Tail], Tail) :-
 	Att =.. [Name, Value].
+
+
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message//1.
+
+prolog:message(error(http_write_short(Data, Sent), _)) -->
+	[ '~p: remote hangup after ~D bytes'-[Data, Sent] ].
