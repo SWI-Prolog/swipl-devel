@@ -96,9 +96,9 @@ otherwise during startup of the application.
 %	    Using backlog(0) will never delay thread creation for this
 %	    pool.
 %	    
-%	The pooling mechanism does _not_ interact with the =detached=
-%	state of a thread.  Threads can be created but =detached= and
-%	normal and must be joined using thread_join/2 if they are not
+%	The pooling mechanism does _not_   interact  with the =detached=
+%	state of a thread. Threads can   be  created both =detached= and
+%	normal and must be joined using   thread_join/2  if they are not
 %	detached.
 %	
 %	@bug	The thread creation option =at_exit= is reserved for
@@ -211,9 +211,9 @@ create_pool_manager :-
 	rb_new(State0),
 	thread_create(manage_thread_pool(State0), _,
 		      [ alias('__thread_pool_manager'),
-			local(100),
-			global(1000),
-			trail(1000)
+			local(1000),
+			global(2000),
+			trail(2000)
 		      ]).
 
 
