@@ -93,3 +93,7 @@ blocked('/checklast.pl').
 %blocked('/jpl.pl').			% should be added
 blocked('/pldoc.pl').
 blocked('/index.pl').
+
+blocked('/ciao.pl').			% is an include-file.  We must
+					% find a more general solution here
+blocked('/commons.pl').
