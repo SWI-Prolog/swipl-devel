@@ -206,7 +206,7 @@ http_done(Code, Status, Bytes, state0(_Thread, CPU0, Id)) :-
 	broadcast(http(request_finished(Id, Code, Status, CPU, Bytes))).
 
 
-% %	handler_with_output_to(:Goal, +Id, +Request, +Output, -Status) is det.
+%%	handler_with_output_to(:Goal, +Id, +Request, +Output, -Status) is det.
 %
 %	Run Goal with output redirected to   Output. Unifies Status with
 %	=ok=, the error from catch/3  or a term error(goal_failed(Goal),
