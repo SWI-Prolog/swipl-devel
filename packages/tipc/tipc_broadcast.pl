@@ -257,7 +257,7 @@ tipc_broadcast_service(zone,            name_seq(20005, 2, 2)).
 %     and remain in scope going forward.  The   cut  is used to indicate
 %     that the fixed resource is no longer needed and may be released.
 %     It is released at the time of the cut, so any further usage of
-%     the (formally) allocated resource is likely to cause you
+%     the (formerly) allocated resource is likely to cause you
 %     considerable trouble.
 %
 
