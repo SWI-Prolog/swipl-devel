@@ -91,6 +91,61 @@ Process C:
 
    ?-
 ==
+
+It is also possible to carry on a private dialog with a single
+responder. To do this, you supply a compound of the form, Term:PortId,
+to a TIPC scoped broadcast/1 or broadcast_request/1, where PortId is
+the port-id of the intended listener. If you supply an unbound variable,
+PortId, to broadcast_request/1 then it will be unified with the address
+of listener that responds to Term. You may send a directed broadcast to
+a specific member by simply providing this address in a similarly
+structured compound to a TIPC scoped broadcast/1. The message is sent
+via unicast to that member only by way of the member's broadcast
+listener. It is received by the listener just as any other broadcast
+would be. The listener does not know the difference.
+
+Although this capability is needed under   some  circumstances, it has a
+tendency to compromise the resilience of the broadcast model. You should
+not rely on it too heavily, or fault tolerance will suffer.
+
+For example, in order to discover who responded with a particular value:
+
+==
+Process A:
+
+   ?- listen(number(X), between(1, 3, X)).
+   true.
+
+   ?-
+
+Process B:
+
+   ?- listen(number(X), between(7, 9, X)).
+   true.
+
+   ?-
+
+Process C:
+
+   ?- broadcast_request(tipc_node(number(X):From)).
+   X = 7,
+   From = port_id('<1.1.1:3971170279>') ;
+   X = 8,
+   From = port_id('<1.1.1:3971170279>') ;
+   X = 9,
+   From = port_id('<1.1.1:3971170279>') ;
+   X = 1,
+   From = port_id('<1.1.1:3971170280>') ;
+   X = 2,
+   From = port_id('<1.1.1:3971170280>') ;
+   X = 3,
+   From = port_id('<1.1.1:3971170280>') ;
+   false.
+
+?-
+
+==
+
 ---++ Caveats:
 
 While the implementation is mostly transparent, there are some important
@@ -202,8 +257,8 @@ tipc_broadcast_service(zone,            name_seq(20005, 2, 2)).
 %     and remain in scope going forward.  The   cut  is used to indicate
 %     that the fixed resource is no longer needed and may be released.
 %     It is released at the time of the cut, so any further usage of
-%     the allocated resource is likely to cause you considerable
-%     trouble.
+%     the (formally) allocated resource is likely to cause you
+%     considerable trouble.
 %
 
 try_finally(Setup, Cleanup) :-
@@ -213,14 +268,6 @@ ld_dispatch(S, '$tipc_request'(wru(Name)), From) :-
 	tipc_get_name(S, Name),
 	term_to_atom(wru(Name), Atom),
 	tipc_send(S, Atom, From, []).
-
-ld_dispatch(S, '$tipc_request'(Name:Term), From) :-
-	tipc_get_name(S, Name),
-	forall(catch(broadcast_request(Term), _, fail),
-	           (   term_to_atom(Name:Term, Atom),
-		       tipc_send(S, Atom, From, [])
-	           )),
-	!.
 
 ld_dispatch(S, '$tipc_request'(Term), From) :-
 	forall(catch(broadcast_request(Term), _, fail),
@@ -247,6 +294,7 @@ tipc_listener_daemon :-
 	     once(ld_dispatch(S, Term, From)),
 	fail.
 
+
 start_tipc_listener_daemon :-
 	thread_property(Id, alias(tipc_listener_daemon)),
 	thread_property(Id, status(running)), !.
@@ -255,34 +303,68 @@ start_tipc_listener_daemon :-
 	thread_create(tipc_listener_daemon, _,
 	       [alias(tipc_listener_daemon), detached(true)]),
 
-	listen(tipc_broadcast_service(Class, Addr), tipc_broadcast_service(Class, Addr)),
+	listen(tipc_broadcast, Head, broadcast_listener(Head))..
+%
+broadcast_listener(tipc_broadcast_service(Class, Addr)) :-
+	tipc_broadcast_service(Class, Addr).
 
-	listen(tipc_broadcast, tipc_node(X), tipc_broadcast(X, node, 0.250)),
-	listen(tipc_broadcast, tipc_cluster(X), tipc_broadcast(X, cluster, 0.250)),
-	listen(tipc_broadcast, tipc_zone(X), tipc_broadcast(X, zone, 0.250)),
+broadcast_listener(tipc_node(X)) :-
+	tipc_broadcast(X, node, 0.250).
 
-	listen(tipc_broadcast, tipc_node(X, Timeout), tipc_broadcast(X, node, Timeout)),
-	listen(tipc_broadcast, tipc_cluster(X, Timeout), tipc_broadcast(X, cluster, Timeout)),
-	listen(tipc_broadcast, tipc_zone(X, Timeout), tipc_broadcast(X, zone, Timeout)).
+broadcast_listener(tipc_cluster(X)) :-
+	tipc_broadcast(X, cluster, 0.250).
 
-tipc_basic_broadcast(S, Term, Scope) :-
+broadcast_listener(tipc_zone(X)) :-
+	tipc_broadcast(X, zone, 0.250).
+
+broadcast_listener(tipc_node(X, Timeout)) :-
+	tipc_broadcast(X, node, Timeout).
+
+broadcast_listener(tipc_cluster(X, Timeout)) :-
+	tipc_broadcast(X, cluster, Timeout).
+
+broadcast_listener(tipc_zone(X, Timeout)) :-
+	tipc_broadcast(X, zone, Timeout).
+
+%
+%
+
+tipc_basic_broadcast(S, Term, Address) :-
 	try_finally(tipc_socket(S, rdm), tipc_close_socket(S)),
 	tipc_setopt(S, importance(medium)),
 	term_to_atom(Term, Atom),
-	tipc_broadcast_service(Scope, Address),
 	tipc_send(S, Atom, Address, []).
 
-tipc_broadcast(Term, Scope, _Timeout) :-
-	ground(Term), !,
-	tipc_basic_broadcast(_S, Term, Scope),
+% directed broadcast to a single listener
+tipc_broadcast(Term:To, _Scope, _Timeout) :-
+	ground(Term), ground(To), !,
+	tipc_basic_broadcast(_S, Term, To),
 	!.
 
+% broadcast to all listeners
+tipc_broadcast(Term, Scope, _Timeout) :-
+	ground(Term), !,
+	tipc_broadcast_service(Scope, Address),
+	tipc_basic_broadcast(_S, Term, Address),
+	!.
+
+% directed broadcast_request to a single listener
+tipc_broadcast(Term:Address, _Scope, Timeout) :-
+	ground(Address), !,
+        tipc_basic_broadcast(S, '$tipc_request'(Term), Address),
+	tipc_br_collect_replies(S, Timeout, Replies),
+	!, member([Term, Address], Replies).
+
+% broadcast_request to all listeners returning responder port-id
+tipc_broadcast(Term:From, Scope, Timeout) :-
+	!, tipc_broadcast_service(Scope, Address),
+        tipc_basic_broadcast(S, '$tipc_request'(Term), Address),
+	tipc_br_collect_replies(S, Timeout, Replies),
+	!, member([Term, From], Replies).
+
+% broadcast_request to all listeners ignoring responder port-id
 tipc_broadcast(Term, Scope, Timeout) :-
-        tipc_basic_broadcast(S, '$tipc_request'(Term), Scope),
-	tipc_get_name(S, Port),
-	try_finally(alarm(Timeout, tipc_br_send_timeout(Port), Id), remove_alarm(Id)),
-	tipc_br_collect_replies(S, Replies),
-	!, member(Term, Replies).
+	tipc_broadcast(Term:_, Scope, Timeout).
 
 tipc_br_send_timeout(Port) :-
 	try_finally(tipc_socket(S, rdm), tipc_close_socket(S)),
@@ -290,12 +372,15 @@ tipc_br_send_timeout(Port) :-
 	tipc_send(S, '$tipc_br_timeout', Port, []),
 	!.
 
+tipc_br_collect_replies(S, Timeout, Terms) :-
+	tipc_get_name(S, Port),
+	try_finally(alarm(Timeout, tipc_br_send_timeout(Port), Id),
+		    remove_alarm(Id)),
 
-tipc_br_collect_replies(S, Terms) :-
-	findall(Term,
+	findall([Term, From],
 		(
 		repeat,
-	        tipc_receive(S, Atom, _From, [as(atom)]),
+	        tipc_receive(S, Atom, From, [as(atom)]),
                 (   (Atom \== '$tipc_br_timeout')
 		-> term_to_atom(Term, Atom)
 		;  (!, fail)
@@ -304,3 +389,5 @@ tipc_br_collect_replies(S, Terms) :-
 
 :- initialization
      start_tipc_listener_daemon.
+
+
