@@ -85,8 +85,7 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	    cgi_open(Out, CGI, cgi_hook, [request(Request1)]),
 	    cgi_property(CGI, id(Id)),
 	    debug(http(request), '[~D] ~w ~w ...', [Id, Method, Location]),
-	    broadcast(http(request_start(Id, Request1))),
-	    handler_with_output_to(Goal, Request1, CGI, Error),
+	    handler_with_output_to(Goal, Id, Request1, CGI, Error),
 	    cgi_close(CGI, State0, Error, Close)
 	;   Id = 0,
 	    send_error(Out, ReqError, Close, State0),
@@ -106,13 +105,13 @@ status(Id, state0(Thread, CPU, Id)) :-
 %	@see http_spawned/1, http_spawn/2.
 
 http_wrap_spawned(Goal, Request, Close) :-
-	handler_with_output_to(Goal, -, current_output, Error),
+	current_output(CGI),
+	cgi_property(CGI, id(Id)),
+	handler_with_output_to(Goal, Id, -, current_output, Error),
 	(   retract(spawned(ThreadId))
 	->  Close = spawned(ThreadId),
 	    Request = []
-	;   current_output(CGI),
-	    cgi_property(CGI, request(Request)),
-	    cgi_property(CGI, id(Id)),
+	;   cgi_property(CGI, request(Request)),
 	    status(Id, State0),
 	    catch(cgi_close(CGI, State0, Error, Close),
 		  _,
@@ -207,7 +206,7 @@ http_done(Code, Status, Bytes, state0(_Thread, CPU0, Id)) :-
 	broadcast(http(request_finished(Id, Code, Status, CPU, Bytes))).
 
 
-%%	handler_with_output_to(:Goal, +Request, +Output, -Status) is det.
+% %	handler_with_output_to(:Goal, +Id, +Request, +Output, -Status) is det.
 %
 %	Run Goal with output redirected to   Output. Unifies Status with
 %	=ok=, the error from catch/3  or a term error(goal_failed(Goal),
@@ -216,26 +215,27 @@ http_done(Code, Status, Bytes, state0(_Thread, CPU0, Id)) :-
 %	@param Request	The HTTP request read or '-' for a continuation
 %			using http_spawn/2.
 
-handler_with_output_to(Goal, Request, current_output, Status) :- !,
-	(   catch(call_handler(Goal, Request), Status, true)
+handler_with_output_to(Goal, Id, Request, current_output, Status) :- !,
+	(   catch(call_handler(Goal, Id, Request), Status, true)
 	->  (   var(Status)
 	    ->	Status = ok
 	    ;	true
 	    )
 	;   Status = error(goal_failed(Goal),_)
 	).
-handler_with_output_to(Goal, Request, Output, Error) :-
+handler_with_output_to(Goal, Id, Request, Output, Error) :-
 	current_output(OldOut),
 	set_output(Output),
-	handler_with_output_to(Goal, Request, current_output, Error),
+	handler_with_output_to(Goal, Id, Request, current_output, Error),
 	set_output(OldOut).
 
-call_handler(Goal, -) :- !,
+call_handler(Goal, _, -) :- !,		% continuation through http_spawn/2
 	call(Goal).
-call_handler(Goal, Request0) :-
+call_handler(Goal, Id, Request0) :-
 	expand_request(Request0, Request),
 	current_output(CGI),
 	cgi_set(CGI, request(Request)),
+	broadcast(http(request_start(Id, Request))),
 	call(Goal, Request).
 
 %%	thread_cputime(-CPU) is det.
