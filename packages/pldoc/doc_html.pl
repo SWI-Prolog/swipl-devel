@@ -1459,7 +1459,9 @@ reply_wiki_page(File, String) :-
 	wiki_codes_to_dom(String, [], DOM),
 	title(DOM, File, Title),
 	reply_html_page(title(Title),
-			DOM).
+			[ \html_requires(pldoc)
+			| DOM
+			]).
 
 title(DOM, _, Title) :-
 	sub_term(h1(_,Title), DOM), !.
