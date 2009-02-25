@@ -331,16 +331,19 @@ request_option(protocol(_)).
 request_option(pool(_,_,_,_)).
 
 
-%%	http_current_request(-Request)
+%%	http_current_request(-Request) is semidet.
 %	
-%	Returns the HTTP request currently being processed.
+%	Returns  the  HTTP  request  currently  being  processed.  Fails
+%	silently if there is no current  request. This typically happens
+%	if a goal is run outside the HTTP server context.
 
 http_current_request(Request) :-
 	current_output(CGI),
+	is_cgi_stream(CGI),
 	cgi_property(CGI, request(Request)).
 
 
-%%	http_relative_path(+AbsPath, -RelPath)
+%%	http_relative_path(+AbsPath, -RelPath) is det.
 %	
 %	Convert an absolute path (without host, fragment or search) into
 %	a path relative to the current page.   This  call is intended to

@@ -36,7 +36,8 @@
 	    cgi_open/4,			% +Stream, -DataStream, :Hook, +Options
 	    cgi_property/2,		% +Stream, -Property
 	    cgi_set/2,			% +Stream, -Property
-	    cgi_discard/1		% +Stream
+	    cgi_discard/1,		% +Stream
+	    is_cgi_stream/1		% +Stream
 	  ]).
 
 :- initialization
@@ -218,6 +219,9 @@ bytes, dispite the fact that the underlying stream may be longer.
 %	must be to use an alternate output   (e.g. an error page) if the
 %	page generator fails.
 
+%%	is_cgi_stream(+Stream) is semidet.
+%
+%	True if Stream is a CGI stream created using cgi_open/4.
 
 :- multifile
 	http:encoding_filter/3.		% +Encoding, +In0,  -In

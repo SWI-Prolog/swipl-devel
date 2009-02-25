@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -233,6 +233,20 @@ unify_record(term_t t, record_t r)
     return PL_unify(t, t2);
   }
   return FALSE;
+}
+
+
+static foreign_t
+is_cgi_stream(term_t cgi)
+{ IOSTREAM *s;
+  int rc;
+  
+  if ( !PL_get_stream_handle(cgi, &s) )
+    return FALSE;
+  rc = (s->functions == &cgi_functions);
+  PL_release_stream(s);
+
+  return rc;
 }
 
 
@@ -723,8 +737,9 @@ install_cgi_stream()
 
   PREDICATE_call3   = PL_predicate("call", 3, "system");
 
-  PL_register_foreign("cgi_open",     4, pl_cgi_open, PL_FA_TRANSPARENT);
-  PL_register_foreign("cgi_property", 2, cgi_property, 0);
-  PL_register_foreign("cgi_set",      2, cgi_set, 0);
-  PL_register_foreign("cgi_discard",  1, cgi_discard, 0);
+  PL_register_foreign("cgi_open",      4, pl_cgi_open,	 PL_FA_TRANSPARENT);
+  PL_register_foreign("is_cgi_stream", 1, is_cgi_stream, 0);
+  PL_register_foreign("cgi_property",  2, cgi_property,	 0);
+  PL_register_foreign("cgi_set",       2, cgi_set,	 0);
+  PL_register_foreign("cgi_discard",   1, cgi_discard,	 0);
 }
