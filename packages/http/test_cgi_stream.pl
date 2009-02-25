@@ -183,9 +183,9 @@ cgi_hook(send_header, CGI) :-
 	cgi_property(CGI, header(Header)),
 	cgi_property(CGI, client(Out)),
 	(   cgi_property(CGI, transfer_encoding(chunked))
-	->  phrase(http_header:reply_header(chunked_data, Header), String)
+	->  phrase(http_header:reply_header(chunked_data, Header, _), String)
 	;   cgi_property(CGI, content_length(Len))
-	->  phrase(http_header:reply_header(cgi_data(Len), Header), String)
+	->  phrase(http_header:reply_header(cgi_data(Len), Header, _), String)
 	),
 	format(Out, '~s', [String]).
 cgi_hook(close, _).
