@@ -2113,28 +2113,26 @@ attach or detach the mutex.
 
 #ifdef O_PLMT
 static void
-attachMutexAndUnlock(Definition def)
+attachMutexDefinition(Definition def)
 { if ( !def->mutex )
-  { def->mutex = allocSimpleMutex(predicateName(def));
-    UNLOCK();
-  } else
-    countingMutexUnlock(def->mutex);
+    def->mutex = allocSimpleMutex(predicateName(def));
 }
+
 
 static void
 detachMutexAndUnlock(Definition def)
-{ if ( def->mutex )
-  { counting_mutex *m = def->mutex;
-    def->mutex = NULL;
+{ counting_mutex *m = def->mutex;
+
+  if ( m )
+  { def->mutex = NULL;
     countingMutexUnlock(m);
     freeSimpleMutex(m);
-  } else
-    UNLOCK();
+  }
 }
 
 #else /*O_PLMT*/
 
-#define attachMutexAndUnlock(def)
+#define attachMutexDefinition(def)
 #define detachMutexAndUnlock(def)
 
 #endif /*O_PLMT*/
@@ -2152,13 +2150,16 @@ int
 setDynamicProcedure(Procedure proc, bool isdyn)
 { Definition def = proc->definition;
 
-  LOCKDEF(def);
-  
+  LOCK();
   if ( (isdyn && true(def, DYNAMIC)) ||
        (!isdyn && false(def, DYNAMIC)) )
-  { UNLOCKDEF(def);
+  { UNLOCK();
     succeed;
   }
+  attachMutexDefinition(def);
+  UNLOCK();
+
+  LOCKDEF(def);
 
   if ( isdyn )				/* static --> dynamic */
   { GET_LD
@@ -2190,7 +2191,7 @@ setDynamicProcedure(Procedure proc, bool isdyn)
     if ( SYSTEM_MODE )
       set(def, SYSTEM|HIDE_CHILDS);
 
-    attachMutexAndUnlock(def);
+    UNLOCKDEF(def);
   } else				/* dynamic --> static */
   { clear(def, DYNAMIC);
     if ( def->references )
@@ -2212,13 +2213,16 @@ set_thread_local_procedure(Procedure proc, bool val)
 #ifdef O_PLMT
   Definition def = proc->definition;
 
-  LOCKDEF(def);
-
+  LOCK();
   if ( (val && true(def, P_THREAD_LOCAL)) ||
        (!val && false(def, P_THREAD_LOCAL)) )
-  { UNLOCKDEF(def);
+  { UNLOCK();
     succeed;
   }
+  attachMutexDefinition(def);
+  UNLOCK();
+
+  LOCKDEF(def);
 
   if ( val )				/* static --> local */
   { if ( def->definition.clauses )
@@ -2228,7 +2232,7 @@ set_thread_local_procedure(Procedure proc, bool val)
     set(def, DYNAMIC|VOLATILE|P_THREAD_LOCAL);
 
     def->codes = SUPERVISOR(thread_local);
-    attachMutexAndUnlock(def);
+    UNLOCKDEF(def);
     succeed;
   } else				/* local --> static */
   { UNLOCKDEF(def);
