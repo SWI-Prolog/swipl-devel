@@ -130,31 +130,46 @@ http_session_option(Option) :-
 
 %%	http_session_id(-SessionId) is det.
 %	
-%	Fetch the current session ID from the global request variable.
+%	True if SessionId is an identifier for the current session.
 %	
+%	@param SessionId is an atom.
 %	@error existence_error(http_session, _)
 %	@see   http_in_session/1 for a version that fails if there is
 %	       no session.
 
 http_session_id(SessionID) :-
-	http_current_request(Request),
-	http_session_id(Request, SessionID).
-
-http_session_id(Request, SessionID) :-
-	(   memberchk(session(SessionID0), Request)
-	->  SessionID = SessionID0
+	(   http_in_session(ID)
+	->  SessionID = ID
 	;   throw(error(existence_error(http_session, _), _))
 	).
 
 %%	http_in_session(-SessionId) is semidet.
 %
-%	As http_session_id/1, but fails of there is no session.
+%	True if SessionId is an identifier  for the current session. The
+%	current session is extracted from   session(ID) from the current
+%	HTTP request (see http_current_request/1). The   value is cached
+%	in a backtrackable global variable   =http_session_id=.  Using a
+%	backtrackable global variable is safe  because continuous worker
+%	threads use a failure driven  look   and  spawned  threads start
+%	without any global variables. This variable  can be set from the
+%	commandline to fake running a goal   from the commandline in the
+%	context of a session.
+%	
+%	@see http_session_id/1
 
 http_in_session(SessionID) :-
-	http_current_request(Request),
-	memberchk(session(SessionID0), Request),
-	SessionID = SessionID0.
-
+	(   nb_current('http_session_id', ID),
+	    ID \== []
+	->  true
+	;   http_current_request(Request),
+	    memberchk(session(ID), Request),
+	    b_setval('http_session_id', ID)
+	;   b_setval('http_session_id', no_session),
+	    fail
+	),
+	ID \== no_session,
+	SessionID = ID.
+	
 %%	http_session(+RequestIn, -RequestOut, -SessionID) is semidet.
 %	
 %	Maintain the notion of a  session   using  a client-side cookie.
