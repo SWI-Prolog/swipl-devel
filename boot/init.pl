@@ -1736,7 +1736,8 @@ compile_aux_clauses(Clauses) :-
 
 '$eval_if'(G) :-
 	expand_goal(G, G2),
-	G2.
+	'$set_source_module'(Module, Module),
+	Module:G2.
 
 
 		 /*******************************
