@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -34,7 +34,7 @@
 	    json_read/3,		% +Stream, -JSONTerm, +Options
 	    atom_json_term/3,		% ?Atom, ?JSONTerm, +Options
 	    json_write/2,		% +Stream, +Term
-	    json_write/3,		% +Stream, +Term
+	    json_write/3,		% +Stream, +Term, +Options
 	    is_json_term/1,		% @Term
 	    is_json_term/2		% @Term, +Options
 	  ]).
