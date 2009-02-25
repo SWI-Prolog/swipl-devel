@@ -158,13 +158,13 @@ http_session_id(SessionID) :-
 %	@see http_session_id/1
 
 http_in_session(SessionID) :-
-	(   nb_current('http_session_id', ID),
+	(   nb_current(http_session_id, ID),
 	    ID \== []
 	->  true
 	;   http_current_request(Request),
 	    memberchk(session(ID), Request),
-	    b_setval('http_session_id', ID)
-	;   b_setval('http_session_id', no_session),
+	    b_setval(http_session_id, ID)
+	;   b_setval(http_session_id, no_session),
 	    fail
 	),
 	ID \== no_session,
@@ -187,7 +187,8 @@ http_session(Request0, Request, SessionID) :-
 	peer(Request0, Peer),
 	valid_session_id(SessionID0, Peer), !,
 	SessionID = SessionID0,
-	Request = [session(SessionID)|Request0].
+	Request = [session(SessionID)|Request0],
+	b_setval(http_session_id, SessionID).
 http_session(Request0, Request, SessionID) :-
 	session_setting(path(Path)),
 	memberchk(path(ReqPath), Request0),
@@ -198,7 +199,8 @@ http_session(Request0, Request, SessionID) :-
 	format('Set-Cookie: ~w=~w; path=~w~n', [Cookie, SessionID, Path]),
 	Request = [session(SessionID)|Request0],
 	peer(Request0, Peer),
-	open_session(SessionID, Peer).
+	open_session(SessionID, Peer),
+	b_setval(http_session_id, SessionID).
 
 :- multifile
 	http:request_expansion/2.
