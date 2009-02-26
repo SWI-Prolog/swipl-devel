@@ -1,3 +1,17 @@
+[Feb 25 2009]
+
+ * ENHANCED: Use a cache for http_in_session/1 to avoid repetitive access to the CGI stream object.
+   
+ * FIXED: make http_current_request/1 semidet again.  Added is_cgi_stream/1 for testing whether we are in a CGI context without raising an error.
+   
+[Feb 23 2009]
+
+ * ENHANCED: Allow the start broadcast-message of the HTTP server to throw an exception.  This allows for defining additional policy-handlers as broadcast plugins.
+   
+[Feb 20 2009]
+
+ * ADDED: Use nlink property of stream to close the logfile
+   
 [Feb 15 2009]
 
  * FIXED: Proper reply on partial content (use 206 reply; fix length computation)

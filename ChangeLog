@@ -9,6 +9,21 @@
 
 
 ===============================
+VERSION 5.7.7 February 26, 2009
+===============================
+
+ * FIXED: Possible crash due to underallocation of stackframe for next arguments.  Can affect virtually every program, though the change is slim.  Keri Harris.
+   
+ * FIXED: Possible crash if multiple threads perform assert/1 on the same still undefined predicate.
+   
+ * FIXED: Evaluate the condition of :- if in the context of the module being loaded.
+   
+ * ADDED: nlink property to streams: detect number of hard-links
+   
+ * FIXED: Crash when canceling threads on exit.  Jeff Rosenwald.
+   
+ * FIXED: Entering lines in the trace (plwin.exe).  Uwe Lesta.
+===============================
 VERSION 5.7.6 February 16, 2009
 ===============================
 

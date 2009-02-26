@@ -1,3 +1,7 @@
+[Feb 25 2009]
+
+ * FIXED: Include PlDoc CSS when serving .txt files
+   
 [Feb 16 2009]
 
  * FIXED: Use call_cleanup when processing HTML manual-files
