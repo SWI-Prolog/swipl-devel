@@ -265,7 +265,7 @@ set_associated_file.
 
 %%	start_pldoc
 %
-%	If the option  =|--pldoc[=port]|=  is   given,  load  the PldDoc
+%	If the option  =|--pldoc[=port]|=  is   given,  load  the  PlDoc
 %	system.
 
 start_pldoc :-
