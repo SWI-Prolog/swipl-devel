@@ -14,6 +14,7 @@ out=pl-$version.tar
 extra=pl-extra-$version.tar
 doc=pl-doc-$version.tar
 compress=gzip
+me=`basename $PWD`
 
 TAG="V$version"
 
@@ -53,11 +54,11 @@ echo $version > doc-version
 tar zcf ../$doc.gz ./doc-version `cat gen-files/doc`
 
 cd ..
-ln -s pl pl-$version
+ln -s $me pl-$version
 
 # Extras, also starting with pl-<version>
-tar cfh $extra `sed "s@^@pl-$version/@" pl/gen-files/config`
-tar cfh $doc `sed "s@^@pl-$version/@" pl/gen-files/doc`
+tar cfh $extra `sed "s@^@pl-$version/@" $me/gen-files/config`
+tar cfh $doc `sed "s@^@pl-$version/@" $me/gen-files/doc`
 
 # Append them (needs GNU-tar)
 tar -Af $out $extra
