@@ -243,7 +243,7 @@ tipc_broadcast_service(zone,            name_seq(20005, 2, 2)).
 %  No additional multiplexing is required.
 %
 
-% %  try_finally(?Setup, +Cleanup) is multi.
+%%  try_finally(?Setup, +Cleanup) is multi.
 %  Succeeds nondeterministically if Setup succeeds.
 %  It executes Cleanup under one of three conditions: 
 %     * backtracking on failure into try_finally/2, 
@@ -303,7 +303,7 @@ start_tipc_listener_daemon :-
 	thread_create(tipc_listener_daemon, _,
 	       [alias(tipc_listener_daemon), detached(true)]),
 
-	listen(tipc_broadcast, Head, broadcast_listener(Head))..
+	listen(tipc_broadcast, Head, broadcast_listener(Head)).
 %
 broadcast_listener(tipc_broadcast_service(Class, Addr)) :-
 	tipc_broadcast_service(Class, Addr).
