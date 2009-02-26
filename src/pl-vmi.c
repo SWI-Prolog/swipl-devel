@@ -1979,7 +1979,7 @@ VMI(S_STATIC, 0, 0, ())
 
   PC = CL->clause->codes;
   lTop = (LocalFrame)(ARGP + CL->clause->variables);
-  requireStack(local, 0);
+  requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
 
   if ( nextcl )
   { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);

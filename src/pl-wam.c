@@ -1615,7 +1615,7 @@ typedef enum
 	umode = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
-	requireStack(local, 0); \
+	requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY)); \
 	if ( debugstatus.debugging ) \
 	  newChoice(CHP_DEBUG, FR PASS_LD); \
 	PC    = cref->clause->codes; \
@@ -1624,7 +1624,7 @@ typedef enum
 	umode = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
-	requireStack(local, 0); \
+	requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY)); \
 	if ( cond ) \
 	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
  	  ch->value.PC = altpc; \
