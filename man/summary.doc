@@ -220,6 +220,7 @@ suggest predicates from a keyword.
 \predicatesummary{file_directory_name}{2}{Get directory part of path}
 \predicatesummary{file_name_extension}{3}{Add, remove or test file extensions}
 \predicatesummary{file_search_path}{2}{Define path-aliases for locating files}
+\predicatesummary{find_chr_constraint}{1}{Returns a constraint from the store}
 \predicatesummary{findall}{3}{Find all solutions to a goal}
 \predicatesummary{findall}{4}{Difference list version of findall/3}
 \predicatesummary{flag}{3}{Simple global variable system}
@@ -329,6 +330,7 @@ suggest predicates from a keyword.
 \predicatesummary{min_assoc}{3}{Lowest key in association tree}
 \predicatesummary{module}{1}{Query/set current type-in module}
 \predicatesummary{module}{2}{Declare a module}
+\predicatesummary{module_property}{2}{Find properties of a module}
 \oppredsummary{module_transparent}{1}{fx}{1150}{Indicate module based meta-predicate}
 \predicatesummary{msort}{2}{Sort, do not remove duplicates}
 \oppredsummary{multifile}{1}{fx}{1150}{Indicate distributed definition of predicate}
@@ -490,6 +492,7 @@ suggest predicates from a keyword.
 \predicatesummary{set_stream_position}{2}{Seek stream to position}
 \predicatesummary{set_tty}{2}{Set `tty' stream}
 \predicatesummary{setup_call_cleanup}{3}{Undo side-effects safely}
+\predicatesummary{setup_call_catcher_cleanup}{4}{Undo side-effects safely}
 \predicatesummary{setarg}{3}{Destructive assignment on term}
 \predicatesummary{setenv}{2}{Set shell environment variable}
 \predicatesummary{setlocale}{3}{Set/query C-library regional information}
