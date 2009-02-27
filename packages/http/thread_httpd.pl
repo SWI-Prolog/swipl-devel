@@ -157,11 +157,7 @@ assert_port_options([Opt|T], Port) :- !,
 %	True if Goal is the goal of a server at Port.
 
 http_current_server(Goal, Port) :-
-	(   var(Goal)
-	->  current_server(Port, Goal, _, _)
-	;   strip_module(Goal, Module, G),
-	    current_server(Port, Module:G, _, _)
-	).
+	current_server(Port, Goal, _, _).
 
 
 %%	http_workers(+Port, -Workers) is det.
