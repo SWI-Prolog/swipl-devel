@@ -78,7 +78,10 @@ uninstall::
 
 clean::
 		if exist *~ del *~
+		if exist *.obj del *.obj
 
 distclean:	clean
+		if exist *.dll del *.dll
+		if exist *.pdb del *.pdb
 
 
