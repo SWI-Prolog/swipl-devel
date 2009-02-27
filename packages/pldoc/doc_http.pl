@@ -140,14 +140,19 @@ doc_server(Port, Options) :-
 
 %%	doc_current_server(-Port) is det.
 %
-%	TCP/IP port of the documentation server. Fails if no server is
-%	running.
+%	TCP/IP port of the documentation server.   Fails if no server is
+%	running. Note that in the current   infrastructure we can easily
+%	be embedded into another  Prolog  HTTP   server.  If  we are not
+%	started from doc_server/2, we  return  the   port  of  a running
+%	HTTP server.
 %	
 %	@tbd	Trap destruction of the server.
 %	@error	existence_error(http_server, pldoc)
 
 doc_current_server(Port) :-
 	(   doc_server_port(P)
+	->  Port = P
+	;   http_current_server(_:_, P)
 	->  Port = P
 	;   existence_error(http_server, pldoc)
 	).
