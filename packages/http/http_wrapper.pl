@@ -148,10 +148,7 @@ cgi_close(_, _, _, Close) :-
 	retract(spawned(ThreadId)), !,
 	Close = spawned(ThreadId).
 cgi_close(CGI, State0, ok, Close) :- !,
-	flush_output,			% update the content-length
-	cgi_property(CGI, connection(Close)),
-	cgi_property(CGI, content_length(Bytes)),
-	catch(close(CGI), E, true),
+	catch(cgi_finish(CGI, Close, Bytes), E, true),
 	(   var(E)
 	->  http_done(200, ok, Bytes, State0)
 	;   http_done(500, E, 0, State0),	% TBD: amount written?
@@ -162,6 +159,12 @@ cgi_close(CGI, Id, Error, Close) :-
 	cgi_discard(CGI),
 	close(CGI),
 	send_error(Out, Id, Error, Close).
+
+cgi_finish(CGI, Close, Bytes) :-
+	flush_output,			% update the content-length
+	cgi_property(CGI, connection(Close)),
+	cgi_property(CGI, content_length(Bytes)),
+	close(CGI).
 
 %%	send_error(+Out, +State0, +Error, -Close)
 %
