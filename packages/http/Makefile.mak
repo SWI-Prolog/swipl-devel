@@ -36,7 +36,7 @@ http_stream.dll:	$(OBJ)
 json.dll:	json.obj
 		$(LD) /dll /out:$@ $(LDFLAGS) json.obj $(PLLIB) $(LIBS)
 
-http_stream.obj:	http_error.c http_chunked.c stream_range.c
+http_stream.obj:	http_error.c http_chunked.c cgi_stream.c stream_range.c
 
 all:		
 
