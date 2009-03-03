@@ -2334,7 +2334,8 @@ PRED_IMPL("$check_stacks", 1, check_stacks, 0)
 { char *s = NULL;
 
   if ( PL_get_atom_chars(A1, &s) )
-    Sdprintf("Checking stacks [%s] ...", s);
+    Sdprintf("[thread %d] Checking stacks [%s] ...",
+	     PL_thread_self(), s);
 
   checkStacks(NULL, NULL);
   if ( s )
