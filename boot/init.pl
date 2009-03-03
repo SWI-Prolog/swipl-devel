@@ -1259,8 +1259,10 @@ load_files(Module:Files, Options) :-
 '$load_file'(_, _, File, _, Options) :-
 	'$get_option'(must_be_module(true), Options, false), !,
 	throw(error(domain_error(module_file, File), _)).
-'$load_file'(end_of_file, _, _, Module, _) :- !, 	% empty file
-	'$set_source_module'(Module, Module).
+'$load_file'(end_of_file, _, File, Module, _) :- !, 	% empty file
+	'$set_source_module'(Module, Module),
+	'$ifcompiling'('$qlf_start_file'(File)),
+	'$ifcompiling'('$qlf_end_part').
 '$load_file'(FirstClause, In, File, Module, _Options) :- !,
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(File)),
