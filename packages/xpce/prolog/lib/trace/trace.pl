@@ -393,7 +393,7 @@ show_source(Frame, Attributes) :-
 	    attribute(Attributes, port(Port), call),
 	    attribute(Attributes, style(Style), Port),
 	    debug('Show source, PC = ~w, Port = ~w~n', [PC, Port]),
-	    (   atom(PC)		% PC is a port-name
+	    (   atom(PC), PC \== exit		% PC is a port-name
 	    ->  prolog_frame_attribute(GUI, Frame, goal, Goal),
 		find_source(Goal, File, Line),
 		debug('At ~w:~d~n', [File, Line]),
