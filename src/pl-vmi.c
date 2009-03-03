@@ -1409,7 +1409,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 VMI(I_CALLM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
 { Module m = (Module)*PC++;
   Procedure proc = (Procedure)*PC++;
-  DEF = getProcDefinedDefinition(&FR, NULL, proc->definition PASS_LD);
+  DEF = getProcDefinedDefinition(&lTop, NULL, proc->definition PASS_LD);
 
   NFR = lTop;
   setNextFrameFlags(NFR, FR);
