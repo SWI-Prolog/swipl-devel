@@ -321,7 +321,7 @@ pattern. For an overview, please see: tipc_overview.txt.
 %	 send(Message) :-
 %	         tipc_socket(S, dgram),
 %	         tipc_send(S, Message, name(18888, 10,0), []),
-%	         tcp_close_socket(S).
+%	         tipc_close_socket(S).
 %	 ==
 %	 
 %	 Messages are delivered silently unless  some form of congestion
