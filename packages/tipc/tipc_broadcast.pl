@@ -92,16 +92,16 @@ Process C:
    ?-
 ==
 
-It is also possible to carry on a private dialog with a single
-responder. To do this, you supply a compound of the form, Term:PortId,
-to a TIPC scoped broadcast/1 or broadcast_request/1, where PortId is
-the port-id of the intended listener. If you supply an unbound variable,
-PortId, to broadcast_request/1 then it will be unified with the address
-of listener that responds to Term. You may send a directed broadcast to
-a specific member by simply providing this address in a similarly
-structured compound to a TIPC scoped broadcast/1. The message is sent
-via unicast to that member only by way of the member's broadcast
-listener. It is received by the listener just as any other broadcast
+It is also  possible  to  carry  on   a  private  dialog  with  a single
+responder. To do this, you supply a   compound of the form, Term:PortId,
+to a TIPC scoped broadcast/1 or broadcast_request/1, where PortId is the
+port-id of the intended listener.  If   you  supply an unbound variable,
+PortId, to broadcast_request, it will  be   unified  with the address of
+listener that responds to Term. You may   send a directed broadcast to a
+specific  member  by  simply  providing  this  address  in  a  similarly
+structured compound to a TIPC scoped   broadcast/1.  The message is sent
+via unicast to that  member  only  by   way  of  the  member's broadcast
+listener. It is received by the  listener   just  as any other broadcast
 would be. The listener does not know the difference.
 
 Although this capability is needed under   some  circumstances, it has a
