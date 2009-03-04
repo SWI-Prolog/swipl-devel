@@ -31,9 +31,9 @@
 	  [
 	   tipc_paxos_get/1,         % ?Term
 	   tipc_paxos_set/1,         % ?Term
-	   tipc_paxos_set/2,         % ?Term +Retries
-	   tipc_paxos_replicate/1,    % ?Term
-	   tipc_paxos_on_change/2    % ?Term +Goal
+	   tipc_paxos_set/2,         % ?Term,  +Retries
+	   tipc_paxos_replicate/1,   % ?Term
+	   tipc_paxos_on_change/2    % ?Term,  +Goal
 	  ]).
 
 :- use_module(tipc_broadcast).
@@ -44,10 +44,10 @@ variation on Lamport's Paxos concensus protocol. The original method is
 described in his paper entitled, "The   Part-time Parliament", which was
 published in 1998. The algorithm is   tolerant of non-Byzantine failure.
 That is late or lost delivery or   reply,  but not senseless delivery or
-reply. This algorithm takes advantage  of   the  convenience  offered by
-multicast to the quorum's membership, who   can remain anonymous and who
-can come and go as they please   without  effecting Liveness or Progress
-properties.
+reply. The present algorithm takes advantage of the convenience offered
+by multicast to the quorum's membership, who can remain anonymous and
+who can come and go as they please without effecting Liveness or
+Progress properties.
 
 Paxos' quorum is a set of one or more attentive members, whose
 processes respond to queries within some known time limit (< 20ms),
