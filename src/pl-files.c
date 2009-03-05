@@ -32,7 +32,7 @@
 #ifdef O_XOS
 #define statstruct struct _stat
 #else
-define statstruct struct stat
+#define statstruct struct stat
 #define statfunc stat
 #endif
 
