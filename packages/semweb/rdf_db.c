@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -6236,18 +6236,35 @@ match_label(term_t how, term_t search, term_t label)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Name 	   ::= (Letter | '_' | ':') (NameChar)*
+NameChar   ::= Letter | Digit | '.' | '-' | '_' | ':' | CombiningChar | Extender
+
+CombiningChar & Extender are outside Latin-1
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define NAME_START 1
+#define NAME_CONT  2
+
 static char url_special[128] = {0};
 static int  url_special_done = FALSE;
 
 static void
 fill_special()
 { if ( !url_special_done )
-  { url_special['#'] = TRUE;
-    url_special['/'] = TRUE;
-    url_special['?'] = TRUE;
-    url_special[':'] = TRUE;
-    url_special['='] = TRUE;
-    url_special['&'] = TRUE;
+  { int i;
+
+    for(i='a'; i<= 'z'; i++)
+      url_special[i] = NAME_START;
+    for(i='A'; i<= 'Z'; i++)
+      url_special[i] = NAME_START;
+    for(i='0'; i<= '9'; i++)
+      url_special[i] = NAME_CONT;
+
+    url_special['_'] = NAME_START;
+    url_special[':'] = NAME_START;
+    url_special['.'] = NAME_CONT;
+    url_special['-'] = NAME_CONT;
 
     url_special_done = TRUE;
   }
@@ -6257,12 +6274,12 @@ fill_special()
 static foreign_t
 split_url(term_t base, term_t local, term_t url)
 { char *b, *l, *u;
-  size_t bl, ll;
+  size_t bl, ll, ul;
 
   if ( local &&
        PL_get_atom_nchars(base, &bl, &b) &&
        PL_get_atom_nchars(local, &ll, &l) )
-  { if ( bl+ll < 1024 )
+  { if ( bl+ll < 1024 )			/* join */
     { char buf[1024];
 
       memcpy(buf, b, bl);
@@ -6280,32 +6297,32 @@ split_url(term_t base, term_t local, term_t url)
       PL_free(buf);
       return rc;
     }
-  } else if ( PL_get_atom_chars(url, &u) )
-  { const unsigned char *s, *last = NULL;
+  } else if ( PL_get_atom_nchars(url, &ul, &u) )
+  { const unsigned char *us = (unsigned char*)u;
+    const unsigned char *s;
 
     fill_special();
 
-    for(s = (unsigned char*)u; *s; s++)
-    { int c = *s;
+    for(s = us+ul; s>us; s--)
+    { int c = s[-1];
 
-      if ( c < 128 && url_special[c] )
-	last = s;
+      if ( c < 128 && !url_special[c] )
+	break;
     }
-    if ( last )
-    { const char *l1 = (const char*)last+1;
+    for(; s<us+ul; s++)
+    { int c = s[0];
 
-      if ( (!local || PL_unify_atom_chars(local, l1)) &&
-	   PL_unify_atom_nchars(base, l1-u, u) )
-	return TRUE;
-      else
-	return FALSE;
-    } else
-    { if ( (!local || PL_unify(local, url)) &&
-	   PL_unify_atom_chars(base, "") )
-	return TRUE;
-      else
+      if ( c < 128 && url_special[c] == NAME_START )
+	break;
+    }
+
+    if ( local )
+    { ll = ul-(s-us);
+
+      if ( !PL_unify_atom_nchars(local, ll, (const char*)s) )
 	return FALSE;
     }
+    return PL_unify_atom_nchars(base, s-us, u);
   } else
     return type_error(url, "atom");
 }
