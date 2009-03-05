@@ -29,6 +29,13 @@
 #include <sys/stat.h>
 #endif
 
+#ifdef O_XOS
+#define statstruct struct _stat
+#else
+define statstruct struct stat
+#define statfunc stat
+#endif
+
 #undef LD
 #define LD LOCAL_LD
 
@@ -50,9 +57,9 @@ Return the last modification time of file  as a POSIX timestamp. Returns
 time_t
 LastModifiedFile(const char *file)
 { char tmp[MAXPATHLEN];
-  struct stat buf;
+  statstruct buf;
 
-  if ( stat(OsPath(file, tmp), &buf) < 0 )
+  if ( statfunc(OsPath(file, tmp), &buf) < 0 )
     return (time_t)-1;
 
   return buf.st_mtime;
@@ -68,9 +75,9 @@ be accessed.
 static int64_t
 SizeFile(const char *path)
 { char tmp[MAXPATHLEN];
-  struct stat buf;
+  statstruct buf;
 
-  if ( stat(OsPath(path, tmp), &buf) < 0 )
+  if ( statfunc(OsPath(path, tmp), &buf) < 0 )
     return -1;
 
   return buf.st_size;
@@ -118,9 +125,9 @@ ExistsFile(const char *path)
   return _xos_exists(path, _XOS_FILE);
 #else
   char tmp[MAXPATHLEN];
-  struct stat buf;
+  statstruct buf;
 
-  if ( stat(OsPath(path, tmp), &buf) == -1 || !S_ISREG(buf.st_mode) )
+  if ( statfunc(OsPath(path, tmp), &buf) == -1 || !S_ISREG(buf.st_mode) )
   { DEBUG(2, perror(tmp));
     return FALSE;
   }
@@ -137,9 +144,9 @@ ExistsDirectory(const char *path)
 #else
   char tmp[MAXPATHLEN];
   char *ospath = OsPath(path, tmp);
-  struct stat buf;
+  statstruct buf;
 
-  if ( stat(ospath, &buf) < 0 )
+  if ( statfunc(ospath, &buf) < 0 )
     return FALSE;
 
   if ( S_ISDIR(buf.st_mode) )
@@ -231,12 +238,12 @@ SameFile(const char *f1, const char *f2)
   }
 
 #ifdef __unix__				/* doesn't work on most not Unix's */
-  { struct stat buf1;
-    struct stat buf2;
+  { statstruct buf1;
+    statstruct buf2;
     char tmp[MAXPATHLEN];
 
-    if ( stat(OsPath(f1, tmp), &buf1) != 0 ||
-	 stat(OsPath(f2, tmp), &buf2) != 0 )
+    if ( statfunc(OsPath(f1, tmp), &buf1) != 0 ||
+	 statfunc(OsPath(f2, tmp), &buf2) != 0 )
       return FALSE;
     if ( buf1.st_ino == buf2.st_ino && buf1.st_dev == buf2.st_dev )
       return TRUE;
@@ -304,12 +311,12 @@ static int
 MarkExecutable(const char *name)
 {
 #if (defined(HAVE_STAT) && defined(HAVE_CHMOD)) || defined(__unix__)
-  struct stat buf;
+  statstruct buf;
   mode_t um;
 
   um = umask(0777);
   umask(um);
-  if ( stat(name, &buf) == -1 )
+  if ( statfunc(name, &buf) == -1 )
   { GET_LD
     term_t file = PL_new_term_ref();
 
