@@ -1205,14 +1205,17 @@ rdf_reset_db :-
 		 *	     SAVE RDF		*
 		 *******************************/
 
-%%	rdf_save(File) is det.
-%%	rdf_save(File, +Options) is det.
+%%	rdf_save(Out) is det.
+%%	rdf_save(Out, +Options) is det.
 %
-%	Save RDF data to file.  Options is a list of one or more of the
-%	following options:
+%	Write RDF data as RDF/XML. Options is a list of one or more of
+%	the following options:
 %	
+%		* graph(+Graph)
+%		Save only triples associated to the given named Graph.
+%		
 %		* db(+DB)
-%		Save only triples associated to the given DB
+%		Deprecated synonym for graph(DB).
 %		
 %		* anon(Bool)
 %		If false (default true) do not save blank nodes that do
@@ -1243,7 +1246,7 @@ rdf_reset_db :-
 %		If =true= (default =false=), emit subjects sorted on
 %		the full URI.  Useful to make file comparison easier.
 %	
-%	@param File	Location to save the data.  This can also be a 
+%	@param Out	Location to save the data.  This can also be a 
 %			file-url (=|file://path|=) or a stream wrapped
 %			in a term stream(Out).
 
@@ -1268,7 +1271,7 @@ rdf_save(Spec, Options0) :-
 rdf_save(Spec, DB) :-
 	atom(DB), !,			% backward compatibility
 	to_file(Spec, File),
-	rdf_save2(File, [db(DB)]).
+	rdf_save2(File, [graph(DB)]).
 
 to_file(URL, File) :-
 	atom(URL),
@@ -1332,18 +1335,20 @@ rdf_do_save(Out, Options) :-
 					% cleanup handlers isn't called!?
 
 rdf_subject(Subject, Options) :-
-	db(Options, DB),
+	graph(Options, DB),
 	var(DB), !,
 	rdf_subject(Subject).
 rdf_subject(Subject, Options) :-
-	db(Options, DB),
+	graph(Options, DB),
 	rdf_subject(Subject),
 	(   rdf(Subject, _, _, DB:_)
 	->  true
 	).
 
-db(Options, DB) :-
-	(   memberchk(db(DB0), Options)
+graph(Options, DB) :-
+	(   memberchk(graph(DB0), Options)
+	->  DB = DB0
+	;   memberchk(db(DB0), Options)
 	->  DB = DB0
 	;   true			% leave unbound
 	).
@@ -1409,7 +1414,7 @@ rdf_save_header(Out, Options) :-
 	format(Out, '>~n', []).
 rdf_save_header(Out, FileRef) :-	% compatibility
 	atom(FileRef),
-	rdf_save_header(Out, [db(FileRef)]).
+	rdf_save_header(Out, [graph(FileRef)]).
 	
 xml_encoding(Enc, Encoding) :-
 	(   xml_encoding_name(Enc, Encoding)
@@ -1450,7 +1455,7 @@ header_namespaces(Options, List) :-
 	memberchk(namespaces(NSL0), Options), !,
 	sort([rdf,rdfs|NSL0], List).
 header_namespaces(Options, List) :-
-	db(Options, DB),
+	graph(Options, DB),
 	used_namespace_entities(List, DB).
 	
 %%	used_namespace_entities(-List, ?DB)
@@ -1569,7 +1574,7 @@ rdf_save_footer(Out) :-
 rdf_save_non_anon_subject(_Out, Subject, Options) :-
 	rdf_is_bnode(Subject),
 	(   memberchk(anon(false), Options)
-	;   db(Options, DB),
+	;   graph(Options, DB),
 	    rdf_db(_, _, Subject, DB)
 	), !.
 rdf_save_non_anon_subject(Out, Subject, Options) :-
@@ -1591,7 +1596,7 @@ rdf_save_subject(Out, Subject, Options) :-
 rdf_save_subject(Out, Subject, DB) :-
 	(   var(DB)
 	->  rdf_save_subject(Out, Subject, [])
-	;   rdf_save_subject(Out, Subject, [db(DB)])
+	;   rdf_save_subject(Out, Subject, [graph(DB)])
 	).
 		  
 
@@ -1603,7 +1608,7 @@ rdf_save_subject(Out, Subject, DB) :-
 %	@param Indent	Current indentation
 
 rdf_save_subject(Out, Subject, BaseURI, Indent, Options) :-
-	db(Options, DB),
+	graph(Options, DB),
 	findall(Pred=Object, rdf_db(Subject, Pred, Object, DB), Atts0),
 	sort(Atts0, Atts),		% remove duplicates
 	length(Atts, L),

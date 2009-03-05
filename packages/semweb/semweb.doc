@@ -605,10 +605,13 @@ Save all known triples to the given \arg{File}.  Same as
 Save with options.  Provided options are:
 
     \begin{description}
+        \termitem{graph}{+URI}
+Save all triples that belong to the named-graph \arg{URI}. Saving
+arbitrary selections is possible using predicates from
+\secref{partsave}.
+
         \termitem{db}{+FileRef}
-Save all triples whose file-part of their \arg{SourceRef} matches
-\arg{FileRef} to the given \arg{File}.   Saving arbitrary selections
-is possible using predicates from \secref{partsave}.
+Deprecated synonym for \term{graph}{URI}.
 
         \termitem{anon}{+Bool}
 if \term{anon}{false} is provided anonymous resources are only saved
@@ -667,7 +670,7 @@ option namespaces for details.
 True if \arg{DB} is the name of a graph with at least one triple.
 
     \predicate{rdf_source}{1}{?DB}
-Depricated.  Use rdf_graph/1 or rdf_source/2 in new code.
+Deprecated.  Use rdf_graph/1 or rdf_source/2 in new code.
 
     \predicate{rdf_source}{2}{?DB, ?SourceURL}
 True if the named graph \arg{DB} was loaded from the source
@@ -757,8 +760,12 @@ generate the required namespaces and desired short-name.  \arg{Options}
 is one of:
 
     \begin{description}
+	\termitem{graph}{+URI}
+    Only search for namespaces used in triples that belong to the
+    given named graph.
+
 	\termitem{db}{+FileRef}
-    Only search for namespaces used in triples labeled with \arg{FileRef}.
+    Deprecated synonym for \term{graph}{FileRef}.
 
 	\termitem{namespaces}{+List}
     Where \arg{List} is a list of namespace abbreviations (see
