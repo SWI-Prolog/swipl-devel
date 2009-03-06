@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        wielemak@science.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2007, University of Amsterdam
+    E-mail:        J.Wielemaker@uva.nl
+    WWW:	   http://www.swi-prolog.org/packages/xpce/
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -616,7 +616,7 @@ bannerPce(Pce pce)
 	 pce->operating_system,
 	 pce->window_system_version,
 	 pce->window_system_revision);
-  writef("Copyright (C) 1993-2007 University of Amsterdam.\n"
+  writef("Copyright (C) 1993-2009 University of Amsterdam.\n"
 	 "XPCE comes with ABSOLUTELY NO WARRANTY. "
 	 "This is free software,\nand you are welcome to redistribute it "
 	 "under certain conditions.\n");
