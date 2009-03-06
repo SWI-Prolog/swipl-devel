@@ -222,7 +222,8 @@ maybe_write:
     goto case_write;
 
 error:
-  if ( (flags & CVT_EXCEPTION) )
+  if ( (flags & CVT_EXCEPTION) &&
+       (!isVar(w) || !(flags & CVT_VARFAIL)) )
   { atom_t expected;
 
     if ( flags & CVT_LIST )
