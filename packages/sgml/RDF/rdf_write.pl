@@ -88,14 +88,14 @@ rdf_write_xml(Out, Triples) :-
 %	This predicate also sets up the namespace notation.
 
 rdf_write_header(Out, Triples) :-
-	xml_encoding(Out, Encoding),
+	xml_encoding(Out, Enc, Encoding),
 	format(Out, '<?xml version=\'1.0\' encoding=\'~w\'?>~n', [Encoding]),
 	format(Out, '<!DOCTYPE rdf:RDF [', []),
 	used_namespaces(Triples, NSList),
 	(   member(Id, NSList),
 	    ns(Id, NS),
 	    rdf_quote_uri(NS, QNS),
-	    xml_quote_attribute(QNS, NSText0, Encoding),
+	    xml_quote_attribute(QNS, NSText0, Enc),
 	    xml_escape_parameter_entity(NSText0, NSText),
 	    format(Out, '~N    <!ENTITY ~w \'~w\'>', [Id, NSText]),
 	    fail
@@ -111,7 +111,7 @@ rdf_write_header(Out, Triples) :-
 	format(Out, '>~n', []).
 	
 
-xml_encoding(Out, Encoding) :-
+xml_encoding(Out, Enc, Encoding) :-
 	stream_property(Out, encoding(Enc)),
 	(   xml_encoding_name(Enc, Encoding)
 	->  true
