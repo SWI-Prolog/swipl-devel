@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -194,13 +194,13 @@ static struct signame
 #ifdef SIGQUIT
   { SIGQUIT,	"quit",   0},
 #endif
-  { SIGILL,	"ill",    PLSIG_THROW},
+  { SIGILL,	"ill",    0},
   { SIGABRT,	"abrt",   0},
   { SIGFPE,	"fpe",    PLSIG_THROW},
 #ifdef SIGKILL
   { SIGKILL,	"kill",   0},
 #endif
-  { SIGSEGV,	"segv",   PLSIG_THROW},
+  { SIGSEGV,	"segv",   0},
 #ifdef SIGPIPE
   { SIGPIPE,	"pipe",   0},
 #endif
@@ -236,7 +236,7 @@ static struct signame
   { SIGTRAP,	"trap",   0},
 #endif
 #ifdef SIGBUS
-  { SIGBUS,	"bus",    PLSIG_THROW},
+  { SIGBUS,	"bus",    0},
 #endif
 #ifdef SIGSTKFLT
   { SIGSTKFLT,	"stkflt", 0},
