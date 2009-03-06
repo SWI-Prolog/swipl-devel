@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -37,7 +37,7 @@ finding source files, etc.
 
 static void	resetReferencesModule(Module);
 static void	resetProcedure(Procedure proc, bool isnew);
-static void	removeClausesProcedure(Procedure proc, int sfindex, int file);
+static int	removeClausesProcedure(Procedure proc, int sfindex, int file);
 static atom_t	autoLoader(LocalFrame *frp, Code PC, Definition def);
 static void	registerDirtyDefinition(Definition def);
 static Procedure visibleProcedure(functor_t f, Module m);
@@ -902,22 +902,24 @@ abolishProcedure(Procedure proc, Module module)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Remove (mark for  deletion)  all  clauses   that  come  from  the  given
 source-file or any sourcefile. Note   that thread-local predicates don't
-have clauses from files, so we don't need to bother.
+have clauses from files, so we don't   need to bother. Returns number of
+clauses that is deleted.
 
 MT: Caller must hold L_PREDICATE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
 { Definition def = proc->definition;
   ClauseRef c;
+  int deleted = 0;
 
 #ifdef O_LOGICAL_UPDATE
   GD->generation++;
 #endif
 
   if ( true(def, P_THREAD_LOCAL) )
-    return;
+    return deleted;
 
   for(c = def->definition.clauses; c; c = c->next)
   { Clause cl = c->clause;
@@ -926,7 +928,9 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
 	 (!fromfile || cl->line_no > 0) &&
 	 false(cl, ERASED) )
     { set(cl, ERASED);
-      set(def, NEEDSCLAUSEGC);		/* only on first */
+
+      if ( deleted++ == 0 )
+	set(def, NEEDSCLAUSEGC);
 
 #ifdef O_LOGICAL_UPDATE
       cl->generation.erased = GD->generation;
@@ -935,8 +939,10 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
       def->erased_clauses++;
     } 
   }
-  if ( def->hash_info )
+  if ( def->hash_info && deleted )
     def->hash_info->alldirty = TRUE;
+
+  return deleted;
 }
 
 
@@ -2823,24 +2829,25 @@ startConsult(SourceFile f)
 
 					/* remove the clauses */
     for(cell = f->procedures; cell; cell = cell->next)
-    { Procedure proc = cell->value;
+    { int deleted;
+
+      Procedure proc = cell->value;
       Definition def = proc->definition;
 
       DEBUG(2, Sdprintf("removeClausesProcedure(%s), refs = %d\n",
 			predicateName(def), def->references));
 
-      removeClausesProcedure(proc,
-			     true(def, MULTIFILE) ? f->index : 0,
-			     TRUE);
+      deleted = removeClausesProcedure(proc,
+				       true(def, MULTIFILE) ? f->index : 0,
+				       TRUE);
       
-      if ( true(def, NEEDSCLAUSEGC) )
+      if ( deleted )
       { if ( def->references == 0 )
-	{ if ( def->codes )
-	    freeCodesDefinition(def);
+	{ freeCodesDefinition(def);
 	  garbage = cleanDefinition(def, garbage);
 	} else if ( false(def, DYNAMIC) )
 	{ registerDirtyDefinition(def);
-	  def->codes = NULL;		/* TBD: make available for GC */
+	  freeCodesDefinition(def);
 	}
       }
       
