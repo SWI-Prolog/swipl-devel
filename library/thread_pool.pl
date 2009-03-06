@@ -148,6 +148,8 @@ current_thread_pool(Name) :-
 %	    Number of free slots on this pool
 %	    * size(Size)
 %	    Total number of slots on this pool
+%	    * members(ListOfIDs)
+%	    ListOfIDs is the list or threads running in this pool
 %	    * running(Running)
 %	    Number of running threads in this pool
 %	    * backlog(Size)
@@ -236,7 +238,7 @@ manage_thread_pool(State0) :-
 
 update_thread_pool(create_pool(Name, Size, Options, For), State0, State) :- !,
 	(   rb_insert_new(State0,
-			  Name, tpool(Options, Size, Size, WP, WP),
+			  Name, tpool(Options, Size, Size, WP, WP, []),
 			  State)
 	->  thread_send_message(For, thread_pool(true))
 	;   reply_error(For, permission_error(create, thread_pool, Name)),
@@ -270,13 +272,20 @@ update_thread_pool(Message, State0, State) :-
 	    )
 	).
 
-pool_property(options(Options), tpool(Options, _Free, _Size, _WP, _WPT)).
-pool_property(backlog(Size), tpool(_, _Free, _Size, WP, WPT)) :-
+pool_property(options(Options),
+	      tpool(Options, _Free, _Size, _WP, _WPT, _Members)).
+pool_property(backlog(Size),
+	      tpool(_, _Free, _Size, WP, WPT, _Members)) :-
 	diff_list_length(WP, WPT, Size).
-pool_property(free(Free), tpool(_, Free, _Size, _, _)).
-pool_property(size(Size), tpool(_, _Free, Size, _, _)).
-pool_property(running(Count), tpool(_, Free, Size, _, _)) :-
+pool_property(free(Free),
+	      tpool(_, Free, _Size, _, _, _)).
+pool_property(size(Size),
+	      tpool(_, _Free, Size, _, _, _)).
+pool_property(running(Count),
+	      tpool(_, Free, Size, _, _, _)) :-
 	Count is Size - Free.
+pool_property(members(IDList),
+	      tpool(_, _, _, _, _, IDList)).
 
 diff_list_length(List, Tail, Size) :-
 	'$skip_list'(Length, List, Rest),
@@ -301,22 +310,24 @@ diff_list_length(List, Tail, Size) :-
 %	    create a new one.
 
 update_pool(create(Name, Goal, For, _, MyOptions),
-	    tpool(Options, Free0, Size, WP, WPT),
-	    tpool(Options, Free, Size, WP, WPT)) :-
+	    tpool(Options, Free0, Size, WP, WPT, Members0),
+	    tpool(Options, Free, Size, WP, WPT, Members)) :-
 	succ(Free, Free0), !,
 	thread_self(Me),
 	merge_options(MyOptions, Options, ThreadOptions),
 	(   option(at_exit(_), ThreadOptions)
-	->  reply_error(For, permission_error(specify, option, at_axit))
+	->  reply_error(For, permission_error(specify, option, at_axit)),
+	    Members = Members0
 	;   thread_create(Goal, Id,
 			  [ at_exit(thread_send_message(Me, exitted(Name, Id)))
 			  | ThreadOptions
 			  ]),
+	    Members = [Id|Members0],
 	    reply(For, Id)
 	).
 update_pool(Create,
-	    tpool(Options, 0, Size, WP, WPT0),
-	    tpool(Options, 0, Size, WP, WPT)) :-
+	    tpool(Options, 0, Size, WP, WPT0, Members),
+	    tpool(Options, 0, Size, WP, WPT, Members)) :-
 	Create = create(Name, _Goal, For, Wait, _Options), !,
 	option(backlog(BackLog), Options, infinite),
 	(   can_delay(Wait, BackLog, WP, WPT0)
@@ -325,11 +336,12 @@ update_pool(Create,
 	;   WPT = WPT0,
 	    reply_error(For, resource_error(threads_in_pool(Name)))
 	).
-update_pool(exitted(_Name, _Id),
-	    tpool(Options, Free0, Size, WP0, WPT),
+update_pool(exitted(_Name, Id),
+	    tpool(Options, Free0, Size, WP0, WPT, Members0),
 	    Pool) :-
 	succ(Free0, Free),
-	Pool1 = tpool(Options, Free, Size, WP, WPT),
+	delete(Members0, Id, Members1),
+	Pool1 = tpool(Options, Free, Size, WP, WPT, Members1),
 	(   WP0 == WPT
 	->  WP = WP0,
 	    Pool = Pool1
