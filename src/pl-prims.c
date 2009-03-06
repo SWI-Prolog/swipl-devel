@@ -3259,11 +3259,13 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
 
 static word
 concat(term_t a1, term_t a2, term_t a3, 
+       int bidirectional,		/* FALSE: only mode +,+,- */
        control_t ctx,
        int accept,			/* CVT_* */
        int otype ARG_LD)		/* PL_ATOM or PL_STRING */
 { PL_chars_t t1, t2, t3;
   int rc;
+  int inmode = bidirectional ? CVT_VARNOFAIL : 0;
 
 #define L1 t1.length
 #define L2 t2.length
@@ -3274,9 +3276,10 @@ concat(term_t a1, term_t a2, term_t a3,
 
   t1.text.t = t2.text.t = t3.text.t = NULL;
 
-  PL_get_text(a1, &t1, accept|CVT_EXCEPTION|CVT_VARFAIL);
-  PL_get_text(a2, &t2, accept|CVT_EXCEPTION|CVT_VARFAIL);
-  PL_get_text(a3, &t3, accept|CVT_EXCEPTION|CVT_VARFAIL);
+  if ( !PL_get_text(a1, &t1, accept|inmode|CVT_EXCEPTION) ||
+       !PL_get_text(a2, &t2, accept|inmode|CVT_EXCEPTION) ||
+       !PL_get_text(a3, &t3, accept|CVT_EXCEPTION|CVT_VARNOFAIL) )
+    fail;
 
   if (t1.text.t && t2.text.t)
   { PL_chars_t c;
@@ -3363,7 +3366,15 @@ static
 PRED_IMPL("atom_concat", 3, atom_concat, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
 { PRED_LD
 
-  return concat(A1, A2, A3, PL__ctx, CVT_ATOMIC, PL_ATOM PASS_LD);
+  return concat(A1, A2, A3, TRUE, PL__ctx, CVT_ATOMIC, PL_ATOM PASS_LD);
+}
+
+
+static
+PRED_IMPL("atomic_concat", 3, atomic_concat, PL_FA_ISO)
+{ PRED_LD
+
+  return concat(A1, A2, A3, FALSE, PL__ctx, CVT_ATOMIC, PL_ATOM PASS_LD);
 }
 
 
@@ -3903,7 +3914,7 @@ static
 PRED_IMPL("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
 { PRED_LD
 
-  return concat(A1, A2, A3, PL__ctx, CVT_ATOMIC, PL_STRING PASS_LD);
+  return concat(A1, A2, A3, TRUE, PL__ctx, CVT_ATOMIC, PL_STRING PASS_LD);
 }
 
 
@@ -4726,6 +4737,7 @@ BeginPredDefs(prims)
   PRED_DEF("atom_chars", 2, atom_chars, PL_FA_ISO)
   PRED_DEF("atom_codes", 2, atom_codes, PL_FA_ISO)
   PRED_DEF("atom_concat", 3, atom_concat, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
+  PRED_DEF("atomic_concat", 3, atomic_concat, 0)
   PRED_DEF("number_chars", 2, number_chars, PL_FA_ISO)
   PRED_DEF("number_codes", 2, number_codes, PL_FA_ISO)
   PRED_DEF("char_code", 2, char_code, PL_FA_ISO)

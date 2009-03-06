@@ -661,7 +661,7 @@ PL_EXPORT(void)		_PL_get_arg(int index, term_t t, term_t a);
 #define BUF_MALLOC	0x0200
 
 #define CVT_EXCEPTION	0x10000		/* throw exception on error */
-#define CVT_VARFAIL	0x20000		/* no error if arg is unbound */
+#define CVT_VARNOFAIL	0x20000		/* return 2 if argument is unbound */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Output   representation   for   PL_get_chars()     and    friends.   The

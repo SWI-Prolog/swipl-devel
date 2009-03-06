@@ -3856,11 +3856,20 @@ a \except{syntax_error} exception is raised.
 
     \predicate[ISO]{atom_concat}{3}{?Atom1, ?Atom2, ?Atom3}
 \arg{Atom3} forms the concatenation of \arg{Atom1} and \arg{Atom2}. At
-least two of the arguments must be instantiated to atoms, integers or
-floating point numbers. For ISO compliance, the instantiation-pattern
-\mbox{-, -, +} is allowed too, non-deterministically splitting the 3-th
-argument into two parts (as append/3 does for lists). See also
-string_concat/3.
+least two of the arguments must be instantiated to atoms. This predicate
+also allows for the mode (-,-,+), non-deterministically splitting the
+3-th argument into two parts (as append/3 does for lists).  SWI-Prolog
+allows for atomic arguments.  Portable code must use atomic_concat/3
+if non-atom arguments are involved.
+
+    \predicate{atomic_concat}{3}{+Atomic1, +Atomic2, -Atom}
+\arg{Atom} represents the text after converting \arg{Atomic1} and
+\arg{Atomic2} to text and concatenating the result:
+
+\begin{code}
+?- atomic_concat(name, 42, X).
+X = name42.
+\end{code}
 
     \predicate{concat_atom}{2}{+List, -Atom}
 \arg{List} is a list of atoms, integers or floating point numbers. Succeeds

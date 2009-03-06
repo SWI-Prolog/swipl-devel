@@ -35,7 +35,6 @@
 	    system/1,			% +Command
 	    exists/1,			% +File
 	    assert_static/1,		% :Term
-	    atomic_concat/3,		% +Atomic, +Atomic, -Atom
 	    source/0,
 	    yap_flag/2,			% +Flag, +Value
 	    yap_style_check/1,		% +Style
@@ -211,15 +210,6 @@ exists(File) :-
 
 assert_static(Term) :-
 	assert(Term).
-
-
-%%	atomic_concat(+Prefix, +Suffix, -Atom) is det.
-%
-%	Append two atomic values.   SWI-Prolog's  built-in atom_concat/3
-%	already overloads this behaviour.
-
-atomic_concat(Prefix, Suffix, Atom) :-
-	atom_concat(Prefix, Suffix, Atom).
 
 
 %%	source is det.
