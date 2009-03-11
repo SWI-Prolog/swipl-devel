@@ -2391,8 +2391,7 @@ install()
   PL_register_foreign("_sgml_register_catalog_file", 2,
 		      pl_sgml_register_catalog_file, 0);
 
-  PL_register_foreign("$dtd_property",	  2, pl_dtd_property,
-		      PL_FA_NONDETERMINISTIC);
+  PL_register_foreign("$dtd_property",	  2, pl_dtd_property, 0);
 
   install_xml_quote();
 #ifdef O_STATISTICS
