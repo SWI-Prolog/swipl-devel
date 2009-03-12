@@ -81,13 +81,13 @@ suggest predicates from a keyword.
 \predicatesummary{atom_codes}{2}{Convert between atom and list of characters codes}
 \predicatesummary{atom_concat}{3}{Append two atoms}
 \predicatesummary{atom_length}{2}{Determine length of an atom}
-\predicatesummary{atom_list_concat}{2}{Append a list of atoms}
-\predicatesummary{atom_list_concat}{3}{Append a list of atoms with separator}
 \predicatesummary{atom_prefix}{2}{Test for start of atom}
 \predicatesummary{atom_number}{2}{Convert between atom and number}
 \predicatesummary{atom_to_term}{3}{Convert between atom and term}
 \predicatesummary{atomic}{1}{Type check for primitive}
 \predicatesummary{atomic_concat}{3}{Concatenate two atomic values to an atom}
+\predicatesummary{atomic_list_concat}{2}{Append a list of atoms}
+\predicatesummary{atomic_list_concat}{3}{Append a list of atoms with separator}
 \predicatesummary{autoload}{0}{Autoload all predicates now}
 \predicatesummary{b_getval}{2}{Fetch backtrackable global variable}
 \predicatesummary{b_setval}{2}{Assign backtrackable global variable}
