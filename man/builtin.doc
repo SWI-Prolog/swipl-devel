@@ -4568,9 +4568,17 @@ transformed into a string object. The recommended way to specify the
 character code of the letter `a' is \exam{0'a}.
 
     \predicate{random}{1}{+IntExpr}
-Evaluates to a random integer \arg{i} for which $0 \leq i < \arg{IntExpr}$.
-The seed of this random generator is determined by the system clock when
-SWI-Prolog was started.
+Evaluates to a random integer \arg{i} for which $0 \leq i <
+\arg{IntExpr}$. The system has two implementations. If it is compiled
+with support for unbounded arithmetic (default) it uses the GMP-library
+random functions. In this case, each thread keeps its own random state.
+The default algorithm is the \jargon{Mersenne Twister} algorithm. The
+seed is set when the first random number in a thread is generated. If
+available, it is set from \file{/dev/random}. Otherwise it is set from
+the system clock. If unbounded arithmetic is not supported, random
+numbers are shared between threads and the seed is initialised from the
+clock when SWI-Prolog was started. The predicate set_random/1 can be
+used to control the random number generator.
 
     \predicate[ISO]{round}{1}{+Expr}
 Evaluates \arg{Expr} and rounds the result to the nearest integer.
@@ -4792,6 +4800,22 @@ A = 4.500000
     \predicate{current_arithmetic_function}{1}{?Head}
 Successively unifies all arithmetic functions that are visible from
 the context module with \arg{Head}.
+\end{description}
+
+
+\section{Misc arithmetic support predicates}   \label{sec:miscarith}
+
+\begin{description}
+    \predicate{set_random}{1}{+Option}
+Controls the random number generator that accessible through the
+function random.
+
+    \begin{description}
+	\termitem{seed}{+Seed}
+Set the seed of the random generator for this thread.  \arg{Seed} is
+an integer or the atom \const{random}.  If \const{random}, repeat the
+initialization procedure described with the function random/1.
+    \end{description}
 \end{description}
 
 
