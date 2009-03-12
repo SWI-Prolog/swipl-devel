@@ -64,7 +64,9 @@
 	    lock_predicate/2,		% +Name, +Arity
 	    unlock_predicate/2,		% +Name, +Arity
 	    current_module/2,		% ?Module, ?File
-	    export_list/2		% +Module, -Exports
+	    export_list/2,		% +Module, -Exports
+	    setup_and_call_cleanup/3,	% :Setup, :Goal, :Cleanup
+	    setup_and_call_cleanup/4	% :Setup, :Goal, ?Catcher, :Cleanup
 	  ]).
 
 /** <module> Backward compatibility
@@ -403,16 +405,11 @@ export_list(Module, List) :-
 setup_and_call_cleanup(Setup, Goal, Cleanup) :-
 	setup_call_cleanup(Setup, Goal, Cleanup).
 
-%%	setup_and_call_cleanup(:Setup, :Goal, :Cleanup).
-%
-%	Call Cleanup once after Goal is finished.
-%	@deprecated Use setup_call_cleanup/3.
-
-setup_and_call_cleanup(Setup, Goal, Catcher, Cleanup) :-
-	setup_call_catcher_cleanup(Setup, Goal, Catcher,Cleanup).
-
 %%	setup_and_call_cleanup(:Setup, :Goal, Catcher, :Cleanup).
 %
 %	Call Cleanup once after Goal is finished, with Catcher
 %       unified to the reason
 %	@deprecated Use setup_call_cleanup/3.
+
+setup_and_call_cleanup(Setup, Goal, Catcher, Cleanup) :-
+	setup_call_catcher_cleanup(Setup, Goal, Catcher,Cleanup).
