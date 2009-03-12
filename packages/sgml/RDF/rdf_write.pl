@@ -613,13 +613,13 @@ rdf_value(V, Text, Encoding) :-
 	atom_concat(Full, Local, V1), !,
 	rdf_quote_uri(Local, QLocal0),
 	xml_quote_attribute(QLocal0, QLocal, Encoding),
-	concat_atom([Prefix, '&', NS, (';'), QLocal], Text).
+	atomic_list_concat([Prefix, '&', NS, (';'), QLocal], Text).
 rdf_value(V, Text, Encoding) :-
 	ns(NS, Full),
 	atom_concat(Full, Local, V), !,
 	rdf_quote_uri(Local, QLocal0),
 	xml_quote_attribute(QLocal0, QLocal, Encoding),
-	concat_atom(['&', NS, (';'), QLocal], Text).
+	atomic_list_concat(['&', NS, (';'), QLocal], Text).
 rdf_value(V, Q, Encoding) :-
 	rdf_quote_uri(V, Q0),
 	xml_quote_attribute(Q0, Q, Encoding).

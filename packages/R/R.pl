@@ -1047,7 +1047,7 @@ r_lines( Streams, ROstream, Lines ) :-
      */
 
 atoms_concat( Atoms, Concat ) :-
-     concat_atom( Atoms, Concat ).
+     atomic_list_concat( Atoms, Concat ).
 
 r_streams_set( Ri, Ro, Re ) :-
      set_stream( Ri, buffer(false) ), set_stream( Ri, close_on_abort(true) ),

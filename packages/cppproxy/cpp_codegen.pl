@@ -185,7 +185,7 @@ gen_server_function(State, Function, _Options) :-
 	functor(Goal, _, Arity),
 	goal_arg_types_and_names(Goal, Module, ArgTNs),
 	maplist(to_arg, ArgTNs, CPPArgs),
-	concat_atom(CPPArgs, ', ', Args),
+	atomic_list_concat(CPPArgs, ', ', Args),
 	utter(State,
 	      [ '~w ~w(~w)'+[Return, FName, Args],
 	        begin,
@@ -275,11 +275,11 @@ compound_cpp_type(Module, PrologType, CppType) :-
 
 to_arg(a(Name, _, in, Type), Arg) :-
 	numeric_type(Type), !,
-	concat_atom([Type, ' ', Name], Arg).
+	atomic_list_concat([Type, ' ', Name], Arg).
 to_arg(a(Name, _, in, Type), Arg) :- !,
-	concat_atom(['const ', Type, ' &', Name], Arg).
+	atomic_list_concat(['const ', Type, ' &', Name], Arg).
 to_arg(a(Name, _, out, Type), Arg) :-
-	concat_atom([Type, ' &', Name], Arg).
+	atomic_list_concat([Type, ' &', Name], Arg).
 
 numeric_type(int).
 numeric_type(long).
@@ -378,7 +378,7 @@ gen_receive_function(State, Module, Type) :-
 	arg_types_and_names(PrologType, Module, out, Args),
 	gen_receive_fields(Args, State),
 	maplist(to_call_arg, Args, CArgs),
-	concat_atom(CArgs, ', ', CallArgs),
+	atomic_list_concat(CArgs, ', ', CallArgs),
 	utter(State,
 	      [ 'data.initialize(~w);'+[CallArgs],
 		'receive_end_term();',
@@ -440,7 +440,7 @@ gen_query_class(State, Function, Options) :-
 	option(server_class(Proxy), Options, 'MyProxy'),
 	goal_arg_types_and_names(Goal, Module, ArgTNs),
 	maplist(to_arg, ArgTNs, CPPArgs),
-	concat_atom(CPPArgs, ', ', Args),
+	atomic_list_concat(CPPArgs, ', ', Args),
 	utter(State,
 	      [ nl, nl,
 		'class ~w : public PlQuery'+[ClassName],

@@ -79,7 +79,10 @@ suggest predicates from a keyword.
 \predicatesummary{atom}{1}{Type check for an atom}
 \predicatesummary{atom_chars}{2}{Convert between atom and list of characters}
 \predicatesummary{atom_codes}{2}{Convert between atom and list of characters codes}
+\predicatesummary{atom_concat}{3}{Append two atoms}
 \predicatesummary{atom_length}{2}{Determine length of an atom}
+\predicatesummary{atom_list_concat}{2}{Append a list of atoms}
+\predicatesummary{atom_list_concat}{3}{Append a list of atoms with separator}
 \predicatesummary{atom_prefix}{2}{Test for start of atom}
 \predicatesummary{atom_number}{2}{Convert between atom and number}
 \predicatesummary{atom_to_term}{3}{Convert between atom and term}
@@ -128,10 +131,7 @@ suggest predicates from a keyword.
 \predicatesummary{compile_predicates}{1}{Compile dynamic code to static}
 \predicatesummary{compiling}{0}{Is this a compilation run?}
 \predicatesummary{compound}{1}{Test for compound term}
-\predicatesummary{atom_concat}{3}{Append two atoms}
 \predicatesummary{code_type}{2}{Classify a character-code}
-\predicatesummary{concat_atom}{2}{Append a list of atoms}
-\predicatesummary{concat_atom}{3}{Append a list of atoms with separator}
 \predicatesummary{consult}{1}{Read (compile) a Prolog source file}
 \predicatesummary{context_module}{1}{Get context module of current goal}
 \predicatesummary{convert_time}{8}{Break time stamp into fields}

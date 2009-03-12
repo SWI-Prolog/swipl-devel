@@ -71,7 +71,7 @@ cmd(=, index, nospace('\=')).
 cmd(spaces({X}), html(Spaces)) :-
 	atom_number(X, N),
 	n_list(N, '&nbsp;', L),
-	concat_atom(L, Spaces).
+	atomic_list_concat(L, Spaces).
 cmd(hrule, html('<HR>')).
 cmd(bug({TeX}), #footnote(bug, +TeX)).
 cmd(fileext({Ext}), #code(Text)) :-
@@ -112,7 +112,7 @@ cmd(versionshort,	    _, nospace(Version)) :-
 	Major is V // 10000,
 	Minor is (V // 100) mod 100,
 	Patch is V mod 100,
-	concat_atom([Major, Minor, Patch], '.', Version).
+	atomic_list_concat([Major, Minor, Patch], '.', Version).
 cmd(bnfor, '|').
 cmd(bnfmeta({Meta}), [nospace('<'), #var(+Meta), nospace('>')]).
 cmd(argoption({RawName}, {ArgName}),
@@ -277,13 +277,13 @@ cmd(menuitem({Name}, {[]}),
     #defitem(#label(RefName, #strong(+Name)))) :-
 	clean_name(Name, RefName0),
 	atom_concat('menu:', RefName0, RefName),
-	concat_atom(Name, ' ', Atom),
+	atomic_list_concat(Name, ' ', Atom),
 	add_to_index(Atom, +RefName).
 cmd(menuitem({Name}, {Arg}),
     #defitem([#label(RefName, #strong(+Name)), ' ', #embrace(#var(+Arg))])) :-
 	clean_name(Name, RefName0),
 	atom_concat('menu:', RefName0, RefName),
-	concat_atom(Name, ' ', Atom),
+	atomic_list_concat(Name, ' ', Atom),
 	add_to_index(Atom, +RefName).
 cmd(escapeitem({Name}), #defitem(#code([nospace('\\'), +Name]))).
 cmd(ttdef({Def}), #defitem(#code(+Def))).
@@ -328,7 +328,7 @@ cmd(class({Name}),              #lref(Label, Name)) :-
 cmd(menuref({A1}),            #lref(RefName, Name)) :-
 	clean_name(A1, RefName0),
 	atom_concat('menu:', RefName0, RefName),
-	concat_atom(A1, ' ', Name),
+	atomic_list_concat(A1, ' ', Name),
         add_to_index(Name).
 
 % Glossary support
@@ -509,13 +509,13 @@ clean_name(X, X) :-
 	atomic(X), !.
 clean_name(L, Out) :-
 	maplist(clean_name, L, L2),
-	concat_atom(L2, Out).
+	atomic_list_concat(L2, Out).
 	
 predicate_refname(Symbol, Arity, Ref) :-
 	symbol_name(Symbol, Name), !,
-	concat_atom([Name, /, Arity], Ref).
+	atomic_list_concat([Name, /, Arity], Ref).
 predicate_refname(Name, Arity, Ref) :-
-	concat_atom([Name, /, Arity], Ref).
+	atomic_list_concat([Name, /, Arity], Ref).
 
 symbol_name('->',	send_arrow).
 symbol_name('<-',	get_arrow).

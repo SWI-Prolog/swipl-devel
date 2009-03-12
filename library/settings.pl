@@ -245,7 +245,7 @@ eval_default(Expr, _, Type, Value) :-
 	Value = Val.
 eval_default(A+B, Module, atom, Value) :- !,
 	phrase(expr_to_list(A+B, Module), L),
-	concat_atom(L, Val),
+	atomic_list_concat(L, Val),
 	assert(setting_cache(A+B, atom, Val)),
 	Value = Val.
 eval_default(List, Module, list(Type), Value) :- !,

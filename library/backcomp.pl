@@ -41,6 +41,8 @@
 	    sformat/2,			% -String, +Fmt
 	    sformat/3,			% -String, +Fmt, +Args
 	    concat/3,
+	    concat_atom/2,		% +List, -Atom
+	    concat_atom/3,		% +List, +Sep, -Atom
 	    read_variables/2,
 	    read_variables/3,
 	    feature/2,
@@ -117,6 +119,31 @@ sformat(String, Format, Arguments) :-
 
 concat(A, B, C) :-
 	atom_concat(A, B, C).
+
+%%	concat_atom(+List, -Atom) is det.
+%
+%	Concatenate a list of atomic values to an atom.  
+%	
+%	@deprecated Use atomic_list_concat/2 as proposed by the prolog
+%		    commons initiative.
+
+concat_atom([A, B], C) :- !,
+	atom_concat(A, B, C).
+concat_atom(L, Atom) :-
+	atomic_list_concat(L, Atom).
+
+
+%%	concat_atom(+List, +Seperator, -Atom) is det.
+%
+%	Concatenate a list of atomic values to an atom, inserting Seperator
+%	between each consecutive elements.
+%	
+%	@deprecated Use atomic_list_concat/3 as proposed by the prolog
+%		    commons initiative.
+
+concat_atom(L, Sep, Atom) :-
+	atomic_list_concat(L, Sep, Atom).
+
 
 %%	read_variables(-Term, -Bindings) is det.
 %%	read_variables(+In:stream, -Term, -Bindings) is det.

@@ -121,7 +121,7 @@ SICStus Prolog and ignores the require/1 directive.
 :- use_module(library(pce)).
 :- require([ between/3
 	   , call/2
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , term_variables/2
 	   ]).
 
@@ -576,7 +576,7 @@ user_move(Board, Piece, FromLocation, ToLocation) :-
 chess_move_name(_Piece, F, T, Move) :-
 	chess_coordinate(F, CF),
 	chess_coordinate(T, CT),
-	concat_atom([CF, CT], Move).
+	atomic_list_concat([CF, CT], Move).
 
 
 chess_coordinate(Where, C) :-

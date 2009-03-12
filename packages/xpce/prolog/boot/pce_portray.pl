@@ -131,6 +131,6 @@ method_from_id(Id, <-(Class, Selector)) :-
 	arg(1, Binder, Id).
 
 atom_from_method(->(Class, Selector), Atom) :-
-	concat_atom([Class, (->), Selector], Atom).
+	atomic_list_concat([Class, (->), Selector], Atom).
 atom_from_method(<-(Class, Selector), Atom) :-
-	concat_atom([Class, (<-), Selector], Atom).
+	atomic_list_concat([Class, (<-), Selector], Atom).

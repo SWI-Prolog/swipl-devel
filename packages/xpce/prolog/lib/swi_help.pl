@@ -54,8 +54,8 @@ This module is normally hooked into help/1 by the module swi_hooks.pl.
 	   , atom_length/2
 	   , between/3
 	   , chain_list/2
-	   , concat_atom/2
-	   , concat_atom/3
+	   , atomic_list_concat/2
+	   , atomic_list_concat/3
 	   , default/3
 	   , explain/2
 	   , forall/2
@@ -83,7 +83,7 @@ resource(predicate,	image,  image('16x16/preddoc.xpm')).
 
 prolog_help :-
 	section(S, 'Getting started quickly', _, _),
-	concat_atom(S, -, Id),
+	atomic_list_concat(S, -, Id),
 	term_to_atom(Spec, Id),
 	prolog_help(Spec).
 
@@ -797,11 +797,11 @@ alnum(C) -->
 help_atom(Name/Arity, Atom) :- !,
 	(   var(Arity)
 	->  atom_concat(Name, '/_', Atom)
-	;   concat_atom([Name, /, Arity], Atom)
+	;   atomic_list_concat([Name, /, Arity], Atom)
 	).
 help_atom(S1-S0, Atom) :- !,
 	help_atom(S1, A0),
-	concat_atom([A0, '.', S0], Atom).
+	atomic_list_concat([A0, '.', S0], Atom).
 help_atom(C, C) :-
 	integer(C), !.
 help_atom(F, F) :-
@@ -862,7 +862,7 @@ section_apropos(V, Pattern) :-
 	send(V, insert_section,
 	     string('Sections from "%s":', Pattern)),
 	forall(member(Index-Title, Names),
-	       (   concat_atom(Index, '.', Jump),
+	       (   atomic_list_concat(Index, '.', Jump),
 		   append_apropos(V, Jump, Title)
 	       )).
 
@@ -1075,7 +1075,7 @@ initialise(N, Index:prolog) :->
 	->  CanExpand = @on
 	;   CanExpand = @off
 	),
-	concat_atom(Index, '.', Id),
+	atomic_list_concat(Index, '.', Id),
 	send_super(N, initialise, Title?capitalise, Id,
 		   resource(manual), resource(book),
 		   CanExpand),

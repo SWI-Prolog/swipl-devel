@@ -39,5 +39,5 @@ esc(In, Out) :-
 	sub_atom(In, Pre, _, Post, \), !,
 	sub_atom(In, 0, Pre, _, PreA),
 	sub_atom(In, _, Post, 0, PostA),
-	concat_atom([PreA, \\, PostA], Out).
+	atomic_list_concat([PreA, \\, PostA], Out).
 esc(In, In).

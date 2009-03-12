@@ -34,7 +34,7 @@
 :- use_module(library(toolbar)).
 :- use_module(library(pce_report)).
 :- use_module(pce_op).			% should move
-:- require([ concat_atom/2
+:- require([ atomic_list_concat/2
 	   , ignore/1
 	   , portray_object/2
 	   , send_list/3

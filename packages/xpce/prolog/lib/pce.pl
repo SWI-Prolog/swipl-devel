@@ -185,23 +185,23 @@ prolog:locate_clauses(Term, Refs) :-
 
 match_id(->(Class, Method), Id) :-
 	atomic(Class), atomic(Method), !,
-	concat_atom([Class, (->), Method], Id).
+	atomic_list_concat([Class, (->), Method], Id).
 match_id(->(_Class, _Method), _Id).
 match_id(<-(Class, Method), Id) :-
 	atomic(Class), atomic(Method), !,
-	concat_atom([Class, (<-), Method], Id).
+	atomic_list_concat([Class, (<-), Method], Id).
 match_id(<-(_Class, _Method), _Id).
 
 method_clause(->(Class, Send), Ref) :-
 	match_id((Class->Send), Id),
 	clause(pce_principal:send_implementation(Id, _M, _O), _B, Ref),
 	atom(Id),
-	concat_atom([Class,Send], '->', Id).
+	atomic_list_concat([Class,Send], '->', Id).
 method_clause(<-(Class, Get), Ref) :-
 	match_id(<-(Class, Get), Id),
 	clause(pce_principal:get_implementation(Id, _M, _O, _R), _B, Ref),
 	atom(Id),
-	concat_atom([Class,Get], '->', Id).
+	atomic_list_concat([Class,Get], '->', Id).
 
 
 		/********************************

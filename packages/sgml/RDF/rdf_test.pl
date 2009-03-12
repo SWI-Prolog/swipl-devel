@@ -54,7 +54,7 @@ running test/0 can validate all results.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 suite(N) :-
-	concat_atom(['suite/t', N, '.rdf'], File),
+	atomic_list_concat(['suite/t', N, '.rdf'], File),
 	test_file(File).
 
 test_file(File) :-
@@ -82,7 +82,7 @@ time_file(File) :-
 
 passed(Id) :-
 	integer(Id), !,
-	concat_atom(['suite/t', Id, '.rdf'], File),
+	atomic_list_concat(['suite/t', Id, '.rdf'], File),
 	passed(File).
 passed(File) :-
 	rdf_reset_ids,
@@ -145,7 +145,7 @@ ok_file(File, OkFile) :-
 	file_base_name(File, BaseFile),
 	file_name_extension(Base, _, BaseFile),
 	file_directory_name(File, Dir),
-	concat_atom([Dir, /, ok, /, Base, '.ok'], OkFile).
+	atomic_list_concat([Dir, /, ok, /, Base, '.ok'], OkFile).
 
 
 save_triples([], _).

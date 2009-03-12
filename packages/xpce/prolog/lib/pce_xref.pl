@@ -1963,11 +1963,11 @@ edit_callable(Callable, File) :-
 	).
 edit_callable(pce_principal:send_implementation(Id,_,_), _) :-
 	atom(Id),
-	concat_atom([Class,Method], ->, Id), !,
+	atomic_list_concat([Class,Method], ->, Id), !,
 	edit(send(Class, Method)).
 edit_callable(pce_principal:get_implementation(Id,_,_,_), _) :-
 	atom(Id),
-	concat_atom([Class,Method], <-, Id), !,
+	atomic_list_concat([Class,Method], <-, Id), !,
 	edit(get(Class, Method)).
 edit_callable('<directive>'(Line), File) :-
 	File \== @nil, !,

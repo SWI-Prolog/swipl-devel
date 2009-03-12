@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- use_module(library(strings), [concat_atom/2]).
+:- use_module(library(strings), [atomic_list_concat/2]).
 
 :- dynamic   user:term_expansion/2.
 :- multifile user:term_expansion/2.
@@ -90,7 +90,7 @@ emacs_mode_class(ModeName, ClassName) :-
 	atom(ModeName), !,
 	(   ModeName == []
 	->  ClassName = emacs_mode
-	;   concat_atom([emacs_, ModeName, '_mode'], ClassName)
+	;   atomic_list_concat([emacs_, ModeName, '_mode'], ClassName)
 	).
 emacs_mode_class(ModeName, ClassName) :-
 	concat(emacs_, M0, ClassName),

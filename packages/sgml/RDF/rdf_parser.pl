@@ -425,7 +425,7 @@ make_globalid(In, Options, Id) :-
 	    Base \== []
 	->  (   is_absolute_url(In)
 	    ->	url_iri(In, Id)
-	    ;	concat_atom([Base, In], #, Id0),
+	    ;	atomic_list_concat([Base, In], #, Id0),
 		url_iri(Id0, Id)
 	    )
 	;   sub_atom(In, 0, _, _, #)

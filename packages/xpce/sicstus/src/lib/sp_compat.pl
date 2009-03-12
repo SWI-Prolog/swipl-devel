@@ -50,8 +50,8 @@ This code can only be distributed as part of XPCE.
 	    term_to_atom/2,		% ?Term, ?Atom
 	    atom_to_term/3,		% +Atom, -Term, -Bindings
 	    concat/3,			% ?A, ?B, ?AB
-	    concat_atom/2,		% +List, -Atom
-	    concat_atom/3,		% +List, +Separator, -Atom
+	    atomic_list_concat/2,		% +List, -Atom
+	    atomic_list_concat/3,		% +List, +Separator, -Atom
 	    atom_length/2,		% +Atom, -Length
 	    sformat/3			% -Atom, +Format, +ArgList
 	  ]).
@@ -395,7 +395,7 @@ generate_base(Spec, Base) :-
 	user:file_search_path(Name, Spec2),
 	generate_base(Spec2, ParentBase),
 	arg(1, Spec, Sub),
-	concat_atom([ParentBase, Sub], '/', Base).
+	atomic_list_concat([ParentBase, Sub], '/', Base).
 generate_base(Spec, Absolute) :-
 	absolute_file_name(Spec, Absolute). 	% TBD: just make relative
 						% absolute!
@@ -576,9 +576,9 @@ foreign_resource(sp_compat,
 	
 concat(A, B, C) :-
 	concat(A, B, C, 1).
-concat_atom(L, S, A) :-
+atomic_list_concat(L, S, A) :-
 	concat_atom3(L, S, A, 1).
-concat_atom(L, A) :-
+atomic_list_concat(L, A) :-
 	concat_atom2(L, A, 1).
 
 		 /*******************************

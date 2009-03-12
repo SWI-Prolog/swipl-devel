@@ -35,7 +35,7 @@
 	   , append/3
 	   , default/3
 	   , ignore/1
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   ]).
 
 
@@ -124,7 +124,7 @@ make_index(IV, @Ref) :-
 			     file_errors(fail)
 			   ],
 			   IndexDir), !,
-	concat_atom([IndexDir, /, 'index.obj'], IndexFile),
+	atomic_list_concat([IndexDir, /, 'index.obj'], IndexFile),
 	send(@display, confirm,
 	     '%s\n%s %s',
 	     'Cannot find PCE manual index file.',

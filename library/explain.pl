@@ -212,7 +212,7 @@ tproperty(line_count(Number),	':~d', [Number]).
 
 combine_utterances(Pairs, Explanation) :-
 	maplist(first, Pairs, Fmts),
-	concat_atom(Fmts, Format),
+	atomic_list_concat(Fmts, Format),
 	maplist(second, Pairs, ArgList),
 	flatten(ArgList, Args),
 	utter(Explanation, Format, Args).

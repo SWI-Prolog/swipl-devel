@@ -268,7 +268,7 @@ external_edit_command(Location, Command) :-
 external_edit_command(Location, Command) :-
 	memberchk(file(File), Location),
 	editor(Editor),
-	concat_atom(['"', Editor, '" "', File, '"'], Command).
+	atomic_list_concat(['"', Editor, '" "', File, '"'], Command).
 
 pceemacs(pce_emacs).
 pceemacs(built_in).

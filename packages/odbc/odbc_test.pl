@@ -345,7 +345,7 @@ print_val(H, P) :-
 	Len > 60, !,
 	sub_atom(H, 0, 40, _, Start),
 	sub_atom(H, _, 20, 0, End),
-	concat_atom([Start, '...', End], P).
+	atomic_list_concat([Start, '...', End], P).
 print_val(H, H).
 
 		 /*******************************

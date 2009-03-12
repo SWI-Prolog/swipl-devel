@@ -183,7 +183,7 @@ default_emacs_mode('[Cc]ompose|README|\\.article', text).
 default_emacs_mode(Pattern, prolog) :-
 	prolog_file_type(Ext, prolog),
 	Ext \== pl,
-	concat_atom(['.*\\.', Ext, '~?$'], Pattern).
+	atomic_list_concat(['.*\\.', Ext, '~?$'], Pattern).
 
 make_emacs_interpreter_mode_list(Sheet) :-
 	new(Sheet, sheet),

@@ -607,7 +607,7 @@ rewrite_ref(sec, Ref0, Path, Ref) :-		% Section inside a file
 	object_href(Section, Ref).
 rewrite_ref(sec, File, Path, Ref) :-		% Section is a file
 	file_directory_name(Path, Dir),
-	concat_atom([Dir, /, File], SecPath),
+	atomic_list_concat([Dir, /, File], SecPath),
 	Obj = section(_, _, SecPath),
 	man_index(Obj, _, _, _, _), !,
 	object_href(Obj, Ref).
@@ -616,7 +616,7 @@ rewrite_ref(flag, Ref0, Path, Ref) :-
 	sub_atom(Ref0, 0, B, _, File),
 	sub_atom(Ref0, _, A, 0, Fragment),
 	file_directory_name(Path, Dir),
-	concat_atom([Dir, /, File], SecPath),
+	atomic_list_concat([Dir, /, File], SecPath),
 	Obj = section(_, _, SecPath),
 	man_index(Obj, _, _, _, _), !,
 	object_href(Obj, Ref1),
@@ -628,7 +628,7 @@ rewrite_ref(flag, Ref0, Path, Ref) :-
 
 atom_to_pi(Atom, Name/Arity) :-
 	atom(Atom),
-	concat_atom([Name, AA], /, Atom),
+	atomic_list_concat([Name, AA], /, Atom),
 	catch(atom_number(AA, Arity), _, fail),
 	integer(Arity),
 	Arity >= 0.
@@ -640,7 +640,7 @@ referenced_section(Fragment, File, Path, section(Level, Nr, SecPath)) :-
 	(   File == ''
 	->  SecPath = Path
 	;   file_directory_name(Path, Dir),
-	    concat_atom([Dir, /, File], SecPath)
+	    atomic_list_concat([Dir, /, File], SecPath)
 	),
 	man_index(section(Level, Nr, SecPath), _, _, _, _).
 

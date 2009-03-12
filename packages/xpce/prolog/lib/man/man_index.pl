@@ -37,7 +37,7 @@
 :- use_module(user:library(pce)).	% HACK: needed for build process
 :- use_module(library(pce)).
 :- use_module(library(pce_manual)).
-:- require([ concat_atom/2
+:- require([ atomic_list_concat/2
 	   ]).
 
 :- dynamic
@@ -240,7 +240,7 @@ make_module_index(ModuleName) :-
 
 index_card(Module, CardId, Card) :-
 	send(@man_tmp_view, synchronise),
-	concat_atom([$, Module, $, CardId], Id),
+	atomic_list_concat([$, Module, $, CardId], Id),
 	(   get(Card, man_summary, Summary)
 	->  word_index(Summary, Id)
 	;   true

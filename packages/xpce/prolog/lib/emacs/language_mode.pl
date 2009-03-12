@@ -305,7 +305,7 @@ file_header_parameter('%E', _, Email) :-
 	->  true
 	;   get(@pce, user, User),
 	    gethostname(Host),
-	    concat_atom([User, Host], @, Email)
+	    atomic_list_concat([User, Host], @, Email)
 	).
 file_header_parameter('%D', _, Date) :-
 	new(D, date),

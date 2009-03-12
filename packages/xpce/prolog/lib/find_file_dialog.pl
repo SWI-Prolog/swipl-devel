@@ -36,10 +36,10 @@
 :- require([ ignore/1
 	   , access_file/2
 	   , chain_list/2
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , send_list/2
 	   , catch/3
-	   , concat_atom/3
+	   , atomic_list_concat/3
 	   , default/3
 	   , file_name_extension/3
 	   , maplist/3
@@ -563,7 +563,7 @@ alt_regex(Atom, Regex) :-
 alt_regex(Chain, Regex) :-
 	chain_list(Chain, List),
 	maplist(ext_pattern, List, Patterns),
-	concat_atom(Patterns, |, AltPattern),
+	atomic_list_concat(Patterns, |, AltPattern),
 	send(Regex, pattern, AltPattern),
 	(   List = [Def|_]
 	->  send(Regex, attribute, default_extension, Def)
@@ -576,9 +576,9 @@ ext_pattern(Ext, Pattern) :-
 ext_pattern(Ext, Plain, Pattern) :-
 	sub_atom(Ext, 0, _, _, '.'), !,
 	sub_atom(Ext, 1, _, 0, Plain),
-	concat_atom(['^.*\\', Ext, '$'], Pattern).
+	atomic_list_concat(['^.*\\', Ext, '$'], Pattern).
 ext_pattern(Ext, Ext, Pattern) :-
-	concat_atom(['^.*\\.', Ext, '$'], Pattern).
+	atomic_list_concat(['^.*\\.', Ext, '$'], Pattern).
 
 :- pce_end_class(finder_filter_item).
 

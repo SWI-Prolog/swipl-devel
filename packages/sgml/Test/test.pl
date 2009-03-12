@@ -130,7 +130,7 @@ load_pred(html,	load_html_file).
 okfile(File, OkFile) :-
 	file_name_extension(Base, _, File),
 	file_directory_name(Base, Dir),
-	concat_atom([Dir, '/ok/', Base, '.ok'], OkFile).
+	atomic_list_concat([Dir, '/ok/', Base, '.ok'], OkFile).
 
 load_prolog_file(File, Term, Errors) :-
 	open(File, read, Fd,

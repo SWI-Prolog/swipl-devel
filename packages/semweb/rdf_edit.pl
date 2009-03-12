@@ -297,7 +297,7 @@ load_snapshot(Source, Path) :-
 
 snapshot_file(Path, MD5, Options, SnapShot) :-
 	file_base_name(Path, Base),
-	concat_atom([Base, @, MD5], File),
+	atomic_list_concat([Base, @, MD5], File),
 	absolute_file_name(snapshot(File),
 			   [ extensions([trp])
 			   | Options

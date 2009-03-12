@@ -31,7 +31,7 @@
 
 :- module(pce_image_browser, []).
 :- use_module(library(pce)).
-:- require([ concat_atom/3
+:- require([ atomic_list_concat/3
 	   , default/3
 	   , file_name_extension/3
 	   , ignore/1
@@ -362,7 +362,7 @@ test :-
 	pce_autoload(directory_item, library(file_item)),
 	pce_autoload(tick_box, library(pce_tick_box)),
 	get(@pce, home, Home),
-	concat_atom([Home, bitmaps], /, StartDir),
+	atomic_list_concat([Home, bitmaps], /, StartDir),
 	new(IB, image_browser(StartDir)),
 	send(new(D1, dialog), above, IB),
 	send(D1, append, tick_box(show_file_labels, @off,

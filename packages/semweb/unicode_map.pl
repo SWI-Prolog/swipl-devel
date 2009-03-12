@@ -262,7 +262,7 @@ utoupper(Code, Upper) :-
 rm_diacritics(Code, Plain, Dia) :-
 	unicode_property(Code, decomposition_type(List)),
 	List \== '',
-	concat_atom(AtomList, ' ', List),
+	atomic_list_concat(AtomList, ' ', List),
 	to_plain(AtomList, Code, Plain, Dia).
 
 to_plain([Special, PlainA], _, Plain, 0) :-

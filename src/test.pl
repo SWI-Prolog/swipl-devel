@@ -2120,7 +2120,7 @@ popen(cat-1) :-
 	;   File = 'pltest.txt',
 	    Text = 'Hello World',
 	    Cmd = cat,
-	    concat_atom([Cmd, ' > ', File], Command),
+	    atomic_list_concat([Cmd, ' > ', File], Command),
 	    open(pipe(Command), write, Fd),
 	    format(Fd, '~w', [Text]),
 	    close(Fd),
@@ -2518,7 +2518,7 @@ run_test_script(Script) :-
 
 run_test_scripts(Directory) :-
 	(   script_dir(ScriptDir),
-	    concat_atom([ScriptDir, /, Directory], Dir),
+	    atomic_list_concat([ScriptDir, /, Directory], Dir),
 	    exists_directory(Dir)
 	->  true
 	;   Dir = Directory

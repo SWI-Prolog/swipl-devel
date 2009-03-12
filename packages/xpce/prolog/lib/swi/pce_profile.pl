@@ -658,12 +658,12 @@ predicate_label(Obj, Label) :-
 predicate_label(M:H, Label) :- !,
 	functor(H, Name, Arity),
 	(   hidden_module(M, H)
-	->  concat_atom([Name, /, Arity], Label)
-	;   concat_atom([M, :, Name, /, Arity], Label)
+	->  atomic_list_concat([Name, /, Arity], Label)
+	;   atomic_list_concat([M, :, Name, /, Arity], Label)
 	).
 predicate_label(H, Label) :- !,
 	functor(H, Name, Arity),
-	concat_atom([Name, /, Arity], Label).
+	atomic_list_concat([Name, /, Arity], Label).
 
 hidden_module(system, _).
 hidden_module(user, _).

@@ -185,7 +185,7 @@ document_file(File, DocFile, Options) :-
 	doc_extension(Format, Ext),
 	(   exists_directory(File)
 	->  option(index_file(Index), Options, index),
-	    concat_atom([File, /, Index, '.', Ext], DocFile0)
+	    atomic_list_concat([File, /, Index, '.', Ext], DocFile0)
 	;   file_name_extension(Base, _, File),
 	    file_name_extension(Base, Ext, DocFile0)
 	),
@@ -242,7 +242,7 @@ prolog_file_in_dir(Dir, File, Options) :-
 	->  source_file(File),
 	    file_directory_name(File, Dir)
 	;   prolog_file_type(Ext, prolog),
-	    concat_atom([Dir, '/*.', Ext], Pattern),
+	    atomic_list_concat([Dir, '/*.', Ext], Pattern),
 	    expand_file_name(Pattern, Files),
 	    member(File, Files)
 	),

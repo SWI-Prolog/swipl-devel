@@ -214,7 +214,7 @@ save_resources(RC, _SaveClass) :-
 
 mkrcname(user, Name, Name) :- !.
 mkrcname(M, Name, RcName) :-
-	concat_atom([M, :, Name], RcName).
+	atomic_list_concat([M, :, Name], RcName).
 
 save_resource(RC, Name, Class, FileSpec) :-
 	absolute_file_name(FileSpec,

@@ -40,8 +40,8 @@
 :- use_module(library(persistent_frame)).
 :- require([ '$qlf_info'/5
 	   , append/3
-	   , concat_atom/2
-	   , concat_atom/3
+	   , atomic_list_concat/2
+	   , atomic_list_concat/3
 	   , file_name_extension/3
 	   , flatten/2
 	   , gensym/2
@@ -133,7 +133,7 @@ source_pattern(Pat) :-
 		    \+ prolog_file_type(E, qlf)), Exts),
 	(   Exts = [Ext]
 	->  format(atom(Pat), '.*\\.~w$', [Ext])
-	;   concat_atom(Exts, '|', P1),
+	;   atomic_list_concat(Exts, '|', P1),
 	    format(atom(Pat), '.*\\.(~w)$', [P1])
 	).
 
@@ -351,10 +351,10 @@ to_summary(_, @default).
 local_predicate_name(M:Head, Label) :- !,
 	callable(Head),
 	functor(Head, Name, Arity),
-	concat_atom([M, :, Name, /, Arity], Label).
+	atomic_list_concat([M, :, Name, /, Arity], Label).
 local_predicate_name(Head, Label) :-
 	functor(Head, Name, Arity),
-	concat_atom([Name, /, Arity], Label).
+	atomic_list_concat([Name, /, Arity], Label).
 
 identify(TF) :->
 	"Identify myself"::
@@ -473,13 +473,13 @@ has_source(TE) :->
 loaded(TE) :->
 	"Test if class is loaded"::
 	get(TE, identifier, Id),
-	concat_atom([_Type, _Name, Class], $, Id),
+	atomic_list_concat([_Type, _Name, Class], $, Id),
 	pce_prolog_class(Class).
 
 behaviour(TE, Behaviour:behaviour) :<-
 	"Get behaviour (if loaded)"::
 	get(TE, identifier, Id),
-	concat_atom([Type, Name, Class], $, Id),
+	atomic_list_concat([Type, Name, Class], $, Id),
 	get(@pce, convert, Class, class, ClassObj),
 	(   Type == send
 	->  get(ClassObj, send_method, Name, Behaviour)
@@ -510,7 +510,7 @@ trace(TE, Val:[bool]) :->
 identify(TE) :->
 	"Identify myself"::
 	get(TE, identifier, Id),
-	concat_atom([Type, Name, Class], $, Id),
+	atomic_list_concat([Type, Name, Class], $, Id),
 	identify_behaviour(Type, Name, Class, TE).
 
 identify_behaviour(send, Name, Class, TE) :-
@@ -584,16 +584,16 @@ make_class_toc_enter(Term, Class, _Key, TE) :-
 	make_class_toc_enter(Term, Class, TE).
 
 make_class_toc_enter(xpce_method(send(Class, Name, _Doc)), Class, TE) :-
-	concat_atom([send, Name, Class], $, Id),
+	atomic_list_concat([send, Name, Class], $, Id),
 	new(TE, toc_xpce_entity(Name, Id, 'send.xpm')).
 make_class_toc_enter(xpce_method(get(Class, Name, _Doc)), Class, TE) :-
-	concat_atom([get, Name, Class], $, Id),
+	atomic_list_concat([get, Name, Class], $, Id),
 	new(TE, toc_xpce_entity(Name, Id, 'get.xpm')).
 make_class_toc_enter(xpce_variable(Class, Name, _Doc), Class, TE) :-
-	concat_atom([var, Name, Class], $, Id),
+	atomic_list_concat([var, Name, Class], $, Id),
 	new(TE, toc_xpce_entity(Name, Id, 'ivar.xpm')).
 make_class_toc_enter(xpce_class_variable(Class, Name, _Doc), Class, TE) :-
-	concat_atom([cvar, Name, Class], $, Id),
+	atomic_list_concat([cvar, Name, Class], $, Id),
 	new(TE, toc_xpce_entity(Name, Id, 'classvar.xpm')).
 
 identify(CF) :->

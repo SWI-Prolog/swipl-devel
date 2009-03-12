@@ -100,8 +100,8 @@ following finds the executable for =ls=:
 user:file_search_path(path, Dir) :-
 	getenv('PATH', Path),
 	(   current_prolog_flag(windows, true)
-	->  concat_atom(Dirs, (;), Path)
-	;   concat_atom(Dirs, :, Path)
+	->  atomic_list_concat(Dirs, (;), Path)
+	;   atomic_list_concat(Dirs, :, Path)
 	),
 	member(Dir, Dirs).
 
@@ -235,7 +235,7 @@ map_arg([], []) :- !.
 map_arg(List, Arg) :-
 	is_list(List), !,
 	maplist(map_arg_prim, List, Prims),
-	concat_atom(Prims, Arg).
+	atomic_list_concat(Prims, Arg).
 map_arg(Prim, Arg) :-
 	map_arg_prim(Prim, Arg).
 

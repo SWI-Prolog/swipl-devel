@@ -78,7 +78,7 @@
 	->  asserta(loaded_init_file(system))
 	;   current_prolog_flag(home, Home),
 	    file_name_extension(Base, rc, Name),
-	    concat_atom([Home, '/', Name], File),
+	    atomic_list_concat([Home, '/', Name], File),
 	    access_file(File, read),
 	    asserta(loaded_init_file(system)),
 	    load_files(user:File, [silent(true)]), !

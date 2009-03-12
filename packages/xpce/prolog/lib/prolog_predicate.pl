@@ -31,7 +31,7 @@
 
 :- module(prolog_predicate, []).
 :- use_module(library(pce)).
-:- require([ concat_atom/2
+:- require([ atomic_list_concat/2
 	   , term_to_atom/2
 	   ]).
 
@@ -103,8 +103,8 @@ print_name(P, PN:name) :<-
 	    Module \== @nil,
 	    functor(Head, Name, Arity),
 	    \+ hidden_module(Module, Head)
-	->  concat_atom([Module, :, Name, /, TheArity], PN)
-	;   concat_atom([Name, /, TheArity], PN)
+	->  atomic_list_concat([Module, :, Name, /, TheArity], PN)
+	;   atomic_list_concat([Name, /, TheArity], PN)
 	).
 	
 hidden_module(system, _).

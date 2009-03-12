@@ -40,7 +40,7 @@
 	    nospyall/0,
 	    debugging/0,
 	    rational/3,
-	    concat_atom/2,
+	    atomic_list_concat/2,
 	    atom_prefix/2,
 	    dwim_match/2,
 	    source_file/1,
@@ -340,11 +340,6 @@ rational(Rat, M, N) :-
 		/********************************
 		*             ATOMS             *
 		*********************************/
-
-concat_atom([A, B], C) :- !,
-	atom_concat(A, B, C).
-concat_atom(L, Atom) :-
-	'$concat_atom'(L, Atom).
 
 dwim_match(A1, A2) :-
 	dwim_match(A1, A2, _).

@@ -146,7 +146,7 @@ assert_queue(H) :-
 	\+ is_absolute_file_name(H),
 	setting(file, Path),
 	file_directory_name(Path, Dir),
-	concat_atom([Dir, H], /, Local),
+	atomic_list_concat([Dir, H], /, Local),
 	absolute_file_name(Local,
 			   [ file_type(prolog),
 			     access(read),

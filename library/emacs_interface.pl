@@ -282,7 +282,7 @@ emacs_next_command :-
 call_emacs(Fmt) :-
 	call_emacs(Fmt, []).
 call_emacs(Fmt, Args) :-
-	concat_atom(['', Fmt, ''], F1),
+	atomic_list_concat(['', Fmt, ''], F1),
 	format(F1, Args),
 	flush_output.
 

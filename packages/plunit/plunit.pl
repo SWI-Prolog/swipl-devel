@@ -341,7 +341,7 @@ expand_test(Name, Options0, Body,
 	    ]) :-
 	source_location(_File, Line),
 	prolog_load_context(module, Module),
-	concat_atom([Name, '@line ', Line], Id),
+	atomic_list_concat([Name, '@line ', Line], Id),
 	term_variables(Body, VarList),
 	Vars =.. [vars|VarList],
 	(   is_list(Options0)		% allow for single option without list

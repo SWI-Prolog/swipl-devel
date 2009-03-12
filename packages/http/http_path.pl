@@ -117,12 +117,12 @@ expand_location(Spec, _Base, Path, Options) :-
 	http_location_path(Alias, Parent),
 	absolute_location(Parent, /, ParentLocation, Options),
 	phrase(path_list(Sub), List),
-	concat_atom(List, /, SubAtom),
+	atomic_list_concat(List, /, SubAtom),
 	(   ParentLocation == ''
 	->  Path = SubAtom
 	;   sub_atom(ParentLocation, _, _, 0, /)
 	->  atom_concat(ParentLocation, SubAtom, Path)
-	;   concat_atom([ParentLocation, SubAtom], /, Path)
+	;   atomic_list_concat([ParentLocation, SubAtom], /, Path)
 	).
 
 
@@ -188,7 +188,7 @@ relative_to(Base, Local, Path) :-
 	path_segments(Path, Segments).
 	
 path_segments(Path, Segments) :-
-	concat_atom(Segments, /, Path).
+	atomic_list_concat(Segments, /, Path).
 
 %%	clean_segments(+SegmentsIn, -SegmentsOut) is det.
 %

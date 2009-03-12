@@ -258,7 +258,7 @@ reset_output :-
 open_output(Base) :-
 	make_output_directory,
 	html_output_dir(Dir), !,
-	concat_atom([Dir, /, Base, '.html'], HtmlFile),
+	atomic_list_concat([Dir, /, Base, '.html'], HtmlFile),
 	tex_tell(HtmlFile),
 	page_header(Header),
 	put_html_token(html(Header)),
@@ -1000,7 +1000,7 @@ cmd(linkimage({Name}, {Icon}), []) :-		% \linkimage{Id, Path}
 	html_output_dir(Dir),
 	absolute_file_name(img(Icon), Path),
 	file_base_name(Path, Base),
-	concat_atom([Dir, Base], /, To),
+	atomic_list_concat([Dir, Base], /, To),
 	sformat(Cmd, 'cp ~w ~w', [Path, To]),
 	shell(Cmd),
 	asserta(link_image(Name, Base)).
@@ -1136,9 +1136,9 @@ cmd('[', nospace('[')).
 cmd(']', nospace(']')).
 cmd('"'({'\\i'}), html('&iuml;')).	% \"\i
 cmd('"'({C}), html(Cmd)) :-		% \"[ouey...]
-	concat_atom([&, C, 'uml;'], Cmd).
+	atomic_list_concat([&, C, 'uml;'], Cmd).
 cmd(''''({C}), html(Cmd)) :-		% \'[ouey...]
-	concat_atom([&, C, 'acute;'], Cmd).
+	atomic_list_concat([&, C, 'acute;'], Cmd).
 cmd(' ', nospace(' ')).			% :-)
 cmd(copyright, html('&copy;')).		% \copyright
 cmd(tm, html('&reg;')).			% \tm
@@ -1196,7 +1196,7 @@ cmd(psfig({Spec}), html(Img)) :-
 	sformat(Img, '<IMG SRC="~w">', GifFile),
 	make_output_directory,
 	html_output_dir(Dir),
-	concat_atom([Dir, '/', GifFile], OutFile),
+	atomic_list_concat([Dir, '/', GifFile], OutFile),
 	(   keep_figures(true),
 	    exists_file(OutFile)
 	->  true
@@ -1219,7 +1219,7 @@ cmd(includegraphics(_Options, {File}), html(Img)) :-
 	sformat(Img, '<IMG SRC="~w">', GifFile),
 	make_output_directory,
 	html_output_dir(Dir),
-	concat_atom([Dir, '/', GifFile], OutFile),
+	atomic_list_concat([Dir, '/', GifFile], OutFile),
 	(   keep_figures(true),
 	    exists_file(OutFile)
 	->  true
@@ -1241,7 +1241,7 @@ cmd(postscript({_Width}, {File}, Title),
 	sformat(Img, '<IMG SRC="~w">', GifFile),
 	make_output_directory,
 	current_setting(html_output_dir(Dir)),
-	concat_atom([Dir, '/', GifFile], OutFile),
+	atomic_list_concat([Dir, '/', GifFile], OutFile),
 	(   current_setting(keep_figures),
 	    exists_file(OutFile)
 	->  true
@@ -1263,7 +1263,7 @@ cmd(postscriptfig(_Options, {File}, Title),
 	sformat(Img, '<IMG SRC="~w">', GifFile),
 	make_output_directory,
 	current_setting(html_output_dir(Dir)),
-	concat_atom([Dir, '/', GifFile], OutFile),
+	atomic_list_concat([Dir, '/', GifFile], OutFile),
 	(   current_setting(keep_figures),
 	    exists_file(OutFile)
 	->  true
@@ -1606,8 +1606,8 @@ section_tag(Tag) :-
 	->  App is (S - AS - 1) + 0'A,
 	    char_code(AN, App),
 	    L = [_|T],
-	    concat_atom([AN|T], '.', Tag)
-        ;   concat_atom(L, '.', Tag)
+	    atomic_list_concat([AN|T], '.', Tag)
+        ;   atomic_list_concat(L, '.', Tag)
 	).
 section_tag('').
 
@@ -2131,11 +2131,11 @@ table_row(L, C, ColAtts, R,  [html(CellHeader), Chtml, html('</TD>')|THtml]) :-
 cell_header(C, ColAtts, Header) :-
 	nth1(C, ColAtts, Spec),
 	maplist(sgml_attribute, Spec, Attributes),
-	concat_atom(['<TD'|Attributes], ' ', H0),
+	atomic_list_concat(['<TD'|Attributes], ' ', H0),
 	concat(H0, '>', Header).
 
 sgml_attribute(Name=Value, Att) :-
-	concat_atom([Name, =, Value], Att).
+	atomic_list_concat([Name, =, Value], Att).
 
 to_integer(Atom, Integer) :-
 	atom_codes(Atom, Chars),
@@ -2227,7 +2227,7 @@ fix_predicate_reference(Ref0, Ref) :-
 	 atom_codes(Ref0, Chars),
 	 phrase(predref(Name, Arities), Chars),
 	 member(Arity, Arities),
-	 concat_atom([Name, /, Arity], Ref),
+	 atomic_list_concat([Name, /, Arity], Ref),
 	 label(Ref, _, _), !.
 
 predref(Name, Arities) -->
@@ -2283,7 +2283,7 @@ declare_command(Name, ArgCAtom, Expanded) :-
 
 make_cmd_spec(Name, ArgC, Spec) :-
 	make_cmd_arg_spec(ArgC, ArgSpec),
-	concat_atom([Name|ArgSpec], Spec).
+	atomic_list_concat([Name|ArgSpec], Spec).
 	
 make_cmd_arg_spec(0, []).
 make_cmd_arg_spec(N, ['{-}'|T]) :-
@@ -2352,7 +2352,7 @@ ps2gif(In, Out, _Options) :-
 				 file_errors(fail)
 			       ],
 			   InFile), !,
-	concat_atom(['cp ', InFile, ' ', Out], Cmd),
+	atomic_list_concat(['cp ', InFile, ' ', Out], Cmd),
 	shell(Cmd).
 ps2gif(In, Out, Options) :-
 	get_option(Options, tmp(Tmp)),

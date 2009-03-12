@@ -86,7 +86,7 @@ rdf_cache_file(URL, read, File) :- !,
 	    cache_option(local_directory(Local)),
 	    file_directory_name(Path, Dir),
 	    local_cache_file(URL, LocalFile),
-	    concat_atom([Dir, Local, LocalFile], /, File)
+	    atomic_list_concat([Dir, Local, LocalFile], /, File)
 	;   cache_option(global_directory(Dir)),
 	    url_cache_file(URL, Dir, trp, read, File)
 	),
@@ -101,7 +101,7 @@ rdf_cache_file(URL, write, File) :- !,
 	    ),
 	    ensure_dir(Dir, Local, RWDir, CacheDir),
 	    local_cache_file(URL, LocalFile),
-	    concat_atom([CacheDir, LocalFile], /, File)
+	    atomic_list_concat([CacheDir, LocalFile], /, File)
 	;   cache_option(global_directory(Dir)),
 	    ensure_global_cache(Dir),
 	    url_cache_file(URL, Dir, trp, write, File)
@@ -157,10 +157,10 @@ url_cache_file(URL, Dir, Ext, RW, Path) :-
 	ensure_dir(Dir1, L2, RW, Dir2),
 	url_to_file(URL, File),
 	ensure_ext(File, Ext, FileExt),
-	concat_atom([Dir2, /, FileExt], Path).
+	atomic_list_concat([Dir2, /, FileExt], Path).
 
 ensure_dir(D0, Sub, RW, Dir) :-
-	concat_atom([D0, /, Sub], Dir),
+	atomic_list_concat([D0, /, Sub], Dir),
 	(   exists_directory(Dir)
 	->  true
 	;   RW == write

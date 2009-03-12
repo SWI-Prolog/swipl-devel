@@ -436,7 +436,7 @@ expand_file_search_path(Spec, Expanded) :-
 	'$make_path'(Exp1, Base, Expanded).
 '$expand_file_search_path'(A/B, Expanded, _, _) :- !,
 	'$make_path_from_slash'(A/B, Parts, []),
-	concat_atom(Parts, Expanded).
+	atomic_list_concat(Parts, Expanded).
 '$expand_file_search_path'(Spec, Spec, _, _) :-
 	atomic(Spec).
 
@@ -446,7 +446,7 @@ expand_file_search_path(Spec, Expanded) :-
 '$make_path'(Dir, File, Path) :-
 	'$make_path_from_slash'(File, Parts, []),
 	'$append'([Dir, /], Parts, AllParts),
-	'$concat_atom'(AllParts, Path).
+	atomic_list_concat(AllParts, Path).
 
 
 %%	'$make_path_from_slash'(+SlashPath, -Parts, ?Tail) is det.
@@ -573,7 +573,7 @@ user:prolog_file_type(Ext,	executable) :-
 	'$absolute_file_name'(Extended, FullName).
 '$dochk_file'(File, Exts, Cond, FullName) :-
 	'$relative_to'(Cond, source, Dir),
-	'$concat_atom'([Dir, /, File], AbsFile),
+	atomic_list_concat([Dir, /, File], AbsFile),
 	'$extend_file'(AbsFile, Exts, Extended),
 	'$file_condition'(Cond, Extended), !,
 	'$absolute_file_name'(Extended, FullName).
@@ -806,7 +806,7 @@ preprocessor(Old, New) :-
 	sub_atom(In, B, _, A, From),
 	sub_atom(In, 0, B, _, Before),
 	sub_atom(In, _, A, 0, After),
-	concat_atom([Before, To, After], Out).
+	atomic_list_concat([Before, To, After], Out).
 
 
 		 /*******************************

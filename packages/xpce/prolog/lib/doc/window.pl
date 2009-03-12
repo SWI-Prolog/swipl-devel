@@ -169,7 +169,7 @@ push_location(DW, Dir:[{forward,backward}]) :->
 	get(DW, location, Label),
 	(   Label == @nil
 	->  Full = URL
-	;   concat_atom([URL, #, Label], Full)
+	;   atomic_list_concat([URL, #, Label], Full)
 	),
 	(   Dir == backward
 	->  send(DW?forward_list, prepend, Full)

@@ -46,7 +46,7 @@
 	   , absolute_file_name/3
 	   , atom_concat/3
 	   , catch/3
-	   , concat_atom/3
+	   , atomic_list_concat/3
 	   , delete/3
 	   , send_list/3
 	   ]).
@@ -995,7 +995,7 @@ allowed_elements(M, Allowed:prolog) :<-
 report_allowed(M) :->			% DEBUGGING
 	"Report allowed elements at point"::
 	get(M, allowed_elements, Allowed),
-	concat_atom(Allowed, ', ', Atom),
+	atomic_list_concat(Allowed, ', ', Atom),
 	send(M, report, status, 'Allowed: %s', Atom).
 
 show_message(M, E) :-

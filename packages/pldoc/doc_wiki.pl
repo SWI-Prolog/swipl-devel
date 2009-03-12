@@ -628,7 +628,7 @@ make_label(Parts, Label) :-
 	phrase(image_label(Label), Parts), !.
 make_label(Parts, Label) :-
 	untag(Parts, Atoms),
-	concat_atom(Atoms, Label).
+	atomic_list_concat(Atoms, Label).
 
 untag([], []).
 untag([w(W)|T0], [W|T]) :- !,
@@ -666,7 +666,7 @@ nv_pairs([H|T]) -->
 nv_pair(Option) -->
 	[ w(Name), =,'"'], tokens(Tokens), ['"'], !,
 	{ untag(Tokens, Atoms),
-	  concat_atom(Atoms, Value0),
+	  atomic_list_concat(Atoms, Value0),
 	  catch(atom_number(Value0, Value), _, Value=Value0),
 	  Option =.. [Name,Value]
 	}.
@@ -703,7 +703,7 @@ wiki_link(a(href(Ref), Label), Options) -->
 	{ option(end(End), Options, space)
 	},
 	tokens_no_whitespace(Rest), peek_end_url(End), !,
-	{ concat_atom([Prot, :,/,/ | Rest], Ref),
+	{ atomic_list_concat([Prot, :,/,/ | Rest], Ref),
 	  option(label(Label), Options, Ref)
 	}.
 wiki_link(a(href(Ref), Label), Options) -->
@@ -711,7 +711,7 @@ wiki_link(a(href(Ref), Label), Options) -->
 	{ user:url_path(Alias, _)
 	},
 	tokens_no_whitespace(Rest), [>],
-	{ concat_atom(Rest, Local),
+	{ atomic_list_concat(Rest, Local),
 	  (   Local == ''
 	  ->  Term =.. [Alias,'.']
 	  ;   Term =.. [Alias,Local]
@@ -730,7 +730,7 @@ wiki_link(a(href(Ref), Label), Options) -->
 	    [w(Prot), :], tokens_no_whitespace(Rest)
 	),
 	[>], !,
-	{ concat_atom(Parts, Ref),
+	{ atomic_list_concat(Parts, Ref),
 	  option(label(Label), Options, Ref)
 	}.
 
@@ -744,7 +744,7 @@ file_name(FileBase, Extension) -->
 	segment(S1),
 	segments(List),
 	['.'], file_extension(Extension), !,
-	{ concat_atom([S1|List], '/', FileBase) }.
+	{ atomic_list_concat([S1|List], '/', FileBase) }.
 
 segment(..) -->
 	['.','.'], !.

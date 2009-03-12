@@ -31,7 +31,7 @@
 
 :- module(pce_host, []).
 :- use_module(language(pce_messages)).
-:- use_module(library(strings), [concat_atom/2]).
+:- use_module(library(strings), [atomic_list_concat/2]).
 
 pwversion('3.2').
 
@@ -53,7 +53,7 @@ pwversion('3.2').
 
 user:file_search_path(pce, quintus(Dir)) :-
 	pwversion(PwVersion),
-	concat_atom([prowindows, PwVersion], Dir).
+	atomic_list_concat([prowindows, PwVersion], Dir).
 user:file_search_path(contrib, 	pce(contrib)).
 
 		 /*******************************
@@ -113,7 +113,7 @@ property(use_predicate_references).
 property(register_source_locations).
 property(system_source_prefix(Package)) :-
 	pwversion(Version),
-	concat_atom(['/prowindows', Version, '/'], Package).
+	atomic_list_concat(['/prowindows', Version, '/'], Package).
 
 
 		/********************************

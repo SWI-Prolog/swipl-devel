@@ -781,7 +781,7 @@ run_test_script(Script) :-
 
 run_test_scripts(Directory) :-
 	(   script_dir(ScriptDir),
-	    concat_atom([ScriptDir, /, Directory], Dir),
+	    atomic_list_concat([ScriptDir, /, Directory], Dir),
 	    exists_directory(Dir)
 	->  true
 	;   Dir = Directory

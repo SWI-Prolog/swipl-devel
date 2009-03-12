@@ -67,7 +67,7 @@ forever :-
 
 forever(Test) :-
 	gethostname(Host),
-	concat_atom([Host, -, 'forever.txt'], Log),
+	atomic_list_concat([Host, -, 'forever.txt'], Log),
 	protocol(Log),
 	between(1, 10000000, N),
 	  get_time(T),

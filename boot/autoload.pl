@@ -208,7 +208,7 @@ read_index(Index) :-
 assert_index(end_of_file, _) :- !.
 assert_index(index(Name, Arity, Module, File), Dir) :- !,
 	functor(Head, Name, Arity),
-	concat_atom([Dir, '/', File], Path),
+	atomic_list_concat([Dir, '/', File], Path),
 	assertz(library_index(Head, Module, Path)),
 	fail.
 assert_index(Term, Dir) :-
@@ -261,7 +261,7 @@ source_file_pattern(Pattern) :-
 plfile_in_dir(Dir, Base, PlBase, File) :-
 	once(user:prolog_file_type(PlExt, prolog)),
 	file_name_extension(Base, PlExt, PlBase),
-	concat_atom([Dir, '/', PlBase], File).
+	atomic_list_concat([Dir, '/', PlBase], File).
 
 expand_index_file_patterns(Patterns, Files) :-
 	phrase(files_from_patterns(Patterns), Files).

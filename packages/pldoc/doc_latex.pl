@@ -333,7 +333,7 @@ latex(hr(_)) -->
 	latex(cmd(hrule)).
 latex(code(CodeList)) -->
 	{ is_list(CodeList), !,
-	  concat_atom(CodeList, Atom)
+	  atomic_list_concat(CodeList, Atom)
 	},
 	[ verb(Atom) ].
 latex(code(Code)) -->
@@ -499,7 +499,7 @@ latex_arg(H) -->
 	latex(cmd(Name)).
 latex_arg(H) -->
 	{ maplist(atom, H),
-	  concat_atom(H, Atom),
+	  atomic_list_concat(H, Atom),
 	  urldef_name(Atom, Name)
 	}, !,
 	latex(cmd(Name)).
@@ -1204,7 +1204,7 @@ print_latex_token(nl(N), Out) :- !,
 	forall(between(2,N,_), nl(Out)).
 print_latex_token(verb(Verb), Out) :-
 	is_list(Verb), Verb \== [], !,
-	concat_atom(Verb, Atom),
+	atomic_list_concat(Verb, Atom),
 	print_latex_token(verb(Atom), Out).
 print_latex_token(verb(Verb), Out) :- !,
 	(   member(C, [$,'|',@,=,'"',^,!]),

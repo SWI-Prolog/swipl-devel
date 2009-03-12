@@ -1319,8 +1319,8 @@ index((cgensym), 2, strings, strings).
 index((char_atom), 2, strings, strings).
 index((compare_strings), 3, strings, strings).
 index((compare_strings), 4, strings, strings).
-index((concat_atom), 2, strings, strings).
-index((concat_atom), 3, strings, strings).
+index((atomic_list_concat), 2, strings, strings).
+index((atomic_list_concat), 3, strings, strings).
 index((concat_chars), 2, strings, strings).
 index((concat_chars), 3, strings, strings).
 %index((concat_string), 2, strings, strings).

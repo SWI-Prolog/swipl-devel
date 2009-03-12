@@ -74,7 +74,7 @@
 				 with_output_to_chars/2]).
 :- use_module(library(between), [between/3]).
 :- use_module(library(files), [file_exists/1]).
-:- use_module(library(strings), [concat_atom/2, string_append/3]).
+:- use_module(library(strings), [atomic_list_concat/2, string_append/3]).
 :- use_module(library(freevars), [free_variables/4]).
 :- use_module(library(arg), [genarg/3]).
 :- use_module(library(call), [call/2]).

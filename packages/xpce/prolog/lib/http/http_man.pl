@@ -721,7 +721,7 @@ next(For, Max, From) -->
 	  www_form_encode(For, F1),
 	  www_form_encode(Max, F2),
 	  www_form_encode(NewFrom, F3),
-	  concat_atom(['/search?for=', F1,
+	  atomic_list_concat(['/search?for=', F1,
 		       '&max_results=', F2,
 		       '&from=', F3],
 		      URL)

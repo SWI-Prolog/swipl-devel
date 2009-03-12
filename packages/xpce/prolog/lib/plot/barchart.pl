@@ -615,7 +615,7 @@ determine_format(Low, High, '%d') :-
 determine_format(Low, High, Format) :-
 	Digits is 2-round(log10(High-Low)),
 	Digits > 0,
-	concat_atom(['%.', Digits, f], Format).
+	atomic_list_concat(['%.', Digits, f], Format).
 determine_format(_, _, '%g').
 
 :- pce_group(layout).

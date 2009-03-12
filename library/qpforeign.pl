@@ -373,7 +373,7 @@ make_C_init(Out, InstallFunc, Preds) :-
 
 foreign_attributes(Head, Atts) :-
 	findall(A, foreign_attribute(Head, A), A0),
-	concat_atom(A0, '|', Atts).
+	atomic_list_concat(A0, '|', Atts).
 
 insert_separator([], _, []).
 insert_separator([H], _, [H]).
@@ -471,7 +471,7 @@ build_shared_object(Object, Files, Libs) :-
 	current_prolog_flag(shared_object_extension, Ext),
 	file_name_extension(Object, Ext, SharedObject),
 	append(Files, Libs, Input),
-	concat_atom(Input, ' ', InputAtom),
+	atomic_list_concat(Input, ' ', InputAtom),
 	sformat(Command, 'plld -shared -o ~w ~w', [SharedObject, InputAtom]),
 	shell(Command).
 	
@@ -486,7 +486,7 @@ arg_name(N, Name) :-
 
 wrapper_name(Head, Wrapper) :-
 	functor(Head, Name, Arity),
-	concat_atom(['_plw_', Name, Arity], Wrapper).
+	atomic_list_concat(['_plw_', Name, Arity], Wrapper).
 
 %%	map_C_type(+Prolog, -C)
 %

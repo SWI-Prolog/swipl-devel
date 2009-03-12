@@ -69,8 +69,8 @@ hierarchy(Root, GenChild, GenLabel, Cookie, Level, Lines) -->
 		  java_expand(Root, ExpCol)
 	      )
 	  ),
-	  concat_atom([Pre, Level|Lines], :, Place),
-	  concat_atom(['/images/hierarchy/', Place], ImgSrc),
+	  atomic_list_concat([Pre, Level|Lines], :, Place),
+	  atomic_list_concat(['/images/hierarchy/', Place], ImgSrc),
 	  SubLevel is Level + 1
 	},
 	(   {Pre==n}
@@ -202,7 +202,7 @@ expanded(_, Cookie) :-
 	send(regex('expand=all'), search, Cookie), !.
 expanded(Class, Cookie) :-
 	class_code(Class, Code),
-	concat_atom([&, Code, &], Pattern),
+	atomic_list_concat([&, Code, &], Pattern),
 	sub_atom(Cookie, _, _, _, Pattern), !.
 
 java_expand(Class, Code) :-

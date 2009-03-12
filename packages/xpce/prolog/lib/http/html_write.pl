@@ -157,7 +157,7 @@ do_expand(script(Content), _) --> !,	% general CDATA declared content elements?
 	],
 	html_end(script).
 do_expand(&(Entity), _) --> !,
-	{ concat_atom([&, Entity, ;], HTML)
+	{ atomic_list_concat([&, Entity, ;], HTML)
 	},
 	[ HTML ].
 do_expand(Token, _) -->
@@ -248,7 +248,7 @@ html_quoted(Text) -->
 	}, !,
 	{ atom_chars(Text, Chars),
 	  quote_chars(Chars, QuotedChars),
-	  concat_atom(QuotedChars, Quoted)
+	  atomic_list_concat(QuotedChars, Quoted)
 	},
 	[ Quoted ].
 html_quoted(Text) -->
@@ -277,7 +277,7 @@ html_quoted_attribute(Text) -->
 	}, !,
 	{ atom_chars(Text, Chars),
 	  quote_att_chars(Chars, QuotedChars),
-	  concat_atom(QuotedChars, Quoted)
+	  atomic_list_concat(QuotedChars, Quoted)
 	},
 	[ Quoted ].
 html_quoted_attribute(Text) -->

@@ -201,7 +201,7 @@ prolog_flag(version, Version) :- !,
 	current_prolog_flag(version_data, swi(Major, Minor, Patch, _)),
 	current_prolog_flag(arch, Arch),
 	current_prolog_flag(compiled_at, Compiled),
-	concat_atom(['SWI-Prolog ',
+	atomic_list_concat(['SWI-Prolog ',
 		     Major, '.', Minor, '.', Patch,
 		     ' (', Arch, '): ', Compiled], Version).
 prolog_flag(Flag, Value) :-
@@ -372,7 +372,7 @@ midstring(ABC, B, AC, LenA, LenB, LenC) :-	% -ABC, +B, +AC
 	LenC is LenAC - LenA,
 	sub_atom(AC, _, LenC, 0, C),
 	atom_length(B, LenB),
-	concat_atom([A,B,C], ABC).
+	atomic_list_concat([A,B,C], ABC).
 midstring(ABC, B, AC, LenA, LenB, LenC) :-
 	sub_atom(ABC, LenA, LenB, LenC, B),
 	sub_atom(ABC, 0, LenA, _, A),

@@ -890,11 +890,11 @@ unlock_db(Dir) :-
 		 *******************************/
 
 lockfile(Dir, LockFile) :-
-	concat_atom([Dir, /, lock], LockFile).
+	atomic_list_concat([Dir, /, lock], LockFile).
 
 db_file(Base, File) :-
 	rdf_directory(Dir),
-	concat_atom([Dir, /, Base], File).
+	atomic_list_concat([Dir, /, Base], File).
 
 open_db(Base, Mode, Stream, Options) :-
 	db_file(Base, File),

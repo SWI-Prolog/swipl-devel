@@ -13,7 +13,7 @@
 	    ftp/2			% ... and connect as user
 	  ]).
 :- use_module(library(pce)).
-:- require([ concat_atom/2
+:- require([ atomic_list_concat/2
 	   , ignore/1
 	   , maplist/3
 	   , reverse/2
@@ -261,7 +261,7 @@ path(N, Path:name) :<-
 	node_path(N, L0),
 	reverse(L0, L1),
 	insert_separator(L1, /, L2),
-	concat_atom(L2, Path).
+	atomic_list_concat(L2, Path).
 
 node_path(N, [Me|Above]) :-
 	get(N?image?string, value, Me),

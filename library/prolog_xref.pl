@@ -1431,7 +1431,7 @@ xref_source_file(Plain, File, Source, Options) :-
 	;   atom(Source),
 	    file_directory_name(Source, Dir)
 	),
-	concat_atom([Dir, /, Plain], Spec),
+	atomic_list_concat([Dir, /, Plain], Spec),
 	do_xref_source_file(Spec, File, Options), !.
 xref_source_file(Spec, File, _, Options) :-
 	do_xref_source_file(Spec, File, Options), !.

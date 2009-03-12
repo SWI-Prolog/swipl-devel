@@ -185,7 +185,7 @@ to_pattern(Ext, Pattern) :-
 to_pattern(Chain, Pattern) :-
 	chain_list(Chain, List),
 	maplist(to_pattern, List, Patterns),
-	concat_atom(Patterns, ';', Pattern).
+	atomic_list_concat(Patterns, ';', Pattern).
 	
 %%	file_type(?Extension, ?Type) is nondet.
 %

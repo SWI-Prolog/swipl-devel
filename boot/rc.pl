@@ -67,7 +67,7 @@ open_resource(Module:RcName, Class, RW, Handle) :-
 
 tag_rc_name(user, RcName, RcName) :- !.
 tag_rc_name(Module, RcName, TaggedName) :-
-	concat_atom([Module, ':', RcName], TaggedName).
+	atomic_list_concat([Module, ':', RcName], TaggedName).
 tag_rc_name(_, RcName, RcName).
 
 %%	current_resource(:Name, ?Class, ?File) is nondet.

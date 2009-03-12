@@ -309,7 +309,7 @@ optional_predicate_tag(Tags) -->
 	"[", string(Codes), "]", !,
 	skip_blanks,
 	{ atom_codes(Atom, Codes),
-	  concat_atom(Tags, ', ', Atom)
+	  atomic_list_concat(Tags, ', ', Atom)
 	}.
 optional_predicate_tag([]) -->
 	"".

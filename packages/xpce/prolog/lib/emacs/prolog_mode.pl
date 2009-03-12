@@ -39,7 +39,7 @@
 	   , absolute_file_name/3
 	   , auto_call/1
 	   , chain_list/2
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , default/3
 	   , forall/2
 	   , ignore/1
@@ -186,7 +186,7 @@ expand_path(Term, D) :-
 	Term =.. [New, Sub],
 	user:file_search_path(New, D0),
 	expand_path(D0, D1),
-	concat_atom([D1, /, Sub], D).
+	atomic_list_concat([D1, /, Sub], D).
 
 
 :- pce_group(indent).
@@ -404,7 +404,7 @@ default(M, For:type, Default:unchecked) :<-
 	(   send(For, includes, prolog_predicate)
 	->  get(M, caret, Caret),
 	    get(M, name_and_arity, Caret, tuple(Name, Arity)),
-	    concat_atom([Name, /, Arity], Default)
+	    atomic_list_concat([Name, /, Arity], Default)
 	;   get_super(M, default, For, Default)
 	).
 
@@ -476,7 +476,7 @@ what_class(E, ClassName:name) :<-
 	;   true
 	), !,
 	get(BG, register_value, TB, 1, name, Raw),
-	concat_atom(Parts, ClassName).
+	atomic_list_concat(Parts, ClassName).
 
 what_class(E) :->
 	"Display current class"::

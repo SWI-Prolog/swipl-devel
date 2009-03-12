@@ -156,7 +156,7 @@ wstring(sub-1) :-
 wstring(split-1) :-
 	List = ["aap", [1060,1061], "noot"],
 	maplist(atom_codes, Atoms, List),
-	concat_atom(Atoms, -, Text),
+	atomic_list_concat(Atoms, -, Text),
 	get(Text, split, -, Chain),
 	chain_list(Chain, Splitted),
 	Splitted == Atoms.
@@ -617,7 +617,7 @@ run_test_script(Script) :-
 
 run_test_scripts(Directory) :-
 	(   script_dir(ScriptDir),
-	    concat_atom([ScriptDir, /, Directory], Dir),
+	    atomic_list_concat([ScriptDir, /, Directory], Dir),
 	    exists_directory(Dir)
 	->  true
 	;   Dir = Directory

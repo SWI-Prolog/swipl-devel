@@ -463,7 +463,7 @@ object_literal(rdf(_,_,Literal), Literal).
 resource_name(Name, Name) :-
 	atom(Name), !.
 resource_name(rdf:Local, Name) :- !,	% known namespaces
-	concat_atom([rdf, :, Local], Name).
+	atomic_list_concat([rdf, :, Local], Name).
 resource_name(NS:Local, Name) :- !,
 	atom_concat(NS, Local, Name).
 resource_name(node(Anon), Name) :-	% Not for predicates

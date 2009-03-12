@@ -152,10 +152,10 @@ compile_record(RecordDef) -->
 %	==
 
 make_predicate(Constructor) -->
-	{ concat_atom([make_, Constructor], MakePredName),
-	  concat_atom([default_, Constructor], DefPredName),
-	  concat_atom([set_, Constructor, '_fields'], SetFieldsName),
-	  concat_atom([set_, Constructor, '_field'], SetFieldName),
+	{ atomic_list_concat([make_, Constructor], MakePredName),
+	  atomic_list_concat([default_, Constructor], DefPredName),
+	  atomic_list_concat([set_, Constructor, '_fields'], SetFieldsName),
+	  atomic_list_concat([set_, Constructor, '_field'], SetFieldName),
 	  MakeHead3 =.. [MakePredName, Fields, Record],
 	  MakeHead4 =.. [MakePredName, Fields, Record, []],
 	  MakeClause3 = (MakeHead3 :- MakeHead4),
@@ -229,7 +229,7 @@ clean_body(A, A).
 access_predicates([], _, _, _) -->
 	[].
 access_predicates([Name|NT], I, Arity, Constructor) -->
-	{ concat_atom([Constructor, '_', Name], PredName),
+	{ atomic_list_concat([Constructor, '_', Name], PredName),
 	  functor(Record, Constructor, Arity),
 	  arg(I, Record, Value),
 	  Clause =.. [PredName, Record, Value],
@@ -249,8 +249,8 @@ access_predicates([Name|NT], I, Arity, Constructor) -->
 set_predicates([], _, _, _, _) -->
 	[].
 set_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
-	{ concat_atom(['set_', Name, '_of_', Constructor], PredName),
-	  concat_atom(['nb_set_', Name, '_of_', Constructor], NBPredName),
+	{ atomic_list_concat(['set_', Name, '_of_', Constructor], PredName),
+	  atomic_list_concat(['nb_set_', Name, '_of_', Constructor], NBPredName),
 	  length(Args, Arity),
 	  replace_nth(I, Args, Value, NewArgs),
 	  Old =.. [Constructor|Args],
@@ -283,7 +283,7 @@ set_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
 set_field_predicates([], _, _, _, _) -->
 	[].
 set_field_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
-	{ concat_atom(['set_', Constructor, '_field'], FieldPredName),
+	{ atomic_list_concat(['set_', Constructor, '_field'], FieldPredName),
 	  length(Args, Arity),
 	  replace_nth(I, Args, Value, NewArgs),
 	  Old =.. [Constructor|Args],

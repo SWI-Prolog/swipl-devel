@@ -83,7 +83,7 @@ global_url(URL, BaseURL, Global) :-
 	;   sub_atom(URL, 0, _, _, '//')
 	->  parse_url(BaseURL, [], Attributes),
 	    memberchk(protocol(Proto), Attributes),
-	    concat_atom([Proto, :, URL], Global)
+	    atomic_list_concat([Proto, :, URL], Global)
 	;   sub_atom(URL, 0, _, _, #)
 	->  (   sub_atom(BaseURL, _, _, 0, #)
 	    ->	sub_atom(URL, 1, _, 0, NoHash),
@@ -395,7 +395,7 @@ make_path(Dir, Local, Path) :-
 make_path(/, Local, Path) :- !,
 	atom_concat(/, Local, Path).
 make_path(Dir, Local, Path) :-
-	concat_atom([Dir, /, Local], Path).
+	atomic_list_concat([Dir, /, Local], Path).
 
 
 %%	absolute_url//

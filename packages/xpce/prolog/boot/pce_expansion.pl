@@ -42,7 +42,7 @@
 	   , pce_info/1
 	   , pce_warn/1
 	   , string/1
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , expand_goal/2
 	   , flatten/2
 	   , forall/2
@@ -428,9 +428,9 @@ file a domain? How do we associate a unique domain to each file?
 
 gen_method_id(SG, Class, Selector, Id) :-
 	attribute(Class, extending, true), !,
-	concat_atom([Class, '$+$', SG, Selector], Id).
+	atomic_list_concat([Class, '$+$', SG, Selector], Id).
 gen_method_id(SG, Class, Selector, Id) :-
-	concat_atom([Class, SG, Selector], Id).
+	atomic_list_concat([Class, SG, Selector], Id).
 
 %gen_method_id(_, _, _, Id) :-
 %%	flag(pce_method_id, Id, Id+1).

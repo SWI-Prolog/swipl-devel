@@ -1002,7 +1002,7 @@ feed(In, Len, Parser) :-
 report_allowed(M) :->			% DEBUGGING
 	"Report allowed elements at point"::
 	get(M, allowed_elements, Allowed),
-	concat_atom(Allowed, ', ', Atom),
+	atomic_list_concat(Allowed, ', ', Atom),
 	send(M, report, status, 'Allowed: %s', Atom).
 
 show_message(M, E) :-

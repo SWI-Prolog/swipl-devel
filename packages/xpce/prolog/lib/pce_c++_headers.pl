@@ -15,7 +15,7 @@
 	   , apply/2
 	   , between/3
 	   , concat/3
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , forall/2
 	   , ignore/1
 	   , is_list/1
@@ -60,7 +60,7 @@ generate_cpp_class_header_file :-
 cpp_class(ClassName) :-
 	cpp_header_dir(Dir),
 	cpp_class_name(ClassName, CppName),
-	concat_atom([Dir, /, CppName, '.h'], File),
+	atomic_list_concat([Dir, /, CppName, '.h'], File),
 	telling(Old), tell(File),
 	xpce_file_header(CppName),
 	generate_class_def(ClassName),

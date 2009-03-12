@@ -219,7 +219,7 @@ rdfs_ns_label(Resource, Lang, Label) :-
 	rdfs_label(Resource, Lang, Label0),
 	(   rdf_global_id(NS:_, Resource),
 	    Label0 \== ''
-	->  concat_atom([NS, Label0], :, Label)
+	->  atomic_list_concat([NS, Label0], :, Label)
 	;   \+ rdf_has(Resource, rdfs:label, _)
 	->  Label = Resource
 	;   member(Sep, [#,/]),
@@ -228,7 +228,7 @@ rdfs_ns_label(Resource, Lang, Label) :-
 	    \+ sub_atom(Frag, _, _, _, Sep)
 	->  Len is B+L,
 	    sub_atom(Resource, 0, Len, _, NS),
-	    concat_atom([NS, Label0], :, Label)
+	    atomic_list_concat([NS, Label0], :, Label)
 	;   Label = Label0
 	).
 

@@ -12,7 +12,7 @@
 	    pce_info/1,
 	    pce_warn/1
 	  ]).
-:- require([ concat_atom/2
+:- require([ atomic_list_concat/2
 	   , append/3
 	   , concat/3
 	   , sformat/3
@@ -44,7 +44,7 @@ actions_to_format([nl], '', []) :- !.
 actions_to_format([Fmt-Args,nl], Fmt, Args) :- !.
 actions_to_format([Fmt0-Args0,nl|Tail], Fmt, Args) :- !,
         actions_to_format(Tail, Fmt1, Args1),
-        concat_atom([Fmt0, '~n', Fmt1], Fmt),
+        atomic_list_concat([Fmt0, '~n', Fmt1], Fmt),
         append(Args0, Args1, Args).
 actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :- !,
         actions_to_format(Tail, Fmt1, Args1),

@@ -33,7 +33,7 @@
 :- use_module(library(pce)).
 :- use_module(prompt).
 :- require([ between/3
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , default/3
 	   , forall/2
 	   , ignore/1
@@ -1091,7 +1091,7 @@ binding_name(ClassName, Name) :-
 
 convert(_, Name:name, Mode:emacs_mode) :<-
         "Convert name into a mode object"::
-        concat_atom([emacs_, Name, '_mode'], ModeClassName),
+        atomic_list_concat([emacs_, Name, '_mode'], ModeClassName),
 	get(@pce, convert, ModeClassName, class, _), % fail silently
         new(Mode, ModeClassName).
 

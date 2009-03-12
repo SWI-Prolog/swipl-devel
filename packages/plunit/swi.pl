@@ -23,7 +23,7 @@
 	    copy_term/3,		% +Term, ?Copy
 	    option/2,			% +Term, +List
 	    option/3,			% +Term, +List, +Default
-	    concat_atom/2,		% +List, -Atom
+	    atomic_list_concat/2,		% +List, -Atom
 	    pairs_values/2,		% +Pairs, -Values
 	    group_pairs_by_key/2,	% +Pairs, -Groups
 	    thread_self/1		% -Thread
@@ -204,11 +204,11 @@ get_option(Opt, Options) :-
 	arg(1, Opt, OptVal),
 	memberchk(OptName=OptVal, Options), !.
 
-%%	concat_atom(+Atoms:list(atomic), -Atom:atom) is det.
+%%	atomic_list_concat(+Atoms:list(atomic), -Atom:atom) is det.
 %
 %	Concatenate a list of atomic items to an atom.
 
-concat_atom(List, Atom) :-
+atomic_list_concat(List, Atom) :-
 	to_codes(List, Codes, []),
 	atom_codes(Atom, Codes).
 

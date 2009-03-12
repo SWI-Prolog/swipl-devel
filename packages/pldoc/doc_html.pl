@@ -1230,11 +1230,11 @@ in_file(Module, Head, File) :-
 %	@tbd	move to library?
 
 relative_file_name(Path, RelTo, RelPath) :-
-        concat_atom(PL, /, Path),
-        concat_atom(RL, /, RelTo),
+        atomic_list_concat(PL, /, Path),
+        atomic_list_concat(RL, /, RelTo),
         delete_common_prefix(PL, RL, PL1, PL2),
         to_dot_dot(PL2, DotDot, PL1),
-        concat_atom(DotDot, /, RelPath).
+        atomic_list_concat(DotDot, /, RelPath).
 
 delete_common_prefix([H|T01], [H|T02], T1, T2) :- !,
         delete_common_prefix(T01, T02, T1, T2).

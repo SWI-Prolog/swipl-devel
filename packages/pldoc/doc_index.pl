@@ -134,7 +134,7 @@ dir_footer(_, _) -->
 
 wiki_file(Dir, Type) -->
 	{ wiki_file_type(Type, Base),
-	  concat_atom([Dir, /, Base], File),
+	  atomic_list_concat([Dir, /, Base], File),
 	  access_file(File, read), !,
 	  read_file_to_codes(File, String, []),
 	  wiki_codes_to_dom(String, [], DOM)

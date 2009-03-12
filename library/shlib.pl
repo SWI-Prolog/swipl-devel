@@ -116,7 +116,7 @@ entry(_, Function, Function) :-
 	Function \= default(_), !.
 entry(Spec, default(FuncBase), Function) :-
 	base(Spec, Base),
-	concat_atom([FuncBase, Base], '_', Function).
+	atomic_list_concat([FuncBase, Base], '_', Function).
 entry(_, default(Function), Function).
 
 		 /*******************************

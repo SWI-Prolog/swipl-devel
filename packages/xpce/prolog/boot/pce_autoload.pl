@@ -44,7 +44,7 @@
 		pce_prolog_class/1
 	      ]).
 :- require([ is_absolute_file_name/1
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , absolute_file_name/3
 	   , get/3
 	   ]).
@@ -69,7 +69,7 @@ pce_autoload(Class, Abs) :-
 	assert(autoload(Class, Canonical)).
 pce_autoload(Class, Local) :-
 	prolog_load_context(directory, Dir),
-	concat_atom([Dir, /, Local], File),
+	atomic_list_concat([Dir, /, Local], File),
 	pce_host:property(file_extensions(Exts)),
 	absolute_file_name(File,
 			   [ extensions(Exts),

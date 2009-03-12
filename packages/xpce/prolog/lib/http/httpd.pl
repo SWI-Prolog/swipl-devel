@@ -308,7 +308,7 @@ authorization_required(S, Method:'method=[{Basic}]', Realm:[name]) :->
 	"Report a 401 autorization required"::
 	default(Method, 'Basic', M),
 	default(Realm, 'ByPassword', R),
-	concat_atom([M, ' realm="', R, '"'], AuthValue),
+	atomic_list_concat([M, ' realm="', R, '"'], AuthValue),
 	new(Sheet, sheet),
 	send(Sheet, value, 'WWW-Authenticate', AuthValue),
 	send(S, reply_html, authorization_required,
@@ -557,6 +557,6 @@ area(Gr, Dev, [shape(rect), coords(Coords)]) :-
 	GrY is Y + (AY-PY) + (DY-OY),
 	GrR is GrX + W,
 	GrB is GrY + H,
-	concat_atom([GrX, GrY, GrR, GrB], ',', Coords).
+	atomic_list_concat([GrX, GrY, GrR, GrB], ',', Coords).
 	
 	

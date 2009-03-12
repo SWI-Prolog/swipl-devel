@@ -371,7 +371,7 @@ css_class(Term, Class) :-
 	(   var(A)
 	->  Class = P1
 	;   css_class(A, P2),
-	    concat_atom([P1, -, P2], Class)
+	    atomic_list_concat([P1, -, P2], Class)
 	).
 
 element/3.

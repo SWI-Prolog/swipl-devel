@@ -3871,24 +3871,26 @@ if non-atom arguments are involved.
 X = name42.
 \end{code}
 
-    \predicate{concat_atom}{2}{+List, -Atom}
+    \predicate[commons]{atomic_list_concat}{2}{+List, -Atom}
 \arg{List} is a list of atoms, integers or floating point numbers. Succeeds
-if \arg{Atom} can be unified with the concatenated elements of \arg{List}. If
-\arg{List} has exactly 2 elements it is equivalent to atom_concat/3,
-allowing for variables in the list.
+if \arg{Atom} can be unified with the concatenated elements of \arg{List}.
 
-    \predicate{concat_atom}{3}{?List, +Separator, ?Atom}
-Creates an atom just like concat_atom/2, but inserts \arg{Separator}
+    \predicate[commons]{atomic_list_concat}{3}{+List, +Separator, ?Atom}
+Creates an atom just like atomic_list_concat/2, but inserts \arg{Separator}
 between each pair of atoms.  For example:
 \begin{code}
-?- concat_atom([gnu, gnat], ', ', A).
+?- atomic_list_concat([gnu, gnat], ', ', A).
 
 A = 'gnu, gnat'
 \end{code}
-This predicate can also be used to split atoms by instantiating
-\arg{Separator} and \arg{Atom}:
+
+The SWI-Prolog version of this predicate can also be used to split atoms
+by instantiating \arg{Separator} and \arg{Atom} as shown below.  We kept
+this functionality to simplify porting old SWI-Prolog code where this
+predicate was called concat_atom/3.
+
 \begin{code}
-?- concat_atom(L, -, 'gnu-gnat').
+?- atomic_list_concat(L, -, 'gnu-gnat').
 
 L = [gnu, gnat]
 \end{code}

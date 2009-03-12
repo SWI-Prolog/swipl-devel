@@ -44,7 +44,7 @@ pce_ifhostproperty(prolog(quintus),
 :- require([ between/3
 	   , call/3
 	   , concat/3
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , forall/2
 	   , genarg/3
 	   ]).
@@ -465,7 +465,7 @@ create_type_vector(List,    new(VectorTerm)) :-
 predicate_name(SendGet, Selector, Name) :-
 	current_class(Class),
 	class_name(Class, ClassName),
-	concat_atom([SendGet, '_', Selector, '_', ClassName], Name).
+	atomic_list_concat([SendGet, '_', Selector, '_', ClassName], Name).
 
 
 pl_head_args(send, [], [], []) :- !.

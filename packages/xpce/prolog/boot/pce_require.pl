@@ -40,7 +40,7 @@ This software was originally written for the SWI-Prolog autoloader.
 :- require([ access_file/2
 	   , chdir/1
 	   , checklist/2
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , delete/3
 	   , exists_file/1
 	   , expand_file_name/2
@@ -83,7 +83,7 @@ load_library_index :-
 	library_index(_, _, _), !.		% loaded
 load_library_index :-
 	user:library_directory(Dir),
-	    concat_atom([Dir, '/', 'INDEX.pl'], Index),
+	    atomic_list_concat([Dir, '/', 'INDEX.pl'], Index),
 	    exists_file(Index),
 	    read_index(Index, Dir),
 	fail.
@@ -102,7 +102,7 @@ read_index(Index, Dir) :-
 
 assert_index(index(Name, Arity, Module, File), Dir) :- !,
 	functor(Head, Name, Arity),
-	concat_atom([Dir, '/', File], Path),
+	atomic_list_concat([Dir, '/', File], Path),
 	assertz(library_index(Head, Module, Path)).
 assert_index(Term, Dir) :-
 	format(user_error,

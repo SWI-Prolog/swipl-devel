@@ -3452,7 +3452,7 @@ append_text_to_buffer(Buffer b, PL_chars_t *txt, IOENC *enc)
 
 
 static foreign_t
-concat_atom(term_t list, term_t sep, term_t atom ARG_LD)
+atomic_list_concat(term_t list, term_t sep, term_t atom ARG_LD)
 { term_t l = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   IOENC enc = ENC_ISO_LATIN_1;
@@ -3522,16 +3522,16 @@ concat_atom(term_t list, term_t sep, term_t atom ARG_LD)
 
 
 static
-PRED_IMPL("concat_atom", 3, concat_atom3, 0)
+PRED_IMPL("atomic_list_concat", 3, atomic_list_concat, 0)
 { PRED_LD
-  return concat_atom(A1, A2, A3 PASS_LD);
+  return atomic_list_concat(A1, A2, A3 PASS_LD);
 }
 
 
 static
-PRED_IMPL("$concat_atom", 2, concat_atom2, 0)
+PRED_IMPL("atomic_list_concat", 2, atomic_list_concat, 0)
 {  PRED_LD
-  return concat_atom(A1, 0, A2 PASS_LD);
+  return atomic_list_concat(A1, 0, A2 PASS_LD);
 }
 
 
@@ -4743,8 +4743,8 @@ BeginPredDefs(prims)
   PRED_DEF("char_code", 2, char_code, PL_FA_ISO)
   PRED_DEF("atom_number", 2, atom_number, 0)
   PRED_DEF("collation_key", 2, collation_key, 0)
-  PRED_DEF("concat_atom", 3, concat_atom3, 0)
-  PRED_DEF("$concat_atom", 2, concat_atom2, 0)
+  PRED_DEF("atomic_list_concat", 3, atomic_list_concat, 0)
+  PRED_DEF("atomic_list_concat", 2, atomic_list_concat, 0)
   PRED_DEF("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
   PRED_DEF("string_length", 2, string_length, 0)
   PRED_DEF("string_to_atom", 2, string_to_atom, 0)

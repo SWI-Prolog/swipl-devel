@@ -722,8 +722,8 @@ button(+edit,	       "e",   'edit.xpm',	     'Toggle read-only/edit-mode').
 
 tag_balloon(Balloon0, Keys, Balloon) :-
 	maplist(key_name, Keys, Names),
-	concat_atom(Names, ', ', Tag),
-	concat_atom([Balloon0, ' (', Tag, ')'], Balloon).
+	atomic_list_concat(Names, ', ', Tag),
+	atomic_list_concat([Balloon0, ' (', Tag, ')'], Balloon).
 
 key_name(10, return) :- !.
 key_name(32,  space) :- !.

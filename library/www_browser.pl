@@ -145,10 +145,10 @@ has_command(Command) :-
 	    ->  Sep = (;)
 	    ;   Sep = (:)
 	    ),
-	    concat_atom(Parts, Sep, Path),
+	    atomic_list_concat(Parts, Sep, Path),
 	    member(Part, Parts),
 	    prolog_to_os_filename(PlPart, Part),
-	    concat_atom([PlPart, Command], /, Exe),
+	    atomic_list_concat([PlPart, Command], /, Exe),
 	    access_file(Exe, execute)
 	->  assert(command_cache(Command, Exe))
 	;   assert(command_cache(Command, -)),
@@ -199,7 +199,7 @@ expand_url_path(Spec, URL) :-
 	    ->	URL = URL0
 	    ;	sub_atom(Local, 0, _, _, #)
 	    ->	atom_concat(URL0, Local, URL)
-	    ;	concat_atom([URL0, Local], /, URL)
+	    ;	atomic_list_concat([URL0, Local], /, URL)
 	    )
 	;   throw(error(existence_error(url_path, Path), expand_url_path/2))
 	).

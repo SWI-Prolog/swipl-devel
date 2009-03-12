@@ -142,7 +142,7 @@ class_to_tex(Name, TeXName) :-
 	atom_codes(Name, Chars),
 	member(C, Chars),
 	\+ alnum(C), !,
-	concat_atom(['{\\tt\\string', Name, '}'], TeXName).
+	atomic_list_concat(['{\\tt\\string', Name, '}'], TeXName).
 class_to_tex(Name, Name).
 
 alnum(C) :-

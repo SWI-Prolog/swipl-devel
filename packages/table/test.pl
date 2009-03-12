@@ -45,7 +45,7 @@ find_database_file(DB,Type,File):-
 			   ],
 			   AAT),
 	ensure_slash(AAT, AATDir),
-	concat_atom([AATDir,DB,'_',Type, '.dat'], File).
+	atomic_list_concat([AATDir,DB,'_',Type, '.dat'], File).
 
 ensure_slash(Name, Dir) :-
 	concat(_, /, Name), !,

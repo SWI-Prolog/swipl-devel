@@ -72,9 +72,9 @@ ensure_x_server(Display, Depth) :-
         export_environment(Display).
 
 xauthority(Display, Auth) :-
-        concat_atom(['/tmp/.X', Display, 'Authority'], Auth).
+        atomic_list_concat(['/tmp/.X', Display, 'Authority'], Auth).
 xlog(Display, Log) :-
-        concat_atom(['/tmp/.X', Display, 'Log'], Log).
+        atomic_list_concat(['/tmp/.X', Display, 'Log'], Log).
 
 mcookie(Cookie) :-
         open(pipe(mcookie), read, Stream),

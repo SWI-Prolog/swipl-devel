@@ -274,11 +274,11 @@ xpce_map(draw_end_shape,
 	 pce_end_class(_)).
 xpce_map(emacs_begin_mode(Mode, SuperMode, Doc, _, _),
 	 pce_begin_class(Class, Super, Doc)) :-
-	concat_atom([emacs, Mode, mode], '_', Class),
-	concat_atom([emacs, SuperMode, mode], '_', Super).
+	atomic_list_concat([emacs, Mode, mode], '_', Class),
+	atomic_list_concat([emacs, SuperMode, mode], '_', Super).
 xpce_map(emacs_extend_mode(Mode, _),
 	 pce_extend_class(Class)) :-
-	concat_atom([emacs, Mode, mode], '_', Class).
+	atomic_list_concat([emacs, Mode, mode], '_', Class).
 xpce_map(emacs_end_mode,
 	 pce_end_class(_)).
 
