@@ -465,22 +465,27 @@ FreeMemory(void)
 	manpage.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
-initRandom(void)
+void
+setRandom(unsigned int *seedp)
 { unsigned int seed;
 
+  if ( seedp )
+  { seed = *seedp;
+  } else
+  {
 #ifdef __WINDOWS__
-  seed = (unsigned int)GetTickCount();
+     seed = (unsigned int)GetTickCount();
 #else
 #ifdef HAVE_GETTIMEOFDAY
-  struct timeval tp;
+     struct timeval tp;
 
-  gettimeofday(&tp, NULL);
-  seed = (unsigned int)(tp.tv_sec + tp.tv_usec);
+     gettimeofday(&tp, NULL);
+     seed = (unsigned int)(tp.tv_sec + tp.tv_usec);
 #else
-  seed = (unsigned int)time((time_t *) NULL);
+     seed = (unsigned int)time((time_t *) NULL);
 #endif
 #endif
+  }
 
 #ifdef HAVE_SRANDOM
   srandom(seed);
@@ -494,7 +499,7 @@ initRandom(void)
 uint64_t
 _PL_Random(void)
 { if ( !LD->os.rand_initialised )
-  { initRandom();
+  { setRandom(NULL);
     LD->os.rand_initialised = TRUE;
   }
 

@@ -2668,7 +2668,7 @@ seed_random(ARG1_LD)
 
     close(fd);
   }
-#endif
+#endif /*S_ISCHR*/
 
   if ( !done )
   { LD->gmp.persistent++;
@@ -2677,6 +2677,13 @@ seed_random(ARG1_LD)
     LD->gmp.persistent--;
   }
 }
+#else /* O_GMP */
+
+static void
+seed_random(ARG1_LD)
+{ setRandom(NULL);
+}
+
 #endif /*O_GMP*/
 
 static void
@@ -2714,17 +2721,26 @@ PRED_IMPL("set_random", 1, set_random, 0)
       } else
       { number n;
 
-	if ( !PL_get_number(a, &n) )
+	if ( !PL_get_number(arg, &n) )
 	  return PL_error(NULL, 0, "integer or 'random'",
 			  ERR_TYPE, ATOM_seed, a);
 	switch(n.type)
-	{ case V_INTEGER:
+	{ 
+#ifdef O_GMP
+	  case V_INTEGER:
 	    gmp_randseed_ui(LD->arith.random.state,
-			    (unsigned long)time(NULL));
+			    (unsigned long)n.value.i);
 	    break;
 	  case V_MPZ:
 	    gmp_randseed(LD->arith.random.state, n.value.mpz);
 	    break;
+#else
+	  case V_INTEGER:
+          { unsigned int seed = (unsigned int)n.value.i;
+	    setRandom(&seed);
+	    break;
+	  }
+#endif
 	  default:
 	    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_seed, a);
 	}
