@@ -241,7 +241,7 @@ valid_session_id(SessionID, Peer) :-
 	get_time(Now),
 	(   session_setting(timeout(Timeout)),
 	    Timeout > 0
-	->  last_used(SessionID, Last),
+	->  get_last_used(SessionID, Last),
 	    Idle is Now - Last,
 	    (	Idle =< Timeout
 	    ->  true
@@ -253,8 +253,16 @@ valid_session_id(SessionID, Peer) :-
 	    fail
 	;   true
 	),
-	retractall(last_used(SessionID, _)),
-	assert(last_used(SessionID, Now)).
+	set_last_used(SessionID, Now).
+
+get_last_used(SessionID, Last) :-
+	with_mutex(http_session, last_used(SessionID, Last)).
+
+set_last_used(SessionID, Now) :-
+	with_mutex(http_session,
+		  (   retractall(last_used(SessionID, _)),
+		      assert(last_used(SessionID, Now)))).
+
 
 
 		 /*******************************
@@ -312,7 +320,7 @@ http_session_data(Data) :-
 
 http_current_session(SessionID, Data) :-
 	get_time(Now),
-	last_used(SessionID, Last),
+	get_last_used(SessionID, Last),
 	Idle is Now - Last,
 	(   session_setting(timeout(Timeout)),
 	    Timeout > 0
