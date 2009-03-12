@@ -553,6 +553,21 @@ popArgvArithStack(int n ARG_LD)
 }
 
 
+void
+freeArithLocalData(PL_local_data_t *ld)
+{ if ( ld->arith.stack.base )
+    PL_free(ld->arith.stack.base);
+#ifdef O_GMP
+  if ( ld->arith.random.initialised )
+  { ld->gmp.persistent++;
+    gmp_randclear(ld->arith.random.state);
+    ld->gmp.persistent--;
+    ld->arith.random.initialised = FALSE;
+  }
+#endif
+}
+
+
 		/********************************
 		*           FUNCTIONS           *
 		*********************************/
@@ -2601,41 +2616,168 @@ ar_truncate(Number n1, Number r)
 }
 
 
+#ifdef O_GMP
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
+#include <fcntl.h>
+
+#define RAND_SEED_LEN 128
+#define MIN_RAND_SEED_LEN 16
+
+static void
+seed_random(ARG1_LD)
+{ int done = FALSE;
+
+#ifdef S_ISCHR
+  int fd;
+
+  if ( (fd=open("/dev/random", O_RDONLY)) )
+  { struct stat buf;
+
+    if ( fstat(fd, &buf) == 0 && S_ISCHR(buf.st_mode) )
+    { char seedarray[RAND_SEED_LEN];
+      mpz_t seed;
+      size_t rd = 0;
+      ssize_t n;
+
+      while ( rd < MIN_RAND_SEED_LEN )
+      { if ( (n=read(fd, seedarray+rd, sizeof(seedarray)-rd)) > 0 )
+	  rd += n;
+	else
+	  break;
+      }
+
+      if ( rd >= MIN_RAND_SEED_LEN )
+      { DEBUG(1, Sdprintf("Seed random using %ld bytes from /dev/random\n",
+			  (long)n));
+
+	LD->gmp.persistent++;
+	mpz_init(seed);
+	mpz_import(seed, n, 1, sizeof(char), 0, 0, seedarray);
+	gmp_randseed(LD->arith.random.state, seed);
+	mpz_clear(seed);
+	LD->gmp.persistent--;
+
+	done = TRUE;
+      }
+    }
+
+    close(fd);
+  }
+#endif
+
+  if ( !done )
+  { LD->gmp.persistent++;
+    gmp_randseed_ui(LD->arith.random.state,
+		    (unsigned long)time(NULL));
+    LD->gmp.persistent--;
+  }
+}
+#endif /*O_GMP*/
+
+static void
+init_random(ARG1_LD)
+{
+#ifdef O_GMP
+  if ( !LD->arith.random.initialised )
+  { LD->gmp.persistent++;
+    gmp_randinit_default(LD->arith.random.state);
+    LD->arith.random.initialised = TRUE;
+    seed_random(PASS_LD1);
+    LD->gmp.persistent--;
+  }
+#endif
+}
+
+
+static
+PRED_IMPL("set_random", 1, set_random, 0)
+{ PRED_LD
+  atom_t name;
+  int arity;
+
+  init_random(PASS_LD1);
+
+  if ( PL_get_name_arity(A1, &name, &arity) && arity == 1 )
+  { term_t arg = PL_new_term_ref();
+
+    _PL_get_arg(1, A1, arg);
+    if ( name == ATOM_seed )
+    { atom_t a;
+
+      if ( PL_get_atom(arg, &a) && a == ATOM_random )
+      { seed_random(PASS_LD1);
+      } else
+      { number n;
+
+	if ( !PL_get_number(a, &n) )
+	  return PL_error(NULL, 0, "integer or 'random'",
+			  ERR_TYPE, ATOM_seed, a);
+	switch(n.type)
+	{ case V_INTEGER:
+	    gmp_randseed_ui(LD->arith.random.state,
+			    (unsigned long)time(NULL));
+	    break;
+	  case V_MPZ:
+	    gmp_randseed(LD->arith.random.state, n.value.mpz);
+	    break;
+	  default:
+	    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_seed, a);
+	}
+      }
+    } else
+    { PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_random_option, A1);
+    }
+  } else
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_random_option, A1);
+  }
+
+  succeed;
+}
+
+
 static int
 ar_random(Number n1, Number r)
-{ uint64_t bound;
+{ GET_LD
 
   if ( !toIntegerNumber(n1, TOINT_CONVERT_FLOAT) )
     return PL_error("random", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+  if ( ar_sign_i(n1) <= 0 )
+    return mustBePositive("random", 1, n1);
+
+  init_random(PASS_LD1);
 
   switch(n1->type)
   {
 #ifdef O_GMP
+    case V_INTEGER:
+      promoteToMPZNumber(n1);
+      assert(n1->type == V_MPZ);
+      /*FALLTHROUGH*/
     case V_MPZ:
-    { int64_t i;
+    { r->type = V_MPZ;
+      mpz_init(r->value.mpz);
+      mpz_urandomm(r->value.mpz, LD->arith.random.state, n1->value.mpz);
 
-      if ( !mpz_to_int64(n1->value.mpz, &i) )
-	return PL_error("random", 1, NULL, ERR_REPRESENTATION, ATOM_integer);
-      if ( i < 1 )
-	return mustBePositive("random", 1, n1);
-      bound = (uint64_t)i;
-      break;
+      succeed;
     }
-#endif
+#else
     case V_INTEGER:
       if ( n1->value.i < 1 )
 	return mustBePositive("random", 1, n1);
-      bound = (uint64_t)n1->value.i;
-      break;
+      r->value.i = _PL_Random() % (uint64_t)n1->value.i;
+      r->type = V_INTEGER;
+
+      succeed;
+#endif
     default:
       assert(0);
       fail;
   }
-
-  r->value.i = _PL_Random() % bound;
-  r->type = V_INTEGER;
-
-  succeed;
 }
 
 
@@ -3147,4 +3289,5 @@ BeginPredDefs(arith)
   PRED_DEF("succ", 2, succ, 0)
   PRED_DEF("plus", 3, plus, 0)
   PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("set_random", 1, set_random, 0)
 EndPredDefs

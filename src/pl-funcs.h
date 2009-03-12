@@ -145,6 +145,7 @@ COMMON(void)		pushArithStack(Number n ARG_LD);
 COMMON(void)		resetArithStack(ARG1_LD);
 COMMON(Number)		argvArithStack(int n ARG_LD);
 COMMON(void)		popArgvArithStack(int n ARG_LD);
+COMMON(void)		freeArithLocalData(PL_local_data_t *ld);
 COMMON(int)		ar_sign_i(Number n1);
 COMMON(int)		PL_eval_expression_to_int64_ex(term_t t, int64_t *val);
 

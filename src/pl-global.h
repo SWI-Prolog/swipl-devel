@@ -391,7 +391,8 @@ struct PL_local_data
 
 #ifdef O_GMP
   struct
-  { size_t	allocated;		/* memory allocated */
+  { int		persistent;		/* do persistent operations */
+    size_t	allocated;		/* memory allocated */
     ar_context *context;		/* current allocation context */
     mp_mem_header *head;		/* linked list of allocated chunks */
     mp_mem_header *tail;
@@ -434,6 +435,12 @@ struct PL_local_data
       Number	top;
       Number	max;
     } stack;
+#ifdef O_GMP
+    struct
+    { gmp_randstate_t state;
+      int initialised;
+    } random;
+#endif
   } arith;
 
 #if O_CYCLIC

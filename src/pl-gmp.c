@@ -70,6 +70,9 @@ mp_alloc(size_t bytes)
 { GET_LD
   mp_mem_header *mem;
 
+  if ( LD->gmp.persistent )
+    return malloc(bytes);
+
   if ( TOO_BIG_GMP(bytes) ||
        !(mem = malloc(sizeof(mp_mem_header)+bytes)) )
   { gmp_too_big();
@@ -98,9 +101,12 @@ mp_alloc(size_t bytes)
 static void *
 mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 { GET_LD
-  mp_mem_header *oldmem = ((mp_mem_header*)ptr)-1;
-  mp_mem_header *newmem;
+  mp_mem_header *oldmem, *newmem;
 
+  if ( LD->gmp.persistent )
+    return realloc(ptr, newsize);
+
+  oldmem = ((mp_mem_header*)ptr)-1;
   if ( TOO_BIG_GMP(newsize) ||
        !(newmem = realloc(oldmem, sizeof(mp_mem_header)+newsize)) )
   { gmp_too_big();
@@ -131,7 +137,12 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 static void
 mp_free(void *ptr, size_t size)
 { GET_LD
-  mp_mem_header *mem = ((mp_mem_header*)ptr)-1;
+  mp_mem_header *mem;
+
+  if ( LD->gmp.persistent )
+    return free(ptr);
+
+  mem = ((mp_mem_header*)ptr)-1;
 
   if ( mem == LD->gmp.head )
   { LD->gmp.head = LD->gmp.head->next;
