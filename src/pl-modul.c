@@ -410,8 +410,9 @@ pl_current_module(term_t module, term_t file, control_t h)
       e = ForeignContextPtr(h);
       get_existing_source_file(file, &sf PASS_LD);
       break;
-    default:
-      assert(0);
+    case FRG_CUTTED:
+      freeTableEnum(e);
+      succeed;
   }
 
   while( (symb = advanceTableEnum(e)) )
