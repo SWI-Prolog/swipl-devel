@@ -47,7 +47,7 @@ That is late or lost delivery or   reply,  but not senseless delivery or
 reply. The present algorithm takes advantage of the convenience offered
 by multicast to the quorum's membership, who can remain anonymous and
 who can come and go as they please without effecting Liveness or
-Progress properties.
+Safety properties.
 
 Paxos' quorum is a set of one or more attentive members, whose
 processes respond to queries within some known time limit (< 20ms),
