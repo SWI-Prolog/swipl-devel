@@ -62,7 +62,7 @@ multicast  addressing  facility.  The  principal  functors  =tipc_node=,
 =tipc_cluster=, and =tipc_zone=, specify the scope of the broadcast. The
 functor =tipc_node=, specifies that the broadcast   is to be confined to
 members  of  a  present   TIPC    node.   Likewise,  =tipc_cluster=  and
-=tipc_zone=, specifiy that the traffic should  be confined to members of
+=tipc_zone=, specify that the traffic should  be confined to members of
 a present TIPC cluster and zone,  respectively. To prevent the potential
 for feedback loops, the scope  qualifier   is  stripped from the message
 before transmission. See library module tipc.pl, for more information.
@@ -96,7 +96,7 @@ It is also  possible  to  carry  on   a  private  dialog  with  a single
 responder. To do this, you supply a   compound of the form, Term:PortId,
 to a TIPC scoped broadcast/1 or broadcast_request/1, where PortId is the
 port-id of the intended listener.  If   you  supply an unbound variable,
-PortId, to broadcast_request, it will  be   unified  with the address of
+PortId, to broadcast_request, it will be unified with the address of the
 listener that responds to Term. You may   send a directed broadcast to a
 specific  member  by  simply  providing  this  address  in  a  similarly
 structured compound to a TIPC scoped   broadcast/1.  The message is sent
@@ -162,7 +162,7 @@ and subtle differences that must be taken into consideration:
     broadcast_request/1 is sent, then the sender balks for a period of
     time (default: 250 ms) while the replies are collected. Any reply
     that is received after this period is silently discarded. An
-    optional second argument is provided so that a sender may specifiy
+    optional second argument is provided so that a sender may specify
     more (or less) time for replies. 
 
     * Replies are collected using findall/3, then the list of replies
