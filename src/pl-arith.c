@@ -559,7 +559,11 @@ freeArithLocalData(PL_local_data_t *ld)
     PL_free(ld->arith.stack.base);
 #ifdef O_GMP
   if ( ld->arith.random.initialised )
-  { ld->gmp.persistent++;
+  { DEBUG(0, { GET_LD
+	       assert(ld == LD);
+	     });
+
+    ld->gmp.persistent++;
     gmp_randclear(ld->arith.random.state);
     ld->gmp.persistent--;
     ld->arith.random.initialised = FALSE;
@@ -2628,10 +2632,9 @@ ar_truncate(Number n1, Number r)
 #define RAND_SEED_LEN 128
 #define MIN_RAND_SEED_LEN 16
 
-static void
-seed_random(ARG1_LD)
+static int
+seed_from_dev(const char *dev ARG_LD)
 { int done = FALSE;
-
 #ifdef S_ISCHR
   int fd;
 
@@ -2670,7 +2673,14 @@ seed_random(ARG1_LD)
   }
 #endif /*S_ISCHR*/
 
-  if ( !done )
+  return done;
+}
+
+
+static void
+seed_random(ARG1_LD)
+{ if ( !seed_from_dev("/dev/urandom" PASS_LD) &&
+       !seed_from_dev("/dev/random" PASS_LD) )
   { LD->gmp.persistent++;
     gmp_randseed_ui(LD->arith.random.state,
 		    (unsigned long)time(NULL));
