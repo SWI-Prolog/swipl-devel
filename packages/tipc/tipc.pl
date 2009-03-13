@@ -207,10 +207,10 @@ pattern. For an overview, please see: tipc_overview.txt.
 %	  feature allows an application to gracefully exit from service.
 %	  Because the socket remains open, the application may continue
 %	  to service current transactions to completion. TIPC however,
-%	  will not schedule any new work for the server instance and
-%	  will redirect any work in queue for it to others. If no other
-%	  servers are available, the work will be rejected or dropped
-%	  according to the socket options specified by the client.
+%	  will not schedule any new work for the server instance. If no
+%	  other servers are available, the work will be rejected or
+%	  dropped according to the socket options specified by the
+%	  client.
 %	  
 %	 Connection-oriented, byte-stream services are  implemented with
 %	 this predicate combined with   tipc_listen/2 and tipc_accept/3.
