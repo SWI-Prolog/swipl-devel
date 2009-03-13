@@ -1,3 +1,13 @@
+[Mar 12 2009]
+
+ * FIXED: Avoid race condition in session management.  Jacco van Ossenbruggen.
+   
+ * MODIFIED: Renamed concat_atom/2,3 into atomic_list_concat/2,3 for compatibility.  Moved the old predicates into library(backcomp).  It is adviced to update your code, but 99% of the code will remain working because the old definitions are autoloaded.
+   
+[Feb 27 2009]
+
+ * FIXED: http_current_server/2 was broken with meta_predicate introduction.
+   
 [Feb 25 2009]
 
  * ENHANCED: Use a cache for http_in_session/1 to avoid repetitive access to the CGI stream object.
