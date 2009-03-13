@@ -36,8 +36,8 @@ aspects of the application may be  segregated, and then delegated and/or
 duplicated over several machines on  the   same  LAN. The application is
 unaware of the topology of the network on  which it is running. It could
 be a few threads  operating  in   the  same  process,  several processes
-operating on the same machine, or it   could  dozens or even hundreds of
-machines operating on the same  LAN,  all   operating  as  a  unit. TIPC
+operating on the same machine, or it could be dozens or even hundreds of
+machines operating on the same LAN, all operating as a unit. TIPC
 manages all of this complexity so that the programmer doesn't have to. 
 
 Unlike TCP/IP, TIPC  does  not  assign   network  addresses  to  network
@@ -55,7 +55,7 @@ it is bound to, and that a client   may use to establish a communication
 with a service, and its private address that the server instance may use
 to directly interact with a client instance. 
 
-TIPC also enables multicast and "publish   and  subscribe" regimes that
+TIPC also enables multicast and  "publish   and  subscribe" regimes that
 applications may use to facilitate   asynchronous  exchange of datagrams
 with a number of anonymous sources that may   come and go over time. One
 such regime is implemented as a naming  service managed by a distributed
@@ -63,12 +63,12 @@ topology server. The  topology  server   provides  surveillance  on  the
 comings and goings of publishers, with  advice to interested subscribers
 in the form of event notifications,   emitted  when a publisher's status
 changes. For example, when a server application  binds to a TIPC address
-(e.g. a service), that address  is   automatically  associated with that
-server instance in topology  server's  name   table.  This  has the side
-effect of causing a "published" event to   be  emitted to all interested
-subscribers. Conversely, when the server's socket  is closed or when one
-of its addresses is released using the "no-scope" option of tipc_bind/3,
-a "withdrawn" event is emitted. See tipc_service_port_monitor/2. 
+, that address is automatically associated  with that server instance in
+topology server's name table. This has  the   side  effect  of causing a
+"published"  event  to  be  emitted    to  all  interested  subscribers.
+Conversely, when the server's socket  is  closed   or  when  one  of its
+addresses is released using the  "no-scope"   option  of  tipc_bind/3, a
+"withdrawn" event is emitted. See tipc_service_port_monitor/2. 
 
 A client application may connect to  the   topology  server  in order to
 interrogate the name table to determine  whether   or  not  a service is
@@ -89,7 +89,7 @@ Adding capacity to a cluster becomes  an administrative function whereby
 new server hardware is  added  to  a   TIPC  network,  then  the desired
 application is launched on the new server. The application binds to
 its well-known address, thereby joining in the Cluster. TIPC will
-automatically begin sending work to it. An adminstrator has tools for
+automatically begin sending work to it. An administrator has tools for
 gracefully removing a server from a Cluster, without effecting the
 traffic moving on the Cluster.
 
@@ -103,19 +103,19 @@ network features such as automatic link fail-over and hot-swap.
     * name(+Type, +Instance, +Domain)
     A TIPC name address is used by   servers  to advertise themselves as
     services in unicast applications, and is  used by clients to connect
-    to unicast services. Type, Instance and Domain are positive integers
-    that are unique to a service.
+    to unicast services. Type, Instance, and Domain are positive
+    integers that are unique to a service.
     
     * name_seq(+Type, +Lower, +Upper)
-    A TIPC name_seq is  used  by   servers  to  advertise  themselves as
-    services in  multicast and  "publish   and  subscribe" applications.
-    Lower and Upper represent a range of instance addresses. Each server
-    will receive exactly  one  datagram  from   a  client  that  sends a
-    name_seq address that matches the server's Type, and where its Lower
-    and Upper instance range intersects  the   Lower  and Upper instance
-    range bound to the server. Clients may   send  a datagram to any and
-    all  interested  servers  by  providing  an  appropriate  name_seq/3
-    address to tipc_send/4. 
+    A TIPC name-sequence address is used by servers to advertise
+    themselves as services in multicast and "publish and subscribe"
+    applications. Lower and Upper represent a range of instance
+    addresses. Each server will receive exactly one datagram from a
+    client that sends a name-sequence address that matches the server's
+    Type, and where its Lower and Upper instance range intersects the
+    Lower and Upper instance range bound to the server. Clients may send
+    a datagram to any and all interested servers by providing an
+    appropriate name-sequence address to tipc_send/4. 
     
     * port_id(+Ref, +Node)
     A TIPC port-id is the socket's private   address. It is ephemeral in
@@ -135,15 +135,15 @@ network features such as automatic link fail-over and hot-swap.
     Sometimes the socket's port-id  alone  is   enough  to  establish an
     ad-hoc session anonymously between parent   and child processes. The
     parent instantiates a socket, then  forks   into  two processes. The
-    child retrieves the port-id of the parent from socket inherited from
-    the  parent  using  tipc_get_name/2,  then  closes  the  socket  and
-    instantiates a socket of its own. The   child sends a message to the
-    parent, on its  own  socket,  using   the  parent's  port-id  as the
+    child retrieves the port-id of the parent from the socket inherited
+    from the parent using tipc_get_name/2, then closes the socket and
+    instantiates a socket of its own. The child sends a message to the
+    parent, on its own socket, using the parent's port-id as the
     destination address. The port-id received by the parent is unique to
-    a specific instance of child. The   handshake is complete; each side
+    a specific instance of child. The handshake is complete; each side
     knows who the other is, and two-way communication may now proceed. A
-    one-way communication (e.g. a message oriented   pipe or mailbox) is
-    also possible using only  the  socket   inherited  from  the parent,
-    provided that there is exactly one sender   and  one receiver on the
+    one-way communication (e.g. a message oriented pipe or mailbox) is
+    also possible using only the socket inherited from the parent,
+    provided that there is exactly one sender and one receiver on the
     socket. Both parent and child use the socket's own port-id, one side
     adopts the role of sender, and the other of receiver.
