@@ -3830,7 +3830,13 @@ static double
 ThreadCPUTime(PL_thread_info_t *info, int which)
 { double t;
   FILETIME created, exited, kerneltime, usertime;
-  HANDLE win_thread = pthread_getw32threadhandle_np(info->tid);
+  HANDLE win_thread;
+
+  __try					/* sometimes appears to fail ... */
+  { win_thread = pthread_getw32threadhandle_np(info->tid);
+  } __except(EXCEPTION_EXECUTE_HANDLER)
+  { return 0.0;
+  }
 
   if ( GetThreadTimes(win_thread,
 		      &created, &exited, &kerneltime, &usertime) )
