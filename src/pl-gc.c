@@ -1525,7 +1525,7 @@ sweep_global_mark(Word *m ARG_LD)
       alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL PASS_LD);
       return;
     } else if ( storage(*prev) == STG_LOCAL )
-    { long offset = offset_cell(prev);
+    { size_t offset = offset_cell(prev);
       prev -= offset;
       if ( is_marked_or_first(prev) )
 	goto found;

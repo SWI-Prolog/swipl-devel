@@ -142,7 +142,7 @@ getClauses(Definition def, ClauseRef *refp0)
       *refp++ = cref;
   }
 
-  return refp - refp0;
+  return (int)(refp - refp0);
 }
 
 

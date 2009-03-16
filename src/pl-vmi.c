@@ -1665,7 +1665,7 @@ if the choice-point needs to be activated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_OR, 0, 1, (CA1_JUMP))
-{ int skip = *PC++;
+{ size_t skip = *PC++;
   Choice ch = newChoice(CHP_JUMP, FR PASS_LD);
   ch->value.PC = PC+skip;
   ARGP = argFrameP(lTop, 0);
@@ -2686,7 +2686,7 @@ VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_VAR)) /* A is B */
 #endif
 
 BEGIN_SHAREDVARS
-volatile int rc;			/* make gcc quiet on non-initialised */
+volatile word rc;			/* make gcc quiet on non-initialised */
 volatile fid_t ffr_id;
 
 VMI(I_FOPEN, 0, 0, ())
@@ -2869,7 +2869,7 @@ VMI(I_FEXITDET, 0, 0, ())
     { fid_t fid = PL_open_foreign_frame();
       term_t ex = PL_new_term_ref();
 
-      PL_put_integer(ex, rc);
+      PL_put_intptr(ex, rc);
       PL_error(NULL, 0, NULL, ERR_DOMAIN,
 	       ATOM_foreign_return_value, ex);
       PL_close_foreign_frame(fid);

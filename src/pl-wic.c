@@ -542,7 +542,7 @@ getFloat(IOSTREAM *fd)
 
 static int
 getInt32(IOSTREAM *s)
-{ word v;
+{ int v;
 
   v  = (Sgetc(s) & 0xff) << 24;
   v |= (Sgetc(s) & 0xff) << 16;

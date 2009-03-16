@@ -140,7 +140,9 @@ mp_free(void *ptr, size_t size)
   mp_mem_header *mem;
 
   if ( LD->gmp.persistent )
-    return free(ptr);
+  { free(ptr);
+    return;
+  }
 
   mem = ((mp_mem_header*)ptr)-1;
 

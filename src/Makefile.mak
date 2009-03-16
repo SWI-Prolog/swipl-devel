@@ -169,7 +169,7 @@ $(STREAMH):	SWI-Stream.h $(INCLUDEDIR)
 $(OBJ):		pl-vmi.h
 pl-funct.obj:	pl-funct.ih
 pl-atom.obj:	pl-funct.ih
-pl-wam.obj:	pl-alloc.c pl-index.c pl-fli.c pl-jumptable.ic
+pl-wam.obj:	pl-vmi.c pl-alloc.c pl-index.c pl-fli.c pl-jumptable.ic
 pl-stream.obj:	popen.c
 
 # this should be pl-vmi.h, but that causes a recompile of everything.

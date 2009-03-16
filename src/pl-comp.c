@@ -3177,7 +3177,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case A_EQ:	    f = FUNCTOR_ar_equals2;	goto f_common;
 	case A_NE:	    f = FUNCTOR_ar_not_equal2;	goto f_common;
 	case A_FIRSTVAR_IS:
-			  { int index;
+			  { size_t index;
 			    index = *PC++;
 			    ARGP[0] = ARGP[-1];
 			    ARGP[-1] = makeVarRef(index);
@@ -3788,7 +3788,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
     { size_t i = CTX_INT;
 
       PC += i >> 3;
-      an = i & 0x7;
+      an = (int)i & 0x7;
     } else
     { an = 0;
     }
@@ -3932,7 +3932,7 @@ unify_vmi(term_t t, Clause clause, Code bp)
       return NULL;
   } else
   { const char *ats = codeTable[op].argtype;
-    term_t av = PL_new_term_refs(strlen(ats));
+    term_t av = PL_new_term_refs((int)strlen(ats));
     int an;
 
     for(an=0; ats[an]; an++)
@@ -4326,7 +4326,7 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   struct clause clause;
   Clause cl;
   Module module = NULL;
-  int size;
+  size_t size;
   
   if ( !get_procedure(A1, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
     fail;

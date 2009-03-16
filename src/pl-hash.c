@@ -73,7 +73,7 @@ MurmurHashAligned2(const void *key, size_t len, unsigned int seed)
 { const unsigned int m = 0x5bd1e995;
   const int r = 24;
   const unsigned char * data = (const unsigned char *)key;
-  unsigned int h = seed ^ len;
+  unsigned int h = seed ^ (unsigned int)len;
   size_t align = (size_t)(uintptr_t)data & 3;
 
   DEBUG(0, assert(sizeof(int) == 4));
@@ -93,8 +93,8 @@ MurmurHashAligned2(const void *key, size_t len, unsigned int seed)
     data += 4-align;
     len -= 4-align;
 
-    sl = 8 * (4-align);
-    sr = 8 * align;
+    sl = 8 * (4-(int)align);
+    sr = 8 * (int)align;
 
     while ( len >= 4 )
     { unsigned int k;
