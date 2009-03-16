@@ -1078,6 +1078,16 @@ ar_add_ui(Number n, intptr_t add)
 
       succeed;
     }
+    case V_MPQ:
+    { if ( add > 0 )
+	mpz_addmul_ui(mpq_numref(n->value.mpq), mpq_denref(n->value.mpq),
+		      (unsigned long)add);
+      else
+	mpz_submul_ui(mpq_numref(n->value.mpq), mpq_denref(n->value.mpq),
+		      (unsigned long)add);
+
+      succeed;
+    }
 #endif
     case V_FLOAT:
     { n->value.f += (double)add;

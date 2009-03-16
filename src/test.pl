@@ -519,6 +519,8 @@ idiv(Dd,Dr,Iq):-
         rational(Q,Qt,Qn),
         Iq is Qt//Qn.
 
+dec(X, Y) :-
+	Y is X - 1.
 
 gmp(add-promote1) :-
 	A is 1 + 9223372036854775807,
@@ -634,6 +636,9 @@ gmp(rational-1) :-				% IEEE can represent 0.25
 gmp(rational-2) :-
 	A is 2 rdiv 4,
 	rational(A, 1, 2).
+gmp(rational-3) :-
+	dec(6 rdiv 5, X),
+	X == 1 rdiv 5.
 gmp(rationalize-1) :-
 	A is rationalize(0.0), A == 0,
 	B is rationalize(0.1), B == 1 rdiv 10,
