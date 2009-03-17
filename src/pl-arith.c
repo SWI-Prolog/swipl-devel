@@ -1084,7 +1084,7 @@ ar_add_ui(Number n, intptr_t add)
 		      (unsigned long)add);
       else
 	mpz_submul_ui(mpq_numref(n->value.mpq), mpq_denref(n->value.mpq),
-		      (unsigned long)add);
+		      (unsigned long)-add);
 
       succeed;
     }
