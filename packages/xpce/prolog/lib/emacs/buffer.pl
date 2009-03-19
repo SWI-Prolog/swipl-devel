@@ -43,11 +43,13 @@ variable(directory,	  directory,	both, "Associated CWD").
 variable(file,		  file*,	get,  "Associated file").
 variable(mode,		  name,		get,  "Major mode of operation").
 variable(time_stamp,	  date*,	get,  "Time-stamp for file").
-variable(ensure_newline,  bool,		both, "Add newline when done").
+variable(ensure_newline,  bool := @on,	both, "Add newline when done").
+variable(ensure_no_whitespace_errors,
+			  bool,  	both, "Remove trailing whitespace when done").
 variable(auto_save_mode,  bool,		both, "Auto-save?").
 variable(auto_save_count, number,	get,  "Auto-save at expiration").
 variable(saved_caret,	  int,		both, "Saved caret on last quit").
-variable(saved_fill,	  bool,		both, "Saved fill_mode on quit").
+variable(saved_fill,	  bool := @off,	both, "Saved fill_mode on quit").
 variable(pool,		  [name],	both, "Window pool I belong too").
 variable(margin_width,	  '0..' := 0,	get,  "Margin width of editors").
 variable(coloured_generation,
@@ -60,6 +62,7 @@ variable(xref_generation,
 	 "Last generation we analysed").
 
 class_variable(undo_buffer_size,      int, 40000).
+class_variable(ensure_no_whitespace_errors, bool, @on).
 class_variable(newline_existing_file, {posix,dos,detect}, detect).
 class_variable(newline_new_file,      {posix,dos},        posix).
 :- if(current_prolog_flag(windows, true)).
@@ -104,8 +107,6 @@ initialise(B, File:file*, Name:[name]) :->
 	),
 
 	send(B, slot, auto_save_count, number(300)),
-	send(B, saved_fill, @off),
-	send(B, ensure_newline, @on),
 	send(B, name, BufBaseName).
 
 
@@ -289,13 +290,11 @@ save(B, File:[file]) :->
 	    send(@emacs_base_names, append, File?base_name, B)
 	),
 	(   get(B, ensure_newline, @on)
-	->  get(B, size, Size),
-	    (	(   Size == 0
-		;   get(B, character, Size-1, 10)
-		)
-	    ->	true
-	    ;	send(B, append, string('\n'))
-	    )
+	->  send(B, complete_last_line)
+	;   true
+	),
+	(   get(B, ensure_no_whitespace_errors, @on)
+	->  send(B, fix_whitespace_errors)
 	;   true
 	),
 	(   get(@emacs_no_backup_list, find,
@@ -308,6 +307,29 @@ save(B, File:[file]) :->
 	(   object(@emacs_mark_list)
 	->  ignore(send(@emacs_mark_list, saved_buffer, B))
 	;   true
+	).
+
+complete_last_line(B) :->
+	"Add \\n if needed"::
+	get(B, size, Size),
+	(   (   Size == 0
+	    ;   get(B, character, Size-1, 10)
+	    )
+	->  true
+	;   send(B, append, string('\n'))
+	).
+
+fix_whitespace_errors(B) :->
+	"Remove trailing spaces and tabs from lines"::
+	new(Re, regex('[ \t]+\n')),
+	new(Count, number(0)),
+	send(Re, for_all, B,
+	     and(message(@arg1, replace, @arg2, '\n'),
+		 message(Count, plus, 1))),
+	(   get(Count, value, 0)
+	->  true
+	;   send(B, report, status,
+		 'Fixed %d whitespace errors', Count)
 	).
 
 
